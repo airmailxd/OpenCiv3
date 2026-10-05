@@ -50,19 +50,27 @@ public partial class HotseatHandoff : ColorRect {
 			CustomMinimumSize = new Vector2(200, 48),
 		};
 		button.AddThemeFontSizeOverride("font_size", 20);
-		button.Pressed += Continue;
+		button.Pressed += () => Continue(button);
 		box.AddChild(button);
 
 		button.CallDeferred(Control.MethodName.GrabFocus);
 	}
 
-	private void Continue() {
+	private async void Continue(Button button) {
+		button.Disabled = true;
+		button.ReleaseFocus();
+
+		// Wait for the next frame before continuing. Otherwise the key press
+		// that activated the button (e.g. Enter) would still read as "just
+		// pressed" by the game's input polling once the player's turn has
+		// started, and could immediately trigger an action such as ending the
+		// turn.
+		//
+		// This deliberately doesn't use Callable.From(onContinue).CallDeferred():
+		// a callable made from a lambda that isn't bound to a GodotObject has no
+		// target object, and Godot silently drops deferred calls without one.
+		await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
 		QueueFree();
-		// Defer the callback until the end of the frame. Otherwise the key
-		// press that activated the button (e.g. Enter) would still read as
-		// "just pressed" by the game's input polling once the player's turn
-		// has started, and could immediately trigger an action such as
-		// ending the turn.
-		Callable.From(onContinue).CallDeferred();
+		onContinue();
 	}
 }
