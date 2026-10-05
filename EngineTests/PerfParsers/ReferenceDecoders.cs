@@ -7,7 +7,8 @@ using Blast;
 namespace EngineTests.PerfParsers;
 
 // Verbatim (apart from naming and plumbing) copies of the original, unoptimized decoders. The optimized
-// implementations must produce exactly the same output, so the tests compare against these.
+// implementations must produce exactly the same output, so the tests compare against these. Where the original
+// decoded something wrongly, the copy has the same correction as the real decoder, as noted on it.
 public static class ReferenceDecoders {
 	// Original QueryCiv3.Util.GetString
 	public static string GetString(byte[] bytes) {
@@ -60,8 +61,17 @@ public static class ReferenceDecoders {
 		return ColorIndices;
 	}
 
-	// Original ConvertCiv3Media.Flic.Load
-	public static byte[,][] DecodeFlic(byte[] FlicBytes, out byte[,] Palette) {
+	// The original ConvertCiv3Media.Flic.Load, with these corrections:
+	// - DELTA_FLC opcodes are told apart by their top two bits (0xC000 skip, 0x8000 last pixel), not 0xC00/0x800,
+	//   and a line may have any number of them
+	// - FLI_COPY (16) and BLACK (13) chunks are decoded, and palette chunks may have any number of skip/copy packets
+	// - every frame after the first of an animation starts as a copy of the previous one, so frames without image data
+	//   repeat it
+	// - a subchunk whose length doesn't fit in its frame ends the frame; a palette chunk is still read from the rest of it
+	// Each animation's ring frame, which turns its last frame back into its first, is decoded into ringFrames.
+	public static byte[,][] DecodeFlic(byte[] FlicBytes, out byte[,] Palette) => DecodeFlic(FlicBytes, out Palette, out _);
+
+	public static byte[,][] DecodeFlic(byte[] FlicBytes, out byte[,] Palette, out byte[][] ringFrames) {
 		Palette = new byte[256, 3];
 		int FileFormat = BitConverter.ToUInt16(FlicBytes, 4);
 		if (FileFormat != 0xaf12) {
@@ -85,36 +95,55 @@ public static class ReferenceDecoders {
 				Images[i, j] = new byte[Width * Height];
 			}
 		}
+		ringFrames = new byte[NumAnimations][];
 
 		int Offset = BitConverter.ToInt32(FlicBytes, 80);
 
 		for (int anim = 0; anim < NumAnimations; anim++) {
-			for (int f = 0; f < FramesPerAnimation; f++) {
+			for (int f = 0; f <= FramesPerAnimation; f++) {
+				byte[] image;
+				if (f < FramesPerAnimation) {
+					image = Images[anim, f];
+				} else {
+					image = new byte[Width * Height];
+					ringFrames[anim] = image;
+				}
+				if (f > 0) {
+					Array.Copy(Images[anim, f - 1], image, image.Length);
+				}
 				int ChunkLength = BitConverter.ToInt32(FlicBytes, Offset);
 				int NumSubChunks = BitConverter.ToUInt16(FlicBytes, Offset + 6);
+				int ChunkEnd = Offset + ChunkLength;
 
 				for (int i = 0, SubOffset = Offset + 16; i < NumSubChunks; i++) {
+					if (ChunkEnd - SubOffset < 6) {
+						break;
+					}
 					int SubChunkLength = BitConverter.ToInt32(FlicBytes, SubOffset);
 					int SubChunkType = BitConverter.ToUInt16(FlicBytes, SubOffset + 4);
+					bool validLength = SubChunkLength >= 6 && SubChunkLength <= ChunkEnd - SubOffset;
+					if (!validLength && SubChunkType != 4) {
+						break;
+					}
 					switch (SubChunkType) {
 						case 4:
+							// (the palette of a ring frame isn't used)
+							if (f == FramesPerAnimation) break;
 							int NumPackets = BitConverter.ToUInt16(FlicBytes, SubOffset + 6);
-							if (NumPackets != 1) {
-								throw new ApplicationException("Unable to deal with color palette with more than one packet; NumPackets = " + NumPackets);
+							for (int packet = 0, color = 0, head = SubOffset + 8; packet < NumPackets; packet++) {
+								color += FlicBytes[head];
+								int CopyCount = FlicBytes[head + 1];
+								head += 2;
+								if (CopyCount == 0) CopyCount = 256;
+								for (int c = 0; c < CopyCount; c++, color++) {
+									Palette[color, 0] = FlicBytes[head++];
+									Palette[color, 1] = FlicBytes[head++];
+									Palette[color, 2] = FlicBytes[head++];
+								}
 							}
-							int SkipCount = BitConverter.GetBytes(BitConverter.ToChar(FlicBytes, SubOffset + 8))[0];
-							if (SkipCount != 0) {
-								throw new ApplicationException("Unable to deal with color palette with non-zero SkipCount = " + SkipCount);
-							}
-							int CopyCount = BitConverter.GetBytes(BitConverter.ToChar(FlicBytes, SubOffset + 9))[0];
-							if (CopyCount != 0) {
-								throw new ApplicationException("Unable to deal with color palette with non-zero CopyCount = " + CopyCount);
-							}
-							for (int p = 0; p < 256; p++) {
-								Palette[p, 0] = FlicBytes[10 + SubOffset + p * 3];
-								Palette[p, 1] = FlicBytes[10 + SubOffset + p * 3 + 1];
-								Palette[p, 2] = FlicBytes[10 + SubOffset + p * 3 + 2];
-							}
+							break;
+						case 13:
+							Array.Clear(image);
 							break;
 						case 15:
 							for (int y = 0, x = 0, head = SubOffset + 6; y < Height; y++, x = 0) {
@@ -127,7 +156,7 @@ public static class ReferenceDecoders {
 									head++;
 									bool CopyMany = TypeSize < 0;
 									for (int foo = 0; foo < Math.Abs(TypeSize); foo++) {
-										Images[anim, f][y * Width + x] = FlicBytes[head];
+										image[y * Width + x] = FlicBytes[head];
 										x++;
 										if (CopyMany) {
 											head++;
@@ -139,27 +168,26 @@ public static class ReferenceDecoders {
 								}
 							}
 							break;
-						case 7:
-							if (f == 0) {
-								break;
+						case 16:
+							for (int p = 0; p < Width * Height; p++) {
+								image[p] = FlicBytes[SubOffset + 6 + p];
 							}
-							Array.Copy(Images[anim, f - 1], Images[anim, f], Images[anim, f].Length);
+							break;
+						case 7:
 							int NumLines = BitConverter.ToUInt16(FlicBytes, SubOffset + 6);
 							for (int Line = 0, y = 0, head = SubOffset + 8; Line < NumLines; Line++) {
 								int WordsPerLine = BitConverter.ToInt16(FlicBytes, head);
 								head += 2;
-								if ((WordsPerLine & 0xc00) == 0xc00) {
-									y += Math.Abs(WordsPerLine);
+								while ((WordsPerLine & 0xc000) != 0) {
+									if ((WordsPerLine & 0xc000) == 0xc000) {
+										y += Math.Abs(WordsPerLine);
+									} else if ((WordsPerLine & 0xc000) == 0x8000) {
+										image[Width * (y + 1) - 1] = (byte)(WordsPerLine & 0xff);
+									} else {
+										throw new ApplicationException("Undefined Flic delta opcode " + ((ushort)WordsPerLine).ToString("X4"));
+									}
 									WordsPerLine = BitConverter.ToInt16(FlicBytes, head);
 									head += 2;
-								}
-								if ((WordsPerLine & 0x800) == 0x800) {
-									Images[anim, f][Width * (y + 1) - 1] = (byte)(WordsPerLine & 0xff);
-									WordsPerLine = BitConverter.ToInt16(FlicBytes, head);
-									head += 2;
-								}
-								if ((WordsPerLine & 0xc00) != 0) {
-									throw new ApplicationException("WordsPerLine high bits set: " + WordsPerLine);
 								}
 								for (int packet = 0, x = 0; packet < WordsPerLine; packet++) {
 									x += FlicBytes[head];
@@ -168,8 +196,8 @@ public static class ReferenceDecoders {
 									bool Positive = NumWords > 0;
 									head++;
 									for (int ii = 0; ii < Math.Abs(NumWords); ii++) {
-										Images[anim, f][Width * y + x] = FlicBytes[head];
-										Images[anim, f][Width * y + x + 1] = FlicBytes[head + 1];
+										image[Width * y + x] = FlicBytes[head];
+										image[Width * y + x + 1] = FlicBytes[head + 1];
 										if (Positive) { head += 2; }
 										x += 2;
 									}
@@ -181,12 +209,13 @@ public static class ReferenceDecoders {
 						default:
 							break;
 					}
+					if (!validLength) {
+						break;
+					}
 					SubOffset += SubChunkLength;
 				}
 				Offset += ChunkLength;
 			}
-			int RingChunkLength = BitConverter.ToInt32(FlicBytes, Offset);
-			Offset += RingChunkLength;
 		}
 		return Images;
 	}

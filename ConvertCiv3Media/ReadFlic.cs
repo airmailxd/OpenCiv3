@@ -38,13 +38,21 @@ namespace ConvertCiv3Media {
 			this.Load(path);
 		}
 
+		// Frame subchunk types; see the FLC format description linked above
+		private const int COLOR_256 = 4;
+		private const int DELTA_FLC = 7;
+		private const int BLACK = 13;
+		private const int BYTE_RUN = 15;
+		private const int FLI_COPY = 16;
+		private const int PSTAMP = 18;
+		private const int CHUNK_HEADER_SIZE = 16;
+		private const int SUBCHUNK_HEADER_SIZE = 6;
+
 		public void Load(string path) {
 			byte[] FlicBytes = File.ReadAllBytes(path);
 
 			FlicHeader header = FlicHeader.Parse(FlicBytes);
 
-			// TODO: this may not be right for Civ3 FLCs
-			int NumFrames = header.NumFrames;
 			this.Width = header.Width;
 			this.Height = header.Height;
 
@@ -82,137 +90,232 @@ namespace ConvertCiv3Media {
 				// Flic frames loop
 				for (int f = 0; f < this.FramesPerAnimation; f++) {
 					byte[] frame = this.Images[anim, f];
+					// A frame only describes how it differs from the previous one: a delta changes some of its pixels, and a
+					// frame without any image data (e.g. the second frame of some scenario leaderheads) is the same.
+					// The first frame of each animation is drawn from scratch; in Civ3 files it is always a full frame.
+					if (f > 0) {
+						Array.Copy(this.Images[anim, f - 1], frame, frame.Length);
+					}
 
-					// Frame chunk headers should be 0xF1Fa; prefix chunk header is 0xF100
-					// TODO: add exceptions if the headers don't match?
-					int ChunkLength = BitConverter.ToInt32(FlicBytes, Offset);
-					int Chunktype = BitConverter.ToUInt16(FlicBytes, Offset + 4);
-					int NumSubChunks = BitConverter.ToUInt16(FlicBytes, Offset + 6);
+					// Frame chunk headers should be 0xF1FA
+					int ChunkLength = ReadInt32(FlicBytes, Offset);
+					int NumSubChunks = ReadUInt16(FlicBytes, Offset + 6);
+					if (ChunkLength < CHUNK_HEADER_SIZE || ChunkLength > FlicBytes.Length - Offset) {
+						throw new InvalidDataException($"Flic frame chunk at {Offset} has an invalid length {ChunkLength}");
+					}
+					int ChunkEnd = Offset + ChunkLength;
 
-					// Chunk loop; I may be mixing up chunks, frames and subchunks in var names
-					for (int i = 0, SubOffset = Offset + 16; i < NumSubChunks; i++) {
-						int SubChunkLength = BitConverter.ToInt32(FlicBytes, SubOffset);
-						int SubChunkType = BitConverter.ToUInt16(FlicBytes, SubOffset + 4);
+					// Subchunk loop
+					for (int i = 0, SubOffset = Offset + CHUNK_HEADER_SIZE; i < NumSubChunks; i++) {
+						if (ChunkEnd - SubOffset < SUBCHUNK_HEADER_SIZE) {
+							log.Debug("Ignoring the rest of the Flic frame at {offset} in {path}: it has fewer subchunks than it says", Offset, path);
+							break;
+						}
+						int SubChunkLength = ReadInt32(FlicBytes, SubOffset);
+						int SubChunkType = ReadUInt16(FlicBytes, SubOffset + 4);
+						bool validLength = SubChunkLength >= SUBCHUNK_HEADER_SIZE && SubChunkLength <= ChunkEnd - SubOffset;
+						if (!validLength) {
+							// The palette chunks of Civ3 Flics don't have their length filled in (it is uninitialized memory,
+							// 0xCDCDCDCD), and many unit Flics count one more subchunk than their frames have, which is also
+							// uninitialized. A palette is decoded from the rest of the frame; either way, nothing in the frame
+							// after the bad subchunk can be found.
+							if (SubChunkType != COLOR_256) {
+								log.Debug("Ignoring the rest of the Flic frame at {offset} in {path}: its subchunk at {subOffset} has an invalid length {length}", Offset, path, SubOffset, SubChunkLength);
+								break;
+							}
+							SubChunkLength = ChunkEnd - SubOffset;
+						}
+						// The subchunk's data, which decoding never reads beyond
+						ReadOnlySpan<byte> data = new ReadOnlySpan<byte>(FlicBytes, SubOffset + SUBCHUNK_HEADER_SIZE, SubChunkLength - SUBCHUNK_HEADER_SIZE);
 						switch (SubChunkType) {
-							case 4:
-								// Palette chunk
-								int NumPackets = BitConverter.ToUInt16(FlicBytes, SubOffset + 6);
-								if (NumPackets != 1) {
-									throw new ApplicationException("Unable to deal with color palette with more than one packet; NumPackets = " + NumPackets);
-								}
-								int SkipCount = FlicBytes[SubOffset + 8];
-								if (SkipCount != 0) {
-									throw new ApplicationException("Unable to deal with color palette with non-zero SkipCount = " + SkipCount);
-								}
-								int CopyCount = FlicBytes[SubOffset + 9];
-								if (CopyCount != 0) {
-									throw new ApplicationException("Unable to deal with color palette with non-zero CopyCount = " + CopyCount);
-								}
-								// 256 red, green, blue triplets, in the same order as Palette[p, 0..2]
-								CheckRange(FlicBytes, 10 + SubOffset, 256 * 3);
-								Buffer.BlockCopy(FlicBytes, 10 + SubOffset, this.Palette, 0, 256 * 3);
+							case COLOR_256:
+								DecodeColor256(data, this.Palette);
 								break;
-							case 15:
-								// run-length-encoded full frame chunk
-								for (int y = 0, head = SubOffset + 6; y < height; y++) {
-									// first byte of row is obsolete
-									head++;
-									int rowStart = y * width;
-									for (int x = 0; x < width;) {
-										int TypeSize = (sbyte)FlicBytes[head];
-										// TypeSize == 0 makes no sense, something is wrong
-										if (TypeSize == 0) {
-											throw new ApplicationException("TypeSize is 0");
-										}
-										head++;
-										// If TypeSize is negative, copy abs(TypeSize) following bytes
-										// If TypeSize is positive, repeat the next byte TypeSize times
-										if (TypeSize < 0) {
-											int count = -TypeSize;
-											CopyBytes(FlicBytes, head, frame, rowStart + x, count);
-											head += count;
-											x += count;
-										} else {
-											FillBytes(frame, rowStart + x, TypeSize, FlicBytes[head]);
-											x += TypeSize;
-											// We were repeating a byte and are still pointing at it; advance head
-											head++;
-										}
-									}
-								}
+							case BYTE_RUN:
+								DecodeByteRun(data, frame, width, height);
 								break;
-							case 7:
-								// TODO: figure out why frame 0 gets overwritten
-								if (f == 0) {
-									break;
+							case DELTA_FLC:
+								DecodeDeltaFlc(data, frame, width, height);
+								break;
+							case FLI_COPY:
+								// The whole frame, uncompressed
+								if (data.Length < ImageLength) {
+									throw new InvalidDataException($"Flic FLI_COPY chunk has {data.Length} bytes, too few for a {width}x{height} frame");
 								}
-								// diff chunk
-								// Copy last frame image
-								Array.Copy(this.Images[anim, f - 1], frame, frame.Length);
-								int NumLines = BitConverter.ToUInt16(FlicBytes, SubOffset + 6);
-								for (int Line = 0, y = 0, head = SubOffset + 8; Line < NumLines; Line++) {
-									int WordsPerLine = BitConverter.ToInt16(FlicBytes, head);
-									head += 2;
-									// if two high bits are 1s, this is a special skip-lines word
-									if ((WordsPerLine & 0xc00) == 0xc00) {
-										y += Math.Abs(WordsPerLine);
-										WordsPerLine = BitConverter.ToInt16(FlicBytes, head);
-										head += 2;
-									}
-									// If two high bits are 10, this is a special word to set the last pixel for odd-length lines
-									// This may not have been tested; none of my Flics change the last pixel
-									if ((WordsPerLine & 0x800) == 0x800) {
-										frame[width * (y + 1) - 1] = (byte)(WordsPerLine & 0xff);
-										WordsPerLine = BitConverter.ToInt16(FlicBytes, head);
-										head += 2;
-									}
-									// We're out of special words; if this word has either high bit set, throw exception
-									if ((WordsPerLine & 0xc00) != 0) {
-										throw new ApplicationException("WordsPerLine high bits set: " + WordsPerLine);
-									}
-									int rowStart = width * y;
-									// I wonder if WordsPerLine should actally be PacketsPerLine
-									// Loop over the packets for this line
-									for (int packet = 0, x = 0; packet < WordsPerLine; packet++) {
-										// least significant byte of word (first byte) is columns to skip
-										x += FlicBytes[head];
-										head++;
-										// most significant byte of word (second byte) is number of words in the packet
-										int NumWords = (sbyte)FlicBytes[head];
-										head++;
-										if (NumWords > 0) {
-											// If NumWords is positive, copy NumWords following words to image
-											int count = NumWords * 2;
-											CopyBytes(FlicBytes, head, frame, rowStart + x, count);
-											head += count;
-											x += count;
-										} else {
-											// If NumWords is negative, repeat the next word abs(NumWords) times
-											// (a zero count still skips over the word)
-											int count = -NumWords;
-											if (count > 0) {
-												FillWords(frame, rowStart + x, count, FlicBytes[head], FlicBytes[head + 1]);
-												x += count * 2;
-											}
-											head += 2;
-										}
-									}
-									y++;
-								}
+								data.Slice(0, ImageLength).CopyTo(frame);
+								break;
+							case BLACK:
+								Array.Clear(frame);
+								break;
+							case PSTAMP:
+								// A thumbnail of the animation, which isn't needed
+								log.Debug("Skipping postage stamp chunk in Flic {path}", path);
 								break;
 							default:
-								// TODO: Have this throw an exception? Or maybe just keep skipping unkown chunks
-								log.Error("Subchunk not recognized: " + SubChunkType);
+								log.Warning("Flic subchunk type {type} not recognized in {path}", SubChunkType, path);
 								break;
+						}
+						if (!validLength) {
+							break;
 						}
 						SubOffset += SubChunkLength;
 					}
-					Offset += ChunkLength;
+					Offset = ChunkEnd;
 				}
 				// skip ring frame
-				int RingChunkLength = BitConverter.ToInt32(FlicBytes, Offset);
+				int RingChunkLength = ReadInt32(FlicBytes, Offset);
 				Offset += RingChunkLength;
 			}
+		}
+
+		private static int ReadInt32(byte[] bytes, int offset) {
+			if (offset < 0 || offset > bytes.Length - 4) {
+				throw new InvalidDataException($"Flic data at {offset} is past the end of the file");
+			}
+			return BitConverter.ToInt32(bytes, offset);
+		}
+
+		private static int ReadUInt16(byte[] bytes, int offset) {
+			if (offset < 0 || offset > bytes.Length - 2) {
+				throw new InvalidDataException($"Flic data at {offset} is past the end of the file");
+			}
+			return BitConverter.ToUInt16(bytes, offset);
+		}
+
+		private static int ReadUInt16(ReadOnlySpan<byte> data, ref int head) {
+			if (head > data.Length - 2) {
+				throw new IndexOutOfRangeException();
+			}
+			int value = data[head] | (data[head + 1] << 8);
+			head += 2;
+			return value;
+		}
+
+		// COLOR_256 palette chunk: a number of packets, each of which skips a number of colors and then sets a number of
+		// them (0 meaning all 256) to the red, green, blue triplets that follow
+		private static void DecodeColor256(ReadOnlySpan<byte> data, byte[,] palette) {
+			int head = 0;
+			int NumPackets = ReadUInt16(data, ref head);
+			for (int packet = 0, color = 0; packet < NumPackets; packet++) {
+				if (head > data.Length - 2) {
+					throw new IndexOutOfRangeException();
+				}
+				color += data[head];
+				int CopyCount = data[head + 1];
+				head += 2;
+				if (CopyCount == 0) {
+					CopyCount = 256;
+				}
+				if (color + CopyCount > 256) {
+					throw new InvalidDataException($"Flic palette chunk sets colors past the end of the palette ({color} + {CopyCount})");
+				}
+				if (head > data.Length - CopyCount * 3) {
+					throw new IndexOutOfRangeException();
+				}
+				// red, green, blue triplets, in the same order as Palette[p, 0..2]
+				data.Slice(head, CopyCount * 3).CopyTo(MemoryMarshal.CreateSpan(ref palette[color, 0], CopyCount * 3));
+				head += CopyCount * 3;
+				color += CopyCount;
+			}
+		}
+
+		// BYTE_RUN run-length-encoded full frame
+		private static void DecodeByteRun(ReadOnlySpan<byte> data, byte[] frame, int width, int height) {
+			for (int y = 0, head = 0; y < height; y++) {
+				// first byte of row is obsolete
+				head++;
+				int rowStart = y * width;
+				for (int x = 0; x < width;) {
+					int TypeSize = (sbyte)data[head];
+					// TypeSize == 0 makes no sense, something is wrong
+					if (TypeSize == 0) {
+						throw new ApplicationException("TypeSize is 0");
+					}
+					head++;
+					// If TypeSize is negative, copy abs(TypeSize) following bytes
+					// If TypeSize is positive, repeat the next byte TypeSize times
+					if (TypeSize < 0) {
+						int count = -TypeSize;
+						CopyBytes(data, head, frame, rowStart + x, count);
+						head += count;
+						x += count;
+					} else {
+						FillBytes(frame, rowStart + x, TypeSize, data[head]);
+						x += TypeSize;
+						// We were repeating a byte and are still pointing at it; advance head
+						head++;
+					}
+				}
+			}
+		}
+
+		// DELTA_FLC (word oriented delta) frame: the number of lines that have packets, then for each of those lines a
+		// sequence of opcode words, told apart by their top two bits:
+		//   11: skip -opcode lines
+		//   10: set the last pixel of the line to the low byte (for odd widths)
+		//   00: the number of packets in the line, which follow; this ends the line
+		private static void DecodeDeltaFlc(ReadOnlySpan<byte> data, byte[] frame, int width, int height) {
+			int head = 0;
+			int NumLines = ReadUInt16(data, ref head);
+			for (int Line = 0, y = 0; Line < NumLines; Line++) {
+				int PacketCount;
+				while (true) {
+					int opcode = ReadUInt16(data, ref head);
+					if ((opcode & 0xc000) == 0xc000) {
+						y -= (short)opcode;
+					} else if ((opcode & 0xc000) == 0x8000) {
+						if (y >= height) {
+							throw new IndexOutOfRangeException();
+						}
+						frame[width * (y + 1) - 1] = (byte)(opcode & 0xff);
+					} else if ((opcode & 0xc000) == 0x4000) {
+						throw new ApplicationException("Undefined Flic delta opcode " + opcode.ToString("X4"));
+					} else {
+						PacketCount = opcode;
+						break;
+					}
+				}
+				int rowStart = width * y;
+				// Loop over the packets for this line
+				for (int packet = 0, x = 0; packet < PacketCount; packet++) {
+					if (head > data.Length - 2) {
+						throw new IndexOutOfRangeException();
+					}
+					// least significant byte of word (first byte) is columns to skip
+					x += data[head];
+					// most significant byte of word (second byte) is number of words in the packet
+					int NumWords = (sbyte)data[head + 1];
+					head += 2;
+					if (NumWords > 0) {
+						// If NumWords is positive, copy NumWords following words to image
+						int count = NumWords * 2;
+						CopyBytes(data, head, frame, rowStart + x, count);
+						head += count;
+						x += count;
+					} else {
+						// If NumWords is negative, repeat the next word abs(NumWords) times
+						// (a zero count still skips over the word)
+						int count = -NumWords;
+						if (head > data.Length - 2) {
+							throw new IndexOutOfRangeException();
+						}
+						if (count > 0) {
+							FillWords(frame, rowStart + x, count, data[head], data[head + 1]);
+							x += count * 2;
+						}
+						head += 2;
+					}
+				}
+				y++;
+			}
+		}
+
+		private static void CopyBytes(ReadOnlySpan<byte> source, int sourceIndex, byte[] destination, int destinationIndex, int count) {
+			if (sourceIndex < 0 || (long)sourceIndex + count > source.Length) {
+				throw new IndexOutOfRangeException();
+			}
+			CheckRange(destination, destinationIndex, count);
+			source.Slice(sourceIndex, count).CopyTo(destination.AsSpan(destinationIndex, count));
 		}
 
 		// Bounds checks for the block operations below. Like the per-byte indexing they replace, these throw
@@ -221,12 +324,6 @@ namespace ConvertCiv3Media {
 			if (start < 0 || (long)start + count > array.Length) {
 				throw new IndexOutOfRangeException();
 			}
-		}
-
-		private static void CopyBytes(byte[] source, int sourceIndex, byte[] destination, int destinationIndex, int count) {
-			CheckRange(source, sourceIndex, count);
-			CheckRange(destination, destinationIndex, count);
-			Buffer.BlockCopy(source, sourceIndex, destination, destinationIndex, count);
 		}
 
 		private static void FillBytes(byte[] destination, int destinationIndex, int count, byte value) {
@@ -252,21 +349,18 @@ namespace ConvertCiv3Media {
 		/// <summary>
 		/// Reads just the header of a Flic file (dimensions, frame counts, speed and the offset of the first frame)
 		/// without reading or decoding any frames. The values match the corresponding fields of a <see cref="Flic"/>
-		/// loaded from the same file.
+		/// loaded from the same file, and it fails in the same way for a bad header: InvalidDataException if the file
+		/// is too short to contain one, ApplicationException if it isn't a Flic file.
 		/// </summary>
+		// NOTE: C7's Util.LoadFlicHeader duplicates this (with a cache); it could call this instead.
 		public static FlicHeader ReadHeader(string path) {
 			byte[] headerBytes = new byte[FlicHeader.Size];
+			int read = 0;
 			using (FileStream stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 1)) {
-				int read = 0;
-				while (read < headerBytes.Length) {
-					int n = stream.Read(headerBytes, read, headerBytes.Length - read);
-					if (n == 0) {
-						throw new EndOfStreamException("Flic file is too short to contain a header: " + path);
-					}
-					read += n;
-				}
+				read = stream.ReadAtLeast(headerBytes, headerBytes.Length, throwOnEndOfStream: false);
 			}
-			return FlicHeader.Parse(headerBytes);
+			// A short file leaves headerBytes short too, so it is rejected just like Load rejects it
+			return FlicHeader.Parse(read < headerBytes.Length ? headerBytes.AsSpan(0, read).ToArray() : headerBytes);
 		}
 
 		public override string ToString() {
@@ -298,7 +392,15 @@ namespace ConvertCiv3Media {
 		public int NumAnimations;
 		public int FramesPerAnimation;
 
+		/// <summary>
+		/// Parses the header at the start of FlicBytes, which must have at least <see cref="Size"/> bytes.
+		/// Throws InvalidDataException if there are fewer, and ApplicationException if it isn't a Flic file.
+		/// </summary>
 		public static FlicHeader Parse(byte[] FlicBytes) {
+			ArgumentNullException.ThrowIfNull(FlicBytes);
+			if (FlicBytes.Length < Size) {
+				throw new InvalidDataException($"Flic file is too short ({FlicBytes.Length} bytes) to contain a header");
+			}
 			int FileFormat = BitConverter.ToUInt16(FlicBytes, 4);
 			// Should be 0xAF12
 			if (FileFormat != 0xaf12) {

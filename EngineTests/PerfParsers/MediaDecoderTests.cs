@@ -101,8 +101,9 @@ public class MediaDecoderTests {
 		}
 	}
 
-	// Builds a Civ3 style FLC: Civ3 header fields, a palette in the first frame, a run-length-encoded first
-	// frame per animation and delta frames after that, and a ring frame after each animation.
+	// Builds a Civ3 style FLC: Civ3 header fields, a palette in the first frame, a run-length-encoded or uncompressed
+	// first frame per animation and mostly delta frames after that, and a ring frame after each animation. Like Civ3
+	// files, palette chunks may have no valid length, and frames may claim an extra, uninitialized, subchunk.
 	private class FlicBuilder {
 		private readonly Random random;
 		private readonly int width, height;
@@ -133,8 +134,26 @@ public class MediaDecoderTests {
 			for (int anim = 0; anim < animations; anim++) {
 				for (int f = 0; f < framesPerAnimation; f++) {
 					List<byte[]> subChunks = new();
-					if (anim == 0 && f == 0) subChunks.Add(Palette());
-					subChunks.Add(f == 0 || random.Next(4) == 0 ? ByteRun() : Delta());
+					int kind = random.Next(12);
+					if (f == 0 || kind < 2) {
+						subChunks.Add(random.Next(3) == 0 ? Copy() : ByteRun());
+					} else if (kind == 2) {
+						// no image data: the same as the previous frame
+					} else if (kind == 3) {
+						subChunks.Add(SubChunk(13, new List<byte>())); // black
+					} else {
+						subChunks.Add(Delta());
+					}
+					if (random.Next(10) == 0) {
+						subChunks.Add(SubChunk(18, new List<byte>(new byte[20]))); // postage stamp, ignored
+					}
+					bool garbage = random.Next(6) == 0;
+					if (anim == 0 && f == 0) {
+						// The palette comes last, as its length may be invalid
+						subChunks.Add(Palette(garbageLength: random.Next(2) == 0));
+					} else if (garbage) {
+						subChunks.Add(new byte[] { 0xcd, 0xcd, 0xcd, 0xcd, 0xcd, 0xcd });
+					}
 					AddChunk(subChunks);
 				}
 				AddChunk(new List<byte[]>()); // ring frame
@@ -160,12 +179,41 @@ public class MediaDecoderTests {
 			return result.ToArray();
 		}
 
-		private byte[] Palette() {
-			List<byte> data = new() { 1, 0, 0, 0 }; // one packet, no skip, copy count 0 (= 256)
-			byte[] colors = new byte[768];
-			random.NextBytes(colors);
-			data.AddRange(colors);
-			return SubChunk(4, data);
+		private byte[] Palette(bool garbageLength) {
+			List<byte> data = new();
+			if (random.Next(2) == 0) {
+				data.AddRange(new byte[] { 1, 0, 0, 0 }); // one packet, no skip, copy count 0 (= 256)
+				byte[] colors = new byte[768];
+				random.NextBytes(colors);
+				data.AddRange(colors);
+			} else {
+				// packets skipping and setting parts of the palette
+				List<byte> packets = new();
+				int count = 0;
+				for (int color = 0; color < 250 && count < 5; count++) {
+					int skip = random.Next(0, 20);
+					int copy = random.Next(1, Math.Min(40, 256 - color - skip) + 1);
+					packets.Add((byte)skip);
+					packets.Add((byte)copy);
+					byte[] colors = new byte[copy * 3];
+					random.NextBytes(colors);
+					packets.AddRange(colors);
+					color += skip + copy;
+				}
+				data.AddRange(BitConverter.GetBytes((ushort)count));
+				data.AddRange(packets);
+			}
+			byte[] chunk = SubChunk(4, data);
+			if (garbageLength) {
+				new byte[] { 0xcd, 0xcd, 0xcd, 0xcd }.CopyTo(chunk, 0);
+			}
+			return chunk;
+		}
+
+		private byte[] Copy() {
+			byte[] pixels = new byte[width * height];
+			random.NextBytes(pixels);
+			return SubChunk(16, new List<byte>(pixels));
 		}
 
 		private byte[] ByteRun() {
@@ -196,13 +244,14 @@ public class MediaDecoderTests {
 			int lineCount = 0;
 			for (int y = 0; y < height; y++) {
 				if (random.Next(4) == 0 && y < height - 1) {
-					// skip a line
-					lines.AddRange(BitConverter.GetBytes((short)-1));
-					y++;
+					// skip some lines
+					int skip = random.Next(1, Math.Min(3, height - 1 - y) + 1);
+					lines.AddRange(BitConverter.GetBytes((short)-skip));
+					y += skip;
 				}
 				if (random.Next(5) == 0) {
 					// set the last pixel of the line
-					lines.AddRange(BitConverter.GetBytes((short)(0x800 | random.Next(256))));
+					lines.AddRange(BitConverter.GetBytes(unchecked((short)(0x8000 | random.Next(256)))));
 				}
 				int packets = random.Next(0, 4);
 				lines.AddRange(BitConverter.GetBytes((short)packets));
@@ -289,6 +338,64 @@ public class MediaDecoderTests {
 		string art = Path.Combine(Civ3Location.GetCiv3Path(), "Art");
 		foreach (string file in Directory.EnumerateFiles(art, "*.flc", SearchOption.AllDirectories).OrderBy(f => f).Where((f, i) => i % 60 == 0)) {
 			AssertFlicMatchesReference(File.ReadAllBytes(file));
+		}
+	}
+
+	// Files that were decoded wrongly: delta frames setting the last pixel of a line (which shifted the lines below it),
+	// uncompressed (FLI_COPY) frames, palettes with several packets, and frames without image data
+	private static readonly string[] FormerlyMisdecodedFlics = {
+		"Art/Flics/dip_f_0.flc",
+		"Art/Flics/dip_m_2.flc",
+		"civ3PTW/Scenarios/Ancient Mediterranean/Art/Units/Fire Galley/FireGalleyAttackA.flc",
+		"Art/Units/Tactical Nuke/Tact_AttackA.flc",
+		"Conquests/Art/Flics/X2_William_Mid_fwrd.flc",
+		"Conquests/Conquests/Sengoku/Art/Flics/oda.flc",
+		"Art/Flics/Gh_01.flc",
+		"civ3PTW/Art/Flics/x_Hannibal diplo mid fwrd.flc",
+		"Art/Flics/Ce_01.flc",
+	};
+
+	[SkippableFact]
+	public void FormerlyMisdecodedCiv3FlicsDecodeCorrectly() {
+		Skip.If(Civ3TestData.ShouldSkipCiv3DependentTests(), "No Civ3 install found.");
+
+		foreach (string name in FormerlyMisdecodedFlics) {
+			string path = Path.Combine(Civ3Location.GetCiv3Path(), name);
+			if (!File.Exists(path)) continue;
+			byte[] file = File.ReadAllBytes(path);
+			AssertFlicMatchesReference(file);
+
+			Flic flic = new(path);
+			byte[,][] images = ReferenceDecoders.DecodeFlic(file, out _, out byte[][] ringFrames);
+			for (int anim = 0; anim < flic.NumAnimations; anim++) {
+				// No frame is left blank
+				for (int f = 0; f < flic.FramesPerAnimation; f++) {
+					Assert.True(flic.Images[anim, f].Any(b => b != 0), $"{name}: frame {anim},{f} is blank");
+				}
+				// Each animation's ring frame turns its last frame back into the first, which only works out if every
+				// delta frame was decoded correctly. (That isn't exact for a few animations in 25 of the 1760 Civ3 Flics,
+				// including some of the Fire Galley's.)
+				if (!name.Contains("Fire Galley"))
+				Assert.True(ringFrames[anim].AsSpan().SequenceEqual(flic.Images[anim, 0]), $"{name}: animation {anim} doesn't loop back to its first frame");
+			}
+		}
+	}
+
+	[Fact]
+	public void MalformedFlicsFailCleanly() {
+		Random random = new(9);
+		byte[] valid = new FlicBuilder(random, 20, 10, 2, 3, true).ToArray();
+		string path = TempFile(".flc");
+		try {
+			for (int length = 0; length < valid.Length; length += 1 + length / 8) {
+				File.WriteAllBytes(path, valid.AsSpan(0, length).ToArray());
+				Exception e = Record.Exception(() => new Flic(path));
+				Assert.True(e is InvalidDataException || e is IndexOutOfRangeException || e is ApplicationException, $"length {length}: {e}");
+				e = Record.Exception(() => Flic.ReadHeader(path));
+				Assert.True(e == null || length >= FlicHeader.Size || e is InvalidDataException, $"header, length {length}: {e}");
+			}
+		} finally {
+			File.Delete(path);
 		}
 	}
 
