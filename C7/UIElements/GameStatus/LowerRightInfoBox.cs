@@ -300,11 +300,14 @@ public partial class LowerRightInfoBox : Civ3TextureRect {
 	}
 
 	private void RefreshSummaryText(GameData gD, Player player) {
+		// Add up the economy once, for both the gold and science shown.
+		PlayerCommerceBreakdown totals = player.AggregateFlows();
+
 		// Gold per turn and turn indicator.
 		{
 			int turnNumber = TurnHandling.GetTurnNumber();
 			int gold = player.gold;
-			int goldPerTurn = player.CalculateGoldPerTurn();
+			int goldPerTurn = totals.Netflows();
 
 			var turnText = gD.timeOptions.GetDisplayTime(turnNumber);
 			var gptText = $"{(goldPerTurn >= 0 ? "+" : "")}{goldPerTurn}";
@@ -312,7 +315,7 @@ public partial class LowerRightInfoBox : Civ3TextureRect {
 		}
 
 		// Tech progress.
-		SetLabelText(scienceProgress, ref scienceProgressText, player.SummarizeScience(gD));
+		SetLabelText(scienceProgress, ref scienceProgressText, ScienceEstimates.SummarizeScience(gD, player, totals.beakers));
 
 		// Civ and government.
 		SetLabelText(civAndGovt, ref civAndGovtText, $"{player.civilization.name} - {player.government.name} (5.5.0)");

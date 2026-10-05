@@ -210,6 +210,7 @@ public partial class DomesticAdvisor : Control {
 
 		EngineStorage.ReadGameData((GameData gameData) => {
 			playerController = gameData.players.First(p => p.id == EngineStorage.uiControllerID);
+			// Add up the economy once, and work everything shown out from it.
 			PlayerCommerceBreakdown totalIncome = playerController.AggregateFlows();
 
 			int scienceRate = playerController.scienceRate;
@@ -221,7 +222,7 @@ public partial class DomesticAdvisor : Control {
 			luxurySliderLabel.Text = $"{luxuryRate * 10}%";
 
 			governmentLabel.Text = $"{playerController.government.name}";
-			scienceStatus.Text = playerController.SummarizeScience(gameData);
+			scienceStatus.Text = ScienceEstimates.SummarizeScience(gameData, playerController, totalIncome.beakers);
 			treasury.Text = $"Treasury: {playerController.gold}";
 
 			incomeDetails.Text = $"From cities: +{totalIncome.CityInflows()}\nFrom taxmen: +{totalIncome.taxmenTaxes}\nFrom other civs: +{totalIncome.fromOtherCivs}\nFrom interest: +{totalIncome.interest}";
@@ -229,7 +230,7 @@ public partial class DomesticAdvisor : Control {
 			incomeSummary.Text = $"Income: {totalIncome.Inflows()}";
 			expenseSummary.Text = $"Expenses: {totalIncome.Outflows()}";
 
-			int goldPerTurn = playerController.CalculateGoldPerTurn();
+			int goldPerTurn = totalIncome.Netflows();
 			if (goldPerTurn > 0) {
 				sumSummary.Text = $"Net gain: +{goldPerTurn}";
 				growth.Text = "Growing!";
@@ -242,7 +243,8 @@ public partial class DomesticAdvisor : Control {
 			}
 
 			//TODO: Randomize or set logically
-			advisorHead.Texture = AdvisorHead.GetPopupImage(AdvisorHead.Advisor.Domestic, AdvisorHead.Mood.Happy, playerController.EraIndex());
+			int eraIndex = playerController.EraIndex();
+			advisorHead.Texture = AdvisorHead.GetPopupImage(AdvisorHead.Advisor.Domestic, AdvisorHead.Mood.Happy, eraIndex);
 
 			// Disable the change government button unless we have a government to
 			// switch to.
@@ -252,13 +254,30 @@ public partial class DomesticAdvisor : Control {
 				DialogBoxAdvise.Text = $"{playerController.inAnarchyUntilTurn - gameData.turn} turns of anarchy left";
 			}
 
-			foreach (var node in cityListContainer.GetChildren()) {
-				cityListContainer.RemoveChild(node);
-				node.QueueFree();
+			// Reuse the rows already made, only adding or removing rows when
+			// the number of cities changes, and update them in place.
+			List<City> cities = playerController.cities;
+			if (!rowsMade) {
+				// Clear out anything the scene came with.
+				foreach (var node in cityListContainer.GetChildren()) {
+					cityListContainer.RemoveChild(node);
+					node.QueueFree();
+				}
+				rowsMade = true;
 			}
-
-			foreach (City city in playerController.cities) {
-				cityListContainer.AddChild(MakeCityRow(city));
+			while (cityRows.Count > cities.Count) {
+				CityRow extra = cityRows[cityRows.Count - 1];
+				cityRows.RemoveAt(cityRows.Count - 1);
+				cityListContainer.RemoveChild(extra.row);
+				extra.row.QueueFree();
+			}
+			while (cityRows.Count < cities.Count) {
+				CityRow row = MakeCityRow();
+				cityRows.Add(row);
+				cityListContainer.AddChild(row.row);
+			}
+			for (int i = 0; i < cities.Count; ++i) {
+				UpdateCityRow(cityRows[i], cities[i], eraIndex);
 			}
 		});
 	}
@@ -295,52 +314,73 @@ public partial class DomesticAdvisor : Control {
 		});
 	}
 
-	private HBoxContainer MakeCityRow(City city) {
+	// The controls of one row of the city list, kept so the row can be
+	// updated in place for another city or after a change.
+	private class CityRow {
+		public HBoxContainer row;
+		public City city;
+		public Button cityName;
+		public Label foodLabel;
+		public Label shieldsLabel;
+		public Label commerceLabel;
+		public Label happinessLabel;
+		public Label scienceLabel;
+		public Label taxesLabel;
+		public Control populationContainer;
+		public List<TextureRect> popHeads = new();
+		public Label productionLabel;
+	}
+
+	private readonly List<CityRow> cityRows = new();
+	private bool rowsMade = false;
+
+	// Every blank separator shares one empty style box.
+	private static readonly StyleBoxEmpty emptyStyleBox = new();
+
+	private CityRow MakeCityRow() {
+		CityRow cityRow = new();
 		HBoxContainer hboxContainer = new();
+		cityRow.row = hboxContainer;
 
 		// Use an empty pany container to make it blank, unlike an HSeparator
 		PanelContainer hSeparator1 = new();
 		hSeparator1.CustomMinimumSize = new Vector2(30, 50);
-		hSeparator1.AddThemeStyleboxOverride("panel", new StyleBoxEmpty());
+		hSeparator1.AddThemeStyleboxOverride("panel", emptyStyleBox);
 		hboxContainer.AddChild(hSeparator1);
 
 		Button cityName = new();
 		cityName.CustomMinimumSize = new Vector2(127, 0);
-		cityName.Text = city.name;
 		cityName.ClipText = true;
 		cityName.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
 		cityName.Pressed += () => {
 			GetParent<Advisors>().Hide();
-			new MsgShowCityScreen(city).send();
+			new MsgShowCityScreen(cityRow.city).send();
 		};
 		hboxContainer.AddChild(cityName);
+		cityRow.cityName = cityName;
 
 		Label foodLabel = new();
 		foodLabel.CustomMinimumSize = new Vector2(40, 0);
-		foodLabel.Text = SpaceAlignedDotFormat(city.FoodConsumedPerTurn(), city.FoodGrowthPerTurn());
 		foodLabel.HorizontalAlignment = HorizontalAlignment.Center;
 		hboxContainer.AddChild(foodLabel);
+		cityRow.foodLabel = foodLabel;
 
 		Label shieldsLabel = new();
 		shieldsLabel.CustomMinimumSize = new Vector2(40, 0);
-		{
-			CorruptableValue prod = city.CurrentProductionYield();
-			shieldsLabel.Text = SpaceAlignedDotFormat(prod.corrupt, prod.useful);
-		}
 		shieldsLabel.HorizontalAlignment = HorizontalAlignment.Center;
 		hboxContainer.AddChild(shieldsLabel);
+		cityRow.shieldsLabel = shieldsLabel;
 
 		Label commerceLabel = new();
 		commerceLabel.CustomMinimumSize = new Vector2(40, 0);
-		CommerceBreakdown commerce = city.CurrentCommerceYield();
-		commerceLabel.Text = SpaceAlignedDotFormat(commerce.corrupted, commerce.taxes + commerce.beakers + commerce.happiness);
 		commerceLabel.HorizontalAlignment = HorizontalAlignment.Center;
 		hboxContainer.AddChild(commerceLabel);
+		cityRow.commerceLabel = commerceLabel;
 
 		// Use an empty pany container to make it blank, unlike an HSeparator
 		PanelContainer hSeparator2 = new();
 		hSeparator2.CustomMinimumSize = new Vector2(25, 0);
-		hSeparator2.AddThemeStyleboxOverride("panel", new StyleBoxEmpty());
+		hSeparator2.AddThemeStyleboxOverride("panel", emptyStyleBox);
 		hboxContainer.AddChild(hSeparator2);
 
 		Label maintenanceLabel = new();
@@ -353,66 +393,113 @@ public partial class DomesticAdvisor : Control {
 
 		Label happinessLabel = new();
 		happinessLabel.CustomMinimumSize = new Vector2(40, 0);
-		{
-			int happy = 0;
-			int content = 0;
-			foreach (CityResident cr in city.residents) {
-				if (cr.citizenType.IsDefaultCitizen && cr.mood == CityResident.Mood.Happy) {
-					++happy;
-				}
-				if (cr.citizenType.IsDefaultCitizen && cr.mood == CityResident.Mood.Content) {
-					++content;
-				}
-			}
-			happinessLabel.Text = SpaceAlignedDotFormat(happy, content);
-		}
 		happinessLabel.HorizontalAlignment = HorizontalAlignment.Center;
 		happinessLabel.VerticalAlignment = VerticalAlignment.Center;
 		happinessLabel.ClipText = true;
 		hboxContainer.AddChild(happinessLabel);
+		cityRow.happinessLabel = happinessLabel;
 
 		Label scienceLabel = new();
 		scienceLabel.CustomMinimumSize = new Vector2(40, 0);
-		scienceLabel.Text = $"{commerce.beakers}"; ;
 		scienceLabel.HorizontalAlignment = HorizontalAlignment.Center;
 		scienceLabel.VerticalAlignment = VerticalAlignment.Center;
 		scienceLabel.ClipText = true;
 		hboxContainer.AddChild(scienceLabel);
+		cityRow.scienceLabel = scienceLabel;
 
 		Label taxesLabel = new();
 		taxesLabel.CustomMinimumSize = new Vector2(40, 0);
-		taxesLabel.Text = $"{commerce.taxes}"; ;
 		taxesLabel.HorizontalAlignment = HorizontalAlignment.Center;
 		taxesLabel.VerticalAlignment = VerticalAlignment.Center;
 		taxesLabel.ClipText = true;
 		hboxContainer.AddChild(taxesLabel);
+		cityRow.taxesLabel = taxesLabel;
 
 		// Use an empty pany container to make it blank, unlike an HSeparator
 		PanelContainer hSeparator3 = new();
 		hSeparator3.CustomMinimumSize = new Vector2(25, 0);
-		hSeparator3.AddThemeStyleboxOverride("panel", new StyleBoxEmpty());
+		hSeparator3.AddThemeStyleboxOverride("panel", emptyStyleBox);
 		hboxContainer.AddChild(hSeparator3);
 
 		Control popuplationContainer = new();
 		popuplationContainer.CustomMinimumSize = new Vector2(220, 0);
-		AddPopHeads(city, popuplationContainer, 220);
 		hboxContainer.AddChild(popuplationContainer);
+		cityRow.populationContainer = popuplationContainer;
 
 		PanelContainer productionContainer = new();
 		productionContainer.CustomMinimumSize = new Vector2(50, 0);
-		productionContainer.AddThemeStyleboxOverride("panel", new StyleBoxEmpty());
+		productionContainer.AddThemeStyleboxOverride("panel", emptyStyleBox);
 		hboxContainer.AddChild(productionContainer);
 
 		Label productionLabel = new();
 		productionLabel.CustomMinimumSize = new Vector2(75, 0);
-		string turnsLeft = city.TurnsUntilProductionFinished() == int.MaxValue ? "(9999999 turns)" : $"({city.TurnsUntilProductionFinished()} turns)";
-		productionLabel.Text = $"{city.itemBeingProduced.name}\n{turnsLeft}";
 		productionLabel.VerticalAlignment = VerticalAlignment.Center;
 		productionLabel.ClipText = true;
 		productionLabel.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
 		hboxContainer.AddChild(productionLabel);
+		cityRow.productionLabel = productionLabel;
 
-		return hboxContainer;
+		return cityRow;
+	}
+
+	// Residents sorted by how they are shown, reused for each row.
+	private readonly List<CityResident> happyResidents = new();
+	private readonly List<CityResident> contentResidents = new();
+	private readonly List<CityResident> unhappyResidents = new();
+	private readonly List<CityResident> specialists = new();
+
+	private void UpdateCityRow(CityRow cityRow, City city, int eraNum) {
+		cityRow.city = city;
+		SetText(cityRow.cityName, city.name);
+
+		SetText(cityRow.foodLabel, SpaceAlignedDotFormat(city.FoodConsumedPerTurn(), city.FoodGrowthPerTurn()));
+
+		{
+			CorruptableValue prod = city.CurrentProductionYield();
+			SetText(cityRow.shieldsLabel, SpaceAlignedDotFormat(prod.corrupt, prod.useful));
+		}
+
+		CommerceBreakdown commerce = city.CurrentCommerceYield();
+		SetText(cityRow.commerceLabel, SpaceAlignedDotFormat(commerce.corrupted, commerce.taxes + commerce.beakers + commerce.happiness));
+
+		// Sort the residents by how they are shown, in one pass.
+		happyResidents.Clear();
+		contentResidents.Clear();
+		unhappyResidents.Clear();
+		specialists.Clear();
+		foreach (CityResident cr in city.residents) {
+			if (!cr.citizenType.IsDefaultCitizen) {
+				specialists.Add(cr);
+			} else if (cr.mood == CityResident.Mood.Happy) {
+				happyResidents.Add(cr);
+			} else if (cr.mood == CityResident.Mood.Content) {
+				contentResidents.Add(cr);
+			} else if (cr.mood == CityResident.Mood.Unhappy) {
+				unhappyResidents.Add(cr);
+			}
+		}
+
+		SetText(cityRow.happinessLabel, SpaceAlignedDotFormat(happyResidents.Count, contentResidents.Count));
+		SetText(cityRow.scienceLabel, $"{commerce.beakers}");
+		SetText(cityRow.taxesLabel, $"{commerce.taxes}");
+
+		UpdatePopHeads(cityRow, city.residents.Count, 220, eraNum);
+
+		int turnsUntilFinished = city.TurnsUntilProductionFinished();
+		string turnsLeft = turnsUntilFinished == int.MaxValue ? "(9999999 turns)" : $"({turnsUntilFinished} turns)";
+		SetText(cityRow.productionLabel, $"{city.itemBeingProduced.name}\n{turnsLeft}");
+	}
+
+	private static void SetText(Label label, string text) {
+		if (label.Text != text) {
+			label.Text = text;
+		}
+	}
+
+	private static void SetText(Button button, string text) {
+		if (button.Text != text) {
+			button.Text = text;
+		}
 	}
 
 	// Returns a.b, always taking up 5 characters as long as a and b are less
@@ -429,21 +516,10 @@ public partial class DomesticAdvisor : Control {
 		return result;
 	}
 
-	void AddPopHeads(City city, Node node, int maxWidth) {
-		int eraNum = city.owner.EraIndex();
-
-		// Start by splitting the default residents from the specialists, since
-		// they are spaced apart in the UI.
-		List<CityResident> happyResidents =
-			city.residents.FindAll(x => x.citizenType.IsDefaultCitizen && x.mood == CityResident.Mood.Happy);
-		List<CityResident> contentResidents =
-			city.residents.FindAll(x => x.citizenType.IsDefaultCitizen && x.mood == CityResident.Mood.Content);
-		List<CityResident> unhappyResidents =
-			city.residents.FindAll(x => x.citizenType.IsDefaultCitizen && x.mood == CityResident.Mood.Unhappy);
-		List<CityResident> specialists = city.residents.FindAll(x => !x.citizenType.IsDefaultCitizen);
-
+	// Shows the residents sorted by UpdateCityRow, reusing the row's heads.
+	void UpdatePopHeads(CityRow cityRow, int residentCount, int maxWidth, int eraNum) {
 		// Leave a 1 head gap if we have specialists.
-		int width = city.residents.Count * PopHead.HEAD_SIZE;
+		int width = residentCount * PopHead.HEAD_SIZE;
 		if (specialists.Count > 0) {
 			width += PopHead.HEAD_SIZE;
 		}
@@ -462,24 +538,25 @@ public partial class DomesticAdvisor : Control {
 		}
 
 		int xPos = 0;
+		int headIndex = 0;
 
 		// Add each of the default citizens. These are buttons with the idea that
 		// we can eventually support clicking on the heads to view details, such
 		// as the reason for unhappiness.
 		foreach (CityResident cr in happyResidents) {
-			xPos = AddCitizen(node, cr, xPos, spacer, eraNum);
+			xPos = AddCitizen(cityRow, headIndex++, cr, xPos, spacer, eraNum);
 		}
 		if (happyResidents.Count > 0 && (contentResidents.Count > 0 || unhappyResidents.Count > 0)) {
 			xPos += spacer;
 		}
 		foreach (CityResident cr in contentResidents) {
-			xPos = AddCitizen(node, cr, xPos, spacer, eraNum);
+			xPos = AddCitizen(cityRow, headIndex++, cr, xPos, spacer, eraNum);
 		}
 		if (contentResidents.Count > 0 && unhappyResidents.Count > 0) {
 			xPos += spacer;
 		}
 		foreach (CityResident cr in unhappyResidents) {
-			xPos = AddCitizen(node, cr, xPos, spacer, eraNum);
+			xPos = AddCitizen(cityRow, headIndex++, cr, xPos, spacer, eraNum);
 		}
 
 		// Add space before specialists.
@@ -487,15 +564,29 @@ public partial class DomesticAdvisor : Control {
 
 		// Add the specialists.
 		foreach (CityResident cr in specialists) {
-			xPos = AddCitizen(node, cr, xPos, spacer, eraNum);
+			xPos = AddCitizen(cityRow, headIndex++, cr, xPos, spacer, eraNum);
+		}
+
+		// Drop the heads this city no longer needs.
+		while (cityRow.popHeads.Count > headIndex) {
+			TextureRect extra = cityRow.popHeads[cityRow.popHeads.Count - 1];
+			cityRow.popHeads.RemoveAt(cityRow.popHeads.Count - 1);
+			cityRow.populationContainer.RemoveChild(extra);
+			extra.QueueFree();
 		}
 	}
 
-	private int AddCitizen(Node node, CityResident cr, int xPos, int spacer, int eraNum) {
-		TextureRect tr = new();
+	private int AddCitizen(CityRow cityRow, int headIndex, CityResident cr, int xPos, int spacer, int eraNum) {
+		TextureRect tr;
+		if (headIndex < cityRow.popHeads.Count) {
+			tr = cityRow.popHeads[headIndex];
+		} else {
+			tr = new();
+			cityRow.populationContainer.AddChild(tr);
+			cityRow.popHeads.Add(tr);
+		}
 		tr.Texture = PopHead.GetTexture(cr, eraNum);
 		tr.SetPosition(new Vector2(xPos, 0));
-		node.AddChild(tr);
 		return xPos + spacer;
 	}
 }
