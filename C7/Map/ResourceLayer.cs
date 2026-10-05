@@ -15,7 +15,7 @@ namespace C7.Map {
 				return;
 			}
 
-			if (!ResourceVisible(gameData, tile)) {
+			if (!ResourceVisible(gameData, looseView.uiPlayer, tile)) {
 				return;
 			}
 
@@ -24,11 +24,11 @@ namespace C7.Map {
 			looseView.DrawTexture(texture, tileCenter - 0.5f * texture.GetSize());
 		}
 
-		private bool ResourceVisible(GameData gameData, Tile t) {
+		private static bool ResourceVisible(GameData gameData, Player uiPlayer, Tile t) {
 			if (gameData.observerMode) {
 				return true;
 			}
-			return gameData.GetUIControllerPlayer().KnowsAboutResource(t.Resource);
+			return uiPlayer.KnowsAboutResource(t.Resource);
 		}
 	}
 }

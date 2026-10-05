@@ -611,6 +611,9 @@ public partial class Game : Node {
 	public void HandleEngineMessage(MessageToUI msg) {
 		GameData gameData = EngineStorage.gameData;
 
+		// Whatever the engine tells us about may have changed the map.
+		mapView?.InvalidateMap();
+
 		// Hold messages for a human player who isn't at the screen (for
 		// example barbarians raiding them during the AI turns) until they are.
 		if (!LanSession.IsActive && msg.recipient != null && msg.recipient.isHuman && msg.recipient.id != controller.id) {
@@ -822,6 +825,18 @@ public partial class Game : Node {
 		else
 			ReplayHeldMessage();
 	}
+
+	// Whether the hotseat curtain hides the whole map.
+	public bool IsMapHidden => hotseatHandoff != null;
+
+	// Whether the game may change without the UI being told, i.e. while the
+	// AI plays, animations run, or the engine has messages to process. The
+	// map is redrawn every frame while this is true. A LAN client's game only
+	// changes with the host's snapshots and messages, which it is told about.
+	public bool MapMayChangeWithoutNotice =>
+		(CurrentState == GameState.ComputerTurn && !LanSession.IsClient)
+		|| EngineStorage.HasPendingAnimations()
+		|| EngineStorage.HasPendingMessagesToEngine();
 
 	// Shows messages that were held for the UI controller while another
 	// player had the screen, one popup at a time, once their turn is underway.
@@ -1081,6 +1096,7 @@ public partial class Game : Node {
 			// screen and the advisors show that civilization.
 			controller = tile.cityAtTile.owner;
 			EngineStorage.uiControllerID = controller.id;
+			mapView.InvalidateMap();
 		}
 		if (tile?.cityAtTile?.owner == controller) {
 			EngineStorage.ReadGameData((GameData gameData) => {
@@ -1158,6 +1174,8 @@ public partial class Game : Node {
 
 	public void ShowTileInfo(Tile tile) {
 		tileInfo = new TileInfo(tile);
+		// The fog and cities around the tile are drawn differently under the box.
+		mapView.InvalidateMap();
 		var zoom = mapView.cameraZoom;
 		var tileCenter = mapView.screenLocationOfTile(tile, true);
 		var tileInfoPopup = new TileInfoPopup(this, tile, tileCenter, zoom);
@@ -1166,6 +1184,7 @@ public partial class Game : Node {
 
 	public void HideTileInfo() {
 		tileInfo = null;
+		mapView.InvalidateMap();
 		popupOverlay.OnHidePopup();
 	}
 
@@ -1298,6 +1317,8 @@ public partial class Game : Node {
 				SetObserverModeOff(gameData);
 			}
 		});
+		// Observers see the whole map.
+		mapView.InvalidateMap();
 	}
 
 	// The human players to restore when observer mode is turned off.
@@ -1329,6 +1350,7 @@ public partial class Game : Node {
 		EngineStorage.ReadGameData((GameData gameData) => {
 			gameData.showGridCoordinates = !gameData.showGridCoordinates;
 		});
+		mapView.InvalidateMap();
 	}
 
 	private void HandleMagnifyGesture(InputEventMagnifyGesture magnifyGesture) {
