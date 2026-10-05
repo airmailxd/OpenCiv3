@@ -3,13 +3,21 @@ namespace C7GameData {
 	using QueryCiv3.Biq;
 	using System.Collections.Generic;
 	using System.Linq;
+	using System.Text.Json.Serialization;
 
 	public class TerrainType {
 		//The "key" is a language-independent name for the terrain.  Civ3 relies on their index in the list to know
 		//what they are; we'll use the key.  This allows adding custom terrain types in the future, including having
 		//different custom terrains in Mod A than Mod B, while still allowing internationalized versions of their
 		//names that don't break the scenario.  E.g. "ocean"
-		public string Key { get; set; } = "";
+		public string Key {
+			get => key;
+			set {
+				key = value;
+				UpdateKeyFlags();
+			}
+		}
+		private string key = "";
 		//The name is the display name.  E.g. "Ocean" in English scenarios, "Hochsee" in German scenarios.
 		public string DisplayName { get; set; } = "";
 		public int baseFoodProduction { get; set; }
@@ -33,29 +41,68 @@ namespace C7GameData {
 
 		//some stuff about graphics would probably make sense, too
 
+		// Checks of the key are made in very hot code (pathing, visibility,
+		// yields), so they are computed once whenever the key is set rather
+		// than comparing strings on every call. Key is the only input and it
+		// can only change through its setter, so these are always current,
+		// however the terrain was constructed or deserialized.
+		[JsonIgnore] public bool IsDesert { get; private set; }
+		[JsonIgnore] public bool IsPlains { get; private set; }
+		[JsonIgnore] public bool IsGrassland { get; private set; }
+		[JsonIgnore] public bool IsTundra { get; private set; }
+		[JsonIgnore] public bool IsFloodPlain { get; private set; }
+		[JsonIgnore] public bool IsHills { get; private set; }
+		[JsonIgnore] public bool IsMountains { get; private set; }
+		[JsonIgnore] public bool IsForest { get; private set; }
+		[JsonIgnore] public bool IsJungle { get; private set; }
+		[JsonIgnore] public bool IsMarsh { get; private set; }
+		[JsonIgnore] public bool IsVolcano { get; private set; }
+		[JsonIgnore] public bool IsCoast { get; private set; }
+		[JsonIgnore] public bool IsSea { get; private set; }
+		[JsonIgnore] public bool IsOcean { get; private set; }
+		// Coast, sea or ocean.
+		[JsonIgnore] public bool IsWater { get; private set; }
+		// Mountains, hills or volcano.
+		[JsonIgnore] public bool IsHilly { get; private set; }
+
+		private void UpdateKeyFlags() {
+			string k = key;
+			IsDesert = k == "desert";
+			IsPlains = k == "plains";
+			IsGrassland = k == "grassland";
+			IsTundra = k == "tundra";
+			IsFloodPlain = k == "flood plain";
+			IsHills = k == "hills";
+			IsMountains = k == "mountains";
+			IsForest = k == "forest";
+			IsJungle = k == "jungle";
+			IsMarsh = k == "marsh";
+			IsVolcano = k == "volcano";
+			IsCoast = k == "coast";
+			IsSea = k == "sea";
+			IsOcean = k == "ocean";
+			IsWater = IsCoast || IsSea || IsOcean;
+			IsHilly = IsMountains || IsHills || IsVolcano;
+		}
+
 		public bool isHilly() {
-			if (Key.Equals("mountains") || Key.Equals("hills") || Key.Equals("volcano")) {
-				return true;
-			}
-			return false;
+			return IsHilly;
 		}
 
 		public bool isVolcano() {
-			return Key.Equals("volcano");
+			return IsVolcano;
 		}
 
-		//TODO: Once we have IDs, this should *not* rely on the display name.
-		//That will be after issue 58, which will be after PR 70.
 		public bool isWater() {
-			return Key.Equals("coast") || Key.Equals("sea") || Key.Equals("ocean");
+			return IsWater;
 		}
 
 		public bool isCoast() {
-			return Key.Equals("coast");
+			return IsCoast;
 		}
 
 		public bool isSea() {
-			return Key.Equals("sea");
+			return IsSea;
 		}
 
 		public override string ToString() {
