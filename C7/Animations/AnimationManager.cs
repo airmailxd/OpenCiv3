@@ -16,6 +16,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Godot;
 using IniParser;
 using IniParser.Model;
@@ -31,27 +32,44 @@ public partial class AnimationManager {
 	// that it's only reported once.
 	private static readonly Dictionary<string, bool> unitArtExists = new();
 
+	// What a unit's own art name (MapUnit.GetArtName) depends on: its type,
+	// its owner's era and, for workers, whether it's a captive.
+	private readonly record struct ArtNameKey(UnitPrototype unitType, string era, bool captiveWorker);
+
+	// The results of ArtNameFor that don't depend on anything but the key.
+	private static readonly Dictionary<ArtNameKey, string> artNames = new();
+
 	// The art to draw a unit with. If its own art can't be found, like army
 	// art that isn't available, an army is drawn with the art of the member
 	// that would defend it, and otherwise the prototype's default art is
 	// tried, rather than failing to load the same art every frame.
 	public static string ArtNameFor(MapUnit unit) {
+		UnitPrototype unitType = unit.unitType;
+		bool captiveWorker = unitType.isWorker && unitType.art.mainArt.variations != null && unit.IsCaptive();
+		ArtNameKey key = new(unitType, unit.owner?.eraCivilopediaName, captiveWorker);
+		if (artNames.TryGetValue(key, out string cached)) {
+			return cached;
+		}
+
 		string name = unit.GetArtName();
 		if (HasUnitArt(name)) {
+			artNames[key] = name;
 			return name;
 		}
 
 		if (unit.IsArmy()) {
+			// The member changes during the game, so this isn't cached.
 			MapUnit member = unit.Combatant(CombatRole.Defense);
 			if (member != unit && HasUnitArt(member.GetArtName())) {
 				return member.GetArtName();
 			}
 		}
-		string defaultName = unit.unitType.art.mainArt.defaultName;
-		if (HasUnitArt(defaultName)) {
-			return defaultName;
+		string defaultName = unitType.art.mainArt.defaultName;
+		string result = HasUnitArt(defaultName) ? defaultName : name;
+		if (!unit.IsArmy()) {
+			artNames[key] = result;
 		}
-		return name;
+		return result;
 	}
 
 	private static bool HasUnitArt(string name) {
@@ -104,6 +122,82 @@ public partial class AnimationManager {
 	public SpriteFrames tintFrames;
 
 	private Dictionary<string, IniData> iniDatas = new Dictionary<string, IniData>();
+
+	// What's needed to draw an animation: its name in the SpriteFrames, its
+	// frames and, for unit animations, the placement values from its flic.
+	// These are looked up once per animation instead of once per frame.
+	public sealed class AnimationInfo {
+		public readonly string name;
+		public readonly StringName animationName;
+		public readonly int frameCount;
+		// The size of the animation's frames, zero if the animation has no frames.
+		public readonly Vector2 frameSize;
+		public readonly Vector2I flicOffset;
+		public readonly Vector2I flicOriginalSize;
+
+		public AnimationInfo(SpriteFrames frames, string name, Util.FlicSheet flicSheet) {
+			this.name = name;
+			animationName = new StringName(name);
+			frameCount = frames.GetFrameCount(animationName);
+			frameSize = frameCount > 0 ? frames.GetFrameTexture(animationName, 0).GetSize() : Vector2.Zero;
+			flicOffset = new Vector2I(flicSheet.offsetLeft, flicSheet.offsetTop);
+			flicOriginalSize = new Vector2I(flicSheet.spriteOriginalWidth, flicSheet.spriteOriginalHeight);
+		}
+
+		// The frame to show at a given progress (0 to 1) through the animation.
+		public int FrameAtProgress(float progress) {
+			// AnimatedSprite2D has a settable FrameProgress field, which I expected to
+			// update the current frame of the animation upon setting, but it did not
+			// when I tried it, so instead, calculate what the next frame should be
+			// based on the progress.
+			int nextFrame = (int)((float)frameCount * progress);
+			return nextFrame >= frameCount ? frameCount - 1 : (nextFrame < 0 ? 0 : nextFrame);
+		}
+	}
+
+	private static readonly int animatedActionCount = (int)Enum.GetValues<MapUnit.AnimatedAction>().Max() + 1;
+	private static readonly int tileDirectionCount = (int)Enum.GetValues<TileDirection>().Max() + 1;
+
+	// The unit animations by art name, each an array indexed by action and direction.
+	private readonly Dictionary<string, AnimationInfo[]> unitAnimations = new();
+	private readonly Dictionary<(AnimatedEffect, MapUnit.AnimatedAction), AnimationInfo> effectAnimations = new();
+
+	// Returns the animation for drawing a unit doing an action facing a
+	// direction, loading the animation if it hasn't been loaded yet.
+	public AnimationInfo GetUnitAnimation(MapUnit unit, MapUnit.AnimatedAction action, TileDirection direction) {
+		string artName = ArtNameFor(unit);
+		int index = (int)action * tileDirectionCount + (int)direction;
+		bool indexable = (uint)action < (uint)animatedActionCount && (uint)direction < (uint)tileDirectionCount;
+
+		if (!unitAnimations.TryGetValue(artName, out AnimationInfo[] animations)) {
+			animations = new AnimationInfo[animatedActionCount * tileDirectionCount];
+			unitAnimations.Add(artName, animations);
+		}
+		if (indexable && animations[index] is AnimationInfo cached) {
+			return cached;
+		}
+
+		LoadAnimation(artName, action);
+		string folderPath = "Art/Units/" + artName;
+		IniData iniData = getINIData(folderPath + "/" + artName + ".ini");
+		AnimationInfo info = new(spriteFrames, AnimationKey(BaseAnimationKey(artName, action), direction), getFlicSheet(folderPath, iniData, action));
+		if (indexable) {
+			animations[index] = info;
+		}
+		return info;
+	}
+
+	// Returns the animation for drawing an effect, loading it if it hasn't been loaded yet.
+	public AnimationInfo GetEffectAnimation(C7Animation anim) {
+		if (effectAnimations.TryGetValue((anim.effect, anim.action), out AnimationInfo cached)) {
+			return cached;
+		}
+
+		anim.loadEffectAnimation();
+		AnimationInfo info = new(spriteFrames, AnimationKey(anim.effect, anim.action), anim.getFlicSheet());
+		effectAnimations[(anim.effect, anim.action)] = info;
+		return info;
+	}
 
 	public AnimationManager(AudioStreamPlayer audioPlayer) {
 		this.audioPlayer = audioPlayer;
@@ -168,8 +262,12 @@ public partial class AnimationManager {
 	}
 
 	public string getUnitFlicFilepath(MapUnit unit, MapUnit.AnimatedAction action) {
-		string directory = string.Format("Art/Units/{0}", ArtNameFor(unit));
-		IniData ini = getUnitINIData(ArtNameFor(unit));
+		return getUnitFlicFilepath(ArtNameFor(unit), action);
+	}
+
+	public string getUnitFlicFilepath(string artName, MapUnit.AnimatedAction action) {
+		string directory = string.Format("Art/Units/{0}", artName);
+		IniData ini = getUnitINIData(artName);
 		string filename = getFlicFileName(ini, action);
 		return directory.PathJoin(filename);
 	}
@@ -242,12 +340,16 @@ public partial class AnimationManager {
 	}
 
 	public bool LoadAnimation(MapUnit unit, MapUnit.AnimatedAction action) {
-		string name = BaseAnimationKey(ArtNameFor(unit), action);
+		return LoadAnimation(ArtNameFor(unit), action);
+	}
+
+	public bool LoadAnimation(string artName, MapUnit.AnimatedAction action) {
+		string name = BaseAnimationKey(artName, action);
 		string testName = AnimationKey(name, TileDirection.NORTH);
 		if (spriteFrames.HasAnimation(testName) && tintFrames.HasAnimation(testName)) {
 			return false;
 		}
-		string filepath = getUnitFlicFilepath(unit, action);
+		string filepath = getUnitFlicFilepath(artName, action);
 		loadFlicAnimation(filepath, name, ref this.spriteFrames, ref this.tintFrames);
 		return true;
 	}
@@ -261,16 +363,10 @@ public partial class AnimationManager {
 		return true;
 	}
 
-	private Dictionary<string, Util.FlicSheet> flicSheets = new Dictionary<string, Util.FlicSheet>();
-
+	// Returns the header values of the flic for an action. The values are
+	// cached by Util.LoadFlicHeader, which reads them without decoding the flic.
 	public Util.FlicSheet getFlicSheet(string rootPath, IniData iniData, MapUnit.AnimatedAction action) {
-		Util.FlicSheet tr;
-		string pathKey = GetFlicFilePath(rootPath, iniData, action);
-		if (!flicSheets.TryGetValue(pathKey, out tr)) {
-			(tr, _) = Util.loadFlicSheet(pathKey);
-			flicSheets.Add(pathKey, tr);
-		}
-		return tr;
+		return Util.LoadFlicHeader(GetFlicFilePath(rootPath, iniData, action));
 	}
 
 	private Dictionary<string, AudioStreamWav> wavs = new Dictionary<string, AudioStreamWav>();
@@ -302,6 +398,9 @@ public partial class AnimationManager {
 	public static void ClearCache() {
 		AnimationThumbnails.Clear();
 		AnimationTintThumbnails.Clear();
+		// Which art exists depends on the media paths, which may have changed.
+		artNames.Clear();
+		unitArtExists.Clear();
 	}
 }
 
@@ -314,9 +413,10 @@ public partial class C7Animation {
 	public MapUnit.AnimatedAction action { get; private set; }
 
 	public C7Animation(AnimationManager civ3AnimData, MapUnit unit, MapUnit.AnimatedAction action) {
+		string artName = AnimationManager.ArtNameFor(unit);
 		this.animationManager = civ3AnimData;
-		this.folderPath = "Art/Units/" + AnimationManager.ArtNameFor(unit);
-		this.iniFileName = AnimationManager.ArtNameFor(unit) + ".ini";
+		this.folderPath = "Art/Units/" + artName;
+		this.iniFileName = artName + ".ini";
 		this.action = action;
 		this.unit = unit;
 	}
@@ -353,8 +453,11 @@ public partial class C7Animation {
 		return animationManager.getINIData(folderPath + "/" + iniFileName);
 	}
 
+	private Util.FlicSheet? flicSheet = null;
+
 	public Util.FlicSheet getFlicSheet() {
-		return animationManager.getFlicSheet(folderPath, getINIData(), action);
+		flicSheet ??= animationManager.getFlicSheet(folderPath, getINIData(), action);
+		return flicSheet.Value;
 	}
 
 	public void loadSpriteAnimation() {
@@ -376,10 +479,12 @@ public partial class C7Animation {
 	}
 
 	public Vector2I GetFlicAnimationOffset() {
-		return new Vector2I(getFlicSheet().offsetLeft, getFlicSheet().offsetTop);
+		Util.FlicSheet flicSheet = getFlicSheet();
+		return new Vector2I(flicSheet.offsetLeft, flicSheet.offsetTop);
 	}
 
 	public Vector2I GetFlicAnimationOriginalSize() {
-		return new Vector2I(getFlicSheet().spriteOriginalWidth, getFlicSheet().spriteOriginalHeight);
+		Util.FlicSheet flicSheet = getFlicSheet();
+		return new Vector2I(flicSheet.spriteOriginalWidth, flicSheet.spriteOriginalHeight);
 	}
 }
