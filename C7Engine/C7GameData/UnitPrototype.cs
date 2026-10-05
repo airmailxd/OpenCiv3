@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Runtime.InteropServices.JavaScript;
 using Serilog;
 
 namespace C7GameData {
@@ -212,11 +211,120 @@ namespace C7GameData {
 		}
 
 		public bool IsLandUnit() {
-			return categories.Contains("Land");
+			return GetCategoryFlags().isLand;
 		}
 
 		public bool IsSeaUnit() {
-			return categories.Contains("Sea");
+			return GetCategoryFlags().isSea;
+		}
+
+		public bool IsAirUnit() {
+			return GetCategoryFlags().isAir;
+		}
+
+		// Whether the type has the Load action, i.e. can board transports.
+		public bool HasLoadAction() {
+			return GetActionFlags().canLoad;
+		}
+
+		// Whether the type has the Unload action.
+		public bool HasUnloadAction() {
+			return GetActionFlags().canUnload;
+		}
+
+		// The category and action checks above are made for every tile the
+		// pathfinder looks at, so they are cached instead of hashing strings
+		// each time. categories and actions are public sets that get filled
+		// after construction (by importers, loaders and tests) or replaced
+		// outright, so the cached flags remember which set, and how big it
+		// was, they were computed from, and are recomputed when either
+		// differs. (Sets are only ever added to, never edited in a way that
+		// keeps their size.) Each snapshot is immutable and published with a
+		// single reference write, so concurrent readers always see a
+		// consistent one.
+		private sealed class CategoryFlags {
+			public readonly HashSet<string> source;
+			public readonly int count;
+			public readonly bool isLand, isSea, isAir;
+
+			public CategoryFlags(HashSet<string> source) {
+				this.source = source;
+				count = source.Count;
+				isLand = source.Contains("Land");
+				isSea = source.Contains("Sea");
+				isAir = source.Contains("Air");
+			}
+		}
+
+		private sealed class ActionFlags {
+			public readonly HashSet<UnitAction> source;
+			public readonly int count;
+			public readonly bool canLoad, canUnload;
+
+			public ActionFlags(HashSet<UnitAction> source) {
+				this.source = source;
+				count = source.Count;
+				canLoad = source.Contains(UnitAction.Load);
+				canUnload = source.Contains(UnitAction.Unload);
+			}
+		}
+
+		private CategoryFlags categoryFlags;
+		private ActionFlags actionFlags;
+
+		private CategoryFlags GetCategoryFlags() {
+			HashSet<string> current = categories;
+			CategoryFlags flags = categoryFlags;
+			if (flags == null || !ReferenceEquals(flags.source, current) || flags.count != current.Count) {
+				flags = new CategoryFlags(current);
+				categoryFlags = flags;
+			}
+			return flags;
+		}
+
+		private ActionFlags GetActionFlags() {
+			HashSet<UnitAction> current = actions;
+			ActionFlags flags = actionFlags;
+			if (flags == null || !ReferenceEquals(flags.source, current) || flags.count != current.Count) {
+				flags = new ActionFlags(current);
+				actionFlags = flags;
+			}
+			return flags;
+		}
+
+		// The art variation for captured workers (the first variation whose
+		// name ends with "SLAVE"), or null. Cached per variations dictionary,
+		// which is only replaced, never edited, once a prototype is set up.
+		private sealed class SlaveArt {
+			public readonly Dictionary<string, string> source;
+			public readonly int count;
+			public readonly string name;
+
+			public SlaveArt(Dictionary<string, string> source) {
+				this.source = source;
+				count = source.Count;
+				foreach (KeyValuePair<string, string> variation in source) {
+					if (variation.Key.EndsWith("SLAVE", StringComparison.Ordinal)) {
+						name = variation.Value;
+						break;
+					}
+				}
+			}
+		}
+
+		private SlaveArt slaveArt;
+
+		public string GetSlaveArtName() {
+			Dictionary<string, string> variations = art.mainArt.variations;
+			if (variations == null) {
+				return null;
+			}
+			SlaveArt cached = slaveArt;
+			if (cached == null || !ReferenceEquals(cached.source, variations) || cached.count != variations.Count) {
+				cached = new SlaveArt(variations);
+				slaveArt = cached;
+			}
+			return cached.name;
 		}
 
 		// Whether units of this type can be loaded into an army. Only land
@@ -257,49 +365,6 @@ namespace C7GameData {
 
 			instance.movementPoints.reset(movement);
 			return instance;
-		}
-
-		/// Immediate upgrade target, given a civilization.
-		///
-		/// upgradesTo is the union of every civ's next upgrade, so a civ can match
-		/// several targets: Spearman lists Pikeman and Musketman because some civ
-		/// can't build Pikeman. The immediate target is the one the others are
-		/// further along the chain from.
-		private UnitPrototype GetUnitUpgrade(Civilization civ) {
-			var match = upgradesTo.Where(x => x.producibleBy.Contains(civ)).ToList();
-			if (match.Count > 1) {
-				match = match.Where(x => !match.Any(y => y != x && y.UpgradesEventuallyTo(x))).ToList();
-				if (match.Count > 1)
-					Log.Warning($"Unexpected upgrade chain: more than one valid target for upgrading {name} with {civ.name}.");
-			}
-			return match.FirstOrDefault();
-		}
-
-		/// Whether target can be reached from this unit by following upgrades.
-		private bool UpgradesEventuallyTo(UnitPrototype target) {
-			var seen = new HashSet<UnitPrototype>();
-			var pending = new Stack<UnitPrototype>(upgradesTo);
-			while (pending.Count > 0) {
-				var unit = pending.Pop();
-				if (unit == target) return true;
-				if (!seen.Add(unit)) continue;
-				foreach (var next in unit.upgradesTo) pending.Push(next);
-			}
-			return false;
-		}
-
-		/// The upgrade chain: a unit upgrade series as an ordered collection of unit prototypes,
-		/// for a particular civilization, starting from this unit.
-		///
-		/// Note: must be unique and stable: in-game every unit has at most one direct upgrade target.
-		private List<UnitPrototype> GetUpgradeChain(Civilization civ) {
-			var chain = new List<UnitPrototype>();
-			var current = this.GetUnitUpgrade(civ);
-			while (current != null) {
-				chain.Add(current);
-				current = current.GetUnitUpgrade(civ);
-			}
-			return chain;
 		}
 
 		/// Whether a given city can produce this unit, given available resources.
@@ -360,58 +425,279 @@ namespace C7GameData {
 		public UnitPrototype GetProducibleUpgrade(City city, HashSet<Resource> accessibleResources) {
 			var civ = city.owner.civilization;
 
-			var unitUpgradeChain = this.GetUpgradeChain(civ);
-			if (!unitUpgradeChain.Any())
+			// The units we might upgrade to that the civ can build, which
+			// only depends on the prototypes, so it is cached.
+			UpgradeGraph graph = UpgradeGraph.For(this);
+			UnitPrototype[] candidates = graph.Candidates(this, civ);
+			if (candidates.Length == 0)
 				return null;
 
-			// We expand the upgrade chain with "siblings", units that join the chain from nearby "branches"
-			var potentialUnits = this.GetUnitsThatUpgradeTo(this.upgradesTo);
-			var units = unitUpgradeChain.Union(potentialUnits);
-
-			// Filter down to units we can produce
-			var producibleUnits = units.Where(uu =>
-				uu.MeetsProductionRequirements(city, accessibleResources)
-				&& uu.producibleBy.Contains(civ)
-			).ToList();
+			// Filter down to units we can produce here
+			List<UnitPrototype> producibleUnits = new(candidates.Length);
+			foreach (UnitPrototype uu in candidates) {
+				if (uu.MeetsProductionRequirements(city, accessibleResources))
+					producibleUnits.Add(uu);
+			}
 
 			// Select the best unit we can upgrade to. Say we are upgrading a Warrior: if Medieval Infantry
 			// is available, we don't want to upgrade to a mere Swordsman.
-			var unitUpgrade = SortInUpgradeOrder(producibleUnits).LastOrDefault();
-
-			return unitUpgrade;
+			return SortInUpgradeOrder(producibleUnits, graph).LastOrDefault();
 		}
 
-		// For example, if we want to check if the Trebuchet is obsolete for the Koreans,
-		// what we can do, because we don't want to hardcode anywhere that
-		// the Hwacha is the "replacement" to the Cannon (which is Trebuchet's upgrade)
-		// we can check if the upgrade (Artillery) of the upgrade (Cannon) of our unit (Trebuchet)
-		// has other units that upgrade to it and are available to the Koreans.
-		// This is how we get that, since we can build a Hwacha,
-		// which upgrades to Artillery, that the Trebuchet is obsolete.
-		private List<UnitPrototype> GetUnitsThatUpgradeTo(ICollection<UnitPrototype> units) {
-			var unitProtos = EngineStorage.gameData.unitPrototypes;
-
-			HashSet<UnitPrototype> upgradeUpgrades = (units ?? [])
-				.SelectMany(x => x.upgradesTo ?? [])
-				.ToHashSet();
-
-			List<UnitPrototype> allUnits = unitProtos.Where(p
-					=> (p.upgradesTo ?? []).Intersect(upgradeUpgrades).Any())
-				.Except([this])
-				.ToList();
-
-			return allUnits;
+		/// Sorts by the upgrade relation: if a eventually upgrades to b, a
+		/// comes before b. Units that don't upgrade to one another keep their
+		/// relative order where the relation allows it. (This is a stable
+		/// topological sort; the comparer this replaces wasn't a total order,
+		/// so List.Sort could return the units in an inconsistent order.) The
+		/// last unit is always one that doesn't upgrade to any of the others.
+		internal static List<UnitPrototype> SortInUpgradeOrder(List<UnitPrototype> units) {
+			return SortInUpgradeOrder(units, UpgradeGraph.Uncached(units));
 		}
 
-		/// Sort by the upgrade relation: if a upgrades to b, a is "smaller than" b
-		private List<UnitPrototype> SortInUpgradeOrder(IEnumerable<UnitPrototype> units) {
-			var sorted = units.ToList();
-			sorted.Sort((a, b) => {
-				if (a.upgradesTo.Contains(b)) return -1;
-				if (b.upgradesTo.Contains(a)) return 1;
-				return 0;
-			});
+		private static List<UnitPrototype> SortInUpgradeOrder(List<UnitPrototype> units, UpgradeGraph graph) {
+			int n = units.Count;
+			List<UnitPrototype> sorted = new(n);
+			if (n == 0)
+				return sorted;
+
+			// before[i, j]: unit i upgrades, eventually, to unit j.
+			bool[,] before = new bool[n, n];
+			for (int i = 0; i < n; i++) {
+				for (int j = 0; j < n; j++) {
+					before[i, j] = i != j && units[i] != units[j] && graph.Reachable(units[i]).Contains(units[j]);
+				}
+			}
+
+			bool[] placed = new bool[n];
+			for (int placedCount = 0; placedCount < n; placedCount++) {
+				// Place the first unit nothing remaining has to come before.
+				// If there is none, the upgrades loop (bad data), so place the
+				// first remaining unit to break the loop.
+				int next = -1, firstRemaining = -1;
+				for (int j = 0; j < n && next < 0; j++) {
+					if (placed[j])
+						continue;
+					if (firstRemaining < 0)
+						firstRemaining = j;
+					bool free = true;
+					for (int i = 0; i < n && free; i++) {
+						if (!placed[i] && before[i, j])
+							free = false;
+					}
+					if (free)
+						next = j;
+				}
+				if (next < 0)
+					next = firstRemaining;
+				placed[next] = true;
+				sorted.Add(units[next]);
+			}
 			return sorted;
+		}
+
+		/// Whether target can be reached from this unit by following upgrades.
+		internal bool UpgradesEventuallyTo(UnitPrototype target) {
+			return UpgradeGraph.For(this).Reachable(this).Contains(target);
+		}
+
+		// Upgrade relations between prototypes, worked out once and cached,
+		// since working them out means walking the upgrade graph and scanning
+		// every prototype, for every unit in every city's production list.
+		//
+		// The results depend only on the prototypes' upgradesTo and
+		// producibleBy (and on the list of the game's prototypes), which are
+		// set up when a game is created or loaded, but are public and can be
+		// filled in afterwards (e.g. by tests). So the graph remembers, for
+		// the game's prototype list and every prototype reachable from it,
+		// which upgradesTo list and producibleBy set it saw and their sizes,
+		// and is rebuilt when any of these differ from the live data. This
+		// check is linear in the number of prototypes, with no allocation;
+		// it replaces work that was quadratic and allocating. Prototypes
+		// outside the graph (not reachable from the game's list) are
+		// computed on a fresh, uncached graph each time.
+		internal sealed class UpgradeGraph {
+			private static UpgradeGraph current;
+
+			private readonly List<UnitPrototype> source;
+			private readonly UnitPrototype[] sourceItems;
+			// Every prototype the results can depend on, with what was seen
+			// of each.
+			private readonly UnitPrototype[] members;
+			private readonly List<UnitPrototype>[] memberUpgradesTo;
+			private readonly int[] memberUpgradesToCount;
+			private readonly HashSet<Civilization>[] memberProducibleBy;
+			private readonly int[] memberProducibleByCount;
+			private readonly HashSet<UnitPrototype> memberSet;
+
+			private readonly object cacheLock = new();
+			private readonly Dictionary<UnitPrototype, HashSet<UnitPrototype>> reachable = new();
+			private readonly Dictionary<(UnitPrototype, Civilization), UnitPrototype[]> candidates = new();
+
+			private UpgradeGraph(List<UnitPrototype> source) {
+				this.source = source;
+				sourceItems = source.ToArray();
+
+				List<UnitPrototype> all = new();
+				memberSet = new HashSet<UnitPrototype>();
+				Stack<UnitPrototype> pending = new();
+				foreach (UnitPrototype p in sourceItems) {
+					pending.Push(p);
+					while (pending.Count > 0) {
+						UnitPrototype unit = pending.Pop();
+						if (unit == null || !memberSet.Add(unit))
+							continue;
+						all.Add(unit);
+						foreach (UnitPrototype next in unit.upgradesTo ?? [])
+							pending.Push(next);
+					}
+				}
+
+				members = all.ToArray();
+				memberUpgradesTo = new List<UnitPrototype>[members.Length];
+				memberUpgradesToCount = new int[members.Length];
+				memberProducibleBy = new HashSet<Civilization>[members.Length];
+				memberProducibleByCount = new int[members.Length];
+				for (int i = 0; i < members.Length; i++) {
+					memberUpgradesTo[i] = members[i].upgradesTo;
+					memberUpgradesToCount[i] = members[i].upgradesTo?.Count ?? -1;
+					memberProducibleBy[i] = members[i].producibleBy;
+					memberProducibleByCount[i] = members[i].producibleBy?.Count ?? -1;
+				}
+			}
+
+			// The graph to use for the given prototype.
+			public static UpgradeGraph For(UnitPrototype proto) {
+				List<UnitPrototype> source = EngineStorage.gameData?.unitPrototypes ?? [];
+				UpgradeGraph graph = current;
+				if (graph == null || !graph.IsUpToDate(source)) {
+					graph = new UpgradeGraph(source);
+					current = graph;
+				}
+				if (graph.memberSet.Contains(proto))
+					return graph;
+				// Not cacheable: nothing would tell us when this prototype or
+				// those it upgrades to change. The graph is built over the
+				// game's prototypes plus this one, since it's what the
+				// results are computed from.
+				return Uncached(new List<UnitPrototype>(source) { proto });
+			}
+
+			// A graph over the given prototypes, for one-off use.
+			public static UpgradeGraph Uncached(List<UnitPrototype> source) {
+				return new UpgradeGraph(source);
+			}
+
+			private bool IsUpToDate(List<UnitPrototype> liveSource) {
+				if (!ReferenceEquals(source, liveSource) || liveSource.Count != sourceItems.Length)
+					return false;
+				for (int i = 0; i < sourceItems.Length; i++) {
+					if (!ReferenceEquals(liveSource[i], sourceItems[i]))
+						return false;
+				}
+				for (int i = 0; i < members.Length; i++) {
+					UnitPrototype p = members[i];
+					if (!ReferenceEquals(p.upgradesTo, memberUpgradesTo[i]) || (p.upgradesTo?.Count ?? -1) != memberUpgradesToCount[i])
+						return false;
+					if (!ReferenceEquals(p.producibleBy, memberProducibleBy[i]) || (p.producibleBy?.Count ?? -1) != memberProducibleByCount[i])
+						return false;
+				}
+				return true;
+			}
+
+			// The prototypes reachable from proto by following one or more
+			// upgrades.
+			public HashSet<UnitPrototype> Reachable(UnitPrototype proto) {
+				lock (cacheLock) {
+					return ReachableLocked(proto);
+				}
+			}
+
+			private HashSet<UnitPrototype> ReachableLocked(UnitPrototype proto) {
+				if (reachable.TryGetValue(proto, out HashSet<UnitPrototype> result))
+					return result;
+				result = new HashSet<UnitPrototype>();
+				var pending = new Stack<UnitPrototype>(proto.upgradesTo);
+				while (pending.Count > 0) {
+					var unit = pending.Pop();
+					if (!result.Add(unit)) continue;
+					foreach (var next in unit.upgradesTo) pending.Push(next);
+				}
+				reachable[proto] = result;
+				return result;
+			}
+
+			/// The units proto might upgrade to for the civ, which it can
+			/// build: the upgrade chain followed by its "siblings", in
+			/// order. Empty if proto has no upgrade for the civ.
+			public UnitPrototype[] Candidates(UnitPrototype proto, Civilization civ) {
+				lock (cacheLock) {
+					if (candidates.TryGetValue((proto, civ), out UnitPrototype[] result))
+						return result;
+
+					List<UnitPrototype> unitUpgradeChain = GetUpgradeChain(proto, civ);
+					if (unitUpgradeChain.Count == 0) {
+						result = [];
+					} else {
+						// We expand the upgrade chain with "siblings", units that join the chain from nearby "branches"
+						var potentialUnits = GetUnitsThatUpgradeTo(proto, proto.upgradesTo);
+						result = unitUpgradeChain.Union(potentialUnits)
+							.Where(uu => uu.producibleBy.Contains(civ))
+							.ToArray();
+					}
+					candidates[(proto, civ)] = result;
+					return result;
+				}
+			}
+
+			/// Immediate upgrade target, given a civilization.
+			///
+			/// upgradesTo is the union of every civ's next upgrade, so a civ can match
+			/// several targets: Spearman lists Pikeman and Musketman because some civ
+			/// can't build Pikeman. The immediate target is the one the others are
+			/// further along the chain from.
+			private UnitPrototype GetUnitUpgrade(UnitPrototype proto, Civilization civ) {
+				var match = proto.upgradesTo.Where(x => x.producibleBy.Contains(civ)).ToList();
+				if (match.Count > 1) {
+					match = match.Where(x => !match.Any(y => y != x && ReachableLocked(y).Contains(x))).ToList();
+					if (match.Count > 1)
+						Log.Warning($"Unexpected upgrade chain: more than one valid target for upgrading {proto.name} with {civ.name}.");
+				}
+				return match.FirstOrDefault();
+			}
+
+			/// The upgrade chain: a unit upgrade series as an ordered collection of unit prototypes,
+			/// for a particular civilization, starting from this unit.
+			///
+			/// Note: must be unique and stable: in-game every unit has at most one direct upgrade target.
+			private List<UnitPrototype> GetUpgradeChain(UnitPrototype proto, Civilization civ) {
+				var chain = new List<UnitPrototype>();
+				var current = GetUnitUpgrade(proto, civ);
+				while (current != null) {
+					chain.Add(current);
+					current = GetUnitUpgrade(current, civ);
+				}
+				return chain;
+			}
+
+			// For example, if we want to check if the Trebuchet is obsolete for the Koreans,
+			// what we can do, because we don't want to hardcode anywhere that
+			// the Hwacha is the "replacement" to the Cannon (which is Trebuchet's upgrade)
+			// we can check if the upgrade (Artillery) of the upgrade (Cannon) of our unit (Trebuchet)
+			// has other units that upgrade to it and are available to the Koreans.
+			// This is how we get that, since we can build a Hwacha,
+			// which upgrades to Artillery, that the Trebuchet is obsolete.
+			private List<UnitPrototype> GetUnitsThatUpgradeTo(UnitPrototype proto, ICollection<UnitPrototype> units) {
+				HashSet<UnitPrototype> upgradeUpgrades = (units ?? [])
+					.SelectMany(x => x.upgradesTo ?? [])
+					.ToHashSet();
+
+				List<UnitPrototype> allUnits = sourceItems.Where(p
+						=> p != null && (p.upgradesTo ?? []).Intersect(upgradeUpgrades).Any())
+					.Except([proto])
+					.ToList();
+
+				return allUnits;
+			}
 		}
 	}
 }

@@ -74,7 +74,9 @@ namespace C7GameData {
 		public string ResourceKey { get; set; }
 		public Resource Resource { get; set; }
 
-		public Dictionary<TileDirection, Tile> neighbors { get; set; } = new Dictionary<TileDirection, Tile>();
+		// Behaves like a Dictionary<TileDirection, Tile>, but is backed by an
+		// array since it is read in the hottest loops; see TileNeighbors.
+		public TileNeighbors neighbors { get; set; } = new TileNeighbors();
 
 		public CityResident personWorkingTile = null;   //allows us to see if another city is working this tile
 
@@ -143,13 +145,13 @@ namespace C7GameData {
 		}
 
 		public bool HasPollution() {
-			return this.overlays.GetImprovements().Any(i => i.key == POLLUTION);
+			return this.overlays.HasImprovementWithKey(POLLUTION, Layer.Pollution);
 		}
 		public bool HasRuins() {
-			return this.overlays.GetImprovements().Any(i => i.key == RUINS);
+			return this.overlays.HasImprovementWithKey(RUINS, Layer.Ruins);
 		}
 		public bool HasCraters() {
-			return this.overlays.GetImprovements().Any(i => i.key == CRATERS);
+			return this.overlays.HasImprovementWithKey(CRATERS, Layer.Craters);
 		}
 
 		// TODO: this should be either an extension in C7Engine, or otherwise
@@ -172,7 +174,7 @@ namespace C7GameData {
 		//Those cases should not use this method.
 		public bool NeighborsWater() {
 			foreach (Tile neighbor in neighbors.Values) {
-				if (neighbor.baseTerrainType.isWater()) {
+				if (neighbor.baseTerrainType.IsWater) {
 					return true;
 				}
 			}
@@ -181,7 +183,7 @@ namespace C7GameData {
 
 		public bool NeighborsFreshWater() {
 			foreach (Tile neighbor in neighbors.Values) {
-				if (neighbor.baseTerrainType.isWater() && neighbor.isFreshWater) {
+				if (neighbor.baseTerrainType.IsWater && neighbor.isFreshWater) {
 					return true;
 				}
 			}
@@ -190,7 +192,7 @@ namespace C7GameData {
 
 		public bool NeighborsOcean() {
 			foreach (Tile neighbor in neighbors.Values) {
-				if (neighbor.baseTerrainType.isWater() && !neighbor.isFreshWater) {
+				if (neighbor.baseTerrainType.IsWater && !neighbor.isFreshWater) {
 					return true;
 				}
 			}
@@ -203,12 +205,42 @@ namespace C7GameData {
 		/// </summary>
 		/// <returns></returns>
 		public Tile[] GetEdgeNeighbors() {
-			List<Tile> edgeNeighbors = new();
-			if (neighbors.TryGetValue(TileDirection.NORTHEAST, out Tile ne)) edgeNeighbors.Add(ne);
-			if (neighbors.TryGetValue(TileDirection.NORTHWEST, out Tile nw)) edgeNeighbors.Add(nw);
-			if (neighbors.TryGetValue(TileDirection.SOUTHEAST, out Tile se)) edgeNeighbors.Add(se);
-			if (neighbors.TryGetValue(TileDirection.SOUTHWEST, out Tile sw)) edgeNeighbors.Add(sw);
-			return edgeNeighbors.ToArray();
+			int count = 0;
+			foreach (TileDirection dir in EdgeDirections) {
+				if (neighbors.ContainsKey(dir)) {
+					count++;
+				}
+			}
+			Tile[] edgeNeighbors = new Tile[count];
+			int i = 0;
+			foreach (TileDirection dir in EdgeDirections) {
+				Tile t = neighbors.Get(dir);
+				if (t != null) {
+					edgeNeighbors[i++] = t;
+				}
+			}
+			return edgeNeighbors;
+		}
+
+		// The directions of the neighbors sharing an edge with a tile, in the
+		// order GetEdgeNeighbors returns them.
+		public static readonly TileDirection[] EdgeDirections = {
+			TileDirection.NORTHEAST,
+			TileDirection.NORTHWEST,
+			TileDirection.SOUTHEAST,
+			TileDirection.SOUTHWEST,
+		};
+
+		// Whether any of the neighbors returned by GetEdgeNeighbors matches,
+		// without allocating.
+		public bool AnyEdgeNeighbor(Func<Tile, bool> predicate) {
+			foreach (TileDirection dir in EdgeDirections) {
+				Tile t = neighbors.Get(dir);
+				if (t != null && predicate(t)) {
+					return true;
+				}
+			}
+			return false;
 		}
 
 		public override string ToString() {
@@ -216,7 +248,22 @@ namespace C7GameData {
 		}
 
 		public List<Tile> GetLandNeighbors() {
-			return neighbors.Values.Where(tile => tile != NONE && !tile.baseTerrainType.isWater()).ToList();
+			List<Tile> result = new(neighbors.Count);
+			foreach (Tile tile in neighbors.Values) {
+				if (tile != NONE && !tile.baseTerrainType.IsWater) {
+					result.Add(tile);
+				}
+			}
+			return result;
+		}
+
+		// Whether the given tile is one of GetLandNeighbors(), without
+		// allocating.
+		public bool HasLandNeighbor(Tile other) {
+			if (other == null || other == NONE || other.baseTerrainType.IsWater) {
+				return false;
+			}
+			return neighbors.ContainsValue(other);
 		}
 
 		/**
@@ -225,7 +272,13 @@ namespace C7GameData {
 		 * which could work e.g. for units that can move anywhere except desert.
 		 **/
 		public List<Tile> GetCoastNeighbors() {
-			return neighbors.Values.Where(tile => tile.baseTerrainType.Key == "coast").ToList();
+			List<Tile> result = new(neighbors.Count);
+			foreach (Tile tile in neighbors.Values) {
+				if (tile.baseTerrainType.IsCoast) {
+					result.Add(tile);
+				}
+			}
+			return result;
 		}
 
 		public bool HasRiverCrossing(TileDirection dir) {
@@ -243,19 +296,19 @@ namespace C7GameData {
 		}
 
 		public bool IsLand() {
-			return !baseTerrainType.isWater();
+			return !baseTerrainType.IsWater;
 		}
 
 		public bool IsWater() {
-			return baseTerrainType.isWater();
+			return baseTerrainType.IsWater;
 		}
 
 		public bool IsCoast() {
-			return baseTerrainType.isCoast();
+			return baseTerrainType.IsCoast;
 		}
 
 		public bool IsSea() {
-			return baseTerrainType.isSea();
+			return baseTerrainType.IsSea;
 		}
 
 		public bool IsCountedForDomination() {
@@ -271,7 +324,7 @@ namespace C7GameData {
 		}
 
 		public bool IsVolcano() {
-			return overlayTerrainType.isVolcano();
+			return overlayTerrainType.IsVolcano;
 		}
 
 		public bool IsRoaded() {
@@ -401,16 +454,11 @@ namespace C7GameData {
 		}
 
 		public MapUnit FindTopDefenderForBombard(Tile tile, MapUnit opponent) {
-			MapUnit target;
-			// Units in an army are hit through the army.
-			var combatUnits = tile.unitsOnTile.Where(u => u.IsCombatUnit() && !u.IsInArmy()).ToList();
-
-			if ((tile.IsLand() && opponent.unitType.isLandBombardmentLethal) || (tile.IsWater() && opponent.unitType.isSeaBombardmentLethal))
-				target = FindTopCombatUnit(opponent, combatUnits);
-			else
-				target = FindTopCombatUnit(opponent, combatUnits.Where(u => u.CompositeHitPoints() > 1).ToList());
-
-			return target;
+			// Units in an army are hit through the army. Unless the
+			// bombardment is lethal, units down to their last hit point can't
+			// be hit.
+			bool lethal = (tile.IsLand() && opponent.unitType.isLandBombardmentLethal) || (tile.IsWater() && opponent.unitType.isSeaBombardmentLethal);
+			return FindTopCombatUnit(opponent, tile.unitsOnTile, lethal ? CandidateFilter.BombardTarget : CandidateFilter.NonLethalBombardTarget);
 		}
 
 		public MapUnit FindTopDefender(MapUnit opponent) {
@@ -418,28 +466,57 @@ namespace C7GameData {
 		}
 
 		public MapUnit FindTopDefender(MapUnit opponent, List<MapUnit> units) {
-			if (units.Count > 0) {
-				// Units in an army don't defend by themselves; the army defends
-				// with them.
-				List<MapUnit> potentialDefenders = units.Where(u => u.CanDefendAgainst(opponent) && !u.IsInArmy()).ToList();
-				if (potentialDefenders.Count() == 0) {
-					return MapUnit.NONE;
-				}
-
-				return FindTopCombatUnit(opponent, potentialDefenders);
-			}
-
-			return MapUnit.NONE;
+			// Units in an army don't defend by themselves; the army defends
+			// with them.
+			return FindTopCombatUnit(opponent, units, CandidateFilter.Defender);
 		}
 
 		public MapUnit FindTopCombatUnit(MapUnit opponent, List<MapUnit> units) {
-			if (units.Count < 1) return MapUnit.NONE;
+			return FindTopCombatUnit(opponent, units, CandidateFilter.All);
+		}
 
-			MapUnit leadingCandidate = units[0];
-			foreach (MapUnit u in units)
-				if (u.HasPriorityAsDefender(leadingCandidate, opponent))
-					leadingCandidate = u;
-			return leadingCandidate;
+		private enum CandidateFilter {
+			All,
+			Defender,
+			BombardTarget,
+			NonLethalBombardTarget,
+		}
+
+		private static bool IsCandidate(MapUnit u, MapUnit opponent, CandidateFilter filter) {
+			switch (filter) {
+				case CandidateFilter.Defender:
+					return u.CanDefendAgainst(opponent) && !u.IsInArmy();
+				case CandidateFilter.BombardTarget:
+					return u.IsCombatUnit() && !u.IsInArmy();
+				case CandidateFilter.NonLethalBombardTarget:
+					return u.IsCombatUnit() && !u.IsInArmy() && u.CompositeHitPoints() > 1;
+				default:
+					return true;
+			}
+		}
+
+		// Picks the candidate that has priority as defender over all the
+		// others (see MapUnit.HasPriorityAsDefender). Each candidate's
+		// priority is computed once, and candidates are compared exactly as
+		// calling HasPriorityAsDefender against the current leader would, so
+		// the first of several equally good candidates wins.
+		private static MapUnit FindTopCombatUnit(MapUnit opponent, List<MapUnit> units, CandidateFilter filter) {
+			MapUnit leader = MapUnit.NONE;
+			bool leaderIsEnemy = false;
+			double leaderStrength = 0;
+			foreach (MapUnit u in units) {
+				if (!IsCandidate(u, opponent, filter)) {
+					continue;
+				}
+				bool isEnemy = u.IsEnemyDefenderAgainst(opponent);
+				double strength = u.TotalDefensiveStrengthVersus(opponent);
+				if (leader == MapUnit.NONE || MapUnit.HasPriorityAsDefender(isEnemy, strength, leaderIsEnemy, leaderStrength)) {
+					leader = u;
+					leaderIsEnemy = isEnemy;
+					leaderStrength = strength;
+				}
+			}
+			return leader;
 		}
 
 		/// <summary>
@@ -484,16 +561,38 @@ namespace C7GameData {
 		}
 
 		public float GetCurrentUnaccountedJobProgress(Terraform currentWorkerJob) {
-			return unitsOnTile.Where(unit => currentWorkerJob == unit.WorkerJob).Sum(unit => unit.workerSpeed());
+			float progress = 0;
+			foreach (MapUnit unit in unitsOnTile) {
+				if (currentWorkerJob == unit.WorkerJob) {
+					progress += unit.workerSpeed();
+				}
+			}
+			return progress;
 		}
 
 		public async Task AnimateAsync(AnimatedEffect effect) {
 			if (!EngineStorage.animationsEnabled) return;
 
+			// The UI only plays effects on tiles its player can see, and
+			// just marks the others completed on its next frame. Skip those
+			// here so the engine doesn't wait a frame for nothing.
+			if (!IsVisibleToUIPlayer(this)) return;
+
 			var msg = new MsgStartEffectAnimation(this, effect, AnimationEnding.Stop);
 			msg.send();
 
 			await EngineStorage.WaitForAnimationFinished(msg.animationId);
+		}
+
+		// Whether the UI's player sees the tile, i.e. whether the UI would
+		// play an animation on it. When the UI's player isn't known, says yes
+		// so that animations keep being sent.
+		internal static bool IsVisibleToUIPlayer(Tile tile) {
+			Player uiPlayer = EngineStorage.gameData?.GetUIControllerPlayer();
+			if (uiPlayer?.tileKnowledge == null) {
+				return true;
+			}
+			return tile != null && uiPlayer.tileKnowledge.isActiveTile(tile);
 		}
 
 		public void Animate(AnimatedEffect effect) {

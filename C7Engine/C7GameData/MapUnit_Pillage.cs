@@ -8,9 +8,17 @@ public partial class MapUnit {
 	// The improvement pillaging this tile would remove: mines, irrigation and
 	// fortresses go before roads.
 	private TerrainImprovement PillageTarget() {
-		return location.overlays.GetManMadeImprovements()
-			.OrderBy(i => i.layer == TerrainImprovement.Layer.Roads ? 1 : 0)
-			.FirstOrDefault();
+		// The first man-made improvement that isn't a road, else the first
+		// road.
+		TerrainImprovement road = null;
+		foreach (TerrainImprovement i in location.overlays.GetImprovements()) {
+			if (!Tile.TileOverlays.IsManMade(i))
+				continue;
+			if (i.layer != TerrainImprovement.Layer.Roads)
+				return i;
+			road ??= i;
+		}
+		return road;
 	}
 
 	// Units can pillage outside cities on tiles that are unowned, their own,
