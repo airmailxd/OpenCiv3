@@ -70,20 +70,25 @@ namespace C7Engine {
 		}
 
 		UnitAI.MoveResult UnitAI.PlayTurnImpl(Player player, MapUnit unit) {
+			int turn = EngineStorage.gameData?.turn ?? 0;
+
+			// If the unit we escort finished its plan this turn (e.g. a settler
+			// founded its city and left play, which also clears our reference
+			// to it), our job is done: report that so we get a new plan.
+			if (data != null && escortedUnitPlayedTurn == turn && escortedUnitResult == UnitAI.Result.Done) {
+				return UnitAI.Result.Done;
+			}
+
 			if (data == null || data.unitToEscort == null || data.unitToEscort.currentAI == null) {
 				return UnitAI.Result.Error;
 			}
 
-			int turn = EngineStorage.gameData?.turn ?? 0;
 			if (escortedUnitPlayedTurn != turn) {
 				escortedUnitPlayedTurn = turn;
 				return UnitAI.MoveResult.MoveRequested(PlayEscortedUnitTurn(player, data.unitToEscort));
 			}
 
 			UnitAI.Result result = escortedUnitResult;
-			if (result == UnitAI.Result.Done) {
-				return result;
-			}
 			if (result == UnitAI.Result.Error) {
 				// If there was an error clear out their AI logic. This would
 				// happen if the unit was moving on its own in PlayerAI, but

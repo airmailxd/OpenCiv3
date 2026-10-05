@@ -2,6 +2,7 @@ using C7GameData;
 using Serilog;
 using C7Engine.Pathing;
 using System;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using static C7GameData.UnitAI;
 
@@ -14,61 +15,92 @@ namespace C7Engine {
 		// After a successful repath we return InProgress without moving, and
 		// are called again right away to take the first step. Remember the
 		// step we just validated so that it isn't checked a second time.
-		[ThreadStatic] private static TilePath validatedPath;
-		[ThreadStatic] private static Tile validatedStep;
-		[ThreadStatic] private static MapUnit validatedUnit;
-		[ThreadStatic] private static Tile validatedFrom;
-		[ThreadStatic] private static int validatedTurn;
+		//
+		// Kept per unit in a weak table, so that nothing here keeps a finished
+		// game's units, tiles or paths alive.
+		private sealed class ValidatedStep {
+			public TilePath path;
+			public Tile step;
+			public Tile from;
+			public int turn;
+		}
+
+		private static readonly ConditionalWeakTable<MapUnit, ValidatedStep> validatedSteps = new();
 
 		// Attempts to move the supplied unit along the given path.
 		//
 		// `path` is a ref so that the path can be recalculated if necessary.
+		// A step is only taken off the path when the move onto it is issued.
 		public static MoveResult TryToMoveAlongPath(this UnitAI unitAi, MapUnit unit, ref TilePath path) {
 			if (!unit.movementPoints.canMove) {
 				return UnitAI.Result.InProgress;
 			}
 
-			bool alreadyValidated = path != null && path == validatedPath && unit == validatedUnit
-				&& unit.location == validatedFrom && path.PeekNext() == validatedStep
-				&& validatedTurn == (EngineStorage.gameData?.turn ?? 0);
-			validatedPath = null;
-			validatedStep = null;
-			validatedUnit = null;
-			validatedFrom = null;
+			int turn = EngineStorage.gameData?.turn ?? 0;
+			bool alreadyValidated = false;
+			if (validatedSteps.TryGetValue(unit, out ValidatedStep validated)) {
+				alreadyValidated = path != null && path == validated.path && unit.location == validated.from
+					&& path.PeekNext() == validated.step && validated.turn == turn;
+				validatedSteps.Remove(unit);
+			}
 
-			Tile nextTile = path.Next();
-			if (nextTile == Tile.NONE || (!alreadyValidated && !unit.CanEnterForcefully(nextTile))) {
-				log.Information($"Attempting to repath {unit} from {unit.location} to {path.destination}");
+			// The next step must be next to us. It may not be if we were
+			// stopped on the way, e.g. when combat didn't let us move in, or
+			// if the path was made from somewhere else.
+			Tile nextTile = path?.PeekNext() ?? Tile.NONE;
+			if (nextTile == Tile.NONE || !IsNeighbor(unit.location, nextTile)
+				|| (!alreadyValidated && !unit.CanEnterForcefully(nextTile))) {
+				Tile destination = path?.destination ?? Tile.NONE;
+				log.Information($"Attempting to repath {unit} from {unit.location} to {destination}");
 				// Attempt to repath. If we succeed, return inprogress so we get
 				// called again.
-				path = PathingAlgorithmChooser.GetAlgorithm(unit).PathFrom(unit.location, path.destination, unit);
-				if ((path?.PathLength() ?? -1) == -1 || path.PeekNext() == Tile.NONE || !unit.CanEnterForcefully(path.PeekNext())) {
+				path = destination == Tile.NONE ? null : PathingAlgorithmChooser.GetAlgorithm(unit).PathFrom(unit.location, destination, unit);
+				Tile first = path?.PeekNext() ?? Tile.NONE;
+				if (first == Tile.NONE || !IsNeighbor(unit.location, first) || !unit.CanEnterForcefully(first)) {
 					return UnitAI.Result.Error;
 				}
 
-				validatedPath = path;
-				validatedStep = path.PeekNext();
-				validatedUnit = unit;
-				validatedFrom = unit.location;
-				validatedTurn = EngineStorage.gameData?.turn ?? 0;
+				validatedSteps.AddOrUpdate(unit, new ValidatedStep() {
+					path = path,
+					step = first,
+					from = unit.location,
+					turn = turn,
+				});
 				return UnitAI.Result.InProgress;
 			}
 
-			// Units without blitz can only attack once per turn. If the next
-			// step is an attack we can't make, wait until next turn instead of
-			// retrying the refused move. Only look for a defender when there
-			// is someone on the tile we aren't at peace with.
+			// Moving onto a tile with an enemy on it is an attack. Units that
+			// can't attack at all would never get there, so give up on the
+			// plan. Units without blitz can only attack once per turn, so if we
+			// already did, wait until next turn instead of retrying the refused
+			// move (and keep the step for then). Only look for a defender when
+			// there is someone on the tile we aren't at peace with.
 			if (HasUnitsNotAtPeaceWith(nextTile, unit.owner)) {
 				MapUnit defender = nextTile.FindTopDefender(unit);
-				if (defender != MapUnit.NONE && !unit.owner.IsAtPeaceWith(defender.owner) && !unit.CanAttackAgainThisTurn()) {
-					unit.movementPoints.onConsumeAll();
-					return UnitAI.Result.InProgress;
+				if (defender != MapUnit.NONE && !unit.owner.IsAtPeaceWith(defender.owner)) {
+					if (!unit.CanAttack()) {
+						return UnitAI.Result.Error;
+					}
+					if (!unit.CanAttackAgainThisTurn()) {
+						unit.movementPoints.onConsumeAll();
+						return UnitAI.Result.InProgress;
+					}
 				}
 			}
 
+			path.Next();
 			Task<bool> moveTask = unit.Move(unit.location.DirectionTo(nextTile));
 
 			return MoveResult.MoveRequested(moveTask);
+		}
+
+		private static bool IsNeighbor(Tile tile, Tile other) {
+			foreach (Tile n in tile.neighbors.Values) {
+				if (n == other) {
+					return true;
+				}
+			}
+			return false;
 		}
 
 		private static bool HasUnitsNotAtPeaceWith(Tile tile, Player owner) {
