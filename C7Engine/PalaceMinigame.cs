@@ -49,6 +49,11 @@ public class ConfigParser {
 	private readonly List<int> xCoords = [];
 	private readonly List<int> yCoords = [];
 
+	// The prerequisites of each culture's buildings, by building index. The
+	// sections may come in any order, so the rules are matched up with the
+	// buildings once the whole file is read.
+	private readonly Dictionary<string, Dictionary<int, List<int>>> rules = new();
+
 	public TextureConfig Parse(string filePath) {
 		var lines = File.ReadAllLines(filePath)
 				.Select(line => line.Split(';')[0].Trim()) // Remove comments
@@ -65,15 +70,26 @@ public class ConfigParser {
 			sectionLineCount++;
 		}
 
+		AssignRules();
 		AssignCoordinates();
 		return config;
+	}
+
+	private Culture GetCulture(string name) {
+		if (!config.TryGetValue(name, out Culture culture)) {
+			culture = new Culture { Name = name };
+			config[name] = culture;
+		}
+		return culture;
 	}
 
 	private bool DetectSectionChange(string line) {
 		if (line.StartsWith("#PVFNAME_")) {
 			currentCulture = ExtractCultureName(line);
 			currentSection = Section.Filenames;
-			config[currentCulture] = new() { Name = currentCulture };
+			// A later list of filenames for the culture replaces an earlier
+			// one, but keeps anything else already read for it.
+			GetCulture(currentCulture).Buildings = [];
 			return true;
 		}
 		if (line.StartsWith("#PVRULES_")) {
@@ -111,13 +127,16 @@ public class ConfigParser {
 						Index = sectionLineCount - 1,
 						TexturePath = ExpandTexturePath(line)
 					};
-					config[currentCulture].Buildings.Add(building);
+					GetCulture(currentCulture).Buildings.Add(building);
 				}
 				break;
 
 			case Section.Rules:
-				var prerequisites = ParseRuleBits(line);
-				config[currentCulture].Buildings[sectionLineCount].Prerequisites = prerequisites;
+				if (!rules.TryGetValue(currentCulture, out Dictionary<int, List<int>> cultureRules)) {
+					cultureRules = new();
+					rules[currentCulture] = cultureRules;
+				}
+				cultureRules[sectionLineCount] = ParseRuleBits(line);
 				break;
 
 			case Section.XCoords:
@@ -129,7 +148,7 @@ public class ConfigParser {
 				break;
 
 			case Section.Icons:
-				var btn = config[currentCulture].ButtonTextures;
+				var btn = GetCulture(currentCulture).ButtonTextures;
 				var path = ExpandTexturePath(line);
 
 				if (sectionLineCount == 0) {
@@ -159,6 +178,21 @@ public class ConfigParser {
 			}
 		}
 		return prerequisites;
+	}
+
+	private void AssignRules() {
+		foreach (var (cultureName, cultureRules) in rules) {
+			if (!config.TryGetValue(cultureName, out Culture culture)) {
+				continue;
+			}
+			List<Building> buildings = culture.Buildings;
+			foreach (var (index, prerequisites) in cultureRules) {
+				// Rules for buildings the culture doesn't have are ignored.
+				if (index < buildings.Count) {
+					buildings[index].Prerequisites = prerequisites;
+				}
+			}
+		}
 	}
 
 	private void AssignCoordinates() {

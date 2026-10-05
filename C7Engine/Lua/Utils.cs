@@ -26,28 +26,41 @@ public static class DelegateConverter {
 	}
 
 	static Expression CreateLuaCallExpression(Script script, Closure luaFunc, Type returnType, ParameterExpression[] parameters) {
-		Type genericType = returnType == typeof(void) ? typeof(object) : returnType;
 		NewArrayExpression argsArray = Expression.NewArrayInit(typeof(object),
 			parameters.Select(p => Expression.Convert(p, typeof(object))));
 
-		MethodCallExpression callLua = Expression.Call(
+		// A delegate returning nothing ignores whatever the Lua function
+		// returns, rather than trying to convert it.
+		if (returnType == typeof(void)) {
+			return Expression.Call(
+				typeof(DelegateConverter),
+				nameof(InvokeLuaAction),
+				null,
+				Expression.Constant(script),
+				Expression.Constant(luaFunc),
+				argsArray);
+		}
+
+		return Expression.Call(
 			typeof(DelegateConverter),
 			nameof(InvokeLuaFunction),
-			[genericType],
+			[returnType],
 			Expression.Constant(script),
 			Expression.Constant(luaFunc),
 			argsArray);
+	}
 
-		return returnType == typeof(void) ? callLua : Expression.Convert(callLua, returnType);
+	static DynValue CallLua(Script script, Closure luaFunc, object[] args) {
+		DynValue[] dynArgs = args.Select(arg => DynValue.FromObject(script, arg)).ToArray();
+		return script.SafeCall(luaFunc, dynArgs);
+	}
+
+	static void InvokeLuaAction(Script script, Closure luaFunc, object[] args) {
+		CallLua(script, luaFunc, args);
 	}
 
 	static T InvokeLuaFunction<T>(Script script, Closure luaFunc, object[] args) {
-		DynValue[] dynArgs = args.Select(arg => DynValue.FromObject(script, arg)).ToArray();
-
-		DynValue result = script.SafeCall(luaFunc, dynArgs);
-
-		if (typeof(T) == typeof(void))
-			return default;
+		DynValue result = CallLua(script, luaFunc, args);
 
 		try {
 			return result.ToObject<T>();
