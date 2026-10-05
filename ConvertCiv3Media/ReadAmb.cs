@@ -26,57 +26,67 @@ public class Amb {
 
 	public List<Sfx> soundEffects { get; set; } = new List<Sfx>();
 
+	// The MIDI default tempo, 120 beats per minute, for files without a tempo
+	private const int DEFAULT_MICROSECONDS_PER_QUARTER_NOTE = 500_000;
+
 	public Amb(string path) {
 		this.path = path;
 		this.ambData = new AmbData(path);
 		Process();
 	}
 
+	// Each sound track plays one sound: its program change event selects a prgm chunk by its program number, which has
+	// the playback settings, and the prgm chunk's variable name selects the kmap chunk with the wav file
 	private void Process() {
-		var infoTrack = ambData.midiData.soundTracks.FirstOrDefault(t => t.IsInfoTrack());
-		if (infoTrack == null)
-			throw new Exception("No info track found");
+		MidiData midi = ambData.midiData;
+		if (midi == null) {
+			throw new InvalidDataException($"No MIDI data found in {this.path}");
+		}
+		SoundTrack infoTrack = midi.soundTracks.FirstOrDefault(t => t != null && t.IsInfoTrack());
+		if (infoTrack == null) {
+			throw new InvalidDataException($"No info track found in {this.path}");
+		}
 
-		var secondsPerQuarterNote = infoTrack.setTempoEvent.microsecondsPerQuarterNote / 1_000_000.0f;
+		int microsecondsPerQuarterNote = infoTrack.setTempoEvent?.microsecondsPerQuarterNote ?? DEFAULT_MICROSECONDS_PER_QUARTER_NOTE;
+		var secondsPerQuarterNote = microsecondsPerQuarterNote / 1_000_000.0f;
 		var secondsPerTick = 0.0f;
 
-		if (ambData.midiData.ticksPerQuarterNote > 0) {
-			secondsPerTick = secondsPerQuarterNote / ambData.midiData.ticksPerQuarterNote;
+		if (midi.ticksPerQuarterNote > 0) {
+			secondsPerTick = secondsPerQuarterNote / midi.ticksPerQuarterNote;
 		}
 		// else ?
 
-		// skip one as it's the info track
-		for (int i = 1; i < ambData.midiData.soundTracks.Length; ++i) {
-			var st = ambData.midiData.soundTracks[i];
+		foreach (SoundTrack st in midi.soundTracks) {
+			// skip the info track, and tracks that don't play anything
+			if (st == null || st == infoTrack || st.NoteOnEvent == null) {
+				continue;
+			}
 			var delay = st.NoteOnEvent.timeDelta * secondsPerTick;
-			var terminates = st.NoteOffEvent.timeDelta * secondsPerTick;
 
-			var prgmChunk = ElementAt(ambData.prgmChunks, i - 1);
-			var kmapChunk = ElementAt(ambData.kmapChunks, i - 1);
-
-			var wavFileName = kmapChunk.items[0].wavFileName; // should we be accessing [0] in items?
+			PrgmChunk prgmChunk = FindPrgmChunk(st);
+			if (prgmChunk == null) {
+				log.Warning("No prgm chunk for track {track} (program {program}) in {path}", st.TrackNameEvent?.trackName, st.programChangeEvent?.programNumber, this.path);
+				continue;
+			}
+			KmapChunk kmapChunk = FindKmapChunk(prgmChunk);
+			string wavFileName = kmapChunk?.items.FirstOrDefault()?.wavFileName; // should we be accessing [0] in items?
 
 			if (string.IsNullOrEmpty(wavFileName)) {
-				log.Warning($"Missing wavName data in: {this.path}, in index {i - 1}");
-
 				// Attempt to correct some known broken .amb
 				// TODO: move to lua maybe?
-				if (this.path.EndsWith("ArcherRun.amb")) {
-					if (i - 1 == 2) {
-						wavFileName = "ArchRunBreath1.wav";
-					}
-					if (i - 1 == 3) {
-						wavFileName = "ArchRunBreath2.wav";
-					}
+				if (this.path.EndsWith("ArcherRun.amb") && prgmChunk.varName == "Breath 1") {
+					wavFileName = "ArchRunBreath1.wav";
+				} else if (this.path.EndsWith("ArcherRun.amb") && prgmChunk.varName == "Breath 2") {
+					wavFileName = "ArchRunBreath2.wav";
 				} else {
+					log.Warning("Missing wav file name for {name} in {path}", prgmChunk.varName, this.path);
 					continue;
 				}
 			}
 
 			var entry = new Sfx() {
 				delayStart = delay,
-                // duration = terminates - delay,
-                wavName = wavFileName,
+				wavName = wavFileName,
 				speedRandom = prgmChunk.randomizePlaybackSpeed,
 				minRandomSpeed = NormalizeSpeed(prgmChunk.minRandomSpeed),
 				maxRandomSpeed = NormalizeSpeed(prgmChunk.maxRandomSpeed),
@@ -91,12 +101,32 @@ public class Amb {
 		soundEffects = soundEffects.OrderBy(e => e.delayStart).ToList();
 	}
 
-	// Same as list.Skip(index).First(), including the exception when there is no such element
-	private static T ElementAt<T>(List<T> list, int index) {
-		if (index >= list.Count) {
-			throw new InvalidOperationException("Sequence contains no elements");
+	// The prgm chunk with the track's program number. A few files have a track whose program number has no prgm chunk
+	// (e.g. ChariotAttack.amb, where two prgm chunks have the same number); then the prgm chunk named like the track is used.
+	private PrgmChunk FindPrgmChunk(SoundTrack track) {
+		if (track.programChangeEvent != null) {
+			PrgmChunk byNumber = ambData.prgmChunks.FirstOrDefault(p => p.index == track.programChangeEvent.programNumber);
+			if (byNumber != null) {
+				return byNumber;
+			}
 		}
-		return list[Math.Max(index, 0)];
+		string trackName = track.TrackNameEvent?.trackName;
+		if (string.IsNullOrEmpty(trackName)) {
+			return null;
+		}
+		return ambData.prgmChunks.FirstOrDefault(p => string.Equals(p.effectName, trackName, StringComparison.OrdinalIgnoreCase))
+			?? ambData.prgmChunks.FirstOrDefault(p => string.Equals(p.varName, trackName, StringComparison.OrdinalIgnoreCase));
+	}
+
+	// The kmap chunk with the prgm chunk's variable name (ignoring case, which sometimes differs). Failing that (the
+	// variable name in GalleyAttack.amb's kmap chunk is garbled), the kmap chunk in the same position as the prgm chunk.
+	private KmapChunk FindKmapChunk(PrgmChunk prgmChunk) {
+		KmapChunk byName = ambData.kmapChunks.FirstOrDefault(k => string.Equals(k.varName, prgmChunk.varName, StringComparison.OrdinalIgnoreCase));
+		if (byName != null) {
+			return byName;
+		}
+		int position = ambData.prgmChunks.IndexOf(prgmChunk);
+		return position < ambData.kmapChunks.Count ? ambData.kmapChunks[position] : null;
 	}
 
 	// the amb data being midi, have an upper bound of 127,
@@ -115,7 +145,7 @@ public class Amb {
 
 /*
     Some useful links on parsing .amb & .mid(i) files
-    
+
     https://www.recordingblogs.com/wiki/midi-meta-messages
     https://www.mixagesoftware.com/en/midikit/help/HTML/midi_events.html
     https://www.mixagesoftware.com/en/midikit/help/HTML/meta_events.html
@@ -123,8 +153,9 @@ public class Amb {
     https://forums.civfanatics.com/threads/amb-sound-editor.698491/
     https://github.com/maxpetul/Civ3AMBAnalysis/blob/master/AMBFormat.org
     https://github.com/maxpetul/C3X/blob/master/AMB%20Editor/amb_file.c
-    https://www.skytopia.com/project/articles/midi.html    
+    https://www.skytopia.com/project/articles/midi.html
  */
+// Throws InvalidDataException for malformed files.
 public class AmbData {
 	private static ILogger log = Log.ForContext<AmbData>();
 
@@ -143,8 +174,8 @@ public class AmbData {
 	}
 
 	private const int HEADER_SIZE = 8; // 4 for header tag + 4 for the size field itself
-
-	private int timeDeltaOffset = 0;
+	private const int PRGM_FIXED_SIZE = 28; // the values before the names
+	private const int MTHD_SIZE = 14;
 
 	private static readonly System.Text.ASCIIEncoding ascii = new System.Text.ASCIIEncoding();
 
@@ -152,23 +183,27 @@ public class AmbData {
 		if (!path.EndsWith(".amb", StringComparison.CurrentCultureIgnoreCase)) {
 			throw new ApplicationException($"Invalid file type for file: `{path}`. Only .amb files are supported.");
 		}
-		log.Information($"Parsing `{path}`");
+		log.Debug("Parsing {path}", path);
 
 		byte[] ambBytes = File.ReadAllBytes(path);
 
 		int offset = 0;
-
-		int soundTrackNum = 0;
+		List<SoundTrack> soundTracks = new List<SoundTrack>();
 
 		while (offset < ambBytes.Length) {
+			if (ambBytes.Length - offset < HEADER_SIZE) {
+				log.Debug("Ignoring {count} bytes at the end of {path}", ambBytes.Length - offset, path);
+				break;
+			}
 			int header = BitConverter.ToInt32(ambBytes, offset);
-			timeDeltaOffset = 0; // this accumulates for every event in a track so we need to reset it in every new track
 
 			switch (header) {
-				case 0x6d677270: // prgm
+				case 0x6d677270: { // prgm
+					int size = ChunkSize(ambBytes, offset, PRGM_FIXED_SIZE, "prgm"); // does not count itself or the header tag
+					int chunkEnd = offset + HEADER_SIZE + size;
 					var prgm = new PrgmChunk() {
-						size = BitConverter.ToInt32(ambBytes, offset + 4), // does not count itself or the header tag
-                        index = BitConverter.ToInt32(ambBytes, offset + 8),
+						size = size,
+						index = BitConverter.ToInt32(ambBytes, offset + 8),
 						randomizePlaybackSpeed = GetFlag(ambBytes[offset + 12], 0),
 						randomizeVolume = GetFlag(ambBytes[offset + 12], 1),
 						maxRandomSpeed = BitConverter.ToInt32(ambBytes, offset + 16),
@@ -177,274 +212,274 @@ public class AmbData {
 						minRandomVolume = BitConverter.ToInt32(ambBytes, offset + 28),
 					};
 					// skip 4 bytes for 0xFA that terminates the chunk (early)
-					var eff = GetNullTerminatedString(ambBytes, offset + 36);
+					var eff = GetNullTerminatedString(ambBytes, offset + 36, chunkEnd);
 					prgm.effectName = eff.text;
-					var var = GetNullTerminatedString(ambBytes, offset + 36 + eff.size + 1); // +1 to account for the terminating byte 0x00
+					var var = GetNullTerminatedString(ambBytes, offset + 36 + eff.size + 1, chunkEnd); // +1 to account for the terminating byte 0x00
 					prgm.varName = var.text;
 					this.prgmChunks.Add(prgm);
-					offset += prgm.size + HEADER_SIZE;
+					offset = chunkEnd;
 					break;
-				case 0x70616d6b: // kmap
-					var varName = GetNullTerminatedString(ambBytes, offset + 20);
+				}
+				case 0x70616d6b: { // kmap
+					// The size is not always accurate (e.g. GalleyAttack.amb, where a name is a byte longer than it allows
+					// for), so the chunk is stepped over by its contents
+					CheckRange(ambBytes, offset, 20);
+					var varName = GetNullTerminatedString(ambBytes, offset + 20, ambBytes.Length);
+					int countOffset = offset + 20 + varName.size + 1;
+					CheckRange(ambBytes, countOffset, 8);
 					var kmap = new KmapChunk() {
-                        // the size is not always accurate; e.x. GalleyAttack.amb
-                        size = BitConverter.ToInt32(ambBytes, offset + 4), // does not count itself or the header tag
-                        unknownFlag1 = GetFlag(ambBytes[offset + 8], 0),
+						size = BitConverter.ToInt32(ambBytes, offset + 4), // does not count itself or the header tag
+						unknownFlag1 = GetFlag(ambBytes[offset + 8], 0),
 						unknownFlag2 = GetFlag(ambBytes[offset + 8], 1),
 						unknownInt1 = BitConverter.ToInt32(ambBytes, offset + 12),
 						unknownInt2 = BitConverter.ToInt32(ambBytes, offset + 16),
 						varName = varName.text,
-						itemCount = BitConverter.ToInt32(ambBytes, offset + 20 + varName.size + 1),
-						dataSize = BitConverter.ToInt32(ambBytes, offset + 24 + varName.size + 1),
+						itemCount = BitConverter.ToInt32(ambBytes, countOffset),
+						dataSize = BitConverter.ToInt32(ambBytes, countOffset + 4),
 					};
-					var chunkSize = 24 + varName.size + 1;
+					// Each item is at least its three values and a terminating null
+					if (kmap.itemCount < 0 || kmap.itemCount > (ambBytes.Length - countOffset) / 13) {
+						throw new InvalidDataException($"Invalid kmap item count {kmap.itemCount} at {offset} in {path}");
+					}
 
 					kmap.items = new KmapItem[kmap.itemCount];
-					if (kmap.items.Length > 0) {
-						// Note that every item is read from the same offset
-						var wavFile = GetNullTerminatedString(ambBytes, offset + 40 + varName.size + 1);
-						int unknown1 = BitConverter.ToInt32(ambBytes, offset + 28 + varName.size + 1);
-						int unknown2 = BitConverter.ToInt32(ambBytes, offset + 32 + varName.size + 1);
-						int unknown3 = BitConverter.ToInt32(ambBytes, offset + 36 + varName.size + 1);
-						for (int i = 0; i < kmap.items.Length; i++) {
-							var kmapItem = new KmapItem() {
-								size = 12 + wavFile.size + 1,
-								unknown1 = unknown1,
-								unknown2 = unknown2,
-								unknown3 = unknown3,
-								wavFileName = wavFile.text
-							};
-							kmap.items[i] = kmapItem;
-						}
+					int itemOffset = countOffset + 8;
+					for (int i = 0; i < kmap.items.Length; i++) {
+						CheckRange(ambBytes, itemOffset, 12);
+						var wavFile = GetNullTerminatedString(ambBytes, itemOffset + 12, ambBytes.Length);
+						kmap.items[i] = new KmapItem() {
+							size = 12 + wavFile.size + 1,
+							unknown1 = BitConverter.ToInt32(ambBytes, itemOffset),
+							unknown2 = BitConverter.ToInt32(ambBytes, itemOffset + 4),
+							unknown3 = BitConverter.ToInt32(ambBytes, itemOffset + 8),
+							wavFileName = wavFile.text
+						};
+						itemOffset += kmap.items[i].size;
 					}
 					this.kmapChunks.Add(kmap);
-					offset += chunkSize + HEADER_SIZE;
-					foreach (var kmapItem in kmap.items) {
-						offset += kmapItem.size;
-					}
-
+					// The items are followed by a 4 byte value (0xFA)
+					offset = itemOffset + 4;
 					break;
-				case 0x6c626c67: // glbl
+				}
+				case 0x6c626c67: { // glbl
+					int size = ChunkSize(ambBytes, offset, 0, "glbl");
+					CheckRange(ambBytes, offset + 8, 16);
 					var glbl = new GlblChunk() {
-						size = BitConverter.ToInt32(ambBytes, offset + 4),
+						size = size,
 						dataSize = BitConverter.ToInt32(ambBytes, offset + 8),
-						unknownInt1 =  BitConverter.ToInt32(ambBytes, offset + 12),
-						unknownInt2 =  BitConverter.ToInt32(ambBytes, offset + 16),
+						unknownInt1 = BitConverter.ToInt32(ambBytes, offset + 12),
+						unknownInt2 = BitConverter.ToInt32(ambBytes, offset + 16),
 						terminated = GetBytes(ambBytes, offset + 20, 4),
 					};
 					this.glblChunk = glbl;
-					offset += glbl.size + HEADER_SIZE;
+					offset += size + HEADER_SIZE;
 					break;
+				}
 				// start of Midi section
-				case 0x6468544d: // MThd
+				case 0x6468544d: { // MThd
+					CheckRange(ambBytes, offset, MTHD_SIZE);
 					var midi = new MidiData() {
 						headerSize = GetInt32FromBigEndian(ambBytes, offset + 4),
 						midiFormat = GetInt16FromBigEndian(ambBytes, offset + 8),
 						trackCount = GetInt16FromBigEndian(ambBytes, offset + 10),
 						ticksPerQuarterNote = GetInt16FromBigEndian(ambBytes, offset + 12),
 					};
-
-					midi.soundTracks = new SoundTrack[midi.trackCount]; // initialize the sound track array since we know how many tracks we have
 					this.midiData = midi;
-					offset += 14;
+					offset += MTHD_SIZE;
 					break;
-				case 0x6b72544d: // MTrk
-					var trackSize = GetInt32FromBigEndian(ambBytes, offset + 4);
-
-					var soundTrack = new SoundTrack() { };
-
-					List<ControlChangeEvent> controlChangeEvents = new List<ControlChangeEvent>();
-
-					offset += HEADER_SIZE;
-
-					var trackOffset = offset + trackSize;
-
-					while (offset < trackOffset) {
-						bool isMetaEvent = true;
-
-						var varLenItem = ReadVariableLengthItem(ambBytes, offset);
-
-						var eventType = ByteAt(ambBytes, offset + varLenItem.length);
-						var eventId = ByteAt(ambBytes, offset + varLenItem.length + 1);
-
-						var highNibble = -1;
-						var lowNibble = -1;
-
-						if (eventType != 0xff) {
-							isMetaEvent = false;
-							var nibbles = GetNibbles(eventType);
-							highNibble = nibbles.highNibble;
-							lowNibble = nibbles.lowNibble;
-						}
-
-						// Meta events
-						if (isMetaEvent && eventId == 0x03) {
-							var midiEvent = ParseTrackNameEvent(varLenItem, ambBytes, offset);
-							soundTrack.TrackNameEvent = midiEvent;
-							offset += midiEvent.size + 4; // + 4 is the event header size; e.x. 0x00ff0305
-						} else if (isMetaEvent && eventId == 0x51) {
-							var midiEvent = ParseSetTempoEvent(varLenItem, ambBytes, offset);
-							soundTrack.setTempoEvent = midiEvent;
-							offset += midiEvent.size + 4;
-						} else if (isMetaEvent && eventId == 0x54) {
-							var midiEvent = ParseSMPTEOffsetEvent(varLenItem, ambBytes, offset);
-							soundTrack.smpteOffsetEvent = midiEvent;
-							offset += midiEvent.size + 4;
-						} else if (isMetaEvent && eventId == 0x58) {
-							var midiEvent = ParseTimeSignatureEvent(varLenItem, ambBytes, offset);
-							soundTrack.timeSignatureEvent = midiEvent;
-							offset += midiEvent.size + 4;
-						}
-
-						  // Midi events
-						  else if (!isMetaEvent && highNibble == 0x8) {
-							var midiEvent = ParseNoteOffEvent(varLenItem, ambBytes, offset, lowNibble);
-							soundTrack.NoteOffEvent = midiEvent;
-							offset += midiEvent.size;
-						} else if (!isMetaEvent && highNibble == 0x9) {
-							var midiEvent = ParseNoteOnEvent(varLenItem, ambBytes, offset, lowNibble);
-							soundTrack.NoteOnEvent = midiEvent;
-							offset += midiEvent.size;
-						} else if (!isMetaEvent && highNibble == 0xb) {
-							var midiEvent = ParseControlChangeEvent(varLenItem, ambBytes, offset, lowNibble);
-							controlChangeEvents.Add(midiEvent);
-							offset += midiEvent.size;
-						} else if (!isMetaEvent && highNibble == 0xc) {
-							var midiEvent = ParseProgramChangeEvent(varLenItem, ambBytes, offset, lowNibble);
-							soundTrack.programChangeEvent = midiEvent;
-							offset += midiEvent.size;
-						}
-
-						  // terminate track
-						  else if (isMetaEvent && eventId == 0x2f) {
-							offset += 0 + 4;
-						} else {
-							throw new Exception($"Unknown event id: 0x{eventId:x} ({eventId})");
-						}
+				}
+				case 0x6b72544d: { // MTrk
+					if (this.midiData == null) {
+						throw new InvalidDataException($"MIDI track before the MIDI header at {offset} in {path}");
 					}
-
-					soundTrack.controlChangeEvents = controlChangeEvents;
-
-					this.midiData.soundTracks[soundTrackNum] = soundTrack;
-
-					soundTrackNum++;
-
+					var trackSize = GetInt32FromBigEndian(ambBytes, offset + 4);
+					if (trackSize < 0 || trackSize > ambBytes.Length - offset - HEADER_SIZE) {
+						throw new InvalidDataException($"Invalid MIDI track size {trackSize} at {offset} in {path}");
+					}
+					offset += HEADER_SIZE;
+					soundTracks.Add(ParseTrack(ambBytes, offset, offset + trackSize, path));
+					offset += trackSize;
 					break;
+				}
 				default:
-					throw new Exception($"Unknown header: 0x{header:x} ({header}) at offset {offset}");
+					throw new InvalidDataException($"Unknown header: 0x{header:x} ({header}) at offset {offset} in {path}");
 			}
+		}
+
+		if (this.midiData != null) {
+			this.midiData.soundTracks = soundTracks.ToArray();
 		}
 	}
 
-	// Midi meta events
-	private TrackNameEvent ParseTrackNameEvent(VarLenItem varLenItem, byte[] bytes, int offset) {
-		int eventOffset = offset + varLenItem.length;
-		int eventSize = ByteAt(bytes, eventOffset + 2);
-		var midiEvent = new TrackNameEvent() {
-			size = eventSize,
-			timeDelta = timeDeltaOffset + varLenItem.value,
-			trackName = ascii.GetString(bytes, eventOffset + 3, eventSize),
-		};
-		timeDeltaOffset += midiEvent.timeDelta;
-		return midiEvent;
+	// The size of the chunk at offset, which must be at least minSize and fit in the file
+	private static int ChunkSize(byte[] bytes, int offset, int minSize, string name) {
+		int size = BitConverter.ToInt32(bytes, offset + 4);
+		if (size < minSize || size > bytes.Length - offset - HEADER_SIZE) {
+			throw new InvalidDataException($"Invalid {name} chunk size {size} at {offset}");
+		}
+		return size;
 	}
 
-	private SMPTEOffsetEvent ParseSMPTEOffsetEvent(VarLenItem varLenItem, byte[] bytes, int offset) {
-		int eventOffset = offset + varLenItem.length;
-		int eventSize = ByteAt(bytes, eventOffset + 2);
-		var midiEvent = new SMPTEOffsetEvent() {
-			size = eventSize,
-			timeDelta = timeDeltaOffset + varLenItem.value,
-			framesPerSecond = GetFramesPerSecond(ByteAt(bytes, eventOffset + 3)),
-			hours = ExtractBits(ByteAt(bytes, eventOffset + 3), 0, 5),
-			minutes = ByteAt(bytes, eventOffset + 4),
-			seconds = ByteAt(bytes, eventOffset + 5),
-			frames = ByteAt(bytes, eventOffset + 6),
-			subFrames = ByteAt(bytes, eventOffset + 7),
-		};
-		timeDeltaOffset += midiEvent.timeDelta;
-		return midiEvent;
+	private static void CheckRange(byte[] bytes, int offset, int count) {
+		if (offset < 0 || offset > bytes.Length - count) {
+			throw new InvalidDataException($"AMB data at {offset} runs past the end of the file");
+		}
 	}
 
-	private TimeSignatureEvent ParseTimeSignatureEvent(VarLenItem varLenItem, byte[] bytes, int offset) {
-		int eventOffset = offset + varLenItem.length;
-		int eventSize = ByteAt(bytes, eventOffset + 2);
-		var midiEvent = new TimeSignatureEvent {
-			size = eventSize,
-			timeDelta = timeDeltaOffset + varLenItem.value,
-			numerator = ByteAt(bytes, eventOffset + 3),
-			pow = ByteAt(bytes, eventOffset + 4),
-			metronomePulse = ByteAt(bytes, eventOffset + 5),
-			num32NotesPerBeat = ByteAt(bytes, eventOffset + 6),
-		};
-		timeDeltaOffset += midiEvent.timeDelta;
-		return midiEvent;
-	}
+	// Parses the MIDI track events in bytes[offset .. end). Event times are the time since the start of the track.
+	private SoundTrack ParseTrack(byte[] ambBytes, int offset, int end, string path) {
+		var soundTrack = new SoundTrack() { };
+		List<ControlChangeEvent> controlChangeEvents = new List<ControlChangeEvent>();
+		int time = 0;
+		int runningStatus = -1;
 
-	private SetTempoEvent ParseSetTempoEvent(VarLenItem varLenItem, byte[] bytes, int offset) {
-		int eventOffset = offset + varLenItem.length;
-		int eventSize = ByteAt(bytes, eventOffset + 2);
-		// create an int from 3 bytes, in big endian mode
-		int value = GetInt24FromBigEndian(bytes, eventOffset + 3);
-		var midiEvent = new SetTempoEvent {
-			size = eventSize,
-			timeDelta = timeDeltaOffset + varLenItem.value,
-			microsecondsPerQuarterNote = value
-		};
-		timeDeltaOffset += midiEvent.timeDelta;
-		return midiEvent;
-	}
+		while (offset < end) {
+			var varLenItem = ReadVariableLengthItem(ambBytes, offset, end);
+			time += varLenItem.value;
+			int eventOffset = offset + varLenItem.length;
+			if (eventOffset >= end) {
+				throw new InvalidDataException($"MIDI event at {offset} runs past the end of its track in {path}");
+			}
+			int status = ambBytes[eventOffset];
 
-	// Midi events
-	private NoteOffEvent ParseNoteOffEvent(VarLenItem varLenItem, byte[] bytes, int offset, int lowNibble) {
-		int eventOffset = offset + varLenItem.length;
-		var midiEvent = new NoteOffEvent {
-			size = varLenItem.length + 3,
-			timeDelta = timeDeltaOffset + varLenItem.value,
-			channelNumber = lowNibble,
-			key = ByteAt(bytes, eventOffset + 1),
-			velocity = ByteAt(bytes, eventOffset + 2),
-		};
-		timeDeltaOffset += midiEvent.timeDelta;
-		return midiEvent;
-	}
+			if (status == 0xff) {
+				// Meta event: 0xFF, its type, the length of its data (a variable length number), and the data
+				if (eventOffset + 2 >= end) {
+					throw new InvalidDataException($"MIDI meta event at {offset} runs past the end of its track in {path}");
+				}
+				int eventId = ambBytes[eventOffset + 1];
+				var dataLength = ReadVariableLengthItem(ambBytes, eventOffset + 2, end);
+				int dataOffset = eventOffset + 2 + dataLength.length;
+				int eventSize = dataLength.value;
+				if (eventSize > end - dataOffset) {
+					throw new InvalidDataException($"MIDI meta event at {offset} runs past the end of its track in {path}");
+				}
+				switch (eventId) {
+					case 0x03:
+						soundTrack.TrackNameEvent = new TrackNameEvent() {
+							size = eventSize,
+							timeDelta = time,
+							trackName = ascii.GetString(ambBytes, dataOffset, eventSize),
+						};
+						break;
+					case 0x51:
+						soundTrack.setTempoEvent = new SetTempoEvent {
+							size = eventSize,
+							timeDelta = time,
+							// an int from 3 bytes, in big endian mode
+							microsecondsPerQuarterNote = eventSize >= 3 ? GetInt24FromBigEndian(ambBytes, dataOffset) : 0,
+						};
+						break;
+					case 0x54:
+						if (eventSize < 5) {
+							throw new InvalidDataException($"MIDI SMPTE offset event at {offset} is too short in {path}");
+						}
+						soundTrack.smpteOffsetEvent = new SMPTEOffsetEvent() {
+							size = eventSize,
+							timeDelta = time,
+							framesPerSecond = GetFramesPerSecond(ambBytes[dataOffset]),
+							hours = ExtractBits(ambBytes[dataOffset], 0, 5),
+							minutes = ambBytes[dataOffset + 1],
+							seconds = ambBytes[dataOffset + 2],
+							frames = ambBytes[dataOffset + 3],
+							subFrames = ambBytes[dataOffset + 4],
+						};
+						break;
+					case 0x58:
+						if (eventSize < 4) {
+							throw new InvalidDataException($"MIDI time signature event at {offset} is too short in {path}");
+						}
+						soundTrack.timeSignatureEvent = new TimeSignatureEvent {
+							size = eventSize,
+							timeDelta = time,
+							numerator = ambBytes[dataOffset],
+							pow = ambBytes[dataOffset + 1],
+							metronomePulse = ambBytes[dataOffset + 2],
+							num32NotesPerBeat = ambBytes[dataOffset + 3],
+						};
+						break;
+					case 0x2f:
+						// end of track
+						break;
+					default:
+						log.Debug("Skipping MIDI meta event 0x{id:x} in {path}", eventId, path);
+						break;
+				}
+				offset = dataOffset + eventSize;
+				continue;
+			}
 
-	private NoteOnEvent ParseNoteOnEvent(VarLenItem varLenItem, byte[] bytes, int offset, int lowNibble) {
-		int eventOffset = offset + varLenItem.length;
-		var midiEvent = new NoteOnEvent {
-			size = varLenItem.length + 3,
-			timeDelta = timeDeltaOffset + varLenItem.value,
-			channelNumber = lowNibble,
-			key = ByteAt(bytes, eventOffset + 1),
-			velocity = ByteAt(bytes, eventOffset + 2),
-		};
-		timeDeltaOffset += midiEvent.timeDelta;
-		return midiEvent;
-	}
+			if (status == 0xf0 || status == 0xf7) {
+				// System exclusive event: its length (a variable length number) and data
+				var dataLength = ReadVariableLengthItem(ambBytes, eventOffset + 1, end);
+				offset = eventOffset + 1 + dataLength.length + dataLength.value;
+				if (offset > end) {
+					throw new InvalidDataException($"MIDI system exclusive event runs past the end of its track in {path}");
+				}
+				continue;
+			}
 
-	private ControlChangeEvent ParseControlChangeEvent(VarLenItem varLenItem, byte[] bytes, int offset, int lowNibble) {
-		int eventOffset = offset + varLenItem.length;
-		var midiEvent = new ControlChangeEvent {
-			size = varLenItem.length + 3,
-			timeDelta = timeDeltaOffset + varLenItem.value,
-			channelNumber = lowNibble,
-			controllerNumber = ByteAt(bytes, eventOffset + 1),
-			value = ByteAt(bytes, eventOffset + 2),
-		};
-		timeDeltaOffset += midiEvent.timeDelta;
-		return midiEvent;
-	}
+			// Channel event. With running status, the status byte is left out and the previous one applies.
+			int dataStart = eventOffset + 1;
+			if (status < 0x80) {
+				if (runningStatus < 0) {
+					throw new InvalidDataException($"MIDI event without a status at {offset} in {path}");
+				}
+				status = runningStatus;
+				dataStart = eventOffset;
+			}
+			runningStatus = status;
+			var (highNibble, lowNibble) = GetNibbles((byte)status);
+			int dataSize = highNibble == 0xc || highNibble == 0xd ? 1 : 2;
+			if (dataStart + dataSize > end) {
+				throw new InvalidDataException($"MIDI event at {offset} runs past the end of its track in {path}");
+			}
+			int eventLength = dataStart + dataSize - offset;
+			switch (highNibble) {
+				case 0x8:
+					soundTrack.NoteOffEvent = new NoteOffEvent {
+						size = eventLength,
+						timeDelta = time,
+						channelNumber = lowNibble,
+						key = ambBytes[dataStart],
+						velocity = ambBytes[dataStart + 1],
+					};
+					break;
+				case 0x9:
+					soundTrack.NoteOnEvent = new NoteOnEvent {
+						size = eventLength,
+						timeDelta = time,
+						channelNumber = lowNibble,
+						key = ambBytes[dataStart],
+						velocity = ambBytes[dataStart + 1],
+					};
+					break;
+				case 0xb:
+					controlChangeEvents.Add(new ControlChangeEvent {
+						size = eventLength,
+						timeDelta = time,
+						channelNumber = lowNibble,
+						controllerNumber = ambBytes[dataStart],
+						value = ambBytes[dataStart + 1],
+					});
+					break;
+				case 0xc:
+					soundTrack.programChangeEvent = new ProgramChangeEvent {
+						size = eventLength,
+						timeDelta = time,
+						channelNumber = lowNibble,
+						programNumber = ambBytes[dataStart],
+					};
+					break;
+				default:
+					// key pressure, channel pressure, pitch bend: not used
+					break;
+			}
+			offset = dataStart + dataSize;
+		}
 
-	private ProgramChangeEvent ParseProgramChangeEvent(VarLenItem varLenItem, byte[] bytes, int offset, int lowNibble) {
-		int eventOffset = offset + varLenItem.length;
-		var midiEvent = new ProgramChangeEvent {
-			size = varLenItem.length + 2,
-			timeDelta = timeDeltaOffset + varLenItem.value,
-			channelNumber = lowNibble,
-			programNumber = ByteAt(bytes, eventOffset + 1),
-		};
-		timeDeltaOffset += midiEvent.timeDelta;
-		return midiEvent;
+		soundTrack.controlChangeEvents = controlChangeEvents;
+		return soundTrack;
 	}
 
 	// a nibble is half a byte
@@ -474,27 +509,16 @@ public class AmbData {
 		return (value >> startBit) & mask;
 	}
 
-	// Returns the length in bytes (excluding the terminating 0x00) and the UTF-8 decoded string
-	private (int size, string text) GetNullTerminatedString(byte[] bytes, int offset) {
-		if ((uint)offset >= (uint)bytes.Length) {
-			throw new IndexOutOfRangeException();
+	// Returns the length in bytes (excluding the terminating 0x00) and the UTF-8 decoded string, which must end before end
+	private (int size, string text) GetNullTerminatedString(byte[] bytes, int offset, int end) {
+		if (offset < 0 || offset >= end) {
+			throw new InvalidDataException($"AMB string at {offset} is past the end of its data");
 		}
-		int end = Array.IndexOf(bytes, (byte)0x00, offset);
-		if (end < 0) {
-			// ran off the end of the data without finding the terminator
-			throw new IndexOutOfRangeException();
+		int size = bytes.AsSpan(offset, end - offset).IndexOf((byte)0x00);
+		if (size < 0) {
+			throw new InvalidDataException($"AMB string at {offset} isn't terminated");
 		}
-
-		int size = end - offset;
 		return (size, System.Text.Encoding.UTF8.GetString(bytes, offset, size));
-	}
-
-	// Same as bytes.Skip(offset).First(), including the exception when offset is past the end
-	private static byte ByteAt(byte[] bytes, int offset) {
-		if (offset >= bytes.Length) {
-			throw new InvalidOperationException("Sequence contains no elements");
-		}
-		return bytes[Math.Max(offset, 0)];
 	}
 
 	// Same as bytes.Skip(offset).Take(count).ToArray(): up to count bytes, fewer at the end of the data
@@ -503,12 +527,8 @@ public class AmbData {
 		return bytes.AsSpan(offset, Math.Min(count, bytes.Length - offset)).ToArray();
 	}
 
-	// Throws IndexOutOfRangeException if fewer than count bytes are left, like indexing into a shorter Skip/Take copy did
 	private static ReadOnlySpan<byte> BigEndianBytes(byte[] bytes, int offset, int count) {
-		offset = Math.Clamp(offset, 0, bytes.Length);
-		if (bytes.Length - offset < count) {
-			throw new IndexOutOfRangeException();
-		}
+		CheckRange(bytes, offset, count);
 		return new ReadOnlySpan<byte>(bytes, offset, count);
 	}
 
@@ -528,20 +548,20 @@ public class AmbData {
 		return BinaryPrimitives.ReadInt16BigEndian(BigEndianBytes(bytes, offset, 2));
 	}
 
-	private VarLenItem ReadVariableLengthItem(byte[] bytes, int offset) {
+	// A MIDI variable length number, 7 bits per byte, most significant first, of at most 4 bytes that must end before end
+	private VarLenItem ReadVariableLengthItem(byte[] bytes, int offset, int end) {
 		int val = 0;
-		int len = 0;
-		while (true) {
-			val |= (bytes[offset + len] & 0x7f);
-			if ((bytes[offset + len] & 0x80) != 0) {
-				val <<= 7;
-				len += 1;
-			} else {
+		for (int len = 0; len < 4; len++) {
+			if (offset + len >= end) {
 				break;
 			}
+			byte b = bytes[offset + len];
+			val = (val << 7) | (b & 0x7f);
+			if ((b & 0x80) == 0) {
+				return new VarLenItem(len + 1, val);
+			}
 		}
-
-		return new VarLenItem(len + 1, val);
+		throw new InvalidDataException($"Invalid MIDI variable length number at {offset}");
 	}
 }
 
