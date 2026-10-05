@@ -181,7 +181,9 @@ namespace C7Engine {
 			}
 			possibleExplorers[player] = explorers;
 			try {
-				await DoUnitActions(player, explorers);
+				using (WorkerAI.BeginPlanning(player)) {
+					await DoUnitActions(player, explorers);
+				}
 			} finally {
 				possibleExplorers.Remove(player);
 			}
