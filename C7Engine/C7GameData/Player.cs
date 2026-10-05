@@ -1022,6 +1022,29 @@ namespace C7GameData {
 			}
 		}
 
+		// After losing the capital, rebuilds the palace for free in the city
+		// closest to where the old capital was, preferring larger cities.
+		// Returns the new capital, or null if there was nothing to do.
+		public City RelocatePalace(GameData gameData, Tile oldCapitalLocation) {
+			if (cities.Count == 0 || cities.Any(c => c.IsCapital())) {
+				return null;
+			}
+
+			City newCapital = cities
+				.OrderBy(c => c.location.DistanceTo(oldCapitalLocation))
+				.ThenByDescending(c => c.residents.Count)
+				.First();
+			newCapital.capital = true;
+
+			Building palace = gameData.Buildings.Find(b => b.isCenterOfEmpire);
+			if (palace != null && !newCapital.constructed_buildings.Any(cb => cb.building == palace)) {
+				newCapital.AddBuilding(palace);
+			}
+
+			log.Information($"{this} moved its palace to {newCapital}");
+			return newCapital;
+		}
+
 		public void DoCorruptionCalculations(GameData gameData) {
 			if (cities.Count == 0) {
 				return;

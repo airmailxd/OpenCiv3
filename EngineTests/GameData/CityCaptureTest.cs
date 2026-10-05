@@ -6,7 +6,7 @@ using Xunit;
 
 namespace EngineTests.GameData;
 
-public class CityCaptureTest : IClassFixture<SaveGameFixture> {
+public class CityCaptureTest : IClassFixture<SaveGameFixture>, System.IDisposable {
 	private readonly C7GameData.GameData gameData;
 	private readonly Player attacker;
 	private readonly Player defender;
@@ -18,6 +18,11 @@ public class CityCaptureTest : IClassFixture<SaveGameFixture> {
 		Player[] civs = gameData.players.Where(p => !p.isBarbarians && p.units.Any(u => u.unitType.isSettler)).ToArray();
 		attacker = civs[0];
 		defender = civs[1];
+	}
+
+	// Captures send messages to the UI; don't leave them for other tests.
+	public void Dispose() {
+		while (EngineStorage.TryDequeueNextMessageToUI(out _)) { }
 	}
 
 	private City FoundCity(Player player, int size) {
@@ -61,5 +66,20 @@ public class CityCaptureTest : IClassFixture<SaveGameFixture> {
 		Assert.Null(tile.cityAtTile);
 		Assert.DoesNotContain(city, attacker.cities);
 		Assert.DoesNotContain(city, gameData.cities);
+	}
+
+	[Fact]
+	public void LosingTheCapitalMovesThePalace() {
+		FoundCity(attacker, 1);
+		City capital = FoundCity(defender, 3);
+		Tile secondSite = defender.units.First(u => u.unitType.isSettler).location.neighbors.Values
+			.First(t => t.IsLand() && !t.HasCity());
+		City other = CityInteractions.BuildCity(secondSite, defender, defender.GetNextCityName());
+		Assert.False(other.IsCapital());
+
+		CityInteractions.CaptureCity(capital, attacker);
+
+		Assert.True(other.IsCapital());
+		Assert.Contains(other.constructed_buildings, cb => cb.building.isCenterOfEmpire);
 	}
 }

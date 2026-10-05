@@ -110,9 +110,19 @@ namespace C7Engine {
 			}
 
 			gameData.CheckForCivDestructionAndNotifyUi(oldOwner);
+			if (wasCapital) {
+				MovePalaceAfterLosingCapital(oldOwner, tile);
+			}
 
 			oldOwner.DoCorruptionCalculations(gameData);
 			captor.DoCorruptionCalculations(gameData);
+		}
+
+		private static void MovePalaceAfterLosingCapital(Player player, Tile oldCapitalLocation) {
+			City newCapital = player.RelocatePalace(EngineStorage.gameData, oldCapitalLocation);
+			if (newCapital != null && player.isHuman) {
+				new MsgShowMilitaryAdvisorPopup(player, $"With our capital lost, the palace has been rebuilt in {newCapital.name}.", happy: false).send();
+			}
 		}
 
 		public static void DestroyCity(City city) {
@@ -126,6 +136,7 @@ namespace C7Engine {
 			GameData gameData = EngineStorage.gameData;
 			Tile tile = gameData.map.tileAt(X, Y);
 			Player owner = tile.cityAtTile.owner;
+			bool wasCapital = tile.cityAtTile.capital;
 
 			// TODO: this will get removed eventually, since we will be capturing non-combat units,
 			// plus, it doesn't what it says, if the city is abandoned for example, ALL units are removed.
@@ -143,6 +154,10 @@ namespace C7Engine {
 			gameData.CheckForCivDestructionAndNotifyUi(owner);
 
 			tile.cityAtTile = null;
+
+			if (wasCapital) {
+				MovePalaceAfterLosingCapital(owner, tile);
+			}
 
 			// Now that the city has been destroyed and tile owners updated,
 			// invalidate the trade network in case removing this city cut off
