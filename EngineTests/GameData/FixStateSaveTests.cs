@@ -149,9 +149,18 @@ public class FixStateSaveTests : IClassFixture<SaveGameFixture>, IDisposable {
 			&& t.GetTilesWithinTileSquare(2).All(n => n.IsLand() && n.overlayTerrainType.height < 2));
 	}
 
+	// A new city's borders and their neighbors already reach two tiles out,
+	// so with the standard radar range whether radar adds active tiles
+	// depends on the generated map. Radar that sees three tiles always does.
+	// (saveGame is a fresh clone per test, so this doesn't leak.)
+	private static void WidenRadar(C7GameData.GameData gameData) {
+		gameData.rules.RadarTileVisibility = 3;
+	}
+
 	[Fact]
 	public void ActiveTilesNoticeUnitsProducedInCities() {
 		C7GameData.GameData gameData = NewGame();
+		WidenRadar(gameData);
 		Player player = gameData.players.First(p => !p.isBarbarians);
 		UnitPrototype radar = new() { name = "TestRadarUnit", shieldCost = 20, movement = 1 };
 		radar.categories.Add("Land");
@@ -175,6 +184,7 @@ public class FixStateSaveTests : IClassFixture<SaveGameFixture>, IDisposable {
 	[Fact]
 	public void ActiveTilesNoticeUpgrades() {
 		C7GameData.GameData gameData = NewGame();
+		WidenRadar(gameData);
 		Player player = gameData.players.First(p => !p.isBarbarians);
 		player.gold = 10000;
 
