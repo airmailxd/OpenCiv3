@@ -71,7 +71,7 @@ namespace C7GameData.Save {
 				upgradesTo = proto.upgradesTo?.Select(x => x.name).OrderBy(x => x).ToList() ?? [];
 
 			categories = new HashSet<string>(proto.categories);
-			actions = proto.actions;
+			actions = new HashSet<UnitAction>(proto.actions);
 			attributes = new HashSet<string>(proto.attributes);
 			flags = new HashSet<Flag>(proto.flags);
 

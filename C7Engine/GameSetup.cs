@@ -152,7 +152,7 @@ public class GameSetup {
 			primaryColorIndex = civ.primaryColorIndex,
 			secondaryColorIndex = civ.secondaryColorIndex,
 			civilization = civ.name,
-			knownTechs = civ.startingTechs,
+			knownTechs = new HashSet<ID>(civ.startingTechs),
 			// TODO: stop hardcoding this
 			eraCivilopediaName = "ERAS_Ancient_Times",
 			// TODO: load this from the rules
