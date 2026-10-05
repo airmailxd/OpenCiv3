@@ -30,11 +30,11 @@ namespace C7GameData.Save {
 
 	public class SaveGame {
 
-		private static JsonSerializerOptions JsonOptions {
-			get => new JsonSerializerOptions {
+		private static JsonSerializerOptions CreateJsonOptions(bool writeIndented) {
+			return new JsonSerializerOptions {
 				PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
 				// Pretty print during development; may change this for production
-				WriteIndented = true,
+				WriteIndented = writeIndented,
 				// By default it only serializes getters, this makes it serialize fields, too
 				IncludeFields = true,
 				Converters = {
@@ -47,6 +47,11 @@ namespace C7GameData.Save {
 				},
 			};
 		}
+
+		// System.Text.Json caches the metadata it builds for each type in the
+		// options instance, so the options are created once and reused.
+		private static readonly JsonSerializerOptions JsonOptions = CreateJsonOptions(writeIndented: true);
+		private static readonly JsonSerializerOptions CompactJsonOptions = CreateJsonOptions(writeIndented: false);
 
 		public SaveGame() { }
 
@@ -66,7 +71,7 @@ namespace C7GameData.Save {
 				BarbarianInfo = data.barbarianInfo,
 				Units = data.mapUnits.ConvertAll(unit => new SaveUnit(unit)),
 				UnitPrototypes = data.unitPrototypes.ConvertAll(proto => new SaveUnitPrototype(proto)),
-				Players = data.players.ConvertAll(player => new SavePlayer(player)),
+				Players = data.players.ConvertAll(player => new SavePlayer(player, data.map)),
 				Cities = data.cities.ConvertAll(city => new SaveCity(city)),
 				ExperienceLevels = data.experienceLevels,
 				ScenarioSearchPath = data.scenarioSearchPath,
@@ -83,7 +88,7 @@ namespace C7GameData.Save {
 				History = data.history,
 				VictoryConditions = data.victoryConditions,
 				GameOver = data.gameOver,
-				Winner = data.winner != null ? new SavePlayer(data.winner) : null,
+				Winner = data.winner != null ? new SavePlayer(data.winner, data.map) : null,
 				TerrainImprovements = data.terrainImprovements.ConvertAll(ti => ti.ToSaveTerrainImprovement()),
 				GameModeConfig = data.gameModeConfig,
 			};
@@ -105,15 +110,6 @@ namespace C7GameData.Save {
 			}
 
 			return save;
-		}
-
-		private void populateGameDataTileUnitsAndCities(GameData data) {
-			foreach (Tile tile in data.map.tiles) {
-				tile.unitsOnTile = data.mapUnits.Where(unit => unit.location == tile).ToList();
-				var city = data.cities.Find(city => city.location == tile);
-				if (city != null)
-					tile.cityAtTile = city;
-			}
 		}
 
 		public GameData ToGameData(BehaviorEngine behaviors) {
@@ -204,9 +200,13 @@ namespace C7GameData.Save {
 					}
 				}
 
-				// Backfill visibility.
+				// Backfill visibility. The active tiles only need to be
+				// recomputed once, after all the units have been seen to.
 				foreach (MapUnit u in p.units) {
-					p.tileKnowledge.AddTilesToKnown(u.location);
+					p.tileKnowledge.AddTilesToKnown(u.location, false);
+				}
+				if (p.units.Count > 0) {
+					p.tileKnowledge.RecomputeActiveTiles();
 				}
 
 				// TODO: this may require more than one loop, because if all the
@@ -364,10 +364,10 @@ namespace C7GameData.Save {
 				proto.requiredResources = saveProto.requiredResources.Select(a => resDict[a]).ToHashSet();
 			}
 
-			// map units need game map and players to populate location and owner
-			data.mapUnits = Units.ConvertAll(unit =>
-				unit.ToMapUnit(data.unitPrototypes, ExperienceLevels, data.players, data.Terraforms, data.map)
-			);
+			// map units need game map and players to populate location and owner.
+			// Each unit is added to its tile's list of units as it is created.
+			SaveUnit.Lookups lookups = new(data.unitPrototypes, ExperienceLevels, data.players, data.Terraforms);
+			data.mapUnits = Units.ConvertAll(unit => unit.ToMapUnit(lookups, data.map));
 
 			// A unit can only be loaded on a unit that exists and shares its
 			// tile. Saves made before cargo was cleaned up with its transport
@@ -377,32 +377,48 @@ namespace C7GameData.Save {
 				unitsById.TryAdd(unit.id, unit);
 			foreach (MapUnit unit in data.mapUnits.Where(u => u.loadedOnUnitId != null)) {
 				if (!unitsById.TryGetValue(unit.loadedOnUnitId, out MapUnit carrier) || carrier.location != unit.location) {
-					Serilog.Log.Warning($"Unloading {unit}, which was loaded on missing unit {unit.loadedOnUnitId}");
+					Serilog.Log.Warning("Unloading {Unit}, which was loaded on missing unit {Carrier}", unit, unit.loadedOnUnitId);
 					unit.loadedOnUnitId = null;
 				}
 			}
 
 
 			// once unit owners are known, players can reference units
+			Dictionary<ID, List<MapUnit>> unitsByOwner = new();
+			foreach (MapUnit unit in data.mapUnits) {
+				ID ownerId = unit.owner.id;
+				if (!unitsByOwner.TryGetValue(ownerId, out List<MapUnit> owned)) {
+					owned = new List<MapUnit>();
+					unitsByOwner[ownerId] = owned;
+				}
+				owned.Add(unit);
+			}
 			data.players.ForEach(player => {
-				player.units = data.mapUnits.Where(unit => unit.owner.id == player.id).ToList();
+				player.units = unitsByOwner.TryGetValue(player.id, out List<MapUnit> owned) ? new List<MapUnit>(owned) : new List<MapUnit>();
 			});
 		}
 
 		private void ConvertCities(GameData data) {
 			// cities require game map for location and players for city owner
-			data.cities = Cities.ConvertAll(city =>
-				city.ToCity(data.map, data.players, data.unitPrototypes, Civilizations, data.Buildings, CitizenTypes, data.Inflows)
-			);
-
-			// add references to map tiles after units and cities are defined
-			populateGameDataTileUnitsAndCities(data);
+			SaveCity.Lookups lookups = new(data.players, data.unitPrototypes, Civilizations, data.Buildings, CitizenTypes, data.Inflows);
+			data.cities = Cities.ConvertAll(city => city.ToCity(data.map, lookups));
 
 			// Once cities are known, players can reference cities.
+			Dictionary<ID, List<City>> citiesByOwner = new();
+			foreach (City city in data.cities) {
+				ID ownerId = city.owner.id;
+				if (!citiesByOwner.TryGetValue(ownerId, out List<City> owned)) {
+					owned = new List<City>();
+					citiesByOwner[ownerId] = owned;
+				}
+				owned.Add(city);
+			}
 			data.players.ForEach(player => {
-				player.cities = data.cities.Where(city => city.owner.id == player.id).ToList();
+				player.cities = citiesByOwner.TryGetValue(player.id, out List<City> owned) ? new List<City>(owned) : new List<City>();
 			});
 
+			// Add references to map tiles. The units were placed on their tiles
+			// as they were created.
 			foreach (City city in data.cities) {
 				data.map.tileAt(city.location.XCoordinate, city.location.YCoordinate).cityAtTile = city;
 			}
@@ -528,9 +544,7 @@ namespace C7GameData.Save {
 
 		// Serializes without indentation, for sending over the network.
 		public byte[] ToCompactJSON() {
-			JsonSerializerOptions options = JsonOptions;
-			options.WriteIndented = false;
-			return JsonSerializer.SerializeToUtf8Bytes(this, options);
+			return JsonSerializer.SerializeToUtf8Bytes(this, CompactJsonOptions);
 		}
 
 		public static SaveGame FromJSON(byte[] json) {

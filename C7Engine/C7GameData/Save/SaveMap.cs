@@ -30,14 +30,30 @@ namespace C7GameData.Save {
 				wrapVertically = wrapVertically,
 				techRate = techRate,
 				optimalNumberOfCities = optimalNumberOfCities,
-				tiles = tiles.ConvertAll(tile => tile.ToTile(gd.terrainTypes, gd.Resources, gd.terrainImprovements)),
 			};
+			SaveTile.Lookups lookups = new(gd.terrainTypes, gd.Resources, gd.terrainImprovements);
+			gameMap.tiles = tiles.ConvertAll(tile => tile.ToTile(lookups));
 			foreach (SaveTile st in startingLocations) {
-				gameMap.startingLocations.Add(gameMap.tiles.Find(t => t.XCoordinate == st.X && t.YCoordinate == st.Y));
+				gameMap.startingLocations.Add(FindTile(gameMap, st.X, st.Y));
 			}
 			gameMap.computeNeighbors();
 			gameMap.barbarianCamps = gameMap.tiles.Where(tile => tile.hasBarbarianCamp).ToList();
 			return gameMap;
+		}
+
+		// Finds the tile with exactly the given coordinates, or null.
+		private static Tile FindTile(GameMap map, int x, int y) {
+			if (x >= 0 && y >= 0 && x < map.numTilesWide && y < map.numTilesTall) {
+				int index = map.tileCoordsToIndex(x, y);
+				if (index >= 0 && index < map.tiles.Count) {
+					Tile t = map.tiles[index];
+					if (t.XCoordinate == x && t.YCoordinate == y) {
+						return t;
+					}
+				}
+			}
+			// The tiles aren't laid out as expected, so search for it.
+			return map.tiles.Find(t => t.XCoordinate == x && t.YCoordinate == y);
 		}
 	}
 
