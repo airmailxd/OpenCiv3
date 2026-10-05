@@ -831,12 +831,15 @@ namespace C7GameData {
 					continue;
 				}
 
-				// If the budget still isn't under control, something is wrong.
-				throw new Exception($"{this} was unable to get the budget under control despite being under the unit support cap and zeroing out the sliders (gold={gold}, gpt={CalculateGoldPerTurn()})");
+				// Nothing more can be moved, for example because tax is already
+				// at the government's rate cap. The treasury bottoms out at zero
+				// rather than stopping the game.
+				log.Warning($"{this} was unable to get the budget under control despite being under the unit support cap and moving what it could into tax (gold={gold}, gpt={CalculateGoldPerTurn()})");
+				break;
 			}
 
 			lastGoldPerTurn = CalculateGoldPerTurn();
-			gold += lastGoldPerTurn;
+			gold = Math.Max(0, gold + lastGoldPerTurn);
 		}
 
 		public void HandleCityUpdates(GameData gameData) {
