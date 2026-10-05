@@ -31,7 +31,14 @@ public static class LanDiscovery {
 		using CancellationTokenSource cancel = new(timeout);
 		try {
 			while (true) {
-				UdpReceiveResult result = await udp.ReceiveAsync(cancel.Token);
+				UdpReceiveResult result;
+				try {
+					result = await udp.ReceiveAsync(cancel.Token);
+				} catch (SocketException e) when (e.SocketErrorCode == SocketError.ConnectionReset) {
+					// Windows reports a request nobody was listening for (such
+					// as the one to this machine) on the next receive.
+					continue;
+				}
 				try {
 					DiscoveryReply reply = NetSerialization.DeserializeData<DiscoveryReply>(result.Buffer);
 					string address = result.RemoteEndPoint.Address.ToString();
