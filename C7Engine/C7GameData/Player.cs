@@ -803,43 +803,71 @@ namespace C7GameData {
 				beakers += city.CurrentCommerceYield().beakers;
 			}
 
-			// Ensure we never go below 0 gold.
+			// As in Civ 3, a deficit is fine while the treasury can pay for it.
+			// When it can't, units over the support limit are disbanded and
+			// then city improvements are lost, but the sliders are left alone.
+			List<string> disbandedUnits = new();
+			List<string> lostImprovements = new();
 			while (gold + CalculateGoldPerTurn() < 0) {
-				// Start by disbanding units to get things under control.
+				// Disband one unit at a time and check the budget again, so we
+				// never disband more than needed. Captives are free, so
+				// disbanding one wouldn't lower the support cost.
 				var (_, _, unitSupportCost) = TotalUnitsAllowedUnitsAndSupportCost();
-				if (unitSupportCost > 0) {
-					for (int i = 0; i < unitSupportCost / government.unitCost; ++i) {
-						MapUnit unitToRemove = units[GameData.rng.Next(units.Count)];
-						log.Information($"{this} is out of gold, disbanding {unitToRemove} at {unitToRemove.location} to being unit support costs under control");
-						gameData.RemoveUnit(unitToRemove);
-					}
+				List<MapUnit> disbandable = units.Where(u => !u.IsCaptive()).ToList();
+				if (unitSupportCost > 0 && disbandable.Count > 0) {
+					MapUnit unitToRemove = disbandable[GameData.rng.Next(disbandable.Count)];
+					log.Information($"{this} is out of gold, disbanding {unitToRemove} at {unitToRemove.location}");
+					disbandedUnits.Add(unitToRemove.name);
+					gameData.RemoveUnit(unitToRemove);
 					continue;
 				}
 
-				// If we're under the unit support cap, try lowering our science
-				// budget.
-				if (scienceRate > 0 && taxRate < maxRate) {
-					--scienceRate;
-					++taxRate;
+				// Then give up the improvement that costs the most to maintain.
+				(City city, CityBuilding building) = MostExpensiveImprovementToMaintain();
+				if (city != null) {
+					log.Information($"{this} is out of gold, losing the {building.building.name} in {city}");
+					lostImprovements.Add($"{building.building.name} in {city.name}");
+					city.RemoveBuilding(building);
 					continue;
 				}
 
-				// If that wasn't sufficient, go after luxuries.
-				if (luxuryRate > 0 && taxRate < maxRate) {
-					--luxuryRate;
-					++taxRate;
-					continue;
-				}
-
-				// Nothing more can be moved, for example because tax is already
-				// at the government's rate cap. The treasury bottoms out at zero
-				// rather than stopping the game.
-				log.Warning($"{this} was unable to get the budget under control despite being under the unit support cap and moving what it could into tax (gold={gold}, gpt={CalculateGoldPerTurn()})");
+				// Nothing left to give up, for example when the deficit comes
+				// from gold-per-turn deals. The treasury bottoms out at zero.
+				log.Warning($"{this} was unable to get the budget under control despite disbanding units and losing improvements (gold={gold}, gpt={CalculateGoldPerTurn()})");
 				break;
+			}
+
+			if (isHuman && lostImprovements.Count > 0) {
+				new MsgShowDomesticAdvisorPopup(this,
+					$"We can no longer support our {string.Join(", ", lostImprovements)}.\nWe must think more about our treasury!").send();
+			}
+			if (isHuman && disbandedUnits.Count > 0) {
+				new MsgShowMilitaryAdvisorPopup(this,
+					$"We have insufficient gold to continue supporting all our units.\nWe had to disband: {string.Join(", ", disbandedUnits)}.", happy: false).send();
 			}
 
 			lastGoldPerTurn = CalculateGoldPerTurn();
 			gold = Math.Max(0, gold + lastGoldPerTurn);
+		}
+
+		// The improvement (not the palace or a wonder) with the highest
+		// maintenance cost, or (null, null) if nothing costs anything.
+		private (City, CityBuilding) MostExpensiveImprovementToMaintain() {
+			City bestCity = null;
+			CityBuilding best = null;
+			foreach (City c in cities) {
+				foreach (CityBuilding cb in c.constructed_buildings) {
+					Building b = cb.building;
+					if (b.maintenanceCost <= 0 || b.isCenterOfEmpire || b.isSmallWonder || b.IsGreatWonder()) {
+						continue;
+					}
+					if (best == null || b.maintenanceCost > best.building.maintenanceCost) {
+						bestCity = c;
+						best = cb;
+					}
+				}
+			}
+			return (bestCity, best);
 		}
 
 		public void HandleCityUpdates(GameData gameData) {
