@@ -1,7 +1,6 @@
 using System;
 using System.IO;
 using Blast;
-using System.Text.RegularExpressions;
 using System.Text;
 
 namespace QueryCiv3 {
@@ -36,19 +35,25 @@ namespace QueryCiv3 {
 			return BlastDecoder.DecompressBytes(compressedBytes);
 		}
 
+		// Decodes the bytes up to (not including) the first null byte. Civ3Encoding is a single-byte code page in which
+		// only 0x00 decodes to '\0', so this matches decoding all the bytes and trimming at the first '\0'.
+		public static string GetString(ReadOnlySpan<byte> bytes) {
+			int nullIndex = bytes.IndexOf((byte)0);
+			if (nullIndex >= 0) {
+				bytes = bytes.Slice(0, nullIndex);
+			}
+			return Civ3Encoding.GetString(bytes);
+		}
+
 		public static string GetString(byte[] bytes) {
-			string Out = Civ3Encoding.GetString(bytes);
-			Regex TrimAfterNull = new Regex(@"^[^\0]*");
-			Match NoNullMatch = TrimAfterNull.Match(Out);
-			return NoNullMatch.Value;
+			ArgumentNullException.ThrowIfNull(bytes);
+			return GetString(new ReadOnlySpan<byte>(bytes));
 		}
 
 		public static unsafe string GetString<T>(ref T structData, int start, int length) where T : unmanaged {
-			byte[] Arr = new byte[length];
-			fixed (void* dataPtr = &structData, arrPtr = Arr) {
-				Buffer.MemoryCopy(((byte*)dataPtr) + start, (byte*)arrPtr, length, length);
+			fixed (void* dataPtr = &structData) {
+				return GetString(new ReadOnlySpan<byte>(((byte*)dataPtr) + start, length));
 			}
-			return GetString(Arr);
 		}
 
 		public static bool GetFlag(byte flags, int index) {
