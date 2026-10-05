@@ -375,7 +375,7 @@ namespace C7Engine {
 					EngineStorage.uiControllerID = them.id;
 					new MsgShowTradeOffer(us, them, weWant, weGive).send();
 					await EngineStorage.WaitForMessageToEngine<MsgDiplomacyCompleted>();
-				} else {
+				} else if (them.WouldAcceptDealFrom(gD, us, weGive, weWant)) {
 					us.ExecuteDeal(gD, them, weWant, weGive);
 				}
 			}
