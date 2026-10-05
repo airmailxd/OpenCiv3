@@ -315,6 +315,8 @@ namespace C7Engine {
 		protected override void ProcessAllowed() {
 			GameData gD = EngineStorage.gameData;
 			Player player = Sender;
+			// Already in anarchy; don't restart the clock.
+			if (player.government.transitionType) return;
 			Government transitionGovt = gD.governments.Find(x => x.transitionType);
 			player.government = transitionGovt;
 			player.ApplyGovernmentRateCap();
