@@ -79,6 +79,7 @@ namespace C7Engine {
 					player.HandleCityUpdates(gameData);
 
 					player.UpdateHistory(gameData);
+					player.AdvanceGoldenAge();
 				}
 
 				CheckVictory(gameData);

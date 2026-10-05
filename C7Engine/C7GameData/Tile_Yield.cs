@@ -40,6 +40,12 @@ public partial class Tile {
 
 		private Yield ApplyPlayerModifiers(Player player) {
 			player.government.tileModifier?.Invoke(this);
+
+			// A golden age adds a shield and a commerce to tiles already
+			// producing them.
+			if (player.InGoldenAge && type != YieldType.Food && baseYield > 0) {
+				bonus += 1;
+			}
 			return this;
 		}
 

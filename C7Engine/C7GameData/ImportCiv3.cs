@@ -1450,6 +1450,7 @@ namespace C7GameData {
 				if (prto.Blitz) prototype.flags.Add(SaveUnitPrototype.Flag.Blitz);
 				if (prto.Amphibious) prototype.flags.Add(SaveUnitPrototype.Flag.Amphibious);
 				if (prto.ZoneOfControl != 0) prototype.flags.Add(SaveUnitPrototype.Flag.ZoneOfControl);
+				if (prto.StartsGoldenAge) prototype.flags.Add(SaveUnitPrototype.Flag.StartsGoldenAge);
 
 				prototype.actions.UnionWith(GetUnitActions(prto));
 				prototype.terraformActions.UnionWith(GetUnitTerraforms(prto).Select(tfKey => terraformIdByCiv3Key[tfKey]));
@@ -2089,6 +2090,7 @@ namespace C7GameData {
 			save.Rules.MaximumResearchTime = rule.MaximumResearchTime;
 			save.Rules.UpgradeCostPerShield = rule.UpgradeCost;
 			save.Rules.MinimumPopulationForWeLoveTheKing = rule.MinimumPopulationForWeLoveTheKing;
+			save.Rules.GoldenAgeDuration = rule.GoldenAgeDuration;
 			save.Rules.MinimumResearchTime = rule.MinimumResearchTime;
 			save.Rules.MaximumLevel1CitySize = rule.MaximumLevel1CitySize;
 			save.Rules.MaximumLevel2CitySize = rule.MaximumLevel2CitySize;

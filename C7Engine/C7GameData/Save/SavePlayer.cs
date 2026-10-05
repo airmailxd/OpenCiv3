@@ -53,6 +53,9 @@ namespace C7GameData.Save {
 		// The amount of gold this player has.
 		public int gold = 0;
 
+		public bool hadGoldenAge;
+		public int goldenAgeTurnsRemaining;
+
 		// The number of "beakers" (gold) spent on the currently researched
 		// tech.
 		public int beakers = 0;
@@ -94,6 +97,8 @@ namespace C7GameData.Save {
 				scienceRate = scienceRate,
 				taxRate = taxRate,
 				gold = gold,
+				hadGoldenAge = hadGoldenAge,
+				goldenAgeTurnsRemaining = goldenAgeTurnsRemaining,
 				turnsUntilPriorityReevaluation = turnsUntilPriorityReevaluation,
 				inAnarchyUntilTurn = inAnarchyUntilTurn,
 				government = governments.Find(x => x.id == governmentId),
@@ -156,6 +161,8 @@ namespace C7GameData.Save {
 			scienceRate = player.scienceRate;
 			taxRate = player.taxRate;
 			gold = player.gold;
+			hadGoldenAge = player.hadGoldenAge;
+			goldenAgeTurnsRemaining = player.goldenAgeTurnsRemaining;
 			beakers = player.beakers;
 			turnsResearched = player.turnsResearched;
 			inAnarchyUntilTurn = player.inAnarchyUntilTurn;

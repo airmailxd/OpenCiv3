@@ -171,6 +171,9 @@ namespace C7GameData {
 			return true;
 		}
 
+		// The civilization strengths this building is associated with.
+		public IReadOnlySet<Civilization.Trait> traits => dataSource.traits;
+
 		public int ShieldCost(HashSet<Civilization.Trait> civTraits, float costFactor) {
 			foreach (Civilization.Trait trait in dataSource.traits) {
 				if (civTraits.Contains(trait)) {

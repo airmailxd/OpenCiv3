@@ -214,6 +214,11 @@ namespace C7GameData {
 
 		public Alliance alliance;
 
+		// Each civ gets one golden age per game.
+		public bool hadGoldenAge = false;
+		public int goldenAgeTurnsRemaining = 0;
+		public bool InGoldenAge => goldenAgeTurnsRemaining > 0;
+
 		public int EraIndex() {
 			return GetEraIndex(eraCivilopediaName);
 		}
@@ -1043,6 +1048,44 @@ namespace C7GameData {
 
 			log.Information($"{this} moved its palace to {newCapital}");
 			return newCapital;
+		}
+
+		public void StartGoldenAge(GameData gameData, string reason) {
+			if (hadGoldenAge || isBarbarians) {
+				return;
+			}
+			hadGoldenAge = true;
+			goldenAgeTurnsRemaining = gameData.rules.GoldenAgeDuration;
+			log.Information($"{this} starts a golden age: {reason}");
+			if (isHuman) {
+				new MsgShowMilitaryAdvisorPopup(this, $"{reason}\nOur civilization enters a Golden Age!", happy: true).send();
+			}
+		}
+
+		// Called at the end of each turn.
+		public void AdvanceGoldenAge() {
+			if (goldenAgeTurnsRemaining > 0) {
+				--goldenAgeTurnsRemaining;
+			}
+		}
+
+		// A golden age starts once the great wonders this civ has built cover
+		// all of its strengths.
+		public void MaybeStartGoldenAgeFromWonders(GameData gameData) {
+			if (hadGoldenAge || civilization.traits.Count == 0) {
+				return;
+			}
+			HashSet<Civilization.Trait> wonderTraits = new();
+			foreach (City c in cities) {
+				foreach (CityBuilding cb in c.constructed_buildings) {
+					if (cb.building.IsGreatWonder() && cb.builtByPlayer == this) {
+						wonderTraits.UnionWith(cb.building.traits);
+					}
+				}
+			}
+			if (civilization.traits.IsSubsetOf(wonderTraits)) {
+				StartGoldenAge(gameData, "Our wonders have inspired the people.");
+			}
 		}
 
 		public void DoCorruptionCalculations(GameData gameData) {

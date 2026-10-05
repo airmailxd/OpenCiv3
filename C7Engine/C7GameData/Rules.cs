@@ -25,6 +25,7 @@ namespace C7GameData {
 		public bool AllowLesserUnitProduction; // for example, allow building a Spearman/Pikeman when we can build a Musketman (simultaneously)
 		public int RadarTileVisibility; // how many tiles, a unit with the Radar ability, can see ahead
 		public int MinimumPopulationForWeLoveTheKing = 3;
+		public int GoldenAgeDuration = 20;
 		public int UpgradeCostPerShield = 3; // gold per shield of difference between a unit and its upgrade
 	}
 }

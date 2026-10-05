@@ -4632,6 +4632,9 @@
         "Swordsman"
       ],
       "unproducible": false,
+      "flags": [
+        "startsGoldenAge"
+      ],
       "categories": [
         "Land"
       ],
@@ -4678,6 +4681,9 @@
         "Longbowman"
       ],
       "unproducible": false,
+      "flags": [
+        "startsGoldenAge"
+      ],
       "categories": [
         "Land"
       ],
@@ -4724,6 +4730,9 @@
         "Musketman"
       ],
       "unproducible": false,
+      "flags": [
+        "startsGoldenAge"
+      ],
       "categories": [
         "Land"
       ],
@@ -4770,6 +4779,9 @@
         "Musketman"
       ],
       "unproducible": false,
+      "flags": [
+        "startsGoldenAge"
+      ],
       "categories": [
         "Land"
       ],
@@ -4816,6 +4828,9 @@
         "Medieval Infantry"
       ],
       "unproducible": false,
+      "flags": [
+        "startsGoldenAge"
+      ],
       "categories": [
         "Land"
       ],
@@ -4865,6 +4880,9 @@
         "Guerilla"
       ],
       "unproducible": false,
+      "flags": [
+        "startsGoldenAge"
+      ],
       "categories": [
         "Land"
       ],
@@ -4914,6 +4932,9 @@
         "Knight"
       ],
       "unproducible": false,
+      "flags": [
+        "startsGoldenAge"
+      ],
       "categories": [
         "Land"
       ],
@@ -4963,6 +4984,9 @@
         "Cavalry"
       ],
       "unproducible": false,
+      "flags": [
+        "startsGoldenAge"
+      ],
       "categories": [
         "Land"
       ],
@@ -5013,6 +5037,9 @@
         "Knight"
       ],
       "unproducible": false,
+      "flags": [
+        "startsGoldenAge"
+      ],
       "categories": [
         "Land"
       ],
@@ -5062,6 +5089,9 @@
         "Rifleman"
       ],
       "unproducible": false,
+      "flags": [
+        "startsGoldenAge"
+      ],
       "categories": [
         "Land"
       ],
@@ -5111,6 +5141,9 @@
         "Cavalry"
       ],
       "unproducible": false,
+      "flags": [
+        "startsGoldenAge"
+      ],
       "categories": [
         "Land"
       ],
@@ -5160,6 +5193,9 @@
         "Cavalry"
       ],
       "unproducible": false,
+      "flags": [
+        "startsGoldenAge"
+      ],
       "categories": [
         "Land"
       ],
@@ -5205,7 +5241,8 @@
       "unproducible": false,
       "flags": [
         "blitz",
-        "zoneOfControl"
+        "zoneOfControl",
+        "startsGoldenAge"
       ],
       "categories": [
         "Land"
@@ -5258,7 +5295,8 @@
       "unproducible": false,
       "flags": [
         "blitz",
-        "zoneOfControl"
+        "zoneOfControl",
+        "startsGoldenAge"
       ],
       "categories": [
         "Land"
@@ -5308,7 +5346,8 @@
       ],
       "unproducible": false,
       "flags": [
-        "rotateBeforeAttack"
+        "rotateBeforeAttack",
+        "startsGoldenAge"
       ],
       "categories": [
         "Sea"
@@ -5358,7 +5397,8 @@
       "unproducible": false,
       "flags": [
         "lethalLandBombardment",
-        "lethalSeaBombardment"
+        "lethalSeaBombardment",
+        "startsGoldenAge"
       ],
       "categories": [
         "Air"
@@ -5486,7 +5526,8 @@
       ],
       "unproducible": false,
       "flags": [
-        "zoneOfControl"
+        "zoneOfControl",
+        "startsGoldenAge"
       ],
       "categories": [
         "Land"
@@ -5535,7 +5576,8 @@
       ],
       "unproducible": false,
       "flags": [
-        "zoneOfControl"
+        "zoneOfControl",
+        "startsGoldenAge"
       ],
       "categories": [
         "Land"
@@ -5587,7 +5629,8 @@
       ],
       "unproducible": false,
       "flags": [
-        "amphibious"
+        "amphibious",
+        "startsGoldenAge"
       ],
       "categories": [
         "Land"
@@ -5633,7 +5676,8 @@
       ],
       "unproducible": false,
       "flags": [
-        "zoneOfControl"
+        "zoneOfControl",
+        "startsGoldenAge"
       ],
       "categories": [
         "Land"
@@ -5685,6 +5729,9 @@
         "Medieval Infantry"
       ],
       "unproducible": false,
+      "flags": [
+        "startsGoldenAge"
+      ],
       "categories": [
         "Land"
       ],
@@ -5734,6 +5781,9 @@
         "Cavalry"
       ],
       "unproducible": false,
+      "flags": [
+        "startsGoldenAge"
+      ],
       "categories": [
         "Land"
       ],
@@ -5784,6 +5834,9 @@
         "Musketman"
       ],
       "unproducible": false,
+      "flags": [
+        "startsGoldenAge"
+      ],
       "categories": [
         "Land"
       ],
@@ -5832,7 +5885,8 @@
       "unproducible": false,
       "flags": [
         "lethalLandBombardment",
-        "lethalSeaBombardment"
+        "lethalSeaBombardment",
+        "startsGoldenAge"
       ],
       "categories": [
         "Land"
@@ -6959,6 +7013,9 @@
         "Pikeman"
       ],
       "unproducible": false,
+      "flags": [
+        "startsGoldenAge"
+      ],
       "categories": [
         "Land"
       ],
@@ -7005,6 +7062,9 @@
         "Knight"
       ],
       "unproducible": false,
+      "flags": [
+        "startsGoldenAge"
+      ],
       "categories": [
         "Land"
       ],
@@ -7166,7 +7226,8 @@
       ],
       "unproducible": false,
       "flags": [
-        "rotateBeforeAttack"
+        "rotateBeforeAttack",
+        "startsGoldenAge"
       ],
       "categories": [
         "Sea"
@@ -7214,6 +7275,9 @@
         "Rifleman"
       ],
       "unproducible": false,
+      "flags": [
+        "startsGoldenAge"
+      ],
       "categories": [
         "Land"
       ],
@@ -7487,6 +7551,9 @@
         "Explorer"
       ],
       "unproducible": false,
+      "flags": [
+        "startsGoldenAge"
+      ],
       "categories": [
         "Land"
       ],
@@ -7533,6 +7600,9 @@
         "Longbowman"
       ],
       "unproducible": false,
+      "flags": [
+        "startsGoldenAge"
+      ],
       "categories": [
         "Land"
       ],
@@ -7580,7 +7650,8 @@
       ],
       "unproducible": false,
       "flags": [
-        "lethalSeaBombardment"
+        "lethalSeaBombardment",
+        "startsGoldenAge"
       ],
       "categories": [
         "Sea"
@@ -11367,6 +11438,7 @@
     "allowLesserUnitProduction": false,
     "radarTileVisibility": 2,
     "minimumPopulationForWeLoveTheKing": 6,
+    "goldenAgeDuration": 20,
     "upgradeCostPerShield": 3
   },
   "timeOptions": {

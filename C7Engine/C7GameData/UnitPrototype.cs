@@ -134,6 +134,16 @@ namespace C7GameData {
 				}
 			}
 		}
+		public bool startsGoldenAge {
+			get => flags.Contains(SaveUnitPrototype.Flag.StartsGoldenAge);
+			set {
+				if (value) {
+					flags.Add(SaveUnitPrototype.Flag.StartsGoldenAge);
+				} else {
+					flags.Remove(SaveUnitPrototype.Flag.StartsGoldenAge);
+				}
+			}
+		}
 		public bool hasRadar {
 			get => flags.Contains(SaveUnitPrototype.Flag.Radar);
 			set {
