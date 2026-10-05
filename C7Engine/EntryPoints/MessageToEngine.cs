@@ -333,8 +333,13 @@ namespace C7Engine {
 		}
 
 		protected override void ProcessAllowed() {
+			GameData gD = EngineStorage.gameData;
 			Player player = Sender;
-			if (government == null || !player.GetAvailableGovernments(EngineStorage.gameData).Contains(government)) {
+			if (government == null || !player.GetAvailableGovernments(gD).Contains(government)) {
+				return;
+			}
+			// A new government can only be picked once the anarchy period is over.
+			if (!player.government.transitionType || gD.turn < player.inAnarchyUntilTurn) {
 				return;
 			}
 			player.government = government;
