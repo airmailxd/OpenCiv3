@@ -493,6 +493,10 @@ namespace C7GameData {
 
 			if (isCombatUnit) {
 				if (hasHostileUnits || hasHostileCity) {
+					// Only amphibious units can attack straight off a ship.
+					if (this.IsLandUnit() && !this.location.IsLand() && !this.unitType.isAmphibious) {
+						return Intent.Disabled;
+					}
 					return Intent.Fight;
 				}
 				if (hasForeignUnits) {

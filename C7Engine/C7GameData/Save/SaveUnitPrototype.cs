@@ -13,6 +13,8 @@ namespace C7GameData.Save {
 			Radar,
 			// The unit may attack more than once per turn.
 			Blitz,
+			// The unit may attack from a ship.
+			Amphibious,
 		}
 
 		public string name { get; set; }

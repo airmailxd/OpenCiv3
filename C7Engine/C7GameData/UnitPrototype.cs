@@ -114,6 +114,16 @@ namespace C7GameData {
 				}
 			}
 		}
+		public bool isAmphibious {
+			get => flags.Contains(SaveUnitPrototype.Flag.Amphibious);
+			set {
+				if (value) {
+					flags.Add(SaveUnitPrototype.Flag.Amphibious);
+				} else {
+					flags.Remove(SaveUnitPrototype.Flag.Amphibious);
+				}
+			}
+		}
 		public bool hasRadar {
 			get => flags.Contains(SaveUnitPrototype.Flag.Radar);
 			set {
