@@ -14,6 +14,11 @@ namespace C7.Map {
 			EraseCity(city);
 		}
 
+		// The city is redrawn in its new owner's colors on the next draw.
+		public void UpdateAfterCityCapture(City city) {
+			EraseCity(city);
+		}
+
 		private void EraseCity(City city) {
 			citySceneLookup.Remove(city, out CityScene cityScene);
 			if (cityScene != null) {

@@ -45,7 +45,7 @@ public partial class MapUnit {
 			}
 		}
 
-		// Destroy the enemy city on the tile unless we're the barbarians,
+		// Capture the enemy city on the tile unless we're the barbarians,
 		// in which case we'll just take some gold.
 		if (tile.HasCity() && !owner.IsAtPeaceWith(tile.cityAtTile.owner)) {
 			if (owner.isBarbarians) {
@@ -57,7 +57,7 @@ public partial class MapUnit {
 					new MsgShowMilitaryAdvisorPopup(tile.cityAtTile.owner, $"Barbarians have stolen {goldTaken} gold from our cities!\nWe need a stronger military.", happy: false).send();
 				}
 			} else {
-				CityInteractions.DestroyCity(tile);
+				CityInteractions.CaptureCity(tile.cityAtTile, owner);
 			}
 		}
 

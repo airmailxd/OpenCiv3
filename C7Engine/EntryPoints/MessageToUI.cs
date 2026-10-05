@@ -80,6 +80,16 @@ namespace C7Engine {
 		}
 	}
 
+	public class MsgCityCaptured : MessageToUI {
+		public City city;
+		public Player previousOwner;
+
+		public MsgCityCaptured(City city, Player previousOwner) {
+			this.city = city;
+			this.previousOwner = previousOwner;
+		}
+	}
+
 	public class MsgCivilizationDestroyed : MessageToUI {
 		public Civilization civilization;
 

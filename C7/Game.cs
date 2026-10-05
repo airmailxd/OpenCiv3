@@ -415,6 +415,9 @@ public partial class Game : Node {
 			case MsgCityDestroyed mCD:
 				mapView.cityLayer.UpdateAfterCityDestruction(mCD.city);
 				break;
+			case MsgCityCaptured mCCap:
+				mapView.cityLayer.UpdateAfterCityCapture(mCCap.city);
+				break;
 			case MsgCivilizationDestroyed mCivD:
 				popupOverlay.ShowPopup(new CivilizationDestroyed(mCivD.civilization), PopupOverlay.PopupCategory.Advisor);
 				InterestingEvent();

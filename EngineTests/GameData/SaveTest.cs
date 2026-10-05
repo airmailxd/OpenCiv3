@@ -95,6 +95,8 @@ public class SaveTests : IClassFixture<SaveGameFixture> {
 						continue;
 					case MsgCityDestroyed mCD:
 						continue;
+					case MsgCityCaptured mCC:
+						continue;
 					case MsgCivilizationDestroyed mCVD:
 						continue;
 					case MsgVictory mV:
