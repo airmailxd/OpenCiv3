@@ -67,11 +67,15 @@ public partial class MiniMapBoundsOverlay : Control {
 		var maxHeight = (map.numTilesTall / 2) - 1;
 		var maxPan = 100; // how many screenfuls one can pan the map
 
-		// Wrapped coordinates, working around modulo operator limitations
-		var wax = (maxPan * maxWidth + vr.upperLeftX) % maxWidth;
-		var way = (maxPan * maxHeight + (vr.upperLeftY / 2)) % maxHeight;
-		var wbx = (maxPan * maxWidth + vr.lowerRightX) % maxWidth;
-		var wby = (maxPan * maxHeight + (vr.lowerRightY / 2)) % maxHeight;
+		// Wrapped coordinates, working around modulo operator limitations.
+		// The map wraps after its full width and height, not after the last
+		// pixel's coordinate.
+		var wrapWidth = map.numTilesWide;
+		var wrapHeight = map.numTilesTall / 2;
+		var wax = (maxPan * wrapWidth + vr.upperLeftX) % wrapWidth;
+		var way = (maxPan * wrapHeight + (vr.upperLeftY / 2)) % wrapHeight;
+		var wbx = (maxPan * wrapWidth + vr.lowerRightX) % wrapWidth;
+		var wby = (maxPan * wrapHeight + (vr.lowerRightY / 2)) % wrapHeight;
 
 		// Out of bounds
 		var isOoBx = wbx < wax; // X coordinates increase right

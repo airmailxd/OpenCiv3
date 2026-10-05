@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using Godot;
 using C7GameData;
 using Serilog;
@@ -23,13 +24,20 @@ public partial class MiniMap : Control {
 	private Image mapImage;
 
 	// A cheap summary of the game state the minimap depends on; the map is
-	// only redrawn when it changes. As a safety net for changes it doesn't
-	// capture, the map is also redrawn (but only re-uploaded if a pixel
-	// actually changed) every RECHECK_INTERVAL seconds.
+	// only redrawn when it changes. Terrain and border changes aren't in it,
+	// so every RECHECK_INTERVAL seconds a hash of each tile's terrain, city
+	// and owning city is checked, and the map redrawn if it changed. As a
+	// last safety net for anything else, the map is also redrawn (but only
+	// re-uploaded if a pixel actually changed) every FULL_RECHECK_INTERVAL
+	// seconds. (An engine counter of map changes would make both checks
+	// unnecessary.)
 	private MapStamp lastStamp;
 	private bool hasDrawn;
 	private double timeSinceRedraw;
+	private double timeSinceRecheck;
+	private int lastTileHash;
 	private const double RECHECK_INTERVAL = 1.0;
+	private const double FULL_RECHECK_INTERVAL = 5.0;
 
 	private struct MapStamp : IEquatable<MapStamp> {
 		public GameData gameData;
@@ -92,12 +100,20 @@ public partial class MiniMap : Control {
 
 		MapStamp stamp = ComputeStamp(gD);
 		timeSinceRedraw += delta;
+		timeSinceRecheck += delta;
 		bool stampChanged = !hasDrawn || !stamp.Equals(lastStamp);
-		if (stampChanged || timeSinceRedraw >= RECHECK_INTERVAL) {
+		bool redraw = stampChanged || timeSinceRedraw >= FULL_RECHECK_INTERVAL;
+		if (!redraw && timeSinceRecheck >= RECHECK_INTERVAL) {
+			timeSinceRecheck = 0;
+			redraw = ComputeTileHash(map) != lastTileHash;
+		}
+		if (redraw) {
 			RedrawMap(gD, forceUpload: stampChanged);
 			lastStamp = stamp;
+			lastTileHash = ComputeTileHash(map);
 			hasDrawn = true;
 			timeSinceRedraw = 0;
+			timeSinceRecheck = 0;
 		}
 
 		// The viewport bounds are drawn over the map, so moving the camera
@@ -127,6 +143,19 @@ public partial class MiniMap : Control {
 			cityCount = gD.cities.Count,
 			cityHash = cityHash,
 		};
+	}
+
+	// What each tile shows on the minimap besides the fog: its terrain, and
+	// whose it is. Objects are hashed by identity, which is cheap.
+	private static int ComputeTileHash(GameMap map) {
+		HashCode hash = new();
+		foreach (Tile t in map.tiles) {
+			hash.Add(RuntimeHelpers.GetHashCode(t.baseTerrainType));
+			hash.Add(RuntimeHelpers.GetHashCode(t.overlayTerrainType));
+			hash.Add(RuntimeHelpers.GetHashCode(t.owningCity));
+			hash.Add(RuntimeHelpers.GetHashCode(t.cityAtTile));
+		}
+		return hash.ToHashCode();
 	}
 
 	private void RedrawMap(GameData gD, bool forceUpload) {
