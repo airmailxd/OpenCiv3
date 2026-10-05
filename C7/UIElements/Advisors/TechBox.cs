@@ -10,10 +10,21 @@ public partial class TechBox : TextureButton {
 	private Tech tech;
 	private TechState techState;
 
-	private readonly Dictionary<ID, List<Building>> Buildings = new();
-	private readonly Dictionary<ID, List<Building>> ObsoleteBuildings = new();
-	private readonly Dictionary<ID, List<Terraform>> Terraforms = new();
-	private readonly Dictionary<ID, List<UnitPrototype>> Units = new();
+	private List<Building> Buildings;
+	private List<Building> ObsoleteBuildings;
+	private List<Terraform> Terraforms;
+	private List<UnitPrototype> Units;
+
+	// Worked out by whoever draws the tree, once for all its boxes, or by the
+	// box itself if not.
+	private int? estimatedTurns;
+	private TechEffectLookup effects;
+
+	// The theme for the tooltip, the same for every box.
+	private static Theme tooltipTheme;
+
+	// Whether the tech is from a later era than the player's.
+	private bool isTechEraBeyondPlayerEra;
 
 	private static readonly Dictionary<string, string> TruncatedToFullTechTextMap = new();
 	private static readonly Dictionary<string, ImageTexture> CachedObsoleteBuildingTextures = new();
@@ -46,13 +57,26 @@ public partial class TechBox : TextureButton {
 		this.queueNumber = queueNumber;
 	}
 
+	// estimatedTurns only matters for techs in progress or possible to
+	// research, and effects is the lookup for the current game.
+	public TechBox(Tech tech, TechState techState, int queueNumber, int? estimatedTurns, TechEffectLookup effects)
+		: this(tech, techState, queueNumber) {
+		this.estimatedTurns = estimatedTurns;
+		this.effects = effects;
+	}
+
 	public override void _Ready() {
+		GameData gameData = EngineStorage.gameData;
+		Player player = gameData.GetUIControllerPlayer();
+		effects ??= TechEffectLookup.For(gameData);
+		isTechEraBeyondPlayerEra = GetEraIndex(tech.EraCivilopediaName) > GetEraIndex(player.eraCivilopediaName);
+
 		smallFont = ResourceLoader.Load<FontFile>("res://Fonts/NotoSans-Regular.ttf");
 
 		if (!tech.RequiredForEraAdvancement)
 			smallFont = ResourceLoader.Load<FontFile>("res://Fonts/NotoSans-Italic.ttf");
 
-		if (tech.id == EngineStorage.gameData.GetUIControllerPlayer().currentlyResearchedTech)
+		if (tech.id == player.currentlyResearchedTech)
 			smallFont = ResourceLoader.Load<FontFile>("res://Fonts/NotoSans-Bold.ttf");
 
 		smallFontTheme.DefaultFont = smallFont;
@@ -60,7 +84,7 @@ public partial class TechBox : TextureButton {
 		smallFontTheme.SetFontSize("font_size", "Label", smallFontSize);
 
 
-		int techBoxSizeCost = CalculateTechBoxSizeCost(EngineStorage.gameData);
+		int techBoxSizeCost = CalculateTechBoxSizeCost(player);
 		string techBoxSize = CostToStringKey(techBoxSizeCost);
 		string era = CalculateTechEraTexture(tech.EraCivilopediaName);
 
@@ -93,8 +117,12 @@ public partial class TechBox : TextureButton {
 		int boxBorderWidth = 16;
 		int charLimitOfCurrentBox = (int)((TextureNormal.GetWidth() - boxBorderWidth) / averageCharLength);
 
-		int estimatedTurns = EngineStorage.gameData.GetUIControllerPlayer().EstimateTurnsToResearch(EngineStorage.gameData, tech);
-		string estimatedTurnsString = estimatedTurns > 50 ? $"(-- turns)" : $"({estimatedTurns} turns)";
+		// Only techs in progress or possible to research show the estimate.
+		string estimatedTurnsString = "";
+		if (techState is TechState.kInProgress or TechState.kPossible) {
+			int turns = estimatedTurns ?? player.EstimateTurnsToResearch(gameData, tech);
+			estimatedTurnsString = turns > 50 ? $"(-- turns)" : $"({turns} turns)";
+		}
 
 		string techName = tech.Name;
 		string prepend = techState is TechState.kInProgress or TechState.kQueued ? $"{queueNumber}." : "";
@@ -152,11 +180,13 @@ public partial class TechBox : TextureButton {
 	private void ShowTooltip() {
 		smallFontTheme.SetColor("font_color", "Label", new Color(0.71f, 0.35f, 0.13f));
 
-		var customTheme = new Theme();
-		customTheme.SetStylebox("panel", "TooltipPanel", TemporaryPopup.PopupTechStyleBox());
-		customTheme.SetColor("font_color", "TooltipLabel", Colors.Black);
-		customTheme.SetFontSize("font_size", "TooltipLabel", 12);
-		this.Theme = customTheme;
+		if (tooltipTheme == null) {
+			tooltipTheme = new Theme();
+			tooltipTheme.SetStylebox("panel", "TooltipPanel", TemporaryPopup.PopupTechStyleBox());
+			tooltipTheme.SetColor("font_color", "TooltipLabel", Colors.Black);
+			tooltipTheme.SetFontSize("font_size", "TooltipLabel", 12);
+		}
+		this.Theme = tooltipTheme;
 
 		if (TruncatedToFullTechTextMap.TryGetValue(tech.Name, out string fullText))
 			this.TooltipText = $"{fullText}";
@@ -164,7 +194,6 @@ public partial class TechBox : TextureButton {
 
 	private void UpdateLabelTheme() {
 		Color color = Colors.Black;
-		bool isTechEraBeyondPlayerEra = GetEraIndex(tech.EraCivilopediaName) > GetEraIndex(EngineStorage.gameData.GetUIControllerPlayer().eraCivilopediaName);
 
 		if (techState is TechState.kKnown)
 			color = Colors.MediumBlue;
@@ -196,25 +225,25 @@ public partial class TechBox : TextureButton {
 		List<ImageTexture> textures = new ();
 
 		// Units
-		foreach (UnitPrototype unit in Units[tech.id]) {
+		foreach (UnitPrototype unit in Units) {
 			ImageTexture texture = TextureLoader.LoadByPath(unit.art.pediaArt.small);
 			textures.Add(texture);
 		}
 
 		// Buildings
-		foreach (Building building in Buildings[tech.id]) {
+		foreach (Building building in Buildings) {
 			// TODO : load the correct textures
 			// ImageTexture texture = ...
 			// textures.Add(texture);
 		}
 
 		// Terraforms
-		foreach (Terraform terraform in Terraforms[tech.id]) {
+		foreach (Terraform terraform in Terraforms) {
 			textures.Add(TextureLoader.Load($"{terraform.ButtonTexture}.normal"));
 		}
 
 		// Obsolete buildings
-		foreach (Building building in ObsoleteBuildings[tech.id]) {
+		foreach (Building building in ObsoleteBuildings) {
 			// if (cachedObsoleteBuildingTextures.TryGetValue(building.name, out ImageTexture texture)) {
 			// 	textures.Add(texture);
 			// } else {
@@ -230,37 +259,32 @@ public partial class TechBox : TextureButton {
 		return textures;
 	}
 
-	private int CalculateTechBoxSizeCost(GameData gameData) {
+	private int CalculateTechBoxSizeCost(Player player) {
 		int cost = 0;
 
 		// List of building that require this tech to be built
-		List<Building> buildings = gameData.Buildings.Where(b => b.requiredTech == tech).ToList();
-		Buildings.TryAdd(tech.id, buildings);
-		cost += buildings.Count;
+		Buildings = effects.BuildingsRequiring(tech);
+		cost += Buildings.Count;
 
 		// List of Great Wonders this tech renders obsolete
-		List<Building> obsoleteGrWonders = gameData.Buildings.Where(b => b.renderedObsoleteBy == tech).ToList();
-		ObsoleteBuildings.TryAdd(tech.id, obsoleteGrWonders);
-		cost += obsoleteGrWonders.Count;
+		ObsoleteBuildings = effects.BuildingsObsoletedBy(tech);
+		cost += ObsoleteBuildings.Count;
 
 		List<UnitPrototype> units = new();
 		// List of units that require this tech to be built, taking into account that some are unique
-		List<UnitPrototype> unitsRequiringTech = gameData.unitPrototypes.Where(u => u.requiredTech == tech).ToList();
-
-		// Then add the correct units to the list
-		foreach (UnitPrototype u in unitsRequiringTech) {
-			if (u.producibleBy.Contains(EngineStorage.gameData.GetUIControllerPlayer().civilization)) {
+		Civilization civilization = player.civilization;
+		foreach (UnitPrototype u in effects.UnitsRequiring(tech)) {
+			if (u.producibleBy.Contains(civilization)) {
 				units.Add(u);
 			}
 		}
 
-		Units.TryAdd(tech.id, units);
+		Units = units;
 		cost += units.Count;
 
 		// List of terraform actions that require this tech to be done
-		List<Terraform> terraforms = gameData.Terraforms.Where(t => t.RequiredTech == tech.id).ToList();
-		Terraforms.TryAdd(tech.id, terraforms);
-		cost += terraforms.Count;
+		Terraforms = effects.TerraformsRequiring(tech);
+		cost += Terraforms.Count;
 
 		return cost;
 	}
@@ -314,4 +338,63 @@ public partial class TechBox : TextureButton {
 			}
 		}
 	}
+}
+
+// What each tech enables or makes obsolete, worked out once per game rather
+// than by scanning every building, unit and terraform for each tech box. The
+// lists are in game data order and must not be changed.
+public class TechEffectLookup {
+	private static TechEffectLookup current;
+
+	private readonly GameData gameData;
+	private readonly Dictionary<Tech, List<Building>> buildingsRequiring = new();
+	private readonly Dictionary<Tech, List<Building>> buildingsObsoletedBy = new();
+	private readonly Dictionary<Tech, List<UnitPrototype>> unitsRequiring = new();
+	private readonly Dictionary<ID, List<Terraform>> terraformsRequiring = new();
+
+	private static readonly List<Building> noBuildings = new();
+	private static readonly List<UnitPrototype> noUnits = new();
+	private static readonly List<Terraform> noTerraforms = new();
+
+	public static TechEffectLookup For(GameData gameData) {
+		if (current == null || current.gameData != gameData) {
+			current = new TechEffectLookup(gameData);
+		}
+		return current;
+	}
+
+	private TechEffectLookup(GameData gameData) {
+		this.gameData = gameData;
+		foreach (Building b in gameData.Buildings) {
+			if (b.requiredTech != null) {
+				Add(buildingsRequiring, b.requiredTech, b);
+			}
+			if (b.renderedObsoleteBy != null) {
+				Add(buildingsObsoletedBy, b.renderedObsoleteBy, b);
+			}
+		}
+		foreach (UnitPrototype u in gameData.unitPrototypes) {
+			if (u.requiredTech != null) {
+				Add(unitsRequiring, u.requiredTech, u);
+			}
+		}
+		foreach (Terraform t in gameData.Terraforms) {
+			if (t.RequiredTech is not null) {
+				Add(terraformsRequiring, t.RequiredTech, t);
+			}
+		}
+	}
+
+	private static void Add<K, V>(Dictionary<K, List<V>> lookup, K key, V value) {
+		if (!lookup.TryGetValue(key, out List<V> list)) {
+			list = new();
+			lookup[key] = list;
+		}
+		list.Add(value);
+	}
+
+	public List<Building> BuildingsRequiring(Tech tech) => buildingsRequiring.GetValueOrDefault(tech, noBuildings);
+	public List<Building> BuildingsObsoletedBy(Tech tech) => buildingsObsoletedBy.GetValueOrDefault(tech, noBuildings);
+	public List<UnitPrototype> UnitsRequiring(Tech tech) => unitsRequiring.GetValueOrDefault(tech, noUnits);
+	public List<Terraform> TerraformsRequiring(Tech tech) => terraformsRequiring.GetValueOrDefault(tech.id, noTerraforms);
 }
