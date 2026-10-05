@@ -1128,8 +1128,11 @@ namespace C7Engine {
 				// Give ourselves the chance to place additional instances of
 				// this luxury in a clump.
 				for (int clusterAttempt = 0; clusterAttempt < 4 && placed < targetCount && rand.Next(100) < 50; ++clusterAttempt) {
+					// Only neighbors without a resource, so we neither replace
+					// another resource nor count a tile twice.
 					Tile neighbor = t.neighbors.Values
 						.Where(x => x != Tile.NONE
+									&& (x.Resource == null || x.Resource == Resource.NONE)
 									&& x.overlayTerrainType.allowedResources.Contains(r.Key)
 									&& x.continent == t.continent)
 						.OrderBy(x => rand.Next()) // Shuffle the neighbors
