@@ -13,7 +13,8 @@ namespace EngineTests.GameData;
 
 // Guards map generation against accidental changes: the same seed must keep
 // producing exactly the same map. The expected hashes were recorded with the
-// map generator before it was optimized.
+// map generator before it was optimized, and updated when luxury clustering
+// stopped placing luxuries on tiles that already had a resource.
 public class PerfAiStrategyMapDeterminismTest {
 	private readonly ITestOutputHelper output;
 
@@ -68,9 +69,9 @@ public class PerfAiStrategyMapDeterminismTest {
 	}
 
 	[Theory]
-	[InlineData(WorldCharacteristics.Landform.Pangaea, 123456, "D80FDD98C9095A360A94C4F6467E1B060F39DF92AB09612A7BDAAABB43B481F0")]
-	[InlineData(WorldCharacteristics.Landform.Continents, 4242, "2DE13FEF33E1ACE5C4F8938D00AB89DC01147A1645C6CA2D56297E8C369D15C9")]
-	[InlineData(WorldCharacteristics.Landform.Archipelago, 777, "D58900D361B39283F7B1BF80B04A64722DDBD5189B4DCDC85646DA8E62FA3EA7")]
+	[InlineData(WorldCharacteristics.Landform.Pangaea, 123456, "3A9B9DB919D1C7617B1F0FA9FBC2277061A3E252E02ED79F042A310502C9416E")]
+	[InlineData(WorldCharacteristics.Landform.Continents, 4242, "DE9B923F455D4C31A0EBB191224F5C78EBB010943669F3E776BFE9A472DF487D")]
+	[InlineData(WorldCharacteristics.Landform.Archipelago, 777, "4696171D5CB4DA2DF152FCFF62572F477566E2875906514058407F27718BB32E")]
 	public void SameSeedProducesSameMap(WorldCharacteristics.Landform landform, int seed, string expectedHash) {
 		string hash = HashMap(Generate(landform, seed));
 		output.WriteLine($"{landform} {seed}: {hash}");
