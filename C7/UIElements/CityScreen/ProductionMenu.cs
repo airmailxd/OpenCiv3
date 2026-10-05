@@ -74,6 +74,15 @@ public partial class ProductionMenu : Civ3TextureRect {
 			return;
 		}
 
+		// Remember the option at the top of the list, to scroll back to it.
+		IProducible topOption = null;
+		if (tree.GetScroll().Y > 0) {
+			TreeItem top = tree.GetItemAtPosition(new Vector2(10, 10));
+			if (top != null) {
+				itemMapping.TryGetValue(top, out topOption);
+			}
+		}
+
 		itemMapping.Clear();
 		tree.Clear();
 		shownOptions.Clear();
@@ -97,6 +106,15 @@ public partial class ProductionMenu : Civ3TextureRect {
 			child.SetCustomMinimumHeight(40);
 			child.SetAutowrapMode(0, TextServer.AutowrapMode.WordSmart);
 			itemMapping[child] = option;
+			if (option == topOption) {
+				TreeItem scrollTo = child;
+				// Once the tree has laid out its new items.
+				Callable.From(() => {
+					if (IsInstanceValid(tree) && IsInstanceValid(scrollTo)) {
+						tree.ScrollToItem(scrollTo);
+					}
+				}).CallDeferred();
+			}
 		}
 	}
 
