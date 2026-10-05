@@ -137,7 +137,25 @@ public partial class TileInfoPopup : Popup {
 	}
 
 	private void Close() {
+		// Only the popup in front may close: the game's tile info and the
+		// overlay's popup are then the same one.
+		if (_overlay == null || !IsInstanceValid(_overlay) || _overlay.CurrentPopup != this) {
+			return;
+		}
 		_game.HideTileInfo();
+	}
+
+	// The overlay closes the tile info this way to make room for another
+	// popup, so the game forgets the tile info as well.
+	public void CloseTileInfo() {
+		_game.HideTileInfo();
+	}
+
+	// For a tile info that is never shown: the game should not think it is up.
+	public void Discard() {
+		if (_game.tileInfo?.targetTile == _tile) {
+			_game.tileInfo = null;
+		}
 	}
 
 	public override void _Ready() {

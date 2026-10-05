@@ -31,7 +31,7 @@ public partial class InformationalPopup : Popup {
 
 		AddTexture(width, height);
 		AddBackground(width, height - 110, 110);
-		AddHeader("Foreign Advisor", 120);
+		AddHeader(HeaderFor(advisor), 120);
 
 		Label messageLabel = new();
 		messageLabel.Text = message;
@@ -41,5 +41,12 @@ public partial class InformationalPopup : Popup {
 		AddConfirmButton(new Vector2(width - 40, height - 40), () => {
 			GetParent().EmitSignal(PopupOverlay.SignalName.HidePopup);
 		});
+	}
+
+	private static string HeaderFor(AdvisorHead.Advisor advisor) {
+		return advisor switch {
+			AdvisorHead.Advisor.Culture => "Cultural Advisor",
+			_ => $"{advisor} Advisor",
+		};
 	}
 }

@@ -42,7 +42,7 @@ public partial class ScienceSelection : Popup {
 		optionButton.SetPosition(new Vector2(25, 190));
 
 		AddButton("OK. Sounds good.", 235, () => {
-			new MsgChooseResearch(options[optionButton.Selected], AdvisorState.DontShow).send();
+			ChooseSelected(optionButton);
 			GetParent().EmitSignal(PopupOverlay.SignalName.HidePopup);
 		});
 		AddButton("What's the big picture?", 265, () => {
@@ -51,9 +51,18 @@ public partial class ScienceSelection : Popup {
 		});
 
 		AddConfirmButton(new Vector2(width - 40, height - 40), () => {
-			new MsgChooseResearch(options[optionButton.Selected], AdvisorState.DontShow).send();
+			ChooseSelected(optionButton);
 			GetParent().EmitSignal(PopupOverlay.SignalName.HidePopup);
 		});
+	}
+
+	// Nothing may be selected, e.g. when there is nothing left to research.
+	private void ChooseSelected(OptionButton optionButton) {
+		int selected = optionButton.Selected;
+		if (selected < 0 || selected >= options.Count) {
+			return;
+		}
+		new MsgChooseResearch(options[selected], AdvisorState.DontShow).send();
 	}
 
 	private OptionButton MakeStyledOptionButton() {

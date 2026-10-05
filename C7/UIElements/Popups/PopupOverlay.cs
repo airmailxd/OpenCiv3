@@ -26,6 +26,11 @@ public partial class PopupOverlay : HBoxContainer {
 
 	Control currentChild = null;
 
+	// A popup asked for while another one is up waits here until the one in
+	// front of it closes, rather than replacing it: the one in front could be
+	// something the player has to answer, like a deal proposal.
+	private readonly LinkedList<(Control child, PopupCategory? category)> waiting = new();
+
 	[Export]
 	private Control control;
 
@@ -46,10 +51,23 @@ public partial class PopupOverlay : HBoxContainer {
 			currentChild.QueueFree();
 			currentChild = null;
 		}
+
+		// Bring up the next popup that was waiting, if any.
+		while (waiting.Count > 0) {
+			var (child, category) = waiting.First.Value;
+			waiting.RemoveFirst();
+			if (IsInstanceValid(child)) {
+				Present(child, category);
+				return;
+			}
+		}
 		Hide();
 	}
 
 	public bool ShowingPopup => currentChild is not null;
+
+	/// <summary>The popup currently in front, or null.</summary>
+	public Control CurrentPopup => currentChild;
 
 	public void PlaySound(AudioStream stream) {
 		AudioStreamPlayer player = GetNode<AudioStreamPlayer>("PopupSound");
@@ -64,11 +82,95 @@ public partial class PopupOverlay : HBoxContainer {
 			return;
 		}
 
-		Alignment = child.alignment;
-		OffsetTop = child.margins.top;
-		OffsetBottom = child.margins.bottom;
-		OffsetLeft = child.margins.left;
-		OffsetRight = child.margins.right;
+		if (child is TileInfoPopup tileInfo && currentChild is not null and not TileInfoPopup) {
+			// The overlay keeps clicks from reaching the map while a popup is
+			// up, so this shouldn't happen; a tile's info is not worth
+			// waiting for.
+			log.Warning("Ignoring tile info requested while another popup is up");
+			tileInfo.Discard();
+			tileInfo.QueueFree();
+			return;
+		}
+
+		CloseTileInfo(replacement: child);
+
+		if (currentChild is not null) {
+			waiting.AddLast((child, category));
+			return;
+		}
+
+		Present(child, category);
+	}
+
+	/// <summary>
+	/// Takes a popup down whether it is in front or still waiting, e.g.
+	/// because what it was asking about has gone away.
+	/// </summary>
+	public void Dismiss(Control popup) {
+		if (popup is null) {
+			return;
+		}
+		if (popup == currentChild) {
+			OnHidePopup();
+			return;
+		}
+		for (var node = waiting.First; node != null; node = node.Next) {
+			if (node.Value.child == popup) {
+				waiting.Remove(node);
+				if (IsInstanceValid(popup)) {
+					popup.QueueFree();
+				}
+				return;
+			}
+		}
+	}
+
+	public void ShowBlank() {
+		// The blank stands in for a dialog window (e.g. the file dialog) that
+		// is up right now, so it goes in front; whatever was showing waits
+		// behind it and comes back once the blank is hidden.
+		CloseTileInfo(replacement: null);
+		if (currentChild is not null) {
+			Control preempted = currentChild;
+			Reconnect();
+			RemoveChild(preempted);
+			currentChild = null;
+			waiting.AddFirst((preempted, null));
+		}
+		Present(new Control(), null);
+	}
+
+	// Tile info is a passing look at a tile, so anything else replaces it
+	// rather than waiting behind it. A popup other than tile info closes it
+	// the normal way, so the game forgets the tile info too; a new tile info
+	// just takes the old one's place (the game already points at the new one).
+	private void CloseTileInfo(Control replacement) {
+		if (currentChild is not TileInfoPopup tileInfo) {
+			return;
+		}
+		if (replacement is TileInfoPopup) {
+			RemoveChild(tileInfo);
+			tileInfo.QueueFree();
+			currentChild = null;
+			Reconnect();
+			Hide();
+		} else {
+			tileInfo.CloseTileInfo();
+		}
+		// Closing should have taken it down; make sure it is gone either way.
+		if (currentChild == tileInfo) {
+			OnHidePopup();
+		}
+	}
+
+	private void Present(Control child, PopupCategory? category) {
+		if (child is Popup popup) {
+			Alignment = popup.alignment;
+			OffsetTop = popup.margins.top;
+			OffsetBottom = popup.margins.bottom;
+			OffsetLeft = popup.margins.left;
+			OffsetRight = popup.margins.right;
+		}
 
 		var soundFile = category switch {
 			PopupCategory.Advisor => "popups.advisor",
@@ -86,15 +188,22 @@ public partial class PopupOverlay : HBoxContainer {
 		}
 	}
 
-	public void ShowBlank() {
-		ShowChild(new Control());
-	}
-
 	private void ShowChild(Control child) {
 		AddChild(child);
 		currentChild = child;
 		Isolate();
 		Show();
+	}
+
+	public override void _ExitTree() {
+		// Popups still waiting aren't in the tree, so nothing else frees them.
+		foreach (var (child, _) in waiting) {
+			if (IsInstanceValid(child)) {
+				child.QueueFree();
+			}
+		}
+		waiting.Clear();
+		base._ExitTree();
 	}
 
 	// The mouse filters the UI elements had before a popup isolated them,

@@ -6,7 +6,9 @@ public partial class TextDialog : Popup {
 	private string header;
 	private string prompt;
 	private string defaultText;
-	private BoxContainer.AlignmentMode alignment;
+	// How the prompt and text box line up inside the dialog; the base
+	// `alignment` is where the dialog itself sits on the screen.
+	private BoxContainer.AlignmentMode textAlignment;
 	Action<string> handleText;
 
 
@@ -19,11 +21,11 @@ public partial class TextDialog : Popup {
 		this.prompt = prompt;
 		this.header = header;
 		this.handleText = handleText;
-		this.alignment = alignment;
+		textAlignment = alignment;
 
 		textEditBox.Theme = ThemeFactory.DefaultTheme;
 		textEditBox.CaretBlink = true;
-		alignment = BoxContainer.AlignmentMode.End;
+		base.alignment = BoxContainer.AlignmentMode.End;
 		margins = new Margins(right: -10); // 10px margin from the right
 	}
 
@@ -35,7 +37,7 @@ public partial class TextDialog : Popup {
 		AddHeader(header, 120);
 
 		HBoxContainer labelAndTextBox = new HBoxContainer();
-		labelAndTextBox.Alignment = alignment;
+		labelAndTextBox.Alignment = textAlignment;
 		labelAndTextBox.SizeFlagsHorizontal = SizeFlags.ExpandFill;
 		labelAndTextBox.SizeFlagsStretchRatio = 1;
 		labelAndTextBox.AnchorLeft = 0.0f;
