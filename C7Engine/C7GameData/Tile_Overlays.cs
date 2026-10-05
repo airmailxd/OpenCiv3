@@ -9,7 +9,7 @@ namespace C7GameData;
 
 public partial class Tile {
 	public static void TryAddRoad(Tile tile, bool hasRoad, bool hasRailroad) {
-		var shouldConnectToToNetwork = !hasRailroad && tile.neighbors.Any(p => p.Value.HasRoad());
+		var shouldConnectToToNetwork = !hasRailroad && AnyNeighbor(tile, static t => t.HasRoad());
 		if (shouldConnectToToNetwork || hasRoad) {
 			var roadTerraform = ToTerraform(ROAD);
 			if (roadTerraform != null && tile.cityAtTile.owner.HasTech(roadTerraform.RequiredTech)) {
@@ -18,7 +18,7 @@ public partial class Tile {
 		}
 	}
 	public static void TryAddRailroad(Tile tile, bool hasRailroad) {
-		var shouldConnectToToNetwork = !hasRailroad && tile.neighbors.Any(p => p.Value.HasRailroad());
+		var shouldConnectToToNetwork = !hasRailroad && AnyNeighbor(tile, static t => t.HasRailroad());
 		if (shouldConnectToToNetwork || hasRailroad) {
 			var railroadTerraform = ToTerraform(RAILROAD);
 			if (railroadTerraform != null && tile.cityAtTile.owner.HasTech(railroadTerraform.RequiredTech)) {
@@ -27,16 +27,36 @@ public partial class Tile {
 		}
 	}
 	public static void TryAddRuins(Tile tile) {
-		var ruins =
-			EngineStorage.gameData.terrainImprovements.FirstOrDefault(i => i.key == RUINS);
+		var ruins = FindTerrainImprovement(RUINS);
 		if (ruins != null)
 			tile.overlays.Add(ruins);
 	}
 	public static void TryAddCraters(Tile tile) {
-		var craters =
-			EngineStorage.gameData.terrainImprovements.FirstOrDefault(i => i.key == CRATERS);
+		var craters = FindTerrainImprovement(CRATERS);
 		if (craters != null)
 			tile.overlays.Add(craters);
+	}
+
+	private static bool AnyNeighbor(Tile tile, System.Func<Tile, bool> predicate) {
+		foreach (Tile t in tile.neighbors.Values) {
+			if (predicate(t)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	// The first of the game's terrain improvements with the given key, or
+	// null. A plain loop: the list is short, and this avoids allocating a
+	// closure per lookup.
+	private static TerrainImprovement FindTerrainImprovement(string key) {
+		List<TerrainImprovement> improvements = EngineStorage.gameData.terrainImprovements;
+		for (int i = 0; i < improvements.Count; i++) {
+			if (improvements[i].key == key) {
+				return improvements[i];
+			}
+		}
+		return null;
 	}
 
 	public class TileOverlays {
@@ -110,22 +130,32 @@ public partial class Tile {
 			return terrainImprovementByLayer.TryGetValue(improvement.layer, out TerrainImprovement val) && val == improvement;
 		}
 
-		public IEnumerable<TerrainImprovement> GetImprovements() {
+		// Whether the tile has an improvement with the given key. Such
+		// improvements normally live on their own layer (expectedLayer),
+		// which is checked first; the others are checked too in case a
+		// ruleset put the key on another layer. Doesn't allocate.
+		public bool HasImprovementWithKey(string key, Layer expectedLayer) {
+			if (terrainImprovementByLayer.TryGetValue(expectedLayer, out TerrainImprovement atLayer) && atLayer.key == key) {
+				return true;
+			}
+			foreach (TerrainImprovement ti in terrainImprovementByLayer.Values) {
+				if (ti.key == key) {
+					return true;
+				}
+			}
+			return false;
+		}
+
+		// Returned as the dictionary's value collection (an IEnumerable),
+		// so a foreach over it uses a struct enumerator and doesn't allocate.
+		public Dictionary<Layer, TerrainImprovement>.ValueCollection GetImprovements() {
 			return terrainImprovementByLayer.Values;
 		}
 		public IEnumerable<TerrainImprovement> GetManMadeImprovements() {
-			return GetImprovements().Where(
-				i => i.layer != Layer.Craters
-					 && i.layer != Layer.Pollution
-					 && i.layer != Layer.Ruins
-				);
+			return GetImprovements().Where(IsManMade);
 		}
 		public IEnumerable<TerrainImprovement> GetEffectImprovements() {
-			return GetImprovements().Where(
-				i => i.layer == Layer.Craters
-					 || i.layer == Layer.Pollution
-					 || i.layer == Layer.Ruins
-			);
+			return GetImprovements().Where(i => !IsManMade(i));
 		}
 
 		public bool CanAdd(Tile targetTile, TerrainImprovement improvement) {
@@ -165,11 +195,26 @@ public partial class Tile {
 		}
 
 		public int GetBaseYieldBonus(YieldType type) {
-			return terrainImprovementByLayer.Values.Sum(ti => ti.GetYieldBonus(tile.overlayTerrainType, type));
+			int bonus = 0;
+			foreach (TerrainImprovement ti in terrainImprovementByLayer.Values) {
+				bonus += ti.GetYieldBonus(tile.overlayTerrainType, type);
+			}
+			return bonus;
+		}
+
+		public static bool IsManMade(TerrainImprovement i) {
+			return i.layer != Layer.Craters
+				&& i.layer != Layer.Pollution
+				&& i.layer != Layer.Ruins;
 		}
 
 		public bool HasBeenImproved() {
-			return GetManMadeImprovements().Any();
+			foreach (TerrainImprovement ti in terrainImprovementByLayer.Values) {
+				if (IsManMade(ti)) {
+					return true;
+				}
+			}
+			return false;
 		}
 
 		public IEnumerable<StrengthBonus> GetDefenseBonuses() {

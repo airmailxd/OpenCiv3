@@ -70,6 +70,43 @@ public partial class Tile {
 			return this;
 		}
 
+		(int xDelta, int yDelta) = NeighborIndexOffsets(neighborIndex + 1)[neighborIndex];
+		return map.tileAt(XCoordinate + xDelta, YCoordinate + yDelta);
+	}
+
+	// The (x, y) offset of each neighbor index, as worked out by
+	// ComputeNeighborIndexOffset. Grown as larger indices are asked for, by
+	// publishing a new, bigger array; arrays are never changed once
+	// published, so readers on any thread see a complete one.
+	private static (int, int)[] neighborIndexOffsets = new (int, int)[0];
+
+	// The offsets for at least the first count neighbor indices.
+	private static (int, int)[] NeighborIndexOffsets(int count) {
+		(int, int)[] offsets = neighborIndexOffsets;
+		if (offsets.Length >= count) {
+			return offsets;
+		}
+
+		// Grow to cover whole rings, so that walking a square of tiles
+		// grows the table at most once.
+		int ring = 0;
+		while ((2 * ring + 1) * (2 * ring + 1) < count) {
+			ring++;
+		}
+		int size = (2 * ring + 1) * (2 * ring + 1);
+		(int, int)[] grown = new (int, int)[size];
+		for (int i = 0; i < size; i++) {
+			grown[i] = ComputeNeighborIndexOffset(i);
+		}
+		neighborIndexOffsets = grown;
+		return grown;
+	}
+
+	private static (int, int) ComputeNeighborIndexOffset(int neighborIndex) {
+		if (neighborIndex <= 0) {
+			return (0, 0);
+		}
+
 		int xDelta = 0;
 		int yDelta = 0;
 
@@ -77,7 +114,7 @@ public partial class Tile {
 		int ringNumber = 0;
 		do {
 			ringNumber++;
-		} while (Math.Pow(2 * ringNumber + 1, 2) <= neighborIndex);
+		} while ((2 * ringNumber + 1) * (2 * ringNumber + 1) <= neighborIndex);
 
 		// Figure out how many tiles are in the previous ring.
 		// For ring 2, we get (2*2 - 1)^2, which is 9.
@@ -123,7 +160,7 @@ public partial class Tile {
 			yDelta = segment3End - indexInRing1Based;
 		}
 
-		return map.tileAt(XCoordinate + xDelta, YCoordinate + yDelta);
+		return (xDelta, yDelta);
 	}
 
 	/// <summary>
@@ -189,22 +226,31 @@ public partial class Tile {
 	// GetTileAtNeighborIndex(i).
 	public List<Tile> GetTilesWithinRankDistance(int rank) {
 		List<Tile> result = new();
-		for (int i = 0; i < (rank * 2 + 1) * (rank * 2 + 1); ++i) {
-			Tile t = GetTileAtNeighborIndex(i);
+		GetTilesWithinRankDistance(rank, result);
+		return result;
+	}
+
+	// Adds the tiles GetTilesWithinRankDistance(rank) returns to result,
+	// e.g. to reuse a list.
+	public void GetTilesWithinRankDistance(int rank, List<Tile> result) {
+		int count = (rank * 2 + 1) * (rank * 2 + 1);
+		(int, int)[] offsets = NeighborIndexOffsets(count);
+		for (int i = 0; i < count; ++i) {
+			Tile t = i == 0 ? this : map.tileAt(XCoordinate + offsets[i].Item1, YCoordinate + offsets[i].Item2);
 			if (RankDistanceTo(t) <= rank) {
 				result.Add(t);
 			}
 		}
-
-		return result;
 	}
 
 	// Same as GetTilesWithinRankDistance, but includes "corner tiles",
 	// i.e., returns perfect tile squares.
 	public List<Tile> GetTilesWithinTileSquare(int rank) {
-		List<Tile> result = new();
-		for (int i = 0; i < (rank * 2 + 1) * (rank * 2 + 1); ++i) {
-			Tile t = GetTileAtNeighborIndex(i);
+		int count = (rank * 2 + 1) * (rank * 2 + 1);
+		List<Tile> result = new(Math.Max(count, 0));
+		(int, int)[] offsets = NeighborIndexOffsets(count);
+		for (int i = 0; i < count; ++i) {
+			Tile t = i == 0 ? this : map.tileAt(XCoordinate + offsets[i].Item1, YCoordinate + offsets[i].Item2);
 			result.Add(t);
 		}
 		return result;

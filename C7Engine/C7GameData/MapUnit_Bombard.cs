@@ -6,7 +6,8 @@ using C7Engine;
 
 namespace C7GameData {
 	public partial class MapUnit {
-		private List<AnimatedEffect> hitList = [AnimatedEffect.Hit, AnimatedEffect.Hit2, AnimatedEffect.Hit3, AnimatedEffect.Hit5];
+		// Shared by all units: it is only ever read.
+		private static readonly AnimatedEffect[] hitList = [AnimatedEffect.Hit, AnimatedEffect.Hit2, AnimatedEffect.Hit3, AnimatedEffect.Hit5];
 
 		public enum BombardTarget {
 			None,
@@ -56,7 +57,7 @@ namespace C7GameData {
 
 			// TODO: Consider colony on neutral tile (allies && potential enemies)
 
-			if (tile.overlays.GetManMadeImprovements().Any()) {
+			if (tile.overlays.HasBeenImproved()) {
 				if (target == NONE) {
 					if (tile.OwningPlayer() != null && EngineStorage.gameData.AreInLockedPeace(this.owner, tile.OwningPlayer()))
 						return false;
@@ -183,7 +184,7 @@ namespace C7GameData {
 				for (int i = 0; i < hitCount; ++i) {
 					bool lethal = tile.IsLand() ? unitType.isLandBombardmentLethal : unitType.isSeaBombardmentLethal;
 					targetDestroyed = target.AbsorbBombardHit(lethal);
-					await tile.AnimateAsync(this.hitList[GameData.rng.Next(0, hitList.Count)]);
+					await tile.AnimateAsync(hitList[GameData.rng.Next(0, hitList.Length)]);
 				}
 
 			} else
@@ -280,7 +281,7 @@ namespace C7GameData {
 			await animateAsync(AnimatedAction.ATTACK1);
 			movementPoints.onUnitMove(1);
 			if (GameData.rng.NextDouble() < attackerOdds) {
-				await tile.AnimateAsync(this.hitList[GameData.rng.Next(0, hitList.Count)]);
+				await tile.AnimateAsync(hitList[GameData.rng.Next(0, hitList.Length)]);
 				callback();
 			} else
 				await tile.AnimateAsync(tile.IsWater() ? AnimatedEffect.WaterMiss : AnimatedEffect.Miss);

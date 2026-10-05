@@ -89,13 +89,13 @@ namespace C7GameData {
 		}
 
 		public bool IsLandUnit() {
-			return this.unitType.categories.Contains("Land");
+			return this.unitType.IsLandUnit();
 		}
 		public bool IsWaterUnit() {
-			return this.unitType.categories.Contains("Sea");
+			return this.unitType.IsSeaUnit();
 		}
 		public bool IsAirUnit() {
-			return this.unitType.categories.Contains("Air");
+			return this.unitType.IsAirUnit();
 		}
 
 		public bool CanDefendOnLand() {
@@ -104,8 +104,15 @@ namespace C7GameData {
 
 		public bool IsCombatUnit() {
 			// An army fights with its members, so an empty one can't fight.
-			if (IsArmy())
-				return Passengers().Any(u => u.IsCombatUnit());
+			if (IsArmy()) {
+				if (!Tile.IsTileValid(location))
+					return false;
+				foreach (MapUnit u in location.unitsOnTile) {
+					if (IsPassenger(u) && u.IsCombatUnit())
+						return true;
+				}
+				return false;
+			}
 			return this.unitType.attack > 0 || this.unitType.defense > 0;
 		}
 
@@ -119,7 +126,15 @@ namespace C7GameData {
 		}
 
 		public bool IsCaptive() {
-			return !string.Equals(this.nationality.name, this.owner.civilization.name, StringComparison.CurrentCultureIgnoreCase);
+			Civilization civ = this.owner.civilization;
+			// Almost always the very same civilization (or name), which can't
+			// be a captive; only otherwise compare the names as before.
+			if (ReferenceEquals(this.nationality, civ))
+				return false;
+			string nationalityName = this.nationality.name, ownerName = civ.name;
+			if (ReferenceEquals(nationalityName, ownerName))
+				return false;
+			return !string.Equals(nationalityName, ownerName, StringComparison.CurrentCultureIgnoreCase);
 		}
 
 		public bool IsArmy() {
@@ -128,7 +143,7 @@ namespace C7GameData {
 
 		// Whether this unit can carry other units: transports and armies.
 		public bool CanCarryUnits() {
-			return this.unitType.capacity > 0 && (this.unitType.actions.Contains(UnitAction.Unload) || IsArmy());
+			return this.unitType.capacity > 0 && (this.unitType.HasUnloadAction() || IsArmy());
 		}
 
 		// Whether this unit is a transport its passengers can be unloaded
@@ -139,21 +154,47 @@ namespace C7GameData {
 				return false;
 			if (IsArmy())
 				return owner?.rules?.AllowUnloadFromArmy ?? false;
-			return this.unitType.actions.Contains(UnitAction.Unload);
+			return this.unitType.HasUnloadAction();
 		}
 
 		// The units loaded on this one. They always share its tile.
 		public List<MapUnit> Passengers() {
 			if (!Tile.IsTileValid(location))
 				return [];
-			return location.unitsOnTile.Where(u => u != this && u.IsLoadedIn(this)).ToList();
+			List<MapUnit> passengers = new();
+			foreach (MapUnit u in location.unitsOnTile) {
+				if (IsPassenger(u))
+					passengers.Add(u);
+			}
+			return passengers;
+		}
+
+		// Whether u, a unit on this unit's tile, is one of Passengers().
+		private bool IsPassenger(MapUnit u) {
+			return u != this && u.IsLoadedIn(this);
+		}
+
+		// Passengers().Count, without building the list.
+		public int PassengerCount() {
+			if (!Tile.IsTileValid(location))
+				return 0;
+			int count = 0;
+			foreach (MapUnit u in location.unitsOnTile) {
+				if (IsPassenger(u))
+					count++;
+			}
+			return count;
 		}
 
 		// The unit this one is loaded on, or null.
 		public MapUnit Carrier() {
 			if (!IsLoaded() || !Tile.IsTileValid(location))
 				return null;
-			return location.unitsOnTile.FirstOrDefault(u => u != this && IsLoadedIn(u));
+			foreach (MapUnit u in location.unitsOnTile) {
+				if (u != this && IsLoadedIn(u))
+					return u;
+			}
+			return null;
 		}
 
 		public bool IsInArmy() {
@@ -180,10 +221,18 @@ namespace C7GameData {
 		// The movement allowance this unit gets each turn. An army moves at the
 		// pace of its slowest member; an empty army just has its own allowance.
 		public int MaxMovementPoints() {
-			if (IsArmy()) {
-				List<MapUnit> members = Passengers();
-				if (members.Count > 0)
-					return members.Min(m => m.unitType.movement);
+			if (IsArmy() && Tile.IsTileValid(location)) {
+				bool any = false;
+				int min = 0;
+				foreach (MapUnit m in location.unitsOnTile) {
+					if (!IsPassenger(m))
+						continue;
+					if (!any || m.unitType.movement < min)
+						min = m.unitType.movement;
+					any = true;
+				}
+				if (any)
+					return min;
 			}
 			return this.unitType.movement;
 		}
@@ -191,25 +240,39 @@ namespace C7GameData {
 		// An army's hit points are the total of its members'. An empty army
 		// falls back to its own, as does any other unit.
 		public int CompositeHitPoints() {
-			if (IsArmy()) {
-				List<MapUnit> members = Passengers();
-				if (members.Count > 0)
-					return members.Sum(m => m.hitPointsRemaining);
+			if (IsArmy() && Tile.IsTileValid(location)) {
+				bool any = false;
+				int sum = 0;
+				foreach (MapUnit m in location.unitsOnTile) {
+					if (!IsPassenger(m))
+						continue;
+					sum = checked(sum + m.hitPointsRemaining);
+					any = true;
+				}
+				if (any)
+					return sum;
 			}
 			return this.hitPointsRemaining;
 		}
 
 		public int CompositeMaxHitPoints() {
-			if (IsArmy()) {
-				List<MapUnit> members = Passengers();
-				if (members.Count > 0)
-					return members.Sum(m => m.maxHitPoints);
+			if (IsArmy() && Tile.IsTileValid(location)) {
+				bool any = false;
+				int sum = 0;
+				foreach (MapUnit m in location.unitsOnTile) {
+					if (!IsPassenger(m))
+						continue;
+					sum = checked(sum + m.maxHitPoints);
+					any = true;
+				}
+				if (any)
+					return sum;
 			}
 			return this.maxHitPoints;
 		}
 
 		public bool IsLoadable() {
-			return this.unitType.actions.Contains(UnitAction.Load);
+			return this.unitType.HasLoadAction();
 		}
 
 		public bool IsLoaded() {
@@ -235,13 +298,15 @@ namespace C7GameData {
 
 		// TODO: best move this to lua at some point
 		public string GetArtName() {
-			if (this.unitType.art.mainArt.variations != null) {
+			Dictionary<string, string> variations = this.unitType.art.mainArt.variations;
+			if (variations != null) {
 				if (this.unitType.isWorker && this.IsCaptive()) {
-					if (this.unitType.art.mainArt.variations.FirstOrDefault(s => s.Key.EndsWith("SLAVE")).Value != null)
-						return this.unitType.art.mainArt.variations.First(s => s.Key.EndsWith("SLAVE")).Value;
+					string slaveArt = this.unitType.GetSlaveArtName();
+					if (slaveArt != null)
+						return slaveArt;
 				}
 
-				if (this.unitType.art.mainArt.variations.TryGetValue($"{this.owner.eraCivilopediaName}", out var value))
+				if (variations.TryGetValue(this.owner.eraCivilopediaName ?? "", out var value))
 					return value;
 
 				//TODO: add military + science leader variation
@@ -327,7 +392,7 @@ namespace C7GameData {
 			var animationsEnabled = EngineStorage.animationsEnabled && !EngineStorage.gameData.observerMode;
 			var skipAnimations = SkipAnimations(action);
 
-			if (animationsEnabled && !skipAnimations) {
+			if (animationsEnabled && !skipAnimations && IsAnimationVisibleToUIPlayer()) {
 				var msg = new MsgStartUnitAnimation(this, action, ending);
 				msg.send();
 
@@ -335,6 +400,19 @@ namespace C7GameData {
 			}
 			if (this.owner.isHuman)
 				new MsgUnitMoved(this).send();
+		}
+
+		// Whether the UI would play an animation of this unit. The UI only
+		// shows unit animations on tiles its player can see (the unit's tile
+		// or, for a move, the tile it left) and just marks the others
+		// completed on its next frame. Skipping those here saves the engine,
+		// and so every AI unit's step, from waiting a frame for nothing. The
+		// UI's player's own units are always animated.
+		private bool IsAnimationVisibleToUIPlayer() {
+			Player uiPlayer = EngineStorage.gameData.GetUIControllerPlayer();
+			if (uiPlayer?.tileKnowledge == null || uiPlayer == this.owner)
+				return true;
+			return uiPlayer.tileKnowledge.isActiveTile(this.location) || uiPlayer.tileKnowledge.isActiveTile(this.previousLocation);
 		}
 
 		public void animate(AnimatedAction action, AnimationEnding ending = AnimationEnding.Stop) {
@@ -411,8 +489,10 @@ namespace C7GameData {
 				return this;
 
 			MapUnit best = null;
-			foreach (MapUnit member in Passengers()) {
-				if (member.hitPointsRemaining <= 0)
+			if (!Tile.IsTileValid(location))
+				return this;
+			foreach (MapUnit member in location.unitsOnTile) {
+				if (!IsPassenger(member) || member.hitPointsRemaining <= 0)
 					continue;
 				if (best == null || IsBetterCombatant(member, best, role))
 					best = member;
@@ -456,7 +536,14 @@ namespace C7GameData {
 		// its members, hitting whichever has the most hit points; unless the
 		// bombardment is lethal, it can't kill a member.
 		internal bool AbsorbBombardHit(bool lethal) {
-			MapUnit victim = IsArmy() ? Passengers().OrderByDescending(m => m.hitPointsRemaining).FirstOrDefault() : null;
+			// The first of the members with the most hit points.
+			MapUnit victim = null;
+			if (IsArmy() && Tile.IsTileValid(location)) {
+				foreach (MapUnit m in location.unitsOnTile) {
+					if (IsPassenger(m) && (victim == null || m.hitPointsRemaining > victim.hitPointsRemaining))
+						victim = m;
+				}
+			}
 			if (victim == null) {
 				hitPointsRemaining -= 1;
 				return hitPointsRemaining <= 0;
@@ -469,8 +556,12 @@ namespace C7GameData {
 		// An army whose last member has died is beaten. Its own hit points are
 		// zeroed so that it reads as dead, like any other unit.
 		private bool LoseArmyIfEmpty() {
-			if (Passengers().Any(m => m.hitPointsRemaining > 0))
-				return false;
+			if (Tile.IsTileValid(location)) {
+				foreach (MapUnit m in location.unitsOnTile) {
+					if (IsPassenger(m) && m.hitPointsRemaining > 0)
+						return false;
+				}
+			}
 			hitPointsRemaining = 0;
 			return true;
 		}
@@ -479,13 +570,13 @@ namespace C7GameData {
 			//Basically, unit type must match.  Sea/air units in a city/airfield can't defend against land units.
 			//Land units on a boat or planes on a carrier can't defend against boats.  Anti-air is another category that should be checked before the direct combat.
 			//Potential future hybrid units that have multiple categories (e.g. amphibious vehicles) may contain more than one category.
-			if (attacker.unitType.categories.Contains("Land") && !unitType.categories.Contains("Land")) {
+			if (attacker.unitType.IsLandUnit() && !unitType.IsLandUnit()) {
 				return false;
 			}
-			if (attacker.unitType.categories.Contains("Sea") && !unitType.categories.Contains("Sea")) {
+			if (attacker.unitType.IsSeaUnit() && !unitType.IsSeaUnit()) {
 				return false;
 			}
-			if (attacker.unitType.categories.Contains("Air") && !unitType.categories.Contains("Air")) {
+			if (attacker.unitType.IsAirUnit() && !unitType.IsAirUnit()) {
 				return false;
 			}
 			return true;
@@ -496,18 +587,36 @@ namespace C7GameData {
 		// to two different civs on the same tile, but we don't want to assume that. In that case, whoever is an enemy of "opponent" should get
 		// priority. Otherwise it's just whoever is stronger on defense.
 		public bool HasPriorityAsDefender(MapUnit otherDefender, MapUnit opponent) {
-			Player opponentPlayer = opponent.owner;
-			bool weAreEnemy           = !opponentPlayer?.IsAtPeaceWith(owner) ?? false;
-			bool otherDefenderIsEnemy = !opponentPlayer?.IsAtPeaceWith(otherDefender.owner) ?? false;
+			bool weAreEnemy           = IsEnemyDefenderAgainst(opponent);
+			bool otherDefenderIsEnemy = otherDefender.IsEnemyDefenderAgainst(opponent);
+			if (weAreEnemy != otherDefenderIsEnemy)
+				return weAreEnemy;
 
+			return HasPriorityAsDefender(weAreEnemy, TotalDefensiveStrengthVersus(opponent),
+				otherDefenderIsEnemy, otherDefender.TotalDefensiveStrengthVersus(opponent));
+		}
+
+		// HasPriorityAsDefender, given what it compares for both units, so
+		// that choosing among many defenders works each unit's values out
+		// only once (see Tile.FindTopDefender).
+		internal static bool HasPriorityAsDefender(bool weAreEnemy, double ourTotalStrength, bool otherDefenderIsEnemy, double theirTotalStrength) {
 			if (weAreEnemy && !otherDefenderIsEnemy)
 				return true;
 			if (otherDefenderIsEnemy && !weAreEnemy)
 				return false;
-
-			double ourTotalStrength = StrengthVersus(opponent, CombatRole.Defense, null) * CompositeHitPoints();
-			double theirTotalStrength = otherDefender.StrengthVersus(opponent, CombatRole.Defense, null) * otherDefender.CompositeHitPoints();
 			return ourTotalStrength > theirTotalStrength;
+		}
+
+		// Whether the opponent attacking this unit's tile is not at peace with
+		// this unit's owner.
+		internal bool IsEnemyDefenderAgainst(MapUnit opponent) {
+			return !opponent.owner?.IsAtPeaceWith(owner) ?? false;
+		}
+
+		// This unit's defensive strength against the opponent, times its hit
+		// points.
+		internal double TotalDefensiveStrengthVersus(MapUnit opponent) {
+			return StrengthVersus(opponent, CombatRole.Defense, null) * CompositeHitPoints();
 		}
 
 
@@ -568,7 +677,7 @@ namespace C7GameData {
 				}
 				return gD.healRateInCity;
 			}
-			if (unitType.categories.Contains("Sea"))
+			if (unitType.IsSeaUnit())
 				return 0;
 
 			// Units heal faster in their own territory and not at all in the
@@ -583,7 +692,18 @@ namespace C7GameData {
 
 		// Battlefield Medicine lets a civ's units heal in enemy territory.
 		private bool CanHealInEnemyTerritory() {
-			return owner.cities.Any(c => c.constructed_buildings.Any(cb => cb.building.allowsEnemyTerritoryHealing));
+			// Plain loops: no closures or enumerator boxing, and it stops at
+			// the first such building. Only reached for units in the
+			// territory of a civ their owner is at war with.
+			List<City> cities = owner.cities;
+			for (int i = 0; i < cities.Count; i++) {
+				List<CityBuilding> buildings = cities[i].constructed_buildings;
+				for (int j = 0; j < buildings.Count; j++) {
+					if (buildings[j].building.allowsEnemyTerritoryHealing)
+						return true;
+				}
+			}
+			return false;
 		}
 
 		public enum Intent {
@@ -644,6 +764,11 @@ namespace C7GameData {
 
 			if (this.IsLandUnit() && !tile.IsLand())
 				return Intent.Disabled;
+
+			// Nothing on the tile to notice or fight: everything below comes
+			// down to moving freely.
+			if (tile.unitsOnTile.Count == 0 && !tile.HasCity() && !tile.hasBarbarianCamp)
+				return Intent.MoveFreely;
 
 			var hasForeignCity = HasForeignCity(tile, unitOwner);
 			var isHumanOwner = this.owner.isHuman;
@@ -748,9 +873,8 @@ namespace C7GameData {
 			if (!IsLoadable())
 				return false;
 
-			var availableTransports = tile.unitsOnTile.Where(u => u != this && u.CanCarryUnits() && (explicitLoad || !u.IsArmy()));
-			foreach (var transport in availableTransports) {
-				if (transport.CanLoad(this))
+			foreach (MapUnit transport in tile.unitsOnTile) {
+				if (transport != this && transport.CanCarryUnits() && (explicitLoad || !transport.IsArmy()) && transport.CanLoad(this))
 					return true;
 			}
 
@@ -815,10 +939,10 @@ namespace C7GameData {
 		}
 
 		public int FreeCapacity() {
-			return Capacity() - Passengers().Count;
+			return Capacity() - PassengerCount();
 		}
 
-		private bool IsEmpty() => Capacity() > 0 && Passengers().Count == 0;
+		private bool IsEmpty() => Capacity() > 0 && PassengerCount() == 0;
 		private bool IsFull() => Capacity() > 0 && FreeCapacity() <= 0;
 
 		private static bool HasHostileUnits(Tile tile, Player player) {
@@ -837,7 +961,7 @@ namespace C7GameData {
 		}
 
 		private static Player ForeignOwner(Tile tile) {
-			return tile.unitsOnTile.FirstOrDefault()?.owner;
+			return tile.unitsOnTile.Count > 0 ? tile.unitsOnTile[0]?.owner : null;
 		}
 
 		private static bool HasHostileCity(Tile tile, Player player) {
@@ -867,8 +991,8 @@ namespace C7GameData {
 			// Figure out how fast all of the wokers doing this particular
 			// terraform will work.
 			float combinedWorkerSpeed = this.workerSpeed();
-			foreach (MapUnit unit in location.unitsOnTile.Where(u => u.id != this.id)) {
-				if (unit.WorkerJob == t) {
+			foreach (MapUnit unit in location.unitsOnTile) {
+				if (unit.id != this.id && unit.WorkerJob == t) {
 					combinedWorkerSpeed += unit.workerSpeed();
 				}
 			}
@@ -884,7 +1008,11 @@ namespace C7GameData {
 			if (location.HasCity() || !location.IsAllowCities()) {
 				return false;
 			}
-			return location.neighbors.Values.All(tile => !tile.HasCity());
+			foreach (Tile tile in location.neighbors.Values) {
+				if (tile.HasCity())
+					return false;
+			}
+			return true;
 		}
 
 		public bool CanPerformTerraformAction(Terraform terraform) {
@@ -892,10 +1020,11 @@ namespace C7GameData {
 		}
 
 		public bool CanPerformTerraformAction(Terraform terraform, Tile tile) {
-			var containsTerraform = unitType.terraformActions.Contains(terraform);
-			var meetsRequirements = terraform.MeetsRequirements(owner, tile);
-			var hasCity = tile.HasCity();
-			return containsTerraform && meetsRequirements && !hasCity;
+			// The cheap checks go first: the requirements can run Lua and
+			// look up trade access.
+			return unitType.terraformActions.Contains(terraform)
+				&& !tile.HasCity()
+				&& terraform.MeetsRequirements(owner, tile);
 		}
 
 		public float workerSpeed() {

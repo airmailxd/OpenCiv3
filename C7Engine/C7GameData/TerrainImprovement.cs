@@ -98,7 +98,26 @@ namespace C7GameData {
 		}
 
 		public static Terraform? ToTerraform(string improvement) {
-			return EngineStorage.gameData.Terraforms.FirstOrDefault(tf => tf.Improvement.key.ToLower() == improvement.ToLower());
+			foreach (Terraform tf in EngineStorage.gameData.Terraforms) {
+				if (KeysMatch(tf.Improvement.key, improvement)) {
+					return tf;
+				}
+			}
+			return null;
+		}
+
+		// Same as a.ToLower() == b.ToLower(), without allocating two strings
+		// per comparison. Keys are plain ASCII, for which this is the same as
+		// an ordinal case-insensitive comparison; anything else falls back
+		// to the original comparison.
+		private static bool KeysMatch(string a, string b) {
+			if (string.Equals(a, b, StringComparison.Ordinal)) {
+				return true;
+			}
+			if (System.Text.Ascii.IsValid(a) && System.Text.Ascii.IsValid(b)) {
+				return string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
+			}
+			return a.ToLower() == b.ToLower();
 		}
 	}
 }

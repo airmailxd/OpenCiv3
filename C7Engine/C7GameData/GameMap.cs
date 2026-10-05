@@ -25,6 +25,11 @@ namespace C7GameData {
 		// A "water" continent is an ocean.
 		public List<HashSet<Tile>> continents = new();
 
+		// The number of tiles in each continent, indexed by continent id
+		// (Tile.continent). Note that ids are assigned before continents is
+		// sorted by size, so continents[id] is not necessarily continent id.
+		private int[] continentSizes = Array.Empty<int>();
+
 		// The list of starting locations.
 		//
 		// TODO: How is this saved in editor generated scenarios?
@@ -52,7 +57,7 @@ namespace C7GameData {
 
 		public void computeNeighbors() {
 			foreach (Tile tile in tiles) {
-				Dictionary<TileDirection, Tile> neighbors = new Dictionary<TileDirection, Tile>();
+				TileNeighbors neighbors = new TileNeighbors();
 				foreach (TileDirection direction in TileDirectionExtensions.All) {
 					neighbors[direction] = tileNeighbor(tile, direction);
 				}
@@ -162,18 +167,50 @@ namespace C7GameData {
 			return rawDelta;
 		}
 
+		// The number of tiles in the continent with the given id, the value of
+		// Tile.continent for its tiles, as of the last recomputeContinents().
+		// Equivalent to continents.First(c => c.Contains(t)).Count for a tile
+		// t of that continent, in O(1).
+		public int ContinentSize(int continentId) {
+			if (continentId < 0 || continentId >= continentSizes.Length) {
+				return 0;
+			}
+			return continentSizes[continentId];
+		}
+
 		public void recomputeContinents() {
 			int nextContinent = 0;
 			HashSet<Tile> currentContinent = new();
-			HashSet<Tile> seen = new();
+			List<int> sizes = new();
 
+			// Recomputing replaces the continents, rather than adding them
+			// again.
+			continents.Clear();
+
+			// Tiles of this map are tracked by their index in tiles. Anything
+			// else reachable as a neighbor (Tile.NONE at the map edges, or
+			// tiles not in the list in hand-built test maps) goes in a set.
+			bool[] seen = new bool[tiles.Count];
+			HashSet<Tile> seenOther = null;
+			bool MarkSeen(Tile t) {
+				int index = IndexOfTile(t);
+				if (index >= 0) {
+					if (seen[index]) {
+						return false;
+					}
+					seen[index] = true;
+					return true;
+				}
+				seenOther ??= new HashSet<Tile>();
+				return seenOther.Add(t);
+			}
+
+			Queue<Tile> toCheck = new();
 			foreach (Tile t in tiles) {
-				if (seen.Contains(t)) {
+				if (!MarkSeen(t)) {
 					continue;
 				}
-				seen.Add(t);
 
-				Queue<Tile> toCheck = new();
 				toCheck.Enqueue(t);
 
 				while (toCheck.Count > 0) {
@@ -181,17 +218,19 @@ namespace C7GameData {
 					x.continent = nextContinent;
 					currentContinent.Add(x);
 
+					bool xIsLand = x.IsLand();
 					foreach (Tile n in x.neighbors.Values) {
-						if (!seen.Contains(n) && n.IsLand() == x.IsLand() && !IsLandStrip(x, n)) {
-							seen.Add(n);
+						if (n.IsLand() == xIsLand && !IsLandStrip(x, n) && MarkSeen(n)) {
 							toCheck.Enqueue(n);
 						}
 					}
 				}
 				++nextContinent;
+				sizes.Add(currentContinent.Count);
 				continents.Add(currentContinent);
 				currentContinent = new();
 			}
+			continentSizes = sizes.ToArray();
 
 			// Sort by size, descending.
 			continents.Sort((x, y) => y.Count.CompareTo(x.Count));
@@ -212,6 +251,20 @@ namespace C7GameData {
 					}
 				}
 			}
+		}
+
+		// The index of the tile in tiles, or -1 if it isn't one of them.
+		private int IndexOfTile(Tile t) {
+			if (t == null || t == Tile.NONE || numTilesWide <= 0) {
+				return -1;
+			}
+			int index = tileCoordsToIndex(t.XCoordinate, t.YCoordinate);
+			if (index >= 0 && index < tiles.Count && tiles[index] == t) {
+				return index;
+			}
+			// Fall back to a search for maps whose tiles aren't laid out by
+			// coordinates (e.g. in tests). Only reached for such maps.
+			return tiles.IndexOf(t);
 		}
 
 		public static bool IsLandStrip(Tile current, Tile neighbor) {
