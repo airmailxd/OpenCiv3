@@ -34,6 +34,38 @@ public class CombatTest : IClassFixture<SaveGameFixture> {
 		throw new System.Exception("No adjacent land tiles found");
 	}
 
+	// Finds three empty land tiles in a line, outside anyone's borders.
+	private (Tile from, TileDirection dir, Tile to, Tile behind) FindLandInALine() {
+		foreach (Tile from in gameData.map.tiles.Where(t => IsEmptyLand(t) && t.OwningPlayer() == null)) {
+			foreach ((TileDirection dir, Tile to) in from.neighbors) {
+				if (to == Tile.NONE || !IsEmptyLand(to) || to.OwningPlayer() != null) {
+					continue;
+				}
+				if (to.neighbors.TryGetValue(dir, out Tile behind) && behind != Tile.NONE
+					&& IsEmptyLand(behind) && behind.OwningPlayer() == null) {
+					return (from, dir, to, behind);
+				}
+			}
+		}
+		throw new System.Exception("No line of land tiles found");
+	}
+
+	// Makes every random roll come out as 0, so attackers win every round
+	// and every retreat roll succeeds.
+	private class ZeroRandom : System.Random {
+		protected override double Sample() => 0.0;
+	}
+
+	private async Task WithZeroRandom(System.Func<Task> action) {
+		System.Random original = C7GameData.GameData.rng;
+		C7GameData.GameData.rng = new ZeroRandom();
+		try {
+			await action();
+		} finally {
+			C7GameData.GameData.rng = original;
+		}
+	}
+
 	private void GoToWar() {
 		us.DeclareWarOn(them, gameData.turn);
 	}
@@ -101,5 +133,40 @@ public class CombatTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(to, tank.location);
 		Assert.DoesNotContain(warrior, gameData.mapUnits);
 		Assert.Equal(startingMovement - moveCost, tank.movementPoints.remaining, 3);
+	}
+
+	[Fact]
+	public async Task DefenderRetreatsEvenWithoutMovementPoints() {
+		GoToWar();
+		(Tile from, TileDirection dir, Tile to, Tile behind) = FindLandInALine();
+		MapUnit warrior = Spawn(us, "Warrior", from);
+		// Horsemen are fast enough to retreat from a warrior.
+		MapUnit horseman = Spawn(them, "Horseman", to);
+		horseman.movementPoints.onConsumeAll();
+
+		await WithZeroRandom(async () => Assert.True(await warrior.Move(dir)));
+
+		Assert.Equal(behind, horseman.location);
+		Assert.Contains(horseman, behind.unitsOnTile);
+		Assert.Contains(horseman, gameData.mapUnits);
+		Assert.Equal(1, horseman.hitPointsRemaining);
+	}
+
+	[Fact]
+	public async Task DefenderDoesNotRetreatIntoAnotherBattle() {
+		GoToWar();
+		(Tile from, TileDirection dir, Tile to, Tile behind) = FindLandInALine();
+		MapUnit warrior = Spawn(us, "Warrior", from);
+		MapUnit horseman = Spawn(them, "Horseman", to);
+		// One of our units holds the tile the horseman would retreat to.
+		MapUnit blocker = Spawn(us, "Warrior", behind);
+		int blockerHitPoints = blocker.hitPointsRemaining;
+
+		await WithZeroRandom(async () => Assert.True(await warrior.Move(dir)));
+
+		Assert.DoesNotContain(horseman, gameData.mapUnits);
+		Assert.Equal(behind, blocker.location);
+		Assert.Equal(blockerHitPoints, blocker.hitPointsRemaining);
+		Assert.Contains(blocker, gameData.mapUnits);
 	}
 }

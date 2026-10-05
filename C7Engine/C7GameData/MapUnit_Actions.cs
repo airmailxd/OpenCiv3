@@ -259,6 +259,22 @@ public partial class MapUnit {
 		facingDirection = dir;
 		float movementCost = TilePath.GetMovementCost(this.owner, location, dir, newLoc);
 
+		RelocateTo(newLoc);
+
+		if (wait)
+			await animateAsync(MapUnit.AnimatedAction.RUN);
+		else
+			animate(MapUnit.AnimatedAction.RUN);
+
+		movementPoints.onUnitMove(movementCost);
+
+		return true;
+	}
+
+	// Moves the unit, and anything it carries, onto a neighboring tile. This
+	// doesn't check whether the move is allowed, start combat, or use
+	// movement points; callers handle those.
+	private void RelocateTo(Tile newLoc) {
 		// Leave old tile
 		if (!location.unitsOnTile.Remove(this))
 			throw new System.Exception("Failed to remove unit from tile it's supposed to be on");
@@ -284,15 +300,6 @@ public partial class MapUnit {
 		newLoc.unitsOnTile.Add(this);
 		location = newLoc;
 		OnEnterTile(newLoc);
-
-		if (wait)
-			await animateAsync(MapUnit.AnimatedAction.RUN);
-		else
-			animate(MapUnit.AnimatedAction.RUN);
-
-		movementPoints.onUnitMove(movementCost);
-
-		return true;
 	}
 
 	// True if an enemy unit on the tile can actually put up a fight against
@@ -388,9 +395,18 @@ public partial class MapUnit {
 					GameData.rng.NextDouble() < defender.RetreatChance(attacker, false)) {
 					// TODO: Defender retreat behavior requires some more work. There's an issue for it here:
 					// https://github.com/C7-Game/Prototype/issues/274
-					Tile retreatDestination = defender.location.neighbors[attackerAttackDirection];
-					if ((retreatDestination != Tile.NONE) && defender.CanEnter(retreatDestination)) {
-						await defender.Move(attackerAttackDirection, true);
+					//
+					// Retreat straight onto the tile behind the defender. It has
+					// to be one we can enter peacefully, so the retreat can't
+					// start another battle, and we move the defender directly
+					// rather than with Move(), which needs movement points the
+					// defender may not have during the attacker's turn.
+					if (defender.location.neighbors.TryGetValue(attackerAttackDirection, out Tile retreatDestination)
+						&& retreatDestination != Tile.NONE
+						&& defender.CanEnterPeacefully(retreatDestination)) {
+						defender.facingDirection = attackerAttackDirection;
+						defender.RelocateTo(retreatDestination);
+						await defender.animateAsync(MapUnit.AnimatedAction.RUN);
 						result = CombatResult.DefenderRetreated;
 						break;
 					}
