@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using QueryCiv3;
 using C7GameData;
@@ -25,15 +26,14 @@ namespace BuildDevSave {
 				Console.WriteLine("provide civ3 SAV absolute path as command line argument");
 				return;
 			}
-			DateTime start = DateTime.Now;
+			Stopwatch stopwatch = Stopwatch.StartNew();
 			string fullSavePath = args[0];
 			string outputPath = Path.Combine(C7DefaultSaveDir, "c7-static-map-save.json");
 			SaveGame output = ImportCiv3.ImportSav(fullSavePath, GetCiv3Path + @"/Conquests/conquests.biq", (scenarioSearchPath) => {
 				return GetCiv3Path + @"/Conquests/Text/PediaIcons.txt";
 			});
 			output.Save(outputPath);
-			DateTime stop = DateTime.Now;
-			int elapsed = (stop - start).Milliseconds;
+			long elapsed = stopwatch.ElapsedMilliseconds;
 			Console.WriteLine($"finished generating save in {elapsed} milliseconds");
 			Info(fullSavePath, output);
 		}

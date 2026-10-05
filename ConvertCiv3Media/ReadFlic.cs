@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Runtime.InteropServices;
 using Serilog;
 
 namespace ConvertCiv3Media {
@@ -40,58 +41,48 @@ namespace ConvertCiv3Media {
 		public void Load(string path) {
 			byte[] FlicBytes = File.ReadAllBytes(path);
 
-			int FileFormat = BitConverter.ToUInt16(FlicBytes, 4);
-			// Should be 0xAF12
-			if (FileFormat != 0xaf12) {
-				throw new ApplicationException("Flic version # " + FileFormat.ToString("X4") + "does not match 0xaf12");
-			}
+			FlicHeader header = FlicHeader.Parse(FlicBytes);
 
 			// TODO: this may not be right for Civ3 FLCs
-			int NumFrames = BitConverter.ToUInt16(FlicBytes, 6);
-			this.Width = BitConverter.ToUInt16(FlicBytes, 8);
-			this.Height = BitConverter.ToUInt16(FlicBytes, 10);
+			int NumFrames = header.NumFrames;
+			this.Width = header.Width;
+			this.Height = header.Height;
 
-			this.AnimationSpeed = BitConverter.ToInt32(FlicBytes, 16);
+			this.AnimationSpeed = header.AnimationSpeed;
 
-			this.OffsetLeft = BitConverter.ToUInt16(FlicBytes, 100);
-			this.OffsetTop = BitConverter.ToUInt16(FlicBytes, 102);
+			this.OffsetLeft = header.OffsetLeft;
+			this.OffsetTop = header.OffsetTop;
 
-			// Disclaimer! I don't know if the width & height order is correct here
-			// but since the game always assumes a 240x240 size, maybe it doesn't matter
-			this.OriginalWidth = BitConverter.ToUInt16(FlicBytes, 104);
-			this.OriginalHeight = BitConverter.ToUInt16(FlicBytes, 106);
+			this.OriginalWidth = header.OriginalWidth;
+			this.OriginalHeight = header.OriginalHeight;
 
-			this.AnimationTime = BitConverter.ToUInt16(FlicBytes, 108);
+			this.AnimationTime = header.AnimationTime;
 
-			int ImageLength = this.Width * this.Height;
+			this.NumAnimations = header.NumAnimations;
+			this.FramesPerAnimation = header.FramesPerAnimation;
 
-			// Civ3-specific values
-			this.NumAnimations = BitConverter.ToUInt16(FlicBytes, 0x60);
-			// but every animation has a ring frame, so there are this many frames plus one for each
-			this.FramesPerAnimation = BitConverter.ToUInt16(FlicBytes, 0x62);
-			// Leaderheads don't have the above values, so revert to act like a regular Flic
-			// TODO: See if this affects my ring-frame skip
-			if (NumAnimations == 0) {
-				this.NumAnimations = 1;
-				this.FramesPerAnimation = NumFrames;
-			}
+			int width = this.Width;
+			int height = this.Height;
+			int ImageLength = width * height;
 
 			// Initialize image frames
 			this.Images = new byte[NumAnimations, this.FramesPerAnimation][];
 			for (int i = 0; i < this.NumAnimations; i++) {
 				for (int j = 0; j < this.FramesPerAnimation; j++) {
-					this.Images[i, j] = new byte[this.Width * this.Height];
+					this.Images[i, j] = new byte[ImageLength];
 				}
 			}
 
 			// technically should be UInt32 I think
 			// frame 1 chunk offset
-			int Offset = BitConverter.ToInt32(FlicBytes, 80);
+			int Offset = header.FirstFrameOffset;
 
 			// Animations loop
 			for (int anim = 0; anim < NumAnimations; anim++) {
 				// Flic frames loop
 				for (int f = 0; f < this.FramesPerAnimation; f++) {
+					byte[] frame = this.Images[anim, f];
+
 					// Frame chunk headers should be 0xF1Fa; prefix chunk header is 0xF100
 					// TODO: add exceptions if the headers don't match?
 					int ChunkLength = BitConverter.ToInt32(FlicBytes, Offset);
@@ -109,44 +100,42 @@ namespace ConvertCiv3Media {
 								if (NumPackets != 1) {
 									throw new ApplicationException("Unable to deal with color palette with more than one packet; NumPackets = " + NumPackets);
 								}
-								int SkipCount = BitConverter.GetBytes(BitConverter.ToChar(FlicBytes, SubOffset + 8))[0];
+								int SkipCount = FlicBytes[SubOffset + 8];
 								if (SkipCount != 0) {
 									throw new ApplicationException("Unable to deal with color palette with non-zero SkipCount = " + SkipCount);
 								}
-								int CopyCount = BitConverter.GetBytes(BitConverter.ToChar(FlicBytes, SubOffset + 9))[0];
+								int CopyCount = FlicBytes[SubOffset + 9];
 								if (CopyCount != 0) {
 									throw new ApplicationException("Unable to deal with color palette with non-zero CopyCount = " + CopyCount);
 								}
-								for (int p = 0; p < 256; p++) {
-									this.Palette[p, 0] = FlicBytes[10 + SubOffset + p * 3];
-									this.Palette[p, 1] = FlicBytes[10 + SubOffset + p * 3 + 1];
-									this.Palette[p, 2] = FlicBytes[10 + SubOffset + p * 3 + 2];
-								}
+								// 256 red, green, blue triplets, in the same order as Palette[p, 0..2]
+								CheckRange(FlicBytes, 10 + SubOffset, 256 * 3);
+								Buffer.BlockCopy(FlicBytes, 10 + SubOffset, this.Palette, 0, 256 * 3);
 								break;
 							case 15:
 								// run-length-encoded full frame chunk
-								for (int y = 0, x = 0, head = SubOffset + 6; y < Height; y++, x = 0) {
+								for (int y = 0, head = SubOffset + 6; y < height; y++) {
 									// first byte of row is obsolete
 									head++;
-									for (; x < Width;) {
+									int rowStart = y * width;
+									for (int x = 0; x < width;) {
 										int TypeSize = (sbyte)FlicBytes[head];
 										// TypeSize == 0 makes no sense, something is wrong
 										if (TypeSize == 0) {
 											throw new ApplicationException("TypeSize is 0");
 										}
 										head++;
-										// If TypeSize is positive, copy TypeSize following bytes
-										// If TypeSise is negative, repeat the next byte abs(TypeSize) times
-										bool CopyMany = TypeSize < 0;
-										for (int foo = 0; foo < Math.Abs(TypeSize); foo++) {
-											this.Images[anim, f][y * this.Width + x] = FlicBytes[head];
-											x++;
-											if (CopyMany) {
-												head++;
-											}
-										}
-										// If we were repeating a byte, we're still pointing at it; advance head
-										if (!CopyMany) {
+										// If TypeSize is negative, copy abs(TypeSize) following bytes
+										// If TypeSize is positive, repeat the next byte TypeSize times
+										if (TypeSize < 0) {
+											int count = -TypeSize;
+											CopyBytes(FlicBytes, head, frame, rowStart + x, count);
+											head += count;
+											x += count;
+										} else {
+											FillBytes(frame, rowStart + x, TypeSize, FlicBytes[head]);
+											x += TypeSize;
+											// We were repeating a byte and are still pointing at it; advance head
 											head++;
 										}
 									}
@@ -159,7 +148,7 @@ namespace ConvertCiv3Media {
 								}
 								// diff chunk
 								// Copy last frame image
-								Array.Copy(this.Images[anim, f - 1], this.Images[anim, f], this.Images[anim, f].Length);
+								Array.Copy(this.Images[anim, f - 1], frame, frame.Length);
 								int NumLines = BitConverter.ToUInt16(FlicBytes, SubOffset + 6);
 								for (int Line = 0, y = 0, head = SubOffset + 8; Line < NumLines; Line++) {
 									int WordsPerLine = BitConverter.ToInt16(FlicBytes, head);
@@ -173,7 +162,7 @@ namespace ConvertCiv3Media {
 									// If two high bits are 10, this is a special word to set the last pixel for odd-length lines
 									// This may not have been tested; none of my Flics change the last pixel
 									if ((WordsPerLine & 0x800) == 0x800) {
-										this.Images[anim, f][this.Width * (y + 1) - 1] = (byte)(WordsPerLine & 0xff);
+										frame[width * (y + 1) - 1] = (byte)(WordsPerLine & 0xff);
 										WordsPerLine = BitConverter.ToInt16(FlicBytes, head);
 										head += 2;
 									}
@@ -181,6 +170,7 @@ namespace ConvertCiv3Media {
 									if ((WordsPerLine & 0xc00) != 0) {
 										throw new ApplicationException("WordsPerLine high bits set: " + WordsPerLine);
 									}
+									int rowStart = width * y;
 									// I wonder if WordsPerLine should actally be PacketsPerLine
 									// Loop over the packets for this line
 									for (int packet = 0, x = 0; packet < WordsPerLine; packet++) {
@@ -189,18 +179,23 @@ namespace ConvertCiv3Media {
 										head++;
 										// most significant byte of word (second byte) is number of words in the packet
 										int NumWords = (sbyte)FlicBytes[head];
-										bool Positive = NumWords > 0;
 										head++;
-										// If NumWords is positive, copy NumWords following words to image
-										// If NumWords is negative, repeat the next word abs(NumWords) times
-										for (int ii = 0; ii < Math.Abs(NumWords); ii++) {
-											this.Images[anim, f][this.Width * y + x] = FlicBytes[head];
-											this.Images[anim, f][this.Width * y + x + 1] = FlicBytes[head + 1];
-											if (Positive) { head += 2; }
-											x += 2;
+										if (NumWords > 0) {
+											// If NumWords is positive, copy NumWords following words to image
+											int count = NumWords * 2;
+											CopyBytes(FlicBytes, head, frame, rowStart + x, count);
+											head += count;
+											x += count;
+										} else {
+											// If NumWords is negative, repeat the next word abs(NumWords) times
+											// (a zero count still skips over the word)
+											int count = -NumWords;
+											if (count > 0) {
+												FillWords(frame, rowStart + x, count, FlicBytes[head], FlicBytes[head + 1]);
+												x += count * 2;
+											}
+											head += 2;
 										}
-										// If NumWords was negative, we're still pointing at the repeated word, so advance head
-										if (!Positive) { head += 2; }
 									}
 									y++;
 								}
@@ -220,8 +215,122 @@ namespace ConvertCiv3Media {
 			}
 		}
 
+		// Bounds checks for the block operations below. Like the per-byte indexing they replace, these throw
+		// IndexOutOfRangeException for data that runs past the end of the file or frame.
+		private static void CheckRange(byte[] array, int start, int count) {
+			if (start < 0 || (long)start + count > array.Length) {
+				throw new IndexOutOfRangeException();
+			}
+		}
+
+		private static void CopyBytes(byte[] source, int sourceIndex, byte[] destination, int destinationIndex, int count) {
+			CheckRange(source, sourceIndex, count);
+			CheckRange(destination, destinationIndex, count);
+			Buffer.BlockCopy(source, sourceIndex, destination, destinationIndex, count);
+		}
+
+		private static void FillBytes(byte[] destination, int destinationIndex, int count, byte value) {
+			CheckRange(destination, destinationIndex, count);
+			destination.AsSpan(destinationIndex, count).Fill(value);
+		}
+
+		private static void FillWords(byte[] destination, int destinationIndex, int count, byte low, byte high) {
+			CheckRange(destination, destinationIndex, count * 2);
+			Span<byte> words = destination.AsSpan(destinationIndex, count * 2);
+			if (low == high) {
+				words.Fill(low);
+			} else if (BitConverter.IsLittleEndian) {
+				MemoryMarshal.Cast<byte, ushort>(words).Fill((ushort)(low | (high << 8)));
+			} else {
+				for (int i = 0; i < words.Length; i += 2) {
+					words[i] = low;
+					words[i + 1] = high;
+				}
+			}
+		}
+
+		/// <summary>
+		/// Reads just the header of a Flic file (dimensions, frame counts, speed and the offset of the first frame)
+		/// without reading or decoding any frames. The values match the corresponding fields of a <see cref="Flic"/>
+		/// loaded from the same file.
+		/// </summary>
+		public static FlicHeader ReadHeader(string path) {
+			byte[] headerBytes = new byte[FlicHeader.Size];
+			using (FileStream stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 1)) {
+				int read = 0;
+				while (read < headerBytes.Length) {
+					int n = stream.Read(headerBytes, read, headerBytes.Length - read);
+					if (n == 0) {
+						throw new EndOfStreamException("Flic file is too short to contain a header: " + path);
+					}
+					read += n;
+				}
+			}
+			return FlicHeader.Parse(headerBytes);
+		}
+
 		public override string ToString() {
 			return "FLIC " + this.path;
+		}
+	}
+
+	/// <summary>
+	/// The header fields of a (Civ3) Flic file, see <see cref="Flic.ReadHeader"/>.
+	/// </summary>
+	public struct FlicHeader {
+		// Number of bytes at the start of the file that the header fields are read from
+		public const int Size = 110;
+
+		// Number of frames according to the standard Flic header
+		public int NumFrames;
+		public int Width;
+		public int Height;
+		public int AnimationSpeed;
+		// Offset of the first frame chunk in the file
+		public int FirstFrameOffset;
+		public int OffsetLeft;
+		public int OffsetTop;
+		public int OriginalWidth;
+		public int OriginalHeight;
+		public int AnimationTime;
+		// Civ3-specific values. Leaderheads don't have them, in which case these describe a regular Flic:
+		// a single animation of NumFrames frames
+		public int NumAnimations;
+		public int FramesPerAnimation;
+
+		public static FlicHeader Parse(byte[] FlicBytes) {
+			int FileFormat = BitConverter.ToUInt16(FlicBytes, 4);
+			// Should be 0xAF12
+			if (FileFormat != 0xaf12) {
+				throw new ApplicationException("Flic version # " + FileFormat.ToString("X4") + "does not match 0xaf12");
+			}
+
+			FlicHeader header = new FlicHeader() {
+				NumFrames = BitConverter.ToUInt16(FlicBytes, 6),
+				Width = BitConverter.ToUInt16(FlicBytes, 8),
+				Height = BitConverter.ToUInt16(FlicBytes, 10),
+				AnimationSpeed = BitConverter.ToInt32(FlicBytes, 16),
+				OffsetLeft = BitConverter.ToUInt16(FlicBytes, 100),
+				OffsetTop = BitConverter.ToUInt16(FlicBytes, 102),
+				// Disclaimer! I don't know if the width & height order is correct here
+				// but since the game always assumes a 240x240 size, maybe it doesn't matter
+				OriginalWidth = BitConverter.ToUInt16(FlicBytes, 104),
+				OriginalHeight = BitConverter.ToUInt16(FlicBytes, 106),
+				AnimationTime = BitConverter.ToUInt16(FlicBytes, 108),
+				// Civ3-specific values
+				NumAnimations = BitConverter.ToUInt16(FlicBytes, 0x60),
+				// but every animation has a ring frame, so there are this many frames plus one for each
+				FramesPerAnimation = BitConverter.ToUInt16(FlicBytes, 0x62),
+				// technically should be UInt32 I think
+				FirstFrameOffset = BitConverter.ToInt32(FlicBytes, 80),
+			};
+			// Leaderheads don't have the above values, so revert to act like a regular Flic
+			// TODO: See if this affects my ring-frame skip
+			if (header.NumAnimations == 0) {
+				header.NumAnimations = 1;
+				header.FramesPerAnimation = header.NumFrames;
+			}
+			return header;
 		}
 	}
 }

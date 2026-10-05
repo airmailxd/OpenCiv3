@@ -121,7 +121,9 @@ namespace QueryCiv3 {
 			Sav = new Civ3File(savBytes);
 			// Load in any biq sections contained in Sav file, overwriting existing biq sections:
 			int BiqSectionLength = Sav.ReadInt32(38);
-			Bic.Load(Sav.GetBytes(BIQ_SECTION_START, BiqSectionLength));
+			// Parse the embedded BIQ data in place, clamped to the end of the file like Civ3File.GetBytes would
+			int BiqLoadLength = BIQ_SECTION_START > Sav.Length ? 0 : Math.Max(0, Math.Min(BiqSectionLength, Sav.Length - BIQ_SECTION_START));
+			Bic.Load(savBytes, Math.Min(BIQ_SECTION_START, Sav.Length), BiqLoadLength);
 
 			fixed (byte* bytePtr = savBytes) {
 				int* header;
@@ -227,26 +229,19 @@ namespace QueryCiv3 {
 							Rplt = new RPLT[rpltLength];
 							RpltRple = new RPLE[rpltLength][];
 							RpltRpleDescription = new string[rpltLength][];
-							const int MAX_STRING_LENGTH = 1024; // surely no event string is longer than 1024 characters?
-							byte[] stringBuffer = new byte[MAX_STRING_LENGTH];
+							for (int i = 0; i < rpltLength; i++) {
+								Copy(ref Rplt[i]);
+								int rpleLength = Rplt[i].EventCount;
 
-							fixed (byte* strPtr = stringBuffer) {
-								for (int i = 0; i < rpltLength; i++) {
-									Copy(ref Rplt[i]);
-									int rpleLength = Rplt[i].EventCount;
-
-									RpltRple[i] = new RPLE[rpleLength];
-									RpltRpleDescription[i] = new string[rpleLength];
-									for (int j = 0; j < rpleLength; j++) {
-										Copy(ref RpltRple[i][j]);
-										// Retrieve null-terminated string:
-										int counter = 0;
-										while (scan[counter++] != 0) { } // Keep incrementing until null character reached
-										Buffer.MemoryCopy(scan, strPtr, MAX_STRING_LENGTH, counter);
-										// Calling Util.GetString with the full buffer works, but is inefficient. Optimizing this is a TODO
-										RpltRpleDescription[i][j] = Util.GetString(stringBuffer);
-										scan += counter;
-									}
+								RpltRple[i] = new RPLE[rpleLength];
+								RpltRpleDescription[i] = new string[rpleLength];
+								for (int j = 0; j < rpleLength; j++) {
+									Copy(ref RpltRple[i][j]);
+									// Retrieve null-terminated string:
+									int counter = 0;
+									while (scan[counter++] != 0) { } // Keep incrementing until null character reached
+									RpltRpleDescription[i][j] = Util.Civ3Encoding.GetString(scan, counter - 1); // without the null character
+									scan += counter;
 								}
 							}
 
@@ -347,11 +342,12 @@ namespace QueryCiv3 {
 							// In any other case where a header isn't encounterd, we'll throw an error because something has gone wrong in the read
 							// But for these 3, I guess just skip them for now...
 							// Thoroughly magic
-							if (header[2] == 0x4c534e43) {
+							// (Only look as far ahead as the data goes)
+							if (scan + 3 * sizeof(int) <= end && header[2] == 0x4c534e43) {
 								scan += 8;
-							} else if (header[64] == 0x564c4150) {
+							} else if (scan + 65 * sizeof(int) <= end && header[64] == 0x564c4150) {
 								scan += 256;
-							} else if (header[1] == 0x52454550) {
+							} else if (scan + 2 * sizeof(int) <= end && header[1] == 0x52454550) {
 								scan += 4;
 							} else {
 								throw new Exception("An error occured while parsing the SAV file because no header was found where one was expected.");

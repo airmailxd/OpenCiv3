@@ -100,23 +100,34 @@ namespace QueryCiv3 {
 			Load(biqBytes);
 		}
 
+		public unsafe BiqData(byte[] data, int start, int length) {
+			Load(data, start, length);
+		}
+
 		public unsafe void Load(byte[] biqBytes) {
-			FileData = new Civ3File(biqBytes);
+			Load(biqBytes, 0, biqBytes.Length);
+		}
+
+		// Load BIQ data stored at data[start .. start + length), e.g. the BIQ sections embedded in a SAV file, without copying it out
+		public unsafe void Load(byte[] data, int start, int length) {
+			FileData = new Civ3File(data, start, length);
 			Description = FileData.GetString(32, 640);
 			Title = FileData.GetString(672, 64);
 
-			fixed (byte* bytePtr = biqBytes) {
+			fixed (byte* basePtr = data) {
+				byte* bytePtr = basePtr + start;
 				// For now, we're skipping over the VER# and BIQ file header information to get right to the structs
 				// The first section is likely to be BLDG in BIQ files, but the current approach supports any ordering of the sections
 				int offset = SECTION_HEADERS_START;
-				string header;
+				int header;
 				int count = 0;
 				int dataLength = 0;
 
-				while (offset < biqBytes.Length) { // Don't read past the end
-												   // We don't know what orders the headers come in or which headers will be set, so get the next header and switch off it:
-					header = FileData.GetString(offset, 4);
-					count = FileData.ReadInt32(offset + 4);
+				while (offset < length) { // Don't read past the end
+										  // We don't know what orders the headers come in or which headers will be set, so get the next header and switch off it:
+					count = FileData.ReadInt32(offset + 4); // bounds-checked, so the header read below is in bounds too
+					// Every header is exactly 4 chars long, so like in SavData it can be switched on as a 32-bit integer
+					header = *(int*)(bytePtr + offset);
 					offset += 8;
 
 					// Section data structures are stored in the BiqSections/ folder
@@ -126,14 +137,14 @@ namespace QueryCiv3 {
 					// Dynamic sections have at least one component with varying length, and so require multiple structs and special logic
 					//   The dynamic sections are: GOVT, RULE, PRTO, RACE, TERR, WMAP, CITY, GAME, LEAD
 					switch (header) {
-						case "BLDG":
+						case 0x47444c42: // BLDG
 							dataLength = count * sizeof(BLDG);
 							Bldg = new BLDG[count];
 							fixed (void* ptr = Bldg) {
 								Buffer.MemoryCopy(bytePtr + offset, ptr, dataLength, dataLength);
 							}
 							break;
-						case "CITY":
+						case 0x59544943: // CITY
 							dataLength = 0;
 							City = new CITY[count];
 							CityBuilding = new int[count][];
@@ -156,63 +167,63 @@ namespace QueryCiv3 {
 								}
 							}
 							break;
-						case "CLNY":
+						case 0x594e4c43: // CLNY
 							dataLength = count * sizeof(CLNY);
 							Clny = new CLNY[count];
 							fixed (void* ptr = Clny) {
 								Buffer.MemoryCopy(bytePtr + offset, ptr, dataLength, dataLength);
 							}
 							break;
-						case "CONT":
+						case 0x544e4f43: // CONT
 							dataLength = count * sizeof(CONT);
 							Cont = new CONT[count];
 							fixed (void* ptr = Cont) {
 								Buffer.MemoryCopy(bytePtr + offset, ptr, dataLength, dataLength);
 							}
 							break;
-						case "CTZN":
+						case 0x4e5a5443: // CTZN
 							dataLength = count * sizeof(CTZN);
 							Ctzn = new CTZN[count];
 							fixed (void* ptr = Ctzn) {
 								Buffer.MemoryCopy(bytePtr + offset, ptr, dataLength, dataLength);
 							}
 							break;
-						case "CULT":
+						case 0x544c5543: // CULT
 							dataLength = count * sizeof(CULT);
 							Cult = new CULT[count];
 							fixed (void* ptr = Cult) {
 								Buffer.MemoryCopy(bytePtr + offset, ptr, dataLength, dataLength);
 							}
 							break;
-						case "DIFF":
+						case 0x46464944: // DIFF
 							dataLength = count * sizeof(DIFF);
 							Diff = new DIFF[count];
 							fixed (void* ptr = Diff) {
 								Buffer.MemoryCopy(bytePtr + offset, ptr, dataLength, dataLength);
 							}
 							break;
-						case "ERAS":
+						case 0x53415245: // ERAS
 							dataLength = count * sizeof(ERAS);
 							Eras = new ERAS[count];
 							fixed (void* ptr = Eras) {
 								Buffer.MemoryCopy(bytePtr + offset, ptr, dataLength, dataLength);
 							}
 							break;
-						case "ESPN":
+						case 0x4e505345: // ESPN
 							dataLength = count * sizeof(ESPN);
 							Espn = new ESPN[count];
 							fixed (void* ptr = Espn) {
 								Buffer.MemoryCopy(bytePtr + offset, ptr, dataLength, dataLength);
 							}
 							break;
-						case "EXPR":
+						case 0x52505845: // EXPR
 							dataLength = count * sizeof(EXPR);
 							Expr = new EXPR[count];
 							fixed (void* ptr = Expr) {
 								Buffer.MemoryCopy(bytePtr + offset, ptr, dataLength, dataLength);
 							}
 							break;
-						case "FLAV":
+						case 0x56414c46: // FLAV
 							// FLAV has two oddities compared with other sections:
 							// 1. FLAV's count is not technically locked at 7, but is practically so. This means it can be treated as static (see FLAV.cs)
 							count = 7;
@@ -226,7 +237,7 @@ namespace QueryCiv3 {
 								Buffer.MemoryCopy(bytePtr + offset, ptr, dataLength, dataLength);
 							}
 							break;
-						case "GAME":
+						case 0x454d4147: // GAME
 							dataLength = 0;
 							Game = new GAME[count];
 							GameCiv = new int[count][];
@@ -261,14 +272,14 @@ namespace QueryCiv3 {
 								}
 							}
 							break;
-						case "GOOD":
+						case 0x444f4f47: // GOOD
 							dataLength = count * sizeof(GOOD);
 							Good = new GOOD[count];
 							fixed (void* ptr = Good) {
 								Buffer.MemoryCopy(bytePtr + offset, ptr, dataLength, dataLength);
 							}
 							break;
-						case "GOVT":
+						case 0x54564f47: // GOVT
 							int govtLen = FileData.ReadInt32(offset) + 4;
 							dataLength = count * govtLen;
 							Govt = new GOVT[count];
@@ -290,7 +301,7 @@ namespace QueryCiv3 {
 								}
 							}
 							break;
-						case "LEAD":
+						case 0x4441454c: // LEAD
 							dataLength = 0;
 							Lead = new LEAD[count];
 							LeadPrto = new LEAD_Unit[count][];
@@ -324,7 +335,7 @@ namespace QueryCiv3 {
 								}
 							}
 							break;
-						case "PRTO":
+						case 0x4f545250: // PRTO
 							dataLength = 0;
 							Prto = new PRTO[count];
 							PrtoPrto = new int[count][];
@@ -347,7 +358,7 @@ namespace QueryCiv3 {
 								}
 							}
 							break;
-						case "RACE":
+						case 0x45434152: // RACE
 							dataLength = 0;
 							Race = new RACE[count];
 							RaceCityName = new RACE_City[count][];
@@ -403,7 +414,7 @@ namespace QueryCiv3 {
 							}
 
 							break;
-						case "RULE":
+						case 0x454c5552: // RULE
 							dataLength = 0;
 							Rule = new RULE[count];
 							RuleCult = new RULE_CULT[count][];
@@ -437,21 +448,21 @@ namespace QueryCiv3 {
 								}
 							}
 							break;
-						case "SLOC":
+						case 0x434f4c53: // SLOC
 							dataLength = count * sizeof(SLOC);
 							Sloc = new SLOC[count];
 							fixed (void* ptr = Sloc) {
 								Buffer.MemoryCopy(bytePtr + offset, ptr, dataLength, dataLength);
 							}
 							break;
-						case "TECH":
+						case 0x48434554: // TECH
 							dataLength = count * sizeof(TECH);
 							Tech = new TECH[count];
 							fixed (void* ptr = Tech) {
 								Buffer.MemoryCopy(bytePtr + offset, ptr, dataLength, dataLength);
 							}
 							break;
-						case "TERR":
+						case 0x52524554: // TERR
 							int terrLen = FileData.ReadInt32(offset) + 4; // Add 4 because length must also include the 32-bit integer that is itself
 							dataLength = count * terrLen;
 							Terr = new TERR[count];
@@ -480,35 +491,35 @@ namespace QueryCiv3 {
 								}
 							}
 							break;
-						case "TFRM":
+						case 0x4d524654: // TFRM
 							dataLength = count * sizeof(TFRM);
 							Tfrm = new TFRM[count];
 							fixed (void* ptr = Tfrm) {
 								Buffer.MemoryCopy(bytePtr + offset, ptr, dataLength, dataLength);
 							}
 							break;
-						case "TILE":
+						case 0x454c4954: // TILE
 							dataLength = count * sizeof(TILE);
 							Tile = new TILE[count];
 							fixed (void* ptr = Tile) {
 								Buffer.MemoryCopy(bytePtr + offset, ptr, dataLength, dataLength);
 							}
 							break;
-						case "UNIT":
+						case 0x54494e55: // UNIT
 							dataLength = count * sizeof(UNIT);
 							Unit = new UNIT[count];
 							fixed (void* ptr = Unit) {
 								Buffer.MemoryCopy(bytePtr + offset, ptr, dataLength, dataLength);
 							}
 							break;
-						case "WCHR":
+						case 0x52484357: // WCHR
 							dataLength = count * sizeof(WCHR);
 							Wchr = new WCHR[count];
 							fixed (void* ptr = Wchr) {
 								Buffer.MemoryCopy(bytePtr + offset, ptr, dataLength, dataLength);
 							}
 							break;
-						case "WMAP":
+						case 0x50414d57: // WMAP
 							dataLength = 0;
 							Wmap = new WMAP[count];
 							WmapResource = new int[count][];
@@ -531,7 +542,7 @@ namespace QueryCiv3 {
 								}
 							}
 							break;
-						case "WSIZ":
+						case 0x5a495357: // WSIZ
 							dataLength = count * sizeof(WSIZ);
 							Wsiz = new WSIZ[count];
 							fixed (void* ptr = Wsiz) {
@@ -539,7 +550,7 @@ namespace QueryCiv3 {
 							}
 							break;
 						default:
-							throw new Exception("An error occured while parsing the BIQ file because a header was not found where expected.  Instead, found " + header);
+							throw new Exception("An error occured while parsing the BIQ file because a header was not found where expected.  Instead, found " + FileData.GetString(offset - 8, 4));
 					}
 					offset += dataLength;
 				}
