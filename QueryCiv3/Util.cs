@@ -26,30 +26,64 @@ namespace QueryCiv3 {
 
 		// Decompressed contents of recently read compressed BIQ files (e.g. the default conquests.biq, which is read
 		// on every import), so they are only decompressed once. Entries are keyed by full path and invalidated when
-		// the file's length or last write time changes. Callers always get their own copy of the bytes.
+		// the file's length or last write time changes.
 		private class DecompressedFile {
 			public long Length;
 			public DateTime LastWriteTimeUtc;
 			public byte[] Data;
 		}
 		private const int MAX_CACHED_FILES = 4;
+		// Files written more recently than this aren't cached: a file replaced again within the resolution of the file
+		// system's timestamps could otherwise keep the same length and last write time
+		private static readonly TimeSpan MIN_CACHEABLE_FILE_AGE = TimeSpan.FromSeconds(2);
 		private static readonly Dictionary<string, DecompressedFile> DecompressedFileCache = new(StringComparer.OrdinalIgnoreCase);
 		private static readonly LinkedList<string> DecompressedFileCacheOrder = new(); // most recently used first
 
+		/// <summary>
+		/// Reads a Civ3 file, decompressing it if it is compressed (as BIQ and SAV files can be).
+		/// The caller owns the returned array.
+		/// </summary>
 		public static byte[] ReadFile(string pathName) {
+			return ReadFile(pathName, shared: false);
+		}
+
+		/// <summary>
+		/// Like <see cref="ReadFile(string)"/>, but a decompressed BIQ may be returned straight from the cache
+		/// instead of being copied, so the result must not be modified.
+		/// </summary>
+		public static ReadOnlyMemory<byte> ReadFileReadOnly(string pathName) {
+			return ReadFileShared(pathName);
+		}
+
+		// The array may be shared with the cache and other callers, so it must not be modified
+		internal static byte[] ReadFileShared(string pathName) {
+			return ReadFile(pathName, shared: true);
+		}
+
+		private static byte[] ReadFile(string pathName, bool shared) {
 			bool cacheable = IsCacheableFile(pathName);
 			string cacheKey = null;
 			FileInfo fileInfo = null;
+			bool existedBefore = false;
+			long lengthBefore = 0;
+			DateTime lastWriteTimeBefore = default;
 
 			if (cacheable) {
+				// FileInfo caches what it reads the first time a property is used, so read the stamp now, before reading the file
 				fileInfo = new FileInfo(pathName);
+				fileInfo.Refresh();
 				cacheKey = fileInfo.FullName;
+				existedBefore = fileInfo.Exists;
+				if (existedBefore) {
+					lengthBefore = fileInfo.Length;
+					lastWriteTimeBefore = fileInfo.LastWriteTimeUtc;
+				}
 				lock (DecompressedFileCache) {
 					if (DecompressedFileCache.TryGetValue(cacheKey, out DecompressedFile cached)) {
-						if (fileInfo.Exists && cached.Length == fileInfo.Length && cached.LastWriteTimeUtc == fileInfo.LastWriteTimeUtc) {
+						if (existedBefore && cached.Length == lengthBefore && cached.LastWriteTimeUtc == lastWriteTimeBefore) {
 							DecompressedFileCacheOrder.Remove(cacheKey);
 							DecompressedFileCacheOrder.AddFirst(cacheKey);
-							return (byte[])cached.Data.Clone();
+							return shared ? cached.Data : (byte[])cached.Data.Clone();
 						}
 						DecompressedFileCache.Remove(cacheKey);
 						DecompressedFileCacheOrder.Remove(cacheKey);
@@ -58,15 +92,22 @@ namespace QueryCiv3 {
 			}
 
 			byte[] MyFileData = File.ReadAllBytes(pathName);
+			if (MyFileData.Length < 2) {
+				throw new InvalidDataException($"'{pathName}' is too short ({MyFileData.Length} bytes) to be a Civ3 file.");
+			}
 			if (MyFileData[0] == 0x00 && (MyFileData[1] == 0x04 || MyFileData[1] == 0x05 || MyFileData[1] == 0x06)) {
 				byte[] decompressed = Decompress(MyFileData);
-				if (cacheable && fileInfo.Exists) {
-					AddToCache(cacheKey, new DecompressedFile() {
-						// Stamp taken before reading the file, so if it changed in between the next read sees a mismatch
-						Length = fileInfo.Length,
-						LastWriteTimeUtc = fileInfo.LastWriteTimeUtc,
-						Data = (byte[])decompressed.Clone(),
-					});
+				if (cacheable && existedBefore && MyFileData.Length == lengthBefore
+						&& DateTime.UtcNow - lastWriteTimeBefore >= MIN_CACHEABLE_FILE_AGE) {
+					// Only cache what was read if the file didn't change while it was being read
+					fileInfo.Refresh();
+					if (fileInfo.Exists && fileInfo.Length == lengthBefore && fileInfo.LastWriteTimeUtc == lastWriteTimeBefore) {
+						AddToCache(cacheKey, new DecompressedFile() {
+							Length = lengthBefore,
+							LastWriteTimeUtc = lastWriteTimeBefore,
+							Data = shared ? decompressed : (byte[])decompressed.Clone(),
+						});
+					}
 				}
 				return decompressed;
 			}
