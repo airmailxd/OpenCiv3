@@ -758,14 +758,6 @@ namespace C7GameData {
 				return;
 			}
 
-			// Process per-city contributions.
-			//
-			// TODO: consider making this return a tuple too. Or maybe return all
-			// the gold accounting stuff in a struct, for one pass over the cities.
-			foreach (City city in cities) {
-				beakers += city.CurrentCommerceYield().beakers;
-			}
-
 			// Ensure we never go below 0 gold.
 			while (gold + CalculateGoldPerTurn() < 0) {
 				// Start by disbanding units to get things under control.
@@ -796,6 +788,16 @@ namespace C7GameData {
 
 				// If the budget still isn't under control, something is wrong.
 				throw new Exception($"{this} was unable to get the budget under control despite being under the unit support cap and zeroing out the sliders (gold={gold}, gpt={CalculateGoldPerTurn()})");
+			}
+
+			// Process per-city contributions. This happens after the budget is
+			// settled, since lowering the science slider above moves commerce
+			// from beakers to gold, and it must not count as both.
+			//
+			// TODO: consider making this return a tuple too. Or maybe return all
+			// the gold accounting stuff in a struct, for one pass over the cities.
+			foreach (City city in cities) {
+				beakers += city.CurrentCommerceYield().beakers;
 			}
 
 			lastGoldPerTurn = CalculateGoldPerTurn();
