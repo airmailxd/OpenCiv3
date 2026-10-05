@@ -84,7 +84,7 @@ namespace C7Engine {
 					// with it. It isn't put into play, so it doesn't need a
 					// real ID.
 					MapUnit temp = unit.GetInstance(ID.None(unit.name), unit, player, location: city.location);
-					result = PlayerAI.WouldExplore(temp, player);
+					result = PlayerAI.WouldExplore(temp, player, hypothetical: true);
 					wouldExplore[unit] = result;
 				}
 				return result;

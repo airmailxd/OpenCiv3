@@ -97,3 +97,162 @@ public sealed class FixAiPathingTests : MapBase {
 		Assert.DoesNotContain(new UnitWalker(unit).getEdges(corner), e => e.current == Tile.NONE);
 	}
 }
+
+// Regression tests for AI fixes that need a real game.
+public sealed class FixAiGameTests : IClassFixture<SaveGameFixture>, IDisposable {
+	private readonly C7GameData.GameData gameData;
+	private readonly Player player;
+	private readonly Player barbarians;
+
+	public FixAiGameTests(SaveGameFixture fixture) {
+		gameData = fixture.saveGame.ToGameData(fixture.behaviors);
+		EngineStorage.InitializeGameDataForTests(gameData);
+		EngineStorage.animationsEnabled = false;
+		player = gameData.players.First(p => !p.isBarbarians && !p.isHuman && p.units.Any(u => u.unitType.isSettler));
+		barbarians = gameData.players.First(p => p.isBarbarians);
+	}
+
+	public void Dispose() {
+		while (EngineStorage.TryDequeueNextMessageToUI(out _)) { }
+	}
+
+	private UnitPrototype Proto(string name) {
+		return gameData.unitPrototypes.First(p => p.name == name);
+	}
+
+	private static bool IsEmptyLand(Tile t) {
+		return t != Tile.NONE && t.IsLand() && !t.HasCity() && t.unitsOnTile.Count == 0 && !t.hasBarbarianCamp
+			&& !t.IsImpassable() && t.OwningPlayer() == null;
+	}
+
+	private static T DataOf<T>(object ai) {
+		return (T)ai.GetType().GetField("data", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance).GetValue(ai);
+	}
+
+	// Turns the ring of tiles around `center` into coast, making it an island.
+	private void MakeIsland(Tile center) {
+		TerrainType coast = gameData.terrainTypes.First(t => t.Key == "coast");
+		foreach (Tile n in center.neighbors.Values) {
+			n.baseTerrainType = coast;
+			n.overlayTerrainType = coast;
+		}
+		gameData.map.recomputeContinents();
+	}
+
+	// A land tile whose two-tile neighborhood is empty land.
+	private Tile FindOpenLand(Func<Tile, bool> extra = null) {
+		return gameData.map.tiles.First(t => IsEmptyLand(t) && (extra == null || extra(t))
+			&& t.GetTilesWithinTileSquare(2).All(n => n != Tile.NONE && IsEmptyLand(n)));
+	}
+
+	[Fact]
+	public void UnitsIgnoreBarbarianCampsTheyCantReach() {
+		Tile camp = FindOpenLand(t => t.GetTilesWithinTileSquare(4).All(n => n != Tile.NONE && IsEmptyLand(n)));
+		MakeIsland(camp);
+		camp.hasBarbarianCamp = true;
+		Tile start = camp.GetTilesWithinTileSquare(3).First(t => t.IsLand() && t.DistanceTo(camp) == 3);
+		Assert.NotEqual(start.continent, camp.continent);
+		foreach (Tile t in start.GetTilesWithinTileSquare(4)) {
+			player.tileKnowledge.knownTiles.Add(t);
+			// Only our camp is nearby.
+			if (t != camp && t != Tile.NONE) {
+				t.hasBarbarianCamp = false;
+			}
+		}
+
+		MapUnit warrior = gameData.SpawnUnit(player, Proto("Warrior"), start);
+		Assert.True(warrior.CanEnter(camp));
+		C7GameData.UnitAI ai = PlayerAI.GetAIForUnit(warrior, player);
+		Assert.False(ai is C7Engine.AI.UnitAI.CombatAI combat && DataOf<C7GameData.AIData.CombatAIData>(combat).destination == camp,
+			"the warrior was sent to a camp it can't reach");
+
+		// A reachable camp is still attacked.
+		Tile reachable = start.GetTilesWithinTileSquare(2).First(t => t != start && IsEmptyLand(t) && t.continent == start.continent);
+		reachable.hasBarbarianCamp = true;
+		C7GameData.UnitAI ai2 = PlayerAI.GetAIForUnit(warrior, player);
+		Assert.IsType<C7Engine.AI.UnitAI.CombatAI>(ai2);
+		C7GameData.AIData.CombatAIData data = DataOf<C7GameData.AIData.CombatAIData>(ai2);
+		Assert.Equal(reachable, data.destination);
+		Assert.NotEmpty(data.path.path);
+	}
+
+	[Fact]
+	public void WaitingToAttackKeepsThePathStep() {
+		Tile start = FindOpenLand();
+		(TileDirection dir, Tile enemyTile) = start.neighbors.First(p => p.Value.IsLand());
+		Tile beyond = enemyTile.neighbors[dir];
+		MapUnit attacker = gameData.SpawnUnit(player, Proto("Warrior"), start);
+		gameData.SpawnUnit(barbarians, Proto("Warrior"), enemyTile);
+		attacker.hasAttackedThisTurn = true;
+
+		TilePath path = new(beyond, new Queue<Tile>(new[] { enemyTile, beyond }));
+		C7GameData.UnitAI ai = new ExplorerAI(null);
+		C7GameData.UnitAI.MoveResult result = ai.TryToMoveAlongPath(attacker, ref path);
+
+		Assert.Equal(C7GameData.UnitAI.Result.InProgress, result.Result);
+		Assert.False(result.IsMoveRequested);
+		Assert.False(attacker.movementPoints.canMove);
+		Assert.Equal(2, path.PathLength());
+		Assert.Equal(enemyTile, path.PeekNext());
+	}
+
+	[Fact]
+	public void UnitsThatCantAttackGiveUpOnPathsThroughEnemies() {
+		Tile start = FindOpenLand();
+		Tile enemyTile = start.neighbors.Values.First(t => t.IsLand());
+		UnitPrototype wall = new() { name = "Wall", attack = 0, defense = 2, movement = 1 };
+		wall.categories.Add("Land");
+		MapUnit defender = gameData.SpawnUnit(player, Proto("Warrior"), start);
+		defender.unitType = wall;
+		gameData.SpawnUnit(barbarians, Proto("Warrior"), enemyTile);
+		Assert.False(defender.CanAttack());
+		Assert.True(defender.CanEnterForcefully(enemyTile));
+
+		TilePath path = new(enemyTile, new Queue<Tile>(new[] { enemyTile }));
+		C7GameData.UnitAI ai = new ExplorerAI(null);
+		Assert.Equal(C7GameData.UnitAI.Result.Error, ai.TryToMoveAlongPath(defender, ref path).Result);
+	}
+
+	// A plan that never moves the unit or uses its movement points must not
+	// keep the unit's turn going forever.
+	private sealed class StuckAI : C7GameData.UnitAI {
+		public int calls;
+		C7GameData.UnitAI.MoveResult C7GameData.UnitAI.PlayTurnImpl(Player player, MapUnit unit) {
+			if (++calls > 1000) {
+				throw new Exception("PlayTurn doesn't stop");
+			}
+			return C7GameData.UnitAI.MoveResult.MoveRequested(System.Threading.Tasks.Task.FromResult(true));
+		}
+		public string SummarizePlan() => "stuck";
+		public void UpdateOnDeath() { }
+	}
+
+	[Fact]
+	public async System.Threading.Tasks.Task PlayTurnStopsWhenNothingHappens() {
+		Tile start = FindOpenLand();
+		MapUnit unit = gameData.SpawnUnit(player, Proto("Warrior"), start);
+		StuckAI ai = new();
+		C7GameData.UnitAI.Result result = await ((C7GameData.UnitAI)ai).PlayTurn(player, unit);
+		Assert.Equal(C7GameData.UnitAI.Result.InProgress, result);
+		Assert.True(ai.calls < 10);
+	}
+
+	[Fact]
+	public async System.Threading.Tasks.Task EscortIsDoneOnceItsSettlerFoundsACity() {
+		MapUnit settler = player.units.First(u => u.unitType.isSettler);
+		Tile site = settler.location;
+		MapUnit escort = gameData.SpawnUnit(player, Proto("Warrior"), site);
+		SettlerAI settlerAi = new(new C7GameData.AIData.SettlerAIData() {
+			goal = C7GameData.AIData.SettlerAIData.SettlerGoal.BUILD_CITY,
+			destination = site,
+			escort = escort,
+		});
+		settler.currentAI = settlerAi;
+		EscortAI escortAi = new(new C7GameData.AIData.EscortAIData() { unitToEscort = settler });
+		escort.currentAI = escortAi;
+
+		C7GameData.UnitAI.Result result = await ((C7GameData.UnitAI)escortAi).PlayTurn(player, escort);
+		Assert.NotNull(site.cityAtTile);
+		Assert.Equal(C7GameData.UnitAI.Result.Done, result);
+	}
+}

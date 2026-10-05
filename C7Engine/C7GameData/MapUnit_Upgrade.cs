@@ -44,7 +44,12 @@ public partial class MapUnit {
 
 	// Upgrades the unit, keeping its experience. Returns whether it upgraded.
 	public bool Upgrade() {
-		UnitPrototype upgrade = GetAvailableUpgrade();
+		return UpgradeTo(GetAvailableUpgrade());
+	}
+
+	// Like Upgrade, for callers that already looked up GetAvailableUpgrade
+	// (or an equivalent) and pass its result.
+	internal bool UpgradeTo(UnitPrototype upgrade) {
 		if (upgrade == null) {
 			return false;
 		}

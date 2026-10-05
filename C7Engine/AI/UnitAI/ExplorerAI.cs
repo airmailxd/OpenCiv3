@@ -40,10 +40,6 @@ namespace C7Engine {
 			}
 
 			if (result == null) {
-				if (!unit.IsLandUnit()) {
-					player.tileKnowledge.fullyExploredOceans = true;
-				}
-
 				return result;
 			}
 
@@ -85,13 +81,20 @@ namespace C7Engine {
 		// The explorers are found through the registry of ExplorerAIs rather
 		// than by scanning every unit of the player.
 		private static void ForgetAbandonedExplorationTargets(Player player, MapUnit unit) {
+			HashSet<Tile> activeTargets = ActiveExplorationTargets(player, unit);
+			player.tileKnowledge.aiExplorationTargets.RemoveWhere(t => !activeTargets.Contains(t));
+		}
+
+		// The destinations of the player's units, other than `except`, that
+		// are currently exploring.
+		internal static HashSet<Tile> ActiveExplorationTargets(Player player, MapUnit except) {
 			HashSet<Tile> activeTargets = new();
 			registry.ForEachActive(player, ai => {
-				if (ai.data.explorer != unit && ai.data.destination != null) {
+				if (ai.data.explorer != except && ai.data.destination != null) {
 					activeTargets.Add(ai.data.destination);
 				}
 			});
-			player.tileKnowledge.aiExplorationTargets.RemoveWhere(t => !activeTargets.Contains(t));
+			return activeTargets;
 		}
 
 		private static int DistanceToNearestCity(Player player, Tile t) {
@@ -192,7 +195,8 @@ namespace C7Engine {
 				discoverableTiles++;
 			}
 			foreach (Tile n in t.neighbors.Values) {
-				if (!player.tileKnowledge.isTileKnown(n)) {
+				// There's nothing to discover off the edge of the map.
+				if (n != Tile.NONE && !player.tileKnowledge.isTileKnown(n)) {
 					discoverableTiles++;
 				}
 			}
