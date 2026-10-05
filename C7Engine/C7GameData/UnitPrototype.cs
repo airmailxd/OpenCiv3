@@ -260,11 +260,32 @@ namespace C7GameData {
 		}
 
 		/// Immediate upgrade target, given a civilization.
+		///
+		/// upgradesTo is the union of every civ's next upgrade, so a civ can match
+		/// several targets: Spearman lists Pikeman and Musketman because some civ
+		/// can't build Pikeman. The immediate target is the one the others are
+		/// further along the chain from.
 		private UnitPrototype GetUnitUpgrade(Civilization civ) {
 			var match = upgradesTo.Where(x => x.producibleBy.Contains(civ)).ToList();
-			if (match.Count > 1)
-				Log.Warning($"Unexpected upgrade chain: more than one valid target for upgrading {name} with {civ.name}.");
+			if (match.Count > 1) {
+				match = match.Where(x => !match.Any(y => y != x && y.UpgradesEventuallyTo(x))).ToList();
+				if (match.Count > 1)
+					Log.Warning($"Unexpected upgrade chain: more than one valid target for upgrading {name} with {civ.name}.");
+			}
 			return match.FirstOrDefault();
+		}
+
+		/// Whether target can be reached from this unit by following upgrades.
+		private bool UpgradesEventuallyTo(UnitPrototype target) {
+			var seen = new HashSet<UnitPrototype>();
+			var pending = new Stack<UnitPrototype>(upgradesTo);
+			while (pending.Count > 0) {
+				var unit = pending.Pop();
+				if (unit == target) return true;
+				if (!seen.Add(unit)) continue;
+				foreach (var next in unit.upgradesTo) pending.Push(next);
+			}
+			return false;
 		}
 
 		/// The upgrade chain: a unit upgrade series as an ordered collection of unit prototypes,
