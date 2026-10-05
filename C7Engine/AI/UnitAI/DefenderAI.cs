@@ -3,6 +3,8 @@ using C7GameData.AIData;
 using C7Engine.Pathing;
 using System.Collections.Generic;
 using System.Linq;
+using System;
+using System.Runtime.CompilerServices;
 using Serilog;
 
 namespace C7Engine.AI.UnitAI {
@@ -14,6 +16,7 @@ namespace C7Engine.AI.UnitAI {
 			DefenderAIData ai = new DefenderAIData();
 			ai.goal = DefenderAIData.DefenderGoal.DEFEND_CITY;
 			ai.destination = unit.location;
+			ai.defender = unit;
 			log.Information("Set defender AI for " + unit + " with destination of " + ai.destination);
 			return ai;
 		}
@@ -32,6 +35,7 @@ namespace C7Engine.AI.UnitAI {
 			DefenderAIData ai = new DefenderAIData();
 			ai.destination = cityToDefend.location;
 			ai.goal = DefenderAIData.DefenderGoal.DEFEND_CITY;
+			ai.defender = unit;
 
 			PathingAlgorithm algorithm = PathingAlgorithmChooser.GetAlgorithm(unit);
 			ai.pathToDestination = algorithm.PathFrom(unit.location, ai.destination, unit);
@@ -42,6 +46,27 @@ namespace C7Engine.AI.UnitAI {
 
 		public DefenderAI(DefenderAIData d) {
 			data = d;
+			if (d?.defender != null) {
+				Register(d.defender.owner, this);
+			}
+		}
+
+		// Every DefenderAI created for a player's units, so that we can count
+		// the units heading to each city without scanning all units.
+		private static readonly UnitAiRegistry<DefenderAI> registry = new(ai => ai.data?.defender);
+
+		private static void Register(Player player, DefenderAI ai) {
+			registry.Register(player, ai);
+		}
+
+		private static int CurrentTurn() {
+			return EngineStorage.gameData?.turn ?? 0;
+		}
+
+		// Calls action(destination) for every unit of `player` whose current
+		// AI is a DefenderAI.
+		private static void ForEachActiveDefenderDestination(Player player, Action<Tile> action) {
+			registry.ForEachActive(player, ai => action(ai.data.destination));
 		}
 
 		C7GameData.UnitAI.MoveResult C7GameData.UnitAI.PlayTurnImpl(Player player, MapUnit unit) {
@@ -63,6 +88,84 @@ namespace C7Engine.AI.UnitAI {
 
 		public void UpdateOnDeath() { }
 
+		// The per-city inputs of FindAtRiskCityToDefend, which PlayerAI asks
+		// for repeatedly (with different minDefenders) while choosing a plan
+		// for a unit. They're reused as long as the unit and its owner's units
+		// and cities are where they were.
+		private sealed class CityDefenseSnapshot {
+			public MapUnit unit;
+			public Player player;
+			public int turn;
+			public Tile unitLocation;
+			public int unitCount;
+			public int cityCount;
+			public City[] cities;
+			public int[] defenders;
+			public int[] enRoute;
+			public int[] distance;
+		}
+
+		[ThreadStatic] private static CityDefenseSnapshot lastSnapshot;
+
+		private static CityDefenseSnapshot GetSnapshot(MapUnit unit, Player player) {
+			int turn = CurrentTurn();
+			CityDefenseSnapshot snap = lastSnapshot;
+			if (snap != null && snap.unit == unit && snap.player == player && snap.turn == turn
+				&& snap.unitLocation == unit.location && snap.unitCount == player.units.Count
+				&& snap.cityCount == player.cities.Count && SameCities(snap.cities, player.cities)) {
+				return snap;
+			}
+
+			int n = player.cities.Count;
+			snap = new CityDefenseSnapshot() {
+				unit = unit,
+				player = player,
+				turn = turn,
+				unitLocation = unit.location,
+				unitCount = player.units.Count,
+				cityCount = n,
+				cities = player.cities.ToArray(),
+				defenders = new int[n],
+				enRoute = new int[n],
+				distance = new int[n],
+			};
+
+			Dictionary<Tile, int> cityIndex = new(n, ReferenceEqualityComparer.Instance);
+			for (int i = 0; i < n; ++i) {
+				City c = snap.cities[i];
+				int numDefenders = 0;
+				foreach (MapUnit u in c.location.unitsOnTile) {
+					if (u.CanDefendOnLand()) {
+						++numDefenders;
+					}
+				}
+				snap.defenders[i] = numDefenders;
+				snap.distance[i] = c.location.DistanceTo(unit.location);
+				cityIndex.TryAdd(c.location, i);
+			}
+
+			// Count the units already on the way to each city.
+			ForEachActiveDefenderDestination(player, destination => {
+				// The city may have been captured since the unit set out.
+				City city = destination?.cityAtTile;
+				if (city != null && cityIndex.TryGetValue(destination, out int i) && snap.cities[i] == city) {
+					++snap.enRoute[i];
+				}
+			});
+
+			lastSnapshot = snap;
+			return snap;
+		}
+
+		private static bool SameCities(City[] cached, List<City> current) {
+			for (int i = 0; i < cached.Length; ++i) {
+				if (cached[i] != current[i]) {
+					return false;
+				}
+			}
+			return true;
+		}
+
 		/**
 		 * Finds a nearby city that could use extra defenders.
 		 *
@@ -74,42 +177,30 @@ namespace C7Engine.AI.UnitAI {
 				return City.NONE;
 			}
 
+			CityDefenseSnapshot snap = GetSnapshot(unit, player);
+
 			// Assign a score to each city, where the highest score is the city
 			// we want to send our unit to.
-			Dictionary<City, float> cityScores = new();
-			foreach (City c in player.cities) {
-				int numDefenders = c.location.unitsOnTile.Count(u => u.CanDefendOnLand());
+			float bestScore = (float)int.MinValue;
+			City bestCity = null;
+			for (int i = 0; i < snap.cities.Length; ++i) {
 				float score = 0;
-				if (numDefenders < minDefenders) {
+				if (snap.defenders[i] < minDefenders) {
 					// Add to the score if there aren't many defenders, with a
 					// larger score for less defended cities.
 					score += 10f;
 				}
 
 				// Penalize cities for being far away.
-				score -= c.location.DistanceTo(unit.location);
+				score -= snap.distance[i];
 
-				cityScores.Add(c, score);
-			}
+				// Make the city less important if there are already units on
+				// the way.
+				score -= 3f * snap.enRoute[i];
 
-			// Make the city less important if there are already units on the
-			// way.
-			foreach (MapUnit u in player.units) {
-				if (u.currentAI is DefenderAI defenderAi) {
-					// The city may have been captured since the unit set out.
-					City destination = defenderAi.data.destination.cityAtTile;
-					if (destination != null && cityScores.ContainsKey(destination)) {
-						cityScores[destination] -= 3f;
-					}
-				}
-			}
-
-			float bestScore = (float)int.MinValue;
-			City bestCity = null;
-			foreach (KeyValuePair<City, float> p in cityScores) {
-				if (p.Value > bestScore) {
-					bestScore = p.Value;
-					bestCity = p.Key;
+				if (score > bestScore) {
+					bestScore = score;
+					bestCity = snap.cities[i];
 				}
 			}
 
@@ -122,6 +213,74 @@ namespace C7Engine.AI.UnitAI {
 			}
 
 			return bestCity;
+		}
+	}
+
+	// Tracks the unit AIs of a given type created for each player's units, so
+	// that "which of my units currently have this kind of plan" can be
+	// answered without scanning every unit.
+	//
+	// An AI counts as active while it is its unit's currentAI. AIs are
+	// created right before being assigned, so ones that were never assigned
+	// are only dropped once they are from a previous turn.
+	internal sealed class UnitAiRegistry<TAi> where TAi : class, C7GameData.UnitAI {
+		private sealed class Registration {
+			public TAi ai;
+			public int createdTurn;
+			public bool seenAssigned;
+		}
+
+		private sealed class Entries {
+			public readonly List<Registration> list = new();
+			public int pruneAt = 64;
+		}
+
+		private readonly Func<TAi, MapUnit> unitOf;
+		private readonly ConditionalWeakTable<Player, Entries> byPlayer = new();
+
+		public UnitAiRegistry(Func<TAi, MapUnit> unitOf) {
+			this.unitOf = unitOf;
+		}
+
+		private static int CurrentTurn() {
+			return EngineStorage.gameData?.turn ?? 0;
+		}
+
+		public void Register(Player player, TAi ai) {
+			if (player == null) {
+				return;
+			}
+			Entries entries = byPlayer.GetOrCreateValue(player);
+			entries.list.Add(new Registration() { ai = ai, createdTurn = CurrentTurn() });
+
+			// Keep the list from growing without bound for players whose
+			// registry is rarely scanned.
+			if (entries.list.Count >= entries.pruneAt) {
+				ForEachActive(player, null);
+				entries.pruneAt = Math.Max(64, entries.list.Count * 2);
+			}
+		}
+
+		// Calls action for every active AI of the player, dropping AIs that
+		// are no longer in use.
+		public void ForEachActive(Player player, Action<TAi> action) {
+			if (!byPlayer.TryGetValue(player, out Entries entries)) {
+				return;
+			}
+			int turn = CurrentTurn();
+			entries.list.RemoveAll(r => {
+				MapUnit unit = unitOf(r.ai);
+				if (unit == null) {
+					return true;
+				}
+				bool assigned = unit.currentAI == r.ai && unit.owner == player;
+				if (!assigned) {
+					return r.seenAssigned || r.createdTurn != turn;
+				}
+				r.seenAssigned = true;
+				action?.Invoke(r.ai);
+				return false;
+			});
 		}
 	}
 }
