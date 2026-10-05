@@ -1,10 +1,12 @@
+using System;
+
 namespace Blast {
 	/// <summary>
 	/// Huffman code decoding tables.  count[1..MAXBITS] is the number of symbols of
 	/// each length, which for a canonical code are stepped through in order.
 	/// symbol[] are the symbol values in canonical order, where the number of
-	/// entries is the sum of the counts in count[].  The decoding process can be
-	/// seen in the function decode() below.
+	/// entries is the sum of the counts in count[].  <see cref="DecodeBitByBit"/> decodes
+	/// with them like blast.c's decode(); the decoder uses <see cref="lookup"/>, which is built from it.
 	/// </summary>
 	internal class HuffmanTable {
 		public const int MAX_BITS = 13;
@@ -34,14 +36,16 @@ namespace Blast {
 		public static readonly HuffmanTable LENGTH_CODE = new HuffmanTable(16, LENGTH_BIT_LENGTHS);
 		public static readonly HuffmanTable DISTANCE_CODE = new HuffmanTable(64, DISTANCE_BIT_LENGTHS);
 
-		public const int LOOKUP_BITS = MAX_BITS;
-		public const int LOOKUP_MASK = (1 << LOOKUP_BITS) - 1;
+		// The number of bits that index lookup: the length of the longest code (13 for literals, 7 for lengths and
+		// 8 for distances), and the mask for them
+		public readonly int lookupBits;
+		public readonly int lookupMask;
 
 		public readonly short[] count;
 		public readonly short[] symbol;
 
 		/// <summary>
-		/// Direct decoding table indexed by the next <see cref="LOOKUP_BITS"/> bits of the stream (first bit in the
+		/// Direct decoding table indexed by the next <see cref="lookupBits"/> bits of the stream (first bit in the
 		/// least significant position). Each entry is <c>(symbol &lt;&lt; 4) | codeLength</c>; an entry of zero means
 		/// the bits do not form a valid code. Built once per table by running the canonical bit-by-bit decode
 		/// (see <see cref="DecodeBitByBit"/>) over every possible bit pattern, so the result is identical to it.
@@ -52,9 +56,17 @@ namespace Blast {
 			count = new short[MAX_BITS + 1];
 			symbol = new short[symbolSize];
 
-			Construct(compacted);
+			if (Construct(compacted) != 0) {
+				// The PKWare codes are complete, which Decode relies on
+				throw new InvalidOperationException("Incomplete or over-subscribed Huffman code");
+			}
 
-			lookup = new ushort[1 << LOOKUP_BITS];
+			lookupBits = MAX_BITS;
+			while (lookupBits > 1 && count[lookupBits] == 0) {
+				lookupBits--;
+			}
+			lookupMask = (1 << lookupBits) - 1;
+			lookup = new ushort[1 << lookupBits];
 			for (int bits = 0; bits < lookup.Length; bits++) {
 				int decoded = DecodeBitByBit(bits, out int length);
 				if (decoded >= 0) {

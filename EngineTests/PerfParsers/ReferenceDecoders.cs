@@ -238,7 +238,8 @@ public static class ReferenceDecoders {
 		return Images;
 	}
 
-	// Original Blast decoder (BlastDecoder, BitStream and InputBuffer), decoding bit by bit
+	// Original Blast decoder (BlastDecoder, BitStream and InputBuffer), decoding bit by bit, with the correction noted
+	// on Decompress
 	public class BlastDecoder {
 		public const int MAX_WIN = 4096;
 		private const int END_OF_STREAM = 519;
@@ -265,10 +266,10 @@ public static class ReferenceDecoders {
 			return DecompressedStream.ToArray();
 		}
 
+		// Corrected: like blast.c, only the first stream is decoded, and anything after its end code is ignored
+		// (the original went on to decode trailing bytes as another stream)
 		public void Decompress() {
-			do {
-				DecompressStream();
-			} while (_inputBuffer.IsInputRemaining());
+			DecompressStream();
 		}
 
 		private void DecompressStream() {
