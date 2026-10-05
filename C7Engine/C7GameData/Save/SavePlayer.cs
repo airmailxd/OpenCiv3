@@ -106,7 +106,9 @@ namespace C7GameData.Save {
 				primaryColorIndex = primaryColorIndex,
 				secondaryColorIndex = secondaryColorIndex,
 				civilization = civilization is not null ? civilizations.Find(civ => civ.name == civilization) : null,
-				knownTechs = knownTechs,
+				// Copied, so that the game doesn't change the save (or other
+				// games made from it) as the player learns techs.
+				knownTechs = knownTechs == null ? new HashSet<ID>() : new HashSet<ID>(knownTechs),
 				eraCivilopediaName = eraCivilopediaName,
 				luxuryRate = luxuryRate,
 				scienceRate = scienceRate,
@@ -187,7 +189,7 @@ namespace C7GameData.Save {
 				tileKnowledge = player.tileKnowledge.AllKnownTiles().ConvertAll(tile => new TileLocation(tile));
 			}
 			turnsUntilPriorityReevaluation = player.turnsUntilPriorityReevaluation;
-			knownTechs = player.knownTechs;
+			knownTechs = new HashSet<ID>(player.knownTechs);
 			currentlyResearchedTech = player.currentlyResearchedTech;
 			researchQueue = new List<ID>(player.ResearchQueue.Select(t => t.id));
 			eraCivilopediaName = player.eraCivilopediaName;
@@ -271,6 +273,11 @@ namespace C7GameData.Save {
 						throw new FormatException("Malformed known tile indices");
 					}
 					byte b = bytes[i++];
+					// The fifth byte holds the top 4 bits of a 32-bit value,
+					// and must be the last.
+					if (shift == 28 && (b & 0xf0) != 0) {
+						throw new FormatException("Malformed known tile indices");
+					}
 					zigzag |= (uint)(b & 0x7f) << shift;
 					if ((b & 0x80) == 0) {
 						break;

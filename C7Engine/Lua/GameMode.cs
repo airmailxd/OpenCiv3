@@ -159,12 +159,13 @@ internal class GameModeLoader {
 
 	private DynValue LoadScript(string addonDir, string scriptPath) {
 		SetLoaderPath(addonDir);
-
-		DynValue script = lua.SafeDoFile(scriptPath);
-
-		UnsetLoaderPath();
-
-		return script;
+		try {
+			return lua.SafeDoFile(scriptPath);
+		} finally {
+			// A failing script mustn't leave its directory on the module
+			// path for the next one.
+			UnsetLoaderPath();
+		}
 	}
 
 	private void SetLoaderPath(string addonDir) {

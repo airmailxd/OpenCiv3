@@ -972,6 +972,7 @@ namespace C7GameData {
 			newUnit.hitPointsRemaining = newUnit.maxHitPoints;
 
 			location.unitsOnTile.Add(newUnit);
+			TileChangeJournal.Record(location);
 			gameData.mapUnits.Add(newUnit);
 			owner.AddUnit(newUnit);
 

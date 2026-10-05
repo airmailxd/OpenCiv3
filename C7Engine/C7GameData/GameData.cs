@@ -42,6 +42,7 @@ namespace C7GameData {
 		// list so that a stale entry can be detected and the index rebuilt.
 		private Dictionary<ID, int> cityIndexById;
 		private List<City> indexedCities;
+		private int indexedCityCount;
 
 		// The player last returned by GetUIControllerPlayer.
 		private Player cachedUIControllerPlayer;
@@ -200,33 +201,32 @@ namespace C7GameData {
 			if (id is null) {
 				return cities.Find(c => c.id == id);
 			}
-			if (TryGetIndexedCity(id, out City city)) {
-				return city;
+			if (cityIndexById == null || !ReferenceEquals(indexedCities, cities) || indexedCityCount != cities.Count) {
+				// The list was replaced, or cities were added or removed.
+				RebuildCityIndex();
+			} else if (cityIndexById.TryGetValue(id, out int index)) {
+				if (index < cities.Count && cities[index].id == id) {
+					return cities[index];
+				}
+				// The list was changed without its size changing.
+				RebuildCityIndex();
+			} else {
+				// Most likely there is no such city. Only if there is (a city
+				// was swapped in without the size changing) is the index stale.
+				// Checking is cheaper than rebuilding the index on every miss.
+				if (!cities.Exists(c => c.id == id)) {
+					return null;
+				}
+				RebuildCityIndex();
 			}
-			// The id may belong to a city added since the index was built, or
-			// the list may have been changed.
-			RebuildCityIndex();
-			TryGetIndexedCity(id, out city);
-			return city;
-		}
-
-		private bool TryGetIndexedCity(ID id, out City city) {
-			city = null;
-			if (cityIndexById == null || !ReferenceEquals(indexedCities, cities)) {
-				return false;
-			}
-			if (!cityIndexById.TryGetValue(id, out int index)) {
-				return false;
-			}
-			if (index < cities.Count && cities[index].id == id) {
-				city = cities[index];
-				return true;
-			}
-			return false;
+			return cityIndexById.TryGetValue(id, out int found) && found < cities.Count && cities[found].id == id
+				? cities[found]
+				: null;
 		}
 
 		private void RebuildCityIndex() {
 			indexedCities = cities;
+			indexedCityCount = cities.Count;
 			cityIndexById = new Dictionary<ID, int>(cities.Count);
 			for (int i = 0; i < cities.Count; ++i) {
 				if (cities[i].id is not null) {

@@ -23,7 +23,7 @@ namespace C7Engine {
 			// game. Copied, in case finishing a job changes it.
 			foreach (MapUnit busyWorker in player.units.ToArray())
 				if (busyWorker.WorkerJob != null)
-					_ = busyWorker.PerformEndOfTurnAction();
+					EngineStorage.ObserveTask(busyWorker.PerformEndOfTurnAction(), nameof(MapUnit.PerformEndOfTurnAction));
 		}
 
 		public static void InitTurnData(Player player = null, bool skipTurn = false) {

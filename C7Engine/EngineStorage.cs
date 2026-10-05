@@ -128,6 +128,45 @@ namespace C7Engine {
 			processingSenderID = null;
 			diplomacyPlayerID = null;
 			pendingDeal = null;
+			UnitInteractions.ResetForNewGame();
+			// The tile change log would otherwise keep the previous game alive.
+			TileChangeJournal.Reset();
+		}
+
+		// The last exception that escaped an engine handler nobody awaits
+		// (such as a message's ProcessAllowed), so that a test host can tell
+		// that one happened. Such exceptions are logged and don't stop the
+		// engine.
+		public static Exception LastUnhandledEngineException { get; private set; }
+
+		// Raised with each such exception, and the name of what threw it.
+		public static event Action<Exception, string> UnhandledEngineException;
+
+		private static readonly Serilog.ILogger log = Serilog.Log.ForContext(typeof(EngineStorage));
+
+		internal static void ReportUnhandledException(Exception e, string source) {
+			log.Error(e, "Unhandled exception in {Source}", source);
+			LastUnhandledEngineException = e;
+			UnhandledEngineException?.Invoke(e, source);
+		}
+
+		// Reports the exception, if any, of a task that nothing awaits.
+		internal static void ObserveTask(Task task, string source) {
+			if (task.IsCompleted) {
+				if (task.IsFaulted) {
+					ReportUnhandledException(task.Exception.GetBaseException(), source);
+				}
+				return;
+			}
+			task.ContinueWith(t => ReportUnhandledException(t.Exception.GetBaseException(), source),
+				System.Threading.CancellationToken.None,
+				TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously,
+				TaskScheduler.Default);
+		}
+
+		// Forgets LastUnhandledEngineException, for tests.
+		public static void ClearUnhandledEngineException() {
+			LastUnhandledEngineException = null;
 		}
 
 		public static bool HasPendingAnimations() {

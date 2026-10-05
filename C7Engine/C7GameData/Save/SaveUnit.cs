@@ -104,7 +104,7 @@ namespace C7GameData.Save {
 				owner = Lookups.Find(lookups.playersById, owner),
 				location = map.tileAt(currentLocation.X, currentLocation.Y),
 				loadedOnUnitId = loadedOnUnitId,
-				previousLocation = currentLocation.X == - 1 ? Tile.NONE : map.tileAt(previousLocation.X, previousLocation.Y),
+				previousLocation = previousLocation.X == -1 ? Tile.NONE : map.tileAt(previousLocation.X, previousLocation.Y),
 				hitPointsRemaining = hitPointsRemaining,
 				movementPoints = new MovementPoints(),
 				isFortified = action == "fortified",
@@ -117,7 +117,15 @@ namespace C7GameData.Save {
 				WorkerProgressTowardsJob = WorkerProgressTowardsJob,
 				WorkerJob = WorkerJob == null ? null : Lookups.Find(lookups.terraformsById, WorkerJob)
 			};
-			unit.location.unitsOnTile.Add(unit);
+			// A unit that isn't on the map can't be put on a tile; in
+			// particular it mustn't be added to the shared Tile.NONE. The game
+			// leaves such units out (see SaveGame.ConvertUnits).
+			if (unit.location == Tile.NONE) {
+				Serilog.Log.Warning("Unit {Id} is at ({X}, {Y}), which is not on the map", id, currentLocation.X, currentLocation.Y);
+			} else {
+				unit.location.unitsOnTile.Add(unit);
+			}
+			unit.path = ToTilePath(map);
 			unit.movementPoints.reset(movePointsRemaining);
 			unit.name = string.IsNullOrEmpty(name) ? unit.unitType.name : name;
 
@@ -129,6 +137,24 @@ namespace C7GameData.Save {
 			}
 
 			return unit;
+		}
+
+		// The path the unit was following, or null if it had none. A path
+		// leaving the map is dropped, since the unit couldn't follow it.
+		private TilePath ToTilePath(GameMap map) {
+			if (path == null || path.Count == 0) {
+				return null;
+			}
+			Queue<Tile> tiles = new(path.Count);
+			foreach (TileLocation location in path) {
+				Tile tile = map.tileAt(location.X, location.Y);
+				if (tile == Tile.NONE) {
+					Serilog.Log.Warning("Dropping the path of unit {Id}, which leaves the map at ({X}, {Y})", id, location.X, location.Y);
+					return null;
+				}
+				tiles.Enqueue(tile);
+			}
+			return new TilePath(tiles.Last(), tiles);
 		}
 	}
 }

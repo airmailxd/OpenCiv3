@@ -60,6 +60,20 @@ namespace C7GameData {
 
 		private static ILogger log = Log.ForContext<ImportCiv3>();
 
+		// The BIQ the civilizations (RACE) come from.
+		private BiqData RaceBiq => biq.Race is null ? defaultBiq : biq;
+
+		// The BIQ the leaders (LEAD, the scenario's player data) come from,
+		// or null if there are none (as in a BIQ with only a map). A LEAD
+		// refers to its civ by index, so the default BIQ's leaders are only
+		// used along with its civs.
+		private BiqData LeadBiq => biq.Lead is not null ? biq
+			: biq.Race is null && defaultBiq?.Lead is not null ? defaultBiq
+			: null;
+
+		// The BIQ the scenario's game settings (GAME) come from.
+		private BiqData GameBiq => biq.Game is not null ? biq : defaultBiq;
+
 		private ImportCiv3() {
 			save = new SaveGame();
 			ids = new ID.Factory();
@@ -90,7 +104,7 @@ namespace C7GameData {
 			save.HealRates["neutral_field"] = 1;
 			save.HealRates["hostile_field"] = 0;
 			save.HealRates["city"] = 2;
-			save.ScenarioSearchPath = biq?.Game[0].ScenarioSearchFolders;
+			save.ScenarioSearchPath = GameBiq?.Game?[0].ScenarioSearchFolders;
 			ImportBarbarianInfo();
 			ImportCitizenTypes();
 			ImportGovernments();
@@ -427,12 +441,13 @@ namespace C7GameData {
 		}
 
 		private void ImportTimeScale() {
+			var games = GameBiq.Game;
 			save.TimeOptions = new TimeOptions() {
-				baseUnit = (TimeUnit)biq.Game[0].BaseTimeUnit,
-				startYear = biq.Game[0].StartYear,
-				startMonth = biq.Game[0].StartMonth,
-				startWeek = biq.Game[0].StartWeek,
-				turnLimit = biq.Game[0].TurnTimeLimit,
+				baseUnit = (TimeUnit)games[0].BaseTimeUnit,
+				startYear = games[0].StartYear,
+				startMonth = games[0].StartMonth,
+				startWeek = games[0].StartWeek,
+				turnLimit = games[0].TurnTimeLimit,
 				negativeLabel = "BC",
 				positiveLabel = "AD",
 			};
@@ -440,8 +455,8 @@ namespace C7GameData {
 			save.TimeOptions.timeScale = new int[2, 8];
 
 			for (int i = 0; i < 7; ++i) {
-				var turns = biq.Game[0].TimescaleNumberOfTurns[i];
-				var units = biq.Game[0].TurnNumberOfTimeUnits[i];
+				var turns = games[0].TimescaleNumberOfTurns[i];
+				var units = games[0].TurnNumberOfTimeUnits[i];
 				save.TimeOptions.timeScale[0, i] = turns;
 				save.TimeOptions.timeScale[1, i] = units;
 			}
@@ -598,7 +613,12 @@ namespace C7GameData {
 		}
 
 		private void ImportBicLeaders() {
-			BiqData theBiq = biq.Race is null ? defaultBiq : biq;
+			// The playable civs are part of the scenario's game settings. An
+			// empty list means every civ may play, as in Civ3.
+			int[] playableCivs = GameBiq?.GameCiv?[0];
+			if (playableCivs is { Length: 0 }) {
+				playableCivs = null;
+			}
 
 			Government defaultGovernment = save.Governments.Find(g => g.defaultType) ?? save.Governments[0];
 
@@ -608,7 +628,7 @@ namespace C7GameData {
 
 				// GameCiv[0] does not contain the barbarians,
 				// but we want to include them in the gameplay
-				bool isIncluded = theBiq.GameCiv[0].Contains(i) || civ.isBarbarian;
+				bool isIncluded = playableCivs == null || playableCivs.Contains(i) || civ.isBarbarian;
 
 				save.Players.Add(MakeSavePlayerFromCiv(civ,
 									   isHuman: false,
@@ -622,16 +642,22 @@ namespace C7GameData {
 				save.Players.Last().governmentId = defaultGovernment.id;
 			}
 
-			// Now fill in the rest of the data using the leader struct.
+			// Now fill in the rest of the data using the leader struct. A BIQ
+			// with only a map has none.
+			BiqData leadBiq = LeadBiq;
+			if (leadBiq == null) {
+				return;
+			}
+			ERAS[] eras = biq.Eras ?? defaultBiq.Eras;
 			bool foundHuman = false;
 			int leadIndex = 0;
-			foreach (LEAD lead in theBiq.Lead) {
+			foreach (LEAD lead in leadBiq.Lead) {
 				SavePlayer player = save.Players[lead.Civ];
 
 				player.canBePicked = lead.HumanPlayer == 1;
 
 				// Put the player in the correct starting era.
-				player.eraCivilopediaName = theBiq.Eras[lead.InitialEra].CivilopediaEntry;
+				player.eraCivilopediaName = eras[lead.InitialEra].CivilopediaEntry;
 
 				// Give the correct amount of starting gold.
 				player.gold = lead.StartCash;
@@ -647,9 +673,9 @@ namespace C7GameData {
 				player.skipFirstTurn = lead.SkipFirstTurn == 1;
 
 				// Add the starting techs for scenarios.
-				if (theBiq.LeadTech != null) {
-					for (int j = 0; j < theBiq.LeadTech[leadIndex].Length; ++j) {
-						player.knownTechs.Add(save.Techs[theBiq.LeadTech[leadIndex][j]].id);
+				if (leadBiq.LeadTech != null) {
+					for (int j = 0; j < leadBiq.LeadTech[leadIndex].Length; ++j) {
+						player.knownTechs.Add(save.Techs[leadBiq.LeadTech[leadIndex][j]].id);
 					}
 				}
 
@@ -1014,7 +1040,10 @@ namespace C7GameData {
 		}
 
 		private void ImportEmbassies() {
-			BiqData theBiq = biq.Race is null ? defaultBiq : biq;
+			BiqData theBiq = LeadBiq;
+			if (theBiq == null) {
+				return;
+			}
 
 			List<SavePlayer> playerWithEmbassies = new List<SavePlayer>();
 
@@ -1050,7 +1079,10 @@ namespace C7GameData {
 		}
 
 		private void ImportAlliances() {
-			BiqData theBiq = biq.Race is null ? defaultBiq : biq;
+			BiqData theBiq = GameBiq;
+			if (theBiq?.Game == null) {
+				return;
+			}
 
 			// import alliances names and indexes
 			HashSet<Alliance> alliances = new HashSet<Alliance>() {
@@ -1065,8 +1097,9 @@ namespace C7GameData {
 
 			// import player alliances
 			var filteredPlayers = save.Players.Where(p => p.isIncludedInGame || p.isBarbarian).ToList();
-			for (int i = 0; i < theBiq.GameAlliance[0].Length; i++) {
-				filteredPlayers[i + 1].alliance = alliances.FirstOrDefault(a => a.index == theBiq.GameAlliance[0][i])?.name;
+			int[] gameAlliances = theBiq.GameAlliance?[0] ?? [];
+			for (int i = 0; i < gameAlliances.Length && i + 1 < filteredPlayers.Count; i++) {
+				filteredPlayers[i + 1].alliance = alliances.FirstOrDefault(a => a.index == gameAlliances[i])?.name;
 			}
 
 			foreach (var saveAlliance in save.Alliances) {
@@ -1168,10 +1201,12 @@ namespace C7GameData {
 		}
 
 		private void ImportBicUnits() {
-			BiqData theBiq = biq.Unit is null ? defaultBiq : biq;
+			// Units and starting locations belong to the BIQ's map; the unit
+			// types and rules may come from the default BIQ.
+			PRTO[] prtos = biq.Prto ?? defaultBiq.Prto;
 
 			var createUnitAtLocation = (SavePlayer player, string unitName, int unitType, string experienceLevel, int hitPoints, int x, int y) => {
-				PRTO prototype = theBiq.Prto[unitType];
+				PRTO prototype = prtos[unitType];
 				string prototypeName = prototype.Name;
 				SaveUnit saveUnit = new SaveUnit{
 					id = ids.CreateID(prototypeName),
@@ -1191,7 +1226,7 @@ namespace C7GameData {
 				return saveUnit;
 			};
 
-			foreach (UNIT unit in theBiq.Unit) {
+			foreach (UNIT unit in biq.Unit ?? []) {
 				// Only barbarians can have an owner index larger than 31,
 				// as it denotes the tribe index rather that the player index.
 				// That is why we exclude barbarians (ownerType == 1) from this.
@@ -1211,8 +1246,8 @@ namespace C7GameData {
 				save.Units.Add(createUnitAtLocation(player, unit.Name, unit.UnitType, experience.key, experience.baseHitPoints, unit.X, unit.Y));
 			}
 
-			RULE rule = theBiq.Rule[0];
-			foreach (SLOC starting_location in theBiq.Sloc) {
+			RULE rule = biq.Rule?[0] ?? defaultBiq.Rule[0];
+			foreach (SLOC starting_location in biq.Sloc ?? []) {
 				// Skip barbarians
 				if (starting_location.OwnerType <= 1) {
 					continue;
@@ -1223,10 +1258,10 @@ namespace C7GameData {
 				SavePlayer player = save.Players[starting_location.Owner];
 				int baseHitPoints = 3;
 				if (rule.StartUnitType1 >= 0) {
-					save.Units.Add(createUnitAtLocation(player, theBiq.Prto[rule.StartUnitType1].Name, rule.StartUnitType1, "Regular", baseHitPoints, starting_location.X, starting_location.Y));
+					save.Units.Add(createUnitAtLocation(player, prtos[rule.StartUnitType1].Name, rule.StartUnitType1, "Regular", baseHitPoints, starting_location.X, starting_location.Y));
 				}
 				if (rule.StartUnitType2 >= 0) {
-					save.Units.Add(createUnitAtLocation(player, theBiq.Prto[rule.StartUnitType2].Name, rule.StartUnitType2, "Regular", baseHitPoints, starting_location.X, starting_location.Y));
+					save.Units.Add(createUnitAtLocation(player, prtos[rule.StartUnitType2].Name, rule.StartUnitType2, "Regular", baseHitPoints, starting_location.X, starting_location.Y));
 				}
 			}
 		}
@@ -1313,12 +1348,12 @@ namespace C7GameData {
 		}
 
 		List<SaveCityBuilding> ImportCityBuildingsFromBiq(int cityIndex, ID player) {
-			BiqData theBiq = biq.City is null ? defaultBiq : biq;
 			List<SaveCityBuilding> res = [];
-			int[] cityBuildings = theBiq.CityBuilding[cityIndex];
+			int[] cityBuildings = biq.CityBuilding[cityIndex];
+			BLDG[] bldgs = biq.Bldg ?? defaultBiq.Bldg;
 
 			for (int buildingIndex = 0; buildingIndex < cityBuildings.Length; ++buildingIndex) {
-				BLDG building = theBiq.Bldg[cityBuildings[buildingIndex]];
+				BLDG building = bldgs[cityBuildings[buildingIndex]];
 				string buildingName = building.Name;
 
 				res.Add(new SaveCityBuilding {
@@ -1354,10 +1389,11 @@ namespace C7GameData {
 		}
 
 		private void ImportBicCities() {
-			BiqData theBiq = biq.City is null ? defaultBiq : biq;
+			// Cities belong to the BIQ's map.
+			CITY[] cities = biq.City ?? [];
 
-			for (int cityIndex = 0; cityIndex < theBiq.City.Length; ++cityIndex) {
-				CITY city = theBiq.City[cityIndex];
+			for (int cityIndex = 0; cityIndex < cities.Length; ++cityIndex) {
+				CITY city = cities[cityIndex];
 
 				// The owner index is into the list of civs, and we have a 1:1
 				// mapping of players and civs.
@@ -1423,9 +1459,11 @@ namespace C7GameData {
 		private HashSet<string> ImportUnitAvailability(PRTO prto) {
 			HashSet<string> availableToCivs = [];
 			int[] availableTo = prto.AvailableTo.GetAvailableCivIndexes().ToArray();
-			for (int i = 0; i < biq.Race.Length; ++i) {
+			// The indexes are into the civs, which may come from the default BIQ.
+			RACE[] races = RaceBiq.Race;
+			for (int i = 0; i < races.Length; ++i) {
 				if (availableTo.Contains(i))
-					availableToCivs.Add(biq.Race[i].Name);
+					availableToCivs.Add(races[i].Name);
 			}
 
 			return availableToCivs;
@@ -1906,14 +1944,15 @@ namespace C7GameData {
 					st.Prerequisites.Add(save.Techs[t.Prerequisite3].id);
 				}
 				if (t.Prerequisite4 > -1) {
-					st.Prerequisites.Add(save.Techs[t.Prerequisite3].id);
+					st.Prerequisites.Add(save.Techs[t.Prerequisite4].id);
 				}
 			}
 
 			// Now that we have ids for all the techs, distribute the free techs
 			for (int i = 0; i < save.Civilizations.Count; ++i) {
 				Civilization sc = save.Civilizations[i];
-				RACE race = theBiq.Race[i];
+				// The civs may come from a different BIQ than the techs.
+				RACE race = RaceBiq.Race[i];
 
 				if (race.FreeTech1 > -1) {
 					sc.startingTechs.Add(save.Techs[race.FreeTech1].id);

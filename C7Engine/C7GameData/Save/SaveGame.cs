@@ -369,6 +369,11 @@ namespace C7GameData.Save {
 			SaveUnit.Lookups lookups = new(data.unitPrototypes, ExperienceLevels, data.players, data.Terraforms);
 			data.mapUnits = Units.ConvertAll(unit => unit.ToMapUnit(lookups, data.map));
 
+			// A unit that isn't on the map can't take part in the game (it
+			// would have no tile to stand on), so it is left out. ToMapUnit
+			// has already logged it.
+			data.mapUnits.RemoveAll(unit => unit.location == Tile.NONE);
+
 			// A unit can only be loaded on a unit that exists and shares its
 			// tile. Saves made before cargo was cleaned up with its transport
 			// or army can point at one that's gone, so let such units go free.

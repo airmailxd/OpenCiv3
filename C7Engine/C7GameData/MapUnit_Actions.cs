@@ -174,9 +174,39 @@ public partial class MapUnit {
 
 	public async Task MoveAlongPath() {
 		while (movementPoints.canMove && path?.PathLength() > 0) {
-			TileDirection dir = location.DirectionTo(path.Next());
+			Tile next = path.Next();
+			// A step off the map has no direction to move in. Paths from
+			// elsewhere (over the network, or from a save) are checked with
+			// IsFollowablePath first, but a step after a move that failed
+			// need not be to a neighbor, so only leaving the map is fatal.
+			if (next == null || next == Tile.NONE || location == Tile.NONE) {
+				log.Warning("{Unit} can't follow its path from {From} to {To}; dropping the path", this, location, next);
+				path = null;
+				return;
+			}
+			TileDirection dir = location.DirectionTo(next);
 			await Move(dir, true); //TODO: don't wait on last move animation?
 		}
+	}
+
+	private static bool IsStepOnMap(Tile from, Tile to) {
+		return to != null && to != Tile.NONE && from != null && from != Tile.NONE && from.neighbors.ContainsValue(to);
+	}
+
+	// Whether every step of the path, starting from the unit's tile, is to a
+	// neighboring tile on the map, so that the unit could follow it.
+	public bool IsFollowablePath(TilePath path) {
+		if (path?.path == null) {
+			return false;
+		}
+		Tile from = location;
+		foreach (Tile tile in path.path) {
+			if (!IsStepOnMap(from, tile)) {
+				return false;
+			}
+			from = tile;
+		}
+		return true;
 	}
 
 	public async Task SetUnitPath(TilePath path) {
@@ -185,19 +215,24 @@ public partial class MapUnit {
 	}
 
 	public async void PlayAutomatedTurn() {
-		if (currentAI == null) {
-			// TODO: handle giving automated workers from loaded saves the
-			// proper unit ai.
-			isAutomated = false;
-			return;
-		}
-		UnitAI.Result result = await currentAI.PlayTurn(owner, this);
-		if (result == UnitAI.Result.Done) {
-			if (currentAI is WorkerAI) {
-				Automate();
-			} else if (currentAI is ExplorerAI) {
-				Explore();
+		try {
+			if (currentAI == null) {
+				// TODO: handle giving automated workers from loaded saves the
+				// proper unit ai.
+				isAutomated = false;
+				return;
 			}
+			UnitAI.Result result = await currentAI.PlayTurn(owner, this);
+			if (result == UnitAI.Result.Done) {
+				if (currentAI is WorkerAI) {
+					Automate();
+				} else if (currentAI is ExplorerAI) {
+					Explore();
+				}
+			}
+		} catch (Exception e) {
+			// Nothing awaits this, so make the failure visible.
+			EngineStorage.ReportUnhandledException(e, $"{nameof(PlayAutomatedTurn)} of {this}");
 		}
 
 		// Do nothing after an error so control returns to the player, and
@@ -641,7 +676,7 @@ public partial class MapUnit {
 		}
 
 		Wake();
-		_ = PerformBusyAction();
+		EngineStorage.ObserveTask(PerformBusyAction(), nameof(PerformBusyAction));
 	}
 
 	public void BoardTransport(MapUnit t) {
