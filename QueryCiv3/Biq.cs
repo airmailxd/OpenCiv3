@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using QueryCiv3.Biq;
 
 namespace QueryCiv3 {
@@ -92,7 +93,8 @@ namespace QueryCiv3 {
 		public string Description;
 
 		public static unsafe BiqData LoadFile(string biqFilePath) {
-			byte[] biqBytes = Util.ReadFile(biqFilePath);
+			// BiqData only reads the bytes, so it can share the cached copy of a decompressed BIQ instead of cloning it
+			byte[] biqBytes = Util.ReadFileShared(biqFilePath);
 			return new BiqData(biqBytes);
 		}
 
@@ -105,12 +107,40 @@ namespace QueryCiv3 {
 		}
 
 		public unsafe void Load(byte[] biqBytes) {
+			ArgumentNullException.ThrowIfNull(biqBytes);
 			Load(biqBytes, 0, biqBytes.Length);
 		}
 
-		// Load BIQ data stored at data[start .. start + length), e.g. the BIQ sections embedded in a SAV file, without copying it out
+		// The minimum BIQ major version this reader understands. Earlier versions (vanilla "BIC " files and
+		// Play the World "BICX" files before version 12) have different, mostly shorter, record layouts.
+		public const int MIN_SUPPORTED_MAJOR_VERSION = 12;
+
+		/// <summary>
+		/// Throws a <see cref="NotSupportedException"/> unless the file is a Conquests BIQ (a BICX or BICQ file with
+		/// major version 12 or later), the only layout this reader supports.
+		/// </summary>
+		public static void EnsureSupportedVersion(Civ3File file) {
+			ArgumentNullException.ThrowIfNull(file);
+			Civ3Version version = file.Civ3Version;
+			string type = version.FileTypeName?.Trim() ?? "";
+			if (!file.IsBicFile || (type != "BICX" && type != "BICQ")) {
+				throw new NotSupportedException($"Unsupported BIQ file: its type is '{type}', but only Conquests BIQ files (BICX or BICQ, version {MIN_SUPPORTED_MAJOR_VERSION} or later) are supported.");
+			}
+			if (version.MajorVersion < MIN_SUPPORTED_MAJOR_VERSION) {
+				throw new NotSupportedException($"Unsupported BIQ file: {type} version {version.MajorVersion}.{version.MinorVersion} is from Civ3 or Play the World; only Conquests BIQ files (version {MIN_SUPPORTED_MAJOR_VERSION} or later) are supported.");
+			}
+		}
+
+		// Load BIQ data stored at data[start .. start + length), e.g. the BIQ sections embedded in a SAV file, without copying it out.
+		// Throws NotSupportedException for anything but a Conquests BIQ, and InvalidDataException for malformed data: every read
+		// is checked against the end of the data, and against the length of the record it is part of.
 		public unsafe void Load(byte[] data, int start, int length) {
+			ArgumentNullException.ThrowIfNull(data);
 			FileData = new Civ3File(data, start, length);
+			EnsureSupportedVersion(FileData);
+			if (length < SECTION_HEADERS_START) {
+				throw new InvalidDataException($"Malformed BIQ file: it is {length} bytes long, too short for its {SECTION_HEADERS_START} byte header.");
+			}
 			Description = FileData.GetString(32, 640);
 			Title = FileData.GetString(672, 64);
 
@@ -118,16 +148,18 @@ namespace QueryCiv3 {
 				byte* bytePtr = basePtr + start;
 				// For now, we're skipping over the VER# and BIQ file header information to get right to the structs
 				// The first section is likely to be BLDG in BIQ files, but the current approach supports any ordering of the sections
-				int offset = SECTION_HEADERS_START;
-				int header;
-				int count = 0;
-				int dataLength = 0;
+				long offset = SECTION_HEADERS_START;
 
 				while (offset < length) { // Don't read past the end
-										  // We don't know what orders the headers come in or which headers will be set, so get the next header and switch off it:
-					count = FileData.ReadInt32(offset + 4); // bounds-checked, so the header read below is in bounds too
+					// We don't know what orders the headers come in or which headers will be set, so get the next header and switch off it:
+					CheckRange(offset, 8, length, "header");
 					// Every header is exactly 4 chars long, so like in SavData it can be switched on as a 32-bit integer
-					header = *(int*)(bytePtr + offset);
+					int header = *(int*)(bytePtr + offset);
+					int count = *(int*)(bytePtr + offset + 4);
+					string section = FileData.GetString((int)offset, 4);
+					if (count < 0) {
+						throw Malformed(section, $"negative record count {count}");
+					}
 					offset += 8;
 
 					// Section data structures are stored in the BiqSections/ folder
@@ -136,425 +168,367 @@ namespace QueryCiv3 {
 					//   The static sections are: BLDG, CTZN, CULT, DIFF, ERAS, ESPN, EXPR, FLAV(??), GOOD, TECH, TFRM, WSIZ, WCHR, TILE, CONT, SLOC, UNIT, CLNY
 					// Dynamic sections have at least one component with varying length, and so require multiple structs and special logic
 					//   The dynamic sections are: GOVT, RULE, PRTO, RACE, TERR, WMAP, CITY, GAME, LEAD
+					// Every record (except FLAV's) starts with its length, not counting the length value itself, and the next record
+					// always starts after that length. A record shorter than our struct leaves the rest of the struct zeroed, and the
+					// extra bytes of a longer one are skipped.
 					switch (header) {
 						case 0x47444c42: // BLDG
-							dataLength = count * sizeof(BLDG);
-							Bldg = new BLDG[count];
-							fixed (void* ptr = Bldg) {
-								Buffer.MemoryCopy(bytePtr + offset, ptr, dataLength, dataLength);
-							}
+							Bldg = ReadStaticSection<BLDG>(bytePtr, ref offset, length, count, section);
 							break;
 						case 0x59544943: // CITY
-							dataLength = 0;
-							City = new CITY[count];
+							City = new CITY[CheckCount(count, 4, offset, length, section)];
 							CityBuilding = new int[count][];
-							int buildingRowLength = 0;
 
-							fixed (void* ptr = City) {
-								byte* cityPtr = (byte*)ptr;
-								byte* dataPtr = bytePtr + offset;
-
+							fixed (CITY* ptr = City) {
 								for (int i = 0; i < count; i++) {
-									Buffer.MemoryCopy(dataPtr, cityPtr, CITY_LEN_1, CITY_LEN_1);
-									CityBuilding[i] = new int[City[i].NumberOfBuildings];
-									buildingRowLength = City[i].NumberOfBuildings * sizeof(int);
-									fixed (void* ptr2 = CityBuilding[i]) Buffer.MemoryCopy(dataPtr + CITY_LEN_1, ptr2, buildingRowLength, buildingRowLength);
-									Buffer.MemoryCopy(dataPtr + CITY_LEN_1 + buildingRowLength, cityPtr + CITY_LEN_1, CITY_LEN_2, CITY_LEN_2);
-
-									cityPtr += sizeof(CITY);
-									dataPtr += City[i].Length + 4;
-									dataLength += City[i].Length + 4;
+									byte* cityPtr = (byte*)(ptr + i);
+									long recordEnd = BeginRecord(bytePtr, offset, length, section);
+									CopyChunk(bytePtr, ref offset, recordEnd, cityPtr, CITY_LEN_1, section);
+									CityBuilding[i] = ReadArray<int>(bytePtr, ref offset, recordEnd, City[i].NumberOfBuildings, section);
+									CopyTail(bytePtr, ref offset, recordEnd, cityPtr + CITY_LEN_1, CITY_LEN_2);
+									offset = recordEnd;
 								}
 							}
 							break;
 						case 0x594e4c43: // CLNY
-							dataLength = count * sizeof(CLNY);
-							Clny = new CLNY[count];
-							fixed (void* ptr = Clny) {
-								Buffer.MemoryCopy(bytePtr + offset, ptr, dataLength, dataLength);
-							}
+							Clny = ReadStaticSection<CLNY>(bytePtr, ref offset, length, count, section);
 							break;
 						case 0x544e4f43: // CONT
-							dataLength = count * sizeof(CONT);
-							Cont = new CONT[count];
-							fixed (void* ptr = Cont) {
-								Buffer.MemoryCopy(bytePtr + offset, ptr, dataLength, dataLength);
-							}
+							Cont = ReadStaticSection<CONT>(bytePtr, ref offset, length, count, section);
 							break;
 						case 0x4e5a5443: // CTZN
-							dataLength = count * sizeof(CTZN);
-							Ctzn = new CTZN[count];
-							fixed (void* ptr = Ctzn) {
-								Buffer.MemoryCopy(bytePtr + offset, ptr, dataLength, dataLength);
-							}
+							Ctzn = ReadStaticSection<CTZN>(bytePtr, ref offset, length, count, section);
 							break;
 						case 0x544c5543: // CULT
-							dataLength = count * sizeof(CULT);
-							Cult = new CULT[count];
-							fixed (void* ptr = Cult) {
-								Buffer.MemoryCopy(bytePtr + offset, ptr, dataLength, dataLength);
-							}
+							Cult = ReadStaticSection<CULT>(bytePtr, ref offset, length, count, section);
 							break;
 						case 0x46464944: // DIFF
-							dataLength = count * sizeof(DIFF);
-							Diff = new DIFF[count];
-							fixed (void* ptr = Diff) {
-								Buffer.MemoryCopy(bytePtr + offset, ptr, dataLength, dataLength);
-							}
+							Diff = ReadStaticSection<DIFF>(bytePtr, ref offset, length, count, section);
 							break;
 						case 0x53415245: // ERAS
-							dataLength = count * sizeof(ERAS);
-							Eras = new ERAS[count];
-							fixed (void* ptr = Eras) {
-								Buffer.MemoryCopy(bytePtr + offset, ptr, dataLength, dataLength);
-							}
+							Eras = ReadStaticSection<ERAS>(bytePtr, ref offset, length, count, section);
 							break;
 						case 0x4e505345: // ESPN
-							dataLength = count * sizeof(ESPN);
-							Espn = new ESPN[count];
-							fixed (void* ptr = Espn) {
-								Buffer.MemoryCopy(bytePtr + offset, ptr, dataLength, dataLength);
-							}
+							Espn = ReadStaticSection<ESPN>(bytePtr, ref offset, length, count, section);
 							break;
 						case 0x52505845: // EXPR
-							dataLength = count * sizeof(EXPR);
-							Expr = new EXPR[count];
-							fixed (void* ptr = Expr) {
-								Buffer.MemoryCopy(bytePtr + offset, ptr, dataLength, dataLength);
-							}
+							Expr = ReadStaticSection<EXPR>(bytePtr, ref offset, length, count, section);
 							break;
 						case 0x56414c46: // FLAV
 							// FLAV has two oddities compared with other sections:
-							// 1. FLAV's count is not technically locked at 7, but is practically so. This means it can be treated as static (see FLAV.cs)
-							count = 7;
-							// 2. FLAV is the only section which is divided into section groups. However, the number of section groups is always 1,
-							//   so again for practical usage, all that needs to happen is that the offset needs to be shifted an extra 4 for the extra int
+							// 1. FLAV is the only section which is divided into section groups. The number of section groups (the
+							//   header's count) is always 1, and is followed by the number of flavors in the group
+							if (count != 1) {
+								throw new NotSupportedException($"Unsupported BIQ file: its FLAV section has {count} groups of flavors, but only 1 is supported.");
+							}
+							CheckRange(offset, 4, length, section);
+							int flavorCount = *(int*)(bytePtr + offset);
 							offset += 4;
-
-							dataLength = count * sizeof(FLAV);
-							Flav = new FLAV[count];
-							fixed (void* ptr = Flav) {
-								Buffer.MemoryCopy(bytePtr + offset, ptr, dataLength, dataLength);
+							// 2. FLAV records have no length. Each is an unknown 4 byte value, the 256 byte name, the number of flavors,
+							//   and that many relationship values. The number of flavors is practically always 7 (see FLAV.cs)
+							Flav = new FLAV[CheckCount(flavorCount, FLAV_FIXED_LEN, offset, length, section)];
+							fixed (FLAV* ptr = Flav) {
+								for (int i = 0; i < flavorCount; i++) {
+									CheckRange(offset, FLAV_FIXED_LEN, length, section);
+									int relationships = *(int*)(bytePtr + offset + FLAV_FIXED_LEN - 4);
+									if (relationships < 0) {
+										throw Malformed(section, $"negative number of flavor relationships {relationships}");
+									}
+									long recordLength = FLAV_FIXED_LEN + 4L * relationships;
+									CheckRange(offset, recordLength, length, section);
+									Buffer.MemoryCopy(bytePtr + offset, ptr + i, sizeof(FLAV), Math.Min(recordLength, sizeof(FLAV)));
+									offset += recordLength;
+								}
 							}
 							break;
 						case 0x454d4147: // GAME
-							dataLength = 0;
-							Game = new GAME[count];
+							Game = new GAME[CheckCount(count, 4, offset, length, section)];
 							GameCiv = new int[count][];
 							GameAlliance = new int[count][];
 
-							fixed (void* ptr = Game) {
-								byte* gamePtr = (byte*)ptr;
-								byte* dataPtr = bytePtr + offset;
-								int rowLength = 0;
-								int playableCivs = 0;
-
+							fixed (GAME* ptr = Game) {
 								for (int i = 0; i < count; i++) {
-									Buffer.MemoryCopy(dataPtr, gamePtr, GAME_LEN_1, GAME_LEN_1);
-									gamePtr += GAME_LEN_1;
-									playableCivs = Game[i].NumberOfPlayableCivs;
-									GameCiv[i] = new int[playableCivs];
-									rowLength = playableCivs * sizeof(int);
-									fixed (void* ptr2 = GameCiv[i]) Buffer.MemoryCopy(dataPtr + GAME_LEN_1, ptr2, rowLength, rowLength);
-									dataPtr += GAME_LEN_1 + rowLength;
-
-									Buffer.MemoryCopy(dataPtr, gamePtr, GAME_LEN_2, GAME_LEN_2);
-									gamePtr += GAME_LEN_2;
-									GameAlliance[i] = new int[playableCivs];
-									fixed (void* ptr2 = GameAlliance[i]) Buffer.MemoryCopy(dataPtr + GAME_LEN_2, ptr2, rowLength, rowLength);
-									dataPtr += GAME_LEN_2 + rowLength;
-
-									Buffer.MemoryCopy(dataPtr, gamePtr, GAME_LEN_3, GAME_LEN_3);
-									gamePtr += GAME_LEN_3;
-									dataPtr += GAME_LEN_3;
-
-									dataLength += Game[i].Length + 4;
+									byte* gamePtr = (byte*)(ptr + i);
+									long recordEnd = BeginRecord(bytePtr, offset, length, section);
+									CopyChunk(bytePtr, ref offset, recordEnd, gamePtr, GAME_LEN_1, section);
+									int playableCivs = Game[i].NumberOfPlayableCivs;
+									GameCiv[i] = ReadArray<int>(bytePtr, ref offset, recordEnd, playableCivs, section);
+									CopyChunk(bytePtr, ref offset, recordEnd, gamePtr + GAME_LEN_1, GAME_LEN_2, section);
+									GameAlliance[i] = ReadArray<int>(bytePtr, ref offset, recordEnd, playableCivs, section);
+									// The GAME records of Conquests BIQs before version 12.7 are 12 bytes shorter; the values they lack are left zeroed
+									CopyTail(bytePtr, ref offset, recordEnd, gamePtr + GAME_LEN_1 + GAME_LEN_2, GAME_LEN_3);
+									offset = recordEnd;
 								}
 							}
 							break;
 						case 0x444f4f47: // GOOD
-							dataLength = count * sizeof(GOOD);
-							Good = new GOOD[count];
-							fixed (void* ptr = Good) {
-								Buffer.MemoryCopy(bytePtr + offset, ptr, dataLength, dataLength);
-							}
+							Good = ReadStaticSection<GOOD>(bytePtr, ref offset, length, count, section);
 							break;
 						case 0x54564f47: // GOVT
-							int govtLen = FileData.ReadInt32(offset) + 4;
-							dataLength = count * govtLen;
-							Govt = new GOVT[count];
+							Govt = new GOVT[CheckCount(count, 4, offset, length, section)];
+							// Each GOVT record has a GOVT_GOVT relationship with every government
+							CheckCount((long)count * count, sizeof(GOVT_GOVT), offset, length, section);
 							GovtGovt = new GOVT_GOVT[count, count];
 							int govtgovtRowLength = count * sizeof(GOVT_GOVT);
 
-							fixed (void* ptr = Govt, ptr2 = GovtGovt) {
-								byte* govtPtr = (byte*)ptr;
-								byte* govtgovtPtr = (byte*)ptr2;
-								byte* dataPtr = bytePtr + offset;
-
+							fixed (GOVT* ptr = Govt) fixed (GOVT_GOVT* ptr2 = GovtGovt) {
 								for (int i = 0; i < count; i++) {
-									Buffer.MemoryCopy(dataPtr, govtPtr, GOVT_LEN_1, GOVT_LEN_1);
-									Buffer.MemoryCopy(dataPtr + GOVT_LEN_1, govtgovtPtr, govtgovtRowLength, govtgovtRowLength);
-									Buffer.MemoryCopy(dataPtr + GOVT_LEN_1 + govtgovtRowLength, govtPtr + GOVT_LEN_1, GOVT_LEN_2, GOVT_LEN_2);
-									govtPtr += sizeof(GOVT);
-									govtgovtPtr += govtgovtRowLength;
-									dataPtr += govtLen;
+									byte* govtPtr = (byte*)(ptr + i);
+									long recordEnd = BeginRecord(bytePtr, offset, length, section);
+									CopyChunk(bytePtr, ref offset, recordEnd, govtPtr, GOVT_LEN_1, section);
+									CopyChunk(bytePtr, ref offset, recordEnd, (byte*)ptr2 + (long)i * govtgovtRowLength, govtgovtRowLength, section);
+									CopyTail(bytePtr, ref offset, recordEnd, govtPtr + GOVT_LEN_1, GOVT_LEN_2);
+									offset = recordEnd;
 								}
 							}
 							break;
 						case 0x4441454c: // LEAD
-							dataLength = 0;
-							Lead = new LEAD[count];
+							Lead = new LEAD[CheckCount(count, 4, offset, length, section)];
 							LeadPrto = new LEAD_Unit[count][];
 							LeadTech = new int[count][];
 
-							fixed (void* ptr = Lead) {
-								byte* leadPtr = (byte*)ptr;
-								byte* dataPtr = bytePtr + offset;
-								int rowLength = 0;
-
+							fixed (LEAD* ptr = Lead) {
 								for (int i = 0; i < count; i++) {
-									Buffer.MemoryCopy(dataPtr, leadPtr, LEAD_LEN_1, LEAD_LEN_1);
-									leadPtr += LEAD_LEN_1;
-									LeadPrto[i] = new LEAD_Unit[Lead[i].NumberOfStartUnitTypes];
-									rowLength = Lead[i].NumberOfStartUnitTypes * sizeof(LEAD_Unit);
-									fixed (void* ptr2 = LeadPrto[i]) Buffer.MemoryCopy(dataPtr + LEAD_LEN_1, ptr2, rowLength, rowLength);
-									dataPtr += LEAD_LEN_1 + rowLength;
-
-									Buffer.MemoryCopy(dataPtr, leadPtr, LEAD_LEN_2, LEAD_LEN_2);
-									leadPtr += LEAD_LEN_2;
-									LeadTech[i] = new int[Lead[i].NumberOfStartingTechnologies];
-									rowLength = Lead[i].NumberOfStartingTechnologies * sizeof(int);
-									fixed (void* ptr2 = LeadTech[i]) Buffer.MemoryCopy(dataPtr + LEAD_LEN_2, ptr2, rowLength, rowLength);
-									dataPtr += LEAD_LEN_2 + rowLength;
-
-									Buffer.MemoryCopy(dataPtr, leadPtr, LEAD_LEN_3, LEAD_LEN_3);
-									leadPtr += LEAD_LEN_3;
-									dataPtr += LEAD_LEN_3;
-
-									dataLength += Lead[i].Length + 4;
+									byte* leadPtr = (byte*)(ptr + i);
+									long recordEnd = BeginRecord(bytePtr, offset, length, section);
+									CopyChunk(bytePtr, ref offset, recordEnd, leadPtr, LEAD_LEN_1, section);
+									LeadPrto[i] = ReadArray<LEAD_Unit>(bytePtr, ref offset, recordEnd, Lead[i].NumberOfStartUnitTypes, section);
+									CopyChunk(bytePtr, ref offset, recordEnd, leadPtr + LEAD_LEN_1, LEAD_LEN_2, section);
+									LeadTech[i] = ReadArray<int>(bytePtr, ref offset, recordEnd, Lead[i].NumberOfStartingTechnologies, section);
+									CopyTail(bytePtr, ref offset, recordEnd, leadPtr + LEAD_LEN_1 + LEAD_LEN_2, LEAD_LEN_3);
+									offset = recordEnd;
 								}
 							}
 							break;
 						case 0x4f545250: // PRTO
-							dataLength = 0;
-							Prto = new PRTO[count];
+							Prto = new PRTO[CheckCount(count, 4, offset, length, section)];
 							PrtoPrto = new int[count][];
-							int prtoprtoRowLength = 0;
 
-							fixed (void* ptr = Prto) {
-								byte* prtoPtr = (byte*)ptr;
-								byte* dataPtr = bytePtr + offset;
-
+							fixed (PRTO* ptr = Prto) {
 								for (int i = 0; i < count; i++) {
-									Buffer.MemoryCopy(dataPtr, prtoPtr, PRTO_LEN_1, PRTO_LEN_1);
-									PrtoPrto[i] = new int[Prto[i].NumberOfStealthTargets];
-									prtoprtoRowLength = Prto[i].NumberOfStealthTargets * sizeof(int);
-									fixed (void* ptr2 = PrtoPrto[i]) Buffer.MemoryCopy(dataPtr + PRTO_LEN_1, ptr2, prtoprtoRowLength, prtoprtoRowLength);
-									Buffer.MemoryCopy(dataPtr + PRTO_LEN_1 + prtoprtoRowLength, prtoPtr + PRTO_LEN_1, PRTO_LEN_2, PRTO_LEN_2);
-
-									prtoPtr += sizeof(PRTO);
-									dataPtr += Prto[i].Length + 4;
-									dataLength += Prto[i].Length + 4;
+									byte* prtoPtr = (byte*)(ptr + i);
+									long recordEnd = BeginRecord(bytePtr, offset, length, section);
+									CopyChunk(bytePtr, ref offset, recordEnd, prtoPtr, PRTO_LEN_1, section);
+									PrtoPrto[i] = ReadArray<int>(bytePtr, ref offset, recordEnd, Prto[i].NumberOfStealthTargets, section);
+									CopyTail(bytePtr, ref offset, recordEnd, prtoPtr + PRTO_LEN_1, PRTO_LEN_2);
+									offset = recordEnd;
 								}
 							}
 							break;
 						case 0x45434152: // RACE
-							dataLength = 0;
-							Race = new RACE[count];
+							// For getting dynamic race data, we need to know the number of eras as defined earlier, so the ERAS section
+							// of a BIQ must appear before its RACE section
+							if (Eras == null) {
+								throw Malformed(section, "it comes before the ERAS section it depends on");
+							}
+							int eras = Eras.Length;
+							Race = new RACE[CheckCount(count, 4, offset, length, section)];
 							RaceCityName = new RACE_City[count][];
 							RaceScientificLeaderName = new RACE_LeaderName[count][];
 							RaceGreatLeaderName = new RACE_LeaderName[count][];
-							/*
-								For getting dynamic race data, we need to know the number of eras as defined earlier
-								Presumably this means that the ERAS section of BIQ will always appear before the RACE section
-								However, if ERAS ever appears after RACE, then that will be a problem
-								I considered throwing an exception here in that case, but C# will throw a NullReferenceException anyway for
-								  trying to get the length of an uninitialized array, which is sufficient
-							*/
-							int eras = Eras.Length;
+							CheckCount((long)count * eras, sizeof(RACE_ERAS), offset, length, section);
 							RaceEra = new RACE_ERAS[count, eras];
 							int raceeraRowLength = eras * sizeof(RACE_ERAS);
 
-							fixed (void* ptr = Race, ptr2 = RaceEra) {
-								byte* racePtr = (byte*)ptr;
-								byte* raceeraPtr = (byte*)ptr2;
-								byte* dataPtr = bytePtr + offset;
-								int rowLength = 0;
-
+							fixed (RACE* ptr = Race) fixed (RACE_ERAS* ptr2 = RaceEra) {
 								for (int i = 0; i < count; i++) {
-									Buffer.MemoryCopy(dataPtr, racePtr, RACE_LEN_1, RACE_LEN_1);
+									byte* racePtr = (byte*)(ptr + i);
+									long recordEnd = BeginRecord(bytePtr, offset, length, section);
+									CopyChunk(bytePtr, ref offset, recordEnd, racePtr, RACE_LEN_1, section);
 									racePtr += RACE_LEN_1;
-									RaceCityName[i] = new RACE_City[Race[i].NumberOfCities];
-									rowLength = Race[i].NumberOfCities * sizeof(RACE_City);
-									fixed (void* ptr3 = RaceCityName[i]) Buffer.MemoryCopy(dataPtr + RACE_LEN_1, ptr3, rowLength, rowLength);
-									dataPtr += RACE_LEN_1 + rowLength;
+									RaceCityName[i] = ReadArray<RACE_City>(bytePtr, ref offset, recordEnd, Race[i].NumberOfCities, section);
 
-									Buffer.MemoryCopy(dataPtr, racePtr, RACE_LEN_2, RACE_LEN_2);
+									CopyChunk(bytePtr, ref offset, recordEnd, racePtr, RACE_LEN_2, section);
 									racePtr += RACE_LEN_2;
-									RaceGreatLeaderName[i] = new RACE_LeaderName[Race[i].NumberOfGreatLeaders];
-									rowLength = Race[i].NumberOfGreatLeaders * sizeof(RACE_LeaderName);
-									fixed (void* ptr3 = RaceGreatLeaderName[i]) Buffer.MemoryCopy(dataPtr + RACE_LEN_2, ptr3, rowLength, rowLength);
-									dataPtr += RACE_LEN_2 + rowLength;
+									RaceGreatLeaderName[i] = ReadArray<RACE_LeaderName>(bytePtr, ref offset, recordEnd, Race[i].NumberOfGreatLeaders, section);
 
-									Buffer.MemoryCopy(dataPtr, racePtr, RACE_LEN_3, RACE_LEN_3);
+									CopyChunk(bytePtr, ref offset, recordEnd, racePtr, RACE_LEN_3, section);
 									racePtr += RACE_LEN_3;
-									Buffer.MemoryCopy(dataPtr + RACE_LEN_3, raceeraPtr, raceeraRowLength, raceeraRowLength);
-									dataPtr += RACE_LEN_3 + raceeraRowLength;
-									raceeraPtr += raceeraRowLength;
+									CopyChunk(bytePtr, ref offset, recordEnd, (byte*)ptr2 + (long)i * raceeraRowLength, raceeraRowLength, section);
 
-									Buffer.MemoryCopy(dataPtr, racePtr, RACE_LEN_4, RACE_LEN_4);
-									racePtr += RACE_LEN_4;
-									RaceScientificLeaderName[i] = new RACE_LeaderName[Race[i].NumberOfScientificLeaders];
-									rowLength = Race[i].NumberOfScientificLeaders * sizeof(RACE_LeaderName);
-									fixed (void* ptr3 = RaceScientificLeaderName[i]) Buffer.MemoryCopy(dataPtr + RACE_LEN_4, ptr3, rowLength, rowLength);
-									dataPtr += RACE_LEN_4 + rowLength;
-
-									dataLength += Race[i].Length + 4;
+									CopyChunk(bytePtr, ref offset, recordEnd, racePtr, RACE_LEN_4, section);
+									RaceScientificLeaderName[i] = ReadArray<RACE_LeaderName>(bytePtr, ref offset, recordEnd, Race[i].NumberOfScientificLeaders, section);
+									offset = recordEnd;
 								}
 							}
-
 							break;
 						case 0x454c5552: // RULE
-							dataLength = 0;
-							Rule = new RULE[count];
+							Rule = new RULE[CheckCount(count, 4, offset, length, section)];
 							RuleCult = new RULE_CULT[count][];
 							RuleSpaceship = new int[count][];
 
-							fixed (void* ptr = Rule) {
-								byte* rulePtr = (byte*)ptr;
-								byte* dataPtr = bytePtr + offset;
-								int rowLength = 0;
-
+							fixed (RULE* ptr = Rule) {
 								for (int i = 0; i < count; i++) {
-									Buffer.MemoryCopy(dataPtr, rulePtr, RULE_LEN_1, RULE_LEN_1);
-									rulePtr += RULE_LEN_1;
-									RuleSpaceship[i] = new int[Rule[i].NumberOfSpaceshipParts];
-									rowLength = Rule[i].NumberOfSpaceshipParts * sizeof(int);
-									fixed (void* ptr2 = RuleSpaceship[i]) Buffer.MemoryCopy(dataPtr + RULE_LEN_1, ptr2, rowLength, rowLength);
-									dataPtr += RULE_LEN_1 + rowLength;
-
-									Buffer.MemoryCopy(dataPtr, rulePtr, RULE_LEN_2, RULE_LEN_2);
-									rulePtr += RULE_LEN_2;
-									RuleCult[i] = new RULE_CULT[Rule[i].NumberOfCultureLevels];
-									rowLength = Rule[i].NumberOfCultureLevels * sizeof(RULE_CULT);
-									fixed (void* ptr2 = RuleCult[i]) Buffer.MemoryCopy(dataPtr + RULE_LEN_2, ptr2, rowLength, rowLength);
-									dataPtr += RULE_LEN_2 + rowLength;
-
-									Buffer.MemoryCopy(dataPtr, rulePtr, RULE_LEN_3, RULE_LEN_3);
-									rulePtr += RULE_LEN_3;
-									dataPtr += RULE_LEN_3;
-
-									dataLength += Rule[i].Length + 4;
+									byte* rulePtr = (byte*)(ptr + i);
+									long recordEnd = BeginRecord(bytePtr, offset, length, section);
+									CopyChunk(bytePtr, ref offset, recordEnd, rulePtr, RULE_LEN_1, section);
+									RuleSpaceship[i] = ReadArray<int>(bytePtr, ref offset, recordEnd, Rule[i].NumberOfSpaceshipParts, section);
+									CopyChunk(bytePtr, ref offset, recordEnd, rulePtr + RULE_LEN_1, RULE_LEN_2, section);
+									RuleCult[i] = ReadArray<RULE_CULT>(bytePtr, ref offset, recordEnd, Rule[i].NumberOfCultureLevels, section);
+									CopyTail(bytePtr, ref offset, recordEnd, rulePtr + RULE_LEN_1 + RULE_LEN_2, RULE_LEN_3);
+									offset = recordEnd;
 								}
 							}
 							break;
 						case 0x434f4c53: // SLOC
-							dataLength = count * sizeof(SLOC);
-							Sloc = new SLOC[count];
-							fixed (void* ptr = Sloc) {
-								Buffer.MemoryCopy(bytePtr + offset, ptr, dataLength, dataLength);
-							}
+							Sloc = ReadStaticSection<SLOC>(bytePtr, ref offset, length, count, section);
 							break;
 						case 0x48434554: // TECH
-							dataLength = count * sizeof(TECH);
-							Tech = new TECH[count];
-							fixed (void* ptr = Tech) {
-								Buffer.MemoryCopy(bytePtr + offset, ptr, dataLength, dataLength);
-							}
+							Tech = ReadStaticSection<TECH>(bytePtr, ref offset, length, count, section);
 							break;
 						case 0x52524554: // TERR
-							int terrLen = FileData.ReadInt32(offset) + 4; // Add 4 because length must also include the 32-bit integer that is itself
-							dataLength = count * terrLen;
-							Terr = new TERR[count];
-							int goodCount = FileData.ReadInt32(offset + 4);
+							Terr = new TERR[CheckCount(count, 4, offset, length, section)];
+							// The number of resources, which each terrain has a flag for, is taken from the first record
+							int goodCount = 0;
+							if (count > 0) {
+								CheckRange(offset, 8, length, section);
+								goodCount = *(int*)(bytePtr + offset + 4);
+								if (goodCount < 0) {
+									throw Malformed(section, $"negative number of resources {goodCount}");
+								}
+								// at least one bit for each flag
+								CheckCount((long)count * goodCount, 0.125, offset, length, section);
+							}
 							TerrGood = new bool[count, goodCount];
 
-							fixed (void* ptr = Terr) {
-								byte* terrBytePtr = (byte*)ptr;
-								byte* dataPtr = bytePtr + offset;
-
+							fixed (TERR* ptr = Terr) {
 								// TERR contains dynamic data, so it can't be read in as a block. Instead, read in data for each TERR
 								for (int i = 0; i < count; i++) {
-									Buffer.MemoryCopy(dataPtr, terrBytePtr, TERR_LEN_1, TERR_LEN_1);
-									dataPtr += TERR_LEN_1;
+									byte* terrBytePtr = (byte*)(ptr + i);
+									long recordEnd = BeginRecord(bytePtr, offset, length, section);
+									CopyChunk(bytePtr, ref offset, recordEnd, terrBytePtr, TERR_LEN_1, section);
 
 									// Get TerrGood flags, dynamic data which determines which resources are allowed on which terrain types
-									for (int j = 0; j < goodCount; j++) {
-										TerrGood[i, j] = Util.GetFlag(*dataPtr, j % 8);
-										// Incrememt byte position every 8th bit read or after all bits read:
-										if (j % 8 == 7 || j == goodCount - 1) dataPtr++;
+									// They are a bit array, one bit for each resource, rounded up to whole bytes
+									int recordGoods = Terr[i].NumPossibleResources;
+									if (recordGoods < 0) {
+										throw Malformed(section, $"negative number of resources {recordGoods}");
 									}
+									long flagBytes = ((long)recordGoods + 7) / 8;
+									CheckRange(offset, flagBytes, recordEnd, section);
+									byte* flags = bytePtr + offset;
+									for (int j = 0, n = Math.Min(goodCount, recordGoods); j < n; j++) {
+										TerrGood[i, j] = Util.GetFlag(flags[j / 8], j % 8);
+									}
+									offset += flagBytes;
 
-									Buffer.MemoryCopy(dataPtr, terrBytePtr + TERR_LEN_1, TERR_LEN_2, TERR_LEN_2);
-									terrBytePtr += sizeof(TERR);
-									dataPtr += TERR_LEN_2;
+									CopyTail(bytePtr, ref offset, recordEnd, terrBytePtr + TERR_LEN_1, TERR_LEN_2);
+									offset = recordEnd;
 								}
 							}
 							break;
 						case 0x4d524654: // TFRM
-							dataLength = count * sizeof(TFRM);
-							Tfrm = new TFRM[count];
-							fixed (void* ptr = Tfrm) {
-								Buffer.MemoryCopy(bytePtr + offset, ptr, dataLength, dataLength);
-							}
+							Tfrm = ReadStaticSection<TFRM>(bytePtr, ref offset, length, count, section);
 							break;
 						case 0x454c4954: // TILE
-							dataLength = count * sizeof(TILE);
-							Tile = new TILE[count];
-							fixed (void* ptr = Tile) {
-								Buffer.MemoryCopy(bytePtr + offset, ptr, dataLength, dataLength);
-							}
+							Tile = ReadStaticSection<TILE>(bytePtr, ref offset, length, count, section);
 							break;
 						case 0x54494e55: // UNIT
-							dataLength = count * sizeof(UNIT);
-							Unit = new UNIT[count];
-							fixed (void* ptr = Unit) {
-								Buffer.MemoryCopy(bytePtr + offset, ptr, dataLength, dataLength);
-							}
+							Unit = ReadStaticSection<UNIT>(bytePtr, ref offset, length, count, section);
 							break;
 						case 0x52484357: // WCHR
-							dataLength = count * sizeof(WCHR);
-							Wchr = new WCHR[count];
-							fixed (void* ptr = Wchr) {
-								Buffer.MemoryCopy(bytePtr + offset, ptr, dataLength, dataLength);
-							}
+							Wchr = ReadStaticSection<WCHR>(bytePtr, ref offset, length, count, section);
 							break;
 						case 0x50414d57: // WMAP
-							dataLength = 0;
-							Wmap = new WMAP[count];
+							Wmap = new WMAP[CheckCount(count, 4, offset, length, section)];
 							WmapResource = new int[count][];
-							int wmapResourceLength = 0;
 
-							fixed (void* ptr = Wmap) {
-								byte* wmapPtr = (byte*)ptr;
-								byte* dataPtr = bytePtr + offset;
-
+							fixed (WMAP* ptr = Wmap) {
 								for (int i = 0; i < count; i++) {
-									Buffer.MemoryCopy(dataPtr, wmapPtr, WMAP_LEN_1, WMAP_LEN_1);
-									WmapResource[i] = new int[Wmap[i].NumberOfResources];
-									wmapResourceLength = Wmap[i].NumberOfResources * sizeof(int);
-									fixed (void* ptr2 = WmapResource[i]) Buffer.MemoryCopy(dataPtr + WMAP_LEN_1, ptr2, wmapResourceLength, wmapResourceLength);
-									Buffer.MemoryCopy(dataPtr + WMAP_LEN_1 + wmapResourceLength, wmapPtr + WMAP_LEN_1, WMAP_LEN_2, WMAP_LEN_2);
-
-									wmapPtr += sizeof(WMAP);
-									dataPtr += Wmap[i].Length + 4;
-									dataLength += Wmap[i].Length + 4;
+									byte* wmapPtr = (byte*)(ptr + i);
+									long recordEnd = BeginRecord(bytePtr, offset, length, section);
+									CopyChunk(bytePtr, ref offset, recordEnd, wmapPtr, WMAP_LEN_1, section);
+									WmapResource[i] = ReadArray<int>(bytePtr, ref offset, recordEnd, Wmap[i].NumberOfResources, section);
+									CopyTail(bytePtr, ref offset, recordEnd, wmapPtr + WMAP_LEN_1, WMAP_LEN_2);
+									offset = recordEnd;
 								}
 							}
 							break;
 						case 0x5a495357: // WSIZ
-							dataLength = count * sizeof(WSIZ);
-							Wsiz = new WSIZ[count];
-							fixed (void* ptr = Wsiz) {
-								Buffer.MemoryCopy(bytePtr + offset, ptr, dataLength, dataLength);
-							}
+							Wsiz = ReadStaticSection<WSIZ>(bytePtr, ref offset, length, count, section);
 							break;
 						default:
-							throw new Exception("An error occured while parsing the BIQ file because a header was not found where expected.  Instead, found " + FileData.GetString(offset - 8, 4));
+							throw new InvalidDataException("An error occured while parsing the BIQ file because a header was not found where expected.  Instead, found " + section);
 					}
-					offset += dataLength;
 				}
 			}
+		}
+
+		// The size of a FLAV record without its relationship values
+		private const int FLAV_FIXED_LEN = 264;
+
+		private static InvalidDataException Malformed(string section, string problem) {
+			return new InvalidDataException($"Malformed BIQ file: in section {section}, {problem}.");
+		}
+
+		// Throws unless data[offset .. offset + size) lies within data[0 .. limit)
+		private static void CheckRange(long offset, long size, long limit, string section) {
+			if (size < 0 || offset < 0 || offset > limit - size) {
+				throw Malformed(section, $"reading {size} bytes at offset {offset} would go past the end of the data at {limit}");
+			}
+		}
+
+		// Checks that count records of at least minSize bytes each fit in data[offset .. limit), so that a corrupt count
+		// can't cause a huge allocation, and returns the count
+		private static int CheckCount(long count, double minSize, long offset, long limit, string section) {
+			if (count < 0 || count > int.MaxValue || count * minSize > limit - offset) {
+				throw Malformed(section, $"{count} records can't fit in the {limit - offset} bytes left");
+			}
+			return (int)count;
+		}
+
+		// Checks the record at offset, which starts with its length (not counting the length value itself), and returns where it ends
+		private static unsafe long BeginRecord(byte* data, long offset, long limit, string section) {
+			CheckRange(offset, 4, limit, section);
+			int recordLength = *(int*)(data + offset);
+			if (recordLength < 0) {
+				throw Malformed(section, $"negative record length {recordLength}");
+			}
+			CheckRange(offset, 4L + recordLength, limit, section);
+			return offset + 4 + recordLength;
+		}
+
+		// Copies the size bytes at offset, which must be inside the record ending at recordEnd, to dest
+		private static unsafe void CopyChunk(byte* data, ref long offset, long recordEnd, void* dest, long size, string section) {
+			CheckRange(offset, size, recordEnd, section);
+			Buffer.MemoryCopy(data + offset, dest, size, size);
+			offset += size;
+		}
+
+		// Copies the last fixed-size part of a record to dest: as much of it as the record has, leaving the rest of dest
+		// (part of a freshly allocated array, so zeroed) as it is. Older or unusual records can be shorter than our structs.
+		private static unsafe void CopyTail(byte* data, ref long offset, long recordEnd, void* dest, long size) {
+			long available = Math.Clamp(recordEnd - offset, 0, size);
+			Buffer.MemoryCopy(data + offset, dest, size, available);
+			offset += available;
+		}
+
+		// Reads count values of T at offset, which must all be inside the record ending at recordEnd
+		private static unsafe T[] ReadArray<T>(byte* data, ref long offset, long recordEnd, int count, string section) where T : unmanaged {
+			if (count < 0) {
+				throw Malformed(section, $"negative count {count}");
+			}
+			long size = (long)count * sizeof(T);
+			CheckRange(offset, size, recordEnd, section);
+			T[] result = new T[count];
+			fixed (T* dest = result) {
+				Buffer.MemoryCopy(data + offset, dest, size, size);
+			}
+			offset += size;
+			return result;
+		}
+
+		// Reads a section of count fixed-size records, each of which starts with its length (not counting the length value itself)
+		private static unsafe T[] ReadStaticSection<T>(byte* data, ref long offset, long limit, int count, string section) where T : unmanaged {
+			T[] result = new T[CheckCount(count, 4, offset, limit, section)];
+			fixed (T* dest = result) {
+				for (int i = 0; i < count; i++) {
+					long recordEnd = BeginRecord(data, offset, limit, section);
+					Buffer.MemoryCopy(data + offset, dest + i, sizeof(T), Math.Min(recordEnd - offset, sizeof(T)));
+					offset = recordEnd;
+				}
+			}
+			return result;
 		}
 	}
 }

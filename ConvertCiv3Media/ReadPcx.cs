@@ -9,6 +9,11 @@ namespace ConvertCiv3Media {
 		public int Width = 0;
 		public int Height = 0;
 
+		private const int HEADER_SIZE = 0x80;
+		// The 256 color palette at the end of the file, preceded by a 0x0C marker byte
+		private const int PALETTE_SIZE = 768;
+		private const byte PALETTE_MARKER = 0x0c;
+
 		// constructors
 		public Pcx() { }
 		public Pcx(string path) {
@@ -20,98 +25,100 @@ namespace ConvertCiv3Media {
 			return ColorIndices[pixel];
 		}
 
-		// not a generalized pcx reader
-		// assumes 8-bit image with 256-color 8-bit rgb palette
+		// Not a generalized pcx reader: only reads 8-bit images with a single color plane and a 256 color palette, like
+		// Civ3's. Throws NotSupportedException for other kinds of PCX files and InvalidDataException for malformed ones.
 		public void Load(string path) {
 			byte[] PcxBytes = File.ReadAllBytes(path);
 
+			if (PcxBytes.Length < HEADER_SIZE + 1 + PALETTE_SIZE || PcxBytes[0] != 0x0a || PcxBytes[2] != 1) {
+				throw new InvalidDataException($"Not a run-length encoded PCX file: {path}");
+			}
 			// Read info from PCX header
+			int BitsPerPixel = PcxBytes[3];
 			int LeftMargin = BitConverter.ToInt16(PcxBytes, 4);
 			int TopMargin = BitConverter.ToInt16(PcxBytes, 6);
 			int RightMargin = BitConverter.ToInt16(PcxBytes, 8);
 			int BottomMargin = BitConverter.ToInt16(PcxBytes, 10);
-			// assuming 1 color plane
-			// this is always even, so last byte may be junk if image width is odd
+			int Planes = PcxBytes[0x41];
+			// Each line is encoded as this many bytes, which is always even, so there are padding bytes at the end of
+			// each line which aren't part of the image if the image width is odd
 			int BytesPerLine = BitConverter.ToInt16(PcxBytes, 0x42);
+			if (BitsPerPixel != 8 || Planes != 1) {
+				throw new NotSupportedException($"Only 8-bit PCX files with a palette are supported, but this has {BitsPerPixel} bits per pixel in {Planes} planes: {path}");
+			}
 
-			this.Width = RightMargin - LeftMargin + 1;
-			this.Height = BottomMargin - TopMargin + 1;
-			// Palette is 256*3 bytes at end of file
-			int PaletteOffset = PcxBytes.Length - 768;
+			int width = RightMargin - LeftMargin + 1;
+			int height = BottomMargin - TopMargin + 1;
+			if (width <= 0 || height <= 0 || BytesPerLine < width || (long)width * height > Array.MaxLength) {
+				throw new InvalidDataException($"PCX file has an invalid size of {width}x{height} with {BytesPerLine} bytes per line: {path}");
+			}
+			// Palette is 256*3 bytes at end of file, after the marker
+			int PaletteOffset = PcxBytes.Length - PALETTE_SIZE;
+			if (PcxBytes[PaletteOffset - 1] != PALETTE_MARKER) {
+				throw new InvalidDataException($"PCX file has no 256 color palette: {path}");
+			}
+			this.Width = width;
+			this.Height = height;
 
 			// Populate color palette
-			Buffer.BlockCopy(PcxBytes, PaletteOffset, Palette, 0, 768);
+			Buffer.BlockCopy(PcxBytes, PaletteOffset, Palette, 0, PALETTE_SIZE);
 
-			int ImageLength = Width * Height;
-			byte[] Pixels = ColorIndices = new byte[ImageLength];
+			byte[] Pixels = ColorIndices = new byte[width * height];
 
-			// Encoding always have even number of bytes per line; if image width is odd, there is a junk byte in every row
-			bool JunkByte = BytesPerLine > Width;
-			// Column within the encoded line; only needed (and only tracked) when there is a junk byte to skip
-			int LineCol = 0;
-
-			// Loop to decode run-length-encoded image data which begins at file offset 0x80
-			for (int ImgIdx = 0, PcxIdx = 0x80; ImgIdx < ImageLength;) {
+			// The run-length encoded lines, padding included, are between the header and the palette. Runs can continue
+			// from one line to the next. The padding of the last line isn't needed.
+			int DataEnd = PaletteOffset - 1;
+			long EncodedLength = (long)(height - 1) * BytesPerLine + width;
+			long Position = 0; // in the decoded lines
+			for (int PcxIdx = HEADER_SIZE; Position < EncodedLength;) {
+				if (PcxIdx >= DataEnd) {
+					throw new InvalidDataException($"PCX image data ends before the image does: {path}");
+				}
 				byte Code = PcxBytes[PcxIdx];
 				// if two most significant bits are 11
 				if ((Code & 0xc0) == 0xc0) {
 					// then it & 0x3f is the run length of the following byte
-					int RunLen = Code & 0x3f;
-					PcxIdx++;
-					if (!JunkByte) {
-						ImgIdx = FillRun(Pixels, ImgIdx, RunLen, PcxBytes, PcxIdx);
-					} else {
-						// Repeat the pixel in the image RunLen times, except where the run covers the junk byte at the end of a line
-						while (RunLen > 0) {
-							int Segment = Math.Min(RunLen, BytesPerLine - LineCol);
-							bool EndsLine = LineCol + Segment == BytesPerLine;
-							ImgIdx = FillRun(Pixels, ImgIdx, EndsLine ? Segment - 1 : Segment, PcxBytes, PcxIdx);
-							LineCol = EndsLine ? 0 : LineCol + Segment;
-							RunLen -= Segment;
-						}
+					if (PcxIdx + 1 >= DataEnd) {
+						throw new InvalidDataException($"PCX image data ends before the image does: {path}");
 					}
-					PcxIdx++;
-				} else {
-					// Literal pixel. Copy it together with any literals following it, up to the end of the image,
-					// the end of the data, or the junk byte at the end of the line.
-					int MaxLiterals = Math.Min(ImageLength - ImgIdx, PcxBytes.Length - PcxIdx);
-					if (JunkByte) {
-						MaxLiterals = Math.Min(MaxLiterals, BytesPerLine - 1 - LineCol);
-					}
-					if (MaxLiterals > 0) {
-						ReadOnlySpan<byte> Literals = new ReadOnlySpan<byte>(PcxBytes, PcxIdx, MaxLiterals);
-						int Count = Literals.IndexOfAnyInRange((byte)0xc0, (byte)0xff);
-						if (Count < 0) {
-							Count = MaxLiterals;
-						}
-						Literals.Slice(0, Count).CopyTo(Pixels.AsSpan(ImgIdx));
-						ImgIdx += Count;
-						PcxIdx += Count;
-						if (JunkByte) {
-							LineCol += Count;
-						}
-					} else {
-						// The junk byte at the end of the line, which isn't part of the image
-						LineCol = 0;
-						PcxIdx++;
-					}
+					Position = Fill(Pixels, Position, Code & 0x3f, PcxBytes[PcxIdx + 1], width, BytesPerLine, EncodedLength);
+					PcxIdx += 2;
+					continue;
 				}
+				int Column = (int)(Position % BytesPerLine);
+				if (Column >= width) {
+					// A literal padding byte, which isn't part of the image
+					PcxIdx++;
+					Position++;
+					continue;
+				}
+				// Literal pixel. Copy it together with any literals following it, up to the end of the line's pixels or
+				// the end of the data.
+				ReadOnlySpan<byte> Literals = new ReadOnlySpan<byte>(PcxBytes, PcxIdx, Math.Min(width - Column, DataEnd - PcxIdx));
+				int Count = Literals.IndexOfAnyInRange((byte)0xc0, (byte)0xff);
+				if (Count < 0) {
+					Count = Literals.Length;
+				}
+				Literals.Slice(0, Count).CopyTo(Pixels.AsSpan((int)(Position / BytesPerLine) * width + Column));
+				PcxIdx += Count;
+				Position += Count;
 			}
 		}
 
-		// Write Count copies of PcxBytes[PcxIdx] at Pixels[ImgIdx], returning the new image index. Like writing them
-		// one at a time, this throws IndexOutOfRangeException if they don't all fit (after writing the ones that do).
-		private static int FillRun(byte[] Pixels, int ImgIdx, int Count, byte[] PcxBytes, int PcxIdx) {
-			if (Count <= 0) {
-				return ImgIdx;
+		// Writes Count copies of Value at Position in the decoded lines, leaving out the padding at the end of each line
+		// and anything past the end of the image, and returns the position after them
+		private static long Fill(byte[] Pixels, long Position, int Count, byte Value, int Width, int BytesPerLine, long EncodedLength) {
+			while (Count > 0 && Position < EncodedLength) {
+				int Column = (int)(Position % BytesPerLine);
+				int Segment = Math.Min(Count, BytesPerLine - Column);
+				int Visible = Math.Clamp(Width - Column, 0, Segment);
+				if (Visible > 0) {
+					Pixels.AsSpan((int)(Position / BytesPerLine) * Width + Column, Visible).Fill(Value);
+				}
+				Position += Segment;
+				Count -= Segment;
 			}
-			byte Value = PcxBytes[PcxIdx];
-			int Fits = Math.Min(Count, Pixels.Length - ImgIdx);
-			Pixels.AsSpan(ImgIdx, Fits).Fill(Value);
-			if (Fits < Count) {
-				throw new IndexOutOfRangeException();
-			}
-			return ImgIdx + Count;
+			return Position;
 		}
 	}
 }

@@ -9,7 +9,7 @@ namespace QueryCiv3.Biq {
 		public byte HasPalace;
 
 		private fixed byte Text[24];
-		public string Name { get => Util.GetString(ref this, 6, 30); }
+		public string Name { get => Util.GetString(ref this, 6, 24); }
 
 		public int OwnerType; // 0: None, 1: Barb, 2: Civ, 3: Player
 		public int NumberOfBuildings;

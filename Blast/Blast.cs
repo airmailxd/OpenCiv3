@@ -45,6 +45,11 @@ using System.IO;
 using System.Runtime.CompilerServices;
 
 namespace Blast {
+	/// <summary>
+	/// Decompresses a PKWare Data Compression Library ("implode", decoded by blast.c) stream. Like blast.c, only one
+	/// compressed stream is decoded; any input after its end code is ignored.
+	/// Malformed input throws a <see cref="BlastException"/>.
+	/// </summary>
 	public class BlastDecoder {
 		public const int MAX_WIN = 4096;
 		private const int END_OF_STREAM = 519;
@@ -55,9 +60,14 @@ namespace Blast {
 		private const int STREAM_OUTPUT_BUFFER_SIZE = 256 * 1024;
 		private const int INPUT_BUFFER_SIZE = 16384;
 
-		// The most bits a single literal or length/distance step can consume:
-		// 1 indicator bit + 13 length code bits + 8 extra length bits + 13 distance code bits + 8 extra distance bits
-		private const int MAX_BITS_PER_STEP = 43;
+		// Initial size of the output buffer when decoding to memory: a few times the compressed size (Civ3 files
+		// typically decompress to around 10 times their size), within these bounds. It grows as needed.
+		private const int MIN_INITIAL_OUTPUT_SIZE = 64 * 1024;
+		private const int MAX_INITIAL_OUTPUT_SIZE = 4 * 1024 * 1024;
+
+		// The most bits a single literal or length/distance step can consume: 1 indicator bit + a 13 bit literal
+		// code, or 1 indicator bit + 7 length code bits + 8 extra length bits + 8 distance code bits + 6 extra distance bits
+		private const int MAX_BITS_PER_STEP = 30;
 
 		/// <summary>
 		/// base for length codes
@@ -90,44 +100,16 @@ namespace Blast {
 		private readonly Stream _outputStream;
 		private byte[] _outputBuffer;
 		private int _outputBufferPos = 0; // index of next write location in _outputBuffer[]
-
-		// Number of bytes written by the current compressed stream, saturating at MAX_WIN. Distances can't
-		// reach back past the start of the current stream.
-		private int _streamOutputCount = 0;
-
+		// The most output to decode to memory
+		private readonly long _maxOutputLength = Array.MaxLength;
 
 		/// <summary>
-		/// <para>Decompress input to output using the provided infun() and outfun() calls.
-		/// On success, the return value of blast() is zero.  If there is an error in
-		/// the source data, i.e. it is not in the proper format, then a negative value
-		/// is returned.  If there is not enough input available or there is not enough
-		/// output space, then a positive error is returned.</para>
-		///
-		/// <para>The input function is invoked: len = infun(how, &buf), where buf is set by
-		/// infun() to point to the input buffer, and infun() returns the number of
-		/// available bytes there.  If infun() returns zero, then blast() returns with
-		/// an input error.  (blast() only asks for input if it needs it.)  inhow is for
-		/// use by the application to pass an input descriptor to infun(), if desired.</para>
-		///
-		/// <para>The output function is invoked: err = outfun(how, buf, len), where the bytes
-		/// to be written are buf[0..len-1].  If err is not zero, then blast() returns
-		/// with an output error.  outfun() is always called with len &lt;= 4096.  outhow
-		/// is for use by the application to pass an output descriptor to outfun(), if
-		/// desired.</para>
-		///
-		/// <para>The return codes are:</para>
-		///
-		///   2:  ran out of input before completing decompression
-		///   1:  output error before completing decompression
-		///   0:  successful decompression
-		///  -1:  literal flag not zero or one
-		///  -2:  dictionary size not in 4..6
-		///  -3:  distance is too far back
-		///
-		/// <para>At the bottom of blast.c is an example program that uses blast() that can be
-		/// compiled to produce a command-line decompression filter by defining TEST.</para>
+		/// Creates a decoder that reads compressed data from <paramref name="inputStream"/> and writes the
+		/// decompressed data to <paramref name="outputStream"/> when <see cref="Decompress()"/> is called.
 		/// </summary>
 		public BlastDecoder(Stream inputStream, Stream outputStream) {
+			ArgumentNullException.ThrowIfNull(inputStream);
+			ArgumentNullException.ThrowIfNull(outputStream);
 			this._inputStream = inputStream;
 			this._input = new byte[INPUT_BUFFER_SIZE];
 
@@ -135,13 +117,14 @@ namespace Blast {
 			this._outputBuffer = new byte[STREAM_OUTPUT_BUFFER_SIZE];
 		}
 
-		private BlastDecoder(byte[] input, int offset, int count, int initialOutputCapacity) {
+		private BlastDecoder(byte[] input, int offset, int count, int initialOutputCapacity, long maxOutputLength) {
 			this._inputStream = null;
 			this._input = input;
 			this._inputPos = offset;
 			this._inputEnd = offset + count;
 
 			this._outputStream = null;
+			this._maxOutputLength = maxOutputLength;
 			this._outputBuffer = new byte[Math.Max(initialOutputCapacity, MAX_WIN)];
 		}
 
@@ -150,19 +133,29 @@ namespace Blast {
 		/// intermediate streams. Produces exactly the bytes <see cref="Decompress()"/> would write to its output stream.
 		/// </summary>
 		public static byte[] DecompressBytes(byte[] compressed) {
+			ArgumentNullException.ThrowIfNull(compressed);
 			return DecompressBytes(compressed, 0, compressed.Length);
 		}
 
 		/// <inheritdoc cref="DecompressBytes(byte[])"/>
 		public static byte[] DecompressBytes(byte[] compressed, int offset, int count) {
+			return DecompressBytes(compressed, offset, count, Array.MaxLength);
+		}
+
+		/// <summary>
+		/// Like <see cref="DecompressBytes(byte[], int, int)"/>, but throws a <see cref="BlastException"/> if the
+		/// output would be longer than <paramref name="maxOutputLength"/> bytes.
+		/// </summary>
+		public static byte[] DecompressBytes(byte[] compressed, int offset, int count, int maxOutputLength) {
 			ArgumentNullException.ThrowIfNull(compressed);
 			if (offset < 0 || count < 0 || offset > compressed.Length - count) {
 				throw new ArgumentOutOfRangeException(nameof(count));
 			}
+			ArgumentOutOfRangeException.ThrowIfNegative(maxOutputLength);
 
-			// Civ3 files typically decompress to several times their compressed size; the buffer grows if needed
-			long initialCapacity = Math.Min((long)count * 8, Array.MaxLength);
-			BlastDecoder decoder = new BlastDecoder(compressed, offset, count, (int)initialCapacity);
+			long initialCapacity = Math.Clamp((long)count * 10, MIN_INITIAL_OUTPUT_SIZE, MAX_INITIAL_OUTPUT_SIZE);
+			initialCapacity = Math.Min(initialCapacity, Math.Max(maxOutputLength, MAX_WIN));
+			BlastDecoder decoder = new BlastDecoder(compressed, offset, count, (int)initialCapacity, maxOutputLength);
 			decoder.Decompress();
 
 			byte[] output = decoder._outputBuffer;
@@ -176,14 +169,29 @@ namespace Blast {
 		/// Decode PKWare Compression Library stream.
 		/// </summary>
 		public void Decompress() {
-			do {
-				// some files are composed of multiple compressed streams
+			try {
 				DecompressStream();
-			} while (IsInputRemaining());
+			} catch (BlastException) {
+				// Like blast.c, which writes output as it goes, write what was decoded before the error. A failure
+				// to write it mustn't hide the error in the data.
+				if (_outputStream != null) {
+					try {
+						FlushOutputBuffer();
+					} catch (Exception) {
+					}
+				}
+				throw;
+			}
+			// write remaining bytes
+			if (_outputStream != null) {
+				FlushOutputBuffer();
+			}
+			FlushBits();
 		}
 
 		private void DecompressStream() {
 			// read header (start of compressed stream)
+			FillBitBuffer();
 			bool codedLiteral = ReadCodedLiteralHeader();
 
 			// log2(dictionary size) - 6
@@ -193,68 +201,116 @@ namespace Blast {
 				throw new BlastException(BlastException.DictionarySizeMessage);
 			}
 
-			_streamOutputCount = 0;
+			// Number of bytes written by this stream, saturating at MAX_WIN. Distances can't reach back past its start.
+			int streamOutputCount = 0;
 
-			ushort[] literalLookup = HuffmanTable.LITERAL_CODE.lookup;
-			ushort[] lengthLookup = HuffmanTable.LENGTH_CODE.lookup;
-			ushort[] distanceLookup = HuffmanTable.DISTANCE_CODE.lookup;
+			HuffmanTable literalCode = HuffmanTable.LITERAL_CODE;
+			HuffmanTable lengthCode = HuffmanTable.LENGTH_CODE;
+			HuffmanTable distanceCode = HuffmanTable.DISTANCE_CODE;
 
-			// decode the compressed stream
+			// The hot state is kept in locals, and only synced with the fields around the (rare) refills and flushes
+			ulong bitBuffer = _bitBuffer;
+			int bitCount = _bitBufferCount;
+			byte[] output = _outputBuffer;
+			int outputPos = _outputBufferPos;
+
+			// decode literals and length/distance pairs
 			try {
-				// decode literals and length/distance pairs
-				do {
-					// Make sure a whole step's worth of bits is buffered, if there is that much input left
-					if (_bitBufferCount < MAX_BITS_PER_STEP) {
+				while (true) {
+					// Make sure a whole step's worth of bits is buffered, if there is that much input left. Within a step, running
+					// out of bits means running out of input.
+					if (bitCount < MAX_BITS_PER_STEP) {
+						_bitBuffer = bitBuffer;
+						_bitBufferCount = bitCount;
 						FillBitBuffer();
+						bitBuffer = _bitBuffer;
+						bitCount = _bitBufferCount;
+						if (bitCount == 0) {
+							throw new BlastException(BlastException.OutOfInputMessage);
+						}
 					}
 
 					// Bit indicates whether to read literal from stream or encoded length+distance pair
-					int nextCodeIndicator = GetBits(1);
+					int nextCodeIndicator = (int)bitBuffer & 1;
+					bitBuffer >>= 1;
+					bitCount--;
 
 					if (nextCodeIndicator == LITERAL_INDICATOR) {
 						// get literal and write it
-						byte literal = codedLiteral ? (byte)Decode(literalLookup) : (byte)GetBits(8);
-						if (_outputBufferPos == _outputBuffer.Length) {
+						int literal;
+						if (codedLiteral) {
+							literal = Decode(literalCode, ref bitBuffer, ref bitCount);
+						} else {
+							if (bitCount < 8) {
+								throw new BlastException(BlastException.OutOfInputMessage);
+							}
+							literal = (int)bitBuffer & 0xff;
+							bitBuffer >>= 8;
+							bitCount -= 8;
+						}
+						if (outputPos == output.Length) {
+							_outputBufferPos = outputPos;
 							EnsureBufferSpace(1);
+							output = _outputBuffer;
+							outputPos = _outputBufferPos;
 						}
-						_outputBuffer[_outputBufferPos++] = literal;
-						if (_streamOutputCount < MAX_WIN) {
-							_streamOutputCount++;
+						output[outputPos++] = (byte)literal;
+						if (streamOutputCount < MAX_WIN) {
+							streamOutputCount++;
 						}
-					} else {
-						// get length/distance and write buffer segments from current window
-
-						// decode length
-						int decodedLengthSymbol = Decode(lengthLookup);
-						int copyLength = LENGTH_CODE_BASE[decodedLengthSymbol] + GetBits(LENGTH_CODE_EXTRA[decodedLengthSymbol]);
-
-						if (copyLength == END_OF_STREAM) // sentinel value
-						{
-							// no more for this stream,
-							// stop and flush
-							break;
-						}
-
-						// decode distance
-						int distanceAdditionalBits = copyLength == 2 ? 2 : dictSize;
-						int copyDist = Decode(distanceLookup) << distanceAdditionalBits;
-						copyDist += GetBits(distanceAdditionalBits);
-						copyDist++;
-
-						// malformed input - you can't go back that far
-						if (copyDist > _streamOutputCount) {
-							throw new BlastException(BlastException.DistanceMessage);
-						}
-
-						WriteWindowSegment(copyLength, copyDist);
+						continue;
 					}
-				} while (true);
-			} finally {
-				// write remaining bytes
-				if (_outputStream != null) {
-					FlushOutputBuffer();
+
+					// get length/distance and write buffer segments from current window
+
+					// decode length
+					int decodedLengthSymbol = Decode(lengthCode, ref bitBuffer, ref bitCount);
+					int lengthExtraBits = LENGTH_CODE_EXTRA[decodedLengthSymbol];
+					if (bitCount < lengthExtraBits) {
+						throw new BlastException(BlastException.OutOfInputMessage);
+					}
+					int copyLength = LENGTH_CODE_BASE[decodedLengthSymbol] + ((int)bitBuffer & ((1 << lengthExtraBits) - 1));
+					bitBuffer >>= lengthExtraBits;
+					bitCount -= lengthExtraBits;
+
+					if (copyLength == END_OF_STREAM) // sentinel value
+					{
+						// no more for this stream
+						break;
+					}
+
+					// decode distance
+					int distanceAdditionalBits = copyLength == 2 ? 2 : dictSize;
+					int copyDist = Decode(distanceCode, ref bitBuffer, ref bitCount) << distanceAdditionalBits;
+					if (bitCount < distanceAdditionalBits) {
+						throw new BlastException(BlastException.OutOfInputMessage);
+					}
+					copyDist += (int)bitBuffer & ((1 << distanceAdditionalBits) - 1);
+					bitBuffer >>= distanceAdditionalBits;
+					bitCount -= distanceAdditionalBits;
+					copyDist++;
+
+					// malformed input - you can't go back that far
+					if (copyDist > streamOutputCount) {
+						throw new BlastException(BlastException.DistanceMessage);
+					}
+
+					// Copy copyLength bytes from copyDist bytes back.
+					if (copyLength > output.Length - outputPos) {
+						_outputBufferPos = outputPos;
+						EnsureBufferSpace(copyLength);
+						output = _outputBuffer;
+						outputPos = _outputBufferPos;
+					}
+					CopyFromWindow(output, outputPos, copyLength, copyDist);
+					outputPos += copyLength;
+					streamOutputCount = Math.Min(streamOutputCount + copyLength, MAX_WIN);
 				}
-				FlushBits();
+			} finally {
+				// (also when the data turns out to be malformed, so what was decoded before can be written)
+				_bitBuffer = bitBuffer;
+				_bitBufferCount = bitCount;
+				_outputBufferPos = outputPos;
 			}
 		}
 
@@ -267,12 +323,9 @@ namespace Blast {
 			return codedLiteral == 1;
 		}
 
-		private void WriteWindowSegment(int copyLength, int copyDistance) {
-			// Copy copyLength bytes from copyDist bytes back.
-			EnsureBufferSpace(copyLength);
-
-			byte[] buffer = _outputBuffer;
-			int toIndex = _outputBufferPos;
+		// Copies copyLength bytes from copyDistance bytes back to buffer[toIndex], which has room for them
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		private static void CopyFromWindow(byte[] buffer, int toIndex, int copyLength, int copyDistance) {
 			int fromIndex = toIndex - copyDistance;
 
 			if (copyDistance >= copyLength) {
@@ -293,28 +346,22 @@ namespace Blast {
 					remaining -= chunk;
 				}
 			}
-
-			_outputBufferPos += copyLength;
-			_streamOutputCount = Math.Min(_streamOutputCount + copyLength, MAX_WIN);
 		}
 
 		#region Input bits
 
 		/// <summary>
-		/// Decode a Huffman code from the stream using the given direct lookup table (see
+		/// Decode a Huffman code from the bits using the table's direct lookup table (see
 		/// <see cref="HuffmanTable.lookup"/>), returning the symbol. Behaves like blast.c's bit-by-bit decode():
 		/// only the bits of the matched code are consumed, and input is only required up to the end of that code.
+		/// The caller has buffered as many bits as the input has, up to a whole step's worth.
 		/// </summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		private int Decode(ushort[] lookup) {
-			if (_bitBufferCount < HuffmanTable.LOOKUP_BITS) {
-				FillBitBuffer();
-			}
-
-			int entry = lookup[(int)_bitBuffer & HuffmanTable.LOOKUP_MASK];
+		private static int Decode(HuffmanTable table, ref ulong bitBuffer, ref int bitCount) {
+			int entry = table.lookup[(int)bitBuffer & table.lookupMask];
 			int length = entry & 0xf;
 
-			if (length > _bitBufferCount) {
+			if (length > bitCount) {
 				// the code continues past the end of the input
 				throw new BlastException(BlastException.OutOfInputMessage);
 			}
@@ -323,13 +370,12 @@ namespace Blast {
 				throw new BlastException("Invalid Huffman code");
 			}
 
-			_bitBuffer >>= length;
-			_bitBufferCount -= length;
+			bitBuffer >>= length;
+			bitCount -= length;
 
 			return entry >> 4;
 		}
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		private int GetBits(int need) {
 			if (_bitBufferCount < need) {
 				FillBitBuffer();
@@ -360,8 +406,7 @@ namespace Blast {
 		}
 
 		/// <summary>
-		/// Discard the rest of the partially consumed byte at the end of a compressed stream. Any whole bytes that
-		/// were read ahead stay buffered for the next stream.
+		/// Discard the rest of the partially consumed byte at the end of the compressed stream.
 		/// </summary>
 		private void FlushBits() {
 			int partialBits = _bitBufferCount & 7;
@@ -379,28 +424,24 @@ namespace Blast {
 			return _inputEnd > 0;
 		}
 
-		/// <summary>
-		/// Check for presence of more input without consuming it.
-		/// May refill the input buffer.
-		/// </summary>
-		private bool IsInputRemaining() {
-			return _bitBufferCount > 0 || _inputPos < _inputEnd || ReadInput();
-		}
-
 		#endregion
 
 		#region Output stream
 
 		private void EnsureBufferSpace(int required) {
 			// is there room in the buffer?
-			if (_outputBufferPos + required <= _outputBuffer.Length) {
+			long needed = (long)_outputBufferPos + required;
+			if (needed <= _outputBuffer.Length) {
 				return;
 			}
 
 			if (_outputStream == null) {
 				// decoding to memory: grow the buffer, which holds all of the output
-				long newSize = Math.Max((long)_outputBuffer.Length * 2, (long)_outputBufferPos + required);
-				Array.Resize(ref _outputBuffer, (int)Math.Min(newSize, Array.MaxLength));
+				if (needed > _maxOutputLength) {
+					throw new BlastException(BlastException.OutputTooLargeMessage);
+				}
+				long newSize = Math.Min(Math.Max((long)_outputBuffer.Length * 2, needed), _maxOutputLength);
+				Array.Resize(ref _outputBuffer, (int)newSize);
 				return;
 			}
 

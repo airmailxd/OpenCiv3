@@ -1,4 +1,5 @@
 using System;
+using System.Buffers.Binary;
 using System.Collections.Generic;
 
 namespace QueryCiv3 {
@@ -6,6 +7,8 @@ namespace QueryCiv3 {
 		Vanilla,
 		PlayTheWorld,
 		Conquests,
+		// Not a BIQ format QueryCiv3 recognizes, e.g. a SAV file or a BIQ with an unknown header
+		Unknown,
 	}
 
 	public class Civ3Version {
@@ -81,16 +84,21 @@ namespace QueryCiv3 {
 			int maj = -1;
 			int min = -1;
 
+			// Files too short to have a version leave it at -1
 			if (IsGameFile) {
 				header = GetString(0, 4);
-				mag = ReadInt16(4);
-				maj = ReadInt32(6);
-				min = ReadInt32(10);
+				if (Length >= 14) {
+					mag = ReadInt16(4);
+					maj = ReadInt32(6);
+					min = ReadInt32(10);
+				}
 			} else if (IsBicFile) {
 				header = GetString(0, 4);
 				mag = -1;
-				maj = ReadInt32(24);
-				min = ReadInt32(28);
+				if (Length >= 32) {
+					maj = ReadInt32(24);
+					min = ReadInt32(28);
+				}
 			}
 
 			return new Civ3Version() {
@@ -102,11 +110,14 @@ namespace QueryCiv3 {
 			};
 		}
 
-		private FileVersion GetGameVersion(string input, int majorVersion) {
-			if ((input == "BICX" && majorVersion == 12) || (input == "BICQ" && majorVersion == 12)) return FileVersion.Conquests;
-			if (input == "BICX") return FileVersion.PlayTheWorld;
-			if (input == "BIC") return FileVersion.Vanilla;
-			return FileVersion.Conquests;
+		// The BIQ format version of a BIQ file. The header of vanilla BIQ files is "BIC " (with a trailing space); anything
+		// other than a BIQ header, including the "CIV3" header of SAV files, is Unknown.
+		internal static FileVersion GetGameVersion(string input, int majorVersion) {
+			string type = input?.Trim() ?? "";
+			if ((type == "BICX" || type == "BICQ") && majorVersion >= 12) return FileVersion.Conquests;
+			if (type == "BICX") return FileVersion.PlayTheWorld;
+			if (type == "BIC") return FileVersion.Vanilla;
+			return FileVersion.Unknown;
 		}
 		private Dictionary<string, List<int>> SectionOffsetsByName {
 			get {
@@ -166,16 +177,17 @@ namespace QueryCiv3 {
 			// TODO: Add name and nth to message
 			throw new ArgumentException($"Unable to find section '{name}' nth {nth}");
 		}
-		// TODO: Force little endian conversion on big endian systems
-		//  although anticipated Intel and ARM targets are little endian, so maybe not important
+		// Civ3 files are little endian. These throw ArgumentOutOfRangeException if the value isn't entirely inside the file.
 		// NOTE: Cast result as (uint) if unsigned desired
-		public int ReadInt32(int offset) => IsWholeArray
-			? BitConverter.ToInt32(this.FileData, offset)
-			: BitConverter.ToInt32(new ReadOnlySpan<byte>(this.FileData, DataStart, DataLength).Slice(offset));
+		public int ReadInt32(int offset) => BinaryPrimitives.ReadInt32LittleEndian(GetCheckedSpan(offset, sizeof(int)));
 		// NOTE: Cast result as (ushort) if unsigned desired
-		public short ReadInt16(int offset) => IsWholeArray
-			? BitConverter.ToInt16(this.FileData, offset)
-			: BitConverter.ToInt16(new ReadOnlySpan<byte>(this.FileData, DataStart, DataLength).Slice(offset));
+		public short ReadInt16(int offset) => BinaryPrimitives.ReadInt16LittleEndian(GetCheckedSpan(offset, sizeof(short)));
+		private ReadOnlySpan<byte> GetCheckedSpan(int offset, int length) {
+			if (offset < 0 || offset > DataLength - length) {
+				throw new ArgumentOutOfRangeException(nameof(offset), offset, $"Reading {length} bytes at this offset goes past the end of the {DataLength} byte file.");
+			}
+			return new ReadOnlySpan<byte>(FileData, DataStart + offset, length);
+		}
 		// NOTE: Cast result as (sbyte) if signed desired
 		public byte ReadByte(int offset) {
 			if ((uint)offset >= (uint)DataLength) {
@@ -183,12 +195,13 @@ namespace QueryCiv3 {
 			}
 			return this.FileData[DataStart + offset];
 		}
+		// The bytes in [offset, offset + length), clamped to the end of the file
 		private ReadOnlySpan<byte> GetSpan(int offset, int length) {
 			if (offset > Length) return ReadOnlySpan<byte>.Empty;
-			if (offset + length > Length) length = Length - offset;
-			if (length <= 0) return ReadOnlySpan<byte>.Empty;
+			long clampedLength = Math.Min((long)offset + length, Length) - offset; // long, so offset + length can't overflow
+			if (clampedLength <= 0) return ReadOnlySpan<byte>.Empty;
 			if (offset < 0) throw new IndexOutOfRangeException();
-			return new ReadOnlySpan<byte>(FileData, DataStart + offset, length);
+			return new ReadOnlySpan<byte>(FileData, DataStart + offset, (int)clampedLength);
 		}
 		public byte[] GetBytes(int offset, int length) {
 			return GetSpan(offset, length).ToArray();

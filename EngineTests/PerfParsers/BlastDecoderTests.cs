@@ -207,18 +207,62 @@ public class BlastDecoderTests {
 	}
 
 	[Fact]
-	public void ConcatenatedStreamsDecodeLikeReference() {
+	public void BytesAfterTheEndOfTheStreamAreIgnored() {
 		Random random = new(42);
 		BlastTestEncoder encoder = new();
-		List<byte> expected = new();
-		expected.AddRange(encoder.RandomStream(random, true, 6, 300_000));
-		expected.AddRange(encoder.RandomStream(random, false, 4, 10));
-		expected.AddRange(encoder.RandomStream(random, true, 5, 20_000));
-		byte[] compressed = encoder.ToArray();
+		byte[] expected = encoder.RandomStream(random, true, 6, 300_000);
+		byte[] single = encoder.ToArray();
+		// Another stream, and garbage, after the first are ignored, as blast.c does
+		encoder.RandomStream(random, false, 4, 10);
+		foreach (byte[] trailing in new[] { encoder.ToArray().Skip(single.Length).ToArray(), new byte[] { 0 }, new byte[] { 0, 4 }, new byte[] { 7, 7, 7 } }) {
+			byte[] compressed = single.Concat(trailing).ToArray();
+			Assert.Equal(expected, ReferenceDecoders.BlastDecoder.Decompress(compressed));
+			Assert.Equal(expected, BlastDecoder.DecompressBytes(compressed));
+			Assert.Equal(expected, DecompressWithStreams(compressed, new TrickleStream(compressed, 5)));
+		}
+	}
 
-		Assert.Equal(expected.ToArray(), ReferenceDecoders.BlastDecoder.Decompress(compressed));
-		Assert.Equal(expected.ToArray(), BlastDecoder.DecompressBytes(compressed));
-		Assert.Equal(expected.ToArray(), DecompressWithStreams(compressed, new TrickleStream(compressed, 5)));
+	[Fact]
+	public void OutputCanBeLimited() {
+		Random random = new(43);
+		BlastTestEncoder encoder = new();
+		byte[] expected = encoder.RandomStream(random, true, 5, 100_000);
+		byte[] compressed = encoder.ToArray();
+		Assert.Equal(expected, BlastDecoder.DecompressBytes(compressed, 0, compressed.Length, expected.Length));
+		BlastException e = Assert.Throws<BlastException>(() => BlastDecoder.DecompressBytes(compressed, 0, compressed.Length, expected.Length - 1));
+		Assert.Equal(BlastException.OutputTooLargeMessage, e.Message);
+		Assert.Throws<BlastException>(() => BlastDecoder.DecompressBytes(compressed, 0, compressed.Length, 0));
+	}
+
+	[Fact]
+	public void StreamsMustNotBeNull() {
+		Assert.Throws<ArgumentNullException>(() => new BlastDecoder(null, new MemoryStream()));
+		Assert.Throws<ArgumentNullException>(() => new BlastDecoder(new MemoryStream(), null));
+		Assert.Throws<ArgumentNullException>(() => BlastDecoder.DecompressBytes(null));
+	}
+
+	// Throws an IOException on the first write, and something else after that
+	private class FailingStream : MemoryStream {
+		private int writes;
+		public override void Write(byte[] buffer, int offset, int count) {
+			if (writes++ == 0) throw new IOException("first write");
+			throw new InvalidOperationException("later write");
+		}
+	}
+
+	[Fact]
+	public void OutputErrorsAreNotMasked() {
+		Random random = new(44);
+		BlastTestEncoder encoder = new();
+		encoder.RandomStream(random, true, 5, 600_000); // more than the output buffer holds
+		byte[] compressed = encoder.ToArray();
+		IOException e = Assert.Throws<IOException>(() => new BlastDecoder(new MemoryStream(compressed), new FailingStream()).Decompress());
+		Assert.Equal("first write", e.Message);
+
+		// An error in the data isn't hidden by one writing the output decoded before it
+		byte[] truncated = compressed.AsSpan(0, 1000).ToArray();
+		BlastException blastException = Assert.Throws<BlastException>(() => new BlastDecoder(new MemoryStream(truncated), new FailingStream()).Decompress());
+		Assert.Equal(BlastException.OutOfInputMessage, blastException.Message);
 	}
 
 	[Fact]
