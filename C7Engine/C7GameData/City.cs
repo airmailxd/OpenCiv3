@@ -745,6 +745,7 @@ namespace C7GameData {
 			MapUnit newUnit = proto.GetInstance(gameData.GenerateID(proto.name), proto, owner, location: location);
 			newUnit.experienceLevelKey = gameData.defaultExperienceLevelKey;
 			newUnit.experienceLevel = gameData.defaultExperienceLevel;
+			newUnit.hitPointsRemaining = newUnit.maxHitPoints;
 
 			location.unitsOnTile.Add(newUnit);
 			gameData.mapUnits.Add(newUnit);

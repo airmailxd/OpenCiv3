@@ -336,7 +336,7 @@ namespace C7GameData {
 
 			newUnit.experienceLevel = player.isBarbarians ? barbExpLevel : defaultExpLevel;
 			newUnit.experienceLevelKey = player.isBarbarians ? barbExpLevel.key : defaultExpLevel.key;
-			newUnit.hitPointsRemaining = player.isBarbarians ? barbExpLevel.baseHitPoints : defaultExpLevel.baseHitPoints;
+			newUnit.hitPointsRemaining = newUnit.maxHitPoints;
 
 			tile.unitsOnTile.Add(newUnit);
 			this.mapUnits.Add(newUnit);
