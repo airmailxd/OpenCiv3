@@ -31,6 +31,8 @@ local unit_replacement_art_map = {
   ["Crusader"] = "Black Hospitaller Swordsman",
   ["Ancient Cavalry"] = "Oscan Companion",
   ["Curragh"] = "MinoanGalley",
+  -- TODO: placeholder until we have art for armies
+  ["Army"] = "Medieval Spearman",
 }
 
 --[[
@@ -51,6 +53,9 @@ return function(civ3_game_mode)
     -- Only preserve a unit if we have an art replacement for it
     if replacement_art then
       unit_prototype.art.mainArt.defaultName = replacement_art
+      -- The replacement art has no era or slave variants, and the variants
+      -- in the base ruleset name art we don't ship.
+      unit_prototype.art.mainArt.variations = nil
 
       -- TODO: these are just placeholders until we have some proper art
       unit_prototype.art.pediaArt.large = "art\\civilopedia\\icons\\units\\unit_large.png"

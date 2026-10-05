@@ -21,15 +21,62 @@ using IniParser;
 using IniParser.Model;
 using C7GameData;
 using ConvertCiv3Media;
+using Serilog;
 
 public partial class AnimationManager {
+
+	private static readonly ILogger log = LogManager.ForContext<AnimationManager>();
+
+	// Whether we have art for a unit art name. Missing art is remembered so
+	// that it's only reported once.
+	private static readonly Dictionary<string, bool> unitArtExists = new();
+
+	// The art to draw a unit with. If its own art can't be found, like army
+	// art that isn't available, an army is drawn with the art of the member
+	// that would defend it, and otherwise the prototype's default art is
+	// tried, rather than failing to load the same art every frame.
+	public static string ArtNameFor(MapUnit unit) {
+		string name = unit.GetArtName();
+		if (HasUnitArt(name)) {
+			return name;
+		}
+
+		if (unit.IsArmy()) {
+			MapUnit member = unit.Combatant(CombatRole.Defense);
+			if (member != unit && HasUnitArt(member.GetArtName())) {
+				return member.GetArtName();
+			}
+		}
+		string defaultName = unit.unitType.art.mainArt.defaultName;
+		if (HasUnitArt(defaultName)) {
+			return defaultName;
+		}
+		return name;
+	}
+
+	private static bool HasUnitArt(string name) {
+		if (string.IsNullOrEmpty(name)) {
+			return false;
+		}
+		if (!unitArtExists.TryGetValue(name, out bool exists)) {
+			try {
+				Util.Civ3MediaPath(string.Format("Art/Units/{0}/{0}.INI", name));
+				exists = true;
+			} catch (ApplicationException) {
+				log.Warning($"No unit art found for {name}");
+				exists = false;
+			}
+			unitArtExists[name] = exists;
+		}
+		return exists;
+	}
 
 	public static string BaseAnimationKey(string unitName, MapUnit.AnimatedAction action) {
 		return String.Format("{0}_{1}", unitName, action.ToString());
 	}
 
 	public static string BaseAnimationKey(MapUnit unit, MapUnit.AnimatedAction action) {
-		return BaseAnimationKey(unit.GetArtName(), action);
+		return BaseAnimationKey(ArtNameFor(unit), action);
 	}
 
 	public static string AnimationKey(string baseKey, TileDirection direction) {
@@ -74,7 +121,7 @@ public partial class AnimationManager {
 	}
 
 	public static string GetUnitDefaultThumbnailKey(MapUnit unit) {
-		return $"{unit.GetArtName()}_{thumbnailDirection}_{thumbnailAction}_{thumbnailFrame}";
+		return $"{ArtNameFor(unit)}_{thumbnailDirection}_{thumbnailAction}_{thumbnailFrame}";
 	}
 
 	public (ImageTexture baseFrame, ImageTexture tintFrame) GetAnimationFrameAndTintTextures(MapUnit unit) {
@@ -121,8 +168,8 @@ public partial class AnimationManager {
 	}
 
 	public string getUnitFlicFilepath(MapUnit unit, MapUnit.AnimatedAction action) {
-		string directory = string.Format("Art/Units/{0}", unit.GetArtName());
-		IniData ini = getUnitINIData(unit.GetArtName());
+		string directory = string.Format("Art/Units/{0}", ArtNameFor(unit));
+		IniData ini = getUnitINIData(ArtNameFor(unit));
 		string filename = getFlicFileName(ini, action);
 		return directory.PathJoin(filename);
 	}
@@ -195,7 +242,7 @@ public partial class AnimationManager {
 	}
 
 	public bool LoadAnimation(MapUnit unit, MapUnit.AnimatedAction action) {
-		string name = BaseAnimationKey(unit.GetArtName(), action);
+		string name = BaseAnimationKey(ArtNameFor(unit), action);
 		string testName = AnimationKey(name, TileDirection.NORTH);
 		if (spriteFrames.HasAnimation(testName) && tintFrames.HasAnimation(testName)) {
 			return false;
@@ -268,8 +315,8 @@ public partial class C7Animation {
 
 	public C7Animation(AnimationManager civ3AnimData, MapUnit unit, MapUnit.AnimatedAction action) {
 		this.animationManager = civ3AnimData;
-		this.folderPath = "Art/Units/" + unit.GetArtName();
-		this.iniFileName = unit.GetArtName() + ".ini";
+		this.folderPath = "Art/Units/" + AnimationManager.ArtNameFor(unit);
+		this.iniFileName = AnimationManager.ArtNameFor(unit) + ".ini";
 		this.action = action;
 		this.unit = unit;
 	}
