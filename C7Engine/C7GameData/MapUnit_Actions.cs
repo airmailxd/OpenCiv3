@@ -229,7 +229,8 @@ public partial class MapUnit {
 		// Trigger combat if the tile we're moving into has an enemy  Or if this unit can't fight, do nothing.
 		MapUnit defender = newLoc.FindTopDefender(this);
 		bool enemyOnTile = defender != MapUnit.NONE && !owner.IsAtPeaceWith(defender.owner);
-		if (enemyOnTile && unitType.attack <= 0) {
+		// Units that can't attack, including empty armies, don't start fights.
+		if (enemyOnTile && !CanAttack()) {
 			return true;
 		}
 
@@ -316,11 +317,13 @@ public partial class MapUnit {
 	}
 
 	// True if an enemy unit on the tile can actually put up a fight against
-	// this unit, as opposed to only workers, settlers and the like.
+	// this unit, as opposed to only workers, settlers, empty armies and the
+	// like. Units in an army fight through the army.
 	private bool HasArmedEnemyDefender(Tile tile) {
 		return tile.unitsOnTile.Any(u => !owner.IsAtPeaceWith(u.owner)
+			&& !u.IsInArmy()
 			&& u.CanDefendAgainst(this)
-			&& u.unitType.defense > 0);
+			&& u.CombatBaseStrength(CombatRole.Defense) > 0);
 	}
 
 	// Captures the enemy workers on the tile, turns enemy settlers into two
@@ -344,6 +347,11 @@ public partial class MapUnit {
 	public async Task<CombatResult> Fight(MapUnit defender) {
 		var attacker = this;
 
+		// Armies fight with one member at a time; for other units the
+		// combatant is the unit itself. See Combatant().
+		MapUnit attackingMember = attacker.Combatant(CombatRole.Attack);
+		MapUnit defendingMember = defender.Combatant(CombatRole.Defense);
+
 		// Set combat animation facing. We'll restore the defender's original facing direction at the end of the battle.
 		TileDirection attackerAttackDirection = attacker.location.DirectionTo(defender.location);
 		TileDirection defenderDefenseDirection = attackerAttackDirection.Reversed();
@@ -353,15 +361,17 @@ public partial class MapUnit {
 
 		IEnumerable<StrengthBonus> attackBonuses  = attacker.ListStrengthBonusesVersus(defender, CombatRole.Attack , attackerAttackDirection),
 								   defenseBonuses = defender.ListStrengthBonusesVersus(attacker, CombatRole.Defense, attackerAttackDirection);
+		double attackMultiplier  = StrengthBonus.ListToMultiplier(attackBonuses),
+			   defenseMultiplier = StrengthBonus.ListToMultiplier(defenseBonuses);
 
-		double attackerStrength = attacker.unitType.attack  * StrengthBonus.ListToMultiplier(attackBonuses),
-			   defenderStrength = defender.unitType.defense * StrengthBonus.ListToMultiplier(defenseBonuses);
+		double attackerStrength = attackingMember.unitType.attack  * attackMultiplier,
+			   defenderStrength = defendingMember.unitType.defense * defenseMultiplier;
 
 		log.Information($"Combat log: {attacker} ({attackerStrength}) attacking {defender} ({defenderStrength})");
-		log.Information($"\tAttacker: {attacker.unitType.name}, base strength {attacker.unitType.BaseStrength(CombatRole.Attack)}");
+		log.Information($"\tAttacker: {attackingMember.unitType.name}, base strength {attackingMember.unitType.BaseStrength(CombatRole.Attack)}");
 		foreach (StrengthBonus bonus in attackBonuses)
 			log.Information($"\t\t+{100.0 * bonus.amount}%\t{bonus.description}");
-		log.Information($"\tDefender: {defender.unitType.name}, base strength {defender.unitType.BaseStrength(CombatRole.Defense)}");
+		log.Information($"\tDefender: {defendingMember.unitType.name}, base strength {defendingMember.unitType.BaseStrength(CombatRole.Defense)}");
 		foreach (StrengthBonus bonus in defenseBonuses)
 			log.Information($"\t\t+{100.0 * bonus.amount}%\t{bonus.description}");
 
@@ -371,10 +381,19 @@ public partial class MapUnit {
 		if (Double.IsNaN(attackerOdds))
 			return result;
 
+		// When an army rotates in another member, the odds change with it.
+		void UpdateOdds() {
+			attackerStrength = attackingMember.unitType.attack  * attackMultiplier;
+			defenderStrength = defendingMember.unitType.defense * defenseMultiplier;
+			attackerOdds = attackerStrength / (attackerStrength + defenderStrength);
+			if (Double.IsNaN(attackerOdds))
+				attackerOdds = 0.5;
+		}
+
 		// Defensive bombard
 		MapUnit defensiveBombarder = MapUnit.NONE;
 		double defensiveBombarderStrength = 0.0;
-		foreach (MapUnit candidate in defender.location.unitsOnTile.Where(u => u != defender && !u.owner.IsAtPeaceWith(attacker.owner) && u.defensiveBombardsRemaining > 0)) {
+		foreach (MapUnit candidate in defender.location.unitsOnTile.Where(u => u != defender && !u.IsInArmy() && !u.owner.IsAtPeaceWith(attacker.owner) && u.defensiveBombardsRemaining > 0)) {
 			double strength = candidate.StrengthVersus(attacker, CombatRole.DefensiveBombard, defenderDefenseDirection);
 			if (strength > defensiveBombarderStrength) {
 				defensiveBombarder = candidate;
@@ -383,7 +402,12 @@ public partial class MapUnit {
 		}
 		// In the original game, defensive bombard does not trigger against attackers with 1 HP. See:
 		// https://github.com/C7-Game/Prototype/pull/250#discussion_r893051111
-		if (defensiveBombarder != MapUnit.NONE && attacker.hitPointsRemaining > 1) {
+		// Against an army it hits the member with the most hit points, so it
+		// never kills one either.
+		MapUnit bombardedUnit = attacker.IsArmy()
+			? attacker.Passengers().OrderByDescending(m => m.hitPointsRemaining).FirstOrDefault() ?? attacker
+			: attacker;
+		if (defensiveBombarder != MapUnit.NONE && bombardedUnit.hitPointsRemaining > 1) {
 			var dBOriginalDirection = defensiveBombarder.facingDirection;
 			TileDirection defensiveBombardDirection = defenderDefenseDirection;
 			defensiveBombarder.facingDirection = defensiveBombarder.GetAttackAnimationDirection(defensiveBombardDirection);
@@ -393,13 +417,16 @@ public partial class MapUnit {
 			// dADB = defense Against Defensive Bombard
 			double dADB = attacker.StrengthVersus(defensiveBombarder, CombatRole.DefensiveBombardDefense, defensiveBombardDirection);
 			if (GameData.rng.NextDouble() < defensiveBombarderStrength / (defensiveBombarderStrength + dADB))
-				attacker.hitPointsRemaining -= 1;
+				bombardedUnit.hitPointsRemaining -= 1;
 
 			defensiveBombarder.defensiveBombardsRemaining -= 1;
 			defensiveBombarder.facingDirection = dBOriginalDirection;
+
+			attackingMember = attacker.Combatant(CombatRole.Attack);
+			UpdateOdds();
 		}
 
-		bool defenderEligibleToRetreat = defender.hitPointsRemaining > 1 && ! defender.location.HasCity();
+		bool defenderEligibleToRetreat = defender.CompositeHitPoints() > 1 && ! defender.location.HasCity();
 
 		// Do combat rounds
 		while (true) {
@@ -407,7 +434,7 @@ public partial class MapUnit {
 			await attacker.animateAsync(MapUnit.AnimatedAction.ATTACK1);
 			if (GameData.rng.NextDouble() < attackerOdds) {
 				if (defenderEligibleToRetreat &&
-					defender.hitPointsRemaining == 1 &&
+					defender.CompositeHitPoints() == 1 &&
 					GameData.rng.NextDouble() < defender.RetreatChance(attacker, false)) {
 					// TODO: Defender retreat behavior requires some more work. There's an issue for it here:
 					// https://github.com/C7-Game/Prototype/issues/274
@@ -427,28 +454,35 @@ public partial class MapUnit {
 						break;
 					}
 				}
-				defender.hitPointsRemaining -= 1;
-				if (defender.hitPointsRemaining <= 0) {
+				if (defender.AbsorbCombatHit(defendingMember)) {
 					result = CombatResult.DefenderKilled;
 					break;
 				}
+				defendingMember = defender.Combatant(CombatRole.Defense);
+				UpdateOdds();
 			} else {
-				if (attacker.hitPointsRemaining == 1 &&
+				if (attacker.CompositeHitPoints() == 1 &&
 					GameData.rng.NextDouble() < attacker.RetreatChance(defender, true)) {
 					result = CombatResult.AttackerRetreated;
 					break;
 				}
-				attacker.hitPointsRemaining -= 1;
-				if (attacker.hitPointsRemaining <= 0) {
+				if (attacker.AbsorbCombatHit(attackingMember)) {
 					result = CombatResult.AttackerKilled;
 					break;
 				}
+				attackingMember = attacker.Combatant(CombatRole.Attack);
+				UpdateOdds();
 			}
 		}
 
 		if ((result == CombatResult.AttackerKilled) || (result == CombatResult.DefenderKilled)) {
 			var (dead, alive) = (result == CombatResult.AttackerKilled) ? (attacker, defender) : (defender, attacker);
-			alive.RollToPromote(dead);
+
+			// In an army, the member that won the last round gets the chance
+			// to be promoted, and the army plays the victory animation.
+			MapUnit survivingMember = (alive == attacker) ? attackingMember : defendingMember;
+			survivingMember.RollToPromote(dead, alive);
+
 			await dead.animateAsync(MapUnit.AnimatedAction.DEATH);
 			dead.RemoveFromPlay();
 		}

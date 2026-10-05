@@ -87,11 +87,19 @@ namespace C7GameData {
 		}
 
 		public bool CanDefendOnLand() {
-			return IsLandUnit() && unitType.defense > 0;
+			return IsLandUnit() && CombatBaseStrength(CombatRole.Defense) > 0;
 		}
 
 		public bool IsCombatUnit() {
+			// An army fights with its members, so an empty one can't fight.
+			if (IsArmy())
+				return Passengers().Any(u => u.IsCombatUnit());
 			return this.unitType.attack > 0 || this.unitType.defense > 0;
+		}
+
+		// Whether this unit can start a fight.
+		public bool CanAttack() {
+			return CombatBaseStrength(CombatRole.Attack) > 0;
 		}
 
 		public bool CanBeActive() {
@@ -228,7 +236,7 @@ namespace C7GameData {
 		public string Describe() {
 			UnitPrototype type = this.unitType;
 			string exp = this.IsCombatUnit() ? $"{this.experienceLevel.displayName}" : "";
-			string hPDesc = ((type.attack > 0) || (type.defense > 0)) ? $" ({this.hitPointsRemaining}/{this.maxHitPoints})" : "";
+			string hPDesc = IsCombatUnit() ? $" ({this.CompositeHitPoints()}/{this.CompositeMaxHitPoints()})" : "";
 			string displayName = this.IsCaptive() ? $" ({this.nationality.adjective}) {this.name}" : $" {this.name}";
 			string attackDesc = (type.bombard > 0) ? $"{type.attack}({type.bombard})" : type.attack.ToString();
 			string stats = $" ({attackDesc}.{type.defense}.{(EngineStorage.uiControllerID == this.owner.id ? $"{this.movementPoints.getMixedNumber()}/" : "")}{MaxMovementPoints()})";
@@ -362,7 +370,92 @@ namespace C7GameData {
 		}
 
 		public double StrengthVersus(MapUnit opponent, CombatRole role, TileDirection? attackDirection) {
-			return unitType.BaseStrength(role) * StrengthBonus.ListToMultiplier(ListStrengthBonusesVersus(opponent, role, attackDirection));
+			return CombatBaseStrength(role) * StrengthBonus.ListToMultiplier(ListStrengthBonusesVersus(opponent, role, attackDirection));
+		}
+
+		// The unit's base strength in a fight. An army has none of its own and
+		// uses that of the member currently fighting for it. Bonuses still come
+		// from the army itself (its tile, whether it's fortified), so its
+		// members' own fortification adds nothing.
+		public double CombatBaseStrength(CombatRole role) {
+			return Combatant(role).unitType.BaseStrength(role);
+		}
+
+		// The unit that actually fights when this one is in combat. For most
+		// units that's the unit itself. An army commits one member at a time,
+		// using as few members as the fight needs: members with more than one
+		// hit point go first, strongest first, and a member keeps fighting
+		// until it's down to its last hit point before a fresh one is rotated
+		// in. Only when every member is down to one does the army fight on
+		// with them, and members start to die. An empty army has nobody to
+		// fight for it, so it returns itself.
+		public MapUnit Combatant(CombatRole role) {
+			if (!IsArmy())
+				return this;
+
+			MapUnit best = null;
+			foreach (MapUnit member in Passengers()) {
+				if (member.hitPointsRemaining <= 0)
+					continue;
+				if (best == null || IsBetterCombatant(member, best, role))
+					best = member;
+			}
+			return best ?? this;
+		}
+
+		private static bool IsBetterCombatant(MapUnit a, MapUnit b, CombatRole role) {
+			bool aHealthy = a.hitPointsRemaining > 1, bHealthy = b.hitPointsRemaining > 1;
+			if (aHealthy != bHealthy)
+				return aHealthy;
+			double aStrength = a.unitType.BaseStrength(role), bStrength = b.unitType.BaseStrength(role);
+			if (aStrength != bStrength)
+				return aStrength > bStrength;
+			// Between equals, stick with the one that's already been fighting,
+			// so fresh members stay out of the fight as long as possible.
+			int aDamage = a.maxHitPoints - a.hitPointsRemaining, bDamage = b.maxHitPoints - b.hitPointsRemaining;
+			if (aDamage != bDamage)
+				return aDamage > bDamage;
+			return a.hitPointsRemaining > b.hitPointsRemaining;
+		}
+
+		// Takes one hit point of damage from a fight. In an army the hit goes
+		// to the member doing the fighting, and a member that dies is removed.
+		// Returns true if this unit has nothing left to fight with.
+		internal bool AbsorbCombatHit(MapUnit combatant) {
+			if (combatant == this || !IsArmy()) {
+				hitPointsRemaining -= 1;
+				return hitPointsRemaining <= 0;
+			}
+
+			combatant.hitPointsRemaining -= 1;
+			if (combatant.hitPointsRemaining <= 0) {
+				log.Information($"{combatant} died fighting for {this}");
+				EngineStorage.gameData.RemoveUnit(combatant);
+			}
+			return LoseArmyIfEmpty();
+		}
+
+		// Takes one hit point of bombardment damage. An army spreads it over
+		// its members, hitting whichever has the most hit points; unless the
+		// bombardment is lethal, it can't kill a member.
+		internal bool AbsorbBombardHit(bool lethal) {
+			MapUnit victim = IsArmy() ? Passengers().OrderByDescending(m => m.hitPointsRemaining).FirstOrDefault() : null;
+			if (victim == null) {
+				hitPointsRemaining -= 1;
+				return hitPointsRemaining <= 0;
+			}
+			if (victim.hitPointsRemaining <= 1 && !lethal)
+				return false;
+			return AbsorbCombatHit(victim);
+		}
+
+		// An army whose last member has died is beaten. Its own hit points are
+		// zeroed so that it reads as dead, like any other unit.
+		private bool LoseArmyIfEmpty() {
+			if (Passengers().Any(m => m.hitPointsRemaining > 0))
+				return false;
+			hitPointsRemaining = 0;
+			return true;
 		}
 
 		public bool CanDefendAgainst(MapUnit attacker) {
@@ -395,13 +488,15 @@ namespace C7GameData {
 			if (otherDefenderIsEnemy && !weAreEnemy)
 				return false;
 
-			double ourTotalStrength = StrengthVersus(opponent, CombatRole.Defense, null) * hitPointsRemaining;
-			double theirTotalStrength = otherDefender.StrengthVersus(opponent, CombatRole.Defense, null) * otherDefender.hitPointsRemaining;
+			double ourTotalStrength = StrengthVersus(opponent, CombatRole.Defense, null) * CompositeHitPoints();
+			double theirTotalStrength = otherDefender.StrengthVersus(opponent, CombatRole.Defense, null) * otherDefender.CompositeHitPoints();
 			return ourTotalStrength > theirTotalStrength;
 		}
 
 
-		public void RollToPromote(MapUnit opponent) {
+		// Rolls for a promotion after winning a fight. The animation plays on
+		// animatedUnit if given, for example the army a member fought for.
+		public void RollToPromote(MapUnit opponent, MapUnit animatedUnit = null) {
 			// Barbarians can't promote.
 			if (owner.isBarbarians) {
 				return;
@@ -414,7 +509,7 @@ namespace C7GameData {
 				promotionChance *= 2;
 			if (GameData.rng.NextDouble() < promotionChance) {
 				Promote();
-				animate(AnimatedAction.VICTORY);
+				(animatedUnit ?? this).animate(AnimatedAction.VICTORY);
 			}
 		}
 
@@ -428,7 +523,10 @@ namespace C7GameData {
 		}
 
 		public double RetreatChance(MapUnit opponent, bool isAttacking) {
-			return ((unitType.movement > 1) && (opponent.unitType.movement <= 1)) ? experienceLevel.retreatChance : 0.0;
+			if ((MaxMovementPoints() <= 1) || (opponent.MaxMovementPoints() > 1))
+				return 0.0;
+			MapUnit combatant = Combatant(isAttacking ? CombatRole.Attack : CombatRole.Defense);
+			return combatant.experienceLevel.retreatChance;
 		}
 
 		internal TileDirection GetAttackAnimationDirection(TileDirection attackDirection) {

@@ -163,9 +163,9 @@ namespace C7GameData {
 
 			while (tries < unitType.rateOfFire) {
 				tries++;
-				if (target.hitPointsRemaining - hitCount <= 1 && tile.IsLand() && !this.unitType.isLandBombardmentLethal)
+				if (target.CompositeHitPoints() - hitCount <= 1 && tile.IsLand() && !this.unitType.isLandBombardmentLethal)
 					break;
-				if (target.hitPointsRemaining - hitCount <= 1 && tile.IsWater() && !this.unitType.isSeaBombardmentLethal)
+				if (target.CompositeHitPoints() - hitCount <= 1 && tile.IsWater() && !this.unitType.isSeaBombardmentLethal)
 					break;
 
 				var r = GameData.rng.NextDouble();
@@ -174,16 +174,18 @@ namespace C7GameData {
 				}
 			}
 
+			bool targetDestroyed = false;
 			if (hitCount > 0) {
 				for (int i = 0; i < hitCount; ++i) {
-					target.hitPointsRemaining -= 1;
+					bool lethal = tile.IsLand() ? unitType.isLandBombardmentLethal : unitType.isSeaBombardmentLethal;
+					targetDestroyed = target.AbsorbBombardHit(lethal);
 					await tile.AnimateAsync(this.hitList[GameData.rng.Next(0, hitList.Count)]);
 				}
 
 			} else
 				await tile.AnimateAsync(tile.IsWater() ? AnimatedEffect.WaterMiss : AnimatedEffect.Miss);
 
-			if (target.hitPointsRemaining <= 0) {
+			if (targetDestroyed) {
 				RollToPromote(target);
 				await target.animateAsync(AnimatedAction.DEATH, AnimationEnding.Pause);
 				target.RemoveFromPlay();
