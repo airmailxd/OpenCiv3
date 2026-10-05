@@ -5,6 +5,11 @@ using C7GameData;
 namespace C7Engine;
 
 public class BarbarianInteractions {
+	// Barbarians with nothing to do stay in their camp, so stop spawning at a
+	// camp once it holds this many units, rather than piling them up forever.
+	// TODO: Make configurable
+	internal const int MaxUnitsPerCamp = 3;
+
 	public static int SpawnBarbarians(GameData gameData) {
 		Player barbPlayer = gameData.players.Find(player => player.isBarbarians);
 		var activity = gameData.barbarianInfo.barbarianActivity;
@@ -17,6 +22,9 @@ public class BarbarianInteractions {
 		var spawnRate = DetermineSpawnRate(activity);
 		int barbariansSpawned = 0;
 		foreach (Tile camp in gameData.map.barbarianCamps.ToList()) {
+			if (camp.unitsOnTile.Count >= MaxUnitsPerCamp) {
+				continue;
+			}
 			if (GameData.rng.NextDouble() >= spawnRate) {
 				continue;
 			}
