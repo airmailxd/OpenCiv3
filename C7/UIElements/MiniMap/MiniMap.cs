@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Godot;
 using C7GameData;
@@ -14,6 +15,42 @@ public partial class MiniMap : Control {
 	private MiniMapFrame frame;
 	private List<MiniMapLayer> layers;
 	private MiniMapControls controls;
+
+	// The minimap pixels, drawn in managed code and only uploaded to the GPU
+	// when they change. `uploadedPixels` holds what the texture shows.
+	private byte[] pixels = Array.Empty<byte>();
+	private byte[] uploadedPixels = Array.Empty<byte>();
+	private Image mapImage;
+
+	// A cheap summary of the game state the minimap depends on; the map is
+	// only redrawn when it changes. As a safety net for changes it doesn't
+	// capture, the map is also redrawn (but only re-uploaded if a pixel
+	// actually changed) every RECHECK_INTERVAL seconds.
+	private MapStamp lastStamp;
+	private bool hasDrawn;
+	private double timeSinceRedraw;
+	private const double RECHECK_INTERVAL = 1.0;
+
+	private struct MapStamp : IEquatable<MapStamp> {
+		public GameData gameData;
+		public GameMap map;
+		public Player controller;
+		public TileKnowledge knowledge;
+		public int turn;
+		public bool observerMode;
+		public int knownTiles;
+		public int borderTiles;
+		public int cityCount;
+		public int cityHash;
+
+		public bool Equals(MapStamp o) {
+			return ReferenceEquals(gameData, o.gameData) && ReferenceEquals(map, o.map)
+				&& ReferenceEquals(controller, o.controller) && ReferenceEquals(knowledge, o.knowledge)
+				&& turn == o.turn && observerMode == o.observerMode
+				&& knownTiles == o.knownTiles && borderTiles == o.borderTiles
+				&& cityCount == o.cityCount && cityHash == o.cityHash;
+		}
+	}
 
 	public MiniMap(MapView mapView) {
 		this.mapView = mapView;
@@ -48,31 +85,93 @@ public partial class MiniMap : Control {
 	public override void _Process(double delta) {
 		frame.SetViewportPosition();
 
-		EngineStorage.ReadGameData((GameData gD) => {
-			var map = gD.map;
+		GameData gD = EngineStorage.gameData;
+		if (gD == null)
+			return;
+		var map = gD.map;
 
-			var mapImage = Image.CreateEmpty(map.numTilesWide, map.numTilesTall / 2, true, Image.Format.Rgba8);
+		MapStamp stamp = ComputeStamp(gD);
+		timeSinceRedraw += delta;
+		bool stampChanged = !hasDrawn || !stamp.Equals(lastStamp);
+		if (stampChanged || timeSinceRedraw >= RECHECK_INTERVAL) {
+			RedrawMap(gD, forceUpload: stampChanged);
+			lastStamp = stamp;
+			hasDrawn = true;
+			timeSinceRedraw = 0;
+		}
 
-			// Configure layers
+		// The viewport bounds are drawn over the map, so moving the camera
+		// never touches the map image.
+		if (mapView != null) {
+			var vr = mapView.getVisibleRegion();
+			frame.SetViewportBounds(map, vr);
+		}
+	}
+
+	private static MapStamp ComputeStamp(GameData gD) {
+		Player controller = gD.GetUIControllerPlayer();
+		TileKnowledge knowledge = controller?.tileKnowledge;
+		int cityHash = 17;
+		foreach (City city in gD.cities) {
+			cityHash = HashCode.Combine(cityHash, city, city.owner);
+		}
+		return new MapStamp {
+			gameData = gD,
+			map = gD.map,
+			controller = controller,
+			knowledge = knowledge,
+			turn = gD.turn,
+			observerMode = gD.observerMode,
+			knownTiles = knowledge?.knownTiles.Count ?? 0,
+			borderTiles = knowledge?.borderTiles.Count ?? 0,
+			cityCount = gD.cities.Count,
+			cityHash = cityHash,
+		};
+	}
+
+	private void RedrawMap(GameData gD, bool forceUpload) {
+		var map = gD.map;
+		int width = map.numTilesWide;
+		int height = map.numTilesTall / 2;
+		if (width <= 0 || height <= 0)
+			return;
+
+		int size = width * height * 4;
+		if (pixels.Length != size) {
+			pixels = new byte[size];
+			uploadedPixels = new byte[size];
+			mapImage = null;
+			forceUpload = true;
+		} else {
+			Array.Clear(pixels);
+		}
+
+		// Configure layers
+		foreach (var layer in layers)
+			layer.Configure(gD);
+
+		// Draw tiles as pixels, layer at a time
+		foreach (var t in map.tiles) {
+			var (x, y) = ComputeIsoCoordinates(t);
+			if (x < 0 || x >= width || y < 0 || y >= height)
+				continue;
+			int offset = (y * width + x) * 4;
 			foreach (var layer in layers)
-				layer.Configure(gD);
+				layer.DrawTile(pixels, offset, t);
+		}
 
-			// Draw tiles as pixels, layer at a time
-			foreach (var t in map.tiles) {
-				var (x, y) = ComputeIsoCoordinates(t);
-				foreach (var layer in layers)
-					layer.DrawTile(mapImage, t, x, y);
-			}
+		if (!forceUpload && pixels.AsSpan().SequenceEqual(uploadedPixels))
+			return;
 
-			// Draw the viewport bounds as a rectangle
-			if (mapView != null) {
-				var vr = mapView.getVisibleRegion();
-				controls.DrawBounds(mapImage, map, vr);
-			}
+		Buffer.BlockCopy(pixels, 0, uploadedPixels, 0, size);
+		if (mapImage == null) {
+			mapImage = Image.CreateFromData(width, height, false, Image.Format.Rgba8, uploadedPixels);
+		} else {
+			mapImage.SetData(width, height, false, Image.Format.Rgba8, uploadedPixels);
+		}
 
-			// Render the image
-			frame.RenderImage(mapImage);
-		});
+		// Render the image
+		frame.RenderImage(mapImage);
 	}
 
 	private (int x, int y) ComputeIsoCoordinates(Tile tile) {

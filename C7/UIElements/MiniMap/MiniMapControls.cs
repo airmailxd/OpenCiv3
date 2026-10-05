@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using C7GameData;
 using Godot;
 
@@ -6,9 +7,59 @@ public partial class MiniMapControls : Control {
 	public override void _Ready() {
 		MouseFilter = MouseFilterEnum.Stop;
 	}
+}
 
-	/// Render the viewport bounds as a rectangle on the minimap image
-	public void DrawBounds(Image mapImage, GameMap map, MapView.VisibleRegion vr) {
+/// Draws the viewport bounds as a rectangle over the minimap texture. The
+/// lines are worked out in minimap pixel space, as if drawn onto the map
+/// image, then scaled up to the size the map is shown at, so the map image
+/// itself never has to change when the camera moves.
+public partial class MiniMapBoundsOverlay : Control {
+	private readonly List<(int x0, int y0, int x1, int y1)> lines = new();
+	private int imageWidth, imageHeight;
+	private bool hasBounds;
+	private int lastWidth, lastHeight;
+	private MapView.VisibleRegion lastRegion;
+
+	public override void _Ready() {
+		MouseFilter = MouseFilterEnum.Ignore;
+	}
+
+	public void SetBounds(GameMap map, MapView.VisibleRegion vr) {
+		int width = map.numTilesWide, height = map.numTilesTall / 2;
+		if (hasBounds && width == lastWidth && height == lastHeight
+			&& vr.upperLeftX == lastRegion.upperLeftX && vr.upperLeftY == lastRegion.upperLeftY
+			&& vr.lowerRightX == lastRegion.lowerRightX && vr.lowerRightY == lastRegion.lowerRightY) {
+			return;
+		}
+		hasBounds = true;
+		lastWidth = width;
+		lastHeight = height;
+		lastRegion = vr;
+
+		imageWidth = width;
+		imageHeight = height;
+		lines.Clear();
+		DrawBounds(map, vr);
+		QueueRedraw();
+	}
+
+	public override void _Draw() {
+		if (imageWidth <= 0 || imageHeight <= 0)
+			return;
+		Vector2 scale = Size / new Vector2(imageWidth, imageHeight);
+		foreach (var (x0, y0, x1, y1) in lines) {
+			// Every line is horizontal or vertical, so it covers a block of
+			// whole pixels; clip it to the image like Image.SetPixel would.
+			int minX = Math.Max(Math.Min(x0, x1), 0), maxX = Math.Min(Math.Max(x0, x1), imageWidth - 1);
+			int minY = Math.Max(Math.Min(y0, y1), 0), maxY = Math.Min(Math.Max(y0, y1), imageHeight - 1);
+			if (minX > maxX || minY > maxY)
+				continue;
+			DrawRect(new Rect2(new Vector2(minX, minY) * scale, new Vector2(maxX - minX + 1, maxY - minY + 1) * scale), Colors.White);
+		}
+	}
+
+	/// Work out the viewport bounds as lines in minimap pixel space
+	private void DrawBounds(GameMap map, MapView.VisibleRegion vr) {
 		// TODO: Handle draws over map edges, maybe with Mathf.Wrap
 
 		// Bounds, in minimap draw space
@@ -32,83 +83,67 @@ public partial class MiniMapControls : Control {
 
 		// Handle the four cases
 		if (fullZoom)
-			DrawBoundsRegular(mapImage, 0, 0, maxWidth, maxHeight);
+			DrawBoundsRegular(0, 0, maxWidth, maxHeight);
 		else if (isOoBx && isOoBy)
-			DrawBoundsOverCorner(mapImage, wax, way, wbx, wby, maxWidth, maxHeight);
+			DrawBoundsOverCorner(wax, way, wbx, wby, maxWidth, maxHeight);
 		else if (isOoBx)
-			DrawBoundsOverSideEdges(mapImage, wax, way, wbx, wby, maxWidth, maxHeight);
+			DrawBoundsOverSideEdges(wax, way, wbx, wby, maxWidth, maxHeight);
 		else if (isOoBy)
-			DrawBoundsOverPoles(mapImage, wax, way, wbx, wby, maxWidth, maxHeight);
+			DrawBoundsOverPoles(wax, way, wbx, wby, maxWidth, maxHeight);
 		else
-			DrawBoundsRegular(mapImage, wax, way, wbx, wby);
+			DrawBoundsRegular(wax, way, wbx, wby);
 	}
 
-	private void DrawBoundsOverCorner(Image mapImage, int wax, int way, int wbx, int wby, int maxWidth, int maxHeight) {
+	private void DrawBoundsOverCorner(int wax, int way, int wbx, int wby, int maxWidth, int maxHeight) {
 		// Top Left
-		DrawLineOnImage(mapImage, 0, wby, wbx, wby, Colors.White); // bottom
-		DrawLineOnImage(mapImage, wbx, wby, wbx, 0, Colors.White); // right
+		AddLine(0, wby, wbx, wby); // bottom
+		AddLine(wbx, wby, wbx, 0); // right
 
 		// Top Right
-		DrawLineOnImage(mapImage, wax, 0, wax, wby, Colors.White); // left
-		DrawLineOnImage(mapImage, wax, wby, maxWidth, wby, Colors.White); // bottom
+		AddLine(wax, 0, wax, wby); // left
+		AddLine(wax, wby, maxWidth, wby); // bottom
 
 		// Bottom Left 
-		DrawLineOnImage(mapImage, 0, way, wbx, way, Colors.White); // top
-		DrawLineOnImage(mapImage, wbx, way, wbx, maxHeight, Colors.White); // right
+		AddLine(0, way, wbx, way); // top
+		AddLine(wbx, way, wbx, maxHeight); // right
 
 		// Bottom Right
-		DrawLineOnImage(mapImage, wax, maxHeight, wax, way, Colors.White); // left
-		DrawLineOnImage(mapImage, wax, way, maxWidth, way, Colors.White); // top
+		AddLine(wax, maxHeight, wax, way); // left
+		AddLine(wax, way, maxWidth, way); // top
 	}
 
-	private void DrawBoundsOverSideEdges(Image mapImage, int wax, int way, int wbx, int wby, int maxWidth, int maxHeight) {
+	private void DrawBoundsOverSideEdges(int wax, int way, int wbx, int wby, int maxWidth, int maxHeight) {
 		// Left half
-		DrawLineOnImage(mapImage, 0, way, wbx, way, Colors.White); // top
-		DrawLineOnImage(mapImage, wbx, way, wbx, wby, Colors.White); // right
-		DrawLineOnImage(mapImage, 0, wby, wbx, wby, Colors.White); // bottom
+		AddLine(0, way, wbx, way); // top
+		AddLine(wbx, way, wbx, wby); // right
+		AddLine(0, wby, wbx, wby); // bottom
 
 		// Right half
-		DrawLineOnImage(mapImage, maxWidth, way, wax, way, Colors.White); // top
-		DrawLineOnImage(mapImage, wax, way, wax, wby, Colors.White); // left
-		DrawLineOnImage(mapImage, wax, wby, maxWidth, wby, Colors.White); // bottom		
+		AddLine(maxWidth, way, wax, way); // top
+		AddLine(wax, way, wax, wby); // left
+		AddLine(wax, wby, maxWidth, wby); // bottom		
 	}
 
-	private void DrawBoundsOverPoles(Image mapImage, int wax, int way, int wbx, int wby, int maxWidth, int maxHeight) {
+	private void DrawBoundsOverPoles(int wax, int way, int wbx, int wby, int maxWidth, int maxHeight) {
 		// Top half
-		DrawLineOnImage(mapImage, wax, 0, wax, wby, Colors.White); // left
-		DrawLineOnImage(mapImage, wax, wby, wbx, wby, Colors.White); // bottom
-		DrawLineOnImage(mapImage, wbx, wby, wbx, 0, Colors.White); // right
+		AddLine(wax, 0, wax, wby); // left
+		AddLine(wax, wby, wbx, wby); // bottom
+		AddLine(wbx, wby, wbx, 0); // right
 
 		// Bottom half
-		DrawLineOnImage(mapImage, wax, maxHeight, wax, way, Colors.White); // left
-		DrawLineOnImage(mapImage, wax, way, wbx, way, Colors.White); // top
-		DrawLineOnImage(mapImage, wbx, way, wbx, maxHeight, Colors.White); // right
+		AddLine(wax, maxHeight, wax, way); // left
+		AddLine(wax, way, wbx, way); // top
+		AddLine(wbx, way, wbx, maxHeight); // right
 	}
 
-	private void DrawBoundsRegular(Image mapImage, int wax, int way, int wbx, int wby) {
-		DrawLineOnImage(mapImage, wax, way, wax, wby, Colors.White); // left
-		DrawLineOnImage(mapImage, wax, wby, wbx, wby, Colors.White); // bottom
-		DrawLineOnImage(mapImage, wbx, wby, wbx, way, Colors.White); // right
-		DrawLineOnImage(mapImage, wbx, way, wax, way, Colors.White); // top
+	private void DrawBoundsRegular(int wax, int way, int wbx, int wby) {
+		AddLine(wax, way, wax, wby); // left
+		AddLine(wax, wby, wbx, wby); // bottom
+		AddLine(wbx, wby, wbx, way); // right
+		AddLine(wbx, way, wax, way); // top
 	}
 
-	/// <summary>
-	/// Draw a line on an Image using the SetPixel primitive.<br/>
-	/// https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm
-	/// </summary>
-	private void DrawLineOnImage(Image image, int x0, int y0, int x1, int y1, Color color) {
-		int dx = Math.Abs(x1 - x0);
-		int dy = Math.Abs(y1 - y0);
-		int sx = x0 < x1 ? 1 : -1;
-		int sy = y0 < y1 ? 1 : -1;
-		int err = dx - dy;
-
-		while (true) {
-			image.SetPixel(x0, y0, color);
-			if (x0 == x1 && y0 == y1) break;
-			int e2 = err * 2;
-			if (e2 > -dy) { err -= dy; x0 += sx; }
-			if (e2 < dx) { err += dx; y0 += sy; }
-		}
+	private void AddLine(int x0, int y0, int x1, int y1) {
+		lines.Add((x0, y0, x1, y1));
 	}
 }
