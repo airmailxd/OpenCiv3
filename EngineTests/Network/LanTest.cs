@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
@@ -29,14 +30,11 @@ public class LanTest : IClassFixture<SaveGameFixture>, IDisposable {
 		EngineStorage.ResetNetworking();
 	}
 
-	// Map generation is slow, so share one two-human save across the tests.
-	private static readonly Lazy<SaveGame> twoHumanSave = new(() => SaveGameFixture.LoadSave(new GameMode.Config("civ3"), humanPlayers: 2));
-
 	private async Task<C7GameData.GameData> CreateTwoHumanGame() {
 		new MsgSetAnimationsEnabled(false).send();
 		EngineStorage.ProcessNextMessageToEngine();
 
-		await CreateGame.createGame(twoHumanSave.Value.Clone(), (_) => fixture.behaviors);
+		await CreateGame.createGame(SaveGameFixture.TwoHumanSave(), (_) => fixture.behaviors);
 		TurnHandling.OnBeginTurn();
 		TurnHandling.InitTurnData();
 		await TurnHandling.AdvanceTurn();
@@ -191,9 +189,14 @@ public class LanTest : IClassFixture<SaveGameFixture>, IDisposable {
 		Assert.Same(humans[0], result.recipient);
 	}
 
+	// Generous, since the condition never takes long to come true unless
+	// something is broken, and a loaded machine can be slow.
+	private static readonly TimeSpan PumpTimeout = TimeSpan.FromSeconds(60);
+
 	// Runs the host, its engine and a client until the condition holds.
 	private static void PumpUntil(LanHost host, LanClient client, Func<bool> condition, List<MessageToUI> hostUi = null) {
-		for (int i = 0; i < 2000; ++i) {
+		Stopwatch pumping = Stopwatch.StartNew();
+		while (true) {
 			host.Poll();
 			EngineStorage.ProcessNextMessageToEngine();
 			while (EngineStorage.TryDequeueNextMessageToUI(out MessageToUI msg)) {
@@ -203,14 +206,23 @@ public class LanTest : IClassFixture<SaveGameFixture>, IDisposable {
 			if (condition()) {
 				return;
 			}
+			if (pumping.Elapsed > PumpTimeout) {
+				throw new TimeoutException("The LAN game never got there");
+			}
 			Thread.Sleep(5);
 		}
-		throw new TimeoutException("The LAN game never got there");
+	}
+
+	// Lets the host's engine handle everything it has been sent so far.
+	private static void ProcessEngineMessages() {
+		while (EngineStorage.HasPendingMessagesToEngine()) {
+			EngineStorage.ProcessNextMessageToEngine();
+		}
 	}
 
 	[Fact]
 	public async Task ClientsJoinAndTakeTurnsThroughTheHost() {
-		SaveGame save = twoHumanSave.Value.Clone();
+		SaveGame save = SaveGameFixture.TwoHumanSave();
 		using LanHost host = new("Host", save, port: 0, answerDiscovery: false);
 		SeatInfo seat = Assert.Single(host.Seats);
 
@@ -288,7 +300,7 @@ public class LanTest : IClassFixture<SaveGameFixture>, IDisposable {
 
 	[Fact]
 	public async Task PlayersCanRejoinAGameInProgress() {
-		SaveGame save = twoHumanSave.Value.Clone();
+		SaveGame save = SaveGameFixture.TwoHumanSave();
 		using LanHost host = new("Host", save, port: 0, answerDiscovery: false);
 		ID seatID = host.Seats[0].playerID;
 
@@ -315,7 +327,7 @@ public class LanTest : IClassFixture<SaveGameFixture>, IDisposable {
 
 	[Fact]
 	public async Task SpectatorsWatchWithoutPlaying() {
-		SaveGame save = twoHumanSave.Value.Clone();
+		SaveGame save = SaveGameFixture.TwoHumanSave();
 		using LanHost host = new("Host", save, port: 0, answerDiscovery: false);
 		ID seatID = host.Seats[0].playerID;
 
@@ -363,23 +375,31 @@ public class LanTest : IClassFixture<SaveGameFixture>, IDisposable {
 		spectator.SendCommand(new MsgEndTurn { playerID = humans[1].id });
 		rogue.Send(FrameKind.Command, NetSerialization.Serialize(new MsgEndTurn { playerID = humans[1].id }));
 		PumpUntil(host, spectator, () => host.Spectators.Count == 2);
-		for (int i = 0; i < 100; ++i) {
-			host.Poll();
-			EngineStorage.ProcessNextMessageToEngine();
-			Thread.Sleep(2);
-		}
+
+		// The rogue leaves straight after its command. A connection's frames
+		// arrive in order, so once the host has seen it leave, it has read the
+		// command too.
+		rogue.Dispose();
+		PumpUntil(host, spectator, () => host.Spectators.Count == 1);
+		Assert.Equal(["Watcher"], host.Spectators);
+		ProcessEngineMessages();
 		Assert.False(humans[1].hasPlayedThisTurn);
 
 		// Leaving stops the watching.
 		spectator.Dispose();
-		PumpUntil(host, player, () => host.Spectators.Count == 1);
+		PumpUntil(host, player, () => host.Spectators.Count == 0);
+		ProcessEngineMessages();
+		Assert.False(humans[1].hasPlayedThisTurn);
 	}
 
 	[Fact]
 	public async Task TheHostEndsTurnsThatRunOutOfTime() {
-		SaveGame save = twoHumanSave.Value.Clone();
+		SaveGame save = SaveGameFixture.TwoHumanSave();
 		using LanHost host = new("Host", save, port: 0, answerDiscovery: false);
-		host.TurnTimeLimit = TimeSpan.FromMilliseconds(300);
+		// Long enough that no turn runs out while the game is being set up,
+		// however slow the machine.
+		TimeSpan longLimit = TimeSpan.FromHours(1);
+		host.TurnTimeLimit = longLimit;
 		ID seatID = host.Seats[0].playerID;
 
 		using LanClient client = LanClient.Connect("127.0.0.1", host.Port, "Guest");
@@ -399,20 +419,31 @@ public class LanTest : IClassFixture<SaveGameFixture>, IDisposable {
 		PumpUntil(host, client, () => client.CurrentClock() != null);
 		TurnClockInfo clock = client.CurrentClock();
 		Assert.Equal(humans[0].id, clock.activePlayerID);
-		Assert.Equal(0.3, clock.secondsAllowed.Value, 3);
+		Assert.Equal(longLimit.TotalSeconds, clock.secondsAllowed.Value, 3);
 		Assert.Equal([humans[0].id, seatID], clock.connectedPlayers);
+		Assert.False(humans[0].hasPlayedThisTurn);
 
-		// Nobody ends the host's turn, so the host's clock does, and then the
-		// client's turn is timed.
-		PumpUntil(host, client, () => client.CurrentClock().activePlayerID == seatID);
+		// Nobody ends the host's turn, so once its time is short the host's
+		// clock does. The pump checks for the end of the turn straight after
+		// the engine handles it, before the host polls again, so the time
+		// can go back up before the client's turn is timed.
+		host.TurnTimeLimit = TimeSpan.FromMilliseconds(50);
+		PumpUntil(host, client, () => EngineStorage.activePlayerID == seatID);
+		host.TurnTimeLimit = longLimit;
 		Assert.True(humans[0].hasPlayedThisTurn);
-		Assert.True(client.CurrentClock().secondsElapsed < 0.3);
+
+		// Then the client's turn is timed.
+		PumpUntil(host, client, () => client.CurrentClock().activePlayerID == seatID);
+		clock = client.CurrentClock();
+		Assert.Equal(longLimit.TotalSeconds, clock.secondsAllowed.Value, 3);
+		Assert.True(clock.secondsElapsed < longLimit.TotalSeconds);
+		Assert.False(humans[1].hasPlayedThisTurn);
 	}
 
 	[Fact]
 	public void GuestsChooseTheirCivilizationsBeforeTheGameIsCreated() {
 		// A new game whose map is made but whose players aren't yet.
-		SaveGame save = twoHumanSave.Value.Clone();
+		SaveGame save = SaveGameFixture.TwoHumanSave();
 		save.Players.Clear();
 		save.Units.Clear();
 		List<Civilization> playable = save.Civilizations.Where(c => !c.isBarbarian).ToList();
@@ -439,14 +470,22 @@ public class LanTest : IClassFixture<SaveGameFixture>, IDisposable {
 		PumpUntil(host, bob, () => bob.Lobby.seats.Any(s => s.civilization == picked.name));
 		Assert.Equal(picked.name, host.Seats[0].civilization);
 
-		// Bob can't have Ann's civilization, or one that doesn't exist.
+		// Bob can't have Ann's civilization, or one that doesn't exist. The
+		// host answers every choice, so record Bob's seat each time, and end
+		// with a choice that's allowed: once it's taken, the two before it
+		// have been refused.
+		List<string> bobsChoices = [];
+		host.LobbyChanged += () => bobsChoices.Add(host.Seats[1].civilization);
+		Civilization allowed = playable[5];
 		bob.ChooseCivilization(picked.name);
 		bob.ChooseCivilization("Atlantis");
-		for (int i = 0; i < 50; ++i) {
-			host.Poll();
-			Thread.Sleep(2);
-		}
-		Assert.Null(host.Seats[1].civilization);
+		bob.ChooseCivilization(allowed.name);
+		PumpUntil(host, bob, () => host.Seats[1].civilization == allowed.name);
+		Assert.Equal([null, null, allowed.name], bobsChoices);
+
+		// And can go back to a random one.
+		bob.ChooseCivilization(null);
+		PumpUntil(host, bob, () => host.Seats[1].civilization == null);
 
 		List<HotseatPlayer> guests = host.BeginCreatingGame();
 		PumpUntil(host, ann, () => ann.Lobby.creatingGame);
@@ -480,7 +519,7 @@ public class LanTest : IClassFixture<SaveGameFixture>, IDisposable {
 
 	[Fact]
 	public void HostsTurnAwayOtherVersions() {
-		using LanHost host = new("Host", twoHumanSave.Value.Clone(), port: 0, answerDiscovery: false);
+		using LanHost host = new("Host", SaveGameFixture.TwoHumanSave(), port: 0, answerDiscovery: false);
 		using System.Net.Sockets.TcpClient tcp = new("127.0.0.1", host.Port);
 		using LanConnection connection = new(tcp);
 		connection.Send(FrameKind.Hello, new HelloInfo(LanProtocol.Version + 1, "Time traveller"));

@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -33,13 +34,11 @@ public class PerfLanTests : IClassFixture<SaveGameFixture>, IDisposable {
 		EngineStorage.ResetNetworking();
 	}
 
-	private static readonly Lazy<SaveGame> twoHumanSave = new(() => SaveGameFixture.LoadSave(new GameMode.Config("civ3"), humanPlayers: 2));
-
 	private async Task<C7GameData.GameData> CreateTwoHumanGame() {
 		new MsgSetAnimationsEnabled(false).send();
 		EngineStorage.ProcessNextMessageToEngine();
 
-		await CreateGame.createGame(twoHumanSave.Value.Clone(), (_) => fixture.behaviors);
+		await CreateGame.createGame(SaveGameFixture.TwoHumanSave(), (_) => fixture.behaviors);
 		TurnHandling.OnBeginTurn();
 		TurnHandling.InitTurnData();
 		await TurnHandling.AdvanceTurn();
@@ -101,14 +100,16 @@ public class PerfLanTests : IClassFixture<SaveGameFixture>, IDisposable {
 		sender.SendSnapshot(Task.FromResult(FakeSnapshot("C")));
 		sender.Send(FrameKind.UiMessage, Encoding.UTF8.GetBytes("3"));
 		sender.SendSnapshot(Task.FromResult(FakeSnapshot("D")));
+		// Marks the end, so the test knows nothing else was sent before it.
+		sender.Send(FrameKind.UiMessage, Encoding.UTF8.GetBytes("end"));
 
-		Thread.Sleep(50);
+		// Nothing can be written while A is encoded; if anything were, it
+		// would arrive before A and the order below would be wrong.
 		Assert.False(receiver.TryPeek(out _));
 		encoding.SetResult(FakeSnapshot("A"));
 
-		List<Frame> frames = ReceiveFrames(receiver, 6);
-		Assert.Equal(["Snapshot:A", "UiMessage:1", "Snapshot:C", "UiMessage:2", "UiMessage:3", "Snapshot:D"], frames.Select(Describe));
-		Thread.Sleep(50);
+		List<Frame> frames = ReceiveFrames(receiver, 7);
+		Assert.Equal(["Snapshot:A", "UiMessage:1", "Snapshot:C", "UiMessage:2", "UiMessage:3", "Snapshot:D", "UiMessage:end"], frames.Select(Describe));
 		Assert.False(receiver.TryReceive(out _));
 	}
 
@@ -157,13 +158,16 @@ public class PerfLanTests : IClassFixture<SaveGameFixture>, IDisposable {
 		using LanConnection sender = new(listener.AcceptTcpClient());
 		listener.Stop();
 
-		// Far more than the socket's buffers hold; the peer never reads.
+		// Far more than the socket's buffers hold; the peer never reads. If
+		// sending waited for the network it would never finish, so a generous
+		// timeout tells the two apart without depending on the machine's speed.
 		byte[] payload = new byte[4 * 1024 * 1024];
-		Stopwatch sending = Stopwatch.StartNew();
-		for (int i = 0; i < 16; ++i) {
-			sender.Send(FrameKind.UiMessage, payload);
-		}
-		Assert.True(sending.Elapsed < TimeSpan.FromSeconds(2), $"Sending took {sending.Elapsed}");
+		Task sending = Task.Run(() => {
+			for (int i = 0; i < 16; ++i) {
+				sender.Send(FrameKind.UiMessage, payload);
+			}
+		});
+		Assert.True(sending.Wait(TimeSpan.FromSeconds(60)), "Sending waited for a peer that never reads");
 		Assert.False(sender.IsClosed);
 	}
 
@@ -224,7 +228,8 @@ public class PerfLanTests : IClassFixture<SaveGameFixture>, IDisposable {
 
 	// Runs the host, its engine and a client until the condition holds.
 	private static void PumpUntil(LanHost host, LanClient client, Func<bool> condition) {
-		for (int i = 0; i < 2000; ++i) {
+		Stopwatch pumping = Stopwatch.StartNew();
+		while (true) {
 			host.Poll();
 			EngineStorage.ProcessNextMessageToEngine();
 			while (EngineStorage.TryDequeueNextMessageToUI(out _)) { }
@@ -232,25 +237,16 @@ public class PerfLanTests : IClassFixture<SaveGameFixture>, IDisposable {
 			if (condition()) {
 				return;
 			}
-			Thread.Sleep(5);
-		}
-		throw new TimeoutException("The LAN game never got there");
-	}
-
-	private static void PumpFor(LanHost host, LanClient client, TimeSpan time) {
-		Stopwatch pumping = Stopwatch.StartNew();
-		while (pumping.Elapsed < time) {
-			host.Poll();
-			EngineStorage.ProcessNextMessageToEngine();
-			while (EngineStorage.TryDequeueNextMessageToUI(out _)) { }
-			client.Poll();
+			if (pumping.Elapsed > TimeSpan.FromSeconds(60)) {
+				throw new TimeoutException("The LAN game never got there");
+			}
 			Thread.Sleep(5);
 		}
 	}
 
 	[Fact]
 	public async Task TheHostSendsNoSnapshotWhenNothingChanged() {
-		using LanHost host = new("Host", twoHumanSave.Value.Clone(), port: 0, answerDiscovery: false);
+		using LanHost host = new("Host", SaveGameFixture.TwoHumanSave(), port: 0, answerDiscovery: false);
 		ID seatID = host.Seats[0].playerID;
 		using LanClient client = LanClient.Connect("127.0.0.1", host.Port, "Guest");
 		PumpUntil(host, client, () => client.Lobby != null);
@@ -264,22 +260,25 @@ public class PerfLanTests : IClassFixture<SaveGameFixture>, IDisposable {
 		List<SaveGame> snapshots = [];
 		client.SnapshotReceived = snapshots.Add;
 		client.UiMessageReceived = _ => { };
-		PumpFor(host, client, TimeSpan.FromMilliseconds(400));
-		snapshots.Clear();
 
 		// It isn't the guest's turn, so the host's engine refuses their
 		// order: a message was processed, but the game is as it was.
+		MapUnit guestUnit = gameData.GetPlayer(seatID).units.First();
+		bool guestUnitFortified = guestUnit.isFortified;
 		long processed = EngineStorage.processedMessageCount;
-		client.SendCommand(new MsgSetFortification(gameData.GetPlayer(seatID).units.First().id, true));
+		client.SendCommand(new MsgSetFortification(guestUnit.id, true));
 		PumpUntil(host, client, () => EngineStorage.processedMessageCount > processed);
-		PumpFor(host, client, TimeSpan.FromMilliseconds(600));
-		Assert.Empty(snapshots);
+		Assert.Equal(guestUnitFortified, guestUnit.isFortified);
 
-		// A real change is sent.
+		// A real change is sent. Snapshots reach the client in order, so the
+		// first one it's shown is the first one sent since the game started:
+		// had the refused order sent one, it would show the game without
+		// this change.
 		MapUnit unit = hostPlayer.units.First(u => !u.isFortified);
 		new MsgSetFortification(unit.id, true) { playerID = hostPlayer.id }.send();
 		PumpUntil(host, client, () => snapshots.Count > 0);
-		Assert.Equal("fortified", snapshots.Last().Units.Single(u => u.id == unit.id).action);
+		Assert.Equal("fortified", snapshots.First().Units.Single(u => u.id == unit.id).action);
+		Assert.Single(snapshots);
 	}
 
 	// A host made by hand, to send a client exactly the frames a test wants.
@@ -302,7 +301,7 @@ public class PerfLanTests : IClassFixture<SaveGameFixture>, IDisposable {
 	}
 
 	private static byte[] SnapshotOfTurn(int turn) {
-		SaveGame save = twoHumanSave.Value.Clone();
+		SaveGame save = SaveGameFixture.TwoHumanSave();
 		save.TurnNumber = turn;
 		return LanProtocol.EncodeSnapshot(save).Compressed;
 	}
@@ -312,6 +311,30 @@ public class PerfLanTests : IClassFixture<SaveGameFixture>, IDisposable {
 		while (!condition()) {
 			Assert.True(waiting.Elapsed < TimeSpan.FromSeconds(20), "The client never got there");
 			client.Poll();
+			Thread.Sleep(5);
+		}
+	}
+
+	// Waits, without handling them, until the client has received this many
+	// frames and finished reading every snapshot among them.
+	private static void WaitUntilReceivedAndRead(LanClient client, int count) {
+		LanConnection connection = (LanConnection)typeof(LanClient)
+			.GetField("connection", BindingFlags.NonPublic | BindingFlags.Instance)
+			.GetValue(client);
+		bool Ready() {
+			if (!connection.TryPeekAt(count - 1, out _)) {
+				return false;
+			}
+			for (int i = 0; i < count; ++i) {
+				if (connection.TryPeekAt(i, out Frame frame) && frame.Prepared is Task reading && !reading.IsCompleted) {
+					return false;
+				}
+			}
+			return true;
+		}
+		Stopwatch waiting = Stopwatch.StartNew();
+		while (!Ready()) {
+			Assert.True(waiting.Elapsed < TimeSpan.FromSeconds(20), "The client never read the snapshots");
 			Thread.Sleep(5);
 		}
 	}
@@ -342,7 +365,7 @@ public class PerfLanTests : IClassFixture<SaveGameFixture>, IDisposable {
 		host.connection.Send(FrameKind.Snapshot, turn1);
 		host.connection.Send(FrameKind.Snapshot, turn2);
 		host.connection.Send(FrameKind.UiMessage, Encoding.UTF8.GetBytes("b"));
-		Thread.Sleep(1500);
+		WaitUntilReceivedAndRead(client, 3);
 		PollUntil(client, () => messages.Count == 2);
 		Assert.Equal([2], shown);
 
