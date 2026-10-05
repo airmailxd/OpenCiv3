@@ -305,6 +305,17 @@ namespace C7GameData {
 				unit.currentAI = null;
 			}
 
+			// Deal with anything this unit was carrying. At sea the cargo goes
+			// down with the transport; in port it's simply unloaded.
+			List<MapUnit> cargo = unit.location.unitsOnTile.Where(u => u != unit && u.IsLoadedIn(unit)).ToList();
+			foreach (MapUnit loaded in cargo) {
+				if (unit.location.IsWater()) {
+					RemoveUnit(loaded);
+				} else {
+					loaded.loadedOnUnitId = null;
+				}
+			}
+
 			// EngineStorage.animTracker.endAnimation(unit, false);   TODO: Must send message instead of call directly
 			unit.location.unitsOnTile.Remove(unit);
 			mapUnits.Remove(unit);
