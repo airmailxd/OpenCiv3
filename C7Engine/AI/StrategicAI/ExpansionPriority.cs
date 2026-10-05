@@ -33,7 +33,7 @@ namespace C7GameData.AIData {
 				if (prototype.actions.Contains(UnitAction.BuildCity)) {
 					//Offset the shield cost and pop cost maluses, and add a flat 30 value to be equivalent to an early-game unit
 					int adjustment = player.ShieldCost(prototype) + 10 * prototype.populationCost + SETTLER_FLAT_APPEAL;
-					log.Debug($"ExpansionPriority adjusting {producible} by {adjustment}");
+					log.Debug("ExpansionPriority adjusting {Producible} by {Adjustment}", producible, adjustment);
 					return adjustment;
 				}
 			}

@@ -98,6 +98,9 @@ namespace C7GameData.AIData {
 			Dictionary<Player, float> scoredOpponents = new();
 			Dictionary<Player, int> borderTileCount = CountSharedBorderTiles(player);
 
+			// Our strength is the same against every opponent.
+			float us = player.CalculateMilitaryStrength();
+
 			// Calculate a score for each of our potential opponents.
 			foreach (Player p in EngineStorage.gameData.players) {
 				float score = 0;
@@ -128,7 +131,6 @@ namespace C7GameData.AIData {
 
 				// We want to be more likely to declare war on our weaker opponents,
 				// so scale our scores based on strength.
-				float us = player.CalculateMilitaryStrength();
 				float them = p.CalculateMilitaryStrength();
 
 				score *= us / them;
@@ -139,9 +141,9 @@ namespace C7GameData.AIData {
 			// Pick the highest score to declare war on.
 			float bestScore = int.MinValue;
 			Player bestOpponent = null;
-			log.Information($"Evaluating possible enemies for {player}...");
+			log.Information("Evaluating possible enemies for {Player}...", player);
 			foreach (KeyValuePair<Player, float> pair in scoredOpponents) {
-				log.Information($"  {pair.Key} : {pair.Value}");
+				log.Information("  {Opponent} : {Score}", pair.Key, pair.Value);
 				if (pair.Value > bestScore) {
 					bestScore = pair.Value;
 					bestOpponent = pair.Key;
@@ -151,6 +153,8 @@ namespace C7GameData.AIData {
 			return bestOpponent;
 		}
 
+		// Counts, for every player at once, the tiles they own that border
+		// ours, in a single pass over the map.
 		private static Dictionary<Player, int> CountSharedBorderTiles(Player player) {
 			// Use a hash set of tiles per player to avoid double counting.
 			Dictionary<Player, HashSet<Tile>> borderTiles = new();

@@ -2,6 +2,7 @@ using System;
 using C7GameData;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 
 namespace C7Engine {
 	public class SettlerLocationAI {
@@ -18,37 +19,58 @@ namespace C7Engine {
 			return result;
 		}
 
+		// Scores the known tiles on the start tile's continent where the player
+		// could found a city. The result lists the tiles in the order of the
+		// player's known tiles.
+		//
+		// This runs for every production decision and settler plan, so the
+		// parts that rarely change are cached between calls: which tiles are
+		// too close to a city (until a city is founded or destroyed) and each
+		// tile's yield score (until something its yields depend on changes).
+		// The results are the same as computing everything from scratch.
 		public static Dictionary<Tile, float> GetScoredSettlerCandidates(Tile start, Player player, HashSet<Tile> excludedTiles = null) {
-			List<MapUnit> playerUnits = player.units;
+			List<MapUnit> playerSettlers = player.units.FindAll(u => u.unitType.name == "Settler");
+			Dictionary<Tile, bool> invalidLocations = InvalidLocationMemo();
+			HashSet<Tile> tilesNearSettlerDestinations = null;
+
 			// TODO: handle settling other continents
-			IEnumerable<Tile> candidates = player.tileKnowledge.AllKnownTiles().Where(t => !IsInvalidCityLocation(t) && t.continent == start.continent);
-			Dictionary<Tile, float> scores = AssignTileScores(start, player, candidates, playerUnits.FindAll(u => u.unitType.name == "Settler"), excludedTiles);
-			return scores;
+			List<Tile> candidates = new();
+			foreach (Tile t in player.tileKnowledge.knownTiles) {
+				// Cheapest checks first.
+				if (t.continent != start.continent || IsInvalidCityLocation(t, invalidLocations)) {
+					continue;
+				}
+
+				// Only tiles the settler failed to reach (issue #213) are excluded.
+				tilesNearSettlerDestinations ??= TilesNearSettlerDestinations(playerSettlers);
+				if (tilesNearSettlerDestinations.Contains(t) || !t.IsAllowCities() || (excludedTiles != null && excludedTiles.Contains(t))) {
+					continue;
+				}
+				candidates.Add(t);
+			}
+
+			return AssignTileScores(start, player, candidates);
 		}
 
-		private static Dictionary<Tile, float> AssignTileScores(Tile startTile, Player player, IEnumerable<Tile> candidates, List<MapUnit> playerSettlers, HashSet<Tile> excludedTiles = null) {
+		private static Dictionary<Tile, float> AssignTileScores(Tile startTile, Player player, List<Tile> candidates) {
 			Dictionary<Tile, float> scores = new();
-			var memo = new Dictionary<string, float>();
+			if (candidates.Count == 0) {
+				return scores;
+			}
 
-			// Only tiles the settler failed to reach (issue #213) are excluded.
-			candidates = candidates.Where(t => !SettlerAlreadyMovingTowardsTile(t, playerSettlers) && t.IsAllowCities() && (excludedTiles == null || !excludedTiles.Contains(t)));
+			PlayerScoreCache cache = GetPlayerScoreCache(player);
+			var maxRank = player.rules.MaxRankOfWorkableTiles;
 
 			foreach (Tile t in candidates) {
-				float score = GetTileYieldScore(t, player, memo);
+				float score = cache.TileYieldScore(t);
 
 				// Consider all tiles within the BFC for total score.
 				// Score contribution decreases linearly with distance, by 1/R with each step:
 				// e.g., with four ranks of workable tiles, R=4:
 				//	  city | 100% | 75% | 50% | 25% | 0% | 0% | ..
-				var maxRank = player.rules.MaxRankOfWorkableTiles;
-				foreach (Tile workable in t.GetTilesWithinRankDistance(maxRank)) {
-					if (workable == Tile.NONE)
-						continue;
-					var rank = t.RankDistanceTo(workable);
-					if (rank <= 0)
-						continue;
-					var adjustment = Math.Max(0, (maxRank - rank + 1f) / maxRank);
-					score += GetTileYieldScore(workable, player, memo) * adjustment;
+				BigFatCross bfc = cache.GetBigFatCross(t, maxRank);
+				for (int i = 0; i < bfc.tiles.Length; ++i) {
+					score += cache.TileYieldScore(bfc.tiles[i]) * bfc.adjustments[i];
 				}
 
 				//Prefer hills for defense, and coast for boats and such.
@@ -80,11 +102,7 @@ namespace C7Engine {
 			return scores;
 		}
 
-		private static float GetTileYieldScore(Tile t, Player owner, Dictionary<string, float> memo) {
-			var key = $"Tile_{t.XCoordinate}_{t.YCoordinate}";
-			if (memo.TryGetValue(key, out var value))
-				return value;
-
+		private static float CalculateTileYieldScore(Tile t, Player owner) {
 			float score = owner.civilization.Adjustments.FoodYieldBonus * t.FoodYield(owner).yield;
 			score += owner.civilization.Adjustments.ProductionYieldBonus * t.ProductionYield(owner).yield;
 			score += owner.civilization.Adjustments.CommerceYieldBonus * t.CommerceYield(owner).yield;
@@ -95,9 +113,180 @@ namespace C7Engine {
 					score += owner.civilization.Adjustments.LuxuryResourceBonus;
 				}
 			}
-
-			memo[key] = score;
 			return score;
+		}
+
+		// The workable tiles around a city site (excluding the site itself),
+		// with how much each contributes to the site's score.
+		private sealed class BigFatCross {
+			public Tile[] tiles;
+			public float[] adjustments;
+		}
+
+		// Everything a tile's yield score depends on, besides the player's
+		// techs, government and golden age, which are checked for the whole
+		// cache at once.
+		private sealed class TileYieldEntry {
+			public float score;
+			public TerrainType overlayTerrainType;
+			public Resource resource;
+			public bool isBonusShield;
+			public bool hasCity;
+			public City city;
+			public int cityResidents;
+			public bool cityIsCapital;
+			public TerrainImprovement[] improvements;
+
+			public void Capture(Tile t) {
+				overlayTerrainType = t.overlayTerrainType;
+				resource = t.Resource;
+				isBonusShield = t.isBonusShield;
+				hasCity = t.HasCity();
+				city = t.cityAtTile;
+				cityResidents = hasCity ? city.residents.Count : 0;
+				cityIsCapital = hasCity && city.IsCapital();
+				improvements = t.overlays.GetImprovements().ToArray();
+			}
+
+			public bool Matches(Tile t) {
+				if (overlayTerrainType != t.overlayTerrainType || resource != t.Resource
+					|| isBonusShield != t.isBonusShield || city != t.cityAtTile || hasCity != t.HasCity()) {
+					return false;
+				}
+				if (hasCity && (cityResidents != city.residents.Count || cityIsCapital != city.IsCapital())) {
+					return false;
+				}
+				int i = 0;
+				foreach (TerrainImprovement ti in t.overlays.GetImprovements()) {
+					if (i >= improvements.Length || improvements[i] != ti) {
+						return false;
+					}
+					++i;
+				}
+				return i == improvements.Length;
+			}
+		}
+
+		private sealed class PlayerScoreCache {
+			private readonly Player player;
+			private Government government;
+			private bool inGoldenAge;
+			private int knownTechCount = -1;
+			private readonly Dictionary<Tile, TileYieldEntry> yieldScores = new();
+			private readonly Dictionary<Tile, BigFatCross> bigFatCrosses = new();
+			private int bigFatCrossRank = -1;
+
+			public PlayerScoreCache(Player player) {
+				this.player = player;
+			}
+
+			// Drops all yield scores if something that affects the yields of
+			// every tile changed.
+			public void Validate() {
+				if (government != player.government || inGoldenAge != player.InGoldenAge || knownTechCount != player.knownTechs.Count) {
+					yieldScores.Clear();
+					government = player.government;
+					inGoldenAge = player.InGoldenAge;
+					knownTechCount = player.knownTechs.Count;
+				}
+			}
+
+			public float TileYieldScore(Tile t) {
+				if (yieldScores.TryGetValue(t, out TileYieldEntry entry)) {
+					if (entry.Matches(t)) {
+						return entry.score;
+					}
+				} else {
+					entry = new TileYieldEntry();
+					yieldScores[t] = entry;
+				}
+				entry.Capture(t);
+				entry.score = CalculateTileYieldScore(t, player);
+				return entry.score;
+			}
+
+			// The map doesn't change shape, so these are computed once.
+			public BigFatCross GetBigFatCross(Tile t, int maxRank) {
+				if (bigFatCrossRank != maxRank) {
+					bigFatCrosses.Clear();
+					bigFatCrossRank = maxRank;
+				}
+				if (bigFatCrosses.TryGetValue(t, out BigFatCross bfc)) {
+					return bfc;
+				}
+
+				List<Tile> tiles = new();
+				List<float> adjustments = new();
+				foreach (Tile workable in t.GetTilesWithinRankDistance(maxRank)) {
+					if (workable == Tile.NONE)
+						continue;
+					var rank = t.RankDistanceTo(workable);
+					if (rank <= 0)
+						continue;
+					tiles.Add(workable);
+					adjustments.Add(Math.Max(0, (maxRank - rank + 1f) / maxRank));
+				}
+				bfc = new BigFatCross() { tiles = tiles.ToArray(), adjustments = adjustments.ToArray() };
+				bigFatCrosses[t] = bfc;
+				return bfc;
+			}
+		}
+
+		private static readonly ConditionalWeakTable<Player, PlayerScoreCache> playerScoreCaches = new();
+
+		private static PlayerScoreCache GetPlayerScoreCache(Player player) {
+			PlayerScoreCache cache = playerScoreCaches.GetValue(player, p => new PlayerScoreCache(p));
+			cache.Validate();
+			return cache;
+		}
+
+		// Whether a tile is too close to a city to found one, remembered until
+		// the set of cities changes.
+		private static readonly Dictionary<Tile, bool> invalidLocations = new();
+		private static readonly List<Tile> invalidLocationsCityTiles = new();
+		private static GameData invalidLocationsGameData;
+
+		private static Dictionary<Tile, bool> InvalidLocationMemo() {
+			GameData gameData = EngineStorage.gameData;
+			if (gameData == null) {
+				return null;
+			}
+
+			// Compare the city locations with the ones the memo was made for.
+			bool changed = gameData != invalidLocationsGameData;
+			int i = 0;
+			foreach (Player p in gameData.players) {
+				foreach (City c in p.cities) {
+					if (!changed && (i >= invalidLocationsCityTiles.Count || invalidLocationsCityTiles[i] != c.location)) {
+						changed = true;
+					}
+					++i;
+				}
+			}
+			changed |= i != invalidLocationsCityTiles.Count;
+
+			if (changed) {
+				invalidLocations.Clear();
+				invalidLocationsCityTiles.Clear();
+				foreach (Player p in gameData.players) {
+					foreach (City c in p.cities) {
+						invalidLocationsCityTiles.Add(c.location);
+					}
+				}
+				invalidLocationsGameData = gameData;
+			}
+			return invalidLocations;
+		}
+
+		private static bool IsInvalidCityLocation(Tile tile, Dictionary<Tile, bool> memo) {
+			if (memo == null) {
+				return IsInvalidCityLocation(tile);
+			}
+			if (!memo.TryGetValue(tile, out bool result)) {
+				result = IsInvalidCityLocation(tile);
+				memo[tile] = result;
+			}
+			return result;
 		}
 
 		private static bool IsInvalidCityLocation(Tile tile) {
@@ -118,32 +307,26 @@ namespace C7Engine {
 		}
 
 		/// <summary>
-		/// Returns true if one of the settlers in the list (which should be the list of the current AI's settlers) is
-		/// already heading to a tile near the requested tile.
-		/// Does not return true if only another AI's settlers are headed there, as the AI shouldn't know the other
-		/// AI's plans.
+		/// Returns the tiles near where the settlers in the list (which should be the current AI's settlers) are
+		/// already heading: their destinations and the land tiles up to two steps away.
+		/// Another AI's settlers don't count, as the AI shouldn't know the other AI's plans.
 		/// </summary>
-		/// <param name="tile">The tile under consideration for a future city.</param>
 		/// <param name="playerSettlers">The settlers owned by the AI considering building a city.</param>
-		/// <returns></returns>
-		private static bool SettlerAlreadyMovingTowardsTile(Tile tile, List<MapUnit> playerSettlers) {
+		private static HashSet<Tile> TilesNearSettlerDestinations(List<MapUnit> playerSettlers) {
+			HashSet<Tile> result = new();
 			foreach (MapUnit otherSettler in playerSettlers) {
 				if (otherSettler.currentAI is SettlerAI otherSettlerAI) {
-					Tile otherDestination = ((SettlerAI)(otherSettler.currentAI)).data.destination;
-					if (otherDestination == tile) {
-						return true;
-					}
-					if (otherDestination.GetLandNeighbors().Exists(innerRingTile => innerRingTile == tile)) {
-						return true;
-					}
+					Tile otherDestination = otherSettlerAI.data.destination;
+					result.Add(otherDestination);
 					foreach (Tile innerRingTile in otherDestination.GetLandNeighbors()) {
-						if (innerRingTile.GetLandNeighbors().Exists(outerRingTile => outerRingTile == tile)) {
-							return true;
+						result.Add(innerRingTile);
+						foreach (Tile outerRingTile in innerRingTile.GetLandNeighbors()) {
+							result.Add(outerRingTile);
 						}
 					}
 				}
 			}
-			return false;
+			return result;
 		}
 	}
 }
