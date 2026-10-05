@@ -143,7 +143,7 @@ namespace C7GameData {
 			}
 
 			if (requiredBuilding != null &&
-				!city.GetBuildings().Exists(cityBuilding => cityBuilding.building == this)) {
+				!city.GetBuildings().Exists(cityBuilding => cityBuilding.building == requiredBuilding)) {
 				return false;
 			}
 
