@@ -1,4 +1,5 @@
 using System.Linq;
+using System.Threading.Tasks;
 using C7Engine;
 using C7GameData;
 using EngineTests.Utils;
@@ -16,9 +17,25 @@ public class CombatTest : IClassFixture<SaveGameFixture> {
 		EngineStorage.InitializeGameDataForTests(gameData);
 		EngineStorage.animationsEnabled = false;
 
-		Player[] civs = gameData.players.Where(p => !p.isBarbarians).Take(2).ToArray();
+		Player[] civs = gameData.players.Where(p => !p.isBarbarians && !p.isHuman).Take(2).ToArray();
 		us = civs[0];
 		them = civs[1];
+	}
+
+	// Finds two neighboring empty land tiles, outside anyone's borders.
+	private (Tile from, TileDirection dir, Tile to) FindAdjacentLand() {
+		foreach (Tile from in gameData.map.tiles.Where(t => IsEmptyLand(t) && t.OwningPlayer() == null)) {
+			foreach ((TileDirection dir, Tile to) in from.neighbors) {
+				if (to != Tile.NONE && IsEmptyLand(to) && to.OwningPlayer() == null) {
+					return (from, dir, to);
+				}
+			}
+		}
+		throw new System.Exception("No adjacent land tiles found");
+	}
+
+	private void GoToWar() {
+		us.DeclareWarOn(them, gameData.turn);
 	}
 
 	private UnitPrototype Prototype(string name) {
@@ -46,5 +63,25 @@ public class CombatTest : IClassFixture<SaveGameFixture> {
 		Assert.Empty(sea.unitsOnTile);
 		Assert.DoesNotContain(warrior, gameData.mapUnits);
 		Assert.DoesNotContain(warrior, us.units);
+	}
+
+	[Fact]
+	public async Task WorkersAreCapturedNotFought() {
+		GoToWar();
+		(Tile from, TileDirection dir, Tile to) = FindAdjacentLand();
+		MapUnit warrior = Spawn(us, "Warrior", from);
+		MapUnit worker = Spawn(them, "Worker", to);
+		ExperienceLevel startingLevel = warrior.experienceLevel;
+		int startingHitPoints = warrior.hitPointsRemaining;
+
+		Assert.True(await warrior.Move(dir));
+
+		Assert.Equal(to, warrior.location);
+		Assert.Equal(us, worker.owner);
+		Assert.Contains(worker, us.units);
+		Assert.DoesNotContain(worker, them.units);
+		Assert.True(worker.IsCaptive());
+		Assert.Equal(startingLevel, warrior.experienceLevel);
+		Assert.Equal(startingHitPoints, warrior.hitPointsRemaining);
 	}
 }

@@ -337,6 +337,35 @@ namespace C7GameData {
 				CheckForCivDestructionAndNotifyUi(unit.owner);
 		}
 
+		/// <summary>
+		/// Hands a unit over to the player that captured it. The unit keeps its
+		/// nationality, so it becomes a captive (e.g. a slave worker).
+		/// </summary>
+		internal void CaptureUnit(MapUnit unit, Player captor) {
+			Player previousOwner = unit.owner;
+			log.Information($"Player {captor} captured unit: {unit}");
+
+			if (unit.currentAI != null) {
+				unit.currentAI.UpdateOnDeath();
+				unit.currentAI = null;
+			}
+			unit.isAutomated = false;
+			unit.isFortified = false;
+			unit.path = TilePath.NONE;
+			unit.resetWorkerJob();
+			unit.movementPoints.onConsumeAll();
+
+			previousOwner.units.Remove(unit);
+			unit.owner = captor;
+			captor.AddUnit(unit);
+
+			previousOwner.tileKnowledge.RecomputeActiveTiles();
+			captor.tileKnowledge.RecomputeActiveTiles();
+
+			if (!previousOwner.defeated)
+				CheckForCivDestructionAndNotifyUi(previousOwner);
+		}
+
 		internal void SpawnUnit(Player player, UnitPrototype proto, Tile tile) {
 			// TODO: consolidate unit spawning routines (here)
 

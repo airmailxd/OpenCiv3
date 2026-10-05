@@ -217,11 +217,17 @@ public partial class MapUnit {
 
 		// Trigger combat if the tile we're moving into has an enemy  Or if this unit can't fight, do nothing.
 		MapUnit defender = newLoc.FindTopDefender(this);
-		if (defender != MapUnit.NONE && !owner.IsAtPeaceWith(defender.owner)) {
-			if (unitType.attack <= 0) {
-				return true;
-			}
+		bool enemyOnTile = defender != MapUnit.NONE && !owner.IsAtPeaceWith(defender.owner);
+		if (enemyOnTile && unitType.attack <= 0) {
+			return true;
+		}
 
+		if (enemyOnTile && !HasArmedEnemyDefender(newLoc)) {
+			// Units that can't defend themselves, like workers and settlers,
+			// are captured rather than fought. Fighting them would always win,
+			// and could be farmed for promotions.
+			CaptureDefencelessUnits(newLoc);
+		} else if (enemyOnTile) {
 			CombatResult combatResult = await Fight(defender);
 			this.path = TilePath.NONE;
 			// If we were killed then of course there's nothing more to do. If the combat couldn't happen for whatever
@@ -287,6 +293,29 @@ public partial class MapUnit {
 		movementPoints.onUnitMove(movementCost);
 
 		return true;
+	}
+
+	// True if an enemy unit on the tile can actually put up a fight against
+	// this unit, as opposed to only workers, settlers and the like.
+	private bool HasArmedEnemyDefender(Tile tile) {
+		return tile.unitsOnTile.Any(u => !owner.IsAtPeaceWith(u.owner)
+			&& u.CanDefendAgainst(this)
+			&& u.unitType.defense > 0);
+	}
+
+	// Captures the enemy workers and settlers on the tile, and destroys any
+	// other enemy units there that can't be captured. Barbarians don't take
+	// captives.
+	private void CaptureDefencelessUnits(Tile tile) {
+		GameData gameData = EngineStorage.gameData;
+		foreach (MapUnit enemy in tile.unitsOnTile.Where(u => !owner.IsAtPeaceWith(u.owner)).ToList()) {
+			bool capturable = (enemy.unitType.isWorker || enemy.unitType.isSettler) && !owner.isBarbarians;
+			if (capturable) {
+				gameData.CaptureUnit(enemy, owner);
+			} else {
+				gameData.RemoveUnit(enemy);
+			}
+		}
 	}
 
 	public async Task<CombatResult> Fight(MapUnit defender) {
