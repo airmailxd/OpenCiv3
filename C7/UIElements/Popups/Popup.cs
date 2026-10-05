@@ -92,10 +92,10 @@ public partial class Popup : TextureRect {
 		image.BlitRect(right, new Rect2I(new Vector2I(0, 0), new Vector2I(right.GetWidth(), right.GetHeight())), new Vector2I(leftOffset, vOffset));
 	}
 
+	// Gives the popup its size, like a transparent texture of that size
+	// would, so its parent can align it.
 	protected void AddTexture(int width, int height) {
-		Image image = Image.Create(width, height, false, Image.Format.Rgba8);
-		image.Fill(Color.Color8(0, 0, 0, 0));
-		this.Texture = ImageTexture.CreateFromImage(image);
+		CustomMinimumSize = new Vector2(width, height);
 	}
 
 	protected void AddBackground(int width, int height, int vOffset = 0) {

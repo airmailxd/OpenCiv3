@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Godot;
 using C7GameData;
 using Serilog;
@@ -38,7 +39,11 @@ public partial class PopupOverlay : HBoxContainer {
 	public void OnHidePopup() {
 		Reconnect();
 		if (currentChild != null) {
+			// Popups are made fresh each time they are shown, so free the old
+			// one. Freeing is deferred, so a popup that hid itself from one of
+			// its own handlers can safely finish running it.
 			RemoveChild(currentChild);
+			currentChild.QueueFree();
 			currentChild = null;
 		}
 		Hide();
@@ -92,6 +97,11 @@ public partial class PopupOverlay : HBoxContainer {
 		Show();
 	}
 
+	// The mouse filters the UI elements had before a popup isolated them,
+	// so they can be put back exactly as they were.
+	private readonly Dictionary<Control, MouseFilterEnum> savedMouseFilters = new();
+	private bool isolated = false;
+
 	/// <summary>
 	/// Creates a modal context by preventing UI events outside the popup context.
 	/// Inverse of `Reconnect(..)`.
@@ -103,8 +113,23 @@ public partial class PopupOverlay : HBoxContainer {
 		// 2. Stop the world: switch off UI elements
 		control.ProcessMode = ProcessModeEnum.Disabled;
 
-		// 3. Ignore all mouse input on UI elements
-		control.SetMouseFilterRecursive(MouseFilterEnum.Ignore);
+		// 3. Ignore all mouse input on UI elements, remembering what they had
+		if (!isolated) {
+			isolated = true;
+			savedMouseFilters.Clear();
+			IgnoreMouseRecursive(control);
+		}
+	}
+
+	private void IgnoreMouseRecursive(Node node) {
+		int count = node.GetChildCount();
+		for (int i = 0; i < count; ++i) {
+			IgnoreMouseRecursive(node.GetChild(i));
+		}
+		if (node is Control c) {
+			savedMouseFilters[c] = c.MouseFilter;
+			c.MouseFilter = MouseFilterEnum.Ignore;
+		}
 	}
 
 	/// <summary>
@@ -112,8 +137,16 @@ public partial class PopupOverlay : HBoxContainer {
 	/// Inverse of `Isolate(..)`.
 	/// </summary>
 	private void Reconnect() {
-		// 1. Let UI elements catch mouse inputs again, propagating events past the overlay
-		control.SetMouseFilterRecursive(MouseFilterEnum.Pass);
+		// 1. Let UI elements catch mouse inputs again, as they did before
+		if (isolated) {
+			isolated = false;
+			foreach (var (c, filter) in savedMouseFilters) {
+				if (IsInstanceValid(c)) {
+					c.MouseFilter = filter;
+				}
+			}
+			savedMouseFilters.Clear();
+		}
 
 		// 2. Restart the world: let UI elements run normal
 		control.ProcessMode = ProcessModeEnum.Inherit;
