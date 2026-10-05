@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json.Serialization;
@@ -20,7 +21,16 @@ namespace C7GameData.Save {
 
 		public string civilization;
 
+		// The tiles this player knows about, in the order they learned of
+		// them. Older saves (and imported Civ3 games) list them here.
 		public List<TileLocation> tileKnowledge = new List<TileLocation>();
+
+		// The tiles this player knows about, in the order they learned of
+		// them, in a compact form: the (URL-safe) base64 encoding of each tile's index in
+		// the map's list of tiles, as the difference from the previous index
+		// (zigzag encoded) written as a variable-length integer. Used instead
+		// of tileKnowledge when every known tile is on the map.
+		public string knownTileIndices;
 
 		// A map from player id to the relationship this player has with the other player.
 		public Dictionary<string, PlayerRelationship> playerRelationships = new();
@@ -110,6 +120,14 @@ namespace C7GameData.Save {
 				rules = rules,
 				hasVictoriousArmy = hasVictoriousArmy,
 			};
+			if (!string.IsNullOrEmpty(knownTileIndices)) {
+				foreach (int index in DecodeTileIndices(knownTileIndices)) {
+					if (index < 0 || index >= map.tiles.Count) {
+						throw new FormatException($"Known tile index {index} is outside the map");
+					}
+					player.tileKnowledge.AddTileToKnown(map.tiles[index]);
+				}
+			}
 			foreach (TileLocation tile in tileKnowledge) {
 				player.tileKnowledge.AddTileToKnown(map.tileAt(tile.X, tile.Y));
 			}
@@ -143,7 +161,10 @@ namespace C7GameData.Save {
 
 		public SavePlayer() { }
 
-		public SavePlayer(Player player) {
+		public SavePlayer(Player player) : this(player, null) { }
+
+		// With a map, the known tiles are saved in the compact form.
+		public SavePlayer(Player player, GameMap map) {
 			id = player.id;
 			isIncludedInGame = player.isIncludedInGame;
 			canBePicked = player.canBePicked;
@@ -157,7 +178,12 @@ namespace C7GameData.Save {
 			civilization = player.civilization?.name;
 			// TODO: this should be computed by looking at cities defined in the save
 			// so that adding cities in the save structure doesn't require updating this value
-			tileKnowledge = player.tileKnowledge.AllKnownTiles().ConvertAll(tile => new TileLocation(tile));
+			string encoded = map == null ? null : EncodeTileIndices(player.tileKnowledge.knownTiles, map);
+			if (encoded != null) {
+				knownTileIndices = encoded;
+			} else {
+				tileKnowledge = player.tileKnowledge.AllKnownTiles().ConvertAll(tile => new TileLocation(tile));
+			}
 			turnsUntilPriorityReevaluation = player.turnsUntilPriorityReevaluation;
 			knownTechs = player.knownTechs;
 			currentlyResearchedTech = player.currentlyResearchedTech;
@@ -179,6 +205,80 @@ namespace C7GameData.Save {
 			foreach (KeyValuePair<ID, PlayerRelationship> keyValuePair in player.playerRelationships) {
 				playerRelationships.Add(keyValuePair.Key.ToString(), keyValuePair.Value);
 			}
+		}
+
+		// Returns null if some tile isn't on the map, in which case the tiles
+		// have to be saved by location.
+		internal static string EncodeTileIndices(IEnumerable<Tile> tiles, GameMap map) {
+			List<byte> bytes = new();
+			Dictionary<Tile, int> indexByTile = null;
+			int previous = 0;
+			foreach (Tile tile in tiles) {
+				int index = IndexOf(tile, map, ref indexByTile);
+				if (index < 0) {
+					return null;
+				}
+				int delta = index - previous;
+				previous = index;
+				uint zigzag = (uint)((delta << 1) ^ (delta >> 31));
+				while (zigzag >= 0x80) {
+					bytes.Add((byte)(zigzag | 0x80));
+					zigzag >>= 7;
+				}
+				bytes.Add((byte)zigzag);
+			}
+			if (bytes.Count == 0) {
+				return null;
+			}
+			// Use the URL-safe alphabet, since JSON escapes '+'.
+			return Convert.ToBase64String(bytes.ToArray()).Replace('+', '-').Replace('/', '_');
+		}
+
+		private static int IndexOf(Tile tile, GameMap map, ref Dictionary<Tile, int> indexByTile) {
+			if (tile == null || tile == Tile.NONE) {
+				return -1;
+			}
+			int x = tile.XCoordinate, y = tile.YCoordinate;
+			if (x >= 0 && y >= 0 && x < map.numTilesWide && y < map.numTilesTall) {
+				int index = map.tileCoordsToIndex(x, y);
+				if (index >= 0 && index < map.tiles.Count && map.tiles[index] == tile) {
+					return index;
+				}
+			}
+			// The tiles aren't laid out as expected, so look the tile up.
+			if (indexByTile == null) {
+				indexByTile = new Dictionary<Tile, int>(map.tiles.Count);
+				for (int i = 0; i < map.tiles.Count; ++i) {
+					indexByTile.TryAdd(map.tiles[i], i);
+				}
+			}
+			return indexByTile.TryGetValue(tile, out int found) ? found : -1;
+		}
+
+		internal static List<int> DecodeTileIndices(string encoded) {
+			byte[] bytes = Convert.FromBase64String(encoded.Replace('-', '+').Replace('_', '/'));
+			List<int> result = new();
+			int previous = 0;
+			int i = 0;
+			while (i < bytes.Length) {
+				uint zigzag = 0;
+				int shift = 0;
+				while (true) {
+					if (i >= bytes.Length || shift > 28) {
+						throw new FormatException("Malformed known tile indices");
+					}
+					byte b = bytes[i++];
+					zigzag |= (uint)(b & 0x7f) << shift;
+					if ((b & 0x80) == 0) {
+						break;
+					}
+					shift += 7;
+				}
+				int delta = (int)(zigzag >> 1) ^ -(int)(zigzag & 1);
+				previous += delta;
+				result.Add(previous);
+			}
+			return result;
 		}
 
 		public override string ToString() {

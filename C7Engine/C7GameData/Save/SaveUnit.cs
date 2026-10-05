@@ -60,13 +60,48 @@ namespace C7GameData.Save {
 		}
 
 
+		// Lookup tables for converting many units, built once rather than
+		// searching the lists for every unit. Like List.Find, the first match
+		// wins.
+		internal class Lookups {
+			internal readonly Dictionary<string, UnitPrototype> prototypesByName = new();
+			internal readonly Dictionary<string, ExperienceLevel> experienceLevelsByKey = new();
+			internal readonly Dictionary<ID, Player> playersById = new();
+			internal readonly Dictionary<string, Player> playersByCivilizationName = new();
+			internal readonly Dictionary<ID, Terraform> terraformsById = new();
+
+			internal Lookups(List<UnitPrototype> prototypes, List<ExperienceLevel> experienceLevels, List<Player> players, List<Terraform> terraforms) {
+				foreach (UnitPrototype p in prototypes) {
+					if (p.name != null) prototypesByName.TryAdd(p.name, p);
+				}
+				foreach (ExperienceLevel el in experienceLevels) {
+					if (el.key != null) experienceLevelsByKey.TryAdd(el.key, el);
+				}
+				foreach (Player player in players) {
+					if (player.id is not null) playersById.TryAdd(player.id, player);
+					if (player.civilization?.name != null) playersByCivilizationName.TryAdd(player.civilization.name, player);
+				}
+				foreach (Terraform tf in terraforms) {
+					if (tf.Id is not null) terraformsById.TryAdd(tf.Id, tf);
+				}
+			}
+
+			internal static T Find<K, T>(Dictionary<K, T> dict, K key) where T : class {
+				return key is not null && dict.TryGetValue(key, out T value) ? value : null;
+			}
+		}
+
 		public MapUnit ToMapUnit(List<UnitPrototype> prototypes, List<ExperienceLevel> experienceLevels, List<Player> players, List<Terraform> terraforms, GameMap map) {
+			return ToMapUnit(new Lookups(prototypes, experienceLevels, players, terraforms), map);
+		}
+
+		internal MapUnit ToMapUnit(Lookups lookups, GameMap map) {
 			MapUnit unit = new MapUnit{
 				id = id,
-				unitType = prototypes.Find(p => p.name == prototype),
+				unitType = Lookups.Find(lookups.prototypesByName, prototype),
 				experienceLevelKey = experience,
-				experienceLevel = experienceLevels.Find(el => el.key == experience),
-				owner = players.Find(player => player.id == owner),
+				experienceLevel = Lookups.Find(lookups.experienceLevelsByKey, experience),
+				owner = Lookups.Find(lookups.playersById, owner),
 				location = map.tileAt(currentLocation.X, currentLocation.Y),
 				loadedOnUnitId = loadedOnUnitId,
 				previousLocation = currentLocation.X == - 1 ? Tile.NONE : map.tileAt(previousLocation.X, previousLocation.Y),
@@ -80,13 +115,13 @@ namespace C7GameData.Save {
 				hasAttackedThisTurn = hasAttackedThisTurn,
 				facingDirection = facingDirection,
 				WorkerProgressTowardsJob = WorkerProgressTowardsJob,
-				WorkerJob = WorkerJob == null ? null:terraforms.Find(tf => tf.Id == WorkerJob)
+				WorkerJob = WorkerJob == null ? null : Lookups.Find(lookups.terraformsById, WorkerJob)
 			};
 			unit.location.unitsOnTile.Add(unit);
 			unit.movementPoints.reset(movePointsRemaining);
 			unit.name = string.IsNullOrEmpty(name) ? unit.unitType.name : name;
 
-			Player originalNationality = players.Find(player => player.civilization.name == nationality);
+			Player originalNationality = Lookups.Find(lookups.playersByCivilizationName, nationality);
 			if (originalNationality != null) {
 				unit.nationality = originalNationality.civilization;
 			} else {

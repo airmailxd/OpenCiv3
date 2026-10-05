@@ -32,6 +32,15 @@ namespace C7GameData.Save {
 			};
 		}
 
+		internal CityBuilding ToCityBuilding(SaveCity.Lookups lookups) {
+			return new CityBuilding {
+				building = SaveCity.Lookups.Find(lookups.buildingsByName, building),
+				builtByPlayer = SaveCity.Lookups.Find(lookups.playersById, builtByPlayer),
+				year = year,
+				totalCulture = totalCulture,
+			};
+		}
+
 	}
 
 	public enum ProducibleType { INFLOW, BUILDING, UNIT };
@@ -88,6 +97,54 @@ namespace C7GameData.Save {
 			}
 		}
 
+		// Lookup tables for converting many cities, built once rather than
+		// searching the lists for every city. Like List.Find, the first match
+		// wins.
+		internal class Lookups {
+			internal readonly Dictionary<ID, Player> playersById = new();
+			internal readonly Dictionary<string, Player> playersByIdString = new();
+			internal readonly Dictionary<string, UnitPrototype> unitPrototypesByName = new();
+			internal readonly Dictionary<string, Civilization> civilizationsByName = new();
+			internal readonly Dictionary<string, Building> buildingsByName = new();
+			internal readonly Dictionary<ID, CitizenType> citizenTypesById = new();
+			internal readonly Dictionary<string, Inflow> inflowsByName = new();
+			internal readonly CitizenType defaultCitizenType;
+
+			internal Lookups(List<Player> players,
+							List<UnitPrototype> unitPrototypes,
+							List<Civilization> civilizations,
+							List<Building> buildings,
+							List<CitizenType> citizenTypes,
+							List<Inflow> inflows) {
+				foreach (Player p in players) {
+					if (p.id is not null) {
+						playersById.TryAdd(p.id, p);
+						playersByIdString.TryAdd(p.id.ToString(), p);
+					}
+				}
+				foreach (UnitPrototype up in unitPrototypes) {
+					if (up.name != null) unitPrototypesByName.TryAdd(up.name, up);
+				}
+				foreach (Civilization civ in civilizations) {
+					if (civ.name != null) civilizationsByName.TryAdd(civ.name, civ);
+				}
+				foreach (Building b in buildings) {
+					if (b.name != null) buildingsByName.TryAdd(b.name, b);
+				}
+				foreach (CitizenType ct in citizenTypes) {
+					if (ct.Id is not null) citizenTypesById.TryAdd(ct.Id, ct);
+				}
+				foreach (Inflow inflow in inflows) {
+					if (inflow.name != null) inflowsByName.TryAdd(inflow.name, inflow);
+				}
+				defaultCitizenType = citizenTypes.Find(x => x.IsDefaultCitizen);
+			}
+
+			internal static T Find<K, T>(Dictionary<K, T> dict, K key) where T : class {
+				return key is not null && dict.TryGetValue(key, out T value) ? value : null;
+			}
+		}
+
 		public City ToCity(GameMap gameMap,
 							List<Player> players,
 							List<UnitPrototype> unitPrototypes,
@@ -95,34 +152,38 @@ namespace C7GameData.Save {
 							List<Building> buildings,
 							List<CitizenType> citizenTypes,
 							List<Inflow> inflows) {
+			return ToCity(gameMap, new Lookups(players, unitPrototypes, civilizations, buildings, citizenTypes, inflows));
+		}
+
+		internal City ToCity(GameMap gameMap, Lookups lookups) {
 			City city = new City{
 				id = id,
 				location = gameMap.tileAt(location.X, location.Y),
-				owner = players.Find(p => p.id == owner),
+				owner = Lookups.Find(lookups.playersById, owner),
 				name = name,
 				itemBeingProduced = producibleType switch {
-					ProducibleType.INFLOW => inflows.Find(inflow => inflow.name == producible),
-					ProducibleType.UNIT => unitPrototypes.Find(proto => proto.name == producible),
-					ProducibleType.BUILDING => buildings.Find(building => building.name == producible),
+					ProducibleType.INFLOW => Lookups.Find(lookups.inflowsByName, producible),
+					ProducibleType.UNIT => Lookups.Find(lookups.unitPrototypesByName, producible),
+					ProducibleType.BUILDING => Lookups.Find(lookups.buildingsByName, producible),
 				},
 				foodStored = foodStored,
 				turnsOfUnhappinessDueToPopRushing = turnsOfUnhappinessDueToPopRushing,
 				celebrating = celebrating,
 				isInCivilDisorder = isInCivilDisorder,
 				capital = capital,
-				constructed_buildings = this.buildings.ConvertAll(building => building.ToCityBuilding(buildings, players)),
+				constructed_buildings = this.buildings.ConvertAll(building => building.ToCityBuilding(lookups)),
 			};
 
 			city.SetStoredShields(shieldsStored);
 
 			foreach (KeyValuePair<string, int> keyValuePair in perPlayerCulture) {
-				city.perPlayerCulture.Add(players.Find(x => x.id.ToString() == keyValuePair.Key), keyValuePair.Value);
+				city.perPlayerCulture.Add(Lookups.Find(lookups.playersByIdString, keyValuePair.Key), keyValuePair.Value);
 			}
 
 			city.residents = residents.ConvertAll(resident => {
 				return new CityResident {
-					citizenType = citizenTypes.Find(x => x.Id == resident.citizenType),
-					nationality = civilizations.Find(civ => civ.name == resident.nationality),
+					citizenType = Lookups.Find(lookups.citizenTypesById, resident.citizenType),
+					nationality = Lookups.Find(lookups.civilizationsByName, resident.nationality),
 					tileWorked = gameMap.tileAt(resident.tileWorked.X, resident.tileWorked.Y),
 					city = city,
 				};
@@ -139,7 +200,7 @@ namespace C7GameData.Save {
 			// We wait to assign them to tiles until after tile ownership has
 			// been established in SaveGame.cs.
 			if (city.residents.Count == 0) {
-				CitizenType ct = citizenTypes.Find(x => x.IsDefaultCitizen);
+				CitizenType ct = lookups.defaultCitizenType;
 				for (int i = 0; i < size; ++i) {
 					CityResident newResident = new() {
 						citizenType = ct,

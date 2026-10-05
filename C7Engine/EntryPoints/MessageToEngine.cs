@@ -61,7 +61,7 @@ namespace C7Engine {
 		}
 
 		protected bool IsSendersCity(City city) {
-			return city != null && city.owner == Sender && EngineStorage.gameData.cities.Contains(city);
+			return city != null && city.owner == Sender && EngineStorage.gameData.GetCity(city.id) == city;
 		}
 	}
 
@@ -377,7 +377,7 @@ namespace C7Engine {
 		}
 
 		protected override void ProcessAllowed() {
-			City city = EngineStorage.gameData.cities.Find(c => c.id == cityID);
+			City city = EngineStorage.gameData.GetCity(cityID);
 			if (IsSendersCity(city)) {
 				foreach (IProducible producible in city.ListProductionOptions(EngineStorage.gameData)) {
 					if (producible.name == producibleName) {
