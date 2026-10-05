@@ -821,16 +821,30 @@ public partial class Game : Node {
 		turnsLeftToFastForward = 0;
 	}
 
+	// How long a frame may spend handling the engine's messages to the UI.
+	private static readonly long uiMessageBudgetTicks = Stopwatch.Frequency * 4 / 1000;
+
 	public override void _Process(double delta) {
 		PollLanSession();
 		ProcessActions();
 
+		// The engine waits for animations to finish before going on.
 		if (!EngineStorage.HasPendingAnimations())
 			EngineStorage.ProcessNextMessageToEngine();
 
-		if (EngineStorage.TryDequeueNextMessageToUI(out MessageToUI msg))
+		// Handle the waiting messages to the UI, as many as fit in the frame's
+		// budget. None of them start animations (those have their own queue),
+		// so there's no need to pace them.
+		long start = Stopwatch.GetTimestamp();
+		bool handledMessage = false;
+		while (EngineStorage.TryDequeueNextMessageToUI(out MessageToUI msg)) {
 			HandleEngineMessage(msg);
-		else
+			handledMessage = true;
+			if (Stopwatch.GetTimestamp() - start >= uiMessageBudgetTicks) {
+				break;
+			}
+		}
+		if (!handledMessage)
 			ReplayHeldMessage();
 	}
 
@@ -1367,16 +1381,28 @@ public partial class Game : Node {
 		mapView.setCameraZoom((float)newScale, magnifyGesture.Position);
 	}
 
-	private void ProcessActions() {
-		Godot.Collections.Array<StringName> actions = InputMap.GetActions();
+	// The input actions and their names, fetched once rather than every frame.
+	private StringName[] inputActions;
+	private string[] inputActionNames;
 
-		foreach (StringName action in actions) {
+	private void ProcessActions() {
+		if (inputActions == null) {
+			Godot.Collections.Array<StringName> actions = InputMap.GetActions();
+			inputActions = new StringName[actions.Count];
+			inputActionNames = new string[actions.Count];
+			for (int i = 0; i < actions.Count; i++) {
+				inputActions[i] = actions[i];
+				inputActionNames[i] = actions[i].ToString();
+			}
+		}
+
+		for (int i = 0; i < inputActions.Length; i++) {
 			// Match modifiers exactly, so that Shift+Enter or Ctrl+L don't also
 			// trigger the actions bound to plain Enter or L.
-			if (Input.IsActionJustPressed(action, exactMatch: true)) {
-				ProcessAction(action.ToString());
-			} else if (Input.IsActionJustReleased(action)) {
-				ProcessOnReleaseAction(action.ToString());
+			if (Input.IsActionJustPressed(inputActions[i], exactMatch: true)) {
+				ProcessAction(inputActionNames[i]);
+			} else if (Input.IsActionJustReleased(inputActions[i])) {
+				ProcessOnReleaseAction(inputActionNames[i]);
 			}
 		}
 	}
