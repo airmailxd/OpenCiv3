@@ -5,29 +5,16 @@ namespace C7Engine.Pathing {
 	 * Returns a pathing algorithm to use.
 	 */
 	public class PathingAlgorithmChooser {
+		// The returned A* search uses DistanceTo times the cheapest possible
+		// step cost for the unit as its heuristic (see MovementCostFloor). That
+		// never overestimates, even with zero-cost railroads around (in which
+		// case it degrades to Dijkstra), so the paths found are always optimal.
+		//
+		// Passability: the destination only needs to be enterable forcefully
+		// (e.g. to attack it), every tile on the way must be enterable
+		// peacefully.
 		public static PathingAlgorithm GetAlgorithm(MapUnit unit) {
-			return new AStarAlgorithm(
-				new UnitWalker(unit),
-				(Tile from, Tile to) => {
-					// HACK: for land-based movement we have to deal with railroads,
-					// which have zero movement cost. If our heuristic is too strong it
-					// will result in units taking a direct path between points A and B,
-					// even if a more indirect path could be taken entirely by railroad.
-					// To avoid this problem we scale our heuristic function down by a
-					// constant (arbitraily chosen to work well in practice) so that a 
-					// typical tile movement cost (around 1/3 to 3, depending on roads
-					// and terrain) dwarfs the heuristic. The heuristic is still enough
-					// to point the search in the proper direction, and since it is 
-					// still an underestimate in most cases, it works properly.
-					if (unit.IsLandUnit()) {
-						return from.DistanceTo(to) / 100.0;
-					}
-
-					return from.DistanceTo(to);
-				},
-				(Tile neighbor, Tile destination) => {
-					return neighbor == destination ? unit.CanEnterForcefully(neighbor) : unit.CanEnterPeacefully(neighbor);
-				});
+			return new AStarAlgorithm(unit);
 		}
 	}
 }
