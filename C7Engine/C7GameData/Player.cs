@@ -42,6 +42,31 @@ namespace C7GameData {
 		}
 	}
 
+	// A set of techs that also has an order, which enumerating it follows
+	// (plain HashSets only happen to enumerate in insertion order). It is a
+	// HashSet so callers can still test membership quickly; don't add to or
+	// remove from it.
+	public sealed class OrderedTechSet : HashSet<Tech>, IEnumerable<Tech> {
+		private readonly List<Tech> ordered;
+
+		// The techs must not contain duplicates.
+		public OrderedTechSet(List<Tech> ordered) : base(ordered) {
+			this.ordered = ordered;
+		}
+
+		public new List<Tech>.Enumerator GetEnumerator() {
+			return ordered.GetEnumerator();
+		}
+
+		IEnumerator<Tech> IEnumerable<Tech>.GetEnumerator() {
+			return ordered.GetEnumerator();
+		}
+
+		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() {
+			return ordered.GetEnumerator();
+		}
+	}
+
 	public class Alliance {
 		public int index;
 		public string name;
@@ -267,8 +292,8 @@ namespace C7GameData {
 				beakers = 0;
 				turnsResearched = 0;
 
-				Tech tech = EngineStorage.gameData.techs.Find(x => x.id == id);
-				log.Information($"Awarding {tech.Name} to player {this}");
+				Tech tech = Tech.FindById(EngineStorage.gameData.techs, id);
+				log.Information("Awarding {Tech} to player {Player}", tech.Name, this);
 				CompleteResearchAndBeginNew(EngineStorage.gameData, tech);
 				return;
 			}
@@ -333,7 +358,7 @@ namespace C7GameData {
 				other.playerRelationships.TryAdd(this.id, new PlayerRelationship());
 				RegisterMultiTurnDeal(this, other, DEFAULT_PEACE);
 
-				log.Information($"Established first contact and relationship between players {this} and {other}");
+				log.Information("Established first contact and relationship between players {Player} and {Other}", this, other);
 			}
 		}
 
@@ -361,15 +386,23 @@ namespace C7GameData {
 			other.turnsUntilPriorityReevaluation = 0;
 		}
 
+		// Whether, on a tile known to the other player and inside their
+		// borders, the top unit is ours.
+		//
+		// Rather than every tile the other player knows, this looks at the
+		// tiles our units are on: a tile whose top unit is ours is one of
+		// them, as each unit on a tile has that tile as its location and is
+		// in its owner's list of units.
 		private bool IsASneakAttackOn(Player other) {
-			foreach (Tile location in other.tileKnowledge.knownTiles) {
-				if (location.owningCity == null || location.owningCity.owner != other) {
+			foreach (MapUnit unit in units) {
+				Tile location = unit.location;
+				if (location == null || location.owningCity == null || location.owningCity.owner != other) {
 					continue;
 				}
-				if (location.unitsOnTile.Count == 0) {
+				if (location.unitsOnTile.Count == 0 || location.unitsOnTile[0].owner != this) {
 					continue;
 				}
-				if (location.unitsOnTile[0].owner == this) {
+				if (other.tileKnowledge.knownTiles.Contains(location)) {
 					return true;
 				}
 			}
@@ -430,7 +463,13 @@ namespace C7GameData {
 		}
 
 		public int ArmyCount() {
-			return units.Count(u => u.IsArmy());
+			int result = 0;
+			foreach (MapUnit u in units) {
+				if (u.IsArmy()) {
+					++result;
+				}
+			}
+			return result;
 		}
 
 		// Whether the player has enough cities to support one more army: each
@@ -443,7 +482,7 @@ namespace C7GameData {
 		// Whether this player's armies can carry an extra unit, thanks to a
 		// building like the Pentagon.
 		public bool HasLargerArmies() {
-			return cities.Any(c => c.constructed_buildings.Exists(cb => cb.building.allowsLargerArmies));
+			return GetBuildingSnapshot().hasLargerArmies;
 		}
 
 		public int RemainingCities() {
@@ -465,7 +504,13 @@ namespace C7GameData {
 
 		[LuaMethod]
 		public List<Tech> GetKnownTechs() {
-			return EngineStorage.gameData.techs.Where(x => this.knownTechs.Contains(x.id)).ToList();
+			List<Tech> result = new();
+			foreach (Tech tech in EngineStorage.gameData.techs) {
+				if (knownTechs.Contains(tech.id)) {
+					result.Add(tech);
+				}
+			}
+			return result;
 		}
 
 		public PlayerCommerceBreakdown AggregateFlows() {
@@ -492,23 +537,52 @@ namespace C7GameData {
 			int interestBuildings = 0;
 
 			foreach (City city in cities) {
-				CommerceBreakdown cityCommerce = city.CurrentCommerceYield();
-				result.corrupted += cityCommerce.corrupted;
-				result.taxes += cityCommerce.taxes;
-				result.beakers += cityCommerce.beakers;
-				result.happiness += cityCommerce.happiness;
-				result.maintenance += city.MaintenanceCosts();
-				result.wealthProduction += cityCommerce.wealth;
-
-				interestBuildings += city.constructed_buildings.Count(cb => cb.building.treasuryEarnsInterest);
-
-				foreach (CityResident cr in city.residents) {
-					// Split city income into "regular citizen" and "tax collector" buckets
-					result.taxes -= cr.citizenType.Taxes;
-					result.taxmenTaxes += cr.citizenType.Taxes;
-				}
+				AddCityFlows(ref result, ref interestBuildings, ComputeCityFlows(city));
 			}
 
+			return AddEmpireFlows(result, interestBuildings, TotalUnitsAllowedUnitsAndSupportCost().Item3);
+		}
+
+		// One city's contribution to AggregateFlows.
+		private struct CityFlows {
+			public CommerceBreakdown commerce;
+			public int maintenance;
+			public int interestBuildings;
+			public int taxmenTaxes;
+		}
+
+		private static CityFlows ComputeCityFlows(City city) {
+			CityFlows result = new();
+			result.commerce = city.CurrentCommerceYield();
+			result.maintenance = city.MaintenanceCosts();
+			foreach (CityBuilding cb in city.constructed_buildings) {
+				if (cb.building.treasuryEarnsInterest) {
+					++result.interestBuildings;
+				}
+			}
+			foreach (CityResident cr in city.residents) {
+				result.taxmenTaxes += cr.citizenType.Taxes;
+			}
+			return result;
+		}
+
+		private static void AddCityFlows(ref PlayerCommerceBreakdown result, ref int interestBuildings, in CityFlows city) {
+			result.corrupted += city.commerce.corrupted;
+			result.taxes += city.commerce.taxes;
+			result.beakers += city.commerce.beakers;
+			result.happiness += city.commerce.happiness;
+			result.maintenance += city.maintenance;
+			result.wealthProduction += city.commerce.wealth;
+
+			interestBuildings += city.interestBuildings;
+
+			// Split city income into "regular citizen" and "tax collector" buckets
+			result.taxes -= city.taxmenTaxes;
+			result.taxmenTaxes += city.taxmenTaxes;
+		}
+
+		// Adds the parts of AggregateFlows that don't come from the cities.
+		private PlayerCommerceBreakdown AddEmpireFlows(PlayerCommerceBreakdown result, int interestBuildings, int unitSupport) {
 			foreach (var pr in playerRelationships.Values) {
 				foreach (var mtd in pr.multiTurnDeals) {
 					if (mtd.dealSubType == DealSubType.GoldPerTurn) {
@@ -518,11 +592,25 @@ namespace C7GameData {
 				}
 			}
 
-			result.unitSupport = TotalUnitsAllowedUnitsAndSupportCost().Item3;
+			result.unitSupport = unitSupport;
 
 			if (interestBuildings > 0) result.interest = interestBuildings * Math.Min((int)(gold * rules.TreasuryInterestRate), rules.MaxInterest);
 
 			return result;
+		}
+
+		// The same as CalculateGoldPerTurn, from per-city flows computed
+		// earlier and the current unit support cost.
+		private int GoldPerTurnFrom(CityFlows[] cityFlows, int unitSupport) {
+			if (cityFlows.Length == 0) {
+				return 0;
+			}
+			PlayerCommerceBreakdown result = new();
+			int interestBuildings = 0;
+			foreach (CityFlows flows in cityFlows) {
+				AddCityFlows(ref result, ref interestBuildings, flows);
+			}
+			return AddEmpireFlows(result, interestBuildings, unitSupport).Netflows();
 		}
 
 		public int MaintenanceCosts() {
@@ -547,9 +635,9 @@ namespace C7GameData {
 		}
 
 		public void ExecuteDeal(GameData gameData, Player other, TradeOffer theirOffer, TradeOffer ourOffer) {
-			log.Information($"Executing trade between {this} and {other}");
-			log.Information($"  {this} gives {ourOffer.ToString()}, worth {ourOffer.GoldEquivalentFor(gameData, other)} gold");
-			log.Information($"  {other} gives {theirOffer.ToString()}, worth {theirOffer.GoldEquivalentFor(gameData, this)} gold)");
+			log.Information("Executing trade between {Player} and {Other}", this, other);
+			log.Information("  {Player} gives {Offer}, worth {Gold} gold", this, ourOffer.ToString(), ourOffer.GoldEquivalentFor(gameData, other));
+			log.Information("  {Other} gives {Offer}, worth {Gold} gold)", other, theirOffer.ToString(), theirOffer.GoldEquivalentFor(gameData, this));
 			if (theirOffer.partOfPeaceTreaty) {
 				SignPeaceAfterWar(this, other, gameData);
 			}
@@ -567,12 +655,22 @@ namespace C7GameData {
 			this.CompleteResearchAndBeginNew(gameData, theirOffer.techs);
 		}
 
-		public int EstimateTurnsToResearch(GameData gameData, Tech tech) {
+		// The beakers all our cities produce each turn.
+		public int BeakersPerTurn() {
 			int beakersPerTurn = 0;
 			foreach (City city in cities) {
 				beakersPerTurn += city.CurrentCommerceYield().beakers;
 			}
+			return beakersPerTurn;
+		}
 
+		public int EstimateTurnsToResearch(GameData gameData, Tech tech) {
+			return EstimateTurnsToResearch(gameData, tech, BeakersPerTurn());
+		}
+
+		// Like EstimateTurnsToResearch, with the beakers per turn (from
+		// BeakersPerTurn) computed once by a caller estimating many techs.
+		public int EstimateTurnsToResearch(GameData gameData, Tech tech, int beakersPerTurn) {
 			int remainingCost = gameData.TechCostFor(tech, this);
 			if (remainingCost > 0 && beakersPerTurn == 0) {
 				// No research is happening.
@@ -592,11 +690,24 @@ namespace C7GameData {
 		}
 
 		public string SummarizeScience(GameData gD) {
-			Tech tech = gD.techs.Find(x => x.id == currentlyResearchedTech);
+			Tech tech = Tech.FindById(gD.techs, currentlyResearchedTech);
 			if (tech == null) {
 				return "Not selected (-- turns)";
 			}
-			int turns = EstimateTurnsToResearch(gD, tech);
+			return SummarizeScience(tech, EstimateTurnsToResearch(gD, tech));
+		}
+
+		// Like SummarizeScience, with the beakers per turn (from
+		// BeakersPerTurn) computed once by the caller.
+		public string SummarizeScience(GameData gD, int beakersPerTurn) {
+			Tech tech = Tech.FindById(gD.techs, currentlyResearchedTech);
+			if (tech == null) {
+				return "Not selected (-- turns)";
+			}
+			return SummarizeScience(tech, EstimateTurnsToResearch(gD, tech, beakersPerTurn));
+		}
+
+		private static string SummarizeScience(Tech tech, int turns) {
 			if (turns == int.MaxValue) {
 				return $"{tech.Name} (-- turns)";
 			}
@@ -609,7 +720,7 @@ namespace C7GameData {
 		// that the player would go through
 		public void CalculateFreshTechQueueAndAssignNewCurrent(Tech tech) {
 			ResearchQueue.Clear();
-			IEnumerable<Tech> techQueue = GetResearchQueueFor(tech, ResearchQueue).Reverse();
+			IEnumerable<Tech> techQueue = GetResearchQueueFor(tech, ResearchQueue, new HashSet<Tech>()).Reverse();
 			ResearchQueue = new Queue<Tech>(techQueue);
 
 			if (ResearchQueue.Count > 0)
@@ -618,9 +729,10 @@ namespace C7GameData {
 
 		// Append a new queue at the tail end of the current queue
 		public void CalculateTechQueueAndAppendToCurrentQueue(Tech tech) {
-			IEnumerable<Tech> techQueue = GetResearchQueueFor(tech, new Queue<Tech>()).Reverse();
+			IEnumerable<Tech> techQueue = GetResearchQueueFor(tech, new Queue<Tech>(), new HashSet<Tech>()).Reverse();
+			HashSet<Tech> alreadyQueued = new(ResearchQueue);
 			foreach (Tech t in techQueue) {
-				if (!ResearchQueue.Contains(t)) {
+				if (alreadyQueued.Add(t)) {
 					AddTechItemToResearchQueue(t);
 				}
 			}
@@ -631,26 +743,27 @@ namespace C7GameData {
 		/// We can't reverse when returning from this method, because of its recursive nature,
 		/// so this must be done from the caller method.
 		/// </summary>
-		/// <param name="gameData"></param>
 		/// <param name="tech"></param>
+		/// <param name="tempQueue">The queue being built.</param>
+		/// <param name="inQueue">The techs in tempQueue, for fast lookups. Must start out matching tempQueue.</param>
 		/// <returns></returns>
-		private Queue<Tech> GetResearchQueueFor(Tech tech, Queue<Tech> tempQueue) {
+		private Queue<Tech> GetResearchQueueFor(Tech tech, Queue<Tech> tempQueue, HashSet<Tech> inQueue) {
 
 			if (tech == null) {
 				return new Queue<Tech>();
 			}
 
-			List<Tech> requiredTechs = OrderTechs(tech.Prerequisites).ToList();
+			List<Tech> requiredTechs = OrderTechs(tech.Prerequisites);
 
 			// first, add the tech the user clicked
-			if (!tempQueue.Contains(tech)) {
+			if (inQueue.Add(tech)) {
 				tempQueue.Enqueue(tech);
 			}
 
 			// second, get the direct required techs
 			foreach (Tech t in requiredTechs) {
 				if (!knownTechs.Contains(t.id)) {
-					if (!tempQueue.Contains(t)) {
+					if (inQueue.Add(t)) {
 						tempQueue.Enqueue(t);
 					}
 				}
@@ -660,7 +773,7 @@ namespace C7GameData {
 			foreach (Tech t in requiredTechs) {
 				if (!knownTechs.Contains(t.id)) {
 					if (t.Prerequisites.Count > 0) {
-						GetResearchQueueFor(t, tempQueue);
+						GetResearchQueueFor(t, tempQueue, inQueue);
 					}
 				}
 			}
@@ -671,8 +784,8 @@ namespace C7GameData {
 		/// Takes all the techs in the game and keeps only what could be researched next at a particular point in the game.
 		/// </summary>
 		/// <param name="allTechs"></param>
-		/// <returns></returns>
-		public HashSet<Tech> GetAvailableTechsToResearch(List<Tech> allTechs) {
+		/// <returns>The techs, which enumerate in research priority order.</returns>
+		public OrderedTechSet GetAvailableTechsToResearch(List<Tech> allTechs) {
 			HashSet<Tech> result = new();
 			foreach (Tech tech in allTechs) {
 				if (knownTechs.Contains(tech.id)) {
@@ -693,17 +806,25 @@ namespace C7GameData {
 					result.Add(tech);
 				}
 			}
-			return OrderTechs(result.ToList());
+			return new OrderedTechSet(OrderTechs(result.ToList()));
 		}
 
-		// Placeholder ordering of techs
-		private HashSet<Tech> OrderTechs(List<Tech> techs) {
+		// Placeholder ordering of techs. Duplicates are dropped, keeping the
+		// first.
+		private static List<Tech> OrderTechs(List<Tech> techs) {
 			if (techs == null || techs.Count == 0) {
-				return new HashSet<Tech>();
+				return new List<Tech>();
 			}
 			// TODO: We would want to eventually order them based on how the AI would do it
 			// Details on how Civ3 does it: https://forums.civfanatics.com/threads/what-will-the-ai-research-next.45559/
-			return techs.OrderBy(t => t.Cost).ToHashSet();
+			HashSet<Tech> seen = new();
+			List<Tech> result = new();
+			foreach (Tech t in techs.OrderBy(t => t.Cost)) {
+				if (seen.Add(t)) {
+					result.Add(t);
+				}
+			}
+			return result;
 		}
 
 		public List<Government> GetAvailableGovernments(GameData gameData) {
@@ -817,46 +938,57 @@ namespace C7GameData {
 				return;
 			}
 
-			// Process per-city contributions.
-			//
-			// TODO: consider making this return a tuple too. Or maybe return all
-			// the gold accounting stuff in a struct, for one pass over the cities.
-			foreach (City city in cities) {
-				beakers += city.CurrentCommerceYield().beakers;
+			// Process per-city contributions. Each city's flows are computed
+			// once: disbanding a unit only changes the unit support cost, and
+			// losing an improvement only changes the flows of its own city
+			// (wonders, small wonders and the palace are never lost here).
+			CityFlows[] cityFlows = new CityFlows[cities.Count];
+			for (int i = 0; i < cities.Count; ++i) {
+				cityFlows[i] = ComputeCityFlows(cities[i]);
+				beakers += cityFlows[i].commerce.beakers;
 			}
+			int unitSupportCost = TotalUnitsAllowedUnitsAndSupportCost().Item3;
 
 			// As in Civ 3, a deficit is fine while the treasury can pay for it.
 			// When it can't, units over the support limit are disbanded and
 			// then city improvements are lost, but the sliders are left alone.
 			List<string> disbandedUnits = new();
 			List<string> lostImprovements = new();
-			while (gold + CalculateGoldPerTurn() < 0) {
+			while (gold + GoldPerTurnFrom(cityFlows, unitSupportCost) < 0) {
 				// Disband one unit at a time and check the budget again, so we
 				// never disband more than needed. Captives are free, so
 				// disbanding one wouldn't lower the support cost.
-				var (_, _, unitSupportCost) = TotalUnitsAllowedUnitsAndSupportCost();
-				List<MapUnit> disbandable = units.Where(u => !u.IsCaptive()).ToList();
-				if (unitSupportCost > 0 && disbandable.Count > 0) {
-					MapUnit unitToRemove = disbandable[GameData.rng.Next(disbandable.Count)];
-					log.Information($"{this} is out of gold, disbanding {unitToRemove} at {unitToRemove.location}");
+				int disbandableCount = 0;
+				foreach (MapUnit u in units) {
+					if (!u.IsCaptive()) {
+						++disbandableCount;
+					}
+				}
+				if (unitSupportCost > 0 && disbandableCount > 0) {
+					MapUnit unitToRemove = NonCaptiveUnitAt(GameData.rng.Next(disbandableCount));
+					log.Information("{Player} is out of gold, disbanding {Unit} at {Location}", this, unitToRemove, unitToRemove.location);
 					disbandedUnits.Add(unitToRemove.name);
 					gameData.RemoveUnit(unitToRemove);
+					unitSupportCost = TotalUnitsAllowedUnitsAndSupportCost().Item3;
 					continue;
 				}
 
 				// Then give up the improvement that costs the most to maintain.
 				(City city, CityBuilding building) = MostExpensiveImprovementToMaintain();
 				if (city != null) {
-					log.Information($"{this} is out of gold, losing the {building.building.name} in {city}");
+					log.Information("{Player} is out of gold, losing the {Building} in {City}", this, building.building.name, city);
 					lostImprovements.Add($"{building.building.name} in {city.name}");
 					city.RemoveBuilding(building);
 					new MsgCityChanged(city).send();
+					cityFlows[cities.IndexOf(city)] = ComputeCityFlows(city);
+					unitSupportCost = TotalUnitsAllowedUnitsAndSupportCost().Item3;
 					continue;
 				}
 
 				// Nothing left to give up, for example when the deficit comes
 				// from gold-per-turn deals. The treasury bottoms out at zero.
-				log.Warning($"{this} was unable to get the budget under control despite disbanding units and losing improvements (gold={gold}, gpt={CalculateGoldPerTurn()})");
+				log.Warning("{Player} was unable to get the budget under control despite disbanding units and losing improvements (gold={Gold}, gpt={GoldPerTurn})",
+					this, gold, GoldPerTurnFrom(cityFlows, unitSupportCost));
 				break;
 			}
 
@@ -869,8 +1001,23 @@ namespace C7GameData {
 					$"We have insufficient gold to continue supporting all our units.\nWe had to disband: {string.Join(", ", disbandedUnits)}.", happy: false).send();
 			}
 
-			lastGoldPerTurn = CalculateGoldPerTurn();
+			lastGoldPerTurn = GoldPerTurnFrom(cityFlows, unitSupportCost);
 			gold = Math.Max(0, gold + lastGoldPerTurn);
+		}
+
+		// The index'th unit that isn't a captive, in the order of the units
+		// list.
+		private MapUnit NonCaptiveUnitAt(int index) {
+			foreach (MapUnit u in units) {
+				if (u.IsCaptive()) {
+					continue;
+				}
+				if (index == 0) {
+					return u;
+				}
+				--index;
+			}
+			throw new ArgumentOutOfRangeException(nameof(index));
 		}
 
 		// The improvement (not the palace or a wonder) with the highest
@@ -922,7 +1069,7 @@ namespace C7GameData {
 
 			// Check to see if the player has finished researching their
 			// tech, and if they have, add it to the list of known techs
-			Tech tech = gameData.techs.Find(x => x.id == currentlyResearchedTech);
+			Tech tech = Tech.FindById(gameData.techs, currentlyResearchedTech);
 			if (EstimateTurnsToResearch(gameData, tech) > 0) {
 				return;
 			}
@@ -1028,10 +1175,15 @@ namespace C7GameData {
 				}
 			}
 
-			freeUnits += units.Count(u => u.IsCaptive());
-
 			if (government.allUnitsFree) {
 				freeUnits = units.Count;
+			} else {
+				// Captives are always free.
+				foreach (MapUnit u in units) {
+					if (u.IsCaptive()) {
+						++freeUnits;
+					}
+				}
 			}
 
 			int totalUnits = units.Count;
@@ -1107,7 +1259,7 @@ namespace C7GameData {
 				newCapital.AddBuilding(palace);
 			}
 
-			log.Information($"{this} moved its palace to {newCapital}");
+			log.Information("{Player} moved its palace to {City}", this, newCapital);
 			return newCapital;
 		}
 
@@ -1159,8 +1311,15 @@ namespace C7GameData {
 			}
 
 			int faces = warWeariness / pointsPerFace;
-			bool reduced = city.GetBuildings().Any(cb => cb.building.reducesWarWeariness)
-				|| GetActiveWonders().Any(w => w.Item2.building.reducesWarWearinessEverywhere);
+			bool reduced = GetBuildingSnapshot().reducesWarWearinessEverywhere;
+			if (!reduced) {
+				foreach (CityBuilding cb in city.EffectiveBuildings()) {
+					if (cb.building.reducesWarWeariness) {
+						reduced = true;
+						break;
+					}
+				}
+			}
 			if (reduced) {
 				faces /= 2;
 			}
@@ -1173,7 +1332,7 @@ namespace C7GameData {
 			}
 			hadGoldenAge = true;
 			goldenAgeTurnsRemaining = gameData.rules.GoldenAgeDuration;
-			log.Information($"{this} starts a golden age: {reason}");
+			log.Information("{Player} starts a golden age: {Reason}", this, reason);
 			if (isHuman) {
 				new MsgShowMilitaryAdvisorPopup(this, $"{reason}\nOur civilization enters a Golden Age!", happy: true).send();
 			}
@@ -1284,16 +1443,100 @@ namespace C7GameData {
 		// Returns the list of all wonders owned by this player, excluding those
 		// that have become obsolete.
 		public List<Tuple<City, CityBuilding>> GetActiveWonders() {
-			List<Tuple<City, CityBuilding>> result = new();
-			foreach (City c in cities) {
+			return new List<Tuple<City, CityBuilding>>(GetBuildingSnapshot().activeWonders);
+		}
+
+		// Empire-wide facts derived from the buildings in this player's cities
+		// (the active great wonders, and whether a building like the Pentagon
+		// makes armies larger). Every city yield needs the wonders, so they are
+		// cached here instead of rescanning every building of every city.
+		//
+		// The snapshot is immutable and is replaced, never modified, so readers
+		// on other threads always see a consistent one. It is checked against
+		// everything it was computed from each time it is used:
+		//  - the cities list (same list object, same cities in the same order),
+		//    which catches cities being founded, captured, lost or destroyed,
+		//    and a new list on load;
+		//  - each city's constructed_buildings (same list object and count);
+		//  - City.BuildingsVersion, bumped by every City.AddBuilding and
+		//    City.RemoveBuilding, which catches a building being swapped for
+		//    another without the count changing;
+		//  - knownTechs (same set and count; techs are only ever added), which
+		//    catches wonders going obsolete.
+		// Checking costs O(cities) reference comparisons, with no allocation.
+		internal sealed class BuildingSnapshot {
+			internal long buildingsVersion;
+			internal List<City> citiesList;
+			internal City[] cities;
+			internal List<CityBuilding>[] buildingLists;
+			internal int[] buildingCounts;
+			internal HashSet<ID> knownTechs;
+			internal int knownTechsCount;
+
+			// Do not modify; GetActiveWonders hands out copies.
+			internal List<Tuple<City, CityBuilding>> activeWonders;
+			internal bool hasLargerArmies;
+			internal bool reducesWarWearinessEverywhere;
+
+			internal bool IsValidFor(Player player) {
+				if (buildingsVersion != City.BuildingsVersion
+					|| !ReferenceEquals(citiesList, player.cities)
+					|| cities.Length != player.cities.Count
+					|| !ReferenceEquals(knownTechs, player.knownTechs)
+					|| (knownTechs != null && knownTechsCount != knownTechs.Count)) {
+					return false;
+				}
+				for (int i = 0; i < cities.Length; ++i) {
+					City c = player.cities[i];
+					if (!ReferenceEquals(c, cities[i])
+						|| !ReferenceEquals(c.constructed_buildings, buildingLists[i])
+						|| c.constructed_buildings.Count != buildingCounts[i]) {
+						return false;
+					}
+				}
+				return true;
+			}
+		}
+
+		private BuildingSnapshot buildingSnapshot;
+
+		internal BuildingSnapshot GetBuildingSnapshot() {
+			BuildingSnapshot snapshot = buildingSnapshot;
+			if (snapshot != null && snapshot.IsValidFor(this)) {
+				return snapshot;
+			}
+
+			// Read the version before scanning, so a change made during the
+			// scan leaves the snapshot stale rather than wrongly valid.
+			snapshot = new BuildingSnapshot {
+				buildingsVersion = City.BuildingsVersion,
+				citiesList = cities,
+				cities = cities.ToArray(),
+				knownTechs = knownTechs,
+				knownTechsCount = knownTechs?.Count ?? 0,
+				activeWonders = new(),
+			};
+			snapshot.buildingLists = new List<CityBuilding>[snapshot.cities.Length];
+			snapshot.buildingCounts = new int[snapshot.cities.Length];
+			for (int i = 0; i < snapshot.cities.Length; ++i) {
+				City c = snapshot.cities[i];
+				snapshot.buildingLists[i] = c.constructed_buildings;
+				snapshot.buildingCounts[i] = c.constructed_buildings.Count;
 				foreach (CityBuilding cb in c.constructed_buildings) {
+					if (cb.building.allowsLargerArmies) {
+						snapshot.hasLargerArmies = true;
+					}
 					if (cb.building.greatWonderProperties == null || cb.building.isGreatWonderObsolete(this)) {
 						continue;
 					}
-					result.Add(new Tuple<City, CityBuilding>(c, cb));
+					snapshot.activeWonders.Add(new Tuple<City, CityBuilding>(c, cb));
+					if (cb.building.reducesWarWearinessEverywhere) {
+						snapshot.reducesWarWearinessEverywhere = true;
+					}
 				}
 			}
-			return result;
+			buildingSnapshot = snapshot;
+			return snapshot;
 		}
 
 		public void MaybeSpawnBonusUnits(GameData gD) {
@@ -1346,8 +1589,9 @@ namespace C7GameData {
 		}
 
 		public bool CanBridgeRoads() {
-			ID engineeringTechId = EngineStorage.gameData.techs.FirstOrDefault(tech => tech.EnablesBridges)?.id;
-			return knownTechs?.FirstOrDefault(tech => tech == engineeringTechId) != null;
+			ID engineeringTechId = Tech.FindBridgeTech(EngineStorage.gameData.techs)?.id;
+			// With no such tech, nothing is ever bridged.
+			return engineeringTechId is not null && knownTechs != null && knownTechs.Contains(engineeringTechId);
 		}
 
 		public int ShieldCost(IProducible producible) {
@@ -1361,15 +1605,31 @@ namespace C7GameData {
 			return producible.ShieldCost(civilization.traits, costFactor);
 		}
 
+		// The key of this player in GameData.history, which is id.ToString().
+		// Cached (with the id it was made from, in case the id is replaced),
+		// since building the string allocates.
+		private Tuple<ID, string> historyKey;
+		public string HistoryKey {
+			get {
+				ID currentId = id;
+				Tuple<ID, string> key = historyKey;
+				if (key == null || !ReferenceEquals(key.Item1, currentId)) {
+					key = new Tuple<ID, string>(currentId, currentId.ToString());
+					historyKey = key;
+				}
+				return key.Item2;
+			}
+		}
+
 		public void UpdateHistory(GameData gameData) {
-			if (!gameData.history.ContainsKey(id.ToString()))
+			if (!gameData.history.TryGetValue(HistoryKey, out List<HistTurnRecord> history))
 				return;
 
 			if (gameData.gameOver) // Game is already over
 				return;
 
-			int n = gameData.history[id.ToString()].Count;
-			HistTurnRecord lastTurn = gameData.history[id.ToString()].LastOrDefault();
+			int n = history.Count;
+			HistTurnRecord lastTurn = history.LastOrDefault();
 
 			// TODO: Make formulas moddable
 
@@ -1386,9 +1646,12 @@ namespace C7GameData {
 			int score = (int) Math.Floor(lastScore + (turnScore - lastScore) / (1f * (n+1)));
 
 			// Culture is "the sum of the cultural value of all your cities"
-			int totalCulture = cities.Sum(c => c.GetCulture());
+			int totalCulture = 0;
+			foreach (City c in cities) {
+				totalCulture += c.GetCulture();
+			}
 
-			gameData.history[id.ToString()].Add(new HistTurnRecord {
+			history.Add(new HistTurnRecord {
 				Date = gameData.timeOptions.GetRawNumber(gameData.turn),
 				Power = power,
 				Score = score,

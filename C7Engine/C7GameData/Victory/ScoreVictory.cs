@@ -9,17 +9,19 @@ public class ScoreVictory : IVictory {
 	public string Header() => "Score";
 
 	public VictoryStatus Evaluate(Player player, GameData gameData) {
-		float turnScore =  ComputeTurnScore(player, gameData);
-
-		var history = gameData.history[player.id.ToString()];
+		var history = gameData.history[player.HistoryKey];
 		var lastTurn = history.LastOrDefault();
 		var totalAccumulatedScore = lastTurn?.Score ?? 0;
 
-		return new VictoryStatus {
+		VictoryStatus status = new VictoryStatus {
 			Player = player,
 			Score = totalAccumulatedScore,
-			TurnScore = turnScore
 		};
+		// The turn score is only shown in the victory status screen; the
+		// end of turn victory check (which runs right after UpdateHistory
+		// computed it) never reads it. So it is computed when first read.
+		status.SetTurnScoreSource(() => ComputeTurnScore(player, gameData));
+		return status;
 	}
 
 	public bool HasVictory(VictoryStatus status) {
@@ -66,11 +68,20 @@ public class ScoreVictory : IVictory {
 	public static float ComputeTurnScore(Player player, GameData gameData) {
 		List<Tile> scoredTiles = player.tileKnowledge.ScoreTiles();
 
-		List<CityResident> citizens = player.cities.SelectMany(c => c.residents.Where(r => r.citizenType.IsDefaultCitizen)).ToList();
-
-		int happyCitizens = citizens.Count(c => c.mood == CityResident.Mood.Happy);
-		int contentCitizens = citizens.Count(c => c.mood == CityResident.Mood.Content);
-		int specialists = player.cities.Sum(c => c.residents.Count(r => !r.citizenType.IsDefaultCitizen));
+		int happyCitizens = 0;
+		int contentCitizens = 0;
+		int specialists = 0;
+		foreach (City c in player.cities) {
+			foreach (CityResident r in c.residents) {
+				if (!r.citizenType.IsDefaultCitizen) {
+					++specialists;
+				} else if (r.mood == CityResident.Mood.Happy) {
+					++happyCitizens;
+				} else if (r.mood == CityResident.Mood.Content) {
+					++contentCitizens;
+				}
+			}
+		}
 
 		int futureTechs = 0; // TODO: future techs
 
@@ -85,8 +96,13 @@ public class ScoreVictory : IVictory {
 
 	// 1 for Chieftain, 2 for Warlord, 3 for Regent, etc.
 	private static float GetDifficultyScoreFactor(GameData gameData) {
-		var diffs = gameData.difficulties.Select((diff, idx) => new { Diff = diff, Idx = idx});
-		var idx = diffs.FirstOrDefault(d => d.Diff == gameData.gameDifficulty)?.Idx ?? 0;
+		int idx = 0;
+		for (int i = 0; i < gameData.difficulties.Count; ++i) {
+			if (gameData.difficulties[i] == gameData.gameDifficulty) {
+				idx = i;
+				break;
+			}
+		}
 		return idx + 1;
 	}
 }

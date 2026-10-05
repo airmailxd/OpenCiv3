@@ -137,7 +137,85 @@ namespace C7GameData {
 			return this.greatWonderProperties != null;
 		}
 
+		// Facts about a city and its owner that the CanProduce check of every
+		// building needs. Listing a city's production options gathers them
+		// once instead of rescanning the empire for each building. Only valid
+		// while nothing changes, i.e. for one pass over the buildings.
+		internal sealed class ProductionContext {
+			private readonly City city;
+
+			// The buildings the city has, including ones granted by wonders.
+			internal readonly HashSet<Building> cityBuildings = new();
+
+			// The rest are filled in when first needed.
+			private HashSet<string> namesBeingProducedByEmpire;
+			private HashSet<Building> builtByEmpire;
+			private HashSet<IProducible> producedByOtherCities;
+			private int armyCount = -1;
+
+			internal ProductionContext(City city) {
+				this.city = city;
+				foreach (CityBuilding cb in city.EffectiveBuildings()) {
+					cityBuildings.Add(cb.building);
+				}
+			}
+
+			// Whether any of the owner's cities, including this one, is
+			// producing something with the given name.
+			internal bool EmpireIsProducing(string name) {
+				if (namesBeingProducedByEmpire == null) {
+					namesBeingProducedByEmpire = new();
+					foreach (City c in city.owner.cities) {
+						if (c.itemBeingProduced != null) {
+							namesBeingProducedByEmpire.Add(c.itemBeingProduced.name);
+						}
+					}
+				}
+				return namesBeingProducedByEmpire.Contains(name);
+			}
+
+			// Whether any of the owner's cities has built the building.
+			internal bool EmpireHasBuilt(Building building) {
+				if (builtByEmpire == null) {
+					builtByEmpire = new(ReferenceEqualityComparer.Instance);
+					foreach (City c in city.owner.cities) {
+						foreach (CityBuilding cb in c.constructed_buildings) {
+							builtByEmpire.Add(cb.building);
+						}
+					}
+				}
+				return builtByEmpire.Contains(building);
+			}
+
+			// Whether another of the owner's cities is producing this exact
+			// item.
+			internal bool OtherCityIsProducing(IProducible producible) {
+				if (producedByOtherCities == null) {
+					producedByOtherCities = new(ReferenceEqualityComparer.Instance);
+					foreach (City c in city.owner.cities) {
+						if (c != city && c.itemBeingProduced != null) {
+							producedByOtherCities.Add(c.itemBeingProduced);
+						}
+					}
+				}
+				return producedByOtherCities.Contains(producible);
+			}
+
+			internal int ArmyCount() {
+				if (armyCount < 0) {
+					armyCount = city.owner.ArmyCount();
+				}
+				return armyCount;
+			}
+		}
+
 		public bool CanProduce(City city, HashSet<Resource> accessibleResources) {
+			return CanProduce(city, accessibleResources, null);
+		}
+
+		// The context, when given, must have been made for this city since
+		// the last change to the game.
+		internal bool CanProduce(City city, HashSet<Resource> accessibleResources, ProductionContext context) {
 			if (!city.owner.HasRequiredTechnology(this)) {
 				return false;
 			}
@@ -146,7 +224,7 @@ namespace C7GameData {
 				return false;
 			}
 
-			if (city.GetBuildings().Exists(cityBuilding => cityBuilding.building == this)) {
+			if (context != null ? context.cityBuildings.Contains(this) : city.HasEffectiveBuilding(this)) {
 				return false;
 			}
 
@@ -158,9 +236,15 @@ namespace C7GameData {
 
 				// We can't build a great wonder if another one of our cities is
 				// building it.
-				foreach (City c in city.owner.cities) {
-					if (c.itemBeingProduced != null && c.itemBeingProduced.name == name) {
+				if (context != null) {
+					if (context.EmpireIsProducing(name)) {
 						return false;
+					}
+				} else {
+					foreach (City c in city.owner.cities) {
+						if (c.itemBeingProduced != null && c.itemBeingProduced.name == name) {
+							return false;
+						}
 					}
 				}
 			}
@@ -174,12 +258,18 @@ namespace C7GameData {
 
 			if (isSmallWonder) {
 				// A civ builds each small wonder once, in one city at a time.
-				foreach (City c in city.owner.cities) {
-					if (c.constructed_buildings.Exists(cb => cb.building == this)) {
+				if (context != null) {
+					if (context.EmpireHasBuilt(this) || context.OtherCityIsProducing(this)) {
 						return false;
 					}
-					if (c != city && c.itemBeingProduced == this) {
-						return false;
+				} else {
+					foreach (City c in city.owner.cities) {
+						if (c.constructed_buildings.Exists(cb => cb.building == this)) {
+							return false;
+						}
+						if (c != city && c.itemBeingProduced == this) {
+							return false;
+						}
 					}
 				}
 			}
@@ -188,21 +278,26 @@ namespace C7GameData {
 				return false;
 			}
 
-			if (numberOfArmiesRequired > 0 && city.owner.ArmyCount() < numberOfArmiesRequired) {
+			if (numberOfArmiesRequired > 0
+				&& (context != null ? context.ArmyCount() : city.owner.ArmyCount()) < numberOfArmiesRequired) {
 				return false;
 			}
 
 			if (requiredBuilding != null &&
-				!city.GetBuildings().Exists(cityBuilding => cityBuilding.building == requiredBuilding)) {
+				!(context != null ? context.cityBuildings.Contains(requiredBuilding) : city.HasEffectiveBuilding(requiredBuilding))) {
 				return false;
 			}
 
-			if (!requiredResources.All(accessibleResources.Contains)) {
-				return false;
+			foreach (Resource resource in requiredResources) {
+				if (!accessibleResources.Contains(resource)) {
+					return false;
+				}
 			}
 
-			if (!productionPrerequisites.All(func => func(city))) {
-				return false;
+			foreach (Func<City, bool> prerequisite in productionPrerequisites) {
+				if (!prerequisite(city)) {
+					return false;
+				}
 			}
 
 			return true;

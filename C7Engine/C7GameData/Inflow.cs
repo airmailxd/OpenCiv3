@@ -51,7 +51,14 @@ public class Inflow : IProducible {
 	}
 
 	public Func<ScriptContext, int> GetInflowYieldFunc(InflowYield yieldType) {
-		return this.localYield.FirstOrDefault(y => y.yieldType == yieldType).yieldCalculation;
+		// The first yield of the type, like FirstOrDefault, without the
+		// closure allocation; this is looked up for every city's yields.
+		foreach (LocalYield y in this.localYield) {
+			if (y.yieldType == yieldType) {
+				return y.yieldCalculation;
+			}
+		}
+		return null;
 	}
 
 	public bool TryGetInflowYieldFunc(InflowYield yieldType, out Func<ScriptContext, int> yieldFunc) {
