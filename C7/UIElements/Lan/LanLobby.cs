@@ -2,15 +2,19 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Sockets;
+using System.Threading;
 using C7Engine;
 using C7Engine.Network;
+using C7GameData;
 using C7GameData.Save;
 using Godot;
 using Serilog;
 
 // Where players gather before a LAN game. The host waits here for a player to
 // take each human seat, then starts the game; the others find the host, take
-// a seat (or just watch), and wait for the host to start.
+// a seat (or just watch), and wait for the host to start. In a new game the
+// guests also choose their civilizations here, and the host creates the game
+// when starting it.
 public partial class LanLobby : Control {
 	private ILogger log = LogManager.ForContext<LanLobby>();
 
@@ -25,12 +29,25 @@ public partial class LanLobby : Control {
 	private VBoxContainer seatList;
 	private Button startButton;
 
+	// Hosting a new game: whether it is being created, and why that failed.
+	private bool creatingGame = false;
+	private string createFailure;
+
 	// Joining: the name to play under, the hosts found and where to connect.
 	private LineEdit nameEdit;
 	private LineEdit addressEdit;
 	private VBoxContainer hostList;
 	private VBoxContainer addressHelp;
 	private bool searching = false;
+
+	// Joining a new game: the civilizations to choose from, and the chosen
+	// one's leader.
+	private VBoxContainer civPicker;
+	private readonly Dictionary<string, Civ3MenuButton> civButtons = new();
+	private Civ3MenuButton randomCivButton;
+	private List<CivilizationChoice> civChoices;
+	private TextureRect leaderHead;
+	private Label civDescription;
 
 	public override void _Ready() {
 		Global = GetNode<GlobalSingleton>("/root/GlobalSingleton");
@@ -109,6 +126,7 @@ public partial class LanLobby : Control {
 	private void BackToMenu() {
 		LanSession.End();
 		LanSession.HostNextGame = false;
+		LanSession.PendingGame = null;
 		Global.ResetLoadGameFields();
 		GetTree().ChangeSceneToFile("res://UIElements/MainMenu/main_menu.tscn");
 	}
@@ -120,10 +138,18 @@ public partial class LanLobby : Control {
 
 		SaveGame save;
 		try {
-			save = Global.SaveGame ?? LoadSavedGame(Global.LoadGamePath);
-			Global.SaveGame = save;
-			Global.LoadGamePath = null;
-			LanSession.BeginHosting(new LanHost(LanSession.PlayerName, save));
+			if (LanSession.PendingGame is PendingLanGame pending) {
+				// A new game, created once the guests have chosen.
+				save = pending.save;
+				Global.SaveGame = save;
+				LanSession.BeginHosting(new LanHost(LanSession.PlayerName, pending.setup.playerCivilization.name,
+					pending.guestSeats, save.Civilizations));
+			} else {
+				save = Global.SaveGame ?? LoadSavedGame(Global.LoadGamePath);
+				Global.SaveGame = save;
+				Global.LoadGamePath = null;
+				LanSession.BeginHosting(new LanHost(LanSession.PlayerName, save));
+			}
 		} catch (Exception e) when (e is SocketException or ArgumentException or InvalidOperationException) {
 			log.Error(e, "Could not host the LAN game");
 			AddLabel($"Could not host the game: {e.Message}");
@@ -199,7 +225,7 @@ public partial class LanLobby : Control {
 		}
 		LanHost host = LanSession.Host;
 
-		AddSeatRow(seatList, $"{LanSession.PlayerName} (you, hosting)");
+		AddSeatRow(seatList, $"{LanSession.PlayerName} (you, hosting), {host.HostCivilization}");
 		foreach (SeatInfo seat in host.Seats) {
 			AddSeatRow(seatList, Describe(seat));
 		}
@@ -207,7 +233,13 @@ public partial class LanLobby : Control {
 			AddSeatRow(seatList, $"Watching: {string.Join(", ", host.Spectators)}");
 		}
 
-		if (host.Seats.Count == 0) {
+		if (createFailure != null) {
+			status.Text = $"Could not create the game: {createFailure}";
+			startButton.Disabled = true;
+		} else if (creatingGame) {
+			status.Text = "Creating the world...";
+			startButton.Disabled = true;
+		} else if (host.Seats.Count == 0) {
 			status.Text = "This game has only one human player. Start a new game and add players on the player setup screen, or load a game with more human players.";
 			startButton.Disabled = true;
 		} else if (!host.AllSeatsTaken) {
@@ -215,7 +247,9 @@ public partial class LanLobby : Control {
 			status.Text = $"Waiting for {open} more {(open == 1 ? "player" : "players")} to join...";
 			startButton.Disabled = true;
 		} else {
-			status.Text = "Everyone is here.";
+			status.Text = host.GuestsChooseCivilizations
+				? "Everyone is here. Players can change their civilization until you start; anyone who hasn't chosen gets a random one."
+				: "Everyone is here.";
 			startButton.Disabled = false;
 			if (LanSession.DevHostSave != null) {
 				CallDeferred(nameof(StartHostedGame));
@@ -226,7 +260,8 @@ public partial class LanLobby : Control {
 	private static string Describe(SeatInfo seat) {
 		string who = seat.takenBy ?? "open";
 		string name = seat.playerName == null ? "" : $"{seat.playerName}, ";
-		return $"{name}{seat.civilization}: {who}";
+		string civilization = seat.civilization ?? "civilization not chosen (random)";
+		return $"{name}{civilization}: {who}";
 	}
 
 	private static void AddSeatRow(VBoxContainer list, string text, params Button[] buttons) {
@@ -244,12 +279,60 @@ public partial class LanLobby : Control {
 	}
 
 	private void StartHostedGame() {
-		if (!LanSession.Host.AllSeatsTaken) {
+		if (!LanSession.Host.AllSeatsTaken || creatingGame || createFailure != null) {
+			return;
+		}
+		if (LanSession.Host.GuestsChooseCivilizations) {
+			CreatePendingGame();
 			return;
 		}
 		LanSession.Host.LobbyChanged -= ShowHostSeats;
 		LanSession.HostNextGame = false;
 		GetTree().ChangeSceneToFile(LanSession.GameScene);
+	}
+
+	// Creates the new game with the civilizations the guests chose, then
+	// starts it. World generation can take a while, so it runs off the UI
+	// thread while the lobby keeps going.
+	private void CreatePendingGame() {
+		PendingLanGame pending = LanSession.PendingGame;
+		creatingGame = true;
+		pending.setup.hotseatPlayers = LanSession.Host.BeginCreatingGame();
+		Thread thread = new(() => {
+			string failure = "";
+			try {
+				pending.setup.Populate(pending.save);
+			} catch (Exception e) {
+				log.Error(e, "Could not create the LAN game");
+				failure = e.Message;
+			}
+			try {
+				CallDeferred(nameof(PendingGameCreated), failure);
+			} catch (ObjectDisposedException) {
+				// The host left the lobby meanwhile.
+			}
+		});
+		thread.Start();
+	}
+
+	private void PendingGameCreated(string failure) {
+		creatingGame = false;
+		if (LanSession.Host == null) {
+			return;
+		}
+		if (failure != "") {
+			// The save is half made, so there's no trying again.
+			createFailure = failure;
+			ShowHostSeats();
+			return;
+		}
+		PendingLanGame pending = LanSession.PendingGame;
+		LanSession.PendingGame = null;
+		LanSession.Host.GameCreated(pending.save);
+		Global.SaveGame = pending.save;
+		// If someone left while the world was made, this waits for their
+		// seat to be taken again.
+		StartHostedGame();
 	}
 
 	// ---- Joining ----
@@ -293,6 +376,10 @@ public partial class LanLobby : Control {
 		seatList = new VBoxContainer();
 		seatList.AddThemeConstantOverride("separation", 6);
 		content.AddChild(seatList);
+
+		civPicker = new VBoxContainer { Visible = false };
+		civPicker.AddThemeConstantOverride("separation", 8);
+		content.AddChild(civPicker);
 
 		status = AddLabel("");
 
@@ -441,13 +528,122 @@ public partial class LanLobby : Control {
 			AddSeatRow(seatList, $"Watching: {string.Join(", ", lobby.spectators)}");
 		}
 
-		status.Text = client.IsSpectator ? "Watching. Waiting for the host to start the game..."
+		bool choosing = lobby.civilizations != null && lobby.yourSeat != null && !client.IsSpectator;
+		UpdateCivPicker(lobby, choosing);
+
+		status.Text = lobby.creatingGame ? $"{lobby.hostName} is creating the world..."
+			: client.IsSpectator ? "Watching. Waiting for the host to start the game..."
 			: lobby.yourSeat == null ? "Take an open seat to play."
+			: choosing ? "Choose your civilization, then wait for the host to start the game. If you don't choose, you get a random one."
 			: "Waiting for the host to start the game...";
 
 		SeatInfo open = lobby.seats.FirstOrDefault(s => !s.isHost && s.takenBy == null);
 		if (LanSession.DevJoinAddress != null && !client.IsSpectator && lobby.yourSeat == null && open != null) {
 			client.ClaimSeat(open.playerID);
+		}
+	}
+
+	// The civilizations a guest can choose from, in the style of the player
+	// setup screen: the ones other players have are greyed out.
+	private void UpdateCivPicker(LobbyInfo lobby, bool choosing) {
+		civPicker.Visible = choosing;
+		if (!choosing) {
+			return;
+		}
+		if (civChoices == null) {
+			BuildCivPicker(lobby.civilizations);
+		}
+
+		SeatInfo mine = lobby.seats.Find(s => s.playerID == lobby.yourSeat);
+		HashSet<string> takenByOthers = lobby.seats
+			.Where(s => s.playerID != lobby.yourSeat && s.civilization != null)
+			.Select(s => s.civilization)
+			.ToHashSet();
+		foreach ((string name, Civ3MenuButton button) in civButtons) {
+			bool taken = takenByOthers.Contains(name);
+			button.Disabled = taken || lobby.creatingGame;
+			button.Modulate = taken ? new Color(1, 1, 1, 0.35f) : Colors.White;
+			button.TooltipText = taken ? "Another player has this civilization." : "";
+		}
+		randomCivButton.Disabled = lobby.creatingGame;
+
+		Civ3MenuButton chosen = randomCivButton;
+		if (mine?.civilization != null && civButtons.TryGetValue(mine.civilization, out Civ3MenuButton mineButton)) {
+			chosen = mineButton;
+		}
+		if (!chosen.ButtonPressed) {
+			chosen.ButtonPressed = true;
+		}
+		ShowCivilization(mine?.civilization);
+	}
+
+	private void BuildCivPicker(List<CivilizationChoice> choices) {
+		civChoices = choices;
+		Label heading = new() { Text = "Choose your civilization:" };
+		heading.AddThemeFontSizeOverride("font_size", 20);
+		civPicker.AddChild(heading);
+
+		HBoxContainer body = new();
+		body.AddThemeConstantOverride("separation", 24);
+		civPicker.AddChild(body);
+
+		GridContainer grid = new() { Columns = 4 };
+		grid.AddThemeConstantOverride("h_separation", 16);
+		grid.AddThemeConstantOverride("v_separation", 2);
+		body.AddChild(grid);
+
+		ButtonGroup group = new();
+		Civ3MenuButton MakeCivButton(string text, string civilization) {
+			Civ3MenuButton button = new() {
+				Text = text,
+				FontSize = 14,
+				ToggleMode = true,
+				ButtonGroup = group,
+			};
+			button.Pressed += () => {
+				LanSession.Client?.ChooseCivilization(civilization);
+				ShowCivilization(civilization);
+			};
+			grid.AddChild(button);
+			return button;
+		}
+		foreach (CivilizationChoice choice in choices) {
+			civButtons[choice.name] = MakeCivButton(choice.name, choice.name);
+		}
+		randomCivButton = MakeCivButton("Random", null);
+
+		VBoxContainer leader = new() { CustomMinimumSize = new Vector2(200, 0) };
+		body.AddChild(leader);
+		leaderHead = new TextureRect {
+			CustomMinimumSize = new Vector2(172, 172),
+			ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+			StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+		};
+		leader.AddChild(leaderHead);
+		civDescription = new Label {
+			AutowrapMode = TextServer.AutowrapMode.WordSmart,
+			HorizontalAlignment = HorizontalAlignment.Center,
+		};
+		civDescription.AddThemeFontSizeOverride("font_size", 15);
+		leader.AddChild(civDescription);
+	}
+
+	// Shows the civilization's leader and traits, or null for a random one.
+	private void ShowCivilization(string name) {
+		CivilizationChoice choice = civChoices?.Find(c => c.name == name);
+		if (choice == null) {
+			leaderHead.Texture = null;
+			civDescription.Text = "A random civilization nobody else has.";
+			return;
+		}
+		civDescription.Text = $"{choice.leader} of the {choice.noun}\n({string.Join(", ", choice.traits)})";
+		try {
+			Civilization civ = new(choice.name) { leader = choice.leader, noun = choice.noun, leaderArtFile = choice.leaderArtFile };
+			leaderHead.Texture = TextureLoader.Load("leader_heads", civ);
+		} catch (Exception e) {
+			// The host may have art this computer doesn't.
+			log.Warning("No leader head for {Civilization}: {Error}", choice.name, e.Message);
+			leaderHead.Texture = null;
 		}
 	}
 

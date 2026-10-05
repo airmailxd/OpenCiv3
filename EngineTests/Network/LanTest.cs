@@ -410,6 +410,75 @@ public class LanTest : IClassFixture<SaveGameFixture>, IDisposable {
 	}
 
 	[Fact]
+	public void GuestsChooseTheirCivilizationsBeforeTheGameIsCreated() {
+		// A new game whose map is made but whose players aren't yet.
+		SaveGame save = twoHumanSave.Value.Clone();
+		save.Players.Clear();
+		save.Units.Clear();
+		List<Civilization> playable = save.Civilizations.Where(c => !c.isBarbarian).ToList();
+		Civilization hostCiv = playable[0];
+		Civilization picked = playable[3];
+
+		using LanHost host = new("Host", hostCiv.name, guestSeats: 2, save.Civilizations, port: 0, answerDiscovery: false);
+		Assert.True(host.GuestsChooseCivilizations);
+		Assert.Throws<InvalidOperationException>(host.StartGame);
+
+		using LanClient ann = LanClient.Connect("127.0.0.1", host.Port, "Ann");
+		using LanClient bob = LanClient.Connect("127.0.0.1", host.Port, "Bob");
+		PumpUntil(host, ann, () => ann.Lobby != null);
+		Assert.Equal(playable.Select(c => c.name), ann.Lobby.civilizations.Select(c => c.name));
+		Assert.Equal(hostCiv.leader, ann.Lobby.civilizations[0].leader);
+		ann.ClaimSeat(host.Seats[0].playerID);
+		PumpUntil(host, ann, () => ann.Lobby.yourSeat != null);
+		bob.ClaimSeat(host.Seats[1].playerID);
+		PumpUntil(host, bob, () => bob.Lobby?.yourSeat != null);
+
+		// The host's civilization is taken, so Ann's first choice is refused.
+		ann.ChooseCivilization(hostCiv.name);
+		ann.ChooseCivilization(picked.name);
+		PumpUntil(host, bob, () => bob.Lobby.seats.Any(s => s.civilization == picked.name));
+		Assert.Equal(picked.name, host.Seats[0].civilization);
+
+		// Bob can't have Ann's civilization, or one that doesn't exist.
+		bob.ChooseCivilization(picked.name);
+		bob.ChooseCivilization("Atlantis");
+		for (int i = 0; i < 50; ++i) {
+			host.Poll();
+			Thread.Sleep(2);
+		}
+		Assert.Null(host.Seats[1].civilization);
+
+		List<HotseatPlayer> guests = host.BeginCreatingGame();
+		PumpUntil(host, ann, () => ann.Lobby.creatingGame);
+		Assert.Equal([picked.name, null], guests.Select(g => g.civilization?.name));
+		Assert.Equal(["Ann", "Bob"], guests.Select(g => g.name));
+
+		// Choices are closed while the game is created.
+		ann.ChooseCivilization(null);
+		new GameSetup {
+			playerCivilization = hostCiv,
+			playerName = "Host",
+			hotseatPlayers = guests,
+			difficulty = save.Difficulties.First(),
+			worldCharacteristics = new WorldCharacteristics(save) { mapSeed = 123456 },
+			opponents = [new SelectedOpponent { isRandom = true }, new SelectedOpponent { isRandom = false, Name = picked.name }],
+			victoryConditions = new VictoryConditions(),
+		}.Populate(save);
+		host.GameCreated(save);
+		PumpUntil(host, ann, () => ann.Lobby.civilizations == null && !ann.Lobby.creatingGame);
+
+		// Each seat has its player now: Ann's civilization as chosen, Bob a
+		// random one nobody else has, and the AI that wanted Ann's
+		// civilization another.
+		SavePlayer[] humans = save.Players.Where(p => p.human).ToArray();
+		Assert.Equal([hostCiv.name, picked.name], humans.Take(2).Select(p => p.civilization));
+		Assert.Equal(host.Seats.Select(s => s.playerID), humans.Skip(1).Select(p => p.id));
+		Assert.Equal(["Ann", "Bob"], host.Seats.Select(s => s.playerName));
+		Assert.Equal(picked.name, host.Seats[0].civilization);
+		Assert.Equal(save.Players.Count - 1, save.Players.Where(p => !p.isBarbarian).Select(p => p.civilization).Distinct().Count());
+	}
+
+	[Fact]
 	public void HostsTurnAwayOtherVersions() {
 		using LanHost host = new("Host", twoHumanSave.Value.Clone(), port: 0, answerDiscovery: false);
 		using System.Net.Sockets.TcpClient tcp = new("127.0.0.1", host.Port);

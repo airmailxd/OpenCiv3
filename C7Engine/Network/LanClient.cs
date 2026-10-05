@@ -62,6 +62,12 @@ public class LanClient : IDisposable {
 		connection.Send(FrameKind.ClaimSeat, new ClaimSeatInfo(playerID));
 	}
 
+	// Chooses the civilization to play in a game not created yet; null for
+	// a random one.
+	public void ChooseCivilization(string civilization) {
+		connection.Send(FrameKind.ChooseCivilization, new ChooseCivilizationInfo(civilization));
+	}
+
 	// Watches the game instead of taking a seat.
 	public void Watch() {
 		IsSpectator = true;
