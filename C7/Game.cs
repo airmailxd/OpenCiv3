@@ -448,8 +448,8 @@ public partial class Game : Node {
 			gotoInfo = GetGotoInfo(gameData.map.tileAt(gotoDestination.XCoordinate, gotoDestination.YCoordinate));
 		}
 
-		// TODO(integration): refresh an open advisor for the new game data
-		// here, once the advisors have a method for it.
+		// An open advisor shows the old game's cities and techs.
+		advisor.RefreshAfterGameReplaced();
 
 		if (applyTime.ElapsedMilliseconds > 100) {
 			log.Information("Showing the host's snapshot took {Milliseconds} ms", applyTime.ElapsedMilliseconds);
@@ -1411,7 +1411,12 @@ public partial class Game : Node {
 			new TextDialog("How many turns to fast forward through?",
 							"Turns: ", "100",
 							BoxContainer.AlignmentMode.Begin,
-							(string turns) => { turnsLeftToFastForward = int.Parse(turns); }),
+							(string turns) => {
+								// Ignore what isn't a number of turns rather than throwing.
+								if (int.TryParse(turns, out int n) && n >= 0) {
+									turnsLeftToFastForward = n;
+								}
+							}),
 				PopupOverlay.PopupCategory.Advisor);
 	}
 
