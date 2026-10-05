@@ -15,6 +15,9 @@ namespace C7GameData.Save {
 		public bool canBePicked = true;
 		public bool skipFirstTurn = false;
 
+		// The name of the person playing, for human players in a hotseat game.
+		public string name;
+
 		public string civilization;
 
 		public List<TileLocation> tileKnowledge = new List<TileLocation>();
@@ -80,6 +83,7 @@ namespace C7GameData.Save {
 				alliance = alliance is not null ? alliances.First(a => a.name == alliance) : null,
 				hasPlayedThisTurn = hasPlayedCurrentTurn,
 				skipFirstTurn = skipFirstTurn,
+				name = name,
 				defeated = defeated,
 				primaryColorIndex = primaryColorIndex,
 				secondaryColorIndex = secondaryColorIndex,
@@ -137,6 +141,7 @@ namespace C7GameData.Save {
 			secondaryColorIndex = player.secondaryColorIndex;
 			human = player.isHuman;
 			hasPlayedCurrentTurn = player.hasPlayedThisTurn;
+			name = player.name;
 			defeated = player.defeated;
 			civilization = player.civilization?.name;
 			// TODO: this should be computed by looking at cities defined in the save

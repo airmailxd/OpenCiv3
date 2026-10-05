@@ -104,6 +104,17 @@ public class HotseatTest : IClassFixture<SaveGameFixture> {
 		// Humans + AI opponents fill every starting location, plus the barbarians.
 		Assert.Equal(save.Map.startingLocations.Count + 1, save.Players.Count);
 		Assert.Equal(save.Players.Count, save.Players.Select(p => p.civilization).Distinct().Count());
+		Assert.Equal(["Player 1", "Player 2"], save.Players.Where(p => p.human).Select(p => p.name));
+		Assert.All(save.Players.Where(p => !p.human), p => Assert.Null(p.name));
+	}
+
+	[Fact]
+	public async Task PlayerNamesSurviveSaveAndLoad() {
+		C7GameData.GameData gameData = await CreateHotseatGame();
+		SaveGame save = SaveGame.FromGameData(gameData);
+		C7GameData.GameData loaded = save.ToGameData(fixture.behaviors);
+
+		Assert.Equal(["Player 1", "Player 2"], loaded.players.Where(p => p.isHuman).Select(p => p.name));
 	}
 
 	[Fact]

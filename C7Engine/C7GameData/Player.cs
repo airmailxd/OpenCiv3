@@ -65,6 +65,10 @@ namespace C7GameData {
 		public bool hasPlayedThisTurn = false;
 		public bool skipFirstTurn = false;
 
+		// The name of the person playing, for human players in a hotseat game.
+		// Null when no name was given.
+		public string name;
+
 		// Has this player been defeated?
 		public bool defeated = false;
 

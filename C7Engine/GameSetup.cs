@@ -12,13 +12,22 @@ public struct SelectedOpponent {
 	public string Name;
 }
 
+// An additional human player sharing the computer in a hotseat game.
+public struct HotseatPlayer {
+	public Civilization civilization;
+	// The person's name, or null if none was given.
+	public string name;
+}
+
 public class GameSetup {
 	private static ILogger log = Log.ForContext<GameSetup>();
 
 	public Civilization playerCivilization { get; init; }
+	// The first human player's name, or null if none was given.
+	public string playerName { get; init; }
 	// Additional human players sharing this computer in a hotseat game. They
 	// take their turns after the player above, in list order.
-	public List<Civilization> hotseatCivilizations { get; init; } = [];
+	public List<HotseatPlayer> hotseatPlayers { get; init; } = [];
 	public Difficulty difficulty { get; init; }
 	public WorldCharacteristics worldCharacteristics { get; init; }
 	public List<SelectedOpponent> opponents { get; init; } = [];
@@ -56,11 +65,11 @@ public class GameSetup {
 
 		// Add the human players.
 		HashSet<string> taken = new();
-		foreach (Civilization civ in HumanCivilizations()) {
-			if (!taken.Add(civ.name)) {
-				throw new ArgumentException($"{civ.name} was picked by more than one human player");
+		foreach (HotseatPlayer human in HumanPlayers()) {
+			if (!taken.Add(human.civilization.name)) {
+				throw new ArgumentException($"{human.civilization.name} was picked by more than one human player");
 			}
-			AddPlayer(save, civ, isHuman: true);
+			AddPlayer(save, human.civilization, isHuman: true, human.name);
 		}
 
 		// Add the opponents.
@@ -85,13 +94,14 @@ public class GameSetup {
 		}
 	}
 
-	private IEnumerable<Civilization> HumanCivilizations() {
-		return hotseatCivilizations.Prepend(playerCivilization);
+	private IEnumerable<HotseatPlayer> HumanPlayers() {
+		return hotseatPlayers.Prepend(new HotseatPlayer { civilization = playerCivilization, name = playerName });
 	}
 
-	private void AddPlayer(SaveGame save, Civilization civ, bool isHuman) {
+	private void AddPlayer(SaveGame save, Civilization civ, bool isHuman, string name = null) {
 		SavePlayer player = new() {
 			human = isHuman,
+			name = string.IsNullOrWhiteSpace(name) ? null : name.Trim(),
 			id = ids.CreateID("Player"),
 			primaryColorIndex = civ.primaryColorIndex,
 			secondaryColorIndex = civ.secondaryColorIndex,

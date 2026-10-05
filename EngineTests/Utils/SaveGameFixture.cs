@@ -55,7 +55,8 @@ public class SaveGameFixture : IDisposable {
 		Civilization[] humanCivs = save.Civilizations.Where(c => !c.isBarbarian).Take(humanPlayers).ToArray();
 		GameSetup gameSetup = new() {
 			playerCivilization = humanCivs[0],
-			hotseatCivilizations = humanCivs.Skip(1).ToList(),
+			playerName = humanPlayers > 1 ? "Player 1" : null,
+			hotseatPlayers = humanCivs.Skip(1).Select((civ, i) => new HotseatPlayer { civilization = civ, name = $"Player {i + 2}" }).ToList(),
 			difficulty = save.Difficulties.First(),
 			worldCharacteristics = wc,
 			opponents = Enumerable.Repeat(new SelectedOpponent() { isRandom = true }, worldSize.numberOfCivs - humanPlayers).ToList(),
