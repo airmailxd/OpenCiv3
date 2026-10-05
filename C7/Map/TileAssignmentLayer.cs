@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using System.Collections.Generic;
 using C7GameData;
 using Godot;
@@ -15,22 +14,76 @@ namespace C7.Map {
 		private const int tileHeight = 64;
 
 		// When non-null, the city whose tile assignments should be shown.
+		public City city {
+			get => shownCity;
+			set {
+				if (shownCity != value) {
+					shownCity = value;
+					RequestRedraw();
+				}
+			}
+		}
+		private City shownCity = null;
 
-		public City city = null;
-		private HashSet<Tile> workableTiles;
+		// What we know about the shown city's tiles, worked out again when the city or the map changes.
+		private readonly HashSet<Tile> workableTiles = new();
+		private readonly Dictionary<Tile, TileYields> yields = new();
+		private City cachedCity = null;
+		private int cachedContentVersion;
+
+		private readonly struct TileYields {
+			public readonly bool hasPollution;
+			public readonly int food, foodPenalty, shields, shieldPenalty, gold, goldPenalty;
+
+			public TileYields(Tile tile, City city) {
+				hasPollution = tile.HasPollution();
+				if (hasPollution) {
+					food = foodPenalty = shields = shieldPenalty = gold = goldPenalty = 0;
+					return;
+				}
+				Tile.Yield foodYield = tile.FoodYield(city);
+				Tile.Yield shieldYield = tile.ProductionYield(city);
+				Tile.Yield goldYield = tile.CommerceYield(city);
+				food = foodYield.yield;
+				foodPenalty = foodYield.penalty;
+				shields = shieldYield.yield;
+				shieldPenalty = shieldYield.penalty;
+				gold = goldYield.yield;
+				goldPenalty = goldYield.penalty;
+			}
+		}
 
 		public override void onBeginDraw(LooseView looseView, GameData gameData) {
 			if (city == null) {
 				return;
 			}
-			workableTiles = city.GetWorkableTiles().ToHashSet();
+
+			int contentVersion = looseView.mapView.contentVersion;
+			if (city == cachedCity && contentVersion == cachedContentVersion) {
+				return;
+			}
+			cachedCity = city;
+			cachedContentVersion = contentVersion;
+			yields.Clear();
+
+			workableTiles.Clear();
+			foreach (Tile t in city.GetWorkableTiles()) {
+				workableTiles.Add(t);
+			}
 
 			// Include the city center in the "workable" tiles to avoid having
 			// a border drawn there.
 			workableTiles.Add(city.location);
 		}
 
+		public override void onGameDataReplaced(GameData gameData) {
+			cachedCity = null;
+			workableTiles.Clear();
+			yields.Clear();
+		}
+
 		public override void drawObject(LooseView looseView, GameData gameData, Tile tile, Vector2 tileCenter) {
+			City city = this.city;
 			if (city == null) {
 				return;
 			}
@@ -53,47 +106,48 @@ namespace C7.Map {
 				return;
 			}
 
-			if (tile.HasPollution()) {
+			if (!yields.TryGetValue(tile, out TileYields tileYields)) {
+				tileYields = new TileYields(tile, city);
+				yields[tile] = tileYields;
+			}
+
+			if (tileYields.hasPollution) {
 				looseView.DrawTexture(wastedShieldTexture,
 					tileCenter + new Vector2(-wastedShieldTexture.GetSize().X / 2, -15));
 				return;
 			}
 
-			Tile.Yield food = tile.FoodYield(city);
-			Tile.Yield shields = tile.ProductionYield(city);
-			Tile.Yield gold = tile.CommerceYield(city);
-
-			int totalWidth = ((food.penalty + food.yield) * foodTexture.GetWidth()) +
-						((shields.penalty + shields.yield) * shieldTexture.GetWidth()) +
-						((gold.penalty + gold.yield) * goldTexture.GetWidth());
+			int totalWidth = ((tileYields.foodPenalty + tileYields.food) * foodTexture.GetWidth()) +
+						((tileYields.shieldPenalty + tileYields.shields) * shieldTexture.GetWidth()) +
+						((tileYields.goldPenalty + tileYields.gold) * goldTexture.GetWidth());
 			int currentXOffset = -totalWidth / 2;
 
-			for (int i = 0; i < food.yield; ++i) {
+			for (int i = 0; i < tileYields.food; ++i) {
 				looseView.DrawTexture(foodTexture, tileCenter + new Vector2(currentXOffset, -15));
 				currentXOffset += foodTexture.GetWidth();
 			}
-			for (int i = 0; i < food.penalty; ++i) {
+			for (int i = 0; i < tileYields.foodPenalty; ++i) {
 				looseView.DrawTexture(foodTexture, tileCenter + new Vector2(currentXOffset, -15));
 				DrawX(looseView, foodTexture, tileCenter + new Vector2(currentXOffset, -15));
 				currentXOffset += foodTexture.GetWidth();
 			}
 
-			for (int i = 0; i < shields.yield; ++i) {
+			for (int i = 0; i < tileYields.shields; ++i) {
 				looseView.DrawTexture(shieldTexture, tileCenter + new Vector2(currentXOffset, -15));
 				currentXOffset += shieldTexture.GetWidth();
 			}
-			for (int i = 0; i < shields.penalty; ++i) {
+			for (int i = 0; i < tileYields.shieldPenalty; ++i) {
 				looseView.DrawTexture(shieldTexture, tileCenter + new Vector2(currentXOffset, -15));
 				// Make the X wider by passing in the gold texture.
 				DrawX(looseView, goldTexture, tileCenter + new Vector2(currentXOffset, -15));
 				currentXOffset += shieldTexture.GetWidth();
 			}
 
-			for (int i = 0; i < gold.yield; ++i) {
+			for (int i = 0; i < tileYields.gold; ++i) {
 				looseView.DrawTexture(goldTexture, tileCenter + new Vector2(currentXOffset, -15));
 				currentXOffset += goldTexture.GetWidth();
 			}
-			for (int i = 0; i < gold.penalty; ++i) {
+			for (int i = 0; i < tileYields.goldPenalty; ++i) {
 				looseView.DrawTexture(goldTexture, tileCenter + new Vector2(currentXOffset, -15));
 				DrawX(looseView, goldTexture, tileCenter + new Vector2(currentXOffset, -15));
 				currentXOffset += goldTexture.GetWidth();

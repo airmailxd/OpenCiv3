@@ -37,6 +37,12 @@ namespace C7.Map {
 		Label productionLabel = new();
 		Label popSizeLabel = new();
 
+		// What the labels show, so they're only set when it changes.
+		string cityNameText = null;
+		string productionLabelText = null;
+		string popSizeText = null;
+		bool popSizeRed = false;
+
 		static FontFile smallFont = new();
 		static FontFile midSizedFont = new();
 
@@ -104,6 +110,33 @@ namespace C7.Map {
 			popSizeLabel.Theme = popSizeTheme;
 
 			ApplyStyles();
+
+			// The label is only updated when the city changes, and Godot settles its size afterwards, so keep it as small as its contents
+			// and centered under the city whenever that happens.
+			labelPanel.MinimumSizeChanged += ShrinkToContents;
+			labelPanel.Resized += UpdatePosition;
+		}
+
+		// Points the label at the same city in new game data, e.g. a LAN snapshot.
+		public void Rebind(City city) {
+			this.city = city;
+		}
+
+		public void SetTileCenter(Vector2I tileCenter) {
+			if (this.tileCenter == tileCenter) {
+				return;
+			}
+			this.tileCenter = tileCenter;
+			UpdatePosition();
+		}
+
+		private void ShrinkToContents() {
+			labelPanel.Size = Vector2.Zero;
+			UpdatePosition();
+		}
+
+		private void UpdatePosition() {
+			labelPanel.Position = new Vector2(tileCenter.X - labelPanel.Size.X / 2, tileCenter.Y + 24);
 		}
 
 		private void SetupCenterPanel() {
@@ -188,31 +221,30 @@ namespace C7.Map {
 			rightSeparator.AddThemeStyleboxOverride("separator", separatorStyle);
 		}
 
-		public override void _Draw() {
-			UpdateContent();
-		}
-
-		private void UpdateContent() {
+		// The label shows what the city is doing, which is worked out from its yields, so it's only updated when the city may have changed.
+		public void UpdateContent() {
 			int turnsUntilGrowth = city.TurnsUntilGrowth();
 			string turnsUntilGrowthText = turnsUntilGrowth == int.MaxValue || turnsUntilGrowth < 0 ? "- -" : "" + turnsUntilGrowth;
 
-			cityNameLabel.Text = $"{city.name} : {turnsUntilGrowthText}";
+			string productionText;
 			if (city.itemBeingProduced != null) {
-				productionLabel.Text = $"{city.itemBeingProduced.name} : {city.TurnsUntilProductionFinished()}";
+				int turnsUntilProductionFinished = city.TurnsUntilProductionFinished();
+				productionText = turnsUntilProductionFinished == int.MaxValue
+					? $"{city.itemBeingProduced.name} : --"
+					: $"{city.itemBeingProduced.name} : {turnsUntilProductionFinished}";
 			} else {
-				productionLabel.Text = "-- : --";
+				productionText = "-- : --";
 			}
 
-			if (city.TurnsUntilProductionFinished() == int.MaxValue && city.itemBeingProduced != null) {
-				productionLabel.Text = $"{city.itemBeingProduced.name} : --";
-			}
-			popSizeLabel.Text = city.residents.Count.ToString();
+			SetText(cityNameLabel, ref cityNameText, $"{city.name} : {turnsUntilGrowthText}");
+			SetText(productionLabel, ref productionLabelText, productionText);
+			SetText(popSizeLabel, ref popSizeText, city.residents.Count.ToString());
 
 			// Update population label color based on growth
-			if (city.TurnsUntilGrowth() < 0) {
-				popSizeLabel.Theme = popThemeRed;
-			} else {
-				popSizeLabel.Theme = popSizeTheme;
+			bool shrinking = turnsUntilGrowth < 0;
+			if (popSizeRed != shrinking) {
+				popSizeRed = shrinking;
+				popSizeLabel.Theme = shrinking ? popThemeRed : popSizeTheme;
 			}
 
 			// Update the panel with the capital star
@@ -227,10 +259,16 @@ namespace C7.Map {
 				mainContainer.RemoveChild(capitalPanel);
 			}
 
-			labelPanel.Position = new Vector2(tileCenter.X - labelPanel.Size.X / 2, tileCenter.Y + 24);
-
 			// Force the layout to recalculate
-			labelPanel.Size = Vector2.Zero;
+			ShrinkToContents();
+		}
+
+		// Label.Text crosses into the engine and relayouts the label, so only set it when it changes.
+		private static void SetText(Label label, ref string current, string text) {
+			if (current != text) {
+				current = text;
+				label.Text = text;
+			}
 		}
 	}
 }

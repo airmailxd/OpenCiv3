@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System;
-using System.Linq;
 using C7.Map;
 using Godot;
 using C7GameData;
@@ -26,63 +25,206 @@ public abstract class LooseLayer {
 	public virtual void onBeginDraw(LooseView looseView, GameData gameData) { }
 	public virtual void onEndDraw(LooseView looseView, GameData gameData) { }
 
+	// Called when a LAN client swaps in the host's snapshot. Layers must forget what they remember about the old game's tiles, cities and
+	// units, since the new game data is made of new objects.
+	public virtual void onGameDataReplaced(GameData gameData) { }
+
 	// The layer will be skipped during map drawing if visible is false
-	public bool visible = true;
+	public bool visible {
+		get => isVisible;
+		set {
+			if (isVisible != value) {
+				isVisible = value;
+				RequestRedraw();
+			}
+		}
+	}
+	private bool isVisible = true;
+
+	// Most views are only redrawn when the map changes. A layer whose contents change for another reason (a setting, the city being shown)
+	// asks for its view to be redrawn with this.
+	protected void RequestRedraw() {
+		redrawRequested = true;
+	}
+	internal bool redrawRequested = false;
+}
+
+// Terrain types classified once, so the terrain layers don't compare terrain keys for every tile they draw.
+[Flags]
+public enum TerrainKind {
+	None = 0,
+	Hilly = 1 << 0,
+	Mountains = 1 << 1,
+	Hills = 1 << 2,
+	Volcano = 1 << 3,
+	Forest = 1 << 4,
+	Jungle = 1 << 5,
+	Marsh = 1 << 6,
+	Grassland = 1 << 7,
+	Plains = 1 << 8,
+	Water = 1 << 9,
+}
+
+public static class TerrainKinds {
+	private static readonly Dictionary<TerrainType, TerrainKind> kinds = new(ReferenceEqualityComparer.Instance);
+
+	public static TerrainKind Of(TerrainType type) {
+		if (kinds.TryGetValue(type, out TerrainKind kind)) {
+			return kind;
+		}
+
+		kind = TerrainKind.None;
+		if (type.isHilly()) kind |= TerrainKind.Hilly;
+		if (type.isWater()) kind |= TerrainKind.Water;
+		kind |= type.Key switch {
+			"mountains" => TerrainKind.Mountains,
+			"hills" => TerrainKind.Hills,
+			"volcano" => TerrainKind.Volcano,
+			"forest" => TerrainKind.Forest,
+			"jungle" => TerrainKind.Jungle,
+			"marsh" => TerrainKind.Marsh,
+			"grassland" => TerrainKind.Grassland,
+			"plains" => TerrainKind.Plains,
+			_ => TerrainKind.None,
+		};
+		kinds[type] = kind;
+		return kind;
+	}
+
+	public static bool Is(TerrainType type, TerrainKind kind) {
+		return (Of(type) & kind) != 0;
+	}
+
+	// Whether any of the tiles sharing an edge with this one is water.
+	public static bool HasWaterOnEdge(Tile tile) {
+		return Is(tile.neighbors[TileDirection.NORTHEAST].baseTerrainType, TerrainKind.Water)
+			|| Is(tile.neighbors[TileDirection.NORTHWEST].baseTerrainType, TerrainKind.Water)
+			|| Is(tile.neighbors[TileDirection.SOUTHEAST].baseTerrainType, TerrainKind.Water)
+			|| Is(tile.neighbors[TileDirection.SOUTHWEST].baseTerrainType, TerrainKind.Water);
+	}
+
+	// Terrain types belong to a game, so forget them when the game is replaced.
+	public static void Clear() {
+		kinds.Clear();
+	}
 }
 
 public partial class TerrainLayer : LooseLayer {
 
 	public static readonly Vector2 terrainSpriteSize = new Vector2(128, 64);
 
-	// TileToDraw stores the arguments passed to drawObject so the draws can be sorted by texture before being submitted. This significantly
-	// reduces the number of draw calls Godot must generate (1483 to 312 when fully zoomed out on our test map) and modestly improves framerate
-	// (by about 14% on my system).
-	private class TileToDraw : IComparable<TileToDraw> {
+	// TileToDraw stores the arguments passed to drawObject so the draws can be grouped by texture file before being submitted. This
+	// significantly reduces the number of draw calls Godot must generate (1483 to 312 when fully zoomed out on our test map) and modestly
+	// improves framerate (by about 14% on my system).
+	private struct TileToDraw {
 		public Tile tile;
 		public Vector2 tileCenter;
-
-		public TileToDraw(Tile tile, Vector2 tileCenter) {
-			this.tile = tile;
-			this.tileCenter = tileCenter;
-		}
-
-		public int CompareTo(TileToDraw other) {
-			var a= this?.tile?.ExtraInfo?.BaseTerrainFileID ?? int.MaxValue;
-			var b= other?.tile?.ExtraInfo?.BaseTerrainFileID ?? int.MaxValue;
-			return a.CompareTo(b);
-		}
 	}
 
-	private List<TileToDraw> tilesToDraw = new List<TileToDraw>();
+	// The tiles to draw, grouped by BaseTerrainFileID and drawn in increasing file ID order. Grouping keeps the order in which tiles were
+	// added within a group. Tiles without terrain info or with out of range file IDs are kept aside and sorted.
+	private List<TileToDraw>[] tilesByFileID = [];
+	private readonly List<TileToDraw> tilesWithOddFileID = new();
+
+	// The base terrain sprite depends only on the file and image IDs, so look it up by those rather than by tile.
+	private readonly Dictionary<(int fileID, int imageID), ImageTexture> terrainTextures = new();
 
 	public override void drawObject(LooseView looseView, GameData gameData, Tile tile, Vector2 tileCenter) {
-		tilesToDraw.Add(new TileToDraw(tile, tileCenter));
-		tilesToDraw.Add(new TileToDraw(tile.neighbors[TileDirection.SOUTH], tileCenter + new Vector2(0, 64)));
-		tilesToDraw.Add(new TileToDraw(tile.neighbors[TileDirection.SOUTHWEST], tileCenter + new Vector2(-64, 32)));
-		tilesToDraw.Add(new TileToDraw(tile.neighbors[TileDirection.SOUTHEAST], tileCenter + new Vector2(64, 32)));
+		// Each sprite overlaps the tiles to its south, so those are drawn along with it in case they aren't drawn on their own. Known
+		// neighbors inside the drawn region draw themselves, so they're skipped here to avoid drawing the same sprite twice.
+		Enqueue(tile, tileCenter);
+		int X = (int)(tileCenter.X / MapView.cellSize.X) - 1;
+		int Y = (int)(tileCenter.Y / MapView.cellSize.Y) - 1;
+		EnqueueNeighbor(looseView, tile.neighbors[TileDirection.SOUTH], X, Y + 2, tileCenter + new Vector2(0, 64));
+		EnqueueNeighbor(looseView, tile.neighbors[TileDirection.SOUTHWEST], X - 1, Y + 1, tileCenter + new Vector2(-64, 32));
+		EnqueueNeighbor(looseView, tile.neighbors[TileDirection.SOUTHEAST], X + 1, Y + 1, tileCenter + new Vector2(64, 32));
+	}
+
+	private void EnqueueNeighbor(LooseView looseView, Tile neighbor, int X, int Y, Vector2 tileCenter) {
+		if (looseView.drawRegion.Contains(X, Y) && looseView.IsTileKnown(neighbor)) {
+			return;
+		}
+		Enqueue(neighbor, tileCenter);
+	}
+
+	private void Enqueue(Tile tile, Vector2 tileCenter) {
+		if (tile == Tile.NONE) {
+			return;
+		}
+
+		TileToDraw tTD = new() { tile = tile, tileCenter = tileCenter };
+		int fileID = tile?.ExtraInfo?.BaseTerrainFileID ?? int.MaxValue;
+		if (fileID < 0 || fileID >= 1024) {
+			tilesWithOddFileID.Add(tTD);
+			return;
+		}
+
+		if (fileID >= tilesByFileID.Length) {
+			int oldLength = tilesByFileID.Length;
+			Array.Resize(ref tilesByFileID, fileID + 1);
+			for (int i = oldLength; i < tilesByFileID.Length; i++) {
+				tilesByFileID[i] = new List<TileToDraw>();
+			}
+		}
+		tilesByFileID[fileID].Add(tTD);
+	}
+
+	private ImageTexture GetTexture(Tile tile) {
+		if (tile.ExtraInfo == null) {
+			return TextureLoader.Load("terrain.base", tile, useCache: true);
+		}
+
+		var key = (tile.ExtraInfo.BaseTerrainFileID, tile.ExtraInfo.BaseTerrainImageID);
+		if (!terrainTextures.TryGetValue(key, out ImageTexture texture)) {
+			texture = TextureLoader.Load("terrain.base", tile);
+			terrainTextures[key] = texture;
+		}
+		return texture;
 	}
 
 	public override void onEndDraw(LooseView looseView, GameData gameData) {
-
-		tilesToDraw.Sort();
-
-		foreach (TileToDraw tTD in tilesToDraw) {
-			if (tTD.tile == Tile.NONE) { continue; }
-
-			ImageTexture texture = TextureLoader.Load("terrain.base", tTD.tile, useCache: true);
-
-			Vector2 terrainOffset = new Vector2(0, -1 * MapView.cellSize.Y);
-			Vector2 position = tTD.tileCenter - (float)0.5 * terrainSpriteSize + terrainOffset;
-
-			// Multiply size by 100.1% so avoid "seams" in the map.  See issue #106.
-			// Jim's option of a whole-map texture is less hacky, but this is quicker and seems to be working well.
-			Rect2 screenRect = new Rect2(position, terrainSpriteSize * 1.001f);
-
-			looseView.DrawTextureRect(texture, screenRect, tile: false);
-
+		// Tiles with unusual file IDs (which shouldn't exist) are drawn in file ID order around the usual ones.
+		if (tilesWithOddFileID.Count > 0) {
+			tilesWithOddFileID.Sort((a, b) => FileID(a).CompareTo(FileID(b)));
 		}
+		DrawTiles(looseView, tilesWithOddFileID, drawNegativeFileIDs: true);
+		foreach (List<TileToDraw> tiles in tilesByFileID) {
+			DrawTiles(looseView, tiles);
+		}
+		DrawTiles(looseView, tilesWithOddFileID, drawNegativeFileIDs: false);
+		tilesWithOddFileID.Clear();
+	}
 
-		tilesToDraw.Clear();
+	private static int FileID(TileToDraw tTD) {
+		return tTD.tile?.ExtraInfo?.BaseTerrainFileID ?? int.MaxValue;
+	}
+
+	private void DrawTiles(LooseView looseView, List<TileToDraw> tiles) {
+		foreach (TileToDraw tTD in tiles) {
+			DrawTile(looseView, tTD);
+		}
+		tiles.Clear();
+	}
+
+	private void DrawTiles(LooseView looseView, List<TileToDraw> tiles, bool drawNegativeFileIDs) {
+		foreach (TileToDraw tTD in tiles) {
+			if ((FileID(tTD) < 0) == drawNegativeFileIDs) {
+				DrawTile(looseView, tTD);
+			}
+		}
+	}
+
+	private void DrawTile(LooseView looseView, TileToDraw tTD) {
+		ImageTexture texture = GetTexture(tTD.tile);
+
+		Vector2 terrainOffset = new Vector2(0, -1 * MapView.cellSize.Y);
+		Vector2 position = tTD.tileCenter - (float)0.5 * terrainSpriteSize + terrainOffset;
+
+		// Multiply size by 100.1% so avoid "seams" in the map.  See issue #106.
+		// Jim's option of a whole-map texture is less hacky, but this is quicker and seems to be working well.
+		Rect2 screenRect = new Rect2(position, terrainSpriteSize * 1.001f);
+
+		looseView.DrawTextureRect(texture, screenRect, tile: false);
 	}
 }
 
@@ -115,48 +257,49 @@ public partial class HillsLayer : LooseLayer {
 	}
 
 	public override void drawObject(LooseView looseView, GameData gameData, Tile tile, Vector2 tileCenter) {
-		if (tile.overlayTerrainType.isHilly()) {
+		TerrainKind kind = TerrainKinds.Of(tile.overlayTerrainType);
+		if ((kind & TerrainKind.Hilly) != 0) {
 			int pcxIndex = getMountainIndex(tile);
 			int row = pcxIndex / 4;
 			int column = pcxIndex % 4;
-			if (tile.overlayTerrainType.Key == "mountains") {
+			if ((kind & TerrainKind.Mountains) != 0) {
 				Rect2 mountainRectangle = new Rect2(column * mountainSize.X, row * mountainSize.Y, mountainSize);
 				Rect2 screenTarget = new Rect2(tileCenter - (float)0.5 * mountainSize + new Vector2(0, -12), mountainSize);
 				ImageTexture mountainGraphics;
 				if (tile.isSnowCapped) {
 					mountainGraphics = snowMountainTexture;
 				} else {
-					TerrainType dominantVegetation = getDominantVegetationNearHillyTile(tile);
-					if (dominantVegetation.Key == "forest") {
+					TerrainKind dominantVegetation = getDominantVegetationNearHillyTile(tile);
+					if (dominantVegetation == TerrainKind.Forest) {
 						mountainGraphics = forestMountainTexture;
-					} else if (dominantVegetation.Key == "jungle") {
+					} else if (dominantVegetation == TerrainKind.Jungle) {
 						mountainGraphics = jungleMountainTexture;
 					} else {
 						mountainGraphics = mountainTexture;
 					}
 				}
 				looseView.DrawTextureRectRegion(mountainGraphics, screenTarget, mountainRectangle);
-			} else if (tile.overlayTerrainType.Key == "hills") {
+			} else if ((kind & TerrainKind.Hills) != 0) {
 				Rect2 hillsRectangle = new Rect2(column * hillsSize.X, row * hillsSize.Y, hillsSize);
 				Rect2 screenTarget = new Rect2(tileCenter - (float)0.5 * hillsSize + new Vector2(0, -4), hillsSize);
 				ImageTexture hillGraphics;
-				TerrainType dominantVegetation = getDominantVegetationNearHillyTile(tile);
-				if (dominantVegetation.Key == "forest") {
+				TerrainKind dominantVegetation = getDominantVegetationNearHillyTile(tile);
+				if (dominantVegetation == TerrainKind.Forest) {
 					hillGraphics = forestHillsTexture;
-				} else if (dominantVegetation.Key == "jungle") {
+				} else if (dominantVegetation == TerrainKind.Jungle) {
 					hillGraphics = jungleHillsTexture;
 				} else {
 					hillGraphics = hillsTexture;
 				}
 				looseView.DrawTextureRectRegion(hillGraphics, screenTarget, hillsRectangle);
-			} else if (tile.overlayTerrainType.Key == "volcano") {
+			} else if ((kind & TerrainKind.Volcano) != 0) {
 				Rect2 volcanoRectangle = new Rect2(column * volcanoSize.X, row * volcanoSize.Y, volcanoSize);
 				Rect2 screenTarget = new Rect2(tileCenter - (float)0.5 * volcanoSize + new Vector2(0, -12), volcanoSize);
 				ImageTexture volcanoGraphics;
-				TerrainType dominantVegetation = getDominantVegetationNearHillyTile(tile);
-				if (dominantVegetation.Key == "forest") {
+				TerrainKind dominantVegetation = getDominantVegetationNearHillyTile(tile);
+				if (dominantVegetation == TerrainKind.Forest) {
 					volcanoGraphics = forestVolcanoTexture;
-				} else if (dominantVegetation.Key == "jungle") {
+				} else if (dominantVegetation == TerrainKind.Jungle) {
 					volcanoGraphics = jungleVolcanoTexture;
 				} else {
 					volcanoGraphics = volcanosTexture;
@@ -166,65 +309,59 @@ public partial class HillsLayer : LooseLayer {
 		}
 	}
 
-	private TerrainType getDominantVegetationNearHillyTile(Tile center) {
-		TerrainType northeastType = center.neighbors[TileDirection.NORTHEAST].overlayTerrainType;
-		TerrainType northwestType = center.neighbors[TileDirection.NORTHWEST].overlayTerrainType;
-		TerrainType southeastType = center.neighbors[TileDirection.SOUTHEAST].overlayTerrainType;
-		TerrainType southwestType = center.neighbors[TileDirection.SOUTHWEST].overlayTerrainType;
-
-		TerrainType[] neighborTerrains = { northeastType, northwestType, southeastType, southwestType };
-
+	// Returns TerrainKind.Forest, TerrainKind.Jungle, or TerrainKind.None if neither should be drawn on the hilly tile.
+	private static TerrainKind getDominantVegetationNearHillyTile(Tile center) {
 		int hills = 0;
 		int forests = 0;
 		int jungles = 0;
-		//These references are so we can return the appropriate type, and because we don't have a good way
-		//to grab them directly at this point in time.
-		TerrainType forest = null;
-		TerrainType jungle = null;
-		foreach (TerrainType type in neighborTerrains) {
-			if (type.isHilly()) {
-				hills++;
-			} else if (type.Key == "forest") {
-				forests++;
-				forest = type;
-			} else if (type.Key == "jungle") {
-				jungles++;
-				jungle = type;
-			}
-		}
+		CountVegetation(center.neighbors[TileDirection.NORTHEAST].overlayTerrainType, ref hills, ref forests, ref jungles);
+		CountVegetation(center.neighbors[TileDirection.NORTHWEST].overlayTerrainType, ref hills, ref forests, ref jungles);
+		CountVegetation(center.neighbors[TileDirection.SOUTHEAST].overlayTerrainType, ref hills, ref forests, ref jungles);
+		CountVegetation(center.neighbors[TileDirection.SOUTHWEST].overlayTerrainType, ref hills, ref forests, ref jungles);
 
 		if (hills + forests + jungles < 4) {    //some surrounding tiles are neither forested nor hilly
-			return TerrainType.NONE;
+			return TerrainKind.None;
 		}
 		if (forests == 0 && jungles == 0) {
-			return TerrainType.NONE;    //all hills
+			return TerrainKind.None;    //all hills
 		}
 		if (forests > jungles) {
-			return forest;
+			return TerrainKind.Forest;
 		}
 		if (jungles > forests) {
-			return jungle;
+			return TerrainKind.Jungle;
 		}
 
 		//If we get here, it's a tie between forest and jungle.  Deterministically choose one so it doesn't change on every render
 		if (center.XCoordinate % 2 == 0) {
-			return forest;
+			return TerrainKind.Forest;
 		}
-		return jungle;
+		return TerrainKind.Jungle;
 	}
 
-	private int getMountainIndex(Tile tile) {
+	private static void CountVegetation(TerrainType type, ref int hills, ref int forests, ref int jungles) {
+		TerrainKind kind = TerrainKinds.Of(type);
+		if ((kind & TerrainKind.Hilly) != 0) {
+			hills++;
+		} else if ((kind & TerrainKind.Forest) != 0) {
+			forests++;
+		} else if ((kind & TerrainKind.Jungle) != 0) {
+			jungles++;
+		}
+	}
+
+	private static int getMountainIndex(Tile tile) {
 		int index = 0;
-		if (tile.neighbors[TileDirection.NORTHWEST].overlayTerrainType.isHilly()) {
+		if (TerrainKinds.Is(tile.neighbors[TileDirection.NORTHWEST].overlayTerrainType, TerrainKind.Hilly)) {
 			index++;
 		}
-		if (tile.neighbors[TileDirection.NORTHEAST].overlayTerrainType.isHilly()) {
+		if (TerrainKinds.Is(tile.neighbors[TileDirection.NORTHEAST].overlayTerrainType, TerrainKind.Hilly)) {
 			index += 2;
 		}
-		if (tile.neighbors[TileDirection.SOUTHWEST].overlayTerrainType.isHilly()) {
+		if (TerrainKinds.Is(tile.neighbors[TileDirection.SOUTHWEST].overlayTerrainType, TerrainKind.Hilly)) {
 			index += 4;
 		}
-		if (tile.neighbors[TileDirection.SOUTHEAST].overlayTerrainType.isHilly()) {
+		if (TerrainKinds.Is(tile.neighbors[TileDirection.SOUTHEAST].overlayTerrainType, TerrainKind.Hilly)) {
 			index += 8;
 		}
 		return index;
@@ -261,14 +398,15 @@ public partial class ForestLayer : LooseLayer {
 	}
 
 	public override void drawObject(LooseView looseView, GameData gameData, Tile tile, Vector2 tileCenter) {
-		if (tile.overlayTerrainType.Key == "jungle") {
+		TerrainKind kind = TerrainKinds.Of(tile.overlayTerrainType);
+		if ((kind & TerrainKind.Jungle) != 0) {
 			//Randomly, but predictably, choose a large jungle graphic
 			//More research is needed on when to use large vs small jungles.  Probably, small is used when neighboring fewer jungles.
 			//For the first pass, we're just always using large jungles.
 			int randomJungleRow = tile.YCoordinate % 2;
 			int randomJungleColumn;
 			ImageTexture jungleTexture;
-			if (tile.GetEdgeNeighbors().Any(t => t.IsWater())) {
+			if (TerrainKinds.HasWaterOnEdge(tile)) {
 				randomJungleColumn = tile.XCoordinate % 6;
 				jungleTexture = smallJungleTexture;
 			} else {
@@ -279,36 +417,39 @@ public partial class ForestLayer : LooseLayer {
 			Rect2 screenTarget = new Rect2(tileCenter - (float)0.5 * forestJungleSize + new Vector2(0, -12), forestJungleSize);
 			looseView.DrawTextureRectRegion(jungleTexture, screenTarget, jungleRectangle);
 		}
-		if (tile.overlayTerrainType.Key == "forest") {
+		if ((kind & TerrainKind.Forest) != 0) {
+			TerrainKind baseKind = TerrainKinds.Of(tile.baseTerrainType);
+			bool grassland = (baseKind & TerrainKind.Grassland) != 0;
+			bool plains = (baseKind & TerrainKind.Plains) != 0;
 			int forestRow = 0;
 			int forestColumn = 0;
 			ImageTexture forestTexture;
 			if (tile.isPineForest) {
 				forestRow = tile.YCoordinate % 2;
 				forestColumn = tile.XCoordinate % 6;
-				if (tile.baseTerrainType.Key == "grassland") {
+				if (grassland) {
 					forestTexture = pineForestTexture;
-				} else if (tile.baseTerrainType.Key == "plains") {
+				} else if (plains) {
 					forestTexture = pinePlainsTexture;
 				} else { //Tundra
 					forestTexture = pineTundraTexture;
 				}
 			} else {
 				forestRow = tile.YCoordinate % 2;
-				if (tile.GetEdgeNeighbors().Any(t => t.IsWater())) {
+				if (TerrainKinds.HasWaterOnEdge(tile)) {
 					forestColumn = tile.XCoordinate % 5;
-					if (tile.baseTerrainType.Key == "grassland") {
+					if (grassland) {
 						forestTexture = smallForestTexture;
-					} else if (tile.baseTerrainType.Key == "plains") {
+					} else if (plains) {
 						forestTexture = smallPlainsForestTexture;
 					} else {    //tundra
 						forestTexture = smallTundraForestTexture;
 					}
 				} else {
 					forestColumn = tile.XCoordinate % 4;
-					if (tile.baseTerrainType.Key == "grassland") {
+					if (grassland) {
 						forestTexture = largeForestTexture;
-					} else if (tile.baseTerrainType.Key == "plains") {
+					} else if (plains) {
 						forestTexture = largePlainsForestTexture;
 					} else {    //tundra
 						forestTexture = largeTundraForestTexture;
@@ -336,11 +477,11 @@ public partial class MarshLayer : LooseLayer {
 	}
 
 	public override void drawObject(LooseView looseView, GameData gameData, Tile tile, Vector2 tileCenter) {
-		if (tile.overlayTerrainType.Key == "marsh") {
+		if (TerrainKinds.Is(tile.overlayTerrainType, TerrainKind.Marsh)) {
 			int randomJungleRow = tile.YCoordinate % 2;
 			int randomMarshColumn;
 			ImageTexture marshTexture;
-			if (tile.GetEdgeNeighbors().Any(t => t.IsWater())) {
+			if (TerrainKinds.HasWaterOnEdge(tile)) {
 				randomMarshColumn = tile.XCoordinate % 5;
 				marshTexture = smallMarshTexture;
 			} else {
@@ -373,7 +514,7 @@ public partial class RiverLayer : LooseLayer {
 		// It is the easternmost point of the current tile.
 		Vector2 thePoint = tileCenter + riverCenterOffset;
 
-		// We draw the texture centered on the point by starting the draw from half of its width away  
+		// We draw the texture centered on the point by starting the draw from half of its width away
 		Vector2 drawOffset = -0.5f * riverSize;
 
 		// The right river texture is calculated by evaluating the tiles around the point
@@ -433,8 +574,11 @@ public partial class RiverLayer : LooseLayer {
 		return (textureIndex / 4, textureIndex % 4, textureIndex);
 	}
 
-	private bool HasWater(Tile north, Tile east, Tile south, Tile west) {
-		return north.IsWater() || east.IsWater() || south.IsWater() || west.IsWater();
+	private static bool HasWater(Tile north, Tile east, Tile south, Tile west) {
+		return TerrainKinds.Is(north.baseTerrainType, TerrainKind.Water)
+			|| TerrainKinds.Is(east.baseTerrainType, TerrainKind.Water)
+			|| TerrainKinds.Is(south.baseTerrainType, TerrainKind.Water)
+			|| TerrainKinds.Is(west.baseTerrainType, TerrainKind.Water);
 	}
 }
 
@@ -476,108 +620,119 @@ public partial class BuildingLayer : LooseLayer {
 }
 
 public partial class LooseView : Node2D {
-	public MapView mapView;
-	public List<LooseLayer> layers = new List<LooseLayer>();
-	private static ILogger log = Log.ForContext<LooseView>();
-
-	protected List<VisibleTile> visibleKnownTiles;
-	protected List<VisibleTile> visibleUnKnownTiles;
-	public Dictionary<Tile, Vector2> tileCenters { get; private set; } = new Dictionary<Tile, Vector2>();
-
-	public LooseView(MapView mapView) {
-		this.mapView = mapView;
+	// How often a view is redrawn.
+	public enum RedrawPolicy {
+		// Only when what's on the map or the drawn region changes. The view draws a region somewhat larger than the screen so that the
+		// camera can move a little without a redraw.
+		WhenMapChanges,
+		// Every frame while the player is choosing a goto destination or a bombard target.
+		WhileTargeting,
+		// Every frame.
+		EveryFrame,
 	}
 
-	protected struct VisibleTile {
-		public Tile tile;
-		public Vector2 tileCenter;
+	public MapView mapView;
+	public List<LooseLayer> layers = new List<LooseLayer>();
+	public readonly RedrawPolicy redrawPolicy;
+	private static ILogger log = Log.ForContext<LooseView>();
+
+	// Valid while the view is being drawn: the region of tiles being drawn, and the player whose view of the map is shown (null in
+	// observer mode, where everything is known).
+	public MapView.VisibleRegion drawRegion { get; private set; }
+	public Player uiPlayer { get; private set; }
+	public TileKnowledge tileKnowledge { get; private set; }
+	private bool observerMode;
+
+	public LooseView(MapView mapView, RedrawPolicy redrawPolicy = RedrawPolicy.EveryFrame) {
+		this.mapView = mapView;
+		this.redrawPolicy = redrawPolicy;
+	}
+
+	// Whether one of this view's layers asked to be redrawn. Clears the requests.
+	public bool TakeRedrawRequest() {
+		bool requested = false;
+		foreach (LooseLayer layer in layers) {
+			requested |= layer.redrawRequested;
+			layer.redrawRequested = false;
+		}
+		return requested;
 	}
 
 	public override void _Draw() {
 		base._Draw();
 
 		EngineStorage.ReadGameData((GameData gD) => {
-			// Iterating over visible tiles is unfortunately pretty expensive. Assemble a list of Tile references and centers first so we don't
-			// have to reiterate for each layer. Doing this improves framerate significantly.
-			MapView.VisibleRegion visRegion = mapView.getVisibleRegion();
-			visibleKnownTiles = new List<VisibleTile>();
-			visibleUnKnownTiles = new List<VisibleTile>();
-			GetVisibleTiles(visRegion, gD);
+			// Iterating over visible tiles is unfortunately pretty expensive, so the MapView collects them once and shares them with every
+			// view. Views drawn every frame only draw what's on screen; the others draw everything the MapView collected.
+			bool onlyOnScreen = redrawPolicy != RedrawPolicy.WhenMapChanges;
+			MapView.VisibleRegion visRegion = onlyOnScreen ? mapView.getVisibleRegion() : default;
+			List<MapView.VisibleTile> tiles = mapView.GetVisibleTiles(gD, onlyOnScreen ? visRegion : null);
+			drawRegion = onlyOnScreen ? visRegion : mapView.drawnRegion;
 
-			Stopwatch stopwatch = new Stopwatch();
-			stopwatch.Start();
-			foreach (LooseLayer layer in layers.FindAll(L => L.visible && !(L is FogOfWarLayer) && !(L is GridLayer))) {
-				layer.onBeginDraw(this, gD);
-				foreach (VisibleTile vT in visibleKnownTiles) {
-					layer.drawObject(this, gD, vT.tile, vT.tileCenter);
+			observerMode = gD.observerMode;
+			uiPlayer = observerMode ? null : gD.GetUIControllerPlayer();
+			tileKnowledge = uiPlayer?.tileKnowledge;
+
+			long start = Stopwatch.GetTimestamp();
+			foreach (LooseLayer layer in layers) {
+				if (!layer.visible || layer is FogOfWarLayer || layer is GridLayer) {
+					continue;
 				}
-
+				layer.onBeginDraw(this, gD);
+				foreach (MapView.VisibleTile vT in tiles) {
+					if (vT.known && (!onlyOnScreen || visRegion.Contains(vT.x, vT.y))) {
+						layer.drawObject(this, gD, vT.tile, vT.tileCenter);
+					}
+				}
 				layer.onEndDraw(this, gD);
 			}
 
-			foreach (var layer in layers.Where(layer => layer.visible && layer is GridLayer)) {
-				layer.onBeginDraw(this, gD);
-				foreach (VisibleTile vT in visibleKnownTiles.Concat(visibleUnKnownTiles)) {
-					layer.drawObject(this, gD, vT.tile, vT.tileCenter);
+			foreach (LooseLayer layer in layers) {
+				if (!layer.visible || layer is not GridLayer) {
+					continue;
 				}
-
+				layer.onBeginDraw(this, gD);
+				// Known tiles first, then the unknown ones.
+				for (int pass = 0; pass < 2; pass++) {
+					bool known = pass == 0;
+					foreach (MapView.VisibleTile vT in tiles) {
+						if (vT.known == known && (!onlyOnScreen || visRegion.Contains(vT.x, vT.y))) {
+							layer.drawObject(this, gD, vT.tile, vT.tileCenter);
+						}
+					}
+				}
 				layer.onEndDraw(this, gD);
 			}
 
-			if (stopwatch.ElapsedMilliseconds > 100) {
-				log.Warning($"-> End draw: {stopwatch.ElapsedMilliseconds} milliseconds");
+			long elapsedMilliseconds = (Stopwatch.GetTimestamp() - start) * 1000 / Stopwatch.Frequency;
+			if (elapsedMilliseconds > 100) {
+				log.Warning($"-> End draw: {elapsedMilliseconds} milliseconds");
 			}
 
 			if (!gD.observerMode) {
-				foreach (FogOfWarLayer layer in layers.Where(layer => layer is FogOfWarLayer).Cast<FogOfWarLayer>()) {
-					for (int Y = visRegion.upperLeftY; Y < visRegion.lowerRightY; Y++) {
-						if (gD.map.isRowAt(Y)) {
-							for (int X = visRegion.getRowStartX(Y); X < visRegion.lowerRightX; X += 2) {
-								Tile tile = gD.map.tileAt(X, Y);
-								if (tile != Tile.NONE) {
-									VisibleTile invisibleTile = new VisibleTile {
-										tile = tile,
-										tileCenter = MapView.cellSize * new Vector2(X + 1, Y + 1)
-									};
-									layer.drawObject(this, gD, tile, invisibleTile.tileCenter);
-								}
-							}
+				foreach (LooseLayer layer in layers) {
+					if (layer is not FogOfWarLayer) {
+						continue;
+					}
+					foreach (MapView.VisibleTile vT in tiles) {
+						if (vT.tile != Tile.NONE && (!onlyOnScreen || visRegion.Contains(vT.x, vT.y))) {
+							layer.drawObject(this, gD, vT.tile, vT.tileCenter);
 						}
 					}
 				}
 			}
+
+			uiPlayer = null;
+			tileKnowledge = null;
 		});
 	}
 
-	private void GetVisibleTiles(MapView.VisibleRegion visRegion, GameData gD) {
-		for (int Y = visRegion.upperLeftY; Y < visRegion.lowerRightY; Y++) {
-			if (gD.map.isRowAt(Y)) {
-				for (int X = visRegion.getRowStartX(Y); X < visRegion.lowerRightX; X += 2) {
-					Tile tile = gD.map.tileAt(X, Y);
-					Vector2 tileCenter = MapView.cellSize * new Vector2(X + 1, Y + 1);
-					if (IsTileKnown(tile, gD)) {
-						visibleKnownTiles.Add(new VisibleTile {
-							tile = tile,
-							tileCenter = tileCenter
-						});
-					} else {
-						visibleUnKnownTiles.Add(new VisibleTile {
-							tile = tile,
-							tileCenter = tileCenter
-						});
-					}
-					tileCenters[tile] = tileCenter;
-				}
-			}
-		}
-	}
-
-	private static bool IsTileKnown(Tile tile, GameData gameData) {
-		if (gameData.observerMode) {
+	// Whether the UI's player knows the tile. Only valid while the view is being drawn.
+	public bool IsTileKnown(Tile tile) {
+		if (observerMode) {
 			return true;
 		}
-		TileKnowledge knowledge = gameData.GetUIControllerPlayer().tileKnowledge;
-		return tile != Tile.NONE && knowledge.isTileKnown(tile);
+		return tile != Tile.NONE && tileKnowledge.isTileKnown(tile);
 	}
 
 	public bool IsTileCoveredByTileInfo(Tile tile) {
@@ -634,7 +789,7 @@ public partial class MapView : Node2D {
 	// Specifies a rectangular block of tiles that are currently potentially on screen. Accessible through getVisibleRegion(). Tile coordinates
 	// are "virtual", i.e. "unwrapped", so there isn't necessarily a tile at each location. The region is intended to include the upper left
 	// coordinates but not the lower right ones. When iterating over all tiles in the region you must account for the fact that map rows are
-	// staggered, see LooseView._Draw for an example.
+	// staggered, see MapView.CollectVisibleTiles for an example.
 	public struct VisibleRegion {
 		public int upperLeftX, upperLeftY;
 		public int lowerRightX, lowerRightY;
@@ -642,6 +797,25 @@ public partial class MapView : Node2D {
 		public int getRowStartX(int y) {
 			return upperLeftX + (y - upperLeftY) % 2;
 		}
+
+		public readonly bool Contains(int X, int Y) {
+			return X >= upperLeftX && X < lowerRightX && Y >= upperLeftY && Y < lowerRightY;
+		}
+
+		// Whether every tile of the other region is also in this one. The regions' rows must also be staggered the same way.
+		public readonly bool Covers(VisibleRegion other) {
+			return upperLeftX <= other.upperLeftX && upperLeftY <= other.upperLeftY
+				&& lowerRightX >= other.lowerRightX && lowerRightY >= other.lowerRightY
+				&& ((upperLeftX - upperLeftY) - (other.upperLeftX - other.upperLeftY)) % 2 == 0;
+		}
+	}
+
+	// A tile in the drawn region and where to draw it. X and Y are the tile's virtual coordinates.
+	public struct VisibleTile {
+		public Tile tile;
+		public Vector2 tileCenter;
+		public int x, y;
+		public bool known;
 	}
 
 	public GridLayer gridLayer { get; private set; }
@@ -654,6 +828,27 @@ public partial class MapView : Node2D {
 	private TransportInfoBox transportInfoBox;
 	private LowerRightInfoBox lowerRightInfoBox;
 	private MiniMap miniMap;
+
+	// The region drawn by the views that are only redrawn when the map changes, and the tiles in it in drawing order.
+	public VisibleRegion drawnRegion { get; private set; }
+	private bool hasDrawnRegion = false;
+	private readonly List<VisibleTile> visibleTiles = new();
+	private bool visibleTilesStale = true;
+
+	// Bumped whenever something on the map may have changed. Layers use it to know when to recompute what they remember, such as city
+	// labels.
+	public int contentVersion { get; private set; } = 0;
+	private bool mapChanged = true;
+
+	// While the engine is busy (the AI is playing, animations are running) the game changes without telling the UI, so the map is redrawn
+	// every frame until a little after it is done. Things remembered against contentVersion are recomputed a few times a second meanwhile.
+	private const int BusyGraceFrames = 10;
+	private const double BusyRefreshSeconds = 0.25;
+	private int busyFramesLeft = 0;
+	private double busyRefreshTimer = 0;
+	private long lastProcessedMessageCount = -1;
+	private bool mapWasHidden = false;
+	private bool targetingViewDrawn = false;
 
 	public override void _Ready() {
 		lowerRightInfoBox = GetNode<LowerRightInfoBox>("/root/C7Game/CanvasLayer/Control/GameStatus/LowerRightInfoBox");
@@ -671,8 +866,7 @@ public partial class MapView : Node2D {
 
 	public override void _ExitTree() {
 		lowerRightInfoBox.CenterCameraOnActiveUnit -= OnCenterCameraOnUnit;
-		// A LAN client replaces the map view with each snapshot; take its
-		// pieces of the HUD with it.
+		// Take our pieces of the HUD with us.
 		miniMap.QueueFree();
 		transportInfoBox.QueueFree();
 	}
@@ -684,6 +878,8 @@ public partial class MapView : Node2D {
 		this.wrapHorizontally = wrapHorizontally;
 		this.wrapVertically = wrapVertically;
 
+		TerrainKinds.Clear();
+
 		// Set up our set of views, and the layers within each view.
 		//
 		// The drawing order within a view matches the order of `layers`, so
@@ -693,7 +889,7 @@ public partial class MapView : Node2D {
 		// LooseView objects to get the ordering correct between textures and
 		// nodes. Without this unit health bars (which are textures) would
 		// be drawn behind cities (which are child nodes).
-		LooseView terrainView = new(this);
+		LooseView terrainView = new(this, LooseView.RedrawPolicy.WhenMapChanges);
 		terrainView.layers.Add(new TerrainLayer());
 		terrainView.layers.Add(new RiverLayer());
 		terrainView.layers.Add(new ForestLayer());
@@ -707,21 +903,21 @@ public partial class MapView : Node2D {
 		terrainView.layers.Add(new BuildingLayer());
 		terrainView.layers.Add(new BorderLayer());
 
-		LooseView cityView = new(this);
+		LooseView cityView = new(this, LooseView.RedrawPolicy.WhenMapChanges);
 		this.cityLayer = new();
 		cityView.layers.Add(this.cityLayer);
 
-		LooseView tileAssignmentView = new(this);
+		LooseView tileAssignmentView = new(this, LooseView.RedrawPolicy.WhenMapChanges);
 		this.tileAssignmentLayer = new();
 		tileAssignmentView.layers.Add(this.tileAssignmentLayer);
 
-		LooseView fogOfWarView = new(this);
+		LooseView fogOfWarView = new(this, LooseView.RedrawPolicy.WhenMapChanges);
 		fogOfWarView.layers.Add(new FogOfWarLayer());
 
-		LooseView unitView = new(this);
+		LooseView unitView = new(this, LooseView.RedrawPolicy.WhileTargeting);
 		unitView.layers.Add(new GotoLayer());
 		unitView.layers.Add(new BombardLayer());
-		LooseView otherView = new(this);
+		LooseView otherView = new(this, LooseView.RedrawPolicy.EveryFrame);
 		otherView.layers.Add(new UnitLayer());
 
 		AddChild(terrainView);
@@ -742,12 +938,184 @@ public partial class MapView : Node2D {
 		looseViews.Add(otherView);
 	}
 
-	public override void _Process(double delta) {
-		// Redraw everything. This is necessary so that animations play. Maybe we could only update the unit layer but long term I think it's
-		// better to redraw everything every frame like a typical modern video game.
+	// Tells the map that what's on it may have changed, e.g. after the engine sent the UI a message.
+	public void InvalidateMap() {
+		++contentVersion;
+		mapChanged = true;
+	}
+
+	// Whether this map view can show the given map, as when a LAN client receives a snapshot of the same game.
+	public bool CanShow(GameMap map) {
+		return map.numTilesWide == mapWidth && map.numTilesTall == mapHeight
+			&& map.wrapHorizontally == wrapHorizontally && map.wrapVertically == wrapVertically;
+	}
+
+	// Points the map at new game data with the same map, e.g. a LAN snapshot, keeping the camera where it is.
+	public void RebindToGameData(GameData gameData) {
+		TerrainKinds.Clear();
 		foreach (LooseView looseView in looseViews) {
-			looseView.QueueRedraw();
+			foreach (LooseLayer layer in looseView.layers) {
+				layer.onGameDataReplaced(gameData);
+			}
 		}
+		visibleTilesStale = true;
+		InvalidateMap();
+	}
+
+	public override void _Process(double delta) {
+		if (game == null) {
+			return;
+		}
+
+		// Nothing to draw while the map is hidden; catch up once it's back.
+		bool hidden = game.IsMapHidden;
+		if (hidden) {
+			mapWasHidden = true;
+		} else if (mapWasHidden) {
+			mapWasHidden = false;
+			InvalidateMap();
+		}
+
+		// Any message the engine processed may have changed the map.
+		long processedMessageCount = EngineStorage.processedMessageCount;
+		if (processedMessageCount != lastProcessedMessageCount) {
+			lastProcessedMessageCount = processedMessageCount;
+			InvalidateMap();
+		}
+
+		if (game.MapMayChangeWithoutNotice) {
+			busyFramesLeft = BusyGraceFrames;
+		}
+		if (busyFramesLeft > 0) {
+			--busyFramesLeft;
+			mapChanged = true;
+			busyRefreshTimer += delta;
+			if (busyRefreshTimer >= BusyRefreshSeconds) {
+				busyRefreshTimer = 0;
+				++contentVersion;
+			}
+		} else {
+			busyRefreshTimer = 0;
+		}
+
+		UpdateDrawnRegion();
+
+		if (mapChanged) {
+			visibleTilesStale = true;
+		}
+
+		foreach (LooseView looseView in looseViews) {
+			switch (looseView.redrawPolicy) {
+				case LooseView.RedrawPolicy.WhenMapChanges:
+					if (hidden) {
+						break;
+					}
+					if (looseView.TakeRedrawRequest() || mapChanged) {
+						looseView.QueueRedraw();
+					}
+					break;
+				case LooseView.RedrawPolicy.WhileTargeting:
+					// Redraw once more after targeting ends to clear what was drawn.
+					bool targeting = !hidden && (game.gotoInfo != null || game.bombardInfo != null);
+					if (targeting || targetingViewDrawn) {
+						looseView.QueueRedraw();
+					}
+					targetingViewDrawn = targeting;
+					break;
+				default:
+					// Units animate, so they're drawn every frame.
+					looseView.QueueRedraw();
+					break;
+			}
+		}
+
+		if (!hidden) {
+			mapChanged = false;
+		}
+	}
+
+	// Makes sure the drawn region covers the screen, moving it and queueing redraws if not. The drawn region is bigger than the screen so
+	// that small camera moves don't require redrawing, but not so much bigger that it's wasteful.
+	private void UpdateDrawnRegion() {
+		VisibleRegion visible = getVisibleRegion();
+		int padX = Math.Max(4, (visible.lowerRightX - visible.upperLeftX) / 16 * 2);
+		int padY = Math.Max(4, (visible.lowerRightY - visible.upperLeftY) / 16 * 2);
+
+		if (hasDrawnRegion) {
+			VisibleRegion drawn = drawnRegion;
+			bool tooBig = (drawn.lowerRightX - drawn.upperLeftX) > (visible.lowerRightX - visible.upperLeftX) + 4 * padX
+				|| (drawn.lowerRightY - drawn.upperLeftY) > (visible.lowerRightY - visible.upperLeftY) + 4 * padY;
+			if (drawn.Covers(visible) && !tooBig) {
+				return;
+			}
+		}
+
+		drawnRegion = new VisibleRegion {
+			upperLeftX = visible.upperLeftX - padX,
+			upperLeftY = visible.upperLeftY - padY,
+			lowerRightX = visible.lowerRightX + padX,
+			lowerRightY = visible.lowerRightY + padY,
+		};
+		hasDrawnRegion = true;
+		visibleTilesStale = true;
+
+		foreach (LooseView looseView in looseViews) {
+			if (looseView.redrawPolicy == LooseView.RedrawPolicy.WhenMapChanges) {
+				looseView.QueueRedraw();
+			}
+		}
+	}
+
+	// Returns the tiles in the drawn region, collecting them if needed. If onScreen is given, the drawn region is first made to cover it.
+	public List<VisibleTile> GetVisibleTiles(GameData gameData, VisibleRegion? onScreen) {
+		if (!hasDrawnRegion || (onScreen.HasValue && !drawnRegion.Covers(onScreen.Value))) {
+			UpdateDrawnRegion();
+		}
+		if (visibleTilesStale) {
+			CollectVisibleTiles(gameData);
+			visibleTilesStale = false;
+		}
+		return visibleTiles;
+	}
+
+	private void CollectVisibleTiles(GameData gD) {
+		visibleTiles.Clear();
+
+		TileKnowledge knowledge = gD.observerMode ? null : gD.GetUIControllerPlayer().tileKnowledge;
+		VisibleRegion region = drawnRegion;
+		for (int Y = region.upperLeftY; Y < region.lowerRightY; Y++) {
+			if (gD.map.isRowAt(Y)) {
+				for (int X = region.getRowStartX(Y); X < region.lowerRightX; X += 2) {
+					Tile tile = gD.map.tileAt(X, Y);
+					visibleTiles.Add(new VisibleTile {
+						tile = tile,
+						tileCenter = cellSize * new Vector2(X + 1, Y + 1),
+						x = X,
+						y = Y,
+						known = knowledge == null || (tile != Tile.NONE && knowledge.isTileKnown(tile)),
+					});
+				}
+			}
+		}
+	}
+
+	// Returns the center of the tile, in map coordinates, at whichever of its wrapped positions is closest to the reference point.
+	public Vector2 NearestTileCenter(Tile tile, Vector2 reference) {
+		Vector2 center = cellSize * new Vector2(tile.XCoordinate + 1, tile.YCoordinate + 1);
+		if (wrapHorizontally && mapWidth > 0) {
+			float period = mapWidth * cellSize.X;
+			center.X += Mathf.Round((reference.X - center.X) / period) * period;
+		}
+		if (wrapVertically && mapHeight > 0) {
+			float period = mapHeight * cellSize.Y;
+			center.Y += Mathf.Round((reference.Y - center.Y) / period) * period;
+		}
+		return center;
+	}
+
+	// The point at the middle of the screen, in map coordinates.
+	public Vector2 CameraCenterInMap() {
+		return (cameraLocation + getVisibleAreaSize() / 2) / cameraZoom;
 	}
 
 	// Returns the size in pixels of the area in which the map will be drawn. This is the viewport size or, if that's null, the window size.
@@ -837,6 +1205,9 @@ public partial class MapView : Node2D {
 		foreach (LooseView looseView in looseViews) {
 			looseView.Position = -location;
 		}
+
+		// Draw any newly uncovered part of the map this frame.
+		UpdateDrawnRegion();
 	}
 
 	public Vector2 screenLocationOfTileCoords(int X, int Y, bool center = true) {

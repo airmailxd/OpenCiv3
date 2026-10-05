@@ -3,6 +3,7 @@ using ConvertCiv3Media;
 using Godot;
 using Serilog;
 using System;
+using System.Collections.Generic;
 
 namespace C7.Map {
 	public record struct CityGraphicsDetails(
@@ -15,6 +16,9 @@ namespace C7.Map {
 	public partial class CityScene : Node2D {
 		private ILogger log = LogManager.ForContext<CityScene>();
 
+		// City textures depend only on the graphics details, so all cities share them.
+		private static readonly Dictionary<CityGraphicsDetails, ImageTexture> cityTextures = new();
+
 		private ImageTexture cityTexture;
 		private TextureRect cityGraphics = new TextureRect();
 		private CityLabelScene cityLabelScene;
@@ -23,8 +27,20 @@ namespace C7.Map {
 		private CityGraphicsDetails cachedDetails;
 		private Vector2I tileCenter;
 
+		// The MapView.contentVersion the city was last refreshed for.
+		private int refreshedVersion;
+		private bool refreshed = false;
+
+		// Lets the CityLayer find the cities that weren't drawn.
+		internal int lastDrawnPass;
+
 		private AnimatedSprite2D disorderSprite;
 		private static SpriteFrames disorderFrames = TextureLoader.LoadAnimation("animations.disorder", "disorder");
+
+		// Textures can differ between games, so they're forgotten when a new map view is made.
+		public static void ClearTextureCache() {
+			cityTextures.Clear();
+		}
 
 		public CityScene(City city) {
 			cityLabelScene = new CityLabelScene(city);
@@ -41,23 +57,57 @@ namespace C7.Map {
 			disorderSprite.SpriteFrames = disorderFrames;
 			disorderSprite.Animation = "disorder";
 			disorderSprite.Position = tileCenter + new Vector2(0, -32);
+			disorderSprite.Visible = false;
 			AddChild(disorderSprite);
-			disorderSprite.Play("disorder");
 		}
 
-		public override void _Draw() {
-			base._Draw();
-			cityLabelScene._Draw();
+		// Points the scene at the same city in new game data, e.g. a LAN snapshot.
+		public void Rebind(City city) {
+			this.city = city;
+			this.rules = city.owner.rules;
+			cityLabelScene.Rebind(city);
+			refreshed = false;
+		}
 
-			if (cachedDetails != GetCityGraphicsDetails(city)) {
-				cachedDetails = GetCityGraphicsDetails(city);
+		// Updates the city's graphics and label, unless the map hasn't changed since the last update.
+		public void Refresh(int contentVersion) {
+			if (refreshed && contentVersion == refreshedVersion) {
+				return;
+			}
+			refreshed = true;
+			refreshedVersion = contentVersion;
+
+			cityLabelScene.UpdateContent();
+
+			CityGraphicsDetails details = GetCityGraphicsDetails(city);
+			if (cachedDetails != details) {
+				cachedDetails = details;
 				ConfigureCityGraphics(cachedDetails);
+				PositionCityGraphics();
 			}
 
-			if (city.isInCivilDisorder) {
-				disorderSprite.Show();
-			} else {
-				disorderSprite.Hide();
+			UpdateDisorder();
+		}
+
+		// Shows or hides the whole scene, e.g. when the city is off screen.
+		public void SetShown(bool shown) {
+			if (Visible == shown) {
+				return;
+			}
+			Visible = shown;
+			UpdateDisorder();
+		}
+
+		// The disorder animation only plays while it can be seen.
+		private void UpdateDisorder() {
+			bool inDisorder = city.isInCivilDisorder;
+			disorderSprite.Visible = inDisorder;
+			if (inDisorder && Visible) {
+				if (!disorderSprite.IsPlaying()) {
+					disorderSprite.Play("disorder");
+				}
+			} else if (disorderSprite.IsPlaying()) {
+				disorderSprite.Pause();
 			}
 		}
 
@@ -65,8 +115,11 @@ namespace C7.Map {
 			this.tileCenter = tileCenter;
 
 			disorderSprite.Position = tileCenter + new Vector2(0, -32);
-			cityLabelScene.tileCenter = tileCenter;
+			cityLabelScene.SetTileCenter(tileCenter);
+			PositionCityGraphics();
+		}
 
+		private void PositionCityGraphics() {
 			cityGraphics.Position = new(
 				tileCenter.X - (float)0.5 * cityTexture.GetWidth(),
 				tileCenter.Y - (float)0.5 * cityTexture.GetHeight()
@@ -76,13 +129,14 @@ namespace C7.Map {
 		private CityGraphicsDetails GetCityGraphicsDetails(City c) {
 			CityGraphicsDetails result = new() {
 				sizeRank = 0,
-				hasWalls = c.HasWalls(),
+				hasWalls = false,
 			};
 			if (c.residents.Count > rules.MaximumLevel1CitySize) {
 				++result.sizeRank;
 
 				// Walls are only displayed for towns, not cities or metropolises
-				result.hasWalls = false;
+			} else {
+				result.hasWalls = c.HasWalls();
 			}
 			if (c.residents.Count > rules.MaximumLevel2CitySize) {
 				++result.sizeRank;
@@ -93,7 +147,10 @@ namespace C7.Map {
 
 		//TODO: Support multiple city flavors and walls.
 		private void ConfigureCityGraphics(CityGraphicsDetails details) {
-			cityTexture = TextureLoader.Load("cities", details);
+			if (!cityTextures.TryGetValue(details, out cityTexture)) {
+				cityTexture = TextureLoader.Load("cities", details);
+				cityTextures[details] = cityTexture;
+			}
 
 			cityGraphics.MouseFilter = Control.MouseFilterEnum.Ignore;
 			cityGraphics.Texture = cityTexture;

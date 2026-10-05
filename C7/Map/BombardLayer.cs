@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using C7GameData;
 using Godot;
 
@@ -14,7 +13,15 @@ public partial class BombardLayer : LooseLayer {
 	private Color bombardRed = Color.Color8(200, 0, 0, 225);
 	private float bombardGridLineWidth = (float)1.0;
 
-	private Dictionary<string, List<Tile>> tileSquareCache = new();
+	private Dictionary<(Tile tile, int range), List<Tile>> tileSquareCache = new();
+
+	// The tiles the unit can bombard, worked out again only when the bombarding unit, its tile or range, or the map changes.
+	private readonly HashSet<Tile> bombardTiles = new();
+	private (BombardInfo info, Tile tile, int range, int contentVersion) bombardTilesKey;
+
+	// The cursor last set for the current bombard, so it's only set when it changes.
+	private BombardInfo cursorInfo = null;
+	private ImageTexture cursorTexture = null;
 
 	public BombardLayer() {
 		bombardCursorTexture = TextureLoader.Load("ui.cursor.bombard");
@@ -28,9 +35,28 @@ public partial class BombardLayer : LooseLayer {
 		Input.SetCustomMouseCursor(bombardDenyCursorTexture, hotspot: bombardDenyCursorTexture.Center());
 	}
 
+	private void SetCursor(BombardInfo bombardInfo, ImageTexture texture) {
+		if (cursorInfo == bombardInfo && cursorTexture == texture) {
+			return;
+		}
+		cursorInfo = bombardInfo;
+		cursorTexture = texture;
+		if (texture == bombardCursorTexture) {
+			DrawBombardCursor();
+		} else {
+			DrawBombardDenyCursor();
+		}
+	}
+
 	public override void onBeginDraw(LooseView looseView, GameData gameData) {
 		bombardCursorRect?.Hide();
 		bombardDenyCursorRect?.Hide();
+	}
+
+	public override void onGameDataReplaced(GameData gameData) {
+		tileSquareCache.Clear();
+		bombardTiles.Clear();
+		bombardTilesKey = default;
 	}
 
 	public override void drawObject(LooseView looseView, GameData gameData, Tile tile, Vector2 tileCenter) {
@@ -41,17 +67,26 @@ public partial class BombardLayer : LooseLayer {
 		var unit = bombardInfo.bombardingUnit;
 		var range = unit.unitType.bombardRange;
 		var reachableTiles = GetTileSquare(tile, range);
-		var targetTiles = reachableTiles.Where(t => unit.CanBombardTile(t));
-		var bombardTiles = targetTiles.ToHashSet();
+
+		var key = (bombardInfo, tile, range, looseView.mapView.contentVersion);
+		if (key != bombardTilesKey) {
+			bombardTilesKey = key;
+			bombardTiles.Clear();
+			foreach (Tile t in reachableTiles) {
+				if (unit.CanBombardTile(t)) {
+					bombardTiles.Add(t);
+				}
+			}
+		}
 
 		// Choose one of two cursors depending on mouse tile hover
 		if (bombardInfo.mouseTile != null) {
 			var bombardable = bombardTiles.Contains(bombardInfo.mouseTile);
 			if (bombardable) {
-				DrawBombardCursor();
+				SetCursor(bombardInfo, bombardCursorTexture);
 				drawTargetBombardTile(looseView, TileCenter(bombardInfo.mouseTile));
 			} else
-				DrawBombardDenyCursor();
+				SetCursor(bombardInfo, bombardDenyCursorTexture);
 		}
 
 		// Draw bombard grid
@@ -61,11 +96,12 @@ public partial class BombardLayer : LooseLayer {
 	}
 
 	private List<Tile> GetTileSquare(Tile tile, int range) {
-		var key = $"{tile.Id}_{range}";
+		var key = (tile, range);
 		if (tileSquareCache.TryGetValue(key, out var square))
 			return square;
-		tileSquareCache[key] = tile.GetTilesWithinTileSquare(range);
-		return tileSquareCache[key];
+		square = tile.GetTilesWithinTileSquare(range);
+		tileSquareCache[key] = square;
+		return square;
 	}
 
 	private static Vector2 TileCenter(Tile bt) {

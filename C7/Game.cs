@@ -303,25 +303,31 @@ public partial class Game : Node {
 		EngineStorage.ReadGameData((GameData gameData) => {
 			GameMap map = gameData.map;
 
-			Vector2? cameraLocation = null;
-			float cameraZoom = 1.0f;
-			if (mapView != null) {
-				cameraLocation = mapView.cameraLocation;
-				cameraZoom = mapView.cameraZoom;
-				RemoveChild(mapView);
-				mapView.QueueFree();
-			}
-
-			mapView = new MapView(this, map.numTilesWide, map.numTilesTall, map.wrapHorizontally, map.wrapVertically);
-			AddChild(mapView);
-
-			mapView.cameraZoom = cameraZoom;
-			mapView.gridLayer.visible = false;
-
-			if (!cameraLocation.HasValue) {
-				CenterCameraOnController();
+			if (mapView != null && mapView.CanShow(map)) {
+				// A LAN snapshot of the same game: keep the map view, and
+				// with it the camera, and point it at the new game data.
+				mapView.RebindToGameData(gameData);
 			} else {
-				mapView.cameraLocation = cameraLocation.Value;
+				Vector2? cameraLocation = null;
+				float cameraZoom = 1.0f;
+				if (mapView != null) {
+					cameraLocation = mapView.cameraLocation;
+					cameraZoom = mapView.cameraZoom;
+					RemoveChild(mapView);
+					mapView.QueueFree();
+				}
+
+				mapView = new MapView(this, map.numTilesWide, map.numTilesTall, map.wrapHorizontally, map.wrapVertically);
+				AddChild(mapView);
+
+				mapView.cameraZoom = cameraZoom;
+				mapView.gridLayer.visible = false;
+
+				if (!cameraLocation.HasValue) {
+					CenterCameraOnController();
+				} else {
+					mapView.cameraLocation = cameraLocation.Value;
+				}
 			}
 
 			// Allow the city screen to control whether tile assignments
@@ -399,6 +405,8 @@ public partial class Game : Node {
 	private void OnLanSnapshot(C7GameData.Save.SaveGame save) {
 		Stopwatch applyTime = Stopwatch.StartNew();
 		GameData gameData = CreateGame.ReplaceWithSnapshot(save, Global.GameMode.behaviors);
+		// Textures looked up by game object would otherwise keep the old game's
+		// objects alive; the map looks up terrain textures by value.
 		TextureLoader.ForgetGameObjects();
 		// A spectator sees the whole map.
 		gameData.observerMode = LanSession.IsSpectator;
@@ -611,6 +619,9 @@ public partial class Game : Node {
 	public void HandleEngineMessage(MessageToUI msg) {
 		GameData gameData = EngineStorage.gameData;
 
+		// Whatever the engine tells us about may have changed the map.
+		mapView?.InvalidateMap();
+
 		// Hold messages for a human player who isn't at the screen (for
 		// example barbarians raiding them during the AI turns) until they are.
 		if (!LanSession.IsActive && msg.recipient != null && msg.recipient.isHuman && msg.recipient.id != controller.id) {
@@ -810,18 +821,44 @@ public partial class Game : Node {
 		turnsLeftToFastForward = 0;
 	}
 
+	// How long a frame may spend handling the engine's messages to the UI.
+	private static readonly long uiMessageBudgetTicks = Stopwatch.Frequency * 4 / 1000;
+
 	public override void _Process(double delta) {
 		PollLanSession();
 		ProcessActions();
 
+		// The engine waits for animations to finish before going on.
 		if (!EngineStorage.HasPendingAnimations())
 			EngineStorage.ProcessNextMessageToEngine();
 
-		if (EngineStorage.TryDequeueNextMessageToUI(out MessageToUI msg))
+		// Handle the waiting messages to the UI, as many as fit in the frame's
+		// budget. None of them start animations (those have their own queue),
+		// so there's no need to pace them.
+		long start = Stopwatch.GetTimestamp();
+		bool handledMessage = false;
+		while (EngineStorage.TryDequeueNextMessageToUI(out MessageToUI msg)) {
 			HandleEngineMessage(msg);
-		else
+			handledMessage = true;
+			if (Stopwatch.GetTimestamp() - start >= uiMessageBudgetTicks) {
+				break;
+			}
+		}
+		if (!handledMessage)
 			ReplayHeldMessage();
 	}
+
+	// Whether the hotseat curtain hides the whole map.
+	public bool IsMapHidden => hotseatHandoff != null;
+
+	// Whether the game may change without the UI being told, i.e. while the
+	// AI plays, animations run, or the engine has messages to process. The
+	// map is redrawn every frame while this is true. A LAN client's game only
+	// changes with the host's snapshots and messages, which it is told about.
+	public bool MapMayChangeWithoutNotice =>
+		(CurrentState == GameState.ComputerTurn && !LanSession.IsClient)
+		|| EngineStorage.HasPendingAnimations()
+		|| EngineStorage.HasPendingMessagesToEngine();
 
 	// Shows messages that were held for the UI controller while another
 	// player had the screen, one popup at a time, once their turn is underway.
@@ -1081,6 +1118,7 @@ public partial class Game : Node {
 			// screen and the advisors show that civilization.
 			controller = tile.cityAtTile.owner;
 			EngineStorage.uiControllerID = controller.id;
+			mapView.InvalidateMap();
 		}
 		if (tile?.cityAtTile?.owner == controller) {
 			EngineStorage.ReadGameData((GameData gameData) => {
@@ -1158,6 +1196,8 @@ public partial class Game : Node {
 
 	public void ShowTileInfo(Tile tile) {
 		tileInfo = new TileInfo(tile);
+		// The fog and cities around the tile are drawn differently under the box.
+		mapView.InvalidateMap();
 		var zoom = mapView.cameraZoom;
 		var tileCenter = mapView.screenLocationOfTile(tile, true);
 		var tileInfoPopup = new TileInfoPopup(this, tile, tileCenter, zoom);
@@ -1166,6 +1206,7 @@ public partial class Game : Node {
 
 	public void HideTileInfo() {
 		tileInfo = null;
+		mapView.InvalidateMap();
 		popupOverlay.OnHidePopup();
 	}
 
@@ -1298,6 +1339,8 @@ public partial class Game : Node {
 				SetObserverModeOff(gameData);
 			}
 		});
+		// Observers see the whole map.
+		mapView.InvalidateMap();
 	}
 
 	// The human players to restore when observer mode is turned off.
@@ -1329,6 +1372,7 @@ public partial class Game : Node {
 		EngineStorage.ReadGameData((GameData gameData) => {
 			gameData.showGridCoordinates = !gameData.showGridCoordinates;
 		});
+		mapView.InvalidateMap();
 	}
 
 	private void HandleMagnifyGesture(InputEventMagnifyGesture magnifyGesture) {
@@ -1337,16 +1381,28 @@ public partial class Game : Node {
 		mapView.setCameraZoom((float)newScale, magnifyGesture.Position);
 	}
 
-	private void ProcessActions() {
-		Godot.Collections.Array<StringName> actions = InputMap.GetActions();
+	// The input actions and their names, fetched once rather than every frame.
+	private StringName[] inputActions;
+	private string[] inputActionNames;
 
-		foreach (StringName action in actions) {
+	private void ProcessActions() {
+		if (inputActions == null) {
+			Godot.Collections.Array<StringName> actions = InputMap.GetActions();
+			inputActions = new StringName[actions.Count];
+			inputActionNames = new string[actions.Count];
+			for (int i = 0; i < actions.Count; i++) {
+				inputActions[i] = actions[i];
+				inputActionNames[i] = actions[i].ToString();
+			}
+		}
+
+		for (int i = 0; i < inputActions.Length; i++) {
 			// Match modifiers exactly, so that Shift+Enter or Ctrl+L don't also
 			// trigger the actions bound to plain Enter or L.
-			if (Input.IsActionJustPressed(action, exactMatch: true)) {
-				ProcessAction(action.ToString());
-			} else if (Input.IsActionJustReleased(action)) {
-				ProcessOnReleaseAction(action.ToString());
+			if (Input.IsActionJustPressed(inputActions[i], exactMatch: true)) {
+				ProcessAction(inputActionNames[i]);
+			} else if (Input.IsActionJustReleased(inputActions[i])) {
+				ProcessOnReleaseAction(inputActionNames[i]);
 			}
 		}
 	}
