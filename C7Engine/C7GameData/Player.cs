@@ -801,9 +801,22 @@ namespace C7GameData {
 		/// <param name="inQueue">The techs in tempQueue, for fast lookups. Must start out matching tempQueue.</param>
 		/// <returns></returns>
 		private Queue<Tech> GetResearchQueueFor(Tech tech, Queue<Tech> tempQueue, HashSet<Tech> inQueue) {
+			return GetResearchQueueFor(tech, tempQueue, inQueue, new HashSet<Tech>());
+		}
+
+		// expanded holds the techs this has already been called for. Once a
+		// call for a tech returns, every unknown tech it leads back to is in
+		// the queue, so calling it again would add nothing; skipping it keeps
+		// a tech tree with many paths to the same tech (which the full tree
+		// has) from being walked once per path, without changing the result.
+		private Queue<Tech> GetResearchQueueFor(Tech tech, Queue<Tech> tempQueue, HashSet<Tech> inQueue, HashSet<Tech> expanded) {
 
 			if (tech == null) {
 				return new Queue<Tech>();
+			}
+
+			if (!expanded.Add(tech)) {
+				return tempQueue;
 			}
 
 			List<Tech> requiredTechs = OrderTechs(tech.Prerequisites);
@@ -826,7 +839,7 @@ namespace C7GameData {
 			foreach (Tech t in requiredTechs) {
 				if (!knownTechs.Contains(t.id)) {
 					if (t.Prerequisites.Count > 0) {
-						GetResearchQueueFor(t, tempQueue, inQueue);
+						GetResearchQueueFor(t, tempQueue, inQueue, expanded);
 					}
 				}
 			}

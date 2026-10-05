@@ -36,23 +36,42 @@ namespace C7GameData {
 		}
 
 		// An index from id to tech over one list of techs. Immutable; it is
-		// replaced as a whole when a different list is looked up in.
+		// replaced as a whole when a different list is looked up in, or when
+		// the list has changed since it was built.
+		//
+		// Contract: the index notices any change made to the list itself
+		// (through List's own methods), but not a change to a tech already
+		// in it. Don't change the id or EnablesBridges of a tech once it is
+		// in the game's list; replace the tech instead. As a safety net, a
+		// lookup whose result no longer matches rebuilds the index once.
 		private sealed class TechIndex {
 			internal List<Tech> techs;
 			internal int count;
+			// An enumerator taken when the index was built. List enumerators
+			// are documented to throw once the list has been modified, which
+			// gives an O(1) check that the list is unchanged, including edits
+			// that keep its size (like replacing an entry).
+			internal List<Tech>.Enumerator version;
 			internal Dictionary<ID, Tech> byId;
 			internal Tech firstWithNullId;
 			internal Tech bridgeTech;
+
+			internal bool IsValidFor(List<Tech> list) {
+				if (!ReferenceEquals(techs, list) || count != list.Count) {
+					return false;
+				}
+				return CollectionVersion.Unchanged(version);
+			}
 		}
 
 		private static TechIndex index;
 
-		private static TechIndex IndexFor(List<Tech> techs) {
+		private static TechIndex IndexFor(List<Tech> techs, bool rebuild = false) {
 			TechIndex result = index;
-			if (result != null && ReferenceEquals(result.techs, techs) && result.count == techs.Count) {
+			if (!rebuild && result != null && result.IsValidFor(techs)) {
 				return result;
 			}
-			result = new TechIndex { techs = techs, count = techs.Count, byId = new() };
+			result = new TechIndex { techs = techs, count = techs.Count, version = techs.GetEnumerator(), byId = new() };
 			foreach (Tech t in techs) {
 				// Keep the first of any duplicates, like List.Find does.
 				if (t == null) {
@@ -72,34 +91,35 @@ namespace C7GameData {
 		}
 
 		// The same as techs.Find(t => t.id == id), in O(1) for the list of
-		// techs in the game.
+		// techs in the game (see the contract on TechIndex).
 		public static Tech FindById(List<Tech> techs, ID id) {
 			if (techs == null) {
 				return null;
 			}
-			// The index is checked against the list's identity and size. As
-			// a last line of defence against the list being edited in place,
-			// a hit must still have the right id, or we fall back to a scan.
-			TechIndex techIndex = IndexFor(techs);
+			Tech tech = LookUpById(IndexFor(techs), id);
+			if (tech != null && tech.id != id) {
+				// A tech's id was changed in place: rebuild the index once.
+				tech = LookUpById(IndexFor(techs, rebuild: true), id);
+			}
+			return tech;
+		}
+
+		private static Tech LookUpById(TechIndex techIndex, ID id) {
 			if (id is null) {
 				return techIndex.firstWithNullId;
 			}
-			if (!techIndex.byId.TryGetValue(id, out Tech tech)) {
-				return null;
-			}
-			if (tech.id == id) {
-				return tech;
-			}
-			return techs.Find(t => t?.id == id);
+			return techIndex.byId.GetValueOrDefault(id);
 		}
 
-		// The same as techs.FirstOrDefault(t => t.EnablesBridges).
+		// The same as techs.FirstOrDefault(t => t.EnablesBridges), in O(1)
+		// (see the contract on TechIndex).
 		public static Tech FindBridgeTech(List<Tech> techs) {
 			Tech tech = IndexFor(techs).bridgeTech;
-			if (tech == null || tech.EnablesBridges) {
-				return tech;
+			if (tech != null && !tech.EnablesBridges) {
+				// A tech's flag was changed in place: rebuild the index once.
+				tech = IndexFor(techs, rebuild: true).bridgeTech;
 			}
-			return techs.Find(t => t.EnablesBridges);
+			return tech;
 		}
 
 		public void FillInPrereqs(List<SaveTech> saveTechs, List<Tech> techs) {
