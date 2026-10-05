@@ -148,7 +148,7 @@ namespace C7GameData {
 			internal readonly HashSet<Building> cityBuildings = new();
 
 			// The rest are filled in when first needed.
-			private HashSet<string> namesBeingProducedByEmpire;
+			private HashSet<string> namesBeingProducedByOtherCities;
 			private HashSet<Building> builtByEmpire;
 			private HashSet<IProducible> producedByOtherCities;
 			private int armyCount = -1;
@@ -160,18 +160,19 @@ namespace C7GameData {
 				}
 			}
 
-			// Whether any of the owner's cities, including this one, is
-			// producing something with the given name.
-			internal bool EmpireIsProducing(string name) {
-				if (namesBeingProducedByEmpire == null) {
-					namesBeingProducedByEmpire = new();
+			// Whether another of the owner's cities is producing something
+			// with the given name. This city is excluded, so a wonder it is
+			// building stays among its own options.
+			internal bool OtherCityIsProducingNamed(string name) {
+				if (namesBeingProducedByOtherCities == null) {
+					namesBeingProducedByOtherCities = new();
 					foreach (City c in city.owner.cities) {
-						if (c.itemBeingProduced != null) {
-							namesBeingProducedByEmpire.Add(c.itemBeingProduced.name);
+						if (c != city && c.itemBeingProduced != null) {
+							namesBeingProducedByOtherCities.Add(c.itemBeingProduced.name);
 						}
 					}
 				}
-				return namesBeingProducedByEmpire.Contains(name);
+				return namesBeingProducedByOtherCities.Contains(name);
 			}
 
 			// Whether any of the owner's cities has built the building.
@@ -235,14 +236,15 @@ namespace C7GameData {
 				}
 
 				// We can't build a great wonder if another one of our cities is
-				// building it.
+				// building it. This city building it doesn't count, or the
+				// wonder would vanish from its own list of options.
 				if (context != null) {
-					if (context.EmpireIsProducing(name)) {
+					if (context.OtherCityIsProducingNamed(name)) {
 						return false;
 					}
 				} else {
 					foreach (City c in city.owner.cities) {
-						if (c.itemBeingProduced != null && c.itemBeingProduced.name == name) {
+						if (c != city && c.itemBeingProduced != null && c.itemBeingProduced.name == name) {
 							return false;
 						}
 					}

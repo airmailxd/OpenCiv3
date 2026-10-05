@@ -246,8 +246,8 @@ public class PerfEconomyTests {
 		Assert.True(cathedral.CanProduce(city, new()));
 		Assert.False(academy.CanProduce(city, new()));
 		Assert.False(pentagon.CanProduce(city, new()));
-		// The empire is building it, even if it's this city.
-		Assert.False(pyramids.CanProduce(city, new()));
+		// This city building it doesn't take it off its own options.
+		Assert.True(pyramids.CanProduce(city, new()));
 
 		other.SetItemBeingProduced(colossus);
 		AssertAgree();

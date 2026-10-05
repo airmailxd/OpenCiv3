@@ -55,12 +55,39 @@ namespace C7GameData {
 		public int foodStored = 0;
 
 		public bool capital = false;
-		public Player owner { get; set; }
+
+		// Changing hands changes the buildings of both players, which tells
+		// the caches derived from them (see Player.GetBuildingSnapshot).
+		public Player owner {
+			get => _owner;
+			set {
+				Player previous = _owner;
+				_owner = value;
+				if (!ReferenceEquals(previous, value)) {
+					previous?.OnBuildingsChanged();
+					value?.OnBuildingsChanged();
+				}
+			}
+		}
+		private Player _owner;
+
 		public List<CityResident> residents = new List<CityResident>();
 
 		// The list of buildings built in this city. You probably want to use
 		// GetBuildings, which can also include buildings granted by wonders.
-		public List<CityBuilding> constructed_buildings;
+		//
+		// Change it through AddBuilding and RemoveBuilding, or by assigning a
+		// new list, so the owner's caches hear of it. (This city's own cache
+		// also notices the list being changed directly, but the owner's
+		// empire-wide one doesn't.)
+		public List<CityBuilding> constructed_buildings {
+			get => _constructedBuildings;
+			set {
+				_constructedBuildings = value;
+				_owner?.OnBuildingsChanged();
+			}
+		}
+		private List<CityBuilding> _constructedBuildings;
 
 		// The order of this city within all the cities of a player for the
 		// purposes of rank corruption calculations.
@@ -154,30 +181,21 @@ namespace C7GameData {
 				this.shieldsStored = shields;
 		}
 
-		// Bumped by every AddBuilding and RemoveBuilding, in any city. Caches
-		// derived from city buildings compare against it, so they are
-		// invalidated even when a building is swapped for another without
-		// the number of buildings changing.
-		private static long buildingsVersion = 0;
-		internal static long BuildingsVersion => Interlocked.Read(ref buildingsVersion);
-
-		private static void OnBuildingsChanged() {
-			Interlocked.Increment(ref buildingsVersion);
-		}
-
 		// The cached result of EffectiveBuildings: the buildings built in this
 		// city followed by those granted by the owner's active great wonders.
 		// It is immutable and replaced as a whole, and it is checked against
-		// everything it was computed from on each use: the owner, the location
-		// (for continent-wide wonders), the constructed_buildings list and its
-		// count, City.BuildingsVersion and the owner's wonder snapshot (which
-		// validates itself, see Player.GetBuildingSnapshot).
+		// everything it was computed from on each use, in O(1): the owner, the
+		// location (for continent-wide wonders), the constructed_buildings
+		// list, its count and whether it has been modified since (which
+		// catches a building being swapped for another without the count
+		// changing), and the owner's wonder snapshot (which validates itself,
+		// see Player.GetBuildingSnapshot).
 		private sealed class EffectiveBuildingsCache {
 			internal Player owner;
 			internal Tile location;
 			internal List<CityBuilding> source;
 			internal int sourceCount;
-			internal long buildingsVersion;
+			internal List<CityBuilding>.Enumerator sourceVersion;
 			internal Player.BuildingSnapshot wonders;
 
 			// The buildings, with the constructed ones first. Entries from
@@ -197,7 +215,7 @@ namespace C7GameData {
 				&& ReferenceEquals(cache.location, location)
 				&& ReferenceEquals(cache.source, constructed_buildings)
 				&& cache.sourceCount == constructed_buildings.Count
-				&& cache.buildingsVersion == BuildingsVersion) {
+				&& CollectionVersion.Unchanged(cache.sourceVersion)) {
 				return cache;
 			}
 
@@ -206,7 +224,7 @@ namespace C7GameData {
 				location = location,
 				source = constructed_buildings,
 				sourceCount = constructed_buildings.Count,
-				buildingsVersion = BuildingsVersion,
+				sourceVersion = constructed_buildings.GetEnumerator(),
 				wonders = wonders,
 			};
 
@@ -223,7 +241,9 @@ namespace C7GameData {
 				Building b = cb.building;
 
 				if (b.greatWonderProperties.buildingGainedInEveryCity != null
-					&& !buildingsSeen.Contains(b.greatWonderProperties.buildingGainedInEveryCity)) {
+					&& buildingsSeen.Add(b.greatWonderProperties.buildingGainedInEveryCity)) {
+					// Adding to buildingsSeen as we go keeps two wonders that
+					// grant the same building from granting it twice.
 					result.Add(new CityBuilding() {
 						building = b.greatWonderProperties.buildingGainedInEveryCity,
 						builtByPlayer = cb.builtByPlayer,
@@ -233,7 +253,7 @@ namespace C7GameData {
 				}
 				if (b.greatWonderProperties.buildingGainedInEveryCityOnContinent != null
 					&& c.location.continent == location.continent
-					&& !buildingsSeen.Contains(b.greatWonderProperties.buildingGainedInEveryCityOnContinent)) {
+					&& buildingsSeen.Add(b.greatWonderProperties.buildingGainedInEveryCityOnContinent)) {
 					result.Add(new CityBuilding() {
 						building = b.greatWonderProperties.buildingGainedInEveryCityOnContinent,
 						builtByPlayer = cb.builtByPlayer,
@@ -836,7 +856,7 @@ namespace C7GameData {
 		}
 
 		public void RemoveRandomCitizen() {
-			if (residents.Count == 1)
+			if (residents.Count <= 1)
 				return; // TODO: Handle extreme case
 
 			var idx = GameData.rng.Next(residents.Count);
@@ -938,11 +958,11 @@ namespace C7GameData {
 				year = CurrentGameYear(),
 				totalCulture = 0
 			});
-			OnBuildingsChanged();
+			owner?.OnBuildingsChanged();
 		}
 		public void RemoveBuilding(CityBuilding building) {
 			constructed_buildings.Remove(building);
-			OnBuildingsChanged();
+			owner?.OnBuildingsChanged();
 		}
 
 		public void AddUnit(UnitPrototype proto, GameData gameData) {
@@ -993,11 +1013,15 @@ namespace C7GameData {
 		private List<Tile> GetTilesOfRank(int rank) {
 			List<Tile> result = new();
 			foreach (Tile t in location.GetTilesWithinRankDistance(rank)) {
+				// Borders of a city near the map's edge run off it: skip the
+				// off-map placeholder, which has no terrain or map.
+				if (t == Tile.NONE) {
+					continue;
+				}
+
 				// Law II
 				// Ocean tiles may only hold claims of rank 2.
-				// The distance check is cheaper than the string compare, so
-				// it goes first.
-				if (t.RankDistanceTo(location) > 2 && t.baseTerrainType.Key == "ocean") {
+				if (t.baseTerrainType.IsOcean && t.RankDistanceTo(location) > 2) {
 					continue;
 				}
 				result.Add(t);
@@ -1036,7 +1060,7 @@ namespace C7GameData {
 		}
 
 		// See https://forums.civfanatics.com/threads/everything-about-corruption-c3c-edition.76619/
-		private float CalculateRankCorruption(GameData gameData, int numAntiCorruptionBuildings) {
+		private float CalculateRankCorruption(int adjustedOptimalCityNumber, int numAntiCorruptionBuildings) {
 			int rank = rankIndex;
 			if (owner.government.corruptionType == Government.CorruptionType.Communal) {
 				rank = owner.cities.Count / 2;
@@ -1044,7 +1068,7 @@ namespace C7GameData {
 
 			float nOpt = Math.Max(
 				1,
-				owner.GetAdjustedOptimalCityNumber(gameData) + .25f * numAntiCorruptionBuildings);
+				adjustedOptimalCityNumber + .25f * numAntiCorruptionBuildings);
 
 			if (rank < nOpt) {
 				return rank / (2 * nOpt);
@@ -1054,6 +1078,13 @@ namespace C7GameData {
 		}
 
 		public void CalculateCorruption(GameData gameData) {
+			CalculateCorruption(gameData, owner.GetAdjustedOptimalCityNumber(gameData));
+		}
+
+		// The adjusted optimal city number is empire-wide, so when updating
+		// every city Player.DoCorruptionCalculations works it out once and
+		// passes it in rather than rescanning the empire for each city.
+		internal void CalculateCorruption(GameData gameData, int adjustedOptimalCityNumber) {
 			int numAntiCorruptionBuildings = 0;
 
 			// TODO: Handle the SPHQ.
@@ -1068,7 +1099,7 @@ namespace C7GameData {
 			}
 
 			corruption = CalculateDistanceCorruption(gameData, numAntiCorruptionBuildings)
-					+ CalculateRankCorruption(gameData, numAntiCorruptionBuildings);
+					+ CalculateRankCorruption(adjustedOptimalCityNumber, numAntiCorruptionBuildings);
 			// TODO: apply policeman modifiers, before applying the max
 
 			// Corruption maxes out at 90%, and this max can be reduced further

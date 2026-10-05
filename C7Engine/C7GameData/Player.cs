@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using C7Engine.AI.StrategicAI;
 using C7Engine;
 using MoonSharp.Interpreter;
@@ -64,6 +65,33 @@ namespace C7GameData {
 
 		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() {
 			return ordered.GetEnumerator();
+		}
+	}
+
+	// O(1) checks that a List or HashSet hasn't been modified since an
+	// enumerator was taken from it. Their enumerators are documented to throw
+	// from MoveNext once the collection has been modified (and List counts
+	// replacing an entry as a modification), so trying to move a copy of the
+	// stored enumerator tells us, without walking the collection. (The
+	// enumerator is passed by value, so the stored one never moves.) The
+	// exception is only thrown, and caught, once per change.
+	internal static class CollectionVersion {
+		internal static bool Unchanged<T>(List<T>.Enumerator enumerator) {
+			try {
+				enumerator.MoveNext();
+				return true;
+			} catch (InvalidOperationException) {
+				return false;
+			}
+		}
+
+		internal static bool Unchanged<T>(HashSet<T>.Enumerator enumerator) {
+			try {
+				enumerator.MoveNext();
+				return true;
+			} catch (InvalidOperationException) {
+				return false;
+			}
 		}
 	}
 
@@ -315,7 +343,23 @@ namespace C7GameData {
 		}
 
 		private IEnumerable<string> CityNameGenerator() {
-			List<string> cityNames = civilization.cityNames;
+			List<string> cityNames = civilization?.cityNames;
+
+			// A civ with no city names (as some scenarios define) gets
+			// numbered names, so this never loops forever finding nothing.
+			if (cityNames == null || cityNames.Count == 0) {
+				string baseName = civilization?.adjective;
+				if (string.IsNullOrEmpty(baseName)) {
+					baseName = civilization?.name;
+				}
+				if (string.IsNullOrEmpty(baseName)) {
+					baseName = "City";
+				}
+				for (int n = 1; ; ++n) {
+					yield return $"{baseName} {n}";
+				}
+			}
+
 			int loopCounter = 0;
 
 			// Perpetual generator expression to yield all city names lazily
@@ -757,9 +801,22 @@ namespace C7GameData {
 		/// <param name="inQueue">The techs in tempQueue, for fast lookups. Must start out matching tempQueue.</param>
 		/// <returns></returns>
 		private Queue<Tech> GetResearchQueueFor(Tech tech, Queue<Tech> tempQueue, HashSet<Tech> inQueue) {
+			return GetResearchQueueFor(tech, tempQueue, inQueue, new HashSet<Tech>());
+		}
+
+		// expanded holds the techs this has already been called for. Once a
+		// call for a tech returns, every unknown tech it leads back to is in
+		// the queue, so calling it again would add nothing; skipping it keeps
+		// a tech tree with many paths to the same tech (which the full tree
+		// has) from being walked once per path, without changing the result.
+		private Queue<Tech> GetResearchQueueFor(Tech tech, Queue<Tech> tempQueue, HashSet<Tech> inQueue, HashSet<Tech> expanded) {
 
 			if (tech == null) {
 				return new Queue<Tech>();
+			}
+
+			if (!expanded.Add(tech)) {
+				return tempQueue;
 			}
 
 			List<Tech> requiredTechs = OrderTechs(tech.Prerequisites);
@@ -782,7 +839,7 @@ namespace C7GameData {
 			foreach (Tech t in requiredTechs) {
 				if (!knownTechs.Contains(t.id)) {
 					if (t.Prerequisites.Count > 0) {
-						GetResearchQueueFor(t, tempQueue, inQueue);
+						GetResearchQueueFor(t, tempQueue, inQueue, expanded);
 					}
 				}
 			}
@@ -1296,7 +1353,11 @@ namespace C7GameData {
 			}
 			foreach (Player enemy in enemies) {
 				warWeariness += WarWearinessPerTurnAtWar;
-				bool weStartedIt = enemy.playerRelationships.TryGetValue(id, out PlayerRelationship pr) && pr.warDeclarationCount > 0;
+				// Whether we declared the current war. For wars from before
+				// that was recorded, fall back to whether we ever declared war
+				// on them.
+				bool weStartedIt = enemy.playerRelationships.TryGetValue(id, out PlayerRelationship pr)
+					&& (pr.otherStartedCurrentWar ?? pr.warDeclarationCount > 0);
 				if (weStartedIt) {
 					warWeariness += WarWearinessForStartingTheWar;
 				}
@@ -1411,12 +1472,16 @@ namespace C7GameData {
 				capital = cities[0];
 			}
 			List<City> citiesInRankOrdering = cities.OrderBy(x => x.location.RankDistanceTo(capital.location)).ToList();
+
+			// This is the same for every city (it depends on the whole empire,
+			// not on anything the loop below changes), so work it out once.
+			int adjustedOptimalCityNumber = GetAdjustedOptimalCityNumber(gameData);
 			for (int i = 0; i < citiesInRankOrdering.Count; ++i) {
 				citiesInRankOrdering[i].rankIndex = i;
 
 				// For each city, calculate its corruption level so this
 				// calculation doesn't have to be done on the fly.
-				citiesInRankOrdering[i].CalculateCorruption(gameData);
+				citiesInRankOrdering[i].CalculateCorruption(gameData, adjustedOptimalCityNumber);
 			}
 		}
 
@@ -1455,6 +1520,16 @@ namespace C7GameData {
 			return new List<Tuple<City, CityBuilding>>(GetBuildingSnapshot().activeWonders);
 		}
 
+		// Bumped whenever the buildings of this player's cities change: by
+		// City.AddBuilding and City.RemoveBuilding, when a city's building list
+		// is replaced, and when a city changes hands (for both players).
+		private long buildingsVersion = 0;
+		internal long BuildingsVersion => Interlocked.Read(ref buildingsVersion);
+
+		internal void OnBuildingsChanged() {
+			Interlocked.Increment(ref buildingsVersion);
+		}
+
 		// Empire-wide facts derived from the buildings in this player's cities
 		// (the active great wonders, and whether a building like the Pentagon
 		// makes armies larger). Every city yield needs the wonders, so they are
@@ -1462,25 +1537,24 @@ namespace C7GameData {
 		//
 		// The snapshot is immutable and is replaced, never modified, so readers
 		// on other threads always see a consistent one. It is checked against
-		// everything it was computed from each time it is used:
-		//  - the cities list (same list object, same cities in the same order),
-		//    which catches cities being founded, captured, lost or destroyed,
-		//    and a new list on load;
-		//  - each city's constructed_buildings (same list object and count);
-		//  - City.BuildingsVersion, bumped by every City.AddBuilding and
-		//    City.RemoveBuilding, which catches a building being swapped for
-		//    another without the count changing;
-		//  - knownTechs (same set and count; techs are only ever added), which
+		// everything it was computed from each time it is used, in O(1):
+		//  - this player's BuildingsVersion, which catches buildings being
+		//    added, removed or swapped in any of our cities, and cities
+		//    changing hands;
+		//  - the cities list (same list object, same count, and not modified
+		//    since), which catches cities being founded, captured, lost,
+		//    destroyed or reordered, and a new list on load, even where the
+		//    code doing it doesn't tell us;
+		//  - knownTechs (same set, same count, and not modified since), which
 		//    catches wonders going obsolete.
-		// Checking costs O(cities) reference comparisons, with no allocation.
 		internal sealed class BuildingSnapshot {
 			internal long buildingsVersion;
 			internal List<City> citiesList;
-			internal City[] cities;
-			internal List<CityBuilding>[] buildingLists;
-			internal int[] buildingCounts;
+			internal int citiesCount;
+			internal List<City>.Enumerator citiesVersion;
 			internal HashSet<ID> knownTechs;
 			internal int knownTechsCount;
+			internal HashSet<ID>.Enumerator knownTechsVersion;
 
 			// Do not modify; GetActiveWonders hands out copies.
 			internal List<Tuple<City, CityBuilding>> activeWonders;
@@ -1488,22 +1562,15 @@ namespace C7GameData {
 			internal bool reducesWarWearinessEverywhere;
 
 			internal bool IsValidFor(Player player) {
-				if (buildingsVersion != City.BuildingsVersion
+				if (buildingsVersion != player.BuildingsVersion
 					|| !ReferenceEquals(citiesList, player.cities)
-					|| cities.Length != player.cities.Count
+					|| citiesCount != player.cities.Count
 					|| !ReferenceEquals(knownTechs, player.knownTechs)
 					|| (knownTechs != null && knownTechsCount != knownTechs.Count)) {
 					return false;
 				}
-				for (int i = 0; i < cities.Length; ++i) {
-					City c = player.cities[i];
-					if (!ReferenceEquals(c, cities[i])
-						|| !ReferenceEquals(c.constructed_buildings, buildingLists[i])
-						|| c.constructed_buildings.Count != buildingCounts[i]) {
-						return false;
-					}
-				}
-				return true;
+				return CollectionVersion.Unchanged(citiesVersion)
+					&& (knownTechs == null || CollectionVersion.Unchanged(knownTechsVersion));
 			}
 		}
 
@@ -1515,22 +1582,21 @@ namespace C7GameData {
 				return snapshot;
 			}
 
-			// Read the version before scanning, so a change made during the
+			// Take the versions before scanning, so a change made during the
 			// scan leaves the snapshot stale rather than wrongly valid.
 			snapshot = new BuildingSnapshot {
-				buildingsVersion = City.BuildingsVersion,
+				buildingsVersion = BuildingsVersion,
 				citiesList = cities,
-				cities = cities.ToArray(),
+				citiesCount = cities.Count,
+				citiesVersion = cities.GetEnumerator(),
 				knownTechs = knownTechs,
 				knownTechsCount = knownTechs?.Count ?? 0,
 				activeWonders = new(),
 			};
-			snapshot.buildingLists = new List<CityBuilding>[snapshot.cities.Length];
-			snapshot.buildingCounts = new int[snapshot.cities.Length];
-			for (int i = 0; i < snapshot.cities.Length; ++i) {
-				City c = snapshot.cities[i];
-				snapshot.buildingLists[i] = c.constructed_buildings;
-				snapshot.buildingCounts[i] = c.constructed_buildings.Count;
+			if (knownTechs != null) {
+				snapshot.knownTechsVersion = knownTechs.GetEnumerator();
+			}
+			foreach (City c in cities.ToArray()) {
 				foreach (CityBuilding cb in c.constructed_buildings) {
 					if (cb.building.allowsLargerArmies) {
 						snapshot.hasLargerArmies = true;
@@ -1648,11 +1714,19 @@ namespace C7GameData {
 			// TODO: Figure out power formula
 			int power = (lastTurn?.Power ?? 100);
 
-			// Score is the _average_ of "turn scores".
-			// Here we calculate the cumulative moving average: S[n+1] = S[n] + (x[n+1] - S[N])/(n+1)
-			int lastScore = (lastTurn?.Score ?? 0);
+			// Score is the _average_ of "turn scores". We keep the exact sum
+			// of the turn scores and round only the average, as rounding a
+			// running average each turn would let errors build up (and a
+			// rounded-down average could only rise in large enough steps).
+			// Records without a sum come from older saves; the best we can
+			// do there is assume every turn scored the recorded average.
+			double previousSum = 0;
+			if (lastTurn != null) {
+				previousSum = lastTurn.TurnScoreSum ?? (double)lastTurn.Score * n;
+			}
 			float turnScore = ScoreVictory.ComputeTurnScore(this, gameData);
-			int score = (int) Math.Floor(lastScore + (turnScore - lastScore) / (1f * (n+1)));
+			double turnScoreSum = previousSum + turnScore;
+			int score = (int)Math.Round(turnScoreSum / (n + 1), MidpointRounding.AwayFromZero);
 
 			// Culture is "the sum of the cultural value of all your cities"
 			int totalCulture = 0;
@@ -1664,6 +1738,7 @@ namespace C7GameData {
 				Date = gameData.timeOptions.GetRawNumber(gameData.turn),
 				Power = power,
 				Score = score,
+				TurnScoreSum = turnScoreSum,
 				Culture = totalCulture,
 				VP = 0 // TODO: victory points
 			});
