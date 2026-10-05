@@ -1,6 +1,8 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
+using System.Security.Cryptography;
 using C7GameData;
 using C7GameData.Save;
 
@@ -43,12 +45,33 @@ public static class LanProtocol {
 
 	// The whole game, compressed, for a client to show.
 	public static byte[] EncodeSnapshot(GameData gameData) {
-		byte[] json = SaveGame.FromGameData(gameData).ToCompactJSON();
+		return EncodeSnapshot(SnapshotOf(gameData)).Compressed;
+	}
+
+	// The game as it stands, to be encoded by EncodeSnapshot. This must be
+	// called on the thread that runs the game, but what it returns shares
+	// nothing the game goes on to change, so it can be encoded on another
+	// thread while the game carries on.
+	public static SaveGame SnapshotOf(GameData gameData) {
+		SaveGame save = SaveGame.FromGameData(gameData);
+		SnapshotDetacher.Detach(save);
+		return save;
+	}
+
+	// Encodes a snapshot from SnapshotOf, on any thread. When it's identical
+	// to the previous one, the previous one's encoding is returned rather
+	// than compressing it all over again.
+	public static EncodedSnapshot EncodeSnapshot(SaveGame snapshot, EncodedSnapshot previous = null) {
+		byte[] json = snapshot.ToCompactJSON();
+		byte[] hash = SHA256.HashData(json);
+		if (previous != null && previous.Hash.AsSpan().SequenceEqual(hash)) {
+			return previous;
+		}
 		MemoryStream compressed = new();
 		using (GZipStream gzip = new(compressed, CompressionLevel.Fastest, leaveOpen: true)) {
 			gzip.Write(json);
 		}
-		return compressed.ToArray();
+		return new EncodedSnapshot(compressed.ToArray(), hash);
 	}
 
 	public static SaveGame DecodeSnapshot(byte[] snapshot) {
@@ -56,6 +79,18 @@ public static class LanProtocol {
 		MemoryStream json = new();
 		gzip.CopyTo(json);
 		return SaveGame.FromJSON(json.ToArray());
+	}
+}
+
+// A snapshot as sent: the compressed game, and a hash of the game it holds,
+// which is the same for two snapshots exactly when they hold the same game.
+public sealed class EncodedSnapshot {
+	public byte[] Compressed { get; }
+	public byte[] Hash { get; }
+
+	public EncodedSnapshot(byte[] compressed, byte[] hash) {
+		Compressed = compressed;
+		Hash = hash;
 	}
 }
 
