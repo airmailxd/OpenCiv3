@@ -82,4 +82,19 @@ public class CityCaptureTest : IClassFixture<SaveGameFixture>, System.IDisposabl
 		Assert.True(other.IsCapital());
 		Assert.Contains(other.constructed_buildings, cb => cb.building.isCenterOfEmpire);
 	}
+
+	[Fact]
+	public void RebuiltCityContinuesDownTheNameList() {
+		FoundCity(attacker, 1);
+		City capital = FoundCity(defender, 3);
+		Tile secondSite = defender.units.First(u => u.unitType.isSettler).location.neighbors.Values
+			.First(t => t.IsLand() && !t.HasCity());
+		City other = CityInteractions.BuildCity(secondSite, defender, defender.GetNextCityName());
+
+		CityInteractions.CaptureCity(capital, attacker);
+
+		Assert.Equal(defender.civilization.cityNames[2], defender.GetNextCityName());
+		Assert.NotEqual(capital.name, defender.GetNextCityName());
+		Assert.NotEqual(other.name, defender.GetNextCityName());
+	}
 }

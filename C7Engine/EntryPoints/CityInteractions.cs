@@ -18,6 +18,7 @@ namespace C7Engine {
 			}
 			gameData.cities.Add(newCity);
 			owner.cities.Add(newCity);
+			owner.citiesFounded++;
 			tileWithNewCity.cityAtTile = newCity;
 			// Building the city may clear the terrain, which changes what units
 			// nearby can see.

@@ -66,6 +66,7 @@ namespace C7GameData.Save {
 		public int warWeariness;
 		public bool hadGoldenAge;
 		public int goldenAgeTurnsRemaining;
+		public int citiesFounded;
 
 		// The number of "beakers" (gold) spent on the currently researched
 		// tech.
@@ -114,6 +115,7 @@ namespace C7GameData.Save {
 				warWeariness = warWeariness,
 				hadGoldenAge = hadGoldenAge,
 				goldenAgeTurnsRemaining = goldenAgeTurnsRemaining,
+				citiesFounded = citiesFounded,
 				turnsUntilPriorityReevaluation = turnsUntilPriorityReevaluation,
 				inAnarchyUntilTurn = inAnarchyUntilTurn,
 				government = governments.Find(x => x.id == governmentId),
@@ -196,6 +198,7 @@ namespace C7GameData.Save {
 			warWeariness = player.warWeariness;
 			hadGoldenAge = player.hadGoldenAge;
 			goldenAgeTurnsRemaining = player.goldenAgeTurnsRemaining;
+			citiesFounded = player.citiesFounded;
 			beakers = player.beakers;
 			turnsResearched = player.turnsResearched;
 			inAnarchyUntilTurn = player.inAnarchyUntilTurn;

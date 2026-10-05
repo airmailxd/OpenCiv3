@@ -295,6 +295,13 @@ namespace C7GameData {
 				SetTileOwner(city.location, city);
 
 				foreach (Tile t in city.GetTilesWithinBorders()) {
+					// Borders of a city near the map's edge run off it: skip the
+					// off-map placeholder, which two such cities would otherwise
+					// fight over (crashing in FindInRing, as NONE has no map).
+					if (t == Tile.NONE) {
+						continue;
+					}
+
 					// If another city has claim to this tile, we need to resolve
 					// that conflict.
 					//

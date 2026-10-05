@@ -250,6 +250,11 @@ namespace C7GameData {
 		// Each civ gets one golden age per game.
 		public bool hadGoldenAge = false;
 		public int goldenAgeTurnsRemaining = 0;
+
+		// How many cities this player has founded, used to pick the next
+		// name from the civ's city name list.
+		public int citiesFounded = 0;
+
 		public bool InGoldenAge => goldenAgeTurnsRemaining > 0;
 
 		public int EraIndex() {
@@ -328,10 +333,14 @@ namespace C7GameData {
 		}
 
 		public string GetNextCityName() {
-			// Convert to hashset for faster lookups
-			HashSet<string> cityNameHashSet = cities.Select(city => city.name).ToHashSet();
+			// Names held by any city in the game, so a civ that lost a city
+			// doesn't reuse its name while the conqueror still holds it.
+			HashSet<string> cityNameHashSet = (EngineStorage.gameData?.cities ?? cities)
+				.Select(city => city.name).ToHashSet();
 
-			return CityNameGenerator().First(x => !cityNameHashSet.Contains(x));
+			// Continue down the list from the last city founded rather than
+			// restarting at the top, so lost cities' names aren't reused.
+			return CityNameGenerator().Skip(citiesFounded).First(x => !cityNameHashSet.Contains(x));
 		}
 
 		public Player() {

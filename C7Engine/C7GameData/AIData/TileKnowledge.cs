@@ -29,7 +29,7 @@ namespace C7GameData {
 		internal static Tile EntryAt(long position) => entries[position & Mask];
 
 		internal static void Record(Tile tile) {
-			if (tile == null) {
+			if (tile == null || tile == Tile.NONE) {
 				return;
 			}
 			entries[head & Mask] = tile;
