@@ -15,6 +15,8 @@ namespace C7GameData.Save {
 			Blitz,
 			// The unit may attack from a ship.
 			Amphibious,
+			// The unit gets a free attack on enemies moving past it.
+			ZoneOfControl,
 		}
 
 		public string name { get; set; }

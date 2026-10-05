@@ -247,6 +247,7 @@ public partial class MapUnit {
 
 		facingDirection = dir;
 		float movementCost = TilePath.GetMovementCost(this.owner, location, dir, newLoc);
+		List<MapUnit> zoneOfControlAttackers = FindZoneOfControlAttackers(location, newLoc);
 
 		// Leave old tile
 		if (!location.unitsOnTile.Remove(this))
@@ -281,7 +282,51 @@ public partial class MapUnit {
 
 		movementPoints.onUnitMove(movementCost);
 
+		foreach (MapUnit zocUnit in zoneOfControlAttackers) {
+			await zocUnit.ZoneOfControlAttack(this);
+		}
+
 		return true;
+	}
+
+	// Enemy units with a zone of control that are next to both tiles of a
+	// move get a free attack on the moving unit. Land units only watch land
+	// units, and ships only watch ships.
+	public List<MapUnit> FindZoneOfControlAttackers(Tile from, Tile to) {
+		List<MapUnit> result = new();
+		foreach (Tile t in from.neighbors.Values) {
+			if (t == to || !to.neighbors.ContainsValue(t)) {
+				continue;
+			}
+			foreach (MapUnit u in t.unitsOnTile) {
+				if (u.unitType.hasZoneOfControl && u.unitType.attack > 0 && !u.IsLoaded()
+					&& u.IsLandUnit() == IsLandUnit() && u.IsWaterUnit() == IsWaterUnit()
+					&& u.owner != owner && !owner.IsAtPeaceWith(u.owner)) {
+					result.Add(u);
+				}
+			}
+		}
+		return result;
+	}
+
+	// A single round of combat against a unit moving through our zone of
+	// control. It can wound the unit but never kills it.
+	public async Task ZoneOfControlAttack(MapUnit target) {
+		if (target.hitPointsRemaining <= 1) {
+			return;
+		}
+
+		double attackStrength = StrengthVersus(target, CombatRole.Attack, location.DirectionTo(target.location));
+		double defenseStrength = target.StrengthVersus(this, CombatRole.Defense, location.DirectionTo(target.location));
+		var originalDirection = facingDirection;
+		facingDirection = GetAttackAnimationDirection(location.DirectionTo(target.location));
+		await animateAsync(AnimatedAction.ATTACK1);
+		facingDirection = originalDirection;
+
+		if (GameData.rng.NextDouble() < attackStrength / (attackStrength + defenseStrength)) {
+			target.hitPointsRemaining -= 1;
+			log.Information($"{this} hit {target} moving through its zone of control");
+		}
 	}
 
 	public async Task<CombatResult> Fight(MapUnit defender) {

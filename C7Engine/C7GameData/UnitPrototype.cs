@@ -124,6 +124,16 @@ namespace C7GameData {
 				}
 			}
 		}
+		public bool hasZoneOfControl {
+			get => flags.Contains(SaveUnitPrototype.Flag.ZoneOfControl);
+			set {
+				if (value) {
+					flags.Add(SaveUnitPrototype.Flag.ZoneOfControl);
+				} else {
+					flags.Remove(SaveUnitPrototype.Flag.ZoneOfControl);
+				}
+			}
+		}
 		public bool hasRadar {
 			get => flags.Contains(SaveUnitPrototype.Flag.Radar);
 			set {

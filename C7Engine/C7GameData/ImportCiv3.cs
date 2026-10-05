@@ -1441,6 +1441,7 @@ namespace C7GameData {
 				if (prto.Radar) prototype.flags.Add(SaveUnitPrototype.Flag.Radar);
 				if (prto.Blitz) prototype.flags.Add(SaveUnitPrototype.Flag.Blitz);
 				if (prto.Amphibious) prototype.flags.Add(SaveUnitPrototype.Flag.Amphibious);
+				if (prto.ZoneOfControl != 0) prototype.flags.Add(SaveUnitPrototype.Flag.ZoneOfControl);
 
 				prototype.actions.UnionWith(GetUnitActions(prto));
 				prototype.terraformActions.UnionWith(GetUnitTerraforms(prto).Select(tfKey => terraformIdByCiv3Key[tfKey]));

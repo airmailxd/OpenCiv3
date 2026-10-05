@@ -1212,6 +1212,9 @@
         "Maya"
       ],
       "unproducible": false,
+      "flags": [
+        "zoneOfControl"
+      ],
       "categories": [
         "Land"
       ],
@@ -2135,6 +2138,9 @@
         "Maya"
       ],
       "unproducible": false,
+      "flags": [
+        "zoneOfControl"
+      ],
       "categories": [
         "Land"
       ],
@@ -2294,7 +2300,8 @@
       ],
       "unproducible": false,
       "flags": [
-        "blitz"
+        "blitz",
+        "zoneOfControl"
       ],
       "categories": [
         "Land"
@@ -2373,6 +2380,9 @@
         "Maya"
       ],
       "unproducible": false,
+      "flags": [
+        "zoneOfControl"
+      ],
       "categories": [
         "Land"
       ],
@@ -2450,7 +2460,8 @@
       ],
       "unproducible": false,
       "flags": [
-        "blitz"
+        "blitz",
+        "zoneOfControl"
       ],
       "categories": [
         "Land"
@@ -2766,7 +2777,8 @@
       "unproducible": false,
       "flags": [
         "rotateBeforeAttack",
-        "radar"
+        "radar",
+        "zoneOfControl"
       ],
       "categories": [
         "Land"
@@ -3851,7 +3863,8 @@
       ],
       "unproducible": false,
       "flags": [
-        "radar"
+        "radar",
+        "zoneOfControl"
       ],
       "categories": [
         "Sea"
@@ -4571,7 +4584,8 @@
       "unproducible": true,
       "flags": [
         "radar",
-        "blitz"
+        "blitz",
+        "zoneOfControl"
       ],
       "categories": [
         "Land"
@@ -5190,7 +5204,8 @@
       ],
       "unproducible": false,
       "flags": [
-        "blitz"
+        "blitz",
+        "zoneOfControl"
       ],
       "categories": [
         "Land"
@@ -5242,7 +5257,8 @@
       ],
       "unproducible": false,
       "flags": [
-        "blitz"
+        "blitz",
+        "zoneOfControl"
       ],
       "categories": [
         "Land"
@@ -5469,6 +5485,9 @@
         "Cavalry"
       ],
       "unproducible": false,
+      "flags": [
+        "zoneOfControl"
+      ],
       "categories": [
         "Land"
       ],
@@ -5515,6 +5534,9 @@
         "Spain"
       ],
       "unproducible": false,
+      "flags": [
+        "zoneOfControl"
+      ],
       "categories": [
         "Land"
       ],
@@ -5610,6 +5632,9 @@
         "Ottomans"
       ],
       "unproducible": false,
+      "flags": [
+        "zoneOfControl"
+      ],
       "categories": [
         "Land"
       ],
@@ -7874,6 +7899,9 @@
         "Modern Paratrooper"
       ],
       "unproducible": false,
+      "flags": [
+        "zoneOfControl"
+      ],
       "categories": [
         "Land"
       ],
