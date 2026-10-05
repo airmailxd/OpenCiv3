@@ -369,4 +369,26 @@ public sealed class FixAiProductionTests : IClassFixture<SaveGameFixture>, IDisp
 		city.owner = gameData.players.First(p => p != player && !p.isBarbarians);
 		Assert.False((bool)entryType.GetMethod("Matches").Invoke(entry, new object[] { city.location }));
 	}
+
+	// After a unit is given a plan to defend a city, asking again (in the
+	// same turn, from the same place) must count it as on its way there.
+	[Fact]
+	public void DefenderPlanningCountsTheJustAssignedDefender() {
+		City city = CityInteractions.BuildCity(player.units.First(u => u.unitType.isSettler).location, player, player.GetNextCityName());
+		Tile elsewhere = city.location.GetTilesWithinTileSquare(3).First(t => t != Tile.NONE && t.IsLand() && !t.HasCity() && t.continent == city.location.continent && t.DistanceTo(city.location) >= 2);
+		MapUnit unit = gameData.SpawnUnit(player, gameData.unitPrototypes.First(p => p.name == "Warrior"), elsewhere);
+
+		Type defenderType = typeof(PlayerAI).Assembly.GetType("C7Engine.AI.UnitAI.DefenderAI");
+		System.Reflection.MethodInfo getSnapshot = defenderType.GetMethod("GetSnapshot", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+		int EnRoute() {
+			object snap = getSnapshot.Invoke(null, new object[] { unit, player });
+			return ((int[])snap.GetType().GetField("enRoute").GetValue(snap)).Sum();
+		}
+
+		Assert.Equal(0, EnRoute());
+		C7GameData.AIData.DefenderAIData data = (C7GameData.AIData.DefenderAIData)defenderType.GetMethod("MakeAiDataForDefendAtRiskCity").Invoke(null, new object[] { unit, player, int.MaxValue });
+		Assert.Equal(city.location, data.destination);
+		unit.currentAI = (C7GameData.UnitAI)Activator.CreateInstance(defenderType, data);
+		Assert.Equal(1, EnRoute());
+	}
 }
