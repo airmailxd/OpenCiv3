@@ -8,6 +8,11 @@ namespace C7Engine.Pathing {
 		public Dictionary<Resource, int> resourceCounts = new();
 		public HashSet<Tile> tiles = new();
 
+		// The resources in this segment that the owning player knows about,
+		// cached until the player learns a new tech.
+		internal Dictionary<Resource, int> availableResources;
+		internal int availableResourcesTechCount = -1;
+
 		public void AddTile(Tile t, Player p) {
 			tiles.Add(t);
 			if (t.Resource != Resource.NONE && t.OwningPlayer() == p) {
@@ -27,24 +32,42 @@ namespace C7Engine.Pathing {
 	// do a simple flood fill of the road network, rather than needing to do
 	// actual pathfinding between different tiles.
 	//
+	// Any road change anywhere invalidates the whole TradeNetwork, so each
+	// player's network is only computed the first time it is queried.
+	//
 	// TODO: Handle harbors and airports
 	// TODO: Account for passing through the borders of civs we're at war with
 	// TODO: Invalidate the trade network when war status changes.
 	public class TradeNetwork {
-		private Dictionary<Player, Dictionary<City, TradeNetworkSegment>> segments = new();
+		private sealed class PlayerNetwork {
+			public readonly Dictionary<City, TradeNetworkSegment> cityToSegment = new();
+			// Segments never share tiles, so each tile maps to at most one.
+			public readonly Dictionary<Tile, TradeNetworkSegment> tileToSegment = new();
+			public City cachedCapital;
+		}
+
+		private readonly Dictionary<Player, PlayerNetwork> networks = new();
 
 		public TradeNetwork(GameData gameData) {
-			foreach (Player p in gameData.players) {
-				ComputeTradeNetwork(p);
+		}
+
+		private PlayerNetwork GetNetwork(Player player) {
+			lock (networks) {
+				if (!networks.TryGetValue(player, out PlayerNetwork network)) {
+					network = ComputeTradeNetwork(player);
+					networks[player] = network;
+				}
+				return network;
 			}
 		}
 
-		private void ComputeTradeNetwork(Player player) {
-			HashSet<Tile> seen = new();
+		private static PlayerNetwork ComputeTradeNetwork(Player player) {
+			PlayerNetwork network = new();
+			Dictionary<City, TradeNetworkSegment> segments = network.cityToSegment;
+			Dictionary<Tile, TradeNetworkSegment> seen = network.tileToSegment;
 
-			segments[player] = new();
 			foreach (City c in player.cities) {
-				if (segments[player].ContainsKey(c)) {
+				if (segments.ContainsKey(c)) {
 					continue;
 				}
 
@@ -52,39 +75,52 @@ namespace C7Engine.Pathing {
 				// segment and do a flood fill for all roads coming from the
 				// city.
 				TradeNetworkSegment segment = new();
-				segments[player][c] = segment;
+				segments[c] = segment;
 
 				Queue<Tile> toCheck = new();
 				toCheck.Enqueue(c.location);
-				seen.Add(c.location);
+				seen.TryAdd(c.location, segment);
 
 				while (toCheck.Count > 0) {
 					Tile x = toCheck.Dequeue();
 					segment.AddTile(x, player);
 
 					if (x.cityAtTile != null) {
-						segments[player][x.cityAtTile] = segment;
+						segments[x.cityAtTile] = segment;
 					}
 
 					foreach (Tile n in x.neighbors.Values) {
-						if (n.IsRoaded() && seen.Add(n)) {
+						if (n.IsRoaded() && seen.TryAdd(n, segment)) {
 							toCheck.Enqueue(n);
 						}
 					}
 				}
 			}
+			return network;
 		}
 
 		// Returns the resources and their counts that are available to the given
 		// city.
+		//
+		// The returned dictionary is shared by every city on the same network
+		// segment, so it must not be modified.
 		public Dictionary<Resource, int> GetResourcesAvailableToCity(Player player, City city) {
-			TradeNetworkSegment segment = segments[player][city];
+			TradeNetworkSegment segment = GetNetwork(player).cityToSegment[city];
+
+			int techCount = player.knownTechs.Count;
+			Dictionary<Resource, int> cached = segment.availableResources;
+			if (cached != null && segment.availableResourcesTechCount == techCount) {
+				return cached;
+			}
+
 			Dictionary<Resource, int> result = new();
 			foreach ((Resource r, int count) in segment.resourceCounts) {
 				if (player.KnowsAboutResource(r)) {
 					result[r] = count;
 				}
 			}
+			segment.availableResources = result;
+			segment.availableResourcesTechCount = techCount;
 			return result;
 		}
 
@@ -93,22 +129,32 @@ namespace C7Engine.Pathing {
 				return false;
 			}
 
-			foreach (TradeNetworkSegment segment in segments[p].Values) {
-				if (segment.tiles.Contains(t) && segment.resourceCounts.TryGetValue(r, out int count) && count > 0) {
-					return true;
-				}
-			}
-			return false;
+			return GetNetwork(p).tileToSegment.TryGetValue(t, out TradeNetworkSegment segment)
+				&& segment.resourceCounts.TryGetValue(r, out int count) && count > 0;
 		}
 
 		public bool ConnectedToCapital(Player p, City c) {
-			City capital = p.cities.Find(x => x.IsCapital()) ?? p.cities.FirstOrDefault();
-			if (capital == null || !segments.TryGetValue(p, out var playerSegments)) {
+			PlayerNetwork network = GetNetwork(p);
+			City capital = GetCapital(p, network);
+			if (capital == null) {
 				return false;
 			}
-			return playerSegments.TryGetValue(c, out TradeNetworkSegment segment)
-				&& playerSegments.TryGetValue(capital, out TradeNetworkSegment capitalSegment)
+			return network.cityToSegment.TryGetValue(c, out TradeNetworkSegment segment)
+				&& network.cityToSegment.TryGetValue(capital, out TradeNetworkSegment capitalSegment)
 				&& segment == capitalSegment;
+		}
+
+		// The player's capital, or their first city if they have none. The
+		// capital can move without the network being invalidated (when a new
+		// palace is built), so the cached capital is re-checked on each use.
+		private static City GetCapital(Player p, PlayerNetwork network) {
+			City cached = network.cachedCapital;
+			if (cached != null && cached.owner == p && cached.IsCapital()) {
+				return cached;
+			}
+			City capital = p.cities.Find(x => x.IsCapital());
+			network.cachedCapital = capital;
+			return capital ?? p.cities.FirstOrDefault();
 		}
 	}
 }
