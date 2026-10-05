@@ -1256,6 +1256,10 @@ public partial class Game : Node {
 		}
 
 
+		if (currentAction == C7Action.UnitPillage && CurrentlySelectedUnit.CanPillage()) {
+			new MsgPillage(CurrentlySelectedUnit.id).send();
+		}
+
 		if (currentAction == C7Action.UnitLoad) {
 			// TODO: Which transport?
 			new MsgLoadToTransport(CurrentlySelectedUnit.id).send();

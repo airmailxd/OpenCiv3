@@ -60,6 +60,21 @@ namespace C7Engine {
 		}
 	}
 
+	public class MsgPillage : MessageToEngine {
+		private ID unitID;
+
+		public MsgPillage(ID unitID) {
+			this.unitID = unitID;
+		}
+
+		public override void process() {
+			MapUnit unit = EngineStorage.gameData.GetUnit(unitID);
+			if (unit != null && unit.Pillage() && unit.owner.isHuman) {
+				new MsgUnitMoved(unit).send();
+			}
+		}
+	}
+
 	public class MsgMoveUnit : MessageToEngine {
 		private ID unitID;
 		private TileDirection dir;
