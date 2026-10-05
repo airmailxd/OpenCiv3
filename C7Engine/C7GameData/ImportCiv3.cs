@@ -1679,6 +1679,7 @@ namespace C7GameData {
 				(bldg.Plus50PercentResearch, SaveBuilding.Flag.Plus50PercentResearch),
 				(bldg.Plus50PercentLuxury, SaveBuilding.Flag.Plus50PercentLuxury),
 				(bldg.Plus50PercentCommerce, SaveBuilding.Flag.Plus50PercentCommerce),
+				(bldg.AllowsEnemyTerritoryHealing, SaveBuilding.Flag.AllowsEnemyTerritoryHealing),
 			}
 			.Where(t => t.Item1)
 			.Select(t => t.Item2);

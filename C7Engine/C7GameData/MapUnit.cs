@@ -371,12 +371,32 @@ namespace C7GameData {
 			GameData gD = EngineStorage.gameData;
 			City city = location.cityAtTile;
 			bool inFriendlyCity = (city != null) && (city != City.NONE) && owner.IsAtPeaceWith(city.owner);
-			if (inFriendlyCity)
+			if (inFriendlyCity) {
+				// Barracks fully heal land units in their own city, and harbors
+				// do the same for ships.
+				if (city.owner == owner && city.GetBuildings().Any(cb =>
+						(IsLandUnit() && cb.building.providesVeteranGroundUnits)
+						|| (IsWaterUnit() && cb.building.providesVeteranSeaUnits))) {
+					return maxHitPoints;
+				}
 				return gD.healRateInCity;
+			}
 			if (unitType.categories.Contains("Sea"))
 				return 0;
+
+			// Units heal faster in their own territory and not at all in the
+			// territory of a civ they're at war with.
+			Player territoryOwner = location.OwningPlayer();
+			if (territoryOwner == owner)
+				return gD.healRateInFriendlyField;
+			if (territoryOwner != null && AtWar(owner, territoryOwner) && !CanHealInEnemyTerritory())
+				return gD.healRateInHostileField;
 			return gD.healRateInNeutralField;
-			// TODO: Consider friendly/neutral/enemy territory once that's implemented, barracks, the Red Cross
+		}
+
+		// Battlefield Medicine lets a civ's units heal in enemy territory.
+		private bool CanHealInEnemyTerritory() {
+			return owner.cities.Any(c => c.constructed_buildings.Any(cb => cb.building.allowsEnemyTerritoryHealing));
 		}
 
 		public enum Intent {

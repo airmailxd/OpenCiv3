@@ -43,6 +43,8 @@ namespace C7GameData {
 		public bool onlyUsefulInTowns;
 		public StrengthBonus? combatDefenseBonus;
 		public bool providesVeteranGroundUnits;
+		public bool providesVeteranSeaUnits;
+		public bool allowsEnemyTerritoryHealing;
 		public bool treasuryEarnsInterest;
 		public bool increasesResearch;
 		public bool increasesLuxury;
@@ -99,6 +101,8 @@ namespace C7GameData {
 			providesWalls = building.flags.Contains(SaveBuilding.Flag.ProvidesWalls);
 			onlyUsefulInTowns = building.flags.Contains(SaveBuilding.Flag.CanOnlyBeBuiltInTowns);
 			providesVeteranGroundUnits = building.flags.Contains(SaveBuilding.Flag.VeteranGroundUnits);
+			providesVeteranSeaUnits = building.flags.Contains(SaveBuilding.Flag.VeteranSeaUnits);
+			allowsEnemyTerritoryHealing = building.flags.Contains(SaveBuilding.Flag.AllowsEnemyTerritoryHealing);
 			treasuryEarnsInterest = building.flags.Contains(SaveBuilding.Flag.TreasuryEarnsInterest);
 			increasesResearch = building.flags.Contains(SaveBuilding.Flag.Plus50PercentResearch);
 			increasesLuxury = building.flags.Contains(SaveBuilding.Flag.Plus50PercentLuxury)

@@ -9166,6 +9166,9 @@
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
       "iconRowIndex": 63,
+      "flags": [
+        "allowsEnemyTerritoryHealing"
+      ],
       "traits": [
         "militaristic"
       ]

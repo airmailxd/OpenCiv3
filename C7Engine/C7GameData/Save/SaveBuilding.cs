@@ -25,6 +25,7 @@ namespace C7GameData.Save {
 			Plus50PercentLuxury,
 			// Increases both tax and luxury output.
 			Plus50PercentCommerce,
+			AllowsEnemyTerritoryHealing,
 		}
 
 		public class GreatWonderProperties {
