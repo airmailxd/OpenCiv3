@@ -9,10 +9,12 @@ public partial class UnitLayer : LooseLayer {
 	private ImageTexture unitMovementIndicators;
 
 	// The unit animations, effect animations, and cursor are all drawn as children attached to the looseView but aren't created and attached in
-	// any particular order so we must use the ZIndex property to ensure they're properly layered.
+	// any particular order so we must use the ZIndex property to ensure they're properly layered. Z indices are shared by all the map's views,
+	// so the cursor can't go below zero without going under the terrain. Instead it stays at the view's own level and is drawn behind the view
+	// (ShowBehindParent), which puts it under the hit point bars and movement LEDs the view draws, as well as under the units.
 	public const int effectAnimZIndex = 2;
 	public const int unitAnimZIndex = 1;
-	public const int cursorZIndex = -1;
+	public const int cursorZIndex = 0;
 
 	public UnitLayer() {
 		unitMovementIndicators = TextureLoader.Load("ui.unit_control.movement_indicators");
@@ -50,8 +52,18 @@ public partial class UnitLayer : LooseLayer {
 		private StringName currentAnimation = null;
 		private int currentFrame = -1;
 		private int currentCivColor = -1;
+		private int currentZIndex = unitAnimZIndex;
 		private Vector2 currentPosition;
 		private bool visible = true;
+
+		// Instances are reused for units and effects, so whatever is drawn sets its own layer.
+		public void SetZIndex(int zIndex) {
+			if (zIndex == currentZIndex)
+				return;
+			currentZIndex = zIndex;
+			this.sprite.ZIndex = zIndex;
+			this.spriteTint.ZIndex = zIndex;
+		}
 
 		public void SetPosition(Vector2 position) {
 			if (position == currentPosition)
@@ -103,6 +115,15 @@ public partial class UnitLayer : LooseLayer {
 				return;
 			currentCivColor = civColorIndex;
 			this.material = PlayerTextureUtil.GetShaderMaterialForUnit(civColorIndex);
+			this.spriteTint.Material = this.material;
+		}
+
+		// Gives the tint sprite the shader's default tint, for what doesn't belong to a civ, like effects.
+		public void SetUntinted() {
+			if (ReferenceEquals(this.material, untintedMaterial))
+				return;
+			currentCivColor = -1;
+			this.material = untintedMaterial;
 			this.spriteTint.Material = this.material;
 		}
 
@@ -165,14 +186,31 @@ public partial class UnitLayer : LooseLayer {
 	}
 
 	public void drawUnitAnimFrame(LooseView looseView, MapUnit unit, MapUnit.Appearance appearance, Vector2 tileCenter) {
-		AnimationInstance inst = getBlankAnimationInstance(looseView);
-		AnimationManager.AnimationInfo animation = looseView.mapView.game.animationController.civ3AnimData
-			.GetUnitAnimation(unit, appearance.action, appearance.direction);
+		AnimationManager manager = looseView.mapView.game.animationController.civ3AnimData;
+		drawUnitAnimFrame(looseView, unit, manager.GetUnitAnimation(unit, appearance.action, appearance.direction), appearance, tileCenter);
+	}
 
+	private void drawUnitAnimFrame(LooseView looseView, MapUnit unit, AnimationManager.AnimationInfo animation, MapUnit.Appearance appearance,
+			Vector2 tileCenter) {
+		AnimationInstance inst = getBlankAnimationInstance(looseView);
+		inst.SetZIndex(unitAnimZIndex);
 		inst.SetPosition(GetFramePosition(appearance, animation, tileCenter));
 		inst.SetCivColor(unit.owner.GetPlayerColor());
 		inst.SetAnimationFrame(animation.animationName, animation.FrameAtProgress(appearance.progress));
 		inst.Show();
+	}
+
+	// Returns the art to draw a tile's displayed unit with, worked out again only when it may have changed: when the unit's owner enters a new
+	// era (the unit, its type and owner are part of the displayed unit's stamp), or every time for units whose art can change otherwise.
+	private AnimationManager.UnitArt GetDisplayedUnitArt(AnimationManager manager, DisplayedUnit displayed) {
+		MapUnit unit = displayed.unit;
+		string era = unit.owner?.eraCivilopediaName;
+		if (displayed.art == null || displayed.artMayChange || era != displayed.artEra) {
+			displayed.art = manager.GetUnitArt(AnimationManager.ArtNameFor(unit));
+			displayed.artEra = era;
+			displayed.artMayChange = AnimationManager.ArtMayChange(unit);
+		}
+		return displayed.art;
 	}
 
 	private Vector2 GetFramePosition(MapUnit.Appearance appearance, AnimationManager.AnimationInfo animation, Vector2 tileCenter) {
@@ -205,8 +243,9 @@ public partial class UnitLayer : LooseLayer {
 
 	public void drawEffectAnimFrame(LooseView looseView, C7Animation anim, float progress, Vector2 tileCenter) {
 		AnimationInstance inst = getBlankAnimationInstance(looseView);
-		inst.sprite.ZIndex = effectAnimZIndex;
-		inst.spriteTint.ZIndex = effectAnimZIndex;
+		inst.SetZIndex(effectAnimZIndex);
+		// Effects don't belong to a civ, so don't keep the tint of whatever unit the instance drew before.
+		inst.SetUntinted();
 		inst.SetPosition(tileCenter);
 
 		AnimationManager.AnimationInfo animation = looseView.mapView.game.animationController.civ3AnimData.GetEffectAnimation(anim);
@@ -223,6 +262,9 @@ public partial class UnitLayer : LooseLayer {
 			cursorSprite = new AnimatedSprite2D();
 			cursorSprite.SpriteFrames = TextureLoader.LoadAnimation("animations.cursor", "cursor");
 			cursorSprite.Animation = "cursor";
+			// Under the unit and the hit point bar drawn over it; see cursorZIndex.
+			cursorSprite.ZIndex = cursorZIndex;
+			cursorSprite.ShowBehindParent = true;
 			looseView.AddChild(cursorSprite);
 			cursorSprite.Play("cursor");
 		}
@@ -240,15 +282,28 @@ public partial class UnitLayer : LooseLayer {
 		// Hide cursor if it's been initialized
 		cursorSprite?.Hide();
 
-		looseView.mapView.game.animationController.updateAnimations();
+		AnimationController animationController = looseView.mapView.game.animationController;
+		animationController.updateAnimations();
 
 		// The displayed units are worked out again every turn, and for every game.
-		if (gameData != displayedUnitsGame || gameData.turn != displayedUnitsTurn || displayedUnits.Count > MaxDisplayedUnitsCached) {
+		bool newTurnOrGame = gameData != displayedUnitsGame || gameData.turn != displayedUnitsTurn;
+		if (newTurnOrGame || displayedUnits.Count > MaxDisplayedUnitsCached) {
 			displayedUnits.Clear();
 			displayedUnitsGame = gameData;
 			displayedUnitsTurn = gameData.turn;
 		}
+
+		// Animations that pause or repeat, like a death or a worker at work, are kept until they're replaced, so drop the ones of units that
+		// are gone every turn and every few seconds.
+		long now = animationController.animTracker.getCurrentTimeMS();
+		if (newTurnOrGame || now - lastAnimationPruneMS >= AnimationPruneIntervalMS) {
+			lastAnimationPruneMS = now;
+			animationController.animTracker.forgetRemovedUnits(gameData);
+		}
 	}
+
+	private long lastAnimationPruneMS = 0;
+	private const long AnimationPruneIntervalMS = 2000;
 
 	public override void onEndDraw(LooseView looseView, GameData gameData) {
 		for (int n = nextBlankAnimInst; n < animInstsUsedLastFrame; n++) {
@@ -264,6 +319,11 @@ public partial class UnitLayer : LooseLayer {
 		public long stamp;
 		public MapUnit unit;
 		public int hitPoints, maxHitPoints;
+
+		// The art the unit is drawn with, filled in when it's first drawn, and what it was worked out for. See GetDisplayedUnitArt.
+		public AnimationManager.UnitArt art;
+		public string artEra;
+		public bool artMayChange;
 	}
 
 	private readonly Dictionary<Tile, DisplayedUnit> displayedUnits = new(ReferenceEqualityComparer.Instance);
@@ -274,10 +334,12 @@ public partial class UnitLayer : LooseLayer {
 	// Returns a value that changes whenever anything that selectUnitToDisplay
 	// and the hit point bar depend on changes for a tile's units: which units
 	// are there and in what order, their types, hit points, fortification and
-	// loading, the selected unit and whether each unit is at peace with it, and
-	// the tile's city. Defense bonuses from terrain and buildings only change
-	// between turns, when the cache is cleared anyway. Returns null if a unit
-	// is animating, since the choice then depends on the animation's progress.
+	// loading, experience and owners, the selected unit and whether each unit
+	// is at peace with it, and the tile's city. Defense bonuses from terrain
+	// and buildings only change between turns, when the cache is cleared
+	// anyway. Returns null if a unit is playing an animation the player
+	// should see, since the choice then depends on the animation's progress.
+	// Other animations, like a worker at work, don't change the choice.
 	private long? displayedUnitStamp(AnimationTracker animTracker, Tile tile, List<MapUnit> units, MapUnit currentlySelectedUnit) {
 		Player opponent = currentlySelectedUnit?.owner;
 		Player lastOwner = null;
@@ -286,7 +348,7 @@ public partial class UnitLayer : LooseLayer {
 		long stamp = Mix(Mix(17, units.Count), RuntimeHelpers.GetHashCode(currentlySelectedUnit));
 		stamp = Mix(stamp, RuntimeHelpers.GetHashCode(tile.cityAtTile));
 		foreach (MapUnit u in units) {
-			if (animTracker.hasCurrentAction(u))
+			if (animTracker.hasAnimationDeservingAttention(u))
 				return null;
 
 			if (u.owner != lastOwner || lastOwner == null) {
@@ -294,8 +356,10 @@ public partial class UnitLayer : LooseLayer {
 				lastOwnerAtPeace = opponent?.IsAtPeaceWith(u.owner) ?? true;
 			}
 
-			stamp = Mix(stamp, RuntimeHelpers.GetHashCode(u));
+			stamp = Mix(stamp, u.id?.GetHashCode() ?? 0);
 			stamp = Mix(stamp, RuntimeHelpers.GetHashCode(u.unitType));
+			stamp = Mix(stamp, RuntimeHelpers.GetHashCode(u.owner));
+			stamp = Mix(stamp, RuntimeHelpers.GetHashCode(u.experienceLevel));
 			stamp = Mix(stamp, ((long)u.hitPointsRemaining << 32) | (uint)u.maxHitPoints);
 			stamp = Mix(stamp, (u.isFortified ? 1 : 0) | (lastOwnerAtPeace ? 2 : 0) | (opponent == null ? 4 : 0));
 			stamp = Mix(stamp, u.loadedOnUnitId?.GetHashCode() ?? 0);
@@ -424,7 +488,9 @@ public partial class UnitLayer : LooseLayer {
 			drawCursor(looseView, tileCenter + animOffset);
 		}
 
-		drawUnitAnimFrame(looseView, unit, appearance, tileCenter);
+		AnimationManager manager = looseView.mapView.game.animationController.civ3AnimData;
+		AnimationManager.UnitArt art = GetDisplayedUnitArt(manager, displayed);
+		drawUnitAnimFrame(looseView, unit, manager.GetUnitAnimation(art, appearance.action, appearance.direction), appearance, tileCenter);
 
 		// TODO: Figure out how we can draw the unit's HP bar above the unit and the cursor
 

@@ -80,6 +80,42 @@ public partial class AnimationTracker {
 		return activeAnims.ContainsKey(unit.id);
 	}
 
+	// Whether the unit is playing an animation the player would want to see,
+	// like a move or an attack, rather than nothing, a repeating animation
+	// like a worker at work, or an animation that has ended.
+	public bool hasAnimationDeservingAttention(MapUnit unit) {
+		return activeAnims.Count > 0 && activeAnims.ContainsKey(unit.id) && getUnitAppearance(unit).DeservesPlayerAttention();
+	}
+
+	// Reused by forgetRemovedUnits for the animations to drop.
+	private readonly List<ID> removedIds = new List<ID>();
+
+	// Drops the animations of units that are no longer in the game, like
+	// units that died (their death animation pauses on its last frame) or,
+	// on a LAN client, units that aren't in the host's latest snapshot.
+	// Animations that repeat or pause are otherwise kept until they're
+	// replaced, which may be never. Any completion event that hasn't been
+	// triggered yet is triggered, so nothing waits for the animation forever.
+	public void forgetRemovedUnits(GameData gameData) {
+		if (activeAnims.Count == 0) {
+			return;
+		}
+
+		removedIds.Clear();
+		foreach (ID id in activeAnims.Keys) {
+			if (gameData.GetUnit(id) == null) {
+				removedIds.Add(id);
+			}
+		}
+
+		foreach (ID id in removedIds) {
+			if (activeAnims.Remove(id, out ActiveAnimation aa)) {
+				aa.completionEvent?.Invoke();
+			}
+		}
+		removedIds.Clear();
+	}
+
 	// Whether any effect animations (like a hit or a miss) are playing on tiles.
 	public bool hasTileEffects => activeTileEffects.Count > 0;
 

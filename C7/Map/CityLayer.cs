@@ -51,6 +51,8 @@ namespace C7.Map {
 			++drawPass;
 		}
 
+		// A city may be drawn more than once, at each of its copies on a wrapping map, but it has one scene. The scene is shown at the copy
+		// nearest the middle of the screen (see PlaceScenes), so it's only set up for the first copy drawn.
 		public override void drawObject(LooseView looseView, GameData gameData, Tile tile, Vector2 tileCenter) {
 			if (tile.cityAtTile is null) {
 				return;
@@ -58,6 +60,9 @@ namespace C7.Map {
 
 			City city = tile.cityAtTile;
 			citySceneLookup.TryGetValue(city, out CityScene scene);
+			if (scene != null && scene.lastDrawnPass == drawPass) {
+				return;
+			}
 
 			// Hide the city while the tile info box covers it.
 			if (looseView.IsTileCoveredByTileInfo(tile)) {
@@ -68,8 +73,6 @@ namespace C7.Map {
 				return;
 			}
 
-			Vector2I tileCenter2I = new((int)tileCenter.X, (int)tileCenter.Y);
-
 			if (scene == null) {
 				scene = new CityScene(city);
 				looseView.AddChild(scene);
@@ -77,7 +80,7 @@ namespace C7.Map {
 			}
 
 			scene.lastDrawnPass = drawPass;
-			scene.SetTileCenter(tileCenter2I);
+			PlaceScene(looseView.mapView, scene, looseView.mapView.CameraCenterInMap());
 			scene.SetShown(true);
 			scene.Refresh(looseView.mapView.contentVersion);
 
@@ -94,6 +97,34 @@ namespace C7.Map {
 					scene.SetShown(false);
 				}
 			}
+			lastPlacementCenter = looseView.mapView.CameraCenterInMap();
+		}
+
+		// Where the middle of the screen was when the scenes were last placed.
+		private Vector2 lastPlacementCenter = new(float.NaN, float.NaN);
+
+		// Moves the shown cities to their copies nearest the middle of the screen. The city view isn't redrawn while the camera moves within
+		// the region it drew, so the MapView calls this whenever the camera moves or zooms; otherwise, on a wrapping map, a city could stay
+		// at a copy that has gone off screen while another copy is on screen.
+		public void PlaceScenes(MapView mapView) {
+			Vector2 center = mapView.CameraCenterInMap();
+			if (center == lastPlacementCenter) {
+				return;
+			}
+			lastPlacementCenter = center;
+			if (!mapView.wrapHorizontally && !mapView.wrapVertically) {
+				return;
+			}
+			foreach (CityScene scene in citySceneLookup.Values) {
+				if (scene.Visible) {
+					PlaceScene(mapView, scene, center);
+				}
+			}
+		}
+
+		private static void PlaceScene(MapView mapView, CityScene scene, Vector2 center) {
+			Vector2 tileCenter = mapView.NearestTileCenter(scene.City.location, center);
+			scene.SetTileCenter(new Vector2I((int)tileCenter.X, (int)tileCenter.Y));
 		}
 	}
 }

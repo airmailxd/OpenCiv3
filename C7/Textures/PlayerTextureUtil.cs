@@ -106,6 +106,12 @@ public static class PlayerTextureUtil {
 		return material;
 	}
 
+	// Forgets the colors remembered by Player object, which would otherwise keep the old game alive. A LAN client calls this whenever it
+	// replaces its game with the host's snapshot; the colors themselves stay remembered by player ID.
+	public static void ForgetGameObjects() {
+		playerColorCache.Clear();
+	}
+
 	public static void ClearCache() {
 		materialCache.Clear();
 		colorsInUseCache.Clear();

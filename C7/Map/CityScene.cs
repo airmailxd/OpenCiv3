@@ -26,6 +26,7 @@ namespace C7.Map {
 		private Rules rules;
 		private CityGraphicsDetails cachedDetails;
 		private Vector2I tileCenter;
+		private bool positioned = false;
 
 		// The MapView.contentVersion the city was last refreshed for.
 		private int refreshedVersion;
@@ -35,17 +36,28 @@ namespace C7.Map {
 		internal int lastDrawnPass;
 
 		private AnimatedSprite2D disorderSprite;
-		private static SpriteFrames disorderFrames = TextureLoader.LoadAnimation("animations.disorder", "disorder");
+		// Loaded when first needed, and forgotten with the other textures.
+		private static SpriteFrames disorderFrames;
+		private static SpriteFrames DisorderFrames => disorderFrames ??= TextureLoader.LoadAnimation("animations.disorder", "disorder");
 
 		// Textures can differ between games, so they're forgotten when a new map view is made.
 		public static void ClearTextureCache() {
 			cityTextures.Clear();
+			disorderFrames = null;
+			CityLabelScene.ClearTextureCache();
 		}
+
+		// The city shown.
+		public City City => city;
+
+		// The owner the city is shown for, to notice when the city changes hands.
+		private Player shownOwner;
 
 		public CityScene(City city) {
 			cityLabelScene = new CityLabelScene(city);
 			this.city = city;
 			this.rules = city.owner.rules;
+			this.shownOwner = city.owner;
 
 			cachedDetails = GetCityGraphicsDetails(city);
 			ConfigureCityGraphics(cachedDetails);
@@ -54,7 +66,7 @@ namespace C7.Map {
 			AddChild(cityLabelScene);
 
 			disorderSprite = new();
-			disorderSprite.SpriteFrames = disorderFrames;
+			disorderSprite.SpriteFrames = DisorderFrames;
 			disorderSprite.Animation = "disorder";
 			disorderSprite.Position = tileCenter + new Vector2(0, -32);
 			disorderSprite.Visible = false;
@@ -65,6 +77,7 @@ namespace C7.Map {
 		public void Rebind(City city) {
 			this.city = city;
 			this.rules = city.owner.rules;
+			this.shownOwner = city.owner;
 			cityLabelScene.Rebind(city);
 			refreshed = false;
 		}
@@ -76,6 +89,13 @@ namespace C7.Map {
 			}
 			refreshed = true;
 			refreshedVersion = contentVersion;
+
+			// A captured city is shown in its new owner's colors.
+			if (city.owner != shownOwner) {
+				shownOwner = city.owner;
+				rules = city.owner.rules;
+				cityLabelScene.UpdateCivColor();
+			}
 
 			cityLabelScene.UpdateContent();
 
@@ -112,6 +132,10 @@ namespace C7.Map {
 		}
 
 		public void SetTileCenter(Vector2I tileCenter) {
+			if (positioned && this.tileCenter == tileCenter) {
+				return;
+			}
+			positioned = true;
 			this.tileCenter = tileCenter;
 
 			disorderSprite.Position = tileCenter + new Vector2(0, -32);

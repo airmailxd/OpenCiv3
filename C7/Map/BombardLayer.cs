@@ -64,6 +64,7 @@ public partial class BombardLayer : LooseLayer {
 		if (bombardInfo == null || bombardInfo.bombardingUnit.location != tile)
 			return;
 
+		MapView mapView = looseView.mapView;
 		var unit = bombardInfo.bombardingUnit;
 		var range = unit.unitType.bombardRange;
 		var reachableTiles = GetTileSquare(tile, range);
@@ -84,14 +85,14 @@ public partial class BombardLayer : LooseLayer {
 			var bombardable = bombardTiles.Contains(bombardInfo.mouseTile);
 			if (bombardable) {
 				SetCursor(bombardInfo, bombardCursorTexture);
-				drawTargetBombardTile(looseView, TileCenter(bombardInfo.mouseTile));
+				drawTargetBombardTile(looseView, mapView.NearestTileCenter(bombardInfo.mouseTile, tileCenter));
 			} else
 				SetCursor(bombardInfo, bombardDenyCursorTexture);
 		}
 
-		// Draw bombard grid
+		// Draw bombard grid. The map may wrap around, so each tile is drawn at its copy nearest the copy of the unit's tile being drawn.
 		foreach (var bt in reachableTiles) {
-			drawBombardTile(looseView, TileCenter(bt));
+			drawBombardTile(looseView, mapView.NearestTileCenter(bt, tileCenter));
 		}
 	}
 
@@ -102,10 +103,6 @@ public partial class BombardLayer : LooseLayer {
 		square = tile.GetTilesWithinTileSquare(range);
 		tileSquareCache[key] = square;
 		return square;
-	}
-
-	private static Vector2 TileCenter(Tile bt) {
-		return MapView.cellSize * new Vector2(bt.XCoordinate + 1, bt.YCoordinate + 1);
 	}
 
 	private void drawBombardTile(LooseView looseView, Vector2 tileCenter) {

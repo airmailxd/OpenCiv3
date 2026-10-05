@@ -39,6 +39,10 @@ public partial class AnimationManager {
 	// The results of ArtNameFor that don't depend on anything but the key.
 	private static readonly Dictionary<ArtNameKey, string> artNames = new();
 
+	// The keys of armies that have no art of their own, so are drawn with
+	// the art of a member, which changes during the game.
+	private static readonly HashSet<ArtNameKey> armiesWithoutArt = new();
+
 	// The art to draw a unit with. If its own art can't be found, like army
 	// art that isn't available, an army is drawn with the art of the member
 	// that would defend it, and otherwise the prototype's default art is
@@ -51,25 +55,41 @@ public partial class AnimationManager {
 			return cached;
 		}
 
-		string name = unit.GetArtName();
-		if (HasUnitArt(name)) {
-			artNames[key] = name;
-			return name;
+		if (!armiesWithoutArt.Contains(key)) {
+			string name = unit.GetArtName();
+			if (HasUnitArt(name)) {
+				artNames[key] = name;
+				return name;
+			}
+			if (!unit.IsArmy()) {
+				string defaultName = unitType.art.mainArt.defaultName;
+				string result = HasUnitArt(defaultName) ? defaultName : name;
+				artNames[key] = result;
+				return result;
+			}
+			// Remember that the army has no art of its own, so that isn't
+			// looked for again.
+			armiesWithoutArt.Add(key);
 		}
 
-		if (unit.IsArmy()) {
-			// The member changes during the game, so this isn't cached.
-			MapUnit member = unit.Combatant(CombatRole.Defense);
-			if (member != unit && HasUnitArt(member.GetArtName())) {
-				return member.GetArtName();
+		// The member changes during the game, so which art it has isn't cached
+		// here, but the member's own art name is.
+		MapUnit member = unit.Combatant(CombatRole.Defense);
+		if (member != null && member != unit && !member.IsArmy()) {
+			string memberName = ArtNameFor(member);
+			if (HasUnitArt(memberName)) {
+				return memberName;
 			}
 		}
-		string defaultName = unitType.art.mainArt.defaultName;
-		string result = HasUnitArt(defaultName) ? defaultName : name;
-		if (!unit.IsArmy()) {
-			artNames[key] = result;
-		}
-		return result;
+		string armyDefault = unitType.art.mainArt.defaultName;
+		return HasUnitArt(armyDefault) ? armyDefault : unit.GetArtName();
+	}
+
+	// Whether the art a unit is drawn with may change while the unit, its
+	// type and its owner's era stay the same, as for an army drawn with the
+	// art of one of its members.
+	public static bool ArtMayChange(MapUnit unit) {
+		return unit.IsArmy();
 	}
 
 	private static bool HasUnitArt(string name) {
@@ -121,7 +141,10 @@ public partial class AnimationManager {
 	public SpriteFrames spriteFrames;
 	public SpriteFrames tintFrames;
 
-	private Dictionary<string, IniData> iniDatas = new Dictionary<string, IniData>();
+	// The INIs by path. Paths are compared ignoring case, since the same INI
+	// is asked for as both "X.ini" and "X.INI" and the files are found
+	// ignoring case anyway.
+	private Dictionary<string, IniData> iniDatas = new Dictionary<string, IniData>(StringComparer.OrdinalIgnoreCase);
 
 	// What's needed to draw an animation: its name in the SpriteFrames, its
 	// frames and, for unit animations, the placement values from its flic.
@@ -158,31 +181,51 @@ public partial class AnimationManager {
 	private static readonly int animatedActionCount = (int)Enum.GetValues<MapUnit.AnimatedAction>().Max() + 1;
 	private static readonly int tileDirectionCount = (int)Enum.GetValues<TileDirection>().Max() + 1;
 
-	// The unit animations by art name, each an array indexed by action and direction.
-	private readonly Dictionary<string, AnimationInfo[]> unitAnimations = new();
+	// The animations of one unit art, indexed by action and direction and
+	// filled in as they're needed. Drawing code can hold on to one of these
+	// to skip looking the art up by name every frame.
+	public sealed class UnitArt {
+		public readonly string artName;
+		internal readonly AnimationInfo[] animations = new AnimationInfo[animatedActionCount * tileDirectionCount];
+
+		internal UnitArt(string artName) {
+			this.artName = artName;
+		}
+	}
+
+	// The unit animations by art name.
+	private readonly Dictionary<string, UnitArt> unitAnimations = new();
 	private readonly Dictionary<(AnimatedEffect, MapUnit.AnimatedAction), AnimationInfo> effectAnimations = new();
+
+	// Returns the animations of a unit art, which are loaded as they're asked for.
+	public UnitArt GetUnitArt(string artName) {
+		if (!unitAnimations.TryGetValue(artName, out UnitArt art)) {
+			art = new UnitArt(artName);
+			unitAnimations.Add(artName, art);
+		}
+		return art;
+	}
 
 	// Returns the animation for drawing a unit doing an action facing a
 	// direction, loading the animation if it hasn't been loaded yet.
 	public AnimationInfo GetUnitAnimation(MapUnit unit, MapUnit.AnimatedAction action, TileDirection direction) {
-		string artName = ArtNameFor(unit);
+		return GetUnitAnimation(GetUnitArt(ArtNameFor(unit)), action, direction);
+	}
+
+	public AnimationInfo GetUnitAnimation(UnitArt art, MapUnit.AnimatedAction action, TileDirection direction) {
 		int index = (int)action * tileDirectionCount + (int)direction;
 		bool indexable = (uint)action < (uint)animatedActionCount && (uint)direction < (uint)tileDirectionCount;
-
-		if (!unitAnimations.TryGetValue(artName, out AnimationInfo[] animations)) {
-			animations = new AnimationInfo[animatedActionCount * tileDirectionCount];
-			unitAnimations.Add(artName, animations);
-		}
-		if (indexable && animations[index] is AnimationInfo cached) {
+		if (indexable && art.animations[index] is AnimationInfo cached) {
 			return cached;
 		}
 
+		string artName = art.artName;
 		LoadAnimation(artName, action);
 		string folderPath = "Art/Units/" + artName;
-		IniData iniData = getINIData(folderPath + "/" + artName + ".ini");
+		IniData iniData = getUnitINIData(artName);
 		AnimationInfo info = new(spriteFrames, AnimationKey(BaseAnimationKey(artName, action), direction), getFlicSheet(folderPath, iniData, action));
 		if (indexable) {
-			animations[index] = info;
+			art.animations[index] = info;
 		}
 		return info;
 	}
@@ -400,7 +443,16 @@ public partial class AnimationManager {
 		AnimationTintThumbnails.Clear();
 		// Which art exists depends on the media paths, which may have changed.
 		artNames.Clear();
+		armiesWithoutArt.Clear();
 		unitArtExists.Clear();
+	}
+
+	// Forgets what's remembered by game object (unit prototypes), which would
+	// otherwise keep the old game alive. A LAN client calls this whenever it
+	// replaces its game with the host's snapshot.
+	public static void ForgetGameObjects() {
+		artNames.Clear();
+		armiesWithoutArt.Clear();
 	}
 }
 
@@ -408,7 +460,9 @@ public partial class C7Animation {
 	public AnimationManager animationManager { get; private set; }
 	public string folderPath { get; private set; } // For example "Art/Units/Warrior" or "Art/Animations/Trajectory"
 	public string iniFileName { get; private set; }
-	private MapUnit unit;
+	// The art of a unit animation. The art name is kept rather than the unit,
+	// so a long-lived animation doesn't keep the unit's game alive.
+	private string artName;
 	public AnimatedEffect effect;
 	public MapUnit.AnimatedAction action { get; private set; }
 
@@ -416,9 +470,10 @@ public partial class C7Animation {
 		string artName = AnimationManager.ArtNameFor(unit);
 		this.animationManager = civ3AnimData;
 		this.folderPath = "Art/Units/" + artName;
-		this.iniFileName = artName + ".ini";
+		// The same spelling as AnimationManager.getUnitINIData, though INIs are looked up ignoring case anyway.
+		this.iniFileName = artName + ".INI";
 		this.action = action;
-		this.unit = unit;
+		this.artName = artName;
 	}
 
 	public static readonly Dictionary<AnimatedEffect, string> effectCategories = new Dictionary<AnimatedEffect, string>
@@ -461,7 +516,7 @@ public partial class C7Animation {
 	}
 
 	public void loadSpriteAnimation() {
-		this.animationManager.LoadAnimation(this.unit, this.action);
+		this.animationManager.LoadAnimation(this.artName, this.action);
 	}
 
 	public void loadEffectAnimation() {

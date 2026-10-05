@@ -81,9 +81,6 @@ public partial class GotoLayer : LooseLayer {
 		gotoLabel?.Hide();
 	}
 
-	private GotoInfo lastGotoInfo = null;
-	private Intent lastintent = Intent.Disabled;
-
 	// The path and the cursor don't belong to any one tile, so they're drawn once, in onEndDraw.
 	public override void drawObject(LooseView looseView, GameData gameData, Tile tile, Vector2 tileCenter) { }
 
@@ -101,30 +98,25 @@ public partial class GotoLayer : LooseLayer {
 		// The map may wrap around, so draw at the copies of tiles nearest the middle of the screen.
 		Vector2 screenCenter = mapView.CameraCenterInMap();
 
-		Tile destination = gotoInfo.destinationTile;
-		if (Tile.IsTileValid(destination) && looseView.IsTileKnown(destination)) {
-			DrawStaticGoToCursor(looseView, mapView.NearestTileCenter(destination, screenCenter), 0, true);
-		}
+		// The path is drawn unless there's none, or the move is into the neighboring tile and isn't a plain move (an attack or a move that
+		// isn't allowed). The intent was worked out with the path, for the unit and the destination.
+		Intent intent = gotoInfo.intent;
+		bool drawPath = gotoInfo.path != null && gotoInfo.path.path.Count > 0
+			&& !(gotoInfo.path.path.Count <= 1
+				 && (intent == Intent.Fight
+					 || intent == Intent.WarDeclaration
+					 || intent == Intent.NoticeAlliance
+					 || intent == Intent.NoticeCity
+					 || intent == Intent.NoticeUnit));
 
-		Intent intent = lastintent;
-
-		if (gotoInfo == lastGotoInfo) {
-			intent = lastintent;
-		} else {
-			unit.CanEnterForcefully(gotoInfo.destinationTile, out var outIntent);
-			lastintent = intent = outIntent;
-			lastGotoInfo = gotoInfo;
-		}
-
-		if (gotoInfo.path == null) return;
-
-		if (gotoInfo.path.path.Count <= 1
-								   && (intent == Intent.Fight
-									   || intent == Intent.WarDeclaration
-									   || intent == Intent.NoticeAlliance
-									   || intent == Intent.NoticeCity
-									   || intent == Intent.NoticeUnit))
+		// Without a path, the cursor is drawn on the destination, without a move count.
+		if (!drawPath) {
+			Tile destination = gotoInfo.destinationTile;
+			if (Tile.IsTileValid(destination) && looseView.IsTileKnown(destination)) {
+				DrawStaticGoToCursor(looseView, mapView.NearestTileCenter(destination, screenCenter), 0, true);
+			}
 			return;
+		}
 
 		// Variable width of the line to account for various camera zoom levels.
 		// The end result should look pretty much the same to the player on any zoom level.
@@ -132,16 +124,13 @@ public partial class GotoLayer : LooseLayer {
 
 		// Each step goes to the copy of the next tile nearest the previous one, so the path stays connected across the edges of the map.
 		Vector2 currentTileCenter = mapView.NearestTileCenter(unitOriginTile, screenCenter);
-		bool drewPath = false;
 		foreach (Tile nextTile in gotoInfo.path.path) {
 			Vector2 nextTileCenter = mapView.NearestTileCenter(nextTile, currentTileCenter);
 			looseView.DrawLine(currentTileCenter, nextTileCenter, Colors.Red, width: lineWidth);
 			currentTileCenter = nextTileCenter;
-			drewPath = true;
 		}
 
-		if (drewPath) {
-			DrawStaticGoToCursor(looseView, currentTileCenter, gotoInfo.moveCost, gotoInfo.attackingMove);
-		}
+		// The cursor goes at the end of the path, with the number of turns it takes.
+		DrawStaticGoToCursor(looseView, currentTileCenter, gotoInfo.moveCost, gotoInfo.attackingMove);
 	}
 }

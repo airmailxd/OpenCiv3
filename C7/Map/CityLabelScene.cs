@@ -14,10 +14,15 @@ namespace C7.Map {
 		const int LEFT_RIGHT_BOXES_HEIGHT = CITY_LABEL_HEIGHT - 2;
 		const int CENTRAL_PANEL_SEPARATOR_WIDTH = 4;
 
+		// Loaded when first needed, and forgotten with the other city textures, since it can differ between games.
 		static ImageTexture nonEmbassyStar;
-		static Theme smallFontTheme = new();
-		static Theme popThemeRed = new();
-		static Theme popSizeTheme = new();
+		static ImageTexture NonEmbassyStar => nonEmbassyStar ??= TextureLoader.Load("icons.capital_star");
+
+		static readonly FontFile smallFont;
+		static readonly FontFile midSizedFont;
+		static readonly Theme smallFontTheme = new();
+		static readonly Theme popThemeRed = new();
+		static readonly Theme popSizeTheme = new();
 
 		PanelContainer labelPanel = new();
 		HBoxContainer mainContainer = new();
@@ -26,6 +31,11 @@ namespace C7.Map {
 		// Made when the city first becomes a capital.
 		PanelContainer capitalPanel;
 		HSeparator centerDivider = new();
+
+		// The styles in the owner's color, kept so they can be recolored.
+		StyleBoxFlat popStyle;
+		StyleBoxLine centerSeparatorStyle;
+		StyleBoxFlat capitalStyle;
 
 		HSeparator borderTop = new();
 		HSeparator borderBottom = new();
@@ -43,15 +53,21 @@ namespace C7.Map {
 		string popSizeText = null;
 		bool popSizeRed = false;
 
-		static FontFile smallFont = new();
-		static FontFile midSizedFont = new();
-
 		Color topRowGrey = Color.Color8(32, 32, 32, TRANSPARENCY);
 		Color bottomRowGrey = Color.Color8(48, 48, 48, TRANSPARENCY);
 		Color backgroundGrey = Color.Color8(64, 64, 64, TRANSPARENCY);
 		Color borderGrey = Color.Color8(80, 80, 80, TRANSPARENCY);
 
+		// The fonts are loaded before the themes that use them are made.
 		static CityLabelScene() {
+			// The mid-sized font is the shared, cached one, used at its own size.
+			midSizedFont = ResourceLoader.Load<FontFile>("res://Fonts/NotoSans-Regular.ttf");
+
+			// The small font skips the cache, since setting its FixedSize would otherwise make everything using the font small.
+			smallFont = ResourceLoader.Load<FontFile>("res://Fonts/NotoSans-Regular.ttf", null, ResourceLoader.CacheMode.Ignore);
+			// Must set the FixedSize so Godot can calculate the width of the font for city labels
+			smallFont.FixedSize = 11;
+
 			smallFontTheme.DefaultFont = smallFont;
 			smallFontTheme.SetColor("font_color", "Label", Color.Color8(255, 255, 255, 255));
 			smallFontTheme.SetFontSize("font_size", "Label", 11);
@@ -61,22 +77,17 @@ namespace C7.Map {
 			popThemeRed.DefaultFont = midSizedFont;
 			popThemeRed.SetColor("font_color", "Label", Color.Color8(255, 0, 0, 255));
 			popThemeRed.SetFontSize("font_size", "Label", 18);
+		}
 
-			//Mid-Size font skips the cache as it sets a custom size
-			midSizedFont = ResourceLoader.Load<FontFile>("res://Fonts/NotoSans-Regular.ttf");
-
-			//Small font doesn't, because otherwise it makes everything small
-			smallFont = ResourceLoader.Load<FontFile>("res://Fonts/NotoSans-Regular.ttf", null, ResourceLoader.CacheMode.Ignore);
-			//Must set the FixedSize so Godot can calculate the width of the font for city labels
-			smallFont.FixedSize = 11;
-
-			nonEmbassyStar = TextureLoader.Load("icons.capital_star");
+		// Forgets the textures, which can differ between games.
+		public static void ClearTextureCache() {
+			nonEmbassyStar = null;
 		}
 
 		public CityLabelScene(City city) {
 			this.city = city;
 
-			civColor = new Color(TextureLoader.LoadColor(city.owner.GetPlayerColor()), TRANSPARENCY);
+			civColor = CivColorOf(city);
 
 			// Set up UI hierarchy
 			AddChild(labelPanel);
@@ -122,6 +133,24 @@ namespace C7.Map {
 			this.city = city;
 		}
 
+		private static Color CivColorOf(City city) {
+			return new Color(TextureLoader.LoadColor(city.owner.GetPlayerColor()), TRANSPARENCY);
+		}
+
+		// Shows the label in the colors of the city's owner, e.g. after the city was captured.
+		public void UpdateCivColor() {
+			Color color = CivColorOf(city);
+			if (color == civColor) {
+				return;
+			}
+			civColor = color;
+			popStyle.BgColor = color;
+			centerSeparatorStyle.Color = color;
+			if (capitalStyle != null) {
+				capitalStyle.BgColor = color;
+			}
+		}
+
 		public void SetTileCenter(Vector2I tileCenter) {
 			if (this.tileCenter == tileCenter) {
 				return;
@@ -158,7 +187,7 @@ namespace C7.Map {
 		private void SetupCapitalPanel() {
 			capitalPanel = new PanelContainer();
 
-			StyleBoxFlat capitalStyle = new() {
+			capitalStyle = new() {
 				BgColor = civColor
 			};
 
@@ -166,7 +195,7 @@ namespace C7.Map {
 			capitalPanel.CustomMinimumSize = new Vector2(LEFT_RIGHT_BOXES_WIDTH, LEFT_RIGHT_BOXES_HEIGHT);
 
 			TextureRect starTextureRect = new() {
-				Texture = nonEmbassyStar,
+				Texture = NonEmbassyStar,
 				StretchMode = TextureRect.StretchModeEnum.KeepCentered
 			};
 
@@ -184,11 +213,11 @@ namespace C7.Map {
 				BorderWidthTop = 1
 			};
 
-			StyleBoxFlat popStyle = new() {
+			popStyle = new() {
 				BgColor = civColor
 			};
 
-			StyleBoxLine centerSeparatorStyle = new() {
+			centerSeparatorStyle = new() {
 				Color = civColor,
 				GrowBegin = CENTRAL_PANEL_SEPARATOR_WIDTH,
 				GrowEnd = CENTRAL_PANEL_SEPARATOR_WIDTH,
