@@ -14,4 +14,17 @@ public class VictoryConditions {
 	public bool VictoryLocations { get; set; }
 	public bool CaptureTheFlag { get; set; }
 	public bool ReverseCaptureTheFlag { get; set; }
+
+	// The shares of the world's land and population needed for a
+	// domination victory.
+	public int DominationTerritoryPercent { get; set; } = 66;
+	public int DominationPopulationPercent { get; set; } = 66;
+
+	// The victory types a new game allows unless the player says otherwise.
+	public static VictoryConditions NewGameDefaults() {
+		return new VictoryConditions {
+			AllowConquestVictory = true,
+			AllowDominationVictory = true,
+		};
+	}
 }

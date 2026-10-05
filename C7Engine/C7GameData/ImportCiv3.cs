@@ -460,7 +460,15 @@ namespace C7GameData {
 				VictoryLocations = game.VictoryLocations,
 				CaptureTheFlag = game.CaptureTheFlag, // 'Capture the Unit', 'Capture the Princess'
 				ReverseCaptureTheFlag = game.ReverseCaptureTheFlag,
+
 			};
+			// Keep the defaults if the game doesn't set the thresholds.
+			if (game.DominationTerrain > 0) {
+				save.VictoryConditions.DominationTerritoryPercent = game.DominationTerrain;
+			}
+			if (game.DominationPopulation > 0) {
+				save.VictoryConditions.DominationPopulationPercent = game.DominationPopulation;
+			}
 
 			if (game.Winner > -1) {
 				// TODO: load winner
