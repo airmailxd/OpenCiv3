@@ -131,9 +131,11 @@ public class PlayerRelationship {
 		aggressorRelationshipToDefender.multiTurnDeals = new List<MultiTurnDeal>();
 		defenderRelationshipToAggressor.multiTurnDeals = new List<MultiTurnDeal>();
 
-		log.Information($"{aggressor} declared war on {defender}{(sneakAttack ? $" in a sneak attack" : "")}!" +
-						$" Defender is refusing contact for at least up to turn {refuseContactUntilTurn}" +
-						$" ({refuseContactUntilTurn - EngineStorage.gameData.turn} turns)!");
+		log.Information("{Aggressor} declared war on {Defender}{SneakAttack}!" +
+						" Defender is refusing contact for at least up to turn {RefuseContactUntilTurn}" +
+						" ({Turns} turns)!",
+						aggressor, defender, sneakAttack ? " in a sneak attack" : "",
+						refuseContactUntilTurn, refuseContactUntilTurn - EngineStorage.gameData.turn);
 	}
 
 	public static void SignPeaceAfterWar(Player left, Player right, GameData gameData) {
@@ -151,7 +153,7 @@ public class PlayerRelationship {
 		left.playerRelationships[right.id].refuseContactUntilTurn = -1;
 		right.playerRelationships[left.id].refuseContactUntilTurn = -1;
 
-		log.Information($"{left} signed a peace treaty with {right}");
+		log.Information("{Left} signed a peace treaty with {Right}", left, right);
 	}
 
 	public static void RegisterMultiTurnDeal(Player left, Player right, MultiTurnDeal mtd) {
@@ -197,13 +199,10 @@ public class PlayerRelationship {
 	/// <param name="players"></param>
 	/// <param name="currentTurn"></param>
 	public static void CheckForObsoleteDeals(Player player, List<Player> players, int currentTurn) {
-		log.Information($"Checking to terminate any deals past their due duration for player {player}");
-
-		var playerIds = players.Select(x => x.id).ToList();
+		log.Information("Checking to terminate any deals past their due duration for player {Player}", player);
 
 		// check player's relationship with the other players
-		foreach (var playerId in playerIds) {
-			Player other = players.First(p => p.id == playerId);
+		foreach (Player other in players) {
 			// if the player doesn't have a relationship with the other civ, or they are at war exit
 			if (TryGetRelationship(player, other, out var relationship) && !relationship.AtWar()) {
 				// we don't want to cancel peace
@@ -218,7 +217,7 @@ public class PlayerRelationship {
 				foreach (MultiTurnDeal deadDeal in deadDeals) {
 					// TODO: Add a popup to notify if an AI/Human deal expires
 					// TODO: Add renegotiate logic (plus preferences option Always Renegotiate Deals)
-					log.Information($"Cancelling multi turn deal: {player} -- {other}");
+					log.Information("Cancelling multi turn deal: {Player} -- {Other}", player, other);
 					UnRegisterMultiTurnDeal(relationship, deadDeal);
 				}
 			}
