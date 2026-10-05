@@ -116,7 +116,7 @@ namespace C7Engine {
 				transportUnit = EngineStorage.gameData.GetUnit(transportUnitId);
 				unit.BoardTransport(transportUnit);
 			} else
-				unit.TryBoardingTransportOnTile(unit.location);
+				unit.LoadOntoTransportHere();
 		}
 	}
 
@@ -130,10 +130,11 @@ namespace C7Engine {
 		public override void process() {
 			// TODO: more selective unload, let human player choose
 			MapUnit transportUnit = EngineStorage.gameData.GetUnit(transportUnitId);
-			foreach (MapUnit unit in transportUnit.location.unitsOnTile) {
-				if (unit.loadedOnUnitId == transportUnit.id) {
-					unit.UnboardTransport(transportUnit);
-				}
+			// Armies can only be unloaded when the game option allows it.
+			if (transportUnit == null || !transportUnit.CanTransport())
+				return;
+			foreach (MapUnit unit in transportUnit.Passengers()) {
+				unit.UnboardTransport(transportUnit);
 			}
 			new
 				MsgTransportUnloaded(transportUnit).send();

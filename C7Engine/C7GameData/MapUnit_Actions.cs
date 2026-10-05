@@ -9,14 +9,17 @@ namespace C7GameData;
 
 public partial class MapUnit {
 	public void OnBeginTurn(bool skipTurn = false) {
-		int maxMP = unitType.movement;
+		int maxMP = MaxMovementPoints();
 		bool restedLastTurn = movementPoints.remaining >= maxMP || heldWithoutMoving;
 		if (restedLastTurn && !skipTurn) {
-			int maxHP = maxHitPoints;
-			if (hitPointsRemaining < maxHP)
-				hitPointsRemaining += HealRateAt(location);
-			if (hitPointsRemaining > maxHP)
-				hitPointsRemaining = maxHP;
+			// The members of an army heal when the army rests, since they don't
+			// move by themselves.
+			if (IsArmy()) {
+				foreach (MapUnit member in Passengers())
+					member.Heal();
+			}
+			if (!IsInArmy())
+				Heal();
 		}
 		heldWithoutMoving = false;
 
@@ -27,6 +30,14 @@ public partial class MapUnit {
 		}
 
 		defensiveBombardsRemaining = 1;
+	}
+
+	private void Heal() {
+		int maxHP = maxHitPoints;
+		if (hitPointsRemaining < maxHP)
+			hitPointsRemaining += HealRateAt(location);
+		if (hitPointsRemaining > maxHP)
+			hitPointsRemaining = maxHP;
 	}
 
 	public void OnEnterTile(Tile tile) {
@@ -116,7 +127,7 @@ public partial class MapUnit {
 	public void SkipTurn() {
 		// Holding uses up the unit's movement points, but a unit that holds
 		// without having moved has still rested and should heal.
-		if (movementPoints.remaining >= unitType.movement) {
+		if (movementPoints.remaining >= MaxMovementPoints()) {
 			heldWithoutMoving = true;
 		}
 		movementPoints.skipTurn();
@@ -280,17 +291,7 @@ public partial class MapUnit {
 			throw new System.Exception("Failed to remove unit from tile it's supposed to be on");
 
 		// Move transported units, too
-		if (CanTransport()) {
-			var transported = location.unitsOnTile
-					.Where(u => u.IsLoadedIn(this)).ToList();
-
-			foreach (var tu in transported) {
-				if (!location.unitsOnTile.Remove(tu))
-					throw new System.Exception("Failed to remove unit from tile during transport move");
-				newLoc.unitsOnTile.Add(tu);
-				tu.location = newLoc;
-			}
-		}
+		CarryPassengersTo(newLoc);
 
 		TryBoardingTransportOnTile(newLoc);
 		TryUnboardingTransportToTile(newLoc);
@@ -300,6 +301,18 @@ public partial class MapUnit {
 		newLoc.unitsOnTile.Add(this);
 		location = newLoc;
 		OnEnterTile(newLoc);
+	}
+
+	// Moves everything loaded on this unit, and anything loaded on that (like
+	// an army aboard a ship), to the new tile along with it.
+	private void CarryPassengersTo(Tile newLoc) {
+		foreach (MapUnit passenger in Passengers()) {
+			passenger.CarryPassengersTo(newLoc);
+			if (!location.unitsOnTile.Remove(passenger))
+				throw new System.Exception("Failed to remove unit from tile during transport move");
+			newLoc.unitsOnTile.Add(passenger);
+			passenger.location = newLoc;
+		}
 	}
 
 	// True if an enemy unit on the tile can actually put up a fight against
@@ -496,6 +509,10 @@ public partial class MapUnit {
 			log.Warning("Failed to find a transport to board");
 			return;
 		}
+		if (!t.CanCarryUnits() || !t.CanLoad(this)) {
+			log.Warning($"{this} can't board {t}");
+			return;
+		}
 		t.Board(this);
 		isFortified = true;
 		ResetFacingDirection();
@@ -513,6 +530,14 @@ public partial class MapUnit {
 		Wake();
 		if (this.owner.isHuman)
 			new MsgUnitMoved(this).send();
+	}
+
+	// Loads this unit, on the player's order, onto a transport or army on its
+	// own tile.
+	public void LoadOntoTransportHere() {
+		if (IsLoaded() || !CanBoardTransportOnTile(location, explicitLoad: true))
+			return;
+		BoardTransport(SelectTransportToBoard(location, explicitLoad: true));
 	}
 
 	public void TryBoardingTransportOnTile(Tile newLoc) {

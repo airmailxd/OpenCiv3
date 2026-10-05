@@ -4537,7 +4537,8 @@
       ],
       "unproducible": true,
       "flags": [
-        "radar"
+        "radar",
+        "army"
       ],
       "categories": [
         "Land"
@@ -11233,7 +11234,8 @@
     "shieldCostPerGold": 4,
     "shieldRateForDisbanding": 0.25,
     "allowLesserUnitProduction": false,
-    "radarTileVisibility": 2
+    "radarTileVisibility": 2,
+    "allowUnloadFromArmy": false
   },
   "timeOptions": {
     "baseUnit": "years",

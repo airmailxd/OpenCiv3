@@ -24,5 +24,9 @@ namespace C7GameData {
 		public float ShieldRateForDisbanding; // per cent
 		public bool AllowLesserUnitProduction; // for example, allow building a Spearman/Pikeman when we can build a Musketman (simultaneously)
 		public int RadarTileVisibility; // how many tiles, a unit with the Radar ability, can see ahead
+
+		// Game option: whether units can be unloaded from an army once they've
+		// been loaded into it. Armies are rigid by default.
+		public bool AllowUnloadFromArmy = false;
 	}
 }

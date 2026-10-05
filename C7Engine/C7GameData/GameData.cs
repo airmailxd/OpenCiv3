@@ -266,8 +266,10 @@ namespace C7GameData {
 			// Start from the end and start deleting backwards
 			// because the other way doesn't actually go through all units
 			// probably because we keep modifying the list and its count gets all messed up
-			for (int i = player.units.Count - 1; i >= 0; --i) {
-				RemoveUnit(player.units[i]);
+			// Removing a transport or army can take its cargo with it, so
+			// always remove whatever unit is currently last.
+			while (player.units.Count > 0) {
+				RemoveUnit(player.units[^1]);
 			}
 
 			// Remove this civ from all other player's relationships.
@@ -291,6 +293,13 @@ namespace C7GameData {
 
 			await unit.animateAsync(MapUnit.AnimatedAction.DEATH, AnimationEnding.Pause);
 
+			// Disbanding an army releases the units in it, rather than
+			// disbanding them too.
+			if (unit.IsArmy()) {
+				foreach (MapUnit member in unit.Passengers())
+					member.loadedOnUnitId = null;
+			}
+
 			RemoveUnit(unit);
 		}
 
@@ -305,11 +314,12 @@ namespace C7GameData {
 				unit.currentAI = null;
 			}
 
-			// Deal with anything this unit was carrying. At sea the cargo goes
-			// down with the transport; in port it's simply unloaded.
-			List<MapUnit> cargo = unit.location.unitsOnTile.Where(u => u != unit && u.IsLoadedIn(unit)).ToList();
-			foreach (MapUnit loaded in cargo) {
-				if (unit.location.IsWater()) {
+			// Deal with anything this unit was carrying. The units in an army
+			// die with it, as does cargo at sea; a transport's cargo in port is
+			// simply unloaded. Either way nothing is left pointing at the
+			// removed unit.
+			foreach (MapUnit loaded in unit.Passengers()) {
+				if (unit.IsArmy() || unit.location.IsWater()) {
 					RemoveUnit(loaded);
 				} else {
 					loaded.loadedOnUnitId = null;

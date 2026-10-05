@@ -114,6 +114,19 @@ namespace C7GameData {
 			}
 		}
 
+		// An army is a container that carries other units into battle as a
+		// single stack, rather than fighting with strength of its own.
+		public bool isArmy {
+			get => flags.Contains(SaveUnitPrototype.Flag.Army);
+			set {
+				if (value) {
+					flags.Add(SaveUnitPrototype.Flag.Army);
+				} else {
+					flags.Remove(SaveUnitPrototype.Flag.Army);
+				}
+			}
+		}
+
 		public HashSet<string> categories = new HashSet<string>();
 
 		public HashSet<UnitAction> actions = [];
@@ -159,6 +172,14 @@ namespace C7GameData {
 
 		public bool IsSeaUnit() {
 			return categories.Contains("Sea");
+		}
+
+		// Whether units of this type can be loaded into an army. Only land
+		// units that can attack qualify, so settlers, workers and bombard-only
+		// units like catapults are left out, as are transports and other
+		// armies.
+		public bool CanJoinArmy() {
+			return IsLandUnit() && attack > 0 && capacity == 0 && !isArmy;
 		}
 
 		public override string ToString() {

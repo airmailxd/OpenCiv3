@@ -15,6 +15,7 @@ namespace C7Engine.Pathing {
 
 		public override IEnumerable<Edge<Tile>> getEdges(Tile node) {
 			List<Edge<Tile>> result = new List<Edge<Tile>>();
+			float unitMovementPoints = unit.MaxMovementPoints();
 			foreach (KeyValuePair<TileDirection, Tile> pair in node.neighbors) {
 				TileDirection direction = pair.Key;
 				Tile neighbor = pair.Value;
@@ -36,7 +37,6 @@ namespace C7Engine.Pathing {
 				}
 
 				float tileMovementCost = TilePath.GetMovementCost(unit.owner, node, direction, neighbor);
-				float unitMovementPoints = unit.unitType.movement;
 
 				// If this tile would consume all of the movement points of this
 				// unit, it has a cost of 1 turn. Otherwise we use the fraction

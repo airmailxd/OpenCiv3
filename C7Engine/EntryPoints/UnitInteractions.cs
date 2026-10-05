@@ -16,7 +16,8 @@ namespace C7Engine {
 			Player player = EngineStorage.gameData.GetUIControllerPlayer();
 			IEnumerable<MapUnit> selectable = player != null && player.isHuman ? player.units : [];
 			foreach (MapUnit unit in selectable.Where(u => u.movementPoints.canMove)) {
-				if (unit.isFortified) {
+				// Units in a rigid army go where the army goes.
+				if (unit.isFortified || unit.IsLockedInArmy()) {
 					continue;
 				}
 
