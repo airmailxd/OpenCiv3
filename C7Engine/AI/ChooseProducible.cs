@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Serilog;
+using Serilog.Events;
 using C7GameData;
 using static C7GameData.PlayerRelationship;
 
@@ -9,22 +10,98 @@ namespace C7Engine {
 	public class ChooseProducible {
 		private static ILogger log = Log.ForContext<ChooseProducible>();
 
-		record struct ProducibleStats(
-			float bestAttack,
-			float bestDefense,
-			float bestNonWonderCulture,
-			int numberOfReachableOpenCitySpots,
-			bool inExpansionPhase
-		);
+		// Facts about the city and player that every option is scored
+		// against. Nothing changes while the options of one decision are
+		// scored, so each is computed at most once per decision, and only if
+		// an option needs it.
+		private sealed class ProducibleStats {
+			public readonly City city;
+			public readonly Player player;
+
+			public float bestAttack;
+			public float bestDefense;
+			public float bestNonWonderCulture;
+			public int numberOfReachableOpenCitySpots;
+			public bool inExpansionPhase;
+			public readonly bool atWar;
+
+			public ProducibleStats(City city, Player player) {
+				this.city = city;
+				this.player = player;
+				atWar = IsInAnyWar(player, EngineStorage.gameData.players);
+			}
+
+			private bool? cityGuarded;
+			public bool CityGuarded => cityGuarded ??= city.location.unitsOnTile.Count(u => u.CanDefendOnLand()) > 0;
+
+			private bool? hasUnescortedSettler;
+			public bool HasUnescortedSettler => hasUnescortedSettler ??= ChooseProducible.HasUnescortedSettler(city);
+
+			private int? unitSupportCost;
+			public int UnitSupportCost => unitSupportCost ??= player.TotalUnitsAllowedUnitsAndSupportCost().Item3;
+
+			private int? settlersUnderConstruction;
+			public int SettlersUnderConstruction => settlersUnderConstruction ??= ChooseProducible.SettlersUnderConstruction(player);
+
+			private int? numWorkers;
+			public int NumWorkers => numWorkers ??= player.units.Count(x => x.unitType.isWorker);
+
+			private int? numUnworkedTiles;
+			public int NumUnworkedTiles => numUnworkedTiles ??= ChooseProducible.NumUnworkedTiles(city);
+
+			private bool? connectedToCapital;
+			public bool ConnectedToCapital => connectedToCapital ??= EngineStorage.gameData.GetTradeNetwork().ConnectedToCapital(player, city);
+
+			private bool? neighborsOcean;
+			public bool NeighborsOcean => neighborsOcean ??= city.location.NeighborsOcean();
+
+			private int? luxuryCount;
+			public int LuxuryCount => luxuryCount ??= city.GetLuxuries(EngineStorage.gameData).Keys.Count;
+
+			private int? foodGrowthPerTurn;
+			public int FoodGrowthPerTurn => foodGrowthPerTurn ??= city.FoodGrowthPerTurn();
+
+			private CorruptableValue? currentProductionYield;
+			public CorruptableValue CurrentProductionYield => currentProductionYield ??= city.CurrentProductionYield();
+
+			private int? culturePerTurn;
+			public int CulturePerTurn => culturePerTurn ??= city.GetCulturePerTurn();
+
+			private (int unclaimed, int enemy)? outerRingTiles;
+			public (int unclaimed, int enemy) OuterRingTiles => outerRingTiles ??= CountOuterRingTiles(city);
+
+			private (int unhappy, int entertainers)? unhappyAndEntertainers;
+			public (int unhappy, int entertainers) UnhappyAndEntertainers => unhappyAndEntertainers ??= CountUnhappyAndEntertainers(city);
+
+			private int? turnsUntilGrowth;
+			public int TurnsUntilGrowth => turnsUntilGrowth ??= city.TurnsUntilGrowth();
+
+			// Whether a naval unit of each type built here would explore.
+			private readonly Dictionary<UnitPrototype, bool> wouldExplore = new();
+			public bool WouldExplore(UnitPrototype unit) {
+				if (!wouldExplore.TryGetValue(unit, out bool result)) {
+					// A unit we might build, used only to ask what we would do
+					// with it. It isn't put into play, so it doesn't need a
+					// real ID.
+					MapUnit temp = unit.GetInstance(ID.None(unit.name), unit, player, location: city.location);
+					result = PlayerAI.WouldExplore(temp, player);
+					wouldExplore[unit] = result;
+				}
+				return result;
+			}
+		}
 
 		public static IProducible Choose(City city, Player player) {
 			List<IProducible> options = city.ListProductionOptions(EngineStorage.gameData).ToList();
-			ProducibleStats stats = CalculateStats(city, options);
+			ProducibleStats stats = CalculateStats(city, player, options);
 
 			IProducible best = null;
 			float bestScore = int.MinValue;
 
-			log.Debug($"{player.civilization.name}: {city}---- {stats.inExpansionPhase} {stats.numberOfReachableOpenCitySpots}");
+			bool debugLogging = log.IsEnabled(LogEventLevel.Debug);
+			if (debugLogging) {
+				log.Debug("{Civilization}: {City}---- {InExpansionPhase} {OpenCitySpots}", player.civilization.name, city, stats.inExpansionPhase, stats.numberOfReachableOpenCitySpots);
+			}
 			foreach (IProducible option in options) {
 				// Get the item score, with a +/- 10% random adjustment to make
 				// things seem appropriately random.
@@ -33,9 +110,13 @@ namespace C7Engine {
 					bestScore = score;
 					best = option;
 				}
-				log.Debug($"\t{option}: {score}");
+				if (debugLogging) {
+					log.Debug("\t{Option}: {Score}", option, score);
+				}
 			}
-			log.Debug($"\t\tchose {best}");
+			if (debugLogging) {
+				log.Debug("\t\tchose {Best}", best);
+			}
 			return best;
 		}
 
@@ -72,10 +153,7 @@ namespace C7Engine {
 
 			bool isSettler = unit.actions.Contains(UnitAction.BuildCity);
 			bool isWorker = unit.isWorker;
-			bool atWar = IsInAnyWar(player, EngineStorage.gameData.players);
-			bool cityGuarded = city.location.unitsOnTile.Count(u => u.CanDefendOnLand()) > 0;
-			bool hasUnescortedSettler = HasUnescortedSettler(city);
-			var (totalUnits, allowedUnits, unitSupportCost) = player.TotalUnitsAllowedUnitsAndSupportCost();
+			bool atWar = stats.atWar;
 
 			float attackWeight = atWar ? 15 : 10;
 			float defenseWeight = atWar ? 15 : 10;
@@ -85,10 +163,6 @@ namespace C7Engine {
 			float unitSupportCapPenalty = 10;
 
 			float score = 0;
-
-			// Create a fake version of this unit so we can check what AI we
-			// would give it.
-			MapUnit temp = unit.GetInstance(EngineStorage.gameData.GenerateID(unit.name), unit, player, location: city.location);
 
 			////////////////////////////////////////////////////////////////////
 			///
@@ -114,13 +188,13 @@ namespace C7Engine {
 			if (unit.categories.Contains("Sea")) {
 				// Don't bother building naval units unless we border the ocean.
 				// This does mean that inland seas are excluded.
-				if (!city.location.NeighborsOcean()) {
+				if (!stats.NeighborsOcean) {
 					return int.MinValue;
 				}
 
 				// Don't built a naval unit if we wouldn't explore with it. We
 				// don't yet handle using ships as transports or naval warfare.
-				if (!(PlayerAI.GetAIForUnit(temp, player) is ExplorerAI)) {
+				if (!stats.WouldExplore(unit)) {
 					return int.MinValue;
 				}
 			}
@@ -131,22 +205,25 @@ namespace C7Engine {
 			///
 
 			// Prioritize defending the city if it is unguarded.
-			if (!cityGuarded && unit.defense == 0) {
+			if (!stats.CityGuarded && unit.defense == 0) {
 				return int.MinValue;
 			}
 
 			// Prioritize building settler escorts if we don't have one.
-			if (hasUnescortedSettler && unit.defense == 0) {
+			if (stats.HasUnescortedSettler && unit.defense == 0) {
 				return int.MinValue;
 			}
 
 			// Penalize going over the unit support cap unless we're at war or
 			// still in the expansion phase.
-			if (unitSupportCost > 0 && !atWar && !stats.inExpansionPhase) {
-				score -= unitSupportCost / 2;
+			if (!atWar && !stats.inExpansionPhase) {
+				int unitSupportCost = stats.UnitSupportCost;
+				if (unitSupportCost > 0) {
+					score -= unitSupportCost / 2;
 
-				if (HasWeakEconomy(player)) {
-					score -= unitSupportCost * 2;
+					if (HasWeakEconomy(player)) {
+						score -= unitSupportCost * 2;
+					}
 				}
 			}
 
@@ -156,7 +233,7 @@ namespace C7Engine {
 			///
 
 			// Don't built a worker or settler if we don't have enough population.
-			if (CityIsTooSmall(city, unit)) {
+			if (CityIsTooSmall(stats, city, unit)) {
 				return int.MinValue;
 			}
 
@@ -164,7 +241,7 @@ namespace C7Engine {
 				// Don't build settlers if we don't have anywhere to go or if we
 				// already have enough settlers under construction to fill all
 				// the spots.
-				if (stats.numberOfReachableOpenCitySpots <= SettlersUnderConstruction(player)) {
+				if (stats.numberOfReachableOpenCitySpots <= stats.SettlersUnderConstruction) {
 					return int.MinValue;
 				}
 
@@ -184,15 +261,14 @@ namespace C7Engine {
 			if (isWorker) {
 				// If we have unworked tiles and fewer workers than cities, boost
 				// the odds of producing a worker.
-				int numUnworkedTiles = NumUnworkedTiles(city);
-				int numWorkers = player.units.Count(x => x.unitType.isWorker);
-				if (numUnworkedTiles > 0 && numWorkers < player.cities.Count * 1.5f) {
+				int numUnworkedTiles = stats.NumUnworkedTiles;
+				if (numUnworkedTiles > 0 && stats.NumWorkers < player.cities.Count * 1.5f) {
 					score += populationCostPenalty * Math.Min(3.0f, 1 + numUnworkedTiles);
 				}
 
 				// If we have a few cities but don't have trade access to the
 				// capital, boost the odds of a worker.
-				if (!EngineStorage.gameData.GetTradeNetwork().ConnectedToCapital(player, city) && player.cities.Count > 4) {
+				if (player.cities.Count > 4 && !stats.ConnectedToCapital) {
 					score += noTradeAccessBoost;
 				}
 			}
@@ -201,7 +277,7 @@ namespace C7Engine {
 		}
 
 		private static float ScoreBuilding(ProducibleStats stats, City city, Player player, Building building) {
-			bool atWar = IsInAnyWar(player, EngineStorage.gameData.players);
+			bool atWar = stats.atWar;
 
 			float score = 0;
 
@@ -209,19 +285,19 @@ namespace C7Engine {
 			// that have a decent number of luxuries. Otherwise they don't do
 			// much.
 			if (building.increasesLuxuryTrade) {
-				GameData gd = EngineStorage.gameData;
-				score += Math.Max(city.residents.Count - city.GetLuxuries(gd).Keys.Count, 0) * (city.GetLuxuries(gd).Keys.Count / 2);
+				int luxuryCount = stats.LuxuryCount;
+				score += Math.Max(city.residents.Count - luxuryCount, 0) * (luxuryCount / 2);
 			}
 
 			// Only build an aqueduct if we need one.
 			if (building.allowsCitySize2 &&
-				city.residents.Count == player.rules.MaximumLevel1CitySize && city.FoodGrowthPerTurn() > 0) {
+				city.residents.Count == player.rules.MaximumLevel1CitySize && stats.FoodGrowthPerTurn > 0) {
 				score += 50;
 			}
 
 			// Ditto with hospitals.
 			if (building.allowsCitySize3 &&
-				city.residents.Count == player.rules.MaximumLevel2CitySize && city.FoodGrowthPerTurn() > 0) {
+				city.residents.Count == player.rules.MaximumLevel2CitySize && stats.FoodGrowthPerTurn > 0) {
 				score += 70;
 			}
 
@@ -241,7 +317,7 @@ namespace C7Engine {
 					return int.MinValue;
 				}
 
-				CorruptableValue prod = city.CurrentProductionYield();
+				CorruptableValue prod = stats.CurrentProductionYield;
 				if (prod.useful > 0 && ((float)prod.corrupt) / prod.useful > .15) {
 					score += prod.corrupt * 8;
 				}
@@ -251,12 +327,7 @@ namespace C7Engine {
 			// citizens in the city or if we have a decently large value on the
 			// luxury slider.
 			if (building.contentFacesInCity > 0) {
-				int unhappyCount = 0;
-				int entertainerCount = 0;
-				foreach (CityResident cr in city.residents) {
-					if (cr.mood == CityResident.Mood.Unhappy) { ++unhappyCount; }
-					if (cr.citizenType.Luxuries > 0) { ++entertainerCount; }
-				}
+				(int unhappyCount, int entertainerCount) = stats.UnhappyAndEntertainers;
 
 				if (unhappyCount > 0 || (player.luxuryRate > 3 && city.residents.Count > 4)) {
 					score += Math.Min(unhappyCount, building.contentFacesInCity) * 10;
@@ -268,17 +339,9 @@ namespace C7Engine {
 			// additional tiles by expanding our borders, or if we are next to
 			// an enemy city.
 			if (building.culturePerTurn > 0) {
-				int unclaimedTilesInOuterRing = 0;
-				int enemyTilesInOuterRing = 0;
-				foreach (Tile t in city.location.GetTilesWithinRankDistance(2)) {
-					if (t.OwningPlayer() == null) {
-						++unclaimedTilesInOuterRing;
-					} else if (t.OwningPlayer() != city.owner) {
-						++enemyTilesInOuterRing;
-					}
-				}
+				(int unclaimedTilesInOuterRing, int enemyTilesInOuterRing) = stats.OuterRingTiles;
 
-				if (city.GetCulturePerTurn() == 0) {
+				if (stats.CulturePerTurn == 0) {
 					score += building.culturePerTurn * (unclaimedTilesInOuterRing + enemyTilesInOuterRing * 3);
 				} else {
 					score += building.culturePerTurn * (unclaimedTilesInOuterRing + enemyTilesInOuterRing * 3) / 2.0f;
@@ -310,8 +373,8 @@ namespace C7Engine {
 			return score;
 		}
 
-		private static ProducibleStats CalculateStats(City city, List<IProducible> options) {
-			ProducibleStats stats = new() {
+		private static ProducibleStats CalculateStats(City city, Player player, List<IProducible> options) {
+			ProducibleStats stats = new(city, player) {
 				numberOfReachableOpenCitySpots = NumberOfReachableOpenCitySpots(city),
 			};
 			stats.inExpansionPhase = city.owner.cities.Count < 5 || stats.numberOfReachableOpenCitySpots > city.owner.cities.Count * 2;
@@ -326,6 +389,30 @@ namespace C7Engine {
 			}
 
 			return stats;
+		}
+
+		private static (int unclaimed, int enemy) CountOuterRingTiles(City city) {
+			int unclaimedTilesInOuterRing = 0;
+			int enemyTilesInOuterRing = 0;
+			foreach (Tile t in city.location.GetTilesWithinRankDistance(2)) {
+				Player owner = t.OwningPlayer();
+				if (owner == null) {
+					++unclaimedTilesInOuterRing;
+				} else if (owner != city.owner) {
+					++enemyTilesInOuterRing;
+				}
+			}
+			return (unclaimedTilesInOuterRing, enemyTilesInOuterRing);
+		}
+
+		private static (int unhappy, int entertainers) CountUnhappyAndEntertainers(City city) {
+			int unhappyCount = 0;
+			int entertainerCount = 0;
+			foreach (CityResident cr in city.residents) {
+				if (cr.mood == CityResident.Mood.Unhappy) { ++unhappyCount; }
+				if (cr.citizenType.Luxuries > 0) { ++entertainerCount; }
+			}
+			return (unhappyCount, entertainerCount);
 		}
 
 		private static bool HasUnescortedSettler(City city) {
@@ -370,14 +457,14 @@ namespace C7Engine {
 			return result;
 		}
 
-		private static bool CityIsTooSmall(City city, UnitPrototype unit) {
+		private static bool CityIsTooSmall(ProducibleStats stats, City city, UnitPrototype unit) {
 			if (unit.populationCost < city.residents.Count) {
 				return false;
 			}
 
 			// If we would grow before the city finishes producing the unit, we
 			// can build the unit.
-			if (unit.populationCost == city.residents.Count && city.TurnsToProduce(unit) >= city.TurnsUntilGrowth()) {
+			if (unit.populationCost == city.residents.Count && city.TurnsToProduce(unit) >= stats.TurnsUntilGrowth) {
 				return false;
 			}
 
