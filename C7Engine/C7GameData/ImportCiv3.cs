@@ -1612,6 +1612,8 @@ namespace C7GameData {
 					iconRowIndex=pediaIcons.buildingToRowNumberMapping[bldg.CivilopediaEntry],
 					combatDefenseBonus=bldg.DefenseBonus / 100.0,
 					maintenanceCost=bldg.MaintenanceCost,
+					// Production is stored in 25% steps.
+					productionBonusPercent=bldg.Production * 25,
 				};
 
 				if (bldg.RequiredAdvance != -1) {
@@ -1673,6 +1675,9 @@ namespace C7GameData {
 				(bldg.AllowsCitySize3, SaveBuilding.Flag.AllowsCitySize3),
 				(bldg.DoublesCityGrowthRate, SaveBuilding.Flag.DoublesCityGrowthRate),
 				(bldg.TreasuryEarnsInterest, SaveBuilding.Flag.TreasuryEarnsInterest),
+				(bldg.Plus50PercentResearch, SaveBuilding.Flag.Plus50PercentResearch),
+				(bldg.Plus50PercentLuxury, SaveBuilding.Flag.Plus50PercentLuxury),
+				(bldg.Plus50PercentCommerce, SaveBuilding.Flag.Plus50PercentCommerce),
 			}
 			.Where(t => t.Item1)
 			.Select(t => t.Item2);

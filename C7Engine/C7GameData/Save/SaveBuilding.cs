@@ -21,6 +21,10 @@ namespace C7GameData.Save {
 			ProvidesWalls,
 			CanOnlyBeBuiltInTowns,
 			TreasuryEarnsInterest,
+			Plus50PercentResearch,
+			Plus50PercentLuxury,
+			// Increases both tax and luxury output.
+			Plus50PercentCommerce,
 		}
 
 		public class GreatWonderProperties {
@@ -41,6 +45,9 @@ namespace C7GameData.Save {
 		public int contentFacesInCity;
 		public double combatDefenseBonus;
 		public int maintenanceCost;
+		// The percentage by which the building increases the city's useful
+		// shield production.
+		public int productionBonusPercent;
 		public int iconRowIndex;
 		public ID? renderedObsoleteBy;
 

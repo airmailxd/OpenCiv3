@@ -8113,7 +8113,8 @@
       "maintenanceCost": 1,
       "iconRowIndex": 4,
       "flags": [
-        "increasesLuxuryTrade"
+        "increasesLuxuryTrade",
+        "plus50PercentCommerce"
       ],
       "traits": [
         "commercial"
@@ -8130,6 +8131,9 @@
       "combatDefenseBonus": 0,
       "maintenanceCost": 1,
       "iconRowIndex": 5,
+      "flags": [
+        "plus50PercentResearch"
+      ],
       "traits": [
         "scientific"
       ]
@@ -8204,6 +8208,9 @@
       "combatDefenseBonus": 0,
       "maintenanceCost": 1,
       "iconRowIndex": 9,
+      "flags": [
+        "plus50PercentCommerce"
+      ],
       "traits": [
         "commercial"
       ]
@@ -8236,6 +8243,9 @@
       "combatDefenseBonus": 0,
       "maintenanceCost": 2,
       "iconRowIndex": 11,
+      "flags": [
+        "plus50PercentResearch"
+      ],
       "traits": [
         "scientific"
       ]
@@ -8262,6 +8272,7 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 3,
+      "productionBonusPercent": 50,
       "iconRowIndex": 13,
       "requiredResources": [
         "Iron"
@@ -8278,6 +8289,7 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 3,
+      "productionBonusPercent": 50,
       "iconRowIndex": 14
     },
     {
@@ -8306,6 +8318,7 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 3,
+      "productionBonusPercent": 50,
       "iconRowIndex": 16,
       "requiredResources": [
         "Coal"
@@ -8322,6 +8335,7 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 3,
+      "productionBonusPercent": 50,
       "iconRowIndex": 17,
       "flags": [
         "mustBeNearRiver"
@@ -8341,6 +8355,7 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 3,
+      "productionBonusPercent": 100,
       "iconRowIndex": 18,
       "requiredResources": [
         "Uranium"
@@ -8376,6 +8391,9 @@
       "combatDefenseBonus": 0,
       "maintenanceCost": 2,
       "iconRowIndex": 20,
+      "flags": [
+        "plus50PercentResearch"
+      ],
       "traits": [
         "scientific"
       ]
@@ -8450,6 +8468,7 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 3,
+      "productionBonusPercent": 50,
       "iconRowIndex": 24,
       "traits": [
         "agricultural"
@@ -9008,6 +9027,7 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
+      "productionBonusPercent": 100,
       "iconRowIndex": 55,
       "requiredResources": [
         "Iron",
@@ -9342,6 +9362,9 @@
       "combatDefenseBonus": 0,
       "maintenanceCost": 3,
       "iconRowIndex": 76,
+      "flags": [
+        "plus50PercentCommerce"
+      ],
       "traits": [
         "commercial"
       ]

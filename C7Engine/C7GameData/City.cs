@@ -524,6 +524,10 @@ namespace C7GameData {
 				result.corrupt = yield;
 			}
 
+			// Factories and power plants boost the shields left after waste.
+			int productionBonusPercent = GetBuildings().Sum(cb => cb.building.productionBonusPercent);
+			result.useful += result.useful * productionBonusPercent / 100;
+
 			// TODO: add specialist shields here. Do specialists still work in
 			// civil disorder?
 
@@ -558,6 +562,18 @@ namespace C7GameData {
 			result.beakers = (int)Math.Floor(commerce.useful * owner.scienceRate / 10.0);
 			result.happiness = (int)Math.Floor(commerce.useful * owner.luxuryRate / 10.0);
 			result.taxes = commerce.useful - result.beakers - result.happiness;
+
+			// Each library, marketplace and similar building adds 50% to the
+			// share of commerce it affects.
+			int researchBuildings = 0, luxuryBuildings = 0, taxBuildings = 0;
+			foreach (CityBuilding cb in GetBuildings()) {
+				researchBuildings += cb.building.increasesResearch ? 1 : 0;
+				luxuryBuildings += cb.building.increasesLuxury ? 1 : 0;
+				taxBuildings += cb.building.increasesTax ? 1 : 0;
+			}
+			result.beakers += result.beakers * researchBuildings / 2;
+			result.happiness += result.happiness * luxuryBuildings / 2;
+			result.taxes += result.taxes * taxBuildings / 2;
 
 			foreach (CityResident cr in residents) {
 				result.beakers += cr.citizenType.Research;
