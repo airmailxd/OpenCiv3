@@ -246,10 +246,16 @@ public partial class Util {
 	// used a few times in quick succession and then not again once the
 	// textures made from them exist.
 	public sealed class RecentlyUsedCache<T> where T : class {
+		// The recently used values, most recently used first.
 		private readonly string[] recentKeys;
 		private readonly T[] recentValues;
-		private int nextRecent = 0;
+		private int recentCount = 0;
 		private readonly Dictionary<string, WeakReference<T>> weak = new();
+
+		// The weak references to collected values are dropped when there are
+		// this many references, so they don't pile up.
+		private const int MinPruneThreshold = 64;
+		private int pruneThreshold = MinPruneThreshold;
 
 		public RecentlyUsedCache(int recentCapacity) {
 			recentKeys = new string[recentCapacity];
@@ -257,36 +263,86 @@ public partial class Util {
 		}
 
 		public bool TryGet(string key, out T value) {
-			for (int i = 0; i < recentKeys.Length; i++) {
+			for (int i = 0; i < recentCount; i++) {
 				if (recentKeys[i] == key) {
 					value = recentValues[i];
+					MoveToFront(i);
 					return true;
 				}
 			}
-			if (weak.TryGetValue(key, out WeakReference<T> reference) && reference.TryGetTarget(out value)) {
-				KeepRecent(key, value);
-				return true;
+			if (weak.TryGetValue(key, out WeakReference<T> reference)) {
+				if (reference.TryGetTarget(out value)) {
+					KeepRecent(key, value);
+					return true;
+				}
+				weak.Remove(key);
 			}
 			value = null;
 			return false;
 		}
 
 		public void Add(string key, T value) {
+			if (!weak.ContainsKey(key) && weak.Count >= pruneThreshold) {
+				PruneCollected();
+			}
 			weak[key] = new WeakReference<T>(value);
 			KeepRecent(key, value);
 		}
 
+		// Makes the value the most recently used one, dropping the least
+		// recently used if there's no room.
 		private void KeepRecent(string key, T value) {
-			recentKeys[nextRecent] = key;
-			recentValues[nextRecent] = value;
-			nextRecent = (nextRecent + 1) % recentKeys.Length;
+			if (recentKeys.Length == 0) {
+				return;
+			}
+			int index = Array.IndexOf(recentKeys, key, 0, recentCount);
+			if (index < 0) {
+				if (recentCount < recentKeys.Length) {
+					recentCount++;
+				}
+				index = recentCount - 1;
+			}
+			recentKeys[index] = key;
+			recentValues[index] = value;
+			MoveToFront(index);
+		}
+
+		private void MoveToFront(int index) {
+			if (index == 0) {
+				return;
+			}
+			string key = recentKeys[index];
+			T value = recentValues[index];
+			Array.Copy(recentKeys, 0, recentKeys, 1, index);
+			Array.Copy(recentValues, 0, recentValues, 1, index);
+			recentKeys[0] = key;
+			recentValues[0] = value;
+		}
+
+		// Drops the weak references whose values have been collected.
+		private void PruneCollected() {
+			List<string> collected = null;
+			foreach ((string key, WeakReference<T> reference) in weak) {
+				if (!reference.TryGetTarget(out _)) {
+					(collected ??= new()).Add(key);
+				}
+			}
+			if (collected != null) {
+				foreach (string key in collected) {
+					weak.Remove(key);
+				}
+			}
+			// Prune again once the cache has doubled, so pruning stays cheap
+			// on average even if most values are still alive.
+			pruneThreshold = Math.Max(MinPruneThreshold, weak.Count * 2);
 		}
 
 		public void Clear() {
 			Array.Clear(recentKeys);
 			Array.Clear(recentValues);
-			nextRecent = 0;
+			recentCount = 0;
 			weak.Clear();
+			pruneThreshold = MinPruneThreshold;
 		}
 	}
 
@@ -583,5 +639,6 @@ public partial class Util {
 		TextureLoader.ClearCache();
 		AnimationManager.ClearCache();
 		PlayerTextureUtil.ClearCache();
+		C7.Map.CityScene.ClearTextureCache();
 	}
 }
