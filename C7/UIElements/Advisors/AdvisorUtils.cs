@@ -99,47 +99,13 @@ public static class AdvisorUtils {
 
 // Research estimates for screens that show many of them at once. The beakers
 // a player makes per turn are added up once (over all their cities) and
-// passed in, rather than for every tech as Player.EstimateTurnsToResearch
-// does. These mirror Player.EstimateTurnsToResearch and
-// Player.SummarizeScience exactly, and must be kept in step with them.
+// passed in, rather than for every tech; the formula itself is the engine's.
 public static class ScienceEstimates {
-	public static int BeakersPerTurn(C7GameData.Player player) {
-		int beakersPerTurn = 0;
-		foreach (C7GameData.City city in player.cities) {
-			beakersPerTurn += city.CurrentCommerceYield().beakers;
-		}
-		return beakersPerTurn;
-	}
+	public static int BeakersPerTurn(C7GameData.Player player) => player.BeakersPerTurn();
 
-	public static int TurnsToResearch(C7GameData.GameData gameData, C7GameData.Player player, C7GameData.Tech tech, int beakersPerTurn) {
-		int remainingCost = gameData.TechCostFor(tech, player);
-		if (remainingCost > 0 && beakersPerTurn == 0) {
-			// No research is happening.
-			return int.MaxValue;
-		}
+	public static int TurnsToResearch(C7GameData.GameData gameData, C7GameData.Player player, C7GameData.Tech tech, int beakersPerTurn) =>
+		player.EstimateTurnsToResearch(gameData, tech, beakersPerTurn);
 
-		// A tech that's already paid for is done, even with no science.
-		int turnsRemaining = remainingCost <= 0 ? 0 : (int)System.Math.Ceiling((double)remainingCost / beakersPerTurn);
-
-		int maxTurnsRemaining = player.rules.MaximumResearchTime - player.turnsResearched;
-		int minTurnsRemaining = player.rules.MinimumResearchTime - player.turnsResearched;
-
-		int result = System.Math.Min(turnsRemaining, maxTurnsRemaining);
-		result = System.Math.Max(result, minTurnsRemaining);
-
-		return result;
-	}
-
-	public static string SummarizeScience(C7GameData.GameData gameData, C7GameData.Player player, int beakersPerTurn) {
-		C7GameData.Tech tech = gameData.techs.Find(x => x.id == player.currentlyResearchedTech);
-		if (tech == null) {
-			return "Not selected (-- turns)";
-		}
-		int turns = TurnsToResearch(gameData, player, tech, beakersPerTurn);
-		if (turns == int.MaxValue) {
-			return $"{tech.Name} (-- turns)";
-		}
-
-		return $"{tech.Name} ({turns} turns)";
-	}
+	public static string SummarizeScience(C7GameData.GameData gameData, C7GameData.Player player, int beakersPerTurn) =>
+		player.SummarizeScience(gameData, beakersPerTurn);
 }
