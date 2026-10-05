@@ -134,7 +134,7 @@ public partial class MapUnit {
 		isAutomated = true;
 		WorkerAIData? maybeAiData = WorkerAI.MakeAiData(this, owner);
 		if (maybeAiData == null) {
-			log.Information($"Could not find anything to automate for {this} owned by {owner}");
+			log.Information("Could not find anything to automate for {Unit} owned by {Player}", this, owner);
 			isAutomated = false;
 			return;
 		}
@@ -147,7 +147,7 @@ public partial class MapUnit {
 		isAutomated = true;
 		ExplorerAIData? maybeAiData = ExplorerAI.MaybeMakeAiData(this, owner);
 		if (maybeAiData == null) {
-			log.Information($"Could not find anything to explore for {this} owned by {owner}");
+			log.Information("Could not find anything to explore for {Unit} owned by {Player}", this, owner);
 			isAutomated = false;
 			return;
 		}
@@ -233,8 +233,19 @@ public partial class MapUnit {
 
 			// See if this worker finished the job.
 			if ((int)SumWorkerProgress(location, WorkerJob) >= GetWorkerJobCost(location, WorkerJob)) {
-				location.FinishWorkerJob(WorkerJob);
+				FinishWorkerJobAt(location, WorkerJob);
 			}
+		}
+	}
+
+	// Finishes a worker job, noting any change to the terrain, since that
+	// changes what units nearby can see.
+	private static void FinishWorkerJobAt(Tile tile, Terraform job) {
+		TerrainType baseTerrain = tile.baseTerrainType;
+		TerrainType overlayTerrain = tile.overlayTerrainType;
+		tile.FinishWorkerJob(job);
+		if (tile.baseTerrainType != baseTerrain || tile.overlayTerrainType != overlayTerrain) {
+			TileChangeJournal.RecordTerrainChange(tile);
 		}
 	}
 
@@ -329,6 +340,8 @@ public partial class MapUnit {
 		// Leave old tile
 		if (!location.unitsOnTile.Remove(this))
 			throw new System.Exception("Failed to remove unit from tile it's supposed to be on");
+		TileChangeJournal.Record(location);
+		TileChangeJournal.Record(newLoc);
 
 		// Move transported units, too
 		CarryPassengersTo(newLoc);
@@ -419,7 +432,7 @@ public partial class MapUnit {
 
 		if (GameData.rng.NextDouble() < attackStrength / (attackStrength + defenseStrength)) {
 			target.hitPointsRemaining -= 1;
-			log.Information($"{this} hit {target} moving through its zone of control");
+			log.Information("{Unit} hit {Target} moving through its zone of control", this, target);
 		}
 	}
 
@@ -446,13 +459,15 @@ public partial class MapUnit {
 		double attackerStrength = attackingMember.unitType.attack  * attackMultiplier,
 			   defenderStrength = defendingMember.unitType.defense * defenseMultiplier;
 
-		log.Information($"Combat log: {attacker} ({attackerStrength}) attacking {defender} ({defenderStrength})");
-		log.Information($"\tAttacker: {attackingMember.unitType.name}, base strength {attackingMember.unitType.BaseStrength(CombatRole.Attack)}");
-		foreach (StrengthBonus bonus in attackBonuses)
-			log.Information($"\t\t+{100.0 * bonus.amount}%\t{bonus.description}");
-		log.Information($"\tDefender: {defendingMember.unitType.name}, base strength {defendingMember.unitType.BaseStrength(CombatRole.Defense)}");
-		foreach (StrengthBonus bonus in defenseBonuses)
-			log.Information($"\t\t+{100.0 * bonus.amount}%\t{bonus.description}");
+		if (log.IsEnabled(Serilog.Events.LogEventLevel.Information)) {
+			log.Information("Combat log: {Attacker} ({AttackerStrength}) attacking {Defender} ({DefenderStrength})", attacker, attackerStrength, defender, defenderStrength);
+			log.Information("\tAttacker: {AttackerType}, base strength {AttackerBaseStrength}", attackingMember.unitType.name, attackingMember.unitType.BaseStrength(CombatRole.Attack));
+			foreach (StrengthBonus bonus in attackBonuses)
+				log.Information("\t\t+{BonusPercent}%\t{BonusDescription}", 100.0 * bonus.amount, bonus.description);
+			log.Information("\tDefender: {DefenderType}, base strength {DefenderBaseStrength}", defendingMember.unitType.name, defendingMember.unitType.BaseStrength(CombatRole.Defense));
+			foreach (StrengthBonus bonus in defenseBonuses)
+				log.Information("\t\t+{BonusPercent}%\t{BonusDescription}", 100.0 * bonus.amount, bonus.description);
+		}
 
 		CombatResult result = CombatResult.Impossible;
 
@@ -587,7 +602,7 @@ public partial class MapUnit {
 
 	public async Task<City?> BuildCity(string cityName) {
 		if (!canBuildCity()) {
-			log.Warning($"can't build city at {location}");
+			log.Warning("can't build city at {Location}", location);
 			return null;
 		}
 
@@ -604,7 +619,7 @@ public partial class MapUnit {
 	// entry point for "manual" job assignment
 	public void PerformTerraformAction(Terraform terraform) {
 		if (!CanPerformTerraformAction(terraform)) {
-			log.Warning($"can't perform {terraform.Name} by {this}");
+			log.Warning("can't perform {Terraform} by {Unit}", terraform.Name, this);
 			return;
 		}
 		WorkerJob = terraform;
@@ -622,7 +637,7 @@ public partial class MapUnit {
 		// Use >= rather than ==, since faster (e.g. Industrious) workers can
 		// overshoot the cost.
 		if (terraformProgress + turnProgress >= totalCost) {
-			location.FinishWorkerJob(WorkerJob);
+			FinishWorkerJobAt(location, WorkerJob);
 		}
 
 		Wake();
@@ -636,7 +651,7 @@ public partial class MapUnit {
 			return;
 		}
 		if (!t.CanCarryUnits() || !t.CanLoad(this)) {
-			log.Warning($"{this} can't board {t}");
+			log.Warning("{Unit} can't board {Transport}", this, t);
 			return;
 		}
 		t.Board(this);

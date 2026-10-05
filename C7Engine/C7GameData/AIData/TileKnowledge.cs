@@ -1,8 +1,67 @@
 using System.Collections.Generic;
-using System.Linq;
 using C7Engine;
 
 namespace C7GameData {
+	// A log of tiles whose state may have changed in a way that affects which
+	// tiles are "active" for some player: units arriving, leaving, dying or
+	// changing hands, tile ownership changing, or terrain changing. Each
+	// player's TileKnowledge reads the entries recorded since it last brought
+	// its active tiles up to date, and re-examines only those tiles instead of
+	// every tile it knows about.
+	//
+	// The log is shared by every game in the process. Recording a tile that a
+	// player doesn't know about, or that belongs to another game, is harmless:
+	// re-examining a tile always gives the right answer. Missing a change is
+	// not, so every change has to be recorded. A reader that falls further
+	// behind than the log holds simply recomputes everything.
+	internal static class TileChangeJournal {
+		internal const int Capacity = 1 << 17;
+		private const int Mask = Capacity - 1;
+
+		private static readonly Tile[] entries = new Tile[Capacity];
+
+		// The number of entries ever recorded.
+		internal static long head { get; private set; }
+
+		// Bumped to make every player recompute their active tiles from scratch.
+		internal static long epoch { get; private set; }
+
+		internal static Tile EntryAt(long position) => entries[position & Mask];
+
+		internal static void Record(Tile tile) {
+			if (tile == null) {
+				return;
+			}
+			entries[head & Mask] = tile;
+			++head;
+		}
+
+		// Records a change to a tile's terrain. What a unit can see depends on
+		// the terrain up to two tiles away, so the tiles around it are recorded
+		// too.
+		internal static void RecordTerrainChange(Tile tile) {
+			if (tile == null || tile == Tile.NONE) {
+				return;
+			}
+			Record(tile);
+			foreach (Tile n in tile.neighbors.Values) {
+				if (n == Tile.NONE) {
+					continue;
+				}
+				Record(n);
+				foreach (Tile nn in n.neighbors.Values) {
+					if (nn != Tile.NONE) {
+						Record(nn);
+					}
+				}
+			}
+		}
+
+		internal static void InvalidateAll() {
+			++epoch;
+		}
+	}
+
 	public class TileKnowledge {
 		private readonly Player _player;
 
@@ -12,7 +71,6 @@ namespace C7GameData {
 
 		public HashSet<Tile> knownTiles { get; private set; } = new();
 		public HashSet<Tile> borderTiles { get; private set; } = new();
-		private HashSet<Tile> activeTiles = new HashSet<Tile>();
 
 		// Has this player explored all known ocean tiles?
 		// TODO: this should be split out for coast/ocean
@@ -21,8 +79,55 @@ namespace C7GameData {
 		// The set of tiles this player currently has explorers headed towards.
 		public HashSet<Tile> aiExplorationTargets = new();
 
+		// The active tiles are the union of the tiles contributed by each
+		// "source": a known tile with one of our units on top (contributing
+		// what the unit can see), or a known tile within our borders with no
+		// units on it (contributing itself and its neighbors).
+		//
+		// We keep the contribution of each source and a count, per tile, of the
+		// sources contributing it, so that RecomputeActiveTiles only has to
+		// re-examine the tiles that may have changed since it last ran. The
+		// result is always the same as recomputing from scratch.
+		private enum SourceKind : byte { None, City, Unit }
+
+		private sealed class Source {
+			public SourceKind kind;
+			public bool radar;
+			public Tile[] tiles;
+		}
+
+		private readonly Dictionary<Tile, Source> sources = new();
+		private readonly Dictionary<Tile, int> activeTileCounts = new();
+
+		// Tiles added to knownTiles since the active tiles were last updated.
+		private readonly List<Tile> newlyKnownTiles = new();
+		private int knownTileCountAtLastUpdate;
+		private long journalPosition;
+		private long journalEpoch;
+		private bool needsFullRecompute = true;
+
+		// Tiles whose entire two-tile neighborhood is known. Revealing the
+		// tiles around such a tile (without radar) can't change anything.
+		// This relies on our bookkeeping of knownTiles and borderTiles, so it
+		// is switched off if knownTiles is ever changed behind our back.
+		private readonly HashSet<Tile> saturatedTiles = new();
+		private bool saturationTrusted = true;
+
+		private readonly List<Tile> visibleScratch = new(32);
+
 		public void AddTilesToKnown(Tile unitLocation, bool recomputeActiveTiles = true) {
-			knownTiles.Add(unitLocation);
+			CheckForOutsideChanges();
+
+			if (saturationTrusted && !HasRadarUnits(unitLocation) && IsSaturated(unitLocation)) {
+				// Everything the tile can see is already known, so the loop
+				// below would not change anything.
+				if (recomputeActiveTiles) {
+					RecomputeActiveTiles();
+				}
+				return;
+			}
+
+			MarkKnown(unitLocation);
 			borderTiles.Remove(unitLocation);
 
 			// Crude benchmarking tool for GetTilesVisibleToUnit, which can be
@@ -40,8 +145,10 @@ namespace C7GameData {
 			// 	System.Console.WriteLine($"10k runs took: {stopwatch.ElapsedMilliseconds} milliseconds");
 			// }
 
-			foreach (Tile t in GetTilesVisibleToUnit(unitLocation)) {
-				knownTiles.Add(t);
+			visibleScratch.Clear();
+			CollectTilesVisibleToUnit(unitLocation, visibleScratch);
+			foreach (Tile t in visibleScratch) {
+				MarkKnown(t);
 				borderTiles.Remove(t);
 
 				foreach (Tile border in t.neighbors.Values) {
@@ -59,21 +166,44 @@ namespace C7GameData {
 			}
 		}
 
+		private void MarkKnown(Tile t) {
+			if (knownTiles.Add(t)) {
+				newlyKnownTiles.Add(t);
+			}
+		}
+
 		public List<Tile> GetTilesVisibleToUnit(Tile unitLocation) {
-			// TODO: Make visibility configurable in game rules
 			// Space for current tile, 8 inner ring tiles, 16 outer ring tiles
 			List<Tile> result = new(25);
+			CollectTilesVisibleToUnit(unitLocation, result);
+			return result;
+		}
+
+		private static bool HasRadarUnits(Tile tile) {
+			List<MapUnit> units = tile.unitsOnTile;
+			for (int i = 0; i < units.Count; ++i) {
+				if (units[i].unitType.hasRadar) {
+					return true;
+				}
+			}
+			return false;
+		}
+
+		private static void CollectTilesVisibleToUnit(Tile unitLocation, List<Tile> result) {
+			// TODO: Make visibility configurable in game rules
 			result.Add(unitLocation);
 			int unitHeight = unitLocation.overlayTerrainType.height;
 
-			var rules = EngineStorage.gameData.rules;
-
 			// Units with radar can see X (2 in OG game, configurable here) tiles away, regardless of terrain.
 			// They also don't need to be the "top" unit on the tile, if they exist on the tile, they boost visibility.
-			var anyRadarUnits = unitLocation.unitsOnTile.Any(u => u.unitType.hasRadar);
-			if (anyRadarUnits) {
-				result.AddRange(unitLocation.GetTilesWithinTileSquare(rules.RadarTileVisibility).Where(Tile.IsTileValid).ToList());
-				return result;
+			if (HasRadarUnits(unitLocation)) {
+				var rules = EngineStorage.gameData.rules;
+				foreach (Tile t in unitLocation.GetTilesWithinTileSquare(rules.RadarTileVisibility)) {
+					if (Tile.IsTileValid(t)) {
+						result.Add(t);
+					}
+				}
+				return;
 			}
 
 			foreach (var (innerTileDirection, innerRingNeighbor) in unitLocation.neighbors) {
@@ -145,13 +275,55 @@ namespace C7GameData {
 					}
 				}
 			}
-			return result;
+		}
+
+		// True if the tile and every tile within two steps of it are known, so
+		// that nothing a (non-radar) unit there can see is unknown.
+		private bool IsSaturated(Tile t) {
+			if (saturatedTiles.Contains(t)) {
+				return true;
+			}
+			if (!knownTiles.Contains(t)) {
+				return false;
+			}
+			foreach (Tile n in t.neighbors.Values) {
+				if (n == Tile.NONE) {
+					continue;
+				}
+				if (!knownTiles.Contains(n)) {
+					return false;
+				}
+				foreach (Tile nn in n.neighbors.Values) {
+					if (nn != Tile.NONE && !knownTiles.Contains(nn)) {
+						return false;
+					}
+				}
+			}
+			saturatedTiles.Add(t);
+			return true;
+		}
+
+		// knownTiles is public, so it can be changed without going through
+		// this class (tests do this). If that happened we can no longer trust
+		// our incremental bookkeeping.
+		private void CheckForOutsideChanges() {
+			if (knownTiles.Count != knownTileCountAtLastUpdate + newlyKnownTiles.Count) {
+				saturationTrusted = false;
+				saturatedTiles.Clear();
+				needsFullRecompute = true;
+				newlyKnownTiles.Clear();
+				knownTileCountAtLastUpdate = knownTiles.Count;
+			}
 		}
 
 		// neighboring tiles should not be added when loading tile knowledge
 		// from a .sav file
 		internal bool AddTileToKnown(Tile unitLocation) {
+			CheckForOutsideChanges();
 			bool added = knownTiles.Add(unitLocation);
+			if (added) {
+				newlyKnownTiles.Add(unitLocation);
+			}
 			borderTiles.Remove(unitLocation);
 
 			foreach (Tile border in unitLocation.neighbors.Values) {
@@ -171,10 +343,10 @@ namespace C7GameData {
 		}
 
 		public bool isActiveTile(Tile t) {
-			if (t == Tile.NONE) {
+			if (t == Tile.NONE || t == null) {
 				return false;
 			}
-			return activeTiles.Contains(t);
+			return activeTileCounts.ContainsKey(t);
 		}
 
 		/**
@@ -182,46 +354,237 @@ namespace C7GameData {
 		 * This prevents external modifications.
 		 **/
 		public List<Tile> AllKnownTiles() {
-			List<Tile> list = new List<Tile>();
-			foreach (Tile t in knownTiles) {
-				list.Add(t);
-			}
-			return list;
+			return new List<Tile>(knownTiles);
 		}
 
+		// Brings the active tiles up to date with the current state of the
+		// game. The result is identical to recomputing them from scratch.
 		public void RecomputeActiveTiles() {
-			activeTiles.Clear();
+			CheckForOutsideChanges();
+
+			long head = TileChangeJournal.head;
+			if (needsFullRecompute
+				|| journalEpoch != TileChangeJournal.epoch
+				|| head - journalPosition > TileChangeJournal.Capacity) {
+				FullRecompute();
+				return;
+			}
+
+			foreach (Tile t in newlyKnownTiles) {
+				Reevaluate(t);
+			}
+			for (long i = journalPosition; i < head; ++i) {
+				Reevaluate(TileChangeJournal.EntryAt(i));
+			}
+
+			// Units can be created on a city's tile, and change type when
+			// upgraded, without being recorded in the journal. Both only
+			// affect tiles with our own units or cities on them.
+			if (_player != null) {
+				foreach (MapUnit unit in _player.units) {
+					ReevaluateIfKindChanged(unit.location);
+				}
+				foreach (City city in _player.cities) {
+					ReevaluateIfKindChanged(city.location);
+				}
+			}
+
+			newlyKnownTiles.Clear();
+			knownTileCountAtLastUpdate = knownTiles.Count;
+			journalPosition = head;
+		}
+
+		// The number of times the active tiles were recomputed from scratch.
+		internal int fullRecomputeCount { get; private set; }
+
+		private void FullRecompute() {
+			++fullRecomputeCount;
+			sources.Clear();
+			activeTileCounts.Clear();
+			foreach (Tile t in knownTiles) {
+				Reevaluate(t);
+			}
+			newlyKnownTiles.Clear();
+			knownTileCountAtLastUpdate = knownTiles.Count;
+			journalPosition = TileChangeJournal.head;
+			journalEpoch = TileChangeJournal.epoch;
+			needsFullRecompute = false;
+		}
+
+		// For tests: the active tiles computed from scratch, without touching
+		// the incremental bookkeeping.
+		internal HashSet<Tile> ComputeActiveTilesFromScratch() {
+			HashSet<Tile> result = new();
 			foreach (Tile t in knownTiles) {
 				// A tile within a city's borders and all of its neighbors are active.
 				// A unit's visibility might be going further than that of a city,
 				// so we don't need to calculate this here.
 				if (t.unitsOnTile.Count < 1 && t.owningCity != null && t.owningCity.owner == _player) {
-					activeTiles.Add(t);
+					result.Add(t);
 
 					foreach (Tile neighbor in t.neighbors.Values) {
-						activeTiles.Add(neighbor);
+						result.Add(neighbor);
 					}
 				}
 
 				// A tile with a unit on it and all of its neighbors are active.
 				if (t.unitsOnTile.Count > 0 && t.unitsOnTile[0].owner == _player) {
 					foreach (Tile x in GetTilesVisibleToUnit(t)) {
-						activeTiles.Add(x);
+						result.Add(x);
 					}
+				}
+			}
+			result.Remove(Tile.NONE);
+			return result;
+		}
+
+		// For tests: the current set of active tiles.
+		internal HashSet<Tile> ActiveTiles() {
+			HashSet<Tile> result = new(activeTileCounts.Keys);
+			result.Remove(Tile.NONE);
+			return result;
+		}
+
+		private SourceKind KindOf(Tile t) {
+			if (t == null || !knownTiles.Contains(t)) {
+				return SourceKind.None;
+			}
+			List<MapUnit> units = t.unitsOnTile;
+			if (units.Count > 0) {
+				return units[0].owner == _player ? SourceKind.Unit : SourceKind.None;
+			}
+			City city = t.owningCity;
+			return city != null && city.owner == _player ? SourceKind.City : SourceKind.None;
+		}
+
+		private void ReevaluateIfKindChanged(Tile t) {
+			if (t == null) {
+				return;
+			}
+			SourceKind kind = KindOf(t);
+			sources.TryGetValue(t, out Source old);
+			SourceKind oldKind = old?.kind ?? SourceKind.None;
+			if (kind == oldKind && (kind != SourceKind.Unit || old.radar == HasRadarUnits(t))) {
+				return;
+			}
+			Reevaluate(t);
+		}
+
+		// Recomputes the contribution of a single tile.
+		private void Reevaluate(Tile t) {
+			if (t == null) {
+				return;
+			}
+			SourceKind kind = KindOf(t);
+			sources.TryGetValue(t, out Source old);
+
+			switch (kind) {
+				case SourceKind.None:
+					if (old != null) {
+						Release(old.tiles);
+						sources.Remove(t);
+					}
+					return;
+
+				case SourceKind.City:
+					if (old != null && old.kind == SourceKind.City) {
+						return;
+					}
+					if (old != null) {
+						Release(old.tiles);
+					}
+					Tile[] cityTiles = new Tile[t.neighbors.Count + 1];
+					cityTiles[0] = t;
+					int i = 1;
+					foreach (Tile neighbor in t.neighbors.Values) {
+						cityTiles[i++] = neighbor;
+					}
+					Acquire(cityTiles);
+					sources[t] = new Source { kind = SourceKind.City, tiles = cityTiles };
+					return;
+
+				case SourceKind.Unit:
+					visibleScratch.Clear();
+					CollectTilesVisibleToUnit(t, visibleScratch);
+					bool radar = HasRadarUnits(t);
+					if (old != null && old.kind == SourceKind.Unit && SameTiles(old.tiles, visibleScratch)) {
+						old.radar = radar;
+						return;
+					}
+					if (old != null) {
+						Release(old.tiles);
+					}
+					Tile[] unitTiles = visibleScratch.ToArray();
+					Acquire(unitTiles);
+					sources[t] = new Source { kind = SourceKind.Unit, radar = radar, tiles = unitTiles };
+					return;
+			}
+		}
+
+		private static bool SameTiles(Tile[] a, List<Tile> b) {
+			if (a.Length != b.Count) {
+				return false;
+			}
+			for (int i = 0; i < a.Length; ++i) {
+				if (a[i] != b[i]) {
+					return false;
+				}
+			}
+			return true;
+		}
+
+		private void Acquire(Tile[] tiles) {
+			foreach (Tile t in tiles) {
+				if (t == null) {
+					continue;
+				}
+				activeTileCounts.TryGetValue(t, out int count);
+				activeTileCounts[t] = count + 1;
+			}
+		}
+
+		private void Release(Tile[] tiles) {
+			foreach (Tile t in tiles) {
+				if (t == null) {
+					continue;
+				}
+				int count = activeTileCounts[t] - 1;
+				if (count == 0) {
+					activeTileCounts.Remove(t);
+				} else {
+					activeTileCounts[t] = count;
 				}
 			}
 		}
 
 		public List<Tile> OwnedTiles() {
-			return knownTiles.Where(t => t.OwningPlayer() == _player).ToList();
+			List<Tile> result = new();
+			foreach (Tile t in knownTiles) {
+				if (t.OwningPlayer() == _player) {
+					result.Add(t);
+				}
+			}
+			return result;
 		}
 
 		public List<Tile> DominationTiles() {
-			return OwnedTiles().Where(t => t.IsCountedForDomination()).ToList();
+			List<Tile> result = new();
+			foreach (Tile t in knownTiles) {
+				if (t.OwningPlayer() == _player && t.IsCountedForDomination()) {
+					result.Add(t);
+				}
+			}
+			return result;
 		}
 
 		public List<Tile> ScoreTiles() {
-			return OwnedTiles().Where(t => t.IsCountedForScore()).ToList();
+			List<Tile> result = new();
+			foreach (Tile t in knownTiles) {
+				if (t.OwningPlayer() == _player && t.IsCountedForScore()) {
+					result.Add(t);
+				}
+			}
+			return result;
 		}
 	}
 }
