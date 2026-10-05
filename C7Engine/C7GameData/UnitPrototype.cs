@@ -4,6 +4,7 @@ using Serilog;
 namespace C7GameData {
 	using System;
 	using System.Linq;
+	using System.Threading;
 	using C7Engine;
 	using Save;
 
@@ -72,8 +73,41 @@ namespace C7GameData {
 		public int movement { get; set; }
 		public int capacity { get; set; }
 		public int hpBonus { get; set; }
-		public HashSet<Civilization> producibleBy { get; set; } = [];
-		public List<UnitPrototype> upgradesTo = [];
+		// producibleBy and upgradesTo are what the cached upgrade relations
+		// (UpgradeGraph) are worked out from. They are public and mutable, so
+		// any access from outside this class, which might be followed by a
+		// change to the set or list, bumps UpgradeDataVersion. That lets the
+		// cache trust its last validation, in O(1), until then. Code in this
+		// class reads the backing fields, which doesn't bump the version.
+		public HashSet<Civilization> producibleBy {
+			get {
+				OnUpgradeDataAccessed();
+				return producibleBySet;
+			}
+			set {
+				producibleBySet = value;
+				OnUpgradeDataAccessed();
+			}
+		}
+		public List<UnitPrototype> upgradesTo {
+			get {
+				OnUpgradeDataAccessed();
+				return upgradesToList;
+			}
+			set {
+				upgradesToList = value;
+				OnUpgradeDataAccessed();
+			}
+		}
+		private HashSet<Civilization> producibleBySet = [];
+		private List<UnitPrototype> upgradesToList = [];
+
+		private static long upgradeDataVersion = 0;
+		internal static long UpgradeDataVersion => Interlocked.Read(ref upgradeDataVersion);
+
+		private static void OnUpgradeDataAccessed() {
+			Interlocked.Increment(ref upgradeDataVersion);
+		}
 		public bool unproducible;
 		public HashSet<SaveUnitPrototype.Flag> flags = [];
 		public bool rotateBeforeAttack {
@@ -199,7 +233,7 @@ namespace C7GameData {
 				(proto.movement, proto.capacity, proto.hpBonus, proto.unproducible);
 
 			categories = new HashSet<string>(proto.categories);
-			actions = proto.actions;
+			actions = new HashSet<UnitAction>(proto.actions);
 			attributes = new HashSet<string>(proto.attributes);
 			flags = new HashSet<SaveUnitPrototype.Flag>(proto.flags);
 
@@ -376,7 +410,7 @@ namespace C7GameData {
 
 		/// Whether the city's Civ could build this unit, if it had the necessary resources.
 		private bool IsAvailableTo(City city) {
-			return (!this.unproducible || this.CanBeBuiltAsArmy(city)) && this.producibleBy.Contains(city.owner.civilization);
+			return (!this.unproducible || this.CanBeBuiltAsArmy(city)) && this.producibleBySet.Contains(city.owner.civilization);
 		}
 
 		/// Armies aren't normally producible, but a city with a building that allows
@@ -432,16 +466,46 @@ namespace C7GameData {
 			if (candidates.Length == 0)
 				return null;
 
-			// Filter down to units we can produce here
-			List<UnitPrototype> producibleUnits = new(candidates.Length);
-			foreach (UnitPrototype uu in candidates) {
-				if (uu.MeetsProductionRequirements(city, accessibleResources))
-					producibleUnits.Add(uu);
+			// Filter down to units we can produce here. There are only ever a
+			// few candidates, so their indices are kept on the stack rather
+			// than in a new list per call.
+			Span<int> producible = candidates.Length <= MaxStackUnits ? stackalloc int[candidates.Length] : new int[candidates.Length];
+			int producibleCount = 0;
+			for (int i = 0; i < candidates.Length; i++) {
+				if (candidates[i].MeetsProductionRequirements(city, accessibleResources))
+					producible[producibleCount++] = i;
 			}
 
 			// Select the best unit we can upgrade to. Say we are upgrading a Warrior: if Medieval Infantry
 			// is available, we don't want to upgrade to a mere Swordsman.
-			return SortInUpgradeOrder(producibleUnits, graph).LastOrDefault();
+			return LastInUpgradeOrder(candidates, producible.Slice(0, producibleCount), graph);
+		}
+
+		// Above this many units, the sorting scratch space goes on the heap.
+		private const int MaxStackUnits = 32;
+
+		/// The same unit as SortInUpgradeOrder(the units at indices).LastOrDefault(),
+		/// without allocating for small inputs.
+		private static UnitPrototype LastInUpgradeOrder(UnitPrototype[] all, ReadOnlySpan<int> indices, UpgradeGraph graph) {
+			int n = indices.Length;
+			if (n == 0)
+				return null;
+			if (n == 1)
+				return all[indices[0]];
+
+			Span<bool> before = n <= MaxStackUnits ? stackalloc bool[n * n] : new bool[n * n];
+			Span<bool> placed = n <= MaxStackUnits ? stackalloc bool[n] : new bool[n];
+			for (int i = 0; i < n; i++) {
+				UnitPrototype ui = all[indices[i]];
+				HashSet<UnitPrototype> reachable = graph.Reachable(ui);
+				for (int j = 0; j < n; j++) {
+					UnitPrototype uj = all[indices[j]];
+					before[i * n + j] = i != j && ui != uj && reachable.Contains(uj);
+				}
+			}
+			placed.Clear();
+			int last = PlaceInUpgradeOrder(n, before, placed, null);
+			return all[indices[last]];
 		}
 
 		/// Sorts by the upgrade relation: if a eventually upgrades to b, a
@@ -460,20 +524,35 @@ namespace C7GameData {
 			if (n == 0)
 				return sorted;
 
-			// before[i, j]: unit i upgrades, eventually, to unit j.
-			bool[,] before = new bool[n, n];
+			// before[i * n + j]: unit i upgrades, eventually, to unit j.
+			bool[] before = new bool[n * n];
 			for (int i = 0; i < n; i++) {
+				HashSet<UnitPrototype> reachable = graph.Reachable(units[i]);
 				for (int j = 0; j < n; j++) {
-					before[i, j] = i != j && units[i] != units[j] && graph.Reachable(units[i]).Contains(units[j]);
+					before[i * n + j] = i != j && units[i] != units[j] && reachable.Contains(units[j]);
 				}
 			}
 
 			bool[] placed = new bool[n];
+			List<int> order = new(n);
+			PlaceInUpgradeOrder(n, before, placed, order);
+			foreach (int i in order)
+				sorted.Add(units[i]);
+			return sorted;
+		}
+
+		// The stable topological sort behind SortInUpgradeOrder, over n units
+		// whose relation is given by before (row-major, n * n) and with
+		// placed all false. Adds the order to order if given, and returns the
+		// index of the unit placed last.
+		private static int PlaceInUpgradeOrder(int n, ReadOnlySpan<bool> before, Span<bool> placed, List<int> order) {
+			int next = -1;
 			for (int placedCount = 0; placedCount < n; placedCount++) {
 				// Place the first unit nothing remaining has to come before.
 				// If there is none, the upgrades loop (bad data), so place the
 				// first remaining unit to break the loop.
-				int next = -1, firstRemaining = -1;
+				int firstRemaining = -1;
+				next = -1;
 				for (int j = 0; j < n && next < 0; j++) {
 					if (placed[j])
 						continue;
@@ -481,7 +560,7 @@ namespace C7GameData {
 						firstRemaining = j;
 					bool free = true;
 					for (int i = 0; i < n && free; i++) {
-						if (!placed[i] && before[i, j])
+						if (!placed[i] && before[i * n + j])
 							free = false;
 					}
 					if (free)
@@ -490,9 +569,9 @@ namespace C7GameData {
 				if (next < 0)
 					next = firstRemaining;
 				placed[next] = true;
-				sorted.Add(units[next]);
+				order?.Add(next);
 			}
-			return sorted;
+			return next;
 		}
 
 		/// Whether target can be reached from this unit by following upgrades.
@@ -512,11 +591,21 @@ namespace C7GameData {
 		// which upgradesTo list and producibleBy set it saw and their sizes,
 		// and is rebuilt when any of these differ from the live data. This
 		// check is linear in the number of prototypes, with no allocation;
-		// it replaces work that was quadratic and allocating. Prototypes
+		// it replaces work that was quadratic and allocating. It is skipped
+		// altogether (O(1)) while UnitPrototype.UpgradeDataVersion, bumped by
+		// any outside access to upgradesTo or producibleBy, and the game's
+		// prototype list (reference and count) are as last validated. Prototypes
 		// outside the graph (not reachable from the game's list) are
 		// computed on a fresh, uncached graph each time.
 		internal sealed class UpgradeGraph {
 			private static UpgradeGraph current;
+
+			// The UnitPrototype.UpgradeDataVersion as of the last time this
+			// graph was found up to date, or -1. While the version and the
+			// game's prototype list (reference and count) are unchanged,
+			// nothing the graph depends on can have been changed through
+			// UnitPrototype's public members, so For skips revalidating.
+			private long validatedVersion = -1;
 
 			private readonly List<UnitPrototype> source;
 			private readonly UnitPrototype[] sourceItems;
@@ -547,7 +636,7 @@ namespace C7GameData {
 						if (unit == null || !memberSet.Add(unit))
 							continue;
 						all.Add(unit);
-						foreach (UnitPrototype next in unit.upgradesTo ?? [])
+						foreach (UnitPrototype next in unit.upgradesToList ?? [])
 							pending.Push(next);
 					}
 				}
@@ -558,10 +647,10 @@ namespace C7GameData {
 				memberProducibleBy = new HashSet<Civilization>[members.Length];
 				memberProducibleByCount = new int[members.Length];
 				for (int i = 0; i < members.Length; i++) {
-					memberUpgradesTo[i] = members[i].upgradesTo;
-					memberUpgradesToCount[i] = members[i].upgradesTo?.Count ?? -1;
-					memberProducibleBy[i] = members[i].producibleBy;
-					memberProducibleByCount[i] = members[i].producibleBy?.Count ?? -1;
+					memberUpgradesTo[i] = members[i].upgradesToList;
+					memberUpgradesToCount[i] = members[i].upgradesToList?.Count ?? -1;
+					memberProducibleBy[i] = members[i].producibleBySet;
+					memberProducibleByCount[i] = members[i].producibleBySet?.Count ?? -1;
 				}
 			}
 
@@ -569,9 +658,19 @@ namespace C7GameData {
 			public static UpgradeGraph For(UnitPrototype proto) {
 				List<UnitPrototype> source = EngineStorage.gameData?.unitPrototypes ?? [];
 				UpgradeGraph graph = current;
-				if (graph == null || !graph.IsUpToDate(source)) {
-					graph = new UpgradeGraph(source);
-					current = graph;
+				// Read before validating, so that a change made while
+				// validating is caught by the next call.
+				long version = UpgradeDataVersion;
+				bool fresh = graph != null
+					&& Interlocked.Read(ref graph.validatedVersion) == version
+					&& ReferenceEquals(graph.source, source)
+					&& source.Count == graph.sourceItems.Length;
+				if (!fresh) {
+					if (graph == null || !graph.IsUpToDate(source)) {
+						graph = new UpgradeGraph(source);
+						current = graph;
+					}
+					Interlocked.Exchange(ref graph.validatedVersion, version);
 				}
 				if (graph.memberSet.Contains(proto))
 					return graph;
@@ -596,9 +695,9 @@ namespace C7GameData {
 				}
 				for (int i = 0; i < members.Length; i++) {
 					UnitPrototype p = members[i];
-					if (!ReferenceEquals(p.upgradesTo, memberUpgradesTo[i]) || (p.upgradesTo?.Count ?? -1) != memberUpgradesToCount[i])
+					if (!ReferenceEquals(p.upgradesToList, memberUpgradesTo[i]) || (p.upgradesToList?.Count ?? -1) != memberUpgradesToCount[i])
 						return false;
-					if (!ReferenceEquals(p.producibleBy, memberProducibleBy[i]) || (p.producibleBy?.Count ?? -1) != memberProducibleByCount[i])
+					if (!ReferenceEquals(p.producibleBySet, memberProducibleBy[i]) || (p.producibleBySet?.Count ?? -1) != memberProducibleByCount[i])
 						return false;
 				}
 				return true;
@@ -616,11 +715,11 @@ namespace C7GameData {
 				if (reachable.TryGetValue(proto, out HashSet<UnitPrototype> result))
 					return result;
 				result = new HashSet<UnitPrototype>();
-				var pending = new Stack<UnitPrototype>(proto.upgradesTo);
+				var pending = new Stack<UnitPrototype>(proto.upgradesToList ?? []);
 				while (pending.Count > 0) {
 					var unit = pending.Pop();
-					if (!result.Add(unit)) continue;
-					foreach (var next in unit.upgradesTo) pending.Push(next);
+					if (unit == null || !result.Add(unit)) continue;
+					foreach (var next in unit.upgradesToList ?? []) pending.Push(next);
 				}
 				reachable[proto] = result;
 				return result;
@@ -639,9 +738,9 @@ namespace C7GameData {
 						result = [];
 					} else {
 						// We expand the upgrade chain with "siblings", units that join the chain from nearby "branches"
-						var potentialUnits = GetUnitsThatUpgradeTo(proto, proto.upgradesTo);
+						var potentialUnits = GetUnitsThatUpgradeTo(proto, proto.upgradesToList);
 						result = unitUpgradeChain.Union(potentialUnits)
-							.Where(uu => uu.producibleBy.Contains(civ))
+							.Where(uu => uu.producibleBySet?.Contains(civ) ?? false)
 							.ToArray();
 					}
 					candidates[(proto, civ)] = result;
@@ -656,7 +755,7 @@ namespace C7GameData {
 			/// can't build Pikeman. The immediate target is the one the others are
 			/// further along the chain from.
 			private UnitPrototype GetUnitUpgrade(UnitPrototype proto, Civilization civ) {
-				var match = proto.upgradesTo.Where(x => x.producibleBy.Contains(civ)).ToList();
+				var match = (proto.upgradesToList ?? []).Where(x => x != null && (x.producibleBySet?.Contains(civ) ?? false)).ToList();
 				if (match.Count > 1) {
 					match = match.Where(x => !match.Any(y => y != x && ReachableLocked(y).Contains(x))).ToList();
 					if (match.Count > 1)
@@ -671,8 +770,11 @@ namespace C7GameData {
 			/// Note: must be unique and stable: in-game every unit has at most one direct upgrade target.
 			private List<UnitPrototype> GetUpgradeChain(UnitPrototype proto, Civilization civ) {
 				var chain = new List<UnitPrototype>();
+				// Bad data can make the upgrades loop; stop at the first unit
+				// seen before (or the unit itself) instead of looping forever.
+				var visited = new HashSet<UnitPrototype> { proto };
 				var current = GetUnitUpgrade(proto, civ);
-				while (current != null) {
+				while (current != null && visited.Add(current)) {
 					chain.Add(current);
 					current = GetUnitUpgrade(current, civ);
 				}
@@ -688,11 +790,11 @@ namespace C7GameData {
 			// which upgrades to Artillery, that the Trebuchet is obsolete.
 			private List<UnitPrototype> GetUnitsThatUpgradeTo(UnitPrototype proto, ICollection<UnitPrototype> units) {
 				HashSet<UnitPrototype> upgradeUpgrades = (units ?? [])
-					.SelectMany(x => x.upgradesTo ?? [])
+					.SelectMany(x => x.upgradesToList ?? [])
 					.ToHashSet();
 
 				List<UnitPrototype> allUnits = sourceItems.Where(p
-						=> p != null && (p.upgradesTo ?? []).Intersect(upgradeUpgrades).Any())
+						=> p != null && (p.upgradesToList ?? []).Intersect(upgradeUpgrades).Any())
 					.Except([proto])
 					.ToList();
 

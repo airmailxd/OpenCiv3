@@ -670,9 +670,7 @@ namespace C7GameData {
 			if (inFriendlyCity) {
 				// Barracks fully heal land units in their own city, and harbors
 				// do the same for ships.
-				if (city.owner == owner && city.GetBuildings().Any(cb =>
-						(IsLandUnit() && cb.building.providesVeteranGroundUnits)
-						|| (IsWaterUnit() && cb.building.providesVeteranSeaUnits))) {
+				if (city.owner == owner && HasVeteranBuildingFor(city)) {
 					return maxHitPoints;
 				}
 				return gD.healRateInCity;

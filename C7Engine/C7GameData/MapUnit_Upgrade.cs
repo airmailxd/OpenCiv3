@@ -18,16 +18,27 @@ public partial class MapUnit {
 			return null;
 		}
 
-		bool hasUpgradeBuilding = city.GetBuildings().Any(cb =>
-			(IsLandUnit() && cb.building.providesVeteranGroundUnits)
-			|| (IsWaterUnit() && cb.building.providesVeteranSeaUnits));
-		if (!hasUpgradeBuilding) {
+		if (!HasVeteranBuildingFor(city)) {
 			return null;
 		}
 
 		HashSet<Resource> resources = EngineStorage.gameData.GetTradeNetwork()
 			.GetResourcesAvailableToCity(owner, city).Keys.ToHashSet();
 		return unitType.GetProducibleUpgrade(city, resources);
+	}
+
+	// Whether the city has (built, or granted by a wonder) the building that
+	// trains this kind of unit: barracks for land units, a harbor for ships.
+	private bool HasVeteranBuildingFor(City city) {
+		bool land = IsLandUnit();
+		bool water = IsWaterUnit();
+		foreach (CityBuilding cb in city.EffectiveBuildings()) {
+			if ((land && cb.building.providesVeteranGroundUnits)
+				|| (water && cb.building.providesVeteranSeaUnits)) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	// The gold needed to upgrade to the given type: a fixed amount per shield
