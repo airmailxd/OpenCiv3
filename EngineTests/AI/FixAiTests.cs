@@ -391,4 +391,52 @@ public sealed class FixAiProductionTests : IClassFixture<SaveGameFixture>, IDisp
 		unit.currentAI = (C7GameData.UnitAI)Activator.CreateInstance(defenderType, data);
 		Assert.Equal(1, EnRoute());
 	}
+
+	private sealed class FixedPriority : C7Engine.AI.StrategicAI.StrategicPriority {
+		public FixedPriority(float weight) {
+			calculatedWeight = weight;
+		}
+		public override void CalculateWeightAndMetadata(Player player) { }
+	}
+
+	private static C7Engine.AI.StrategicAI.StrategicPriority ChooseWeighted(List<C7Engine.AI.StrategicAI.StrategicPriority> options) {
+		return (C7Engine.AI.StrategicAI.StrategicPriority)typeof(C7Engine.AI.StrategicPriorityArbitrator)
+			.GetMethod("ChooseWeightedPriority", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
+			.Invoke(null, new object[] { options, Weighting.WEIGHTED_QUADRATIC });
+	}
+
+	[Fact]
+	public void WeightedPriorityChoiceIgnoresNegativeWeightsAndPicksFromTheList() {
+		FixedPriority negative = new(-100);
+		FixedPriority positive = new(1);
+		for (int i = 0; i < 50; ++i) {
+			Assert.Same(positive, ChooseWeighted(new() { negative, positive }));
+		}
+
+		// With nothing positive, the pick still comes from the list.
+		FixedPriority a = new(-5);
+		FixedPriority b = new(0);
+		Assert.Same(b, ChooseWeighted(new() { a, b }));
+	}
+
+	[Fact]
+	public void WarIsNotPlannedAgainstPlayersOnOtherContinents() {
+		Player rival = gameData.players.First(p => p != player && !p.isBarbarians && p.units.Any(u => u.unitType.isSettler));
+		City ours = CityInteractions.BuildCity(player.units.First(u => u.unitType.isSettler).location, player, player.GetNextCityName());
+		City theirs = CityInteractions.BuildCity(rival.units.First(u => u.unitType.isSettler).location, rival, rival.GetNextCityName());
+		player.EnsureRelationshipExists(rival);
+		foreach (ID other in player.playerRelationships.Keys.Where(id => id != rival.id).ToList()) {
+			player.playerRelationships.Remove(other);
+		}
+		// A stronger rival scales its (very negative) score towards zero.
+		for (int i = 0; i < 5; ++i) {
+			gameData.SpawnUnit(rival, gameData.unitPrototypes.First(p => p.name == "Warrior"), theirs.location);
+		}
+		theirs.location.continent = ours.location.continent + 100000;
+
+		Player picked = (Player)typeof(C7GameData.AIData.WarPriority)
+			.GetMethod("PickPlayerToFight", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
+			.Invoke(null, new object[] { player });
+		Assert.Null(picked);
+	}
 }
