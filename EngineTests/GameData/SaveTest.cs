@@ -2,9 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net.Http;
 using System.Runtime.InteropServices;
-using System.Security.Cryptography;
 using System.Threading.Tasks;
 using C7Engine;
 using C7GameData;
@@ -29,6 +27,7 @@ public class SaveTests : IClassFixture<SaveGameFixture> {
 		this.fixture = fixture;
 	}
 
+	// A fresh copy of the generated save, which the test may change freely.
 	private SaveGame GetSave(SaveType type) {
 		return type switch {
 			SaveType.basic => fixture.saveGame,
@@ -37,30 +36,23 @@ public class SaveTests : IClassFixture<SaveGameFixture> {
 		};
 	}
 
-	private static string GetMd5FileHash(string path) {
-		if (!File.Exists(path)) {
-			return "";
-		}
-		using MD5 md5 = MD5.Create();
-		using FileStream fileStream = File.OpenRead(path);
-		byte[] hashBytes = md5.ComputeHash(fileStream);
-		return BitConverter.ToString(hashBytes).Replace("-", "").ToLower();
-	}
-
 	[Theory]
 	[InlineData(SaveType.basic, "basic")]
 	[InlineData(SaveType.standalone, "standalone")]
 	public void SimpleSave(SaveType saveType, string outputFilePostfix) {
-		// simple load SaveGame and save to file:
-		string outputNeverGameDataPath = PathUtils.getDataPath($"output/static-save-never-game-data-{outputFilePostfix}.json");
+		using TempDirectory output = new();
 
-		// load SaveGame but convert to and from GameData before saving to file:
-		string outputWasGameDataPath = PathUtils.getDataPath($"output/static-save-was-game-data-{outputFilePostfix}.json");
+		// The baseline: the save as generated, written straight to a file
+		// before anything else can touch it.
+		string outputNeverGameDataPath = output.File($"static-save-never-game-data-{outputFilePostfix}.json");
+		GetSave(saveType).Save(outputNeverGameDataPath);
 
-		SaveGame developerSave = GetSave(saveType);
-		developerSave.Save(outputNeverGameDataPath);
-
-		C7GameData.GameData gameData = ToGameData(developerSave);
+		// An independent copy of the save, converted to GameData and back
+		// before being written. A GameData shares objects with the save it was
+		// made from, so converting the very same object would compare it with
+		// itself.
+		string outputWasGameDataPath = output.File($"static-save-was-game-data-{outputFilePostfix}.json");
+		C7GameData.GameData gameData = ToGameData(GetSave(saveType));
 		SaveGame saveWasGameData = SaveGame.FromGameData(gameData);
 		saveWasGameData.Save(outputWasGameDataPath);
 
@@ -77,37 +69,44 @@ public class SaveTests : IClassFixture<SaveGameFixture> {
 		JObject neverGameDataJson = JObject.Parse(neverGameDataText);
 		JObject wasGameDataJson = JObject.Parse(wasGameDataText);
 
-		// saved files should be the same as the original
-		Assert.True(JToken.DeepEquals(wasGameDataJson, neverGameDataJson));
-	}
-
-	private void WaitForStartTurnMessage() {
-		while (true) {
-			EngineStorage.ProcessNextMessageToEngine();
-
-			while (EngineStorage.TryDequeueNextMessageToUI(out MessageToUI msg)) {
-				switch (msg) {
-					case MsgStartTurn mST:
-						return;
-					case MsgWarDeclaration mWD:
-						continue;
-					case MsgShowTemporaryPopup mSTP:
-						continue;
-					case MsgCityDestroyed mCD:
-						continue;
-					case MsgCityCaptured mCC:
-						continue;
-					case MsgCivilizationDestroyed mCVD:
-						continue;
-					case MsgVictory mV:
-						continue;
-					case MsgCityChanged mCC:
-						continue;
-					default:
-						throw new Exception($"{msg}");
+		// Building a game starts an empty history for each player that has
+		// none yet, which is the one difference converting may make.
+		if (wasGameDataJson["history"] is JObject wasHistory) {
+			JObject neverHistory = neverGameDataJson["history"] as JObject;
+			foreach (JProperty entry in wasHistory.Properties().ToList()) {
+				if (neverHistory?[entry.Name] == null) {
+					Assert.Empty(Assert.IsType<JArray>(entry.Value));
+					entry.Remove();
 				}
 			}
+			if (neverHistory == null && !wasHistory.HasValues) {
+				wasGameDataJson.Remove("history");
+			}
 		}
+
+		// saved files should be the same as the original
+		Assert.True(JToken.DeepEquals(wasGameDataJson, neverGameDataJson),
+			$"The save changed when converted to GameData and back; see {output.Path} (set C7_KEEP_TEST_OUTPUT to keep it)");
+	}
+
+	// The messages to the UI a headless game may send while the AIs play.
+	private static void IgnoreExpectedMessages(MessageToUI msg) {
+		switch (msg) {
+			case MsgWarDeclaration:
+			case MsgShowTemporaryPopup:
+			case MsgCityDestroyed:
+			case MsgCityCaptured:
+			case MsgCivilizationDestroyed:
+			case MsgVictory:
+			case MsgCityChanged:
+				return;
+			default:
+				throw new Exception($"Unexpected message to the UI: {msg}");
+		}
+	}
+
+	private static void WaitForStartTurnMessage() {
+		EngineWaits.WaitForStartTurnMessage(IgnoreExpectedMessages);
 	}
 
 	private async Task<Player> CreateHeadlessGame(string path, string biqPath, Func<string, string> getPediaIconsPath) {
@@ -115,7 +114,7 @@ public class SaveTests : IClassFixture<SaveGameFixture> {
 			GetPediaIconsPath = getPediaIconsPath,
 			GameModeLoader = (_) => { return fixture.behaviors; },
 		};
-		var player = CreateGame.createGame(path, options).Result;
+		Player player = await CreateGame.createGame(path, options);
 		TurnHandling.OnBeginTurn();
 		TurnHandling.InitTurnData();
 		await TurnHandling.AdvanceTurn();
@@ -123,7 +122,7 @@ public class SaveTests : IClassFixture<SaveGameFixture> {
 	}
 
 	private async Task<Player> CreateHeadlessGame(SaveGame game) {
-		var player = CreateGame.createGame(game, (_) => { return fixture.behaviors; }).Result;
+		Player player = await CreateGame.createGame(game, (_) => { return fixture.behaviors; });
 		TurnHandling.OnBeginTurn();
 		TurnHandling.InitTurnData();
 		await TurnHandling.AdvanceTurn();
@@ -169,11 +168,23 @@ public class SaveTests : IClassFixture<SaveGameFixture> {
 	[InlineData(SaveType.basic, "basic")]
 	[InlineData(SaveType.standalone, "standalone")]
 	public async Task SimpleGame(SaveType saveType, string outputFilePostfix) {
-		Log.Logger = new LoggerConfiguration()
+		// Log to the console while the game plays, and put back whatever
+		// logger the other tests use afterwards.
+		ILogger previousLogger = Log.Logger;
+		Serilog.Core.Logger consoleLogger = new LoggerConfiguration()
 			.WriteTo.Console(outputTemplate: "[{Level:u3}] {Timestamp:HH:mm:ss} {SourceContext}: {Message:lj} {NewLine}{Exception}")
 			.MinimumLevel.Information()
 			.CreateLogger();
+		Log.Logger = consoleLogger;
+		try {
+			await PlaySimpleGame(saveType, outputFilePostfix);
+		} finally {
+			Log.Logger = previousLogger;
+			consoleLogger.Dispose();
+		}
+	}
 
+	private async Task PlaySimpleGame(SaveType saveType, string outputFilePostfix) {
 		SaveGame developerSave = GetSave(saveType);
 
 		new MsgSetAnimationsEnabled(false).send();
@@ -204,12 +215,14 @@ public class SaveTests : IClassFixture<SaveGameFixture> {
 		Assert.True(game.players.Count == 9);
 		Assert.True(game.civilizations.Count == 32);
 
+		using TempDirectory output = new();
+
 		// Save the game.
-		string outputDirectSavePath = PathUtils.getDataPath($"output/headless-game-direct-save-{outputFilePostfix}.json");
+		string outputDirectSavePath = output.File($"headless-game-direct-save-{outputFilePostfix}.json");
 		SaveGame.FromGameData(game).Save(outputDirectSavePath);
 
 		// Load the saved game and save it again.
-		string roundTrippedSavePath = PathUtils.getDataPath($"output/headless-game-round-tripped-save-{outputFilePostfix}.json");
+		string roundTrippedSavePath = output.File($"headless-game-round-tripped-save-{outputFilePostfix}.json");
 		C7GameData.GameData roundTrippedGameData = ToGameData(SaveGame.Load(outputDirectSavePath, (string unused) => { return unused; }));
 		SaveGame.FromGameData(roundTrippedGameData).Save(roundTrippedSavePath);
 
@@ -384,38 +397,38 @@ public class SaveTests : IClassFixture<SaveGameFixture> {
 
 
 	[SkippableFact]
-	public async void LoadSampleSaves() {
+	public async Task LoadSampleSaves() {
 		Skip.If(Civ3TestData.ShouldSkipCiv3DependentTests(), "No Civ3 install found.");
 
-		string savesPath = PathUtils.getDataPath("saves");
-		Directory.CreateDirectory(savesPath);
-
-		string sampleSavPath = Path.Combine(savesPath, "12345.SAV");
-		if (GetMd5FileHash(sampleSavPath) != "d34dd19a76eaebe26d29d73132c2fa60") {
-			using HttpClient client = new();
-			byte[] fileData = await client.GetByteArrayAsync("https://drive.usercontent.google.com/download?id=1QlIavkLtPZEIv1kHK9sO0fY2yp3o2si7&confirm=y");
-			File.WriteAllBytes(sampleSavPath, fileData);
+		// The sample save, plus any .SAV files a developer has put in
+		// EngineTests/data/saves to try.
+		List<string> savePaths = [await RemoteFileCache.GetAsync(RemoteSaves.SampleGotmSave)];
+		string localSavesPath = PathUtils.getDataPath("saves");
+		if (Directory.Exists(localSavesPath)) {
+			savePaths.AddRange(new DirectoryInfo(localSavesPath).EnumerateFiles("*.SAV")
+				.Where(f => f.Name != RemoteSaves.SampleGotmSave.Name)
+				.Select(f => f.FullName));
 		}
 
-		IEnumerable<FileInfo> saveFiles = new DirectoryInfo(savesPath).EnumerateFiles("*.SAV");
+		using TempDirectory output = new();
 		int i = 0;
-		foreach (FileInfo saveFileInfo in saveFiles) {
+		foreach (string savePath in savePaths) {
 			SaveGame game = null;
 			C7GameData.GameData gd = null;
-			Console.WriteLine(saveFileInfo.FullName);
+			Console.WriteLine(savePath);
 			Exception ex = Record.Exception(() => {
-				game = ImportCiv3.ImportSav(saveFileInfo.FullName, PathUtils.defaultBicPath, (relativeModePath) => {
+				game = ImportCiv3.ImportSav(savePath, PathUtils.defaultBicPath, (relativeModePath) => {
 					return PathUtils.defaultPediaIconsPath;
 				});
 			});
-			Assert.Null(ex);
+			Assert.True(ex == null, savePath + ": " + ex);
 			ex = Record.Exception(() => {
 				gd = ToGameData(game);
 			});
-			Assert.Null(ex);
+			Assert.True(ex == null, savePath + ": " + ex);
 			Assert.NotNull(game);
 			Assert.NotNull(gd);
-			game.Save(Path.Combine(PathUtils.testDirectory, "data", "output", $"gotm_save_{i}.json"));
+			game.Save(output.File($"gotm_save_{i}.json"));
 			i++;
 		}
 		Assert.True(i > 0);
@@ -557,7 +570,9 @@ public class SaveTests : IClassFixture<SaveGameFixture> {
 				}
 			}
 
-			game.Save(Path.Combine(PathUtils.testDirectory, "data", "output", $"{basename}_{name[0]}.json"));
+			using (TempDirectory output = new()) {
+				game.Save(output.File($"{basename}_{name[0]}.json"));
+			}
 
 			// Finally, ensure we can run the first turn of the scenario.
 			if (runOneTurn) {

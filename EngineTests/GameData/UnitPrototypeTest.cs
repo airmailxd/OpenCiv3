@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading.Tasks;
 using System.Linq;
 using C7Engine;
 using C7GameData;
@@ -12,18 +13,14 @@ using Xunit;
 namespace EngineTests.GameData;
 
 public class UnitPrototypeConquestsTest : RemoteSaveLoader {
-	private const string SAVES_FOLDER = "saves/unit-availability";
 
 	[SkippableFact]
-	public async void UnitAvailability_SAV() {
+	public async Task UnitAvailability_SAV() {
 		// This tests a Conquests game with Conquests rules from a .SAV file
 
 		Skip.If(Civ3TestData.ShouldSkipCiv3DependentTests(), "No Civ3 install found.");
 
-		string saveName = "Conquests 16 Players.SAV";
-		string uri = "https://www.dropbox.com/scl/fi/gmxbx1mtrammzfc6vly1g/Conquests-16-Players.SAV?rlkey=2z1es5aetqva4ymv59qduq1at&st=d0udmb3w&dl=1";
-
-		(SaveGame game, Exception ex, string savePath) = await LoadGameAndData(saveName, SAVES_FOLDER, uri);
+		(SaveGame game, Exception ex, string savePath) = await LoadGameAndData(RemoteSaves.Conquests16PlayersSav);
 
 		Assert.Null(ex);
 		Assert.NotNull(game);
@@ -33,15 +30,12 @@ public class UnitPrototypeConquestsTest : RemoteSaveLoader {
 	}
 
 	[SkippableFact]
-	public async void UnitAvailability_JSON() {
+	public async Task UnitAvailability_JSON() {
 		// This tests a Conquests game with Conquests rules from a .json file
 
 		Skip.If(Civ3TestData.ShouldSkipCiv3DependentTests(), "No Civ3 install found.");
 
-		string saveName = "Conquests 16 Players.json";
-		string uri = "https://www.dropbox.com/scl/fi/g1qxuvc6xptg1l6hx9s21/Conquests-16-Players.json?rlkey=bkq158od7469pibhtw44g04if&st=tqax1064&dl=1";
-
-		(SaveGame game, Exception ex, string savePath) = await LoadGameAndData(saveName, SAVES_FOLDER, uri);
+		(SaveGame game, Exception ex, string savePath) = await LoadGameAndData(RemoteSaves.Conquests16PlayersJson);
 
 		Assert.Null(ex);
 		Assert.NotNull(game);
@@ -445,10 +439,9 @@ public class UnitPrototypeConquestsTest : RemoteSaveLoader {
 }
 
 public class UnitPrototypeScenarioTest : RemoteSaveLoader {
-	private const string SAVES_FOLDER = "saves/unit-availability";
 
 	[SkippableFact]
-	public async void UnitAvailability_SAV() {
+	public async Task UnitAvailability_SAV() {
 		// This tests a Conquests scenario with custom rules
 
 		// Civ3 isn't installed in CI, so we can't load the default BIC. Local
@@ -459,11 +452,9 @@ public class UnitPrototypeScenarioTest : RemoteSaveLoader {
 
 		string scenarioBiqPath = Path.Combine(Civ3Location.GetCiv3Path(), "Conquests", "Conquests", "4 Middle Ages.biq");
 		string scenarioPediaPath = Path.Combine(Civ3Location.GetCiv3Path(), "Conquests", "Conquests", "Middle Ages", "Text", "PediaIcons.txt");
+		Skip.If(!File.Exists(scenarioBiqPath), $"{Path.GetFileName(scenarioBiqPath)} not present in this Civ3 installation.");
 
-		string saveName = "Middle Ages Scenario Abbasids, 843 AD.SAV";
-		string uri = "https://www.dropbox.com/scl/fi/nz7wp7whu326i7em8jle9/Middle-Ages-Scenario-Abbasids-843-AD.SAV?rlkey=oz65m286jbchytd3yuu5ksr6f&st=b3dsheus&dl=1";
-
-		(SaveGame game, Exception ex, string savePath) = await LoadGameAndData(saveName, SAVES_FOLDER, uri, scenarioBiqPath, scenarioPediaPath);
+		(SaveGame game, Exception ex, string savePath) = await LoadGameAndData(RemoteSaves.MiddleAgesAbbasids, scenarioBiqPath, scenarioPediaPath);
 
 		Assert.Null(ex);
 		Assert.NotNull(game);

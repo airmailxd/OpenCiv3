@@ -7,28 +7,46 @@ using C7GameData.Save;
 
 namespace EngineTests.Utils;
 
+// Generated test games, shared by every test class.
+//
+// Generating a map is slow, so each kind of game is generated once per test
+// run. Building a game from a SaveGame shares much of the save's state (rules,
+// history, civilizations, relationships, ...) with the game, and playing the
+// game changes it, so every test gets its own copy: saveGame and
+// standaloneSaveGame return a fresh clone each time they are read.
 public class SaveGameFixture : IDisposable {
-	internal SaveGame saveGame;
-	internal SaveGame standaloneSaveGame;
 	internal BehaviorEngine behaviors;
 
 	const int TestSeed = 123456;
 
+	private static readonly Lazy<SaveGame> basicSave = new(() => LoadSave(new GameMode.Config("civ3")));
+	private static readonly Lazy<SaveGame> standaloneSave = new(() => LoadSave(new GameMode.Config("civ3", ["standalone"])));
+	private static readonly Lazy<SaveGame> twoHumanSave = new(() => LoadSave(new GameMode.Config("civ3"), humanPlayers: 2));
+	private static readonly Lazy<BehaviorEngine> sharedBehaviors = new(() => LoadGameMode(new GameMode.Config("civ3")).behaviors);
+
+	// A fresh copy of the generated single-human game. Each read returns a
+	// new copy, so read it once if a test needs the same SaveGame twice.
+	internal SaveGame saveGame => basicSave.Value.Clone();
+
+	// A fresh copy of the generated single-human game in standalone mode.
+	internal SaveGame standaloneSaveGame => standaloneSave.Value.Clone();
+
 	public SaveGameFixture() {
-		GameMode.Config basic = new("civ3");
-		GameMode.Config standalone = new("civ3", ["standalone"]);
-
-		saveGame = LoadSave(basic);
-		standaloneSaveGame = LoadSave(standalone);
-
 		// Standalone and basic modes should use the same set of behaviors
-		behaviors = LoadGameMode(basic).behaviors;
+		behaviors = LoadGameMode(new GameMode.Config("civ3")).behaviors;
+	}
+
+	// A fresh copy of a generated game with two human players.
+	internal static SaveGame TwoHumanSave() {
+		return twoHumanSave.Value.Clone();
 	}
 
 	private static GameMode LoadGameMode(GameMode.Config gameModeConfig) {
 		return GameMode.Load(PathUtils.GameModesDir, gameModeConfig);
 	}
 
+	// Generates a new game. This is slow: prefer saveGame, standaloneSaveGame
+	// or TwoHumanSave(), which generate each game once per test run.
 	internal static SaveGame LoadSave(GameMode.Config gameModeConfig, int humanPlayers = 1) {
 		SaveGame save = LoadGameMode(gameModeConfig).GetSave();
 
@@ -69,12 +87,12 @@ public class SaveGameFixture : IDisposable {
 	}
 
 	/// <summary>
-	/// Given a save game, create test-ready game data.
+	/// Given a save game, create test-ready game data. The game data shares
+	/// state with the save, so pass a save the test owns (such as a fresh
+	/// saveGame).
 	/// </summary>
 	public static C7GameData.GameData HydrateSaveGame(SaveGame game) {
-		var fixture = new SaveGameFixture();
-		C7GameData.GameData gd = game.ToGameData(fixture.behaviors);
-		return gd;
+		return game.ToGameData(sharedBehaviors.Value);
 	}
 
 	public void Dispose() {

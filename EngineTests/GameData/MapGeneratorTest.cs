@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using C7Engine;
 using C7GameData;
+using EngineTests.Utils;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
@@ -9,7 +11,8 @@ using Xunit;
 namespace EngineTests.GameData;
 
 public class GameMapGeneratorTest {
-	public static void SaveMapsAsWaterLandPng(List<List<GameMap>> maps, string filePath) {
+	// Set C7_DEBUG_IMAGE_DIR to see the maps.
+	public static void SaveMapsAsWaterLandPng(List<List<GameMap>> maps, string fileName) {
 		int mapWidthPx = maps[0][0].numTilesWide * 2 + 1;
 		int mapHeightPx = maps[0][0].numTilesTall + 1;
 
@@ -81,10 +84,8 @@ public class GameMapGeneratorTest {
 				}
 			}
 
-			image.SaveAsPng(filePath);
+			DebugImages.Save(image, fileName);
 		}
-
-		Console.WriteLine($"Noise map saved to: {filePath}");
 	}
 
 	private static Bgra32 Average(Bgra32 a, Bgra32 c) {
@@ -95,10 +96,15 @@ public class GameMapGeneratorTest {
 		return new Bgra32((byte)r, (byte)g, (byte)b);
 	}
 
-	[Fact]
-	public void GameMapGeneration() {
-		int numMapsPerCategory = 1;
+	private static readonly HashSet<string> WaterTerrains = ["coast", "sea", "ocean"];
 
+	private static readonly WorldCharacteristics.OceanCoverage[] Oceans = {
+		WorldCharacteristics.OceanCoverage.Percent_60,
+		WorldCharacteristics.OceanCoverage.Percent_70,
+		WorldCharacteristics.OceanCoverage.Percent_80,
+	};
+
+	private static List<TerrainType> TerrainTypes() {
 		List<TerrainType> terrainTypes = new();
 		terrainTypes.Add(new TerrainType() { Key = "grassland" });
 		terrainTypes.Add(new TerrainType() { Key = "plains" });
@@ -113,110 +119,69 @@ public class GameMapGeneratorTest {
 		terrainTypes.Add(new TerrainType() { Key = "hills" });
 		terrainTypes.Add(new TerrainType() { Key = "volcano" });
 		terrainTypes.Add(new TerrainType() { Key = "mountains" });
+		return terrainTypes;
+	}
 
-		List<List<GameMap>> archipelagoMaps = new();
-		archipelagoMaps.Add(new List<GameMap>());
-		archipelagoMaps.Add(new List<GameMap>());
-		archipelagoMaps.Add(new List<GameMap>());
+	private static GameMap Generate(WorldCharacteristics.Landform landform, WorldCharacteristics.OceanCoverage ocean, int seed) {
+		return MapGenerator.GenerateMap(new WorldCharacteristics() {
+			landform = landform,
+			oceanCoverage = ocean,
+			age = WorldCharacteristics.Age.Billion_4,
+			climate = WorldCharacteristics.Climate.Normal,
+			temperature = WorldCharacteristics.Temperature.Temperate,
+			worldSize = new WorldSize() { width = 100, height = 100 },
+			terrainTypes = TerrainTypes(),
+			mapSeed = seed,
+		});
+	}
 
-		WorldCharacteristics.OceanCoverage[] oceans = {
-			WorldCharacteristics.OceanCoverage.Percent_60,
-			WorldCharacteristics.OceanCoverage.Percent_70,
-			WorldCharacteristics.OceanCoverage.Percent_80,
-		};
+	private static double LandShare(GameMap map) {
+		return (double)map.tiles.Count(t => !WaterTerrains.Contains(t.baseTerrainType.Key)) / map.tiles.Count;
+	}
 
-		// Uncommenting the options will display them, but make the test take
-		// longer.
-		WorldCharacteristics.Age[] ages = {
-			// WorldCharacteristics.Age.Billion_3,
-			WorldCharacteristics.Age.Billion_4,
-			// WorldCharacteristics.Age.Billion_5,
-		};
-		WorldCharacteristics.Temperature[] temps = {
-			// WorldCharacteristics.Temperature.Cool,
-			WorldCharacteristics.Temperature.Temperate,
-			// WorldCharacteristics.Temperature.Warm,
-		};
-		WorldCharacteristics.Climate[] climates = {
-			// WorldCharacteristics.Climate.Wet,
-			WorldCharacteristics.Climate.Normal,
-			// WorldCharacteristics.Climate.Arid,
-		};
+	private static string Describe(GameMap map) {
+		return string.Join(",", map.tiles.Select(t => $"{t.XCoordinate}:{t.YCoordinate}:{t.baseTerrainType.Key}:{t.overlayTerrainType.Key}"));
+	}
 
-		for (int i = 0; i < oceans.Length; ++i) {
-			foreach (var age in ages) {
-				foreach (var temp in temps) {
-					foreach (var climate in climates) {
-						for (int k = 0; k < numMapsPerCategory; ++k) {
-							archipelagoMaps[i].Add(MapGenerator.GenerateMap(new WorldCharacteristics() {
-								landform = WorldCharacteristics.Landform.Archipelago,
-								oceanCoverage = oceans[i],
-								age = age,
-								climate = climate,
-								temperature = temp,
-								worldSize = new WorldSize() { width = 100, height = 100 },
-								terrainTypes = terrainTypes,
-							}));
-						}
-					}
-				}
-			}
+	[Theory]
+	[InlineData(WorldCharacteristics.Landform.Archipelago)]
+	[InlineData(WorldCharacteristics.Landform.Continents)]
+	[InlineData(WorldCharacteristics.Landform.Pangaea)]
+	public void GameMapGeneration(WorldCharacteristics.Landform landform) {
+		// Fixed seeds, so a failure can be reproduced.
+		const int seed = 20240501;
+
+		// One map for each ocean coverage.
+		List<List<GameMap>> maps = Oceans.Select(ocean => new List<GameMap> { Generate(landform, ocean, seed) }).ToList();
+
+		List<double> landShares = [];
+		for (int i = 0; i < Oceans.Length; ++i) {
+			GameMap map = maps[i][0];
+			Assert.Equal(100, map.numTilesWide);
+			Assert.Equal(100, map.numTilesTall);
+			Assert.Equal(100 * 100 / 2, map.tiles.Count);
+			Assert.All(map.tiles, t => {
+				Assert.InRange(t.XCoordinate, 0, map.numTilesWide - 1);
+				Assert.InRange(t.YCoordinate, 0, map.numTilesTall - 1);
+				Assert.NotNull(t.baseTerrainType);
+				Assert.NotNull(t.overlayTerrainType);
+			});
+
+			// About as much land as the ocean coverage leaves.
+			double land = LandShare(map);
+			double expected = 1 - (int)Oceans[i] / 100.0;
+			Assert.True(Math.Abs(land - expected) <= 0.15, $"{landform} with {Oceans[i]}: {land:P0} land, expected about {expected:P0}");
+			landShares.Add(land);
 		}
 
-		SaveMapsAsWaterLandPng(archipelagoMaps, "debug_archipelago_maps.png");
-
-		List<List<GameMap>> continentMaps = new();
-		continentMaps.Add(new List<GameMap>());
-		continentMaps.Add(new List<GameMap>());
-		continentMaps.Add(new List<GameMap>());
-
-		for (int i = 0; i < oceans.Length; ++i) {
-			foreach (var age in ages) {
-				foreach (var temp in temps) {
-					foreach (var climate in climates) {
-						for (int k = 0; k < numMapsPerCategory; ++k) {
-							continentMaps[i].Add(MapGenerator.GenerateMap(new WorldCharacteristics() {
-								landform = WorldCharacteristics.Landform.Continents,
-								oceanCoverage = oceans[i],
-								age = age,
-								climate = climate,
-								temperature = temp,
-								worldSize = new WorldSize() { width = 100, height = 100 },
-								terrainTypes = terrainTypes,
-							}));
-						}
-					}
-				}
-			}
+		// More ocean, less land.
+		for (int i = 0; i + 1 < landShares.Count; ++i) {
+			Assert.True(landShares[i] > landShares[i + 1], $"{landform}: land shares {string.Join(", ", landShares.Select(l => l.ToString("P1")))}");
 		}
 
-		SaveMapsAsWaterLandPng(continentMaps, "debug_continent_maps.png");
+		// The same seed makes the same map.
+		Assert.Equal(Describe(maps[1][0]), Describe(Generate(landform, Oceans[1], seed)));
 
-		List<List<GameMap>> pangaeaMaps = new();
-		pangaeaMaps.Add(new List<GameMap>());
-		pangaeaMaps.Add(new List<GameMap>());
-		pangaeaMaps.Add(new List<GameMap>());
-
-		for (int i = 0; i < oceans.Length; ++i) {
-			foreach (var age in ages) {
-				foreach (var temp in temps) {
-					foreach (var climate in climates) {
-						for (int k = 0; k < numMapsPerCategory; ++k) {
-							pangaeaMaps[i].Add(MapGenerator.GenerateMap(new WorldCharacteristics() {
-								landform = WorldCharacteristics.Landform.Pangaea,
-								oceanCoverage = oceans[i],
-								age = age,
-								climate = climate,
-								temperature = temp,
-								worldSize = new WorldSize() { width = 100, height = 100 },
-								terrainTypes = terrainTypes,
-							}));
-						}
-					}
-				}
-			}
-		}
-
-		SaveMapsAsWaterLandPng(pangaeaMaps, "debug_pangaea_maps.png");
+		SaveMapsAsWaterLandPng(maps, $"debug_{landform.ToString().ToLowerInvariant()}_maps.png");
 	}
 }
