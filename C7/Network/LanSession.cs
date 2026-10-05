@@ -11,6 +11,7 @@ public static class LanSession {
 
 	public static bool IsActive => Host != null || Client != null;
 	public static bool IsClient => Client != null;
+	public static bool IsSpectator => Client?.IsSpectator == true;
 
 	// The name this player goes by on the LAN.
 	public static string PlayerName = System.Environment.UserName;
@@ -18,10 +19,14 @@ public static class LanSession {
 	// Developer options for trying LAN games from the command line, after "--":
 	//   --lan-host=<save>     host the saved game, starting once every seat is taken
 	//   --lan-join=<address>  join the host there and take the first open seat
+	//   --lan-watch=<address> join the host there as a spectator
 	//   --lan-autoplay        end each of this machine's turns soon after it starts
+	//   --lan-turn-time=<s>   give each player this many seconds for their turn
 	public static readonly string DevHostSave;
 	public static readonly string DevJoinAddress;
+	public static readonly bool DevWatch;
 	public static readonly bool DevAutoplay;
+	public static readonly int? DevTurnSeconds;
 	private static bool devStartUsed = false;
 
 	static LanSession() {
@@ -30,8 +35,13 @@ public static class LanSession {
 				DevHostSave = arg["--lan-host=".Length..];
 			} else if (arg.StartsWith("--lan-join=")) {
 				DevJoinAddress = arg["--lan-join=".Length..];
+			} else if (arg.StartsWith("--lan-watch=")) {
+				DevJoinAddress = arg["--lan-watch=".Length..];
+				DevWatch = true;
 			} else if (arg == "--lan-autoplay") {
 				DevAutoplay = true;
+			} else if (arg.StartsWith("--lan-turn-time=") && int.TryParse(arg["--lan-turn-time=".Length..], out int seconds)) {
+				DevTurnSeconds = seconds;
 			}
 		}
 	}
@@ -63,6 +73,10 @@ public static class LanSession {
 			tree.ChangeSceneToFile(GameScene);
 		}
 	}
+
+	// Whose turn it is and how long they have had it, or null outside a
+	// LAN game.
+	public static TurnClockInfo TurnClock => Host?.CurrentClock() ?? Client?.CurrentClock();
 
 	public static void BeginHosting(LanHost host) {
 		End();

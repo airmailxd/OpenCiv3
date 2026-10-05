@@ -17,7 +17,8 @@ namespace C7Engine.Network;
 // Hosts a LAN game. The host's engine is the only one that runs: each client
 // sends its player's messages here, and after the game changes the host sends
 // every client a snapshot of the whole game, followed by the UI messages for
-// that client's player.
+// that client's player. Spectators get the snapshots and the messages for
+// everyone, and play no part.
 //
 // Everything except accepting connections and answering discovery happens in
 // Poll(), which the game calls every frame on its main thread.
@@ -30,6 +31,10 @@ public class LanHost : IDisposable {
 
 	// But a steady stream of changes still sends a snapshot this often.
 	private static readonly TimeSpan MaxSnapshotDelay = TimeSpan.FromMilliseconds(300);
+
+	// Spectators don't need every move, and redrawing the whole game for
+	// each snapshot is slow, so they get one this often at most.
+	private static readonly TimeSpan SpectatorSnapshotInterval = TimeSpan.FromSeconds(1);
 
 	private class Seat {
 		public SeatInfo info;
@@ -49,11 +54,31 @@ public class LanHost : IDisposable {
 	// Connections that haven't taken a seat yet.
 	private readonly List<(LanConnection connection, string name)> unseated = new();
 
+	// Connections watching the game rather than playing in it.
+	private class Spectator {
+		public LanConnection connection;
+		public string name;
+		public readonly List<byte[]> pendingUiMessages = new();
+	}
+	private readonly List<Spectator> spectators = new();
+
 	private long lastProcessedMessageCount = -1;
 	private readonly Stopwatch sinceChange = Stopwatch.StartNew();
 	private readonly Stopwatch sinceSnapshot = Stopwatch.StartNew();
 	private bool snapshotPending;
+	private readonly Stopwatch sinceSpectatorSnapshot = Stopwatch.StartNew();
+	private bool spectatorSnapshotPending;
 	private volatile bool disposed;
+
+	// How long each human has to play their turn before the host ends it for
+	// them; null for no limit.
+	public TimeSpan? TurnTimeLimit { get; set; }
+
+	// The turn being timed: whose it is, and since when.
+	private ID clockPlayerID;
+	private int clockTurn = -1;
+	private readonly Stopwatch turnClock = new();
+	private bool turnTimedOut;
 
 	public bool Started { get; private set; }
 	public int Port => ((IPEndPoint)listener.LocalEndpoint).Port;
@@ -64,6 +89,7 @@ public class LanHost : IDisposable {
 	// Seats for the human players other than the host's, in turn order.
 	public IReadOnlyList<SeatInfo> Seats => seats.Select(s => s.info with { takenBy = s.takenBy }).ToList();
 	public bool AllSeatsTaken => seats.All(s => s.connection != null && !s.connection.IsClosed);
+	public IReadOnlyList<string> Spectators => spectators.Select(s => s.name).ToList();
 
 	// The human player the host plays: the first one who isn't defeated.
 	public static SavePlayer HostPlayer(SaveGame save) {
@@ -140,6 +166,9 @@ public class LanHost : IDisposable {
 		foreach (Seat seat in seats.Where(s => s.connection != null)) {
 			SendStart(seat, snapshot);
 		}
+		foreach (Spectator spectator in spectators) {
+			SendStart(spectator, snapshot);
+		}
 		lastProcessedMessageCount = EngineStorage.processedMessageCount;
 	}
 
@@ -147,6 +176,12 @@ public class LanHost : IDisposable {
 		seat.pendingUiMessages.Clear();
 		seat.connection.Send(FrameKind.Start, new StartInfo(seat.info.playerID));
 		seat.connection.Send(FrameKind.Snapshot, snapshot);
+	}
+
+	private static void SendStart(Spectator spectator, byte[] snapshot) {
+		spectator.pendingUiMessages.Clear();
+		spectator.connection.Send(FrameKind.Start, new StartInfo(null));
+		spectator.connection.Send(FrameKind.Snapshot, snapshot);
 	}
 
 	public void Poll() {
@@ -160,9 +195,66 @@ public class LanHost : IDisposable {
 		foreach (Seat seat in seats) {
 			PollSeat(seat);
 		}
+		foreach (Spectator spectator in spectators.ToList()) {
+			PollSpectator(spectator);
+		}
 
 		if (Started) {
+			UpdateTurnClock();
 			MaybeSendSnapshot();
+		}
+	}
+
+	// Restarts the clock when a new turn begins, and ends a human's turn for
+	// them once they have run out of time.
+	private void UpdateTurnClock() {
+		GameData gameData = EngineStorage.gameData;
+		ID active = EngineStorage.activePlayerID;
+		if (active != clockPlayerID || gameData.turn != clockTurn) {
+			clockPlayerID = active;
+			clockTurn = gameData.turn;
+			turnClock.Restart();
+			turnTimedOut = false;
+			BroadcastTurnClock();
+		}
+
+		if (TurnTimeLimit is not TimeSpan limit || turnTimedOut || turnClock.Elapsed < limit) {
+			return;
+		}
+		Player player = gameData.GetPlayer(active);
+		if (player != null && player.isHuman && !player.hasPlayedThisTurn) {
+			turnTimedOut = true;
+			log.Information("{Player} ran out of time, ending their turn", player);
+			EngineStorage.ReceiveFromRemote(new MsgEndTurn { playerID = active });
+		}
+	}
+
+	// The clock as it stands now, or null before the game starts.
+	public TurnClockInfo CurrentClock() {
+		if (!Started || clockPlayerID == null) {
+			return null;
+		}
+		return new TurnClockInfo(clockPlayerID, clockTurn, turnClock.Elapsed.TotalSeconds,
+			TurnTimeLimit?.TotalSeconds, ConnectedPlayers());
+	}
+
+	private List<ID> ConnectedPlayers() {
+		return [
+			hostPlayerID,
+			.. seats.Where(s => s.connection != null && !s.connection.IsClosed).Select(s => s.info.playerID),
+		];
+	}
+
+	private void BroadcastTurnClock() {
+		TurnClockInfo clock = CurrentClock();
+		if (clock == null) {
+			return;
+		}
+		foreach (Seat seat in seats.Where(s => s.connection != null && !s.connection.IsClosed)) {
+			seat.connection.Send(FrameKind.TurnClock, clock);
+		}
+		foreach (Spectator spectator in spectators.Where(s => !s.connection.IsClosed)) {
+			spectator.connection.Send(FrameKind.TurnClock, clock);
 		}
 	}
 
@@ -199,6 +291,20 @@ public class LanHost : IDisposable {
 						if (Started) {
 							// A player rejoining a game in progress.
 							SendStart(seat, LanProtocol.EncodeSnapshot(EngineStorage.gameData));
+						}
+						BroadcastLobby();
+						return;
+					case FrameKind.Watch:
+						if (name == null) {
+							Reject(connection, "Say hello before watching.");
+							return;
+						}
+						unseated.RemoveAll(u => u.connection == connection);
+						Spectator spectator = new() { connection = connection, name = name };
+						spectators.Add(spectator);
+						log.Information("{Name} is watching", name);
+						if (Started) {
+							SendStart(spectator, LanProtocol.EncodeSnapshot(EngineStorage.gameData));
 						}
 						BroadcastLobby();
 						return;
@@ -260,12 +366,26 @@ public class LanHost : IDisposable {
 		}
 	}
 
+	// Spectators only listen: whatever they send is dropped.
+	private void PollSpectator(Spectator spectator) {
+		while (spectator.connection.TryReceive(out _)) { }
+		if (spectator.connection.IsClosed) {
+			log.Information("{Name} stopped watching", spectator.name);
+			spectators.Remove(spectator);
+			BroadcastLobby();
+		}
+	}
+
 	private void RouteMessageToUI(MessageToUI msg) {
 		if (msg.IsForEveryone) {
 			EngineStorage.SendToLocalUI(msg);
 			byte[] json = NetSerialization.Serialize(msg);
 			foreach (Seat seat in seats) {
 				QueueUiMessage(seat, json);
+			}
+			foreach (Spectator spectator in spectators.Where(s => !s.connection.IsClosed)) {
+				spectator.pendingUiMessages.Add(json);
+				spectatorSnapshotPending = true;
 			}
 			return;
 		}
@@ -293,27 +413,43 @@ public class LanHost : IDisposable {
 		if (EngineStorage.processedMessageCount != lastProcessedMessageCount) {
 			lastProcessedMessageCount = EngineStorage.processedMessageCount;
 			snapshotPending = true;
+			spectatorSnapshotPending = true;
 			sinceChange.Restart();
 		}
 		bool settled = !EngineStorage.HasPendingMessagesToEngine() && sinceChange.Elapsed >= SnapshotDelay;
-		if (!snapshotPending || !(settled || sinceSnapshot.Elapsed >= MaxSnapshotDelay)) {
-			return;
-		}
-		snapshotPending = false;
-		sinceSnapshot.Restart();
+		byte[] snapshot = null;
 
-		List<Seat> connected = seats.Where(s => s.connection != null && !s.connection.IsClosed).ToList();
-		if (connected.Count == 0) {
-			return;
-		}
-		byte[] snapshot = LanProtocol.EncodeSnapshot(EngineStorage.gameData);
-		foreach (Seat seat in connected) {
-			seat.connection.Send(FrameKind.Snapshot, snapshot);
-			foreach (byte[] json in seat.pendingUiMessages) {
-				seat.connection.Send(FrameKind.UiMessage, json);
+		if (snapshotPending && (settled || sinceSnapshot.Elapsed >= MaxSnapshotDelay)) {
+			snapshotPending = false;
+			sinceSnapshot.Restart();
+			List<Seat> connected = seats.Where(s => s.connection != null && !s.connection.IsClosed).ToList();
+			if (connected.Count > 0) {
+				snapshot = LanProtocol.EncodeSnapshot(EngineStorage.gameData);
+				foreach (Seat seat in connected) {
+					SendSnapshot(seat.connection, snapshot, seat.pendingUiMessages);
+				}
 			}
-			seat.pendingUiMessages.Clear();
 		}
+
+		if (spectatorSnapshotPending && sinceSpectatorSnapshot.Elapsed >= SpectatorSnapshotInterval) {
+			spectatorSnapshotPending = false;
+			sinceSpectatorSnapshot.Restart();
+			List<Spectator> watching = spectators.Where(s => !s.connection.IsClosed).ToList();
+			if (watching.Count > 0) {
+				snapshot ??= LanProtocol.EncodeSnapshot(EngineStorage.gameData);
+				foreach (Spectator spectator in watching) {
+					SendSnapshot(spectator.connection, snapshot, spectator.pendingUiMessages);
+				}
+			}
+		}
+	}
+
+	private static void SendSnapshot(LanConnection connection, byte[] snapshot, List<byte[]> pendingUiMessages) {
+		connection.Send(FrameKind.Snapshot, snapshot);
+		foreach (byte[] json in pendingUiMessages) {
+			connection.Send(FrameKind.UiMessage, json);
+		}
+		pendingUiMessages.Clear();
 	}
 
 	private void SendLobby(LanConnection connection, ID yourSeat) {
@@ -321,7 +457,7 @@ public class LanHost : IDisposable {
 			new SeatInfo(hostPlayerID, hostCivilization, hostName, true, hostName),
 			.. Seats,
 		];
-		connection.Send(FrameKind.Lobby, new LobbyInfo(hostName, seatInfos, yourSeat));
+		connection.Send(FrameKind.Lobby, new LobbyInfo(hostName, seatInfos, yourSeat, [.. Spectators]));
 	}
 
 	private void BroadcastLobby() {
@@ -333,6 +469,12 @@ public class LanHost : IDisposable {
 		foreach (Seat seat in seats.Where(s => s.connection != null)) {
 			SendLobby(seat.connection, seat.info.playerID);
 		}
+		foreach (Spectator spectator in spectators) {
+			SendLobby(spectator.connection, null);
+		}
+		// Who is connected has changed, and anyone who just came in needs
+		// the clock.
+		BroadcastTurnClock();
 		LobbyChanged?.Invoke();
 	}
 
@@ -348,6 +490,9 @@ public class LanHost : IDisposable {
 		}
 		foreach (Seat seat in seats) {
 			seat.connection?.Dispose();
+		}
+		foreach (Spectator spectator in spectators) {
+			spectator.connection.Dispose();
 		}
 		if (Started) {
 			EngineStorage.ResetNetworking();

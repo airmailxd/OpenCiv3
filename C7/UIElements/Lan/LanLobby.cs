@@ -10,7 +10,7 @@ using Serilog;
 
 // Where players gather before a LAN game. The host waits here for a player to
 // take each human seat, then starts the game; the others find the host, take
-// a seat, and wait for the host to start.
+// a seat (or just watch), and wait for the host to start.
 public partial class LanLobby : Control {
 	private ILogger log = LogManager.ForContext<LanLobby>();
 
@@ -104,6 +104,8 @@ public partial class LanLobby : Control {
 		seatList.AddThemeConstantOverride("separation", 6);
 		content.AddChild(seatList);
 
+		content.AddChild(MakeTurnTimeRow());
+
 		status = AddLabel("");
 
 		HBoxContainer buttons = new();
@@ -115,6 +117,37 @@ public partial class LanLobby : Control {
 
 		LanSession.Host.LobbyChanged += ShowHostSeats;
 		ShowHostSeats();
+	}
+
+	// The choices for how long each player has for their turn, in minutes;
+	// 0 means no limit.
+	private static readonly int[] TurnTimeChoices = [0, 2, 5, 10, 15, 20, 30, 45, 60];
+
+	private HBoxContainer MakeTurnTimeRow() {
+		HBoxContainer row = new();
+		row.AddThemeConstantOverride("separation", 12);
+		Label label = new() { Text = "Time per turn:" };
+		label.AddThemeFontSizeOverride("font_size", 18);
+		row.AddChild(label);
+
+		OptionButton choice = new();
+		choice.AddThemeFontSizeOverride("font_size", 18);
+		foreach (int minutes in TurnTimeChoices) {
+			choice.AddItem(minutes == 0 ? "No limit" : $"{minutes} minutes");
+		}
+		choice.ItemSelected += index => {
+			int minutes = TurnTimeChoices[index];
+			LanSession.Host.TurnTimeLimit = minutes == 0 ? null : TimeSpan.FromMinutes(minutes);
+		};
+		row.AddChild(choice);
+
+		if (LanSession.DevTurnSeconds is int seconds) {
+			LanSession.Host.TurnTimeLimit = TimeSpan.FromSeconds(seconds);
+			choice.Disabled = true;
+			choice.AddItem($"{seconds} seconds");
+			choice.Select(choice.ItemCount - 1);
+		}
+		return row;
 	}
 
 	private SaveGame LoadSavedGame(string path) {
@@ -133,9 +166,12 @@ public partial class LanLobby : Control {
 		}
 		LanHost host = LanSession.Host;
 
-		AddSeatRow(seatList, $"{LanSession.PlayerName} (you, hosting)", null);
+		AddSeatRow(seatList, $"{LanSession.PlayerName} (you, hosting)");
 		foreach (SeatInfo seat in host.Seats) {
-			AddSeatRow(seatList, Describe(seat), null);
+			AddSeatRow(seatList, Describe(seat));
+		}
+		if (host.Spectators.Count > 0) {
+			AddSeatRow(seatList, $"Watching: {string.Join(", ", host.Spectators)}");
 		}
 
 		if (host.Seats.Count == 0) {
@@ -160,14 +196,16 @@ public partial class LanLobby : Control {
 		return $"{name}{seat.civilization}: {who}";
 	}
 
-	private static void AddSeatRow(VBoxContainer list, string text, Button button) {
+	private static void AddSeatRow(VBoxContainer list, string text, params Button[] buttons) {
 		HBoxContainer row = new();
 		row.AddThemeConstantOverride("separation", 12);
 		Label label = new() { Text = text, CustomMinimumSize = new Vector2(420, 0) };
 		label.AddThemeFontSizeOverride("font_size", 18);
 		row.AddChild(label);
-		if (button != null) {
-			row.AddChild(button);
+		foreach (Button button in buttons) {
+			if (button != null) {
+				row.AddChild(button);
+			}
 		}
 		list.AddChild(row);
 	}
@@ -206,9 +244,10 @@ public partial class LanLobby : Control {
 		addressLabel.AddThemeFontSizeOverride("font_size", 18);
 		addressRow.AddChild(addressLabel);
 		addressEdit = new LineEdit { PlaceholderText = "192.168.1.20", CustomMinimumSize = new Vector2(260, 0) };
-		addressEdit.TextSubmitted += _ => ConnectToAddress();
+		addressEdit.TextSubmitted += _ => ConnectToAddress(false);
 		addressRow.AddChild(addressEdit);
-		addressRow.AddChild(MakeButton("Join", ConnectToAddress));
+		addressRow.AddChild(MakeButton("Join", () => ConnectToAddress(false)));
+		addressRow.AddChild(MakeButton("Watch", () => ConnectToAddress(true)));
 		content.AddChild(addressRow);
 
 		seatList = new VBoxContainer();
@@ -227,7 +266,7 @@ public partial class LanLobby : Control {
 
 		if (LanSession.DevJoinAddress != null) {
 			addressEdit.Text = LanSession.DevJoinAddress;
-			ConnectToAddress();
+			ConnectToAddress(LanSession.DevWatch);
 		}
 	}
 
@@ -258,13 +297,14 @@ public partial class LanLobby : Control {
 			DiscoveryReply reply = found.reply;
 			string state = reply.started ? "in progress" : "in the lobby";
 			string seats = $"{reply.openSeats} open {(reply.openSeats == 1 ? "seat" : "seats")}";
-			Button join = MakeButton("Join", () => Connect(found.address, reply.port));
+			Button join = MakeButton("Join", () => Connect(found.address, reply.port, false));
 			join.Disabled = reply.openSeats == 0;
-			AddSeatRow(hostList, $"{reply.hostName} at {found.address}: {state}, {seats}", join);
+			Button watch = MakeButton("Watch", () => Connect(found.address, reply.port, true));
+			AddSeatRow(hostList, $"{reply.hostName} at {found.address}: {state}, {seats}", join, watch);
 		}
 	}
 
-	private void ConnectToAddress() {
+	private void ConnectToAddress(bool watch) {
 		string text = addressEdit.Text.Trim();
 		if (text == "") {
 			return;
@@ -275,10 +315,10 @@ public partial class LanLobby : Control {
 			port = parsedPort;
 			text = text[..colon];
 		}
-		Connect(text, port);
+		Connect(text, port, watch);
 	}
 
-	private void Connect(string address, int port) {
+	private void Connect(string address, int port, bool watch) {
 		LanSession.PlayerName = string.IsNullOrWhiteSpace(nameEdit.Text) ? LanSession.PlayerName : nameEdit.Text.Trim();
 		try {
 			LanSession.BeginJoining(LanClient.Connect(address, port, LanSession.PlayerName));
@@ -288,6 +328,9 @@ public partial class LanLobby : Control {
 		}
 		status.Text = $"Connected to {address}. Waiting for the host...";
 		LanSession.Client.LobbyChanged += ShowJoinedSeats;
+		if (watch) {
+			LanSession.Client.Watch();
+		}
 	}
 
 	private void ShowJoinedSeats() {
@@ -317,23 +360,27 @@ public partial class LanLobby : Control {
 
 		foreach (SeatInfo seat in lobby.seats) {
 			if (seat.isHost) {
-				AddSeatRow(seatList, $"{seat.playerName} (hosting), {seat.civilization}", null);
+				AddSeatRow(seatList, $"{seat.playerName} (hosting), {seat.civilization}");
 				continue;
 			}
 			Button take = null;
-			if (lobby.yourSeat == null && seat.takenBy == null) {
+			if (lobby.yourSeat == null && seat.takenBy == null && !client.IsSpectator) {
 				take = MakeButton("Take Seat", () => client.ClaimSeat(seat.playerID));
 			}
 			string you = seat.playerID == lobby.yourSeat ? " (you)" : "";
 			AddSeatRow(seatList, Describe(seat) + you, take);
 		}
 
-		status.Text = lobby.yourSeat == null
-			? "Take an open seat to play."
+		if (lobby.spectators?.Count > 0) {
+			AddSeatRow(seatList, $"Watching: {string.Join(", ", lobby.spectators)}");
+		}
+
+		status.Text = client.IsSpectator ? "Watching. Waiting for the host to start the game..."
+			: lobby.yourSeat == null ? "Take an open seat to play."
 			: "Waiting for the host to start the game...";
 
 		SeatInfo open = lobby.seats.FirstOrDefault(s => !s.isHost && s.takenBy == null);
-		if (LanSession.DevJoinAddress != null && lobby.yourSeat == null && open != null) {
+		if (LanSession.DevJoinAddress != null && !client.IsSpectator && lobby.yourSeat == null && open != null) {
 			client.ClaimSeat(open.playerID);
 		}
 	}

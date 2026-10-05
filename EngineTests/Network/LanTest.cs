@@ -314,6 +314,102 @@ public class LanTest : IClassFixture<SaveGameFixture>, IDisposable {
 	}
 
 	[Fact]
+	public async Task SpectatorsWatchWithoutPlaying() {
+		SaveGame save = twoHumanSave.Value.Clone();
+		using LanHost host = new("Host", save, port: 0, answerDiscovery: false);
+		ID seatID = host.Seats[0].playerID;
+
+		using LanClient player = LanClient.Connect("127.0.0.1", host.Port, "Guest");
+		PumpUntil(host, player, () => player.Lobby != null);
+		player.ClaimSeat(seatID);
+		PumpUntil(host, player, () => player.Lobby.yourSeat == seatID);
+
+		// Watching doesn't take a seat, and everyone in the lobby sees it.
+		using LanClient spectator = LanClient.Connect("127.0.0.1", host.Port, "Watcher");
+		spectator.Watch();
+		PumpUntil(host, spectator, () => spectator.Lobby?.spectators?.Count == 1);
+		Assert.Equal(["Watcher"], host.Spectators);
+		Assert.True(host.AllSeatsTaken);
+		Assert.Null(spectator.Lobby.yourSeat);
+		PumpUntil(host, player, () => player.Lobby.spectators?.Count == 1);
+
+		C7GameData.GameData gameData = await CreateTwoHumanGame();
+		Player[] humans = Humans(gameData);
+		host.StartGame();
+		PumpUntil(host, spectator, () => spectator.StartingGame != null);
+		Assert.Null(spectator.PlayerID);
+		Assert.True(spectator.IsSpectator);
+		PumpUntil(host, player, () => player.StartingGame != null);
+
+		List<SaveGame> snapshots = [];
+		List<MessageToUI> spectatorUi = [];
+		spectator.SnapshotReceived = snapshots.Add;
+		spectator.UiMessageReceived = json => spectatorUi.Add(NetSerialization.DeserializeMessageToUI(json));
+		player.SnapshotReceived = _ => { };
+		player.UiMessageReceived = _ => { };
+
+		// The spectator hears whose turn it is, and sees the game change.
+		new MsgEndTurn().send();
+		PumpUntil(host, spectator, () => spectatorUi.OfType<MsgStartTurn>().Any());
+		Assert.Same(humans[1], spectatorUi.OfType<MsgStartTurn>().Single().player);
+		Assert.True(snapshots.Last().Players.Single(p => p.id == humans[0].id).hasPlayedCurrentTurn);
+
+		// A spectator's client sends nothing, and the host ignores a
+		// spectator that sends commands anyway.
+		using System.Net.Sockets.TcpClient tcp = new("127.0.0.1", host.Port);
+		using LanConnection rogue = new(tcp);
+		rogue.Send(FrameKind.Hello, new HelloInfo(LanProtocol.Version, "Rogue"));
+		rogue.Send(FrameKind.Watch, []);
+		spectator.SendCommand(new MsgEndTurn { playerID = humans[1].id });
+		rogue.Send(FrameKind.Command, NetSerialization.Serialize(new MsgEndTurn { playerID = humans[1].id }));
+		PumpUntil(host, spectator, () => host.Spectators.Count == 2);
+		for (int i = 0; i < 100; ++i) {
+			host.Poll();
+			EngineStorage.ProcessNextMessageToEngine();
+			Thread.Sleep(2);
+		}
+		Assert.False(humans[1].hasPlayedThisTurn);
+
+		// Leaving stops the watching.
+		spectator.Dispose();
+		PumpUntil(host, player, () => host.Spectators.Count == 1);
+	}
+
+	[Fact]
+	public async Task TheHostEndsTurnsThatRunOutOfTime() {
+		SaveGame save = twoHumanSave.Value.Clone();
+		using LanHost host = new("Host", save, port: 0, answerDiscovery: false);
+		host.TurnTimeLimit = TimeSpan.FromMilliseconds(300);
+		ID seatID = host.Seats[0].playerID;
+
+		using LanClient client = LanClient.Connect("127.0.0.1", host.Port, "Guest");
+		PumpUntil(host, client, () => client.Lobby != null);
+		client.ClaimSeat(seatID);
+		PumpUntil(host, client, () => client.Lobby.yourSeat == seatID);
+
+		C7GameData.GameData gameData = await CreateTwoHumanGame();
+		Player[] humans = Humans(gameData);
+		host.StartGame();
+		PumpUntil(host, client, () => client.StartingGame != null);
+		client.SnapshotReceived = _ => { };
+		client.UiMessageReceived = _ => { };
+
+		// The client hears whose turn it is, how long they have, and who is
+		// connected.
+		PumpUntil(host, client, () => client.CurrentClock() != null);
+		TurnClockInfo clock = client.CurrentClock();
+		Assert.Equal(humans[0].id, clock.activePlayerID);
+		Assert.Equal(0.3, clock.secondsAllowed.Value, 3);
+		Assert.Equal([humans[0].id, seatID], clock.connectedPlayers);
+
+		// Nobody ends the host's turn, so the host's clock does, and then the
+		// client's turn is timed.
+		PumpUntil(host, client, () => client.CurrentClock().activePlayerID == seatID);
+		Assert.True(humans[0].hasPlayedThisTurn);
+		Assert.True(client.CurrentClock().secondsElapsed < 0.3);
+	}
+
+	[Fact]
 	public void HostsTurnAwayOtherVersions() {
 		using LanHost host = new("Host", twoHumanSave.Value.Clone(), port: 0, answerDiscovery: false);
 		using System.Net.Sockets.TcpClient tcp = new("127.0.0.1", host.Port);

@@ -22,13 +22,21 @@ public class LanClient : IDisposable {
 	public LobbyInfo Lobby { get; private set; }
 	public string RejectedReason { get; private set; }
 
-	// The player this client plays, once the game has started.
+	// The player this client plays, once the game has started. Null for a
+	// spectator.
 	public ID PlayerID { get; private set; }
+
+	// Whether this client only watches the game.
+	public bool IsSpectator { get; private set; }
 
 	// The game as the host first sent it, until the game screen takes over.
 	public SaveGame StartingGame { get; private set; }
 
 	public bool IsConnected => !connection.IsClosed;
+
+	// The host's turn clock as last sent, and how long ago that was.
+	private TurnClockInfo clock;
+	private readonly System.Diagnostics.Stopwatch sinceClock = new();
 
 	public event Action LobbyChanged;
 
@@ -54,8 +62,22 @@ public class LanClient : IDisposable {
 		connection.Send(FrameKind.ClaimSeat, new ClaimSeatInfo(playerID));
 	}
 
+	// Watches the game instead of taking a seat.
+	public void Watch() {
+		IsSpectator = true;
+		connection.Send(FrameKind.Watch, []);
+	}
+
 	public void SendCommand(MessageToEngine msg) {
+		if (IsSpectator) {
+			return;
+		}
 		connection.Send(FrameKind.Command, NetSerialization.Serialize(msg));
+	}
+
+	// The turn clock as it stands now, or null until the host sends it.
+	public TurnClockInfo CurrentClock() {
+		return clock == null ? null : clock with { secondsElapsed = clock.secondsElapsed + sinceClock.Elapsed.TotalSeconds };
 	}
 
 	public void Poll() {
@@ -95,6 +117,10 @@ public class LanClient : IDisposable {
 				break;
 			case FrameKind.UiMessage:
 				UiMessageReceived?.Invoke(frame.payload);
+				break;
+			case FrameKind.TurnClock:
+				clock = NetSerialization.DeserializeData<TurnClockInfo>(frame.payload);
+				sinceClock.Restart();
 				break;
 			default:
 				log.Warning("Ignoring unexpected {Kind} frame from the host", frame.kind);

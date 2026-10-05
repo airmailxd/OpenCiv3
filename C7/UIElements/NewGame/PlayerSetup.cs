@@ -36,6 +36,8 @@ public partial class PlayerSetup : Control {
 
 	ButtonGroup difficultyButtonGroup = new();
 
+	CheckBox showScoreboard;
+
 	[Export] TextureButton confirm;
 	[Export] TextureButton cancel;
 
@@ -129,6 +131,14 @@ public partial class PlayerSetup : Control {
 		rulesContainer.AddThemeConstantOverride("v_separation", 0);
 
 		// TODO: Add Civ3Checkbox in rulesContainer for each victory condition, wire up to victoryConditions
+
+		showScoreboard = new Civ3Checkbox {
+			Text = "Show scoreboard",
+			FontSize = 14,
+			ButtonPressed = true,
+			TooltipText = "With more than one human player, show everyone's score and how long the current turn has taken.",
+		};
+		rulesContainer.AddChild(showScoreboard);
 	}
 
 	private void BackToMainMenu() {
@@ -327,7 +337,8 @@ public partial class PlayerSetup : Control {
 			difficulty = selectedDifficulty,
 			worldCharacteristics = global.WorldCharacteristics,
 			opponents = CollectSelectedOpponents(),
-			victoryConditions = victoryConditions
+			victoryConditions = victoryConditions,
+			showScoreboard = showScoreboard.ButtonPressed,
 		};
 
 		PersistGameSettings(gameSetup);

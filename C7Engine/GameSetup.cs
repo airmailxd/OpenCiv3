@@ -32,6 +32,7 @@ public class GameSetup {
 	public WorldCharacteristics worldCharacteristics { get; init; }
 	public List<SelectedOpponent> opponents { get; init; } = [];
 	public VictoryConditions victoryConditions { get; set; }
+	public bool showScoreboard { get; init; } = true;
 
 	ID.Factory ids;
 
@@ -39,6 +40,7 @@ public class GameSetup {
 		save.GameDifficulty = difficulty;
 
 		save.VictoryConditions = victoryConditions;
+		save.Rules.ShowScoreboard = showScoreboard;
 
 		if (save.Map.tiles.Count == 0) {
 			log.Information("Starting map generation");

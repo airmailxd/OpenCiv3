@@ -29,6 +29,10 @@ namespace C7GameData {
 		// been loaded into it. Armies are rigid by default.
 		public bool AllowUnloadFromArmy = false;
 
+		// Game option: whether games with more than one human (hotseat or
+		// LAN) show the scoreboard of players' scores and the turn clock.
+		public bool ShowScoreboard = true;
+
 		// Each army needs this many cities to support it. A civ can't build an
 		// army unless (armies + 1) * CitiesNeededToSupportAnArmy <= cities.
 		public int CitiesNeededToSupportAnArmy = 4;

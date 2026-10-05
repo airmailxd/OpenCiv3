@@ -14,6 +14,9 @@ public enum FrameKind : byte {
 	Hello = 1,
 	ClaimSeat = 2,
 	Command = 3,
+	// Watch the game without playing: the host sends snapshots and the
+	// messages for everyone, and ignores anything the spectator sends.
+	Watch = 4,
 
 	// Host to client.
 	Lobby = 10,
@@ -21,11 +24,12 @@ public enum FrameKind : byte {
 	Start = 12,
 	Snapshot = 13,
 	UiMessage = 14,
+	TurnClock = 15,
 }
 
 public static class LanProtocol {
 	// Bump when the frames or the messages in them change incompatibly.
-	public const int Version = 1;
+	public const int Version = 3;
 
 	public const int DefaultPort = 47_777;
 	public const int DiscoveryPort = 47_778;
@@ -60,9 +64,15 @@ public record ClaimSeatInfo(ID playerID);
 // A human player's place in the game, and who has taken it.
 public record SeatInfo(ID playerID, string civilization, string playerName, bool isHost, string takenBy);
 
-public record LobbyInfo(string hostName, List<SeatInfo> seats, ID yourSeat);
+public record LobbyInfo(string hostName, List<SeatInfo> seats, ID yourSeat, List<string> spectators = null);
 
+// A spectator's yourPlayerID is null.
 public record StartInfo(ID yourPlayerID);
 
 // A host's answer to a discovery broadcast.
 public record DiscoveryReply(string hostName, int port, int openSeats, bool started);
+
+// Whose turn it is and how long they have had it, for the scoreboard, and
+// which players are at their machines. secondsAllowed is null when turns have
+// no time limit.
+public record TurnClockInfo(ID activePlayerID, int turn, double secondsElapsed, double? secondsAllowed, List<ID> connectedPlayers);

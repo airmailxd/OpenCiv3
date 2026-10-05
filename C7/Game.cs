@@ -238,7 +238,14 @@ public partial class Game : Node {
 
 		EmitSignal(SignalName.GameInitialized);
 
-		if (LanSession.IsActive) {
+		if (ShouldShowScoreboard(EngineStorage.gameData)) {
+			ShowScoreboard();
+		}
+
+		if (LanSession.IsSpectator) {
+			// Spectators never play; see _UnhandledInput for what they can do.
+			CurrentState = GameState.ComputerTurn;
+		} else if (LanSession.IsActive) {
 			// Whoever plays first may be at another machine.
 			Player active = EngineStorage.gameData.GetPlayer(EngineStorage.activePlayerID);
 			if (active != null && active.id != controller.id) {
@@ -351,8 +358,16 @@ public partial class Game : Node {
 		} else if (LanSession.Client != null) {
 			LanClient client = LanSession.Client;
 			EngineStorage.uiFollowsActivePlayer = false;
-			EngineStorage.uiControllerID = client.PlayerID;
-			controller = EngineStorage.gameData.GetPlayer(client.PlayerID);
+			if (client.IsSpectator) {
+				// The whole map is shown, so whose eyes we borrow only
+				// matters for things like the starting camera position.
+				EngineStorage.gameData.observerMode = true;
+				EngineStorage.uiControllerID = EngineStorage.gameData.players
+					.FirstOrDefault(p => p.isHuman && !p.defeated)?.id ?? EngineStorage.gameData.players[0].id;
+			} else {
+				EngineStorage.uiControllerID = client.PlayerID;
+			}
+			controller = EngineStorage.gameData.GetUIControllerPlayer();
 			client.SnapshotReceived = OnLanSnapshot;
 			client.UiMessageReceived = json => HandleEngineMessage(NetSerialization.DeserializeMessageToUI(json));
 		}
@@ -385,6 +400,8 @@ public partial class Game : Node {
 		Stopwatch applyTime = Stopwatch.StartNew();
 		GameData gameData = CreateGame.ReplaceWithSnapshot(save, Global.GameMode.behaviors);
 		TextureLoader.ForgetGameObjects();
+		// A spectator sees the whole map.
+		gameData.observerMode = LanSession.IsSpectator;
 
 		controller = gameData.GetUIControllerPlayer();
 		InitializeMapView();
@@ -415,15 +432,37 @@ public partial class Game : Node {
 		};
 	}
 
+	// Games with more than one human show the scoreboard unless it was
+	// turned off when the game was set up.
+	private static bool ShouldShowScoreboard(GameData gameData) {
+		return gameData.rules?.ShowScoreboard != false
+			&& (LanSession.IsActive || TurnHandling.IsHotseat(gameData));
+	}
+
+	// The players' scores and the turn clock, in the top right corner under
+	// the toolbar. It is part of the HUD, so advisors and popups cover it.
+	private void ShowScoreboard() {
+		Scoreboard scoreboard = new();
+		GetNode<Control>("CanvasLayer/Control").AddChild(scoreboard);
+		scoreboard.SetAnchorsPreset(Control.LayoutPreset.TopRight);
+		scoreboard.GrowHorizontal = Control.GrowDirection.Begin;
+		scoreboard.OffsetLeft = scoreboard.OffsetRight = 0;
+		scoreboard.OffsetTop = scoreboard.OffsetBottom = 48;
+	}
+
 	// Shows whose turn it is while another machine's player moves.
 	private void ShowLanWaiting(Player active) {
 		log.Information("Waiting for {Player} to play their turn", active);
+		string playerName = active.name ?? active.civilization.leader;
+		ShowLanBanner($"Waiting for {playerName} of the {active.civilization.noun} to play their turn...");
+	}
+
+	private void ShowLanBanner(string text) {
 		CurrentState = GameState.ComputerTurn;
 		HideLanWaiting();
 
-		string playerName = active.name ?? active.civilization.leader;
 		Label label = new() {
-			Text = $"Waiting for {playerName} of the {active.civilization.noun} to play their turn...",
+			Text = text,
 			HorizontalAlignment = HorizontalAlignment.Center,
 			VerticalAlignment = VerticalAlignment.Center,
 		};
@@ -438,12 +477,45 @@ public partial class Game : Node {
 		lanWaitingBanner.AddChild(panel);
 		AddChild(lanWaitingBanner);
 
-		// A strip across the top of the screen, below the toolbar.
+		// A strip across the top of the screen, below the toolbar, leaving
+		// room for the scoreboard on the right.
 		panel.SetAnchorsPreset(Control.LayoutPreset.TopWide);
 		panel.OffsetLeft = 160;
-		panel.OffsetRight = -160;
+		panel.OffsetRight = -440;
 		panel.OffsetTop = 70;
 		panel.OffsetBottom = 110;
+	}
+
+	// A spectator hears about the world's events without having to answer
+	// a popup for each: they show for a while in a list down the left.
+	private VBoxContainer spectatorNews;
+
+	private void ShowSpectatorNews(string text) {
+		if (spectatorNews == null) {
+			spectatorNews = new VBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
+			spectatorNews.AddThemeConstantOverride("separation", 4);
+			spectatorNews.SetAnchorsPreset(Control.LayoutPreset.TopLeft);
+			spectatorNews.Position = new Vector2(16, 80);
+			CanvasLayer layer = new() { Layer = 90 };
+			layer.AddChild(spectatorNews);
+			AddChild(layer);
+		}
+
+		Label label = new() { Text = text, MouseFilter = Control.MouseFilterEnum.Ignore };
+		label.AddThemeStyleboxOverride("normal", TemporaryPopup.PopupStyleBox());
+		label.AddThemeColorOverride("font_color", Colors.White);
+		label.AddThemeFontSizeOverride("font_size", 16);
+		spectatorNews.AddChild(label);
+		while (spectatorNews.GetChildCount() > 8) {
+			Node oldest = spectatorNews.GetChild(0);
+			spectatorNews.RemoveChild(oldest);
+			oldest.QueueFree();
+		}
+		GetTree().CreateTimer(10).Timeout += () => {
+			if (IsInstanceValid(label)) {
+				label.QueueFree();
+			}
+		};
 	}
 
 	private void HideLanWaiting() {
@@ -460,6 +532,11 @@ public partial class Game : Node {
 	// turn. In a hotseat game this may be a different player than before, so
 	// hide the map until the new player is at the screen.
 	private void OnControllerTurnStart(Player next) {
+		if (LanSession.IsSpectator) {
+			// Turns pass without the spectator.
+			return;
+		}
+
 		if (LanSession.IsActive) {
 			// Each machine plays its own player; the others wait for them.
 			EngineStorage.activePlayerID = next.id;
@@ -566,6 +643,9 @@ public partial class Game : Node {
 			case MsgCityCaptured mCCap:
 				mapView.cityLayer.UpdateAfterCityCapture(mCCap.city);
 				break;
+			case MsgCivilizationDestroyed mCivD when LanSession.IsSpectator:
+				ShowSpectatorNews($"The {mCivD.civilization.noun} have been destroyed");
+				break;
 			case MsgCivilizationDestroyed mCivD:
 				popupOverlay.ShowPopup(new CivilizationDestroyed(mCivD.civilization), PopupOverlay.PopupCategory.Advisor);
 				InterestingEvent();
@@ -630,6 +710,9 @@ public partial class Game : Node {
 							new MsgDoStopWorkerAction(mDSWA.worker).send();
 						}),
 					PopupOverlay.PopupCategory.Advisor);
+				break;
+			case MsgWarDeclaration mWD when LanSession.IsSpectator:
+				ShowSpectatorNews($"The {mWD.aggressor.civilization.noun} declared war on the {mWD.opponent.civilization.noun}");
 				break;
 			case MsgWarDeclaration mWD:
 				popupOverlay.ShowPopup(
@@ -898,7 +981,9 @@ public partial class Game : Node {
 	public override void _UnhandledInput(InputEvent @event) {
 		// Don't handle if there's an open modal, if it's the AI's turn, or if
 		// the screen is being handed to the next hotseat player.
-		if ((HasVisibleModal() && !IsModalSwitchEvent(@event)) || CurrentState == GameState.ComputerTurn || hotseatHandoff != null) {
+		// A spectator may always look around.
+		bool waiting = CurrentState == GameState.ComputerTurn && !LanSession.IsSpectator;
+		if ((HasVisibleModal() && !IsModalSwitchEvent(@event)) || waiting || hotseatHandoff != null) {
 			IsMovingCamera = false;
 			return;
 		}
@@ -916,7 +1001,7 @@ public partial class Game : Node {
 	}
 
 	private void HandleMouseButtonInput(InputEventMouseButton eventMouseButton) {
-		if (CurrentState == GameState.ComputerTurn) return;
+		if (CurrentState == GameState.ComputerTurn && !LanSession.IsSpectator) return;
 		if (eventMouseButton.ButtonIndex == MouseButton.Left) {
 			HandleLeftMouseButton(eventMouseButton);
 		} else if (eventMouseButton.ButtonIndex == MouseButton.Right && !eventMouseButton.IsPressed()) {
@@ -963,7 +1048,7 @@ public partial class Game : Node {
 	private bool CanDoubleClick(InputEventMouseButton eventMouseButton) {
 		Tile tile = PositionToTile(eventMouseButton.Position);
 
-		return gotoInfo == null && tile?.cityAtTile?.owner == controller;
+		return gotoInfo == null && tile?.cityAtTile != null && (tile.cityAtTile.owner == controller || LanSession.IsSpectator);
 	}
 
 	private void OnSingleLeftMouseButtonClick(InputEventMouseButton eventMouseButton) {
@@ -985,6 +1070,12 @@ public partial class Game : Node {
 
 	private void OnDoubleLeftMouseButtonClick(InputEventMouseButton eventMouseButton) {
 		Tile tile = PositionToTile(eventMouseButton.Position);
+		if (tile?.cityAtTile != null && LanSession.IsSpectator) {
+			// A spectator looks at the game as the city's owner, so the city
+			// screen and the advisors show that civilization.
+			controller = tile.cityAtTile.owner;
+			EngineStorage.uiControllerID = controller.id;
+		}
 		if (tile?.cityAtTile?.owner == controller) {
 			EngineStorage.ReadGameData((GameData gameData) => {
 				ShowCityScreenForCity(gameData, tile.cityAtTile);
