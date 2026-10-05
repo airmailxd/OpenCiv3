@@ -42,6 +42,7 @@ public partial class DomesticAdvisor : Control {
 
 	TextureRect advisorHead = new();
 	Label DialogBoxAdvise = new();
+	private const string DefaultAdvice = "You are running OpenCiv3!";
 
 	// The Y position of the two sliders.
 	private int scienceSliderY = 84;
@@ -75,7 +76,7 @@ public partial class DomesticAdvisor : Control {
 		background.AddChild(DialogBox);
 
 		//TODO: Multi-line capabilities
-		DialogBoxAdvise.Text = "You are running OpenCiv3!";
+		DialogBoxAdvise.Text = DefaultAdvice;
 		DialogBoxAdvise.SetPosition(new Vector2(815, 119));
 		background.AddChild(DialogBoxAdvise);
 
@@ -165,6 +166,8 @@ public partial class DomesticAdvisor : Control {
 	}
 
 	private void UpdateScienceSlider(int value) {
+		if (playerController == null)
+			return;
 		int scienceRate = playerController.scienceRate;
 
 		if (value == scienceRate)
@@ -178,6 +181,8 @@ public partial class DomesticAdvisor : Control {
 	}
 
 	private void UpdateLuxurySlider(int value) {
+		if (playerController == null)
+			return;
 		int luxuryRate = playerController.luxuryRate;
 
 		if (value == luxuryRate)
@@ -252,6 +257,8 @@ public partial class DomesticAdvisor : Control {
 
 			if (playerController.government.transitionType && playerController.inAnarchyUntilTurn > gameData.turn) {
 				DialogBoxAdvise.Text = $"{playerController.inAnarchyUntilTurn - gameData.turn} turns of anarchy left";
+			} else {
+				DialogBoxAdvise.Text = DefaultAdvice;
 			}
 
 			// Reuse the rows already made, only adding or removing rows when
@@ -280,6 +287,16 @@ public partial class DomesticAdvisor : Control {
 				UpdateCityRow(cityRows[i], cities[i], eraIndex);
 			}
 		});
+	}
+
+	// Called when the game was replaced (e.g. by a LAN snapshot): the rows
+	// point at the old game's cities, so let go of them. Showing the advisor
+	// points them at the new game's cities again.
+	public void ForgetGameObjects() {
+		playerController = null;
+		foreach (CityRow row in cityRows) {
+			row.city = null;
+		}
 	}
 
 	private int CalculateSliderXPos(int sliderRate) {
@@ -353,6 +370,8 @@ public partial class DomesticAdvisor : Control {
 		cityName.ClipText = true;
 		cityName.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
 		cityName.Pressed += () => {
+			if (cityRow.city == null)
+				return;
 			GetParent<Advisors>().Hide();
 			new MsgShowCityScreen(cityRow.city).send();
 		};

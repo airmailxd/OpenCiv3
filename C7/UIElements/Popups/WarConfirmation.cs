@@ -35,8 +35,9 @@ public partial class WarConfirmation : Popup {
 		AddChild(warningMessage);
 
 		AddButton("I said DO IT!", 215, () => {
-			action();
+			// Hide first, so a popup the action shows isn't the one that gets hidden.
 			GetParent().EmitSignal(PopupOverlay.SignalName.HidePopup);
+			action();
 		});
 		AddButton("No. You're right, perhaps we should reconsider.", 245, cancel);
 	}

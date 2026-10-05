@@ -141,6 +141,7 @@ public partial class LowerRightInfoBox : Civ3TextureRect {
 	}
 
 	private void SetEndOfTurnStatus() {
+		pleaseWaitShown = false;
 		UpdateUnitGraphic(MapUnit.NONE);
 		HideUnitInfo();
 		suggestion.Text = "ENTER or SPACEBAR for next turn";
@@ -170,13 +171,22 @@ public partial class LowerRightInfoBox : Civ3TextureRect {
 		nextTurnButton.TextureNormal = nextTurnOffTexture;
 		blinkingTimer.Stop();
 		timerStarted = false;
-		suggestion.Visible = false;
+		// Both run when the turn ends; whichever runs first, "Please wait..."
+		// stays up.
+		if (!pleaseWaitShown) {
+			suggestion.Visible = false;
+		}
 	}
+
+	// Whether "Please wait..." is up, until the next turn's unit or
+	// end-of-turn status replaces it.
+	private bool pleaseWaitShown = false;
 
 	private void PleaseWait() {
 		HideUnitInfo();
 		suggestion.Text = "Please wait...";
 		suggestion.Visible = true;
+		pleaseWaitShown = true;
 	}
 
 	private void TurnEnded() {
@@ -238,7 +248,7 @@ public partial class LowerRightInfoBox : Civ3TextureRect {
 	// again when something it depends on may have changed, and at most every
 	// SUMMARY_REFRESH_INTERVAL seconds otherwise, as the economy is costly to
 	// add up.
-	private const double SUMMARY_REFRESH_INTERVAL = 0.25;
+	private const double SUMMARY_REFRESH_INTERVAL = 1.5;
 	private const double SUMMARY_MIN_INTERVAL = 0.05;
 	private double timeSinceSummaryRefresh = double.MaxValue;
 	private SummaryStamp lastSummaryStamp;
@@ -255,12 +265,16 @@ public partial class LowerRightInfoBox : Civ3TextureRect {
 		public Government government;
 		public ID researching;
 		public int cityCount;
+		public int scienceRate;
+		public int luxuryRate;
+		public bool observerMode;
 
 		public bool Matches(SummaryStamp o) {
 			return ReferenceEquals(gameData, o.gameData) && ReferenceEquals(player, o.player)
 				&& turn == o.turn && gold == o.gold && processedMessages == o.processedMessages
 				&& ReferenceEquals(government, o.government) && Equals(researching, o.researching)
-				&& cityCount == o.cityCount;
+				&& cityCount == o.cityCount && scienceRate == o.scienceRate
+				&& luxuryRate == o.luxuryRate && observerMode == o.observerMode;
 		}
 	}
 
@@ -280,6 +294,9 @@ public partial class LowerRightInfoBox : Civ3TextureRect {
 				government = player.government,
 				researching = player.currentlyResearchedTech,
 				cityCount = player.cities.Count,
+				scienceRate = player.scienceRate,
+				luxuryRate = player.luxuryRate,
+				observerMode = gD.observerMode,
 			};
 			timeSinceSummaryRefresh += delta;
 			if ((!stamp.Matches(lastSummaryStamp) && timeSinceSummaryRefresh >= SUMMARY_MIN_INTERVAL)
@@ -339,6 +356,7 @@ public partial class LowerRightInfoBox : Civ3TextureRect {
 	private void OnNewUnitSelected(ParameterWrapper<MapUnit> wrappedMapUnit) {
 		MapUnit unit = wrappedMapUnit.Value;
 		log.Information("Selected unit: " + unit + " at " + unit.location);
+		pleaseWaitShown = false;
 		StopToggling();
 		UpdateUnitGraphic(unit);
 		UpdateUnitInfo(unit, unit.location.overlayTerrainType);

@@ -41,7 +41,9 @@ public partial class Scoreboard : PanelContainer {
 	// What the rows last showed, so they are rebuilt only when it changes.
 	private List<RowSummary> shownRows;
 
-	private readonly record struct RowSummary(ID playerID, int rank, int score, bool connected, bool done, bool active, string name);
+	// Everything a row shows, so the rows are only made again when it changes.
+	private readonly record struct RowSummary(ID playerID, int rank, int score, bool connected, bool done, bool active,
+		string displayedName, bool isHuman, bool lanActive);
 
 	// The style boxes every row uses, shared by all rows. They must not be
 	// changed.
@@ -144,7 +146,8 @@ public partial class Scoreboard : PanelContainer {
 		List<Row> rows = ReadRows(gameData, clock);
 		List<RowSummary> summary = new(rows.Count);
 		foreach (Row r in rows) {
-			summary.Add(new RowSummary(r.player.id, r.rank, r.score, r.connected, r.done, r.active, r.player.name));
+			summary.Add(new RowSummary(r.player.id, r.rank, r.score, r.connected, r.done, r.active,
+				DisplayedName(r), r.player.isHuman, LanSession.IsActive));
 		}
 		if (shownRows != null && summary.SequenceEqual(shownRows)) {
 			return;
@@ -241,6 +244,11 @@ public partial class Scoreboard : PanelContainer {
 		return player.name ?? player.civilization.leader;
 	}
 
+	private static string DisplayedName(Row row) {
+		string who = row.player.isHuman ? NameOf(row.player) : row.player.civilization.leader;
+		return $"{row.rank}. {who} ({row.player.civilization.name})";
+	}
+
 	private Control MakeRow(Row row) {
 		PanelContainer panel = new() { MouseFilter = MouseFilterEnum.Pass };
 		panel.AddThemeStyleboxOverride("panel", row.active ? ActiveRowBox : RowBox);
@@ -256,8 +264,7 @@ public partial class Scoreboard : PanelContainer {
 		};
 		cells.AddChild(swatch);
 
-		string who = row.player.isHuman ? NameOf(row.player) : row.player.civilization.leader;
-		Label name = MakeText($"{row.rank}. {who} ({row.player.civilization.name})");
+		Label name = MakeText(DisplayedName(row));
 		name.MouseFilter = MouseFilterEnum.Pass;
 		name.TooltipText = row.player.isHuman ? "" : "Played by the computer";
 		name.CustomMinimumSize = new Vector2(220, 0);

@@ -65,42 +65,33 @@ public partial class TechBox : TextureButton {
 		this.effects = effects;
 	}
 
+	// The box textures for each state, at this box's size and era.
+	private ImageTexture knownTechBox;
+	private ImageTexture inProgressTechBox;
+	private ImageTexture possibleTechBox;
+	private ImageTexture blockedTechBox;
+
+	// How many characters of the name fit in the box.
+	private int charLimitOfCurrentBox;
+
+	public Tech Tech => tech;
+
 	public override void _Ready() {
 		GameData gameData = EngineStorage.gameData;
 		Player player = gameData.GetUIControllerPlayer();
 		effects ??= TechEffectLookup.For(gameData);
-		isTechEraBeyondPlayerEra = GetEraIndex(tech.EraCivilopediaName) > GetEraIndex(player.eraCivilopediaName);
-
-		smallFont = ResourceLoader.Load<FontFile>("res://Fonts/NotoSans-Regular.ttf");
-
-		if (!tech.RequiredForEraAdvancement)
-			smallFont = ResourceLoader.Load<FontFile>("res://Fonts/NotoSans-Italic.ttf");
-
-		if (tech.id == player.currentlyResearchedTech)
-			smallFont = ResourceLoader.Load<FontFile>("res://Fonts/NotoSans-Bold.ttf");
-
-		smallFontTheme.DefaultFont = smallFont;
-		smallFontTheme.SetColor("font_color", "Label", Colors.Black);
-		smallFontTheme.SetFontSize("font_size", "Label", smallFontSize);
-
 
 		int techBoxSizeCost = CalculateTechBoxSizeCost(player);
 		string techBoxSize = CostToStringKey(techBoxSizeCost);
 		string era = CalculateTechEraTexture(tech.EraCivilopediaName);
 
-		ImageTexture knownTechBox = TextureLoader.Load($"tech_boxes.known.{era}.{techBoxSize}");
-		ImageTexture inProgressTechBox = TextureLoader.Load($"tech_boxes.in_progress.{era}.{techBoxSize}");
-		ImageTexture possibleTechBox = TextureLoader.Load($"tech_boxes.possible.{era}.{techBoxSize}");
-		ImageTexture blockedTechBox = TextureLoader.Load($"tech_boxes.blocked.{era}.{techBoxSize}");
+		knownTechBox = TextureLoader.Load($"tech_boxes.known.{era}.{techBoxSize}");
+		inProgressTechBox = TextureLoader.Load($"tech_boxes.in_progress.{era}.{techBoxSize}");
+		possibleTechBox = TextureLoader.Load($"tech_boxes.possible.{era}.{techBoxSize}");
+		blockedTechBox = TextureLoader.Load($"tech_boxes.blocked.{era}.{techBoxSize}");
 
-		TextureNormal = techState switch {
-			TechState.kKnown => knownTechBox,
-			TechState.kInProgress => inProgressTechBox,
-			TechState.kPossible => possibleTechBox,
-			TechState.kBlocked => blockedTechBox,
-			TechState.kQueued => inProgressTechBox,
-			_ => throw new ArgumentOutOfRangeException("Invalid tech state")
-		};
+		// The boxes for every state are the same size.
+		TextureNormal = knownTechBox;
 
 		ImageTexture techIconTexture = TextureLoader.Load("tech_icons.small", tech, useCache: true);
 		TextureRect icon = new() { Texture = techIconTexture };
@@ -115,30 +106,11 @@ public partial class TechBox : TextureButton {
 		// a larger char length, means a smaller Tech name (more chars will be truncated)
 		float averageCharLength = 6.0f;
 		int boxBorderWidth = 16;
-		int charLimitOfCurrentBox = (int)((TextureNormal.GetWidth() - boxBorderWidth) / averageCharLength);
+		charLimitOfCurrentBox = (int)((TextureNormal.GetWidth() - boxBorderWidth) / averageCharLength);
 
-		// Only techs in progress or possible to research show the estimate.
-		string estimatedTurnsString = "";
-		if (techState is TechState.kInProgress or TechState.kPossible) {
-			int turns = estimatedTurns ?? player.EstimateTurnsToResearch(gameData, tech);
-			estimatedTurnsString = turns > 50 ? $"(-- turns)" : $"({turns} turns)";
-		}
-
-		string techName = tech.Name;
-		string prepend = techState is TechState.kInProgress or TechState.kQueued ? $"{queueNumber}." : "";
-
-		if (techState is TechState.kInProgress) {
-			techName = $"{prepend} {tech.Name} {estimatedTurnsString}";
-		} else if (techState is TechState.kQueued) {
-			techName = $"{prepend} {tech.Name}";
-		} else if (techState is TechState.kPossible) {
-			techName = $"{tech.Name} {estimatedTurnsString}";
-		}
-
-		UpdateLabelTheme();
+		smallFontTheme.SetFontSize("font_size", "Label", smallFontSize);
 
 		techNameLabel = new() {
-			Text = TruncateAndCacheName(techName, charLimitOfCurrentBox),
 			OffsetLeft = 12,
 			OffsetTop = 13,
 			Theme = smallFontTheme,
@@ -174,6 +146,70 @@ public partial class TechBox : TextureButton {
 			TextureRect notRequired = new() { Texture = TextureLoader.Load("tech_boxes.non_required"), };
 			notRequired.SetPosition(new Vector2(TextureNormal.GetWidth() - 20, 0));
 			AddChild(notRequired);
+		}
+
+		ApplyState(gameData, player);
+	}
+
+	// Shows the tech in a new state, e.g. after the player picks what to
+	// research, without building the box again.
+	public void UpdateState(TechState techState, int queueNumber, int? estimatedTurns) {
+		this.techState = techState;
+		this.queueNumber = queueNumber;
+		this.estimatedTurns = estimatedTurns;
+		if (IsNodeReady()) {
+			GameData gameData = EngineStorage.gameData;
+			ApplyState(gameData, gameData.GetUIControllerPlayer());
+		}
+	}
+
+	private void ApplyState(GameData gameData, Player player) {
+		isTechEraBeyondPlayerEra = GetEraIndex(tech.EraCivilopediaName) > GetEraIndex(player.eraCivilopediaName);
+
+		smallFont = ResourceLoader.Load<FontFile>("res://Fonts/NotoSans-Regular.ttf");
+
+		if (!tech.RequiredForEraAdvancement)
+			smallFont = ResourceLoader.Load<FontFile>("res://Fonts/NotoSans-Italic.ttf");
+
+		if (tech.id == player.currentlyResearchedTech)
+			smallFont = ResourceLoader.Load<FontFile>("res://Fonts/NotoSans-Bold.ttf");
+
+		smallFontTheme.DefaultFont = smallFont;
+
+		TextureNormal = techState switch {
+			TechState.kKnown => knownTechBox,
+			TechState.kInProgress => inProgressTechBox,
+			TechState.kPossible => possibleTechBox,
+			TechState.kBlocked => blockedTechBox,
+			TechState.kQueued => inProgressTechBox,
+			_ => throw new ArgumentOutOfRangeException("Invalid tech state")
+		};
+
+		// Only techs in progress or possible to research show the estimate.
+		string estimatedTurnsString = "";
+		if (techState is TechState.kInProgress or TechState.kPossible) {
+			int turns = estimatedTurns ?? player.EstimateTurnsToResearch(gameData, tech);
+			estimatedTurnsString = turns > 50 ? $"(-- turns)" : $"({turns} turns)";
+		}
+
+		string techName = tech.Name;
+		string prepend = techState is TechState.kInProgress or TechState.kQueued ? $"{queueNumber}." : "";
+
+		if (techState is TechState.kInProgress) {
+			techName = $"{prepend} {tech.Name} {estimatedTurnsString}";
+		} else if (techState is TechState.kQueued) {
+			techName = $"{prepend} {tech.Name}";
+		} else if (techState is TechState.kPossible) {
+			techName = $"{tech.Name} {estimatedTurnsString}";
+		}
+
+		UpdateLabelTheme();
+
+		techNameLabel.Text = TruncateAndCacheName(techName, charLimitOfCurrentBox);
+		if (!TruncatedToFullTechTextMap.TryGetValue(tech.Name, out string fullText)) {
+			TooltipText = "";
+		} else if (!string.IsNullOrEmpty(TooltipText)) {
+			TooltipText = fullText;
 		}
 	}
 
@@ -355,6 +391,11 @@ public class TechEffectLookup {
 	private static readonly List<Building> noBuildings = new();
 	private static readonly List<UnitPrototype> noUnits = new();
 	private static readonly List<Terraform> noTerraforms = new();
+
+	// Lets go of the game the lookup was made for.
+	public static void ClearCache() {
+		current = null;
+	}
 
 	public static TechEffectLookup For(GameData gameData) {
 		if (current == null || current.gameData != gameData) {

@@ -51,7 +51,10 @@ public partial class WondersView : Control {
 
 	// Each great wonder: who has it and where, or who is building it.
 	private void DrawWonders(GameData gameData) {
+		// Take the old rows out now: freeing is deferred, and they would
+		// otherwise still be laid out with the new ones until then.
 		foreach (Node child in grid.GetChildren()) {
+			grid.RemoveChild(child);
 			child.QueueFree();
 		}
 

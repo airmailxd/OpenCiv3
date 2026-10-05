@@ -38,6 +38,12 @@ public partial class Popup : TextureRect {
 
 	private static Dictionary<(int, int), ImageTexture> backgroundCache = new Dictionary<(int, int), ImageTexture>();
 
+	// The backgrounds are drawn from the current game's textures, which a new
+	// game may replace.
+	public static void ClearBackgroundCache() {
+		backgroundCache.Clear();
+	}
+
 	protected void AddButton(string label, int verticalPosition, Action action) {
 		const int HORIZONTAL_POSITION = 30;
 
@@ -49,7 +55,10 @@ public partial class Popup : TextureRect {
 		AddChild(button);
 		button.Pressed += () => {
 			action();
-			ReleaseFocus();
+			// The action usually closes the popup, taking it out of the tree.
+			if (IsInsideTree()) {
+				ReleaseFocus();
+			}
 		};
 	}
 

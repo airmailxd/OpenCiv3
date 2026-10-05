@@ -31,6 +31,12 @@ public class AdvisorHead {
 	private static readonly Dictionary<AdvisorGraphicsDetails, ImageTexture> cache = new();
 	private static C7GameData.GameData cacheGameData;
 
+	// Lets go of the textures and the game they were loaded for.
+	public static void ClearCache() {
+		cache.Clear();
+		cacheGameData = null;
+	}
+
 	public static ImageTexture GetPopupImage(Advisor advisor, Mood mood, int eraIndex) {
 		if (!ReferenceEquals(cacheGameData, C7Engine.EngineStorage.gameData)) {
 			cache.Clear();

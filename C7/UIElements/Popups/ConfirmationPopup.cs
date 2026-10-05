@@ -74,13 +74,14 @@ public partial class ConfirmationPopup : Popup {
 		log.Verbose("Confirmation popup load time: " + Convert.ToInt32(stopwatchElapsed.TotalMilliseconds) + " ms");
 	}
 
+	// Hide first, so a popup the action shows isn't the one that gets hidden.
 	private void confirmed() {
-		yesAction();
 		GetParent().EmitSignal(PopupOverlay.SignalName.HidePopup);
+		yesAction();
 	}
 
 	private void cancel() {
-		noAction?.Invoke();
 		GetParent().EmitSignal(PopupOverlay.SignalName.HidePopup);
+		noAction?.Invoke();
 	}
 }
