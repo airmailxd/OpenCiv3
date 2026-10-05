@@ -200,14 +200,16 @@ namespace C7GameData {
 		}
 
 		/// <summary>
-		/// Returns neighbors along edges only.
+		/// Returns neighbors along edges only, skipping off-map ones
+		/// (Tile.NONE).
 		/// This is used by some graphics algorithms.
 		/// </summary>
 		/// <returns></returns>
 		public Tile[] GetEdgeNeighbors() {
 			int count = 0;
 			foreach (TileDirection dir in EdgeDirections) {
-				if (neighbors.ContainsKey(dir)) {
+				Tile t = neighbors.Get(dir);
+				if (t != null && t != NONE) {
 					count++;
 				}
 			}
@@ -215,7 +217,7 @@ namespace C7GameData {
 			int i = 0;
 			foreach (TileDirection dir in EdgeDirections) {
 				Tile t = neighbors.Get(dir);
-				if (t != null) {
+				if (t != null && t != NONE) {
 					edgeNeighbors[i++] = t;
 				}
 			}
@@ -236,7 +238,7 @@ namespace C7GameData {
 		public bool AnyEdgeNeighbor(Func<Tile, bool> predicate) {
 			foreach (TileDirection dir in EdgeDirections) {
 				Tile t = neighbors.Get(dir);
-				if (t != null && predicate(t)) {
+				if (t != null && t != NONE && predicate(t)) {
 					return true;
 				}
 			}
@@ -413,39 +415,48 @@ namespace C7GameData {
 		}
 
 		public void MaybeAwardForestClearingShields() {
+			MaybeAwardForestClearingShields(null);
+		}
+
+		// Awards the forest's shields to the city whose territory holds this
+		// tile, as long as the tile is also within that city's workable
+		// radius. If clearer is given, the city must belong to them: clearing
+		// a forest in someone else's territory doesn't feed their city. Cities
+		// building a wonder get nothing, and the shields don't go to any other
+		// city instead.
+		public void MaybeAwardForestClearingShields(Player clearer) {
 			if (hasHadForestCleared) {
 				return;
 			}
 			hasHadForestCleared = true;
 
 			// Shields can only be awarded if the forest is within some city's
-			// borders.
-			if (OwningPlayer() == null) {
+			// borders, and only to that city.
+			City c = cityAtTile ?? owningCity;
+			if (c == null || c.location == null || c.location == NONE) {
+				return;
+			}
+			if (clearer != null && c.owner != clearer) {
 				return;
 			}
 
-			// Check all the tiles of the forest that a city could be in, taking into account the big fat cross size.
-			foreach (Tile other in GetTilesWithinRankDistance(EngineStorage.gameData.rules.MaxRankOfWorkableTiles)) {
-				if (other.cityAtTile == null) {
-					continue;
-				}
-
-				// Shields aren't awarded to wonders.
-				if (other.cityAtTile.itemBeingProduced is Building b
-					&& (b.greatWonderProperties != null || b.isSmallWonder)) {
-					continue;
-				}
-
-				City c = other.cityAtTile;
-				int shieldsAwarded = EngineStorage.gameData.rules.ForestValueInShields;
-				c.SetStoredShields(shieldsAwarded, true);
-				c.SetStoredShields(Math.Min(c.shieldsStored, c.owner.ShieldCost(c.itemBeingProduced)));
-
-				if (c.owner.isHuman) {
-					new MsgShowTemporaryPopup($"{shieldsAwarded} shields awarded for clearing forests", other, c.owner).send();
-				}
-
+			// The forest has to be within the city's big fat cross.
+			if (c.location != this && c.location.RankDistanceTo(this) > EngineStorage.gameData.rules.MaxRankOfWorkableTiles) {
 				return;
+			}
+
+			// Shields aren't awarded to wonders.
+			if (c.itemBeingProduced is Building b
+				&& (b.greatWonderProperties != null || b.isSmallWonder)) {
+				return;
+			}
+
+			int shieldsAwarded = EngineStorage.gameData.rules.ForestValueInShields;
+			c.SetStoredShields(shieldsAwarded, true);
+			c.SetStoredShields(Math.Min(c.shieldsStored, c.owner.ShieldCost(c.itemBeingProduced)));
+
+			if (c.owner.isHuman) {
+				new MsgShowTemporaryPopup($"{shieldsAwarded} shields awarded for clearing forests", c.location, c.owner).send();
 			}
 		}
 

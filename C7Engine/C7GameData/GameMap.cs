@@ -188,8 +188,9 @@ namespace C7GameData {
 			continents.Clear();
 
 			// Tiles of this map are tracked by their index in tiles. Anything
-			// else reachable as a neighbor (Tile.NONE at the map edges, or
-			// tiles not in the list in hand-built test maps) goes in a set.
+			// else reachable as a neighbor (tiles not in the list in
+			// hand-built test maps) goes in a set. Tile.NONE, at the map
+			// edges, is skipped entirely.
 			bool[] seen = new bool[tiles.Count];
 			HashSet<Tile> seenOther = null;
 			bool MarkSeen(Tile t) {
@@ -220,6 +221,11 @@ namespace C7GameData {
 
 					bool xIsLand = x.IsLand();
 					foreach (Tile n in x.neighbors.Values) {
+						// Off-map neighbors are neither land nor water, and
+						// belong to no continent.
+						if (n == null || n == Tile.NONE) {
+							continue;
+						}
 						if (n.IsLand() == xIsLand && !IsLandStrip(x, n) && MarkSeen(n)) {
 							toCheck.Enqueue(n);
 						}
@@ -290,40 +296,46 @@ namespace C7GameData {
 				if (current.neighbors.TryGetValue(TileDirection.WEST, out Tile westNeighbor)
 					&& westNeighbor == neighbor
 					&& current.neighbors.TryGetValue(TileDirection.SOUTHWEST, out Tile eastWest_southWestTile)
-					&& eastWest_southWestTile.IsLand()
+					&& IsOnMapLand(eastWest_southWestTile)
 					&& current.neighbors.TryGetValue(TileDirection.NORTHWEST, out Tile eastWest_NorthWestTile)
-					&& eastWest_NorthWestTile.IsLand()) {
+					&& IsOnMapLand(eastWest_NorthWestTile)) {
 					return true;
 				}
 				// current:west -> neighbor:east case
 				if (current.neighbors.TryGetValue(TileDirection.EAST, out Tile eastNeighbor)
 					&& eastNeighbor == neighbor
 					&& current.neighbors.TryGetValue(TileDirection.SOUTHEAST, out Tile westEast_SouthEastTile)
-					&& westEast_SouthEastTile.IsLand()
+					&& IsOnMapLand(westEast_SouthEastTile)
 					&& current.neighbors.TryGetValue(TileDirection.NORTHEAST, out Tile westEast_NorthEastTile)
-					&& westEast_NorthEastTile.IsLand()) {
+					&& IsOnMapLand(westEast_NorthEastTile)) {
 					return true;
 				}
 				// current:south -> neighbor:north case
 				if (current.neighbors.TryGetValue(TileDirection.NORTH, out Tile northNeighbor)
 					&& northNeighbor == neighbor
 					&& current.neighbors.TryGetValue(TileDirection.NORTHWEST, out Tile southNorth_NorthWestTile)
-					&& southNorth_NorthWestTile.IsLand()
+					&& IsOnMapLand(southNorth_NorthWestTile)
 					&& current.neighbors.TryGetValue(TileDirection.NORTHEAST, out Tile southNorth_NorthEastTile)
-					&& southNorth_NorthEastTile.IsLand()) {
+					&& IsOnMapLand(southNorth_NorthEastTile)) {
 					return true;
 				}
 				// current:north -> neighbor:south case
 				if (current.neighbors.TryGetValue(TileDirection.SOUTH, out Tile southNeighbor)
 					&& southNeighbor == neighbor
 					&& current.neighbors.TryGetValue(TileDirection.SOUTHWEST, out Tile northSouth_SouthWestTile)
-					&& northSouth_SouthWestTile.IsLand()
+					&& IsOnMapLand(northSouth_SouthWestTile)
 					&& current.neighbors.TryGetValue(TileDirection.SOUTHEAST, out Tile northSouth_SouthEastTile)
-					&& northSouth_SouthEastTile.IsLand()) {
+					&& IsOnMapLand(northSouth_SouthEastTile)) {
 					return true;
 				}
 			}
 			return false;
+		}
+
+		// Whether t is a land tile of the map. Tile.NONE (off the edge of
+		// the map) is neither land nor water.
+		private static bool IsOnMapLand(Tile t) {
+			return t != null && t != Tile.NONE && t.IsLand();
 		}
 	}
 }

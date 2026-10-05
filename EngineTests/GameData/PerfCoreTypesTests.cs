@@ -139,6 +139,10 @@ public class PerfCoreTypesTests {
 				for (int i = 0; i < count; i++) {
 					Tile expected = OldGetTileAtNeighborIndex(tile, i);
 					Assert.Same(expected, tile.GetTileAtNeighborIndex(i));
+					// The square and rank lists skip off-map tiles.
+					if (expected == Tile.NONE) {
+						continue;
+					}
 					square.Add(expected);
 					if (tile.RankDistanceTo(expected) <= rank) {
 						withinRank.Add(expected);
@@ -166,7 +170,7 @@ public class PerfCoreTypesTests {
 			}
 			Tile[] edges = tile.GetEdgeNeighbors();
 			Assert.Equal(new[] { TileDirection.NORTHEAST, TileDirection.NORTHWEST, TileDirection.SOUTHEAST, TileDirection.SOUTHWEST }
-				.Select(d => tile.neighbors[d]), edges);
+				.Select(d => tile.neighbors[d]).Where(t => t != Tile.NONE), edges);
 			Assert.Equal(edges.Any(t => t == Tile.NONE), tile.AnyEdgeNeighbor(t => t == Tile.NONE));
 		}
 	}
