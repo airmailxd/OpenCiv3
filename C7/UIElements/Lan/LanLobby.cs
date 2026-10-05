@@ -19,6 +19,7 @@ public partial class LanLobby : Control {
 
 	private GlobalSingleton Global;
 
+	private Label title;
 	private VBoxContainer content;
 	private Label status;
 	private VBoxContainer seatList;
@@ -28,26 +29,61 @@ public partial class LanLobby : Control {
 	private LineEdit nameEdit;
 	private LineEdit addressEdit;
 	private VBoxContainer hostList;
+	private VBoxContainer addressHelp;
 	private bool searching = false;
 
 	public override void _Ready() {
 		Global = GetNode<GlobalSingleton>("/root/GlobalSingleton");
 		SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
 
-		ColorRect background = new() { Color = new Color(0.08f, 0.1f, 0.14f) };
-		background.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
-		AddChild(background);
+		// The 1024x768 parchment frame, centered like the other setup screens.
+		ColorRect backdrop = new() { Color = Colors.Black };
+		backdrop.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+		AddChild(backdrop);
 
-		MarginContainer margin = new();
-		margin.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+		CenterContainer center = new();
+		center.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+		AddChild(center);
+
+		TextureRect background = new() { Texture = TextureLoader.Load("credits.background") };
+		center.AddChild(background);
+
+		// The title sits on the stone band above the parchment.
+		title = new Label {
+			Position = new Vector2(60, 14),
+			Size = new Vector2(904, 52),
+			HorizontalAlignment = HorizontalAlignment.Center,
+			VerticalAlignment = VerticalAlignment.Center,
+		};
+		title.AddThemeFontSizeOverride("font_size", 30);
+		background.AddChild(title);
+
+		// The parchment's inner panel; scrolls if the lobby outgrows it.
+		ScrollContainer scroll = new() {
+			Position = new Vector2(64, 90),
+			Size = new Vector2(896, 590),
+			HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
+		};
+		background.AddChild(scroll);
+
+		MarginContainer margin = new() { SizeFlagsHorizontal = SizeFlags.ExpandFill };
 		foreach (string side in new[] { "left", "right", "top", "bottom" }) {
-			margin.AddThemeConstantOverride($"margin_{side}", 60);
+			margin.AddThemeConstantOverride($"margin_{side}", 12);
 		}
-		AddChild(margin);
+		scroll.AddChild(margin);
 
 		content = new VBoxContainer();
 		content.AddThemeConstantOverride("separation", 12);
 		margin.AddChild(content);
+
+		TextureButton exit = new() {
+			Position = new Vector2(952, 720),
+			TooltipText = "Back to the main menu",
+			Shortcut = new Shortcut { Events = [new InputEventKey { Keycode = Key.Escape }] },
+		};
+		TextureLoader.SetButtonTextures(exit, "ui.exit");
+		exit.Pressed += BackToMenu;
+		background.AddChild(exit);
 
 		if (joining) {
 			BuildJoinScreen();
@@ -80,7 +116,7 @@ public partial class LanLobby : Control {
 	// ---- Hosting ----
 
 	private void BuildHostScreen() {
-		AddLabel("Hosting a LAN Game", 32);
+		title.Text = "Hosting a LAN Game";
 
 		SaveGame save;
 		try {
@@ -91,14 +127,14 @@ public partial class LanLobby : Control {
 		} catch (Exception e) when (e is SocketException or ArgumentException or InvalidOperationException) {
 			log.Error(e, "Could not host the LAN game");
 			AddLabel($"Could not host the game: {e.Message}");
-			content.AddChild(MakeButton("Back", BackToMenu));
 			return;
 		}
 
+		AddLabel("Players on your network should see this game listed under \"Join LAN Game\". If it isn't listed for them, they can type in one of this computer's addresses:");
 		List<string> addresses = LanDiscovery.LocalAddresses();
-		string where = addresses.Count == 0 ? "this computer's address" : string.Join(" or ", addresses);
-		AddLabel($"Players on your network will find this game under \"Join LAN Game\", or can join at {where} (port {LanSession.Host.Port}).");
-		AddLabel("Each human player in the game needs someone to take their seat before the game can start.");
+		string port = LanSession.Host.Port == LanProtocol.DefaultPort ? "" : $":{LanSession.Host.Port}";
+		AddLabel(addresses.Count == 0 ? "(No network connection found.)" : string.Join("    ", addresses.Select(a => a + port)), 22);
+		AddLabel("Use the one on the same network as the other players: usually it starts with 192.168. or 10. Each human player in the game needs someone to take their seat before the game can start.");
 
 		seatList = new VBoxContainer();
 		seatList.AddThemeConstantOverride("separation", 6);
@@ -108,12 +144,9 @@ public partial class LanLobby : Control {
 
 		status = AddLabel("");
 
-		HBoxContainer buttons = new();
-		buttons.AddThemeConstantOverride("separation", 12);
 		startButton = MakeButton("Start Game", StartHostedGame);
-		buttons.AddChild(startButton);
-		buttons.AddChild(MakeButton("Cancel", BackToMenu));
-		content.AddChild(buttons);
+		startButton.SizeFlagsHorizontal = SizeFlags.ShrinkBegin;
+		content.AddChild(startButton);
 
 		LanSession.Host.LobbyChanged += ShowHostSeats;
 		ShowHostSeats();
@@ -222,7 +255,7 @@ public partial class LanLobby : Control {
 	// ---- Joining ----
 
 	private void BuildJoinScreen() {
-		AddLabel("Join a LAN Game", 32);
+		title.Text = "Join a LAN Game";
 
 		HBoxContainer nameRow = new();
 		nameRow.AddThemeConstantOverride("separation", 12);
@@ -233,7 +266,14 @@ public partial class LanLobby : Control {
 		nameRow.AddChild(nameEdit);
 		content.AddChild(nameRow);
 
-		AddLabel("Games on your network:");
+		HBoxContainer foundRow = new();
+		foundRow.AddThemeConstantOverride("separation", 12);
+		Label foundLabel = new() { Text = "Games on your network:" };
+		foundLabel.AddThemeFontSizeOverride("font_size", 18);
+		foundRow.AddChild(foundLabel);
+		foundRow.AddChild(MakeButton("Search Again", SearchForHosts));
+		content.AddChild(foundRow);
+
 		hostList = new VBoxContainer();
 		hostList.AddThemeConstantOverride("separation", 6);
 		content.AddChild(hostList);
@@ -256,17 +296,42 @@ public partial class LanLobby : Control {
 
 		status = AddLabel("");
 
-		HBoxContainer buttons = new();
-		buttons.AddThemeConstantOverride("separation", 12);
-		buttons.AddChild(MakeButton("Search Again", SearchForHosts));
-		buttons.AddChild(MakeButton("Back", BackToMenu));
-		content.AddChild(buttons);
+		AddAddressHelp();
 
 		SearchForHosts();
 
 		if (LanSession.DevJoinAddress != null) {
 			addressEdit.Text = LanSession.DevJoinAddress;
 			ConnectToAddress(LanSession.DevWatch);
+		}
+	}
+
+	// Tips for finding the host when it isn't listed, hidden once connected.
+	private void AddAddressHelp() {
+		addressHelp = new VBoxContainer();
+		addressHelp.AddThemeConstantOverride("separation", 6);
+		content.AddChild(addressHelp);
+
+		addressHelp.AddChild(new HSeparator());
+		Label heading = new() { Text = "Game not listed? Finding the host's address" };
+		heading.AddThemeFontSizeOverride("font_size", 20);
+		addressHelp.AddChild(heading);
+
+		string[] tips = [
+			"The host's screen shows its addresses under \"Hosting a LAN Game\". Ask the host to read one out and type it in above.",
+			"Or look it up on the host's computer. Windows: open Command Prompt, run ipconfig and use the \"IPv4 Address\" line. "
+				+ "macOS: System Settings > Network, choose the connection, then Details. Linux: run hostname -I in a terminal.",
+			"Addresses on a home network usually start with 192.168. or 10. One starting with 127. or 169.254. won't work from another computer.",
+			"Both computers must be on the same network, such as the same router or Wi-Fi. Guest Wi-Fi often keeps devices from seeing each other.",
+			$"If the address is right but you still can't connect, the host's firewall may be blocking the game. Allow OpenCiv3 through it "
+				+ $"(TCP port {LanProtocol.DefaultPort}, and UDP port {LanProtocol.DiscoveryPort} for the list of games).",
+			$"If the host uses a different port, add it after the address, like 192.168.1.20:{LanProtocol.DefaultPort + 1}.",
+			"Playing over the internet? Both players can join the same virtual network (such as Tailscale or ZeroTier) and use the host's address on it.",
+		];
+		foreach (string tip in tips) {
+			Label label = new() { Text = "•  " + tip, AutowrapMode = TextServer.AutowrapMode.WordSmart };
+			label.AddThemeFontSizeOverride("font_size", 15);
+			addressHelp.AddChild(label);
 		}
 	}
 
@@ -291,7 +356,7 @@ public partial class LanLobby : Control {
 			child.QueueFree();
 		}
 		if (hosts.Count == 0) {
-			hostList.AddChild(new Label { Text = "No games found. Check the host is in its lobby, or join by address." });
+			hostList.AddChild(new Label { Text = "No games found yet. Check the host is in its lobby, or join by address (see the tips below)." });
 		}
 		foreach (FoundHost found in hosts) {
 			DiscoveryReply reply = found.reply;
@@ -327,6 +392,7 @@ public partial class LanLobby : Control {
 			return;
 		}
 		status.Text = $"Connected to {address}. Waiting for the host...";
+		addressHelp.Visible = false;
 		LanSession.Client.LobbyChanged += ShowJoinedSeats;
 		if (watch) {
 			LanSession.Client.Watch();
@@ -393,6 +459,9 @@ public partial class LanLobby : Control {
 			client.Poll();
 			if (!client.IsConnected && client.StartingGame == null && client.RejectedReason == null) {
 				status.Text = "Lost the connection to the host.";
+				if (addressHelp != null) {
+					addressHelp.Visible = true;
+				}
 				LanSession.End();
 			}
 		}
