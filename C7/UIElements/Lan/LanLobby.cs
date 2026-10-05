@@ -480,6 +480,8 @@ public partial class LanLobby : Control {
 		}
 		status.Text = $"Connected to {address}. Waiting for the host...";
 		addressHelp.Visible = false;
+		ClearCivPicker();
+		civPicker.Visible = false;
 		LanSession.Client.LobbyChanged += ShowJoinedSeats;
 		if (watch) {
 			LanSession.Client.Watch();
@@ -550,7 +552,11 @@ public partial class LanLobby : Control {
 		if (!choosing) {
 			return;
 		}
-		if (civChoices == null) {
+		// Built once per host, and again if the host's choices change (e.g.
+		// after joining another host).
+		if (civChoices == null || pickerClient != LanSession.Client || !SameChoices(civChoices, lobby.civilizations)) {
+			ClearCivPicker();
+			pickerClient = LanSession.Client;
 			BuildCivPicker(lobby.civilizations);
 		}
 
@@ -575,6 +581,38 @@ public partial class LanLobby : Control {
 			chosen.ButtonPressed = true;
 		}
 		ShowCivilization(mine?.civilization);
+	}
+
+	// The connection the civ picker was built for.
+	private LanClient pickerClient;
+
+	private static bool SameChoices(List<CivilizationChoice> a, List<CivilizationChoice> b) {
+		if (a == null || b == null || a.Count != b.Count) {
+			return false;
+		}
+		for (int i = 0; i < a.Count; ++i) {
+			CivilizationChoice x = a[i], y = b[i];
+			if (x.name != y.name || x.leader != y.leader || x.noun != y.noun || x.leaderArtFile != y.leaderArtFile
+				|| !(x.traits ?? []).SequenceEqual(y.traits ?? [])) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	private void ClearCivPicker() {
+		foreach (Node child in civPicker.GetChildren()) {
+			civPicker.RemoveChild(child);
+			child.QueueFree();
+		}
+		civButtons.Clear();
+		randomCivButton = null;
+		civChoices = null;
+		leaderHead = null;
+		civDescription = null;
+		pickerClient = null;
+		// Another host's civilizations may have the same names but other art.
+		leaderHeadCache.Clear();
 	}
 
 	private void BuildCivPicker(List<CivilizationChoice> choices) {
