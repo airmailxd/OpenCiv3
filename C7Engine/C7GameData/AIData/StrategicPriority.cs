@@ -56,6 +56,13 @@ namespace C7Engine.AI.StrategicAI {
 		 */
 		public abstract void CalculateWeightAndMetadata(Player player);
 
+		/// <summary>
+		/// Called when the AI picks this priority. CalculateWeightAndMetadata is
+		/// called for every candidate priority, so any action that should only
+		/// happen if the priority is picked (like declaring war) belongs here.
+		/// </summary>
+		public virtual void OnChosen(Player player) { }
+
 		public float GetCalculatedWeight() {
 			return calculatedWeight;
 		}

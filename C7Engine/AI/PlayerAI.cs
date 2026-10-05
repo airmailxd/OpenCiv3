@@ -59,6 +59,7 @@ namespace C7Engine {
 				player.strategicPriorityData.Clear();
 				foreach (StrategicPriority priority in priorities) {
 					player.strategicPriorityData.Add(priority);
+					priority.OnChosen(player);
 				}
 				player.turnsUntilPriorityReevaluation = 15 + GameData.rng.Next(10);
 
