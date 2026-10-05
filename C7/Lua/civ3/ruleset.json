@@ -2276,6 +2276,9 @@
         "Modern Armor"
       ],
       "unproducible": false,
+      "flags": [
+        "blitz"
+      ],
       "categories": [
         "Land"
       ],
@@ -2428,6 +2431,9 @@
         "Maya"
       ],
       "unproducible": false,
+      "flags": [
+        "blitz"
+      ],
       "categories": [
         "Land"
       ],
@@ -4537,7 +4543,8 @@
       ],
       "unproducible": true,
       "flags": [
-        "radar"
+        "radar",
+        "blitz"
       ],
       "categories": [
         "Land"
@@ -5143,6 +5150,9 @@
         "Russia"
       ],
       "unproducible": false,
+      "flags": [
+        "blitz"
+      ],
       "categories": [
         "Land"
       ],
@@ -5192,6 +5202,9 @@
         "Modern Armor"
       ],
       "unproducible": false,
+      "flags": [
+        "blitz"
+      ],
       "categories": [
         "Land"
       ],

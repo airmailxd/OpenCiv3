@@ -103,6 +103,16 @@ namespace C7GameData {
 				}
 			}
 		}
+		public bool hasBlitz {
+			get => flags.Contains(SaveUnitPrototype.Flag.Blitz);
+			set {
+				if (value) {
+					flags.Add(SaveUnitPrototype.Flag.Blitz);
+				} else {
+					flags.Remove(SaveUnitPrototype.Flag.Blitz);
+				}
+			}
+		}
 		public bool hasRadar {
 			get => flags.Contains(SaveUnitPrototype.Flag.Radar);
 			set {

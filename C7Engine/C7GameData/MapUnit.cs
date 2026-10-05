@@ -48,6 +48,14 @@ namespace C7GameData {
 		//sentry, etc. will come later.  For now, let's just have a couple things so we can cycle through units that aren't fortified.
 		public int defensiveBombardsRemaining;
 
+		// Whether the unit has attacked or bombarded this turn. Only units with
+		// blitz can attack more than once per turn.
+		public bool hasAttackedThisTurn;
+
+		public bool CanAttackAgainThisTurn() {
+			return !hasAttackedThisTurn || unitType.hasBlitz;
+		}
+
 		public TileDirection facingDirection = TileDirection.SOUTHEAST;
 
 		public float WorkerProgressTowardsJob { get; set; }

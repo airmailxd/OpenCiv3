@@ -11,6 +11,8 @@ namespace C7GameData.Save {
 			LethalLandBombardment,
 			LethalSeaBombardment,
 			Radar,
+			// The unit may attack more than once per turn.
+			Blitz,
 		}
 
 		public string name { get; set; }

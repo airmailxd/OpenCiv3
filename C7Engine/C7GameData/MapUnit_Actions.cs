@@ -25,6 +25,7 @@ public partial class MapUnit {
 		}
 
 		defensiveBombardsRemaining = 1;
+		hasAttackedThisTurn = false;
 	}
 
 	public void OnEnterTile(Tile tile) {
@@ -211,11 +212,12 @@ public partial class MapUnit {
 		// Trigger combat if the tile we're moving into has an enemy  Or if this unit can't fight, do nothing.
 		MapUnit defender = newLoc.FindTopDefender(this);
 		if (defender != MapUnit.NONE && !owner.IsAtPeaceWith(defender.owner)) {
-			if (unitType.attack <= 0) {
+			if (unitType.attack <= 0 || !CanAttackAgainThisTurn()) {
 				return true;
 			}
 
 			CombatResult combatResult = await Fight(defender);
+			hasAttackedThisTurn = true;
 			this.path = TilePath.NONE;
 			// If we were killed then of course there's nothing more to do. If the combat couldn't happen for whatever
 			// reason, just give up on trying to move.
