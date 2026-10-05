@@ -432,7 +432,9 @@ public partial class MapUnit {
 		var turnProgress = this.location.GetCurrentUnaccountedJobProgress(terraform);
 		var totalCost = (float)GetWorkerJobCost(this.location, this.WorkerJob);
 
-		if (terraformProgress + turnProgress == totalCost) {
+		// Use >= rather than ==, since faster (e.g. Industrious) workers can
+		// overshoot the cost.
+		if (terraformProgress + turnProgress >= totalCost) {
 			location.FinishWorkerJob(WorkerJob);
 		}
 
