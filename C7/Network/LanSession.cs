@@ -63,6 +63,11 @@ public static class LanSession {
 	// players on the LAN, so it opens the lobby rather than the game.
 	public static bool HostNextGame = false;
 
+	// A new game to host whose guests choose their civilizations in the
+	// lobby: the player setup screen's choices, with the save to create the
+	// game in once the host starts it. Null otherwise.
+	public static PendingLanGame PendingGame;
+
 	// Goes to the game once it has been set up, by way of the lobby if it
 	// will be hosted.
 	public static void StartGame(SceneTree tree) {
@@ -103,3 +108,5 @@ public static class LanSession {
 		EngineStorage.ResetNetworking();
 	}
 }
+
+public record PendingLanGame(GameSetup setup, C7GameData.Save.SaveGame save, int guestSeats);

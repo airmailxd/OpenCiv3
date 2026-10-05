@@ -17,6 +17,8 @@ public enum FrameKind : byte {
 	// Watch the game without playing: the host sends snapshots and the
 	// messages for everyone, and ignores anything the spectator sends.
 	Watch = 4,
+	// A seated guest's civilization for a game not created yet.
+	ChooseCivilization = 5,
 
 	// Host to client.
 	Lobby = 10,
@@ -29,7 +31,7 @@ public enum FrameKind : byte {
 
 public static class LanProtocol {
 	// Bump when the frames or the messages in them change incompatibly.
-	public const int Version = 3;
+	public const int Version = 4;
 
 	public const int DefaultPort = 47_777;
 	public const int DiscoveryPort = 47_778;
@@ -61,10 +63,23 @@ public record HelloInfo(int version, string playerName);
 
 public record ClaimSeatInfo(ID playerID);
 
-// A human player's place in the game, and who has taken it.
+// A human player's place in the game, and who has taken it. In a new game
+// whose guests choose their civilizations, a guest's civilization is null
+// until they choose one, which means a random one.
 public record SeatInfo(ID playerID, string civilization, string playerName, bool isHost, string takenBy);
 
-public record LobbyInfo(string hostName, List<SeatInfo> seats, ID yourSeat, List<string> spectators = null);
+// A civilization a guest can choose, with what the lobby shows about it.
+public record CivilizationChoice(string name, string leader, string noun, string leaderArtFile, List<string> traits);
+
+// civilizations is what guests can choose from, or null when the game's
+// civilizations are already set (a saved game, or one already created).
+// creatingGame is true while the host creates the world, when choices are
+// closed.
+public record LobbyInfo(string hostName, List<SeatInfo> seats, ID yourSeat, List<string> spectators = null,
+	List<CivilizationChoice> civilizations = null, bool creatingGame = false);
+
+// The civilization's name, or null for a random one.
+public record ChooseCivilizationInfo(string civilization);
 
 // A spectator's yourPlayerID is null.
 public record StartInfo(ID yourPlayerID);

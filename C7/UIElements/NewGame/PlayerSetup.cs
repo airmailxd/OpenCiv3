@@ -26,6 +26,12 @@ public partial class PlayerSetup : Control {
 	// person's name.
 	List<CheckBox> humanToggles = new();
 	List<LineEdit> humanNames = new();
+	// Shown instead of the civilization for a human slot in a game hosted on
+	// the LAN, whose player chooses in the lobby.
+	List<Label> playersChoiceLabels = new();
+	// Whether this game will be hosted on the LAN, where human slots are for
+	// the people who join.
+	readonly bool hostingOnLan = LanSession.HostNextGame;
 	// The first player's name, shown once there is more than one human.
 	LineEdit playerNameEdit;
 	const int MaxPlayerNameLength = 24;
@@ -174,9 +180,29 @@ public partial class PlayerSetup : Control {
 
 			CheckBox humanToggle = new() {
 				Text = "Human",
-				TooltipText = "Played by another person on this computer, taking turns (hotseat).",
+				TooltipText = hostingOnLan
+					? "Played by someone joining over the network, who chooses their own civilization in the lobby."
+					: "Played by another person on this computer, taking turns (hotseat).",
 			};
 			humanToggles.Add(humanToggle);
+
+			Label playersChoice = new() {
+				Text = "Player's choice",
+				Visible = false,
+				VerticalAlignment = VerticalAlignment.Center,
+				TooltipText = "Whoever takes this seat chooses their civilization in the LAN lobby.",
+				MouseFilter = MouseFilterEnum.Pass,
+			};
+			playersChoiceLabels.Add(playersChoice);
+			if (hostingOnLan) {
+				humanToggle.Toggled += (bool on) => {
+					// The slot doesn't hold a civilization for the AI any more.
+					optionButton.Select(optionButton.ItemCount - 1);
+					optionButton.Visible = !on;
+					playersChoice.Visible = on;
+					UpdateOpponentSelectors();
+				};
+			}
 
 			LineEdit humanName = new() {
 				MaxLength = MaxPlayerNameLength,
@@ -193,12 +219,14 @@ public partial class PlayerSetup : Control {
 			HBoxContainer row = new();
 			slot.AddChild(row);
 			row.AddChild(optionButton);
+			row.AddChild(playersChoice);
 			row.AddChild(humanToggle);
 			slot.AddChild(humanName);
 
 			const float humanToggleWidth = 80.0f;
 			container.CustomMinimumSize = new Vector2(312.0f / opponentListContainer.Columns, 315.0f / numOpponents);
 			optionButton.CustomMinimumSize = new Vector2(290.0f / opponentListContainer.Columns - humanToggleWidth, optionButton.CustomMinimumSize.Y);
+			playersChoice.CustomMinimumSize = optionButton.CustomMinimumSize;
 
 			foreach (Civilization civ in save.Civilizations) {
 				if (civ.isBarbarian) {
@@ -223,8 +251,12 @@ public partial class PlayerSetup : Control {
 	}
 
 	// Shows a name field for every human player once there is more than one,
-	// with "Player N" (in turn order) as the default name.
+	// with "Player N" (in turn order) as the default name. Players on the LAN
+	// go by the names they join with instead.
 	private void UpdateHumanNameFields() {
+		if (hostingOnLan) {
+			return;
+		}
 		int playerNumber = 1;
 		playerNameEdit.PlaceholderText = $"Player {playerNumber}";
 		for (int i = 0; i < humanToggles.Count; ++i) {
@@ -327,6 +359,25 @@ public partial class PlayerSetup : Control {
 		loadingLabel.Visible = true;
 
 		GlobalSingleton global = GetNode<GlobalSingleton>("/root/GlobalSingleton");
+
+		int guestSeats = humanToggles.Count(t => t.ButtonPressed);
+		if (hostingOnLan && guestSeats > 0) {
+			// The guests choose their civilizations in the lobby, and the
+			// game is created once the host starts it.
+			GameSetup lanSetup = new() {
+				playerCivilization = selectedCivilization,
+				playerName = LanSession.PlayerName,
+				difficulty = selectedDifficulty,
+				worldCharacteristics = global.WorldCharacteristics,
+				opponents = CollectSelectedOpponents(),
+				victoryConditions = victoryConditions,
+				showScoreboard = showScoreboard.ButtonPressed,
+			};
+			PersistGameSettings(lanSetup);
+			LanSession.PendingGame = new PendingLanGame(lanSetup, save, guestSeats);
+			StartGame();
+			return;
+		}
 
 		List<HotseatPlayer> hotseatPlayers = CollectHotseatPlayers();
 		GameSetup gameSetup = new() {

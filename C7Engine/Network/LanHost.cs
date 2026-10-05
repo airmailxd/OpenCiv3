@@ -20,6 +20,10 @@ namespace C7Engine.Network;
 // that client's player. Spectators get the snapshots and the messages for
 // everyone, and play no part.
 //
+// A host can also seat guests before its game exists, for a new game whose
+// guests choose their own civilizations: the host creates the game once
+// everyone has chosen, then starts it as usual.
+//
 // Everything except accepting connections and answering discovery happens in
 // Poll(), which the game calls every frame on its main thread.
 public class LanHost : IDisposable {
@@ -47,6 +51,11 @@ public class LanHost : IDisposable {
 	private readonly List<Seat> seats;
 	private readonly ID hostPlayerID;
 	private readonly string hostCivilization;
+
+	// For a new game not created yet, the civilizations guests can choose
+	// from; null once the game exists.
+	private List<Civilization> choosable;
+	private bool creatingGame;
 	private readonly TcpListener listener;
 	private readonly UdpClient discovery;
 	private readonly ConcurrentQueue<TcpClient> accepted = new();
@@ -90,21 +99,53 @@ public class LanHost : IDisposable {
 	public IReadOnlyList<SeatInfo> Seats => seats.Select(s => s.info with { takenBy = s.takenBy }).ToList();
 	public bool AllSeatsTaken => seats.All(s => s.connection != null && !s.connection.IsClosed);
 	public IReadOnlyList<string> Spectators => spectators.Select(s => s.name).ToList();
+	public string HostCivilization => hostCivilization;
+
+	// Whether guests are choosing their civilizations for a game the host
+	// hasn't created yet.
+	public bool GuestsChooseCivilizations => choosable != null;
 
 	// The human player the host plays: the first one who isn't defeated.
 	public static SavePlayer HostPlayer(SaveGame save) {
 		return save.Players.FirstOrDefault(p => p.human && !p.defeated);
 	}
 
-	public LanHost(string hostName, SaveGame save, int port = LanProtocol.DefaultPort, bool answerDiscovery = true) {
-		this.hostName = hostName;
-		SavePlayer host = HostPlayer(save) ?? throw new ArgumentException("The game has no human players");
-		hostPlayerID = host.id;
-		hostCivilization = host.civilization;
-		seats = save.Players
+	// Hosts a game that already exists, such as a saved one.
+	public LanHost(string hostName, SaveGame save, int port = LanProtocol.DefaultPort, bool answerDiscovery = true)
+		: this(hostName, RequireHostPlayer(save).id, RequireHostPlayer(save).civilization, SeatsFor(save), null, port, answerDiscovery) {
+	}
+
+	// Hosts a new game whose guests choose their civilizations: one seat for
+	// each guest, with the IDs GameSetup will give them, and the host playing
+	// hostCivilization. Call BeginCreatingGame and GameCreated to create it.
+	public LanHost(string hostName, string hostCivilization, int guestSeats, IEnumerable<Civilization> playable,
+		int port = LanProtocol.DefaultPort, bool answerDiscovery = true)
+		: this(hostName, GameSetup.HumanPlayerIDs(guestSeats + 1)[0], hostCivilization,
+			GameSetup.HumanPlayerIDs(guestSeats + 1).Skip(1)
+				.Select(id => new Seat { info = new SeatInfo(id, null, null, false, null) })
+				.ToList(),
+			playable.Where(c => !c.isBarbarian).ToList(), port, answerDiscovery) {
+	}
+
+	private static SavePlayer RequireHostPlayer(SaveGame save) {
+		return HostPlayer(save) ?? throw new ArgumentException("The game has no human players");
+	}
+
+	private static List<Seat> SeatsFor(SaveGame save) {
+		ID hostPlayerID = RequireHostPlayer(save).id;
+		return save.Players
 			.Where(p => p.human && !p.defeated && p.id != hostPlayerID)
 			.Select(p => new Seat { info = new SeatInfo(p.id, p.civilization, p.name, false, null) })
 			.ToList();
+	}
+
+	private LanHost(string hostName, ID hostPlayerID, string hostCivilization, List<Seat> seats,
+		List<Civilization> choosable, int port, bool answerDiscovery) {
+		this.hostName = hostName;
+		this.hostPlayerID = hostPlayerID;
+		this.hostCivilization = hostCivilization;
+		this.seats = seats;
+		this.choosable = choosable;
 
 		listener = new TcpListener(IPAddress.Any, port);
 		listener.Start();
@@ -155,6 +196,9 @@ public class LanHost : IDisposable {
 	// Starts the game once the host's engine has loaded it: from now on
 	// clients' messages go to the engine, and the engine's messages to them.
 	public void StartGame() {
+		if (GuestsChooseCivilizations) {
+			throw new InvalidOperationException("Create the game before starting it");
+		}
 		Started = true;
 		EngineStorage.uiFollowsActivePlayer = false;
 		EngineStorage.uiControllerID = hostPlayerID;
@@ -339,6 +383,10 @@ public class LanHost : IDisposable {
 			return;
 		}
 		while (seat.connection.TryReceive(out Frame frame)) {
+			if (frame.kind == FrameKind.ChooseCivilization) {
+				ChooseCivilization(seat, frame);
+				continue;
+			}
 			if (frame.kind != FrameKind.Command || !Started) {
 				continue;
 			}
@@ -362,8 +410,76 @@ public class LanHost : IDisposable {
 			seat.connection = null;
 			seat.takenBy = null;
 			seat.pendingUiMessages.Clear();
+			if (GuestsChooseCivilizations && !creatingGame) {
+				// Whoever takes the seat next chooses afresh.
+				seat.info = seat.info with { civilization = null };
+			}
 			BroadcastLobby();
 		}
+	}
+
+	// A guest's choice of civilization: one nobody else has chosen, or null
+	// for a random one. Anything else leaves their seat as it was.
+	private void ChooseCivilization(Seat seat, Frame frame) {
+		if (!GuestsChooseCivilizations || creatingGame) {
+			return;
+		}
+		string civilization;
+		try {
+			civilization = NetSerialization.DeserializeData<ChooseCivilizationInfo>(frame.payload).civilization;
+		} catch (JsonException e) {
+			log.Warning("Bad civilization choice from {Player}: {Error}", seat.info.playerID, e.Message);
+			return;
+		}
+		bool available = civilization == null
+			|| (choosable.Any(c => c.name == civilization)
+				&& civilization != hostCivilization
+				&& !seats.Any(s => s != seat && s.info.civilization == civilization));
+		if (available) {
+			seat.info = seat.info with { civilization = civilization };
+			log.Information("{Name} chose {Civilization}", seat.takenBy, civilization ?? "a random civilization");
+		}
+		// Either way, everyone hears how things stand.
+		BroadcastLobby();
+	}
+
+	// Closes the guests' choices, and returns the guests as GameSetup's
+	// hotseatPlayers: each with the civilization they chose (null for a
+	// random one) and their name.
+	public List<HotseatPlayer> BeginCreatingGame() {
+		if (!GuestsChooseCivilizations) {
+			throw new InvalidOperationException("The game already exists");
+		}
+		creatingGame = true;
+		BroadcastLobby();
+		return seats.Select(s => new HotseatPlayer {
+			civilization = choosable.Find(c => c.name == s.info.civilization),
+			name = s.takenBy,
+		}).ToList();
+	}
+
+	// Reopens the choices if creating the game failed.
+	public void CancelCreatingGame() {
+		creatingGame = false;
+		BroadcastLobby();
+	}
+
+	// Takes the game GameSetup created from BeginCreatingGame's players, and
+	// fixes each seat to its player.
+	public void GameCreated(SaveGame save) {
+		if (RequireHostPlayer(save).id != hostPlayerID) {
+			throw new InvalidOperationException("The host's player isn't the game's first human player");
+		}
+		foreach (Seat seat in seats) {
+			SavePlayer player = save.Players.Find(p => p.id == seat.info.playerID);
+			if (player == null || !player.human) {
+				throw new InvalidOperationException($"The game has no human player for the seat {seat.info.playerID}");
+			}
+			seat.info = seat.info with { civilization = player.civilization, playerName = player.name };
+		}
+		choosable = null;
+		creatingGame = false;
+		BroadcastLobby();
 	}
 
 	// Spectators only listen: whatever they send is dropped.
@@ -457,7 +573,9 @@ public class LanHost : IDisposable {
 			new SeatInfo(hostPlayerID, hostCivilization, hostName, true, hostName),
 			.. Seats,
 		];
-		connection.Send(FrameKind.Lobby, new LobbyInfo(hostName, seatInfos, yourSeat, [.. Spectators]));
+		List<CivilizationChoice> civilizations = choosable?.Select(c => new CivilizationChoice(
+			c.name, c.leader, c.noun, c.leaderArtFile, c.traits.Select(t => t.ToString()).ToList())).ToList();
+		connection.Send(FrameKind.Lobby, new LobbyInfo(hostName, seatInfos, yourSeat, [.. Spectators], civilizations, creatingGame));
 	}
 
 	private void BroadcastLobby() {

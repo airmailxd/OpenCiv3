@@ -48,6 +48,7 @@ public partial class MainMenu : Node {
 		// Back at the menu, any LAN game is over.
 		LanSession.End();
 		LanSession.HostNextGame = false;
+		LanSession.PendingGame = null;
 
 		LoadDialog.SetDirectoryForLoading(@"Conquests/Saves");
 		LoadScenarioDialog.SetDirectoryForLoading(@"Conquests/Scenarios");
@@ -144,8 +145,9 @@ public partial class MainMenu : Node {
 		AcceptDialog dialog = new() {
 			Title = "Host LAN Game",
 			DialogText = "Set up a game for players on your local network.\n" +
-				"Add a human player for each of them on the player setup screen,\n" +
-				"or load a game saved with several human players.",
+				"For a new game, mark a rival as Human for each of them on the\n" +
+				"player setup screen; they choose their own civilizations when they join.\n" +
+				"Or load a game saved with several human players.",
 			OkButtonText = "New Game",
 		};
 		dialog.AddButton("Load Game", true, "load");
