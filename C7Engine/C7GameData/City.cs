@@ -690,11 +690,16 @@ namespace C7GameData {
 			return result;
 		}
 
-		private int AgeMultiplier(CityBuilding cb) {
-			int gameYear = EngineStorage.gameData.timeOptions.GetRawNumber(EngineStorage.gameData.turn);
-			int ageInMillennia = (int) Math.Floor((gameYear - cb.year) / 1000f);
+		private static int CurrentGameYear() {
+			GameData gameData = EngineStorage.gameData;
+			return gameData?.timeOptions?.GetRawNumber(gameData.turn) ?? 0;
+		}
 
-			if (ageInMillennia < 0) // Workaround hack , TODO: record build year correctly
+		private int AgeMultiplier(CityBuilding cb) {
+			int ageInMillennia = (int) Math.Floor((CurrentGameYear() - cb.year) / 1000f);
+
+			// Buildings from older saves may have a build year in the future.
+			if (ageInMillennia < 0)
 				ageInMillennia = 0;
 
 			return 1 << ageInMillennia;
@@ -728,7 +733,7 @@ namespace C7GameData {
 			constructed_buildings.Add(new CityBuilding {
 				building = building,
 				builtByPlayer = owner,
-				year = 1, // TODO: Implement in-game year tracking
+				year = CurrentGameYear(),
 				totalCulture = 0
 			});
 		}
