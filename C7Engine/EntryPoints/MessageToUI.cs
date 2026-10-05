@@ -177,6 +177,14 @@ namespace C7Engine {
 		}
 	}
 
+	public class MsgShowDomesticAdvisorPopup : MessageToUI {
+		public string message;
+		public MsgShowDomesticAdvisorPopup(Player recipient, string message) {
+			this.recipient = recipient;
+			this.message = message;
+		}
+	}
+
 	public class MsgShowTemporaryPopup : MessageToUI {
 		public string message;
 		public Tile location;

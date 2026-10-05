@@ -51,4 +51,5 @@ public class GovernmentRateCapTest {
 		Assert.Equal(7, MakePlayer(rateCap: 7, tax: 5, science: 5, luxury: 0).maxScienceRate);
 		Assert.Equal(10, new Player().maxRate);
 	}
+
 }

@@ -657,6 +657,12 @@ public partial class Game : Node {
 					popupOverlay.ShowPopup(pop, PopupOverlay.PopupCategory.Advisor);
 				}
 				break;
+			case MsgShowDomesticAdvisorPopup mSDAP:
+				if (!popupOverlay.Visible) {
+					var pop = new InformationalPopup(mSDAP.message, AdvisorHead.Advisor.Domestic, AdvisorHead.Mood.Angry);
+					popupOverlay.ShowPopup(pop, PopupOverlay.PopupCategory.Advisor);
+				}
+				break;
 			case MsgShowScienceAdvisor mSSA:
 				EmitSignal(SignalName.ShowSpecificAdvisor, C7Action.ShowScienceAdvisor);
 				break;
