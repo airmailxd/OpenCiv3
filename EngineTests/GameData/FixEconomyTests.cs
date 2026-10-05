@@ -1,0 +1,501 @@
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
+using C7Engine;
+using C7GameData;
+using C7GameData.Save;
+using Xunit;
+
+namespace EngineTests.GameData;
+
+// Regression tests for fixes to the economy, diplomacy and city code that
+// don't need a full game.
+public class FixEconomyTests {
+	private readonly C7GameData.GameData gameData = new() {
+		gameDifficulty = new Difficulty(),
+		rules = new Rules(),
+		history = new Dictionary<string, List<HistTurnRecord>>(),
+		timeOptions = new TimeOptions(),
+	};
+
+	private int nextPlayer = 1;
+
+	public FixEconomyTests() {
+		EngineStorage.InitializeGameDataForTests(gameData);
+	}
+
+	private Player MakePlayer(string civName = "Testers") {
+		Player player = new() {
+			id = ID.FromString($"player-{nextPlayer++}"),
+			isHuman = true,
+			civilization = new Civilization(civName),
+			government = new Government(),
+			rules = gameData.rules,
+		};
+		gameData.players.Add(player);
+		return player;
+	}
+
+	private static City MakeCity(Player owner, string name = "Testville") {
+		Tile tile = new(ID.None("tile")) { continent = 1 };
+		City city = new(tile, owner, name, ID.None("city"));
+		tile.cityAtTile = city;
+		owner.cities.Add(city);
+		return city;
+	}
+
+	private Building MakeBuilding(string name, bool greatWonder = false) {
+		SaveBuilding sb = new() { name = name };
+		if (greatWonder) {
+			sb.greatWonderProperties = new();
+		}
+		return new Building(sb, gameData);
+	}
+
+	// One-way deals
+
+	[Fact]
+	public void OneWayDealCounterpartKeepsTheStartTurn() {
+		Player giver = MakePlayer("Givers");
+		Player taker = MakePlayer("Takers");
+		giver.EnsureRelationshipExists(taker);
+
+		MultiTurnDeal deal = new(DealType.Gold, DealSubType.GoldPerTurn, DealDetails.Outbound,
+			goldPerTurn: 3, dealDuration: 20, turnStartDeal: 100);
+		PlayerRelationship.RegisterMultiTurnDeal(giver, taker, deal);
+
+		MultiTurnDeal counterpart = MultiTurnDeal.GetCounterpartDeal(giver, taker, deal);
+		Assert.NotNull(counterpart);
+		Assert.Equal(DealDetails.Inbound, counterpart.dealDetails);
+		Assert.Equal(100, counterpart.turnStartDeal);
+		Assert.Equal(120, counterpart.turnEndDeal);
+		Assert.Equal(3, counterpart.goldPerTurn);
+
+		// Both sides run for the whole deal, and are counted while they do.
+		PlayerRelationship.CheckForObsoleteDeals(giver, gameData.players, 110);
+		PlayerRelationship.CheckForObsoleteDeals(taker, gameData.players, 110);
+		Assert.Contains(deal, giver.playerRelationships[taker.id].multiTurnDeals);
+		Assert.Contains(counterpart, taker.playerRelationships[giver.id].multiTurnDeals);
+
+		PlayerRelationship.CheckForObsoleteDeals(giver, gameData.players, 120);
+		PlayerRelationship.CheckForObsoleteDeals(taker, gameData.players, 120);
+		Assert.DoesNotContain(deal, giver.playerRelationships[taker.id].multiTurnDeals);
+		Assert.DoesNotContain(counterpart, taker.playerRelationships[giver.id].multiTurnDeals);
+	}
+
+	// Deal expiry
+
+	private static MultiTurnDeal Exchange(DealSubType subType, int start, int duration = 20) {
+		return new MultiTurnDeal(DealType.DiplomaticAgreement, subType, DealDetails.Exchange,
+			dealDuration: duration, turnStartDeal: start);
+	}
+
+	[Fact]
+	public void MutualProtectionPactsExpireOutsideLockedAlliances() {
+		Player a = MakePlayer("A");
+		Player b = MakePlayer("B");
+		a.EnsureRelationshipExists(b);
+		MultiTurnDeal pact = Exchange(DealSubType.MutualProtectionPact, 10);
+		PlayerRelationship.RegisterMultiTurnDeal(a, b, pact);
+
+		PlayerRelationship.CheckForObsoleteDeals(a, gameData.players, 29);
+		Assert.Contains(pact, a.playerRelationships[b.id].multiTurnDeals);
+
+		PlayerRelationship.CheckForObsoleteDeals(a, gameData.players, 30);
+		Assert.DoesNotContain(pact, a.playerRelationships[b.id].multiTurnDeals);
+	}
+
+	[Fact]
+	public void OnlyMutualProtectionPactsOfLockedAlliesNeverExpire() {
+		Player a = MakePlayer("A");
+		Player b = MakePlayer("B");
+		Alliance alliance = new(0, "Allies");
+		a.alliance = alliance;
+		b.alliance = alliance;
+		a.EnsureRelationshipExists(b);
+		Assert.True(gameData.AreInLockedPeace(a, b));
+
+		// Locked alliances' pacts are made without an end turn.
+		MultiTurnDeal pact = MultiTurnDeal.DEFAULT_MUTUAL_PROTECTION_PACT;
+		MultiTurnDeal passage = Exchange(DealSubType.RightOfPassage, 10);
+		PlayerRelationship.RegisterMultiTurnDeal(a, b, pact);
+		PlayerRelationship.RegisterMultiTurnDeal(a, b, passage);
+
+		PlayerRelationship.CheckForObsoleteDeals(a, gameData.players, 500);
+
+		List<MultiTurnDeal> deals = a.playerRelationships[b.id].multiTurnDeals;
+		Assert.Contains(pact, deals);
+		Assert.DoesNotContain(passage, deals);
+		Assert.Contains(deals, d => d.dealSubType == DealSubType.Peace);
+	}
+
+	// Score
+
+	private static CitizenType laborer = new() { IsDefaultCitizen = true };
+
+	private static void SetContentCitizens(City city, int count) {
+		city.residents.Clear();
+		for (int i = 0; i < count; ++i) {
+			city.residents.Add(new CityResident { city = city, citizenType = laborer, mood = CityResident.Mood.Content });
+		}
+	}
+
+	[Fact]
+	public void ScoreIsTheRoundedAverageOfTurnScores() {
+		Player player = MakePlayer();
+		City city = MakeCity(player);
+		List<HistTurnRecord> history = new();
+		gameData.history[player.HistoryKey] = history;
+
+		// One turn scoring 1, then ten scoring 2: the average is 21/11.
+		// Rounding a running average each turn got stuck at 1.
+		SetContentCitizens(city, 1);
+		player.UpdateHistory(gameData);
+		SetContentCitizens(city, 2);
+		for (int i = 0; i < 10; ++i) {
+			player.UpdateHistory(gameData);
+		}
+
+		Assert.Equal(11, history.Count);
+		Assert.Equal(21, history[^1].TurnScoreSum);
+		Assert.Equal(2, history[^1].Score);
+
+		// Falling scores pull the average down as they should.
+		SetContentCitizens(city, 0);
+		for (int i = 0; i < 11; ++i) {
+			player.UpdateHistory(gameData);
+		}
+		Assert.Equal(21, history[^1].TurnScoreSum);
+		Assert.Equal(1, history[^1].Score); // 21/22 rounds to 1
+	}
+
+	[Fact]
+	public void ScoreFromAnOlderSaveCarriesOn() {
+		Player player = MakePlayer();
+		City city = MakeCity(player);
+		// Records from before the sum was kept.
+		List<HistTurnRecord> history = [new() { Score = 10 }, new() { Score = 10 }];
+		gameData.history[player.HistoryKey] = history;
+
+		SetContentCitizens(city, 4);
+		player.UpdateHistory(gameData);
+
+		Assert.Equal(24, history[^1].TurnScoreSum);
+		Assert.Equal(8, history[^1].Score);
+	}
+
+	// War weariness
+
+	[Fact]
+	public void WarWearinessFollowsWhoStartedTheCurrentWar() {
+		Player a = MakePlayer("A");
+		Player b = MakePlayer("B");
+		a.EnsureRelationshipExists(b);
+
+		// A started an earlier war, which ended in peace.
+		a.DeclareWarOn(b, 1);
+		PlayerRelationship.SignPeaceAfterWar(a, b, gameData);
+
+		// Now B starts one.
+		b.DeclareWarOn(a, 20);
+		a.UpdateWarWeariness(gameData);
+		b.UpdateWarWeariness(gameData);
+
+		Assert.Equal(1, a.warWeariness);
+		Assert.Equal(2, b.warWeariness);
+	}
+
+	[Fact]
+	public void WarsFromBeforeItWasRecordedFallBackToPastDeclarations() {
+		Player a = MakePlayer("A");
+		Player b = MakePlayer("B");
+		a.EnsureRelationshipExists(b);
+		a.DeclareWarOn(b, 1);
+
+		// As loaded from an older save.
+		b.playerRelationships[a.id].otherStartedCurrentWar = null;
+		a.playerRelationships[b.id].otherStartedCurrentWar = null;
+
+		a.UpdateWarWeariness(gameData);
+		b.UpdateWarWeariness(gameData);
+		Assert.Equal(2, a.warWeariness);
+		Assert.Equal(1, b.warWeariness);
+	}
+
+	// City names
+
+	[Fact]
+	public void CivsWithoutCityNamesGetNumberedOnes() {
+		Player player = MakePlayer("Nameless");
+		player.civilization.adjective = "Nameless";
+		player.civilization.cityNames = new();
+		gameData.cities.Add(MakeCity(player, "Nameless 1"));
+
+		Assert.Equal("Nameless 2", player.GetNextCityName());
+
+		player.civilization.cityNames = null;
+		Assert.Equal("Nameless 2", player.GetNextCityName());
+	}
+
+	// Wonders in production
+
+	[Fact]
+	public void AWonderStaysAmongTheOptionsOfTheCityBuildingIt() {
+		Player player = MakePlayer();
+		City city = MakeCity(player);
+		City other = MakeCity(player, "Otherville");
+		Building pyramids = MakeBuilding("Pyramids", greatWonder: true);
+
+		city.SetItemBeingProduced(pyramids);
+		Assert.True(pyramids.CanProduce(city, new()));
+		Assert.True(pyramids.CanProduce(city, new(), new Building.ProductionContext(city)));
+		Assert.False(pyramids.CanProduce(other, new()));
+		Assert.False(pyramids.CanProduce(other, new(), new Building.ProductionContext(other)));
+	}
+
+	// Granted buildings
+
+	[Fact]
+	public void TwoWondersGrantingTheSameBuildingGrantItOnce() {
+		Player player = MakePlayer();
+		City city = MakeCity(player);
+		Building granary = MakeBuilding("Granary");
+		Building first = MakeBuilding("First", greatWonder: true);
+		Building second = MakeBuilding("Second", greatWonder: true);
+		first.greatWonderProperties.buildingGainedInEveryCity = granary;
+		second.greatWonderProperties.buildingGainedInEveryCity = granary;
+		city.AddBuilding(first);
+		city.AddBuilding(second);
+
+		Assert.Equal(1, city.GetBuildings().Count(cb => cb.building == granary));
+	}
+
+	// Governments
+
+	[Fact]
+	public void SettingAGovernmentFlagAgainDoesNotStackItsModifier() {
+		Government government = new();
+		government.hasTradeBonus = true;
+		government.hasTradeBonus = true;
+		government.hasTilePenalty = true;
+		government.hasTilePenalty = true;
+
+		Tile.Yield commerce = new(Tile.NONE, 5, Tile.YieldType.Commerce);
+		government.tileModifier(commerce);
+		Assert.Equal(1, commerce.bonus);
+		Assert.Equal(1, commerce.penalty);
+
+		government.hasTradeBonus = false;
+		government.hasTilePenalty = false;
+		Assert.Null(government.tileModifier);
+	}
+
+	// Time
+
+	[Fact]
+	public void TimePassesOneUnitPerTurnAfterTheLastSegment() {
+		TimeOptions options = new() { startYear = -4000 };
+		options.timeScale = new int[,] { { 2, 3 }, { 10, 5 } };
+
+		Assert.Equal(-4000, options.GetRawNumber(0));
+		Assert.Equal(-3980, options.GetRawNumber(2));
+		Assert.Equal(-3965, options.GetRawNumber(5));
+		Assert.Equal(-3964, options.GetRawNumber(6));
+		Assert.Equal(-3960, options.GetRawNumber(10));
+
+		Assert.Equal(5, options.GetTurnFromRaw(-3965));
+		Assert.Equal(10, options.GetTurnFromRaw(-3960));
+
+		// The standard time scale runs out too, eventually.
+		TimeOptions standard = new();
+		int end = 25 + 25 + 40 + 50 + 100 + 100 + 100 + 50000;
+		Assert.Equal(standard.GetRawNumber(end) + 7, standard.GetRawNumber(end + 7));
+	}
+
+	// Citizens
+
+	[Fact]
+	public void RemovingARandomCitizenFromAnEmptyCityDoesNothing() {
+		Player player = MakePlayer();
+		City city = MakeCity(player);
+		city.RemoveRandomCitizen();
+		Assert.Empty(city.residents);
+	}
+
+	// Research queue
+
+	// GetResearchQueueFor as it was before it remembered which techs it had
+	// expanded, to check the result hasn't changed.
+	internal static List<Tech> OldResearchQueue(Player player, Tech tech) {
+		Queue<Tech> queue = new();
+		OldGetResearchQueueFor(player, tech, queue, new HashSet<Tech>());
+		return queue.Reverse().ToList();
+	}
+
+	private static List<Tech> OldOrderTechs(List<Tech> techs) {
+		HashSet<Tech> seen = new();
+		List<Tech> result = new();
+		foreach (Tech t in techs.OrderBy(t => t.Cost)) {
+			if (seen.Add(t)) {
+				result.Add(t);
+			}
+		}
+		return result;
+	}
+
+	private static void OldGetResearchQueueFor(Player player, Tech tech, Queue<Tech> tempQueue, HashSet<Tech> inQueue) {
+		List<Tech> requiredTechs = OldOrderTechs(tech.Prerequisites);
+		if (inQueue.Add(tech)) {
+			tempQueue.Enqueue(tech);
+		}
+		foreach (Tech t in requiredTechs) {
+			if (!player.knownTechs.Contains(t.id) && inQueue.Add(t)) {
+				tempQueue.Enqueue(t);
+			}
+		}
+		foreach (Tech t in requiredTechs) {
+			if (!player.knownTechs.Contains(t.id) && t.Prerequisites.Count > 0) {
+				OldGetResearchQueueFor(player, t, tempQueue, inQueue);
+			}
+		}
+	}
+
+	[Fact]
+	public void ResearchQueueOfADiamondIsUnchanged() {
+		Player player = MakePlayer();
+		Tech a = new() { id = ID.FromString("tech-1"), Cost = 1 };
+		Tech b = new() { id = ID.FromString("tech-2"), Cost = 3, Prerequisites = { a } };
+		Tech c = new() { id = ID.FromString("tech-3"), Cost = 2, Prerequisites = { a } };
+		Tech d = new() { id = ID.FromString("tech-4"), Cost = 4, Prerequisites = { b, c } };
+		Tech e = new() { id = ID.FromString("tech-5"), Cost = 5, Prerequisites = { d, a, c } };
+		gameData.techs.AddRange([a, b, c, d, e]);
+
+		foreach (Tech target in gameData.techs) {
+			player.CalculateFreshTechQueueAndAssignNewCurrent(target);
+			Assert.Equal(OldResearchQueue(player, target), player.ResearchQueue.ToList());
+		}
+	}
+
+	[Fact]
+	public void ResearchQueueOfManyStackedDiamondsIsQuick() {
+		Player player = MakePlayer();
+		Tech bottom = new() { id = ID.FromString("tech-0"), Cost = 0 };
+		gameData.techs.Add(bottom);
+		Tech top = bottom;
+		for (int i = 1; i <= 40; ++i) {
+			Tech left = new() { id = ID.FromString($"tech-{3 * i}"), Cost = 3 * i, Prerequisites = { top } };
+			Tech right = new() { id = ID.FromString($"tech-{3 * i + 1}"), Cost = 3 * i + 1, Prerequisites = { top } };
+			top = new Tech { id = ID.FromString($"tech-{3 * i + 2}"), Cost = 3 * i + 2, Prerequisites = { left, right } };
+			gameData.techs.AddRange([left, right, top]);
+		}
+
+		// 2^40 paths lead from the top to the bottom.
+		Stopwatch watch = Stopwatch.StartNew();
+		player.CalculateFreshTechQueueAndAssignNewCurrent(top);
+		Assert.True(watch.ElapsedMilliseconds < 5000);
+
+		Assert.Equal(gameData.techs.Count, player.ResearchQueue.Count);
+		Assert.Equal(bottom, player.ResearchQueue.Peek());
+		Assert.Equal(top, player.ResearchQueue.Last());
+	}
+
+	// Tech lookups
+
+	[Fact]
+	public void TechLookupsSeeEntriesReplacedInPlace() {
+		List<Tech> techs = new();
+		for (int i = 0; i < 5; ++i) {
+			techs.Add(new Tech { id = ID.FromString($"tech-{i}") });
+		}
+		Assert.Null(Tech.FindById(techs, ID.FromString("tech-9")));
+		Assert.Null(Tech.FindBridgeTech(techs));
+
+		// Same list, same size, different contents.
+		techs[2] = new Tech { id = ID.FromString("tech-9"), EnablesBridges = true };
+
+		Assert.Same(techs[2], Tech.FindById(techs, ID.FromString("tech-9")));
+		Assert.Null(Tech.FindById(techs, ID.FromString("tech-2")));
+		Assert.Same(techs[2], Tech.FindBridgeTech(techs));
+	}
+
+	// Building caches
+
+	[Fact]
+	public void BuildingSnapshotSeesCitiesSwappedWithoutTheCountChanging() {
+		Player player = MakePlayer();
+		City plain = MakeCity(player);
+		Player other = MakePlayer("Other");
+		City wonderCity = MakeCity(other);
+		wonderCity.AddBuilding(MakeBuilding("Colossus", greatWonder: true));
+		Assert.Empty(player.GetActiveWonders());
+
+		// Swapped in place, without touching any owner.
+		player.cities[0] = wonderCity;
+		Assert.Single(player.GetActiveWonders());
+
+		player.cities[0] = plain;
+		Assert.Empty(player.GetActiveWonders());
+	}
+
+	[Fact]
+	public void BuildingSnapshotSeesKnownTechsSwapped() {
+		Player player = MakePlayer();
+		City city = MakeCity(player);
+		Building pyramids = MakeBuilding("Pyramids", greatWonder: true);
+		pyramids.renderedObsoleteBy = new Tech { id = ID.FromString("tech-7") };
+		city.AddBuilding(pyramids);
+		player.knownTechs.Add(ID.FromString("tech-1"));
+		Assert.Single(player.GetActiveWonders());
+
+		player.knownTechs.Remove(ID.FromString("tech-1"));
+		player.knownTechs.Add(ID.FromString("tech-7"));
+		Assert.Empty(player.GetActiveWonders());
+	}
+
+	[Fact]
+	public void BuildingsInOtherPlayersCitiesDoNotInvalidateOurSnapshot() {
+		Player us = MakePlayer("Us");
+		Player them = MakePlayer("Them");
+		MakeCity(us);
+		City theirCity = MakeCity(them);
+		Player.BuildingSnapshot before = us.GetBuildingSnapshot();
+
+		theirCity.AddBuilding(MakeBuilding("Temple"));
+
+		Assert.Same(before, us.GetBuildingSnapshot());
+	}
+
+	[Fact]
+	public void ReplacingABuildingListUpdatesTheOwnersSnapshot() {
+		Player player = MakePlayer();
+		City city = MakeCity(player);
+		City other = MakeCity(player, "Otherville");
+		Building granary = MakeBuilding("Granary");
+		Building pyramids = MakeBuilding("Pyramids", greatWonder: true);
+		pyramids.greatWonderProperties.buildingGainedInEveryCity = granary;
+		city.AddBuilding(pyramids);
+		Assert.True(other.HasEffectiveBuilding(granary));
+
+		city.constructed_buildings = new();
+
+		Assert.Empty(player.GetActiveWonders());
+		Assert.False(other.HasEffectiveBuilding(granary));
+	}
+
+	[Fact]
+	public void ChangingACitysOwnerUpdatesBothSnapshots() {
+		Player us = MakePlayer("Us");
+		Player them = MakePlayer("Them");
+		City city = MakeCity(us);
+		city.AddBuilding(MakeBuilding("Colossus", greatWonder: true));
+		Assert.Single(us.GetActiveWonders());
+		Assert.Empty(them.GetActiveWonders());
+
+		us.cities.Remove(city);
+		them.cities.Add(city);
+		city.owner = them;
+
+		Assert.Empty(us.GetActiveWonders());
+		Assert.Single(them.GetActiveWonders());
+	}
+}
