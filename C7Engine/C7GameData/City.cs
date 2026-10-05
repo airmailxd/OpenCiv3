@@ -790,7 +790,7 @@ namespace C7GameData {
 		}
 
 		// See https://forums.civfanatics.com/threads/everything-about-corruption-c3c-edition.76619/
-		private float CalculateDistanceCorruption(int numAntiCorruptionBuildings) {
+		private float CalculateDistanceCorruption(GameData gameData, int numAntiCorruptionBuildings) {
 			float maxD = (location.map.numTilesWide + location.map.numTilesTall) / 4;
 
 			float distanceToPalace = owner.citiesWithCorruptionWonders.Min(x => location.RankDistanceTo(x.location));
@@ -798,9 +798,9 @@ namespace C7GameData {
 				distanceToPalace = maxD / 4;
 			}
 
-			// TODO: Update this once we track trade networks.
-			bool connectedTocapital = false;
-			float tradeFactor = connectedTocapital ? 1.0f : 5.0f/4.0f;
+			// Cities cut off from the capital's trade network suffer more.
+			bool connectedToCapital = gameData.GetTradeNetwork().ConnectedToCapital(owner, this);
+			float tradeFactor = connectedToCapital ? 1.0f : 5.0f/4.0f;
 
 			float govtFactor = owner.government.corruptionType switch {
 				Government.CorruptionType.Minimal => 3.0f/4.0f,
@@ -844,7 +844,7 @@ namespace C7GameData {
 			// TODO: Handle the SPHQ.
 			int numCorruptionReducingSmallWondersInCity = buildings.Count(x => x.building.isForbiddenPalace);
 
-			corruption = CalculateDistanceCorruption(numAntiCorruptionBuildings)
+			corruption = CalculateDistanceCorruption(gameData, numAntiCorruptionBuildings)
 					+ CalculateRankCorruption(gameData, numAntiCorruptionBuildings);
 			// TODO: apply policeman modifiers, before applying the max
 
