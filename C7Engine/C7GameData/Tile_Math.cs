@@ -223,7 +223,8 @@ public partial class Tile {
 	}
 
 	// Returns the tiles in the spiral ordering defined by
-	// GetTileAtNeighborIndex(i).
+	// GetTileAtNeighborIndex(i). Offsets that fall off a non-wrapping edge of
+	// the map are skipped, so the result never contains Tile.NONE.
 	public List<Tile> GetTilesWithinRankDistance(int rank) {
 		List<Tile> result = new();
 		GetTilesWithinRankDistance(rank, result);
@@ -237,21 +238,24 @@ public partial class Tile {
 		(int, int)[] offsets = NeighborIndexOffsets(count);
 		for (int i = 0; i < count; ++i) {
 			Tile t = i == 0 ? this : map.tileAt(XCoordinate + offsets[i].Item1, YCoordinate + offsets[i].Item2);
-			if (RankDistanceTo(t) <= rank) {
+			if (t != NONE && RankDistanceTo(t) <= rank) {
 				result.Add(t);
 			}
 		}
 	}
 
 	// Same as GetTilesWithinRankDistance, but includes "corner tiles",
-	// i.e., returns perfect tile squares.
+	// i.e., returns perfect tile squares (clipped to the map: off-map
+	// offsets are skipped, never returned as Tile.NONE).
 	public List<Tile> GetTilesWithinTileSquare(int rank) {
 		int count = (rank * 2 + 1) * (rank * 2 + 1);
 		List<Tile> result = new(Math.Max(count, 0));
 		(int, int)[] offsets = NeighborIndexOffsets(count);
 		for (int i = 0; i < count; ++i) {
 			Tile t = i == 0 ? this : map.tileAt(XCoordinate + offsets[i].Item1, YCoordinate + offsets[i].Item2);
-			result.Add(t);
+			if (t != NONE) {
+				result.Add(t);
+			}
 		}
 		return result;
 	}

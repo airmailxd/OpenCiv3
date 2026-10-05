@@ -103,7 +103,11 @@ namespace C7GameData {
 
 			var hasTargetUnit = target != NONE && target.owner != owner;
 			var hasForeignCity = tile.HasCity() && tile.cityAtTile.owner != owner;
-			var hasCityWalls = hasForeignCity && tile.cityAtTile.GetBuildings().Any(b => b.building.providesWalls);
+			// Only walls built in the city can be knocked down. Walls granted
+			// by a wonder (e.g. the Great Wall) are indestructible, so with
+			// only those the bombardment goes on to the units or the city.
+			CityBuilding destructibleWalls = hasForeignCity ? FindDestructibleWalls(tile.cityAtTile) : null;
+			var hasCityWalls = destructibleWalls != null;
 			var hasTileImprovements = tile.HasImprovements;
 
 			if (!(hasTargetUnit || hasTileImprovements || hasForeignCity))
@@ -113,7 +117,7 @@ namespace C7GameData {
 			hasAttackedThisTurn = true;
 
 			if (hasCityWalls)
-				await BombardCityWalls(tile);
+				await BombardCityWalls(tile, destructibleWalls);
 			else if (hasTargetUnit)
 				await BombardUnits(tile, target);
 			else if (hasForeignCity)
@@ -122,7 +126,23 @@ namespace C7GameData {
 				await BombardTileImprovements(tile);
 		}
 
-		private async Task BombardCityWalls(Tile tile) {
+		private static CityBuilding FindDestructibleWalls(City city) {
+			foreach (CityBuilding cb in city.constructed_buildings) {
+				if (cb.building.providesWalls) {
+					return cb;
+				}
+			}
+			return null;
+		}
+
+		// Whether bombardment can destroy the building: anything built in the
+		// city except wonders and the palace.
+		private static bool IsBombardableBuilding(CityBuilding cb) {
+			Building b = cb.building;
+			return !b.isCenterOfEmpire && !b.isSmallWonder && !b.IsGreatWonder();
+		}
+
+		private async Task BombardCityWalls(Tile tile, CityBuilding walls) {
 			// CF Civilopedia: City walls have a land bombardment defense of 8
 			// CF Civilopedia: Coastal defences have a land bombardment defense of 8
 			// Anecdotal: "City walls are hit first."
@@ -132,15 +152,13 @@ namespace C7GameData {
 
 			var hitCount = 0;
 
-			var walls = tile.cityAtTile.GetBuildings().First(b => b.building.providesWalls);
-
 			double bombardStrength  = StrengthVersus(null, CombatRole.Bombard, facingDirection);
 			double defenderStrength = wallDefence;
 			double attackerOdds = bombardStrength / (bombardStrength + defenderStrength);
 			if (Double.IsNaN(attackerOdds))
 				return;
 
-			if (tile.cityAtTile.GetBuildings().Contains(walls)) {
+			if (tile.cityAtTile.constructed_buildings.Contains(walls)) {
 				await RunAnimatedBombard(tile, attackerOdds, () => {
 					hitCount += 1;
 					tile.cityAtTile.RemoveBuilding(walls);
@@ -210,8 +228,11 @@ namespace C7GameData {
 			const int populationDefence = 12;
 			const float buildingOrPopulationOdds = 0.5f;
 
+			// Only buildings actually built in the city can be destroyed:
+			// buildings granted by wonders aren't stored in the city, and
+			// wonders (and the palace) can't be bombarded away.
 			// TODO: probably not canon to exclude palace
-			List<CityBuilding> eligibleBuildingsForBombardment = tile.cityAtTile.GetBuildings().Where(b => !b.building.isCenterOfEmpire).ToList();
+			List<CityBuilding> eligibleBuildingsForBombardment = tile.cityAtTile.constructed_buildings.Where(IsBombardableBuilding).ToList();
 
 			var targetBuildings = GameData.rng.NextDouble() <= buildingOrPopulationOdds && eligibleBuildingsForBombardment.Count > 0;
 			var defence = targetBuildings ? buildingDefence : populationDefence;

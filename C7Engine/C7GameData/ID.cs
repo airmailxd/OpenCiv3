@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
@@ -38,14 +39,25 @@ namespace C7GameData {
 			return new ID(key, magicNoneIdNumber);
 		}
 
+		// Parses the ToString() form, "<key>-<n>" or "<key>-none". Malformed
+		// input throws a FormatException.
 		public static ID FromString(string str) {
-			List<string> split = str.Split('-').ToList();
-			// To handle units like "Man-O-War" we need to only look at the final
-			// element of the .Split call to get the id.
-			string key = string.Join("-", split.GetRange(0, split.Count - 1));
-			int n = split[split.Count - 1] == "none" ? magicNoneIdNumber : int.Parse(split[split.Count - 1]);
+			if (str == null) {
+				throw new FormatException("ID string cannot be null");
+			}
+			// To handle units like "Man-O-War" we need to only look after the final
+			// dash to get the id.
+			int lastDash = str.LastIndexOf('-');
+			string key = lastDash >= 0 ? str.Substring(0, lastDash) : "";
+			string number = lastDash >= 0 ? str.Substring(lastDash + 1) : str;
+			if (number == "none") {
+				return None(key);
+			}
+			if (!int.TryParse(number, NumberStyles.Integer, CultureInfo.InvariantCulture, out int n)) {
+				throw new FormatException($"Invalid ID \"{str}\": \"{number}\" is not a number");
+			}
 			if (n < 0) {
-				throw new Exception($"ID cannot have a negative number, got {n}");
+				throw new FormatException($"ID cannot have a negative number, got {n}");
 			}
 			return new ID(key, n);
 		}

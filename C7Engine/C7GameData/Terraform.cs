@@ -57,7 +57,7 @@ public class Terraform {
 		SetRules(gameData.luaBehaviorEngine);
 	}
 
-	public string ToString() {
+	public override string ToString() {
 		return Name;
 	}
 
