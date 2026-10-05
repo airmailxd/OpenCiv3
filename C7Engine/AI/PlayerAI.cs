@@ -42,6 +42,7 @@ namespace C7Engine {
 				await AttemptTrading(player);
 			}
 
+			UpgradeUnits(player);
 			await DoUnitActions(player);
 
 			// Before ending the turn, adjust our sliders. We do this after unit
@@ -50,6 +51,18 @@ namespace C7Engine {
 			AdjustSliders(player);
 
 			log.Information("-> End " + player.civilization.cityNames[0] + $" turn {stopwatch.ElapsedMilliseconds} milliseconds");
+		}
+
+		// Upgrade units sitting in cities that can upgrade them, keeping a
+		// reserve of gold for emergencies.
+		private static void UpgradeUnits(Player player) {
+			const int GOLD_RESERVE = 100;
+			foreach (MapUnit unit in player.units.ToList()) {
+				UnitPrototype upgrade = unit.GetAvailableUpgrade();
+				if (upgrade != null && player.gold - unit.UpgradeCost(upgrade) >= GOLD_RESERVE) {
+					unit.Upgrade();
+				}
+			}
 		}
 
 		private static void MaybeDoPriorityReevaluation(Player player) {

@@ -1000,7 +1000,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade"
       ]
     },
     {
@@ -1299,7 +1300,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade"
       ]
     },
     {
@@ -1373,7 +1375,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade"
       ]
     },
     {
@@ -1445,7 +1448,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade"
       ]
     },
     {
@@ -1517,7 +1521,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade"
       ],
       "requiredResources": [
         "Iron"
@@ -1594,7 +1599,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade"
       ],
       "requiredResources": [
         "Horses"
@@ -1678,7 +1684,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade"
       ],
       "requiredResources": [
         "Horses"
@@ -1754,7 +1761,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade"
       ],
       "requiredResources": [
         "Iron"
@@ -1831,7 +1839,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade"
       ]
     },
     {
@@ -1906,7 +1915,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade"
       ],
       "requiredResources": [
         "Saltpeter"
@@ -1981,7 +1991,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade"
       ],
       "requiredResources": [
         "Horses",
@@ -2060,7 +2071,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade"
       ]
     },
     {
@@ -2130,7 +2142,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade"
       ],
       "requiredResources": [
         "Horses",
@@ -2209,7 +2222,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade"
       ],
       "requiredResources": [
         "Rubber"
@@ -2289,7 +2303,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade"
       ],
       "requiredResources": [
         "Oil",
@@ -2524,7 +2539,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade"
       ]
     },
     {
@@ -2601,7 +2617,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade"
       ],
       "requiredResources": [
         "Iron",
@@ -2681,7 +2698,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade"
       ]
     },
     {
@@ -3070,7 +3088,8 @@
         "disband",
         "goto",
         "explore",
-        "unload"
+        "unload",
+        "upgrade"
       ]
     },
     {
@@ -3147,7 +3166,8 @@
         "disband",
         "goto",
         "explore",
-        "unload"
+        "unload",
+        "upgrade"
       ]
     },
     {
@@ -3303,7 +3323,8 @@
         "disband",
         "goto",
         "explore",
-        "unload"
+        "unload",
+        "upgrade"
       ]
     },
     {
@@ -3378,7 +3399,8 @@
         "fortify",
         "disband",
         "goto",
-        "explore"
+        "explore",
+        "upgrade"
       ],
       "requiredResources": [
         "Iron",
@@ -3997,7 +4019,8 @@
         "wait",
         "fortify",
         "disband",
-        "load"
+        "load",
+        "upgrade"
       ],
       "requiredResources": [
         "Oil"
@@ -4226,7 +4249,8 @@
         "wait",
         "fortify",
         "disband",
-        "load"
+        "load",
+        "upgrade"
       ],
       "requiredResources": [
         "Oil",
@@ -4601,7 +4625,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade"
       ]
     },
     {
@@ -4646,7 +4671,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade"
       ]
     },
     {
@@ -4691,7 +4717,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade"
       ]
     },
     {
@@ -4736,7 +4763,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade"
       ]
     },
     {
@@ -4781,7 +4809,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade"
       ],
       "requiredResources": [
         "Iron"
@@ -4829,7 +4858,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade"
       ],
       "requiredResources": [
         "Iron"
@@ -4877,7 +4907,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade"
       ],
       "requiredResources": [
         "Horses"
@@ -4925,7 +4956,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade"
       ],
       "requiredResources": [
         "Horses",
@@ -4974,7 +5006,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade"
       ],
       "requiredResources": [
         "Horses"
@@ -5022,7 +5055,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade"
       ],
       "requiredResources": [
         "Saltpeter"
@@ -5070,7 +5104,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade"
       ],
       "requiredResources": [
         "Iron"
@@ -5118,7 +5153,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade"
       ]
     },
     {
@@ -5215,7 +5251,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade"
       ],
       "requiredResources": [
         "Oil",
@@ -5439,7 +5476,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade"
       ],
       "requiredResources": [
         "Horses"
@@ -5484,7 +5522,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade"
       ],
       "requiredResources": [
         "Horses"
@@ -5532,7 +5571,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade"
       ]
     },
     {
@@ -5574,7 +5614,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade"
       ],
       "requiredResources": [
         "Horses",
@@ -5623,7 +5664,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade"
       ],
       "requiredResources": [
         "Iron"
@@ -5671,7 +5713,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade"
       ],
       "requiredResources": [
         "Horses",
@@ -5720,7 +5763,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade"
       ]
     },
     {
@@ -5770,7 +5814,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade"
       ],
       "requiredResources": [
         "Saltpeter"
@@ -5847,7 +5892,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade"
       ],
       "requiredResources": [
         "Iron"
@@ -5925,7 +5971,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade"
       ]
     },
     {
@@ -6891,7 +6938,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade"
       ]
     },
     {
@@ -6936,7 +6984,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade"
       ],
       "requiredResources": [
         "Horses"
@@ -7098,7 +7147,8 @@
         "disband",
         "goto",
         "explore",
-        "unload"
+        "unload",
+        "upgrade"
       ]
     },
     {
@@ -7143,7 +7193,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade"
       ],
       "requiredResources": [
         "Iron"
@@ -7259,7 +7310,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade"
       ]
     },
     {
@@ -7414,7 +7466,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade"
       ]
     },
     {
@@ -7459,7 +7512,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade"
       ]
     },
     {
@@ -7508,7 +7562,8 @@
         "disband",
         "goto",
         "explore",
-        "unload"
+        "unload",
+        "upgrade"
       ]
     },
     {
@@ -7586,7 +7641,8 @@
         "fortify",
         "disband",
         "goto",
-        "explore"
+        "explore",
+        "upgrade"
       ],
       "requiredResources": [
         "Oil"
@@ -7746,7 +7802,8 @@
         "fortify",
         "disband",
         "goto",
-        "explore"
+        "explore",
+        "upgrade"
       ]
     },
     {
@@ -7821,7 +7878,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade"
       ],
       "requiredResources": [
         "Oil",
@@ -7972,7 +8030,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade"
       ]
     },
     {
@@ -11272,7 +11331,8 @@
     "shieldCostPerGold": 4,
     "shieldRateForDisbanding": 0.25,
     "allowLesserUnitProduction": false,
-    "radarTileVisibility": 2
+    "radarTileVisibility": 2,
+    "upgradeCostPerShield": 3
   },
   "timeOptions": {
     "baseUnit": "years",

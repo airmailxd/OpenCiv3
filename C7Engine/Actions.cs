@@ -63,6 +63,7 @@ public static class C7Action {
 	public const string UnitWait = "unit_wait";
 	public const string UnitLoad = "unit_load";
 	public const string UnitUnload = "unit_unload";
+	public const string UnitUpgrade = "unit_upgrade";
 
 	private static readonly Dictionary<string, UnitAction> toUnitAction = new() {
 		[UnitBuildCity] = UnitAction.BuildCity,
@@ -70,6 +71,7 @@ public static class C7Action {
 		[UnitHold] = UnitAction.Hold,
 		[UnitLoad] = UnitAction.Load,
 		[UnitUnload] = UnitAction.Unload,
+		[UnitUpgrade] = UnitAction.Upgrade,
 		[UnitWait] = UnitAction.Wait,
 		[UnitFortify] = UnitAction.Fortify,
 		[UnitDisband] = UnitAction.Disband,
@@ -104,7 +106,8 @@ public static class C7Action {
 		[UnitSentryEnemyOnly] = "Sentry Enemy Only",
 		[UnitWait] = "Wait",
 		[UnitLoad] = "Load",
-		[UnitUnload] = "Unload"
+		[UnitUnload] = "Unload",
+		[UnitUpgrade] = "Upgrade"
 	};
 
 	public static UnitAction? ToUnitAction(string action) {

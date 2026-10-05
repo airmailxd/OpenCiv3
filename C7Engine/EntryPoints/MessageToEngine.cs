@@ -45,6 +45,21 @@ namespace C7Engine {
 		}
 	}
 
+	public class MsgUpgradeUnit : MessageToEngine {
+		private ID unitID;
+
+		public MsgUpgradeUnit(ID unitID) {
+			this.unitID = unitID;
+		}
+
+		public override void process() {
+			MapUnit unit = EngineStorage.gameData.GetUnit(unitID);
+			if (unit != null && unit.Upgrade() && unit.owner.isHuman) {
+				new MsgUnitMoved(unit).send();
+			}
+		}
+	}
+
 	public class MsgMoveUnit : MessageToEngine {
 		private ID unitID;
 		private TileDirection dir;

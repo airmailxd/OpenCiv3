@@ -756,6 +756,9 @@ namespace C7GameData {
 			if (CanUnloadToTile(this.location) && this.location.HasCity()) {
 				result.Add(UnitAction.Unload);
 			}
+			if (GetAvailableUpgrade() != null) {
+				result.Add(UnitAction.Upgrade);
+			}
 
 			// Eventually we will have advanced actions too, whose availability will rely on their base actions' availability.
 			// unit.availableActions.Add("rename");

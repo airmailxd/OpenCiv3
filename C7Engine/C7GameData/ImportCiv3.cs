@@ -1368,6 +1368,7 @@ namespace C7GameData {
 			if (prto.Automate) yield return UnitAction.Automate;
 			if (prto.Load) yield return UnitAction.Load;
 			if (prto.Unload) yield return UnitAction.Unload;
+			if (prto.UpgradeUnit) yield return UnitAction.Upgrade;
 		}
 
 		private static IEnumerable<TerraformKey> GetUnitTerraforms(PRTO prto) {
@@ -2076,6 +2077,7 @@ namespace C7GameData {
 			RULE rule = theBiq.Rule[0];
 
 			save.Rules.MaximumResearchTime = rule.MaximumResearchTime;
+			save.Rules.UpgradeCostPerShield = rule.UpgradeCost;
 			save.Rules.MinimumResearchTime = rule.MinimumResearchTime;
 			save.Rules.MaximumLevel1CitySize = rule.MaximumLevel1CitySize;
 			save.Rules.MaximumLevel2CitySize = rule.MaximumLevel2CitySize;

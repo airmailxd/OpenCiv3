@@ -1257,7 +1257,11 @@ public partial class Game : Node {
 			// TODO: Which transport?
 			new MsgLoadToTransport(CurrentlySelectedUnit.id).send();
 		}
-		if (currentAction == C7Action.UnitUnload) {
+		// Upgrading and unloading share a key; upgrading wins when possible.
+		if (currentAction == C7Action.UnitUpgrade) {
+			ConfirmUpgrade(CurrentlySelectedUnit);
+		}
+		if (currentAction == C7Action.UnitUnload && CurrentlySelectedUnit.GetAvailableUpgrade() == null) {
 			new MsgUnloadTransport(CurrentlySelectedUnit.id).send();
 		}
 
@@ -1288,6 +1292,31 @@ public partial class Game : Node {
 			return;
 		}
 		new MsgStartWorkerJob(CurrentlySelectedUnit.id, terraform).send();
+	}
+
+	private void ConfirmUpgrade(MapUnit unit) {
+		UnitPrototype upgrade = unit.GetAvailableUpgrade();
+		if (upgrade == null) {
+			return;
+		}
+
+		int cost = unit.UpgradeCost(upgrade);
+		if (unit.owner.gold < cost) {
+			popupOverlay.ShowPopup(
+				new InformationalPopup(
+					$"Upgrading our {unit.name} to {upgrade.name} would cost {cost} gold.\nWe only have {unit.owner.gold}.",
+					AdvisorHead.Advisor.Domestic, AdvisorHead.Mood.Surprised),
+				PopupOverlay.PopupCategory.Advisor);
+			return;
+		}
+
+		popupOverlay.ShowPopup(
+			new ConfirmationPopup(
+				$"Upgrade our {unit.name} to {upgrade.name} for {cost} gold?",
+				"Yes, upgrade it.",
+				"No, not now.",
+				() => { new MsgUpgradeUnit(unit.id).send(); }),
+			PopupOverlay.PopupCategory.Advisor);
 	}
 
 	private void SetGotoMode(bool isOn) {
