@@ -20,10 +20,16 @@ namespace C7Engine {
 
 			public float bestAttack;
 			public float bestDefense;
-			public float bestNonWonderCulture;
-			public int numberOfReachableOpenCitySpots;
-			public bool inExpansionPhase;
 			public readonly bool atWar;
+
+			// Finding the open city spots scores every known tile, so only do
+			// it if a decision needs it: when scoring a settler, or to tell if
+			// a player with 5 or more cities is still expanding.
+			private int? numberOfReachableOpenCitySpots;
+			public int NumberOfReachableOpenCitySpots => numberOfReachableOpenCitySpots ??= ChooseProducible.NumberOfReachableOpenCitySpots(city);
+
+			private bool? inExpansionPhase;
+			public bool InExpansionPhase => inExpansionPhase ??= player.cities.Count < 5 || NumberOfReachableOpenCitySpots > player.cities.Count * 2;
 
 			public ProducibleStats(City city, Player player) {
 				this.city = city;
@@ -100,7 +106,7 @@ namespace C7Engine {
 
 			bool debugLogging = log.IsEnabled(LogEventLevel.Debug);
 			if (debugLogging) {
-				log.Debug("{Civilization}: {City}---- {InExpansionPhase} {OpenCitySpots}", player.civilization.name, city, stats.inExpansionPhase, stats.numberOfReachableOpenCitySpots);
+				log.Debug("{Civilization}: {City}---- {InExpansionPhase} {OpenCitySpots}", player.civilization.name, city, stats.InExpansionPhase, stats.NumberOfReachableOpenCitySpots);
 			}
 			foreach (IProducible option in options) {
 				// Get the item score, with a +/- 10% random adjustment to make
@@ -170,9 +176,15 @@ namespace C7Engine {
 			///
 
 			// Weight the unit's attack and defense score by comparing it to the
-			// best stat available.
-			score += unit.attack / stats.bestAttack * attackWeight;
-			score += unit.defense / stats.bestDefense * defenseWeight;
+			// best stat available. If no option has any attack (or defense),
+			// the stat doesn't tell options apart (and 0 / 0 would make every
+			// unit's score NaN, so none could be chosen).
+			if (stats.bestAttack > 0) {
+				score += unit.attack / stats.bestAttack * attackWeight;
+			}
+			if (stats.bestDefense > 0) {
+				score += unit.defense / stats.bestDefense * defenseWeight;
+			}
 
 			// Penalize more expensive units.
 			score -= city.TurnsToProduce(unit);
@@ -216,7 +228,7 @@ namespace C7Engine {
 
 			// Penalize going over the unit support cap unless we're at war or
 			// still in the expansion phase.
-			if (!atWar && !stats.inExpansionPhase) {
+			if (!atWar && !stats.InExpansionPhase) {
 				int unitSupportCost = stats.UnitSupportCost;
 				if (unitSupportCost > 0) {
 					score -= unitSupportCost / 2;
@@ -241,15 +253,15 @@ namespace C7Engine {
 				// Don't build settlers if we don't have anywhere to go or if we
 				// already have enough settlers under construction to fill all
 				// the spots.
-				if (stats.numberOfReachableOpenCitySpots <= stats.SettlersUnderConstruction) {
+				if (stats.NumberOfReachableOpenCitySpots <= stats.SettlersUnderConstruction) {
 					return int.MinValue;
 				}
 
 				// If there are more open spots than we have cities we are still
 				// aggressively expanding. Negate the population penalty, and
 				// weight settlers more heavily if there are way more open spots.
-				if (stats.numberOfReachableOpenCitySpots > player.cities.Count) {
-					score += populationCostPenalty * Math.Min(3.0f, stats.numberOfReachableOpenCitySpots / player.cities.Count);
+				if (stats.NumberOfReachableOpenCitySpots > player.cities.Count) {
+					score += populationCostPenalty * Math.Min(3.0f, stats.NumberOfReachableOpenCitySpots / player.cities.Count);
 				}
 
 				// Slightly penalize going over the optimal number of cities.
@@ -355,13 +367,13 @@ namespace C7Engine {
 			}
 
 			// Penalize more expensive buildings.
-			score -= city.TurnsToProduce(building) / (stats.inExpansionPhase ? 1 : 2);
+			score -= city.TurnsToProduce(building) / (stats.InExpansionPhase ? 1 : 2);
 
 			// Penalize buildings with higher maintenance costs.
 			score -= building.maintenanceCost;
 
 			// Boost buildings a bit if we aren't at war and aren't expanding.
-			if (!stats.inExpansionPhase && !atWar) {
+			if (!stats.InExpansionPhase && !atWar) {
 				score += 20;
 			}
 
@@ -374,17 +386,12 @@ namespace C7Engine {
 		}
 
 		private static ProducibleStats CalculateStats(City city, Player player, List<IProducible> options) {
-			ProducibleStats stats = new(city, player) {
-				numberOfReachableOpenCitySpots = NumberOfReachableOpenCitySpots(city),
-			};
-			stats.inExpansionPhase = city.owner.cities.Count < 5 || stats.numberOfReachableOpenCitySpots > city.owner.cities.Count * 2;
+			ProducibleStats stats = new(city, player);
 
 			foreach (IProducible option in options) {
 				if (option is UnitPrototype unit) {
 					stats.bestAttack = Math.Max(stats.bestAttack, unit.attack);
 					stats.bestDefense = Math.Max(stats.bestDefense, unit.defense);
-				} else if (option is Building building && building.greatWonderProperties != null) {
-					stats.bestNonWonderCulture = Math.Max(stats.bestNonWonderCulture, building.culturePerTurn);
 				}
 			}
 
@@ -437,9 +444,16 @@ namespace C7Engine {
 					++result;
 
 					// Remove all the spots that would become invalid locations
-					// if we built this city.
+					// if we built this city: like SettlerLocationAI, cities
+					// can't be founded within two steps of another city.
 					foreach (Tile n in tile.neighbors.Values) {
+						if (n == Tile.NONE) {
+							continue;
+						}
 						scoredLocations.Remove(n);
+						foreach (Tile nn in n.neighbors.Values) {
+							scoredLocations.Remove(nn);
+						}
 					}
 				}
 			}

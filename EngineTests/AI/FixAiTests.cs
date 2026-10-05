@@ -304,3 +304,55 @@ public sealed class FixAiWorkerTests : IClassFixture<SaveGameFixture>, IDisposab
 		Assert.True(plan == null || plan.destination != island, "the worker was sent across the water");
 	}
 }
+
+public sealed class FixAiProductionTests : IClassFixture<SaveGameFixture>, IDisposable {
+	private readonly C7GameData.GameData gameData;
+	private readonly Player player;
+
+	public FixAiProductionTests(SaveGameFixture fixture) {
+		gameData = fixture.saveGame.ToGameData(fixture.behaviors);
+		EngineStorage.InitializeGameDataForTests(gameData);
+		EngineStorage.animationsEnabled = false;
+		player = gameData.players.First(p => !p.isBarbarians && !p.isHuman && p.units.Any(u => u.unitType.isSettler));
+	}
+
+	public void Dispose() {
+		while (EngineStorage.TryDequeueNextMessageToUI(out _)) { }
+	}
+
+	// Each counted spot rules out every other spot within two tiles of it,
+	// as founding a city there would.
+	[Fact]
+	public void OpenCitySpotsAreAtLeastThreeTilesApart() {
+		City city = CityInteractions.BuildCity(player.units.First(u => u.unitType.isSettler).location, player, player.GetNextCityName());
+		foreach (Tile t in gameData.map.tiles) {
+			player.tileKnowledge.knownTiles.Add(t);
+		}
+
+		List<Tile> chosen = new();
+		foreach (Tile t in SettlerLocationAI.GetScoredSettlerCandidates(city.location, player).OrderByDescending(p => p.Value).Select(p => p.Key)) {
+			if (chosen.All(c => c.DistanceTo(t) > 2)) {
+				chosen.Add(t);
+			}
+		}
+		Assert.True(chosen.Count > 1);
+
+		int counted = (int)typeof(ChooseProducible).GetMethod("NumberOfReachableOpenCitySpots", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
+			.Invoke(null, new object[] { city });
+		Assert.Equal(chosen.Count, counted);
+	}
+
+	// With no option that has any attack (or defense), units used to all score
+	// NaN and could never be chosen.
+	[Fact]
+	public void UnitsCanBeChosenWhenNoOptionCanAttack() {
+		City city = CityInteractions.BuildCity(player.units.First(u => u.unitType.isSettler).location, player, player.GetNextCityName());
+		UnitPrototype wall = new() { name = "Wall", attack = 0, defense = 1, movement = 1, shieldCost = 10 };
+		wall.categories.Add("Land");
+		object stats = typeof(ChooseProducible).GetMethod("CalculateStats", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
+			.Invoke(null, new object[] { city, player, new List<IProducible> { wall } });
+		float score = (float)typeof(ChooseProducible).GetMethod("ScoreUnit", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
+			.Invoke(null, new object[] { stats, city, player, wall });
+		Assert.False(float.IsNaN(score));
+	}
+}
