@@ -29,6 +29,10 @@ public partial class MainMenu : Node {
 		try {
 			DisplayTitleScreen();
 
+			// A load given up on hosts nothing: otherwise the next game
+			// started from the menu would be hosted on the LAN.
+			LoadDialog.Canceled += () => LanSession.HostNextGame = false;
+
 			AudioManager = GetNode<AudioManager>("/root/GlobalAudioManager");
 			PlayMusic();
 
@@ -44,6 +48,9 @@ public partial class MainMenu : Node {
 		// To pass data between scenes, putting path string in a global singleton and reading it later in createGame
 		Global = GetNode<GlobalSingleton>("/root/GlobalSingleton");
 		Global.ResetLoadGameFields();
+
+		// Let go of anything the UI cached from the last game.
+		UICaches.Clear();
 
 		// Back at the menu, any LAN game is over.
 		LanSession.End();
@@ -64,7 +71,10 @@ public partial class MainMenu : Node {
 		ButtonContainer.CreateButtons();
 
 		// TODO: enable buttons are features are implemented
-		ButtonContainer.NewGame.Pressed += GoToWorldSetup;
+		ButtonContainer.NewGame.Pressed += () => {
+			LanSession.HostNextGame = false;
+			GoToWorldSetup();
+		};
 		ButtonContainer.QuickStart.Pressed += QuickStartGame;
 		ButtonContainer.Tutorial.Pressed += QuickStartGame;
 		ButtonContainer.Tutorial.Visible = false;
@@ -134,6 +144,11 @@ public partial class MainMenu : Node {
 
 	public void LoadGame() {
 		log.Information("load game button pressed");
+		LanSession.HostNextGame = false;
+		OpenLoadDialog();
+	}
+
+	private void OpenLoadDialog() {
 		PlayButtonPressedSound();
 		LoadDialog.Popup();
 	}
@@ -160,10 +175,16 @@ public partial class MainMenu : Node {
 			if (action == "load") {
 				dialog.Hide();
 				LanSession.HostNextGame = true;
-				LoadGame();
+				OpenLoadDialog();
 			}
 		};
 		dialog.Canceled += () => LanSession.HostNextGame = false;
+		// The dialog is made for each click, so free it once it closes.
+		dialog.VisibilityChanged += () => {
+			if (!dialog.Visible) {
+				dialog.QueueFree();
+			}
+		};
 		AddChild(dialog);
 		dialog.PopupCentered();
 	}

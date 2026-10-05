@@ -65,6 +65,19 @@ public partial class Advisors : CenterContainer {
 		Show();
 	}
 
+	/// <summary>
+	/// Call after the game data was replaced (e.g. by a LAN snapshot). The
+	/// advisors hold objects of the old game, so let go of them and draw the
+	/// advisor on show again from the new game.
+	/// </summary>
+	public void RefreshAfterGameReplaced() {
+		domesticAdvisor.ForgetGameObjects();
+		scienceAdvisor.RefreshAfterGameReplaced();
+		if (Visible) {
+			OnShowSpecificAdvisor(latest);
+		}
+	}
+
 	private void HideAdvisors() {
 		domesticAdvisor.Hide();
 		tradeAdvisor.Hide();

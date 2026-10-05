@@ -29,8 +29,17 @@ public partial class ScienceAdvisor : Control {
 	// Stored separately so we can modify this without mutating the player.
 	private string eraName;
 
-	// store the last opened era window so next time we open the advisor, it opens at the same era window
-	private static string lastOpenedEra = string.Empty;
+	// The last era window each player opened, so next time they open the
+	// advisor it opens at the same era window. Kept per player for hotseat
+	// games; the advisor is made anew with each game.
+	private readonly Dictionary<ID, string> lastOpenedEra = new();
+
+	// What the tech boxes on show were drawn for, so they can be updated in
+	// place when the tree is drawn again for the same era of the same game.
+	private string drawnEra;
+	private GameData drawnGameData;
+	private Player drawnPlayer;
+	private readonly Dictionary<Tech, TechBox> techBoxByTech = new();
 
 	public ScienceAdvisor() {
 		MouseFilter = MouseFilterEnum.Stop;
@@ -101,24 +110,33 @@ public partial class ScienceAdvisor : Control {
 		EngineStorage.ReadGameData((GameData gameData) => {
 			List<Tech> allTechs = gameData.techs;
 			Player player = gameData.GetUIControllerPlayer();
-			eraName = string.IsNullOrEmpty(lastOpenedEra) ? player.eraCivilopediaName : lastOpenedEra;
+			eraName = lastOpenedEra.TryGetValue(player.id, out string lastEra) ? lastEra : player.eraCivilopediaName;
 			this.DrawTechTree(eraName, player, allTechs, player.GetAvailableTechsToResearch(allTechs));
 		});
 	}
 
 	void DrawTechTree(string eraName, Player player, List<Tech> allTechs, HashSet<Tech> availableTechsToResearch) {
-		// clear all tech-box items so we don't draw new ones over the old ones
-		foreach (TechBox tb in techBoxes) {
-			background.RemoveChild(tb);
-			tb.QueueFree();
+		GameData gameData = EngineStorage.gameData;
+
+		// The boxes on show can be updated in place if they are for the same
+		// era of the same game; otherwise clear them so we don't draw new
+		// ones over the old ones.
+		bool reuseBoxes = eraName == drawnEra
+			&& ReferenceEquals(gameData, drawnGameData)
+			&& ReferenceEquals(player, drawnPlayer)
+			&& techBoxes.Count > 0;
+		if (!reuseBoxes) {
+			ClearTechBoxes();
 		}
-		techBoxes.Clear();
+		drawnEra = eraName;
+		drawnGameData = gameData;
+		drawnPlayer = player;
 
 		HashSet<ID> knownTechs = player.knownTechs;
 		previousEra.Show();
 		nextEra.Show();
 
-		lastOpenedEra = eraName;
+		lastOpenedEra[player.id] = eraName;
 
 		Queue<Tech> queue = player.ResearchQueue;
 
@@ -139,7 +157,6 @@ public partial class ScienceAdvisor : Control {
 		// Work out what every box needs once, rather than per box: the
 		// beakers made per turn, each tech's place in the queue, and what
 		// each tech enables.
-		GameData gameData = EngineStorage.gameData;
 		int beakersPerTurn = ScienceEstimates.BeakersPerTurn(player);
 		Dictionary<Tech, int> queueIndex = new();
 		{
@@ -176,6 +193,11 @@ public partial class ScienceAdvisor : Control {
 				estimatedTurns = ScienceEstimates.TurnsToResearch(gameData, player, tech, beakersPerTurn);
 			}
 
+			if (reuseBoxes && techBoxByTech.TryGetValue(tech, out TechBox existing)) {
+				existing.UpdateState(techState, queueNumber, estimatedTurns);
+				continue;
+			}
+
 			TechBox techButton = new(tech, techState, queueNumber, estimatedTurns, effects);
 			techButton.SetPosition(new Vector2(tech.X, tech.Y));
 			techButton.Pressed += () => {
@@ -184,24 +206,39 @@ public partial class ScienceAdvisor : Control {
 			};
 			background.AddChild(techButton);
 			techBoxes.Add(techButton);
+			techBoxByTech[tech] = techButton;
 		}
 	}
 
-	private void ChangeEraAndDrawTree(int delta) {
+	private void ClearTechBoxes() {
 		foreach (TechBox tb in techBoxes) {
 			background.RemoveChild(tb);
 			tb.QueueFree();
 		}
 		techBoxes.Clear();
+		techBoxByTech.Clear();
+		drawnEra = null;
+		drawnGameData = null;
+		drawnPlayer = null;
+	}
+
+	private void ChangeEraAndDrawTree(int delta) {
+		ClearTechBoxes();
 
 		EngineStorage.ReadGameData((GameData gameData) => {
 			List<Tech> allTechs = gameData.techs;
 			Player player = gameData.GetUIControllerPlayer();
-			eraName = string.IsNullOrEmpty(lastOpenedEra)
-				? EraIndexToEra(GetEraIndex(eraName) + delta)
-				: EraIndexToEra(GetEraIndex(lastOpenedEra) + delta);
+			string currentEra = lastOpenedEra.TryGetValue(player.id, out string lastEra) ? lastEra : eraName;
+			eraName = EraIndexToEra(GetEraIndex(currentEra) + delta);
 			DrawTechTree(eraName, player, allTechs, player.GetAvailableTechsToResearch(allTechs));
 		});
+	}
+
+	// Called when the game was replaced (e.g. by a LAN snapshot): the boxes
+	// belong to the old game, so let go of them. Showing the advisor draws
+	// them again.
+	public void RefreshAfterGameReplaced() {
+		ClearTechBoxes();
 	}
 
 

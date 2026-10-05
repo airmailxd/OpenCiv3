@@ -583,5 +583,6 @@ public partial class Util {
 		TextureLoader.ClearCache();
 		AnimationManager.ClearCache();
 		PlayerTextureUtil.ClearCache();
+		UICaches.Clear();
 	}
 }
