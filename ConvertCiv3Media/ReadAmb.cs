@@ -1,4 +1,5 @@
 using System;
+using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -50,8 +51,8 @@ public class Amb {
 			var delay = st.NoteOnEvent.timeDelta * secondsPerTick;
 			var terminates = st.NoteOffEvent.timeDelta * secondsPerTick;
 
-			var prgmChunk = ambData.prgmChunks.Skip(i - 1).First();
-			var kmapChunk = ambData.kmapChunks.Skip(i - 1).First();
+			var prgmChunk = ElementAt(ambData.prgmChunks, i - 1);
+			var kmapChunk = ElementAt(ambData.kmapChunks, i - 1);
 
 			var wavFileName = kmapChunk.items[0].wavFileName; // should we be accessing [0] in items?
 
@@ -88,6 +89,14 @@ public class Amb {
 		}
 
 		soundEffects = soundEffects.OrderBy(e => e.delayStart).ToList();
+	}
+
+	// Same as list.Skip(index).First(), including the exception when there is no such element
+	private static T ElementAt<T>(List<T> list, int index) {
+		if (index >= list.Count) {
+			throw new InvalidOperationException("Sequence contains no elements");
+		}
+		return list[Math.Max(index, 0)];
 	}
 
 	// the amb data being midi, have an upper bound of 127,
@@ -137,7 +146,7 @@ public class AmbData {
 
 	private int timeDeltaOffset = 0;
 
-	private System.Text.ASCIIEncoding ascii = new System.Text.ASCIIEncoding();
+	private static readonly System.Text.ASCIIEncoding ascii = new System.Text.ASCIIEncoding();
 
 	private void Load(string path) {
 		if (!path.EndsWith(".amb", StringComparison.CurrentCultureIgnoreCase)) {
@@ -169,9 +178,9 @@ public class AmbData {
 					};
 					// skip 4 bytes for 0xFA that terminates the chunk (early)
 					var eff = GetNullTerminatedString(ambBytes, offset + 36);
-					prgm.effectName = System.Text.Encoding.UTF8.GetString(eff.data);
+					prgm.effectName = eff.text;
 					var var = GetNullTerminatedString(ambBytes, offset + 36 + eff.size + 1); // +1 to account for the terminating byte 0x00
-					prgm.varName = System.Text.Encoding.UTF8.GetString(var.data);
+					prgm.varName = var.text;
 					this.prgmChunks.Add(prgm);
 					offset += prgm.size + HEADER_SIZE;
 					break;
@@ -184,23 +193,29 @@ public class AmbData {
 						unknownFlag2 = GetFlag(ambBytes[offset + 8], 1),
 						unknownInt1 = BitConverter.ToInt32(ambBytes, offset + 12),
 						unknownInt2 = BitConverter.ToInt32(ambBytes, offset + 16),
-						varName = System.Text.Encoding.UTF8.GetString(varName.data),
+						varName = varName.text,
 						itemCount = BitConverter.ToInt32(ambBytes, offset + 20 + varName.size + 1),
 						dataSize = BitConverter.ToInt32(ambBytes, offset + 24 + varName.size + 1),
 					};
 					var chunkSize = 24 + varName.size + 1;
 
 					kmap.items = new KmapItem[kmap.itemCount];
-					for (int i = 0; i < kmap.items.Length; i++) {
+					if (kmap.items.Length > 0) {
+						// Note that every item is read from the same offset
 						var wavFile = GetNullTerminatedString(ambBytes, offset + 40 + varName.size + 1);
-						var kmapItem = new KmapItem() {
-							size = 12 + wavFile.size + 1,
-							unknown1 = BitConverter.ToInt32(ambBytes, offset + 28 + varName.size + 1),
-							unknown2 = BitConverter.ToInt32(ambBytes, offset + 32 + varName.size + 1),
-							unknown3 = BitConverter.ToInt32(ambBytes, offset + 36 + varName.size + 1),
-							wavFileName = System.Text.Encoding.UTF8.GetString(wavFile.data)
-						};
-						kmap.items[i] = kmapItem;
+						int unknown1 = BitConverter.ToInt32(ambBytes, offset + 28 + varName.size + 1);
+						int unknown2 = BitConverter.ToInt32(ambBytes, offset + 32 + varName.size + 1);
+						int unknown3 = BitConverter.ToInt32(ambBytes, offset + 36 + varName.size + 1);
+						for (int i = 0; i < kmap.items.Length; i++) {
+							var kmapItem = new KmapItem() {
+								size = 12 + wavFile.size + 1,
+								unknown1 = unknown1,
+								unknown2 = unknown2,
+								unknown3 = unknown3,
+								wavFileName = wavFile.text
+							};
+							kmap.items[i] = kmapItem;
+						}
 					}
 					this.kmapChunks.Add(kmap);
 					offset += chunkSize + HEADER_SIZE;
@@ -215,7 +230,7 @@ public class AmbData {
 						dataSize = BitConverter.ToInt32(ambBytes, offset + 8),
 						unknownInt1 =  BitConverter.ToInt32(ambBytes, offset + 12),
 						unknownInt2 =  BitConverter.ToInt32(ambBytes, offset + 16),
-						terminated = ambBytes.Skip(offset + 20).Take(4).ToArray(),
+						terminated = GetBytes(ambBytes, offset + 20, 4),
 					};
 					this.glblChunk = glbl;
 					offset += glbl.size + HEADER_SIZE;
@@ -223,10 +238,10 @@ public class AmbData {
 				// start of Midi section
 				case 0x6468544d: // MThd
 					var midi = new MidiData() {
-						headerSize = GetInt32FromBigEndian(ambBytes.Skip(offset + 4).Take(4).ToArray()),
-						midiFormat = GetInt16FromBigEndian(ambBytes.Skip(offset + 8).Take(2).ToArray()),
-						trackCount = GetInt16FromBigEndian(ambBytes.Skip(offset + 10).Take(2).ToArray()),
-						ticksPerQuarterNote = GetInt16FromBigEndian(ambBytes.Skip(offset + 12).Take(2).ToArray()),
+						headerSize = GetInt32FromBigEndian(ambBytes, offset + 4),
+						midiFormat = GetInt16FromBigEndian(ambBytes, offset + 8),
+						trackCount = GetInt16FromBigEndian(ambBytes, offset + 10),
+						ticksPerQuarterNote = GetInt16FromBigEndian(ambBytes, offset + 12),
 					};
 
 					midi.soundTracks = new SoundTrack[midi.trackCount]; // initialize the sound track array since we know how many tracks we have
@@ -234,7 +249,7 @@ public class AmbData {
 					offset += 14;
 					break;
 				case 0x6b72544d: // MTrk
-					var trackSize = GetInt32FromBigEndian(ambBytes.Skip(offset + 4).Take(4).ToArray());
+					var trackSize = GetInt32FromBigEndian(ambBytes, offset + 4);
 
 					var soundTrack = new SoundTrack() { };
 
@@ -249,8 +264,8 @@ public class AmbData {
 
 						var varLenItem = ReadVariableLengthItem(ambBytes, offset);
 
-						var eventType = ambBytes.Skip(offset + varLenItem.length).First();
-						var eventId = ambBytes.Skip(offset + varLenItem.length + 1).First();
+						var eventType = ByteAt(ambBytes, offset + varLenItem.length);
+						var eventId = ByteAt(ambBytes, offset + varLenItem.length + 1);
 
 						var highNibble = -1;
 						var lowNibble = -1;
@@ -324,7 +339,7 @@ public class AmbData {
 	// Midi meta events
 	private TrackNameEvent ParseTrackNameEvent(VarLenItem varLenItem, byte[] bytes, int offset) {
 		int eventOffset = offset + varLenItem.length;
-		int eventSize = bytes.Skip(eventOffset + 2).First();
+		int eventSize = ByteAt(bytes, eventOffset + 2);
 		var midiEvent = new TrackNameEvent() {
 			size = eventSize,
 			timeDelta = timeDeltaOffset + varLenItem.value,
@@ -336,16 +351,16 @@ public class AmbData {
 
 	private SMPTEOffsetEvent ParseSMPTEOffsetEvent(VarLenItem varLenItem, byte[] bytes, int offset) {
 		int eventOffset = offset + varLenItem.length;
-		int eventSize = bytes.Skip(eventOffset + 2).First();
+		int eventSize = ByteAt(bytes, eventOffset + 2);
 		var midiEvent = new SMPTEOffsetEvent() {
 			size = eventSize,
 			timeDelta = timeDeltaOffset + varLenItem.value,
-			framesPerSecond = GetFramesPerSecond(bytes.Skip(eventOffset + 3).First()),
-			hours = ExtractBits(bytes.Skip(eventOffset + 3).ToArray().First(), 0, 5),
-			minutes = bytes.Skip(eventOffset + 4).First(),
-			seconds = bytes.Skip(eventOffset + 5).First(),
-			frames = bytes.Skip(eventOffset + 6).First(),
-			subFrames = bytes.Skip(eventOffset + 7).First(),
+			framesPerSecond = GetFramesPerSecond(ByteAt(bytes, eventOffset + 3)),
+			hours = ExtractBits(ByteAt(bytes, eventOffset + 3), 0, 5),
+			minutes = ByteAt(bytes, eventOffset + 4),
+			seconds = ByteAt(bytes, eventOffset + 5),
+			frames = ByteAt(bytes, eventOffset + 6),
+			subFrames = ByteAt(bytes, eventOffset + 7),
 		};
 		timeDeltaOffset += midiEvent.timeDelta;
 		return midiEvent;
@@ -353,14 +368,14 @@ public class AmbData {
 
 	private TimeSignatureEvent ParseTimeSignatureEvent(VarLenItem varLenItem, byte[] bytes, int offset) {
 		int eventOffset = offset + varLenItem.length;
-		int eventSize = bytes.Skip(eventOffset + 2).First();
+		int eventSize = ByteAt(bytes, eventOffset + 2);
 		var midiEvent = new TimeSignatureEvent {
 			size = eventSize,
 			timeDelta = timeDeltaOffset + varLenItem.value,
-			numerator = bytes.Skip(eventOffset + 3).First(),
-			pow = bytes.Skip(eventOffset + 4).First(),
-			metronomePulse = bytes.Skip(eventOffset + 5).First(),
-			num32NotesPerBeat = bytes.Skip(eventOffset + 6).First(),
+			numerator = ByteAt(bytes, eventOffset + 3),
+			pow = ByteAt(bytes, eventOffset + 4),
+			metronomePulse = ByteAt(bytes, eventOffset + 5),
+			num32NotesPerBeat = ByteAt(bytes, eventOffset + 6),
 		};
 		timeDeltaOffset += midiEvent.timeDelta;
 		return midiEvent;
@@ -368,9 +383,9 @@ public class AmbData {
 
 	private SetTempoEvent ParseSetTempoEvent(VarLenItem varLenItem, byte[] bytes, int offset) {
 		int eventOffset = offset + varLenItem.length;
-		int eventSize = bytes.Skip(eventOffset + 2).First();
+		int eventSize = ByteAt(bytes, eventOffset + 2);
 		// create an int from 3 bytes, in big endian mode
-		int value = GetInt24FromBigEndian(bytes.Skip(eventOffset + 3).Take(3).ToArray());
+		int value = GetInt24FromBigEndian(bytes, eventOffset + 3);
 		var midiEvent = new SetTempoEvent {
 			size = eventSize,
 			timeDelta = timeDeltaOffset + varLenItem.value,
@@ -387,8 +402,8 @@ public class AmbData {
 			size = varLenItem.length + 3,
 			timeDelta = timeDeltaOffset + varLenItem.value,
 			channelNumber = lowNibble,
-			key = bytes.Skip(eventOffset + 1).First(),
-			velocity = bytes.Skip(eventOffset + 2).First(),
+			key = ByteAt(bytes, eventOffset + 1),
+			velocity = ByteAt(bytes, eventOffset + 2),
 		};
 		timeDeltaOffset += midiEvent.timeDelta;
 		return midiEvent;
@@ -400,8 +415,8 @@ public class AmbData {
 			size = varLenItem.length + 3,
 			timeDelta = timeDeltaOffset + varLenItem.value,
 			channelNumber = lowNibble,
-			key = bytes.Skip(eventOffset + 1).First(),
-			velocity = bytes.Skip(eventOffset + 2).First(),
+			key = ByteAt(bytes, eventOffset + 1),
+			velocity = ByteAt(bytes, eventOffset + 2),
 		};
 		timeDeltaOffset += midiEvent.timeDelta;
 		return midiEvent;
@@ -413,8 +428,8 @@ public class AmbData {
 			size = varLenItem.length + 3,
 			timeDelta = timeDeltaOffset + varLenItem.value,
 			channelNumber = lowNibble,
-			controllerNumber = bytes.Skip(eventOffset + 1).First(),
-			value = bytes.Skip(eventOffset + 2).First(),
+			controllerNumber = ByteAt(bytes, eventOffset + 1),
+			value = ByteAt(bytes, eventOffset + 2),
 		};
 		timeDeltaOffset += midiEvent.timeDelta;
 		return midiEvent;
@@ -426,7 +441,7 @@ public class AmbData {
 			size = varLenItem.length + 2,
 			timeDelta = timeDeltaOffset + varLenItem.value,
 			channelNumber = lowNibble,
-			programNumber = bytes.Skip(eventOffset + 1).First(),
+			programNumber = ByteAt(bytes, eventOffset + 1),
 		};
 		timeDeltaOffset += midiEvent.timeDelta;
 		return midiEvent;
@@ -459,32 +474,58 @@ public class AmbData {
 		return (value >> startBit) & mask;
 	}
 
-	private (int size, byte[] data) GetNullTerminatedString(byte[] bytes, int offset) {
-		List<byte> data = new List<byte>();
-		while (bytes[offset] != 0x00) {
-			data.Add(bytes[offset]);
-			offset++;
+	// Returns the length in bytes (excluding the terminating 0x00) and the UTF-8 decoded string
+	private (int size, string text) GetNullTerminatedString(byte[] bytes, int offset) {
+		if ((uint)offset >= (uint)bytes.Length) {
+			throw new IndexOutOfRangeException();
+		}
+		int end = Array.IndexOf(bytes, (byte)0x00, offset);
+		if (end < 0) {
+			// ran off the end of the data without finding the terminator
+			throw new IndexOutOfRangeException();
 		}
 
-		var d = data.ToArray();
-		return (d.Length, d);
+		int size = end - offset;
+		return (size, System.Text.Encoding.UTF8.GetString(bytes, offset, size));
+	}
+
+	// Same as bytes.Skip(offset).First(), including the exception when offset is past the end
+	private static byte ByteAt(byte[] bytes, int offset) {
+		if (offset >= bytes.Length) {
+			throw new InvalidOperationException("Sequence contains no elements");
+		}
+		return bytes[Math.Max(offset, 0)];
+	}
+
+	// Same as bytes.Skip(offset).Take(count).ToArray(): up to count bytes, fewer at the end of the data
+	private static byte[] GetBytes(byte[] bytes, int offset, int count) {
+		offset = Math.Clamp(offset, 0, bytes.Length);
+		return bytes.AsSpan(offset, Math.Min(count, bytes.Length - offset)).ToArray();
+	}
+
+	// Throws IndexOutOfRangeException if fewer than count bytes are left, like indexing into a shorter Skip/Take copy did
+	private static ReadOnlySpan<byte> BigEndianBytes(byte[] bytes, int offset, int count) {
+		offset = Math.Clamp(offset, 0, bytes.Length);
+		if (bytes.Length - offset < count) {
+			throw new IndexOutOfRangeException();
+		}
+		return new ReadOnlySpan<byte>(bytes, offset, count);
 	}
 
 	private bool GetFlag(byte b, int index) {
 		return (b & (1 << index)) != 0;
 	}
 
-	private int GetInt32FromBigEndian(byte[] bytes) {
-		int value = bytes[0] << 24 | bytes[1] << 16 | bytes[2] << 8 | bytes[3];
+	private int GetInt32FromBigEndian(byte[] bytes, int offset) {
+		return BinaryPrimitives.ReadInt32BigEndian(BigEndianBytes(bytes, offset, 4));
+	}
+	private int GetInt24FromBigEndian(byte[] bytes, int offset) {
+		ReadOnlySpan<byte> b = BigEndianBytes(bytes, offset, 3);
+		int value = b[0] << 16 | b[1] << 8 | b[2];
 		return value;
 	}
-	private int GetInt24FromBigEndian(byte[] bytes) {
-		int value = bytes[0] << 16 | bytes[1] << 8 | bytes[2];
-		return value;
-	}
-	private short GetInt16FromBigEndian(byte[] bytes) {
-		int value =  bytes[0] << 8 | bytes[1];
-		return (short)value;
+	private short GetInt16FromBigEndian(byte[] bytes, int offset) {
+		return BinaryPrimitives.ReadInt16BigEndian(BigEndianBytes(bytes, offset, 2));
 	}
 
 	private VarLenItem ReadVariableLengthItem(byte[] bytes, int offset) {
