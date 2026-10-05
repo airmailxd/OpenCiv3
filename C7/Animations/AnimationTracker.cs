@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Diagnostics;
 using C7GameData;
 
 public partial class AnimationTracker {
@@ -18,18 +18,29 @@ public partial class AnimationTracker {
 		public C7Animation anim;
 	}
 
+	// Unit animations are keyed by unit ID and effect animations by tile ID.
+	// They're kept apart so that drawing a tile can skip looking for an effect
+	// when none are playing, which is most of the time.
 	private Dictionary<ID, ActiveAnimation> activeAnims = new Dictionary<ID, ActiveAnimation>();
+	private Dictionary<ID, ActiveAnimation> activeTileEffects = new Dictionary<ID, ActiveAnimation>();
 
+	// Reused by update() for the animations it has to finish.
+	private readonly List<ID> finishedIds = new List<ID>();
+
+	private static readonly long stopwatchTicksPerMS = Math.Max(1, Stopwatch.Frequency / 1000);
+
+	// The time in milliseconds from a monotonic clock, which unlike the wall
+	// clock can't jump (for example when daylight saving time ends). Only
+	// differences between these times are meaningful.
 	public long getCurrentTimeMS() {
-		return DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
+		return Stopwatch.GetTimestamp() / stopwatchTicksPerMS;
 	}
 
-	private void startAnimation(ID id, C7Animation anim, Action completionEvent, AnimationEnding ending) {
-		long currentTimeMS = getCurrentTimeMS();
+	private static void startAnimation(Dictionary<ID, ActiveAnimation> anims, long currentTimeMS, ID id, C7Animation anim, Action completionEvent, AnimationEnding ending) {
 		long animDurationMS = (long)(anim.getDuration());
 
 		ActiveAnimation aa;
-		if (activeAnims.TryGetValue(id, out aa)) {
+		if (anims.TryGetValue(id, out aa)) {
 			// If there's already an animation playing for this unit, end it first before replacing it
 			// TODO: Consider instead queueing up the new animation until after the first one is completed
 			if (aa.completionEvent != null)
@@ -45,15 +56,15 @@ public partial class AnimationTracker {
 
 		anim.playSound();
 
-		activeAnims[id] = aa;
+		anims[id] = aa;
 	}
 
 	public void startAnimation(MapUnit unit, MapUnit.AnimatedAction action, Action completionEvent, AnimationEnding ending) {
-		startAnimation(unit.id, civ3AnimData.forUnit(unit, action), completionEvent, ending);
+		startAnimation(activeAnims, getCurrentTimeMS(), unit.id, civ3AnimData.forUnit(unit, action), completionEvent, ending);
 	}
 
 	public void startAnimation(Tile tile, AnimatedEffect effect, Action completionEvent, AnimationEnding ending) {
-		startAnimation(tile.Id, civ3AnimData.forEffect(effect), completionEvent, ending);
+		startAnimation(activeTileEffects, getCurrentTimeMS(), tile.Id, civ3AnimData.forEffect(effect), completionEvent, ending);
 	}
 
 	public void endAnimation(MapUnit unit) {
@@ -69,9 +80,10 @@ public partial class AnimationTracker {
 		return activeAnims.ContainsKey(unit.id);
 	}
 
-	public (MapUnit.AnimatedAction, float, AnimationEnding) getCurrentActionAndProgress(ID id) {
-		ActiveAnimation aa = activeAnims[id];
+	// Whether any effect animations (like a hit or a miss) are playing on tiles.
+	public bool hasTileEffects => activeTileEffects.Count > 0;
 
+	private (MapUnit.AnimatedAction, float, AnimationEnding) getActionAndProgress(in ActiveAnimation aa) {
 		var durationMS = (double)(aa.endTimeMS - aa.startTimeMS);
 		if (durationMS <= 0.0)
 			durationMS = 1.0;
@@ -85,33 +97,60 @@ public partial class AnimationTracker {
 		return (aa.anim.action, (float)progress, aa.ending);
 	}
 
+	public (MapUnit.AnimatedAction, float, AnimationEnding) getCurrentActionAndProgress(ID id) {
+		if (!activeAnims.TryGetValue(id, out ActiveAnimation aa) && !activeTileEffects.TryGetValue(id, out aa))
+			throw new KeyNotFoundException($"No animation is playing for {id}");
+		return getActionAndProgress(aa);
+	}
+
 	public (MapUnit.AnimatedAction, float, AnimationEnding) getCurrentActionAndProgress(MapUnit unit) {
-		return getCurrentActionAndProgress(unit.id);
+		return getActionAndProgress(activeAnims[unit.id]);
 	}
 
 	public (MapUnit.AnimatedAction, float, AnimationEnding) getCurrentActionAndProgress(Tile tile) {
-		return getCurrentActionAndProgress(tile.Id);
+		return getActionAndProgress(activeTileEffects[tile.Id]);
 	}
 
 	public void update() {
 		long currentTimeMS = (! endAllImmediately) ? getCurrentTimeMS() : long.MaxValue;
-		var keysToRemove = new List<ID>();
-		foreach (var guidAAPair in activeAnims.Where(guidAAPair => guidAAPair.Value.endTimeMS <= currentTimeMS)) {
-			var (id, aa) = (guidAAPair.Key, guidAAPair.Value);
-			if (aa.completionEvent != null) {
-				aa.completionEvent();
-				aa.completionEvent = null; // So event is only triggered once
-			}
-			if (aa.ending == AnimationEnding.Stop)
-				keysToRemove.Add(id);
+		update(activeAnims, currentTimeMS);
+		update(activeTileEffects, currentTimeMS);
+	}
+
+	// Triggers the completion events of the animations that have ended, once
+	// each, and removes the ones that stop when they end.
+	private void update(Dictionary<ID, ActiveAnimation> anims, long currentTimeMS) {
+		if (anims.Count == 0)
+			return;
+
+		finishedIds.Clear();
+		foreach (var (id, aa) in anims) {
+			if (aa.endTimeMS <= currentTimeMS && (aa.completionEvent != null || aa.ending == AnimationEnding.Stop))
+				finishedIds.Add(id);
 		}
-		foreach (var key in keysToRemove)
-			activeAnims.Remove(key);
+
+		foreach (ID id in finishedIds) {
+			if (!anims.TryGetValue(id, out ActiveAnimation aa))
+				continue;
+			Action completionEvent = aa.completionEvent;
+
+			// Update the stored animation before triggering the event, in case
+			// the event starts a new animation for the same unit or tile.
+			if (aa.ending == AnimationEnding.Stop) {
+				anims.Remove(id);
+			} else {
+				aa.completionEvent = null; // So event is only triggered once
+				anims[id] = aa;
+			}
+
+			completionEvent?.Invoke();
+		}
+		finishedIds.Clear();
 	}
 
 	public MapUnit.Appearance getUnitAppearance(MapUnit unit) {
-		if (hasCurrentAction(unit)) {
-			var (action, progress, ending) = getCurrentActionAndProgress(unit);
+		if (activeAnims.TryGetValue(unit.id, out ActiveAnimation aa)) {
+			var (action, progress, ending) = getActionAndProgress(aa);
 
 			float offsetX = 0, offsetY = 0;
 			if (action == MapUnit.AnimatedAction.RUN) {
@@ -140,6 +179,8 @@ public partial class AnimationTracker {
 	}
 
 	public C7Animation getTileEffect(Tile tile) {
-		return activeAnims.TryGetValue(tile.Id, out ActiveAnimation aa) ? aa.anim : null;
+		if (activeTileEffects.Count == 0)
+			return null;
+		return activeTileEffects.TryGetValue(tile.Id, out ActiveAnimation aa) ? aa.anim : null;
 	}
 }
