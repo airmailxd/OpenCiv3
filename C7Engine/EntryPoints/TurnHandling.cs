@@ -103,9 +103,7 @@ namespace C7Engine {
 		/// <param name="firstTurn"></param>
 		/// <returns>true when it is time for the human to take control again</returns>
 		private static async Task<bool> PlayPlayerTurns(GameData gameData, bool firstTurn) {
-			// Order players: Human -> AI -> Barbarian AI
-			var orderedPlayers = gameData.players.OrderByDescending(p => !p.isBarbarians).ThenByDescending(p => p.isHuman).ToList();
-			foreach (Player player in orderedPlayers) {
+			foreach (Player player in PlayersInTurnOrder(gameData)) {
 				if (player.hasPlayedThisTurn || player.defeated) {
 					continue;
 				}
@@ -120,9 +118,11 @@ namespace C7Engine {
 					await PlayerAI.PlayTurn(player, gameData);
 				}
 
-				if (player.id != EngineStorage.uiControllerID) {
-					OnEndTurn(player);
-					player.hasPlayedThisTurn = true;
+				// Each human player takes control of the UI in turn. With a
+				// single human this is a no-op; in a hotseat game it hands the
+				// UI over to the next human.
+				if (player.isHuman) {
+					EngineStorage.uiControllerID = player.id;
 				}
 
 				//Human player check. Let the human see what's going on even if they are in observer mode.
@@ -130,8 +130,30 @@ namespace C7Engine {
 					new MsgStartTurn().send();
 					return true;
 				}
+
+				OnEndTurn(player);
+				player.hasPlayedThisTurn = true;
 			}
 			return false;
+		}
+
+		// Order players: Humans -> AI -> Barbarian AI. The sort is stable, so
+		// humans play in the order they appear in the player list.
+		internal static List<Player> PlayersInTurnOrder(GameData gameData) {
+			return gameData.players.OrderByDescending(p => !p.isBarbarians).ThenByDescending(p => p.isHuman).ToList();
+		}
+
+		// Returns the human player who should control the UI when a game is
+		// loaded: the first human who has yet to play this turn, or the first
+		// human if they all have.
+		internal static Player FirstHumanToPlay(GameData gameData) {
+			List<Player> humans = PlayersInTurnOrder(gameData).Where(p => p.isHuman).ToList();
+			return humans.FirstOrDefault(p => !p.hasPlayedThisTurn && !p.defeated) ?? humans.FirstOrDefault();
+		}
+
+		// True when more than one human shares this computer.
+		public static bool IsHotseat(GameData gameData) {
+			return gameData.players.Count(p => p.isHuman && !p.defeated) > 1;
 		}
 
 		///Eventually we'll have a game year or month or whatever, but for now this provides feedback on our progression

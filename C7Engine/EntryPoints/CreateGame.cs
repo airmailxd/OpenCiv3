@@ -39,10 +39,8 @@ public class CreateGame {
 		EngineStorage.gameData = gameData;
 		EngineStorage.gameData.onGameCreation();
 
-		Player humanPlayer = gameData.players.Any(p => p.isHuman) switch {
-			true => gameData.players.Find(p => p.isHuman),
-			false => throw new Exception($"The provided save does not contain a human player"),
-		};
+		Player humanPlayer = TurnHandling.FirstHumanToPlay(gameData)
+			?? throw new Exception($"The provided save does not contain a human player");
 
 		EngineStorage.uiControllerID = humanPlayer.id;
 
