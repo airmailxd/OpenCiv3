@@ -357,9 +357,11 @@ namespace C7GameData {
 			foodStored += foodGrowth;
 			foodStored = Math.Min(foodStored, foodNeededToGrow);
 
-			// Handle the city starving.
+			// Handle the city starving. A size 1 city can't shrink any further.
 			if (foodStored < 0) {
-				RemoveLastCitizen();
+				if (residents.Count > 1) {
+					RemoveLastCitizen();
+				}
 				foodStored = 0;
 				return;
 			}
