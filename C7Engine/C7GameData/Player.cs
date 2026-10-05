@@ -1431,12 +1431,16 @@ namespace C7GameData {
 				capital = cities[0];
 			}
 			List<City> citiesInRankOrdering = cities.OrderBy(x => x.location.RankDistanceTo(capital.location)).ToList();
+
+			// This is the same for every city (it depends on the whole empire,
+			// not on anything the loop below changes), so work it out once.
+			int adjustedOptimalCityNumber = GetAdjustedOptimalCityNumber(gameData);
 			for (int i = 0; i < citiesInRankOrdering.Count; ++i) {
 				citiesInRankOrdering[i].rankIndex = i;
 
 				// For each city, calculate its corruption level so this
 				// calculation doesn't have to be done on the fly.
-				citiesInRankOrdering[i].CalculateCorruption(gameData);
+				citiesInRankOrdering[i].CalculateCorruption(gameData, adjustedOptimalCityNumber);
 			}
 		}
 

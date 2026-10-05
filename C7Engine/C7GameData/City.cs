@@ -1042,7 +1042,7 @@ namespace C7GameData {
 		}
 
 		// See https://forums.civfanatics.com/threads/everything-about-corruption-c3c-edition.76619/
-		private float CalculateRankCorruption(GameData gameData, int numAntiCorruptionBuildings) {
+		private float CalculateRankCorruption(int adjustedOptimalCityNumber, int numAntiCorruptionBuildings) {
 			int rank = rankIndex;
 			if (owner.government.corruptionType == Government.CorruptionType.Communal) {
 				rank = owner.cities.Count / 2;
@@ -1050,7 +1050,7 @@ namespace C7GameData {
 
 			float nOpt = Math.Max(
 				1,
-				owner.GetAdjustedOptimalCityNumber(gameData) + .25f * numAntiCorruptionBuildings);
+				adjustedOptimalCityNumber + .25f * numAntiCorruptionBuildings);
 
 			if (rank < nOpt) {
 				return rank / (2 * nOpt);
@@ -1060,6 +1060,13 @@ namespace C7GameData {
 		}
 
 		public void CalculateCorruption(GameData gameData) {
+			CalculateCorruption(gameData, owner.GetAdjustedOptimalCityNumber(gameData));
+		}
+
+		// The adjusted optimal city number is empire-wide, so when updating
+		// every city Player.DoCorruptionCalculations works it out once and
+		// passes it in rather than rescanning the empire for each city.
+		internal void CalculateCorruption(GameData gameData, int adjustedOptimalCityNumber) {
 			int numAntiCorruptionBuildings = 0;
 
 			// TODO: Handle the SPHQ.
@@ -1074,7 +1081,7 @@ namespace C7GameData {
 			}
 
 			corruption = CalculateDistanceCorruption(gameData, numAntiCorruptionBuildings)
-					+ CalculateRankCorruption(gameData, numAntiCorruptionBuildings);
+					+ CalculateRankCorruption(adjustedOptimalCityNumber, numAntiCorruptionBuildings);
 			// TODO: apply policeman modifiers, before applying the max
 
 			// Corruption maxes out at 90%, and this max can be reduced further
