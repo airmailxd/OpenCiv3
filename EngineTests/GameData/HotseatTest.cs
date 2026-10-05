@@ -23,26 +23,14 @@ public class HotseatTest : IClassFixture<SaveGameFixture> {
 	// Processes engine messages until the engine hands the UI to a player,
 	// ignoring informational messages along the way.
 	private static void WaitForStartTurnMessage() {
-		for (int i = 0; i < 100_000; ++i) {
-			EngineStorage.ProcessNextMessageToEngine();
-			while (EngineStorage.TryDequeueNextMessageToUI(out MessageToUI msg)) {
-				if (msg is MsgStartTurn) {
-					return;
-				}
-				Assert.IsNotType<MsgShowTradeOffer>(msg);
-			}
-		}
-		throw new Exception("Engine never started a player turn");
+		EngineWaits.WaitForStartTurnMessage(msg => Assert.IsNotType<MsgShowTradeOffer>(msg));
 	}
-
-	// Map generation is slow, so share one two-human save across the tests.
-	private static readonly Lazy<SaveGame> hotseatSave = new(() => SaveGameFixture.LoadSave(new GameMode.Config("civ3"), humanPlayers: 2));
 
 	private async Task<C7GameData.GameData> CreateHotseatGame() {
 		new MsgSetAnimationsEnabled(false).send();
 		EngineStorage.ProcessNextMessageToEngine();
 
-		await CreateGame.createGame(hotseatSave.Value, (_) => fixture.behaviors);
+		await CreateGame.createGame(SaveGameFixture.TwoHumanSave(), (_) => fixture.behaviors);
 		C7GameData.GameData gameData = EngineStorage.gameData;
 
 		TurnHandling.OnBeginTurn();
@@ -99,7 +87,7 @@ public class HotseatTest : IClassFixture<SaveGameFixture> {
 
 	[Fact]
 	public void GameSetupCreatesEachHumanPlayer() {
-		SaveGame save = hotseatSave.Value;
+		SaveGame save = SaveGameFixture.TwoHumanSave();
 		Assert.Equal(2, save.Players.Count(p => p.human));
 		// Humans + AI opponents fill every starting location, plus the barbarians.
 		Assert.Equal(save.Map.startingLocations.Count + 1, save.Players.Count);
