@@ -366,7 +366,26 @@ namespace C7GameData {
 				CheckForCivDestructionAndNotifyUi(previousOwner);
 		}
 
-		internal void SpawnUnit(Player player, UnitPrototype proto, Tile tile) {
+		/// <summary>
+		/// A captured settler becomes two slave workers for the captor.
+		/// </summary>
+		internal void CaptureSettler(MapUnit settler, Player captor) {
+			Tile tile = settler.location;
+			Civilization nationality = settler.nationality;
+			UnitPrototype worker = unitPrototypes.FirstOrDefault(p => p.name == "Worker")
+				?? unitPrototypes.First(p => p.isWorker);
+			log.Information($"Player {captor} captured settler {settler} as two workers");
+
+			RemoveUnit(settler);
+			for (int i = 0; i < 2; i++) {
+				MapUnit slave = SpawnUnit(captor, worker, tile);
+				slave.nationality = nationality;
+				slave.movementPoints.onConsumeAll();
+			}
+			captor.tileKnowledge.RecomputeActiveTiles();
+		}
+
+		internal MapUnit SpawnUnit(Player player, UnitPrototype proto, Tile tile) {
 			// TODO: consolidate unit spawning routines (here)
 
 			var defaultExpLevel = this.defaultExperienceLevel;
@@ -384,6 +403,7 @@ namespace C7GameData {
 
 			log.Debug("New unit of type {type} added at {tile} for player {player}",
 				proto.name, tile, player);
+			return newUnit;
 		}
 
 		public int TechCostFor(Tech tech, Player player) {

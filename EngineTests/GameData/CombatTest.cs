@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using C7Engine;
@@ -115,6 +116,27 @@ public class CombatTest : IClassFixture<SaveGameFixture> {
 		Assert.True(worker.IsCaptive());
 		Assert.Equal(startingLevel, warrior.experienceLevel);
 		Assert.Equal(startingHitPoints, warrior.hitPointsRemaining);
+	}
+
+	[Fact]
+	public async Task CapturedSettlerBecomesTwoSlaveWorkers() {
+		GoToWar();
+		(Tile from, TileDirection dir, Tile to) = FindAdjacentLand();
+		MapUnit warrior = Spawn(us, "Warrior", from);
+		MapUnit settler = Spawn(them, "Settler", to);
+
+		Assert.True(await warrior.Move(dir));
+
+		Assert.DoesNotContain(settler, gameData.mapUnits);
+		Assert.DoesNotContain(settler, them.units);
+		List<MapUnit> slaves = to.unitsOnTile.Where(u => u.unitType.isWorker).ToList();
+		Assert.Equal(2, slaves.Count);
+		Assert.All(slaves, s => {
+			Assert.Equal(us, s.owner);
+			Assert.Contains(s, us.units);
+			Assert.True(s.IsCaptive());
+			Assert.Equal(them.civilization.name, s.nationality.name);
+		});
 	}
 
 	[Fact]

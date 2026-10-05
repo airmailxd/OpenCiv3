@@ -310,14 +310,17 @@ public partial class MapUnit {
 			&& u.unitType.defense > 0);
 	}
 
-	// Captures the enemy workers and settlers on the tile, and destroys any
-	// other enemy units there that can't be captured. Barbarians don't take
-	// captives.
+	// Captures the enemy workers on the tile, turns enemy settlers into two
+	// slave workers, and destroys any other enemy units there that can't be
+	// captured. Barbarians don't take captives.
 	private void CaptureDefencelessUnits(Tile tile) {
 		GameData gameData = EngineStorage.gameData;
 		foreach (MapUnit enemy in tile.unitsOnTile.Where(u => !owner.IsAtPeaceWith(u.owner)).ToList()) {
-			bool capturable = (enemy.unitType.isWorker || enemy.unitType.isSettler) && !owner.isBarbarians;
-			if (capturable) {
+			if (owner.isBarbarians) {
+				gameData.RemoveUnit(enemy);
+			} else if (enemy.unitType.isSettler) {
+				gameData.CaptureSettler(enemy, owner);
+			} else if (enemy.unitType.isWorker) {
 				gameData.CaptureUnit(enemy, owner);
 			} else {
 				gameData.RemoveUnit(enemy);
