@@ -77,7 +77,7 @@ public class FogOfWarMiniLayer : MiniMapLayer {
 
 	public override void Configure(GameData gD) {
 		_observerMode = gD.observerMode;
-		_tileKnowledge = gD.GetFirstHumanPlayer().tileKnowledge;
+		_tileKnowledge = gD.GetUIControllerPlayer().tileKnowledge;
 	}
 
 	public override void DrawTile(Image mapImage, Tile tile, int x, int y) {

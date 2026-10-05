@@ -255,7 +255,7 @@ namespace C7Engine {
 		}
 
 		public override void process() {
-			Player player = EngineStorage.gameData.GetFirstHumanPlayer();
+			Player player = EngineStorage.gameData.GetUIControllerPlayer();
 
 			bool isTechEraBeyondPlayerEra = EraUtils.GetEraIndex(tech.EraCivilopediaName) > EraUtils.GetEraIndex(player.eraCivilopediaName);
 			if (player.knownTechs.Contains(tech.id) || isTechEraBeyondPlayerEra)

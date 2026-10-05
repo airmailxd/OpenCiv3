@@ -37,7 +37,7 @@ public partial class CulturalAdvisor : Control {
 		Show();
 
 		EngineStorage.ReadGameData((GameData gameData) => {
-			Player player = gameData.GetFirstHumanPlayer();
+			Player player = gameData.GetUIControllerPlayer();
 
 			// TODO: Choose advisor head
 			_advisorHead.Texture = AdvisorHead.GetPopupImage(AdvisorHead.Advisor.Culture, AdvisorHead.Mood.Happy, player.EraIndex());

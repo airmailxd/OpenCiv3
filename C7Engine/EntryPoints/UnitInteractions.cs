@@ -11,23 +11,22 @@ namespace C7Engine {
 		private static ILogger log = Log.ForContext<UnitInteractions>();
 
 		public static MapUnit getNextSelectedUnit() {
-			foreach (Player player in EngineStorage.gameData.players.Where(p => p.isHuman)) {
-				//TODO: Should pass in a player GUID instead of checking for human
-				//This current limits us to one human player, although it's better
-				//than the old limit of one non-barbarian player.
-				foreach (MapUnit unit in player.units.Where(u => u.movementPoints.canMove)) {
-					if (unit.isFortified) {
-						continue;
-					}
+			// In observer mode the UI controller is played by the AI, so there
+			// are no units for the UI to select.
+			Player player = EngineStorage.gameData.GetUIControllerPlayer();
+			IEnumerable<MapUnit> selectable = player != null && player.isHuman ? player.units : [];
+			foreach (MapUnit unit in selectable.Where(u => u.movementPoints.canMove)) {
+				if (unit.isFortified) {
+					continue;
+				}
 
-					if (unit.IsBusy()) {
-						new MsgPerformUnitAction(unit).send();
-						continue;
-					}
+				if (unit.IsBusy()) {
+					new MsgPerformUnitAction(unit).send();
+					continue;
+				}
 
-					if (!waitQueue.Contains(unit)) {
-						return unit;
-					}
+				if (!waitQueue.Contains(unit)) {
+					return unit;
 				}
 			}
 			if (waitQueue.Count > 0) {

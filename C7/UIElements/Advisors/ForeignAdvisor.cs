@@ -88,7 +88,7 @@ public partial class ForeignAdvisor : Control {
 		Show();
 
 		EngineStorage.ReadGameData((GameData gameData) => {
-			Player player = gameData.GetFirstHumanPlayer();
+			Player player = gameData.GetUIControllerPlayer();
 
 			// TODO: Choose advisor head
 			_advisorHead.Texture = AdvisorHead.GetPopupImage(AdvisorHead.Advisor.Foreign, AdvisorHead.Mood.Happy, player.EraIndex());

@@ -100,7 +100,7 @@ public partial class ScienceAdvisor : Control {
 	private void LoadTechTree() {
 		EngineStorage.ReadGameData((GameData gameData) => {
 			List<Tech> allTechs = gameData.techs;
-			Player player = gameData.GetFirstHumanPlayer();
+			Player player = gameData.GetUIControllerPlayer();
 			eraName = string.IsNullOrEmpty(lastOpenedEra) ? player.eraCivilopediaName : lastOpenedEra;
 			this.DrawTechTree(eraName, player, allTechs, player.GetAvailableTechsToResearch(allTechs));
 		});
@@ -176,7 +176,7 @@ public partial class ScienceAdvisor : Control {
 
 		EngineStorage.ReadGameData((GameData gameData) => {
 			List<Tech> allTechs = gameData.techs;
-			Player player = gameData.GetFirstHumanPlayer();
+			Player player = gameData.GetUIControllerPlayer();
 			eraName = string.IsNullOrEmpty(lastOpenedEra)
 				? EraIndexToEra(GetEraIndex(eraName) + delta)
 				: EraIndexToEra(GetEraIndex(lastOpenedEra) + delta);
@@ -191,7 +191,7 @@ public partial class ScienceAdvisor : Control {
 		Show();
 
 		EngineStorage.ReadGameData((GameData gameData) => {
-			Player player = gameData.GetFirstHumanPlayer();
+			Player player = gameData.GetUIControllerPlayer();
 
 			// TODO: Choose advisor head
 			// _advisorHead.Texture = AdvisorHead.GetPopupImage(AdvisorHead.Advisor.Science, AdvisorHead.Mood.Happy, player.EraIndex());

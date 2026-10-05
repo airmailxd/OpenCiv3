@@ -48,7 +48,7 @@ public partial class MilitaryAdvisor : Control {
 		Show();
 
 		EngineStorage.ReadGameData((GameData gameData) => {
-			Player player = gameData.GetFirstHumanPlayer();
+			Player player = gameData.GetUIControllerPlayer();
 			var (totalUnits, allowedUnits, unitSupportCost) = player.TotalUnitsAllowedUnitsAndSupportCost();
 
 			_totalUnitsLabel.SetTextAndCenterLabel($"Total Units\n{totalUnits}");

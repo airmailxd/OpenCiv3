@@ -98,25 +98,12 @@ namespace C7GameData {
 			log.Information($"Seed is {seed}");
 		}
 
-		// Returns the first human player in the set of players, or the first
-		// non-barbarian player if we're in observer mode (where the human player
-		// is no longer marked as human).
-		public Player GetFirstHumanPlayer() {
-			foreach (Player p in players) {
-				if (p.isHuman) {
-					return p;
-				}
-			}
-
-			if (observerMode) {
-				foreach (Player p in players) {
-					if (!p.isBarbarians) {
-						return p;
-					}
-				}
-			}
-
-			return null;
+		// Returns the player whose perspective the UI is currently showing. In a
+		// hotseat game this changes as each human player takes their turn, and
+		// in observer mode it is still the player the UI was following, even
+		// though that player is no longer marked as human.
+		public Player GetUIControllerPlayer() {
+			return GetPlayer(EngineStorage.uiControllerID);
 		}
 
 		public List<Player> GetRivals(Player player) {

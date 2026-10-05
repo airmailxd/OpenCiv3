@@ -239,7 +239,7 @@ public partial class LowerRightInfoBox : Civ3TextureRect {
 		// Update our information each time we're drawn, just like the tile and
 		// city scenes.
 		EngineStorage.ReadGameData((GameData gD) => {
-			Player player = gD.GetFirstHumanPlayer();
+			Player player = gD.GetUIControllerPlayer();
 
 			// Gold per turn and turn indicator.
 			{

@@ -58,7 +58,7 @@ public partial class VictoryStatusView : Control {
 	private void DrawGrid(GameData gameData) {
 		ClearGrid();
 
-		Player player = gameData.GetFirstHumanPlayer();
+		Player player = gameData.GetUIControllerPlayer();
 		List<Player> rivals = gameData.GetKnownRivals(player);
 
 		// Render

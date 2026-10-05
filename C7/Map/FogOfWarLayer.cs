@@ -22,7 +22,7 @@ namespace C7.Map {
 			Tile east = tile.neighbors[TileDirection.NORTHEAST];
 			Tile west = tile.neighbors[TileDirection.NORTHWEST];
 
-			var tk = gameData.GetFirstHumanPlayer().tileKnowledge;
+			var tk = gameData.GetUIControllerPlayer().tileKnowledge;
 			var ti = looseView.mapView.game.tileInfo;
 
 			(bool, bool, bool) Status(Tile tile) {

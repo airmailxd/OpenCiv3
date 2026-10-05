@@ -576,7 +576,7 @@ public partial class LooseView : Node2D {
 		if (gameData.observerMode) {
 			return true;
 		}
-		TileKnowledge knowledge = gameData.GetFirstHumanPlayer().tileKnowledge;
+		TileKnowledge knowledge = gameData.GetUIControllerPlayer().tileKnowledge;
 		return tile != Tile.NONE && knowledge.isTileKnown(tile);
 	}
 

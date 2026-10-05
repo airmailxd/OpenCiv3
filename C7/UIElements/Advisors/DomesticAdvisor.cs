@@ -276,7 +276,7 @@ public partial class DomesticAdvisor : Control {
 
 	private void ChangeGovernments() {
 		EngineStorage.ReadGameData((GameData gameData) => {
-			Player player = gameData.GetFirstHumanPlayer();
+			Player player = gameData.GetUIControllerPlayer();
 
 			if (player.government.transitionType) {
 				popupOverlay.ShowPopup(
