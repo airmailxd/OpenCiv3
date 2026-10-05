@@ -515,13 +515,14 @@ namespace C7GameData {
 				beakersPerTurn += city.CurrentCommerceYield().beakers;
 			}
 
-			if (beakersPerTurn == 0) {
+			int remainingCost = gameData.TechCostFor(tech, this);
+			if (remainingCost > 0 && beakersPerTurn == 0) {
 				// No research is happening.
 				return int.MaxValue;
 			}
 
-			int remainingCost = gameData.TechCostFor(tech, this);
-			int turnsRemaining = (int)Math.Ceiling((double)remainingCost / beakersPerTurn);
+			// A tech that's already paid for is done, even with no science.
+			int turnsRemaining = remainingCost <= 0 ? 0 : (int)Math.Ceiling((double)remainingCost / beakersPerTurn);
 
 			int maxTurnsRemaining = rules.MaximumResearchTime - turnsResearched;
 			int minTurnsRemaining = rules.MinimumResearchTime - turnsResearched;
