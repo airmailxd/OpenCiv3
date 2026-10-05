@@ -129,8 +129,7 @@ public partial class Tile {
 	private int BaseProductionYield(Player player) {
 		if (this.HasPollution()) return 0;
 		int yield = overlayTerrainType.baseShieldProduction;
-		// The flag is cheaper to check than the string, so it goes first.
-		if (this.isBonusShield && overlayTerrainType.Key == "grassland") {
+		if (this.isBonusShield && overlayTerrainType.IsGrassland) {
 			yield++;
 		}
 

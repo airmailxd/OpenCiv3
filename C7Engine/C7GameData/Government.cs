@@ -23,9 +23,7 @@ namespace C7GameData {
 			get => _hasTilePenalty;
 			set {
 				_hasTilePenalty = value;
-				if (value) {
-					tileModifier += TilePenalty;
-				}
+				RebuildTileModifier();
 			}
 		}
 		private bool _hasTilePenalty;
@@ -35,15 +33,29 @@ namespace C7GameData {
 			get => _hasTradeBonus;
 			set {
 				_hasTradeBonus = value;
-				if (value) {
-					tileModifier += TradeBonus;
-				}
+				RebuildTileModifier();
 			}
 		}
 		private bool _hasTradeBonus;
 
+		// Built from the flags above by their setters; don't add to it
+		// directly, as setting a flag replaces it.
 		[JsonIgnore]
 		public Action<Tile.Yield> tileModifier;
+
+		// Rebuilt from scratch, so setting a flag again (even to the same
+		// value) never applies its modifier twice. The penalty goes first,
+		// as it always has: it looks at the yield including bonuses.
+		private void RebuildTileModifier() {
+			Action<Tile.Yield> modifier = null;
+			if (_hasTilePenalty) {
+				modifier += TilePenalty;
+			}
+			if (_hasTradeBonus) {
+				modifier += TradeBonus;
+			}
+			tileModifier = modifier;
+		}
 
 		// See https://codehappy.net/apolyton/threads/46801-1.htm and
 		// https://forums.civfanatics.com/threads/everything-about-corruption-c3c-edition.76619/.
