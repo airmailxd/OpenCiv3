@@ -41,16 +41,23 @@ freely, subject to the following restrictions:
 Mark Adler    madler@alumni.caltech.edu
  */
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
+using System.Runtime.CompilerServices;
 
 namespace Blast {
 	public class BlastDecoder {
 		public const int MAX_WIN = 4096;
 		private const int END_OF_STREAM = 519;
 		private const int LITERAL_INDICATOR = 0;
+
+		// Size of the output buffer when decoding to a Stream. The last MAX_WIN bytes are kept as the sliding
+		// window each time the buffer is flushed, so a larger buffer means fewer Stream writes and window shifts.
+		private const int STREAM_OUTPUT_BUFFER_SIZE = 256 * 1024;
+		private const int INPUT_BUFFER_SIZE = 16384;
+
+		// The most bits a single literal or length/distance step can consume:
+		// 1 indicator bit + 13 length code bits + 8 extra length bits + 13 distance code bits + 8 extra distance bits
+		private const int MAX_BITS_PER_STEP = 43;
 
 		/// <summary>
 		/// base for length codes
@@ -66,13 +73,27 @@ namespace Blast {
 		//
 		// state variables
 		//
-		private readonly InputBuffer _inputBuffer;
-		private readonly BitStream _bitStream;
 
+		// Input: either the whole compressed array (_inputStream == null) or a buffer refilled from _inputStream
+		private readonly Stream _inputStream;
+		private byte[] _input;
+		private int _inputPos;
+		private int _inputEnd;
 
-		private Stream _outputStream;
-		private byte[] _outputBuffer = new byte[MAX_WIN * 2]; // output buffer and sliding window
+		// Bit accumulator; bits are consumed from the least significant end. Whole bytes may be read ahead of
+		// what has been consumed, see FlushBits.
+		private ulong _bitBuffer;
+		private int _bitBufferCount;
+
+		// Output: the buffer doubles as the sliding window. When _outputStream is null the buffer simply grows
+		// and holds the whole decompressed output; otherwise it is flushed to the stream as it fills up.
+		private readonly Stream _outputStream;
+		private byte[] _outputBuffer;
 		private int _outputBufferPos = 0; // index of next write location in _outputBuffer[]
+
+		// Number of bytes written by the current compressed stream, saturating at MAX_WIN. Distances can't
+		// reach back past the start of the current stream.
+		private int _streamOutputCount = 0;
 
 
 		/// <summary>
@@ -107,10 +128,48 @@ namespace Blast {
 		/// compiled to produce a command-line decompression filter by defining TEST.</para>
 		/// </summary>
 		public BlastDecoder(Stream inputStream, Stream outputStream) {
-			this._inputBuffer = new InputBuffer(inputStream);
-			this._bitStream = new BitStream(this._inputBuffer);
+			this._inputStream = inputStream;
+			this._input = new byte[INPUT_BUFFER_SIZE];
 
 			this._outputStream = outputStream;
+			this._outputBuffer = new byte[STREAM_OUTPUT_BUFFER_SIZE];
+		}
+
+		private BlastDecoder(byte[] input, int offset, int count, int initialOutputCapacity) {
+			this._inputStream = null;
+			this._input = input;
+			this._inputPos = offset;
+			this._inputEnd = offset + count;
+
+			this._outputStream = null;
+			this._outputBuffer = new byte[Math.Max(initialOutputCapacity, MAX_WIN)];
+		}
+
+		/// <summary>
+		/// Decompress a whole PKWare Compression Library buffer straight into a byte array, avoiding the
+		/// intermediate streams. Produces exactly the bytes <see cref="Decompress()"/> would write to its output stream.
+		/// </summary>
+		public static byte[] DecompressBytes(byte[] compressed) {
+			return DecompressBytes(compressed, 0, compressed.Length);
+		}
+
+		/// <inheritdoc cref="DecompressBytes(byte[])"/>
+		public static byte[] DecompressBytes(byte[] compressed, int offset, int count) {
+			ArgumentNullException.ThrowIfNull(compressed);
+			if (offset < 0 || count < 0 || offset > compressed.Length - count) {
+				throw new ArgumentOutOfRangeException(nameof(count));
+			}
+
+			// Civ3 files typically decompress to several times their compressed size; the buffer grows if needed
+			long initialCapacity = Math.Min((long)count * 8, Array.MaxLength);
+			BlastDecoder decoder = new BlastDecoder(compressed, offset, count, (int)initialCapacity);
+			decoder.Decompress();
+
+			byte[] output = decoder._outputBuffer;
+			if (output.Length != decoder._outputBufferPos) {
+				output = output.AsSpan(0, decoder._outputBufferPos).ToArray();
+			}
+			return output;
 		}
 
 		/// <summary>
@@ -120,58 +179,87 @@ namespace Blast {
 			do {
 				// some files are composed of multiple compressed streams
 				DecompressStream();
-			} while (_inputBuffer.IsInputRemaining());
+			} while (IsInputRemaining());
 		}
 
 		private void DecompressStream() {
 			// read header (start of compressed stream)
 			bool codedLiteral = ReadCodedLiteralHeader();
-			var readLiteral = codedLiteral ? (Func<byte>)ReadCodedLiteral : ReadUncodedLiteral;
 
 			// log2(dictionary size) - 6
-			int dictSize = _bitStream.GetBits(8);
+			int dictSize = GetBits(8);
 
 			if (dictSize < 4 || dictSize > 6) {
 				throw new BlastException(BlastException.DictionarySizeMessage);
 			}
 
+			_streamOutputCount = 0;
+
+			ushort[] literalLookup = HuffmanTable.LITERAL_CODE.lookup;
+			ushort[] lengthLookup = HuffmanTable.LENGTH_CODE.lookup;
+			ushort[] distanceLookup = HuffmanTable.DISTANCE_CODE.lookup;
+
 			// decode the compressed stream
 			try {
 				// decode literals and length/distance pairs
 				do {
+					// Make sure a whole step's worth of bits is buffered, if there is that much input left
+					if (_bitBufferCount < MAX_BITS_PER_STEP) {
+						FillBitBuffer();
+					}
+
 					// Bit indicates whether to read literal from stream or encoded length+distance pair
-					int nextCodeIndicator = _bitStream.GetBits(1);
+					int nextCodeIndicator = GetBits(1);
 
 					if (nextCodeIndicator == LITERAL_INDICATOR) {
 						// get literal and write it
-						WriteBuffer(readLiteral());
+						byte literal = codedLiteral ? (byte)Decode(literalLookup) : (byte)GetBits(8);
+						if (_outputBufferPos == _outputBuffer.Length) {
+							EnsureBufferSpace(1);
+						}
+						_outputBuffer[_outputBufferPos++] = literal;
+						if (_streamOutputCount < MAX_WIN) {
+							_streamOutputCount++;
+						}
 					} else {
 						// get length/distance and write buffer segments from current window
-						var (length, distance) = ReadLengthDistance(dictSize);
 
-						if (length == END_OF_STREAM) {
+						// decode length
+						int decodedLengthSymbol = Decode(lengthLookup);
+						int copyLength = LENGTH_CODE_BASE[decodedLengthSymbol] + GetBits(LENGTH_CODE_EXTRA[decodedLengthSymbol]);
+
+						if (copyLength == END_OF_STREAM) // sentinel value
+						{
+							// no more for this stream,
+							// stop and flush
 							break;
 						}
 
-						WriteWindowSegment(length, distance);
+						// decode distance
+						int distanceAdditionalBits = copyLength == 2 ? 2 : dictSize;
+						int copyDist = Decode(distanceLookup) << distanceAdditionalBits;
+						copyDist += GetBits(distanceAdditionalBits);
+						copyDist++;
+
+						// malformed input - you can't go back that far
+						if (copyDist > _streamOutputCount) {
+							throw new BlastException(BlastException.DistanceMessage);
+						}
+
+						WriteWindowSegment(copyLength, copyDist);
 					}
 				} while (true);
 			} finally {
 				// write remaining bytes
-				FlushOutputBuffer();
-				_bitStream.FlushBits();
+				if (_outputStream != null) {
+					FlushOutputBuffer();
+				}
+				FlushBits();
 			}
 		}
 
-		private byte ReadUncodedLiteral() {
-			return (byte)_bitStream.GetBits(8);
-		}
-		private byte ReadCodedLiteral() {
-			return (byte)Decode(HuffmanTable.LITERAL_CODE);
-		}
-
 		private bool ReadCodedLiteralHeader() {
-			int codedLiteral = _bitStream.GetBits(8);
+			int codedLiteral = GetBits(8);
 			if (codedLiteral > 1) {
 				throw new BlastException(BlastException.LiteralFlagMessage);
 			}
@@ -179,171 +267,151 @@ namespace Blast {
 			return codedLiteral == 1;
 		}
 
-		private (int length, int distance) ReadLengthDistance(int dictSize) {
-			// decode length
-			int decodedLengthSymbol = Decode(HuffmanTable.LENGTH_CODE);
-			int copyLength = LENGTH_CODE_BASE[decodedLengthSymbol] + _bitStream.GetBits(LENGTH_CODE_EXTRA[decodedLengthSymbol]);
-
-			if (copyLength == END_OF_STREAM) // sentinel value
-			{
-				// no more for this stream,
-				// stop and flush
-				return (copyLength, 0);
-			}
-
-			// decode distance
-			int distanceAdditionalBits = copyLength == 2 ? 2 : dictSize;
-			int copyDist = Decode(HuffmanTable.DISTANCE_CODE) << distanceAdditionalBits;
-			copyDist += _bitStream.GetBits(distanceAdditionalBits);
-			copyDist++;
-
-			// malformed input - you can't go back that far
-			if (copyDist > _outputBufferPos) {
-				throw new BlastException(BlastException.DistanceMessage);
-			}
-
-			return (copyLength, copyDist);
-		}
-
 		private void WriteWindowSegment(int copyLength, int copyDistance) {
 			// Copy copyLength bytes from copyDist bytes back.
-			// If copyLength is greater than copyDist, repeatedly
-			// copy copyDist bytes up to a count of copyLength.
-			do {
-				int fromIndex = _outputBufferPos - copyDistance;
-				int copyCount = copyDistance;
+			EnsureBufferSpace(copyLength);
 
-				if (copyCount > copyLength) {
-					copyCount = copyLength;
+			byte[] buffer = _outputBuffer;
+			int toIndex = _outputBufferPos;
+			int fromIndex = toIndex - copyDistance;
+
+			if (copyDistance >= copyLength) {
+				// No overlap between source and destination
+				Buffer.BlockCopy(buffer, fromIndex, buffer, toIndex, copyLength);
+			} else if (copyDistance == 1) {
+				// Run of a single repeated byte
+				buffer.AsSpan(toIndex, copyLength).Fill(buffer[fromIndex]);
+			} else {
+				// If copyLength is greater than copyDist, the copyDist bytes repeat up to a count of copyLength.
+				// Everything from fromIndex up to the write position is already a whole number of repetitions,
+				// so it can be copied as one non-overlapping chunk, which doubles the available pattern each time.
+				int remaining = copyLength;
+				while (remaining > 0) {
+					int chunk = Math.Min(toIndex - fromIndex, remaining);
+					Buffer.BlockCopy(buffer, fromIndex, buffer, toIndex, chunk);
+					toIndex += chunk;
+					remaining -= chunk;
 				}
+			}
 
-				CopyBufferSection(fromIndex, copyCount);
+			_outputBufferPos += copyLength;
+			_streamOutputCount = Math.Min(_streamOutputCount + copyLength, MAX_WIN);
+		}
 
-				copyLength -= copyCount;
+		#region Input bits
 
-			} while (copyLength != 0);
+		/// <summary>
+		/// Decode a Huffman code from the stream using the given direct lookup table (see
+		/// <see cref="HuffmanTable.lookup"/>), returning the symbol. Behaves like blast.c's bit-by-bit decode():
+		/// only the bits of the matched code are consumed, and input is only required up to the end of that code.
+		/// </summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		private int Decode(ushort[] lookup) {
+			if (_bitBufferCount < HuffmanTable.LOOKUP_BITS) {
+				FillBitBuffer();
+			}
+
+			int entry = lookup[(int)_bitBuffer & HuffmanTable.LOOKUP_MASK];
+			int length = entry & 0xf;
+
+			if (length > _bitBufferCount) {
+				// the code continues past the end of the input
+				throw new BlastException(BlastException.OutOfInputMessage);
+			}
+			if (length == 0) {
+				// Not reachable with the built-in tables, which are complete codes
+				throw new BlastException("Invalid Huffman code");
+			}
+
+			_bitBuffer >>= length;
+			_bitBufferCount -= length;
+
+			return entry >> 4;
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		private int GetBits(int need) {
+			if (_bitBufferCount < need) {
+				FillBitBuffer();
+
+				if (_bitBufferCount < need) {
+					throw new BlastException(BlastException.OutOfInputMessage);
+				}
+			}
+
+			int val = (int)_bitBuffer & ((1 << need) - 1);
+			_bitBuffer >>= need;
+			_bitBufferCount -= need;
+
+			return val;
 		}
 
 		/// <summary>
-		/// <para>
-		/// Decode a code from the stream using huffman table <c>h</c>.  Return the symbol or
-		/// a negative value if there is an error.  If all of the lengths are zero, i.e.
-		/// an empty code, or if the code is incomplete and an invalid code is received,
-		/// then -9 is returned after reading MAXBITS bits.
-		/// </para>
-		///
-		/// <para>Format notes:</para>
-		///
-		/// <list type="bullet">
-		/// <item>The codes as stored in the compressed data are bit-reversed relative to
-		///   a simple integer ordering of codes of the same lengths.  Hence below the
-		///   bits are pulled from the compressed data one at a time and used to
-		///   build the code value reversed from what is in the stream in order to
-		///   permit simple integer comparisons for decoding.</item>
-		///
-		/// <item>The first code for the shortest length is all ones.  Subsequent codes of
-		///   the same length are simply integer decrements of the previous code.  When
-		///   moving up a length, a one bit is appended to the code.  For a complete
-		///   code, the last code of the longest length will be all zeros.  To support
-		///   this ordering, the bits pulled during decoding are inverted to apply the
-		///   more "natural" ordering starting with all zeros and incrementing.</item>
-		/// </list>
+		/// Top up the bit buffer with whole bytes, as far as the input allows.
 		/// </summary>
-		private int Decode(HuffmanTable h) {
-			int len = 1;   // current number of bits in code
-			int code = 0;  // len bits being decoded
-			int first = 0; // first code of length len
-			int count;     // number of codes of length len
-			int index = 0; // index of first code of length len in symbol table
-			int bitbuf;    // bits from stream
-			int left;      // bits left in next or left to process
-			int next = 1;  // next number of codes
-
-			var bufferState = _bitStream.State;
-
-			(bitbuf, left) = bufferState;
-
-			while (true) {
-				while (left-- > 0) {
-					// add the next bit from the stream to the code
-					// this bit is inverted as mentioned above
-					code |= (bitbuf & 1) ^ 1;
-
-					// advance the buffer
-					bitbuf >>= 1;
-
-					// grab the count out of the Huffman table
-					count = h.count[next++];
-
-					if (code < first + count) {
-						// code found, reset bitstream state after local modification
-						_bitStream.State = (bitbuf, ((bufferState.bufferCount - len) & 7));
-
-						// return decoded symbol
-						return h.symbol[index + (code - first)];
-					}
-
-					index += count;
-					first += count;
-
-					first <<= 1;
-					code <<= 1;
-
-					len++;
+		private void FillBitBuffer() {
+			while (_bitBufferCount <= 56) {
+				if (_inputPos == _inputEnd && !ReadInput()) {
+					return;
 				}
+				_bitBuffer |= (ulong)_input[_inputPos++] << _bitBufferCount;
+				_bitBufferCount += 8;
+			}
+		}
 
-				// the code uses bits from the next byte in the stream
-				// work out how many this may be based on the current
-				// number of bits consumed by the current code
-				left = (HuffmanTable.MAX_BITS + 1) - len;
+		/// <summary>
+		/// Discard the rest of the partially consumed byte at the end of a compressed stream. Any whole bytes that
+		/// were read ahead stay buffered for the next stream.
+		/// </summary>
+		private void FlushBits() {
+			int partialBits = _bitBufferCount & 7;
+			_bitBuffer >>= partialBits;
+			_bitBufferCount -= partialBits;
+		}
 
-				// all bits of the code have been consumed
-				if (left == 0)
-					break;
-
-				// get the next byte from the input stream to continue processing the current code
-				bitbuf = _inputBuffer.ConsumeByte();
-
-				// max number of bits to be processed in the
-				// current code per iteration is limited to one byte/eight bits
-				if (left > 8)
-					left = 8;
+		private bool ReadInput() {
+			if (_inputStream == null) {
+				return false;
 			}
 
-			return -9; // invalid code
+			_inputEnd = _inputStream.Read(_input, 0, _input.Length);
+			_inputPos = 0;
+			return _inputEnd > 0;
 		}
+
+		/// <summary>
+		/// Check for presence of more input without consuming it.
+		/// May refill the input buffer.
+		/// </summary>
+		private bool IsInputRemaining() {
+			return _bitBufferCount > 0 || _inputPos < _inputEnd || ReadInput();
+		}
+
+		#endregion
 
 		#region Output stream
 
-		private void WriteBuffer(byte b) {
-			EnsureBufferSpace(1);
-			//log("lit: {0}", (char)b);
-			_outputBuffer[_outputBufferPos++] = b;
-		}
-
-		private void CopyBufferSection(int fromIndex, int copyCount) {
-			fromIndex -= EnsureBufferSpace(copyCount);
-
-			Buffer.BlockCopy(_outputBuffer, fromIndex, _outputBuffer, _outputBufferPos, copyCount);
-			_outputBufferPos += copyCount;
-		}
-
-		private int EnsureBufferSpace(int required) {
+		private void EnsureBufferSpace(int required) {
 			// is there room in the buffer?
-			if (_outputBufferPos + required >= _outputBuffer.Length) {
-				// flush the initial section
-				int startWindowOffset = _outputBufferPos - MAX_WIN;
-
-				FlushOutputBufferSection(startWindowOffset); // only flush the section that's not part of the window
-
-				// position the stream further back
-				Buffer.BlockCopy(_outputBuffer, startWindowOffset, _outputBuffer, 0, MAX_WIN);
-				_outputBufferPos = MAX_WIN;
-
-				return startWindowOffset;
+			if (_outputBufferPos + required <= _outputBuffer.Length) {
+				return;
 			}
 
-			return 0;
+			if (_outputStream == null) {
+				// decoding to memory: grow the buffer, which holds all of the output
+				long newSize = Math.Max((long)_outputBuffer.Length * 2, (long)_outputBufferPos + required);
+				Array.Resize(ref _outputBuffer, (int)Math.Min(newSize, Array.MaxLength));
+				return;
+			}
+
+			// flush everything except the window that later copies may still refer back to
+			int startWindowOffset = _outputBufferPos - MAX_WIN;
+
+			FlushOutputBufferSection(startWindowOffset); // only flush the section that's not part of the window
+
+			// position the stream further back
+			Buffer.BlockCopy(_outputBuffer, startWindowOffset, _outputBuffer, 0, MAX_WIN);
+			_outputBufferPos = MAX_WIN;
 		}
 
 		private void FlushOutputBufferSection(int count) {

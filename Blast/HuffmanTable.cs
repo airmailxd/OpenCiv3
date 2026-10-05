@@ -34,14 +34,60 @@ namespace Blast {
 		public static readonly HuffmanTable LENGTH_CODE = new HuffmanTable(16, LENGTH_BIT_LENGTHS);
 		public static readonly HuffmanTable DISTANCE_CODE = new HuffmanTable(64, DISTANCE_BIT_LENGTHS);
 
+		public const int LOOKUP_BITS = MAX_BITS;
+		public const int LOOKUP_MASK = (1 << LOOKUP_BITS) - 1;
+
 		public readonly short[] count;
 		public readonly short[] symbol;
+
+		/// <summary>
+		/// Direct decoding table indexed by the next <see cref="LOOKUP_BITS"/> bits of the stream (first bit in the
+		/// least significant position). Each entry is <c>(symbol &lt;&lt; 4) | codeLength</c>; an entry of zero means
+		/// the bits do not form a valid code. Built once per table by running the canonical bit-by-bit decode
+		/// (see <see cref="DecodeBitByBit"/>) over every possible bit pattern, so the result is identical to it.
+		/// </summary>
+		public readonly ushort[] lookup;
 
 		public HuffmanTable(int symbolSize, byte[] compacted) {
 			count = new short[MAX_BITS + 1];
 			symbol = new short[symbolSize];
 
 			Construct(compacted);
+
+			lookup = new ushort[1 << LOOKUP_BITS];
+			for (int bits = 0; bits < lookup.Length; bits++) {
+				int decoded = DecodeBitByBit(bits, out int length);
+				if (decoded >= 0) {
+					lookup[bits] = (ushort)((decoded << 4) | length);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Decode one symbol from up to MAX_BITS bits (first stream bit in bit 0), the way blast.c's decode() does:
+		/// the bits are inverted and accumulated most-significant first, then compared against the canonical code
+		/// ranges for each length. Returns -9 if no code of at most MAX_BITS bits matches.
+		/// </summary>
+		internal int DecodeBitByBit(int bits, out int length) {
+			int code = 0;  // len bits being decoded
+			int first = 0; // first code of length len
+			int index = 0; // index of first code of length len in symbol table
+
+			for (int len = 1; len <= MAX_BITS; len++) {
+				code |= ((bits >> (len - 1)) & 1) ^ 1;
+				int count = this.count[len];
+				if (code < first + count) {
+					length = len;
+					return this.symbol[index + (code - first)];
+				}
+				index += count;
+				first += count;
+				first <<= 1;
+				code <<= 1;
+			}
+
+			length = 0;
+			return -9; // invalid code
 		}
 
 		/// <summary>

@@ -33,10 +33,7 @@ namespace QueryCiv3 {
 		}
 
 		public static byte[] Decompress(byte[] compressedBytes) {
-			MemoryStream DecompressedStream = new MemoryStream();
-			BlastDecoder Decompressor = new BlastDecoder(new MemoryStream(compressedBytes, writable: false), DecompressedStream);
-			Decompressor.Decompress();
-			return DecompressedStream.ToArray();
+			return BlastDecoder.DecompressBytes(compressedBytes);
 		}
 
 		public static string GetString(byte[] bytes) {

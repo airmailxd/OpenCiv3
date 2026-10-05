@@ -11,4 +11,7 @@
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <RestorePackagesWithLockFile>false</RestorePackagesWithLockFile>
   </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="EngineTests" />
+  </ItemGroup>
 </Project>
