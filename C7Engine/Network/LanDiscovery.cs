@@ -40,7 +40,7 @@ public static class LanDiscovery {
 					continue;
 				}
 				try {
-					DiscoveryReply reply = NetSerialization.DeserializeData<DiscoveryReply>(result.Buffer);
+					DiscoveryReply reply = NetSerialization.DeserializeRequired<DiscoveryReply>(result.Buffer);
 					string address = result.RemoteEndPoint.Address.ToString();
 					found[$"{address}:{reply.port}"] = new FoundHost(address, reply);
 				} catch (JsonException) {

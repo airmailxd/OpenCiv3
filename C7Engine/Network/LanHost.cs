@@ -6,7 +6,6 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using C7GameData;
@@ -207,6 +206,11 @@ public class LanHost : IDisposable {
 				discovery.Send(reply, reply.Length, from);
 			} catch (Exception e) when (e is SocketException or ObjectDisposedException) {
 				if (disposed) return;
+			} catch (Exception e) {
+				// Anything else would take the whole program down with this
+				// thread.
+				if (disposed) return;
+				log.Error(e, "Couldn't answer a LAN discovery request");
 			}
 		}
 	}
@@ -353,12 +357,21 @@ public class LanHost : IDisposable {
 		}
 	}
 
+	// A frame that can't be read or handled, from anyone, is logged and
+	// ignored, and a peer that sends nothing else is dropped, so that a bad
+	// frame never takes the host's Poll (and everyone else's frames, and the
+	// engine) down with it.
+	private static bool BadFrame(LanConnection connection, string from, Frame frame, Exception e) {
+		log.Warning("Bad {Kind} frame from {From}: {Error}", frame.kind, from, e.Message);
+		return connection.NoteBadFrame();
+	}
+
 	private void PollUnseated(LanConnection connection, string name) {
 		while (connection.TryReceive(out Frame frame)) {
 			try {
 				switch (frame.kind) {
 					case FrameKind.Hello:
-						HelloInfo hello = NetSerialization.DeserializeData<HelloInfo>(frame.payload);
+						HelloInfo hello = NetSerialization.DeserializeRequired<HelloInfo>(frame.payload);
 						if (hello.version != LanProtocol.Version) {
 							Reject(connection, $"The host is running a different version of the game (protocol {LanProtocol.Version}, yours is {hello.version}).");
 							return;
@@ -372,7 +385,7 @@ public class LanHost : IDisposable {
 							Reject(connection, "Say hello before claiming a seat.");
 							return;
 						}
-						ClaimSeatInfo claim = NetSerialization.DeserializeData<ClaimSeatInfo>(frame.payload);
+						ClaimSeatInfo claim = NetSerialization.DeserializeRequired<ClaimSeatInfo>(frame.payload);
 						Seat seat = seats.Find(s => s.info.playerID == claim.playerID);
 						if (seat == null || (seat.connection != null && !seat.connection.IsClosed)) {
 							SendLobby(connection, null);
@@ -407,8 +420,15 @@ public class LanHost : IDisposable {
 						log.Warning("Ignoring {Kind} frame from unseated {Address}", frame.kind, connection.RemoteAddress);
 						break;
 				}
-			} catch (JsonException e) {
-				log.Warning("Bad {Kind} frame from {Address}: {Error}", frame.kind, connection.RemoteAddress, e.Message);
+				connection.NoteGoodFrame();
+			} catch (Exception e) {
+				if (BadFrame(connection, connection.RemoteAddress, frame, e)) {
+					break;
+				}
+				if (!unseated.Exists(u => u.connection == connection)) {
+					// It took a seat or began watching before failing.
+					return;
+				}
 			}
 		}
 		if (connection.IsClosed) {
@@ -434,27 +454,14 @@ public class LanHost : IDisposable {
 			return;
 		}
 		while (seat.connection.TryReceive(out Frame frame)) {
-			if (frame.kind == FrameKind.ChooseCivilization) {
-				ChooseCivilization(seat, frame);
-				continue;
-			}
-			if (frame.kind != FrameKind.Command || !Started) {
-				continue;
-			}
-			MessageToEngine msg;
 			try {
-				msg = NetSerialization.DeserializeMessageToEngine(frame.payload);
-			} catch (Exception e) when (e is JsonException or NotSupportedException or FormatException) {
-				log.Warning("Bad command from {Player}: {Error}", seat.info.playerID, e.Message);
-				continue;
+				HandleSeatFrame(seat, frame);
+				seat.connection.NoteGoodFrame();
+			} catch (Exception e) {
+				if (BadFrame(seat.connection, $"{seat.takenBy} ({seat.info.playerID})", frame, e)) {
+					break;
+				}
 			}
-			if (msg == null || msg.IsLocal) {
-				continue;
-			}
-			// Clients act only as their own player.
-			msg.playerID = seat.info.playerID;
-			msg.DistrustRemoteSender();
-			EngineStorage.ReceiveFromRemote(msg);
 		}
 		if (seat.connection.IsClosed) {
 			log.Information("{Name} left the seat of {Player}", seat.takenBy, seat.info.playerID);
@@ -469,19 +476,31 @@ public class LanHost : IDisposable {
 		}
 	}
 
+	private void HandleSeatFrame(Seat seat, Frame frame) {
+		if (frame.kind == FrameKind.ChooseCivilization) {
+			ChooseCivilization(seat, frame);
+			return;
+		}
+		if (frame.kind != FrameKind.Command || !Started) {
+			return;
+		}
+		MessageToEngine msg = NetSerialization.DeserializeRequired<MessageToEngine>(frame.payload);
+		if (msg.IsLocal) {
+			return;
+		}
+		// Clients act only as their own player.
+		msg.playerID = seat.info.playerID;
+		msg.DistrustRemoteSender();
+		EngineStorage.ReceiveFromRemote(msg);
+	}
+
 	// A guest's choice of civilization: one nobody else has chosen, or null
 	// for a random one. Anything else leaves their seat as it was.
 	private void ChooseCivilization(Seat seat, Frame frame) {
 		if (!GuestsChooseCivilizations || creatingGame) {
 			return;
 		}
-		string civilization;
-		try {
-			civilization = NetSerialization.DeserializeData<ChooseCivilizationInfo>(frame.payload).civilization;
-		} catch (JsonException e) {
-			log.Warning("Bad civilization choice from {Player}: {Error}", seat.info.playerID, e.Message);
-			return;
-		}
+		string civilization = NetSerialization.DeserializeRequired<ChooseCivilizationInfo>(frame.payload).civilization;
 		bool available = civilization == null
 			|| (choosable.Any(c => c.name == civilization)
 				&& civilization != hostCivilization
