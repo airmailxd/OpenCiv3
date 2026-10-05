@@ -41,7 +41,18 @@ namespace C7GameData {
 	public class ImportCiv3 {
 		private SaveGame save;
 		private BiqData biq;
-		private BiqData defaultBiq;
+		// The default BIQ (conquests.biq) fills in any sections a scenario's
+		// BIQ leaves out. It is only loaded if one of those is needed.
+		private BiqData defaultBiq {
+			get {
+				if (_defaultBiq == null && defaultBiqPath != null) {
+					_defaultBiq = BiqData.LoadFile(defaultBiqPath);
+				}
+				return _defaultBiq;
+			}
+		}
+		private BiqData _defaultBiq;
+		private string defaultBiqPath;
 		private SavData savData;
 		private PediaIcons pediaIcons;
 		private readonly ID.Factory ids;
@@ -243,7 +254,8 @@ namespace C7GameData {
 			foreach (int civ in civs) {
 				var raceId = savData.Lead[civ].RaceID;
 				var race = savData.Bic.Race[raceId];
-				var player = save.Players.First(p => p.civilization == race.Name);
+				string raceName = race.Name;
+				var player = save.Players.First(p => p.civilization == raceName);
 				civ3CivIdToPlayerId[civ] = player.id;
 			}
 			return civ3CivIdToPlayerId;
@@ -260,7 +272,7 @@ namespace C7GameData {
 
 		private SaveGame importBiq(string biqPath, string defaultBiqPath, Func<string, string> getPediaIconsPath) {
 			biq = BiqData.LoadFile(biqPath);
-			defaultBiq = BiqData.LoadFile(defaultBiqPath);
+			this.defaultBiqPath = defaultBiqPath;
 			pediaIcons = new(getPediaIconsPath(biq.Game[0].ScenarioSearchFolders));
 			save.Seed = biq.Wmap[0].MapSeed;
 
@@ -566,7 +578,7 @@ namespace C7GameData {
 			if (cultureGroupIndex == 2) return "Mediterranean";
 			if (cultureGroupIndex == 3) return "Mid East";
 			if (cultureGroupIndex == 4) return "Asian";
-			log.Error($"The culture group index {cultureGroupIndex} is invalid. Defaulting to `American`.");
+			log.Error("The culture group index {CultureGroupIndex} is invalid. Defaulting to `American`.", cultureGroupIndex);
 			return "American";
 		}
 
@@ -958,10 +970,10 @@ namespace C7GameData {
 			}
 
 			foreach (SavePlayer savePlayer in save.Players) {
-				log.Information($"- - - - - - - - - - - - - - - - - - {savePlayer.civilization} - - - - - - - - - - - - - - - - - - ");
+				log.Information("- - - - - - - - - - - - - - - - - - {Civilization} - - - - - - - - - - - - - - - - - - ", savePlayer.civilization);
 				foreach (KeyValuePair<string, PlayerRelationship> pr in savePlayer.playerRelationships) {
 					if (pr.Value.multiTurnDeals.Count == 0) {
-						log.Information($"{savePlayer} is at war with {save.Players.First(c => c.id.ToString() == pr.Key)}");
+						log.Information("{Player} is at war with {Other}", savePlayer, save.Players.First(c => c.id.ToString() == pr.Key));
 						continue;
 					}
 					foreach (MultiTurnDeal mtd in pr.Value.multiTurnDeals) {
@@ -1112,13 +1124,15 @@ namespace C7GameData {
 				}
 				SavePlayer player = save.Players[unit.OwnerID];
 				PRTO prototype = savData.Bic.Prto[unit.UnitType];
+				string prototypeName = prototype.Name;
+				string unitName = unit.Name;
 				ExperienceLevel experience = save.ExperienceLevels[unit.ExperienceLevel];
 				SaveUnit saveUnit = new SaveUnit{
-					id = ids.CreateID(prototype.Name),
-					name = String.IsNullOrEmpty(unit.Name) ? prototype.Name : unit.Name,
+					id = ids.CreateID(prototypeName),
+					name = String.IsNullOrEmpty(unitName) ? prototypeName : unitName,
 					nationality = save.Civilizations[unit.Nationality].name,
 					owner = player.id,
-					prototype = prototype.Name,
+					prototype = prototypeName,
 					currentLocation = new TileLocation(unit.X, unit.Y),
 					previousLocation = new TileLocation(unit.PreviousX, unit.PreviousY),
 					experience = experience.key,
@@ -1158,15 +1172,16 @@ namespace C7GameData {
 
 			var createUnitAtLocation = (SavePlayer player, string unitName, int unitType, string experienceLevel, int hitPoints, int x, int y) => {
 				PRTO prototype = theBiq.Prto[unitType];
+				string prototypeName = prototype.Name;
 				SaveUnit saveUnit = new SaveUnit{
-					id = ids.CreateID(prototype.Name),
-					name = String.IsNullOrEmpty(unitName) ? prototype.Name : unitName,
+					id = ids.CreateID(prototypeName),
+					name = String.IsNullOrEmpty(unitName) ? prototypeName : unitName,
                     /* TODO: scenarios seem to not support slave units by default,
                        meaning there is no Nationality field in the Biq UNIT data structure,
                        we might want to do something different in the future (somehow) */
                     nationality = player.civilization,
 					owner = player.id,
-					prototype = prototype.Name,
+					prototype = prototypeName,
 					currentLocation = new TileLocation(x, y),
 					previousLocation = new TileLocation(x, y),
 					experience = experienceLevel,
@@ -1181,7 +1196,7 @@ namespace C7GameData {
 				// as it denotes the tribe index rather that the player index.
 				// That is why we exclude barbarians (ownerType == 1) from this.
 				if (unit.Owner >= save.Players.Count && unit.OwnerType != 1) {
-					log.Warning($"Unit has owner with index {unit.Owner}, but there are only {save.Players.Count} players");
+					log.Warning("Unit has owner with index {Owner}, but there are only {PlayerCount} players", unit.Owner, save.Players.Count);
 					continue;
 				}
 
@@ -1279,15 +1294,17 @@ namespace C7GameData {
 				var building = cityBuildings[buildingIndex];
 
 				if (building.BuiltByPlayer != -1 && city.Bitm.IsBuildingUsable(buildingIndex)) {
+					BLDG bldg = theBiq.Bldg[buildingIndex];
+					string buildingName = bldg.Name;
 					res.Add(new SaveCityBuilding {
-						building = theBiq.Bldg[buildingIndex].Name,
+						building = buildingName,
 						builtByPlayer = save.Players[building.BuiltByPlayer].id,
 						year = building.Year,
 						totalCulture = building.Culture,
 					});
 
-					if (theBiq.Bldg[buildingIndex].Wonder) {
-						save.GreatWondersBuilt.Add(theBiq.Bldg[buildingIndex].Name);
+					if (bldg.Wonder) {
+						save.GreatWondersBuilt.Add(buildingName);
 					}
 				}
 			}
@@ -1302,16 +1319,17 @@ namespace C7GameData {
 
 			for (int buildingIndex = 0; buildingIndex < cityBuildings.Length; ++buildingIndex) {
 				BLDG building = theBiq.Bldg[cityBuildings[buildingIndex]];
+				string buildingName = building.Name;
 
 				res.Add(new SaveCityBuilding {
-					building = building.Name,
+					building = buildingName,
 					builtByPlayer = player,
 					year = 0,
 					totalCulture = 0,
 				});
 
 				if (building.Wonder) {
-					save.GreatWondersBuilt.Add(building.Name);
+					save.GreatWondersBuilt.Add(buildingName);
 				}
 			}
 
@@ -1836,7 +1854,8 @@ namespace C7GameData {
 		private SaveUnitPrototype MatchCiv3IndexToImportedUnit(int civ3Index) {
 			PRTO[] Prto = biq.Prto ?? defaultBiq.Prto;
 			if (civ3Index == -1) return null;
-			return save.UnitPrototypes.Where(up => up.name == Prto[civ3Index].Name).First();
+			string name = Prto[civ3Index].Name;
+			return save.UnitPrototypes.Where(up => up.name == name).First();
 		}
 
 		private void ImportBarbarianInfo() {
