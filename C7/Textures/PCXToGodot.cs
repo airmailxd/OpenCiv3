@@ -2,6 +2,7 @@ using Godot;
 using System;
 using ConvertCiv3Media;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 
 public partial class PCXToGodot : GodotObject {
 	private const byte SHADOW_START_INDEX = 224;
@@ -44,6 +45,11 @@ public partial class PCXToGodot : GodotObject {
 		return getImageTextureFromImage(ImgTxtr);
 	}
 
+	// Like getImageTextureFromPCX(pcx), but with the given color options instead of the defaults.
+	public static ImageTexture getImageTextureFromPCX(Pcx pcx, ColorOptions colorOptions) {
+		return getImageTextureFromPCX(pcx, new CropRegion(0, 0, pcx.Width, pcx.Height), colorOptions);
+	}
+
 	public static ImageTexture getImageTextureFromPCX(Pcx pcx, CropRegion cropRegion, ColorOptions colorOptions) {
 		Image image = getImageFromPCX(pcx, cropRegion, colorOptions);
 		return getImageTextureFromImage(image);
@@ -56,7 +62,8 @@ public partial class PCXToGodot : GodotObject {
 		var (leftStart, topStart, croppedWidth, croppedHeight) = cropRegion;
 
 		int[] ColorData = loadPalette(pcx.Palette, colorOptions);
-		int[] BufferData = new int[croppedWidth * croppedHeight];
+		byte[] Data = new byte[4 * croppedWidth * croppedHeight];
+		Span<int> BufferData = MemoryMarshal.Cast<byte, int>(Data.AsSpan());
 
 		int DataIndex = 0;
 
@@ -67,11 +74,12 @@ public partial class PCXToGodot : GodotObject {
 			}
 		}
 
-		return getImageFromBufferData(croppedWidth, croppedHeight, BufferData);
+		return getImageFromBufferData(croppedWidth, croppedHeight, Data);
 	}
 
 	public static ImageTexture getPureAlphaFromPCX(Pcx alphaPcx, HashSet<int> transparentColorIndexes) {
-		int[] bufferData = new int[alphaPcx.Width * alphaPcx.Height];
+		byte[] data = new byte[4 * alphaPcx.Width * alphaPcx.Height];
+		Span<int> bufferData = MemoryMarshal.Cast<byte, int>(data.AsSpan());
 		int[] alphaData = new int[MAX_PALETTE_SIZE];
 		for (int i = 0; i < MAX_PALETTE_SIZE; i++) {
 			alphaData[i] = alphaPcx.Palette[i, 0];
@@ -98,7 +106,7 @@ public partial class PCXToGodot : GodotObject {
 			}
 		}
 
-		Image outImage = getImageFromBufferData(alphaPcx.Width, alphaPcx.Height, bufferData);
+		Image outImage = getImageFromBufferData(alphaPcx.Width, alphaPcx.Height, data);
 		return getImageTextureFromImage(outImage);
 	}
 
@@ -112,7 +120,8 @@ public partial class PCXToGodot : GodotObject {
 		var (leftStart, topStart, croppedWidth, croppedHeight) = cropRegion;
 		int[] ColorData = loadPalette(imagePcx.Palette, false);
 		int[] AlphaData = loadAlphaPalette(alphaPcx.Palette, ColorData);
-		int[] BufferData = new int[croppedWidth * croppedHeight];
+		byte[] Data = new byte[4 * croppedWidth * croppedHeight];
+		Span<int> BufferData = MemoryMarshal.Cast<byte, int>(Data.AsSpan());
 
 		int AlphaIndex;
 		int DataIndex = 0;
@@ -126,73 +135,109 @@ public partial class PCXToGodot : GodotObject {
 			}
 		}
 
-		Image OutImage = getImageFromBufferData(croppedWidth, croppedHeight, BufferData);
+		Image OutImage = getImageFromBufferData(croppedWidth, croppedHeight, Data);
 		return getImageTextureFromImage(OutImage);
 	}
 
 	public static Image ByteArrayToImage(byte[] colorIndices, byte[,] palette, int width, int height, int[] transparent = null, bool shadows = false) {
 		int[] ColorData = loadPalette(palette, shadows);
-		int[] BufferData = new int[width * height];
+		byte[] Data = new byte[4 * width * height];
+		Span<int> BufferData = MemoryMarshal.Cast<byte, int>(Data.AsSpan());
 
 		for (int i = 0; i < width * height; i++) {
 			BufferData[i] = ColorData[colorIndices[i]];
 		}
 
-		return getImageFromBufferData(width, height, BufferData);
+		return getImageFromBufferData(width, height, Data);
 	}
 
 	// ByteArrayWithTintToImage is used to load create images from flic frames
 	// that contain a tinted layer such as unit animations, where the unit's
 	// clothing is tinted by their civ color.
 	public static (Image, Image) ByteArrayWithTintToImage(byte[] colorIndices, byte[,] palette, int width, int height, int[] transparent = null, bool shadows = false) {
-		int[] colorData = loadPalette(palette, shadows);
-		int[] baseLayer = new int[width * height];
-		int[] tintLayer = new int[width * height];
-
-		// If ntp00.pcx doesn't exist, don't try to match the full palette for
-		// the "clothes" of the unit's animation - just make it solid white. We
-		// lose any sort of shading or shadows on the unit's clothing, but this
-		// is good enough for standalone mode, at least for now.
-		//
-		// TODO: consider how to improve this - do we need to include a similar
-		// palette in the c7 data? Is this information present in the flc files?
-		Func<int, int> getWhiteColorData;
-		try {
-			Pcx whitePcx = TextureLoader.LoadPCX("Art/Units/Palettes/ntp00.pcx");
-			int[] whiteColorData = loadPalette(whitePcx.Palette, true);
-			getWhiteColorData = (int index) => {
-				return whiteColorData[index];
-			};
-		} catch (Exception e) {
-			getWhiteColorData = (int index) => {
-				return ((int)new Color(1, 1, 1, 1).ToArgb32());
-			};
-		}
+		int[] colorData = loadFlicPalette(palette, shadows);
+		int[] whiteColorData = loadWhitePalette();
+		byte[] baseData = new byte[4 * width * height];
+		byte[] tintData = new byte[4 * width * height];
+		// Both layers start out transparent.
+		Span<int> baseLayer = MemoryMarshal.Cast<byte, int>(baseData.AsSpan());
+		Span<int> tintLayer = MemoryMarshal.Cast<byte, int>(tintData.AsSpan());
 
 		for (int i = 0; i < width * height; i++) {
 			int index = colorIndices[i];
 			bool tinted = index < 16 || (index < 64 && index % 2 == 0);
 			bool shadow = index >= SHADOW_START_INDEX && index <= CIVCOLOR_START_INDEX;
 			if (tinted) {
-				tintLayer[i] = getWhiteColorData(index);
-				baseLayer[i] = 0; // transparent
+				tintLayer[i] = whiteColorData[index];
 			} else if (shadow) {
 				// shadow belongs to the base texture
-				baseLayer[i] = ((int)new Color(1.0f, 1.0f, 1.0f, (float)(index - SHADOW_START_INDEX) / SHADOW_INDEX_RANGE).ToArgb32());
-				tintLayer[i] = 0; // transparent
+				baseLayer[i] = shadowColors[index - SHADOW_START_INDEX];
 			} else {
 				baseLayer[i] = colorData[index];
-				tintLayer[i] = 0; // transparent
 			}
 		}
-		return (getImageFromBufferData(width, height, baseLayer), getImageFromBufferData(width, height, tintLayer));
+		return (getImageFromBufferData(width, height, baseData), getImageFromBufferData(width, height, tintData));
 	}
 
-	private static Image getImageFromBufferData(int width, int height, int[] bufferData) {
-		byte[] Data = new byte[4 * width * height];
-		Buffer.BlockCopy(bufferData, 0, Data, 0, 4 * width * height);
-		Image image = Image.CreateFromData(width, height, false, Image.Format.Rgba8, Data);
-		return image;
+	// The colors of the shadow indexes in flic frames: white, increasingly opaque.
+	private static readonly int[] shadowColors = makeShadowColors();
+
+	private static int[] makeShadowColors() {
+		int[] colors = new int[CIVCOLOR_START_INDEX - SHADOW_START_INDEX + 1];
+		for (int index = SHADOW_START_INDEX; index <= CIVCOLOR_START_INDEX; index++) {
+			colors[index - SHADOW_START_INDEX] = (int)new Color(1.0f, 1.0f, 1.0f, (float)(index - SHADOW_START_INDEX) / SHADOW_INDEX_RANGE).ToArgb32();
+		}
+		return colors;
+	}
+
+	// The palette for the tinted layer of flic frames, loaded once. If
+	// ntp00.pcx doesn't exist, don't try to match the full palette for the
+	// "clothes" of the unit's animation - just make it solid white. We lose any
+	// sort of shading or shadows on the unit's clothing, but this is good
+	// enough for standalone mode, at least for now.
+	//
+	// TODO: consider how to improve this - do we need to include a similar
+	// palette in the c7 data? Is this information present in the flc files?
+	private static int[] whitePalette = null;
+
+	private static int[] loadWhitePalette() {
+		if (whitePalette == null) {
+			try {
+				Pcx whitePcx = TextureLoader.LoadPCX("Art/Units/Palettes/ntp00.pcx");
+				whitePalette = loadPalette(whitePcx.Palette, true);
+			} catch (Exception) {
+				whitePalette = new int[MAX_PALETTE_SIZE];
+				Array.Fill(whitePalette, (int)new Color(1, 1, 1, 1).ToArgb32());
+			}
+		}
+		return whitePalette;
+	}
+
+	// All frames of a flic share its palette, so the colors made from the last
+	// palette are kept for the next frame.
+	private static byte[,] lastFlicPalette = null;
+	private static bool lastFlicShadows;
+	private static int[] lastFlicColorData = null;
+
+	private static int[] loadFlicPalette(byte[,] palette, bool shadows) {
+		if (lastFlicPalette != palette || lastFlicShadows != shadows) {
+			lastFlicColorData = loadPalette(palette, shadows);
+			lastFlicPalette = palette;
+			lastFlicShadows = shadows;
+		}
+		return lastFlicColorData;
+	}
+
+	// Forgets the palettes loaded from files, for when the media files change.
+	public static void ClearCache() {
+		whitePalette = null;
+		lastFlicPalette = null;
+		lastFlicColorData = null;
+	}
+
+	// Makes an image from RGBA8 pixel data.
+	private static Image getImageFromBufferData(int width, int height, byte[] data) {
+		return Image.CreateFromData(width, height, false, Image.Format.Rgba8, data);
 	}
 
 	private static ImageTexture getImageTextureFromImage(Image image) {
