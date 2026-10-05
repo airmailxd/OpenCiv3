@@ -76,6 +76,14 @@ public sealed class TileNeighbors : IReadOnlyDictionary<TileDirection, Tile> {
 		}
 	}
 
+	// Like Dictionary.Add: throws if the direction is already present.
+	public void Add(TileDirection direction, Tile value) {
+		if (ContainsKey(direction)) {
+			throw new ArgumentException($"An item with the same key has already been added. Key: {direction}");
+		}
+		this[direction] = value;
+	}
+
 	// The neighbor in the given direction, or null if that direction is
 	// absent. Cheaper than TryGetValue for hot code.
 	public Tile Get(TileDirection direction) {
