@@ -440,3 +440,46 @@ public sealed class FixAiProductionTests : IClassFixture<SaveGameFixture>, IDisp
 		Assert.Null(picked);
 	}
 }
+
+public sealed class FixAiMapGeneratorTests {
+	private static GameMap Generate(WorldCharacteristics.Landform landform, int seed) {
+		SaveGame save = C7Engine.Lua.GameMode.Load(PathUtils.GameModesDir, new C7Engine.Lua.GameMode.Config("civ3")).GetSave();
+		WorldCharacteristics wc = new(save) {
+			landform = landform,
+			oceanCoverage = WorldCharacteristics.OceanCoverage.Percent_70,
+			age = WorldCharacteristics.Age.Billion_4,
+			climate = WorldCharacteristics.Climate.Wet,
+			temperature = WorldCharacteristics.Temperature.Temperate,
+			barbarianActivity = BarbarianActivity.Roaming,
+			worldSize = new WorldSize() {
+				width = 60,
+				height = 60,
+				numberOfCivs = 4,
+				distanceBetweenCivs = 10,
+				techRate = 240,
+				optimalNumberOfCities = 12,
+			},
+			mapSeed = seed,
+		};
+		return MapGenerator.GenerateMap(wc);
+	}
+
+	// Rivers reaching the edge of the map used to set river flags on the
+	// shared Tile.NONE, which leaked into later maps.
+	[Fact]
+	public void RiversNeverMarkTheTileOffTheMap() {
+		Tile none = Tile.NONE;
+		try {
+			GameMap map = FixAiPathingTests.MakeMap(10, 10);
+			Tile edge = map.tiles.First(t => t.neighbors.Get(TileDirection.SOUTHEAST) == Tile.NONE && t.neighbors.Get(TileDirection.SOUTHWEST) == Tile.NONE);
+			System.Reflection.MethodInfo setRiverFlags = typeof(MapGenerator).GetMethod("setRiverFlags", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+			foreach (TileDirection dir in new[] { TileDirection.SOUTHWEST, TileDirection.SOUTHEAST, TileDirection.NORTHWEST, TileDirection.NORTHEAST }) {
+				setRiverFlags.Invoke(null, new object[] { edge, dir, 0 });
+			}
+			Assert.False(none.BordersRiver());
+		} finally {
+			none.riverNorth = none.riverNortheast = none.riverEast = none.riverSoutheast = false;
+			none.riverSouth = none.riverSouthwest = none.riverWest = none.riverNorthwest = false;
+		}
+	}
+}

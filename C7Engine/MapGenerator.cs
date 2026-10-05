@@ -259,10 +259,9 @@ namespace C7Engine {
 			}
 
 			if (landform == WorldCharacteristics.Landform.Continents) {
-				// Ensure that we have at least 3 land continents, that the
-				// largest isn't more than 2/3rds the land, and the second largest
-				// isn't less than 1/3 the land. This should promote cases
-				// where we have 2 large land masses.
+				// Ensure that we have at least 3 land continents and that the
+				// largest is at most 1.3 times the size of the second largest.
+				// This should promote cases where we have 2 large land masses.
 				List<HashSet<Tile>> landContinents = m.continents.Where(x => x.First().IsLand()).ToList();
 				if (landContinents.Count < 3) {
 					return false;
@@ -502,7 +501,7 @@ namespace C7Engine {
 
 			foreach (Tile t in tiles) {
 				foreach (Tile neighbor in t.neighbors.Values) {
-					if (neighbor.biomeRegion != -1 || !neighbor.IsLand() || neighbor.overlayTerrainType.isHilly() || t == Tile.NONE) {
+					if (neighbor == Tile.NONE || neighbor.biomeRegion != -1 || !neighbor.IsLand() || neighbor.overlayTerrainType.isHilly()) {
 						continue;
 					}
 
@@ -884,29 +883,53 @@ namespace C7Engine {
 			//     <      >< Tile ><      >
 			//         <  SW  ><  SE  >
 			//             <      >
+			//
+			// Neighbors off the edge of the map are Tile.NONE, which is shared
+			// by every map, so flags must never be set on it.
+			Tile se = Neighbor(t, TileDirection.SOUTHEAST);
+			Tile sw = Neighbor(t, TileDirection.SOUTHWEST);
 			if (incomingDir == TileDirection.SOUTHWEST) {
 				t.riverSoutheast = true;
-				t.neighbors[TileDirection.SOUTHEAST].riverNorthwest = true;
+				if (se != Tile.NONE) {
+					se.riverNorthwest = true;
+				}
 			} else if (incomingDir == TileDirection.NORTHWEST) {
 				t.riverSouthwest = true;
-				t.neighbors[TileDirection.SOUTHWEST].riverNortheast = true;
+				if (sw != Tile.NONE) {
+					sw.riverNortheast = true;
+				}
 
-				if (t.neighbors[TileDirection.SOUTHEAST].riverSoutheast) {
-					t.neighbors[TileDirection.SOUTHEAST].riverSouthwest = true;
-					t.neighbors[TileDirection.SOUTHEAST].neighbors[TileDirection.SOUTHWEST].riverNortheast = true;
+				if (se != Tile.NONE && se.riverSoutheast) {
+					se.riverSouthwest = true;
+					Tile seSw = Neighbor(se, TileDirection.SOUTHWEST);
+					if (seSw != Tile.NONE) {
+						seSw.riverNortheast = true;
+					}
 				}
 			} else if (incomingDir == TileDirection.NORTHEAST) {
 				t.riverSoutheast = true;
-				t.neighbors[TileDirection.SOUTHEAST].riverNorthwest = true;
+				if (se != Tile.NONE) {
+					se.riverNorthwest = true;
+				}
 
-				if (t.neighbors[TileDirection.SOUTHWEST].riverSouthwest) {
-					t.neighbors[TileDirection.SOUTHWEST].riverSoutheast = true;
-					t.neighbors[TileDirection.SOUTHWEST].neighbors[TileDirection.SOUTHEAST].riverNorthwest = true;
+				if (sw != Tile.NONE && sw.riverSouthwest) {
+					sw.riverSoutheast = true;
+					Tile swSe = Neighbor(sw, TileDirection.SOUTHEAST);
+					if (swSe != Tile.NONE) {
+						swSe.riverNorthwest = true;
+					}
 				}
 			} else if (incomingDir == TileDirection.SOUTHEAST) {
 				t.riverSouthwest = true;
-				t.neighbors[TileDirection.SOUTHWEST].riverNortheast = true;
+				if (sw != Tile.NONE) {
+					sw.riverNortheast = true;
+				}
 			}
+		}
+
+		// The neighbor in the given direction, or Tile.NONE if there is none.
+		private static Tile Neighbor(Tile t, TileDirection direction) {
+			return t.neighbors.Get(direction) ?? Tile.NONE;
 		}
 
 		private static int calculateRiverDescentScore(HeightMap hm, Tile t, TileDirection direction) {
