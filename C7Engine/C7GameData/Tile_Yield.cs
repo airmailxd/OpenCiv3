@@ -1,5 +1,5 @@
 using System;
-using System.Linq;
+using System.Collections.Generic;
 using C7Engine;
 
 namespace C7GameData;
@@ -20,9 +20,16 @@ public partial class Tile {
 		public int yield { get => baseYield + bonus - penalty; }
 
 		public static Yield CalculateForCity(Tile tile, int yield, YieldType type, City city) {
+			return CalculateForCity(tile, yield, type, city, city.EffectiveBuildings());
+		}
+
+		// Like CalculateForCity, with the city's buildings (as returned by
+		// City.EffectiveBuildings) looked up once by the caller instead of
+		// once per tile.
+		internal static Yield CalculateForCity(Tile tile, int yield, YieldType type, City city, List<CityBuilding> cityBuildings) {
 			return new Yield(tile, yield, type)
 				.ApplyTerrainImprovementModifiers(tile)
-				.ApplyCityModifiers(city)
+				.ApplyCityModifiers(cityBuildings)
 				.ApplyPlayerModifiers(city.owner);
 		}
 
@@ -49,13 +56,19 @@ public partial class Tile {
 			return this;
 		}
 
-		private Yield ApplyCityModifiers(City city) {
-			city.GetBuildings().ForEach(b => b.building.tileModifier?.Invoke(this));
+		private Yield ApplyCityModifiers(List<CityBuilding> cityBuildings) {
+			foreach (CityBuilding b in cityBuildings) {
+				b.building.tileModifier?.Invoke(this);
+			}
 			return this;
 		}
 
 		private Yield ApplyTerrainImprovementModifiers(Tile tile) {
-			tile.overlays.GetImprovements().ToList().ForEach(ti => ti.tileModifier?.Invoke(this));
+			// The same improvements, in the same order, as GetImprovements,
+			// but without allocating an enumerator or a list.
+			foreach (TerrainImprovement ti in tile.overlays.terrainImprovementByLayer.Values) {
+				ti.tileModifier?.Invoke(this);
+			}
 			return this;
 		}
 	}
@@ -63,6 +76,15 @@ public partial class Tile {
 	//Convenience method for printing the yield
 	public string YieldString(Player player) {
 		return $"{this.FoodYield(player).yield}/{this.ProductionYield(player).yield}/{this.CommerceYield(player).yield}";
+	}
+
+	// The same as overlays.GetBaseYieldBonus, without the LINQ allocations.
+	private int BaseYieldBonus(YieldType type) {
+		int result = 0;
+		foreach (TerrainImprovement ti in overlays.terrainImprovementByLayer.Values) {
+			result += ti.GetYieldBonus(overlayTerrainType, type);
+		}
+		return result;
 	}
 
 	// Food yield
@@ -84,7 +106,7 @@ public partial class Tile {
 			// water source or has already reached city size (≥ 7)
 		}
 
-		yield += this.overlays.GetBaseYieldBonus(YieldType.Food);
+		yield += BaseYieldBonus(YieldType.Food);
 
 		if (this.HasCraters())
 			yield--;
@@ -96,15 +118,19 @@ public partial class Tile {
 		return Yield.CalculateForPlayer(this, yield, YieldType.Food, player);
 	}
 	public Yield FoodYield(City city) {
+		return FoodYield(city, city.EffectiveBuildings());
+	}
+	internal Yield FoodYield(City city, List<CityBuilding> cityBuildings) {
 		int yield = BaseFoodYield(city.owner);
-		return Yield.CalculateForCity(this, yield, YieldType.Food, city);
+		return Yield.CalculateForCity(this, yield, YieldType.Food, city, cityBuildings);
 	}
 
 	// Production yield
 	private int BaseProductionYield(Player player) {
 		if (this.HasPollution()) return 0;
 		int yield = overlayTerrainType.baseShieldProduction;
-		if (overlayTerrainType.Key == "grassland" && this.isBonusShield) {
+		// The flag is cheaper to check than the string, so it goes first.
+		if (this.isBonusShield && overlayTerrainType.Key == "grassland") {
 			yield++;
 		}
 
@@ -115,10 +141,12 @@ public partial class Tile {
 			yield = 1;
 
 			// There is a size bonus for larger cities.
-			if (cityAtTile.residents.Count > EngineStorage.gameData.rules.MaximumLevel1CitySize
-				&& cityAtTile.residents.Count <= EngineStorage.gameData.rules.MaximumLevel2CitySize) {
+			Rules rules = EngineStorage.gameData.rules;
+			int citySize = cityAtTile.residents.Count;
+			if (citySize > rules.MaximumLevel1CitySize
+				&& citySize <= rules.MaximumLevel2CitySize) {
 				yield += 1;
-			} else if (cityAtTile.residents.Count > EngineStorage.gameData.rules.MaximumLevel2CitySize) {
+			} else if (citySize > rules.MaximumLevel2CitySize) {
 				yield += 2;
 
 				// Industrious civs get +1 production in metropolises
@@ -134,7 +162,7 @@ public partial class Tile {
 			yield += this.Resource.ShieldsBonus;
 		}
 
-		yield += this.overlays.GetBaseYieldBonus(YieldType.Production);
+		yield += BaseYieldBonus(YieldType.Production);
 
 		return yield;
 	}
@@ -143,8 +171,11 @@ public partial class Tile {
 		return Yield.CalculateForPlayer(this, yield, YieldType.Production, player);
 	}
 	public Yield ProductionYield(City city) {
+		return ProductionYield(city, city.EffectiveBuildings());
+	}
+	internal Yield ProductionYield(City city, List<CityBuilding> cityBuildings) {
 		int yield = BaseProductionYield(city.owner);
-		return Yield.CalculateForCity(this, yield, YieldType.Production, city);
+		return Yield.CalculateForCity(this, yield, YieldType.Production, city, cityBuildings);
 	}
 
 	// Commerce yield
@@ -164,9 +195,11 @@ public partial class Tile {
 		// See https://wiki.civforum.de/wiki/Stadtfeldertrag_(Civ3)
 		if (HasCity()) {
 			int regularCityYield;
-			if (cityAtTile.residents.Count <= EngineStorage.gameData.rules.MaximumLevel1CitySize) {
+			Rules rules = EngineStorage.gameData.rules;
+			int citySize = cityAtTile.residents.Count;
+			if (citySize <= rules.MaximumLevel1CitySize) {
 				regularCityYield = 1;
-			} else if (cityAtTile.residents.Count <= EngineStorage.gameData.rules.MaximumLevel2CitySize) {
+			} else if (citySize <= rules.MaximumLevel2CitySize) {
 				regularCityYield = 2;
 			} else {
 				regularCityYield = 3;
@@ -186,7 +219,7 @@ public partial class Tile {
 			yield = Math.Max(regularCityYield, capitalCityYield);
 		}
 
-		yield += this.overlays.GetBaseYieldBonus(YieldType.Commerce);
+		yield += BaseYieldBonus(YieldType.Commerce);
 
 		return yield;
 	}
@@ -198,8 +231,11 @@ public partial class Tile {
 		return Yield.CalculateForPlayer(this, yield, YieldType.Commerce, player);
 	}
 	public Yield CommerceYield(City city) {
+		return CommerceYield(city, city.EffectiveBuildings());
+	}
+	internal Yield CommerceYield(City city, List<CityBuilding> cityBuildings) {
 		int yield = BaseCommerceYield(city.owner);
 
-		return Yield.CalculateForCity(this, yield, YieldType.Commerce, city);
+		return Yield.CalculateForCity(this, yield, YieldType.Commerce, city, cityBuildings);
 	}
 }

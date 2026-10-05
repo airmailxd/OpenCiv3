@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using Serilog;
 using C7Engine;
 using MoonSharp.Interpreter;
@@ -153,16 +154,72 @@ namespace C7GameData {
 				this.shieldsStored = shields;
 		}
 
-		public List<CityBuilding> GetBuildings() {
+		// Bumped by every AddBuilding and RemoveBuilding, in any city. Caches
+		// derived from city buildings compare against it, so they are
+		// invalidated even when a building is swapped for another without
+		// the number of buildings changing.
+		private static long buildingsVersion = 0;
+		internal static long BuildingsVersion => Interlocked.Read(ref buildingsVersion);
+
+		private static void OnBuildingsChanged() {
+			Interlocked.Increment(ref buildingsVersion);
+		}
+
+		// The cached result of EffectiveBuildings: the buildings built in this
+		// city followed by those granted by the owner's active great wonders.
+		// It is immutable and replaced as a whole, and it is checked against
+		// everything it was computed from on each use: the owner, the location
+		// (for continent-wide wonders), the constructed_buildings list and its
+		// count, City.BuildingsVersion and the owner's wonder snapshot (which
+		// validates itself, see Player.GetBuildingSnapshot).
+		private sealed class EffectiveBuildingsCache {
+			internal Player owner;
+			internal Tile location;
+			internal List<CityBuilding> source;
+			internal int sourceCount;
+			internal long buildingsVersion;
+			internal Player.BuildingSnapshot wonders;
+
+			// The buildings, with the constructed ones first. Entries from
+			// grantedStart on are granted by wonders. Never modified.
+			internal List<CityBuilding> buildings;
+			internal int grantedStart;
+		}
+
+		private EffectiveBuildingsCache effectiveBuildingsCache;
+
+		private EffectiveBuildingsCache GetEffectiveBuildingsCache() {
+			Player.BuildingSnapshot wonders = owner.GetBuildingSnapshot();
+			EffectiveBuildingsCache cache = effectiveBuildingsCache;
+			if (cache != null
+				&& ReferenceEquals(cache.wonders, wonders)
+				&& ReferenceEquals(cache.owner, owner)
+				&& ReferenceEquals(cache.location, location)
+				&& ReferenceEquals(cache.source, constructed_buildings)
+				&& cache.sourceCount == constructed_buildings.Count
+				&& cache.buildingsVersion == BuildingsVersion) {
+				return cache;
+			}
+
+			cache = new EffectiveBuildingsCache {
+				owner = owner,
+				location = location,
+				source = constructed_buildings,
+				sourceCount = constructed_buildings.Count,
+				buildingsVersion = BuildingsVersion,
+				wonders = wonders,
+			};
+
 			HashSet<Building> buildingsSeen = new();
 			List<CityBuilding> result = new();
 			foreach (CityBuilding cb in constructed_buildings) {
 				result.Add(cb);
 				buildingsSeen.Add(cb.building);
 			}
+			cache.grantedStart = result.Count;
 
 			// Loop through all the wonders we control that aren't obsolete.
-			foreach ((City c, CityBuilding cb) in owner.GetActiveWonders()) {
+			foreach ((City c, CityBuilding cb) in wonders.activeWonders) {
 				Building b = cb.building;
 
 				if (b.greatWonderProperties.buildingGainedInEveryCity != null
@@ -186,17 +243,79 @@ namespace C7GameData {
 				}
 			}
 
+			cache.buildings = result;
+			effectiveBuildingsCache = cache;
+			return cache;
+		}
+
+		// The same buildings as GetBuildings, without allocating. The list is
+		// shared and must not be modified, nor its granted entries (which
+		// GetBuildings hands out fresh copies of).
+		internal List<CityBuilding> EffectiveBuildings() {
+			return GetEffectiveBuildingsCache().buildings;
+		}
+
+		public List<CityBuilding> GetBuildings() {
+			EffectiveBuildingsCache cache = GetEffectiveBuildingsCache();
+			List<CityBuilding> result = new(cache.buildings.Count);
+			for (int i = 0; i < cache.buildings.Count; ++i) {
+				CityBuilding cb = cache.buildings[i];
+				if (i < cache.grantedStart) {
+					result.Add(cb);
+				} else {
+					// Buildings granted by wonders aren't stored anywhere, so
+					// callers have always received new objects for them.
+					result.Add(new CityBuilding() {
+						building = cb.building,
+						builtByPlayer = cb.builtByPlayer,
+						year = cb.year,
+						totalCulture = 0, // TODO: calculate this
+					});
+				}
+			}
 			return result;
+		}
+
+		// Whether this city has the building, including one granted by a
+		// wonder.
+		internal bool HasEffectiveBuilding(Building building) {
+			foreach (CityBuilding cb in EffectiveBuildings()) {
+				if (cb.building == building) {
+					return true;
+				}
+			}
+			return false;
 		}
 
 		public IEnumerable<IProducible> ListProductionOptions(GameData gameData) {
 			HashSet<Resource> accessibleResources = GetAccessibleResources(gameData);
+			return ListProductionOptions(gameData, accessibleResources);
+		}
 
-			IEnumerable<IProducible> producibles = gameData.unitPrototypes.Cast<IProducible>()
-													.Concat(gameData.Buildings.Cast<IProducible>()
-														.Concat(gameData.Inflows.Cast<IProducible>()));
+		// Like the original Where over units, buildings and inflows, this is
+		// evaluated lazily each time it is enumerated. The facts every building
+		// check needs (this city's buildings, what the empire is building) are
+		// gathered once per enumeration instead of once or twice per building.
+		private IEnumerable<IProducible> ListProductionOptions(GameData gameData, HashSet<Resource> accessibleResources) {
+			foreach (UnitPrototype unitPrototype in gameData.unitPrototypes) {
+				if (unitPrototype.CanProduce(this, accessibleResources)) {
+					yield return unitPrototype;
+				}
+			}
 
-			return producibles.Where(p => p.CanProduce(this, accessibleResources));
+			Building.ProductionContext context = null;
+			foreach (Building building in gameData.Buildings) {
+				context ??= new Building.ProductionContext(this);
+				if (building.CanProduce(this, accessibleResources, context)) {
+					yield return building;
+				}
+			}
+
+			foreach (Inflow inflow in gameData.Inflows) {
+				if (inflow.CanProduce(this, accessibleResources)) {
+					yield return inflow;
+				}
+			}
 		}
 
 		private HashSet<Resource> GetAccessibleResources(GameData gameData) {
@@ -316,7 +435,7 @@ namespace C7GameData {
 			// The UI only offers hurrying when it's possible, but the city may
 			// have changed since, so quietly ignore a request that no longer is.
 			if (details.errorMessage != null) {
-				log.Warning($"Not hurrying production in {this}: {details.errorMessage}");
+				log.Warning("Not hurrying production in {City}: {Error}", this, details.errorMessage);
 				return;
 			}
 
@@ -340,7 +459,7 @@ namespace C7GameData {
 				return;
 			}
 
-			log.Debug($"Produced {producedItem} in {this}");
+			log.Debug("Produced {ProducedItem} in {City}", producedItem, this);
 			if (producedItem is UnitPrototype prototype) {
 				AddUnit(prototype, gameData);
 			} else if (producedItem is Building building) {
@@ -381,9 +500,12 @@ namespace C7GameData {
 
 		private IProducible GetMostExpensiveItemToProduce() {
 			IProducible best = null;
+			int bestCost = 0;
 			foreach (IProducible ip in ListProductionOptions(EngineStorage.gameData)) {
-				if (best == null || owner.ShieldCost(ip) > owner.ShieldCost(best)) {
+				int cost = owner.ShieldCost(ip);
+				if (best == null || cost > bestCost) {
 					best = ip;
+					bestCost = cost;
 				}
 			}
 			return best;
@@ -445,9 +567,10 @@ namespace C7GameData {
 				}
 			}
 
+			List<CityBuilding> buildings = EffectiveBuildings();
 			bool canGrowIntoCity = hasFreshwaterAccess;
 			if (!hasFreshwaterAccess) {
-				foreach (CityBuilding cb in GetBuildings()) {
+				foreach (CityBuilding cb in buildings) {
 					if (cb.building.allowsCitySize2 || cb.building.allowsCitySize3) {
 						canGrowIntoCity = true;
 						break;
@@ -466,7 +589,7 @@ namespace C7GameData {
 
 			// If we're a city trying to grow into a metropolis, we need a
 			// hospital.
-			foreach (CityBuilding cb in GetBuildings()) {
+			foreach (CityBuilding cb in buildings) {
 				if (cb.building.allowsCitySize3) {
 					return true;
 				}
@@ -475,7 +598,7 @@ namespace C7GameData {
 		}
 
 		public bool HasGranary() {
-			foreach (CityBuilding cb in GetBuildings()) {
+			foreach (CityBuilding cb in EffectiveBuildings()) {
 				if (cb.building.doublesCityGrowthRate) {
 					return true;
 				}
@@ -484,7 +607,7 @@ namespace C7GameData {
 		}
 
 		public bool HasWalls() {
-			foreach (CityBuilding cb in GetBuildings()) {
+			foreach (CityBuilding cb in EffectiveBuildings()) {
 				if (cb.building.providesWalls) {
 					return true;
 				}
@@ -507,7 +630,7 @@ namespace C7GameData {
 			bool isTown = residents.Count <= gD.rules.MaximumLevel1CitySize;
 
 			// Buildings, such as walls, can also give bonuses.
-			foreach (CityBuilding cb in GetBuildings()) {
+			foreach (CityBuilding cb in EffectiveBuildings()) {
 				if (cb.building.combatDefenseBonus is not StrengthBonus defenseBonus) {
 					continue;
 				}
@@ -551,17 +674,19 @@ namespace C7GameData {
 		}
 
 		public int CurrentFoodYield() {
-			int yield = location.FoodYield(this).yield;
+			List<CityBuilding> buildings = EffectiveBuildings();
+			int yield = location.FoodYield(this, buildings).yield;
 			foreach (CityResident r in residents) {
-				yield += r.tileWorked.FoodYield(this).yield;
+				yield += r.tileWorked.FoodYield(this, buildings).yield;
 			}
 			return yield;
 		}
 
 		public CorruptableValue CurrentProductionYield() {
-			int yield = location.ProductionYield(this).yield;
+			List<CityBuilding> buildings = EffectiveBuildings();
+			int yield = location.ProductionYield(this, buildings).yield;
 			foreach (CityResident r in residents) {
-				yield += r.tileWorked.ProductionYield(this).yield;
+				yield += r.tileWorked.ProductionYield(this, buildings).yield;
 			}
 			// A celebrating city wastes half as many shields.
 			CorruptableValue result = new(yield, celebrating ? corruption / 2 : corruption);
@@ -579,7 +704,10 @@ namespace C7GameData {
 			}
 
 			// Factories and power plants boost the shields left after waste.
-			int productionBonusPercent = GetBuildings().Sum(cb => cb.building.productionBonusPercent);
+			int productionBonusPercent = 0;
+			foreach (CityBuilding cb in buildings) {
+				productionBonusPercent += cb.building.productionBonusPercent;
+			}
 			result.useful += result.useful * productionBonusPercent / 100;
 
 			// TODO: add specialist shields here. Do specialists still work in
@@ -589,9 +717,10 @@ namespace C7GameData {
 		}
 
 		public CommerceBreakdown CurrentCommerceYieldRaw(bool respectCivilDisorder = true) {
-			int uncorruptedCommerce = location.CommerceYield(this).yield;
+			List<CityBuilding> buildings = EffectiveBuildings();
+			int uncorruptedCommerce = location.CommerceYield(this, buildings).yield;
 			foreach (CityResident r in residents) {
-				uncorruptedCommerce += r.tileWorked.CommerceYield(this).yield;
+				uncorruptedCommerce += r.tileWorked.CommerceYield(this, buildings).yield;
 			}
 
 			// Using our value of corruption, figure out how much useful
@@ -620,7 +749,7 @@ namespace C7GameData {
 			// Each library, marketplace and similar building adds 50% to the
 			// share of commerce it affects.
 			int researchBuildings = 0, luxuryBuildings = 0, taxBuildings = 0;
-			foreach (CityBuilding cb in GetBuildings()) {
+			foreach (CityBuilding cb in buildings) {
 				researchBuildings += cb.building.increasesResearch ? 1 : 0;
 				luxuryBuildings += cb.building.increasesLuxury ? 1 : 0;
 				taxBuildings += cb.building.increasesTax ? 1 : 0;
@@ -641,6 +770,9 @@ namespace C7GameData {
 		[MoonSharpHidden]
 		public CommerceBreakdown CurrentCommerceYield(bool respectCivilDisorder = true) {
 			CommerceBreakdown result = CurrentCommerceYieldRaw(respectCivilDisorder);
+			if (this.itemBeingProduced is not Inflow) {
+				return result;
+			}
 
 			// commerce lua infow
 			if (this.itemBeingProduced is Inflow inflowCommerce && inflowCommerce.TryGetInflowYieldFunc(InflowYield.commerce, out var commerceYieldFunc)) {
@@ -725,7 +857,7 @@ namespace C7GameData {
 				if (residents.Count > 0) {
 					RemoveLastCitizen();
 				} else {
-					Log.Warning("Trying to remove last citizen from " + name);
+					Log.Warning("Trying to remove last citizen from {City}", name);
 					break;
 				}
 			}
@@ -750,9 +882,11 @@ namespace C7GameData {
 		}
 
 		public int GetCulturePerTurnRaw() {
+			// The year can't change during the loop, so look it up once.
+			int currentGameYear = CurrentGameYear();
 			int result = 0;
-			foreach (CityBuilding cb in GetBuildings()) {
-				var multiplier = AgeMultiplier(cb);
+			foreach (CityBuilding cb in EffectiveBuildings()) {
+				var multiplier = AgeMultiplier(cb, currentGameYear);
 				result += cb.building.culturePerTurn * multiplier;
 			}
 			return result;
@@ -763,8 +897,8 @@ namespace C7GameData {
 			return gameData?.timeOptions?.GetRawNumber(gameData.turn) ?? 0;
 		}
 
-		private int AgeMultiplier(CityBuilding cb) {
-			int ageInMillennia = (int) Math.Floor((CurrentGameYear() - cb.year) / 1000f);
+		private static int AgeMultiplier(CityBuilding cb, int currentGameYear) {
+			int ageInMillennia = (int) Math.Floor((currentGameYear - cb.year) / 1000f);
 
 			// Buildings from older saves may have a build year in the future.
 			if (ageInMillennia < 0)
@@ -804,9 +938,11 @@ namespace C7GameData {
 				year = CurrentGameYear(),
 				totalCulture = 0
 			});
+			OnBuildingsChanged();
 		}
 		public void RemoveBuilding(CityBuilding building) {
 			constructed_buildings.Remove(building);
+			OnBuildingsChanged();
 		}
 
 		public void AddUnit(UnitPrototype proto, GameData gameData) {
@@ -819,7 +955,9 @@ namespace C7GameData {
 			gameData.mapUnits.Add(newUnit);
 			owner.AddUnit(newUnit);
 
-			GetBuildings().ForEach(b => b.building.onFinishedUnitProduction?.Invoke(newUnit));
+			foreach (CityBuilding b in EffectiveBuildings()) {
+				b.building.onFinishedUnitProduction?.Invoke(newUnit);
+			}
 		}
 
 		// The list of tiles that could be worked by this city.
@@ -857,7 +995,9 @@ namespace C7GameData {
 			foreach (Tile t in location.GetTilesWithinRankDistance(rank)) {
 				// Law II
 				// Ocean tiles may only hold claims of rank 2.
-				if (t.baseTerrainType.Key == "ocean" && t.RankDistanceTo(location) > 2) {
+				// The distance check is cheaper than the string compare, so
+				// it goes first.
+				if (t.RankDistanceTo(location) > 2 && t.baseTerrainType.Key == "ocean") {
 					continue;
 				}
 				result.Add(t);
@@ -914,11 +1054,18 @@ namespace C7GameData {
 		}
 
 		public void CalculateCorruption(GameData gameData) {
-			List<CityBuilding> buildings = GetBuildings();
-			int numAntiCorruptionBuildings = buildings.Count(x => x.building.reducesCorruption);
+			int numAntiCorruptionBuildings = 0;
 
 			// TODO: Handle the SPHQ.
-			int numCorruptionReducingSmallWondersInCity = buildings.Count(x => x.building.isForbiddenPalace);
+			int numCorruptionReducingSmallWondersInCity = 0;
+			foreach (CityBuilding cb in EffectiveBuildings()) {
+				if (cb.building.reducesCorruption) {
+					++numAntiCorruptionBuildings;
+				}
+				if (cb.building.isForbiddenPalace) {
+					++numCorruptionReducingSmallWondersInCity;
+				}
+			}
 
 			corruption = CalculateDistanceCorruption(gameData, numAntiCorruptionBuildings)
 					+ CalculateRankCorruption(gameData, numAntiCorruptionBuildings);
@@ -937,7 +1084,10 @@ namespace C7GameData {
 		// the borders need to be updated.
 		public bool UpdateCultureAndCheckForExpansion() {
 			int start = GetBorderExpansionLevel();
-			foreach (CityBuilding cb in GetBuildings()) {
+			// Only built buildings keep a culture total. GetBuildings also
+			// lists the buildings granted by wonders, but as new objects each
+			// time, so adding to their totals never had any effect.
+			foreach (CityBuilding cb in constructed_buildings) {
 				cb.totalCulture += cb.building.culturePerTurn;
 			}
 
@@ -1061,20 +1211,28 @@ namespace C7GameData {
 
 			// War weariness makes citizens unhappy, like pop rushing.
 			contentToHappyMoves -= owner.WarWearinessUnhappiness(this);
+
+			List<CityBuilding> buildings = EffectiveBuildings();
 			// TODO: add penalty for aggression against home country
 
 			// Building happiness/unhappiness, which only affects the unhappy to
 			// content transition, nothing with happy faces.
 			//
 			// TODO: account for wonders and buildings with global/continental effects.
-			foreach (CityBuilding cb in GetBuildings()) {
+			foreach (CityBuilding cb in buildings) {
 				unhappyToContentMoves -= cb.building.unhappyFacesInCity;
 				unhappyToContentMoves += cb.building.contentFacesInCity;
 			}
 
 			// Depending on the government type, land defensive units can serve
 			// as military police.
-			unhappyToContentMoves += Math.Min(owner.government.militaryPoliceLimit, location.unitsOnTile.Count(x => x.CanDefendOnLand()));
+			int landDefenders = 0;
+			foreach (MapUnit unit in location.unitsOnTile) {
+				if (unit.CanDefendOnLand()) {
+					++landDefenders;
+				}
+			}
+			unhappyToContentMoves += Math.Min(owner.government.militaryPoliceLimit, landDefenders);
 
 			// Luxury spending moves content faces to happy faces, one face for
 			// every two luxuries.
@@ -1087,7 +1245,14 @@ namespace C7GameData {
 
 			// As do luxury resources, which can be boosted by marketplaces.
 			int effectiveLux = GetLuxuries(gameData).Keys.Count;
-			if (GetBuildings().Any(x => x.building.increasesLuxuryTrade)) {
+			bool increasesLuxuryTrade = false;
+			foreach (CityBuilding cb in buildings) {
+				if (cb.building.increasesLuxuryTrade) {
+					increasesLuxuryTrade = true;
+					break;
+				}
+			}
+			if (increasesLuxuryTrade) {
 				effectiveLux = (int)(Math.Floor(effectiveLux / 2f) * Math.Ceiling(effectiveLux / 2f) + Math.Ceiling(effectiveLux / 2f));
 			}
 			contentToHappyMoves += effectiveLux;
