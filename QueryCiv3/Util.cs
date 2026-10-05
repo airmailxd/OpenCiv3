@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using Blast;
 using System.Text;
@@ -23,12 +24,74 @@ namespace QueryCiv3 {
 			Civ3Encoding = Encoding.GetEncoding(1252);
 		}
 
+		// Decompressed contents of recently read compressed BIQ files (e.g. the default conquests.biq, which is read
+		// on every import), so they are only decompressed once. Entries are keyed by full path and invalidated when
+		// the file's length or last write time changes. Callers always get their own copy of the bytes.
+		private class DecompressedFile {
+			public long Length;
+			public DateTime LastWriteTimeUtc;
+			public byte[] Data;
+		}
+		private const int MAX_CACHED_FILES = 4;
+		private static readonly Dictionary<string, DecompressedFile> DecompressedFileCache = new(StringComparer.OrdinalIgnoreCase);
+		private static readonly LinkedList<string> DecompressedFileCacheOrder = new(); // most recently used first
+
 		public static byte[] ReadFile(string pathName) {
+			bool cacheable = IsCacheableFile(pathName);
+			string cacheKey = null;
+			FileInfo fileInfo = null;
+
+			if (cacheable) {
+				fileInfo = new FileInfo(pathName);
+				cacheKey = fileInfo.FullName;
+				lock (DecompressedFileCache) {
+					if (DecompressedFileCache.TryGetValue(cacheKey, out DecompressedFile cached)) {
+						if (fileInfo.Exists && cached.Length == fileInfo.Length && cached.LastWriteTimeUtc == fileInfo.LastWriteTimeUtc) {
+							DecompressedFileCacheOrder.Remove(cacheKey);
+							DecompressedFileCacheOrder.AddFirst(cacheKey);
+							return (byte[])cached.Data.Clone();
+						}
+						DecompressedFileCache.Remove(cacheKey);
+						DecompressedFileCacheOrder.Remove(cacheKey);
+					}
+				}
+			}
+
 			byte[] MyFileData = File.ReadAllBytes(pathName);
 			if (MyFileData[0] == 0x00 && (MyFileData[1] == 0x04 || MyFileData[1] == 0x05 || MyFileData[1] == 0x06)) {
-				return Decompress(MyFileData);
+				byte[] decompressed = Decompress(MyFileData);
+				if (cacheable && fileInfo.Exists) {
+					AddToCache(cacheKey, new DecompressedFile() {
+						// Stamp taken before reading the file, so if it changed in between the next read sees a mismatch
+						Length = fileInfo.Length,
+						LastWriteTimeUtc = fileInfo.LastWriteTimeUtc,
+						Data = (byte[])decompressed.Clone(),
+					});
+				}
+				return decompressed;
 			}
 			return MyFileData;
+		}
+
+		private static bool IsCacheableFile(string pathName) {
+			string extension = Path.GetExtension(pathName);
+			return extension.Equals(".biq", StringComparison.OrdinalIgnoreCase)
+				|| extension.Equals(".bic", StringComparison.OrdinalIgnoreCase)
+				|| extension.Equals(".bix", StringComparison.OrdinalIgnoreCase);
+		}
+
+		private static void AddToCache(string cacheKey, DecompressedFile entry) {
+			lock (DecompressedFileCache) {
+				if (DecompressedFileCache.ContainsKey(cacheKey)) {
+					DecompressedFileCacheOrder.Remove(cacheKey);
+				}
+				DecompressedFileCache[cacheKey] = entry;
+				DecompressedFileCacheOrder.AddFirst(cacheKey);
+				while (DecompressedFileCacheOrder.Count > MAX_CACHED_FILES) {
+					DecompressedFileCache.Remove(DecompressedFileCacheOrder.Last.Value);
+					DecompressedFileCacheOrder.RemoveLast();
+				}
+			}
 		}
 
 		public static byte[] Decompress(byte[] compressedBytes) {

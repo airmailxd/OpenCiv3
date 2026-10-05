@@ -149,6 +149,42 @@ public class QueryCiv3ParsingTests {
 		Assert.Throws<IndexOutOfRangeException>(() => new Civ3File(new byte[10], 8, 2));
 	}
 
+	private static string TempFile(string extension) => Path.Combine(Path.GetTempPath(), "c7-perf-parsers-" + Guid.NewGuid() + extension);
+
+	[Fact]
+	public void ReadFileCachesDecompressedBiqsSafely() {
+		Random random = new(4);
+		BlastTestEncoder encoder = new();
+		byte[] expected = encoder.RandomStream(random, false, 4, 50_000);
+		string path = TempFile(".biq");
+		try {
+			File.WriteAllBytes(path, encoder.ToArray());
+
+			byte[] first = Util.ReadFile(path);
+			Assert.Equal(expected, first);
+			// Callers own the returned array; changing it must not affect later reads
+			Array.Clear(first);
+			byte[] second = Util.ReadFile(path);
+			Assert.Equal(expected, second);
+			Assert.NotSame(first, second);
+
+			// A changed file is decompressed again
+			encoder = new BlastTestEncoder();
+			byte[] changed = encoder.RandomStream(random, false, 6, 1000);
+			File.WriteAllBytes(path, encoder.ToArray());
+			File.SetLastWriteTimeUtc(path, DateTime.UtcNow.AddMinutes(1));
+			Assert.Equal(changed, Util.ReadFile(path));
+
+			// Uncompressed files are returned as they are
+			byte[] plain = Enumerable.Range(0, 100).Select(i => (byte)(i + 1)).ToArray();
+			File.WriteAllBytes(path, plain);
+			File.SetLastWriteTimeUtc(path, DateTime.UtcNow.AddMinutes(2));
+			Assert.Equal(plain, Util.ReadFile(path));
+		} finally {
+			File.Delete(path);
+		}
+	}
+
 	private static byte[] Bytes<T>(T[] array) where T : unmanaged => array == null ? null : MemoryMarshal.AsBytes(array.AsSpan()).ToArray();
 
 	private static void AssertSameBiqData(BiqData expected, BiqData actual) {
@@ -178,5 +214,7 @@ public class QueryCiv3ParsingTests {
 		biq.CopyTo(container, 562);
 
 		AssertSameBiqData(new BiqData(biq), new BiqData(container, 562, biq.Length));
+		// and through the cache
+		AssertSameBiqData(new BiqData(biq), BiqData.LoadFile(PathUtils.defaultBicPath));
 	}
 }
