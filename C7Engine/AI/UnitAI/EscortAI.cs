@@ -3,6 +3,7 @@ using C7Engine.Pathing;
 using C7GameData;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using C7GameData.AIData;
 using C7Engine.AI;
 using Serilog;
@@ -53,14 +54,33 @@ namespace C7Engine {
 			return "EscortAI: " + data.ToString();
 		}
 
+		// The turn in which we last had the escorted unit take its turn, and
+		// the result it returned.
+		private int escortedUnitPlayedTurn = int.MinValue;
+		private UnitAI.Result escortedUnitResult;
+
+		// Ensure the unit we're escorting moves first, in case we were first
+		// in the unit ordering. Its turn is asynchronous (it may wait on move
+		// animations), so it's handed to UnitAI.PlayTurn as a pending move to
+		// await rather than being waited on here.
+		private async Task<bool> PlayEscortedUnitTurn(Player player, MapUnit escorted) {
+			escortedUnitResult = await escorted.currentAI.PlayTurn(player, escorted);
+			// The escort itself is still alive; settler moves don't affect it.
+			return true;
+		}
+
 		UnitAI.MoveResult UnitAI.PlayTurnImpl(Player player, MapUnit unit) {
 			if (data == null || data.unitToEscort == null || data.unitToEscort.currentAI == null) {
 				return UnitAI.Result.Error;
 			}
 
-			// Ensure the unit we're escorting has moved, in case we were first
-			// in the unit ordering.
-			UnitAI.MoveResult result = data.unitToEscort.currentAI.PlayTurn(player, data.unitToEscort).Result;
+			int turn = EngineStorage.gameData?.turn ?? 0;
+			if (escortedUnitPlayedTurn != turn) {
+				escortedUnitPlayedTurn = turn;
+				return UnitAI.MoveResult.MoveRequested(PlayEscortedUnitTurn(player, data.unitToEscort));
+			}
+
+			UnitAI.Result result = escortedUnitResult;
 			if (result == UnitAI.Result.Done) {
 				return result;
 			}
@@ -78,11 +98,19 @@ namespace C7Engine {
 				return UnitAI.Result.InProgress;
 			}
 
-			// Move to the unit we're escorting.
-			TilePath path = PathingAlgorithmChooser.GetAlgorithm(unit).PathFrom(unit.location, data.unitToEscort.location, unit);
-			result = this.TryToMoveAlongPath(unit, ref path);
-			if (result != UnitAI.Result.InProgress) {
-				return result;
+			// Move to the unit we're escorting, reusing our path while it still
+			// leads there.
+			Tile target = data.unitToEscort.location;
+			if (data.pathToEscortedUnit == null || data.pathToEscortedUnit.destination != target) {
+				data.pathToEscortedUnit = PathingAlgorithmChooser.GetAlgorithm(unit).PathFrom(unit.location, target, unit);
+			}
+			UnitAI.MoveResult moveResult = this.TryToMoveAlongPath(unit, ref data.pathToEscortedUnit);
+			if (moveResult.Result != UnitAI.Result.InProgress) {
+				return moveResult;
+			}
+			if (moveResult.IsMoveRequested) {
+				// We'll be called again once the move is done.
+				return moveResult;
 			}
 
 			// If we're on the correct location, give up the rest of our MPs.
