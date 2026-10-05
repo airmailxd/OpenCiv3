@@ -42,6 +42,12 @@ public class PlayerRelationship {
 
 	public bool declaredWarWithActiveRightOfPassage = false;
 
+	// p1.playerRelationships[p2].otherStartedCurrentWar is true if p2
+	// declared the war p1 and p2 are currently fighting, false if p1 did,
+	// and null if unknown (no war since this was recorded, as in saves made
+	// before it was, or wars that came from a scenario).
+	public bool? otherStartedCurrentWar = null;
+
 	public bool AtWar() {
 		return multiTurnDeals.Count == 0;
 	}
@@ -117,6 +123,10 @@ public class PlayerRelationship {
 		// update whether the defender was sneak attacked
 		defenderRelationshipToAggressor.wasSneakAttacked = sneakAttack;
 
+		// record who started this war
+		defenderRelationshipToAggressor.otherStartedCurrentWar = true;
+		aggressorRelationshipToDefender.otherStartedCurrentWar = false;
+
 		// Set for how many turns the defender will refuse contact from the aggressor
 		defenderRelationshipToAggressor.refuseContactUntilTurn = refuseContactUntilTurn;
 
@@ -153,6 +163,10 @@ public class PlayerRelationship {
 		left.playerRelationships[right.id].refuseContactUntilTurn = -1;
 		right.playerRelationships[left.id].refuseContactUntilTurn = -1;
 
+		// the war is over, so nobody started a current one
+		left.playerRelationships[right.id].otherStartedCurrentWar = null;
+		right.playerRelationships[left.id].otherStartedCurrentWar = null;
+
 		log.Information("{Left} signed a peace treaty with {Right}", left, right);
 	}
 
@@ -177,7 +191,7 @@ public class PlayerRelationship {
 		// add the deal for the other player
 		right.playerRelationships[left.id].multiTurnDeals.Add(new MultiTurnDeal(mtd.dealType, mtd.dealSubType,
 			mtd.dealDetails == DealDetails.Inbound ? DealDetails.Outbound : DealDetails.Inbound,
-			mtd.goldPerTurn, mtd.resourcePerTurn, mtd.dealDuration, mtd.goldPerTurn, mtd.againstPlayer));
+			mtd.goldPerTurn, mtd.resourcePerTurn, mtd.dealDuration, mtd.turnStartDeal, mtd.againstPlayer));
 	}
 
 	private static void RegisterTwoWayDeal(Player left, Player right, MultiTurnDeal mtd) {
@@ -210,8 +224,10 @@ public class PlayerRelationship {
 					.Where(mtd => mtd != null
 							  && mtd.dealSubType != DealSubType.Peace
 							  && mtd.TurnsRemaining(currentTurn) <= 0)
-					.Where(mtd => mtd.dealSubType != DealSubType.MutualProtectionPact
-								   && !EngineStorage.gameData.AreInLockedPeace(player, other))
+					// Mutual protection pacts between locked allies never
+					// expire (they are made without an end turn).
+					.Where(mtd => !(mtd.dealSubType == DealSubType.MutualProtectionPact
+									&& EngineStorage.gameData.AreInLockedPeace(player, other)))
 					.ToList();
 
 				foreach (MultiTurnDeal deadDeal in deadDeals) {

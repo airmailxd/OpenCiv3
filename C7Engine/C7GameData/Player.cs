@@ -1296,7 +1296,11 @@ namespace C7GameData {
 			}
 			foreach (Player enemy in enemies) {
 				warWeariness += WarWearinessPerTurnAtWar;
-				bool weStartedIt = enemy.playerRelationships.TryGetValue(id, out PlayerRelationship pr) && pr.warDeclarationCount > 0;
+				// Whether we declared the current war. For wars from before
+				// that was recorded, fall back to whether we ever declared war
+				// on them.
+				bool weStartedIt = enemy.playerRelationships.TryGetValue(id, out PlayerRelationship pr)
+					&& (pr.otherStartedCurrentWar ?? pr.warDeclarationCount > 0);
 				if (weStartedIt) {
 					warWeariness += WarWearinessForStartingTheWar;
 				}
