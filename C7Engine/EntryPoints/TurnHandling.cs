@@ -63,6 +63,7 @@ namespace C7Engine {
 				foreach (Player player in gameData.players) {
 					player.MaybeSpawnBonusUnits(gameData);
 					player.DecrementCityUnhappinessPenalties(gameData);
+					player.UpdateWarWeariness(gameData);
 					player.RecalculateCitizenMoods(gameData, goIntoDisorderIfUnhappy: true);
 					player.DoCorruptionCalculations(gameData);
 

@@ -53,6 +53,7 @@ namespace C7GameData.Save {
 		// The amount of gold this player has.
 		public int gold = 0;
 
+		public int warWeariness;
 		public bool hadGoldenAge;
 		public int goldenAgeTurnsRemaining;
 
@@ -97,6 +98,7 @@ namespace C7GameData.Save {
 				scienceRate = scienceRate,
 				taxRate = taxRate,
 				gold = gold,
+				warWeariness = warWeariness,
 				hadGoldenAge = hadGoldenAge,
 				goldenAgeTurnsRemaining = goldenAgeTurnsRemaining,
 				turnsUntilPriorityReevaluation = turnsUntilPriorityReevaluation,
@@ -161,6 +163,7 @@ namespace C7GameData.Save {
 			scienceRate = player.scienceRate;
 			taxRate = player.taxRate;
 			gold = player.gold;
+			warWeariness = player.warWeariness;
 			hadGoldenAge = player.hadGoldenAge;
 			goldenAgeTurnsRemaining = player.goldenAgeTurnsRemaining;
 			beakers = player.beakers;

@@ -1044,7 +1044,9 @@ namespace C7GameData {
 			}
 
 			// TODO: add penalty for drafting
-			// TODO: add penalty for war weariness
+
+			// War weariness makes citizens unhappy, like pop rushing.
+			contentToHappyMoves -= owner.WarWearinessUnhappiness(this);
 			// TODO: add penalty for aggression against home country
 
 			// Building happiness/unhappiness, which only affects the unhappy to

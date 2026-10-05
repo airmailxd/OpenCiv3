@@ -69,6 +69,9 @@ namespace C7GameData {
 		// luxury sliders can be set to under this government.
 		public int rateCap = 10;
 
+		// How much the people tire of war: 0 not at all, 1 low, 2 high.
+		public int warWeariness;
+
 		public int draftLimit;
 		public int militaryPoliceLimit;
 		public int workerRate;

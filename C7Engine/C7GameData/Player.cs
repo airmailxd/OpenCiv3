@@ -214,6 +214,10 @@ namespace C7GameData {
 
 		public Alliance alliance;
 
+		// How tired of war the people are. It builds up while at war and
+		// clears once the civ is at peace with everyone.
+		public int warWeariness = 0;
+
 		// Each civ gets one golden age per game.
 		public bool hadGoldenAge = false;
 		public int goldenAgeTurnsRemaining = 0;
@@ -1048,6 +1052,62 @@ namespace C7GameData {
 
 			log.Information($"{this} moved its palace to {newCapital}");
 			return newCapital;
+		}
+
+		// Civ 3 doesn't publish its war weariness formula, so this is an
+		// approximation: each turn at war adds a point per enemy, and another
+		// if we started that war; losing a unit adds a point, or three if it
+		// died attacking.
+		private const int WarWearinessPerTurnAtWar = 1;
+		private const int WarWearinessForStartingTheWar = 1;
+		private const int WarWearinessForUnitLostDefending = 1;
+		private const int WarWearinessForUnitLostAttacking = 3;
+
+		// The weariness points that make one unhappy face in every city, by
+		// government war weariness level (low, high).
+		private const int WarWearinessPerFaceLow = 20;
+		private const int WarWearinessPerFaceHigh = 10;
+
+		// Called once per turn.
+		public void UpdateWarWeariness(GameData gameData) {
+			List<Player> enemies = gameData.players.Where(p =>
+				p != this && !p.isBarbarians && !p.defeated && AtWar(this, p)).ToList();
+			if (enemies.Count == 0) {
+				warWeariness = 0;
+				return;
+			}
+			foreach (Player enemy in enemies) {
+				warWeariness += WarWearinessPerTurnAtWar;
+				bool weStartedIt = enemy.playerRelationships.TryGetValue(id, out PlayerRelationship pr) && pr.warDeclarationCount > 0;
+				if (weStartedIt) {
+					warWeariness += WarWearinessForStartingTheWar;
+				}
+			}
+		}
+
+		public void AddWarWearinessForLostUnit(bool diedAttacking) {
+			warWeariness += diedAttacking ? WarWearinessForUnitLostAttacking : WarWearinessForUnitLostDefending;
+		}
+
+		// The number of citizens in the city made unhappy by war weariness.
+		// Police stations, and wonders like Universal Suffrage, halve it.
+		public int WarWearinessUnhappiness(City city) {
+			int pointsPerFace = government.warWeariness switch {
+				1 => WarWearinessPerFaceLow,
+				>= 2 => WarWearinessPerFaceHigh,
+				_ => 0,
+			};
+			if (pointsPerFace == 0 || warWeariness == 0) {
+				return 0;
+			}
+
+			int faces = warWeariness / pointsPerFace;
+			bool reduced = city.GetBuildings().Any(cb => cb.building.reducesWarWeariness)
+				|| GetActiveWonders().Any(w => w.Item2.building.reducesWarWearinessEverywhere);
+			if (reduced) {
+				faces /= 2;
+			}
+			return Math.Min(faces, city.residents.Count);
 		}
 
 		public void StartGoldenAge(GameData gameData, string reason) {

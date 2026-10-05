@@ -429,6 +429,10 @@ public partial class MapUnit {
 			var (dead, alive) = (result == CombatResult.AttackerKilled) ? (attacker, defender) : (defender, attacker);
 			alive.RollToPromote(dead);
 
+			if (!dead.owner.isBarbarians && !alive.owner.isBarbarians) {
+				dead.owner.AddWarWearinessForLostUnit(diedAttacking: dead == attacker);
+			}
+
 			// A unique unit beating another civ (not barbarians) starts a golden age.
 			if (alive.unitType.startsGoldenAge && !dead.owner.isBarbarians) {
 				alive.owner.StartGoldenAge(EngineStorage.gameData, $"Our {alive.unitType.name} has won a great victory.");

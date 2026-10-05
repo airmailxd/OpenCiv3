@@ -8735,7 +8735,8 @@
       "maintenanceCost": 2,
       "iconRowIndex": 28,
       "flags": [
-        "reducesCorruption"
+        "reducesCorruption",
+        "reducesWarWeariness"
       ]
     },
     {
@@ -9050,6 +9051,9 @@
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
       "iconRowIndex": 46,
+      "flags": [
+        "reducesWarWearinessEverywhere"
+      ],
       "traits": [
         "agricultural"
       ]
@@ -12872,6 +12876,7 @@
       "corruptionType": "catastrophic",
       "hurryingType": "cannotHurry",
       "rateCap": 10,
+      "warWeariness": 0,
       "draftLimit": 0,
       "militaryPoliceLimit": 0,
       "workerRate": 1,
@@ -12892,6 +12897,7 @@
       "corruptionType": "rampant",
       "hurryingType": "forcedLabor",
       "rateCap": 10,
+      "warWeariness": 0,
       "draftLimit": 2,
       "militaryPoliceLimit": 2,
       "workerRate": 2,
@@ -12913,6 +12919,7 @@
       "corruptionType": "problematic",
       "hurryingType": "paidLabor",
       "rateCap": 10,
+      "warWeariness": 0,
       "draftLimit": 2,
       "militaryPoliceLimit": 3,
       "workerRate": 2,
@@ -12934,6 +12941,7 @@
       "corruptionType": "communal",
       "hurryingType": "forcedLabor",
       "rateCap": 10,
+      "warWeariness": 0,
       "draftLimit": 2,
       "militaryPoliceLimit": 4,
       "workerRate": 2,
@@ -12955,6 +12963,7 @@
       "corruptionType": "nuisance",
       "hurryingType": "paidLabor",
       "rateCap": 10,
+      "warWeariness": 1,
       "draftLimit": 1,
       "militaryPoliceLimit": 0,
       "workerRate": 2,
@@ -12976,6 +12985,7 @@
       "corruptionType": "minimal",
       "hurryingType": "paidLabor",
       "rateCap": 10,
+      "warWeariness": 2,
       "draftLimit": 1,
       "militaryPoliceLimit": 0,
       "workerRate": 3,
@@ -12997,6 +13007,7 @@
       "corruptionType": "nuisance",
       "hurryingType": "forcedLabor",
       "rateCap": 10,
+      "warWeariness": 0,
       "draftLimit": 2,
       "militaryPoliceLimit": 4,
       "workerRate": 4,
@@ -13018,6 +13029,7 @@
       "corruptionType": "problematic",
       "hurryingType": "forcedLabor",
       "rateCap": 10,
+      "warWeariness": 1,
       "draftLimit": 2,
       "militaryPoliceLimit": 3,
       "workerRate": 2,

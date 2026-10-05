@@ -26,6 +26,10 @@ namespace C7GameData.Save {
 			// Increases both tax and luxury output.
 			Plus50PercentCommerce,
 			AllowsEnemyTerritoryHealing,
+			// Halves war weariness in the city.
+			ReducesWarWeariness,
+			// Halves war weariness in every city of the owner.
+			ReducesWarWearinessEverywhere,
 		}
 
 		public class GreatWonderProperties {

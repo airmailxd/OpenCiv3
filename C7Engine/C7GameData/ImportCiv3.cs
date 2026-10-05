@@ -1692,6 +1692,8 @@ namespace C7GameData {
 				(bldg.Plus50PercentLuxury, SaveBuilding.Flag.Plus50PercentLuxury),
 				(bldg.Plus50PercentCommerce, SaveBuilding.Flag.Plus50PercentCommerce),
 				(bldg.AllowsEnemyTerritoryHealing, SaveBuilding.Flag.AllowsEnemyTerritoryHealing),
+				(bldg.ReducesWarWeariness, SaveBuilding.Flag.ReducesWarWeariness),
+				(bldg.ReducedWarWeariness, SaveBuilding.Flag.ReducesWarWearinessEverywhere),
 			}
 			.Where(t => t.Item1)
 			.Select(t => t.Item2);
@@ -2044,6 +2046,7 @@ namespace C7GameData {
 				g.corruptionType = (Government.CorruptionType)govt.Corruption;
 				g.hurryingType = (Government.HurryProductionType)govt.Hurrying;
 				g.rateCap = govt.ScienceRateCap;
+				g.warWeariness = govt.WarWeariness;
 				g.draftLimit = govt.DraftLimit;
 				g.militaryPoliceLimit = govt.MilitaryPoliceLimit;
 				g.workerRate = govt.WorkerRate;
