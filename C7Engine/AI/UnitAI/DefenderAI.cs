@@ -96,8 +96,10 @@ namespace C7Engine.AI.UnitAI {
 			// way.
 			foreach (MapUnit u in player.units) {
 				if (u.currentAI is DefenderAI defenderAi) {
-					if (defenderAi.data.destination.cityAtTile != null) {
-						cityScores[defenderAi.data.destination.cityAtTile] -= 3f;
+					// The city may have been captured since the unit set out.
+					City destination = defenderAi.data.destination.cityAtTile;
+					if (destination != null && cityScores.ContainsKey(destination)) {
+						cityScores[destination] -= 3f;
 					}
 				}
 			}
