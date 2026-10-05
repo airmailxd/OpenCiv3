@@ -297,15 +297,18 @@ public partial class Game : Node {
 			GameMap map = gameData.map;
 
 			Vector2? cameraLocation = null;
+			float cameraZoom = 1.0f;
 			if (mapView != null) {
 				cameraLocation = mapView.cameraLocation;
+				cameraZoom = mapView.cameraZoom;
 				RemoveChild(mapView);
+				mapView.QueueFree();
 			}
 
 			mapView = new MapView(this, map.numTilesWide, map.numTilesTall, map.wrapHorizontally, map.wrapVertically);
 			AddChild(mapView);
 
-			mapView.cameraZoom = (float)1.0;
+			mapView.cameraZoom = cameraZoom;
 			mapView.gridLayer.visible = false;
 
 			if (!cameraLocation.HasValue) {
@@ -381,6 +384,7 @@ public partial class Game : Node {
 	private void OnLanSnapshot(C7GameData.Save.SaveGame save) {
 		Stopwatch applyTime = Stopwatch.StartNew();
 		GameData gameData = CreateGame.ReplaceWithSnapshot(save, Global.GameMode.behaviors);
+		TextureLoader.ForgetGameObjects();
 
 		controller = gameData.GetUIControllerPlayer();
 		InitializeMapView();

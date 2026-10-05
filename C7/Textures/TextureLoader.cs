@@ -433,6 +433,14 @@ public static class TextureLoader {
 		return png;
 	}
 
+	// Forgets the textures cached for game objects (tiles, techs and the
+	// like), which hold on to the game they came from. A LAN client calls
+	// this whenever it replaces its game with the host's snapshot; the
+	// textures themselves stay cached by path.
+	public static void ForgetGameObjects() {
+		objectMappingCache.Clear();
+	}
+
 	public static void ClearCache() {
 		PcxCache.Clear();
 		PngCache.Clear();

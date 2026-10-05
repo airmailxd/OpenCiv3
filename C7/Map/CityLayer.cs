@@ -21,9 +21,7 @@ namespace C7.Map {
 
 		private void EraseCity(City city) {
 			citySceneLookup.Remove(city, out CityScene cityScene);
-			if (cityScene != null) {
-				cityScene.Hide();
-			}
+			cityScene?.QueueFree();
 		}
 
 		public override void drawObject(LooseView looseView, GameData gameData, Tile tile, Vector2 tileCenter) {

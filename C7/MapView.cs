@@ -671,6 +671,10 @@ public partial class MapView : Node2D {
 
 	public override void _ExitTree() {
 		lowerRightInfoBox.CenterCameraOnActiveUnit -= OnCenterCameraOnUnit;
+		// A LAN client replaces the map view with each snapshot; take its
+		// pieces of the HUD with it.
+		miniMap.QueueFree();
+		transportInfoBox.QueueFree();
 	}
 
 	public MapView(Game game, int mapWidth, int mapHeight, bool wrapHorizontally, bool wrapVertically) {

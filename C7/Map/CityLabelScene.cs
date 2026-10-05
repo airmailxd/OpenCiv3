@@ -23,7 +23,8 @@ namespace C7.Map {
 		HBoxContainer mainContainer = new();
 		PanelContainer popSizePanel = new();
 		VBoxContainer centerContainer = new();
-		PanelContainer capitalPanel = new();
+		// Made when the city first becomes a capital.
+		PanelContainer capitalPanel;
 		HSeparator centerDivider = new();
 
 		HSeparator borderTop = new();
@@ -215,10 +216,12 @@ namespace C7.Map {
 			}
 
 			// Update the panel with the capital star
-			bool hasCapitalIndicator = capitalPanel.GetParent() == mainContainer;
+			bool hasCapitalIndicator = capitalPanel?.GetParent() == mainContainer;
 
 			if (city.IsCapital() && !hasCapitalIndicator) {
-				SetupCapitalPanel();
+				if (capitalPanel == null) {
+					SetupCapitalPanel();
+				}
 				mainContainer.AddChild(capitalPanel);
 			} else if (!city.IsCapital() && hasCapitalIndicator) {
 				mainContainer.RemoveChild(capitalPanel);
