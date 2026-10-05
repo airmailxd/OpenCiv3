@@ -303,25 +303,31 @@ public partial class Game : Node {
 		EngineStorage.ReadGameData((GameData gameData) => {
 			GameMap map = gameData.map;
 
-			Vector2? cameraLocation = null;
-			float cameraZoom = 1.0f;
-			if (mapView != null) {
-				cameraLocation = mapView.cameraLocation;
-				cameraZoom = mapView.cameraZoom;
-				RemoveChild(mapView);
-				mapView.QueueFree();
-			}
-
-			mapView = new MapView(this, map.numTilesWide, map.numTilesTall, map.wrapHorizontally, map.wrapVertically);
-			AddChild(mapView);
-
-			mapView.cameraZoom = cameraZoom;
-			mapView.gridLayer.visible = false;
-
-			if (!cameraLocation.HasValue) {
-				CenterCameraOnController();
+			if (mapView != null && mapView.CanShow(map)) {
+				// A LAN snapshot of the same game: keep the map view, and
+				// with it the camera, and point it at the new game data.
+				mapView.RebindToGameData(gameData);
 			} else {
-				mapView.cameraLocation = cameraLocation.Value;
+				Vector2? cameraLocation = null;
+				float cameraZoom = 1.0f;
+				if (mapView != null) {
+					cameraLocation = mapView.cameraLocation;
+					cameraZoom = mapView.cameraZoom;
+					RemoveChild(mapView);
+					mapView.QueueFree();
+				}
+
+				mapView = new MapView(this, map.numTilesWide, map.numTilesTall, map.wrapHorizontally, map.wrapVertically);
+				AddChild(mapView);
+
+				mapView.cameraZoom = cameraZoom;
+				mapView.gridLayer.visible = false;
+
+				if (!cameraLocation.HasValue) {
+					CenterCameraOnController();
+				} else {
+					mapView.cameraLocation = cameraLocation.Value;
+				}
 			}
 
 			// Allow the city screen to control whether tile assignments
@@ -399,6 +405,8 @@ public partial class Game : Node {
 	private void OnLanSnapshot(C7GameData.Save.SaveGame save) {
 		Stopwatch applyTime = Stopwatch.StartNew();
 		GameData gameData = CreateGame.ReplaceWithSnapshot(save, Global.GameMode.behaviors);
+		// Textures looked up by game object would otherwise keep the old game's
+		// objects alive; the map looks up terrain textures by value.
 		TextureLoader.ForgetGameObjects();
 		// A spectator sees the whole map.
 		gameData.observerMode = LanSession.IsSpectator;
