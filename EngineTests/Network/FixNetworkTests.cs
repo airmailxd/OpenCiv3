@@ -310,7 +310,6 @@ public class FixNetworkTests : IClassFixture<SaveGameFixture>, IDisposable {
 	public async Task BadReferencesAreBadJson() {
 		await CreateTwoHumanGame();
 		string[] bad = [
-			"{\"$type\":\"MsgEndTurn\",\"playerID\":\"Player-none\"}",
 			"{\"$type\":\"MsgEndTurn\",\"playerID\":\"Player-99999999999\"}",
 			"{\"$type\":\"MsgEndTurn\",\"playerID\":\"Player\"}",
 			"{\"$type\":\"MsgEndTurn\",\"playerID\":3}",
@@ -320,6 +319,11 @@ public class FixNetworkTests : IClassFixture<SaveGameFixture>, IDisposable {
 			Assert.ThrowsAny<JsonException>(() => NetSerialization.DeserializeMessageToEngine(Utf8(json)));
 		}
 		Assert.ThrowsAny<JsonException>(() => NetSerialization.DeserializeRequired<HelloInfo>(Utf8("null")));
+
+		// A "none" ID is a valid ID (ID.ToString writes it that way), so it
+		// parses; the host replaces a command's playerID with its seat's anyway.
+		MsgEndTurn none = (MsgEndTurn)NetSerialization.DeserializeMessageToEngine(Utf8("{\"$type\":\"MsgEndTurn\",\"playerID\":\"Player-none\"}"));
+		Assert.Equal(ID.None("Player"), none.playerID);
 	}
 
 	private record Item(string key);
