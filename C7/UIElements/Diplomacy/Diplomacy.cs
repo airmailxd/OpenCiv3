@@ -52,7 +52,9 @@ public partial class Diplomacy : CenterContainer {
 
 		Player opponent = gd.players.Find(x => x.id == opponentPlayer);
 		Player human = gd.players.Find(x => x.id == humanPlayer);
-		if (!opponent.WillAcceptCommunicationFrom(human, gd.turn)) {
+		// The AI may refuse to talk, but another human player (in a hotseat
+		// game) is right there to answer for themselves.
+		if (!opponent.isHuman && !opponent.WillAcceptCommunicationFrom(human, gd.turn)) {
 			popupOverlay.ShowPopup(
 				new InformationalPopup(
 					$"The {opponent.civilization.noun} refused to acknowledge our envoy!"),

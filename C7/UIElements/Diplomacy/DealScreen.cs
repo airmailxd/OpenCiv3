@@ -173,6 +173,13 @@ public partial class DealScreen : TextureRect {
 			Player opponentPlayer = gD.players.Find(x => x.id == opponentPlayerId);
 			Player humanPlayer = gD.players.Find(x => x.id == humanPlayerId);
 
+			// Another human player (in a hotseat game) decides for themselves
+			// rather than having the AI decide for them.
+			if (opponentPlayer.isHuman) {
+				AskHumanOpponentToAccept(gD, humanPlayer, opponentPlayer);
+				return;
+			}
+
 			// If the deal is acceptable, execute it and go back to the previous
 			// screen.
 			if (opponentPlayer.WouldAcceptDealFrom(gD, humanPlayer, humanOffer, opponentOffer)) {
@@ -183,10 +190,36 @@ public partial class DealScreen : TextureRect {
 		});
 	}
 
+	private void AskHumanOpponentToAccept(GameData gD, Player humanPlayer, Player opponentPlayer) {
+		static string Describe(TradeOffer offer) {
+			string description = offer.ToString();
+			return description == "" ? "nothing" : description.Replace(",", ", ");
+		}
+
+		string message =
+			$"{opponentPlayer.civilization.leader}, please take the screen.\n" +
+			$"The {humanPlayer.civilization.noun} offer: {Describe(humanOffer)}\n" +
+			$"In return they want: {Describe(opponentOffer)}";
+
+		opponentResponse.Text = $"\"{opponentPlayer.civilization.leader} is considering the offer...\"";
+		GetParent<Diplomacy>().popupOverlay.ShowPopup(
+			new ConfirmationPopup(message, "We accept.", "We refuse.", () => {
+				opponentPlayer.ExecuteDeal(gD, humanPlayer, humanOffer, opponentOffer);
+				GetParent<Diplomacy>().ShowTalkScreenForPlayer(humanPlayerId, opponentPlayerId);
+			}),
+			PopupOverlay.PopupCategory.Advisor);
+	}
+
 	private void UpdateText() {
 		EngineStorage.ReadGameData((GameData gD) => {
 			Player opponentPlayer = gD.players.Find(x => x.id == opponentPlayerId);
 			Player humanPlayer = gD.players.Find(x => x.id == humanPlayerId);
+
+			// The gold valuation below is the AI's view of the deal.
+			if (opponentPlayer.isHuman) {
+				opponentResponse.Text = "\"Let's get down to business...\"";
+				return;
+			}
 
 			int theirGoldValue = opponentOffer.GoldEquivalentFor(gD, opponentPlayer);
 			int ourGoldValue = humanOffer.GoldEquivalentFor(gD, opponentPlayer);
