@@ -22,8 +22,17 @@ public partial class TransportInfoBox : Civ3TextureRect {
 
 	private TextureRect boxTransportRect = new();
 
-	private Dictionary<ID, bool> unitTracker = new();
-	private int cachedCapacity = 0;
+	private readonly List<Button> unitButtons = new();
+
+	// What the box last showed: the transport, where it was, and which units
+	// were loaded on it. The buttons are only rebuilt when this changes.
+	private MapUnit shownTransport;
+	private Tile shownLocation;
+	private int shownPassengerCount;
+	private int shownPassengerHash;
+	private bool hasShown;
+
+	private Vector2 lastViewportSize = new(-1, -1);
 
 	public TransportInfoBox(Game game) {
 		_game = game;
@@ -46,101 +55,123 @@ public partial class TransportInfoBox : Civ3TextureRect {
 
 		RepositionFrame();
 
-		EngineStorage.ReadGameData((GameData gD) => {
-			var unit = _game.CurrentlySelectedUnit;
-			if (!MapUnit.IsMapUnitValid(unit) || !unit.CanTransport()) {
-				Visible = false;
-				Reset();
-				return;
-			}
-
-			if (!unitTracker.TryGetValue(unit.id, out _))
-				Reset();
-			else if (unit.FreeCapacity() != cachedCapacity) {
-				// UI update post load/unload
-				Reset();
-				cachedCapacity = unit.FreeCapacity();
-			}
-
+		var unit = _game.CurrentlySelectedUnit;
+		if (!MapUnit.IsMapUnitValid(unit) || !unit.CanTransport()) {
+			Visible = false;
+			Reset();
+		} else {
 			Visible = true;
-			var loadedUnits = gD.mapUnits.Where(u => u.IsLoadedIn(unit));
-			var transportUnits = new List<MapUnit>([unit]).Concat(loadedUnits).ToList();
-
-			UpdateUnitGraphic(transportUnits);
-		});
+			Refresh(unit);
+		}
 
 		base._Process(delta);
 	}
 
-	private void RepositionFrame() {
-		// Position frame and map relative to viewport
-		var boxSize = boxTransportRect.Texture.GetSize();
-		var vp = GetViewportRect().Size;
-		SetPosition(frameOffset + new Vector2(vp.X - boxSize.X, vp.Y - boxSize.Y));
-	}
+	private void Refresh(MapUnit unit) {
+		// A cheap summary of the units loaded on the transport, without
+		// building any lists.
+		Tile location = unit.location;
+		int passengerCount = 0, passengerHash = 17;
+		if (Tile.IsTileValid(location)) {
+			foreach (MapUnit u in location.unitsOnTile) {
+				if (u != unit && u.IsLoadedIn(unit)) {
+					++passengerCount;
+					passengerHash = HashCode.Combine(passengerHash, u);
+				}
+			}
+		}
 
-	private void Reset() {
-		unitTracker.Clear();
-		foreach (var c in GetChildren().Where(c => c is Button))
-			c.QueueFree();
-	}
-
-	private void UpdateUnitGraphic(ICollection<MapUnit> units) {
-		if (!units.Any(MapUnit.IsMapUnitValid)) {
+		if (hasShown && shownTransport == unit && shownLocation == location
+			&& shownPassengerCount == passengerCount && shownPassengerHash == passengerHash) {
 			return;
 		}
 
 		// Wait for game to load unit graphics
-		if (!AnimationManager.AnimationThumbnails.Any())
+		if (AnimationManager.AnimationThumbnails.Count == 0)
 			return;
 
-		foreach (var (unit, idx) in units.Select((x, i) => (x, i))) {
-			if (unitTracker.TryGetValue(unit.id, out _)) {
-				continue;
-			}
+		Reset();
+		hasShown = true;
+		shownTransport = unit;
+		shownLocation = location;
+		shownPassengerCount = passengerCount;
+		shownPassengerHash = passengerHash;
 
-			// Get sprites
-			var (unitSprite, unitTintSprite) = SpriteUtils.GetUnitSprites(_game, unit);
-			unitTracker[unit.id] = true;
+		// The transport first, then its passengers in game order.
+		List<MapUnit> passengers = unit.Passengers();
+		if (passengers.Count > 1) {
+			List<MapUnit> allUnits = EngineStorage.gameData.mapUnits;
+			passengers.Sort((a, b) => allUnits.IndexOf(a).CompareTo(allUnits.IndexOf(b)));
+		}
+		AddUnitButton(unit, 0);
+		for (int i = 0; i < passengers.Count; ++i) {
+			AddUnitButton(passengers[i], i + 1);
+		}
+	}
 
-			// Resize sprites (tint is a child of the main sprite and is scaled with parent)
-			unitSprite.SetScale(miniatureScale);
+	private void RepositionFrame() {
+		// Position frame and map relative to viewport
+		var vp = GetViewportRect().Size;
+		if (vp == lastViewportSize)
+			return;
+		lastViewportSize = vp;
+		var boxSize = boxTransportRect.Texture.GetSize();
+		SetPosition(frameOffset + new Vector2(vp.X - boxSize.X, vp.Y - boxSize.Y));
+	}
 
-			// Create button
-			Button unitButton = new();
-			unitButton.SetSize(unitButtonSize);
-			unitButton.ActionMode = BaseButton.ActionModeEnum.Press;
-			unitButton.Pressed += () => HandleUnitClick(unit);
-			AddChild(unitButton);
+	private void Reset() {
+		if (!hasShown)
+			return;
+		hasShown = false;
+		shownTransport = null;
+		shownLocation = null;
+		foreach (Button button in unitButtons)
+			button.QueueFree();
+		unitButtons.Clear();
+	}
 
-			// Position button
-			var pos = CalculateUnitButtonPosition(idx);
-			unitButton.SetPosition(pos);
+	private void AddUnitButton(MapUnit unit, int idx) {
+		// Get sprites
+		var (unitSprite, unitTintSprite) = SpriteUtils.GetUnitSprites(_game, unit);
 
-			// Add sprites
-			unitButton.AddChild(unitSprite);
-			unitSprite.AddChild(unitTintSprite);
+		// Resize sprites (tint is a child of the main sprite and is scaled with parent)
+		unitSprite.SetScale(miniatureScale);
 
-			// Draw sprites centered on the button
-			unitSprite.Position += unitButtonSize / 2;
+		// Create button
+		Button unitButton = new();
+		unitButton.SetSize(unitButtonSize);
+		unitButton.ActionMode = BaseButton.ActionModeEnum.Press;
+		unitButton.Pressed += () => HandleUnitClick(unit);
+		AddChild(unitButton);
+		unitButtons.Add(unitButton);
 
-			// Draw a box around the transport unit
-			if (idx == 0) {
-				var line = new Line2D();
+		// Position button
+		var pos = CalculateUnitButtonPosition(idx);
+		unitButton.SetPosition(pos);
 
-				line.Width = 3f;
-				line.DefaultColor = TextureLoader.LoadColor(unit.owner.GetPlayerColor());
+		// Add sprites
+		unitButton.AddChild(unitSprite);
+		unitSprite.AddChild(unitTintSprite);
 
-				// draw lines at normal scale, let parent scale things down
-				line.AddPoint(new Vector2(0, 0));
-				line.AddPoint(new Vector2(unitButtonSize.X, 0));
-				line.AddPoint(new Vector2(unitButtonSize.X, unitButtonSize.Y));
-				line.AddPoint(new Vector2(0, unitButtonSize.Y));
-				line.AddPoint(new Vector2(0, 0));
+		// Draw sprites centered on the button
+		unitSprite.Position += unitButtonSize / 2;
 
-				// parent to button
-				unitButton.AddChild(line);
-			}
+		// Draw a box around the transport unit
+		if (idx == 0) {
+			var line = new Line2D();
+
+			line.Width = 3f;
+			line.DefaultColor = TextureLoader.LoadColor(unit.owner.GetPlayerColor());
+
+			// draw lines at normal scale, let parent scale things down
+			line.AddPoint(new Vector2(0, 0));
+			line.AddPoint(new Vector2(unitButtonSize.X, 0));
+			line.AddPoint(new Vector2(unitButtonSize.X, unitButtonSize.Y));
+			line.AddPoint(new Vector2(0, unitButtonSize.Y));
+			line.AddPoint(new Vector2(0, 0));
+
+			// parent to button
+			unitButton.AddChild(line);
 		}
 	}
 

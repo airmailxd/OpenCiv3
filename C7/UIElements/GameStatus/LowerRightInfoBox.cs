@@ -230,38 +230,107 @@ public partial class LowerRightInfoBox : Civ3TextureRect {
 		unitType.Visible = true;
 		unitRank.Visible = showRank;
 		attackDefenseMovement.Visible = true;
-		unitPlaceholder.Visible = true;
-		unitTintPlaceholder.Visible = true;
+		unitPlaceholder.Visible = unitGraphicShown;
+		unitTintPlaceholder.Visible = unitGraphicShown;
+	}
+
+	// The player summary (turn, gold, science, government) is only worked out
+	// again when something it depends on may have changed, and at most every
+	// SUMMARY_REFRESH_INTERVAL seconds otherwise, as the economy is costly to
+	// add up.
+	private const double SUMMARY_REFRESH_INTERVAL = 0.25;
+	private const double SUMMARY_MIN_INTERVAL = 0.05;
+	private double timeSinceSummaryRefresh = double.MaxValue;
+	private SummaryStamp lastSummaryStamp;
+
+	private string yearAndGoldText, scienceProgressText, civAndGovtText;
+	private bool unitGraphicShown = false;
+
+	private struct SummaryStamp {
+		public GameData gameData;
+		public Player player;
+		public int turn;
+		public int gold;
+		public long processedMessages;
+		public Government government;
+		public ID researching;
+		public int cityCount;
+
+		public bool Matches(SummaryStamp o) {
+			return ReferenceEquals(gameData, o.gameData) && ReferenceEquals(player, o.player)
+				&& turn == o.turn && gold == o.gold && processedMessages == o.processedMessages
+				&& ReferenceEquals(government, o.government) && Equals(researching, o.researching)
+				&& cityCount == o.cityCount;
+		}
 	}
 
 	public override void _Process(double delta) {
 		if (Engine.IsEditorHint())
 			return;
 
-		// Update our information each time we're drawn, just like the tile and
-		// city scenes.
-		EngineStorage.ReadGameData((GameData gD) => {
+		GameData gD = EngineStorage.gameData;
+		if (gD != null) {
 			Player player = gD.GetUIControllerPlayer();
-
-			// Gold per turn and turn indicator.
-			{
-				int turnNumber = TurnHandling.GetTurnNumber();
-				int gold = player.gold;
-				int goldPerTurn = player.CalculateGoldPerTurn();
-
-				var turnText = gD.timeOptions.GetDisplayTime(turnNumber);
-				var gptText = $"{(goldPerTurn >= 0 ? "+" : "")}{goldPerTurn}";
-				yearAndGold.SetTextAndCenterLabel($"{turnText}  {gold} Gold ({gptText} per turn)").AddXOffset(extraXOffset);
+			SummaryStamp stamp = new() {
+				gameData = gD,
+				player = player,
+				turn = gD.turn,
+				gold = player.gold,
+				processedMessages = EngineStorage.processedMessageCount,
+				government = player.government,
+				researching = player.currentlyResearchedTech,
+				cityCount = player.cities.Count,
+			};
+			timeSinceSummaryRefresh += delta;
+			if ((!stamp.Matches(lastSummaryStamp) && timeSinceSummaryRefresh >= SUMMARY_MIN_INTERVAL)
+				|| timeSinceSummaryRefresh >= SUMMARY_REFRESH_INTERVAL) {
+				lastSummaryStamp = stamp;
+				timeSinceSummaryRefresh = 0;
+				RefreshSummaryText(gD, player);
 			}
+		}
 
-			// Tech progress.
-			scienceProgress.SetTextAndCenterLabel(player.SummarizeScience(gD)).AddXOffset(extraXOffset);
-
-			// Civ and government.
-			civAndGovt.SetTextAndCenterLabel($"{player.civilization.name} - {player.government.name} (5.5.0)").AddXOffset(extraXOffset);
-		});
+		// Keep the labels centred; a label only learns its new size after its
+		// text changes, so this settles over the following frames.
+		CenterLabel(yearAndGold);
+		CenterLabel(scienceProgress);
+		CenterLabel(civAndGovt);
 
 		base._Process(delta);
+	}
+
+	private void RefreshSummaryText(GameData gD, Player player) {
+		// Gold per turn and turn indicator.
+		{
+			int turnNumber = TurnHandling.GetTurnNumber();
+			int gold = player.gold;
+			int goldPerTurn = player.CalculateGoldPerTurn();
+
+			var turnText = gD.timeOptions.GetDisplayTime(turnNumber);
+			var gptText = $"{(goldPerTurn >= 0 ? "+" : "")}{goldPerTurn}";
+			SetLabelText(yearAndGold, ref yearAndGoldText, $"{turnText}  {gold} Gold ({gptText} per turn)");
+		}
+
+		// Tech progress.
+		SetLabelText(scienceProgress, ref scienceProgressText, player.SummarizeScience(gD));
+
+		// Civ and government.
+		SetLabelText(civAndGovt, ref civAndGovtText, $"{player.civilization.name} - {player.government.name} (5.5.0)");
+	}
+
+	private static void SetLabelText(Label label, ref string current, string text) {
+		if (current == text)
+			return;
+		current = text;
+		label.Text = text;
+	}
+
+	// Equivalent to SetTextAndCenterLabel(...).AddXOffset(extraXOffset), but
+	// only touches the label when it has moved.
+	private void CenterLabel(Label label) {
+		float offsetLeft = -1 * (label.Size.X / 2.0f) + extraXOffset;
+		if (Mathf.Abs(label.OffsetLeft - offsetLeft) > 0.001f)
+			label.OffsetLeft = offsetLeft;
 	}
 
 	private void OnNewUnitSelected(ParameterWrapper<MapUnit> wrappedMapUnit) {
@@ -273,26 +342,35 @@ public partial class LowerRightInfoBox : Civ3TextureRect {
 	}
 
 	private void UpdateUnitGraphic(MapUnit unit) {
-		if (this.GetChildren().Contains(unitPlaceholder))
-			this.RemoveChild(unitPlaceholder);
-		if (this.GetChildren().Contains(unitTintPlaceholder))
-			this.RemoveChild(unitTintPlaceholder);
-
 		if (!MapUnit.IsMapUnitValid(unit)) {
+			unitGraphicShown = false;
+			unitPlaceholder.Visible = false;
+			unitTintPlaceholder.Visible = false;
 			return;
 		}
 
-		(unitPlaceholder, unitTintPlaceholder) = SpriteUtils.GetUnitSprites(game, unit);
+		// Reuse the two sprites, swapping in the unit's textures.
+		var (baseFrame, tintFrame, material) = SpriteUtils.GetUnitTextures(game, unit);
+		unitPlaceholder.Texture = baseFrame;
+		unitTintPlaceholder.Texture = tintFrame;
+		unitTintPlaceholder.Material = material;
 
 		var unitSpritePosition = new Vector2(
 			boxRightRectangle.Texture.GetWidth() / 2f - offsetUnitThumbnailX,
 			boxRightRectangle.Texture.GetHeight() / 2f - offsetUnitThumbnailY);
 
 		unitPlaceholder.Position = unitSpritePosition;
-		AddChild(unitPlaceholder);
-
 		unitTintPlaceholder.Position = unitSpritePosition;
-		AddChild(unitTintPlaceholder);
+
+		// Added last, so they are drawn over the rest of the box.
+		if (unitPlaceholder.GetParent() == null) {
+			AddChild(unitPlaceholder);
+			AddChild(unitTintPlaceholder);
+		}
+
+		unitGraphicShown = true;
+		unitPlaceholder.Visible = true;
+		unitTintPlaceholder.Visible = true;
 	}
 
 	private void HandleBoxClick() {
