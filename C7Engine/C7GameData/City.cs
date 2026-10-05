@@ -103,6 +103,43 @@ namespace C7GameData {
 			this.itemBeingProduced = producible;
 		}
 
+		private enum ProductionCategory {
+			Unit,
+			Improvement,
+			Wonder,
+		}
+
+		private static ProductionCategory? CategoryOf(IProducible producible) {
+			return producible switch {
+				null => null,
+				UnitPrototype => ProductionCategory.Unit,
+				Building b when b.IsGreatWonder() || b.isSmallWonder => ProductionCategory.Wonder,
+				_ => ProductionCategory.Improvement,
+			};
+		}
+
+		// What the city was producing at the start of the turn, and the shields
+		// lost so far this turn by switching away from that kind of item.
+		private ProductionCategory? productionCategoryAtTurnStart;
+		private int shieldsLostToSwitching = 0;
+
+		// Changes production at the player's request. Switching between units,
+		// improvements and wonders loses half of the stored shields, but
+		// switching back to the kind of item the city started the turn with
+		// gets them back.
+		public void ChangeProduction(IProducible producible) {
+			productionCategoryAtTurnStart ??= CategoryOf(itemBeingProduced);
+
+			shieldsStored += shieldsLostToSwitching;
+			shieldsLostToSwitching = 0;
+			if (CategoryOf(producible) != productionCategoryAtTurnStart) {
+				shieldsLostToSwitching = shieldsStored / 2;
+				shieldsStored -= shieldsLostToSwitching;
+			}
+
+			SetItemBeingProduced(producible);
+		}
+
 		public bool IsCapital() {
 			return capital;
 		}
@@ -296,6 +333,10 @@ namespace C7GameData {
 		}
 
 		public void HandleCityProduction(GameData gameData) {
+			// A new turn starts once this one's production is done.
+			productionCategoryAtTurnStart = null;
+			shieldsLostToSwitching = 0;
+
 			IProducible producedItem = ComputeTurnProduction();
 			if (producedItem == null) {
 				return;

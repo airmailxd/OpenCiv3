@@ -228,7 +228,7 @@ namespace C7Engine {
 			if (city != null) {
 				foreach (IProducible producible in city.ListProductionOptions(EngineStorage.gameData)) {
 					if (producible.name == producibleName) {
-						city.SetItemBeingProduced(producible);
+						city.ChangeProduction(producible);
 						break;
 					}
 				}

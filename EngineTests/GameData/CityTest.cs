@@ -87,4 +87,43 @@ public class CityTest {
 		city.HandleCityGrowth(gameData);
 		Assert.Equal(1, city.residents.Count);
 	}
+	private static City MakeProductionCity() {
+		C7Engine.EngineStorage.InitializeGameDataForTests(new C7GameData.GameData() {
+			gameDifficulty = new Difficulty(),
+		});
+		Player player = new() { isHuman = true, civilization = new Civilization(), government = new Government() };
+		City city = new(Tile.NONE, player, "Pittsburgh", ID.None("city"));
+		city.SetItemBeingProduced(new UnitPrototype() { name = "Warrior", shieldCost = 100 });
+		city.SetStoredShields(20);
+		return city;
+	}
+
+	private static Building MakeBuilding(string name) {
+		return new Building(new C7GameData.Save.SaveBuilding() { name = name, shieldCost = 100 }, new C7GameData.GameData());
+	}
+
+	[Fact]
+	public void SwitchingProductionCategoryLosesHalfTheShields() {
+		City city = MakeProductionCity();
+
+		city.ChangeProduction(MakeBuilding("Temple"));
+		Assert.Equal(10, city.shieldsStored);
+	}
+
+	[Fact]
+	public void SwitchingWithinACategoryIsFree() {
+		City city = MakeProductionCity();
+
+		city.ChangeProduction(new UnitPrototype() { name = "Spearman", shieldCost = 100 });
+		Assert.Equal(20, city.shieldsStored);
+	}
+
+	[Fact]
+	public void SwitchingBackRestoresTheShields() {
+		City city = MakeProductionCity();
+
+		city.ChangeProduction(MakeBuilding("Temple"));
+		city.ChangeProduction(new UnitPrototype() { name = "Spearman", shieldCost = 100 });
+		Assert.Equal(20, city.shieldsStored);
+	}
 }
