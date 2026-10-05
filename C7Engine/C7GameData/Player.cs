@@ -1254,10 +1254,12 @@ namespace C7GameData {
 		public void RecalculateCitizenMoods(GameData gameData, bool goIntoDisorderIfUnhappy = false) {
 			foreach (City c in cities) {
 				City.Mood cityMood = c.RecalculateCitizenMoods(gameData);
-				c.isInCivilDisorder = cityMood == City.Mood.Unhappy && goIntoDisorderIfUnhappy;
 
-				// Celebrations start and end along with the turn's disorder check.
+				// Disorder and celebrations start and end only at the turn's
+				// check, so a recalculation elsewhere (e.g. loading a save)
+				// leaves them alone.
 				if (goIntoDisorderIfUnhappy) {
+					c.isInCivilDisorder = cityMood == City.Mood.Unhappy;
 					c.celebrating = !c.isInCivilDisorder && c.QualifiesForCelebration(rules);
 				}
 			}
