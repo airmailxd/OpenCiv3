@@ -219,6 +219,36 @@ public class PerfAiStrategyTests : IClassFixture<SaveGameFixture>, IDisposable {
 	}
 
 	[Fact]
+	public void SliderMovesOnlyChangeCityTaxesAndWealth() {
+		City capital = FoundCity(player);
+		City other = CityInteractions.BuildCity(
+			gameData.map.tiles.First(t => t.IsLand() && t.IsAllowCities() && !t.HasCity() && t.continent == capital.location.continent && t.DistanceTo(capital.location) > 4),
+			player, player.GetNextCityName());
+		foreach (City c in new[] { capital, other }) {
+			while (c.residents.Count < 4) {
+				c.AddCitizen(new CityResident() { city = c, citizenType = c.residents[0].citizenType, tileWorked = c.residents[0].tileWorked });
+			}
+		}
+		Building taxBuilding = gameData.Buildings.FirstOrDefault(b => b.increasesTax);
+		if (taxBuilding != null) {
+			capital.AddBuilding(taxBuilding);
+		}
+		player.gold = 250;
+
+		for (int lux = 0; lux <= 2; ++lux) {
+			player.luxuryRate = lux;
+			player.scienceRate = 10 - lux;
+			player.taxRate = 0;
+			int fixedGoldPerTurn = player.CalculateGoldPerTurn() - PlayerAI.CityTaxesAndWealth(player);
+			for (int science = 10 - lux; science >= 0; --science) {
+				player.scienceRate = science;
+				player.taxRate = 10 - lux - science;
+				Assert.Equal(player.CalculateGoldPerTurn(), fixedGoldPerTurn + PlayerAI.CityTaxesAndWealth(player));
+			}
+		}
+	}
+
+	[Fact]
 	public void WorkersDoNotAllHeadForTheSameTile() {
 		City city = FoundCity(player);
 		UnitPrototype workerType = gameData.unitPrototypes.First(p => p.name == "Worker");

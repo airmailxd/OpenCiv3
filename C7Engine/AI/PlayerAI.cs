@@ -309,7 +309,9 @@ namespace C7Engine {
 				// (it falls back to the best city), so the priority 3 fallback
 				// below is only reached for offensive units, whose search here
 				// used a different threshold and found nothing, returning
-				// before any pathfinding.
+				// before any pathfinding. DefenderAI keeps the per-city inputs
+				// of that search (defenders, units en route, distances) for the
+				// unit, so the fallback reuses them and only re-scores.
 				int minDefenders = unit.unitType.attack >= unit.unitType.defense ? 3 : int.MaxValue;
 				DefenderAIData maybeDefend = DefenderAI.MakeAiDataForDefendAtRiskCity(unit, player, minDefenders);
 				if (maybeDefend != null) {
@@ -453,26 +455,29 @@ namespace C7Engine {
 		}
 
 		// Whether ExplorerAI.MaybeMakeAiData would find a tile for this unit
-		// to explore. It takes its best scored candidate whenever there is one
-		// (PathFrom returns an empty path rather than null for an unreachable
-		// tile, which its reachability check lets through), so this only needs
-		// to know whether any candidate would be scored.
+		// to explore: it takes the best scored candidate it can reach, so this
+		// is whether any candidate it would score is reachable. Which one comes
+		// first doesn't matter, so this skips the scoring and asks the pathing
+		// algorithm once about all of them, nearest first.
 		private static bool HasTileToExplore(MapUnit unit, Player player) {
 			TileKnowledge knowledge = player.tileKnowledge;
 
 			// Exploration targets of explorers that are gone or have other
-			// jobs are forgotten before candidates are scored.
+			// jobs are forgotten before candidates are scored. The explorers
+			// still at it are the units whose current ExplorerAI is theirs.
 			HashSet<Tile> activeTargets = null;
 			if (knowledge.aiExplorationTargets.Count > 0) {
 				activeTargets = new HashSet<Tile>();
 				foreach (MapUnit u in player.units) {
-					if (u != unit && u.currentAI is ExplorerAI explorerAi && explorerAi.data?.destination != null) {
+					if (u != unit && u.currentAI is ExplorerAI explorerAi && explorerAi.data?.explorer == u
+						&& explorerAi.data.destination != null) {
 						activeTargets.Add(explorerAi.data.destination);
 					}
 				}
 			}
 
 			bool isLandUnit = unit.IsLandUnit();
+			List<Tile> candidates = new();
 			foreach (Tile t in knowledge.borderTiles) {
 				if (t.IsLand() != isLandUnit) {
 					continue;
@@ -481,10 +486,19 @@ namespace C7Engine {
 					continue;
 				}
 				if (HasUnknownNeighboringTiles(knowledge, t)) {
-					return true;
+					candidates.Add(t);
 				}
 			}
-			return false;
+			if (candidates.Count == 0) {
+				return false;
+			}
+
+			// Searching towards a near candidate first keeps the common case
+			// (something nearby is reachable) quick.
+			Tile start = unit.location;
+			candidates.Sort((a, b) => start.DistanceTo(a).CompareTo(start.DistanceTo(b)));
+			PathingAlgorithm algorithm = PathingAlgorithmChooser.GetAlgorithm(unit);
+			return algorithm.FindFirstReachable(start, candidates, unit, out _) >= 0;
 		}
 
 		// Matches ExplorerAI's test for whether a tile is worth exploring.
@@ -674,9 +688,17 @@ namespace C7Engine {
 			player.scienceRate = Math.Min(player.maxScienceRate, MAX_SLIDER_VALUE - player.luxuryRate);
 			player.taxRate = MAX_SLIDER_VALUE - player.luxuryRate - player.scienceRate;
 			player.ApplyGovernmentRateCap();
-			while (player.scienceRate > 0 && player.taxRate < player.maxRate && !BudgetIsTolerable(player)) {
-				player.scienceRate--;
-				player.taxRate++;
+			int goldPerTurn;
+			if (player.scienceRate > 0 && player.taxRate < player.maxRate
+				&& !IsTolerable(player, goldPerTurn = player.CalculateGoldPerTurn())) {
+				// Only the cities' commerce changes as the sliders move; see
+				// CityTaxesAndWealth.
+				int fixedGoldPerTurn = goldPerTurn - CityTaxesAndWealth(player);
+				do {
+					player.scienceRate--;
+					player.taxRate++;
+				} while (player.scienceRate > 0 && player.taxRate < player.maxRate
+					&& !IsTolerable(player, fixedGoldPerTurn + CityTaxesAndWealth(player)));
 			}
 
 			log.Information($"{player} slider values: Science: {player.scienceRate}, Luxury: {player.luxuryRate}, Tax: {player.taxRate}");
@@ -722,9 +744,32 @@ namespace C7Engine {
 		}
 
 		public static bool BudgetIsTolerable(Player player) {
-			var gpt = player.CalculateGoldPerTurn();
+			return IsTolerable(player, player.CalculateGoldPerTurn());
+		}
+
+		private static bool IsTolerable(Player player, int gpt) {
 			var tolerableDeficit = gpt > player.gold * -0.1;
 			return gpt > 0 || tolerableDeficit;
+		}
+
+		// The part of the player's gold per turn that the science and tax
+		// sliders affect.
+		//
+		// Gold per turn (Player.AggregateFlows().Netflows()) is the sum of
+		// each city's taxes and wealth from City.CurrentCommerceYield(), plus
+		// terms the sliders don't affect: gold-per-turn deals, interest
+		// (which depends on the treasury), building maintenance and unit
+		// support. The corrupted, beaker and happiness amounts cancel out,
+		// and the tax collector split only moves taxes between two terms of
+		// the same sum. So once the rest is known, only the cities' commerce
+		// needs recomputing as the sliders move.
+		internal static int CityTaxesAndWealth(Player player) {
+			int result = 0;
+			foreach (City city in player.cities) {
+				CommerceBreakdown commerce = city.CurrentCommerceYield();
+				result += commerce.taxes + commerce.wealth;
+			}
+			return result;
 		}
 	}
 }
