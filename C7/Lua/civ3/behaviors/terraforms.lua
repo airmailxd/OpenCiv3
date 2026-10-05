@@ -26,7 +26,9 @@ terraforms.effects = {
     context.tile:ClearTerrainOverlay()
   end,
   clear_forest = function(context)
-    context.tile:MaybeAwardForestClearingShields()
+    -- The clearing player gets the shields. (Before the overload taking the
+    -- player exists, MoonSharp ignores the extra argument.)
+    context.tile:MaybeAwardForestClearingShields(context.player)
     context.tile:ClearTerrainOverlay()
   end,
 }
