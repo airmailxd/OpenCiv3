@@ -61,10 +61,19 @@ return function(civ3_game_mode)
       unit_prototype.art.pediaArt.large = "art\\civilopedia\\icons\\units\\unit_large.png"
       unit_prototype.art.pediaArt.small = "art\\civilopedia\\icons\\units\\unit_small.png"
 
-      -- Remove the unit upgrade if we don't have a sprite for it
-      local upgrade = unit_prototype.upgradesTo
-      if not unit_replacement_art_map[upgrade] then
-        unit_prototype.upgradesTo = nil
+      -- Remove the unit upgrades we don't have a sprite for. upgradesTo is
+      -- a list of unit names. The filtered list keeps the original's
+      -- metatable, which marks it as an array, so an empty list is still
+      -- written out as one.
+      local upgrades = unit_prototype.upgradesTo
+      if type(upgrades) == "table" then
+        local kept = setmetatable({}, getmetatable(upgrades))
+        for _, upgrade in ipairs(upgrades) do
+          if unit_replacement_art_map[upgrade] then
+            table.insert(kept, upgrade)
+          end
+        end
+        unit_prototype.upgradesTo = kept
       end
 
       table.insert(updated_unit_prototypes, unit_prototype)
