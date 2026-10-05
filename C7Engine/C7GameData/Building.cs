@@ -45,6 +45,13 @@ namespace C7GameData {
 		public bool providesVeteranGroundUnits;
 		public bool treasuryEarnsInterest;
 
+		// Army buildings: the Military Academy lets its city build armies, and
+		// the Pentagon lets the owner's armies carry one more unit.
+		public bool allowsBuildArmy;
+		public bool allowsLargerArmies;
+		public bool requiresVictoriousArmy;
+		public int numberOfArmiesRequired;
+
 		public int culturePerTurn = 0;
 		public int maintenanceCost = 0;
 
@@ -96,6 +103,10 @@ namespace C7GameData {
 			onlyUsefulInTowns = building.flags.Contains(SaveBuilding.Flag.CanOnlyBeBuiltInTowns);
 			providesVeteranGroundUnits = building.flags.Contains(SaveBuilding.Flag.VeteranGroundUnits);
 			treasuryEarnsInterest = building.flags.Contains(SaveBuilding.Flag.TreasuryEarnsInterest);
+			allowsBuildArmy = building.flags.Contains(SaveBuilding.Flag.AllowsBuildArmy);
+			allowsLargerArmies = building.flags.Contains(SaveBuilding.Flag.AllowsLargerArmies);
+			requiresVictoriousArmy = building.flags.Contains(SaveBuilding.Flag.RequiresVictoriousArmy);
+			numberOfArmiesRequired = building.numberOfArmiesRequired;
 
 			if (building.greatWonderProperties != null) {
 				greatWonderProperties = new();
@@ -137,13 +148,35 @@ namespace C7GameData {
 				}
 			}
 
-			// TODO: Add logic for wonders and the palace
-			if (isSmallWonder || isCenterOfEmpire) {
+			// TODO: Add logic for wonders and the palace. Small wonders are
+			// only buildable once their effects are implemented, which so far
+			// is just the army ones.
+			if (isCenterOfEmpire || (isSmallWonder && !IsSupportedSmallWonder())) {
+				return false;
+			}
+
+			if (isSmallWonder) {
+				// A civ builds each small wonder once, in one city at a time.
+				foreach (City c in city.owner.cities) {
+					if (c.constructed_buildings.Exists(cb => cb.building == this)) {
+						return false;
+					}
+					if (c != city && c.itemBeingProduced == this) {
+						return false;
+					}
+				}
+			}
+
+			if (requiresVictoriousArmy && !city.owner.hasVictoriousArmy) {
+				return false;
+			}
+
+			if (numberOfArmiesRequired > 0 && city.owner.ArmyCount() < numberOfArmiesRequired) {
 				return false;
 			}
 
 			if (requiredBuilding != null &&
-				!city.GetBuildings().Exists(cityBuilding => cityBuilding.building == this)) {
+				!city.GetBuildings().Exists(cityBuilding => cityBuilding.building == requiredBuilding)) {
 				return false;
 			}
 
@@ -156,6 +189,10 @@ namespace C7GameData {
 			}
 
 			return true;
+		}
+
+		private bool IsSupportedSmallWonder() {
+			return allowsBuildArmy || allowsLargerArmies;
 		}
 
 		public int ShieldCost(HashSet<Civilization.Trait> civTraits, float costFactor) {

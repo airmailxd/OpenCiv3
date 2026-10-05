@@ -402,12 +402,13 @@ namespace C7GameData {
 
 		public MapUnit FindTopDefenderForBombard(Tile tile, MapUnit opponent) {
 			MapUnit target;
-			var combatUnits = tile.unitsOnTile.Where(u => u.IsCombatUnit()).ToList();
+			// Units in an army are hit through the army.
+			var combatUnits = tile.unitsOnTile.Where(u => u.IsCombatUnit() && !u.IsInArmy()).ToList();
 
 			if ((tile.IsLand() && opponent.unitType.isLandBombardmentLethal) || (tile.IsWater() && opponent.unitType.isSeaBombardmentLethal))
 				target = FindTopCombatUnit(opponent, combatUnits);
 			else
-				target = FindTopCombatUnit(opponent, combatUnits.Where(u => u.hitPointsRemaining > 1).ToList());
+				target = FindTopCombatUnit(opponent, combatUnits.Where(u => u.CompositeHitPoints() > 1).ToList());
 
 			return target;
 		}
@@ -418,7 +419,9 @@ namespace C7GameData {
 
 		public MapUnit FindTopDefender(MapUnit opponent, List<MapUnit> units) {
 			if (units.Count > 0) {
-				List<MapUnit> potentialDefenders = units.Where(u => u.CanDefendAgainst(opponent)).ToList();
+				// Units in an army don't defend by themselves; the army defends
+				// with them.
+				List<MapUnit> potentialDefenders = units.Where(u => u.CanDefendAgainst(opponent) && !u.IsInArmy()).ToList();
 				if (potentialDefenders.Count() == 0) {
 					return MapUnit.NONE;
 				}

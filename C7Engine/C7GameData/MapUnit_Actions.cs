@@ -9,14 +9,19 @@ namespace C7GameData;
 
 public partial class MapUnit {
 	public void OnBeginTurn(bool skipTurn = false) {
-		int maxMP = unitType.movement;
-		if (movementPoints.remaining >= maxMP && !skipTurn) {
-			int maxHP = maxHitPoints;
-			if (hitPointsRemaining < maxHP)
-				hitPointsRemaining += HealRateAt(location);
-			if (hitPointsRemaining > maxHP)
-				hitPointsRemaining = maxHP;
+		int maxMP = MaxMovementPoints();
+		bool restedLastTurn = movementPoints.remaining >= maxMP || heldWithoutMoving;
+		if (restedLastTurn && !skipTurn) {
+			// The members of an army heal when the army rests, since they don't
+			// move by themselves.
+			if (IsArmy()) {
+				foreach (MapUnit member in Passengers())
+					member.Heal();
+			}
+			if (!IsInArmy())
+				Heal();
 		}
+		heldWithoutMoving = false;
 
 		if (skipTurn) {
 			movementPoints.skipTurn();
@@ -25,6 +30,14 @@ public partial class MapUnit {
 		}
 
 		defensiveBombardsRemaining = 1;
+	}
+
+	private void Heal() {
+		int maxHP = maxHitPoints;
+		if (hitPointsRemaining < maxHP)
+			hitPointsRemaining += HealRateAt(location);
+		if (hitPointsRemaining > maxHP)
+			hitPointsRemaining = maxHP;
 	}
 
 	public void OnEnterTile(Tile tile) {
@@ -112,6 +125,11 @@ public partial class MapUnit {
 	}
 
 	public void SkipTurn() {
+		// Holding uses up the unit's movement points, but a unit that holds
+		// without having moved has still rested and should heal.
+		if (movementPoints.remaining >= MaxMovementPoints()) {
+			heldWithoutMoving = true;
+		}
 		movementPoints.skipTurn();
 	}
 
@@ -210,11 +228,18 @@ public partial class MapUnit {
 
 		// Trigger combat if the tile we're moving into has an enemy  Or if this unit can't fight, do nothing.
 		MapUnit defender = newLoc.FindTopDefender(this);
-		if (defender != MapUnit.NONE && !owner.IsAtPeaceWith(defender.owner)) {
-			if (unitType.attack <= 0) {
-				return true;
-			}
+		bool enemyOnTile = defender != MapUnit.NONE && !owner.IsAtPeaceWith(defender.owner);
+		// Units that can't attack, including empty armies, don't start fights.
+		if (enemyOnTile && !CanAttack()) {
+			return true;
+		}
 
+		if (enemyOnTile && !HasArmedEnemyDefender(newLoc)) {
+			// Units that can't defend themselves, like workers and settlers,
+			// are captured rather than fought. Fighting them would always win,
+			// and could be farmed for promotions.
+			CaptureDefencelessUnits(newLoc);
+		} else if (enemyOnTile) {
 			CombatResult combatResult = await Fight(defender);
 			this.path = TilePath.NONE;
 			// If we were killed then of course there's nothing more to do. If the combat couldn't happen for whatever
@@ -227,10 +252,10 @@ public partial class MapUnit {
 			}
 
 			// If the enemy was defeated, check if there is another enemy on the tile. If so we can't complete the move
-			// but still pay one movement point for the combat.
+			// but still pay one movement point for the combat. Otherwise we move in below, paying only for the move.
 			if (combatResult == CombatResult.DefenderKilled || combatResult == CombatResult.DefenderRetreated) {
-				this.movementPoints.onUnitMove(1);
 				if (newLoc.FindTopDefender(this) != MapUnit.NONE) {
+					this.movementPoints.onUnitMove(1);
 					this.facingDirection = this.facingDirection.Reversed();
 					return true;
 				}
@@ -246,31 +271,7 @@ public partial class MapUnit {
 		facingDirection = dir;
 		float movementCost = TilePath.GetMovementCost(this.owner, location, dir, newLoc);
 
-		// Leave old tile
-		if (!location.unitsOnTile.Remove(this))
-			throw new System.Exception("Failed to remove unit from tile it's supposed to be on");
-
-		// Move transported units, too
-		if (CanTransport()) {
-			var transported = location.unitsOnTile
-					.Where(u => u.IsLoadedIn(this)).ToList();
-
-			foreach (var tu in transported) {
-				if (!location.unitsOnTile.Remove(tu))
-					throw new System.Exception("Failed to remove unit from tile during transport move");
-				newLoc.unitsOnTile.Add(tu);
-				tu.location = newLoc;
-			}
-		}
-
-		TryBoardingTransportOnTile(newLoc);
-		TryUnboardingTransportToTile(newLoc);
-
-		// Enter new tile
-		// Make sure the unit is on the new location before claiming we have entered the tile
-		newLoc.unitsOnTile.Add(this);
-		location = newLoc;
-		OnEnterTile(newLoc);
+		RelocateTo(newLoc);
 
 		if (wait)
 			await animateAsync(MapUnit.AnimatedAction.RUN);
@@ -282,8 +283,74 @@ public partial class MapUnit {
 		return true;
 	}
 
+	// Moves the unit, and anything it carries, onto a neighboring tile. This
+	// doesn't check whether the move is allowed, start combat, or use
+	// movement points; callers handle those.
+	private void RelocateTo(Tile newLoc) {
+		// Leave old tile
+		if (!location.unitsOnTile.Remove(this))
+			throw new System.Exception("Failed to remove unit from tile it's supposed to be on");
+
+		// Move transported units, too
+		CarryPassengersTo(newLoc);
+
+		TryBoardingTransportOnTile(newLoc);
+		TryUnboardingTransportToTile(newLoc);
+
+		// Enter new tile
+		// Make sure the unit is on the new location before claiming we have entered the tile
+		newLoc.unitsOnTile.Add(this);
+		location = newLoc;
+		OnEnterTile(newLoc);
+	}
+
+	// Moves everything loaded on this unit, and anything loaded on that (like
+	// an army aboard a ship), to the new tile along with it.
+	private void CarryPassengersTo(Tile newLoc) {
+		foreach (MapUnit passenger in Passengers()) {
+			passenger.CarryPassengersTo(newLoc);
+			if (!location.unitsOnTile.Remove(passenger))
+				throw new System.Exception("Failed to remove unit from tile during transport move");
+			newLoc.unitsOnTile.Add(passenger);
+			passenger.location = newLoc;
+		}
+	}
+
+	// True if an enemy unit on the tile can actually put up a fight against
+	// this unit, as opposed to only workers, settlers, empty armies and the
+	// like. Units in an army fight through the army.
+	private bool HasArmedEnemyDefender(Tile tile) {
+		return tile.unitsOnTile.Any(u => !owner.IsAtPeaceWith(u.owner)
+			&& !u.IsInArmy()
+			&& u.CanDefendAgainst(this)
+			&& u.CombatBaseStrength(CombatRole.Defense) > 0);
+	}
+
+	// Captures the enemy workers on the tile, turns enemy settlers into two
+	// slave workers, and destroys any other enemy units there that can't be
+	// captured. Barbarians don't take captives.
+	private void CaptureDefencelessUnits(Tile tile) {
+		GameData gameData = EngineStorage.gameData;
+		foreach (MapUnit enemy in tile.unitsOnTile.Where(u => !owner.IsAtPeaceWith(u.owner)).ToList()) {
+			if (owner.isBarbarians) {
+				gameData.RemoveUnit(enemy);
+			} else if (enemy.unitType.isSettler) {
+				gameData.CaptureSettler(enemy, owner);
+			} else if (enemy.unitType.isWorker) {
+				gameData.CaptureUnit(enemy, owner);
+			} else {
+				gameData.RemoveUnit(enemy);
+			}
+		}
+	}
+
 	public async Task<CombatResult> Fight(MapUnit defender) {
 		var attacker = this;
+
+		// Armies fight with one member at a time; for other units the
+		// combatant is the unit itself. See Combatant().
+		MapUnit attackingMember = attacker.Combatant(CombatRole.Attack);
+		MapUnit defendingMember = defender.Combatant(CombatRole.Defense);
 
 		// Set combat animation facing. We'll restore the defender's original facing direction at the end of the battle.
 		TileDirection attackerAttackDirection = attacker.location.DirectionTo(defender.location);
@@ -294,15 +361,17 @@ public partial class MapUnit {
 
 		IEnumerable<StrengthBonus> attackBonuses  = attacker.ListStrengthBonusesVersus(defender, CombatRole.Attack , attackerAttackDirection),
 								   defenseBonuses = defender.ListStrengthBonusesVersus(attacker, CombatRole.Defense, attackerAttackDirection);
+		double attackMultiplier  = StrengthBonus.ListToMultiplier(attackBonuses),
+			   defenseMultiplier = StrengthBonus.ListToMultiplier(defenseBonuses);
 
-		double attackerStrength = attacker.unitType.attack  * StrengthBonus.ListToMultiplier(attackBonuses),
-			   defenderStrength = defender.unitType.defense * StrengthBonus.ListToMultiplier(defenseBonuses);
+		double attackerStrength = attackingMember.unitType.attack  * attackMultiplier,
+			   defenderStrength = defendingMember.unitType.defense * defenseMultiplier;
 
 		log.Information($"Combat log: {attacker} ({attackerStrength}) attacking {defender} ({defenderStrength})");
-		log.Information($"\tAttacker: {attacker.unitType.name}, base strength {attacker.unitType.BaseStrength(CombatRole.Attack)}");
+		log.Information($"\tAttacker: {attackingMember.unitType.name}, base strength {attackingMember.unitType.BaseStrength(CombatRole.Attack)}");
 		foreach (StrengthBonus bonus in attackBonuses)
 			log.Information($"\t\t+{100.0 * bonus.amount}%\t{bonus.description}");
-		log.Information($"\tDefender: {defender.unitType.name}, base strength {defender.unitType.BaseStrength(CombatRole.Defense)}");
+		log.Information($"\tDefender: {defendingMember.unitType.name}, base strength {defendingMember.unitType.BaseStrength(CombatRole.Defense)}");
 		foreach (StrengthBonus bonus in defenseBonuses)
 			log.Information($"\t\t+{100.0 * bonus.amount}%\t{bonus.description}");
 
@@ -312,10 +381,19 @@ public partial class MapUnit {
 		if (Double.IsNaN(attackerOdds))
 			return result;
 
+		// When an army rotates in another member, the odds change with it.
+		void UpdateOdds() {
+			attackerStrength = attackingMember.unitType.attack  * attackMultiplier;
+			defenderStrength = defendingMember.unitType.defense * defenseMultiplier;
+			attackerOdds = attackerStrength / (attackerStrength + defenderStrength);
+			if (Double.IsNaN(attackerOdds))
+				attackerOdds = 0.5;
+		}
+
 		// Defensive bombard
 		MapUnit defensiveBombarder = MapUnit.NONE;
 		double defensiveBombarderStrength = 0.0;
-		foreach (MapUnit candidate in defender.location.unitsOnTile.Where(u => u != defender && !u.owner.IsAtPeaceWith(attacker.owner) && u.defensiveBombardsRemaining > 0)) {
+		foreach (MapUnit candidate in defender.location.unitsOnTile.Where(u => u != defender && !u.IsInArmy() && !u.owner.IsAtPeaceWith(attacker.owner) && u.defensiveBombardsRemaining > 0)) {
 			double strength = candidate.StrengthVersus(attacker, CombatRole.DefensiveBombard, defenderDefenseDirection);
 			if (strength > defensiveBombarderStrength) {
 				defensiveBombarder = candidate;
@@ -324,7 +402,12 @@ public partial class MapUnit {
 		}
 		// In the original game, defensive bombard does not trigger against attackers with 1 HP. See:
 		// https://github.com/C7-Game/Prototype/pull/250#discussion_r893051111
-		if (defensiveBombarder != MapUnit.NONE && attacker.hitPointsRemaining > 1) {
+		// Against an army it hits the member with the most hit points, so it
+		// never kills one either.
+		MapUnit bombardedUnit = attacker.IsArmy()
+			? attacker.Passengers().OrderByDescending(m => m.hitPointsRemaining).FirstOrDefault() ?? attacker
+			: attacker;
+		if (defensiveBombarder != MapUnit.NONE && bombardedUnit.hitPointsRemaining > 1) {
 			var dBOriginalDirection = defensiveBombarder.facingDirection;
 			TileDirection defensiveBombardDirection = defenderDefenseDirection;
 			defensiveBombarder.facingDirection = defensiveBombarder.GetAttackAnimationDirection(defensiveBombardDirection);
@@ -334,13 +417,16 @@ public partial class MapUnit {
 			// dADB = defense Against Defensive Bombard
 			double dADB = attacker.StrengthVersus(defensiveBombarder, CombatRole.DefensiveBombardDefense, defensiveBombardDirection);
 			if (GameData.rng.NextDouble() < defensiveBombarderStrength / (defensiveBombarderStrength + dADB))
-				attacker.hitPointsRemaining -= 1;
+				bombardedUnit.hitPointsRemaining -= 1;
 
 			defensiveBombarder.defensiveBombardsRemaining -= 1;
 			defensiveBombarder.facingDirection = dBOriginalDirection;
+
+			attackingMember = attacker.Combatant(CombatRole.Attack);
+			UpdateOdds();
 		}
 
-		bool defenderEligibleToRetreat = defender.hitPointsRemaining > 1 && ! defender.location.HasCity();
+		bool defenderEligibleToRetreat = defender.CompositeHitPoints() > 1 && ! defender.location.HasCity();
 
 		// Do combat rounds
 		while (true) {
@@ -348,39 +434,60 @@ public partial class MapUnit {
 			await attacker.animateAsync(MapUnit.AnimatedAction.ATTACK1);
 			if (GameData.rng.NextDouble() < attackerOdds) {
 				if (defenderEligibleToRetreat &&
-					defender.hitPointsRemaining == 1 &&
+					defender.CompositeHitPoints() == 1 &&
 					GameData.rng.NextDouble() < defender.RetreatChance(attacker, false)) {
 					// TODO: Defender retreat behavior requires some more work. There's an issue for it here:
 					// https://github.com/C7-Game/Prototype/issues/274
-					Tile retreatDestination = defender.location.neighbors[attackerAttackDirection];
-					if ((retreatDestination != Tile.NONE) && defender.CanEnter(retreatDestination)) {
-						await defender.Move(attackerAttackDirection, true);
+					//
+					// Retreat straight onto the tile behind the defender. It has
+					// to be one we can enter peacefully, so the retreat can't
+					// start another battle, and we move the defender directly
+					// rather than with Move(), which needs movement points the
+					// defender may not have during the attacker's turn.
+					if (defender.location.neighbors.TryGetValue(attackerAttackDirection, out Tile retreatDestination)
+						&& retreatDestination != Tile.NONE
+						&& defender.CanEnterPeacefully(retreatDestination)) {
+						defender.facingDirection = attackerAttackDirection;
+						defender.RelocateTo(retreatDestination);
+						await defender.animateAsync(MapUnit.AnimatedAction.RUN);
 						result = CombatResult.DefenderRetreated;
 						break;
 					}
 				}
-				defender.hitPointsRemaining -= 1;
-				if (defender.hitPointsRemaining <= 0) {
+				if (defender.AbsorbCombatHit(defendingMember)) {
 					result = CombatResult.DefenderKilled;
 					break;
 				}
+				defendingMember = defender.Combatant(CombatRole.Defense);
+				UpdateOdds();
 			} else {
-				if (attacker.hitPointsRemaining == 1 &&
+				if (attacker.CompositeHitPoints() == 1 &&
 					GameData.rng.NextDouble() < attacker.RetreatChance(defender, true)) {
 					result = CombatResult.AttackerRetreated;
 					break;
 				}
-				attacker.hitPointsRemaining -= 1;
-				if (attacker.hitPointsRemaining <= 0) {
+				if (attacker.AbsorbCombatHit(attackingMember)) {
 					result = CombatResult.AttackerKilled;
 					break;
 				}
+				attackingMember = attacker.Combatant(CombatRole.Attack);
+				UpdateOdds();
 			}
 		}
 
 		if ((result == CombatResult.AttackerKilled) || (result == CombatResult.DefenderKilled)) {
 			var (dead, alive) = (result == CombatResult.AttackerKilled) ? (attacker, defender) : (defender, attacker);
-			alive.RollToPromote(dead);
+
+			// In an army, the member that won the last round gets the chance
+			// to be promoted, and the army plays the victory animation.
+			MapUnit survivingMember = (alive == attacker) ? attackingMember : defendingMember;
+			survivingMember.RollToPromote(dead, alive);
+
+			// Winning a battle with an army is what lets a civ build the
+			// Military Academy.
+			if (alive.IsArmy())
+				alive.owner.hasVictoriousArmy = true;
+
 			await dead.animateAsync(MapUnit.AnimatedAction.DEATH);
 			dead.RemoveFromPlay();
 		}
@@ -425,7 +532,9 @@ public partial class MapUnit {
 		var turnProgress = this.location.GetCurrentUnaccountedJobProgress(terraform);
 		var totalCost = (float)GetWorkerJobCost(this.location, this.WorkerJob);
 
-		if (terraformProgress + turnProgress == totalCost) {
+		// Use >= rather than ==, since faster (e.g. Industrious) workers can
+		// overshoot the cost.
+		if (terraformProgress + turnProgress >= totalCost) {
 			location.FinishWorkerJob(WorkerJob);
 		}
 
@@ -437,6 +546,10 @@ public partial class MapUnit {
 		if (t == null) {
 			// TODO: throw new System.Exception("Failed to find a transport to move to");
 			log.Warning("Failed to find a transport to board");
+			return;
+		}
+		if (!t.CanCarryUnits() || !t.CanLoad(this)) {
+			log.Warning($"{this} can't board {t}");
 			return;
 		}
 		t.Board(this);
@@ -456,6 +569,14 @@ public partial class MapUnit {
 		Wake();
 		if (this.owner.isHuman)
 			new MsgUnitMoved(this).send();
+	}
+
+	// Loads this unit, on the player's order, onto a transport or army on its
+	// own tile.
+	public void LoadOntoTransportHere() {
+		if (IsLoaded() || !CanBoardTransportOnTile(location, explicitLoad: true))
+			return;
+		BoardTransport(SelectTransportToBoard(location, explicitLoad: true));
 	}
 
 	public void TryBoardingTransportOnTile(Tile newLoc) {

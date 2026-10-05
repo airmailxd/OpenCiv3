@@ -60,9 +60,8 @@ namespace C7Engine.AI {
 		/// <returns></returns>
 		private static int CalculateNumberOfPriorities(List<StrategicPriority> possiblePriorities) {
 			int count = 1;
-			possiblePriorities.Sort((a, b) => {
-				return a.GetCalculatedWeight() - b.GetCalculatedWeight() > 0 ? 1 : -1;
-			});
+			// Highest weight first, so we count down from the top priority.
+			possiblePriorities.Sort((a, b) => b.GetCalculatedWeight().CompareTo(a.GetCalculatedWeight()));
 			float previousWeight = possiblePriorities[0].GetCalculatedWeight();
 			for (int idx = 1; idx < possiblePriorities.Count; idx++) {
 				float nextWeight = possiblePriorities[idx].GetCalculatedWeight();

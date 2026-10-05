@@ -266,8 +266,10 @@ namespace C7GameData {
 			// Start from the end and start deleting backwards
 			// because the other way doesn't actually go through all units
 			// probably because we keep modifying the list and its count gets all messed up
-			for (int i = player.units.Count - 1; i >= 0; --i) {
-				RemoveUnit(player.units[i]);
+			// Removing a transport or army can take its cargo with it, so
+			// always remove whatever unit is currently last.
+			while (player.units.Count > 0) {
+				RemoveUnit(player.units[^1]);
 			}
 
 			// Remove this civ from all other player's relationships.
@@ -291,6 +293,13 @@ namespace C7GameData {
 
 			await unit.animateAsync(MapUnit.AnimatedAction.DEATH, AnimationEnding.Pause);
 
+			// Disbanding an army releases the units in it, rather than
+			// disbanding them too.
+			if (unit.IsArmy()) {
+				foreach (MapUnit member in unit.Passengers())
+					member.loadedOnUnitId = null;
+			}
+
 			RemoveUnit(unit);
 		}
 
@@ -303,6 +312,18 @@ namespace C7GameData {
 			if (unit.currentAI != null) {
 				unit.currentAI.UpdateOnDeath();
 				unit.currentAI = null;
+			}
+
+			// Deal with anything this unit was carrying. The units in an army
+			// die with it, as does cargo at sea; a transport's cargo in port is
+			// simply unloaded. Either way nothing is left pointing at the
+			// removed unit.
+			foreach (MapUnit loaded in unit.Passengers()) {
+				if (unit.IsArmy() || unit.location.IsWater()) {
+					RemoveUnit(loaded);
+				} else {
+					loaded.loadedOnUnitId = null;
+				}
 			}
 
 			// EngineStorage.animTracker.endAnimation(unit, false);   TODO: Must send message instead of call directly
@@ -326,7 +347,55 @@ namespace C7GameData {
 				CheckForCivDestructionAndNotifyUi(unit.owner);
 		}
 
-		internal void SpawnUnit(Player player, UnitPrototype proto, Tile tile) {
+		/// <summary>
+		/// Hands a unit over to the player that captured it. The unit keeps its
+		/// nationality, so it becomes a captive (e.g. a slave worker).
+		/// </summary>
+		internal void CaptureUnit(MapUnit unit, Player captor) {
+			Player previousOwner = unit.owner;
+			log.Information($"Player {captor} captured unit: {unit}");
+
+			if (unit.currentAI != null) {
+				unit.currentAI.UpdateOnDeath();
+				unit.currentAI = null;
+			}
+			unit.isAutomated = false;
+			unit.isFortified = false;
+			unit.path = TilePath.NONE;
+			unit.resetWorkerJob();
+			unit.movementPoints.onConsumeAll();
+
+			previousOwner.units.Remove(unit);
+			unit.owner = captor;
+			captor.AddUnit(unit);
+
+			previousOwner.tileKnowledge.RecomputeActiveTiles();
+			captor.tileKnowledge.RecomputeActiveTiles();
+
+			if (!previousOwner.defeated)
+				CheckForCivDestructionAndNotifyUi(previousOwner);
+		}
+
+		/// <summary>
+		/// A captured settler becomes two slave workers for the captor.
+		/// </summary>
+		internal void CaptureSettler(MapUnit settler, Player captor) {
+			Tile tile = settler.location;
+			Civilization nationality = settler.nationality;
+			UnitPrototype worker = unitPrototypes.FirstOrDefault(p => p.name == "Worker")
+				?? unitPrototypes.First(p => p.isWorker);
+			log.Information($"Player {captor} captured settler {settler} as two workers");
+
+			RemoveUnit(settler);
+			for (int i = 0; i < 2; i++) {
+				MapUnit slave = SpawnUnit(captor, worker, tile);
+				slave.nationality = nationality;
+				slave.movementPoints.onConsumeAll();
+			}
+			captor.tileKnowledge.RecomputeActiveTiles();
+		}
+
+		internal MapUnit SpawnUnit(Player player, UnitPrototype proto, Tile tile) {
 			// TODO: consolidate unit spawning routines (here)
 
 			var defaultExpLevel = this.defaultExperienceLevel;
@@ -336,7 +405,7 @@ namespace C7GameData {
 
 			newUnit.experienceLevel = player.isBarbarians ? barbExpLevel : defaultExpLevel;
 			newUnit.experienceLevelKey = player.isBarbarians ? barbExpLevel.key : defaultExpLevel.key;
-			newUnit.hitPointsRemaining = player.isBarbarians ? barbExpLevel.baseHitPoints : defaultExpLevel.baseHitPoints;
+			newUnit.hitPointsRemaining = newUnit.maxHitPoints;
 
 			tile.unitsOnTile.Add(newUnit);
 			this.mapUnits.Add(newUnit);
@@ -344,6 +413,7 @@ namespace C7GameData {
 
 			log.Debug("New unit of type {type} added at {tile} for player {player}",
 				proto.name, tile, player);
+			return newUnit;
 		}
 
 		public int TechCostFor(Tech tech, Player player) {

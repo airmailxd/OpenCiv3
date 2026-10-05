@@ -87,4 +87,23 @@ public class CityTest {
 		city.HandleCityGrowth(gameData);
 		Assert.Equal(1, city.residents.Count);
 	}
+
+	[Fact]
+	public void SizeOneCityShouldNotStarveToZero() {
+		C7GameData.GameData gameData = new();
+		Player player = new();
+		player.government = new Government();
+		player.rules = new() { MaximumLevel1CitySize = 6 };
+		Tile tile = new Tile(ID.None("tile"));
+
+		City city = new City(tile, player, "Gotham", ID.None("city"));
+		city.foodStored = 0;
+		tile.cityAtTile = city;
+
+		city.residents.Add(new CityResident());
+
+		city.HandleCityGrowth(gameData);
+		Assert.Equal(1, city.residents.Count);
+		Assert.Equal(0, city.foodStored);
+	}
 }

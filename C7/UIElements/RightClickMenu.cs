@@ -188,8 +188,8 @@ public partial class RightClickTileMenu : RightClickMenu {
 
 		// Sort by transport group
 		playerUnits = playerUnits
-			.GroupBy(u => u.CanTransport() ? u.id : u.loadedOnUnitId ?? ID.None("Other"))
-			.SelectMany(g => g.OrderBy(u => u.CanTransport() ? int.MinValue : 0))
+			.GroupBy(u => u.CanCarryUnits() ? u.id : u.loadedOnUnitId ?? ID.None("Other"))
+			.SelectMany(g => g.OrderBy(u => u.CanCarryUnits() ? int.MinValue : 0))
 			.ToList();
 
 		foreach (MapUnit unit in playerUnits) {

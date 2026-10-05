@@ -114,6 +114,19 @@ namespace C7GameData {
 			}
 		}
 
+		// An army is a container that carries other units into battle as a
+		// single stack, rather than fighting with strength of its own.
+		public bool isArmy {
+			get => flags.Contains(SaveUnitPrototype.Flag.Army);
+			set {
+				if (value) {
+					flags.Add(SaveUnitPrototype.Flag.Army);
+				} else {
+					flags.Remove(SaveUnitPrototype.Flag.Army);
+				}
+			}
+		}
+
 		public HashSet<string> categories = new HashSet<string>();
 
 		public HashSet<UnitAction> actions = [];
@@ -159,6 +172,14 @@ namespace C7GameData {
 
 		public bool IsSeaUnit() {
 			return categories.Contains("Sea");
+		}
+
+		// Whether units of this type can be loaded into an army. Only land
+		// units that can attack qualify, so settlers, workers and bombard-only
+		// units like catapults are left out, as are transports and other
+		// armies.
+		public bool CanJoinArmy() {
+			return IsLandUnit() && attack > 0 && capacity == 0 && !isArmy;
 		}
 
 		public override string ToString() {
@@ -217,15 +238,22 @@ namespace C7GameData {
 
 		/// Whether a given city can produce this unit, given available resources.
 		public bool CanProduce(City city, HashSet<Resource> accessibleResources) {
-			var civ = city.owner.civilization;
-			return this.IsAvailableTo(civ)
+			return this.IsAvailableTo(city)
 				   && this.MeetsProductionRequirements(city, accessibleResources)
 				   && !this.IsUnitObsolete(city, accessibleResources);
 		}
 
-		/// Whether a Civ could build this unit, if it had a suitable city and necessary resources.
-		private bool IsAvailableTo(Civilization civ) {
-			return !this.unproducible && this.producibleBy.Contains(civ);
+		/// Whether the city's Civ could build this unit, if it had the necessary resources.
+		private bool IsAvailableTo(City city) {
+			return (!this.unproducible || this.CanBeBuiltAsArmy(city)) && this.producibleBy.Contains(city.owner.civilization);
+		}
+
+		/// Armies aren't normally producible, but a city with a building that allows
+		/// building armies (the Military Academy) can build the rules' army unit.
+		private bool CanBeBuiltAsArmy(City city) {
+			string armyUnit = EngineStorage.gameData?.rules?.BuildArmyUnit;
+			bool isArmyUnit = armyUnit != null ? armyUnit == this.name : this.isArmy;
+			return isArmyUnit && city.constructed_buildings.Exists(cb => cb.building.allowsBuildArmy);
 		}
 
 		/// Whether this unit can be built in this city (by the owner), given this particular set of resources.

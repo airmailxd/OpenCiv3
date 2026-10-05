@@ -72,9 +72,8 @@ namespace C7GameData {
 
 				if (middleD * (val + absoluteAccuracy) < middleN) {
 					// real + error < middle : middle is our new upper
-					(upperD, upperD) = Seek(upperN, upperD, lowerN, lowerD, (un, ud) => (lowerD + ud) * (val + absoluteAccuracy) < (lowerN + un));
+					(upperN, upperD) = Seek(upperN, upperD, lowerN, lowerD, (un, ud) => (lowerD + ud) * (val + absoluteAccuracy) < (lowerN + un));
 				} else if (middleN < (val - absoluteAccuracy) * middleD) {
-					// middle < real - error : middle is our new lower
 					// middle < real - error : middle is our new lower
 					(lowerN, lowerD) = Seek(lowerN, lowerD, upperN, upperD, (ln, ld) => (ln + upperN) < (val - absoluteAccuracy) * (ld + upperD));
 				} else {

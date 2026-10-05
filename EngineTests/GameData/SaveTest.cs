@@ -99,6 +99,8 @@ public class SaveTests : IClassFixture<SaveGameFixture> {
 						continue;
 					case MsgVictory mV:
 						continue;
+					case MsgCityChanged mCC:
+						continue;
 					default:
 						throw new Exception($"{msg}");
 				}

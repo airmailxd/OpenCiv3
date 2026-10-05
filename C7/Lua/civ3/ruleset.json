@@ -4537,7 +4537,8 @@
       ],
       "unproducible": true,
       "flags": [
-        "radar"
+        "radar",
+        "army"
       ],
       "categories": [
         "Land"
@@ -8994,6 +8995,9 @@
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
       "iconRowIndex": 54,
+      "flags": [
+        "requiresVictoriousArmy"
+      ],
       "traits": [
         "religious",
         "seafaring"
@@ -9042,6 +9046,10 @@
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
       "iconRowIndex": 57,
+      "flags": [
+        "allowsBuildArmy",
+        "requiresVictoriousArmy"
+      ],
       "traits": [
         "militaristic"
       ]
@@ -9056,6 +9064,10 @@
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
       "iconRowIndex": 58,
+      "numberOfArmiesRequired": 3,
+      "flags": [
+        "allowsLargerArmies"
+      ],
       "traits": [
         "militaristic"
       ]
@@ -11233,7 +11245,10 @@
     "shieldCostPerGold": 4,
     "shieldRateForDisbanding": 0.25,
     "allowLesserUnitProduction": false,
-    "radarTileVisibility": 2
+    "radarTileVisibility": 2,
+    "allowUnloadFromArmy": false,
+    "citiesNeededToSupportAnArmy": 4,
+    "buildArmyUnit": "Army"
   },
   "timeOptions": {
     "baseUnit": "years",

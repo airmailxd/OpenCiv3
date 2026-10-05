@@ -21,6 +21,9 @@ namespace C7GameData.Save {
 			ProvidesWalls,
 			CanOnlyBeBuiltInTowns,
 			TreasuryEarnsInterest,
+			AllowsBuildArmy,
+			AllowsLargerArmies,
+			RequiresVictoriousArmy,
 		}
 
 		public class GreatWonderProperties {
@@ -43,6 +46,10 @@ namespace C7GameData.Save {
 		public int maintenanceCost;
 		public int iconRowIndex;
 		public ID? renderedObsoleteBy;
+
+		// How many armies a civ needs in the field before it can build this
+		// (like the Pentagon). Zero if there's no such requirement.
+		public int numberOfArmiesRequired;
 
 		// Assorted boolean flags for the building. They're stored in this set
 		// rather than as booleans to avoid bloating the json file.

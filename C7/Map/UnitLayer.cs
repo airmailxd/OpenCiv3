@@ -291,7 +291,9 @@ public partial class UnitLayer : LooseLayer {
 		float offsetXFromCenter = 26;
 		Vector2 hpStartingLocation = tileCenter - new Vector2(offsetXFromCenter, 0) + animOffset;
 
-		int maxHp = unit.maxHitPoints;
+		// An army shows the combined hit points of its members.
+		int maxHp = unit.CompositeMaxHitPoints();
+		int hp = unit.CompositeHitPoints();
 		float hpIndHeight = GetHpFractionHeight(maxHp) / cameraZoom;
 		float hpIndWidth = 2 / cameraZoom;
 		float hpBarTotal = (hpIndHeight * maxHp + (maxHp - 1)/cameraZoom);
@@ -302,12 +304,12 @@ public partial class UnitLayer : LooseLayer {
 
 		int offsetYFromCenter = 8;
 		Rect2 hpIndBackgroundRect = new Rect2(hpStartingLocation - new Vector2(0, offsetXFromCenter), Vector2.One);
-		if (unit.unitType.attack > 0 || unit.unitType.defense > 0) {
+		if (unit.IsCombatUnit()) {
 			hpIndBackgroundRect = new Rect2((hpStartingLocation - new Vector2(0, hpBarTotal) - new Vector2(0, offsetYFromCenter)), new Vector2(hpIndWidth, hpBarTotal));
-			float hpFraction = (float)unit.hitPointsRemaining / maxHp;
+			float hpFraction = (float)hp / maxHp;
 			looseView.DrawRect(hpIndBackgroundRect, Color.Color8(0, 0, 0));
 			Color hpColor = GetHpColor(hpFraction, maxHp);
-			for (int i = 0; i < unit.hitPointsRemaining; i++) {
+			for (int i = 0; i < hp; i++) {
 				Rect2 hpContentsRect = new Rect2(hpIndBackgroundRect.Position + new Vector2(0, hpBarTotal) - new Vector2(0, hpIndHeight + (hpIndHeight+lineWidth)*i), new Vector2(hpIndWidth, hpIndHeight));
 				looseView.DrawRect(hpContentsRect, hpColor);
 			}
@@ -325,7 +327,7 @@ public partial class UnitLayer : LooseLayer {
 
 		// Draw movement indicator for our units
 		if (looseView.mapView.game.controller == unit.owner) {
-			int moveIndIndex = (!unit.movementPoints.canMove) ? 4 : ((unit.movementPoints.remaining >= unit.unitType.movement) ? 0 : 2);
+			int moveIndIndex = (!unit.movementPoints.canMove) ? 4 : ((unit.movementPoints.remaining >= unit.MaxMovementPoints()) ? 0 : 2);
 			Vector2 moveIndUpperLeft = new Vector2((1 + 7 * moveIndIndex), 1);
 			Rect2 moveIndRect = new Rect2(moveIndUpperLeft, movementLedCropping);
 			Rect2 screenRect = new Rect2(hpIndBackgroundRect.Position - (new Vector2(2, 6) / cameraZoom), movementLedSize);

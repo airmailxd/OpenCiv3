@@ -17,6 +17,8 @@ namespace C7Engine {
 		}
 
 		public static ExplorerAIData? MaybeMakeAiData(MapUnit unit, Player player) {
+			ForgetAbandonedExplorationTargets(player, unit);
+
 			HashSet<Tile> borderTiles = player.tileKnowledge.borderTiles;
 
 			IEnumerable<Tile> candidates = borderTiles.Where(x => (x.IsLand() && unit.IsLandUnit()) || (!x.IsLand() && !unit.IsLandUnit()));
@@ -59,6 +61,21 @@ namespace C7Engine {
 		}
 
 		public void UpdateOnDeath() { }
+
+		// Targets are only removed when an explorer reaches or sees them, so
+		// explorers that die or get another job leave theirs behind. Keep only
+		// the targets other explorers are still heading to, so the set (which
+		// is scanned for every candidate tile) doesn't grow without limit.
+		private static void ForgetAbandonedExplorationTargets(Player player, MapUnit unit) {
+			HashSet<Tile> activeTargets = player.units
+				.Where(u => u != unit)
+				.Select(u => u.currentAI)
+				.OfType<ExplorerAI>()
+				.Where(ai => ai.data?.destination != null)
+				.Select(ai => ai.data.destination)
+				.ToHashSet();
+			player.tileKnowledge.aiExplorationTargets.RemoveWhere(t => !activeTargets.Contains(t));
+		}
 
 		private static int DistanceToNearestCity(Player player, Tile t) {
 			int result = int.MaxValue;

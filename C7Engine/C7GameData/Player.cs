@@ -186,6 +186,10 @@ namespace C7GameData {
 
 		public Alliance alliance;
 
+		// Whether one of this player's armies has won a battle. The Military
+		// Academy can't be built until one has.
+		public bool hasVictoriousArmy = false;
+
 		public int EraIndex() {
 			return GetEraIndex(eraCivilopediaName);
 		}
@@ -388,6 +392,23 @@ namespace C7GameData {
 			return knownTechs.Contains(resource.Prerequisite);
 		}
 
+		public int ArmyCount() {
+			return units.Count(u => u.IsArmy());
+		}
+
+		// Whether the player has enough cities to support one more army: each
+		// army needs CitiesNeededToSupportAnArmy cities.
+		public bool CanSupportAnotherArmy() {
+			int citiesPerArmy = rules?.CitiesNeededToSupportAnArmy ?? 0;
+			return (ArmyCount() + 1) * citiesPerArmy <= RemainingCities();
+		}
+
+		// Whether this player's armies can carry an extra unit, thanks to a
+		// building like the Pentagon.
+		public bool HasLargerArmies() {
+			return cities.Any(c => c.constructed_buildings.Exists(cb => cb.building.allowsLargerArmies));
+		}
+
 		public int RemainingCities() {
 			int result = 0;
 			foreach (City city in cities) {
@@ -515,13 +536,14 @@ namespace C7GameData {
 				beakersPerTurn += city.CurrentCommerceYield().beakers;
 			}
 
-			if (beakersPerTurn == 0) {
+			int remainingCost = gameData.TechCostFor(tech, this);
+			if (remainingCost > 0 && beakersPerTurn == 0) {
 				// No research is happening.
 				return int.MaxValue;
 			}
 
-			int remainingCost = gameData.TechCostFor(tech, this);
-			int turnsRemaining = (int)Math.Ceiling((double)remainingCost / beakersPerTurn);
+			// A tech that's already paid for is done, even with no science.
+			int turnsRemaining = remainingCost <= 0 ? 0 : (int)Math.Ceiling((double)remainingCost / beakersPerTurn);
 
 			int maxTurnsRemaining = rules.MaximumResearchTime - turnsResearched;
 			int minTurnsRemaining = rules.MinimumResearchTime - turnsResearched;
@@ -758,14 +780,6 @@ namespace C7GameData {
 				return;
 			}
 
-			// Process per-city contributions.
-			//
-			// TODO: consider making this return a tuple too. Or maybe return all
-			// the gold accounting stuff in a struct, for one pass over the cities.
-			foreach (City city in cities) {
-				beakers += city.CurrentCommerceYield().beakers;
-			}
-
 			// Ensure we never go below 0 gold.
 			while (gold + CalculateGoldPerTurn() < 0) {
 				// Start by disbanding units or selling buildings to get things
@@ -817,6 +831,16 @@ namespace C7GameData {
 				// but it shouldn't stop the game.
 				log.Warning($"{this} was unable to get the budget under control despite disbanding units and zeroing out the sliders (gold={gold}, gpt={CalculateGoldPerTurn()})");
 				break;
+			}
+
+			// Process per-city contributions. This happens after the budget is
+			// settled, since lowering the science slider above moves commerce
+			// from beakers to gold, and it must not count as both.
+			//
+			// TODO: consider making this return a tuple too. Or maybe return all
+			// the gold accounting stuff in a struct, for one pass over the cities.
+			foreach (City city in cities) {
+				beakers += city.CurrentCommerceYield().beakers;
 			}
 
 			lastGoldPerTurn = CalculateGoldPerTurn();

@@ -43,6 +43,9 @@ namespace C7GameData {
 		}
 		public bool isFortified { get; set; }
 
+		// True if the unit held this turn before moving, so it still heals.
+		public bool heldWithoutMoving { get; set; }
+
 		public bool isAutomated { get; set; }
 
 		//sentry, etc. will come later.  For now, let's just have a couple things so we can cycle through units that aren't fortified.
@@ -84,11 +87,19 @@ namespace C7GameData {
 		}
 
 		public bool CanDefendOnLand() {
-			return IsLandUnit() && unitType.defense > 0;
+			return IsLandUnit() && CombatBaseStrength(CombatRole.Defense) > 0;
 		}
 
 		public bool IsCombatUnit() {
+			// An army fights with its members, so an empty one can't fight.
+			if (IsArmy())
+				return Passengers().Any(u => u.IsCombatUnit());
 			return this.unitType.attack > 0 || this.unitType.defense > 0;
+		}
+
+		// Whether this unit can start a fight.
+		public bool CanAttack() {
+			return CombatBaseStrength(CombatRole.Attack) > 0;
 		}
 
 		public bool CanBeActive() {
@@ -99,8 +110,90 @@ namespace C7GameData {
 			return !string.Equals(this.nationality.name, this.owner.civilization.name, StringComparison.CurrentCultureIgnoreCase);
 		}
 
+		public bool IsArmy() {
+			return this.unitType.isArmy;
+		}
+
+		// Whether this unit can carry other units: transports and armies.
+		public bool CanCarryUnits() {
+			return this.unitType.capacity > 0 && (this.unitType.actions.Contains(UnitAction.Unload) || IsArmy());
+		}
+
+		// Whether this unit is a transport its passengers can be unloaded
+		// from. Armies are rigid unless the game option allows unloading them,
+		// in which case they're treated as having the unload action.
 		public bool CanTransport() {
-			return this.unitType.capacity > 0 && this.unitType.actions.Contains(UnitAction.Unload);
+			if (this.unitType.capacity <= 0)
+				return false;
+			if (IsArmy())
+				return owner?.rules?.AllowUnloadFromArmy ?? false;
+			return this.unitType.actions.Contains(UnitAction.Unload);
+		}
+
+		// The units loaded on this one. They always share its tile.
+		public List<MapUnit> Passengers() {
+			if (!Tile.IsTileValid(location))
+				return [];
+			return location.unitsOnTile.Where(u => u != this && u.IsLoadedIn(this)).ToList();
+		}
+
+		// The unit this one is loaded on, or null.
+		public MapUnit Carrier() {
+			if (!IsLoaded() || !Tile.IsTileValid(location))
+				return null;
+			return location.unitsOnTile.FirstOrDefault(u => u != this && IsLoadedIn(u));
+		}
+
+		public bool IsInArmy() {
+			return Carrier()?.IsArmy() ?? false;
+		}
+
+		// A unit in an army that can't be unloaded takes no orders of its own;
+		// it goes where the army goes.
+		public bool IsLockedInArmy() {
+			MapUnit carrier = Carrier();
+			return carrier != null && carrier.IsArmy() && !carrier.CanTransport();
+		}
+
+		// How many units this unit can carry. The Pentagon (or any building
+		// that allows larger armies) lets each of the owner's armies take one
+		// more.
+		public int Capacity() {
+			int capacity = this.unitType.capacity;
+			if (IsArmy() && capacity > 0 && (owner?.HasLargerArmies() ?? false))
+				capacity += 1;
+			return capacity;
+		}
+
+		// The movement allowance this unit gets each turn. An army moves at the
+		// pace of its slowest member; an empty army just has its own allowance.
+		public int MaxMovementPoints() {
+			if (IsArmy()) {
+				List<MapUnit> members = Passengers();
+				if (members.Count > 0)
+					return members.Min(m => m.unitType.movement);
+			}
+			return this.unitType.movement;
+		}
+
+		// An army's hit points are the total of its members'. An empty army
+		// falls back to its own, as does any other unit.
+		public int CompositeHitPoints() {
+			if (IsArmy()) {
+				List<MapUnit> members = Passengers();
+				if (members.Count > 0)
+					return members.Sum(m => m.hitPointsRemaining);
+			}
+			return this.hitPointsRemaining;
+		}
+
+		public int CompositeMaxHitPoints() {
+			if (IsArmy()) {
+				List<MapUnit> members = Passengers();
+				if (members.Count > 0)
+					return members.Sum(m => m.maxHitPoints);
+			}
+			return this.maxHitPoints;
 		}
 
 		public bool IsLoadable() {
@@ -148,10 +241,10 @@ namespace C7GameData {
 		public string Describe() {
 			UnitPrototype type = this.unitType;
 			string exp = this.IsCombatUnit() ? $"{this.experienceLevel.displayName}" : "";
-			string hPDesc = ((type.attack > 0) || (type.defense > 0)) ? $" ({this.hitPointsRemaining}/{this.maxHitPoints})" : "";
+			string hPDesc = IsCombatUnit() ? $" ({this.CompositeHitPoints()}/{this.CompositeMaxHitPoints()})" : "";
 			string displayName = this.IsCaptive() ? $" ({this.nationality.adjective}) {this.name}" : $" {this.name}";
 			string attackDesc = (type.bombard > 0) ? $"{type.attack}({type.bombard})" : type.attack.ToString();
-			string stats = $" ({attackDesc}.{type.defense}.{(EngineStorage.uiControllerID == this.owner.id ? $"{this.movementPoints.getMixedNumber()}/" : "")}{type.movement})";
+			string stats = $" ({attackDesc}.{type.defense}.{(EngineStorage.uiControllerID == this.owner.id ? $"{this.movementPoints.getMixedNumber()}/" : "")}{MaxMovementPoints()})";
 			return $"{exp}{hPDesc}{displayName}{stats}".Trim();
 		}
 
@@ -282,7 +375,92 @@ namespace C7GameData {
 		}
 
 		public double StrengthVersus(MapUnit opponent, CombatRole role, TileDirection? attackDirection) {
-			return unitType.BaseStrength(role) * StrengthBonus.ListToMultiplier(ListStrengthBonusesVersus(opponent, role, attackDirection));
+			return CombatBaseStrength(role) * StrengthBonus.ListToMultiplier(ListStrengthBonusesVersus(opponent, role, attackDirection));
+		}
+
+		// The unit's base strength in a fight. An army has none of its own and
+		// uses that of the member currently fighting for it. Bonuses still come
+		// from the army itself (its tile, whether it's fortified), so its
+		// members' own fortification adds nothing.
+		public double CombatBaseStrength(CombatRole role) {
+			return Combatant(role).unitType.BaseStrength(role);
+		}
+
+		// The unit that actually fights when this one is in combat. For most
+		// units that's the unit itself. An army commits one member at a time,
+		// using as few members as the fight needs: members with more than one
+		// hit point go first, strongest first, and a member keeps fighting
+		// until it's down to its last hit point before a fresh one is rotated
+		// in. Only when every member is down to one does the army fight on
+		// with them, and members start to die. An empty army has nobody to
+		// fight for it, so it returns itself.
+		public MapUnit Combatant(CombatRole role) {
+			if (!IsArmy())
+				return this;
+
+			MapUnit best = null;
+			foreach (MapUnit member in Passengers()) {
+				if (member.hitPointsRemaining <= 0)
+					continue;
+				if (best == null || IsBetterCombatant(member, best, role))
+					best = member;
+			}
+			return best ?? this;
+		}
+
+		private static bool IsBetterCombatant(MapUnit a, MapUnit b, CombatRole role) {
+			bool aHealthy = a.hitPointsRemaining > 1, bHealthy = b.hitPointsRemaining > 1;
+			if (aHealthy != bHealthy)
+				return aHealthy;
+			double aStrength = a.unitType.BaseStrength(role), bStrength = b.unitType.BaseStrength(role);
+			if (aStrength != bStrength)
+				return aStrength > bStrength;
+			// Between equals, stick with the one that's already been fighting,
+			// so fresh members stay out of the fight as long as possible.
+			int aDamage = a.maxHitPoints - a.hitPointsRemaining, bDamage = b.maxHitPoints - b.hitPointsRemaining;
+			if (aDamage != bDamage)
+				return aDamage > bDamage;
+			return a.hitPointsRemaining > b.hitPointsRemaining;
+		}
+
+		// Takes one hit point of damage from a fight. In an army the hit goes
+		// to the member doing the fighting, and a member that dies is removed.
+		// Returns true if this unit has nothing left to fight with.
+		internal bool AbsorbCombatHit(MapUnit combatant) {
+			if (combatant == this || !IsArmy()) {
+				hitPointsRemaining -= 1;
+				return hitPointsRemaining <= 0;
+			}
+
+			combatant.hitPointsRemaining -= 1;
+			if (combatant.hitPointsRemaining <= 0) {
+				log.Information($"{combatant} died fighting for {this}");
+				EngineStorage.gameData.RemoveUnit(combatant);
+			}
+			return LoseArmyIfEmpty();
+		}
+
+		// Takes one hit point of bombardment damage. An army spreads it over
+		// its members, hitting whichever has the most hit points; unless the
+		// bombardment is lethal, it can't kill a member.
+		internal bool AbsorbBombardHit(bool lethal) {
+			MapUnit victim = IsArmy() ? Passengers().OrderByDescending(m => m.hitPointsRemaining).FirstOrDefault() : null;
+			if (victim == null) {
+				hitPointsRemaining -= 1;
+				return hitPointsRemaining <= 0;
+			}
+			if (victim.hitPointsRemaining <= 1 && !lethal)
+				return false;
+			return AbsorbCombatHit(victim);
+		}
+
+		// An army whose last member has died is beaten. Its own hit points are
+		// zeroed so that it reads as dead, like any other unit.
+		private bool LoseArmyIfEmpty() {
+			if (Passengers().Any(m => m.hitPointsRemaining > 0))
+				return false;
+			hitPointsRemaining = 0;
+			return true;
 		}
 
 		public bool CanDefendAgainst(MapUnit attacker) {
@@ -315,13 +493,15 @@ namespace C7GameData {
 			if (otherDefenderIsEnemy && !weAreEnemy)
 				return false;
 
-			double ourTotalStrength = StrengthVersus(opponent, CombatRole.Defense, null) * hitPointsRemaining;
-			double theirTotalStrength = otherDefender.StrengthVersus(opponent, CombatRole.Defense, null) * otherDefender.hitPointsRemaining;
+			double ourTotalStrength = StrengthVersus(opponent, CombatRole.Defense, null) * CompositeHitPoints();
+			double theirTotalStrength = otherDefender.StrengthVersus(opponent, CombatRole.Defense, null) * otherDefender.CompositeHitPoints();
 			return ourTotalStrength > theirTotalStrength;
 		}
 
 
-		public void RollToPromote(MapUnit opponent) {
+		// Rolls for a promotion after winning a fight. The animation plays on
+		// animatedUnit if given, for example the army a member fought for.
+		public void RollToPromote(MapUnit opponent, MapUnit animatedUnit = null) {
 			// Barbarians can't promote.
 			if (owner.isBarbarians) {
 				return;
@@ -334,7 +514,7 @@ namespace C7GameData {
 				promotionChance *= 2;
 			if (GameData.rng.NextDouble() < promotionChance) {
 				Promote();
-				animate(AnimatedAction.VICTORY);
+				(animatedUnit ?? this).animate(AnimatedAction.VICTORY);
 			}
 		}
 
@@ -348,7 +528,10 @@ namespace C7GameData {
 		}
 
 		public double RetreatChance(MapUnit opponent, bool isAttacking) {
-			return ((unitType.movement > 1) && (opponent.unitType.movement <= 1)) ? experienceLevel.retreatChance : 0.0;
+			if ((MaxMovementPoints() <= 1) || (opponent.MaxMovementPoints() > 1))
+				return 0.0;
+			MapUnit combatant = Combatant(isAttacking ? CombatRole.Attack : CombatRole.Defense);
+			return combatant.experienceLevel.retreatChance;
 		}
 
 		internal TileDirection GetAttackAnimationDirection(TileDirection attackDirection) {
@@ -391,6 +574,9 @@ namespace C7GameData {
 		// private Intent ResolveIntent(Tile tile, bool tset = false) {
 		private Intent ResolveIntent(Tile tile) {
 			if (!Tile.IsTileValid(tile))
+				return Intent.Disabled;
+
+			if (IsLockedInArmy())
 				return Intent.Disabled;
 
 			// Impassable terrain (e.g. some mods' deserts) cannot be entered
@@ -519,11 +705,14 @@ namespace C7GameData {
 			return canEnter || it == Intent.WarDeclaration;
 		}
 
-		private bool CanBoardTransportOnTile(Tile tile) {
+		// Whether this unit can board a transport on the tile. Units board
+		// ships just by moving onto them, but only join an army when ordered
+		// to (explicitLoad), so walking onto an army's tile doesn't load them.
+		private bool CanBoardTransportOnTile(Tile tile, bool explicitLoad = false) {
 			if (!IsLoadable())
 				return false;
 
-			var availableTransports = tile.unitsOnTile.Where(u => u.CanTransport());
+			var availableTransports = tile.unitsOnTile.Where(u => u != this && u.CanCarryUnits() && (explicitLoad || !u.IsArmy()));
 			foreach (var transport in availableTransports) {
 				if (transport.CanLoad(this))
 					return true;
@@ -536,11 +725,11 @@ namespace C7GameData {
 			return IsLoadable() && IsLoaded() && tile.IsLand();
 		}
 
-		private MapUnit SelectTransportToBoard(Tile tile) {
+		private MapUnit SelectTransportToBoard(Tile tile, bool explicitLoad = false) {
 			// TODO: Let human player choose via UI which transport to load unit in
 
 			var availableTransports = tile.unitsOnTile
-				.Where(u => u.CanTransport())
+				.Where(u => u != this && u.CanCarryUnits() && (explicitLoad || !u.IsArmy()))
 				.Where(u => !u.IsFull());
 
 			// Sort candidates by free capacity, but prefer transports that already have units
@@ -567,10 +756,14 @@ namespace C7GameData {
 			if (!mapUnit.IsLoadable())
 				return false;
 
+			if (mapUnit == this)
+				return false;
+
 			var hasRoom = !IsFull();
 
 			// TODO: type restrictions: only subs can carry nukes, carriers take aircraft, etc.
-			var suitableUnit = mapUnit.IsLandUnit();  // only land units in transports for now
+			// Armies only take land combat units; other transports take any land unit for now.
+			var suitableUnit = IsArmy() ? mapUnit.unitType.CanJoinArmy() : mapUnit.IsLandUnit();
 			return hasRoom && suitableUnit;
 		}
 
@@ -586,12 +779,11 @@ namespace C7GameData {
 		}
 
 		public int FreeCapacity() {
-			var loaded = this.location.unitsOnTile.Where(u => u.IsLoadedIn(this)).ToList();
-			return this.unitType.capacity - loaded.Count;
+			return Capacity() - Passengers().Count;
 		}
 
-		private bool IsEmpty() => unitType.capacity > 0 && FreeCapacity() == unitType.capacity;
-		private bool IsFull() => unitType.capacity > 0 && FreeCapacity() == 0;
+		private bool IsEmpty() => Capacity() > 0 && Passengers().Count == 0;
+		private bool IsFull() => Capacity() > 0 && FreeCapacity() <= 0;
 
 		private static bool HasHostileUnits(Tile tile, Player player) {
 			foreach (MapUnit other in tile.unitsOnTile) {
@@ -703,6 +895,10 @@ namespace C7GameData {
 		public List<UnitAction> GetAvailableActions() {
 			List<UnitAction> result = new();
 
+			// A unit in a rigid army takes no orders of its own.
+			if (IsLockedInArmy())
+				return result;
+
 			// Eventually, we should look this up somewhere to see what all actions we have (and mods might add more)
 			// For now, this is still an improvement over the last iteration.
 			UnitAction[] implementedActions = { UnitAction.Hold, UnitAction.Wait, UnitAction.Fortify, UnitAction.Disband, UnitAction.Goto, UnitAction.Bombard };
@@ -722,10 +918,11 @@ namespace C7GameData {
 				result.Add(UnitAction.Automate);
 			}
 
-			if (CanBoardTransportOnTile(this.location) && this.loadedOnUnitId == null) {
+			if (CanBoardTransportOnTile(this.location, explicitLoad: true) && this.loadedOnUnitId == null) {
 				result.Add(UnitAction.Load);
 			}
-			if (CanUnloadToTile(this.location) && this.location.HasCity()) {
+			// Ships unload in port; an army that allows unloading can do so anywhere.
+			if (CanUnloadToTile(this.location) && (this.location.HasCity() || IsArmy())) {
 				result.Add(UnitAction.Unload);
 			}
 

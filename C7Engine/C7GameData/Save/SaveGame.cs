@@ -362,6 +362,19 @@ namespace C7GameData.Save {
 				unit.ToMapUnit(data.unitPrototypes, ExperienceLevels, data.players, data.Terraforms, data.map)
 			);
 
+			// A unit can only be loaded on a unit that exists and shares its
+			// tile. Saves made before cargo was cleaned up with its transport
+			// or army can point at one that's gone, so let such units go free.
+			Dictionary<ID, MapUnit> unitsById = new();
+			foreach (MapUnit unit in data.mapUnits)
+				unitsById.TryAdd(unit.id, unit);
+			foreach (MapUnit unit in data.mapUnits.Where(u => u.loadedOnUnitId != null)) {
+				if (!unitsById.TryGetValue(unit.loadedOnUnitId, out MapUnit carrier) || carrier.location != unit.location) {
+					Serilog.Log.Warning($"Unloading {unit}, which was loaded on missing unit {unit.loadedOnUnitId}");
+					unit.loadedOnUnitId = null;
+				}
+			}
+
 
 			// once unit owners are known, players can reference units
 			data.players.ForEach(player => {

@@ -103,6 +103,28 @@ namespace C7GameData {
 			this.itemBeingProduced = producible;
 		}
 
+		// Sets what the city builds, on the player's order. Starting an army
+		// the empire can't support yet is allowed, but the player is warned
+		// that it won't be finished until there are enough cities.
+		public void ChooseProduction(IProducible producible) {
+			SetItemBeingProduced(producible);
+			if (IsUnsupportedArmy(producible)) {
+				WarnAboutUnsupportedArmy($"{name} has started on an army, but our empire is too small to support another one. "
+					+ $"It won't be finished until we have {owner.rules.CitiesNeededToSupportAnArmy} cities for each army.");
+			}
+		}
+
+		// Whether the item is an army that the owner doesn't have enough
+		// cities to support.
+		private bool IsUnsupportedArmy(IProducible producible) {
+			return producible is UnitPrototype { isArmy: true } && !owner.CanSupportAnotherArmy();
+		}
+
+		private void WarnAboutUnsupportedArmy(string message) {
+			if (owner.isHuman)
+				new MsgShowMilitaryAdvisorPopup(owner, message, happy: false).send();
+		}
+
 		public bool IsCapital() {
 			return capital;
 		}
@@ -364,9 +386,11 @@ namespace C7GameData {
 			foodStored += foodGrowth;
 			foodStored = Math.Min(foodStored, foodNeededToGrow);
 
-			// Handle the city starving.
+			// Handle the city starving. A size 1 city can't shrink any further.
 			if (foodStored < 0) {
-				RemoveLastCitizen();
+				if (residents.Count > 1) {
+					RemoveLastCitizen();
+				}
 				foodStored = 0;
 				return;
 			}
@@ -493,11 +517,22 @@ namespace C7GameData {
 		 * returns the item that is built.  Otherwise, returns null.
 		 */
 		public IProducible ComputeTurnProduction() {
+			int shieldsBefore = shieldsStored;
+			int cost = owner.ShieldCost(itemBeingProduced);
 			shieldsStored += CurrentProductionYield().useful;
-			if (shieldsStored >= owner.ShieldCost(itemBeingProduced) && residents.Count > itemBeingProduced.populationCost) {
+
+			// Like a settler waiting for the city to grow, an army the empire
+			// can't support waits with its shields kept in the box.
+			bool unsupportedArmy = IsUnsupportedArmy(itemBeingProduced);
+			if (shieldsStored >= cost && residents.Count > itemBeingProduced.populationCost && !unsupportedArmy) {
 				shieldsStored = 0;
 				RemoveCitizens(itemBeingProduced.populationCost);
 				return itemBeingProduced;
+			}
+
+			if (unsupportedArmy && shieldsStored >= cost && shieldsBefore < cost) {
+				WarnAboutUnsupportedArmy($"The army in {name} is ready, but our empire is too small to support another one. "
+					+ $"It will be finished once we have {owner.rules.CitiesNeededToSupportAnArmy} cities for each army.");
 			}
 
 			shieldsStored = Math.Min(shieldsStored, owner.ShieldCost(itemBeingProduced));
@@ -695,11 +730,16 @@ namespace C7GameData {
 			return result;
 		}
 
-		private int AgeMultiplier(CityBuilding cb) {
-			int gameYear = EngineStorage.gameData.timeOptions.GetRawNumber(EngineStorage.gameData.turn);
-			int ageInMillennia = (int) Math.Floor((gameYear - cb.year) / 1000f);
+		private static int CurrentGameYear() {
+			GameData gameData = EngineStorage.gameData;
+			return gameData?.timeOptions?.GetRawNumber(gameData.turn) ?? 0;
+		}
 
-			if (ageInMillennia < 0) // Workaround hack , TODO: record build year correctly
+		private int AgeMultiplier(CityBuilding cb) {
+			int ageInMillennia = (int) Math.Floor((CurrentGameYear() - cb.year) / 1000f);
+
+			// Buildings from older saves may have a build year in the future.
+			if (ageInMillennia < 0)
 				ageInMillennia = 0;
 
 			return 1 << ageInMillennia;
@@ -733,7 +773,7 @@ namespace C7GameData {
 			constructed_buildings.Add(new CityBuilding {
 				building = building,
 				builtByPlayer = owner,
-				year = 1, // TODO: Implement in-game year tracking
+				year = CurrentGameYear(),
 				totalCulture = 0
 			});
 		}
@@ -745,6 +785,7 @@ namespace C7GameData {
 			MapUnit newUnit = proto.GetInstance(gameData.GenerateID(proto.name), proto, owner, location: location);
 			newUnit.experienceLevelKey = gameData.defaultExperienceLevelKey;
 			newUnit.experienceLevel = gameData.defaultExperienceLevel;
+			newUnit.hitPointsRemaining = newUnit.maxHitPoints;
 
 			location.unitsOnTile.Add(newUnit);
 			gameData.mapUnits.Add(newUnit);

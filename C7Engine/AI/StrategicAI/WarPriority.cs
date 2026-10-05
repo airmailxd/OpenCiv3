@@ -18,6 +18,9 @@ namespace C7GameData.AIData {
 
 		private readonly int TEMP_WAR_PRIORITY_WEIGHT = 50; //temporary weight of this priority, if it isn't zero
 
+		// The player we plan to declare war on if this priority is chosen.
+		private Player opponent;
+
 		public WarPriority() { }
 
 		public override string ToString() {
@@ -70,15 +73,25 @@ namespace C7GameData.AIData {
 			// the unit support cap, and increasing the size of our cities in 
 			// this situation, depending on the government type. This would be
 			// especially true if we're weak to all our opponents.
-			Player toFight = PickPlayerToFight(player);
-			if (toFight == null) {
+			//
+			// Only weigh up the war here: every priority is evaluated, and we
+			// declare war in OnChosen only if this one is picked.
+			opponent = PickPlayerToFight(player);
+			if (opponent == null) {
 				this.calculatedWeight = 0;
 				return;
 			}
-			player.DeclareWarOn(toFight, EngineStorage.gameData.turn);
-			log.Information($"{player} declared war on {toFight}");
-			new MsgWarDeclaration(player, toFight).send();
 			this.calculatedWeight = 1000;
+		}
+
+		public override void OnChosen(Player player) {
+			if (opponent == null
+				|| (player.playerRelationships.TryGetValue(opponent.id, out PlayerRelationship relationship) && relationship.AtWar())) {
+				return;
+			}
+			player.DeclareWarOn(opponent, EngineStorage.gameData.turn);
+			log.Information($"{player} declared war on {opponent}");
+			new MsgWarDeclaration(player, opponent).send();
 		}
 
 		private static Player PickPlayerToFight(Player player) {
@@ -97,6 +110,12 @@ namespace C7GameData.AIData {
 
 				// We can't fight ourselves.
 				if (player == p) {
+					continue;
+				}
+
+				// We can only declare war on players we've met and who are
+				// still in the game.
+				if (p.defeated || !player.playerRelationships.ContainsKey(p.id)) {
 					continue;
 				}
 

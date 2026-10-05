@@ -208,7 +208,9 @@ public partial class LowerRightInfoBox : Civ3TextureRect {
 		if (unit.unitType.bombard > 0) {
 			bombardText = $"({unit.unitType.bombard})";
 		}
-		attackDefenseMovement.Text = $"{unit.unitType.attack}{bombardText}.{unit.unitType.defense} {movementPointsRemaining}/{unit.unitType.movement}";
+		// An army shows the strength of the member that would fight for it.
+		int attack = (int)unit.CombatBaseStrength(CombatRole.Attack), defense = (int)unit.CombatBaseStrength(CombatRole.Defense);
+		attackDefenseMovement.Text = $"{attack}{bombardText}.{defense} {movementPointsRemaining}/{unit.MaxMovementPoints()}";
 
 		suggestion.Visible = false;
 

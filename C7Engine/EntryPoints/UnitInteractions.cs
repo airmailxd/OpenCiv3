@@ -27,7 +27,8 @@ namespace C7Engine {
 				busyActionTurn = EngineStorage.gameData.turn;
 			}
 			foreach (MapUnit unit in selectable.Where(u => u.movementPoints.canMove)) {
-				if (unit.isFortified) {
+				// Units in a rigid army go where the army goes.
+				if (unit.isFortified || unit.IsLockedInArmy()) {
 					continue;
 				}
 
