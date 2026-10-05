@@ -100,8 +100,22 @@ public partial class TransportInfoBox : Civ3TextureRect {
 		// The transport first, then its passengers in game order.
 		List<MapUnit> passengers = unit.Passengers();
 		if (passengers.Count > 1) {
-			List<MapUnit> allUnits = EngineStorage.gameData.mapUnits;
-			passengers.Sort((a, b) => allUnits.IndexOf(a).CompareTo(allUnits.IndexOf(b)));
+			// One pass over the game's units picks the passengers out in
+			// order, rather than looking each up again for every comparison.
+			HashSet<MapUnit> aboard = new(passengers);
+			List<MapUnit> ordered = new(passengers.Count);
+			foreach (MapUnit u in EngineStorage.gameData.mapUnits) {
+				if (aboard.Remove(u)) {
+					ordered.Add(u);
+					if (aboard.Count == 0) {
+						break;
+					}
+				}
+			}
+			// Any not in the game's list (shouldn't happen) go first, as
+			// sorting by IndexOf's -1 put them.
+			ordered.InsertRange(0, passengers.Where(aboard.Contains));
+			passengers = ordered;
 		}
 		AddUnitButton(unit, 0);
 		for (int i = 0; i < passengers.Count; ++i) {
