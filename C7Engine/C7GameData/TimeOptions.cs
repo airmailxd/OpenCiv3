@@ -59,7 +59,10 @@ public sealed class TimeOptions {
 	/// taking into account the various time intervals from the timeSpan array.<br/><br/>
 	/// In a standard game, for years as a base time unit, turn 0 will return -4000, turn 1 will return -3950, etc<br/><br/>
 	/// For months as a base time unit (and 1 unit intervals) turn 2 will be month 3, turn 14 will be month 15, etc<br/><br/>
-	/// For weeks as a base time unit (and 1 unit intervals) turn 2 will be week 3, turn 54 will be week 55, etc<br/>
+	/// For weeks as a base time unit (and 1 unit intervals) turn 2 will be week 3, turn 54 will be week 55, etc<br/><br/>
+	/// This has no side effects. (It used to also set the current* properties to the result, but those are
+	/// scratch values for the Lua display text function, which sets them itself, and calls for other turns,
+	/// such as the culture calculations, would overwrite them.)
 	/// </summary>
 	/// <param name="current"></param>
 	/// <returns></returns>
@@ -82,9 +85,7 @@ public sealed class TimeOptions {
 					currentNormalized -= timeScale[0, j];
 				}
 
-				var value = GetStartingPoint() + (currentNormalized * timeScale[1, i]) + extra;
-				SetTimeUnitCurrent(value);
-				return value;
+				return GetStartingPoint() + (currentNormalized * timeScale[1, i]) + extra;
 			}
 
 			++i;
@@ -154,40 +155,18 @@ public sealed class TimeOptions {
 
 	private int GetStartingPoint() {
 		return baseUnit switch {
-			TimeUnit.Years => currentYear = startYear,
-			TimeUnit.Months => currentMonth = startMonth,
-			TimeUnit.Weeks => currentWeek = startWeek,
-			TimeUnit.Days => currentDay = startDay,
-			TimeUnit.Hours => currentHour = startHour,
+			TimeUnit.Years => startYear,
+			TimeUnit.Months => startMonth,
+			TimeUnit.Weeks => startWeek,
+			TimeUnit.Days => startDay,
+			TimeUnit.Hours => startHour,
 			_ => throw new InvalidEnumArgumentException($"{baseUnit} is not a valid TimeUnit")
 		};
 	}
 
-	private void SetTimeUnitCurrent(int value) {
-		switch (baseUnit) {
-			case TimeUnit.Years:
-				currentYear = value;
-				break;
-			case TimeUnit.Months:
-				currentMonth = value;
-				break;
-			case TimeUnit.Weeks:
-				currentWeek = value;
-				break;
-			case TimeUnit.Days:
-				currentDay = value;
-				break;
-			case TimeUnit.Hours:
-				currentHour = value;
-				break;
-			default:
-				throw new InvalidEnumArgumentException($"{baseUnit} is not a valid TimeUnit");
-		}
-	}
-
 	[LuaMethod]
 	public void SetTimeUnitCurrent(TimeUnit timeUnit, int value) {
-		Log.Information($"Setting unit {timeUnit} to {value}");
+		Log.Information("Setting unit {TimeUnit} to {Value}", timeUnit, value);
 		switch (timeUnit) {
 			case TimeUnit.Years:
 				currentYear = value;
