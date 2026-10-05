@@ -13,14 +13,15 @@ namespace C7Engine {
 
 		public static void OnBeginTurn() {
 			GameData gameData = EngineStorage.gameData;
-			log.Information("\n*** Beginning turn " + gameData.turn + " ***");
+			log.Information("\n*** Beginning turn {Turn} ***", gameData.turn);
 		}
 
 		public static void OnEndTurn(Player player) {
 			GameData gameData = EngineStorage.gameData;
 
-			var busyWorkers = gameData.mapUnits.Where(u => u.owner.id == player.id && u.WorkerJob != null);
-			foreach (MapUnit busyWorker in busyWorkers)
+			// The player's own list of units, rather than every unit in the
+			// game. Copied, in case finishing a job changes it.
+			foreach (MapUnit busyWorker in player.units.ToArray())
 				if (busyWorker.WorkerJob != null)
 					_ = busyWorker.PerformEndOfTurnAction();
 		}
@@ -31,7 +32,7 @@ namespace C7Engine {
 				foreach (MapUnit mapUnit in gameData.mapUnits)
 					mapUnit.OnBeginTurn(skipTurn);
 			} else {
-				foreach (MapUnit mapUnit in gameData.mapUnits.Where(u => u.owner == player))
+				foreach (MapUnit mapUnit in player.units)
 					mapUnit.OnBeginTurn(skipTurn);
 			}
 		}
@@ -59,7 +60,7 @@ namespace C7Engine {
 				// Movement phase
 				if (await PlayPlayerTurns(gameData, firstTurn)) {
 					stopwatch.Stop();
-					log.Debug("Turn time took " + stopwatch.ElapsedMilliseconds + " milliseconds");
+					log.Debug("Turn time took {Milliseconds} milliseconds", stopwatch.ElapsedMilliseconds);
 					return;
 				}
 
@@ -86,7 +87,7 @@ namespace C7Engine {
 					// Note that we do growth after calculating citizen moods,
 					// to ensure that the player has a chance to deal with the
 					// unhappiness of a new citizen during their turn.
-					log.Information($"\n*** City growth/production for turn {gameData.turn}, player {player} ***");
+					log.Information("\n*** City growth/production for turn {Turn}, player {Player} ***", gameData.turn, player);
 					player.HandleCityUpdates(gameData);
 
 					player.UpdateHistory(gameData);
