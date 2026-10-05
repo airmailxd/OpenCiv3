@@ -155,9 +155,14 @@ namespace C7GameData {
 			return carrier != null && carrier.IsArmy() && !carrier.CanTransport();
 		}
 
-		// How many units this unit can carry.
+		// How many units this unit can carry. The Pentagon (or any building
+		// that allows larger armies) lets each of the owner's armies take one
+		// more.
 		public int Capacity() {
-			return this.unitType.capacity;
+			int capacity = this.unitType.capacity;
+			if (IsArmy() && capacity > 0 && (owner?.HasLargerArmies() ?? false))
+				capacity += 1;
+			return capacity;
 		}
 
 		// The movement allowance this unit gets each turn. An army moves at the

@@ -691,6 +691,7 @@ namespace C7GameData {
 				player.primaryColorIndex = leader.Color;
 
 				player.defeated = IsDefeated(player, leader);
+				player.hasVictoriousArmy = leader.HasVictoriousArmy;
 
 				save.Players.Add(player);
 				i++;
@@ -1384,7 +1385,9 @@ namespace C7GameData {
 		private static bool IsUnproducible(PRTO prto) {
 			int[] availableTo = prto.AvailableTo.GetAvailableCivIndexes().ToArray();
 
-			// TODO: Implement proper logic for Army production
+			// Armies are only built through a building that allows building
+			// armies (the Military Academy), which UnitPrototype.CanProduce
+			// special-cases, or from a leader (not implemented yet).
 			return availableTo.Length == 0 || prto.ShieldCost < 1 || prto.Army;
 		}
 
@@ -1613,6 +1616,7 @@ namespace C7GameData {
 					iconRowIndex=pediaIcons.buildingToRowNumberMapping[bldg.CivilopediaEntry],
 					combatDefenseBonus=bldg.DefenseBonus / 100.0,
 					maintenanceCost=bldg.MaintenanceCost,
+					numberOfArmiesRequired=bldg.NumberOfArmiesRequired,
 				};
 
 				if (bldg.RequiredAdvance != -1) {
@@ -1674,6 +1678,9 @@ namespace C7GameData {
 				(bldg.AllowsCitySize3, SaveBuilding.Flag.AllowsCitySize3),
 				(bldg.DoublesCityGrowthRate, SaveBuilding.Flag.DoublesCityGrowthRate),
 				(bldg.TreasuryEarnsInterest, SaveBuilding.Flag.TreasuryEarnsInterest),
+				(bldg.AllowsBuildArmy, SaveBuilding.Flag.AllowsBuildArmy),
+				(bldg.AllowsLargerArmies, SaveBuilding.Flag.AllowsLargerArmies),
+				(bldg.RequiresVictoriousArmy, SaveBuilding.Flag.RequiresVictoriousArmy),
 			}
 			.Where(t => t.Item1)
 			.Select(t => t.Item2);
@@ -2093,6 +2100,10 @@ namespace C7GameData {
 			save.Rules.ShieldRateForDisbanding = 0.25f;
 			save.Rules.AllowLesserUnitProduction = false;
 			save.Rules.RadarTileVisibility = 2;
+			save.Rules.CitiesNeededToSupportAnArmy = rule.CitiesNeededToSupportAnArmy;
+			if (rule.BuildArmyUnit >= 0) {
+				save.Rules.BuildArmyUnit = theBiq.Prto[rule.BuildArmyUnit].Name;
+			}
 		}
 
 		private static void SetWorldWrap(SavData civ3Save, SaveGame save) {

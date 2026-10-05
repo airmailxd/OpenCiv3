@@ -238,15 +238,22 @@ namespace C7GameData {
 
 		/// Whether a given city can produce this unit, given available resources.
 		public bool CanProduce(City city, HashSet<Resource> accessibleResources) {
-			var civ = city.owner.civilization;
-			return this.IsAvailableTo(civ)
+			return this.IsAvailableTo(city)
 				   && this.MeetsProductionRequirements(city, accessibleResources)
 				   && !this.IsUnitObsolete(city, accessibleResources);
 		}
 
-		/// Whether a Civ could build this unit, if it had a suitable city and necessary resources.
-		private bool IsAvailableTo(Civilization civ) {
-			return !this.unproducible && this.producibleBy.Contains(civ);
+		/// Whether the city's Civ could build this unit, if it had the necessary resources.
+		private bool IsAvailableTo(City city) {
+			return (!this.unproducible || this.CanBeBuiltAsArmy(city)) && this.producibleBy.Contains(city.owner.civilization);
+		}
+
+		/// Armies aren't normally producible, but a city with a building that allows
+		/// building armies (the Military Academy) can build the rules' army unit.
+		private bool CanBeBuiltAsArmy(City city) {
+			string armyUnit = EngineStorage.gameData?.rules?.BuildArmyUnit;
+			bool isArmyUnit = armyUnit != null ? armyUnit == this.name : this.isArmy;
+			return isArmyUnit && city.constructed_buildings.Exists(cb => cb.building.allowsBuildArmy);
 		}
 
 		/// Whether this unit can be built in this city (by the owner), given this particular set of resources.

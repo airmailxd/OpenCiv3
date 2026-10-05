@@ -28,5 +28,13 @@ namespace C7GameData {
 		// Game option: whether units can be unloaded from an army once they've
 		// been loaded into it. Armies are rigid by default.
 		public bool AllowUnloadFromArmy = false;
+
+		// Each army needs this many cities to support it. A civ can't build an
+		// army unless (armies + 1) * CitiesNeededToSupportAnArmy <= cities.
+		public int CitiesNeededToSupportAnArmy = 4;
+
+		// The unit a city builds through a building that allows building
+		// armies (the Military Academy).
+		public string BuildArmyUnit;
 	}
 }

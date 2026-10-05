@@ -633,7 +633,7 @@ public partial class CityScreen : Control {
 
 		productionMenu.AddItems(gameData, city, (IProducible p) => {
 			EngineStorage.ReadGameData((GameData gameData) => {
-				city.SetItemBeingProduced(p);
+				city.ChooseProduction(p);
 				RenderProductionDetails(gameData, city);
 				RenderCulture(city);
 			});

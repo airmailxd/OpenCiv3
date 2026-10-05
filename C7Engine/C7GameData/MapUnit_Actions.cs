@@ -483,6 +483,11 @@ public partial class MapUnit {
 			MapUnit survivingMember = (alive == attacker) ? attackingMember : defendingMember;
 			survivingMember.RollToPromote(dead, alive);
 
+			// Winning a battle with an army is what lets a civ build the
+			// Military Academy.
+			if (alive.IsArmy())
+				alive.owner.hasVictoriousArmy = true;
+
 			await dead.animateAsync(MapUnit.AnimatedAction.DEATH);
 			dead.RemoveFromPlay();
 		}

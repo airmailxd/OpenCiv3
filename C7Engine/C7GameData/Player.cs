@@ -186,6 +186,10 @@ namespace C7GameData {
 
 		public Alliance alliance;
 
+		// Whether one of this player's armies has won a battle. The Military
+		// Academy can't be built until one has.
+		public bool hasVictoriousArmy = false;
+
 		public int EraIndex() {
 			return GetEraIndex(eraCivilopediaName);
 		}
@@ -386,6 +390,23 @@ namespace C7GameData {
 				return true;
 			}
 			return knownTechs.Contains(resource.Prerequisite);
+		}
+
+		public int ArmyCount() {
+			return units.Count(u => u.IsArmy());
+		}
+
+		// Whether the player has enough cities to support one more army: each
+		// army needs CitiesNeededToSupportAnArmy cities.
+		public bool CanSupportAnotherArmy() {
+			int citiesPerArmy = rules?.CitiesNeededToSupportAnArmy ?? 0;
+			return (ArmyCount() + 1) * citiesPerArmy <= RemainingCities();
+		}
+
+		// Whether this player's armies can carry an extra unit, thanks to a
+		// building like the Pentagon.
+		public bool HasLargerArmies() {
+			return cities.Any(c => c.constructed_buildings.Exists(cb => cb.building.allowsLargerArmies));
 		}
 
 		public int RemainingCities() {

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using C7Engine;
@@ -121,7 +122,44 @@ public class ArmyTest : IClassFixture<SaveGameFixture> {
 		Assert.True(army.unproducible);
 		Assert.DoesNotContain(UnitAction.Unload, army.actions);
 
+		Assert.Equal(4, gameData.rules.CitiesNeededToSupportAnArmy);
+		Assert.Equal("Army", gameData.rules.BuildArmyUnit);
 		Assert.False(gameData.rules.AllowUnloadFromArmy);
+	}
+
+	[SkippableFact]
+	public void ArmyDataIsImportedFromCiv3() {
+		Skip.If(Civ3TestData.ShouldSkipCiv3DependentTests(), "No Civ3 install found.");
+
+		// A Conquests scenario with armies and a Military Academy of its own.
+		string scenarios = Path.Join(QueryCiv3.Civ3Location.GetCiv3Path(), "Conquests", "Conquests");
+		string scenario = Path.Join(scenarios, "3 Fall of Rome.biq");
+		SaveGame game = ImportCiv3.ImportBiq(scenario, PathUtils.defaultBicPath, modPath => {
+			if (!System.OperatingSystem.IsWindows()) {
+				modPath = modPath.Replace("\\conquests\\", "/Conquests/");
+			}
+			return Path.GetFullPath(Path.Combine(scenarios, modPath, "Text", "PediaIcons.txt"));
+		});
+		QueryCiv3.BiqData biq = QueryCiv3.BiqData.LoadFile(scenario);
+
+		foreach (QueryCiv3.Biq.PRTO prto in biq.Prto.Where(p => p.Army)) {
+			SaveUnitPrototype army = game.UnitPrototypes.First(p => p.name == prto.Name);
+			Assert.Contains(SaveUnitPrototype.Flag.Army, army.flags);
+			Assert.True(army.unproducible);
+		}
+		Assert.Contains(game.UnitPrototypes, p => p.flags.Contains(SaveUnitPrototype.Flag.Army));
+
+		QueryCiv3.Biq.BLDG rawAcademy = biq.Bldg.Single(b => b.Name == "Military Academy");
+		SaveBuilding academy = game.Buildings.Single(b => b.name == "Military Academy");
+		Assert.Equal(rawAcademy.AllowsBuildArmy, academy.flags.Contains(SaveBuilding.Flag.AllowsBuildArmy));
+		Assert.Equal(rawAcademy.RequiresVictoriousArmy, academy.flags.Contains(SaveBuilding.Flag.RequiresVictoriousArmy));
+		Assert.Equal(rawAcademy.NumberOfArmiesRequired, academy.numberOfArmiesRequired);
+		Assert.True(rawAcademy.AllowsBuildArmy);
+
+		QueryCiv3.Biq.RULE rule = biq.Rule[0];
+		Assert.Equal(rule.CitiesNeededToSupportAnArmy, game.Rules.CitiesNeededToSupportAnArmy);
+		Assert.Equal(biq.Prto[rule.BuildArmyUnit].Name, game.Rules.BuildArmyUnit);
+		Assert.False(game.Rules.AllowUnloadFromArmy);
 	}
 
 	[Theory]
@@ -150,7 +188,7 @@ public class ArmyTest : IClassFixture<SaveGameFixture> {
 	}
 
 	[Fact]
-	public void ArmyHoldsThreeUnits() {
+	public void ArmyHoldsThreeUnitsAndFourWithThePentagon() {
 		Tile tile = FindEmptyLand();
 		MapUnit army = Spawn(us, "Army", tile);
 		List<MapUnit> warriors = Enumerable.Range(0, 4).Select(_ => Spawn(us, "Warrior", tile)).ToList();
@@ -162,6 +200,14 @@ public class ArmyTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(3, army.Passengers().Count);
 		Assert.False(warriors[3].IsLoaded());
 		Assert.DoesNotContain(UnitAction.Load, warriors[3].GetAvailableActions());
+
+		City city = BuildCity(us);
+		city.AddBuilding(BuildingNamed("The Pentagon"));
+
+		Assert.Equal(4, army.Capacity());
+		warriors[3].LoadOntoTransportHere();
+		Assert.True(warriors[3].IsLoadedIn(army));
+		Assert.Equal(4, army.Passengers().Count);
 	}
 
 	[Fact]
@@ -392,6 +438,121 @@ public class ArmyTest : IClassFixture<SaveGameFixture> {
 		Assert.All(tile.GetTilesWithinTileSquare(2).Where(Tile.IsTileValid), t => Assert.Contains(t, visible));
 	}
 
+	// ---- Production and the support rule ----
+
+	[Fact]
+	public void ArmiesAreOnlyBuiltInACityWithTheMilitaryAcademy() {
+		City city = BuildCity(us);
+		UnitPrototype army = Prototype("Army");
+		Assert.DoesNotContain(army, city.ListProductionOptions(gameData));
+
+		city.AddBuilding(BuildingNamed("Military Academy"));
+
+		Assert.Contains(army, city.ListProductionOptions(gameData));
+		Assert.Equal(400, army.ShieldCost(us.civilization.traits, 1.0f));
+
+		// Only the city with the academy can build armies.
+		City other = BuildCity(us);
+		Assert.DoesNotContain(army, other.ListProductionOptions(gameData));
+	}
+
+	[Fact]
+	public void MilitaryAcademyNeedsAVictoriousArmy() {
+		Building academy = BuildingNamed("Military Academy");
+		Assert.True(academy.allowsBuildArmy);
+		Assert.True(academy.requiresVictoriousArmy);
+		City city = BuildCity(us);
+		us.knownTechs.Add(academy.requiredTech.id);
+
+		Assert.DoesNotContain(academy, city.ListProductionOptions(gameData));
+
+		us.hasVictoriousArmy = true;
+		Assert.Contains(academy, city.ListProductionOptions(gameData));
+
+		// It's a small wonder: one per civ.
+		city.AddBuilding(academy);
+		Assert.DoesNotContain(academy, BuildCity(us).ListProductionOptions(gameData));
+	}
+
+	[Fact]
+	public void PentagonNeedsThreeArmies() {
+		Building pentagon = BuildingNamed("The Pentagon");
+		Assert.True(pentagon.allowsLargerArmies);
+		Assert.Equal(3, pentagon.numberOfArmiesRequired);
+		City city = BuildCity(us);
+		if (pentagon.requiredTech != null)
+			us.knownTechs.Add(pentagon.requiredTech.id);
+
+		Spawn(us, "Army", city.location);
+		Spawn(us, "Army", city.location);
+		Assert.DoesNotContain(pentagon, city.ListProductionOptions(gameData));
+
+		Spawn(us, "Army", city.location);
+		Assert.Contains(pentagon, city.ListProductionOptions(gameData));
+	}
+
+	[Fact]
+	public void UnsupportedArmyKeepsItsShieldsUntilThereAreEnoughCities() {
+		City city = BuildCity(us);
+		city.AddBuilding(BuildingNamed("Military Academy"));
+		UnitPrototype army = Prototype("Army");
+		city.SetItemBeingProduced(army);
+		int cost = us.ShieldCost(army);
+		city.SetStoredShields(cost);
+
+		// One city can't support an army.
+		Assert.False(us.CanSupportAnotherArmy());
+		Assert.Null(city.ComputeTurnProduction());
+		Assert.Equal(cost, city.shieldsStored);
+		Assert.Equal(0, us.ArmyCount());
+
+		// Four cities can support one.
+		while (us.RemainingCities() < 4) {
+			BuildCity(us);
+		}
+		Assert.True(us.CanSupportAnotherArmy());
+		Assert.Equal(army, city.ComputeTurnProduction());
+		Assert.Equal(0, city.shieldsStored);
+
+		// But not a second one.
+		Spawn(us, "Army", city.location);
+		Assert.False(us.CanSupportAnotherArmy());
+	}
+
+	[Fact]
+	public void PlayerIsWarnedAboutAnUnsupportedArmy() {
+		Player human = gameData.players.First(p => p.isHuman);
+		City city = BuildCity(human);
+		city.AddBuilding(BuildingNamed("Military Academy"));
+		UnitPrototype army = Prototype("Army");
+		EngineStorage.messagesToUI.Clear();
+
+		// Choosing to build it warns, but the city builds it anyway.
+		city.ChooseProduction(army);
+		Assert.Equal(army, city.itemBeingProduced);
+		Assert.Single(EngineStorage.messagesToUI.OfType<MsgShowMilitaryAdvisorPopup>());
+		EngineStorage.messagesToUI.Clear();
+
+		// Reaching full shields warns again, without finishing it.
+		int cost = human.ShieldCost(army);
+		city.SetStoredShields(cost - 1);
+		Assert.True(city.CurrentProductionYield().useful >= 1);
+		Assert.Null(city.ComputeTurnProduction());
+		Assert.Equal(cost, city.shieldsStored);
+		Assert.Single(EngineStorage.messagesToUI.OfType<MsgShowMilitaryAdvisorPopup>());
+		EngineStorage.messagesToUI.Clear();
+	}
+
+	[Fact]
+	public void VictoriousArmySurvivesSaveAndLoad() {
+		us.hasVictoriousArmy = true;
+
+		C7GameData.GameData loaded = SaveGame.FromGameData(gameData).ToGameData(fixture.behaviors);
+
+		Assert.True(loaded.GetPlayer(us.id).hasVictoriousArmy);
+		Assert.False(loaded.GetPlayer(them.id).hasVictoriousArmy);
+	}
+
 	// ---- Combat ----
 
 	[Fact]
@@ -445,6 +606,7 @@ public class ArmyTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(fullHitPoints, members[1].hitPointsRemaining);
 		Assert.Equal(fullHitPoints, members[2].hitPointsRemaining);
 		Assert.All(members, m => Assert.Equal(to, m.location));
+		Assert.True(us.hasVictoriousArmy);
 	}
 
 	[Fact]
@@ -476,6 +638,21 @@ public class ArmyTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(nextDefender.maxHitPoints, nextDefender.hitPointsRemaining);
 		Assert.Empty(to.unitsOnTile);
 		AssertNoOrphanedCargo(gameData);
+		Assert.False(them.hasVictoriousArmy);
 	}
 
+	[Fact]
+	public async Task DefendingArmyWinsAsAVictoriousArmy() {
+		us.DeclareWarOn(them, gameData.turn);
+		(Tile from, TileDirection dir, Tile to) = FindAdjacentLand();
+		MapUnit attacker = Spawn(us, "Warrior", from);
+		MapUnit army = SpawnArmy(them, to, "Spearman");
+
+		await WithRandom(new ScriptedRandom([], 0.99), async () => Assert.False(await attacker.Move(dir)));
+
+		Assert.DoesNotContain(attacker, gameData.mapUnits);
+		Assert.Contains(army, gameData.mapUnits);
+		Assert.True(them.hasVictoriousArmy);
+		Assert.False(us.hasVictoriousArmy);
+	}
 }

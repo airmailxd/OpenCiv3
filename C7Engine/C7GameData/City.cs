@@ -103,6 +103,28 @@ namespace C7GameData {
 			this.itemBeingProduced = producible;
 		}
 
+		// Sets what the city builds, on the player's order. Starting an army
+		// the empire can't support yet is allowed, but the player is warned
+		// that it won't be finished until there are enough cities.
+		public void ChooseProduction(IProducible producible) {
+			SetItemBeingProduced(producible);
+			if (IsUnsupportedArmy(producible)) {
+				WarnAboutUnsupportedArmy($"{name} has started on an army, but our empire is too small to support another one. "
+					+ $"It won't be finished until we have {owner.rules.CitiesNeededToSupportAnArmy} cities for each army.");
+			}
+		}
+
+		// Whether the item is an army that the owner doesn't have enough
+		// cities to support.
+		private bool IsUnsupportedArmy(IProducible producible) {
+			return producible is UnitPrototype { isArmy: true } && !owner.CanSupportAnotherArmy();
+		}
+
+		private void WarnAboutUnsupportedArmy(string message) {
+			if (owner.isHuman)
+				new MsgShowMilitaryAdvisorPopup(owner, message, happy: false).send();
+		}
+
 		public bool IsCapital() {
 			return capital;
 		}
@@ -488,11 +510,22 @@ namespace C7GameData {
 		 * returns the item that is built.  Otherwise, returns null.
 		 */
 		public IProducible ComputeTurnProduction() {
+			int shieldsBefore = shieldsStored;
+			int cost = owner.ShieldCost(itemBeingProduced);
 			shieldsStored += CurrentProductionYield().useful;
-			if (shieldsStored >= owner.ShieldCost(itemBeingProduced) && residents.Count > itemBeingProduced.populationCost) {
+
+			// Like a settler waiting for the city to grow, an army the empire
+			// can't support waits with its shields kept in the box.
+			bool unsupportedArmy = IsUnsupportedArmy(itemBeingProduced);
+			if (shieldsStored >= cost && residents.Count > itemBeingProduced.populationCost && !unsupportedArmy) {
 				shieldsStored = 0;
 				RemoveCitizens(itemBeingProduced.populationCost);
 				return itemBeingProduced;
+			}
+
+			if (unsupportedArmy && shieldsStored >= cost && shieldsBefore < cost) {
+				WarnAboutUnsupportedArmy($"The army in {name} is ready, but our empire is too small to support another one. "
+					+ $"It will be finished once we have {owner.rules.CitiesNeededToSupportAnArmy} cities for each army.");
 			}
 
 			shieldsStored = Math.Min(shieldsStored, owner.ShieldCost(itemBeingProduced));

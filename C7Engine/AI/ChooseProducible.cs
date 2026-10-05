@@ -65,6 +65,11 @@ namespace C7Engine {
 		}
 
 		private static float ScoreUnit(ProducibleStats stats, City city, Player player, UnitPrototype unit) {
+			// The AI doesn't know how to use armies yet, so it doesn't build them.
+			if (unit.isArmy) {
+				return -1000f;
+			}
+
 			bool isSettler = unit.actions.Contains(UnitAction.BuildCity);
 			bool isWorker = unit.isWorker;
 			bool atWar = IsInAnyWar(player, EngineStorage.gameData.players);
