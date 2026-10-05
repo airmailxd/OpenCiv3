@@ -123,27 +123,18 @@ public class CityTest {
 	}
 
 	[Fact]
-	public void SwitchingProductionCategoryLosesHalfTheShields() {
+	public void SwitchingProductionKeepsTheShields() {
 		City city = MakeProductionCity();
 
 		city.ChangeProduction(MakeBuilding("Temple"));
+		Assert.Equal(20, city.shieldsStored);
+	}
+
+	[Fact]
+	public void SwitchingToACheaperItemLosesTheExtraShields() {
+		City city = MakeProductionCity();
+
+		city.ChangeProduction(new UnitPrototype() { name = "Worker", shieldCost = 10 });
 		Assert.Equal(10, city.shieldsStored);
-	}
-
-	[Fact]
-	public void SwitchingWithinACategoryIsFree() {
-		City city = MakeProductionCity();
-
-		city.ChangeProduction(new UnitPrototype() { name = "Spearman", shieldCost = 100 });
-		Assert.Equal(20, city.shieldsStored);
-	}
-
-	[Fact]
-	public void SwitchingBackRestoresTheShields() {
-		City city = MakeProductionCity();
-
-		city.ChangeProduction(MakeBuilding("Temple"));
-		city.ChangeProduction(new UnitPrototype() { name = "Spearman", shieldCost = 100 });
-		Assert.Equal(20, city.shieldsStored);
 	}
 }
