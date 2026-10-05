@@ -3,6 +3,7 @@ using Godot;
 using ConvertCiv3Media;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using MoonSharp.Interpreter;
 using Script = MoonSharp.Interpreter.Script;
 using C7.Map;
@@ -52,6 +53,8 @@ public static class TextureLoader {
 		public int AlphaRowOffset = 0;
 		public bool PureAlpha = false;
 		public PCXToGodot.ColorOptions ColorOptions = PCXToGodot.ColorOptions.Default;
+		// Whether the config set "shadows" itself, rather than using the default.
+		public bool ShadowsSpecified = false;
 
 		// For civ-colors, a modern replacement for the 1x1 px pcx images.
 		public string HexColor = null;
@@ -70,14 +73,77 @@ public static class TextureLoader {
 	private static Script lua;
 	private static Table textureConfig;
 
-	private static Dictionary<string, ImageTexture> textureCache = [];
-	private static Dictionary<string, Pcx> PcxCache = [];
+	// What a texture was loaded from and how, which is what textures are cached by.
+	private enum TextureKind { Png, Pcx, PcxWithAlphaBlend, PcxPureAlpha }
+
+	private readonly record struct TextureCacheKey(
+		TextureKind Kind,
+		string Path,
+		CropRegion? CropRegion,
+		bool Shadows,
+		IndexSet TransparentColorIndexes,
+		string AlphaPath,
+		int AlphaRowOffset
+	);
+
+	// A set of palette indexes (0 to 255), as a value that can be compared and
+	// used as a key. Indexes outside of the palette are ignored, as they are
+	// when loading textures.
+	private readonly record struct IndexSet(ulong Bits0, ulong Bits1, ulong Bits2, ulong Bits3) {
+		public static IndexSet From(IEnumerable<int> indexes) {
+			Span<ulong> bits = stackalloc ulong[4];
+			foreach (int index in indexes) {
+				if (index >= 0 && index < 256)
+					bits[index >> 6] |= 1UL << (index & 63);
+			}
+			return new IndexSet(bits[0], bits[1], bits[2], bits[3]);
+		}
+
+		public HashSet<int> ToHashSet() {
+			HashSet<int> result = [];
+			for (int index = 0; index < 256; index++) {
+				ulong bits = (index >> 6) switch { 0 => Bits0, 1 => Bits1, 2 => Bits2, _ => Bits3 };
+				if ((bits & (1UL << (index & 63))) != 0)
+					result.Add(index);
+			}
+			return result;
+		}
+	}
+
+	private static Dictionary<TextureCacheKey, ImageTexture> textureCache = [];
+	private static Util.RecentlyUsedCache<Pcx> PcxCache = new(8);
 	private static Dictionary<string, Image> PngCache = [];
-	private static Dictionary<string, Color> colorCache = [];
+
+	// Civ colors by civ index, and the same colors at full saturation.
+	private static Color?[] colorCache = [];
+	private static Color?[] intensifiedColorCache = [];
+	private const int MaxCachedCivColorIndex = 1024;
 
 	private static Dictionary<string, ImageTexture> configKeyCache = [];
 	private static Dictionary<(string configKey, object obj), ImageTexture> objectMappingCache = [];
 	private static Dictionary<(string configKey, string animationName), SpriteFrames> animationCache = [];
+
+	// Textures for objects of value types whose fields are all values (see
+	// IsPureValueType). Such an object can't change, and the Lua mapping
+	// functions only look at the object they're given, so the texture for it
+	// is always the same.
+	private static Dictionary<(string configKey, object obj), ImageTexture> pureValueMappingCache = [];
+	private static Dictionary<Type, bool> pureValueTypes = [];
+
+	// The config entries by config key (null if there's none), and the parsed
+	// config entries by the Lua table they were parsed from. Only tables that
+	// are part of the config are cached, not ones made by mapping functions.
+	private static Dictionary<string, object> entryByPathCache = [];
+	private static Dictionary<Table, ConfigEntry> parsedConfigCache = new(ReferenceEqualityComparer.Instance);
+
+	// The sets of transparent color indexes from configs, so that each set is
+	// only allocated once.
+	private static Dictionary<IndexSet, HashSet<int>> transparentIndexSets = [];
+	private static readonly IndexSet DefaultTransparentColorIndexes = IndexSet.From(PCXToGodot.ColorOptions.Default.transparentColorIndexes);
+
+	// The color options of an uncropped PCX texture that doesn't specify any:
+	// unlike cropped ones, uncropped textures don't simulate shadows by default.
+	private static readonly PCXToGodot.ColorOptions UncroppedDefaultColorOptions = new(false);
 
 	static TextureLoader() {
 		// Initialize the TextureLoader when running in the editor
@@ -133,6 +199,10 @@ public static class TextureLoader {
 		if (useCache && objectMappingCache.TryGetValue(cacheKey, out ImageTexture cachedTexture))
 			return cachedTexture;
 
+		bool pureValue = !useCache && obj != null && IsPureValueType(obj.GetType());
+		if (pureValue && pureValueMappingCache.TryGetValue(cacheKey, out cachedTexture))
+			return cachedTexture;
+
 		object entry = GetEntryByPath(configKey);
 		if (entry is not Table table)
 			throw new Exception($"Table expected for key: {configKey}");
@@ -142,12 +212,39 @@ public static class TextureLoader {
 
 		object result = lua.SafeCall(func, table, DynValue.FromObject(lua, obj)).ToObject();
 
-		ImageTexture texture = LoadFromLuaObject(result);
+		// The result is a new table on every call, so its parsed form isn't cached.
+		ImageTexture texture = LoadFromConfigEntry(ParseConfigEntry(result));
 
 		if (useCache)
 			objectMappingCache[cacheKey] = texture;
+		else if (pureValue)
+			pureValueMappingCache[cacheKey] = texture;
 
 		return texture;
+	}
+
+	// Whether objects of a type are values that can't change and can only be
+	// equal to objects with the same contents: value types whose fields are
+	// all such values, primitives, enums or strings. For example a record
+	// struct of enums and numbers, but not one holding a game object.
+	private static bool IsPureValueType(Type type) {
+		if (!pureValueTypes.TryGetValue(type, out bool pure)) {
+			pure = type.IsValueType && IsPureValueField(type, 0);
+			pureValueTypes[type] = pure;
+		}
+		return pure;
+	}
+
+	private static bool IsPureValueField(Type type, int depth) {
+		if (type.IsPrimitive || type.IsEnum || type == typeof(string) || type == typeof(decimal))
+			return true;
+		if (!type.IsValueType || depth > 8)
+			return false;
+		foreach (FieldInfo field in type.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)) {
+			if (!IsPureValueField(field.FieldType, depth + 1))
+				return false;
+		}
+		return true;
 	}
 
 	// Allows to load the texture directly by its file path, bypassing the Lua config.
@@ -189,11 +286,11 @@ public static class TextureLoader {
 	/// This exists in the TextureLoader because civ3 implements civ colors
 	/// as 1x1 pixel pcx files.
 	public static Color LoadColor(int civIndex) {
-		string key = $"civ_colors.color_{civIndex}";
-		if (colorCache.TryGetValue(key, out Color cachedColor))
+		if ((uint)civIndex < (uint)colorCache.Length && colorCache[civIndex] is Color cachedColor)
 			return cachedColor;
 
 		// Load the 1x1 pixel file and get the color, or use the modern hex color.
+		string key = $"civ_colors.color_{civIndex}";
 		ConfigEntry config = ParseConfigEntry(GetEntryByPath(key));
 		Color color;
 		if (config.HexColor != null) {
@@ -203,8 +300,29 @@ public static class TextureLoader {
 			color = texture.GetImage().GetPixel(0, 0);
 		}
 
-		colorCache[key] = color;
+		StoreCivColor(ref colorCache, civIndex, color);
 		return color;
+	}
+
+	/// Gets the color for a "civ index" at full saturation, which stands out
+	/// more, for example on the mini map.
+	public static Color LoadIntensifiedColor(int civIndex) {
+		if ((uint)civIndex < (uint)intensifiedColorCache.Length && intensifiedColorCache[civIndex] is Color cachedColor)
+			return cachedColor;
+
+		Color color = LoadColor(civIndex);
+		Color intensified = Color.FromHsv(color.H, 1, color.V, color.A);
+
+		StoreCivColor(ref intensifiedColorCache, civIndex, intensified);
+		return intensified;
+	}
+
+	private static void StoreCivColor(ref Color?[] cache, int civIndex, Color color) {
+		if (civIndex < 0 || civIndex >= MaxCachedCivColorIndex)
+			return;
+		if (civIndex >= cache.Length)
+			Array.Resize(ref cache, Math.Max(civIndex + 1, 2 * cache.Length));
+		cache[civIndex] = color;
 	}
 
 	/// An utility method for setting textures of a button node.
@@ -222,7 +340,15 @@ public static class TextureLoader {
 		button.TextureHover = LoadFromLuaObject(table["hover"]);
 	}
 
+	// Loads the texture for an entry that's part of the texture config.
 	private static ImageTexture LoadFromLuaObject(object entry) {
+		if (entry is Table table) {
+			if (!parsedConfigCache.TryGetValue(table, out ConfigEntry config)) {
+				config = ParseConfigEntry(table);
+				parsedConfigCache[table] = config;
+			}
+			return LoadFromConfigEntry(config);
+		}
 		return LoadFromConfigEntry(ParseConfigEntry(entry));
 	}
 
@@ -238,29 +364,35 @@ public static class TextureLoader {
 				throw new ArgumentException("Texture configuration missing required 'path' property");
 			}
 
-			HashSet<int> transparentColorIndexes = new();
-			if (table["transparent_color_indexes"] == null) {
-				transparentColorIndexes = new PCXToGodot.ColorOptions().transparentColorIndexes;
-			} else {
-				if (table["transparent_color_indexes"] is not Table) {
+			IndexSet transparentColorIndexes = DefaultTransparentColorIndexes;
+			object transparentConfig = table["transparent_color_indexes"];
+			if (transparentConfig != null) {
+				if (transparentConfig is not Table transparentTable) {
 					throw new ArgumentException($"'transparent_color_indexes' must be a table.");
 				}
 
-				foreach (DynValue d in ((Table)table["transparent_color_indexes"]).Values) {
+				Span<ulong> bits = stackalloc ulong[4];
+				foreach (DynValue d in transparentTable.Values) {
 					// Note: Convert.ToInt32 doesn't work for DynValue.
-					transparentColorIndexes.Add((int)d.CastToNumber());
+					int index = (int)d.CastToNumber();
+					if (index >= 0 && index < 256)
+						bits[index >> 6] |= 1UL << (index & 63);
 				}
+				transparentColorIndexes = new IndexSet(bits[0], bits[1], bits[2], bits[3]);
 			}
+
+			object shadows = table["shadows"];
 
 			return new() {
 				Path = table["path"].ToString(),
 				AlphaPath = table["alpha"]?.ToString(),
 				PureAlpha = Convert.ToBoolean(table["pure_alpha"] ?? false),
 				CropRegion = ExtractCropRegion(table),
-				ColorOptions = new PCXToGodot.ColorOptions() {
-					transparentColorIndexes = transparentColorIndexes,
-					shadows = Convert.ToBoolean(table["shadows"] ?? true),
-				},
+				ColorOptions = new PCXToGodot.ColorOptions(
+					shadows: Convert.ToBoolean(shadows ?? true),
+					transparentColorIndexes: GetTransparentIndexSet(transparentColorIndexes)
+				),
+				ShadowsSpecified = shadows != null,
 				AlphaRowOffset = Convert.ToInt32(table["alpha_row_offset"] ?? 0),
 				HexColor = table["hex_color"]?.ToString(),
 
@@ -273,13 +405,25 @@ public static class TextureLoader {
 		throw new ArgumentException($"Invalid texture config format: {entry?.GetType().Name ?? "null"}");
 	}
 
+	// The shared set of transparent color indexes with the given contents.
+	private static HashSet<int> GetTransparentIndexSet(IndexSet indexes) {
+		if (!transparentIndexSets.TryGetValue(indexes, out HashSet<int> set)) {
+			set = indexes.ToHashSet();
+			transparentIndexSets[indexes] = set;
+		}
+		return set;
+	}
+
 	private static ImageTexture LoadFromConfigEntry(ConfigEntry config) {
 		string ext = Path.GetExtension(config.Path).ToLowerInvariant();
 
 		return ext switch {
 			".png" => LoadFromPNG(config.Path, config.CropRegion),
-			".pcx" when config.PureAlpha => PCXToGodot.getPureAlphaFromPCX(new Pcx(Util.Civ3MediaPath(config.Path)), config.ColorOptions.transparentColorIndexes),
+			".pcx" when config.PureAlpha => LoadPureAlpha(config.Path, config.ColorOptions.transparentColorIndexes),
 			".pcx" when config.UseAlpha => LoadWithAlphaBlend(config.Path, config.AlphaPath!, config.CropRegion, config.AlphaRowOffset),
+			// Uncropped textures don't simulate shadows unless the config asks for them.
+			".pcx" when config.CropRegion is null && !config.ShadowsSpecified =>
+				LoadFromPCX(config.Path, null, new PCXToGodot.ColorOptions(false, config.ColorOptions.transparentColorIndexes)),
 			".pcx" => LoadFromPCX(config.Path, config.CropRegion, config.ColorOptions),
 			_ => throw new FormatException($"Unknown texture format: {config.Path}"),
 		};
@@ -349,15 +493,32 @@ public static class TextureLoader {
 
 	// Helper method to handle alpha blend loading
 	private static ImageTexture LoadWithAlphaBlend(string path, string alphaPath, CropRegion? cropRegion, int alphaRowOffset) {
-		Pcx pcx = LoadPCX(path);
-		Pcx alphaPcx = LoadPCX(alphaPath);
+		TextureCacheKey key = new(TextureKind.PcxWithAlphaBlend, path, cropRegion, false, default, alphaPath, alphaRowOffset);
+		return GetOrAddTexture(key, () => {
+			Pcx pcx = LoadPCX(path);
+			Pcx alphaPcx = LoadPCX(alphaPath);
 
-		return cropRegion.HasValue
-			? PCXToGodot.getImageFromPCXWithAlphaBlend(pcx, alphaPcx, cropRegion.Value, alphaRowOffset)
-			: PCXToGodot.getImageFromPCXWithAlphaBlend(pcx, alphaPcx);
+			return cropRegion.HasValue
+				? PCXToGodot.getImageFromPCXWithAlphaBlend(pcx, alphaPcx, cropRegion.Value, alphaRowOffset)
+				: PCXToGodot.getImageFromPCXWithAlphaBlend(pcx, alphaPcx);
+		});
+	}
+
+	private static ImageTexture LoadPureAlpha(string path, HashSet<int> transparentColorIndexes) {
+		TextureCacheKey key = new(TextureKind.PcxPureAlpha, path, null, false, IndexSet.From(transparentColorIndexes), null, 0);
+		return GetOrAddTexture(key, () => PCXToGodot.getPureAlphaFromPCX(LoadPCX(path), transparentColorIndexes));
 	}
 
 	private static object GetEntryByPath(string configKey) {
+		if (entryByPathCache.TryGetValue(configKey, out object cached))
+			return cached;
+
+		object entry = FindEntryByPath(configKey);
+		entryByPathCache[configKey] = entry;
+		return entry;
+	}
+
+	private static object FindEntryByPath(string configKey) {
 		string[] parts = configKey.Split('.');
 		object current = textureConfig;
 
@@ -372,17 +533,22 @@ public static class TextureLoader {
 		return current;
 	}
 
+	// Loads a PCX texture. Without color options, an uncropped texture doesn't
+	// simulate shadows while a cropped one does.
 	private static ImageTexture LoadFromPCX(string relPath, CropRegion? cropRegion = null, PCXToGodot.ColorOptions? colorOptions = null) {
-		return GetOrAddTexture(relPath, cropRegion, () => {
+		PCXToGodot.ColorOptions options = colorOptions ?? (cropRegion is null ? UncroppedDefaultColorOptions : PCXToGodot.ColorOptions.Default);
+		TextureCacheKey key = new(TextureKind.Pcx, relPath, cropRegion, options.shadows, IndexSet.From(options.transparentColorIndexes), null, 0);
+		return GetOrAddTexture(key, () => {
 			Pcx pcx = LoadPCX(relPath);
-			return cropRegion is null
-				? PCXToGodot.getImageTextureFromPCX(pcx)
-				: PCXToGodot.getImageTextureFromPCX(pcx, cropRegion.Value, colorOptions ?? PCXToGodot.ColorOptions.Default);
+			if (cropRegion is not null)
+				return PCXToGodot.getImageTextureFromPCX(pcx, cropRegion.Value, options);
+			return PCXToGodot.getImageTextureFromPCX(pcx, options);
 		});
 	}
 
 	private static ImageTexture LoadFromPNG(string relPath, CropRegion? cropRegion = null) {
-		return GetOrAddTexture(relPath, cropRegion, () => {
+		TextureCacheKey key = new(TextureKind.Png, relPath, cropRegion, false, default, null, 0);
+		return GetOrAddTexture(key, () => {
 			Image image = LoadPNG(relPath);
 			if (cropRegion != null) {
 				var region = cropRegion.Value;
@@ -394,16 +560,7 @@ public static class TextureLoader {
 		});
 	}
 
-	private static string MakeCacheKey(string relPath, CropRegion? cropRegion) {
-		if (cropRegion is null) return relPath;
-
-		var region = cropRegion.Value;
-		return $"{relPath}-{region.LeftStart}-{region.TopStart}-{region.CroppedWidth}-{region.CroppedHeight}";
-	}
-
-	private static ImageTexture GetOrAddTexture(string relPath, CropRegion? cropRegion, Func<ImageTexture> loader) {
-		string key = MakeCacheKey(relPath, cropRegion);
-
+	private static ImageTexture GetOrAddTexture(TextureCacheKey key, Func<ImageTexture> loader) {
 		if (textureCache.TryGetValue(key, out ImageTexture cached))
 			return cached;
 
@@ -414,13 +571,15 @@ public static class TextureLoader {
 
 	/**
 	 * Utility method for loading PCX files that will cache them, so we don't have to load them from disk so often.
+	 * Since the textures made from a file are cached, a decoded file is only kept while it's in recent use (for example
+	 * while the crops of a sprite sheet are being loaded), and it's decoded again if it's needed again much later.
 	 **/
 	public static Pcx LoadPCX(string relPath) {
-		if (PcxCache.TryGetValue(relPath, out Pcx value)) {
+		if (PcxCache.TryGet(relPath, out Pcx value)) {
 			return value;
 		}
 		Pcx thePcx = new(Util.Civ3MediaPath(relPath));
-		PcxCache[relPath] = thePcx;
+		PcxCache.Add(relPath, thePcx);
 		return thePcx;
 	}
 
@@ -448,7 +607,11 @@ public static class TextureLoader {
 		configKeyCache.Clear();
 		objectMappingCache.Clear();
 		animationCache.Clear();
-		colorCache.Clear();
+		colorCache = [];
+		intensifiedColorCache = [];
+		pureValueMappingCache.Clear();
+		entryByPathCache.Clear();
+		parsedConfigCache.Clear();
 	}
 
 	public static Vector2 Center(this ImageTexture tex) {

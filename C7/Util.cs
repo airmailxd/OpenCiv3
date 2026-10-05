@@ -10,7 +10,16 @@ using Godot;
 using QueryCiv3;
 
 public partial class Util {
-	static public string Civ3Root = GetCiv3Path();
+	private static string civ3Root = GetCiv3Path();
+
+	// Changing the root invalidates every path resolved against it.
+	static public string Civ3Root {
+		get => civ3Root;
+		set {
+			civ3Root = value;
+			ClearMediaPathCache();
+		}
+	}
 
 	static public string GetCiv3Path() {
 		string path = C7Settings.GetSettingValue("locations", "civ3InstallDir");
@@ -72,12 +81,16 @@ public partial class Util {
 
 			foreach (string step in ignoredCaseExtension.Replace('\\', '/').Split('/')) {
 				string goal = System.IO.Path.Combine(tr, step);
-				List<string> matches = System.IO.Directory.EnumerateFileSystemEntries(tr, "*")
-					.Where(p => p.Equals(goal, StringComparison.CurrentCultureIgnoreCase))
-					.ToList();
+				string match = null;
+				foreach (string entry in ListDirectory(tr)) {
+					if (entry.Equals(goal, StringComparison.CurrentCultureIgnoreCase)) {
+						match = entry;
+						break;
+					}
+				}
 
-				if (matches.Count > 0)
-					tr = matches[0];
+				if (match != null)
+					tr = match;
 				else {
 					tr = null;
 					break;
@@ -85,6 +98,19 @@ public partial class Util {
 			}
 		}
 		return tr;
+	}
+
+	// The entries of the directories searched by FileExistsIgnoringCase. Media
+	// files don't change while the game runs, so a directory is listed only
+	// once instead of once per path segment per lookup.
+	private static readonly Dictionary<string, string[]> directoryListings = new();
+
+	private static string[] ListDirectory(string directory) {
+		if (!directoryListings.TryGetValue(directory, out string[] entries)) {
+			entries = System.IO.Directory.GetFileSystemEntries(directory, "*");
+			directoryListings[directory] = entries;
+		}
+		return entries;
 	}
 
 	/// <summary>
@@ -100,6 +126,19 @@ public partial class Util {
 		// would find the default PediaIcons.txt instead of the scenario
 		// specific file.
 		modPath = modPath.Replace("\\conquests\\", "\\Conquests\\");
+		ClearMediaPathCache();
+	}
+
+	// Civ3MediaPath results by media path. A null value means the media
+	// couldn't be found. The results are only valid for the current roots,
+	// mod path and standalone setting, so they're forgotten when any of those
+	// change.
+	private static readonly Dictionary<string, string> mediaPathCache = new();
+	private static bool mediaPathCacheStandalone;
+
+	private static void ClearMediaPathCache() {
+		mediaPathCache.Clear();
+		directoryListings.Clear();
 	}
 
 	/// <summary>
@@ -110,6 +149,25 @@ public partial class Util {
 	/// <returns>The path to the media on the file system, or an exception if it cannot be found</returns>
 	/// <exception cref="ApplicationException"></exception>
 	public static string Civ3MediaPath(string mediaPath) {
+		bool standalone = C7Settings.UseStandaloneMode();
+		if (standalone != mediaPathCacheStandalone) {
+			ClearMediaPathCache();
+			mediaPathCacheStandalone = standalone;
+		}
+
+		if (!mediaPathCache.TryGetValue(mediaPath, out string result)) {
+			result = FindCiv3MediaPath(mediaPath, standalone);
+			mediaPathCache[mediaPath] = result;
+		}
+
+		if (result == null)
+			throw new ApplicationException("Media path not found: " + mediaPath);
+		return result;
+	}
+
+	// The uncached search behind Civ3MediaPath. Returns null if the media can't
+	// be found.
+	private static string FindCiv3MediaPath(string mediaPath, bool standalone) {
 		//First, check if the file exists via a scenario's mod path
 		//For now this is only checked relative to Civ3, not relative to C7.
 		if (!string.IsNullOrEmpty(modPath)) {
@@ -134,12 +192,8 @@ public partial class Util {
 		string c7BasePath = GetC7AssetsPath();
 		string c7Path = FileExistsIgnoringCase(c7BasePath, mediaPath);
 
-		if (C7Settings.UseStandaloneMode()) {
-			if (c7Path != null) {
-				return c7Path;
-			} else {
-				throw new ApplicationException("Media path not found: " + mediaPath);
-			}
+		if (standalone) {
+			return c7Path;
 		}
 
 		//Next, check the base Civ paths
@@ -157,11 +211,7 @@ public partial class Util {
 		// Finally, use a c7 path even if we aren't in standalone mode, but only
 		// if we can't find the path in civ3 graphics. This allows us to toggle
 		// to c7 art when we aren't in standalone mode.
-		if (c7Path != null) {
-			return c7Path;
-		}
-
-		throw new ApplicationException("Media path not found: " + mediaPath);
+		return c7Path;
 	}
 
 	private static string CheckForCiv3Media(string relPath, string rootPath) {
@@ -176,15 +226,68 @@ public partial class Util {
 		return (ImageTexture.CreateFromImage(baseImage), ImageTexture.CreateFromImage(tintImage));
 	}
 
-	private static Dictionary<string, Flic> flicCache = new();
+	// Decoded files are only needed until their textures have been built, so
+	// a decoded file is only kept while it's in recent use (for example while
+	// the frames of all of a unit's animations are being loaded).
+	private static readonly RecentlyUsedCache<Flic> flicCache = new(4);
 
 	static public Flic LoadFlic(string path) {
-		if (flicCache.ContainsKey(path)) {
-			return flicCache[path];
+		if (flicCache.TryGet(path, out Flic result)) {
+			return result;
 		}
-		Flic result = new ConvertCiv3Media.Flic(Util.Civ3MediaPath(path));
-		flicCache[path] = result;
+		result = new ConvertCiv3Media.Flic(Util.Civ3MediaPath(path));
+		flicCache.Add(path, result);
 		return result;
+	}
+
+	// A cache that keeps strong references to the few most recently used
+	// values, and only weak references to the rest. Used for decoded media
+	// files, which can be large, are expensive to decode and are typically
+	// used a few times in quick succession and then not again once the
+	// textures made from them exist.
+	public sealed class RecentlyUsedCache<T> where T : class {
+		private readonly string[] recentKeys;
+		private readonly T[] recentValues;
+		private int nextRecent = 0;
+		private readonly Dictionary<string, WeakReference<T>> weak = new();
+
+		public RecentlyUsedCache(int recentCapacity) {
+			recentKeys = new string[recentCapacity];
+			recentValues = new T[recentCapacity];
+		}
+
+		public bool TryGet(string key, out T value) {
+			for (int i = 0; i < recentKeys.Length; i++) {
+				if (recentKeys[i] == key) {
+					value = recentValues[i];
+					return true;
+				}
+			}
+			if (weak.TryGetValue(key, out WeakReference<T> reference) && reference.TryGetTarget(out value)) {
+				KeepRecent(key, value);
+				return true;
+			}
+			value = null;
+			return false;
+		}
+
+		public void Add(string key, T value) {
+			weak[key] = new WeakReference<T>(value);
+			KeepRecent(key, value);
+		}
+
+		private void KeepRecent(string key, T value) {
+			recentKeys[nextRecent] = key;
+			recentValues[nextRecent] = value;
+			nextRecent = (nextRecent + 1) % recentKeys.Length;
+		}
+
+		public void Clear() {
+			Array.Clear(recentKeys);
+			Array.Clear(recentValues);
+			nextRecent = 0;
+			weak.Clear();
+		}
 	}
 
 	static private string GetC7AssetsPath() {
@@ -197,6 +300,10 @@ public partial class Util {
 
 	// Replaces image colors based on a given dictionary
 	public static Image TransformColors(Image origin, Dictionary<Color, Color> colorReplacements) {
+		if (origin.GetFormat() == Image.Format.Rgba8 && !origin.HasMipmaps()) {
+			return TransformRgba8Colors(origin, colorReplacements);
+		}
+
 		Image result = (Image)origin.Duplicate();
 
 		for (int y = 0; y < origin.GetHeight(); ++y) {
@@ -210,6 +317,41 @@ public partial class Util {
 		}
 
 		return result;
+	}
+
+	// TransformColors for RGBA8 images, working on the image's bytes instead
+	// of getting and setting each pixel through the engine. The colors are
+	// converted to and from bytes by the engine itself, so the result is the
+	// same as getting and setting the pixels one at a time.
+	private static Image TransformRgba8Colors(Image origin, Dictionary<Color, Color> colorReplacements) {
+		Image probe = Image.CreateEmpty(1, 1, false, Image.Format.Rgba8);
+		Dictionary<uint, uint> byteReplacements = new();
+		foreach ((Color from, Color to) in colorReplacements) {
+			// The only pixel value GetPixel could turn into `from` is the
+			// nearest one, if GetPixel actually turns it into `from`.
+			byte[] fromBytes = [ToByte(from.R), ToByte(from.G), ToByte(from.B), ToByte(from.A)];
+			probe.SetData(1, 1, false, Image.Format.Rgba8, fromBytes);
+			if (probe.GetPixel(0, 0) != from) {
+				continue;
+			}
+			probe.SetPixel(0, 0, to);
+			byteReplacements[BitConverter.ToUInt32(fromBytes)] = BitConverter.ToUInt32(probe.GetData());
+		}
+
+		byte[] data = origin.GetData();
+		if (byteReplacements.Count > 0) {
+			Span<uint> pixels = MemoryMarshal.Cast<byte, uint>(data.AsSpan());
+			for (int i = 0; i < pixels.Length; i++) {
+				if (byteReplacements.TryGetValue(pixels[i], out uint replacement)) {
+					pixels[i] = replacement;
+				}
+			}
+		}
+		return Image.CreateFromData(origin.GetWidth(), origin.GetHeight(), false, Image.Format.Rgba8, data);
+	}
+
+	private static byte ToByte(float channel) {
+		return (byte)Math.Clamp(Math.Round(channel * 255.0), 0, 255);
 	}
 
 	// Creates a texture from raw palette data. The data must be 256 pixels by 3 channels. Returns a 16x16 unfiltered RGB texture.
@@ -227,9 +369,10 @@ public partial class Util {
 		return ImageTexture.CreateFromImage(img);
 	}
 
-	// A FlicSheet is a sprite sheet created from a Flic file, with each frame of the animation as its own sprite
+	// A FlicSheet holds the header values of a Flic file: the size, offset,
+	// number of frames and timing of its animations. The frames themselves are
+	// turned into SpriteFrames by the AnimationManager.
 	public struct FlicSheet {
-		public ImageTexture palette, indices;
 		public int spriteOriginalWidth, spriteOriginalHeight;
 		public int spriteWidth, spriteHeight;
 		public int offsetLeft, offsetTop;
@@ -237,46 +380,58 @@ public partial class Util {
 		public int animationSpeed, animationTime;
 	}
 
-	// Loads a Flic and also converts it into a sprite sheet
+	// The size of a Flic file's header, and how much of it LoadFlicHeader needs.
+	private const int FlicHeaderSize = 128;
+	private const int FlicHeaderBytesUsed = 110;
+
+	private static readonly Dictionary<string, FlicSheet> flicHeaderCache = new();
+
+	// Reads the header values of a Flic file, without decoding its frames. The
+	// values are the same as those of the Flic loaded from the same path.
+	public static FlicSheet LoadFlicHeader(string filePath) {
+		if (flicHeaderCache.TryGetValue(filePath, out FlicSheet sheet)) {
+			return sheet;
+		}
+
+		byte[] header = new byte[FlicHeaderSize];
+		using (var stream = System.IO.File.OpenRead(Util.Civ3MediaPath(filePath))) {
+			stream.ReadAtLeast(header, FlicHeaderBytesUsed, throwOnEndOfStream: true);
+		}
+
+		// The offsets match those read by ConvertCiv3Media.Flic.Load.
+		int fileFormat = BitConverter.ToUInt16(header, 4);
+		if (fileFormat != 0xaf12) {
+			throw new ApplicationException("Flic version # " + fileFormat.ToString("X4") + "does not match 0xaf12");
+		}
+
+		int numFrames = BitConverter.ToUInt16(header, 6);
+		int numAnimations = BitConverter.ToUInt16(header, 0x60);
+		int framesPerAnimation = BitConverter.ToUInt16(header, 0x62);
+		// Leaderheads don't have the Civ3-specific values, and act like a regular Flic
+		if (numAnimations == 0) {
+			numAnimations = 1;
+			framesPerAnimation = numFrames;
+		}
+
+		sheet = new FlicSheet {
+			spriteOriginalWidth = BitConverter.ToUInt16(header, 104),
+			spriteOriginalHeight = BitConverter.ToUInt16(header, 106),
+			spriteWidth = BitConverter.ToUInt16(header, 8),
+			spriteHeight = BitConverter.ToUInt16(header, 10),
+			offsetLeft = BitConverter.ToUInt16(header, 100),
+			offsetTop = BitConverter.ToUInt16(header, 102),
+			framesPerAnimation = framesPerAnimation,
+			numberOfAnimations = numAnimations,
+			animationSpeed = BitConverter.ToInt32(header, 16),
+			animationTime = BitConverter.ToUInt16(header, 108),
+		};
+		flicHeaderCache[filePath] = sheet;
+		return sheet;
+	}
+
+	// Loads the header values of a Flic, along with the decoded Flic.
 	public static (FlicSheet, Flic) loadFlicSheet(string filePath) {
-		var flic = new Flic(Util.Civ3MediaPath(filePath));
-
-		var texPalette = Util.createPaletteTexture(flic.Palette);
-
-		var countColumns = flic.Images.GetLength(1); // Each column contains one frame
-		var countRows = flic.Images.GetLength(0); // Each row contains one animation
-		var countImages = countColumns * countRows;
-
-		byte[] allIndices = new byte[countRows * countColumns * flic.Width * flic.Height];
-		// row, col loop over the sprites, each one a frame of the animation
-		for (int row = 0; row < countRows; row++)
-			for (int col = 0; col < countColumns; col++)
-				// x, y loop over pixels within each sprite
-				for (int y = 0; y < flic.Height; y++)
-					for (int x = 0; x < flic.Width; x++) {
-						int pixelRow = row * flic.Height + y,
-							pixelCol = col * flic.Width + x,
-							pixelIndex = pixelRow * countColumns * flic.Width + pixelCol;
-						allIndices[pixelIndex] = flic.Images[row, col][y * flic.Width + x];
-					}
-
-		var imgIndices = Image.CreateFromData(countColumns * flic.Width, countRows * flic.Height, false, Image.Format.R8, allIndices);
-		ImageTexture texIndices = ImageTexture.CreateFromImage(imgIndices);
-
-		return (new FlicSheet {
-			palette = texPalette,
-			indices = texIndices,
-			spriteOriginalWidth = flic.OriginalWidth,
-			spriteOriginalHeight = flic.OriginalHeight,
-			spriteWidth = flic.Width,
-			spriteHeight = flic.Height,
-			offsetLeft = flic.OffsetLeft,
-			offsetTop = flic.OffsetTop,
-			framesPerAnimation = flic.FramesPerAnimation,
-			numberOfAnimations = flic.NumAnimations,
-			animationSpeed = flic.AnimationSpeed,
-			animationTime = flic.AnimationTime
-		}, flic);
+		return (LoadFlicHeader(filePath), LoadFlic(filePath));
 	}
 
 	// Like LoadWAVFromDisk, but the path is a relative path, not the result of
@@ -287,7 +442,7 @@ public partial class Util {
 	public static AudioStreamWav? LoadCiv3WAVFromDisk(string path) {
 		try {
 			return LoadWAVFromDisk(Civ3MediaPath(path));
-		} catch (Exception e) {
+		} catch (Exception) {
 			return null;
 		}
 	}
@@ -376,7 +531,7 @@ public partial class Util {
 	public static AudioStreamMP3? LoadCiv3Mp3FromDisk(string path) {
 		try {
 			return LoadMp3FromDisk(Civ3MediaPath(path));
-		} catch (Exception e) {
+		} catch (Exception) {
 			return null;
 		}
 	}
@@ -390,7 +545,7 @@ public partial class Util {
 	public static AudioStreamOggVorbis? LoadCiv3OggFromDisk(string path) {
 		try {
 			return LoadOggFromDisk(Civ3MediaPath(path));
-		} catch (Exception e) {
+		} catch (Exception) {
 			return null;
 		}
 	}
@@ -422,6 +577,9 @@ public partial class Util {
 	// have the same name can be loaded independently.
 	public static void ClearCaches() {
 		flicCache.Clear();
+		flicHeaderCache.Clear();
+		ClearMediaPathCache();
+		PCXToGodot.ClearCache();
 		TextureLoader.ClearCache();
 		AnimationManager.ClearCache();
 		PlayerTextureUtil.ClearCache();
