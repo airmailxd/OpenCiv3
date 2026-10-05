@@ -4,6 +4,9 @@ using System.Collections.Generic;
 namespace C7Engine.Pathing {
 	/**
 	 * https://en.wikipedia.org/wiki/Binary_heap
+	 *
+	 * Not used by the pathfinder, which uses PriorityQueue (see
+	 * PathSearchContext); kept as a general purpose utility.
 	 */
 	public class BinaryMinHeap<TValue> where TValue : IComparable<TValue> {
 		private readonly List<TValue> data = new List<TValue>();

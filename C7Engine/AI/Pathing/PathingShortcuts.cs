@@ -12,6 +12,14 @@ namespace C7Engine.Pathing {
 		// Returns true if `unit` can't possibly get from `start` to
 		// `destination` with the moves UnitWalker allows.
 		public static bool IsTriviallyUnreachable(Tile start, Tile destination, MapUnit unit) {
+			WaterBodies waterBodies = null;
+			return IsTriviallyUnreachable(start, destination, unit, ref waterBodies);
+		}
+
+		// Same as above. `waterBodies` caches what a water unit can reach from
+		// `start`: pass the same variable (initially null) for every
+		// destination checked from the same start, so it's only computed once.
+		public static bool IsTriviallyUnreachable(Tile start, Tile destination, MapUnit unit, ref WaterBodies waterBodies) {
 			if (unit.owner.isHuman || start == destination) {
 				return false;
 			}
@@ -26,7 +34,10 @@ namespace C7Engine.Pathing {
 			}
 
 			if (unit.IsWaterUnit()) {
-				return new WaterBodies(start, unit.owner).CannotReach(destination);
+				if (waterBodies == null || !waterBodies.IsFor(start, unit.owner)) {
+					waterBodies = new WaterBodies(start, unit.owner);
+				}
+				return waterBodies.CannotReach(destination);
 			}
 
 			return false;
@@ -37,11 +48,13 @@ namespace C7Engine.Pathing {
 		// connected through cities of the unit's owner, which ships can sail
 		// through.
 		public sealed class WaterBodies {
+			private readonly Tile start;
 			private readonly Player owner;
 			private readonly HashSet<int> reachable = new();
 			private readonly bool unknown;
 
 			public WaterBodies(Tile start, Player owner) {
+				this.start = start;
 				this.owner = owner;
 
 				if (start.IsWater()) {
@@ -77,6 +90,10 @@ namespace C7Engine.Pathing {
 						}
 					}
 				}
+			}
+
+			public bool IsFor(Tile start, Player owner) {
+				return this.start == start && this.owner == owner;
 			}
 
 			private bool IsOwnCity(Tile t) {
