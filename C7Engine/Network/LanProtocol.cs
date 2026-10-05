@@ -41,6 +41,10 @@ public static class LanProtocol {
 	// Frames larger than this are treated as a broken connection.
 	public const int MaxFrameBytes = 64 * 1024 * 1024;
 
+	// Snapshots that decompress to more than this are treated as broken,
+	// rather than read until memory runs out.
+	public const int MaxSnapshotJsonBytes = 1024 * 1024 * 1024;
+
 	public const string DiscoveryRequest = "C7-LAN-DISCOVER";
 
 	// The whole game, compressed, for a client to show.
@@ -77,7 +81,14 @@ public static class LanProtocol {
 	public static SaveGame DecodeSnapshot(byte[] snapshot) {
 		using GZipStream gzip = new(new MemoryStream(snapshot), CompressionMode.Decompress);
 		MemoryStream json = new();
-		gzip.CopyTo(json);
+		byte[] buffer = new byte[81920];
+		int read;
+		while ((read = gzip.Read(buffer)) > 0) {
+			if (json.Length + read > MaxSnapshotJsonBytes) {
+				throw new InvalidDataException($"The snapshot is larger than {MaxSnapshotJsonBytes} bytes");
+			}
+			json.Write(buffer, 0, read);
+		}
 		return SaveGame.FromJSON(json.ToArray());
 	}
 }

@@ -13,16 +13,17 @@ namespace C7Engine.Network;
 // encoded on another thread could see them change halfway through, or throw.
 //
 // Detach replaces everything in a snapshot that isn't built afresh with a copy,
-// made by a round trip through the save's own JSON, which writes it exactly
-// as the original would have been written. Those parts are small; the large
-// ones (the map, units, cities and what players know of the map) are the
-// fresh ones, left as they are.
+// made by a round trip through the save's own compact JSON, which writes it
+// exactly as the original would have been written. Those parts are small; the
+// large ones (the map, units, cities and what players know of the map) are
+// the fresh ones, left as they are.
 internal static class SnapshotDetacher {
 	// The parts of a save and of its players that FromGameData builds afresh
 	// for each save. Anything not named here is copied, so a part added
 	// later is safe, if a little slower, until it's added here.
 	private static readonly HashSet<string> FreshSaveMembers = ["Map", "Units", "Players", "Cities"];
-	private static readonly HashSet<string> FreshPlayerMembers = ["tileKnowledge"];
+	// knownTileIndices is a string, which can't change, so it's shared as is.
+	private static readonly HashSet<string> FreshPlayerMembers = ["tileKnowledge", "knownTileIndices"];
 
 	private static readonly List<Member> SharedSaveMembers = SharedMembers(typeof(SaveGame), FreshSaveMembers);
 	private static readonly List<Member> SharedPlayerMembers = SharedMembers(typeof(SavePlayer), FreshPlayerMembers);
@@ -40,7 +41,8 @@ internal static class SnapshotDetacher {
 			return sharedPlayer;
 		});
 
-		SaveGame copy = shared.Clone();
+		// Clone would write indented JSON, which takes longer for the same copy.
+		SaveGame copy = SaveGame.FromJSON(shared.ToCompactJSON());
 
 		foreach (Member member in SharedSaveMembers) {
 			member.Set(save, member.Get(copy));

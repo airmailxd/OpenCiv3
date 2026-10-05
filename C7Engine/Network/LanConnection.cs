@@ -31,6 +31,15 @@ public class LanConnection : IDisposable {
 	public const int MaxQueuedFrames = 10_000;
 	public const long MaxQueuedBytes = 256L * 1024 * 1024;
 
+	// Likewise a peer whose frames pile up unread is dropped. This is more
+	// generous, since a client stops reading while its game screen loads.
+	public const int MaxReceivedFrames = 100_000;
+	public const long MaxReceivedBytes = 256L * 1024 * 1024;
+
+	// A peer that sends this many frames in a row that can't be read is
+	// dropped, rather than have every one of them logged forever.
+	public const int MaxBadFramesInARow = 20;
+
 	// How long a closed connection may spend sending what was queued before
 	// it closed, like a rejection, before giving up on the peer.
 	private static readonly TimeSpan LingerTime = TimeSpan.FromSeconds(5);
@@ -47,6 +56,12 @@ public class LanConnection : IDisposable {
 	private readonly NetworkStream stream;
 	private readonly Func<Frame, Frame> prepareReceived;
 	private readonly ConcurrentQueue<Frame> received = new();
+	private int receivedFrames;
+	private long receivedBytes;
+	internal int maxReceivedFrames = MaxReceivedFrames;
+
+	// Only the owner's thread uses it.
+	private int badFramesInARow;
 
 	// The frames waiting to be written, which also serves as their lock.
 	private readonly Queue<Outgoing> outgoing = new();
@@ -83,7 +98,29 @@ public class LanConnection : IDisposable {
 	}
 
 	public bool TryReceive(out Frame frame) {
-		return received.TryDequeue(out frame);
+		if (!received.TryDequeue(out frame)) {
+			return false;
+		}
+		Interlocked.Decrement(ref receivedFrames);
+		Interlocked.Add(ref receivedBytes, -(frame.payload?.Length ?? 0));
+		return true;
+	}
+
+	// Called on the owner's thread for a frame it couldn't read. Returns
+	// true, having closed the connection, once the peer has sent too many
+	// such frames in a row.
+	internal bool NoteBadFrame() {
+		if (++badFramesInARow < MaxBadFramesInARow) {
+			return false;
+		}
+		log.Warning("{Address} keeps sending frames that can't be read, dropping the connection", RemoteAddress);
+		Dispose();
+		return true;
+	}
+
+	// Called on the owner's thread for a frame it could read.
+	internal void NoteGoodFrame() {
+		badFramesInARow = 0;
 	}
 
 	public bool TryPeek(out Frame frame) {
@@ -184,6 +221,9 @@ public class LanConnection : IDisposable {
 			if (!aborted) {
 				log.Information("Lost connection to {Address} while sending: {Error}", RemoteAddress, e.Message);
 			}
+		} catch (Exception e) {
+			// Anything else would take the whole program down with this thread.
+			log.Error(e, "Sending to {Address} failed", RemoteAddress);
 		} finally {
 			Abort();
 		}
@@ -214,15 +254,26 @@ public class LanConnection : IDisposable {
 				if (length < 0 || length > LanProtocol.MaxFrameBytes) {
 					throw new IOException($"Frame of {length} bytes is too large");
 				}
+				if (Volatile.Read(ref receivedFrames) >= maxReceivedFrames
+					|| Interlocked.Read(ref receivedBytes) + length > MaxReceivedBytes) {
+					log.Warning("Frames from {Address} aren't being read, dropping the connection", RemoteAddress);
+					return;
+				}
 				byte[] payload = new byte[length];
 				stream.ReadExactly(payload);
 				Frame frame = new((FrameKind)header[4], payload);
-				received.Enqueue(prepareReceived == null ? frame : prepareReceived(frame));
+				frame = prepareReceived == null ? frame : prepareReceived(frame);
+				Interlocked.Increment(ref receivedFrames);
+				Interlocked.Add(ref receivedBytes, frame.payload?.Length ?? 0);
+				received.Enqueue(frame);
 			}
 		} catch (Exception e) when (e is IOException or ObjectDisposedException or SocketException or EndOfStreamException) {
 			if (!IsClosed) {
 				log.Information("Connection to {Address} closed: {Error}", RemoteAddress, e.Message);
 			}
+		} catch (Exception e) {
+			// Anything else would take the whole program down with this thread.
+			log.Error(e, "Receiving from {Address} failed", RemoteAddress);
 		} finally {
 			Abort();
 		}

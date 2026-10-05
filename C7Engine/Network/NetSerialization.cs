@@ -3,6 +3,7 @@ using System.Buffers.Text;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
@@ -42,6 +43,18 @@ public static class NetSerialization {
 		return JsonSerializer.Deserialize<T>(json, options);
 	}
 
+	// Reads a frame's contents, which must be there: a payload of null, or
+	// one that can't be read for any other reason, throws JsonException.
+	internal static T DeserializeRequired<T>(byte[] json) where T : class {
+		T value;
+		try {
+			value = JsonSerializer.Deserialize<T>(json, options);
+		} catch (Exception e) when (e is not JsonException) {
+			throw new JsonException(e.Message, e);
+		}
+		return value ?? throw new JsonException($"Expected {typeof(T).Name}, got null");
+	}
+
 	private static JsonSerializerOptions CreateOptions() {
 		DefaultJsonTypeInfoResolver resolver = new();
 		resolver.Modifiers.Add(AddMessageSubtypes);
@@ -50,7 +63,7 @@ public static class NetSerialization {
 			IncludeFields = true,
 			TypeInfoResolver = resolver,
 			Converters = {
-				new IDJsonConverter(),
+				new NetIDConverter(),
 				new JsonStringEnumConverter(),
 				new PlayerReferenceConverter(),
 				new CityReferenceConverter(),
@@ -89,7 +102,31 @@ public static class NetSerialization {
 			.OrderBy(t => t.Name);
 	}
 
-	private static GameData Game => EngineStorage.gameData;
+	private static GameData Game => EngineStorage.gameData ?? throw new JsonException("There is no game to find it in");
+
+	// Parses an ID from the network, where anything at all may arrive: what
+	// isn't an ID throws JsonException, like any other bad JSON.
+	private static ID ParseID(string text) {
+		try {
+			return ID.FromString(text);
+		} catch (Exception e) when (e is not JsonException) {
+			throw new JsonException($"\"{text}\" isn't an ID", e);
+		}
+	}
+
+	// Writes IDs as IDJsonConverter does, but reads them with ParseID.
+	private class NetIDConverter : JsonConverter<ID> {
+		public override ID Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) {
+			if (reader.TokenType != JsonTokenType.String) {
+				throw new JsonException($"Expected an ID, got {reader.TokenType}");
+			}
+			return ParseID(reader.GetString());
+		}
+
+		public override void Write(Utf8JsonWriter writer, ID value, JsonSerializerOptions options) {
+			writer.WriteStringValue(value.ToString());
+		}
+	}
 
 	// Writes an object as its ID, and reads it back as the object with that ID
 	// in this machine's game data, or null if there is none.
@@ -98,7 +135,11 @@ public static class NetSerialization {
 		protected abstract T Find(string key);
 
 		public override T Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) {
-			return reader.TokenType == JsonTokenType.Null ? null : Find(reader.GetString());
+			return reader.TokenType switch {
+				JsonTokenType.Null => null,
+				JsonTokenType.String => Find(reader.GetString()),
+				_ => throw new JsonException($"Expected a reference to a {typeof(T).Name}, got {reader.TokenType}"),
+			};
 		}
 
 		public override void Write(Utf8JsonWriter writer, T value, JsonSerializerOptions options) {
@@ -113,19 +154,19 @@ public static class NetSerialization {
 
 	private class PlayerReferenceConverter : ReferenceConverter<Player> {
 		protected override string Key(Player value) => value.id.ToString();
-		protected override Player Find(string key) => Game.GetPlayer(ID.FromString(key));
+		protected override Player Find(string key) => Game.GetPlayer(ParseID(key));
 	}
 
 	// Finds the first item in a list with a key, in constant time while the
 	// list doesn't change. The index is checked against the list on each use
-	// and rebuilt when it's stale (such as when the game is replaced, or a
-	// city is founded or destroyed), so it finds just what a search of the
-	// list would.
+	// and rebuilt when it's stale (such as when a city is founded or
+	// destroyed), so it finds just what a search of the list would. Each
+	// list's index lives only as long as the list does, so the indexes, which
+	// are static, don't keep a replaced game alive.
 	internal sealed class ListIndex<TKey, T> where T : class {
 		private readonly Func<T, TKey> keyOf;
 		private readonly object sync = new();
-		private List<T> indexed;
-		private Dictionary<TKey, (int position, T item)> index;
+		private readonly ConditionalWeakTable<List<T>, Dictionary<TKey, (int position, T item)>> indexes = new();
 
 		public ListIndex(Func<T, TKey> keyOf) {
 			this.keyOf = keyOf;
@@ -136,19 +177,20 @@ public static class NetSerialization {
 				return null;
 			}
 			lock (sync) {
-				if (TryFind(list, key, out T found)) {
+				if (indexes.TryGetValue(list, out Dictionary<TKey, (int, T)> index) && TryFind(index, list, key, out T found)) {
 					return found;
 				}
-				// The list has changed since it was indexed, or has nothing
-				// with this key.
-				Rebuild(list);
-				return TryFind(list, key, out found) ? found : null;
+				// The list hasn't been indexed, or has changed since it was,
+				// or has nothing with this key.
+				index = Build(list);
+				indexes.AddOrUpdate(list, index);
+				return TryFind(index, list, key, out found) ? found : null;
 			}
 		}
 
-		private bool TryFind(List<T> list, TKey key, out T found) {
+		private bool TryFind(Dictionary<TKey, (int position, T item)> index, List<T> list, TKey key, out T found) {
 			found = null;
-			if (!ReferenceEquals(list, indexed) || !index.TryGetValue(key, out (int position, T item) entry)) {
+			if (!index.TryGetValue(key, out (int position, T item) entry)) {
 				return false;
 			}
 			if (entry.position >= list.Count || !ReferenceEquals(list[entry.position], entry.item)
@@ -159,8 +201,8 @@ public static class NetSerialization {
 			return true;
 		}
 
-		private void Rebuild(List<T> list) {
-			index = new Dictionary<TKey, (int, T)>(list.Count);
+		private Dictionary<TKey, (int, T)> Build(List<T> list) {
+			Dictionary<TKey, (int, T)> index = new(list.Count);
 			for (int i = 0; i < list.Count; ++i) {
 				T item = list[i];
 				TKey key = item == null ? default : keyOf(item);
@@ -168,7 +210,7 @@ public static class NetSerialization {
 					index.TryAdd(key, (i, item));
 				}
 			}
-			indexed = list;
+			return index;
 		}
 	}
 
@@ -180,12 +222,12 @@ public static class NetSerialization {
 
 	private class CityReferenceConverter : ReferenceConverter<City> {
 		protected override string Key(City value) => value.id.ToString();
-		protected override City Find(string key) => citiesByID.Find(Game.cities, ID.FromString(key));
+		protected override City Find(string key) => citiesByID.Find(Game.cities, ParseID(key));
 	}
 
 	private class MapUnitReferenceConverter : ReferenceConverter<MapUnit> {
 		protected override string Key(MapUnit value) => value == MapUnit.NONE ? null : value.id.ToString();
-		protected override MapUnit Find(string key) => Game.GetUnit(ID.FromString(key));
+		protected override MapUnit Find(string key) => Game.GetUnit(ParseID(key));
 	}
 
 	// A tile is written as "x,y", formatted and parsed straight from the
@@ -197,12 +239,9 @@ public static class NetSerialization {
 				case JsonTokenType.Null:
 					return null;
 				case JsonTokenType.StartArray:
-					reader.Read();
-					x = reader.GetInt32();
-					reader.Read();
-					y = reader.GetInt32();
-					reader.Read();
-					if (reader.TokenType != JsonTokenType.EndArray) {
+					if (!reader.Read() || !TryGetCoordinate(ref reader, out x)
+						|| !reader.Read() || !TryGetCoordinate(ref reader, out y)
+						|| !reader.Read() || reader.TokenType != JsonTokenType.EndArray) {
 						throw new JsonException("A tile's coordinates are two numbers");
 					}
 					break;
@@ -214,7 +253,16 @@ public static class NetSerialization {
 				default:
 					throw new JsonException($"Expected a tile, got {reader.TokenType}");
 			}
-			return Game.map.tileAt(x, y);
+			// Coordinates off the map are no tile, just as Tile.NONE is
+			// written.
+			GameMap map = Game.map ?? throw new JsonException("The game has no map");
+			Tile tile = map.tileAt(x, y);
+			return tile == Tile.NONE ? null : tile;
+		}
+
+		private static bool TryGetCoordinate(ref Utf8JsonReader reader, out int coordinate) {
+			coordinate = 0;
+			return reader.TokenType == JsonTokenType.Number && reader.TryGetInt32(out coordinate);
 		}
 
 		private static bool TryParseCoordinates(ref Utf8JsonReader reader, out int x, out int y) {
@@ -243,17 +291,17 @@ public static class NetSerialization {
 
 	private class TechReferenceConverter : ReferenceConverter<Tech> {
 		protected override string Key(Tech value) => value.id.ToString();
-		protected override Tech Find(string key) => techsByID.Find(Game.techs, ID.FromString(key));
+		protected override Tech Find(string key) => techsByID.Find(Game.techs, ParseID(key));
 	}
 
 	private class GovernmentReferenceConverter : ReferenceConverter<Government> {
 		protected override string Key(Government value) => value.id.ToString();
-		protected override Government Find(string key) => governmentsByID.Find(Game.governments, ID.FromString(key));
+		protected override Government Find(string key) => governmentsByID.Find(Game.governments, ParseID(key));
 	}
 
 	private class TerraformReferenceConverter : ReferenceConverter<Terraform> {
 		protected override string Key(Terraform value) => value.Id.ToString();
-		protected override Terraform Find(string key) => terraformsByID.Find(Game.Terraforms, ID.FromString(key));
+		protected override Terraform Find(string key) => terraformsByID.Find(Game.Terraforms, ParseID(key));
 	}
 
 	private class CivilizationReferenceConverter : ReferenceConverter<Civilization> {
@@ -264,12 +312,15 @@ public static class NetSerialization {
 	private class VictoryReferenceConverter : ReferenceConverter<IVictory> {
 		protected override string Key(IVictory value) => Game.victories.IndexOf(value).ToString();
 		protected override IVictory Find(string key) {
-			int index = int.Parse(key);
+			if (!int.TryParse(key, out int index)) {
+				throw new JsonException($"\"{key}\" isn't a victory");
+			}
 			return index >= 0 && index < Game.victories.Count ? Game.victories[index] : null;
 		}
 	}
 
-	// A path is written as the tiles along it.
+	// A path is written as the tiles along it. Read back, each tile must be
+	// on the map and next to the one before it, so that a unit can walk it.
 	private class TilePathConverter : JsonConverter<TilePath> {
 		private readonly TileReferenceConverter tiles = new();
 
@@ -277,14 +328,22 @@ public static class NetSerialization {
 			if (reader.TokenType == JsonTokenType.Null) {
 				return null;
 			}
+			if (reader.TokenType != JsonTokenType.StartArray) {
+				throw new JsonException($"Expected a path, got {reader.TokenType}");
+			}
 			Queue<Tile> path = new();
+			Tile previous = null;
 			reader.Read();
 			while (reader.TokenType != JsonTokenType.EndArray) {
 				Tile tile = tiles.Read(ref reader, typeof(Tile), options);
-				if (tile == null) {
+				if (tile == null || tile == Tile.NONE) {
 					throw new JsonException("Path contains a tile that isn't on the map");
 				}
+				if (previous != null && !previous.neighbors.ContainsValue(tile)) {
+					throw new JsonException($"Path jumps from {previous.XCoordinate},{previous.YCoordinate} to {tile.XCoordinate},{tile.YCoordinate}");
+				}
 				path.Enqueue(tile);
+				previous = tile;
 				reader.Read();
 			}
 			return path.Count == 0 ? TilePath.NONE : new TilePath(path.Last(), path);
