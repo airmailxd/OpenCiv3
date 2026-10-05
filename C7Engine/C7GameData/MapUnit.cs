@@ -43,6 +43,11 @@ namespace C7GameData {
 		}
 		public bool isFortified { get; set; }
 
+		// A sentried unit sleeps until a unit it should notice comes next to
+		// it: any foreign unit, or with sentryEnemyOnly only an enemy one.
+		public bool isSentried { get; set; }
+		public bool sentryEnemyOnly { get; set; }
+
 		public bool isAutomated { get; set; }
 
 		//sentry, etc. will come later.  For now, let's just have a couple things so we can cycle through units that aren't fortified.
@@ -78,7 +83,7 @@ namespace C7GameData {
 		}
 
 		public bool IsBusy() {
-			return isFortified || (path != null && path.PathLength() > 0) || WorkerJob != null || isAutomated;
+			return isFortified || isSentried || (path != null && path.PathLength() > 0) || WorkerJob != null || isAutomated;
 		}
 
 		public bool IsLandUnit() {
@@ -737,13 +742,16 @@ namespace C7GameData {
 
 			// Eventually, we should look this up somewhere to see what all actions we have (and mods might add more)
 			// For now, this is still an improvement over the last iteration.
-			UnitAction[] implementedActions = { UnitAction.Hold, UnitAction.Wait, UnitAction.Fortify, UnitAction.Disband, UnitAction.Goto, UnitAction.Bombard };
+			UnitAction[] implementedActions = { UnitAction.Hold, UnitAction.Wait, UnitAction.Fortify, UnitAction.Disband, UnitAction.Goto, UnitAction.Bombard, UnitAction.Sentry };
 			foreach (UnitAction action in implementedActions) {
 				if (unitType.actions.Contains(action)) {
 					result.Add(action);
 				}
 			}
 
+			if (unitType.actions.Contains(UnitAction.Sentry)) {
+				result.Add(UnitAction.SentryEnemyOnly);
+			}
 			if (canBuildCity()) {
 				result.Add(UnitAction.BuildCity);
 			}

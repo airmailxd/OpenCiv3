@@ -60,6 +60,26 @@ namespace C7Engine {
 		}
 	}
 
+	public class MsgSentry : MessageToEngine {
+		private ID unitID;
+		private bool enemyOnly;
+
+		public MsgSentry(ID unitID, bool enemyOnly) {
+			this.unitID = unitID;
+			this.enemyOnly = enemyOnly;
+		}
+
+		public override void process() {
+			MapUnit unit = EngineStorage.gameData.GetUnit(unitID);
+			if (unit != null && unit.unitType.actions.Contains(UnitAction.Sentry)) {
+				unit.Sentry(enemyOnly);
+				if (unit.owner.isHuman) {
+					new MsgUnitMoved(unit).send();
+				}
+			}
+		}
+	}
+
 	public class MsgPillage : MessageToEngine {
 		private ID unitID;
 

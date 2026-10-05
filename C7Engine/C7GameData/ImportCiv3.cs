@@ -1378,6 +1378,7 @@ namespace C7GameData {
 			if (prto.Unload) yield return UnitAction.Unload;
 			if (prto.UpgradeUnit) yield return UnitAction.Upgrade;
 			if (prto.Pillage) yield return UnitAction.Pillage;
+			if (prto.Sentry) yield return UnitAction.Sentry;
 		}
 
 		private static IEnumerable<TerraformKey> GetUnitTerraforms(PRTO prto) {

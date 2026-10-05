@@ -74,6 +74,8 @@ public static class C7Action {
 		[UnitUnload] = UnitAction.Unload,
 		[UnitUpgrade] = UnitAction.Upgrade,
 		[UnitPillage] = UnitAction.Pillage,
+		[UnitSentry] = UnitAction.Sentry,
+		[UnitSentryEnemyOnly] = UnitAction.SentryEnemyOnly,
 		[UnitWait] = UnitAction.Wait,
 		[UnitFortify] = UnitAction.Fortify,
 		[UnitDisband] = UnitAction.Disband,

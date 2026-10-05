@@ -22,6 +22,9 @@ namespace C7GameData {
 		Unload,
 		Upgrade,
 		Pillage,
+		Sentry,
+		// Not a BIQ ability; available to any unit that can sentry.
+		SentryEnemyOnly,
 	}
 
 	public struct ItemContext(UnitPrototype proto, Player player) {

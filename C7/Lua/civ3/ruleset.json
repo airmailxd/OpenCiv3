@@ -859,7 +859,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -940,7 +941,8 @@
         "goto",
         "explore",
         "automate",
-        "load"
+        "load",
+        "sentry"
       ],
       "terraformActions": [
         "Terraform-4",
@@ -1002,7 +1004,8 @@
         "explore",
         "load",
         "upgrade",
-        "pillage"
+        "pillage",
+        "sentry"
       ]
     },
     {
@@ -1074,7 +1077,8 @@
         "goto",
         "explore",
         "load",
-        "pillage"
+        "pillage",
+        "sentry"
       ]
     },
     {
@@ -1150,7 +1154,8 @@
         "goto",
         "explore",
         "load",
-        "pillage"
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Rubber"
@@ -1229,7 +1234,8 @@
         "goto",
         "explore",
         "load",
-        "pillage"
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Oil",
@@ -1312,7 +1318,8 @@
         "explore",
         "load",
         "upgrade",
-        "pillage"
+        "pillage",
+        "sentry"
       ]
     },
     {
@@ -1388,7 +1395,8 @@
         "explore",
         "load",
         "upgrade",
-        "pillage"
+        "pillage",
+        "sentry"
       ]
     },
     {
@@ -1462,7 +1470,8 @@
         "explore",
         "load",
         "upgrade",
-        "pillage"
+        "pillage",
+        "sentry"
       ]
     },
     {
@@ -1536,7 +1545,8 @@
         "explore",
         "load",
         "upgrade",
-        "pillage"
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Iron"
@@ -1615,7 +1625,8 @@
         "explore",
         "load",
         "upgrade",
-        "pillage"
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Horses"
@@ -1701,7 +1712,8 @@
         "explore",
         "load",
         "upgrade",
-        "pillage"
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Horses"
@@ -1779,7 +1791,8 @@
         "explore",
         "load",
         "upgrade",
-        "pillage"
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Iron"
@@ -1858,7 +1871,8 @@
         "explore",
         "load",
         "upgrade",
-        "pillage"
+        "pillage",
+        "sentry"
       ]
     },
     {
@@ -1935,7 +1949,8 @@
         "explore",
         "load",
         "upgrade",
-        "pillage"
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Saltpeter"
@@ -2012,7 +2027,8 @@
         "explore",
         "load",
         "upgrade",
-        "pillage"
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Horses",
@@ -2093,7 +2109,8 @@
         "explore",
         "load",
         "upgrade",
-        "pillage"
+        "pillage",
+        "sentry"
       ]
     },
     {
@@ -2168,7 +2185,8 @@
         "explore",
         "load",
         "upgrade",
-        "pillage"
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Horses",
@@ -2249,7 +2267,8 @@
         "explore",
         "load",
         "upgrade",
-        "pillage"
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Rubber"
@@ -2332,7 +2351,8 @@
         "explore",
         "load",
         "upgrade",
-        "pillage"
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Oil",
@@ -2412,7 +2432,8 @@
         "goto",
         "explore",
         "load",
-        "pillage"
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Oil",
@@ -2493,7 +2514,8 @@
         "goto",
         "explore",
         "load",
-        "pillage"
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Oil",
@@ -2574,7 +2596,8 @@
         "goto",
         "explore",
         "load",
-        "upgrade"
+        "upgrade",
+        "sentry"
       ]
     },
     {
@@ -2652,7 +2675,8 @@
         "goto",
         "explore",
         "load",
-        "upgrade"
+        "upgrade",
+        "sentry"
       ],
       "requiredResources": [
         "Iron",
@@ -2733,7 +2757,8 @@
         "goto",
         "explore",
         "load",
-        "upgrade"
+        "upgrade",
+        "sentry"
       ]
     },
     {
@@ -2811,7 +2836,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ],
       "requiredResources": [
         "Aluminum"
@@ -2890,7 +2916,8 @@
         "fortify",
         "disband",
         "goto",
-        "load"
+        "load",
+        "sentry"
       ],
       "requiredResources": [
         "Aluminum"
@@ -2966,7 +2993,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ],
       "requiredResources": [
         "Aluminum",
@@ -3041,7 +3069,8 @@
         "wait",
         "fortify",
         "disband",
-        "goto"
+        "goto",
+        "sentry"
       ],
       "requiredResources": [
         "Aluminum",
@@ -3124,7 +3153,8 @@
         "goto",
         "explore",
         "unload",
-        "upgrade"
+        "upgrade",
+        "sentry"
       ]
     },
     {
@@ -3202,7 +3232,8 @@
         "goto",
         "explore",
         "unload",
-        "upgrade"
+        "upgrade",
+        "sentry"
       ]
     },
     {
@@ -3276,7 +3307,8 @@
         "fortify",
         "disband",
         "goto",
-        "explore"
+        "explore",
+        "sentry"
       ],
       "requiredResources": [
         "Iron",
@@ -3359,7 +3391,8 @@
         "goto",
         "explore",
         "unload",
-        "upgrade"
+        "upgrade",
+        "sentry"
       ]
     },
     {
@@ -3435,7 +3468,8 @@
         "disband",
         "goto",
         "explore",
-        "upgrade"
+        "upgrade",
+        "sentry"
       ],
       "requiredResources": [
         "Iron",
@@ -3511,7 +3545,8 @@
         "disband",
         "goto",
         "explore",
-        "unload"
+        "unload",
+        "sentry"
       ],
       "requiredResources": [
         "Oil"
@@ -3590,7 +3625,8 @@
         "disband",
         "goto",
         "explore",
-        "unload"
+        "unload",
+        "sentry"
       ],
       "requiredResources": [
         "Oil"
@@ -3664,7 +3700,8 @@
         "fortify",
         "disband",
         "goto",
-        "explore"
+        "explore",
+        "sentry"
       ],
       "requiredResources": [
         "Oil"
@@ -3739,7 +3776,8 @@
         "fortify",
         "disband",
         "goto",
-        "explore"
+        "explore",
+        "sentry"
       ],
       "requiredResources": [
         "Oil"
@@ -3817,7 +3855,8 @@
         "fortify",
         "disband",
         "goto",
-        "explore"
+        "explore",
+        "sentry"
       ],
       "requiredResources": [
         "Oil"
@@ -3896,7 +3935,8 @@
         "fortify",
         "disband",
         "goto",
-        "explore"
+        "explore",
+        "sentry"
       ],
       "requiredResources": [
         "Aluminum",
@@ -3975,7 +4015,8 @@
         "disband",
         "goto",
         "explore",
-        "unload"
+        "unload",
+        "sentry"
       ],
       "requiredResources": [
         "Uranium"
@@ -4056,7 +4097,8 @@
         "fortify",
         "disband",
         "load",
-        "upgrade"
+        "upgrade",
+        "sentry"
       ],
       "requiredResources": [
         "Oil"
@@ -4133,7 +4175,8 @@
         "wait",
         "fortify",
         "disband",
-        "load"
+        "load",
+        "sentry"
       ],
       "requiredResources": [
         "Oil"
@@ -4209,7 +4252,8 @@
         "wait",
         "fortify",
         "disband",
-        "unload"
+        "unload",
+        "sentry"
       ],
       "requiredResources": [
         "Oil",
@@ -4286,7 +4330,8 @@
         "fortify",
         "disband",
         "load",
-        "upgrade"
+        "upgrade",
+        "sentry"
       ],
       "requiredResources": [
         "Oil",
@@ -4364,7 +4409,8 @@
         "wait",
         "fortify",
         "disband",
-        "load"
+        "load",
+        "sentry"
       ],
       "requiredResources": [
         "Oil",
@@ -4442,7 +4488,8 @@
         "wait",
         "fortify",
         "disband",
-        "load"
+        "load",
+        "sentry"
       ],
       "requiredResources": [
         "Oil",
@@ -4530,7 +4577,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -4618,7 +4666,8 @@
         "goto",
         "explore",
         "load",
-        "pillage"
+        "pillage",
+        "sentry"
       ]
     },
     {
@@ -4668,7 +4717,8 @@
         "explore",
         "load",
         "upgrade",
-        "pillage"
+        "pillage",
+        "sentry"
       ]
     },
     {
@@ -4718,7 +4768,8 @@
         "explore",
         "load",
         "upgrade",
-        "pillage"
+        "pillage",
+        "sentry"
       ]
     },
     {
@@ -4768,7 +4819,8 @@
         "explore",
         "load",
         "upgrade",
-        "pillage"
+        "pillage",
+        "sentry"
       ]
     },
     {
@@ -4818,7 +4870,8 @@
         "explore",
         "load",
         "upgrade",
-        "pillage"
+        "pillage",
+        "sentry"
       ]
     },
     {
@@ -4868,7 +4921,8 @@
         "explore",
         "load",
         "upgrade",
-        "pillage"
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Iron"
@@ -4921,7 +4975,8 @@
         "explore",
         "load",
         "upgrade",
-        "pillage"
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Iron"
@@ -4974,7 +5029,8 @@
         "explore",
         "load",
         "upgrade",
-        "pillage"
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Horses"
@@ -5027,7 +5083,8 @@
         "explore",
         "load",
         "upgrade",
-        "pillage"
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Horses",
@@ -5081,7 +5138,8 @@
         "explore",
         "load",
         "upgrade",
-        "pillage"
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Horses"
@@ -5134,7 +5192,8 @@
         "explore",
         "load",
         "upgrade",
-        "pillage"
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Saltpeter"
@@ -5187,7 +5246,8 @@
         "explore",
         "load",
         "upgrade",
-        "pillage"
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Iron"
@@ -5240,7 +5300,8 @@
         "explore",
         "load",
         "upgrade",
-        "pillage"
+        "pillage",
+        "sentry"
       ]
     },
     {
@@ -5288,7 +5349,8 @@
         "goto",
         "explore",
         "load",
-        "pillage"
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Horses",
@@ -5344,7 +5406,8 @@
         "explore",
         "load",
         "upgrade",
-        "pillage"
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Oil",
@@ -5394,7 +5457,8 @@
         "fortify",
         "disband",
         "goto",
-        "explore"
+        "explore",
+        "sentry"
       ],
       "requiredResources": [
         "Iron",
@@ -5443,7 +5507,8 @@
         "wait",
         "fortify",
         "disband",
-        "load"
+        "load",
+        "sentry"
       ],
       "requiredResources": [
         "Oil",
@@ -5521,7 +5586,8 @@
         "fortify",
         "disband",
         "goto",
-        "explore"
+        "explore",
+        "sentry"
       ],
       "requiredResources": [
         "Iron",
@@ -5576,7 +5642,8 @@
         "explore",
         "load",
         "upgrade",
-        "pillage"
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Horses"
@@ -5627,7 +5694,8 @@
         "explore",
         "load",
         "upgrade",
-        "pillage"
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Horses"
@@ -5681,7 +5749,8 @@
         "explore",
         "load",
         "upgrade",
-        "pillage"
+        "pillage",
+        "sentry"
       ]
     },
     {
@@ -5729,7 +5798,8 @@
         "explore",
         "load",
         "upgrade",
-        "pillage"
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Horses",
@@ -5783,7 +5853,8 @@
         "explore",
         "load",
         "upgrade",
-        "pillage"
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Iron"
@@ -5836,7 +5907,8 @@
         "explore",
         "load",
         "upgrade",
-        "pillage"
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Horses",
@@ -5890,7 +5962,8 @@
         "explore",
         "load",
         "upgrade",
-        "pillage"
+        "pillage",
+        "sentry"
       ]
     },
     {
@@ -5942,7 +6015,8 @@
         "goto",
         "explore",
         "load",
-        "upgrade"
+        "upgrade",
+        "sentry"
       ],
       "requiredResources": [
         "Saltpeter"
@@ -6021,7 +6095,8 @@
         "explore",
         "load",
         "upgrade",
-        "pillage"
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Iron"
@@ -6101,7 +6176,8 @@
         "explore",
         "load",
         "upgrade",
-        "pillage"
+        "pillage",
+        "sentry"
       ]
     },
     {
@@ -6135,7 +6211,8 @@
       "actions": [
         "hold",
         "wait",
-        "fortify"
+        "fortify",
+        "sentry"
       ]
     },
     {
@@ -6172,7 +6249,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -6209,7 +6287,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -6246,7 +6325,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -6283,7 +6363,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -6320,7 +6401,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -6357,7 +6439,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -6394,7 +6477,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -6431,7 +6515,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -6468,7 +6553,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -6505,7 +6591,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -6542,7 +6629,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -6579,7 +6667,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -6616,7 +6705,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -6653,7 +6743,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -6690,7 +6781,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -6727,7 +6819,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -6764,7 +6857,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -6801,7 +6895,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -6838,7 +6933,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -6875,7 +6971,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -6912,7 +7009,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -6949,7 +7047,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -6986,7 +7085,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -7023,7 +7123,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -7072,7 +7173,8 @@
         "explore",
         "load",
         "upgrade",
-        "pillage"
+        "pillage",
+        "sentry"
       ]
     },
     {
@@ -7122,7 +7224,8 @@
         "explore",
         "load",
         "upgrade",
-        "pillage"
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Horses"
@@ -7162,7 +7265,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -7199,7 +7303,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -7236,7 +7341,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -7286,7 +7392,8 @@
         "goto",
         "explore",
         "unload",
-        "upgrade"
+        "upgrade",
+        "sentry"
       ]
     },
     {
@@ -7336,7 +7443,8 @@
         "explore",
         "load",
         "upgrade",
-        "pillage"
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Iron"
@@ -7376,7 +7484,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -7453,7 +7562,8 @@
         "goto",
         "explore",
         "load",
-        "upgrade"
+        "upgrade",
+        "sentry"
       ]
     },
     {
@@ -7490,7 +7600,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -7527,7 +7638,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -7564,7 +7676,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -7613,7 +7726,8 @@
         "explore",
         "load",
         "upgrade",
-        "pillage"
+        "pillage",
+        "sentry"
       ]
     },
     {
@@ -7663,7 +7777,8 @@
         "explore",
         "load",
         "upgrade",
-        "pillage"
+        "pillage",
+        "sentry"
       ]
     },
     {
@@ -7714,7 +7829,8 @@
         "goto",
         "explore",
         "unload",
-        "upgrade"
+        "upgrade",
+        "sentry"
       ]
     },
     {
@@ -7793,7 +7909,8 @@
         "disband",
         "goto",
         "explore",
-        "upgrade"
+        "upgrade",
+        "sentry"
       ],
       "requiredResources": [
         "Oil"
@@ -7835,7 +7952,8 @@
         "goto",
         "explore",
         "load",
-        "pillage"
+        "pillage",
+        "sentry"
       ],
       "terraformActions": [
         "Terraform-3"
@@ -7877,7 +7995,8 @@
         "goto",
         "explore",
         "load",
-        "pillage"
+        "pillage",
+        "sentry"
       ]
     },
     {
@@ -7956,7 +8075,8 @@
         "disband",
         "goto",
         "explore",
-        "upgrade"
+        "upgrade",
+        "sentry"
       ]
     },
     {
@@ -8036,7 +8156,8 @@
         "explore",
         "load",
         "upgrade",
-        "pillage"
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Oil",
@@ -8113,7 +8234,8 @@
         "goto",
         "explore",
         "load",
-        "pillage"
+        "pillage",
+        "sentry"
       ]
     },
     {
@@ -8189,7 +8311,8 @@
         "goto",
         "explore",
         "load",
-        "upgrade"
+        "upgrade",
+        "sentry"
       ]
     },
     {
@@ -8261,7 +8384,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     }
   ],

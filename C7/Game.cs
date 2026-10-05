@@ -1228,11 +1228,11 @@ public partial class Game : Node {
 		}
 
 		if (currentAction == C7Action.UnitSentry) {
-			// unimplemented
+			new MsgSentry(CurrentlySelectedUnit.id, enemyOnly: false).send();
 		}
 
 		if (currentAction == C7Action.UnitSentryEnemyOnly) {
-			// unimplemented
+			new MsgSentry(CurrentlySelectedUnit.id, enemyOnly: true).send();
 		}
 
 		if (currentAction == C7Action.UnitBuildCity && CurrentlySelectedUnit.canBuildCity()) {

@@ -26,6 +26,10 @@ public partial class MapUnit {
 
 		defensiveBombardsRemaining = 1;
 		hasAttackedThisTurn = false;
+
+		if (isSentried && location.neighbors.Values.Any(t => t.unitsOnTile.Any(ShouldWakeSentryFor))) {
+			Wake();
+		}
 	}
 
 	public void OnEnterTile(Tile tile) {
@@ -84,6 +88,32 @@ public partial class MapUnit {
 
 	public void Wake() {
 		isFortified = false;
+		isSentried = false;
+		sentryEnemyOnly = false;
+	}
+
+	public void Sentry(bool enemyOnly) {
+		ResetFacingDirection();
+		isSentried = true;
+		sentryEnemyOnly = enemyOnly;
+	}
+
+	private bool ShouldWakeSentryFor(MapUnit other) {
+		if (other.owner == owner) {
+			return false;
+		}
+		return !sentryEnemyOnly || !owner.IsAtPeaceWith(other.owner);
+	}
+
+	// Wakes sentries next to a tile this unit just entered.
+	private void WakeNearbySentries(Tile tile) {
+		foreach (Tile t in tile.neighbors.Values) {
+			foreach (MapUnit u in t.unitsOnTile) {
+				if (u.isSentried && u.ShouldWakeSentryFor(this)) {
+					u.Wake();
+				}
+			}
+		}
 	}
 
 	public void Automate() {
@@ -274,6 +304,7 @@ public partial class MapUnit {
 		newLoc.unitsOnTile.Add(this);
 		location = newLoc;
 		OnEnterTile(newLoc);
+		WakeNearbySentries(newLoc);
 
 		if (wait)
 			await animateAsync(MapUnit.AnimatedAction.RUN);
