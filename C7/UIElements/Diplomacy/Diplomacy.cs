@@ -17,12 +17,34 @@ public partial class Diplomacy : CenterContainer {
 	private TalkScreen talkScreen;
 	private DealScreen dealScreen;
 
+	// Popups the talk and deal screens put up. Their answers go to the
+	// screen, so they are taken down along with it.
+	private readonly List<Popup> screenPopups = new();
+
 	public override void _Ready() {
 		this.Hide();
 		Hidden += () => { new MsgDiplomacyCompleted().send(); };
 	}
 
+	/// <summary>
+	/// Shows a popup for the talk or deal screen (or a part of it), which
+	/// is taken down if the screen is replaced before it is answered.
+	/// </summary>
+	public void ShowScreenPopup(Popup popup) {
+		// Forget popups that have closed and been freed.
+		screenPopups.RemoveAll(p => !IsInstanceValid(p));
+		screenPopups.Add(popup);
+		popupOverlay.ShowPopup(popup, PopupOverlay.PopupCategory.Advisor);
+	}
+
 	private void RemoveOtherScreens() {
+		foreach (Popup popup in screenPopups) {
+			if (IsInstanceValid(popup)) {
+				popupOverlay.Dismiss(popup);
+			}
+		}
+		screenPopups.Clear();
+
 		// Freeing is deferred, so a screen can safely replace itself from one
 		// of its own button handlers.
 		if (talkScreen != null) {

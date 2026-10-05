@@ -67,16 +67,20 @@ public partial class TradeOfferUi : Tree {
 
 			// Allow right clicking the gold amount to change it.
 			if (ti == lumpSumGold && mouseButtonIndex == 2) {
+				Diplomacy diplomacy = GetParent<DealScreen>().GetParent<Diplomacy>();
 				var handleTextInput = (string input) => {
+					// The deal screen may have been replaced while the
+					// dialog was up.
+					if (!IsInstanceValid(this) || !IsInsideTree()) {
+						return;
+					}
 					int gold = 0;
 					bool parsed = int.TryParse(input, out gold);
 					if (!parsed) {
 						return;
 					}
 					if (gold > playerGold || gold <= 0) {
-						GetParent<DealScreen>().GetParent<Diplomacy>().popupOverlay
-							.ShowPopup(new InformationalPopup("Insufficient gold"),
-									   PopupOverlay.PopupCategory.Advisor);
+						diplomacy.ShowScreenPopup(new InformationalPopup("Insufficient gold"));
 						return;
 					}
 
@@ -85,12 +89,10 @@ public partial class TradeOfferUi : Tree {
 					RefreshUiForOffer();
 				};
 
-				GetParent<DealScreen>().GetParent<Diplomacy>().popupOverlay
-					.ShowPopup(new TextDialog("Enter amount...",
+				diplomacy.ShowScreenPopup(new TextDialog("Enter amount...",
 											"Gold: ", "" + currentOffer.gold.Value,
 											BoxContainer.AlignmentMode.Center,
-											handleTextInput),
-								PopupOverlay.PopupCategory.Advisor);
+											handleTextInput));
 			}
 
 			if (ti == peaceTreaty) {

@@ -99,16 +99,20 @@ public partial class TradingTree : Tree {
 
 			// Allow user input for gold amounts.
 			if (ti == lumpSum) {
+				Diplomacy diplomacy = GetParent<DealScreen>().GetParent<Diplomacy>();
 				var handleTextInput = (string input) => {
+					// The deal screen may have been replaced while the
+					// dialog was up.
+					if (!IsInstanceValid(this) || !IsInsideTree()) {
+						return;
+					}
 					int gold = 0;
 					bool parsed = int.TryParse(input, out gold);
 					if (!parsed) {
 						return;
 					}
 					if (gold > playerGold || gold <= 0) {
-						GetParent<DealScreen>().GetParent<Diplomacy>().popupOverlay
-							.ShowPopup(new InformationalPopup("Insufficient gold"),
-									   PopupOverlay.PopupCategory.Advisor);
+						diplomacy.ShowScreenPopup(new InformationalPopup("Insufficient gold"));
 						return;
 					}
 
@@ -117,12 +121,10 @@ public partial class TradingTree : Tree {
 					RefreshUiForOffer();
 				};
 
-				GetParent<DealScreen>().GetParent<Diplomacy>().popupOverlay
-					.ShowPopup(new TextDialog("Enter amount...",
+				diplomacy.ShowScreenPopup(new TextDialog("Enter amount...",
 											"Gold: ", "0",
 											BoxContainer.AlignmentMode.Center,
-											handleTextInput),
-								PopupOverlay.PopupCategory.Advisor);
+											handleTextInput));
 			}
 
 			if (ti == peaceTreaty) {
@@ -179,14 +181,15 @@ public partial class TradingTree : Tree {
 		// background with no lines between items.
 		Color transparent = new Color(0, 0, 0, 0);
 		tree.Theme = fontTheme;
-		// The style box comes from a theme shared by the whole game, so change
-		// a copy of it rather than the original.
-		StyleBoxFlat styleBox = (StyleBoxFlat)tree.GetThemeStylebox("bg", "Tree").Duplicate();
-		styleBox.BgColor = transparent;
-		styleBox.BorderWidthLeft = 0;
-		styleBox.BorderWidthRight = 0;
-		styleBox.BorderWidthTop = 0;
-		styleBox.BorderWidthBottom = 0;
+		// A style box of our own, so the theme shared by the whole game is
+		// left alone. (Tree has no "bg" style box in Godot 4 to copy.)
+		StyleBoxFlat styleBox = new() {
+			BgColor = transparent,
+			BorderWidthLeft = 0,
+			BorderWidthRight = 0,
+			BorderWidthTop = 0,
+			BorderWidthBottom = 0,
+		};
 		tree.AddThemeStyleboxOverride("panel", styleBox);
 		tree.AddThemeStyleboxOverride("focus", styleBox);
 		tree.AddThemeColorOverride("font_color", Colors.Black);

@@ -79,13 +79,19 @@ public partial class TalkScreen : TextureRect {
 	}
 
 	private void DeclareWar() {
+		Diplomacy diplomacy = GetParent<Diplomacy>();
 		EngineStorage.ReadGameData((GameData gD) => {
 			Player opponentPlayer = gD.players.Find(x => x.id == opponentPlayerId);
-			GetParent<Diplomacy>().popupOverlay.ShowPopup(new WarConfirmation(opponentPlayer,
+			diplomacy.ShowScreenPopup(new WarConfirmation(opponentPlayer,
 				() => {
+					// The talk screen may have been replaced while the
+					// popup was up.
+					if (!IsInstanceValid(this) || !IsInsideTree()) {
+						return;
+					}
 					new MsgDeclareWar(opponentPlayer).send();
-					GetParent<Diplomacy>().Hide();
-				}), PopupOverlay.PopupCategory.Advisor);
+					diplomacy.Hide();
+				}));
 		});
 	}
 

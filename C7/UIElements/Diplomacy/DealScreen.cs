@@ -195,11 +195,22 @@ public partial class DealScreen : TextureRect {
 			DescribeDeal(humanPlayer, humanOffer, opponentOffer);
 
 		opponentResponse.Text = $"\"{opponentPlayer.civilization.leader} is considering the offer...\"";
-		GetParent<Diplomacy>().popupOverlay.ShowPopup(
-			new ConfirmationPopup(message, "We accept.", "We refuse.", () => {
-				new MsgProposeDeal(opponentPlayer, humanOffer, opponentOffer) { opponentAgreed = true }.send();
-			}),
-			PopupOverlay.PopupCategory.Advisor);
+		GetParent<Diplomacy>().ShowScreenPopup(
+			new ConfirmationPopup(message, "We accept.", "We refuse.",
+				yesAction: () => {
+					// The deal screen may have been replaced while the
+					// popup was up.
+					if (!IsInstanceValid(this) || !IsInsideTree()) {
+						return;
+					}
+					new MsgProposeDeal(opponentPlayer, humanOffer, opponentOffer) { opponentAgreed = true }.send();
+				},
+				noAction: () => {
+					if (!IsInstanceValid(this) || !IsInsideTree()) {
+						return;
+					}
+					opponentResponse.Text = $"\"{opponentPlayer.civilization.leader} refused the offer.\"";
+				}));
 	}
 
 	public static string DescribeDeal(Player proposer, TradeOffer proposerGives, TradeOffer proposerWants) {
