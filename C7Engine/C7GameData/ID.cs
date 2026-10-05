@@ -11,7 +11,7 @@ namespace C7GameData {
 		ID id { get; }
 	}
 
-	public class ID {
+	public class ID : IEquatable<ID> {
 		// at runtime, any ID parsed from a string as "<key>-none" will be
 		// compared to other IDs by -0xC7C7
 		private static readonly int magicNoneIdNumber = -0xC7C7;
@@ -20,6 +20,10 @@ namespace C7GameData {
 
 		private readonly int n;
 
+		// IDs are immutable and used as keys in many hot dictionaries/sets, so
+		// the hash is computed once instead of formatting a string per lookup.
+		private readonly int hashCode;
+
 		public override string ToString() {
 			return n != magicNoneIdNumber ? $"{key}-{n}" : $"{key}-none";
 		}
@@ -27,6 +31,7 @@ namespace C7GameData {
 		internal ID(string key, int n) {
 			this.key = key;
 			this.n = n;
+			this.hashCode = HashCode.Combine(key, n);
 		}
 
 		public static ID None(string key) {
@@ -46,15 +51,20 @@ namespace C7GameData {
 		}
 
 		public override bool Equals(object obj) {
-			return obj switch {
-				null => false,
-				ID id => id.n == n && id.key == key,
-				_ => false,
-			};
+			return Equals(obj as ID);
 		}
 
-		// c# string hash is based on value, not reference
-		public override int GetHashCode() => ToString().GetHashCode();
+		public bool Equals(ID other) {
+			if (other is null) {
+				return false;
+			}
+			return ReferenceEquals(this, other) || (other.hashCode == hashCode && other.n == n && other.key == key);
+		}
+
+		// Consistent with Equals: equal (key, n) pairs give equal hashes. Note
+		// string hashes are randomized per process in .NET, so nothing can
+		// depend on the hash value across runs anyway.
+		public override int GetHashCode() => hashCode;
 
 		public static bool operator ==(ID lhs, ID rhs) {
 			if (lhs is null && rhs is null) {
