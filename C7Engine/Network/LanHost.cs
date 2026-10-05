@@ -84,6 +84,9 @@ public class LanHost : IDisposable {
 	// before, so it can reuse that one's encoding when nothing changed.
 	private Task<EncodedSnapshot> lastEncoding;
 
+	// What discovery answers, published whole for the discovery thread.
+	private volatile DiscoveryReply discoveryReply;
+
 	private long lastProcessedMessageCount = -1;
 	private readonly Stopwatch sinceChange = Stopwatch.StartNew();
 	private readonly Stopwatch sinceSnapshot = Stopwatch.StartNew();
@@ -165,6 +168,7 @@ public class LanHost : IDisposable {
 		Thread acceptThread = new(AcceptLoop) { IsBackground = true, Name = "LAN accept" };
 		acceptThread.Start();
 
+		PublishDiscoveryReply();
 		if (answerDiscovery) {
 			try {
 				discovery = new UdpClient(LanProtocol.DiscoveryPort) { EnableBroadcast = true };
@@ -197,12 +201,23 @@ public class LanHost : IDisposable {
 				if (Encoding.UTF8.GetString(request) != LanProtocol.DiscoveryRequest) {
 					continue;
 				}
-				int openSeats = seats.Count(s => s.connection == null || s.connection.IsClosed);
-				byte[] reply = NetSerialization.SerializeData(new DiscoveryReply(hostName, Port, openSeats, Started));
+				// The seats belong to the main thread, which publishes what
+				// to answer as they change.
+				byte[] reply = NetSerialization.SerializeData(discoveryReply);
 				discovery.Send(reply, reply.Length, from);
 			} catch (Exception e) when (e is SocketException or ObjectDisposedException) {
 				if (disposed) return;
 			}
+		}
+	}
+
+	// Called on the main thread whenever the seats or the game's state may
+	// have changed.
+	private void PublishDiscoveryReply() {
+		int openSeats = seats.Count(s => s.connection == null || s.connection.IsClosed);
+		DiscoveryReply current = discoveryReply;
+		if (current == null || current.openSeats != openSeats || current.started != Started) {
+			discoveryReply = new DiscoveryReply(hostName, Port, openSeats, Started);
 		}
 	}
 
@@ -248,6 +263,7 @@ public class LanHost : IDisposable {
 			SendStart(spectator, snapshot);
 		}
 		lastProcessedMessageCount = EngineStorage.processedMessageCount;
+		PublishDiscoveryReply();
 	}
 
 	private static void SendStart(Seat seat, Task<EncodedSnapshot> snapshot) {
@@ -281,6 +297,7 @@ public class LanHost : IDisposable {
 			UpdateTurnClock();
 			MaybeSendSnapshot();
 		}
+		PublishDiscoveryReply();
 	}
 
 	// Restarts the clock when a new turn begins, and ends a human's turn for
