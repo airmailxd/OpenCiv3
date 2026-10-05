@@ -17,12 +17,58 @@ public class DominationVictory : IVictory {
 
 	public string Header() => "Domination";
 
+	// The number of tiles counted for domination, cached since it takes a
+	// scan of the whole map and is needed for every player. Base terrain is
+	// only set while making the map, but to be safe this is recounted each
+	// turn, and whenever the map or its list of tiles is replaced.
+	private sealed class TerritoryCount {
+		internal GameMap map;
+		internal List<Tile> tiles;
+		internal int tileCount;
+		internal int turn;
+		internal int total;
+	}
+
+	private TerritoryCount territoryCount;
+
+	private int TotalTerritory(GameData gameData) {
+		GameMap map = gameData.map;
+		List<Tile> tiles = map.tiles;
+		TerritoryCount count = territoryCount;
+		if (count != null && ReferenceEquals(count.map, map) && ReferenceEquals(count.tiles, tiles)
+			&& count.tileCount == tiles.Count && count.turn == gameData.turn) {
+			return count.total;
+		}
+
+		int total = 0;
+		foreach (Tile t in tiles) {
+			if (t.IsCountedForDomination()) {
+				++total;
+			}
+		}
+		territoryCount = new TerritoryCount { map = map, tiles = tiles, tileCount = tiles.Count, turn = gameData.turn, total = total };
+		return total;
+	}
+
+	private static int Population(Player player) {
+		int result = 0;
+		foreach (City c in player.cities) {
+			result += c.residents.Count;
+		}
+		return result;
+	}
+
 	public VictoryStatus Evaluate(Player player, GameData gameData) {
-		int totalTerritory = gameData.map.tiles.Count(t => t.IsCountedForDomination());
+		int totalTerritory = TotalTerritory(gameData);
 		int ourTerritory = player.tileKnowledge.DominationTiles().Count;
 
-		int totalPopulation = gameData.players.Sum(p => p.cities.Sum(c => c.residents.Count));
-		int ourPopulation = player.cities.Sum(c => c.residents.Count);
+		// Population is cheap to sum (no tiles involved), and it can change
+		// during a turn, so it isn't cached.
+		int totalPopulation = 0;
+		foreach (Player p in gameData.players) {
+			totalPopulation += Population(p);
+		}
+		int ourPopulation = Population(player);
 
 		return new VictoryStatus {
 			Player = player,
