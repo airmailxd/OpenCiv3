@@ -144,7 +144,18 @@ public partial class TerrainLayer : LooseLayer {
 		if (looseView.drawRegion.Contains(X, Y) && looseView.IsTileKnown(neighbor)) {
 			return;
 		}
+		// A tile that doesn't draw itself is the neighbor of up to three tiles that do, so only draw it once at each place.
+		if (!enqueuedNeighbors.Add(((long)X << 32) | (uint)Y)) {
+			return;
+		}
 		Enqueue(neighbor, tileCenter);
+	}
+
+	// The virtual coordinates of the neighbors enqueued in this draw.
+	private readonly HashSet<long> enqueuedNeighbors = new();
+
+	public override void onBeginDraw(LooseView looseView, GameData gameData) {
+		enqueuedNeighbors.Clear();
 	}
 
 	private void Enqueue(Tile tile, Vector2 tileCenter) {
@@ -193,6 +204,7 @@ public partial class TerrainLayer : LooseLayer {
 		}
 		DrawTiles(looseView, tilesWithOddFileID, drawNegativeFileIDs: false);
 		tilesWithOddFileID.Clear();
+		enqueuedNeighbors.Clear();
 	}
 
 	private static int FileID(TileToDraw tTD) {
@@ -841,10 +853,15 @@ public partial class MapView : Node2D {
 	private bool mapChanged = true;
 
 	// While the engine is busy (the AI is playing, animations are running) the game changes without telling the UI, so the map is redrawn
-	// every frame until a little after it is done. Things remembered against contentVersion are recomputed a few times a second meanwhile.
+	// every frame until a little after it is done, and once more when it's done. During the computer's turn, the views that are only redrawn
+	// when the map changes are only redrawn several times a second instead (units are drawn every frame anyway); on the player's turn, they
+	// keep up with the player's units revealing the map as they move. Things remembered against contentVersion are recomputed a few times a
+	// second meanwhile.
 	private const int BusyGraceFrames = 10;
+	private const double BusyRedrawSeconds = 0.1;
 	private const double BusyRefreshSeconds = 0.25;
 	private int busyFramesLeft = 0;
+	private double busyRedrawTimer = 0;
 	private double busyRefreshTimer = 0;
 	private long lastProcessedMessageCount = -1;
 	private bool mapWasHidden = false;
@@ -984,21 +1001,35 @@ public partial class MapView : Node2D {
 		}
 
 		if (game.MapMayChangeWithoutNotice) {
+			if (busyFramesLeft == 0) {
+				// Just got busy: redraw right away.
+				busyRedrawTimer = BusyRedrawSeconds;
+			}
 			busyFramesLeft = BusyGraceFrames;
 		}
 		if (busyFramesLeft > 0) {
 			--busyFramesLeft;
-			mapChanged = true;
+			// The last busy frame shows and remembers the game as the engine left it.
+			bool done = busyFramesLeft == 0;
+			busyRedrawTimer += delta;
+			bool throttled = game.CurrentState == Game.GameState.ComputerTurn;
+			if (!throttled || busyRedrawTimer >= BusyRedrawSeconds || done) {
+				busyRedrawTimer = 0;
+				mapChanged = true;
+			}
 			busyRefreshTimer += delta;
-			if (busyRefreshTimer >= BusyRefreshSeconds) {
+			if (busyRefreshTimer >= BusyRefreshSeconds || done) {
 				busyRefreshTimer = 0;
 				++contentVersion;
 			}
 		} else {
+			busyRedrawTimer = 0;
 			busyRefreshTimer = 0;
 		}
 
 		UpdateDrawnRegion();
+		// Also catches the screen changing size.
+		cityLayer.PlaceScenes(this);
 
 		if (mapChanged) {
 			visibleTilesStale = true;
@@ -1206,8 +1237,9 @@ public partial class MapView : Node2D {
 			looseView.Position = -location;
 		}
 
-		// Draw any newly uncovered part of the map this frame.
+		// Draw any newly uncovered part of the map this frame, and keep the cities at their copies on screen.
 		UpdateDrawnRegion();
+		cityLayer?.PlaceScenes(this);
 	}
 
 	public Vector2 screenLocationOfTileCoords(int X, int Y, bool center = true) {
@@ -1218,10 +1250,15 @@ public partial class MapView : Node2D {
 		return mapLoc * cameraZoom - cameraLocation;
 	}
 
-	// Returns the location of tile (X, Y) on the screen, if "center" is true returns the location of the tile center and otherwise returns the
-	// upper left. Works even if (X, Y) is off screen or out of bounds.
+	// Returns the location of the tile on the screen, if "center" is true returns the location of the tile center and otherwise returns the
+	// upper left. Works even if the tile is off screen. On a wrapping map, it's the location of the copy of the tile nearest the middle of
+	// the screen.
 	public Vector2 screenLocationOfTile(Tile tile, bool center = true) {
-		return screenLocationOfTileCoords(tile.XCoordinate, tile.YCoordinate, center);
+		Vector2 mapLoc = NearestTileCenter(tile, CameraCenterInMap());
+		if (!center) {
+			mapLoc -= cellSize;
+		}
+		return mapLoc * cameraZoom - cameraLocation;
 	}
 
 	// Returns the virtual tile coordinates on screen at the given location. "Virtual" meaning the coordinates are unwrapped and there isn't
@@ -1255,8 +1292,10 @@ public partial class MapView : Node2D {
 		return map.tileAt(X, Y);
 	}
 
+	// Centers the camera on the tile. On a wrapping map, on the copy of the tile nearest the middle of the screen, so the camera doesn't jump
+	// across the map (and the whole map isn't redrawn) to get to a copy that looks the same.
 	public void centerCameraOnTile(Tile t) {
-		var tileCenter = new Vector2(t.XCoordinate + 1, t.YCoordinate + 1) * scaledCellSize;
+		var tileCenter = NearestTileCenter(t, CameraCenterInMap()) * cameraZoom;
 		setCameraLocation(tileCenter - (float)0.5 * getVisibleAreaSize());
 	}
 

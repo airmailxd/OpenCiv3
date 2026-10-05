@@ -310,9 +310,12 @@ public partial class Game : Node {
 			} else {
 				Vector2? cameraLocation = null;
 				float cameraZoom = 1.0f;
+				// The city whose tiles the city screen shows, if it's open.
+				City shownCity = null;
 				if (mapView != null) {
 					cameraLocation = mapView.cameraLocation;
 					cameraZoom = mapView.cameraZoom;
+					shownCity = mapView.tileAssignmentLayer.city;
 					RemoveChild(mapView);
 					mapView.QueueFree();
 				}
@@ -327,6 +330,14 @@ public partial class Game : Node {
 					CenterCameraOnController();
 				} else {
 					mapView.cameraLocation = cameraLocation.Value;
+				}
+
+				// Carry the open city screen's city over to the new map view, as the same city in the new game data if it's still there.
+				// Otherwise the old city is kept for the city screen to notice that it's gone when it's refreshed for the new game data
+				// (see CityScreen.RefreshAfterGameReplaced, which the LAN snapshot handler calls next).
+				if (shownCity != null) {
+					City sameCity = gameData.cities.Find(c => c.id == shownCity.id);
+					mapView.tileAssignmentLayer.city = sameCity ?? shownCity;
 				}
 			}
 
@@ -405,9 +416,14 @@ public partial class Game : Node {
 	private void OnLanSnapshot(C7GameData.Save.SaveGame save) {
 		Stopwatch applyTime = Stopwatch.StartNew();
 		GameData gameData = CreateGame.ReplaceWithSnapshot(save, Global.GameMode.behaviors);
-		// Textures looked up by game object would otherwise keep the old game's
-		// objects alive; the map looks up terrain textures by value.
+		// Textures, art names and colors looked up by game object would
+		// otherwise keep the old game's objects alive; the map looks up
+		// terrain textures by value.
 		TextureLoader.ForgetGameObjects();
+		AnimationManager.ForgetGameObjects();
+		C7.Textures.PlayerTextureUtil.ForgetGameObjects();
+		// Animations of units that aren't in the snapshot would never end.
+		animationController.animTracker.forgetRemovedUnits(gameData);
 		// A spectator sees the whole map.
 		gameData.observerMode = LanSession.IsSpectator;
 
@@ -419,7 +435,21 @@ public partial class Game : Node {
 			MapUnit bombarder = gameData.GetUnit(bombardInfo.bombardingUnit.id);
 			setBombard(bombarder);
 		}
+
+		// The tile info box and the goto path refer to tiles, which are
+		// new objects too: point them at the same places on the new map.
+		if (tileInfo != null) {
+			Tile target = gameData.map.tileAt(tileInfo.targetTile.XCoordinate, tileInfo.targetTile.YCoordinate);
+			tileInfo = target != Tile.NONE ? new TileInfo(target) : null;
+		}
+		Tile gotoDestination = gotoInfo?.destinationTile;
 		lastTile = null;
+		if (gotoDestination != null) {
+			gotoInfo = GetGotoInfo(gameData.map.tileAt(gotoDestination.XCoordinate, gotoDestination.YCoordinate));
+		}
+
+		// TODO(integration): refresh an open advisor for the new game data
+		// here, once the advisors have a method for it.
 
 		if (applyTime.ElapsedMilliseconds > 100) {
 			log.Information("Showing the host's snapshot took {Milliseconds} ms", applyTime.ElapsedMilliseconds);
@@ -617,10 +647,12 @@ public partial class Game : Node {
 	}
 
 	public void HandleEngineMessage(MessageToUI msg) {
-		GameData gameData = EngineStorage.gameData;
-
 		// Whatever the engine tells us about may have changed the map.
 		mapView?.InvalidateMap();
+
+		// The map shows everyone's cities, so it's updated right away, even
+		// for a message that's held for another player.
+		UpdateMapForMessage(msg);
 
 		// Hold messages for a human player who isn't at the screen (for
 		// example barbarians raiding them during the AI turns) until they are.
@@ -633,6 +665,30 @@ public partial class Game : Node {
 			return;
 		}
 
+		ShowEngineMessage(msg);
+	}
+
+	// What a message changes on the map, done when the message arrives.
+	private void UpdateMapForMessage(MessageToUI msg) {
+		switch (msg) {
+			case MsgCityDestroyed mCD:
+				// A LAN client has already redrawn the map without the city.
+				if (mCD.city != null) {
+					mapView?.cityLayer.UpdateAfterCityDestruction(mCD.city);
+				}
+				break;
+			case MsgCityCaptured mCCap:
+				mapView?.cityLayer.UpdateAfterCityCapture(mCCap.city);
+				break;
+		}
+	}
+
+	// Shows a message to the player at the screen: the popups, screens and
+	// other reactions to the message. Held messages are shown when they're
+	// replayed.
+	private void ShowEngineMessage(MessageToUI msg) {
+		GameData gameData = EngineStorage.gameData;
+
 		switch (msg) {
 			case MsgStartTurn mST:
 				// Hotseat follows the UI controller, which the engine moved to
@@ -644,15 +700,6 @@ public partial class Game : Node {
 				break;
 			case MsgCityCreated mCC:
 				ShowCityScreenForCity(gameData, mCC.city);
-				break;
-			case MsgCityDestroyed mCD:
-				// A LAN client has already redrawn the map without the city.
-				if (mCD.city != null) {
-					mapView.cityLayer.UpdateAfterCityDestruction(mCD.city);
-				}
-				break;
-			case MsgCityCaptured mCCap:
-				mapView.cityLayer.UpdateAfterCityCapture(mCCap.city);
 				break;
 			case MsgCivilizationDestroyed mCivD when LanSession.IsSpectator:
 				ShowSpectatorNews($"The {mCivD.civilization.noun} have been destroyed");
@@ -853,12 +900,18 @@ public partial class Game : Node {
 
 	// Whether the game may change without the UI being told, i.e. while the
 	// AI plays, animations run, or the engine has messages to process. The
-	// map is redrawn every frame while this is true. A LAN client's game only
+	// map is redrawn regularly while this is true. A LAN client's game only
 	// changes with the host's snapshots and messages, which it is told about.
+	// Neither does a LAN host's while it waits for another machine's player:
+	// their moves are messages its engine processes, which redraw the map.
 	public bool MapMayChangeWithoutNotice =>
-		(CurrentState == GameState.ComputerTurn && !LanSession.IsClient)
+		(CurrentState == GameState.ComputerTurn && !LanSession.IsClient && !IsWaitingForRemotePlayer)
 		|| EngineStorage.HasPendingAnimations()
 		|| EngineStorage.HasPendingMessagesToEngine();
+
+	// Whether another machine's player is taking their turn in a LAN game,
+	// while the banner saying so is shown.
+	public bool IsWaitingForRemotePlayer => lanWaitingBanner != null;
 
 	// Shows messages that were held for the UI controller while another
 	// player had the screen, one popup at a time, once their turn is underway.
@@ -867,7 +920,9 @@ public partial class Game : Node {
 			return;
 		}
 		if (heldMessages.TryGetValue(controller.id, out Queue<MessageToUI> held) && held.TryDequeue(out MessageToUI msg)) {
-			HandleEngineMessage(msg);
+			// The map was updated for the message when it arrived.
+			mapView?.InvalidateMap();
+			ShowEngineMessage(msg);
 		}
 	}
 

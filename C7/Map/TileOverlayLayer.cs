@@ -235,10 +235,12 @@ namespace C7.Map {
 			}
 
 			ID id = tile.Id;
-			var rand = new Random(Math.Clamp(int.Parse(id.ToString().Replace("tile-", "")) + offset, int.MinValue, int.MaxValue));
-			var customRng = rng + rand.Next() + rand.Next(0, variations);
+			// The sums may overflow, so they're done without sign: a negative sum would give a negative index. Where nothing overflows, the
+			// results are the same as with signed sums.
+			var rand = new Random(unchecked(int.Parse(id.ToString().Replace("tile-", "")) + offset));
+			uint customRng = unchecked((uint)rng + (uint)rand.Next() + (uint)rand.Next(0, variations));
 
-			return rngs[(tile, offset)] = customRng % variations;
+			return rngs[(tile, offset)] = (int)(customRng % (uint)variations);
 		}
 
 		// Returns the rectangle within the road texture for a given index,
