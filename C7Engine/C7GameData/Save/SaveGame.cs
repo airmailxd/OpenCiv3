@@ -204,9 +204,14 @@ namespace C7GameData.Save {
 					}
 				}
 
-				// Backfill visibility.
+				// Backfill visibility. The active tiles depend only on the
+				// tiles known once every unit has looked, so work them out
+				// once rather than after each unit.
 				foreach (MapUnit u in p.units) {
-					p.tileKnowledge.AddTilesToKnown(u.location);
+					p.tileKnowledge.AddTilesToKnown(u.location, recomputeActiveTiles: false);
+				}
+				if (p.units.Count > 0) {
+					p.tileKnowledge.RecomputeActiveTiles();
 				}
 
 				// TODO: this may require more than one loop, because if all the

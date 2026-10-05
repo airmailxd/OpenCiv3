@@ -8,6 +8,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
+using System.Threading.Tasks;
 using C7GameData;
 using C7GameData.Save;
 using Serilog;
@@ -24,8 +25,16 @@ namespace C7Engine.Network;
 // guests choose their own civilizations: the host creates the game once
 // everyone has chosen, then starts it as usual.
 //
-// Everything except accepting connections and answering discovery happens in
-// Poll(), which the game calls every frame on its main thread.
+// Everything except accepting connections, answering discovery, encoding
+// snapshots and writing to the network happens in Poll(), which the game
+// calls every frame on its main thread.
+//
+// A snapshot is taken from the game on the main thread, but encoded on a
+// worker thread, and each connection writes it when it's ready, in its place
+// among that connection's frames. While one is being encoded, changes wait
+// for the next, so a burst of changes is sent as one snapshot of the latest
+// game rather than a queue of stale ones; and a snapshot identical to the
+// last one a connection was sent isn't sent again.
 public class LanHost : IDisposable {
 	private static readonly ILogger log = Log.ForContext<LanHost>();
 
@@ -70,6 +79,13 @@ public class LanHost : IDisposable {
 		public readonly List<byte[]> pendingUiMessages = new();
 	}
 	private readonly List<Spectator> spectators = new();
+
+	// The last snapshot handed to be encoded. Each is encoded after the one
+	// before, so it can reuse that one's encoding when nothing changed.
+	private Task<EncodedSnapshot> lastEncoding;
+
+	// What discovery answers, published whole for the discovery thread.
+	private volatile DiscoveryReply discoveryReply;
 
 	private long lastProcessedMessageCount = -1;
 	private readonly Stopwatch sinceChange = Stopwatch.StartNew();
@@ -152,6 +168,7 @@ public class LanHost : IDisposable {
 		Thread acceptThread = new(AcceptLoop) { IsBackground = true, Name = "LAN accept" };
 		acceptThread.Start();
 
+		PublishDiscoveryReply();
 		if (answerDiscovery) {
 			try {
 				discovery = new UdpClient(LanProtocol.DiscoveryPort) { EnableBroadcast = true };
@@ -184,14 +201,46 @@ public class LanHost : IDisposable {
 				if (Encoding.UTF8.GetString(request) != LanProtocol.DiscoveryRequest) {
 					continue;
 				}
-				int openSeats = seats.Count(s => s.connection == null || s.connection.IsClosed);
-				byte[] reply = NetSerialization.SerializeData(new DiscoveryReply(hostName, Port, openSeats, Started));
+				// The seats belong to the main thread, which publishes what
+				// to answer as they change.
+				byte[] reply = NetSerialization.SerializeData(discoveryReply);
 				discovery.Send(reply, reply.Length, from);
 			} catch (Exception e) when (e is SocketException or ObjectDisposedException) {
 				if (disposed) return;
 			}
 		}
 	}
+
+	// Called on the main thread whenever the seats or the game's state may
+	// have changed.
+	private void PublishDiscoveryReply() {
+		int openSeats = seats.Count(s => s.connection == null || s.connection.IsClosed);
+		DiscoveryReply current = discoveryReply;
+		if (current == null || current.openSeats != openSeats || current.started != Started) {
+			discoveryReply = new DiscoveryReply(hostName, Port, openSeats, Started);
+		}
+	}
+
+	// Takes a snapshot of the game as it stands, and encodes it on a worker
+	// thread.
+	private Task<EncodedSnapshot> EncodeSnapshot() {
+		SaveGame snapshot = LanProtocol.SnapshotOf(EngineStorage.gameData);
+		Task<EncodedSnapshot> previous = lastEncoding;
+		lastEncoding = Task.Run(async () => {
+			EncodedSnapshot before = null;
+			if (previous != null) {
+				try {
+					before = await previous;
+				} catch (Exception) {
+					// The connections waiting on it have logged why.
+				}
+			}
+			return LanProtocol.EncodeSnapshot(snapshot, before);
+		});
+		return lastEncoding;
+	}
+
+	private bool EncodingSnapshot => lastEncoding != null && !lastEncoding.IsCompleted;
 
 	// Starts the game once the host's engine has loaded it: from now on
 	// clients' messages go to the engine, and the engine's messages to them.
@@ -206,7 +255,7 @@ public class LanHost : IDisposable {
 		EngineStorage.animationsEnabled = false;
 		EngineStorage.uiMessageRouter = RouteMessageToUI;
 
-		byte[] snapshot = LanProtocol.EncodeSnapshot(EngineStorage.gameData);
+		Task<EncodedSnapshot> snapshot = EncodeSnapshot();
 		foreach (Seat seat in seats.Where(s => s.connection != null)) {
 			SendStart(seat, snapshot);
 		}
@@ -214,18 +263,19 @@ public class LanHost : IDisposable {
 			SendStart(spectator, snapshot);
 		}
 		lastProcessedMessageCount = EngineStorage.processedMessageCount;
+		PublishDiscoveryReply();
 	}
 
-	private void SendStart(Seat seat, byte[] snapshot) {
+	private static void SendStart(Seat seat, Task<EncodedSnapshot> snapshot) {
 		seat.pendingUiMessages.Clear();
 		seat.connection.Send(FrameKind.Start, new StartInfo(seat.info.playerID));
-		seat.connection.Send(FrameKind.Snapshot, snapshot);
+		seat.connection.SendSnapshot(snapshot);
 	}
 
-	private static void SendStart(Spectator spectator, byte[] snapshot) {
+	private static void SendStart(Spectator spectator, Task<EncodedSnapshot> snapshot) {
 		spectator.pendingUiMessages.Clear();
 		spectator.connection.Send(FrameKind.Start, new StartInfo(null));
-		spectator.connection.Send(FrameKind.Snapshot, snapshot);
+		spectator.connection.SendSnapshot(snapshot);
 	}
 
 	public void Poll() {
@@ -247,6 +297,7 @@ public class LanHost : IDisposable {
 			UpdateTurnClock();
 			MaybeSendSnapshot();
 		}
+		PublishDiscoveryReply();
 	}
 
 	// Restarts the clock when a new turn begins, and ends a human's turn for
@@ -334,7 +385,7 @@ public class LanHost : IDisposable {
 						log.Information("{Name} took the seat of {Player}", name, seat.info.playerID);
 						if (Started) {
 							// A player rejoining a game in progress.
-							SendStart(seat, LanProtocol.EncodeSnapshot(EngineStorage.gameData));
+							SendStart(seat, EncodeSnapshot());
 						}
 						BroadcastLobby();
 						return;
@@ -348,7 +399,7 @@ public class LanHost : IDisposable {
 						spectators.Add(spectator);
 						log.Information("{Name} is watching", name);
 						if (Started) {
-							SendStart(spectator, LanProtocol.EncodeSnapshot(EngineStorage.gameData));
+							SendStart(spectator, EncodeSnapshot());
 						}
 						BroadcastLobby();
 						return;
@@ -524,7 +575,8 @@ public class LanHost : IDisposable {
 
 	// Sends a snapshot once the game has changed and the engine has caught up
 	// with its messages, then the UI messages, which refer to the snapshot's
-	// units and cities.
+	// units and cities. While the last snapshot is still being encoded, the
+	// next one waits for it, taking in the changes made meanwhile.
 	private void MaybeSendSnapshot() {
 		if (EngineStorage.processedMessageCount != lastProcessedMessageCount) {
 			lastProcessedMessageCount = EngineStorage.processedMessageCount;
@@ -532,15 +584,18 @@ public class LanHost : IDisposable {
 			spectatorSnapshotPending = true;
 			sinceChange.Restart();
 		}
+		if (EncodingSnapshot) {
+			return;
+		}
 		bool settled = !EngineStorage.HasPendingMessagesToEngine() && sinceChange.Elapsed >= SnapshotDelay;
-		byte[] snapshot = null;
+		Task<EncodedSnapshot> snapshot = null;
 
 		if (snapshotPending && (settled || sinceSnapshot.Elapsed >= MaxSnapshotDelay)) {
 			snapshotPending = false;
 			sinceSnapshot.Restart();
 			List<Seat> connected = seats.Where(s => s.connection != null && !s.connection.IsClosed).ToList();
 			if (connected.Count > 0) {
-				snapshot = LanProtocol.EncodeSnapshot(EngineStorage.gameData);
+				snapshot = EncodeSnapshot();
 				foreach (Seat seat in connected) {
 					SendSnapshot(seat.connection, snapshot, seat.pendingUiMessages);
 				}
@@ -552,7 +607,7 @@ public class LanHost : IDisposable {
 			sinceSpectatorSnapshot.Restart();
 			List<Spectator> watching = spectators.Where(s => !s.connection.IsClosed).ToList();
 			if (watching.Count > 0) {
-				snapshot ??= LanProtocol.EncodeSnapshot(EngineStorage.gameData);
+				snapshot ??= EncodeSnapshot();
 				foreach (Spectator spectator in watching) {
 					SendSnapshot(spectator.connection, snapshot, spectator.pendingUiMessages);
 				}
@@ -560,8 +615,8 @@ public class LanHost : IDisposable {
 		}
 	}
 
-	private static void SendSnapshot(LanConnection connection, byte[] snapshot, List<byte[]> pendingUiMessages) {
-		connection.Send(FrameKind.Snapshot, snapshot);
+	private static void SendSnapshot(LanConnection connection, Task<EncodedSnapshot> snapshot, List<byte[]> pendingUiMessages) {
+		connection.SendSnapshot(snapshot);
 		foreach (byte[] json in pendingUiMessages) {
 			connection.Send(FrameKind.UiMessage, json);
 		}
