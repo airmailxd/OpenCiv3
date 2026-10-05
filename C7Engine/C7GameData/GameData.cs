@@ -22,7 +22,35 @@ namespace C7GameData {
 		public List<TerrainType> terrainTypes = new List<TerrainType>();
 		public List<TerrainImprovement> terrainImprovements = [];
 		public List<Resource> Resources = new List<Resource>();
-		public List<MapUnit> mapUnits { get; set; } = new List<MapUnit>();
+		// Kept as a list so units are processed in a stable order. Use GetUnit
+		// to look a unit up by its id.
+		public List<MapUnit> mapUnits {
+			get => _mapUnits;
+			set {
+				_mapUnits = value;
+				unitsById = null;
+			}
+		}
+		private List<MapUnit> _mapUnits = new List<MapUnit>();
+
+		// An index of mapUnits by id. It is kept up to date by the methods
+		// here that add and remove units, and rebuilt whenever its size no
+		// longer matches mapUnits (when units were added or removed elsewhere).
+		private Dictionary<ID, MapUnit> unitsById;
+
+		// An index of cities by id, holding each city's position in the cities
+		// list so that a stale entry can be detected and the index rebuilt.
+		private Dictionary<ID, int> cityIndexById;
+		private List<City> indexedCities;
+
+		// The player last returned by GetUIControllerPlayer.
+		private Player cachedUIControllerPlayer;
+		private List<Player> cachedUIControllerPlayers;
+		private int cachedUIControllerPlayerCount;
+
+		// The culture (current plus per turn) of each city, cached while
+		// UpdateTileOwners runs since nothing changes culture in the meantime.
+		private Dictionary<City, int> cultureCache;
 		public List<UnitPrototype> unitPrototypes = new();
 		public List<Building> Buildings = new();
 		public List<Inflow> Inflows = new();
@@ -95,7 +123,7 @@ namespace C7GameData {
 				seed = rng.Next(int.MaxValue);
 			}
 			rng = new Random(seed);
-			log.Information($"Seed is {seed}");
+			log.Information("Seed is {Seed}", seed);
 		}
 
 		// Returns the player whose perspective the UI is currently showing. In a
@@ -103,7 +131,21 @@ namespace C7GameData {
 		// in observer mode it is still the player the UI was following, even
 		// though that player is no longer marked as human.
 		public Player GetUIControllerPlayer() {
-			return GetPlayer(EngineStorage.uiControllerID);
+			// This is called for every tile on every frame by the map renderer,
+			// so remember the answer while the controller and players are
+			// unchanged.
+			ID id = EngineStorage.uiControllerID;
+			Player cached = cachedUIControllerPlayer;
+			if (cached != null && cached.id == id
+				&& ReferenceEquals(cachedUIControllerPlayers, players)
+				&& cachedUIControllerPlayerCount == players.Count) {
+				return cached;
+			}
+			Player player = GetPlayer(id);
+			cachedUIControllerPlayer = player;
+			cachedUIControllerPlayers = players;
+			cachedUIControllerPlayerCount = players.Count;
+			return player;
 		}
 
 		public List<Player> GetRivals(Player player) {
@@ -116,11 +158,90 @@ namespace C7GameData {
 		}
 
 		public MapUnit GetUnit(ID id) {
-			return mapUnits.Find(u => u.id == id);
+			if (id is null) {
+				return _mapUnits.Find(u => u.id == id);
+			}
+			if (unitsById == null || unitsById.Count != _mapUnits.Count) {
+				RebuildUnitIndex();
+			}
+			return unitsById.GetValueOrDefault(id);
+		}
+
+		private void RebuildUnitIndex() {
+			unitsById = new Dictionary<ID, MapUnit>(_mapUnits.Count);
+			foreach (MapUnit unit in _mapUnits) {
+				// Like List.Find, the first unit with a given id wins.
+				if (unit.id is not null) {
+					unitsById.TryAdd(unit.id, unit);
+				}
+			}
+		}
+
+		// Adds a unit to mapUnits, keeping the index up to date.
+		internal void AddMapUnit(MapUnit unit) {
+			_mapUnits.Add(unit);
+			if (unitsById != null && unit.id is not null) {
+				unitsById.TryAdd(unit.id, unit);
+			}
+		}
+
+		private void RemoveMapUnit(MapUnit unit) {
+			if (!_mapUnits.Remove(unit)) {
+				return;
+			}
+			if (unitsById != null && unit.id is not null
+				&& unitsById.TryGetValue(unit.id, out MapUnit indexed) && indexed == unit) {
+				unitsById.Remove(unit.id);
+			}
+		}
+
+		// Returns the city with the given id, or null if there is none.
+		public City GetCity(ID id) {
+			if (id is null) {
+				return cities.Find(c => c.id == id);
+			}
+			if (TryGetIndexedCity(id, out City city)) {
+				return city;
+			}
+			// The id may belong to a city added since the index was built, or
+			// the list may have been changed.
+			RebuildCityIndex();
+			TryGetIndexedCity(id, out city);
+			return city;
+		}
+
+		private bool TryGetIndexedCity(ID id, out City city) {
+			city = null;
+			if (cityIndexById == null || !ReferenceEquals(indexedCities, cities)) {
+				return false;
+			}
+			if (!cityIndexById.TryGetValue(id, out int index)) {
+				return false;
+			}
+			if (index < cities.Count && cities[index].id == id) {
+				city = cities[index];
+				return true;
+			}
+			return false;
+		}
+
+		private void RebuildCityIndex() {
+			indexedCities = cities;
+			cityIndexById = new Dictionary<ID, int>(cities.Count);
+			for (int i = 0; i < cities.Count; ++i) {
+				if (cities[i].id is not null) {
+					cityIndexById.TryAdd(cities[i].id, i);
+				}
+			}
 		}
 
 		public Player GetPlayer(ID id) {
-			return players.Find(p => p.id == id);
+			foreach (Player p in players) {
+				if (p.id == id) {
+					return p;
+				}
+			}
+			return null;
 		}
 
 		public Tech GetTech(ID id) {
@@ -156,81 +277,238 @@ namespace C7GameData {
 		}
 
 		public void UpdateTileOwners() {
-			// We do this at the end of the method - we don't need to do this
-			// for each tile we add in the loop below.
-			bool recomputeActiveTiles = false;
+			cultureCache = new Dictionary<City, int>();
+			try {
+				ResolveCityBorders();
+				ResolveBorderGaps();
+			} finally {
+				cultureCache = null;
+			}
+		}
 
+		private void ResolveCityBorders() {
 			foreach (City city in cities) {
 				if (city.residents.Count == 0) {
 					continue; // skip destroyed cities
 				}
 
-				city.location.owningCity = city;
+				SetTileOwner(city.location, city);
 
 				foreach (Tile t in city.GetTilesWithinBorders()) {
 					// If another city has claim to this tile, we need to resolve
 					// that conflict.
+					//
+					// We recompute the active tiles once per player afterwards,
+					// so we don't need to do it for each tile here.
 					if (t.owningCity != null && ResolveTileOwnershipConflict(t.owningCity, city, t, out City winnerCity)) {
-						t.owningCity = winnerCity;
-						t.owningCity.owner.tileKnowledge.AddTilesToKnown(t, recomputeActiveTiles);
+						SetTileOwner(t, winnerCity);
+						winnerCity.owner.tileKnowledge.AddTilesToKnown(t, false);
 						continue;
 					}
 
-					t.owningCity = city;
-					t.owningCity.owner.tileKnowledge.AddTilesToKnown(t, recomputeActiveTiles);
-				}
-			}
-
-			foreach (Player player in players) {
-				player.tileKnowledge.RecomputeActiveTiles();
-				player.UpdateResourcesInBorders(map.tiles.Where(t => t.owningCity?.owner == player));
-
-				foreach (Tile t in player.tileKnowledge.knownTiles.Where(t => t.owningCity == null && t.GetEdgeNeighbors().Any(e => e.owningCity != null)).ToList()) {
-					// Law VII
-					TryResolveOpposingNeighbors(t, TileDirection.NORTHWEST, TileDirection.SOUTHEAST);
-					if (t.owningCity != null) continue;
-					// Law VIII
-					TryResolveOpposingNeighbors(t, TileDirection.NORTHEAST, TileDirection.SOUTHWEST);
+					SetTileOwner(t, city);
+					city.owner.tileKnowledge.AddTilesToKnown(t, false);
 				}
 			}
 		}
 
-		private void TryResolveOpposingNeighbors(Tile t, TileDirection dirA, TileDirection dirB) {
-			if (!t.neighbors.TryGetValue(dirA, out Tile a) || !t.neighbors.TryGetValue(dirB, out Tile b)) return;
-			if (a.owningCity == null || b.owningCity == null) return;
-			if (a.owningCity.owner != b.owningCity.owner) return;
-			if (!ResolveTileOwnershipConflict(a.owningCity, b.owningCity, t, out City winnerCity)) return;
+		// Brings each player's active tiles and resources up to date, and
+		// gives unowned tiles caught between two tiles of the same player to
+		// that player (Laws VII and VIII).
+		private void ResolveBorderGaps() {
+			Dictionary<Player, List<Tile>> tilesByOwner = BucketTilesByOwner(out List<Tile> ownedTiles);
+
+			// Laws VII and VIII only apply to an unowned tile next to an owned
+			// one, and almost always there is no such tile that they would
+			// give away. In that case there is nothing to resolve, and the
+			// order in which the tiles are visited doesn't matter.
+			if (!AnyBorderGapToResolve(ownedTiles)) {
+				foreach (Player player in players) {
+					player.tileKnowledge.RecomputeActiveTiles();
+					player.UpdateResourcesInBorders(OwnedTilesOf(tilesByOwner, player));
+				}
+				return;
+			}
+
+			// Otherwise resolve the gaps exactly as we always have: player by
+			// player, visiting each player's known tiles in order, since giving
+			// away one tile can let another one be given away.
+			++borderGapResolutionCount;
+			bool ownersChanged = false;
+			foreach (Player player in players) {
+				player.tileKnowledge.RecomputeActiveTiles();
+				if (ownersChanged) {
+					tilesByOwner = BucketTilesByOwner(out _);
+					ownersChanged = false;
+				}
+				player.UpdateResourcesInBorders(OwnedTilesOf(tilesByOwner, player));
+
+				List<Tile> candidates = new();
+				foreach (Tile t in player.tileKnowledge.knownTiles) {
+					if (t.owningCity == null && HasOwnedEdgeNeighbor(t)) {
+						candidates.Add(t);
+					}
+				}
+				foreach (Tile t in candidates) {
+					// Law VII
+					ownersChanged |= TryResolveOpposingNeighbors(t, TileDirection.NORTHWEST, TileDirection.SOUTHEAST);
+					if (t.owningCity != null) continue;
+					// Law VIII
+					ownersChanged |= TryResolveOpposingNeighbors(t, TileDirection.NORTHEAST, TileDirection.SOUTHWEST);
+				}
+			}
+		}
+
+		// The number of times Laws VII and VIII had tiles to give away, for
+		// tests.
+		internal int borderGapResolutionCount { get; private set; }
+
+		private static readonly TileDirection[] edgeDirections = {
+			TileDirection.NORTHEAST, TileDirection.NORTHWEST, TileDirection.SOUTHEAST, TileDirection.SOUTHWEST,
+		};
+
+		private static bool HasOwnedEdgeNeighbor(Tile t) {
+			foreach (TileDirection direction in edgeDirections) {
+				if (t.neighbors.TryGetValue(direction, out Tile e) && e.owningCity != null) {
+					return true;
+				}
+			}
+			return false;
+		}
+
+		private static IEnumerable<Tile> OwnedTilesOf(Dictionary<Player, List<Tile>> tilesByOwner, Player player) {
+			return tilesByOwner.TryGetValue(player, out List<Tile> tiles) ? tiles : Array.Empty<Tile>();
+		}
+
+		// Groups the owned tiles of the map by owner, keeping map order.
+		private Dictionary<Player, List<Tile>> BucketTilesByOwner(out List<Tile> ownedTiles) {
+			Dictionary<Player, List<Tile>> result = new();
+			ownedTiles = new();
+			foreach (Tile t in map.tiles) {
+				City city = t.owningCity;
+				if (city == null) {
+					continue;
+				}
+				ownedTiles.Add(t);
+				Player owner = city.owner;
+				if (owner == null) {
+					continue;
+				}
+				if (!result.TryGetValue(owner, out List<Tile> tiles)) {
+					tiles = new List<Tile>();
+					result[owner] = tiles;
+				}
+				tiles.Add(t);
+			}
+			return result;
+		}
+
+		// True if Law VII or VIII would give away some unowned tile next to
+		// one of the owned tiles.
+		private bool AnyBorderGapToResolve(List<Tile> ownedTiles) {
+			HashSet<Tile> checkedTiles = new();
+			foreach (Tile owned in ownedTiles) {
+				foreach (TileDirection direction in edgeDirections) {
+					// Neighbors are symmetric, so every unowned tile with an
+					// owned edge neighbor is an edge neighbor of an owned tile.
+					if (!owned.neighbors.TryGetValue(direction, out Tile t) || t == Tile.NONE || t.owningCity != null) {
+						continue;
+					}
+					if (!checkedTiles.Add(t)) {
+						continue;
+					}
+					try {
+						if (EvaluateOpposingNeighbors(t, TileDirection.NORTHWEST, TileDirection.SOUTHEAST, out City winner) && winner != null) {
+							return true;
+						}
+						if (EvaluateOpposingNeighbors(t, TileDirection.NORTHEAST, TileDirection.SOUTHWEST, out winner) && winner != null) {
+							return true;
+						}
+					} catch (Exception) {
+						// Leave it to the exact algorithm to run into this, if
+						// it does.
+						return true;
+					}
+				}
+			}
+			return false;
+		}
+
+		// Works out what Law VII or VIII (depending on the directions) says
+		// about an unowned tile. Returns false if the law doesn't apply, and
+		// otherwise the city that gets the tile, which is null if Law II
+		// leaves the tile unowned.
+		private bool EvaluateOpposingNeighbors(Tile t, TileDirection dirA, TileDirection dirB, out City newOwner) {
+			newOwner = null;
+			if (!t.neighbors.TryGetValue(dirA, out Tile a) || !t.neighbors.TryGetValue(dirB, out Tile b)) return false;
+			if (a.owningCity == null || b.owningCity == null) return false;
+			if (a.owningCity.owner != b.owningCity.owner) return false;
+			if (!ResolveTileOwnershipConflict(a.owningCity, b.owningCity, t, out City winnerCity)) return false;
 
 			// Law II
 			if (t.baseTerrainType.Key == "ocean" && t.RankDistanceTo(winnerCity.location) > 2) {
-				t.owningCity = null;
-				return;
+				return true;
 			}
-			t.owningCity = winnerCity;
+			newOwner = winnerCity;
+			return true;
+		}
+
+		// Returns true if the tile was given to a city.
+		private bool TryResolveOpposingNeighbors(Tile t, TileDirection dirA, TileDirection dirB) {
+			if (!EvaluateOpposingNeighbors(t, dirA, dirB, out City winnerCity)) return false;
+
+			if (winnerCity == null) {
+				SetTileOwner(t, null);
+				return false;
+			}
+			SetTileOwner(t, winnerCity);
 			winnerCity.owner.tileKnowledge.AddTilesToKnown(t);
+			return true;
+		}
+
+		// Changes the city that owns a tile. All ownership changes should go
+		// through here, so that the players' active tiles are kept up to date.
+		private static void SetTileOwner(Tile t, City city) {
+			if (t.owningCity != city) {
+				t.owningCity = city;
+				TileChangeJournal.Record(t);
+			}
 		}
 
 		public void UpdateTileOwnersOnCityDestruction(City city) {
-			city.location.owningCity = null;
+			SetTileOwner(city.location, null);
 
 			var borderTiles = city.GetTilesWithinBorders();
-			var borderTileIds = borderTiles.Select(x => x.Id).ToHashSet();
+			var borderTileSet = borderTiles.ToHashSet();
 
 			foreach (Tile tile in borderTiles) {
-				tile.owningCity = null;
+				SetTileOwner(tile, null);
 
 				// Aggressively remove ownership from edge neighbors around the city outside the natural border.
 				// This clears out tile ownership due to Law VII or Law VIII.
 				// Regular tile ownership update will re-assign ownership where needed.
-				foreach (var fringeTile in tile.GetEdgeNeighbors().Where(x => !borderTileIds.Contains(x.Id))) {
+				foreach (var fringeTile in tile.GetEdgeNeighbors()) {
+					if (borderTileSet.Contains(fringeTile))
+						continue;
 					if (fringeTile.HasCity()) // skip encountered cities, just in case
 						continue;
 
-					fringeTile.owningCity = null;
+					SetTileOwner(fringeTile, null);
 				}
 			}
 
 			UpdateTileOwners();
+		}
+
+		// Records that a city has changed hands, so that every player
+		// re-examines the tiles it owns.
+		internal void OnCityOwnerChanged(City city) {
+			foreach (Tile t in map.tiles) {
+				if (t.owningCity == city) {
+					TileChangeJournal.Record(t);
+				}
+			}
+			TileChangeJournal.Record(city.location);
 		}
 
 		public void CheckForCivDestructionAndNotifyUi(Player player) {
@@ -280,13 +558,13 @@ namespace C7GameData {
 
 		[LuaMethod]
 		public void SendMessageToUiFromLua(string message, Tile location) {
-			log.Information($"[LUA API] - {message}");
+			log.Information("[LUA API] - {Message}", message);
 			new MsgShowTemporaryPopup(message, location).send();
 
 		}
 
 		public async Task DisbandUnit(MapUnit unit) {
-			log.Information($"Player {unit.owner} disbands unit: {unit}");
+			log.Information("Player {Player} disbands unit: {Unit}", unit.owner, unit);
 
 			var disbandFunction = this.luaBehaviorEngine.ImportFunc<Action<MapUnit>>("gameplay.units.disband");
 			disbandFunction.Invoke(unit);
@@ -328,19 +606,16 @@ namespace C7GameData {
 
 			// EngineStorage.animTracker.endAnimation(unit, false);   TODO: Must send message instead of call directly
 			unit.location.unitsOnTile.Remove(unit);
-			mapUnits.Remove(unit);
+			TileChangeJournal.Record(unit.location);
+			RemoveMapUnit(unit);
 
 			Player owner = unit.owner;
 			owner.units.Remove(unit);
 
-			log.Information($"Player {owner} removed unit: {unit}");
+			log.Information("Player {Player} removed unit: {Unit}", owner, unit);
 
-			// Probably could be optimized, by checking if this unit had radar,
-			// or if there are other units on the tile,
-			// but I don't want to this prematurely here,
-			// since there might be things I am taking into account,
-			// and end up introducing a bunch of bugs.
-			// If it ends up being a problem, we could certainly look into this more.
+			// Only the tiles recorded in the journal are re-examined, so this
+			// is cheap.
 			owner.tileKnowledge.RecomputeActiveTiles();
 
 			if (!owner.defeated)
@@ -353,7 +628,7 @@ namespace C7GameData {
 		/// </summary>
 		internal void CaptureUnit(MapUnit unit, Player captor) {
 			Player previousOwner = unit.owner;
-			log.Information($"Player {captor} captured unit: {unit}");
+			log.Information("Player {Captor} captured unit: {Unit}", captor, unit);
 
 			if (unit.currentAI != null) {
 				unit.currentAI.UpdateOnDeath();
@@ -368,6 +643,7 @@ namespace C7GameData {
 			previousOwner.units.Remove(unit);
 			unit.owner = captor;
 			captor.AddUnit(unit);
+			TileChangeJournal.Record(unit.location);
 
 			previousOwner.tileKnowledge.RecomputeActiveTiles();
 			captor.tileKnowledge.RecomputeActiveTiles();
@@ -384,7 +660,7 @@ namespace C7GameData {
 			Civilization nationality = settler.nationality;
 			UnitPrototype worker = unitPrototypes.FirstOrDefault(p => p.name == "Worker")
 				?? unitPrototypes.First(p => p.isWorker);
-			log.Information($"Player {captor} captured settler {settler} as two workers");
+			log.Information("Player {Captor} captured settler {Settler} as two workers", captor, settler);
 
 			RemoveUnit(settler);
 			for (int i = 0; i < 2; i++) {
@@ -408,7 +684,8 @@ namespace C7GameData {
 			newUnit.hitPointsRemaining = newUnit.maxHitPoints;
 
 			tile.unitsOnTile.Add(newUnit);
-			this.mapUnits.Add(newUnit);
+			TileChangeJournal.Record(tile);
+			AddMapUnit(newUnit);
 			player.units.Add(newUnit);
 
 			log.Debug("New unit of type {type} added at {tile} for player {player}",
@@ -464,6 +741,20 @@ namespace C7GameData {
 			tradeNetwork = null;
 		}
 
+		// A city's culture plus its culture per turn, which decides contested
+		// tiles. Computing the culture per turn is expensive, so it is cached
+		// while UpdateTileOwners runs.
+		private int CultureForBorders(City city) {
+			if (cultureCache == null) {
+				return city.GetCulture() + city.GetCulturePerTurn();
+			}
+			if (!cultureCache.TryGetValue(city, out int culture)) {
+				culture = city.GetCulture() + city.GetCulturePerTurn();
+				cultureCache[city] = culture;
+			}
+			return culture;
+		}
+
 		// Rules taken from https://forums.civfanatics.com/threads/the-eight-laws-of-border-dynamics.106882/
 		private bool ResolveTileOwnershipConflict(City a, City b, Tile t, out City owner) {
 			owner = null;
@@ -484,8 +775,10 @@ namespace C7GameData {
 
 			// Law IV
 			// If the ranks are equal, the city with more culture gets the tile.
-			if (a.GetCulture() + a.GetCulturePerTurn() < b.GetCulture() + b.GetCulturePerTurn()) { owner = b; return true; }
-			if (a.GetCulture() + a.GetCulturePerTurn() > b.GetCulture() + b.GetCulturePerTurn()) { owner = a; return true; }
+			int aCulture = CultureForBorders(a);
+			int bCulture = CultureForBorders(b);
+			if (aCulture < bCulture) { owner = b; return true; }
+			if (aCulture > bCulture) { owner = a; return true; }
 
 			// Law V
 			// If the cultures are equal the oldest city gets the tile.

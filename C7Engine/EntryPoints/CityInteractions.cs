@@ -19,6 +19,9 @@ namespace C7Engine {
 			gameData.cities.Add(newCity);
 			owner.cities.Add(newCity);
 			tileWithNewCity.cityAtTile = newCity;
+			// Building the city may clear the terrain, which changes what units
+			// nearby can see.
+			TileChangeJournal.RecordTerrainChange(tileWithNewCity);
 
 			CityResident firstResident = new CityResident();
 			firstResident.city = newCity;
@@ -180,6 +183,7 @@ namespace C7Engine {
 			oldOwner.cities.Remove(city);
 			captor.cities.Add(city);
 			city.owner = captor;
+			gameData.OnCityOwnerChanged(city);
 			city.perPlayerCulture.TryAdd(captor, 0);
 			city.isInCivilDisorder = false;
 			city.SetStoredShields(0);
@@ -190,7 +194,7 @@ namespace C7Engine {
 			// Choosing production needs the trade network to know the new owner.
 			city.SetItemBeingProduced(ChooseProducible.Choose(city, captor));
 
-			log.Information($"{captor} captured {city} from {oldOwner}, plundering {plunder} gold");
+			log.Information("{Captor} captured {City} from {OldOwner}, plundering {Plunder} gold", captor, city, oldOwner, plunder);
 			new MsgCityCaptured(city, oldOwner).send();
 			if (captor.isHuman) {
 				new MsgShowMilitaryAdvisorPopup(captor, $"We have captured {city.name} and plundered {plunder} gold!", happy: true).send();
@@ -244,6 +248,7 @@ namespace C7Engine {
 			gameData.CheckForCivDestructionAndNotifyUi(owner);
 
 			tile.cityAtTile = null;
+			TileChangeJournal.RecordTerrainChange(tile);
 
 			if (wasCapital) {
 				MovePalaceAfterLosingCapital(owner, tile);
