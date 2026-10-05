@@ -55,12 +55,39 @@ namespace C7GameData {
 		public int foodStored = 0;
 
 		public bool capital = false;
-		public Player owner { get; set; }
+
+		// Changing hands changes the buildings of both players, which tells
+		// the caches derived from them (see Player.GetBuildingSnapshot).
+		public Player owner {
+			get => _owner;
+			set {
+				Player previous = _owner;
+				_owner = value;
+				if (!ReferenceEquals(previous, value)) {
+					previous?.OnBuildingsChanged();
+					value?.OnBuildingsChanged();
+				}
+			}
+		}
+		private Player _owner;
+
 		public List<CityResident> residents = new List<CityResident>();
 
 		// The list of buildings built in this city. You probably want to use
 		// GetBuildings, which can also include buildings granted by wonders.
-		public List<CityBuilding> constructed_buildings;
+		//
+		// Change it through AddBuilding and RemoveBuilding, or by assigning a
+		// new list, so the owner's caches hear of it. (This city's own cache
+		// also notices the list being changed directly, but the owner's
+		// empire-wide one doesn't.)
+		public List<CityBuilding> constructed_buildings {
+			get => _constructedBuildings;
+			set {
+				_constructedBuildings = value;
+				_owner?.OnBuildingsChanged();
+			}
+		}
+		private List<CityBuilding> _constructedBuildings;
 
 		// The order of this city within all the cities of a player for the
 		// purposes of rank corruption calculations.
@@ -154,30 +181,21 @@ namespace C7GameData {
 				this.shieldsStored = shields;
 		}
 
-		// Bumped by every AddBuilding and RemoveBuilding, in any city. Caches
-		// derived from city buildings compare against it, so they are
-		// invalidated even when a building is swapped for another without
-		// the number of buildings changing.
-		private static long buildingsVersion = 0;
-		internal static long BuildingsVersion => Interlocked.Read(ref buildingsVersion);
-
-		private static void OnBuildingsChanged() {
-			Interlocked.Increment(ref buildingsVersion);
-		}
-
 		// The cached result of EffectiveBuildings: the buildings built in this
 		// city followed by those granted by the owner's active great wonders.
 		// It is immutable and replaced as a whole, and it is checked against
-		// everything it was computed from on each use: the owner, the location
-		// (for continent-wide wonders), the constructed_buildings list and its
-		// count, City.BuildingsVersion and the owner's wonder snapshot (which
-		// validates itself, see Player.GetBuildingSnapshot).
+		// everything it was computed from on each use, in O(1): the owner, the
+		// location (for continent-wide wonders), the constructed_buildings
+		// list, its count and whether it has been modified since (which
+		// catches a building being swapped for another without the count
+		// changing), and the owner's wonder snapshot (which validates itself,
+		// see Player.GetBuildingSnapshot).
 		private sealed class EffectiveBuildingsCache {
 			internal Player owner;
 			internal Tile location;
 			internal List<CityBuilding> source;
 			internal int sourceCount;
-			internal long buildingsVersion;
+			internal List<CityBuilding>.Enumerator sourceVersion;
 			internal Player.BuildingSnapshot wonders;
 
 			// The buildings, with the constructed ones first. Entries from
@@ -197,7 +215,7 @@ namespace C7GameData {
 				&& ReferenceEquals(cache.location, location)
 				&& ReferenceEquals(cache.source, constructed_buildings)
 				&& cache.sourceCount == constructed_buildings.Count
-				&& cache.buildingsVersion == BuildingsVersion) {
+				&& CollectionVersion.Unchanged(cache.sourceVersion)) {
 				return cache;
 			}
 
@@ -206,7 +224,7 @@ namespace C7GameData {
 				location = location,
 				source = constructed_buildings,
 				sourceCount = constructed_buildings.Count,
-				buildingsVersion = BuildingsVersion,
+				sourceVersion = constructed_buildings.GetEnumerator(),
 				wonders = wonders,
 			};
 
@@ -940,11 +958,11 @@ namespace C7GameData {
 				year = CurrentGameYear(),
 				totalCulture = 0
 			});
-			OnBuildingsChanged();
+			owner?.OnBuildingsChanged();
 		}
 		public void RemoveBuilding(CityBuilding building) {
 			constructed_buildings.Remove(building);
-			OnBuildingsChanged();
+			owner?.OnBuildingsChanged();
 		}
 
 		public void AddUnit(UnitPrototype proto, GameData gameData) {

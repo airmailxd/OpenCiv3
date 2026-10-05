@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using C7Engine.AI.StrategicAI;
 using C7Engine;
 using MoonSharp.Interpreter;
@@ -64,6 +65,33 @@ namespace C7GameData {
 
 		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() {
 			return ordered.GetEnumerator();
+		}
+	}
+
+	// O(1) checks that a List or HashSet hasn't been modified since an
+	// enumerator was taken from it. Their enumerators are documented to throw
+	// from MoveNext once the collection has been modified (and List counts
+	// replacing an entry as a modification), so trying to move a copy of the
+	// stored enumerator tells us, without walking the collection. (The
+	// enumerator is passed by value, so the stored one never moves.) The
+	// exception is only thrown, and caught, once per change.
+	internal static class CollectionVersion {
+		internal static bool Unchanged<T>(List<T>.Enumerator enumerator) {
+			try {
+				enumerator.MoveNext();
+				return true;
+			} catch (InvalidOperationException) {
+				return false;
+			}
+		}
+
+		internal static bool Unchanged<T>(HashSet<T>.Enumerator enumerator) {
+			try {
+				enumerator.MoveNext();
+				return true;
+			} catch (InvalidOperationException) {
+				return false;
+			}
 		}
 	}
 
@@ -1479,6 +1507,16 @@ namespace C7GameData {
 			return new List<Tuple<City, CityBuilding>>(GetBuildingSnapshot().activeWonders);
 		}
 
+		// Bumped whenever the buildings of this player's cities change: by
+		// City.AddBuilding and City.RemoveBuilding, when a city's building list
+		// is replaced, and when a city changes hands (for both players).
+		private long buildingsVersion = 0;
+		internal long BuildingsVersion => Interlocked.Read(ref buildingsVersion);
+
+		internal void OnBuildingsChanged() {
+			Interlocked.Increment(ref buildingsVersion);
+		}
+
 		// Empire-wide facts derived from the buildings in this player's cities
 		// (the active great wonders, and whether a building like the Pentagon
 		// makes armies larger). Every city yield needs the wonders, so they are
@@ -1486,25 +1524,24 @@ namespace C7GameData {
 		//
 		// The snapshot is immutable and is replaced, never modified, so readers
 		// on other threads always see a consistent one. It is checked against
-		// everything it was computed from each time it is used:
-		//  - the cities list (same list object, same cities in the same order),
-		//    which catches cities being founded, captured, lost or destroyed,
-		//    and a new list on load;
-		//  - each city's constructed_buildings (same list object and count);
-		//  - City.BuildingsVersion, bumped by every City.AddBuilding and
-		//    City.RemoveBuilding, which catches a building being swapped for
-		//    another without the count changing;
-		//  - knownTechs (same set and count; techs are only ever added), which
+		// everything it was computed from each time it is used, in O(1):
+		//  - this player's BuildingsVersion, which catches buildings being
+		//    added, removed or swapped in any of our cities, and cities
+		//    changing hands;
+		//  - the cities list (same list object, same count, and not modified
+		//    since), which catches cities being founded, captured, lost,
+		//    destroyed or reordered, and a new list on load, even where the
+		//    code doing it doesn't tell us;
+		//  - knownTechs (same set, same count, and not modified since), which
 		//    catches wonders going obsolete.
-		// Checking costs O(cities) reference comparisons, with no allocation.
 		internal sealed class BuildingSnapshot {
 			internal long buildingsVersion;
 			internal List<City> citiesList;
-			internal City[] cities;
-			internal List<CityBuilding>[] buildingLists;
-			internal int[] buildingCounts;
+			internal int citiesCount;
+			internal List<City>.Enumerator citiesVersion;
 			internal HashSet<ID> knownTechs;
 			internal int knownTechsCount;
+			internal HashSet<ID>.Enumerator knownTechsVersion;
 
 			// Do not modify; GetActiveWonders hands out copies.
 			internal List<Tuple<City, CityBuilding>> activeWonders;
@@ -1512,22 +1549,15 @@ namespace C7GameData {
 			internal bool reducesWarWearinessEverywhere;
 
 			internal bool IsValidFor(Player player) {
-				if (buildingsVersion != City.BuildingsVersion
+				if (buildingsVersion != player.BuildingsVersion
 					|| !ReferenceEquals(citiesList, player.cities)
-					|| cities.Length != player.cities.Count
+					|| citiesCount != player.cities.Count
 					|| !ReferenceEquals(knownTechs, player.knownTechs)
 					|| (knownTechs != null && knownTechsCount != knownTechs.Count)) {
 					return false;
 				}
-				for (int i = 0; i < cities.Length; ++i) {
-					City c = player.cities[i];
-					if (!ReferenceEquals(c, cities[i])
-						|| !ReferenceEquals(c.constructed_buildings, buildingLists[i])
-						|| c.constructed_buildings.Count != buildingCounts[i]) {
-						return false;
-					}
-				}
-				return true;
+				return CollectionVersion.Unchanged(citiesVersion)
+					&& (knownTechs == null || CollectionVersion.Unchanged(knownTechsVersion));
 			}
 		}
 
@@ -1539,22 +1569,21 @@ namespace C7GameData {
 				return snapshot;
 			}
 
-			// Read the version before scanning, so a change made during the
+			// Take the versions before scanning, so a change made during the
 			// scan leaves the snapshot stale rather than wrongly valid.
 			snapshot = new BuildingSnapshot {
-				buildingsVersion = City.BuildingsVersion,
+				buildingsVersion = BuildingsVersion,
 				citiesList = cities,
-				cities = cities.ToArray(),
+				citiesCount = cities.Count,
+				citiesVersion = cities.GetEnumerator(),
 				knownTechs = knownTechs,
 				knownTechsCount = knownTechs?.Count ?? 0,
 				activeWonders = new(),
 			};
-			snapshot.buildingLists = new List<CityBuilding>[snapshot.cities.Length];
-			snapshot.buildingCounts = new int[snapshot.cities.Length];
-			for (int i = 0; i < snapshot.cities.Length; ++i) {
-				City c = snapshot.cities[i];
-				snapshot.buildingLists[i] = c.constructed_buildings;
-				snapshot.buildingCounts[i] = c.constructed_buildings.Count;
+			if (knownTechs != null) {
+				snapshot.knownTechsVersion = knownTechs.GetEnumerator();
+			}
+			foreach (City c in cities.ToArray()) {
 				foreach (CityBuilding cb in c.constructed_buildings) {
 					if (cb.building.allowsLargerArmies) {
 						snapshot.hasLargerArmies = true;
