@@ -129,6 +129,11 @@ public partial class Game : Node {
 
 	public Player controller; // Player that's controlling the UI.
 
+	// In a hotseat game, the curtain hiding the map while the screen is handed
+	// to the next human player, and where each player last left the camera.
+	private HotseatHandoff hotseatHandoff = null;
+	private readonly Dictionary<ID, Vector2> hotseatCameraLocations = new();
+
 	private MapView mapView;
 
 	public enum GameState {
@@ -225,6 +230,11 @@ public partial class Game : Node {
 
 		EmitSignal(SignalName.GameInitialized);
 
+		// The first hotseat player also needs the others to look away.
+		if (TurnHandling.IsHotseat(EngineStorage.gameData)) {
+			ShowHotseatHandoff(controller);
+		}
+
 		Global.ResetLoadGameFields();
 	}
 
@@ -283,18 +293,7 @@ public partial class Game : Node {
 			mapView.gridLayer.visible = false;
 
 			if (!cameraLocation.HasValue) {
-				// Set initial camera location. If the UI controller has any cities, focus on their capital. Otherwise, focus on their
-				// starting settler.
-				if (controller.cities.Count > 0) {
-					City capital = controller.cities.Find(c => c.IsCapital());
-					if (capital != null)
-						mapView.centerCameraOnTile(capital.location);
-				} else {
-					MapUnit startingSettler =
-						controller.units.Find(u => u.unitType.actions.Contains(UnitAction.BuildCity));
-					if (startingSettler != null)
-						mapView.centerCameraOnTile(startingSettler.location);
-				}
+				CenterCameraOnController();
 			} else {
 				mapView.cameraLocation = cameraLocation.Value;
 			}
@@ -310,12 +309,81 @@ public partial class Game : Node {
 		});
 	}
 
+	// If the UI controller has any cities, focus on their capital. Otherwise,
+	// focus on their starting settler.
+	private void CenterCameraOnController() {
+		if (controller.cities.Count > 0) {
+			City capital = controller.cities.Find(c => c.IsCapital());
+			if (capital != null)
+				mapView.centerCameraOnTile(capital.location);
+		} else {
+			MapUnit startingSettler =
+				controller.units.Find(u => u.unitType.actions.Contains(UnitAction.BuildCity));
+			if (startingSettler != null)
+				mapView.centerCameraOnTile(startingSettler.location);
+		}
+	}
+
+	// Called when the engine hands the UI to a player at the start of their
+	// turn. In a hotseat game this may be a different player than before, so
+	// hide the map until the new player is at the screen.
+	private void OnControllerTurnStart() {
+		Player next = EngineStorage.gameData.GetUIControllerPlayer();
+		if (!TurnHandling.IsHotseat(EngineStorage.gameData)) {
+			controller = next;
+			OnPlayerStartTurn();
+			return;
+		}
+
+		ShowHotseatHandoff(next);
+	}
+
+	private void ShowHotseatHandoff(Player next) {
+		CurrentState = GameState.ComputerTurn;
+
+		// Close anything the previous player left open, and remember where
+		// they were looking so we can restore it on their next turn.
+		if (tileInfo != null) {
+			HideTileInfo();
+		}
+		SetGotoMode(false);
+		setBombard(null);
+		cityScreen.Hide();
+		advisor.Hide();
+		gameViews.Hide();
+		diplomacy.Hide();
+		if (controller != null && controller != next) {
+			hotseatCameraLocations[controller.id] = mapView.cameraLocation;
+		}
+
+		controller = next;
+		if (hotseatCameraLocations.TryGetValue(controller.id, out Vector2 cameraLocation)) {
+			mapView.cameraLocation = cameraLocation;
+		} else {
+			CenterCameraOnController();
+		}
+
+		hotseatHandoff?.QueueFree();
+		hotseatHandoff = new HotseatHandoff(
+			$"{controller.civilization.leader} of the {controller.civilization.noun}",
+			$"It is your turn. Make sure the other players aren't looking.",
+			"Begin Turn",
+			() => {
+				hotseatHandoff = null;
+				OnPlayerStartTurn();
+			});
+		CanvasLayer curtainLayer = new() { Layer = 100 };
+		curtainLayer.AddChild(hotseatHandoff);
+		hotseatHandoff.TreeExited += curtainLayer.QueueFree;
+		AddChild(curtainLayer);
+	}
+
 	public void HandleEngineMessage(MessageToUI msg) {
 		GameData gameData = EngineStorage.gameData;
 
 		switch (msg) {
 			case MsgStartTurn mST:
-				OnPlayerStartTurn();
+				OnControllerTurnStart();
 				break;
 			case MsgShowCityScreen mSCS:
 				ShowCityScreenForCity(gameData, mSCS.city);
@@ -596,8 +664,9 @@ public partial class Game : Node {
 	}
 
 	public override void _UnhandledInput(InputEvent @event) {
-		// Don't handle if there's an open modal, or if it's the AI's turn
-		if ((HasVisibleModal() && !IsModalSwitchEvent(@event)) || CurrentState == GameState.ComputerTurn) {
+		// Don't handle if there's an open modal, if it's the AI's turn, or if
+		// the screen is being handed to the next hotseat player.
+		if ((HasVisibleModal() && !IsModalSwitchEvent(@event)) || CurrentState == GameState.ComputerTurn || hotseatHandoff != null) {
 			IsMovingCamera = false;
 			return;
 		}
@@ -900,7 +969,11 @@ public partial class Game : Node {
 		});
 	}
 
+	// The human players to restore when observer mode is turned off.
+	private HashSet<ID> observerModeHumans = new();
+
 	private void SetObserverModeOn(GameData gameData) {
+		observerModeHumans = gameData.players.Where(p => p.isHuman).Select(p => p.id).ToHashSet();
 		foreach (Player player in gameData.players) {
 			player.isHuman = false;
 		}
@@ -915,7 +988,7 @@ public partial class Game : Node {
 
 	private void SetObserverModeOff(GameData gameData) {
 		foreach (Player player in gameData.players) {
-			if (player.id == EngineStorage.uiControllerID) {
+			if (player.id == EngineStorage.uiControllerID || observerModeHumans.Contains(player.id)) {
 				player.isHuman = true;
 			}
 		}
@@ -970,6 +1043,11 @@ public partial class Game : Node {
 	}
 
 	private void ProcessAction(string currentAction) {
+		// Nothing happens behind the hotseat curtain.
+		if (hotseatHandoff != null) {
+			return;
+		}
+
 		if (currentAction == C7Action.Escape && tileInfo != null) {
 			HideTileInfo();
 			return;
