@@ -28,15 +28,19 @@ namespace C7Engine.AI {
 			List<Type> priorityTypes = PriorityAggregator.GetAllStrategicPriorityTypes();
 			List<StrategicPriority> possiblePriorities = new List<StrategicPriority>();
 
-			foreach (Type priorityType in priorityTypes) {
-				ConstructorInfo constructor = priorityType.GetConstructor(Type.EmptyTypes);
-				if (constructor != null) {
-					object instance = constructor.Invoke(Array.Empty<object>());
-					StrategicPriority priority = (StrategicPriority)instance;
-					priority.CalculateWeightAndMetadata(player);
-					possiblePriorities.Add(priority);
-				} else {
-					log.Warning($"Zero-argument constructor for priority {priorityType} not found; skipping that priority type");
+			// Weighing the priorities doesn't change anything, so priorities
+			// that need the available land score can share it.
+			using (UtilityCalculations.ShareLandScores()) {
+				foreach (Type priorityType in priorityTypes) {
+					ConstructorInfo constructor = priorityType.GetConstructor(Type.EmptyTypes);
+					if (constructor != null) {
+						object instance = constructor.Invoke(Array.Empty<object>());
+						StrategicPriority priority = (StrategicPriority)instance;
+						priority.CalculateWeightAndMetadata(player);
+						possiblePriorities.Add(priority);
+					} else {
+						log.Warning($"Zero-argument constructor for priority {priorityType} not found; skipping that priority type");
+					}
 				}
 			}
 
@@ -110,13 +114,13 @@ namespace C7Engine.AI {
 				double oldCutoff = sumOfAllWeights;
 				sumOfAllWeights += adjustedWeight;
 
-				log.Debug($"Priority {possiblePriority} has range of {oldCutoff} to {sumOfAllWeights}");
+				log.Debug("Priority {Priority} has range of {OldCutoff} to {SumOfAllWeights}", possiblePriority, oldCutoff, sumOfAllWeights);
 
 				cutoffs.Add(sumOfAllWeights);
 			}
 
 			double randomDouble = sumOfAllWeights * GameData.rng.NextDouble();
-			log.Verbose($"Random number in range 0 to {sumOfAllWeights} is {randomDouble}");
+			log.Verbose("Random number in range 0 to {SumOfAllWeights} is {RandomDouble}", sumOfAllWeights, randomDouble);
 			int idx = 0;
 			foreach (double cutoff in cutoffs) {
 				if (randomDouble < cutoff) {

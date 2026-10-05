@@ -4,6 +4,7 @@ using System.Linq;
 using C7GameData.Save;
 using C7Engine;
 using C7Engine.Lua;
+using C7Engine.Pathing;
 
 namespace C7GameData;
 
@@ -73,16 +74,34 @@ public class Terraform {
 	}
 
 	public bool MeetsRequirements(Player player, Tile tile) {
-		var hasTech = player.HasTech(RequiredTech);
+		// Cheapest checks first, stopping at the first one that fails. None of
+		// them have side effects, so the order doesn't change the answer.
+		if (!player.HasTech(RequiredTech)) {
+			return false;
+		}
 
-		bool hasResources = RequiredResources.All(
-			res => EngineStorage.gameData.GetTradeNetwork().HasTradeAccess(tile, player, res)
-		);
+		if (Improvement != null && !tile.overlays.CanAdd(tile, Improvement)) {
+			return false;
+		}
 
-		bool canAddImprovement = Improvement == null || tile.overlays.CanAdd(tile, Improvement);
+		// Checking resource access needs the trade network.
+		if (RequiredResources.Count > 0) {
+			TradeNetwork tradeNetwork = EngineStorage.gameData.GetTradeNetwork();
+			foreach (Resource res in RequiredResources) {
+				if (!tradeNetwork.HasTradeAccess(tile, player, res)) {
+					return false;
+				}
+			}
+		}
 
-		return hasTech && hasResources
-				&& canAddImprovement && ActionValidators.All(func => func(new(player, tile, this)));
+		// The Lua validators are the most expensive, so they go last.
+		ScriptContext context = new(player, tile, this);
+		foreach (Func<ScriptContext, bool> validator in ActionValidators) {
+			if (!validator(context)) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	public void OnComplete(Player player, Tile tile) {

@@ -596,6 +596,10 @@ namespace C7Engine {
 			List<int> tileIndicies = Enumerable.Range(0, m.tiles.Count).ToList();
 			rand.Shuffle<int>(CollectionsMarshal.AsSpan(tileIndicies));
 
+			// Group the tiles by biome region once, so filling a region doesn't
+			// need to scan the whole map. Biome regions don't change here.
+			Dictionary<int, List<Tile>> tilesByBiomeRegion = GroupTilesByBiomeRegion(m);
+
 			foreach (int tileIndex in tileIndicies) {
 				Tile t = m.tiles[tileIndex];
 
@@ -612,13 +616,13 @@ namespace C7Engine {
 				double latitude = Math.Abs(90.0 - (normalizedY * 180.0));
 
 				if (height >= plainsLowerBound && height < plainsUpperBound) {
-					FillBiomeRegion(m, t, plains, plains);
+					FillBiomeRegion(tilesByBiomeRegion, t, plains, plains);
 				} else if (height >= desertLowerBound && height < desertUpperBound) {
-					FillBiomeRegion(m, t, desert, desert);
+					FillBiomeRegion(tilesByBiomeRegion, t, desert, desert);
 				} else if (height >= tundraLowerBound && height < tundraUpperBound && latitude > tundraLatitudeThreshold) {
-					FillBiomeRegion(m, t, tundra, tundra);
+					FillBiomeRegion(tilesByBiomeRegion, t, tundra, tundra);
 				} else {
-					FillBiomeRegion(m, t, grassland, grassland);
+					FillBiomeRegion(tilesByBiomeRegion, t, grassland, grassland);
 				}
 			}
 
@@ -644,11 +648,20 @@ namespace C7Engine {
 			}
 		}
 
-		private static void FillBiomeRegion(GameMap m, Tile seed, TerrainType baseType, TerrainType overlayType) {
+		private static Dictionary<int, List<Tile>> GroupTilesByBiomeRegion(GameMap m) {
+			Dictionary<int, List<Tile>> result = new();
 			foreach (Tile t in m.tiles) {
-				if (t.biomeRegion != seed.biomeRegion) {
-					continue;
+				if (!result.TryGetValue(t.biomeRegion, out List<Tile> region)) {
+					region = new List<Tile>();
+					result[t.biomeRegion] = region;
 				}
+				region.Add(t);
+			}
+			return result;
+		}
+
+		private static void FillBiomeRegion(Dictionary<int, List<Tile>> tilesByBiomeRegion, Tile seed, TerrainType baseType, TerrainType overlayType) {
+			foreach (Tile t in tilesByBiomeRegion[seed.biomeRegion]) {
 				t.baseTerrainType = baseType;
 				t.overlayTerrainType = overlayType;
 			}
@@ -1007,6 +1020,8 @@ namespace C7Engine {
 			List<int> tileIndicies = Enumerable.Range(0, m.tiles.Count).ToList();
 			rand.Shuffle<int>(CollectionsMarshal.AsSpan(tileIndicies));
 
+			Dictionary<int, int> continentSizes = ComputeContinentSizes(m);
+
 			// Luxury resources.
 			//
 			// Keep track of which continent a luxury resource is first placed
@@ -1017,7 +1032,7 @@ namespace C7Engine {
 					continue;
 				}
 
-				PlaceLuxuryResourceType(rand, wc, m, r, tileIndicies, resourceToContinentPlacement);
+				PlaceLuxuryResourceType(rand, wc, m, r, tileIndicies, resourceToContinentPlacement, continentSizes);
 			}
 
 			// Strategic resources.
@@ -1026,7 +1041,7 @@ namespace C7Engine {
 					continue;
 				}
 
-				PlaceStrategicResourceType(rand, wc, m, r, tileIndicies);
+				PlaceStrategicResourceType(rand, wc, m, r, tileIndicies, continentSizes);
 			}
 
 			// Bonus resources.
@@ -1052,7 +1067,7 @@ namespace C7Engine {
 			return targetCount;
 		}
 
-		private static void PlaceLuxuryResourceType(Random rand, WorldCharacteristics wc, GameMap m, Resource r, List<int> tileIndicies, Dictionary<Resource, int> resourceToContinentPlacement) {
+		private static void PlaceLuxuryResourceType(Random rand, WorldCharacteristics wc, GameMap m, Resource r, List<int> tileIndicies, Dictionary<Resource, int> resourceToContinentPlacement, Dictionary<int, int> continentSizes) {
 			int targetCount = GetAppearance(wc, rand, r, minCount:1);
 			int placed = 0;
 			resourceToContinentPlacement[r] = -1;
@@ -1077,7 +1092,7 @@ namespace C7Engine {
 				}
 
 				// Skip tiles that don't need the luxury-specific criteria.
-				if (!IsValidForLuxuryPlacement(wc, m, r, t)) {
+				if (!IsValidForLuxuryPlacement(wc, m, r, t, continentSizes)) {
 					continue;
 				}
 
@@ -1120,11 +1135,9 @@ namespace C7Engine {
 			return false;
 		}
 
-		private static bool IsValidForLuxuryPlacement(WorldCharacteristics wc, GameMap m, Resource r, Tile t) {
-			HashSet<Tile> continent = m.continents.First(x => x.Contains(t));
-
+		private static bool IsValidForLuxuryPlacement(WorldCharacteristics wc, GameMap m, Resource r, Tile t, Dictionary<int, int> continentSizes) {
 			// Don't put luxuries on islands too small for players.
-			if (continent.Count < MIN_TILES_PER_PLAYER_ISLAND) {
+			if (continentSizes[t.continent] < MIN_TILES_PER_PLAYER_ISLAND) {
 				return false;
 			}
 
@@ -1162,7 +1175,7 @@ namespace C7Engine {
 			return landTiles >= 1;
 		}
 
-		private static void PlaceStrategicResourceType(Random rand, WorldCharacteristics wc, GameMap m, Resource r, List<int> tileIndicies) {
+		private static void PlaceStrategicResourceType(Random rand, WorldCharacteristics wc, GameMap m, Resource r, List<int> tileIndicies, Dictionary<int, int> continentSizes) {
 			int targetCount = GetAppearance(wc, rand, r, minCount:2);
 			int placed = 0;
 
@@ -1180,7 +1193,7 @@ namespace C7Engine {
 				}
 
 				// Skip tiles that don't need the strategic resource-specific criteria.
-				if (!IsValidForStrategicResourcePlacement(wc, m, r, t)) {
+				if (!IsValidForStrategicResourcePlacement(wc, m, r, t, continentSizes)) {
 					continue;
 				}
 
@@ -1195,12 +1208,10 @@ namespace C7Engine {
 			}
 		}
 
-		private static bool IsValidForStrategicResourcePlacement(WorldCharacteristics wc, GameMap m, Resource r, Tile t) {
-			HashSet<Tile> continent = m.continents.First(x => x.Contains(t));
-
+		private static bool IsValidForStrategicResourcePlacement(WorldCharacteristics wc, GameMap m, Resource r, Tile t, Dictionary<int, int> continentSizes) {
 			// Don't put strategic resources on super tiny islands - though
 			// putting them on small islands is ok.
-			if (continent.Count < MIN_TILES_PER_PLAYER_ISLAND / 2) {
+			if (continentSizes[t.continent] < MIN_TILES_PER_PLAYER_ISLAND / 2) {
 				return false;
 			}
 
@@ -1234,6 +1245,11 @@ namespace C7Engine {
 
 			Dictionary<Resource, int> terrainScores = CalculateBonusResourceTerrainScores(wc, bonusResources);
 
+			// Where each resource's search for a tile resumes. A tile rejected
+			// for a resource stays rejected (resources are only ever added), so
+			// later searches can skip past it.
+			Dictionary<Resource, int> searchCursors = new();
+
 			for (int pass = 0; pass < 32 && placed < totalPossibleBonusResources; ++pass) {
 				rand.Shuffle<Resource>(CollectionsMarshal.AsSpan(bonusResources));
 
@@ -1258,22 +1274,23 @@ namespace C7Engine {
 						continue;
 					}
 
-					if (PlaceBonusResource(wc, m, r, tileIndicies)) {
+					if (PlaceBonusResource(wc, m, r, tileIndicies, searchCursors)) {
 						++placed;
 					}
 				}
 			}
 		}
 
-		private static bool PlaceBonusResource(WorldCharacteristics wc, GameMap m, Resource r, List<int> tileIndicies) {
+		private static bool PlaceBonusResource(WorldCharacteristics wc, GameMap m, Resource r, List<int> tileIndicies, Dictionary<Resource, int> searchCursors) {
 			// We want to place this resource. Find the first valid tile
 			// we can stick it on.
 			//
 			// We don't want it next to other resources, and if it is a
 			// water resource (fish/whale/etc) don't stick it in the
 			// middle of the ocean.
-			foreach (int index in tileIndicies) {
-				Tile t = m.tiles[index];
+			searchCursors.TryGetValue(r, out int start);
+			for (int i = start; i < tileIndicies.Count; ++i) {
+				Tile t = m.tiles[tileIndicies[i]];
 				if (!t.overlayTerrainType.allowedResources.Contains(r.Key)) {
 					continue;
 				}
@@ -1289,8 +1306,10 @@ namespace C7Engine {
 
 				t.Resource = r;
 				t.ResourceKey = r.Key;
+				searchCursors[r] = i + 1;
 				return true;
 			}
+			searchCursors[r] = tileIndicies.Count;
 			return false;
 		}
 
@@ -1329,11 +1348,12 @@ namespace C7Engine {
 			}
 
 			int totalPossibleBarbCamps = DeriveTotalPossibleBarbCamps(wc, landTiles);
+			Dictionary<int, int> continentSizes = ComputeContinentSizes(m);
 
 			int numCamps = 0;
 			for (int i = 0; i < tileIndicies.Count && numCamps < totalPossibleBarbCamps; ++i) {
 				Tile t = m.tiles[tileIndicies[i]];
-				if (IsValidForBarbarianCamp(wc, m, t)) {
+				if (IsValidForBarbarianCamp(wc, m, t, continentSizes)) {
 					m.barbarianCamps.Add(t);
 					t.hasBarbarianCamp = true;
 					++numCamps;
@@ -1365,7 +1385,7 @@ namespace C7Engine {
 			}
 		}
 
-		private static bool IsValidForBarbarianCamp(WorldCharacteristics wc, GameMap m, Tile t) {
+		private static bool IsValidForBarbarianCamp(WorldCharacteristics wc, GameMap m, Tile t, Dictionary<int, int> continentSizes) {
 			// No barbarian camps on water, volcanos, or mountains.
 			if (!t.IsLand() || t == Tile.NONE || t.overlayTerrainType.Key == "volcano" || t.overlayTerrainType.Key == "mountains") {
 				return false;
@@ -1379,8 +1399,7 @@ namespace C7Engine {
 			}
 
 			// No barbarian camps on super tiny islands.
-			HashSet<Tile> continent = m.continents.First(x => x.Contains(t));
-			if (continent.Count < 15) {
+			if (continentSizes[t.continent] < 15) {
 				return false;
 			}
 
@@ -1412,10 +1431,13 @@ namespace C7Engine {
 				}
 			}
 
-			// Find all viable city locations.
+			// Find all viable city locations. One player with the default
+			// government is enough to evaluate every tile's yields.
+			Player scoringPlayer = new();
+			scoringPlayer.government = wc.defaultGovernment;
 			Dictionary<Tile, int> scoredTiles = new();
 			foreach (Tile t in m.tiles) {
-				int score = ScorePossibleCityLocation(wc, t);
+				int score = ScorePossibleCityLocation(wc, t, scoringPlayer);
 				if (score > 0) {
 					scoredTiles[t] = score;
 				}
@@ -1425,6 +1447,7 @@ namespace C7Engine {
 			// Use those to find the appropriate number of starting locations.
 			List<Tile> startingLocations = new();
 			Dictionary<int, int> continentStartingLocationCount = new();
+			Dictionary<int, int> continentSizes = ComputeContinentSizes(m);
 
 			for (int attempt = 0; attempt < 10 && startingLocations.Count < wc.worldSize.numberOfCivs; ++attempt) {
 				foreach (Tile t in orderedTiles) {
@@ -1432,7 +1455,7 @@ namespace C7Engine {
 						break;
 					}
 
-					if (!IsContinentLargeEnough(m, t, attempt)) {
+					if (!IsContinentLargeEnough(continentSizes, t, attempt)) {
 						continue;
 					}
 
@@ -1470,13 +1493,13 @@ namespace C7Engine {
 		// Allow smaller continents the more desperate we are to find a starting
 		// location. Hopefully map generation will have handled this, but we
 		// do bail out of map generation eventually.
-		private static bool IsContinentLargeEnough(GameMap m, Tile t, int attempt) {
-			HashSet<Tile> continent = m.continents.First(x => x.Contains(t));
+		private static bool IsContinentLargeEnough(Dictionary<int, int> continentSizes, Tile t, int attempt) {
+			int continentSize = continentSizes[t.continent];
 
 			if (attempt < 3) {
-				return continent.Count > MIN_TILES_PER_PLAYER_ISLAND;
+				return continentSize > MIN_TILES_PER_PLAYER_ISLAND;
 			} else if (attempt < 6) {
-				return continent.Count > MIN_TILES_PER_PLAYER_ISLAND / 2;
+				return continentSize > MIN_TILES_PER_PLAYER_ISLAND / 2;
 			}
 			return true;
 		}
@@ -1521,7 +1544,18 @@ namespace C7Engine {
 		}
 
 		// TODO: merge this with the ai logic
-		private static int ScorePossibleCityLocation(WorldCharacteristics wc, Tile t) {
+		// Maps each continent id to the number of tiles in that continent.
+		private static Dictionary<int, int> ComputeContinentSizes(GameMap m) {
+			Dictionary<int, int> result = new();
+			foreach (HashSet<Tile> continent in m.continents) {
+				foreach (Tile t in continent) {
+					result[t.continent] = continent.Count;
+				}
+			}
+			return result;
+		}
+
+		private static int ScorePossibleCityLocation(WorldCharacteristics wc, Tile t, Player player) {
 			if (!t.IsAllowCities()) {
 				return int.MinValue;
 			}
@@ -1533,9 +1567,6 @@ namespace C7Engine {
 			const int CoastPoints = 30;
 			const int LandTilePoints = 1;
 			const int BarbarianCampPoints = -50;
-
-			Player player = new();
-			player.government = wc.defaultGovernment;
 
 			// Calculate the score for tiles in the immediate area.
 			int score = 0;

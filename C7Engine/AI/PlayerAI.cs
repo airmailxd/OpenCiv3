@@ -57,12 +57,53 @@ namespace C7Engine {
 		// reserve of gold for emergencies.
 		private static void UpgradeUnits(Player player) {
 			const int GOLD_RESERVE = 100;
+			Dictionary<City, CityUpgradeInfo> upgradeInfo = new();
 			foreach (MapUnit unit in player.units.ToList()) {
-				UnitPrototype upgrade = unit.GetAvailableUpgrade();
+				UnitPrototype upgrade = GetAvailableUpgrade(unit, upgradeInfo);
 				if (upgrade != null && player.gold - unit.UpgradeCost(upgrade) >= GOLD_RESERVE) {
 					unit.Upgrade();
 				}
 			}
+		}
+
+		// What a city offers for upgrading units, gathered once per city.
+		private sealed class CityUpgradeInfo {
+			public bool upgradesLandUnits;
+			public bool upgradesSeaUnits;
+			public HashSet<Resource> resources;
+		}
+
+		// Same result as MapUnit.GetAvailableUpgrade, but shares each city's
+		// buildings and resources between all the units in it instead of
+		// recomputing them per unit.
+		private static UnitPrototype GetAvailableUpgrade(MapUnit unit, Dictionary<City, CityUpgradeInfo> upgradeInfo) {
+			if (!unit.unitType.actions.Contains(UnitAction.Upgrade)) {
+				return null;
+			}
+
+			City city = unit.location?.cityAtTile;
+			if (!City.IsValidCity(city) || city.owner != unit.owner) {
+				return null;
+			}
+
+			if (!upgradeInfo.TryGetValue(city, out CityUpgradeInfo info)) {
+				info = new CityUpgradeInfo();
+				foreach (CityBuilding cb in city.GetBuildings()) {
+					info.upgradesLandUnits |= cb.building.providesVeteranGroundUnits;
+					info.upgradesSeaUnits |= cb.building.providesVeteranSeaUnits;
+				}
+				upgradeInfo[city] = info;
+			}
+
+			bool hasUpgradeBuilding = (unit.IsLandUnit() && info.upgradesLandUnits)
+				|| (unit.IsWaterUnit() && info.upgradesSeaUnits);
+			if (!hasUpgradeBuilding) {
+				return null;
+			}
+
+			info.resources ??= EngineStorage.gameData.GetTradeNetwork()
+				.GetResourcesAvailableToCity(unit.owner, city).Keys.ToHashSet();
+			return unit.unitType.GetProducibleUpgrade(city, info.resources);
 		}
 
 		private static void MaybeDoPriorityReevaluation(Player player) {
@@ -130,6 +171,25 @@ namespace C7Engine {
 				}
 			}
 
+			// Track the units that may be exploring, so counting explorers
+			// doesn't need a pass over every unit each time a unit picks a plan.
+			HashSet<MapUnit> explorers = new();
+			foreach (MapUnit u in player.units) {
+				if (u.currentAI is ExplorerAI) {
+					explorers.Add(u);
+				}
+			}
+			possibleExplorers[player] = explorers;
+			try {
+				using (WorkerAI.BeginPlanning(player)) {
+					await DoUnitActions(player, explorers);
+				}
+			} finally {
+				possibleExplorers.Remove(player);
+			}
+		}
+
+		private static async Task DoUnitActions(Player player, HashSet<MapUnit> explorers) {
 			// Do things with units. Copy into an array first to avoid collection-was-modified exception
 			foreach (MapUnit unit in player.units.ToArray()) {
 				// Don't waste time recalculating behaviors for fortified units.
@@ -148,6 +208,9 @@ namespace C7Engine {
 				for (int attempt = 0; attempt < 2; ++attempt) {
 					if (unit.currentAI == null) {
 						unit.currentAI = GetAIForUnit(unit, player);
+						if (unit.currentAI is ExplorerAI) {
+							explorers.Add(unit);
+						}
 					}
 
 					// If the unit is still the process of doing its plan, allow
@@ -172,10 +235,50 @@ namespace C7Engine {
 					// exploration instead of units already far away from home
 					// for exploration.
 					unit.currentAI = GetAIForUnit(unit, player);
+					if (unit.currentAI is ExplorerAI) {
+						explorers.Add(unit);
+					}
 				}
 
-				player.tileKnowledge.AddTilesToKnown(unit.location);
+				// Moving already adds what a unit sees to our knowledge and
+				// recomputes the active tiles, as do units dying or being
+				// captured, so only recompute them when this revealed new tiles.
+				int knownTileCount = player.tileKnowledge.knownTiles.Count;
+				player.tileKnowledge.AddTilesToKnown(unit.location, recomputeActiveTiles: false);
+				if (player.tileKnowledge.knownTiles.Count != knownTileCount) {
+					player.tileKnowledge.RecomputeActiveTiles();
+				}
 			}
+		}
+
+		// While a player's units are acting, the units that might have an
+		// ExplorerAI: every unit that had one when the units started acting
+		// or was given one since. Whether each still does is checked when
+		// counting.
+		private static readonly Dictionary<Player, HashSet<MapUnit>> possibleExplorers = new();
+
+		// The number of the player's units exploring, among land units or
+		// among other units.
+		private static int CountExplorers(Player player, bool landUnits) {
+			int result = 0;
+			if (possibleExplorers.TryGetValue(player, out HashSet<MapUnit> explorers)) {
+				foreach (MapUnit u in explorers) {
+					// A unit that died or changed hands is no longer one of
+					// our units.
+					if (u.currentAI is ExplorerAI && u.IsLandUnit() == landUnits
+						&& u.owner == player && u.hitPointsRemaining > 0) {
+						++result;
+					}
+				}
+				return result;
+			}
+
+			foreach (MapUnit u in player.units) {
+				if (u.currentAI is ExplorerAI && u.IsLandUnit() == landUnits) {
+					++result;
+				}
+			}
+			return result;
 		}
 
 		public static UnitAI GetAIForUnit(MapUnit unit, Player player) {
@@ -201,6 +304,12 @@ namespace C7Engine {
 				// If this is an offensive unit only go defend if there are
 				// fewer than 3 units in a city, otherwise consider offensive
 				// action.
+				//
+				// With minDefenders at int.MaxValue this never returns null
+				// (it falls back to the best city), so the priority 3 fallback
+				// below is only reached for offensive units, whose search here
+				// used a different threshold and found nothing, returning
+				// before any pathfinding.
 				int minDefenders = unit.unitType.attack >= unit.unitType.defense ? 3 : int.MaxValue;
 				DefenderAIData maybeDefend = DefenderAI.MakeAiDataForDefendAtRiskCity(unit, player, minDefenders);
 				if (maybeDefend != null) {
@@ -225,15 +334,8 @@ namespace C7Engine {
 
 			// As long as we don't have too many explorers yet of this unit's
 			// type (land vs sea), start a new exploring unit.
-			int numRelevantExplorers = 0;
 			int maxExplorers = unit.IsLandUnit() ? MAX_LAND_EXPLORERS : MAX_WATER_EXPLORERS;
-			foreach (MapUnit u in player.units) {
-				if (u.currentAI is ExplorerAI && u.IsLandUnit() == unit.IsLandUnit()) {
-					++numRelevantExplorers;
-				}
-			}
-
-			if (numRelevantExplorers < maxExplorers) {
+			if (CountExplorers(player, unit.IsLandUnit()) < maxExplorers) {
 				ExplorerAIData? maybeAiData = ExplorerAI.MaybeMakeAiData(unit, player);
 				if (maybeAiData != null) {
 					return new ExplorerAI(maybeAiData);
@@ -260,20 +362,8 @@ namespace C7Engine {
 				return null;
 			}
 
-			List<Tile> reachableBarbCampsTiles = player.tileKnowledge.AllKnownTiles()
-				.Where(t => unit.CanEnter(t) && t.hasBarbarianCamp).ToList();
-
-			Tile closestBarbCamp = Tile.NONE;
-			int closestBarbDistance = int.MaxValue;
-			foreach (Tile t in reachableBarbCampsTiles) {
-				int crowDistance = t.DistanceTo(unit.location);
-				if (crowDistance < closestBarbDistance) {
-					closestBarbCamp = t;
-					closestBarbDistance = crowDistance;
-				}
-			}
-
-			if (closestBarbDistance <= 3) {
+			Tile closestBarbCamp = FindNearbyBarbCamp(unit, player);
+			if (closestBarbCamp != Tile.NONE) {
 				CombatAIData caid = new CombatAIData();
 				caid.destination = closestBarbCamp;
 
@@ -283,6 +373,134 @@ namespace C7Engine {
 				return new CombatAI(caid);
 			}
 			return null;
+		}
+
+		private const int MAX_BARB_CAMP_DISTANCE = 3;
+
+		// Returns the closest known barbarian camp the unit can enter, if one
+		// is within MAX_BARB_CAMP_DISTANCE tiles, or Tile.NONE.
+		private static Tile FindNearbyBarbCamp(MapUnit unit, Player player) {
+			// The tiles within a DistanceTo of n are exactly the tile square of
+			// rank n, so only those need checking.
+			Tile closestBarbCamp = Tile.NONE;
+			int closestBarbDistance = int.MaxValue;
+			List<Tile> tied = null;
+			foreach (Tile t in unit.location.GetTilesWithinTileSquare(MAX_BARB_CAMP_DISTANCE)) {
+				if (t == Tile.NONE || !t.hasBarbarianCamp || !player.tileKnowledge.isTileKnown(t) || !unit.CanEnter(t)) {
+					continue;
+				}
+				int crowDistance = t.DistanceTo(unit.location);
+				if (crowDistance < closestBarbDistance) {
+					closestBarbCamp = t;
+					closestBarbDistance = crowDistance;
+					tied = null;
+				} else if (crowDistance == closestBarbDistance && t != closestBarbCamp) {
+					tied ??= new List<Tile> { closestBarbCamp };
+					if (!tied.Contains(t)) {
+						tied.Add(t);
+					}
+				}
+			}
+
+			if (closestBarbDistance > MAX_BARB_CAMP_DISTANCE) {
+				return Tile.NONE;
+			}
+
+			// For equally close camps pick the one that comes first among the
+			// known tiles, as a scan of all the known tiles would.
+			if (tied != null) {
+				foreach (Tile t in player.tileKnowledge.knownTiles) {
+					if (tied.Contains(t)) {
+						return t;
+					}
+				}
+			}
+			return closestBarbCamp;
+		}
+
+		// Whether GetAIForUnit would make this unit an explorer, without
+		// planning anything or changing any state. The unit doesn't need to be
+		// in play, so this can be asked about a unit we're considering
+		// building.
+		internal static bool WouldExplore(MapUnit unit, Player player) {
+			// Mirror the checks GetAIForUnit makes before considering
+			// exploration.
+			if (unit.unitType.name == "Settler" || unit.unitType.name == "Worker") {
+				return false;
+			}
+			if (unit.location.cityAtTile != null && unit.CanDefendOnLand() && unit.location.unitsOnTile.Count(u => u.CanDefendOnLand() && u != unit) == 0) {
+				return false;
+			}
+			if (unit.unitType.attack > 0 && FindNearbyBarbCamp(unit, player) != Tile.NONE) {
+				return false;
+			}
+			if (unit.unitType.name == "Catapult") {
+				return false;
+			}
+			if (IsInAnyWar(player, EngineStorage.gameData.players)) {
+				return false;
+			}
+			// EscortAI.MaybeMakeAiData would have this unit escort an
+			// unescorted settler.
+			if (unit.CanDefendOnLand() && unit.location.unitsOnTile.Any(u => u.currentAI is SettlerAI settlerAi && settlerAi.data.escort == null)) {
+				return false;
+			}
+			int maxExplorers = unit.IsLandUnit() ? MAX_LAND_EXPLORERS : MAX_WATER_EXPLORERS;
+			if (CountExplorers(player, unit.IsLandUnit()) >= maxExplorers) {
+				return false;
+			}
+			return HasTileToExplore(unit, player);
+		}
+
+		// Whether ExplorerAI.MaybeMakeAiData would find a tile for this unit
+		// to explore. It takes its best scored candidate whenever there is one
+		// (PathFrom returns an empty path rather than null for an unreachable
+		// tile, which its reachability check lets through), so this only needs
+		// to know whether any candidate would be scored.
+		private static bool HasTileToExplore(MapUnit unit, Player player) {
+			TileKnowledge knowledge = player.tileKnowledge;
+
+			// Exploration targets of explorers that are gone or have other
+			// jobs are forgotten before candidates are scored.
+			HashSet<Tile> activeTargets = null;
+			if (knowledge.aiExplorationTargets.Count > 0) {
+				activeTargets = new HashSet<Tile>();
+				foreach (MapUnit u in player.units) {
+					if (u != unit && u.currentAI is ExplorerAI explorerAi && explorerAi.data?.destination != null) {
+						activeTargets.Add(explorerAi.data.destination);
+					}
+				}
+			}
+
+			bool isLandUnit = unit.IsLandUnit();
+			foreach (Tile t in knowledge.borderTiles) {
+				if (t.IsLand() != isLandUnit) {
+					continue;
+				}
+				if (activeTargets != null && knowledge.aiExplorationTargets.Contains(t) && activeTargets.Contains(t)) {
+					continue;
+				}
+				if (HasUnknownNeighboringTiles(knowledge, t)) {
+					return true;
+				}
+			}
+			return false;
+		}
+
+		// Matches ExplorerAI's test for whether a tile is worth exploring.
+		private static bool HasUnknownNeighboringTiles(TileKnowledge knowledge, Tile t) {
+			if (t.cityAtTile != null) {
+				return false;
+			}
+			if (!knowledge.isTileKnown(t)) {
+				return true;
+			}
+			foreach (Tile n in t.neighbors.Values) {
+				if (!knowledge.isTileKnown(n)) {
+					return true;
+				}
+			}
+			return false;
 		}
 
 		private static async Task AttemptTrading(Player us) {
@@ -305,12 +523,9 @@ namespace C7Engine {
 				List<Tech> techsTheyCanTrade = gD.techs.FindAll(x => {
 					return them.knownTechs.Contains(x.id) && !us.knownTechs.Contains(x.id);
 				});
-				techsTheyCanTrade.Sort((a, b) => { return gD.TechCostFor(b, us).CompareTo(gD.TechCostFor(a, us)); });
-
 				List<Tech> techsWeCanTrade = gD.techs.FindAll(x => {
 					return us.knownTechs.Contains(x.id) && !them.knownTechs.Contains(x.id);
 				});
-				techsWeCanTrade.Sort((a, b) => { return gD.TechCostFor(b, them).CompareTo(gD.TechCostFor(a, them)); });
 
 				// If we can't trade techs there's no point in continuing - we
 				// can't yet trade anything else interesting.
@@ -318,19 +533,44 @@ namespace C7Engine {
 					continue;
 				}
 
+				// Tech costs don't change until a deal is made, so look each
+				// one up once. Every tech traded here is in one of the two
+				// lists, and we need its cost for both players.
+				Dictionary<Tech, int> costForUs = new();
+				Dictionary<Tech, int> costForThem = new();
+				foreach (Tech t in techsTheyCanTrade.Concat(techsWeCanTrade)) {
+					costForUs[t] = gD.TechCostFor(t, us);
+					costForThem[t] = gD.TechCostFor(t, them);
+				}
+
+				techsTheyCanTrade.Sort((a, b) => { return costForUs[b].CompareTo(costForUs[a]); });
+				techsWeCanTrade.Sort((a, b) => { return costForThem[b].CompareTo(costForThem[a]); });
+
+				// The value of each offer to each player, kept up to date as
+				// techs are added or removed. This matches
+				// TradeOffer.GoldEquivalentFor, without the gold.
+				int weGiveTechsForThem = 0;
+				int weGiveTechsForUs = 0;
+				int weWantTechsForThem = 0;
+				int weWantTechsForUs = 0;
+
 				TradeOffer weGive = new();
 				Func<int> CalculateWeGiveValue = () => {
-					return Math.Max(weGive.GoldEquivalentFor(gD, them), weGive.GoldEquivalentFor(gD, us));
+					int gold = weGive.gold ?? 0;
+					return Math.Max(gold + weGiveTechsForThem, gold + weGiveTechsForUs);
 				};
 				TradeOffer weWant = new();
 				Func<int> CalculateWeWantValue = () => {
-					return Math.Min(weWant.GoldEquivalentFor(gD, them), weWant.GoldEquivalentFor(gD, us));
+					int gold = weWant.gold ?? 0;
+					return Math.Min(gold + weWantTechsForThem, gold + weWantTechsForUs);
 				};
 
 				// Figure out the value of what we have available to trade.
 				weGive.gold = us.gold;
 				foreach (Tech t in techsWeCanTrade) {
 					weGive.techs.Add(t);
+					weGiveTechsForThem += costForThem[t];
+					weGiveTechsForUs += costForUs[t];
 				}
 				int ourMaxPossibleOffer = CalculateWeGiveValue();
 
@@ -338,9 +578,11 @@ namespace C7Engine {
 				// if we can afford them. This greedy algorithm should be good
 				// enough - we don't need perfect binpacking.
 				foreach (Tech t in techsTheyCanTrade) {
-					int cost = gD.TechCostFor(t, us);
+					int cost = costForUs[t];
 					if (cost < ourMaxPossibleOffer) {
 						weWant.techs.Add(t);
+						weWantTechsForThem += costForThem[t];
+						weWantTechsForUs += costForUs[t];
 						ourMaxPossibleOffer -= cost;
 					}
 				}
@@ -354,8 +596,11 @@ namespace C7Engine {
 				// as long as it doesn't make our offer worse than theirs.
 				int theirOfferValue = CalculateWeWantValue();
 				for (int i = 0; i < weGive.techs.Count;) {
-					if (CalculateWeGiveValue() - gD.TechCostFor(weGive.techs[i], them) >= theirOfferValue) {
+					Tech t = weGive.techs[i];
+					if (CalculateWeGiveValue() - costForThem[t] >= theirOfferValue) {
 						weGive.techs.RemoveAt(i);
+						weGiveTechsForThem -= costForThem[t];
+						weGiveTechsForUs -= costForUs[t];
 					} else {
 						++i;
 					}
@@ -453,19 +698,25 @@ namespace C7Engine {
 		// In each city, reassign citizens, managing moods, to ensure that we
 		// don't have any cities that will riot.
 		private static void FixRemainingUnhappyCities(Player player) {
+			GameData gameData = EngineStorage.gameData;
+			CitizenType defaultCitizenType = gameData.citizenTypes.Find(x => x.IsDefaultCitizen);
 			foreach (City city in player.cities) {
 				// TODO: This throws away existing nationalities, fix that.
 				int numResidents = city.residents.Count;
 				city.RemoveAllCitizens();
 
+				// Nothing the assignments depend on changes while this city's
+				// citizens are reassigned, apart from which tiles are worked,
+				// so the tile yields can be shared between them.
+				CityTileAssignmentAI.AssignmentContext context = new(gameData, city);
 				for (int i = 0; i < numResidents; ++i) {
 					CityResident newResident = new() {
-						citizenType = EngineStorage.gameData.citizenTypes.Find(x => x.IsDefaultCitizen),
+						citizenType = defaultCitizenType,
 						nationality = city.owner.civilization,
 						city = city
 					};
 					city.AddCitizen(newResident);
-					CityTileAssignmentAI.AssignNewCitizenToTile(EngineStorage.gameData, newResident, manageMoods: true);
+					CityTileAssignmentAI.AssignNewCitizenToTile(gameData, newResident, manageMoods: true, context);
 				}
 			}
 		}
