@@ -336,7 +336,7 @@ namespace C7Engine {
 				int theirOfferValue = CalculateWeWantValue();
 				for (int i = 0; i < weGive.techs.Count;) {
 					if (CalculateWeGiveValue() - gD.TechCostFor(weGive.techs[i], them) >= theirOfferValue) {
-						weGive.techs.RemoveAt(0);
+						weGive.techs.RemoveAt(i);
 					} else {
 						++i;
 					}
