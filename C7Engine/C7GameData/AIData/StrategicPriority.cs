@@ -68,6 +68,7 @@ namespace C7Engine.AI.StrategicAI {
 		}
 
 		/// <summary>
+		/// NOTE: not consulted yet; ChooseProducible scores options without the player's priorities.
 		/// Allows the priority to add a flat adjuster to the likelihood of building this item.
 		/// This can be used to offset weights in the base adjuster, or simply as an alternative to the weight-based method.
 		/// </summary>
@@ -78,6 +79,7 @@ namespace C7Engine.AI.StrategicAI {
 		}
 
 		/// <summary>
+		/// NOTE: not consulted yet; ChooseProducible scores options without the player's priorities.
 		/// How much more or less likely a unit is to be produced based on this strategy.
 		/// This will be weighted by the priority's rank (top priority = full effect)
 		/// A value of 0.0 indicates no change to the prioritization.

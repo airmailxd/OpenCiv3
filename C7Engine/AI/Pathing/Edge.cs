@@ -15,9 +15,5 @@ namespace C7Engine.Pathing {
 		public int CompareTo(Edge<TNode> other) {
 			return distanceToCurrent.CompareTo(other.distanceToCurrent);
 		}
-
-		internal void addDistance(Edge<TNode> previous) {
-			distanceToCurrent += previous.distanceToCurrent;
-		}
 	}
 }

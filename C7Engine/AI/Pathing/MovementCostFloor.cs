@@ -19,7 +19,12 @@ namespace C7Engine.Pathing {
 	// Overlay costs change during the game, so the overlay part of the bound
 	// is the minimum of
 	//   - the cheapest overlay edge on the map when it was first scanned
-	//     (covers scenario maps with pre-built railroads), and
+	//     (covers scenario maps with pre-built railroads),
+	//   - the cheapest overlay cost of any single tile on the map when it was
+	//     scanned: a city founded later without a road has overlay cost 0, so
+	//     the edge between it and a neighbor with an overlay costs exactly
+	//     that neighbor's overlay cost (e.g. 0 next to a pre-built railroad,
+	//     even if no two railroads are adjacent and nobody can build them),
 	//   - the cost of every road-layer terraform some player can build (a new
 	//     road or railroad can only appear once someone has its tech).
 	// Adjacent cities can't be founded, so a 0-cost edge between two road-less
@@ -30,12 +35,28 @@ namespace C7Engine.Pathing {
 			public float minTerrainCost = float.MaxValue;
 			// Cheapest max(from, to) overlay cost over all adjacent tile pairs.
 			public float minOverlayEdgeCost = float.MaxValue;
+			// Cheapest overlay cost of a single tile with a road-layer
+			// improvement.
+			public float minOverlayTileCost = float.MaxValue;
 			// Same, restricted to pairs of adjacent cities (the only overlay
 			// edges a water unit can take).
 			public float minCityEdgeCost = float.MaxValue;
 		}
 
 		private static readonly ConditionalWeakTable<GameMap, MapScan> scans = new();
+
+		// The cheapest road-layer terraform some player can build, which only
+		// changes when someone learns a tech. Remembered per game, along with
+		// what it was computed for.
+		private sealed class TerraformFloor {
+			public int turn = int.MinValue;
+			public int playerCount = -1;
+			public int knownTechCount = -1;
+			public int terraformCount = -1;
+			public float floor = float.MaxValue;
+		}
+
+		private static readonly ConditionalWeakTable<GameData, TerraformFloor> terraformFloors = new();
 
 		// Returns the minimum cost, in movement points, of a single step taken
 		// by `unit`, or 0 if no useful bound can be computed.
@@ -78,20 +99,54 @@ namespace C7Engine.Pathing {
 				floor = Math.Min(floor, scan.minCityEdgeCost);
 			} else {
 				floor = Math.Min(floor, scan.minOverlayEdgeCost);
+				floor = Math.Min(floor, scan.minOverlayTileCost);
 				if (gameData != null) {
-					foreach (Terraform tf in gameData.Terraforms) {
-						TerrainImprovement imp = tf.Improvement;
-						if (imp == null || imp.layer != Layer.Roads || imp.movementCost < 0 || imp.movementCost >= floor) {
-							continue;
-						}
-						if (AnyPlayerHasTech(gameData.players, tf)) {
-							floor = imp.movementCost;
-						}
-					}
+					floor = Math.Min(floor, BuildableRoadFloor(gameData));
 				}
 			}
 
 			return Math.Max(0f, floor);
+		}
+
+		// The cheapest movement cost of a road-layer terraform some player can
+		// build. Players only gain techs, and only a few times per turn, so
+		// this is recomputed when the turn or the number of techs known
+		// changes rather than on every search.
+		private static float BuildableRoadFloor(GameData gameData) {
+			List<Player> players = gameData.players;
+			int knownTechCount = 0;
+			foreach (Player p in players) {
+				knownTechCount += p.knownTechs.Count;
+			}
+
+			TerraformFloor cached;
+			lock (terraformFloors) {
+				cached = terraformFloors.GetOrCreateValue(gameData);
+				if (cached.turn == gameData.turn && cached.playerCount == players.Count
+					&& cached.knownTechCount == knownTechCount && cached.terraformCount == gameData.Terraforms.Count) {
+					return cached.floor;
+				}
+			}
+
+			float floor = float.MaxValue;
+			foreach (Terraform tf in gameData.Terraforms) {
+				TerrainImprovement imp = tf.Improvement;
+				if (imp == null || imp.layer != Layer.Roads || imp.movementCost < 0 || imp.movementCost >= floor) {
+					continue;
+				}
+				if (AnyPlayerHasTech(players, tf)) {
+					floor = imp.movementCost;
+				}
+			}
+
+			lock (terraformFloors) {
+				cached.turn = gameData.turn;
+				cached.playerCount = players.Count;
+				cached.knownTechCount = knownTechCount;
+				cached.terraformCount = gameData.Terraforms.Count;
+				cached.floor = floor;
+			}
+			return floor;
 		}
 
 		private static bool AnyPlayerHasTech(List<Player> players, Terraform tf) {
@@ -122,6 +177,12 @@ namespace C7Engine.Pathing {
 					continue;
 				}
 				bool isCity = t.HasCity();
+				// A road-less city's 0 only matters next to another city,
+				// which can't be founded later; the pairs scanned below cover
+				// the cities that are already adjacent.
+				if (cost < scan.minOverlayTileCost && t.overlays.ImprovementAtLayer(Layer.Roads) != null) {
+					scan.minOverlayTileCost = cost;
+				}
 				foreach (Tile n in t.neighbors.Values) {
 					if (n == null || n == Tile.NONE) {
 						continue;

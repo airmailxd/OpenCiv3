@@ -122,18 +122,25 @@ namespace C7GameData.AIData {
 					continue;
 				}
 
+				// We can't yet fight players we can't reach over land (see
+				// DistanceToClosestCity), so don't pick them.
+				int distance = DistanceToClosestCity(player, p);
+				if (distance == int.MaxValue) {
+					continue;
+				}
+
 				// Players we share a longer border with are more likely to be
 				// our enemy.
-				score += borderTileCount[p];
+				score += borderTileCount.GetValueOrDefault(p);
 
 				// The further away an opponent is the harder a war will be.
-				score -= DistanceToClosestCity(player, p);
+				score -= distance;
 
 				// We want to be more likely to declare war on our weaker opponents,
 				// so scale our scores based on strength.
 				float them = p.CalculateMilitaryStrength();
 
-				score *= us / them;
+				score *= them > 0 ? us / them : 1;
 
 				scoredOpponents[p] = score;
 			}
@@ -174,7 +181,9 @@ namespace C7GameData.AIData {
 						continue;
 					}
 
-					borderTiles[other].Add(n);
+					if (borderTiles.TryGetValue(other, out HashSet<Tile> tiles)) {
+					tiles.Add(n);
+				}
 				}
 			}
 
@@ -182,8 +191,9 @@ namespace C7GameData.AIData {
 		}
 
 		// Calculate the smallest pairwise distance between cities of the two
-		// players. This is O(N^2), but shouldn't run very often and N shouldn't
-		// be excessively large.
+		// players on the same continent, or int.MaxValue if they have none on
+		// a shared continent. This is O(N^2), but shouldn't run very often and
+		// N shouldn't be excessively large.
 		private static int DistanceToClosestCity(Player a, Player b) {
 			int result = int.MaxValue;
 

@@ -47,7 +47,7 @@ namespace C7Engine.AI {
 			int numberOfPriorities = CalculateNumberOfPriorities(possiblePriorities);
 
 			List<StrategicPriority> priorities = new List<StrategicPriority>();
-			for (int i = 0; i < numberOfPriorities; i++) {
+			for (int i = 0; i < numberOfPriorities && possiblePriorities.Count > 0; i++) {
 				StrategicPriority topPriority = ChooseStrategicPriority(possiblePriorities, Weighting.WEIGHTED_LINEAR);
 				priorities.Add(topPriority);
 				possiblePriorities.Remove(topPriority);
@@ -108,7 +108,13 @@ namespace C7Engine.AI {
 			double sumOfAllWeights = 0.0;
 			List<double> cutoffs = new List<double>();
 			foreach (StrategicPriority possiblePriority in possiblePriorities) {
-				double baseWeight = possiblePriority.GetCalculatedWeight();
+				// A priority with no (or a negative) weight shouldn't be picked
+				// by the weighted draw. Clamp before adjusting, as squaring
+				// would make a negative weight positive.
+				double baseWeight = Math.Max(0.0, possiblePriority.GetCalculatedWeight());
+				if (double.IsNaN(baseWeight)) {
+					baseWeight = 0.0;
+				}
 				double adjustedWeight = WeightAdjuster.AdjustWeightByFactor(baseWeight, weighting);
 
 				double oldCutoff = sumOfAllWeights;
@@ -129,7 +135,12 @@ namespace C7Engine.AI {
 				}
 				idx++;
 			}
-			return new WarPriority();   //TODO: Fallback
+
+			// Nothing has a positive weight. Take the highest weighted
+			// priority among the candidates, so that the caller can remove it
+			// from them (a new instance would never be removed, and could be
+			// picked again).
+			return FindTopScoringPriority(possiblePriorities);
 		}
 	}
 }

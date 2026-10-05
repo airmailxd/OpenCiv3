@@ -1,7 +1,6 @@
 using C7GameData;
 using C7GameData.AIData;
 using System;
-using System.Reflection.Metadata.Ecma335;
 using System.Threading.Tasks;
 
 namespace C7GameData {
@@ -30,8 +29,18 @@ namespace C7GameData {
 		}
 
 
+		// How many steps in a row may leave the unit where it was with the
+		// same movement points. Some steps legitimately do (e.g. repathing, or
+		// an escort letting the unit it escorts move first), but a plan that
+		// keeps doing so would never end the unit's turn.
+		private const int MAX_STEPS_WITHOUT_PROGRESS = 4;
+
 		public async Task<Result> PlayTurn(Player player, MapUnit unit) {
+			int stepsWithoutProgress = 0;
 			while (unit.movementPoints.canMove && !unit.isFortified) {
+				Tile locationBefore = unit.location;
+				float movementPointsBefore = unit.movementPoints.remaining;
+
 				MoveResult result = PlayTurnImpl(player, unit);
 				if (result == Result.Error || result == Result.Done) {
 					return result.Result;
@@ -39,6 +48,15 @@ namespace C7GameData {
 				if (result.IsMoveRequested) {
 					bool stillAlive = await result.PendingMove;
 					if (!stillAlive) return Result.Error;
+				}
+
+				if (unit.location == locationBefore && unit.movementPoints.remaining == movementPointsBefore) {
+					if (++stepsWithoutProgress >= MAX_STEPS_WITHOUT_PROGRESS) {
+						// Try again next turn.
+						break;
+					}
+				} else {
+					stepsWithoutProgress = 0;
 				}
 			}
 			return Result.InProgress;

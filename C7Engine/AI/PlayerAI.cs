@@ -10,6 +10,7 @@ using C7Engine.AI.StrategicAI;
 using C7Engine.AI.UnitAI;
 using Serilog;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using static C7GameData.PlayerRelationship;
 
 namespace C7Engine {
@@ -61,7 +62,9 @@ namespace C7Engine {
 			foreach (MapUnit unit in player.units.ToList()) {
 				UnitPrototype upgrade = GetAvailableUpgrade(unit, upgradeInfo);
 				if (upgrade != null && player.gold - unit.UpgradeCost(upgrade) >= GOLD_RESERVE) {
-					unit.Upgrade();
+					// We just worked out the upgrade, so don't have Upgrade()
+					// look it up (and the city's resources) again.
+					unit.UpgradeTo(upgrade);
 				}
 			}
 		}
@@ -364,13 +367,11 @@ namespace C7Engine {
 				return null;
 			}
 
-			Tile closestBarbCamp = FindNearbyBarbCamp(unit, player);
+			Tile closestBarbCamp = FindNearbyBarbCamp(unit, player, out TilePath path);
 			if (closestBarbCamp != Tile.NONE) {
 				CombatAIData caid = new CombatAIData();
 				caid.destination = closestBarbCamp;
-
-				PathingAlgorithm algorithm = PathingAlgorithmChooser.GetAlgorithm(unit);
-				caid.path = algorithm.PathFrom(unit.location, closestBarbCamp, unit);
+				caid.path = path;
 				log.Information($"Set unit {unit} to take out barb camp at {closestBarbCamp}");
 				return new CombatAI(caid);
 			}
@@ -379,52 +380,61 @@ namespace C7Engine {
 
 		private const int MAX_BARB_CAMP_DISTANCE = 3;
 
-		// Returns the closest known barbarian camp the unit can enter, if one
-		// is within MAX_BARB_CAMP_DISTANCE tiles, or Tile.NONE.
-		private static Tile FindNearbyBarbCamp(MapUnit unit, Player player) {
+		// How far out of its way a unit will go to reach a nearby camp, as a
+		// path cost (see AStarAlgorithm.PathFrom).
+		private const double MAX_BARB_CAMP_PATH_COST = 2 * MAX_BARB_CAMP_DISTANCE;
+
+		// Returns the closest known barbarian camp the unit can reach, if one
+		// is within MAX_BARB_CAMP_DISTANCE tiles, or Tile.NONE. Equally close
+		// camps are taken in the order GetTilesWithinTileSquare lists them.
+		//
+		// Camps the unit can't get to (e.g. across water) don't count, or the
+		// unit would be sent towards the same unreachable camp every turn.
+		private static Tile FindNearbyBarbCamp(MapUnit unit, Player player, out TilePath path) {
+			path = null;
+			Tile start = unit.location;
+
 			// The tiles within a DistanceTo of n are exactly the tile square of
 			// rank n, so only those need checking.
-			Tile closestBarbCamp = Tile.NONE;
-			int closestBarbDistance = int.MaxValue;
-			List<Tile> tied = null;
-			foreach (Tile t in unit.location.GetTilesWithinTileSquare(MAX_BARB_CAMP_DISTANCE)) {
+			List<Tile> camps = null;
+			foreach (Tile t in start.GetTilesWithinTileSquare(MAX_BARB_CAMP_DISTANCE)) {
 				if (t == Tile.NONE || !t.hasBarbarianCamp || !player.tileKnowledge.isTileKnown(t) || !unit.CanEnter(t)) {
 					continue;
 				}
-				int crowDistance = t.DistanceTo(unit.location);
-				if (crowDistance < closestBarbDistance) {
-					closestBarbCamp = t;
-					closestBarbDistance = crowDistance;
-					tied = null;
-				} else if (crowDistance == closestBarbDistance && t != closestBarbCamp) {
-					tied ??= new List<Tile> { closestBarbCamp };
-					if (!tied.Contains(t)) {
-						tied.Add(t);
-					}
-				}
+				camps ??= new List<Tile>();
+				camps.Add(t);
 			}
-
-			if (closestBarbDistance > MAX_BARB_CAMP_DISTANCE) {
+			if (camps == null) {
 				return Tile.NONE;
 			}
 
-			// For equally close camps pick the one that comes first among the
-			// known tiles, as a scan of all the known tiles would.
-			if (tied != null) {
-				foreach (Tile t in player.tileKnowledge.knownTiles) {
-					if (tied.Contains(t)) {
-						return t;
-					}
+			// Nearest first; OrderBy is stable, so ties keep their order.
+			if (camps.Count > 1) {
+				camps = camps.OrderBy(t => t.DistanceTo(start)).ToList();
+			}
+
+			PathingAlgorithm algorithm = PathingAlgorithmChooser.GetAlgorithm(unit);
+			foreach (Tile camp in camps) {
+				TilePath p = algorithm is AStarAlgorithm aStar
+					? aStar.PathFrom(start, camp, unit, MAX_BARB_CAMP_PATH_COST)
+					: algorithm.PathFrom(start, camp, unit);
+				if (camp == start || (p != null && p.PathLength() > 0)) {
+					path = p;
+					return camp;
 				}
 			}
-			return closestBarbCamp;
+			return Tile.NONE;
 		}
 
 		// Whether GetAIForUnit would make this unit an explorer, without
 		// planning anything or changing any state. The unit doesn't need to be
 		// in play, so this can be asked about a unit we're considering
 		// building.
-		internal static bool WouldExplore(MapUnit unit, Player player) {
+		//
+		// `hypothetical` says the unit isn't in play (it was made just to ask
+		// this), which lets the answer be shared with other such questions
+		// this turn (see HasTileToExploreCached).
+		internal static bool WouldExplore(MapUnit unit, Player player, bool hypothetical = false) {
 			// Mirror the checks GetAIForUnit makes before considering
 			// exploration.
 			if (unit.unitType.name == "Settler" || unit.unitType.name == "Worker") {
@@ -433,7 +443,7 @@ namespace C7Engine {
 			if (unit.location.cityAtTile != null && unit.CanDefendOnLand() && unit.location.unitsOnTile.Count(u => u.CanDefendOnLand() && u != unit) == 0) {
 				return false;
 			}
-			if (unit.unitType.attack > 0 && FindNearbyBarbCamp(unit, player) != Tile.NONE) {
+			if (unit.unitType.attack > 0 && FindNearbyBarbCamp(unit, player, out _) != Tile.NONE) {
 				return false;
 			}
 			if (unit.unitType.name == "Catapult") {
@@ -451,7 +461,7 @@ namespace C7Engine {
 			if (CountExplorers(player, unit.IsLandUnit()) >= maxExplorers) {
 				return false;
 			}
-			return HasTileToExplore(unit, player);
+			return hypothetical ? HasTileToExploreCached(unit, player) : HasTileToExplore(unit, player);
 		}
 
 		// Whether ExplorerAI.MaybeMakeAiData would find a tile for this unit
@@ -460,21 +470,24 @@ namespace C7Engine {
 		// first doesn't matter, so this skips the scoring and asks the pathing
 		// algorithm once about all of them, nearest first.
 		private static bool HasTileToExplore(MapUnit unit, Player player) {
-			TileKnowledge knowledge = player.tileKnowledge;
+			return HasTileToExplore(unit, player, ExcludedExplorationTargets(player, unit));
+		}
 
-			// Exploration targets of explorers that are gone or have other
-			// jobs are forgotten before candidates are scored. The explorers
-			// still at it are the units whose current ExplorerAI is theirs.
-			HashSet<Tile> activeTargets = null;
-			if (knowledge.aiExplorationTargets.Count > 0) {
-				activeTargets = new HashSet<Tile>();
-				foreach (MapUnit u in player.units) {
-					if (u != unit && u.currentAI is ExplorerAI explorerAi && explorerAi.data?.explorer == u
-						&& explorerAi.data.destination != null) {
-						activeTargets.Add(explorerAi.data.destination);
-					}
-				}
+		// Exploration targets of explorers that are gone or have other jobs
+		// are forgotten before candidates are scored, so the candidates left
+		// out are the targets of the other units that are still exploring.
+		private static HashSet<Tile> ExcludedExplorationTargets(Player player, MapUnit unit) {
+			TileKnowledge knowledge = player.tileKnowledge;
+			if (knowledge.aiExplorationTargets.Count == 0) {
+				return null;
 			}
+			HashSet<Tile> excluded = ExplorerAI.ActiveExplorationTargets(player, unit);
+			excluded.IntersectWith(knowledge.aiExplorationTargets);
+			return excluded;
+		}
+
+		private static bool HasTileToExplore(MapUnit unit, Player player, HashSet<Tile> excludedTargets) {
+			TileKnowledge knowledge = player.tileKnowledge;
 
 			bool isLandUnit = unit.IsLandUnit();
 			List<Tile> candidates = new();
@@ -482,7 +495,7 @@ namespace C7Engine {
 				if (t.IsLand() != isLandUnit) {
 					continue;
 				}
-				if (activeTargets != null && knowledge.aiExplorationTargets.Contains(t) && activeTargets.Contains(t)) {
+				if (excludedTargets != null && excludedTargets.Contains(t)) {
 					continue;
 				}
 				if (HasUnknownNeighboringTiles(knowledge, t)) {
@@ -501,7 +514,12 @@ namespace C7Engine {
 			return algorithm.FindFirstReachable(start, candidates, unit, out _) >= 0;
 		}
 
-		// Matches ExplorerAI's test for whether a tile is worth exploring.
+		// Matches ExplorerAI's test for whether a tile is worth exploring (at
+		// least one unknown tile among itself and its neighbors, and no
+		// city). Border tiles are the unknown tiles next to known ones, so for
+		// them this comes down to having no city; the neighbors only need
+		// checking if a tile became known without going through TileKnowledge
+		// (which tests do).
 		private static bool HasUnknownNeighboringTiles(TileKnowledge knowledge, Tile t) {
 			if (t.cityAtTile != null) {
 				return false;
@@ -510,11 +528,66 @@ namespace C7Engine {
 				return true;
 			}
 			foreach (Tile n in t.neighbors.Values) {
-				if (!knowledge.isTileKnown(n)) {
+				if (n != Tile.NONE && !knowledge.isTileKnown(n)) {
 					return true;
 				}
 			}
 			return false;
+		}
+
+		// HasTileToExplore for units that aren't in play, such as the units a
+		// city is considering building. A city asks this for every kind of
+		// unit it could build, every time it picks something to build, and the
+		// answer only depends on the unit through where it starts and which
+		// tiles it can enter, so answers are shared until the turn or what the
+		// player knows changes.
+		//
+		// What's known about the map, the player's cities (which ships can
+		// sail through) and the exploration targets are checked for changes.
+		// Other units moving during the turn aren't, which can only change
+		// the answer if they block the way to everything left to explore.
+		private sealed class ExplorationCheckCache {
+			public int turn = int.MinValue;
+			public int knownTileCount = -1;
+			public int borderTileCount = -1;
+			public int cityCount = -1;
+			public HashSet<Tile> excludedTargets;
+			public readonly Dictionary<ExplorationCheckKey, bool> results = new();
+		}
+
+		// Everything about a unit that decides which tiles it can enter, for
+		// a unit that isn't in play (so isn't loaded, in an army or carrying
+		// anything).
+		private readonly record struct ExplorationCheckKey(Tile start, bool land, bool water, bool air, bool combat, bool loadable, bool amphibious);
+
+		private static readonly ConditionalWeakTable<Player, ExplorationCheckCache> explorationChecks = new();
+
+		private static bool HasTileToExploreCached(MapUnit unit, Player player) {
+			TileKnowledge knowledge = player.tileKnowledge;
+			HashSet<Tile> excluded = ExcludedExplorationTargets(player, unit);
+			int turn = EngineStorage.gameData?.turn ?? 0;
+
+			ExplorationCheckCache cache = explorationChecks.GetValue(player, _ => new ExplorationCheckCache());
+			bool sameExcluded = (cache.excludedTargets == null || cache.excludedTargets.Count == 0)
+				? (excluded == null || excluded.Count == 0)
+				: excluded != null && cache.excludedTargets.SetEquals(excluded);
+			if (cache.turn != turn || cache.knownTileCount != knowledge.knownTiles.Count
+				|| cache.borderTileCount != knowledge.borderTiles.Count || cache.cityCount != player.cities.Count || !sameExcluded) {
+				cache.results.Clear();
+				cache.turn = turn;
+				cache.knownTileCount = knowledge.knownTiles.Count;
+				cache.borderTileCount = knowledge.borderTiles.Count;
+				cache.cityCount = player.cities.Count;
+				cache.excludedTargets = excluded;
+			}
+
+			ExplorationCheckKey key = new(unit.location, unit.IsLandUnit(), unit.IsWaterUnit(), unit.IsAirUnit(),
+				unit.IsCombatUnit(), unit.IsLoadable(), unit.unitType.isAmphibious);
+			if (!cache.results.TryGetValue(key, out bool result)) {
+				result = HasTileToExplore(unit, player, excluded);
+				cache.results[key] = result;
+			}
+			return result;
 		}
 
 		private static async Task AttemptTrading(Player us) {

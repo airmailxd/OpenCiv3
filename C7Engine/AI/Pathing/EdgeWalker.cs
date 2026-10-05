@@ -24,6 +24,11 @@ namespace C7Engine.Pathing {
 				TileDirection direction = pair.Key;
 				Tile neighbor = pair.Value;
 
+				// Tiles off the edge of the map can't be walked onto.
+				if (neighbor == Tile.NONE) {
+					continue;
+				}
+
 				bool isPassable = false;
 
 				if (isHuman && !owner.HasExploredTile(neighbor)) {

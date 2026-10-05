@@ -27,8 +27,8 @@ namespace C7GameData {
 			return PathLength() > 0 ? path.Peek() : Tile.NONE;
 		}
 
-		//TODO: Once we have roads, we should return the calculated cost, not just the length.
-		//This will require Dijkstra or another fancier pathing algorithm
+		// The number of steps left on the path, or -1 if there's no path. See
+		// PathCost for how many turns they take.
 		public int PathLength() {
 			return path != null ? path.Count : -1;
 		}
@@ -117,9 +117,9 @@ namespace C7GameData {
 				return newLocation.MovementCost();
 			}
 
-			// Special case: if we are a water unit, traveling from the water into
-			// a city, it doesn't matter if the city is on hills or on grassland,
-			// the cost should always be 1.
+			// Special case: moving from water into a city (e.g. a ship sailing
+			// into port) costs 1, whether the city is on hills or on grassland,
+			// unless one of the checks above already decided the cost.
 			if (from.IsWater() && newLocation.HasCity()) return 1;
 
 			return (fromCost == -1 || toCost == -1)

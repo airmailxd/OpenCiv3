@@ -57,6 +57,9 @@ namespace C7Engine.AI.UnitAI {
 
 		private static void Register(Player player, DefenderAI ai) {
 			registry.Register(player, ai);
+			// Once assigned, the new plan counts as a unit en route to its
+			// city, which the snapshot doesn't know about.
+			lastSnapshots.Remove(player);
 		}
 
 		private static int CurrentTurn() {
@@ -94,6 +97,7 @@ namespace C7Engine.AI.UnitAI {
 		// and cities are where they were.
 		private sealed class CityDefenseSnapshot {
 			public MapUnit unit;
+			public C7GameData.UnitAI unitAI;
 			public Player player;
 			public int turn;
 			public Tile unitLocation;
@@ -105,12 +109,16 @@ namespace C7Engine.AI.UnitAI {
 			public int[] distance;
 		}
 
-		[ThreadStatic] private static CityDefenseSnapshot lastSnapshot;
+		// The last snapshot taken for each player. Weak, so that it doesn't
+		// keep a finished game alive.
+		private static readonly ConditionalWeakTable<Player, CityDefenseSnapshot> lastSnapshots = new();
 
 		private static CityDefenseSnapshot GetSnapshot(MapUnit unit, Player player) {
 			int turn = CurrentTurn();
-			CityDefenseSnapshot snap = lastSnapshot;
-			if (snap != null && snap.unit == unit && snap.player == player && snap.turn == turn
+			lastSnapshots.TryGetValue(player, out CityDefenseSnapshot snap);
+			// The unit's own current plan counts towards the units en route,
+			// so a snapshot taken under another plan is stale.
+			if (snap != null && snap.unit == unit && snap.unitAI == unit.currentAI && snap.player == player && snap.turn == turn
 				&& snap.unitLocation == unit.location && snap.unitCount == player.units.Count
 				&& snap.cityCount == player.cities.Count && SameCities(snap.cities, player.cities)) {
 				return snap;
@@ -119,6 +127,7 @@ namespace C7Engine.AI.UnitAI {
 			int n = player.cities.Count;
 			snap = new CityDefenseSnapshot() {
 				unit = unit,
+				unitAI = unit.currentAI,
 				player = player,
 				turn = turn,
 				unitLocation = unit.location,
@@ -153,7 +162,7 @@ namespace C7Engine.AI.UnitAI {
 				}
 			});
 
-			lastSnapshot = snap;
+			lastSnapshots.AddOrUpdate(player, snap);
 			return snap;
 		}
 

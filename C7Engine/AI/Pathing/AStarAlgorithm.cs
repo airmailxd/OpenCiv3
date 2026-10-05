@@ -1,17 +1,7 @@
 using System.Collections.Generic;
-using System;
 using C7GameData;
 
 namespace C7Engine.Pathing {
-	public class TileAndCost : IComparable<TileAndCost> {
-		public Tile tile;
-		public double cost = 0;
-
-		public int CompareTo(TileAndCost other) {
-			return cost.CompareTo(other.cost);
-		}
-	}
-
 	// An implementation fo the A* path searching algorithm.
 	//
 	// See https://en.wikipedia.org/wiki/A*_search_algorithm and
@@ -24,42 +14,27 @@ namespace C7Engine.Pathing {
 	// once per tile per search, and only for edges that would improve the
 	// best known cost of the tile.
 	public class AStarAlgorithm : PathingAlgorithm {
-		private readonly EdgeWalker<Tile> edgeWalker;
-
-		// An estimate of the cost between two tiles, usually between a tile in
-		// the search and the destination tile. This allows targeting the search
-		// by doing things like focusing the search in the cardinal direction of
-		// the destination instead of expanding outwards in all directions.
-		private Func<Tile, Tile, double> costHeuristic;
-
-		// A delegate that determines if a tile is passable during pathfinding.
-		// Receives the tile being evaluated and the final destination tile.
-		private Func<Tile, Tile, bool> isPassable;
-
-		// Set when this algorithm was created for a specific unit (see
-		// PathingAlgorithmChooser). In that case we walk the tile neighbors
-		// directly, use an admissible and consistent heuristic computed per
-		// search, and check passability with the unit's CanEnter* methods.
+		// The unit this search was created for (see PathingAlgorithmChooser).
+		// We walk the tile neighbors directly, with the same moves and costs
+		// as UnitWalker, use an admissible and consistent heuristic computed
+		// per search, and check passability with the unit's CanEnter* methods.
 		private readonly MapUnit unit;
-
-		public AStarAlgorithm(EdgeWalker<Tile> edgeWalker, Func<Tile, Tile, double> costHeuristic, Func<Tile, Tile, bool> isPassable) {
-			this.edgeWalker = edgeWalker;
-			this.costHeuristic = costHeuristic;
-			this.isPassable = isPassable;
-		}
 
 		// Creates an A* search specialized for moving the given unit.
 		public AStarAlgorithm(MapUnit unit) {
 			this.unit = unit;
-			this.edgeWalker = new UnitWalker(unit);
 		}
 
 		public override TilePath PathFrom(Tile start, Tile destination, MapUnit unit) {
 			return PathFrom(start, destination, unit, double.PositiveInfinity);
 		}
 
-		// Like PathFrom, but gives up (returning an empty path) if the
-		// destination costs more than `maxCost` turns to reach.
+		// Like PathFrom, but gives up (returning an empty path) if the path
+		// to the destination costs more than `maxCost`. The cost of a path is
+		// the sum of its steps' UnitWalker.EdgeCost: the fraction of the
+		// unit's movement points each step uses, capped at 1. That is close
+		// to, but not the same as, the number of turns the path takes, since
+		// it ignores movement points left unused at the end of a turn.
 		public TilePath PathFrom(Tile start, Tile destination, MapUnit unit, double maxCost) {
 			// Exit early if the AI can't possibly get there, such as when
 			// starting and ending on different continents. Don't waste time
@@ -82,9 +57,13 @@ namespace C7Engine.Pathing {
 			// For human water units, whether land strips block movement depends
 			// on whether the destination was explored, so a single search can't
 			// answer for every candidate.
-			if (this.unit == null || (unit.IsWaterUnit() && unit.owner.isHuman)) {
+			if (unit.IsWaterUnit() && unit.owner.isHuman) {
 				return base.FindFirstReachable(start, candidates, unit, out path);
 			}
+
+			// Which water bodies a water unit can reach only depends on the
+			// start, so it is worked out at most once for all the candidates.
+			PathingShortcuts.WaterBodies waterBodies = null;
 
 			path = null;
 			int first = -1;
@@ -97,7 +76,7 @@ namespace C7Engine.Pathing {
 					path = TilePath.EmptyPath(start);
 					return i;
 				}
-				if (!PathingShortcuts.IsTriviallyUnreachable(start, c, unit)) {
+				if (!PathingShortcuts.IsTriviallyUnreachable(start, c, unit, ref waterBodies)) {
 					first = i;
 					break;
 				}
@@ -129,7 +108,7 @@ namespace C7Engine.Pathing {
 						path = TilePath.EmptyPath(start);
 						return i;
 					}
-					if (IsReachableFromExpanded(ctx, start, c, unit)) {
+					if (IsReachableFromExpanded(ctx, start, c, unit, ref waterBodies)) {
 						next = i;
 						break;
 					}
@@ -141,7 +120,16 @@ namespace C7Engine.Pathing {
 			if (next < 0) {
 				return -1;
 			}
-			path = PathFrom(start, candidates[next], unit);
+
+			// The candidate is known to be reachable, so search for it
+			// directly rather than repeating PathFrom's shortcut checks.
+			ctx = PathSearchContext.Rent(start.map);
+			try {
+				int found = Search(ctx, start, candidates[next], unit, double.PositiveInfinity);
+				path = found >= 0 ? ctx.MakePath(found, candidates[next]) : TilePath.EmptyPath(candidates[next]);
+			} finally {
+				PathSearchContext.Return(ctx);
+			}
 			return next;
 		}
 
@@ -151,8 +139,8 @@ namespace C7Engine.Pathing {
 		// entry, and only the destination for forceful entry, so the tiles
 		// expanded by a failed search are exactly those reachable with
 		// peaceful moves (plus the start).
-		private bool IsReachableFromExpanded(PathSearchContext ctx, Tile start, Tile c, MapUnit pathUnit) {
-			if (PathingShortcuts.IsTriviallyUnreachable(start, c, pathUnit)) {
+		private bool IsReachableFromExpanded(PathSearchContext ctx, Tile start, Tile c, MapUnit pathUnit, ref PathingShortcuts.WaterBodies waterBodies) {
+			if (PathingShortcuts.IsTriviallyUnreachable(start, c, pathUnit, ref waterBodies)) {
 				return false;
 			}
 
@@ -208,21 +196,17 @@ namespace C7Engine.Pathing {
 			bool applyLandStrip = pathUnit.IsWaterUnit()
 				&& (pathUnit.owner.HasExploredTile(destination) || !pathUnit.owner.isHuman);
 
-			bool specialized = unit != null;
-			Player owner = specialized ? unit.owner : null;
-			bool isHuman = specialized && owner.isHuman;
-			bool isLandUnit = specialized && unit.IsLandUnit();
-			bool isWaterUnit = specialized && unit.IsWaterUnit();
-			float movementPoints = specialized ? unit.MaxMovementPoints() : 0;
+			Player owner = unit.owner;
+			bool isHuman = owner.isHuman;
+			bool isLandUnit = unit.IsLandUnit();
+			bool isWaterUnit = unit.IsWaterUnit();
+			float movementPoints = unit.MaxMovementPoints();
 
 			// The heuristic is DistanceTo times the cheapest possible step,
 			// which never overestimates (see MovementCostFloor), scaled down a
 			// hair so that float rounding can't make it inadmissible.
-			double heuristicScale = 0;
-			if (specialized) {
-				float tileFloor = MovementCostFloor.MinimumTileCost(unit, start);
-				heuristicScale = MovementCostFloor.EdgeFloor(tileFloor, movementPoints) * (1 - 1e-6);
-			}
+			float tileFloor = MovementCostFloor.MinimumTileCost(unit, start);
+			double heuristicScale = MovementCostFloor.EdgeFloor(tileFloor, movementPoints) * (1 - 1e-6);
 
 			// Note: ctx's arrays may be reallocated by ctx.Id, so they are
 			// always accessed through ctx.
@@ -238,16 +222,14 @@ namespace C7Engine.Pathing {
 					continue;
 				}
 
-				// The specialized heuristic is consistent, so the first time a
-				// tile is expanded we already have its cheapest path.
-				if (specialized) {
-					if ((ctx.flags[current] & PathSearchContext.CLOSED) != 0) {
-						continue;
-					}
-					ctx.flags[current] |= PathSearchContext.CLOSED;
+				// The heuristic is consistent, so the first time a tile is
+				// expanded we already have its cheapest path.
+				if ((ctx.flags[current] & PathSearchContext.CLOSED) != 0) {
+					continue;
 				}
+				ctx.flags[current] |= PathSearchContext.CLOSED;
 
-				Tile currentTile = ctx.tiles[current];
+				Tile currentTile = ctx.TileOf(current);
 
 				// If this is the destination, we're done.
 				if (currentTile == destination) {
@@ -256,33 +238,22 @@ namespace C7Engine.Pathing {
 
 				double currentCost = ctx.cost[current];
 
-				if (specialized) {
-					foreach (KeyValuePair<TileDirection, Tile> pair in currentTile.neighbors) {
-						Tile neighbor = pair.Value;
-						if (neighbor == Tile.NONE || !CanWalkOnto(neighbor, owner, isHuman, isLandUnit, isWaterUnit)) {
-							continue;
-						}
-						if (applyLandStrip && GameMap.IsLandStrip(currentTile, neighbor)) {
-							continue;
-						}
-
-						int id = ctx.Id(neighbor);
-						if ((ctx.flags[id] & PathSearchContext.CLOSED) != 0) {
-							continue;
-						}
-
-						float edgeCost = UnitWalker.EdgeCost(owner, currentTile, pair.Key, neighbor, movementPoints);
-						Relax(ctx, current, id, neighbor, destination, currentCost + edgeCost, maxCost, heuristicScale);
+				foreach (KeyValuePair<TileDirection, Tile> pair in currentTile.neighbors) {
+					Tile neighbor = pair.Value;
+					if (neighbor == Tile.NONE || !CanWalkOnto(neighbor, owner, isHuman, isLandUnit, isWaterUnit)) {
+						continue;
 					}
-				} else {
-					foreach (Edge<Tile> neighborEdge in edgeWalker.getEdges(currentTile)) {
-						Tile neighbor = neighborEdge.current;
-						if (applyLandStrip && GameMap.IsLandStrip(currentTile, neighbor)) {
-							continue;
-						}
-						int id = ctx.Id(neighbor);
-						Relax(ctx, current, id, neighbor, destination, currentCost + neighborEdge.distanceToCurrent, maxCost, heuristicScale);
+					if (applyLandStrip && GameMap.IsLandStrip(currentTile, neighbor)) {
+						continue;
 					}
+
+					int id = ctx.Id(neighbor);
+					if ((ctx.flags[id] & PathSearchContext.CLOSED) != 0) {
+						continue;
+					}
+
+					float edgeCost = UnitWalker.EdgeCost(owner, currentTile, pair.Key, neighbor, movementPoints);
+					Relax(ctx, current, id, neighbor, destination, currentCost + edgeCost, maxCost, heuristicScale);
 				}
 			}
 
@@ -301,9 +272,7 @@ namespace C7Engine.Pathing {
 
 			ctx.cost[id] = newCost;
 			ctx.parent[id] = from;
-			double estimate = unit != null
-				? newCost + Heuristic(neighbor, destination, heuristicScale)
-				: newCost + costHeuristic(neighbor, destination);
+			double estimate = newCost + Heuristic(neighbor, destination, heuristicScale);
 			ctx.open.Enqueue(new PathSearchContext.Entry(id, newCost), estimate);
 		}
 
@@ -314,12 +283,7 @@ namespace C7Engine.Pathing {
 				return (f & PathSearchContext.PASSABLE) != 0;
 			}
 
-			bool passable;
-			if (unit != null) {
-				passable = neighbor == destination ? unit.CanEnterForcefully(neighbor) : unit.CanEnterPeacefully(neighbor);
-			} else {
-				passable = isPassable(neighbor, destination);
-			}
+			bool passable = neighbor == destination ? unit.CanEnterForcefully(neighbor) : unit.CanEnterPeacefully(neighbor);
 
 			ctx.flags[id] = (byte)(f | PathSearchContext.PASSABILITY_KNOWN | (passable ? PathSearchContext.PASSABLE : 0));
 			return passable;
