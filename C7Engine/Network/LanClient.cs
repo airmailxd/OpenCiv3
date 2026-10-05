@@ -1,6 +1,5 @@
 using System;
 using System.Net.Sockets;
-using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using C7GameData;
@@ -14,21 +13,29 @@ namespace C7Engine.Network;
 // host sends back.
 //
 // Frames are handled in Poll(), which the lobby and then the game call every
-// frame on the main thread. Snapshots are decompressed and read on worker
-// threads as they arrive, so Poll only hands them over once they're ready.
-// A snapshot identical to the one before it is skipped, and one followed
-// straight away by a newer one that is already ready is dropped for it.
+// frame on the main thread, in the order they arrived. A snapshot is
+// decompressed and read on a worker thread once it's the next frame to
+// handle, and Poll hands it over (and goes on to the frames after it) once
+// it's ready. Only one snapshot is read at a time: one followed straight
+// away by a newer one is dropped for it without being read, and one
+// identical to the snapshot last shown is skipped.
+//
+// A frame that can't be read or handled is logged and skipped. The host's
+// frames are the only source of the game, so hanging up wouldn't get a
+// better one.
 public class LanClient : IDisposable {
 	private static readonly ILogger log = Log.ForContext<LanClient>();
 
 	private readonly LanConnection connection;
 
-	// A snapshot frame's Prepared: the snapshot being read, or Unchanged when
-	// it holds the same game as the snapshot before it.
-	private static readonly object Unchanged = new();
+	// The snapshot frame being read, and its reading.
+	private Frame readingFrame;
+	private Task<SaveGame> reading;
 
-	// The hash of the last snapshot received. Only the reader thread uses it.
-	private byte[] lastSnapshotHash;
+	// The compressed bytes of the snapshot last shown. The host doesn't send
+	// a connection the same snapshot twice in a row, so this rarely matches,
+	// but comparing costs little next to reading a snapshot and redrawing.
+	private byte[] lastShownSnapshot;
 
 	public string HostAddress { get; }
 	public LobbyInfo Lobby { get; private set; }
@@ -58,7 +65,7 @@ public class LanClient : IDisposable {
 	public Action<byte[]> UiMessageReceived;
 
 	private LanClient(TcpClient tcp, string hostAddress) {
-		connection = new LanConnection(tcp, PrepareFrame);
+		connection = new LanConnection(tcp);
 		HostAddress = hostAddress;
 	}
 
@@ -98,26 +105,6 @@ public class LanClient : IDisposable {
 		return clock == null ? null : clock with { secondsElapsed = clock.secondsElapsed + sinceClock.Elapsed.TotalSeconds };
 	}
 
-	// Called on the connection's reader thread as each frame arrives: starts
-	// reading a snapshot, unless it's the same as the one before.
-	private Frame PrepareFrame(Frame frame) {
-		if (frame.kind != FrameKind.Snapshot) {
-			return frame;
-		}
-		byte[] hash = SHA256.HashData(frame.payload);
-		bool unchanged = lastSnapshotHash != null && lastSnapshotHash.AsSpan().SequenceEqual(hash);
-		lastSnapshotHash = hash;
-		return frame with { Prepared = unchanged ? Unchanged : Task.Run(() => LanProtocol.DecodeSnapshot(frame.payload)) };
-	}
-
-	private static bool IsReady(Frame snapshot) {
-		return snapshot.Prepared is not Task<SaveGame> reading || reading.IsCompleted;
-	}
-
-	private static bool IsReadyToReplace(Frame snapshot) {
-		return snapshot.Prepared is Task<SaveGame> reading && reading.IsCompletedSuccessfully;
-	}
-
 	public void Poll() {
 		while (connection.TryPeek(out Frame frame)) {
 			// Once the game has started, wait for the game screen before
@@ -125,28 +112,39 @@ public class LanClient : IDisposable {
 			if (StartingGame != null && SnapshotReceived == null) {
 				return;
 			}
-			if (frame.kind == FrameKind.Snapshot) {
-				// A newer snapshot that has been read replaces this one. One
-				// that's the same as this one isn't read at all, so this one
-				// is shown and that one skipped as unchanged.
-				if (connection.TryPeekAt(1, out Frame next) && next.kind == FrameKind.Snapshot && IsReadyToReplace(next)) {
+			if (frame.kind == FrameKind.Snapshot && !ReferenceEquals(frame, readingFrame)) {
+				// A snapshot of the game already shown, or one that a newer
+				// snapshot straight after it replaces, isn't read at all.
+				bool superseded = connection.TryPeekAt(1, out Frame next) && next.kind == FrameKind.Snapshot;
+				if (superseded || IsShown(frame.payload)) {
 					connection.TryReceive(out _);
 					continue;
 				}
-				if (!IsReady(frame)) {
-					// Wait for it, so frames stay in order.
-					return;
-				}
+				readingFrame = frame;
+				reading = Task.Run(() => LanProtocol.DecodeSnapshot(frame.payload));
+			}
+			if (ReferenceEquals(frame, readingFrame) && !reading.IsCompleted) {
+				// Wait for it, so frames stay in order.
+				return;
 			}
 			connection.TryReceive(out frame);
-			Handle(frame);
+			try {
+				Handle(frame);
+			} catch (Exception e) {
+				log.Error(e, "Couldn't handle a {Kind} frame from the host", frame.kind);
+			}
 		}
+	}
+
+	private bool IsShown(byte[] snapshot) {
+		return lastShownSnapshot != null && (StartingGame != null || SnapshotReceived != null)
+			&& snapshot.AsSpan().SequenceEqual(lastShownSnapshot);
 	}
 
 	private void Handle(Frame frame) {
 		switch (frame.kind) {
 			case FrameKind.Lobby:
-				Lobby = NetSerialization.DeserializeData<LobbyInfo>(frame.payload);
+				Lobby = NetSerialization.DeserializeRequired<LobbyInfo>(frame.payload);
 				LobbyChanged?.Invoke();
 				break;
 			case FrameKind.Rejected:
@@ -155,16 +153,17 @@ public class LanClient : IDisposable {
 				LobbyChanged?.Invoke();
 				break;
 			case FrameKind.Start:
-				PlayerID = NetSerialization.DeserializeData<StartInfo>(frame.payload).yourPlayerID;
+				PlayerID = NetSerialization.DeserializeRequired<StartInfo>(frame.payload).yourPlayerID;
 				break;
 			case FrameKind.Snapshot:
-				if (frame.Prepared == Unchanged && (StartingGame != null || SnapshotReceived != null)) {
-					// The game already shows it.
-					break;
+				Task<SaveGame> read = ReferenceEquals(frame, readingFrame) ? reading : null;
+				readingFrame = null;
+				reading = null;
+				SaveGame save = read != null ? read.GetAwaiter().GetResult() : LanProtocol.DecodeSnapshot(frame.payload);
+				if (save == null) {
+					throw new System.IO.InvalidDataException("The snapshot holds no game");
 				}
-				SaveGame save = frame.Prepared is Task<SaveGame> reading
-					? reading.GetAwaiter().GetResult()
-					: LanProtocol.DecodeSnapshot(frame.payload);
+				lastShownSnapshot = frame.payload;
 				if (SnapshotReceived != null) {
 					SnapshotReceived(save);
 				} else {
@@ -176,7 +175,7 @@ public class LanClient : IDisposable {
 				UiMessageReceived?.Invoke(frame.payload);
 				break;
 			case FrameKind.TurnClock:
-				clock = NetSerialization.DeserializeData<TurnClockInfo>(frame.payload);
+				clock = NetSerialization.DeserializeRequired<TurnClockInfo>(frame.payload);
 				sinceClock.Restart();
 				break;
 			default:
