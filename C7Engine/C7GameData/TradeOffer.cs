@@ -32,7 +32,7 @@ namespace C7GameData {
 			techs.Clear();
 		}
 
-		public string ToString() {
+		public override string ToString() {
 			List<string> pieces = new();
 			if (partOfPeaceTreaty) {
 				pieces.Add("peace treaty");

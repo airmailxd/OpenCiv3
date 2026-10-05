@@ -99,7 +99,7 @@ namespace C7GameData {
 
 		public static Terraform? ToTerraform(string improvement) {
 			foreach (Terraform tf in EngineStorage.gameData.Terraforms) {
-				if (KeysMatch(tf.Improvement.key, improvement)) {
+				if (tf.Improvement != null && KeysMatch(tf.Improvement.key, improvement)) {
 					return tf;
 				}
 			}
