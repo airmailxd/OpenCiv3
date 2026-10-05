@@ -315,7 +315,23 @@ namespace C7GameData {
 		}
 
 		private IEnumerable<string> CityNameGenerator() {
-			List<string> cityNames = civilization.cityNames;
+			List<string> cityNames = civilization?.cityNames;
+
+			// A civ with no city names (as some scenarios define) gets
+			// numbered names, so this never loops forever finding nothing.
+			if (cityNames == null || cityNames.Count == 0) {
+				string baseName = civilization?.adjective;
+				if (string.IsNullOrEmpty(baseName)) {
+					baseName = civilization?.name;
+				}
+				if (string.IsNullOrEmpty(baseName)) {
+					baseName = "City";
+				}
+				for (int n = 1; ; ++n) {
+					yield return $"{baseName} {n}";
+				}
+			}
+
 			int loopCounter = 0;
 
 			// Perpetual generator expression to yield all city names lazily

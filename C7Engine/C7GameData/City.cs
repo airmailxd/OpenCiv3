@@ -223,7 +223,9 @@ namespace C7GameData {
 				Building b = cb.building;
 
 				if (b.greatWonderProperties.buildingGainedInEveryCity != null
-					&& !buildingsSeen.Contains(b.greatWonderProperties.buildingGainedInEveryCity)) {
+					&& buildingsSeen.Add(b.greatWonderProperties.buildingGainedInEveryCity)) {
+					// Adding to buildingsSeen as we go keeps two wonders that
+					// grant the same building from granting it twice.
 					result.Add(new CityBuilding() {
 						building = b.greatWonderProperties.buildingGainedInEveryCity,
 						builtByPlayer = cb.builtByPlayer,
@@ -233,7 +235,7 @@ namespace C7GameData {
 				}
 				if (b.greatWonderProperties.buildingGainedInEveryCityOnContinent != null
 					&& c.location.continent == location.continent
-					&& !buildingsSeen.Contains(b.greatWonderProperties.buildingGainedInEveryCityOnContinent)) {
+					&& buildingsSeen.Add(b.greatWonderProperties.buildingGainedInEveryCityOnContinent)) {
 					result.Add(new CityBuilding() {
 						building = b.greatWonderProperties.buildingGainedInEveryCityOnContinent,
 						builtByPlayer = cb.builtByPlayer,
@@ -836,7 +838,7 @@ namespace C7GameData {
 		}
 
 		public void RemoveRandomCitizen() {
-			if (residents.Count == 1)
+			if (residents.Count <= 1)
 				return; // TODO: Handle extreme case
 
 			var idx = GameData.rng.Next(residents.Count);
@@ -993,11 +995,15 @@ namespace C7GameData {
 		private List<Tile> GetTilesOfRank(int rank) {
 			List<Tile> result = new();
 			foreach (Tile t in location.GetTilesWithinRankDistance(rank)) {
+				// Borders of a city near the map's edge run off it: skip the
+				// off-map placeholder, which has no terrain or map.
+				if (t == Tile.NONE) {
+					continue;
+				}
+
 				// Law II
 				// Ocean tiles may only hold claims of rank 2.
-				// The distance check is cheaper than the string compare, so
-				// it goes first.
-				if (t.RankDistanceTo(location) > 2 && t.baseTerrainType.Key == "ocean") {
+				if (t.baseTerrainType.IsOcean && t.RankDistanceTo(location) > 2) {
 					continue;
 				}
 				result.Add(t);
