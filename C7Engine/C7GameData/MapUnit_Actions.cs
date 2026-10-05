@@ -240,10 +240,10 @@ public partial class MapUnit {
 			}
 
 			// If the enemy was defeated, check if there is another enemy on the tile. If so we can't complete the move
-			// but still pay one movement point for the combat.
+			// but still pay one movement point for the combat. Otherwise we move in below, paying only for the move.
 			if (combatResult == CombatResult.DefenderKilled || combatResult == CombatResult.DefenderRetreated) {
-				this.movementPoints.onUnitMove(1);
 				if (newLoc.FindTopDefender(this) != MapUnit.NONE) {
+					this.movementPoints.onUnitMove(1);
 					this.facingDirection = this.facingDirection.Reversed();
 					return true;
 				}

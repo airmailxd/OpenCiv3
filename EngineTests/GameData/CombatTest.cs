@@ -84,4 +84,22 @@ public class CombatTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(startingLevel, warrior.experienceLevel);
 		Assert.Equal(startingHitPoints, warrior.hitPointsRemaining);
 	}
+
+	[Fact]
+	public async Task WinningAttackerPaysOnlyForTheMove() {
+		GoToWar();
+		(Tile from, TileDirection dir, Tile to) = FindAdjacentLand();
+		// A tank against a badly wounded warrior, so the attack can't fail.
+		MapUnit tank = Spawn(us, "Tank", from);
+		MapUnit warrior = Spawn(them, "Warrior", to);
+		warrior.hitPointsRemaining = 1;
+		float moveCost = TilePath.GetMovementCost(us, from, dir, to);
+		float startingMovement = tank.movementPoints.remaining;
+
+		Assert.True(await tank.Move(dir));
+
+		Assert.Equal(to, tank.location);
+		Assert.DoesNotContain(warrior, gameData.mapUnits);
+		Assert.Equal(startingMovement - moveCost, tank.movementPoints.remaining, 3);
+	}
 }
