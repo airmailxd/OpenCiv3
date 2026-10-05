@@ -370,6 +370,9 @@ namespace C7Engine {
 				}
 
 				if (them.isHuman) {
+					// The human receiving the offer takes the UI to respond.
+					// In a hotseat game they may not be the player at the screen.
+					EngineStorage.uiControllerID = them.id;
 					new MsgShowTradeOffer(us, them, weWant, weGive).send();
 					await EngineStorage.WaitForMessageToEngine<MsgDiplomacyCompleted>();
 				} else {

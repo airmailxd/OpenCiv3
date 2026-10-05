@@ -7,6 +7,11 @@ namespace C7Engine {
 	}
 
 	public class MessageToUI : IMessageToUI {
+		// The player this message is meant for, or null if it is for whoever
+		// is at the screen. In a hotseat game the UI holds messages for a human
+		// player who isn't at the screen until their next turn.
+		public Player recipient;
+
 		public void send() {
 			EngineStorage.messagesToUI.Enqueue(this);
 		}
@@ -124,7 +129,8 @@ namespace C7Engine {
 	public class MsgShowMilitaryAdvisorPopup : MessageToUI {
 		public string message;
 		public bool happy;
-		public MsgShowMilitaryAdvisorPopup(string message, bool happy) {
+		public MsgShowMilitaryAdvisorPopup(Player recipient, string message, bool happy) {
+			this.recipient = recipient;
 			this.message = message;
 			this.happy = happy;
 		}
@@ -134,9 +140,10 @@ namespace C7Engine {
 		public string message;
 		public Tile location;
 
-		public MsgShowTemporaryPopup(string message, Tile location) {
+		public MsgShowTemporaryPopup(string message, Tile location, Player recipient = null) {
 			this.message = message;
 			this.location = location;
+			this.recipient = recipient;
 		}
 	}
 

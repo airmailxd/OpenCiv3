@@ -133,6 +133,7 @@ public partial class Game : Node {
 	// to the next human player, and where each player last left the camera.
 	private HotseatHandoff hotseatHandoff = null;
 	private readonly Dictionary<ID, Vector2> hotseatCameraLocations = new();
+	private readonly Dictionary<ID, Queue<MessageToUI>> heldMessages = new();
 
 	private MapView mapView;
 
@@ -232,7 +233,7 @@ public partial class Game : Node {
 
 		// The first hotseat player also needs the others to look away.
 		if (TurnHandling.IsHotseat(EngineStorage.gameData)) {
-			ShowHotseatHandoff(controller);
+			ShowHotseatHandoff(controller, OnPlayerStartTurn);
 		}
 
 		Global.ResetLoadGameFields();
@@ -335,10 +336,17 @@ public partial class Game : Node {
 			return;
 		}
 
-		ShowHotseatHandoff(next);
+		ShowHotseatHandoff(next, OnPlayerStartTurn);
 	}
 
-	private void ShowHotseatHandoff(Player next) {
+	private void ShowHotseatHandoff(Player next, Action onBeginTurn) {
+		ShowHotseatHandoff(next,
+			"It is your turn. Make sure the other players aren't looking.",
+			"Begin Turn",
+			onBeginTurn);
+	}
+
+	private void ShowHotseatHandoff(Player next, string message, string buttonText, Action onContinue) {
 		CurrentState = GameState.ComputerTurn;
 
 		// Close anything the previous player left open, and remember where
@@ -366,11 +374,11 @@ public partial class Game : Node {
 		hotseatHandoff?.QueueFree();
 		hotseatHandoff = new HotseatHandoff(
 			$"{controller.civilization.leader} of the {controller.civilization.noun}",
-			$"It is your turn. Make sure the other players aren't looking.",
-			"Begin Turn",
+			message,
+			buttonText,
 			() => {
 				hotseatHandoff = null;
-				OnPlayerStartTurn();
+				onContinue();
 			});
 		CanvasLayer curtainLayer = new() { Layer = 100 };
 		curtainLayer.AddChild(hotseatHandoff);
@@ -380,6 +388,17 @@ public partial class Game : Node {
 
 	public void HandleEngineMessage(MessageToUI msg) {
 		GameData gameData = EngineStorage.gameData;
+
+		// Hold messages for a human player who isn't at the screen (for
+		// example barbarians raiding them during the AI turns) until they are.
+		if (msg.recipient != null && msg.recipient.isHuman && msg.recipient != controller) {
+			if (!heldMessages.TryGetValue(msg.recipient.id, out Queue<MessageToUI> held)) {
+				held = new();
+				heldMessages[msg.recipient.id] = held;
+			}
+			held.Enqueue(msg);
+			return;
+		}
 
 		switch (msg) {
 			case MsgStartTurn mST:
@@ -416,10 +435,20 @@ public partial class Game : Node {
 				EmitSignal(SignalName.ShowSpecificAdvisor, C7Action.ShowDomesticAdvisor);
 				break;
 			case MsgShowTradeOffer mSTO:
-				diplomacy.ShowDealScreenForPlayer(
+				Action showOffer = () => diplomacy.ShowDealScreenForPlayer(
 					mSTO.humanPlayer.id, mSTO.aiPlayer.id,
 					humanGives: mSTO.aiWant,
 					humanWants: mSTO.aiGive);
+				// In a hotseat game the offer may be for a player who isn't at
+				// the screen, so hand it to them first.
+				if (mSTO.humanPlayer != controller) {
+					ShowHotseatHandoff(mSTO.humanPlayer,
+						$"The {mSTO.aiPlayer.civilization.noun} have a proposal for you.",
+						"Hear Them Out",
+						showOffer);
+				} else {
+					showOffer();
+				}
 				break;
 			case MsgDisplayHurryProductionPopup mDHPP:
 				if (mDHPP.details.errorMessage != null) {
@@ -510,6 +539,19 @@ public partial class Game : Node {
 
 		if (EngineStorage.TryDequeueNextMessageToUI(out MessageToUI msg))
 			HandleEngineMessage(msg);
+		else
+			ReplayHeldMessage();
+	}
+
+	// Shows messages that were held for the UI controller while another
+	// player had the screen, one popup at a time, once their turn is underway.
+	private void ReplayHeldMessage() {
+		if (CurrentState != GameState.PlayerTurn || hotseatHandoff != null || popupOverlay.Visible) {
+			return;
+		}
+		if (heldMessages.TryGetValue(controller.id, out Queue<MessageToUI> held) && held.TryDequeue(out MessageToUI msg)) {
+			HandleEngineMessage(msg);
+		}
 	}
 
 	// If "location" is not already near the center of the screen, moves the camera to bring it into view.

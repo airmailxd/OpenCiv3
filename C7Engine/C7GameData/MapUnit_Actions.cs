@@ -40,7 +40,7 @@ public partial class MapUnit {
 			// TODO: make this configurable
 			owner.gold += 25;
 			if (owner.isHuman) {
-				new MsgShowMilitaryAdvisorPopup($"We cleared a barbarian encampment and earned 25 gold!", happy: true).send();
+				new MsgShowMilitaryAdvisorPopup(owner, $"We cleared a barbarian encampment and earned 25 gold!", happy: true).send();
 			}
 		}
 
@@ -53,7 +53,7 @@ public partial class MapUnit {
 				tile.cityAtTile.owner.gold -= goldTaken;
 				this.RemoveFromPlay();
 				if (tile.cityAtTile.owner.isHuman) {
-					new MsgShowMilitaryAdvisorPopup($"Barbarians have stolen {goldTaken} gold from our cities!\nWe need a stronger military.", happy: false).send();
+					new MsgShowMilitaryAdvisorPopup(tile.cityAtTile.owner, $"Barbarians have stolen {goldTaken} gold from our cities!\nWe need a stronger military.", happy: false).send();
 				}
 			} else {
 				CityInteractions.DestroyCity(tile);
