@@ -1104,6 +1104,11 @@ namespace C7GameData {
 			foreach (City c in cities) {
 				City.Mood cityMood = c.RecalculateCitizenMoods(gameData);
 				c.isInCivilDisorder = cityMood == City.Mood.Unhappy && goIntoDisorderIfUnhappy;
+
+				// Celebrations start and end along with the turn's disorder check.
+				if (goIntoDisorderIfUnhappy) {
+					c.celebrating = !c.isInCivilDisorder && c.QualifiesForCelebration(rules);
+				}
 			}
 		}
 

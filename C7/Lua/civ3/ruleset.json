@@ -11366,6 +11366,7 @@
     "shieldRateForDisbanding": 0.25,
     "allowLesserUnitProduction": false,
     "radarTileVisibility": 2,
+    "minimumPopulationForWeLoveTheKing": 6,
     "upgradeCostPerShield": 3
   },
   "timeOptions": {

@@ -78,6 +78,9 @@ namespace C7GameData {
 
 		public bool isInCivilDisorder = false;
 
+		// Whether the city is celebrating "We Love the King Day".
+		public bool celebrating = false;
+
 		public static City NONE = new City(Tile.NONE, null, "Dummy City", ID.None("city"));
 
 		public static bool IsValidCity(City city) {
@@ -551,7 +554,8 @@ namespace C7GameData {
 			foreach (CityResident r in residents) {
 				yield += r.tileWorked.ProductionYield(this).yield;
 			}
-			CorruptableValue result = new(yield, corruption);
+			// A celebrating city wastes half as many shields.
+			CorruptableValue result = new(yield, celebrating ? corruption / 2 : corruption);
 
 			// Using our value of corruption, figure out how much useful
 			// production we have to work with. Special case anarchy, where no
@@ -997,6 +1001,20 @@ namespace C7GameData {
 			Unhappy,
 			Happy
 		};
+
+		// A city that is big enough, isn't starving, has no unhappy citizens
+		// and more happy than content ones celebrates "We Love the King Day".
+		// Specialists don't count.
+		public bool QualifiesForCelebration(Rules rules) {
+			if (residents.Count < rules.MinimumPopulationForWeLoveTheKing || FoodGrowthPerTurn() < 0) {
+				return false;
+			}
+			List<CityResident> laborers = residents.Where(r => r.citizenType.IsDefaultCitizen).ToList();
+			int happy = laborers.Count(r => r.mood == CityResident.Mood.Happy);
+			int content = laborers.Count(r => r.mood == CityResident.Mood.Content);
+			bool anyUnhappy = laborers.Any(r => r.mood == CityResident.Mood.Unhappy);
+			return !anyUnhappy && happy > content;
+		}
 
 		// This function does the heavy lifting of happiness calculations,
 		// combining the various bonuses and penalties that affect citizen moods.

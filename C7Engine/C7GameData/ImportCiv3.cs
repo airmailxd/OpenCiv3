@@ -2088,6 +2088,7 @@ namespace C7GameData {
 
 			save.Rules.MaximumResearchTime = rule.MaximumResearchTime;
 			save.Rules.UpgradeCostPerShield = rule.UpgradeCost;
+			save.Rules.MinimumPopulationForWeLoveTheKing = rule.MinimumPopulationForWeLoveTheKing;
 			save.Rules.MinimumResearchTime = rule.MinimumResearchTime;
 			save.Rules.MaximumLevel1CitySize = rule.MaximumLevel1CitySize;
 			save.Rules.MaximumLevel2CitySize = rule.MaximumLevel2CitySize;
