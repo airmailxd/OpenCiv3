@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using C7Engine;
 using C7Engine.Lua;
 using C7GameData.Save;
@@ -8,7 +9,6 @@ using Xunit;
 namespace EngineTests.GameData;
 
 public class GameDataTest : RemoteSaveLoader, IClassFixture<SaveGameFixture> {
-	private const string SAVES_FOLDER = "saves/game-data";
 	C7GameData.GameData gameData;
 	private BehaviorEngine behaviorEngine;
 
@@ -20,15 +20,12 @@ public class GameDataTest : RemoteSaveLoader, IClassFixture<SaveGameFixture> {
 	}
 
 	[SkippableFact]
-	public async void SeedInGameData_SAV() {
-		if (Civ3TestData.ShouldSkipCiv3DependentTests()) {
-			return;
-		}
+	public async Task SeedInGameData_SAV() {
+		Skip.If(Civ3TestData.ShouldSkipCiv3DependentTests(), "No Civ3 install found.");
 
-		string saveName = "Conquests 16 Players.SAV";
-		string uri = "https://www.dropbox.com/scl/fi/gmxbx1mtrammzfc6vly1g/Conquests-16-Players.SAV?rlkey=2z1es5aetqva4ymv59qduq1at&st=d0udmb3w&dl=1";
-
-		(SaveGame game, Exception ex, string savePath) = await LoadGameAndData(saveName, SAVES_FOLDER, uri);
+		(SaveGame game, Exception ex, string savePath) = await LoadGameAndData(RemoteSaves.Conquests16PlayersSav);
+		Assert.Null(ex);
+		Assert.NotNull(game);
 
 		C7GameData.GameData gd = game.ToGameData(behaviorEngine);
 		EngineStorage.InitializeGameDataForTests(gd);
@@ -38,15 +35,12 @@ public class GameDataTest : RemoteSaveLoader, IClassFixture<SaveGameFixture> {
 	}
 
 	[SkippableFact]
-	public async void SeedInGameData_JSON() {
-		if (Civ3TestData.ShouldSkipCiv3DependentTests()) {
-			return;
-		}
+	public async Task SeedInGameData_JSON() {
+		Skip.If(Civ3TestData.ShouldSkipCiv3DependentTests(), "No Civ3 install found.");
 
-		string saveName = "Conquests 16 Players.json";
-		string uri = "https://www.dropbox.com/scl/fi/g1qxuvc6xptg1l6hx9s21/Conquests-16-Players.json?rlkey=bkq158od7469pibhtw44g04if&st=tqax1064&dl=1";
-
-		(SaveGame game, Exception ex, string savePath) = await LoadGameAndData(saveName, SAVES_FOLDER, uri);
+		(SaveGame game, Exception ex, string savePath) = await LoadGameAndData(RemoteSaves.Conquests16PlayersJson);
+		Assert.Null(ex);
+		Assert.NotNull(game);
 
 		C7GameData.GameData gd = game.ToGameData(behaviorEngine);
 		EngineStorage.InitializeGameDataForTests(gd);

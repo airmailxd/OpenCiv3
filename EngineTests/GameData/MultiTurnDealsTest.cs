@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Threading.Tasks;
 using C7GameData;
 using C7GameData.Save;
 using EngineTests.Utils;
@@ -9,10 +10,9 @@ using Xunit;
 namespace EngineTests.GameData;
 
 public class MultiTurnDealTest : RemoteSaveLoader {
-	private const string SAVES_FOLDER = "saves/multi-turn-deals";
 
 	[SkippableFact]
-	public async void TestMultiTurnDeal_Save_A() {
+	public async Task TestMultiTurnDeal_Save_A() {
 		Skip.If(Civ3TestData.ShouldSkipCiv3DependentTests(), "No Civ3 install found.");
 
 		// Save game deal details
@@ -24,10 +24,7 @@ public class MultiTurnDealTest : RemoteSaveLoader {
 		// Right of passage                     (America - England)          (19)
 		// Mutual Protection Pact               (America - England)          (20)
 
-		string saveName = "MultiTurnDeal_Save_A.SAV";
-		string uri = "https://www.dropbox.com/scl/fi/pb3k02ufgi0q7okwwykvs/MultiTurnDeal_Save_A.SAV?rlkey=y44s3c8czlp01evm3h35sgm1u&st=e6o8e2h0&dl=1";
-
-		(SaveGame game, Exception ex, string savePath) = await LoadGameAndData(saveName, SAVES_FOLDER, uri);
+		(SaveGame game, Exception ex, string savePath) = await LoadGameAndData(RemoteSaves.MultiTurnDealA);
 
 		Assert.Null(ex);
 		Assert.NotNull(game);
@@ -89,7 +86,7 @@ public class MultiTurnDealTest : RemoteSaveLoader {
 	}
 
 	[SkippableFact]
-	public async void TestMultiTurnDeal_Save_B() {
+	public async Task TestMultiTurnDeal_Save_B() {
 		Skip.If(Civ3TestData.ShouldSkipCiv3DependentTests(), "No Civ3 install found.");
 
 		// Save game deal details
@@ -103,10 +100,7 @@ public class MultiTurnDealTest : RemoteSaveLoader {
 		// Military Alliance against Zulu       (America - England)          (16)
 		// America gives spices to England      (America - England)          (19)
 
-		string saveName = "MultiTurnDeal_Save_B.SAV";
-		string uri = "https://www.dropbox.com/scl/fi/aqyjc5ld5qyg5qozq99un/MultiTurnDeal_Save_B.SAV?rlkey=f8y4rf6ufhws5xr65wkohec04&st=mmhybnr3&dl=1";
-
-		(SaveGame game, Exception ex, string savePath) = await LoadGameAndData(saveName, SAVES_FOLDER, uri);
+		(SaveGame game, Exception ex, string savePath) = await LoadGameAndData(RemoteSaves.MultiTurnDealB);
 
 		Assert.Null(ex);
 		Assert.NotNull(game);
@@ -191,7 +185,7 @@ public class MultiTurnDealTest : RemoteSaveLoader {
 	}
 
 	[SkippableFact]
-	public async void TestMultiTurnDeal_Save_C() {
+	public async Task TestMultiTurnDeal_Save_C() {
 		Skip.If(Civ3TestData.ShouldSkipCiv3DependentTests(), "No Civ3 install found.");
 
 		// Save game deal details
@@ -210,10 +204,7 @@ public class MultiTurnDealTest : RemoteSaveLoader {
 		// America gives spices to England      (America - England)          (19)
 		// Byzantines trade embargo with Hittites Against America            (19)
 
-		string saveName = "MultiTurnDeal_Save_C.SAV";
-		string uri = "https://www.dropbox.com/scl/fi/chv75f5ezrxzhvclne2sk/MultiTurnDeal_Save_C.SAV?rlkey=dwa8wgzcx03pgjoysqnrauvfc&st=g40d2zta&dl=1";
-
-		(SaveGame game, Exception ex, string savePath) = await LoadGameAndData(saveName, SAVES_FOLDER, uri);
+		(SaveGame game, Exception ex, string savePath) = await LoadGameAndData(RemoteSaves.MultiTurnDealC);
 
 		Assert.Null(ex);
 		Assert.NotNull(game);
@@ -339,7 +330,7 @@ public class MultiTurnDealTest : RemoteSaveLoader {
 	}
 
 	[SkippableFact]
-	public async void TestMultiTurnDeal_Save_D() {
+	public async Task TestMultiTurnDeal_Save_D() {
 		Skip.If(Civ3TestData.ShouldSkipCiv3DependentTests(), "No Civ3 install found.");
 
 		// Save game deal details
@@ -354,10 +345,7 @@ public class MultiTurnDealTest : RemoteSaveLoader {
 		// Military Alliance against Zulu       (America - England)          (16)
 		// Military Alliance against Hittites   (America - England)          (20)
 
-		string saveName = "MultiTurnDeal_Save_D.SAV";
-		string uri = "https://www.dropbox.com/scl/fi/1zpkjmvgobctndfwdml5z/MultiTurnDeal_Save_D.SAV?rlkey=d2v15p7a05s0nslnj9nz66wwr&st=iaajcftt&dl=1";
-
-		(SaveGame game, Exception ex, string savePath) = await LoadGameAndData(saveName, SAVES_FOLDER, uri);
+		(SaveGame game, Exception ex, string savePath) = await LoadGameAndData(RemoteSaves.MultiTurnDealD);
 
 		Assert.Null(ex);
 		Assert.NotNull(game);
@@ -442,7 +430,7 @@ public class MultiTurnDealTest : RemoteSaveLoader {
 	}
 
 	[SkippableFact]
-	public async void TestMultiTurnDeal_Save_E() {
+	public async Task TestMultiTurnDeal_Save_E() {
 		Skip.If(Civ3TestData.ShouldSkipCiv3DependentTests(), "No Civ3 install found.");
 
 		// Save game deal details
@@ -460,10 +448,8 @@ public class MultiTurnDealTest : RemoteSaveLoader {
 
 		string scenarioBiqPath = Path.Combine(Civ3Location.GetCiv3Path(), "Conquests", "Scenarios", "8 MP Napoleonic Europe.biq");
 		string scenarioPediaPath = Path.Combine(Civ3Location.GetCiv3Path(), "Conquests", "Conquests", "Napoleonic Europe", "Text", "PediaIcons.txt");
-		string saveName = "MultiTurnDeal_Save_E.SAV";
-		string uri = "https://www.dropbox.com/scl/fi/8uutphldi1wzn59qd8h29/MultiTurnDeal_Save_E.SAV?rlkey=q0tay21soe6g0aefqpmshbeq7&st=y3anm45t&dl=1";
-
-		(SaveGame game, Exception ex, string savePath) = await LoadGameAndData(saveName, SAVES_FOLDER, uri, scenarioBiqPath, scenarioPediaPath);
+		Skip.If(!File.Exists(scenarioBiqPath), $"{Path.GetFileName(scenarioBiqPath)} not present in this Civ3 installation.");
+		(SaveGame game, Exception ex, string savePath) = await LoadGameAndData(RemoteSaves.MultiTurnDealE, scenarioBiqPath, scenarioPediaPath);
 
 		Assert.Null(ex);
 		Assert.NotNull(game);
@@ -594,7 +580,7 @@ public class MultiTurnDealTest : RemoteSaveLoader {
 	}
 
 	[SkippableFact]
-	public async void TestMultiTurnDeal_Save_F() {
+	public async Task TestMultiTurnDeal_Save_F() {
 		Skip.If(Civ3TestData.ShouldSkipCiv3DependentTests(), "No Civ3 install found.");
 
 		// Save game deal details
@@ -609,10 +595,8 @@ public class MultiTurnDealTest : RemoteSaveLoader {
 
 		string scenarioBiqPath = Path.Combine(Civ3Location.GetCiv3Path(), "Conquests", "Scenarios", "8 MP Napoleonic Europe.biq");
 		string scenarioPediaPath = Path.Combine(Civ3Location.GetCiv3Path(), "Conquests", "Conquests", "Napoleonic Europe", "Text", "PediaIcons.txt");
-		string saveName = "MultiTurnDeal_Save_F.SAV";
-		string uri = "https://www.dropbox.com/scl/fi/l8bm8dhacd85cwyxn3nn7/MultiTurnDeal_Save_F.SAV?rlkey=mr7itejsucesk14h859jwjffu&st=fuo8n4d9&dl=1";
-
-		(SaveGame game, Exception ex, string savePath) = await LoadGameAndData(saveName, SAVES_FOLDER, uri, scenarioBiqPath, scenarioPediaPath);
+		Skip.If(!File.Exists(scenarioBiqPath), $"{Path.GetFileName(scenarioBiqPath)} not present in this Civ3 installation.");
+		(SaveGame game, Exception ex, string savePath) = await LoadGameAndData(RemoteSaves.MultiTurnDealF, scenarioBiqPath, scenarioPediaPath);
 
 		Assert.Null(ex);
 		Assert.NotNull(game);
