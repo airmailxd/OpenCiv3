@@ -628,6 +628,9 @@ public partial class LanLobby : Control {
 		leader.AddChild(civDescription);
 	}
 
+	// The leader heads already shown, by civilization name and art file.
+	private readonly Dictionary<(string, string), ImageTexture> leaderHeadCache = new();
+
 	// Shows the civilization's leader and traits, or null for a random one.
 	private void ShowCivilization(string name) {
 		CivilizationChoice choice = civChoices?.Find(c => c.name == name);
@@ -638,8 +641,13 @@ public partial class LanLobby : Control {
 		}
 		civDescription.Text = $"{choice.leader} of the {choice.noun}\n({string.Join(", ", choice.traits)})";
 		try {
-			Civilization civ = new(choice.name) { leader = choice.leader, noun = choice.noun, leaderArtFile = choice.leaderArtFile };
-			leaderHead.Texture = TextureLoader.Load("leader_heads", civ);
+			var key = (choice.name, choice.leaderArtFile);
+			if (!leaderHeadCache.TryGetValue(key, out ImageTexture texture) || !IsInstanceValid(texture)) {
+				Civilization civ = new(choice.name) { leader = choice.leader, noun = choice.noun, leaderArtFile = choice.leaderArtFile };
+				texture = TextureLoader.Load("leader_heads", civ);
+				leaderHeadCache[key] = texture;
+			}
+			leaderHead.Texture = texture;
 		} catch (Exception e) {
 			// The host may have art this computer doesn't.
 			log.Warning("No leader head for {Civilization}: {Error}", choice.name, e.Message);

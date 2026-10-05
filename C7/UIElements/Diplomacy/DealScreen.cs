@@ -29,7 +29,7 @@ public partial class DealScreen : TextureRect {
 	private ID opponentPlayerId;
 
 	Theme fontTheme = new();
-	FontFile font = new();
+	FontFile font;
 
 	TradingTree opponentTree;
 	TradingTree humanTree;
@@ -55,12 +55,9 @@ public partial class DealScreen : TextureRect {
 	}
 
 	private void CreateUI() {
-		// Load the font we'll use.
-		//
-		// We skip the cache so that we can change the size without affecting other
+		// Load the font we'll use, at a fixed size that doesn't affect other
 		// code using the same font.
-		font = ResourceLoader.Load<FontFile>("res://Fonts/NotoSans-Regular.ttf", null, ResourceLoader.CacheMode.Ignore);
-		font.FixedSize = 13;
+		font = FixedSizeFonts.Get("res://Fonts/NotoSans-Regular.ttf", 13);
 		fontTheme.DefaultFont = font;
 
 		Theme blueFontTheme = new();

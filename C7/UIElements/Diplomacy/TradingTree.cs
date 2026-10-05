@@ -10,7 +10,8 @@ public partial class TradingTree : Tree {
 	TreeItem goldHeader;
 	TreeItem techHeader;
 	TreeItem lumpSum;
-	List<TreeItem> techItems = new();
+	// The tech each technology item stands for.
+	Dictionary<TreeItem, Tech> techItems = new();
 	TreeItem diplomacyHeader;
 	TreeItem peaceTreaty;
 
@@ -64,7 +65,7 @@ public partial class TradingTree : Tree {
 			foreach (Tech tech in tradeableTechs) {
 				TreeItem child = this.CreateItem(techHeader);
 				child.SetText(0, tech.Name);
-				techItems.Add(child);
+				techItems[child] = tech;
 			}
 		}
 
@@ -91,8 +92,8 @@ public partial class TradingTree : Tree {
 			}
 
 			// Handle techs being clicked on.
-			if (ti.GetParent() == techHeader) {
-				Tech t = tradeableTechs.Find(x => x.Name == ti.GetText(0));
+			if (techItems.TryGetValue(ti, out Tech itemTech)) {
+				Tech t = tradeableTechs.Find(x => x.Name == itemTech.Name);
 				currentOffer.techs.Add(t);
 			}
 
@@ -152,8 +153,9 @@ public partial class TradingTree : Tree {
 				techHeader.Visible = true;
 			}
 
-			foreach (TreeItem ti in techItems) {
-				ti.Visible = !currentOffer.techs.Any(x => x.Name == ti.GetText(0));
+			HashSet<string> offeredTechs = new(currentOffer.techs.Select(x => x.Name));
+			foreach (var (ti, tech) in techItems) {
+				ti.Visible = !offeredTechs.Contains(tech.Name);
 			}
 
 			if (peaceTreaty != null) {
@@ -177,7 +179,9 @@ public partial class TradingTree : Tree {
 		// background with no lines between items.
 		Color transparent = new Color(0, 0, 0, 0);
 		tree.Theme = fontTheme;
-		StyleBoxFlat styleBox = (StyleBoxFlat)tree.GetThemeStylebox("bg", "Tree");
+		// The style box comes from a theme shared by the whole game, so change
+		// a copy of it rather than the original.
+		StyleBoxFlat styleBox = (StyleBoxFlat)tree.GetThemeStylebox("bg", "Tree").Duplicate();
 		styleBox.BgColor = transparent;
 		styleBox.BorderWidthLeft = 0;
 		styleBox.BorderWidthRight = 0;

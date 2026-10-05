@@ -17,16 +17,18 @@ public partial class ProductionMenu : Civ3TextureRect {
 	public override void _Ready() {
 		this.Texture = TextureLoader.Load("city_screen.production_queue");
 
-		// Load the font we'll use.
-		FontFile font = ResourceLoader.Load<FontFile>("res://Fonts/NotoSans-Regular.ttf", null, ResourceLoader.CacheMode.Ignore);
-		font.FixedSize = 10;
-		fontTheme.DefaultFont = font;
+		// Load the font we'll use, at a fixed size that doesn't affect other
+		// code using the same font.
+		fontTheme.DefaultFont = FixedSizeFonts.Get("res://Fonts/NotoSans-Regular.ttf", 10);
 	}
 
 	public void AddItems(GameData gameData, City city, Action<IProducible> chooseProduction) {
 		if (tree != null) {
+			// Freeing the old tree also frees its items and disconnects its
+			// handler. It's deferred, so this is safe even from that handler.
 			itemMapping.Clear();
 			RemoveChild(tree);
+			tree.QueueFree();
 			tree = null;
 		}
 		tree = new();

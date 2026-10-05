@@ -23,12 +23,16 @@ public partial class Diplomacy : CenterContainer {
 	}
 
 	private void RemoveOtherScreens() {
+		// Freeing is deferred, so a screen can safely replace itself from one
+		// of its own button handlers.
 		if (talkScreen != null) {
 			RemoveChild(talkScreen);
+			talkScreen.QueueFree();
 			talkScreen = null;
 		}
 		if (dealScreen != null) {
 			RemoveChild(dealScreen);
+			dealScreen.QueueFree();
 			dealScreen = null;
 		}
 	}
@@ -79,7 +83,7 @@ public partial class Diplomacy : CenterContainer {
 		node.AddChild(headBackground);
 
 		TextureRect leaderHead = new();
-		leaderHead.Texture = TextureLoader.Load("leader_heads", player);
+		leaderHead.Texture = LeaderHeadTextures.Get(player);
 		leaderHead.Scale = new Vector2(1.7f, 1.7f);
 		leaderHead.SetPosition(new Vector2(512 - (115 * 1.7f) / 2, 59 + 120 - (115 * 1.7f) / 2));
 		node.AddChild(leaderHead);
