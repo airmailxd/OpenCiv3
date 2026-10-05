@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using C7Engine.AI.UnitAI;
 using C7GameData;
 using C7GameData.AIData;
 using C7Engine.Pathing;
@@ -14,6 +15,17 @@ namespace C7Engine {
 
 		public ExplorerAI(ExplorerAIData d) {
 			data = d;
+			if (d?.explorer != null) {
+				Register(d.explorer.owner, this);
+			}
+		}
+
+		// Every ExplorerAI created for a player's units, so that we can find
+		// the active exploration targets without scanning all units.
+		private static readonly UnitAiRegistry<ExplorerAI> registry = new(ai => ai.data?.explorer);
+
+		private static void Register(Player player, ExplorerAI ai) {
+			registry.Register(player, ai);
 		}
 
 		public static ExplorerAIData? MaybeMakeAiData(MapUnit unit, Player player) {
@@ -23,6 +35,9 @@ namespace C7Engine {
 
 			IEnumerable<Tile> candidates = borderTiles.Where(x => (x.IsLand() && unit.IsLandUnit()) || (!x.IsLand() && !unit.IsLandUnit()));
 			ExplorerAIData? result = PickBestTileToExplore(unit, CalculateExplorationScores(player, unit, candidates));
+			if (result != null) {
+				result.explorer = unit;
+			}
 
 			if (result == null) {
 				if (!unit.IsLandUnit()) {
@@ -66,14 +81,16 @@ namespace C7Engine {
 		// explorers that die or get another job leave theirs behind. Keep only
 		// the targets other explorers are still heading to, so the set (which
 		// is scanned for every candidate tile) doesn't grow without limit.
+		//
+		// The explorers are found through the registry of ExplorerAIs rather
+		// than by scanning every unit of the player.
 		private static void ForgetAbandonedExplorationTargets(Player player, MapUnit unit) {
-			HashSet<Tile> activeTargets = player.units
-				.Where(u => u != unit)
-				.Select(u => u.currentAI)
-				.OfType<ExplorerAI>()
-				.Where(ai => ai.data?.destination != null)
-				.Select(ai => ai.data.destination)
-				.ToHashSet();
+			HashSet<Tile> activeTargets = new();
+			registry.ForEachActive(player, ai => {
+				if (ai.data.explorer != unit && ai.data.destination != null) {
+					activeTargets.Add(ai.data.destination);
+				}
+			});
 			player.tileKnowledge.aiExplorationTargets.RemoveWhere(t => !activeTargets.Contains(t));
 		}
 
@@ -148,22 +165,19 @@ namespace C7Engine {
 				return null;
 			}
 
+			// Pick the best tile we can actually reach. This is a stable sort,
+			// so ties keep the order in which the candidates were scored.
+			List<Tile> orderedTiles = explorationScores.OrderByDescending(t => t.Value).Select(t => t.Key).ToList();
 			PathingAlgorithm algorithm = PathingAlgorithmChooser.GetAlgorithm(unit);
-
-			IOrderedEnumerable<KeyValuePair<Tile, float>> orderedScores = explorationScores.OrderByDescending(t => t.Value);
-			foreach (KeyValuePair<Tile, float> p in orderedScores) {
-				ExplorerAIData result = new ();
-				result.destination = p.Key;
-				result.pathToDestination = algorithm.PathFrom(unit.location, result.destination, unit);
-
-				// If we can't reach the destination, go to the next candidate.
-				if ((result.pathToDestination?.PathLength() ?? -1) == -1) {
-					continue;
-				}
-
-				return result;
+			int index = algorithm.FindFirstReachable(unit.location, orderedTiles, unit, out TilePath path);
+			if (index < 0) {
+				return null;
 			}
-			return null;
+
+			ExplorerAIData result = new();
+			result.destination = orderedTiles[index];
+			result.pathToDestination = path;
+			return result;
 		}
 
 		private static int numUnknownNeighboringTiles(Player player, Tile t) {

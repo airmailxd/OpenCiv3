@@ -33,6 +33,36 @@ namespace C7Engine.AI.UnitAI {
 			return result;
 		}
 
+		// Whether PlayTurnImpl should look for a better target now. Doing so
+		// is a full target search, so it's done at most once per turn for a
+		// given position of the unit and state of the tiles around it.
+		private bool ShouldReevaluateTarget(MapUnit unit) {
+			int turn = EngineStorage.gameData?.turn ?? 0;
+			int signature = NeighborhoodSignature(unit.location);
+			if (data.lastReevaluationTurn == turn
+				&& data.lastReevaluationLocation == unit.location
+				&& data.lastReevaluationSignature == signature) {
+				return false;
+			}
+			data.lastReevaluationTurn = turn;
+			data.lastReevaluationLocation = unit.location;
+			data.lastReevaluationSignature = signature;
+			return true;
+		}
+
+		// Summarizes the occupants of the tiles around `center`, so that we
+		// notice when a fight nearby changes the situation.
+		private static int NeighborhoodSignature(Tile center) {
+			HashCode hash = new();
+			foreach (Tile t in center.neighbors.Values) {
+				hash.Add(t.unitsOnTile.Count);
+				hash.Add(t.unitsOnTile.Count > 0 ? t.unitsOnTile[0].owner : null);
+				hash.Add(t.cityAtTile?.owner);
+				hash.Add(t.hasBarbarianCamp);
+			}
+			return hash.ToHashCode();
+		}
+
 		public void UpdateOnDeath() { }
 
 		public C7GameData.UnitAI.MoveResult PlayTurnImpl(Player player, MapUnit unit) {
@@ -72,8 +102,14 @@ namespace C7Engine.AI.UnitAI {
 
 					// Once we re-evaluate once, break out of the loop. There's
 					// no point in doing it again if nothing changed.
+					if (!ShouldReevaluateTarget(unit)) {
+						break;
+					}
 					CombatAIData? maybeData = MakeAiData(unit, player);
 					if (maybeData != null && maybeData.destination != data.destination) {
+						maybeData.lastReevaluationTurn = data.lastReevaluationTurn;
+						maybeData.lastReevaluationLocation = data.lastReevaluationLocation;
+						maybeData.lastReevaluationSignature = data.lastReevaluationSignature;
 						data = maybeData;
 					}
 					break;
@@ -88,77 +124,121 @@ namespace C7Engine.AI.UnitAI {
 			return "CombateAI: " + data.ToString();
 		}
 
-		private static HashSet<ID> GetPlayersAtWarWith(Player player) {
-			HashSet<ID> enemyIds = new();
+		// The players whose units and cities we may attack.
+		private static HashSet<Player> GetPlayersAtWarWith(Player player) {
+			HashSet<Player> enemies = new(ReferenceEqualityComparer.Instance);
+			List<Player> players = EngineStorage.gameData?.players;
+			if (players == null) {
+				return enemies;
+			}
 
 			// Special case: barbarians are at war with all other players but
 			// don't have player relationships with them.
 			if (player.isBarbarians) {
-				foreach (Player p in EngineStorage.gameData.players) {
+				foreach (Player p in players) {
 					if (!p.isBarbarians) {
-						enemyIds.Add(p.id);
+						enemies.Add(p);
 					}
 				}
-				return enemyIds;
+				return enemies;
 			}
 
-			foreach (KeyValuePair<ID, PlayerRelationship> p in player.playerRelationships) {
-				if (p.Value.AtWar()) {
-					enemyIds.Add(p.Key);
+			foreach (Player p in players) {
+				if (p.id != null && player.playerRelationships.TryGetValue(p.id, out PlayerRelationship relationship) && relationship.AtWar()) {
+					enemies.Add(p);
 				}
 			}
-			return enemyIds;
+			return enemies;
 		}
 
-		private static CombatAIData? GetBestTileToAttack(MapUnit unit, Player player, HashSet<ID> enemyIds) {
-			Dictionary<Tile, float> scoredTiles = new();
+		// Barbarians don't have unified knowledge across their "empire", only
+		// local knowledge, so they only consider tiles this close to the unit.
+		private const int BARBARIAN_TARGET_RANGE = 4;
 
+		// Returns the known tiles that may hold an enemy unit or city, in a
+		// stable order. Only the tiles enemies are on are worth scoring, so
+		// rather than scanning every known tile we look at where the enemies
+		// are (or, for barbarians, at the few tiles in range).
+		private static List<Tile> GetCandidateTiles(MapUnit unit, Player player, HashSet<Player> enemies) {
+			List<Tile> result = new();
+			HashSet<Tile> seen = new(ReferenceEqualityComparer.Instance);
+			Tile here = unit.location;
+
+			if (player.isBarbarians) {
+				if (here == null || here == Tile.NONE || here.map == null) {
+					return result;
+				}
+				// DistanceTo is (|dx| + |dy|) / 2 in tile coordinates, so the
+				// tiles in range form a diamond.
+				int reach = 2 * BARBARIAN_TARGET_RANGE;
+				for (int dy = -reach; dy <= reach; ++dy) {
+					int width = reach - Math.Abs(dy);
+					for (int dx = -width; dx <= width; ++dx) {
+						Tile t = here.map.tileAt(here.XCoordinate + dx, here.YCoordinate + dy);
+						if (t == Tile.NONE || t.DistanceTo(here) > BARBARIAN_TARGET_RANGE || !player.tileKnowledge.isTileKnown(t)) {
+							continue;
+						}
+						if (seen.Add(t)) {
+							result.Add(t);
+						}
+					}
+				}
+				return result;
+			}
+
+			foreach (Player enemy in enemies) {
+				foreach (City c in enemy.cities) {
+					Tile t = c.location;
+					if (t != null && t != Tile.NONE && player.tileKnowledge.isTileKnown(t) && seen.Add(t)) {
+						result.Add(t);
+					}
+				}
+				foreach (MapUnit u in enemy.units) {
+					Tile t = u.location;
+					if (t != null && t != Tile.NONE && player.tileKnowledge.isTileKnown(t) && seen.Add(t)) {
+						result.Add(t);
+					}
+				}
+			}
+			return result;
+		}
+
+		private static CombatAIData? GetBestTileToAttack(MapUnit unit, Player player, HashSet<Player> enemies) {
 			// First we want to check all the tiles in our visible knowledge for
 			// enemy units. As of 2025-03-09, we don't track known and visible
 			// tiles separately, so this should be updated in the future.
-			foreach (Tile t in player.tileKnowledge.knownTiles) {
-				// Barbarians don't have unified knowledge across their "empire",
-				// only local knowledge.
-				if (player.isBarbarians && t.DistanceTo(unit.location) > 4) {
-					continue;
-				}
-
-				float score = ScoreTile(t, unit, player, enemyIds);
+			List<(Tile tile, float score)> scoredTiles = new();
+			foreach (Tile t in GetCandidateTiles(unit, player, enemies)) {
+				float score = ScoreTile(t, unit, player, enemies);
 				if (score == int.MinValue) {
 					continue;
 				}
 
-				scoredTiles.Add(t, score);
+				scoredTiles.Add((t, score));
 			}
 
 			if (scoredTiles.Count == 0) {
 				return null;
 			}
 
-			// Find the best target to attack.
-			IOrderedEnumerable<KeyValuePair<Tile, float>> sortedScoredTiles =
-				scoredTiles.OrderByDescending(x => x.Value);
+			// Find the best target we can reach, in order of preference. This
+			// is a stable sort, so ties keep the enumeration order.
+			List<Tile> sortedTiles = scoredTiles.OrderByDescending(x => x.score).Select(x => x.tile).ToList();
 			PathingAlgorithm algorithm = PathingAlgorithmChooser.GetAlgorithm(unit);
-
-			foreach (KeyValuePair<Tile, float> p in sortedScoredTiles) {
-				CombatAIData result = new();
-				result.destination = p.Key;
-				result.path = algorithm.PathFrom(unit.location, result.destination, unit);
-
-				// If we can't reach the destination, go to the next candidate.
-				if ((result.path?.PathLength() ?? -1) == -1) {
-					continue;
-				}
-
-				return result;
+			int index = algorithm.FindFirstReachable(unit.location, sortedTiles, unit, out TilePath path);
+			if (index < 0) {
+				return null;
 			}
 
-			return null;
+			CombatAIData result = new();
+			result.destination = sortedTiles[index];
+			result.path = path;
+			return result;
 		}
 
-		private static float ScoreTile(Tile t, MapUnit unit, Player player, HashSet<ID> enemyIds) {
-			bool hasEnemyCity = t.cityAtTile != null && enemyIds.Contains(t.cityAtTile.owner.id);
-			bool hasEnemyUnits = t.unitsOnTile.Count > 0 && enemyIds.Contains(t.unitsOnTile[0].owner.id);
+		private static float ScoreTile(Tile t, MapUnit unit, Player player, HashSet<Player> enemies) {
+			bool hasEnemyCity = t.cityAtTile != null && enemies.Contains(t.cityAtTile.owner);
+			bool hasEnemyUnits = t.unitsOnTile.Count > 0 && enemies.Contains(t.unitsOnTile[0].owner);
 			float score = 0;
 
 			// Ignore tiles without units or cities.

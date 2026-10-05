@@ -9,6 +9,8 @@ namespace C7Engine;
 /// Note: Implementation is not based on known Civ3 AI logic.
 /// </summary>
 internal class SedentaryStrategy : BaseStrategy {
+	protected override bool MayEngage => false;
+
 	protected override bool DecideToEngage(Player player, MapUnit unit, Orientation orientation) {
 		return false; // TODO: attack units next to camp?
 	}

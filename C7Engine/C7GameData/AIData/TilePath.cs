@@ -94,6 +94,18 @@ namespace C7GameData {
 			if (player.isHuman && !player.HasExploredTile(newLocation))
 				return 1f;
 
+			// Movement costs of terrain improvements (roads and railroads)
+			float fromCost = from.overlays.MovementCost();
+			float toCost = newLocation.overlays.MovementCost();
+
+			// Fast path for the common case: unless both tiles have overlay
+			// costs, every branch below ends up using the terrain movement cost,
+			// except for water units sailing into a city. This skips the river,
+			// bridge and border checks for most pathfinding edges.
+			if ((fromCost == -1 || toCost == -1) && !(from.IsWater() && newLocation.HasCity())) {
+				return newLocation.MovementCost();
+			}
+
 			// River crossings disrupt roads, so check that first.
 			if (from.HasRiverCrossing(dir)) {
 				if (!player.CanBridgeRoads()) {
@@ -109,10 +121,6 @@ namespace C7GameData {
 			// a city, it doesn't matter if the city is on hills or on grassland,
 			// the cost should always be 1.
 			if (from.IsWater() && newLocation.HasCity()) return 1;
-
-			// Movement costs of terrain improvements (roads and railroads)
-			float fromCost = from.overlays.MovementCost();
-			float toCost = newLocation.overlays.MovementCost();
 
 			return (fromCost == -1 || toCost == -1)
 				? newLocation.MovementCost() // terrain movement cost

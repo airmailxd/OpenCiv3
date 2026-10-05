@@ -17,6 +17,9 @@ namespace C7GameData.AIData {
 		public Tile destination;
 		public TilePath pathToDestination;
 
+		// The unit this plan was made for.
+		public MapUnit defender;
+
 		public override string ToString() {
 			string cityName = destination.HasCity() ? destination.cityAtTile.name : " at " + destination.ToString();
 			return goal + " " + cityName;

@@ -31,9 +31,22 @@ namespace C7Engine {
 
 			// TODO: Band units into tribes, decide at the tribe level --> work together
 
+			// Units that spawned since the last update don't contribute to the
+			// active tiles yet.
+			player.tileKnowledge.RecomputeActiveTiles();
+
 			foreach (MapUnit unit in player.units.ToArray()) {
 				await strategy.PlayUnitTurn(player, unit);
-				player.tileKnowledge.AddTilesToKnown(unit.location);
+
+				// Moving already updates our knowledge (and the active tiles)
+				// for each tile entered, so the active tiles only need to be
+				// recomputed if this reveals something new, e.g. for a unit
+				// that didn't move.
+				int knownBefore = player.tileKnowledge.knownTiles.Count;
+				player.tileKnowledge.AddTilesToKnown(unit.location, recomputeActiveTiles: false);
+				if (player.tileKnowledge.knownTiles.Count != knownBefore) {
+					player.tileKnowledge.RecomputeActiveTiles();
+				}
 			}
 		}
 

@@ -19,8 +19,9 @@ namespace C7Engine.Pathing {
 		// extract the smallest value, O(log N)
 		public TValue extract() {
 			TValue result = data[0];
-			data[0] = data[data.Count - 1];
-			data.RemoveAt(data.Count - 1);
+			int last = data.Count - 1;
+			data[0] = data[last];
+			data.RemoveAt(last);
 			if (data.Count > 0) {
 				siftDown(0);
 			}
@@ -28,45 +29,37 @@ namespace C7Engine.Pathing {
 		}
 
 		private void siftUp(int childIndex) {
-			if (childIndex == 0) return;
-			int parentIndex = getParentIndex(childIndex);
-			if (!isRightOrder(parentIndex, childIndex)) {
-				swap(parentIndex, childIndex);
-				siftUp(parentIndex);
+			TValue item = data[childIndex];
+			while (childIndex > 0) {
+				int parentIndex = getParentIndex(childIndex);
+				TValue parent = data[parentIndex];
+				if (parent.CompareTo(item) <= 0) {
+					break;
+				}
+				data[childIndex] = parent;
+				childIndex = parentIndex;
 			}
+			data[childIndex] = item;
 		}
 
 		private void siftDown(int parentIndex) {
-			int leftChild = getLeftChild(parentIndex);
-			int rightChild = leftChild + 1;
-			if (rightChild < data.Count) {
-				// two children
-				bool leftShouldBeHigher = isRightOrder(leftChild, rightChild);
-				int topChildIndex = leftShouldBeHigher ? leftChild : rightChild;
-				if (!isRightOrder(parentIndex, topChildIndex)) {
-					swap(parentIndex, topChildIndex);
-					siftDown(topChildIndex);
+			int n = data.Count;
+			TValue item = data[parentIndex];
+			while (true) {
+				int leftChild = getLeftChild(parentIndex);
+				if (leftChild >= n) {
+					break;
 				}
-				return;
+				int rightChild = leftChild + 1;
+				int topChildIndex = (rightChild < n && data[rightChild].CompareTo(data[leftChild]) < 0) ? rightChild : leftChild;
+				TValue topChild = data[topChildIndex];
+				if (item.CompareTo(topChild) <= 0) {
+					break;
+				}
+				data[parentIndex] = topChild;
+				parentIndex = topChildIndex;
 			}
-
-			if (leftChild >= data.Count) {
-				// no children
-				return;
-			}
-
-			// one children
-			if (!isRightOrder(parentIndex, leftChild)) {
-				swap(parentIndex, leftChild);
-			}
-		}
-
-		private bool isRightOrder(int parentIndex, int childIndex) {
-			return data[parentIndex].CompareTo(data[childIndex]) <= 0;
-		}
-
-		private void swap(int index, int otherIndex) {
-			(data[index], data[otherIndex]) = (data[otherIndex], data[index]);
+			data[parentIndex] = item;
 		}
 
 		// 0 -> 0;  1,2 -> 0;  3,4 -> 1; 5,6 -> 2;

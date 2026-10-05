@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using C7Engine.AI.UnitAI;
 using C7GameData;
@@ -27,9 +28,15 @@ internal abstract class BaseStrategy : IBarbarianStrategy {
 
 		var orientation = await Orient(player, unit);
 		var plan = await Decide(player, unit, orientation);
-		var result = await Act(player, unit, plan);
 
-		// TODO: store result
+		// Keep the plan on the unit, so that a plan in progress (such as
+		// exploring towards a tile) can be continued next turn, and so that
+		// the unit counts as busy with it (e.g. for exploration targets).
+		unit.currentAI = plan;
+		var result = await Act(player, unit, plan);
+		if (result != UnitAI.Result.InProgress && unit.currentAI == plan) {
+			unit.currentAI = null;
+		}
 	}
 
 	/// <summary>
@@ -53,9 +60,10 @@ internal abstract class BaseStrategy : IBarbarianStrategy {
 	/// culture, and new information. This is considered the most important phase of the OODA loop."
 	/// </summary>
 	protected Task<Orientation> Orient(Player player, MapUnit unit) {
-		return Task.FromResult(new Orientation {
+		// Combat intel requires a target search, so it's only computed if the
+		// decision actually depends on it.
+		return Task.FromResult(new Orientation(() => CombatAI.MakeAiData(unit, player)) {
 			IsLastUnitInCamp = unit.location.hasBarbarianCamp && unit.location.unitsOnTile.Count == 1,
-			CombatIntel = CombatAI.MakeAiData(unit, player)
 		});
 	}
 
@@ -68,11 +76,16 @@ internal abstract class BaseStrategy : IBarbarianStrategy {
 			return new DefenderAI(DefenderAI.MakeAiDataForDefendInPlace(unit, player));
 
 		// Decide whether to engage enemy units
-		if (orientation.CanEngage() && DecideToEngage(player, unit, orientation))
+		if (MayEngage && orientation.CanEngage() && DecideToEngage(player, unit, orientation))
 			return new CombatAI(orientation.CombatIntel);
 
 		// Decide whether to explore
 		if (DecideToExplore(player, unit, orientation)) {
+			// Keep heading towards the tile we were already exploring towards,
+			// as long as it's still worth exploring.
+			if (unit.currentAI is ExplorerAI currentExplorer && IsStillExploring(player, unit, currentExplorer))
+				return currentExplorer;
+
 			var maybeAiData = ExplorerAI.MaybeMakeAiData(unit, player);
 			if (maybeAiData != null)
 				return new ExplorerAI(maybeAiData);
@@ -89,12 +102,41 @@ internal abstract class BaseStrategy : IBarbarianStrategy {
 		return await plan.PlayTurn(player, unit);
 	}
 
+	private static bool IsStillExploring(Player player, MapUnit unit, ExplorerAI explorer) {
+		Tile destination = explorer.data?.destination;
+		return destination != null
+			&& destination != unit.location
+			&& !player.tileKnowledge.isTileKnown(destination);
+	}
+
 	internal class Orientation {
+		private readonly Func<CombatAIData> combatIntelSource;
+		private bool combatIntelComputed;
+		private CombatAIData combatIntel;
+
+		public Orientation(Func<CombatAIData> combatIntelSource) {
+			this.combatIntelSource = combatIntelSource;
+		}
+
 		public bool IsLastUnitInCamp { get; set; }
-		public CombatAIData CombatIntel { get; set; }
+
+		// Computed on first use.
+		public CombatAIData CombatIntel {
+			get {
+				if (!combatIntelComputed) {
+					combatIntel = combatIntelSource?.Invoke();
+					combatIntelComputed = true;
+				}
+				return combatIntel;
+			}
+		}
 
 		public bool CanEngage() => CombatIntel != null;
 	}
+
+	// False for strategies that never engage, so we can skip gathering combat
+	// intel for them.
+	protected virtual bool MayEngage => true;
 
 	protected abstract bool DecideToEngage(Player player, MapUnit unit, Orientation orientation);
 
