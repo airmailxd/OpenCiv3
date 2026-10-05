@@ -18,18 +18,24 @@ local function disband_reward(context)
   local unit = context
   local unit_shield_cost = unit.unitType.shieldCost;
 
-  local has_city = unit.location.HasCity
-  local is_unit_on_own_city = unit.location.OwningPlayer() == unit.owner
-
-  if has_city and is_unit_on_own_city then
-    local city = unit.location.owningCity;
+  -- Only a unit disbanded inside one of its owner's cities gives shields.
+  local city = unit.location.cityAtTile
+  if city ~= nil and city.owner == unit.owner then
     local item_produced = city.itemBeingProduced
-
-    if (item_produced:GetType().Name == "Building" and item_produced.IsGreatWonder() == true) then
+    if item_produced == nil then
       return
     end
 
-    if (item_produced:GetType().Name == "Inflow") then
+    -- GetType() isn't reachable from Lua, so tell the kinds apart by their
+    -- members: only Buildings have IsGreatWonder, only Inflows localYield.
+    -- Reading a member a type lacks raises an error, hence pcall.
+    local ok, is_wonder = pcall(function() return item_produced.IsGreatWonder() end)
+    if ok and is_wonder == true then
+      return
+    end
+
+    local is_inflow = pcall(function() return item_produced.localYield end)
+    if is_inflow then
       return
     end
 
