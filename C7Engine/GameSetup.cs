@@ -57,8 +57,9 @@ public class GameSetup {
 		Random rand = new(worldCharacteristics.mapSeed + 0x531);
 
 		// Add barbarian
-		AddPlayer(save, save.Civilizations.Find(c => c.isBarbarian), isHuman: false);
+		SavePlayer barbarians = AddPlayer(save, save.Civilizations.Find(c => c.isBarbarian), isHuman: false);
 		save.BarbarianInfo.barbarianActivity = worldCharacteristics.barbarianActivity;
+		AddCampDefenders(save, barbarians);
 
 		// TODO: There is an option called "Culturally Linked Start Loc."
 		// which (if on) puts players with the same culture group near each other
@@ -98,8 +99,22 @@ public class GameSetup {
 		return hotseatPlayers.Prepend(new HotseatPlayer { civilization = playerCivilization, name = playerName });
 	}
 
-	private void AddPlayer(SaveGame save, Civilization civ, bool isHuman, string name = null) {
+	// Every barbarian camp starts the game guarded by a basic barbarian unit
+	// (a Warrior in the standard rules).
+	private void AddCampDefenders(SaveGame save, SavePlayer barbarians) {
+		string defender = save.BarbarianInfo.basicBarbarianUnit;
+		if (defender == null) {
+			return;
+		}
+
+		foreach (SaveTile tile in save.Map.tiles.Where(t => t.features.Contains(Tile.TileOverlays.BARBARIAN_CAMP))) {
+			AddUnit(save, barbarians, defender, new TileLocation(tile.X, tile.Y));
+		}
+	}
+
+	private SavePlayer AddPlayer(SaveGame save, Civilization civ, bool isHuman, string name = null) {
 		SavePlayer player = new() {
+			isBarbarian = civ.isBarbarian,
 			human = isHuman,
 			name = string.IsNullOrWhiteSpace(name) ? null : name.Trim(),
 			id = ids.CreateID("Player"),
@@ -117,7 +132,7 @@ public class GameSetup {
 
 		if (civ.isBarbarian) {
 			player.canBePicked = false;
-			return;
+			return player;
 		}
 
 		SaveTile startingTile = save.Map.startingLocations[save.Players.Count - 2];
@@ -128,6 +143,7 @@ public class GameSetup {
 		if (civ.traits.Contains(Civilization.Trait.Expansionist)) {
 			AddUnit(save, player, save.Rules.ScoutUnitType, startingLocation);
 		}
+		return player;
 	}
 
 	private void AddUnit(SaveGame save, SavePlayer player, string unitType, TileLocation location) {

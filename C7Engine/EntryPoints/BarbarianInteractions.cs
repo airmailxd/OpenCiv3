@@ -14,6 +14,8 @@ public class BarbarianInteractions {
 		if (activity == BarbarianActivity.None)
 			return 0;
 
+		GarrisonUnguardedCamps(gameData, barbPlayer);
+
 		// A random number of camps will spawn a unit each turn.
 		var spawnRate = DetermineSpawnRate(activity);
 		var spawnMeasure = spawnRate * GameData.rng.Next(gameData.map.barbarianCamps.Count);
@@ -38,6 +40,23 @@ public class BarbarianInteractions {
 		}
 
 		return barbariansToSpawn;
+	}
+
+	/// <summary>
+	/// Camps start the game guarded by a basic barbarian (see GameSetup). Any
+	/// camp that later finds itself without a guard, or comes from a save made
+	/// before camps were guarded, gets an advanced barbarian (a Horseman in the
+	/// standard rules) to defend it.
+	/// </summary>
+	internal static void GarrisonUnguardedCamps(GameData gameData, Player barbPlayer) {
+		UnitPrototype defender = gameData.barbarianInfo.advancedBarbarian ?? gameData.barbarianInfo.basicBarbarian;
+		if (defender == null)
+			return;
+
+		foreach (Tile camp in gameData.map.barbarianCamps) {
+			if (camp.unitsOnTile.Count == 0)
+				gameData.SpawnUnit(barbPlayer, defender, camp);
+		}
 	}
 
 	/// <summary>
