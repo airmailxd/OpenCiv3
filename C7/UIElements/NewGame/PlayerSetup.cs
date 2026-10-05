@@ -21,6 +21,9 @@ public partial class PlayerSetup : Control {
 
 	[Export] GridContainer opponentListContainer;
 	List<OptionButton> opponentSelectors = new();
+	// Parallel to opponentSelectors: whether that slot is played by another
+	// person sharing this computer (hotseat) rather than by the AI.
+	List<CheckBox> humanToggles = new();
 
 	[Export] GridContainer rulesContainer;
 
@@ -144,12 +147,22 @@ public partial class PlayerSetup : Control {
 			popup.SetTransparentBackground(false);
 			opponentSelectors.Add(optionButton);
 
+			CheckBox humanToggle = new() {
+				Text = "Human",
+				TooltipText = "Played by another person on this computer, taking turns (hotseat).",
+			};
+			humanToggles.Add(humanToggle);
+
 			CenterContainer container = new();
 			opponentListContainer.AddChild(container);
-			container.AddChild(optionButton);
+			HBoxContainer row = new();
+			container.AddChild(row);
+			row.AddChild(optionButton);
+			row.AddChild(humanToggle);
 
+			const float humanToggleWidth = 80.0f;
 			container.CustomMinimumSize = new Vector2(312.0f / opponentListContainer.Columns, 315.0f / numOpponents);
-			optionButton.CustomMinimumSize = new Vector2(290.0f / opponentListContainer.Columns, optionButton.CustomMinimumSize.Y);
+			optionButton.CustomMinimumSize = new Vector2(290.0f / opponentListContainer.Columns - humanToggleWidth, optionButton.CustomMinimumSize.Y);
 
 			foreach (Civilization civ in save.Civilizations) {
 				if (civ.isBarbarian) {
@@ -209,7 +222,12 @@ public partial class PlayerSetup : Control {
 	private List<SelectedOpponent> CollectSelectedOpponents() {
 		List<SelectedOpponent> opponents = [];
 
-		foreach (OptionButton ob in opponentSelectors) {
+		for (int i = 0; i < opponentSelectors.Count; ++i) {
+			if (humanToggles[i].ButtonPressed) {
+				continue;
+			}
+
+			OptionButton ob = opponentSelectors[i];
 			string selectedName = ob.GetItemText(ob.Selected);
 
 			if (selectedName == "Random") {
@@ -222,6 +240,34 @@ public partial class PlayerSetup : Control {
 		return opponents;
 	}
 
+	// The civilizations of the additional human players. A human slot left on
+	// "Random" gets a random civilization nobody else has picked.
+	private List<Civilization> CollectHotseatCivilizations() {
+		List<Civilization> playable = save.Civilizations.Where(c => !c.isBarbarian).ToList();
+		HashSet<string> taken = [selectedCivilization.name];
+		foreach (OptionButton ob in opponentSelectors) {
+			taken.Add(ob.GetItemText(ob.Selected));
+		}
+
+		List<Civilization> civs = [];
+		Random rand = new();
+		for (int i = 0; i < opponentSelectors.Count; ++i) {
+			if (!humanToggles[i].ButtonPressed) {
+				continue;
+			}
+
+			string selectedName = opponentSelectors[i].GetItemText(opponentSelectors[i].Selected);
+			Civilization civ = playable.Find(c => c.name == selectedName);
+			if (civ == null) {
+				List<Civilization> available = playable.Where(c => !taken.Contains(c.name)).ToList();
+				civ = available[rand.Next(available.Count)];
+				taken.Add(civ.name);
+			}
+			civs.Add(civ);
+		}
+		return civs;
+	}
+
 	private void CreateGame() {
 		loadingLabel.Visible = true;
 
@@ -229,6 +275,7 @@ public partial class PlayerSetup : Control {
 
 		GameSetup gameSetup = new() {
 			playerCivilization = selectedCivilization,
+			hotseatCivilizations = CollectHotseatCivilizations(),
 			difficulty = selectedDifficulty,
 			worldCharacteristics = global.WorldCharacteristics,
 			opponents = CollectSelectedOpponents(),
