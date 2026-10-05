@@ -84,6 +84,11 @@ namespace C7Engine {
 					break;
 				}
 
+				// Drop any queued techs we already know, so we never get stuck
+				// re-selecting a known tech.
+				while (player.ResearchQueue.Count > 0 && player.knownTechs.Contains(player.ResearchQueue.Peek().id)) {
+					player.ResearchQueue.Dequeue();
+				}
 				if (player.ResearchQueue.Count <= 0) {
 					player.AddTechItemToResearchQueue(toResearch);
 				}
@@ -97,7 +102,7 @@ namespace C7Engine {
 			// chance to configure themselves without wasting a turn.
 			// Finally reorder so that the workers are last, so in case a settler builds a new city,
 			// they move to terraform a tile instead of wasting a turn (especially in the very first round in a new game).
-			player.units.OrderBy(x => x.unitType.isSettler).ThenBy(x => x.unitType.isWorker);
+			player.units = player.units.OrderBy(x => x.unitType.isSettler).ThenBy(x => x.unitType.isWorker).ToList();
 
 			// Any time we have an unescorted settler, wake up any other units
 			// on the same tile to force us to re-evaluate whether they should
@@ -336,7 +341,7 @@ namespace C7Engine {
 				int theirOfferValue = CalculateWeWantValue();
 				for (int i = 0; i < weGive.techs.Count;) {
 					if (CalculateWeGiveValue() - gD.TechCostFor(weGive.techs[i], them) >= theirOfferValue) {
-						weGive.techs.RemoveAt(0);
+						weGive.techs.RemoveAt(i);
 					} else {
 						++i;
 					}
@@ -372,9 +377,13 @@ namespace C7Engine {
 				if (them.isHuman) {
 					// The human receiving the offer takes the UI to respond.
 					// In a hotseat game they may not be the player at the screen.
-					EngineStorage.uiControllerID = them.id;
+					if (EngineStorage.uiFollowsActivePlayer) {
+						EngineStorage.uiControllerID = them.id;
+					}
+					EngineStorage.diplomacyPlayerID = them.id;
 					new MsgShowTradeOffer(us, them, weWant, weGive).send();
 					await EngineStorage.WaitForMessageToEngine<MsgDiplomacyCompleted>();
+					EngineStorage.diplomacyPlayerID = null;
 				} else {
 					us.ExecuteDeal(gD, them, weWant, weGive);
 				}

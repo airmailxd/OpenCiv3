@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using static C7GameData.MapUnit;
+using C7Engine.Network;
 
 public class GotoInfo {
 	public Tile destinationTile = null;
@@ -135,6 +136,11 @@ public partial class Game : Node {
 	private readonly Dictionary<ID, Vector2> hotseatCameraLocations = new();
 	private readonly Dictionary<ID, Queue<MessageToUI>> heldMessages = new();
 
+	// In a LAN game, the banner shown while another machine's player takes
+	// their turn, and whether we've told the player the host is gone.
+	private CanvasLayer lanWaitingBanner = null;
+	private bool lanDisconnectShown = false;
+
 	private MapView mapView;
 
 	public enum GameState {
@@ -201,6 +207,7 @@ public partial class Game : Node {
 		GameParams options = CreateGameParams();
 
 		await CreateGameAndAssignPlayerController(options);
+		StartLanGame();
 
 		foreach (var gameDataPlayer in EngineStorage.gameData.players) {
 			if (TurnHandling.GetTurnNumber() == 0)
@@ -231,8 +238,16 @@ public partial class Game : Node {
 
 		EmitSignal(SignalName.GameInitialized);
 
-		// The first hotseat player also needs the others to look away.
-		if (TurnHandling.IsHotseat(EngineStorage.gameData)) {
+		if (LanSession.IsActive) {
+			// Whoever plays first may be at another machine.
+			Player active = EngineStorage.gameData.GetPlayer(EngineStorage.activePlayerID);
+			if (active != null && active.id != controller.id) {
+				ShowLanWaiting(active);
+			} else {
+				MaybeAutoplayLanTurn();
+			}
+		} else if (TurnHandling.IsHotseat(EngineStorage.gameData)) {
+			// The first hotseat player also needs the others to look away.
 			ShowHotseatHandoff(controller, OnPlayerStartTurn);
 		}
 
@@ -325,11 +340,135 @@ public partial class Game : Node {
 		}
 	}
 
+	// Hooks this game up to the LAN game being hosted or joined, if any.
+	private void StartLanGame() {
+		if (LanSession.Host != null) {
+			LanSession.Host.StartGame();
+			controller = EngineStorage.gameData.GetUIControllerPlayer();
+		} else if (LanSession.Client != null) {
+			LanClient client = LanSession.Client;
+			EngineStorage.uiFollowsActivePlayer = false;
+			EngineStorage.uiControllerID = client.PlayerID;
+			controller = EngineStorage.gameData.GetPlayer(client.PlayerID);
+			client.SnapshotReceived = OnLanSnapshot;
+			client.UiMessageReceived = json => HandleEngineMessage(NetSerialization.DeserializeMessageToUI(json));
+		}
+	}
+
+	private void PollLanSession() {
+		LanSession.Host?.Poll();
+
+		LanClient client = LanSession.Client;
+		if (client == null) {
+			return;
+		}
+		client.Poll();
+		if (!client.IsConnected && !lanDisconnectShown) {
+			lanDisconnectShown = true;
+			HideLanWaiting();
+			popupOverlay.ShowPopup(
+				new ConfirmationPopup(
+					"We have lost contact with the host.\nThe game cannot continue.\n\n",
+					"Return to the main menu.",
+					"Let me look around first.",
+					OnRetire),
+				PopupOverlay.PopupCategory.Advisor);
+		}
+	}
+
+	// A LAN client shows the host's game: replace ours with the snapshot,
+	// and point the UI at the new units, cities and players.
+	private void OnLanSnapshot(C7GameData.Save.SaveGame save) {
+		Stopwatch applyTime = Stopwatch.StartNew();
+		GameData gameData = CreateGame.ReplaceWithSnapshot(save, Global.GameMode.behaviors);
+
+		controller = gameData.GetUIControllerPlayer();
+		InitializeMapView();
+		unitSelector.RefreshAfterGameReplaced();
+		cityScreen.RefreshAfterGameReplaced();
+		if (bombardInfo != null) {
+			MapUnit bombarder = gameData.GetUnit(bombardInfo.bombardingUnit.id);
+			setBombard(bombarder);
+		}
+		lastTile = null;
+
+		if (applyTime.ElapsedMilliseconds > 100) {
+			log.Information("Showing the host's snapshot took {Milliseconds} ms", applyTime.ElapsedMilliseconds);
+		}
+	}
+
+	// With the --lan-autoplay developer option, ends our turn soon after it
+	// starts, for watching turns pass between machines.
+	private void MaybeAutoplayLanTurn() {
+		if (!LanSession.DevAutoplay) {
+			return;
+		}
+		GetTree().CreateTimer(1.5).Timeout += () => {
+			popupOverlay.OnHidePopup();
+			if (CurrentState == GameState.PlayerTurn) {
+				DoActualEndTurn();
+			}
+		};
+	}
+
+	// Shows whose turn it is while another machine's player moves.
+	private void ShowLanWaiting(Player active) {
+		log.Information("Waiting for {Player} to play their turn", active);
+		CurrentState = GameState.ComputerTurn;
+		HideLanWaiting();
+
+		string playerName = active.name ?? active.civilization.leader;
+		Label label = new() {
+			Text = $"Waiting for {playerName} of the {active.civilization.noun} to play their turn...",
+			HorizontalAlignment = HorizontalAlignment.Center,
+			VerticalAlignment = VerticalAlignment.Center,
+		};
+		label.AddThemeFontSizeOverride("font_size", 20);
+		label.AddThemeColorOverride("font_color", Colors.White);
+
+		PanelContainer panel = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
+		panel.AddThemeStyleboxOverride("panel", new StyleBoxFlat { BgColor = new Color(0, 0, 0, 0.65f) });
+		panel.AddChild(label);
+
+		lanWaitingBanner = new CanvasLayer { Layer = 90 };
+		lanWaitingBanner.AddChild(panel);
+		AddChild(lanWaitingBanner);
+
+		// A strip across the top of the screen, below the toolbar.
+		panel.SetAnchorsPreset(Control.LayoutPreset.TopWide);
+		panel.OffsetLeft = 160;
+		panel.OffsetRight = -160;
+		panel.OffsetTop = 70;
+		panel.OffsetBottom = 110;
+	}
+
+	private void HideLanWaiting() {
+		lanWaitingBanner?.QueueFree();
+		lanWaitingBanner = null;
+	}
+
+	public override void _ExitTree() {
+		// Leaving the game leaves the LAN game, too.
+		LanSession.End();
+	}
+
 	// Called when the engine hands the UI to a player at the start of their
 	// turn. In a hotseat game this may be a different player than before, so
 	// hide the map until the new player is at the screen.
-	private void OnControllerTurnStart() {
-		Player next = EngineStorage.gameData.GetUIControllerPlayer();
+	private void OnControllerTurnStart(Player next) {
+		if (LanSession.IsActive) {
+			// Each machine plays its own player; the others wait for them.
+			EngineStorage.activePlayerID = next.id;
+			if (next.id != controller.id) {
+				ShowLanWaiting(next);
+				return;
+			}
+			HideLanWaiting();
+			OnPlayerStartTurn();
+			MaybeAutoplayLanTurn();
+			return;
+		}
+
 		if (!TurnHandling.IsHotseat(EngineStorage.gameData)) {
 			controller = next;
 			OnPlayerStartTurn();
@@ -393,7 +532,7 @@ public partial class Game : Node {
 
 		// Hold messages for a human player who isn't at the screen (for
 		// example barbarians raiding them during the AI turns) until they are.
-		if (msg.recipient != null && msg.recipient.isHuman && msg.recipient != controller) {
+		if (!LanSession.IsActive && msg.recipient != null && msg.recipient.isHuman && msg.recipient.id != controller.id) {
 			if (!heldMessages.TryGetValue(msg.recipient.id, out Queue<MessageToUI> held)) {
 				held = new();
 				heldMessages[msg.recipient.id] = held;
@@ -404,7 +543,9 @@ public partial class Game : Node {
 
 		switch (msg) {
 			case MsgStartTurn mST:
-				OnControllerTurnStart();
+				// Hotseat follows the UI controller, which the engine moved to
+				// the player whose turn it is; a LAN game is told who they are.
+				OnControllerTurnStart(LanSession.IsActive ? mST.player : EngineStorage.gameData.GetUIControllerPlayer());
 				break;
 			case MsgShowCityScreen mSCS:
 				ShowCityScreenForCity(gameData, mSCS.city);
@@ -413,7 +554,10 @@ public partial class Game : Node {
 				ShowCityScreenForCity(gameData, mCC.city);
 				break;
 			case MsgCityDestroyed mCD:
-				mapView.cityLayer.UpdateAfterCityDestruction(mCD.city);
+				// A LAN client has already redrawn the map without the city.
+				if (mCD.city != null) {
+					mapView.cityLayer.UpdateAfterCityDestruction(mCD.city);
+				}
 				break;
 			case MsgCivilizationDestroyed mCivD:
 				popupOverlay.ShowPopup(new CivilizationDestroyed(mCivD.civilization), PopupOverlay.PopupCategory.Advisor);
@@ -443,7 +587,7 @@ public partial class Game : Node {
 					humanWants: mSTO.aiGive);
 				// In a hotseat game the offer may be for a player who isn't at
 				// the screen, so hand it to them first.
-				if (mSTO.humanPlayer != controller) {
+				if (mSTO.humanPlayer.id != controller.id) {
 					ShowHotseatHandoff(mSTO.humanPlayer,
 						$"The {mSTO.aiPlayer.civilization.noun} have a proposal for you.",
 						"Hear Them Out",
@@ -504,9 +648,46 @@ public partial class Game : Node {
 						"Yes, we don't want it anymore.",
 						"No, sorry.",
 						() => {
-							CityInteractions.DestroyCity(mDACP.city);
+							new MsgAbandonCity(mDACP.city).send();
 						}),
 					PopupOverlay.PopupCategory.Advisor);
+				break;
+			case MsgNoHumansRemain:
+				popupOverlay.ShowPopup(
+					new ConfirmationPopup(
+						"Every human player has been defeated.\nThis game is over.\n\n",
+						"Return to the main menu.",
+						"Let me look around first.",
+						() => {
+							OnRetire();
+						}),
+					PopupOverlay.PopupCategory.Advisor);
+
+				InterestingEvent();
+				break;
+			case MsgShowDealProposal mSDP:
+				popupOverlay.ShowPopup(
+					new ConfirmationPopup(
+						DealScreen.DescribeDeal(mSDP.proposer, mSDP.proposerGives, mSDP.proposerWants),
+						"We accept.",
+						"We refuse.",
+						() => { new MsgRespondToDeal(true).send(); },
+						() => { new MsgRespondToDeal(false).send(); }),
+					PopupOverlay.PopupCategory.Advisor);
+				InterestingEvent();
+				break;
+			case MsgDealResult mDR:
+				if (diplomacy.Visible) {
+					diplomacy.OnDealResult(mDR.opponent.id, mDR.accepted);
+				} else if (mDR.opponent.isHuman) {
+					string answer = mDR.accepted ? "accepted" : "refused";
+					popupOverlay.ShowPopup(
+						new InformationalPopup($"{mDR.opponent.civilization.leader} {answer} our offer."),
+						PopupOverlay.PopupCategory.Advisor);
+				}
+				break;
+			case MsgCityChanged mCC:
+				cityScreen.RefreshCity(mCC.city);
 				break;
 			case MsgVictory mV:
 				var endMsg =
@@ -534,6 +715,7 @@ public partial class Game : Node {
 	}
 
 	public override void _Process(double delta) {
+		PollLanSession();
 		ProcessActions();
 
 		if (!EngineStorage.HasPendingAnimations())
@@ -573,20 +755,20 @@ public partial class Game : Node {
 		}
 	}
 
+	private int governmentPromptTurn = -1;
+
 	private void OnPlayerStartTurn() {
 		EngineStorage.ReadGameData((GameData gameData) => {
 			log.Information("Starting player turn");
 
-			// TODO: Before we call this method to automatically end obsolete deals, we could make this more versatile.
-			// For example unless we have a good reason, as a human, receiving luxuries, gpt,
-			// or having an active RoP, doesn't hurt us.
-			PlayerRelationship.CheckForObsoleteDeals(controller, gameData.players, gameData.turn);
-
 			// If the player can now pick a new government, force them to do so.
 			// When the popup is closed we call OnPlayerStartTurn again. This isn't
 			// ideal, but we don't yet have a general purpose "show a popup and
-			// wait for the player to acknowledge it" system.
-			if (controller.government.transitionType && TurnHandling.GetTurnNumber() >= controller.inAnarchyUntilTurn) {
+			// wait for the player to acknowledge it" system. On a LAN the choice
+			// may not be back from the host yet, so only ask once a turn.
+			if (controller.government.transitionType && TurnHandling.GetTurnNumber() >= controller.inAnarchyUntilTurn
+					&& (!LanSession.IsClient || governmentPromptTurn != gameData.turn)) {
+				governmentPromptTurn = gameData.turn;
 				popupOverlay.ShowPopup(
 					new GovernmentSelection(controller, controller.GetAvailableGovernments(gameData)),
 					PopupOverlay.PopupCategory.Info);
@@ -601,9 +783,8 @@ public partial class Game : Node {
 						new ScienceSelection(controller),
 						PopupOverlay.PopupCategory.Info);
 
-				if (controller.currentlyResearchedTech == null && controller.GetAvailableTechsToResearch(gameData.techs).Count > 0) {
-					PlayerAI.MaybePickTechToResearch(controller, gameData.techs);
-				}
+				// Research something even if the player dismisses the popup.
+				new MsgPickDefaultResearch().send();
 			}
 
 			// Allow fast forwarding in observer mode.
@@ -927,7 +1108,9 @@ public partial class Game : Node {
 
 	private void HandleKeyboardInput(InputEventKey eventKeyDown) {
 		if (eventKeyDown.Keycode == Godot.Key.O && eventKeyDown.ShiftPressed && eventKeyDown.IsCommandOrControlPressed() && eventKeyDown.AltPressed) {
-			ToggleObserverMode();
+			if (!LanSession.IsActive) {
+				ToggleObserverMode();
+			}
 		}
 
 		if (eventKeyDown.Keycode == Godot.Key.F1) {
@@ -1062,9 +1245,12 @@ public partial class Game : Node {
 		}
 	}
 
+	private bool tempAnimationsFlipped = false;
+
 	private void ProcessOnReleaseAction(string currentAction) {
-		if (currentAction == C7Action.EnableTempAnimations) {
-			animationController.SetAnimationsEnabled(true);
+		if (currentAction == C7Action.EnableTempAnimations && tempAnimationsFlipped) {
+			tempAnimationsFlipped = false;
+			animationController.ToggleAnimationsEnabled();
 		}
 	}
 
@@ -1172,8 +1358,10 @@ public partial class Game : Node {
 			animationController.ToggleAnimationsEnabled();
 		}
 
-		if (currentAction == C7Action.EnableTempAnimations) {
-			animationController.SetAnimationsEnabled(false);
+		// Holding the key flips animations until it's released.
+		if (currentAction == C7Action.EnableTempAnimations && !tempAnimationsFlipped) {
+			tempAnimationsFlipped = true;
+			animationController.ToggleAnimationsEnabled();
 		}
 
 		// actions with unit buttons, which are only relevant during the player
@@ -1185,7 +1373,7 @@ public partial class Game : Node {
 		if (!IsMapUnitValid(CurrentlySelectedUnit)) return;
 
 		if (currentAction == C7Action.UnitHold) {
-			new ActionToEngineMsg(() => CurrentlySelectedUnit?.SkipTurn()).send();
+			new MsgUnitCommand(CurrentlySelectedUnit.id, MsgUnitCommand.Command.SkipTurn).send();
 		}
 
 		if (currentAction == C7Action.UnitWait) {
@@ -1204,7 +1392,7 @@ public partial class Game : Node {
 					"Yes, we need to!",
 					"No. Maybe you are right, advisor.",
 					() => {
-						new ActionToEngineMsg(async () => await CurrentlySelectedUnit.Disband()).send();
+						new MsgUnitCommand(CurrentlySelectedUnit.id, MsgUnitCommand.Command.Disband).send();
 					}),
 				PopupOverlay.PopupCategory.Advisor);
 		}
@@ -1217,11 +1405,11 @@ public partial class Game : Node {
 		}
 
 		if (currentAction == C7Action.UnitExplore) {
-			new ActionToEngineMsg(() => CurrentlySelectedUnit.Explore()).send();
+			new MsgUnitCommand(CurrentlySelectedUnit.id, MsgUnitCommand.Command.Explore).send();
 		}
 
 		if (currentAction == C7Action.UnitAutomate) {
-			new ActionToEngineMsg(() => CurrentlySelectedUnit.Automate()).send();
+			new MsgUnitCommand(CurrentlySelectedUnit.id, MsgUnitCommand.Command.Automate).send();
 		}
 
 		if (currentAction == C7Action.UnitSentry) {
@@ -1349,7 +1537,7 @@ public partial class Game : Node {
 	private void MaybeDeclareWar(Player player, int currentTurn, Action callback) {
 		popupOverlay.ShowPopup(new WarConfirmation(player,
 			() => {
-				controller.DeclareWarOn(player, currentTurn);
+				new MsgDeclareWar(player).send();
 				callback();
 			}), PopupOverlay.PopupCategory.Advisor);
 	}

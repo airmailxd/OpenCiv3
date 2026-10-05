@@ -1,6 +1,7 @@
 namespace C7Engine {
 	using C7GameData;
 	using System;
+	using System.Text.Json.Serialization;
 
 	public interface IMessageToUI {
 		public void send();
@@ -12,8 +13,22 @@ namespace C7Engine {
 		// player who isn't at the screen until their next turn.
 		public Player recipient;
 
+		// Whether every player should hear about this, such as a war breaking
+		// out. A LAN host sends these to every machine.
+		[JsonIgnore]
+		public virtual bool IsForEveryone => false;
+
+		// The player whose machine a LAN host should deliver this to.
+		[JsonIgnore]
+		public virtual Player NetworkRecipient => recipient;
+
 		public void send() {
-			EngineStorage.messagesToUI.Enqueue(this);
+			// What happens while the engine processes a player's message is
+			// news for that player.
+			if (recipient == null && !IsForEveryone && EngineStorage.processingSenderID != null) {
+				recipient = EngineStorage.gameData.GetPlayer(EngineStorage.processingSenderID);
+			}
+			EngineStorage.SendToUI(this);
 		}
 	}
 
@@ -56,7 +71,17 @@ namespace C7Engine {
 		}
 	}
 
-	public class MsgStartTurn : MessageToUI { }
+	// The engine has handed the turn to a human player.
+	public class MsgStartTurn : MessageToUI {
+		public Player player;
+
+		public MsgStartTurn(Player player) {
+			this.player = player;
+		}
+
+		// On a LAN, the other players learn whose turn they are waiting on.
+		public override bool IsForEveryone => true;
+	}
 
 	public class MsgShowScienceAdvisor : MessageToUI { }
 
@@ -70,6 +95,8 @@ namespace C7Engine {
 			this.aggressor = aggressor;
 			this.opponent = opponent;
 		}
+
+		public override bool IsForEveryone => true;
 	}
 
 	public class MsgCityDestroyed : MessageToUI {
@@ -78,14 +105,18 @@ namespace C7Engine {
 		public MsgCityDestroyed(City city) {
 			this.city = city;
 		}
+
+		public override bool IsForEveryone => true;
 	}
 
 	public class MsgCivilizationDestroyed : MessageToUI {
 		public Civilization civilization;
 
-		public MsgCivilizationDestroyed(Civilization civ) {
-			this.civilization = civ;
+		public MsgCivilizationDestroyed(Civilization civilization) {
+			this.civilization = civilization;
 		}
+
+		public override bool IsForEveryone => true;
 	}
 
 	public class MsgCityCreated : MessageToUI {
@@ -100,9 +131,9 @@ namespace C7Engine {
 		public City city;
 		public City.HurryProductionDetails details;
 
-		public MsgDisplayHurryProductionPopup(City c, City.HurryProductionDetails d) {
-			city = c;
-			details = d;
+		public MsgDisplayHurryProductionPopup(City city, City.HurryProductionDetails details) {
+			this.city = city;
+			this.details = details;
 		}
 	}
 
@@ -159,6 +190,48 @@ namespace C7Engine {
 			this.aiWant = aiWant;
 			this.aiGive = aiGive;
 		}
+
+		// Hotseat hands the screen to the human with a handoff, so this has no
+		// recipient, but on a LAN it belongs on the human's own machine.
+		public override Player NetworkRecipient => humanPlayer;
+	}
+
+	// Another human on a LAN proposes a deal, which the recipient accepts or
+	// refuses with MsgRespondToDeal.
+	public class MsgShowDealProposal : MessageToUI {
+		public Player proposer;
+		public Player opponent;
+		public TradeOffer proposerGives;
+		public TradeOffer proposerWants;
+
+		public MsgShowDealProposal(Player proposer, Player opponent, TradeOffer proposerGives, TradeOffer proposerWants) {
+			this.proposer = proposer;
+			this.opponent = opponent;
+			this.proposerGives = proposerGives;
+			this.proposerWants = proposerWants;
+		}
+	}
+
+	// Tells the player who proposed a deal whether it was accepted.
+	public class MsgDealResult : MessageToUI {
+		public Player opponent;
+		public bool accepted;
+
+		public MsgDealResult(Player recipient, Player opponent, bool accepted) {
+			this.recipient = recipient;
+			this.opponent = opponent;
+			this.accepted = accepted;
+		}
+	}
+
+	// A city's citizens or production changed, so a city screen showing it
+	// should redraw.
+	public class MsgCityChanged : MessageToUI {
+		public City city;
+
+		public MsgCityChanged(City city) {
+			this.city = city;
+		}
 	}
 
 	public class MsgUnitMoved : MessageToUI {
@@ -182,6 +255,11 @@ namespace C7Engine {
 		}
 	}
 
+	// Every human player has been defeated, so the game is over.
+	public class MsgNoHumansRemain : MessageToUI {
+		public override bool IsForEveryone => true;
+	}
+
 	public class MsgVictory : MessageToUI {
 		public Player winner;
 		public IVictory victory;
@@ -190,5 +268,7 @@ namespace C7Engine {
 			this.winner = winner;
 			this.victory = victory;
 		}
+
+		public override bool IsForEveryone => true;
 	}
 }

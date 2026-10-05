@@ -235,10 +235,19 @@ namespace C7GameData {
 		}
 		public HurryProductionDetails GetHurryProductionDetails() {
 			Rules rules = EngineStorage.gameData.rules;
-			int shieldCost = ShieldCostForHurrying();
 
 			if (isInCivilDisorder) {
 				return new HurryProductionDetails() { errorMessage = "The city is in disorder and cannot hurry production." };
+			}
+
+			// Nothing to hurry: no production, a full box, or something like
+			// Wealth that costs no shields.
+			if (itemBeingProduced == null) {
+				return new HurryProductionDetails() { errorMessage = "The city is not producing anything to hurry." };
+			}
+			int shieldCost = ShieldCostForHurrying();
+			if (shieldCost <= 0) {
+				return new HurryProductionDetails() { errorMessage = "There is nothing to hurry in this city." };
 			}
 
 			switch (owner.government.hurryingType) {
@@ -272,23 +281,21 @@ namespace C7GameData {
 			Rules rules = EngineStorage.gameData.rules;
 			HurryProductionDetails details = GetHurryProductionDetails();
 
-			switch (owner.government.hurryingType) {
-				case Government.HurryProductionType.CannotHurry:
-					throw new Exception("Unexpectedly trying to hurry production with a government that doesn't support it.");
+			// The UI only offers hurrying when it's possible, but the city may
+			// have changed since, so quietly ignore a request that no longer is.
+			if (details.errorMessage != null) {
+				log.Warning($"Not hurrying production in {this}: {details.errorMessage}");
+				return;
+			}
 
+			switch (owner.government.hurryingType) {
 				case Government.HurryProductionType.ForcedLabor:
-					if (details.popCost <= 0) {
-						throw new Exception(details.errorMessage);
-					}
 					RemoveCitizens(details.popCost);
 					turnsOfUnhappinessDueToPopRushing += rules.TurnPenaltyForEachHurrySacrifice * details.popCost;
 					shieldsStored = owner.ShieldCost(itemBeingProduced);
 					break;
 
 				case Government.HurryProductionType.PaidLabor:
-					if (details.goldCost <= 0) {
-						throw new Exception(details.errorMessage);
-					}
 					owner.gold -= details.goldCost;
 					shieldsStored = owner.ShieldCost(itemBeingProduced);
 					break;

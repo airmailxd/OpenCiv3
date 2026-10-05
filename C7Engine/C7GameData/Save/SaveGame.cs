@@ -506,6 +506,17 @@ namespace C7GameData.Save {
 			File.WriteAllBytes(path, json);
 		}
 
+		// Serializes without indentation, for sending over the network.
+		public byte[] ToCompactJSON() {
+			JsonSerializerOptions options = JsonOptions;
+			options.WriteIndented = false;
+			return JsonSerializer.SerializeToUtf8Bytes(this, options);
+		}
+
+		public static SaveGame FromJSON(byte[] json) {
+			return JsonSerializer.Deserialize<SaveGame>(json, JsonOptions);
+		}
+
 		// Makes a deep copy of a SaveGame instance via JSON serialization
 		public SaveGame Clone() {
 			byte[] json = JsonSerializer.SerializeToUtf8Bytes(this, JsonOptions);

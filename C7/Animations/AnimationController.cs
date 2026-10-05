@@ -62,9 +62,10 @@ public partial class AnimationController : Node {
 		animTracker.update();
 	}
 
+	public bool AnimationsEnabled => !animTracker.endAllImmediately;
+
 	public void ToggleAnimationsEnabled() {
-		new MsgToggleAnimationsEnabled().send();
-		animTracker.endAllImmediately = !animTracker.endAllImmediately;
+		SetAnimationsEnabled(!AnimationsEnabled);
 	}
 
 	public void SetAnimationsEnabled(bool enabled) {

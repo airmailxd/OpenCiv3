@@ -40,7 +40,7 @@ public partial class Civ3FileDialog : FileDialog {
 			if (GoToScenarioSetupAfterLoading) {
 				GetTree().ChangeSceneToFile("res://UIElements/NewGame/scenario_setup.tscn");
 			} else {
-				GetTree().ChangeSceneToFile("res://C7Game.tscn");
+				LanSession.StartGame(GetTree());
 			}
 		} else {
 			if (!path.EndsWith(".json")) {

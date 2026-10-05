@@ -140,6 +140,6 @@ public partial class ScenarioSetup : Control {
 	}
 
 	private void StartGame() {
-		GetTree().ChangeSceneToFile("res://C7Game.tscn");
+		LanSession.StartGame(GetTree());
 	}
 }

@@ -83,11 +83,10 @@ public partial class TalkScreen : TextureRect {
 
 	private void DeclareWar() {
 		EngineStorage.ReadGameData((GameData gD) => {
-			Player humanPlayer = gD.players.Find(x => x.id == humanPlayerId);
 			Player opponentPlayer = gD.players.Find(x => x.id == opponentPlayerId);
 			GetParent<Diplomacy>().popupOverlay.ShowPopup(new WarConfirmation(opponentPlayer,
 				() => {
-					humanPlayer.DeclareWarOn(opponentPlayer, gD.turn);
+					new MsgDeclareWar(opponentPlayer).send();
 					GetParent<Diplomacy>().Hide();
 				}), PopupOverlay.PopupCategory.Advisor);
 		});

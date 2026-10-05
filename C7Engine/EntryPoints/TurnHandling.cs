@@ -44,6 +44,16 @@ namespace C7Engine {
 
 			// Loop ends with a function return once we reach the UI controller during the movement phase
 			while (true) {
+				// The loop hands control back at a human, or at the player
+				// being observed. With neither left, the AIs would play
+				// against each other forever with nothing for the UI to do.
+				if (!gameData.players.Any(p => !p.defeated && (p.isHuman || p.id == EngineStorage.activePlayerID))) {
+					log.Information("No human players remain, ending the game");
+					gameData.gameOver = true;
+					new MsgNoHumansRemain().send();
+					return;
+				}
+
 				bool firstTurn = GetTurnNumber() == 0;
 
 				// Movement phase
@@ -118,16 +128,24 @@ namespace C7Engine {
 					await PlayerAI.PlayTurn(player, gameData);
 				}
 
-				// Each human player takes control of the UI in turn. With a
-				// single human this is a no-op; in a hotseat game it hands the
-				// UI over to the next human.
+				// Each human player takes the turn in order. In a hotseat game
+				// the UI goes with them; in a LAN game it is their machine's turn.
 				if (player.isHuman) {
-					EngineStorage.uiControllerID = player.id;
+					EngineStorage.activePlayerID = player.id;
+					if (EngineStorage.uiFollowsActivePlayer) {
+						EngineStorage.uiControllerID = player.id;
+					}
 				}
 
 				//Human player check. Let the human see what's going on even if they are in observer mode.
-				if (player.id == EngineStorage.uiControllerID) {
-					new MsgStartTurn().send();
+				if (player.id == EngineStorage.activePlayerID) {
+					if (player.isHuman) {
+						// TODO: Before we call this method to automatically end obsolete deals, we could make this more versatile.
+						// For example unless we have a good reason, as a human, receiving luxuries, gpt,
+						// or having an active RoP, doesn't hurt us.
+						PlayerRelationship.CheckForObsoleteDeals(player, gameData.players, gameData.turn);
+					}
+					new MsgStartTurn(player).send();
 					return true;
 				}
 

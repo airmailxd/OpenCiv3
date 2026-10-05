@@ -21,14 +21,13 @@ font_size = 10
 font_color = Color(0, 0, 0, 1)
 shadow_color = Color(1, 1, 1, 0.533333)
 
-[node name="MainMenu" type="Node" node_paths=PackedStringArray("LoadDialog", "NoCiv3Options", "SetCiv3HomeDialog", "LoadScenarioDialog", "ButtonContainer", "player")]
+[node name="MainMenu" type="Node" node_paths=PackedStringArray("LoadDialog", "NoCiv3Options", "SetCiv3HomeDialog", "LoadScenarioDialog", "ButtonContainer")]
 script = ExtResource("1_akneh")
 LoadDialog = NodePath("LoadDialog")
 NoCiv3Options = NodePath("Control/Background/PanelContainer/MarginContainer/NoCiv3Options")
 SetCiv3HomeDialog = NodePath("SetCiv3HomeDialog")
 LoadScenarioDialog = NodePath("LoadScenarioDialog")
 ButtonContainer = NodePath("Control/Background/PanelContainer/MarginContainer/MainMenuContainer")
-player = NodePath("SoundEffectPlayer")
 
 [node name="Control" type="Control" parent="."]
 layout_mode = 3

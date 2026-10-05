@@ -311,7 +311,7 @@ namespace C7GameData {
 			// elapsed. The exact civ3 mechanism here is unknown, so we just
 			// pick some reasonable random number. To penalize sneak attacks we
 			// use a higher upper bound.
-			int refuseContactUntilTurn = currentTurn + new Random().Next(5, isSneakAttack ? 16 : 12);
+			int refuseContactUntilTurn = currentTurn + GameData.rng.Next(5, isSneakAttack ? 16 : 12);
 
 			DeclareWar(this, other, isSneakAttack, refuseContactUntilTurn);
 
@@ -768,19 +768,38 @@ namespace C7GameData {
 
 			// Ensure we never go below 0 gold.
 			while (gold + CalculateGoldPerTurn() < 0) {
-				// Start by disbanding units to get things under control.
+				// Start by disbanding units or selling buildings to get things
+				// under control, picking at random among everything that costs
+				// us gold. Remove one at a time and check the budget again, so
+				// we never remove more than needed. Captives are free, so
+				// disbanding one wouldn't lower the support cost.
 				var (_, _, unitSupportCost) = TotalUnitsAllowedUnitsAndSupportCost();
-				if (unitSupportCost > 0) {
-					for (int i = 0; i < unitSupportCost / government.unitCost; ++i) {
-						MapUnit unitToRemove = units[GameData.rng.Next(units.Count)];
-						log.Information($"{this} is out of gold, disbanding {unitToRemove} at {unitToRemove.location} to being unit support costs under control");
+				List<MapUnit> disbandable = unitSupportCost > 0 ? units.Where(u => !u.IsCaptive()).ToList() : new();
+				List<(City, CityBuilding)> sellable = cities
+					.SelectMany(c => c.GetBuildings().Select(cb => (c, cb)))
+					.Where(x => x.cb.building.maintenanceCost > 0
+						&& x.cb.building.greatWonderProperties == null
+						&& !x.cb.building.isSmallWonder
+						&& !x.cb.building.isCenterOfEmpire)
+					.ToList();
+				int candidates = disbandable.Count + sellable.Count;
+				if (candidates > 0) {
+					int choice = GameData.rng.Next(candidates);
+					if (choice < disbandable.Count) {
+						MapUnit unitToRemove = disbandable[choice];
+						log.Information($"{this} is out of gold, disbanding {unitToRemove} at {unitToRemove.location} to bring unit support costs under control");
 						gameData.RemoveUnit(unitToRemove);
+						continue;
 					}
+					var (city, buildingToSell) = sellable[choice - disbandable.Count];
+					log.Information($"{this} is out of gold, selling {buildingToSell.building.name} in {city} to bring maintenance costs under control");
+					city.RemoveBuilding(buildingToSell);
+					new MsgCityChanged(city).send();
 					continue;
 				}
 
-				// If we're under the unit support cap, try lowering our science
-				// budget.
+				// If there's nothing left to disband or sell, try lowering our
+				// science budget.
 				if (scienceRate > 0) {
 					--scienceRate;
 					++taxRate;
@@ -794,12 +813,14 @@ namespace C7GameData {
 					continue;
 				}
 
-				// If the budget still isn't under control, something is wrong.
-				throw new Exception($"{this} was unable to get the budget under control despite being under the unit support cap and zeroing out the sliders (gold={gold}, gpt={CalculateGoldPerTurn()})");
+				// If the budget still isn't under control, something is wrong,
+				// but it shouldn't stop the game.
+				log.Warning($"{this} was unable to get the budget under control despite disbanding units and zeroing out the sliders (gold={gold}, gpt={CalculateGoldPerTurn()})");
+				break;
 			}
 
 			lastGoldPerTurn = CalculateGoldPerTurn();
-			gold += lastGoldPerTurn;
+			gold = Math.Max(0, gold + lastGoldPerTurn);
 		}
 
 		public void HandleCityUpdates(GameData gameData) {
@@ -869,12 +890,15 @@ namespace C7GameData {
 			// trigger callback for techs that enable improvements to redraw map
 			TechImprovementCallback(this, tech);
 
-			SetCurrentlyResearchedTech(null);
-
-			// remove completed tech from the current research queue
-			if (ResearchQueue.Count > 0) {
-				ResearchQueue.Dequeue();
+			// Only reset research if this was the tech being researched. A tech
+			// gained another way (e.g. a trade) shouldn't wipe current progress.
+			if (currentlyResearchedTech == tech.id) {
+				SetCurrentlyResearchedTech(null);
 			}
+
+			// Remove the gained tech from the research queue, wherever it is.
+			// It isn't necessarily at the front if it came from a trade.
+			ResearchQueue = new Queue<Tech>(ResearchQueue.Where(t => t.id != tech.id));
 
 			if (CanAdvanceToNextEra(gameData)) {
 				eraCivilopediaName = GetNextEraNameByIndex(EraIndex());

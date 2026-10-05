@@ -31,6 +31,10 @@ public partial class MainMenu : Node {
 
 			AudioManager = GetNode<AudioManager>("/root/GlobalAudioManager");
 			PlayMusic();
+
+			if (LanSession.TakeDevStart()) {
+				CallDeferred(nameof(StartDevLanGame));
+			}
 		} catch (Exception ex) {
 			log.Error(ex, "Could not set up the main menu");
 		}
@@ -40,6 +44,10 @@ public partial class MainMenu : Node {
 		// To pass data between scenes, putting path string in a global singleton and reading it later in createGame
 		Global = GetNode<GlobalSingleton>("/root/GlobalSingleton");
 		Global.ResetLoadGameFields();
+
+		// Back at the menu, any LAN game is over.
+		LanSession.End();
+		LanSession.HostNextGame = false;
 
 		LoadDialog.SetDirectoryForLoading(@"Conquests/Saves");
 		LoadScenarioDialog.SetDirectoryForLoading(@"Conquests/Scenarios");
@@ -61,6 +69,8 @@ public partial class MainMenu : Node {
 		ButtonContainer.Tutorial.Visible = false;
 		ButtonContainer.LoadGame.Pressed += LoadGame;
 		ButtonContainer.LoadScenario.Pressed += LoadScenario;
+		ButtonContainer.HostLan.Pressed += HostLanGame;
+		ButtonContainer.JoinLan.Pressed += JoinLanGame;
 		ButtonContainer.HallOfFame.Pressed += HallOfFame;
 		ButtonContainer.HallOfFame.Visible = false;
 		ButtonContainer.Preferences.Pressed += Preferences;
@@ -125,6 +135,51 @@ public partial class MainMenu : Node {
 		log.Information("load game button pressed");
 		PlayButtonPressedSound();
 		LoadDialog.Popup();
+	}
+
+	// Asks whether to host a new game or a saved one; either way the game
+	// opens the LAN lobby once it's ready.
+	public void HostLanGame() {
+		PlayButtonPressedSound();
+		AcceptDialog dialog = new() {
+			Title = "Host LAN Game",
+			DialogText = "Set up a game for players on your local network.\n" +
+				"Add a human player for each of them on the player setup screen,\n" +
+				"or load a game saved with several human players.",
+			OkButtonText = "New Game",
+		};
+		dialog.AddButton("Load Game", true, "load");
+		dialog.AddCancelButton("Cancel");
+		dialog.Confirmed += () => {
+			LanSession.HostNextGame = true;
+			GoToWorldSetup();
+		};
+		dialog.CustomAction += action => {
+			if (action == "load") {
+				dialog.Hide();
+				LanSession.HostNextGame = true;
+				LoadGame();
+			}
+		};
+		dialog.Canceled += () => LanSession.HostNextGame = false;
+		AddChild(dialog);
+		dialog.PopupCentered();
+	}
+
+	private void StartDevLanGame() {
+		if (LanSession.DevHostSave != null) {
+			Global.LoadGamePath = LanSession.DevHostSave;
+			LanSession.HostNextGame = true;
+			LanSession.StartGame(GetTree());
+		} else {
+			JoinLanGame();
+		}
+	}
+
+	public void JoinLanGame() {
+		PlayButtonPressedSound();
+		LanLobby.joining = true;
+		GetTree().ChangeSceneToFile(LanSession.LobbyScene);
 	}
 
 	public void LoadScenario() {

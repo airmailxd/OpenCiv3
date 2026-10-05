@@ -189,94 +189,14 @@ public partial class CityScreen : Control {
 							productionMenu.Visible = false;
 						}
 
+						// The engine moves the citizen, and the city screen redraws
+						// when it hears the city changed.
 						Tile tile = mapView.tileOnScreenAt(gameData.map, eventMouseButton.Position);
 						if (tile != null) {
-							HandleReassignment(gameData, tile);
-
-							// Recalculate moods after changing tile assignments.
-							tileAssignmentLayer.city.RecalculateCitizenMoods(gameData);
-
-							RenderPopHeads(tileAssignmentLayer.city);
-							RenderFoodDetails(tileAssignmentLayer.city);
-							RenderCommerceDetails(tileAssignmentLayer.city);
-							RenderProductionDetails(gameData, tileAssignmentLayer.city);
+							new MsgReassignCitizen(tileAssignmentLayer.city, tile).send();
 						}
 					});
 				}
-			}
-		}
-	}
-
-	private void HandleReassignment(GameData gameData, Tile tile) {
-		City city = tileAssignmentLayer.city;
-
-		// We only support clicking on workable tiles or the city center.
-		if (!city.GetWorkableTiles().Contains(tile) && tile != city.location) {
-			return;
-		}
-
-		// We can't assign citizens to other cities.
-		if (tile.cityAtTile != null && tile.cityAtTile != city) {
-			return;
-		}
-
-		// We can't assign citizens to tiles worked by other cities.
-		if (tile.personWorkingTile != null && tile.personWorkingTile.city != city) {
-			return;
-		}
-
-		// If we're already working a tile and click on it, turn the citizen
-		// into a specialist.
-		if (tile.personWorkingTile != null && tile.personWorkingTile.city == city) {
-			CityResident resident = tile.personWorkingTile;
-			tile.personWorkingTile = null;
-			resident.tileWorked = Tile.NONE;
-			resident.citizenType = city.owner.GetKnownSpecialists(gameData)[0];
-			return;
-		}
-
-		// We've clicked on an unworked tile, move the "worst" citizen to that
-		// tile.
-		if (tile.cityAtTile == null) {
-			int worstYield = int.MaxValue;
-			CityResident worst = null;
-
-			foreach (CityResident cr in city.residents) {
-				int tileYield = cr.tileWorked.FoodYield(city.owner).yield +
-								cr.tileWorked.ProductionYield(city.owner).yield +
-								cr.tileWorked.CommerceYield(city.owner).yield;
-				if (tileYield < worstYield) {
-					worstYield = tileYield;
-					worst = cr;
-				}
-			}
-
-			// Move the worst citizen to our new tile, being sure to update
-			// backpointers from the tile.
-			worst.tileWorked.personWorkingTile = null;
-			worst.tileWorked = tile;
-			tile.personWorkingTile = worst;
-			worst.citizenType = citizenTypes.Find(x => x.IsDefaultCitizen);
-			return;
-		}
-
-		// If we've clicked the city center, re-assign all the citizens using
-		// the basic AI, but specify that we want to manage moods by using
-		// entertainers if necessary.
-		//
-		// TODO: This throws away existing nationalities, fix that.
-		if (tile.cityAtTile == city) {
-			int numResidents = city.residents.Count;
-			city.RemoveAllCitizens();
-
-			for (int i = 0; i < numResidents; ++i) {
-				CityResident newResident = new() {
-					citizenType = citizenTypes.Find(x => x.IsDefaultCitizen),
-					nationality = city.owner.civilization,
-					city = city
-				};
-				city.AddCitizen(newResident);
-				CityTileAssignmentAI.AssignNewCitizenToTile(gameData, newResident, manageMoods: true);
 			}
 		}
 	}
@@ -300,6 +220,44 @@ public partial class CityScreen : Control {
 		RenderExistingBuildings(city.Value.GetBuildings());
 		RenderStrategicResources(gameData, city.Value);
 		RenderLuxuries(gameData, city.Value);
+	}
+
+	// Redraws the city screen after the engine changed the city it shows.
+	public void RefreshCity(City city) {
+		if (!Visible || tileAssignmentLayer.city?.id != city?.id) {
+			return;
+		}
+		EngineStorage.ReadGameData((GameData gameData) => RenderCity(gameData, city));
+	}
+
+	// Shows the city again after a LAN client replaced its game data with
+	// the host's latest snapshot, or closes the screen if the city is gone.
+	public void RefreshAfterGameReplaced() {
+		if (!Visible || tileAssignmentLayer.city == null) {
+			return;
+		}
+		EngineStorage.ReadGameData((GameData gameData) => {
+			City city = gameData.cities.Find(c => c.id == tileAssignmentLayer.city.id);
+			if (city == null || city.owner.id != EngineStorage.uiControllerID) {
+				Hide();
+				return;
+			}
+			RenderCity(gameData, city);
+		});
+	}
+
+	private void RenderCity(GameData gameData, City city) {
+		city.RecalculateCitizenMoods(gameData);
+		tileAssignmentLayer.city = city;
+		cityName.Text = city.name;
+		RenderPopHeads(city);
+		RenderCulture(city);
+		RenderFoodDetails(city);
+		RenderCommerceDetails(city);
+		RenderProductionDetails(gameData, city);
+		RenderExistingBuildings(city.GetBuildings());
+		RenderStrategicResources(gameData, city);
+		RenderLuxuries(gameData, city);
 	}
 
 	private void OnExit() {
@@ -632,11 +590,7 @@ public partial class CityScreen : Control {
 		productionButtonLabel.SetTextAndCenterLabel($"{city.itemBeingProduced.name}");
 
 		productionMenu.AddItems(gameData, city, (IProducible p) => {
-			EngineStorage.ReadGameData((GameData gameData) => {
-				city.SetItemBeingProduced(p);
-				RenderProductionDetails(gameData, city);
-				RenderCulture(city);
-			});
+			new MsgChooseProduction(city.id, p.name).send();
 		});
 	}
 
@@ -795,16 +749,9 @@ public partial class CityScreen : Control {
 			tb.TextureNormal = PopHead.GetTexture(cr, eraNum);
 			tb.SetPosition(new Vector2(xPos, POP_HEAD_OFFSET_Y));
 
-			List<CitizenType> specialistTypes = null;
-			EngineStorage.ReadGameData((GameData gameData) => { specialistTypes = city.owner.GetKnownSpecialists(gameData); });
-
-			int index = specialistTypes.FindIndex(x => x.Id == cr.citizenType.Id);
+			int residentIndex = city.residents.IndexOf(cr);
 			tb.Pressed += () => {
-				cr.citizenType = specialistTypes[(index + 1) % specialistTypes.Count];
-				++index;
-				RenderPopHeads(city);
-
-				EngineStorage.ReadGameData((GameData gameData) => { RenderCommerceDetails(city); });
+				new MsgCycleSpecialist(city, residentIndex).send();
 			};
 
 			background.AddChild(tb);

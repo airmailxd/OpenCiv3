@@ -32,7 +32,7 @@ public partial class GovernmentSelection : Popup {
 		foreach (Government g in governments) {
 			AddButton($"{g.name}", vOffset, () => {
 				Node parent = GetParent();
-				new SelectGovernmentMsg(player, g).send();
+				new SelectGovernmentMsg(g).send();
 				parent.EmitSignal(PopupOverlay.SignalName.HidePopup);
 			});
 			vOffset += 25;
@@ -41,7 +41,7 @@ public partial class GovernmentSelection : Popup {
 
 	public override void _ExitTree() {
 		// Restart the turn once a selection has been made.
-		new MsgStartTurn().send();
+		EngineStorage.SendToLocalUI(new MsgStartTurn(player));
 	}
 
 }

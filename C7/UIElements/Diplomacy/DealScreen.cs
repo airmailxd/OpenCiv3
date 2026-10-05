@@ -167,47 +167,69 @@ public partial class DealScreen : TextureRect {
 	}
 
 	private void AttemptDeal() {
-		// TODO: This seems to be only usage of UIGameDataAccess that mutates
-		// state - can this be a message instead?
 		EngineStorage.ReadGameData((GameData gD) => {
 			Player opponentPlayer = gD.players.Find(x => x.id == opponentPlayerId);
 			Player humanPlayer = gD.players.Find(x => x.id == humanPlayerId);
 
-			// Another human player (in a hotseat game) decides for themselves
-			// rather than having the AI decide for them.
-			if (opponentPlayer.isHuman) {
-				AskHumanOpponentToAccept(gD, humanPlayer, opponentPlayer);
+			// A human on another machine is asked over the network, and the
+			// engine tells us their answer.
+			if (LanSession.IsRemotePlayer(opponentPlayer)) {
+				opponentResponse.Text = $"\"{opponentPlayer.civilization.leader} is considering the offer...\"";
+				new MsgProposeDeal(opponentPlayer, humanOffer, opponentOffer).send();
 				return;
 			}
 
-			// If the deal is acceptable, execute it and go back to the previous
-			// screen.
-			if (opponentPlayer.WouldAcceptDealFrom(gD, humanPlayer, humanOffer, opponentOffer)) {
-				opponentPlayer.ExecuteDeal(gD, humanPlayer, humanOffer, opponentOffer);
-
-				GetParent<Diplomacy>().ShowTalkScreenForPlayer(humanPlayerId, opponentPlayerId);
+			// Another human player (in a hotseat game) decides for themselves
+			// rather than having the AI decide for them.
+			if (opponentPlayer.isHuman) {
+				AskHumanOpponentToAccept(humanPlayer, opponentPlayer);
+				return;
 			}
+
+			// The AI decides; if it accepts, the engine's answer takes us back
+			// to the previous screen.
+			new MsgProposeDeal(opponentPlayer, humanOffer, opponentOffer).send();
 		});
 	}
 
-	private void AskHumanOpponentToAccept(GameData gD, Player humanPlayer, Player opponentPlayer) {
+	private void AskHumanOpponentToAccept(Player humanPlayer, Player opponentPlayer) {
+		string message =
+			$"{opponentPlayer.civilization.leader}, please take the screen.\n" +
+			DescribeDeal(humanPlayer, humanOffer, opponentOffer);
+
+		opponentResponse.Text = $"\"{opponentPlayer.civilization.leader} is considering the offer...\"";
+		GetParent<Diplomacy>().popupOverlay.ShowPopup(
+			new ConfirmationPopup(message, "We accept.", "We refuse.", () => {
+				new MsgProposeDeal(opponentPlayer, humanOffer, opponentOffer) { opponentAgreed = true }.send();
+			}),
+			PopupOverlay.PopupCategory.Advisor);
+	}
+
+	public static string DescribeDeal(Player proposer, TradeOffer proposerGives, TradeOffer proposerWants) {
 		static string Describe(TradeOffer offer) {
 			string description = offer.ToString();
 			return description == "" ? "nothing" : description.Replace(",", ", ");
 		}
 
-		string message =
-			$"{opponentPlayer.civilization.leader}, please take the screen.\n" +
-			$"The {humanPlayer.civilization.noun} offer: {Describe(humanOffer)}\n" +
-			$"In return they want: {Describe(opponentOffer)}";
+		return $"The {proposer.civilization.noun} offer: {Describe(proposerGives)}\n" +
+			$"In return they want: {Describe(proposerWants)}";
+	}
 
-		opponentResponse.Text = $"\"{opponentPlayer.civilization.leader} is considering the offer...\"";
-		GetParent<Diplomacy>().popupOverlay.ShowPopup(
-			new ConfirmationPopup(message, "We accept.", "We refuse.", () => {
-				opponentPlayer.ExecuteDeal(gD, humanPlayer, humanOffer, opponentOffer);
-				GetParent<Diplomacy>().ShowTalkScreenForPlayer(humanPlayerId, opponentPlayerId);
-			}),
-			PopupOverlay.PopupCategory.Advisor);
+	// The engine's answer to a deal we proposed.
+	public void OnDealResult(ID opponent, bool accepted) {
+		if (opponent != opponentPlayerId) {
+			return;
+		}
+		if (accepted) {
+			GetParent<Diplomacy>().ShowTalkScreenForPlayer(humanPlayerId, opponentPlayerId);
+		} else {
+			EngineStorage.ReadGameData((GameData gD) => {
+				Player opponentPlayer = gD.players.Find(x => x.id == opponentPlayerId);
+				if (opponentPlayer.isHuman) {
+					opponentResponse.Text = $"\"{opponentPlayer.civilization.leader} refused the offer.\"";
+				}
+			});
+		}
 	}
 
 	private void UpdateText() {

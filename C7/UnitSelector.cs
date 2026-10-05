@@ -52,6 +52,19 @@ public partial class UnitSelector : Node {
 			SetNextUnit();
 	}
 
+	// Finds the selected unit again after a LAN client replaced its game data
+	// with the host's latest snapshot.
+	public void RefreshAfterGameReplaced() {
+		if (CurrentlySelectedUnit == MapUnit.NONE) {
+			return;
+		}
+		MapUnit unit = EngineStorage.gameData.GetUnit(CurrentlySelectedUnit.id);
+		CurrentlySelectedUnit = unit ?? MapUnit.NONE;
+		if (unit != null) {
+			EmitSignal(SignalName.NewAutoselectedUnit, new ParameterWrapper<MapUnit>(unit));
+		}
+	}
+
 	private bool ShouldSkipUnit(MapUnit unit) {
 		bool outOfMovesOrDead = !unit.movementPoints.canMove || unit.hitPointsRemaining <= 0;
 		bool notAttentionWorthy = !game.animationController.animTracker
@@ -77,6 +90,13 @@ public partial class UnitSelector : Node {
 	 * Returns whether the selected unit has remaining moves.
 	 **/
 	public bool SetSelectedUnit(MapUnit unit) {
+		// Selecting a unit wakes it and stops its orders. Do that here so the
+		// UI responds at once, and in the engine, which on a LAN may be on
+		// the host's machine.
+		if (unit != MapUnit.NONE && unit.owner?.id == EngineStorage.uiControllerID) {
+			new MsgSelectUnit(unit.id).send();
+		}
+
 		if ((unit.path?.PathLength() ?? -1) > 0) {
 			log.Debug("cancelling path for " + unit);
 			unit.path = TilePath.NONE;

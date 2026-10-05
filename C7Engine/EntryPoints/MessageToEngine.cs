@@ -1,41 +1,94 @@
 using System.Linq;
-using System.Threading.Tasks;
+using System.Text.Json.Serialization;
+using C7Engine.AI;
 using Serilog;
 
 namespace C7Engine {
 	using System;
 	using C7GameData;
 
+	// Messages from the UI to the engine. Each one must be serializable (see
+	// C7Engine.Network.NetSerialization), because a LAN client sends its
+	// messages to the host's engine rather than its own.
 	public abstract class MessageToEngine {
-		public abstract void process();
+		private static ILogger log = Log.ForContext<MessageToEngine>();
+
+		// The player who sent this message. send() fills in the player at this
+		// machine's UI unless it's set already (a hotseat player answering a
+		// deal at someone else's screen), and a LAN host overwrites it with
+		// the player of the connection it arrived on.
+		public ID playerID;
+
+		protected Player Sender => EngineStorage.gameData.GetPlayer(playerID);
+
+		// Settings of this machine's engine, like animations, that are never
+		// sent to a LAN host.
+		[JsonIgnore]
+		public virtual bool IsLocal => false;
 
 		public void send() {
-			EngineStorage.pendingMessages.Enqueue(this);
+			playerID ??= EngineStorage.uiControllerID;
+			EngineStorage.SendToEngine(this);
+		}
+
+		// Returns false if the sender may not send this message now.
+		public bool process() {
+			if (!IsLocal && !IsAllowed()) {
+				log.Warning("Ignoring {Message} from {Player}, who may not send it now", GetType().Name, playerID);
+				return false;
+			}
+			ProcessAllowed();
+			return true;
+		}
+
+		protected abstract void ProcessAllowed();
+
+		// Called on a LAN host for messages from clients, to drop anything
+		// only this machine's own players may claim.
+		public virtual void DistrustRemoteSender() { }
+
+		// Players may act on their own turn, and answer an AI that is waiting
+		// for them to respond to a trade offer.
+		protected virtual bool IsAllowed() {
+			return Sender != null
+				&& (playerID == EngineStorage.activePlayerID || playerID == EngineStorage.diplomacyPlayerID);
+		}
+
+		// The sender's unit with the given ID, or null if they have no such unit.
+		protected MapUnit SendersUnit(ID unitID) {
+			MapUnit unit = EngineStorage.gameData.GetUnit(unitID);
+			return unit != null && unit.owner == Sender ? unit : null;
+		}
+
+		protected bool IsSendersCity(City city) {
+			return city != null && city.owner == Sender && EngineStorage.gameData.cities.Contains(city);
 		}
 	}
 
 	public class MsgShutdownEngine : MessageToEngine {
 		private ILogger log = Log.ForContext<MsgShutdownEngine>();
 
-		public override void process() {
+		public override bool IsLocal => true;
+
+		protected override void ProcessAllowed() {
 			log.Information("Engine received shutdown message.");
 		}
 	}
 
 	public class MsgSetFortification : MessageToEngine {
-		private ID unitID;
-		private bool fortifyElseWake;
+		public ID unitID;
+		public bool fortifyElseWake;
 
 		public MsgSetFortification(ID unitID, bool fortifyElseWake) {
 			this.unitID = unitID;
 			this.fortifyElseWake = fortifyElseWake;
 		}
 
-		public override void process() {
-			MapUnit unit = EngineStorage.gameData.GetUnit(unitID);
+		protected override void ProcessAllowed() {
+			MapUnit unit = SendersUnit(unitID);
 
-			// Simply do nothing if we weren't given a valid GUID. TODO: Maybe this is an error we need to handle? In an MP game, we should reject
-			// invalid actions at the server level but at the client level an invalid action received from the server indicates a desync.
+			// Simply do nothing if we weren't given a valid ID. A LAN host
+			// rejects actions on units the sender doesn't own the same way.
 			if (unit != null) {
 				if (fortifyElseWake)
 					unit.Fortify();
@@ -46,16 +99,16 @@ namespace C7Engine {
 	}
 
 	public class MsgMoveUnit : MessageToEngine {
-		private ID unitID;
-		private TileDirection dir;
+		public ID unitID;
+		public TileDirection dir;
 
 		public MsgMoveUnit(ID unitID, TileDirection dir) {
 			this.unitID = unitID;
 			this.dir = dir;
 		}
 
-		public override async void process() {
-			MapUnit unit = EngineStorage.gameData.GetUnit(unitID);
+		protected override async void ProcessAllowed() {
+			MapUnit unit = SendersUnit(unitID);
 			if (unit == null) return;
 
 			await unit.Move(dir, true);
@@ -63,73 +116,73 @@ namespace C7Engine {
 	}
 
 	public class MsgSetUnitPath : MessageToEngine {
-		private ID unitID;
-		private TilePath path;
+		public ID unitID;
+		public TilePath path;
 
 		public MsgSetUnitPath(ID unitID, TilePath path) {
 			this.unitID = unitID;
 			this.path = path;
 		}
 
-		public override async void process() {
-			MapUnit unit = EngineStorage.gameData.GetUnit(unitID);
-			if (unit == null) return;
+		protected override async void ProcessAllowed() {
+			MapUnit unit = SendersUnit(unitID);
+			if (unit == null || path == null) return;
 
 			await unit.SetUnitPath(path);
 		}
 	}
 
 	public class MsgBombard : MessageToEngine {
-		private ID unitID;
-		private readonly int tileX;
-		private readonly int tileY;
-
+		public ID unitID;
+		public Tile tile;
 
 		public MsgBombard(ID unitID, Tile tile) {
 			this.unitID = unitID;
-			this.tileX = tile.XCoordinate;
-			this.tileY = tile.YCoordinate;
+			this.tile = tile;
 		}
 
-		public override async void process() {
-			MapUnit unit = EngineStorage.gameData.GetUnit(unitID);
-			Tile tile = EngineStorage.gameData.map.tileAt(tileX, tileY);
-			if (unit == null || tile == null) return;
+		protected override async void ProcessAllowed() {
+			MapUnit unit = SendersUnit(unitID);
+			if (unit == null || tile == null || tile == Tile.NONE) return;
 
 			await unit.Bombard(tile);
 		}
 	}
 
 	public class MsgLoadToTransport : MessageToEngine {
-		private ID unitID;
-		private ID transportUnitId;
+		public ID unitID;
+		public ID transportUnitId;
 
 		public MsgLoadToTransport(ID unitID, ID transportUnitId = null) {
 			this.unitID = unitID;
 			this.transportUnitId = transportUnitId;
 		}
 
-		public override void process() {
-			MapUnit unit = EngineStorage.gameData.GetUnit(unitID);
-			MapUnit transportUnit;
+		protected override void ProcessAllowed() {
+			MapUnit unit = SendersUnit(unitID);
+			if (unit == null) return;
+
 			if (this.transportUnitId != null) {
-				transportUnit = EngineStorage.gameData.GetUnit(transportUnitId);
-				unit.BoardTransport(transportUnit);
+				MapUnit transportUnit = EngineStorage.gameData.GetUnit(transportUnitId);
+				if (transportUnit != null)
+					unit.BoardTransport(transportUnit);
 			} else
 				unit.TryBoardingTransportOnTile(unit.location);
 		}
 	}
 
 	public class MsgUnloadTransport : MessageToEngine {
-		private ID transportUnitId;
+		public ID transportUnitId;
 
 		public MsgUnloadTransport(ID transportUnitId) {
 			this.transportUnitId = transportUnitId;
 		}
 
-		public override void process() {
+		protected override void ProcessAllowed() {
 			// TODO: more selective unload, let human player choose
-			MapUnit transportUnit = EngineStorage.gameData.GetUnit(transportUnitId);
+			MapUnit transportUnit = SendersUnit(transportUnitId);
+			if (transportUnit == null) return;
+
 			foreach (MapUnit unit in transportUnit.location.unitsOnTile) {
 				if (unit.loadedOnUnitId == transportUnit.id) {
 					unit.UnboardTransport(transportUnit);
@@ -140,39 +193,79 @@ namespace C7Engine {
 		}
 	}
 
-	// A generic class that allows the UI to have the game engine run some
-	// action, assumed to be on a unit.
-	//
-	// Actions that require more than a 1 or 2 line lambda should probably use
-	// a custom subclass.
-	public class ActionToEngineMsg : MessageToEngine {
-		private Func<Task> action;
-		public ActionToEngineMsg(Func<Task> action) {
-			this.action = action;
-		}
-		public ActionToEngineMsg(Action action) {
-			this.action = () => {
-				action();
-				return Task.CompletedTask;
-			};
+	// Simple orders the player gives a unit.
+	public class MsgUnitCommand : MessageToEngine {
+		public enum Command {
+			SkipTurn,
+			Disband,
+			Explore,
+			Automate,
 		}
 
-		public override void process() {
-			action();
+		public ID unitID;
+		public Command command;
+
+		public MsgUnitCommand(ID unitID, Command command) {
+			this.unitID = unitID;
+			this.command = command;
+		}
+
+		protected override async void ProcessAllowed() {
+			MapUnit unit = SendersUnit(unitID);
+			if (unit == null) return;
+
+			switch (command) {
+				case Command.SkipTurn:
+					unit.SkipTurn();
+					break;
+				case Command.Disband:
+					await unit.Disband();
+					break;
+				case Command.Explore:
+					unit.Explore();
+					break;
+				case Command.Automate:
+					unit.Automate();
+					break;
+			}
+		}
+	}
+
+	// The player selected a unit, which takes it out of automation, cancels
+	// its path and wakes it up.
+	public class MsgSelectUnit : MessageToEngine {
+		public ID unitID;
+
+		public MsgSelectUnit(ID unitID) {
+			this.unitID = unitID;
+		}
+
+		protected override void ProcessAllowed() {
+			MapUnit unit = SendersUnit(unitID);
+			if (unit == null) return;
+
+			if ((unit.path?.PathLength() ?? -1) > 0) {
+				unit.path = TilePath.NONE;
+			}
+			if (unit.WorkerJob != null) {
+				return;
+			}
+			if (unit.isAutomated) {
+				unit.isAutomated = false;
+				unit.currentAI = null;
+			}
+			if (unit.movementPoints.canMove) {
+				unit.Wake();
+			}
 		}
 	}
 
 	// Switches the player government to anarchy and determines when the player
 	// can exit anarchy.
 	public class StartGovernmentTransitionMsg : MessageToEngine {
-		private Player player;
-
-		public StartGovernmentTransitionMsg(Player p) {
-			player = p;
-		}
-
-		public override void process() {
+		protected override void ProcessAllowed() {
 			GameData gD = EngineStorage.gameData;
+			Player player = Sender;
 			Government transitionGovt = gD.governments.Find(x => x.transitionType);
 			player.government = transitionGovt;
 			player.inAnarchyUntilTurn = gD.turn + player.GetTurnsOfAnarchyForTransition(gD);
@@ -183,15 +276,17 @@ namespace C7Engine {
 	}
 
 	public class SelectGovernmentMsg : MessageToEngine {
-		private Player player;
-		private Government government;
+		public Government government;
 
-		public SelectGovernmentMsg(Player player, Government government) {
-			this.player = player;
+		public SelectGovernmentMsg(Government government) {
 			this.government = government;
 		}
 
-		public override void process() {
+		protected override void ProcessAllowed() {
+			Player player = Sender;
+			if (government == null || !player.GetAvailableGovernments(EngineStorage.gameData).Contains(government)) {
+				return;
+			}
 			player.government = government;
 		}
 	}
@@ -199,34 +294,37 @@ namespace C7Engine {
 	// A Class that allows the UI to have the game engine run some
 	// terraform action.
 	public class MsgStartWorkerJob : MessageToEngine {
-		private ID UnitID;
-		private Terraform Action;
+		public ID unitID;
+		public Terraform action;
+
 		public MsgStartWorkerJob(ID unitID, Terraform action) {
-			this.UnitID = unitID;
-			this.Action = action;
+			this.unitID = unitID;
+			this.action = action;
 		}
 
-		public override void process() {
-			MapUnit unit = EngineStorage.gameData.GetUnit(UnitID);
-			unit?.PerformTerraformAction(Action);
+		protected override void ProcessAllowed() {
+			MapUnit unit = SendersUnit(unitID);
+			if (action != null)
+				unit?.PerformTerraformAction(action);
 		}
 	}
 
 	public class MsgChooseProduction : MessageToEngine {
-		private ID cityID;
-		private string producibleName;
+		public ID cityID;
+		public string producibleName;
 
 		public MsgChooseProduction(ID cityID, string producibleName) {
 			this.cityID = cityID;
 			this.producibleName = producibleName;
 		}
 
-		public override void process() {
+		protected override void ProcessAllowed() {
 			City city = EngineStorage.gameData.cities.Find(c => c.id == cityID);
-			if (city != null) {
+			if (IsSendersCity(city)) {
 				foreach (IProducible producible in city.ListProductionOptions(EngineStorage.gameData)) {
 					if (producible.name == producibleName) {
 						city.SetItemBeingProduced(producible);
+						new MsgCityChanged(city).send();
 						break;
 					}
 				}
@@ -234,10 +332,60 @@ namespace C7Engine {
 		}
 	}
 
+	// The player clicked a tile on the city screen to move a citizen.
+	public class MsgReassignCitizen : MessageToEngine {
+		public City city;
+		public Tile tile;
+
+		public MsgReassignCitizen(City city, Tile tile) {
+			this.city = city;
+			this.tile = tile;
+		}
+
+		protected override void ProcessAllowed() {
+			if (!IsSendersCity(city) || tile == null || tile == Tile.NONE) return;
+
+			CityInteractions.ReassignCitizen(EngineStorage.gameData, city, tile);
+			new MsgCityChanged(city).send();
+		}
+	}
+
+	// The player clicked a specialist on the city screen to change its kind.
+	public class MsgCycleSpecialist : MessageToEngine {
+		public City city;
+		public int residentIndex;
+
+		public MsgCycleSpecialist(City city, int residentIndex) {
+			this.city = city;
+			this.residentIndex = residentIndex;
+		}
+
+		protected override void ProcessAllowed() {
+			if (!IsSendersCity(city)) return;
+
+			CityInteractions.CycleSpecialist(EngineStorage.gameData, city, residentIndex);
+			new MsgCityChanged(city).send();
+		}
+	}
+
+	public class MsgAbandonCity : MessageToEngine {
+		public City city;
+
+		public MsgAbandonCity(City city) {
+			this.city = city;
+		}
+
+		protected override void ProcessAllowed() {
+			if (!IsSendersCity(city)) return;
+
+			CityInteractions.DestroyCity(city);
+		}
+	}
+
 	public class MsgChooseResearch : MessageToEngine {
-		private Tech tech;
-		private AdvisorState advisorState;
-		private SelectionMode selectionMode;
+		public Tech tech;
+		public AdvisorState advisorState;
+		public SelectionMode selectionMode;
 
 		public enum AdvisorState : byte {
 			DontShow,
@@ -254,8 +402,9 @@ namespace C7Engine {
 			this.selectionMode = selectionMode;
 		}
 
-		public override void process() {
-			Player player = EngineStorage.gameData.GetUIControllerPlayer();
+		protected override void ProcessAllowed() {
+			Player player = Sender;
+			if (tech == null) return;
 
 			bool isTechEraBeyondPlayerEra = EraUtils.GetEraIndex(tech.EraCivilopediaName) > EraUtils.GetEraIndex(player.eraCivilopediaName);
 			if (player.knownTechs.Contains(tech.id) || isTechEraBeyondPlayerEra)
@@ -282,6 +431,18 @@ namespace C7Engine {
 		}
 	}
 
+	// Picks something to research for a player who hasn't chosen, so their
+	// science isn't wasted if they dismiss the science selection popup.
+	public class MsgPickDefaultResearch : MessageToEngine {
+		protected override void ProcessAllowed() {
+			Player player = Sender;
+			GameData gameData = EngineStorage.gameData;
+			if (player.currentlyResearchedTech == null && player.GetAvailableTechsToResearch(gameData.techs).Count > 0) {
+				PlayerAI.MaybePickTechToResearch(player, gameData.techs);
+			}
+		}
+	}
+
 	public class MsgChangeSliders : MessageToEngine {
 		public enum DomesticPolicyChoice {
 			MoreScience,
@@ -290,19 +451,14 @@ namespace C7Engine {
 			LessLuxury,
 		}
 
-		private ID controllerId;
-		private DomesticPolicyChoice policyChoice;
+		public DomesticPolicyChoice policyChoice;
 
-		public MsgChangeSliders(ID controllerId, DomesticPolicyChoice policyChoice) {
-			this.controllerId = controllerId;
+		public MsgChangeSliders(DomesticPolicyChoice policyChoice) {
 			this.policyChoice = policyChoice;
 		}
 
-		public override void process() {
-			Player player = null;
-			EngineStorage.ReadGameData(data => {
-				player = data.players.First(p => p.id == controllerId);
-			});
+		protected override void ProcessAllowed() {
+			Player player = Sender;
 
 			switch (policyChoice) {
 				case DomesticPolicyChoice.MoreScience:
@@ -376,10 +532,13 @@ namespace C7Engine {
 	}
 
 	public class MsgEndTurn : MessageToEngine {
-		private ILogger log = Log.ForContext<MsgEndTurn>();
+		// Only the player whose turn it is can end it.
+		protected override bool IsAllowed() {
+			return Sender != null && playerID == EngineStorage.activePlayerID;
+		}
 
-		public override async void process() {
-			Player controller = EngineStorage.gameData.GetPlayer(EngineStorage.uiControllerID);
+		protected override async void ProcessAllowed() {
+			Player controller = Sender;
 
 			TurnHandling.OnEndTurn(controller);
 
@@ -388,39 +547,57 @@ namespace C7Engine {
 			controller.units.Sort((x, y) => x.IsBusy().CompareTo(y.IsBusy()));
 
 			controller.hasPlayedThisTurn = true;
+
+			// A deal left unanswered by the end of the turn is refused.
+			MsgProposeDeal deal = EngineStorage.pendingDeal;
+			if (deal != null) {
+				EngineStorage.pendingDeal = null;
+				new MsgDealResult(deal.Proposer, deal.opponent, false).send();
+			}
+
+			// What happens during the other players' turns isn't a reply to
+			// this player.
+			EngineStorage.processingSenderID = null;
 			await TurnHandling.AdvanceTurn();
 		}
 	}
 
 	public class MsgPerformUnitAction : MessageToEngine {
-		private MapUnit unit;
+		public MapUnit unit;
 		public MsgPerformUnitAction(MapUnit unit) {
 			this.unit = unit;
 		}
 
-		public override async void process() {
+		protected override async void ProcessAllowed() {
+			if (unit == null || unit.owner != Sender) return;
+
 			await unit.PerformBusyAction();
 		}
 	}
 
 	public class MsgDoHurryProduction : MessageToEngine {
-		private City city;
-		public MsgDoHurryProduction(City c) {
-			city = c;
+		public City city;
+		public MsgDoHurryProduction(City city) {
+			this.city = city;
 		}
 
-		public override void process() {
+		protected override void ProcessAllowed() {
+			if (!IsSendersCity(city)) return;
+
 			city.HurryProduction();
+			new MsgCityChanged(city).send();
 		}
 	}
 
 	public class MsgDoStopWorkerAction : MessageToEngine {
-		private MapUnit worker;
+		public MapUnit worker;
 		public MsgDoStopWorkerAction(MapUnit worker) {
 			this.worker = worker;
 		}
 
-		public override void process() {
+		protected override void ProcessAllowed() {
+			if (worker == null || worker.owner != Sender) return;
+
 			this.worker.resetWorkerJob();
 			this.worker.isAutomated = false;
 			if (!this.worker.movementPoints.canMove)
@@ -429,37 +606,39 @@ namespace C7Engine {
 	}
 
 	public class MsgSetAnimationsEnabled : MessageToEngine {
-		private bool enabled;
+		public bool enabled;
 
 		public MsgSetAnimationsEnabled(bool enabled) {
 			this.enabled = enabled;
 		}
 
-		public override void process() {
+		public override bool IsLocal => true;
+
+		protected override void ProcessAllowed() {
 			EngineStorage.animationsEnabled = enabled;
 		}
 	}
 
 	public class MsgToggleAnimationsEnabled : MessageToEngine {
+		public override bool IsLocal => true;
 
-		public MsgToggleAnimationsEnabled() {
-		}
-
-		public override void process() {
+		protected override void ProcessAllowed() {
 			EngineStorage.animationsEnabled = !EngineStorage.animationsEnabled;
 		}
 	}
 
 	public class MsgBuildCity : MessageToEngine {
-		private MapUnit unit;
-		private string name;
+		public MapUnit unit;
+		public string name;
 
 		public MsgBuildCity(MapUnit unit, string name) {
 			this.unit = unit;
 			this.name = name;
 		}
 
-		public override async void process() {
+		protected override async void ProcessAllowed() {
+			if (unit == null || unit.owner != Sender || string.IsNullOrWhiteSpace(name)) return;
+
 			City? city = await unit.BuildCity(name);
 			if (city != null) {
 				new MsgCityCreated(city).send();
@@ -467,7 +646,92 @@ namespace C7Engine {
 		}
 	}
 
+	public class MsgDeclareWar : MessageToEngine {
+		public Player opponent;
+
+		public MsgDeclareWar(Player opponent) {
+			this.opponent = opponent;
+		}
+
+		protected override void ProcessAllowed() {
+			if (opponent == null || opponent == Sender) return;
+
+			Sender.DeclareWarOn(opponent, EngineStorage.gameData.turn);
+		}
+	}
+
+	// The sender proposes a deal. An AI opponent decides at once; a human
+	// opponent is asked, and answers with MsgRespondToDeal.
+	public class MsgProposeDeal : MessageToEngine {
+		public Player opponent;
+		public TradeOffer senderGives;
+		public TradeOffer senderWants;
+
+		// A hotseat opponent agrees at the proposer's screen, so the deal
+		// needn't wait for them.
+		public bool opponentAgreed;
+
+		public MsgProposeDeal(Player opponent, TradeOffer senderGives, TradeOffer senderWants) {
+			this.opponent = opponent;
+			this.senderGives = senderGives;
+			this.senderWants = senderWants;
+		}
+
+		protected override void ProcessAllowed() {
+			GameData gD = EngineStorage.gameData;
+			Player proposer = Sender;
+			if (opponent == null || opponent == proposer || senderGives == null || senderWants == null) return;
+
+			if (opponent.isHuman && opponentAgreed) {
+				opponent.ExecuteDeal(gD, proposer, senderGives, senderWants);
+				new MsgDealResult(proposer, opponent, true).send();
+				return;
+			}
+			if (opponent.isHuman) {
+				EngineStorage.pendingDeal = this;
+				new MsgShowDealProposal(proposer, opponent, senderGives, senderWants) { recipient = opponent }.send();
+				return;
+			}
+
+			bool accepted = opponent.WouldAcceptDealFrom(gD, proposer, senderGives, senderWants);
+			if (accepted) {
+				opponent.ExecuteDeal(gD, proposer, senderGives, senderWants);
+			}
+			new MsgDealResult(proposer, opponent, accepted).send();
+		}
+
+		internal Player Proposer => Sender;
+
+		public override void DistrustRemoteSender() {
+			opponentAgreed = false;
+		}
+	}
+
+	// A human answers a deal another human proposed with MsgProposeDeal.
+	public class MsgRespondToDeal : MessageToEngine {
+		public bool accept;
+
+		public MsgRespondToDeal(bool accept) {
+			this.accept = accept;
+		}
+
+		// The opponent answers whether or not it is their turn.
+		protected override bool IsAllowed() {
+			return Sender != null && EngineStorage.pendingDeal?.opponent == Sender;
+		}
+
+		protected override void ProcessAllowed() {
+			MsgProposeDeal deal = EngineStorage.pendingDeal;
+			EngineStorage.pendingDeal = null;
+
+			if (accept) {
+				Sender.ExecuteDeal(EngineStorage.gameData, deal.Proposer, deal.senderGives, deal.senderWants);
+			}
+			new MsgDealResult(deal.Proposer, Sender, accept).send();
+		}
+	}
+
 	public class MsgDiplomacyCompleted : MessageToEngine {
-		public override void process() { }
+		protected override void ProcessAllowed() { }
 	}
 }

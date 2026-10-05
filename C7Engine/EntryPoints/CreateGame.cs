@@ -34,6 +34,7 @@ public class CreateGame {
 	public static async Task<Player> createGame(SaveGame save, Func<GameMode.Config, BehaviorEngine> gameModeLoader) {
 		BehaviorEngine behaviors = gameModeLoader(save.GameModeConfig);
 
+		EngineStorage.ResetForNewGame();
 		GameData gameData = save.ToGameData(behaviors);
 
 		EngineStorage.gameData = gameData;
@@ -43,7 +44,17 @@ public class CreateGame {
 			?? throw new Exception($"The provided save does not contain a human player");
 
 		EngineStorage.uiControllerID = humanPlayer.id;
+		EngineStorage.activePlayerID = humanPlayer.id;
 
 		return humanPlayer;
+	}
+
+	// Replaces the game with a LAN host's snapshot of it, keeping who this
+	// machine plays and whose turn it is.
+	public static GameData ReplaceWithSnapshot(SaveGame save, BehaviorEngine behaviors) {
+		GameData gameData = save.ToGameData(behaviors);
+		EngineStorage.gameData = gameData;
+		gameData.onGameCreation();
+		return gameData;
 	}
 }

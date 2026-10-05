@@ -191,18 +191,18 @@ public partial class DomesticAdvisor : Control {
 	}
 
 	private void MoreScience() {
-		new MsgChangeSliders(playerController.id, DomesticPolicyChoice.MoreScience).send();
+		new MsgChangeSliders(DomesticPolicyChoice.MoreScience).send();
 	}
 
 	private void MoreLuxury() {
-		new MsgChangeSliders(playerController.id, DomesticPolicyChoice.MoreLuxury).send();
+		new MsgChangeSliders(DomesticPolicyChoice.MoreLuxury).send();
 	}
 	private void LessScience() {
-		new MsgChangeSliders(playerController.id, DomesticPolicyChoice.LessScience).send();
+		new MsgChangeSliders(DomesticPolicyChoice.LessScience).send();
 	}
 
 	private void LessLuxury() {
-		new MsgChangeSliders(playerController.id, DomesticPolicyChoice.LessLuxury).send();
+		new MsgChangeSliders(DomesticPolicyChoice.LessLuxury).send();
 	}
 
 	public void ShowAdvisor() {
@@ -290,7 +290,7 @@ public partial class DomesticAdvisor : Control {
 					"You say you want a revolution?",
 					"Yes, you know it's gonna be alright.",
 					"No. You can count me out.",
-					() => { new StartGovernmentTransitionMsg(player).send(); }),
+					() => { new StartGovernmentTransitionMsg().send(); }),
 				PopupOverlay.PopupCategory.Advisor);
 		});
 	}

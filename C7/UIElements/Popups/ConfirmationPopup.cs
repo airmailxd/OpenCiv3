@@ -12,14 +12,16 @@ public partial class ConfirmationPopup : Popup {
 	string yesText;
 	string noText;
 	Action yesAction;
+	Action noAction;
 
-	public ConfirmationPopup(string message, string yesText, string noText, Action yesAction) {
+	public ConfirmationPopup(string message, string yesText, string noText, Action yesAction, Action noAction = null) {
 		alignment = BoxContainer.AlignmentMode.End;
 		margins = new Margins(right: 10);
 		this.message = message;
 		this.yesText = yesText;
 		this.noText = noText;
 		this.yesAction = yesAction;
+		this.noAction = noAction;
 	}
 
 	public override void _EnterTree() {
@@ -78,6 +80,7 @@ public partial class ConfirmationPopup : Popup {
 	}
 
 	private void cancel() {
+		noAction?.Invoke();
 		GetParent().EmitSignal(PopupOverlay.SignalName.HidePopup);
 	}
 }

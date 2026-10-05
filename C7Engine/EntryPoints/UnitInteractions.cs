@@ -8,6 +8,12 @@ namespace C7Engine {
 	public class UnitInteractions {
 
 		private static Queue<MapUnit> waitQueue = new Queue<MapUnit>();
+
+		// Busy units already told to carry on. On a LAN client the units don't
+		// change until the host's next snapshot, so don't ask again until then.
+		private static readonly HashSet<ID> busyActionRequested = new();
+		private static GameData busyActionGame;
+		private static int busyActionTurn = -1;
 		private static ILogger log = Log.ForContext<UnitInteractions>();
 
 		public static MapUnit getNextSelectedUnit() {
@@ -15,13 +21,20 @@ namespace C7Engine {
 			// are no units for the UI to select.
 			Player player = EngineStorage.gameData.GetUIControllerPlayer();
 			IEnumerable<MapUnit> selectable = player != null && player.isHuman ? player.units : [];
+			if (busyActionGame != EngineStorage.gameData || busyActionTurn != EngineStorage.gameData.turn) {
+				busyActionRequested.Clear();
+				busyActionGame = EngineStorage.gameData;
+				busyActionTurn = EngineStorage.gameData.turn;
+			}
 			foreach (MapUnit unit in selectable.Where(u => u.movementPoints.canMove)) {
 				if (unit.isFortified) {
 					continue;
 				}
 
 				if (unit.IsBusy()) {
-					new MsgPerformUnitAction(unit).send();
+					if (busyActionRequested.Add(unit.id)) {
+						new MsgPerformUnitAction(unit).send();
+					}
 					continue;
 				}
 

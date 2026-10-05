@@ -45,6 +45,10 @@ public partial class Diplomacy : CenterContainer {
 		this.Show();
 	}
 
+	public void OnDealResult(ID opponent, bool accepted) {
+		dealScreen?.OnDealResult(opponent, accepted);
+	}
+
 	public void ShowTalkScreenForPlayer(ID humanPlayer, ID opponentPlayer) {
 		RemoveOtherScreens();
 

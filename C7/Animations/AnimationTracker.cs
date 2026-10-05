@@ -5,7 +5,7 @@ using C7GameData;
 
 public partial class AnimationTracker {
 	private AnimationManager civ3AnimData;
-	public bool endAllImmediately = false; // If true, update() ends all running animations regardless of time remaining.
+	public bool endAllImmediately = true; // If true, update() ends all running animations regardless of time remaining.
 
 	public AnimationTracker(AnimationManager civ3AnimData) {
 		this.civ3AnimData = civ3AnimData;

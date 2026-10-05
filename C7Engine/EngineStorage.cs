@@ -16,8 +16,37 @@ namespace C7Engine {
 	public static class EngineStorage {
 		public static GameData gameData { get; set; }
 
+		// The player whose perspective this machine's UI shows.
 		public static ID uiControllerID;
-		internal static bool animationsEnabled = true;
+
+		// The human player whose turn it is. In a hotseat game the UI follows
+		// them from player to player; in a LAN game each machine's UI stays
+		// with its own player while the turn moves between machines.
+		public static ID activePlayerID;
+		public static bool uiFollowsActivePlayer = true;
+
+		// The human player an AI is waiting on to answer a trade offer, if any.
+		// They may negotiate even though it isn't their turn.
+		public static ID diplomacyPlayerID;
+
+		// A deal one human proposed to another, waiting for their answer.
+		internal static MsgProposeDeal pendingDeal;
+
+		// The sender of the message being processed, so the messages it causes
+		// go back to them.
+		internal static ID processingSenderID;
+
+		// A LAN client sends messages to the host instead of its own engine, and
+		// a LAN host delivers messages to the machine of the player they are
+		// for. When null, messages stay on this machine.
+		public static Action<MessageToEngine> remoteEngine;
+		public static Action<MessageToUI> uiMessageRouter;
+
+		// Counts the messages the engine has processed, so a LAN host can tell
+		// when the game has changed.
+		public static long processedMessageCount { get; private set; }
+
+		internal static bool animationsEnabled = false;
 
 		internal static readonly Queue<MessageToEngine> pendingMessages = new();
 		internal static readonly Queue<MessageToUI> messagesToUI = new();
@@ -29,14 +58,76 @@ namespace C7Engine {
 		public static void ProcessNextMessageToEngine() {
 			if (pendingMessages.Count > 0) {
 				var msg = pendingMessages.Dequeue();
-				msg.process();
+				processingSenderID = msg.playerID;
+				bool processed;
+				try {
+					processed = msg.process();
+				} finally {
+					processingSenderID = null;
+					++processedMessageCount;
+				}
 
 				var type = msg.GetType();
-				if (pendingEngineWaiters.TryGetValue(type, out var tcs)) {
+				if (processed && pendingEngineWaiters.TryGetValue(type, out var tcs)) {
 					tcs.TrySetResult(msg);
 					pendingEngineWaiters.Remove(type);
 				}
 			}
+		}
+
+		internal static void SendToEngine(MessageToEngine msg) {
+			if (remoteEngine != null && !msg.IsLocal) {
+				remoteEngine(msg);
+			} else {
+				pendingMessages.Enqueue(msg);
+			}
+		}
+
+		internal static void SendToUI(MessageToUI msg) {
+			if (uiMessageRouter != null) {
+				uiMessageRouter(msg);
+			} else {
+				messagesToUI.Enqueue(msg);
+			}
+		}
+
+		// Delivers a message to this machine's UI, bypassing any LAN routing.
+		public static void SendToLocalUI(MessageToUI msg) {
+			messagesToUI.Enqueue(msg);
+		}
+
+		// Queues a message from a LAN client for this machine's engine.
+		public static void ReceiveFromRemote(MessageToEngine msg) {
+			pendingMessages.Enqueue(msg);
+		}
+
+		public static bool HasPendingMessagesToEngine() {
+			return pendingMessages.Count > 0;
+		}
+
+		// Returns the engine to how a fresh single-machine game starts, for
+		// when a LAN game ends.
+		public static void ResetNetworking() {
+			remoteEngine = null;
+			uiMessageRouter = null;
+			uiFollowsActivePlayer = true;
+			diplomacyPlayerID = null;
+			pendingDeal = null;
+		}
+
+		// Drops the work left over from a previous game, so it can't block
+		// or leak into a newly created or loaded one. The previous game's turn
+		// loop may be waiting on an animation or a message; its waiters are
+		// dropped without being completed, so that loop never resumes.
+		internal static void ResetForNewGame() {
+			pendingMessages.Clear();
+			messagesToUI.Clear();
+			animationMessages.Clear();
+			pendingAnimations.Clear();
+			pendingEngineWaiters.Clear();
+			processingSenderID = null;
+			diplomacyPlayerID = null;
+			pendingDeal = null;
 		}
 
 		public static bool HasPendingAnimations() {
