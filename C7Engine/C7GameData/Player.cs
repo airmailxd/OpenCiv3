@@ -123,13 +123,41 @@ namespace C7GameData {
 		public int scienceRate = 5;
 		public int taxRate = 5;
 
-		// These values could be added in the rules or something,
-		// and also synchronised with the HSlider bar in the editor.
-		// For now, I am leaving them hardcoded here.
-		public int maxScienceRate { get; private set; } = 10;
+		// The government caps how high any one slider can go.
+		public int maxRate => Math.Clamp(government?.rateCap ?? 10, 0, 10);
+		public int maxScienceRate => maxRate;
 		public int minScienceRate { get; private set; } = 0;
-		public int maxLuxuryRate { get; private set; } = 10;
+		public int maxLuxuryRate => maxRate;
 		public int minLuxuryRate { get; private set; } = 0;
+
+		// Moves slider points above the government's rate cap to sliders that
+		// still have room, preferring tax, then science, then luxury. If the
+		// cap is too low for the three sliders to add up to 10, the leftover
+		// stays in tax.
+		public void ApplyGovernmentRateCap() {
+			int excess = 0;
+			int Trim(int rate) {
+				if (rate <= maxRate) {
+					return rate;
+				}
+				excess += rate - maxRate;
+				return maxRate;
+			}
+			int Fill(int rate) {
+				int moved = Math.Min(excess, Math.Max(0, maxRate - rate));
+				excess -= moved;
+				return rate + moved;
+			}
+
+			taxRate = Trim(taxRate);
+			scienceRate = Trim(scienceRate);
+			luxuryRate = Trim(luxuryRate);
+
+			taxRate = Fill(taxRate);
+			scienceRate = Fill(scienceRate);
+			luxuryRate = Fill(luxuryRate);
+			taxRate += excess;
+		}
 
 		// The amount of gold this player has.
 		private int _gold = 0;
@@ -189,6 +217,15 @@ namespace C7GameData {
 		// Whether one of this player's armies has won a battle. The Military
 		// Academy can't be built until one has.
 		public bool hasVictoriousArmy = false;
+
+		// How tired of war the people are. It builds up while at war and
+		// clears once the civ is at peace with everyone.
+		public int warWeariness = 0;
+
+		// Each civ gets one golden age per game.
+		public bool hadGoldenAge = false;
+		public int goldenAgeTurnsRemaining = 0;
+		public bool InGoldenAge => goldenAgeTurnsRemaining > 0;
 
 		public int EraIndex() {
 			return GetEraIndex(eraCivilopediaName);
@@ -814,14 +851,14 @@ namespace C7GameData {
 
 				// If there's nothing left to disband or sell, try lowering our
 				// science budget.
-				if (scienceRate > 0) {
+				if (scienceRate > 0 && taxRate < maxRate) {
 					--scienceRate;
 					++taxRate;
 					continue;
 				}
 
 				// If that wasn't sufficient, go after luxuries.
-				if (luxuryRate > 0) {
+				if (luxuryRate > 0 && taxRate < maxRate) {
 					--luxuryRate;
 					++taxRate;
 					continue;
@@ -1042,6 +1079,123 @@ namespace C7GameData {
 			}
 		}
 
+		// After losing the capital, rebuilds the palace for free in the city
+		// closest to where the old capital was, preferring larger cities.
+		// Returns the new capital, or null if there was nothing to do.
+		public City RelocatePalace(GameData gameData, Tile oldCapitalLocation) {
+			if (cities.Count == 0 || cities.Any(c => c.IsCapital())) {
+				return null;
+			}
+
+			City newCapital = cities
+				.OrderBy(c => c.location.DistanceTo(oldCapitalLocation))
+				.ThenByDescending(c => c.residents.Count)
+				.First();
+			newCapital.capital = true;
+
+			Building palace = gameData.Buildings.Find(b => b.isCenterOfEmpire);
+			if (palace != null && !newCapital.constructed_buildings.Any(cb => cb.building == palace)) {
+				newCapital.AddBuilding(palace);
+			}
+
+			log.Information($"{this} moved its palace to {newCapital}");
+			return newCapital;
+		}
+
+		// Civ 3 doesn't publish its war weariness formula, so this is an
+		// approximation: each turn at war adds a point per enemy, and another
+		// if we started that war; losing a unit adds a point, or three if it
+		// died attacking.
+		private const int WarWearinessPerTurnAtWar = 1;
+		private const int WarWearinessForStartingTheWar = 1;
+		private const int WarWearinessForUnitLostDefending = 1;
+		private const int WarWearinessForUnitLostAttacking = 3;
+
+		// The weariness points that make one unhappy face in every city, by
+		// government war weariness level (low, high).
+		private const int WarWearinessPerFaceLow = 20;
+		private const int WarWearinessPerFaceHigh = 10;
+
+		// Called once per turn.
+		public void UpdateWarWeariness(GameData gameData) {
+			List<Player> enemies = gameData.players.Where(p =>
+				p != this && !p.isBarbarians && !p.defeated && AtWar(this, p)).ToList();
+			if (enemies.Count == 0) {
+				warWeariness = 0;
+				return;
+			}
+			foreach (Player enemy in enemies) {
+				warWeariness += WarWearinessPerTurnAtWar;
+				bool weStartedIt = enemy.playerRelationships.TryGetValue(id, out PlayerRelationship pr) && pr.warDeclarationCount > 0;
+				if (weStartedIt) {
+					warWeariness += WarWearinessForStartingTheWar;
+				}
+			}
+		}
+
+		public void AddWarWearinessForLostUnit(bool diedAttacking) {
+			warWeariness += diedAttacking ? WarWearinessForUnitLostAttacking : WarWearinessForUnitLostDefending;
+		}
+
+		// The number of citizens in the city made unhappy by war weariness.
+		// Police stations, and wonders like Universal Suffrage, halve it.
+		public int WarWearinessUnhappiness(City city) {
+			int pointsPerFace = government.warWeariness switch {
+				1 => WarWearinessPerFaceLow,
+				>= 2 => WarWearinessPerFaceHigh,
+				_ => 0,
+			};
+			if (pointsPerFace == 0 || warWeariness == 0) {
+				return 0;
+			}
+
+			int faces = warWeariness / pointsPerFace;
+			bool reduced = city.GetBuildings().Any(cb => cb.building.reducesWarWeariness)
+				|| GetActiveWonders().Any(w => w.Item2.building.reducesWarWearinessEverywhere);
+			if (reduced) {
+				faces /= 2;
+			}
+			return Math.Min(faces, city.residents.Count);
+		}
+
+		public void StartGoldenAge(GameData gameData, string reason) {
+			if (hadGoldenAge || isBarbarians) {
+				return;
+			}
+			hadGoldenAge = true;
+			goldenAgeTurnsRemaining = gameData.rules.GoldenAgeDuration;
+			log.Information($"{this} starts a golden age: {reason}");
+			if (isHuman) {
+				new MsgShowMilitaryAdvisorPopup(this, $"{reason}\nOur civilization enters a Golden Age!", happy: true).send();
+			}
+		}
+
+		// Called at the end of each turn.
+		public void AdvanceGoldenAge() {
+			if (goldenAgeTurnsRemaining > 0) {
+				--goldenAgeTurnsRemaining;
+			}
+		}
+
+		// A golden age starts once the great wonders this civ has built cover
+		// all of its strengths.
+		public void MaybeStartGoldenAgeFromWonders(GameData gameData) {
+			if (hadGoldenAge || civilization.traits.Count == 0) {
+				return;
+			}
+			HashSet<Civilization.Trait> wonderTraits = new();
+			foreach (City c in cities) {
+				foreach (CityBuilding cb in c.constructed_buildings) {
+					if (cb.building.IsGreatWonder() && cb.builtByPlayer == this) {
+						wonderTraits.UnionWith(cb.building.traits);
+					}
+				}
+			}
+			if (civilization.traits.IsSubsetOf(wonderTraits)) {
+				StartGoldenAge(gameData, "Our wonders have inspired the people.");
+			}
+		}
+
 		public void DoCorruptionCalculations(GameData gameData) {
 			if (cities.Count == 0) {
 				return;
@@ -1101,6 +1255,11 @@ namespace C7GameData {
 			foreach (City c in cities) {
 				City.Mood cityMood = c.RecalculateCitizenMoods(gameData);
 				c.isInCivilDisorder = cityMood == City.Mood.Unhappy && goIntoDisorderIfUnhappy;
+
+				// Celebrations start and end along with the turn's disorder check.
+				if (goIntoDisorderIfUnhappy) {
+					c.celebrating = !c.isInCivilDisorder && c.QualifiesForCelebration(rules);
+				}
 			}
 		}
 

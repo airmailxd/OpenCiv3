@@ -30,6 +30,11 @@ public partial class MapUnit {
 		}
 
 		defensiveBombardsRemaining = 1;
+		hasAttackedThisTurn = false;
+
+		if (isSentried && location.neighbors.Values.Any(t => t.unitsOnTile.Any(ShouldWakeSentryFor))) {
+			Wake();
+		}
 	}
 
 	private void Heal() {
@@ -57,7 +62,7 @@ public partial class MapUnit {
 			}
 		}
 
-		// Destroy the enemy city on the tile unless we're the barbarians,
+		// Capture the enemy city on the tile unless we're the barbarians,
 		// in which case we'll just take some gold.
 		if (tile.HasCity() && !owner.IsAtPeaceWith(tile.cityAtTile.owner)) {
 			if (owner.isBarbarians) {
@@ -69,7 +74,7 @@ public partial class MapUnit {
 					new MsgShowMilitaryAdvisorPopup(tile.cityAtTile.owner, $"Barbarians have stolen {goldTaken} gold from our cities!\nWe need a stronger military.", happy: false).send();
 				}
 			} else {
-				CityInteractions.DestroyCity(tile);
+				CityInteractions.CaptureCity(tile.cityAtTile, owner);
 			}
 		}
 
@@ -96,6 +101,32 @@ public partial class MapUnit {
 
 	public void Wake() {
 		isFortified = false;
+		isSentried = false;
+		sentryEnemyOnly = false;
+	}
+
+	public void Sentry(bool enemyOnly) {
+		ResetFacingDirection();
+		isSentried = true;
+		sentryEnemyOnly = enemyOnly;
+	}
+
+	private bool ShouldWakeSentryFor(MapUnit other) {
+		if (other.owner == owner) {
+			return false;
+		}
+		return !sentryEnemyOnly || !owner.IsAtPeaceWith(other.owner);
+	}
+
+	// Wakes sentries next to a tile this unit just entered.
+	private void WakeNearbySentries(Tile tile) {
+		foreach (Tile t in tile.neighbors.Values) {
+			foreach (MapUnit u in t.unitsOnTile) {
+				if (u.isSentried && u.ShouldWakeSentryFor(this)) {
+					u.Wake();
+				}
+			}
+		}
 	}
 
 	public void Automate() {
@@ -229,8 +260,9 @@ public partial class MapUnit {
 		// Trigger combat if the tile we're moving into has an enemy  Or if this unit can't fight, do nothing.
 		MapUnit defender = newLoc.FindTopDefender(this);
 		bool enemyOnTile = defender != MapUnit.NONE && !owner.IsAtPeaceWith(defender.owner);
-		// Units that can't attack, including empty armies, don't start fights.
-		if (enemyOnTile && !CanAttack()) {
+		// Units that can't attack, including empty armies, don't start fights,
+		// and without Blitz a unit only attacks once per turn.
+		if (enemyOnTile && (!CanAttack() || !CanAttackAgainThisTurn())) {
 			return true;
 		}
 
@@ -241,6 +273,7 @@ public partial class MapUnit {
 			CaptureDefencelessUnits(newLoc);
 		} else if (enemyOnTile) {
 			CombatResult combatResult = await Fight(defender);
+			hasAttackedThisTurn = true;
 			this.path = TilePath.NONE;
 			// If we were killed then of course there's nothing more to do. If the combat couldn't happen for whatever
 			// reason, just give up on trying to move.
@@ -270,8 +303,10 @@ public partial class MapUnit {
 
 		facingDirection = dir;
 		float movementCost = TilePath.GetMovementCost(this.owner, location, dir, newLoc);
+		List<MapUnit> zoneOfControlAttackers = FindZoneOfControlAttackers(location, newLoc);
 
 		RelocateTo(newLoc);
+		WakeNearbySentries(newLoc);
 
 		if (wait)
 			await animateAsync(MapUnit.AnimatedAction.RUN);
@@ -279,6 +314,10 @@ public partial class MapUnit {
 			animate(MapUnit.AnimatedAction.RUN);
 
 		movementPoints.onUnitMove(movementCost);
+
+		foreach (MapUnit zocUnit in zoneOfControlAttackers) {
+			await zocUnit.ZoneOfControlAttack(this);
+		}
 
 		return true;
 	}
@@ -341,6 +380,46 @@ public partial class MapUnit {
 			} else {
 				gameData.RemoveUnit(enemy);
 			}
+		}
+	}
+
+	// Enemy units with a zone of control that are next to both tiles of a
+	// move get a free attack on the moving unit. Land units only watch land
+	// units, and ships only watch ships.
+	public List<MapUnit> FindZoneOfControlAttackers(Tile from, Tile to) {
+		List<MapUnit> result = new();
+		foreach (Tile t in from.neighbors.Values) {
+			if (t == to || !to.neighbors.ContainsValue(t)) {
+				continue;
+			}
+			foreach (MapUnit u in t.unitsOnTile) {
+				if (u.unitType.hasZoneOfControl && u.unitType.attack > 0 && !u.IsLoaded()
+					&& u.IsLandUnit() == IsLandUnit() && u.IsWaterUnit() == IsWaterUnit()
+					&& u.owner != owner && !owner.IsAtPeaceWith(u.owner)) {
+					result.Add(u);
+				}
+			}
+		}
+		return result;
+	}
+
+	// A single round of combat against a unit moving through our zone of
+	// control. It can wound the unit but never kills it.
+	public async Task ZoneOfControlAttack(MapUnit target) {
+		if (target.hitPointsRemaining <= 1) {
+			return;
+		}
+
+		double attackStrength = StrengthVersus(target, CombatRole.Attack, location.DirectionTo(target.location));
+		double defenseStrength = target.StrengthVersus(this, CombatRole.Defense, location.DirectionTo(target.location));
+		var originalDirection = facingDirection;
+		facingDirection = GetAttackAnimationDirection(location.DirectionTo(target.location));
+		await animateAsync(AnimatedAction.ATTACK1);
+		facingDirection = originalDirection;
+
+		if (GameData.rng.NextDouble() < attackStrength / (attackStrength + defenseStrength)) {
+			target.hitPointsRemaining -= 1;
+			log.Information($"{this} hit {target} moving through its zone of control");
 		}
 	}
 
@@ -488,6 +567,14 @@ public partial class MapUnit {
 			if (alive.IsArmy())
 				alive.owner.hasVictoriousArmy = true;
 
+			if (!dead.owner.isBarbarians && !alive.owner.isBarbarians) {
+				dead.owner.AddWarWearinessForLostUnit(diedAttacking: dead == attacker);
+			}
+
+			// A unique unit beating another civ (not barbarians) starts a golden age.
+			if (survivingMember.unitType.startsGoldenAge && !dead.owner.isBarbarians) {
+				alive.owner.StartGoldenAge(EngineStorage.gameData, $"Our {survivingMember.unitType.name} has won a great victory.");
+			}
 			await dead.animateAsync(MapUnit.AnimatedAction.DEATH);
 			dead.RemoveFromPlay();
 		}

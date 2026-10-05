@@ -14,7 +14,7 @@ namespace C7GameData.Save {
 		public List<TileLocation> path;
 		public int hitPointsRemaining;
 		public float movePointsRemaining;
-		public string action; // "fortified"
+		public string action; // "fortified", "sentry" or "sentryEnemyOnly"
 		public TileDirection facingDirection = TileDirection.SOUTHEAST;
 		public string experience;
 		public float WorkerProgressTowardsJob;
@@ -27,6 +27,7 @@ namespace C7GameData.Save {
 
 		// True if the unit held this turn before moving, so it still heals.
 		public bool heldWithoutMoving;
+		public bool hasAttackedThisTurn;
 
 		public SaveUnit() { }
 
@@ -45,9 +46,12 @@ namespace C7GameData.Save {
 				path = unit.path.path.ToList().ConvertAll(tile => new TileLocation(tile));
 			}
 			hitPointsRemaining = unit.hitPointsRemaining;
-			action = unit.isFortified ? "fortified" : "";
+			action = unit.isFortified ? "fortified"
+				: unit.isSentried ? (unit.sentryEnemyOnly ? "sentryEnemyOnly" : "sentry")
+				: "";
 			isAutomated = unit.isAutomated;
 			heldWithoutMoving = unit.heldWithoutMoving;
+			hasAttackedThisTurn = unit.hasAttackedThisTurn;
 			facingDirection = unit.facingDirection;
 			experience = unit.experienceLevelKey;
 			movePointsRemaining = unit.movementPoints.remaining;
@@ -69,8 +73,11 @@ namespace C7GameData.Save {
 				hitPointsRemaining = hitPointsRemaining,
 				movementPoints = new MovementPoints(),
 				isFortified = action == "fortified",
+				isSentried = action == "sentry" || action == "sentryEnemyOnly",
+				sentryEnemyOnly = action == "sentryEnemyOnly",
 				isAutomated = isAutomated,
 				heldWithoutMoving = heldWithoutMoving,
+				hasAttackedThisTurn = hasAttackedThisTurn,
 				facingDirection = facingDirection,
 				WorkerProgressTowardsJob = WorkerProgressTowardsJob,
 				WorkerJob = WorkerJob == null ? null:terraforms.Find(tf => tf.Id == WorkerJob)

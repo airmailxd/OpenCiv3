@@ -40,6 +40,9 @@ namespace C7GameData {
 			if (this.unitType.bombard == 0)
 				return false;
 
+			if (!CanAttackAgainThisTurn())
+				return false;
+
 			if (tile.HasCity() && tile.cityAtTile.owner == this.owner)
 				return false;
 
@@ -106,6 +109,7 @@ namespace C7GameData {
 				return; // Nothing to bombard
 
 			facingDirection = location.DirectionTo(tile);
+			hasAttackedThisTurn = true;
 
 			if (hasCityWalls)
 				await BombardCityWalls(tile);

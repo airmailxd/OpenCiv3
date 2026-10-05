@@ -42,6 +42,7 @@ namespace C7Engine {
 				await AttemptTrading(player);
 			}
 
+			UpgradeUnits(player);
 			await DoUnitActions(player);
 
 			// Before ending the turn, adjust our sliders. We do this after unit
@@ -50,6 +51,18 @@ namespace C7Engine {
 			AdjustSliders(player);
 
 			log.Information("-> End " + player.civilization.cityNames[0] + $" turn {stopwatch.ElapsedMilliseconds} milliseconds");
+		}
+
+		// Upgrade units sitting in cities that can upgrade them, keeping a
+		// reserve of gold for emergencies.
+		private static void UpgradeUnits(Player player) {
+			const int GOLD_RESERVE = 100;
+			foreach (MapUnit unit in player.units.ToList()) {
+				UnitPrototype upgrade = unit.GetAvailableUpgrade();
+				if (upgrade != null && player.gold - unit.UpgradeCost(upgrade) >= GOLD_RESERVE) {
+					unit.Upgrade();
+				}
+			}
 		}
 
 		private static void MaybeDoPriorityReevaluation(Player player) {
@@ -404,7 +417,7 @@ namespace C7Engine {
 			// are unhappy (sometimes making all cities happy with the luxury
 			// slider is too expensive and it's easier to just use entertainers
 			// there).
-			while (MostCitiesUnhappy(player) && player.luxuryRate < MAX_AI_LUXURY_SLIDER) {
+			while (MostCitiesUnhappy(player) && player.luxuryRate < Math.Min(MAX_AI_LUXURY_SLIDER, player.maxLuxuryRate)) {
 				++player.luxuryRate;
 			}
 
@@ -413,8 +426,10 @@ namespace C7Engine {
 
 			// Now max out the science slider and then decrease it (increasing
 			// the tax rate) until we're not losing money.
-			player.scienceRate = MAX_SLIDER_VALUE - player.luxuryRate;
-			while (player.scienceRate > 0 && !BudgetIsTolerable(player)) {
+			player.scienceRate = Math.Min(player.maxScienceRate, MAX_SLIDER_VALUE - player.luxuryRate);
+			player.taxRate = MAX_SLIDER_VALUE - player.luxuryRate - player.scienceRate;
+			player.ApplyGovernmentRateCap();
+			while (player.scienceRate > 0 && player.taxRate < player.maxRate && !BudgetIsTolerable(player)) {
 				player.scienceRate--;
 				player.taxRate++;
 			}

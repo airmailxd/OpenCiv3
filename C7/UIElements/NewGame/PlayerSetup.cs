@@ -124,7 +124,7 @@ public partial class PlayerSetup : Control {
 	}
 
 	private void AddRules() {
-		victoryConditions = new VictoryConditions();
+		victoryConditions = VictoryConditions.NewGameDefaults();
 		rulesContainer.Columns = 2;
 		rulesContainer.AddThemeConstantOverride("v_separation", 0);
 

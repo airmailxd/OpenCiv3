@@ -7,6 +7,9 @@ namespace C7Engine;
 // The strings for each action correspond to values in project.godot for keyboard shortcuts
 public static class C7Action {
 	public const string EndTurn = "end_turn";
+	public const string EndTurnNow = "end_turn_now"; // even with units left to move
+	public const string SaveGame = "save_game";
+	public const string LoadGame = "load_game";
 	public const string Escape = "escape";
 
 	public const string MoveUnitSouthwest = "move_unit_southwest";
@@ -63,6 +66,8 @@ public static class C7Action {
 	public const string UnitWait = "unit_wait";
 	public const string UnitLoad = "unit_load";
 	public const string UnitUnload = "unit_unload";
+	public const string UnitUpgrade = "unit_upgrade";
+	public const string UnitPillage = "unit_pillage";
 
 	private static readonly Dictionary<string, UnitAction> toUnitAction = new() {
 		[UnitBuildCity] = UnitAction.BuildCity,
@@ -70,6 +75,10 @@ public static class C7Action {
 		[UnitHold] = UnitAction.Hold,
 		[UnitLoad] = UnitAction.Load,
 		[UnitUnload] = UnitAction.Unload,
+		[UnitUpgrade] = UnitAction.Upgrade,
+		[UnitPillage] = UnitAction.Pillage,
+		[UnitSentry] = UnitAction.Sentry,
+		[UnitSentryEnemyOnly] = UnitAction.SentryEnemyOnly,
 		[UnitWait] = UnitAction.Wait,
 		[UnitFortify] = UnitAction.Fortify,
 		[UnitDisband] = UnitAction.Disband,
@@ -104,7 +113,9 @@ public static class C7Action {
 		[UnitSentryEnemyOnly] = "Sentry Enemy Only",
 		[UnitWait] = "Wait",
 		[UnitLoad] = "Load",
-		[UnitUnload] = "Unload"
+		[UnitUnload] = "Unload",
+		[UnitUpgrade] = "Upgrade",
+		[UnitPillage] = "Pillage"
 	};
 
 	public static UnitAction? ToUnitAction(string action) {

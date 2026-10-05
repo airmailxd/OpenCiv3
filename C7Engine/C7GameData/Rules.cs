@@ -36,5 +36,9 @@ namespace C7GameData {
 		// The unit a city builds through a building that allows building
 		// armies (the Military Academy).
 		public string BuildArmyUnit;
+
+		public int MinimumPopulationForWeLoveTheKing = 3;
+		public int GoldenAgeDuration = 20;
+		public int UpgradeCostPerShield = 3; // gold per shield of difference between a unit and its upgrade
 	}
 }

@@ -24,6 +24,15 @@ namespace C7GameData.Save {
 			AllowsBuildArmy,
 			AllowsLargerArmies,
 			RequiresVictoriousArmy,
+			Plus50PercentResearch,
+			Plus50PercentLuxury,
+			// Increases both tax and luxury output.
+			Plus50PercentCommerce,
+			AllowsEnemyTerritoryHealing,
+			// Halves war weariness in the city.
+			ReducesWarWeariness,
+			// Halves war weariness in every city of the owner.
+			ReducesWarWearinessEverywhere,
 		}
 
 		public class GreatWonderProperties {
@@ -44,6 +53,9 @@ namespace C7GameData.Save {
 		public int contentFacesInCity;
 		public double combatDefenseBonus;
 		public int maintenanceCost;
+		// The percentage by which the building increases the city's useful
+		// shield production.
+		public int productionBonusPercent;
 		public int iconRowIndex;
 		public ID? renderedObsoleteBy;
 

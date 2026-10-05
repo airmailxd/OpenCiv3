@@ -559,6 +559,9 @@ public partial class Game : Node {
 					mapView.cityLayer.UpdateAfterCityDestruction(mCD.city);
 				}
 				break;
+			case MsgCityCaptured mCCap:
+				mapView.cityLayer.UpdateAfterCityCapture(mCCap.city);
+				break;
 			case MsgCivilizationDestroyed mCivD:
 				popupOverlay.ShowPopup(new CivilizationDestroyed(mCivD.civilization), PopupOverlay.PopupCategory.Advisor);
 				InterestingEvent();
@@ -1237,7 +1240,9 @@ public partial class Game : Node {
 		Godot.Collections.Array<StringName> actions = InputMap.GetActions();
 
 		foreach (StringName action in actions) {
-			if (Input.IsActionJustPressed(action)) {
+			// Match modifiers exactly, so that Shift+Enter or Ctrl+L don't also
+			// trigger the actions bound to plain Enter or L.
+			if (Input.IsActionJustPressed(action, exactMatch: true)) {
 				ProcessAction(action.ToString());
 			} else if (Input.IsActionJustReleased(action)) {
 				ProcessOnReleaseAction(action.ToString());
@@ -1323,6 +1328,11 @@ public partial class Game : Node {
 			this.OnPlayerEndTurn();
 		}
 
+		if (currentAction == C7Action.EndTurnNow) {
+			log.Verbose("end_turn_now key pressed");
+			this.OnPlayerEndTurn();
+		}
+
 		if (this.HasCurrentlySelectedUnit()) {
 			TileDirection? dir = C7Action.ToTileDirection(currentAction);
 
@@ -1370,6 +1380,16 @@ public partial class Game : Node {
 			return;
 		}
 
+		if (currentAction == C7Action.SaveGame) {
+			OnSaveGame();
+			return;
+		}
+
+		if (currentAction == C7Action.LoadGame) {
+			OnLoadGame();
+			return;
+		}
+
 		if (!IsMapUnitValid(CurrentlySelectedUnit)) return;
 
 		if (currentAction == C7Action.UnitHold) {
@@ -1413,11 +1433,11 @@ public partial class Game : Node {
 		}
 
 		if (currentAction == C7Action.UnitSentry) {
-			// unimplemented
+			new MsgSentry(CurrentlySelectedUnit.id, enemyOnly: false).send();
 		}
 
 		if (currentAction == C7Action.UnitSentryEnemyOnly) {
-			// unimplemented
+			new MsgSentry(CurrentlySelectedUnit.id, enemyOnly: true).send();
 		}
 
 		if (currentAction == C7Action.UnitBuildCity && CurrentlySelectedUnit.canBuildCity()) {
@@ -1441,11 +1461,19 @@ public partial class Game : Node {
 		}
 
 
+		if (currentAction == C7Action.UnitPillage && CurrentlySelectedUnit.CanPillage()) {
+			new MsgPillage(CurrentlySelectedUnit.id).send();
+		}
+
 		if (currentAction == C7Action.UnitLoad) {
 			// TODO: Which transport?
 			new MsgLoadToTransport(CurrentlySelectedUnit.id).send();
 		}
-		if (currentAction == C7Action.UnitUnload) {
+		// Upgrading and unloading share a key; upgrading wins when possible.
+		if (currentAction == C7Action.UnitUpgrade) {
+			ConfirmUpgrade(CurrentlySelectedUnit);
+		}
+		if (currentAction == C7Action.UnitUnload && CurrentlySelectedUnit.GetAvailableUpgrade() == null) {
 			new MsgUnloadTransport(CurrentlySelectedUnit.id).send();
 		}
 
@@ -1476,6 +1504,31 @@ public partial class Game : Node {
 			return;
 		}
 		new MsgStartWorkerJob(CurrentlySelectedUnit.id, terraform).send();
+	}
+
+	private void ConfirmUpgrade(MapUnit unit) {
+		UnitPrototype upgrade = unit.GetAvailableUpgrade();
+		if (upgrade == null) {
+			return;
+		}
+
+		int cost = unit.UpgradeCost(upgrade);
+		if (unit.owner.gold < cost) {
+			popupOverlay.ShowPopup(
+				new InformationalPopup(
+					$"Upgrading our {unit.name} to {upgrade.name} would cost {cost} gold.\nWe only have {unit.owner.gold}.",
+					AdvisorHead.Advisor.Domestic, AdvisorHead.Mood.Surprised),
+				PopupOverlay.PopupCategory.Advisor);
+			return;
+		}
+
+		popupOverlay.ShowPopup(
+			new ConfirmationPopup(
+				$"Upgrade our {unit.name} to {upgrade.name} for {cost} gold?",
+				"Yes, upgrade it.",
+				"No, not now.",
+				() => { new MsgUpgradeUnit(unit.id).send(); }),
+			PopupOverlay.PopupCategory.Advisor);
 	}
 
 	private void SetGotoMode(bool isOn) {

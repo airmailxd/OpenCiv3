@@ -45,11 +45,23 @@ namespace C7GameData {
 
 		// True if the unit held this turn before moving, so it still heals.
 		public bool heldWithoutMoving { get; set; }
+		// A sentried unit sleeps until a unit it should notice comes next to
+		// it: any foreign unit, or with sentryEnemyOnly only an enemy one.
+		public bool isSentried { get; set; }
+		public bool sentryEnemyOnly { get; set; }
 
 		public bool isAutomated { get; set; }
 
 		//sentry, etc. will come later.  For now, let's just have a couple things so we can cycle through units that aren't fortified.
 		public int defensiveBombardsRemaining;
+
+		// Whether the unit has attacked or bombarded this turn. Only units with
+		// blitz can attack more than once per turn.
+		public bool hasAttackedThisTurn;
+
+		public bool CanAttackAgainThisTurn() {
+			return !hasAttackedThisTurn || unitType.hasBlitz;
+		}
 
 		public TileDirection facingDirection = TileDirection.SOUTHEAST;
 
@@ -73,7 +85,7 @@ namespace C7GameData {
 		}
 
 		public bool IsBusy() {
-			return isFortified || (path != null && path.PathLength() > 0) || WorkerJob != null || isAutomated;
+			return isFortified || isSentried || (path != null && path.PathLength() > 0) || WorkerJob != null || isAutomated;
 		}
 
 		public bool IsLandUnit() {
@@ -546,12 +558,32 @@ namespace C7GameData {
 			GameData gD = EngineStorage.gameData;
 			City city = location.cityAtTile;
 			bool inFriendlyCity = (city != null) && (city != City.NONE) && owner.IsAtPeaceWith(city.owner);
-			if (inFriendlyCity)
+			if (inFriendlyCity) {
+				// Barracks fully heal land units in their own city, and harbors
+				// do the same for ships.
+				if (city.owner == owner && city.GetBuildings().Any(cb =>
+						(IsLandUnit() && cb.building.providesVeteranGroundUnits)
+						|| (IsWaterUnit() && cb.building.providesVeteranSeaUnits))) {
+					return maxHitPoints;
+				}
 				return gD.healRateInCity;
+			}
 			if (unitType.categories.Contains("Sea"))
 				return 0;
+
+			// Units heal faster in their own territory and not at all in the
+			// territory of a civ they're at war with.
+			Player territoryOwner = location.OwningPlayer();
+			if (territoryOwner == owner)
+				return gD.healRateInFriendlyField;
+			if (territoryOwner != null && AtWar(owner, territoryOwner) && !CanHealInEnemyTerritory())
+				return gD.healRateInHostileField;
 			return gD.healRateInNeutralField;
-			// TODO: Consider friendly/neutral/enemy territory once that's implemented, barracks, the Red Cross
+		}
+
+		// Battlefield Medicine lets a civ's units heal in enemy territory.
+		private bool CanHealInEnemyTerritory() {
+			return owner.cities.Any(c => c.constructed_buildings.Any(cb => cb.building.allowsEnemyTerritoryHealing));
 		}
 
 		public enum Intent {
@@ -651,6 +683,10 @@ namespace C7GameData {
 
 			if (isCombatUnit) {
 				if (hasHostileUnits || hasHostileCity) {
+					// Only amphibious units can attack straight off a ship.
+					if (this.IsLandUnit() && !this.location.IsLand() && !this.unitType.isAmphibious) {
+						return Intent.Disabled;
+					}
 					return Intent.Fight;
 				}
 				if (hasForeignUnits) {
@@ -901,13 +937,16 @@ namespace C7GameData {
 
 			// Eventually, we should look this up somewhere to see what all actions we have (and mods might add more)
 			// For now, this is still an improvement over the last iteration.
-			UnitAction[] implementedActions = { UnitAction.Hold, UnitAction.Wait, UnitAction.Fortify, UnitAction.Disband, UnitAction.Goto, UnitAction.Bombard };
+			UnitAction[] implementedActions = { UnitAction.Hold, UnitAction.Wait, UnitAction.Fortify, UnitAction.Disband, UnitAction.Goto, UnitAction.Bombard, UnitAction.Sentry };
 			foreach (UnitAction action in implementedActions) {
 				if (unitType.actions.Contains(action)) {
 					result.Add(action);
 				}
 			}
 
+			if (unitType.actions.Contains(UnitAction.Sentry)) {
+				result.Add(UnitAction.SentryEnemyOnly);
+			}
 			if (canBuildCity()) {
 				result.Add(UnitAction.BuildCity);
 			}
@@ -924,6 +963,12 @@ namespace C7GameData {
 			// Ships unload in port; an army that allows unloading can do so anywhere.
 			if (CanUnloadToTile(this.location) && (this.location.HasCity() || IsArmy())) {
 				result.Add(UnitAction.Unload);
+			}
+			if (GetAvailableUpgrade() != null) {
+				result.Add(UnitAction.Upgrade);
+			}
+			if (CanPillage()) {
+				result.Add(UnitAction.Pillage);
 			}
 
 			// Eventually we will have advanced actions too, whose availability will rely on their base actions' availability.

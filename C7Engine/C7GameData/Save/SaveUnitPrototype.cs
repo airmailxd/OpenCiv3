@@ -12,6 +12,14 @@ namespace C7GameData.Save {
 			LethalSeaBombardment,
 			Radar,
 			Army,
+			// The unit may attack more than once per turn.
+			Blitz,
+			// The unit may attack from a ship.
+			Amphibious,
+			// The unit gets a free attack on enemies moving past it.
+			ZoneOfControl,
+			// A victory by the unit over another civ starts a golden age.
+			StartsGoldenAge,
 		}
 
 		public string name { get; set; }

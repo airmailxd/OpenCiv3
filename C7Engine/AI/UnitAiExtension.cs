@@ -30,6 +30,15 @@ namespace C7Engine {
 				return UnitAI.Result.InProgress;
 			}
 
+			// Units without blitz can only attack once per turn. If the next
+			// step is an attack we can't make, wait until next turn instead of
+			// retrying the refused move.
+			MapUnit defender = nextTile.FindTopDefender(unit);
+			if (defender != MapUnit.NONE && !unit.owner.IsAtPeaceWith(defender.owner) && !unit.CanAttackAgainThisTurn()) {
+				unit.movementPoints.onConsumeAll();
+				return UnitAI.Result.InProgress;
+			}
+
 			Task<bool> moveTask = unit.Move(unit.location.DirectionTo(nextTile));
 
 			return MoveResult.MoveRequested(moveTask);

@@ -78,6 +78,9 @@ namespace C7GameData {
 
 		public bool isInCivilDisorder = false;
 
+		// Whether the city is celebrating "We Love the King Day".
+		public bool celebrating = false;
+
 		public static City NONE = new City(Tile.NONE, null, "Dummy City", ID.None("city"));
 
 		public static bool IsValidCity(City city) {
@@ -123,6 +126,43 @@ namespace C7GameData {
 		private void WarnAboutUnsupportedArmy(string message) {
 			if (owner.isHuman)
 				new MsgShowMilitaryAdvisorPopup(owner, message, happy: false).send();
+		}
+
+		private enum ProductionCategory {
+			Unit,
+			Improvement,
+			Wonder,
+		}
+
+		private static ProductionCategory? CategoryOf(IProducible producible) {
+			return producible switch {
+				null => null,
+				UnitPrototype => ProductionCategory.Unit,
+				Building b when b.IsGreatWonder() || b.isSmallWonder => ProductionCategory.Wonder,
+				_ => ProductionCategory.Improvement,
+			};
+		}
+
+		// What the city was producing at the start of the turn, and the shields
+		// lost so far this turn by switching away from that kind of item.
+		private ProductionCategory? productionCategoryAtTurnStart;
+		private int shieldsLostToSwitching = 0;
+
+		// Changes production at the player's request. Switching between units,
+		// improvements and wonders loses half of the stored shields, but
+		// switching back to the kind of item the city started the turn with
+		// gets them back.
+		public void ChangeProduction(IProducible producible) {
+			productionCategoryAtTurnStart ??= CategoryOf(itemBeingProduced);
+
+			shieldsStored += shieldsLostToSwitching;
+			shieldsLostToSwitching = 0;
+			if (CategoryOf(producible) != productionCategoryAtTurnStart) {
+				shieldsLostToSwitching = shieldsStored / 2;
+				shieldsStored -= shieldsLostToSwitching;
+			}
+
+			ChooseProduction(producible);
 		}
 
 		public bool IsCapital() {
@@ -325,6 +365,10 @@ namespace C7GameData {
 		}
 
 		public void HandleCityProduction(GameData gameData) {
+			// A new turn starts once this one's production is done.
+			productionCategoryAtTurnStart = null;
+			shieldsLostToSwitching = 0;
+
 			IProducible producedItem = ComputeTurnProduction();
 			if (producedItem == null) {
 				return;
@@ -346,6 +390,7 @@ namespace C7GameData {
 				// this situation?
 				if (building.greatWonderProperties != null) {
 					gameData.GreatWondersBuilt.Add(building.name);
+					owner.MaybeStartGoldenAgeFromWonders(gameData);
 
 					foreach (Player p in gameData.players) {
 						if (p == this.owner) {
@@ -552,7 +597,8 @@ namespace C7GameData {
 			foreach (CityResident r in residents) {
 				yield += r.tileWorked.ProductionYield(this).yield;
 			}
-			CorruptableValue result = new(yield, corruption);
+			// A celebrating city wastes half as many shields.
+			CorruptableValue result = new(yield, celebrating ? corruption / 2 : corruption);
 
 			// Using our value of corruption, figure out how much useful
 			// production we have to work with. Special case anarchy, where no
@@ -565,6 +611,10 @@ namespace C7GameData {
 				result.useful = 0;
 				result.corrupt = yield;
 			}
+
+			// Factories and power plants boost the shields left after waste.
+			int productionBonusPercent = GetBuildings().Sum(cb => cb.building.productionBonusPercent);
+			result.useful += result.useful * productionBonusPercent / 100;
 
 			// TODO: add specialist shields here. Do specialists still work in
 			// civil disorder?
@@ -600,6 +650,18 @@ namespace C7GameData {
 			result.beakers = (int)Math.Floor(commerce.useful * owner.scienceRate / 10.0);
 			result.happiness = (int)Math.Floor(commerce.useful * owner.luxuryRate / 10.0);
 			result.taxes = commerce.useful - result.beakers - result.happiness;
+
+			// Each library, marketplace and similar building adds 50% to the
+			// share of commerce it affects.
+			int researchBuildings = 0, luxuryBuildings = 0, taxBuildings = 0;
+			foreach (CityBuilding cb in GetBuildings()) {
+				researchBuildings += cb.building.increasesResearch ? 1 : 0;
+				luxuryBuildings += cb.building.increasesLuxury ? 1 : 0;
+				taxBuildings += cb.building.increasesTax ? 1 : 0;
+			}
+			result.beakers += result.beakers * researchBuildings / 2;
+			result.happiness += result.happiness * luxuryBuildings / 2;
+			result.taxes += result.taxes * taxBuildings / 2;
 
 			foreach (CityResident cr in residents) {
 				result.beakers += cr.citizenType.Research;
@@ -838,7 +900,7 @@ namespace C7GameData {
 		}
 
 		// See https://forums.civfanatics.com/threads/everything-about-corruption-c3c-edition.76619/
-		private float CalculateDistanceCorruption(int numAntiCorruptionBuildings) {
+		private float CalculateDistanceCorruption(GameData gameData, int numAntiCorruptionBuildings) {
 			float maxD = (location.map.numTilesWide + location.map.numTilesTall) / 4;
 
 			float distanceToPalace = owner.citiesWithCorruptionWonders.Min(x => location.RankDistanceTo(x.location));
@@ -846,9 +908,9 @@ namespace C7GameData {
 				distanceToPalace = maxD / 4;
 			}
 
-			// TODO: Update this once we track trade networks.
-			bool connectedTocapital = false;
-			float tradeFactor = connectedTocapital ? 1.0f : 5.0f/4.0f;
+			// Cities cut off from the capital's trade network suffer more.
+			bool connectedToCapital = gameData.GetTradeNetwork().ConnectedToCapital(owner, this);
+			float tradeFactor = connectedToCapital ? 1.0f : 5.0f/4.0f;
 
 			float govtFactor = owner.government.corruptionType switch {
 				Government.CorruptionType.Minimal => 3.0f/4.0f,
@@ -892,7 +954,7 @@ namespace C7GameData {
 			// TODO: Handle the SPHQ.
 			int numCorruptionReducingSmallWondersInCity = buildings.Count(x => x.building.isForbiddenPalace);
 
-			corruption = CalculateDistanceCorruption(numAntiCorruptionBuildings)
+			corruption = CalculateDistanceCorruption(gameData, numAntiCorruptionBuildings)
 					+ CalculateRankCorruption(gameData, numAntiCorruptionBuildings);
 			// TODO: apply policeman modifiers, before applying the max
 
@@ -989,6 +1051,20 @@ namespace C7GameData {
 			Happy
 		};
 
+		// A city that is big enough, isn't starving, has no unhappy citizens
+		// and more happy than content ones celebrates "We Love the King Day".
+		// Specialists don't count.
+		public bool QualifiesForCelebration(Rules rules) {
+			if (residents.Count < rules.MinimumPopulationForWeLoveTheKing || FoodGrowthPerTurn() < 0) {
+				return false;
+			}
+			List<CityResident> laborers = residents.Where(r => r.citizenType.IsDefaultCitizen).ToList();
+			int happy = laborers.Count(r => r.mood == CityResident.Mood.Happy);
+			int content = laborers.Count(r => r.mood == CityResident.Mood.Content);
+			bool anyUnhappy = laborers.Any(r => r.mood == CityResident.Mood.Unhappy);
+			return !anyUnhappy && happy > content;
+		}
+
 		// This function does the heavy lifting of happiness calculations,
 		// combining the various bonuses and penalties that affect citizen moods.
 		//
@@ -1016,7 +1092,9 @@ namespace C7GameData {
 			}
 
 			// TODO: add penalty for drafting
-			// TODO: add penalty for war weariness
+
+			// War weariness makes citizens unhappy, like pop rushing.
+			contentToHappyMoves -= owner.WarWearinessUnhappiness(this);
 			// TODO: add penalty for aggression against home country
 
 			// Building happiness/unhappiness, which only affects the unhappy to
@@ -1032,13 +1110,14 @@ namespace C7GameData {
 			// as military police.
 			unhappyToContentMoves += Math.Min(owner.government.militaryPoliceLimit, location.unitsOnTile.Count(x => x.CanDefendOnLand()));
 
-			// Luxury spending moves content faces to happy faces.
+			// Luxury spending moves content faces to happy faces, one face for
+			// every two luxuries.
 			//
 			// Don't respect civil disorder during this calculation, because if
 			// we are currently in civil disorder our commerce is all corrupt,
 			// but we still need to be able to calculate whether a certain
 			// luxury slider value would get us out of civil disorder.
-			contentToHappyMoves += CurrentCommerceYield(respectCivilDisorder: false).happiness;
+			contentToHappyMoves += CurrentCommerceYield(respectCivilDisorder: false).happiness / 2;
 
 			// As do luxury resources, which can be boosted by marketplaces.
 			int effectiveLux = GetLuxuries(gameData).Keys.Count;

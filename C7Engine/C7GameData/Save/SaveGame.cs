@@ -180,6 +180,13 @@ namespace C7GameData.Save {
 			// we can render the current score alongside the state of other conditions
 			data.victories.Add(new ScoreVictory());
 
+			if (conditions?.AllowConquestVictory == true) {
+				data.victories.Add(new ConquestVictory());
+			}
+			if (conditions?.AllowDominationVictory == true) {
+				data.victories.Add(new DominationVictory(conditions.DominationTerritoryPercent, conditions.DominationPopulationPercent));
+			}
+
 			// TODO: Does the original have a switch to have the game never end?
 			// Always add a time limit
 			data.victories.Add(new TimeLimitVictory(data.timeOptions.turnLimit));

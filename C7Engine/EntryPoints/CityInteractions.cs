@@ -7,6 +7,8 @@ namespace C7Engine {
 	using C7GameData;
 
 	public class CityInteractions {
+		private static Serilog.ILogger log = Serilog.Log.ForContext<CityInteractions>();
+
 		public static City BuildCity(Tile tileWithNewCity, Player owner, string name) {
 			GameData gameData = EngineStorage.gameData;
 			City newCity = new City(tileWithNewCity, owner, name, gameData.ids.CreateID("city"));
@@ -135,6 +137,84 @@ namespace C7Engine {
 			city.RecalculateCitizenMoods(gameData);
 		}
 
+		// The chance that each ordinary building in a captured city is
+		// destroyed in the fighting.
+		private const double BuildingLossChanceOnCapture = 0.5;
+
+		// Hands a city over to the player who took it. Cities of size one are
+		// destroyed instead. The city loses a citizen, its production and
+		// some of its buildings, and the captor plunders the city's share of
+		// the old owner's treasury.
+		public static void CaptureCity(City city, Player captor) {
+			GameData gameData = EngineStorage.gameData;
+			Player oldOwner = city.owner;
+			Tile tile = city.location;
+
+			if (city.residents.Count <= 1) {
+				DestroyCity(city);
+				return;
+			}
+
+			tile.DisbandNonDefendingUnits(oldOwner);
+
+			int totalPopulation = oldOwner.cities.Sum(c => c.residents.Count);
+			int plunder = totalPopulation > 0 ? oldOwner.gold * city.residents.Count / totalPopulation : 0;
+			oldOwner.gold -= plunder;
+			captor.gold += plunder;
+
+			city.RemoveCitizens(1);
+
+			// The palace and small wonders don't survive a change of owner,
+			// great wonders always do, and other buildings may be destroyed.
+			foreach (CityBuilding cb in city.constructed_buildings.ToList()) {
+				Building b = cb.building;
+				bool lost = b.isCenterOfEmpire || b.isSmallWonder
+					|| (!b.IsGreatWonder() && GameData.rng.NextDouble() < BuildingLossChanceOnCapture);
+				if (lost) {
+					city.RemoveBuilding(cb);
+				}
+			}
+
+			bool wasCapital = city.capital;
+			city.capital = false;
+			oldOwner.cities.Remove(city);
+			captor.cities.Add(city);
+			city.owner = captor;
+			city.perPlayerCulture.TryAdd(captor, 0);
+			city.isInCivilDisorder = false;
+			city.SetStoredShields(0);
+
+			gameData.UpdateTileOwners();
+			gameData.InvalidateCachedTradeNetwork();
+
+			// Choosing production needs the trade network to know the new owner.
+			city.SetItemBeingProduced(ChooseProducible.Choose(city, captor));
+
+			log.Information($"{captor} captured {city} from {oldOwner}, plundering {plunder} gold");
+			new MsgCityCaptured(city, oldOwner).send();
+			if (captor.isHuman) {
+				new MsgShowMilitaryAdvisorPopup(captor, $"We have captured {city.name} and plundered {plunder} gold!", happy: true).send();
+			}
+			if (oldOwner.isHuman) {
+				new MsgShowMilitaryAdvisorPopup(oldOwner, $"{city.name} has fallen to the {captor.civilization.noun}!", happy: false).send();
+			}
+
+			gameData.CheckForCivDestructionAndNotifyUi(oldOwner);
+			if (wasCapital) {
+				MovePalaceAfterLosingCapital(oldOwner, tile);
+			}
+
+			oldOwner.DoCorruptionCalculations(gameData);
+			captor.DoCorruptionCalculations(gameData);
+		}
+
+		private static void MovePalaceAfterLosingCapital(Player player, Tile oldCapitalLocation) {
+			City newCapital = player.RelocatePalace(EngineStorage.gameData, oldCapitalLocation);
+			if (newCapital != null && player.isHuman) {
+				new MsgShowMilitaryAdvisorPopup(player, $"With our capital lost, the palace has been rebuilt in {newCapital.name}.", happy: false).send();
+			}
+		}
+
 		public static void DestroyCity(City city) {
 			DestroyCity(city.location);
 		}
@@ -146,6 +226,7 @@ namespace C7Engine {
 			GameData gameData = EngineStorage.gameData;
 			Tile tile = gameData.map.tileAt(X, Y);
 			Player owner = tile.cityAtTile.owner;
+			bool wasCapital = tile.cityAtTile.capital;
 
 			// TODO: this will get removed eventually, since we will be capturing non-combat units,
 			// plus, it doesn't what it says, if the city is abandoned for example, ALL units are removed.
@@ -163,6 +244,10 @@ namespace C7Engine {
 			gameData.CheckForCivDestructionAndNotifyUi(owner);
 
 			tile.cityAtTile = null;
+
+			if (wasCapital) {
+				MovePalaceAfterLosingCapital(owner, tile);
+			}
 
 			// Now that the city has been destroyed and tile owners updated,
 			// invalidate the trade network in case removing this city cut off

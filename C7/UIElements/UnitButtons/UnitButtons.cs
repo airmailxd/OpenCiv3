@@ -51,19 +51,19 @@ public partial class UnitButtons : VBoxContainer {
 		AddNewButton(primaryControls, C7Action.UnitDisband);
 		AddNewButton(primaryControls, C7Action.UnitGoto);
 		AddNewButton(primaryControls, C7Action.UnitExplore);
-		// AddNewButton(primaryControls, C7Action.UnitSentry);
-		// AddNewButton(primaryControls, C7Action.UnitSentryEnemyOnly);
+		AddNewButton(primaryControls, C7Action.UnitSentry);
+		AddNewButton(primaryControls, C7Action.UnitSentryEnemyOnly);
 
 		//   ******* SPECIALIZED CONTROLS *************
 		AddNewButton(specializedControls, C7Action.UnitLoad);
 		AddNewButton(specializedControls, C7Action.UnitUnload);
-		// AddNewButton(specializedControls, "pillage");
+		AddNewButton(specializedControls, C7Action.UnitPillage);
 		AddNewButton(specializedControls, C7Action.UnitBombard);
 		// AddNewButton(specializedControls, "autobombard");
 		// AddNewButton(specializedControls, "paradrop");
 		//superfortify?
 		// AddNewButton(specializedControls, "hurryBuilding");
-		// AddNewButton(specializedControls, "upgrade");
+		AddNewButton(specializedControls, C7Action.UnitUpgrade);
 		// AddNewButton(specializedControls, "sacrifice");
 		// AddNewButton(specializedControls, "scienceAge");
 		AddNewButton(specializedControls, C7Action.UnitBuildCity);

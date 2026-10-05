@@ -43,7 +43,15 @@ namespace C7GameData {
 		public bool onlyUsefulInTowns;
 		public StrengthBonus? combatDefenseBonus;
 		public bool providesVeteranGroundUnits;
+		public bool providesVeteranSeaUnits;
+		public bool allowsEnemyTerritoryHealing;
+		public bool reducesWarWeariness;
+		public bool reducesWarWearinessEverywhere;
 		public bool treasuryEarnsInterest;
+		public bool increasesResearch;
+		public bool increasesLuxury;
+		public bool increasesTax;
+		public int productionBonusPercent = 0;
 
 		// Army buildings: the Military Academy lets its city build armies, and
 		// the Pentagon lets the owner's armies carry one more unit.
@@ -102,11 +110,20 @@ namespace C7GameData {
 			providesWalls = building.flags.Contains(SaveBuilding.Flag.ProvidesWalls);
 			onlyUsefulInTowns = building.flags.Contains(SaveBuilding.Flag.CanOnlyBeBuiltInTowns);
 			providesVeteranGroundUnits = building.flags.Contains(SaveBuilding.Flag.VeteranGroundUnits);
+			providesVeteranSeaUnits = building.flags.Contains(SaveBuilding.Flag.VeteranSeaUnits);
+			allowsEnemyTerritoryHealing = building.flags.Contains(SaveBuilding.Flag.AllowsEnemyTerritoryHealing);
+			reducesWarWeariness = building.flags.Contains(SaveBuilding.Flag.ReducesWarWeariness);
+			reducesWarWearinessEverywhere = building.flags.Contains(SaveBuilding.Flag.ReducesWarWearinessEverywhere);
 			treasuryEarnsInterest = building.flags.Contains(SaveBuilding.Flag.TreasuryEarnsInterest);
 			allowsBuildArmy = building.flags.Contains(SaveBuilding.Flag.AllowsBuildArmy);
 			allowsLargerArmies = building.flags.Contains(SaveBuilding.Flag.AllowsLargerArmies);
 			requiresVictoriousArmy = building.flags.Contains(SaveBuilding.Flag.RequiresVictoriousArmy);
 			numberOfArmiesRequired = building.numberOfArmiesRequired;
+			increasesResearch = building.flags.Contains(SaveBuilding.Flag.Plus50PercentResearch);
+			increasesLuxury = building.flags.Contains(SaveBuilding.Flag.Plus50PercentLuxury)
+				|| building.flags.Contains(SaveBuilding.Flag.Plus50PercentCommerce);
+			increasesTax = building.flags.Contains(SaveBuilding.Flag.Plus50PercentCommerce);
+			productionBonusPercent = building.productionBonusPercent;
 
 			if (building.greatWonderProperties != null) {
 				greatWonderProperties = new();
@@ -194,6 +211,9 @@ namespace C7GameData {
 		private bool IsSupportedSmallWonder() {
 			return allowsBuildArmy || allowsLargerArmies;
 		}
+
+		// The civilization strengths this building is associated with.
+		public IReadOnlySet<Civilization.Trait> traits => dataSource.traits;
 
 		public int ShieldCost(HashSet<Civilization.Trait> civTraits, float costFactor) {
 			foreach (Civilization.Trait trait in dataSource.traits) {

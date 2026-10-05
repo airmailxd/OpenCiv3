@@ -98,6 +98,56 @@ namespace C7Engine {
 		}
 	}
 
+	public class MsgUpgradeUnit : MessageToEngine {
+		public ID unitID;
+
+		public MsgUpgradeUnit(ID unitID) {
+			this.unitID = unitID;
+		}
+
+		protected override void ProcessAllowed() {
+			MapUnit unit = SendersUnit(unitID);
+			if (unit != null && unit.Upgrade() && unit.owner.isHuman) {
+				new MsgUnitMoved(unit).send();
+			}
+		}
+	}
+
+	public class MsgSentry : MessageToEngine {
+		public ID unitID;
+		public bool enemyOnly;
+
+		public MsgSentry(ID unitID, bool enemyOnly) {
+			this.unitID = unitID;
+			this.enemyOnly = enemyOnly;
+		}
+
+		protected override void ProcessAllowed() {
+			MapUnit unit = SendersUnit(unitID);
+			if (unit != null && unit.unitType.actions.Contains(UnitAction.Sentry)) {
+				unit.Sentry(enemyOnly);
+				if (unit.owner.isHuman) {
+					new MsgUnitMoved(unit).send();
+				}
+			}
+		}
+	}
+
+	public class MsgPillage : MessageToEngine {
+		public ID unitID;
+
+		public MsgPillage(ID unitID) {
+			this.unitID = unitID;
+		}
+
+		protected override void ProcessAllowed() {
+			MapUnit unit = SendersUnit(unitID);
+			if (unit != null && unit.Pillage() && unit.owner.isHuman) {
+				new MsgUnitMoved(unit).send();
+			}
+		}
+	}
+
 	public class MsgMoveUnit : MessageToEngine {
 		public ID unitID;
 		public TileDirection dir;
@@ -267,6 +317,7 @@ namespace C7Engine {
 			Player player = Sender;
 			Government transitionGovt = gD.governments.Find(x => x.transitionType);
 			player.government = transitionGovt;
+			player.ApplyGovernmentRateCap();
 			player.inAnarchyUntilTurn = gD.turn + player.GetTurnsOfAnarchyForTransition(gD);
 
 			// Update the domestic advisor once we know how long the anarchy is.
@@ -287,6 +338,7 @@ namespace C7Engine {
 				return;
 			}
 			player.government = government;
+			player.ApplyGovernmentRateCap();
 		}
 	}
 
@@ -322,7 +374,7 @@ namespace C7Engine {
 			if (IsSendersCity(city)) {
 				foreach (IProducible producible in city.ListProductionOptions(EngineStorage.gameData)) {
 					if (producible.name == producibleName) {
-						city.ChooseProduction(producible);
+						city.ChangeProduction(producible);
 						new MsgCityChanged(city).send();
 						break;
 					}
@@ -510,14 +562,21 @@ namespace C7Engine {
 		}
 
 		// Decreasing is easier, we decrease the requested slider and bump
-		// up the tax rate.
+		// up the tax rate, or the other slider if tax is at the government's
+		// rate cap.
 		private static void LessScience(Player player) {
 			if (player.scienceRate == player.minScienceRate) {
 				return;
 			}
 
+			if (player.taxRate < player.maxRate) {
+				player.taxRate++;
+			} else if (player.luxuryRate < player.maxLuxuryRate) {
+				player.luxuryRate++;
+			} else {
+				return;
+			}
 			player.scienceRate--;
-			player.taxRate++;
 		}
 
 		private static void LessLuxury(Player player) {
@@ -525,8 +584,14 @@ namespace C7Engine {
 				return;
 			}
 
+			if (player.taxRate < player.maxRate) {
+				player.taxRate++;
+			} else if (player.scienceRate < player.maxScienceRate) {
+				player.scienceRate++;
+			} else {
+				return;
+			}
 			player.luxuryRate--;
-			player.taxRate++;
 		}
 	}
 

@@ -460,7 +460,15 @@ namespace C7GameData {
 				VictoryLocations = game.VictoryLocations,
 				CaptureTheFlag = game.CaptureTheFlag, // 'Capture the Unit', 'Capture the Princess'
 				ReverseCaptureTheFlag = game.ReverseCaptureTheFlag,
+
 			};
+			// Keep the defaults if the game doesn't set the thresholds.
+			if (game.DominationTerrain > 0) {
+				save.VictoryConditions.DominationTerritoryPercent = game.DominationTerrain;
+			}
+			if (game.DominationPopulation > 0) {
+				save.VictoryConditions.DominationPopulationPercent = game.DominationPopulation;
+			}
 
 			if (game.Winner > -1) {
 				// TODO: load winner
@@ -1369,6 +1377,9 @@ namespace C7GameData {
 			if (prto.Automate) yield return UnitAction.Automate;
 			if (prto.Load) yield return UnitAction.Load;
 			if (prto.Unload) yield return UnitAction.Unload;
+			if (prto.UpgradeUnit) yield return UnitAction.Upgrade;
+			if (prto.Pillage) yield return UnitAction.Pillage;
+			if (prto.Sentry) yield return UnitAction.Sentry;
 		}
 
 		private static IEnumerable<TerraformKey> GetUnitTerraforms(PRTO prto) {
@@ -1442,6 +1453,10 @@ namespace C7GameData {
 				if (prto.LethalSeaBombardment) prototype.flags.Add(SaveUnitPrototype.Flag.LethalSeaBombardment);
 				if (prto.Radar) prototype.flags.Add(SaveUnitPrototype.Flag.Radar);
 				if (prto.Army) prototype.flags.Add(SaveUnitPrototype.Flag.Army);
+				if (prto.Blitz) prototype.flags.Add(SaveUnitPrototype.Flag.Blitz);
+				if (prto.Amphibious) prototype.flags.Add(SaveUnitPrototype.Flag.Amphibious);
+				if (prto.ZoneOfControl != 0) prototype.flags.Add(SaveUnitPrototype.Flag.ZoneOfControl);
+				if (prto.StartsGoldenAge) prototype.flags.Add(SaveUnitPrototype.Flag.StartsGoldenAge);
 
 				prototype.actions.UnionWith(GetUnitActions(prto));
 				prototype.terraformActions.UnionWith(GetUnitTerraforms(prto).Select(tfKey => terraformIdByCiv3Key[tfKey]));
@@ -1617,6 +1632,8 @@ namespace C7GameData {
 					combatDefenseBonus=bldg.DefenseBonus / 100.0,
 					maintenanceCost=bldg.MaintenanceCost,
 					numberOfArmiesRequired=bldg.NumberOfArmiesRequired,
+					// Production is stored in 25% steps.
+					productionBonusPercent=bldg.Production * 25,
 				};
 
 				if (bldg.RequiredAdvance != -1) {
@@ -1681,6 +1698,12 @@ namespace C7GameData {
 				(bldg.AllowsBuildArmy, SaveBuilding.Flag.AllowsBuildArmy),
 				(bldg.AllowsLargerArmies, SaveBuilding.Flag.AllowsLargerArmies),
 				(bldg.RequiresVictoriousArmy, SaveBuilding.Flag.RequiresVictoriousArmy),
+				(bldg.Plus50PercentResearch, SaveBuilding.Flag.Plus50PercentResearch),
+				(bldg.Plus50PercentLuxury, SaveBuilding.Flag.Plus50PercentLuxury),
+				(bldg.Plus50PercentCommerce, SaveBuilding.Flag.Plus50PercentCommerce),
+				(bldg.AllowsEnemyTerritoryHealing, SaveBuilding.Flag.AllowsEnemyTerritoryHealing),
+				(bldg.ReducesWarWeariness, SaveBuilding.Flag.ReducesWarWeariness),
+				(bldg.ReducedWarWeariness, SaveBuilding.Flag.ReducesWarWearinessEverywhere),
 			}
 			.Where(t => t.Item1)
 			.Select(t => t.Item2);
@@ -2032,6 +2055,8 @@ namespace C7GameData {
 				g.hasTradeBonus = govt.TradeBonus == 1;
 				g.corruptionType = (Government.CorruptionType)govt.Corruption;
 				g.hurryingType = (Government.HurryProductionType)govt.Hurrying;
+				g.rateCap = govt.ScienceRateCap;
+				g.warWeariness = govt.WarWeariness;
 				g.draftLimit = govt.DraftLimit;
 				g.militaryPoliceLimit = govt.MilitaryPoliceLimit;
 				g.workerRate = govt.WorkerRate;
@@ -2076,6 +2101,9 @@ namespace C7GameData {
 			RULE rule = theBiq.Rule[0];
 
 			save.Rules.MaximumResearchTime = rule.MaximumResearchTime;
+			save.Rules.UpgradeCostPerShield = rule.UpgradeCost;
+			save.Rules.MinimumPopulationForWeLoveTheKing = rule.MinimumPopulationForWeLoveTheKing;
+			save.Rules.GoldenAgeDuration = rule.GoldenAgeDuration;
 			save.Rules.MinimumResearchTime = rule.MinimumResearchTime;
 			save.Rules.MaximumLevel1CitySize = rule.MaximumLevel1CitySize;
 			save.Rules.MaximumLevel2CitySize = rule.MaximumLevel2CitySize;

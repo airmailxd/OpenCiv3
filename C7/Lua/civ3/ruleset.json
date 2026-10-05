@@ -859,7 +859,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -940,7 +941,8 @@
         "goto",
         "explore",
         "automate",
-        "load"
+        "load",
+        "sentry"
       ],
       "terraformActions": [
         "Terraform-4",
@@ -1000,7 +1002,10 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade",
+        "pillage",
+        "sentry"
       ]
     },
     {
@@ -1071,7 +1076,9 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "pillage",
+        "sentry"
       ]
     },
     {
@@ -1133,6 +1140,9 @@
         "Maya"
       ],
       "unproducible": false,
+      "flags": [
+        "amphibious"
+      ],
       "categories": [
         "Land"
       ],
@@ -1143,7 +1153,9 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Rubber"
@@ -1208,6 +1220,9 @@
         "Maya"
       ],
       "unproducible": false,
+      "flags": [
+        "zoneOfControl"
+      ],
       "categories": [
         "Land"
       ],
@@ -1218,7 +1233,9 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Oil",
@@ -1299,7 +1316,10 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade",
+        "pillage",
+        "sentry"
       ]
     },
     {
@@ -1373,7 +1393,10 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade",
+        "pillage",
+        "sentry"
       ]
     },
     {
@@ -1445,7 +1468,10 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade",
+        "pillage",
+        "sentry"
       ]
     },
     {
@@ -1517,7 +1543,10 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade",
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Iron"
@@ -1594,7 +1623,10 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade",
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Horses"
@@ -1678,7 +1710,10 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade",
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Horses"
@@ -1754,7 +1789,10 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade",
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Iron"
@@ -1831,7 +1869,10 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade",
+        "pillage",
+        "sentry"
       ]
     },
     {
@@ -1906,7 +1947,10 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade",
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Saltpeter"
@@ -1981,7 +2025,10 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade",
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Horses",
@@ -2060,7 +2107,10 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade",
+        "pillage",
+        "sentry"
       ]
     },
     {
@@ -2120,6 +2170,9 @@
         "Maya"
       ],
       "unproducible": false,
+      "flags": [
+        "zoneOfControl"
+      ],
       "categories": [
         "Land"
       ],
@@ -2130,7 +2183,10 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade",
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Horses",
@@ -2209,7 +2265,10 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade",
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Rubber"
@@ -2276,6 +2335,10 @@
         "Modern Armor"
       ],
       "unproducible": false,
+      "flags": [
+        "blitz",
+        "zoneOfControl"
+      ],
       "categories": [
         "Land"
       ],
@@ -2286,7 +2349,10 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade",
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Oil",
@@ -2352,6 +2418,9 @@
         "Maya"
       ],
       "unproducible": false,
+      "flags": [
+        "zoneOfControl"
+      ],
       "categories": [
         "Land"
       ],
@@ -2362,7 +2431,9 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Oil",
@@ -2428,6 +2499,10 @@
         "Maya"
       ],
       "unproducible": false,
+      "flags": [
+        "blitz",
+        "zoneOfControl"
+      ],
       "categories": [
         "Land"
       ],
@@ -2438,7 +2513,9 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Oil",
@@ -2518,7 +2595,9 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade",
+        "sentry"
       ]
     },
     {
@@ -2595,7 +2674,9 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade",
+        "sentry"
       ],
       "requiredResources": [
         "Iron",
@@ -2675,7 +2756,9 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade",
+        "sentry"
       ]
     },
     {
@@ -2739,7 +2822,8 @@
       "unproducible": false,
       "flags": [
         "rotateBeforeAttack",
-        "radar"
+        "radar",
+        "zoneOfControl"
       ],
       "categories": [
         "Land"
@@ -2752,7 +2836,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ],
       "requiredResources": [
         "Aluminum"
@@ -2831,7 +2916,8 @@
         "fortify",
         "disband",
         "goto",
-        "load"
+        "load",
+        "sentry"
       ],
       "requiredResources": [
         "Aluminum"
@@ -2907,7 +2993,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ],
       "requiredResources": [
         "Aluminum",
@@ -2982,7 +3069,8 @@
         "wait",
         "fortify",
         "disband",
-        "goto"
+        "goto",
+        "sentry"
       ],
       "requiredResources": [
         "Aluminum",
@@ -3064,7 +3152,9 @@
         "disband",
         "goto",
         "explore",
-        "unload"
+        "unload",
+        "upgrade",
+        "sentry"
       ]
     },
     {
@@ -3141,7 +3231,9 @@
         "disband",
         "goto",
         "explore",
-        "unload"
+        "unload",
+        "upgrade",
+        "sentry"
       ]
     },
     {
@@ -3215,7 +3307,8 @@
         "fortify",
         "disband",
         "goto",
-        "explore"
+        "explore",
+        "sentry"
       ],
       "requiredResources": [
         "Iron",
@@ -3297,7 +3390,9 @@
         "disband",
         "goto",
         "explore",
-        "unload"
+        "unload",
+        "upgrade",
+        "sentry"
       ]
     },
     {
@@ -3372,7 +3467,9 @@
         "fortify",
         "disband",
         "goto",
-        "explore"
+        "explore",
+        "upgrade",
+        "sentry"
       ],
       "requiredResources": [
         "Iron",
@@ -3448,7 +3545,8 @@
         "disband",
         "goto",
         "explore",
-        "unload"
+        "unload",
+        "sentry"
       ],
       "requiredResources": [
         "Oil"
@@ -3527,7 +3625,8 @@
         "disband",
         "goto",
         "explore",
-        "unload"
+        "unload",
+        "sentry"
       ],
       "requiredResources": [
         "Oil"
@@ -3601,7 +3700,8 @@
         "fortify",
         "disband",
         "goto",
-        "explore"
+        "explore",
+        "sentry"
       ],
       "requiredResources": [
         "Oil"
@@ -3676,7 +3776,8 @@
         "fortify",
         "disband",
         "goto",
-        "explore"
+        "explore",
+        "sentry"
       ],
       "requiredResources": [
         "Oil"
@@ -3754,7 +3855,8 @@
         "fortify",
         "disband",
         "goto",
-        "explore"
+        "explore",
+        "sentry"
       ],
       "requiredResources": [
         "Oil"
@@ -3820,7 +3922,8 @@
       ],
       "unproducible": false,
       "flags": [
-        "radar"
+        "radar",
+        "zoneOfControl"
       ],
       "categories": [
         "Sea"
@@ -3832,7 +3935,8 @@
         "fortify",
         "disband",
         "goto",
-        "explore"
+        "explore",
+        "sentry"
       ],
       "requiredResources": [
         "Aluminum",
@@ -3911,7 +4015,8 @@
         "disband",
         "goto",
         "explore",
-        "unload"
+        "unload",
+        "sentry"
       ],
       "requiredResources": [
         "Uranium"
@@ -3991,7 +4096,9 @@
         "wait",
         "fortify",
         "disband",
-        "load"
+        "load",
+        "upgrade",
+        "sentry"
       ],
       "requiredResources": [
         "Oil"
@@ -4068,7 +4175,8 @@
         "wait",
         "fortify",
         "disband",
-        "load"
+        "load",
+        "sentry"
       ],
       "requiredResources": [
         "Oil"
@@ -4144,7 +4252,8 @@
         "wait",
         "fortify",
         "disband",
-        "unload"
+        "unload",
+        "sentry"
       ],
       "requiredResources": [
         "Oil",
@@ -4220,7 +4329,9 @@
         "wait",
         "fortify",
         "disband",
-        "load"
+        "load",
+        "upgrade",
+        "sentry"
       ],
       "requiredResources": [
         "Oil",
@@ -4298,7 +4409,8 @@
         "wait",
         "fortify",
         "disband",
-        "load"
+        "load",
+        "sentry"
       ],
       "requiredResources": [
         "Oil",
@@ -4376,7 +4488,8 @@
         "wait",
         "fortify",
         "disband",
-        "load"
+        "load",
+        "sentry"
       ],
       "requiredResources": [
         "Oil",
@@ -4464,7 +4577,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -4538,7 +4652,9 @@
       "unproducible": true,
       "flags": [
         "radar",
-        "army"
+        "army",
+        "blitz",
+        "zoneOfControl"
       ],
       "categories": [
         "Land"
@@ -4550,7 +4666,9 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "pillage",
+        "sentry"
       ]
     },
     {
@@ -4585,6 +4703,9 @@
         "Swordsman"
       ],
       "unproducible": false,
+      "flags": [
+        "startsGoldenAge"
+      ],
       "categories": [
         "Land"
       ],
@@ -4595,7 +4716,10 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade",
+        "pillage",
+        "sentry"
       ]
     },
     {
@@ -4630,6 +4754,9 @@
         "Longbowman"
       ],
       "unproducible": false,
+      "flags": [
+        "startsGoldenAge"
+      ],
       "categories": [
         "Land"
       ],
@@ -4640,7 +4767,10 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade",
+        "pillage",
+        "sentry"
       ]
     },
     {
@@ -4675,6 +4805,9 @@
         "Musketman"
       ],
       "unproducible": false,
+      "flags": [
+        "startsGoldenAge"
+      ],
       "categories": [
         "Land"
       ],
@@ -4685,7 +4818,10 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade",
+        "pillage",
+        "sentry"
       ]
     },
     {
@@ -4720,6 +4856,9 @@
         "Musketman"
       ],
       "unproducible": false,
+      "flags": [
+        "startsGoldenAge"
+      ],
       "categories": [
         "Land"
       ],
@@ -4730,7 +4869,10 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade",
+        "pillage",
+        "sentry"
       ]
     },
     {
@@ -4765,6 +4907,9 @@
         "Medieval Infantry"
       ],
       "unproducible": false,
+      "flags": [
+        "startsGoldenAge"
+      ],
       "categories": [
         "Land"
       ],
@@ -4775,7 +4920,10 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade",
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Iron"
@@ -4813,6 +4961,9 @@
         "Guerilla"
       ],
       "unproducible": false,
+      "flags": [
+        "startsGoldenAge"
+      ],
       "categories": [
         "Land"
       ],
@@ -4823,7 +4974,10 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade",
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Iron"
@@ -4861,6 +5015,9 @@
         "Knight"
       ],
       "unproducible": false,
+      "flags": [
+        "startsGoldenAge"
+      ],
       "categories": [
         "Land"
       ],
@@ -4871,7 +5028,10 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade",
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Horses"
@@ -4909,6 +5069,9 @@
         "Cavalry"
       ],
       "unproducible": false,
+      "flags": [
+        "startsGoldenAge"
+      ],
       "categories": [
         "Land"
       ],
@@ -4919,7 +5082,10 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade",
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Horses",
@@ -4958,6 +5124,9 @@
         "Knight"
       ],
       "unproducible": false,
+      "flags": [
+        "startsGoldenAge"
+      ],
       "categories": [
         "Land"
       ],
@@ -4968,7 +5137,10 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade",
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Horses"
@@ -5006,6 +5178,9 @@
         "Rifleman"
       ],
       "unproducible": false,
+      "flags": [
+        "startsGoldenAge"
+      ],
       "categories": [
         "Land"
       ],
@@ -5016,7 +5191,10 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade",
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Saltpeter"
@@ -5054,6 +5232,9 @@
         "Cavalry"
       ],
       "unproducible": false,
+      "flags": [
+        "startsGoldenAge"
+      ],
       "categories": [
         "Land"
       ],
@@ -5064,7 +5245,10 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade",
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Iron"
@@ -5102,6 +5286,9 @@
         "Cavalry"
       ],
       "unproducible": false,
+      "flags": [
+        "startsGoldenAge"
+      ],
       "categories": [
         "Land"
       ],
@@ -5112,7 +5299,10 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade",
+        "pillage",
+        "sentry"
       ]
     },
     {
@@ -5144,6 +5334,11 @@
         "Russia"
       ],
       "unproducible": false,
+      "flags": [
+        "blitz",
+        "zoneOfControl",
+        "startsGoldenAge"
+      ],
       "categories": [
         "Land"
       ],
@@ -5154,7 +5349,9 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Horses",
@@ -5193,6 +5390,11 @@
         "Modern Armor"
       ],
       "unproducible": false,
+      "flags": [
+        "blitz",
+        "zoneOfControl",
+        "startsGoldenAge"
+      ],
       "categories": [
         "Land"
       ],
@@ -5203,7 +5405,10 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade",
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Oil",
@@ -5240,7 +5445,8 @@
       ],
       "unproducible": false,
       "flags": [
-        "rotateBeforeAttack"
+        "rotateBeforeAttack",
+        "startsGoldenAge"
       ],
       "categories": [
         "Sea"
@@ -5252,7 +5458,8 @@
         "fortify",
         "disband",
         "goto",
-        "explore"
+        "explore",
+        "sentry"
       ],
       "requiredResources": [
         "Iron",
@@ -5290,7 +5497,8 @@
       "unproducible": false,
       "flags": [
         "lethalLandBombardment",
-        "lethalSeaBombardment"
+        "lethalSeaBombardment",
+        "startsGoldenAge"
       ],
       "categories": [
         "Air"
@@ -5300,7 +5508,8 @@
         "wait",
         "fortify",
         "disband",
-        "load"
+        "load",
+        "sentry"
       ],
       "requiredResources": [
         "Oil",
@@ -5378,7 +5587,8 @@
         "fortify",
         "disband",
         "goto",
-        "explore"
+        "explore",
+        "sentry"
       ],
       "requiredResources": [
         "Iron",
@@ -5417,6 +5627,10 @@
         "Cavalry"
       ],
       "unproducible": false,
+      "flags": [
+        "zoneOfControl",
+        "startsGoldenAge"
+      ],
       "categories": [
         "Land"
       ],
@@ -5427,7 +5641,10 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade",
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Horses"
@@ -5462,6 +5679,10 @@
         "Spain"
       ],
       "unproducible": false,
+      "flags": [
+        "zoneOfControl",
+        "startsGoldenAge"
+      ],
       "categories": [
         "Land"
       ],
@@ -5472,7 +5693,10 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade",
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Horses"
@@ -5510,6 +5734,10 @@
         "Guerilla"
       ],
       "unproducible": false,
+      "flags": [
+        "amphibious",
+        "startsGoldenAge"
+      ],
       "categories": [
         "Land"
       ],
@@ -5520,7 +5748,10 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade",
+        "pillage",
+        "sentry"
       ]
     },
     {
@@ -5552,6 +5783,10 @@
         "Ottomans"
       ],
       "unproducible": false,
+      "flags": [
+        "zoneOfControl",
+        "startsGoldenAge"
+      ],
       "categories": [
         "Land"
       ],
@@ -5562,7 +5797,10 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade",
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Horses",
@@ -5601,6 +5839,9 @@
         "Medieval Infantry"
       ],
       "unproducible": false,
+      "flags": [
+        "startsGoldenAge"
+      ],
       "categories": [
         "Land"
       ],
@@ -5611,7 +5852,10 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade",
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Iron"
@@ -5649,6 +5893,9 @@
         "Cavalry"
       ],
       "unproducible": false,
+      "flags": [
+        "startsGoldenAge"
+      ],
       "categories": [
         "Land"
       ],
@@ -5659,7 +5906,10 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade",
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Horses",
@@ -5698,6 +5948,9 @@
         "Musketman"
       ],
       "unproducible": false,
+      "flags": [
+        "startsGoldenAge"
+      ],
       "categories": [
         "Land"
       ],
@@ -5708,7 +5961,10 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade",
+        "pillage",
+        "sentry"
       ]
     },
     {
@@ -5745,7 +6001,8 @@
       "unproducible": false,
       "flags": [
         "lethalLandBombardment",
-        "lethalSeaBombardment"
+        "lethalSeaBombardment",
+        "startsGoldenAge"
       ],
       "categories": [
         "Land"
@@ -5758,7 +6015,9 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade",
+        "sentry"
       ],
       "requiredResources": [
         "Saltpeter"
@@ -5835,7 +6094,10 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade",
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Iron"
@@ -5913,7 +6175,10 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade",
+        "pillage",
+        "sentry"
       ]
     },
     {
@@ -5947,7 +6212,8 @@
       "actions": [
         "hold",
         "wait",
-        "fortify"
+        "fortify",
+        "sentry"
       ]
     },
     {
@@ -5984,7 +6250,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -6021,7 +6288,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -6058,7 +6326,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -6095,7 +6364,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -6132,7 +6402,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -6169,7 +6440,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -6206,7 +6478,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -6243,7 +6516,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -6280,7 +6554,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -6317,7 +6592,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -6354,7 +6630,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -6391,7 +6668,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -6428,7 +6706,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -6465,7 +6744,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -6502,7 +6782,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -6539,7 +6820,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -6576,7 +6858,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -6613,7 +6896,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -6650,7 +6934,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -6687,7 +6972,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -6724,7 +7010,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -6761,7 +7048,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -6798,7 +7086,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -6835,7 +7124,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -6869,6 +7159,9 @@
         "Pikeman"
       ],
       "unproducible": false,
+      "flags": [
+        "startsGoldenAge"
+      ],
       "categories": [
         "Land"
       ],
@@ -6879,7 +7172,10 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade",
+        "pillage",
+        "sentry"
       ]
     },
     {
@@ -6914,6 +7210,9 @@
         "Knight"
       ],
       "unproducible": false,
+      "flags": [
+        "startsGoldenAge"
+      ],
       "categories": [
         "Land"
       ],
@@ -6924,7 +7223,10 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade",
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Horses"
@@ -6964,7 +7266,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -7001,7 +7304,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -7038,7 +7342,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -7074,7 +7379,8 @@
       ],
       "unproducible": false,
       "flags": [
-        "rotateBeforeAttack"
+        "rotateBeforeAttack",
+        "startsGoldenAge"
       ],
       "categories": [
         "Sea"
@@ -7086,7 +7392,9 @@
         "disband",
         "goto",
         "explore",
-        "unload"
+        "unload",
+        "upgrade",
+        "sentry"
       ]
     },
     {
@@ -7121,6 +7429,9 @@
         "Rifleman"
       ],
       "unproducible": false,
+      "flags": [
+        "startsGoldenAge"
+      ],
       "categories": [
         "Land"
       ],
@@ -7131,7 +7442,10 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade",
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Iron"
@@ -7171,7 +7485,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -7247,7 +7562,9 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade",
+        "sentry"
       ]
     },
     {
@@ -7284,7 +7601,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -7321,7 +7639,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -7358,7 +7677,8 @@
         "fortify",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     },
     {
@@ -7392,6 +7712,9 @@
         "Explorer"
       ],
       "unproducible": false,
+      "flags": [
+        "startsGoldenAge"
+      ],
       "categories": [
         "Land"
       ],
@@ -7402,7 +7725,10 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade",
+        "pillage",
+        "sentry"
       ]
     },
     {
@@ -7437,6 +7763,9 @@
         "Longbowman"
       ],
       "unproducible": false,
+      "flags": [
+        "startsGoldenAge"
+      ],
       "categories": [
         "Land"
       ],
@@ -7447,7 +7776,10 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade",
+        "pillage",
+        "sentry"
       ]
     },
     {
@@ -7483,7 +7815,8 @@
       ],
       "unproducible": false,
       "flags": [
-        "lethalSeaBombardment"
+        "lethalSeaBombardment",
+        "startsGoldenAge"
       ],
       "categories": [
         "Sea"
@@ -7496,7 +7829,9 @@
         "disband",
         "goto",
         "explore",
-        "unload"
+        "unload",
+        "upgrade",
+        "sentry"
       ]
     },
     {
@@ -7574,7 +7909,9 @@
         "fortify",
         "disband",
         "goto",
-        "explore"
+        "explore",
+        "upgrade",
+        "sentry"
       ],
       "requiredResources": [
         "Oil"
@@ -7615,7 +7952,9 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "pillage",
+        "sentry"
       ],
       "terraformActions": [
         "Terraform-3"
@@ -7656,7 +7995,9 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "pillage",
+        "sentry"
       ]
     },
     {
@@ -7734,7 +8075,9 @@
         "fortify",
         "disband",
         "goto",
-        "explore"
+        "explore",
+        "upgrade",
+        "sentry"
       ]
     },
     {
@@ -7799,6 +8142,9 @@
         "Modern Paratrooper"
       ],
       "unproducible": false,
+      "flags": [
+        "zoneOfControl"
+      ],
       "categories": [
         "Land"
       ],
@@ -7809,7 +8155,10 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade",
+        "pillage",
+        "sentry"
       ],
       "requiredResources": [
         "Oil",
@@ -7885,7 +8234,9 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "pillage",
+        "sentry"
       ]
     },
     {
@@ -7960,7 +8311,9 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "upgrade",
+        "sentry"
       ]
     },
     {
@@ -8032,7 +8385,8 @@
         "disband",
         "goto",
         "explore",
-        "load"
+        "load",
+        "sentry"
       ]
     }
   ],
@@ -8114,7 +8468,8 @@
       "maintenanceCost": 1,
       "iconRowIndex": 4,
       "flags": [
-        "increasesLuxuryTrade"
+        "increasesLuxuryTrade",
+        "plus50PercentCommerce"
       ],
       "traits": [
         "commercial"
@@ -8131,6 +8486,9 @@
       "combatDefenseBonus": 0,
       "maintenanceCost": 1,
       "iconRowIndex": 5,
+      "flags": [
+        "plus50PercentResearch"
+      ],
       "traits": [
         "scientific"
       ]
@@ -8205,6 +8563,9 @@
       "combatDefenseBonus": 0,
       "maintenanceCost": 1,
       "iconRowIndex": 9,
+      "flags": [
+        "plus50PercentCommerce"
+      ],
       "traits": [
         "commercial"
       ]
@@ -8237,6 +8598,9 @@
       "combatDefenseBonus": 0,
       "maintenanceCost": 2,
       "iconRowIndex": 11,
+      "flags": [
+        "plus50PercentResearch"
+      ],
       "traits": [
         "scientific"
       ]
@@ -8263,6 +8627,7 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 3,
+      "productionBonusPercent": 50,
       "iconRowIndex": 13,
       "requiredResources": [
         "Iron"
@@ -8279,6 +8644,7 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 3,
+      "productionBonusPercent": 50,
       "iconRowIndex": 14
     },
     {
@@ -8307,6 +8673,7 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 3,
+      "productionBonusPercent": 50,
       "iconRowIndex": 16,
       "requiredResources": [
         "Coal"
@@ -8323,6 +8690,7 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 3,
+      "productionBonusPercent": 50,
       "iconRowIndex": 17,
       "flags": [
         "mustBeNearRiver"
@@ -8342,6 +8710,7 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 3,
+      "productionBonusPercent": 100,
       "iconRowIndex": 18,
       "requiredResources": [
         "Uranium"
@@ -8377,6 +8746,9 @@
       "combatDefenseBonus": 0,
       "maintenanceCost": 2,
       "iconRowIndex": 20,
+      "flags": [
+        "plus50PercentResearch"
+      ],
       "traits": [
         "scientific"
       ]
@@ -8451,6 +8823,7 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 3,
+      "productionBonusPercent": 50,
       "iconRowIndex": 24,
       "traits": [
         "agricultural"
@@ -8540,7 +8913,8 @@
       "maintenanceCost": 2,
       "iconRowIndex": 28,
       "flags": [
-        "reducesCorruption"
+        "reducesCorruption",
+        "reducesWarWeariness"
       ]
     },
     {
@@ -8855,6 +9229,9 @@
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
       "iconRowIndex": 46,
+      "flags": [
+        "reducesWarWearinessEverywhere"
+      ],
       "traits": [
         "agricultural"
       ]
@@ -9012,6 +9389,7 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
+      "productionBonusPercent": 100,
       "iconRowIndex": 55,
       "requiredResources": [
         "Iron",
@@ -9145,6 +9523,9 @@
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
       "iconRowIndex": 63,
+      "flags": [
+        "allowsEnemyTerritoryHealing"
+      ],
       "traits": [
         "militaristic"
       ]
@@ -9354,6 +9735,9 @@
       "combatDefenseBonus": 0,
       "maintenanceCost": 3,
       "iconRowIndex": 76,
+      "flags": [
+        "plus50PercentCommerce"
+      ],
       "traits": [
         "commercial"
       ]
@@ -11248,7 +11632,10 @@
     "radarTileVisibility": 2,
     "allowUnloadFromArmy": false,
     "citiesNeededToSupportAnArmy": 4,
-    "buildArmyUnit": "Army"
+    "buildArmyUnit": "Army",
+    "minimumPopulationForWeLoveTheKing": 6,
+    "goldenAgeDuration": 20,
+    "upgradeCostPerShield": 3
   },
   "timeOptions": {
     "baseUnit": "years",
@@ -12680,6 +13067,8 @@
       "transitionType": true,
       "corruptionType": "catastrophic",
       "hurryingType": "cannotHurry",
+      "rateCap": 10,
+      "warWeariness": 0,
       "draftLimit": 0,
       "militaryPoliceLimit": 0,
       "workerRate": 1,
@@ -12699,6 +13088,8 @@
       "transitionType": false,
       "corruptionType": "rampant",
       "hurryingType": "forcedLabor",
+      "rateCap": 10,
+      "warWeariness": 0,
       "draftLimit": 2,
       "militaryPoliceLimit": 2,
       "workerRate": 2,
@@ -12719,6 +13110,8 @@
       "transitionType": false,
       "corruptionType": "problematic",
       "hurryingType": "paidLabor",
+      "rateCap": 10,
+      "warWeariness": 0,
       "draftLimit": 2,
       "militaryPoliceLimit": 3,
       "workerRate": 2,
@@ -12739,6 +13132,8 @@
       "transitionType": false,
       "corruptionType": "communal",
       "hurryingType": "forcedLabor",
+      "rateCap": 10,
+      "warWeariness": 0,
       "draftLimit": 2,
       "militaryPoliceLimit": 4,
       "workerRate": 2,
@@ -12759,6 +13154,8 @@
       "transitionType": false,
       "corruptionType": "nuisance",
       "hurryingType": "paidLabor",
+      "rateCap": 10,
+      "warWeariness": 1,
       "draftLimit": 1,
       "militaryPoliceLimit": 0,
       "workerRate": 2,
@@ -12779,6 +13176,8 @@
       "transitionType": false,
       "corruptionType": "minimal",
       "hurryingType": "paidLabor",
+      "rateCap": 10,
+      "warWeariness": 2,
       "draftLimit": 1,
       "militaryPoliceLimit": 0,
       "workerRate": 3,
@@ -12799,6 +13198,8 @@
       "transitionType": false,
       "corruptionType": "nuisance",
       "hurryingType": "forcedLabor",
+      "rateCap": 10,
+      "warWeariness": 0,
       "draftLimit": 2,
       "militaryPoliceLimit": 4,
       "workerRate": 4,
@@ -12819,6 +13220,8 @@
       "transitionType": false,
       "corruptionType": "problematic",
       "hurryingType": "forcedLabor",
+      "rateCap": 10,
+      "warWeariness": 1,
       "draftLimit": 2,
       "militaryPoliceLimit": 3,
       "workerRate": 2,

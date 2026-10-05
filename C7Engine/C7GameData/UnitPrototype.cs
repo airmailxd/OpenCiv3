@@ -19,7 +19,12 @@ namespace C7GameData {
 		Explore,
 		Automate,
 		Load,
-		Unload
+		Unload,
+		Upgrade,
+		Pillage,
+		Sentry,
+		// Not a BIQ ability; available to any unit that can sentry.
+		SentryEnemyOnly,
 	}
 
 	public struct ItemContext(UnitPrototype proto, Player player) {
@@ -100,6 +105,46 @@ namespace C7GameData {
 					flags.Add(SaveUnitPrototype.Flag.LethalSeaBombardment);
 				} else {
 					flags.Remove(SaveUnitPrototype.Flag.LethalSeaBombardment);
+				}
+			}
+		}
+		public bool hasBlitz {
+			get => flags.Contains(SaveUnitPrototype.Flag.Blitz);
+			set {
+				if (value) {
+					flags.Add(SaveUnitPrototype.Flag.Blitz);
+				} else {
+					flags.Remove(SaveUnitPrototype.Flag.Blitz);
+				}
+			}
+		}
+		public bool isAmphibious {
+			get => flags.Contains(SaveUnitPrototype.Flag.Amphibious);
+			set {
+				if (value) {
+					flags.Add(SaveUnitPrototype.Flag.Amphibious);
+				} else {
+					flags.Remove(SaveUnitPrototype.Flag.Amphibious);
+				}
+			}
+		}
+		public bool hasZoneOfControl {
+			get => flags.Contains(SaveUnitPrototype.Flag.ZoneOfControl);
+			set {
+				if (value) {
+					flags.Add(SaveUnitPrototype.Flag.ZoneOfControl);
+				} else {
+					flags.Remove(SaveUnitPrototype.Flag.ZoneOfControl);
+				}
+			}
+		}
+		public bool startsGoldenAge {
+			get => flags.Contains(SaveUnitPrototype.Flag.StartsGoldenAge);
+			set {
+				if (value) {
+					flags.Add(SaveUnitPrototype.Flag.StartsGoldenAge);
+				} else {
+					flags.Remove(SaveUnitPrototype.Flag.StartsGoldenAge);
 				}
 			}
 		}
