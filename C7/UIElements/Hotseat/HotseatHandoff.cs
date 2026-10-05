@@ -20,11 +20,13 @@ public partial class HotseatHandoff : ColorRect {
 	public override void _Ready() {
 		Color = Colors.Black;
 		MouseFilter = MouseFilterEnum.Stop;
-		SetAnchorsPreset(LayoutPreset.FullRect);
+		// SetAnchorsPreset alone would keep this control's initial 0x0 size;
+		// the offsets also need resetting for it to fill the screen.
+		SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
 
 		CenterContainer center = new();
-		center.SetAnchorsPreset(LayoutPreset.FullRect);
 		AddChild(center);
+		center.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
 
 		VBoxContainer box = new();
 		box.AddThemeConstantOverride("separation", 24);
