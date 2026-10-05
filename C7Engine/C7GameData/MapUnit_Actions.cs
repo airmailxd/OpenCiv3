@@ -462,7 +462,7 @@ public partial class MapUnit {
 
 		// When an army rotates in another member, the odds change with it.
 		void UpdateOdds() {
-			attackerStrength = attackingMember.unitType.attack  * attackMultiplier;
+			attackerStrength = attackingMember.unitType.attack * attackMultiplier;
 			defenderStrength = defendingMember.unitType.defense * defenseMultiplier;
 			attackerOdds = attackerStrength / (attackerStrength + defenderStrength);
 			if (Double.IsNaN(attackerOdds))
