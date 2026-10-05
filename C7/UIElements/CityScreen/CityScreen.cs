@@ -17,8 +17,24 @@ public partial class CityScreen : Control {
 	public TileAssignmentLayer tileAssignmentLayer;
 	public MapView mapView;
 	public List<CitizenType> citizenTypes;
+	// The pop heads and their effect icons are kept and reused from one
+	// render to the next; those not needed are hidden. Effects go in a layer
+	// above the heads.
 	private List<TextureButton> popHeads = new();
 	private List<TextureRect> popHeadEffects = new();
+	private Control popHeadLayer;
+	private Control popHeadEffectLayer;
+	private int headsUsed = 0;
+	private int effectsUsed = 0;
+	// For each pop head, the specialist it cycles when pressed, if any.
+	private readonly Dictionary<TextureButton, (City city, int residentIndex)> specialistOfHead = new();
+
+	// The rows of the strategic resources, luxuries and buildings lists, also
+	// reused and hidden when not needed.
+	private readonly List<(VBoxContainer box, TextureRect rect, Label label)> strategicResourceRows = new();
+	private readonly List<(HBoxContainer box, Label label, TextureRect rect)> luxuryRows = new();
+	private readonly List<Label> buildingLabels = new();
+	private bool listsCleared = false;
 
 	private const int POP_HEAD_OFFSET_Y = 433;
 	private const string LUXURIES = "luxuries";
@@ -178,6 +194,13 @@ public partial class CityScreen : Control {
 		foodRowCanvas = AddIconCanvas(foodRowContainer);
 		foodRowCanvas.SetAnchorsPreset(LayoutPreset.FullRect);
 
+		// Above everything else on the background, as the heads used to be
+		// added last.
+		popHeadLayer = new Control() { MouseFilter = MouseFilterEnum.Ignore };
+		background.AddChild(popHeadLayer);
+		popHeadEffectLayer = new Control() { MouseFilter = MouseFilterEnum.Ignore };
+		background.AddChild(popHeadEffectLayer);
+
 		RenderShieldBox(shieldCost: 30, shieldsInBox: 15);
 		RenderShieldRow(goodShields: 10, corruptShields: 3);
 		RenderFoodBox(foodNeededToGrow: 20, foodStored: 10, foodLostPerTurn: 2, hasGranary: true);
@@ -278,76 +301,100 @@ public partial class CityScreen : Control {
 		tileAssignmentLayer.city = null;
 	}
 
+	// The lists' containers may come with placeholder children from the
+	// scene; clear them out once, before the first rows are made.
+	private void ClearListPlaceholders() {
+		if (listsCleared) {
+			return;
+		}
+		listsCleared = true;
+		foreach (Container container in new Container[] { strategicResources, luxuriesContainer, existingBuildings }) {
+			foreach (Node child in container.GetChildren()) {
+				container.RemoveChild(child);
+				child.QueueFree();
+			}
+		}
+	}
+
 	private void RenderStrategicResources(GameData gameData, City city) {
 		Dictionary<C7GameData.Resource, int> resourceCounter = city.GetStrategicResources(gameData);
+		ClearListPlaceholders();
 
-		foreach (var child in strategicResources.GetChildren()) {
-			strategicResources.RemoveChild(child);
-			child.QueueFree();
-		}
-
+		int index = 0;
 		foreach ((C7GameData.Resource resource, int count) in resourceCounter) {
-			VBoxContainer resourceContainer = new();
-			resourceContainer.AddThemeConstantOverride("separation", 0);
+			if (index == strategicResourceRows.Count) {
+				VBoxContainer resourceContainer = new();
+				resourceContainer.AddThemeConstantOverride("separation", 0);
 
-			// Shown at 45x45, as if the texture's size were overridden.
-			TextureRect resourceRect = new() {
-				Texture = TextureLoader.Load("resources.large", resource, useCache: true),
-				ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-				CustomMinimumSize = new Vector2(45, 45),
-			};
+				// Shown at 45x45, as if the texture's size were overridden.
+				TextureRect resourceRect = new() {
+					ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+					CustomMinimumSize = new Vector2(45, 45),
+				};
 
-			Label resourceLabel = new() {
-				Text = count.ToString(),
-				HorizontalAlignment = HorizontalAlignment.Center
-			};
+				Label resourceLabel = new() {
+					HorizontalAlignment = HorizontalAlignment.Center
+				};
 
-			resourceContainer.AddChild(resourceRect);
-			resourceContainer.AddChild(resourceLabel);
+				resourceContainer.AddChild(resourceRect);
+				resourceContainer.AddChild(resourceLabel);
 
-			strategicResources.AddChild(resourceContainer);
+				strategicResources.AddChild(resourceContainer);
+				strategicResourceRows.Add((resourceContainer, resourceRect, resourceLabel));
+			}
+			var row = strategicResourceRows[index++];
+			row.rect.Texture = TextureLoader.Load("resources.large", resource, useCache: true);
+			row.label.Text = count.ToString();
+			row.box.Show();
+		}
+		for (int i = index; i < strategicResourceRows.Count; ++i) {
+			strategicResourceRows[i].box.Hide();
 		}
 	}
 
 	private void RenderLuxuries(GameData gameData, City city) {
 		Dictionary<C7GameData.Resource, int> resourceCounter = city.GetLuxuries(gameData);
+		ClearListPlaceholders();
 
-		foreach (var child in luxuriesContainer.GetChildren()) {
-			luxuriesContainer.RemoveChild(child);
-			child.QueueFree();
-		}
-
+		int index = 0;
 		foreach ((C7GameData.Resource resource, int count) in resourceCounter) {
-			HBoxContainer resourceContainer = new();
+			if (index == luxuryRows.Count) {
+				HBoxContainer resourceContainer = new();
+				Label resourceCount = new();
+				TextureRect resourceRect = new();
 
-			Label resourceCount = new() {
-				Text = "(" + count.ToString() + ")"
-			};
+				resourceContainer.AddChild(resourceCount);
+				resourceContainer.AddChild(resourceRect);
 
-			var texture = TextureLoader.Load("resources.small", resource, useCache: true);
-
-			TextureRect resourceRect = new() {
-				Texture = texture,
-			};
-
-			resourceContainer.AddChild(resourceCount);
-			resourceContainer.AddChild(resourceRect);
-
-			luxuriesContainer.AddChild(resourceContainer);
+				luxuriesContainer.AddChild(resourceContainer);
+				luxuryRows.Add((resourceContainer, resourceCount, resourceRect));
+			}
+			var row = luxuryRows[index++];
+			row.label.Text = "(" + count.ToString() + ")";
+			row.rect.Texture = TextureLoader.Load("resources.small", resource, useCache: true);
+			row.box.Show();
+		}
+		for (int i = index; i < luxuryRows.Count; ++i) {
+			luxuryRows[i].box.Hide();
 		}
 	}
 
 	private void RenderExistingBuildings(List<CityBuilding> buildings) {
-		foreach (var node in existingBuildings.GetChildren()) {
-			existingBuildings.RemoveChild(node);
-			node.QueueFree();
-		}
+		ClearListPlaceholders();
 
+		int index = 0;
 		foreach (CityBuilding building in buildings) {
-			Label label = new() {
-				Text = building.building.name
-			};
-			existingBuildings.AddChild(label);
+			if (index == buildingLabels.Count) {
+				Label newLabel = new();
+				existingBuildings.AddChild(newLabel);
+				buildingLabels.Add(newLabel);
+			}
+			Label label = buildingLabels[index++];
+			label.Text = building.building.name;
+			label.Show();
+		}
+		for (int i = index; i < buildingLabels.Count; ++i) {
+			buildingLabels[i].Hide();
 		}
 	}
 
@@ -374,6 +421,9 @@ public partial class CityScreen : Control {
 
 	private void RenderFoodRow(int foodEatenPerTurn, int foodSurplus) {
 		foodRowCanvas.Clear();
+		if (foodEatenPerTurn + foodSurplus <= 0) {
+			return;
+		}
 
 		int width = (int)foodRowContainer.Size.X;
 		int iconWidth = eatenFoodTexture.GetWidth();
@@ -587,6 +637,10 @@ public partial class CityScreen : Control {
 
 	private void RenderShieldRow(int goodShields, int corruptShields) {
 		shieldRowCanvas.Clear();
+		// E.g. a polluted city center and tiles that make no shields.
+		if (goodShields + corruptShields <= 0) {
+			return;
+		}
 
 		int width = (int)shieldRowContainer.Size.X;
 		int iconWidth = shieldTexture.GetWidth();
@@ -634,19 +688,9 @@ public partial class CityScreen : Control {
 	}
 
 	private void RenderPopHeads(City city) {
-		// Reset any old heads.
-		foreach (TextureButton head in popHeads) {
-			background.RemoveChild(head);
-			head.QueueFree();
-		}
-		// Reset any old head effects.
-		foreach (TextureRect effect in popHeadEffects) {
-			background.RemoveChild(effect);
-			effect.QueueFree();
-		}
-
-		popHeads.Clear();
-		popHeadEffects.Clear();
+		// Reuse the heads and effects already made, hiding any left over.
+		headsUsed = 0;
+		effectsUsed = 0;
 
 		int eraNum = city.owner.EraIndex();
 
@@ -716,22 +760,18 @@ public partial class CityScreen : Control {
 		// TODO: Render the specialist effect (like a smiley for entertainers)
 		// in the corner of the head.
 		foreach (CityResident cr in specialists) {
-			TextureButton tb = new();
+			TextureButton tb = NextPopHead();
 			tb.TextureNormal = PopHead.GetTexture(cr, eraNum);
 			tb.SetPosition(new Vector2(xPos, POP_HEAD_OFFSET_Y));
 
 			int residentIndex = city.residents.IndexOf(cr);
-			tb.Pressed += () => {
-				new MsgCycleSpecialist(city, residentIndex).send();
-			};
-
-			background.AddChild(tb);
+			specialistOfHead[tb] = (city, residentIndex);
 
 			float iconOffset = 0.0f;
 			foreach (KeyValuePair<string, int> entry in GetSpecialistEffectInfo(cr)) {
 				if (!effectIcons.TryGetValue(entry.Key, out ImageTexture texture)) continue;
 				for (int i = 0; i < entry.Value; i++) {
-					TextureRect icon = new();
+					TextureRect icon = NextPopHeadEffect();
 					icon.Texture = texture;
 
 					float iconHalfWidth = icon.Texture.GetWidth() / 2.0f;
@@ -739,8 +779,6 @@ public partial class CityScreen : Control {
 					float iconYPos = tb.Position.Y + PopHead.HEAD_SIZE - 10;
 
 					icon.SetPosition(new Vector2(iconXPos, iconYPos));
-					background.AddChild(icon);
-					popHeadEffects.Add(icon);
 
 					// If multiple effects are applicable we need to
 					// calculate the total offset that comes before each type.
@@ -752,9 +790,45 @@ public partial class CityScreen : Control {
 				}
 			}
 
-			popHeads.Add(tb);
 			xPos += PopHead.HEAD_SIZE;
 		}
+
+		for (int i = headsUsed; i < popHeads.Count; ++i) {
+			popHeads[i].Hide();
+			specialistOfHead.Remove(popHeads[i]);
+		}
+		for (int i = effectsUsed; i < popHeadEffects.Count; ++i) {
+			popHeadEffects[i].Hide();
+		}
+	}
+
+	private TextureButton NextPopHead() {
+		if (headsUsed == popHeads.Count) {
+			TextureButton head = new();
+			// Pressing a specialist cycles it to the next kind.
+			head.Pressed += () => {
+				if (specialistOfHead.TryGetValue(head, out var specialist)) {
+					new MsgCycleSpecialist(specialist.city, specialist.residentIndex).send();
+				}
+			};
+			popHeadLayer.AddChild(head);
+			popHeads.Add(head);
+		}
+		TextureButton tb = popHeads[headsUsed++];
+		specialistOfHead.Remove(tb);
+		tb.Show();
+		return tb;
+	}
+
+	private TextureRect NextPopHeadEffect() {
+		if (effectsUsed == popHeadEffects.Count) {
+			TextureRect effect = new();
+			popHeadEffectLayer.AddChild(effect);
+			popHeadEffects.Add(effect);
+		}
+		TextureRect icon = popHeadEffects[effectsUsed++];
+		icon.Show();
+		return icon;
 	}
 
 	private void SwitchToNextCity() {
@@ -778,11 +852,9 @@ public partial class CityScreen : Control {
 	}
 
 	private int AddDefaultCitizen(CityResident cr, int xPos, int eraNum) {
-		TextureButton tb = new();
+		TextureButton tb = NextPopHead();
 		tb.TextureNormal = PopHead.GetTexture(cr, eraNum);
 		tb.SetPosition(new Vector2(xPos, POP_HEAD_OFFSET_Y));
-		background.AddChild(tb);
-		popHeads.Add(tb);
 		return xPos + PopHead.HEAD_SIZE;
 	}
 
