@@ -123,13 +123,41 @@ namespace C7GameData {
 		public int scienceRate = 5;
 		public int taxRate = 5;
 
-		// These values could be added in the rules or something,
-		// and also synchronised with the HSlider bar in the editor.
-		// For now, I am leaving them hardcoded here.
-		public int maxScienceRate { get; private set; } = 10;
+		// The government caps how high any one slider can go.
+		public int maxRate => Math.Clamp(government?.rateCap ?? 10, 0, 10);
+		public int maxScienceRate => maxRate;
 		public int minScienceRate { get; private set; } = 0;
-		public int maxLuxuryRate { get; private set; } = 10;
+		public int maxLuxuryRate => maxRate;
 		public int minLuxuryRate { get; private set; } = 0;
+
+		// Moves slider points above the government's rate cap to sliders that
+		// still have room, preferring tax, then science, then luxury. If the
+		// cap is too low for the three sliders to add up to 10, the leftover
+		// stays in tax.
+		public void ApplyGovernmentRateCap() {
+			int excess = 0;
+			int Trim(int rate) {
+				if (rate <= maxRate) {
+					return rate;
+				}
+				excess += rate - maxRate;
+				return maxRate;
+			}
+			int Fill(int rate) {
+				int moved = Math.Min(excess, Math.Max(0, maxRate - rate));
+				excess -= moved;
+				return rate + moved;
+			}
+
+			taxRate = Trim(taxRate);
+			scienceRate = Trim(scienceRate);
+			luxuryRate = Trim(luxuryRate);
+
+			taxRate = Fill(taxRate);
+			scienceRate = Fill(scienceRate);
+			luxuryRate = Fill(luxuryRate);
+			taxRate += excess;
+		}
 
 		// The amount of gold this player has.
 		private int _gold = 0;
@@ -781,14 +809,14 @@ namespace C7GameData {
 
 				// If we're under the unit support cap, try lowering our science
 				// budget.
-				if (scienceRate > 0) {
+				if (scienceRate > 0 && taxRate < maxRate) {
 					--scienceRate;
 					++taxRate;
 					continue;
 				}
 
 				// If that wasn't sufficient, go after luxuries.
-				if (luxuryRate > 0) {
+				if (luxuryRate > 0 && taxRate < maxRate) {
 					--luxuryRate;
 					++taxRate;
 					continue;

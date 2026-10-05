@@ -65,6 +65,10 @@ namespace C7GameData {
 		};
 		public HurryProductionType hurryingType;
 
+		// The highest value, in tenths, that any one of the tax, science and
+		// luxury sliders can be set to under this government.
+		public int rateCap = 10;
+
 		public int draftLimit;
 		public int militaryPoliceLimit;
 		public int workerRate;

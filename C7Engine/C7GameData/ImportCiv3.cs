@@ -2024,6 +2024,7 @@ namespace C7GameData {
 				g.hasTradeBonus = govt.TradeBonus == 1;
 				g.corruptionType = (Government.CorruptionType)govt.Corruption;
 				g.hurryingType = (Government.HurryProductionType)govt.Hurrying;
+				g.rateCap = govt.ScienceRateCap;
 				g.draftLimit = govt.DraftLimit;
 				g.militaryPoliceLimit = govt.MilitaryPoliceLimit;
 				g.workerRate = govt.WorkerRate;

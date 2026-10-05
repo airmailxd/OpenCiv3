@@ -175,6 +175,7 @@ namespace C7Engine {
 			GameData gD = EngineStorage.gameData;
 			Government transitionGovt = gD.governments.Find(x => x.transitionType);
 			player.government = transitionGovt;
+			player.ApplyGovernmentRateCap();
 			player.inAnarchyUntilTurn = gD.turn + player.GetTurnsOfAnarchyForTransition(gD);
 
 			// Update the domestic advisor once we know how long the anarchy is.
@@ -193,6 +194,7 @@ namespace C7Engine {
 
 		public override void process() {
 			player.government = government;
+			player.ApplyGovernmentRateCap();
 		}
 	}
 
@@ -355,14 +357,21 @@ namespace C7Engine {
 		}
 
 		// Decreasing is easier, we decrease the requested slider and bump
-		// up the tax rate.
+		// up the tax rate, or the other slider if tax is at the government's
+		// rate cap.
 		private static void LessScience(Player player) {
 			if (player.scienceRate == player.minScienceRate) {
 				return;
 			}
 
+			if (player.taxRate < player.maxRate) {
+				player.taxRate++;
+			} else if (player.luxuryRate < player.maxLuxuryRate) {
+				player.luxuryRate++;
+			} else {
+				return;
+			}
 			player.scienceRate--;
-			player.taxRate++;
 		}
 
 		private static void LessLuxury(Player player) {
@@ -370,8 +379,14 @@ namespace C7Engine {
 				return;
 			}
 
+			if (player.taxRate < player.maxRate) {
+				player.taxRate++;
+			} else if (player.scienceRate < player.maxScienceRate) {
+				player.scienceRate++;
+			} else {
+				return;
+			}
 			player.luxuryRate--;
-			player.taxRate++;
 		}
 	}
 
