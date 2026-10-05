@@ -1,7 +1,5 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.InteropServices;
 using C7GameData;
 
 namespace C7Engine;
@@ -14,30 +12,24 @@ public class BarbarianInteractions {
 		if (activity == BarbarianActivity.None)
 			return 0;
 
-		// A random number of camps will spawn a unit each turn.
+		// Each camp has a chance to spawn a unit each turn, set by the
+		// barbarian activity level.
 		var spawnRate = DetermineSpawnRate(activity);
-		var spawnMeasure = spawnRate * GameData.rng.Next(gameData.map.barbarianCamps.Count);
-		int barbariansToSpawn = (int)Math.Ceiling(spawnMeasure);
+		int barbariansSpawned = 0;
+		foreach (Tile camp in gameData.map.barbarianCamps.ToList()) {
+			if (GameData.rng.NextDouble() >= spawnRate) {
+				continue;
+			}
 
-		// Make the spawn locations random by shuffling a list of camp indexes
-		List<int> tileIndicies = Enumerable.Range(0, gameData.map.barbarianCamps.Count).ToList();
-		GameData.rng.Shuffle<int>(CollectionsMarshal.AsSpan(tileIndicies));
-
-		// Sample barbarian camps
-		var spawningCamps = tileIndicies
-			.Select(i => gameData.map.barbarianCamps[i])
-			.Take(barbariansToSpawn);
-
-		// Spawn a unit
-		foreach (Tile camp in spawningCamps) {
 			UnitPrototype unitType = SelectBarbarianUnitType(gameData.barbarianInfo, camp);
 			Tile tile = SelectSpawnTile(barbPlayer, camp, unitType);
 			if (tile != null) {
 				gameData.SpawnUnit(barbPlayer, unitType, tile);
+				++barbariansSpawned;
 			}
 		}
 
-		return barbariansToSpawn;
+		return barbariansSpawned;
 	}
 
 	/// <summary>
