@@ -18,8 +18,17 @@ public static class ReferenceDecoders {
 		return NoNullMatch.Value;
 	}
 
-	// Original ConvertCiv3Media.Pcx.Load, returning the color indices
+	// The original ConvertCiv3Media.Pcx.Load, returning the color indices, with these corrections:
+	// - all the padding bytes at the end of each line are left out, not just one
+	// - runs past the end of the image are ignored, as is anything after the image data
+	// - the image data ends at the palette, and only 8-bit single plane files with a palette are accepted
 	public static byte[] DecodePcx(byte[] PcxBytes, out int Width, out int Height, out byte[,] Palette) {
+		if (PcxBytes.Length < 0x80 + 769 || PcxBytes[0] != 10 || PcxBytes[2] != 1) {
+			throw new InvalidDataException();
+		}
+		if (PcxBytes[3] != 8 || PcxBytes[0x41] != 1) {
+			throw new NotSupportedException();
+		}
 		int LeftMargin = BitConverter.ToInt16(PcxBytes, 4);
 		int TopMargin = BitConverter.ToInt16(PcxBytes, 6);
 		int RightMargin = BitConverter.ToInt16(PcxBytes, 8);
@@ -28,34 +37,43 @@ public static class ReferenceDecoders {
 
 		Width = RightMargin - LeftMargin + 1;
 		Height = BottomMargin - TopMargin + 1;
+		if (Width <= 0 || Height <= 0 || BytesPerLine < Width) {
+			throw new InvalidDataException();
+		}
 		int PaletteOffset = PcxBytes.Length - 768;
+		if (PcxBytes[PaletteOffset - 1] != 0x0c) {
+			throw new InvalidDataException();
+		}
 
 		Palette = new byte[256, 3];
 		Buffer.BlockCopy(PcxBytes, PaletteOffset, Palette, 0, 768);
 
-		byte[] ColorIndices = new byte[Width * Height];
-
-		bool JunkByte = BytesPerLine > Width;
-
-		for (int ImgIdx = 0, PcxIdx = 0x80, RunLen = 0, LineIdx = 0; ImgIdx < Width * Height;) {
+		// Decode the lines, padding included (except for that of the last line, which isn't needed)
+		int needed = (Height - 1) * BytesPerLine + Width;
+		System.Collections.Generic.List<byte> lines = new();
+		for (int PcxIdx = 0x80; lines.Count < needed;) {
+			if (PcxIdx >= PaletteOffset - 1) {
+				throw new InvalidDataException();
+			}
 			if ((PcxBytes[PcxIdx] & 0xc0) == 0xc0) {
-				RunLen = PcxBytes[PcxIdx] & 0x3f;
-				PcxIdx++;
+				int RunLen = PcxBytes[PcxIdx] & 0x3f;
+				if (PcxIdx + 1 >= PaletteOffset - 1) {
+					throw new InvalidDataException();
+				}
 				for (int j = 0; j < RunLen; j++) {
-					if (!(JunkByte && LineIdx % BytesPerLine == BytesPerLine - 1)) {
-						ColorIndices[ImgIdx] = PcxBytes[PcxIdx];
-						ImgIdx++;
-					}
-					LineIdx++;
+					lines.Add(PcxBytes[PcxIdx + 1]);
 				}
-				PcxIdx++;
+				PcxIdx += 2;
 			} else {
-				if (!(JunkByte && LineIdx % BytesPerLine == BytesPerLine - 1)) {
-					ColorIndices[ImgIdx] = PcxBytes[PcxIdx];
-					ImgIdx++;
-				}
+				lines.Add(PcxBytes[PcxIdx]);
 				PcxIdx++;
-				LineIdx++;
+			}
+		}
+
+		byte[] ColorIndices = new byte[Width * Height];
+		for (int y = 0; y < Height; y++) {
+			for (int x = 0; x < Width; x++) {
+				ColorIndices[y * Width + x] = lines[y * BytesPerLine + x];
 			}
 		}
 		return ColorIndices;

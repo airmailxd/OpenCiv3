@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using ConvertCiv3Media;
 using EngineTests.Utils;
 using QueryCiv3;
@@ -46,6 +47,11 @@ public class MediaDecoderTests {
 	// A PCX file with random run-length-encoded data. Runs may cross line ends, as they do in some files.
 	private static byte[] RandomPcx(Random random, int width, int height, int bytesPerLine, int extraEncodedBytes = 0) {
 		byte[] header = new byte[0x80];
+		header[0] = 10; // ZSoft
+		header[1] = 5; // version
+		header[2] = 1; // run-length encoded
+		header[3] = 8; // bits per pixel
+		header[0x41] = 1; // planes
 		BitConverter.GetBytes((short)5).CopyTo(header, 4); // left
 		BitConverter.GetBytes((short)7).CopyTo(header, 6); // top
 		BitConverter.GetBytes((short)(5 + width - 1)).CopyTo(header, 8);
@@ -66,6 +72,7 @@ public class MediaDecoderTests {
 				written++;
 			}
 		}
+		file.Add(0x0c); // palette marker
 		byte[] palette = new byte[768];
 		random.NextBytes(palette);
 		file.AddRange(palette);
@@ -78,7 +85,7 @@ public class MediaDecoderTests {
 		for (int i = 0; i < 200; i++) {
 			int width = random.Next(1, 70);
 			int height = random.Next(1, 30);
-			// Even widths, odd widths with a junk byte, and padding the original only partly skips
+			// Even widths, odd widths with a padding byte, and more padding
 			int bytesPerLine = random.Next(4) switch {
 				0 => width,
 				1 => width + 1,
@@ -86,7 +93,7 @@ public class MediaDecoderTests {
 				_ => width + (width & 1),
 			};
 			AssertPcxMatchesReference(RandomPcx(random, width, height, bytesPerLine));
-			// Runs past the end of the image (the original throws for these)
+			// Runs past the end of the image, which are ignored
 			AssertPcxMatchesReference(RandomPcx(random, width, height, bytesPerLine, random.Next(1, 100)));
 		}
 	}
@@ -98,6 +105,74 @@ public class MediaDecoderTests {
 		string art = Path.Combine(Civ3Location.GetCiv3Path(), "Art");
 		foreach (string file in Directory.EnumerateFiles(art, "*.pcx", SearchOption.AllDirectories).OrderBy(f => f).Where((f, i) => i % 40 == 0)) {
 			AssertPcxMatchesReference(File.ReadAllBytes(file));
+		}
+	}
+
+	private static Pcx LoadPcx(byte[] file) {
+		string path = TempFile(".pcx");
+		try {
+			File.WriteAllBytes(path, file);
+			return new Pcx(path);
+		} finally {
+			File.Delete(path);
+		}
+	}
+
+	[Fact]
+	public void PcxPaddingIsLeftOut() {
+		// 3 pixels per line, encoded in 6 bytes; a run continues from the first line's padding into the second line
+		byte[] file = RandomPcx(new Random(1), 3, 2, 6);
+		List<byte> data = new(file.AsSpan(0, 0x80).ToArray()) { 1, 2, 3, 9, 9, 0xc3, 7, 8 };
+		data.Add(0x0c);
+		data.AddRange(new byte[768]);
+		Pcx pcx = LoadPcx(data.ToArray());
+		Assert.Equal(new byte[] { 1, 2, 3, 7, 7, 8 }, pcx.ColorIndices);
+	}
+
+	[Fact]
+	public void UnsupportedAndMalformedPcxFilesAreRejected() {
+		Random random = new(10);
+		byte[] valid = RandomPcx(random, 21, 13, 22);
+		LoadPcx(valid);
+
+		byte[] rgb = (byte[])valid.Clone();
+		rgb[0x41] = 3; // 24-bit color
+		Assert.Throws<NotSupportedException>(() => LoadPcx(rgb));
+		byte[] ega = (byte[])valid.Clone();
+		ega[3] = 1; // 1 bit per pixel
+		ega[0x41] = 4;
+		Assert.Throws<NotSupportedException>(() => LoadPcx(ega));
+		byte[] noPalette = (byte[])valid.Clone();
+		noPalette[noPalette.Length - 769] = 0;
+		Assert.Throws<InvalidDataException>(() => LoadPcx(noPalette));
+		Assert.Throws<InvalidDataException>(() => LoadPcx(Encoding.ASCII.GetBytes("BM not a pcx file")));
+		byte[] huge = (byte[])valid.Clone();
+		BitConverter.GetBytes((short)-32768).CopyTo(huge, 4);
+		BitConverter.GetBytes((short)32767).CopyTo(huge, 8);
+		Assert.Throws<InvalidDataException>(() => LoadPcx(huge));
+
+		// Image data cut short (the palette is still at the end)
+		for (int length = 0x80; length < valid.Length - 769; length += 3) {
+			byte[] truncated = valid.AsSpan(0, length).ToArray().Concat(valid.AsSpan(valid.Length - 769).ToArray()).ToArray();
+			Exception e = Record.Exception(() => LoadPcx(truncated));
+			Assert.True(e is InvalidDataException, $"length {length}: {e}");
+		}
+	}
+
+	[SkippableFact]
+	public void UnsupportedCiv3PcxFilesAreRejected() {
+		Skip.If(Civ3TestData.ShouldSkipCiv3DependentTests(), "No Civ3 install found.");
+
+		string root = Civ3Location.GetCiv3Path();
+		foreach ((string name, Type exception) in new[] {
+			("Conquests/Conquests/Sengoku/Art/Leaderheads/mogami lg.pcx", typeof(NotSupportedException)), // 24-bit
+			("Art/Civilopedia/Icons/actions/plantforestlarge.pcx", typeof(NotSupportedException)), // 16 colors
+			("Art/Civilopedia/Icons/menucow.pcx", typeof(InvalidDataException)), // not a PCX file
+		}) {
+			string path = Path.Combine(root, name);
+			if (File.Exists(path)) {
+				Assert.Throws(exception, () => new Pcx(path));
+			}
 		}
 	}
 
