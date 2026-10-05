@@ -26,7 +26,7 @@ namespace C7.Map {
 		private ImageTexture GetBorderTexture(Tile tile, TileDirection dir, Color borderColor) {
 			TextureDetails textureDetails = new() {
 				direction = dir,
-				isHilly = tile.overlayTerrainType.isHilly() && tile.neighbors[dir].overlayTerrainType.isHilly()
+				isHilly = TerrainKinds.Is(tile.overlayTerrainType, TerrainKind.Hilly) && TerrainKinds.Is(tile.neighbors[dir].overlayTerrainType, TerrainKind.Hilly)
 			};
 
 			if (textureCache.TryGetValue((textureDetails, borderColor), out ImageTexture res)) {
@@ -51,13 +51,14 @@ namespace C7.Map {
 			return newTexture;
 		}
 
+		private static readonly TileDirection[] borderDirections = [TileDirection.NORTHEAST, TileDirection.NORTHWEST, TileDirection.SOUTHEAST, TileDirection.SOUTHWEST];
+
 		public override void drawObject(LooseView looseView, GameData gameData, Tile tile, Vector2 tileCenter) {
 			if (tile.owningCity is null) {
 				return;
 			}
 
 			Color borderColor = TextureLoader.LoadColor(tile.owningCity.owner.GetPlayerColor());
-			TileDirection[] borderDirections = [TileDirection.NORTHEAST, TileDirection.NORTHWEST, TileDirection.SOUTHEAST, TileDirection.SOUTHWEST];
 
 			foreach (TileDirection dir in borderDirections) {
 				if (tile.neighbors[dir].owningCity?.owner != tile.owningCity?.owner) {

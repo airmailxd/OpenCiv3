@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using C7GameData;
 using Godot;
 using static C7GameData.Tile.TileOverlays;
@@ -20,9 +19,22 @@ namespace C7.Map {
 		private readonly Vector2 tileSize;
 
 		private int rng = 0;
-		private Dictionary<string, int> rngs = new();
+		// The random texture variant chosen for each tile, by tile and by the per-layer offset given to GetRadomTextureIndex.
+		private readonly Dictionary<(Tile tile, int offset), int> rngs = new();
 
-		FontFile debugFont = new();
+		// Textures for the improvements without special drawing logic, by improvement key.
+		private readonly Dictionary<string, ImageTexture> plainImprovementTextures = new();
+
+		// A tile's improvements sorted by zIndex for drawing. A tile has at most one improvement per layer.
+		private readonly List<TerrainImprovement> sortedImprovements = new();
+
+		private static readonly TileDirection[] allDirections = [
+			TileDirection.NORTH, TileDirection.NORTHEAST, TileDirection.EAST, TileDirection.SOUTHEAST,
+			TileDirection.SOUTH, TileDirection.SOUTHWEST, TileDirection.WEST, TileDirection.NORTHWEST,
+		];
+		private static readonly TileDirection[] diagonalDirections = [
+			TileDirection.NORTHWEST, TileDirection.NORTHEAST, TileDirection.SOUTHEAST, TileDirection.SOUTHWEST,
+		];
 
 		public TileOverlayLayer() {
 			roadTexture = TextureLoader.Load("terrain_improvements.road");
@@ -43,17 +55,32 @@ namespace C7.Map {
 			cratersTexture = TextureLoader.Load("terrain_improvements.craters");
 
 			rng = GameData.rng.Next(0, 5000) * 2 + 1;
+		}
 
-			debugFont = ResourceLoader.Load<FontFile>("res://Fonts/NotoSans-Regular.ttf", null, ResourceLoader.CacheMode.Ignore);
-			debugFont.FixedSize = 12;
+		public override void onGameDataReplaced(GameData gameData) {
+			// Same tile IDs and the same rng give the same choices again.
+			rngs.Clear();
 		}
 
 		public override void drawObject(LooseView looseView, GameData gameData, Tile tile, Vector2 tileCenter) {
+			var improvements = tile.overlays.terrainImprovementByLayer;
+			if (improvements.Count == 0) {
+				return;
+			}
+
 			Rect2 screenTarget = new Rect2(tileCenter - tileSize / 2, tileSize);
 
-			var improvements = tile.overlays.GetImprovements();
+			// Draw in zIndex order, keeping the tile's order for equal zIndexes (a stable insertion sort).
+			sortedImprovements.Clear();
+			foreach (TerrainImprovement ti in improvements.Values) {
+				int i = sortedImprovements.Count;
+				while (i > 0 && sortedImprovements[i - 1].zIndex > ti.zIndex) {
+					--i;
+				}
+				sortedImprovements.Insert(i, ti);
+			}
 
-			foreach (TerrainImprovement ti in improvements.OrderBy(ti => ti.zIndex)) {
+			foreach (TerrainImprovement ti in sortedImprovements) {
 				switch (ti.key) {
 					case IRRIGATION:
 						DrawIrrigation(looseView, tile, screenTarget);
@@ -74,20 +101,41 @@ namespace C7.Map {
 						DrawCraters(looseView, tile, screenTarget);
 						break;
 					default:
-						looseView.DrawTexture(TextureLoader.Load($"terrain_improvements.{ti.key}"), screenTarget.Position);
+						if (!plainImprovementTextures.TryGetValue(ti.key, out ImageTexture texture)) {
+							texture = TextureLoader.Load($"terrain_improvements.{ti.key}");
+							plainImprovementTextures[ti.key] = texture;
+						}
+						looseView.DrawTexture(texture, screenTarget.Position);
 						break;
 				}
 			}
+			sortedImprovements.Clear();
+		}
+
+		// Same as Tile.HasRoad, Tile.HasRailroad and Tile.HasIrrigation, with one dictionary lookup.
+		private static TerrainImprovement ImprovementAt(Tile tile, TerrainImprovement.Layer layer) {
+			tile.overlays.terrainImprovementByLayer.TryGetValue(layer, out TerrainImprovement ti);
+			return ti;
+		}
+
+		// Same as Tile.HasPollution and Tile.HasCraters, without allocating.
+		private static bool HasImprovement(Tile tile, string key) {
+			foreach (TerrainImprovement ti in tile.overlays.terrainImprovementByLayer.Values) {
+				if (ti.key == key) {
+					return true;
+				}
+			}
+			return false;
 		}
 
 		private void DrawIrrigation(LooseView looseView, Tile tile, Rect2 screenTarget) {
 			// Figure out which index into the irrigation texture to use for
-			// this tile.
+			// this tile. Only the diagonal neighbors matter.
 			int irrigationIndex = 0;
-			foreach (KeyValuePair<TileDirection, Tile> dirToTile in tile.neighbors) {
-				var neighbour = dirToTile.Value;
-				if (neighbour.HasIrrigation()) {
-					irrigationIndex |= GetIrrigationFlag(dirToTile.Key);
+			foreach (TileDirection direction in diagonalDirections) {
+				var neighbour = tile.neighbors[direction];
+				if (ImprovementAt(neighbour, TerrainImprovement.Layer.ResourceDevelopment)?.key == IRRIGATION) {
+					irrigationIndex |= GetIrrigationFlag(direction);
 				}
 			}
 
@@ -106,10 +154,10 @@ namespace C7.Map {
 
 		private void DrawRoad(LooseView looseView, Tile tile, Rect2 screenTarget) {
 			int roadIndex = 0;
-			foreach (KeyValuePair<TileDirection, Tile> dirToTile in tile.neighbors) {
-				var neighbour = dirToTile.Value;
-				if (neighbour.HasRoad() || neighbour.HasRailroad()) {
-					roadIndex |= GetRoadFlag(dirToTile.Key);
+			foreach (TileDirection direction in allDirections) {
+				string key = ImprovementAt(tile.neighbors[direction], TerrainImprovement.Layer.Roads)?.key;
+				if (key == ROAD || key == RAILROAD) {
+					roadIndex |= GetRoadFlag(direction);
 				}
 			}
 			looseView.DrawTextureRectRegion(roadTexture, screenTarget, GetRoadRect(roadIndex));
@@ -118,12 +166,12 @@ namespace C7.Map {
 		private void DrawRailRoad(LooseView looseView, Tile tile, Rect2 screenTarget) {
 			int roadIndex = 0;
 			int railroadIndex = 0;
-			foreach (KeyValuePair<TileDirection, Tile> dirToTile in tile.neighbors) {
-				var neighbour = dirToTile.Value;
-				if (neighbour.HasRailroad()) {
-					railroadIndex |= GetRoadFlag(dirToTile.Key);
-				} else if (dirToTile.Value.HasRoad()) {
-					roadIndex |= GetRoadFlag(dirToTile.Key);
+			foreach (TileDirection direction in allDirections) {
+				string key = ImprovementAt(tile.neighbors[direction], TerrainImprovement.Layer.Roads)?.key;
+				if (key == RAILROAD) {
+					railroadIndex |= GetRoadFlag(direction);
+				} else if (key == ROAD) {
+					roadIndex |= GetRoadFlag(direction);
 				}
 			}
 			if (roadIndex != 0) {
@@ -133,7 +181,7 @@ namespace C7.Map {
 		}
 
 		private void DrawRuins(LooseView looseView, Tile tile, Vector2 tileCenter) {
-			int ruinsIndex = GetRadomTextureIndex(tile.Id, 3, RUINS, 0x054F);
+			int ruinsIndex = GetRadomTextureIndex(tile, 3, 0x054F);
 
 			var ruinsSingleTextureSize = new Vector2(167, 95);
 			Rect2 screenRect = new(tileCenter - 0.5f * ruinsSingleTextureSize, ruinsSingleTextureSize);
@@ -143,38 +191,36 @@ namespace C7.Map {
 
 		private void DrawPollution(LooseView looseView, Tile tile, Rect2 screenTarget) {
 			int pollutionIndex = 0;
-			foreach (KeyValuePair<TileDirection, Tile> dirToTile in tile.neighbors) {
-				var neighbour = dirToTile.Value;
-				if (neighbour.HasPollution()) {
-					pollutionIndex |= GetPollutionIndex(dirToTile.Key);
+			foreach (TileDirection direction in diagonalDirections) {
+				if (HasImprovement(tile.neighbors[direction], POLLUTION)) {
+					pollutionIndex |= GetPollutionIndex(direction);
 				}
 			}
 
 			// single tile pollution
 			if (pollutionIndex == 0) {
-				pollutionIndex = GetRadomTextureIndex(tile.Id, 10, POLLUTION, 0x11C8);
+				pollutionIndex = GetRadomTextureIndex(tile, 10, 0x11C8);
 
 				looseView.DrawTextureRectRegion(pollutionTexture, screenTarget, GetPollutionRect(pollutionIndex));
 			} else {
 				looseView.DrawTextureRectRegion(pollutionTexture, screenTarget, GetPollutionRect(pollutionIndex - 1, 2));
 			}
 
-			// debug mask
+			// debug mask (with a FontFile loaded once, with FixedSize = 12)
 			// looseView.DrawString(debugFont, tileCenter, $"{pollutionIndex}", modulate: Colors.Black);
 		}
 
 		private void DrawCraters(LooseView looseView, Tile tile, Rect2 screenTarget) {
 			int cratersIndex = 0;
-			foreach (KeyValuePair<TileDirection, Tile> dirToTile in tile.neighbors) {
-				var neighbour = dirToTile.Value;
-				if (neighbour.HasCraters()) {
-					cratersIndex |= GetCraterIndex(dirToTile.Key);
+			foreach (TileDirection direction in diagonalDirections) {
+				if (HasImprovement(tile.neighbors[direction], CRATERS)) {
+					cratersIndex |= GetCraterIndex(direction);
 				}
 			}
 
 			// single tile crater
 			if (cratersIndex == 0) {
-				cratersIndex = GetRadomTextureIndex(tile.Id, 10, CRATERS, 0x24A5);
+				cratersIndex = GetRadomTextureIndex(tile, 10, 0x24A5);
 
 				looseView.DrawTextureRectRegion(cratersTexture, screenTarget, GetCratersRect(cratersIndex));
 			} else {
@@ -182,20 +228,17 @@ namespace C7.Map {
 			}
 		}
 
-		private int GetRadomTextureIndex(ID id, int variations, string layer, int offset) {
-			int randomTextureIndex = 0;
-			var identifier = $"{id}_{layer}";
-
-			if (rngs.TryGetValue(identifier, out var index)) {
-				randomTextureIndex = index;
-			} else {
-				var rand = new Random(Math.Clamp(int.Parse(id.ToString().Replace("tile-", "")) + offset, int.MinValue, int.MaxValue));
-				var customRng = rng + rand.Next() + rand.Next(0, variations);
-
-				randomTextureIndex = rngs[identifier] = customRng % variations;
+		// Each kind of overlay passes its own offset, so the offset also identifies the kind.
+		private int GetRadomTextureIndex(Tile tile, int variations, int offset) {
+			if (rngs.TryGetValue((tile, offset), out int index)) {
+				return index;
 			}
 
-			return randomTextureIndex;
+			ID id = tile.Id;
+			var rand = new Random(Math.Clamp(int.Parse(id.ToString().Replace("tile-", "")) + offset, int.MinValue, int.MaxValue));
+			var customRng = rng + rand.Next() + rand.Next(0, variations);
+
+			return rngs[(tile, offset)] = customRng % variations;
 		}
 
 		// Returns the rectangle within the road texture for a given index,
