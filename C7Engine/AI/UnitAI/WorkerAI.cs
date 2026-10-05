@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using C7GameData.AIData;
 using C7Engine.AI;
+using C7Engine.AI.UnitAI;
 using Serilog;
 
 namespace C7Engine {
@@ -14,7 +15,14 @@ namespace C7Engine {
 
 		public WorkerAI(WorkerAIData d) {
 			data = d;
+			if (d?.worker != null) {
+				registry.Register(d.worker.owner, this);
+			}
 		}
+
+		// Every WorkerAI created for a player's units, so that we can find the
+		// tiles other workers are heading to without scanning all units.
+		private static readonly UnitAiRegistry<WorkerAI> registry = new(ai => ai.data?.worker);
 
 		// While an AI player's units act, what its workers plan around barely
 		// changes, so it is computed once and shared between them: the tiles
@@ -106,11 +114,11 @@ namespace C7Engine {
 			// Don't send several workers to the same tile: skip tiles another
 			// of our workers is already heading to or working on.
 			HashSet<Tile> reservedTiles = new();
-			foreach (MapUnit u in player.units) {
-				if (u != unit && u.currentAI is WorkerAI otherWorker && otherWorker.data?.destination != null) {
+			registry.ForEachActive(player, otherWorker => {
+				if (otherWorker.data.worker != unit && otherWorker.data.destination != null) {
 					reservedTiles.Add(otherWorker.data.destination);
 				}
-			}
+			});
 
 			WorkerAIData? result = GetPlanToImproveNearestUnimproved(unit, player, highPriorityTiles, reservedTiles);
 			if (result != null) {
@@ -272,8 +280,13 @@ namespace C7Engine {
 				return byDistance != 0 ? byDistance : a.CompareTo(b);
 			});
 
-			// Go through the tiles one distance at a time.
+			// Go through the tiles one distance at a time, skipping tiles the
+			// worker can't get to (e.g. a coastal city's tiles across the
+			// water), or it would never get anything done.
 			List<(Tile tile, Terraform improvement)> options = new();
+			List<double> yields = new();
+			List<Tile> ordered = new();
+			PathingAlgorithm algorithm = null;
 			for (int start = 0; start < order.Length;) {
 				int end = start;
 				while (end < order.Length && distances[order[end]] == distances[order[start]]) {
@@ -293,19 +306,38 @@ namespace C7Engine {
 				}
 
 				if (options.Count > 0) {
-					// Only compute yields when there's a choice to make.
-					(Tile tile, Terraform improvement) best = options[0];
+					// Prefer the best yield, and then the tile listed first. Only
+					// compute yields when there's a choice to make.
 					if (options.Count > 1) {
-						double bestYield = CityTileAssignmentAI.CalculateTileYieldScore(best.tile, 2, player);
-						for (int i = 1; i < options.Count; ++i) {
-							double yield = CityTileAssignmentAI.CalculateTileYieldScore(options[i].tile, 2, player);
-							if (yield > bestYield) {
-								best = options[i];
-								bestYield = yield;
-							}
+						yields.Clear();
+						foreach ((Tile tile, Terraform _) in options) {
+							yields.Add(CityTileAssignmentAI.CalculateTileYieldScore(tile, 2, player));
 						}
+						int[] byYield = new int[options.Count];
+						for (int i = 0; i < byYield.Length; ++i) {
+							byYield[i] = i;
+						}
+						Array.Sort(byYield, (a, b) => {
+							int byScore = yields[b].CompareTo(yields[a]);
+							return byScore != 0 ? byScore : a.CompareTo(b);
+						});
+						List<(Tile, Terraform)> sorted = new(options.Count);
+						foreach (int i in byYield) {
+							sorted.Add(options[i]);
+						}
+						options.Clear();
+						options.AddRange(sorted);
 					}
-					return MakePlan(unit, best.tile, best.improvement);
+
+					ordered.Clear();
+					foreach ((Tile tile, Terraform _) in options) {
+						ordered.Add(tile);
+					}
+					algorithm ??= PathingAlgorithmChooser.GetAlgorithm(unit);
+					int index = algorithm.FindFirstReachable(unit.location, ordered, unit, out TilePath path);
+					if (index >= 0) {
+						return MakePlan(unit, options[index].tile, options[index].improvement, path);
+					}
 				}
 
 				start = end;
@@ -313,16 +345,14 @@ namespace C7Engine {
 			return null;
 		}
 
-		private static WorkerAIData MakePlan(MapUnit unit, Tile destination, Terraform improvement) {
+		private static WorkerAIData MakePlan(MapUnit unit, Tile destination, Terraform improvement, TilePath path) {
 			WorkerAIData result = new () {
 				workerMove = improvement,
 				destination = destination,
+				pathToDestination = path,
+				worker = unit,
 			};
 			log.Information($"Set AI for unit at {unit.location} to {improvement} with destination of " + result.destination);
-
-			PathingAlgorithm algorithm = PathingAlgorithmChooser.GetAlgorithm(unit);
-			result.pathToDestination = algorithm.PathFrom(unit.location, result.destination, unit);
-
 			return result;
 		}
 	}

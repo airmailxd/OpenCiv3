@@ -256,3 +256,51 @@ public sealed class FixAiGameTests : IClassFixture<SaveGameFixture>, IDisposable
 		Assert.Equal(C7GameData.UnitAI.Result.Done, result);
 	}
 }
+
+public sealed class FixAiWorkerTests : IClassFixture<SaveGameFixture>, IDisposable {
+	private readonly C7GameData.GameData gameData;
+	private readonly Player player;
+
+	public FixAiWorkerTests(SaveGameFixture fixture) {
+		gameData = fixture.saveGame.ToGameData(fixture.behaviors);
+		EngineStorage.InitializeGameDataForTests(gameData);
+		EngineStorage.animationsEnabled = false;
+		player = gameData.players.First(p => !p.isBarbarians && !p.isHuman && p.units.Any(u => u.unitType.isSettler));
+	}
+
+	public void Dispose() {
+		while (EngineStorage.TryDequeueNextMessageToUI(out _)) { }
+	}
+
+	// A coastal city whose only other land is a tile across the water: the
+	// worker can't get there, so it must not be sent there.
+	[Fact]
+	public void WorkersSkipTilesTheyCantReach() {
+		MapUnit settler = player.units.First(u => u.unitType.isSettler);
+		Tile site = settler.location;
+		TerrainType coast = gameData.terrainTypes.First(t => t.Key == "coast");
+		TerrainType grassland = gameData.terrainTypes.First(t => t.Key == "grassland");
+		Tile island = site.GetTilesWithinTileSquare(2).First(t => t != Tile.NONE && t.DistanceTo(site) == 2);
+		foreach (Tile t in site.GetTilesWithinTileSquare(4)) {
+			if (t == Tile.NONE || t == site) {
+				continue;
+			}
+			TerrainType terrain = t == island ? grassland : coast;
+			t.baseTerrainType = terrain;
+			t.overlayTerrainType = terrain;
+			t.Resource = Resource.NONE;
+			foreach (MapUnit u in t.unitsOnTile.ToList()) {
+				gameData.RemoveUnit(u);
+			}
+		}
+		gameData.map.recomputeContinents();
+		Assert.NotEqual(site.continent, island.continent);
+
+		City city = CityInteractions.BuildCity(site, player, player.GetNextCityName());
+		city.residents[0].tileWorked = island;
+		MapUnit worker = gameData.SpawnUnit(player, gameData.unitPrototypes.First(p => p.name == "Worker"), site);
+
+		C7GameData.AIData.WorkerAIData plan = WorkerAI.MakeAiData(worker, player);
+		Assert.True(plan == null || plan.destination != island, "the worker was sent across the water");
+	}
+}
