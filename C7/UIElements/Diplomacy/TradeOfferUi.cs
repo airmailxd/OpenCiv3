@@ -9,7 +9,8 @@ using ConvertCiv3Media;
 public partial class TradeOfferUi : Tree {
 	TreeItem peaceTreaty;
 	TreeItem lumpSumGold;
-	List<TreeItem> techs = new();
+	// The tech each technology item stands for.
+	Dictionary<TreeItem, Tech> techs = new();
 	TradeOffer currentOffer;
 	List<Tech> tradeableTechs;
 	int playerGold;
@@ -44,7 +45,7 @@ public partial class TradeOfferUi : Tree {
 			TreeItem child = this.CreateItem(root);
 			child.SetTextAlignment(0, alignment);
 			child.SetText(0, tech.Name);
-			techs.Add(child);
+			techs[child] = tech;
 		}
 
 		RefreshUiForOffer();
@@ -56,8 +57,8 @@ public partial class TradeOfferUi : Tree {
 			ti.Deselect(0);
 
 			// Handle techs being clicked on.
-			if (techs.Contains(ti)) {
-				Tech t = tradeableTechs.Find(x => x.Name == ti.GetText(0));
+			if (techs.TryGetValue(ti, out Tech itemTech)) {
+				Tech t = tradeableTechs.Find(x => x.Name == itemTech.Name);
 				currentOffer.techs.Remove(t);
 			}
 			if (ti == lumpSumGold && mouseButtonIndex != 2) {
@@ -116,8 +117,9 @@ public partial class TradeOfferUi : Tree {
 			lumpSumGold.Visible = false;
 		}
 
-		foreach (TreeItem ti in techs) {
-			ti.Visible = currentOffer.techs.Any(x => x.Name == ti.GetText(0));
+		HashSet<string> offeredTechs = new(currentOffer.techs.Select(x => x.Name));
+		foreach (var (ti, tech) in techs) {
+			ti.Visible = offeredTechs.Contains(tech.Name);
 		}
 
 		if (peaceTreaty != null) {

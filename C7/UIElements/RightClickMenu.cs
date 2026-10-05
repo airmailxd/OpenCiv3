@@ -196,7 +196,7 @@ public partial class RightClickTileMenu : RightClickMenu {
 			bool isFortified = isUnitFortified(unit, uiUpdatedUnitStates);
 			fortifiedCount += isFortified ? 1 : 0;
 			string actionName = getUnitAction(unit, isFortified);
-			var menuItem = AddItem($"{actionName} {unit.Describe()}", () => SelectUnit(unit.id));
+			var menuItem = AddItem($"{actionName} {unit.Describe()}", () => SelectUnit(unit.id, tile.XCoordinate, tile.YCoordinate));
 
 			if (isUnitLoadedOnTransport(unit))
 				ApplyAltItemOverrides(menuItem);
@@ -288,8 +288,19 @@ public partial class RightClickTileMenu : RightClickMenu {
 	}
 
 	public void SelectUnit(ID id) {
+		SelectUnit(id, null, null);
+	}
+
+	// Selects the unit, looking for it first on the tile the menu is for
+	// (rather than among every unit in the game).
+	public void SelectUnit(ID id, int? tileX, int? tileY) {
 		EngineStorage.ReadGameData((GameData gameData) => {
-			MapUnit toSelect = gameData.mapUnits.Find(u => u.id == id);
+			MapUnit toSelect = null;
+			if (tileX.HasValue && tileY.HasValue) {
+				Tile tile = gameData.map.tileAt(tileX.Value, tileY.Value);
+				toSelect = tile?.unitsOnTile.Find(u => u.id == id);
+			}
+			toSelect ??= gameData.GetUnit(id);
 
 			if (toSelect != null && toSelect.owner == game.controller) {
 				game.SelectUnit(toSelect);

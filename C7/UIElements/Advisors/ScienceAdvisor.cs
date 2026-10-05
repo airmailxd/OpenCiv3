@@ -136,6 +136,20 @@ public partial class ScienceAdvisor : Control {
 		}
 		_advisorHead.Texture = AdvisorHead.GetPopupImage(AdvisorHead.Advisor.Science, AdvisorHead.Mood.Happy, player.EraIndex());
 
+		// Work out what every box needs once, rather than per box: the
+		// beakers made per turn, each tech's place in the queue, and what
+		// each tech enables.
+		GameData gameData = EngineStorage.gameData;
+		int beakersPerTurn = ScienceEstimates.BeakersPerTurn(player);
+		Dictionary<Tech, int> queueIndex = new();
+		{
+			int i = 0;
+			foreach (Tech queued in queue) {
+				queueIndex.TryAdd(queued, i++);
+			}
+		}
+		TechEffectLookup effects = TechEffectLookup.For(gameData);
+
 		foreach (Tech tech in allTechs) {
 			if (tech.EraCivilopediaName != eraName) {
 				continue;
@@ -146,7 +160,7 @@ public partial class ScienceAdvisor : Control {
 				techState = TechBox.TechState.kKnown;
 			} else if (player.currentlyResearchedTech == tech.id) {
 				techState = TechBox.TechState.kInProgress;
-			} else if (queue.Count > 0 && queue.Contains(tech)) {
+			} else if (queueIndex.ContainsKey(tech)) {
 				techState = TechBox.TechState.kQueued;
 			} else if (availableTechsToResearch.Contains(tech)) {
 				techState = TechBox.TechState.kPossible;
@@ -154,9 +168,15 @@ public partial class ScienceAdvisor : Control {
 				techState = TechBox.TechState.kBlocked;
 			}
 
-			int queueNumber = queue.ToList().IndexOf(tech) + 1;
+			int queueNumber = queueIndex.TryGetValue(tech, out int index) ? index + 1 : 0;
 
-			TechBox techButton = new(tech, techState, queueNumber);
+			// Only techs in progress or possible to research show an estimate.
+			int? estimatedTurns = null;
+			if (techState is TechBox.TechState.kInProgress or TechBox.TechState.kPossible) {
+				estimatedTurns = ScienceEstimates.TurnsToResearch(gameData, player, tech, beakersPerTurn);
+			}
+
+			TechBox techButton = new(tech, techState, queueNumber, estimatedTurns, effects);
 			techButton.SetPosition(new Vector2(tech.X, tech.Y));
 			techButton.Pressed += () => {
 				SelectionMode selection = Input.IsKeyPressed(Key.Shift) ? SelectionMode.Multi : SelectionMode.Single;

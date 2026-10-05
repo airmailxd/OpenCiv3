@@ -25,11 +25,6 @@ public partial class PalaceView : Control {
 		_close.Pressed += () => { this.GetParent<GameViews>().Hide(); };
 	}
 
-	public override void _Process(double delta) {
-		if (Engine.IsEditorHint()) return;
-		QueueRedraw();
-	}
-
 	public void ShowView() {
 		Show();
 	}

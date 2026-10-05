@@ -88,6 +88,9 @@ public partial class UnitButtons : VBoxContainer {
 		}
 	}
 
+	// The theme for the buttons' tooltips, shared by every button.
+	private Theme tooltipTheme;
+
 	private void AddNewButton(HBoxContainer row, string action) {
 		TextureButton button = new();
 		button.Hide();
@@ -100,10 +103,12 @@ public partial class UnitButtons : VBoxContainer {
 		if (tooltipText != null) {
 			button.TooltipText = tooltipText;
 
-			var customTheme = new Theme();
-			customTheme.SetStylebox("panel", "TooltipPanel", TemporaryPopup.TooltipStyleBox());
-			customTheme.SetColor("font_color", "TooltipLabel", Colors.White);
-			button.Theme = customTheme;
+			if (tooltipTheme == null) {
+				tooltipTheme = new Theme();
+				tooltipTheme.SetStylebox("panel", "TooltipPanel", TemporaryPopup.TooltipStyleBox());
+				tooltipTheme.SetColor("font_color", "TooltipLabel", Colors.White);
+			}
+			button.Theme = tooltipTheme;
 		}
 
 		row.AddChild(button);

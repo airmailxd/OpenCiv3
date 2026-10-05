@@ -13,7 +13,12 @@ public partial class PalaceBuildingsLayer : TextureRect {
 	Dictionary<string, Culture> cultures = [];
 
 	Building pendingBuilding;
+	// Kept sorted by Index, the order they are drawn in.
 	List<Building> assignedBuildings = [];
+	HashSet<int> assignedIndexes = [];
+
+	// The building textures, by path.
+	Dictionary<string, ImageTexture> textures = [];
 
 	public override void _Ready() {
 		base._Ready();
@@ -33,6 +38,9 @@ public partial class PalaceBuildingsLayer : TextureRect {
 		}
 
 		switchButtonContainer.GetChild<TextureButton>(0).ButtonPressed = true;
+
+		// Only redraw when what's shown changes.
+		VisibilityChanged += QueueRedraw;
 	}
 
 	private Dictionary<string, Culture> ParsePalaceView() {
@@ -57,19 +65,41 @@ public partial class PalaceBuildingsLayer : TextureRect {
 		switchButtonContainer.AddChild(button);
 	}
 
-	public override void _Process(double delta) {
-		if (Engine.IsEditorHint()) return;
+	private ImageTexture GetTexture(Building building) {
+		if (!textures.TryGetValue(building.TexturePath, out ImageTexture texture) || !IsInstanceValid(texture)) {
+			texture = TextureLoader.LoadByPath(building.TexturePath);
+			textures[building.TexturePath] = texture;
+		}
+		return texture;
+	}
+
+	private void SetPendingBuilding(Building building) {
+		if (pendingBuilding != building) {
+			pendingBuilding = building;
+			QueueRedraw();
+		}
+	}
+
+	private void AssignBuilding(Building building) {
+		// Insert after any buildings with the same index, as a stable sort
+		// by index would.
+		int i = assignedBuildings.Count;
+		while (i > 0 && assignedBuildings[i - 1].Index > building.Index) {
+			--i;
+		}
+		assignedBuildings.Insert(i, building);
+		assignedIndexes.Add(building.Index);
 		QueueRedraw();
 	}
 
 	public override void _Draw() {
-		foreach (Building b in assignedBuildings.OrderBy(b => b.Index)) {
-			ImageTexture texture = TextureLoader.LoadByPath(b.TexturePath);
+		foreach (Building b in assignedBuildings) {
+			ImageTexture texture = GetTexture(b);
 			DrawTexture(texture, new Vector2(b.X, b.Y));
 		}
 
 		if (pendingBuilding != null) {
-			ImageTexture texture = TextureLoader.LoadByPath(pendingBuilding.TexturePath);
+			ImageTexture texture = GetTexture(pendingBuilding);
 			DrawTexture(texture, new Vector2(pendingBuilding.X, pendingBuilding.Y), new Color(1, 1, 1, 0.45f));
 		}
 
@@ -92,30 +122,28 @@ public partial class PalaceBuildingsLayer : TextureRect {
 			if (pendingBuilding == null) return;
 
 			if (eventMouseButton.ButtonIndex == MouseButton.Left && eventMouseButton.Pressed) {
-				assignedBuildings.Add(pendingBuilding);
-				pendingBuilding = null;
+				AssignBuilding(pendingBuilding);
+				SetPendingBuilding(null);
 			}
 		} else if (@event is InputEventMouseMotion eventMouseMotion) {
 			foreach (Building building in AvailableBuildings()) {
-				ImageTexture texture = TextureLoader.LoadByPath(building.TexturePath);
+				ImageTexture texture = GetTexture(building);
 				Rect2 textureRect = new() {
 					Position = new(building.X, building.Y),
 					Size = texture.GetSize()
 				};
 
 				if (textureRect.HasPoint(eventMouseMotion.Position)) {
-					pendingBuilding = building;
+					SetPendingBuilding(building);
 					return;
 				}
 			}
 
-			pendingBuilding = null;
+			SetPendingBuilding(null);
 		}
 	}
 
 	private IEnumerable<Building> AvailableBuildings() {
-		var assignedIndexes = assignedBuildings.Select(b=> b.Index);
-
 		return cultures[activeCulture].Buildings
 			.Where(b => !assignedIndexes.Contains(b.Index))
 			.Where(b => b.Prerequisites.All(index => assignedIndexes.Contains(index)));

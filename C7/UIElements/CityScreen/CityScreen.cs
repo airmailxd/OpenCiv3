@@ -56,7 +56,7 @@ public partial class CityScreen : Control {
 	[Export] Control foodRowContainer;
 
 	Theme yieldDetailsFontTheme = new();
-	FontFile yieldDetailsFont = new();
+	FontFile yieldDetailsFont;
 
 	private Label foodDetails;
 	private Label productionDetails;
@@ -80,6 +80,14 @@ public partial class CityScreen : Control {
 
 	private Dictionary<string, ImageTexture> effectIcons = new();
 
+	// The shield and food boxes and rows are drawn by one node each, rather
+	// than one TextureRect per icon.
+	private IconCanvas shieldsInBoxCanvas;
+	private IconCanvas foodInBoxCanvas;
+	private IconCanvas foodInGranaryCanvas;
+	private IconCanvas shieldRowCanvas;
+	private IconCanvas foodRowCanvas;
+
 	// Called when the node enters the scene tree for the first time.
 	public override void _Ready() {
 		background.Texture = TextureLoader.Load("city_screen.background");
@@ -94,12 +102,9 @@ public partial class CityScreen : Control {
 		TextureLoader.SetButtonTextures(nextCity, "city_screen.buttons.next");
 		nextCity.Pressed += SwitchToNextCity;
 
-		// Load the font we'll use for the details.
-		//
-		// We skip the cache so that we can change the size without affecting other
-		// code using the same font.
-		yieldDetailsFont = ResourceLoader.Load<FontFile>("res://Fonts/NotoSans-Regular.ttf", null, ResourceLoader.CacheMode.Ignore);
-		yieldDetailsFont.FixedSize = 20;
+		// Load the font we'll use for the details, at a fixed size that doesn't
+		// affect other code using the same font.
+		yieldDetailsFont = FixedSizeFonts.Get("res://Fonts/NotoSans-Regular.ttf", 20);
 
 		yieldDetailsFontTheme.DefaultFont = yieldDetailsFont;
 		yieldDetailsFontTheme.SetColor("font_color", "Label", Colors.Black);
@@ -164,6 +169,14 @@ public partial class CityScreen : Control {
 			{CORRUPTION,  wastedGoldTexture},
 			{CONSTRUCTION,  goodShieldTexture}
 		};
+
+		shieldsInBoxCanvas = AddIconCanvas(shieldsInBoxContainer);
+		foodInBoxCanvas = AddIconCanvas(foodInBoxContainer);
+		foodInGranaryCanvas = AddIconCanvas(foodInGranaryContainer);
+		shieldRowCanvas = AddIconCanvas(shieldRowContainer);
+		shieldRowCanvas.SetAnchorsPreset(LayoutPreset.FullRect);
+		foodRowCanvas = AddIconCanvas(foodRowContainer);
+		foodRowCanvas.SetAnchorsPreset(LayoutPreset.FullRect);
 
 		RenderShieldBox(shieldCost: 30, shieldsInBox: 15);
 		RenderShieldRow(goodShields: 10, corruptShields: 3);
@@ -270,17 +283,18 @@ public partial class CityScreen : Control {
 
 		foreach (var child in strategicResources.GetChildren()) {
 			strategicResources.RemoveChild(child);
+			child.QueueFree();
 		}
 
 		foreach ((C7GameData.Resource resource, int count) in resourceCounter) {
 			VBoxContainer resourceContainer = new();
 			resourceContainer.AddThemeConstantOverride("separation", 0);
 
-			var texture = (ImageTexture)TextureLoader.Load("resources.large", resource, useCache: true).Duplicate();
-			texture.SetSizeOverride(new(45, 45));
-
+			// Shown at 45x45, as if the texture's size were overridden.
 			TextureRect resourceRect = new() {
-				Texture = texture,
+				Texture = TextureLoader.Load("resources.large", resource, useCache: true),
+				ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+				CustomMinimumSize = new Vector2(45, 45),
 			};
 
 			Label resourceLabel = new() {
@@ -300,6 +314,7 @@ public partial class CityScreen : Control {
 
 		foreach (var child in luxuriesContainer.GetChildren()) {
 			luxuriesContainer.RemoveChild(child);
+			child.QueueFree();
 		}
 
 		foreach ((C7GameData.Resource resource, int count) in resourceCounter) {
@@ -325,6 +340,7 @@ public partial class CityScreen : Control {
 	private void RenderExistingBuildings(List<CityBuilding> buildings) {
 		foreach (var node in existingBuildings.GetChildren()) {
 			existingBuildings.RemoveChild(node);
+			node.QueueFree();
 		}
 
 		foreach (CityBuilding building in buildings) {
@@ -357,10 +373,7 @@ public partial class CityScreen : Control {
 	}
 
 	private void RenderFoodRow(int foodEatenPerTurn, int foodSurplus) {
-		foreach (Node child in foodRowContainer.GetChildren()) {
-			foodRowContainer.RemoveChild(child);
-			child.QueueFree();
-		}
+		foodRowCanvas.Clear();
 
 		int width = (int)foodRowContainer.Size.X;
 		int iconWidth = eatenFoodTexture.GetWidth();
@@ -369,17 +382,13 @@ public partial class CityScreen : Control {
 
 		int xOffset = 0;
 		for (int i = 0; i < foodEatenPerTurn; ++i) {
-			TextureRect icon = new() { Texture = eatenFoodTexture };
-			foodRowContainer.AddChild(icon);
-			icon.SetPosition(new Vector2(xOffset, 0));
+			foodRowCanvas.AddIcon(eatenFoodTexture, new Vector2(xOffset, 0));
 			xOffset += Math.Min(spacePerIcon, iconWidth + 10);
 		}
 
 		xOffset = width - iconWidth;
 		for (int i = 0; i < foodSurplus; ++i) {
-			TextureRect icon = new() { Texture = foodTexture };
-			foodRowContainer.AddChild(icon);
-			icon.SetPosition(new Vector2(xOffset, 0));
+			foodRowCanvas.AddIcon(foodTexture, new Vector2(xOffset, 0));
 			xOffset -= Math.Min(spacePerIcon, iconWidth + 10);
 		}
 	}
@@ -393,88 +402,49 @@ public partial class CityScreen : Control {
 	}
 
 	private void RenderFoodBoxNoGranary(int foodNeededToGrow, int foodStored, int foodLostPerTurn) {
-		foreach (Node child in foodInBoxContainer.GetChildren()) {
-			foodInBoxContainer.RemoveChild(child);
-			child.QueueFree();
-		}
-		foreach (Node child in foodInGranaryContainer.GetChildren()) {
-			foodInGranaryContainer.RemoveChild(child);
-			child.QueueFree();
-		}
+		foodInGranaryCanvas.Clear();
+		foodInGranaryCanvas.CustomMinimumSize = Vector2.Zero;
 		granaryLabel.Visible = false;
 		foodInGranaryContainer.Visible = false;
 
 		int width = 120;
 		int height = 180;
 
-		// Hardcode the common 20/40/60 sizes, but support custom rules as well.
-		if (foodNeededToGrow == 20) {
-			foodInBoxContainer.Columns = 2;
-		} else if (foodNeededToGrow == 40) {
-			foodInBoxContainer.Columns = 4;
-		} else if (foodNeededToGrow == 60) {
-			foodInBoxContainer.Columns = 6;
-		} else {
-			foodInBoxContainer.Columns = (int)Math.Ceiling(Math.Sqrt(foodNeededToGrow));
-		}
+		foodInBoxContainer.Columns = FoodBoxColumns(foodNeededToGrow);
 
 		int itemsPerColumn = (int)Math.Ceiling((float)foodNeededToGrow / foodInBoxContainer.Columns);
 		int iconSize = Math.Min(height / itemsPerColumn, width / foodInBoxContainer.Columns);
 
-		int nonEmptySquares = 0;
-		for (int i = 0; i < Math.Min(foodNeededToGrow, foodStored) - foodLostPerTurn; ++i) {
-			foodInBoxContainer.AddChild(new TextureRect() {
-				Texture = foodTexture,
-				ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-				StretchMode = TextureRect.StretchModeEnum.KeepAspect,
-				CustomMinimumSize = new Vector2(iconSize, iconSize),
-			});
-			++nonEmptySquares;
-		}
-		for (int i = 0; i < foodLostPerTurn; ++i) {
-			foodInBoxContainer.AddChild(new TextureRect() {
-				Texture = noFoodTexture,
-				ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-				StretchMode = TextureRect.StretchModeEnum.KeepAspect,
-				CustomMinimumSize = new Vector2(iconSize, iconSize),
-			});
-			++nonEmptySquares;
-		}
-		for (int i = 0; i < foodNeededToGrow - nonEmptySquares; ++i) {
-			foodInBoxContainer.AddChild(new TextureRect() {
-				Texture = emptyFoodTexture,
-				ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-				StretchMode = TextureRect.StretchModeEnum.KeepAspect,
-				CustomMinimumSize = new Vector2(iconSize, iconSize)
-			});
+		int fullSquares = Math.Max(0, Math.Min(foodNeededToGrow, foodStored) - foodLostPerTurn);
+		int lostSquares = Math.Max(0, foodLostPerTurn);
+		int nonEmptySquares = fullSquares + lostSquares;
+		RenderIconGrid(foodInBoxContainer, foodInBoxCanvas, iconSize,
+			(foodTexture, fullSquares),
+			(noFoodTexture, lostSquares),
+			(emptyFoodTexture, foodNeededToGrow - nonEmptySquares));
+	}
+
+	// Hardcode the common 20/40/60 sizes, but support custom rules as well.
+	private static int FoodBoxColumns(int foodNeededToGrow) {
+		if (foodNeededToGrow == 20) {
+			return 2;
+		} else if (foodNeededToGrow == 40) {
+			return 4;
+		} else if (foodNeededToGrow == 60) {
+			return 6;
+		} else {
+			return (int)Math.Ceiling(Math.Sqrt(foodNeededToGrow));
 		}
 	}
 
 	private void RenderFoodBoxWithGranary(int foodNeededToGrow, int foodStored, int foodLostPerTurn) {
-		foreach (Node child in foodInBoxContainer.GetChildren()) {
-			foodInBoxContainer.RemoveChild(child);
-			child.QueueFree();
-		}
-		foreach (Node child in foodInGranaryContainer.GetChildren()) {
-			foodInGranaryContainer.RemoveChild(child);
-			child.QueueFree();
-		}
 		granaryLabel.Visible = true;
 		foodInGranaryContainer.Visible = true;
 
 		int width = 120;
 		int height = 80;
 
-		// Hardcode the common 20/40/60 sizes, but support custom rules as well.
-		if (foodNeededToGrow == 20) {
-			foodInBoxContainer.Columns = 2;
-		} else if (foodNeededToGrow == 40) {
-			foodInBoxContainer.Columns = 4;
-		} else if (foodNeededToGrow == 60) {
-			foodInBoxContainer.Columns = 6;
-		} else {
-			foodInBoxContainer.Columns = (int)Math.Ceiling(Math.Sqrt(foodNeededToGrow));
-		}
+		foodInBoxContainer.Columns = FoodBoxColumns(foodNeededToGrow);
 		foodInGranaryContainer.Columns = foodInBoxContainer.Columns;
 
 		int itemsPerColumn = (int)Math.Ceiling((float)foodNeededToGrow / foodInBoxContainer.Columns) / 2;
@@ -486,52 +456,71 @@ public partial class CityScreen : Control {
 
 		int foodLostInGranaryPerTurn = Math.Max(0, foodLostPerTurn - (foodStored - foodInGranary));
 
-		for (int i = 0; i < foodInGranary - foodLostInGranaryPerTurn; ++i) {
-			foodInGranaryContainer.AddChild(new TextureRect() {
-				Texture = foodTexture,
-				ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-				StretchMode = TextureRect.StretchModeEnum.KeepAspect,
-				CustomMinimumSize = new Vector2(iconSize, iconSize),
-			});
-		}
-		for (int i = 0; i < foodLostInGranaryPerTurn; ++i) {
-			foodInGranaryContainer.AddChild(new TextureRect() {
-				Texture = noFoodTexture,
-				ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-				StretchMode = TextureRect.StretchModeEnum.KeepAspect,
-				CustomMinimumSize = new Vector2(iconSize, iconSize),
-			});
-		}
+		RenderIconGrid(foodInGranaryContainer, foodInGranaryCanvas, iconSize,
+			(foodTexture, foodInGranary - foodLostInGranaryPerTurn),
+			(noFoodTexture, foodLostInGranaryPerTurn));
 
 		// Now fill the rest of the box.
 		foodStored -= foodInGranary;
 		foodLostPerTurn -= foodLostInGranaryPerTurn;
 
-		for (int i = 0; i < foodStored - foodLostPerTurn; ++i) {
-			foodInBoxContainer.AddChild(new TextureRect() {
-				Texture = foodTexture,
-				ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-				StretchMode = TextureRect.StretchModeEnum.KeepAspect,
-				CustomMinimumSize = new Vector2(iconSize, iconSize),
-			});
+		RenderIconGrid(foodInBoxContainer, foodInBoxCanvas, iconSize,
+			(foodTexture, foodStored - foodLostPerTurn),
+			(noFoodTexture, foodLostPerTurn),
+			(emptyFoodTexture, foodNeededToGrow / 2 - foodStored));
+	}
+
+	private static IconCanvas AddIconCanvas(Control container) {
+		foreach (Node child in container.GetChildren()) {
+			container.RemoveChild(child);
+			child.QueueFree();
 		}
-		for (int i = 0; i < foodLostPerTurn; ++i) {
-			foodInBoxContainer.AddChild(new TextureRect() {
-				Texture = noFoodTexture,
-				ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-				StretchMode = TextureRect.StretchModeEnum.KeepAspect,
-				CustomMinimumSize = new Vector2(iconSize, iconSize),
-			});
+		IconCanvas canvas = new();
+		container.AddChild(canvas);
+		return canvas;
+	}
+
+	// Lays the icons out on the grid's single canvas exactly as the grid would
+	// lay out one TextureRect per icon: each an iconSize square, ignoring the
+	// texture's size but keeping its aspect ratio. Runs with a negative count
+	// add nothing.
+	private static void RenderIconGrid(GridContainer grid, IconCanvas canvas, int iconSize,
+			params (Texture2D texture, int count)[] runs) {
+		canvas.Clear();
+		int columns = grid.Columns;
+		int hSeparation = grid.GetThemeConstant("h_separation");
+		int vSeparation = grid.GetThemeConstant("v_separation");
+
+		int index = 0;
+		foreach (var (texture, count) in runs) {
+			Vector2 size = KeepAspectSize(texture, iconSize);
+			for (int i = 0; i < count; ++i, ++index) {
+				int column = index % columns, row = index / columns;
+				canvas.AddIcon(texture, new Rect2(new Vector2(column * (iconSize + hSeparation), row * (iconSize + vSeparation)), size));
+			}
 		}
 
-		for (int i = 0; i < foodNeededToGrow / 2 - foodStored; ++i) {
-			foodInBoxContainer.AddChild(new TextureRect() {
-				Texture = emptyFoodTexture,
-				ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-				StretchMode = TextureRect.StretchModeEnum.KeepAspect,
-				CustomMinimumSize = new Vector2(iconSize, iconSize)
-			});
+		if (index == 0) {
+			canvas.CustomMinimumSize = Vector2.Zero;
+		} else {
+			int usedColumns = Math.Min(index, columns);
+			int rows = (index + columns - 1) / columns;
+			canvas.CustomMinimumSize = new Vector2(
+				usedColumns * iconSize + (usedColumns - 1) * hSeparation,
+				rows * iconSize + (rows - 1) * vSeparation);
 		}
+	}
+
+	// The size TextureRect's KeepAspect stretch mode draws a texture at
+	// inside a square of the given size.
+	private static Vector2 KeepAspectSize(Texture2D texture, int iconSize) {
+		int textureWidth = (int)(texture.GetWidth() * (float)iconSize / texture.GetHeight());
+		int textureHeight = iconSize;
+		if (textureWidth > iconSize) {
+			textureWidth = iconSize;
+			textureHeight = texture.GetHeight() * textureWidth / texture.GetWidth();
+		}
+		return new Vector2(textureWidth, textureHeight);
 	}
 
 	private void RenderCommerceDetails(City city) {
@@ -546,7 +535,8 @@ public partial class CityScreen : Control {
 		RenderShieldBox(city.owner.ShieldCost(city.itemBeingProduced), city.shieldsStored);
 		RenderShieldRow(shields.useful, shields.corrupt);
 		productionLabel.Text = $"PRODUCTION: {shields.useful + shields.corrupt} per turn";
-		completeInLabel.Text = city.TurnsUntilProductionFinished() == int.MaxValue ? "--" : $"Complete in {city.TurnsUntilProductionFinished()} turns";
+		int turnsUntilFinished = city.TurnsUntilProductionFinished();
+		completeInLabel.Text = turnsUntilFinished == int.MaxValue ? "--" : $"Complete in {turnsUntilFinished} turns";
 
 		foreach (Node child in productionButton.GetChildren()) {
 			child.QueueFree();
@@ -555,7 +545,8 @@ public partial class CityScreen : Control {
 		int marginTop = 35;
 
 		if (city.itemBeingProduced is UnitPrototype proto) {
-			var unit = proto.GetInstance(gameData.GenerateID(proto.name), proto, city.owner);
+			// A stand-in unit, only for its picture, so it doesn't use up a game ID.
+			var unit = proto.GetInstance(ID.None(proto.name), proto, city.owner);
 			AnimationManager animationManager = mapView.game.animationController.civ3AnimData.forUnit(unit, MapUnit.AnimatedAction.DEFAULT).animationManager;
 			ShaderMaterial material = PlayerTextureUtil.GetShaderMaterialForUnit(city.owner.GetPlayerColor());
 			(ImageTexture baseImage, ImageTexture imageTint) = animationManager.GetAnimationFrameAndTintTextures(unit);
@@ -595,10 +586,7 @@ public partial class CityScreen : Control {
 	}
 
 	private void RenderShieldRow(int goodShields, int corruptShields) {
-		foreach (Node child in shieldRowContainer.GetChildren()) {
-			shieldRowContainer.RemoveChild(child);
-			child.QueueFree();
-		}
+		shieldRowCanvas.Clear();
 
 		int width = (int)shieldRowContainer.Size.X;
 		int iconWidth = shieldTexture.GetWidth();
@@ -607,52 +595,35 @@ public partial class CityScreen : Control {
 
 		int xOffset = 0;
 		for (int i = 0; i < corruptShields; ++i) {
-			TextureRect icon = new() { Texture = corruptShieldTexture };
-			shieldRowContainer.AddChild(icon);
-			icon.SetPosition(new Vector2(xOffset, 0));
+			shieldRowCanvas.AddIcon(corruptShieldTexture, new Vector2(xOffset, 0));
 			xOffset += Math.Min(spacePerIcon, iconWidth);
 		}
 
 		xOffset = width - iconWidth;
 		for (int i = 0; i < goodShields; ++i) {
-			TextureRect icon = new() { Texture = shieldTexture };
-			shieldRowContainer.AddChild(icon);
-			icon.SetPosition(new Vector2(xOffset, 0));
+			shieldRowCanvas.AddIcon(shieldTexture, new Vector2(xOffset, 0));
 			xOffset -= Math.Min(spacePerIcon, iconWidth);
 		}
 	}
 
 	private void RenderShieldBox(int shieldCost, int shieldsInBox) {
-		foreach (Node child in shieldsInBoxContainer.GetChildren()) {
-			shieldsInBoxContainer.RemoveChild(child);
-			child.QueueFree();
+		if (shieldCost <= 0) {
+			shieldsInBoxCanvas.Clear();
+			shieldsInBoxCanvas.CustomMinimumSize = Vector2.Zero;
+			return;
 		}
-
-		int itemsPerColumn = (int)Math.Ceiling((float)shieldCost / shieldsInBoxContainer.Columns);
-		if (itemsPerColumn == 0) return;
 
 		int width = (int)shieldsInBoxContainer.GetParent<CenterContainer>().Size.X;
 		int height = (int)shieldsInBoxContainer.GetParent<CenterContainer>().Size.Y;
 
+		// Set the columns before working out how many rows they make.
 		shieldsInBoxContainer.Columns = (int)Math.Ceiling(Math.Sqrt(shieldCost));
+		int itemsPerColumn = (int)Math.Ceiling((float)shieldCost / shieldsInBoxContainer.Columns);
 		int iconSize = Math.Min(height / itemsPerColumn, width / shieldsInBoxContainer.Columns);
 
-		for (int i = 0; i < Math.Min(shieldCost, shieldsInBox); ++i) {
-			shieldsInBoxContainer.AddChild(new TextureRect() {
-				Texture = shieldTexture,
-				ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-				StretchMode = TextureRect.StretchModeEnum.KeepAspect,
-				CustomMinimumSize = new Vector2(iconSize, iconSize),
-			});
-		}
-		for (int i = 0; i < shieldCost - shieldsInBox; ++i) {
-			shieldsInBoxContainer.AddChild(new TextureRect() {
-				Texture = emptyShieldTexture,
-				ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-				StretchMode = TextureRect.StretchModeEnum.KeepAspect,
-				CustomMinimumSize = new Vector2(iconSize, iconSize)
-			});
-		}
+		RenderIconGrid(shieldsInBoxContainer, shieldsInBoxCanvas, iconSize,
+			(shieldTexture, Math.Min(shieldCost, shieldsInBox)),
+			(emptyShieldTexture, shieldCost - shieldsInBox));
 	}
 
 	private void RenderCulture(City city) {
@@ -824,5 +795,37 @@ public partial class CityScreen : Control {
 		specialistEffectInfo.TryAdd(CONSTRUCTION, cityResident.citizenType.Construction);
 
 		return specialistEffectInfo;
+	}
+}
+
+// Draws a set of icons with a single node, in place of one TextureRect per
+// icon.
+public partial class IconCanvas : Control {
+	private readonly List<(Texture2D texture, Rect2 rect)> icons = new();
+
+	public IconCanvas() {
+		// Like the TextureRects it replaces.
+		MouseFilter = MouseFilterEnum.Pass;
+	}
+
+	public void Clear() {
+		icons.Clear();
+		QueueRedraw();
+	}
+
+	// Adds an icon drawn at its texture's size.
+	public void AddIcon(Texture2D texture, Vector2 position) {
+		AddIcon(texture, new Rect2(position, texture.GetSize()));
+	}
+
+	public void AddIcon(Texture2D texture, Rect2 rect) {
+		icons.Add((texture, rect));
+		QueueRedraw();
+	}
+
+	public override void _Draw() {
+		foreach (var (texture, rect) in icons) {
+			DrawTextureRect(texture, rect, false);
+		}
 	}
 }

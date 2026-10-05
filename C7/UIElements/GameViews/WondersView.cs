@@ -66,16 +66,28 @@ public partial class WondersView : Control {
 			}
 		}
 
+		// The cities building each wonder, found in one pass over the cities.
+		Dictionary<IProducible, List<City>> buildingCities = new();
+		foreach (City city in gameData.cities) {
+			if (city.itemBeingProduced == null) {
+				continue;
+			}
+			if (!buildingCities.TryGetValue(city.itemBeingProduced, out List<City> list)) {
+				list = new();
+				buildingCities[city.itemBeingProduced] = list;
+			}
+			list.Add(city);
+		}
+
 		foreach (Building wonder in gameData.Buildings.Where(b => b.IsGreatWonder())) {
 			if (builtIn.TryGetValue(wonder, out City city)) {
 				AddRow(14, wonder.name, city.owner.civilization.noun, city.name);
 			} else if (gameData.GreatWondersBuilt.Contains(wonder.name)) {
 				AddRow(14, wonder.name, "Lost", "");
 			} else {
-				List<string> builders = gameData.cities
-					.Where(c => c.itemBeingProduced == wonder)
-					.Select(c => $"{c.name} ({c.owner.civilization.noun})")
-					.ToList();
+				List<string> builders = buildingCities.TryGetValue(wonder, out List<City> cities)
+					? cities.Select(c => $"{c.name} ({c.owner.civilization.noun})").ToList()
+					: new();
 				AddRow(14, wonder.name, builders.Count == 0 ? "" : "Being built", string.Join(", ", builders));
 			}
 		}

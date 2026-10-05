@@ -95,7 +95,7 @@ public partial class ScenarioSetup : Control {
 	}
 
 	private void DisplaySelectedLeader() {
-		leaderHead.Texture = TextureLoader.Load("leader_heads", civilization);
+		leaderHead.Texture = LeaderHeadTextures.Get(civilization);
 		leaderHead.Scale = new Vector2(1.7f, 1.7f);
 		leaderHead.SetPosition(new Vector2(414, 46));
 

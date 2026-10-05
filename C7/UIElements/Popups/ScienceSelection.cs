@@ -7,6 +7,9 @@ using static C7Engine.MsgChooseResearch;
 public partial class ScienceSelection : Popup {
 	Player player;
 	List<Tech> options = new();
+	HashSet<Tech> optionSet = new();
+	// The beakers the player makes per turn, added up once for all options.
+	int beakersPerTurn;
 
 	public ScienceSelection(Player player) {
 		alignment = BoxContainer.AlignmentMode.End;
@@ -74,13 +77,15 @@ public partial class ScienceSelection : Popup {
 		popup.AddThemeStyleboxOverride("panel", styleBox);
 
 		EngineStorage.ReadGameData((GameData gameData) => {
+			beakersPerTurn = ScienceEstimates.BeakersPerTurn(player);
+
 			// first suggest the next item in the queue
 			if (player.ResearchQueue.Count > 0) {
 				AddItem(gameData, player.ResearchQueue.Peek(), optionButton);
 			}
 			// then the rest
 			foreach (Tech tech in player.GetAvailableTechsToResearch(gameData.techs)) {
-				if (!options.Contains(tech)) {
+				if (!optionSet.Contains(tech)) {
 					AddItem(gameData, tech, optionButton);
 				}
 			}
@@ -95,9 +100,10 @@ public partial class ScienceSelection : Popup {
 	}
 
 	private void AddItem(GameData gameData, Tech tech, OptionButton optionButton) {
-		int turns = player.EstimateTurnsToResearch(gameData, tech);
+		int turns = ScienceEstimates.TurnsToResearch(gameData, player, tech, beakersPerTurn);
 		string turnsStr = turns == int.MaxValue ? "--" : $"{turns}";
 		optionButton.AddItem($"{tech.Name} ({turnsStr} turns)");
 		options.Add(tech);
+		optionSet.Add(tech);
 	}
 }

@@ -21,6 +21,11 @@ public partial class PlayerSetup : Control {
 
 	[Export] GridContainer opponentListContainer;
 	List<OptionButton> opponentSelectors = new();
+	// The items every opponent selector offers, and, parallel to
+	// opponentSelectors, which of each selector's items are disabled, so
+	// only the items that change need updating.
+	List<string> opponentItemTexts = new();
+	List<bool[]> opponentItemsDisabled = new();
 	// Parallel to opponentSelectors: whether that slot is played by another
 	// person sharing this computer (hotseat) rather than by the AI, and that
 	// person's name.
@@ -244,6 +249,13 @@ public partial class PlayerSetup : Control {
 				popup.SetItemAsCheckable(k, false);
 			}
 
+			if (opponentItemTexts.Count == 0) {
+				for (int k = 0; k < optionButton.ItemCount; ++k) {
+					opponentItemTexts.Add(optionButton.GetItemText(k));
+				}
+			}
+			opponentItemsDisabled.Add(new bool[optionButton.ItemCount]);
+
 			optionButton.ItemSelected += (long i) => { UpdateOpponentSelectors(); };
 		}
 
@@ -277,20 +289,28 @@ public partial class PlayerSetup : Control {
 		HashSet<string> civsTaken = new();
 		civsTaken.Add(selectedCivilization.name);
 
-		foreach (OptionButton ob in opponentSelectors) {
-			string selection = ob.GetItemText(ob.Selected);
+		for (int s = 0; s < opponentSelectors.Count; ++s) {
+			OptionButton ob = opponentSelectors[s];
+			bool[] disabled = opponentItemsDisabled[s];
+			int selected = ob.Selected;
+			string selection = selected >= 0 && selected < opponentItemTexts.Count ? opponentItemTexts[selected] : ob.GetItemText(selected);
 
 			// If the player decides to play as civ X and one of the opponent
 			// selectors has X selected, change it to random. Similarly if one
 			// of the previous option buttons has selected this civ.
 			if (civsTaken.Contains(selection)) {
-				ob.Select(ob.GetPopup().ItemCount - 1);
+				ob.Select(disabled.Length - 1);
 			} else if (selection != "Random") {
 				civsTaken.Add(selection);
 			}
 
-			for (int i = 0; i < ob.GetPopup().ItemCount; ++i) {
-				ob.SetItemDisabled(i, civsTaken.Contains(ob.GetItemText(i)));
+			// Only touch the items whose state changed.
+			for (int i = 0; i < disabled.Length; ++i) {
+				bool disable = civsTaken.Contains(opponentItemTexts[i]);
+				if (disable != disabled[i]) {
+					ob.SetItemDisabled(i, disable);
+					disabled[i] = disable;
+				}
 			}
 		}
 	}
@@ -298,7 +318,7 @@ public partial class PlayerSetup : Control {
 	private void DisplaySelectedLeader() {
 		Civilization civilization = selectedCivilization;
 
-		leaderHead.Texture = TextureLoader.Load("leader_heads", civilization);
+		leaderHead.Texture = LeaderHeadTextures.Get(civilization);
 		leaderHead.Scale = new Vector2(1.7f, 1.7f);
 		leaderHead.SetPosition(new Vector2(414, 46));
 

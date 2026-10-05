@@ -39,7 +39,16 @@ public partial class Scoreboard : PanelContainer {
 	private readonly List<(Control control, Player player)> shownRowControls = new();
 
 	// What the rows last showed, so they are rebuilt only when it changes.
-	private string shownRows;
+	private List<RowSummary> shownRows;
+
+	private readonly record struct RowSummary(ID playerID, int rank, int score, bool connected, bool done, bool active, string name);
+
+	// The style boxes every row uses, shared by all rows. They must not be
+	// changed.
+	private static readonly StyleBoxFlat RowBox = Box(RowColor, BorderColor, 1, 2);
+	private static readonly StyleBoxFlat ActiveRowBox = Box(ActiveRowColor, BorderColor, 1, 2);
+	private static readonly StyleBoxFlat DoneBox = Box(DoneBoxColor, BorderColor, 1, 0);
+	private static readonly StyleBoxFlat WaitingBox = Box(WaitingBoxColor, BorderColor, 1, 0);
 
 	// Without a LAN host keeping time (in a hotseat game), the scoreboard
 	// times the turns itself.
@@ -133,12 +142,14 @@ public partial class Scoreboard : PanelContainer {
 		ShowClock(gameData, clock);
 
 		List<Row> rows = ReadRows(gameData, clock);
-		string signature = string.Join("|", rows.Select(r =>
-			$"{r.player.id},{r.rank},{r.score},{r.connected},{r.done},{r.active},{r.player.name}"));
-		if (signature == shownRows) {
+		List<RowSummary> summary = new(rows.Count);
+		foreach (Row r in rows) {
+			summary.Add(new RowSummary(r.player.id, r.rank, r.score, r.connected, r.done, r.active, r.player.name));
+		}
+		if (shownRows != null && summary.SequenceEqual(shownRows)) {
 			return;
 		}
-		shownRows = signature;
+		shownRows = summary;
 		foreach (Node child in rowList.GetChildren()) {
 			child.QueueFree();
 		}
@@ -232,7 +243,7 @@ public partial class Scoreboard : PanelContainer {
 
 	private Control MakeRow(Row row) {
 		PanelContainer panel = new() { MouseFilter = MouseFilterEnum.Pass };
-		panel.AddThemeStyleboxOverride("panel", Box(row.active ? ActiveRowColor : RowColor, BorderColor, 1, 2));
+		panel.AddThemeStyleboxOverride("panel", row.active ? ActiveRowBox : RowBox);
 
 		HBoxContainer cells = new();
 		cells.AddThemeConstantOverride("separation", 6);
@@ -276,7 +287,7 @@ public partial class Scoreboard : PanelContainer {
 			MouseFilter = MouseFilterEnum.Pass,
 			TooltipText = row.done ? "Finished this turn" : row.active ? "Playing their turn" : "Yet to play this turn",
 		};
-		turnBox.AddThemeStyleboxOverride("panel", Box(row.done ? DoneBoxColor : WaitingBoxColor, BorderColor, 1, 0));
+		turnBox.AddThemeStyleboxOverride("panel", row.done ? DoneBox : WaitingBox);
 		cells.AddChild(turnBox);
 
 		return panel;

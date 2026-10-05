@@ -8,6 +8,9 @@ public partial class MiniMapFrame : TextureRect {
 	private MapView mapView;
 	private TextureRect mapTextureRect;
 	private ImageTexture mapTexture;
+	private Vector2I mapTextureSize;
+	private MiniMapBoundsOverlay boundsOverlay;
+	private Vector2 lastViewportSize = new(-1, -1);
 
 	private Vector2I miniMapFrameSize = new (280, 130);
 	private Vector2I miniMapSize = new (229, 105);
@@ -32,6 +35,11 @@ public partial class MiniMapFrame : TextureRect {
 		mapTextureRect = new TextureRect();
 		mapTextureRect.SetSize(miniMapSize);
 		AddChild(mapTextureRect);
+
+		// Draw the viewport bounds over the map
+		boundsOverlay = new MiniMapBoundsOverlay();
+		boundsOverlay.SetAnchorsPreset(LayoutPreset.FullRect);
+		mapTextureRect.AddChild(boundsOverlay);
 	}
 
 	public override void _Ready() {
@@ -41,15 +49,31 @@ public partial class MiniMapFrame : TextureRect {
 	public void SetViewportPosition() {
 		// Position frame and map relative to viewport
 		var vp = GetViewportRect().Size;
+		if (vp == lastViewportSize)
+			return;
+		lastViewportSize = vp;
 		mapFrameRect.SetPosition(frameOffset + new Vector2(0, vp.Y - miniMapFrameSize.Y));
 		mapTextureRect.SetPosition(frameOffset + new Vector2(0, vp.Y - miniMapSize.Y) + mapOffset);
 	}
 
 	public void RenderImage(Image mapImage) {
+		// Reuse the texture, only replacing its contents, unless the map
+		// size changed.
+		Vector2I imageSize = mapImage.GetSize();
+		if (mapTexture != null && imageSize == mapTextureSize) {
+			mapTexture.Update(mapImage);
+			return;
+		}
+
+		mapTextureSize = imageSize;
 		mapTexture = ImageTexture.CreateFromImage(mapImage);
 		mapTexture.SetSizeOverride(miniMapSize);
 
 		mapTextureRect.Texture = mapTexture;
+	}
+
+	public void SetViewportBounds(GameMap map, MapView.VisibleRegion vr) {
+		boundsOverlay.SetBounds(map, vr);
 	}
 
 	public override void _GuiInput(InputEvent @event) {
