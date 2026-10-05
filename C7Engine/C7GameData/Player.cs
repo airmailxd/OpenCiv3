@@ -1652,11 +1652,19 @@ namespace C7GameData {
 			// TODO: Figure out power formula
 			int power = (lastTurn?.Power ?? 100);
 
-			// Score is the _average_ of "turn scores".
-			// Here we calculate the cumulative moving average: S[n+1] = S[n] + (x[n+1] - S[N])/(n+1)
-			int lastScore = (lastTurn?.Score ?? 0);
+			// Score is the _average_ of "turn scores". We keep the exact sum
+			// of the turn scores and round only the average, as rounding a
+			// running average each turn would let errors build up (and a
+			// rounded-down average could only rise in large enough steps).
+			// Records without a sum come from older saves; the best we can
+			// do there is assume every turn scored the recorded average.
+			double previousSum = 0;
+			if (lastTurn != null) {
+				previousSum = lastTurn.TurnScoreSum ?? (double)lastTurn.Score * n;
+			}
 			float turnScore = ScoreVictory.ComputeTurnScore(this, gameData);
-			int score = (int) Math.Floor(lastScore + (turnScore - lastScore) / (1f * (n+1)));
+			double turnScoreSum = previousSum + turnScore;
+			int score = (int)Math.Round(turnScoreSum / (n + 1), MidpointRounding.AwayFromZero);
 
 			// Culture is "the sum of the cultural value of all your cities"
 			int totalCulture = 0;
@@ -1668,6 +1676,7 @@ namespace C7GameData {
 				Date = gameData.timeOptions.GetRawNumber(gameData.turn),
 				Power = power,
 				Score = score,
+				TurnScoreSum = turnScoreSum,
 				Culture = totalCulture,
 				VP = 0 // TODO: victory points
 			});
