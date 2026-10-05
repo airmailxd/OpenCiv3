@@ -158,10 +158,14 @@ namespace C7Engine {
 		}
 
 		protected override async void ProcessAllowed() {
-			MapUnit unit = SendersUnit(unitID);
-			if (unit == null) return;
+			try {
+				MapUnit unit = SendersUnit(unitID);
+				if (unit == null) return;
 
-			await unit.Move(dir, true);
+				await unit.Move(dir, true);
+			} catch (Exception e) {
+				EngineStorage.ReportUnhandledException(e, GetType().Name);
+			}
 		}
 	}
 
@@ -175,10 +179,20 @@ namespace C7Engine {
 		}
 
 		protected override async void ProcessAllowed() {
-			MapUnit unit = SendersUnit(unitID);
-			if (unit == null || path == null) return;
+			try {
+				MapUnit unit = SendersUnit(unitID);
+				if (unit == null || path == null) return;
+				// The path may come from another machine: every step has to be to
+				// a neighboring tile on the map.
+				if (!unit.IsFollowablePath(path)) {
+					Log.Warning("Ignoring a path for {Unit} that leaves the map or skips tiles", unit);
+					return;
+				}
 
-			await unit.SetUnitPath(path);
+				await unit.SetUnitPath(path);
+			} catch (Exception e) {
+				EngineStorage.ReportUnhandledException(e, GetType().Name);
+			}
 		}
 	}
 
@@ -192,10 +206,14 @@ namespace C7Engine {
 		}
 
 		protected override async void ProcessAllowed() {
-			MapUnit unit = SendersUnit(unitID);
-			if (unit == null || tile == null || tile == Tile.NONE) return;
+			try {
+				MapUnit unit = SendersUnit(unitID);
+				if (unit == null || tile == null || tile == Tile.NONE) return;
 
-			await unit.Bombard(tile);
+				await unit.Bombard(tile);
+			} catch (Exception e) {
+				EngineStorage.ReportUnhandledException(e, GetType().Name);
+			}
 		}
 	}
 
@@ -260,22 +278,26 @@ namespace C7Engine {
 		}
 
 		protected override async void ProcessAllowed() {
-			MapUnit unit = SendersUnit(unitID);
-			if (unit == null) return;
+			try {
+				MapUnit unit = SendersUnit(unitID);
+				if (unit == null) return;
 
-			switch (command) {
-				case Command.SkipTurn:
-					unit.SkipTurn();
-					break;
-				case Command.Disband:
-					await unit.Disband();
-					break;
-				case Command.Explore:
-					unit.Explore();
-					break;
-				case Command.Automate:
-					unit.Automate();
-					break;
+				switch (command) {
+					case Command.SkipTurn:
+						unit.SkipTurn();
+						break;
+					case Command.Disband:
+						await unit.Disband();
+						break;
+					case Command.Explore:
+						unit.Explore();
+						break;
+					case Command.Automate:
+						unit.Automate();
+						break;
+				}
+			} catch (Exception e) {
+				EngineStorage.ReportUnhandledException(e, GetType().Name);
 			}
 		}
 	}
@@ -609,27 +631,31 @@ namespace C7Engine {
 		}
 
 		protected override async void ProcessAllowed() {
-			Player controller = Sender;
+			try {
+				Player controller = Sender;
 
-			TurnHandling.OnEndTurn(controller);
+				TurnHandling.OnEndTurn(controller);
 
-			// Reorder the unit list so that non-busy units will be selected
-			// first.
-			controller.units.Sort((x, y) => x.IsBusy().CompareTo(y.IsBusy()));
+				// Reorder the unit list so that non-busy units will be selected
+				// first.
+				controller.units.Sort((x, y) => x.IsBusy().CompareTo(y.IsBusy()));
 
-			controller.hasPlayedThisTurn = true;
+				controller.hasPlayedThisTurn = true;
 
-			// A deal left unanswered by the end of the turn is refused.
-			MsgProposeDeal deal = EngineStorage.pendingDeal;
-			if (deal != null) {
-				EngineStorage.pendingDeal = null;
-				new MsgDealResult(deal.Proposer, deal.opponent, false).send();
+				// A deal left unanswered by the end of the turn is refused.
+				MsgProposeDeal deal = EngineStorage.pendingDeal;
+				if (deal != null) {
+					EngineStorage.pendingDeal = null;
+					new MsgDealResult(deal.Proposer, deal.opponent, false).send();
+				}
+
+				// What happens during the other players' turns isn't a reply to
+				// this player.
+				EngineStorage.processingSenderID = null;
+				await TurnHandling.AdvanceTurn();
+			} catch (Exception e) {
+				EngineStorage.ReportUnhandledException(e, GetType().Name);
 			}
-
-			// What happens during the other players' turns isn't a reply to
-			// this player.
-			EngineStorage.processingSenderID = null;
-			await TurnHandling.AdvanceTurn();
 		}
 	}
 
@@ -640,9 +666,13 @@ namespace C7Engine {
 		}
 
 		protected override async void ProcessAllowed() {
-			if (unit == null || unit.owner != Sender) return;
+			try {
+				if (unit == null || unit.owner != Sender) return;
 
-			await unit.PerformBusyAction();
+				await unit.PerformBusyAction();
+			} catch (Exception e) {
+				EngineStorage.ReportUnhandledException(e, GetType().Name);
+			}
 		}
 	}
 
@@ -708,11 +738,15 @@ namespace C7Engine {
 		}
 
 		protected override async void ProcessAllowed() {
-			if (unit == null || unit.owner != Sender || string.IsNullOrWhiteSpace(name)) return;
+			try {
+				if (unit == null || unit.owner != Sender || string.IsNullOrWhiteSpace(name)) return;
 
-			City? city = await unit.BuildCity(name);
-			if (city != null) {
-				new MsgCityCreated(city).send();
+				City? city = await unit.BuildCity(name);
+				if (city != null) {
+					new MsgCityCreated(city).send();
+				}
+			} catch (Exception e) {
+				EngineStorage.ReportUnhandledException(e, GetType().Name);
 			}
 		}
 	}

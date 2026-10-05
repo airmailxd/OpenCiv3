@@ -52,6 +52,10 @@ public class CreateGame {
 	// Replaces the game with a LAN host's snapshot of it, keeping who this
 	// machine plays and whose turn it is.
 	public static GameData ReplaceWithSnapshot(SaveGame save, BehaviorEngine behaviors) {
+		// Nothing may keep the replaced game alive: a client replaces its game
+		// with every snapshot the host sends.
+		TileChangeJournal.Reset();
+		UnitInteractions.OnGameReplaced();
 		GameData gameData = save.ToGameData(behaviors);
 		EngineStorage.gameData = gameData;
 		gameData.onGameCreation();

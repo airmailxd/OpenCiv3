@@ -59,6 +59,7 @@ public partial class MapUnit {
 			name = upgrade.name;
 		}
 		unitType = upgrade;
+		TileChangeJournal.Record(location);
 		hitPointsRemaining = System.Math.Min(hitPointsRemaining, maxHitPoints);
 		return true;
 	}

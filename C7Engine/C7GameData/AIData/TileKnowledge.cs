@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using C7Engine;
 
@@ -14,6 +15,10 @@ namespace C7GameData {
 	// re-examining a tile always gives the right answer. Missing a change is
 	// not, so every change has to be recorded. A reader that falls further
 	// behind than the log holds simply recomputes everything.
+	//
+	// The log holds on to the tiles it records, and through them to their
+	// game, so it is reset whenever a game is created, loaded or replaced
+	// (see Reset), letting the previous game be collected.
 	internal static class TileChangeJournal {
 		internal const int Capacity = 1 << 17;
 		private const int Mask = Capacity - 1;
@@ -38,27 +43,41 @@ namespace C7GameData {
 
 		// Records a change to a tile's terrain. What a unit can see depends on
 		// the terrain up to two tiles away, so the tiles around it are recorded
-		// too.
+		// too, each once.
 		internal static void RecordTerrainChange(Tile tile) {
 			if (tile == null || tile == Tile.NONE) {
 				return;
 			}
+			HashSet<Tile> recorded = new(25) { tile };
 			Record(tile);
 			foreach (Tile n in tile.neighbors.Values) {
 				if (n == Tile.NONE) {
 					continue;
 				}
-				Record(n);
+				if (recorded.Add(n)) {
+					Record(n);
+				}
 				foreach (Tile nn in n.neighbors.Values) {
-					if (nn != Tile.NONE) {
+					if (nn != Tile.NONE && recorded.Add(nn)) {
 						Record(nn);
 					}
 				}
 			}
 		}
 
+		// Makes every player recompute their active tiles from scratch the
+		// next time they are brought up to date.
 		internal static void InvalidateAll() {
 			++epoch;
+		}
+
+		// Forgets every recorded tile, so that the log no longer keeps a
+		// previous game alive, and makes every reader recompute from scratch
+		// (the entries they hadn't read yet are gone). Called whenever a game
+		// is created, loaded or replaced.
+		internal static void Reset() {
+			Array.Clear(entries);
+			InvalidateAll();
 		}
 	}
 
@@ -377,18 +396,6 @@ namespace C7GameData {
 				Reevaluate(TileChangeJournal.EntryAt(i));
 			}
 
-			// Units can be created on a city's tile, and change type when
-			// upgraded, without being recorded in the journal. Both only
-			// affect tiles with our own units or cities on them.
-			if (_player != null) {
-				foreach (MapUnit unit in _player.units) {
-					ReevaluateIfKindChanged(unit.location);
-				}
-				foreach (City city in _player.cities) {
-					ReevaluateIfKindChanged(city.location);
-				}
-			}
-
 			newlyKnownTiles.Clear();
 			knownTileCountAtLastUpdate = knownTiles.Count;
 			journalPosition = head;
@@ -455,19 +462,6 @@ namespace C7GameData {
 			}
 			City city = t.owningCity;
 			return city != null && city.owner == _player ? SourceKind.City : SourceKind.None;
-		}
-
-		private void ReevaluateIfKindChanged(Tile t) {
-			if (t == null) {
-				return;
-			}
-			SourceKind kind = KindOf(t);
-			sources.TryGetValue(t, out Source old);
-			SourceKind oldKind = old?.kind ?? SourceKind.None;
-			if (kind == oldKind && (kind != SourceKind.Unit || old.radar == HasRadarUnits(t))) {
-				return;
-			}
-			Reevaluate(t);
 		}
 
 		// Recomputes the contribution of a single tile.
