@@ -984,13 +984,14 @@ namespace C7GameData {
 			// as military police.
 			unhappyToContentMoves += Math.Min(owner.government.militaryPoliceLimit, location.unitsOnTile.Count(x => x.CanDefendOnLand()));
 
-			// Luxury spending moves content faces to happy faces.
+			// Luxury spending moves content faces to happy faces, one face for
+			// every two luxuries.
 			//
 			// Don't respect civil disorder during this calculation, because if
 			// we are currently in civil disorder our commerce is all corrupt,
 			// but we still need to be able to calculate whether a certain
 			// luxury slider value would get us out of civil disorder.
-			contentToHappyMoves += CurrentCommerceYield(respectCivilDisorder: false).happiness;
+			contentToHappyMoves += CurrentCommerceYield(respectCivilDisorder: false).happiness / 2;
 
 			// As do luxury resources, which can be boosted by marketplaces.
 			int effectiveLux = GetLuxuries(gameData).Keys.Count;
