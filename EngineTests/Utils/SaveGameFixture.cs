@@ -29,7 +29,7 @@ public class SaveGameFixture : IDisposable {
 		return GameMode.Load(PathUtils.GameModesDir, gameModeConfig);
 	}
 
-	private static SaveGame LoadSave(GameMode.Config gameModeConfig) {
+	internal static SaveGame LoadSave(GameMode.Config gameModeConfig, int humanPlayers = 1) {
 		SaveGame save = LoadGameMode(gameModeConfig).GetSave();
 
 		WorldSize worldSize = new() {
@@ -52,11 +52,13 @@ public class SaveGameFixture : IDisposable {
 			mapSeed = TestSeed,
 		};
 
+		Civilization[] humanCivs = save.Civilizations.Where(c => !c.isBarbarian).Take(humanPlayers).ToArray();
 		GameSetup gameSetup = new() {
-			playerCivilization = save.Civilizations.Find(c => !c.isBarbarian),
+			playerCivilization = humanCivs[0],
+			hotseatCivilizations = humanCivs.Skip(1).ToList(),
 			difficulty = save.Difficulties.First(),
 			worldCharacteristics = wc,
-			opponents = Enumerable.Repeat(new SelectedOpponent() { isRandom = true }, worldSize.numberOfCivs - 1).ToList(),
+			opponents = Enumerable.Repeat(new SelectedOpponent() { isRandom = true }, worldSize.numberOfCivs - humanPlayers).ToList(),
 			victoryConditions = new VictoryConditions()
 		};
 

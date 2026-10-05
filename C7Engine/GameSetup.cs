@@ -16,6 +16,9 @@ public class GameSetup {
 	private static ILogger log = Log.ForContext<GameSetup>();
 
 	public Civilization playerCivilization { get; init; }
+	// Additional human players sharing this computer in a hotseat game. They
+	// take their turns after the player above, in list order.
+	public List<Civilization> hotseatCivilizations { get; init; } = [];
 	public Difficulty difficulty { get; init; }
 	public WorldCharacteristics worldCharacteristics { get; init; }
 	public List<SelectedOpponent> opponents { get; init; } = [];
@@ -51,12 +54,16 @@ public class GameSetup {
 		// TODO: There is an option called "Culturally Linked Start Loc."
 		// which (if on) puts players with the same culture group near each other
 
-		// Add the human player.
-		AddPlayer(save, this.playerCivilization, isHuman: true);
+		// Add the human players.
+		HashSet<string> taken = new();
+		foreach (Civilization civ in HumanCivilizations()) {
+			if (!taken.Add(civ.name)) {
+				throw new ArgumentException($"{civ.name} was picked by more than one human player");
+			}
+			AddPlayer(save, civ, isHuman: true);
+		}
 
 		// Add the opponents.
-		HashSet<string> taken = new();
-		taken.Add(this.playerCivilization.name);
 
 		foreach (SelectedOpponent opponent in opponents) {
 			bool isRandom = opponent.isRandom;
@@ -76,6 +83,10 @@ public class GameSetup {
 			Civilization civ = save.Civilizations.Find(x => x.name == selectedName);
 			AddPlayer(save, civ, isHuman: false);
 		}
+	}
+
+	private IEnumerable<Civilization> HumanCivilizations() {
+		return hotseatCivilizations.Prepend(playerCivilization);
 	}
 
 	private void AddPlayer(SaveGame save, Civilization civ, bool isHuman) {

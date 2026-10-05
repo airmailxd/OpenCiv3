@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using C7Engine;
+using C7Engine.Lua;
 using C7GameData;
 using C7GameData.Save;
 using EngineTests.Utils;
@@ -34,16 +35,15 @@ public class HotseatTest : IClassFixture<SaveGameFixture> {
 		throw new Exception("Engine never started a player turn");
 	}
 
+	// Map generation is slow, so share one two-human save across the tests.
+	private static readonly Lazy<SaveGame> hotseatSave = new(() => SaveGameFixture.LoadSave(new GameMode.Config("civ3"), humanPlayers: 2));
+
 	private async Task<C7GameData.GameData> CreateHotseatGame() {
 		new MsgSetAnimationsEnabled(false).send();
 		EngineStorage.ProcessNextMessageToEngine();
 
-		await CreateGame.createGame(fixture.saveGame, (_) => fixture.behaviors);
+		await CreateGame.createGame(hotseatSave.Value, (_) => fixture.behaviors);
 		C7GameData.GameData gameData = EngineStorage.gameData;
-
-		// Turn the first AI opponent into a second human player.
-		Player second = gameData.players.First(p => !p.isHuman && !p.isBarbarians);
-		second.isHuman = true;
 
 		TurnHandling.OnBeginTurn();
 		TurnHandling.InitTurnData();
@@ -95,6 +95,15 @@ public class HotseatTest : IClassFixture<SaveGameFixture> {
 
 		Assert.Equal(humans[1].id, resumed.id);
 		Assert.Equal(humans[1].id, EngineStorage.uiControllerID);
+	}
+
+	[Fact]
+	public void GameSetupCreatesEachHumanPlayer() {
+		SaveGame save = hotseatSave.Value;
+		Assert.Equal(2, save.Players.Count(p => p.human));
+		// Humans + AI opponents fill every starting location, plus the barbarians.
+		Assert.Equal(save.Map.startingLocations.Count + 1, save.Players.Count);
+		Assert.Equal(save.Players.Count, save.Players.Select(p => p.civilization).Distinct().Count());
 	}
 
 	[Fact]
