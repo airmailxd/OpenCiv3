@@ -372,8 +372,10 @@ public partial class Game : Node {
 		}
 
 		hotseatHandoff?.QueueFree();
+		// Games without player names (e.g. older saves) fall back to the leader.
+		string playerName = controller.name ?? controller.civilization.leader;
 		hotseatHandoff = new HotseatHandoff(
-			$"{controller.civilization.leader} of the {controller.civilization.noun}",
+			$"{playerName} - {controller.civilization.name}",
 			message,
 			buttonText,
 			() => {

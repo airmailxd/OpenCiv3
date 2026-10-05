@@ -22,8 +22,13 @@ public partial class PlayerSetup : Control {
 	[Export] GridContainer opponentListContainer;
 	List<OptionButton> opponentSelectors = new();
 	// Parallel to opponentSelectors: whether that slot is played by another
-	// person sharing this computer (hotseat) rather than by the AI.
+	// person sharing this computer (hotseat) rather than by the AI, and that
+	// person's name.
 	List<CheckBox> humanToggles = new();
+	List<LineEdit> humanNames = new();
+	// The first player's name, shown once there is more than one human.
+	LineEdit playerNameEdit;
+	const int MaxPlayerNameLength = 24;
 
 	[Export] GridContainer rulesContainer;
 
@@ -76,6 +81,16 @@ public partial class PlayerSetup : Control {
 		}
 		background.AddChild(leaderHead);
 		DisplaySelectedLeader();
+
+		// Below the leader's name and traits.
+		playerNameEdit = new() {
+			MaxLength = MaxPlayerNameLength,
+			Visible = false,
+			Position = new Vector2(421, 372),
+			CustomMinimumSize = new Vector2(187, 0),
+			TooltipText = "Your name, shown when the screen is handed to you.",
+		};
+		background.AddChild(playerNameEdit);
 
 		// Set up the options for opponents.
 		AddOpponentSelectors(global.WorldCharacteristics.worldSize.numberOfCivs);
@@ -153,12 +168,23 @@ public partial class PlayerSetup : Control {
 			};
 			humanToggles.Add(humanToggle);
 
+			LineEdit humanName = new() {
+				MaxLength = MaxPlayerNameLength,
+				Visible = false,
+				TooltipText = "This player's name, shown when the screen is handed to them.",
+			};
+			humanNames.Add(humanName);
+			humanToggle.Toggled += (bool _) => UpdateHumanNameFields();
+
 			CenterContainer container = new();
 			opponentListContainer.AddChild(container);
+			VBoxContainer slot = new();
+			container.AddChild(slot);
 			HBoxContainer row = new();
-			container.AddChild(row);
+			slot.AddChild(row);
 			row.AddChild(optionButton);
 			row.AddChild(humanToggle);
+			slot.AddChild(humanName);
 
 			const float humanToggleWidth = 80.0f;
 			container.CustomMinimumSize = new Vector2(312.0f / opponentListContainer.Columns, 315.0f / numOpponents);
@@ -184,6 +210,25 @@ public partial class PlayerSetup : Control {
 		}
 
 		UpdateOpponentSelectors();
+	}
+
+	// Shows a name field for every human player once there is more than one,
+	// with "Player N" (in turn order) as the default name.
+	private void UpdateHumanNameFields() {
+		int playerNumber = 1;
+		playerNameEdit.PlaceholderText = $"Player {playerNumber}";
+		for (int i = 0; i < humanToggles.Count; ++i) {
+			humanNames[i].Visible = humanToggles[i].ButtonPressed;
+			if (humanToggles[i].ButtonPressed) {
+				humanNames[i].PlaceholderText = $"Player {++playerNumber}";
+			}
+		}
+		playerNameEdit.Visible = playerNumber > 1;
+	}
+
+	private static string PlayerName(LineEdit nameEdit) {
+		string name = nameEdit.Text.Trim();
+		return name != "" ? name : nameEdit.PlaceholderText;
 	}
 
 	private void UpdateOpponentSelectors() {
@@ -240,16 +285,16 @@ public partial class PlayerSetup : Control {
 		return opponents;
 	}
 
-	// The civilizations of the additional human players. A human slot left on
-	// "Random" gets a random civilization nobody else has picked.
-	private List<Civilization> CollectHotseatCivilizations() {
+	// The additional human players. A human slot left on "Random" gets a
+	// random civilization nobody else has picked.
+	private List<HotseatPlayer> CollectHotseatPlayers() {
 		List<Civilization> playable = save.Civilizations.Where(c => !c.isBarbarian).ToList();
 		HashSet<string> taken = [selectedCivilization.name];
 		foreach (OptionButton ob in opponentSelectors) {
 			taken.Add(ob.GetItemText(ob.Selected));
 		}
 
-		List<Civilization> civs = [];
+		List<HotseatPlayer> players = [];
 		Random rand = new();
 		for (int i = 0; i < opponentSelectors.Count; ++i) {
 			if (!humanToggles[i].ButtonPressed) {
@@ -263,9 +308,9 @@ public partial class PlayerSetup : Control {
 				civ = available[rand.Next(available.Count)];
 				taken.Add(civ.name);
 			}
-			civs.Add(civ);
+			players.Add(new HotseatPlayer { civilization = civ, name = PlayerName(humanNames[i]) });
 		}
-		return civs;
+		return players;
 	}
 
 	private void CreateGame() {
@@ -273,9 +318,12 @@ public partial class PlayerSetup : Control {
 
 		GlobalSingleton global = GetNode<GlobalSingleton>("/root/GlobalSingleton");
 
+		List<HotseatPlayer> hotseatPlayers = CollectHotseatPlayers();
 		GameSetup gameSetup = new() {
 			playerCivilization = selectedCivilization,
-			hotseatCivilizations = CollectHotseatCivilizations(),
+			// Names only matter when the screen is handed between players.
+			playerName = hotseatPlayers.Count > 0 ? PlayerName(playerNameEdit) : null,
+			hotseatPlayers = hotseatPlayers,
 			difficulty = selectedDifficulty,
 			worldCharacteristics = global.WorldCharacteristics,
 			opponents = CollectSelectedOpponents(),
