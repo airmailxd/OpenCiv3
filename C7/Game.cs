@@ -1057,7 +1057,9 @@ public partial class Game : Node {
 		Godot.Collections.Array<StringName> actions = InputMap.GetActions();
 
 		foreach (StringName action in actions) {
-			if (Input.IsActionJustPressed(action)) {
+			// Match modifiers exactly, so that Shift+Enter or Ctrl+L don't also
+			// trigger the actions bound to plain Enter or L.
+			if (Input.IsActionJustPressed(action, exactMatch: true)) {
 				ProcessAction(action.ToString());
 			} else if (Input.IsActionJustReleased(action)) {
 				ProcessOnReleaseAction(action.ToString());
@@ -1140,6 +1142,11 @@ public partial class Game : Node {
 			this.OnPlayerEndTurn();
 		}
 
+		if (currentAction == C7Action.EndTurnNow) {
+			log.Verbose("end_turn_now key pressed");
+			this.OnPlayerEndTurn();
+		}
+
 		if (this.HasCurrentlySelectedUnit()) {
 			TileDirection? dir = C7Action.ToTileDirection(currentAction);
 
@@ -1182,6 +1189,16 @@ public partial class Game : Node {
 		// actions with unit buttons, which are only relevant during the player
 		// turn.
 		if (CurrentState != GameState.PlayerTurn) {
+			return;
+		}
+
+		if (currentAction == C7Action.SaveGame) {
+			OnSaveGame();
+			return;
+		}
+
+		if (currentAction == C7Action.LoadGame) {
+			OnLoadGame();
 			return;
 		}
 

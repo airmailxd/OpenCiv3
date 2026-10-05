@@ -7,6 +7,9 @@ namespace C7Engine;
 // The strings for each action correspond to values in project.godot for keyboard shortcuts
 public static class C7Action {
 	public const string EndTurn = "end_turn";
+	public const string EndTurnNow = "end_turn_now"; // even with units left to move
+	public const string SaveGame = "save_game";
+	public const string LoadGame = "load_game";
 	public const string Escape = "escape";
 
 	public const string MoveUnitSouthwest = "move_unit_southwest";
