@@ -355,4 +355,18 @@ public sealed class FixAiProductionTests : IClassFixture<SaveGameFixture>, IDisp
 			.Invoke(null, new object[] { stats, city, player, wall });
 		Assert.False(float.IsNaN(score));
 	}
+
+	// The city tile's yield depends on its owner's traits, so a cached yield
+	// must not survive the city changing hands.
+	[Fact]
+	public void SettlerYieldCacheNoticesCityOwnerChange() {
+		City city = CityInteractions.BuildCity(player.units.First(u => u.unitType.isSettler).location, player, player.GetNextCityName());
+		Type entryType = typeof(SettlerLocationAI).GetNestedType("TileYieldEntry", System.Reflection.BindingFlags.NonPublic);
+		object entry = Activator.CreateInstance(entryType);
+		entryType.GetMethod("Capture").Invoke(entry, new object[] { city.location });
+		Assert.True((bool)entryType.GetMethod("Matches").Invoke(entry, new object[] { city.location }));
+
+		city.owner = gameData.players.First(p => p != player && !p.isBarbarians);
+		Assert.False((bool)entryType.GetMethod("Matches").Invoke(entry, new object[] { city.location }));
+	}
 }

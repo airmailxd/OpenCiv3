@@ -41,7 +41,9 @@ namespace C7Engine {
 					continue;
 				}
 
-				// Only tiles the settler failed to reach (issue #213) are excluded.
+				// Skip tiles near where our settlers are already heading, and
+				// excludedTiles (the tiles a settler failed to reach, issue
+				// #213).
 				tilesNearSettlerDestinations ??= TilesNearSettlerDestinations(playerSettlers);
 				if (tilesNearSettlerDestinations.Contains(t) || !t.IsAllowCities() || (excludedTiles != null && excludedTiles.Contains(t))) {
 					continue;
@@ -133,9 +135,12 @@ namespace C7Engine {
 			public bool isBonusShield;
 			public bool hasCity;
 			public City city;
+			// The city's owner's traits (e.g. Industrious) change the city
+			// tile's yield, and a captured city keeps its City object.
+			public Player cityOwner;
 			public int cityResidents;
 			public bool cityIsCapital;
-			public TerrainImprovement[] improvements;
+			public TerrainImprovement[] improvements = Array.Empty<TerrainImprovement>();
 
 			public void Capture(Tile t) {
 				overlayTerrainType = t.overlayTerrainType;
@@ -143,9 +148,17 @@ namespace C7Engine {
 				isBonusShield = t.isBonusShield;
 				hasCity = t.HasCity();
 				city = t.cityAtTile;
+				cityOwner = hasCity ? city.owner : null;
 				cityResidents = hasCity ? city.residents.Count : 0;
 				cityIsCapital = hasCity && city.IsCapital();
-				improvements = t.overlays.GetImprovements().ToArray();
+
+				// Reuse the array when the number of improvements didn't
+				// change, as is usual when an improvement is replaced.
+				Dictionary<TerrainImprovement.Layer, TerrainImprovement>.ValueCollection current = t.overlays.GetImprovements();
+				if (improvements.Length != current.Count) {
+					improvements = new TerrainImprovement[current.Count];
+				}
+				current.CopyTo(improvements, 0);
 			}
 
 			public bool Matches(Tile t) {
@@ -153,7 +166,7 @@ namespace C7Engine {
 					|| isBonusShield != t.isBonusShield || city != t.cityAtTile || hasCity != t.HasCity()) {
 					return false;
 				}
-				if (hasCity && (cityResidents != city.residents.Count || cityIsCapital != city.IsCapital())) {
+				if (hasCity && (cityOwner != city.owner || cityResidents != city.residents.Count || cityIsCapital != city.IsCapital())) {
 					return false;
 				}
 				int i = 0;
@@ -241,41 +254,46 @@ namespace C7Engine {
 		}
 
 		// Whether a tile is too close to a city to found one, remembered until
-		// the set of cities changes.
-		private static readonly Dictionary<Tile, bool> invalidLocations = new();
-		private static readonly List<Tile> invalidLocationsCityTiles = new();
-		private static GameData invalidLocationsGameData;
+		// the set of cities changes. Kept per game in a weak table, so that a
+		// finished game's tiles aren't kept alive.
+		private sealed class InvalidLocations {
+			public readonly Dictionary<Tile, bool> memo = new();
+			public readonly List<Tile> cityTiles = new();
+		}
+
+		private static readonly ConditionalWeakTable<GameData, InvalidLocations> invalidLocationsByGame = new();
 
 		private static Dictionary<Tile, bool> InvalidLocationMemo() {
 			GameData gameData = EngineStorage.gameData;
 			if (gameData == null) {
 				return null;
 			}
+			InvalidLocations memo = invalidLocationsByGame.GetValue(gameData, _ => new InvalidLocations());
+			List<Tile> cityTiles = memo.cityTiles;
 
 			// Compare the city locations with the ones the memo was made for.
-			bool changed = gameData != invalidLocationsGameData;
+			bool changed = false;
 			int i = 0;
 			foreach (Player p in gameData.players) {
 				foreach (City c in p.cities) {
-					if (!changed && (i >= invalidLocationsCityTiles.Count || invalidLocationsCityTiles[i] != c.location)) {
+					if (!changed && (i >= cityTiles.Count || cityTiles[i] != c.location)) {
 						changed = true;
 					}
 					++i;
 				}
 			}
-			changed |= i != invalidLocationsCityTiles.Count;
+			changed |= i != cityTiles.Count;
 
 			if (changed) {
-				invalidLocations.Clear();
-				invalidLocationsCityTiles.Clear();
+				memo.memo.Clear();
+				cityTiles.Clear();
 				foreach (Player p in gameData.players) {
 					foreach (City c in p.cities) {
-						invalidLocationsCityTiles.Add(c.location);
+						cityTiles.Add(c.location);
 					}
 				}
-				invalidLocationsGameData = gameData;
 			}
-			return invalidLocations;
+			return memo.memo;
 		}
 
 		private static bool IsInvalidCityLocation(Tile tile, Dictionary<Tile, bool> memo) {
