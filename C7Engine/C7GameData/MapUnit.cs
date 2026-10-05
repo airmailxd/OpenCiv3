@@ -43,6 +43,9 @@ namespace C7GameData {
 		}
 		public bool isFortified { get; set; }
 
+		// True if the unit held this turn before moving, so it still heals.
+		public bool heldWithoutMoving { get; set; }
+
 		public bool isAutomated { get; set; }
 
 		//sentry, etc. will come later.  For now, let's just have a couple things so we can cycle through units that aren't fortified.

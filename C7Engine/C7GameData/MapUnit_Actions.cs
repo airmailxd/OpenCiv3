@@ -10,13 +10,15 @@ namespace C7GameData;
 public partial class MapUnit {
 	public void OnBeginTurn(bool skipTurn = false) {
 		int maxMP = unitType.movement;
-		if (movementPoints.remaining >= maxMP && !skipTurn) {
+		bool restedLastTurn = movementPoints.remaining >= maxMP || heldWithoutMoving;
+		if (restedLastTurn && !skipTurn) {
 			int maxHP = maxHitPoints;
 			if (hitPointsRemaining < maxHP)
 				hitPointsRemaining += HealRateAt(location);
 			if (hitPointsRemaining > maxHP)
 				hitPointsRemaining = maxHP;
 		}
+		heldWithoutMoving = false;
 
 		if (skipTurn) {
 			movementPoints.skipTurn();
@@ -112,6 +114,11 @@ public partial class MapUnit {
 	}
 
 	public void SkipTurn() {
+		// Holding uses up the unit's movement points, but a unit that holds
+		// without having moved has still rested and should heal.
+		if (movementPoints.remaining >= unitType.movement) {
+			heldWithoutMoving = true;
+		}
 		movementPoints.skipTurn();
 	}
 
