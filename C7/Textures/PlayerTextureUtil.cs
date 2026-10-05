@@ -18,11 +18,29 @@ public static class PlayerTextureUtil {
 	/// <param name="player"></param>
 	/// <returns>the color index number</returns>
 	public static int GetPlayerColor(this Player player) {
-		if (!colorsInUseCache.ContainsKey(player.id)) {
-			InitializeCivColors(EngineStorage.gameData);
+		if (playerColorCache.TryGetValue(player, out int colorIndex)) {
+			return colorIndex;
 		}
-		return colorsInUseCache[player.id];
+
+		if (!colorsInUseCache.TryGetValue(player.id, out colorIndex)) {
+			InitializeCivColors(EngineStorage.gameData);
+			colorIndex = colorsInUseCache[player.id];
+		}
+
+		// Player objects are replaced when a LAN client gets a new snapshot of
+		// the game, so don't let the old ones pile up.
+		if (playerColorCache.Count >= MaxPlayerColorCacheSize) {
+			playerColorCache.Clear();
+		}
+		playerColorCache[player] = colorIndex;
+		return colorIndex;
 	}
+
+	// The colors of players that have been looked up, by Player object. This
+	// spares looking them up by ID every time, since that needs the ID hashed.
+	// It's only filled in once a player's color is settled.
+	private static readonly Dictionary<Player, int> playerColorCache = new(ReferenceEqualityComparer.Instance);
+	private const int MaxPlayerColorCacheSize = 256;
 
 	// If the player's primary color is in use, fall back to their secondary color.
 	// This may already be in use, but that's ok; we don't have a third
@@ -55,6 +73,9 @@ public static class PlayerTextureUtil {
 
 	// This will only run the first time we ask for any civ's color, for all the civs
 	private static void InitializeCivColors(GameData gameData) {
+		// Colors may be reassigned below.
+		playerColorCache.Clear();
+
 		// a first basic run to assign the colors
 		foreach (var player in gameData.players) {
 			LoadCivColor(player);
@@ -62,13 +83,17 @@ public static class PlayerTextureUtil {
 
 		// a second run to avoid duplicate colors if possible
 		foreach (var player in gameData.players) {
-			if (colorsInUseCache.Values.Count(p => p == player.GetPlayerColor()) > 1) {
+			int playerColor = colorsInUseCache[player.id];
+			if (colorsInUseCache.Values.Count(p => p == playerColor) > 1) {
 				colorsInUseCache.Remove(player.id);
 				LoadCivColor(player);
 			}
 		}
 	}
 
+	private static readonly StringName TintColorParameter = "tintColor";
+
+	// Returns the material that tints units with a civ color, shared by all units with that color.
 	public static ShaderMaterial GetShaderMaterialForUnit(int civIndex) {
 		if (materialCache.TryGetValue(civIndex, out ShaderMaterial material)) {
 			return material;
@@ -76,7 +101,7 @@ public static class PlayerTextureUtil {
 		material = new();
 		material.Shader = GD.Load<Shader>("res://UnitTint.gdshader");
 		Color civColor = TextureLoader.LoadColor(civIndex);
-		material.SetShaderParameter("tintColor", new Vector3(civColor.R, civColor.G, civColor.B));
+		material.SetShaderParameter(TintColorParameter, new Vector3(civColor.R, civColor.G, civColor.B));
 		materialCache[civIndex] = material;
 		return material;
 	}
@@ -84,5 +109,6 @@ public static class PlayerTextureUtil {
 	public static void ClearCache() {
 		materialCache.Clear();
 		colorsInUseCache.Clear();
+		playerColorCache.Clear();
 	}
 }
