@@ -326,8 +326,14 @@ namespace C7GameData.Save {
 				if (saveBuilding.requiredTech != null) {
 					building.requiredTech = techDict[saveBuilding.requiredTech];
 				}
+				if (saveBuilding.doublesHappinessOf != null) {
+					building.doublesHappinessOf = buildingDict[saveBuilding.doublesHappinessOf];
+				}
 				if (saveBuilding.renderedObsoleteBy != null) {
 					building.renderedObsoleteBy = techDict[saveBuilding.renderedObsoleteBy];
+				}
+				if (saveBuilding.requiredGovernment != null) {
+					building.requiredGovernment = data.governments.Find(g => g.id == saveBuilding.requiredGovernment);
 				}
 				if (saveBuilding.greatWonderProperties?.buildingGainedInEveryCity?.Length > 0) {
 					building.greatWonderProperties.buildingGainedInEveryCity = buildingDict[saveBuilding.greatWonderProperties.buildingGainedInEveryCity];

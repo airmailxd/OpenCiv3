@@ -192,6 +192,39 @@ namespace C7GameData {
 			}
 		}
 
+		public bool isNuclearWeapon {
+			get => flags.Contains(SaveUnitPrototype.Flag.NuclearWeapon);
+			set {
+				if (value) {
+					flags.Add(SaveUnitPrototype.Flag.NuclearWeapon);
+				} else {
+					flags.Remove(SaveUnitPrototype.Flag.NuclearWeapon);
+				}
+			}
+		}
+		public bool isICBM {
+			get => flags.Contains(SaveUnitPrototype.Flag.ICBM);
+			set {
+				if (value) {
+					flags.Add(SaveUnitPrototype.Flag.ICBM);
+				} else {
+					flags.Remove(SaveUnitPrototype.Flag.ICBM);
+				}
+			}
+		}
+		public bool isTacticalMissile {
+			get => flags.Contains(SaveUnitPrototype.Flag.TacticalMissile);
+			set {
+				if (value) {
+					flags.Add(SaveUnitPrototype.Flag.TacticalMissile);
+				} else {
+					flags.Remove(SaveUnitPrototype.Flag.TacticalMissile);
+				}
+			}
+		}
+		public bool canCarryTacticalMissiles => flags.Contains(SaveUnitPrototype.Flag.CanCarryTacticalMissiles);
+		public bool canCarryAircraft => flags.Contains(SaveUnitPrototype.Flag.CanCarryAircraft);
+
 		// An army is a container that carries other units into battle as a
 		// single stack, rather than fighting with strength of its own.
 		public bool isArmy {
@@ -201,6 +234,43 @@ namespace C7GameData {
 					flags.Add(SaveUnitPrototype.Flag.Army);
 				} else {
 					flags.Remove(SaveUnitPrototype.Flag.Army);
+				}
+			}
+		}
+
+		// Coastal ships, like the Galley, can't enter Sea tiles (unless their
+		// owner has the Great Lighthouse), and those like the Caravel can't
+		// enter Ocean tiles. See MapUnit.CanEnterWaterTerrain.
+		public bool sinksInSea {
+			get => flags.Contains(SaveUnitPrototype.Flag.SinksInSea);
+			set {
+				if (value) {
+					flags.Add(SaveUnitPrototype.Flag.SinksInSea);
+				} else {
+					flags.Remove(SaveUnitPrototype.Flag.SinksInSea);
+				}
+			}
+		}
+		public bool sinksInOcean {
+			get => flags.Contains(SaveUnitPrototype.Flag.SinksInOcean);
+			set {
+				if (value) {
+					flags.Add(SaveUnitPrototype.Flag.SinksInOcean);
+				} else {
+					flags.Remove(SaveUnitPrototype.Flag.SinksInOcean);
+				}
+			}
+		}
+
+		// A military great leader, which can form an army or hurry a city's
+		// production. See MapUnit_Leader.cs.
+		public bool isLeader {
+			get => flags.Contains(SaveUnitPrototype.Flag.Leader);
+			set {
+				if (value) {
+					flags.Add(SaveUnitPrototype.Flag.Leader);
+				} else {
+					flags.Remove(SaveUnitPrototype.Flag.Leader);
 				}
 			}
 		}

@@ -20,6 +20,23 @@ namespace C7GameData.Save {
 			ZoneOfControl,
 			// A victory by the unit over another civ starts a golden age.
 			StartsGoldenAge,
+			// The unit is a nuclear weapon: it detonates on its target,
+			// and can only be built once the Manhattan Project exists.
+			NuclearWeapon,
+			// The unit is an intercontinental missile, which can strike any
+			// tile on the map.
+			ICBM,
+			// The unit is a tactical missile, which can be carried by units
+			// that can carry tactical missiles (Nuclear Submarines).
+			TacticalMissile,
+			// The ship can't enter Sea tiles (the BIQ's "Sinks in Sea"),
+			// unless its owner has a safe sea travel wonder (the Great
+			// Lighthouse).
+			SinksInSea,
+			// The ship can't enter Ocean tiles (the BIQ's "Sinks in Ocean").
+			SinksInOcean,
+			// The unit is a military great leader, created by elite victories.
+			Leader,
 		}
 
 		public string name { get; set; }

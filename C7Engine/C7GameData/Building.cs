@@ -41,6 +41,8 @@ namespace C7GameData {
 		public bool doublesCityGrowthRate;
 		public bool providesWalls;
 		public bool onlyUsefulInTowns;
+		// A city keeps only one building with this flag (the power plants).
+		public bool replacesOtherBuildings;
 		public StrengthBonus? combatDefenseBonus;
 		public bool providesVeteranGroundUnits;
 		public bool providesVeteranSeaUnits;
@@ -48,10 +50,47 @@ namespace C7GameData {
 		public bool reducesWarWeariness;
 		public bool reducesWarWearinessEverywhere;
 		public bool treasuryEarnsInterest;
+		public bool paysTradeMaintenance;
 		public bool increasesResearch;
+		public bool doublesResearch;
 		public bool increasesLuxury;
 		public bool increasesTax;
 		public int productionBonusPercent = 0;
+
+		// Wonder effects, mirroring the SaveBuilding flags and fields of the
+		// same names (documented there).
+		public bool continentalMoodEffects;
+		public bool safeSeaTravel;
+		public bool gainAnyTechKnownByTwoCivs;
+		public bool doubleCombatVsBarbarians;
+		public bool increasedShipMovement;
+		public bool plusTwoShipMovement;
+		public bool cheaperUpgrades;
+		public bool twoFreeAdvances;
+		public bool allowDiplomaticVictory;
+		public bool allowsNuclearWeapons;
+		public bool doublesCityGrowthEverywhere;
+		public bool touristAttraction;
+		public bool increasesLeaderChance;
+		public bool increasedArmyValue;
+		public bool decreasesMissileSuccess;
+		public bool allowsSpyMissions;
+		public bool buildSpaceshipParts;
+		// The part's index in Rules.SpaceshipPartsRequired for spaceship
+		// parts, -1 for every other building. See SpaceRace.
+		public int spaceshipPart = -1;
+		public bool IsSpaceshipPart => spaceshipPart >= 0;
+		public int requiredBuildingCount;
+		// Filled in in SaveGame::ConvertBuildings.
+		public Government? requiredGovernment;
+		public bool goodsMustBeInCityRadius;
+		public int contentFacesAllCities;
+		// Filled in in SaveGame::ConvertBuildings.
+		public Building? doublesHappinessOf;
+		public int pollution;
+		// Resolved by name against GameData.unitPrototypes when needed.
+		public string? unitProducedName;
+		public int unitFrequency;
 
 		// Army buildings: the Military Academy lets its city build armies, and
 		// the Pentagon lets the owner's armies carry one more unit.
@@ -109,21 +148,49 @@ namespace C7GameData {
 			doublesCityGrowthRate = building.flags.Contains(SaveBuilding.Flag.DoublesCityGrowthRate);
 			providesWalls = building.flags.Contains(SaveBuilding.Flag.ProvidesWalls);
 			onlyUsefulInTowns = building.flags.Contains(SaveBuilding.Flag.CanOnlyBeBuiltInTowns);
+			replacesOtherBuildings = building.flags.Contains(SaveBuilding.Flag.ReplacesOtherBuildings);
 			providesVeteranGroundUnits = building.flags.Contains(SaveBuilding.Flag.VeteranGroundUnits);
 			providesVeteranSeaUnits = building.flags.Contains(SaveBuilding.Flag.VeteranSeaUnits);
 			allowsEnemyTerritoryHealing = building.flags.Contains(SaveBuilding.Flag.AllowsEnemyTerritoryHealing);
 			reducesWarWeariness = building.flags.Contains(SaveBuilding.Flag.ReducesWarWeariness);
 			reducesWarWearinessEverywhere = building.flags.Contains(SaveBuilding.Flag.ReducesWarWearinessEverywhere);
 			treasuryEarnsInterest = building.flags.Contains(SaveBuilding.Flag.TreasuryEarnsInterest);
+			paysTradeMaintenance = building.flags.Contains(SaveBuilding.Flag.PaysTradeMaintenance);
 			allowsBuildArmy = building.flags.Contains(SaveBuilding.Flag.AllowsBuildArmy);
 			allowsLargerArmies = building.flags.Contains(SaveBuilding.Flag.AllowsLargerArmies);
 			requiresVictoriousArmy = building.flags.Contains(SaveBuilding.Flag.RequiresVictoriousArmy);
 			numberOfArmiesRequired = building.numberOfArmiesRequired;
 			increasesResearch = building.flags.Contains(SaveBuilding.Flag.Plus50PercentResearch);
-			increasesLuxury = building.flags.Contains(SaveBuilding.Flag.Plus50PercentLuxury)
-				|| building.flags.Contains(SaveBuilding.Flag.Plus50PercentCommerce);
+			doublesResearch = building.flags.Contains(SaveBuilding.Flag.DoublesResearchOutput);
+			// Civ3's "+50% tax" flag (marketplace, bank, stock exchange) leaves
+			// the luxury slider alone; only the separate luxury flag boosts it.
+			increasesLuxury = building.flags.Contains(SaveBuilding.Flag.Plus50PercentLuxury);
 			increasesTax = building.flags.Contains(SaveBuilding.Flag.Plus50PercentCommerce);
 			productionBonusPercent = building.productionBonusPercent;
+			continentalMoodEffects = building.flags.Contains(SaveBuilding.Flag.ContinentalMoodEffects);
+			safeSeaTravel = building.flags.Contains(SaveBuilding.Flag.SafeSeaTravel);
+			gainAnyTechKnownByTwoCivs = building.flags.Contains(SaveBuilding.Flag.GainAnyTechKnownByTwoCivs);
+			doubleCombatVsBarbarians = building.flags.Contains(SaveBuilding.Flag.DoubleCombatVsBarbarians);
+			increasedShipMovement = building.flags.Contains(SaveBuilding.Flag.IncreasedShipMovement);
+			plusTwoShipMovement = building.flags.Contains(SaveBuilding.Flag.PlusTwoShipMovement);
+			cheaperUpgrades = building.flags.Contains(SaveBuilding.Flag.CheaperUpgrades);
+			twoFreeAdvances = building.flags.Contains(SaveBuilding.Flag.TwoFreeAdvances);
+			allowDiplomaticVictory = building.flags.Contains(SaveBuilding.Flag.AllowDiplomaticVictory);
+			allowsNuclearWeapons = building.flags.Contains(SaveBuilding.Flag.AllowsNuclearWeapons);
+			doublesCityGrowthEverywhere = building.flags.Contains(SaveBuilding.Flag.DoublesCityGrowthEverywhere);
+			touristAttraction = building.flags.Contains(SaveBuilding.Flag.TouristAttraction);
+			increasesLeaderChance = building.flags.Contains(SaveBuilding.Flag.IncreasesLeaderChance);
+			increasedArmyValue = building.flags.Contains(SaveBuilding.Flag.IncreasedArmyValue);
+			decreasesMissileSuccess = building.flags.Contains(SaveBuilding.Flag.DecreasesMissileSuccess);
+			allowsSpyMissions = building.flags.Contains(SaveBuilding.Flag.AllowsSpyMissions);
+			buildSpaceshipParts = building.flags.Contains(SaveBuilding.Flag.BuildSpaceshipParts);
+			spaceshipPart = building.spaceshipPart is int part && part >= 0 ? part : -1;
+			requiredBuildingCount = building.requiredBuildingCount;
+			goodsMustBeInCityRadius = building.flags.Contains(SaveBuilding.Flag.GoodsMustBeInCityRadius);
+			contentFacesAllCities = building.contentFacesAllCities;
+			pollution = building.pollution;
+			unitProducedName = building.unitProduced;
+			unitFrequency = building.unitFrequency;
 
 			if (building.greatWonderProperties != null) {
 				greatWonderProperties = new();

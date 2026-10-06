@@ -2982,6 +2982,10 @@
         "Maya"
       ],
       "unproducible": false,
+      "flags": [
+        "nuclearWeapon",
+        "tacticalMissile"
+      ],
       "categories": [
         "Land"
       ],
@@ -3060,6 +3064,10 @@
         "Maya"
       ],
       "unproducible": false,
+      "flags": [
+        "nuclearWeapon",
+        "icbm"
+      ],
       "categories": [
         "Land"
       ],
@@ -3140,7 +3148,9 @@
       ],
       "unproducible": false,
       "flags": [
-        "rotateBeforeAttack"
+        "rotateBeforeAttack",
+        "sinksInSea",
+        "sinksInOcean"
       ],
       "categories": [
         "Sea"
@@ -3219,7 +3229,8 @@
       ],
       "unproducible": false,
       "flags": [
-        "rotateBeforeAttack"
+        "rotateBeforeAttack",
+        "sinksInOcean"
       ],
       "categories": [
         "Sea"
@@ -4567,6 +4578,9 @@
         "Maya"
       ],
       "unproducible": true,
+      "flags": [
+        "leader"
+      ],
       "categories": [
         "Land"
       ],
@@ -7816,7 +7830,9 @@
       "unproducible": false,
       "flags": [
         "lethalSeaBombardment",
-        "startsGoldenAge"
+        "startsGoldenAge",
+        "sinksInSea",
+        "sinksInOcean"
       ],
       "categories": [
         "Sea"
@@ -8064,7 +8080,9 @@
       ],
       "unproducible": false,
       "flags": [
-        "rotateBeforeAttack"
+        "rotateBeforeAttack",
+        "sinksInSea",
+        "sinksInOcean"
       ],
       "categories": [
         "Sea"
@@ -8675,6 +8693,9 @@
       "maintenanceCost": 3,
       "productionBonusPercent": 50,
       "iconRowIndex": 16,
+      "flags": [
+        "replacesOtherBuildings"
+      ],
       "requiredResources": [
         "Coal"
       ]
@@ -8693,7 +8714,8 @@
       "productionBonusPercent": 50,
       "iconRowIndex": 17,
       "flags": [
-        "mustBeNearRiver"
+        "mustBeNearRiver",
+        "replacesOtherBuildings"
       ],
       "productionPrerequisites": [
         "buildings.production_rules.must_be_near_river"
@@ -8712,6 +8734,9 @@
       "maintenanceCost": 3,
       "productionBonusPercent": 100,
       "iconRowIndex": 18,
+      "flags": [
+        "replacesOtherBuildings"
+      ],
       "requiredResources": [
         "Uranium"
       ]
@@ -8825,6 +8850,9 @@
       "maintenanceCost": 3,
       "productionBonusPercent": 50,
       "iconRowIndex": 24,
+      "flags": [
+        "replacesOtherBuildings"
+      ],
       "traits": [
         "agricultural"
       ]
@@ -8931,6 +8959,9 @@
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
       "iconRowIndex": 30,
+      "flags": [
+        "touristAttraction"
+      ],
       "traits": [
         "religious",
         "industrious",
@@ -8950,10 +8981,14 @@
       "maintenanceCost": 0,
       "iconRowIndex": 31,
       "renderedObsoleteBy": "tech-45",
+      "flags": [
+        "touristAttraction"
+      ],
       "traits": [
         "industrious",
         "agricultural"
-      ]
+      ],
+      "contentFacesAllCities": 1
     },
     {
       "name": "The Colossus",
@@ -8969,7 +9004,9 @@
       "iconRowIndex": 32,
       "renderedObsoleteBy": "tech-59",
       "flags": [
-        "mustBeCoastal"
+        "mustBeCoastal",
+        "increasedTrade",
+        "touristAttraction"
       ],
       "traits": [
         "commercial",
@@ -8978,6 +9015,9 @@
       ],
       "productionPrerequisites": [
         "buildings.production_rules.must_be_coastal"
+      ],
+      "tileModifiers": [
+        "buildings.tile_modifiers.increased_trade"
       ]
     },
     {
@@ -8994,7 +9034,10 @@
       "iconRowIndex": 33,
       "renderedObsoleteBy": "tech-42",
       "flags": [
-        "mustBeCoastal"
+        "mustBeCoastal",
+        "safeSeaTravel",
+        "increasedShipMovement",
+        "touristAttraction"
       ],
       "traits": [
         "commercial",
@@ -9018,6 +9061,10 @@
       "maintenanceCost": 0,
       "iconRowIndex": 34,
       "renderedObsoleteBy": "tech-30",
+      "flags": [
+        "gainAnyTechKnownByTwoCivs",
+        "touristAttraction"
+      ],
       "traits": [
         "scientific"
       ]
@@ -9035,9 +9082,13 @@
       "maintenanceCost": 0,
       "iconRowIndex": 35,
       "renderedObsoleteBy": "tech-25",
+      "flags": [
+        "touristAttraction"
+      ],
       "traits": [
         "religious"
-      ]
+      ],
+      "doublesHappinessOf": "Temple"
     },
     {
       "name": "The Great Wall",
@@ -9054,6 +9105,10 @@
       "maintenanceCost": 0,
       "iconRowIndex": 36,
       "renderedObsoleteBy": "tech-39",
+      "flags": [
+        "doubleCombatVsBarbarians",
+        "touristAttraction"
+      ],
       "traits": [
         "militaristic",
         "industrious"
@@ -9089,9 +9144,13 @@
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
       "iconRowIndex": 38,
+      "flags": [
+        "touristAttraction"
+      ],
       "traits": [
         "religious"
-      ]
+      ],
+      "doublesHappinessOf": "Cathedral"
     },
     {
       "name": "Magellan's Voyage",
@@ -9106,7 +9165,8 @@
       "maintenanceCost": 0,
       "iconRowIndex": 39,
       "flags": [
-        "mustBeCoastal"
+        "mustBeCoastal",
+        "increasedShipMovement"
       ],
       "traits": [
         "commercial",
@@ -9129,6 +9189,10 @@
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
       "iconRowIndex": 40,
+      "flags": [
+        "doublesResearchOutput",
+        "touristAttraction"
+      ],
       "traits": [
         "expansionist"
       ]
@@ -9146,7 +9210,8 @@
       "maintenanceCost": 0,
       "iconRowIndex": 41,
       "flags": [
-        "allowsCitySize3"
+        "allowsCitySize3",
+        "touristAttraction"
       ],
       "productionPrerequisites": [
         "buildings.production_rules.allows_city_size_3"
@@ -9164,6 +9229,10 @@
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
       "iconRowIndex": 42,
+      "flags": [
+        "cheaperUpgrades",
+        "touristAttraction"
+      ],
       "traits": [
         "militaristic"
       ]
@@ -9180,9 +9249,14 @@
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
       "iconRowIndex": 43,
+      "flags": [
+        "continentalMoodEffects",
+        "touristAttraction"
+      ],
       "traits": [
         "religious"
-      ]
+      ],
+      "contentFacesAllCities": 2
     },
     {
       "name": "Newton's University",
@@ -9196,6 +9270,10 @@
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
       "iconRowIndex": 44,
+      "flags": [
+        "doublesResearchOutput",
+        "touristAttraction"
+      ],
       "traits": [
         "scientific"
       ]
@@ -9212,6 +9290,9 @@
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
       "iconRowIndex": 45,
+      "flags": [
+        "paysTradeMaintenance"
+      ],
       "traits": [
         "commercial",
         "seafaring"
@@ -9251,7 +9332,8 @@
       "maintenanceCost": 0,
       "iconRowIndex": 47,
       "flags": [
-        "mustBeNearRiver"
+        "mustBeNearRiver",
+        "touristAttraction"
       ],
       "traits": [
         "industrious",
@@ -9273,6 +9355,9 @@
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
       "iconRowIndex": 48,
+      "flags": [
+        "twoFreeAdvances"
+      ],
       "traits": [
         "scientific"
       ]
@@ -9289,6 +9374,10 @@
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
       "iconRowIndex": 49,
+      "flags": [
+        "allowDiplomaticVictory",
+        "touristAttraction"
+      ],
       "traits": [
         "commercial"
       ]
@@ -9305,6 +9394,9 @@
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
       "iconRowIndex": 50,
+      "flags": [
+        "allowsNuclearWeapons"
+      ],
       "traits": [
         "militaristic",
         "industrious"
@@ -9328,7 +9420,8 @@
       "traits": [
         "scientific",
         "agricultural"
-      ]
+      ],
+      "contentFacesAllCities": 1
     },
     {
       "name": "Longevity",
@@ -9342,6 +9435,9 @@
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
       "iconRowIndex": 52,
+      "flags": [
+        "doublesCityGrowthEverywhere"
+      ],
       "traits": [
         "scientific"
       ]
@@ -9358,6 +9454,9 @@
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
       "iconRowIndex": 53,
+      "flags": [
+        "doublesResearchOutput"
+      ],
       "traits": [
         "expansionist"
       ]
@@ -9373,7 +9472,8 @@
       "maintenanceCost": 0,
       "iconRowIndex": 54,
       "flags": [
-        "requiresVictoriousArmy"
+        "requiresVictoriousArmy",
+        "increasesLeaderChance"
       ],
       "traits": [
         "religious",
@@ -9394,7 +9494,8 @@
       "requiredResources": [
         "Iron",
         "Coal"
-      ]
+      ],
+      "pollution": 4
     },
     {
       "name": "Forbidden Palace",
@@ -9426,7 +9527,8 @@
       "iconRowIndex": 57,
       "flags": [
         "allowsBuildArmy",
-        "requiresVictoriousArmy"
+        "requiresVictoriousArmy",
+        "increasedArmyValue"
       ],
       "traits": [
         "militaristic"
@@ -9460,7 +9562,8 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
-      "iconRowIndex": 59
+      "iconRowIndex": 59,
+      "requiredBuildingCount": 5
     },
     {
       "name": "Apollo Program",
@@ -9473,6 +9576,9 @@
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
       "iconRowIndex": 60,
+      "flags": [
+        "buildSpaceshipParts"
+      ],
       "traits": [
         "scientific"
       ],
@@ -9492,9 +9598,13 @@
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
       "iconRowIndex": 61,
+      "flags": [
+        "decreasesMissileSuccess"
+      ],
       "traits": [
         "militaristic"
-      ]
+      ],
+      "requiredBuildingCount": 5
     },
     {
       "name": "Intelligence Agency",
@@ -9507,6 +9617,9 @@
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
       "iconRowIndex": 62,
+      "flags": [
+        "allowsSpyMissions"
+      ],
       "traits": [
         "militaristic",
         "scientific"
@@ -9528,7 +9641,8 @@
       ],
       "traits": [
         "militaristic"
-      ]
+      ],
+      "requiredBuildingCount": 5
     },
     {
       "name": "SS Thrusters",
@@ -9541,6 +9655,7 @@
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
       "iconRowIndex": 64,
+      "spaceshipPart": 0,
       "requiredResources": [
         "Aluminum"
       ]
@@ -9556,6 +9671,7 @@
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
       "iconRowIndex": 65,
+      "spaceshipPart": 1,
       "requiredResources": [
         "Aluminum"
       ]
@@ -9571,6 +9687,7 @@
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
       "iconRowIndex": 66,
+      "spaceshipPart": 2,
       "requiredResources": [
         "Aluminum"
       ]
@@ -9586,6 +9703,7 @@
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
       "iconRowIndex": 67,
+      "spaceshipPart": 3,
       "requiredResources": [
         "Aluminum"
       ]
@@ -9601,6 +9719,7 @@
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
       "iconRowIndex": 68,
+      "spaceshipPart": 4,
       "requiredResources": [
         "Uranium"
       ]
@@ -9616,6 +9735,7 @@
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
       "iconRowIndex": 69,
+      "spaceshipPart": 5,
       "requiredResources": [
         "Aluminum"
       ]
@@ -9631,6 +9751,7 @@
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
       "iconRowIndex": 70,
+      "spaceshipPart": 6,
       "requiredResources": [
         "Aluminum",
         "Uranium"
@@ -9647,6 +9768,7 @@
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
       "iconRowIndex": 71,
+      "spaceshipPart": 7,
       "requiredResources": [
         "Aluminum"
       ]
@@ -9662,6 +9784,7 @@
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
       "iconRowIndex": 72,
+      "spaceshipPart": 8,
       "requiredResources": [
         "Aluminum"
       ]
@@ -9677,6 +9800,7 @@
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
       "iconRowIndex": 73,
+      "spaceshipPart": 9,
       "requiredResources": [
         "Aluminum",
         "Rubber"
@@ -9780,6 +9904,9 @@
       "maintenanceCost": 0,
       "iconRowIndex": 78,
       "renderedObsoleteBy": "tech-30",
+      "flags": [
+        "touristAttraction"
+      ],
       "traits": [
         "religious"
       ]
@@ -9797,13 +9924,18 @@
       "maintenanceCost": 0,
       "iconRowIndex": 79,
       "renderedObsoleteBy": "tech-39",
+      "flags": [
+        "touristAttraction"
+      ],
       "traits": [
         "militaristic",
         "religious"
       ],
       "requiredResources": [
         "Ivory"
-      ]
+      ],
+      "unitProduced": "Ancient Cavalry",
+      "unitFrequency": 5
     },
     {
       "name": "The Mausoleum of Mausollos",
@@ -9817,6 +9949,9 @@
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
       "iconRowIndex": 80,
+      "flags": [
+        "touristAttraction"
+      ],
       "traits": [
         "scientific",
         "seafaring"
@@ -9838,7 +9973,9 @@
       "traits": [
         "militaristic",
         "religious"
-      ]
+      ],
+      "unitProduced": "Crusader",
+      "unitFrequency": 5
     },
     {
       "name": "Secret Police HQ",
@@ -9851,6 +9988,7 @@
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
       "iconRowIndex": 56,
+      "requiredGovernment": "Government-4",
       "flags": [
         "forbiddenPalace"
       ]
@@ -11632,7 +11770,20 @@
     "radarTileVisibility": 2,
     "allowUnloadFromArmy": false,
     "citiesNeededToSupportAnArmy": 4,
+    "spaceshipPartsRequired": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
     "buildArmyUnit": "Army",
+    "battleCreatedUnit": "Leader",
     "minimumPopulationForWeLoveTheKing": 6,
     "goldenAgeDuration": 20,
     "upgradeCostPerShield": 3
