@@ -1212,7 +1212,13 @@ namespace C7GameData {
 			}
 
 			if (learned.Count > 0) {
-				PlayerAI.MaybePickTechToResearch(this, gameData.techs);
+				// As with research, a human with nothing queued chooses what
+				// to research next rather than having it picked for them.
+				if (isHuman && currentlyResearchedTech == null && ResearchQueue.Count == 0) {
+					lastDiscoveredTech = learned[^1];
+				} else {
+					PlayerAI.MaybePickTechToResearch(this, gameData.techs);
+				}
 				if (isHuman) {
 					new MsgShowTemporaryPopup($"The {library.name} in {libraryCity.name} has given us {string.Join(", ", learned.Select(t => t.Name))}.",
 						libraryCity.location, this).send();

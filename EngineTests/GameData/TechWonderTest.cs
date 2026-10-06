@@ -193,4 +193,39 @@ public class TechWonderTest {
 		Assert.Contains(pottery.id, us.knownTechs);
 		Assert.Equal(0, us.freeTechsRemaining);
 	}
+
+	[Fact]
+	public void GreatLibraryLetsAHumanChooseWhatToResearchNext() {
+		BuildWonder(SaveBuilding.Flag.GainAnyTechKnownByTwoCivs);
+		us.isHuman = true;
+		us.freeTechsRemaining = 1;
+		Meet(us, rome);
+		Meet(us, greece);
+		Know(rome, alphabet);
+		Know(greece, alphabet);
+
+		Assert.Equal(new List<Tech> { alphabet }, us.DoGreatLibraryUpdates(gameData));
+
+		// Nothing is picked for the player, so the free tech is still theirs
+		// to spend.
+		Assert.Null(us.currentlyResearchedTech);
+		Assert.Equal(1, us.freeTechsRemaining);
+		Assert.DoesNotContain(writing.id, us.knownTechs);
+		Assert.Equal(alphabet, us.lastDiscoveredTech);
+	}
+
+	[Fact]
+	public void GreatLibraryFollowsAHumansResearchQueue() {
+		BuildWonder(SaveBuilding.Flag.GainAnyTechKnownByTwoCivs);
+		us.isHuman = true;
+		Meet(us, rome);
+		Meet(us, greece);
+		Know(rome, alphabet);
+		Know(greece, alphabet);
+		us.AddTechItemToResearchQueue(pottery);
+
+		us.DoGreatLibraryUpdates(gameData);
+
+		Assert.Equal(pottery.id, us.currentlyResearchedTech);
+	}
 }
