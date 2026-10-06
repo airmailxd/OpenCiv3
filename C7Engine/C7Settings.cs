@@ -44,6 +44,14 @@ namespace C7Engine {
 			settings[section][key] = value;
 		}
 
+		// Forgets a saved value, so whoever reads it gets their default again.
+		public static void RemoveValue(string section, string key) {
+			if (settings == null) {
+				LoadSettings();
+			}
+			settings[section]?.RemoveKey(key);
+		}
+
 		public static string GetSettingValue(string section, string key) {
 			if (settings == null) {
 				LoadSettings();

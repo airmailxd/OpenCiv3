@@ -111,9 +111,10 @@ public partial class MiniMapFrame : TextureRect {
 
 	// The map image covers the map the way MapView lays it out, so the
 	// mouse's position on the image, scaled to the map's size, is a map
-	// location.
+	// location. A drag past the image's edge stays on the edge.
 	private void CenterToMousePosition() {
 		var relativeMapPos = mapTextureRect.GetLocalMousePosition() / mapTextureRect.Size;
+		relativeMapPos = relativeMapPos.Clamp(Vector2.Zero, Vector2.One);
 		CenterToPosition(relativeMapPos);
 	}
 
@@ -122,11 +123,13 @@ public partial class MiniMapFrame : TextureRect {
 			if (mapView == null)
 				return;
 
+			// Centre on the tile drawn under the mouse, which along an edge
+			// that doesn't wrap may be the one next to the location.
 			var mapSize = new Vector2(gameData.map.numTilesWide, gameData.map.numTilesTall);
 			var mapLocation = relativeMapPos * mapSize;
-			var (x, y) = mapView.tileCoordsForMapLocation(mapLocation);
-			var tile = gameData.map.tileAt(x, y);
-			mapView.centerCameraOnTile(tile);
+			var tile = MiniMap.TileShownAt(gameData.map, mapLocation.X, mapLocation.Y);
+			if (tile != Tile.NONE)
+				mapView.centerCameraOnTile(tile);
 		});
 	}
 }

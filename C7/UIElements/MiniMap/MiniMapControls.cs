@@ -10,14 +10,14 @@ public partial class MiniMapControls : Control {
 }
 
 /// Draws the viewport bounds as a rectangle over the minimap texture. The
-/// lines are worked out in minimap pixel space, as if drawn onto the map
-/// image, then scaled up to the size the map is shown at, so the map image
-/// itself never has to change when the camera moves.
+/// lines are worked out in map locations, the half-tile units the map image
+/// covers (the tile at (X, Y) is centred on (X + 1, Y + 1)), then scaled up
+/// to the size the map is shown at, so the map image itself never has to
+/// change when the camera moves.
 public partial class MiniMapBoundsOverlay : Control {
 	private readonly List<(int x0, int y0, int x1, int y1)> lines = new();
-	private int imageWidth, imageHeight;
+	private int mapWidth, mapHeight;
 	private bool hasBounds;
-	private int lastWidth, lastHeight;
 	private MapView.VisibleRegion lastRegion;
 
 	public override void _Ready() {
@@ -25,75 +25,59 @@ public partial class MiniMapBoundsOverlay : Control {
 	}
 
 	public void SetBounds(GameMap map, MapView.VisibleRegion vr) {
-		int width = map.numTilesWide, height = map.numTilesTall / 2;
-		if (hasBounds && width == lastWidth && height == lastHeight
+		int width = map.numTilesWide, height = map.numTilesTall;
+		if (hasBounds && width == mapWidth && height == mapHeight
 			&& vr.upperLeftX == lastRegion.upperLeftX && vr.upperLeftY == lastRegion.upperLeftY
 			&& vr.lowerRightX == lastRegion.lowerRightX && vr.lowerRightY == lastRegion.lowerRightY) {
 			return;
 		}
 		hasBounds = true;
-		lastWidth = width;
-		lastHeight = height;
+		mapWidth = width;
+		mapHeight = height;
 		lastRegion = vr;
 
-		imageWidth = width;
-		imageHeight = height;
 		lines.Clear();
-		DrawBounds(map, vr);
+		DrawBounds(vr);
 		QueueRedraw();
 	}
 
 	public override void _Draw() {
-		if (imageWidth <= 0 || imageHeight <= 0)
+		if (mapWidth <= 0 || mapHeight <= 0)
 			return;
-		Vector2 scale = Size / new Vector2(imageWidth, imageHeight);
+		Vector2 scale = Size / new Vector2(mapWidth, mapHeight);
 		foreach (var (x0, y0, x1, y1) in lines) {
-			// Every line is horizontal or vertical. It's drawn one pixel thick
-			// through the middle of the minimap pixels it covers, running on to
-			// the image's edge where it's cut off by the edge.
-			int minX = Math.Max(Math.Min(x0, x1), 0), maxX = Math.Min(Math.Max(x0, x1), imageWidth - 1);
-			int minY = Math.Max(Math.Min(y0, y1), 0), maxY = Math.Min(Math.Max(y0, y1), imageHeight - 1);
-			if (minX > maxX || minY > maxY)
-				continue;
-			float left = minX == 0 ? 0 : (minX + 0.5f) * scale.X - 0.5f;
-			float right = maxX == imageWidth - 1 ? Size.X : (maxX + 0.5f) * scale.X + 0.5f;
-			float top = minY == 0 ? 0 : (minY + 0.5f) * scale.Y - 0.5f;
-			float bottom = maxY == imageHeight - 1 ? Size.Y : (maxY + 0.5f) * scale.Y + 0.5f;
-			if (minY == maxY) {
-				top = (minY + 0.5f) * scale.Y - 0.5f;
-				bottom = top + 1;
-			} else {
-				left = (minX + 0.5f) * scale.X - 0.5f;
-				right = left + 1;
-			}
-			DrawRect(new Rect2(left, top, right - left, bottom - top), Colors.White);
+			// Every line is horizontal or vertical, one pixel thick, and kept
+			// inside the image so the ones along its edges still show.
+			float left = Mathf.Clamp(Math.Min(x0, x1) * scale.X, 0, Size.X - 1);
+			float right = Mathf.Clamp(Math.Max(x0, x1) * scale.X, 0, Size.X - 1);
+			float top = Mathf.Clamp(Math.Min(y0, y1) * scale.Y, 0, Size.Y - 1);
+			float bottom = Mathf.Clamp(Math.Max(y0, y1) * scale.Y, 0, Size.Y - 1);
+			DrawRect(new Rect2(left, top, right - left + 1, bottom - top + 1), Colors.White);
 		}
 	}
 
-	/// Work out the viewport bounds as lines in minimap pixel space
-	private void DrawBounds(GameMap map, MapView.VisibleRegion vr) {
-		// TODO: Handle draws over map edges, maybe with Mathf.Wrap
+	/// Work out the viewport bounds as lines in map locations
+	private void DrawBounds(MapView.VisibleRegion vr) {
+		// The region runs from the tile at its upper left to the one before
+		// its lower right, so the rectangle joins those tiles' centres.
+		int ax = vr.upperLeftX + 1, ay = vr.upperLeftY + 1;
+		int bx = vr.lowerRightX, by = vr.lowerRightY;
 
-		// Bounds, in minimap draw space
-		var maxWidth = map.numTilesWide - 1;
-		var maxHeight = (map.numTilesTall / 2) - 1;
+		// The image's edges
+		var maxWidth = mapWidth;
+		var maxHeight = mapHeight;
 		var maxPan = 100; // how many screenfuls one can pan the map
 
 		// Wrapped coordinates, working around modulo operator limitations.
-		// The map wraps after its full width and height, not after the last
-		// pixel's coordinate.
-		var wrapWidth = map.numTilesWide;
-		var wrapHeight = map.numTilesTall / 2;
-		var wax = (maxPan * wrapWidth + vr.upperLeftX) % wrapWidth;
-		var way = (maxPan * wrapHeight + (vr.upperLeftY / 2)) % wrapHeight;
-		var wbx = (maxPan * wrapWidth + vr.lowerRightX) % wrapWidth;
-		var wby = (maxPan * wrapHeight + (vr.lowerRightY / 2)) % wrapHeight;
+		var wax = (maxPan * mapWidth + ax) % mapWidth;
+		var way = (maxPan * mapHeight + ay) % mapHeight;
+		var wbx = (maxPan * mapWidth + bx) % mapWidth;
+		var wby = (maxPan * mapHeight + by) % mapHeight;
 
 		// Out of bounds
 		var isOoBx = wbx < wax; // X coordinates increase right
 		var isOoBy = wby < way; // Y coordinates increase down
-		var fullZoom = (vr.lowerRightY / 2 - vr.upperLeftY / 2) > maxHeight
-					   || (vr.lowerRightX - vr.upperLeftX) > maxWidth;
+		var fullZoom = (by - ay) >= maxHeight || (bx - ax) >= maxWidth;
 
 		// TODO: make use of GameMap's wrapHorizontally, wrapVertically
 

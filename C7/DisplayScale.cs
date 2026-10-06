@@ -42,6 +42,14 @@ public partial class DisplayScale : Node {
 		C7Settings.SaveSettings();
 	}
 
+	// Goes back to the scale that fits the screen and forgets the saved one, so
+	// the scale follows the screen again.
+	private void ResetScale() {
+		GetTree().Root.ContentScaleFactor = DefaultScale();
+		C7Settings.RemoveValue(Section, Key);
+		C7Settings.SaveSettings();
+	}
+
 	public override void _Input(InputEvent @event) {
 		if (@event is not InputEventKey { Pressed: true, Echo: false, CtrlPressed: true } key) {
 			return;
@@ -55,7 +63,7 @@ public partial class DisplayScale : Node {
 				SetScale(current - Step);
 				break;
 			case Godot.Key.Key0 or Godot.Key.Kp0:
-				SetScale(DefaultScale());
+				ResetScale();
 				break;
 			default:
 				return;

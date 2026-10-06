@@ -248,20 +248,32 @@ public partial class MiniMap : Control {
 			float my = (py + 0.5f) / height * map.numTilesTall;
 			for (int px = 0; px < width; px++) {
 				float mx = (px + 0.5f) / width * map.numTilesWide;
-				var (x, y) = TileCoordsForMapLocation(mx, my);
-				// Along a map edge that doesn't wrap, the half diamonds past the
-				// edge show the tile next to them, so the edge is straight.
-				if (!map.isTileAt(x, y)) {
-					if (map.isTileAt(x + 1, y + 1)) { x++; y++; }
-					else if (map.isTileAt(x - 1, y - 1)) { x--; y--; }
-					else if (map.isTileAt(x + 1, y - 1)) { x++; y--; }
-					else if (map.isTileAt(x - 1, y + 1)) { x--; y++; }
-				}
+				var (x, y) = TileCoordsShownAt(map, mx, my);
 				pixelTiles[py * width + px] = map.isTileAt(x, y)
 					? map.tileCoordsToIndex(map.wrapTileX(x), map.wrapTileY(y))
 					: -1;
 			}
 		}
+	}
+
+	// The tile the minimap shows at a map location, in half tiles. Along a
+	// map edge that doesn't wrap, the half diamonds past the edge show the
+	// tile next to them, so the edge is straight. Returns Tile.NONE for a
+	// location off the map.
+	public static Tile TileShownAt(GameMap map, float mapX, float mapY) {
+		var (x, y) = TileCoordsShownAt(map, mapX, mapY);
+		return map.tileAt(x, y);
+	}
+
+	private static (int, int) TileCoordsShownAt(GameMap map, float mapX, float mapY) {
+		var (x, y) = TileCoordsForMapLocation(mapX, mapY);
+		if (!map.isTileAt(x, y)) {
+			if (map.isTileAt(x + 1, y + 1)) { x++; y++; }
+			else if (map.isTileAt(x - 1, y - 1)) { x--; y--; }
+			else if (map.isTileAt(x + 1, y - 1)) { x++; y--; }
+			else if (map.isTileAt(x - 1, y + 1)) { x--; y++; }
+		}
+		return (x, y);
 	}
 
 	// The same as MapView.tileCoordsForMapLocation, which needs a MapView.
