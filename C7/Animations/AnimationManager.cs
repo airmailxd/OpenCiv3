@@ -286,6 +286,15 @@ public partial class AnimationManager {
 		}
 	}
 
+	// Whether a unit's art has its own animation for an action, rather than
+	// falling back on its default one.
+	public bool HasUnitAction(string artName, MapUnit.AnimatedAction action) {
+		if (!HasUnitArt(artName)) {
+			return false;
+		}
+		return !string.IsNullOrEmpty(getUnitINIData(artName)["Animations"][action.ToString()]);
+	}
+
 	public IniData getUnitINIData(string unitTypeName) {
 		return getINIData(string.Format("Art/Units/{0}/{0}.INI", unitTypeName));
 	}

@@ -184,8 +184,47 @@ public partial class AnimationTracker {
 		finishedIds.Clear();
 	}
 
+	// The durations of the work animations by art and action, so a worker's
+	// loop doesn't need its flic header looked up every frame.
+	private readonly Dictionary<(string, MapUnit.AnimatedAction), long> workDurationsMS = new();
+
+	// The animation of a worker at work, which is worked out from its job
+	// rather than from the animation started when it was given the job. That
+	// one is lost when a game is loaded, isn't sent to LAN clients and isn't
+	// started at all while animations are off or the worker is out of sight.
+	private bool tryGetWorkAppearance(MapUnit unit, out MapUnit.Appearance appearance) {
+		appearance = default;
+		if (unit.WorkerJob?.Animation is not MapUnit.AnimatedAction action) {
+			return false;
+		}
+
+		string artName = AnimationManager.ArtNameFor(unit);
+		if (!workDurationsMS.TryGetValue((artName, action), out long durationMS)) {
+			durationMS = Math.Max(1, (long)civ3AnimData.forUnit(unit, action).getDuration());
+			workDurationsMS[(artName, action)] = durationMS;
+		}
+
+		// Each worker starts its loop at its own point, so a crew working
+		// together doesn't swing in lockstep.
+		long phaseMS = (uint)unit.id.GetHashCode() % durationMS;
+		appearance = new MapUnit.Appearance {
+			action = action,
+			direction = unit.facingDirection,
+			progress = (float)((getCurrentTimeMS() + phaseMS) % durationMS) / durationMS,
+			ending = AnimationEnding.Repeat,
+		};
+		return true;
+	}
+
 	public MapUnit.Appearance getUnitAppearance(MapUnit unit) {
-		if (activeAnims.TryGetValue(unit.id, out ActiveAnimation aa)) {
+		// Repeating animations are the poses of units at rest, which follow
+		// what the unit is doing now, so a worker's job takes their place.
+		bool animating = activeAnims.TryGetValue(unit.id, out ActiveAnimation aa);
+		if ((!animating || aa.ending == AnimationEnding.Repeat) && tryGetWorkAppearance(unit, out MapUnit.Appearance working)) {
+			return working;
+		}
+
+		if (animating) {
 			var (action, progress, ending) = getActionAndProgress(aa);
 
 			float offsetX = 0, offsetY = 0;

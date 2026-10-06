@@ -4,8 +4,11 @@ using System.Runtime.CompilerServices;
 using C7.Textures;
 using C7GameData;
 using Godot;
+using Serilog;
 
 public partial class UnitLayer : LooseLayer {
+	private static readonly ILogger log = LogManager.ForContext<UnitLayer>();
+
 	private ImageTexture unitMovementIndicators;
 
 	// The unit animations, effect animations, and cursor are all drawn as children attached to the looseView but aren't created and attached in
@@ -53,6 +56,42 @@ public partial class UnitLayer : LooseLayer {
 
 	public UnitLayer() {
 		unitMovementIndicators = TextureLoader.Load("ui.unit_control.movement_indicators");
+	}
+
+	// The buttons of the worker jobs by texture key, null where a ruleset has
+	// no texture for one.
+	private readonly Dictionary<string, ImageTexture> jobBadges = new();
+
+	private ImageTexture GetJobBadge(Terraform job) {
+		if (!jobBadges.TryGetValue(job.ButtonTexture, out ImageTexture badge)) {
+			try {
+				badge = TextureLoader.Load(job.ButtonTexture + ".normal");
+			} catch (Exception e) {
+				log.Warning(e, "No badge texture for {Job}", job.Name);
+				badge = null;
+			}
+			jobBadges[job.ButtonTexture] = badge;
+		}
+		return badge;
+	}
+
+	// Marks a worker with its job's button when its art has no animation of
+	// the job, like for airfields, or no art for it at all.
+	private void drawWorkerJobBadge(AnimationManager manager, AnimationManager.UnitArt art, MapUnit unit, Vector2 unitCenter) {
+		Terraform job = unit.WorkerJob;
+		if (job == null) {
+			return;
+		}
+		if (job.Animation is MapUnit.AnimatedAction action && manager.HasUnitAction(art.artName, action)) {
+			return;
+		}
+		ImageTexture badge = GetJobBadge(job);
+		if (badge == null) {
+			return;
+		}
+		const float size = 16;
+		Rect2 rect = new Rect2(unitCenter + new Vector2(6, -24), new Vector2(size, size));
+		RenderingServer.CanvasItemAddTextureRect(indicatorItem, rect, badge.GetRid());
 	}
 
 	public static Color GetHpColor(float remaining, float total) {
@@ -527,6 +566,7 @@ public partial class UnitLayer : LooseLayer {
 		AnimationManager manager = looseView.mapView.game.animationController.civ3AnimData;
 		AnimationManager.UnitArt art = GetDisplayedUnitArt(manager, displayed);
 		drawUnitAnimFrame(looseView, unit, manager.GetUnitAnimation(art, appearance.action, appearance.direction), appearance, tileCenter);
+		drawWorkerJobBadge(manager, art, unit, tileCenter + animOffset);
 
 		// The indicators go on their own canvas item, above the units; see indicatorZIndex.
 
