@@ -23,7 +23,9 @@ internal static class SnapshotDetacher {
 	// later is safe, if a little slower, until it's added here.
 	private static readonly HashSet<string> FreshSaveMembers = ["Map", "Units", "Players", "Cities"];
 	// knownTileIndices is a string, which can't change, so it's shared as is.
-	private static readonly HashSet<string> FreshPlayerMembers = ["tileKnowledge", "knownTileIndices"];
+	// outdatedTiles is built from what the player remembers of the map, like
+	// tileKnowledge.
+	private static readonly HashSet<string> FreshPlayerMembers = ["tileKnowledge", "knownTileIndices", "outdatedTiles"];
 
 	private static readonly List<Member> SharedSaveMembers = SharedMembers(typeof(SaveGame), FreshSaveMembers);
 	private static readonly List<Member> SharedPlayerMembers = SharedMembers(typeof(SavePlayer), FreshPlayerMembers);

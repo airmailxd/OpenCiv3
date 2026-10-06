@@ -250,8 +250,14 @@ namespace C7GameData {
 		// what's there now, with what the player remembers, for saving. What
 		// is remembered of the tiles in view doesn't matter, since they're
 		// remembered afresh when they go out of view.
+		//
+		// This only reads: saves can be made from the UI while the engine is
+		// changing the game, so it uses the active tiles as they were last
+		// brought up to date rather than recomputing them. If that is behind,
+		// a tile that has just gone out of view is left out and is remembered
+		// as it is now when the save is loaded, which is what recomputing
+		// would have remembered too.
 		internal IEnumerable<KeyValuePair<Tile, TerrainImprovement[]>> OutdatedMemories() {
-			RecomputeActiveTiles();
 			foreach (KeyValuePair<Tile, TerrainImprovement[]> memory in rememberedImprovements) {
 				if (!isActiveTile(memory.Key) && !SameImprovements(memory.Value, memory.Key.overlays.terrainImprovementByLayer)) {
 					yield return memory;
