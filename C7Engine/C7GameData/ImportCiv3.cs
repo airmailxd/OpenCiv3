@@ -238,11 +238,27 @@ namespace C7GameData {
 				}
 				i++;
 			}
+			MarkLakes();
 
 			// make barbarians unpickable
 			save.Players.Where(p => p.isBarbarian).ToList().ForEach(p => p.canBePicked = false);
 
 			return save;
+		}
+
+		// Marks the tiles of small bodies of water as fresh water lakes, as
+		// GameMap.recomputeContinents does for generated maps. Civ3 gives each
+		// body of water its own continent number.
+		private void MarkLakes() {
+			HashSet<string> waterTerrains = save.TerrainTypes.Where(t => t.IsWater).Select(t => t.Key).ToHashSet();
+			foreach (IGrouping<int, SaveTile> body in save.Map.tiles.Where(t => waterTerrains.Contains(t.baseTerrain)).GroupBy(t => t.continent)) {
+				// TODO: share the size limit with recomputeContinents.
+				if (body.Count() <= 20) {
+					foreach (SaveTile t in body) {
+						t.isFreshWater = true;
+					}
+				}
+			}
 		}
 
 		private void ImportSavHistory() {
@@ -402,6 +418,7 @@ namespace C7GameData {
 				save.Map.tiles.Add(tile);
 				i++;
 			}
+			MarkLakes();
 
 			// The rest of the fog of war is done unit by unit; each unit can see their
 			// own tile and the neighbor tiles.

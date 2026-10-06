@@ -24,6 +24,8 @@ namespace C7GameData {
 		public int beakers;
 		public int happiness;
 		public int wealth;
+		// The city's commerce before corruption and building bonuses.
+		public int total;
 	}
 
 	public struct CorruptableValue {
@@ -787,6 +789,21 @@ namespace C7GameData {
 			return yield;
 		}
 
+		// The food, shields and commerce the government's tile penalty (e.g.
+		// despotism's) takes from the city's tiles this turn.
+		public (int food, int shields, int commerce) TileYieldPenalties() {
+			List<CityBuilding> buildings = EffectiveBuildings();
+			int food = location.FoodYield(this, buildings).penalty;
+			int shields = location.ProductionYield(this, buildings).penalty;
+			int commerce = location.CommerceYield(this, buildings).penalty;
+			foreach (CityResident r in residents) {
+				food += r.tileWorked.FoodYield(this, buildings).penalty;
+				shields += r.tileWorked.ProductionYield(this, buildings).penalty;
+				commerce += r.tileWorked.CommerceYield(this, buildings).penalty;
+			}
+			return (food, shields, commerce);
+		}
+
 		public CorruptableValue CurrentProductionYield() {
 			List<CityBuilding> buildings = EffectiveBuildings();
 			int yield = location.ProductionYield(this, buildings).yield;
@@ -884,20 +901,28 @@ namespace C7GameData {
 
 			// TODO: Science/Luxury commerce doesn't seem to be tabulating correctly, can be negative in some cases with specialists, might be ImportCiv3 issue?
 			CommerceBreakdown result = new();
+			result.total = uncorruptedCommerce;
 			result.corrupted = commerce.corrupt;
-			result.beakers = (int)Math.Floor(commerce.useful * owner.scienceRate / 10.0);
-			result.happiness = (int)Math.Floor(commerce.useful * owner.luxuryRate / 10.0);
+			// Civ3 rounds each share to the nearest whole value rather than
+			// down (8 commerce at 70% science is 6 beakers, not 5). Luxuries
+			// are rounded first, then science, from what's left, and taxes get
+			// the remainder.
+			result.happiness = RoundedShare(commerce.useful, owner.luxuryRate);
+			result.beakers = Math.Min(RoundedShare(commerce.useful, owner.scienceRate), commerce.useful - result.happiness);
 			result.taxes = commerce.useful - result.beakers - result.happiness;
 
 			// Each library, marketplace and similar building adds 50% to the
-			// share of commerce it affects.
-			int researchBuildings = 0, luxuryBuildings = 0, taxBuildings = 0;
+			// share of commerce it affects, and each research-doubling wonder
+			// (Copernicus, Newton's) adds another 100%. The bonuses stack
+			// additively on the base share.
+			int researchPercent = 0, luxuryBuildings = 0, taxBuildings = 0;
 			foreach (CityBuilding cb in buildings) {
-				researchBuildings += cb.building.increasesResearch ? 1 : 0;
+				researchPercent += cb.building.increasesResearch ? 50 : 0;
+				researchPercent += cb.building.doublesResearch ? 100 : 0;
 				luxuryBuildings += cb.building.increasesLuxury ? 1 : 0;
 				taxBuildings += cb.building.increasesTax ? 1 : 0;
 			}
-			result.beakers += result.beakers * researchBuildings / 2;
+			result.beakers += result.beakers * researchPercent / 100;
 			result.happiness += result.happiness * luxuryBuildings / 2;
 			result.taxes += result.taxes * taxBuildings / 2;
 
@@ -908,6 +933,12 @@ namespace C7GameData {
 			}
 
 			return result;
+		}
+
+		// The share of `commerce` a slider at `rate` (in tenths) gets, rounding
+		// halves up.
+		private static int RoundedShare(int commerce, int rate) {
+			return (commerce * rate + 5) / 10;
 		}
 
 		[MoonSharpHidden]
@@ -1272,6 +1303,10 @@ namespace C7GameData {
 			CalculateCorruption(gameData, owner.GetAdjustedOptimalCityNumber(gameData));
 		}
 
+		// Scales every city's corruption and waste before the cap. Civ3's
+		// formula is 1; we run slightly below it to go easier on players.
+		internal const float CorruptionScale = 0.9f;
+
 		// The adjusted optimal city number is empire-wide, so when updating
 		// every city Player.DoCorruptionCalculations works it out once and
 		// passes it in rather than rescanning the empire for each city.
@@ -1289,8 +1324,9 @@ namespace C7GameData {
 				}
 			}
 
-			corruption = CalculateDistanceCorruption(gameData, numAntiCorruptionBuildings)
-					+ CalculateRankCorruption(adjustedOptimalCityNumber, gameData.map.optimalNumberOfCities, numAntiCorruptionBuildings);
+			corruption = (CalculateDistanceCorruption(gameData, numAntiCorruptionBuildings)
+					+ CalculateRankCorruption(adjustedOptimalCityNumber, gameData.map.optimalNumberOfCities, numAntiCorruptionBuildings))
+					* CorruptionScale;
 			// TODO: apply policeman modifiers, before applying the max
 
 			// Corruption maxes out at 90%, and this max can be reduced further
@@ -1300,6 +1336,13 @@ namespace C7GameData {
 				.9f - (.1f * numAntiCorruptionBuildings + .7f * numCorruptionReducingSmallWondersInCity));
 			corruption = Math.Max(corruption, 0);
 			corruption = Math.Min(corruption, maxCorruption);
+
+			// The capital is rank 0, so the next CitiesFreeOfCorruption
+			// cities nearest it are ranks 1 to CitiesFreeOfCorruption.
+			Rules rules = gameData.rules;
+			if (rules != null && rules.CoreCitiesFreeOfCorruption && rankIndex <= rules.CitiesFreeOfCorruption) {
+				corruption = 0;
+			}
 		}
 
 		// Does the per turn culture updating for the city and returns whether
@@ -1502,13 +1545,14 @@ namespace C7GameData {
 			unhappyToContentMoves += Math.Min(owner.government.militaryPoliceLimit, landDefenders);
 
 			// Luxury spending moves content faces to happy faces, one face for
-			// every two luxuries.
+			// every luxury (see the civfanatics thread above: "one luxury
+			// happiness point affects one citizen").
 			//
 			// Don't respect civil disorder during this calculation, because if
 			// we are currently in civil disorder our commerce is all corrupt,
 			// but we still need to be able to calculate whether a certain
 			// luxury slider value would get us out of civil disorder.
-			contentToHappyMoves += CurrentCommerceYield(respectCivilDisorder: false).happiness / 2;
+			contentToHappyMoves += CurrentCommerceYield(respectCivilDisorder: false).happiness;
 
 			// As do luxury resources, which can be boosted by marketplaces.
 			int effectiveLux = GetLuxuries(gameData).Keys.Count;

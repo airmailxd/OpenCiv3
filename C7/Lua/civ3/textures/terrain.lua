@@ -88,6 +88,8 @@ terrain.river = TERRAIN .. "mtnRivers.pcx"
 
 terrain.river_delta = TERRAIN .. "deltaRivers.pcx"
 
+terrain.flood_plain = TERRAIN .. "floodplains.pcx"
+
 terrain.tnt = TERRAIN .. "tnt.pcx"
 
 terrain.jungle = {

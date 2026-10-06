@@ -35,6 +35,12 @@ namespace C7GameData {
 		// LAN) show the scoreboard of players' scores and the turn clock.
 		public bool ShowScoreboard = true;
 
+		// Game option, not in Civ3: the capital and the cities nearest it
+		// (the first CitiesFreeOfCorruption by rank) have no corruption or
+		// waste. Off by default, so saves and Civ3 games play as before.
+		public bool CoreCitiesFreeOfCorruption = false;
+		public int CitiesFreeOfCorruption = 5;
+
 		// Each army needs this many cities to support it. A civ can't build an
 		// army unless (armies + 1) * CitiesNeededToSupportAnArmy <= cities.
 		public int CitiesNeededToSupportAnArmy = 4;

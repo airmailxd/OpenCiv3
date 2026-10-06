@@ -52,6 +52,10 @@ namespace C7GameData {
 		// The culture (current plus per turn) of each city, cached while
 		// UpdateTileOwners runs since nothing changes culture in the meantime.
 		private Dictionary<City, int> cultureCache;
+
+		// The position of each city in the list of cities, which is the order
+		// they were founded in, cached while UpdateTileOwners runs.
+		private Dictionary<City, int> foundingOrderCache;
 		public List<UnitPrototype> unitPrototypes = new();
 		public List<Building> Buildings = new();
 		public List<Inflow> Inflows = new();
@@ -281,11 +285,13 @@ namespace C7GameData {
 
 		public void UpdateTileOwners() {
 			cultureCache = new Dictionary<City, int>();
+			foundingOrderCache = null;
 			try {
 				ResolveCityBorders();
 				ResolveBorderGaps();
 			} finally {
 				cultureCache = null;
+				foundingOrderCache = null;
 			}
 		}
 
@@ -511,10 +517,9 @@ namespace C7GameData {
 		}
 
 		// Records that a city has changed hands, so that every player
-		// re-examines the tiles it owns. Its borders now come from the new
-		// owner's culture there, which may not reach as far, so it lets go of
-		// the tiles beyond them. Updating tile owners afterwards hands those
-		// to whoever has claim to them.
+		// re-examines the tiles it owns. Its borders now come from the new owner's culture there, which may
+		// not reach as far, so it lets go of the tiles beyond them. Updating
+		// tile owners afterwards hands those to whoever has claim to them.
 		internal void OnCityOwnerChanged(City city) {
 			HashSet<Tile> withinBorders = city.GetTilesWithinBorders().ToHashSet();
 			foreach (Tile t in map.tiles) {
@@ -736,7 +741,11 @@ namespace C7GameData {
 				}
 			}
 
-			int difficultyFactor = player.isHuman ? gameDifficulty.HumanCostFactor : gameDifficulty.AiCostFactor;
+			// CF is the difficulty's cost factor, and only the human pays it: the
+			// AI always researches as if on Regent (CF 10), while on Emperor (CF 8)
+			// a human's techs cost 10/8 as much. See
+			// https://forums.civfanatics.com/threads/ai-difficulty-level-bonuses.37490/.
+			int difficultyFactor = player.isHuman ? gameDifficulty.AiCostFactor : gameDifficulty.HumanCostFactor;
 			float knowledgeFactor = 1.0f - knownCivsThatKnowTheTech / (civsLeft * 1.75f);
 			float researchCost = map.techRate * 10 * tech.Cost  * knowledgeFactor/ (difficultyFactor * 10);
 
@@ -774,6 +783,26 @@ namespace C7GameData {
 			return culture;
 		}
 
+		// Where a city comes in the order the cities were founded, or -1 if it
+		// isn't in the list of cities. New cities are added to the end of the
+		// list and captured cities keep their place, so the list is in founding
+		// order.
+		private int FoundingOrder(City city) {
+			if (foundingOrderCache == null) {
+				if (cultureCache == null) {
+					return cities.IndexOf(city);
+				}
+				foundingOrderCache = new Dictionary<City, int>();
+				for (int i = 0; i < cities.Count; ++i) {
+					foundingOrderCache.TryAdd(cities[i], i);
+				}
+			}
+			return foundingOrderCache.TryGetValue(city, out int order) ? order : -1;
+		}
+
+		// The rank of the outermost ring of a city's big fat cross.
+		private const int BigFatCrossRank = 2;
+
 		// Rules taken from https://forums.civfanatics.com/threads/the-eight-laws-of-border-dynamics.106882/
 		private bool ResolveTileOwnershipConflict(City a, City b, Tile t, out City owner) {
 			owner = null;
@@ -788,12 +817,21 @@ namespace C7GameData {
 			if (b.GetBorderExpansionLevel() + 1 < bRank && a.GetBorderExpansionLevel() + 1 >= aRank) { owner = a; return true; }
 
 			// Law III
-			// The city with the lowest rank claim gets the tile.
-			if (aRank > bRank) { owner = b; return true; }
-			if (aRank < bRank) { owner = a; return true; }
+			// A claim from a city's big fat cross (ranks 1 and 2) always beats
+			// a claim from a later expansion (rank 3 and beyond). Between two
+			// expansion claims, the city with the lowest rank claim gets the
+			// tile; between two big fat cross claims, culture decides.
+			bool aInFatCross = aRank <= BigFatCrossRank;
+			bool bInFatCross = bRank <= BigFatCrossRank;
+			if (aInFatCross != bInFatCross) { owner = aInFatCross ? a : b; return true; }
+			if (!aInFatCross) {
+				if (aRank > bRank) { owner = b; return true; }
+				if (aRank < bRank) { owner = a; return true; }
+			}
 
 			// Law IV
-			// If the ranks are equal, the city with more culture gets the tile.
+			// If the claims are equally strong, the city with more culture gets
+			// the tile.
 			int aCulture = CultureForBorders(a);
 			int bCulture = CultureForBorders(b);
 			if (aCulture < bCulture) { owner = b; return true; }
@@ -801,15 +839,21 @@ namespace C7GameData {
 
 			// Law V
 			// If the cultures are equal the oldest city gets the tile.
-			// TODO: track city age - for now we are going to skip this.
-			// return a;
+			int aOrder = FoundingOrder(a);
+			int bOrder = FoundingOrder(b);
+			if (aOrder >= 0 && bOrder >= 0 && aOrder != bOrder) {
+				owner = aOrder < bOrder ? a : b;
+				return true;
+			}
 
 			// Law VI
 			// Starting North of the disputed tile, we go counter-clockwise
 			// trying to find the first tile that has one of the competing cities.
 			// We start at (rank - 1) because the rank distance does not necessarily reflect the actual "ring"
 			// the city tile is in, so a tile at rank 3, could well mean it's in the 2nd ring.
-			for (int r = aRank - 1; r <= aRank; r++) {
+			// The ranks may differ when both claims are in the big fat cross,
+			// so search the rings of both.
+			for (int r = Math.Min(aRank, bRank) - 1; r <= Math.Max(aRank, bRank); r++) {
 				if (r <= 0) continue;
 				Tile winner = t.FindInRing(r, tile => tile.HasCity() && (tile.cityAtTile == a || tile.cityAtTile == b), false);
 				if (winner == null) continue;

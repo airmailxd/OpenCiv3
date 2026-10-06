@@ -27,10 +27,14 @@ public partial class Tile {
 		// City.EffectiveBuildings) looked up once by the caller instead of
 		// once per tile.
 		internal static Yield CalculateForCity(Tile tile, int yield, YieldType type, City city, List<CityBuilding> cityBuildings) {
+			// Building bonuses (Colossus, Harbor, Offshore Platform) come after
+			// the government's modifiers, so the despotism penalty doesn't
+			// cancel them out: a Colossus ocean tile makes 3 commerce under
+			// despotism in Civ3, not 2.
 			return new Yield(tile, yield, type)
 				.ApplyTerrainImprovementModifiers(tile)
-				.ApplyCityModifiers(cityBuildings)
-				.ApplyPlayerModifiers(city.owner);
+				.ApplyPlayerModifiers(city.owner)
+				.ApplyCityModifiers(cityBuildings);
 		}
 
 		public static Yield CalculateForPlayer(Tile tile, int yield, YieldType type, Player player) {
@@ -89,10 +93,15 @@ public partial class Tile {
 
 	// Food yield
 	private int BaseFoodYield(Player player) {
-		if (this.HasPollution()) return 0;
+		if (this.HasPollution() || this.HasFallout()) return 0;
 		int yield = overlayTerrainType.baseFoodProduction;
 		if (this.Resource != Resource.NONE && player.KnowsAboutResource(Resource)) {
 			yield += this.Resource.FoodBonus;
+		}
+
+		// Fresh water lakes make a food more than the coast.
+		if (isFreshWater && baseTerrainType.IsWater) {
+			yield += 1;
 		}
 
 		if (this.HasCity()) {
@@ -100,13 +109,20 @@ public partial class Tile {
 			// food. See https://wiki.civforum.de/wiki/Stadtfeldertrag_(Civ3).
 			yield = 2;
 
-			// TODO: For agricultural civilizations, the city field produces
-			// a food yield of three food, but this is reduced to two by the
-			// despotism penalty, unless the city is located on a fresh
-			// water source or has already reached city size (≥ 7)
+			// Agricultural civilizations get a third. (The despotism penalty
+			// takes it away again, except in the cases FoodYield exempts.)
+			if (cityAtTile.owner.civilization?.traits.Contains(Civilization.Trait.Agricultural) == true) {
+				yield += 1;
+			}
 		}
 
 		yield += BaseYieldBonus(YieldType.Food);
+
+		// Agricultural civilizations get an extra food from irrigated desert.
+		if (!HasCity() && overlayTerrainType.IsDesert && HasIrrigation()
+			&& player.civilization?.traits.Contains(Civilization.Trait.Agricultural) == true) {
+			yield += 1;
+		}
 
 		if (this.HasCraters())
 			yield--;
@@ -122,30 +138,38 @@ public partial class Tile {
 	}
 	internal Yield FoodYield(City city, List<CityBuilding> cityBuildings) {
 		int yield = BaseFoodYield(city.owner);
-		return Yield.CalculateForCity(this, yield, YieldType.Food, city, cityBuildings);
+		Yield result = Yield.CalculateForCity(this, yield, YieldType.Food, city, cityBuildings);
+
+		// The despotism penalty spares an agricultural city's extra food when
+		// the city is on a river or by a lake, or has reached size 7.
+		if (result.penalty > 0 && cityAtTile == city
+			&& city.owner.civilization?.traits.Contains(Civilization.Trait.Agricultural) == true
+			&& (BordersRiver() || NeighborsFreshWater() || city.residents.Count > EngineStorage.gameData.rules.MaximumLevel1CitySize)) {
+			result.penalty -= 1;
+		}
+		return result;
 	}
 
 	// Production yield
 	private int BaseProductionYield(Player player) {
-		if (this.HasPollution()) return 0;
+		if (this.HasPollution() || this.HasFallout()) return 0;
 		int yield = overlayTerrainType.baseShieldProduction;
 		if (this.isBonusShield && overlayTerrainType.IsGrassland) {
 			yield++;
 		}
 
 		if (HasCity()) {
-			// City centers always have 1 shield prior to any bonuses
-			// resources, regardless of the terrain.
-			// See https://wiki.civforum.de/wiki/Stadtfeldertrag_(Civ3).
-			yield = 1;
-
-			// There is a size bonus for larger cities.
+			// City centers add a size bonus to the terrain's shields: towns
+			// only make sure there is at least 1, cities get +1 and
+			// metropolises +2. A city on a flood plain makes 1 shield, not 2.
+			// See https://www.civ-wiki.de/wiki/Stadtfeldertrag_(Civ3).
 			Rules rules = EngineStorage.gameData.rules;
 			int citySize = cityAtTile.residents.Count;
-			if (citySize > rules.MaximumLevel1CitySize
-				&& citySize <= rules.MaximumLevel2CitySize) {
+			if (citySize <= rules.MaximumLevel1CitySize) {
+				yield = Math.Max(yield, 1);
+			} else if (citySize <= rules.MaximumLevel2CitySize) {
 				yield += 1;
-			} else if (citySize > rules.MaximumLevel2CitySize) {
+			} else {
 				yield += 2;
 
 				// Industrious civs get +1 production in metropolises
@@ -179,7 +203,7 @@ public partial class Tile {
 
 	// Commerce yield
 	private int BaseCommerceYield(Player player) {
-		if (this.HasPollution()) return 0;
+		if (this.HasPollution() || this.HasFallout()) return 0;
 		int yield = overlayTerrainType.baseCommerceProduction;
 		if (this.Resource != Resource.NONE && player.KnowsAboutResource(Resource)) {
 			yield += this.Resource.CommerceBonus;
@@ -203,6 +227,12 @@ public partial class Tile {
 			} else {
 				regularCityYield = 3;
 			}
+			// Commercial civilizations' cities get 2 more commerce, and their
+			// metropolises 3 (found by comparing with Civ3 saves).
+			if (citySize > rules.MaximumLevel1CitySize
+				&& cityAtTile.owner.civilization?.traits.Contains(Civilization.Trait.Commercial) == true) {
+				regularCityYield += citySize <= rules.MaximumLevel2CitySize ? 2 : 3;
+			}
 			if (borderRiver) {
 				regularCityYield += 1;
 			}
@@ -215,7 +245,16 @@ public partial class Tile {
 				capitalCityYield = 4;
 			}
 
-			yield = Math.Max(regularCityYield, capitalCityYield);
+			// City centers don't get commerce from their road (or other
+			// terrain improvements), only the bonuses above.
+			int centerYield = Math.Max(regularCityYield, capitalCityYield);
+
+			// Seafaring civilizations' coastal cities get one more (found by
+			// comparing with Civ3 saves; a lake doesn't count).
+			if (cityAtTile.owner.civilization?.traits.Contains(Civilization.Trait.Seafaring) == true && NeighborsOcean()) {
+				centerYield += 1;
+			}
+			return centerYield;
 		}
 
 		yield += BaseYieldBonus(YieldType.Commerce);

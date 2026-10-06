@@ -111,6 +111,9 @@ namespace C7Engine {
 			// points.
 			AddRivers(wc, gameMap);
 
+			// Step 7b: Deserts along rivers are flood plains.
+			AddFloodPlains(wc, gameMap);
+
 			// Step 8: Add resources (luxury/strategic/bonus).
 			AddResources(wc, gameMap);
 
@@ -797,6 +800,22 @@ namespace C7Engine {
 				if (bestScore > int.MinValue) {
 					++riversStarted;
 					flowRiver(hm, rand, t, bestDir, depth: 0);
+				}
+			}
+		}
+
+		// As in Civ3, a flood plain is a desert tile bordering a river: it
+		// keeps the desert as its base terrain, which is what the terrain
+		// textures are chosen from, and gets flood plain as its overlay.
+		private static void AddFloodPlains(WorldCharacteristics wc, GameMap m) {
+			TerrainType floodPlain = wc.terrainTypes.Find(x => x.IsFloodPlain);
+			if (floodPlain == null) {
+				return;
+			}
+
+			foreach (Tile t in m.tiles) {
+				if (t.overlayTerrainType.IsDesert && t.BordersRiver()) {
+					t.overlayTerrainType = floodPlain;
 				}
 			}
 		}

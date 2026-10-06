@@ -48,6 +48,7 @@ public partial class PlayerSetup : Control {
 	ButtonGroup difficultyButtonGroup = new();
 
 	CheckBox showScoreboard;
+	CheckBox coreCitiesFreeOfCorruption;
 
 	[Export] TextureButton confirm;
 	[Export] TextureButton cancel;
@@ -150,6 +151,14 @@ public partial class PlayerSetup : Control {
 			TooltipText = "With more than one human player, show everyone's score and how long the current turn has taken.",
 		};
 		rulesContainer.AddChild(showScoreboard);
+
+		coreCitiesFreeOfCorruption = new Civ3Checkbox {
+			Text = "No corruption near capital",
+			FontSize = 14,
+			ButtonPressed = true,
+			TooltipText = "Custom rule: the capital and the 5 cities nearest it have no corruption or waste.",
+		};
+		rulesContainer.AddChild(coreCitiesFreeOfCorruption);
 	}
 
 	private void BackToMainMenu() {
@@ -392,6 +401,7 @@ public partial class PlayerSetup : Control {
 				opponents = CollectSelectedOpponents(),
 				victoryConditions = victoryConditions,
 				showScoreboard = showScoreboard.ButtonPressed,
+			coreCitiesFreeOfCorruption = coreCitiesFreeOfCorruption.ButtonPressed,
 			};
 			PersistGameSettings(lanSetup);
 			LanSession.PendingGame = new PendingLanGame(lanSetup, save, guestSeats);
@@ -410,6 +420,7 @@ public partial class PlayerSetup : Control {
 			opponents = CollectSelectedOpponents(),
 			victoryConditions = victoryConditions,
 			showScoreboard = showScoreboard.ButtonPressed,
+			coreCitiesFreeOfCorruption = coreCitiesFreeOfCorruption.ButtonPressed,
 		};
 
 		PersistGameSettings(gameSetup);
