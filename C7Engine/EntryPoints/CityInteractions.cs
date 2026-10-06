@@ -238,18 +238,22 @@ namespace C7Engine {
 			// I am leaving it as it is for the moment.
 			tile.DisbandNonDefendingUnits(owner);
 
-			tile.cityAtTile.RemoveAllCitizens();
-			tile.cityAtTile.owner.cities.Remove(tile.cityAtTile);
+			City city = tile.cityAtTile;
+			city.RemoveAllCitizens();
+			owner.cities.Remove(city);
+			gameData.cities.Remove(city);
 
-			gameData.cities.Remove(tile.cityAtTile);
-			gameData.UpdateTileOwnersOnCityDestruction(tile.cityAtTile);
-
-			new MsgCityDestroyed(tile.cityAtTile).send();
-
-			gameData.CheckForCivDestructionAndNotifyUi(owner);
-
+			// Clear the tile before updating tile owners, which brings every
+			// player's active tiles up to date: units on the tile see less
+			// without the city.
 			tile.cityAtTile = null;
 			TileChangeJournal.RecordTerrainChange(tile);
+
+			gameData.UpdateTileOwnersOnCityDestruction(city);
+
+			new MsgCityDestroyed(city).send();
+
+			gameData.CheckForCivDestructionAndNotifyUi(owner);
 
 			if (wasCapital) {
 				MovePalaceAfterLosingCapital(owner, tile);
