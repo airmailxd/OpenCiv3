@@ -17,6 +17,8 @@ local CITY_PRODUCTION = "Art/city screen/ProdButton.pcx"
 local CITY_SCREEN_ICONS = "Art/city screen/CityIcons.pcx"
 
 local CITY_ICONS = "Art/Cities/city icons.pcx"
+local CITY_BARRACKS_ICON = "Art/Cities/barracks.pcx"
+local CITY_AIRPORT_HARBOR_ICONS = "Art/Cities/airAndHarb.pcx"
 
 local CREDITS = "Art/Credits/"
 local PALACE = "Art/PalaceView/"
@@ -635,6 +637,23 @@ textures.animations = {
   disorder = {
     path = "Art/Animations/Disorder/DisorderDefault.flc",
   },
+}
+
+-- The icons by a city's label for its barracks, harbor and airport. They're
+-- picked for the building, so art without them can show the building's icon.
+local function city_label_icon(path, crop_region)
+  return {
+    extra_data = { path = path, crop_region = crop_region },
+    map_object_to_sprite = function(self, building)
+      return { path = self.extra_data.path, crop_region = self.extra_data.crop_region }
+    end,
+  }
+end
+
+textures.city_label_icons = {
+  barracks = city_label_icon(CITY_BARRACKS_ICON, { 1, 1, 25, 17 }),
+  airport = city_label_icon(CITY_AIRPORT_HARBOR_ICONS, { 1, 1, 25, 17 }),
+  harbor = city_label_icon(CITY_AIRPORT_HARBOR_ICONS, { 27, 1, 25, 17 }),
 }
 
 textures.popheads = require "textures.popheads"

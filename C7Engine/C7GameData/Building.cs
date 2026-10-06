@@ -46,6 +46,7 @@ namespace C7GameData {
 		public StrengthBonus? combatDefenseBonus;
 		public bool providesVeteranGroundUnits;
 		public bool providesVeteranSeaUnits;
+		public bool providesVeteranAirUnits;
 		public bool allowsEnemyTerritoryHealing;
 		public bool reducesWarWeariness;
 		public bool reducesWarWearinessEverywhere;
@@ -151,6 +152,7 @@ namespace C7GameData {
 			replacesOtherBuildings = building.flags.Contains(SaveBuilding.Flag.ReplacesOtherBuildings);
 			providesVeteranGroundUnits = building.flags.Contains(SaveBuilding.Flag.VeteranGroundUnits);
 			providesVeteranSeaUnits = building.flags.Contains(SaveBuilding.Flag.VeteranSeaUnits);
+			providesVeteranAirUnits = building.flags.Contains(SaveBuilding.Flag.VeteranAirUnits);
 			allowsEnemyTerritoryHealing = building.flags.Contains(SaveBuilding.Flag.AllowsEnemyTerritoryHealing);
 			reducesWarWeariness = building.flags.Contains(SaveBuilding.Flag.ReducesWarWeariness);
 			reducesWarWearinessEverywhere = building.flags.Contains(SaveBuilding.Flag.ReducesWarWearinessEverywhere);
