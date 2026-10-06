@@ -116,6 +116,44 @@ namespace C7GameData {
 			return true;
 		}
 
+		// The civs a nuke over the target would hit: the owners of the
+		// territory, cities and units in the blast area, other than the
+		// attacker.
+		public HashSet<Player> NuclearStrikeVictims(Tile target) {
+			HashSet<Player> victims = new();
+			foreach (Tile t in NuclearBlastArea(target)) {
+				Player territoryOwner = t.OwningPlayer();
+				if (territoryOwner != null && territoryOwner != owner) {
+					victims.Add(territoryOwner);
+				}
+				foreach (MapUnit unit in t.unitsOnTile) {
+					if (unit.owner != null && unit.owner != owner) {
+						victims.Add(unit.owner);
+					}
+				}
+			}
+			return victims;
+		}
+
+		// The civs a nuke over the target would put at war with the attacker,
+		// so the UI can ask about each before firing.
+		public List<Player> NuclearStrikeWarDeclarations(Tile target) {
+			GameData gameData = EngineStorage.gameData;
+			return NuclearStrikeVictims(target).Where(v => WouldDeclareWarOverNuke(owner, v, gameData)).ToList();
+		}
+
+		// Whether a nuclear attack on the victim puts the attacker at war
+		// with it.
+		private static bool WouldDeclareWarOverNuke(Player attacker, Player victim, GameData gameData) {
+			if (attacker == null || attacker.isBarbarians || attacker.defeated) {
+				return false;
+			}
+			if (victim == attacker || victim.isBarbarians || victim.defeated) {
+				return false;
+			}
+			return !AtWar(attacker, victim) && !gameData.AreInLockedPeace(attacker, victim);
+		}
+
 		// Whether the player has a building that shoots down missiles (the
 		// Strategic Missile Defense).
 		public static bool HasMissileDefense(Player player) {
@@ -153,13 +191,17 @@ namespace C7GameData {
 			facingDirection = location.DirectionTo(tile);
 			await animateAsync(AnimatedAction.ATTACK1);
 
-			bool tellAttacker = owner.isHuman;
+			// The messages go out after awaiting the animations, when the
+			// engine no longer knows who gave the order, so each one names its
+			// recipient.
+			Player attacker = owner;
+			bool tellAttacker = attacker.isHuman;
 			NuclearStrikeResult result = LaunchNuke(tile);
 
 			if (result.intercepted) {
 				await tile.AnimateAsync(tile.IsWater() ? AnimatedEffect.WaterMiss : AnimatedEffect.Miss);
 				if (tellAttacker) {
-					new MsgShowTemporaryPopup("Our nuclear missile was shot down by a Strategic Missile Defense!", tile).send();
+					new MsgShowTemporaryPopup("Our nuclear missile was shot down by a Strategic Missile Defense!", tile, attacker).send();
 				}
 				foreach (Player victim in result.victims.Where(v => v.isHuman)) {
 					new MsgShowTemporaryPopup("Our Strategic Missile Defense shot down an incoming nuclear missile!", tile, victim).send();
@@ -177,10 +219,10 @@ namespace C7GameData {
 			}
 			summary += ".";
 			if (tellAttacker) {
-				new MsgShowTemporaryPopup(summary, tile).send();
+				new MsgShowTemporaryPopup(summary, tile, attacker).send();
 			}
-			foreach (Player victim in result.victims.Where(v => v.isHuman && v != owner)) {
-				new MsgShowTemporaryPopup($"The {owner.civilization?.noun ?? "enemy"} have attacked us with nuclear weapons! " + summary, tile, victim).send();
+			foreach (Player victim in result.victims.Where(v => v.isHuman && v != attacker)) {
+				new MsgShowTemporaryPopup($"The {attacker.civilization?.noun ?? "enemy"} have attacked us with nuclear weapons! " + summary, tile, victim).send();
 			}
 		}
 
@@ -208,14 +250,14 @@ namespace C7GameData {
 
 			foreach (Tile t in NuclearBlastArea(tile)) {
 				foreach (MapUnit unit in t.unitsOnTile.ToArray()) {
-					// Units already removed with their transport or army.
-					if (unit.hitPointsRemaining <= 0) {
-						continue;
-					}
 					if (unit.owner != attacker && unit.owner != null) {
 						result.victims.Add(unit.owner);
 					}
-					unit.RemoveFromPlay();
+					// Units removed with their transport or army are already
+					// gone, but count as destroyed all the same.
+					if (unit.hitPointsRemaining > 0) {
+						unit.RemoveFromPlay();
+					}
 					++result.unitsDestroyed;
 				}
 
@@ -262,10 +304,7 @@ namespace C7GameData {
 				return;
 			}
 			foreach (Player victim in victims) {
-				if (victim.isBarbarians || victim.defeated || attacker.defeated) {
-					continue;
-				}
-				if (!AtWar(attacker, victim) && !gameData.AreInLockedPeace(attacker, victim)) {
+				if (WouldDeclareWarOverNuke(attacker, victim, gameData)) {
 					attacker.DeclareWarOn(victim, gameData.turn);
 				}
 			}

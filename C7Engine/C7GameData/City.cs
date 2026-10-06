@@ -1201,6 +1201,11 @@ namespace C7GameData {
 				year = CurrentGameYear(),
 				totalCulture = 0
 			});
+			// The Apollo Program is remembered for the world, so that
+			// SpaceRace.ApolloProgramBuilt needn't search the cities for it.
+			if (building.buildSpaceshipParts) {
+				EngineStorage.gameData?.GreatWondersBuilt.Add(building.name);
+			}
 			owner?.OnBuildingsChanged();
 		}
 		public void RemoveBuilding(CityBuilding building) {

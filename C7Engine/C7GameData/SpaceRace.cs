@@ -33,22 +33,30 @@ namespace C7Engine {
 			if (gameData == null) {
 				return false;
 			}
+			if (gameData.GreatWondersBuilt.Count == 0) {
+				return false;
+			}
 			foreach (Building b in gameData.Buildings) {
 				if (b.buildSpaceshipParts && gameData.GreatWondersBuilt.Contains(b.name)) {
 					return true;
 				}
 			}
-			// Games imported from Civ3 only record the building in its city.
+			return false;
+		}
+
+		// Records the Apollo Program as built if a city has it, for games
+		// saved before its completion was always recorded. Called once on
+		// load, so that ApolloProgramBuilt needn't search every city.
+		public static void RecordApolloFromCities(GameData gameData) {
 			foreach (Player p in gameData.players) {
 				foreach (City c in p.cities) {
 					foreach (CityBuilding cb in c.constructed_buildings) {
 						if (cb.building.buildSpaceshipParts) {
-							return true;
+							gameData.GreatWondersBuilt.Add(cb.building.name);
 						}
 					}
 				}
 			}
-			return false;
 		}
 
 		public static bool SpaceRaceAllowed(GameData gameData) {

@@ -722,18 +722,20 @@ public partial class Game : Node {
 					popupOverlay.ShowPopup(pop, PopupOverlay.PopupCategory.Advisor);
 				}
 				break;
-			case MsgShowScienceAdvisorPopup mSSAP:
-				if (!popupOverlay.Visible) {
-					AdvisorHead.Mood scienceMood = mSSAP.mood switch {
-						MsgShowScienceAdvisorPopup.Mood.Happy => AdvisorHead.Mood.Happy,
-						MsgShowScienceAdvisorPopup.Mood.Angry => AdvisorHead.Mood.Angry,
-						MsgShowScienceAdvisorPopup.Mood.Sad => AdvisorHead.Mood.Sad,
-						_ => AdvisorHead.Mood.Surprised,
-					};
-					var pop = new InformationalPopup(mSSAP.message, AdvisorHead.Advisor.Science, scienceMood);
-					popupOverlay.ShowPopup(pop, PopupOverlay.PopupCategory.Advisor);
-				}
+			case MsgShowScienceAdvisorPopup mSSAP: {
+				// The space race news (such as the ship being complete) is too
+				// important to drop, so it waits its turn behind any popup
+				// already showing.
+				AdvisorHead.Mood scienceMood = mSSAP.mood switch {
+					MsgShowScienceAdvisorPopup.Mood.Happy => AdvisorHead.Mood.Happy,
+					MsgShowScienceAdvisorPopup.Mood.Angry => AdvisorHead.Mood.Angry,
+					MsgShowScienceAdvisorPopup.Mood.Sad => AdvisorHead.Mood.Sad,
+					_ => AdvisorHead.Mood.Surprised,
+				};
+				var pop = new InformationalPopup(mSSAP.message, AdvisorHead.Advisor.Science, scienceMood);
+				popupOverlay.ShowPopup(pop, PopupOverlay.PopupCategory.Advisor);
 				break;
+			}
 			case MsgShowDomesticAdvisorPopup mSDAP:
 				if (!popupOverlay.Visible) {
 					var pop = new InformationalPopup(mSDAP.message, AdvisorHead.Advisor.Domestic, AdvisorHead.Mood.Angry);
@@ -2095,6 +2097,19 @@ public partial class Game : Node {
 			}), PopupOverlay.PopupCategory.Advisor);
 	}
 
+	// Asks to declare war on each of the players from the index on, one after
+	// another, and calls back once all of them are confirmed. Declining any
+	// of them cancels the rest.
+	private void ConfirmWarDeclarations(List<Player> players, int index, int currentTurn, Action callback) {
+		if (index >= players.Count) {
+			callback();
+			return;
+		}
+		MaybeDeclareWar(players[index], currentTurn, () => {
+			ConfirmWarDeclarations(players, index + 1, currentTurn, callback);
+		});
+	}
+
 	private Tile lastTile = null;
 	private GotoInfo GetGotoInfo(Vector2 mousePos) {
 		GotoInfo result = new();
@@ -2175,6 +2190,18 @@ public partial class Game : Node {
 		}
 
 		EngineStorage.ReadGameData((GameData gameData) => {
+			// A nuke goes to war with every civ it hits, not only the target
+			// tile's owner, so ask about each of them in turn.
+			if (info.bombardingUnit.IsNuclearWeapon()) {
+				List<Player> wars = info.bombardTarget == MapUnit.BombardTarget.None
+					? []
+					: info.bombardingUnit.NuclearStrikeWarDeclarations(tile);
+				ConfirmWarDeclarations(wars, 0, gameData.turn, () => {
+					new MsgBombard(CurrentlySelectedUnit.id, tile).send();
+				});
+				return;
+			}
+
 			if (info.RequiresWarDeclaration(tile, out var player)) {
 				MaybeDeclareWar(player, gameData.turn, () => {
 					new MsgBombard(CurrentlySelectedUnit.id, tile).send();
