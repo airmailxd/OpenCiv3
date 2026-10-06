@@ -68,6 +68,23 @@ public class CityCaptureTest : IClassFixture<SaveGameFixture>, System.IDisposabl
 		Assert.DoesNotContain(city, gameData.cities);
 	}
 
+	// A captured city comes without a palace, so a civ whose only city was
+	// captured gets its palace in the first city it founds, which then has
+	// no corruption.
+	[Fact]
+	public void FirstFoundedCityAfterACaptureIsTheCapital() {
+		City captured = FoundCity(defender, 3);
+		CityInteractions.CaptureCity(captured, attacker);
+		Assert.False(captured.IsCapital());
+
+		City founded = FoundCity(attacker, 1);
+
+		Assert.True(founded.IsCapital());
+		Assert.Contains(founded.constructed_buildings, cb => cb.building.isCenterOfEmpire);
+		Assert.Equal(0, founded.corruption);
+		Assert.Equal(0, founded.CurrentProductionYield().corrupt);
+	}
+
 	[Fact]
 	public void LosingTheCapitalMovesThePalace() {
 		FoundCity(attacker, 1);
