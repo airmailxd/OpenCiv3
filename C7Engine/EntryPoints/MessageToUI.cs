@@ -273,6 +273,15 @@ namespace C7Engine {
 		}
 	}
 
+	// Asks the player who just captured a city whether to keep or raze it.
+	public class MsgDisplayRazeCityPopup : MessageToUI {
+		public City city;
+		public MsgDisplayRazeCityPopup(Player recipient, City city) {
+			this.recipient = recipient;
+			this.city = city;
+		}
+	}
+
 	// Every human player has been defeated, so the game is over.
 	public class MsgNoHumansRemain : MessageToUI {
 		public override bool IsForEveryone => true;

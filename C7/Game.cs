@@ -806,6 +806,18 @@ public partial class Game : Node {
 						}),
 					PopupOverlay.PopupCategory.Advisor);
 				break;
+			case MsgDisplayRazeCityPopup mDRCP:
+				popupOverlay.ShowPopup(
+					new ConfirmationPopup(
+						$"We have taken {mDRCP.city.name}. What shall we do with it?",
+						"Keep the city.",
+						"Raze it to the ground!",
+						() => { },
+						() => {
+							new MsgAbandonCity(mDRCP.city).send();
+						}),
+					PopupOverlay.PopupCategory.Advisor);
+				break;
 			case MsgNoHumansRemain:
 				popupOverlay.ShowPopup(
 					new ConfirmationPopup(

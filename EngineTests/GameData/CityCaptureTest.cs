@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using C7Engine;
 using C7GameData;
@@ -83,6 +84,28 @@ public class CityCaptureTest : IClassFixture<SaveGameFixture>, System.IDisposabl
 		Assert.Contains(founded.constructed_buildings, cb => cb.building.isCenterOfEmpire);
 		Assert.Equal(0, founded.corruption);
 		Assert.Equal(0, founded.CurrentProductionYield().corrupt);
+	}
+
+	[Fact]
+	public void SizeOneCityWithExpandedBordersIsKeptWithTheCaptorsBorders() {
+		FoundCity(attacker, 1);
+		City city = FoundCity(defender, 1);
+		city.perPlayerCulture[defender] = 25;
+		gameData.UpdateTileOwners();
+		Assert.Equal(2, city.GetBorderExpansionLevel());
+		List<Tile> outerRing = city.GetTilesWithinBorders().Where(t => t != Tile.NONE && t.owningCity == city).ToList();
+
+		CityInteractions.CaptureCity(city, attacker);
+		List<Tile> innerTiles = city.GetTilesWithinBorders();
+		outerRing.RemoveAll(innerTiles.Contains);
+		Assert.NotEmpty(outerRing);
+		Assert.All(outerRing, t => Assert.NotEqual(city, t.owningCity));
+
+		Assert.Equal(attacker, city.owner);
+		Assert.Equal(city, city.location.cityAtTile);
+		Assert.Single(city.residents);
+		Assert.Equal(1, city.GetBorderExpansionLevel());
+		Assert.Equal(25, city.GetCultureFor(defender));
 	}
 
 	[Fact]
