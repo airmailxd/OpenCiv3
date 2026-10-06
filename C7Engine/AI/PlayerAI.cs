@@ -104,8 +104,7 @@ namespace C7Engine {
 				return null;
 			}
 
-			info.resources ??= EngineStorage.gameData.GetTradeNetwork()
-				.GetResourcesAvailableToCity(unit.owner, city).Keys.ToHashSet();
+			info.resources ??= city.GetAvailableResources(EngineStorage.gameData).Keys.ToHashSet();
 			return unit.unitType.GetProducibleUpgrade(city, info.resources);
 		}
 

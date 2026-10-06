@@ -22,8 +22,7 @@ public partial class MapUnit {
 			return null;
 		}
 
-		HashSet<Resource> resources = EngineStorage.gameData.GetTradeNetwork()
-			.GetResourcesAvailableToCity(owner, city).Keys.ToHashSet();
+		HashSet<Resource> resources = city.GetAvailableResources(EngineStorage.gameData).Keys.ToHashSet();
 		return unitType.GetProducibleUpgrade(city, resources);
 	}
 

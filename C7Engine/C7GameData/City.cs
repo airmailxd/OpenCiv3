@@ -339,7 +339,7 @@ namespace C7GameData {
 		}
 
 		private HashSet<Resource> GetAccessibleResources(GameData gameData) {
-			return gameData.GetTradeNetwork().GetResourcesAvailableToCity(owner, this).Keys.ToHashSet();
+			return GetAvailableResources(gameData).Keys.ToHashSet();
 		}
 
 		public int FoodNeededToGrow() {
@@ -1368,8 +1368,44 @@ namespace C7GameData {
 			}
 		}
 
+		// The resources this city can use: those on its own trade network
+		// segment, plus, for cities connected to the capital, those imported
+		// from other civs through deals, less those exported to them.
+		//
+		// The returned dictionary may be shared with other cities, so it must
+		// not be modified.
+		public Dictionary<Resource, int> GetAvailableResources(GameData gameData) {
+			C7Engine.Pathing.TradeNetwork network = gameData.GetTradeNetwork();
+			Dictionary<Resource, int> local = network.GetResourcesAvailableToCity(owner, this);
+			if (!network.ConnectedToCapital(owner, this)) {
+				return local;
+			}
+			List<ResourceDeal> inbound = TradeReport.ResourceDeals(gameData, owner, DealDetails.Inbound);
+			List<ResourceDeal> outbound = TradeReport.ResourceDeals(gameData, owner, DealDetails.Outbound);
+			if (inbound.Count == 0 && outbound.Count == 0) {
+				return local;
+			}
+
+			Dictionary<Resource, int> result = new(local);
+			foreach (ResourceDeal deal in inbound) {
+				if (owner.KnowsAboutResource(deal.resource)) {
+					result[deal.resource] = result.GetValueOrDefault(deal.resource) + 1;
+				}
+			}
+			foreach (ResourceDeal deal in outbound) {
+				if (result.TryGetValue(deal.resource, out int count)) {
+					if (count <= 1) {
+						result.Remove(deal.resource);
+					} else {
+						result[deal.resource] = count - 1;
+					}
+				}
+			}
+			return result;
+		}
+
 		private Dictionary<Resource, int> ListResourceAccess(GameData gameData, ResourceCategory category) {
-			Dictionary<Resource, int> availableResources = gameData.GetTradeNetwork().GetResourcesAvailableToCity(owner, this);
+			Dictionary<Resource, int> availableResources = GetAvailableResources(gameData);
 			Dictionary<Resource, int> result = new();
 			foreach ((Resource r, int count) in availableResources) {
 				if (r.Category == category) {
