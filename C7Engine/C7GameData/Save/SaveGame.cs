@@ -587,6 +587,12 @@ namespace C7GameData.Save {
 			return JsonSerializer.Deserialize<SaveGame>(json, JsonOptions);
 		}
 
+		// A save carries its own copy of the rules (buildings, units, terrain
+		// improvements, governments and so on), and loading uses that copy
+		// rather than the current ruleset. So a save made before some rule
+		// data was imported, such as building flags, units' requiredGovernment
+		// or BattleCreatedUnit, or the fallout terrain improvement, goes on
+		// without it. Nothing fills it in from the current ruleset.
 		public static SaveGame Load(string path, Func<string, string> getPediaIconsPath) {
 			SaveGame result = LoadFromJSON(File.ReadAllText(path));
 

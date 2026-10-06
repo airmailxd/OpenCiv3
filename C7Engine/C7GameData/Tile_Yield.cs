@@ -263,9 +263,6 @@ public partial class Tile {
 	}
 	public Yield CommerceYield(Player player) {
 		int yield = BaseCommerceYield(player);
-
-		// TODO: handle the commerce bonus for costal cities+seafaring
-		// TODO: handle the commerce bonus for commerial civs
 		return Yield.CalculateForPlayer(this, yield, YieldType.Commerce, player);
 	}
 	public Yield CommerceYield(City city) {
