@@ -13,7 +13,6 @@ namespace C7.Map {
 		const int LEFT_RIGHT_BOXES_WIDTH = 24;
 		const int LEFT_RIGHT_BOXES_HEIGHT = CITY_LABEL_HEIGHT - 2;
 		const int CENTRAL_PANEL_SEPARATOR_WIDTH = 4;
-		const int BUILDING_ICON_BOX_WIDTH = 25;
 
 		// Loaded when first needed, and forgotten with the other city textures, since it can differ between games.
 		static ImageTexture nonEmbassyStar;
@@ -31,8 +30,6 @@ namespace C7.Map {
 		VBoxContainer centerContainer = new();
 		// Made when the city first becomes a capital.
 		PanelContainer capitalPanel;
-		// The barracks, harbor and airport icons, in the order they're shown after the capital star.
-		readonly BuildingIcon[] buildingIcons = [new("barracks"), new("harbor"), new("airport")];
 		HSeparator centerDivider = new();
 
 		// The styles in the owner's color, kept so they can be recolored.
@@ -152,11 +149,6 @@ namespace C7.Map {
 			if (capitalStyle != null) {
 				capitalStyle.BgColor = color;
 			}
-			foreach (BuildingIcon icon in buildingIcons) {
-				if (icon.style != null) {
-					icon.style.BgColor = color;
-				}
-			}
 		}
 
 		public void SetTileCenter(Vector2I tileCenter) {
@@ -193,60 +185,21 @@ namespace C7.Map {
 		}
 
 		private void SetupCapitalPanel() {
-			capitalPanel = MakeIconPanel(out capitalStyle);
-			capitalPanel.AddChild(new TextureRect() {
-				Texture = NonEmbassyStar,
-				StretchMode = TextureRect.StretchModeEnum.KeepCentered
-			});
-		}
+			capitalPanel = new PanelContainer();
 
-		// A box in the owner's color at the right of the label, for an icon.
-		private PanelContainer MakeIconPanel(out StyleBoxFlat style) {
-			PanelContainer panel = new();
-			style = new() {
+			capitalStyle = new() {
 				BgColor = civColor
 			};
-			panel.AddThemeStyleboxOverride("panel", style);
-			panel.CustomMinimumSize = new Vector2(LEFT_RIGHT_BOXES_WIDTH, LEFT_RIGHT_BOXES_HEIGHT);
-			return panel;
-		}
 
-		// A box at the end of the label with the icon for one of the city's buildings, made when the city first has one.
-		class BuildingIcon(string textureKey) {
-			public readonly string textureKey = "city_label_icons." + textureKey;
-			public PanelContainer panel;
-			public StyleBoxFlat style;
-			public Building shown;
-		}
+			capitalPanel.AddThemeStyleboxOverride("panel", capitalStyle);
+			capitalPanel.CustomMinimumSize = new Vector2(LEFT_RIGHT_BOXES_WIDTH, LEFT_RIGHT_BOXES_HEIGHT);
 
-		// Shows the icon for the building at the end of the label, or removes it when there's no building.
-		private void ShowBuildingIcon(BuildingIcon icon, Building building) {
-			bool attached = icon.panel?.GetParent() == mainContainer;
-			if (building == null) {
-				if (attached) {
-					mainContainer.RemoveChild(icon.panel);
-				}
-				return;
-			}
-			if (icon.panel == null) {
-				icon.panel = MakeIconPanel(out icon.style);
-				// Wide enough for Civ3's icons at their own size; larger ones are shrunk to fit.
-				icon.panel.CustomMinimumSize = new Vector2(BUILDING_ICON_BOX_WIDTH, LEFT_RIGHT_BOXES_HEIGHT);
-				icon.panel.AddChild(new TextureRect() {
-					ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-					StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered
-				});
-			}
-			if (icon.shown != building) {
-				icon.shown = building;
-				icon.panel.GetChild<TextureRect>(0).Texture = TextureLoader.Load(icon.textureKey, building, useCache: true);
-			}
-			if (attached) {
-				// Keep the icons in order after the capital star.
-				mainContainer.MoveChild(icon.panel, -1);
-			} else {
-				mainContainer.AddChild(icon.panel);
-			}
+			TextureRect starTextureRect = new() {
+				Texture = NonEmbassyStar,
+				StretchMode = TextureRect.StretchModeEnum.KeepCentered
+			};
+
+			capitalPanel.AddChild(starTextureRect);
 		}
 
 		private void ApplyStyles() {
@@ -340,11 +293,6 @@ namespace C7.Map {
 			} else if (!city.IsCapital() && hasCapitalIndicator) {
 				mainContainer.RemoveChild(capitalPanel);
 			}
-
-			// Then the barracks, harbor and airport icons, which like growth and production are only shown for the player's own cities.
-			ShowBuildingIcon(buildingIcons[0], showDetails ? city.Barracks() : null);
-			ShowBuildingIcon(buildingIcons[1], showDetails ? city.Harbor() : null);
-			ShowBuildingIcon(buildingIcons[2], showDetails ? city.Airport() : null);
 
 			// Force the layout to recalculate
 			ShrinkToContents();

@@ -639,21 +639,22 @@ textures.animations = {
   },
 }
 
--- The icons by a city's label for its barracks, harbor and airport. They're
+-- The icons by a city for its barracks, harbor and airport. They're
 -- picked for the building, so art without them can show the building's icon.
-local function city_label_icon(path, crop_region)
+local function city_building_icon(path, crop_region)
   return {
     extra_data = { path = path, crop_region = crop_region },
     map_object_to_sprite = function(self, building)
-      return { path = self.extra_data.path, crop_region = self.extra_data.crop_region }
+      -- Their white and dark purple edge are in the palette's shadow range, but Civ3 draws them as they are.
+      return { path = self.extra_data.path, crop_region = self.extra_data.crop_region, shadows = false }
     end,
   }
 end
 
-textures.city_label_icons = {
-  barracks = city_label_icon(CITY_BARRACKS_ICON, { 1, 1, 25, 17 }),
-  airport = city_label_icon(CITY_AIRPORT_HARBOR_ICONS, { 1, 1, 25, 17 }),
-  harbor = city_label_icon(CITY_AIRPORT_HARBOR_ICONS, { 27, 1, 25, 17 }),
+textures.city_building_icons = {
+  barracks = city_building_icon(CITY_BARRACKS_ICON, { 1, 1, 25, 17 }),
+  airport = city_building_icon(CITY_AIRPORT_HARBOR_ICONS, { 1, 1, 25, 17 }),
+  harbor = city_building_icon(CITY_AIRPORT_HARBOR_ICONS, { 27, 1, 25, 17 }),
 }
 
 textures.popheads = require "textures.popheads"
