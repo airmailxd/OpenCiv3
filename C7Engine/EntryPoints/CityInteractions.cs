@@ -157,7 +157,7 @@ namespace C7Engine {
 		// citizen (never its last), its production and some of its
 		// buildings, and the captor plunders the city's share of the old
 		// owner's treasury. Its borders fall back to the captor's own culture
-		// there.
+		// there. A human captor is then asked whether to keep or raze it.
 		public static void CaptureCity(City city, Player captor) {
 			GameData gameData = EngineStorage.gameData;
 			Player oldOwner = city.owner;
@@ -210,6 +210,7 @@ namespace C7Engine {
 			new MsgCityCaptured(city, oldOwner).send();
 			if (captor.isHuman) {
 				new MsgShowMilitaryAdvisorPopup(captor, $"We have captured {city.name} and plundered {plunder} gold!", happy: true).send();
+				new MsgDisplayRazeCityPopup(captor, city).send();
 			}
 			if (oldOwner.isHuman) {
 				new MsgShowMilitaryAdvisorPopup(oldOwner, $"{city.name} has fallen to the {captor.civilization.noun}!", happy: false).send();
