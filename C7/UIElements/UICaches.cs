@@ -6,5 +6,6 @@ public static class UICaches {
 		Popup.ClearBackgroundCache();
 		AdvisorHead.ClearCache();
 		TechEffectLookup.ClearCache();
+		TechBox.ClearCache();
 	}
 }

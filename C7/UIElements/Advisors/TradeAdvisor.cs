@@ -203,7 +203,7 @@ public partial class TradeAdvisor : Control {
 				AdvisorUtils.MakeLabel(Reason(player, partner, status), 12, 200)));
 			HBoxContainer spare = AdvisorUtils.MakeRow(22);
 			spare.AddThemeConstantOverride("separation", 2);
-			foreach ((Resource resource, int count) in TradeReport.ExcessResources(gameData, partner)) {
+			foreach ((Resource resource, int count) in TradeReport.ExcessResources(gameData, partner, player)) {
 				TextureRect icon = AdvisorUtils.MakeIcon(TextureLoader.Load("resources.icon", resource, useCache: true), 22);
 				icon.TooltipText = $"{resource.Name} ({count})";
 				spare.AddChild(icon);
@@ -250,7 +250,8 @@ public partial class TradeAdvisor : Control {
 		if (unconnected.Count > 0) {
 			return $"{unconnected[0].name} needs a road to our trade network.";
 		}
-		int luxuries = TradeReport.LocalResources(gameData, player).Keys.Count(r => r.Category == ResourceCategory.LUXURY);
+		// Imported luxuries count, as they reach the cities too.
+		int luxuries = TradeReport.CapitalResources(gameData, player).Keys.Count(r => r.Category == ResourceCategory.LUXURY);
 		if (luxuries == 0) {
 			return "We have no luxuries. Trading for some would make our people happier.";
 		}
