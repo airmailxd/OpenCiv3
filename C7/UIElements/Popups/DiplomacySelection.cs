@@ -1,6 +1,7 @@
 using Godot;
 using C7GameData;
 using System.Collections.Generic;
+using System.Linq;
 
 // The popup for selecting which other civilization to contact.
 public partial class DiplomacySelection : Popup {
@@ -17,19 +18,24 @@ public partial class DiplomacySelection : Popup {
 	public override void _Ready() {
 		base._Ready();
 
+		// Only civs that are still alive can be contacted.
+		List<Player> contacts = allPlayers
+			.Where(p => !p.defeated && PlayerRelationship.TryGetRelationship(player, p, out _))
+			.ToList();
+
 		int width = 530;
-		int height = 115 + 25 * player.playerRelationships.Keys.Count;
+		int height = 115 + 25 * contacts.Count;
 		AddTexture(width, height);
 		AddBackground(width, height);
 		AddHeader("Pick the civilization...", 10);
 
 		int vOffset = 65;
-		foreach (KeyValuePair<ID, PlayerRelationship> kvp in player.playerRelationships) {
-			string status = kvp.Value.AtWar() ? "War" : "Peace";
-			AddButton($"{allPlayers.Find(x => x.id == kvp.Key).civilization.noun} (at {status})", vOffset, () => {
+		foreach (Player other in contacts) {
+			string status = PlayerRelationship.AtWar(player, other) ? "War" : "Peace";
+			AddButton($"{other.civilization.noun} (at {status})", vOffset, () => {
 				Node parent = GetParent();
 				parent.EmitSignal(PopupOverlay.SignalName.HidePopup);
-				parent.EmitSignal(PopupOverlay.SignalName.DiplomacySelection, new ParameterWrapper<ID>(kvp.Key));
+				parent.EmitSignal(PopupOverlay.SignalName.DiplomacySelection, new ParameterWrapper<ID>(other.id));
 			});
 			vOffset += 25;
 		}

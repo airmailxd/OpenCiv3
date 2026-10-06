@@ -10,6 +10,22 @@ public class BarbarianInteractions {
 	// TODO: Make configurable
 	internal const int MaxUnitsPerCamp = 3;
 
+	// The gold a civ earns for dispersing a barbarian camp.
+	// TODO: make this configurable
+	public const int CampDispersalGold = 25;
+
+	// Removes the barbarian camp on the tile, if any, and pays the player who
+	// dispersed it. Returns whether there was a camp to disperse.
+	public static bool DisperseCamp(GameData gameData, Tile tile, Player player) {
+		if (!tile.hasBarbarianCamp || player.isBarbarians) {
+			return false;
+		}
+		gameData.map.barbarianCamps.Remove(tile);
+		tile.hasBarbarianCamp = false;
+		player.gold += CampDispersalGold;
+		return true;
+	}
+
 	public static int SpawnBarbarians(GameData gameData) {
 		Player barbPlayer = gameData.players.Find(player => player.isBarbarians);
 		var activity = gameData.barbarianInfo.barbarianActivity;

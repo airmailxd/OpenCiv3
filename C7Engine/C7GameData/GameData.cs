@@ -543,6 +543,36 @@ namespace C7GameData {
 			}
 		}
 
+		// Destroys any civ that meets the destruction conditions but slipped
+		// past the checks done when a city or unit is lost, so that it stops
+		// showing up in diplomacy and counting as a war opponent.
+		public void DestroyDefeatedCivs() {
+			foreach (Player player in players.ToList()) {
+				if (!player.defeated && player.isIncludedInGame) {
+					CheckForCivDestructionAndNotifyUi(player);
+				}
+			}
+			RemoveRelationshipsWithDefeatedCivs();
+		}
+
+		// Drops every relationship with a defeated civ. Older saves can still
+		// carry these, since nothing used to clean them up on load.
+		public void RemoveRelationshipsWithDefeatedCivs() {
+			HashSet<ID> defeatedIds = players.Where(p => p.defeated).Select(p => p.id).ToHashSet();
+			if (defeatedIds.Count == 0) {
+				return;
+			}
+			foreach (Player p in players) {
+				if (p.defeated) {
+					p.playerRelationships.Clear();
+					continue;
+				}
+				foreach (ID id in defeatedIds) {
+					p.playerRelationships.Remove(id);
+				}
+			}
+		}
+
 		private bool CheckForCivDestruction(Player player) {
 			// TODO: Implement the full set of conditions for destroying a civ;
 			// handling cases like 1 city elimination, regicide, settlers that
@@ -574,10 +604,12 @@ namespace C7GameData {
 				RemoveUnit(player.units[^1]);
 			}
 
-			// Remove this civ from all other player's relationships.
+			// Remove this civ from all other player's relationships, and
+			// theirs from this civ's.
 			foreach (Player p in players) {
 				p.playerRelationships.Remove(player.id);
 			}
+			player.playerRelationships.Clear();
 		}
 
 		[LuaMethod]

@@ -123,6 +123,24 @@ public class CityCaptureTest : IClassFixture<SaveGameFixture>, System.IDisposabl
 		Assert.Contains(other.constructed_buildings, cb => cb.building.isCenterOfEmpire);
 	}
 
+	// A captured city belongs to its captor, so units resting there heal at
+	// the city rate even though the civ it was taken from is still an enemy.
+	[Fact]
+	public void UnitsHealAtTheCityRateInACapturedCity() {
+		FoundCity(attacker, 1);
+		City city = FoundCity(defender, 3);
+		attacker.DeclareWarOn(defender, gameData.turn);
+		CityInteractions.CaptureCity(city, attacker);
+
+		MapUnit unit = gameData.SpawnUnit(attacker, gameData.unitPrototypes.Single(p => p.name == "Warrior"), city.location);
+		unit.hitPointsRemaining = 1;
+		unit.Fortify();
+
+		Assert.Equal(gameData.healRateInCity, unit.HealRateAt(city.location));
+		unit.OnBeginTurn();
+		Assert.Equal(1 + gameData.healRateInCity, unit.hitPointsRemaining);
+	}
+
 	[Fact]
 	public void RebuiltCityContinuesDownTheNameList() {
 		FoundCity(attacker, 1);

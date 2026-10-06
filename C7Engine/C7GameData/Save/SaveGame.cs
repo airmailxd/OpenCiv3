@@ -150,6 +150,8 @@ namespace C7GameData.Save {
 			data.defaultExperienceLevelKey = DefaultExperienceLevel;
 			data.defaultExperienceLevel = data.experienceLevels.Find(el => el.key == DefaultExperienceLevel);
 
+			data.RemoveRelationshipsWithDefeatedCivs();
+
 			data.UpdateTileOwners();
 			data.InvalidateCachedTradeNetwork();
 

@@ -11,6 +11,7 @@ namespace C7Engine {
 
 		public static City BuildCity(Tile tileWithNewCity, Player owner, string name) {
 			GameData gameData = EngineStorage.gameData;
+
 			City newCity = new City(tileWithNewCity, owner, name, gameData.ids.CreateID("city"));
 			// A civ without a capital gets its palace in the next city it
 			// founds, even if it already holds captured cities (which lose
@@ -36,6 +37,18 @@ namespace C7Engine {
 			// accurate. We do this after adding the resident though, because
 			// cities with zero residents are considered destroyed.
 			gameData.UpdateTileOwners();
+
+			// Barbarian camps inside the new city's borders are dispersed.
+			int campsDispersed = 0;
+			foreach (Tile camp in gameData.map.barbarianCamps.ToList()) {
+				if (camp.owningCity == newCity && BarbarianInteractions.DisperseCamp(gameData, camp, owner)) {
+					++campsDispersed;
+				}
+			}
+			if (campsDispersed > 0 && owner.isHuman) {
+				string camps = campsDispersed == 1 ? "a barbarian encampment" : $"{campsDispersed} barbarian encampments";
+				new MsgShowMilitaryAdvisorPopup(owner, $"Our new city {name} dispersed {camps} and earned {campsDispersed * BarbarianInteractions.CampDispersalGold} gold!", happy: true).send();
+			}
 
 			// Now that the city exists and its borders have been established,
 			// invalidate the trade network so it can be recomputed with this

@@ -53,4 +53,24 @@ public class GameDataRivalsTest {
 
 		Assert.Empty(knownRivals);
 	}
+
+	[Fact]
+	public void RemoveRelationshipsWithDefeatedCivs_DropsStaleContactsBothWays() {
+		Player self = new() { civilization = new Civilization("Rome"), id = ID.FromString("player-2") };
+		Player alive = new() { civilization = new Civilization("Greece"), id = ID.FromString("player-3") };
+		Player dead = new() { civilization = new Civilization("Egypt"), id = ID.FromString("player-4"), defeated = true };
+
+		// An empty relationship means war, as a stale one in an old save would be.
+		self.playerRelationships[alive.id] = new PlayerRelationship();
+		self.playerRelationships[dead.id] = new PlayerRelationship();
+		dead.playerRelationships[self.id] = new PlayerRelationship();
+
+		C7GameData.GameData gameData = new();
+		gameData.players.AddRange(new List<Player> { self, alive, dead });
+
+		gameData.RemoveRelationshipsWithDefeatedCivs();
+
+		Assert.Equal(new[] { alive.id }, self.playerRelationships.Keys);
+		Assert.Empty(dead.playerRelationships);
+	}
 }

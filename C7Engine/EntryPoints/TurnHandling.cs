@@ -71,6 +71,7 @@ namespace C7Engine {
 				BarbarianInteractions.SpawnBarbarians(gameData);
 
 				gameData.turn++;
+				gameData.DestroyDefeatedCivs();
 				foreach (Player player in gameData.players) {
 					player.MaybeSpawnBonusUnits(gameData);
 					player.DecrementCityUnhappinessPenalties(gameData);

@@ -50,15 +50,10 @@ public partial class MapUnit {
 		owner.tileKnowledge.AddTilesToKnown(tile);
 
 		// Disperse barb camp
-		if (tile.hasBarbarianCamp && !owner.isBarbarians) {
-			EngineStorage.gameData.map.barbarianCamps.Remove(tile);
-			tile.hasBarbarianCamp = false;
+		if (BarbarianInteractions.DisperseCamp(EngineStorage.gameData, tile, owner)) {
 			animate(MapUnit.AnimatedAction.VICTORY);
-
-			// TODO: make this configurable
-			owner.gold += 25;
 			if (owner.isHuman) {
-				new MsgShowMilitaryAdvisorPopup(owner, $"We cleared a barbarian encampment and earned 25 gold!", happy: true).send();
+				new MsgShowMilitaryAdvisorPopup(owner, $"We cleared a barbarian encampment and earned {BarbarianInteractions.CampDispersalGold} gold!", happy: true).send();
 			}
 		}
 
