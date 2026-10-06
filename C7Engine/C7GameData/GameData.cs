@@ -508,10 +508,19 @@ namespace C7GameData {
 		}
 
 		// Records that a city has changed hands, so that every player
-		// re-examines the tiles it owns.
+		// re-examines the tiles it owns. Its borders now come from the new
+		// owner's culture there, which may not reach as far, so it lets go of
+		// the tiles beyond them. Updating tile owners afterwards hands those
+		// to whoever has claim to them.
 		internal void OnCityOwnerChanged(City city) {
+			HashSet<Tile> withinBorders = city.GetTilesWithinBorders().ToHashSet();
 			foreach (Tile t in map.tiles) {
-				if (t.owningCity == city) {
+				if (t.owningCity != city) {
+					continue;
+				}
+				if (t != city.location && !withinBorders.Contains(t)) {
+					SetTileOwner(t, null);
+				} else {
 					TileChangeJournal.Record(t);
 				}
 			}

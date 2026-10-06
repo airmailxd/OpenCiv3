@@ -145,16 +145,25 @@ namespace C7Engine {
 		// destroyed in the fighting.
 		private const double BuildingLossChanceOnCapture = 0.5;
 
-		// Hands a city over to the player who took it. Cities of size one are
-		// destroyed instead. The city loses a citizen, its production and
-		// some of its buildings, and the captor plunders the city's share of
-		// the old owner's treasury.
+		// Whether a city is worth keeping when taken: it has more than one
+		// citizen, or its old owner's culture has pushed its borders out. Any
+		// other city is destroyed when captured.
+		public static bool SurvivesCapture(City city) {
+			return city.residents.Count > 1 || city.GetBorderExpansionLevel() > 1;
+		}
+
+		// Hands a city over to the player who took it, unless it doesn't
+		// survive capture, in which case it is destroyed. The city loses a
+		// citizen (never its last), its production and some of its
+		// buildings, and the captor plunders the city's share of the old
+		// owner's treasury. Its borders fall back to the captor's own culture
+		// there.
 		public static void CaptureCity(City city, Player captor) {
 			GameData gameData = EngineStorage.gameData;
 			Player oldOwner = city.owner;
 			Tile tile = city.location;
 
-			if (city.residents.Count <= 1) {
+			if (!SurvivesCapture(city)) {
 				DestroyCity(city);
 				return;
 			}
@@ -166,7 +175,9 @@ namespace C7Engine {
 			oldOwner.gold -= plunder;
 			captor.gold += plunder;
 
-			city.RemoveCitizens(1);
+			if (city.residents.Count > 1) {
+				city.RemoveCitizens(1);
+			}
 
 			// The palace and small wonders don't survive a change of owner,
 			// great wonders always do, and other buildings may be destroyed.
@@ -184,8 +195,8 @@ namespace C7Engine {
 			oldOwner.cities.Remove(city);
 			captor.cities.Add(city);
 			city.owner = captor;
-			gameData.OnCityOwnerChanged(city);
 			city.perPlayerCulture.TryAdd(captor, 0);
+			gameData.OnCityOwnerChanged(city);
 			city.isInCivilDisorder = false;
 			city.SetStoredShields(0);
 
