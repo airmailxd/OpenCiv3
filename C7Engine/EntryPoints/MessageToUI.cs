@@ -315,6 +315,19 @@ namespace C7Engine {
 		}
 	}
 
+	// Tells a human whether the AI they told to leave their territory
+	// withdrew its units, or refused and declared war.
+	public class MsgWithdrawalDemandResult : MessageToUI {
+		public Player opponent;
+		public bool withdrew;
+
+		public MsgWithdrawalDemandResult(Player recipient, Player opponent, bool withdrew) {
+			this.recipient = recipient;
+			this.opponent = opponent;
+			this.withdrew = withdrew;
+		}
+	}
+
 	// Tells the player who proposed a deal whether it was accepted.
 	public class MsgDealResult : MessageToUI {
 		public Player opponent;

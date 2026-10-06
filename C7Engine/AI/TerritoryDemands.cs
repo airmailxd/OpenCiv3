@@ -67,21 +67,59 @@ namespace C7Engine.AI {
 		public static Dictionary<Player, List<MapUnit>> FindTrespassers(Player us, GameData gameData) {
 			Dictionary<Player, List<MapUnit>> result = new();
 			foreach (Player them in gameData.players) {
-				if (!MustStayOutOf(them, us, gameData)) {
-					continue;
-				}
-				foreach (MapUnit unit in them.units) {
-					Tile tile = unit.location;
-					if (unit.IsLoaded() || tile == null || tile == Tile.NONE || tile.OwningPlayer() != us) {
-						continue;
-					}
-					if (!result.TryGetValue(them, out List<MapUnit> units)) {
-						result[them] = units = new();
-					}
-					units.Add(unit);
+				List<MapUnit> units = TrespassersOf(us, them, gameData);
+				if (units.Count > 0) {
+					result[them] = units;
 				}
 			}
 			return result;
+		}
+
+		// Like FindTrespassers, for a single civ.
+		private static List<MapUnit> TrespassersOf(Player us, Player them, GameData gameData) {
+			List<MapUnit> result = new();
+			if (!MustStayOutOf(them, us, gameData)) {
+				return result;
+			}
+			foreach (MapUnit unit in them.units) {
+				Tile tile = unit.location;
+				if (unit.IsLoaded() || tile == null || tile == Tile.NONE || tile.OwningPlayer() != us) {
+					continue;
+				}
+				result.Add(unit);
+			}
+			return result;
+		}
+
+		// The units us could tell them to take out of its territory, leaving
+		// out any that have nowhere to go.
+		public static List<MapUnit> UnitsToWithdraw(Player us, Player them, GameData gameData) {
+			return TrespassersOf(us, them, gameData).FindAll(u => u.CanWithdraw());
+		}
+
+		// A human tells an AI to take its units out of the human's territory,
+		// from the talk screen, as in Civ3. The AI withdraws them, unless it
+		// is the stronger of the two, in which case it refuses and declares
+		// war on the human. Returns whether the AI withdrew, or null if it
+		// had nothing to withdraw.
+		public static bool? DemandFromHuman(Player human, Player ai, GameData gameData) {
+			List<MapUnit> units = UnitsToWithdraw(human, ai, gameData);
+			if (ai.isHuman || units.Count == 0) {
+				return null;
+			}
+
+			if (ai.CompareMilitaryStrengthTo(human) == Player.MilitaryStrength.StrongTo) {
+				log.Information("{Ai} refused to leave {Human}'s territory", ai, human);
+				// Having been warned, it goes to war openly, even though its
+				// units are inside the human's borders.
+				ai.DeclareWarOn(human, gameData.turn, afterWarning: true);
+				MsgWarDeclaration.Announce(ai, human);
+				return false;
+			}
+
+			int withdrawn = Withdraw(units);
+			log.Information("{Ai} withdrew {Count} units from {Human}'s territory", ai, withdrawn, human);
+			return true;
 		}
 
 		// Whether us would tell them to stay out: civs at war fight instead,

@@ -1,4 +1,5 @@
 using C7Engine;
+using C7Engine.AI;
 using C7GameData;
 using Godot;
 using System;
@@ -8,6 +9,9 @@ using ConvertCiv3Media;
 public partial class TalkScreen : TextureRect {
 	private ID humanPlayerId;
 	private ID opponentPlayerId;
+
+	// The things we can say, which go once the AI has answered a demand.
+	private readonly List<Button> choices = new();
 
 	Theme fontTheme = new();
 	FontFile font;
@@ -49,7 +53,25 @@ public partial class TalkScreen : TextureRect {
 			GetParent<Diplomacy>().ShowDealScreenForPlayer(humanPlayerId, opponentPlayerId);
 		};
 		AddChild(proposeDeal);
+		choices.Add(proposeDeal);
 		offset += gap;
+
+		// As in Civ3, an AI with units in our territory can be told to take
+		// them out or face war.
+		EngineStorage.ReadGameData((GameData gD) => {
+			Player human = gD.GetPlayer(humanPlayerId);
+			Player opponent = gD.GetPlayer(opponentPlayerId);
+			if (!opponent.isHuman && TerritoryDemands.UnitsToWithdraw(human, opponent, gD).Count > 0) {
+				Button demandWithdrawal = new();
+				demandWithdrawal.Text = "Remove your troops from our territory, or prepare for war!";
+				demandWithdrawal.SetPosition(new Vector2(512 - 205, offset));
+				demandWithdrawal.Theme = fontTheme;
+				demandWithdrawal.Pressed += () => { new MsgDemandWithdrawal(opponent).send(); };
+				AddChild(demandWithdrawal);
+				choices.Add(demandWithdrawal);
+				offset += gap;
+			}
+		});
 
 		EngineStorage.ReadGameData((GameData gD) => {
 			if (!gD.AreInLockedPeace(gD.GetPlayer(humanPlayerId), gD.GetPlayer(opponentPlayerId))) {
@@ -59,6 +81,7 @@ public partial class TalkScreen : TextureRect {
 				declareWar.Theme = fontTheme;
 				declareWar.Pressed += DeclareWar;
 				AddChild(declareWar);
+				choices.Add(declareWar);
 			} else {
 				Button tradeWorldMaps = new();
 				tradeWorldMaps.Text = "Care to trade World Maps?";
@@ -66,6 +89,7 @@ public partial class TalkScreen : TextureRect {
 				tradeWorldMaps.Theme = fontTheme;
 				tradeWorldMaps.Pressed += TradeWorldMaps;
 				AddChild(tradeWorldMaps);
+				choices.Add(tradeWorldMaps);
 			}
 			offset += gap;
 		});
@@ -76,6 +100,31 @@ public partial class TalkScreen : TextureRect {
 		goodbye.Theme = fontTheme;
 		goodbye.Pressed += () => { GetParent<Diplomacy>().Hide(); };
 		AddChild(goodbye);
+	}
+
+	// The AI answers our demand that it leave our territory. Having
+	// answered, it has nothing more to say, so all that's left is goodbye.
+	public void OnWithdrawalDemandResult(ID opponent, bool withdrew) {
+		if (opponent != opponentPlayerId) {
+			return;
+		}
+		foreach (Button choice in choices) {
+			RemoveChild(choice);
+			choice.QueueFree();
+		}
+		choices.Clear();
+
+		string adjective = "";
+		EngineStorage.ReadGameData((GameData gD) => {
+			adjective = gD.GetPlayer(opponentPlayerId).civilization.adjective;
+		});
+		Label reply = new();
+		reply.Theme = fontTheme;
+		reply.SetPosition(new Vector2(0, 400));
+		AddChild(reply);
+		reply.SetTextAndCenterLabel(withdrew
+			? "Very well. We will withdraw our forces from your lands."
+			: $"You dare threaten us? The {adjective} forces go where they please. Prepare for war!");
 	}
 
 	private void DeclareWar() {

@@ -56,6 +56,7 @@ public class TerritoryDemandsTest : MapBase, IDisposable {
 		MapUnit unit = new(ID.None("unit")) {
 			owner = owner,
 			unitType = new UnitPrototype() { attack = 1, defense = 1 },
+			experienceLevel = new ExperienceLevel("regular", "Regular", 3, 0, 0),
 			location = location,
 		};
 		unit.unitType.categories.Add("Land");
@@ -308,6 +309,59 @@ public class TerritoryDemandsTest : MapBase, IDisposable {
 		await DemandFromHuman(new MsgDiplomacyCompleted());
 
 		Assert.Same(row[3], intruder.location);
+		Assert.True(AtPeace(us, them));
+	}
+
+	// The human, us, tells the AI, them, to leave our territory.
+	private MsgWithdrawalDemandResult DemandOfAi() {
+		us.isHuman = true;
+		EngineStorage.activePlayerID = us.id;
+		new MsgDemandWithdrawal(them) { playerID = us.id }.send();
+		EngineStorage.ProcessNextMessageToEngine();
+
+		MsgWithdrawalDemandResult result = null;
+		while (EngineStorage.TryDequeueNextMessageToUI(out MessageToUI msg)) {
+			result ??= msg as MsgWithdrawalDemandResult;
+		}
+		return result;
+	}
+
+	[Fact]
+	public void AnAiAHumanTellsToLeaveWithdraws() {
+		MapUnit intruder = MakeUnit(them, row[1]);
+		MakeUnit(us, row[0]);
+		MakeUnit(us, row[0]);
+
+		MsgWithdrawalDemandResult result = DemandOfAi();
+
+		Assert.True(result.withdrew);
+		Assert.Same(them, result.opponent);
+		Assert.Same(us, result.recipient);
+		Assert.Same(row[3], intruder.location);
+		Assert.True(AtPeace(us, them));
+	}
+
+	[Fact]
+	public void AStrongerAiRefusesToLeaveAndDeclaresWar() {
+		MapUnit intruder = MakeUnit(them, row[1]);
+		MakeUnit(them, row[4]);
+		us.tileKnowledge.knownTiles.Add(row[1]);
+
+		MsgWithdrawalDemandResult result = DemandOfAi();
+
+		Assert.False(result.withdrew);
+		Assert.Same(row[1], intruder.location);
+		Assert.True(AtWar(us, them));
+		// The AI started the war, but openly, having been warned.
+		Assert.True(us.playerRelationships[them.id].otherStartedCurrentWar);
+		Assert.False(us.playerRelationships[them.id].wasSneakAttacked);
+	}
+
+	[Fact]
+	public void AnAiWithNoUnitsInOurTerritoryHasNothingToAnswer() {
+		MakeUnit(them, row[4]);
+
+		Assert.Null(DemandOfAi());
 		Assert.True(AtPeace(us, them));
 	}
 }
