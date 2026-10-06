@@ -3,8 +3,8 @@ using C7.Textures;
 using C7GameData;
 using Godot;
 
-/// Draws the minimap into a managed RGBA8 pixel buffer. Each tile owns the
-/// pixel at `offset` (4 bytes: r, g, b, a). Layers read back what the
+/// Works out each tile's minimap colour into a managed RGBA8 buffer. Each
+/// tile owns the 4 bytes (r, g, b, a) at `offset`. Layers read back what the
 /// previous layers wrote, the same way Image.GetPixel would.
 public abstract class MiniMapLayer {
 	public virtual void Configure(GameData gD) { }
@@ -33,27 +33,29 @@ public abstract class MiniMapLayer {
 public class BaseLandMiniLayer : MiniMapLayer {
 	public override void DrawTile(byte[] pixels, int offset, Tile tile) {
 		if (visible && tile.IsLand())
-			SetPixel(pixels, offset, Colors.DarkSeaGreen);
+			SetPixel(pixels, offset, TerrainMiniLayer.TerrainColorMap["grassland"]);
 	}
 }
 
+// Muted, earthy colours in the style of Civ3's minimap, so unclaimed land
+// reads as a calm backdrop for the civ colours.
 public class TerrainMiniLayer : MiniMapLayer {
 	public static readonly Dictionary<string, Color> TerrainColorMap = new()
 	{
-		{ "desert",      Colors.DarkGray },
-		{ "plains",      Colors.DarkKhaki },
-		{ "grassland",   Colors.DarkSeaGreen },
-		{ "tundra",      Colors.LightGray },
-		{ "flood plain", Colors.LightBlue },
-		{ "hills",       Colors.Silver },
-		{ "mountains",   Colors.RosyBrown },
-		{ "forest",      Colors.DarkSeaGreen },
-		{ "jungle",      Colors.CadetBlue },
-		{ "marsh",       Colors.LightSlateGray },
-		{ "volcano",     Colors.DimGray },
-		{ "coast",       Colors.LightSteelBlue },
-		{ "sea",         Colors.SteelBlue },
-		{ "ocean",       Colors.RoyalBlue },
+		{ "desert",      Color.Color8(186, 166, 118) },
+		{ "plains",      Color.Color8(138, 114, 70) },
+		{ "grassland",   Color.Color8(92, 104, 52) },
+		{ "tundra",      Color.Color8(150, 150, 134) },
+		{ "flood plain", Color.Color8(112, 112, 56) },
+		{ "hills",       Color.Color8(118, 104, 70) },
+		{ "mountains",   Color.Color8(128, 128, 124) },
+		{ "forest",      Color.Color8(60, 84, 48) },
+		{ "jungle",      Color.Color8(52, 88, 56) },
+		{ "marsh",       Color.Color8(72, 80, 56) },
+		{ "volcano",     Color.Color8(94, 84, 80) },
+		{ "coast",       Color.Color8(41, 107, 107) },
+		{ "sea",         Color.Color8(33, 88, 94) },
+		{ "ocean",       Color.Color8(25, 64, 74) },
 	};
 
 	public override void DrawTile(byte[] pixels, int offset, Tile tile) {
@@ -62,45 +64,44 @@ public class TerrainMiniLayer : MiniMapLayer {
 	}
 }
 
+// Owned land is shown in its owner's colour, shaded a little by the terrain
+// so the land keeps some texture without the colour getting muddy.
 public class PlayerColorMiniLayer : MiniMapLayer {
-	/// Returns the fully saturated version of the colour.
-	public static Color Intensify(Color colour) => Color.FromHsv(colour.H, 1, colour.V, colour.A);
+	private static readonly Dictionary<string, float> TerrainShade = new()
+	{
+		{ "desert",      1.08f },
+		{ "tundra",      1.08f },
+		{ "plains",      1.0f },
+		{ "flood plain", 1.0f },
+		{ "grassland",   0.96f },
+		{ "marsh",       0.92f },
+		{ "hills",       0.9f },
+		{ "forest",      0.87f },
+		{ "jungle",      0.87f },
+		{ "mountains",   0.84f },
+		{ "volcano",     0.8f },
+	};
 
-	// Each player's intensified colour, worked out once per redraw instead
-	// of once per owned tile.
-	private readonly Dictionary<Player, Color> intenseColors = new();
+	// Each player's colour, looked up once per redraw instead of once per
+	// owned tile.
+	private readonly Dictionary<Player, Color> civColors = new();
 
 	public override void Configure(GameData gD) {
-		intenseColors.Clear();
+		civColors.Clear();
 	}
 
 	public override void DrawTile(byte[] pixels, int offset, Tile tile) {
-		if (!visible)
+		if (!visible || !tile.IsLand())
 			return;
 		Player owner = tile.OwningPlayer();
 		if (owner == null)
 			return;
-		if (!intenseColors.TryGetValue(owner, out Color intenseCivColor)) {
-			intenseCivColor = Intensify(TextureLoader.LoadColor(owner.GetPlayerColor()));
-			intenseColors[owner] = intenseCivColor;
+		if (!civColors.TryGetValue(owner, out Color civColor)) {
+			civColor = TextureLoader.LoadColor(owner.GetPlayerColor());
+			civColors[owner] = civColor;
 		}
-		var currentColor = GetPixel(pixels, offset);
-		var newColor = intenseCivColor.Lerp(currentColor, 0.25f); // blend civ color with underlying map
-		SetPixel(pixels, offset, newColor);
-	}
-}
-
-public class CityMiniLayer : MiniMapLayer {
-	public override void DrawTile(byte[] pixels, int offset, Tile tile) {
-		if (visible && tile.HasCity())
-			SetPixel(pixels, offset, Colors.White);
-	}
-}
-
-public class WaterMiniLayer : MiniMapLayer {
-	public override void DrawTile(byte[] pixels, int offset, Tile tile) {
-		if (visible && tile.IsWater())
-			SetPixel(pixels, offset, Colors.SteelBlue);
+		float shade = TerrainShade.GetValueOrDefault(tile.overlayTerrainType.Key, 1f);
+		SetPixel(pixels, offset, new Color(civColor.R * shade, civColor.G * shade, civColor.B * shade));
 	}
 }
 
@@ -117,7 +118,7 @@ public class FogOfWarMiniLayer : MiniMapLayer {
 		if (visible && !_observerMode) {
 			if (_tileKnowledge.borderTiles.Contains(tile)) {
 				var currentColor = GetPixel(pixels, offset);
-				var newColor = Colors.Black.Lerp(currentColor, 0.50f); // blend with underlying map
+				var newColor = Colors.Black.Lerp(currentColor, 0.70f); // soften the edge of the known world
 				SetPixel(pixels, offset, newColor);
 			} else if (!_tileKnowledge.knownTiles.Contains(tile)) {
 				SetPixel(pixels, offset, Colors.Black);

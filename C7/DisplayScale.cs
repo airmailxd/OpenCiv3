@@ -1,0 +1,65 @@
+using System;
+using System.Globalization;
+using C7Engine;
+using Godot;
+
+// Scales the whole UI (and the map with it) by a user-chosen factor. The window
+// renders at its full resolution while the game lays itself out in logical
+// pixels of window size / scale, so a bigger scale means bigger, still-crisp art
+// and text. The scale is kept in C7.ini and adjusted in-game with Ctrl + / - / 0.
+public partial class DisplayScale : Node {
+	private const string Section = "display";
+	private const string Key = "uiScale";
+	private const float Step = 0.25f;
+	private const float Min = 0.5f;
+	private const float Max = 4f;
+
+	public override void _Ready() {
+		Window window = GetTree().Root;
+		window.ContentScaleMode = Window.ContentScaleModeEnum.Disabled;
+		window.ContentScaleFactor = LoadScale();
+	}
+
+	// With no saved scale, fit the game's 1080-line layout to the screen height,
+	// so a 1440p screen starts at 1.25 and a 4K screen at 2.
+	private static float DefaultScale() {
+		int screenHeight = DisplayServer.ScreenGetSize(DisplayServer.WindowGetCurrentScreen()).Y;
+		return Mathf.Clamp(Mathf.Floor(screenHeight / 1080f / Step) * Step, 1f, Max);
+	}
+
+	private static float LoadScale() {
+		string saved = C7Settings.GetSettingsValueOrDefault(Section, Key, null);
+		if (saved != null && float.TryParse(saved, NumberStyles.Float, CultureInfo.InvariantCulture, out float scale)) {
+			return Mathf.Clamp(scale, Min, Max);
+		}
+		return DefaultScale();
+	}
+
+	private void SetScale(float scale) {
+		scale = Mathf.Clamp(scale, Min, Max);
+		GetTree().Root.ContentScaleFactor = scale;
+		C7Settings.SetValue(Section, Key, scale.ToString(CultureInfo.InvariantCulture));
+		C7Settings.SaveSettings();
+	}
+
+	public override void _Input(InputEvent @event) {
+		if (@event is not InputEventKey { Pressed: true, Echo: false, CtrlPressed: true } key) {
+			return;
+		}
+		float current = GetTree().Root.ContentScaleFactor;
+		switch (key.Keycode) {
+			case Godot.Key.Equal or Godot.Key.Plus or Godot.Key.KpAdd:
+				SetScale(current + Step);
+				break;
+			case Godot.Key.Minus or Godot.Key.KpSubtract:
+				SetScale(current - Step);
+				break;
+			case Godot.Key.Key0 or Godot.Key.Kp0:
+				SetScale(DefaultScale());
+				break;
+			default:
+				return;
+		}
+		GetViewport().SetInputAsHandled();
+	}
+}
