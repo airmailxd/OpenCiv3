@@ -63,6 +63,9 @@ public partial class UnitLayer : LooseLayer {
 	private readonly Dictionary<string, ImageTexture> jobBadges = new();
 
 	private ImageTexture GetJobBadge(Terraform job) {
+		if (job.ButtonTexture == null) {
+			return null;
+		}
 		if (!jobBadges.TryGetValue(job.ButtonTexture, out ImageTexture badge)) {
 			try {
 				badge = TextureLoader.Load(job.ButtonTexture + ".normal");
@@ -76,8 +79,10 @@ public partial class UnitLayer : LooseLayer {
 	}
 
 	// Marks a worker with its job's button when its art has no animation of
-	// the job, like for airfields, or no art for it at all.
-	private void drawWorkerJobBadge(AnimationManager manager, AnimationManager.UnitArt art, MapUnit unit, Vector2 unitCenter) {
+	// the job, like for airfields, or no art for it at all. The badge keeps
+	// its size on screen like the other indicators; see cameraZoom in
+	// drawObject.
+	private void drawWorkerJobBadge(AnimationManager manager, AnimationManager.UnitArt art, MapUnit unit, Vector2 unitCenter, float cameraZoom) {
 		Terraform job = unit.WorkerJob;
 		if (job == null) {
 			return;
@@ -90,7 +95,7 @@ public partial class UnitLayer : LooseLayer {
 			return;
 		}
 		const float size = 16;
-		Rect2 rect = new Rect2(unitCenter + new Vector2(6, -24), new Vector2(size, size));
+		Rect2 rect = new Rect2(unitCenter + new Vector2(6, -24) / cameraZoom, new Vector2(size, size) / cameraZoom);
 		RenderingServer.CanvasItemAddTextureRect(indicatorItem, rect, badge.GetRid());
 	}
 
@@ -357,8 +362,8 @@ public partial class UnitLayer : LooseLayer {
 		cursorSprite?.Hide();
 		BeginIndicators(looseView);
 
+		// The MapView brought the animations up to date earlier this frame.
 		AnimationController animationController = looseView.mapView.game.animationController;
-		animationController.updateAnimations();
 
 		// The displayed units are worked out again every turn, and for every game.
 		bool newTurnOrGame = gameData != displayedUnitsGame || gameData.turn != displayedUnitsTurn;
@@ -566,7 +571,6 @@ public partial class UnitLayer : LooseLayer {
 		AnimationManager manager = looseView.mapView.game.animationController.civ3AnimData;
 		AnimationManager.UnitArt art = GetDisplayedUnitArt(manager, displayed);
 		drawUnitAnimFrame(looseView, unit, manager.GetUnitAnimation(art, appearance.action, appearance.direction), appearance, tileCenter);
-		drawWorkerJobBadge(manager, art, unit, tileCenter + animOffset);
 
 		// The indicators go on their own canvas item, above the units; see indicatorZIndex.
 
@@ -623,6 +627,8 @@ public partial class UnitLayer : LooseLayer {
 		// RightClickMenu functionality would need to be made configurable if this gets implemented in the future.
 		if (unit.location.HasCity() && unit.owner != looseView.mapView.game.controller)
 			return;
+
+		drawWorkerJobBadge(manager, art, unit, tileCenter + animOffset, cameraZoom);
 
 		// Draw movement indicator for our units
 		if (looseView.mapView.game.controller == unit.owner) {

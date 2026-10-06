@@ -2,8 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using C7GameData;
+using Serilog;
 
 public partial class AnimationTracker {
+	private static readonly ILogger log = LogManager.ForContext<AnimationTracker>();
 	private AnimationManager civ3AnimData;
 	public bool endAllImmediately = true; // If true, update() ends all running animations regardless of time remaining.
 
@@ -198,10 +200,26 @@ public partial class AnimationTracker {
 			return false;
 		}
 
-		string artName = AnimationManager.ArtNameFor(unit);
+		// Art that's missing or broken shows the worker in its usual pose,
+		// which is remembered as a duration of zero so it's only tried once.
+		string artName;
+		try {
+			artName = AnimationManager.ArtNameFor(unit);
+		} catch (Exception e) {
+			log.Warning(e, "Couldn't find the art of {Unit}", unit);
+			return false;
+		}
 		if (!workDurationsMS.TryGetValue((artName, action), out long durationMS)) {
-			durationMS = Math.Max(1, (long)civ3AnimData.forUnit(unit, action).getDuration());
+			try {
+				durationMS = Math.Max(1, (long)civ3AnimData.forUnit(unit, action).getDuration());
+			} catch (Exception e) {
+				log.Warning(e, "Couldn't load the {Action} animation of {Art}", action, artName);
+				durationMS = 0;
+			}
 			workDurationsMS[(artName, action)] = durationMS;
+		}
+		if (durationMS == 0) {
+			return false;
 		}
 
 		// Each worker starts its loop at its own point, so a crew working

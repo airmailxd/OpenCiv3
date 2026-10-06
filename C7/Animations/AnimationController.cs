@@ -52,9 +52,9 @@ public partial class AnimationController : Node {
 		}
 	}
 
-	// Instead of Game calling animTracker.update periodically (this used to happen in _Process), this method gets called as necessary to bring
-	// the animations up to date. Right now it's called from UnitLayer right before it draws the units on the map. This method also processes all
-	// waiting messages b/c some of them might pertain to animations.
+	// Brings the animations up to date. The MapView calls this once per frame from _Process, before the units are drawn, whether or not the
+	// units are visible, since the engine waits for the animations it starts to finish. This method also processes all waiting messages b/c
+	// some of them might pertain to animations.
 	public void updateAnimations() {
 		while (EngineStorage.TryDequeueNextAnimationMessage(out AnimationMessage msg))
 			HandleEngineMessage(msg);

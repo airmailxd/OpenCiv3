@@ -1045,6 +1045,10 @@ public partial class MapView : Node2D {
 			return;
 		}
 
+		// Brings the animations up to date before the units are drawn. This happens here rather than when the units are drawn because the
+		// unit view isn't drawn in bare map mode, and the engine waits for the animations it starts to finish.
+		game.animationController?.updateAnimations();
+
 		// Nothing to draw while the map is hidden; catch up once it's back.
 		bool hidden = game.IsMapHidden;
 		if (hidden) {

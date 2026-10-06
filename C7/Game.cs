@@ -1191,6 +1191,12 @@ public partial class Game : Node {
 		if (@event is InputEventKey e && e.Pressed && !e.IsAction(C7Action.UnitGoto)) {
 			this.SetGotoMode(false);
 		}
+
+		// A unit drag ends when the button is released, even if a control or a modal takes the release before the map sees it. The check
+		// is deferred so that a release the map does see finishes the drag first.
+		if (draggingUnit && @event is InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: false }) {
+			Callable.From(AbandonUnitDrag).CallDeferred();
+		}
 	}
 
 	public override void _UnhandledInput(InputEvent @event) {
@@ -1298,6 +1304,13 @@ public partial class Game : Node {
 			doubleClickHandler.Accept(eventMouseButton);
 		} else {
 			HandleUnitSelectionTileClick(eventMouseButton);
+		}
+	}
+
+	// Ends a drag whose release the map didn't see, without moving the unit.
+	private void AbandonUnitDrag() {
+		if (draggingUnit) {
+			SetGotoMode(false);
 		}
 	}
 

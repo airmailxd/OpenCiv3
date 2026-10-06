@@ -286,13 +286,26 @@ public partial class AnimationManager {
 		}
 	}
 
+	// Whether each unit art has its own animation for each action, which is
+	// asked every frame for every worker shown.
+	private static readonly Dictionary<(string, MapUnit.AnimatedAction), bool> unitActionExists = new();
+
 	// Whether a unit's art has its own animation for an action, rather than
 	// falling back on its default one.
 	public bool HasUnitAction(string artName, MapUnit.AnimatedAction action) {
-		if (!HasUnitArt(artName)) {
+		if (artName == null) {
 			return false;
 		}
-		return !string.IsNullOrEmpty(getUnitINIData(artName)["Animations"][action.ToString()]);
+		if (!unitActionExists.TryGetValue((artName, action), out bool exists)) {
+			try {
+				exists = HasUnitArt(artName) && !string.IsNullOrEmpty(getUnitINIData(artName)["Animations"][action.ToString()]);
+			} catch (Exception e) {
+				log.Warning(e, "Couldn't read the {Action} animation of {Art}", action, artName);
+				exists = false;
+			}
+			unitActionExists[(artName, action)] = exists;
+		}
+		return exists;
 	}
 
 	public IniData getUnitINIData(string unitTypeName) {
@@ -443,6 +456,7 @@ public partial class AnimationManager {
 		// Which art exists depends on the media paths, which may have changed.
 		artNames.Clear();
 		unitArtExists.Clear();
+		unitActionExists.Clear();
 	}
 
 	// Forgets what's remembered by game object (unit prototypes), which would
