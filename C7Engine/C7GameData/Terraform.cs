@@ -84,11 +84,13 @@ public class Terraform {
 			return false;
 		}
 
-		// Checking resource access needs the trade network.
+		// Checking resource access needs the trade network. Resources
+		// imported through deals count on the capital's network.
 		if (RequiredResources.Count > 0) {
-			TradeNetwork tradeNetwork = EngineStorage.gameData.GetTradeNetwork();
+			GameData gameData = EngineStorage.gameData;
+			TradeNetwork tradeNetwork = gameData.GetTradeNetwork();
 			foreach (Resource res in RequiredResources) {
-				if (!tradeNetwork.HasTradeAccess(tile, player, res)) {
+				if (!tradeNetwork.HasResourceAccess(gameData, tile, player, res)) {
 					return false;
 				}
 			}

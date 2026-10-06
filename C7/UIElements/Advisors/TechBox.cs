@@ -30,6 +30,12 @@ public partial class TechBox : TextureButton {
 	// Building icons crossed out, keyed by icon row, for the buildings a tech makes obsolete.
 	private static readonly Dictionary<int, ImageTexture> CachedObsoleteBuildingTextures = new();
 
+	// Lets go of the crossed out icons, which another game's art may draw
+	// differently.
+	public static void ClearCache() {
+		CachedObsoleteBuildingTextures.Clear();
+	}
+
 	private FontFile smallFont = new();
 	private Theme smallFontTheme = new();
 	private int smallFontSize = 11;

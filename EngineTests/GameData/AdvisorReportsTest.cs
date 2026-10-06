@@ -27,7 +27,7 @@ public class AdvisorReportsTest {
 	[InlineData(100, 50, "dismissive of")]
 	[InlineData(100, 33, "disdainful of")]
 	[InlineData(100, 0, "disdainful of")]
-	[InlineData(0, 0, "in awe of")]
+	[InlineData(0, 0, "impressed with")]
 	public void OpinionOf_ComparesOurCultureToTheirs(int theirs, int ours, string expected) {
 		Assert.Equal(expected, CultureReport.OpinionOf(new Rules(), theirs, ours));
 	}

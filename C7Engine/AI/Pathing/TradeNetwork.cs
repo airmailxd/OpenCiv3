@@ -133,6 +133,53 @@ namespace C7Engine.Pathing {
 				&& segment.resourceCounts.TryGetValue(r, out int count) && count > 0;
 		}
 
+		// Whether the player can use the resource at the tile, e.g. to build a
+		// railroad: what the tile's network segment has, adjusted, when that is
+		// the capital's segment, by the resources imported and exported
+		// through deals (see City.GetAvailableResources).
+		public bool HasResourceAccess(GameData gameData, Tile t, Player p, Resource r) {
+			PlayerNetwork network = GetNetwork(p);
+			City capital = GetCapital(p, network);
+			if (capital != null
+				&& network.tileToSegment.TryGetValue(t, out TradeNetworkSegment segment)
+				&& network.cityToSegment.TryGetValue(capital, out TradeNetworkSegment capitalSegment)
+				&& segment == capitalSegment) {
+				return capital.GetAvailableResources(gameData).ContainsKey(r);
+			}
+			return HasTradeAccess(t, p, r);
+		}
+
+		// How many of the resource the player has on its capital's network
+		// segment, not counting imports or exports. A player with no cities
+		// has none.
+		public int CapitalResourceCount(Player p, Resource r) {
+			PlayerNetwork network = GetNetwork(p);
+			City capital = GetCapital(p, network);
+			if (capital == null || !network.cityToSegment.TryGetValue(capital, out TradeNetworkSegment segment)) {
+				return 0;
+			}
+			return segment.resourceCounts.GetValueOrDefault(r);
+		}
+
+		// Whether a road runs between the two players' capitals. Only roads
+		// are modelled, so capitals on different landmasses, which Civ3 can
+		// connect by sea, count as connected.
+		// TODO: Use harbors and airports once the trade network has them.
+		public bool CapitalsConnected(Player a, Player b) {
+			PlayerNetwork network = GetNetwork(a);
+			City capitalA = GetCapital(a, network);
+			City capitalB = GetCapital(b, GetNetwork(b));
+			if (capitalA == null || capitalB == null) {
+				return false;
+			}
+			if (capitalA.location.continent != capitalB.location.continent) {
+				return true;
+			}
+			return network.cityToSegment.TryGetValue(capitalA, out TradeNetworkSegment segment)
+				&& network.tileToSegment.TryGetValue(capitalB.location, out TradeNetworkSegment other)
+				&& segment == other;
+		}
+
 		// The player's cities grouped by the network segment they're on, in the
 		// order of the player's city list. The group with the capital comes
 		// first.

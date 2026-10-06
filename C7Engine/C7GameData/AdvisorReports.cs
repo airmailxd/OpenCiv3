@@ -28,6 +28,11 @@ namespace C7GameData {
 			if (opinions == null || opinions.Count == 0) {
 				return "";
 			}
+			// With no culture on either side, the two are even rather than
+			// in awe of each other.
+			if (theirCulture == 0 && ourCulture == 0) {
+				theirCulture = ourCulture = 1;
+			}
 			foreach (CultureOpinion opinion in opinions) {
 				// ours / theirs >= numerator / denominator, without dividing.
 				if ((long)ourCulture * opinion.Denominator >= (long)theirCulture * opinion.Numerator) {
@@ -94,11 +99,30 @@ namespace C7GameData {
 			return result;
 		}
 
-		// The luxuries and strategic resources a civ has to spare: it has at
-		// least two on its capital's network, and at least one of them isn't
-		// already going to another civ.
-		public static List<(Resource resource, int count)> ExcessResources(GameData gameData, Player civ) =>
-			ExcessResources(LocalResources(gameData, civ), ResourceDeals(gameData, civ, DealDetails.Outbound));
+		// The luxuries and strategic resources the capital can use, counting
+		// those imported from and exported to other civs.
+		public static Dictionary<Resource, int> CapitalResources(GameData gameData, Player player) {
+			Dictionary<Resource, int> result = new();
+			List<List<City>> groups = gameData.GetTradeNetwork().CityGroups(player);
+			if (groups.Count == 0) {
+				return result;
+			}
+			foreach ((Resource r, int count) in groups[0][0].GetAvailableResources(gameData)) {
+				if (r.Category is ResourceCategory.LUXURY or ResourceCategory.STRATEGIC) {
+					result[r] = count;
+				}
+			}
+			return result;
+		}
+
+		// The luxuries and strategic resources a civ has to spare, as the
+		// viewer sees them: it has at least two on its capital's network, at
+		// least one of them isn't already going to another civ, and the
+		// viewer knows about the resource.
+		public static List<(Resource resource, int count)> ExcessResources(GameData gameData, Player civ, Player viewer) =>
+			ExcessResources(LocalResources(gameData, civ), ResourceDeals(gameData, civ, DealDetails.Outbound))
+				.Where(r => viewer.KnowsAboutResource(r.resource))
+				.ToList();
 
 		// The same, given what the civ has and what it sends to other civs.
 		public static List<(Resource resource, int count)> ExcessResources(Dictionary<Resource, int> available,
