@@ -16,6 +16,7 @@ public partial class Diplomacy : CenterContainer {
 
 	private TalkScreen talkScreen;
 	private DealScreen dealScreen;
+	private TerritoryDemandScreen territoryDemandScreen;
 
 	// Popups the talk and deal screens put up. Their answers go to the
 	// screen, so they are taken down along with it.
@@ -57,6 +58,11 @@ public partial class Diplomacy : CenterContainer {
 			dealScreen.QueueFree();
 			dealScreen = null;
 		}
+		if (territoryDemandScreen != null) {
+			RemoveChild(territoryDemandScreen);
+			territoryDemandScreen.QueueFree();
+			territoryDemandScreen = null;
+		}
 	}
 
 	public void ShowDealScreenForPlayer(ID humanPlayer, ID opponentPlayer) {
@@ -73,6 +79,14 @@ public partial class Diplomacy : CenterContainer {
 
 	public void OnDealResult(ID opponent, bool accepted) {
 		dealScreen?.OnDealResult(opponent, accepted);
+	}
+
+	public void ShowTerritoryDemand(ID humanPlayer, ID opponentPlayer, int unitCount, bool repeatOffense) {
+		RemoveOtherScreens();
+
+		territoryDemandScreen = new TerritoryDemandScreen(humanPlayer, opponentPlayer, unitCount, repeatOffense);
+		AddChild(territoryDemandScreen);
+		this.Show();
 	}
 
 	public void ShowTalkScreenForPlayer(ID humanPlayer, ID opponentPlayer) {

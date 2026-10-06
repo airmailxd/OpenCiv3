@@ -847,6 +847,20 @@ namespace C7Engine {
 		}
 	}
 
+	// A human answers an AI's demand to leave its territory: withdraw their
+	// units, or refuse and go to war.
+	public class MsgRespondToTerritoryDemand : MessageToEngine {
+		public bool withdraw;
+
+		public MsgRespondToTerritoryDemand(bool withdraw) {
+			this.withdraw = withdraw;
+		}
+
+		protected override void ProcessAllowed() {
+			EngineStorage.territoryDemandAnswer = withdraw;
+		}
+	}
+
 	// A human votes in the United Nations election; a null candidate
 	// abstains.
 	public class MsgCastUnitedNationsVote : MessageToEngine {

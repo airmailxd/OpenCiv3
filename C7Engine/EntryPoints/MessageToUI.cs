@@ -252,6 +252,27 @@ namespace C7Engine {
 		public override Player NetworkRecipient => humanPlayer;
 	}
 
+	// An AI tells a human to take their units out of its territory or face
+	// war. The human answers with MsgRespondToTerritoryDemand.
+	public class MsgShowTerritoryDemand : MessageToUI {
+		public Player aiPlayer;
+		public Player humanPlayer;
+		public int unitCount;
+
+		// The human already promised to leave once and came back.
+		public bool repeatOffense;
+
+		public MsgShowTerritoryDemand(Player aiPlayer, Player humanPlayer, int unitCount, bool repeatOffense) {
+			this.aiPlayer = aiPlayer;
+			this.humanPlayer = humanPlayer;
+			this.unitCount = unitCount;
+			this.repeatOffense = repeatOffense;
+		}
+
+		// Like a trade offer, this goes to the human's own machine on a LAN.
+		public override Player NetworkRecipient => humanPlayer;
+	}
+
 	// Another human on a LAN proposes a deal, which the recipient accepts or
 	// refuses with MsgRespondToDeal.
 	public class MsgShowDealProposal : MessageToUI {

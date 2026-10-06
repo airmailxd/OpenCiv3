@@ -35,6 +35,10 @@ namespace C7Engine {
 			// or having an active RoP, doesn't hurt us.
 			PlayerRelationship.CheckForObsoleteDeals(player, EngineStorage.gameData.players, EngineStorage.gameData.turn);
 
+			// Tell anyone wandering around our territory to leave. Any war that
+			// starts gets planned for in the priorities and unit moves below.
+			await TerritoryDemands.MakeDemands(player, gameData);
+
 			MaybeDoPriorityReevaluation(player);
 			MaybePickTechToResearch(player, techs);
 

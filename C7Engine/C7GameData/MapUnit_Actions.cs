@@ -172,6 +172,66 @@ public partial class MapUnit {
 		EngineStorage.gameData.RemoveUnit(this);
 	}
 
+	// Moves the unit, and anything it carries, straight to the nearest tile
+	// outside every other civ's borders that it could stand on, as when a civ
+	// agrees to take its units out of another's territory. Returns false,
+	// leaving the unit where it is, if there is no such tile.
+	public bool WithdrawToNearestFreeTile() {
+		Tile destination = FindNearestFreeTile();
+		if (destination == null) {
+			return false;
+		}
+
+		path = null;
+		isFortified = false;
+		if (WorkerJob != null) {
+			resetWorkerJob();
+		}
+		RelocateTo(destination);
+		if (owner.isHuman) {
+			new MsgUnitMoved(this).send();
+		}
+		return true;
+	}
+
+	private Tile FindNearestFreeTile() {
+		HashSet<Tile> seen = new() { location };
+		Queue<Tile> frontier = new();
+		frontier.Enqueue(location);
+		while (frontier.Count > 0) {
+			Tile tile = frontier.Dequeue();
+			if (tile != location && IsFreeTileFor(tile)) {
+				return tile;
+			}
+			foreach (Tile neighbor in tile.neighbors.Values) {
+				if (neighbor != null && neighbor != Tile.NONE && seen.Add(neighbor)) {
+					frontier.Enqueue(neighbor);
+				}
+			}
+		}
+		return null;
+	}
+
+	// Whether the unit could be put on the tile without being in someone
+	// else's territory or sharing it with someone else's units.
+	private bool IsFreeTileFor(Tile tile) {
+		Player tileOwner = tile.OwningPlayer();
+		if (tileOwner != null && tileOwner != owner) {
+			return false;
+		}
+		if (tile.hasBarbarianCamp || tile.unitsOnTile.Any(u => u.owner != owner)) {
+			return false;
+		}
+		bool ownCity = tile.HasCity() && tile.cityAtTile.owner == owner;
+		if (IsAirUnit()) {
+			return ownCity;
+		}
+		if (IsWaterUnit()) {
+			return tile.IsWater() || ownCity;
+		}
+		return tile.IsLand();
+	}
+
 	public async Task MoveAlongPath() {
 		while (movementPoints.canMove && path?.PathLength() > 0) {
 			Tile next = path.Next();
