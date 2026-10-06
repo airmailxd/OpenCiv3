@@ -1138,6 +1138,7 @@ namespace C7GameData {
 				// the new citizen can go on one of our new tiles.
 				if (c.UpdateCultureAndCheckForExpansion()) {
 					gameData.UpdateTileOwners();
+					BarbarianInteractions.DisperseCampsWithinBorders(gameData);
 
 					// Update the trade network if borders expanded, as a new
 					// resource may be part of the network.

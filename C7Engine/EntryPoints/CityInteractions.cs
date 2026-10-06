@@ -224,6 +224,7 @@ namespace C7Engine {
 			city.SetStoredShields(0);
 
 			gameData.UpdateTileOwners();
+			BarbarianInteractions.DisperseCampsWithinBorders(gameData);
 			gameData.InvalidateCachedTradeNetwork();
 
 			// Choosing production needs the trade network to know the new owner.
@@ -275,6 +276,7 @@ namespace C7Engine {
 			city.isInCivilDisorder = false;
 
 			gameData.UpdateTileOwners();
+			BarbarianInteractions.DisperseCampsWithinBorders(gameData);
 			gameData.InvalidateCachedTradeNetwork();
 
 			city.SetItemBeingProduced(ChooseProducible.Choose(city, newOwner));
@@ -331,6 +333,7 @@ namespace C7Engine {
 			TileChangeJournal.RecordTerrainChange(tile);
 
 			gameData.UpdateTileOwnersOnCityDestruction(city);
+			BarbarianInteractions.DisperseCampsWithinBorders(gameData);
 
 			new MsgCityDestroyed(city).send();
 
