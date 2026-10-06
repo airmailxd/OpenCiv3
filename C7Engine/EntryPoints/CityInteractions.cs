@@ -166,6 +166,11 @@ namespace C7Engine {
 			Player oldOwner = city.owner;
 			Tile tile = city.location;
 
+			// Losing the capital destroys the spaceship.
+			if (city.capital) {
+				SpaceRace.DestroySpaceship(oldOwner, captor);
+			}
+
 			if (!SurvivesCapture(city)) {
 				DestroyCity(city);
 				return;
@@ -247,6 +252,9 @@ namespace C7Engine {
 			Tile tile = gameData.map.tileAt(X, Y);
 			Player owner = tile.cityAtTile.owner;
 			bool wasCapital = tile.cityAtTile.capital;
+			if (wasCapital) {
+				SpaceRace.DestroySpaceship(owner, null);
+			}
 
 			// TODO: this will get removed eventually, since we will be capturing non-combat units,
 			// plus, it doesn't what it says, if the city is abandoned for example, ALL units are removed.

@@ -744,9 +744,16 @@ namespace C7GameData {
 				player.governmentId = save.Governments[leader.Government].id;
 				player.inAnarchyUntilTurn = save.TurnNumber + leader.AnarchyTurnsLeft;
 				player.primaryColorIndex = leader.Color;
+				player.hadGoldenAge = leader.GoldenAgeEndTurn >= 0;
+				// The golden age still runs on its end turn.
+				player.goldenAgeTurnsRemaining = Math.Max(0, leader.GoldenAgeEndTurn - save.TurnNumber + 1);
 
 				player.defeated = IsDefeated(player, leader);
 				player.hasVictoriousArmy = leader.HasVictoriousArmy;
+				short[] spaceshipParts = savData.LeadSpaceshipParts?[i];
+				if (spaceshipParts != null && spaceshipParts.Any(n => n > 0)) {
+					player.spaceshipParts = spaceshipParts.Select(n => (int)n).ToList();
+				}
 
 				save.Players.Add(player);
 				i++;

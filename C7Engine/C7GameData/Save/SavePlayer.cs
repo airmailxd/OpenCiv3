@@ -137,6 +137,7 @@ namespace C7GameData.Save {
 				government = governments.Find(x => x.id == governmentId),
 				rules = rules,
 				hasVictoriousArmy = hasVictoriousArmy,
+				spaceshipParts = spaceshipParts == null ? new() : new List<int>(spaceshipParts),
 			};
 			if (!string.IsNullOrEmpty(knownTileIndices)) {
 				foreach (int index in DecodeTileIndices(knownTileIndices)) {
@@ -245,6 +246,7 @@ namespace C7GameData.Save {
 			inAnarchyUntilTurn = player.inAnarchyUntilTurn;
 			governmentId = player.government.id;
 			hasVictoriousArmy = player.hasVictoriousArmy;
+			spaceshipParts = new List<int>(player.spaceshipParts);
 
 			foreach (KeyValuePair<ID, PlayerRelationship> keyValuePair in player.playerRelationships) {
 				playerRelationships.Add(keyValuePair.Key.ToString(), keyValuePair.Value);

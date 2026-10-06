@@ -265,11 +265,20 @@ namespace C7GameData {
 		// completing a wonder (like Theory of Evolution).
 		public int freeTechsRemaining = 0;
 
+		// The tech a human player last discovered, while they haven't yet
+		// chosen what to research next, for the science advisor to announce.
+		// It isn't saved.
+		public Tech lastDiscoveredTech;
+
 		public Alliance alliance;
 
 		// Whether one of this player's armies has won a battle. The Military
 		// Academy can't be built until one has.
 		public bool hasVictoriousArmy = false;
+
+		// How many of each spaceship part (by Building.spaceshipPart index)
+		// this civ has built. Losing the capital destroys them. See SpaceRace.
+		public List<int> spaceshipParts = new();
 
 		// How tired of war the people are. It builds up while at war and
 		// clears once the civ is at peace with everyone.

@@ -366,6 +366,18 @@ namespace C7Engine {
 				score += (city.residents.Count / 5) * (atWar ? 3 : 1);
 			}
 
+			// The space race: the Apollo Program opens it, and every
+			// spaceship part brings the AI closer to winning. Parts are only
+			// offered while the ship still needs them, so favor them strongly,
+			// a bit less while at war.
+			if (SpaceRace.SpaceRaceAllowed(EngineStorage.gameData)) {
+				if (building.IsSpaceshipPart) {
+					score += atWar ? 40 : 70;
+				} else if (building.buildSpaceshipParts && !SpaceRace.ApolloProgramBuilt(EngineStorage.gameData)) {
+					score += atWar ? 20 : 40;
+				}
+			}
+
 			// Penalize more expensive buildings.
 			score -= city.TurnsToProduce(building) / (stats.InExpansionPhase ? 1 : 2);
 

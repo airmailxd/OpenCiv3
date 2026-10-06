@@ -185,6 +185,44 @@ namespace C7Engine {
 		}
 	}
 
+	// Asks a human player what to research next, having just discovered a
+	// tech (or null if it isn't known which).
+	public class MsgShowScienceSelection : MessageToUI {
+		public Tech discovered;
+		public MsgShowScienceSelection(Player recipient, Tech discovered) {
+			this.recipient = recipient;
+			this.discovered = discovered;
+		}
+	}
+
+	// Tells a human player that a city has finished building something, and
+	// what it builds next. The items are named, as they are in
+	// MsgChooseProduction.
+	public class MsgCityProductionCompleted : MessageToUI {
+		public City city;
+		public string completed;
+		public string next;
+		public MsgCityProductionCompleted(Player recipient, City city, string completed, string next) {
+			this.recipient = recipient;
+			this.city = city;
+			this.completed = completed;
+			this.next = next;
+		}
+	}
+
+	// News from the science advisor, such as the space race.
+	public class MsgShowScienceAdvisorPopup : MessageToUI {
+		public enum Mood { Happy, Angry, Sad, Surprised }
+
+		public string message;
+		public Mood mood;
+		public MsgShowScienceAdvisorPopup(Player recipient, string message, Mood mood) {
+			this.recipient = recipient;
+			this.message = message;
+			this.mood = mood;
+		}
+	}
+
 	public class MsgShowTemporaryPopup : MessageToUI {
 		public string message;
 		public Tile location;

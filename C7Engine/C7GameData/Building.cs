@@ -343,6 +343,12 @@ namespace C7GameData {
 				}
 			}
 
+			// Spaceship parts need the Apollo Program and are limited to the
+			// number the ship needs. See SpaceRace.
+			if (spaceshipPart >= 0 && !SpaceRace.CanBuildPart(EngineStorage.gameData, city, this)) {
+				return false;
+			}
+
 			if (requiresVictoriousArmy && !city.owner.hasVictoriousArmy) {
 				return false;
 			}
