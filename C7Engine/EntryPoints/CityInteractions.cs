@@ -251,11 +251,16 @@ namespace C7Engine {
 		// Hands a city over to another player peacefully, as when it is
 		// incited to revolt: unlike a capture it keeps its citizens and
 		// buildings, except the palace and small wonders, which belong to the
-		// old owner's empire. Units in it are left as they are.
+		// old owner's empire. As in Civ3, the old owner's units in it join the
+		// new owner along with the city.
 		public static void TransferCity(City city, Player newOwner) {
 			GameData gameData = EngineStorage.gameData;
 			Player oldOwner = city.owner;
 			Tile tile = city.location;
+
+			foreach (MapUnit unit in tile.unitsOnTile.Where(u => u.owner == oldOwner).ToList()) {
+				gameData.CaptureUnit(unit, newOwner);
+			}
 
 			foreach (CityBuilding cb in city.constructed_buildings.ToList()) {
 				if (cb.building.isCenterOfEmpire || cb.building.isSmallWonder) {
@@ -277,6 +282,7 @@ namespace C7Engine {
 			gameData.InvalidateCachedTradeNetwork();
 
 			city.SetItemBeingProduced(ChooseProducible.Choose(city, newOwner));
+			city.ClearProductionQueue();
 
 			log.Information("{City} changed hands from {OldOwner} to {NewOwner}", city, oldOwner, newOwner);
 			new MsgCityCaptured(city, oldOwner).send();

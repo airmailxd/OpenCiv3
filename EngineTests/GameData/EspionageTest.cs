@@ -211,6 +211,34 @@ public class EspionageTest : IClassFixture<SaveGameFixture>, System.IDisposable 
 	}
 
 	[Fact]
+	public void IncitedCityForgetsTheOldOwnersProductionQueue() {
+		SetUpEmbassy();
+		City city = FoundSecondCity(target, 3);
+		city.EnqueueProduction(city.ListProductionOptions(gameData).First());
+		MapUnit defender = target.units.First(u => !u.unitType.isSettler && u.location != null);
+		defender.location.unitsOnTile.Remove(defender);
+		defender.location = city.location;
+		city.location.unitsOnTile.Add(defender);
+
+		CityInteractions.TransferCity(city, actor);
+
+		Assert.Equal(actor, city.owner);
+		Assert.Empty(city.productionQueue);
+		Assert.Equal(actor, defender.owner);
+		Assert.DoesNotContain(city.location.unitsOnTile, u => u.owner == target);
+	}
+
+	[Fact]
+	public void UndefinedMissionsAreRejected() {
+		City city = SetUpEmbassy();
+		EspionageMission bogus = (EspionageMission)999;
+
+		Assert.NotNull(Espionage.Unavailable(gameData, actor, bogus, target, city));
+		Espionage.MissionResult result = Espionage.Perform(gameData, actor, bogus, target, city, Succeed);
+		Assert.False(result.performed);
+	}
+
+	[Fact]
 	public void InciteRevoltCostFollowsTheTargetsTreasuryAndDisorder() {
 		SetUpEmbassy();
 		City city = FoundSecondCity(target, 4);

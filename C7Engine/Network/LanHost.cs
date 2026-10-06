@@ -277,6 +277,18 @@ public class LanHost : IDisposable {
 		seat.connection.SendSnapshot(snapshot);
 	}
 
+	// The engine asks a player some things only as their turn starts, and
+	// those prompts went with their old connection, so a player rejoining
+	// during their turn is asked again.
+	private static void ResendTurnPrompts(Seat seat) {
+		GameData gameData = EngineStorage.gameData;
+		Player player = gameData?.GetPlayer(seat.info.playerID);
+		if (player == null || player.id != EngineStorage.activePlayerID) {
+			return;
+		}
+		UnitedNations.AskHumanToVote(gameData, player);
+	}
+
 	private static void SendStart(Spectator spectator, Task<EncodedSnapshot> snapshot) {
 		spectator.pendingUiMessages.Clear();
 		spectator.connection.Send(FrameKind.Start, new StartInfo(null));
@@ -405,6 +417,7 @@ public class LanHost : IDisposable {
 						if (Started) {
 							// A player rejoining a game in progress.
 							SendStart(seat, EncodeSnapshot());
+							ResendTurnPrompts(seat);
 						}
 						BroadcastLobby();
 						return;

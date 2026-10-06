@@ -625,6 +625,8 @@ public partial class Game : Node {
 		advisor.Hide();
 		gameViews.Hide();
 		diplomacy.Hide();
+		// Production news waits for its owner's turn.
+		HoldShownProductionPopup();
 		if (controller != null && controller != next) {
 			hotseatCameraLocations[controller.id] = mapView.cameraLocation;
 		}
@@ -747,10 +749,11 @@ public partial class Game : Node {
 				break;
 			case MsgShowScienceSelection mSSS:
 				popupOverlay.ShowPopup(new ScienceSelection(controller, mSSS.discovered), PopupOverlay.PopupCategory.Info);
+				// Research something even if the player dismisses the popup.
+				new MsgPickDefaultResearch().send();
 				break;
 			case MsgCityProductionCompleted mCPC when mCPC.city != null:
-				pendingProductionPopups.Enqueue(mCPC);
-				ShowNextProductionPopup();
+				EnqueueProductionPopup(mCPC);
 				break;
 			case MsgUpdateUiAfterDomesticChange mUUASC:
 				// Ensure the citizen moods are correct before displaying them.
@@ -952,30 +955,88 @@ public partial class Game : Node {
 		}
 	}
 
-	// The cities waiting to tell the player they've finished building
-	// something. They're shown one at a time, and not while the city screen
-	// is open, so a city the player zoomed to gets its production chosen
-	// before the next city asks.
-	private readonly Queue<MsgCityProductionCompleted> pendingProductionPopups = new();
-	private bool productionPopupShown = false;
+	// The cities waiting to tell their owner they've finished building
+	// something, by owner. Cities produce at the end of the round, so in a
+	// hotseat game these wait for each player's turn to start. They're shown
+	// one at a time, and not while the city screen is open, so a city the
+	// player zoomed to gets its production chosen before the next city asks.
+	private readonly Dictionary<ID, LinkedList<MsgCityProductionCompleted>> pendingProductionPopups = new();
+	private CityProductionPopup shownProductionPopup = null;
+	private MsgCityProductionCompleted shownProductionMessage = null;
+
+	private LinkedList<MsgCityProductionCompleted> PendingProductionPopupsFor(ID playerID) {
+		if (!pendingProductionPopups.TryGetValue(playerID, out LinkedList<MsgCityProductionCompleted> pending)) {
+			pending = new();
+			pendingProductionPopups[playerID] = pending;
+		}
+		return pending;
+	}
+
+	private static ID ProductionPopupOwner(MsgCityProductionCompleted msg) {
+		return msg.recipient?.id ?? msg.city.owner?.id;
+	}
+
+	private void EnqueueProductionPopup(MsgCityProductionCompleted msg) {
+		ID ownerID = ProductionPopupOwner(msg);
+		if (ownerID == null) {
+			return;
+		}
+		PendingProductionPopupsFor(ownerID).AddLast(msg);
+		ShowNextProductionPopup();
+	}
 
 	private void ShowNextProductionPopup() {
-		while (!productionPopupShown && !cityScreen.Visible && pendingProductionPopups.TryDequeue(out MsgCityProductionCompleted msg)) {
+		// Only once the player's turn is underway, so the news isn't shown
+		// to whoever had the screen before them.
+		if (CurrentState != GameState.PlayerTurn || hotseatHandoff != null || controller == null) {
+			return;
+		}
+		LinkedList<MsgCityProductionCompleted> pending = PendingProductionPopupsFor(controller.id);
+		while (shownProductionPopup == null && !cityScreen.Visible && pending.Count > 0) {
+			MsgCityProductionCompleted msg = pending.First.Value;
+			pending.RemoveFirst();
 			// Found by id, as a LAN client's snapshots replace the cities. It
 			// may have been lost or destroyed since.
 			City city = EngineStorage.gameData.cities.Find(c => c.id == msg.city.id);
 			if (city == null || city.owner?.id != controller.id) {
 				continue;
 			}
-			productionPopupShown = true;
 			mapView?.centerCameraOnTile(city.location);
 			CityProductionPopup popup = new(city, msg.completed,
 				// The next popup waits for the city screen to close.
 				onZoom: () => ShowCityScreenForCity(EngineStorage.gameData, city),
 				onDone: ShowNextProductionPopup);
-			// However the popup goes away.
-			popup.TreeExiting += () => productionPopupShown = false;
+			shownProductionPopup = popup;
+			shownProductionMessage = msg;
+			// However the popup goes away, the next one may follow.
+			popup.TreeExiting += () => {
+				if (shownProductionPopup == popup) {
+					shownProductionPopup = null;
+					shownProductionMessage = null;
+				}
+				Callable.From(ShowNextProductionPopup).CallDeferred();
+			};
 			popupOverlay.ShowPopup(popup, PopupOverlay.PopupCategory.Advisor);
+		}
+	}
+
+	// Takes down the production popup on screen (or waiting behind another
+	// popup) and keeps its news for its owner's next turn, e.g. when the
+	// screen is handed to another hotseat player.
+	private void HoldShownProductionPopup() {
+		if (shownProductionPopup == null) {
+			return;
+		}
+		CityProductionPopup popup = shownProductionPopup;
+		MsgCityProductionCompleted msg = shownProductionMessage;
+		shownProductionPopup = null;
+		shownProductionMessage = null;
+		ID ownerID = ProductionPopupOwner(msg);
+		if (ownerID != null) {
+			PendingProductionPopupsFor(ownerID).AddFirst(msg);
+		}
+		if (IsInstanceValid(popup)) {
+			popupOverlay.Dismiss(popup);
 		}
 	}
 
@@ -1078,18 +1139,9 @@ public partial class Game : Node {
 					PopupOverlay.PopupCategory.Info);
 			}
 
-			// If the player can pick a new tech to research, prompt them to do so
-			// once they have a city.
-			if (controller.cities.Count > 0
-					&& controller.currentlyResearchedTech == null
-					&& controller.GetAvailableTechsToResearch(gameData.techs).Count > 0) {
-				popupOverlay.ShowPopup(
-						new ScienceSelection(controller, controller.lastDiscoveredTech),
-						PopupOverlay.PopupCategory.Info);
-
-				// Research something even if the player dismisses the popup.
-				new MsgPickDefaultResearch().send();
-			}
+			// If the player can pick a new tech to research, the engine
+			// prompts them to do so, naming the tech they just discovered.
+			new MsgAskWhatToResearch().send();
 
 			// Allow fast forwarding in observer mode.
 			if (gameData.observerMode && turnsLeftToFastForward > 0) {
@@ -1101,6 +1153,9 @@ public partial class Game : Node {
 			CurrentState = GameState.PlayerTurn;
 		});
 
+		// Cities that finished building something at the end of the round
+		// can tell the player now.
+		ShowNextProductionPopup();
 		EmitSignal(SignalName.PlayerTurnStart);
 	}
 
@@ -1144,9 +1199,11 @@ public partial class Game : Node {
 		log.Information("Starting computer turn");
 		CurrentState = GameState.ComputerTurn;
 		new MsgEndTurn().send(); // Triggers actual backend processing
-		// Production news not yet seen is out of date (and, in a hotseat
-		// game, for the wrong player).
-		pendingProductionPopups.Clear();
+		// Production news the player hasn't seen is out of date. Other
+		// hotseat players keep theirs for their own turns.
+		if (controller != null) {
+			pendingProductionPopups.Remove(controller.id);
+		}
 		EmitSignal(SignalName.PlayerTurnEnd);
 	}
 

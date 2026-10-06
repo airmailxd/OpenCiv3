@@ -560,8 +560,9 @@ namespace C7GameData {
 
 				// If we completed a great wonder, mark it as completed so no
 				// other civ can build it. If any other cities are building the
-				// wonder then change production to the most expensive option,
-				// to avoid wasting the shields.
+				// wonder then change production to the next item in their
+				// queue, or else the most expensive option, to avoid wasting
+				// the shields.
 				//
 				// TODO: This should interrupt the player's turn to let them
 				// make the choice. And does the game allow wonder shuffling in
@@ -577,7 +578,7 @@ namespace C7GameData {
 
 						foreach (City c in p.cities) {
 							if (c.itemBeingProduced.name == building.name) {
-								c.SetItemBeingProduced(c.GetMostExpensiveItemToProduce());
+								c.SetItemBeingProduced(c.TakeNextQueuedProduction(gameData) ?? c.GetMostExpensiveItemToProduce());
 							}
 						}
 					}
@@ -599,6 +600,22 @@ namespace C7GameData {
 		// its production queue that can still be built, or, for a human player
 		// with nothing queued, the same unit again. Otherwise the AI picks.
 		private IProducible ChooseNextProduction(GameData gameData, IProducible completed) {
+			IProducible queued = TakeNextQueuedProduction(gameData);
+			if (queued != null) {
+				return queued;
+			}
+			if (owner.isHuman && completed is UnitPrototype && ListProductionOptions(gameData).Contains(completed)) {
+				return completed;
+			}
+			return ChooseProducible.Choose(this, owner);
+		}
+
+		// Takes the next item off the production queue that can still be
+		// built, dropping any before it that can't. Null if there's none.
+		private IProducible TakeNextQueuedProduction(GameData gameData) {
+			if (productionQueue.Count == 0) {
+				return null;
+			}
 			HashSet<IProducible> options = ListProductionOptions(gameData).ToHashSet();
 			while (productionQueue.Count > 0) {
 				IProducible queued = productionQueue[0];
@@ -607,10 +624,7 @@ namespace C7GameData {
 					return queued;
 				}
 			}
-			if (owner.isHuman && completed is UnitPrototype && options.Contains(completed)) {
-				return completed;
-			}
-			return ChooseProducible.Choose(this, owner);
+			return null;
 		}
 
 		// Adds an item to the end of the production queue, to be built after

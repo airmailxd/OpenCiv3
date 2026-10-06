@@ -209,6 +209,10 @@ namespace C7Engine {
 
 		// Why the mission can't be performed, or null if it can.
 		public static string Unavailable(GameData gameData, Player actor, EspionageMission mission, Player target, City city) {
+			// A LAN client's message can carry any number as the mission.
+			if (!Enum.IsDefined(mission)) {
+				return "There is no such mission.";
+			}
 			if (actor == null || target == null || actor == target || target.isBarbarians || target.defeated) {
 				return "There is no one to send a mission to.";
 			}
@@ -347,7 +351,8 @@ namespace C7Engine {
 				case EspionageMission.InciteRevolt:
 					result.message = $"The people of {city.name} have revolted and joined us!";
 					NotifyTarget(target, $"{city.name} has been incited to revolt by the {actor.civilization.noun}!");
-					InciteRevolt(gameData, city, actor);
+					// The city, and the target's units in it, join the actor.
+					CityInteractions.TransferCity(city, actor);
 					break;
 				case EspionageMission.PlantSpy:
 					ours.hasSpy = true;
@@ -396,15 +401,6 @@ namespace C7Engine {
 			string units = report.units.Count == 0 ? "none" : string.Join(", ", report.units.GroupBy(u => u).Select(g => g.Count() > 1 ? $"{g.Count()} {g.Key}" : g.Key));
 			return $"{report.cityName} (size {report.size}) is building {report.producing ?? "nothing"} ({report.shieldsStored} shields).\n"
 				+ $"Buildings: {buildings}\nDefenders: {units}\nTheir treasury: {report.ownerGold} gold";
-		}
-
-		// The city, and the target's units in it, join the actor.
-		private static void InciteRevolt(GameData gameData, City city, Player actor) {
-			Player oldOwner = city.owner;
-			foreach (MapUnit unit in city.location.unitsOnTile.Where(u => u.owner == oldOwner).ToList()) {
-				gameData.CaptureUnit(unit, actor);
-			}
-			CityInteractions.TransferCity(city, actor);
 		}
 	}
 }
