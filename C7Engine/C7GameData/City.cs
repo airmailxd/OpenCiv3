@@ -268,6 +268,10 @@ namespace C7GameData {
 			}
 			cache.grantedStart = result.Count;
 
+			// Granted buildings belong to the city's owner, not to whoever
+			// built the wonder, so a captured wonder's buildings make culture
+			// for its captor.
+			//
 			// Loop through all the wonders we control that aren't obsolete.
 			foreach ((City c, CityBuilding cb) in wonders.activeWonders) {
 				Building b = cb.building;
@@ -286,7 +290,7 @@ namespace C7GameData {
 					// grant the same building from granting it twice.
 					result.Add(new CityBuilding() {
 						building = b.greatWonderProperties.buildingGainedInEveryCity,
-						builtByPlayer = cb.builtByPlayer,
+						builtByPlayer = owner,
 						year = cb.year,
 						totalCulture = 0, // TODO: calculate this
 					});
@@ -296,7 +300,7 @@ namespace C7GameData {
 					&& buildingsSeen.Add(b.greatWonderProperties.buildingGainedInEveryCityOnContinent)) {
 					result.Add(new CityBuilding() {
 						building = b.greatWonderProperties.buildingGainedInEveryCityOnContinent,
-						builtByPlayer = cb.builtByPlayer,
+						builtByPlayer = owner,
 						year = cb.year,
 						totalCulture = 0, // TODO: calculate this
 					});

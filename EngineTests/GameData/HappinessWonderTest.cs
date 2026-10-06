@@ -146,4 +146,23 @@ public class HappinessWonderTest {
 		Assert.Equal(8, Content(home));
 		Assert.Equal(0, Content(other));
 	}
+
+	[Fact]
+	public void TemplesGrantedByACapturedWonderMakeCultureForTheCaptor() {
+		Building temple = new(new SaveBuilding() { name = "Temple", culturePerTurn = 1 }, new C7GameData.GameData());
+		Building artemis = MakeBuilding("Temple of Artemis", wonder: true);
+		artemis.greatWonderProperties.buildingGainedInEveryCityOnContinent = temple;
+		home.AddBuilding(artemis);
+		Assert.Equal(1, home.GetCulturePerTurnBySource().improvements);
+
+		Player captor = new() { civilization = new Civilization("Carthage"), id = ID.FromString("player-2"), government = new Government() };
+		gameData.players.Add(captor);
+		us.cities.Remove(home);
+		captor.cities.Add(home);
+		home.owner = captor;
+
+		// The wonder itself makes no culture for its captor, but the temple
+		// it grants is the captor's own.
+		Assert.Equal(1, home.GetCulturePerTurnBySource().improvements);
+	}
 }
