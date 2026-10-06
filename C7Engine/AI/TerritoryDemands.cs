@@ -146,7 +146,7 @@ namespace C7Engine.AI {
 
 		private static void DeclareWar(Player aggressor, Player defender) {
 			aggressor.DeclareWarOn(defender, EngineStorage.gameData.turn);
-			new MsgWarDeclaration(aggressor, defender).send();
+			MsgWarDeclaration.Announce(aggressor, defender);
 		}
 	}
 }

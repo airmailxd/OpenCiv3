@@ -91,7 +91,7 @@ namespace C7GameData.AIData {
 			}
 			player.DeclareWarOn(opponent, EngineStorage.gameData.turn);
 			log.Information($"{player} declared war on {opponent}");
-			new MsgWarDeclaration(player, opponent).send();
+			MsgWarDeclaration.Announce(player, opponent);
 		}
 
 		private static Player PickPlayerToFight(Player player) {

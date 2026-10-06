@@ -93,6 +93,11 @@ namespace C7Engine {
 		}
 
 		internal static void SendToUI(MessageToUI msg) {
+			// Without a LAN host to pass it on, only a game being watched
+			// rather than played has a spectator to show it to.
+			if (msg.IsForSpectatorsOnly && uiMessageRouter == null && gameData?.observerMode != true) {
+				return;
+			}
 			if (uiMessageRouter != null) {
 				uiMessageRouter(msg);
 			} else {

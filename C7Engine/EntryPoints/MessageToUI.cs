@@ -18,6 +18,11 @@ namespace C7Engine {
 		[JsonIgnore]
 		public virtual bool IsForEveryone => false;
 
+		// Whether only those watching the game without playing should get
+		// this, such as news the players only hear about through embassies.
+		[JsonIgnore]
+		public virtual bool IsForSpectatorsOnly => false;
+
 		// The player whose machine a LAN host should deliver this to.
 		[JsonIgnore]
 		public virtual Player NetworkRecipient => recipient;
@@ -91,12 +96,33 @@ namespace C7Engine {
 		public Player aggressor;
 		public Player opponent;
 
+		// Whether this is the copy for spectators, who hear of every war.
+		public bool forSpectators;
+
 		public MsgWarDeclaration(Player aggressor, Player opponent) {
 			this.aggressor = aggressor;
 			this.opponent = opponent;
 		}
 
-		public override bool IsForEveryone => true;
+		[JsonIgnore]
+		public override bool IsForSpectatorsOnly => forSpectators;
+
+		// Tells the human players who would know of the war: the civ it was
+		// declared on and those with an embassy with either side, like in
+		// Civ3. Spectators hear of every war.
+		public static void Announce(Player aggressor, Player opponent) {
+			foreach (Player player in EngineStorage.gameData.players) {
+				if (player.isHuman && !player.defeated && player != aggressor && HearsOfWar(player, aggressor, opponent)) {
+					new MsgWarDeclaration(aggressor, opponent) { recipient = player }.send();
+				}
+			}
+			new MsgWarDeclaration(aggressor, opponent) { forSpectators = true }.send();
+		}
+
+		public static bool HearsOfWar(Player player, Player aggressor, Player opponent) {
+			return player == aggressor || player == opponent
+				|| Espionage.HasEmbassy(player, aggressor) || Espionage.HasEmbassy(player, opponent);
+		}
 	}
 
 	public class MsgCityDestroyed : MessageToUI {

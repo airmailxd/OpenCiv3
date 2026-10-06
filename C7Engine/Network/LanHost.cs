@@ -600,6 +600,15 @@ public class LanHost : IDisposable {
 	}
 
 	private void RouteMessageToUI(MessageToUI msg) {
+		if (msg.IsForSpectatorsOnly) {
+			byte[] spectatorJson = NetSerialization.Serialize(msg);
+			foreach (Spectator spectator in spectators.Where(s => !s.connection.IsClosed)) {
+				spectator.pendingUiMessages.Add(spectatorJson);
+				spectatorSnapshotPending = true;
+			}
+			return;
+		}
+
 		if (msg.IsForEveryone) {
 			EngineStorage.SendToLocalUI(msg);
 			byte[] json = NetSerialization.Serialize(msg);
