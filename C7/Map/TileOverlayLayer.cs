@@ -28,6 +28,10 @@ namespace C7.Map {
 		// A tile's improvements sorted by zIndex for drawing. A tile has at most one improvement per layer.
 		private readonly List<TerrainImprovement> sortedImprovements = new();
 
+		// The knowledge of the player whose view of the map is drawn, or null in observer mode. Tiles that player can't see now are drawn
+		// with the improvements they last saw there, including when deciding how roads, irrigation and so on join up with their neighbors.
+		private TileKnowledge knowledge;
+
 		private static readonly TileDirection[] allDirections = [
 			TileDirection.NORTH, TileDirection.NORTHEAST, TileDirection.EAST, TileDirection.SOUTHEAST,
 			TileDirection.SOUTH, TileDirection.SOUTHWEST, TileDirection.WEST, TileDirection.NORTHWEST,
@@ -62,23 +66,31 @@ namespace C7.Map {
 			rngs.Clear();
 		}
 
+		public override void onBeginDraw(LooseView looseView, GameData gameData) {
+			knowledge = looseView.tileKnowledge;
+		}
+
+		public override void onEndDraw(LooseView looseView, GameData gameData) {
+			knowledge = null;
+		}
+
 		public override void drawObject(LooseView looseView, GameData gameData, Tile tile, Vector2 tileCenter) {
-			var improvements = tile.overlays.terrainImprovementByLayer;
-			if (improvements.Count == 0) {
+			// Draw in zIndex order, keeping the tile's order for equal zIndexes (a stable insertion sort).
+			sortedImprovements.Clear();
+			if (knowledge != null && knowledge.TryGetRememberedImprovements(tile, out TerrainImprovement[] remembered)) {
+				foreach (TerrainImprovement ti in remembered) {
+					InsertSorted(ti);
+				}
+			} else {
+				foreach (TerrainImprovement ti in tile.overlays.terrainImprovementByLayer.Values) {
+					InsertSorted(ti);
+				}
+			}
+			if (sortedImprovements.Count == 0) {
 				return;
 			}
 
 			Rect2 screenTarget = new Rect2(tileCenter - tileSize / 2, tileSize);
-
-			// Draw in zIndex order, keeping the tile's order for equal zIndexes (a stable insertion sort).
-			sortedImprovements.Clear();
-			foreach (TerrainImprovement ti in improvements.Values) {
-				int i = sortedImprovements.Count;
-				while (i > 0 && sortedImprovements[i - 1].zIndex > ti.zIndex) {
-					--i;
-				}
-				sortedImprovements.Insert(i, ti);
-			}
 
 			foreach (TerrainImprovement ti in sortedImprovements) {
 				switch (ti.key) {
@@ -112,14 +124,38 @@ namespace C7.Map {
 			sortedImprovements.Clear();
 		}
 
-		// Same as Tile.HasRoad, Tile.HasRailroad and Tile.HasIrrigation, with one dictionary lookup.
-		private static TerrainImprovement ImprovementAt(Tile tile, TerrainImprovement.Layer layer) {
-			tile.overlays.terrainImprovementByLayer.TryGetValue(layer, out TerrainImprovement ti);
-			return ti;
+		private void InsertSorted(TerrainImprovement ti) {
+			int i = sortedImprovements.Count;
+			while (i > 0 && sortedImprovements[i - 1].zIndex > ti.zIndex) {
+				--i;
+			}
+			sortedImprovements.Insert(i, ti);
 		}
 
-		// Same as Tile.HasPollution and Tile.HasCraters, without allocating.
-		private static bool HasImprovement(Tile tile, string key) {
+		// Same as Tile.HasRoad, Tile.HasRailroad and Tile.HasIrrigation, with one dictionary lookup, but as the player last saw the tile.
+		private TerrainImprovement ImprovementAt(Tile tile, TerrainImprovement.Layer layer) {
+			if (knowledge != null && knowledge.TryGetRememberedImprovements(tile, out TerrainImprovement[] remembered)) {
+				foreach (TerrainImprovement ti in remembered) {
+					if (ti.layer == layer) {
+						return ti;
+					}
+				}
+				return null;
+			}
+			tile.overlays.terrainImprovementByLayer.TryGetValue(layer, out TerrainImprovement current);
+			return current;
+		}
+
+		// Same as Tile.HasPollution and Tile.HasCraters, without allocating, but as the player last saw the tile.
+		private bool HasImprovement(Tile tile, string key) {
+			if (knowledge != null && knowledge.TryGetRememberedImprovements(tile, out TerrainImprovement[] remembered)) {
+				foreach (TerrainImprovement ti in remembered) {
+					if (ti.key == key) {
+						return true;
+					}
+				}
+				return false;
+			}
 			foreach (TerrainImprovement ti in tile.overlays.terrainImprovementByLayer.Values) {
 				if (ti.key == key) {
 					return true;
