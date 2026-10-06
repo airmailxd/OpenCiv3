@@ -114,6 +114,7 @@ public class CombatTest : IClassFixture<SaveGameFixture> {
 		Assert.Contains(worker, us.units);
 		Assert.DoesNotContain(worker, them.units);
 		Assert.True(worker.IsCaptive());
+		Assert.True(worker.movementPoints.canMove);
 		Assert.Equal(startingLevel, warrior.experienceLevel);
 		Assert.Equal(startingHitPoints, warrior.hitPointsRemaining);
 	}
@@ -164,6 +165,7 @@ public class CombatTest : IClassFixture<SaveGameFixture> {
 			Assert.Equal(us, s.owner);
 			Assert.Contains(s, us.units);
 			Assert.True(s.IsCaptive());
+			Assert.True(s.movementPoints.canMove);
 			Assert.Equal(them.civilization.name, s.nationality.name);
 		});
 	}

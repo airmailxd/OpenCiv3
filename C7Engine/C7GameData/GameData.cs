@@ -645,7 +645,8 @@ namespace C7GameData {
 			unit.isFortified = false;
 			unit.path = TilePath.NONE;
 			unit.resetWorkerJob();
-			unit.movementPoints.onConsumeAll();
+			// Captives can be put to work, or led away, straight away.
+			unit.movementPoints.reset(unit.MaxMovementPoints());
 
 			previousOwner.units.Remove(unit);
 			unit.owner = captor;
@@ -673,7 +674,6 @@ namespace C7GameData {
 			for (int i = 0; i < 2; i++) {
 				MapUnit slave = SpawnUnit(captor, worker, tile);
 				slave.nationality = nationality;
-				slave.movementPoints.onConsumeAll();
 			}
 			captor.tileKnowledge.RecomputeActiveTiles();
 		}
