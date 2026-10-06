@@ -190,6 +190,10 @@ public partial class ProductionMenu : Civ3TextureRect {
 			? "Shift+click to queue production."
 			: $"Then: {string.Join(", ", queued)}";
 		queueLabel.TooltipText = queued.Count == 0 ? "" : string.Join("\n", queued);
+		// Hurried production can't be changed until the turn ends.
+		if (city.hurriedThisTurn) {
+			queueLabel.Text = $"Hurried this turn, so production can't change. {queueLabel.Text}";
+		}
 		queueLabel.MouseFilter = MouseFilterEnum.Pass;
 		clearQueueButton.Disabled = queued.Count == 0;
 	}

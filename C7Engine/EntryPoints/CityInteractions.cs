@@ -219,6 +219,7 @@ namespace C7Engine {
 			city.perPlayerCulture.TryAdd(captor, 0);
 			gameData.OnCityOwnerChanged(city);
 			city.isInCivilDisorder = false;
+			city.hurriedThisTurn = false;
 			city.SetStoredShields(0);
 
 			gameData.UpdateTileOwners();
@@ -270,6 +271,7 @@ namespace C7Engine {
 			city.perPlayerCulture.TryAdd(newOwner, 0);
 			gameData.OnCityOwnerChanged(city);
 			city.isInCivilDisorder = false;
+			city.hurriedThisTurn = false;
 
 			gameData.UpdateTileOwners();
 			gameData.InvalidateCachedTradeNetwork();

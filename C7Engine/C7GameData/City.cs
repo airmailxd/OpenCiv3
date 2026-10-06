@@ -115,6 +115,12 @@ namespace C7GameData {
 
 		public bool isInCivilDisorder = false;
 
+		// Whether production was hurried this turn, with gold, citizens or a
+		// great leader. As in Civ3, the city then can't change what it's
+		// building until the turn ends, so the hurried shields can't be
+		// moved to something else.
+		public bool hurriedThisTurn = false;
+
 		// Whether the city is celebrating "We Love the King Day".
 		public bool celebrating = false;
 
@@ -165,11 +171,23 @@ namespace C7GameData {
 				new MsgShowMilitaryAdvisorPopup(owner, message, happy: false).send();
 		}
 
+		// Whether the player may switch production to the item. Production
+		// hurried this turn is locked in.
+		public bool CanChangeProduction(IProducible producible) {
+			return !hurriedThisTurn || producible == itemBeingProduced;
+		}
+
 		// Changes production at the player's request. Stored shields carry over
 		// to the new item, as in Civ 3, but any beyond its cost are lost.
-		public void ChangeProduction(IProducible producible) {
+		// Returns false if production was hurried this turn and can't change.
+		public bool ChangeProduction(IProducible producible) {
+			if (!CanChangeProduction(producible)) {
+				log.Information("Not changing production in {City}: it was hurried this turn", this);
+				return false;
+			}
 			ChooseProduction(producible);
 			shieldsStored = Math.Min(shieldsStored, owner.ShieldCost(producible));
+			return true;
 		}
 
 		public bool IsCapital() {
@@ -250,6 +268,10 @@ namespace C7GameData {
 			}
 			cache.grantedStart = result.Count;
 
+			// Granted buildings belong to the city's owner, not to whoever
+			// built the wonder, so a captured wonder's buildings make culture
+			// for its captor.
+			//
 			// Loop through all the wonders we control that aren't obsolete.
 			foreach ((City c, CityBuilding cb) in wonders.activeWonders) {
 				Building b = cb.building;
@@ -268,7 +290,7 @@ namespace C7GameData {
 					// grant the same building from granting it twice.
 					result.Add(new CityBuilding() {
 						building = b.greatWonderProperties.buildingGainedInEveryCity,
-						builtByPlayer = cb.builtByPlayer,
+						builtByPlayer = owner,
 						year = cb.year,
 						totalCulture = 0, // TODO: calculate this
 					});
@@ -278,7 +300,7 @@ namespace C7GameData {
 					&& buildingsSeen.Add(b.greatWonderProperties.buildingGainedInEveryCityOnContinent)) {
 					result.Add(new CityBuilding() {
 						building = b.greatWonderProperties.buildingGainedInEveryCityOnContinent,
-						builtByPlayer = cb.builtByPlayer,
+						builtByPlayer = owner,
 						year = cb.year,
 						totalCulture = 0, // TODO: calculate this
 					});
@@ -494,6 +516,7 @@ namespace C7GameData {
 					shieldsStored = owner.ShieldCost(itemBeingProduced);
 					break;
 			}
+			hurriedThisTurn = true;
 		}
 
 		// Fills the production box, so that the current item is finished at
@@ -501,10 +524,13 @@ namespace C7GameData {
 		internal void FillProductionBox() {
 			if (itemBeingProduced != null) {
 				shieldsStored = owner.ShieldCost(itemBeingProduced);
+				hurriedThisTurn = true;
 			}
 		}
 
 		public void HandleCityProduction(GameData gameData) {
+			// The turn is over, so production can be changed again.
+			hurriedThisTurn = false;
 			IProducible producedItem = ComputeTurnProduction();
 			if (producedItem == null) {
 				return;

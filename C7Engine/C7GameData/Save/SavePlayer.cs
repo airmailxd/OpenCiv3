@@ -85,6 +85,10 @@ namespace C7GameData.Save {
 		// The number of turns the player has been researching the current tech.
 		public int turnsResearched = 0;
 
+		// Free techs (from Philosophy or Theory of Evolution) not yet used,
+		// kept until the player chooses something to research.
+		public int freeTechsRemaining = 0;
+
 		// If the government is anarchy (or a govt with the transition bool set
 		// to true), the turn number at which switching governments is allowed.
 		public int inAnarchyUntilTurn = 0;
@@ -132,6 +136,7 @@ namespace C7GameData.Save {
 				hadGoldenAge = hadGoldenAge,
 				goldenAgeTurnsRemaining = goldenAgeTurnsRemaining,
 				citiesFounded = citiesFounded,
+				freeTechsRemaining = freeTechsRemaining,
 				turnsUntilPriorityReevaluation = turnsUntilPriorityReevaluation,
 				inAnarchyUntilTurn = inAnarchyUntilTurn,
 				government = governments.Find(x => x.id == governmentId),
@@ -241,6 +246,7 @@ namespace C7GameData.Save {
 			hadGoldenAge = player.hadGoldenAge;
 			goldenAgeTurnsRemaining = player.goldenAgeTurnsRemaining;
 			citiesFounded = player.citiesFounded;
+			freeTechsRemaining = player.freeTechsRemaining;
 			beakers = player.beakers;
 			turnsResearched = player.turnsResearched;
 			inAnarchyUntilTurn = player.inAnarchyUntilTurn;

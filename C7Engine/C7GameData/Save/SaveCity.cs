@@ -70,6 +70,8 @@ namespace C7GameData.Save {
 		public int turnsOfUnhappinessDueToPopRushing;
 		public bool celebrating;
 		public bool isInCivilDisorder;
+		// Production was hurried this turn and can't be changed until it ends.
+		public bool hurriedThisTurn;
 		public List<SaveCityResident> residents = new List<SaveCityResident>();
 		public List<SaveCityBuilding> buildings = [];
 		public List<SaveQueuedProducible> productionQueue = [];
@@ -90,6 +92,7 @@ namespace C7GameData.Save {
 			turnsOfUnhappinessDueToPopRushing = city.turnsOfUnhappinessDueToPopRushing;
 			celebrating = city.celebrating;
 			isInCivilDisorder = city.isInCivilDisorder;
+			hurriedThisTurn = city.hurriedThisTurn;
 			residents = city.residents.ConvertAll(resident => {
 				return new SaveCityResident {
 					nationality = resident.nationality?.name,
@@ -190,6 +193,7 @@ namespace C7GameData.Save {
 				turnsOfUnhappinessDueToPopRushing = turnsOfUnhappinessDueToPopRushing,
 				celebrating = celebrating,
 				isInCivilDisorder = isInCivilDisorder,
+				hurriedThisTurn = hurriedThisTurn,
 				capital = capital,
 				constructed_buildings = this.buildings.ConvertAll(building => building.ToCityBuilding(lookups)),
 			};

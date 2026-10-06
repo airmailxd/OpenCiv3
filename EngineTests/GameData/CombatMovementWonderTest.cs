@@ -11,12 +11,14 @@ namespace EngineTests.GameData;
 // The Great Wall, the Great Lighthouse, Magellan's Voyage, the Heroic Epic and
 // the military great leaders it makes more likely.
 public class CombatMovementWonderTest : IClassFixture<SaveGameFixture> {
+	private readonly SaveGameFixture fixture;
 	private readonly C7GameData.GameData gameData;
 	private readonly Player us;
 	private readonly Player them;
 	private readonly Player barbarians;
 
 	public CombatMovementWonderTest(SaveGameFixture fixture) {
+		this.fixture = fixture;
 		gameData = fixture.saveGame.ToGameData(fixture.behaviors);
 		EngineStorage.InitializeGameDataForTests(gameData);
 		EngineStorage.animationsEnabled = false;
@@ -385,5 +387,92 @@ public class CombatMovementWonderTest : IClassFixture<SaveGameFixture> {
 
 		Assert.Equal(us.ShieldCost(wonder), city.shieldsStored);
 		Assert.DoesNotContain(leader, gameData.mapUnits);
+	}
+
+	[Fact]
+	public void ProductionCantChangeAfterALeaderHurries() {
+		City city = BuildCity(us);
+		MapUnit leader = Spawn(us, "Leader", city.location);
+		Building temple = BuildingNamed("Temple");
+		city.SetItemBeingProduced(temple);
+		Assert.True(leader.HurryProductionAsLeader());
+
+		// The leader's shields can't be moved to a unit or great wonder.
+		Assert.False(city.ChangeProduction(Prototype("Warrior")));
+		Assert.False(city.ChangeProduction(BuildingNamed("The Great Wall")));
+		Assert.Equal(temple, city.itemBeingProduced);
+		Assert.Equal(us.ShieldCost(temple), city.shieldsStored);
+
+		// Next turn production can change again.
+		city.HandleCityProduction(gameData);
+		Assert.False(city.hurriedThisTurn);
+		Assert.True(city.ChangeProduction(Prototype("Warrior")));
+	}
+
+	[Fact]
+	public void ProductionCantChangeAfterRushingWithGold() {
+		City city = BuildCity(us);
+		us.government.hurryingType = Government.HurryProductionType.PaidLabor;
+		us.gold = 100000;
+		Building temple = BuildingNamed("Temple");
+		city.SetItemBeingProduced(temple);
+		city.HurryProduction();
+		Assert.Equal(us.ShieldCost(temple), city.shieldsStored);
+
+		Assert.False(city.ChangeProduction(Prototype("Warrior")));
+		Assert.Equal(temple, city.itemBeingProduced);
+	}
+
+	[Fact]
+	public void HurriedProductionStaysLockedThroughASave() {
+		City city = BuildCity(us);
+		MapUnit leader = Spawn(us, "Leader", city.location);
+		city.SetItemBeingProduced(BuildingNamed("Temple"));
+		Assert.True(leader.HurryProductionAsLeader());
+
+		C7GameData.GameData loaded = SaveGame.FromGameData(gameData).ToGameData(fixture.behaviors);
+
+		Assert.True(loaded.cities.Single(c => c.id == city.id).hurriedThisTurn);
+	}
+
+	[Fact]
+	public void AiLeaderAtWarHurriesInsteadOfFormingAnArmy() {
+		City city = BuildCity(us);
+		them.DeclareWarOn(us, gameData.turn);
+		MapUnit leader = Spawn(us, "Leader", city.location);
+		city.SetItemBeingProduced(Prototype("Warrior"));
+
+		Assert.True(PlayerAI.UseLeaderInCity(leader, us));
+
+		// The city switched to an improvement, which the leader finished.
+		Building building = Assert.IsType<Building>(city.itemBeingProduced);
+		Assert.False(building.IsGreatWonder());
+		Assert.Equal(us.ShieldCost(building), city.shieldsStored);
+		Assert.DoesNotContain(leader, us.units);
+		Assert.DoesNotContain(us.units, u => u.IsArmy());
+	}
+
+	[Fact]
+	public void AiLeaderWaitsInACityHurriedThisTurn() {
+		City city = BuildCity(us);
+		MapUnit leader = Spawn(us, "Leader", city.location);
+		city.SetItemBeingProduced(Prototype("Warrior"));
+		city.FillProductionBox();
+
+		Assert.False(PlayerAI.UseLeaderInCity(leader, us));
+		Assert.Contains(leader, us.units);
+		Assert.IsType<UnitPrototype>(city.itemBeingProduced);
+	}
+
+	[Fact]
+	public void AiLeaderOutsideACityHeadsForTheNearestCity() {
+		City city = BuildCity(us);
+		Tile outside = city.location.neighbors.Values.First(t => t != Tile.NONE && IsEmptyLand(t));
+		MapUnit leader = Spawn(us, "Leader", outside);
+
+		C7GameData.UnitAI ai = PlayerAI.GetAIForUnit(leader, us);
+
+		C7Engine.AI.UnitAI.DefenderAI defender = Assert.IsType<C7Engine.AI.UnitAI.DefenderAI>(ai);
+		Assert.Equal(city.location, defender.data.destination);
 	}
 }
