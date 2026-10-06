@@ -31,6 +31,32 @@ public class PopHead {
 		return texture;
 	}
 
+	// Civ3's tooltip look: black text in a light box with a black border.
+	private static Theme tooltipTheme;
+	public static Theme TooltipTheme {
+		get {
+			if (tooltipTheme == null) {
+				tooltipTheme = new Theme();
+				tooltipTheme.SetStylebox("panel", "TooltipPanel", TemporaryPopup.PopupTechStyleBox());
+				tooltipTheme.SetColor("font_color", "TooltipLabel", Colors.Black);
+				tooltipTheme.SetFontSize("font_size", "TooltipLabel", 13);
+			}
+			return tooltipTheme;
+		}
+	}
+
+	// Like "Happy Laborer (Babylonian)", or "Scientist (Babylonian)" for a
+	// specialist, whose mood doesn't matter.
+	public static string GetTooltip(CityResident cityResident) {
+		string name = cityResident.citizenType?.SingularName ?? "Citizen";
+		if (cityResident.citizenType == null || cityResident.citizenType.IsDefaultCitizen) {
+			name = $"{cityResident.mood} {name}";
+		}
+		Civilization nation = cityResident.nationality;
+		string nationName = string.IsNullOrEmpty(nation?.adjective) ? nation?.name : nation.adjective;
+		return string.IsNullOrEmpty(nationName) ? name : $"{name} ({nationName})";
+	}
+
 	private static ImageTexture LoadTexture(CityResident cityResident, int eraNum) {
 		return TextureLoader.Load("popheads", new TextureKey() { cityResident = cityResident, eraNum = eraNum });
 	}

@@ -44,6 +44,7 @@ public partial class ForeignAdvisor : Control {
 		CreateTabHeaders(tabsPosition);
 
 		AdvisorUtils.CreateAdvisorTitle(background, background.Texture.GetWidth(), "FOREIGN ADVISOR");
+		AdvisorUtils.CreateAdvisorSidebar(background, AdvisorHead.Advisor.Foreign);
 	}
 
 	private void CreateTabs(Vector2 tabsPosition) {

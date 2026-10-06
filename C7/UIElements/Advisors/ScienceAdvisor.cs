@@ -63,6 +63,7 @@ public partial class ScienceAdvisor : Control {
 		(_dialogBox, _dialogBoxLabel) = AdvisorUtils.CreateAdvisorDialogBox(background);
 
 		AdvisorUtils.CreateAdvisorTitle(background, AncientBackground.GetWidth(), "SCIENCE ADVISOR");
+		AdvisorUtils.CreateAdvisorSidebar(background, AdvisorHead.Advisor.Science);
 
 		CreatePreviousEraButton();
 		CreateNextEraButton();

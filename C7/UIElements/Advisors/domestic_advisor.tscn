@@ -16,7 +16,7 @@ font_color = Color(0, 0, 0, 1)
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_5hkgh"]
 
-[node name="DomesticAdvisor" type="CenterContainer" node_paths=PackedStringArray("background", "close", "changeGovernment", "governmentLabel", "scienceStatus", "treasury", "incomeDetails", "expenseDetails", "incomeSummary", "expenseSummary", "sumSummary", "growth", "cityListContainer", "eatenFood", "fullFood", "wastedShield", "goodShield", "wastedGold", "goodGold", "happyFace", "contentFace", "beaker", "treasuryIcon", "scienceSlider", "luxurySlider")]
+[node name="DomesticAdvisor" type="CenterContainer" node_paths=PackedStringArray("background", "close", "changeGovernment", "governmentLabel", "scienceStatus", "treasury", "incomeDetails", "expenseDetails", "incomeSummary", "expenseSummary", "sumSummary", "growth", "cityListContainer", "citiesHeader", "populationHeader", "eatenFood", "fullFood", "wastedShield", "goodShield", "wastedGold", "goodGold", "happyFace", "contentFace", "beaker", "treasuryIcon", "scienceSlider", "luxurySlider")]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -37,6 +37,8 @@ expenseSummary = NodePath("Background/ExpenseSummary")
 sumSummary = NodePath("Background/SumSummary")
 growth = NodePath("Background/Growth")
 cityListContainer = NodePath("Background/ScrollContainer/VBoxContainer")
+citiesHeader = NodePath("Background/Label2")
+populationHeader = NodePath("Background/Label3")
 eatenFood = NodePath("Background/EatenFood")
 fullFood = NodePath("Background/FullFood")
 wastedShield = NodePath("Background/WastedShield")

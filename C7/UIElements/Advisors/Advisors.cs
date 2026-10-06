@@ -32,6 +32,21 @@ public partial class Advisors : CenterContainer {
 		OnShowSpecificAdvisor(latest);
 	}
 
+	/// <summary>
+	/// Switches to the given advisor, as when its face in the sidebar is clicked.
+	/// </summary>
+	public void ShowAdvisor(AdvisorHead.Advisor advisor) {
+		OnShowSpecificAdvisor(advisor switch {
+			AdvisorHead.Advisor.Domestic => C7Action.ShowDomesticAdvisor,
+			AdvisorHead.Advisor.Trade => C7Action.ShowTradeAdvisor,
+			AdvisorHead.Advisor.Military => C7Action.ShowMilitaryAdvisor,
+			AdvisorHead.Advisor.Foreign => C7Action.ShowForeignAdvisor,
+			AdvisorHead.Advisor.Culture => C7Action.ShowCulturalAdvisor,
+			AdvisorHead.Advisor.Science => C7Action.ShowScienceAdvisor,
+			_ => throw new System.ArgumentOutOfRangeException(nameof(advisor)),
+		});
+	}
+
 	private void OnShowSpecificAdvisor(string advisorType) {
 		if (advisorType != latest) {
 			latest = advisorType;
