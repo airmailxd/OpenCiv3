@@ -88,6 +88,7 @@ namespace C7GameData.Save {
 				History = data.history,
 				VictoryConditions = data.victoryConditions,
 				GameOver = data.gameOver,
+				UnitedNations = data.unitedNations,
 				Winner = data.winner != null ? new SavePlayer(data.winner, data.map) : null,
 				TerrainImprovements = data.terrainImprovements.ConvertAll(ti => ti.ToSaveTerrainImprovement()),
 				GameModeConfig = data.gameModeConfig,
@@ -182,6 +183,12 @@ namespace C7GameData.Save {
 			if (conditions?.AllowDominationVictory == true) {
 				data.victories.Add(new DominationVictory(conditions.DominationTerritoryPercent, conditions.DominationPopulationPercent));
 			}
+			if (conditions?.AllowSpaceRaceVictory == true) {
+				data.victories.Add(new SpaceRaceVictory());
+			}
+			if (conditions?.AllowDiplomaticVictory == true) {
+				data.victories.Add(new DiplomaticVictory());
+			}
 
 			// TODO: Does the original have a switch to have the game never end?
 			// Always add a time limit
@@ -239,6 +246,7 @@ namespace C7GameData.Save {
 				victoryConditions = VictoryConditions,
 				history = History,
 				GreatWondersBuilt = GreatWondersBuilt,
+				unitedNations = UnitedNations ?? new UnitedNationsState(),
 			};
 
 			return data;
@@ -532,6 +540,7 @@ namespace C7GameData.Save {
 		public VictoryConditions VictoryConditions = new();
 		public bool GameOver { get; set; }
 		public SavePlayer Winner { get; set; }
+		public UnitedNationsState UnitedNations = new();
 		public List<SaveTech> Techs = new();
 		public List<CitizenType> CitizenTypes = new();
 		public List<SaveTerraform> TerraForms = new();

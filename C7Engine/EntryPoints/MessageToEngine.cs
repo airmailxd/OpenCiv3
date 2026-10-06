@@ -847,6 +847,20 @@ namespace C7Engine {
 		}
 	}
 
+	// A human votes in the United Nations election; a null candidate
+	// abstains.
+	public class MsgCastUnitedNationsVote : MessageToEngine {
+		public Player candidate;
+
+		public MsgCastUnitedNationsVote(Player candidate) {
+			this.candidate = candidate;
+		}
+
+		protected override void ProcessAllowed() {
+			UnitedNations.CastHumanVote(EngineStorage.gameData, Sender, candidate);
+		}
+	}
+
 	// The sender sends a diplomatic or espionage mission against another
 	// civ, or one of its cities.
 	public class MsgPerformEspionage : MessageToEngine {

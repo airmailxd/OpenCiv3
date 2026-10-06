@@ -86,6 +86,9 @@ namespace C7GameData {
 		public Player winner;
 		// TODO: Victory type serialization
 
+		// The United Nations elections (see C7Engine.UnitedNations).
+		public UnitedNationsState unitedNations = new();
+
 		public BarbarianInfo barbarianInfo = new BarbarianInfo();
 
 		public StrengthBonus fortificationBonus;

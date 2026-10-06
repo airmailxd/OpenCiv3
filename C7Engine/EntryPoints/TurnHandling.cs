@@ -100,6 +100,10 @@ namespace C7Engine {
 					player.AdvanceGoldenAge();
 				}
 
+				// The United Nations votes once everyone has played the
+				// voting turn, and may elect a winner.
+				UnitedNations.ProcessEndOfRound(gameData);
+
 				CheckVictory(gameData);
 
 				// Now that the turn is ending, do all the bookkeeping for the
@@ -155,6 +159,7 @@ namespace C7Engine {
 						PlayerRelationship.CheckForObsoleteDeals(player, gameData.players, gameData.turn);
 					}
 					new MsgStartTurn(player).send();
+					UnitedNations.AskHumanToVote(gameData, player);
 					return true;
 				}
 

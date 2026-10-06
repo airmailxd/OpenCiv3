@@ -867,6 +867,43 @@ public partial class Game : Node {
 			case MsgCityChanged mCC:
 				cityScreen.RefreshCity(mCC.city);
 				break;
+			case MsgShowUnitedNationsVote mSUNV: {
+				List<ChoicePopup.Choice> choices = new();
+				foreach (Player candidate in new[] { mSUNV.candidateA, mSUNV.candidateB }) {
+					if (candidate != null) {
+						choices.Add(new ChoicePopup.Choice($"Vote for {candidate.civilization.leader} of the {candidate.civilization.noun}",
+							() => new MsgCastUnitedNationsVote(candidate).send()));
+					}
+				}
+				choices.Add(new ChoicePopup.Choice("Abstain", () => new MsgCastUnitedNationsVote(null).send()));
+				popupOverlay.ShowPopup(
+					new ChoicePopup("United Nations",
+						"The United Nations is electing a Secretary General.\nHow do we vote?",
+						choices, cancellable: false),
+					PopupOverlay.PopupCategory.Advisor);
+				InterestingEvent();
+				break;
+			}
+			case MsgUnitedNationsElectionResult mUNER: {
+				string outcome = mUNER.winner == null
+					? "No candidate won a majority."
+					: $"{mUNER.winner.civilization.leader} of the {mUNER.winner.civilization.noun} has been elected Secretary General!";
+				popupOverlay.ShowPopup(
+					new ChoicePopup("United Nations",
+						$"{mUNER.candidateA.civilization.noun}: {mUNER.votesForA} votes\n"
+						+ $"{mUNER.candidateB.civilization.noun}: {mUNER.votesForB} votes\n"
+						+ $"Abstaining: {mUNER.abstentions} votes\n{outcome}",
+						[new ChoicePopup.Choice("Very well.", () => { })], cancellable: false),
+					PopupOverlay.PopupCategory.Advisor);
+				InterestingEvent();
+				break;
+			}
+			case MsgEspionageResult mER:
+				popupOverlay.ShowPopup(
+					new ChoicePopup(Espionage.Describe(mER.mission), mER.message ?? "",
+						[new ChoicePopup.Choice("Very well.", () => { })], cancellable: false),
+					PopupOverlay.PopupCategory.Advisor);
+				break;
 			case MsgVictory mV:
 				var endMsg =
 					$"The {mV.winner.civilization.noun} have won a {mV.victory.Header()} victory!\n"
