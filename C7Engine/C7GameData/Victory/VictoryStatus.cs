@@ -33,4 +33,13 @@ public class VictoryStatus {
 	public int RivalsRemaining { get; set; }
 	public float TerritoryPercent { get; set; }
 	public float PopulationPercent { get; set; }
+	public int SpaceshipPartsBuilt { get; set; }
+	public int SpaceshipPartsNeeded { get; set; }
+
+	// Diplomatic victory: whether the player has been elected Secretary
+	// General of the United Nations, who owns the UN, and the turn of the
+	// next vote (-1 if none is scheduled).
+	public bool ElectedSecretaryGeneral { get; set; }
+	public Player UnitedNationsOwner { get; set; }
+	public int NextUnitedNationsVote { get; set; } = -1;
 }

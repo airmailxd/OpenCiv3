@@ -22,8 +22,7 @@ public partial class MapUnit {
 			return null;
 		}
 
-		HashSet<Resource> resources = EngineStorage.gameData.GetTradeNetwork()
-			.GetResourcesAvailableToCity(owner, city).Keys.ToHashSet();
+		HashSet<Resource> resources = city.GetAvailableResources(EngineStorage.gameData).Keys.ToHashSet();
 		return unitType.GetProducibleUpgrade(city, resources);
 	}
 
@@ -71,12 +70,18 @@ public partial class MapUnit {
 
 		log.Information($"Upgrading {this} to {upgrade.name} for {cost} gold");
 		owner.gold -= cost;
+		ChangeTypeForUpgrade(upgrade);
+		return true;
+	}
+
+	// Turns this unit into the given type, keeping its experience, without
+	// charging anything (Leonardo's Workshop upgrades for free).
+	internal void ChangeTypeForUpgrade(UnitPrototype upgrade) {
 		if (name == unitType.name) {
 			name = upgrade.name;
 		}
 		unitType = upgrade;
 		TileChangeJournal.Record(location);
 		hitPointsRemaining = System.Math.Min(hitPointsRemaining, maxHitPoints);
-		return true;
 	}
 }

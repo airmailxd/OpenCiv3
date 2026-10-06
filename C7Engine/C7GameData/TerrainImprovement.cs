@@ -14,6 +14,7 @@ namespace C7GameData {
 			Ruins,
 			Pollution,
 			Craters,
+			Fallout, // nuclear fallout
 		}
 
 		public readonly string key;

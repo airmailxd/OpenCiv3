@@ -134,6 +134,15 @@ namespace C7GameData {
 
 		private readonly List<Tile> visibleScratch = new(32);
 
+		// What the player last saw of each known tile's terrain improvements
+		// (roads, mines, irrigation and so on), so that changes made where
+		// they can't see only show up once they look again. Brought up to
+		// date whenever the player sees a tile, and when a tile they were
+		// watching goes out of view. The map shows these for the tiles that
+		// aren't active.
+		private readonly Dictionary<Tile, TerrainImprovement[]> rememberedImprovements = new();
+		private static readonly TerrainImprovement[] NoImprovements = [];
+
 		public void AddTilesToKnown(Tile unitLocation, bool recomputeActiveTiles = true) {
 			CheckForOutsideChanges();
 
@@ -185,9 +194,68 @@ namespace C7GameData {
 			}
 		}
 
+		// Called for every tile the player sees.
 		private void MarkKnown(Tile t) {
 			if (knownTiles.Add(t)) {
 				newlyKnownTiles.Add(t);
+			}
+			RememberImprovements(t);
+		}
+
+		// Remembers the tile's terrain improvements as they are now.
+		internal void RememberImprovements(Tile t) {
+			Dictionary<TerrainImprovement.Layer, TerrainImprovement> current = t.overlays.terrainImprovementByLayer;
+			if (rememberedImprovements.TryGetValue(t, out TerrainImprovement[] remembered) && SameImprovements(remembered, current)) {
+				return;
+			}
+			if (current.Count == 0) {
+				rememberedImprovements[t] = NoImprovements;
+				return;
+			}
+			TerrainImprovement[] improvements = new TerrainImprovement[current.Count];
+			current.Values.CopyTo(improvements, 0);
+			rememberedImprovements[t] = improvements;
+		}
+
+		// Remembers the tile as having the given improvements, e.g. when
+		// loading what the player last saw from a save.
+		internal void RememberImprovements(Tile t, TerrainImprovement[] improvements) {
+			rememberedImprovements[t] = improvements.Length == 0 ? NoImprovements : improvements;
+		}
+
+		internal static bool SameImprovements(TerrainImprovement[] remembered, Dictionary<TerrainImprovement.Layer, TerrainImprovement> current) {
+			if (remembered.Length != current.Count) {
+				return false;
+			}
+			foreach (TerrainImprovement ti in remembered) {
+				if (!current.TryGetValue(ti.layer, out TerrainImprovement c) || c != ti) {
+					return false;
+				}
+			}
+			return true;
+		}
+
+		// The terrain improvements the player last saw on a tile they can't
+		// see now. False if they can see it, in which case what's there now
+		// is what they see, or if they don't remember the tile.
+		public bool TryGetRememberedImprovements(Tile t, out TerrainImprovement[] improvements) {
+			if (isActiveTile(t)) {
+				improvements = null;
+				return false;
+			}
+			return rememberedImprovements.TryGetValue(t, out improvements);
+		}
+
+		// The tiles out of view whose remembered improvements differ from
+		// what's there now, with what the player remembers, for saving. What
+		// is remembered of the tiles in view doesn't matter, since they're
+		// remembered afresh when they go out of view.
+		internal IEnumerable<KeyValuePair<Tile, TerrainImprovement[]>> OutdatedMemories() {
+			RecomputeActiveTiles();
+			foreach (KeyValuePair<Tile, TerrainImprovement[]> memory in rememberedImprovements) {
+				if (!isActiveTile(memory.Key) && !SameImprovements(memory.Value, memory.Key.overlays.terrainImprovementByLayer)) {
+					yield return memory;
+				}
 			}
 		}
 
@@ -343,6 +411,9 @@ namespace C7GameData {
 			if (added) {
 				newlyKnownTiles.Add(unitLocation);
 			}
+			if (!rememberedImprovements.ContainsKey(unitLocation)) {
+				RememberImprovements(unitLocation);
+			}
 			borderTiles.Remove(unitLocation);
 
 			foreach (Tile border in unitLocation.neighbors.Values) {
@@ -406,10 +477,17 @@ namespace C7GameData {
 
 		private void FullRecompute() {
 			++fullRecomputeCount;
+			List<Tile> wereActive = new(activeTileCounts.Keys);
 			sources.Clear();
 			activeTileCounts.Clear();
 			foreach (Tile t in knownTiles) {
 				Reevaluate(t);
+			}
+			// The tiles that went out of view are remembered as they were.
+			foreach (Tile t in wereActive) {
+				if (!activeTileCounts.ContainsKey(t) && knownTiles.Contains(t)) {
+					RememberImprovements(t);
+				}
 			}
 			newlyKnownTiles.Clear();
 			knownTileCountAtLastUpdate = knownTiles.Count;
@@ -545,6 +623,10 @@ namespace C7GameData {
 				int count = activeTileCounts[t] - 1;
 				if (count == 0) {
 					activeTileCounts.Remove(t);
+					// Going out of view: remember it as it is now.
+					if (knownTiles.Contains(t)) {
+						RememberImprovements(t);
+					}
 				} else {
 					activeTileCounts[t] = count;
 				}

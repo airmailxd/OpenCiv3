@@ -50,15 +50,10 @@ public partial class MapUnit {
 		owner.tileKnowledge.AddTilesToKnown(tile);
 
 		// Disperse barb camp
-		if (tile.hasBarbarianCamp && !owner.isBarbarians) {
-			EngineStorage.gameData.map.barbarianCamps.Remove(tile);
-			tile.hasBarbarianCamp = false;
+		if (BarbarianInteractions.DisperseCamp(EngineStorage.gameData, tile, owner)) {
 			animate(MapUnit.AnimatedAction.VICTORY);
-
-			// TODO: make this configurable
-			owner.gold += 25;
 			if (owner.isHuman) {
-				new MsgShowMilitaryAdvisorPopup(owner, $"We cleared a barbarian encampment and earned 25 gold!", happy: true).send();
+				new MsgShowMilitaryAdvisorPopup(owner, $"We cleared a barbarian encampment and earned {BarbarianInteractions.CampDispersalGold} gold!", happy: true).send();
 			}
 		}
 
@@ -170,6 +165,66 @@ public partial class MapUnit {
 
 	public void RemoveFromPlay() {
 		EngineStorage.gameData.RemoveUnit(this);
+	}
+
+	// Moves the unit, and anything it carries, straight to the nearest tile
+	// outside every other civ's borders that it could stand on, as when a civ
+	// agrees to take its units out of another's territory. Returns false,
+	// leaving the unit where it is, if there is no such tile.
+	public bool WithdrawToNearestFreeTile() {
+		Tile destination = FindNearestFreeTile();
+		if (destination == null) {
+			return false;
+		}
+
+		path = null;
+		isFortified = false;
+		if (WorkerJob != null) {
+			resetWorkerJob();
+		}
+		RelocateTo(destination);
+		if (owner.isHuman) {
+			new MsgUnitMoved(this).send();
+		}
+		return true;
+	}
+
+	private Tile FindNearestFreeTile() {
+		HashSet<Tile> seen = new() { location };
+		Queue<Tile> frontier = new();
+		frontier.Enqueue(location);
+		while (frontier.Count > 0) {
+			Tile tile = frontier.Dequeue();
+			if (tile != location && IsFreeTileFor(tile)) {
+				return tile;
+			}
+			foreach (Tile neighbor in tile.neighbors.Values) {
+				if (neighbor != null && neighbor != Tile.NONE && seen.Add(neighbor)) {
+					frontier.Enqueue(neighbor);
+				}
+			}
+		}
+		return null;
+	}
+
+	// Whether the unit could be put on the tile without being in someone
+	// else's territory or sharing it with someone else's units.
+	private bool IsFreeTileFor(Tile tile) {
+		Player tileOwner = tile.OwningPlayer();
+		if (tileOwner != null && tileOwner != owner) {
+			return false;
+		}
+		if (tile.hasBarbarianCamp || tile.unitsOnTile.Any(u => u.owner != owner)) {
+			return false;
+		}
+		bool ownCity = tile.HasCity() && tile.cityAtTile.owner == owner;
+		if (IsAirUnit()) {
+			return ownCity;
+		}
+		if (IsWaterUnit()) {
+			return tile.IsWater() || ownCity;
+		}
+		return tile.IsLand();
 	}
 
 	public async Task MoveAlongPath() {
@@ -614,7 +669,11 @@ public partial class MapUnit {
 			// In an army, the member that won the last round gets the chance
 			// to be promoted, and the army plays the victory animation.
 			MapUnit survivingMember = (alive == attacker) ? attackingMember : defendingMember;
+			// Only a unit that was already elite can produce a leader, not
+			// one this victory promotes to elite.
+			bool wasElite = survivingMember.IsElite();
 			survivingMember.RollToPromote(dead, alive);
+			survivingMember.RollForLeader(dead, wasElite);
 
 			// Winning a battle with an army is what lets a civ build the
 			// Military Academy.

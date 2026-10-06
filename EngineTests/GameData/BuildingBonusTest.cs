@@ -46,7 +46,21 @@ public class BuildingBonusTest {
 	}
 
 	[Fact]
-	public void MarketplaceAddsHalfToTaxAndLuxury() {
+	public void ResearchWondersStackWithLibraries() {
+		City city = MakeCity(shields: 0, commerce: 10);
+		int before = city.CurrentCommerceYieldRaw().beakers;
+
+		// Library, university, Copernicus and Newton's: +50% +50% +100% +100%.
+		city.AddBuilding(MakeBuilding(SaveBuilding.Flag.Plus50PercentResearch));
+		city.AddBuilding(MakeBuilding(SaveBuilding.Flag.Plus50PercentResearch));
+		city.AddBuilding(MakeBuilding(SaveBuilding.Flag.DoublesResearchOutput));
+		city.AddBuilding(MakeBuilding(SaveBuilding.Flag.DoublesResearchOutput));
+
+		Assert.Equal(before * 4, city.CurrentCommerceYieldRaw().beakers);
+	}
+
+	[Fact]
+	public void MarketplaceAddsHalfToTaxOnly() {
 		City city = MakeCity(shields: 0, commerce: 10);
 		CommerceBreakdown before = city.CurrentCommerceYieldRaw();
 		Assert.True(before.taxes > 1 && before.happiness > 1);
@@ -55,8 +69,20 @@ public class BuildingBonusTest {
 		CommerceBreakdown after = city.CurrentCommerceYieldRaw();
 
 		Assert.Equal(before.taxes + before.taxes / 2, after.taxes);
-		Assert.Equal(before.happiness + before.happiness / 2, after.happiness);
+		Assert.Equal(before.happiness, after.happiness);
 		Assert.Equal(before.beakers, after.beakers);
+	}
+
+	[Fact]
+	public void LuxuryFlagAddsHalfToLuxury() {
+		City city = MakeCity(shields: 0, commerce: 10);
+		CommerceBreakdown before = city.CurrentCommerceYieldRaw();
+
+		city.AddBuilding(MakeBuilding(SaveBuilding.Flag.Plus50PercentLuxury));
+		CommerceBreakdown after = city.CurrentCommerceYieldRaw();
+
+		Assert.Equal(before.happiness + before.happiness / 2, after.happiness);
+		Assert.Equal(before.taxes, after.taxes);
 	}
 
 	[Fact]

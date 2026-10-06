@@ -74,6 +74,7 @@ local c7_texture_list = {
   "Art/SmallHeads/popupFOREIGN.png",
   "Art/SmallHeads/popupCULTURE.png",
   "Art/SmallHeads/popupSCIENCE.png",
+  "Art/SmallHeads/advisor_tab.png",
   "Art/Advisors/domestic_icons_aux.png",
   "Art/Advisors/domesticBUTTON.png",
   "Art/Cities/city icons.png",
@@ -88,6 +89,7 @@ local c7_texture_list = {
   "Art/Advisors/non_required.png",
   "Art/Advisors/techboxes.png",
   "Art/Advisors/military.png",
+  "Art/Advisors/militaryNAV.png",
   "Art/interface/MovementLED.png",
   "Art/Advisors/science_ancient.png",
   "Art/Advisors/science_middle.png",
@@ -193,6 +195,11 @@ return function(civ3_textures)
 
   -- TODO: Add proper replacement for the asset
   c7_textures.terrain.river_delta = "Art/Terrain/mtnRivers.png"
+
+  -- The replacement map yield icons fill more of their cells than Civ3's.
+  c7_textures.icons.map_shield.crop_region = { 411, 9, 15, 18 }
+  c7_textures.icons.map_commerce.crop_region = { 438, 5, 26, 24 }
+  c7_textures.icons.map_food.crop_region = { 470, 7, 21, 21 }
 
   c7_textures.civ_colors = {}
   for i, hex_color in ipairs(civ_colors) do

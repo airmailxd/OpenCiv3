@@ -31,6 +31,7 @@ namespace C7.Map {
 		// The MapView.contentVersion the city was last refreshed for.
 		private int refreshedVersion;
 		private bool refreshed = false;
+		private bool refreshedShowDetails;
 
 		// Lets the CityLayer find the cities that weren't drawn.
 		internal int lastDrawnPass;
@@ -83,12 +84,14 @@ namespace C7.Map {
 		}
 
 		// Updates the city's graphics and label, unless the map hasn't changed since the last update.
-		public void Refresh(int contentVersion) {
-			if (refreshed && contentVersion == refreshedVersion) {
+		// The label only shows growth and production when showDetails is set, i.e. for the player's own cities.
+		public void Refresh(int contentVersion, bool showDetails) {
+			if (refreshed && contentVersion == refreshedVersion && showDetails == refreshedShowDetails) {
 				return;
 			}
 			refreshed = true;
 			refreshedVersion = contentVersion;
+			refreshedShowDetails = showDetails;
 
 			// A captured city is shown in its new owner's colors.
 			if (city.owner != shownOwner) {
@@ -97,7 +100,7 @@ namespace C7.Map {
 				cityLabelScene.UpdateCivColor();
 			}
 
-			cityLabelScene.UpdateContent();
+			cityLabelScene.UpdateContent(showDetails);
 
 			CityGraphicsDetails details = GetCityGraphicsDetails(city);
 			if (cachedDetails != details) {

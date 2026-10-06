@@ -25,9 +25,10 @@ namespace C7GameData {
 		public int maintenance;         // Expenses due to aggregate building maintenance
 		public int unitSupport;         // Expenses due to unit support costs
 		public int wealthProduction;    // Amount of extra commerce from "building" an Inflow that produces commerce
+		public int tourism;             // Gold from old great wonders that are tourist attractions (Conquests)
 
 		public int Inflows() {
-			return corrupted + taxes + taxmenTaxes + beakers + happiness + fromOtherCivs + interest + wealthProduction;
+			return corrupted + taxes + taxmenTaxes + beakers + happiness + fromOtherCivs + interest + wealthProduction + tourism;
 		}
 
 		public int Outflows() {
@@ -265,11 +266,20 @@ namespace C7GameData {
 		// completing a wonder (like Theory of Evolution).
 		public int freeTechsRemaining = 0;
 
+		// The tech a human player last discovered, while they haven't yet
+		// chosen what to research next, for the science advisor to announce.
+		// It isn't saved.
+		public Tech lastDiscoveredTech;
+
 		public Alliance alliance;
 
 		// Whether one of this player's armies has won a battle. The Military
 		// Academy can't be built until one has.
 		public bool hasVictoriousArmy = false;
+
+		// How many of each spaceship part (by Building.spaceshipPart index)
+		// this civ has built. Losing the capital destroys them. See SpaceRace.
+		public List<int> spaceshipParts = new();
 
 		// How tired of war the people are. It builds up while at war and
 		// clears once the civ is at peace with everyone.
@@ -332,6 +342,9 @@ namespace C7GameData {
 			}
 
 			currentlyResearchedTech = id;
+			if (id != null) {
+				lastDiscoveredTech = null;
+			}
 
 			// Clear out previous progress.
 			beakers = 0;
@@ -602,6 +615,7 @@ namespace C7GameData {
 			public int maintenance;
 			public int interestBuildings;
 			public int taxmenTaxes;
+			public int tourism;
 		}
 
 		private static CityFlows ComputeCityFlows(City city) {
@@ -616,6 +630,7 @@ namespace C7GameData {
 			foreach (CityResident cr in city.residents) {
 				result.taxmenTaxes += cr.citizenType.Taxes;
 			}
+			result.tourism = city.TourismGold();
 			return result;
 		}
 
@@ -626,6 +641,7 @@ namespace C7GameData {
 			result.happiness += city.commerce.happiness;
 			result.maintenance += city.maintenance;
 			result.wealthProduction += city.commerce.wealth;
+			result.tourism += city.tourism;
 
 			interestBuildings += city.interestBuildings;
 
@@ -1145,6 +1161,98 @@ namespace C7GameData {
 			CompleteResearchAndBeginNew(gameData, tech);
 		}
 
+		// The Great Library: each turn, while it is active, its owner learns
+		// every tech known by at least two other civs it has contact with.
+		//
+		// Assumptions, as the exact Civ3 rule isn't documented in detail:
+		//  - "contact" means we have a relationship with the civ (we have met
+		//    them), regardless of whether we are at war with them;
+		//  - barbarians and defeated civs don't count;
+		//  - only techs we could research ourselves right now (prerequisites
+		//    known, not beyond our era) are given, as with tech trading. Each
+		//    tech learned can open up the next, so we repeat until nothing new
+		//    qualifies.
+		// Returns the techs learned.
+		public List<Tech> DoGreatLibraryUpdates(GameData gameData) {
+			List<Tech> learned = new();
+			if (isBarbarians || defeated) {
+				return learned;
+			}
+
+			City libraryCity = null;
+			Building library = null;
+			foreach ((City c, CityBuilding cb) in GetBuildingSnapshot().activeWonders) {
+				if (cb.building.gainAnyTechKnownByTwoCivs) {
+					libraryCity = c;
+					library = cb.building;
+					break;
+				}
+			}
+			if (libraryCity == null) {
+				return learned;
+			}
+
+			List<Player> contacts = gameData.players.Where(p => p != this
+				&& !p.isBarbarians
+				&& !p.defeated
+				&& playerRelationships.ContainsKey(p.id)).ToList();
+			if (contacts.Count < 2) {
+				return learned;
+			}
+
+			while (true) {
+				Tech gained = GetAvailableTechsToResearch(gameData.techs)
+					.FirstOrDefault(t => contacts.Count(p => p.knownTechs.Contains(t.id)) >= 2);
+				if (gained == null) {
+					break;
+				}
+				log.Information("{Player} learns {Tech} from the Great Library", this, gained.Name);
+				CompleteResearchingTech(gameData, gained);
+				learned.Add(gained);
+			}
+
+			if (learned.Count > 0) {
+				PlayerAI.MaybePickTechToResearch(this, gameData.techs);
+				if (isHuman) {
+					new MsgShowTemporaryPopup($"The {library.name} in {libraryCity.name} has given us {string.Join(", ", learned.Select(t => t.Name))}.",
+						libraryCity.location, this).send();
+				}
+			}
+			return learned;
+		}
+
+		// Grants techs for a wonder like Theory of Evolution, which gives its
+		// builder free advances on completion. The free techs go through the
+		// same path as Philosophy's bonus tech: the tech being researched is
+		// completed at once, then the next one picked (from the research
+		// queue, or automatically), and so on until the free techs are used.
+		// If nothing is being researched, the free techs are kept until a
+		// tech is chosen.
+		//
+		// Assumption: Civ3 completes the current research and then the next
+		// one, and research progress isn't carried over.
+		// Returns the techs learned right away.
+		public List<Tech> GrantFreeTechs(GameData gameData, int count, string source, City city) {
+			HashSet<ID> before = new(knownTechs);
+			freeTechsRemaining += count;
+			if (currentlyResearchedTech != null && !knownTechs.Contains(currentlyResearchedTech)) {
+				SetCurrentlyResearchedTech(currentlyResearchedTech);
+			}
+
+			List<Tech> learned = gameData.techs.Where(t => knownTechs.Contains(t.id) && !before.Contains(t.id)).ToList();
+			if (isHuman && learned.Count > 0 && city != null) {
+				new MsgShowTemporaryPopup($"The {source} in {city.name} has given us {string.Join(", ", learned.Select(t => t.Name))}.",
+					city.location, this).send();
+			}
+			return learned;
+		}
+
+		// Learns a tech acquired outside research, such as one stolen by
+		// espionage, then carries on researching.
+		public void AcquireTech(GameData gameData, Tech tech) {
+			CompleteResearchAndBeginNew(gameData, tech);
+		}
+
 		private void CompleteResearchAndBeginNew(GameData gameData, IEnumerable<Tech> techs) {
 			foreach (Tech tech in techs) {
 				CompleteResearchingTech(gameData, tech);
@@ -1153,6 +1261,14 @@ namespace C7GameData {
 		}
 		private void CompleteResearchAndBeginNew(GameData gameData, Tech tech) {
 			CompleteResearchingTech(gameData, tech);
+
+			// A human whose research queue has run out is asked what to
+			// research next (see Game.OnPlayerStartTurn and
+			// MsgShowScienceSelection) rather than having it picked for them.
+			if (isHuman && currentlyResearchedTech == null && ResearchQueue.Count == 0) {
+				lastDiscoveredTech = tech;
+				return;
+			}
 			PlayerAI.MaybePickTechToResearch(this, gameData.techs);
 		}
 
@@ -1329,6 +1445,30 @@ namespace C7GameData {
 
 			log.Information("{Player} moved its palace to {City}", this, newCapital);
 			return newCapital;
+		}
+
+		// Puts the palace in the city, which becomes the capital, removing it
+		// from the old capital (as building a new palace does in Civ3).
+		public void MovePalaceTo(City newCapital, Building palace) {
+			foreach (City c in cities) {
+				if (c == newCapital) {
+					continue;
+				}
+				c.capital = false;
+				CityBuilding old = c.constructed_buildings.Find(cb => cb.building.isCenterOfEmpire);
+				if (old != null) {
+					c.RemoveBuilding(old);
+				}
+			}
+			newCapital.capital = true;
+			if (!newCapital.constructed_buildings.Any(cb => cb.building == palace)) {
+				newCapital.AddBuilding(palace);
+			}
+			// The trade network re-checks which city is the capital itself.
+			if (EngineStorage.gameData != null) {
+				DoCorruptionCalculations(EngineStorage.gameData);
+			}
+			log.Information("{Player} built a new palace in {City}", this, newCapital);
 		}
 
 		// Civ 3 doesn't publish its war weariness formula, so this is an
@@ -1562,6 +1702,13 @@ namespace C7GameData {
 			internal List<Tuple<City, CityBuilding>> activeWonders;
 			internal bool hasLargerArmies;
 			internal bool reducesWarWearinessEverywhere;
+			internal bool paysTradeMaintenance;
+			internal int shipMovementBonus;
+			internal bool safeSeaTravel;
+			internal bool doubleCombatVsBarbarians;
+			internal bool increasesLeaderChance;
+			// Longevity: cities grow by two citizens at a time.
+			internal bool doublesCityGrowthEverywhere;
 
 			internal bool IsValidFor(Player player) {
 				if (buildingsVersion != player.BuildingsVersion
@@ -1603,17 +1750,78 @@ namespace C7GameData {
 					if (cb.building.allowsLargerArmies) {
 						snapshot.hasLargerArmies = true;
 					}
-					if (cb.building.greatWonderProperties == null || cb.building.isGreatWonderObsolete(this)) {
+					bool isGreatWonder = cb.building.greatWonderProperties != null;
+					if (isGreatWonder && cb.building.isGreatWonderObsolete(this)) {
+						continue;
+					}
+					// Combat and movement effects (the Great Wall, the Great
+					// Lighthouse, Magellan's Voyage, the Heroic Epic) come from
+					// any of our buildings but an obsolete great wonder.
+					AddCombatAndMovementEffects(snapshot, cb.building);
+					if (!isGreatWonder) {
 						continue;
 					}
 					snapshot.activeWonders.Add(new Tuple<City, CityBuilding>(c, cb));
 					if (cb.building.reducesWarWearinessEverywhere) {
 						snapshot.reducesWarWearinessEverywhere = true;
 					}
+					if (cb.building.paysTradeMaintenance) {
+						snapshot.paysTradeMaintenance = true;
+					}
+					if (cb.building.doublesCityGrowthEverywhere) {
+						snapshot.doublesCityGrowthEverywhere = true;
+					}
 				}
 			}
 			buildingSnapshot = snapshot;
 			return snapshot;
+		}
+
+		private static void AddCombatAndMovementEffects(BuildingSnapshot snapshot, Building building) {
+			// Each wonder that increases ship movement adds its own +1, so
+			// the Great Lighthouse and Magellan's Voyage stack (an assumption:
+			// in Conquests the Great Lighthouse is usually obsolete by the
+			// time Magellan's is built). The PlusTwoShipMovement flag, which
+			// no Conquests building uses, adds +2.
+			if (building.increasedShipMovement) {
+				snapshot.shipMovementBonus += 1;
+			}
+			if (building.plusTwoShipMovement) {
+				snapshot.shipMovementBonus += 2;
+			}
+			if (building.safeSeaTravel) {
+				snapshot.safeSeaTravel = true;
+			}
+			if (building.doubleCombatVsBarbarians) {
+				snapshot.doubleCombatVsBarbarians = true;
+			}
+			if (building.increasesLeaderChance) {
+				snapshot.increasesLeaderChance = true;
+			}
+		}
+
+		// The extra movement points this player's ships get from wonders
+		// like the Great Lighthouse and Magellan's Voyage.
+		public int ShipMovementBonus() {
+			return GetBuildingSnapshot().shipMovementBonus;
+		}
+
+		// Whether this player's coastal ships (like the Galley) may enter
+		// Sea tiles, thanks to the Great Lighthouse.
+		public bool HasSafeSeaTravel() {
+			return GetBuildingSnapshot().safeSeaTravel;
+		}
+
+		// Whether this player's units fight at double strength against
+		// barbarians, thanks to the Great Wall.
+		public bool HasDoubleCombatVsBarbarians() {
+			return GetBuildingSnapshot().doubleCombatVsBarbarians;
+		}
+
+		// Whether this player's elite units are more likely to produce a
+		// great leader, thanks to the Heroic Epic.
+		public bool HasIncreasedLeaderChance() {
+			return GetBuildingSnapshot().increasesLeaderChance;
 		}
 
 		public void MaybeSpawnBonusUnits(GameData gD) {

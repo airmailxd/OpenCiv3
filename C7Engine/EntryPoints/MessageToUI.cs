@@ -185,6 +185,44 @@ namespace C7Engine {
 		}
 	}
 
+	// Asks a human player what to research next, having just discovered a
+	// tech (or null if it isn't known which).
+	public class MsgShowScienceSelection : MessageToUI {
+		public Tech discovered;
+		public MsgShowScienceSelection(Player recipient, Tech discovered) {
+			this.recipient = recipient;
+			this.discovered = discovered;
+		}
+	}
+
+	// Tells a human player that a city has finished building something, and
+	// what it builds next. The items are named, as they are in
+	// MsgChooseProduction.
+	public class MsgCityProductionCompleted : MessageToUI {
+		public City city;
+		public string completed;
+		public string next;
+		public MsgCityProductionCompleted(Player recipient, City city, string completed, string next) {
+			this.recipient = recipient;
+			this.city = city;
+			this.completed = completed;
+			this.next = next;
+		}
+	}
+
+	// News from the science advisor, such as the space race.
+	public class MsgShowScienceAdvisorPopup : MessageToUI {
+		public enum Mood { Happy, Angry, Sad, Surprised }
+
+		public string message;
+		public Mood mood;
+		public MsgShowScienceAdvisorPopup(Player recipient, string message, Mood mood) {
+			this.recipient = recipient;
+			this.message = message;
+			this.mood = mood;
+		}
+	}
+
 	public class MsgShowTemporaryPopup : MessageToUI {
 		public string message;
 		public Tile location;
@@ -211,6 +249,27 @@ namespace C7Engine {
 
 		// Hotseat hands the screen to the human with a handoff, so this has no
 		// recipient, but on a LAN it belongs on the human's own machine.
+		public override Player NetworkRecipient => humanPlayer;
+	}
+
+	// An AI tells a human to take their units out of its territory or face
+	// war. The human answers with MsgRespondToTerritoryDemand.
+	public class MsgShowTerritoryDemand : MessageToUI {
+		public Player aiPlayer;
+		public Player humanPlayer;
+		public int unitCount;
+
+		// The human already promised to leave once and came back.
+		public bool repeatOffense;
+
+		public MsgShowTerritoryDemand(Player aiPlayer, Player humanPlayer, int unitCount, bool repeatOffense) {
+			this.aiPlayer = aiPlayer;
+			this.humanPlayer = humanPlayer;
+			this.unitCount = unitCount;
+			this.repeatOffense = repeatOffense;
+		}
+
+		// Like a trade offer, this goes to the human's own machine on a LAN.
 		public override Player NetworkRecipient => humanPlayer;
 	}
 
@@ -285,6 +344,58 @@ namespace C7Engine {
 	// Every human player has been defeated, so the game is over.
 	public class MsgNoHumansRemain : MessageToUI {
 		public override bool IsForEveryone => true;
+	}
+
+	// Asks a human player how they vote in the United Nations election. A
+	// candidate they haven't met is null; they answer with
+	// MsgCastUnitedNationsVote.
+	public class MsgShowUnitedNationsVote : MessageToUI {
+		public Player candidateA;
+		public Player candidateB;
+
+		public MsgShowUnitedNationsVote(Player recipient, Player candidateA, Player candidateB) {
+			this.recipient = recipient;
+			this.candidateA = candidateA;
+			this.candidateB = candidateB;
+		}
+	}
+
+	// The outcome of a United Nations election. The winner is null if no
+	// candidate won a majority.
+	public class MsgUnitedNationsElectionResult : MessageToUI {
+		public Player candidateA;
+		public Player candidateB;
+		public int votesForA;
+		public int votesForB;
+		public int abstentions;
+		public Player winner;
+
+		public MsgUnitedNationsElectionResult(Player candidateA, Player candidateB, int votesForA, int votesForB, int abstentions, Player winner) {
+			this.candidateA = candidateA;
+			this.candidateB = candidateB;
+			this.votesForA = votesForA;
+			this.votesForB = votesForB;
+			this.abstentions = abstentions;
+			this.winner = winner;
+		}
+
+		public override bool IsForEveryone => true;
+	}
+
+	// The outcome of a diplomatic or espionage mission the player sent.
+	public class MsgEspionageResult : MessageToUI {
+		public EspionageMission mission;
+		public bool performed;
+		public bool success;
+		public string message;
+
+		public MsgEspionageResult(Player recipient, EspionageMission mission, bool performed, bool success, string message) {
+			this.recipient = recipient;
+			this.mission = mission;
+			this.performed = performed;
+			this.success = success;
+			this.message = message;
+		}
 	}
 
 	public class MsgVictory : MessageToUI {

@@ -62,4 +62,57 @@ public class HealingTest {
 		city.AddBuilding(new Building(barracks, new C7GameData.GameData()));
 		Assert.Equal(unit.maxHitPoints, unit.HealRateAt(tile));
 	}
+
+	private (Tile, City) MakeCity() {
+		Tile tile = new(ID.None("tile"));
+		City city = new(tile, us, "Sparta", ID.None("city"));
+		tile.cityAtTile = city;
+		us.cities.Add(city);
+		return (tile, city);
+	}
+
+	private MapUnit WoundedUnitAt(Tile tile) {
+		MapUnit unit = MakeLandUnit();
+		unit.unitType.movement = 1;
+		unit.location = tile;
+		tile.unitsOnTile.Add(unit);
+		unit.hitPointsRemaining = 1;
+		unit.movementPoints.reset(unit.MaxMovementPoints());
+		return unit;
+	}
+
+	[Fact]
+	public void FortifiedUnitsInACityHealTwoAtTheStartOfTheTurn() {
+		(Tile tile, _) = MakeCity();
+		MapUnit unit = WoundedUnitAt(tile);
+		unit.Fortify();
+
+		unit.OnBeginTurn();
+		Assert.Equal(3, unit.hitPointsRemaining);
+		unit.OnBeginTurn();
+		Assert.Equal(unit.maxHitPoints, unit.hitPointsRemaining);
+	}
+
+	[Fact]
+	public void UnitsThatMovedDoNotHeal() {
+		(Tile tile, _) = MakeCity();
+		MapUnit unit = WoundedUnitAt(tile);
+		unit.movementPoints.onUnitMove(1);
+
+		unit.OnBeginTurn();
+		Assert.Equal(1, unit.hitPointsRemaining);
+	}
+
+	[Fact]
+	public void FortifiedUnitsInABarracksCityHealFullyAtTheStartOfTheTurn() {
+		(Tile tile, City city) = MakeCity();
+		SaveBuilding barracks = new() { name = "Barracks" };
+		barracks.flags.Add(SaveBuilding.Flag.VeteranGroundUnits);
+		city.AddBuilding(new Building(barracks, new C7GameData.GameData()));
+		MapUnit unit = WoundedUnitAt(tile);
+		unit.Fortify();
+
+		unit.OnBeginTurn();
+		Assert.Equal(unit.maxHitPoints, unit.hitPointsRemaining);
+	}
 }

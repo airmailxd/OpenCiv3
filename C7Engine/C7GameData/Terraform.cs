@@ -110,6 +110,8 @@ public class Terraform {
 		if (Improvement != null) {
 			if (!tile.overlays.CanAdd(tile, Improvement))
 				throw new InvalidOperationException($"Cannot add {Improvement.key} to the tile {tile}");
+			// Building any improvement clears the rubble of a destroyed city
+			Tile.TryRemoveRuins(tile);
 			tile.overlays.Add(Improvement);
 
 			var cityTile = tile.neighbors.FirstOrDefault(n => n.Value.HasCity()).Value;

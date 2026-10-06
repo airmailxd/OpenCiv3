@@ -30,7 +30,10 @@ namespace C7Engine {
 		private static int busyActionTurn = -1;
 		private static ILogger log = Log.ForContext<UnitInteractions>();
 
-		public static MapUnit getNextSelectedUnit() {
+		// Picks the next unit that needs orders. Given the previously selected
+		// unit's stack, the rest of that stack comes first, starting with the
+		// units of the same type, so a stack is given its orders back to back.
+		public static MapUnit getNextSelectedUnit(Tile previousStack = null, UnitPrototype previousType = null) {
 			GameData gameData = EngineStorage.gameData;
 			// In observer mode the UI controller is played by the AI, so there
 			// are no units for the UI to select.
@@ -42,6 +45,8 @@ namespace C7Engine {
 				busyActionTurn = gameData.turn;
 			}
 			SyncWaitQueue(gameData);
+			MapUnit first = null;
+			MapUnit firstInStack = null;
 			foreach (MapUnit unit in selectable.Where(u => u.movementPoints.canMove)) {
 				// Units in a rigid army go where the army goes.
 				if (unit.isFortified || unit.IsLockedInArmy()) {
@@ -55,9 +60,27 @@ namespace C7Engine {
 					continue;
 				}
 
-				if (unit.id is null || !waitingUnits.ContainsKey(unit.id)) {
+				if (unit.id is not null && waitingUnits.ContainsKey(unit.id)) {
+					continue;
+				}
+				if (previousStack == null) {
 					return unit;
 				}
+				// Compared by position and name, as a LAN client's snapshots
+				// replace the tile and prototype objects.
+				if (unit.location.XCoordinate == previousStack.XCoordinate && unit.location.YCoordinate == previousStack.YCoordinate) {
+					if (unit.unitType?.name == previousType?.name) {
+						return unit;
+					}
+					firstInStack ??= unit;
+				}
+				first ??= unit;
+			}
+			if (firstInStack != null) {
+				return firstInStack;
+			}
+			if (first != null) {
+				return first;
 			}
 			while (waitQueue.Count > 0) {
 				ID id = waitQueue.Dequeue();

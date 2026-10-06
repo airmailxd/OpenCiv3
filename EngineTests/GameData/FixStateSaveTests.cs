@@ -598,4 +598,41 @@ public class FixStateSaveTests : IClassFixture<SaveGameFixture>, IDisposable {
 			System.IO.File.Delete(path);
 		}
 	}
+
+	// Item: other players' roads and improvements showed up in tiles the
+	// player couldn't see.
+
+	private static bool RemembersRoad(Player player, Tile tile) {
+		Assert.True(player.tileKnowledge.TryGetRememberedImprovements(tile, out TerrainImprovement[] remembered));
+		return remembered.Any(ti => ti.key == Tile.TileOverlays.ROAD);
+	}
+
+	[Fact]
+	public void ImprovementsOutOfViewAreRememberedAsLastSeen() {
+		C7GameData.GameData gameData = NewGame();
+		Player player = gameData.players.First(p => !p.isBarbarians);
+		TerrainImprovement road = gameData.terrainImprovements.First(ti => ti.key == Tile.TileOverlays.ROAD);
+		player.tileKnowledge.RecomputeActiveTiles();
+		Tile tile = gameData.map.tiles.First(t => t.IsLand() && !t.HasCity() && t.unitsOnTile.Count == 0
+			&& t.overlays.ImprovementAtLayer(TerrainImprovement.Layer.Roads) == null
+			&& !player.tileKnowledge.isTileKnown(t) && !player.tileKnowledge.isActiveTile(t));
+
+		// The player learns of the tile, then someone builds a road there
+		// while they aren't looking.
+		player.tileKnowledge.AddTileToKnown(tile);
+		tile.overlays.Add(road);
+		Assert.False(RemembersRoad(player, tile));
+
+		// What the player remembers survives saving and loading.
+		C7GameData.GameData loaded = SaveGame.FromGameData(gameData).ToGameData(fixture.behaviors);
+		EngineStorage.InitializeGameDataForTests(loaded);
+		Player loadedPlayer = loaded.players.First(p => p.id == player.id);
+		Tile loadedTile = loaded.map.tileAt(tile.XCoordinate, tile.YCoordinate);
+		Assert.NotNull(loadedTile.overlays.ImprovementAtLayer(TerrainImprovement.Layer.Roads));
+		Assert.False(RemembersRoad(loadedPlayer, loadedTile));
+
+		// Seeing the tile again shows the road.
+		loadedPlayer.tileKnowledge.AddTilesToKnown(loadedTile);
+		Assert.True(RemembersRoad(loadedPlayer, loadedTile));
+	}
 }

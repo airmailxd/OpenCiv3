@@ -25,6 +25,11 @@ public class VictoryConditions {
 		return new VictoryConditions {
 			AllowConquestVictory = true,
 			AllowDominationVictory = true,
+			// Civ3 allows the space race by default.
+			AllowSpaceRaceVictory = true,
+			// Civ3 allows a diplomatic victory (through the United Nations)
+			// by default.
+			AllowDiplomaticVictory = true,
 		};
 	}
 }

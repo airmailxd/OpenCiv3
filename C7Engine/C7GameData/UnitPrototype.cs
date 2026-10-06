@@ -25,6 +25,10 @@ namespace C7GameData {
 		Sentry,
 		// Not a BIQ ability; available to any unit that can sentry.
 		SentryEnemyOnly,
+		// A great leader forms an army in a city.
+		BuildArmy,
+		// A great leader finishes a city's improvement.
+		HurryBuilding,
 	}
 
 	public struct ItemContext(UnitPrototype proto, Player player) {
@@ -192,6 +196,39 @@ namespace C7GameData {
 			}
 		}
 
+		public bool isNuclearWeapon {
+			get => flags.Contains(SaveUnitPrototype.Flag.NuclearWeapon);
+			set {
+				if (value) {
+					flags.Add(SaveUnitPrototype.Flag.NuclearWeapon);
+				} else {
+					flags.Remove(SaveUnitPrototype.Flag.NuclearWeapon);
+				}
+			}
+		}
+		public bool isICBM {
+			get => flags.Contains(SaveUnitPrototype.Flag.ICBM);
+			set {
+				if (value) {
+					flags.Add(SaveUnitPrototype.Flag.ICBM);
+				} else {
+					flags.Remove(SaveUnitPrototype.Flag.ICBM);
+				}
+			}
+		}
+		public bool isTacticalMissile {
+			get => flags.Contains(SaveUnitPrototype.Flag.TacticalMissile);
+			set {
+				if (value) {
+					flags.Add(SaveUnitPrototype.Flag.TacticalMissile);
+				} else {
+					flags.Remove(SaveUnitPrototype.Flag.TacticalMissile);
+				}
+			}
+		}
+		public bool canCarryTacticalMissiles => flags.Contains(SaveUnitPrototype.Flag.CanCarryTacticalMissiles);
+		public bool canCarryAircraft => flags.Contains(SaveUnitPrototype.Flag.CanCarryAircraft);
+
 		// An army is a container that carries other units into battle as a
 		// single stack, rather than fighting with strength of its own.
 		public bool isArmy {
@@ -201,6 +238,43 @@ namespace C7GameData {
 					flags.Add(SaveUnitPrototype.Flag.Army);
 				} else {
 					flags.Remove(SaveUnitPrototype.Flag.Army);
+				}
+			}
+		}
+
+		// Coastal ships, like the Galley, can't enter Sea tiles (unless their
+		// owner has the Great Lighthouse), and those like the Caravel can't
+		// enter Ocean tiles. See MapUnit.CanEnterWaterTerrain.
+		public bool sinksInSea {
+			get => flags.Contains(SaveUnitPrototype.Flag.SinksInSea);
+			set {
+				if (value) {
+					flags.Add(SaveUnitPrototype.Flag.SinksInSea);
+				} else {
+					flags.Remove(SaveUnitPrototype.Flag.SinksInSea);
+				}
+			}
+		}
+		public bool sinksInOcean {
+			get => flags.Contains(SaveUnitPrototype.Flag.SinksInOcean);
+			set {
+				if (value) {
+					flags.Add(SaveUnitPrototype.Flag.SinksInOcean);
+				} else {
+					flags.Remove(SaveUnitPrototype.Flag.SinksInOcean);
+				}
+			}
+		}
+
+		// A military great leader, which can form an army or hurry a city's
+		// production. See MapUnit_Leader.cs.
+		public bool isLeader {
+			get => flags.Contains(SaveUnitPrototype.Flag.Leader);
+			set {
+				if (value) {
+					flags.Add(SaveUnitPrototype.Flag.Leader);
+				} else {
+					flags.Remove(SaveUnitPrototype.Flag.Leader);
 				}
 			}
 		}
@@ -397,7 +471,9 @@ namespace C7GameData {
 				instance.nationality = owner.civilization;
 			instance.location = location;
 
-			instance.movementPoints.reset(movement);
+			// Includes any bonus from the owner's wonders, like the Great
+			// Lighthouse's for ships.
+			instance.movementPoints.reset(instance.MaxMovementPoints());
 			return instance;
 		}
 
@@ -431,11 +507,31 @@ namespace C7GameData {
 				return false;
 			}
 
+			// Civ3: once any civ completes the Manhattan Project, every civ
+			// with the required tech may build nuclear weapons.
+			if (this.isNuclearWeapon && !NuclearWeaponsAllowed(EngineStorage.gameData)) {
+				return false;
+			}
+
 			if (!this.requiredResources.All(accessibleResources.Contains)) {
 				return false;
 			}
 
 			return true;
+		}
+
+		/// Whether some civ has built a great wonder that allows nuclear
+		/// weapons (the Manhattan Project), which lets every civ build them.
+		public static bool NuclearWeaponsAllowed(GameData gameData) {
+			if (gameData == null || gameData.GreatWondersBuilt.Count == 0) {
+				return false;
+			}
+			foreach (Building building in gameData.Buildings) {
+				if (building.allowsNuclearWeapons && gameData.GreatWondersBuilt.Contains(building.name)) {
+					return true;
+				}
+			}
+			return false;
 		}
 
 		/// A unit is obsolete if a unit in its upgrade chain can be produced (in this city

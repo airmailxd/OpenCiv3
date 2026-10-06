@@ -16,9 +16,11 @@ public partial class MiniMapFrame : TextureRect {
 	private Vector2I miniMapSize = new (229, 105);
 	private Vector2I frameOffset = new (7, -12 + -10); // overall control has 10px boundary, adjust for VP
 	private Vector2I mapOffset = new (25, -13); // offset inside the frame
-	private Vector2I clickOffset = new (15, 0); // offset delta?
 
 	private bool isDragging;
+
+	// The size the map is shown at inside the frame, in UI pixels.
+	public Vector2I MapDisplaySize => miniMapSize;
 
 	public MiniMapFrame(MapView mapView) {
 		this.mapView = mapView;
@@ -32,7 +34,12 @@ public partial class MiniMapFrame : TextureRect {
 		AddChild(mapFrameRect);
 
 		// Draw the map inside the frame
+		// The rect scales the map to its size. (A size override on the
+		// texture would also do that, but ImageTexture.Update then rejects
+		// every image as the wrong size, freezing the minimap.)
 		mapTextureRect = new TextureRect();
+		mapTextureRect.ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize;
+		mapTextureRect.StretchMode = TextureRect.StretchModeEnum.Scale;
 		mapTextureRect.SetSize(miniMapSize);
 		AddChild(mapTextureRect);
 
@@ -67,7 +74,6 @@ public partial class MiniMapFrame : TextureRect {
 
 		mapTextureSize = imageSize;
 		mapTexture = ImageTexture.CreateFromImage(mapImage);
-		mapTexture.SetSizeOverride(miniMapSize);
 
 		mapTextureRect.Texture = mapTexture;
 	}
@@ -96,20 +102,22 @@ public partial class MiniMapFrame : TextureRect {
 	}
 
 	private void HandleMouseMotionInput(InputEventMouseMotion eventMouseMotion) {
-		CenterToMousePosition(eventMouseMotion.Position);
+		CenterToMousePosition();
 	}
 
 	private void HandleLeftMouseButton(InputEventMouseButton eventMouseButton) {
-		CenterToMousePosition(eventMouseButton.Position);
+		CenterToMousePosition();
 	}
 
-	private void CenterToMousePosition(Vector2 mousePosition) {
-		var mapPos = mousePosition - mapFrameRect.GlobalPosition - clickOffset;
-		var relativeMapPos = mapPos / mapTextureRect.Size;
-		CenterToPosition(mapPos, relativeMapPos);
+	// The map image covers the map the way MapView lays it out, so the
+	// mouse's position on the image, scaled to the map's size, is a map
+	// location.
+	private void CenterToMousePosition() {
+		var relativeMapPos = mapTextureRect.GetLocalMousePosition() / mapTextureRect.Size;
+		CenterToPosition(relativeMapPos);
 	}
 
-	private void CenterToPosition(Vector2 mapPos, Vector2 relativeMapPos) {
+	private void CenterToPosition(Vector2 relativeMapPos) {
 		EngineStorage.ReadGameData((GameData gameData) => {
 			if (mapView == null)
 				return;

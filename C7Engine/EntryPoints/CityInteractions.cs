@@ -11,6 +11,7 @@ namespace C7Engine {
 
 		public static City BuildCity(Tile tileWithNewCity, Player owner, string name) {
 			GameData gameData = EngineStorage.gameData;
+
 			City newCity = new City(tileWithNewCity, owner, name, gameData.ids.CreateID("city"));
 			// A civ without a capital gets its palace in the next city it
 			// founds, even if it already holds captured cities (which lose
@@ -36,6 +37,18 @@ namespace C7Engine {
 			// accurate. We do this after adding the resident though, because
 			// cities with zero residents are considered destroyed.
 			gameData.UpdateTileOwners();
+
+			// Barbarian camps inside the new city's borders are dispersed.
+			int campsDispersed = 0;
+			foreach (Tile camp in gameData.map.barbarianCamps.ToList()) {
+				if (camp.owningCity == newCity && BarbarianInteractions.DisperseCamp(gameData, camp, owner)) {
+					++campsDispersed;
+				}
+			}
+			if (campsDispersed > 0 && owner.isHuman) {
+				string camps = campsDispersed == 1 ? "a barbarian encampment" : $"{campsDispersed} barbarian encampments";
+				new MsgShowMilitaryAdvisorPopup(owner, $"Our new city {name} dispersed {camps} and earned {campsDispersed * BarbarianInteractions.CampDispersalGold} gold!", happy: true).send();
+			}
 
 			// Now that the city exists and its borders have been established,
 			// invalidate the trade network so it can be recomputed with this
@@ -166,6 +179,11 @@ namespace C7Engine {
 			Player oldOwner = city.owner;
 			Tile tile = city.location;
 
+			// Losing the capital destroys the spaceship.
+			if (city.capital) {
+				SpaceRace.DestroySpaceship(oldOwner, captor);
+			}
+
 			if (!SurvivesCapture(city)) {
 				DestroyCity(city);
 				return;
@@ -208,6 +226,7 @@ namespace C7Engine {
 
 			// Choosing production needs the trade network to know the new owner.
 			city.SetItemBeingProduced(ChooseProducible.Choose(city, captor));
+			city.ClearProductionQueue();
 
 			log.Information("{Captor} captured {City} from {OldOwner}, plundering {Plunder} gold", captor, city, oldOwner, plunder);
 			new MsgCityCaptured(city, oldOwner).send();
@@ -226,6 +245,47 @@ namespace C7Engine {
 
 			oldOwner.DoCorruptionCalculations(gameData);
 			captor.DoCorruptionCalculations(gameData);
+		}
+
+		// Hands a city over to another player peacefully, as when it is
+		// incited to revolt: unlike a capture it keeps its citizens and
+		// buildings, except the palace and small wonders, which belong to the
+		// old owner's empire. Units in it are left as they are.
+		public static void TransferCity(City city, Player newOwner) {
+			GameData gameData = EngineStorage.gameData;
+			Player oldOwner = city.owner;
+			Tile tile = city.location;
+
+			foreach (CityBuilding cb in city.constructed_buildings.ToList()) {
+				if (cb.building.isCenterOfEmpire || cb.building.isSmallWonder) {
+					city.RemoveBuilding(cb);
+				}
+			}
+
+			bool wasCapital = city.capital;
+			city.capital = false;
+			oldOwner.cities.Remove(city);
+			newOwner.cities.Add(city);
+			city.owner = newOwner;
+			city.perPlayerCulture.TryAdd(newOwner, 0);
+			gameData.OnCityOwnerChanged(city);
+			city.isInCivilDisorder = false;
+
+			gameData.UpdateTileOwners();
+			gameData.InvalidateCachedTradeNetwork();
+
+			city.SetItemBeingProduced(ChooseProducible.Choose(city, newOwner));
+
+			log.Information("{City} changed hands from {OldOwner} to {NewOwner}", city, oldOwner, newOwner);
+			new MsgCityCaptured(city, oldOwner).send();
+
+			gameData.CheckForCivDestructionAndNotifyUi(oldOwner);
+			if (wasCapital) {
+				MovePalaceAfterLosingCapital(oldOwner, tile);
+			}
+
+			oldOwner.DoCorruptionCalculations(gameData);
+			newOwner.DoCorruptionCalculations(gameData);
 		}
 
 		private static void MovePalaceAfterLosingCapital(Player player, Tile oldCapitalLocation) {
@@ -247,6 +307,9 @@ namespace C7Engine {
 			Tile tile = gameData.map.tileAt(X, Y);
 			Player owner = tile.cityAtTile.owner;
 			bool wasCapital = tile.cityAtTile.capital;
+			if (wasCapital) {
+				SpaceRace.DestroySpaceship(owner, null);
+			}
 
 			// TODO: this will get removed eventually, since we will be capturing non-combat units,
 			// plus, it doesn't what it says, if the city is abandoned for example, ALL units are removed.

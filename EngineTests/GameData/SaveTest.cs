@@ -99,6 +99,7 @@ public class SaveTests : IClassFixture<SaveGameFixture> {
 			case MsgCivilizationDestroyed:
 			case MsgVictory:
 			case MsgCityChanged:
+			case MsgCityProductionCompleted:
 				return;
 			default:
 				throw new Exception($"Unexpected message to the UI: {msg}");

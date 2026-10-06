@@ -27,7 +27,8 @@ public partial class TechBox : TextureButton {
 	private bool isTechEraBeyondPlayerEra;
 
 	private static readonly Dictionary<string, string> TruncatedToFullTechTextMap = new();
-	private static readonly Dictionary<string, ImageTexture> CachedObsoleteBuildingTextures = new();
+	// Building icons crossed out, keyed by icon row, for the buildings a tech makes obsolete.
+	private static readonly Dictionary<int, ImageTexture> CachedObsoleteBuildingTextures = new();
 
 	private FontFile smallFont = new();
 	private Theme smallFontTheme = new();
@@ -256,7 +257,6 @@ public partial class TechBox : TextureButton {
 		return input;
 	}
 
-	// TODO: When we figure out how to load the data, load the correct textures
 	private List<ImageTexture> TechEffectTextures() {
 		List<ImageTexture> textures = new ();
 
@@ -266,11 +266,9 @@ public partial class TechBox : TextureButton {
 			textures.Add(texture);
 		}
 
-		// Buildings
+		// Buildings, wonders included
 		foreach (Building building in Buildings) {
-			// TODO : load the correct textures
-			// ImageTexture texture = ...
-			// textures.Add(texture);
+			textures.Add(TextureLoader.Load("building_icons.small", building, useCache: true));
 		}
 
 		// Terraforms
@@ -278,18 +276,16 @@ public partial class TechBox : TextureButton {
 			textures.Add(TextureLoader.Load($"{terraform.ButtonTexture}.normal"));
 		}
 
-		// Obsolete buildings
+		// Obsolete buildings, crossed out
 		foreach (Building building in ObsoleteBuildings) {
-			// if (cachedObsoleteBuildingTextures.TryGetValue(building.name, out ImageTexture texture)) {
-			// 	textures.Add(texture);
-			// } else {
-			// 	// TODO : load the correct textures
-			// 	// Image rawImage = ...
-			// 	// Image xMarkedImage = DrawXOnImage(rawImage, new Color(1, 0, 0), 1);
-			// 	// ImageTexture obsoleteBuilding = ImageTexture.CreateFromImage(xMarkedImage);
-			// 	// cachedObsoleteBuildingTextures.TryAdd(building.name, obsoleteBuilding);
-			// 	// textures.Add(texture);
-			// }
+			if (!CachedObsoleteBuildingTextures.TryGetValue(building.iconRowIndex, out ImageTexture texture)) {
+				Image icon = TextureLoader.Load("building_icons.small", building, useCache: true).GetImage();
+				icon.Decompress();
+				icon.Convert(Image.Format.Rgba8);
+				texture = ImageTexture.CreateFromImage(DrawXOnImage(icon, new Color(1, 0, 0), 1));
+				CachedObsoleteBuildingTextures[building.iconRowIndex] = texture;
+			}
+			textures.Add(texture);
 		}
 
 		return textures;

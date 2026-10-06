@@ -29,6 +29,10 @@ namespace C7GameData.Save {
 		public bool heldWithoutMoving;
 		public bool hasAttackedThisTurn;
 
+		// True once the unit's victory has produced a great leader; each unit
+		// produces at most one.
+		public bool hasProducedLeader;
+
 		public SaveUnit() { }
 
 		public SaveUnit(MapUnit unit) {
@@ -52,6 +56,7 @@ namespace C7GameData.Save {
 			isAutomated = unit.isAutomated;
 			heldWithoutMoving = unit.heldWithoutMoving;
 			hasAttackedThisTurn = unit.hasAttackedThisTurn;
+			hasProducedLeader = unit.hasProducedLeader;
 			facingDirection = unit.facingDirection;
 			experience = unit.experienceLevelKey;
 			movePointsRemaining = unit.movementPoints.remaining;
@@ -113,6 +118,7 @@ namespace C7GameData.Save {
 				isAutomated = isAutomated,
 				heldWithoutMoving = heldWithoutMoving,
 				hasAttackedThisTurn = hasAttackedThisTurn,
+				hasProducedLeader = hasProducedLeader,
 				facingDirection = facingDirection,
 				WorkerProgressTowardsJob = WorkerProgressTowardsJob,
 				WorkerJob = WorkerJob == null ? null : Lookups.Find(lookups.terraformsById, WorkerJob)

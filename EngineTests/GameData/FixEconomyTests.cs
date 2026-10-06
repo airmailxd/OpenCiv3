@@ -290,6 +290,34 @@ public class FixEconomyTests {
 		Assert.Null(government.tileModifier);
 	}
 
+	[Fact]
+	public void DespotismPenaltyDoesNotCancelBuildingTileBonuses() {
+		Player player = MakePlayer();
+		player.government.hasTilePenalty = true;
+		City city = MakeCity(player);
+		Building colossus = MakeBuilding("Colossus", greatWonder: true);
+		colossus.tileModifier = yield => {
+			if (yield.type == Tile.YieldType.Commerce && yield.baseYield > 0) {
+				yield.bonus += 1;
+			}
+		};
+		city.AddBuilding(colossus);
+
+		// A tile's 2 commerce isn't penalized, and the Colossus bonus on top
+		// of it isn't either.
+		Tile tile = new(ID.None("tile"));
+		Tile.Yield commerce = Tile.Yield.CalculateForCity(tile, 2, Tile.YieldType.Commerce, city, city.EffectiveBuildings());
+		Assert.Equal(3, commerce.yield);
+
+		// Tiles already over 2 before the bonus are still penalized.
+		commerce = Tile.Yield.CalculateForCity(tile, 3, Tile.YieldType.Commerce, city, city.EffectiveBuildings());
+		Assert.Equal(3, commerce.yield);
+
+		// Tiles without commerce get nothing.
+		commerce = Tile.Yield.CalculateForCity(tile, 0, Tile.YieldType.Commerce, city, city.EffectiveBuildings());
+		Assert.Equal(0, commerce.yield);
+	}
+
 	// Time
 
 	[Fact]

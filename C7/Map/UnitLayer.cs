@@ -11,10 +11,45 @@ public partial class UnitLayer : LooseLayer {
 	// The unit animations, effect animations, and cursor are all drawn as children attached to the looseView but aren't created and attached in
 	// any particular order so we must use the ZIndex property to ensure they're properly layered. Z indices are shared by all the map's views,
 	// so the cursor can't go below zero without going under the terrain. Instead it stays at the view's own level and is drawn behind the view
-	// (ShowBehindParent), which puts it under the hit point bars and movement LEDs the view draws, as well as under the units.
-	public const int effectAnimZIndex = 2;
+	// (ShowBehindParent), which puts it under the units. The hit point bars, movement LEDs and stack lines go on their own canvas item above the
+	// units, as in Civ3, so wide art like ships and armies doesn't cover them.
+	public const int effectAnimZIndex = 3;
+	public const int indicatorZIndex = 2;
 	public const int unitAnimZIndex = 1;
 	public const int cursorZIndex = 0;
+
+	// The canvas item the unit indicators are drawn to, a child of the view's own. See indicatorZIndex.
+	private Rid indicatorItem;
+	private LooseView indicatorView;
+
+	private void BeginIndicators(LooseView looseView) {
+		if (indicatorView != looseView) {
+			indicatorView = looseView;
+			indicatorItem = RenderingServer.CanvasItemCreate();
+			RenderingServer.CanvasItemSetParent(indicatorItem, looseView.GetCanvasItem());
+			RenderingServer.CanvasItemSetZIndex(indicatorItem, indicatorZIndex);
+			Rid item = indicatorItem;
+			looseView.TreeExiting += () => RenderingServer.FreeRid(item);
+		}
+		RenderingServer.CanvasItemClear(indicatorItem);
+	}
+
+	private void DrawIndicatorRect(Rect2 rect, Color color) {
+		RenderingServer.CanvasItemAddRect(indicatorItem, rect, color);
+	}
+
+	// An outline like CanvasItem.DrawRect(filled: false), centered on the rect's edges.
+	private void DrawIndicatorOutline(Rect2 rect, Color color, float width) {
+		Rect2 outer = rect.Grow(width / 2);
+		DrawIndicatorRect(new Rect2(outer.Position, new Vector2(outer.Size.X, width)), color);
+		DrawIndicatorRect(new Rect2(outer.Position + new Vector2(0, outer.Size.Y - width), new Vector2(outer.Size.X, width)), color);
+		DrawIndicatorRect(new Rect2(outer.Position, new Vector2(width, outer.Size.Y)), color);
+		DrawIndicatorRect(new Rect2(outer.Position + new Vector2(outer.Size.X - width, 0), new Vector2(width, outer.Size.Y)), color);
+	}
+
+	private void DrawIndicatorLine(Vector2 from, Vector2 to, Color color, float width = -1) {
+		RenderingServer.CanvasItemAddLine(indicatorItem, from, to, color, width);
+	}
 
 	public UnitLayer() {
 		unitMovementIndicators = TextureLoader.Load("ui.unit_control.movement_indicators");
@@ -281,6 +316,7 @@ public partial class UnitLayer : LooseLayer {
 
 		// Hide cursor if it's been initialized
 		cursorSprite?.Hide();
+		BeginIndicators(looseView);
 
 		AnimationController animationController = looseView.mapView.game.animationController;
 		animationController.updateAnimations();
@@ -492,7 +528,7 @@ public partial class UnitLayer : LooseLayer {
 		AnimationManager.UnitArt art = GetDisplayedUnitArt(manager, displayed);
 		drawUnitAnimFrame(looseView, unit, manager.GetUnitAnimation(art, appearance.action, appearance.direction), appearance, tileCenter);
 
-		// TODO: Figure out how we can draw the unit's HP bar above the unit and the cursor
+		// The indicators go on their own canvas item, above the units; see indicatorZIndex.
 
 		// Option A: Support all kind of zoom levels. The downside is at large zoom distances, the HP indicators dominate the screen
 		// float cameraZoom = Math.Min(looseView.mapView.cameraZoom, 1.0f);
@@ -507,9 +543,15 @@ public partial class UnitLayer : LooseLayer {
 		// An army shows the combined hit points of its members.
 		int maxHp = displayed.maxHitPoints;
 		int hp = displayed.hitPoints;
+		// Past MaxSegmentedHp, like an army of veterans, the segments would
+		// shrink to slivers, so the bar is drawn as one continuous fill as
+		// tall as the tallest segmented bar instead.
+		bool segmented = maxHp <= MaxSegmentedHp;
 		float hpIndHeight = GetHpFractionHeight(maxHp) / cameraZoom;
 		float hpIndWidth = 2 / cameraZoom;
-		float hpBarTotal = (hpIndHeight * maxHp + (maxHp - 1)/cameraZoom);
+		float hpBarTotal = segmented
+			? (hpIndHeight * maxHp + (maxHp - 1)/cameraZoom)
+			: (GetHpFractionHeight(MaxSegmentedHp) * MaxSegmentedHp + (MaxSegmentedHp - 1)) / cameraZoom;
 		Vector2 movementLedCropping = new Vector2(6, 6);
 		Vector2 movementLedSize = movementLedCropping / cameraZoom;
 		float fortifiedLineExpand = 0.5f / cameraZoom;
@@ -520,15 +562,19 @@ public partial class UnitLayer : LooseLayer {
 		if (unit.IsCombatUnit()) {
 			hpIndBackgroundRect = new Rect2((hpStartingLocation - new Vector2(0, hpBarTotal) - new Vector2(0, offsetYFromCenter)), new Vector2(hpIndWidth, hpBarTotal));
 			float hpFraction = (float)hp / maxHp;
-			looseView.DrawRect(hpIndBackgroundRect, Color.Color8(0, 0, 0));
+			DrawIndicatorRect(hpIndBackgroundRect, Color.Color8(0, 0, 0));
 			Color hpColor = GetHpColor(hpFraction, maxHp);
-			for (int i = 0; i < hp; i++) {
+			if (!segmented) {
+				float fill = hpBarTotal * Math.Clamp(hpFraction, 0f, 1f);
+				DrawIndicatorRect(new Rect2(hpIndBackgroundRect.Position + new Vector2(0, hpBarTotal - fill), new Vector2(hpIndWidth, fill)), hpColor);
+			}
+			for (int i = 0; segmented && i < hp; i++) {
 				Rect2 hpContentsRect = new Rect2(hpIndBackgroundRect.Position + new Vector2(0, hpBarTotal) - new Vector2(0, hpIndHeight + (hpIndHeight+lineWidth)*i), new Vector2(hpIndWidth, hpIndHeight));
-				looseView.DrawRect(hpContentsRect, hpColor);
+				DrawIndicatorRect(hpContentsRect, hpColor);
 			}
 			if (unit.isFortified) {
 				Rect2 fortifiedRect = hpIndBackgroundRect.Grow(fortifiedLineExpand);
-				looseView.DrawRect(fortifiedRect, white, false, width: lineWidth);
+				DrawIndicatorOutline(fortifiedRect, white, lineWidth);
 			}
 		}
 
@@ -544,7 +590,7 @@ public partial class UnitLayer : LooseLayer {
 			Vector2 moveIndUpperLeft = new Vector2((1 + 7 * moveIndIndex), 1);
 			Rect2 moveIndRect = new Rect2(moveIndUpperLeft, movementLedCropping);
 			Rect2 screenRect = new Rect2(hpIndBackgroundRect.Position - (new Vector2(2, 6) / cameraZoom), movementLedSize);
-			looseView.DrawTextureRectRegion(unitMovementIndicators, screenRect, moveIndRect);
+			RenderingServer.CanvasItemAddTextureRectRegion(indicatorItem, screenRect, unitMovementIndicators.GetRid(), moveIndRect);
 		}
 
 		float lineMarginFromBar = 3 / cameraZoom;
@@ -557,11 +603,14 @@ public partial class UnitLayer : LooseLayer {
 				lineCount = 8;
 			for (int n = 0; n < lineCount; n++) {
 				Vector2 lineStart = hpStartingLocation - new Vector2(lineWidth, offsetYFromCenter - lineMarginFromBar - lineMarginFromBar*n);
-				looseView.DrawLine(lineStart, lineStart + new Vector2(4, 0) / cameraZoom, white, width: lineWidth);
-				looseView.DrawLine(lineStart + new Vector2(0, 1) / cameraZoom, lineStart + new Vector2(4, 1) / cameraZoom, Color.Color8(75, 75, 75));
+				DrawIndicatorLine(lineStart, lineStart + new Vector2(4, 0) / cameraZoom, white, lineWidth);
+				DrawIndicatorLine(lineStart + new Vector2(0, 1) / cameraZoom, lineStart + new Vector2(4, 1) / cameraZoom, Color.Color8(75, 75, 75));
 			}
 		}
 	}
+
+	// The most hit points the bar is drawn with one segment each.
+	private const int MaxSegmentedHp = 12;
 
 	// Draw smaller pixels for the hp fractions as the max hp grows
 	private int GetHpFractionHeight(int h) {

@@ -71,6 +71,7 @@ namespace C7Engine {
 				BarbarianInteractions.SpawnBarbarians(gameData);
 
 				gameData.turn++;
+				gameData.DestroyDefeatedCivs();
 				foreach (Player player in gameData.players) {
 					player.MaybeSpawnBonusUnits(gameData);
 					player.DecrementCityUnhappinessPenalties(gameData);
@@ -84,6 +85,12 @@ namespace C7Engine {
 					player.DoPerTurnFinanceUpdates(gameData);
 					player.DoPerTurnScienceUpdates(gameData);
 
+					// Free units and upgrades from wonders like the Statue of
+					// Zeus and Leonardo's Workshop. Before city production, so
+					// a wonder finished this turn starts counting next turn.
+					WonderUnits.DoPerTurnUpdates(player, gameData);
+					player.DoGreatLibraryUpdates(gameData);
+
 					// Note that we do growth after calculating citizen moods,
 					// to ensure that the player has a chance to deal with the
 					// unhappiness of a new citizen during their turn.
@@ -93,6 +100,10 @@ namespace C7Engine {
 					player.UpdateHistory(gameData);
 					player.AdvanceGoldenAge();
 				}
+
+				// The United Nations votes once everyone has played the
+				// voting turn, and may elect a winner.
+				UnitedNations.ProcessEndOfRound(gameData);
 
 				CheckVictory(gameData);
 
@@ -149,6 +160,7 @@ namespace C7Engine {
 						PlayerRelationship.CheckForObsoleteDeals(player, gameData.players, gameData.turn);
 					}
 					new MsgStartTurn(player).send();
+					UnitedNations.AskHumanToVote(gameData, player);
 					return true;
 				}
 

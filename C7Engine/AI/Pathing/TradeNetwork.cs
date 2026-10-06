@@ -133,6 +133,35 @@ namespace C7Engine.Pathing {
 				&& segment.resourceCounts.TryGetValue(r, out int count) && count > 0;
 		}
 
+		// The player's cities grouped by the network segment they're on, in the
+		// order of the player's city list. The group with the capital comes
+		// first.
+		public List<List<City>> CityGroups(Player p) {
+			PlayerNetwork network = GetNetwork(p);
+			Dictionary<TradeNetworkSegment, List<City>> groups = new();
+			List<List<City>> result = new();
+			foreach (City c in p.cities) {
+				if (!network.cityToSegment.TryGetValue(c, out TradeNetworkSegment segment)) {
+					result.Add(new List<City> { c });
+					continue;
+				}
+				if (!groups.TryGetValue(segment, out List<City> group)) {
+					group = new();
+					groups[segment] = group;
+					result.Add(group);
+				}
+				group.Add(c);
+			}
+			City capital = GetCapital(p, network);
+			int capitalGroup = result.FindIndex(g => g.Contains(capital));
+			if (capitalGroup > 0) {
+				List<City> group = result[capitalGroup];
+				result.RemoveAt(capitalGroup);
+				result.Insert(0, group);
+			}
+			return result;
+		}
+
 		public bool ConnectedToCapital(Player p, City c) {
 			PlayerNetwork network = GetNetwork(p);
 			City capital = GetCapital(p, network);

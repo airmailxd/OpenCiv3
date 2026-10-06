@@ -36,6 +36,7 @@ public class GameSetup {
 	public List<SelectedOpponent> opponents { get; init; } = [];
 	public VictoryConditions victoryConditions { get; set; }
 	public bool showScoreboard { get; init; } = true;
+	public bool coreCitiesFreeOfCorruption { get; init; } = false;
 
 	ID.Factory ids;
 
@@ -44,6 +45,7 @@ public class GameSetup {
 
 		save.VictoryConditions = victoryConditions;
 		save.Rules.ShowScoreboard = showScoreboard;
+		save.Rules.CoreCitiesFreeOfCorruption = coreCitiesFreeOfCorruption;
 
 		if (save.Map.tiles.Count == 0) {
 			log.Information("Starting map generation");

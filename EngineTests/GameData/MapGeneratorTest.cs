@@ -28,6 +28,7 @@ public class GameMapGeneratorTest {
 		Bgra32 jungle = new((byte)0, (byte)60, (byte)0);
 		Bgra32 forest = new((byte)107,(byte)142,(byte)35);
 		Bgra32 marsh = new((byte)46,(byte)139,(byte)87);
+		Bgra32 floodPlain = new((byte)173,(byte)216,(byte)230);
 
 		using (Image<Bgra32> image = new(mapWidthPx * maps.Count, mapHeightPx * maps[0].Count)) {
 			for (int i = 0; i < maps.Count; ++i) {
@@ -110,6 +111,7 @@ public class GameMapGeneratorTest {
 		terrainTypes.Add(new TerrainType() { Key = "plains" });
 		terrainTypes.Add(new TerrainType() { Key = "desert" });
 		terrainTypes.Add(new TerrainType() { Key = "tundra" });
+		terrainTypes.Add(new TerrainType() { Key = "flood plain" });
 		terrainTypes.Add(new TerrainType() { Key = "coast" });
 		terrainTypes.Add(new TerrainType() { Key = "sea" });
 		terrainTypes.Add(new TerrainType() { Key = "ocean" });
@@ -183,5 +185,20 @@ public class GameMapGeneratorTest {
 		Assert.Equal(Describe(maps[1][0]), Describe(Generate(landform, Oceans[1], seed)));
 
 		SaveMapsAsWaterLandPng(maps, $"debug_{landform.ToString().ToLowerInvariant()}_maps.png");
+	}
+
+	[Theory]
+	[InlineData(WorldCharacteristics.Landform.Archipelago)]
+	[InlineData(WorldCharacteristics.Landform.Continents)]
+	[InlineData(WorldCharacteristics.Landform.Pangaea)]
+	public void DesertsAlongRiversAreFloodPlains(WorldCharacteristics.Landform landform) {
+		GameMap map = Generate(landform, WorldCharacteristics.OceanCoverage.Percent_60, seed: 20240501);
+
+		Assert.DoesNotContain(map.tiles, t => t.overlayTerrainType.IsDesert && t.BordersRiver());
+		Assert.All(map.tiles.Where(t => t.overlayTerrainType.IsFloodPlain), t => {
+			Assert.True(t.BordersRiver(), $"Flood plain at {t.XCoordinate},{t.YCoordinate} doesn't border a river");
+			Assert.True(t.baseTerrainType.IsDesert, $"Flood plain at {t.XCoordinate},{t.YCoordinate} has base {t.baseTerrainType.Key}");
+		});
+		Assert.Contains(map.tiles, t => t.overlayTerrainType.IsFloodPlain);
 	}
 }

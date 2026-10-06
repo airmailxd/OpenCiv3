@@ -88,6 +88,7 @@ namespace C7GameData.Save {
 				History = data.history,
 				VictoryConditions = data.victoryConditions,
 				GameOver = data.gameOver,
+				UnitedNations = data.unitedNations,
 				Winner = data.winner != null ? new SavePlayer(data.winner, data.map) : null,
 				TerrainImprovements = data.terrainImprovements.ConvertAll(ti => ti.ToSaveTerrainImprovement()),
 				GameModeConfig = data.gameModeConfig,
@@ -149,6 +150,8 @@ namespace C7GameData.Save {
 			data.defaultExperienceLevelKey = DefaultExperienceLevel;
 			data.defaultExperienceLevel = data.experienceLevels.Find(el => el.key == DefaultExperienceLevel);
 
+			data.RemoveRelationshipsWithDefeatedCivs();
+
 			data.UpdateTileOwners();
 			data.InvalidateCachedTradeNetwork();
 
@@ -181,6 +184,12 @@ namespace C7GameData.Save {
 			}
 			if (conditions?.AllowDominationVictory == true) {
 				data.victories.Add(new DominationVictory(conditions.DominationTerritoryPercent, conditions.DominationPopulationPercent));
+			}
+			if (conditions?.AllowSpaceRaceVictory == true) {
+				data.victories.Add(new SpaceRaceVictory());
+			}
+			if (conditions?.AllowDiplomaticVictory == true) {
+				data.victories.Add(new DiplomaticVictory());
 			}
 
 			// TODO: Does the original have a switch to have the game never end?
@@ -239,6 +248,7 @@ namespace C7GameData.Save {
 				victoryConditions = VictoryConditions,
 				history = History,
 				GreatWondersBuilt = GreatWondersBuilt,
+				unitedNations = UnitedNations ?? new UnitedNationsState(),
 			};
 
 			return data;
@@ -253,7 +263,7 @@ namespace C7GameData.Save {
 			data.map = Map.ToGameMap(data);
 
 			// players need game map to populate tile knowledge
-			data.players = Players.ConvertAll(player => player.ToPlayer(data.map, Civilizations, data.governments, data.techs, data.rules, data.alliances));
+			data.players = Players.ConvertAll(player => player.ToPlayer(data.map, Civilizations, data.governments, data.techs, data.rules, data.alliances, data.terrainImprovements));
 		}
 
 		private void ConvertTerrainImprovements(GameData gameData) {
@@ -326,8 +336,14 @@ namespace C7GameData.Save {
 				if (saveBuilding.requiredTech != null) {
 					building.requiredTech = techDict[saveBuilding.requiredTech];
 				}
+				if (saveBuilding.doublesHappinessOf != null) {
+					building.doublesHappinessOf = buildingDict[saveBuilding.doublesHappinessOf];
+				}
 				if (saveBuilding.renderedObsoleteBy != null) {
 					building.renderedObsoleteBy = techDict[saveBuilding.renderedObsoleteBy];
+				}
+				if (saveBuilding.requiredGovernment != null) {
+					building.requiredGovernment = data.governments.Find(g => g.id == saveBuilding.requiredGovernment);
 				}
 				if (saveBuilding.greatWonderProperties?.buildingGainedInEveryCity?.Length > 0) {
 					building.greatWonderProperties.buildingGainedInEveryCity = buildingDict[saveBuilding.greatWonderProperties.buildingGainedInEveryCity];
@@ -526,6 +542,7 @@ namespace C7GameData.Save {
 		public VictoryConditions VictoryConditions = new();
 		public bool GameOver { get; set; }
 		public SavePlayer Winner { get; set; }
+		public UnitedNationsState UnitedNations = new();
 		public List<SaveTech> Techs = new();
 		public List<CitizenType> CitizenTypes = new();
 		public List<SaveTerraform> TerraForms = new();

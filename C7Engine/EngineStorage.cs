@@ -32,6 +32,10 @@ namespace C7Engine {
 		// A deal one human proposed to another, waiting for their answer.
 		internal static MsgProposeDeal pendingDeal;
 
+		// How the human an AI told to leave its territory answered: true to
+		// withdraw, false to refuse, null if they haven't answered.
+		internal static bool? territoryDemandAnswer;
+
 		// The sender of the message being processed, so the messages it causes
 		// go back to them.
 		internal static ID processingSenderID;
@@ -113,6 +117,7 @@ namespace C7Engine {
 			uiFollowsActivePlayer = true;
 			diplomacyPlayerID = null;
 			pendingDeal = null;
+			territoryDemandAnswer = null;
 		}
 
 		// Drops the work left over from a previous game, so it can't block
@@ -128,6 +133,7 @@ namespace C7Engine {
 			processingSenderID = null;
 			diplomacyPlayerID = null;
 			pendingDeal = null;
+			territoryDemandAnswer = null;
 			UnitInteractions.ResetForNewGame();
 			// The tile change log would otherwise keep the previous game alive.
 			TileChangeJournal.Reset();

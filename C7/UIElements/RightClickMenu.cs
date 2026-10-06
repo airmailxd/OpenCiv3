@@ -38,7 +38,7 @@ public partial class RightClickMenu : VBoxContainer {
 		this.Show();
 
 		// Move "position" if the menu would extend past the right or bottom edges of the screen
-		Vector2 offScreen = position + this.Size - DisplayServer.WindowGetSize();
+		Vector2 offScreen = position + this.Size - GetViewportRect().Size;
 		if (offScreen.X > 0) {
 			position.X = Mathf.Max(0, position.X - offScreen.X);
 		}
@@ -192,7 +192,18 @@ public partial class RightClickTileMenu : RightClickMenu {
 			.SelectMany(g => g.OrderBy(u => u.CanCarryUnits() ? int.MinValue : 0))
 			.ToList();
 
+		int orderableCount = 0;
 		foreach (MapUnit unit in playerUnits) {
+			// A unit locked in an army takes no orders of its own, so it's
+			// only listed, greyed out, to show what the army is made of.
+			if (unit.IsLockedInArmy()) {
+				var memberItem = AddItem(unit.Describe(), null);
+				ApplyAltItemOverrides(memberItem);
+				memberItem.Disabled = true;
+				continue;
+			}
+
+			orderableCount++;
 			bool isFortified = isUnitFortified(unit, uiUpdatedUnitStates);
 			fortifiedCount += isFortified ? 1 : 0;
 			string actionName = getUnitAction(unit, isFortified);
@@ -201,7 +212,7 @@ public partial class RightClickTileMenu : RightClickMenu {
 			if (isUnitLoadedOnTransport(unit))
 				ApplyAltItemOverrides(menuItem);
 		}
-		int unfortifiedCount = playerUnits.Count - fortifiedCount;
+		int unfortifiedCount = orderableCount - fortifiedCount;
 
 		if (fortifiedCount > 1) {
 			AddItem($"Wake All ({fortifiedCount} units)", () => ForAll(tile.XCoordinate, tile.YCoordinate, false));
@@ -274,6 +285,17 @@ public partial class RightClickTileMenu : RightClickMenu {
 			if (!nonPlayerUnits[0].owner.isBarbarians)
 				AddItem($"Contact {nonPlayerUnits[0].owner.civilization.name}", contactCiv);
 		}
+
+		// Diplomatic and espionage missions against a foreign city.
+		City foreignCity = tile.cityAtTile;
+		if (foreignCity != null && foreignCity.owner != game.controller && !foreignCity.owner.isBarbarians
+				&& PlayerRelationship.TryGetRelationship(game.controller, foreignCity.owner, out _)) {
+			AddTreeSeparator();
+			AddItem("Diplomatic Missions", () => {
+				this.CloseAndDelete();
+				game.ShowEspionageMissions(foreignCity.owner, foreignCity);
+			});
+		}
 	}
 
 	private static void ApplyAltItemOverrides(Button menuItem) {
@@ -282,6 +304,8 @@ public partial class RightClickTileMenu : RightClickMenu {
 		menuItem.AddThemeColorOverride("font_hover_color", grey);
 		menuItem.AddThemeColorOverride("font_pressed_color", grey);
 		menuItem.AddThemeColorOverride("font_focus_color", grey);
+		menuItem.AddThemeColorOverride("font_disabled_color", Color.Color8(140, 140, 140, 255));
+		menuItem.AddThemeStyleboxOverride("disabled", AltItemStyleBox(Color.Color8(255, 247, 222, 255)));
 		menuItem.AddThemeStyleboxOverride("normal", AltItemStyleBox(Color.Color8(255, 247, 222, 255)));
 		menuItem.AddThemeStyleboxOverride("hover", AltItemStyleBox(Color.Color8(255, 189, 107, 255)));
 		menuItem.AddThemeStyleboxOverride("pressed", AltItemStyleBox(Color.Color8(140, 200, 200, 255)));
@@ -302,7 +326,7 @@ public partial class RightClickTileMenu : RightClickMenu {
 			}
 			toSelect ??= gameData.GetUnit(id);
 
-			if (toSelect != null && toSelect.owner == game.controller) {
+			if (toSelect != null && toSelect.owner == game.controller && !toSelect.IsLockedInArmy()) {
 				game.SelectUnit(toSelect);
 
 				new MsgSetFortification(toSelect.id, false).send();
@@ -320,7 +344,7 @@ public partial class RightClickTileMenu : RightClickMenu {
 			Tile tile = gameData.map.tileAt(tileX, tileY);
 			Dictionary<ID, bool> modified = new Dictionary<ID, bool>();
 			foreach (MapUnit unit in tile.unitsOnTile) {
-				if (unit.isFortified != isFortify) {
+				if (unit.isFortified != isFortify && !unit.IsLockedInArmy()) {
 					modified[unit.id] = isFortify;
 					new MsgSetFortification(unit.id, isFortify).send();
 
@@ -417,8 +441,13 @@ public partial class RightClickChooseProductionMenu : RightClickMenu {
 		});
 	}
 
+	// Shift adds the item to the city's production queue instead.
 	public void ChooseProduction(string producibleName) {
-		new MsgChooseProduction(cityID, producibleName).send();
+		if (Input.IsKeyPressed(Key.Shift)) {
+			new MsgEnqueueProduction(cityID, producibleName).send();
+		} else {
+			new MsgChooseProduction(cityID, producibleName).send();
+		}
 		CloseAndDelete();
 	}
 }

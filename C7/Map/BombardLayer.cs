@@ -66,7 +66,10 @@ public partial class BombardLayer : LooseLayer {
 
 		MapView mapView = looseView.mapView;
 		var unit = bombardInfo.bombardingUnit;
-		var range = unit.unitType.bombardRange;
+		// ICBMs can strike anywhere, so instead of a grid of every tile in range
+		// only the tile under the mouse is checked.
+		bool unlimitedRange = unit.IsNuclearWeapon() && unit.unitType.isICBM;
+		var range = unlimitedRange ? 0 : unit.unitType.bombardRange;
 		var reachableTiles = GetTileSquare(tile, range);
 
 		var key = (bombardInfo, tile, range, looseView.mapView.contentVersion);
@@ -82,7 +85,7 @@ public partial class BombardLayer : LooseLayer {
 
 		// Choose one of two cursors depending on mouse tile hover
 		if (bombardInfo.mouseTile != null) {
-			var bombardable = bombardTiles.Contains(bombardInfo.mouseTile);
+			var bombardable = unlimitedRange ? unit.CanBombardTile(bombardInfo.mouseTile) : bombardTiles.Contains(bombardInfo.mouseTile);
 			if (bombardable) {
 				SetCursor(bombardInfo, bombardCursorTexture);
 				drawTargetBombardTile(looseView, mapView.NearestTileCenter(bombardInfo.mouseTile, tileCenter));

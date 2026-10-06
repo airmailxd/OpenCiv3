@@ -1,6 +1,7 @@
 -- Base paths
 local ROOT = "Art/"
 local ADVISORS = "Art/Advisors/"
+local ADVISOR_TAB = "Art/SmallHeads/advisor_tab.pcx"
 
 local BUTTONS = "Art/buttonsFINAL.pcx"
 local CHECKBOXES = "Art/3checkboxes-USE.pcx"
@@ -64,6 +65,19 @@ textures.advisors = {
   },
   military = {
     background = ADVISORS .. "military.pcx",
+    -- Whether we're at peace or war with a civ, in the intelligence list.
+    status = {
+      peace = {
+        path = ADVISORS .. "militaryNAV.pcx",
+        crop_region = { 1, 1, 11, 11 },
+        shadows = false,
+      },
+      war = {
+        path = ADVISORS .. "militaryNAV.pcx",
+        crop_region = { 13, 1, 11, 11 },
+        shadows = false,
+      },
+    },
   },
   domestic = {
     background = {
@@ -143,6 +157,26 @@ textures.advisors = {
     background = ADVISORS .. "culture.pcx",
   }
 }
+
+-- The column of advisor faces on the left of every advisor screen. Each row of
+-- advisor_tab.pcx is one advisor and each column one state of its button, in
+-- 56 px cells holding 54 px faces.
+textures.advisors.sidebar = {}
+for row, advisor in ipairs({ "domestic", "trade", "military", "foreign", "culture", "science" }) do
+  local function cell(col)
+    return {
+      path = ADVISOR_TAB,
+      crop_region = { 1 + col * 56, 2 + (row - 1) * 56, 54, 54 },
+      shadows = false,
+    }
+  end
+  textures.advisors.sidebar[advisor] = {
+    normal = cell(0),
+    hover = cell(1),
+    pressed = cell(2),
+    active = cell(2),
+  }
+end
 
 textures.screens = {
   wonders = {
@@ -320,6 +354,20 @@ textures.icons = {
   food = {
 	  path = CITY_SCREEN_ICONS,
 	  crop_region = { 195, 1, 21, 30 },
+  },
+  -- The smaller yield icons Civ3 draws on the tiles a city works, cropped
+  -- tight so they can be laid out edge to edge.
+  map_shield = {
+    path = CITY_SCREEN_ICONS,
+    crop_region = { 412, 11, 13, 14 },
+  },
+  map_commerce = {
+    path = CITY_SCREEN_ICONS,
+    crop_region = { 443, 10, 15, 15 },
+  },
+  map_food = {
+    path = CITY_SCREEN_ICONS,
+    crop_region = { 474, 10, 16, 15 },
   },
   eaten_food = {
 	  path = CITY_SCREEN_ICONS,

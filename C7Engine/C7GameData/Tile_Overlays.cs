@@ -31,10 +31,25 @@ public partial class Tile {
 		if (ruins != null)
 			tile.overlays.Add(ruins);
 	}
+	// Clears the rubble of a destroyed city, if there is any.
+	public static void TryRemoveRuins(Tile tile) {
+		var ruins = FindTerrainImprovement(RUINS);
+		if (ruins != null && tile.overlays.HasImprovement(ruins))
+			tile.overlays.Remove(ruins);
+	}
 	public static void TryAddCraters(Tile tile) {
 		var craters = FindTerrainImprovement(CRATERS);
 		if (craters != null)
 			tile.overlays.Add(craters);
+	}
+
+	// Nuclear fallout, left by nuclear detonations. Returns whether it was added.
+	public static bool TryAddFallout(Tile tile) {
+		var fallout = FindTerrainImprovement(FALLOUT);
+		if (fallout == null)
+			return false;
+		tile.overlays.Add(fallout);
+		return true;
 	}
 
 	private static bool AnyNeighbor(Tile tile, System.Func<Tile, bool> predicate) {
@@ -70,6 +85,7 @@ public partial class Tile {
 		public const string RUINS = "ruins";
 		public const string POLLUTION = "pollution";
 		public const string CRATERS = "craters";
+		public const string FALLOUT = "fallout";
 
 		private readonly Tile tile;
 		public Dictionary<Layer, TerrainImprovement> terrainImprovementByLayer { get; private set; } = [];
@@ -205,6 +221,7 @@ public partial class Tile {
 		public static bool IsManMade(TerrainImprovement i) {
 			return i.layer != Layer.Craters
 				&& i.layer != Layer.Pollution
+				&& i.layer != Layer.Fallout
 				&& i.layer != Layer.Ruins;
 		}
 

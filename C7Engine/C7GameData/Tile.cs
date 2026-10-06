@@ -150,6 +150,9 @@ namespace C7GameData {
 		public bool HasRuins() {
 			return this.overlays.HasImprovementWithKey(RUINS, Layer.Ruins);
 		}
+		public bool HasFallout() {
+			return this.overlays.HasImprovementWithKey(FALLOUT, Layer.Fallout);
+		}
 		public bool HasCraters() {
 			return this.overlays.HasImprovementWithKey(CRATERS, Layer.Craters);
 		}

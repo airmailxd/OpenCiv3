@@ -251,12 +251,18 @@ namespace C7.Map {
 		}
 
 		// The label shows what the city is doing, which is worked out from its yields, so it's only updated when the city may have changed.
-		public void UpdateContent() {
-			int turnsUntilGrowth = city.TurnsUntilGrowth();
+		// As in Civ3, other players' cities only show their name and size, not their growth or production.
+		public void UpdateContent(bool showDetails) {
+			centerDivider.Visible = showDetails;
+			productionLabel.Visible = showDetails;
+
+			int turnsUntilGrowth = showDetails ? city.TurnsUntilGrowth() : 0;
 			string turnsUntilGrowthText = turnsUntilGrowth == int.MaxValue || turnsUntilGrowth < 0 ? "- -" : "" + turnsUntilGrowth;
 
 			string productionText;
-			if (city.itemBeingProduced != null) {
+			if (!showDetails) {
+				productionText = "";
+			} else if (city.itemBeingProduced != null) {
 				int turnsUntilProductionFinished = city.TurnsUntilProductionFinished();
 				productionText = turnsUntilProductionFinished == int.MaxValue
 					? $"{city.itemBeingProduced.name} : --"
@@ -265,7 +271,7 @@ namespace C7.Map {
 				productionText = "-- : --";
 			}
 
-			SetText(cityNameLabel, ref cityNameText, $"{city.name} : {turnsUntilGrowthText}");
+			SetText(cityNameLabel, ref cityNameText, showDetails ? $"{city.name} : {turnsUntilGrowthText}" : city.name);
 			SetText(productionLabel, ref productionLabelText, productionText);
 			SetText(popSizeLabel, ref popSizeText, city.residents.Count.ToString());
 

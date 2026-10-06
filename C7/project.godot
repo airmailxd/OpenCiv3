@@ -22,12 +22,14 @@ config/icon="res://icon.png"
 
 GlobalSingleton="*res://GlobalSingleton.cs"
 LogManager="*res://LogManager.cs"
+DisplayScale="*res://DisplayScale.cs"
 GlobalAudioManager="*res://Audio/AudioManager.tscn"
 
 [display]
 
 window/size/window_width_override=1440
 window/size/window_height_override=1080
+window/size/mode=2
 window/dpi/allow_hidpi=false
 window/per_pixel_transparency/allowed=true
 
@@ -43,6 +45,7 @@ limits=false
 [gui]
 
 theme/custom="res://C7Theme.tres"
+timers/tooltip_delay_sec=0.0
 
 [input]
 

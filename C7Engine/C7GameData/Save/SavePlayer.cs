@@ -32,6 +32,16 @@ namespace C7GameData.Save {
 		// of tileKnowledge when every known tile is on the map.
 		public string knownTileIndices;
 
+		// The known tiles whose terrain improvements have changed since this
+		// player last saw them, with the improvements (by key) the player
+		// remembers. The player remembers every other known tile as it is.
+		public List<RememberedTile> outdatedTiles = new();
+
+		public class RememberedTile {
+			public TileLocation tile;
+			public List<string> improvements = new();
+		}
+
 		// A map from player id to the relationship this player has with the other player.
 		public Dictionary<string, PlayerRelationship> playerRelationships = new();
 
@@ -87,12 +97,16 @@ namespace C7GameData.Save {
 		// Whether one of this player's armies has won a battle.
 		public bool hasVictoriousArmy = false;
 
+		// How many of each spaceship part (by index) the player has built.
+		public List<int> spaceshipParts = new();
+
 		// Used when importing from .biq, to make it easier to distinguish barbarians from other players.
 		// It's not meant to be saved in the json.
 		[JsonIgnore]
 		public bool isBarbarian { get; init; }
 
-		public Player ToPlayer(GameMap map, List<Civilization> civilizations, List<Government> governments, List<Tech> techs, Rules rules, HashSet<Alliance> alliances) {
+		public Player ToPlayer(GameMap map, List<Civilization> civilizations, List<Government> governments, List<Tech> techs, Rules rules, HashSet<Alliance> alliances,
+				List<TerrainImprovement> terrainImprovements) {
 			Player player = new Player{
 				id = id,
 				isHuman = human,
@@ -123,6 +137,7 @@ namespace C7GameData.Save {
 				government = governments.Find(x => x.id == governmentId),
 				rules = rules,
 				hasVictoriousArmy = hasVictoriousArmy,
+				spaceshipParts = spaceshipParts == null ? new() : new List<int>(spaceshipParts),
 			};
 			if (!string.IsNullOrEmpty(knownTileIndices)) {
 				foreach (int index in DecodeTileIndices(knownTileIndices)) {
@@ -134,6 +149,25 @@ namespace C7GameData.Save {
 			}
 			foreach (TileLocation tile in tileKnowledge) {
 				player.tileKnowledge.AddTileToKnown(map.tileAt(tile.X, tile.Y));
+			}
+			if (outdatedTiles != null && outdatedTiles.Count > 0) {
+				Dictionary<string, TerrainImprovement> improvementsByKey = new();
+				foreach (TerrainImprovement ti in terrainImprovements) {
+					if (ti.key != null) {
+						improvementsByKey.TryAdd(ti.key, ti);
+					}
+				}
+				foreach (RememberedTile remembered in outdatedTiles) {
+					Tile tile = map.tileAt(remembered.tile.X, remembered.tile.Y);
+					if (tile == null || tile == Tile.NONE) {
+						continue;
+					}
+					TerrainImprovement[] improvements = remembered.improvements
+						.Select(key => improvementsByKey.GetValueOrDefault(key))
+						.Where(ti => ti != null)
+						.ToArray();
+					player.tileKnowledge.RememberImprovements(tile, improvements);
+				}
 			}
 			foreach (ID techId in player.civilization.startingTechs) {
 				if (!player.knownTechs.Contains(techId)) {
@@ -188,6 +222,12 @@ namespace C7GameData.Save {
 			} else {
 				tileKnowledge = player.tileKnowledge.AllKnownTiles().ConvertAll(tile => new TileLocation(tile));
 			}
+			foreach (KeyValuePair<Tile, TerrainImprovement[]> memory in player.tileKnowledge.OutdatedMemories()) {
+				outdatedTiles.Add(new RememberedTile {
+					tile = new TileLocation(memory.Key),
+					improvements = memory.Value.Select(ti => ti.key).ToList(),
+				});
+			}
 			turnsUntilPriorityReevaluation = player.turnsUntilPriorityReevaluation;
 			knownTechs = new HashSet<ID>(player.knownTechs);
 			currentlyResearchedTech = player.currentlyResearchedTech;
@@ -206,6 +246,7 @@ namespace C7GameData.Save {
 			inAnarchyUntilTurn = player.inAnarchyUntilTurn;
 			governmentId = player.government.id;
 			hasVictoriousArmy = player.hasVictoriousArmy;
+			spaceshipParts = new List<int>(player.spaceshipParts);
 
 			foreach (KeyValuePair<ID, PlayerRelationship> keyValuePair in player.playerRelationships) {
 				playerRelationships.Add(keyValuePair.Key.ToString(), keyValuePair.Value);

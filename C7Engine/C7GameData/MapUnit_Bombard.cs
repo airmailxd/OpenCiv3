@@ -35,6 +35,10 @@ namespace C7GameData {
 		public bool CanBombardTile(Tile tile, out BombardTarget bombardTarget) {
 			bombardTarget = BombardTarget.None;
 
+			// Nuclear weapons are fired with the bombard order.
+			if (IsNuclearWeapon())
+				return CanNukeTile(tile, out bombardTarget);
+
 			if (this.location.DistanceTo(tile) > this.unitType.bombardRange)
 				return false;
 
@@ -98,6 +102,11 @@ namespace C7GameData {
 
 		public async Task Bombard(Tile tile) {
 			// Could check canBombardTile(..) again, but no need really
+
+			if (IsNuclearWeapon()) {
+				await NuclearStrike(tile);
+				return;
+			}
 
 			MapUnit target = tile.FindTopDefenderForBombard(this);
 

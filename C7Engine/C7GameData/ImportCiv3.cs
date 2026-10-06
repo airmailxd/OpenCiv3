@@ -53,6 +53,10 @@ namespace C7GameData {
 		}
 		private BiqData _defaultBiq;
 		private string defaultBiqPath;
+		// Buildings that need a government, by the government's BIQ index.
+		// Governments are imported after buildings, so their IDs are filled
+		// in once they exist.
+		private readonly List<(SaveBuilding building, int government)> buildingRequiredGovernments = new();
 		private SavData savData;
 		private PediaIcons pediaIcons;
 		private readonly ID.Factory ids;
@@ -108,6 +112,11 @@ namespace C7GameData {
 			ImportBarbarianInfo();
 			ImportCitizenTypes();
 			ImportGovernments();
+			foreach ((SaveBuilding building, int government) in buildingRequiredGovernments) {
+				if (government < save.Governments.Count) {
+					building.requiredGovernment = save.Governments[government].id;
+				}
+			}
 			ImportDifficulties();
 			ImportRules();
 		}
@@ -229,11 +238,27 @@ namespace C7GameData {
 				}
 				i++;
 			}
+			MarkLakes();
 
 			// make barbarians unpickable
 			save.Players.Where(p => p.isBarbarian).ToList().ForEach(p => p.canBePicked = false);
 
 			return save;
+		}
+
+		// Marks the tiles of small bodies of water as fresh water lakes, as
+		// GameMap.recomputeContinents does for generated maps. Civ3 gives each
+		// body of water its own continent number.
+		private void MarkLakes() {
+			HashSet<string> waterTerrains = save.TerrainTypes.Where(t => t.IsWater).Select(t => t.Key).ToHashSet();
+			foreach (IGrouping<int, SaveTile> body in save.Map.tiles.Where(t => waterTerrains.Contains(t.baseTerrain)).GroupBy(t => t.continent)) {
+				// TODO: share the size limit with recomputeContinents.
+				if (body.Count() <= 20) {
+					foreach (SaveTile t in body) {
+						t.isFreshWater = true;
+					}
+				}
+			}
 		}
 
 		private void ImportSavHistory() {
@@ -393,6 +418,7 @@ namespace C7GameData {
 				save.Map.tiles.Add(tile);
 				i++;
 			}
+			MarkLakes();
 
 			// The rest of the fog of war is done unit by unit; each unit can see their
 			// own tile and the neighbor tiles.
@@ -735,9 +761,16 @@ namespace C7GameData {
 				player.governmentId = save.Governments[leader.Government].id;
 				player.inAnarchyUntilTurn = save.TurnNumber + leader.AnarchyTurnsLeft;
 				player.primaryColorIndex = leader.Color;
+				player.hadGoldenAge = leader.GoldenAgeEndTurn >= 0;
+				// The golden age still runs on its end turn.
+				player.goldenAgeTurnsRemaining = Math.Max(0, leader.GoldenAgeEndTurn - save.TurnNumber + 1);
 
 				player.defeated = IsDefeated(player, leader);
 				player.hasVictoriousArmy = leader.HasVictoriousArmy;
+				short[] spaceshipParts = savData.LeadSpaceshipParts?[i];
+				if (spaceshipParts != null && spaceshipParts.Any(n => n > 0)) {
+					player.spaceshipParts = spaceshipParts.Select(n => (int)n).ToList();
+				}
 
 				save.Players.Add(player);
 				i++;
@@ -761,6 +794,8 @@ namespace C7GameData {
 							refuseContactUntilTurn =
 								refuseContactForTurns[j] > 0 ?
 									save.TurnNumber + refuseContactForTurns[j] : -1,
+							hasEmbassy = leader.HasEmbassyWith(j),
+							hasSpy = leader.HasSpyIn(j),
 						});
 					}
 				}
@@ -1056,8 +1091,6 @@ namespace C7GameData {
 				}
 			}
 
-			// TODO: create actual embassies
-
 			// In scenarios where there isn't any actual information about player relationships,
 			// the entry point of these relationships seems to be the embassies.
 			// Players that start with embassies, are aware of each other.
@@ -1069,6 +1102,7 @@ namespace C7GameData {
 						warDeclarationWithRoPActiveCount = 0,
 						wasSneakAttacked = false,
 						refuseContactUntilTurn = -1,
+						hasEmbassy = true,
 					};
 					playerWithEmbassy.playerRelationships.Add(other.id.ToString(), pr);
 
@@ -1513,6 +1547,12 @@ namespace C7GameData {
 				if (prto.Amphibious) prototype.flags.Add(SaveUnitPrototype.Flag.Amphibious);
 				if (prto.ZoneOfControl != 0) prototype.flags.Add(SaveUnitPrototype.Flag.ZoneOfControl);
 				if (prto.StartsGoldenAge) prototype.flags.Add(SaveUnitPrototype.Flag.StartsGoldenAge);
+				if (prto.NuclearWeapon) prototype.flags.Add(SaveUnitPrototype.Flag.NuclearWeapon);
+				if (prto.ICBM) prototype.flags.Add(SaveUnitPrototype.Flag.ICBM);
+				if (prto.TacticalMissile) prototype.flags.Add(SaveUnitPrototype.Flag.TacticalMissile);
+				if (prto.SinkInSea) prototype.flags.Add(SaveUnitPrototype.Flag.SinksInSea);
+				if (prto.SinkInOcean) prototype.flags.Add(SaveUnitPrototype.Flag.SinksInOcean);
+				if (prto.Leader) prototype.flags.Add(SaveUnitPrototype.Flag.Leader);
 
 				prototype.actions.UnionWith(GetUnitActions(prto));
 				prototype.terraformActions.UnionWith(GetUnitTerraforms(prto).Select(tfKey => terraformIdByCiv3Key[tfKey]));
@@ -1698,6 +1738,25 @@ namespace C7GameData {
 
 				if (bldg.RequiredBuilding != -1) {
 					building.requiredBuilding = Bldg[bldg.RequiredBuilding].Name;
+					building.requiredBuildingCount = bldg.NumberOfRequiredBuildings;
+				}
+
+				if (bldg.RequiredGovernment >= 0) {
+					buildingRequiredGovernments.Add((building, bldg.RequiredGovernment));
+				}
+
+				building.contentFacesAllCities = bldg.ContentFacesAllCities - bldg.UnhappyFacesAllCities;
+				building.pollution = bldg.Pollution;
+				if (bldg.SpaceshipPart >= 0) {
+					building.spaceshipPart = bldg.SpaceshipPart;
+				}
+				if (bldg.DoublesHappiness >= 0) {
+					building.doublesHappinessOf = Bldg[bldg.DoublesHappiness].Name;
+				}
+				if (bldg.CanBuildUnits && bldg.UnitProduced >= 0) {
+					PRTO[] prto = biq.Prto ?? defaultBiq.Prto;
+					building.unitProduced = prto[bldg.UnitProduced].Name;
+					building.unitFrequency = bldg.UnitFrequency;
 				}
 
 				if (bldg.RequiredResource1 != -1) {
@@ -1747,19 +1806,41 @@ namespace C7GameData {
 				(bldg.IncreasesShieldsInWater, SaveBuilding.Flag.IncreasesShieldsInWater),
 				(bldg.IncreasesFoodInWater, SaveBuilding.Flag.IncreasesFoodInWater),
 				(bldg.IncreasesTradeInWater, SaveBuilding.Flag.IncreasesTradeInWater),
+				(bldg.IncreasedTrade, SaveBuilding.Flag.IncreasedTrade),
 				(bldg.AllowsCitySize2, SaveBuilding.Flag.AllowsCitySize2),
 				(bldg.AllowsCitySize3, SaveBuilding.Flag.AllowsCitySize3),
 				(bldg.DoublesCityGrowthRate, SaveBuilding.Flag.DoublesCityGrowthRate),
+				(bldg.ReplacesOtherBuildings, SaveBuilding.Flag.ReplacesOtherBuildings),
 				(bldg.TreasuryEarnsInterest, SaveBuilding.Flag.TreasuryEarnsInterest),
 				(bldg.AllowsBuildArmy, SaveBuilding.Flag.AllowsBuildArmy),
 				(bldg.AllowsLargerArmies, SaveBuilding.Flag.AllowsLargerArmies),
 				(bldg.RequiresVictoriousArmy, SaveBuilding.Flag.RequiresVictoriousArmy),
 				(bldg.Plus50PercentResearch, SaveBuilding.Flag.Plus50PercentResearch),
+				(bldg.DoublesResearchOutput, SaveBuilding.Flag.DoublesResearchOutput),
 				(bldg.Plus50PercentLuxury, SaveBuilding.Flag.Plus50PercentLuxury),
 				(bldg.Plus50PercentCommerce, SaveBuilding.Flag.Plus50PercentCommerce),
+				(bldg.PaysTradeMaintenance, SaveBuilding.Flag.PaysTradeMaintenance),
 				(bldg.AllowsEnemyTerritoryHealing, SaveBuilding.Flag.AllowsEnemyTerritoryHealing),
 				(bldg.ReducesWarWeariness, SaveBuilding.Flag.ReducesWarWeariness),
 				(bldg.ReducedWarWeariness, SaveBuilding.Flag.ReducesWarWearinessEverywhere),
+				(bldg.ContinentalMoodEffects, SaveBuilding.Flag.ContinentalMoodEffects),
+				(bldg.SafeSeaTravel, SaveBuilding.Flag.SafeSeaTravel),
+				(bldg.GainAnyTechKnownByTwoCivs, SaveBuilding.Flag.GainAnyTechKnownByTwoCivs),
+				(bldg.DoubleCombatVsBarbarians, SaveBuilding.Flag.DoubleCombatVsBarbarians),
+				(bldg.IncreasedShipMovement, SaveBuilding.Flag.IncreasedShipMovement),
+				(bldg.PlusTwoShipMovement, SaveBuilding.Flag.PlusTwoShipMovement),
+				(bldg.CheaperUpgrades, SaveBuilding.Flag.CheaperUpgrades),
+				(bldg.TwoFreeAdvances, SaveBuilding.Flag.TwoFreeAdvances),
+				(bldg.AllowDiplomaticVictory, SaveBuilding.Flag.AllowDiplomaticVictory),
+				(bldg.AllowsNuclearWeapons, SaveBuilding.Flag.AllowsNuclearWeapons),
+				(bldg.DoubleCityGrowth, SaveBuilding.Flag.DoublesCityGrowthEverywhere),
+				(bldg.TouristAttraction, SaveBuilding.Flag.TouristAttraction),
+				(bldg.IncreasesLeaderChance, SaveBuilding.Flag.IncreasesLeaderChance),
+				(bldg.IncreasedArmyValue, SaveBuilding.Flag.IncreasedArmyValue),
+				(bldg.DecreasesMissileSuccess, SaveBuilding.Flag.DecreasesMissileSuccess),
+				(bldg.AllowsSpyMissions, SaveBuilding.Flag.AllowsSpyMissions),
+				(bldg.BuildSpaceshipParts, SaveBuilding.Flag.BuildSpaceshipParts),
+				(bldg.GoodsMustBeInCityRadius, SaveBuilding.Flag.GoodsMustBeInCityRadius),
 			}
 			.Where(t => t.Item1)
 			.Select(t => t.Item2);
@@ -1801,6 +1882,7 @@ namespace C7GameData {
 				{ SaveBuilding.Flag.IncreasesFoodInWater, "increases_food_in_water" },
 				{ SaveBuilding.Flag.IncreasesShieldsInWater, "increases_shields_in_water" },
 				{ SaveBuilding.Flag.IncreasesTradeInWater, "increases_trade_in_water" },
+				{ SaveBuilding.Flag.IncreasedTrade, "increased_trade" },
 			};
 
 			foreach (var flag in building.flags) {
@@ -2187,8 +2269,28 @@ namespace C7GameData {
 			save.Rules.AllowLesserUnitProduction = false;
 			save.Rules.RadarTileVisibility = 2;
 			save.Rules.CitiesNeededToSupportAnArmy = rule.CitiesNeededToSupportAnArmy;
+			if (theBiq.RuleSpaceship?.Length > 0 && theBiq.RuleSpaceship[0] != null) {
+				save.Rules.SpaceshipPartsRequired = theBiq.RuleSpaceship[0].ToList();
+			}
 			if (rule.BuildArmyUnit >= 0) {
 				save.Rules.BuildArmyUnit = theBiq.Prto[rule.BuildArmyUnit].Name;
+			}
+			if (rule.BattleCreatedUnit >= 0 && rule.BattleCreatedUnit < theBiq.Prto.Length) {
+				save.Rules.BattleCreatedUnit = theBiq.Prto[rule.BattleCreatedUnit].Name;
+			}
+			if (theBiq.RuleCult?.Length > 0 && theBiq.RuleCult[0]?.Length > 0) {
+				save.Rules.CultureLevelNames = theBiq.RuleCult[0].Select(c => c.Name).ToList();
+			}
+			if (theBiq.Cult?.Length > 0) {
+				save.Rules.CultureOpinions = theBiq.Cult
+					.Where(c => c.CultureRatioDenominator > 0)
+					.Select(c => new CultureOpinion {
+						Name = c.Name,
+						Numerator = c.CultureRatioNumerator,
+						Denominator = c.CultureRatioDenominator,
+					})
+					.OrderByDescending(o => (double)o.Numerator / o.Denominator)
+					.ToList();
 			}
 		}
 

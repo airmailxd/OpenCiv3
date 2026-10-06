@@ -48,13 +48,25 @@ public partial class MiniMapBoundsOverlay : Control {
 			return;
 		Vector2 scale = Size / new Vector2(imageWidth, imageHeight);
 		foreach (var (x0, y0, x1, y1) in lines) {
-			// Every line is horizontal or vertical, so it covers a block of
-			// whole pixels; clip it to the image like Image.SetPixel would.
+			// Every line is horizontal or vertical. It's drawn one pixel thick
+			// through the middle of the minimap pixels it covers, running on to
+			// the image's edge where it's cut off by the edge.
 			int minX = Math.Max(Math.Min(x0, x1), 0), maxX = Math.Min(Math.Max(x0, x1), imageWidth - 1);
 			int minY = Math.Max(Math.Min(y0, y1), 0), maxY = Math.Min(Math.Max(y0, y1), imageHeight - 1);
 			if (minX > maxX || minY > maxY)
 				continue;
-			DrawRect(new Rect2(new Vector2(minX, minY) * scale, new Vector2(maxX - minX + 1, maxY - minY + 1) * scale), Colors.White);
+			float left = minX == 0 ? 0 : (minX + 0.5f) * scale.X - 0.5f;
+			float right = maxX == imageWidth - 1 ? Size.X : (maxX + 0.5f) * scale.X + 0.5f;
+			float top = minY == 0 ? 0 : (minY + 0.5f) * scale.Y - 0.5f;
+			float bottom = maxY == imageHeight - 1 ? Size.Y : (maxY + 0.5f) * scale.Y + 0.5f;
+			if (minY == maxY) {
+				top = (minY + 0.5f) * scale.Y - 0.5f;
+				bottom = top + 1;
+			} else {
+				left = (minX + 0.5f) * scale.X - 0.5f;
+				right = left + 1;
+			}
+			DrawRect(new Rect2(left, top, right - left, bottom - top), Colors.White);
 		}
 	}
 

@@ -22,6 +22,8 @@ public partial class DomesticAdvisor : Control {
 	[Export] Label sumSummary;
 	[Export] Label growth;
 	[Export] VBoxContainer cityListContainer;
+	[Export] Label citiesHeader;
+	[Export] Label populationHeader;
 	[Export] TextureButton eatenFood;
 	[Export] TextureButton fullFood;
 	[Export] TextureButton wastedShield;
@@ -50,6 +52,12 @@ public partial class DomesticAdvisor : Control {
 
 	private Player playerController = null;
 
+	// The column the city list is sorted by, as in Civ3 chosen by clicking
+	// the column's header. Clicking the same header again reverses the order.
+	private enum SortColumn { None, Name, Food, Production, Commerce, Happiness, Science, Taxes, Population }
+	private SortColumn sortColumn = SortColumn.None;
+	private bool sortReversed = false;
+
 	public DomesticAdvisor() {
 		MouseFilter = MouseFilterEnum.Stop;
 	}
@@ -64,6 +72,7 @@ public partial class DomesticAdvisor : Control {
 		background.Texture = DomesticBackground;
 
 		AdvisorUtils.CreateAdvisorTitle(background, background.Texture.GetWidth(), "DOMESTIC ADVISOR");
+		AdvisorUtils.CreateAdvisorSidebar(background, AdvisorHead.Advisor.Domestic);
 
 		advisorHead.Texture = AdvisorHead.GetPopupImage(AdvisorHead.Advisor.Domestic, AdvisorHead.Mood.Happy, eraIndex: 0);
 		advisorHead.SetPosition(new Vector2(851, 0));
@@ -163,6 +172,80 @@ public partial class DomesticAdvisor : Control {
 		contentFace.TextureNormal = TextureLoader.Load("icons.content_face");
 		beaker.TextureNormal = TextureLoader.Load("icons.beaker");
 		treasuryIcon.TextureNormal = TextureLoader.Load("icons.treasury");
+
+		// Clicking a column header sorts the city list by that column.
+		eatenFood.Pressed += () => SortBy(SortColumn.Food);
+		fullFood.Pressed += () => SortBy(SortColumn.Food);
+		wastedShield.Pressed += () => SortBy(SortColumn.Production);
+		goodShield.Pressed += () => SortBy(SortColumn.Production);
+		wastedGold.Pressed += () => SortBy(SortColumn.Commerce);
+		goodGold.Pressed += () => SortBy(SortColumn.Commerce);
+		happyFace.Pressed += () => SortBy(SortColumn.Happiness);
+		contentFace.Pressed += () => SortBy(SortColumn.Happiness);
+		beaker.Pressed += () => SortBy(SortColumn.Science);
+		treasuryIcon.Pressed += () => SortBy(SortColumn.Taxes);
+		MakeClickableHeader(citiesHeader, SortColumn.Name);
+		MakeClickableHeader(populationHeader, SortColumn.Population);
+	}
+
+	private void MakeClickableHeader(Label header, SortColumn column) {
+		header.MouseFilter = MouseFilterEnum.Stop;
+		header.MouseDefaultCursorShape = CursorShape.PointingHand;
+		header.GuiInput += (InputEvent e) => {
+			if (e is InputEventMouseButton mb && mb.ButtonIndex == MouseButton.Left && mb.Pressed) {
+				SortBy(column);
+				header.AcceptEvent();
+			}
+		};
+	}
+
+	private void SortBy(SortColumn column) {
+		if (column == sortColumn) {
+			sortReversed = !sortReversed;
+		} else {
+			sortColumn = column;
+			sortReversed = false;
+		}
+		ShowAdvisor();
+	}
+
+	// Returns the player's cities in the order chosen by the column headers:
+	// names A to Z, everything else largest first. Ties keep the founding order.
+	private List<City> SortedCities(List<City> cities) {
+		if (sortColumn == SortColumn.None) {
+			return cities;
+		}
+
+		IOrderedEnumerable<City> sorted;
+		if (sortColumn == SortColumn.Name) {
+			sorted = cities.OrderBy(c => c.name, System.StringComparer.CurrentCultureIgnoreCase);
+		} else {
+			sorted = cities.OrderByDescending(c => sortColumn switch {
+				SortColumn.Food => c.FoodGrowthPerTurn(),
+				SortColumn.Production => c.CurrentProductionYield().useful,
+				SortColumn.Commerce => CommerceAfterCorruption(c.CurrentCommerceYield()),
+				SortColumn.Happiness => HappyCitizenCount(c),
+				SortColumn.Science => c.CurrentCommerceYield().beakers,
+				SortColumn.Taxes => c.CurrentCommerceYield().taxes,
+				SortColumn.Population => c.residents.Count,
+				_ => 0,
+			});
+		}
+
+		List<City> result = sorted.ToList();
+		if (sortReversed) {
+			result.Reverse();
+		}
+		return result;
+	}
+
+	// The happy citizens, counted the way the happiness column shows them.
+	private static int HappyCitizenCount(City city) {
+		return city.residents.Count(cr => cr.citizenType.IsDefaultCitizen && cr.mood == CityResident.Mood.Happy);
+	}
+
+	private static int CommerceAfterCorruption(CommerceBreakdown commerce) {
+		return commerce.taxes + commerce.beakers + commerce.happiness;
 	}
 
 	private void UpdateScienceSlider(int value) {
@@ -230,7 +313,7 @@ public partial class DomesticAdvisor : Control {
 			scienceStatus.Text = ScienceEstimates.SummarizeScience(gameData, playerController, totalIncome.beakers);
 			treasury.Text = $"Treasury: {playerController.gold}";
 
-			incomeDetails.Text = $"From cities: +{totalIncome.CityInflows()}\nFrom taxmen: +{totalIncome.taxmenTaxes}\nFrom other civs: +{totalIncome.fromOtherCivs}\nFrom interest: +{totalIncome.interest}";
+			incomeDetails.Text = $"From cities: +{totalIncome.CityInflows()}\nFrom taxmen: +{totalIncome.taxmenTaxes}\nFrom other civs: +{totalIncome.fromOtherCivs}\nFrom interest: +{totalIncome.interest}\nFrom tourism: +{totalIncome.tourism}";
 			expenseDetails.Text = $"-{totalIncome.beakers}: Science\n-{totalIncome.happiness}: Entertainment\n-{totalIncome.corrupted}: Corruption\n-{totalIncome.maintenance}: Maintenance\n-{totalIncome.unitSupport}: Unit costs\n-{totalIncome.toOtherCivs}: To other civs";
 			incomeSummary.Text = $"Income: {totalIncome.Inflows()}";
 			expenseSummary.Text = $"Expenses: {totalIncome.Outflows()}";
@@ -263,7 +346,7 @@ public partial class DomesticAdvisor : Control {
 
 			// Reuse the rows already made, only adding or removing rows when
 			// the number of cities changes, and update them in place.
-			List<City> cities = playerController.cities;
+			List<City> cities = SortedCities(playerController.cities);
 			if (!rowsMade) {
 				// Clear out anything the scene came with.
 				foreach (var node in cityListContainer.GetChildren()) {
@@ -479,7 +562,7 @@ public partial class DomesticAdvisor : Control {
 		}
 
 		CommerceBreakdown commerce = city.CurrentCommerceYield();
-		SetText(cityRow.commerceLabel, SpaceAlignedDotFormat(commerce.corrupted, commerce.taxes + commerce.beakers + commerce.happiness));
+		SetText(cityRow.commerceLabel, SpaceAlignedDotFormat(commerce.corrupted, CommerceAfterCorruption(commerce)));
 
 		// Sort the residents by how they are shown, in one pass.
 		happyResidents.Clear();
@@ -600,11 +683,12 @@ public partial class DomesticAdvisor : Control {
 		if (headIndex < cityRow.popHeads.Count) {
 			tr = cityRow.popHeads[headIndex];
 		} else {
-			tr = new();
+			tr = new() { MouseFilter = Control.MouseFilterEnum.Pass, Theme = PopHead.TooltipTheme };
 			cityRow.populationContainer.AddChild(tr);
 			cityRow.popHeads.Add(tr);
 		}
 		tr.Texture = PopHead.GetTexture(cr, eraNum);
+		tr.TooltipText = PopHead.GetTooltip(cr);
 		tr.SetPosition(new Vector2(xPos, 0));
 		return xPos + spacer;
 	}

@@ -39,15 +39,24 @@ public partial class AnimationManager {
 	// The results of ArtNameFor that don't depend on anything but the key.
 	private static readonly Dictionary<ArtNameKey, string> artNames = new();
 
-	// The keys of armies that have no art of their own, so are drawn with
-	// the art of a member, which changes during the game.
-	private static readonly HashSet<ArtNameKey> armiesWithoutArt = new();
-
-	// The art to draw a unit with. If its own art can't be found, like army
-	// art that isn't available, an army is drawn with the art of the member
-	// that would defend it, and otherwise the prototype's default art is
-	// tried, rather than failing to load the same art every frame.
+	// The art to draw a unit with. An army with members is drawn with the
+	// art of its first member, like in Civ3; an empty one with its own art.
+	// If its own art can't be found, like army art that isn't available, the
+	// prototype's default art is tried, rather than failing to load the same
+	// art every frame.
 	public static string ArtNameFor(MapUnit unit) {
+		if (unit.IsArmy()) {
+			// The members change during the game, so which one is drawn isn't
+			// cached here, but the member's own art name is.
+			MapUnit member = unit.FirstPassenger();
+			if (member != null && !member.IsArmy()) {
+				string memberName = ArtNameFor(member);
+				if (HasUnitArt(memberName)) {
+					return memberName;
+				}
+			}
+		}
+
 		UnitPrototype unitType = unit.unitType;
 		bool captiveWorker = unitType.isWorker && unitType.art.mainArt.variations != null && unit.IsCaptive();
 		ArtNameKey key = new(unitType, unit.owner?.eraCivilopediaName, captiveWorker);
@@ -55,34 +64,15 @@ public partial class AnimationManager {
 			return cached;
 		}
 
-		if (!armiesWithoutArt.Contains(key)) {
-			string name = unit.GetArtName();
-			if (HasUnitArt(name)) {
-				artNames[key] = name;
-				return name;
-			}
-			if (!unit.IsArmy()) {
-				string defaultName = unitType.art.mainArt.defaultName;
-				string result = HasUnitArt(defaultName) ? defaultName : name;
-				artNames[key] = result;
-				return result;
-			}
-			// Remember that the army has no art of its own, so that isn't
-			// looked for again.
-			armiesWithoutArt.Add(key);
+		string name = unit.GetArtName();
+		if (HasUnitArt(name)) {
+			artNames[key] = name;
+			return name;
 		}
-
-		// The member changes during the game, so which art it has isn't cached
-		// here, but the member's own art name is.
-		MapUnit member = unit.Combatant(CombatRole.Defense);
-		if (member != null && member != unit && !member.IsArmy()) {
-			string memberName = ArtNameFor(member);
-			if (HasUnitArt(memberName)) {
-				return memberName;
-			}
-		}
-		string armyDefault = unitType.art.mainArt.defaultName;
-		return HasUnitArt(armyDefault) ? armyDefault : unit.GetArtName();
+		string defaultName = unitType.art.mainArt.defaultName;
+		string result = HasUnitArt(defaultName) ? defaultName : name;
+		artNames[key] = result;
+		return result;
 	}
 
 	// Whether the art a unit is drawn with may change while the unit, its
@@ -443,7 +433,6 @@ public partial class AnimationManager {
 		AnimationTintThumbnails.Clear();
 		// Which art exists depends on the media paths, which may have changed.
 		artNames.Clear();
-		armiesWithoutArt.Clear();
 		unitArtExists.Clear();
 	}
 
@@ -452,7 +441,6 @@ public partial class AnimationManager {
 	// replaces its game with the host's snapshot.
 	public static void ForgetGameObjects() {
 		artNames.Clear();
-		armiesWithoutArt.Clear();
 	}
 }
 

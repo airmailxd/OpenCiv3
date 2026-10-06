@@ -19,6 +19,9 @@ public class GotoInfo {
 	public bool attackingMove = false;
 	public Player requiresWarDeclarationOnPlayer = null;
 	public Intent intent = Intent.Disabled;
+	// Whether every unit on the selected unit's tile goes, not just the
+	// selected one (the J key).
+	public bool wholeStack = false;
 };
 
 public class TileInfo {
@@ -182,6 +185,10 @@ public partial class Game : Node {
 		FileDialog = GetNode<Civ3FileDialog>("%LoadDialog");
 		FileDialog.Canceled += OnResolved;
 		FileDialog.FileSelected += path => OnResolved();
+
+		// A city the player zoomed to from its production popup has had its
+		// say; on to the next.
+		cityScreen.Hidden += ShowNextProductionPopup;
 
 		try {
 			await InitializeGame();
@@ -715,6 +722,18 @@ public partial class Game : Node {
 					popupOverlay.ShowPopup(pop, PopupOverlay.PopupCategory.Advisor);
 				}
 				break;
+			case MsgShowScienceAdvisorPopup mSSAP:
+				if (!popupOverlay.Visible) {
+					AdvisorHead.Mood scienceMood = mSSAP.mood switch {
+						MsgShowScienceAdvisorPopup.Mood.Happy => AdvisorHead.Mood.Happy,
+						MsgShowScienceAdvisorPopup.Mood.Angry => AdvisorHead.Mood.Angry,
+						MsgShowScienceAdvisorPopup.Mood.Sad => AdvisorHead.Mood.Sad,
+						_ => AdvisorHead.Mood.Surprised,
+					};
+					var pop = new InformationalPopup(mSSAP.message, AdvisorHead.Advisor.Science, scienceMood);
+					popupOverlay.ShowPopup(pop, PopupOverlay.PopupCategory.Advisor);
+				}
+				break;
 			case MsgShowDomesticAdvisorPopup mSDAP:
 				if (!popupOverlay.Visible) {
 					var pop = new InformationalPopup(mSDAP.message, AdvisorHead.Advisor.Domestic, AdvisorHead.Mood.Angry);
@@ -723,6 +742,13 @@ public partial class Game : Node {
 				break;
 			case MsgShowScienceAdvisor mSSA:
 				EmitSignal(SignalName.ShowSpecificAdvisor, C7Action.ShowScienceAdvisor);
+				break;
+			case MsgShowScienceSelection mSSS:
+				popupOverlay.ShowPopup(new ScienceSelection(controller, mSSS.discovered), PopupOverlay.PopupCategory.Info);
+				break;
+			case MsgCityProductionCompleted mCPC when mCPC.city != null:
+				pendingProductionPopups.Enqueue(mCPC);
+				ShowNextProductionPopup();
 				break;
 			case MsgUpdateUiAfterDomesticChange mUUASC:
 				// Ensure the citizen moods are correct before displaying them.
@@ -745,6 +771,18 @@ public partial class Game : Node {
 						showOffer);
 				} else {
 					showOffer();
+				}
+				break;
+			case MsgShowTerritoryDemand mSTD:
+				Action showDemand = () => diplomacy.ShowTerritoryDemand(
+					mSTD.humanPlayer.id, mSTD.aiPlayer.id, mSTD.unitCount, mSTD.repeatOffense);
+				if (mSTD.humanPlayer.id != controller.id) {
+					ShowHotseatHandoff(mSTD.humanPlayer,
+						$"The {mSTD.aiPlayer.civilization.noun} demand to speak with you.",
+						"Hear Them Out",
+						showDemand);
+				} else {
+					showDemand();
 				}
 				break;
 			case MsgDisplayHurryProductionPopup mDHPP:
@@ -855,6 +893,43 @@ public partial class Game : Node {
 			case MsgCityChanged mCC:
 				cityScreen.RefreshCity(mCC.city);
 				break;
+			case MsgShowUnitedNationsVote mSUNV: {
+				List<ChoicePopup.Choice> choices = new();
+				foreach (Player candidate in new[] { mSUNV.candidateA, mSUNV.candidateB }) {
+					if (candidate != null) {
+						choices.Add(new ChoicePopup.Choice($"Vote for {candidate.civilization.leader} of the {candidate.civilization.noun}",
+							() => new MsgCastUnitedNationsVote(candidate).send()));
+					}
+				}
+				choices.Add(new ChoicePopup.Choice("Abstain", () => new MsgCastUnitedNationsVote(null).send()));
+				popupOverlay.ShowPopup(
+					new ChoicePopup("United Nations",
+						"The United Nations is electing a Secretary General.\nHow do we vote?",
+						choices, cancellable: false),
+					PopupOverlay.PopupCategory.Advisor);
+				InterestingEvent();
+				break;
+			}
+			case MsgUnitedNationsElectionResult mUNER: {
+				string outcome = mUNER.winner == null
+					? "No candidate won a majority."
+					: $"{mUNER.winner.civilization.leader} of the {mUNER.winner.civilization.noun} has been elected Secretary General!";
+				popupOverlay.ShowPopup(
+					new ChoicePopup("United Nations",
+						$"{mUNER.candidateA.civilization.noun}: {mUNER.votesForA} votes\n"
+						+ $"{mUNER.candidateB.civilization.noun}: {mUNER.votesForB} votes\n"
+						+ $"Abstaining: {mUNER.abstentions} votes\n{outcome}",
+						[new ChoicePopup.Choice("Very well.", () => { })], cancellable: false),
+					PopupOverlay.PopupCategory.Advisor);
+				InterestingEvent();
+				break;
+			}
+			case MsgEspionageResult mER:
+				popupOverlay.ShowPopup(
+					new ChoicePopup(Espionage.Describe(mER.mission), mER.message ?? "",
+						[new ChoicePopup.Choice("Very well.", () => { })], cancellable: false),
+					PopupOverlay.PopupCategory.Advisor);
+				break;
 			case MsgVictory mV:
 				var endMsg =
 					$"The {mV.winner.civilization.noun} have won a {mV.victory.Header()} victory!\n"
@@ -872,6 +947,33 @@ public partial class Game : Node {
 
 				InterestingEvent();
 				break;
+		}
+	}
+
+	// The cities waiting to tell the player they've finished building
+	// something. They're shown one at a time, and not while the city screen
+	// is open, so a city the player zoomed to gets its production chosen
+	// before the next city asks.
+	private readonly Queue<MsgCityProductionCompleted> pendingProductionPopups = new();
+	private bool productionPopupShown = false;
+
+	private void ShowNextProductionPopup() {
+		while (!productionPopupShown && !cityScreen.Visible && pendingProductionPopups.TryDequeue(out MsgCityProductionCompleted msg)) {
+			// Found by id, as a LAN client's snapshots replace the cities. It
+			// may have been lost or destroyed since.
+			City city = EngineStorage.gameData.cities.Find(c => c.id == msg.city.id);
+			if (city == null || city.owner?.id != controller.id) {
+				continue;
+			}
+			productionPopupShown = true;
+			mapView?.centerCameraOnTile(city.location);
+			CityProductionPopup popup = new(city, msg.completed,
+				// The next popup waits for the city screen to close.
+				onZoom: () => ShowCityScreenForCity(EngineStorage.gameData, city),
+				onDone: ShowNextProductionPopup);
+			// However the popup goes away.
+			popup.TreeExiting += () => productionPopupShown = false;
+			popupOverlay.ShowPopup(popup, PopupOverlay.PopupCategory.Advisor);
 		}
 	}
 
@@ -980,7 +1082,7 @@ public partial class Game : Node {
 					&& controller.currentlyResearchedTech == null
 					&& controller.GetAvailableTechsToResearch(gameData.techs).Count > 0) {
 				popupOverlay.ShowPopup(
-						new ScienceSelection(controller),
+						new ScienceSelection(controller, controller.lastDiscoveredTech),
 						PopupOverlay.PopupCategory.Info);
 
 				// Research something even if the player dismisses the popup.
@@ -1040,6 +1142,9 @@ public partial class Game : Node {
 		log.Information("Starting computer turn");
 		CurrentState = GameState.ComputerTurn;
 		new MsgEndTurn().send(); // Triggers actual backend processing
+		// Production news not yet seen is out of date (and, in a hotseat
+		// game, for the wrong player).
+		pendingProductionPopups.Clear();
 		EmitSignal(SignalName.PlayerTurnEnd);
 	}
 
@@ -1134,6 +1239,12 @@ public partial class Game : Node {
 		Control uiHover = GetViewport().GuiGetHoveredControl();
 		// Can't drag the map when the mouse is over a ui element
 		if (eventMouseButton.IsPressed() && uiHover is not TextureButton) {
+			// As in Civ3, pressing on the selected unit and dragging picks
+			// where it goes; it moves when the button is released.
+			if (TryStartUnitDrag(eventMouseButton)) {
+				return;
+			}
+
 			OldPosition = eventMouseButton.Position;
 			IsMovingCamera = true;
 
@@ -1144,6 +1255,49 @@ public partial class Game : Node {
 			}
 		} else {
 			IsMovingCamera = false;
+			if (draggingUnit) {
+				FinishUnitDrag(eventMouseButton);
+			}
+		}
+	}
+
+	private bool TryStartUnitDrag(InputEventMouseButton eventMouseButton) {
+		draggingUnit = false;
+		if (bombardInfo != null || CurrentState != GameState.PlayerTurn || !IsMapUnitValid(CurrentlySelectedUnit)) {
+			return false;
+		}
+		MapUnit unit = CurrentlySelectedUnit;
+		if (unit.owner != controller || unit.location != PositionToTile(eventMouseButton.Position)
+			|| !unit.GetAvailableActions().Contains(UnitAction.Goto)) {
+			return false;
+		}
+
+		// Keep moving the whole stack if J was pressed first.
+		SetGotoMode(true, gotoInfo?.wholeStack ?? false);
+		draggingUnit = true;
+		return true;
+	}
+
+	private void FinishUnitDrag(InputEventMouseButton eventMouseButton) {
+		draggingUnit = false;
+		Tile tile = PositionToTile(eventMouseButton.Position);
+		bool released = gotoInfo != null && IsMapUnitValid(CurrentlySelectedUnit);
+		if (released && tile != null && tile != CurrentlySelectedUnit.location) {
+			gotoInfo = GetGotoInfo(tile);
+			ResolveMovement(gotoInfo);
+			SetGotoMode(false);
+			return;
+		}
+
+		// Released where it started: that's an ordinary click on the tile.
+		SetGotoMode(false);
+		if (tile == null) {
+			return;
+		}
+		if (CanDoubleClick(eventMouseButton)) {
+			doubleClickHandler.Accept(eventMouseButton);
+		} else {
+			HandleUnitSelectionTileClick(eventMouseButton);
 		}
 	}
 
@@ -1200,9 +1354,22 @@ public partial class Game : Node {
 			return;
 		}
 
-		// TODO: This should really be the top unit.
-		MapUnit unit = tile.unitsOnTile.FirstOrDefault();
-		if (unit == null || unit.owner != controller) {
+		// Pick a top unit, never one carried by an army or a ship: the selected
+		// unit if it's here, otherwise one that can still move.
+		MapUnit unit = null;
+		foreach (MapUnit u in tile.unitsOnTile) {
+			if (u.owner != controller || u.IsLoaded()) {
+				continue;
+			}
+			if (u == CurrentlySelectedUnit) {
+				unit = u;
+				break;
+			}
+			if (unit == null || (!unit.movementPoints.canMove && u.movementPoints.canMove)) {
+				unit = u;
+			}
+		}
+		if (unit == null) {
 			return;
 		}
 
@@ -1259,6 +1426,29 @@ public partial class Game : Node {
 			ShowTileInfo(tile);
 
 		LogTileDetails(tile);
+	}
+
+	// Lists the diplomatic and espionage missions the player at the screen
+	// could send against a foreign civ and one of its cities, with their
+	// cost and chance of success.
+	public void ShowEspionageMissions(Player target, City city) {
+		List<ChoicePopup.Choice> choices = new();
+		EngineStorage.ReadGameData((GameData gameData) => {
+			foreach (Espionage.MissionOption option in Espionage.GetOptions(gameData, controller, target, city)) {
+				EspionageMission mission = option.mission;
+				string chance = option.successPercent >= 100 ? "" : $", {option.successPercent}% chance";
+				string label = $"{Espionage.Describe(mission)} ({option.cost} gold{chance})";
+				if (option.available) {
+					choices.Add(new ChoicePopup.Choice(label,
+						() => new MsgPerformEspionage(mission, target, Espionage.TargetsCity(mission) ? city : null).send()));
+				} else {
+					choices.Add(new ChoicePopup.Choice($"{Espionage.Describe(mission)}: {option.reason}", null));
+				}
+			}
+		});
+		string title = city == null ? $"Missions to the {target.civilization.noun}" : $"Missions to {city.name}";
+		popupOverlay.ShowPopup(new ChoicePopup(title, $"Treasury: {controller.gold} gold", choices),
+			PopupOverlay.PopupCategory.Advisor);
 	}
 
 	public void ShowTileInfo(Tile tile) {
@@ -1394,6 +1584,25 @@ public partial class Game : Node {
 					   && !eventKeyDown.AltPressed) {
 				ProcessAction(C7Action.UnitGoto);
 			}
+		}
+
+		// Go-to for every unit on the selected unit's tile.
+		if (eventKeyDown.Keycode == Godot.Key.J
+			&& !eventKeyDown.IsCommandOrControlPressed()
+			&& !eventKeyDown.ShiftPressed
+			&& !eventKeyDown.AltPressed
+			&& CurrentState == GameState.PlayerTurn
+			&& IsMapUnitValid(CurrentlySelectedUnit)) {
+			SetGotoMode(true, wholeStack: true);
+		}
+
+		// Show only the terrain and resources, hiding cities, units, roads and the like.
+		if (eventKeyDown.Keycode == Godot.Key.M
+			&& eventKeyDown.IsCommandOrControlPressed()
+			&& eventKeyDown.ShiftPressed
+			&& !eventKeyDown.AltPressed
+			&& !eventKeyDown.Echo) {
+			mapView.bareMap = !mapView.bareMap;
 		}
 	}
 
@@ -1694,6 +1903,20 @@ public partial class Game : Node {
 			new MsgPillage(CurrentlySelectedUnit.id).send();
 		}
 
+		if (currentAction == C7Action.UnitBuildArmy && CurrentlySelectedUnit.CanFormArmy()) {
+			new MsgUnitCommand(CurrentlySelectedUnit.id, MsgUnitCommand.Command.FormArmy).send();
+		}
+
+		if (currentAction == C7Action.UnitHurryBuilding && CurrentlySelectedUnit.CanOfferHurryProduction()) {
+			string blocker = CurrentlySelectedUnit.HurryProductionBlocker();
+			if (blocker == null) {
+				new MsgUnitCommand(CurrentlySelectedUnit.id, MsgUnitCommand.Command.HurryProduction).send();
+			} else {
+				popupOverlay.ShowPopup(new InformationalPopup(blocker, AdvisorHead.Advisor.Military, AdvisorHead.Mood.Angry),
+					PopupOverlay.PopupCategory.Advisor);
+			}
+		}
+
 		if (currentAction == C7Action.UnitLoad) {
 			// TODO: Which transport?
 			new MsgLoadToTransport(CurrentlySelectedUnit.id).send();
@@ -1760,12 +1983,16 @@ public partial class Game : Node {
 			PopupOverlay.PopupCategory.Advisor);
 	}
 
-	private void SetGotoMode(bool isOn) {
+	// Whether the player is dragging the selected unit to pick its destination.
+	private bool draggingUnit = false;
+
+	private void SetGotoMode(bool isOn, bool wholeStack = false) {
+		this.lastTile = null;
 		if (isOn) {
-			this.gotoInfo = new();
+			this.gotoInfo = new() { wholeStack = wholeStack };
 		} else {
 			this.gotoInfo = null;
-			this.lastTile = null;
+			this.draggingUnit = false;
 		}
 	}
 
@@ -1810,10 +2037,41 @@ public partial class Game : Node {
 					this.ResolveMovement(stashed);
 					this.SetGotoMode(false);
 				});
+			} else if (info.wholeStack) {
+				MoveStack(gameData, info);
 			} else {
 				new MsgSetUnitPath(CurrentlySelectedUnit.id, info.path).send();
 			}
 		});
+	}
+
+	// Sends the selected unit along its path and every other unit of ours on
+	// its tile to the same destination, each along its own path. Only the
+	// selected unit attacks; the rest go only where they can walk.
+	private void MoveStack(GameData gameData, GotoInfo info) {
+		MapUnit leader = gameData.GetUnit(CurrentlySelectedUnit.id);
+		Tile destination = info.destinationTile;
+		List<(ID, TilePath)> moves = [(leader.id, info.path)];
+		foreach (MapUnit unit in leader.location.unitsOnTile) {
+			// Loaded units ride along with their transport. Fortified units
+			// stay put, as do units that have already moved this turn.
+			if (unit == leader || unit.owner != leader.owner || unit.IsLoaded()
+				|| unit.isFortified
+				|| unit.movementPoints.remaining < unit.MaxMovementPoints()
+				|| !unit.GetAvailableActions().Contains(UnitAction.Goto)) {
+				continue;
+			}
+			TilePath path = PathingAlgorithmChooser.GetAlgorithm(unit).PathFrom(unit.location, destination, unit);
+			if (path != null && path.PathLength() > 0) {
+				moves.Add((unit.id, path));
+			}
+		}
+
+		// The paths are all worked out before anything moves, since moving
+		// changes who's on the tile.
+		foreach ((ID id, TilePath path) in moves) {
+			new MsgSetUnitPath(id, path).send();
+		}
 	}
 
 	private void MaybeDeclareWar(Player player, int currentTurn, Action callback) {
@@ -1840,7 +2098,7 @@ public partial class Game : Node {
 	}
 
 	private GotoInfo GetGotoInfo(Tile tile) {
-		GotoInfo result = new();
+		GotoInfo result = new() { wholeStack = this.gotoInfo?.wholeStack ?? false };
 
 		EngineStorage.ReadGameData((GameData gameData) => {
 			if (tile == this.lastTile && this.gotoInfo != null) {
