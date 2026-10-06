@@ -112,6 +112,22 @@ public class GameplayFlowTest : IClassFixture<SaveGameFixture>, System.IDisposab
 	}
 
 	[Fact]
+	public void WonderBuiltElsewhereMovesOnToTheQueue() {
+		Building wonder = new(new SaveBuilding { name = "Test Wonder", shieldCost = 10, greatWonderProperties = new() }, gameData);
+		City builder = BuildCity(ai);
+		City rival = BuildCity(human);
+		Building next = rival.ListProductionOptions(gameData).OfType<Building>().First(b => b.greatWonderProperties == null);
+		rival.SetItemBeingProduced(wonder);
+		rival.EnqueueProduction(next);
+
+		Finish(builder, wonder);
+
+		Assert.Contains(wonder.name, gameData.GreatWondersBuilt);
+		Assert.Same(next, rival.itemBeingProduced);
+		Assert.Empty(rival.productionQueue);
+	}
+
+	[Fact]
 	public void ProductionQueueIsSaved() {
 		City city = BuildCity(human);
 		List<IProducible> options = city.ListProductionOptions(gameData).ToList();
