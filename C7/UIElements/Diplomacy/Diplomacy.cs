@@ -81,6 +81,10 @@ public partial class Diplomacy : CenterContainer {
 		dealScreen?.OnDealResult(opponent, accepted);
 	}
 
+	public void OnWithdrawalDemandResult(ID opponent, bool withdrew) {
+		talkScreen?.OnWithdrawalDemandResult(opponent, withdrew);
+	}
+
 	public void ShowTerritoryDemand(ID humanPlayer, ID opponentPlayer, int unitCount, bool repeatOffense) {
 		RemoveOtherScreens();
 

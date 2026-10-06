@@ -436,13 +436,16 @@ namespace C7GameData {
 			}
 		}
 
-		public void DeclareWarOn(Player other, int currentTurn) {
+		// afterWarning is true when the other civ told us to leave its
+		// territory or face war, and we chose war: that is no sneak attack,
+		// even though our units are inside its borders.
+		public void DeclareWarOn(Player other, int currentTurn, bool afterWarning = false) {
 			EnsureRelationshipExists(other);
 
 			// Check to see if there was a sneak attack - we consider a sneak
 			// attack any attack where the player's units were inside the
 			// borders of the civ they're declaring war on.
-			bool isSneakAttack = IsASneakAttackOn(other);
+			bool isSneakAttack = !afterWarning && IsASneakAttackOn(other);
 
 			// TODO: take into account broken right of passage, or other deals, etc?
 			// Perhaps we need a dedicated method to calculate this.

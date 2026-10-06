@@ -895,6 +895,15 @@ public partial class Game : Node {
 						PopupOverlay.PopupCategory.Advisor);
 				}
 				break;
+			case MsgWithdrawalDemandResult mWDR:
+				if (diplomacy.Visible) {
+					diplomacy.OnWithdrawalDemandResult(mWDR.opponent.id, mWDR.withdrew);
+				} else if (mWDR.withdrew) {
+					popupOverlay.ShowPopup(
+						new InformationalPopup($"The {mWDR.opponent.civilization.noun} withdrew their units from our territory."),
+						PopupOverlay.PopupCategory.Advisor);
+				}
+				break;
 			case MsgCityChanged mCC:
 				cityScreen.RefreshCity(mCC.city);
 				break;

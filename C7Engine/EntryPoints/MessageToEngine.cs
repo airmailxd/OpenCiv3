@@ -923,6 +923,25 @@ namespace C7Engine {
 		}
 	}
 
+	// A human tells an AI to take its units out of the human's territory or
+	// prepare for war. The AI answers at once with MsgWithdrawalDemandResult.
+	public class MsgDemandWithdrawal : MessageToEngine {
+		public Player opponent;
+
+		public MsgDemandWithdrawal(Player opponent) {
+			this.opponent = opponent;
+		}
+
+		protected override void ProcessAllowed() {
+			if (opponent == null || opponent == Sender) return;
+
+			bool? withdrew = TerritoryDemands.DemandFromHuman(Sender, opponent, EngineStorage.gameData);
+			if (withdrew.HasValue) {
+				new MsgWithdrawalDemandResult(Sender, opponent, withdrew.Value).send();
+			}
+		}
+	}
+
 	// A human votes in the United Nations election; a null candidate
 	// abstains.
 	public class MsgCastUnitedNationsVote : MessageToEngine {
