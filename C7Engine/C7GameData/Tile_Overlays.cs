@@ -52,6 +52,25 @@ public partial class Tile {
 		return true;
 	}
 
+	// Whether workers have pollution or fallout to clean up here.
+	public bool HasDamage() {
+		return HasPollution() || HasFallout();
+	}
+
+	// Cleans up the tile's pollution and fallout, as a worker's Clear Damage
+	// job does. Civ3 cleans fallout the same way as pollution.
+	public void ClearDamage() {
+		TerrainImprovement pollution = overlays.ImprovementAtLayer(Layer.Pollution);
+		if (pollution != null) {
+			overlays.Remove(pollution);
+		}
+		TerrainImprovement fallout = overlays.ImprovementAtLayer(Layer.Fallout);
+		if (fallout != null) {
+			overlays.Remove(fallout);
+		}
+		TileChangeJournal.Record(this);
+	}
+
 	private static bool AnyNeighbor(Tile tile, System.Func<Tile, bool> predicate) {
 		foreach (Tile t in tile.neighbors.Values) {
 			if (predicate(t)) {
