@@ -457,6 +457,12 @@
       "layer": "craters",
       "zIndex": 5,
       "movementCost": -1
+    },
+    {
+      "key": "fallout",
+      "layer": "fallout",
+      "zIndex": 11,
+      "movementCost": -1
     }
   ],
   "resources": [

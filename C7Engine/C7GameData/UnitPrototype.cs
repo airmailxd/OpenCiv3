@@ -501,11 +501,31 @@ namespace C7GameData {
 				return false;
 			}
 
+			// Civ3: once any civ completes the Manhattan Project, every civ
+			// with the required tech may build nuclear weapons.
+			if (this.isNuclearWeapon && !NuclearWeaponsAllowed(EngineStorage.gameData)) {
+				return false;
+			}
+
 			if (!this.requiredResources.All(accessibleResources.Contains)) {
 				return false;
 			}
 
 			return true;
+		}
+
+		/// Whether some civ has built a great wonder that allows nuclear
+		/// weapons (the Manhattan Project), which lets every civ build them.
+		public static bool NuclearWeaponsAllowed(GameData gameData) {
+			if (gameData == null || gameData.GreatWondersBuilt.Count == 0) {
+				return false;
+			}
+			foreach (Building building in gameData.Buildings) {
+				if (building.allowsNuclearWeapons && gameData.GreatWondersBuilt.Contains(building.name)) {
+					return true;
+				}
+			}
+			return false;
 		}
 
 		/// A unit is obsolete if a unit in its upgrade chain can be produced (in this city

@@ -30,6 +30,12 @@ public class PlayerRelationship {
 	// TODO: contribute towards reputation
 	public int warDeclarationWithRoPActiveCount = 0;
 
+	// p1.playerRelationships[p2].nuclearAtrocityCount is the number of
+	// nuclear attacks p2 has made (on anyone) since p1 knew them. Civ3
+	// treats using nuclear weapons as an atrocity every civ resents.
+	// TODO: contribute towards attitude
+	public int nuclearAtrocityCount = 0;
+
 	// true if a war declaration happened with units inside the player's
 	// borders.
 	public bool wasSneakAttacked = false;

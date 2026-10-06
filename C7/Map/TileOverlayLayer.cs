@@ -112,6 +112,9 @@ namespace C7.Map {
 					case CRATERS:
 						DrawCraters(looseView, tile, screenTarget);
 						break;
+					case FALLOUT:
+						DrawFallout(looseView, tile, screenTarget);
+						break;
 					default:
 						if (!plainImprovementTextures.TryGetValue(ti.key, out ImageTexture texture)) {
 							texture = TextureLoader.Load($"terrain_improvements.{ti.key}");
@@ -244,6 +247,26 @@ namespace C7.Map {
 
 			// debug mask (with a FontFile loaded once, with FixedSize = 12)
 			// looseView.DrawString(debugFont, tileCenter, $"{pollutionIndex}", modulate: Colors.Black);
+		}
+
+		// Civ3 has no separate fallout art, so fallout is drawn with the pollution
+		// texture, tinted a sickly green to tell the two apart.
+		private static readonly Color falloutTint = new Color(0.55f, 1.0f, 0.35f);
+
+		private void DrawFallout(LooseView looseView, Tile tile, Rect2 screenTarget) {
+			int falloutIndex = 0;
+			foreach (TileDirection direction in diagonalDirections) {
+				if (HasImprovement(tile.neighbors[direction], FALLOUT)) {
+					falloutIndex |= GetPollutionIndex(direction);
+				}
+			}
+
+			if (falloutIndex == 0) {
+				falloutIndex = GetRadomTextureIndex(tile, 10, 0x3F17);
+				looseView.DrawTextureRectRegion(pollutionTexture, screenTarget, GetPollutionRect(falloutIndex), falloutTint);
+			} else {
+				looseView.DrawTextureRectRegion(pollutionTexture, screenTarget, GetPollutionRect(falloutIndex - 1, 2), falloutTint);
+			}
 		}
 
 		private void DrawCraters(LooseView looseView, Tile tile, Rect2 screenTarget) {

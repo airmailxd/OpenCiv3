@@ -919,9 +919,18 @@ namespace C7GameData {
 
 			var hasRoom = !IsFull();
 
-			// TODO: type restrictions: only subs can carry nukes, carriers take aircraft, etc.
-			// Armies only take land combat units; other transports take any land unit for now.
-			var suitableUnit = IsArmy() ? mapUnit.unitType.CanJoinArmy() : mapUnit.IsLandUnit();
+			// Armies only take land combat units. Units that carry tactical
+			// missiles (Nuclear Submarines) take only those, and carriers take
+			// only aircraft. Other transports take any land unit for now.
+			bool suitableUnit;
+			if (IsArmy())
+				suitableUnit = mapUnit.unitType.CanJoinArmy();
+			else if (unitType.canCarryTacticalMissiles)
+				suitableUnit = mapUnit.unitType.isTacticalMissile;
+			else if (unitType.canCarryAircraft)
+				suitableUnit = mapUnit.IsAirUnit();
+			else
+				suitableUnit = mapUnit.IsLandUnit();
 			return hasRoom && suitableUnit;
 		}
 

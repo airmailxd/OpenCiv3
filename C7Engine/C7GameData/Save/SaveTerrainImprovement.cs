@@ -61,6 +61,11 @@ public class SaveTerrainImprovement {
 			Layer.Craters,
 			zIndex: 5
 		);
+		yield return new(
+			FALLOUT,
+			Layer.Fallout,
+			zIndex: 11
+		);
 
 		// TODO: Add colony, outpost, airfield, radar tower
 	}
