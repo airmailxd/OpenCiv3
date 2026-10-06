@@ -342,6 +342,9 @@ namespace C7GameData {
 			}
 
 			currentlyResearchedTech = id;
+			if (id != null) {
+				lastDiscoveredTech = null;
+			}
 
 			// Clear out previous progress.
 			beakers = 0;
@@ -1258,6 +1261,14 @@ namespace C7GameData {
 		}
 		private void CompleteResearchAndBeginNew(GameData gameData, Tech tech) {
 			CompleteResearchingTech(gameData, tech);
+
+			// A human whose research queue has run out is asked what to
+			// research next (see Game.OnPlayerStartTurn and
+			// MsgShowScienceSelection) rather than having it picked for them.
+			if (isHuman && currentlyResearchedTech == null && ResearchQueue.Count == 0) {
+				lastDiscoveredTech = tech;
+				return;
+			}
 			PlayerAI.MaybePickTechToResearch(this, gameData.techs);
 		}
 

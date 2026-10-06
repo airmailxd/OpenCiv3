@@ -213,6 +213,7 @@ namespace C7Engine {
 
 			// Choosing production needs the trade network to know the new owner.
 			city.SetItemBeingProduced(ChooseProducible.Choose(city, captor));
+			city.ClearProductionQueue();
 
 			log.Information("{Captor} captured {City} from {OldOwner}, plundering {Plunder} gold", captor, city, oldOwner, plunder);
 			new MsgCityCaptured(city, oldOwner).send();

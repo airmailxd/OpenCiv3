@@ -26,10 +26,18 @@ public partial class UnitSelector : Node {
 
 	private bool NoMoreAutoselectableUnitsEmitted = false;
 
+	// The stack the selected unit was in when it was selected, and its type.
+	// The rest of that stack is selected next, so a stack is given its orders
+	// back to back.
+	private Tile previousStack = null;
+	private UnitPrototype previousType = null;
+
 	public override void _Ready() {
 		game.PlayerTurnEnd += () => {
 			NoMoreAutoselectableUnitsEmitted = false;
 			CurrentlySelectedUnit = MapUnit.NONE;
+			previousStack = null;
+			previousType = null;
 		};
 	}
 
@@ -79,7 +87,7 @@ public partial class UnitSelector : Node {
 	}
 
 	public void SetNextUnit() {
-		SetSelectedUnit(UnitInteractions.getNextSelectedUnit());
+		SetSelectedUnit(UnitInteractions.getNextSelectedUnit(previousStack, previousType));
 	}
 
 	/**
@@ -119,6 +127,8 @@ public partial class UnitSelector : Node {
 		this.KeepCSUWhenFortified = unit.isFortified; // If fortified, make sure the autoselector doesn't immediately skip past the unit
 
 		if (unit != MapUnit.NONE) {
+			previousStack = unit.location;
+			previousType = unit.unitType;
 			game.ensureLocationIsInView(unit.location);
 		}
 

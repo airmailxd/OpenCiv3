@@ -625,14 +625,28 @@ public partial class CityScreen : Control {
 			productionButton.AddChild(icon);
 		}
 
-		Label productionButtonLabel = new();
+		// Wrap long names (e.g. "Sun Tzu's Art of War") onto extra lines so they
+		// stay inside the button, nudging multi-line names up to keep them clear
+		// of the button's bottom edge.
+		const int labelInset = 4;
+		int buttonWidth = productionButton.TextureNormal.GetWidth();
+		Label productionButtonLabel = new() {
+			Text = city.itemBeingProduced.name,
+			HorizontalAlignment = HorizontalAlignment.Center,
+			AutowrapMode = TextServer.AutowrapMode.WordSmart,
+			Position = new Vector2(labelInset, 65),
+			Size = new Vector2(buttonWidth - 2 * labelInset, 0),
+		};
 		productionButton.AddChild(productionButtonLabel);
-		productionButtonLabel.SetPosition(new Vector2(0, 65));
-		productionButtonLabel.SetTextAndCenterLabel($"{city.itemBeingProduced.name}");
+		int extraLines = productionButtonLabel.GetLineCount() - 1;
+		if (extraLines > 0) {
+			productionButtonLabel.Position -= new Vector2(0, extraLines * productionButtonLabel.GetLineHeight() / 2.0f);
+		}
 
-		productionMenu.AddItems(gameData, city, (IProducible p) => {
-			new MsgChooseProduction(city.id, p.name).send();
-		});
+		productionMenu.AddItems(gameData, city,
+			(IProducible p) => new MsgChooseProduction(city.id, p.name).send(),
+			(IProducible p) => new MsgEnqueueProduction(city.id, p.name).send(),
+			() => new MsgClearProductionQueue(city.id).send());
 	}
 
 	private void RenderShieldRow(int goodShields, int corruptShields) {

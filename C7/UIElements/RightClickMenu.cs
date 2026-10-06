@@ -430,8 +430,13 @@ public partial class RightClickChooseProductionMenu : RightClickMenu {
 		});
 	}
 
+	// Shift adds the item to the city's production queue instead.
 	public void ChooseProduction(string producibleName) {
-		new MsgChooseProduction(cityID, producibleName).send();
+		if (Input.IsKeyPressed(Key.Shift)) {
+			new MsgEnqueueProduction(cityID, producibleName).send();
+		} else {
+			new MsgChooseProduction(cityID, producibleName).send();
+		}
 		CloseAndDelete();
 	}
 }

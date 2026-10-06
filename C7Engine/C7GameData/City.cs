@@ -55,6 +55,10 @@ namespace C7GameData {
 		public IProducible itemBeingProduced;
 		public int shieldsStored { get; private set; } = 0;
 
+		// What the player has queued up to build after itemBeingProduced, in
+		// order.
+		public List<IProducible> productionQueue = new();
+
 		public int foodStored = 0;
 
 		public bool capital = false;
@@ -556,7 +560,39 @@ namespace C7GameData {
 				return;
 			}
 
-			SetItemBeingProduced(ChooseProducible.Choose(this, owner));
+			IProducible next = ChooseNextProduction(gameData, producedItem);
+			SetItemBeingProduced(next);
+			if (owner.isHuman) {
+				new MsgCityProductionCompleted(owner, this, producedItem.name, next?.name).send();
+			}
+		}
+
+		// What the city builds once it has finished an item: the next item in
+		// its production queue that can still be built, or, for a human player
+		// with nothing queued, the same unit again. Otherwise the AI picks.
+		private IProducible ChooseNextProduction(GameData gameData, IProducible completed) {
+			HashSet<IProducible> options = ListProductionOptions(gameData).ToHashSet();
+			while (productionQueue.Count > 0) {
+				IProducible queued = productionQueue[0];
+				productionQueue.RemoveAt(0);
+				if (options.Contains(queued)) {
+					return queued;
+				}
+			}
+			if (owner.isHuman && completed is UnitPrototype && options.Contains(completed)) {
+				return completed;
+			}
+			return ChooseProducible.Choose(this, owner);
+		}
+
+		// Adds an item to the end of the production queue, to be built after
+		// the current item and those already queued.
+		public void EnqueueProduction(IProducible producible) {
+			productionQueue.Add(producible);
+		}
+
+		public void ClearProductionQueue() {
+			productionQueue.Clear();
 		}
 
 		private IProducible GetMostExpensiveItemToProduce() {

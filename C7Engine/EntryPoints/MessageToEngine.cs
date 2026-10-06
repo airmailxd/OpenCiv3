@@ -423,6 +423,46 @@ namespace C7Engine {
 		}
 	}
 
+	// Adds an item to the end of a city's production queue.
+	public class MsgEnqueueProduction : MessageToEngine {
+		public ID cityID;
+		public string producibleName;
+
+		public MsgEnqueueProduction(ID cityID, string producibleName) {
+			this.cityID = cityID;
+			this.producibleName = producibleName;
+		}
+
+		protected override void ProcessAllowed() {
+			City city = EngineStorage.gameData.GetCity(cityID);
+			if (IsSendersCity(city)) {
+				foreach (IProducible producible in city.ListProductionOptions(EngineStorage.gameData)) {
+					if (producible.name == producibleName) {
+						city.EnqueueProduction(producible);
+						new MsgCityChanged(city).send();
+						break;
+					}
+				}
+			}
+		}
+	}
+
+	public class MsgClearProductionQueue : MessageToEngine {
+		public ID cityID;
+
+		public MsgClearProductionQueue(ID cityID) {
+			this.cityID = cityID;
+		}
+
+		protected override void ProcessAllowed() {
+			City city = EngineStorage.gameData.GetCity(cityID);
+			if (IsSendersCity(city)) {
+				city.ClearProductionQueue();
+				new MsgCityChanged(city).send();
+			}
+		}
+	}
+
 	// The player clicked a tile on the city screen to move a citizen.
 	public class MsgReassignCitizen : MessageToEngine {
 		public City city;
@@ -518,17 +558,24 @@ namespace C7Engine {
 			if (advisorState == AdvisorState.Show) {
 
 				new MsgShowScienceAdvisor().send();
+			} else if (player.currentlyResearchedTech == null
+					&& player.GetAvailableTechsToResearch(EngineStorage.gameData.techs).Count > 0) {
+				// The choice was learned at once with a free tech (such as
+				// Philosophy's), so ask again.
+				new MsgShowScienceSelection(player, player.lastDiscoveredTech).send();
 			}
 		}
 	}
 
 	// Picks something to research for a player who hasn't chosen, so their
-	// science isn't wasted if they dismiss the science selection popup.
+	// science isn't wasted if they dismiss the science selection popup. A free
+	// tech the player has coming is left for them to choose.
 	public class MsgPickDefaultResearch : MessageToEngine {
 		protected override void ProcessAllowed() {
 			Player player = Sender;
 			GameData gameData = EngineStorage.gameData;
-			if (player.currentlyResearchedTech == null && player.GetAvailableTechsToResearch(gameData.techs).Count > 0) {
+			if (player.currentlyResearchedTech == null && player.freeTechsRemaining == 0
+					&& player.GetAvailableTechsToResearch(gameData.techs).Count > 0) {
 				PlayerAI.MaybePickTechToResearch(player, gameData.techs);
 			}
 		}

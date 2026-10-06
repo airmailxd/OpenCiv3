@@ -49,6 +49,12 @@ namespace C7GameData.Save {
 
 	public enum ProducibleType { INFLOW, BUILDING, UNIT };
 
+	// An item in a city's production queue.
+	public class SaveQueuedProducible {
+		public string name;
+		public ProducibleType type;
+	}
+
 	public class SaveCity : IHasID {
 		public ID id { get; set; }
 		public ID owner;
@@ -66,6 +72,7 @@ namespace C7GameData.Save {
 		public bool isInCivilDisorder;
 		public List<SaveCityResident> residents = new List<SaveCityResident>();
 		public List<SaveCityBuilding> buildings = [];
+		public List<SaveQueuedProducible> productionQueue = [];
 
 		public SaveCity() { }
 
@@ -76,11 +83,8 @@ namespace C7GameData.Save {
 			location = new TileLocation(city.location);
 			name = city.name;
 			producible = city.itemBeingProduced.name;
-			producibleType = city.itemBeingProduced switch {
-				Inflow => ProducibleType.INFLOW,
-				UnitPrototype => ProducibleType.UNIT,
-				Building => ProducibleType.BUILDING,
-			};
+			producibleType = TypeOf(city.itemBeingProduced);
+			productionQueue = city.productionQueue.ConvertAll(p => new SaveQueuedProducible { name = p.name, type = TypeOf(p) });
 			shieldsStored = city.shieldsStored;
 			foodStored = city.foodStored;
 			turnsOfUnhappinessDueToPopRushing = city.turnsOfUnhappinessDueToPopRushing;
@@ -149,6 +153,22 @@ namespace C7GameData.Save {
 			}
 		}
 
+		private static ProducibleType TypeOf(IProducible producible) {
+			return producible switch {
+				Inflow => ProducibleType.INFLOW,
+				UnitPrototype => ProducibleType.UNIT,
+				Building => ProducibleType.BUILDING,
+			};
+		}
+
+		private static IProducible FindProducible(Lookups lookups, ProducibleType type, string name) {
+			return type switch {
+				ProducibleType.INFLOW => Lookups.Find(lookups.inflowsByName, name),
+				ProducibleType.UNIT => Lookups.Find(lookups.unitPrototypesByName, name),
+				ProducibleType.BUILDING => Lookups.Find(lookups.buildingsByName, name),
+			};
+		}
+
 		public City ToCity(GameMap gameMap,
 							List<Player> players,
 							List<UnitPrototype> unitPrototypes,
@@ -165,11 +185,7 @@ namespace C7GameData.Save {
 				location = gameMap.tileAt(location.X, location.Y),
 				owner = Lookups.Find(lookups.playersById, owner),
 				name = name,
-				itemBeingProduced = producibleType switch {
-					ProducibleType.INFLOW => Lookups.Find(lookups.inflowsByName, producible),
-					ProducibleType.UNIT => Lookups.Find(lookups.unitPrototypesByName, producible),
-					ProducibleType.BUILDING => Lookups.Find(lookups.buildingsByName, producible),
-				},
+				itemBeingProduced = FindProducible(lookups, producibleType, producible),
 				foodStored = foodStored,
 				turnsOfUnhappinessDueToPopRushing = turnsOfUnhappinessDueToPopRushing,
 				celebrating = celebrating,
@@ -179,6 +195,12 @@ namespace C7GameData.Save {
 			};
 
 			city.SetStoredShields(shieldsStored);
+			foreach (SaveQueuedProducible queued in productionQueue ?? []) {
+				IProducible item = FindProducible(lookups, queued.type, queued.name);
+				if (item != null) {
+					city.productionQueue.Add(item);
+				}
+			}
 
 			foreach (KeyValuePair<string, int> keyValuePair in perPlayerCulture) {
 				city.perPlayerCulture.Add(Lookups.Find(lookups.playersByIdString, keyValuePair.Key), keyValuePair.Value);

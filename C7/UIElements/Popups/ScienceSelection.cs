@@ -6,15 +6,18 @@ using static C7Engine.MsgChooseResearch;
 
 public partial class ScienceSelection : Popup {
 	Player player;
+	// The tech just discovered, to announce, or null.
+	Tech discovered;
 	List<Tech> options = new();
 	HashSet<Tech> optionSet = new();
 	// The beakers the player makes per turn, added up once for all options.
 	int beakersPerTurn;
 
-	public ScienceSelection(Player player) {
+	public ScienceSelection(Player player, Tech discovered = null) {
 		alignment = BoxContainer.AlignmentMode.End;
 		margins = new Margins(right: 10);
 		this.player = player;
+		this.discovered = discovered;
 	}
 
 	public override void _Ready() {
@@ -33,13 +36,15 @@ public partial class ScienceSelection : Popup {
 		AddHeader("Science Advisor", 120);
 
 		Label messageLabel = new();
-		messageLabel.Text = "What shall we explore now?";
-		messageLabel.SetPosition(new Vector2(25, 160));
+		messageLabel.Text = discovered == null
+			? "What shall we explore now?"
+			: $"We have discovered {discovered.Name}!\nWhat shall we explore now?";
+		messageLabel.SetPosition(new Vector2(25, discovered == null ? 160 : 148));
 		AddChild(messageLabel);
 
 		OptionButton optionButton = MakeStyledOptionButton();
 		AddChild(optionButton);
-		optionButton.SetPosition(new Vector2(25, 190));
+		optionButton.SetPosition(new Vector2(25, discovered == null ? 190 : 196));
 
 		AddButton("OK. Sounds good.", 235, () => {
 			ChooseSelected(optionButton);

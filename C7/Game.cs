@@ -183,6 +183,10 @@ public partial class Game : Node {
 		FileDialog.Canceled += OnResolved;
 		FileDialog.FileSelected += path => OnResolved();
 
+		// A city the player zoomed to from its production popup has had its
+		// say; on to the next.
+		cityScreen.Hidden += ShowNextProductionPopup;
+
 		try {
 			await InitializeGame();
 			await StartGame();
@@ -736,6 +740,13 @@ public partial class Game : Node {
 			case MsgShowScienceAdvisor mSSA:
 				EmitSignal(SignalName.ShowSpecificAdvisor, C7Action.ShowScienceAdvisor);
 				break;
+			case MsgShowScienceSelection mSSS:
+				popupOverlay.ShowPopup(new ScienceSelection(controller, mSSS.discovered), PopupOverlay.PopupCategory.Info);
+				break;
+			case MsgCityProductionCompleted mCPC when mCPC.city != null:
+				pendingProductionPopups.Enqueue(mCPC);
+				ShowNextProductionPopup();
+				break;
 			case MsgUpdateUiAfterDomesticChange mUUASC:
 				// Ensure the citizen moods are correct before displaying them.
 				foreach (City c in controller.cities) {
@@ -936,6 +947,33 @@ public partial class Game : Node {
 		}
 	}
 
+	// The cities waiting to tell the player they've finished building
+	// something. They're shown one at a time, and not while the city screen
+	// is open, so a city the player zoomed to gets its production chosen
+	// before the next city asks.
+	private readonly Queue<MsgCityProductionCompleted> pendingProductionPopups = new();
+	private bool productionPopupShown = false;
+
+	private void ShowNextProductionPopup() {
+		while (!productionPopupShown && !cityScreen.Visible && pendingProductionPopups.TryDequeue(out MsgCityProductionCompleted msg)) {
+			// Found by id, as a LAN client's snapshots replace the cities. It
+			// may have been lost or destroyed since.
+			City city = EngineStorage.gameData.cities.Find(c => c.id == msg.city.id);
+			if (city == null || city.owner?.id != controller.id) {
+				continue;
+			}
+			productionPopupShown = true;
+			mapView?.centerCameraOnTile(city.location);
+			CityProductionPopup popup = new(city, msg.completed,
+				// The next popup waits for the city screen to close.
+				onZoom: () => ShowCityScreenForCity(EngineStorage.gameData, city),
+				onDone: ShowNextProductionPopup);
+			// However the popup goes away.
+			popup.TreeExiting += () => productionPopupShown = false;
+			popupOverlay.ShowPopup(popup, PopupOverlay.PopupCategory.Advisor);
+		}
+	}
+
 	private void InterestingEvent() {
 		// Break out of fast forward mode after interesting events.
 		turnsLeftToFastForward = 0;
@@ -1041,7 +1079,7 @@ public partial class Game : Node {
 					&& controller.currentlyResearchedTech == null
 					&& controller.GetAvailableTechsToResearch(gameData.techs).Count > 0) {
 				popupOverlay.ShowPopup(
-						new ScienceSelection(controller),
+						new ScienceSelection(controller, controller.lastDiscoveredTech),
 						PopupOverlay.PopupCategory.Info);
 
 				// Research something even if the player dismisses the popup.
@@ -1101,6 +1139,9 @@ public partial class Game : Node {
 		log.Information("Starting computer turn");
 		CurrentState = GameState.ComputerTurn;
 		new MsgEndTurn().send(); // Triggers actual backend processing
+		// Production news not yet seen is out of date (and, in a hotseat
+		// game, for the wrong player).
+		pendingProductionPopups.Clear();
 		EmitSignal(SignalName.PlayerTurnEnd);
 	}
 
