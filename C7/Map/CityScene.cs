@@ -41,6 +41,26 @@ namespace C7.Map {
 		private static SpriteFrames disorderFrames;
 		private static SpriteFrames DisorderFrames => disorderFrames ??= TextureLoader.LoadAnimation("animations.disorder", "disorder");
 
+		// The size of Civ3's barracks, harbor and airport icons. Other art is shrunk to fit.
+		private static readonly Vector2 BuildingIconSize = new(25, 17);
+
+		// An icon Civ3 draws by the player's own cities for one of its buildings, made when the city first has one.
+		private class BuildingIcon(string textureKey, Vector2 offset) {
+			public readonly string textureKey = "city_building_icons." + textureKey;
+			// Where the icon's center is from the tile's center.
+			public readonly Vector2 offset = offset;
+			public TextureRect rect;
+			public Building shown;
+		}
+
+		// Placed as in Civ3: the sword to the right of the city and the anchor to its lower left. The airport's
+		// place is a guess, mirroring the anchor.
+		private readonly BuildingIcon[] buildingIcons = [
+			new("barracks", new(70, -20)),
+			new("harbor", new(-62, 8)),
+			new("airport", new(62, 8)),
+		];
+
 		// Textures can differ between games, so they're forgotten when a new map view is made.
 		public static void ClearTextureCache() {
 			cityTextures.Clear();
@@ -102,6 +122,11 @@ namespace C7.Map {
 
 			cityLabelScene.UpdateContent(showDetails);
 
+			// Like growth and production, the buildings are only shown for the player's own cities.
+			ShowBuildingIcon(buildingIcons[0], showDetails ? city.Barracks() : null);
+			ShowBuildingIcon(buildingIcons[1], showDetails ? city.Harbor() : null);
+			ShowBuildingIcon(buildingIcons[2], showDetails ? city.Airport() : null);
+
 			CityGraphicsDetails details = GetCityGraphicsDetails(city);
 			if (cachedDetails != details) {
 				cachedDetails = details;
@@ -144,6 +169,40 @@ namespace C7.Map {
 			disorderSprite.Position = tileCenter + new Vector2(0, -32);
 			cityLabelScene.SetTileCenter(tileCenter);
 			PositionCityGraphics();
+			foreach (BuildingIcon icon in buildingIcons) {
+				PositionBuildingIcon(icon);
+			}
+		}
+
+		// Shows the icon for the building, or hides it when there's no building.
+		private void ShowBuildingIcon(BuildingIcon icon, Building building) {
+			if (building == null) {
+				if (icon.rect != null) {
+					icon.rect.Visible = false;
+				}
+				return;
+			}
+			if (icon.rect == null) {
+				icon.rect = new TextureRect() {
+					ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+					StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+					MouseFilter = Control.MouseFilterEnum.Ignore,
+					Size = BuildingIconSize,
+				};
+				AddChild(icon.rect);
+				PositionBuildingIcon(icon);
+			}
+			if (icon.shown != building) {
+				icon.shown = building;
+				icon.rect.Texture = TextureLoader.Load(icon.textureKey, building, useCache: true);
+			}
+			icon.rect.Visible = true;
+		}
+
+		private void PositionBuildingIcon(BuildingIcon icon) {
+			if (icon.rect != null) {
+				icon.rect.Position = tileCenter + icon.offset - BuildingIconSize / 2;
+			}
 		}
 
 		private void PositionCityGraphics() {

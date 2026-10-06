@@ -230,13 +230,13 @@ return function(civ3_textures)
     }
   end
 
-  -- There's no replacement for Civ3's city label icons, so the building's own icon is shown.
+  -- There's no replacement for Civ3's barracks, harbor and airport icons, so the building's own icon is shown.
   local function building_icon(_, building)
     return c7_textures.building_icons.small:map_object_to_sprite(building)
   end
-  c7_textures.city_label_icons.barracks.map_object_to_sprite = building_icon
-  c7_textures.city_label_icons.harbor.map_object_to_sprite = building_icon
-  c7_textures.city_label_icons.airport.map_object_to_sprite = building_icon
+  c7_textures.city_building_icons.barracks.map_object_to_sprite = building_icon
+  c7_textures.city_building_icons.harbor.map_object_to_sprite = building_icon
+  c7_textures.city_building_icons.airport.map_object_to_sprite = building_icon
 
   function c7_textures.borders:find_column(_)
     return 0
