@@ -416,7 +416,8 @@ namespace C7Engine {
 			int unhappyCount = 0;
 			int entertainerCount = 0;
 			foreach (CityResident cr in city.residents) {
-				if (cr.mood == CityResident.Mood.Unhappy) { ++unhappyCount; }
+				// Specialists' moods are stale and don't count.
+				if (cr.citizenType.IsDefaultCitizen && cr.mood == CityResident.Mood.Unhappy) { ++unhappyCount; }
 				if (cr.citizenType.Luxuries > 0) { ++entertainerCount; }
 			}
 			return (unhappyCount, entertainerCount);

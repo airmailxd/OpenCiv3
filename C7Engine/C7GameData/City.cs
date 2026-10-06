@@ -1345,13 +1345,19 @@ namespace C7GameData {
 				}
 			}
 
+			// A city riots when happy - unhappy < 0; content citizens count as
+			// 0. Specialists take no part: only laborers' moods are reset
+			// above, so a specialist's mood is stale and must be ignored.
 			int happyCount = 0;
 			int unhappyCount = 0;
 			foreach (CityResident cr in residents) {
+				if (!cr.citizenType.IsDefaultCitizen) {
+					continue;
+				}
 				if (cr.mood == CityResident.Mood.Happy) { ++happyCount; }
 				if (cr.mood == CityResident.Mood.Unhappy) { ++unhappyCount; }
 			}
-			if (unhappyCount > 0 && unhappyCount > happyCount) {
+			if (happyCount - unhappyCount < 0) {
 				return Mood.Unhappy;
 			} else {
 				return Mood.Happy;
