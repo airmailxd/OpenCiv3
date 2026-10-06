@@ -30,7 +30,7 @@
 [ext_resource type="PackedScene" uid="uid://bwe87nwkg01n1" path="res://UIElements/GameViews/space_race_view.tscn" id="25_y31gw"]
 [ext_resource type="PackedScene" uid="uid://dvrx5adwjd0w4" path="res://UIElements/GameViews/demographics_view.tscn" id="27_gbxbf"]
 
-[node name="C7Game" type="Node" node_paths=PackedStringArray("Toolbar", "popupOverlay", "cityScreen", "advisor", "gameViews", "diplomacy", "doubleClickHandler", "animationController", "unitSelector")]
+[node name="C7Game" type="Node" node_paths=PackedStringArray("Toolbar", "popupOverlay", "cityScreen", "advisor", "gameViews", "diplomacy", "statusMenu", "doubleClickHandler", "animationController", "unitSelector")]
 script = ExtResource("1")
 Toolbar = NodePath("CanvasLayer/Control/ToolBar/MarginContainer/HBoxContainer")
 popupOverlay = NodePath("CanvasLayer/PopupOverlay")
@@ -38,6 +38,7 @@ cityScreen = NodePath("CanvasLayer/CityScreen")
 advisor = NodePath("CanvasLayer/Advisor")
 gameViews = NodePath("CanvasLayer/GameViews")
 diplomacy = NodePath("CanvasLayer/Diplomacy")
+statusMenu = NodePath("CanvasLayer/Control/GameStatus/StatusMenu")
 doubleClickHandler = NodePath("DoubleClickHandler")
 animationController = NodePath("AnimationController")
 unitSelector = NodePath("UnitSelector")
@@ -150,7 +151,7 @@ metadata/_edit_use_anchors_ = true
 layout_mode = 2
 script = ExtResource("6_24l34")
 
-[node name="StatusMenu" type="VBoxContainer" parent="CanvasLayer/Control/GameStatus" node_paths=PackedStringArray("openDiplomacy", "openPalaceScreen", "popupOverlay")]
+[node name="StatusMenu" type="VBoxContainer" parent="CanvasLayer/Control/GameStatus" node_paths=PackedStringArray("openDiplomacy", "openEspionage", "openPalaceScreen", "popupOverlay")]
 layout_mode = 2
 offset_left = 272.0
 offset_top = 31.0
@@ -160,6 +161,7 @@ size_flags_horizontal = 8
 theme_override_constants/separation = 1
 script = ExtResource("7_yn4xe")
 openDiplomacy = NodePath("Diplomacy")
+openEspionage = NodePath("Espionage")
 openPalaceScreen = NodePath("Palace")
 popupOverlay = NodePath("../../../PopupOverlay")
 
@@ -175,7 +177,7 @@ custom_minimum_size = Vector2(16, 16)
 layout_mode = 2
 script = ExtResource("8_7a2mf")
 text = "E"
-tooltipText = "Espionage"
+tooltipText = "Embassies"
 
 [node name="Palace" type="Control" parent="CanvasLayer/Control/GameStatus/StatusMenu"]
 custom_minimum_size = Vector2(16, 16)

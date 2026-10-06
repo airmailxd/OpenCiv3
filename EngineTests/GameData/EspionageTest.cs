@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using C7Engine;
 using C7GameData;
@@ -97,6 +98,32 @@ public class EspionageTest : IClassFixture<SaveGameFixture>, System.IDisposable 
 		Assert.Equal(100000 - cost, actor.gold);
 
 		Assert.NotNull(Espionage.Unavailable(gameData, actor, EspionageMission.EstablishEmbassy, target, null));
+	}
+
+	[Fact]
+	public void EmbassyReportsTheCapitalAndRevealsItsRadius() {
+		FoundCity(actor, 3);
+		City capital = FoundCity(target, 4);
+		capital.SetStoredShields(12);
+		Meet(actor, target);
+		gameData.turn = 7;
+		List<Tile> radius = capital.location.GetTilesWithinRankDistance(target.rules.MaxRankOfWorkableTiles)
+			.Where(t => t != Tile.NONE).ToList();
+		Assert.Contains(radius, t => !actor.tileKnowledge.isTileKnown(t));
+
+		Espionage.MissionResult result = Espionage.Perform(gameData, actor, EspionageMission.EstablishEmbassy, target, null, Succeed);
+		Assert.True(result.success);
+		Espionage.CityReport report = actor.playerRelationships[target.id].embassyReport;
+		Assert.NotNull(report);
+		Assert.Equal(7, report.turn);
+		Assert.Equal(capital.name, report.cityName);
+		Assert.Equal(4, report.size);
+		Assert.Equal(12, report.shieldsStored);
+		Assert.All(radius, t => Assert.True(actor.tileKnowledge.isTileKnown(t)));
+
+		// The report is of the capital as it was, not as it is.
+		capital.SetStoredShields(30);
+		Assert.Equal(12, actor.playerRelationships[target.id].embassyReport.shieldsStored);
 	}
 
 	[Fact]
@@ -310,6 +337,7 @@ public class EspionageTest : IClassFixture<SaveGameFixture>, System.IDisposable 
 	public void EmbassiesAndSpiesAreSaved() {
 		SetUpEmbassy();
 		actor.playerRelationships[target.id].hasSpy = true;
+		actor.playerRelationships[target.id].embassyReport = Espionage.Investigate(target.cities.First(), 5);
 		target.playerRelationships[actor.id].espionageIncidents = 2;
 		gameData.unitedNations.votingTurn = 42;
 		gameData.unitedNations.humanVotes["x"] = "y";
@@ -320,6 +348,9 @@ public class EspionageTest : IClassFixture<SaveGameFixture>, System.IDisposable 
 		SavePlayer savedTarget = reloaded.Players.First(p => p.id.ToString() == target.id.ToString());
 		Assert.True(savedActor.playerRelationships[target.id.ToString()].hasEmbassy);
 		Assert.True(savedActor.playerRelationships[target.id.ToString()].hasSpy);
+		Espionage.CityReport savedReport = savedActor.playerRelationships[target.id.ToString()].embassyReport;
+		Assert.Equal(5, savedReport.turn);
+		Assert.Equal(target.cities.First().name, savedReport.cityName);
 		Assert.Equal(2, savedTarget.playerRelationships[actor.id.ToString()].espionageIncidents);
 		Assert.Equal(42, reloaded.UnitedNations.votingTurn);
 		Assert.Equal("y", reloaded.UnitedNations.humanVotes["x"]);

@@ -7,12 +7,14 @@ public partial class StatusMenu : Control {
 	[Signal] public delegate void ShowGameViewEventHandler();
 
 	[Export] ConsoleButton openDiplomacy;
+	[Export] ConsoleButton openEspionage;
 	[Export] ConsoleButton openPalaceScreen;
 
 	[Export] PopupOverlay popupOverlay;
 
 	public override void _Ready() {
 		openDiplomacy.Pressed += OpenDiplomacyPopup;
+		openEspionage.Pressed += OpenEmbassyPopup;
 		openPalaceScreen.Pressed += () => {
 			EmitSignal(SignalName.ShowGameView, C7Action.ShowPalaceView);
 		};
@@ -51,21 +53,37 @@ public partial class StatusMenu : Control {
 		buttonsSet = true;
 		diplomacyShown = showDiplomacy;
 
+		// The embassies are only for civs we've met, too.
 		if (showDiplomacy) {
 			openDiplomacy.ShowButton();
+			openEspionage.ShowButton();
 		} else {
 			openDiplomacy.HideButton();
+			openEspionage.HideButton();
 		}
 
 		// TODO: Don't show the palace button if the player can't start building the palace
 		openPalaceScreen.ShowButton();
 	}
 
-	private void OpenDiplomacyPopup() {
+	// Does nothing while the diplomacy button is hidden, so that its
+	// shortcut doesn't open an empty list.
+	public void OpenDiplomacyPopup() {
+		if (!diplomacyShown) {
+			return;
+		}
 		EngineStorage.ReadGameData((GameData gD) => {
 			Player player = gD.GetUIControllerPlayer();
 
 			popupOverlay.ShowPopup(new DiplomacySelection(player, gD.players), PopupOverlay.PopupCategory.Info);
 		});
+	}
+
+	private void OpenEmbassyPopup() {
+		Player player = null;
+		EngineStorage.ReadGameData((GameData gD) => {
+			player = gD.GetUIControllerPlayer();
+		});
+		Embassies.ShowSelection(popupOverlay, player);
 	}
 }

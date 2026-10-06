@@ -118,6 +118,8 @@ public partial class Game : Node {
 	private GameViews gameViews;
 	[Export]
 	private Diplomacy diplomacy;
+	[Export]
+	private StatusMenu statusMenu;
 
 	[Export]
 	private DoubleClickHandler doubleClickHandler;
@@ -939,8 +941,12 @@ public partial class Game : Node {
 				break;
 			}
 			case MsgEspionageResult mER:
+				// An embassy shows us the land around their capital.
+				if (mER.success && mER.mission == EspionageMission.EstablishEmbassy) {
+					mapView.InvalidateMap();
+				}
 				popupOverlay.ShowPopup(
-					new ChoicePopup(Espionage.Describe(mER.mission), mER.message ?? "",
+					new ChoicePopup(Espionage.Describe(mER.mission), Embassies.Wrap(mER.message ?? ""),
 						[new ChoicePopup.Choice("Very well.", () => { })], cancellable: false),
 					PopupOverlay.PopupCategory.Advisor);
 				break;
@@ -1515,17 +1521,7 @@ public partial class Game : Node {
 	public void ShowEspionageMissions(Player target, City city) {
 		List<ChoicePopup.Choice> choices = new();
 		EngineStorage.ReadGameData((GameData gameData) => {
-			foreach (Espionage.MissionOption option in Espionage.GetOptions(gameData, controller, target, city)) {
-				EspionageMission mission = option.mission;
-				string chance = option.successPercent >= 100 ? "" : $", {option.successPercent}% chance";
-				string label = $"{Espionage.Describe(mission)} ({option.cost} gold{chance})";
-				if (option.available) {
-					choices.Add(new ChoicePopup.Choice(label,
-						() => new MsgPerformEspionage(mission, target, Espionage.TargetsCity(mission) ? city : null).send()));
-				} else {
-					choices.Add(new ChoicePopup.Choice($"{Espionage.Describe(mission)}: {option.reason}", null));
-				}
-			}
+			choices = Embassies.MissionChoices(gameData, controller, target, city);
 		});
 		string title = city == null ? $"Missions to the {target.civilization.noun}" : $"Missions to {city.name}";
 		popupOverlay.ShowPopup(new ChoicePopup(title, $"Treasury: {controller.gold} gold", choices),
@@ -1629,6 +1625,15 @@ public partial class Game : Node {
 		}
 		if (eventKeyDown.Keycode == Godot.Key.F11) {
 			EmitSignal(SignalName.ShowGameView, C7Action.ShowDemographicsView);
+		}
+
+		// The same as the diplomacy button.
+		if (eventKeyDown.Keycode == Godot.Key.D
+			&& eventKeyDown.IsCommandOrControlPressed()
+			&& eventKeyDown.ShiftPressed
+			&& !eventKeyDown.AltPressed
+			&& !eventKeyDown.Echo) {
+			statusMenu.OpenDiplomacyPopup();
 		}
 
 		if (eventKeyDown.Keycode == Godot.Key.C && HasCurrentlySelectedUnit()) {
