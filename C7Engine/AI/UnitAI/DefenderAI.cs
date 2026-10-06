@@ -69,7 +69,12 @@ namespace C7Engine.AI.UnitAI {
 		// Calls action(destination) for every unit of `player` whose current
 		// AI is a DefenderAI.
 		private static void ForEachActiveDefenderDestination(Player player, Action<Tile> action) {
-			registry.ForEachActive(player, ai => action(ai.data.destination));
+			// Leaders heading for a city aren't defending it.
+			registry.ForEachActive(player, ai => {
+				if (!ai.data.defender.IsLeader()) {
+					action(ai.data.destination);
+				}
+			});
 		}
 
 		C7GameData.UnitAI.MoveResult C7GameData.UnitAI.PlayTurnImpl(Player player, MapUnit unit) {

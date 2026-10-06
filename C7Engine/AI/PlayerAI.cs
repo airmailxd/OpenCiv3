@@ -305,29 +305,116 @@ namespace C7Engine {
 			return result;
 		}
 
-		// At war a leader forms an army; otherwise it finishes the city's
-		// improvement if it can. Returns true if the leader was used up.
-		private static bool UseLeaderInCity(MapUnit unit, Player player) {
-			if (!unit.IsLeader()) {
+		// A leader in one of our cities finishes the city's improvement or
+		// small wonder. A city building a unit is switched to its most
+		// expensive improvement first. The AI doesn't use armies yet, so
+		// leaders never form them.
+		//
+		// A city whose production is locked in (it was hurried this turn)
+		// keeps the leader until next turn. One building a great wonder, or
+		// with nothing a leader can hurry, sends it on to another city.
+		// Returns true if the leader was used up.
+		internal static bool UseLeaderInCity(MapUnit unit, Player player) {
+			if (!unit.IsLeader() || !unit.CanOfferHurryProduction()) {
 				return false;
-			}
-			bool atWar = IsInAnyWar(player, EngineStorage.gameData.players);
-			if (atWar && unit.CanFormArmy()) {
-				return unit.FormArmy() != null;
 			}
 			if (unit.CanHurryProduction()) {
 				return unit.HurryProductionAsLeader();
 			}
-			if (unit.CanFormArmy()) {
-				return unit.FormArmy() != null;
+
+			City city = unit.location.cityAtTile;
+			if (city.hurriedThisTurn) {
+				return false;
+			}
+			if (city.itemBeingProduced is Building current) {
+				// An improvement finishing this turn anyway: wait for the
+				// next one.
+				if (!current.IsGreatWonder()) {
+					return false;
+				}
+			} else if (BestImprovementForLeader(city) is Building improvement) {
+				city.ChangeProduction(improvement);
+				if (unit.CanHurryProduction()) {
+					return unit.HurryProductionAsLeader();
+				}
+			}
+
+			// Try another city.
+			UnitAI ai = MakeLeaderAI(unit, player);
+			if (ai is DefenderAI { data.destination: Tile destination } && destination != unit.location) {
+				unit.currentAI = ai;
+				unit.Wake();
 			}
 			return false;
+		}
+
+		// The most expensive improvement or small wonder the city can build
+		// that a leader could hurry, or null.
+		private static Building BestImprovementForLeader(City city) {
+			Building best = null;
+			foreach (IProducible p in city.ListProductionOptions(EngineStorage.gameData)) {
+				if (p is Building b && !b.IsGreatWonder() && city.owner.ShieldCost(b) > city.shieldsStored
+						&& (best == null || city.owner.ShieldCost(b) > city.owner.ShieldCost(best))) {
+					best = b;
+				}
+			}
+			return best;
+		}
+
+		// Whether a leader arriving in the city could be used there: it isn't
+		// building a great wonder, and has an improvement to hurry.
+		private static bool CityCanUseLeader(City city) {
+			if (city.itemBeingProduced is Building b && b.IsGreatWonder()) {
+				return false;
+			}
+			return BestImprovementForLeader(city) != null;
+		}
+
+		// Sends a leader straight to the nearest of our cities that can use
+		// it, or failing that to the nearest city. A leader can't fight, so it
+		// shouldn't explore or escort.
+		internal static UnitAI MakeLeaderAI(MapUnit unit, Player player) {
+			PathingAlgorithm algorithm = PathingAlgorithmChooser.GetAlgorithm(unit);
+			Tile destination = null;
+			TilePath path = null;
+			foreach (bool needUsable in new[] { true, false }) {
+				foreach (City city in player.cities.OrderBy(c => c.location.DistanceTo(unit.location))) {
+					if (needUsable && !CityCanUseLeader(city)) {
+						continue;
+					}
+					if (city.location == unit.location) {
+						destination = city.location;
+						break;
+					}
+					TilePath p = algorithm.PathFrom(unit.location, city.location, unit);
+					if (p != null && p.PathLength() > 0) {
+						destination = city.location;
+						path = p;
+						break;
+					}
+				}
+				if (destination != null) {
+					break;
+				}
+			}
+
+			// With no city to go to, the leader stays where it is.
+			DefenderAIData data = new() {
+				goal = DefenderAIData.DefenderGoal.DEFEND_CITY,
+				destination = destination ?? unit.location,
+				defender = unit,
+				pathToDestination = path,
+			};
+			log.Information("Sending leader {Unit} to {Destination}", unit, data.destination);
+			return new DefenderAI(data);
 		}
 
 		public static UnitAI GetAIForUnit(MapUnit unit, Player player) {
 			//figure out an AI behavior
 			//TODO: Use strategies, not names
-			if (unit.unitType.name == "Settler") {
+			if (unit.IsLeader()) {
+				return MakeLeaderAI(unit, player);
+			} else if (unit.unitType.name == "Settler") {
 				return new SettlerAI(SettlerAI.MakeAiData(unit, player));
 			} else if (unit.unitType.name == "Worker") {
 				return new WorkerAI(WorkerAI.MakeAiData(unit, player));
@@ -477,7 +564,7 @@ namespace C7Engine {
 		internal static bool WouldExplore(MapUnit unit, Player player, bool hypothetical = false) {
 			// Mirror the checks GetAIForUnit makes before considering
 			// exploration.
-			if (unit.unitType.name == "Settler" || unit.unitType.name == "Worker") {
+			if (unit.IsLeader() || unit.unitType.name == "Settler" || unit.unitType.name == "Worker") {
 				return false;
 			}
 			if (unit.location.cityAtTile != null && unit.CanDefendOnLand() && unit.location.unitsOnTile.Count(u => u.CanDefendOnLand() && u != unit) == 0) {

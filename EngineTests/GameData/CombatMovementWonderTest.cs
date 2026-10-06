@@ -434,4 +434,45 @@ public class CombatMovementWonderTest : IClassFixture<SaveGameFixture> {
 
 		Assert.True(loaded.cities.Single(c => c.id == city.id).hurriedThisTurn);
 	}
+
+	[Fact]
+	public void AiLeaderAtWarHurriesInsteadOfFormingAnArmy() {
+		City city = BuildCity(us);
+		them.DeclareWarOn(us, gameData.turn);
+		MapUnit leader = Spawn(us, "Leader", city.location);
+		city.SetItemBeingProduced(Prototype("Warrior"));
+
+		Assert.True(PlayerAI.UseLeaderInCity(leader, us));
+
+		// The city switched to an improvement, which the leader finished.
+		Building building = Assert.IsType<Building>(city.itemBeingProduced);
+		Assert.False(building.IsGreatWonder());
+		Assert.Equal(us.ShieldCost(building), city.shieldsStored);
+		Assert.DoesNotContain(leader, us.units);
+		Assert.DoesNotContain(us.units, u => u.IsArmy());
+	}
+
+	[Fact]
+	public void AiLeaderWaitsInACityHurriedThisTurn() {
+		City city = BuildCity(us);
+		MapUnit leader = Spawn(us, "Leader", city.location);
+		city.SetItemBeingProduced(Prototype("Warrior"));
+		city.FillProductionBox();
+
+		Assert.False(PlayerAI.UseLeaderInCity(leader, us));
+		Assert.Contains(leader, us.units);
+		Assert.IsType<UnitPrototype>(city.itemBeingProduced);
+	}
+
+	[Fact]
+	public void AiLeaderOutsideACityHeadsForTheNearestCity() {
+		City city = BuildCity(us);
+		Tile outside = city.location.neighbors.Values.First(t => t != Tile.NONE && IsEmptyLand(t));
+		MapUnit leader = Spawn(us, "Leader", outside);
+
+		C7GameData.UnitAI ai = PlayerAI.GetAIForUnit(leader, us);
+
+		C7Engine.AI.UnitAI.DefenderAI defender = Assert.IsType<C7Engine.AI.UnitAI.DefenderAI>(ai);
+		Assert.Equal(city.location, defender.data.destination);
+	}
 }
