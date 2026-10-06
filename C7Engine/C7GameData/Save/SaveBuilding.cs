@@ -7,6 +7,7 @@ namespace C7GameData.Save {
 			IsCenterOfEmpire,
 			VeteranGroundUnits,
 			VeteranSeaUnits,
+			VeteranAirUnits,
 			MustBeCoastal,
 			MustBeNearRiver,
 			IncreasesLuxuryTrade,

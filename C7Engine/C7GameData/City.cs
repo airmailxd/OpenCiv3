@@ -760,6 +760,22 @@ namespace C7GameData {
 			return false;
 		}
 
+		// The city's barracks, harbor and airport, built or granted by a wonder:
+		// the buildings that make veteran land, sea and air units. Null if it
+		// has none.
+		public Building Barracks() => EffectiveBuildingWhere(b => b.providesVeteranGroundUnits);
+		public Building Harbor() => EffectiveBuildingWhere(b => b.providesVeteranSeaUnits);
+		public Building Airport() => EffectiveBuildingWhere(b => b.providesVeteranAirUnits);
+
+		private Building EffectiveBuildingWhere(Func<Building, bool> predicate) {
+			foreach (CityBuilding cb in EffectiveBuildings()) {
+				if (predicate(cb.building)) {
+					return cb.building;
+				}
+			}
+			return null;
+		}
+
 		public IEnumerable<StrengthBonus> GetDefenseBonuses() {
 			GameData gD = EngineStorage.gameData;
 

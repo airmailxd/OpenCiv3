@@ -1801,6 +1801,7 @@ namespace C7GameData {
 				(bldg.MustBeNearRiver, SaveBuilding.Flag.MustBeNearRiver),
 				(bldg.VeteranGroundUnits, SaveBuilding.Flag.VeteranGroundUnits),
 				(bldg.VeteranSeaUnits, SaveBuilding.Flag.VeteranSeaUnits),
+				(bldg.VeteranAirUnits, SaveBuilding.Flag.VeteranAirUnits),
 				(bldg.IncreasesLuxuryTrade, SaveBuilding.Flag.IncreasesLuxuryTrade),
 				(bldg.ReducesCorruption, SaveBuilding.Flag.ReducesCorruption),
 				(bldg.ForbiddenPalace, SaveBuilding.Flag.ForbiddenPalace),
