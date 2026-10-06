@@ -67,6 +67,10 @@ public class PlayerRelationship {
 	// p2's capital, which diplomatic missions against p2 need.
 	public bool hasEmbassy = false;
 
+	// What p1's embassy reported of p2's capital when it was established,
+	// or null if p1 has no embassy or it came from a scenario.
+	public Espionage.CityReport embassyReport = null;
+
 	// p1.playerRelationships[p2].hasSpy is true if p1 has planted a spy in
 	// p2's capital (needs the Intelligence Agency), which espionage missions
 	// against p2 need.

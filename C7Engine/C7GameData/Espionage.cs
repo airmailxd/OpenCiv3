@@ -61,8 +61,10 @@ namespace C7Engine {
 			public int successPercent;
 		}
 
-		// What an investigated city reveals.
+		// What an investigated city reveals, as it was on the turn it was
+		// investigated.
 		public class CityReport {
+			public int turn;
 			public string cityName;
 			public int size;
 			public string producing;
@@ -327,12 +329,20 @@ namespace C7Engine {
 			}
 
 			switch (mission) {
-				case EspionageMission.EstablishEmbassy:
+				case EspionageMission.EstablishEmbassy: {
+					// The embassy reports on the capital as it is now, and
+					// shows us the land around it.
+					City capital = Capital(target);
 					ours.hasEmbassy = true;
-					result.message = $"We have established an embassy with the {target.civilization.noun}.";
+					ours.embassyReport = Investigate(capital, gameData.turn);
+					RevealCityRadius(actor, capital);
+					result.report = ours.embassyReport;
+					result.message = $"We have established an embassy with the {target.civilization.noun} in {capital.name}.\n"
+						+ DescribeReport(result.report);
 					break;
+				}
 				case EspionageMission.InvestigateCity:
-					result.report = Investigate(city);
+					result.report = Investigate(city, gameData.turn);
 					result.message = DescribeReport(result.report);
 					break;
 				case EspionageMission.StealTechnology: {
@@ -384,8 +394,22 @@ namespace C7Engine {
 			}
 		}
 
-		public static CityReport Investigate(City city) {
+		// Shows the player the tiles in the city's radius (its big fat
+		// cross), remembering them as they are now.
+		public static void RevealCityRadius(Player player, City city) {
+			foreach (Tile t in city.location.GetTilesWithinRankDistance(city.owner.rules.MaxRankOfWorkableTiles)) {
+				if (t == Tile.NONE) {
+					continue;
+				}
+				player.tileKnowledge.AddTileToKnown(t);
+				player.tileKnowledge.RememberImprovements(t);
+			}
+			player.tileKnowledge.RecomputeActiveTiles();
+		}
+
+		public static CityReport Investigate(City city, int turn) {
 			return new CityReport {
+				turn = turn,
 				cityName = city.name,
 				size = city.residents.Count,
 				producing = city.itemBeingProduced?.name,
