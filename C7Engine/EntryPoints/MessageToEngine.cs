@@ -267,6 +267,9 @@ namespace C7Engine {
 			Disband,
 			Explore,
 			Automate,
+			// A great leader forms an army, or hurries its city's production.
+			FormArmy,
+			HurryProduction,
 		}
 
 		public ID unitID;
@@ -294,6 +297,14 @@ namespace C7Engine {
 						break;
 					case Command.Automate:
 						unit.Automate();
+						break;
+					case Command.FormArmy:
+						MapUnit army = unit.FormArmy();
+						if (army != null && army.owner.isHuman)
+							new MsgUnitMoved(army).send();
+						break;
+					case Command.HurryProduction:
+						unit.HurryProductionAsLeader();
 						break;
 				}
 			} catch (Exception e) {

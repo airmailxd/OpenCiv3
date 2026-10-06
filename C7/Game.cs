@@ -1706,6 +1706,20 @@ public partial class Game : Node {
 			new MsgPillage(CurrentlySelectedUnit.id).send();
 		}
 
+		if (currentAction == C7Action.UnitBuildArmy && CurrentlySelectedUnit.CanFormArmy()) {
+			new MsgUnitCommand(CurrentlySelectedUnit.id, MsgUnitCommand.Command.FormArmy).send();
+		}
+
+		if (currentAction == C7Action.UnitHurryBuilding && CurrentlySelectedUnit.CanOfferHurryProduction()) {
+			string blocker = CurrentlySelectedUnit.HurryProductionBlocker();
+			if (blocker == null) {
+				new MsgUnitCommand(CurrentlySelectedUnit.id, MsgUnitCommand.Command.HurryProduction).send();
+			} else {
+				popupOverlay.ShowPopup(new InformationalPopup(blocker, AdvisorHead.Advisor.Military, AdvisorHead.Mood.Angry),
+					PopupOverlay.PopupCategory.Advisor);
+			}
+		}
+
 		if (currentAction == C7Action.UnitLoad) {
 			// TODO: Which transport?
 			new MsgLoadToTransport(CurrentlySelectedUnit.id).send();

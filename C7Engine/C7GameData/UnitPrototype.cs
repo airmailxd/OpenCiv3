@@ -25,6 +25,10 @@ namespace C7GameData {
 		Sentry,
 		// Not a BIQ ability; available to any unit that can sentry.
 		SentryEnemyOnly,
+		// A great leader forms an army in a city.
+		BuildArmy,
+		// A great leader finishes a city's improvement.
+		HurryBuilding,
 	}
 
 	public struct ItemContext(UnitPrototype proto, Player player) {
@@ -467,7 +471,9 @@ namespace C7GameData {
 				instance.nationality = owner.civilization;
 			instance.location = location;
 
-			instance.movementPoints.reset(movement);
+			// Includes any bonus from the owner's wonders, like the Great
+			// Lighthouse's for ships.
+			instance.movementPoints.reset(instance.MaxMovementPoints());
 			return instance;
 		}
 

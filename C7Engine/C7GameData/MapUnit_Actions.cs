@@ -614,7 +614,11 @@ public partial class MapUnit {
 			// In an army, the member that won the last round gets the chance
 			// to be promoted, and the army plays the victory animation.
 			MapUnit survivingMember = (alive == attacker) ? attackingMember : defendingMember;
+			// Only a unit that was already elite can produce a leader, not
+			// one this victory promotes to elite.
+			bool wasElite = survivingMember.IsElite();
 			survivingMember.RollToPromote(dead, alive);
+			survivingMember.RollForLeader(dead, wasElite);
 
 			// Winning a battle with an army is what lets a civ build the
 			// Military Academy.

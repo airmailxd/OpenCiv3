@@ -13,6 +13,9 @@ namespace C7GameData {
 		public int year;
 		public int totalCulture; // This represents the total culture produced by the building.
 								 // In Civ3, this value is displayed in the cultural advisor tab
+		// For a building that grants a unit every few turns (the Statue of
+		// Zeus, Knights Templar), the turns since it last did.
+		public int turnsTowardFreeUnit;
 	}
 
 	public struct CommerceBreakdown {
@@ -202,6 +205,10 @@ namespace C7GameData {
 			// grantedStart on are granted by wonders. Never modified.
 			internal List<CityBuilding> buildings;
 			internal int grantedStart;
+
+			// Every building the owner's wonders provide to this city, whether
+			// or not the city has also built it.
+			internal HashSet<Building> providedByWonders;
 		}
 
 		private EffectiveBuildingsCache effectiveBuildingsCache;
@@ -229,6 +236,7 @@ namespace C7GameData {
 			};
 
 			HashSet<Building> buildingsSeen = new();
+			HashSet<Building> providedByWonders = new();
 			List<CityBuilding> result = new();
 			foreach (CityBuilding cb in constructed_buildings) {
 				result.Add(cb);
@@ -239,6 +247,14 @@ namespace C7GameData {
 			// Loop through all the wonders we control that aren't obsolete.
 			foreach ((City c, CityBuilding cb) in wonders.activeWonders) {
 				Building b = cb.building;
+
+				if (b.greatWonderProperties.buildingGainedInEveryCity != null) {
+					providedByWonders.Add(b.greatWonderProperties.buildingGainedInEveryCity);
+				}
+				if (b.greatWonderProperties.buildingGainedInEveryCityOnContinent != null
+					&& c.location.continent == location.continent) {
+					providedByWonders.Add(b.greatWonderProperties.buildingGainedInEveryCityOnContinent);
+				}
 
 				if (b.greatWonderProperties.buildingGainedInEveryCity != null
 					&& buildingsSeen.Add(b.greatWonderProperties.buildingGainedInEveryCity)) {
@@ -264,6 +280,7 @@ namespace C7GameData {
 			}
 
 			cache.buildings = result;
+			cache.providedByWonders = providedByWonders;
 			effectiveBuildingsCache = cache;
 			return cache;
 		}
@@ -473,6 +490,14 @@ namespace C7GameData {
 			}
 		}
 
+		// Fills the production box, so that the current item is finished at
+		// the end of the turn. A great leader hurries production this way.
+		internal void FillProductionBox() {
+			if (itemBeingProduced != null) {
+				shieldsStored = owner.ShieldCost(itemBeingProduced);
+			}
+		}
+
 		public void HandleCityProduction(GameData gameData) {
 			IProducible producedItem = ComputeTurnProduction();
 			if (producedItem == null) {
@@ -483,7 +508,23 @@ namespace C7GameData {
 			if (producedItem is UnitPrototype prototype) {
 				AddUnit(prototype, gameData);
 			} else if (producedItem is Building building) {
-				AddBuilding(building);
+				if (building.isCenterOfEmpire) {
+					owner.MovePalaceTo(this, building);
+				} else if (building.IsSpaceshipPart) {
+					// Spaceship parts go to the owner's ship, not the city.
+					SpaceRace.OnPartCompleted(gameData, this, building);
+				} else {
+					AddBuilding(building);
+				}
+
+				if (building.buildSpaceshipParts) {
+					SpaceRace.OnApolloCompleted(gameData, this, building);
+				}
+
+				// Theory of Evolution: two free advances, once, on completion.
+				if (building.twoFreeAdvances) {
+					owner.GrantFreeTechs(gameData, 2, building.name, this);
+				}
 
 				// If we completed a great wonder, mark it as completed so no
 				// other civ can build it. If any other cities are building the
@@ -553,14 +594,22 @@ namespace C7GameData {
 				return;
 			}
 
-			if (CanGrowPopulationByOne(gameData)) {
+			// With Longevity a full food box adds two citizens instead of one.
+			// The second still needs room to grow (an aqueduct or hospital
+			// where the city reaches the next size level).
+			int newCitizens = owner.GetBuildingSnapshot().doublesCityGrowthEverywhere ? 2 : 1;
+			bool grew = false;
+			for (int i = 0; i < newCitizens && CanGrowPopulationByOne(gameData); ++i) {
 				CityResident newResident = new CityResident();
 				newResident.nationality = owner.civilization;
 				newResident.city = this;
 				newResident.citizenType = gameData.citizenTypes.Find(x => x.IsDefaultCitizen);
 				AddCitizen(newResident);
 				C7Engine.AI.CityTileAssignmentAI.AssignNewCitizenToTile(gameData, newResident);
+				grew = true;
+			}
 
+			if (grew) {
 				if (hasGranary) {
 					foodStored /= 2;
 				} else {
@@ -724,15 +773,53 @@ namespace C7GameData {
 			}
 
 			// Factories and power plants boost the shields left after waste.
-			int productionBonusPercent = 0;
-			foreach (CityBuilding cb in buildings) {
-				productionBonusPercent += cb.building.productionBonusPercent;
-			}
-			result.useful += result.useful * productionBonusPercent / 100;
+			result.useful += result.useful * ProductionBonusPercent(buildings) / 100;
 
 			// TODO: add specialist shields here. Do specialists still work in
 			// civil disorder?
 
+			return result;
+		}
+
+		// The percentage the given buildings add to the city's useful shields.
+		// As in Civ3, a production building only works alongside the building
+		// it requires: a power plant ("increases factory output") does nothing
+		// without a Factory, even one granted by the Hoover Dam. And a city
+		// only runs one power plant (they replace each other), so of several
+		// plants, e.g. a built Coal Plant and the Hoover Dam's Hydro Plant,
+		// only the best counts.
+		internal static int ProductionBonusPercent(List<CityBuilding> buildings) {
+			int total = 0;
+			int bestReplaceable = 0;
+			foreach (CityBuilding cb in buildings) {
+				Building b = cb.building;
+				if (b.productionBonusPercent == 0) {
+					continue;
+				}
+				if (b.requiredBuilding != null && !buildings.Exists(other => other.building == b.requiredBuilding)) {
+					continue;
+				}
+				if (b.replacesOtherBuildings) {
+					bestReplaceable = Math.Max(bestReplaceable, b.productionBonusPercent);
+				} else {
+					total += b.productionBonusPercent;
+				}
+			}
+			return total + bestReplaceable;
+		}
+
+		// The pollution the city's buildings add to it, from the BIQ's
+		// per-building pollution value (e.g. the Iron Works' 4).
+		//
+		// TODO: nothing consumes this yet. Civ3's city pollution (from
+		// population and production, reduced by the Mass Transit System and
+		// Recycling Center) and the chance of polluting tiles it drives aren't
+		// implemented.
+		public int BuildingPollution() {
+			int result = 0;
+			foreach (CityBuilding cb in EffectiveBuildings()) {
+				result += cb.building.pollution;
+			}
 			return result;
 		}
 
@@ -822,9 +909,19 @@ namespace C7GameData {
 		}
 
 		public int MaintenanceCostsRaw() {
+			EffectiveBuildingsCache cache = GetEffectiveBuildingsCache();
+			bool commercialUpkeepPaid = cache.wonders.paysTradeMaintenance;
 			int result = 0;
 			foreach (CityBuilding cb in constructed_buildings) {
-				result += cb.building.maintenanceCost;
+				Building b = cb.building;
+				// Civ3 charges nothing for a building one of the owner's
+				// wonders also provides (a granary alongside the Pyramids),
+				// and Smith's Trading Company pays for commercial buildings.
+				if (cache.providedByWonders.Contains(b)
+					|| (commercialUpkeepPaid && b.traits.Contains(Civilization.Trait.Commercial))) {
+					continue;
+				}
+				result += b.maintenanceCost;
 			}
 			return result;
 		}
@@ -902,14 +999,35 @@ namespace C7GameData {
 		}
 
 		public int GetCulturePerTurnRaw() {
+			(int improvements, int wonders) = GetCulturePerTurnBySource();
+			return improvements + wonders;
+		}
+
+		// GetCulturePerTurnRaw split into what the city's ordinary buildings
+		// and its wonders (great and small) make.
+		public (int improvements, int wonders) GetCulturePerTurnBySource() {
 			// The year can't change during the loop, so look it up once.
 			int currentGameYear = CurrentGameYear();
-			int result = 0;
-			foreach (CityBuilding cb in EffectiveBuildings()) {
-				var multiplier = AgeMultiplier(cb, currentGameYear);
-				result += cb.building.culturePerTurn * multiplier;
+			EffectiveBuildingsCache cache = GetEffectiveBuildingsCache();
+			int improvements = 0;
+			int wonders = 0;
+			for (int i = 0; i < cache.buildings.Count; ++i) {
+				CityBuilding cb = cache.buildings[i];
+				// Only the owner's own buildings make culture: a captured
+				// city's wonders make none for its captor.
+				if (cb.builtByPlayer != null && cb.builtByPlayer != owner) {
+					continue;
+				}
+				// Buildings granted by wonders never get old.
+				bool granted = i >= cache.grantedStart;
+				int culture = cb.building.culturePerTurn * (granted ? 1 : AgeMultiplier(cb, currentGameYear));
+				if (cb.building.IsGreatWonder() || cb.building.isSmallWonder) {
+					wonders += culture;
+				} else {
+					improvements += culture;
+				}
 			}
-			return result;
+			return (improvements, wonders);
 		}
 
 		private static int CurrentGameYear() {
@@ -917,14 +1035,42 @@ namespace C7GameData {
 			return gameData?.timeOptions?.GetRawNumber(gameData.turn) ?? 0;
 		}
 
+		// A building's culture doubles once it is more than a thousand years
+		// old, and only once: Civ3 saves show a temple from 1830 BC making 4
+		// culture a turn in 230 AD, not 8, and a library from 620 AD still
+		// making 3 in 1620 AD.
 		private static int AgeMultiplier(CityBuilding cb, int currentGameYear) {
-			int ageInMillennia = (int) Math.Floor((currentGameYear - cb.year) / 1000f);
+			return currentGameYear - cb.year > 1000 ? 2 : 1;
+		}
 
-			// Buildings from older saves may have a build year in the future.
-			if (ageInMillennia < 0)
-				ageInMillennia = 0;
+		// Conquests tourism: the gold a turn this city's great wonders with
+		// the tourist attraction flag earn its owner once they're old enough.
+		// The table is the Civilopedia's (GCON_Tourist_Attraction).
+		//
+		// Assumptions: the gold goes straight to the treasury, untouched by
+		// corruption or the tax rate; a wonder still attracts tourists once
+		// obsolete and after its city changes hands; and the bands start at
+		// 1000 years inclusive.
+		public int TourismGold() {
+			int currentGameYear = CurrentGameYear();
+			int result = 0;
+			foreach (CityBuilding cb in constructed_buildings) {
+				if (cb.building.touristAttraction && cb.building.IsGreatWonder()) {
+					result += TourismGoldForAge(currentGameYear - cb.year);
+				}
+			}
+			return result;
+		}
 
-			return 1 << ageInMillennia;
+		internal static int TourismGoldForAge(int years) {
+			if (years < 1000) return 0;
+			if (years <= 1500) return 2;
+			if (years <= 1750) return 4;
+			if (years <= 1875) return 6;
+			if (years <= 2000) return 8;
+			if (years <= 2250) return 10;
+			if (years <= 2500) return 12;
+			return 14;
 		}
 
 		[MoonSharpHidden]
@@ -952,6 +1098,10 @@ namespace C7GameData {
 		}
 
 		public void AddBuilding(Building building) {
+			// A new power plant replaces any other one in the city.
+			if (building.replacesOtherBuildings) {
+				constructed_buildings.RemoveAll(cb => cb.building.replacesOtherBuildings);
+			}
 			constructed_buildings.Add(new CityBuilding {
 				building = building,
 				builtByPlayer = owner,
@@ -1217,6 +1367,56 @@ namespace C7GameData {
 			return !anyUnhappy && happy > content;
 		}
 
+		// The net number of unhappy citizens made content (negative: content
+		// citizens made unhappy) by the buildings in this city and by the
+		// owner's great wonders:
+		//  - each building's own faces in its city (the Temple's one, the
+		//    Hanging Gardens' three, Shakespeare's Theater's eight, ...);
+		//  - a wonder that doubles a building (the Oracle for Temples, the
+		//    Sistine Chapel for Cathedrals) adds that building's faces again
+		//    in every city of the owner that has it, wonder-granted ones
+		//    (Temple of Artemis) included;
+		//  - a wonder's faces in all cities (the Hanging Gardens' one, Cure
+		//    for Cancer's one, JS Bach's two), limited to the wonder's
+		//    continent when it has continental mood effects (JS Bach).
+		// An obsolete great wonder does none of this, not even in its own city.
+		//
+		// Assumption: the all-cities faces don't add to the wonder's own city,
+		// which only gets its in-city faces. That matches the Civilopedia: the
+		// Hanging Gardens (3 in city, 1 in all) make "three unhappy citizens
+		// content in its city and one ... in all other friendly cities", and
+		// JS Bach (2 and 2) "decreases unhappy citizens by two per city".
+		// Assumption: the all-cities faces only reach the owner's cities; Cure
+		// for Cancer has no flag for other civs and the Conquests Civilopedia
+		// just says "in every city".
+		internal int BuildingContentFaces(List<CityBuilding> buildings) {
+			int result = 0;
+			foreach (CityBuilding cb in buildings) {
+				if (cb.building.isGreatWonderObsolete(owner)) {
+					continue;
+				}
+				result -= cb.building.unhappyFacesInCity;
+				result += cb.building.contentFacesInCity;
+			}
+
+			foreach ((City c, CityBuilding cb) in owner.GetBuildingSnapshot().activeWonders) {
+				Building wonder = cb.building;
+				if (wonder.doublesHappinessOf != null) {
+					foreach (CityBuilding doubled in buildings) {
+						if (doubled.building == wonder.doublesHappinessOf) {
+							result += doubled.building.contentFacesInCity;
+							break;
+						}
+					}
+				}
+				if (wonder.contentFacesAllCities != 0 && c != this
+					&& (!wonder.continentalMoodEffects || c.location.continent == location.continent)) {
+					result += wonder.contentFacesAllCities;
+				}
+			}
+			return result;
+		}
+
 		// This function does the heavy lifting of happiness calculations,
 		// combining the various bonuses and penalties that affect citizen moods.
 		//
@@ -1251,14 +1451,9 @@ namespace C7GameData {
 			List<CityBuilding> buildings = EffectiveBuildings();
 			// TODO: add penalty for aggression against home country
 
-			// Building happiness/unhappiness, which only affects the unhappy to
-			// content transition, nothing with happy faces.
-			//
-			// TODO: account for wonders and buildings with global/continental effects.
-			foreach (CityBuilding cb in buildings) {
-				unhappyToContentMoves -= cb.building.unhappyFacesInCity;
-				unhappyToContentMoves += cb.building.contentFacesInCity;
-			}
+			// Building and wonder happiness/unhappiness, which only affects the
+			// unhappy to content transition, nothing with happy faces.
+			unhappyToContentMoves += BuildingContentFaces(buildings);
 
 			// Depending on the government type, land defensive units can serve
 			// as military police.

@@ -220,11 +220,27 @@ namespace C7GameData {
 			private HashSet<IProducible> producedByOtherCities;
 			private int armyCount = -1;
 
+			// Whether the city has a Forbidden Palace or Secret Police HQ.
+			internal readonly bool hasForbiddenPalace;
+
+			private Dictionary<Building, int> citiesWithBuilding;
+
 			internal ProductionContext(City city) {
 				this.city = city;
 				foreach (CityBuilding cb in city.EffectiveBuildings()) {
 					cityBuildings.Add(cb.building);
+					hasForbiddenPalace |= cb.building.isForbiddenPalace;
 				}
+			}
+
+			// The number of the owner's cities with the building.
+			internal int CitiesWithBuilding(Building building) {
+				citiesWithBuilding ??= new(ReferenceEqualityComparer.Instance);
+				if (!citiesWithBuilding.TryGetValue(building, out int count)) {
+					count = Building.CitiesWithBuilding(city.owner, building);
+					citiesWithBuilding[building] = count;
+				}
+				return count;
 			}
 
 			// Whether another of the owner's cities is producing something
@@ -318,22 +334,39 @@ namespace C7GameData {
 				}
 			}
 
-			// TODO: Add logic for wonders and the palace. Small wonders are
-			// only buildable once their effects are implemented, which so far
-			// is just the army ones.
-			if (isCenterOfEmpire || (isSmallWonder && !IsSupportedSmallWonder())) {
+			if (isCenterOfEmpire) {
+				// Building a palace in another city moves the capital there.
+				// Assumption: like the Forbidden Palace below, Civ3 doesn't
+				// offer it in a city that already has a second palace.
+				if (city.IsCapital() || HasForbiddenPalace(city, context)) {
+					return false;
+				}
+			}
+
+			if (isForbiddenPalace) {
+				// A second (or, with the Secret Police HQ, third) center of
+				// the empire makes no sense in the capital or in a city that
+				// already is one.
+				if (city.IsCapital() || HasForbiddenPalace(city, context)) {
+					return false;
+				}
+			}
+
+			if (requiredGovernment != null && city.owner.government?.id != requiredGovernment.id) {
 				return false;
 			}
 
-			if (isSmallWonder) {
+			if (isSmallWonder || isCenterOfEmpire) {
 				// A civ builds each small wonder once, in one city at a time.
+				// The palace can be rebuilt elsewhere (moving it), but also
+				// only in one city at a time.
 				if (context != null) {
-					if (context.EmpireHasBuilt(this) || context.OtherCityIsProducing(this)) {
+					if ((isSmallWonder && context.EmpireHasBuilt(this)) || context.OtherCityIsProducing(this)) {
 						return false;
 					}
 				} else {
 					foreach (City c in city.owner.cities) {
-						if (c.constructed_buildings.Exists(cb => cb.building == this)) {
+						if (isSmallWonder && c.constructed_buildings.Exists(cb => cb.building == this)) {
 							return false;
 						}
 						if (c != city && c.itemBeingProduced == this) {
@@ -358,13 +391,28 @@ namespace C7GameData {
 				return false;
 			}
 
-			if (requiredBuilding != null &&
-				!(context != null ? context.cityBuildings.Contains(requiredBuilding) : city.HasEffectiveBuilding(requiredBuilding))) {
-				return false;
+			if (requiredBuilding != null) {
+				if (requiredBuildingCount > 1) {
+					// Civ3's "number of required buildings": the civ needs that
+					// many cities with the building (like Wall Street's five
+					// stock exchanges). Assumption: the building city itself
+					// needn't be one of them.
+					int count = context != null ? context.CitiesWithBuilding(requiredBuilding) : CitiesWithBuilding(city.owner, requiredBuilding);
+					if (count < requiredBuildingCount) {
+						return false;
+					}
+				} else if (!(context != null ? context.cityBuildings.Contains(requiredBuilding) : city.HasEffectiveBuilding(requiredBuilding))) {
+					return false;
+				}
 			}
 
 			foreach (Resource resource in requiredResources) {
 				if (!accessibleResources.Contains(resource)) {
+					return false;
+				}
+				// Some buildings need the resource in the city's own radius,
+				// not merely connected to it.
+				if (goodsMustBeInCityRadius && !city.GetWorkableTiles().Exists(t => t.Resource == resource)) {
 					return false;
 				}
 			}
@@ -378,8 +426,28 @@ namespace C7GameData {
 			return true;
 		}
 
-		private bool IsSupportedSmallWonder() {
-			return allowsBuildArmy || allowsLargerArmies;
+		// The number of the player's cities that have the building, including
+		// ones granted by wonders.
+		internal static int CitiesWithBuilding(Player player, Building building) {
+			int count = 0;
+			foreach (City c in player.cities) {
+				if (c.HasEffectiveBuilding(building)) {
+					++count;
+				}
+			}
+			return count;
+		}
+
+		private static bool HasForbiddenPalace(City city, ProductionContext context) {
+			if (context != null) {
+				return context.hasForbiddenPalace;
+			}
+			foreach (CityBuilding cb in city.constructed_buildings) {
+				if (cb.building.isForbiddenPalace) {
+					return true;
+				}
+			}
+			return false;
 		}
 
 		// The civilization strengths this building is associated with.

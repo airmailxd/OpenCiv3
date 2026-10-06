@@ -13,6 +13,7 @@ namespace C7GameData.Save {
 		public ID builtByPlayer;
 		public int year;
 		public int totalCulture;
+		public int turnsTowardFreeUnit;
 
 		public SaveCityBuilding() { }
 
@@ -21,6 +22,7 @@ namespace C7GameData.Save {
 			builtByPlayer = cityBuilding.builtByPlayer.id;
 			year = cityBuilding.year;
 			totalCulture = cityBuilding.totalCulture;
+			turnsTowardFreeUnit = cityBuilding.turnsTowardFreeUnit;
 		}
 
 		public CityBuilding ToCityBuilding(List<Building> buildings, List<Player> players) {
@@ -29,6 +31,7 @@ namespace C7GameData.Save {
 				builtByPlayer = players.Find(player => player.id == builtByPlayer),
 				year = year,
 				totalCulture = totalCulture,
+				turnsTowardFreeUnit = turnsTowardFreeUnit,
 			};
 		}
 
@@ -38,6 +41,7 @@ namespace C7GameData.Save {
 				builtByPlayer = SaveCity.Lookups.Find(lookups.playersById, builtByPlayer),
 				year = year,
 				totalCulture = totalCulture,
+				turnsTowardFreeUnit = turnsTowardFreeUnit,
 			};
 		}
 

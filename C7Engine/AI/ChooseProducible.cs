@@ -293,6 +293,20 @@ namespace C7Engine {
 
 			float score = 0;
 
+			// The AI doesn't move its palace on purpose; losing the capital
+			// rebuilds it for free.
+			if (building.isCenterOfEmpire) {
+				return int.MinValue;
+			}
+
+			if (building.isSmallWonder) {
+				float? smallWonderScore = ScoreSmallWonder(stats, city, player, building);
+				if (smallWonderScore == null) {
+					return -1000f;
+				}
+				score += smallWonderScore.Value;
+			}
+
 			// Marketplaces should be prioritized in cities with high population
 			// that have a decent number of luxuries. Otherwise they don't do
 			// much.
@@ -392,6 +406,69 @@ namespace C7Engine {
 			// Penalize buildings if economy is weak
 			if (HasWeakEconomy(player)) {
 				score -= 10 * building.maintenanceCost;
+			}
+
+			return score;
+		}
+
+		// The extra score of a small wonder for its effect, or null if it isn't
+		// worth building here at all.
+		private static float? ScoreSmallWonder(ProducibleStats stats, City city, Player player, Building building) {
+			bool atWar = stats.atWar;
+			float score = 0;
+
+			// The AI doesn't use armies yet, so the army wonders are wasted
+			// on it.
+			if (building.allowsBuildArmy || building.allowsLargerArmies) {
+				return null;
+			}
+
+			// A Forbidden Palace (or Secret Police HQ) pays off in a large
+			// empire, in a city that would become the center for several
+			// cities now closer to it than to the palace or another one.
+			if (building.isForbiddenPalace) {
+				List<City> centers = player.citiesWithCorruptionWonders;
+				if (player.cities.Count < 6 || centers.Count == 0) {
+					return null;
+				}
+				int served = 0;
+				foreach (City c in player.cities) {
+					int toCenter = centers.Min(x => c.location.RankDistanceTo(x.location));
+					if (c.location.RankDistanceTo(city.location) < toCenter) {
+						++served;
+					}
+				}
+				if (served < 3) {
+					return null;
+				}
+				score += served * 6;
+			}
+
+			// Wall Street: 5% interest on the treasury, up to 50 gold.
+			if (building.treasuryEarnsInterest) {
+				score += Math.Min(player.gold / 20, 50) * 2;
+			}
+
+			// The Iron Works: a big production boost in an already productive
+			// city.
+			if (building.productionBonusPercent > 0) {
+				score += stats.CurrentProductionYield.useful * building.productionBonusPercent / 100f;
+			}
+
+			if (building.increasesLeaderChance) {
+				score += atWar ? 15 : 5;
+			}
+			if (building.allowsEnemyTerritoryHealing) {
+				score += atWar ? 20 : 0;
+			}
+			if (building.decreasesMissileSuccess) {
+				score += atWar ? 15 : 0;
+			}
+			if (building.buildSpaceshipParts) {
+				score += 15;
+			}
+			if (building.allowsSpyMissions) {
+				score += 5;
 			}
 
 			return score;

@@ -63,6 +63,10 @@ namespace C7GameData {
 			return !hasAttackedThisTurn || unitType.hasBlitz;
 		}
 
+		// Whether one of this unit's victories has produced a great leader.
+		// Each unit produces at most one (see MapUnit_Leader.cs).
+		public bool hasProducedLeader;
+
 		public TileDirection facingDirection = TileDirection.SOUTHEAST;
 
 		public float WorkerProgressTowardsJob { get; set; }
@@ -234,7 +238,15 @@ namespace C7GameData {
 				if (any)
 					return min;
 			}
-			return this.unitType.movement;
+			return this.unitType.movement + ShipMovementBonus();
+		}
+
+		// Ships get extra movement from their owner's wonders, like the Great
+		// Lighthouse and Magellan's Voyage.
+		private int ShipMovementBonus() {
+			if (owner == null || !IsWaterUnit())
+				return 0;
+			return owner.ShipMovementBonus();
 		}
 
 		// An army's hit points are the total of its members'. An empty army
@@ -462,6 +474,23 @@ namespace C7GameData {
 					}
 				}
 			}
+
+			if (HasGreatWallBonusAgainst(opponent, role))
+				yield return GreatWallBonus;
+		}
+
+		// The Great Wall doubles the strength of its owner's units, attacking
+		// or defending, in fights with barbarians. Like Civ3's other combat
+		// modifiers it adds to the others (+100%) rather than multiplying
+		// them. Bombardment isn't a fight, so it doesn't count.
+		private static readonly StrengthBonus GreatWallBonus = new("Great Wall against barbarians", 1.0);
+
+		private bool HasGreatWallBonusAgainst(MapUnit opponent, CombatRole role) {
+			if (role != CombatRole.Attack && role != CombatRole.Defense)
+				return false;
+			if (opponent?.owner == null || !opponent.owner.isBarbarians || owner == null || owner.isBarbarians)
+				return false;
+			return owner.HasDoubleCombatVsBarbarians();
 		}
 
 		public double StrengthVersus(MapUnit opponent, CombatRole role, TileDirection? attackDirection) {
@@ -753,6 +782,8 @@ namespace C7GameData {
 
 				return Intent.Disabled;
 			}
+			if (this.IsWaterUnit() && !CanEnterWaterTerrain(tile))
+				return Intent.Disabled;
 
 			if (this.CanBoardTransportOnTile(tile))
 				return Intent.Load;
@@ -836,6 +867,21 @@ namespace C7GameData {
 			}
 
 			return Intent.MoveFreely;
+		}
+
+		// Whether this ship may sail onto the tile's terrain. Ships that "sink
+		// in sea" (the Galley) can't enter Sea tiles unless their owner has a
+		// safe sea travel wonder (the Great Lighthouse), and those that "sink
+		// in ocean" (the Galley, the Caravel) can't enter Ocean tiles at all.
+		// As in Conquests, these are hard limits on movement, rather than the
+		// original game's chance of a trireme sinking at the end of its turn.
+		public bool CanEnterWaterTerrain(Tile tile) {
+			TerrainType terrain = tile.baseTerrainType;
+			if (terrain.IsOcean)
+				return !unitType.sinksInOcean;
+			if (terrain.IsSea)
+				return !unitType.sinksInSea || owner.HasSafeSeaTravel();
+			return true;
 		}
 
 		public bool CanEnterPeacefully(Tile tile) {
@@ -1105,6 +1151,12 @@ namespace C7GameData {
 			}
 			if (CanPillage()) {
 				result.Add(UnitAction.Pillage);
+			}
+			if (CanFormArmy()) {
+				result.Add(UnitAction.BuildArmy);
+			}
+			if (CanOfferHurryProduction()) {
+				result.Add(UnitAction.HurryBuilding);
 			}
 
 			// Eventually we will have advanced actions too, whose availability will rely on their base actions' availability.

@@ -194,6 +194,22 @@ namespace C7Engine {
 		private static async Task DoUnitActions(Player player, HashSet<MapUnit> explorers) {
 			// Do things with units. Copy into an array first to avoid collection-was-modified exception
 			foreach (MapUnit unit in player.units.ToArray()) {
+				// A great leader that has reached one of our cities is used
+				// up there. Until then it heads for a city like a defender.
+				if (UseLeaderInCity(unit, player)) {
+					continue;
+				}
+
+				// Nuclear weapons fire at a worthwhile target if there is one,
+				// and otherwise wait (they may be loaded, and so fortified,
+				// aboard a submarine).
+				if (unit.IsNuclearWeapon()) {
+					if (unit.hitPointsRemaining > 0) {
+						await NuclearAI.TryStrike(player, unit);
+					}
+					continue;
+				}
+
 				// Don't waste time recalculating behaviors for fortified units.
 				// This means we'll have to unfortify all our units after
 				// interesting events like war declarations, but this seems like
@@ -281,6 +297,25 @@ namespace C7Engine {
 				}
 			}
 			return result;
+		}
+
+		// At war a leader forms an army; otherwise it finishes the city's
+		// improvement if it can. Returns true if the leader was used up.
+		private static bool UseLeaderInCity(MapUnit unit, Player player) {
+			if (!unit.IsLeader()) {
+				return false;
+			}
+			bool atWar = IsInAnyWar(player, EngineStorage.gameData.players);
+			if (atWar && unit.CanFormArmy()) {
+				return unit.FormArmy() != null;
+			}
+			if (unit.CanHurryProduction()) {
+				return unit.HurryProductionAsLeader();
+			}
+			if (unit.CanFormArmy()) {
+				return unit.FormArmy() != null;
+			}
+			return false;
 		}
 
 		public static UnitAI GetAIForUnit(MapUnit unit, Player player) {

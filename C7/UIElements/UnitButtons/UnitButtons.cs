@@ -62,7 +62,8 @@ public partial class UnitButtons : VBoxContainer {
 		// AddNewButton(specializedControls, "autobombard");
 		// AddNewButton(specializedControls, "paradrop");
 		//superfortify?
-		// AddNewButton(specializedControls, "hurryBuilding");
+		AddNewButton(specializedControls, C7Action.UnitHurryBuilding);
+		AddNewButton(specializedControls, C7Action.UnitBuildArmy);
 		AddNewButton(specializedControls, C7Action.UnitUpgrade);
 		// AddNewButton(specializedControls, "sacrifice");
 		// AddNewButton(specializedControls, "scienceAge");
