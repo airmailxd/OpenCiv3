@@ -137,6 +137,17 @@ namespace QueryCiv3.Sav {
 
 		private fixed bool Embassies[32];
 		private fixed bool Spies[32];
+
+		// Whether this leader has an embassy with, or a spy planted in, the
+		// i'th leader.
+		public bool HasEmbassyWith(int i) {
+			return i >= 0 && i < 32 && Embassies[i];
+		}
+
+		public bool HasSpyIn(int i) {
+			return i >= 0 && i < 32 && Spies[i];
+		}
+
 		private fixed bool FailedSpyMission[32];
 		private fixed int BorderViolation[32];
 		private fixed int GoldPerTurnTo[32];

@@ -1273,6 +1273,29 @@ public partial class Game : Node {
 		LogTileDetails(tile);
 	}
 
+	// Lists the diplomatic and espionage missions the player at the screen
+	// could send against a foreign civ and one of its cities, with their
+	// cost and chance of success.
+	public void ShowEspionageMissions(Player target, City city) {
+		List<ChoicePopup.Choice> choices = new();
+		EngineStorage.ReadGameData((GameData gameData) => {
+			foreach (Espionage.MissionOption option in Espionage.GetOptions(gameData, controller, target, city)) {
+				EspionageMission mission = option.mission;
+				string chance = option.successPercent >= 100 ? "" : $", {option.successPercent}% chance";
+				string label = $"{Espionage.Describe(mission)} ({option.cost} gold{chance})";
+				if (option.available) {
+					choices.Add(new ChoicePopup.Choice(label,
+						() => new MsgPerformEspionage(mission, target, Espionage.TargetsCity(mission) ? city : null).send()));
+				} else {
+					choices.Add(new ChoicePopup.Choice($"{Espionage.Describe(mission)}: {option.reason}", null));
+				}
+			}
+		});
+		string title = city == null ? $"Missions to the {target.civilization.noun}" : $"Missions to {city.name}";
+		popupOverlay.ShowPopup(new ChoicePopup(title, $"Treasury: {controller.gold} gold", choices),
+			PopupOverlay.PopupCategory.Advisor);
+	}
+
 	public void ShowTileInfo(Tile tile) {
 		tileInfo = new TileInfo(tile);
 		// The fog and cities around the tile are drawn differently under the box.

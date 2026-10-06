@@ -233,6 +233,47 @@ namespace C7Engine {
 			captor.DoCorruptionCalculations(gameData);
 		}
 
+		// Hands a city over to another player peacefully, as when it is
+		// incited to revolt: unlike a capture it keeps its citizens and
+		// buildings, except the palace and small wonders, which belong to the
+		// old owner's empire. Units in it are left as they are.
+		public static void TransferCity(City city, Player newOwner) {
+			GameData gameData = EngineStorage.gameData;
+			Player oldOwner = city.owner;
+			Tile tile = city.location;
+
+			foreach (CityBuilding cb in city.constructed_buildings.ToList()) {
+				if (cb.building.isCenterOfEmpire || cb.building.isSmallWonder) {
+					city.RemoveBuilding(cb);
+				}
+			}
+
+			bool wasCapital = city.capital;
+			city.capital = false;
+			oldOwner.cities.Remove(city);
+			newOwner.cities.Add(city);
+			city.owner = newOwner;
+			city.perPlayerCulture.TryAdd(newOwner, 0);
+			gameData.OnCityOwnerChanged(city);
+			city.isInCivilDisorder = false;
+
+			gameData.UpdateTileOwners();
+			gameData.InvalidateCachedTradeNetwork();
+
+			city.SetItemBeingProduced(ChooseProducible.Choose(city, newOwner));
+
+			log.Information("{City} changed hands from {OldOwner} to {NewOwner}", city, oldOwner, newOwner);
+			new MsgCityCaptured(city, oldOwner).send();
+
+			gameData.CheckForCivDestructionAndNotifyUi(oldOwner);
+			if (wasCapital) {
+				MovePalaceAfterLosingCapital(oldOwner, tile);
+			}
+
+			oldOwner.DoCorruptionCalculations(gameData);
+			newOwner.DoCorruptionCalculations(gameData);
+		}
+
 		private static void MovePalaceAfterLosingCapital(Player player, Tile oldCapitalLocation) {
 			City newCapital = player.RelocatePalace(EngineStorage.gameData, oldCapitalLocation);
 			if (newCapital != null && player.isHuman) {

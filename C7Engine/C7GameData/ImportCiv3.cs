@@ -777,6 +777,8 @@ namespace C7GameData {
 							refuseContactUntilTurn =
 								refuseContactForTurns[j] > 0 ?
 									save.TurnNumber + refuseContactForTurns[j] : -1,
+							hasEmbassy = leader.HasEmbassyWith(j),
+							hasSpy = leader.HasSpyIn(j),
 						});
 					}
 				}
@@ -1072,8 +1074,6 @@ namespace C7GameData {
 				}
 			}
 
-			// TODO: create actual embassies
-
 			// In scenarios where there isn't any actual information about player relationships,
 			// the entry point of these relationships seems to be the embassies.
 			// Players that start with embassies, are aware of each other.
@@ -1085,6 +1085,7 @@ namespace C7GameData {
 						warDeclarationWithRoPActiveCount = 0,
 						wasSneakAttacked = false,
 						refuseContactUntilTurn = -1,
+						hasEmbassy = true,
 					};
 					playerWithEmbassy.playerRelationships.Add(other.id.ToString(), pr);
 

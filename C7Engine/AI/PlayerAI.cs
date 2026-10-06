@@ -43,6 +43,8 @@ namespace C7Engine {
 				await AttemptTrading(player);
 			}
 
+			EspionageAI.PlayTurn(player, gameData);
+
 			UpgradeUnits(player);
 			await DoUnitActions(player);
 

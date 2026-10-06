@@ -847,6 +847,25 @@ namespace C7Engine {
 		}
 	}
 
+	// The sender sends a diplomatic or espionage mission against another
+	// civ, or one of its cities.
+	public class MsgPerformEspionage : MessageToEngine {
+		public EspionageMission mission;
+		public Player target;
+		public City city;
+
+		public MsgPerformEspionage(EspionageMission mission, Player target, City city) {
+			this.mission = mission;
+			this.target = target;
+			this.city = city;
+		}
+
+		protected override void ProcessAllowed() {
+			Espionage.MissionResult result = Espionage.Perform(EngineStorage.gameData, Sender, mission, target, city);
+			new MsgEspionageResult(Sender, mission, result.performed, result.success, result.message).send();
+		}
+	}
+
 	public class MsgDiplomacyCompleted : MessageToEngine {
 		protected override void ProcessAllowed() { }
 	}

@@ -325,6 +325,58 @@ namespace C7Engine {
 		public override bool IsForEveryone => true;
 	}
 
+	// Asks a human player how they vote in the United Nations election. A
+	// candidate they haven't met is null; they answer with
+	// MsgCastUnitedNationsVote.
+	public class MsgShowUnitedNationsVote : MessageToUI {
+		public Player candidateA;
+		public Player candidateB;
+
+		public MsgShowUnitedNationsVote(Player recipient, Player candidateA, Player candidateB) {
+			this.recipient = recipient;
+			this.candidateA = candidateA;
+			this.candidateB = candidateB;
+		}
+	}
+
+	// The outcome of a United Nations election. The winner is null if no
+	// candidate won a majority.
+	public class MsgUnitedNationsElectionResult : MessageToUI {
+		public Player candidateA;
+		public Player candidateB;
+		public int votesForA;
+		public int votesForB;
+		public int abstentions;
+		public Player winner;
+
+		public MsgUnitedNationsElectionResult(Player candidateA, Player candidateB, int votesForA, int votesForB, int abstentions, Player winner) {
+			this.candidateA = candidateA;
+			this.candidateB = candidateB;
+			this.votesForA = votesForA;
+			this.votesForB = votesForB;
+			this.abstentions = abstentions;
+			this.winner = winner;
+		}
+
+		public override bool IsForEveryone => true;
+	}
+
+	// The outcome of a diplomatic or espionage mission the player sent.
+	public class MsgEspionageResult : MessageToUI {
+		public EspionageMission mission;
+		public bool performed;
+		public bool success;
+		public string message;
+
+		public MsgEspionageResult(Player recipient, EspionageMission mission, bool performed, bool success, string message) {
+			this.recipient = recipient;
+			this.mission = mission;
+			this.performed = performed;
+			this.success = success;
+			this.message = message;
+		}
+	}
+
 	public class MsgVictory : MessageToUI {
 		public Player winner;
 		public IVictory victory;

@@ -274,6 +274,17 @@ public partial class RightClickTileMenu : RightClickMenu {
 			if (!nonPlayerUnits[0].owner.isBarbarians)
 				AddItem($"Contact {nonPlayerUnits[0].owner.civilization.name}", contactCiv);
 		}
+
+		// Diplomatic and espionage missions against a foreign city.
+		City foreignCity = tile.cityAtTile;
+		if (foreignCity != null && foreignCity.owner != game.controller && !foreignCity.owner.isBarbarians
+				&& PlayerRelationship.TryGetRelationship(game.controller, foreignCity.owner, out _)) {
+			AddTreeSeparator();
+			AddItem("Diplomatic Missions", () => {
+				this.CloseAndDelete();
+				game.ShowEspionageMissions(foreignCity.owner, foreignCity);
+			});
+		}
 	}
 
 	private static void ApplyAltItemOverrides(Button menuItem) {
@@ -282,6 +293,8 @@ public partial class RightClickTileMenu : RightClickMenu {
 		menuItem.AddThemeColorOverride("font_hover_color", grey);
 		menuItem.AddThemeColorOverride("font_pressed_color", grey);
 		menuItem.AddThemeColorOverride("font_focus_color", grey);
+		menuItem.AddThemeColorOverride("font_disabled_color", Color.Color8(140, 140, 140, 255));
+		menuItem.AddThemeStyleboxOverride("disabled", AltItemStyleBox(Color.Color8(255, 247, 222, 255)));
 		menuItem.AddThemeStyleboxOverride("normal", AltItemStyleBox(Color.Color8(255, 247, 222, 255)));
 		menuItem.AddThemeStyleboxOverride("hover", AltItemStyleBox(Color.Color8(255, 189, 107, 255)));
 		menuItem.AddThemeStyleboxOverride("pressed", AltItemStyleBox(Color.Color8(140, 200, 200, 255)));

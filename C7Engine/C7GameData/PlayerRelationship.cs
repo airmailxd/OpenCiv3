@@ -48,11 +48,33 @@ public class PlayerRelationship {
 
 	public bool declaredWarWithActiveRightOfPassage = false;
 
+	// p1.playerRelationships[p2].lastWithdrawalDemandTurn is the turn p1
+	// last told p2 to take its units out of p1's territory, or -1 if never.
+	public int lastWithdrawalDemandTurn = -1;
+
+	// p1.playerRelationships[p2].recentWithdrawals is how many times in a
+	// row p2 agreed to leave p1's territory and then came back before p1
+	// forgot about it (see TerritoryDemands).
+	public int recentWithdrawals = 0;
+
 	// p1.playerRelationships[p2].otherStartedCurrentWar is true if p2
 	// declared the war p1 and p2 are currently fighting, false if p1 did,
 	// and null if unknown (no war since this was recorded, as in saves made
 	// before it was, or wars that came from a scenario).
 	public bool? otherStartedCurrentWar = null;
+
+	// p1.playerRelationships[p2].hasEmbassy is true if p1 has an embassy in
+	// p2's capital, which diplomatic missions against p2 need.
+	public bool hasEmbassy = false;
+
+	// p1.playerRelationships[p2].hasSpy is true if p1 has planted a spy in
+	// p2's capital (needs the Intelligence Agency), which espionage missions
+	// against p2 need.
+	public bool hasSpy = false;
+
+	// p1.playerRelationships[p2].espionageIncidents is the number of p2's
+	// diplomatic or espionage missions against p1 that were caught.
+	public int espionageIncidents = 0;
 
 	public bool AtWar() {
 		return multiTurnDeals.Count == 0;
