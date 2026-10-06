@@ -286,4 +286,71 @@ public class NuclearWeaponsTest : IClassFixture<SaveGameFixture>, System.IDispos
 		Spawn(us, "Warrior", neighbor);
 		Assert.Null(NuclearAI.ChooseTarget(us, nuke));
 	}
+
+	private Player ThirdCiv() {
+		return gameData.players.First(p => !p.isBarbarians && p != us && p != them);
+	}
+
+	[Fact]
+	public void NukesGoToWarWithEveryCivInTheBlast() {
+		City target = FoundCity(them, 16);
+		Player other = ThirdCiv();
+		Tile site = LandTileAtDistance(target.location, 3);
+		MapUnit nuke = ReadyNuke("Tactical Nuke", site, target.location);
+		us.DeclareWarOn(them, gameData.turn);
+		us.EnsureRelationshipExists(other);
+		Tile neighbor = target.location.neighbors.Values.First(t => t.IsLand() && !t.HasCity());
+		Spawn(other, "Warrior", neighbor);
+
+		// The UI asks about the bystander as well as the target, and the AI
+		// won't hit it.
+		Assert.Equal([other], nuke.NuclearStrikeWarDeclarations(target.location));
+		Assert.Equal(-1, NuclearAI.TargetValue(us, target.location));
+		Assert.Null(NuclearAI.ChooseTarget(us, nuke));
+
+		MapUnit.NuclearStrikeResult result = WithRandom(0.99, () => nuke.LaunchNuke(target.location));
+
+		Assert.Contains(other, result.victims);
+		Assert.True(PlayerRelationship.AtWar(us, other));
+	}
+
+	[Fact]
+	public void CargoSunkWithItsTransportCountsAsDestroyed() {
+		Tile sea = gameData.map.tiles.First(t => t.IsWater()
+			&& MapUnit.NuclearBlastArea(t).All(b => b.unitsOnTile.Count == 0 && b.OwningPlayer() == null && !b.HasCity()));
+		Tile site = gameData.map.tiles.First(t => t.IsLand() && t.unitsOnTile.Count == 0 && t.DistanceTo(sea) > 3);
+		MapUnit icbm = ReadyNuke("ICBM", site, sea);
+		MapUnit transport = Spawn(them, "Transport", sea);
+		MapUnit cargo = Spawn(them, "Warrior", sea);
+		cargo.BoardTransport(transport);
+		Assert.True(cargo.IsLoadedIn(transport));
+		us.DeclareWarOn(them, gameData.turn);
+
+		MapUnit.NuclearStrikeResult result = WithRandom(0.99, () => icbm.LaunchNuke(sea));
+
+		Assert.True(cargo.hitPointsRemaining <= 0);
+		Assert.Equal(2, result.unitsDestroyed);
+		Assert.Contains(them, result.victims);
+	}
+
+	[Fact]
+	public void WorkersCleanUpFallout() {
+		Tile tile = gameData.map.tiles.First(t => t.IsLand() && !t.HasCity() && !t.HasPollution()
+			&& t.unitsOnTile.Count == 0 && t.FoodYield(us).yield > 0);
+		MapUnit worker = Spawn(us, "Worker", tile);
+		Terraform clean = gameData.Terraforms.Single(t => t.UIAction == C7Action.UnitClearDamage);
+
+		// Nothing to clean yet.
+		Assert.False(worker.CanPerformTerraformAction(clean));
+
+		Assert.True(Tile.TryAddFallout(tile));
+		Assert.True(worker.CanPerformTerraformAction(clean));
+		Assert.True(clean.CalculateAIScore(us, tile) > 0);
+
+		clean.OnComplete(us, tile);
+
+		Assert.False(tile.HasFallout());
+		Assert.True(tile.FoodYield(us).yield > 0);
+		Assert.False(worker.CanPerformTerraformAction(clean));
+	}
 }

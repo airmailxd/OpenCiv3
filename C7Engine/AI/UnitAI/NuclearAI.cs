@@ -34,10 +34,15 @@ namespace C7Engine {
 		}
 
 		// The damage a nuke over the tile would do to the player's enemies, or
-		// -1 if it would also hit the player or anyone it isn't at war with.
-		private static int TargetValue(Player player, Tile target) {
+		// -1 if it would also hit the player or anyone it isn't at war with,
+		// whether their cities, their units or just their territory.
+		internal static int TargetValue(Player player, Tile target) {
 			int value = 0;
 			foreach (Tile t in MapUnit.NuclearBlastArea(target)) {
+				Player territoryOwner = t.OwningPlayer();
+				if (territoryOwner != null && !IsEnemy(player, territoryOwner)) {
+					return -1;
+				}
 				if (t.HasCity()) {
 					if (!IsEnemy(player, t.cityAtTile.owner)) {
 						return -1;
