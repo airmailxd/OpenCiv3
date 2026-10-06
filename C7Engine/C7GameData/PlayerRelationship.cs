@@ -235,13 +235,16 @@ public class PlayerRelationship {
 
 	/// <summary>
 	/// This ends all multi-turn deals except peace, when they go over the initial agreed upon duration.<br/>
-	/// The multi-turn deal is only cancelled for the Player and not the other party.
+	/// The multi-turn deal is cancelled for both parties, so neither keeps it until the other's turn.<br/>
+	/// It also cancels the resource deals the player is part of that can no longer be kept (see CancelBrokenResourceDeals).
 	/// </summary>
 	/// <param name="player"></param>
 	/// <param name="players"></param>
 	/// <param name="currentTurn"></param>
 	public static void CheckForObsoleteDeals(Player player, List<Player> players, int currentTurn) {
 		log.Information("Checking to terminate any deals past their due duration for player {Player}", player);
+
+		CancelBrokenResourceDeals(EngineStorage.gameData, player, players);
 
 		// check player's relationship with the other players
 		foreach (Player other in players) {
@@ -262,14 +265,98 @@ public class PlayerRelationship {
 					// TODO: Add a popup to notify if an AI/Human deal expires
 					// TODO: Add renegotiate logic (plus preferences option Always Renegotiate Deals)
 					log.Information("Cancelling multi turn deal: {Player} -- {Other}", player, other);
-					UnRegisterMultiTurnDeal(relationship, deadDeal);
+					UnRegisterMultiTurnDeal(player, other, deadDeal);
 				}
 			}
 		}
 	}
 
-	private static void UnRegisterMultiTurnDeal(PlayerRelationship relationship, MultiTurnDeal mtd) {
-		relationship.multiTurnDeals.Remove(mtd);
+	// Removes both players' copies of a deal. The other player's copy is
+	// looked up before this player's is removed.
+	private static void UnRegisterMultiTurnDeal(Player player, Player other, MultiTurnDeal mtd) {
+		MultiTurnDeal counterpart = MultiTurnDeal.GetCounterpartDeal(player, other, mtd);
+		player.playerRelationships[other.id].multiTurnDeals.Remove(mtd);
+		if (counterpart != null) {
+			other.playerRelationships[player.id].multiTurnDeals.Remove(counterpart);
+		}
+	}
+
+	// As in Civ3, a deal to send a resource is cancelled when the exporter
+	// no longer has enough of it on its capital's network, or when the two
+	// capitals are no longer connected. When the exporter is short, its
+	// newest deals for the resource go first. This cancels the broken deals
+	// the player sends or receives, and tells the humans involved.
+	public static void CancelBrokenResourceDeals(GameData gameData, Player player, List<Player> players) {
+		List<(Player exporter, Player importer, MultiTurnDeal deal, Resource resource)> broken = BrokenResourceDeals(gameData, player, players);
+		foreach (Player other in players) {
+			if (other != player) {
+				broken.AddRange(BrokenResourceDeals(gameData, other, players).Where(b => b.importer == player));
+			}
+		}
+
+		foreach ((Player exporter, Player importer, MultiTurnDeal deal, Resource resource) in broken) {
+			log.Information("Cancelling the {Resource} deal from {Exporter} to {Importer}", resource.Name, exporter, importer);
+			UnRegisterMultiTurnDeal(exporter, importer, deal);
+			NotifyOfCancelledDeal(exporter, $"Our deal to send {resource.Name} to the {importer.civilization?.noun} has been cancelled.");
+			NotifyOfCancelledDeal(importer, $"Our deal to receive {resource.Name} from the {exporter.civilization?.noun} has been cancelled.");
+		}
+	}
+
+	// The exporter's resource deals that can no longer be kept, as the
+	// exporter's copies.
+	private static List<(Player exporter, Player importer, MultiTurnDeal deal, Resource resource)> BrokenResourceDeals(
+			GameData gameData, Player exporter, List<Player> players) {
+		List<(Player, Player, MultiTurnDeal, Resource)> result = new();
+		Dictionary<Resource, List<(Player importer, MultiTurnDeal deal)>> byResource = new();
+		C7Engine.Pathing.TradeNetwork network = gameData.GetTradeNetwork();
+		foreach (Player importer in players) {
+			if (!TryGetRelationship(exporter, importer, out PlayerRelationship relationship) || relationship.AtWar()) {
+				continue;
+			}
+			bool connected = network.CapitalsConnected(exporter, importer);
+			foreach (MultiTurnDeal deal in relationship.multiTurnDeals) {
+				if (deal == null || deal.dealDetails != DealDetails.Outbound || deal.resourcePerTurn == null
+					|| deal.dealSubType is not (DealSubType.ResourcePerTurn or DealSubType.LuxuryPerTurn)) {
+					continue;
+				}
+				Resource resource = gameData.Resources.Find(r => r.Key == deal.resourcePerTurn);
+				if (resource == null) {
+					continue;
+				}
+				if (!connected) {
+					result.Add((exporter, importer, deal, resource));
+					continue;
+				}
+				if (!byResource.TryGetValue(resource, out var deals)) {
+					deals = new();
+					byResource[resource] = deals;
+				}
+				deals.Add((importer, deal));
+			}
+		}
+
+		foreach ((Resource resource, var deals) in byResource) {
+			int excess = deals.Count - network.CapitalResourceCount(exporter, resource);
+			if (excess > 0) {
+				result.AddRange(deals
+					.OrderByDescending(d => d.deal.turnStartDeal)
+					.Take(excess)
+					.Select(d => (exporter, d.importer, d.deal, resource)));
+			}
+		}
+		return result;
+	}
+
+	// Tells a human that one of their deals was cancelled, over their
+	// capital. Hotseat holds the message until it is their turn.
+	private static void NotifyOfCancelledDeal(Player player, string message) {
+		if (!player.isHuman) {
+			return;
+		}
+		City city = player.cities.Find(c => c.IsCapital()) ?? player.cities.FirstOrDefault();
+		if (city != null) {
+			new MsgShowTemporaryPopup(message, city.location, player).send();
+		}
 	}
 }
 
