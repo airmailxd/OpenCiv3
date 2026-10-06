@@ -119,6 +119,35 @@ public class CombatTest : IClassFixture<SaveGameFixture> {
 	}
 
 	[Fact]
+	public async Task BeatingTheLastDefenderCapturesTheWorkersBehindIt() {
+		GoToWar();
+		(Tile from, TileDirection dir, Tile to) = FindAdjacentLand();
+		MapUnit attacker = Spawn(us, "Warrior", from);
+		MapUnit defender = Spawn(them, "Warrior", to);
+		MapUnit worker = Spawn(them, "Worker", to);
+
+		await WithZeroRandom(async () => Assert.True(await attacker.Move(dir)));
+
+		Assert.DoesNotContain(defender, gameData.mapUnits);
+		Assert.Equal(to, attacker.location);
+		Assert.Equal(us, worker.owner);
+	}
+
+	[Fact]
+	public async Task WorkersCanBeCapturedAfterAttacking() {
+		GoToWar();
+		(Tile from, TileDirection dir, Tile to) = FindAdjacentLand();
+		MapUnit warrior = Spawn(us, "Warrior", from);
+		MapUnit worker = Spawn(them, "Worker", to);
+		warrior.hasAttackedThisTurn = true;
+
+		Assert.True(await warrior.Move(dir));
+
+		Assert.Equal(to, warrior.location);
+		Assert.Equal(us, worker.owner);
+	}
+
+	[Fact]
 	public async Task CapturedSettlerBecomesTwoSlaveWorkers() {
 		GoToWar();
 		(Tile from, TileDirection dir, Tile to) = FindAdjacentLand();

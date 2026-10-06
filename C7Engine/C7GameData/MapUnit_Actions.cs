@@ -306,13 +306,15 @@ public partial class MapUnit {
 		// Trigger combat if the tile we're moving into has an enemy  Or if this unit can't fight, do nothing.
 		MapUnit defender = newLoc.FindTopDefender(this);
 		bool enemyOnTile = defender != MapUnit.NONE && !owner.IsAtPeaceWith(defender.owner);
-		// Units that can't attack, including empty armies, don't start fights,
-		// and without Blitz a unit only attacks once per turn.
-		if (enemyOnTile && (!CanAttack() || !CanAttackAgainThisTurn())) {
+		bool armedEnemyOnTile = enemyOnTile && HasArmedEnemyDefender(newLoc);
+		// Units that can't attack, including empty armies, don't start fights
+		// or take captives, and without Blitz a unit only attacks once per
+		// turn. Taking captives isn't an attack, so it's allowed after one.
+		if (enemyOnTile && (!CanAttack() || (armedEnemyOnTile && !CanAttackAgainThisTurn()))) {
 			return true;
 		}
 
-		if (enemyOnTile && !HasArmedEnemyDefender(newLoc)) {
+		if (enemyOnTile && !armedEnemyOnTile) {
 			// Units that can't defend themselves, like workers and settlers,
 			// are captured rather than fought. Fighting them would always win,
 			// and could be farmed for promotions.
@@ -330,14 +332,16 @@ public partial class MapUnit {
 				return true;
 			}
 
-			// If the enemy was defeated, check if there is another enemy on the tile. If so we can't complete the move
-			// but still pay one movement point for the combat. Otherwise we move in below, paying only for the move.
+			// If the enemy was defeated, check if there is another enemy on the tile that can fight. If so we can't
+			// complete the move but still pay one movement point for the combat. Otherwise we capture whatever is
+			// left, like workers, and move in below, paying only for the move. That includes taking the city.
 			if (combatResult == CombatResult.DefenderKilled || combatResult == CombatResult.DefenderRetreated) {
-				if (newLoc.FindTopDefender(this) != MapUnit.NONE) {
+				if (HasArmedEnemyDefender(newLoc)) {
 					this.movementPoints.onUnitMove(1);
 					this.facingDirection = this.facingDirection.Reversed();
 					return true;
 				}
+				CaptureDefencelessUnits(newLoc);
 
 				// Similarly if we retreated, pay one MP for the combat but don't move.
 			} else if (combatResult == CombatResult.AttackerRetreated) {
