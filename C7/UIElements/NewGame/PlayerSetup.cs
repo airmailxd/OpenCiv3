@@ -155,7 +155,8 @@ public partial class PlayerSetup : Control {
 		coreCitiesFreeOfCorruption = new Civ3Checkbox {
 			Text = "No corruption near capital",
 			FontSize = 14,
-			ButtonPressed = true,
+			// Off unless it was chosen for the last game, like the rule itself.
+			ButtonPressed = C7Settings.GetSettingsValueOrDefault(C7Settings.LastGame.SectionName, C7Settings.LastGame.CoreCitiesFreeOfCorruption, "false") == "true",
 			TooltipText = "Custom rule: the capital and the 5 cities nearest it have no corruption or waste.",
 		};
 		rulesContainer.AddChild(coreCitiesFreeOfCorruption);
@@ -451,6 +452,7 @@ public partial class PlayerSetup : Control {
 			List<SelectedOpponent> ops = gameSetup.opponents;
 			string opponentsValue = string.Join("|", ops.Select(o => o.isRandom ? "Random" : o.Name));
 			C7Settings.SetValue(C7Settings.LastGame.SectionName, C7Settings.LastGame.Opponents, opponentsValue);
+			C7Settings.SetValue(C7Settings.LastGame.SectionName, C7Settings.LastGame.CoreCitiesFreeOfCorruption, gameSetup.coreCitiesFreeOfCorruption ? "true" : "false");
 
 			C7Settings.SaveSettings();
 		} catch (Exception e) {

@@ -21,6 +21,7 @@ namespace C7Engine {
 			public const string Civilization = nameof(Civilization);
 			public const string Difficulty = nameof(Difficulty);
 			public const string Opponents = nameof(Opponents);
+			public const string CoreCitiesFreeOfCorruption = nameof(CoreCitiesFreeOfCorruption);
 		}
 
 		public static void LoadSettings() {

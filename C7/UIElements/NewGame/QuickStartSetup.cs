@@ -42,10 +42,15 @@ public partial class QuickStartSetup : Node {
 			difficulty = difficulty,
 			worldCharacteristics = global.WorldCharacteristics,
 			opponents = opponents,
-			victoryConditions = VictoryConditions.NewGameDefaults()
+			victoryConditions = VictoryConditions.NewGameDefaults(),
+			coreCitiesFreeOfCorruption = GetCoreCitiesFreeOfCorruption(),
 		};
 
 		gameSetup.Populate(save);
+	}
+
+	private static bool GetCoreCitiesFreeOfCorruption() {
+		return C7Settings.GetSettingsValueOrDefault(C7Settings.LastGame.SectionName, C7Settings.LastGame.CoreCitiesFreeOfCorruption, "false") == "true";
 	}
 
 	private static BarbarianActivity GetBarbarianActivity() {
