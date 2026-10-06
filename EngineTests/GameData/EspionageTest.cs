@@ -229,6 +229,16 @@ public class EspionageTest : IClassFixture<SaveGameFixture>, System.IDisposable 
 	}
 
 	[Fact]
+	public void UndefinedMissionsAreRejected() {
+		City city = SetUpEmbassy();
+		EspionageMission bogus = (EspionageMission)999;
+
+		Assert.NotNull(Espionage.Unavailable(gameData, actor, bogus, target, city));
+		Espionage.MissionResult result = Espionage.Perform(gameData, actor, bogus, target, city, Succeed);
+		Assert.False(result.performed);
+	}
+
+	[Fact]
 	public void InciteRevoltCostFollowsTheTargetsTreasuryAndDisorder() {
 		SetUpEmbassy();
 		City city = FoundSecondCity(target, 4);

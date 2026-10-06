@@ -209,6 +209,10 @@ namespace C7Engine {
 
 		// Why the mission can't be performed, or null if it can.
 		public static string Unavailable(GameData gameData, Player actor, EspionageMission mission, Player target, City city) {
+			// A LAN client's message can carry any number as the mission.
+			if (!Enum.IsDefined(mission)) {
+				return "There is no such mission.";
+			}
 			if (actor == null || target == null || actor == target || target.isBarbarians || target.defeated) {
 				return "There is no one to send a mission to.";
 			}
