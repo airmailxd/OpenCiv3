@@ -16,6 +16,14 @@ namespace C7GameData {
 		// ID to the ID of the candidate they voted for, or "" to abstain.
 		public Dictionary<string, string> humanVotes = new();
 
+		// The IDs of the two candidates in the coming election, stored when
+		// the voting turn begins so the humans are asked about, and the votes
+		// counted for, the same two civs. Null outside a voting turn, and in
+		// saves from before they were stored, which store them when first
+		// needed.
+		public string candidateA;
+		public string candidateB;
+
 		// The player elected Secretary General, who has won a diplomatic
 		// victory, or null.
 		public string secretaryGeneral;
@@ -115,6 +123,31 @@ namespace C7Engine {
 			return rival == null ? null : (owner, rival);
 		}
 
+		// The candidates in the election under way: the ones stored when the
+		// vote was called, or else the current ones, which are stored if this
+		// is the voting turn. A stored candidate who has since been destroyed
+		// is replaced. Null if there is no UN or no rival.
+		public static (Player a, Player b)? BallotCandidates(GameData gameData) {
+			UnitedNationsState state = gameData.unitedNations;
+			if (state?.candidateA != null && state.candidateB != null) {
+				Player a = gameData.players.Find(p => p.id.ToString() == state.candidateA);
+				Player b = gameData.players.Find(p => p.id.ToString() == state.candidateB);
+				if (a != null && b != null && !a.defeated && !b.defeated) {
+					return (a, b);
+				}
+			}
+			var candidates = Candidates(gameData);
+			if (state != null && state.votingTurn == gameData.turn) {
+				StoreCandidates(state, candidates);
+			}
+			return candidates;
+		}
+
+		private static void StoreCandidates(UnitedNationsState state, (Player a, Player b)? candidates) {
+			state.candidateA = candidates?.a.id.ToString();
+			state.candidateB = candidates?.b.id.ToString();
+		}
+
 		// Whether a human player is asked for a vote this turn: a vote is due
 		// at the end of it, and the human isn't a candidate (who vote for
 		// themselves) and hasn't voted yet.
@@ -124,7 +157,7 @@ namespace C7Engine {
 				|| state.votingTurn != gameData.turn || state.humanVotes.ContainsKey(player.id.ToString())) {
 				return false;
 			}
-			var candidates = Candidates(gameData);
+			var candidates = BallotCandidates(gameData);
 			if (candidates == null) {
 				return false;
 			}
@@ -137,7 +170,7 @@ namespace C7Engine {
 			if (!HumanShouldVote(gameData, player)) {
 				return;
 			}
-			var (a, b) = Candidates(gameData).Value;
+			var (a, b) = BallotCandidates(gameData).Value;
 			new MsgShowUnitedNationsVote(player, HasMet(player, a) ? a : null, HasMet(player, b) ? b : null).send();
 		}
 
@@ -145,8 +178,11 @@ namespace C7Engine {
 		// but a candidate they have met are ignored.
 		public static bool CastHumanVote(GameData gameData, Player voter, Player candidate) {
 			UnitedNationsState state = gameData.unitedNations;
-			var candidates = Candidates(gameData);
-			if (state == null || candidates == null || state.votingTurn != gameData.turn) {
+			if (state == null || state.votingTurn != gameData.turn) {
+				return false;
+			}
+			var candidates = BallotCandidates(gameData);
+			if (candidates == null) {
 				return false;
 			}
 			var (a, b) = candidates.Value;
@@ -174,21 +210,27 @@ namespace C7Engine {
 			if (owner == null) {
 				state.votingTurn = -1;
 				state.humanVotes.Clear();
+				StoreCandidates(state, null);
 				return null;
 			}
 
 			if (state.votingTurn < 0) {
 				state.votingTurn = gameData.turn;
 				log.Information("The United Nations, owned by {Owner}, will vote on turn {Turn}", owner, state.votingTurn);
-				return null;
 			}
 
-			if (gameData.turn <= state.votingTurn) {
+			// The voting turn is beginning, so call the vote.
+			if (gameData.turn == state.votingTurn) {
+				StoreCandidates(state, Candidates(gameData));
+				return null;
+			}
+			if (gameData.turn < state.votingTurn) {
 				return null;
 			}
 
 			ElectionResult result = HoldElection(gameData);
 			state.humanVotes.Clear();
+			StoreCandidates(state, null);
 			state.votingTurn = gameData.turn + ElectionInterval - 1;
 			if (result == null) {
 				return null;
@@ -204,9 +246,10 @@ namespace C7Engine {
 			return result;
 		}
 
-		// Counts the votes of every civ. Doesn't change any state.
+		// Counts the votes of every civ for the candidates of the vote that
+		// was called. Doesn't change any state once the voting turn is over.
 		public static ElectionResult HoldElection(GameData gameData) {
-			var candidates = Candidates(gameData);
+			var candidates = BallotCandidates(gameData);
 			if (candidates == null) {
 				return null;
 			}

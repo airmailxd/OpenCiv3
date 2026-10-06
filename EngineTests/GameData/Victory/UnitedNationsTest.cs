@@ -241,6 +241,51 @@ public class UnitedNationsTest : System.IDisposable {
 	}
 
 	[Fact]
+	public void VotesAreCountedForTheCandidatesTheHumanWasAskedAbout() {
+		Player rome = MakePlayer("Romans", 3);
+		Player egypt = MakePlayer("Egyptians", 7);
+		Player greece = MakePlayer("Greeks", 6);
+		Player human = MakePlayer("Persians", 2, human: true);
+		BuildUnitedNations(rome);
+		Meet(rome, egypt, greece, human);
+
+		// The vote is called as the voting turn begins.
+		Assert.Null(UnitedNations.ProcessEndOfRound(gameData));
+		Assert.Equal(egypt.id.ToString(), gameData.unitedNations.candidateB);
+		UnitedNations.AskHumanToVote(gameData, human);
+		MsgShowUnitedNationsVote msg = Assert.Single(EngineStorage.messagesToUI.OfType<MsgShowUnitedNationsVote>());
+		Assert.Equal(egypt, msg.candidateB);
+		Assert.True(UnitedNations.CastHumanVote(gameData, human, egypt));
+
+		// Greece overtakes Egypt during the voting turn, but the human's
+		// vote still counts.
+		for (int i = 0; i < 4; i++) {
+			greece.cities[0].residents.Add(new CityResident { city = greece.cities[0] });
+		}
+		Assert.Equal(greece, UnitedNations.Candidates(gameData).Value.rival);
+		gameData.turn = 51;
+		UnitedNations.ElectionResult result = UnitedNations.ProcessEndOfRound(gameData);
+		Assert.Equal(egypt, result.candidateB);
+		Assert.Equal(egypt, result.ballots[human]);
+		Assert.Null(gameData.unitedNations.candidateA);
+		Assert.Null(gameData.unitedNations.candidateB);
+	}
+
+	[Fact]
+	public void CandidatesAreStoredWhenFirstNeededInOlderSaves() {
+		Player rome = MakePlayer("Romans", 3);
+		Player egypt = MakePlayer("Egyptians", 7);
+		Player human = MakePlayer("Greeks", 2, human: true);
+		BuildUnitedNations(rome);
+		Meet(rome, egypt, human);
+		gameData.unitedNations.votingTurn = gameData.turn;
+
+		Assert.True(UnitedNations.CastHumanVote(gameData, human, egypt));
+		Assert.Equal(rome.id.ToString(), gameData.unitedNations.candidateA);
+		Assert.Equal(egypt.id.ToString(), gameData.unitedNations.candidateB);
+	}
+
+	[Fact]
 	public void FailedVoteSchedulesTheNextOne() {
 		Player rome = MakePlayer("Romans", 3);
 		Player egypt = MakePlayer("Egyptians", 4);
