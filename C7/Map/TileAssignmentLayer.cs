@@ -5,13 +5,20 @@ using Godot;
 
 namespace C7.Map {
 	public partial class TileAssignmentLayer : LooseLayer {
-		ImageTexture foodTexture = TextureLoader.Load("icons.food");
-		ImageTexture shieldTexture = TextureLoader.Load("icons.shield");
+		ImageTexture foodTexture = TextureLoader.Load("icons.map_food");
+		ImageTexture shieldTexture = TextureLoader.Load("icons.map_shield");
 		ImageTexture wastedShieldTexture = TextureLoader.Load("icons.wasted_shield");
-		ImageTexture goldTexture = TextureLoader.Load("icons.commerce");
+		ImageTexture goldTexture = TextureLoader.Load("icons.map_commerce");
 
 		private const int tileWidth = 128;
 		private const int tileHeight = 64;
+
+		// The widest a tile's row of yield icons gets before they overlap.
+		private const float MaxYieldRowWidth = tileWidth;
+		// Like Civ3, icons sit a pixel apart so each one can be counted.
+		private const float YieldIconGap = 1;
+		// Tiles outside the city's radius are darkened, as in Civ3.
+		private static readonly Color OutsideRadiusDim = new(0, 0, 0, 0.4f);
 
 		// When non-null, the city whose tile assignments should be shown.
 		public City city {
@@ -99,6 +106,9 @@ namespace C7.Map {
 				if (tile.personWorkingTile != null && tile.personWorkingTile.city != city) {
 					DrawOccupiedTileSquare(looseView, tileCenter);
 				}
+			} else {
+				DimTile(looseView, tileCenter);
+				return;
 			}
 
 			// Only draw yields for our citizens.
@@ -117,41 +127,67 @@ namespace C7.Map {
 				return;
 			}
 
-			int totalWidth = ((tileYields.foodPenalty + tileYields.food) * foodTexture.GetWidth()) +
-						((tileYields.shieldPenalty + tileYields.shields) * shieldTexture.GetWidth()) +
-						((tileYields.goldPenalty + tileYields.gold) * goldTexture.GetWidth());
-			int currentXOffset = -totalWidth / 2;
+			// The yield in one row: food, then shields, then commerce. Yield lost
+			// to a penalty (e.g. despotism) is struck through in a
+			// second row beneath it.
+			// Like Civ3, a long row squeezes its icons together to stay within the tile.
+			List<ImageTexture> kept = new();
+			AddIcons(kept, foodTexture, tileYields.food);
+			AddIcons(kept, shieldTexture, tileYields.shields);
+			AddIcons(kept, goldTexture, tileYields.gold);
+			List<ImageTexture> lost = new();
+			AddIcons(lost, foodTexture, tileYields.foodPenalty);
+			AddIcons(lost, shieldTexture, tileYields.shieldPenalty);
+			AddIcons(lost, goldTexture, tileYields.goldPenalty);
 
-			for (int i = 0; i < tileYields.food; ++i) {
-				looseView.DrawTexture(foodTexture, tileCenter + new Vector2(currentXOffset, -15));
-				currentXOffset += foodTexture.GetWidth();
+			if (lost.Count == 0) {
+				DrawYieldRow(looseView, kept, tileCenter, Colors.White);
+			} else {
+				float rowHeight = foodTexture.GetHeight() + YieldIconGap;
+				DrawYieldRow(looseView, kept, tileCenter - new Vector2(0, rowHeight / 2), Colors.White);
+				Vector2 lostCenter = tileCenter + new Vector2(0, rowHeight / 2);
+				float lostWidth = DrawYieldRow(looseView, lost, lostCenter, Colors.White);
+				looseView.DrawLine(lostCenter - new Vector2(lostWidth / 2, 0), lostCenter + new Vector2(lostWidth / 2, 0),
+					Colors.Red, width: 2);
 			}
-			for (int i = 0; i < tileYields.foodPenalty; ++i) {
-				looseView.DrawTexture(foodTexture, tileCenter + new Vector2(currentXOffset, -15));
-				DrawX(looseView, foodTexture, tileCenter + new Vector2(currentXOffset, -15));
-				currentXOffset += foodTexture.GetWidth();
-			}
+		}
 
-			for (int i = 0; i < tileYields.shields; ++i) {
-				looseView.DrawTexture(shieldTexture, tileCenter + new Vector2(currentXOffset, -15));
-				currentXOffset += shieldTexture.GetWidth();
+		private static void AddIcons(List<ImageTexture> icons, ImageTexture texture, int count) {
+			for (int i = 0; i < count; i++) {
+				icons.Add(texture);
 			}
-			for (int i = 0; i < tileYields.shieldPenalty; ++i) {
-				looseView.DrawTexture(shieldTexture, tileCenter + new Vector2(currentXOffset, -15));
-				// Make the X wider by passing in the gold texture.
-				DrawX(looseView, goldTexture, tileCenter + new Vector2(currentXOffset, -15));
-				currentXOffset += shieldTexture.GetWidth();
-			}
+		}
 
-			for (int i = 0; i < tileYields.gold; ++i) {
-				looseView.DrawTexture(goldTexture, tileCenter + new Vector2(currentXOffset, -15));
-				currentXOffset += goldTexture.GetWidth();
+		// Draws a row of icons centered on rowCenter and returns its width.
+		private static float DrawYieldRow(LooseView looseView, List<ImageTexture> icons, Vector2 rowCenter, Color tint) {
+			if (icons.Count == 0) {
+				return 0;
 			}
-			for (int i = 0; i < tileYields.goldPenalty; ++i) {
-				looseView.DrawTexture(goldTexture, tileCenter + new Vector2(currentXOffset, -15));
-				DrawX(looseView, goldTexture, tileCenter + new Vector2(currentXOffset, -15));
-				currentXOffset += goldTexture.GetWidth();
+			// The distance from the first icon's left edge to the last one's.
+			float naturalSpan = 0;
+			for (int i = 0; i < icons.Count - 1; i++) {
+				naturalSpan += icons[i].GetWidth() + YieldIconGap;
 			}
+			float lastWidth = icons[^1].GetWidth();
+			float squeeze = naturalSpan + lastWidth > MaxYieldRowWidth && naturalSpan > 0
+				? Math.Max(0, MaxYieldRowWidth - lastWidth) / naturalSpan : 1f;
+			float rowWidth = naturalSpan * squeeze + lastWidth;
+
+			float x = -rowWidth / 2;
+			foreach (ImageTexture texture in icons) {
+				looseView.DrawTexture(texture, (rowCenter + new Vector2(x, -texture.GetHeight() / 2f)).Round(), tint);
+				x += (texture.GetWidth() + YieldIconGap) * squeeze;
+			}
+			return rowWidth;
+		}
+
+		private void DimTile(LooseView looseView, Vector2 tileCenter) {
+			looseView.DrawColoredPolygon([
+				tileCenter + new Vector2(-tileWidth / 2, 0),
+				tileCenter + new Vector2(0, -tileHeight / 2),
+				tileCenter + new Vector2(tileWidth / 2, 0),
+				tileCenter + new Vector2(0, tileHeight / 2),
+			], OutsideRadiusDim);
 		}
 
 		private void DrawWorkableTileBorder(LooseView looseView, Tile tile, Vector2 tileCenter) {
@@ -221,23 +257,6 @@ namespace C7.Map {
 			looseView.DrawLine(tileCenter + new Vector2(tileWidth / 2, 0),
 								tileCenter + new Vector2(0, tileHeight / 2),
 								color, lineWidth);
-		}
-
-		private void DrawX(LooseView looseView, ImageTexture texture, Vector2 upperLeft) {
-			upperLeft += new Vector2(0, 5);
-			Vector2 upperRight = upperLeft + new Vector2(texture.GetWidth() - 5, 0);
-			Vector2 lowerLeft = upperLeft + new Vector2(0, texture.GetHeight() - 10);
-			Vector2 lowerRight = upperRight + new Vector2(0, texture.GetHeight() - 10);
-
-			Color color = Colors.Red;
-			int lineWidth = 2;
-			looseView.DrawLine(upperLeft, lowerRight, color, lineWidth);
-			looseView.DrawLine(lowerLeft, upperRight, color, lineWidth);
-
-
-			looseView.DrawString(ThemeDB.FallbackFont,
-								 upperLeft + new Vector2(-8, 0), "Desp",
-								 HorizontalAlignment.Left, -1, 13, Colors.Black);
 		}
 	}
 }

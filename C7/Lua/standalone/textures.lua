@@ -196,6 +196,11 @@ return function(civ3_textures)
   -- TODO: Add proper replacement for the asset
   c7_textures.terrain.river_delta = "Art/Terrain/mtnRivers.png"
 
+  -- The replacement map yield icons fill more of their cells than Civ3's.
+  c7_textures.icons.map_shield.crop_region = { 411, 9, 15, 18 }
+  c7_textures.icons.map_commerce.crop_region = { 438, 5, 26, 24 }
+  c7_textures.icons.map_food.crop_region = { 470, 7, 21, 21 }
+
   c7_textures.civ_colors = {}
   for i, hex_color in ipairs(civ_colors) do
     c7_textures.civ_colors["color_" .. (i-1)] = { path = "", hex_color = hex_color }

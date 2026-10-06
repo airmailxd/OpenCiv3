@@ -355,6 +355,20 @@ textures.icons = {
 	  path = CITY_SCREEN_ICONS,
 	  crop_region = { 195, 1, 21, 30 },
   },
+  -- The smaller yield icons Civ3 draws on the tiles a city works, cropped
+  -- tight so they can be laid out edge to edge.
+  map_shield = {
+    path = CITY_SCREEN_ICONS,
+    crop_region = { 412, 11, 13, 14 },
+  },
+  map_commerce = {
+    path = CITY_SCREEN_ICONS,
+    crop_region = { 443, 10, 15, 15 },
+  },
+  map_food = {
+    path = CITY_SCREEN_ICONS,
+    crop_region = { 474, 10, 16, 15 },
+  },
   eaten_food = {
 	  path = CITY_SCREEN_ICONS,
 	  crop_region = { 223, 7, 20, 20 },

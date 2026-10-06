@@ -76,9 +76,23 @@ public partial class CityScreen : Control {
 
 	private Label foodDetails;
 	private Label productionDetails;
-	private Label commerceTaxesDetails;
-	private Label commerceScienceDetails;
-	private Label commerceHappinessDetails;
+	// The commerce section: a header, then the taxes, science and luxury bars
+	// of the background, each with its coins, an icon and its share.
+	private Label commerceLabel;
+	private Label[] commerceShareLabels = new Label[3];
+	private Label corruptionLabel;
+	private IconCanvas commerceCanvas;
+	private ImageTexture goldCoinTexture;
+	private ImageTexture corruptCoinTexture;
+	private ImageTexture[] commerceIconTextures;
+
+	// Where the commerce bars are in the background art.
+	private const int COMMERCE_BAR_LEFT = 289;
+	private const int COMMERCE_BAR_RIGHT = 676;
+	private static readonly int[] COMMERCE_BAR_CENTERS_Y = { 636, 667, 700 };
+	private const int COMMERCE_ICON_LEFT = 688;
+	private const int COMMERCE_SHARE_LEFT = 720;
+	private const int TAXES_ROW = 0, SCIENCE_ROW = 1, LUXURY_ROW = 2;
 
 	private ImageTexture shieldTexture;
 	private ImageTexture emptyShieldTexture;
@@ -103,6 +117,29 @@ public partial class CityScreen : Control {
 	private IconCanvas foodInGranaryCanvas;
 	private IconCanvas shieldRowCanvas;
 	private IconCanvas foodRowCanvas;
+	private IconCanvas garrisonCanvas;
+
+	// A C7 addition where Civ3 shows pollution: what the government's tile
+	// penalty (e.g. despotism's) costs the city, as a count and an icon for
+	// each yield, in a row below its header.
+	private const int PENALTIES_LEFT = 162;
+	private HBoxContainer penaltiesRow;
+	private readonly List<(Label count, TextureRect icon)> penaltyEntries = new();
+
+	// The garrison's unit icons go in a row below its header, squeezed
+	// together when there are too many to fit.
+	private const int GARRISON_LEFT = 290;
+	private const int GARRISON_TOP = 732;
+	private const int GARRISON_WIDTH = 480;
+
+	// The background art is laid out at its native size and scaled to fit the
+	// window. It sits in a frame the size of the scaled art, so the black bars
+	// around it only cover what the art doesn't. As in Civ3, the map behind is
+	// zoomed by the same factor while the screen is open, so the city's tiles
+	// fill the view; the player's zoom comes back on close.
+	private Control backgroundFrame;
+	private float fitScale = 1f;
+	private float mapZoomBeforeOpening;
 
 	// Called when the node enters the scene tree for the first time.
 	public override void _Ready() {
@@ -140,26 +177,7 @@ public partial class CityScreen : Control {
 		};
 		background.AddChild(productionDetails);
 
-		commerceTaxesDetails = new Label() {
-			OffsetLeft = 290,
-			OffsetTop = 620,
-			Theme = yieldDetailsFontTheme,
-		};
-		background.AddChild(commerceTaxesDetails);
-
-		commerceScienceDetails = new Label() {
-			OffsetLeft = 290,
-			OffsetTop = 653,
-			Theme = yieldDetailsFontTheme,
-		};
-		background.AddChild(commerceScienceDetails);
-
-		commerceHappinessDetails = new Label() {
-			OffsetLeft = 290,
-			OffsetTop = 685,
-			Theme = yieldDetailsFontTheme,
-		};
-		background.AddChild(commerceHappinessDetails);
+		AddCommerceSection();
 
 		TextureLoader.SetButtonTextures(productionButton, "city_screen.buttons.production");
 		productionButton.Pressed += () => { this.productionMenu.Visible = !this.productionMenu.Visible; };
@@ -194,6 +212,34 @@ public partial class CityScreen : Control {
 		foodRowCanvas = AddIconCanvas(foodRowContainer);
 		foodRowCanvas.SetAnchorsPreset(LayoutPreset.FullRect);
 
+		// The penalties and garrison headers sit below the luxuries and the
+		// commerce rows, where Civ3 has pollution and garrison. The engine
+		// doesn't model city pollution yet, so its spot shows the penalties.
+		background.AddChild(new Label() { Text = "PENALTIES", Position = new Vector2(PENALTIES_LEFT, 712) });
+		penaltiesRow = new HBoxContainer() {
+			Position = new Vector2(PENALTIES_LEFT, GARRISON_TOP),
+			MouseFilter = MouseFilterEnum.Pass,
+		};
+		penaltiesRow.AddThemeConstantOverride("separation", 2);
+		foreach (string icon in new[] { "icons.map_food", "icons.map_shield", "icons.map_commerce" }) {
+			Label count = new() { MouseFilter = MouseFilterEnum.Pass };
+			TextureRect rect = new() {
+				Texture = TextureLoader.Load(icon),
+				StretchMode = TextureRect.StretchModeEnum.KeepCentered,
+				MouseFilter = MouseFilterEnum.Pass,
+			};
+			penaltiesRow.AddChild(count);
+			penaltiesRow.AddChild(rect);
+			penaltyEntries.Add((count, rect));
+		}
+		background.AddChild(penaltiesRow);
+		background.AddChild(new Label() { Text = "GARRISON", Position = new Vector2(GARRISON_LEFT, 712) });
+		garrisonCanvas = new IconCanvas() {
+			Position = new Vector2(GARRISON_LEFT, GARRISON_TOP),
+			Size = new Vector2(GARRISON_WIDTH, 32),
+		};
+		background.AddChild(garrisonCanvas);
+
 		// Above everything else on the background, as the heads used to be
 		// added last.
 		popHeadLayer = new Control() { MouseFilter = MouseFilterEnum.Ignore };
@@ -201,12 +247,45 @@ public partial class CityScreen : Control {
 		popHeadEffectLayer = new Control() { MouseFilter = MouseFilterEnum.Ignore };
 		background.AddChild(popHeadEffectLayer);
 
+		WrapBackgroundInFrame();
+
 		RenderShieldBox(shieldCost: 30, shieldsInBox: 15);
 		RenderShieldRow(goodShields: 10, corruptShields: 3);
 		RenderFoodBox(foodNeededToGrow: 20, foodStored: 10, foodLostPerTurn: 2, hasGranary: true);
 		RenderFoodRow(foodEatenPerTurn: 3, foodSurplus: 1);
 
 		Hidden += OnExit;
+	}
+
+	private void WrapBackgroundInFrame() {
+		HBoxContainer row = background.GetParent<HBoxContainer>();
+		int index = background.GetIndex();
+		backgroundFrame = new Control() {
+			MouseFilter = MouseFilterEnum.Ignore,
+			SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
+			SizeFlagsVertical = SizeFlags.ShrinkCenter,
+		};
+		row.AddChild(backgroundFrame);
+		row.MoveChild(backgroundFrame, index);
+		background.Reparent(backgroundFrame, false);
+		background.Position = Vector2.Zero;
+		background.Size = background.Texture.GetSize();
+
+		Resized += FitToWindow;
+		FitToWindow();
+	}
+
+	private void FitToWindow() {
+		Vector2 artSize = background.Texture.GetSize();
+		Vector2 window = GetViewportRect().Size;
+		fitScale = Mathf.Min(window.X / artSize.X, window.Y / artSize.Y);
+		background.Scale = new Vector2(fitScale, fitScale);
+		backgroundFrame.CustomMinimumSize = artSize * fitScale;
+
+		if (Visible && tileAssignmentLayer.city != null) {
+			mapView.cameraZoom = fitScale;
+			mapView.centerCameraOnTile(tileAssignmentLayer.city.location.neighbors[TileDirection.SOUTH]);
+		}
 	}
 
 	public override void _UnhandledInput(InputEvent @event) {
@@ -244,7 +323,13 @@ public partial class CityScreen : Control {
 	}
 
 	private void OnShowCityScreenLocked(GameData gameData, ParameterWrapper<City> city) {
+		// Switching between cities keeps the screen open; only remember the
+		// player's zoom when it first opens.
+		if (!Visible) {
+			mapZoomBeforeOpening = mapView.cameraZoom;
+		}
 		this.Show();
+		mapView.cameraZoom = fitScale;
 		mapView.centerCameraOnTile(city.Value.location.neighbors[TileDirection.SOUTH]);
 		tileAssignmentLayer.city = city.Value;
 		cityName.Text = city.Value.name;
@@ -256,6 +341,8 @@ public partial class CityScreen : Control {
 		RenderExistingBuildings(city.Value.GetBuildings());
 		RenderStrategicResources(gameData, city.Value);
 		RenderLuxuries(gameData, city.Value);
+		RenderGarrison(city.Value);
+		RenderPenalties(city.Value);
 	}
 
 	// Redraws the city screen after the engine changed the city it shows.
@@ -294,11 +381,16 @@ public partial class CityScreen : Control {
 		RenderExistingBuildings(city.GetBuildings());
 		RenderStrategicResources(gameData, city);
 		RenderLuxuries(gameData, city);
+		RenderGarrison(city);
+		RenderPenalties(city);
 	}
 
 	private void OnExit() {
 		productionMenu.Hide();
 		tileAssignmentLayer.city = null;
+		if (mapView != null) {
+			mapView.cameraZoom = mapZoomBeforeOpening;
+		}
 	}
 
 	// The lists' containers may come with placeholder children from the
@@ -377,6 +469,37 @@ public partial class CityScreen : Control {
 		for (int i = index; i < luxuryRows.Count; ++i) {
 			luxuryRows[i].box.Hide();
 		}
+	}
+
+	// Shows an icon for each of the owner's units in the city.
+	private void RenderGarrison(City city) {
+		garrisonCanvas.Clear();
+		List<MapUnit> garrison = city.location.unitsOnTile.FindAll(u => u.owner == city.owner);
+		if (garrison.Count == 0) {
+			return;
+		}
+
+		const int iconWidth = 32;
+		float step = Math.Min(iconWidth + 2, (GARRISON_WIDTH - iconWidth) / (float)Math.Max(1, garrison.Count - 1));
+		for (int i = 0; i < garrison.Count; ++i) {
+			ImageTexture icon = TextureLoader.Load("unit_icons", new ItemContext(garrison[i].unitType, city.owner), useCache: true);
+			garrisonCanvas.AddIcon(icon, new Vector2(i * step, 0));
+		}
+	}
+
+	// Shows the yield the government's tile penalty takes from the city,
+	// leaving out the yields it doesn't touch.
+	private void RenderPenalties(City city) {
+		(int food, int shields, int commerce) = city.TileYieldPenalties();
+		int[] amounts = { food, shields, commerce };
+		for (int i = 0; i < amounts.Length; ++i) {
+			(Label count, TextureRect icon) = penaltyEntries[i];
+			count.Text = amounts[i].ToString();
+			count.Visible = icon.Visible = amounts[i] > 0;
+		}
+		penaltiesRow.TooltipText = food + shields + commerce > 0
+			? $"{city.owner.government.name} costs this city {food} food, {shields} shields and {commerce} commerce a turn."
+			: "";
 	}
 
 	private void RenderExistingBuildings(List<CityBuilding> buildings) {
@@ -573,11 +696,91 @@ public partial class CityScreen : Control {
 		return new Vector2(textureWidth, textureHeight);
 	}
 
+	private void AddCommerceSection() {
+		goldCoinTexture = TextureLoader.Load("icons.good_gold");
+		corruptCoinTexture = TextureLoader.Load("icons.wasted_gold");
+		commerceIconTextures = new[] {
+			TextureLoader.Load("icons.treasury"),
+			TextureLoader.Load("icons.science"),
+			TextureLoader.Load("icons.happy_face"),
+		};
+
+		commerceLabel = new Label() { Position = new Vector2(284, 603) };
+		background.AddChild(commerceLabel);
+
+		commerceCanvas = new IconCanvas() {
+			Size = background.Texture.GetSize(),
+			MouseFilter = MouseFilterEnum.Ignore,
+		};
+		background.AddChild(commerceCanvas);
+
+		for (int row = 0; row < commerceShareLabels.Length; ++row) {
+			commerceShareLabels[row] = CommerceRowLabel(COMMERCE_SHARE_LEFT, row);
+		}
+		// As in Civ3, the corrupt commerce is counted below its coins.
+		corruptionLabel = CommerceRowLabel(COMMERCE_BAR_LEFT + 4, LUXURY_ROW);
+	}
+
+	// A label centered on the height of a commerce bar.
+	private Label CommerceRowLabel(int left, int row) {
+		const int height = 30;
+		Label label = new() {
+			Position = new Vector2(left, COMMERCE_BAR_CENTERS_Y[row] - height / 2),
+			Size = new Vector2(0, height),
+			VerticalAlignment = VerticalAlignment.Center,
+		};
+		background.AddChild(label);
+		return label;
+	}
+
 	private void RenderCommerceDetails(City city) {
 		CommerceBreakdown breakdown = city.CurrentCommerceYield();
-		commerceTaxesDetails.Text = $"{breakdown.taxes} gold/turn to taxes";
-		commerceScienceDetails.Text = $"{breakdown.beakers} gold/turn to science  ({breakdown.corrupted} corrupt)";
-		commerceHappinessDetails.Text = $"{breakdown.happiness} gold/turn to happiness";
+		// As in Civ3, the header counts every share after its building bonuses,
+		// plus the commerce lost to corruption.
+		int commerceTotal = Math.Max(0, breakdown.taxes) + Math.Max(0, breakdown.beakers)
+			+ Math.Max(0, breakdown.happiness) + Math.Max(0, breakdown.corrupted);
+		commerceLabel.Text = $"COMMERCE: {commerceTotal} per turn";
+
+		commerceCanvas.Clear();
+		int[] amounts = { breakdown.taxes, breakdown.beakers, breakdown.happiness };
+		int[] rates = { city.owner.taxRate, city.owner.scienceRate, city.owner.luxuryRate };
+		for (int row = 0; row < amounts.Length; ++row) {
+			// Corruption takes its share of commerce before the science bar's.
+			int corrupt = row == SCIENCE_ROW ? Math.Max(0, breakdown.corrupted) : 0;
+			RenderCoinRow(row, Math.Max(0, amounts[row]), corrupt);
+
+			Texture2D icon = commerceIconTextures[row];
+			commerceCanvas.AddIcon(icon, new Vector2(COMMERCE_ICON_LEFT, COMMERCE_BAR_CENTERS_Y[row] - icon.GetHeight() / 2));
+			commerceShareLabels[row].Text = $"{amounts[row]} ({rates[row] * 10}%)";
+		}
+
+		corruptionLabel.Text = breakdown.corrupted > 0 ? breakdown.corrupted.ToString() : "";
+	}
+
+	// Draws a commerce bar's coins: the corrupt ones from its left end, the
+	// rest from its right, squeezed together when there are too many to fit.
+	private void RenderCoinRow(int row, int coins, int corruptCoins) {
+		if (coins + corruptCoins <= 0) {
+			return;
+		}
+
+		int width = COMMERCE_BAR_RIGHT - COMMERCE_BAR_LEFT;
+		int iconWidth = goldCoinTexture.GetWidth();
+		int spacerWidth = coins > 0 && corruptCoins > 0 ? 60 : 0;
+		int spacePerIcon = (width - iconWidth - spacerWidth) / Math.Max(1, coins + corruptCoins - 1);
+		int step = Math.Min(spacePerIcon, iconWidth);
+		float y = COMMERCE_BAR_CENTERS_Y[row] - goldCoinTexture.GetHeight() / 2;
+
+		int x = COMMERCE_BAR_LEFT;
+		for (int i = 0; i < corruptCoins; ++i, x += step) {
+			commerceCanvas.AddIcon(corruptCoinTexture, new Vector2(x, y));
+		}
+
+		// Drawn from the left so that each coin overlaps the one before it.
+		x = COMMERCE_BAR_RIGHT - iconWidth - (coins - 1) * step;
+		for (int i = 0; i < coins; ++i, x += step) {
+			commerceCanvas.AddIcon(goldCoinTexture, new Vector2(x, y));
+		}
 	}
 
 	private void RenderProductionDetails(GameData gameData, City city) {
@@ -776,6 +979,7 @@ public partial class CityScreen : Control {
 		foreach (CityResident cr in specialists) {
 			TextureButton tb = NextPopHead();
 			tb.TextureNormal = PopHead.GetTexture(cr, eraNum);
+			tb.TooltipText = PopHead.GetTooltip(cr);
 			tb.SetPosition(new Vector2(xPos, POP_HEAD_OFFSET_Y));
 
 			int residentIndex = city.residents.IndexOf(cr);
@@ -818,7 +1022,7 @@ public partial class CityScreen : Control {
 
 	private TextureButton NextPopHead() {
 		if (headsUsed == popHeads.Count) {
-			TextureButton head = new();
+			TextureButton head = new() { Theme = PopHead.TooltipTheme };
 			// Pressing a specialist cycles it to the next kind.
 			head.Pressed += () => {
 				if (specialistOfHead.TryGetValue(head, out var specialist)) {
@@ -868,6 +1072,7 @@ public partial class CityScreen : Control {
 	private int AddDefaultCitizen(CityResident cr, int xPos, int eraNum) {
 		TextureButton tb = NextPopHead();
 		tb.TextureNormal = PopHead.GetTexture(cr, eraNum);
+		tb.TooltipText = PopHead.GetTooltip(cr);
 		tb.SetPosition(new Vector2(xPos, POP_HEAD_OFFSET_Y));
 		return xPos + PopHead.HEAD_SIZE;
 	}

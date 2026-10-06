@@ -43,6 +43,7 @@ limits=false
 [gui]
 
 theme/custom="res://C7Theme.tres"
+timers/tooltip_delay_sec=0.0
 
 [input]
 
