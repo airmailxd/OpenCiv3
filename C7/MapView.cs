@@ -507,6 +507,36 @@ public partial class MarshLayer : LooseLayer {
 	}
 }
 
+public partial class FloodPlainLayer : LooseLayer {
+	public static readonly Vector2 floodPlainSize = new Vector2(128, 64);
+	private ImageTexture floodPlainTexture;
+
+	public FloodPlainLayer() {
+		// A 4x4 grid indexed by which edges of the tile have a river, with
+		// NW = 1, NE = 2, SW = 4 and SE = 8. Each river edge adds a patch of
+		// flood plain along it.
+		floodPlainTexture = TextureLoader.Load("terrain.flood_plain");
+	}
+
+	public override void drawObject(LooseView looseView, GameData gameData, Tile tile, Vector2 tileCenter) {
+		if (!tile.overlayTerrainType.IsFloodPlain) {
+			return;
+		}
+
+		int index = (tile.riverNorthwest ? 1 : 0)
+			| (tile.riverNortheast ? 2 : 0)
+			| (tile.riverSouthwest ? 4 : 0)
+			| (tile.riverSoutheast ? 8 : 0);
+		if (index == 0) {
+			return;
+		}
+
+		Rect2 floodPlainRectangle = new Rect2(index % 4 * floodPlainSize.X, index / 4 * floodPlainSize.Y, floodPlainSize);
+		Rect2 screenTarget = new Rect2(tileCenter - 0.5f * floodPlainSize, floodPlainSize);
+		looseView.DrawTextureRectRegion(floodPlainTexture, screenTarget, floodPlainRectangle);
+	}
+}
+
 public partial class RiverLayer : LooseLayer {
 	public static readonly Vector2 riverSize = new Vector2(128, 64);
 	public static readonly Vector2 riverCenterOffset = new Vector2(riverSize.X / 2, 0);
@@ -834,6 +864,30 @@ public partial class MapView : Node2D {
 	public CityLayer cityLayer { get; private set; }
 	public TileAssignmentLayer tileAssignmentLayer { get; private set; }
 
+	// What bare map mode hides: whole views (cities and units are child nodes, so skipping their layers wouldn't hide them) and the layers
+	// of the terrain view drawn on top of the terrain and resources.
+	private readonly List<LooseView> viewsHiddenOnBareMap = new();
+	private readonly List<LooseLayer> layersHiddenOnBareMap = new();
+
+	// Shows only the terrain and resources, without cities, units, roads, improvements, borders and the like (Ctrl+Shift+M).
+	public bool bareMap {
+		get => isBareMap;
+		set {
+			if (isBareMap == value) {
+				return;
+			}
+			isBareMap = value;
+			foreach (LooseView view in viewsHiddenOnBareMap) {
+				view.Visible = !value;
+			}
+			foreach (LooseLayer layer in layersHiddenOnBareMap) {
+				layer.visible = !value;
+			}
+			InvalidateMap();
+		}
+	}
+	private bool isBareMap = false;
+
 	const float MIN_SCALE = 0.1f;
 	const float MAX_SCALE = 4.0f;
 
@@ -908,17 +962,22 @@ public partial class MapView : Node2D {
 		// be drawn behind cities (which are child nodes).
 		LooseView terrainView = new(this, LooseView.RedrawPolicy.WhenMapChanges);
 		terrainView.layers.Add(new TerrainLayer());
+		terrainView.layers.Add(new FloodPlainLayer());
 		terrainView.layers.Add(new RiverLayer());
 		terrainView.layers.Add(new ForestLayer());
 		terrainView.layers.Add(new MarshLayer());
 		terrainView.layers.Add(new HillsLayer());
 		terrainView.layers.Add(new TntLayer());
-		terrainView.layers.Add(new TileOverlayLayer());
+		TileOverlayLayer tileOverlayLayer = new();
+		terrainView.layers.Add(tileOverlayLayer);
 		terrainView.layers.Add(new ResourceLayer());
 		this.gridLayer = new GridLayer();
 		terrainView.layers.Add(this.gridLayer);
-		terrainView.layers.Add(new BuildingLayer());
-		terrainView.layers.Add(new BorderLayer());
+		BuildingLayer buildingLayer = new();
+		terrainView.layers.Add(buildingLayer);
+		BorderLayer borderLayer = new();
+		terrainView.layers.Add(borderLayer);
+		layersHiddenOnBareMap.AddRange([tileOverlayLayer, buildingLayer, borderLayer]);
 
 		LooseView cityView = new(this, LooseView.RedrawPolicy.WhenMapChanges);
 		this.cityLayer = new();
@@ -953,6 +1012,8 @@ public partial class MapView : Node2D {
 		looseViews.Add(unitView);
 		AddChild(otherView);
 		looseViews.Add(otherView);
+
+		viewsHiddenOnBareMap.AddRange([cityView, tileAssignmentView, unitView, otherView]);
 	}
 
 	// Tells the map that what's on it may have changed, e.g. after the engine sent the UI a message.

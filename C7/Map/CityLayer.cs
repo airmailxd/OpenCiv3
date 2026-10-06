@@ -82,7 +82,9 @@ namespace C7.Map {
 			scene.lastDrawnPass = drawPass;
 			PlaceScene(looseView.mapView, scene, looseView.mapView.CameraCenterInMap());
 			scene.SetShown(true);
-			scene.Refresh(looseView.mapView.contentVersion);
+			// Only the player's own cities show what they're doing; in observer mode there's no player, so every city does.
+			bool showDetails = looseView.uiPlayer == null || city.owner == looseView.uiPlayer;
+			scene.Refresh(looseView.mapView.contentVersion, showDetails);
 
 			if (looseView.HasCityLabelToHideFromTileInfo(tile))
 				scene.HideLabel();

@@ -19,6 +19,9 @@ public class GotoInfo {
 	public bool attackingMove = false;
 	public Player requiresWarDeclarationOnPlayer = null;
 	public Intent intent = Intent.Disabled;
+	// Whether every unit on the selected unit's tile goes, not just the
+	// selected one (the J key).
+	public bool wholeStack = false;
 };
 
 public class TileInfo {
@@ -1236,6 +1239,12 @@ public partial class Game : Node {
 		Control uiHover = GetViewport().GuiGetHoveredControl();
 		// Can't drag the map when the mouse is over a ui element
 		if (eventMouseButton.IsPressed() && uiHover is not TextureButton) {
+			// As in Civ3, pressing on the selected unit and dragging picks
+			// where it goes; it moves when the button is released.
+			if (TryStartUnitDrag(eventMouseButton)) {
+				return;
+			}
+
 			OldPosition = eventMouseButton.Position;
 			IsMovingCamera = true;
 
@@ -1246,6 +1255,49 @@ public partial class Game : Node {
 			}
 		} else {
 			IsMovingCamera = false;
+			if (draggingUnit) {
+				FinishUnitDrag(eventMouseButton);
+			}
+		}
+	}
+
+	private bool TryStartUnitDrag(InputEventMouseButton eventMouseButton) {
+		draggingUnit = false;
+		if (bombardInfo != null || CurrentState != GameState.PlayerTurn || !IsMapUnitValid(CurrentlySelectedUnit)) {
+			return false;
+		}
+		MapUnit unit = CurrentlySelectedUnit;
+		if (unit.owner != controller || unit.location != PositionToTile(eventMouseButton.Position)
+			|| !unit.GetAvailableActions().Contains(UnitAction.Goto)) {
+			return false;
+		}
+
+		// Keep moving the whole stack if J was pressed first.
+		SetGotoMode(true, gotoInfo?.wholeStack ?? false);
+		draggingUnit = true;
+		return true;
+	}
+
+	private void FinishUnitDrag(InputEventMouseButton eventMouseButton) {
+		draggingUnit = false;
+		Tile tile = PositionToTile(eventMouseButton.Position);
+		bool released = gotoInfo != null && IsMapUnitValid(CurrentlySelectedUnit);
+		if (released && tile != null && tile != CurrentlySelectedUnit.location) {
+			gotoInfo = GetGotoInfo(tile);
+			ResolveMovement(gotoInfo);
+			SetGotoMode(false);
+			return;
+		}
+
+		// Released where it started: that's an ordinary click on the tile.
+		SetGotoMode(false);
+		if (tile == null) {
+			return;
+		}
+		if (CanDoubleClick(eventMouseButton)) {
+			doubleClickHandler.Accept(eventMouseButton);
+		} else {
+			HandleUnitSelectionTileClick(eventMouseButton);
 		}
 	}
 
@@ -1302,9 +1354,22 @@ public partial class Game : Node {
 			return;
 		}
 
-		// TODO: This should really be the top unit.
-		MapUnit unit = tile.unitsOnTile.FirstOrDefault();
-		if (unit == null || unit.owner != controller) {
+		// Pick a top unit, never one carried by an army or a ship: the selected
+		// unit if it's here, otherwise one that can still move.
+		MapUnit unit = null;
+		foreach (MapUnit u in tile.unitsOnTile) {
+			if (u.owner != controller || u.IsLoaded()) {
+				continue;
+			}
+			if (u == CurrentlySelectedUnit) {
+				unit = u;
+				break;
+			}
+			if (unit == null || (!unit.movementPoints.canMove && u.movementPoints.canMove)) {
+				unit = u;
+			}
+		}
+		if (unit == null) {
 			return;
 		}
 
@@ -1519,6 +1584,25 @@ public partial class Game : Node {
 					   && !eventKeyDown.AltPressed) {
 				ProcessAction(C7Action.UnitGoto);
 			}
+		}
+
+		// Go-to for every unit on the selected unit's tile.
+		if (eventKeyDown.Keycode == Godot.Key.J
+			&& !eventKeyDown.IsCommandOrControlPressed()
+			&& !eventKeyDown.ShiftPressed
+			&& !eventKeyDown.AltPressed
+			&& CurrentState == GameState.PlayerTurn
+			&& IsMapUnitValid(CurrentlySelectedUnit)) {
+			SetGotoMode(true, wholeStack: true);
+		}
+
+		// Show only the terrain and resources, hiding cities, units, roads and the like.
+		if (eventKeyDown.Keycode == Godot.Key.M
+			&& eventKeyDown.IsCommandOrControlPressed()
+			&& eventKeyDown.ShiftPressed
+			&& !eventKeyDown.AltPressed
+			&& !eventKeyDown.Echo) {
+			mapView.bareMap = !mapView.bareMap;
 		}
 	}
 
@@ -1899,12 +1983,16 @@ public partial class Game : Node {
 			PopupOverlay.PopupCategory.Advisor);
 	}
 
-	private void SetGotoMode(bool isOn) {
+	// Whether the player is dragging the selected unit to pick its destination.
+	private bool draggingUnit = false;
+
+	private void SetGotoMode(bool isOn, bool wholeStack = false) {
+		this.lastTile = null;
 		if (isOn) {
-			this.gotoInfo = new();
+			this.gotoInfo = new() { wholeStack = wholeStack };
 		} else {
 			this.gotoInfo = null;
-			this.lastTile = null;
+			this.draggingUnit = false;
 		}
 	}
 
@@ -1949,10 +2037,41 @@ public partial class Game : Node {
 					this.ResolveMovement(stashed);
 					this.SetGotoMode(false);
 				});
+			} else if (info.wholeStack) {
+				MoveStack(gameData, info);
 			} else {
 				new MsgSetUnitPath(CurrentlySelectedUnit.id, info.path).send();
 			}
 		});
+	}
+
+	// Sends the selected unit along its path and every other unit of ours on
+	// its tile to the same destination, each along its own path. Only the
+	// selected unit attacks; the rest go only where they can walk.
+	private void MoveStack(GameData gameData, GotoInfo info) {
+		MapUnit leader = gameData.GetUnit(CurrentlySelectedUnit.id);
+		Tile destination = info.destinationTile;
+		List<(ID, TilePath)> moves = [(leader.id, info.path)];
+		foreach (MapUnit unit in leader.location.unitsOnTile) {
+			// Loaded units ride along with their transport. Fortified units
+			// stay put, as do units that have already moved this turn.
+			if (unit == leader || unit.owner != leader.owner || unit.IsLoaded()
+				|| unit.isFortified
+				|| unit.movementPoints.remaining < unit.MaxMovementPoints()
+				|| !unit.GetAvailableActions().Contains(UnitAction.Goto)) {
+				continue;
+			}
+			TilePath path = PathingAlgorithmChooser.GetAlgorithm(unit).PathFrom(unit.location, destination, unit);
+			if (path != null && path.PathLength() > 0) {
+				moves.Add((unit.id, path));
+			}
+		}
+
+		// The paths are all worked out before anything moves, since moving
+		// changes who's on the tile.
+		foreach ((ID id, TilePath path) in moves) {
+			new MsgSetUnitPath(id, path).send();
+		}
 	}
 
 	private void MaybeDeclareWar(Player player, int currentTurn, Action callback) {
@@ -1979,7 +2098,7 @@ public partial class Game : Node {
 	}
 
 	private GotoInfo GetGotoInfo(Tile tile) {
-		GotoInfo result = new();
+		GotoInfo result = new() { wholeStack = this.gotoInfo?.wholeStack ?? false };
 
 		EngineStorage.ReadGameData((GameData gameData) => {
 			if (tile == this.lastTile && this.gotoInfo != null) {

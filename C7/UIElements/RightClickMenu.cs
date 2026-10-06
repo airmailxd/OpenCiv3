@@ -38,7 +38,7 @@ public partial class RightClickMenu : VBoxContainer {
 		this.Show();
 
 		// Move "position" if the menu would extend past the right or bottom edges of the screen
-		Vector2 offScreen = position + this.Size - DisplayServer.WindowGetSize();
+		Vector2 offScreen = position + this.Size - GetViewportRect().Size;
 		if (offScreen.X > 0) {
 			position.X = Mathf.Max(0, position.X - offScreen.X);
 		}
@@ -192,7 +192,18 @@ public partial class RightClickTileMenu : RightClickMenu {
 			.SelectMany(g => g.OrderBy(u => u.CanCarryUnits() ? int.MinValue : 0))
 			.ToList();
 
+		int orderableCount = 0;
 		foreach (MapUnit unit in playerUnits) {
+			// A unit locked in an army takes no orders of its own, so it's
+			// only listed, greyed out, to show what the army is made of.
+			if (unit.IsLockedInArmy()) {
+				var memberItem = AddItem(unit.Describe(), null);
+				ApplyAltItemOverrides(memberItem);
+				memberItem.Disabled = true;
+				continue;
+			}
+
+			orderableCount++;
 			bool isFortified = isUnitFortified(unit, uiUpdatedUnitStates);
 			fortifiedCount += isFortified ? 1 : 0;
 			string actionName = getUnitAction(unit, isFortified);
@@ -201,7 +212,7 @@ public partial class RightClickTileMenu : RightClickMenu {
 			if (isUnitLoadedOnTransport(unit))
 				ApplyAltItemOverrides(menuItem);
 		}
-		int unfortifiedCount = playerUnits.Count - fortifiedCount;
+		int unfortifiedCount = orderableCount - fortifiedCount;
 
 		if (fortifiedCount > 1) {
 			AddItem($"Wake All ({fortifiedCount} units)", () => ForAll(tile.XCoordinate, tile.YCoordinate, false));
@@ -315,7 +326,7 @@ public partial class RightClickTileMenu : RightClickMenu {
 			}
 			toSelect ??= gameData.GetUnit(id);
 
-			if (toSelect != null && toSelect.owner == game.controller) {
+			if (toSelect != null && toSelect.owner == game.controller && !toSelect.IsLockedInArmy()) {
 				game.SelectUnit(toSelect);
 
 				new MsgSetFortification(toSelect.id, false).send();
@@ -333,7 +344,7 @@ public partial class RightClickTileMenu : RightClickMenu {
 			Tile tile = gameData.map.tileAt(tileX, tileY);
 			Dictionary<ID, bool> modified = new Dictionary<ID, bool>();
 			foreach (MapUnit unit in tile.unitsOnTile) {
-				if (unit.isFortified != isFortify) {
+				if (unit.isFortified != isFortify && !unit.IsLockedInArmy()) {
 					modified[unit.id] = isFortify;
 					new MsgSetFortification(unit.id, isFortify).send();
 

@@ -178,6 +178,17 @@ namespace C7GameData {
 			return u != this && u.IsLoadedIn(this);
 		}
 
+		// The first of Passengers(), without building the list, or null.
+		public MapUnit FirstPassenger() {
+			if (!Tile.IsTileValid(location))
+				return null;
+			foreach (MapUnit u in location.unitsOnTile) {
+				if (IsPassenger(u))
+					return u;
+			}
+			return null;
+		}
+
 		// Passengers().Count, without building the list.
 		public int PassengerCount() {
 			if (!Tile.IsTileValid(location))
