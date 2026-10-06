@@ -567,6 +567,14 @@ namespace C7Engine {
 		}
 	}
 
+	// Sent by the UI at the start of the player's turn: asks them what to
+	// research next if they have nothing to research.
+	public class MsgAskWhatToResearch : MessageToEngine {
+		protected override void ProcessAllowed() {
+			Sender.AskWhatToResearch(EngineStorage.gameData);
+		}
+	}
+
 	// Picks something to research for a player who hasn't chosen, so their
 	// science isn't wasted if they dismiss the science selection popup. A free
 	// tech the player has coming is left for them to choose.

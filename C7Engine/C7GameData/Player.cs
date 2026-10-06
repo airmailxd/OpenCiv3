@@ -1259,12 +1259,22 @@ namespace C7GameData {
 			}
 			PlayerAI.MaybePickTechToResearch(this, gameData.techs);
 		}
+		// Asks a human with nothing to research what to research next, once
+		// they have a city. The message names the tech just discovered, which
+		// a LAN client doesn't otherwise know.
+		public void AskWhatToResearch(GameData gameData) {
+			if (isHuman && cities.Count > 0 && currentlyResearchedTech == null
+					&& GetAvailableTechsToResearch(gameData.techs).Count > 0) {
+				new MsgShowScienceSelection(this, lastDiscoveredTech).send();
+			}
+		}
+
 		private void CompleteResearchAndBeginNew(GameData gameData, Tech tech) {
 			CompleteResearchingTech(gameData, tech);
 
 			// A human whose research queue has run out is asked what to
-			// research next (see Game.OnPlayerStartTurn and
-			// MsgShowScienceSelection) rather than having it picked for them.
+			// research next (see AskWhatToResearch) rather than having it
+			// picked for them.
 			if (isHuman && currentlyResearchedTech == null && ResearchQueue.Count == 0) {
 				lastDiscoveredTech = tech;
 				return;

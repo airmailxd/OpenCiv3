@@ -128,6 +128,28 @@ public class GameplayFlowTest : IClassFixture<SaveGameFixture>, System.IDisposab
 	}
 
 	[Fact]
+	public void HumanIsAskedWhatToResearchNamingTheTechDiscovered() {
+		BuildCity(human);
+		Tech tech = AvailableTech(human);
+		human.ResearchQueue.Clear();
+		human.freeTechsRemaining = 0;
+		human.SetCurrentlyResearchedTech(tech.id);
+		human.AcquireTech(gameData, tech);
+		DrainMessages();
+
+		human.AskWhatToResearch(gameData);
+
+		MsgShowScienceSelection msg = DrainMessages().OfType<MsgShowScienceSelection>().Single();
+		Assert.Same(human, msg.recipient);
+		Assert.Same(tech, msg.discovered);
+
+		// Nothing is asked once something is being researched.
+		human.SetCurrentlyResearchedTech(AvailableTech(human).id);
+		human.AskWhatToResearch(gameData);
+		Assert.Empty(DrainMessages().OfType<MsgShowScienceSelection>());
+	}
+
+	[Fact]
 	public void ProductionQueueIsSaved() {
 		City city = BuildCity(human);
 		List<IProducible> options = city.ListProductionOptions(gameData).ToList();

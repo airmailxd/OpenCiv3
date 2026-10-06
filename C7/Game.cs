@@ -747,6 +747,8 @@ public partial class Game : Node {
 				break;
 			case MsgShowScienceSelection mSSS:
 				popupOverlay.ShowPopup(new ScienceSelection(controller, mSSS.discovered), PopupOverlay.PopupCategory.Info);
+				// Research something even if the player dismisses the popup.
+				new MsgPickDefaultResearch().send();
 				break;
 			case MsgCityProductionCompleted mCPC when mCPC.city != null:
 				EnqueueProductionPopup(mCPC);
@@ -1135,18 +1137,9 @@ public partial class Game : Node {
 					PopupOverlay.PopupCategory.Info);
 			}
 
-			// If the player can pick a new tech to research, prompt them to do so
-			// once they have a city.
-			if (controller.cities.Count > 0
-					&& controller.currentlyResearchedTech == null
-					&& controller.GetAvailableTechsToResearch(gameData.techs).Count > 0) {
-				popupOverlay.ShowPopup(
-						new ScienceSelection(controller, controller.lastDiscoveredTech),
-						PopupOverlay.PopupCategory.Info);
-
-				// Research something even if the player dismisses the popup.
-				new MsgPickDefaultResearch().send();
-			}
+			// If the player can pick a new tech to research, the engine
+			// prompts them to do so, naming the tech they just discovered.
+			new MsgAskWhatToResearch().send();
 
 			// Allow fast forwarding in observer mode.
 			if (gameData.observerMode && turnsLeftToFastForward > 0) {
