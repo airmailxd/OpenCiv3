@@ -29,6 +29,11 @@ namespace C7Engine {
 		// They may negotiate even though it isn't their turn.
 		public static ID diplomacyPlayerID;
 
+		// Whether a human player is there to be asked something. A LAN host
+		// answers for its guests' seats, which may be empty; otherwise every
+		// player is at this machine.
+		public static Func<ID, bool> playerReachable;
+
 		// A deal one human proposed to another, waiting for their answer.
 		internal static MsgProposeDeal pendingDeal;
 
@@ -115,6 +120,7 @@ namespace C7Engine {
 			remoteEngine = null;
 			uiMessageRouter = null;
 			uiFollowsActivePlayer = true;
+			playerReachable = null;
 			diplomacyPlayerID = null;
 			pendingDeal = null;
 			territoryDemandAnswer = null;
@@ -208,6 +214,19 @@ namespace C7Engine {
 			pendingEngineWaiters[typeof(T)] = tcs;
 
 			return tcs.Task.ContinueWith(t => (T)t.Result);
+		}
+
+		public static bool IsPlayerReachable(ID player) {
+			return playerReachable?.Invoke(player) ?? true;
+		}
+
+		// Waits for the given player to close the diplomacy screen an AI
+		// opened for them. Anyone else closing theirs is no answer.
+		internal static async Task WaitForDiplomacyCompleted(ID player) {
+			MsgDiplomacyCompleted completed;
+			do {
+				completed = await WaitForMessageToEngine<MsgDiplomacyCompleted>();
+			} while (completed.playerID != player);
 		}
 
 		public static void ReadGameData(Action<GameData> accessor) {

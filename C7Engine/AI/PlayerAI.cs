@@ -761,6 +761,10 @@ namespace C7Engine {
 				}
 
 				if (them.isHuman) {
+					// A LAN guest who has left can't answer, so isn't asked.
+					if (!EngineStorage.IsPlayerReachable(them.id)) {
+						continue;
+					}
 					// The human receiving the offer takes the UI to respond.
 					// In a hotseat game they may not be the player at the screen.
 					if (EngineStorage.uiFollowsActivePlayer) {
@@ -768,7 +772,7 @@ namespace C7Engine {
 					}
 					EngineStorage.diplomacyPlayerID = them.id;
 					new MsgShowTradeOffer(us, them, weWant, weGive).send();
-					await EngineStorage.WaitForMessageToEngine<MsgDiplomacyCompleted>();
+					await EngineStorage.WaitForDiplomacyCompleted(them.id);
 					EngineStorage.diplomacyPlayerID = null;
 				} else if (them.WouldAcceptDealFrom(gD, us, weGive, weWant)) {
 					us.ExecuteDeal(gD, them, weWant, weGive);

@@ -903,6 +903,13 @@ namespace C7Engine {
 			this.withdraw = withdraw;
 		}
 
+		// Only the human the AI is waiting on may answer, whoever's turn it
+		// was last.
+		protected override bool IsAllowed() {
+			return Sender != null && EngineStorage.diplomacyPlayerID != null
+				&& playerID == EngineStorage.diplomacyPlayerID;
+		}
+
 		protected override void ProcessAllowed() {
 			EngineStorage.territoryDemandAnswer = withdraw;
 		}
@@ -942,6 +949,15 @@ namespace C7Engine {
 	}
 
 	public class MsgDiplomacyCompleted : MessageToEngine {
+		// While an AI waits on a human to answer it, only that human can end
+		// the talks; the active player may still be the last human to play.
+		protected override bool IsAllowed() {
+			if (EngineStorage.diplomacyPlayerID != null) {
+				return Sender != null && playerID == EngineStorage.diplomacyPlayerID;
+			}
+			return base.IsAllowed();
+		}
+
 		protected override void ProcessAllowed() { }
 	}
 }
