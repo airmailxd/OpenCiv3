@@ -821,24 +821,20 @@ namespace C7GameData {
 				return result;
 			}
 
-			/// The units proto might upgrade to for the civ, which it can
-			/// build: the upgrade chain followed by its "siblings", in
-			/// order. Empty if proto has no upgrade for the civ.
+			/// The units proto might upgrade to for the civ: its upgrade chain
+			/// for that civ, in order. Empty if proto has no upgrade for the civ.
+			///
+			/// Unique units are already part of the chain (upgradesTo holds each
+			/// civ's next unit, so a Cannon lists the Korean Hwach'a), so units
+			/// from other chains that merely share a later upgrade are left out:
+			/// a Warrior must not become a Longbowman just because Persia's
+			/// Immortals and the Longbowman both upgrade to the Guerilla.
 			public UnitPrototype[] Candidates(UnitPrototype proto, Civilization civ) {
 				lock (cacheLock) {
 					if (candidates.TryGetValue((proto, civ), out UnitPrototype[] result))
 						return result;
 
-					List<UnitPrototype> unitUpgradeChain = GetUpgradeChain(proto, civ);
-					if (unitUpgradeChain.Count == 0) {
-						result = [];
-					} else {
-						// We expand the upgrade chain with "siblings", units that join the chain from nearby "branches"
-						var potentialUnits = GetUnitsThatUpgradeTo(proto, proto.upgradesToList);
-						result = unitUpgradeChain.Union(potentialUnits)
-							.Where(uu => uu.producibleBySet?.Contains(civ) ?? false)
-							.ToArray();
-					}
+					result = GetUpgradeChain(proto, civ).ToArray();
 					candidates[(proto, civ)] = result;
 					return result;
 				}
@@ -875,26 +871,6 @@ namespace C7GameData {
 					current = GetUnitUpgrade(current, civ);
 				}
 				return chain;
-			}
-
-			// For example, if we want to check if the Trebuchet is obsolete for the Koreans,
-			// what we can do, because we don't want to hardcode anywhere that
-			// the Hwacha is the "replacement" to the Cannon (which is Trebuchet's upgrade)
-			// we can check if the upgrade (Artillery) of the upgrade (Cannon) of our unit (Trebuchet)
-			// has other units that upgrade to it and are available to the Koreans.
-			// This is how we get that, since we can build a Hwacha,
-			// which upgrades to Artillery, that the Trebuchet is obsolete.
-			private List<UnitPrototype> GetUnitsThatUpgradeTo(UnitPrototype proto, ICollection<UnitPrototype> units) {
-				HashSet<UnitPrototype> upgradeUpgrades = (units ?? [])
-					.SelectMany(x => x.upgradesToList ?? [])
-					.ToHashSet();
-
-				List<UnitPrototype> allUnits = sourceItems.Where(p
-						=> p != null && (p.upgradesToList ?? []).Intersect(upgradeUpgrades).Any())
-					.Except([proto])
-					.ToList();
-
-				return allUnits;
 			}
 		}
 	}

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using C7Engine;
@@ -41,10 +42,21 @@ public partial class MapUnit {
 	}
 
 	// The gold needed to upgrade to the given type: a fixed amount per shield
-	// of difference in production cost.
+	// of difference in production cost, halved (rounding down) while the owner
+	// has an active wonder with cheaper upgrades (Leonardo's Workshop).
 	public int UpgradeCost(UnitPrototype upgrade) {
 		int shieldDifference = owner.ShieldCost(upgrade) - owner.ShieldCost(unitType);
-		return System.Math.Max(0, shieldDifference) * EngineStorage.gameData.rules.UpgradeCostPerShield;
+		int cost = Math.Max(0, shieldDifference) * EngineStorage.gameData.rules.UpgradeCostPerShield;
+		return HasCheaperUpgrades(owner) ? cost / 2 : cost;
+	}
+
+	private static bool HasCheaperUpgrades(Player player) {
+		foreach ((City _, CityBuilding cb) in player.GetBuildingSnapshot().activeWonders) {
+			if (cb.building.cheaperUpgrades) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	public bool CanUpgrade() {
@@ -75,13 +87,13 @@ public partial class MapUnit {
 	}
 
 	// Turns this unit into the given type, keeping its experience, without
-	// charging anything (Leonardo's Workshop upgrades for free).
-	internal void ChangeTypeForUpgrade(UnitPrototype upgrade) {
+	// charging anything.
+	private void ChangeTypeForUpgrade(UnitPrototype upgrade) {
 		if (name == unitType.name) {
 			name = upgrade.name;
 		}
 		unitType = upgrade;
 		TileChangeJournal.Record(location);
-		hitPointsRemaining = System.Math.Min(hitPointsRemaining, maxHitPoints);
+		hitPointsRemaining = Math.Min(hitPointsRemaining, maxHitPoints);
 	}
 }

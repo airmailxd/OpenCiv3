@@ -85,8 +85,8 @@ namespace C7Engine {
 					player.DoPerTurnFinanceUpdates(gameData);
 					player.DoPerTurnScienceUpdates(gameData);
 
-					// Free units and upgrades from wonders like the Statue of
-					// Zeus and Leonardo's Workshop. Before city production, so
+					// Free units from wonders like the Statue of Zeus and
+					// Knights Templar. Before city production, so
 					// a wonder finished this turn starts counting next turn.
 					WonderUnits.DoPerTurnUpdates(player, gameData);
 					player.DoGreatLibraryUpdates(gameData);

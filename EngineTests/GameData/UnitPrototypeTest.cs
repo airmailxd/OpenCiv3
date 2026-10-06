@@ -383,6 +383,24 @@ public class UnitPrototypeConquestsTest : RemoteSaveLoader {
 		Assert.Equal(guerilla, immortals.GetProducibleUpgrade(persepolis, noResources));
 		#endregion
 
+		#region Egyptians
+		// The Warrior's chain is Swordsman, Medieval Infantry, Guerilla. The
+		// Longbowman also upgrades to the Guerilla (as do Persia's Immortals),
+		// but it is the Archer's upgrade, not the Warrior's.
+		var egyptians = gd.civilizations.FirstOrDefault(c => c.name == "Egypt");
+		var egy = new Player() { civilization = egyptians };
+		City thebes = new City(new Tile(ID.None("tile")), egy, "Thebes", gd.ids.CreateID("Thebes"));
+		var longbowman = protos.FirstOrDefault(p => p.name == "Longbowman");
+
+		egy.knownTechs.Add(bronze.id);
+		egy.knownTechs.Add(ironWorking.id);
+		egy.knownTechs.Add(feudalism.id);
+		egy.knownTechs.Add(gd.techs.First(t => t.Name == "Invention").id);
+		Assert.True(longbowman.CanProduce(thebes, noResources));
+		Assert.Null(warrior.GetProducibleUpgrade(thebes, noResources));
+		Assert.Equal(medInfantry, warrior.GetProducibleUpgrade(thebes, new HashSet<Resource>() { iron }));
+		#endregion
+
 		#region Sumerians
 		Tile sumerTile = new Tile(ID.None("tile"));
 		City sumer = new City(sumerTile, sum, "Sumer", gd.ids.CreateID("Sumer"));

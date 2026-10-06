@@ -4,8 +4,8 @@ using Xunit;
 
 namespace EngineTests.GameData;
 
-// Leonardo's Workshop's free upgrade, and the free units of wonders like the
-// Statue of Zeus and Knights Templar.
+// Leonardo's Workshop's cheaper upgrades, and the free units of wonders like
+// the Statue of Zeus and Knights Templar.
 public class WonderUnitsTest {
 	private readonly C7GameData.GameData gameData = new() { gameDifficulty = new Difficulty(), rules = new Rules() };
 	private readonly Player player;
@@ -64,48 +64,44 @@ public class WonderUnitsTest {
 		return AddWonder(new SaveBuilding() { name = "Knights Templar", unitProduced = "Crusader", unitFrequency = 5 });
 	}
 
-	[Fact]
-	public void LeonardoUpgradesOneUnitPerTurnForFree() {
-		AddLeonardo();
-		// Out in the field, away from any barracks.
-		MapUnit first = AddSpearman(new Tile(ID.None("field")));
-		MapUnit second = AddSpearman(city.location);
+	private void AddBarracks() {
+		SaveBuilding barracks = new() { name = "Barracks" };
+		barracks.flags.Add(SaveBuilding.Flag.VeteranGroundUnits);
+		city.AddBuilding(new Building(barracks, new C7GameData.GameData()));
+	}
 
-		Assert.Equal(first, WonderUnits.UpgradeOneUnitForFree(player, gameData));
-		Assert.Equal(pikeman, first.unitType);
-		Assert.Equal("Veteran", first.experienceLevel.displayName);
-		Assert.Equal(spearman, second.unitType);
+	[Fact]
+	public void LeonardoHalvesUpgradeCost() {
+		// A blank difficulty would zero an AI's shield costs.
+		player.isHuman = true;
+		AddBarracks();
+		MapUnit unit = AddSpearman(city.location);
+		// 10 shields of difference at 3 gold a shield.
+		Assert.Equal(30, unit.UpgradeCost(pikeman));
+
+		AddLeonardo();
+		Assert.Equal(15, unit.UpgradeCost(pikeman));
+
+		player.gold = 15;
+		Assert.True(unit.Upgrade());
+		Assert.Equal(pikeman, unit.unitType);
 		Assert.Equal(0, player.gold);
-
-		Assert.Equal(second, WonderUnits.UpgradeOneUnitForFree(player, gameData));
-		Assert.Equal(pikeman, second.unitType);
-
-		Assert.Null(WonderUnits.UpgradeOneUnitForFree(player, gameData));
 	}
 
 	[Fact]
-	public void NoFreeUpgradesWithoutLeonardo() {
-		MapUnit unit = AddSpearman(city.location);
-		Assert.Null(WonderUnits.UpgradeOneUnitForFree(player, gameData));
-		Assert.Equal(spearman, unit.unitType);
-	}
-
-	[Fact]
-	public void LeonardoNeedsTheUpgradeToBeBuildable() {
+	public void LeonardoDoesNotUpgradeUnitsByItself() {
 		AddLeonardo();
-		Tech feudalism = new() { id = ID.FromString("tech-20") };
-		pikeman.requiredTech = feudalism;
+		player.gold = 1000;
 		MapUnit unit = AddSpearman(city.location);
 
-		Assert.Null(WonderUnits.UpgradeOneUnitForFree(player, gameData));
+		WonderUnits.DoPerTurnUpdates(player, gameData);
 		Assert.Equal(spearman, unit.unitType);
-
-		player.knownTechs.Add(feudalism.id);
-		Assert.Equal(unit, WonderUnits.UpgradeOneUnitForFree(player, gameData));
+		Assert.Equal(1000, player.gold);
 	}
 
 	[Fact]
-	public void ObsoleteLeonardoDoesNothing() {
+	public void ObsoleteLeonardoGivesNoDiscount() {
+		player.isHuman = true;
 		SaveBuilding leo = new() { name = "Leonardo's Workshop" };
 		leo.flags.Add(SaveBuilding.Flag.CheaperUpgrades);
 		CityBuilding cb = AddWonder(leo);
@@ -115,8 +111,7 @@ public class WonderUnitsTest {
 		player.OnBuildingsChanged();
 
 		MapUnit unit = AddSpearman(city.location);
-		Assert.Null(WonderUnits.UpgradeOneUnitForFree(player, gameData));
-		Assert.Equal(spearman, unit.unitType);
+		Assert.Equal(30, unit.UpgradeCost(pikeman));
 	}
 
 	[Fact]
