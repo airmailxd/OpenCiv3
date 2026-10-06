@@ -293,6 +293,14 @@ namespace C7GameData {
 		// name from the civ's city name list.
 		public int citiesFounded = 0;
 
+		// Whether this player has never held a city or a settler, like a
+		// scenario civ that starts with only units. Such a civ isn't destroyed
+		// for having no cities or settlers while it still has units. It's
+		// worked out when a game is loaded (see SaveGame.ConvertCities) and
+		// cleared once the player gains a city. A civ that loses its starting
+		// settlers before founding a city is still destroyed.
+		public bool neverHadCityOrSettler = false;
+
 		public bool InGoldenAge => goldenAgeTurnsRemaining > 0;
 
 		public int EraIndex() {
@@ -1130,6 +1138,7 @@ namespace C7GameData {
 				// the new citizen can go on one of our new tiles.
 				if (c.UpdateCultureAndCheckForExpansion()) {
 					gameData.UpdateTileOwners();
+					BarbarianInteractions.DisperseCampsWithinBorders(gameData);
 
 					// Update the trade network if borders expanded, as a new
 					// resource may be part of the network.

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using C7GameData;
 
@@ -24,6 +25,30 @@ public class BarbarianInteractions {
 		tile.hasBarbarianCamp = false;
 		player.gold += CampDispersalGold;
 		return true;
+	}
+
+	// Barbarian camps can't stand within a civ's borders, so any that have
+	// come to be inside them, by borders growing with culture or a city
+	// changing hands, are dispersed. As when a new city's borders take in a
+	// camp, the owner of the borders is paid for each one. Call this after
+	// updating tile owners. (Founding a city does its own dispersal, to name
+	// the city in its message.)
+	public static void DisperseCampsWithinBorders(GameData gameData) {
+		Dictionary<Player, int> dispersedBy = new();
+		foreach (Tile camp in gameData.map.barbarianCamps.ToList()) {
+			Player owner = camp.owningCity?.owner;
+			if (owner == null || !DisperseCamp(gameData, camp, owner)) {
+				continue;
+			}
+			dispersedBy.TryGetValue(owner, out int count);
+			dispersedBy[owner] = count + 1;
+		}
+		foreach ((Player owner, int count) in dispersedBy) {
+			if (owner.isHuman) {
+				string camps = count == 1 ? "a barbarian encampment" : $"{count} barbarian encampments";
+				new MsgShowMilitaryAdvisorPopup(owner, $"Our borders have taken in {camps}, dispersing them and earning {count * CampDispersalGold} gold!", happy: true).send();
+			}
+		}
 	}
 
 	public static int SpawnBarbarians(GameData gameData) {

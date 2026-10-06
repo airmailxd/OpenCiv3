@@ -24,8 +24,6 @@ namespace C7GameData {
 		public int beakers;
 		public int happiness;
 		public int wealth;
-		// The city's commerce before corruption and building bonuses.
-		public int total;
 	}
 
 	public struct CorruptableValue {
@@ -941,7 +939,6 @@ namespace C7GameData {
 
 			// TODO: Science/Luxury commerce doesn't seem to be tabulating correctly, can be negative in some cases with specialists, might be ImportCiv3 issue?
 			CommerceBreakdown result = new();
-			result.total = uncorruptedCommerce;
 			result.corrupted = commerce.corrupt;
 			// Civ3 rounds each share to the nearest whole value rather than
 			// down (8 commerce at 70% science is 6 beakers, not 5). Luxuries

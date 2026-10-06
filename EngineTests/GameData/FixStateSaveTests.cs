@@ -635,4 +635,24 @@ public class FixStateSaveTests : IClassFixture<SaveGameFixture>, IDisposable {
 		loadedPlayer.tileKnowledge.AddTilesToKnown(loadedTile);
 		Assert.True(RemembersRoad(loadedPlayer, loadedTile));
 	}
+
+	// Saving can happen from the UI while the engine changes the game, so
+	// saving what the player remembers must not bring their active tiles up
+	// to date (which changes them) but use them as they are.
+	[Fact]
+	public void SavingDoesntRecomputeActiveTiles() {
+		C7GameData.GameData gameData = NewGame();
+		Player player = gameData.players.First(p => !p.isBarbarians);
+		player.tileKnowledge.RecomputeActiveTiles();
+		HashSet<Tile> activeBefore = player.tileKnowledge.ActiveTiles();
+
+		// Something that would make the next update recompute everything.
+		TileChangeJournal.InvalidateAll();
+		int fullBefore = player.tileKnowledge.fullRecomputeCount;
+
+		SaveGame.FromGameData(gameData);
+
+		Assert.Equal(fullBefore, player.tileKnowledge.fullRecomputeCount);
+		Assert.True(activeBefore.SetEquals(player.tileKnowledge.ActiveTiles()));
+	}
 }

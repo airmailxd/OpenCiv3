@@ -439,6 +439,14 @@ namespace C7GameData.Save {
 			}
 			data.players.ForEach(player => {
 				player.cities = citiesByOwner.TryGetValue(player.id, out List<City> owned) ? new List<City>(owned) : new List<City>();
+				// A civ with units but no cities or settlers, that has never
+				// founded a city, is one that started that way, as some
+				// scenario civs do. (Any other civ in that state would have
+				// been destroyed when it lost its last city or settler.)
+				if (!player.isBarbarians && player.citiesFounded == 0 && player.cities.Count == 0
+					&& player.units.Count > 0 && !player.units.Any(u => u.unitType.isSettler)) {
+					player.neverHadCityOrSettler = true;
+				}
 			});
 
 			// Add references to map tiles. The units were placed on their tiles
@@ -582,6 +590,12 @@ namespace C7GameData.Save {
 			return JsonSerializer.Deserialize<SaveGame>(json, JsonOptions);
 		}
 
+		// A save carries its own copy of the rules (buildings, units, terrain
+		// improvements, governments and so on), and loading uses that copy
+		// rather than the current ruleset. So a save made before some rule
+		// data was imported, such as building flags, units' requiredGovernment
+		// or BattleCreatedUnit, or the fallout terrain improvement, goes on
+		// without it. Nothing fills it in from the current ruleset.
 		public static SaveGame Load(string path, Func<string, string> getPediaIconsPath) {
 			SaveGame result = LoadFromJSON(File.ReadAllText(path));
 
