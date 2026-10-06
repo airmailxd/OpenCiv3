@@ -11,12 +11,14 @@ namespace EngineTests.GameData;
 // The Great Wall, the Great Lighthouse, Magellan's Voyage, the Heroic Epic and
 // the military great leaders it makes more likely.
 public class CombatMovementWonderTest : IClassFixture<SaveGameFixture> {
+	private readonly SaveGameFixture fixture;
 	private readonly C7GameData.GameData gameData;
 	private readonly Player us;
 	private readonly Player them;
 	private readonly Player barbarians;
 
 	public CombatMovementWonderTest(SaveGameFixture fixture) {
+		this.fixture = fixture;
 		gameData = fixture.saveGame.ToGameData(fixture.behaviors);
 		EngineStorage.InitializeGameDataForTests(gameData);
 		EngineStorage.animationsEnabled = false;
@@ -385,5 +387,51 @@ public class CombatMovementWonderTest : IClassFixture<SaveGameFixture> {
 
 		Assert.Equal(us.ShieldCost(wonder), city.shieldsStored);
 		Assert.DoesNotContain(leader, gameData.mapUnits);
+	}
+
+	[Fact]
+	public void ProductionCantChangeAfterALeaderHurries() {
+		City city = BuildCity(us);
+		MapUnit leader = Spawn(us, "Leader", city.location);
+		Building temple = BuildingNamed("Temple");
+		city.SetItemBeingProduced(temple);
+		Assert.True(leader.HurryProductionAsLeader());
+
+		// The leader's shields can't be moved to a unit or great wonder.
+		Assert.False(city.ChangeProduction(Prototype("Warrior")));
+		Assert.False(city.ChangeProduction(BuildingNamed("The Great Wall")));
+		Assert.Equal(temple, city.itemBeingProduced);
+		Assert.Equal(us.ShieldCost(temple), city.shieldsStored);
+
+		// Next turn production can change again.
+		city.HandleCityProduction(gameData);
+		Assert.False(city.hurriedThisTurn);
+		Assert.True(city.ChangeProduction(Prototype("Warrior")));
+	}
+
+	[Fact]
+	public void ProductionCantChangeAfterRushingWithGold() {
+		City city = BuildCity(us);
+		us.government.hurryingType = Government.HurryProductionType.PaidLabor;
+		us.gold = 100000;
+		Building temple = BuildingNamed("Temple");
+		city.SetItemBeingProduced(temple);
+		city.HurryProduction();
+		Assert.Equal(us.ShieldCost(temple), city.shieldsStored);
+
+		Assert.False(city.ChangeProduction(Prototype("Warrior")));
+		Assert.Equal(temple, city.itemBeingProduced);
+	}
+
+	[Fact]
+	public void HurriedProductionStaysLockedThroughASave() {
+		City city = BuildCity(us);
+		MapUnit leader = Spawn(us, "Leader", city.location);
+		city.SetItemBeingProduced(BuildingNamed("Temple"));
+		Assert.True(leader.HurryProductionAsLeader());
+
+		C7GameData.GameData loaded = SaveGame.FromGameData(gameData).ToGameData(fixture.behaviors);
+
+		Assert.True(loaded.cities.Single(c => c.id == city.id).hurriedThisTurn);
 	}
 }
