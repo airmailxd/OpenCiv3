@@ -23,6 +23,7 @@ namespace C7Engine {
 			gameData.cities.Add(newCity);
 			owner.cities.Add(newCity);
 			owner.citiesFounded++;
+			owner.neverHadCityOrSettler = false;
 			tileWithNewCity.cityAtTile = newCity;
 			// Building the city may clear the terrain, which changes what units
 			// nearby can see.
@@ -215,6 +216,7 @@ namespace C7Engine {
 			city.capital = false;
 			oldOwner.cities.Remove(city);
 			captor.cities.Add(city);
+			captor.neverHadCityOrSettler = false;
 			city.owner = captor;
 			city.perPlayerCulture.TryAdd(captor, 0);
 			gameData.OnCityOwnerChanged(city);
@@ -266,6 +268,7 @@ namespace C7Engine {
 			city.capital = false;
 			oldOwner.cities.Remove(city);
 			newOwner.cities.Add(city);
+			newOwner.neverHadCityOrSettler = false;
 			city.owner = newOwner;
 			city.perPlayerCulture.TryAdd(newOwner, 0);
 			gameData.OnCityOwnerChanged(city);

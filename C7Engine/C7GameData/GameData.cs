@@ -586,6 +586,11 @@ namespace C7GameData {
 			if (player.units.Any(u => u.unitType.isSettler)) {
 				return false;
 			}
+			// A civ that has never held a city or a settler, like a scenario
+			// civ that starts with only units, lasts as long as its units do.
+			if (player.neverHadCityOrSettler && player.units.Count > 0) {
+				return false;
+			}
 
 			return true;
 		}

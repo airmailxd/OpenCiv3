@@ -77,6 +77,9 @@ namespace C7GameData.Save {
 		public bool hadGoldenAge;
 		public int goldenAgeTurnsRemaining;
 		public int citiesFounded;
+		// Saves from before this was saved have it false, and loading works
+		// it out again (see SaveGame.ConvertCities).
+		public bool neverHadCityOrSettler;
 
 		// The number of "beakers" (gold) spent on the currently researched
 		// tech.
@@ -132,6 +135,7 @@ namespace C7GameData.Save {
 				hadGoldenAge = hadGoldenAge,
 				goldenAgeTurnsRemaining = goldenAgeTurnsRemaining,
 				citiesFounded = citiesFounded,
+				neverHadCityOrSettler = neverHadCityOrSettler,
 				turnsUntilPriorityReevaluation = turnsUntilPriorityReevaluation,
 				inAnarchyUntilTurn = inAnarchyUntilTurn,
 				government = governments.Find(x => x.id == governmentId),
@@ -241,6 +245,7 @@ namespace C7GameData.Save {
 			hadGoldenAge = player.hadGoldenAge;
 			goldenAgeTurnsRemaining = player.goldenAgeTurnsRemaining;
 			citiesFounded = player.citiesFounded;
+			neverHadCityOrSettler = player.neverHadCityOrSettler;
 			beakers = player.beakers;
 			turnsResearched = player.turnsResearched;
 			inAnarchyUntilTurn = player.inAnarchyUntilTurn;

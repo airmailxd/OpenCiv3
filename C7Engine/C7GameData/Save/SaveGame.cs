@@ -436,6 +436,14 @@ namespace C7GameData.Save {
 			}
 			data.players.ForEach(player => {
 				player.cities = citiesByOwner.TryGetValue(player.id, out List<City> owned) ? new List<City>(owned) : new List<City>();
+				// A civ with units but no cities or settlers, that has never
+				// founded a city, is one that started that way, as some
+				// scenario civs do. (Any other civ in that state would have
+				// been destroyed when it lost its last city or settler.)
+				if (!player.isBarbarians && player.citiesFounded == 0 && player.cities.Count == 0
+					&& player.units.Count > 0 && !player.units.Any(u => u.unitType.isSettler)) {
+					player.neverHadCityOrSettler = true;
+				}
 			});
 
 			// Add references to map tiles. The units were placed on their tiles
