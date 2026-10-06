@@ -837,9 +837,6 @@ namespace C7GameData {
 			return foundingOrderCache.TryGetValue(city, out int order) ? order : -1;
 		}
 
-		// The rank of the outermost ring of a city's big fat cross.
-		private const int BigFatCrossRank = 2;
-
 		// Rules taken from https://forums.civfanatics.com/threads/the-eight-laws-of-border-dynamics.106882/
 		private bool ResolveTileOwnershipConflict(City a, City b, Tile t, out City owner) {
 			owner = null;
@@ -854,17 +851,12 @@ namespace C7GameData {
 			if (b.GetBorderExpansionLevel() + 1 < bRank && a.GetBorderExpansionLevel() + 1 >= aRank) { owner = a; return true; }
 
 			// Law III
-			// A claim from a city's big fat cross (ranks 1 and 2) always beats
-			// a claim from a later expansion (rank 3 and beyond). Between two
-			// expansion claims, the city with the lowest rank claim gets the
-			// tile; between two big fat cross claims, culture decides.
-			bool aInFatCross = aRank <= BigFatCrossRank;
-			bool bInFatCross = bRank <= BigFatCrossRank;
-			if (aInFatCross != bInFatCross) { owner = aInFatCross ? a : b; return true; }
-			if (!aInFatCross) {
-				if (aRank > bRank) { owner = b; return true; }
-				if (aRank < bRank) { owner = a; return true; }
-			}
+			// The city with the lowest rank claim gets the tile, so a city's
+			// base ring always beats another city's first expansion, which
+			// always beats a second expansion, and so on. Culture only
+			// decides between claims of the same rank.
+			if (aRank > bRank) { owner = b; return true; }
+			if (aRank < bRank) { owner = a; return true; }
 
 			// Law IV
 			// If the claims are equally strong, the city with more culture gets
@@ -888,9 +880,7 @@ namespace C7GameData {
 			// trying to find the first tile that has one of the competing cities.
 			// We start at (rank - 1) because the rank distance does not necessarily reflect the actual "ring"
 			// the city tile is in, so a tile at rank 3, could well mean it's in the 2nd ring.
-			// The ranks may differ when both claims are in the big fat cross,
-			// so search the rings of both.
-			for (int r = Math.Min(aRank, bRank) - 1; r <= Math.Max(aRank, bRank); r++) {
+			for (int r = aRank - 1; r <= aRank; r++) {
 				if (r <= 0) continue;
 				Tile winner = t.FindInRing(r, tile => tile.HasCity() && (tile.cityAtTile == a || tile.cityAtTile == b), false);
 				if (winner == null) continue;
