@@ -168,9 +168,9 @@ public partial class MapUnit {
 	}
 
 	// Moves the unit, and anything it carries, straight to the nearest tile
-	// outside every other civ's borders that it could stand on, as when a civ
-	// agrees to take its units out of another's territory. Returns false,
-	// leaving the unit where it is, if there is no such tile.
+	// outside every other civ's borders that it could stand on and get to,
+	// as when a civ agrees to take its units out of another's territory.
+	// Returns false, leaving the unit where it is, if there is no such tile.
 	public bool WithdrawToNearestFreeTile() {
 		Tile destination = FindNearestFreeTile();
 		if (destination == null) {
@@ -189,14 +189,37 @@ public partial class MapUnit {
 		return true;
 	}
 
+	// Whether WithdrawToNearestFreeTile would find somewhere to go.
+	public bool CanWithdraw() {
+		return FindNearestFreeTile() != null;
+	}
+
+	// The nearest free tile the unit could get to over its own kind of
+	// terrain, so land units stay on their landmass and ships on their body
+	// of water. Failing that, a land unit goes home to its nearest city,
+	// wherever it is.
 	private Tile FindNearestFreeTile() {
-		HashSet<Tile> seen = new() { location };
+		Tile reachable = FindNearestTile(location, CanCrossWhileWithdrawing, IsFreeTileFor);
+		if (reachable != null || !IsLandUnit()) {
+			return reachable;
+		}
+		return FindNearestTile(location, _ => true,
+			tile => tile.HasCity() && tile.cityAtTile.owner == owner && IsFreeTileFor(tile));
+	}
+
+	// Searches outward from the start, through tiles that can be crossed,
+	// for the nearest other tile that will do.
+	private static Tile FindNearestTile(Tile start, Func<Tile, bool> canCross, Func<Tile, bool> willDo) {
+		HashSet<Tile> seen = new() { start };
 		Queue<Tile> frontier = new();
-		frontier.Enqueue(location);
+		frontier.Enqueue(start);
 		while (frontier.Count > 0) {
 			Tile tile = frontier.Dequeue();
-			if (tile != location && IsFreeTileFor(tile)) {
+			if (tile != start && willDo(tile)) {
 				return tile;
+			}
+			if (tile != start && !canCross(tile)) {
+				continue;
 			}
 			foreach (Tile neighbor in tile.neighbors.Values) {
 				if (neighbor != null && neighbor != Tile.NONE && seen.Add(neighbor)) {
@@ -205,6 +228,18 @@ public partial class MapUnit {
 			}
 		}
 		return null;
+	}
+
+	// Air units fly over anything. Ships may pass through their own cities,
+	// as through a canal.
+	private bool CanCrossWhileWithdrawing(Tile tile) {
+		if (IsAirUnit()) {
+			return true;
+		}
+		if (IsWaterUnit()) {
+			return tile.IsWater() || (tile.HasCity() && tile.cityAtTile.owner == owner);
+		}
+		return tile.IsLand() && !tile.IsImpassable();
 	}
 
 	// Whether the unit could be put on the tile without being in someone
@@ -224,7 +259,7 @@ public partial class MapUnit {
 		if (IsWaterUnit()) {
 			return tile.IsWater() || ownCity;
 		}
-		return tile.IsLand();
+		return tile.IsLand() && !tile.IsImpassable();
 	}
 
 	public async Task MoveAlongPath() {

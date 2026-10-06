@@ -33,7 +33,7 @@ public enum FrameKind : byte {
 
 public static class LanProtocol {
 	// Bump when the frames or the messages in them change incompatibly.
-	public const int Version = 4;
+	public const int Version = 5;
 
 	public const int DefaultPort = 47_777;
 	public const int DiscoveryPort = 47_778;

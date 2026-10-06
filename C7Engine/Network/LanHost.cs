@@ -258,6 +258,7 @@ public class LanHost : IDisposable {
 		EngineStorage.activePlayerID = TurnHandling.FirstHumanToPlay(EngineStorage.gameData).id;
 		EngineStorage.animationsEnabled = false;
 		EngineStorage.uiMessageRouter = RouteMessageToUI;
+		EngineStorage.playerReachable = IsReachable;
 
 		Task<EncodedSnapshot> snapshot = EncodeSnapshot();
 		foreach (Seat seat in seats.Where(s => s.connection != null)) {
@@ -392,6 +393,11 @@ public class LanHost : IDisposable {
 							break;
 						}
 						unseated.RemoveAll(u => u.connection == connection);
+						if (seat.connection != null) {
+							// The last connection closed without PollSeat
+							// seeing it go.
+							ReleaseDiplomacy(seat);
+						}
 						seat.connection?.Dispose();
 						seat.connection = connection;
 						seat.takenBy = name;
@@ -468,11 +474,29 @@ public class LanHost : IDisposable {
 			seat.connection = null;
 			seat.takenBy = null;
 			seat.pendingUiMessages.Clear();
+			ReleaseDiplomacy(seat);
 			if (GuestsChooseCivilizations && !creatingGame) {
 				// Whoever takes the seat next chooses afresh.
 				seat.info = seat.info with { civilization = null };
 			}
 			BroadcastLobby();
+		}
+	}
+
+	// Players at this machine are always here; a guest is while their seat
+	// is connected.
+	private bool IsReachable(ID player) {
+		Seat seat = seats.Find(s => s.info.playerID == player);
+		return seat == null || (seat.connection != null && !seat.connection.IsClosed);
+	}
+
+	// The engine may be waiting on the seat's player to answer an AI, who
+	// has left or, rejoining, will never see the question. They are taken
+	// to have closed it unanswered, so the game goes on.
+	private void ReleaseDiplomacy(Seat seat) {
+		if (Started && EngineStorage.diplomacyPlayerID == seat.info.playerID) {
+			log.Information("Closing the diplomacy {Player} was asked to answer", seat.info.playerID);
+			EngineStorage.ReceiveFromRemote(new MsgDiplomacyCompleted { playerID = seat.info.playerID });
 		}
 	}
 

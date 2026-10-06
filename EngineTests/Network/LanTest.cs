@@ -326,6 +326,34 @@ public class LanTest : IClassFixture<SaveGameFixture>, IDisposable {
 	}
 
 	[Fact]
+	public async Task AnAiStopsWaitingOnAGuestWhoLeaves() {
+		SaveGame save = SaveGameFixture.TwoHumanSave();
+		using LanHost host = new("Host", save, port: 0, answerDiscovery: false);
+		ID seatID = host.Seats[0].playerID;
+
+		LanClient guest = LanClient.Connect("127.0.0.1", host.Port, "Guest");
+		PumpUntil(host, guest, () => guest.Lobby != null);
+		guest.ClaimSeat(seatID);
+		PumpUntil(host, guest, () => guest.Lobby.yourSeat == seatID);
+
+		await CreateTwoHumanGame();
+		host.StartGame();
+		PumpUntil(host, guest, () => guest.StartingGame != null);
+		Assert.True(EngineStorage.IsPlayerReachable(seatID));
+
+		// An AI asks the guest something, and the guest leaves.
+		EngineStorage.diplomacyPlayerID = seatID;
+		Task answered = EngineStorage.WaitForDiplomacyCompleted(seatID);
+		guest.Dispose();
+		PumpUntil(host, guest, () => answered.IsCompleted);
+		EngineStorage.diplomacyPlayerID = null;
+
+		// Nobody asks the empty seat anything more.
+		Assert.False(EngineStorage.IsPlayerReachable(seatID));
+		Assert.True(EngineStorage.IsPlayerReachable(EngineStorage.uiControllerID));
+	}
+
+	[Fact]
 	public async Task SpectatorsWatchWithoutPlaying() {
 		SaveGame save = SaveGameFixture.TwoHumanSave();
 		using LanHost host = new("Host", save, port: 0, answerDiscovery: false);
