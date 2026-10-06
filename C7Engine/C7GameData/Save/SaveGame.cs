@@ -134,6 +134,7 @@ namespace C7GameData.Save {
 			ConvertBuildings(data);
 			ConvertUnits(data);
 			ConvertCities(data);
+			SpaceRace.RecordApolloFromCities(data);
 			ConvertBarbarianInfo(data);
 			ConvertCultureGroups(data);
 			ConvertAlliances(data);
@@ -185,7 +186,9 @@ namespace C7GameData.Save {
 			if (conditions?.AllowDominationVictory == true) {
 				data.victories.Add(new DominationVictory(conditions.DominationTerritoryPercent, conditions.DominationPopulationPercent));
 			}
-			if (conditions?.AllowSpaceRaceVictory == true) {
+			// Without victory conditions the space race is allowed (see
+			// SpaceRace.SpaceRaceAllowed), so a completed ship must be able to win.
+			if (conditions == null || conditions.AllowSpaceRaceVictory) {
 				data.victories.Add(new SpaceRaceVictory());
 			}
 			if (conditions?.AllowDiplomaticVictory == true) {

@@ -722,18 +722,20 @@ public partial class Game : Node {
 					popupOverlay.ShowPopup(pop, PopupOverlay.PopupCategory.Advisor);
 				}
 				break;
-			case MsgShowScienceAdvisorPopup mSSAP:
-				if (!popupOverlay.Visible) {
-					AdvisorHead.Mood scienceMood = mSSAP.mood switch {
-						MsgShowScienceAdvisorPopup.Mood.Happy => AdvisorHead.Mood.Happy,
-						MsgShowScienceAdvisorPopup.Mood.Angry => AdvisorHead.Mood.Angry,
-						MsgShowScienceAdvisorPopup.Mood.Sad => AdvisorHead.Mood.Sad,
-						_ => AdvisorHead.Mood.Surprised,
-					};
-					var pop = new InformationalPopup(mSSAP.message, AdvisorHead.Advisor.Science, scienceMood);
-					popupOverlay.ShowPopup(pop, PopupOverlay.PopupCategory.Advisor);
-				}
+			case MsgShowScienceAdvisorPopup mSSAP: {
+				// The space race news (such as the ship being complete) is too
+				// important to drop, so it waits its turn behind any popup
+				// already showing.
+				AdvisorHead.Mood scienceMood = mSSAP.mood switch {
+					MsgShowScienceAdvisorPopup.Mood.Happy => AdvisorHead.Mood.Happy,
+					MsgShowScienceAdvisorPopup.Mood.Angry => AdvisorHead.Mood.Angry,
+					MsgShowScienceAdvisorPopup.Mood.Sad => AdvisorHead.Mood.Sad,
+					_ => AdvisorHead.Mood.Surprised,
+				};
+				var pop = new InformationalPopup(mSSAP.message, AdvisorHead.Advisor.Science, scienceMood);
+				popupOverlay.ShowPopup(pop, PopupOverlay.PopupCategory.Advisor);
 				break;
+			}
 			case MsgShowDomesticAdvisorPopup mSDAP:
 				if (!popupOverlay.Visible) {
 					var pop = new InformationalPopup(mSDAP.message, AdvisorHead.Advisor.Domestic, AdvisorHead.Mood.Angry);

@@ -222,6 +222,28 @@ public class SpaceRaceTest : IClassFixture<SaveGameFixture>, System.IDisposable 
 	}
 
 	[Fact]
+	public void SpaceRaceVictoryIsAddedWithoutVictoryConditions() {
+		SaveGame save = fixture.saveGame;
+		save.VictoryConditions = null;
+		C7GameData.GameData loaded = save.ToGameData(fixture.behaviors);
+
+		Assert.True(SpaceRace.SpaceRaceAllowed(loaded));
+		Assert.Contains(loaded.victories, v => v is SpaceRaceVictory);
+		EngineStorage.InitializeGameDataForTests(gameData);
+	}
+
+	[Fact]
+	public void ApolloInACityIsRememberedOnLoad() {
+		City city = BuildCity(them);
+		city.constructed_buildings.Add(new CityBuilding { building = Apollo, builtByPlayer = them });
+		Assert.False(SpaceRace.ApolloProgramBuilt(gameData));
+
+		SpaceRace.RecordApolloFromCities(gameData);
+
+		Assert.True(SpaceRace.ApolloProgramBuilt(gameData));
+	}
+
+	[Fact]
 	public void LosingTheCapitalDestroysTheShip() {
 		BuildCity(them);
 		City capital = BuildCity(us);
