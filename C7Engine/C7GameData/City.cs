@@ -1061,15 +1061,19 @@ namespace C7GameData {
 		}
 
 		// See https://forums.civfanatics.com/threads/everything-about-corruption-c3c-edition.76619/
-		private float CalculateRankCorruption(int adjustedOptimalCityNumber, int numAntiCorruptionBuildings) {
+		internal float CalculateRankCorruption(int adjustedOptimalCityNumber, int mapOptimalCityNumber, int numAntiCorruptionBuildings) {
 			int rank = rankIndex;
 			if (owner.government.corruptionType == Government.CorruptionType.Communal) {
 				rank = owner.cities.Count / 2;
 			}
 
+			// Each courthouse or police station raises the city's optimal
+			// city number by a quarter of the map's, unaffected by difficulty
+			// level, government or wonders. This fits the Civ3 saves better
+			// than raising the adjusted number by 25%.
 			float nOpt = Math.Max(
 				1,
-				adjustedOptimalCityNumber + .25f * numAntiCorruptionBuildings);
+				adjustedOptimalCityNumber + .25f * mapOptimalCityNumber * numAntiCorruptionBuildings);
 
 			if (rank < nOpt) {
 				return rank / (2 * nOpt);
@@ -1100,7 +1104,7 @@ namespace C7GameData {
 			}
 
 			corruption = CalculateDistanceCorruption(gameData, numAntiCorruptionBuildings)
-					+ CalculateRankCorruption(adjustedOptimalCityNumber, numAntiCorruptionBuildings);
+					+ CalculateRankCorruption(adjustedOptimalCityNumber, gameData.map.optimalNumberOfCities, numAntiCorruptionBuildings);
 			// TODO: apply policeman modifiers, before applying the max
 
 			// Corruption maxes out at 90%, and this max can be reduced further
