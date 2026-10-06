@@ -40,6 +40,12 @@ public partial class DealScreen : TextureRect {
 	Button acceptDeal;
 	Label opponentResponse;
 
+	// The "Active Deals" button swaps the negotiation for a list of the
+	// deals already in force, and back.
+	Button activeDealsButton;
+	Control activeDealsPanel;
+	readonly List<CanvasItem> negotiationControls = new();
+
 	TradeOffer opponentOffer = new();
 	TradeOffer humanOffer = new();
 
@@ -142,17 +148,31 @@ public partial class DealScreen : TextureRect {
 			// Add the buttons at the bottom.
 			acceptDeal = new();
 			acceptDeal.Text = "\"Will you accept this deal?\"";
-			acceptDeal.SetPosition(new Vector2(512 - 205, 650));
+			acceptDeal.SetPosition(new Vector2(512 - 205, 630));
 			acceptDeal.Theme = fontTheme;
 			acceptDeal.Pressed += AttemptDeal;
 			AddChild(acceptDeal);
 
 			Button goodbye = new();
 			goodbye.Text = "\"Never mind...\"";
-			goodbye.SetPosition(new Vector2(512 - 205, 670));
+			goodbye.SetPosition(new Vector2(512 - 205, 650));
 			goodbye.Theme = fontTheme;
 			goodbye.Pressed += () => { GetParent<Diplomacy>().Hide(); };
 			AddChild(goodbye);
+
+			activeDealsButton = new();
+			activeDealsButton.Text = "Active Deals";
+			activeDealsButton.SetPosition(new Vector2(512 - 205, 670));
+			activeDealsButton.Theme = fontTheme;
+			activeDealsButton.Pressed += ToggleActiveDeals;
+			AddChild(activeDealsButton);
+
+			negotiationControls.AddRange(new CanvasItem[] {
+				opponentTree, humanTree, weWant, weOffer, opponentOfferUi, humanOfferUi, acceptDeal,
+			});
+			activeDealsPanel = CreateActiveDealsPanel(gD, humanPlayer, opponentPlayer, blueFontTheme);
+			activeDealsPanel.Visible = false;
+			AddChild(activeDealsPanel);
 
 			// And the text from the opponent, if they reject a deal.
 			opponentResponse = new();
@@ -161,6 +181,84 @@ public partial class DealScreen : TextureRect {
 			opponentResponse.Theme = fontTheme;
 			AddChild(opponentResponse);
 		});
+	}
+
+	private void ToggleActiveDeals() {
+		bool showDeals = !activeDealsPanel.Visible;
+		activeDealsPanel.Visible = showDeals;
+		foreach (CanvasItem control in negotiationControls) {
+			control.Visible = !showDeals;
+		}
+		activeDealsButton.Text = showDeals ? "Back to the negotiation" : "Active Deals";
+	}
+
+	// Lists the deals in force with the opponent, over the middle of the
+	// screen where offers are shown.
+	private Control CreateActiveDealsPanel(GameData gD, Player humanPlayer, Player opponentPlayer, Theme headerTheme) {
+		Theme blackFontTheme = new();
+		blackFontTheme.DefaultFont = font;
+		blackFontTheme.SetColor("font_color", "Label", Colors.Black);
+
+		ScrollContainer scroll = new();
+		scroll.SetPosition(new Vector2(314, 440));
+		scroll.Size = new Vector2(400, 200);
+		scroll.HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled;
+
+		VBoxContainer list = new();
+		list.AddThemeConstantOverride("separation", 1);
+		list.CustomMinimumSize = new Vector2(400, 0);
+		scroll.AddChild(list);
+
+		void AddLine(Container parent, string text, Theme theme, bool indent = false,
+				HorizontalAlignment alignment = HorizontalAlignment.Left) {
+			Label label = new();
+			// Indent toward the middle, on whichever side the text is.
+			string padding = indent ? "    " : "";
+			label.Text = alignment == HorizontalAlignment.Right ? text + padding : padding + text;
+			label.HorizontalAlignment = alignment;
+			label.Theme = theme;
+			parent.AddChild(label);
+		}
+
+		void AddSection(Container parent, string header, List<string> lines,
+				HorizontalAlignment alignment = HorizontalAlignment.Left) {
+			if (lines.Count == 0) {
+				return;
+			}
+			AddLine(parent, header, headerTheme, alignment: alignment);
+			foreach (string line in lines) {
+				AddLine(parent, line, blackFontTheme, true, alignment);
+			}
+		}
+
+		AddLine(list, $"Active deals with the {opponentPlayer.civilization.noun}", headerTheme);
+		if (AtWar(humanPlayer, opponentPlayer)) {
+			AddLine(list, "We are at war.", blackFontTheme, true);
+			return scroll;
+		}
+
+		ActiveDeals deals = ActiveDeals.Between(gD, humanPlayer, opponentPlayer);
+		if (deals.IsEmpty) {
+			AddLine(list, "We have no active deals.", blackFontTheme, true);
+			return scroll;
+		}
+		AddSection(list, "Agreements", deals.agreements);
+
+		// What each side gives goes on its side of the table, as the offers
+		// do: theirs on the left, ours on the right.
+		HBoxContainer columns = new();
+		columns.AddThemeConstantOverride("separation", 0);
+		list.AddChild(columns);
+		VBoxContainer theyGive = new();
+		VBoxContainer weGive = new();
+		foreach (VBoxContainer column in new[] { theyGive, weGive }) {
+			column.AddThemeConstantOverride("separation", 1);
+			column.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+			columns.AddChild(column);
+		}
+		AddSection(theyGive, "They Give", deals.theyGive);
+		AddSection(weGive, "We Give", deals.weGive, HorizontalAlignment.Right);
+		return scroll;
 	}
 
 	private void AttemptDeal() {
