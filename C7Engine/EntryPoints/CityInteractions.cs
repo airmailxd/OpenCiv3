@@ -12,7 +12,10 @@ namespace C7Engine {
 		public static City BuildCity(Tile tileWithNewCity, Player owner, string name) {
 			GameData gameData = EngineStorage.gameData;
 			City newCity = new City(tileWithNewCity, owner, name, gameData.ids.CreateID("city"));
-			if (owner.cities.Count == 0) {
+			// A civ without a capital gets its palace in the next city it
+			// founds, even if it already holds captured cities (which lose
+			// their palace on capture).
+			if (!owner.cities.Any(c => c.IsCapital())) {
 				newCity.capital = true;
 				newCity.AddBuilding(gameData.Buildings.Find(x => x.isCenterOfEmpire));
 			}

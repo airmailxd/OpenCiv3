@@ -921,11 +921,13 @@ namespace C7GameData {
 		// calculations so it can be reused for anarchy calculations.
 		public int GetAdjustedOptimalCityNumber(GameData gameData) {
 			int mapOptimalCityNumber = gameData.map.optimalNumberOfCities;
-			int percentOptimalCitiesForDifficultyLevel = gameData.gameDifficulty.PercentageOfOptimalCities;
+			// The difficulty level's percentage only applies to humans; the AI
+			// always gets the full optimal city number. Fitted against 24k
+			// cities from Civ3 saves: using the difficulty level for the AI
+			// too made its corruption far too high on the hard levels.
+			int percentOptimalCities = isHuman ? gameData.gameDifficulty.PercentageOfOptimalCities : 100;
 
-			// TODO: track traits.
-			bool isCommercialCiv = false;
-			float commercialCivFactor = isCommercialCiv ? .25f : 0;
+			float commercialCivFactor = civilization.traits.Contains(Civilization.Trait.Commercial) ? .25f : 0;
 
 			// TODO: Handle the SPHQ.
 			int numCorruptionReducingSmallWondersInEmpire = 0;
@@ -953,7 +955,7 @@ namespace C7GameData {
 			float communalCorruptionFactor =
 				government.corruptionType == Government.CorruptionType.Communal ? 3.0f : 3.0f/8.0f;
 
-			float result = mapOptimalCityNumber * percentOptimalCitiesForDifficultyLevel / 100.0f
+			float result = mapOptimalCityNumber * percentOptimalCities / 100.0f
 				  * (1 + commercialCivFactor + govtFactor + communalCorruptionFactor * numCorruptionReducingSmallWondersInEmpire);
 			return (int)result;
 		}
