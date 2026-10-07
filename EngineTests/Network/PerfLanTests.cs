@@ -251,7 +251,7 @@ public class PerfLanTests : IClassFixture<SaveGameFixture>, IDisposable {
 		using LanClient client = LanClient.Connect("127.0.0.1", host.Port, "Guest");
 		PumpUntil(host, client, () => client.Lobby != null);
 		client.ClaimSeat(seatID);
-		PumpUntil(host, client, () => client.Lobby.yourSeat == seatID);
+		PumpUntil(host, client, () => client.YourSeats.Contains(seatID));
 
 		C7GameData.GameData gameData = await CreateTwoHumanGame();
 		Player hostPlayer = gameData.players.First(p => p.isHuman && p.id != seatID);

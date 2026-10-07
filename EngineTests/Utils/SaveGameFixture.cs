@@ -22,6 +22,7 @@ public class SaveGameFixture : IDisposable {
 	private static readonly Lazy<SaveGame> basicSave = new(() => LoadSave(new GameMode.Config("civ3")));
 	private static readonly Lazy<SaveGame> standaloneSave = new(() => LoadSave(new GameMode.Config("civ3", ["standalone"])));
 	private static readonly Lazy<SaveGame> twoHumanSave = new(() => LoadSave(new GameMode.Config("civ3"), humanPlayers: 2));
+	private static readonly Lazy<SaveGame> threeHumanSave = new(() => LoadSave(new GameMode.Config("civ3"), humanPlayers: 3));
 	private static readonly Lazy<BehaviorEngine> sharedBehaviors = new(() => LoadGameMode(new GameMode.Config("civ3")).behaviors);
 
 	// A fresh copy of the generated single-human game. Each read returns a
@@ -39,6 +40,11 @@ public class SaveGameFixture : IDisposable {
 	// A fresh copy of a generated game with two human players.
 	internal static SaveGame TwoHumanSave() {
 		return twoHumanSave.Value.Clone();
+	}
+
+	// A fresh copy of a generated game with three human players.
+	internal static SaveGame ThreeHumanSave() {
+		return threeHumanSave.Value.Clone();
 	}
 
 	private static GameMode LoadGameMode(GameMode.Config gameModeConfig) {

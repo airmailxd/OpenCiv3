@@ -30,11 +30,15 @@ public class LanTest : IClassFixture<SaveGameFixture>, IDisposable {
 		EngineStorage.ResetNetworking();
 	}
 
-	private async Task<C7GameData.GameData> CreateTwoHumanGame() {
+	private Task<C7GameData.GameData> CreateTwoHumanGame() {
+		return CreateHumanGame(SaveGameFixture.TwoHumanSave());
+	}
+
+	private async Task<C7GameData.GameData> CreateHumanGame(SaveGame save) {
 		new MsgSetAnimationsEnabled(false).send();
 		EngineStorage.ProcessNextMessageToEngine();
 
-		await CreateGame.createGame(SaveGameFixture.TwoHumanSave(), (_) => fixture.behaviors);
+		await CreateGame.createGame(save, (_) => fixture.behaviors);
 		TurnHandling.OnBeginTurn();
 		TurnHandling.InitTurnData();
 		await TurnHandling.AdvanceTurn();
@@ -230,10 +234,10 @@ public class LanTest : IClassFixture<SaveGameFixture>, IDisposable {
 		PumpUntil(host, client, () => client.Lobby != null);
 		Assert.Equal(2, client.Lobby.seats.Count);
 		Assert.True(client.Lobby.seats[0].isHost);
-		Assert.Null(client.Lobby.yourSeat);
+		Assert.Empty(client.YourSeats);
 
 		client.ClaimSeat(seat.playerID);
-		PumpUntil(host, client, () => client.Lobby.yourSeat == seat.playerID);
+		PumpUntil(host, client, () => client.YourSeats.Contains(seat.playerID));
 		Assert.True(host.AllSeatsTaken);
 		Assert.Equal("Guest", host.Seats[0].takenBy);
 
@@ -243,7 +247,7 @@ public class LanTest : IClassFixture<SaveGameFixture>, IDisposable {
 		host.StartGame();
 		Assert.Equal(humans[0].id, EngineStorage.uiControllerID);
 		PumpUntil(host, client, () => client.StartingGame != null);
-		Assert.Equal(humans[1].id, client.PlayerID);
+		Assert.Equal([humans[1].id], client.PlayerIDs);
 		Assert.Equal(gameData.turn, client.StartingGame.TurnNumber);
 
 		List<SaveGame> snapshots = [];
@@ -307,7 +311,7 @@ public class LanTest : IClassFixture<SaveGameFixture>, IDisposable {
 		LanClient first = LanClient.Connect("127.0.0.1", host.Port, "Guest");
 		PumpUntil(host, first, () => first.Lobby != null);
 		first.ClaimSeat(seatID);
-		PumpUntil(host, first, () => first.Lobby.yourSeat == seatID);
+		PumpUntil(host, first, () => first.YourSeats.Contains(seatID));
 
 		await CreateTwoHumanGame();
 		host.StartGame();
@@ -321,7 +325,7 @@ public class LanTest : IClassFixture<SaveGameFixture>, IDisposable {
 		PumpUntil(host, second, () => second.Lobby != null);
 		second.ClaimSeat(seatID);
 		PumpUntil(host, second, () => second.StartingGame != null);
-		Assert.Equal(seatID, second.PlayerID);
+		Assert.Equal([seatID], second.PlayerIDs);
 		Assert.True(host.AllSeatsTaken);
 	}
 
@@ -334,7 +338,7 @@ public class LanTest : IClassFixture<SaveGameFixture>, IDisposable {
 		LanClient guest = LanClient.Connect("127.0.0.1", host.Port, "Guest");
 		PumpUntil(host, guest, () => guest.Lobby != null);
 		guest.ClaimSeat(seatID);
-		PumpUntil(host, guest, () => guest.Lobby.yourSeat == seatID);
+		PumpUntil(host, guest, () => guest.YourSeats.Contains(seatID));
 
 		await CreateTwoHumanGame();
 		host.StartGame();
@@ -362,7 +366,7 @@ public class LanTest : IClassFixture<SaveGameFixture>, IDisposable {
 		using LanClient player = LanClient.Connect("127.0.0.1", host.Port, "Guest");
 		PumpUntil(host, player, () => player.Lobby != null);
 		player.ClaimSeat(seatID);
-		PumpUntil(host, player, () => player.Lobby.yourSeat == seatID);
+		PumpUntil(host, player, () => player.YourSeats.Contains(seatID));
 
 		// Watching doesn't take a seat, and everyone in the lobby sees it.
 		using LanClient spectator = LanClient.Connect("127.0.0.1", host.Port, "Watcher");
@@ -370,14 +374,14 @@ public class LanTest : IClassFixture<SaveGameFixture>, IDisposable {
 		PumpUntil(host, spectator, () => spectator.Lobby?.spectators?.Count == 1);
 		Assert.Equal(["Watcher"], host.Spectators);
 		Assert.True(host.AllSeatsTaken);
-		Assert.Null(spectator.Lobby.yourSeat);
+		Assert.Empty(spectator.YourSeats);
 		PumpUntil(host, player, () => player.Lobby.spectators?.Count == 1);
 
 		C7GameData.GameData gameData = await CreateTwoHumanGame();
 		Player[] humans = Humans(gameData);
 		host.StartGame();
 		PumpUntil(host, spectator, () => spectator.StartingGame != null);
-		Assert.Null(spectator.PlayerID);
+		Assert.Empty(spectator.PlayerIDs);
 		Assert.True(spectator.IsSpectator);
 		PumpUntil(host, player, () => player.StartingGame != null);
 
@@ -433,7 +437,7 @@ public class LanTest : IClassFixture<SaveGameFixture>, IDisposable {
 		using LanClient client = LanClient.Connect("127.0.0.1", host.Port, "Guest");
 		PumpUntil(host, client, () => client.Lobby != null);
 		client.ClaimSeat(seatID);
-		PumpUntil(host, client, () => client.Lobby.yourSeat == seatID);
+		PumpUntil(host, client, () => client.YourSeats.Contains(seatID));
 
 		C7GameData.GameData gameData = await CreateTwoHumanGame();
 		Player[] humans = Humans(gameData);
@@ -488,9 +492,9 @@ public class LanTest : IClassFixture<SaveGameFixture>, IDisposable {
 		Assert.Equal(playable.Select(c => c.name), ann.Lobby.civilizations.Select(c => c.name));
 		Assert.Equal(hostCiv.leader, ann.Lobby.civilizations[0].leader);
 		ann.ClaimSeat(host.Seats[0].playerID);
-		PumpUntil(host, ann, () => ann.Lobby.yourSeat != null);
+		PumpUntil(host, ann, () => ann.YourSeats.Count > 0);
 		bob.ClaimSeat(host.Seats[1].playerID);
-		PumpUntil(host, bob, () => bob.Lobby?.yourSeat != null);
+		PumpUntil(host, bob, () => bob.YourSeats.Count > 0);
 
 		// The host's civilization is taken, so Ann's first choice is refused.
 		ann.ChooseCivilization(hostCiv.name);
@@ -559,5 +563,113 @@ public class LanTest : IClassFixture<SaveGameFixture>, IDisposable {
 			Thread.Sleep(5);
 		}
 		Assert.Equal(FrameKind.Rejected, frame?.kind);
+	}
+
+	[Fact]
+	public void AGuestCanTakeSeveralSeatsForPlayersAtTheirMachine() {
+		SaveGame save = SaveGameFixture.TwoHumanSave();
+		save.Players.Clear();
+		save.Units.Clear();
+		List<Civilization> playable = save.Civilizations.Where(c => !c.isBarbarian).ToList();
+		using LanHost host = new("Host", playable[0].name, guestSeats: 2, save.Civilizations, port: 0, answerDiscovery: false);
+		ID first = host.Seats[0].playerID;
+		ID second = host.Seats[1].playerID;
+
+		using LanClient ann = LanClient.Connect("127.0.0.1", host.Port, "Ann");
+		PumpUntil(host, ann, () => ann.Lobby != null);
+		ann.ClaimSeat(first);
+		ann.ClaimSeat(second, "Cid");
+		PumpUntil(host, ann, () => ann.YourSeats.Count == 2);
+		Assert.Equal([first, second], ann.YourSeats);
+		Assert.True(host.AllSeatsTaken);
+		Assert.Equal(["Ann", "Cid"], host.Seats.Select(s => s.takenBy));
+
+		// Each seat chooses its own civilization.
+		ann.ChooseCivilization(playable[3].name, second);
+		PumpUntil(host, ann, () => host.Seats[1].civilization == playable[3].name);
+		Assert.Null(host.Seats[0].civilization);
+
+		// A seat can be given back before the game starts, and someone else
+		// can take it.
+		ann.LeaveSeat(first);
+		PumpUntil(host, ann, () => ann.YourSeats.Count == 1);
+		Assert.Null(host.Seats[0].takenBy);
+		using LanClient bob = LanClient.Connect("127.0.0.1", host.Port, "Bob");
+		PumpUntil(host, bob, () => bob.Lobby != null);
+		bob.ClaimSeat(first);
+		PumpUntil(host, bob, () => bob.YourSeats.Contains(first));
+
+		// Bob can't take Ann's seat: the host answers with the lobby as it was.
+		int lobbies = 0;
+		bob.LobbyChanged += () => ++lobbies;
+		bob.ClaimSeat(second);
+		PumpUntil(host, bob, () => lobbies > 0);
+		Assert.Equal("Cid", host.Seats[1].takenBy);
+		Assert.Equal([first], bob.YourSeats);
+
+		Assert.Equal(["Bob", "Cid"], host.BeginCreatingGame().Select(g => g.name));
+	}
+
+	[Fact]
+	public async Task AGuestWithSeveralSeatsPlaysEachOfThem() {
+		SaveGame save = SaveGameFixture.ThreeHumanSave();
+		using LanHost host = new("Host", save, port: 0, answerDiscovery: false);
+		Assert.Equal(2, host.Seats.Count);
+
+		using LanClient guest = LanClient.Connect("127.0.0.1", host.Port, "Guest");
+		PumpUntil(host, guest, () => guest.Lobby != null);
+		foreach (SeatInfo seat in host.Seats) {
+			guest.ClaimSeat(seat.playerID);
+		}
+		PumpUntil(host, guest, () => guest.YourSeats.Count == 2);
+		Assert.True(host.AllSeatsTaken);
+
+		C7GameData.GameData gameData = await CreateHumanGame(save);
+		Player[] humans = Humans(gameData);
+		host.StartGame();
+		PumpUntil(host, guest, () => guest.StartingGame != null);
+		Assert.Equal([humans[1].id, humans[2].id], guest.PlayerIDs);
+
+		List<MessageToUI> guestUi = [];
+		guest.SnapshotReceived = _ => { };
+		guest.UiMessageReceived = json => guestUi.Add(NetSerialization.DeserializeMessageToUI(json));
+
+		// The guest can't act as the host's player.
+		guest.SendCommand(new MsgEndTurn { playerID = humans[0].id });
+		new MsgEndTurn().send();
+		PumpUntil(host, guest, () => guestUi.OfType<MsgStartTurn>().Any());
+		Assert.Same(humans[1], guestUi.OfType<MsgStartTurn>().Single().player);
+
+		// Each of the guest's players takes their turn.
+		guestUi.Clear();
+		guest.SendCommand(new MsgEndTurn { playerID = humans[1].id });
+		PumpUntil(host, guest, () => guestUi.OfType<MsgStartTurn>().Any());
+		Assert.Same(humans[2], guestUi.OfType<MsgStartTurn>().Single().player);
+		Assert.Equal(humans[2].id, EngineStorage.activePlayerID);
+
+		// Both play at the guest's machine, so one can agree to the other's
+		// deal there, but not to a deal on the host's behalf.
+		humans[0].gold = 50;
+		humans[1].gold = 50;
+		humans[2].gold = 0;
+		guestUi.Clear();
+		guest.SendCommand(new MsgProposeDeal(humans[1], new TradeOffer(), new TradeOffer { gold = 30 }) { playerID = humans[2].id, opponentAgreed = true });
+		PumpUntil(host, guest, () => guestUi.OfType<MsgDealResult>().Any());
+		Assert.True(guestUi.OfType<MsgDealResult>().Single().accepted);
+		Assert.Equal(20, humans[1].gold);
+		Assert.Equal(30, humans[2].gold);
+
+		List<MessageToUI> hostUi = [];
+		guest.SendCommand(new MsgProposeDeal(humans[0], new TradeOffer(), new TradeOffer { gold = 50 }) { playerID = humans[2].id, opponentAgreed = true });
+		PumpUntil(host, guest, () => hostUi.OfType<MsgShowDealProposal>().Any(), hostUi);
+		Assert.Equal(50, humans[0].gold);
+		new MsgRespondToDeal(false).send();
+		PumpUntil(host, guest, () => !EngineStorage.HasPendingMessagesToEngine(), hostUi);
+
+		// Leaving frees both seats.
+		guest.Dispose();
+		PumpUntil(host, guest, () => host.Seats.All(s => s.takenBy == null));
+		Assert.False(EngineStorage.IsPlayerReachable(humans[1].id));
+		Assert.False(EngineStorage.IsPlayerReachable(humans[2].id));
 	}
 }

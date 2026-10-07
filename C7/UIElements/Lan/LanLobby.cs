@@ -12,9 +12,10 @@ using Serilog;
 
 // Where players gather before a LAN game. The host waits here for a player to
 // take each human seat, then starts the game; the others find the host, take
-// a seat (or just watch), and wait for the host to start. In a new game the
-// guests also choose their civilizations here, and the host creates the game
-// when starting it.
+// a seat (or just watch), and wait for the host to start. A guest may take
+// several seats, for players taking turns at their machine as in a hotseat
+// game. In a new game the guests also choose their civilizations here, and
+// the host creates the game when starting it.
 public partial class LanLobby : Control {
 	private ILogger log = LogManager.ForContext<LanLobby>();
 
@@ -48,6 +49,12 @@ public partial class LanLobby : Control {
 	private List<CivilizationChoice> civChoices;
 	private TextureRect leaderHead;
 	private Label civDescription;
+	private Label civHeading;
+
+	// Joining: which of our seats the civ picker chooses for, and in a game
+	// in progress, the open seats ticked to rejoin with.
+	private ID choosingSeat;
+	private readonly HashSet<ID> rejoinSeats = new();
 
 	public override void _Ready() {
 		Global = GetNode<GlobalSingleton>("/root/GlobalSingleton");
@@ -264,13 +271,13 @@ public partial class LanLobby : Control {
 		return $"{name}{civilization}: {who}";
 	}
 
-	private static void AddSeatRow(VBoxContainer list, string text, params Button[] buttons) {
+	private static void AddSeatRow(VBoxContainer list, string text, params BaseButton[] buttons) {
 		HBoxContainer row = new();
 		row.AddThemeConstantOverride("separation", 12);
 		Label label = new() { Text = text, CustomMinimumSize = new Vector2(420, 0) };
 		label.AddThemeFontSizeOverride("font_size", 18);
 		row.AddChild(label);
-		foreach (Button button in buttons) {
+		foreach (BaseButton button in buttons) {
 			if (button != null) {
 				row.AddChild(button);
 			}
@@ -513,35 +520,97 @@ public partial class LanLobby : Control {
 		header.AddThemeFontSizeOverride("font_size", 20);
 		seatList.AddChild(header);
 
+		IReadOnlyList<ID> mine = client.YourSeats;
+		bool canChoose = lobby.civilizations != null && mine.Count > 0 && !client.IsSpectator;
+		if (!mine.Contains(choosingSeat)) {
+			choosingSeat = mine.FirstOrDefault();
+		}
+		rejoinSeats.RemoveWhere(id => !lobby.seats.Any(s => s.playerID == id && s.takenBy == null));
+
 		foreach (SeatInfo seat in lobby.seats) {
 			if (seat.isHost) {
 				AddSeatRow(seatList, $"{seat.playerName} (hosting), {seat.civilization}");
 				continue;
 			}
-			Button take = null;
-			if (lobby.yourSeat == null && seat.takenBy == null && !client.IsSpectator) {
-				take = MakeButton("Take Seat", () => client.ClaimSeat(seat.playerID));
+			List<Button> buttons = [];
+			bool open = seat.takenBy == null && !client.IsSpectator && !lobby.creatingGame;
+			if (open && !lobby.started) {
+				buttons.Add(MakeButton("Take Seat", () => client.ClaimSeat(seat.playerID, NameForAnotherSeat(lobby, mine))));
+			} else if (open) {
+				// In a game in progress, taking a seat takes us into it, so
+				// every seat to take is ticked first.
+				CheckBox tick = new() { Text = "Take", ButtonPressed = rejoinSeats.Contains(seat.playerID) };
+				tick.AddThemeFontSizeOverride("font_size", 18);
+				tick.Toggled += on => {
+					if (on) {
+						rejoinSeats.Add(seat.playerID);
+					} else {
+						rejoinSeats.Remove(seat.playerID);
+					}
+					ShowJoinedSeats();
+				};
+				buttons.Add(tick);
 			}
-			string you = seat.playerID == lobby.yourSeat ? " (you)" : "";
-			AddSeatRow(seatList, Describe(seat) + you, take);
+			if (mine.Contains(seat.playerID)) {
+				if (canChoose && mine.Count > 1 && seat.playerID != choosingSeat) {
+					buttons.Add(MakeButton("Choose Civilization", () => {
+						choosingSeat = seat.playerID;
+						ShowJoinedSeats();
+					}));
+				}
+				if (!lobby.started && !lobby.creatingGame) {
+					buttons.Add(MakeButton("Leave Seat", () => client.LeaveSeat(seat.playerID)));
+				}
+			}
+			string you = mine.Contains(seat.playerID) ? " (you)" : "";
+			AddSeatRow(seatList, Describe(seat) + you, [.. buttons]);
+		}
+
+		if (lobby.started && !client.IsSpectator && lobby.seats.Any(s => !s.isHost && s.takenBy == null)) {
+			Button rejoin = MakeButton("Join Game", () => {
+				foreach (SeatInfo seat in lobby.seats.Where(s => rejoinSeats.Contains(s.playerID))) {
+					client.ClaimSeat(seat.playerID, seat.playerName ?? NameForAnotherSeat(lobby, mine));
+				}
+				rejoinSeats.Clear();
+			});
+			rejoin.Disabled = rejoinSeats.Count == 0;
+			rejoin.SizeFlagsHorizontal = SizeFlags.ShrinkBegin;
+			seatList.AddChild(rejoin);
 		}
 
 		if (lobby.spectators?.Count > 0) {
 			AddSeatRow(seatList, $"Watching: {string.Join(", ", lobby.spectators)}");
 		}
 
-		bool choosing = lobby.civilizations != null && lobby.yourSeat != null && !client.IsSpectator;
-		UpdateCivPicker(lobby, choosing);
+		UpdateCivPicker(lobby, canChoose);
 
+		string hotseatTip = " To play several people at this computer, taking turns, take a seat for each of them,"
+			+ " changing \"Your name\" above to theirs before taking it.";
 		status.Text = lobby.creatingGame ? $"{lobby.hostName} is creating the world..."
 			: client.IsSpectator ? "Watching. Waiting for the host to start the game..."
-			: lobby.yourSeat == null ? "Take an open seat to play."
-			: choosing ? "Choose your civilization, then wait for the host to start the game. If you don't choose, you get a random one."
+			: lobby.started && mine.Count == 0 ? "This game is in progress. Tick the seats to play, then join it." + hotseatTip
+			: mine.Count == 0 ? "Take an open seat to play." + hotseatTip
+			: canChoose ? "Choose your civilization, then wait for the host to start the game. If you don't choose, you get a random one."
 			: "Waiting for the host to start the game...";
 
-		SeatInfo open = lobby.seats.FirstOrDefault(s => !s.isHost && s.takenBy == null);
-		if (LanSession.DevJoinAddress != null && !client.IsSpectator && lobby.yourSeat == null && open != null) {
-			client.ClaimSeat(open.playerID);
+		SeatInfo firstOpen = lobby.seats.FirstOrDefault(s => !s.isHost && s.takenBy == null);
+		if (LanSession.DevJoinAddress != null && !client.IsSpectator && mine.Count == 0 && firstOpen != null) {
+			client.ClaimSeat(firstOpen.playerID);
+		}
+	}
+
+	// The name for the player in another seat we take: the one typed in,
+	// numbered if one of our seats already has it.
+	private string NameForAnotherSeat(LobbyInfo lobby, IReadOnlyList<ID> mine) {
+		string name = string.IsNullOrWhiteSpace(nameEdit.Text) ? LanSession.PlayerName : nameEdit.Text.Trim();
+		HashSet<string> used = lobby.seats.Where(s => mine.Contains(s.playerID)).Select(s => s.takenBy).ToHashSet();
+		if (!used.Contains(name)) {
+			return name;
+		}
+		for (int n = 2; ; ++n) {
+			if (!used.Contains($"{name} {n}")) {
+				return $"{name} {n}";
+			}
 		}
 	}
 
@@ -560,9 +629,12 @@ public partial class LanLobby : Control {
 			BuildCivPicker(lobby.civilizations);
 		}
 
-		SeatInfo mine = lobby.seats.Find(s => s.playerID == lobby.yourSeat);
+		SeatInfo mine = lobby.seats.Find(s => s.playerID == choosingSeat);
+		civHeading.Text = LanSession.Client.YourSeats.Count > 1
+			? $"Choose a civilization for {mine?.takenBy}:"
+			: "Choose your civilization:";
 		HashSet<string> takenByOthers = lobby.seats
-			.Where(s => s.playerID != lobby.yourSeat && s.civilization != null)
+			.Where(s => s.playerID != choosingSeat && s.civilization != null)
 			.Select(s => s.civilization)
 			.ToHashSet();
 		foreach ((string name, Civ3MenuButton button) in civButtons) {
@@ -610,6 +682,7 @@ public partial class LanLobby : Control {
 		civChoices = null;
 		leaderHead = null;
 		civDescription = null;
+		civHeading = null;
 		pickerClient = null;
 		// Another host's civilizations may have the same names but other art.
 		leaderHeadCache.Clear();
@@ -617,9 +690,9 @@ public partial class LanLobby : Control {
 
 	private void BuildCivPicker(List<CivilizationChoice> choices) {
 		civChoices = choices;
-		Label heading = new() { Text = "Choose your civilization:" };
-		heading.AddThemeFontSizeOverride("font_size", 20);
-		civPicker.AddChild(heading);
+		civHeading = new() { Text = "Choose your civilization:" };
+		civHeading.AddThemeFontSizeOverride("font_size", 20);
+		civPicker.AddChild(civHeading);
 
 		HBoxContainer body = new();
 		body.AddThemeConstantOverride("separation", 24);
@@ -639,7 +712,7 @@ public partial class LanLobby : Control {
 				ButtonGroup = group,
 			};
 			button.Pressed += () => {
-				LanSession.Client?.ChooseCivilization(civilization);
+				LanSession.Client?.ChooseCivilization(civilization, choosingSeat);
 				ShowCivilization(civilization);
 			};
 			grid.AddChild(button);

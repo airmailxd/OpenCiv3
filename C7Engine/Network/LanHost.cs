@@ -17,8 +17,11 @@ namespace C7Engine.Network;
 // Hosts a LAN game. The host's engine is the only one that runs: each client
 // sends its player's messages here, and after the game changes the host sends
 // every client a snapshot of the whole game, followed by the UI messages for
-// that client's player. Spectators get the snapshots and the messages for
+// that client's players. Spectators get the snapshots and the messages for
 // everyone, and play no part.
+//
+// A guest may take more than one seat, when several people take turns at
+// their machine as in a hotseat game; it then plays each of those players.
 //
 // A host can also seat guests before its game exists, for a new game whose
 // guests choose their own civilizations: the host creates the game once
@@ -50,8 +53,18 @@ public class LanHost : IDisposable {
 
 	private class Seat {
 		public SeatInfo info;
-		public LanConnection connection;
+		// The guest playing this seat, and the name of the player in it.
+		public Guest guest;
 		public string takenBy;
+		public bool IsTaken => guest != null && !guest.connection.IsClosed;
+	}
+
+	// A machine that has joined to play, with as many seats as it has taken
+	// (none at first).
+	private class Guest {
+		public LanConnection connection;
+		// Null until it says hello.
+		public string name;
 		public readonly List<byte[]> pendingUiMessages = new();
 	}
 
@@ -68,8 +81,8 @@ public class LanHost : IDisposable {
 	private readonly UdpClient discovery;
 	private readonly ConcurrentQueue<TcpClient> accepted = new();
 
-	// Connections that haven't taken a seat yet.
-	private readonly List<(LanConnection connection, string name)> unseated = new();
+	// Everyone joined to play, whether or not they have taken a seat yet.
+	private readonly List<Guest> guests = new();
 
 	// Connections watching the game rather than playing in it.
 	private class Spectator {
@@ -112,9 +125,10 @@ public class LanHost : IDisposable {
 
 	// Seats for the human players other than the host's, in turn order.
 	public IReadOnlyList<SeatInfo> Seats => seats.Select(s => s.info with { takenBy = s.takenBy }).ToList();
-	public bool AllSeatsTaken => seats.All(s => s.connection != null && !s.connection.IsClosed);
+	public bool AllSeatsTaken => seats.All(s => s.IsTaken);
 	public IReadOnlyList<string> Spectators => spectators.Select(s => s.name).ToList();
 	public string HostCivilization => hostCivilization;
+	public ID HostPlayerID => hostPlayerID;
 
 	// Whether guests are choosing their civilizations for a game the host
 	// hasn't created yet.
@@ -218,7 +232,7 @@ public class LanHost : IDisposable {
 	// Called on the main thread whenever the seats or the game's state may
 	// have changed.
 	private void PublishDiscoveryReply() {
-		int openSeats = seats.Count(s => s.connection == null || s.connection.IsClosed);
+		int openSeats = seats.Count(s => !s.IsTaken);
 		DiscoveryReply current = discoveryReply;
 		if (current == null || current.openSeats != openSeats || current.started != Started) {
 			discoveryReply = new DiscoveryReply(hostName, Port, openSeats, Started);
@@ -261,8 +275,8 @@ public class LanHost : IDisposable {
 		EngineStorage.playerReachable = IsReachable;
 
 		Task<EncodedSnapshot> snapshot = EncodeSnapshot();
-		foreach (Seat seat in seats.Where(s => s.connection != null)) {
-			SendStart(seat, snapshot);
+		foreach (Guest guest in SeatedGuests()) {
+			SendStart(guest, snapshot);
 		}
 		foreach (Spectator spectator in spectators) {
 			SendStart(spectator, snapshot);
@@ -271,10 +285,18 @@ public class LanHost : IDisposable {
 		PublishDiscoveryReply();
 	}
 
-	private static void SendStart(Seat seat, Task<EncodedSnapshot> snapshot) {
-		seat.pendingUiMessages.Clear();
-		seat.connection.Send(FrameKind.Start, new StartInfo(seat.info.playerID));
-		seat.connection.SendSnapshot(snapshot);
+	private IEnumerable<Seat> SeatsOf(Guest guest) => seats.Where(s => s.guest == guest);
+
+	// The guests with a seat, whose connections are still open.
+	private List<Guest> SeatedGuests() {
+		return guests.Where(g => !g.connection.IsClosed && SeatsOf(g).Any()).ToList();
+	}
+
+	// Tells a guest which players are theirs, now or after taking another
+	// seat in a game in progress, and shows them the game.
+	private void SendStart(Guest guest, Task<EncodedSnapshot> snapshot) {
+		guest.connection.Send(FrameKind.Start, new StartInfo(SeatsOf(guest).Select(s => s.info.playerID).ToList()));
+		SendSnapshot(guest.connection, snapshot, guest.pendingUiMessages);
 	}
 
 	// The engine asks a player some things only as their turn starts, and
@@ -291,20 +313,17 @@ public class LanHost : IDisposable {
 
 	private static void SendStart(Spectator spectator, Task<EncodedSnapshot> snapshot) {
 		spectator.pendingUiMessages.Clear();
-		spectator.connection.Send(FrameKind.Start, new StartInfo(null));
+		spectator.connection.Send(FrameKind.Start, new StartInfo([]));
 		spectator.connection.SendSnapshot(snapshot);
 	}
 
 	public void Poll() {
 		while (accepted.TryDequeue(out TcpClient client)) {
-			unseated.Add((new LanConnection(client), null));
+			guests.Add(new Guest { connection = new LanConnection(client) });
 		}
 
-		foreach ((LanConnection connection, string name) in unseated.ToList()) {
-			PollUnseated(connection, name);
-		}
-		foreach (Seat seat in seats) {
-			PollSeat(seat);
+		foreach (Guest guest in guests.ToList()) {
+			PollGuest(guest);
 		}
 		foreach (Spectator spectator in spectators.ToList()) {
 			PollSpectator(spectator);
@@ -353,7 +372,7 @@ public class LanHost : IDisposable {
 	private List<ID> ConnectedPlayers() {
 		return [
 			hostPlayerID,
-			.. seats.Where(s => s.connection != null && !s.connection.IsClosed).Select(s => s.info.playerID),
+			.. seats.Where(s => s.IsTaken).Select(s => s.info.playerID),
 		];
 	}
 
@@ -362,8 +381,8 @@ public class LanHost : IDisposable {
 		if (clock == null) {
 			return;
 		}
-		foreach (Seat seat in seats.Where(s => s.connection != null && !s.connection.IsClosed)) {
-			seat.connection.Send(FrameKind.TurnClock, clock);
+		foreach (Guest guest in SeatedGuests()) {
+			guest.connection.Send(FrameKind.TurnClock, clock);
 		}
 		foreach (Spectator spectator in spectators.Where(s => !s.connection.IsClosed)) {
 			spectator.connection.Send(FrameKind.TurnClock, clock);
@@ -379,128 +398,159 @@ public class LanHost : IDisposable {
 		return connection.NoteBadFrame();
 	}
 
-	private void PollUnseated(LanConnection connection, string name) {
-		while (connection.TryReceive(out Frame frame)) {
+	private void PollGuest(Guest guest) {
+		while (guest.connection.TryReceive(out Frame frame)) {
 			try {
-				switch (frame.kind) {
-					case FrameKind.Hello:
-						HelloInfo hello = NetSerialization.DeserializeRequired<HelloInfo>(frame.payload);
-						if (hello.version != LanProtocol.Version) {
-							Reject(connection, $"The host is running a different version of the game (protocol {LanProtocol.Version}, yours is {hello.version}).");
-							return;
-						}
-						name = string.IsNullOrWhiteSpace(hello.playerName) ? connection.RemoteAddress : hello.playerName.Trim();
-						SetUnseatedName(connection, name);
-						SendLobby(connection, null);
-						break;
-					case FrameKind.ClaimSeat:
-						if (name == null) {
-							Reject(connection, "Say hello before claiming a seat.");
-							return;
-						}
-						ClaimSeatInfo claim = NetSerialization.DeserializeRequired<ClaimSeatInfo>(frame.payload);
-						Seat seat = seats.Find(s => s.info.playerID == claim.playerID);
-						if (seat == null || (seat.connection != null && !seat.connection.IsClosed)) {
-							SendLobby(connection, null);
-							break;
-						}
-						unseated.RemoveAll(u => u.connection == connection);
-						if (seat.connection != null) {
-							// The last connection closed without PollSeat
-							// seeing it go.
-							ReleaseDiplomacy(seat);
-						}
-						seat.connection?.Dispose();
-						seat.connection = connection;
-						seat.takenBy = name;
-						log.Information("{Name} took the seat of {Player}", name, seat.info.playerID);
-						if (Started) {
-							// A player rejoining a game in progress.
-							SendStart(seat, EncodeSnapshot());
-							ResendTurnPrompts(seat);
-						}
-						BroadcastLobby();
-						return;
-					case FrameKind.Watch:
-						if (name == null) {
-							Reject(connection, "Say hello before watching.");
-							return;
-						}
-						unseated.RemoveAll(u => u.connection == connection);
-						Spectator spectator = new() { connection = connection, name = name };
-						spectators.Add(spectator);
-						log.Information("{Name} is watching", name);
-						if (Started) {
-							SendStart(spectator, EncodeSnapshot());
-						}
-						BroadcastLobby();
-						return;
-					default:
-						log.Warning("Ignoring {Kind} frame from unseated {Address}", frame.kind, connection.RemoteAddress);
-						break;
+				if (!HandleGuestFrame(guest, frame)) {
+					// Turned away, or watching from now on.
+					return;
 				}
-				connection.NoteGoodFrame();
+				guest.connection.NoteGoodFrame();
 			} catch (Exception e) {
-				if (BadFrame(connection, connection.RemoteAddress, frame, e)) {
+				if (BadFrame(guest.connection, guest.name ?? guest.connection.RemoteAddress, frame, e)) {
 					break;
 				}
-				if (!unseated.Exists(u => u.connection == connection)) {
-					// It took a seat or began watching before failing.
+				if (!guests.Contains(guest)) {
 					return;
 				}
 			}
 		}
-		if (connection.IsClosed) {
-			unseated.RemoveAll(u => u.connection == connection);
+		if (guest.connection.IsClosed) {
+			DropGuest(guest);
 		}
 	}
 
-	private void SetUnseatedName(LanConnection connection, string name) {
-		int index = unseated.FindIndex(u => u.connection == connection);
-		if (index >= 0) {
-			unseated[index] = (connection, name);
+	// Handles a frame from a guest, and returns whether they are still one.
+	private bool HandleGuestFrame(Guest guest, Frame frame) {
+		switch (frame.kind) {
+			case FrameKind.Hello:
+				HelloInfo hello = NetSerialization.DeserializeRequired<HelloInfo>(frame.payload);
+				if (hello.version != LanProtocol.Version) {
+					Reject(guest, $"The host is running a different version of the game (protocol {LanProtocol.Version}, yours is {hello.version}).");
+					return false;
+				}
+				guest.name = string.IsNullOrWhiteSpace(hello.playerName) ? guest.connection.RemoteAddress : hello.playerName.Trim();
+				SendLobby(guest);
+				return true;
+			case FrameKind.ClaimSeat:
+				if (guest.name == null) {
+					Reject(guest, "Say hello before claiming a seat.");
+					return false;
+				}
+				ClaimSeat(guest, NetSerialization.DeserializeRequired<ClaimSeatInfo>(frame.payload));
+				return true;
+			case FrameKind.LeaveSeat:
+				LeaveSeat(guest, NetSerialization.DeserializeRequired<ClaimSeatInfo>(frame.payload));
+				return true;
+			case FrameKind.Watch:
+				if (guest.name == null) {
+					Reject(guest, "Say hello before watching.");
+					return false;
+				}
+				if (SeatsOf(guest).Any()) {
+					log.Warning("Ignoring a request to watch from {Name}, who has a seat", guest.name);
+					return true;
+				}
+				guests.Remove(guest);
+				Spectator spectator = new() { connection = guest.connection, name = guest.name };
+				spectators.Add(spectator);
+				log.Information("{Name} is watching", guest.name);
+				if (Started) {
+					SendStart(spectator, EncodeSnapshot());
+				}
+				BroadcastLobby();
+				return false;
+			case FrameKind.ChooseCivilization:
+				ChooseCivilization(guest, frame);
+				return true;
+			case FrameKind.Command:
+				HandleCommand(guest, frame);
+				return true;
+			default:
+				log.Warning("Ignoring {Kind} frame from {Address}", frame.kind, guest.connection.RemoteAddress);
+				return true;
 		}
 	}
 
-	private void Reject(LanConnection connection, string reason) {
-		connection.Send(FrameKind.Rejected, Encoding.UTF8.GetBytes(reason));
-		connection.Dispose();
-		unseated.RemoveAll(u => u.connection == connection);
-	}
-
-	private void PollSeat(Seat seat) {
-		if (seat.connection == null) {
+	// A guest takes an open seat, in addition to any they have already.
+	private void ClaimSeat(Guest guest, ClaimSeatInfo claim) {
+		Seat seat = seats.Find(s => s.info.playerID == claim.playerID);
+		if (seat == null || seat.IsTaken) {
+			SendLobby(guest);
 			return;
 		}
-		while (seat.connection.TryReceive(out Frame frame)) {
-			try {
-				HandleSeatFrame(seat, frame);
-				seat.connection.NoteGoodFrame();
-			} catch (Exception e) {
-				if (BadFrame(seat.connection, $"{seat.takenBy} ({seat.info.playerID})", frame, e)) {
-					break;
-				}
-			}
+		if (seat.guest != null) {
+			// The last guest closed without PollGuest seeing it go.
+			FreeSeat(seat);
 		}
-		if (seat.connection.IsClosed) {
+		seat.guest = guest;
+		seat.takenBy = SeatPlayerName(guest, claim.playerName);
+		log.Information("{Name} took the seat of {Player} for {SeatName}", guest.name, seat.info.playerID, seat.takenBy);
+		if (Started) {
+			// A player rejoining a game in progress.
+			SendStart(guest, EncodeSnapshot());
+			ResendTurnPrompts(seat);
+		}
+		BroadcastLobby();
+	}
+
+	// The name of the player in a seat a guest takes: the one given, or the
+	// guest's own.
+	private static string SeatPlayerName(Guest guest, string playerName) {
+		if (string.IsNullOrWhiteSpace(playerName)) {
+			return guest.name;
+		}
+		playerName = playerName.Trim();
+		return playerName.Length > 40 ? playerName[..40] : playerName;
+	}
+
+	// A guest gives back a seat before the game starts. Once it has, they
+	// leave a seat only by leaving the game.
+	private void LeaveSeat(Guest guest, ClaimSeatInfo leave) {
+		Seat seat = SeatsOf(guest).FirstOrDefault(s => s.info.playerID == leave.playerID);
+		if (seat == null || Started || creatingGame) {
+			SendLobby(guest);
+			return;
+		}
+		log.Information("{Name} left the seat of {Player}", seat.takenBy, seat.info.playerID);
+		FreeSeat(seat);
+		BroadcastLobby();
+	}
+
+	private void FreeSeat(Seat seat) {
+		seat.guest = null;
+		seat.takenBy = null;
+		ReleaseDiplomacy(seat);
+		if (GuestsChooseCivilizations && !creatingGame) {
+			// Whoever takes the seat next chooses afresh.
+			seat.info = seat.info with { civilization = null };
+		}
+	}
+
+	private void DropGuest(Guest guest) {
+		guests.Remove(guest);
+		guest.connection.Dispose();
+		List<Seat> left = SeatsOf(guest).ToList();
+		foreach (Seat seat in left) {
 			log.Information("{Name} left the seat of {Player}", seat.takenBy, seat.info.playerID);
-			seat.connection = null;
-			seat.takenBy = null;
-			seat.pendingUiMessages.Clear();
-			ReleaseDiplomacy(seat);
-			if (GuestsChooseCivilizations && !creatingGame) {
-				// Whoever takes the seat next chooses afresh.
-				seat.info = seat.info with { civilization = null };
-			}
+			FreeSeat(seat);
+		}
+		if (left.Count > 0) {
 			BroadcastLobby();
 		}
 	}
 
-	// Players at this machine are always here; a guest is while their seat
+	private void Reject(Guest guest, string reason) {
+		guest.connection.Send(FrameKind.Rejected, Encoding.UTF8.GetBytes(reason));
+		guest.connection.Dispose();
+		guests.Remove(guest);
+	}
+
+	// Players at this machine are always here; a guest's are while the guest
 	// is connected.
 	private bool IsReachable(ID player) {
 		Seat seat = seats.Find(s => s.info.playerID == player);
-		return seat == null || (seat.connection != null && !seat.connection.IsClosed);
+		return seat == null || seat.IsTaken;
 	}
 
 	// The engine may be waiting on the seat's player to answer an AI, who
@@ -513,31 +563,41 @@ public class LanHost : IDisposable {
 		}
 	}
 
-	private void HandleSeatFrame(Seat seat, Frame frame) {
-		if (frame.kind == FrameKind.ChooseCivilization) {
-			ChooseCivilization(seat, frame);
-			return;
-		}
-		if (frame.kind != FrameKind.Command || !Started) {
+	private void HandleCommand(Guest guest, Frame frame) {
+		if (!Started) {
 			return;
 		}
 		MessageToEngine msg = NetSerialization.DeserializeRequired<MessageToEngine>(frame.payload);
 		if (msg.IsLocal) {
 			return;
 		}
-		// Clients act only as their own player.
-		msg.playerID = seat.info.playerID;
-		msg.DistrustRemoteSender();
+		// Guests act only as their own players. One with a single seat always
+		// acts as it; one with several says which.
+		List<Seat> theirs = SeatsOf(guest).ToList();
+		if (theirs.Count == 1) {
+			msg.playerID = theirs[0].info.playerID;
+		} else if (!theirs.Any(s => s.info.playerID == msg.playerID)) {
+			log.Warning("Ignoring {Message} from {Name} for {Player}, who isn't theirs", msg.GetType().Name, guest.name, msg.playerID);
+			return;
+		}
+		msg.DistrustRemoteSender(id => theirs.Any(s => s.info.playerID == id));
 		EngineStorage.ReceiveFromRemote(msg);
 	}
 
 	// A guest's choice of civilization: one nobody else has chosen, or null
 	// for a random one. Anything else leaves their seat as it was.
-	private void ChooseCivilization(Seat seat, Frame frame) {
+	private void ChooseCivilization(Guest guest, Frame frame) {
 		if (!GuestsChooseCivilizations || creatingGame) {
 			return;
 		}
-		string civilization = NetSerialization.DeserializeRequired<ChooseCivilizationInfo>(frame.payload).civilization;
+		ChooseCivilizationInfo choice = NetSerialization.DeserializeRequired<ChooseCivilizationInfo>(frame.payload);
+		Seat seat = choice.playerID == null
+			? SeatsOf(guest).FirstOrDefault()
+			: SeatsOf(guest).FirstOrDefault(s => s.info.playerID == choice.playerID);
+		if (seat == null) {
+			return;
+		}
+		string civilization = choice.civilization;
 		bool available = civilization == null
 			|| (choosable.Any(c => c.name == civilization)
 				&& civilization != hostCivilization
@@ -612,8 +672,8 @@ public class LanHost : IDisposable {
 		if (msg.IsForEveryone) {
 			EngineStorage.SendToLocalUI(msg);
 			byte[] json = NetSerialization.Serialize(msg);
-			foreach (Seat seat in seats) {
-				QueueUiMessage(seat, json);
+			foreach (Guest guest in SeatedGuests()) {
+				QueueUiMessage(guest, json);
 			}
 			foreach (Spectator spectator in spectators.Where(s => !s.connection.IsClosed)) {
 				spectator.pendingUiMessages.Add(json);
@@ -626,14 +686,14 @@ public class LanHost : IDisposable {
 		Seat recipientSeat = to == null ? null : seats.Find(s => s.info.playerID == to.id);
 		if (recipientSeat == null) {
 			EngineStorage.SendToLocalUI(msg);
-		} else {
-			QueueUiMessage(recipientSeat, NetSerialization.Serialize(msg));
+		} else if (recipientSeat.IsTaken) {
+			QueueUiMessage(recipientSeat.guest, NetSerialization.Serialize(msg));
 		}
 	}
 
-	private void QueueUiMessage(Seat seat, byte[] json) {
-		if (seat.connection != null && !seat.connection.IsClosed) {
-			seat.pendingUiMessages.Add(json);
+	private void QueueUiMessage(Guest guest, byte[] json) {
+		if (!guest.connection.IsClosed) {
+			guest.pendingUiMessages.Add(json);
 			snapshotPending = true;
 		}
 	}
@@ -658,11 +718,11 @@ public class LanHost : IDisposable {
 		if (snapshotPending && (settled || sinceSnapshot.Elapsed >= MaxSnapshotDelay)) {
 			snapshotPending = false;
 			sinceSnapshot.Restart();
-			List<Seat> connected = seats.Where(s => s.connection != null && !s.connection.IsClosed).ToList();
+			List<Guest> connected = SeatedGuests();
 			if (connected.Count > 0) {
 				snapshot = EncodeSnapshot();
-				foreach (Seat seat in connected) {
-					SendSnapshot(seat.connection, snapshot, seat.pendingUiMessages);
+				foreach (Guest guest in connected) {
+					SendSnapshot(guest.connection, snapshot, guest.pendingUiMessages);
 				}
 			}
 		}
@@ -688,27 +748,26 @@ public class LanHost : IDisposable {
 		pendingUiMessages.Clear();
 	}
 
-	private void SendLobby(LanConnection connection, ID yourSeat) {
+	private void SendLobby(Guest guest) {
+		SendLobby(guest.connection, SeatsOf(guest).Select(s => s.info.playerID).ToList());
+	}
+
+	private void SendLobby(LanConnection connection, List<ID> yourSeats) {
 		List<SeatInfo> seatInfos = [
 			new SeatInfo(hostPlayerID, hostCivilization, hostName, true, hostName),
 			.. Seats,
 		];
 		List<CivilizationChoice> civilizations = choosable?.Select(c => new CivilizationChoice(
 			c.name, c.leader, c.noun, c.leaderArtFile, c.traits.Select(t => t.ToString()).ToList())).ToList();
-		connection.Send(FrameKind.Lobby, new LobbyInfo(hostName, seatInfos, yourSeat, [.. Spectators], civilizations, creatingGame));
+		connection.Send(FrameKind.Lobby, new LobbyInfo(hostName, seatInfos, yourSeats, [.. Spectators], civilizations, creatingGame, Started));
 	}
 
 	private void BroadcastLobby() {
-		foreach ((LanConnection connection, string name) in unseated) {
-			if (name != null) {
-				SendLobby(connection, null);
-			}
-		}
-		foreach (Seat seat in seats.Where(s => s.connection != null)) {
-			SendLobby(seat.connection, seat.info.playerID);
+		foreach (Guest guest in guests.Where(g => g.name != null)) {
+			SendLobby(guest);
 		}
 		foreach (Spectator spectator in spectators) {
-			SendLobby(spectator.connection, null);
+			SendLobby(spectator.connection, []);
 		}
 		// Who is connected has changed, and anyone who just came in needs
 		// the clock.
@@ -723,11 +782,8 @@ public class LanHost : IDisposable {
 		disposed = true;
 		listener.Stop();
 		discovery?.Dispose();
-		foreach ((LanConnection connection, _) in unseated) {
-			connection.Dispose();
-		}
-		foreach (Seat seat in seats) {
-			seat.connection?.Dispose();
+		foreach (Guest guest in guests) {
+			guest.connection.Dispose();
 		}
 		foreach (Spectator spectator in spectators) {
 			spectator.connection.Dispose();

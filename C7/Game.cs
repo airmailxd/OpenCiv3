@@ -257,8 +257,11 @@ public partial class Game : Node {
 		} else if (LanSession.IsActive) {
 			// Whoever plays first may be at another machine.
 			Player active = EngineStorage.gameData.GetPlayer(EngineStorage.activePlayerID);
-			if (active != null && active.id != controller.id) {
+			if (active != null && !LanSession.IsLocalPlayer(active)) {
 				ShowLanWaiting(active);
+			} else if (active != null && LanSession.HasSeveralLocalPlayers) {
+				// The others at this machine also need to look away.
+				ShowHotseatHandoff(active, BeginLanTurn);
 			} else {
 				MaybeAutoplayLanTurn();
 			}
@@ -391,11 +394,23 @@ public partial class Game : Node {
 				EngineStorage.uiControllerID = EngineStorage.gameData.players
 					.FirstOrDefault(p => p.isHuman && !p.defeated)?.id ?? EngineStorage.gameData.players[0].id;
 			} else {
-				EngineStorage.uiControllerID = client.PlayerID;
+				// Of this machine's players, whoever plays first.
+				ID active = EngineStorage.activePlayerID;
+				EngineStorage.uiControllerID = client.PlayerIDs.Contains(active) ? active : client.PlayerIDs.FirstOrDefault();
 			}
 			controller = EngineStorage.gameData.GetUIControllerPlayer();
 			client.SnapshotReceived = OnLanSnapshot;
 			client.UiMessageReceived = json => HandleEngineMessage(NetSerialization.DeserializeMessageToUI(json));
+			client.PlayersChanged = OnLanPlayersChanged;
+		}
+	}
+
+	// Rejoining with several seats can take them one at a time, so the
+	// player we were waiting on may turn out to be one of ours.
+	private void OnLanPlayersChanged() {
+		Player active = EngineStorage.gameData.GetPlayer(EngineStorage.activePlayerID);
+		if (IsWaitingForRemotePlayer && active != null && LanSession.IsLocalPlayer(active)) {
+			OnControllerTurnStart(active);
 		}
 	}
 
@@ -585,15 +600,20 @@ public partial class Game : Node {
 		}
 
 		if (LanSession.IsActive) {
-			// Each machine plays its own player; the others wait for them.
+			// Each machine plays its own players; the others wait for them.
 			EngineStorage.activePlayerID = next.id;
-			if (next.id != controller.id) {
+			if (!LanSession.IsLocalPlayer(next)) {
 				ShowLanWaiting(next);
 				return;
 			}
 			HideLanWaiting();
-			OnPlayerStartTurn();
-			MaybeAutoplayLanTurn();
+			if (LanSession.HasSeveralLocalPlayers) {
+				// This machine's players take turns at it, as in a hotseat
+				// game.
+				ShowHotseatHandoff(next, BeginLanTurn);
+				return;
+			}
+			BeginLanTurn();
 			return;
 		}
 
@@ -604,6 +624,11 @@ public partial class Game : Node {
 		}
 
 		ShowHotseatHandoff(next, OnPlayerStartTurn);
+	}
+
+	private void BeginLanTurn() {
+		OnPlayerStartTurn();
+		MaybeAutoplayLanTurn();
 	}
 
 	private void ShowHotseatHandoff(Player next, Action onBeginTurn) {
@@ -634,6 +659,9 @@ public partial class Game : Node {
 		}
 
 		controller = next;
+		// A hotseat game's engine has already moved the UI to them; a LAN
+		// client's players move it themselves.
+		EngineStorage.uiControllerID = next.id;
 		if (hotseatCameraLocations.TryGetValue(controller.id, out Vector2 cameraLocation)) {
 			mapView.cameraLocation = cameraLocation;
 		} else {
@@ -667,7 +695,11 @@ public partial class Game : Node {
 
 		// Hold messages for a human player who isn't at the screen (for
 		// example barbarians raiding them during the AI turns) until they are.
-		if (!LanSession.IsActive && msg.recipient != null && msg.recipient.isHuman && msg.recipient.id != controller.id) {
+		// On a LAN that is only one of this machine's players. A deal another
+		// human proposes can't wait, as they are waiting on it.
+		if (msg.recipient != null && msg.recipient.isHuman && msg.recipient.id != controller.id
+			&& (!LanSession.IsActive || LanSession.IsLocalPlayer(msg.recipient))
+			&& msg is not MsgShowDealProposal) {
 			if (!heldMessages.TryGetValue(msg.recipient.id, out Queue<MessageToUI> held)) {
 				held = new();
 				heldMessages[msg.recipient.id] = held;
@@ -877,15 +909,27 @@ public partial class Game : Node {
 				InterestingEvent();
 				break;
 			case MsgShowDealProposal mSDP:
-				popupOverlay.ShowPopup(
-					new ConfirmationPopup(
-						DealScreen.DescribeDeal(mSDP.proposer, mSDP.proposerGives, mSDP.proposerWants),
-						"We accept.",
-						"We refuse.",
-						() => { new MsgRespondToDeal(true).send(); },
-						() => { new MsgRespondToDeal(false).send(); }),
-					PopupOverlay.PopupCategory.Advisor);
-				InterestingEvent();
+				Action showProposal = () => {
+					popupOverlay.ShowPopup(
+						new ConfirmationPopup(
+							DealScreen.DescribeDeal(mSDP.proposer, mSDP.proposerGives, mSDP.proposerWants),
+							"We accept.",
+							"We refuse.",
+							() => { new MsgRespondToDeal(true).send(); },
+							() => { new MsgRespondToDeal(false).send(); }),
+						PopupOverlay.PopupCategory.Advisor);
+					InterestingEvent();
+				};
+				// A LAN client's players take turns at its screen, so the deal
+				// may be for one who isn't at it.
+				if (mSDP.opponent.id != controller.id) {
+					ShowHotseatHandoff(mSDP.opponent,
+						$"The {mSDP.proposer.civilization.noun} propose a deal.",
+						"Hear Them Out",
+						showProposal);
+				} else {
+					showProposal();
+				}
 				break;
 			case MsgDealResult mDR:
 				if (diplomacy.Visible) {

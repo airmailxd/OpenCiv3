@@ -44,8 +44,9 @@ namespace C7Engine {
 		protected abstract void ProcessAllowed();
 
 		// Called on a LAN host for messages from clients, to drop anything
-		// only this machine's own players may claim.
-		public virtual void DistrustRemoteSender() { }
+		// only players at the same machine may claim. playsAtSendersMachine
+		// says whether a player is one of them.
+		public virtual void DistrustRemoteSender(Func<ID, bool> playsAtSendersMachine) { }
 
 		// Players may act on their own turn, and answer an AI that is waiting
 		// for them to respond to a trade offer.
@@ -873,8 +874,12 @@ namespace C7Engine {
 
 		internal Player Proposer => Sender;
 
-		public override void DistrustRemoteSender() {
-			opponentAgreed = false;
+		// The opponent agreed at the proposer's screen, which only counts if
+		// they play there too.
+		public override void DistrustRemoteSender(Func<ID, bool> playsAtSendersMachine) {
+			if (opponent == null || !playsAtSendersMachine(opponent.id)) {
+				opponentAgreed = false;
+			}
 		}
 	}
 

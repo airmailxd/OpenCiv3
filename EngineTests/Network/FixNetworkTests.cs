@@ -180,7 +180,7 @@ public class FixNetworkTests : IClassFixture<SaveGameFixture>, IDisposable {
 
 		host.connection.Send(FrameKind.Lobby, Utf8("null"));
 		host.connection.Send(FrameKind.Lobby, Utf8("{"));
-		host.connection.Send(FrameKind.Lobby, Utf8("{\"hostName\":\"Host\",\"seats\":[],\"yourSeat\":\"Player-none\"}"));
+		host.connection.Send(FrameKind.Lobby, Utf8("{\"hostName\":\"Host\",\"seats\":[],\"yourSeats\":[\"Player-none\"]}"));
 		host.connection.Send(FrameKind.TurnClock, Utf8("null"));
 		host.connection.Send(FrameKind.Lobby, new LobbyInfo("Host", [], null));
 		PollUntil(client, () => client.Lobby != null);

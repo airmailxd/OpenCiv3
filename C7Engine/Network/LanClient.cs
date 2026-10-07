@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
@@ -9,7 +10,7 @@ using Serilog;
 namespace C7Engine.Network;
 
 // A connection to a LAN host. The client's engine doesn't run: it sends its
-// player's messages to the host, and shows the snapshots and UI messages the
+// players' messages to the host, and shows the snapshots and UI messages the
 // host sends back.
 //
 // Frames are handled in Poll(), which the lobby and then the game call every
@@ -41,9 +42,13 @@ public class LanClient : IDisposable {
 	public LobbyInfo Lobby { get; private set; }
 	public string RejectedReason { get; private set; }
 
-	// The player this client plays, once the game has started. Null for a
-	// spectator.
-	public ID PlayerID { get; private set; }
+	// The players this client plays, in turn order, once the game has
+	// started: more than one when they take turns at this machine. Empty for
+	// a spectator.
+	public IReadOnlyList<ID> PlayerIDs { get; private set; } = [];
+
+	// The seats this client has taken in the lobby.
+	public IReadOnlyList<ID> YourSeats => (IReadOnlyList<ID>)Lobby?.yourSeats ?? [];
 
 	// Whether this client only watches the game.
 	public bool IsSpectator { get; private set; }
@@ -64,6 +69,10 @@ public class LanClient : IDisposable {
 	public Action<SaveGame> SnapshotReceived;
 	public Action<byte[]> UiMessageReceived;
 
+	// Set by the game screen: called when the host says again which players
+	// are ours, after we take another seat in the game in progress.
+	public Action PlayersChanged;
+
 	private LanClient(TcpClient tcp, string hostAddress) {
 		connection = new LanConnection(tcp);
 		HostAddress = hostAddress;
@@ -77,14 +86,21 @@ public class LanClient : IDisposable {
 		return client;
 	}
 
-	public void ClaimSeat(ID playerID) {
-		connection.Send(FrameKind.ClaimSeat, new ClaimSeatInfo(playerID));
+	// Takes a seat, alongside any taken already, for the player named (or
+	// this client's own name when null).
+	public void ClaimSeat(ID playerID, string playerName = null) {
+		connection.Send(FrameKind.ClaimSeat, new ClaimSeatInfo(playerID, playerName));
 	}
 
-	// Chooses the civilization to play in a game not created yet; null for
-	// a random one.
-	public void ChooseCivilization(string civilization) {
-		connection.Send(FrameKind.ChooseCivilization, new ChooseCivilizationInfo(civilization));
+	// Gives back a seat before the game starts.
+	public void LeaveSeat(ID playerID) {
+		connection.Send(FrameKind.LeaveSeat, new ClaimSeatInfo(playerID));
+	}
+
+	// Chooses the civilization for one of our seats (null for the first) to
+	// play in a game not created yet; null for a random one.
+	public void ChooseCivilization(string civilization, ID playerID = null) {
+		connection.Send(FrameKind.ChooseCivilization, new ChooseCivilizationInfo(civilization, playerID));
 	}
 
 	// Watches the game instead of taking a seat.
@@ -153,7 +169,8 @@ public class LanClient : IDisposable {
 				LobbyChanged?.Invoke();
 				break;
 			case FrameKind.Start:
-				PlayerID = NetSerialization.DeserializeRequired<StartInfo>(frame.payload).yourPlayerID;
+				PlayerIDs = NetSerialization.DeserializeRequired<StartInfo>(frame.payload).yourPlayerIDs ?? [];
+				PlayersChanged?.Invoke();
 				break;
 			case FrameKind.Snapshot:
 				Task<SaveGame> read = ReferenceEquals(frame, readingFrame) ? reading : null;

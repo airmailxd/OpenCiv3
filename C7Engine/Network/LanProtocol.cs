@@ -21,6 +21,8 @@ public enum FrameKind : byte {
 	Watch = 4,
 	// A seated guest's civilization for a game not created yet.
 	ChooseCivilization = 5,
+	// Gives back a seat taken before the game started.
+	LeaveSeat = 6,
 
 	// Host to client.
 	Lobby = 10,
@@ -33,7 +35,7 @@ public enum FrameKind : byte {
 
 public static class LanProtocol {
 	// Bump when the frames or the messages in them change incompatibly.
-	public const int Version = 5;
+	public const int Version = 6;
 
 	public const int DefaultPort = 47_777;
 	public const int DiscoveryPort = 47_778;
@@ -107,7 +109,9 @@ public sealed class EncodedSnapshot {
 
 public record HelloInfo(int version, string playerName);
 
-public record ClaimSeatInfo(ID playerID);
+// A guest may take several seats, for players taking turns at their machine,
+// so each seat can have its own player's name; null for the guest's name.
+public record ClaimSeatInfo(ID playerID, string playerName = null);
 
 // A human player's place in the game, and who has taken it. In a new game
 // whose guests choose their civilizations, a guest's civilization is null
@@ -120,15 +124,16 @@ public record CivilizationChoice(string name, string leader, string noun, string
 // civilizations is what guests can choose from, or null when the game's
 // civilizations are already set (a saved game, or one already created).
 // creatingGame is true while the host creates the world, when choices are
-// closed.
-public record LobbyInfo(string hostName, List<SeatInfo> seats, ID yourSeat, List<string> spectators = null,
-	List<CivilizationChoice> civilizations = null, bool creatingGame = false);
+// closed. yourSeats are the seats this guest has taken, in turn order.
+public record LobbyInfo(string hostName, List<SeatInfo> seats, List<ID> yourSeats, List<string> spectators = null,
+	List<CivilizationChoice> civilizations = null, bool creatingGame = false, bool started = false);
 
-// The civilization's name, or null for a random one.
-public record ChooseCivilizationInfo(string civilization);
+// The civilization's name, or null for a random one, for one of the guest's
+// seats; null for their first.
+public record ChooseCivilizationInfo(string civilization, ID playerID = null);
 
-// A spectator's yourPlayerID is null.
-public record StartInfo(ID yourPlayerID);
+// The players this guest plays, in turn order; empty for a spectator.
+public record StartInfo(List<ID> yourPlayerIDs);
 
 // A host's answer to a discovery broadcast.
 public record DiscoveryReply(string hostName, int port, int openSeats, bool started);

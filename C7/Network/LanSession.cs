@@ -1,3 +1,4 @@
+using System.Linq;
 using Godot;
 using C7Engine;
 using C7Engine.Network;
@@ -94,10 +95,23 @@ public static class LanSession {
 		EngineStorage.remoteEngine = client.SendCommand;
 	}
 
+	// True when the player plays at this machine: the host's own player, or
+	// one of the seats this client took.
+	public static bool IsLocalPlayer(Player player) {
+		if (Host != null) {
+			return player.id == Host.HostPlayerID;
+		}
+		return Client != null && Client.PlayerIDs.Contains(player.id);
+	}
+
+	// True when this client took several seats, whose players take turns at
+	// this machine as in a hotseat game.
+	public static bool HasSeveralLocalPlayers => Client?.PlayerIDs.Count > 1;
+
 	// True when the player plays at another machine, so they must be asked
 	// over the network rather than at this screen.
 	public static bool IsRemotePlayer(Player player) {
-		return IsActive && player.isHuman && player.id != EngineStorage.uiControllerID;
+		return IsActive && player.isHuman && !IsLocalPlayer(player);
 	}
 
 	public static void End() {
