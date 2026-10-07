@@ -49,6 +49,7 @@ public partial class PlayerSetup : Control {
 
 	CheckBox showScoreboard;
 	CheckBox coreCitiesFreeOfCorruption;
+	CheckBox acceleratedProduction;
 
 	[Export] TextureButton confirm;
 	[Export] TextureButton cancel;
@@ -160,6 +161,15 @@ public partial class PlayerSetup : Control {
 			TooltipText = "Custom rule: the capital and the 5 cities nearest it have no corruption or waste.",
 		};
 		rulesContainer.AddChild(coreCitiesFreeOfCorruption);
+
+		acceleratedProduction = new Civ3Checkbox {
+			Text = "Accelerated production",
+			FontSize = 14,
+			// As the scenario or ruleset sets it, like in Civ3.
+			ButtonPressed = save.Rules.AcceleratedProduction,
+			TooltipText = "Cities generate double the food, shields and commerce each turn, speeding up growth, research and production.",
+		};
+		rulesContainer.AddChild(acceleratedProduction);
 	}
 
 	private void BackToMainMenu() {
@@ -402,7 +412,8 @@ public partial class PlayerSetup : Control {
 				opponents = CollectSelectedOpponents(),
 				victoryConditions = victoryConditions,
 				showScoreboard = showScoreboard.ButtonPressed,
-			coreCitiesFreeOfCorruption = coreCitiesFreeOfCorruption.ButtonPressed,
+				coreCitiesFreeOfCorruption = coreCitiesFreeOfCorruption.ButtonPressed,
+				acceleratedProduction = acceleratedProduction.ButtonPressed,
 			};
 			PersistGameSettings(lanSetup);
 			LanSession.PendingGame = new PendingLanGame(lanSetup, save, guestSeats);
@@ -422,6 +433,7 @@ public partial class PlayerSetup : Control {
 			victoryConditions = victoryConditions,
 			showScoreboard = showScoreboard.ButtonPressed,
 			coreCitiesFreeOfCorruption = coreCitiesFreeOfCorruption.ButtonPressed,
+			acceleratedProduction = acceleratedProduction.ButtonPressed,
 		};
 
 		PersistGameSettings(gameSetup);

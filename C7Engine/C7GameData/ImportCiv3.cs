@@ -143,6 +143,7 @@ namespace C7GameData {
 
 			ImportSavHistory();
 			ImportSavVictory();
+			save.Rules.AcceleratedProduction = savData.Game.AcceleratedProduction;
 
 			SetMapDimensions(savData, save);
 			SetWorldWrap(savData, save);
@@ -2243,6 +2244,7 @@ namespace C7GameData {
 			RULE rule = theBiq.Rule[0];
 
 			save.Rules.MaximumResearchTime = rule.MaximumResearchTime;
+			save.Rules.AcceleratedProduction = GameBiq?.Game?[0].AcceleratedProduction ?? false;
 			save.Rules.UpgradeCostPerShield = rule.UpgradeCost;
 			save.Rules.MinimumPopulationForWeLoveTheKing = rule.MinimumPopulationForWeLoveTheKing;
 			save.Rules.GoldenAgeDuration = rule.GoldenAgeDuration;
