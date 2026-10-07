@@ -442,7 +442,31 @@ namespace C7GameData {
 			if (t == Tile.NONE || t == null) {
 				return false;
 			}
-			return activeTileCounts.ContainsKey(t);
+			return activeTileCounts.ContainsKey(t) || (peekedTiles.Count > 0 && peekedTiles.Contains(t));
+		}
+
+		// Tiles the player is shown as they are now for a while, though none
+		// of their units or cities can see them, as when an embassy first
+		// shows them the land around a capital. They aren't saved.
+		private readonly HashSet<Tile> peekedTiles = new();
+
+		// Shows the known tiles as in view until EndPeek.
+		public void Peek(IEnumerable<Tile> tiles) {
+			foreach (Tile t in tiles) {
+				if (knownTiles.Contains(t)) {
+					peekedTiles.Add(t);
+				}
+			}
+		}
+
+		// The peeked tiles go back to being remembered as they are now.
+		public void EndPeek() {
+			foreach (Tile t in peekedTiles) {
+				if (!activeTileCounts.ContainsKey(t)) {
+					RememberImprovements(t);
+				}
+			}
+			peekedTiles.Clear();
 		}
 
 		/**

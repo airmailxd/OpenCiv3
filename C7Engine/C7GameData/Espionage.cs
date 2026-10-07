@@ -82,6 +82,8 @@ namespace C7Engine {
 			public string message;
 			public Tech stolenTech;
 			public CityReport report;
+			// The capital an embassy was established in.
+			public City city;
 			public Player exposedSpyOwner;
 		}
 
@@ -337,8 +339,8 @@ namespace C7Engine {
 					ours.embassyReport = Investigate(capital, gameData.turn);
 					RevealCityRadius(actor, capital);
 					result.report = ours.embassyReport;
-					result.message = $"We have established an embassy with the {target.civilization.noun} in {capital.name}.\n"
-						+ DescribeReport(result.report);
+					result.city = capital;
+					result.message = $"We have established an embassy with the {target.civilization.noun} in {capital.name}.";
 					break;
 				}
 				case EspionageMission.InvestigateCity:
@@ -397,14 +399,17 @@ namespace C7Engine {
 		// Shows the player the tiles in the city's radius (its big fat
 		// cross), remembering them as they are now.
 		public static void RevealCityRadius(Player player, City city) {
-			foreach (Tile t in city.location.GetTilesWithinRankDistance(city.owner.rules.MaxRankOfWorkableTiles)) {
-				if (t == Tile.NONE) {
-					continue;
-				}
+			foreach (Tile t in CityRadius(city)) {
 				player.tileKnowledge.AddTileToKnown(t);
 				player.tileKnowledge.RememberImprovements(t);
 			}
 			player.tileKnowledge.RecomputeActiveTiles();
+		}
+
+		// The tiles in the city's radius, on the map.
+		public static List<Tile> CityRadius(City city) {
+			return city.location.GetTilesWithinRankDistance(city.owner.rules.MaxRankOfWorkableTiles)
+				.Where(t => t != Tile.NONE).ToList();
 		}
 
 		public static CityReport Investigate(City city, int turn) {

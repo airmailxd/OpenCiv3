@@ -940,16 +940,24 @@ public partial class Game : Node {
 				InterestingEvent();
 				break;
 			}
-			case MsgEspionageResult mER:
-				// An embassy shows us the land around their capital.
-				if (mER.success && mER.mission == EspionageMission.EstablishEmbassy) {
+			case MsgEspionageResult mER: {
+				// A new embassy shows us their capital once, then the land
+				// around it stays on the map as it was.
+				bool showCapital = mER.success && mER.mission == EspionageMission.EstablishEmbassy && mER.city != null;
+				if (showCapital) {
 					mapView.InvalidateMap();
 				}
+				City capital = mER.city;
 				popupOverlay.ShowPopup(
 					new ChoicePopup(Espionage.Describe(mER.mission), Embassies.Wrap(mER.message ?? ""),
-						[new ChoicePopup.Choice("Very well.", () => { })], cancellable: false),
+						[new ChoicePopup.Choice("Very well.", () => {
+							if (showCapital) {
+								ShowEmbassyCapital(capital);
+							}
+						})], cancellable: false),
 					PopupOverlay.PopupCategory.Advisor);
 				break;
+			}
 			case MsgVictory mV:
 				var endMsg =
 					$"The {mV.winner.civilization.noun} have won a {mV.victory.Header()} victory!\n"
@@ -2294,6 +2302,20 @@ public partial class Game : Node {
 	private void OnBuildCity(string name) {
 		if (CurrentlySelectedUnit != null)
 			new MsgBuildCity(CurrentlySelectedUnit, name).send();
+	}
+
+	// Shows the capital a new embassy reports on, with the tiles around it as
+	// they are now, until the city screen is closed.
+	private void ShowEmbassyCapital(City capital) {
+		Player viewer = controller;
+		viewer.tileKnowledge.Peek(Espionage.CityRadius(capital));
+		mapView.InvalidateMap();
+		EngineStorage.ReadGameData((GameData gameData) => {
+			cityScreen.ShowForeignCity(gameData, capital, () => {
+				viewer.tileKnowledge.EndPeek();
+				mapView.InvalidateMap();
+			});
+		});
 	}
 
 	public void ShowCityScreenForCity(GameData gameData, City city) {
