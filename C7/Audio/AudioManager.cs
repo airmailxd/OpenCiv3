@@ -51,6 +51,8 @@ public partial class AudioManager : Node {
 			string volume = C7Settings.GetSettingValue(AudioSettingsSection, volumeKey);
 			float volumeDb = LogicalVolumeAsDecibel(volume, volumeKey);
 
+			int busIndex = AudioServer.GetBusIndex(audioBus);
+			AudioServer.SetBusMute(busIndex, volumeDb == float.MinValue);
 			if (volumeDb == float.MinValue) {
 				return false;
 			}
@@ -58,7 +60,6 @@ public partial class AudioManager : Node {
 			log.Debug("setting {volumeKey} to {volume}, which is {offset} decibel (offset)",
 				volumeKey, volume, volumeDb);
 
-			int busIndex = AudioServer.GetBusIndex(audioBus);
 			AudioServer.SetBusVolumeDb(busIndex, volumeDb);
 
 			return true;
@@ -66,6 +67,28 @@ public partial class AudioManager : Node {
 			log.Error(ex, "could not configure {volumeKey}", volumeKey);
 			return false;
 		}
+	}
+
+	// The volume settings, by their key in C7.ini, and the bus each one sets.
+	public static readonly (string Key, string Bus, string Name)[] VolumeSettings = [
+		("musicVolume", MusicBus, "Music"),
+		("sfxAudioVolume", SfxAudioBus, "Sound effects"),
+		("uiAudioVolume", UIAudioBus, "Interface sounds"),
+		("ambienceAudioVolume", AmbienceAudioBus, "Ambience"),
+	];
+
+	// A volume setting, from 0 to 100.
+	public static int GetVolume(string volumeKey) {
+		string volume = C7Settings.GetSettingsValueOrDefault(AudioSettingsSection, volumeKey, "100");
+		return int.TryParse(volume, out int result) ? Math.Clamp(result, 0, 100) : 100;
+	}
+
+	// Saves a volume setting (0 to 100) and applies it right away.
+	public void SetVolume(string volumeKey, string audioBus, int volume) {
+		volume = Math.Clamp(volume, 0, 100);
+		C7Settings.SetValue(AudioSettingsSection, volumeKey, volume.ToString());
+		C7Settings.SaveSettings();
+		ConfigureVolume(volumeKey, audioBus);
 	}
 
 	/**

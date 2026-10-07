@@ -83,6 +83,7 @@ namespace C7.Map {
 			cachedDetails = GetCityGraphicsDetails(city);
 			ConfigureCityGraphics(cachedDetails);
 
+			cityGraphics.TextureFilter = ModernGraphics.SpriteFilter;
 			AddChild(cityGraphics);
 			AddChild(cityLabelScene);
 

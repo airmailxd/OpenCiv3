@@ -264,9 +264,8 @@ public partial class AnimationManager {
 
 		Flic flic = Util.LoadFlic(filepath);
 
-		byte[] rawFrame = flic.Images[flicAnimationDirectionToRow(thumbnailDirection), thumbnailFrame];
 		// This actually doesn't return the tint frame with the civ color applied. The shader still needs to be applied.
-		(ImageTexture baseFrame, ImageTexture tintFrame) = Util.LoadTextureFromFlicData(rawFrame, flic.Palette, flic.Width, flic.Height);
+		(ImageTexture baseFrame, ImageTexture tintFrame) = LoadFrame(filepath, flic, flicAnimationDirectionToRow(thumbnailDirection), thumbnailFrame);
 		AnimationThumbnails[key] = baseFrame;
 		AnimationTintThumbnails[key] = tintFrame;
 
@@ -369,12 +368,21 @@ public partial class AnimationManager {
 			tint.AddAnimation(animationName);
 
 			for (int col = 0; col < flic.Images.GetLength(1); col++) {
-				byte[] frame = flic.Images[row,col];
-				(ImageTexture bl, ImageTexture tl) = Util.LoadTextureFromFlicData(frame, flic.Palette, flic.Width, flic.Height);
+				(ImageTexture bl, ImageTexture tl) = LoadFrame(path, flic, row, col);
 				frames.AddFrame(animationName, bl, 0.5f); // TODO: frame duration is controlled by .ini
 				tint.AddFrame(animationName, tl, 0.5f);   // TODO: frame duration is controlled by .ini
 			}
 		}
+	}
+
+	// The base and tint textures of a frame of a flic, remade ones if the
+	// graphics overhaul is on and the flic has been remade.
+	private static (ImageTexture, ImageTexture) LoadFrame(string path, Flic flic, int row, int col) {
+		(ImageTexture modernBase, ImageTexture modernTint) = ModernGraphics.LoadFlicFrame(path, flic, row, col);
+		if (modernBase != null) {
+			return (modernBase, modernTint);
+		}
+		return Util.LoadTextureFromFlicData(flic.Images[row, col], flic.Palette, flic.Width, flic.Height);
 	}
 
 	public static void loadFlicEffectAnimation(string path, string name, ref SpriteFrames frames, ref SpriteFrames tint) {
@@ -386,8 +394,7 @@ public partial class AnimationManager {
 			tint.AddAnimation(animationName);
 
 			for (int col = 0; col < flic.Images.GetLength(1); col++) {
-				byte[] frame = flic.Images[row,col];
-				(ImageTexture bl, ImageTexture tl) = Util.LoadTextureFromFlicData(frame, flic.Palette, flic.Width, flic.Height);
+				(ImageTexture bl, ImageTexture tl) = LoadFrame(path, flic, row, col);
 				frames.AddFrame(animationName, bl, 0.5f); // TODO: frame duration is controlled by .ini
 				tint.AddFrame(animationName, tl, 0.5f);   // TODO: frame duration is controlled by .ini
 			}
