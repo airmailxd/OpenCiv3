@@ -74,3 +74,7 @@ msbuild.wrn
 # Local agent/contributor docs (keep out of the repo until maintainers want them)
 /doc/agent/
 /AGENTS.md
+
+# Unit animations for the Graphics Overhaul, only played with animations on.
+# They're big, so they're built locally (python ArtGen/units/build.py --animations).
+C7/ModernArtAnimations/

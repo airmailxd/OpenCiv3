@@ -539,6 +539,8 @@ public static class TextureLoader {
 		PCXToGodot.ColorOptions options = colorOptions ?? (cropRegion is null ? UncroppedDefaultColorOptions : PCXToGodot.ColorOptions.Default);
 		TextureCacheKey key = new(TextureKind.Pcx, relPath, cropRegion, options.shadows, IndexSet.From(options.transparentColorIndexes), null, 0);
 		return GetOrAddTexture(key, () => {
+			if (ModernGraphics.Load(relPath, cropRegion) is ImageTexture modern)
+				return modern;
 			Pcx pcx = LoadPCX(relPath);
 			if (cropRegion is not null)
 				return PCXToGodot.getImageTextureFromPCX(pcx, cropRegion.Value, options);
@@ -549,6 +551,8 @@ public static class TextureLoader {
 	private static ImageTexture LoadFromPNG(string relPath, CropRegion? cropRegion = null) {
 		TextureCacheKey key = new(TextureKind.Png, relPath, cropRegion, false, default, null, 0);
 		return GetOrAddTexture(key, () => {
+			if (ModernGraphics.Load(relPath, cropRegion) is ImageTexture modern)
+				return modern;
 			Image image = LoadPNG(relPath);
 			if (cropRegion != null) {
 				var region = cropRegion.Value;

@@ -84,6 +84,7 @@ public partial class MainMenu : Node {
 		ButtonContainer.JoinLan.Pressed += JoinLanGame;
 		ButtonContainer.HallOfFame.Pressed += HallOfFame;
 		ButtonContainer.HallOfFame.Visible = false;
+		ButtonContainer.Settings.Pressed += ShowSettings;
 		ButtonContainer.Preferences.Pressed += Preferences;
 		ButtonContainer.Preferences.Visible = false;
 		ButtonContainer.AudioPreferences.Pressed += Preferences;
@@ -218,6 +219,12 @@ public partial class MainMenu : Node {
 
 	public void HallOfFame() {
 		PlayButtonPressedSound();
+	}
+
+	public void ShowSettings() {
+		log.Information("settings button pressed");
+		PlayButtonPressedSound();
+		GetTree().ChangeSceneToFile("res://UIElements/Settings/settings_menu.tscn");
 	}
 
 	public void Preferences() {

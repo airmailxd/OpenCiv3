@@ -637,6 +637,7 @@ public partial class Util {
 		ClearMediaPathCache();
 		PCXToGodot.ClearCache();
 		TextureLoader.ClearCache();
+		ModernGraphics.ClearCache();
 		AnimationManager.ClearCache();
 		PlayerTextureUtil.ClearCache();
 		UICaches.Clear();

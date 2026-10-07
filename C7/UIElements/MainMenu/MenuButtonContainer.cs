@@ -12,6 +12,7 @@ public partial class MenuButtonContainer : VBoxContainer {
 	public Civ3MenuButton JoinLan { get; private set; }
 	public Civ3MenuButton HallOfFame { get; private set; }
 	public Civ3MenuButton ToggleGraphics { get; private set; }
+	public Civ3MenuButton Settings { get; private set; }
 	public Civ3MenuButton Preferences { get; private set; }
 	public Civ3MenuButton AudioPreferences { get; private set; }
 	public Civ3MenuButton Credits { get; private set; }
@@ -32,6 +33,7 @@ public partial class MenuButtonContainer : VBoxContainer {
 		JoinLan = null;
 		HallOfFame = null;
 		ToggleGraphics = null;
+		Settings = null;
 		Preferences = null;
 		AudioPreferences = null;
 		Credits = null;
@@ -63,6 +65,9 @@ public partial class MenuButtonContainer : VBoxContainer {
 
 		ToggleGraphics = new Civ3MenuButton() { Text = "Use OpenCiv3 Graphics" };
 		AddChild(ToggleGraphics);
+
+		Settings = new Civ3MenuButton() { Text = "Settings" };
+		AddChild(Settings);
 
 		Preferences = new Civ3MenuButton() { Text = "Preferences" };
 		AddChild(Preferences);

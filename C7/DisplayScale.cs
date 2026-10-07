@@ -10,9 +10,9 @@ using Godot;
 public partial class DisplayScale : Node {
 	private const string Section = "display";
 	private const string Key = "uiScale";
-	private const float Step = 0.25f;
-	private const float Min = 0.5f;
-	private const float Max = 4f;
+	public const float Step = 0.25f;
+	public const float Min = 0.5f;
+	public const float Max = 4f;
 
 	public override void _Ready() {
 		Window window = GetTree().Root;
@@ -35,7 +35,7 @@ public partial class DisplayScale : Node {
 		return DefaultScale();
 	}
 
-	private void SetScale(float scale) {
+	public void SetScale(float scale) {
 		scale = Mathf.Clamp(scale, Min, Max);
 		GetTree().Root.ContentScaleFactor = scale;
 		C7Settings.SetValue(Section, Key, scale.ToString(CultureInfo.InvariantCulture));
