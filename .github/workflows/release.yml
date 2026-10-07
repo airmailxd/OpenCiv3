@@ -39,15 +39,15 @@ jobs:
     - uses: ./.github/workflows/composite/buildSetup
     - name: Export
       run: |
-        mkdir -v -p build/game
+        mkdir -v -p build/OpenCiv3
         cd ${PROJECT_DIR}
         dotnet build
         if [ "${{ matrix.platform }}" = "mac" ]; then
           godot -v --headless --export-release "${{ matrix.preset }}" ../build/mac.zip
         elif [ "${{ matrix.platform }}" = "linux" ]; then
-          godot -v --headless --export-release "${{ matrix.preset }}" ../build/game/${EXPORT_NAME}.x86_64
+          godot -v --headless --export-release "${{ matrix.preset }}" ../build/OpenCiv3/${EXPORT_NAME}.x86_64
         else
-          godot -v --headless --export-release "${{ matrix.preset }}" ../build/game/${EXPORT_NAME}.exe
+          godot -v --headless --export-release "${{ matrix.preset }}" ../build/OpenCiv3/${EXPORT_NAME}.exe
         fi
     - name: Package
       run: |
@@ -56,12 +56,12 @@ jobs:
             cd ${PROJECT_DIR} && zip -q -r ../build/mac.zip Assets Text Lua ModernArt
             ;;
           linux)
-            cp -r ${PROJECT_DIR}/Text ${PROJECT_DIR}/Assets ${PROJECT_DIR}/Lua ${PROJECT_DIR}/ModernArt build/game/
-            tar -C build -zcf build/linux.tar.gz game
+            cp -r ${PROJECT_DIR}/Text ${PROJECT_DIR}/Assets ${PROJECT_DIR}/Lua ${PROJECT_DIR}/ModernArt build/OpenCiv3/
+            tar -C build -zcf build/linux.tar.gz OpenCiv3
             ;;
           windows)
-            cp -r ${PROJECT_DIR}/Text ${PROJECT_DIR}/Assets ${PROJECT_DIR}/Lua ${PROJECT_DIR}/ModernArt build/game/
-            cd build && zip -q -r windows.zip game
+            cp -r ${PROJECT_DIR}/Text ${PROJECT_DIR}/Assets ${PROJECT_DIR}/Lua ${PROJECT_DIR}/ModernArt build/OpenCiv3/
+            cd build && zip -q -r windows.zip OpenCiv3
             ;;
         esac
     - uses: actions/upload-artifact@v4

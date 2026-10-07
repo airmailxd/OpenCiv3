@@ -61,10 +61,10 @@ public partial class MainMenu : Node {
 		LoadScenarioDialog.SetDirectoryForLoading(@"Conquests/Scenarios");
 		LoadScenarioDialog.GoToScenarioSetupAfterLoading = true;
 
+		// Without a Civ3 install, play in standalone mode rather than asking.
 		if (!C7Settings.UseStandaloneMode() && !ClassicGraphicsAvailable()) {
-			NoCiv3Options.Visible = true;
-			ButtonContainer.Visible = false;
-			return;
+			log.Information("No Civ3 install found, switching to standalone mode");
+			Global.ActivateGameMode(GamePaths.standalone);
 		}
 
 		ButtonContainer.Visible = true;

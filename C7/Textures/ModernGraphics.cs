@@ -39,7 +39,7 @@ public static class ModernGraphics {
 
 	public static bool Enabled {
 		get {
-			enabled ??= C7Settings.GetSettingsValueOrDefault(SettingsSection, SettingsKey, "false") == "true";
+			enabled ??= C7Settings.GetSettingsValueOrDefault(SettingsSection, SettingsKey, "true") == "true";
 			return enabled.Value;
 		}
 	}
