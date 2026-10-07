@@ -68,7 +68,8 @@ jobs:
       run: |
         if cp -r ${PROJECT_DIR}/Text build/${FOLDER_NAME}/Text && \\
            cp -r ${PROJECT_DIR}/Assets build/${FOLDER_NAME}/Assets && \\
-           cp -r ${PROJECT_DIR}/Lua build/${FOLDER_NAME}/Lua
+           cp -r ${PROJECT_DIR}/Lua build/${FOLDER_NAME}/Lua && \
+           cp -r ${PROJECT_DIR}/ModernArt build/${FOLDER_NAME}/ModernArt
         then
           echo "successfully copied static files to build"
         else
@@ -115,7 +116,8 @@ jobs:
       run: |
         if cp -r ${PROJECT_DIR}/Text build/${FOLDER_NAME}/Text && \\
            cp -r ${PROJECT_DIR}/Assets build/${FOLDER_NAME}/Assets && \\
-           cp -r ${PROJECT_DIR}/Lua build/${FOLDER_NAME}/Lua
+           cp -r ${PROJECT_DIR}/Lua build/${FOLDER_NAME}/Lua && \
+           cp -r ${PROJECT_DIR}/ModernArt build/${FOLDER_NAME}/ModernArt
         then
           echo "successfully copied static files to build"
         else
@@ -164,7 +166,7 @@ jobs:
     - name: Copy Static Files
       run: |
         cd ${PROJECT_DIR}
-        if zip -r ../build/${FOLDER_NAME}.zip Assets Text Lua
+        if zip -r ../build/${FOLDER_NAME}.zip Assets Text Lua ModernArt
         then
           echo "successfully copied static files to build"
         else

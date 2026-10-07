@@ -53,14 +53,14 @@ jobs:
       run: |
         case "${{ matrix.platform }}" in
           mac)
-            cd ${PROJECT_DIR} && zip -q -r ../build/mac.zip Assets Text Lua
+            cd ${PROJECT_DIR} && zip -q -r ../build/mac.zip Assets Text Lua ModernArt
             ;;
           linux)
-            cp -r ${PROJECT_DIR}/Text ${PROJECT_DIR}/Assets ${PROJECT_DIR}/Lua build/game/
+            cp -r ${PROJECT_DIR}/Text ${PROJECT_DIR}/Assets ${PROJECT_DIR}/Lua ${PROJECT_DIR}/ModernArt build/game/
             tar -C build -zcf build/linux.tar.gz game
             ;;
           windows)
-            cp -r ${PROJECT_DIR}/Text ${PROJECT_DIR}/Assets ${PROJECT_DIR}/Lua build/game/
+            cp -r ${PROJECT_DIR}/Text ${PROJECT_DIR}/Assets ${PROJECT_DIR}/Lua ${PROJECT_DIR}/ModernArt build/game/
             cd build && zip -q -r windows.zip game
             ;;
         esac
