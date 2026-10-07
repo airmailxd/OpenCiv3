@@ -192,22 +192,32 @@ public partial class DealScreen : TextureRect {
 		activeDealsButton.Text = showDeals ? "Back to the negotiation" : "Active Deals";
 	}
 
-	// Lists the deals in force with the opponent, over the middle of the
-	// screen where offers are shown.
+	// Lists the deals in force with the opponent across the boxes in the
+	// middle of the screen: the heading in the top box, what each side gives
+	// on its side of the table, and the agreements in the bottom box.
 	private Control CreateActiveDealsPanel(GameData gD, Player humanPlayer, Player opponentPlayer, Theme headerTheme) {
 		Theme blackFontTheme = new();
 		blackFontTheme.DefaultFont = font;
 		blackFontTheme.SetColor("font_color", "Label", Colors.Black);
 
-		ScrollContainer scroll = new();
-		scroll.SetPosition(new Vector2(314, 440));
-		scroll.Size = new Vector2(400, 200);
-		scroll.HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled;
+		Control panel = new();
+		panel.MouseFilter = MouseFilterEnum.Ignore;
 
-		VBoxContainer list = new();
-		list.AddThemeConstantOverride("separation", 1);
-		list.CustomMinimumSize = new Vector2(400, 0);
-		scroll.AddChild(list);
+		// A scrollable list over one of the boxes, for when there are more
+		// deals than fit.
+		VBoxContainer AddBox(Vector2 position, Vector2 size) {
+			ScrollContainer scroll = new();
+			scroll.SetPosition(position);
+			scroll.Size = size;
+			scroll.HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled;
+			panel.AddChild(scroll);
+
+			VBoxContainer list = new();
+			list.AddThemeConstantOverride("separation", 1);
+			list.CustomMinimumSize = new Vector2(size.X, 0);
+			scroll.AddChild(list);
+			return list;
+		}
 
 		void AddLine(Container parent, string text, Theme theme, bool indent = false,
 				HorizontalAlignment alignment = HorizontalAlignment.Left) {
@@ -220,35 +230,41 @@ public partial class DealScreen : TextureRect {
 			parent.AddChild(label);
 		}
 
-		void AddSection(Container parent, string header, List<string> lines,
-				HorizontalAlignment alignment = HorizontalAlignment.Left) {
+		void AddSection(Container parent, string header, List<string> lines, HorizontalAlignment alignment) {
 			if (lines.Count == 0) {
 				return;
 			}
+			bool indent = alignment != HorizontalAlignment.Center;
 			AddLine(parent, header, headerTheme, alignment: alignment);
 			foreach (string line in lines) {
-				AddLine(parent, line, blackFontTheme, true, alignment);
+				AddLine(parent, line, blackFontTheme, indent, alignment);
 			}
 		}
 
-		AddLine(list, $"Active deals with the {opponentPlayer.civilization.noun}", headerTheme);
-		if (AtWar(humanPlayer, opponentPlayer)) {
-			AddLine(list, "We are at war.", blackFontTheme, true);
-			return scroll;
-		}
+		Label heading = new();
+		heading.Text = $"Active deals with the {opponentPlayer.civilization.noun}";
+		heading.Theme = headerTheme;
+		heading.HorizontalAlignment = HorizontalAlignment.Center;
+		heading.SetPosition(new Vector2(314, 393));
+		heading.Size = new Vector2(400, 20);
+		panel.AddChild(heading);
 
+		VBoxContainer middle = AddBox(new Vector2(314, 440), new Vector2(400, 88));
+		if (AtWar(humanPlayer, opponentPlayer)) {
+			AddLine(middle, "We are at war.", blackFontTheme, true);
+			return panel;
+		}
 		ActiveDeals deals = ActiveDeals.Between(gD, humanPlayer, opponentPlayer);
 		if (deals.IsEmpty) {
-			AddLine(list, "We have no active deals.", blackFontTheme, true);
-			return scroll;
+			AddLine(middle, "We have no active deals.", blackFontTheme, true);
+			return panel;
 		}
-		AddSection(list, "Agreements", deals.agreements);
 
 		// What each side gives goes on its side of the table, as the offers
 		// do: theirs on the left, ours on the right.
 		HBoxContainer columns = new();
 		columns.AddThemeConstantOverride("separation", 0);
-		list.AddChild(columns);
+		middle.AddChild(columns);
 		VBoxContainer theyGive = new();
 		VBoxContainer weGive = new();
 		foreach (VBoxContainer column in new[] { theyGive, weGive }) {
@@ -256,9 +272,12 @@ public partial class DealScreen : TextureRect {
 			column.SizeFlagsHorizontal = SizeFlags.ExpandFill;
 			columns.AddChild(column);
 		}
-		AddSection(theyGive, "They Give", deals.theyGive);
+		AddSection(theyGive, "They Give", deals.theyGive, HorizontalAlignment.Left);
 		AddSection(weGive, "We Give", deals.weGive, HorizontalAlignment.Right);
-		return scroll;
+
+		VBoxContainer bottom = AddBox(new Vector2(314, 560), new Vector2(400, 85));
+		AddSection(bottom, "Agreements", deals.agreements, HorizontalAlignment.Center);
+		return panel;
 	}
 
 	private void AttemptDeal() {
