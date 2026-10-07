@@ -56,6 +56,11 @@ public partial class LanLobby : Control {
 	private ID choosingSeat;
 	private readonly HashSet<ID> rejoinSeats = new();
 
+	// Joining: names typed for our seats' players but not yet sent, and the
+	// seat whose name is being typed, kept as the seats are redrawn.
+	private readonly Dictionary<ID, string> seatNameDrafts = new();
+	private ID editingSeatName;
+
 	public override void _Ready() {
 		Global = GetNode<GlobalSingleton>("/root/GlobalSingleton");
 		SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
@@ -271,13 +276,13 @@ public partial class LanLobby : Control {
 		return $"{name}{civilization}: {who}";
 	}
 
-	private static void AddSeatRow(VBoxContainer list, string text, params BaseButton[] buttons) {
+	private static void AddSeatRow(VBoxContainer list, string text, params Control[] buttons) {
 		HBoxContainer row = new();
 		row.AddThemeConstantOverride("separation", 12);
 		Label label = new() { Text = text, CustomMinimumSize = new Vector2(420, 0) };
 		label.AddThemeFontSizeOverride("font_size", 18);
 		row.AddChild(label);
-		foreach (BaseButton button in buttons) {
+		foreach (Control button in buttons) {
 			if (button != null) {
 				row.AddChild(button);
 			}
@@ -532,7 +537,7 @@ public partial class LanLobby : Control {
 				AddSeatRow(seatList, $"{seat.playerName} (hosting), {seat.civilization}");
 				continue;
 			}
-			List<Button> buttons = [];
+			List<Control> buttons = [];
 			bool open = seat.takenBy == null && !client.IsSpectator && !lobby.creatingGame;
 			if (open && !lobby.started) {
 				buttons.Add(MakeButton("Take Seat", () => client.ClaimSeat(seat.playerID, NameForAnotherSeat(lobby, mine))));
@@ -562,8 +567,18 @@ public partial class LanLobby : Control {
 					buttons.Add(MakeButton("Leave Seat", () => client.LeaveSeat(seat.playerID)));
 				}
 			}
+			if (mine.Contains(seat.playerID) && !lobby.started && !lobby.creatingGame) {
+				// Each player at this computer has their own name.
+				string place = seat.playerName == null ? "" : $"{seat.playerName}, ";
+				string civilization = seat.civilization ?? "civilization not chosen (random)";
+				AddSeatRow(seatList, $"{place}{civilization} (you):", [MakeSeatNameEdit(client, seat), .. buttons]);
+				continue;
+			}
 			string you = mine.Contains(seat.playerID) ? " (you)" : "";
 			AddSeatRow(seatList, Describe(seat) + you, [.. buttons]);
+		}
+		foreach (ID gone in seatNameDrafts.Keys.Where(id => !mine.Contains(id)).ToList()) {
+			seatNameDrafts.Remove(gone);
 		}
 
 		if (lobby.started && !client.IsSpectator && lobby.seats.Any(s => !s.isHost && s.takenBy == null)) {
@@ -584,8 +599,8 @@ public partial class LanLobby : Control {
 
 		UpdateCivPicker(lobby, canChoose);
 
-		string hotseatTip = " To play several people at this computer, taking turns, take a seat for each of them,"
-			+ " changing \"Your name\" above to theirs before taking it.";
+		string hotseatTip = " To play several people at this computer, taking turns, take a seat for each of them"
+			+ " and type each player's name beside their seat.";
 		status.Text = lobby.creatingGame ? $"{lobby.hostName} is creating the world..."
 			: client.IsSpectator ? "Watching. Waiting for the host to start the game..."
 			: lobby.started && mine.Count == 0 ? "This game is in progress. Tick the seats to play, then join it." + hotseatTip
@@ -597,6 +612,47 @@ public partial class LanLobby : Control {
 		if (LanSession.DevJoinAddress != null && !client.IsSpectator && mine.Count == 0 && firstOpen != null) {
 			client.ClaimSeat(firstOpen.playerID);
 		}
+	}
+
+	// A box for the name of the player in one of our seats, sent to the host
+	// on Enter or on leaving the box.
+	private LineEdit MakeSeatNameEdit(LanClient client, SeatInfo seat) {
+		ID id = seat.playerID;
+		LineEdit edit = new() {
+			Text = seatNameDrafts.TryGetValue(id, out string draft) ? draft : seat.takenBy,
+			PlaceholderText = "Player's name",
+			MaxLength = 40,
+			CustomMinimumSize = new Vector2(200, 0),
+		};
+		edit.TextChanged += text => seatNameDrafts[id] = text;
+		void Send() {
+			if (seatNameDrafts.Remove(id, out string name) && !string.IsNullOrWhiteSpace(name) && name.Trim() != seat.takenBy) {
+				client.ClaimSeat(id, name.Trim());
+			}
+		}
+		edit.TextSubmitted += _ => {
+			Send();
+			edit.ReleaseFocus();
+		};
+		edit.FocusEntered += () => editingSeatName = id;
+		edit.FocusExited += () => {
+			// Redrawing the seats frees the box; the one replacing it takes
+			// over the typing.
+			if (edit.IsQueuedForDeletion()) {
+				return;
+			}
+			editingSeatName = null;
+			Send();
+		};
+		if (editingSeatName == id) {
+			Callable.From(() => {
+				if (IsInstanceValid(edit) && edit.IsInsideTree()) {
+					edit.GrabFocus();
+					edit.CaretColumn = edit.Text.Length;
+				}
+			}).CallDeferred();
+		}
+		return edit;
 	}
 
 	// The name for the player in another seat we take: the one typed in,

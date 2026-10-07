@@ -87,7 +87,8 @@ public class LanClient : IDisposable {
 	}
 
 	// Takes a seat, alongside any taken already, for the player named (or
-	// this client's own name when null).
+	// this client's own name when null). Claiming one of our own seats again
+	// renames its player, before the game starts.
 	public void ClaimSeat(ID playerID, string playerName = null) {
 		connection.Send(FrameKind.ClaimSeat, new ClaimSeatInfo(playerID, playerName));
 	}

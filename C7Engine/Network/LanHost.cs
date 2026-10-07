@@ -472,9 +472,17 @@ public class LanHost : IDisposable {
 		}
 	}
 
-	// A guest takes an open seat, in addition to any they have already.
+	// A guest takes an open seat, in addition to any they have already, or
+	// renames the player in one of theirs before the game starts.
 	private void ClaimSeat(Guest guest, ClaimSeatInfo claim) {
 		Seat seat = seats.Find(s => s.info.playerID == claim.playerID);
+		if (seat != null && seat.guest == guest && seat.IsTaken) {
+			if (!Started && !creatingGame) {
+				seat.takenBy = SeatPlayerName(guest, claim.playerName);
+			}
+			BroadcastLobby();
+			return;
+		}
 		if (seat == null || seat.IsTaken) {
 			SendLobby(guest);
 			return;
