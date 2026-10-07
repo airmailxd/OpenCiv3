@@ -427,13 +427,17 @@ namespace C7Engine {
 		public bool performed;
 		public bool success;
 		public string message;
+		// The capital an embassy was established in, which the player is
+		// shown once.
+		public City city;
 
-		public MsgEspionageResult(Player recipient, EspionageMission mission, bool performed, bool success, string message) {
+		public MsgEspionageResult(Player recipient, EspionageMission mission, bool performed, bool success, string message, City city = null) {
 			this.recipient = recipient;
 			this.mission = mission;
 			this.performed = performed;
 			this.success = success;
 			this.message = message;
+			this.city = city;
 		}
 	}
 

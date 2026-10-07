@@ -120,10 +120,30 @@ public class EspionageTest : IClassFixture<SaveGameFixture>, System.IDisposable 
 		Assert.Equal(4, report.size);
 		Assert.Equal(12, report.shieldsStored);
 		Assert.All(radius, t => Assert.True(actor.tileKnowledge.isTileKnown(t)));
+		Assert.Equal(capital, result.city);
 
 		// The report is of the capital as it was, not as it is.
 		capital.SetStoredShields(30);
 		Assert.Equal(12, actor.playerRelationships[target.id].embassyReport.shieldsStored);
+	}
+
+	// The land around the capital is shown as it is while the embassy's
+	// view of it is open, and then is fogged, though still known.
+	[Fact]
+	public void PeekedTilesAreInViewUntilThePeekEnds() {
+		FoundCity(actor, 3);
+		City capital = FoundCity(target, 4);
+		Meet(actor, target);
+		Espionage.Perform(gameData, actor, EspionageMission.EstablishEmbassy, target, null, Succeed);
+		List<Tile> radius = Espionage.CityRadius(capital);
+		Tile far = radius.First(t => !actor.tileKnowledge.isActiveTile(t));
+
+		actor.tileKnowledge.Peek(radius);
+		Assert.All(radius, t => Assert.True(actor.tileKnowledge.isActiveTile(t)));
+
+		actor.tileKnowledge.EndPeek();
+		Assert.False(actor.tileKnowledge.isActiveTile(far));
+		Assert.True(actor.tileKnowledge.isTileKnown(far));
 	}
 
 	[Fact]

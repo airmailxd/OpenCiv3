@@ -141,6 +141,11 @@ public partial class CityScreen : Control {
 	private float fitScale = 1f;
 	private float mapZoomBeforeOpening;
 
+	// Set while showing another civ's city, as an embassy does when it is
+	// established: the city can be looked at, but not managed.
+	private bool foreignView = false;
+	private Action onForeignViewClosed;
+
 	// Called when the node enters the scene tree for the first time.
 	public override void _Ready() {
 		background.Texture = TextureLoader.Load("city_screen.background");
@@ -298,7 +303,7 @@ public partial class CityScreen : Control {
 		if (@event is InputEventMouseButton eventMouseButton) {
 			if (eventMouseButton.ButtonIndex == MouseButton.Left) {
 				GetViewport().SetInputAsHandled();
-				if (eventMouseButton.IsPressed()) {
+				if (eventMouseButton.IsPressed() && !foreignView) {
 					EngineStorage.ReadGameData((GameData gameData) => {
 						if (productionMenu != null) {
 							productionMenu.Visible = false;
@@ -317,9 +322,42 @@ public partial class CityScreen : Control {
 	}
 
 	private void OnShowCityScreen(ParameterWrapper<City> city) {
+		EndForeignView();
 		EngineStorage.ReadGameData((GameData gameData) => {
 			OnShowCityScreenLocked(gameData, city);
 		});
+	}
+
+	// Shows another civ's city without letting the player manage it, until
+	// the screen is closed, when onClosed is called.
+	public void ShowForeignCity(GameData gameData, City city, Action onClosed) {
+		EndForeignView();
+		foreignView = true;
+		onForeignViewClosed = onClosed;
+		SetManagementControlsVisible(false);
+		city.RecalculateCitizenMoods(gameData);
+		OnShowCityScreenLocked(gameData, new ParameterWrapper<City>(city));
+	}
+
+	private void EndForeignView() {
+		if (!foreignView) {
+			return;
+		}
+		foreignView = false;
+		SetManagementControlsVisible(true);
+		Action onClosed = onForeignViewClosed;
+		onForeignViewClosed = null;
+		onClosed?.Invoke();
+	}
+
+	private void SetManagementControlsVisible(bool visible) {
+		productionMenu.Hide();
+		// The production button shows what the city is building, so it stays,
+		// but can't be pressed to change it.
+		productionButton.Disabled = !visible;
+		productionButton.MouseFilter = visible ? MouseFilterEnum.Stop : MouseFilterEnum.Ignore;
+		previousCity.Visible = visible;
+		nextCity.Visible = visible;
 	}
 
 	private void OnShowCityScreenLocked(GameData gameData, ParameterWrapper<City> city) {
@@ -386,6 +424,7 @@ public partial class CityScreen : Control {
 	}
 
 	private void OnExit() {
+		EndForeignView();
 		productionMenu.Hide();
 		tileAssignmentLayer.city = null;
 		if (mapView != null) {
@@ -1025,7 +1064,7 @@ public partial class CityScreen : Control {
 			TextureButton head = new() { Theme = PopHead.TooltipTheme };
 			// Pressing a specialist cycles it to the next kind.
 			head.Pressed += () => {
-				if (specialistOfHead.TryGetValue(head, out var specialist)) {
+				if (!foreignView && specialistOfHead.TryGetValue(head, out var specialist)) {
 					new MsgCycleSpecialist(specialist.city, specialist.residentIndex).send();
 				}
 			};
