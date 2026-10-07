@@ -18,6 +18,8 @@ env:
 jobs:
   Build:
     runs-on: ubuntu-latest
+    # Package downloads occasionally hang; fail fast instead of after 6 hours.
+    timeout-minutes: 30
     container:
       image: barichello/godot-ci:mono-4.4.1
     strategy:
