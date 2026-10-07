@@ -31,6 +31,7 @@ public partial class MapUnit {
 
 		defensiveBombardsRemaining = 1;
 		hasAttackedThisTurn = false;
+		hasPillagedThisTurn = false;
 
 		if (isSentried && location.neighbors.Values.Any(t => t.unitsOnTile.Any(ShouldWakeSentryFor))) {
 			Wake();
@@ -836,8 +837,21 @@ public partial class MapUnit {
 	/// </summary>
 	/// <param name="mapUnit">The unit to load on a transport</param>
 	private void Board(MapUnit mapUnit) {
+		if (!IsArmy()) {
+			mapUnit.loadedOnUnitId = this.id;
+			// TODO: consume moves?
+			return;
+		}
+
+		// An army's movement depends on its members, so joining one changes
+		// it. The army keeps what it has already spent this turn, and can't
+		// go further than a member that has already moved.
+		float spent = MaxMovementPoints() - movementPoints.remaining;
 		mapUnit.loadedOnUnitId = this.id;
-		// TODO: consume moves?
+		float remaining = MaxMovementPoints() - spent;
+		if (mapUnit.movementPoints.remaining < mapUnit.MaxMovementPoints())
+			remaining = Math.Min(remaining, mapUnit.movementPoints.remaining);
+		movementPoints.reset(Math.Max(0, remaining));
 	}
 
 	/// <summary>
