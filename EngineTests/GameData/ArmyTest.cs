@@ -315,14 +315,63 @@ public class ArmyTest : IClassFixture<SaveGameFixture> {
 
 		Spawn(us, "Horseman", tile).LoadOntoTransportHere();
 		Spawn(us, "Horseman", tile).LoadOntoTransportHere();
+		Assert.Equal(3, army.MaxMovementPoints());
+		army.OnBeginTurn();
+		Assert.Equal(3, army.movementPoints.remaining);
+
+		Spawn(us, "Warrior", tile).LoadOntoTransportHere();
 		Assert.Equal(2, army.MaxMovementPoints());
 		army.OnBeginTurn();
 		Assert.Equal(2, army.movementPoints.remaining);
+	}
 
-		Spawn(us, "Warrior", tile).LoadOntoTransportHere();
-		Assert.Equal(1, army.MaxMovementPoints());
-		army.OnBeginTurn();
+	[Fact]
+	public void ANewArmyMovesAsFarAsItsMembersThatTurn() {
+		Tile tile = FindEmptyLand();
+		MapUnit army = SpawnArmy(us, tile, "Cavalry", "Cavalry", "Cavalry");
+
+		Assert.Equal(4, army.MaxMovementPoints());
+		Assert.Equal(4, army.movementPoints.remaining);
+	}
+
+	[Fact]
+	public void AnArmyCantOutrunAMemberThatHasAlreadyMoved() {
+		Tile tile = FindEmptyLand();
+		MapUnit army = SpawnArmy(us, tile, "Cavalry");
+		MapUnit tired = Spawn(us, "Cavalry", tile);
+		tired.movementPoints.onUnitMove(2);
+		tired.LoadOntoTransportHere();
+
 		Assert.Equal(1, army.movementPoints.remaining);
+	}
+
+	[Fact]
+	public void AnArmyKeepsWhatItSpentWhenAMemberJoins() {
+		Tile tile = FindEmptyLand();
+		MapUnit army = SpawnArmy(us, tile, "Cavalry");
+		army.movementPoints.onUnitMove(1);
+		Spawn(us, "Cavalry", tile).LoadOntoTransportHere();
+
+		Assert.Equal(3, army.movementPoints.remaining);
+	}
+
+	[Fact]
+	public void ArmiesPillageForOneMovementPointAtATime() {
+		Tile tile = FindEmptyLand();
+		TerrainImprovement railroad = gameData.terrainImprovements.First(i => i.layer == TerrainImprovement.Layer.Roads && i.upgradesFrom != null);
+		tile.overlays.Add(railroad.upgradesFrom);
+		tile.overlays.Add(railroad);
+		MapUnit army = SpawnArmy(us, tile, "Cavalry", "Cavalry", "Cavalry");
+		army.OnBeginTurn();
+		Assert.Equal(4, army.movementPoints.remaining);
+
+		Assert.True(army.Pillage());
+		Assert.Equal(3, army.movementPoints.remaining);
+		Assert.True(tile.overlays.HasImprovement(railroad.upgradesFrom));
+
+		Assert.True(army.Pillage());
+		Assert.Equal(2, army.movementPoints.remaining);
+		Assert.False(tile.overlays.HasBeenImproved());
 	}
 
 	[Fact]

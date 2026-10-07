@@ -59,6 +59,10 @@ namespace C7GameData {
 		// blitz can attack more than once per turn.
 		public bool hasAttackedThisTurn;
 
+		// Whether the unit has pillaged this turn. Only armies can pillage more
+		// than once per turn.
+		public bool hasPillagedThisTurn;
+
 		public bool CanAttackAgainThisTurn() {
 			return !hasAttackedThisTurn || unitType.hasBlitz;
 		}
@@ -246,8 +250,9 @@ namespace C7GameData {
 						min = m.unitType.movement;
 					any = true;
 				}
+				// An army moves one faster than its slowest member.
 				if (any)
-					return min;
+					return min + 1;
 			}
 			return this.unitType.movement + ShipMovementBonus();
 		}

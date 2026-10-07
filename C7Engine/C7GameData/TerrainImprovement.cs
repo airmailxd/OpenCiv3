@@ -45,11 +45,13 @@ namespace C7GameData {
 		public TerrainImprovement(
 			string key,
 			Layer layer,
-			float movementCost = -1
+			float movementCost = -1,
+			TerrainImprovement upgradesFrom = null
 		) {
 			this.key = key;
 			this.layer = layer;
 			this.movementCost = movementCost;
+			this.upgradesFrom = upgradesFrom;
 		}
 
 		public TerrainImprovement(

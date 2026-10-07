@@ -28,6 +28,7 @@ namespace C7GameData.Save {
 		// True if the unit held this turn before moving, so it still heals.
 		public bool heldWithoutMoving;
 		public bool hasAttackedThisTurn;
+		public bool hasPillagedThisTurn;
 
 		// True once the unit's victory has produced a great leader; each unit
 		// produces at most one.
@@ -56,6 +57,7 @@ namespace C7GameData.Save {
 			isAutomated = unit.isAutomated;
 			heldWithoutMoving = unit.heldWithoutMoving;
 			hasAttackedThisTurn = unit.hasAttackedThisTurn;
+			hasPillagedThisTurn = unit.hasPillagedThisTurn;
 			hasProducedLeader = unit.hasProducedLeader;
 			facingDirection = unit.facingDirection;
 			experience = unit.experienceLevelKey;
@@ -118,6 +120,7 @@ namespace C7GameData.Save {
 				isAutomated = isAutomated,
 				heldWithoutMoving = heldWithoutMoving,
 				hasAttackedThisTurn = hasAttackedThisTurn,
+				hasPillagedThisTurn = hasPillagedThisTurn,
 				hasProducedLeader = hasProducedLeader,
 				facingDirection = facingDirection,
 				WorkerProgressTowardsJob = WorkerProgressTowardsJob,
