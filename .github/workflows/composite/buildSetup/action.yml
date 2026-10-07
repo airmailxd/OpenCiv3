@@ -25,13 +25,16 @@ runs:
   - name: Set .net8.0 SDK
     shell: bash
     run: |
-      wget https://packages.microsoft.com/config/debian/12/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
-      dpkg -i packages-microsoft-prod.deb
-      rm packages-microsoft-prod.deb
-      apt-get update -qq
-      apt-get install -y apt-transport-https
-      apt-get update -qq
-      apt-get install -y dotnet-sdk-8.0
+      # The godot-ci image ships a .NET 8 SDK; only install one if it's
+      # missing, from Microsoft's script rather than the flaky apt mirrors.
+      if dotnet --list-sdks 2>/dev/null | grep -q '^8\.'; then
+        dotnet --list-sdks
+      else
+        wget -q https://dot.net/v1/dotnet-install.sh -O dotnet-install.sh
+        bash dotnet-install.sh --channel 8.0 --install-dir /usr/share/dotnet
+        rm dotnet-install.sh
+        ln -sf /usr/share/dotnet/dotnet /usr/bin/dotnet
+      fi
   - name: Set FOLDER_NAME
     shell: bash
     run: |
