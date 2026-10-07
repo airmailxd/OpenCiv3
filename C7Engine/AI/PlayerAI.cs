@@ -734,12 +734,8 @@ namespace C7Engine {
 				}
 
 				// Figure out what techs are available for trading.
-				List<Tech> techsTheyCanTrade = gD.techs.FindAll(x => {
-					return them.knownTechs.Contains(x.id) && !us.knownTechs.Contains(x.id);
-				});
-				List<Tech> techsWeCanTrade = gD.techs.FindAll(x => {
-					return us.knownTechs.Contains(x.id) && !them.knownTechs.Contains(x.id);
-				});
+				List<Tech> techsTheyCanTrade = them.GetTechsTradableTo(us, gD.techs);
+				List<Tech> techsWeCanTrade = us.GetTechsTradableTo(them, gD.techs);
 
 				// If we can't trade techs there's no point in continuing - we
 				// can't yet trade anything else interesting.
