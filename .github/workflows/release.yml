@@ -1,0 +1,113 @@
+name: Release
+on:
+  push:
+    tags:
+    - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing tag to build and release (e.g. v0.4)
+        required: true
+
+env:
+  GODOT_VERSION: 4.4.1
+  EXPORT_NAME: OpenCiv3
+  PROJECT_DIR: C7
+  TAG: ${{ github.event.inputs.tag || github.ref_name }}
+
+jobs:
+  Build:
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:mono-4.4.1
+    strategy:
+      matrix:
+        include:
+        - platform: windows
+          preset: Windows Desktop
+        - platform: linux
+          preset: Linux/X11
+        - platform: mac
+          preset: macOS
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ env.TAG }}
+        lfs: true
+        submodules: true
+    - uses: ./.github/workflows/composite/buildSetup
+    - name: Export
+      run: |
+        mkdir -v -p build/game
+        cd ${PROJECT_DIR}
+        dotnet build
+        if [ "${{ matrix.platform }}" = "mac" ]; then
+          godot -v --headless --export-release "${{ matrix.preset }}" ../build/mac.zip
+        elif [ "${{ matrix.platform }}" = "linux" ]; then
+          godot -v --headless --export-release "${{ matrix.preset }}" ../build/game/${EXPORT_NAME}.x86_64
+        else
+          godot -v --headless --export-release "${{ matrix.preset }}" ../build/game/${EXPORT_NAME}.exe
+        fi
+    - name: Package
+      run: |
+        case "${{ matrix.platform }}" in
+          mac)
+            cd ${PROJECT_DIR} && zip -q -r ../build/mac.zip Assets Text Lua
+            ;;
+          linux)
+            cp -r ${PROJECT_DIR}/Text ${PROJECT_DIR}/Assets ${PROJECT_DIR}/Lua build/game/
+            tar -C build -zcf build/linux.tar.gz game
+            ;;
+          windows)
+            cp -r ${PROJECT_DIR}/Text ${PROJECT_DIR}/Assets ${PROJECT_DIR}/Lua build/game/
+            cd build && zip -q -r windows.zip game
+            ;;
+        esac
+    - uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.platform }}
+        path: build/${{ matrix.platform == 'linux' && 'linux.tar.gz' || format('{0}.zip', matrix.platform) }}
+
+  Publish-Release:
+    needs: Build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - uses: actions/download-artifact@v4
+      with:
+        path: dist
+        merge-multiple: true
+    - name: Create or update release
+      env:
+        GH_TOKEN: ${{ github.token }}
+        GH_REPO: ${{ github.repository }}
+      run: |
+        ls -la dist
+        if gh release view "$TAG" > /dev/null 2>&1; then
+          gh release upload "$TAG" dist/* --clobber
+        else
+          gh release create "$TAG" dist/* --title "$TAG" --generate-notes --latest
+        fi
+
+  Deploy-Page:
+    needs: Publish-Release
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        ref: ${{ env.TAG }}
+        sparse-checkout: site
+    - uses: actions/configure-pages@v5
+    - uses: actions/upload-pages-artifact@v3
+      with:
+        path: site
+    - id: deploy
+      uses: actions/deploy-pages@v4
