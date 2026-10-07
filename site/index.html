@@ -5,18 +5,98 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Downloads</title>
 <style>
-	:root { color-scheme: light dark; }
-	body { font: 18px/1.8 system-ui, sans-serif; margin: 3rem 1rem; }
-	main { max-width: 20rem; margin: 0 auto; }
-	p { margin: 0; }
-	b { display: inline-block; width: 5.5rem; }
+	:root {
+		color-scheme: light dark;
+		--bg: #ffffff;
+		--text: #1f2328;
+		--muted: #59636e;
+		--line: #d1d9e0;
+		--note: #fff8c5;
+		--note-line: #d4a72c;
+		--link: #0969da;
+	}
+	@media (prefers-color-scheme: dark) {
+		:root:not([data-theme="light"]) {
+			--bg: #0d1117;
+			--text: #e6edf3;
+			--muted: #9198a1;
+			--line: #3d444d;
+			--note: #2e2a1a;
+			--note-line: #9e7c1f;
+			--link: #4493f8;
+		}
+	}
+	:root[data-theme="dark"] {
+		--bg: #0d1117;
+		--text: #e6edf3;
+		--muted: #9198a1;
+		--line: #3d444d;
+		--note: #2e2a1a;
+		--note-line: #9e7c1f;
+		--link: #4493f8;
+	}
+	body { background: var(--bg); color: var(--text); font: 17px/1.6 system-ui, sans-serif; margin: 0; }
+	main { max-width: 40rem; margin: 0 auto; padding: 2.5rem 16px 4rem; }
+	a { color: var(--link); }
+	.downloads p { margin: 0; font-size: 18px; line-height: 1.9; }
+	.downloads b { display: inline-block; width: 5.5rem; }
+	h2 { font-size: 1.3rem; margin: 2.5rem 0 0.5rem; padding-top: 1.5rem; border-top: 1px solid var(--line); }
+	h3 { font-size: 1.05rem; margin: 1.5rem 0 0.25rem; }
+	ol, ul { padding-left: 1.4rem; }
+	li { margin: 0.35rem 0; }
+	.muted { color: var(--muted); }
+	.note { background: var(--note); border-left: 4px solid var(--note-line); padding: 0.6rem 0.9rem; border-radius: 4px; margin: 1rem 0; }
+	kbd { font: inherit; font-weight: 600; }
 </style>
 </head>
 <body>
 <main>
-	<p><b>Windows:</b> <a href="https://github.com/airmailxd/OpenCiv3/releases/latest/download/windows.zip">windows.zip</a></p>
-	<p><b>Linux:</b> <a href="https://github.com/airmailxd/OpenCiv3/releases/latest/download/linux.tar.gz">linux.tar.gz</a></p>
-	<p><b>Mac:</b> <a href="https://github.com/airmailxd/OpenCiv3/releases/latest/download/mac.zip">mac.zip</a></p>
+	<section class="downloads">
+		<p><b>Windows:</b> <a href="https://github.com/airmailxd/OpenCiv3/releases/latest/download/windows.zip">windows.zip</a></p>
+		<p><b>Linux:</b> <a href="https://github.com/airmailxd/OpenCiv3/releases/latest/download/linux.tar.gz">linux.tar.gz</a></p>
+		<p><b>Mac:</b> <a href="https://github.com/airmailxd/OpenCiv3/releases/latest/download/mac.zip">mac.zip</a></p>
+	</section>
+
+	<h2>Windows setup</h2>
+	<ol>
+		<li>Click <b>windows.zip</b> above to download it.</li>
+		<li>Open your <b>Downloads</b> folder, right-click <b>windows.zip</b> and choose <kbd>Extract All…</kbd>, then click <kbd>Extract</kbd>.
+			<br><span class="muted">Don't open the game from inside the zip without extracting it first, or it won't find its files.</span></li>
+		<li>A new folder opens. You can move this whole folder anywhere you like, such as your Desktop or Documents.</li>
+		<li>Inside the folder, double-click the file with the game's icon to play.</li>
+		<li>If a blue box says <b>"Windows protected your PC"</b>, click <kbd>More info</kbd>, then <kbd>Run anyway</kbd>. You only need to do this once.</li>
+	</ol>
+	<p class="muted">Tip: for a desktop shortcut, right-click the game file, choose <kbd>Show more options</kbd> → <kbd>Send to</kbd> → <kbd>Desktop (create shortcut)</kbd>.</p>
+
+	<h3>If the game closes as soon as it opens</h3>
+	<p>Windows 11's <b>Smart App Control</b> is probably blocking it. To check, open <b>Windows Security</b> from the Start menu and go to <kbd>App &amp; browser control</kbd> → <kbd>Smart App Control settings</kbd>. If it says <b>On</b>, the game can't run on this PC yet.</p>
+	<div class="note">You can turn Smart App Control off there, but <b>once it's off, it can't be turned back on</b> without resetting Windows. It's your choice. A version that works with it on is being worked on.</div>
+
+	<h2>Mac setup</h2>
+	<ol>
+		<li>Click <b>mac.zip</b> above to download it. Your Mac unzips it into a folder in <b>Downloads</b>.</li>
+		<li>Keep everything in that folder together. Move the <b>whole folder</b> wherever you like, but don't drag just the app into Applications, because it needs the other files next to it.</li>
+		<li>The first time, <b>right-click</b> (or Control-click) the app and choose <kbd>Open</kbd>, then click <kbd>Open</kbd> again.</li>
+		<li>If your Mac only offers <kbd>Done</kbd> or <kbd>Move to Trash</kbd>, click <kbd>Done</kbd>. Then open <b>System Settings</b> → <b>Privacy &amp; Security</b>, scroll down and click <kbd>Open Anyway</kbd> next to the message about the game.</li>
+		<li>After that, double-click the app as normal.</li>
+	</ol>
+
+	<h2>Linux setup</h2>
+	<ol>
+		<li>Click <b>linux.tar.gz</b> above to download it.</li>
+		<li>Right-click it in your file manager and choose <kbd>Extract Here</kbd>.</li>
+		<li>Open the new folder and double-click the file ending in <b>.x86_64</b>. If nothing happens, right-click it, open <kbd>Properties</kbd>, turn on <kbd>Allow executing file as program</kbd>, and try again.</li>
+	</ol>
+
+	<h2>Playing together on the same network</h2>
+	<ul>
+		<li>Everyone needs the <b>same version</b>. If in doubt, download again from this page.</li>
+		<li>On Windows, the first time someone hosts a game, Windows asks about network access. Click <kbd>Allow</kbd> (with <b>Private networks</b> ticked). If you clicked Cancel by mistake, other players won't be able to find or join your game.</li>
+		<li>Everyone must be on the same Wi-Fi or home network. Guest Wi-Fi networks often block this.</li>
+	</ul>
+
+	<h2>Updating</h2>
+	<p>Download the newest file from this page and extract it in place of the old folder. Your settings are kept.</p>
 </main>
 </body>
 </html>

@@ -1,0 +1,28 @@
+name: Download Page
+on:
+  push:
+    branches:
+    - 'Development'
+    paths:
+    - 'site/**'
+  workflow_dispatch:
+
+jobs:
+  Deploy-Page:
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        sparse-checkout: site
+    - uses: actions/configure-pages@v5
+    - uses: actions/upload-pages-artifact@v3
+      with:
+        path: site
+    - id: deploy
+      uses: actions/deploy-pages@v4
