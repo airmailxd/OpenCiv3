@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using C7Engine;
 using C7GameData;
@@ -88,6 +89,27 @@ public static class PlayerTextureUtil {
 				colorsInUseCache.Remove(player.id);
 				LoadCivColor(player);
 			}
+		}
+
+		// a last run for civs whose primary and secondary colors are both
+		// taken: the first keeps the color, the others get a random free one.
+		// It's seeded by the game so every LAN client picks the same colors.
+		Random rand = new(gameData.seed);
+		HashSet<int> claimed = [];
+		foreach (var player in gameData.players) {
+			int playerColor = colorsInUseCache[player.id];
+			if (claimed.Add(playerColor)) {
+				continue;
+			}
+			List<int> free = Enumerable.Range(0, TextureLoader.CivColorCount())
+				.Where(c => !colorsInUseCache.ContainsValue(c))
+				.ToList();
+			if (free.Count == 0) {
+				continue;
+			}
+			int newColor = free[rand.Next(free.Count)];
+			colorsInUseCache[player.id] = newColor;
+			claimed.Add(newColor);
 		}
 	}
 

@@ -509,6 +509,14 @@ public static class TextureLoader {
 		return GetOrAddTexture(key, () => PCXToGodot.getPureAlphaFromPCX(LoadPCX(path), transparentColorIndexes));
 	}
 
+	// The number of civ colors the textures define, color_0 onward.
+	public static int CivColorCount() {
+		int count = 0;
+		while (GetEntryByPath($"civ_colors.color_{count}") != null)
+			++count;
+		return count;
+	}
+
 	private static object GetEntryByPath(string configKey) {
 		if (entryByPathCache.TryGetValue(configKey, out object cached))
 			return cached;
