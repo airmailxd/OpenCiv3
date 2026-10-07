@@ -902,6 +902,15 @@ namespace C7GameData {
 			return new OrderedTechSet(OrderTechs(result.ToList()));
 		}
 
+		/// <summary>
+		/// The techs this player knows that it could trade to the recipient: only
+		/// techs the recipient could research right now.
+		/// </summary>
+		public List<Tech> GetTechsTradableTo(Player recipient, List<Tech> allTechs) {
+			OrderedTechSet researchable = recipient.GetAvailableTechsToResearch(allTechs);
+			return allTechs.FindAll(t => knownTechs.Contains(t.id) && researchable.Contains(t));
+		}
+
 		// Placeholder ordering of techs. Duplicates are dropped, keeping the
 		// first.
 		private static List<Tech> OrderTechs(List<Tech> techs) {

@@ -79,12 +79,9 @@ public partial class DealScreen : TextureRect {
 			GetParent<Diplomacy>().AddLeaderHeadAndLabel(this, opponentPlayer, fontTheme);
 
 			// Figure out which technologies can be traded by each player, if any.
-			List<Tech> techsOpponentCanTrade = gD.techs.FindAll(x => {
-				return opponentPlayer.knownTechs.Contains(x.id) && !humanPlayer.knownTechs.Contains(x.id);
-			});
-			List<Tech> techsHumanCanTrade = gD.techs.FindAll(x => {
-				return humanPlayer.knownTechs.Contains(x.id) && !opponentPlayer.knownTechs.Contains(x.id);
-			});
+			// A tech can only go to a player who could research it themselves.
+			List<Tech> techsOpponentCanTrade = opponentPlayer.GetTechsTradableTo(humanPlayer, gD.techs);
+			List<Tech> techsHumanCanTrade = humanPlayer.GetTechsTradableTo(opponentPlayer, gD.techs);
 
 			// Left hand side UI components.
 			opponentTree = new TradingTree(fontTheme, opponentPlayer.gold, techsOpponentCanTrade, opponentOffer,
