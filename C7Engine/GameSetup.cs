@@ -37,6 +37,8 @@ public class GameSetup {
 	public VictoryConditions victoryConditions { get; set; }
 	public bool showScoreboard { get; init; } = true;
 	public bool coreCitiesFreeOfCorruption { get; init; } = false;
+	// Null keeps the setting the scenario or ruleset came with.
+	public bool? acceleratedProduction { get; init; } = null;
 
 	ID.Factory ids;
 
@@ -46,6 +48,9 @@ public class GameSetup {
 		save.VictoryConditions = victoryConditions;
 		save.Rules.ShowScoreboard = showScoreboard;
 		save.Rules.CoreCitiesFreeOfCorruption = coreCitiesFreeOfCorruption;
+		if (acceleratedProduction.HasValue) {
+			save.Rules.AcceleratedProduction = acceleratedProduction.Value;
+		}
 
 		if (save.Map.tiles.Count == 0) {
 			log.Information("Starting map generation");

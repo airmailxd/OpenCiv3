@@ -41,6 +41,11 @@ namespace C7GameData {
 		public bool CoreCitiesFreeOfCorruption = false;
 		public int CitiesFreeOfCorruption = 5;
 
+		// Game option from Civ3 (Play the World): the food, shields and
+		// commerce cities generate each turn are doubled, speeding up growth,
+		// research and production. Off by default.
+		public bool AcceleratedProduction = false;
+
 		// Each army needs this many cities to support it. A civ can't build an
 		// army unless (armies + 1) * CitiesNeededToSupportAnArmy <= cities.
 		public int CitiesNeededToSupportAnArmy = 4;

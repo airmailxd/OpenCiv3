@@ -840,7 +840,14 @@ namespace C7GameData {
 			foreach (CityResident r in residents) {
 				yield += r.tileWorked.FoodYield(this, buildings).yield;
 			}
-			return yield;
+			return yield * YieldMultiplier();
+		}
+
+		// Under Civ3's Accelerated Production rule a city generates twice the
+		// food, shields and commerce its tiles produce. The doubling comes
+		// before waste and corruption, and citizens still eat as much as ever.
+		internal int YieldMultiplier() {
+			return owner?.rules?.AcceleratedProduction == true ? 2 : 1;
 		}
 
 		// The food, shields and commerce the government's tile penalty (e.g.
@@ -864,6 +871,7 @@ namespace C7GameData {
 			foreach (CityResident r in residents) {
 				yield += r.tileWorked.ProductionYield(this, buildings).yield;
 			}
+			yield *= YieldMultiplier();
 			// A celebrating city wastes half as many shields.
 			CorruptableValue result = new(yield, celebrating ? corruption / 2 : corruption);
 
@@ -936,6 +944,7 @@ namespace C7GameData {
 			foreach (CityResident r in residents) {
 				uncorruptedCommerce += r.tileWorked.CommerceYield(this, buildings).yield;
 			}
+			uncorruptedCommerce *= YieldMultiplier();
 
 			// Using our value of corruption, figure out how much useful
 			// commerce we have to work with. Special case anarchy, where no
