@@ -7,7 +7,8 @@ using static C7GameData.PlayerRelationship;
 namespace C7Engine.AI {
 	// As in Civ3, a civ doesn't put up with another civ's units in its
 	// territory. Each turn it tells every civ it is at peace with, and that
-	// has no right of passage, to take its units out of its borders. The
+	// has no right of passage, to take its units out of its borders, if
+	// they are enough of a threat (see IsThreatening). The
 	// other civ either withdraws them, and they are moved out at once, or
 	// refuses, and we declare war on it. Military allies are welcome.
 	public static class TerritoryDemands {
@@ -22,15 +23,24 @@ namespace C7Engine.AI {
 		public const int MEMORY_TURNS = 20;
 
 		public static async Task MakeDemands(Player us, GameData gameData) {
-			foreach (KeyValuePair<Player, List<MapUnit>> trespass in FindTrespassers(us, gameData)) {
+			Dictionary<Player, List<MapUnit>> trespassers = FindTrespassers(us, gameData);
+			// A lone unit that left on its own starts the count over if it
+			// comes back.
+			foreach (Player them in gameData.players) {
+				if (!trespassers.ContainsKey(them) && us.playerRelationships.TryGetValue(them.id, out PlayerRelationship view)) {
+					view.loneTrespasserSinceTurn = -1;
+				}
+			}
+
+			foreach (KeyValuePair<Player, List<MapUnit>> trespass in trespassers) {
 				Player them = trespass.Key;
 				// Units with nowhere to go can't be told to leave, so they
 				// neither count against their civ nor give us a reason for war.
 				List<MapUnit> units = trespass.Value.FindAll(u => u.CanWithdraw());
-				if (units.Count == 0) {
+				PlayerRelationship ourView = us.playerRelationships[them.id];
+				if (!IsThreatening(units, ourView, gameData.turn)) {
 					continue;
 				}
-				PlayerRelationship ourView = us.playerRelationships[them.id];
 
 				// Forget promises the other civ kept for a good while.
 				if (ourView.lastWithdrawalDemandTurn < 0
@@ -59,6 +69,36 @@ namespace C7Engine.AI {
 					DeclareWar(us, them);
 				}
 			}
+		}
+
+		// How many turns a lone combat unit may stay in our territory before
+		// we tell its civ to take it out: one of these, picked at random.
+		public const int MIN_LONE_TRESPASSER_TURNS = 2;
+		public const int MAX_LONE_TRESPASSER_TURNS = 3;
+
+		// Whether the units a civ has in our territory are worth a demand.
+		// Only combat units count, so workers, settlers and scouts are let
+		// be. Two or more land units, two or more ships, or a land unit and
+		// a ship are told to leave at once. A single land unit is put up
+		// with for a couple of turns, and a single ship for good.
+		public static bool IsThreatening(List<MapUnit> units, PlayerRelationship ourView, int turn) {
+			int land = units.FindAll(u => u.IsCombatUnit() && u.IsLandUnit()).Count;
+			int sea = units.FindAll(u => u.IsCombatUnit() && u.IsWaterUnit()).Count;
+
+			if (land != 1 || sea != 0) {
+				ourView.loneTrespasserSinceTurn = -1;
+				return land >= 2 || sea >= 2 || (land >= 1 && sea >= 1);
+			}
+
+			if (ourView.loneTrespasserSinceTurn < 0) {
+				ourView.loneTrespasserSinceTurn = turn;
+				ourView.loneTrespasserPatience = GameData.rng.Next(MIN_LONE_TRESPASSER_TURNS, MAX_LONE_TRESPASSER_TURNS + 1);
+			}
+			if (turn - ourView.loneTrespasserSinceTurn + 1 < ourView.loneTrespasserPatience) {
+				return false;
+			}
+			ourView.loneTrespasserSinceTurn = -1;
+			return true;
 		}
 
 		// The units of each civ we'd tell to leave that are in our territory,

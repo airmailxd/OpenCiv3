@@ -57,6 +57,12 @@ public class PlayerRelationship {
 	// forgot about it (see TerritoryDemands).
 	public int recentWithdrawals = 0;
 
+	// p1.playerRelationships[p2].loneTrespasserSinceTurn is the turn p2
+	// started keeping a single combat unit in p1's territory, which p1
+	// puts up with for loneTrespasserPatience turns, or -1 if it isn't.
+	public int loneTrespasserSinceTurn = -1;
+	public int loneTrespasserPatience = 0;
+
 	// p1.playerRelationships[p2].otherStartedCurrentWar is true if p2
 	// declared the war p1 and p2 are currently fighting, false if p1 did,
 	// and null if unknown (no war since this was recorded, as in saves made
