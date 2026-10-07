@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using IniParser.Model;
 using IniParser.Exceptions;
+using Serilog;
 
 namespace C7Engine {
 	public class C7Settings {
@@ -24,9 +26,47 @@ namespace C7Engine {
 			public const string CoreCitiesFreeOfCorruption = nameof(CoreCitiesFreeOfCorruption);
 		}
 
-		public static void LoadSettings() {
+		// Where the game keeps the files it writes, like its settings and log:
+		// the current directory when it's writable, as when playing from an
+		// extracted zip or the editor, otherwise a per-user folder, as when
+		// installed under Program Files.
+		private static string writableDirectory;
+		public static string WritableDirectory {
+			get {
+				if (writableDirectory == null) {
+					string current = Directory.GetCurrentDirectory();
+					writableDirectory = IsWritable(current)
+						? current
+						: Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "OpenCiv3");
+					try {
+						Directory.CreateDirectory(writableDirectory);
+					} catch (Exception e) when (e is IOException or UnauthorizedAccessException) {
+						// Saving will fail and say so; the game still runs.
+					}
+				}
+				return writableDirectory;
+			}
+		}
+
+		private static bool IsWritable(string directory) {
 			try {
-				settings = Util.GetFileIniDataParser().ReadFile(SETTINGS_FILE_NAME);
+				string probe = Path.Combine(directory, $".write-test-{Guid.NewGuid():N}");
+				File.WriteAllText(probe, "");
+				File.Delete(probe);
+				return true;
+			} catch (Exception e) when (e is IOException or UnauthorizedAccessException) {
+				return false;
+			}
+		}
+
+		private static string SettingsPath => Path.Combine(WritableDirectory, SETTINGS_FILE_NAME);
+
+		public static void LoadSettings() {
+			// Settings left next to a read-only install are still read, and
+			// saved to the per-user folder from then on.
+			string path = File.Exists(SettingsPath) ? SettingsPath : SETTINGS_FILE_NAME;
+			try {
+				settings = Util.GetFileIniDataParser().ReadFile(path);
 			} catch (ParsingException) {
 				//First run.  The file doesn't exist.  That's okay.  We'll use sensible defaults.
 				settings = new IniData();
@@ -35,7 +75,12 @@ namespace C7Engine {
 		}
 
 		public static void SaveSettings() {
-			Util.GetFileIniDataParser().WriteFile(SETTINGS_FILE_NAME, settings);
+			try {
+				Util.GetFileIniDataParser().WriteFile(SettingsPath, settings);
+			} catch (Exception e) when (e is IOException or UnauthorizedAccessException) {
+				// Losing a setting shouldn't stop the game.
+				Log.ForContext<C7Settings>().Warning(e, "Could not save settings to {Path}", SettingsPath);
+			}
 		}
 
 		public static void SetValue(string section, string key, string value) {

@@ -26,7 +26,7 @@ public partial class LogManager : Node {
 
 		Log.Logger = new LoggerConfiguration()
 			// C7_LOG picks another file, e.g. for running two instances side by side.
-			.WriteTo.File(System.Environment.GetEnvironmentVariable("C7_LOG") ?? "log.txt", buffered: true, flushToDiskInterval: TimeSpan.FromMilliseconds(2500), fileSizeLimitBytes: 52428800, //50 MB
+			.WriteTo.File(System.Environment.GetEnvironmentVariable("C7_LOG") ?? System.IO.Path.Combine(C7Engine.C7Settings.WritableDirectory, "log.txt"), buffered: true, flushToDiskInterval: TimeSpan.FromMilliseconds(2500), fileSizeLimitBytes: 52428800, //50 MB
 						  outputTemplate: "[{Level:u3}] {Timestamp:HH:mm:ss} {SourceContext}: {Message:lj} {NewLine}{Exception}")
 			.Filter.ByIncludingOnly(filter)
 			.MinimumLevel.Debug()
