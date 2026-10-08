@@ -93,12 +93,16 @@ internal sealed class RelayPeer {
 		try {
 			while (true) {
 				int length = 0;
-				ValueWebSocketReceiveResult result;
+				ValueWebSocketReceiveResult result = default;
 				do {
 					if (length == Math.Min(buffer.Length, options.MaxMessageBytes)) {
 						if (length >= options.MaxMessageBytes) {
+							// The rest of it is read and dropped, until the
+							// peer answers the goodbye: closing with it unread
+							// would cut the goodbye off.
 							Close((int)WebSocketCloseStatus.MessageTooBig, "A message was too large for the relay.");
-							return;
+							length = 0;
+							continue;
 						}
 						byte[] larger = ArrayPool<byte>.Shared.Rent(Math.Min(buffer.Length * 2, options.MaxMessageBytes));
 						buffer.AsSpan(0, length).CopyTo(larger);
