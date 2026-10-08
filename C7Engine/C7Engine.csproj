@@ -21,4 +21,9 @@
   <ItemGroup>
     <ProjectReference Include="..\QueryCiv3\QueryCiv3.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <!-- What the game and the online relay say to each other. -->
+    <Compile Include="..\Relay\Protocol\RelayProtocol.cs" Link="Network\RelayProtocol.cs" />
+  </ItemGroup>
 </Project>
