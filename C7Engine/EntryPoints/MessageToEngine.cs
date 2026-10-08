@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json.Serialization;
 using C7Engine.AI;
@@ -52,7 +53,7 @@ namespace C7Engine {
 		// for them to respond to a trade offer.
 		protected virtual bool IsAllowed() {
 			return Sender != null
-				&& (playerID == EngineStorage.activePlayerID || playerID == EngineStorage.diplomacyPlayerID);
+				&& (TurnHandling.IsPlayersTurn(EngineStorage.gameData, playerID) || playerID == EngineStorage.diplomacyPlayerID);
 		}
 
 		// The sender's unit with the given ID, or null if they have no such unit.
@@ -692,9 +693,14 @@ namespace C7Engine {
 	}
 
 	public class MsgEndTurn : MessageToEngine {
+		// The turn the sender means to end, if they say. An end that arrives
+		// once that turn is over is ignored, rather than ending the next.
+		public int? turn;
+
 		// Only the player whose turn it is can end it.
 		protected override bool IsAllowed() {
-			return Sender != null && playerID == EngineStorage.activePlayerID;
+			return Sender != null && TurnHandling.IsPlayersTurn(EngineStorage.gameData, playerID)
+				&& (turn == null || turn == EngineStorage.gameData.turn);
 		}
 
 		protected override async void ProcessAllowed() {
@@ -708,12 +714,24 @@ namespace C7Engine {
 				controller.units.Sort((x, y) => x.IsBusy().CompareTo(y.IsBusy()));
 
 				controller.hasPlayedThisTurn = true;
+				GameData gameData = EngineStorage.gameData;
 
 				// A deal left unanswered by the end of the turn is refused.
+				// With simultaneous turns, others' deals can wait for them.
 				MsgProposeDeal deal = EngineStorage.pendingDeal;
-				if (deal != null) {
+				if (deal != null && (!gameData.simultaneousTurns || deal.Proposer == controller || deal.opponent == controller)) {
 					EngineStorage.pendingDeal = null;
 					new MsgDealResult(deal.Proposer, deal.opponent, false).send();
+				}
+
+				// With simultaneous turns, the round goes on once the last
+				// human has finished.
+				if (gameData.simultaneousTurns) {
+					List<Player> stillToMove = TurnHandling.PlayersToMove(gameData);
+					if (stillToMove.Count > 0) {
+						EngineStorage.activePlayerID = stillToMove[0].id;
+						return;
+					}
 				}
 
 				// What happens during the other players' turns isn't a reply to
@@ -860,6 +878,13 @@ namespace C7Engine {
 				return;
 			}
 			if (opponent.isHuman) {
+				// With simultaneous turns, another pair may be in talks
+				// already, and only one deal can wait for an answer.
+				MsgProposeDeal waiting = EngineStorage.pendingDeal;
+				if (gD.simultaneousTurns && waiting != null && waiting.Proposer != proposer) {
+					new MsgDealResult(proposer, opponent, false).send();
+					return;
+				}
 				EngineStorage.pendingDeal = this;
 				new MsgShowDealProposal(proposer, opponent, senderGives, senderWants) { recipient = opponent }.send();
 				return;

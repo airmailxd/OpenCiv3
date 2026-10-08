@@ -127,6 +127,19 @@ namespace C7Engine {
 		/// <param name="firstTurn"></param>
 		/// <returns>true when it is time for the human to take control again</returns>
 		private static async Task<bool> PlayPlayerTurns(GameData gameData, bool firstTurn) {
+			// With simultaneous turns, the humans all move at once, before
+			// the AIs, and the AIs wait until the last of them is done.
+			if (gameData.simultaneousTurns) {
+				List<Player> toMove = PlayersToMove(gameData);
+				if (toMove.Count > 0) {
+					EngineStorage.activePlayerID = toMove[0].id;
+					foreach (Player human in toMove) {
+						StartHumanTurn(human, gameData);
+					}
+					return true;
+				}
+			}
+
 			foreach (Player player in PlayersInTurnOrder(gameData)) {
 				if (player.hasPlayedThisTurn || player.defeated) {
 					continue;
@@ -153,14 +166,7 @@ namespace C7Engine {
 
 				//Human player check. Let the human see what's going on even if they are in observer mode.
 				if (player.id == EngineStorage.activePlayerID) {
-					if (player.isHuman) {
-						// TODO: Before we call this method to automatically end obsolete deals, we could make this more versatile.
-						// For example unless we have a good reason, as a human, receiving luxuries, gpt,
-						// or having an active RoP, doesn't hurt us.
-						PlayerRelationship.CheckForObsoleteDeals(player, gameData.players, gameData.turn);
-					}
-					new MsgStartTurn(player).send();
-					UnitedNations.AskHumanToVote(gameData, player);
+					StartHumanTurn(player, gameData);
 					return true;
 				}
 
@@ -168,6 +174,45 @@ namespace C7Engine {
 				player.hasPlayedThisTurn = true;
 			}
 			return false;
+		}
+
+		// Hands the turn to a human, or to the player being observed.
+		private static void StartHumanTurn(Player player, GameData gameData) {
+			if (player.isHuman) {
+				// TODO: Before we call this method to automatically end obsolete deals, we could make this more versatile.
+				// For example unless we have a good reason, as a human, receiving luxuries, gpt,
+				// or having an active RoP, doesn't hurt us.
+				PlayerRelationship.CheckForObsoleteDeals(player, gameData.players, gameData.turn);
+			}
+			new MsgStartTurn(player).send();
+			UnitedNations.AskHumanToVote(gameData, player);
+		}
+
+		// The humans who may play now, in turn order. With simultaneous turns
+		// that is every human yet to finish this turn; otherwise it is the
+		// human whose turn it is, if they haven't finished it.
+		public static List<Player> PlayersToMove(GameData gameData) {
+			if (!gameData.simultaneousTurns) {
+				Player active = gameData.GetPlayer(EngineStorage.activePlayerID);
+				return active != null && active.isHuman && !active.defeated && !active.hasPlayedThisTurn ? [active] : [];
+			}
+			bool firstTurn = gameData.turn == 0;
+			return PlayersInTurnOrder(gameData)
+				.Where(p => p.isHuman && !p.defeated && !p.hasPlayedThisTurn && !(firstTurn && p.SitsOutFirstTurn()))
+				.ToList();
+		}
+
+		// Whether it is the player's turn, so they may act. Without
+		// simultaneous turns that is the active player (who may be an AI
+		// being observed), whether or not they have ended their turn yet.
+		public static bool IsPlayersTurn(GameData gameData, ID playerID) {
+			if (playerID == null) {
+				return false;
+			}
+			if (!gameData.simultaneousTurns) {
+				return playerID == EngineStorage.activePlayerID;
+			}
+			return PlayersToMove(gameData).Any(p => p.id == playerID);
 		}
 
 		// Order players: Humans -> AI -> Barbarian AI. The sort is stable, so

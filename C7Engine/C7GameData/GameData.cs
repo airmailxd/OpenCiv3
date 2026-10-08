@@ -107,6 +107,10 @@ namespace C7GameData {
 		public int healRateInCity;
 
 		public bool observerMode = false;
+
+		// Whether the humans play their turns at the same time, rather than
+		// one after another. Only LAN games do.
+		public bool simultaneousTurns = false;
 		public bool showGridCoordinates = false;
 
 		public string scenarioSearchPath;   //legacy from Civ3, we'll probably have a more modern format someday but this keeps legacy compatibility

@@ -108,11 +108,27 @@ public class LanHost : IDisposable {
 	private volatile bool disposed;
 
 	// How long each human has to play their turn before the host ends it for
-	// them; null for no limit.
+	// them; null for no limit. With simultaneous turns, it is how long the
+	// humans have for the round, all at once.
 	public TimeSpan? TurnTimeLimit { get; set; }
 
-	// The turn being timed: whose it is, and since when.
+	// Whether the humans play their turns at the same time rather than one
+	// after another, which the game takes on when it starts.
+	public bool SimultaneousTurns {
+		get => simultaneousTurns;
+		set {
+			if (simultaneousTurns != value) {
+				simultaneousTurns = value;
+				BroadcastLobby();
+			}
+		}
+	}
+	private bool simultaneousTurns;
+
+	// The turn being timed: whose it is, who is yet to finish it, and since
+	// when.
 	private ID clockPlayerID;
+	private List<ID> clockPlayersToMove = [];
 	private int clockTurn = -1;
 	private readonly Stopwatch turnClock = new();
 	private bool turnTimedOut;
@@ -267,6 +283,7 @@ public class LanHost : IDisposable {
 			throw new InvalidOperationException("Create the game before starting it");
 		}
 		Started = true;
+		EngineStorage.gameData.simultaneousTurns = SimultaneousTurns;
 		EngineStorage.uiFollowsActivePlayer = false;
 		EngineStorage.uiControllerID = hostPlayerID;
 		EngineStorage.activePlayerID = TurnHandling.FirstHumanToPlay(EngineStorage.gameData).id;
@@ -305,7 +322,7 @@ public class LanHost : IDisposable {
 	private static void ResendTurnPrompts(Seat seat) {
 		GameData gameData = EngineStorage.gameData;
 		Player player = gameData?.GetPlayer(seat.info.playerID);
-		if (player == null || player.id != EngineStorage.activePlayerID) {
+		if (player == null || !TurnHandling.IsPlayersTurn(gameData, player.id)) {
 			return;
 		}
 		UnitedNations.AskHumanToVote(gameData, player);
@@ -336,27 +353,33 @@ public class LanHost : IDisposable {
 		PublishDiscoveryReply();
 	}
 
-	// Restarts the clock when a new turn begins, and ends a human's turn for
-	// them once they have run out of time.
+	// Restarts the clock when a new turn begins, and ends the humans' turns
+	// for them once they have run out of time. With simultaneous turns, one
+	// clock times the whole round, from when the humans start moving.
 	private void UpdateTurnClock() {
 		GameData gameData = EngineStorage.gameData;
 		ID active = EngineStorage.activePlayerID;
-		if (active != clockPlayerID || gameData.turn != clockTurn) {
-			clockPlayerID = active;
+		List<ID> toMove = TurnHandling.PlayersToMove(gameData).Select(p => p.id).ToList();
+		bool newTurn = gameData.turn != clockTurn || (!gameData.simultaneousTurns && active != clockPlayerID);
+		if (newTurn) {
 			clockTurn = gameData.turn;
 			turnClock.Restart();
 			turnTimedOut = false;
+		}
+		// Everyone hears when someone finishes, too.
+		if (newTurn || active != clockPlayerID || !toMove.SequenceEqual(clockPlayersToMove)) {
+			clockPlayerID = active;
+			clockPlayersToMove = toMove;
 			BroadcastTurnClock();
 		}
 
-		if (TurnTimeLimit is not TimeSpan limit || turnTimedOut || turnClock.Elapsed < limit) {
+		if (TurnTimeLimit is not TimeSpan limit || turnTimedOut || turnClock.Elapsed < limit || toMove.Count == 0) {
 			return;
 		}
-		Player player = gameData.GetPlayer(active);
-		if (player != null && player.isHuman && !player.hasPlayedThisTurn) {
-			turnTimedOut = true;
-			log.Information("{Player} ran out of time, ending their turn", player);
-			EngineStorage.ReceiveFromRemote(new MsgEndTurn { playerID = active });
+		turnTimedOut = true;
+		foreach (ID id in toMove) {
+			log.Information("{Player} ran out of time, ending their turn", gameData.GetPlayer(id));
+			EngineStorage.ReceiveFromRemote(new MsgEndTurn { playerID = id, turn = gameData.turn });
 		}
 	}
 
@@ -366,7 +389,7 @@ public class LanHost : IDisposable {
 			return null;
 		}
 		return new TurnClockInfo(clockPlayerID, clockTurn, turnClock.Elapsed.TotalSeconds,
-			TurnTimeLimit?.TotalSeconds, ConnectedPlayers());
+			TurnTimeLimit?.TotalSeconds, ConnectedPlayers(), clockPlayersToMove);
 	}
 
 	private List<ID> ConnectedPlayers() {
@@ -767,7 +790,8 @@ public class LanHost : IDisposable {
 		];
 		List<CivilizationChoice> civilizations = choosable?.Select(c => new CivilizationChoice(
 			c.name, c.leader, c.noun, c.leaderArtFile, c.traits.Select(t => t.ToString()).ToList())).ToList();
-		connection.Send(FrameKind.Lobby, new LobbyInfo(hostName, seatInfos, yourSeats, [.. Spectators], civilizations, creatingGame, Started));
+		connection.Send(FrameKind.Lobby, new LobbyInfo(hostName, seatInfos, yourSeats, [.. Spectators], civilizations, creatingGame, Started,
+			SimultaneousTurns));
 	}
 
 	private void BroadcastLobby() {

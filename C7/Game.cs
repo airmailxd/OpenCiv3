@@ -144,7 +144,16 @@ public partial class Game : Node {
 	// In a LAN game, the banner shown while another machine's player takes
 	// their turn, and whether we've told the player the host is gone.
 	private CanvasLayer lanWaitingBanner = null;
+	private string lanWaitingText = null;
 	private bool lanDisconnectShown = false;
+
+	// With simultaneous turns: the round we began playing the player at the
+	// screen, and this machine's players who have ended their turn this
+	// round, which the host's game may not show yet.
+	private bool lanGameStarted = false;
+	private int simultaneousPlayingRound = -1;
+	private int simultaneousRound = -1;
+	private readonly HashSet<ID> simultaneousTurnsEnded = new();
 
 	private MapView mapView;
 
@@ -216,6 +225,11 @@ public partial class Game : Node {
 		GameParams options = CreateGameParams();
 
 		await CreateGameAndAssignPlayerController(options);
+		// Only a LAN game plays turns at the same time; a LAN host decides
+		// afresh whether this one does.
+		if (!LanSession.IsActive) {
+			EngineStorage.gameData.simultaneousTurns = false;
+		}
 		StartLanGame();
 
 		foreach (var gameDataPlayer in EngineStorage.gameData.players) {
@@ -254,6 +268,8 @@ public partial class Game : Node {
 		if (LanSession.IsSpectator) {
 			// Spectators never play; see _UnhandledInput for what they can do.
 			CurrentState = GameState.ComputerTurn;
+		} else if (SimultaneousLanTurns) {
+			ContinueSimultaneousTurns();
 		} else if (LanSession.IsActive) {
 			// Whoever plays first may be at another machine.
 			Player active = EngineStorage.gameData.GetPlayer(EngineStorage.activePlayerID);
@@ -270,6 +286,7 @@ public partial class Game : Node {
 			ShowHotseatHandoff(controller, OnPlayerStartTurn);
 		}
 
+		lanGameStarted = true;
 		Global.ResetLoadGameFields();
 	}
 
@@ -395,7 +412,9 @@ public partial class Game : Node {
 					.FirstOrDefault(p => p.isHuman && !p.defeated)?.id ?? EngineStorage.gameData.players[0].id;
 			} else {
 				// Of this machine's players, whoever plays first.
-				ID active = EngineStorage.activePlayerID;
+				ID active = EngineStorage.gameData.simultaneousTurns
+					? TurnHandling.PlayersToMove(EngineStorage.gameData).FirstOrDefault(p => client.PlayerIDs.Contains(p.id))?.id
+					: EngineStorage.activePlayerID;
 				EngineStorage.uiControllerID = client.PlayerIDs.Contains(active) ? active : client.PlayerIDs.FirstOrDefault();
 			}
 			controller = EngineStorage.gameData.GetUIControllerPlayer();
@@ -408,6 +427,10 @@ public partial class Game : Node {
 	// Rejoining with several seats can take them one at a time, so the
 	// player we were waiting on may turn out to be one of ours.
 	private void OnLanPlayersChanged() {
+		if (SimultaneousLanTurns) {
+			ContinueSimultaneousTurns();
+			return;
+		}
 		Player active = EngineStorage.gameData.GetPlayer(EngineStorage.activePlayerID);
 		if (IsWaitingForRemotePlayer && active != null && LanSession.IsLocalPlayer(active)) {
 			OnControllerTurnStart(active);
@@ -416,12 +439,18 @@ public partial class Game : Node {
 
 	private void PollLanSession() {
 		LanSession.Host?.Poll();
+		LanSession.Client?.Poll();
+
+		// With simultaneous turns, the host's game says when each of our
+		// players' turns is over, even when their time runs out.
+		if (lanGameStarted && SimultaneousLanTurns && !lanDisconnectShown) {
+			ContinueSimultaneousTurns();
+		}
 
 		LanClient client = LanSession.Client;
 		if (client == null) {
 			return;
 		}
-		client.Poll();
 		if (!client.IsConnected && !lanDisconnectShown) {
 			lanDisconnectShown = true;
 			HideLanWaiting();
@@ -514,14 +543,21 @@ public partial class Game : Node {
 
 	// Shows whose turn it is while another machine's player moves.
 	private void ShowLanWaiting(Player active) {
-		log.Information("Waiting for {Player} to play their turn", active);
 		string playerName = active.name ?? active.civilization.leader;
-		ShowLanBanner($"Waiting for {playerName} of the {active.civilization.noun} to play their turn...");
+		string text = $"Waiting for {playerName} of the {active.civilization.noun} to play their turn...";
+		if (text != lanWaitingText) {
+			log.Information("Waiting for {Player} to play their turn", active);
+		}
+		ShowLanBanner(text);
 	}
 
 	private void ShowLanBanner(string text) {
 		CurrentState = GameState.ComputerTurn;
+		if (lanWaitingBanner != null && lanWaitingText == text) {
+			return;
+		}
 		HideLanWaiting();
+		lanWaitingText = text;
 
 		Label label = new() {
 			Text = text,
@@ -583,6 +619,74 @@ public partial class Game : Node {
 	private void HideLanWaiting() {
 		lanWaitingBanner?.QueueFree();
 		lanWaitingBanner = null;
+		lanWaitingText = null;
+	}
+
+	// Whether this machine plays in a LAN game whose humans play their turns
+	// at the same time.
+	private static bool SimultaneousLanTurns =>
+		LanSession.IsActive && !LanSession.IsSpectator && EngineStorage.gameData?.simultaneousTurns == true;
+
+	// This machine's players yet to finish this round, in turn order.
+	private List<Player> LocalPlayersToMove() {
+		GameData gameData = EngineStorage.gameData;
+		NoteSimultaneousRound(gameData);
+		return TurnHandling.PlayersToMove(gameData)
+			.Where(p => LanSession.IsLocalPlayer(p) && !simultaneousTurnsEnded.Contains(p.id))
+			.ToList();
+	}
+
+	// Forgets whose turns ended once a new round has begun.
+	private void NoteSimultaneousRound(GameData gameData) {
+		if (gameData.turn != simultaneousRound) {
+			simultaneousRound = gameData.turn;
+			simultaneousTurnsEnded.Clear();
+		}
+	}
+
+	// With simultaneous turns, everyone plays at once, but a machine's own
+	// players still take turns at it. Once the player at the screen is done,
+	// this hands it to the next of them still to move, or says who we're
+	// waiting on once they all are. It's called whenever that may change.
+	private void ContinueSimultaneousTurns() {
+		GameData gameData = EngineStorage.gameData;
+		if (gameData.gameOver) {
+			return;
+		}
+		List<Player> ours = LocalPlayersToMove();
+		bool playing = (CurrentState == GameState.PlayerTurn || hotseatHandoff != null)
+			&& simultaneousPlayingRound == gameData.turn && ours.Contains(controller);
+		if (playing) {
+			return;
+		}
+
+		if (ours.Count == 0) {
+			// The curtain may be up for a player whose time ran out.
+			hotseatHandoff?.QueueFree();
+			hotseatHandoff = null;
+			List<Player> others = TurnHandling.PlayersToMove(gameData).Where(p => !LanSession.IsLocalPlayer(p)).ToList();
+			if (others.Count == 1) {
+				ShowLanWaiting(others[0]);
+			} else if (others.Count > 1) {
+				ShowLanBanner($"Waiting for {others.Count} other players to finish their turns...");
+			} else {
+				// The computer players are moving.
+				CurrentState = GameState.ComputerTurn;
+				HideLanWaiting();
+			}
+			return;
+		}
+
+		Player next = ours[0];
+		simultaneousPlayingRound = gameData.turn;
+		HideLanWaiting();
+		if (LanSession.HasSeveralLocalPlayers) {
+			ShowHotseatHandoff(next, BeginLanTurn);
+			return;
+		}
+		controller = next;
+		EngineStorage.uiControllerID = next.id;
+		BeginLanTurn();
 	}
 
 	public override void _ExitTree() {
@@ -733,6 +837,10 @@ public partial class Game : Node {
 		GameData gameData = EngineStorage.gameData;
 
 		switch (msg) {
+			case MsgStartTurn when SimultaneousLanTurns:
+				// Every human is told at once; we play ours one by one.
+				ContinueSimultaneousTurns();
+				break;
 			case MsgStartTurn mST:
 				// Hotseat follows the UI controller, which the engine moved to
 				// the player whose turn it is; a LAN game is told who they are.
@@ -1265,13 +1373,21 @@ public partial class Game : Node {
 		EmitSignal(SignalName.TurnEnded);
 		log.Information("Starting computer turn");
 		CurrentState = GameState.ComputerTurn;
-		new MsgEndTurn().send(); // Triggers actual backend processing
+		new MsgEndTurn { turn = EngineStorage.gameData.turn }.send(); // Triggers actual backend processing
 		// Production news the player hasn't seen is out of date. Other
 		// hotseat players keep theirs for their own turns.
 		if (controller != null) {
 			pendingProductionPopups.Remove(controller.id);
 		}
 		EmitSignal(SignalName.PlayerTurnEnd);
+
+		// With simultaneous turns, the next of our players can go on while
+		// others are still moving.
+		if (SimultaneousLanTurns && controller != null) {
+			NoteSimultaneousRound(EngineStorage.gameData);
+			simultaneousTurnsEnded.Add(controller.id);
+			ContinueSimultaneousTurns();
+		}
 	}
 
 	public void OnRetire() {

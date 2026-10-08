@@ -35,7 +35,7 @@ public enum FrameKind : byte {
 
 public static class LanProtocol {
 	// Bump when the frames or the messages in them change incompatibly.
-	public const int Version = 6;
+	public const int Version = 7;
 
 	public const int DefaultPort = 47_777;
 	public const int DiscoveryPort = 47_778;
@@ -125,8 +125,10 @@ public record CivilizationChoice(string name, string leader, string noun, string
 // civilizations are already set (a saved game, or one already created).
 // creatingGame is true while the host creates the world, when choices are
 // closed. yourSeats are the seats this guest has taken, in turn order.
+// simultaneousTurns is whether the humans will play their turns at once.
 public record LobbyInfo(string hostName, List<SeatInfo> seats, List<ID> yourSeats, List<string> spectators = null,
-	List<CivilizationChoice> civilizations = null, bool creatingGame = false, bool started = false);
+	List<CivilizationChoice> civilizations = null, bool creatingGame = false, bool started = false,
+	bool simultaneousTurns = false);
 
 // The civilization's name, or null for a random one, for one of the guest's
 // seats; null for their first.
@@ -140,5 +142,8 @@ public record DiscoveryReply(string hostName, int port, int openSeats, bool star
 
 // Whose turn it is and how long they have had it, for the scoreboard, and
 // which players are at their machines. secondsAllowed is null when turns have
-// no time limit.
-public record TurnClockInfo(ID activePlayerID, int turn, double secondsElapsed, double? secondsAllowed, List<ID> connectedPlayers);
+// no time limit. playersToMove are the humans yet to finish their turn, in
+// turn order: with simultaneous turns, everyone the clock is running for, and
+// otherwise at most the active player.
+public record TurnClockInfo(ID activePlayerID, int turn, double secondsElapsed, double? secondsAllowed, List<ID> connectedPlayers,
+	List<ID> playersToMove = null);

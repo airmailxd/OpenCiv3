@@ -186,10 +186,20 @@ public partial class Scoreboard : PanelContainer {
 
 	// While a human plays, the time they have left, or how long they've
 	// taken when there is no limit. Between humans, while the AIs move, it
-	// stops.
+	// stops. With simultaneous turns, it times the humans' round together.
 	private void ShowClock(GameData gameData, TurnClockInfo clock) {
-		Player active = clock == null ? null : gameData.GetPlayer(clock.activePlayerID);
-		bool running = active != null && active.isHuman && !active.hasPlayedThisTurn;
+		bool running;
+		string timeLeftTip, timeTakenTip;
+		if (gameData.simultaneousTurns && clock?.playersToMove != null) {
+			running = clock.playersToMove.Count > 0;
+			timeLeftTip = "Time left for everyone's turn";
+			timeTakenTip = "This turn has taken this long; turns have no time limit";
+		} else {
+			Player active = clock == null ? null : gameData.GetPlayer(clock.activePlayerID);
+			running = active != null && active.isHuman && !active.hasPlayedThisTurn;
+			timeLeftTip = running ? $"Time left for {NameOf(active)}'s turn" : null;
+			timeTakenTip = running ? $"{NameOf(active)} has taken this long; turns have no time limit" : null;
+		}
 		if (!running) {
 			timeLabel.Text = "--:--";
 			timeBar.Value = 0;
@@ -202,11 +212,11 @@ public partial class Scoreboard : PanelContainer {
 			timeLabel.Text = FormatTime(left);
 			timeBar.Value = fraction;
 			timeBarFill.BgColor = fraction > 0.25 ? PlentyOfTime : fraction > 0.1 ? RunningLow : AlmostOut;
-			timeBar.TooltipText = $"Time left for {NameOf(active)}'s turn";
+			timeBar.TooltipText = timeLeftTip;
 		} else {
 			timeLabel.Text = FormatTime(clock.secondsElapsed);
 			timeBar.Value = 0;
-			timeBar.TooltipText = $"{NameOf(active)} has taken this long; turns have no time limit";
+			timeBar.TooltipText = timeTakenTip;
 		}
 	}
 
@@ -219,6 +229,9 @@ public partial class Scoreboard : PanelContainer {
 	private static List<Row> ReadRows(GameData gameData, TurnClockInfo clock) {
 		HashSet<ID> connected = clock?.connectedPlayers?.ToHashSet() ?? [];
 		ID activeID = clock?.activePlayerID ?? EngineStorage.activePlayerID;
+		// Everyone moving, when the host says; with simultaneous turns, that
+		// can be several players at once.
+		HashSet<ID> moving = clock?.playersToMove?.ToHashSet() ?? (activeID == null ? [] : [activeID]);
 		return gameData.players
 			.Where(p => !p.isBarbarians && !p.defeated)
 			.Select(p => (player: p, score: ScoreOf(gameData, p)))
@@ -229,7 +242,7 @@ public partial class Scoreboard : PanelContainer {
 				ps.score,
 				ps.player.isHuman && connected.Contains(ps.player.id),
 				ps.player.hasPlayedThisTurn,
-				ps.player.isHuman && ps.player.id == activeID && !ps.player.hasPlayedThisTurn))
+				ps.player.isHuman && moving.Contains(ps.player.id) && !ps.player.hasPlayedThisTurn))
 			.ToList();
 	}
 
@@ -292,7 +305,7 @@ public partial class Scoreboard : PanelContainer {
 			CustomMinimumSize = new Vector2(16, 16),
 			SizeFlagsVertical = SizeFlags.ShrinkCenter,
 			MouseFilter = MouseFilterEnum.Pass,
-			TooltipText = row.done ? "Finished this turn" : row.active ? "Playing their turn" : "Yet to play this turn",
+			TooltipText = row.done ? "Done: finished this turn" : row.active ? "Moving: playing their turn" : "Yet to play this turn",
 		};
 		turnBox.AddThemeStyleboxOverride("panel", row.done ? DoneBox : WaitingBox);
 		cells.AddChild(turnBox);

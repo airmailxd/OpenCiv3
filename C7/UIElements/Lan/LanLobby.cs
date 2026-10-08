@@ -218,6 +218,17 @@ public partial class LanLobby : Control {
 			choice.AddItem($"{seconds} seconds");
 			choice.Select(choice.ItemCount - 1);
 		}
+
+		// Everyone moves at once, and the computer players after them.
+		CheckBox simultaneous = new() {
+			Text = "Simultaneous turns",
+			ButtonPressed = true,
+			TooltipText = "Every human plays their turn at the same time, rather than waiting for each other.",
+		};
+		simultaneous.AddThemeFontSizeOverride("font_size", 18);
+		simultaneous.Toggled += on => LanSession.Host.SimultaneousTurns = on;
+		LanSession.Host.SimultaneousTurns = true;
+		row.AddChild(simultaneous);
 		return row;
 	}
 
@@ -521,7 +532,8 @@ public partial class LanLobby : Control {
 		foreach (Node child in seatList.GetChildren()) {
 			child.QueueFree();
 		}
-		Label header = new() { Text = $"Seats in {lobby.hostName}'s game:" };
+		string turns = lobby.simultaneousTurns ? " (simultaneous turns)" : "";
+		Label header = new() { Text = $"Seats in {lobby.hostName}'s game{turns}:" };
 		header.AddThemeFontSizeOverride("font_size", 20);
 		seatList.AddChild(header);
 
