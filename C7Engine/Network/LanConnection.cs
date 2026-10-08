@@ -73,9 +73,13 @@ public class LanConnection : IDisposable {
 	private volatile bool closing;
 	private volatile bool aborted;
 
-	// The hash of the last snapshot written, so an identical one isn't sent
-	// again. Only the writer thread uses it.
-	private byte[] lastSnapshotHash;
+	// The last snapshot written, which is what the peer has, so that an
+	// identical one isn't sent again and the next is sent as a patch to it.
+	// Only the writer thread uses it.
+	private EncodedSnapshot lastSnapshot;
+
+	// Set when the peer has asked for the whole game in the next snapshot.
+	private int sendWholeSnapshot;
 
 	public string RemoteAddress { get; }
 
@@ -168,9 +172,17 @@ public class LanConnection : IDisposable {
 	// identical to the last snapshot written, and it replaces the snapshot
 	// queued just before it if that hasn't been written yet and nothing was
 	// queued in between, since the newer one shows everything the older
-	// one would have.
+	// one would have. The first snapshot a connection writes is the whole
+	// game, and those after it patches to the one written before them.
 	public void SendSnapshot(Task<EncodedSnapshot> snapshot) {
 		Enqueue(new Outgoing { kind = FrameKind.Snapshot, snapshot = snapshot }, supersede: true);
+	}
+
+	// Has the next snapshot written be the whole game, even if the peer has
+	// the game it holds, for a peer that lost track of the snapshots it was
+	// sent.
+	public void SendWholeSnapshotNext() {
+		Volatile.Write(ref sendWholeSnapshot, 1);
 	}
 
 	private void Enqueue(Outgoing frame, bool supersede) {
@@ -218,17 +230,21 @@ public class LanConnection : IDisposable {
 		byte[] header = new byte[5];
 		try {
 			while (NextOutgoing() is Outgoing next) {
+				FrameKind kind = next.kind;
 				byte[] payload = next.payload;
 				if (next.snapshot != null) {
 					EncodedSnapshot snapshot = WaitForSnapshot(next.snapshot);
-					if (snapshot == null || (lastSnapshotHash != null && lastSnapshotHash.AsSpan().SequenceEqual(snapshot.Hash))) {
+					if (snapshot == null) {
 						continue;
 					}
-					payload = snapshot.Compressed;
-					lastSnapshotHash = snapshot.Hash;
+					(kind, payload) = SnapshotFrame(snapshot);
+					if (payload == null) {
+						continue;
+					}
+					lastSnapshot = snapshot;
 				}
 				BinaryPrimitives.WriteInt32LittleEndian(header, payload.Length);
-				header[4] = (byte)next.kind;
+				header[4] = (byte)kind;
 				stream.Write(header);
 				stream.Write(payload);
 			}
@@ -242,6 +258,25 @@ public class LanConnection : IDisposable {
 		} finally {
 			Abort();
 		}
+	}
+
+	// How to write a snapshot, given what the peer has: as a patch to it,
+	// or else whole; or a null payload if the peer has this very snapshot.
+	private (FrameKind, byte[]) SnapshotFrame(EncodedSnapshot snapshot) {
+		bool whole = Interlocked.Exchange(ref sendWholeSnapshot, 0) == 1;
+		if (lastSnapshot == null || whole) {
+			return (FrameKind.Snapshot, snapshot.Compressed);
+		}
+		if (lastSnapshot.Hash.AsSpan().SequenceEqual(snapshot.Hash)) {
+			return (FrameKind.Snapshot, null);
+		}
+		byte[] patch = null;
+		try {
+			patch = snapshot.PatchFrom(lastSnapshot);
+		} catch (Exception e) when (e is not OutOfMemoryException) {
+			log.Error(e, "Couldn't patch a snapshot for {Address}, sending it whole", RemoteAddress);
+		}
+		return patch == null ? (FrameKind.Snapshot, snapshot.Compressed) : (FrameKind.SnapshotDelta, patch);
 	}
 
 	// The snapshot once it's encoded, or null if encoding failed or the

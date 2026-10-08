@@ -42,7 +42,9 @@ namespace C7Engine.Network;
 // among that connection's frames. While one is being encoded, changes wait
 // for the next, so a burst of changes is sent as one snapshot of the latest
 // game rather than a queue of stale ones; and a snapshot identical to the
-// last one a connection was sent isn't sent again.
+// last one a connection was sent isn't sent again. Each connection is sent
+// the whole game once, and after that patches to the last snapshot it was
+// sent (see EncodedSnapshot), until its client asks for the whole game again.
 public class LanHost : IDisposable {
 	private static readonly ILogger log = Log.ForContext<LanHost>();
 
@@ -634,6 +636,12 @@ public class LanHost : IDisposable {
 			case FrameKind.Command:
 				HandleCommand(guest, frame);
 				return true;
+			case FrameKind.RequestSnapshot:
+				if (Started && SeatsOf(guest).Any()) {
+					RequestWholeSnapshot(guest.connection);
+					snapshotPending = true;
+				}
+				return true;
 			default:
 				log.Warning("Ignoring {Kind} frame from {Address}", frame.kind, guest.connection.RemoteAddress);
 				return true;
@@ -891,9 +899,15 @@ public class LanHost : IDisposable {
 		BroadcastLobby();
 	}
 
-	// Spectators only listen: whatever they send is dropped.
+	// Spectators only listen: whatever they send is dropped, except asking
+	// for the whole game.
 	private void PollSpectator(Spectator spectator) {
-		while (spectator.connection.TryReceive(out _)) { }
+		while (spectator.connection.TryReceive(out Frame frame)) {
+			if (frame.kind == FrameKind.RequestSnapshot && Started) {
+				RequestWholeSnapshot(spectator.connection);
+				spectatorSnapshotPending = true;
+			}
+		}
 		if (spectator.connection.IsClosed) {
 			log.Information("{Name} stopped watching", spectator.name);
 			spectators.Remove(spectator);
@@ -995,6 +1009,13 @@ public class LanHost : IDisposable {
 				}
 			}
 		}
+	}
+
+	// A client couldn't apply a patch, and has lost track of the game until
+	// it's sent the whole of it.
+	private static void RequestWholeSnapshot(LanConnection connection) {
+		log.Information("{Address} asked for the whole game", connection.RemoteAddress);
+		connection.SendWholeSnapshotNext();
 	}
 
 	private static void SendSnapshot(LanConnection connection, Task<EncodedSnapshot> snapshot, List<byte[]> pendingUiMessages) {

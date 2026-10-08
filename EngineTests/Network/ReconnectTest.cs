@@ -272,19 +272,29 @@ public class ReconnectTest : IClassFixture<SaveGameFixture>, IDisposable {
 		PumpUntil(host, guest, () => guest.Reconnecting);
 		Assert.False(guest.IsConnected);
 
-		// The client is back in its seat, and shown the game afresh.
+		// The client is back in its seat, and shown the game afresh: the
+		// whole of it, since the new connection has been sent nothing yet.
 		snapshots.Clear();
 		PumpUntil(host, guest, () => !guest.Reconnecting && host.AllSeatsTaken && snapshots.Count > 0);
 		Assert.True(guest.IsConnected);
 		Assert.True(guest.ReconnectAttempt >= 1);
 		Assert.Equal([seatID], guest.PlayerIDs);
 		Assert.Null(guest.RejectedReason);
+		Assert.Equal(2, guest.WholeSnapshotsReceived);
+		int deltas = guest.SnapshotDeltasReceived;
 
-		// And plays on.
+		// And plays on, sent patches to that.
 		new MsgEndTurn().send();
 		PumpUntil(host, guest, () => ui.OfType<MsgStartTurn>().Any(m => m.player == humans[1]));
 		guest.SendCommand(new MsgEndTurn());
 		PumpUntil(host, guest, () => gameData.turn == 1);
+		while (EngineStorage.HasPendingMessagesToEngine()) {
+			EngineStorage.ProcessNextMessageToEngine();
+		}
+		byte[] expected = System.Security.Cryptography.SHA256.HashData(LanProtocol.SnapshotOf(gameData).ToCompactJSON());
+		PumpUntil(host, guest, () => guest.ReceivedSnapshotHash?.AsSpan().SequenceEqual(expected) == true);
+		Assert.Equal(2, guest.WholeSnapshotsReceived);
+		Assert.True(guest.SnapshotDeltasReceived > deltas);
 	}
 
 	[Fact]
