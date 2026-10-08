@@ -302,13 +302,6 @@ public class LanHost : IDisposable {
 		return Online;
 	}
 
-	// Stops taking guests through the relay, and drops those who came that
-	// way.
-	public void StopHostingOnline() {
-		Online?.Dispose();
-		Online = null;
-	}
-
 	private void AcceptLoop() {
 		while (!disposed) {
 			try {
