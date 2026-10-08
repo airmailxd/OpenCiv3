@@ -95,6 +95,26 @@
 		<li>Everyone must be on the same Wi-Fi or home network. Guest Wi-Fi networks often block this.</li>
 	</ul>
 
+	<h2>Playing together over the internet</h2>
+	<p>Friends in other homes can join using <b>Tailscale</b>, a free app that links your computers as if they were on the same network. Each person sets it up once.</p>
+	<h3>Everyone</h3>
+	<ol>
+		<li>Download Tailscale from <a href="https://tailscale.com/download">tailscale.com/download</a>, install it, and sign in (a Google, Microsoft or Apple account works).</li>
+		<li>Make sure everyone has the <b>same version</b> of the game from this page.</li>
+	</ol>
+	<h3>The person hosting</h3>
+	<ol>
+		<li>Go to <a href="https://login.tailscale.com/admin/machines">login.tailscale.com/admin/machines</a>, click <kbd>…</kbd> next to your computer and choose <kbd>Share…</kbd>. Send the invite link to each friend. They open it and click <kbd>Accept</kbd>.</li>
+		<li>Start the game and host a game as usual. The game lists this computer's addresses: tell your friends the one that starts with <b>100.</b> (for example <b>100.101.102.103</b>).</li>
+		<li>When Windows asks about network access, click <kbd>Allow</kbd>.</li>
+	</ol>
+	<h3>Friends joining</h3>
+	<ol>
+		<li>In the game, go to joining a game. Games over the internet aren't listed automatically, so type the host's <b>100.</b> address into <b>"Or join by address"</b> and press Enter.</li>
+		<li>Pick your seat as usual.</li>
+	</ol>
+	<p class="muted">If friends can't connect: check that Tailscale says <b>Connected</b> on both computers, and that the host's computer appears in the friend's Tailscale app. If it still fails, the host's Windows may be treating Tailscale as a public network: open <b>Windows Security</b> → <kbd>Firewall &amp; network protection</kbd> → <kbd>Allow an app through firewall</kbd>, and tick both <b>Private</b> and <b>Public</b> for the game.</p>
+
 	<h2>Updating</h2>
 	<p>Download the newest file from this page and extract it in place of the old folder. Your settings are kept.</p>
 </main>

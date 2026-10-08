@@ -179,10 +179,21 @@ public partial class LanLobby : Control {
 		LanSession.Host.AutosaveDirectory = LanAutosave.DefaultDirectory;
 
 		AddLabel("Players on your network should see this game listed under \"Join LAN Game\". If it isn't listed for them, they can type in one of this computer's addresses:");
-		List<string> addresses = LanDiscovery.LocalAddresses();
+		List<(string address, string network)> addresses = LanDiscovery.LocalAddressesByNetwork();
 		string port = LanSession.Host.Port == LanProtocol.DefaultPort ? "" : $":{LanSession.Host.Port}";
-		AddLabel(addresses.Count == 0 ? "(No network connection found.)" : string.Join("    ", addresses.Select(a => a + port)), 22);
-		AddLabel("Use the one on the same network as the other players: usually it starts with 192.168. or 10. Each human player in the game needs someone to take their seat before the game can start.");
+		List<string> local = addresses.Where(a => a.network == null).Select(a => a.address + port).ToList();
+		if (addresses.Count == 0) {
+			AddLabel("(No network connection found.)", 22);
+		} else if (local.Count > 0) {
+			AddLabel(string.Join("    ", local), 22);
+		}
+		AddLabel("Use the one on the same network as the other players: usually it starts with 192.168. or 10.");
+		// Players on the internet join through a virtual network app, which
+		// doesn't list games, so they type the address it gives this computer.
+		foreach (var (address, network) in addresses.Where(a => a.network != null)) {
+			AddLabel($"Players joining over {network} type: {address}{port}", 22);
+		}
+		AddLabel("Each human player in the game needs someone to take their seat before the game can start.");
 
 		seatList = new VBoxContainer();
 		seatList.AddThemeConstantOverride("separation", 6);

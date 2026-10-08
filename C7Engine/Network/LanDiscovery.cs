@@ -76,12 +76,35 @@ public static class LanDiscovery {
 	// This machine's IPv4 addresses on its local networks, for the host to
 	// tell players who join by address.
 	public static List<string> LocalAddresses() {
+		return LocalAddressesByNetwork().Select(a => a.address).ToList();
+	}
+
+	// This machine's addresses, with the virtual network each is on, such as
+	// "Tailscale", or null for an ordinary local network. Players on the
+	// internet can reach a host through a virtual network app.
+	public static List<(string address, string network)> LocalAddressesByNetwork() {
 		return NetworkInterface.GetAllNetworkInterfaces()
 			.Where(nic => nic.OperationalStatus == OperationalStatus.Up && nic.NetworkInterfaceType != NetworkInterfaceType.Loopback)
-			.SelectMany(nic => nic.GetIPProperties().UnicastAddresses)
-			.Where(u => u.Address.AddressFamily == AddressFamily.InterNetwork)
-			.Select(u => u.Address.ToString())
-			.Distinct()
+			.SelectMany(nic => nic.GetIPProperties().UnicastAddresses
+				.Where(u => u.Address.AddressFamily == AddressFamily.InterNetwork)
+				.Select(u => (address: u.Address.ToString(), network: VirtualNetwork(nic, u.Address))))
+			.DistinctBy(a => a.address)
 			.ToList();
+	}
+
+	private static string VirtualNetwork(NetworkInterface nic, IPAddress address) {
+		string name = $"{nic.Name} {nic.Description}";
+		byte[] bytes = address.GetAddressBytes();
+		// Tailscale gives out addresses from 100.64.0.0/10.
+		if (name.Contains("Tailscale", StringComparison.OrdinalIgnoreCase) || (bytes[0] == 100 && (bytes[1] & 0xC0) == 64)) {
+			return "Tailscale";
+		}
+		if (name.Contains("ZeroTier", StringComparison.OrdinalIgnoreCase)) {
+			return "ZeroTier";
+		}
+		if (name.Contains("Radmin", StringComparison.OrdinalIgnoreCase)) {
+			return "Radmin VPN";
+		}
+		return null;
 	}
 }
