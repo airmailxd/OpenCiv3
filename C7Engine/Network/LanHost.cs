@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -51,12 +52,29 @@ public class LanHost : IDisposable {
 	// each snapshot is slow, so they get one this often at most.
 	private static readonly TimeSpan SpectatorSnapshotInterval = TimeSpan.FromSeconds(1);
 
+	// Messages for a disconnected seat's player are kept for them until the
+	// turn is over, but no more than this many.
+	private const int MaxHeldUiMessages = 200;
+
 	private class Seat {
 		public SeatInfo info;
 		// The guest playing this seat, and the name of the player in it.
 		public Guest guest;
 		public string takenBy;
+		// The token of the guest who took the seat. Once the game is under
+		// way, a guest who loses their connection keeps their seats, and
+		// saying hello with this token has them back.
+		public string token;
+		// The host chose to go on without the player, so their turns end
+		// by themselves until someone is in the seat again.
+		public bool away;
+		// The messages for the player while they're disconnected, and the
+		// turn they're from.
+		public readonly List<byte[]> heldUiMessages = new();
+		public int heldTurn = -1;
 		public bool IsTaken => guest != null && !guest.connection.IsClosed;
+		// Kept for a guest who has lost their connection.
+		public bool IsHeld => !IsTaken && token != null;
 	}
 
 	// A machine that has joined to play, with as many seats as it has taken
@@ -65,6 +83,9 @@ public class LanHost : IDisposable {
 		public LanConnection connection;
 		// Null until it says hello.
 		public string name;
+		// Given to the guest when it says hello, or the one it says hello
+		// with when it comes back to its seats.
+		public string token;
 		public readonly List<byte[]> pendingUiMessages = new();
 	}
 
@@ -133,15 +154,26 @@ public class LanHost : IDisposable {
 	private readonly Stopwatch turnClock = new();
 	private bool turnTimedOut;
 
+	// The turn each away player's turn was last ended for them.
+	private readonly Dictionary<ID, int> awayTurnsEnded = new();
+
 	public bool Started { get; private set; }
+
+	// Whether a guest who loses their connection keeps their seats.
+	private bool HoldsSeats => Started;
 	public int Port => ((IPEndPoint)listener.LocalEndpoint).Port;
 
 	// Raised on Poll() when players join, leave, or take seats.
 	public event Action LobbyChanged;
 
 	// Seats for the human players other than the host's, in turn order.
-	public IReadOnlyList<SeatInfo> Seats => seats.Select(s => s.info with { takenBy = s.takenBy }).ToList();
+	public IReadOnlyList<SeatInfo> Seats =>
+		seats.Select(s => s.info with { takenBy = s.takenBy, disconnected = s.IsHeld, away = s.away }).ToList();
 	public bool AllSeatsTaken => seats.All(s => s.IsTaken);
+
+	// Whether every seat is taken or held for a guest who lost their
+	// connection, as in a resumed game whose guests aren't all back yet.
+	public bool AllSeatsTakenOrHeld => seats.All(s => s.IsTaken || s.IsHeld);
 	public IReadOnlyList<string> Spectators => spectators.Select(s => s.name).ToList();
 	public string HostCivilization => hostCivilization;
 	public ID HostPlayerID => hostPlayerID;
@@ -248,7 +280,7 @@ public class LanHost : IDisposable {
 	// Called on the main thread whenever the seats or the game's state may
 	// have changed.
 	private void PublishDiscoveryReply() {
-		int openSeats = seats.Count(s => !s.IsTaken);
+		int openSeats = seats.Count(s => !s.IsTaken && !s.IsHeld);
 		DiscoveryReply current = discoveryReply;
 		if (current == null || current.openSeats != openSeats || current.started != Started) {
 			discoveryReply = new DiscoveryReply(hostName, Port, openSeats, Started);
@@ -312,7 +344,7 @@ public class LanHost : IDisposable {
 	// Tells a guest which players are theirs, now or after taking another
 	// seat in a game in progress, and shows them the game.
 	private void SendStart(Guest guest, Task<EncodedSnapshot> snapshot) {
-		guest.connection.Send(FrameKind.Start, new StartInfo(SeatsOf(guest).Select(s => s.info.playerID).ToList()));
+		guest.connection.Send(FrameKind.Start, new StartInfo(SeatsOf(guest).Select(s => s.info.playerID).ToList(), guest.token));
 		SendSnapshot(guest.connection, snapshot, guest.pendingUiMessages);
 	}
 
@@ -373,6 +405,8 @@ public class LanHost : IDisposable {
 			BroadcastTurnClock();
 		}
 
+		EndAwayPlayersTurns(gameData, toMove);
+
 		if (TurnTimeLimit is not TimeSpan limit || turnTimedOut || turnClock.Elapsed < limit || toMove.Count == 0) {
 			return;
 		}
@@ -383,13 +417,57 @@ public class LanHost : IDisposable {
 		}
 	}
 
+	// Ends the turn of each away player still to move, once a turn, the way
+	// running out of time does.
+	private void EndAwayPlayersTurns(GameData gameData, List<ID> toMove) {
+		foreach (ID id in toMove) {
+			Seat seat = seats.Find(s => s.info.playerID == id);
+			if (seat == null || !seat.away || seat.IsTaken
+				|| (awayTurnsEnded.TryGetValue(id, out int ended) && ended == gameData.turn)) {
+				continue;
+			}
+			awayTurnsEnded[id] = gameData.turn;
+			log.Information("{Player} is away, ending their turn", gameData.GetPlayer(id));
+			EngineStorage.ReceiveFromRemote(new MsgEndTurn { playerID = id, turn = gameData.turn });
+		}
+	}
+
+	// The players with nobody at their machine whom the game would wait on:
+	// their guests lost the connection, or nobody has taken their seats, and
+	// the host hasn't chosen to go on without them.
+	public IReadOnlyList<ID> AbsentPlayers => seats.Where(s => !s.IsTaken && !s.away).Select(s => s.info.playerID).ToList();
+
+	// Goes on without the absent players: from now on their turns end by
+	// themselves, until a guest is in their seat again.
+	public void ContinueWithoutAbsentPlayers() {
+		foreach (Seat seat in seats.Where(s => !s.IsTaken && !s.away)) {
+			log.Information("Going on without {Player}", seat.takenBy ?? seat.info.playerName ?? seat.info.playerID.ToString());
+			seat.away = true;
+		}
+		BroadcastLobby();
+	}
+
+	// Gives up the seat held for a guest who lost their connection, so that
+	// anyone can take it. A seat the game went on without stays away.
+	public bool ReleaseSeat(ID playerID) {
+		Seat seat = seats.Find(s => s.info.playerID == playerID);
+		if (seat == null || !seat.IsHeld) {
+			return false;
+		}
+		log.Information("Releasing the seat of {Player}, held for {Name}", playerID, seat.takenBy);
+		FreeSeat(seat);
+		BroadcastLobby();
+		return true;
+	}
+
 	// The clock as it stands now, or null before the game starts.
 	public TurnClockInfo CurrentClock() {
 		if (!Started || clockPlayerID == null) {
 			return null;
 		}
 		return new TurnClockInfo(clockPlayerID, clockTurn, turnClock.Elapsed.TotalSeconds,
-			TurnTimeLimit?.TotalSeconds, ConnectedPlayers(), clockPlayersToMove);
+			TurnTimeLimit?.TotalSeconds, ConnectedPlayers(), clockPlayersToMove,
+			seats.Where(s => s.away).Select(s => s.info.playerID).ToList());
 	}
 
 	private List<ID> ConnectedPlayers() {
@@ -453,6 +531,14 @@ public class LanHost : IDisposable {
 					return false;
 				}
 				guest.name = string.IsNullOrWhiteSpace(hello.playerName) ? guest.connection.RemoteAddress : hello.playerName.Trim();
+				if (hello.reconnectToken != null) {
+					if (!Reattach(guest, hello.reconnectToken)) {
+						Reject(guest, "The host is no longer keeping a seat for you.");
+						return false;
+					}
+					return true;
+				}
+				guest.token = NewToken();
 				SendLobby(guest);
 				return true;
 			case FrameKind.ClaimSeat:
@@ -506,15 +592,17 @@ public class LanHost : IDisposable {
 			BroadcastLobby();
 			return;
 		}
-		if (seat == null || seat.IsTaken) {
-			SendLobby(guest);
-			return;
-		}
-		if (seat.guest != null) {
+		if (seat != null && !seat.IsTaken && seat.guest != null && !HoldsSeats) {
 			// The last guest closed without PollGuest seeing it go.
 			FreeSeat(seat);
 		}
+		if (seat == null || seat.IsTaken || seat.IsHeld) {
+			SendLobby(guest);
+			return;
+		}
 		seat.guest = guest;
+		seat.token = guest.token;
+		seat.away = false;
 		seat.takenBy = SeatPlayerName(guest, claim.playerName);
 		log.Information("{Name} took the seat of {Player} for {SeatName}", guest.name, seat.info.playerID, seat.takenBy);
 		if (Started) {
@@ -551,6 +639,8 @@ public class LanHost : IDisposable {
 	private void FreeSeat(Seat seat) {
 		seat.guest = null;
 		seat.takenBy = null;
+		seat.token = null;
+		seat.heldUiMessages.Clear();
 		ReleaseDiplomacy(seat);
 		if (GuestsChooseCivilizations && !creatingGame) {
 			// Whoever takes the seat next chooses afresh.
@@ -563,12 +653,66 @@ public class LanHost : IDisposable {
 		guest.connection.Dispose();
 		List<Seat> left = SeatsOf(guest).ToList();
 		foreach (Seat seat in left) {
-			log.Information("{Name} left the seat of {Player}", seat.takenBy, seat.info.playerID);
-			FreeSeat(seat);
+			if (HoldsSeats) {
+				// They may well be back: the seat waits for them.
+				log.Information("{Name} lost the connection to the seat of {Player}, which is held for them", seat.takenBy, seat.info.playerID);
+				seat.guest = null;
+				ReleaseDiplomacy(seat);
+			} else {
+				log.Information("{Name} left the seat of {Player}", seat.takenBy, seat.info.playerID);
+				FreeSeat(seat);
+			}
 		}
 		if (left.Count > 0) {
 			BroadcastLobby();
 		}
+	}
+
+	private static string NewToken() {
+		return Convert.ToHexString(RandomNumberGenerator.GetBytes(16));
+	}
+
+	// A guest says hello with the token of seats it had: it has them all
+	// back, and the game as it stands now. Returns false if no seat is held
+	// for the token.
+	private bool Reattach(Guest guest, string token) {
+		List<Seat> theirs = seats.Where(s => s.token == token).ToList();
+		if (theirs.Count == 0) {
+			log.Information("{Name} came back, but no seat is held for them", guest.name);
+			return false;
+		}
+		// Their old connection may not have noticed it has gone.
+		foreach (Guest old in theirs.Select(s => s.guest).Where(g => g != null && g != guest).Distinct().ToList()) {
+			guests.Remove(old);
+			old.connection.Dispose();
+			guest.pendingUiMessages.AddRange(old.pendingUiMessages);
+		}
+		guest.token = token;
+		int turn = EngineStorage.gameData?.turn ?? -1;
+		foreach (Seat seat in theirs) {
+			seat.guest = guest;
+			seat.away = false;
+			if (Started && seat.heldTurn == turn) {
+				guest.pendingUiMessages.AddRange(seat.heldUiMessages);
+			}
+			seat.heldUiMessages.Clear();
+		}
+		log.Information("{Name} is back, in the seats of {Players}", guest.name, string.Join(", ", theirs.Select(s => s.info.playerID)));
+
+		if (Started) {
+			// The clock first, so that the guest knows whose turn it is once
+			// it has the game.
+			TurnClockInfo clock = CurrentClock();
+			if (clock != null) {
+				guest.connection.Send(FrameKind.TurnClock, clock);
+			}
+			SendStart(guest, EncodeSnapshot());
+			foreach (Seat seat in theirs) {
+				ResendTurnPrompts(seat);
+			}
+		}
+		BroadcastLobby();
+		return true;
 	}
 
 	private void Reject(Guest guest, string reason) {
@@ -588,9 +732,17 @@ public class LanHost : IDisposable {
 	// has left or, rejoining, will never see the question. They are taken
 	// to have closed it unanswered, so the game goes on.
 	private void ReleaseDiplomacy(Seat seat) {
-		if (Started && EngineStorage.diplomacyPlayerID == seat.info.playerID) {
+		if (!Started) {
+			return;
+		}
+		if (EngineStorage.diplomacyPlayerID == seat.info.playerID) {
 			log.Information("Closing the diplomacy {Player} was asked to answer", seat.info.playerID);
 			EngineStorage.ReceiveFromRemote(new MsgDiplomacyCompleted { playerID = seat.info.playerID });
+		}
+		// Likewise a deal another human proposed to them is turned down.
+		if (EngineStorage.pendingDeal?.opponent?.id == seat.info.playerID) {
+			log.Information("Turning down the deal {Player} was asked to answer", seat.info.playerID);
+			EngineStorage.ReceiveFromRemote(new MsgRespondToDeal(false) { playerID = seat.info.playerID });
 		}
 	}
 
@@ -719,6 +871,21 @@ public class LanHost : IDisposable {
 			EngineStorage.SendToLocalUI(msg);
 		} else if (recipientSeat.IsTaken) {
 			QueueUiMessage(recipientSeat.guest, NetSerialization.Serialize(msg));
+		} else if (recipientSeat.IsHeld) {
+			HoldUiMessage(recipientSeat, NetSerialization.Serialize(msg));
+		}
+	}
+
+	// Keeps a message for a disconnected player, to give them if they're
+	// back before the turn is over; after that it's out of date.
+	private static void HoldUiMessage(Seat seat, byte[] json) {
+		int turn = EngineStorage.gameData?.turn ?? -1;
+		if (seat.heldTurn != turn) {
+			seat.heldTurn = turn;
+			seat.heldUiMessages.Clear();
+		}
+		if (seat.heldUiMessages.Count < MaxHeldUiMessages) {
+			seat.heldUiMessages.Add(json);
 		}
 	}
 
@@ -780,10 +947,10 @@ public class LanHost : IDisposable {
 	}
 
 	private void SendLobby(Guest guest) {
-		SendLobby(guest.connection, SeatsOf(guest).Select(s => s.info.playerID).ToList());
+		SendLobby(guest.connection, SeatsOf(guest).Select(s => s.info.playerID).ToList(), guest.token);
 	}
 
-	private void SendLobby(LanConnection connection, List<ID> yourSeats) {
+	private void SendLobby(LanConnection connection, List<ID> yourSeats, string reconnectToken = null) {
 		List<SeatInfo> seatInfos = [
 			new SeatInfo(hostPlayerID, hostCivilization, hostName, true, hostName),
 			.. Seats,
@@ -791,7 +958,7 @@ public class LanHost : IDisposable {
 		List<CivilizationChoice> civilizations = choosable?.Select(c => new CivilizationChoice(
 			c.name, c.leader, c.noun, c.leaderArtFile, c.traits.Select(t => t.ToString()).ToList())).ToList();
 		connection.Send(FrameKind.Lobby, new LobbyInfo(hostName, seatInfos, yourSeats, [.. Spectators], civilizations, creatingGame, Started,
-			SimultaneousTurns));
+			SimultaneousTurns, reconnectToken));
 	}
 
 	private void BroadcastLobby() {

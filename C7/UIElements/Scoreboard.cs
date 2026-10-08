@@ -42,7 +42,7 @@ public partial class Scoreboard : PanelContainer {
 	private List<RowSummary> shownRows;
 
 	// Everything a row shows, so the rows are only made again when it changes.
-	private readonly record struct RowSummary(ID playerID, int rank, int score, bool connected, bool done, bool active,
+	private readonly record struct RowSummary(ID playerID, int rank, int score, bool connected, bool away, bool done, bool active,
 		string displayedName, bool isHuman, bool lanActive);
 
 	// The style boxes every row uses, shared by all rows. They must not be
@@ -58,7 +58,7 @@ public partial class Scoreboard : PanelContainer {
 	private int localClockTurn = -1;
 	private readonly System.Diagnostics.Stopwatch localClock = new();
 
-	private record Row(Player player, int rank, int score, bool connected, bool done, bool active);
+	private record Row(Player player, int rank, int score, bool connected, bool away, bool done, bool active);
 
 	public override void _Ready() {
 		MouseFilter = MouseFilterEnum.Stop;
@@ -146,7 +146,7 @@ public partial class Scoreboard : PanelContainer {
 		List<Row> rows = ReadRows(gameData, clock);
 		List<RowSummary> summary = new(rows.Count);
 		foreach (Row r in rows) {
-			summary.Add(new RowSummary(r.player.id, r.rank, r.score, r.connected, r.done, r.active,
+			summary.Add(new RowSummary(r.player.id, r.rank, r.score, r.connected, r.away, r.done, r.active,
 				DisplayedName(r), r.player.isHuman, LanSession.IsActive));
 		}
 		if (shownRows != null && summary.SequenceEqual(shownRows)) {
@@ -228,6 +228,7 @@ public partial class Scoreboard : PanelContainer {
 	// Everyone still in the game, highest score first.
 	private static List<Row> ReadRows(GameData gameData, TurnClockInfo clock) {
 		HashSet<ID> connected = clock?.connectedPlayers?.ToHashSet() ?? [];
+		HashSet<ID> away = clock?.awayPlayers?.ToHashSet() ?? [];
 		ID activeID = clock?.activePlayerID ?? EngineStorage.activePlayerID;
 		// Everyone moving, when the host says; with simultaneous turns, that
 		// can be several players at once.
@@ -241,6 +242,7 @@ public partial class Scoreboard : PanelContainer {
 				i + 1,
 				ps.score,
 				ps.player.isHuman && connected.Contains(ps.player.id),
+				ps.player.isHuman && away.Contains(ps.player.id),
 				ps.player.hasPlayedThisTurn,
 				ps.player.isHuman && moving.Contains(ps.player.id) && !ps.player.hasPlayedThisTurn))
 			.ToList();
@@ -290,14 +292,17 @@ public partial class Scoreboard : PanelContainer {
 		score.HorizontalAlignment = HorizontalAlignment.Right;
 		cells.AddChild(score);
 
-		// On a LAN, the squiggle shows a human is at their machine.
-		Label link = MakeText(row.connected ? "~" : "");
+		// On a LAN, the squiggle shows a human is at their machine, and a z
+		// one the game goes on without.
+		Label link = MakeText(row.connected ? "~" : row.away ? "z" : "");
 		link.Visible = LanSession.IsActive;
 		link.CustomMinimumSize = new Vector2(16, 0);
 		link.HorizontalAlignment = HorizontalAlignment.Center;
 		link.AddThemeFontSizeOverride("font_size", 20);
 		link.MouseFilter = MouseFilterEnum.Pass;
-		link.TooltipText = row.connected ? "Connected" : row.player.isHuman ? "Not connected" : "";
+		link.TooltipText = row.connected ? "Connected"
+			: row.away ? "Away: not connected, and their turns end by themselves"
+			: row.player.isHuman ? "Not connected" : "";
 		cells.AddChild(link);
 
 		// The box turns white once the player has finished their turn.

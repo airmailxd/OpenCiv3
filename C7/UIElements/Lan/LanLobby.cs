@@ -281,7 +281,12 @@ public partial class LanLobby : Control {
 	}
 
 	private static string Describe(SeatInfo seat) {
-		string who = seat.takenBy ?? "open";
+		string who = seat.takenBy == null ? "open"
+			: seat.disconnected ? $"{seat.takenBy} (disconnected)"
+			: seat.takenBy;
+		if (seat.away) {
+			who += ", away";
+		}
 		string name = seat.playerName == null ? "" : $"{seat.playerName}, ";
 		string civilization = seat.civilization ?? "civilization not chosen (random)";
 		return $"{name}{civilization}: {who}";

@@ -877,6 +877,11 @@ namespace C7Engine {
 				new MsgDealResult(proposer, opponent, true).send();
 				return;
 			}
+			if (opponent.isHuman && !EngineStorage.IsPlayerReachable(opponent.id)) {
+				// Nobody is at their machine to answer.
+				new MsgDealResult(proposer, opponent, false).send();
+				return;
+			}
 			if (opponent.isHuman) {
 				// With simultaneous turns, another pair may be in talks
 				// already, and only one deal can wait for an answer.

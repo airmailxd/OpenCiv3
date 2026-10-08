@@ -35,7 +35,7 @@ public enum FrameKind : byte {
 
 public static class LanProtocol {
 	// Bump when the frames or the messages in them change incompatibly.
-	public const int Version = 7;
+	public const int Version = 8;
 
 	public const int DefaultPort = 47_777;
 	public const int DiscoveryPort = 47_778;
@@ -107,7 +107,10 @@ public sealed class EncodedSnapshot {
 	}
 }
 
-public record HelloInfo(int version, string playerName);
+// reconnectToken is the token the host gave this player when they took
+// their seats, to have them back after losing the connection; null to join
+// afresh.
+public record HelloInfo(int version, string playerName, string reconnectToken = null);
 
 // A guest may take several seats, for players taking turns at their machine,
 // so each seat can have its own player's name; null for the guest's name.
@@ -115,8 +118,12 @@ public record ClaimSeatInfo(ID playerID, string playerName = null);
 
 // A human player's place in the game, and who has taken it. In a new game
 // whose guests choose their civilizations, a guest's civilization is null
-// until they choose one, which means a random one.
-public record SeatInfo(ID playerID, string civilization, string playerName, bool isHost, string takenBy);
+// until they choose one, which means a random one. A disconnected seat is
+// held for the guest who lost their connection to it, and nobody else can
+// take it; an away seat's turns end by themselves, since the host chose to
+// go on without its player until they are back.
+public record SeatInfo(ID playerID, string civilization, string playerName, bool isHost, string takenBy,
+	bool disconnected = false, bool away = false);
 
 // A civilization a guest can choose, with what the lobby shows about it.
 public record CivilizationChoice(string name, string leader, string noun, string leaderArtFile, List<string> traits);
@@ -126,16 +133,19 @@ public record CivilizationChoice(string name, string leader, string noun, string
 // creatingGame is true while the host creates the world, when choices are
 // closed. yourSeats are the seats this guest has taken, in turn order.
 // simultaneousTurns is whether the humans will play their turns at once.
+// reconnectToken is this guest's, to say hello with to have its seats back
+// if the connection is lost.
 public record LobbyInfo(string hostName, List<SeatInfo> seats, List<ID> yourSeats, List<string> spectators = null,
 	List<CivilizationChoice> civilizations = null, bool creatingGame = false, bool started = false,
-	bool simultaneousTurns = false);
+	bool simultaneousTurns = false, string reconnectToken = null);
 
 // The civilization's name, or null for a random one, for one of the guest's
 // seats; null for their first.
 public record ChooseCivilizationInfo(string civilization, ID playerID = null);
 
-// The players this guest plays, in turn order; empty for a spectator.
-public record StartInfo(List<ID> yourPlayerIDs);
+// The players this guest plays, in turn order; empty for a spectator. The
+// token is as in LobbyInfo.
+public record StartInfo(List<ID> yourPlayerIDs, string reconnectToken = null);
 
 // A host's answer to a discovery broadcast.
 public record DiscoveryReply(string hostName, int port, int openSeats, bool started);
@@ -144,6 +154,7 @@ public record DiscoveryReply(string hostName, int port, int openSeats, bool star
 // which players are at their machines. secondsAllowed is null when turns have
 // no time limit. playersToMove are the humans yet to finish their turn, in
 // turn order: with simultaneous turns, everyone the clock is running for, and
-// otherwise at most the active player.
+// otherwise at most the active player. awayPlayers are those the host went on
+// without, whose turns end by themselves until they are back.
 public record TurnClockInfo(ID activePlayerID, int turn, double secondsElapsed, double? secondsAllowed, List<ID> connectedPlayers,
-	List<ID> playersToMove = null);
+	List<ID> playersToMove = null, List<ID> awayPlayers = null);

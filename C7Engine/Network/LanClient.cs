@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using C7GameData;
 using C7GameData.Save;
@@ -24,10 +25,15 @@ namespace C7Engine.Network;
 // A frame that can't be read or handled is logged and skipped. The host's
 // frames are the only source of the game, so hanging up wouldn't get a
 // better one.
+//
+// Once in the game, a client that loses the host keeps trying to connect
+// again in the background, and says hello with the token the host gave it,
+// to have its seats back where it left them.
 public class LanClient : IDisposable {
 	private static readonly ILogger log = Log.ForContext<LanClient>();
 
-	private readonly LanConnection connection;
+	private LanConnection connection;
+	private readonly string playerName;
 
 	// The snapshot frame being read, and its reading.
 	private Frame readingFrame;
@@ -39,6 +45,8 @@ public class LanClient : IDisposable {
 	private byte[] lastShownSnapshot;
 
 	public string HostAddress { get; }
+	public string Address { get; }
+	public int Port { get; }
 	public LobbyInfo Lobby { get; private set; }
 	public string RejectedReason { get; private set; }
 
@@ -58,6 +66,37 @@ public class LanClient : IDisposable {
 
 	public bool IsConnected => !connection.IsClosed;
 
+	// What the host gave us to say hello with to have our seats back.
+	public string ReconnectToken { get; private set; }
+
+	// Whether to try connecting again when the connection to the host is
+	// lost, which the game screen turns on.
+	public bool ReconnectAutomatically { get; set; }
+
+	// Whether we're trying to connect again, until the host answers, and
+	// which try this is.
+	public bool Reconnecting { get; private set; }
+	public int ReconnectAttempt => Volatile.Read(ref reconnectAttempt);
+	private int reconnectAttempt;
+
+	// The waits between tries start at the first and double up to the
+	// longest.
+	internal TimeSpan FirstReconnectDelay = TimeSpan.FromSeconds(1);
+	internal TimeSpan MaxReconnectDelay = TimeSpan.FromSeconds(5);
+	private static readonly TimeSpan ConnectTimeout = TimeSpan.FromSeconds(5);
+
+	// The connection a try made, for Poll to take over; the tries being
+	// made; and whether we have said hello on a new connection and wait
+	// for the host's answer.
+	private TcpClient reconnected;
+	private CancellationTokenSource reconnecting;
+	private bool awaitingAnswer;
+	private volatile bool disposed;
+
+	// True when we're back with a host that has our game in its lobby,
+	// having started hosting it again, until it starts it.
+	public bool HostIsResuming { get; private set; }
+
 	// The host's turn clock as last sent, and how long ago that was.
 	private TurnClockInfo clock;
 	private readonly System.Diagnostics.Stopwatch sinceClock = new();
@@ -70,20 +109,31 @@ public class LanClient : IDisposable {
 	public Action<byte[]> UiMessageReceived;
 
 	// Set by the game screen: called when the host says again which players
-	// are ours, after we take another seat in the game in progress.
+	// are ours, after we take another seat in the game in progress or come
+	// back after losing the connection.
 	public Action PlayersChanged;
 
-	private LanClient(TcpClient tcp, string hostAddress) {
+	private LanClient(TcpClient tcp, string address, int port, string playerName, string reconnectToken) {
 		connection = new LanConnection(tcp);
-		HostAddress = hostAddress;
+		Address = address;
+		Port = port;
+		HostAddress = $"{address}:{port}";
+		this.playerName = playerName;
+		ReconnectToken = reconnectToken;
 	}
 
-	public static LanClient Connect(string address, int port, string playerName) {
+	// Joins the host there. With the token from a game we were in, the host
+	// gives back the seats we had in it.
+	public static LanClient Connect(string address, int port, string playerName, string reconnectToken = null) {
 		TcpClient tcp = new();
 		tcp.Connect(address, port);
-		LanClient client = new(tcp, $"{address}:{port}");
-		client.connection.Send(FrameKind.Hello, new HelloInfo(LanProtocol.Version, playerName));
+		LanClient client = new(tcp, address, port, playerName, reconnectToken);
+		client.SayHello();
 		return client;
+	}
+
+	private void SayHello() {
+		connection.Send(FrameKind.Hello, new HelloInfo(LanProtocol.Version, playerName, ReconnectToken));
 	}
 
 	// Takes a seat, alongside any taken already, for the player named (or
@@ -123,6 +173,11 @@ public class LanClient : IDisposable {
 	}
 
 	public void Poll() {
+		PollFrames();
+		PollReconnecting();
+	}
+
+	private void PollFrames() {
 		while (connection.TryPeek(out Frame frame)) {
 			// Once the game has started, wait for the game screen before
 			// handling anything more.
@@ -153,6 +208,99 @@ public class LanClient : IDisposable {
 		}
 	}
 
+	// Once the connection is lost and everything that came over it has been
+	// handled, starts trying to connect again; and takes over the new
+	// connection once there is one.
+	private void PollReconnecting() {
+		if (Interlocked.Exchange(ref reconnected, null) is TcpClient tcp) {
+			try {
+				connection = new LanConnection(tcp);
+			} catch (Exception e) when (e is SocketException or InvalidOperationException or ObjectDisposedException) {
+				log.Information("Lost the new connection to the host straight away: {Error}", e.Message);
+				tcp.Dispose();
+				StartReconnecting();
+				return;
+			}
+			log.Information("Connected to the host again, saying hello");
+			readingFrame = null;
+			reading = null;
+			// Show the host's game afresh, even if it's what we showed last.
+			lastShownSnapshot = null;
+			awaitingAnswer = true;
+			SayHello();
+			if (IsSpectator) {
+				connection.Send(FrameKind.Watch, []);
+			}
+			return;
+		}
+		bool trying = Reconnecting && !awaitingAnswer;
+		if (trying || disposed || !ReconnectAutomatically || RejectedReason != null
+			|| !connection.IsClosed || connection.TryPeek(out _)) {
+			return;
+		}
+		StartReconnecting();
+	}
+
+	private void StartReconnecting() {
+		if (!Reconnecting) {
+			log.Information("Lost the connection to the host, trying to connect again");
+			Volatile.Write(ref reconnectAttempt, 0);
+		}
+		Reconnecting = true;
+		awaitingAnswer = false;
+		reconnecting?.Cancel();
+		CancellationTokenSource cancel = new();
+		reconnecting = cancel;
+		Task.Run(() => TryConnecting(cancel.Token));
+	}
+
+	// Runs on a worker thread until a connection is made or the tries are
+	// called off.
+	private async Task TryConnecting(CancellationToken cancel) {
+		TimeSpan delay = FirstReconnectDelay;
+		while (!cancel.IsCancellationRequested) {
+			try {
+				await Task.Delay(delay, cancel);
+			} catch (OperationCanceledException) {
+				return;
+			}
+			delay = delay * 2 < MaxReconnectDelay ? delay * 2 : MaxReconnectDelay;
+			int attempt = Interlocked.Increment(ref reconnectAttempt);
+			TcpClient tcp = new();
+			try {
+				using CancellationTokenSource timeout = CancellationTokenSource.CreateLinkedTokenSource(cancel);
+				timeout.CancelAfter(ConnectTimeout);
+				await tcp.ConnectAsync(Address, Port, timeout.Token);
+				if (cancel.IsCancellationRequested) {
+					tcp.Dispose();
+					return;
+				}
+				Interlocked.Exchange(ref reconnected, tcp)?.Dispose();
+				return;
+			} catch (Exception e) when (e is SocketException or OperationCanceledException or ObjectDisposedException) {
+				tcp.Dispose();
+				log.Debug("Couldn't reach the host on try {Attempt}: {Error}", attempt, e.Message);
+			}
+		}
+	}
+
+	// The host has answered our hello on a new connection.
+	private void NoteAnswer() {
+		if (!awaitingAnswer) {
+			return;
+		}
+		awaitingAnswer = false;
+		Reconnecting = false;
+		log.Information("The host has us back");
+	}
+
+	// Stops trying to connect again.
+	public void StopReconnecting() {
+		reconnecting?.Cancel();
+		Reconnecting = false;
+		awaitingAnswer = false;
+	}
+
 	private bool IsShown(byte[] snapshot) {
 		return lastShownSnapshot != null && (StartingGame != null || SnapshotReceived != null)
 			&& snapshot.AsSpan().SequenceEqual(lastShownSnapshot);
@@ -162,15 +310,25 @@ public class LanClient : IDisposable {
 		switch (frame.kind) {
 			case FrameKind.Lobby:
 				Lobby = NetSerialization.DeserializeRequired<LobbyInfo>(frame.payload);
+				ReconnectToken = Lobby.reconnectToken ?? ReconnectToken;
+				// A host with the game we're in back in its lobby is resuming
+				// it.
+				HostIsResuming = !Lobby.started && (StartingGame != null || SnapshotReceived != null);
+				NoteAnswer();
 				LobbyChanged?.Invoke();
 				break;
 			case FrameKind.Rejected:
 				RejectedReason = Encoding.UTF8.GetString(frame.payload);
 				log.Information("The host turned us away: {Reason}", RejectedReason);
+				StopReconnecting();
 				LobbyChanged?.Invoke();
 				break;
 			case FrameKind.Start:
-				PlayerIDs = NetSerialization.DeserializeRequired<StartInfo>(frame.payload).yourPlayerIDs ?? [];
+				StartInfo start = NetSerialization.DeserializeRequired<StartInfo>(frame.payload);
+				PlayerIDs = start.yourPlayerIDs ?? [];
+				ReconnectToken = start.reconnectToken ?? ReconnectToken;
+				HostIsResuming = false;
+				NoteAnswer();
 				PlayersChanged?.Invoke();
 				break;
 			case FrameKind.Snapshot:
@@ -203,6 +361,9 @@ public class LanClient : IDisposable {
 	}
 
 	public void Dispose() {
+		disposed = true;
+		StopReconnecting();
+		Interlocked.Exchange(ref reconnected, null)?.Dispose();
 		connection.Dispose();
 	}
 }

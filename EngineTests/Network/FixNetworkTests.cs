@@ -144,7 +144,7 @@ public class FixNetworkTests : IClassFixture<SaveGameFixture>, IDisposable {
 		for (int i = 0; i < LanConnection.MaxBadFramesInARow; ++i) {
 			guest.Send(FrameKind.Command, Utf8("null"));
 		}
-		PumpHostUntil(host, () => host.Seats[0].takenBy == null);
+		PumpHostUntil(host, () => host.Seats[0].disconnected);
 		Assert.False(host.AllSeatsTaken);
 	}
 

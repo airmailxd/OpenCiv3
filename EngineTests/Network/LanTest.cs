@@ -317,9 +317,13 @@ public class LanTest : IClassFixture<SaveGameFixture>, IDisposable {
 		host.StartGame();
 		PumpUntil(host, first, () => first.StartingGame != null);
 
+		// The seat is held for the guest who left, until the host gives it
+		// up.
 		first.Dispose();
-		PumpUntil(host, first, () => host.Seats[0].takenBy == null);
+		PumpUntil(host, first, () => host.Seats[0].disconnected);
 		Assert.False(host.AllSeatsTaken);
+		Assert.True(host.ReleaseSeat(seatID));
+		Assert.Null(host.Seats[0].takenBy);
 
 		using LanClient second = LanClient.Connect("127.0.0.1", host.Port, "Guest again");
 		PumpUntil(host, second, () => second.Lobby != null);
@@ -666,9 +670,10 @@ public class LanTest : IClassFixture<SaveGameFixture>, IDisposable {
 		new MsgRespondToDeal(false).send();
 		PumpUntil(host, guest, () => !EngineStorage.HasPendingMessagesToEngine(), hostUi);
 
-		// Leaving frees both seats.
+		// Leaving holds both seats for them.
 		guest.Dispose();
-		PumpUntil(host, guest, () => host.Seats.All(s => s.takenBy == null));
+		PumpUntil(host, guest, () => host.Seats.All(s => s.disconnected));
+		Assert.All(host.Seats, s => Assert.Equal("Guest", s.takenBy));
 		Assert.False(EngineStorage.IsPlayerReachable(humans[1].id));
 		Assert.False(EngineStorage.IsPlayerReachable(humans[2].id));
 	}

@@ -147,6 +147,17 @@ public partial class Game : Node {
 	private string lanWaitingText = null;
 	private bool lanDisconnectShown = false;
 
+	// Whether the banner is for other players taking their turns, rather
+	// than for something else we wait on.
+	private bool lanWaitingOnOthers = false;
+
+	// While a LAN client has lost the host, the curtain saying it's trying
+	// to reconnect. Once it's back, the turns pick up where the host's game
+	// is, when that has been shown.
+	private CanvasLayer lanReconnectCurtain = null;
+	private Label lanReconnectLabel = null;
+	private bool lanResyncPending = false;
+
 	// With simultaneous turns: the round we began playing the player at the
 	// screen, and this machine's players who have ended their turn this
 	// round, which the host's game may not show yet.
@@ -421,12 +432,19 @@ public partial class Game : Node {
 			client.SnapshotReceived = OnLanSnapshot;
 			client.UiMessageReceived = json => HandleEngineMessage(NetSerialization.DeserializeMessageToUI(json));
 			client.PlayersChanged = OnLanPlayersChanged;
+			// Losing the host from here on, we try to get back to it.
+			client.ReconnectAutomatically = true;
 		}
 	}
 
 	// Rejoining with several seats can take them one at a time, so the
 	// player we were waiting on may turn out to be one of ours.
 	private void OnLanPlayersChanged() {
+		if (lanResyncPending) {
+			// Back after losing the host: the turns pick up once its game
+			// is shown.
+			return;
+		}
 		if (SimultaneousLanTurns) {
 			ContinueSimultaneousTurns();
 			return;
@@ -441,26 +459,134 @@ public partial class Game : Node {
 		LanSession.Host?.Poll();
 		LanSession.Client?.Poll();
 
+		LanClient client = LanSession.Client;
+		if (client != null && !PollLanConnection(client)) {
+			return;
+		}
+
 		// With simultaneous turns, the host's game says when each of our
 		// players' turns is over, even when their time runs out.
 		if (lanGameStarted && SimultaneousLanTurns && !lanDisconnectShown) {
 			ContinueSimultaneousTurns();
+		} else if (lanWaitingOnOthers && !SimultaneousLanTurns) {
+			// Whoever we wait on may have lost their connection, or come
+			// back.
+			Player active = EngineStorage.gameData.GetPlayer(EngineStorage.activePlayerID);
+			if (active != null && !LanSession.IsLocalPlayer(active)) {
+				ShowLanWaiting(active);
+			}
 		}
+	}
 
-		LanClient client = LanSession.Client;
-		if (client == null) {
+	// Keeps a client's game screen in step with its connection to the host:
+	// while it reconnects, or waits for the host to resume the game, nothing
+	// can be done. Returns whether the game goes on as usual.
+	private bool PollLanConnection(LanClient client) {
+		if (client.Reconnecting) {
+			// Once back, the turns pick up when the host's game is shown,
+			// which may be as soon as the host answers.
+			lanResyncPending = true;
+			ShowLanReconnecting(client.ReconnectAttempt);
+			return false;
+		}
+		if (lanReconnectCurtain != null) {
+			HideLanReconnecting();
+		}
+		if (!client.IsConnected && (client.RejectedReason != null || !client.ReconnectAutomatically)) {
+			if (!lanDisconnectShown) {
+				lanDisconnectShown = true;
+				HideLanWaiting();
+				string why = client.RejectedReason == null ? "We have lost contact with the host." : $"The host turned us away: {client.RejectedReason}";
+				popupOverlay.ShowPopup(
+					new ConfirmationPopup(
+						$"{why}\nThe game cannot continue.\n\n",
+						"Return to the main menu.",
+						"Let me look around first.",
+						OnRetire),
+					PopupOverlay.PopupCategory.Advisor);
+			}
+			return false;
+		}
+		if (client.HostIsResuming) {
+			// The host is hosting our game again, from where it last saved
+			// it, and shows it to us once it starts.
+			lanResyncPending = true;
+			ShowLanBanner("Waiting for the host to resume the game...");
+			return false;
+		}
+		return !lanDisconnectShown;
+	}
+
+	// The curtain over the game while we try to get back to the host.
+	private void ShowLanReconnecting(int attempt) {
+		CurrentState = GameState.ComputerTurn;
+		string text = attempt <= 1
+			? "Lost connection to the host. Reconnecting..."
+			: $"Lost connection to the host. Reconnecting... (attempt {attempt})";
+		if (lanReconnectCurtain != null) {
+			lanReconnectLabel.Text = text;
 			return;
 		}
-		if (!client.IsConnected && !lanDisconnectShown) {
-			lanDisconnectShown = true;
-			HideLanWaiting();
-			popupOverlay.ShowPopup(
-				new ConfirmationPopup(
-					"We have lost contact with the host.\nThe game cannot continue.\n\n",
-					"Return to the main menu.",
-					"Let me look around first.",
-					OnRetire),
-				PopupOverlay.PopupCategory.Advisor);
+		log.Information("Lost the connection to the host, reconnecting");
+		HideLanWaiting();
+
+		// Dims the game and takes every click.
+		ColorRect dimmer = new() { Color = new Color(0, 0, 0, 0.6f), MouseFilter = Control.MouseFilterEnum.Stop };
+		dimmer.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+
+		VBoxContainer box = new() { Alignment = BoxContainer.AlignmentMode.Center };
+		box.AddThemeConstantOverride("separation", 16);
+		box.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+		dimmer.AddChild(box);
+
+		lanReconnectLabel = new Label { Text = text, HorizontalAlignment = HorizontalAlignment.Center };
+		lanReconnectLabel.AddThemeFontSizeOverride("font_size", 24);
+		lanReconnectLabel.AddThemeColorOverride("font_color", Colors.White);
+		box.AddChild(lanReconnectLabel);
+
+		Button menu = new() { Text = "Return to main menu", SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter };
+		menu.AddThemeFontSizeOverride("font_size", 18);
+		menu.Pressed += () => {
+			LanSession.Client?.StopReconnecting();
+			OnRetire();
+		};
+		box.AddChild(menu);
+
+		// Above the hotseat curtain, too.
+		lanReconnectCurtain = new CanvasLayer { Layer = 110 };
+		lanReconnectCurtain.AddChild(dimmer);
+		AddChild(lanReconnectCurtain);
+	}
+
+	private void HideLanReconnecting() {
+		log.Information("Reconnected to the host");
+		lanReconnectCurtain?.QueueFree();
+		lanReconnectCurtain = null;
+		lanReconnectLabel = null;
+	}
+
+	// Back with the host after losing it, or after it resumed the game:
+	// each of our players picks up their turn where the host's game is now.
+	private void ResumeLanTurns() {
+		HideLanWaiting();
+		CurrentState = GameState.ComputerTurn;
+		if (LanSession.IsSpectator) {
+			return;
+		}
+		GameData gameData = EngineStorage.gameData;
+		if (SimultaneousLanTurns) {
+			// Begin again with whichever of ours is still to move.
+			simultaneousPlayingRound = -1;
+			ContinueSimultaneousTurns();
+			return;
+		}
+		// The host told us whose turn it is before showing us the game.
+		if (LanSession.TurnClock?.activePlayerID is ID activeID) {
+			EngineStorage.activePlayerID = activeID;
+		}
+		Player active = gameData.GetPlayer(EngineStorage.activePlayerID);
+		if (active != null && active.isHuman && !active.hasPlayedThisTurn) {
+			OnControllerTurnStart(active);
 		}
 	}
 
@@ -504,6 +630,11 @@ public partial class Game : Node {
 		// An open advisor shows the old game's cities and techs.
 		advisor.RefreshAfterGameReplaced();
 
+		if (lanResyncPending && LanSession.Client?.HostIsResuming != true) {
+			lanResyncPending = false;
+			ResumeLanTurns();
+		}
+
 		if (applyTime.ElapsedMilliseconds > 100) {
 			log.Information("Showing the host's snapshot took {Milliseconds} ms", applyTime.ElapsedMilliseconds);
 		}
@@ -543,33 +674,76 @@ public partial class Game : Node {
 
 	// Shows whose turn it is while another machine's player moves.
 	private void ShowLanWaiting(Player active) {
-		string playerName = active.name ?? active.civilization.leader;
-		string text = $"Waiting for {playerName} of the {active.civilization.noun} to play their turn...";
-		if (text != lanWaitingText) {
-			log.Information("Waiting for {Player} to play their turn", active);
-		}
-		ShowLanBanner(text);
+		ShowLanWaiting([active]);
 	}
 
-	private void ShowLanBanner(string text) {
+	// Shows who we wait on while other machines' players move. The host can
+	// go on without those who have lost their connection.
+	private void ShowLanWaiting(List<Player> others) {
+		List<Player> absent = others.Where(p => !IsLanPlayerHere(p)).ToList();
+		string text;
+		if (absent.Count > 0) {
+			string names = string.Join(", ", absent.Select(p => $"{p.name ?? p.civilization.leader} of the {p.civilization.noun}"));
+			text = $"Waiting for {names} to reconnect...";
+		} else if (others.Count == 1) {
+			Player active = others[0];
+			string playerName = active.name ?? active.civilization.leader;
+			text = $"Waiting for {playerName} of the {active.civilization.noun} to play their turn...";
+		} else {
+			text = $"Waiting for {others.Count} other players to finish their turns...";
+		}
+		if (lanWaitingText == null || !lanWaitingText.StartsWith(text)) {
+			log.Information("{Waiting}", text);
+		}
+		if (absent.Count > 0 && LanSession.Host != null) {
+			ShowLanBanner(text, "Continue without them", LanSession.Host.ContinueWithoutAbsentPlayers);
+		} else {
+			ShowLanBanner(text);
+		}
+		lanWaitingOnOthers = true;
+	}
+
+	// Whether the player is at their machine, or the host has gone on
+	// without them so their turn ends by itself. Before the host says who is
+	// connected, everyone is taken to be.
+	private static bool IsLanPlayerHere(Player player) {
+		TurnClockInfo clock = LanSession.TurnClock;
+		if (clock?.connectedPlayers == null || clock.connectedPlayers.Count == 0) {
+			return true;
+		}
+		return clock.connectedPlayers.Contains(player.id) || clock.awayPlayers?.Contains(player.id) == true;
+	}
+
+	private void ShowLanBanner(string text, string buttonText = null, Action onPressed = null) {
 		CurrentState = GameState.ComputerTurn;
-		if (lanWaitingBanner != null && lanWaitingText == text) {
+		if (lanWaitingBanner != null && lanWaitingText == text + buttonText) {
 			return;
 		}
 		HideLanWaiting();
-		lanWaitingText = text;
+		lanWaitingText = text + buttonText;
 
 		Label label = new() {
 			Text = text,
 			HorizontalAlignment = HorizontalAlignment.Center,
 			VerticalAlignment = VerticalAlignment.Center,
+			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
 		};
 		label.AddThemeFontSizeOverride("font_size", 20);
 		label.AddThemeColorOverride("font_color", Colors.White);
 
+		HBoxContainer row = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
+		row.AddThemeConstantOverride("separation", 12);
+		row.AddChild(label);
+		if (buttonText != null) {
+			Button button = new() { Text = buttonText };
+			button.AddThemeFontSizeOverride("font_size", 16);
+			button.Pressed += onPressed;
+			row.AddChild(button);
+		}
+
 		PanelContainer panel = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
 		panel.AddThemeStyleboxOverride("panel", new StyleBoxFlat { BgColor = new Color(0, 0, 0, 0.65f) });
-		panel.AddChild(label);
+		panel.AddChild(row);
 
 		lanWaitingBanner = new CanvasLayer { Layer = 90 };
 		lanWaitingBanner.AddChild(panel);
@@ -620,6 +794,7 @@ public partial class Game : Node {
 		lanWaitingBanner?.QueueFree();
 		lanWaitingBanner = null;
 		lanWaitingText = null;
+		lanWaitingOnOthers = false;
 	}
 
 	// Whether this machine plays in a LAN game whose humans play their turns
@@ -665,10 +840,8 @@ public partial class Game : Node {
 			hotseatHandoff?.QueueFree();
 			hotseatHandoff = null;
 			List<Player> others = TurnHandling.PlayersToMove(gameData).Where(p => !LanSession.IsLocalPlayer(p)).ToList();
-			if (others.Count == 1) {
-				ShowLanWaiting(others[0]);
-			} else if (others.Count > 1) {
-				ShowLanBanner($"Waiting for {others.Count} other players to finish their turns...");
+			if (others.Count > 0) {
+				ShowLanWaiting(others);
 			} else {
 				// The computer players are moving.
 				CurrentState = GameState.ComputerTurn;

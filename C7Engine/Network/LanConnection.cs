@@ -88,6 +88,7 @@ public class LanConnection : IDisposable {
 		this.client = client;
 		this.prepareReceived = prepareReceived;
 		client.NoDelay = true;
+		KeepAlive(client.Client);
 		stream = client.GetStream();
 		RemoteAddress = client.Client.RemoteEndPoint?.ToString() ?? "unknown";
 
@@ -95,6 +96,20 @@ public class LanConnection : IDisposable {
 		reader.Start();
 		Thread writer = new(WriteLoop) { IsBackground = true, Name = $"LAN writer {RemoteAddress}" };
 		writer.Start();
+	}
+
+	// A peer that vanishes without closing the connection, like one whose
+	// network went down, would otherwise look connected for a long time,
+	// since a side that has nothing to send never finds out.
+	private static void KeepAlive(Socket socket) {
+		try {
+			socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
+			socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveTime, 5);
+			socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveInterval, 2);
+			socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveRetryCount, 3);
+		} catch (Exception e) when (e is SocketException or PlatformNotSupportedException or NotSupportedException) {
+			log.Debug("Couldn't set keep-alive on a LAN connection: {Error}", e.Message);
+		}
 	}
 
 	public bool TryReceive(out Frame frame) {
