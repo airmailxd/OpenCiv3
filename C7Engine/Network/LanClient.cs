@@ -22,6 +22,11 @@ namespace C7Engine.Network;
 // away by a newer one is dropped for it without being read, and one
 // identical to the snapshot last shown is skipped.
 //
+// Most snapshots are patches to the one before (see EncodedSnapshot), so
+// every snapshot is decompressed, in order, even those not read. One that
+// can't be applied leaves us without the game the next ones patch, so we ask
+// the host for the whole game, and skip the patches until it comes.
+//
 // A frame that can't be read or handled is logged and skipped. The host's
 // frames are the only source of the game, so hanging up wouldn't get a
 // better one.
@@ -35,14 +40,30 @@ public class LanClient : IDisposable {
 	private LanConnection connection;
 	private readonly string playerName;
 
-	// The snapshot frame being read, and its reading.
+	// The snapshot frame being read, and its reading: what was decompressed,
+	// or null if it couldn't be, and the game, or null if it's the one shown
+	// already.
 	private Frame readingFrame;
-	private Task<SaveGame> reading;
+	private Task<(ReceivedSnapshot, SaveGame)> reading;
 
-	// The compressed bytes of the snapshot last shown. The host doesn't send
-	// a connection the same snapshot twice in a row, so this rarely matches,
+	// The last snapshot decompressed, which the next one patches; null once
+	// one couldn't be, until the host sends the whole game again. Each is
+	// decompressed on a worker thread once the one before it is.
+	private Task<ReceivedSnapshot> decompressed = Task.FromResult<ReceivedSnapshot>(null);
+
+	// Whether we have asked for the whole game and not had it yet.
+	private bool askedForWholeSnapshot;
+
+	// The hash of the snapshot last shown. The host doesn't send a
+	// connection the same snapshot twice in a row, so this rarely matches,
 	// but comparing costs little next to reading a snapshot and redrawing.
 	private byte[] lastShownSnapshot;
+
+	// The hash of the last snapshot decompressed, and how many came whole
+	// and as patches, for tests.
+	internal byte[] ReceivedSnapshotHash => decompressed.IsCompletedSuccessfully ? decompressed.Result?.Hash : null;
+	internal int WholeSnapshotsReceived { get; private set; }
+	internal int SnapshotDeltasReceived { get; private set; }
 
 	public string HostAddress { get; }
 	public string Address { get; }
@@ -184,16 +205,24 @@ public class LanClient : IDisposable {
 			if (StartingGame != null && SnapshotReceived == null) {
 				return;
 			}
-			if (frame.kind == FrameKind.Snapshot && !ReferenceEquals(frame, readingFrame)) {
-				// A snapshot of the game already shown, or one that a newer
-				// snapshot straight after it replaces, isn't read at all.
-				bool superseded = connection.TryPeekAt(1, out Frame next) && next.kind == FrameKind.Snapshot;
-				if (superseded || IsShown(frame.payload)) {
+			if (IsSnapshot(frame.kind) && !ReferenceEquals(frame, readingFrame)) {
+				Task<ReceivedSnapshot> snapshot = Decompress(frame);
+				// A snapshot that a newer snapshot straight after it replaces
+				// is only decompressed, for the next one to patch.
+				if (connection.TryPeekAt(1, out Frame next) && IsSnapshot(next.kind)) {
 					connection.TryReceive(out _);
 					continue;
 				}
 				readingFrame = frame;
-				reading = Task.Run(() => LanProtocol.DecodeSnapshot(frame.payload));
+				byte[] shown = StartingGame != null || SnapshotReceived != null ? lastShownSnapshot : null;
+				reading = snapshot.ContinueWith(t => {
+					ReceivedSnapshot received = t.Result;
+					// The game already shown isn't read again.
+					if (received == null || (shown != null && received.Hash.AsSpan().SequenceEqual(shown))) {
+						return (received, (SaveGame)null);
+					}
+					return (received, SaveGame.FromJSON(received.Json));
+				}, TaskScheduler.Default);
 			}
 			if (ReferenceEquals(frame, readingFrame) && !reading.IsCompleted) {
 				// Wait for it, so frames stay in order.
@@ -206,6 +235,35 @@ public class LanClient : IDisposable {
 				log.Error(e, "Couldn't handle a {Kind} frame from the host", frame.kind);
 			}
 		}
+	}
+
+	private static bool IsSnapshot(FrameKind kind) => kind is FrameKind.Snapshot or FrameKind.SnapshotDelta;
+
+	// Decompresses a snapshot frame on a worker thread once the snapshot
+	// before it is, applying it to that one if it's a patch. A frame that
+	// can't be read leaves null, and the patches after it fail too, until
+	// the next whole snapshot.
+	private Task<ReceivedSnapshot> Decompress(Frame frame) {
+		if (frame.kind == FrameKind.Snapshot) {
+			WholeSnapshotsReceived++;
+			askedForWholeSnapshot = false;
+		} else {
+			SnapshotDeltasReceived++;
+		}
+		// Once we have asked for the whole game, the patches before it are
+		// expected to fail.
+		bool quiet = askedForWholeSnapshot;
+		decompressed = decompressed.ContinueWith(previous => {
+			try {
+				return LanProtocol.ReadSnapshot(frame.kind, frame.payload, previous.Result);
+			} catch (Exception e) {
+				if (!quiet) {
+					log.Warning("Couldn't read a {Kind} frame from the host: {Error}", frame.kind, e.Message);
+				}
+				return null;
+			}
+		}, TaskScheduler.Default);
+		return decompressed;
 	}
 
 	// Once the connection is lost and everything that came over it has been
@@ -224,7 +282,10 @@ public class LanClient : IDisposable {
 			log.Information("Connected to the host again, saying hello");
 			readingFrame = null;
 			reading = null;
-			// Show the host's game afresh, even if it's what we showed last.
+			// The host starts the new connection with the whole game, which
+			// we show afresh, even if it's what we showed last.
+			decompressed = Task.FromResult<ReceivedSnapshot>(null);
+			askedForWholeSnapshot = false;
 			lastShownSnapshot = null;
 			awaitingAnswer = true;
 			SayHello();
@@ -301,11 +362,6 @@ public class LanClient : IDisposable {
 		awaitingAnswer = false;
 	}
 
-	private bool IsShown(byte[] snapshot) {
-		return lastShownSnapshot != null && (StartingGame != null || SnapshotReceived != null)
-			&& snapshot.AsSpan().SequenceEqual(lastShownSnapshot);
-	}
-
 	private void Handle(Frame frame) {
 		switch (frame.kind) {
 			case FrameKind.Lobby:
@@ -332,14 +388,20 @@ public class LanClient : IDisposable {
 				PlayersChanged?.Invoke();
 				break;
 			case FrameKind.Snapshot:
-				Task<SaveGame> read = ReferenceEquals(frame, readingFrame) ? reading : null;
+			case FrameKind.SnapshotDelta:
+				Task<(ReceivedSnapshot, SaveGame)> read = reading;
 				readingFrame = null;
 				reading = null;
-				SaveGame save = read != null ? read.GetAwaiter().GetResult() : LanProtocol.DecodeSnapshot(frame.payload);
-				if (save == null) {
-					throw new System.IO.InvalidDataException("The snapshot holds no game");
+				(ReceivedSnapshot received, SaveGame save) = read.GetAwaiter().GetResult();
+				if (received == null) {
+					AskForWholeSnapshot();
+					break;
 				}
-				lastShownSnapshot = frame.payload;
+				if (save == null) {
+					// The game shown already.
+					break;
+				}
+				lastShownSnapshot = received.Hash;
 				if (SnapshotReceived != null) {
 					SnapshotReceived(save);
 				} else {
@@ -358,6 +420,17 @@ public class LanClient : IDisposable {
 				log.Warning("Ignoring unexpected {Kind} frame from the host", frame.kind);
 				break;
 		}
+	}
+
+	// A snapshot couldn't be read, so we don't have the game the next ones
+	// patch: the host sends the whole of it next.
+	private void AskForWholeSnapshot() {
+		if (askedForWholeSnapshot) {
+			return;
+		}
+		askedForWholeSnapshot = true;
+		log.Information("Asking the host for the whole game");
+		connection.Send(FrameKind.RequestSnapshot, []);
 	}
 
 	public void Dispose() {

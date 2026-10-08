@@ -1,7 +1,7 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
-using System.IO.Compression;
 using System.Security.Cryptography;
 using C7GameData;
 using C7GameData.Save;
@@ -23,6 +23,9 @@ public enum FrameKind : byte {
 	ChooseCivilization = 5,
 	// Gives back a seat taken before the game started.
 	LeaveSeat = 6,
+	// Asks for the whole game in the next snapshot, from a client that
+	// couldn't apply a SnapshotDelta.
+	RequestSnapshot = 7,
 
 	// Host to client.
 	Lobby = 10,
@@ -31,11 +34,13 @@ public enum FrameKind : byte {
 	Snapshot = 13,
 	UiMessage = 14,
 	TurnClock = 15,
+	// A snapshot as a patch to the one sent before it (see EncodedSnapshot).
+	SnapshotDelta = 16,
 }
 
 public static class LanProtocol {
 	// Bump when the frames or the messages in them change incompatibly.
-	public const int Version = 8;
+	public const int Version = 9;
 
 	public const int DefaultPort = 47_777;
 	public const int DiscoveryPort = 47_778;
@@ -66,46 +71,112 @@ public static class LanProtocol {
 
 	// Encodes a snapshot from SnapshotOf, on any thread. When it's identical
 	// to the previous one, the previous one's encoding is returned rather
-	// than compressing it all over again.
+	// than encoding it all over again. Otherwise the patch from the previous
+	// one is made straight away, since that's what most connections need.
 	public static EncodedSnapshot EncodeSnapshot(SaveGame snapshot, EncodedSnapshot previous = null) {
 		byte[] json = snapshot.ToCompactJSON();
 		byte[] hash = SHA256.HashData(json);
 		if (previous != null && previous.Hash.AsSpan().SequenceEqual(hash)) {
 			return previous;
 		}
-		MemoryStream compressed = new();
-		using (GZipStream gzip = new(compressed, CompressionLevel.Fastest, leaveOpen: true)) {
-			gzip.Write(json);
+		EncodedSnapshot encoded = new(json, hash);
+		if (previous != null) {
+			encoded.PatchFrom(previous);
 		}
-		return new EncodedSnapshot(compressed.ToArray(), hash);
+		return encoded;
 	}
 
+	// Reads a Snapshot frame.
 	public static SaveGame DecodeSnapshot(byte[] snapshot) {
-		using GZipStream gzip = new(new MemoryStream(snapshot), CompressionMode.Decompress);
-		MemoryStream json = new();
-		byte[] buffer = new byte[81920];
-		int read;
-		while ((read = gzip.Read(buffer)) > 0) {
-			if (json.Length + read > MaxSnapshotJsonBytes) {
-				throw new InvalidDataException($"The snapshot is larger than {MaxSnapshotJsonBytes} bytes");
-			}
-			json.Write(buffer, 0, read);
-		}
-		return SaveGame.FromJSON(json.ToArray());
+		return SaveGame.FromJSON(ReadSnapshot(FrameKind.Snapshot, snapshot, null).Json);
 	}
+
+	// The game in a Snapshot or SnapshotDelta frame, as JSON. A delta needs
+	// the snapshot it patches, which is the last one read from the same
+	// connection. Throws InvalidDataException if the frame is broken or
+	// patches some other snapshot.
+	public static ReceivedSnapshot ReadSnapshot(FrameKind kind, byte[] payload, ReceivedSnapshot previous) {
+		if (kind == FrameKind.Snapshot) {
+			byte[] whole = SnapshotCompression.Decompress(payload, MaxSnapshotJsonBytes);
+			return new ReceivedSnapshot(whole, SHA256.HashData(whole));
+		}
+		if (kind != FrameKind.SnapshotDelta) {
+			throw new ArgumentException($"A {kind} frame isn't a snapshot");
+		}
+		if (payload.Length < 2 * HashBytes) {
+			throw new InvalidDataException("The snapshot delta is too short");
+		}
+		ReadOnlySpan<byte> baseHash = payload.AsSpan(0, HashBytes);
+		ReadOnlySpan<byte> hash = payload.AsSpan(HashBytes, HashBytes);
+		if (previous == null || !baseHash.SequenceEqual(previous.Hash)) {
+			throw new InvalidDataException("The snapshot delta patches a snapshot we don't have");
+		}
+		byte[] json = SnapshotCompression.Decompress(payload.AsSpan(2 * HashBytes), MaxSnapshotJsonBytes, previous.Json);
+		byte[] actual = SHA256.HashData(json);
+		if (!hash.SequenceEqual(actual)) {
+			throw new InvalidDataException("The snapshot delta doesn't give the snapshot it should");
+		}
+		return new ReceivedSnapshot(json, actual);
+	}
+
+	internal const int HashBytes = 32;
 }
 
-// A snapshot as sent: the compressed game, and a hash of the game it holds,
-// which is the same for two snapshots exactly when they hold the same game.
+// A snapshot as encoded for sending: the game's JSON, its hash, which is the
+// same for two snapshots exactly when they hold the same game, and the ways
+// it can be sent. A connection that hasn't been sent a snapshot yet gets the
+// whole game compressed, in a Snapshot frame; after that, it gets a
+// SnapshotDelta frame with the hash of the snapshot it was sent last, the
+// hash of this one, and this one compressed as a patch to that one. The
+// connection writes frames in order and TCP delivers them in order, so the
+// last snapshot written to a connection is the one its client has.
+//
+// Both are made the first time a connection asks for them, on that
+// connection's thread, and kept for the other connections, which mostly want
+// the same: everyone is usually sent the same snapshots.
 public sealed class EncodedSnapshot {
-	public byte[] Compressed { get; }
+	public byte[] Json { get; }
 	public byte[] Hash { get; }
 
-	public EncodedSnapshot(byte[] compressed, byte[] hash) {
-		Compressed = compressed;
+	private readonly Lazy<byte[]> compressed;
+	private readonly ConcurrentDictionary<string, Lazy<byte[]>> patches = new();
+
+	public EncodedSnapshot(byte[] json, byte[] hash) {
+		Json = json;
 		Hash = hash;
+		compressed = new(() => SnapshotCompression.Compress(Json));
+	}
+
+	// The whole game, compressed, for a Snapshot frame.
+	public byte[] Compressed => compressed.Value;
+
+	// A SnapshotDelta frame's payload, for a client that has the earlier
+	// snapshot; or null when sending the whole game is about as small.
+	public byte[] PatchFrom(EncodedSnapshot earlier) {
+		Lazy<byte[]> patch = patches.GetOrAdd(Convert.ToHexString(earlier.Hash), _ => new(() => MakePatch(earlier)));
+		return patch.Value;
+	}
+
+	private byte[] MakePatch(EncodedSnapshot earlier) {
+		// A small change patches to well under a fiftieth of the JSON, which
+		// is a fraction of the whole game compressed, without compressing it
+		// to compare. A larger patch is only worth it if it's clearly smaller
+		// than the whole game.
+		byte[] patch = SnapshotCompression.CompressPatch(Json, earlier.Json, Json.Length / 64)
+			?? SnapshotCompression.CompressPatch(Json, earlier.Json, Compressed.Length * 3 / 4);
+		if (patch == null) {
+			return null;
+		}
+		byte[] payload = new byte[2 * LanProtocol.HashBytes + patch.Length];
+		earlier.Hash.CopyTo(payload, 0);
+		Hash.CopyTo(payload, LanProtocol.HashBytes);
+		patch.CopyTo(payload, 2 * LanProtocol.HashBytes);
+		return payload;
 	}
 }
+
+// A snapshot as a client read it: the game's JSON and its hash.
+public sealed record ReceivedSnapshot(byte[] Json, byte[] Hash);
 
 // reconnectToken is the token the host gave this player when they took
 // their seats, to have them back after losing the connection; null to join

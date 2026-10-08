@@ -82,6 +82,22 @@ public class PerfLanTests : IClassFixture<SaveGameFixture>, IDisposable {
 		return $"{frame.kind}:{Encoding.UTF8.GetString(frame.payload)}";
 	}
 
+	// Describes frames as received in order, with each snapshot's game,
+	// whether it came whole or as a patch to the one before.
+	private static List<string> DescribeReceived(List<Frame> frames) {
+		ReceivedSnapshot last = null;
+		List<string> described = [];
+		foreach (Frame frame in frames) {
+			if (frame.kind is FrameKind.Snapshot or FrameKind.SnapshotDelta) {
+				last = LanProtocol.ReadSnapshot(frame.kind, frame.payload, last);
+				described.Add($"Snapshot:{Encoding.UTF8.GetString(last.Json)}");
+			} else {
+				described.Add(Describe(frame));
+			}
+		}
+		return described;
+	}
+
 	[Fact]
 	public void FramesAreWrittenInOrderWhileSnapshotsAreEncoded() {
 		(LanConnection sender, LanConnection receiver) = Connect();
@@ -109,7 +125,7 @@ public class PerfLanTests : IClassFixture<SaveGameFixture>, IDisposable {
 		encoding.SetResult(FakeSnapshot("A"));
 
 		List<Frame> frames = ReceiveFrames(receiver, 7);
-		Assert.Equal(["Snapshot:A", "UiMessage:1", "Snapshot:C", "UiMessage:2", "UiMessage:3", "Snapshot:D", "UiMessage:end"], frames.Select(Describe));
+		Assert.Equal(["Snapshot:A", "UiMessage:1", "Snapshot:C", "UiMessage:2", "UiMessage:3", "Snapshot:D", "UiMessage:end"], DescribeReceived(frames));
 		Assert.False(receiver.TryReceive(out _));
 	}
 
