@@ -1,0 +1,11 @@
+# Caddy in front of the relay: it gets and renews a Let's Encrypt
+# certificate for the domain by itself, answers on 443 with TLS (and
+# redirects 80 there), and passes WebSockets through to the relay.
+# RELAY_DOMAIN comes from docker-compose.yml's .env.
+{$RELAY_DOMAIN} {
+	reverse_proxy relay:8080 {
+		# Reloading Caddy's settings leaves games running for a while
+		# rather than cutting every connection at once.
+		stream_close_delay 5m
+	}
+}

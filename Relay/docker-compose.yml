@@ -1,0 +1,37 @@
+# The relay behind Caddy, which handles TLS. Set RELAY_DOMAIN and
+# RELAY_KEY_SECRET in a .env file next to this one (see .env.example), then:
+#   docker compose up -d --build
+services:
+  relay:
+    build: .
+    restart: unless-stopped
+    environment:
+      # Lets hosts claim their join codes again after the relay restarts.
+      Relay__KeySecret: ${RELAY_KEY_SECRET:?Set RELAY_KEY_SECRET in .env}
+      # The relay is only reachable through Caddy, which says who's connecting.
+      Relay__TrustForwardedHeaders: "true"
+      Logging__Console__FormatterName: json
+    # Not published: only Caddy reaches it.
+    expose:
+      - "8080"
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      - relay
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      RELAY_DOMAIN: ${RELAY_DOMAIN:?Set RELAY_DOMAIN in .env}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      # Caddy's certificates, kept across restarts.
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:
