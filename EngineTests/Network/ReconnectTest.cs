@@ -424,4 +424,172 @@ public class ReconnectTest : IClassFixture<SaveGameFixture>, IDisposable {
 		Assert.False(Assert.Single(hostUi.OfType<MsgDealResult>()).accepted);
 		Assert.Equal(50, humans[0].gold);
 	}
+
+	// The autosave a host wrote, loaded as a host resuming it would.
+	private static SaveGame LoadAutosave(string directory) {
+		return SaveGame.FromJSON(System.IO.File.ReadAllBytes(LanAutosave.SavePath(directory)));
+	}
+
+	[Fact]
+	public async Task TheHostSavesTheGameAsEachTurnBegins() {
+		using TempDirectory saves = new("lan-autosave");
+		SaveGame save = SaveGameFixture.TwoHumanSave();
+		using LanHost host = new("Host", save, port: 0, answerDiscovery: false) {
+			AutosaveDirectory = saves.Path,
+			TurnTimeLimit = TimeSpan.FromHours(1),
+		};
+		ID seatID = host.Seats[0].playerID;
+		using LanClient guest = JoinAndStart(host, host.Port, [seatID]);
+
+		C7GameData.GameData gameData = await CreateGame(save);
+		host.StartGame();
+		PumpUntil(host, guest, () => guest.StartingGame != null);
+		Watch(guest);
+		await host.LastAutosave;
+
+		// The game as its first turn begins, and what resuming it needs.
+		Assert.True(LanAutosave.Exists(saves.Path));
+		Assert.Equal(0, LoadAutosave(saves.Path).TurnNumber);
+		Assert.False(System.IO.File.Exists(LanAutosave.PreviousSavePath(saves.Path)));
+		LanResumeInfo info = LanAutosave.ReadResumeInfo(saves.Path);
+		Assert.Equal("Host", info.hostName);
+		Assert.Equal(host.Port, info.port);
+		Assert.Equal(3600, info.turnSeconds);
+		Assert.False(info.simultaneousTurns);
+		LanResumeSeat seat = Assert.Single(info.seats);
+		Assert.Equal(seatID, seat.playerID);
+		Assert.Equal("Guest", seat.playerName);
+		Assert.Equal(guest.ReconnectToken, seat.reconnectToken);
+
+		// Moving doesn't save it; the next turn does, keeping the last.
+		new MsgEndTurn().send();
+		PumpUntil(host, guest, () => EngineStorage.activePlayerID == seatID);
+		await host.LastAutosave;
+		Assert.False(System.IO.File.Exists(LanAutosave.PreviousSavePath(saves.Path)));
+		guest.SendCommand(new MsgEndTurn());
+		PumpUntil(host, guest, () => gameData.turn == 1 && TurnHandling.PlayersToMove(gameData).Count > 0);
+		host.Poll();
+		await host.LastAutosave;
+		Assert.Equal(1, LoadAutosave(saves.Path).TurnNumber);
+		Assert.Equal(0, SaveGame.FromJSON(System.IO.File.ReadAllBytes(LanAutosave.PreviousSavePath(saves.Path))).TurnNumber);
+		Assert.Empty(System.IO.Directory.GetFiles(saves.Path, "*.tmp"));
+	}
+
+	[Fact]
+	public async Task AResumedGameHoldsEachGuestsSeat() {
+		using TempDirectory saves = new("lan-autosave");
+		SaveGame save = SaveGameFixture.ThreeHumanSave();
+		LanResumeInfo info;
+		List<ID> seatIDs;
+		string annsToken, bobsToken;
+		using (LanHost host = new("Host", save, port: 0, answerDiscovery: false) { AutosaveDirectory = saves.Path, SimultaneousTurns = true }) {
+			seatIDs = host.Seats.Select(s => s.playerID).ToList();
+			LanClient ann = JoinAndStart(host, host.Port, [seatIDs[0]]);
+			LanClient bob = LanClient.Connect("127.0.0.1", host.Port, "Bob");
+			PumpUntil(host, bob, () => bob.Lobby != null);
+			bob.ClaimSeat(seatIDs[1]);
+			PumpUntil(host, [ann, bob], () => host.AllSeatsTaken);
+			annsToken = ann.ReconnectToken;
+			bobsToken = bob.ReconnectToken;
+			Assert.NotEqual(annsToken, bobsToken);
+
+			await CreateGame(save, simultaneous: true);
+			host.StartGame();
+			PumpUntil(host, [ann, bob], () => ann.StartingGame != null && bob.StartingGame != null);
+			await host.LastAutosave;
+			ann.Dispose();
+			bob.Dispose();
+		}
+		info = LanAutosave.ReadResumeInfo(saves.Path);
+		Assert.True(info.simultaneousTurns);
+
+		// The host's game ends, and it hosts the game again from the save.
+		EngineStorage.ResetNetworking();
+		SaveGame resumedSave = LoadAutosave(saves.Path);
+		using LanHost resumed = LanHost.Resume("Host", resumedSave, info, port: 0, answerDiscovery: false);
+		Assert.True(resumed.SimultaneousTurns);
+		Assert.All(resumed.Seats, s => Assert.True(s.disconnected));
+		Assert.Equal(["Guest", "Bob"], resumed.Seats.Select(s => s.takenBy));
+		Assert.True(resumed.AllSeatsTakenOrHeld);
+		Assert.False(resumed.AllSeatsTaken);
+
+		// A stranger can't take the seats, even before the game starts.
+		using LanClient stranger = LanClient.Connect("127.0.0.1", resumed.Port, "Stranger");
+		PumpUntil(resumed, stranger, () => stranger.Lobby != null);
+		int lobbies = 0;
+		stranger.LobbyChanged += () => ++lobbies;
+		stranger.ClaimSeat(seatIDs[0]);
+		PumpUntil(resumed, stranger, () => lobbies > 0);
+		Assert.Empty(stranger.YourSeats);
+
+		// Ann is back, in her seat, waiting for the game to start.
+		using LanClient annBack = LanClient.Connect("127.0.0.1", resumed.Port, "Guest", annsToken);
+		PumpUntil(resumed, annBack, () => annBack.YourSeats.Count == 1);
+		Assert.Equal([seatIDs[0]], annBack.YourSeats);
+		Assert.False(annBack.Lobby.started);
+		Assert.False(resumed.Seats[0].disconnected);
+		Assert.True(resumed.Seats[1].disconnected);
+
+		// Leaving the lobby again, she keeps it.
+		annBack.Dispose();
+		PumpUntil(resumed, stranger, () => resumed.Seats[0].disconnected);
+		using LanClient annAgain = LanClient.Connect("127.0.0.1", resumed.Port, "Guest", annsToken);
+		PumpUntil(resumed, annAgain, () => annAgain.YourSeats.Count == 1);
+
+		// The host starts without Bob, who gets his seat once he's back.
+		await CreateGame(resumedSave, simultaneous: true);
+		resumed.StartGame();
+		PumpUntil(resumed, annAgain, () => annAgain.StartingGame != null);
+		Assert.Equal([seatIDs[0]], annAgain.PlayerIDs);
+		using LanClient bobBack = LanClient.Connect("127.0.0.1", resumed.Port, "Bob", bobsToken);
+		PumpUntil(resumed, bobBack, () => bobBack.StartingGame != null);
+		Assert.Equal([seatIDs[1]], bobBack.PlayerIDs);
+		Assert.True(resumed.AllSeatsTaken);
+	}
+
+	[Fact]
+	public async Task AGuestStillTryingFindsTheResumedGame() {
+		using TempDirectory saves = new("lan-autosave");
+		SaveGame save = SaveGameFixture.TwoHumanSave();
+		LanHost host = new("Host", save, port: 0, answerDiscovery: false) { AutosaveDirectory = saves.Path };
+		int port = host.Port;
+		ID seatID = host.Seats[0].playerID;
+		using LanClient guest = JoinAndStart(host, port, [seatID]);
+
+		await CreateGame(save);
+		host.StartGame();
+		PumpUntil(host, guest, () => guest.StartingGame != null);
+		List<SaveGame> snapshots = [];
+		guest.SnapshotReceived = snapshots.Add;
+		guest.UiMessageReceived = _ => { };
+		guest.ReconnectAutomatically = true;
+		guest.FirstReconnectDelay = TimeSpan.FromMilliseconds(20);
+		guest.MaxReconnectDelay = TimeSpan.FromMilliseconds(100);
+		await host.LastAutosave;
+
+		// The host's game ends.
+		host.Dispose();
+		PumpUntil(host, guest, () => guest.Reconnecting);
+
+		// It hosts the game again, on the same port: the guest finds its
+		// seat waiting, and waits for the host to start.
+		SaveGame resumedSave = LoadAutosave(saves.Path);
+		using LanHost resumed = LanHost.Resume("Host", resumedSave, LanAutosave.ReadResumeInfo(saves.Path), answerDiscovery: false);
+		Assert.Equal(port, resumed.Port);
+		PumpUntil(resumed, guest, () => !guest.Reconnecting && resumed.AllSeatsTaken);
+		Assert.True(guest.HostIsResuming);
+		Assert.Null(guest.RejectedReason);
+
+		snapshots.Clear();
+		C7GameData.GameData gameData = await CreateGame(resumedSave);
+		resumed.StartGame();
+		PumpUntil(resumed, guest, () => !guest.HostIsResuming && snapshots.Count > 0);
+		Assert.Equal([seatID], guest.PlayerIDs);
+
+		// And the game goes on.
+		new MsgEndTurn().send();
+		PumpUntil(resumed, guest, () => EngineStorage.activePlayerID == seatID);
+		guest.SendCommand(new MsgEndTurn());
+		PumpUntil(resumed, guest, () => gameData.turn == 1);
+	}
 }

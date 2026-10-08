@@ -69,6 +69,40 @@ public static class LanSession {
 	// game in once the host starts it. Null otherwise.
 	public static PendingLanGame PendingGame;
 
+	// Set from the main menu to host the last LAN game hosted here again,
+	// from its autosave. Null otherwise.
+	public static LanResumeInfo ResumeGame;
+
+	// The LAN game this machine last joined, kept in the settings so that
+	// its player can rejoin it after closing their game.
+	public record LastGame(string hostName, string address, int port, string token);
+
+	private const string LastGameSection = "LastLanGame";
+
+	public static LastGame LastJoinedGame {
+		get {
+			string address = C7Settings.GetSettingsValueOrDefault(LastGameSection, "Address", null);
+			string token = C7Settings.GetSettingsValueOrDefault(LastGameSection, "Token", null);
+			if (string.IsNullOrEmpty(address) || string.IsNullOrEmpty(token)
+				|| !int.TryParse(C7Settings.GetSettingsValueOrDefault(LastGameSection, "Port", ""), out int port)) {
+				return null;
+			}
+			return new LastGame(C7Settings.GetSettingsValueOrDefault(LastGameSection, "HostName", address), address, port, token);
+		}
+	}
+
+	// Remembers the game the client is playing in, to rejoin it later.
+	public static void RememberJoinedGame(LanClient client) {
+		if (client.IsSpectator || client.ReconnectToken == null) {
+			return;
+		}
+		C7Settings.SetValue(LastGameSection, "HostName", client.Lobby?.hostName ?? client.Address);
+		C7Settings.SetValue(LastGameSection, "Address", client.Address);
+		C7Settings.SetValue(LastGameSection, "Port", client.Port.ToString());
+		C7Settings.SetValue(LastGameSection, "Token", client.ReconnectToken);
+		C7Settings.SaveSettings();
+	}
+
 	// Goes to the game once it has been set up, by way of the lobby if it
 	// will be hosted.
 	public static void StartGame(SceneTree tree) {

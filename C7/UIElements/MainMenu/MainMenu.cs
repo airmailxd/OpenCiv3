@@ -1,6 +1,7 @@
 using Godot;
 using System;
 using C7Engine;
+using C7Engine.Network;
 using Serilog;
 
 public partial class MainMenu : Node {
@@ -56,6 +57,7 @@ public partial class MainMenu : Node {
 		LanSession.End();
 		LanSession.HostNextGame = false;
 		LanSession.PendingGame = null;
+		LanSession.ResumeGame = null;
 
 		LoadDialog.SetDirectoryForLoading(@"Conquests/Saves");
 		LoadScenarioDialog.SetDirectoryForLoading(@"Conquests/Scenarios");
@@ -167,6 +169,12 @@ public partial class MainMenu : Node {
 			OkButtonText = "New Game",
 		};
 		dialog.AddButton("Load Game", true, "load");
+		// The game this machine last hosted, saved as its last turn began.
+		Button resume = dialog.AddButton("Resume Last LAN Game", true, "resume");
+		resume.Disabled = !LanAutosave.Exists(LanAutosave.DefaultDirectory);
+		resume.TooltipText = resume.Disabled
+			? "No LAN game hosted here has been saved yet."
+			: "Host the last LAN game hosted here again, from the start of its last turn. Its players get their seats back when they reconnect.";
 		dialog.AddCancelButton("Cancel");
 		dialog.Confirmed += () => {
 			LanSession.HostNextGame = true;
@@ -177,6 +185,9 @@ public partial class MainMenu : Node {
 				dialog.Hide();
 				LanSession.HostNextGame = true;
 				OpenLoadDialog();
+			} else if (action == "resume") {
+				dialog.Hide();
+				ResumeLanGame();
 			}
 		};
 		dialog.Canceled += () => LanSession.HostNextGame = false;
@@ -188,6 +199,17 @@ public partial class MainMenu : Node {
 		};
 		AddChild(dialog);
 		dialog.PopupCentered();
+	}
+
+	private void ResumeLanGame() {
+		LanResumeInfo resume = LanAutosave.ReadResumeInfo(LanAutosave.DefaultDirectory);
+		if (resume == null) {
+			log.Warning("There is no LAN game to resume");
+			return;
+		}
+		LanSession.ResumeGame = resume;
+		LanSession.HostNextGame = true;
+		LanSession.StartGame(GetTree());
 	}
 
 	private void StartDevLanGame() {

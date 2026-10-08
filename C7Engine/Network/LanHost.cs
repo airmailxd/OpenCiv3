@@ -28,6 +28,11 @@ namespace C7Engine.Network;
 // guests choose their own civilizations: the host creates the game once
 // everyone has chosen, then starts it as usual.
 //
+// Once the game has started, a guest who loses their connection keeps their
+// seats until they say hello again with the token they were given. The host
+// saves the game as each turn begins, with those tokens, and can resume it
+// from that save, holding the seats for the guests to come back to.
+//
 // Everything except accepting connections, answering discovery, encoding
 // snapshots and writing to the network happens in Poll(), which the game
 // calls every frame on its main thread.
@@ -157,10 +162,22 @@ public class LanHost : IDisposable {
 	// The turn each away player's turn was last ended for them.
 	private readonly Dictionary<ID, int> awayTurnsEnded = new();
 
+	// A game resumed from an autosave holds its guests' seats for them from
+	// the lobby on, not just once it has started.
+	private bool resumed;
+
+	// Where the game is saved as each turn begins, so that the host can
+	// resume it if their game ends; null not to save it.
+	public string AutosaveDirectory { get; set; }
+	private int autosavedTurn = -1;
+
+	// The last autosave, written on a worker thread after the one before.
+	internal Task LastAutosave { get; private set; } = Task.CompletedTask;
+
 	public bool Started { get; private set; }
 
 	// Whether a guest who loses their connection keeps their seats.
-	private bool HoldsSeats => Started;
+	private bool HoldsSeats => Started || resumed;
 	public int Port => ((IPEndPoint)listener.LocalEndpoint).Port;
 
 	// Raised on Poll() when players join, leave, or take seats.
@@ -190,6 +207,27 @@ public class LanHost : IDisposable {
 	// Hosts a game that already exists, such as a saved one.
 	public LanHost(string hostName, SaveGame save, int port = LanProtocol.DefaultPort, bool answerDiscovery = true)
 		: this(hostName, RequireHostPlayer(save).id, RequireHostPlayer(save).civilization, SeatsFor(save), null, port, answerDiscovery) {
+	}
+
+	// Hosts a game again from its autosave, with the settings it had, and
+	// with each guest's seats held for them until they come back with their
+	// token. The host starts it from the lobby as usual.
+	public static LanHost Resume(string hostName, SaveGame save, LanResumeInfo info, int? port = null, bool answerDiscovery = true) {
+		LanHost host = new(hostName, save, port ?? info.port, answerDiscovery) {
+			TurnTimeLimit = info.turnSeconds is double seconds ? TimeSpan.FromSeconds(seconds) : null,
+			SimultaneousTurns = info.simultaneousTurns,
+			resumed = true,
+		};
+		foreach (LanResumeSeat saved in info.seats ?? []) {
+			Seat seat = host.seats.Find(s => s.info.playerID == saved.playerID);
+			if (seat == null || string.IsNullOrEmpty(saved.reconnectToken)) {
+				continue;
+			}
+			seat.token = saved.reconnectToken;
+			seat.takenBy = saved.playerName;
+		}
+		host.PublishDiscoveryReply();
+		return host;
 	}
 
 	// Hosts a new game whose guests choose their civilizations: one seat for
@@ -407,6 +445,12 @@ public class LanHost : IDisposable {
 
 		EndAwayPlayersTurns(gameData, toMove);
 
+		// A new turn's humans are about to move: save it.
+		if (toMove.Count > 0 && gameData.turn != autosavedTurn && AutosaveDirectory != null) {
+			autosavedTurn = gameData.turn;
+			Autosave();
+		}
+
 		if (TurnTimeLimit is not TimeSpan limit || turnTimedOut || turnClock.Elapsed < limit || toMove.Count == 0) {
 			return;
 		}
@@ -430,6 +474,21 @@ public class LanHost : IDisposable {
 			log.Information("{Player} is away, ending their turn", gameData.GetPlayer(id));
 			EngineStorage.ReceiveFromRemote(new MsgEndTurn { playerID = id, turn = gameData.turn });
 		}
+	}
+
+	// Saves the game and what resuming it needs. The game is taken as it
+	// stands, and written on a worker thread.
+	private void Autosave() {
+		SaveGame save = LanProtocol.SnapshotOf(EngineStorage.gameData);
+		LanResumeInfo info = ResumeInfo();
+		string directory = AutosaveDirectory;
+		LastAutosave = LastAutosave.ContinueWith(_ => LanAutosave.Write(directory, save, info));
+	}
+
+	// How to host this game again, with the seats as they are now.
+	public LanResumeInfo ResumeInfo() {
+		return new LanResumeInfo(hostName, Port, TurnTimeLimit?.TotalSeconds, SimultaneousTurns,
+			seats.Where(s => s.token != null).Select(s => new LanResumeSeat(s.info.playerID, s.takenBy, s.token)).ToList());
 	}
 
 	// The players with nobody at their machine whom the game would wait on:

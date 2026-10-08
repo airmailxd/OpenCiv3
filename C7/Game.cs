@@ -432,8 +432,10 @@ public partial class Game : Node {
 			client.SnapshotReceived = OnLanSnapshot;
 			client.UiMessageReceived = json => HandleEngineMessage(NetSerialization.DeserializeMessageToUI(json));
 			client.PlayersChanged = OnLanPlayersChanged;
-			// Losing the host from here on, we try to get back to it.
+			// Losing the host from here on, we try to get back to it; and
+			// after closing the game, the player can rejoin it.
 			client.ReconnectAutomatically = true;
+			LanSession.RememberJoinedGame(client);
 		}
 	}
 

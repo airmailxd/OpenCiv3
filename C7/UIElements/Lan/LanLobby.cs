@@ -139,6 +139,7 @@ public partial class LanLobby : Control {
 		LanSession.End();
 		LanSession.HostNextGame = false;
 		LanSession.PendingGame = null;
+		LanSession.ResumeGame = null;
 		Global.ResetLoadGameFields();
 		GetTree().ChangeSceneToFile("res://UIElements/MainMenu/main_menu.tscn");
 	}
@@ -156,6 +157,13 @@ public partial class LanLobby : Control {
 				Global.SaveGame = save;
 				LanSession.BeginHosting(new LanHost(LanSession.PlayerName, pending.setup.playerCivilization.name,
 					pending.guestSeats, save.Civilizations));
+			} else if (LanSession.ResumeGame is LanResumeInfo resume) {
+				// The last game hosted here, as it was autosaved, with its
+				// guests' seats held for them.
+				save = LoadAutosave();
+				Global.SaveGame = save;
+				Global.LoadGamePath = null;
+				LanSession.BeginHosting(LanHost.Resume(resume.hostName ?? LanSession.PlayerName, save, resume));
 			} else {
 				save = Global.SaveGame ?? LoadSavedGame(Global.LoadGamePath);
 				Global.SaveGame = save;
@@ -167,6 +175,8 @@ public partial class LanLobby : Control {
 			AddLabel($"Could not host the game: {e.Message}");
 			return;
 		}
+		// So that the game can be hosted again if this machine's game ends.
+		LanSession.Host.AutosaveDirectory = LanAutosave.DefaultDirectory;
 
 		AddLabel("Players on your network should see this game listed under \"Join LAN Game\". If it isn't listed for them, they can type in one of this computer's addresses:");
 		List<string> addresses = LanDiscovery.LocalAddresses();
@@ -206,7 +216,22 @@ public partial class LanLobby : Control {
 		foreach (int minutes in TurnTimeChoices) {
 			choice.AddItem(minutes == 0 ? "No limit" : $"{minutes} minutes");
 		}
+		// A resumed game keeps its time.
+		if (LanSession.Host.TurnTimeLimit is TimeSpan resumedLimit) {
+			int index = Array.IndexOf(TurnTimeChoices, (int)resumedLimit.TotalMinutes);
+			if (index < 0 || resumedLimit.TotalMinutes != (int)resumedLimit.TotalMinutes) {
+				choice.AddItem($"{(int)resumedLimit.TotalSeconds} seconds");
+				index = choice.ItemCount - 1;
+			}
+			choice.Select(index);
+		}
+		TimeSpan? startingLimit = LanSession.Host.TurnTimeLimit;
 		choice.ItemSelected += index => {
+			if (index >= TurnTimeChoices.Length) {
+				// The resumed game's own time.
+				LanSession.Host.TurnTimeLimit = startingLimit;
+				return;
+			}
 			int minutes = TurnTimeChoices[index];
 			LanSession.Host.TurnTimeLimit = minutes == 0 ? null : TimeSpan.FromMinutes(minutes);
 		};
@@ -220,16 +245,33 @@ public partial class LanLobby : Control {
 		}
 
 		// Everyone moves at once, and the computer players after them.
+		// Simultaneous unless a resumed game wasn't.
+		bool simultaneousTurns = LanSession.ResumeGame?.simultaneousTurns ?? true;
 		CheckBox simultaneous = new() {
 			Text = "Simultaneous turns",
-			ButtonPressed = true,
+			ButtonPressed = simultaneousTurns,
 			TooltipText = "Every human plays their turn at the same time, rather than waiting for each other.",
 		};
 		simultaneous.AddThemeFontSizeOverride("font_size", 18);
 		simultaneous.Toggled += on => LanSession.Host.SimultaneousTurns = on;
-		LanSession.Host.SimultaneousTurns = true;
+		LanSession.Host.SimultaneousTurns = simultaneousTurns;
 		row.AddChild(simultaneous);
 		return row;
+	}
+
+	// The latest autosave that loads, which is the one before the last if the
+	// last was cut short.
+	private SaveGame LoadAutosave() {
+		Exception failure = null;
+		foreach (string path in LanAutosave.SavesToResume(LanAutosave.DefaultDirectory)) {
+			try {
+				return LoadSavedGame(path);
+			} catch (Exception e) {
+				log.Warning("Could not load {Path}: {Error}", path, e.Message);
+				failure = e;
+			}
+		}
+		throw new InvalidOperationException($"There is no LAN game to resume ({failure?.Message ?? "no autosave"})");
 	}
 
 	private SaveGame LoadSavedGame(string path) {
@@ -250,7 +292,10 @@ public partial class LanLobby : Control {
 
 		AddSeatRow(seatList, $"{LanSession.PlayerName} (you, hosting), {host.HostCivilization}");
 		foreach (SeatInfo seat in host.Seats) {
-			AddSeatRow(seatList, Describe(seat));
+			// A seat held for a guest who hasn't come back can be given to
+			// anyone.
+			Button release = seat.disconnected ? MakeButton("Release Seat", () => host.ReleaseSeat(seat.playerID)) : null;
+			AddSeatRow(seatList, Describe(seat), release);
 		}
 		if (host.Spectators.Count > 0) {
 			AddSeatRow(seatList, $"Watching: {string.Join(", ", host.Spectators)}");
@@ -265,10 +310,16 @@ public partial class LanLobby : Control {
 		} else if (host.Seats.Count == 0) {
 			status.Text = "This game has only one human player. Start a new game and add players on the player setup screen, or load a game with more human players.";
 			startButton.Disabled = true;
-		} else if (!host.AllSeatsTaken) {
+		} else if (!host.AllSeatsTakenOrHeld) {
 			int open = host.Seats.Count(s => s.takenBy == null);
 			status.Text = $"Waiting for {open} more {(open == 1 ? "player" : "players")} to join...";
 			startButton.Disabled = true;
+		} else if (!host.AllSeatsTaken) {
+			// Resuming: some players haven't reconnected yet.
+			List<string> missing = host.Seats.Where(s => s.disconnected).Select(s => s.takenBy).ToList();
+			status.Text = $"Waiting for {string.Join(", ", missing)} to reconnect. You can start without them: "
+				+ "the game waits for them to come back, or you can go on without them. Or release their seats for others to take.";
+			startButton.Disabled = false;
 		} else {
 			status.Text = host.GuestsChooseCivilizations
 				? "Everyone is here. Players can change their civilization until you start; anyone who hasn't chosen gets a random one."
@@ -307,7 +358,7 @@ public partial class LanLobby : Control {
 	}
 
 	private void StartHostedGame() {
-		if (!LanSession.Host.AllSeatsTaken || creatingGame || createFailure != null) {
+		if (!LanSession.Host.AllSeatsTakenOrHeld || creatingGame || createFailure != null) {
 			return;
 		}
 		if (LanSession.Host.GuestsChooseCivilizations) {
@@ -316,6 +367,7 @@ public partial class LanLobby : Control {
 		}
 		LanSession.Host.LobbyChanged -= ShowHostSeats;
 		LanSession.HostNextGame = false;
+		LanSession.ResumeGame = null;
 		GetTree().ChangeSceneToFile(LanSession.GameScene);
 	}
 
@@ -401,6 +453,18 @@ public partial class LanLobby : Control {
 		addressRow.AddChild(MakeButton("Watch", () => ConnectToAddress(true)));
 		content.AddChild(addressRow);
 
+		// The game last joined from here, to get back into after closing
+		// the game.
+		if (LanSession.LastJoinedGame is LanSession.LastGame last) {
+			HBoxContainer rejoinRow = new();
+			rejoinRow.AddThemeConstantOverride("separation", 12);
+			Label rejoinLabel = new() { Text = $"Your last game: {last.hostName} at {last.address}" };
+			rejoinLabel.AddThemeFontSizeOverride("font_size", 18);
+			rejoinRow.AddChild(rejoinLabel);
+			rejoinRow.AddChild(MakeButton("Rejoin Last LAN Game", () => Connect(last.address, last.port, false, last.token)));
+			content.AddChild(rejoinRow);
+		}
+
 		seatList = new VBoxContainer();
 		seatList.AddThemeConstantOverride("separation", 6);
 		content.AddChild(seatList);
@@ -480,7 +544,12 @@ public partial class LanLobby : Control {
 			Button join = MakeButton("Join", () => Connect(found.address, reply.port, false));
 			join.Disabled = reply.openSeats == 0;
 			Button watch = MakeButton("Watch", () => Connect(found.address, reply.port, true));
-			AddSeatRow(hostList, $"{reply.hostName} at {found.address}: {state}, {seats}", join, watch);
+			// The host of our last game may have moved to another address.
+			LanSession.LastGame last = LanSession.LastJoinedGame;
+			Button rejoin = last != null && last.hostName == reply.hostName && last.port == reply.port
+				? MakeButton("Rejoin", () => Connect(found.address, reply.port, false, last.token))
+				: null;
+			AddSeatRow(hostList, $"{reply.hostName} at {found.address}: {state}, {seats}", join, watch, rejoin);
 		}
 	}
 
@@ -498,10 +567,12 @@ public partial class LanLobby : Control {
 		Connect(text, port, watch);
 	}
 
-	private void Connect(string address, int port, bool watch) {
+	// Joins the host there; with the token from a game we were in, to have
+	// our seats in it back.
+	private void Connect(string address, int port, bool watch, string reconnectToken = null) {
 		LanSession.PlayerName = string.IsNullOrWhiteSpace(nameEdit.Text) ? LanSession.PlayerName : nameEdit.Text.Trim();
 		try {
-			LanSession.BeginJoining(LanClient.Connect(address, port, LanSession.PlayerName));
+			LanSession.BeginJoining(LanClient.Connect(address, port, LanSession.PlayerName, reconnectToken));
 		} catch (Exception e) when (e is SocketException or ArgumentException) {
 			status.Text = $"Could not connect to {address}: {e.Message}";
 			return;
