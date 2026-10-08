@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using C7Engine;
 
 [assembly: InternalsVisibleTo("EngineTests")]
+[assembly: InternalsVisibleTo("Relay.Tests")]
 namespace C7GameData {
 	public class GameData {
 		private static ILogger log = Log.ForContext<GameData>();

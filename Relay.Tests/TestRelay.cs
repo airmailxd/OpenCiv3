@@ -55,6 +55,15 @@ internal sealed class TestRelay : IAsyncDisposable {
 		}
 	}
 
+	// Closes the connection of the guest with that ID in the room.
+	public void DropGuest(string code, uint id) {
+		Room room = RoomFor(code);
+		lock (room) {
+			Assert.True(room.Guests.TryGetValue(id, out var guest), $"No guest {id} in {code}");
+			guest.Close((int)WebSocketCloseStatus.EndpointUnavailable, "Dropped by the test.");
+		}
+	}
+
 	// Closes every guest's connection in the room.
 	public void DropGuests(string code) {
 		Room room = RoomFor(code);

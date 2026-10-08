@@ -33,6 +33,10 @@ namespace C7Engine.Network;
 // saves the game as each turn begins, with those tokens, and can resume it
 // from that save, holding the seats for the guests to come back to.
 //
+// Guests join over TCP, or, once the host is also hosting online, through an
+// online relay with a join code (see RelayHostLink); either way they're the
+// same to the host.
+//
 // Everything except accepting connections, answering discovery, encoding
 // snapshots and writing to the network happens in Poll(), which the game
 // calls every frame on its main thread.
@@ -178,6 +182,10 @@ public class LanHost : IDisposable {
 
 	public bool Started { get; private set; }
 
+	// The host's link to an online relay, for guests joining with a join
+	// code; null unless hosting online.
+	public RelayHostLink Online { get; private set; }
+
 	// Whether a guest who loses their connection keeps their seats.
 	private bool HoldsSeats => Started || resumed;
 	public int Port => ((IPEndPoint)listener.LocalEndpoint).Port;
@@ -282,6 +290,23 @@ public class LanHost : IDisposable {
 			}
 		}
 		log.Information("Hosting LAN game on port {Port} with {Seats} open seats", Port, seats.Count);
+	}
+
+	// Takes guests through an online relay too, alongside those on the LAN.
+	// With the code and key of a room this host had, as in a resumed game,
+	// it claims that room again, so its guests find it where they left it.
+	public RelayHostLink HostOnline(string relayUrl, string code = null, string key = null) {
+		Online?.Dispose();
+		Online = new RelayHostLink(relayUrl, accepted.Enqueue, code, key);
+		Online.Start();
+		return Online;
+	}
+
+	// Stops taking guests through the relay, and drops those who came that
+	// way.
+	public void StopHostingOnline() {
+		Online?.Dispose();
+		Online = null;
 	}
 
 	private void AcceptLoop() {
@@ -490,7 +515,8 @@ public class LanHost : IDisposable {
 	// How to host this game again, with the seats as they are now.
 	public LanResumeInfo ResumeInfo() {
 		return new LanResumeInfo(hostName, Port, TurnTimeLimit?.TotalSeconds, SimultaneousTurns,
-			seats.Where(s => s.token != null).Select(s => new LanResumeSeat(s.info.playerID, s.takenBy, s.token)).ToList());
+			seats.Where(s => s.token != null).Select(s => new LanResumeSeat(s.info.playerID, s.takenBy, s.token)).ToList(),
+			Online?.RelayUrl, Online?.Code, Online?.Key);
 	}
 
 	// The players with nobody at their machine whom the game would wait on:
@@ -1061,6 +1087,7 @@ public class LanHost : IDisposable {
 		disposed = true;
 		listener.Stop();
 		discovery?.Dispose();
+		Online?.Dispose();
 		foreach (Guest guest in guests) {
 			guest.connection.Dispose();
 		}

@@ -9,8 +9,11 @@ namespace C7Engine.Network;
 
 // What a LAN host needs to host its game again after its own game ended:
 // where and how it was hosted, and the guest in each human seat, with the
-// token that guest says hello with to have the seat back.
-public record LanResumeInfo(string hostName, int port, double? turnSeconds, bool simultaneousTurns, List<LanResumeSeat> seats);
+// token that guest says hello with to have the seat back. A game hosted
+// online also has the relay, and the join code and the key to claim it
+// again, so that guests find it where they left it.
+public record LanResumeInfo(string hostName, int port, double? turnSeconds, bool simultaneousTurns, List<LanResumeSeat> seats,
+	string relayUrl = null, string onlineCode = null, string onlineKey = null);
 
 public record LanResumeSeat(ID playerID, string playerName, string reconnectToken);
 

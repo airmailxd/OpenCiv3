@@ -7,6 +7,7 @@ using C7Engine;
 using C7Engine.Network;
 using C7GameData;
 using C7GameData.Save;
+using C7Relay;
 using Godot;
 using Serilog;
 
@@ -34,9 +35,17 @@ public partial class LanLobby : Control {
 	private bool creatingGame = false;
 	private string createFailure;
 
+	// Hosting online: the button to start, the join code and how the link
+	// to the relay stands.
+	private Button hostOnlineButton;
+	private HBoxContainer onlineCodeRow;
+	private Label onlineCode;
+	private Label onlineStatus;
+
 	// Joining: the name to play under, the hosts found and where to connect.
 	private LineEdit nameEdit;
 	private LineEdit addressEdit;
+	private LineEdit codeEdit;
 	private VBoxContainer hostList;
 	private VBoxContainer addressHelp;
 	private bool searching = false;
@@ -198,6 +207,7 @@ public partial class LanLobby : Control {
 		foreach (var (address, network) in addresses.Where(a => a.network != null)) {
 			AddLabel($"Players joining over {network} type: {address}{port}", 22);
 		}
+		AddOnlineHosting();
 		AddLabel("Each human player in the game needs someone to take their seat before the game can start.");
 
 		seatList = new VBoxContainer();
@@ -214,6 +224,87 @@ public partial class LanLobby : Control {
 
 		LanSession.Host.LobbyChanged += ShowHostSeats;
 		ShowHostSeats();
+	}
+
+	// Hosting online, for players anywhere to join with a join code through
+	// the relay, as well as on the network.
+	private void AddOnlineHosting() {
+		HBoxContainer row = new();
+		row.AddThemeConstantOverride("separation", 12);
+		Label label = new() { Text = "Players elsewhere can join over the internet with a join code:" };
+		label.AddThemeFontSizeOverride("font_size", 18);
+		row.AddChild(label);
+		hostOnlineButton = MakeButton("Host Online", () => HostOnline());
+		row.AddChild(hostOnlineButton);
+		content.AddChild(row);
+
+		onlineCodeRow = new HBoxContainer { Visible = false };
+		onlineCodeRow.AddThemeConstantOverride("separation", 24);
+		onlineCode = new Label { VerticalAlignment = VerticalAlignment.Center };
+		onlineCode.AddThemeFontSizeOverride("font_size", 44);
+		onlineCodeRow.AddChild(onlineCode);
+		Button copy = MakeButton("Copy Code", () => {
+			if (LanSession.Host?.Online?.FormattedCode is string code) {
+				DisplayServer.ClipboardSet(code);
+			}
+		});
+		copy.SizeFlagsVertical = SizeFlags.ShrinkCenter;
+		onlineCodeRow.AddChild(copy);
+		content.AddChild(onlineCodeRow);
+
+		onlineStatus = AddLabel("");
+		onlineStatus.Visible = false;
+
+		// A game resumed from one hosted online goes online again, with the
+		// same code, so that its guests find it where they left it.
+		if (LanSession.ResumeGame is LanResumeInfo { onlineCode: not null } resume) {
+			HostOnline(resume.relayUrl, resume.onlineCode, resume.onlineKey);
+		} else if (LanSession.DevHostOnline) {
+			HostOnline();
+		}
+	}
+
+	// Starts taking guests through the relay: the one in the settings, or
+	// the one a resumed game's code is from.
+	private void HostOnline(string relayUrl = null, string code = null, string key = null) {
+		relayUrl ??= OnlineRelay.Url;
+		onlineStatus.Visible = true;
+		if (OnlineRelay.Problem(relayUrl) is string problem) {
+			onlineStatus.Text = problem;
+			return;
+		}
+		LanSession.Host.HostOnline(relayUrl, code, key);
+		hostOnlineButton.Visible = false;
+		UpdateOnlineStatus();
+	}
+
+	private void UpdateOnlineStatus() {
+		RelayHostLink link = LanSession.Host?.Online;
+		if (link == null || onlineStatus == null) {
+			return;
+		}
+		string code = link.FormattedCode ?? "";
+		if (onlineCode.Text != code) {
+			onlineCode.Text = code;
+			onlineCodeRow.Visible = code != "";
+		}
+		int guests = link.GuestCount;
+		string text = link.State switch {
+			RelayHostLink.LinkState.Connecting => link.Error == null ? "Connecting to the relay..." : $"Connecting to the relay... ({link.Error})",
+			RelayHostLink.LinkState.Online => "Online. Players choose \"Join LAN Game\" in the main menu and type this code under \"Join online\"."
+				+ (guests == 0 ? "" : $" {guests} connected through the relay."),
+			RelayHostLink.LinkState.Reconnecting => $"Lost the relay, reconnecting... Players online are back once it is. ({link.Error})",
+			_ => $"Could not host online: {link.Error}",
+		};
+		if (onlineStatus.Text != text) {
+			onlineStatus.Text = text;
+		}
+		// Hosting online failed for good, as with a code that can't be had
+		// again: trying again gets a new one.
+		if (link.State == RelayHostLink.LinkState.Failed && !hostOnlineButton.Visible) {
+			hostOnlineButton.Text = "Host Online Again";
+			hostOnlineButton.Visible = true;
+		}
 	}
 
 	// The choices for how long each player has for their turn, in minutes;
@@ -469,15 +560,29 @@ public partial class LanLobby : Control {
 		addressRow.AddChild(MakeButton("Watch", () => ConnectToAddress(true)));
 		content.AddChild(addressRow);
 
+		// A host elsewhere, hosting online, gives a join code.
+		HBoxContainer onlineRow = new();
+		onlineRow.AddThemeConstantOverride("separation", 12);
+		Label onlineLabel = new() { Text = "Or join online with a code:" };
+		onlineLabel.AddThemeFontSizeOverride("font_size", 18);
+		onlineRow.AddChild(onlineLabel);
+		codeEdit = new LineEdit { PlaceholderText = "KQ7-4MZ", MaxLength = 12, CustomMinimumSize = new Vector2(160, 0) };
+		codeEdit.TextSubmitted += _ => ConnectWithCode(false);
+		onlineRow.AddChild(codeEdit);
+		onlineRow.AddChild(MakeButton("Join", () => ConnectWithCode(false)));
+		onlineRow.AddChild(MakeButton("Watch", () => ConnectWithCode(true)));
+		content.AddChild(onlineRow);
+
 		// The game last joined from here, to get back into after closing
 		// the game.
 		if (LanSession.LastJoinedGame is LanSession.LastGame last) {
 			HBoxContainer rejoinRow = new();
 			rejoinRow.AddThemeConstantOverride("separation", 12);
-			Label rejoinLabel = new() { Text = $"Your last game: {last.hostName} at {last.address}" };
+			string where = last.endpoint is RelayEndpoint online ? $"online, code {RelayProtocol.FormatCode(online.Code)}" : $"at {last.address}";
+			Label rejoinLabel = new() { Text = $"Your last game: {last.hostName} {where}" };
 			rejoinLabel.AddThemeFontSizeOverride("font_size", 18);
 			rejoinRow.AddChild(rejoinLabel);
-			rejoinRow.AddChild(MakeButton("Rejoin Last LAN Game", () => Connect(new LanAddressEndpoint(last.address, last.port), false, last.token)));
+			rejoinRow.AddChild(MakeButton("Rejoin Last LAN Game", () => Connect(last.endpoint, false, last.token)));
 			content.AddChild(rejoinRow);
 		}
 
@@ -495,7 +600,11 @@ public partial class LanLobby : Control {
 
 		SearchForHosts();
 
-		if (LanSession.DevJoinAddress != null) {
+		if (LanSession.DevJoinAddress != null && RelayProtocol.NormalizeCode(LanSession.DevJoinAddress) != null
+			&& !LanSession.DevJoinAddress.Contains('.')) {
+			codeEdit.Text = LanSession.DevJoinAddress;
+			ConnectWithCode(LanSession.DevWatch);
+		} else if (LanSession.DevJoinAddress != null) {
 			addressEdit.Text = LanSession.DevJoinAddress;
 			ConnectToAddress(LanSession.DevWatch);
 		}
@@ -521,7 +630,8 @@ public partial class LanLobby : Control {
 			$"If the address is right but you still can't connect, the host's firewall may be blocking the game. Allow OpenCiv3 through it "
 				+ $"(TCP port {LanProtocol.DefaultPort}, and UDP port {LanProtocol.DiscoveryPort} for the list of games).",
 			$"If the host uses a different port, add it after the address, like 192.168.1.20:{LanProtocol.DefaultPort + 1}.",
-			"Playing over the internet? Both players can join the same virtual network (such as Tailscale or ZeroTier) and use the host's address on it.",
+			"Playing over the internet? Ask the host to choose \"Host Online\", then type the join code it shows under \"Join online\" above.",
+			"Or both players can join the same virtual network (such as Tailscale or ZeroTier) and use the host's address on it.",
 		];
 		foreach (string tip in tips) {
 			Label label = new() { Text = "•  " + tip, AutowrapMode = TextServer.AutowrapMode.WordSmart };
@@ -582,6 +692,24 @@ public partial class LanLobby : Control {
 			text = text[..colon];
 		}
 		Connect(new LanAddressEndpoint(text, port), watch);
+	}
+
+	// Joins the game with the code typed, through the relay.
+	private void ConnectWithCode(bool watch) {
+		if (codeEdit.Text.Trim() == "") {
+			return;
+		}
+		string code = RelayProtocol.NormalizeCode(codeEdit.Text);
+		if (code == null) {
+			status.Text = "A join code is six letters and digits, like KQ7-4MZ. Check it with the host.";
+			return;
+		}
+		string relayUrl = OnlineRelay.Url;
+		if (OnlineRelay.Problem(relayUrl) is string problem) {
+			status.Text = problem;
+			return;
+		}
+		Connect(new RelayEndpoint(relayUrl, code), watch);
 	}
 
 	// Joins the host there; with the token from a game we were in, to have
@@ -947,6 +1075,7 @@ public partial class LanLobby : Control {
 
 	public override void _Process(double delta) {
 		LanSession.Host?.Poll();
+		UpdateOnlineStatus();
 
 		LanClient client = LanSession.Client;
 		if (client != null) {

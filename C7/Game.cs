@@ -488,7 +488,8 @@ public partial class Game : Node {
 			// Once back, the turns pick up when the host's game is shown,
 			// which may be as soon as the host answers.
 			lanResyncPending = true;
-			ShowLanReconnecting(client.ReconnectAttempt);
+			// Through a relay, the relay says why, like the host being away.
+			ShowLanReconnecting(client.ReconnectAttempt, client.Endpoint is RelayEndpoint ? client.LastReconnectError : null);
 			return false;
 		}
 		if (lanReconnectCurtain != null) {
@@ -520,11 +521,14 @@ public partial class Game : Node {
 	}
 
 	// The curtain over the game while we try to get back to the host.
-	private void ShowLanReconnecting(int attempt) {
+	private void ShowLanReconnecting(int attempt, string why = null) {
 		CurrentState = GameState.ComputerTurn;
 		string text = attempt <= 1
 			? "Lost connection to the host. Reconnecting..."
 			: $"Lost connection to the host. Reconnecting... (attempt {attempt})";
+		if (why != null) {
+			text += $"\n{why}";
+		}
 		if (lanReconnectCurtain != null) {
 			lanReconnectLabel.Text = text;
 			return;

@@ -21,4 +21,12 @@
     <ProjectReference Include="..\Relay\Relay.csproj" Aliases="relay" />
     <ProjectReference Include="..\C7Engine\C7Engine.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <!-- The games the end-to-end tests play, made as EngineTests makes them. -->
+    <Compile Include="..\EngineTests\Utils\SaveGameFixture.cs" Link="Utils\SaveGameFixture.cs" />
+    <Compile Include="..\EngineTests\Utils\PathUtils.cs" Link="Utils\PathUtils.cs" />
+    <Compile Include="..\EngineTests\Utils\TempDirectory.cs" Link="Utils\TempDirectory.cs" />
+  </ItemGroup>
+
 </Project>

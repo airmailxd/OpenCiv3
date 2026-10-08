@@ -19,13 +19,16 @@ public static class LanSession {
 
 	// Developer options for trying LAN games from the command line, after "--":
 	//   --lan-host=<save>     host the saved game, starting once every seat is taken
-	//   --lan-join=<address>  join the host there and take the first open seat
+	//   --lan-join=<address>  join the host there (or the online game with that
+	//                         join code) and take the first open seat
 	//   --lan-watch=<address> join the host there as a spectator
+	//   --lan-online          also host the game online, through the relay
 	//   --lan-autoplay        end each of this machine's turns soon after it starts
 	//   --lan-turn-time=<s>   give each player this many seconds for their turn
 	public static readonly string DevHostSave;
 	public static readonly string DevJoinAddress;
 	public static readonly bool DevWatch;
+	public static readonly bool DevHostOnline;
 	public static readonly bool DevAutoplay;
 	public static readonly int? DevTurnSeconds;
 	private static bool devStartUsed = false;
@@ -39,6 +42,8 @@ public static class LanSession {
 			} else if (arg.StartsWith("--lan-watch=")) {
 				DevJoinAddress = arg["--lan-watch=".Length..];
 				DevWatch = true;
+			} else if (arg == "--lan-online") {
+				DevHostOnline = true;
 			} else if (arg == "--lan-autoplay") {
 				DevAutoplay = true;
 			} else if (arg.StartsWith("--lan-turn-time=") && int.TryParse(arg["--lan-turn-time=".Length..], out int seconds)) {
@@ -74,20 +79,34 @@ public static class LanSession {
 	public static LanResumeInfo ResumeGame;
 
 	// The LAN game this machine last joined, kept in the settings so that
-	// its player can rejoin it after closing their game.
-	public record LastGame(string hostName, string address, int port, string token);
+	// its player can rejoin it after closing their game: where it was, on
+	// the network or online.
+	public record LastGame(string hostName, LanEndpoint endpoint, string token) {
+		public string address => (endpoint as LanAddressEndpoint)?.Address;
+		public int port => (endpoint as LanAddressEndpoint)?.Port ?? 0;
+	}
 
 	private const string LastGameSection = "LastLanGame";
 
 	public static LastGame LastJoinedGame {
 		get {
-			string address = C7Settings.GetSettingsValueOrDefault(LastGameSection, "Address", null);
 			string token = C7Settings.GetSettingsValueOrDefault(LastGameSection, "Token", null);
-			if (string.IsNullOrEmpty(address) || string.IsNullOrEmpty(token)
-				|| !int.TryParse(C7Settings.GetSettingsValueOrDefault(LastGameSection, "Port", ""), out int port)) {
+			if (string.IsNullOrEmpty(token)) {
 				return null;
 			}
-			return new LastGame(C7Settings.GetSettingsValueOrDefault(LastGameSection, "HostName", address), address, port, token);
+			string code = C7Settings.GetSettingsValueOrDefault(LastGameSection, "JoinCode", null);
+			string relayUrl = C7Settings.GetSettingsValueOrDefault(LastGameSection, "RelayUrl", null);
+			string address = C7Settings.GetSettingsValueOrDefault(LastGameSection, "Address", null);
+			LanEndpoint endpoint;
+			if (!string.IsNullOrEmpty(code) && !string.IsNullOrEmpty(relayUrl)) {
+				endpoint = new RelayEndpoint(relayUrl, code);
+			} else if (!string.IsNullOrEmpty(address)
+				&& int.TryParse(C7Settings.GetSettingsValueOrDefault(LastGameSection, "Port", ""), out int port)) {
+				endpoint = new LanAddressEndpoint(address, port);
+			} else {
+				return null;
+			}
+			return new LastGame(C7Settings.GetSettingsValueOrDefault(LastGameSection, "HostName", endpoint.Description), endpoint, token);
 		}
 	}
 
@@ -96,9 +115,18 @@ public static class LanSession {
 		if (client.IsSpectator || client.ReconnectToken == null) {
 			return;
 		}
-		C7Settings.SetValue(LastGameSection, "HostName", client.Lobby?.hostName ?? client.Address);
-		C7Settings.SetValue(LastGameSection, "Address", client.Address);
-		C7Settings.SetValue(LastGameSection, "Port", client.Port.ToString());
+		C7Settings.SetValue(LastGameSection, "HostName", client.Lobby?.hostName ?? client.HostAddress);
+		if (client.Endpoint is RelayEndpoint online) {
+			C7Settings.SetValue(LastGameSection, "RelayUrl", online.RelayUrl);
+			C7Settings.SetValue(LastGameSection, "JoinCode", online.Code);
+			C7Settings.RemoveValue(LastGameSection, "Address");
+			C7Settings.RemoveValue(LastGameSection, "Port");
+		} else {
+			C7Settings.SetValue(LastGameSection, "Address", client.Address);
+			C7Settings.SetValue(LastGameSection, "Port", client.Port.ToString());
+			C7Settings.RemoveValue(LastGameSection, "RelayUrl");
+			C7Settings.RemoveValue(LastGameSection, "JoinCode");
+		}
 		C7Settings.SetValue(LastGameSection, "Token", client.ReconnectToken);
 		C7Settings.SaveSettings();
 	}

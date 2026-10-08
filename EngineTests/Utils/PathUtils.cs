@@ -6,7 +6,8 @@ using QueryCiv3;
 namespace EngineTests.Utils;
 
 public class PathUtils {
-	private static readonly string C7GameDataTestsFolderName = "EngineTests";
+	// The test projects' folders: Relay.Tests shares this file to make games.
+	private static readonly string[] C7GameDataTestsFolderNames = ["EngineTests", "Relay.Tests"];
 
 	public static string getBasePath(string file) => Path.Combine(testDirectory, file);
 
@@ -25,7 +26,7 @@ public class PathUtils {
 	public static string testDirectory {
 		get {
 			string[] parts = AppDomain.CurrentDomain.BaseDirectory.Split(Path.DirectorySeparatorChar);
-			int pos = parts.Reverse().ToList().FindIndex(s => s == C7GameDataTestsFolderName);
+			int pos = parts.Reverse().ToList().FindIndex(s => C7GameDataTestsFolderNames.Contains(s));
 			string up = string.Concat("..", Path.DirectorySeparatorChar);
 			string relativePath = string.Concat(Enumerable.Repeat(up, pos - 1));
 			return Path.GetFullPath(relativePath);
