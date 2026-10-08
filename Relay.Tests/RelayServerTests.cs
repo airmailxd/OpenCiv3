@@ -291,17 +291,75 @@ public class RelayServerTests {
 	}
 
 	[Fact]
-	public async Task TooLargeAMessageClosesTheConnection() {
-		await using TestRelay relay = await TestRelay.Start(options => options.MaxMessageBytes = 64 * 1024);
+	public async Task GuestsMayOnlySendSmallMessages() {
+		await using TestRelay relay = await TestRelay.Start();
 		await using RawClient host = await RawClient.Connect(RawClient.HostUri(relay));
 		string code = (await host.Welcome()).code;
 		await using RawClient guest = await RawClient.Connect(RawClient.JoinUri(relay, code));
 		await guest.Welcome();
-		Assert.Equal(RelayProtocol.Open, (await host.ReceiveBinary())[0]);
-		await guest.Send(new byte[64 * 1024 - RelayProtocol.HeaderLength(1)]);
-		Assert.Equal(64 * 1024 - RelayProtocol.HeaderLength(1), RelayProtocol.Payload(await host.ReceiveBinary(), 1).Length);
-		await guest.Send(new byte[64 * 1024 + 1]);
+		uint id = RelayProtocol.GuestAt(await host.ReceiveBinary(), 0);
+
+		// The host may send more than a guest may, like a whole game.
+		await host.Send(RelayProtocol.Encode(RelayProtocol.Data, id, new byte[512 * 1024]));
+		Assert.Equal(512 * 1024, (await guest.ReceiveBinary()).Length);
+
+		int limit = RelayProtocol.DefaultMaxGuestMessageBytes;
+		await guest.Send(new byte[limit]);
+		Assert.Equal(limit, RelayProtocol.Payload(await host.ReceiveBinary(), 1).Length);
+		await guest.Send(new byte[limit + 1]);
 		Assert.Equal((int)WebSocketCloseStatus.MessageTooBig, (await guest.Closed()).status);
+		Assert.Equal(RelayProtocol.Close, (await host.ReceiveBinary())[0]);
+		await WaitUntil(() => relay.Hub.ReceiveBuffers.Used == 0);
+	}
+
+	[Fact]
+	public async Task TooLargeAMessageFromTheHostClosesItsConnection() {
+		await using TestRelay relay = await TestRelay.Start(options => options.MaxHostMessageBytes = 64 * 1024);
+		await using RawClient host = await RawClient.Connect(RawClient.HostUri(relay));
+		await host.Welcome();
+		await host.Send(new byte[64 * 1024 + 1]);
+		Assert.Equal((int)WebSocketCloseStatus.MessageTooBig, (await host.Closed()).status);
+	}
+
+	[Fact]
+	public async Task LargeMessagesShareABudget() {
+		await using TestRelay relay = await TestRelay.Start(options => options.MaxReceiveBufferBytes = 64 * 1024);
+		await using RawClient host = await RawClient.Connect(RawClient.HostUri(relay));
+		string code = (await host.Welcome()).code;
+		await using RawClient guest = await RawClient.Connect(RawClient.JoinUri(relay, code));
+		await guest.Welcome();
+		await host.ReceiveBinary();
+		await guest.Send(new byte[200 * 1024]);
+		(int? status, string reason) = await guest.Closed();
+		Assert.Equal(RelayCloseCodes.RelayFull, status);
+		Assert.Contains("busy", reason);
+		await WaitUntil(() => relay.Hub.ReceiveBuffers.Used == 0);
+	}
+
+	[Fact]
+	public async Task ConnectionsOpenAtOnceAreLimited() {
+		await using TestRelay relay = await TestRelay.Start(options => options.MaxConnectionsPerAddress = 2);
+		await using RawClient host = await RawClient.Connect(RawClient.HostUri(relay));
+		string code = (await host.Welcome()).code;
+		RawClient guest = await RawClient.Connect(RawClient.JoinUri(relay, code));
+		await guest.Welcome();
+		RelayException e = await Assert.ThrowsAsync<RelayException>(
+			() => RelayConnection.ConnectAsync(RawClient.JoinUri(relay, code), RawClient.Timeout, default));
+		Assert.Equal(RelayCloseCodes.TooManyAttempts, e.CloseCode);
+
+		// Once one closes, there's room again.
+		await guest.DisposeAsync();
+		await WaitUntil(() => relay.Hub.Limits.OpenFrom("127.0.0.1") < 2);
+		await using RawClient again = await RawClient.Connect(RawClient.JoinUri(relay, code));
+		await again.Welcome();
+
+		await using TestRelay full = await TestRelay.Start(options => options.MaxConnections = 1);
+		await using RawClient only = await RawClient.Connect(RawClient.HostUri(full));
+		await only.Welcome();
+		e = await Assert.ThrowsAsync<RelayException>(
+			() => RelayConnection.ConnectAsync(RawClient.HostUri(full), RawClient.Timeout, default));
+		Assert.Equal(RelayCloseCodes.RelayFull, e.CloseCode);
+		Assert.Contains("busy", e.Message);
 	}
 
 	[Fact]

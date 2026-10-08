@@ -7,15 +7,25 @@ namespace C7Relay;
 public sealed class RelayOptions {
 	public const string Section = "Relay";
 
-	// Larger messages close the connection. A whole snapshot of a big game
-	// is a few megabytes; most messages are a few kilobytes.
-	public int MaxMessageBytes { get; set; } = 16 * 1024 * 1024;
+	// Larger messages close the connection. Anyone can connect as a guest,
+	// whose game only sends small messages, so guests get a much smaller
+	// limit than hosts, which send whole snapshots of the game.
+	public int MaxHostMessageBytes { get; set; } = RelayProtocol.DefaultMaxHostMessageBytes;
+	public int MaxGuestMessageBytes { get; set; } = RelayProtocol.DefaultMaxGuestMessageBytes;
+
+	// How much the relay holds, all told, of messages larger than a few
+	// kilobytes while they arrive; a large message past it is turned away.
+	public long MaxReceiveBufferBytes { get; set; } = 512L * 1024 * 1024;
 
 	// A connection with this much waiting to be sent to it isn't keeping up,
 	// and is dropped.
 	public long MaxQueuedBytes { get; set; } = 64L * 1024 * 1024;
 
 	public int MaxRooms { get; set; } = 1000;
+
+	// Connections open at once: from one client address, and in all.
+	public int MaxConnectionsPerAddress { get; set; } = 32;
+	public int MaxConnections { get; set; } = 2000;
 	public int MaxGuestsPerRoom { get; set; } = 16;
 
 	// How long a room waits for its host to come back, after which its code

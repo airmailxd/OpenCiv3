@@ -102,6 +102,8 @@ public static class RelayConnection {
 			} catch (WebSocketException e) when (socket.HttpStatusCode == HttpStatusCode.TooManyRequests) {
 				throw new RelayException("The relay has had too many tries from your address. Wait a minute, then try again.",
 					RelayCloseCodes.TooManyAttempts, e);
+			} catch (WebSocketException e) when (socket.HttpStatusCode == HttpStatusCode.ServiceUnavailable) {
+				throw new RelayException("The relay is too busy right now. Try again later.", RelayCloseCodes.RelayFull, e);
 			} catch (Exception e) when (e is WebSocketException or HttpRequestException) {
 				string why = e.InnerException?.Message ?? e.Message;
 				throw new RelayException($"Couldn't reach the relay at {relay}: {why}", null, e);

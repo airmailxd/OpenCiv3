@@ -50,6 +50,13 @@ public static class RelayProtocol {
 	public const byte Data = 2;
 	public const byte Close = 3;
 
+	// The largest message the relay takes by default: from a guest, whose
+	// game only sends commands and the like (a path across a whole
+	// 100x100 map is 39 KB; see GuestFrameSizeTest), and from a host, which
+	// sends whole snapshots of the game (160 KB for a new 16-player game).
+	public const int DefaultMaxGuestMessageBytes = 256 * 1024;
+	public const int DefaultMaxHostMessageBytes = 8 * 1024 * 1024;
+
 	// The most guests a message from the host can be for.
 	public const int MaxGuestsPerMessage = 1024;
 

@@ -160,9 +160,13 @@ Set these in `appsettings.json`, or as environment variables in
 
 | Setting | Default | What it does |
 |---------|---------|--------------|
-| `Relay:MaxMessageBytes` | 16 MiB | Larger messages close the connection. |
+| `Relay:MaxHostMessageBytes` | 8 MiB | Larger messages from a host close its connection. A whole game is about 160 KB. |
+| `Relay:MaxGuestMessageBytes` | 256 KiB | Larger messages from a guest close its connection. A guest's game sends a few hundred bytes at a time. |
+| `Relay:MaxReceiveBufferBytes` | 512 MiB | Memory, all told, for large messages as they arrive; a large message past it is turned away. |
 | `Relay:MaxQueuedBytes` | 64 MiB | A connection with this much waiting to be sent to it is dropped. |
 | `Relay:MaxRooms` | 1000 | Rooms at once, counting those waiting for their host. |
+| `Relay:MaxConnectionsPerAddress` | 32 | Connections open at once from one address. |
+| `Relay:MaxConnections` | 2000 | Connections open at once in all. |
 | `Relay:MaxGuestsPerRoom` | 16 | Guests in a room through the relay. |
 | `Relay:RoomTtlSeconds` | 600 | How long a room waits for its host to come back. |
 | `Relay:PingIntervalSeconds` | 15 | How often connections are pinged. |

@@ -15,6 +15,13 @@ namespace C7Relay;
 internal sealed class RelayPeer {
 	private readonly WebSocket socket;
 	private readonly RelayOptions options;
+	private readonly int maxMessageBytes;
+	private readonly ByteBudget receiveBuffers;
+
+	// Messages up to this size are read into the buffer each connection
+	// keeps; larger ones take a larger one from the relay's budget while
+	// they're read.
+	private const int SmallMessageBytes = 16 * 1024;
 	private readonly Channel<(ReadOnlyMemory<byte> data, WebSocketMessageType type)> outgoing =
 		Channel.CreateUnbounded<(ReadOnlyMemory<byte>, WebSocketMessageType)>(new UnboundedChannelOptions { SingleReader = true });
 	private long queuedBytes;
@@ -35,9 +42,11 @@ internal sealed class RelayPeer {
 
 	public bool IsClosing => Volatile.Read(ref closing) != 0;
 
-	public RelayPeer(WebSocket socket, string address, RelayOptions options) {
+	public RelayPeer(WebSocket socket, string address, RelayOptions options, int maxMessageBytes, ByteBudget receiveBuffers) {
 		this.socket = socket;
 		this.options = options;
+		this.maxMessageBytes = maxMessageBytes;
+		this.receiveBuffers = receiveBuffers;
 		Address = address;
 	}
 
@@ -89,27 +98,36 @@ internal sealed class RelayPeer {
 	}
 
 	private async Task ReceiveLoop(Action<ReadOnlyMemory<byte>, WebSocketMessageType> onMessage) {
-		byte[] buffer = ArrayPool<byte>.Shared.Rent(16 * 1024);
+		byte[] buffer = ArrayPool<byte>.Shared.Rent(SmallMessageBytes);
+		// How much of the buffer is taken from the budget.
+		long budgeted = 0;
 		try {
 			while (true) {
 				int length = 0;
 				ValueWebSocketReceiveResult result = default;
 				do {
-					if (length == Math.Min(buffer.Length, options.MaxMessageBytes)) {
-						if (length >= options.MaxMessageBytes) {
-							// The rest of it is read and dropped, until the
-							// peer answers the goodbye: closing with it unread
-							// would cut the goodbye off.
+					if (length == Math.Min(buffer.Length, maxMessageBytes)) {
+						// What can't be taken is read and dropped, until the
+						// peer answers the goodbye: closing with it unread
+						// would cut the goodbye off.
+						if (length >= maxMessageBytes) {
 							Close((int)WebSocketCloseStatus.MessageTooBig, "A message was too large for the relay.");
 							length = 0;
 							continue;
 						}
-						byte[] larger = ArrayPool<byte>.Shared.Rent(Math.Min(buffer.Length * 2, options.MaxMessageBytes));
+						byte[] larger = ArrayPool<byte>.Shared.Rent(Math.Min(buffer.Length * 2, maxMessageBytes));
+						if (!receiveBuffers.TryTake(larger.Length - buffer.Length)) {
+							ArrayPool<byte>.Shared.Return(larger);
+							Close(RelayCloseCodes.RelayFull, "The relay is too busy right now. Try again later.");
+							length = 0;
+							continue;
+						}
+						budgeted += larger.Length - buffer.Length;
 						buffer.AsSpan(0, length).CopyTo(larger);
 						ArrayPool<byte>.Shared.Return(buffer);
 						buffer = larger;
 					}
-					int room = Math.Min(buffer.Length, options.MaxMessageBytes) - length;
+					int room = Math.Min(buffer.Length, maxMessageBytes) - length;
 					result = await socket.ReceiveAsync(buffer.AsMemory(length, room), abort.Token);
 					length += result.Count;
 				} while (!result.EndOfMessage && result.MessageType != WebSocketMessageType.Close);
@@ -119,16 +137,24 @@ internal sealed class RelayPeer {
 				}
 				Volatile.Write(ref lastHeard, Environment.TickCount64);
 				BytesReceived += length;
-				if (IsClosing) {
-					// Waiting for the goodbye to go out.
-					continue;
+				// Once closing, what comes is dropped while the goodbye goes
+				// out.
+				if (!IsClosing) {
+					onMessage(buffer.AsMemory(0, length), result.MessageType);
 				}
-				onMessage(buffer.AsMemory(0, length), result.MessageType);
+				if (budgeted > 0) {
+					// A large buffer goes back once its message is handled.
+					ArrayPool<byte>.Shared.Return(buffer);
+					buffer = ArrayPool<byte>.Shared.Rent(SmallMessageBytes);
+					receiveBuffers.Release(budgeted);
+					budgeted = 0;
+				}
 			}
 		} catch (Exception e) when (e is WebSocketException or OperationCanceledException or ObjectDisposedException) {
 			// The connection broke, or we gave up on it.
 		} finally {
 			ArrayPool<byte>.Shared.Return(buffer);
+			receiveBuffers.Release(budgeted);
 		}
 	}
 
@@ -163,5 +189,25 @@ internal sealed class RelayPeer {
 			}
 		} catch (OperationCanceledException) {
 		}
+	}
+}
+
+// How many bytes the connections may hold between them, taken and given
+// back as they need them.
+internal sealed class ByteBudget(long limit) {
+	private long used;
+
+	public long Used => Interlocked.Read(ref used);
+
+	public bool TryTake(long bytes) {
+		if (Interlocked.Add(ref used, bytes) > limit) {
+			Interlocked.Add(ref used, -bytes);
+			return false;
+		}
+		return true;
+	}
+
+	public void Release(long bytes) {
+		Interlocked.Add(ref used, -bytes);
 	}
 }

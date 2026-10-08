@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Threading;
 
 namespace C7Relay;
 
@@ -16,6 +18,10 @@ internal sealed class RateLimits {
 	private readonly ConcurrentDictionary<string, Window> connections = new();
 	private readonly ConcurrentDictionary<string, Window> roomsMade = new();
 	private readonly ConcurrentDictionary<string, Window> failedJoins = new();
+
+	// The connections open from each address, and in all.
+	private readonly ConcurrentDictionary<string, int> open = new();
+	private int openInAll;
 
 	private static readonly TimeSpan Minute = TimeSpan.FromMinutes(1);
 	private static readonly TimeSpan Hour = TimeSpan.FromHours(1);
@@ -35,6 +41,39 @@ internal sealed class RateLimits {
 	public bool IsLockedOut(string address) => Count(failedJoins, address, TenMinutes) >= options.FailedJoinsPerTenMinutes;
 
 	public void NoteFailedJoin(string address) => Take(failedJoins, address, TenMinutes, int.MaxValue);
+
+	public enum Opening { Allowed, TooManyFromAddress, TooManyInAll }
+
+	// Counts a connection open, if there's room for it: call Closed once it
+	// closes.
+	public Opening Open(string address) {
+		if (Interlocked.Increment(ref openInAll) > options.MaxConnections) {
+			Interlocked.Decrement(ref openInAll);
+			return Opening.TooManyInAll;
+		}
+		bool allowed = true;
+		open.AddOrUpdate(address, 1, (_, count) => {
+			allowed = count < options.MaxConnectionsPerAddress;
+			return allowed ? count + 1 : count;
+		});
+		if (!allowed) {
+			Interlocked.Decrement(ref openInAll);
+			return Opening.TooManyFromAddress;
+		}
+		return Opening.Allowed;
+	}
+
+	public void Closed(string address) {
+		Interlocked.Decrement(ref openInAll);
+		// The address is forgotten once it has nothing open.
+		while (open.TryGetValue(address, out int count)) {
+			if (count <= 1 ? open.TryRemove(new KeyValuePair<string, int>(address, count)) : open.TryUpdate(address, count - 1, count)) {
+				return;
+			}
+		}
+	}
+
+	public int OpenFrom(string address) => open.TryGetValue(address, out int count) ? count : 0;
 
 	private static bool Take(ConcurrentDictionary<string, Window> windows, string address, TimeSpan length, int limit) {
 		Window window = windows.GetOrAdd(address, _ => new Window { start = Environment.TickCount64 });

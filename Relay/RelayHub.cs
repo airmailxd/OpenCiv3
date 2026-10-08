@@ -22,12 +22,16 @@ internal sealed class RelayHub {
 	public RoomRegistry Rooms { get; }
 	public RateLimits Limits { get; }
 
+	// What the connections hold of large messages as they arrive.
+	public ByteBudget ReceiveBuffers { get; }
+
 	public RelayHub(IOptions<RelayOptions> options, ILogger<RelayHub> log, IHostApplicationLifetime lifetime) {
 		this.options = options.Value;
 		this.log = log;
 		shutdown = lifetime.ApplicationStopping;
 		Rooms = new RoomRegistry(this.options);
 		Limits = new RateLimits(this.options);
+		ReceiveBuffers = new ByteBudget(this.options.MaxReceiveBufferBytes);
 		if (string.IsNullOrEmpty(this.options.KeySecret)) {
 			log.LogWarning("No Relay:KeySecret is set, so hosts can't claim their codes again once the relay restarts");
 		}
@@ -35,22 +39,38 @@ internal sealed class RelayHub {
 
 	private static string AddressOf(HttpContext context) => context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
 
-	// Turns away what isn't a WebSocket, or comes from an address that's
-	// trying too often, before taking it up. Null if it can't go on, with
-	// the response saying why.
-	private async Task<RelayPeer> Accept(HttpContext context, string address, bool joining) {
+	// Takes up a connection and runs it, after turning away what isn't a
+	// WebSocket, or comes from an address that's trying too often or has
+	// too many open, or when the relay has as many as it can take.
+	private async Task Serve(HttpContext context, bool joining, Func<RelayPeer, string, Task> run) {
+		string address = AddressOf(context);
 		if (!context.WebSockets.IsWebSocketRequest) {
 			context.Response.StatusCode = StatusCodes.Status400BadRequest;
 			await context.Response.WriteAsync("This is an OpenCiv3 relay. Connect to it from the game.");
-			return null;
+			return;
 		}
 		if (!Limits.AllowConnection(address) || (joining && Limits.IsLockedOut(address))) {
 			log.LogInformation("Turned away {Address}, which is trying too often", address);
 			context.Response.StatusCode = StatusCodes.Status429TooManyRequests;
-			return null;
+			return;
 		}
-		WebSocket socket = await context.WebSockets.AcceptWebSocketAsync();
-		return new RelayPeer(socket, address, options);
+		switch (Limits.Open(address)) {
+			case RateLimits.Opening.TooManyFromAddress:
+				log.LogInformation("Turned away {Address}, which has too many connections open", address);
+				context.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+				return;
+			case RateLimits.Opening.TooManyInAll:
+				log.LogWarning("Turned away {Address}: the relay has as many connections as it takes", address);
+				context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+				return;
+		}
+		try {
+			WebSocket socket = await context.WebSockets.AcceptWebSocketAsync();
+			int maxMessageBytes = joining ? options.MaxGuestMessageBytes : options.MaxHostMessageBytes;
+			await run(new RelayPeer(socket, address, options, maxMessageBytes, ReceiveBuffers), address);
+		} finally {
+			Limits.Closed(address);
+		}
 	}
 
 	// Why the game can't use this relay, or null if it can.
@@ -72,12 +92,11 @@ internal sealed class RelayHub {
 		return peer.RunAsync((_, _) => { }, CancellationToken.None);
 	}
 
-	public async Task Host(HttpContext context) {
-		string address = AddressOf(context);
-		RelayPeer peer = await Accept(context, address, joining: false);
-		if (peer == null) {
-			return;
-		}
+	public Task Host(HttpContext context) => Serve(context, joining: false, (peer, address) => RunHost(context, peer, address));
+
+	public Task Join(HttpContext context, string typedCode) => Serve(context, joining: true, (peer, address) => RunGuest(context, peer, address, typedCode));
+
+	private async Task RunHost(HttpContext context, RelayPeer peer, string address) {
 		if (CheckVersions(context, out string gameVersion) is string versionError) {
 			await Reject(peer, RelayCloseCodes.UnsupportedVersion, versionError);
 			return;
@@ -178,12 +197,7 @@ internal sealed class RelayHub {
 
 	private enum Admission { Admitted, HostAway, OtherVersion, Full }
 
-	public async Task Join(HttpContext context, string typedCode) {
-		string address = AddressOf(context);
-		RelayPeer peer = await Accept(context, address, joining: true);
-		if (peer == null) {
-			return;
-		}
+	private async Task RunGuest(HttpContext context, RelayPeer peer, string address, string typedCode) {
 		if (CheckVersions(context, out string gameVersion) is string versionError) {
 			await Reject(peer, RelayCloseCodes.UnsupportedVersion, versionError);
 			return;
