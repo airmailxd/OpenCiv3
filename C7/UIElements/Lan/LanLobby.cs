@@ -40,6 +40,8 @@ public partial class LanLobby : Control {
 	private Button hostOnlineButton;
 	private HBoxContainer onlineCodeRow;
 	private Label onlineCode;
+	private HBoxContainer relayRow;
+	private LineEdit relayEdit;
 	private Label onlineStatus;
 
 	// Joining: the name to play under, the hosts found and where to connect.
@@ -234,9 +236,24 @@ public partial class LanLobby : Control {
 		Label label = new() { Text = "Players elsewhere can join over the internet with a join code:" };
 		label.AddThemeFontSizeOverride("font_size", 18);
 		row.AddChild(label);
-		hostOnlineButton = MakeButton("Host Online", () => HostOnline());
+		hostOnlineButton = MakeButton("Host Online", () => HostOnline(relayEdit.Text));
 		row.AddChild(hostOnlineButton);
 		content.AddChild(row);
+
+		// The host chooses the relay; players are told it with the code.
+		relayRow = new HBoxContainer();
+		relayRow.AddThemeConstantOverride("separation", 12);
+		Label relayLabel = new() { Text = "Relay server:" };
+		relayLabel.AddThemeFontSizeOverride("font_size", 16);
+		relayRow.AddChild(relayLabel);
+		relayEdit = new LineEdit {
+			Text = OnlineRelay.SameRelay(OnlineRelay.Url, OnlineRelay.DefaultUrl) ? "" : OnlineRelay.Url,
+			PlaceholderText = "relay.example.org",
+			CustomMinimumSize = new Vector2(320, 0),
+		};
+		relayEdit.TextSubmitted += text => HostOnline(text);
+		relayRow.AddChild(relayEdit);
+		content.AddChild(relayRow);
 
 		onlineCodeRow = new HBoxContainer { Visible = false };
 		onlineCodeRow.AddThemeConstantOverride("separation", 24);
@@ -244,8 +261,8 @@ public partial class LanLobby : Control {
 		onlineCode.AddThemeFontSizeOverride("font_size", 44);
 		onlineCodeRow.AddChild(onlineCode);
 		Button copy = MakeButton("Copy Code", () => {
-			if (LanSession.Host?.Online?.FormattedCode is string code) {
-				DisplayServer.ClipboardSet(code);
+			if (OnlineInvite() is string invite) {
+				DisplayServer.ClipboardSet(invite);
 			}
 		});
 		copy.SizeFlagsVertical = SizeFlags.ShrinkCenter;
@@ -267,15 +284,28 @@ public partial class LanLobby : Control {
 	// Starts taking guests through the relay: the one in the settings, or
 	// the one a resumed game's code is from.
 	private void HostOnline(string relayUrl = null, string code = null, string key = null) {
-		relayUrl ??= OnlineRelay.Url;
+		relayUrl = string.IsNullOrWhiteSpace(relayUrl) ? OnlineRelay.Url : relayUrl.Trim();
 		onlineStatus.Visible = true;
 		if (OnlineRelay.Problem(relayUrl) is string problem) {
 			onlineStatus.Text = problem;
 			return;
 		}
+		// A relay chosen here is the one used from now on, here and when
+		// joining.
+		if (code == null) {
+			OnlineRelay.SetUrl(relayUrl);
+		}
 		LanSession.Host.HostOnline(relayUrl, code, key);
 		hostOnlineButton.Visible = false;
+		relayRow.Visible = false;
 		UpdateOnlineStatus();
+	}
+
+	// What players type to join: the code, with the relay when it isn't the
+	// default one.
+	private static string OnlineInvite() {
+		RelayHostLink link = LanSession.Host?.Online;
+		return link == null ? null : OnlineRelay.Invite(link.FormattedCode, link.RelayUrl);
 	}
 
 	private void UpdateOnlineStatus() {
@@ -283,9 +313,11 @@ public partial class LanLobby : Control {
 		if (link == null || onlineStatus == null) {
 			return;
 		}
-		string code = link.FormattedCode ?? "";
+		string code = OnlineInvite() ?? "";
 		if (onlineCode.Text != code) {
 			onlineCode.Text = code;
+			// An invite naming the relay is longer than a code alone.
+			onlineCode.AddThemeFontSizeOverride("font_size", code.Contains('@') ? 28 : 44);
 			onlineCodeRow.Visible = code != "";
 		}
 		int guests = link.GuestCount;
@@ -304,6 +336,7 @@ public partial class LanLobby : Control {
 		if (link.State == RelayHostLink.LinkState.Failed && !hostOnlineButton.Visible) {
 			hostOnlineButton.Text = "Host Online Again";
 			hostOnlineButton.Visible = true;
+			relayRow.Visible = true;
 		}
 	}
 
@@ -566,7 +599,7 @@ public partial class LanLobby : Control {
 		Label onlineLabel = new() { Text = "Or join online with a code:" };
 		onlineLabel.AddThemeFontSizeOverride("font_size", 18);
 		onlineRow.AddChild(onlineLabel);
-		codeEdit = new LineEdit { PlaceholderText = "KQ7-4MZ", MaxLength = 12, CustomMinimumSize = new Vector2(160, 0) };
+		codeEdit = new LineEdit { PlaceholderText = "KQ7-4MZ", MaxLength = 200, CustomMinimumSize = new Vector2(260, 0) };
 		codeEdit.TextSubmitted += _ => ConnectWithCode(false);
 		onlineRow.AddChild(codeEdit);
 		onlineRow.AddChild(MakeButton("Join", () => ConnectWithCode(false)));
@@ -699,12 +732,11 @@ public partial class LanLobby : Control {
 		if (codeEdit.Text.Trim() == "") {
 			return;
 		}
-		string code = RelayProtocol.NormalizeCode(codeEdit.Text);
-		if (code == null) {
-			status.Text = "A join code is six letters and digits, like KQ7-4MZ. Check it with the host.";
+		// The host's invite may name its relay, as in KQ7-4MZ@relay.example.org.
+		if (!OnlineRelay.TryParseInvite(codeEdit.Text, out string code, out string relayUrl)) {
+			status.Text = "A join code is six letters and digits, like KQ7-4MZ, sometimes followed by the host's relay server. Check it with the host.";
 			return;
 		}
-		string relayUrl = OnlineRelay.Url;
 		if (OnlineRelay.Problem(relayUrl) is string problem) {
 			status.Text = problem;
 			return;

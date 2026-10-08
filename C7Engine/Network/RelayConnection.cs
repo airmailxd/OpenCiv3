@@ -46,15 +46,15 @@ public static class RelayConnection {
 		if (!Uri.TryCreate(url, UriKind.Absolute, out Uri uri)) {
 			return null;
 		}
-		UriBuilder builder = new(uri);
-		builder.Scheme = uri.Scheme switch {
+		string scheme = uri.Scheme switch {
 			"https" or "wss" => "wss",
 			"http" or "ws" => "ws",
 			_ => null,
 		};
-		if (builder.Scheme == null) {
+		if (scheme == null) {
 			return null;
 		}
+		UriBuilder builder = new(uri) { Scheme = scheme };
 		// Keep the port when it was given, which UriBuilder drops when the
 		// scheme changes.
 		builder.Port = uri.IsDefaultPort ? -1 : uri.Port;

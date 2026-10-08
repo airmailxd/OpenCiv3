@@ -1,6 +1,7 @@
 using System;
 using System.Globalization;
 using C7.UIElements;
+using C7Engine.Network;
 using Godot;
 using Serilog;
 
@@ -81,6 +82,7 @@ public partial class SettingsMenu : Control {
 
 		AddGraphicsSettings(column);
 		AddAudioSettings(column);
+		AddOnlineSettings(column);
 
 		column.AddChild(new Control { CustomMinimumSize = new Vector2(0, 6) });
 		Civ3MenuButton back = new() { Text = "Back to Main Menu", SizeFlagsHorizontal = SizeFlags.ShrinkCenter };
@@ -160,6 +162,50 @@ public partial class SettingsMenu : Control {
 
 	private static string FormatScale(float scale) {
 		return scale.ToString("0.00", CultureInfo.InvariantCulture) + "x";
+	}
+
+	// The relay server that games hosted and joined online go through.
+	private void AddOnlineSettings(VBoxContainer column) {
+		column.AddChild(MakeHeading("Online"));
+
+		LineEdit relay = new() {
+			Text = OnlineRelay.SameRelay(OnlineRelay.Url, OnlineRelay.DefaultUrl) ? "" : OnlineRelay.Url,
+			PlaceholderText = "relay.example.org",
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+		};
+		Label result = MakeLabel("", 14, TextColor, HorizontalAlignment.Left);
+		result.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+		result.CustomMinimumSize = new Vector2(540, 0);
+
+		void Save() {
+			if (!string.IsNullOrWhiteSpace(relay.Text) && OnlineRelay.Problem(relay.Text) is string problem) {
+				result.Text = problem;
+				return;
+			}
+			OnlineRelay.SetUrl(relay.Text);
+			log.Information("Online relay set to {Url}", OnlineRelay.Url);
+			result.Text = string.IsNullOrWhiteSpace(relay.Text) ? "Using the default relay server." : "Saved.";
+		}
+		relay.TextSubmitted += _ => Save();
+		relay.FocusExited += Save;
+
+		Civ3MenuButton test = new() { Text = "Test", SizeFlagsHorizontal = SizeFlags.ShrinkCenter };
+		test.Pressed += async () => {
+			PlayClick();
+			Save();
+			string url = OnlineRelay.Url;
+			result.Text = "Checking...";
+			string problem = await OnlineRelay.CheckAsync(url);
+			if (IsInstanceValid(result)) {
+				result.Text = problem ?? "The relay server answered. Games can be hosted and joined online through it.";
+			}
+		};
+		column.AddChild(MakeRow("Relay server", relay, test));
+		column.AddChild(result);
+		column.AddChild(MakeNote(
+			"Games hosted online go through this server, which gives each a join code. A host can also choose " +
+			"one when hosting; players joining that host's game are told it along with the code. Leave it blank " +
+			"for the default."));
 	}
 
 	private static Civ3HSlider MakeSlider(double min, double max, double step, double value) {
