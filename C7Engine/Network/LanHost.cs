@@ -107,7 +107,7 @@ public class LanHost : IDisposable {
 	private bool creatingGame;
 	private readonly TcpListener listener;
 	private readonly UdpClient discovery;
-	private readonly ConcurrentQueue<TcpClient> accepted = new();
+	private readonly ConcurrentQueue<LanTransport> accepted = new();
 
 	// Everyone joined to play, whether or not they have taken a seat yet.
 	private readonly List<Guest> guests = new();
@@ -287,7 +287,7 @@ public class LanHost : IDisposable {
 	private void AcceptLoop() {
 		while (!disposed) {
 			try {
-				accepted.Enqueue(listener.AcceptTcpClient());
+				accepted.Enqueue(LanTransport.Tcp(listener.AcceptTcpClient()));
 			} catch (Exception e) when (e is SocketException or ObjectDisposedException or InvalidOperationException) {
 				return;
 			}
@@ -407,8 +407,8 @@ public class LanHost : IDisposable {
 	}
 
 	public void Poll() {
-		while (accepted.TryDequeue(out TcpClient client)) {
-			guests.Add(new Guest { connection = new LanConnection(client) });
+		while (accepted.TryDequeue(out LanTransport transport)) {
+			guests.Add(new Guest { connection = new LanConnection(transport) });
 		}
 
 		foreach (Guest guest in guests.ToList()) {

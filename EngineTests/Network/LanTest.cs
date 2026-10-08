@@ -677,4 +677,25 @@ public class LanTest : IClassFixture<SaveGameFixture>, IDisposable {
 		Assert.False(EngineStorage.IsPlayerReachable(humans[1].id));
 		Assert.False(EngineStorage.IsPlayerReachable(humans[2].id));
 	}
+
+	// Joining an address where nothing answers gives up after the timeout,
+	// without holding up the caller (the lobby) meanwhile.
+	[Fact]
+	public async Task JoiningAHostThatDoesntAnswerGivesUpInTheBackground() {
+		// Nothing routes there, so it either times out or fails at once.
+		LanAddressEndpoint nowhere = new("10.255.255.1", LanProtocol.DefaultPort);
+		Stopwatch waited = Stopwatch.StartNew();
+		Task<LanClient> joining = LanClient.ConnectAsync(nowhere, "Guest", timeout: TimeSpan.FromSeconds(1));
+		Assert.True(waited.Elapsed < TimeSpan.FromSeconds(1));
+		Exception e = await Record.ExceptionAsync(() => joining);
+		Assert.True(e is TimeoutException or System.Net.Sockets.SocketException, e?.ToString());
+		Assert.True(waited.Elapsed < TimeSpan.FromSeconds(5));
+
+		// And joining can be called off.
+		using CancellationTokenSource cancel = new();
+		joining = LanClient.ConnectAsync(nowhere, "Guest", timeout: TimeSpan.FromSeconds(30), cancel: cancel.Token);
+		cancel.Cancel();
+		e = await Record.ExceptionAsync(() => joining);
+		Assert.True(e is OperationCanceledException or System.Net.Sockets.SocketException, e?.ToString());
+	}
 }

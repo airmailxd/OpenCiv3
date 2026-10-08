@@ -17,7 +17,8 @@ public record Frame(FrameKind kind, byte[] payload) {
 	public object Prepared { get; init; }
 }
 
-// One TCP connection between a LAN host and a client. A background thread
+// One connection between a LAN host and a client, over TCP or through an
+// online relay (see LanTransport). A background thread
 // reads frames into a queue that the game drains on its own thread, so the
 // game's state is only ever touched from one thread. Another background
 // thread writes the frames the game sends, in the order it sent them, so a
@@ -52,8 +53,8 @@ public class LanConnection : IDisposable {
 		public Task<EncodedSnapshot> snapshot;
 	}
 
-	private readonly TcpClient client;
-	private readonly NetworkStream stream;
+	private readonly LanTransport transport;
+	private readonly Stream stream;
 	private readonly Func<Frame, Frame> prepareReceived;
 	private readonly ConcurrentQueue<Frame> received = new();
 	private int receivedFrames;
@@ -88,32 +89,20 @@ public class LanConnection : IDisposable {
 
 	// prepareReceived, if given, is called on the reader thread with each
 	// frame as it arrives, and the frame it returns is the one queued.
-	public LanConnection(TcpClient client, Func<Frame, Frame> prepareReceived = null) {
-		this.client = client;
+	public LanConnection(TcpClient client, Func<Frame, Frame> prepareReceived = null)
+		: this(LanTransport.Tcp(client), prepareReceived) {
+	}
+
+	public LanConnection(LanTransport transport, Func<Frame, Frame> prepareReceived = null) {
+		this.transport = transport;
 		this.prepareReceived = prepareReceived;
-		client.NoDelay = true;
-		KeepAlive(client.Client);
-		stream = client.GetStream();
-		RemoteAddress = client.Client.RemoteEndPoint?.ToString() ?? "unknown";
+		stream = transport.Stream;
+		RemoteAddress = transport.RemoteAddress;
 
 		Thread reader = new(ReadLoop) { IsBackground = true, Name = $"LAN reader {RemoteAddress}" };
 		reader.Start();
 		Thread writer = new(WriteLoop) { IsBackground = true, Name = $"LAN writer {RemoteAddress}" };
 		writer.Start();
-	}
-
-	// A peer that vanishes without closing the connection, like one whose
-	// network went down, would otherwise look connected for a long time,
-	// since a side that has nothing to send never finds out.
-	private static void KeepAlive(Socket socket) {
-		try {
-			socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
-			socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveTime, 5);
-			socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveInterval, 2);
-			socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveRetryCount, 3);
-		} catch (Exception e) when (e is SocketException or PlatformNotSupportedException or NotSupportedException) {
-			log.Debug("Couldn't set keep-alive on a LAN connection: {Error}", e.Message);
-		}
 	}
 
 	public bool TryReceive(out Frame frame) {
@@ -247,6 +236,7 @@ public class LanConnection : IDisposable {
 				header[4] = (byte)kind;
 				stream.Write(header);
 				stream.Write(payload);
+				stream.Flush();
 			}
 		} catch (Exception e) when (e is IOException or ObjectDisposedException or SocketException or InvalidOperationException) {
 			if (!aborted) {
@@ -353,6 +343,6 @@ public class LanConnection : IDisposable {
 			queuedBytes = 0;
 			Monitor.PulseAll(outgoing);
 		}
-		client.Dispose();
+		transport.Dispose();
 	}
 }

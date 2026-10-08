@@ -41,6 +41,10 @@ public partial class LanLobby : Control {
 	private VBoxContainer addressHelp;
 	private bool searching = false;
 
+	// Joining: the connection being made, called off by leaving the lobby or
+	// joining elsewhere.
+	private CancellationTokenSource connecting;
+
 	// Joining a new game: the civilizations to choose from, and the chosen
 	// one's leader.
 	private VBoxContainer civPicker;
@@ -136,6 +140,7 @@ public partial class LanLobby : Control {
 	}
 
 	private void BackToMenu() {
+		connecting?.Cancel();
 		LanSession.End();
 		LanSession.HostNextGame = false;
 		LanSession.PendingGame = null;
@@ -472,7 +477,7 @@ public partial class LanLobby : Control {
 			Label rejoinLabel = new() { Text = $"Your last game: {last.hostName} at {last.address}" };
 			rejoinLabel.AddThemeFontSizeOverride("font_size", 18);
 			rejoinRow.AddChild(rejoinLabel);
-			rejoinRow.AddChild(MakeButton("Rejoin Last LAN Game", () => Connect(last.address, last.port, false, last.token)));
+			rejoinRow.AddChild(MakeButton("Rejoin Last LAN Game", () => Connect(new LanAddressEndpoint(last.address, last.port), false, last.token)));
 			content.AddChild(rejoinRow);
 		}
 
@@ -552,13 +557,14 @@ public partial class LanLobby : Control {
 			DiscoveryReply reply = found.reply;
 			string state = reply.started ? "in progress" : "in the lobby";
 			string seats = $"{reply.openSeats} open {(reply.openSeats == 1 ? "seat" : "seats")}";
-			Button join = MakeButton("Join", () => Connect(found.address, reply.port, false));
+			LanAddressEndpoint endpoint = new(found.address, reply.port);
+			Button join = MakeButton("Join", () => Connect(endpoint, false));
 			join.Disabled = reply.openSeats == 0;
-			Button watch = MakeButton("Watch", () => Connect(found.address, reply.port, true));
+			Button watch = MakeButton("Watch", () => Connect(endpoint, true));
 			// The host of our last game may have moved to another address.
 			LanSession.LastGame last = LanSession.LastJoinedGame;
 			Button rejoin = last != null && last.hostName == reply.hostName && last.port == reply.port
-				? MakeButton("Rejoin", () => Connect(found.address, reply.port, false, last.token))
+				? MakeButton("Rejoin", () => Connect(endpoint, false, last.token))
 				: null;
 			AddSeatRow(hostList, $"{reply.hostName} at {found.address}: {state}, {seats}", join, watch, rejoin);
 		}
@@ -575,20 +581,38 @@ public partial class LanLobby : Control {
 			port = parsedPort;
 			text = text[..colon];
 		}
-		Connect(text, port, watch);
+		Connect(new LanAddressEndpoint(text, port), watch);
 	}
 
 	// Joins the host there; with the token from a game we were in, to have
-	// our seats in it back.
-	private void Connect(string address, int port, bool watch, string reconnectToken = null) {
+	// our seats in it back. Connecting happens in the background, since a
+	// host that doesn't answer can take a while to give up on.
+	private async void Connect(LanEndpoint endpoint, bool watch, string reconnectToken = null) {
 		LanSession.PlayerName = string.IsNullOrWhiteSpace(nameEdit.Text) ? LanSession.PlayerName : nameEdit.Text.Trim();
+		connecting?.Cancel();
+		CancellationTokenSource cancel = new();
+		connecting = cancel;
+		status.Text = $"Connecting to {endpoint.Description}...";
+		LanClient client;
 		try {
-			LanSession.BeginJoining(LanClient.Connect(address, port, LanSession.PlayerName, reconnectToken));
-		} catch (Exception e) when (e is SocketException or ArgumentException) {
-			status.Text = $"Could not connect to {address}: {e.Message}";
+			client = await LanClient.ConnectAsync(endpoint, LanSession.PlayerName, reconnectToken, cancel: cancel.Token);
+		} catch (OperationCanceledException) when (cancel.IsCancellationRequested) {
+			return;
+		} catch (Exception e) {
+			if (connecting == cancel && IsInstanceValid(status)) {
+				connecting = null;
+				status.Text = $"Could not connect to {endpoint.Description}: {e.Message}";
+			}
 			return;
 		}
-		status.Text = $"Connected to {address}. Waiting for the host...";
+		// Left the lobby, or joining elsewhere, meanwhile.
+		if (cancel.IsCancellationRequested || connecting != cancel || !IsInstanceValid(status)) {
+			client.Dispose();
+			return;
+		}
+		connecting = null;
+		LanSession.BeginJoining(client);
+		status.Text = $"Connected to {endpoint.Description}. Waiting for the host...";
 		addressHelp.Visible = false;
 		ClearCivPicker();
 		civPicker.Visible = false;

@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net.Sockets;
+using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -65,9 +67,13 @@ public class LanClient : IDisposable {
 	internal int WholeSnapshotsReceived { get; private set; }
 	internal int SnapshotDeltasReceived { get; private set; }
 
-	public string HostAddress { get; }
-	public string Address { get; }
-	public int Port { get; }
+	// Where the host is, which is where we connect again after losing it.
+	public LanEndpoint Endpoint { get; }
+	public string HostAddress => Endpoint.Description;
+
+	// The host's address on the network, or null for one joined online.
+	public string Address => (Endpoint as LanAddressEndpoint)?.Address;
+	public int Port => (Endpoint as LanAddressEndpoint)?.Port ?? 0;
 	public LobbyInfo Lobby { get; private set; }
 	public string RejectedReason { get; private set; }
 
@@ -100,16 +106,24 @@ public class LanClient : IDisposable {
 	public int ReconnectAttempt => Volatile.Read(ref reconnectAttempt);
 	private int reconnectAttempt;
 
+	// Why the last try to connect again failed, or null.
+	public string LastReconnectError => lastReconnectError;
+	private volatile string lastReconnectError;
+
 	// The waits between tries start at the first and double up to the
 	// longest.
 	internal TimeSpan FirstReconnectDelay = TimeSpan.FromSeconds(1);
 	internal TimeSpan MaxReconnectDelay = TimeSpan.FromSeconds(5);
 	private static readonly TimeSpan ConnectTimeout = TimeSpan.FromSeconds(5);
 
+	// How long joining waits for the host to answer at first, which may be
+	// some way away.
+	public static readonly TimeSpan InitialConnectTimeout = TimeSpan.FromSeconds(10);
+
 	// The connection a try made, for Poll to take over; the tries being
 	// made; and whether we have said hello on a new connection and wait
 	// for the host's answer.
-	private TcpClient reconnected;
+	private LanTransport reconnected;
 	private CancellationTokenSource reconnecting;
 	private bool awaitingAnswer;
 	private volatile bool disposed;
@@ -134,21 +148,29 @@ public class LanClient : IDisposable {
 	// back after losing the connection.
 	public Action PlayersChanged;
 
-	private LanClient(TcpClient tcp, string address, int port, string playerName, string reconnectToken) {
-		connection = new LanConnection(tcp);
-		Address = address;
-		Port = port;
-		HostAddress = $"{address}:{port}";
+	private LanClient(LanTransport transport, LanEndpoint endpoint, string playerName, string reconnectToken) {
+		connection = new LanConnection(transport);
+		Endpoint = endpoint;
 		this.playerName = playerName;
 		ReconnectToken = reconnectToken;
 	}
 
-	// Joins the host there. With the token from a game we were in, the host
-	// gives back the seats we had in it.
+	// Joins the host there, waiting until connected. With the token from a
+	// game we were in, the host gives back the seats we had in it.
 	public static LanClient Connect(string address, int port, string playerName, string reconnectToken = null) {
-		TcpClient tcp = new();
-		tcp.Connect(address, port);
-		LanClient client = new(tcp, address, port, playerName, reconnectToken);
+		return ConnectAsync(new LanAddressEndpoint(address, port), playerName, reconnectToken).GetAwaiter().GetResult();
+	}
+
+	// Joins the host there without holding up the caller, giving up with a
+	// TimeoutException if it doesn't answer in time.
+	public static async Task<LanClient> ConnectAsync(LanEndpoint endpoint, string playerName, string reconnectToken = null,
+		TimeSpan? timeout = null, CancellationToken cancel = default) {
+		LanTransport transport = await endpoint.ConnectAsync(timeout ?? InitialConnectTimeout, cancel).ConfigureAwait(false);
+		if (cancel.IsCancellationRequested) {
+			transport.Dispose();
+			cancel.ThrowIfCancellationRequested();
+		}
+		LanClient client = new(transport, endpoint, playerName, reconnectToken);
 		client.SayHello();
 		return client;
 	}
@@ -270,12 +292,12 @@ public class LanClient : IDisposable {
 	// handled, starts trying to connect again; and takes over the new
 	// connection once there is one.
 	private void PollReconnecting() {
-		if (Interlocked.Exchange(ref reconnected, null) is TcpClient tcp) {
+		if (Interlocked.Exchange(ref reconnected, null) is LanTransport transport) {
 			try {
-				connection = new LanConnection(tcp);
+				connection = new LanConnection(transport);
 			} catch (Exception e) when (e is SocketException or InvalidOperationException or ObjectDisposedException) {
 				log.Information("Lost the new connection to the host straight away: {Error}", e.Message);
-				tcp.Dispose();
+				transport.Dispose();
 				StartReconnecting();
 				return;
 			}
@@ -327,19 +349,17 @@ public class LanClient : IDisposable {
 			}
 			delay = delay * 2 < MaxReconnectDelay ? delay * 2 : MaxReconnectDelay;
 			int attempt = Interlocked.Increment(ref reconnectAttempt);
-			TcpClient tcp = new();
 			try {
-				using CancellationTokenSource timeout = CancellationTokenSource.CreateLinkedTokenSource(cancel);
-				timeout.CancelAfter(ConnectTimeout);
-				await tcp.ConnectAsync(Address, Port, timeout.Token);
+				LanTransport transport = await Endpoint.ConnectAsync(ConnectTimeout, cancel);
 				if (cancel.IsCancellationRequested) {
-					tcp.Dispose();
+					transport.Dispose();
 					return;
 				}
-				Interlocked.Exchange(ref reconnected, tcp)?.Dispose();
+				Interlocked.Exchange(ref reconnected, transport)?.Dispose();
 				return;
-			} catch (Exception e) when (e is SocketException or OperationCanceledException or ObjectDisposedException) {
-				tcp.Dispose();
+			} catch (Exception e) when (e is SocketException or OperationCanceledException or ObjectDisposedException
+				or TimeoutException or IOException or WebSocketException) {
+				lastReconnectError = e.Message;
 				log.Debug("Couldn't reach the host on try {Attempt}: {Error}", attempt, e.Message);
 			}
 		}
@@ -352,6 +372,7 @@ public class LanClient : IDisposable {
 		}
 		awaitingAnswer = false;
 		Reconnecting = false;
+		lastReconnectError = null;
 		log.Information("The host has us back");
 	}
 
