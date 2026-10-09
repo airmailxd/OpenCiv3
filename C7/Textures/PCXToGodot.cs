@@ -205,7 +205,8 @@ public partial class PCXToGodot : GodotObject {
 			try {
 				Pcx whitePcx = TextureLoader.LoadPCX("Art/Units/Palettes/ntp00.pcx");
 				whitePalette = loadPalette(whitePcx.Palette, true);
-			} catch (Exception) {
+			} catch (Exception e) {
+				LogManager.ForContext<PCXToGodot>().Warning(e, "Couldn't load the white unit palette; using plain white");
 				whitePalette = new int[MAX_PALETTE_SIZE];
 				Array.Fill(whitePalette, (int)new Color(1, 1, 1, 1).ToArgb32());
 			}
