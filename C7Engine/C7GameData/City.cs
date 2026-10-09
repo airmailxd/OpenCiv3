@@ -128,6 +128,12 @@ namespace C7GameData {
 
 		public bool IsInResistance => resisters > 0;
 
+		// The turn the city last changed hands (taken, flipped, traded or
+		// incited), or -1 if it never has or the save doesn't say. A city
+		// never flips to another civ's culture on the turn it changed hands
+		// (see CultureFlip).
+		public int ownerChangedTurn = -1;
+
 		// Whether production was hurried this turn, with gold, citizens or a
 		// great leader. As in Civ3, the city then can't change what it's
 		// building until the turn ends, so the hurried shields can't be

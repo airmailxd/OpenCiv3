@@ -355,6 +355,12 @@ namespace C7GameData {
 				}
 			}
 
+			// "If you turn off diplomatic victory, you can't build the UN
+			// anymore" (https://forums.civfanatics.com/threads/no-city-may-build-space-ship.11649/).
+			if (allowDiplomaticVictory && EngineStorage.gameData != null && !UnitedNations.DiplomaticVictoryAllowed(EngineStorage.gameData)) {
+				return false;
+			}
+
 			if (isCenterOfEmpire) {
 				// Building a palace in another city moves the capital there.
 				// Assumption: like the Forbidden Palace below, Civ3 doesn't

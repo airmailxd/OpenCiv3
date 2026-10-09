@@ -186,7 +186,6 @@ namespace C7GameData.Save {
 		private void ConvertVictoryConditions(GameData data) {
 			VictoryConditions conditions = data.victoryConditions;
 
-			// TODO: add victory options to data.victories based on data.victoryConditions
 			// NOTE: Order matters
 
 			// There is no "score victory", but we can treat score as if it were, so
@@ -206,6 +205,9 @@ namespace C7GameData.Save {
 			}
 			if (conditions?.AllowDiplomaticVictory == true) {
 				data.victories.Add(new DiplomaticVictory());
+			}
+			if (conditions?.AllowCulturalVictory == true) {
+				data.victories.Add(new CulturalVictory(conditions.CultureOneCityWin, conditions.CultureAllCitiesWin));
 			}
 
 			// The game ends at the turn limit only if that was chosen;

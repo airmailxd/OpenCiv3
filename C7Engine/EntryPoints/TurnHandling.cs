@@ -137,6 +137,10 @@ namespace C7Engine {
 					player.AdvanceGoldenAge();
 				}
 
+				// In the interturn, cities may flip to a civ whose culture
+				// outweighs their owner's.
+				CultureFlip.ProcessEndOfRound(gameData);
+
 				// The United Nations votes once everyone has played the
 				// voting turn, and may elect a winner.
 				UnitedNations.ProcessEndOfRound(gameData);
