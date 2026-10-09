@@ -61,6 +61,15 @@ namespace C7GameData {
 		// research and production. Off by default.
 		public bool AcceleratedProduction = false;
 
+		// Game option from Civ3: whether cities may flip to a civ whose
+		// culture outweighs their owner's (see CultureFlip). "Cultural flips
+		// and SGL's can be turned off on the game setup screen" in Conquests
+		// (https://forums.civfanatics.com/threads/civ3-conquests-additions-changes-list.104294/),
+		// and "I'm pretty sure the default is on"
+		// (https://forums.civfanatics.com/threads/cultural-conversion-question.87425/).
+		// The BIQ and SAV GAME sections' "allow cultural conversions" flag.
+		public bool AllowCultureFlips = true;
+
 		// Each army needs this many cities to support it. A civ can't build an
 		// army unless (armies + 1) * CitiesNeededToSupportAnArmy <= cities.
 		public int CitiesNeededToSupportAnArmy = 4;

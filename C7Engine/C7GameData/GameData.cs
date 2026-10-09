@@ -547,6 +547,7 @@ namespace C7GameData {
 		// not reach as far, so it lets go of the tiles beyond them. Updating
 		// tile owners afterwards hands those to whoever has claim to them.
 		internal void OnCityOwnerChanged(City city) {
+			city.ownerChangedTurn = turn;
 			HashSet<Tile> withinBorders = city.GetTilesWithinBorders().ToHashSet();
 			foreach (Tile t in map.tiles) {
 				if (t.owningCity != city) {

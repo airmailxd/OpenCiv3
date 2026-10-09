@@ -75,6 +75,9 @@ namespace C7GameData.Save {
 		// player they're loyal to.
 		public int resisters;
 		public ID resistanceFrom;
+		// The turn the city last changed hands; absent if it never has, or
+		// in saves made before this was saved.
+		public int? ownerChangedTurn;
 		// Production was hurried this turn and can't be changed until it ends.
 		public bool hurriedThisTurn;
 		// The city was given a cleared forest's shields since it last
@@ -109,6 +112,7 @@ namespace C7GameData.Save {
 			isInCivilDisorder = city.isInCivilDisorder;
 			resisters = city.resisters;
 			resistanceFrom = city.resistanceFrom?.id;
+			ownerChangedTurn = city.ownerChangedTurn >= 0 ? city.ownerChangedTurn : null;
 			hurriedThisTurn = city.hurriedThisTurn;
 			receivedForestShields = city.receivedForestShields;
 			residents = city.residents.ConvertAll(resident => {
@@ -227,6 +231,7 @@ namespace C7GameData.Save {
 				isInCivilDisorder = isInCivilDisorder,
 				resisters = resisters,
 				resistanceFrom = Lookups.Find(lookups.playersById, resistanceFrom),
+				ownerChangedTurn = ownerChangedTurn ?? -1,
 				hurriedThisTurn = hurriedThisTurn,
 				receivedForestShields = receivedForestShields,
 				capital = capital,
