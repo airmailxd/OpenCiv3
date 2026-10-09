@@ -1055,6 +1055,19 @@ namespace C7GameData {
 			return result;
 		}
 
+		// Shares out commerce by the owner's sliders, as CurrentCommerceYieldRaw
+		// does (without the buildings' bonuses).
+		private void AddUsefulCommerce(ref CommerceBreakdown result, int commerce) {
+			if (commerce <= 0) {
+				return;
+			}
+			int happiness = RoundedShare(commerce, owner.luxuryRate);
+			int beakers = Math.Min(RoundedShare(commerce, owner.scienceRate), commerce - happiness);
+			result.happiness += happiness;
+			result.beakers += beakers;
+			result.taxes += commerce - happiness - beakers;
+		}
+
 		// The share of `commerce` a slider at `rate` (in tenths) gets, rounding
 		// halves up.
 		private static int RoundedShare(int commerce, int rate) {
@@ -1088,8 +1101,11 @@ namespace C7GameData {
 
 			// corruption lua infow
 			if (this.itemBeingProduced is Inflow inflowCorruption && inflowCorruption.TryGetInflowYieldFunc(InflowYield.corruption, out var corruptionYieldFunc)) {
-				int lessCorruption = corruptionYieldFunc.Invoke(new ScriptContext(this.owner, this));
+				// The commerce saved from corruption is useful again, so it is
+				// shared out by the sliders like the rest.
+				int lessCorruption = Math.Min(corruptionYieldFunc.Invoke(new ScriptContext(this.owner, this)), result.corrupted);
 				result.corrupted -= lessCorruption;
+				AddUsefulCommerce(ref result, lessCorruption);
 			}
 
 			return result;
