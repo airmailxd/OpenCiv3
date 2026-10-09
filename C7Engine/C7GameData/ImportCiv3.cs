@@ -344,13 +344,16 @@ namespace C7GameData {
 			// are left for GameSetup.Populate to make.
 			bool hasMap = biq.Wmap?.Length > 0 && biq.Tile?.Length > 0;
 
-			// Civ3 replays a scenario's random numbers only if it asks to
-			// preserve its random seed.
-			if (hasMap && GameBiq?.Game?[0].PreserveRandomSeed == true) {
-				save.Seed = biq.Wmap[0].MapSeed;
-			} else {
-				save.Seed = Random.Shared.Next(int.MaxValue);
-			}
+			// The game's random numbers start from the map's seed. Civ3's
+			// "Preserve random seed" doesn't choose this seed: it "means that
+			// the randomly generated number for something such as a battle or
+			// anarchy calculation will be stored in the game so that you
+			// cannot save your game and reload continuously to get a favored
+			// outcome" (https://civfanatics.com/civ3/faq/). C7 always saves
+			// its random state (GameRandom), so it always behaves that way.
+			// Without a map, GameSetup.Populate sets the seed of the map it
+			// generates.
+			save.Seed = hasMap ? biq.Wmap[0].MapSeed : Random.Shared.Next(int.MaxValue);
 
 			ImportSharedBiqData();
 			ImportBiqVictory();
