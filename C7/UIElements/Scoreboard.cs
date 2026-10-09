@@ -315,8 +315,38 @@ public partial class Scoreboard : PanelContainer {
 		turnBox.AddThemeStyleboxOverride("panel", row.done ? DoneBox : WaitingBox);
 		cells.AddChild(turnBox);
 
+		// The host can remove or ban the guest playing a human player.
+		if (LanSession.Host?.Seats.FirstOrDefault(s => s.playerID == row.player.id) is SeatInfo { takenBy: string guest }) {
+			name.TooltipText = $"{guest}. Right-click to remove or ban them.";
+			panel.GuiInput += e => {
+				if (e is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Right }) {
+					ShowHostMenu(row.player.id, guest);
+					AcceptEvent();
+				}
+			};
+		}
+
 		return panel;
 	}
+
+	// What the host can do about a guest, at the mouse.
+	private void ShowHostMenu(ID playerID, string guest) {
+		PopupMenu menu = new();
+		menu.AddItem($"Remove {guest} from the game", 0);
+		menu.AddItem($"Ban {guest}...", 1);
+		menu.IdPressed += id => {
+			if (id == 0) {
+				HostActions.Remove(playerID);
+			} else {
+				HostActions.ConfirmBan(GetTree().Root, guest, playerID);
+			}
+		};
+		menu.PopupHide += menu.QueueFree;
+		AddChild(menu);
+		menu.Position = (Vector2I)GetViewport().GetMousePosition();
+		menu.Popup();
+	}
+
 
 	private static Label MakeText(string text) {
 		Label label = new() { Text = text, VerticalAlignment = VerticalAlignment.Center };

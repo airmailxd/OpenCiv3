@@ -84,6 +84,7 @@ public partial class MainMenu : Node {
 		ButtonContainer.LoadScenario.Pressed += LoadScenario;
 		ButtonContainer.HostLan.Pressed += HostLanGame;
 		ButtonContainer.JoinLan.Pressed += JoinLanGame;
+		ButtonContainer.BrowseOnline.Pressed += BrowseOnlineGames;
 		ButtonContainer.HallOfFame.Pressed += HallOfFame;
 		ButtonContainer.HallOfFame.Visible = false;
 		ButtonContainer.Settings.Pressed += ShowSettings;
@@ -226,6 +227,12 @@ public partial class MainMenu : Node {
 		PlayButtonPressedSound();
 		LanLobby.joining = true;
 		GetTree().ChangeSceneToFile(LanSession.LobbyScene);
+	}
+
+	// The join screen, with the server browser open over it.
+	public void BrowseOnlineGames() {
+		LanLobby.openBrowser = true;
+		JoinLanGame();
 	}
 
 	public void LoadScenario() {

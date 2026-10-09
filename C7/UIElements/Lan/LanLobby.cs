@@ -20,8 +20,10 @@ using Serilog;
 public partial class LanLobby : Control {
 	private ILogger log = LogManager.ForContext<LanLobby>();
 
-	// Whether we came here to join a game rather than host one.
+	// Whether we came here to join a game rather than host one, and whether
+	// to open the server browser straight away.
 	public static bool joining = false;
+	public static bool openBrowser = false;
 
 	private GlobalSingleton Global;
 
@@ -44,6 +46,17 @@ public partial class LanLobby : Control {
 	private LineEdit relayEdit;
 	private Label onlineStatus;
 
+	// Hosting online: listing the game publicly, under a name and
+	// description, and how that stands.
+	private VBoxContainer listingBox;
+	private Label listingStatus;
+
+	// Hosting: the password typed, and whether it was changed since it was
+	// last set.
+	private LineEdit passwordEdit;
+	private Label passwordStatus;
+	private bool passwordEdited;
+
 	// Joining: the name to play under, the hosts found and where to connect.
 	private LineEdit nameEdit;
 	private LineEdit addressEdit;
@@ -51,6 +64,10 @@ public partial class LanLobby : Control {
 	private VBoxContainer hostList;
 	private VBoxContainer addressHelp;
 	private bool searching = false;
+
+	// Joining a game with a password: where the player types it.
+	private HBoxContainer passwordPrompt;
+	private LineEdit passwordPromptEdit;
 
 	// Joining: the connection being made, called off by leaving the lobby or
 	// joining elsewhere.
@@ -173,6 +190,11 @@ public partial class LanLobby : Control {
 				Global.SaveGame = save;
 				LanSession.BeginHosting(new LanHost(LanSession.PlayerName, pending.setup.playerCivilization.name,
 					pending.guestSeats, save.Civilizations));
+				// The map isn't made yet, but its size is known.
+				if (pending.setup.worldCharacteristics?.worldSize is WorldSize size && size.width > 0) {
+					LanSession.Host.MapSize = $"{size.width}x{size.height}";
+				}
+
 			} else if (LanSession.ResumeGame is LanResumeInfo resume) {
 				// The last game hosted here, as it was autosaved, with its
 				// guests' seats held for them.
@@ -217,6 +239,7 @@ public partial class LanLobby : Control {
 		content.AddChild(seatList);
 
 		content.AddChild(MakeTurnTimeRow());
+		content.AddChild(MakeAccessRow());
 
 		status = AddLabel("");
 
@@ -272,6 +295,8 @@ public partial class LanLobby : Control {
 		onlineStatus = AddLabel("");
 		onlineStatus.Visible = false;
 
+		AddPublicListing();
+
 		// A game resumed from one hosted online goes online again, with the
 		// same code, so that its guests find it where they left it.
 		if (LanSession.ResumeGame is LanResumeInfo { onlineCode: not null } resume) {
@@ -298,7 +323,103 @@ public partial class LanLobby : Control {
 		LanSession.Host.HostOnline(relayUrl, code, key);
 		hostOnlineButton.Visible = false;
 		relayRow.Visible = false;
+		listingBox.Visible = true;
 		UpdateOnlineStatus();
+	}
+
+	// Listing the game in the relay's public list, for players anywhere to
+	// find under "Browse Online Games", once it's hosted online.
+	private void AddPublicListing() {
+		LanHost host = LanSession.Host;
+		listingBox = new VBoxContainer { Visible = false };
+		listingBox.AddThemeConstantOverride("separation", 6);
+		content.AddChild(listingBox);
+
+		HBoxContainer row = new();
+		row.AddThemeConstantOverride("separation", 12);
+		CheckBox list = new() {
+			Text = "List publicly",
+			ButtonPressed = host.ListPublicly,
+			TooltipText = "Show this game in the online game browser, for anyone using this relay to find and join. "
+				+ "Set a password to choose who can join.",
+		};
+		list.AddThemeFontSizeOverride("font_size", 18);
+		list.Toggled += on => host.ListPublicly = on;
+		row.AddChild(list);
+		LineEdit name = new() {
+			Text = host.PublicName ?? "",
+			PlaceholderText = host.DefaultPublicName,
+			MaxLength = RelayProtocol.MaxGameNameLength,
+			CustomMinimumSize = new Vector2(280, 0),
+			TooltipText = "The game's name in the list",
+		};
+		name.TextChanged += text => host.PublicName = text;
+		row.AddChild(name);
+		listingBox.AddChild(row);
+
+		LineEdit description = new() {
+			Text = host.PublicDescription ?? "",
+			PlaceholderText = "A few words about the game, for the list (optional)",
+			MaxLength = RelayProtocol.MaxGameDescriptionLength,
+		};
+		description.TextChanged += text => host.PublicDescription = text;
+		listingBox.AddChild(description);
+
+		listingStatus = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart };
+		listingStatus.AddThemeFontSizeOverride("font_size", 16);
+		listingBox.AddChild(listingStatus);
+	}
+
+	// Who may come in: the game's password, and whether anyone may watch.
+	private HBoxContainer MakeAccessRow() {
+		LanHost host = LanSession.Host;
+		HBoxContainer row = new();
+		row.AddThemeConstantOverride("separation", 12);
+		Label label = new() { Text = "Password:" };
+		label.AddThemeFontSizeOverride("font_size", 18);
+		row.AddChild(label);
+		// A resumed game keeps its password, which isn't kept as itself, so
+		// it can only be changed, not shown.
+		passwordEdit = new LineEdit {
+			Secret = true,
+			MaxLength = GamePassword.MaxLength,
+			PlaceholderText = host.HasPassword ? "(kept from the saved game)" : "none",
+			CustomMinimumSize = new Vector2(220, 0),
+			TooltipText = "Players need this to join, unless they're coming back to their seats. Press Enter to set it; "
+				+ "clear it and press Enter for no password.",
+		};
+		passwordEdit.TextChanged += _ => passwordEdited = true;
+		passwordEdit.TextSubmitted += _ => SetPassword();
+		passwordEdit.FocusExited += SetPassword;
+		row.AddChild(passwordEdit);
+		passwordStatus = new Label();
+		passwordStatus.AddThemeFontSizeOverride("font_size", 16);
+		row.AddChild(passwordStatus);
+		ShowPasswordStatus();
+
+		CheckBox spectators = new() {
+			Text = "Allow spectators",
+			ButtonPressed = host.AllowSpectators,
+			TooltipText = "Let players watch the game without playing. Spectators see the whole map.",
+		};
+		spectators.AddThemeFontSizeOverride("font_size", 18);
+		spectators.Toggled += on => host.AllowSpectators = on;
+		row.AddChild(spectators);
+		return row;
+	}
+
+	private void SetPassword() {
+		if (!passwordEdited || LanSession.Host == null) {
+			return;
+		}
+		passwordEdited = false;
+		LanSession.Host.SetPassword(passwordEdit.Text);
+		passwordEdit.PlaceholderText = "none";
+		ShowPasswordStatus();
+	}
+
+	private void ShowPasswordStatus() {
+		passwordStatus.Text = LanSession.Host.HasPassword ? "Password set." : "Anyone can join.";
 	}
 
 	// What players type to join: the code, with the relay when it isn't the
@@ -330,6 +451,14 @@ public partial class LanLobby : Control {
 		};
 		if (onlineStatus.Text != text) {
 			onlineStatus.Text = text;
+		}
+		string listing = !LanSession.Host.ListPublicly ? "Not listed: players need the code to join."
+			: link.IsListed ? "Listed publicly: players can find it under \"Browse Online Games\"."
+			: link.ListingError != null ? $"Not listed: {link.ListingError}"
+			: link.State == RelayHostLink.LinkState.Online ? "Listing..."
+			: "Listed once the game is back online.";
+		if (listingStatus.Text != listing) {
+			listingStatus.Text = listing;
 		}
 		// Hosting online failed for good, as with a code that can't be had
 		// again: trying again gets a new one.
@@ -449,10 +578,21 @@ public partial class LanLobby : Control {
 			// A seat held for a guest who hasn't come back can be given to
 			// anyone.
 			Button release = seat.disconnected ? MakeButton("Release Seat", () => host.ReleaseSeat(seat.playerID)) : null;
-			AddSeatRow(seatList, Describe(seat), release);
+			// A guest can be removed, which frees all their seats, or banned.
+			Button remove = null, ban = null;
+			if (seat.takenBy != null) {
+				remove = MakeSmallButton("Remove", $"Remove {seat.takenBy} from the game, freeing their seats for anyone to take.",
+					() => HostActions.Remove(seat.playerID));
+				ban = MakeSmallButton("Ban", $"Remove {seat.takenBy} and keep them out of this game.",
+					() => HostActions.ConfirmBan(this, seat.takenBy, seat.playerID));
+			}
+			AddSeatRow(seatList, Describe(seat), release, remove, ban);
 		}
-		if (host.Spectators.Count > 0) {
-			AddSeatRow(seatList, $"Watching: {string.Join(", ", host.Spectators)}");
+		foreach (string spectator in host.Spectators) {
+			AddSeatRow(seatList, $"{spectator}: watching",
+				MakeSmallButton("Remove", $"Stop {spectator} watching.", () => host.KickSpectator(spectator)),
+				MakeSmallButton("Ban", $"Stop {spectator} watching, and keep them out of this game.",
+					() => HostActions.ConfirmBanSpectator(this, spectator)));
 		}
 
 		if (createFailure != null) {
@@ -483,6 +623,13 @@ public partial class LanLobby : Control {
 				CallDeferred(nameof(StartHostedGame));
 			}
 		}
+	}
+
+	private Button MakeSmallButton(string text, string tooltip, Action onPressed) {
+		Button button = new() { Text = text, TooltipText = tooltip, CustomMinimumSize = new Vector2(80, 30) };
+		button.AddThemeFontSizeOverride("font_size", 15);
+		button.Pressed += onPressed;
+		return button;
 	}
 
 	private static string Describe(SeatInfo seat) {
@@ -620,6 +767,17 @@ public partial class LanLobby : Control {
 		onlineRow.AddChild(MakeButton("Watch", () => ConnectWithCode(true)));
 		content.AddChild(onlineRow);
 
+		// Or one listed publicly on the relay.
+		HBoxContainer browseRow = new();
+		browseRow.AddThemeConstantOverride("separation", 12);
+		Label browseLabel = new() { Text = "Or find a public game online:" };
+		browseLabel.AddThemeFontSizeOverride("font_size", 18);
+		browseRow.AddChild(browseLabel);
+		Button browse = MakeButton("Browse Online Games", OpenBrowser);
+		browse.CustomMinimumSize = new Vector2(220, 36);
+		browseRow.AddChild(browse);
+		content.AddChild(browseRow);
+
 		// The game last joined from here, to get back into after closing
 		// the game.
 		if (LanSession.LastJoinedGame is LanSession.LastGame last) {
@@ -641,6 +799,18 @@ public partial class LanLobby : Control {
 		civPicker.AddThemeConstantOverride("separation", 8);
 		content.AddChild(civPicker);
 
+		// Shown when the host asks for its game's password.
+		passwordPrompt = new HBoxContainer { Visible = false };
+		passwordPrompt.AddThemeConstantOverride("separation", 12);
+		Label passwordLabel = new() { Text = "Password:" };
+		passwordLabel.AddThemeFontSizeOverride("font_size", 18);
+		passwordPrompt.AddChild(passwordLabel);
+		passwordPromptEdit = new LineEdit { Secret = true, MaxLength = GamePassword.MaxLength, CustomMinimumSize = new Vector2(260, 0) };
+		passwordPromptEdit.TextSubmitted += _ => SendPassword();
+		passwordPrompt.AddChild(passwordPromptEdit);
+		passwordPrompt.AddChild(MakeButton("Enter", SendPassword));
+		content.AddChild(passwordPrompt);
+
 		status = AddLabel("");
 
 		AddAddressHelp();
@@ -655,6 +825,33 @@ public partial class LanLobby : Control {
 			addressEdit.Text = LanSession.DevJoinAddress;
 			ConnectToAddress(LanSession.DevWatch);
 		}
+
+		if (openBrowser) {
+			openBrowser = false;
+			OpenBrowser();
+		}
+	}
+
+	// The server browser, over the join screen; joining a game from it
+	// joins as typing its code would.
+	private void OpenBrowser() {
+		ServerBrowser browser = new();
+		browser.JoinRequested += (code, relayUrl, name, watch, password) => {
+			codeEdit.Text = OnlineRelay.Invite(RelayProtocol.FormatCode(code), relayUrl);
+			Connect(new RelayEndpoint(relayUrl, code), watch, password: password);
+		};
+		AddChild(browser);
+	}
+
+	private void SendPassword() {
+		LanClient client = LanSession.Client;
+		if (client?.PasswordRequest == null || passwordPromptEdit.Text == "") {
+			return;
+		}
+		client.SendPassword(passwordPromptEdit.Text);
+		passwordPromptEdit.Text = "";
+		passwordPrompt.Visible = false;
+		status.Text = "Checking the password...";
 	}
 
 	// Tips for finding the host when it isn't listed, hidden once connected.
@@ -712,7 +909,7 @@ public partial class LanLobby : Control {
 		}
 		foreach (FoundHost found in hosts) {
 			DiscoveryReply reply = found.reply;
-			string state = reply.started ? "in progress" : "in the lobby";
+			string state = (reply.started ? "in progress" : "in the lobby") + (reply.hasPassword ? ", password needed" : "");
 			string seats = $"{reply.openSeats} open {(reply.openSeats == 1 ? "seat" : "seats")}";
 			LanAddressEndpoint endpoint = new(found.address, reply.port);
 			Button join = MakeButton("Join", () => Connect(endpoint, false));
@@ -761,7 +958,7 @@ public partial class LanLobby : Control {
 	// Joins the host there; with the token from a game we were in, to have
 	// our seats in it back. Connecting happens in the background, since a
 	// host that doesn't answer can take a while to give up on.
-	private async void Connect(LanEndpoint endpoint, bool watch, string reconnectToken = null) {
+	private async void Connect(LanEndpoint endpoint, bool watch, string reconnectToken = null, string password = null) {
 		LanSession.PlayerName = string.IsNullOrWhiteSpace(nameEdit.Text) ? LanSession.PlayerName : nameEdit.Text.Trim();
 		connecting?.Cancel();
 		CancellationTokenSource cancel = new();
@@ -769,7 +966,7 @@ public partial class LanLobby : Control {
 		status.Text = $"Connecting to {endpoint.Description}...";
 		LanClient client;
 		try {
-			client = await LanClient.ConnectAsync(endpoint, LanSession.PlayerName, reconnectToken, cancel: cancel.Token);
+			client = await LanClient.ConnectAsync(endpoint, LanSession.PlayerName, reconnectToken, cancel: cancel.Token, password: password);
 		} catch (OperationCanceledException) when (cancel.IsCancellationRequested) {
 			return;
 		} catch (Exception e) {
@@ -800,8 +997,19 @@ public partial class LanLobby : Control {
 		LanClient client = LanSession.Client;
 		if (client.RejectedReason != null) {
 			status.Text = client.RejectedReason;
+			passwordPrompt.Visible = false;
 			return;
 		}
+		if (client.PasswordRequest is PasswordChallengeInfo challenge) {
+			passwordPrompt.Visible = true;
+			passwordPromptEdit.GrabFocus();
+			status.Text = challenge.wrong
+				? $"That isn't the password. {challenge.attemptsLeft} more {(challenge.attemptsLeft == 1 ? "try" : "tries")} on this connection."
+				: "This game needs a password. Ask the host for it.";
+			return;
+		}
+		passwordPrompt.Visible = false;
+
 		if (client.StartingGame != null) {
 			// The host started the game; it's ours from here.
 			client.LobbyChanged -= ShowJoinedSeats;
