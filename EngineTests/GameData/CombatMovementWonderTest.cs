@@ -144,16 +144,20 @@ public class CombatMovementWonderTest : IClassFixture<SaveGameFixture> {
 
 		double attackBefore = warrior.StrengthVersus(barbarian, CombatRole.Attack, null);
 		double defenseBefore = warrior.StrengthVersus(barbarian, CombatRole.Defense, null);
+		double attackOnEnemyBefore = warrior.StrengthVersus(enemy, CombatRole.Attack, null);
+		double attackMultiplierBefore = StrengthBonus.ListToMultiplier(warrior.ListStrengthBonusesVersus(barbarian, CombatRole.Attack, null));
 		double defenseMultiplierBefore = StrengthBonus.ListToMultiplier(warrior.ListStrengthBonusesVersus(barbarian, CombatRole.Defense, null));
 
 		Give(us, BuildingNamed("The Great Wall"));
 
-		Assert.Equal(2 * attackBefore, warrior.StrengthVersus(barbarian, CombatRole.Attack, null), 6);
-		// The +100% adds to the defender's other bonuses.
+		// The +100% adds to the other bonuses (like the AI's own against
+		// barbarians), attacking and defending.
+		Assert.Equal(attackBefore * (attackMultiplierBefore + 1) / attackMultiplierBefore,
+			warrior.StrengthVersus(barbarian, CombatRole.Attack, null), 6);
 		Assert.Equal(defenseBefore * (defenseMultiplierBefore + 1) / defenseMultiplierBefore,
 			warrior.StrengthVersus(barbarian, CombatRole.Defense, null), 6);
 		// Only against barbarians, and only for the wonder's owner.
-		Assert.Equal(attackBefore, warrior.StrengthVersus(enemy, CombatRole.Attack, null), 6);
+		Assert.Equal(attackOnEnemyBefore, warrior.StrengthVersus(enemy, CombatRole.Attack, null), 6);
 		Assert.DoesNotContain(barbarian.ListStrengthBonusesVersus(warrior, CombatRole.Defense, null), b => b.amount == 1.0);
 		Assert.DoesNotContain(warrior.ListStrengthBonusesVersus(barbarian, CombatRole.Bombard, null), b => b.amount == 1.0);
 	}

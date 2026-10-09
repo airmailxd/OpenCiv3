@@ -290,8 +290,10 @@ namespace C7GameData {
 		// this civ has built. Losing the capital destroys them. See SpaceRace.
 		public List<int> spaceshipParts = new();
 
-		// How tired of war the people are. It builds up while at war and
-		// clears once the civ is at peace with everyone.
+		// War weariness points from saves made before they were kept per
+		// enemy (see PlayerRelationship.warWearinessPoints), which can't be
+		// put down to any one civ. They count like one more enemy's and fade
+		// like any war's after peace. New points never go here.
 		public int warWeariness = 0;
 
 		// Each civ gets one golden age per game.
@@ -425,6 +427,11 @@ namespace C7GameData {
 			return this.tileKnowledge.knownTiles.Contains(tile);
 		}
 
+		// Whether paths for our units go only by what we've explored, taking
+		// tiles we haven't to be passable: a human's always do, and an AI's
+		// do with the AI fog of war (see C7Engine.AI.AIFogOfWar).
+		public bool PathsByExploredMap => isHuman || (EngineStorage.aiFogOfWar && !isBarbarians);
+
 		public bool IsAtPeaceWith(Player other) {
 			return AtPeace(this, other);
 		}
@@ -466,6 +473,14 @@ namespace C7GameData {
 			int refuseContactUntilTurn = currentTurn + GameData.rng.Next(5, isSneakAttack ? 16 : 12);
 
 			DeclareWar(this, other, isSneakAttack, refuseContactUntilTurn, currentTurn);
+
+			// The other civ's people rally against an AI attacking them,
+			// unless their nuclear weapons or their caught spies provoked it
+			// (see WarWearinessWhenTheAIAttacks).
+			if (!isHuman && !isBarbarians && playerRelationships.TryGetValue(other.id, out PlayerRelationship ourView)
+				&& ourView.nuclearAtrocityCount == 0 && ourView.espionageIncidents == 0) {
+				other.AddWarWeariness(this, WarWearinessWhenTheAIAttacks);
+			}
 
 			// Whenever war is declared, re-evaluate priorities.
 			turnsUntilPriorityReevaluation = 0;
@@ -715,16 +730,11 @@ namespace C7GameData {
 			return AggregateFlows().Netflows();
 		}
 
-		// How much more than it gives an AI that is winning a war wants for
-		// making peace, for each of the other side's cities. This and
-		// WinningStrengthRatio are a placeholder for our AI, not Civ3
-		// behaviour, which isn't documented.
-		private const int PeaceTributePerCity = 30;
-
-		// How much stronger than the other side an AI must be to think it is
-		// winning the war.
-		private const float WinningStrengthRatio = 1.5f;
-
+		// Whether we, an AI, would accept the deal, in which the other player
+		// gives theirOffer and we give ourOffer. Cities count for nothing in
+		// the valuation (see TradeOffer.GoldEquivalentFor), and per the
+		// project owner we never give a city away except in a peace treaty.
+		// Peace is weighed up by PeaceAI.
 		public bool WouldAcceptDealFrom(GameData gameData, Player other, TradeOffer theirOffer, TradeOffer ourOffer) {
 			// TODO: consider any factors like trade reputations here and culture groups
 			if (TradeOffer.ProblemWithDeal(gameData, other, this, theirOffer, ourOffer) != null) {
@@ -738,13 +748,11 @@ namespace C7GameData {
 			int theirGoldValue = theirOffer.GoldEquivalentFor(gameData, this);
 			int ourGoldValue = ourOffer.GoldEquivalentFor(gameData, this);
 
-			// Peace is welcome once we are talking again, unless we are
-			// clearly winning: then the other side has to pay for it. A
-			// placeholder until the AI weighs up wars properly, not Civ3's
-			// AI behaviour.
-			if ((theirOffer.partOfPeaceTreaty || ourOffer.partOfPeaceTreaty)
-				&& CalculateMilitaryStrength() > WinningStrengthRatio * other.CalculateMilitaryStrength()) {
-				ourGoldValue += PeaceTributePerCity * Math.Max(1, other.cities.Count);
+			if (theirOffer.partOfPeaceTreaty || ourOffer.partOfPeaceTreaty) {
+				return C7Engine.AI.PeaceAI.WouldAcceptPeace(this, other, theirOffer, ourOffer, theirGoldValue, ourGoldValue);
+			}
+			if (ourOffer.cities.Count > 0) {
+				return false;
 			}
 			return theirGoldValue >= ourGoldValue;
 		}
@@ -777,6 +785,14 @@ namespace C7GameData {
 
 			other.CompleteResearchAndBeginNew(gameData, ourOffer.techs);
 			this.CompleteResearchAndBeginNew(gameData, theirOffer.techs);
+
+			// Cities change hands last, once the gold and techs have.
+			foreach (City city in ourOffer.cities.ToList()) {
+				CityInteractions.TransferCity(city, other, viaDeal: true);
+			}
+			foreach (City city in theirOffer.cities.ToList()) {
+				CityInteractions.TransferCity(city, this, viaDeal: true);
+			}
 			return true;
 		}
 
@@ -1021,7 +1037,9 @@ namespace C7GameData {
 			// The difficulty level's percentage only applies to humans; the AI
 			// always gets the full optimal city number. Fitted against 24k
 			// cities from Civ3 saves: using the difficulty level for the AI
-			// too made its corruption far too high on the hard levels.
+			// too made its corruption far too high on the hard levels. This
+			// is deliberate, and the project owner confirmed it stays
+			// human-only.
 			int percentOptimalCities = isHuman ? gameData.gameDifficulty.PercentageOfOptimalCities : 100;
 
 			float commercialCivFactor = civilization.traits.Contains(Civilization.Trait.Commercial) ? .25f : 0;
@@ -1602,84 +1620,217 @@ namespace C7GameData {
 			log.Information("{Player} built a new palace in {City}", this, newCapital);
 		}
 
-		// Civ 3 doesn't publish its war weariness formula, so this is an
-		// approximation: each turn at war adds a point per enemy, and another
-		// if we started that war; losing a unit adds a point, or three if it
-		// died attacking. TODO: players worked out the real points, per
-		// enemy (e.g. 2 for a defeated attacker, 16 or 17 for a lost city,
-		// -30 when the AI attacks us), at
-		// https://civfanatics.com/civ3/strategy/game-mechanics/how-does-war-weariness-work/.
-		private const int WarWearinessPerTurnAtWar = 1;
-		private const int WarWearinessForStartingTheWar = 1;
-		private const int WarWearinessForUnitLostDefending = 1;
-		private const int WarWearinessForUnitLostAttacking = 3;
-
-		// The weariness points that make one unhappy face in every city, by
-		// government war weariness level (low, high).
-		private const int WarWearinessPerFaceLow = 20;
-		private const int WarWearinessPerFaceHigh = 10;
-
-		// In Civ3 the weariness of a war lingers after peace rather than
-		// vanishing at once: "Subtract 1/20 of current wwp each turn in
-		// peace (round up)", so 100% weariness in a republic takes 43 turns
-		// to fade
-		// (https://civfanatics.com/civ3/strategy/game-mechanics/how-does-war-weariness-work/).
+		// War weariness, as players measured it in Civ3
+		// (https://www.civfanatics.com/civ3/strategy/game-mechanics/how-does-war-weariness-work/,
+		// "the article" below). "Each civ have one wwp number against each of
+		// the other civs", kept in our relationship with them
+		// (PlayerRelationship.warWearinessPoints), starting at 0:
+		// - "Subtract 30 wwp if the AI attacks you, except when AI is
+		//   provoked by: use of nuclear weapons, failed spy mission". We
+		//   count the AI declaring war on us.
+		// - "Add 1 wwp if you have units in enemys territory when in war.
+		//   (In beginning of the turn)"
+		// - "Add 1 wwp for each lost unit without defence value,
+		//   improvement pillage/bombed, unit that are bombard down to 1 hp"
+		// - "Add 2 wwp when a human attacker is defeated"
+		// - "Add 2 wwp when a unit with defence value is attacked. (Even if
+		//   you win)"
+		// - "Add 16 wwp when a size 1 city is captured 17 wwp for bigger
+		//   cities."
+		// - "Subtract 1 wwp if level >= 1, no enemy inside your territory
+		//   and no units in enemys territory."
+		// - "Subtract 1/20 of current wwp each turn in peace (round up)"
+		// The article lists the points "for a human", and says Civ3 has a bug
+		// that gives an AI the human's points in a human-AI battle (and both
+		// AIs the first's in an AI-AI war). We give every civ its own points
+		// as the rules above say, without the bug.
+		public const int WarWearinessWhenTheAIAttacks = -30;
+		public const int WarWearinessPerTurnInEnemyTerritory = 1;
+		public const int WarWearinessForLostUnitWithoutDefence = 1;
+		public const int WarWearinessForPillagedOrBombedImprovement = 1;
+		public const int WarWearinessForUnitBombardedToOneHitPoint = 1;
+		public const int WarWearinessForDefeatedAttacker = 2;
+		public const int WarWearinessForUnitAttacked = 2;
+		public const int WarWearinessForLostSizeOneCity = 16;
+		public const int WarWearinessForLostCity = 17;
+		public const int WarWearinessRecoveryPerQuietTurn = 1;
 		private const int WarWearinessDecayDivisorAtPeace = 20;
+
+		// The article's war weariness levels: below 0 points is level -1 (war
+		// happiness), up to 30 level 0 (no effect), then a level for every 30
+		// more points, up to level 4 from 121.
+		private const int WarWearinessPointsPerLevel = 30;
+		private const int MaxWarWearinessLevel = 4;
+
+		public static int WarWearinessLevel(int points) {
+			if (points < 0) {
+				return -1;
+			}
+			if (points == 0) {
+				return 0;
+			}
+			return Math.Min(MaxWarWearinessLevel, (points - 1) / WarWearinessPointsPerLevel);
+		}
+
+		// The share of a city's citizens (in percent) made unhappy at each
+		// level (0 to 4), by government war weariness: low as in the
+		// article's Republic, high as in its Democracy. A Democracy at level
+		// 3 or more revolts in Civ3; we don't model that, so it stays at
+		// 100% unhappy.
+		private static readonly int[] LowWarWearinessUnhappyPercent = { 0, 25, 50, 50, 100 };
+		private static readonly int[] HighWarWearinessUnhappyPercent = { 0, 50, 100, 100, 100 };
+
+		// "All government: Level -1: 25% happy people"
+		private const int WarHappinessPercent = 25;
+
+		// "subtract 25% for police station and 1 for US (Universal
+		// Sufferage)": police stations take a quarter off the unhappy
+		// citizens, and Universal Suffrage (the BIQ's "reduces war weariness
+		// in all cities") one more.
+		private const int PoliceStationReductionPercent = 25;
+		private const int EverywhereReduction = 1;
+
+		// Our war weariness points against the other civ.
+		public int WarWearinessPointsAgainst(Player other) {
+			return other != null && other.id != null && playerRelationships.TryGetValue(other.id, out PlayerRelationship pr)
+				? pr.warWearinessPoints : 0;
+		}
+
+		// Adds war weariness points (or takes them off, if negative) against
+		// the other civ. Barbarians, and civs we have no relationship with,
+		// don't count.
+		public void AddWarWeariness(Player other, int points) {
+			if (other == null || other == this || other.isBarbarians || isBarbarians || other.id == null) {
+				return;
+			}
+			if (playerRelationships.TryGetValue(other.id, out PlayerRelationship pr)) {
+				pr.warWearinessPoints += points;
+			}
+		}
+
+		// A unit of the defender's was attacked by one of the attacker's.
+		public static void AddWarWearinessForAttack(MapUnit attacker, MapUnit defender, bool attackerDefeated) {
+			if (attacker?.owner == null || defender?.owner == null) {
+				return;
+			}
+			if (defender.unitType.defense > 0) {
+				defender.owner.AddWarWeariness(attacker.owner, WarWearinessForUnitAttacked);
+			}
+			if (attackerDefeated) {
+				attacker.owner.AddWarWeariness(defender.owner, WarWearinessForDefeatedAttacker);
+			}
+		}
+
+		// The city's owner lost it to the captor. The size is from before
+		// the capture.
+		public static void AddWarWearinessForLostCity(Player owner, Player captor, int size) {
+			owner?.AddWarWeariness(captor, size <= 1 ? WarWearinessForLostSizeOneCity : WarWearinessForLostCity);
+		}
 
 		// Called once per turn.
 		public void UpdateWarWeariness(GameData gameData) {
-			List<Player> enemies = gameData.players.Where(p =>
-				p != this && !p.isBarbarians && !p.defeated && AtWar(this, p)).ToList();
-			if (enemies.Count == 0) {
-				if (warWeariness > 0) {
-					int decay = (warWeariness + WarWearinessDecayDivisorAtPeace - 1) / WarWearinessDecayDivisorAtPeace;
-					warWeariness = Math.Max(0, warWeariness - decay);
-				}
+			if (warWeariness > 0) {
+				warWeariness -= DecayAtPeace(warWeariness);
+			}
+			if (isBarbarians) {
 				return;
 			}
-			foreach (Player enemy in enemies) {
-				warWeariness += WarWearinessPerTurnAtWar;
-				// Whether we declared the current war. For wars from before
-				// that was recorded, fall back to whether we ever declared war
-				// on them.
-				bool weStartedIt = enemy.playerRelationships.TryGetValue(id, out PlayerRelationship pr)
-					&& (pr.otherStartedCurrentWar ?? pr.warDeclarationCount > 0);
-				if (weStartedIt) {
-					warWeariness += WarWearinessForStartingTheWar;
+			foreach (Player other in gameData.players) {
+				if (other == this || other.isBarbarians || other.id == null
+					|| !playerRelationships.TryGetValue(other.id, out PlayerRelationship pr)) {
+					continue;
+				}
+				if (other.defeated || !pr.AtWar()) {
+					pr.warWearinessPoints -= DecayAtPeace(pr.warWearinessPoints);
+					continue;
+				}
+				bool weAreInTheirTerritory = HasUnitsInTerritoryOf(other);
+				bool theyAreInOurTerritory = other.HasUnitsInTerritoryOf(this);
+				if (weAreInTheirTerritory) {
+					pr.warWearinessPoints += WarWearinessPerTurnInEnemyTerritory;
+				} else if (!theyAreInOurTerritory && WarWearinessLevel(pr.warWearinessPoints) >= 1) {
+					pr.warWearinessPoints -= WarWearinessRecoveryPerQuietTurn;
 				}
 			}
 		}
 
-		public void AddWarWearinessForLostUnit(bool diedAttacking) {
-			warWeariness += diedAttacking ? WarWearinessForUnitLostAttacking : WarWearinessForUnitLostDefending;
+		// A twentieth of the points, rounded up, toward 0. The article only
+		// gives this for positive points; we fade war happiness (negative
+		// points) the same way.
+		private static int DecayAtPeace(int points) {
+			int decay = (Math.Abs(points) + WarWearinessDecayDivisorAtPeace - 1) / WarWearinessDecayDivisorAtPeace;
+			return Math.Sign(points) * decay;
 		}
 
-		// The number of citizens in the city made unhappy by war weariness.
-		// Police stations, and wonders like Universal Suffrage, halve it.
-		public int WarWearinessUnhappiness(City city) {
-			int pointsPerFace = government.warWeariness switch {
-				1 => WarWearinessPerFaceLow,
-				>= 2 => WarWearinessPerFaceHigh,
+		private bool HasUnitsInTerritoryOf(Player other) {
+			foreach (MapUnit unit in units) {
+				Tile location = unit.location;
+				if (location != null && location != Tile.NONE && location.OwningPlayer() == other) {
+					return true;
+				}
+			}
+			return false;
+		}
+
+		private int UnhappyPercent(int level) {
+			if (level <= 0) {
+				return 0;
+			}
+			return government.warWeariness switch {
+				1 => LowWarWearinessUnhappyPercent[level],
+				>= 2 => HighWarWearinessUnhappyPercent[level],
 				_ => 0,
 			};
-			if (pointsPerFace == 0 || warWeariness == 0) {
+		}
+
+		// Every source of war weariness points: those against each civ, and
+		// those from older saves.
+		private IEnumerable<int> WarWearinessPointSources() {
+			yield return warWeariness;
+			foreach (PlayerRelationship pr in playerRelationships.Values) {
+				yield return pr.warWearinessPoints;
+			}
+		}
+
+		// The number of citizens in the city made unhappy by war weariness:
+		// for each enemy, the share its level and our government give,
+		// rounded down, added together; then police stations and Universal
+		// Suffrage reduce it, and it can't be more than the city's citizens.
+		public int WarWearinessUnhappiness(City city) {
+			int citizens = city.residents.Count;
+			int unhappy = 0;
+			foreach (int points in WarWearinessPointSources()) {
+				unhappy += citizens * UnhappyPercent(WarWearinessLevel(points)) / 100;
+			}
+			if (unhappy == 0) {
 				return 0;
 			}
 
-			int faces = warWeariness / pointsPerFace;
-			bool reduced = GetBuildingSnapshot().reducesWarWearinessEverywhere;
-			if (!reduced) {
-				foreach (CityBuilding cb in city.EffectiveBuildings()) {
-					if (cb.building.reducesWarWeariness) {
-						reduced = true;
-						break;
-					}
+			foreach (CityBuilding cb in city.EffectiveBuildings()) {
+				if (cb.building.reducesWarWeariness) {
+					unhappy -= unhappy * PoliceStationReductionPercent / 100;
+					break;
 				}
 			}
-			if (reduced) {
-				faces /= 2;
+			if (GetBuildingSnapshot().reducesWarWearinessEverywhere) {
+				unhappy -= EverywhereReduction;
 			}
-			return Math.Min(faces, city.residents.Count);
+			return Math.Clamp(unhappy, 0, citizens);
+		}
+
+		// The number of content citizens in the city made happy by war
+		// happiness: a quarter of them for each civ we're at level -1
+		// against, whatever our government. "War happiness is calculated
+		// independent in the same way. (No effect of improvments)"
+		public int WarHappiness(City city) {
+			int citizens = city.residents.Count;
+			int happy = 0;
+			foreach (int points in WarWearinessPointSources()) {
+				if (WarWearinessLevel(points) < 0) {
+					happy += citizens * WarHappinessPercent / 100;
+				}
+			}
+			return Math.Min(happy, citizens);
 		}
 
 		public void StartGoldenAge(GameData gameData, string reason) {

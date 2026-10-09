@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using C7Engine.AI;
 using C7GameData;
 using static C7GameData.PlayerRelationship;
 
@@ -13,6 +14,7 @@ namespace C7Engine {
 
 		public static Tile ChooseTarget(Player player, MapUnit nuke) {
 			GameData gameData = EngineStorage.gameData;
+			AIFogOfWar.Refresh(player);
 			Tile best = null;
 			int bestValue = MinTargetValue - 1;
 			foreach (Player enemy in gameData.players) {
@@ -20,7 +22,8 @@ namespace C7Engine {
 					continue;
 				}
 				foreach (City city in enemy.cities) {
-					if (!nuke.CanNukeTile(city.location)) {
+					// With the AI fog of war, only the cities we know of.
+					if (!nuke.CanNukeTile(city.location) || !AIFogOfWar.KnowsTile(player, city.location)) {
 						continue;
 					}
 					int value = TargetValue(player, city.location);
@@ -48,6 +51,10 @@ namespace C7Engine {
 						return -1;
 					}
 					value += t.cityAtTile.residents.Count / 2;
+				}
+				// With the AI fog of war, the units we can see now.
+				if (!AIFogOfWar.SeesUnitsOn(player, t)) {
+					continue;
 				}
 				foreach (MapUnit unit in t.unitsOnTile) {
 					if (!IsEnemy(player, unit.owner)) {

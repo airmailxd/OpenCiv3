@@ -187,39 +187,39 @@ public class FixEconomyTests {
 	// War weariness
 
 	[Fact]
-	public void WarWearinessFollowsWhoStartedTheCurrentWar() {
-		Player a = MakePlayer("A");
-		Player b = MakePlayer("B");
-		a.EnsureRelationshipExists(b);
+	public void AnAIAttackGivesItsVictimWarHappinessAgainstIt() {
+		Player human = MakePlayer("Humans");
+		Player ai = MakePlayer("Robots");
+		ai.isHuman = false;
+		human.EnsureRelationshipExists(ai);
 
-		// A started an earlier war, which ended in peace.
-		a.DeclareWarOn(b, 1);
-		PlayerRelationship.SignPeaceAfterWar(a, b, gameData);
-
-		// Now B starts one.
-		b.DeclareWarOn(a, 20);
-		a.UpdateWarWeariness(gameData);
-		b.UpdateWarWeariness(gameData);
-
-		Assert.Equal(1, a.warWeariness);
-		Assert.Equal(2, b.warWeariness);
+		ai.DeclareWarOn(human, 1);
+		Assert.Equal(-30, human.WarWearinessPointsAgainst(ai));
+		Assert.Equal(0, ai.WarWearinessPointsAgainst(human));
+		Assert.Equal(-1, Player.WarWearinessLevel(human.WarWearinessPointsAgainst(ai)));
 	}
 
 	[Fact]
-	public void WarsFromBeforeItWasRecordedFallBackToPastDeclarations() {
+	public void AHumanDeclaringWarGivesNoWarHappiness() {
 		Player a = MakePlayer("A");
 		Player b = MakePlayer("B");
 		a.EnsureRelationshipExists(b);
+
 		a.DeclareWarOn(b, 1);
+		Assert.Equal(0, a.WarWearinessPointsAgainst(b));
+		Assert.Equal(0, b.WarWearinessPointsAgainst(a));
+	}
 
-		// As loaded from an older save.
-		b.playerRelationships[a.id].otherStartedCurrentWar = null;
-		a.playerRelationships[b.id].otherStartedCurrentWar = null;
+	[Fact]
+	public void AnAIProvokedBySpiesGivesNoWarHappiness() {
+		Player human = MakePlayer("Humans");
+		Player ai = MakePlayer("Robots");
+		ai.isHuman = false;
+		human.EnsureRelationshipExists(ai);
+		ai.playerRelationships[human.id].espionageIncidents = 1;
 
-		a.UpdateWarWeariness(gameData);
-		b.UpdateWarWeariness(gameData);
-		Assert.Equal(2, a.warWeariness);
-		Assert.Equal(1, b.warWeariness);
+		ai.DeclareWarOn(human, 1);
+		Assert.Equal(0, human.WarWearinessPointsAgainst(ai));
 	}
 
 	// City names

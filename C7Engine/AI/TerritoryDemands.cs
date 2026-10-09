@@ -24,6 +24,16 @@ namespace C7Engine.AI {
 
 		public static async Task MakeDemands(Player us, GameData gameData) {
 			Dictionary<Player, List<MapUnit>> trespassers = FindTrespassers(us, gameData);
+			// With the AI fog of war, only the trespassers we can see.
+			if (AIFogOfWar.Enabled && !us.isHuman) {
+				AIFogOfWar.Refresh(us);
+				foreach (Player them in new List<Player>(trespassers.Keys)) {
+					trespassers[them].RemoveAll(u => !AIFogOfWar.SeesUnitsOn(us, u.location));
+					if (trespassers[them].Count == 0) {
+						trespassers.Remove(them);
+					}
+				}
+			}
 			// A lone unit that left on its own starts the count over if it
 			// comes back.
 			foreach (Player them in gameData.players) {

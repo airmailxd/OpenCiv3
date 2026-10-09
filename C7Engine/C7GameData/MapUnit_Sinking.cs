@@ -39,7 +39,7 @@ public partial class MapUnit {
 		if (!IsUnsafeWater(tile) || IsInUnsafeWater()) {
 			return false;
 		}
-		if (owner.isHuman && (tile == destination || !owner.HasExploredTile(tile))) {
+		if (owner.PathsByExploredMap && (tile == destination || !owner.HasExploredTile(tile))) {
 			return false;
 		}
 		return true;

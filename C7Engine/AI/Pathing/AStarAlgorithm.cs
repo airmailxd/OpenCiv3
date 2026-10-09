@@ -57,7 +57,7 @@ namespace C7Engine.Pathing {
 			// For human water units, whether land strips block movement depends
 			// on whether the destination was explored, so a single search can't
 			// answer for every candidate.
-			if (unit.IsWaterUnit() && unit.owner.isHuman) {
+			if (unit.IsWaterUnit() && unit.owner.PathsByExploredMap) {
 				return base.FindFirstReachable(start, candidates, unit, out path);
 			}
 
@@ -150,11 +150,11 @@ namespace C7Engine.Pathing {
 			}
 
 			Player owner = unit.owner;
-			if (!CanWalkOnto(c, owner, owner.isHuman, unit.IsLandUnit(), unit.IsWaterUnit())) {
+			if (!CanWalkOnto(c, owner, owner.PathsByExploredMap, unit.IsLandUnit(), unit.IsWaterUnit())) {
 				return false;
 			}
 
-			bool applyLandStrip = pathUnit.IsWaterUnit() && (pathUnit.owner.HasExploredTile(c) || !pathUnit.owner.isHuman);
+			bool applyLandStrip = pathUnit.IsWaterUnit() && (pathUnit.owner.HasExploredTile(c) || !pathUnit.owner.PathsByExploredMap);
 			bool adjacentToExpanded = false;
 			foreach (Tile n in c.neighbors.Values) {
 				if (n == Tile.NONE) {
@@ -175,8 +175,8 @@ namespace C7Engine.Pathing {
 		}
 
 		// The terrain part of UnitWalker's edge filter.
-		private static bool CanWalkOnto(Tile neighbor, Player owner, bool isHuman, bool isLandUnit, bool isWaterUnit) {
-			if (isHuman && !owner.HasExploredTile(neighbor)) {
+		private static bool CanWalkOnto(Tile neighbor, Player owner, bool byExploredMap, bool isLandUnit, bool isWaterUnit) {
+			if (byExploredMap && !owner.HasExploredTile(neighbor)) {
 				return true;
 			}
 			if (isLandUnit) {
@@ -194,10 +194,10 @@ namespace C7Engine.Pathing {
 			// TODO: the possibility here is to create a building/improvement/tech effect like "canal"
 			// (much like what the Panama canal is irl) that allows that kind of movement
 			bool applyLandStrip = pathUnit.IsWaterUnit()
-				&& (pathUnit.owner.HasExploredTile(destination) || !pathUnit.owner.isHuman);
+				&& (pathUnit.owner.HasExploredTile(destination) || !pathUnit.owner.PathsByExploredMap);
 
 			Player owner = unit.owner;
-			bool isHuman = owner.isHuman;
+			bool byExploredMap = owner.PathsByExploredMap;
 			bool isLandUnit = unit.IsLandUnit();
 			bool isWaterUnit = unit.IsWaterUnit();
 			float movementPoints = unit.MaxMovementPoints();
@@ -240,7 +240,7 @@ namespace C7Engine.Pathing {
 
 				foreach (KeyValuePair<TileDirection, Tile> pair in currentTile.neighbors) {
 					Tile neighbor = pair.Value;
-					if (neighbor == Tile.NONE || !CanWalkOnto(neighbor, owner, isHuman, isLandUnit, isWaterUnit)) {
+					if (neighbor == Tile.NONE || !CanWalkOnto(neighbor, owner, byExploredMap, isLandUnit, isWaterUnit)) {
 						continue;
 					}
 					if (applyLandStrip && GameMap.IsLandStrip(currentTile, neighbor)) {

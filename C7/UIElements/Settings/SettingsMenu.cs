@@ -111,6 +111,7 @@ public partial class SettingsMenu : Control {
 		AddAudioSettings(column);
 		AddOnlineSettings(column);
 		AddMapGenerationSettings(column);
+		AddDeveloperSettings(column);
 
 		column.AddChild(new Control { CustomMinimumSize = new Vector2(0, 6) });
 		Civ3MenuButton back = new() { Text = "Back to Main Menu", SizeFlagsHorizontal = SizeFlags.ShrinkCenter };
@@ -264,6 +265,29 @@ public partial class SettingsMenu : Control {
 			"When a new map has no room for every civilization to start far enough apart, another is generated. " +
 			"With this on, each map turned down is saved to the Invalid Maps folder, with a note saying why, " +
 			"so it can be loaded and looked at."));
+	}
+
+	// Options for testing the game.
+	private void AddDeveloperSettings(VBoxContainer column) {
+		column.AddChild(MakeHeading("Developer"));
+
+		Civ3Checkbox aiFogOfWar = new() {
+			Text = "AI Fog of War",
+			FontSize = 16,
+			ToggleMode = true,
+			ButtonPressed = DeveloperSettings.AIFogOfWar,
+			SizeFlagsHorizontal = SizeFlags.ShrinkBegin,
+		};
+		aiFogOfWar.Toggled += (bool on) => {
+			PlayClick();
+			DeveloperSettings.AIFogOfWar = on;
+			log.Information("AI fog of war turned {State}", on ? "on" : "off");
+		};
+		column.AddChild(aiFogOfWar);
+		column.AddChild(MakeNote(
+			"For testing the AI. Off, the AI sees the whole map. On, it plans only with what it has explored " +
+			"and the units it can see now, as you must. Takes effect for the next game you start or load; " +
+			"in a network game, the host's setting counts."));
 	}
 
 	private static Civ3HSlider MakeSlider(double min, double max, double step, double value) {

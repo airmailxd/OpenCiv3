@@ -509,14 +509,23 @@ namespace C7GameData {
 		// fights with barbarians, attacking or defending, despite the BIQ
 		// field's name (Difficulty.AttackBonusAgainstBarbarians). Per the
 		// project owner's knowledge of Civ3. Bombardment isn't a fight.
-		// TODO: "the AI has still a 200% bonus against barbarians" (it plays
-		// as at Regent), which we don't give it.
+		//
+		// The AI plays by Regent's rules whatever the difficulty, so "the AI
+		// has still a 200% bonus against barbarians even though the human
+		// player loses its entire bonus on deity"
+		// (https://forums.civfanatics.com/threads/ai-difficulty-level-bonuses.37490/).
+		// Per the project owner, the AI gets it attacking and defending, like
+		// the human's bonus.
+		private const int AIBonusAgainstBarbariansPercent = 200;
+
 		private StrengthBonus? DifficultyBonusAgainst(MapUnit opponent, CombatRole role) {
 			if (role != CombatRole.Attack && role != CombatRole.Defense)
 				return null;
-			if (owner == null || !owner.isHuman || opponent?.owner == null || !opponent.owner.isBarbarians)
+			if (owner == null || owner.isBarbarians || opponent?.owner == null || !opponent.owner.isBarbarians)
 				return null;
-			int percent = EngineStorage.gameData?.gameDifficulty?.AttackBonusAgainstBarbarians ?? 0;
+			int percent = owner.isHuman
+				? EngineStorage.gameData?.gameDifficulty?.AttackBonusAgainstBarbarians ?? 0
+				: AIBonusAgainstBarbariansPercent;
 			if (percent <= 0)
 				return null;
 			return new StrengthBonus("Difficulty level against barbarians", percent / 100.0);

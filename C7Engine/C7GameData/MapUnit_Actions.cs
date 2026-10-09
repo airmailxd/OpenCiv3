@@ -89,6 +89,7 @@ public partial class MapUnit {
 			} else {
 				City city = tile.cityAtTile;
 				Player formerOwner = city.owner;
+				Player.AddWarWearinessForLostCity(formerOwner, owner, city.residents.Count);
 				CityInteractions.CaptureCity(city, owner);
 				// A city that survived being taken may resist its new owner.
 				if (tile.cityAtTile == city && city.owner == owner) {
@@ -556,6 +557,7 @@ public partial class MapUnit {
 	private void CaptureDefencelessUnits(Tile tile) {
 		GameData gameData = EngineStorage.gameData;
 		foreach (MapUnit enemy in tile.unitsOnTile.Where(u => !owner.IsAtPeaceWith(u.owner)).ToList()) {
+			enemy.owner.AddWarWeariness(owner, Player.WarWearinessForLostUnitWithoutDefence);
 			if (owner.isBarbarians) {
 				gameData.RemoveUnit(enemy);
 			} else if (enemy.unitType.isSettler) {
@@ -758,9 +760,6 @@ public partial class MapUnit {
 			if (alive.IsArmy())
 				alive.owner.hasVictoriousArmy = true;
 
-			if (!dead.owner.isBarbarians && !alive.owner.isBarbarians) {
-				dead.owner.AddWarWearinessForLostUnit(diedAttacking: dead == attacker);
-			}
 
 			// A unique unit beating another civ (not barbarians) starts a golden age.
 			if (survivingMember.unitType.startsGoldenAge && !dead.owner.isBarbarians) {
@@ -772,6 +771,9 @@ public partial class MapUnit {
 
 		if (result.DefenderWon())
 			defender.facingDirection = defenderOriginalDirection;
+
+		// War weariness for the attack (see Player.WarWearinessForUnitAttacked).
+		Player.AddWarWearinessForAttack(attacker, defender, attackerDefeated: result == CombatResult.AttackerKilled);
 
 		return result;
 	}

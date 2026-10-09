@@ -14,6 +14,9 @@ public partial class TradingTree : Tree {
 	Dictionary<TreeItem, Tech> techItems = new();
 	TreeItem diplomacyHeader;
 	TreeItem peaceTreaty;
+	TreeItem cityHeader;
+	// The city each city item stands for.
+	Dictionary<TreeItem, City> cityItems = new();
 
 	List<Tech> tradeableTechs;
 	TradeOffer currentOffer;
@@ -21,7 +24,7 @@ public partial class TradingTree : Tree {
 
 	public TradingTree(Theme fontTheme,
 						int playerGold,
-						List<Tech> tradeableTechs,
+						List<Tech> tradeableTechs, List<City> tradeableCities,
 						TradeOffer currentOffer, bool requiresPeaceTreaty) {
 		this.tradeableTechs = tradeableTechs;
 		this.currentOffer = currentOffer;
@@ -69,6 +72,18 @@ public partial class TradingTree : Tree {
 			}
 		}
 
+		if (tradeableCities.Count > 0) {
+			cityHeader = this.CreateItem(root);
+			cityHeader.SetText(0, "Cities");
+			cityHeader.Collapsed = true;
+
+			foreach (City city in tradeableCities) {
+				TreeItem child = this.CreateItem(cityHeader);
+				child.SetText(0, $"{city.name} ({city.residents.Count})");
+				cityItems[child] = city;
+			}
+		}
+
 		RefreshUiForOffer();
 	}
 
@@ -89,6 +104,13 @@ public partial class TradingTree : Tree {
 			}
 			if (ti == diplomacyHeader && other.diplomacyHeader != null) {
 				other.diplomacyHeader.Collapsed = diplomacyHeader.Collapsed;
+			}
+			if (ti == cityHeader && other.cityHeader != null) {
+				other.cityHeader.Collapsed = cityHeader.Collapsed;
+			}
+
+			if (cityItems.TryGetValue(ti, out City itemCity) && !currentOffer.cities.Contains(itemCity)) {
+				currentOffer.cities.Add(itemCity);
 			}
 
 			// Handle techs being clicked on.
@@ -147,6 +169,9 @@ public partial class TradingTree : Tree {
 			if (techHeader != null) {
 				techHeader.Visible = false;
 			}
+			if (cityHeader != null) {
+				cityHeader.Visible = false;
+			}
 		} else {
 			goldHeader.Visible = true;
 			lumpSum.Visible = !currentOffer.gold.HasValue;
@@ -158,6 +183,13 @@ public partial class TradingTree : Tree {
 			HashSet<string> offeredTechs = new(currentOffer.techs.Select(x => x.Name));
 			foreach (var (ti, tech) in techItems) {
 				ti.Visible = !offeredTechs.Contains(tech.Name);
+			}
+
+			if (cityHeader != null) {
+				cityHeader.Visible = true;
+			}
+			foreach (var (ti, city) in cityItems) {
+				ti.Visible = !currentOffer.cities.Contains(city);
 			}
 
 			if (peaceTreaty != null) {

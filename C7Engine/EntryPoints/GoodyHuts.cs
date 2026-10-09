@@ -274,10 +274,13 @@ public static class GoodyHuts {
 		int count = 1 + (hardness >= 0.5 ? 1 : 0) + (hardness >= 0.85 ? 1 : 0);
 		List<Tile> tiles = BarbarianTiles(tile);
 		int spawned = 0;
+		// Advanced barbarians wait for Horseback Riding (see
+		// BarbarianInteractions.AdvancedBarbariansAvailable).
+		bool advancedAllowed = BarbarianInteractions.AdvancedBarbariansAvailable(gameData);
 		for (int i = 0; i < count && tiles.Count > 0; ++i) {
 			Tile at = tiles[GameData.rng.Next(tiles.Count)];
 			tiles.Remove(at);
-			UnitPrototype type = hardness >= 0.85 && i == 0 && info.advancedBarbarian != null ? info.advancedBarbarian : info.basicBarbarian;
+			UnitPrototype type = hardness >= 0.85 && i == 0 && advancedAllowed && info.advancedBarbarian != null ? info.advancedBarbarian : info.basicBarbarian;
 			gameData.SpawnUnit(barbarians, type, at);
 			++spawned;
 		}

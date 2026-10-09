@@ -342,6 +342,10 @@ public partial class Game : Node {
 	}
 
 	private async Task CreateGameAndAssignPlayerController(GameParams options) {
+		// The AI's fog of war is this machine's setting; only a host's
+		// engine (or a single machine's) plays the AI.
+		EngineStorage.aiFogOfWar = DeveloperSettings.AIFogOfWar;
+
 		// Initializes the game data and returns the "human" player
 		if (Global.SaveGame != null) {
 			controller = await CreateGame.createGame(Global.SaveGame, options.GameModeLoader);
