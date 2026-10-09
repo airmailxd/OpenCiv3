@@ -65,7 +65,16 @@ public partial class Util {
 		string tr = null;
 		if ((!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) &&
 			System.IO.Directory.Exists(exactCaseRoot)) {
-			tr = exactCaseRoot;
+			// Compare full paths, so a relative root or one ending in a
+			// separator still lines up with the full path.
+			string root = System.IO.Path.TrimEndingDirectorySeparator(System.IO.Path.GetFullPath(exactCaseRoot));
+			// A path that climbs out of the root (e.g. a scenario's
+			// ../<scenario name>) is searched for from the top of the file
+			// system instead.
+			if (!fullPath.StartsWith(root + System.IO.Path.DirectorySeparatorChar, StringComparison.Ordinal)) {
+				root = System.IO.Path.GetPathRoot(fullPath);
+			}
+			tr = root;
 
 			// We need to update the ignored case extension before doing this
 			// search, in case the ignored case extension previously had
@@ -76,14 +85,14 @@ public partial class Util {
 			//
 			// We also strip any leading slashes, which can show up if the civ3
 			// root doesn't end in a slash.
-			ignoredCaseExtension = fullPath.Substring(exactCaseRoot.Length);
+			ignoredCaseExtension = fullPath.Substring(root.Length);
 			ignoredCaseExtension = ignoredCaseExtension.TrimPrefix("\\").TrimPrefix("/");
 
 			foreach (string step in ignoredCaseExtension.Replace('\\', '/').Split('/')) {
 				string goal = System.IO.Path.Combine(tr, step);
 				string match = null;
 				foreach (string entry in ListDirectory(tr)) {
-					if (entry.Equals(goal, StringComparison.CurrentCultureIgnoreCase)) {
+					if (entry.Equals(goal, StringComparison.OrdinalIgnoreCase)) {
 						match = entry;
 						break;
 					}
@@ -107,7 +116,12 @@ public partial class Util {
 
 	private static string[] ListDirectory(string directory) {
 		if (!directoryListings.TryGetValue(directory, out string[] entries)) {
-			entries = System.IO.Directory.GetFileSystemEntries(directory, "*");
+			try {
+				entries = System.IO.Directory.GetFileSystemEntries(directory, "*");
+			} catch (Exception e) when (e is System.IO.IOException or UnauthorizedAccessException) {
+				// A directory that can't be listed has nothing to find in it.
+				entries = [];
+			}
 			directoryListings[directory] = entries;
 		}
 		return entries;
