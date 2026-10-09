@@ -64,11 +64,34 @@ namespace C7Engine {
 		public static void LoadSettings() {
 			// Settings left next to a read-only install are still read, and
 			// saved to the per-user folder from then on.
-			string path = File.Exists(SettingsPath) ? SettingsPath : SETTINGS_FILE_NAME;
+			string path = File.Exists(SettingsPath) ? SettingsPath
+				: File.Exists(SETTINGS_FILE_NAME) ? SETTINGS_FILE_NAME
+				: null;
+			if (path == null) {
+				// First run: no settings yet, so start from the defaults.
+				settings = new IniData();
+				SaveSettings();
+				return;
+			}
+
 			try {
 				settings = Util.GetFileIniDataParser().ReadFile(path);
-			} catch (ParsingException) {
-				//First run.  The file doesn't exist.  That's okay.  We'll use sensible defaults.
+			} catch (Exception e) when (e is IOException or UnauthorizedAccessException || e is ParsingException { InnerException: IOException or UnauthorizedAccessException }) {
+				// The file is there but can't be read (ini-parser wraps I/O
+				// errors in a ParsingException). Run on the defaults without
+				// overwriting it.
+				Log.ForContext<C7Settings>().Warning(e, "Could not read settings from {Path}; using defaults", path);
+				settings = new IniData();
+			} catch (ParsingException e) {
+				// The file is malformed. Keep it as .bak so nothing the player
+				// set is silently lost, and start again from the defaults.
+				string backup = path + ".bak";
+				Log.ForContext<C7Settings>().Warning(e, "Could not parse settings in {Path}; moving it to {Backup} and using defaults", path, backup);
+				try {
+					File.Move(path, backup, overwrite: true);
+				} catch (Exception moveError) when (moveError is IOException or UnauthorizedAccessException) {
+					Log.ForContext<C7Settings>().Warning(moveError, "Could not move {Path} to {Backup}", path, backup);
+				}
 				settings = new IniData();
 				SaveSettings();
 			}
