@@ -44,7 +44,7 @@ public class BarbarianInteractions {
 			dispersedBy[owner] = count + 1;
 		}
 		foreach ((Player owner, int count) in dispersedBy) {
-			if (owner.isHuman) {
+			if (owner.IsToldNews) {
 				string camps = count == 1 ? "a barbarian encampment" : $"{count} barbarian encampments";
 				new MsgShowMilitaryAdvisorPopup(owner, $"Our borders have taken in {camps}, dispersing them and earning {count * CampDispersalGold} gold!", happy: true).send();
 			}

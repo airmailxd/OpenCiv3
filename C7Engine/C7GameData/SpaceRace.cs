@@ -138,11 +138,10 @@ namespace C7Engine {
 			(int built, int needed) = Progress(gameData, owner);
 			log.Information("{Player} built {Part} in {City} ({Built}/{Needed} spaceship parts)", owner, part, city, built, needed);
 
+			// The builder is told first, so that a spectator watching every
+			// civ hears of it as the builder does (see LanHost.SpectatorNews).
 			NewsEvent news = new();
-			foreach (Player p in gameData.players) {
-				if (!p.isHuman || p.defeated) {
-					continue;
-				}
+			foreach (Player p in BuilderFirst(gameData, owner)) {
 				if (p == owner) {
 					string message = built >= needed
 						? $"Our spaceship is complete! It launches for Alpha Centauri."
@@ -162,15 +161,19 @@ namespace C7Engine {
 			log.Information("{Player} completed {Building} in {City}; the map is revealed to all", city.owner, apollo, city);
 
 			NewsEvent news = new();
-			foreach (Player p in gameData.players) {
-				if (!p.isHuman || p.defeated) {
-					continue;
-				}
+			foreach (Player p in BuilderFirst(gameData, city.owner)) {
 				string who = p == city.owner ? "We have" : $"The {city.owner.civilization.noun} have";
 				new MsgShowScienceAdvisorPopup(p,
 					$"{who} completed the {apollo.name}! The whole world is revealed, and every civilization may now build spaceship parts.",
 					p == city.owner ? MsgShowScienceAdvisorPopup.Mood.Happy : MsgShowScienceAdvisorPopup.Mood.Surprised) { newsEvent = news }.send();
 			}
+		}
+
+		// The players told the space race's news, the builder first: the
+		// humans, and while spectators watch, the computer players too (see
+		// Player.IsToldNews).
+		private static IEnumerable<Player> BuilderFirst(GameData gameData, Player builder) {
+			return gameData.players.Where(p => p.IsToldNews && !p.defeated).OrderBy(p => p == builder ? 0 : 1);
 		}
 
 		public static void RevealMapToAll(GameData gameData) {
@@ -196,13 +199,13 @@ namespace C7Engine {
 			log.Information("{Player}'s spaceship was destroyed by {Destroyer}", owner, destroyer);
 
 			NewsEvent news = new();
-			if (owner.isHuman) {
+			if (owner.IsToldNews) {
 				string message = destroyer != null
 					? $"The {destroyer.civilization.noun} have destroyed our spaceship!"
 					: "With the loss of our capital, our spaceship has been destroyed!";
 				new MsgShowScienceAdvisorPopup(owner, message, MsgShowScienceAdvisorPopup.Mood.Angry) { newsEvent = news }.send();
 			}
-			if (destroyer != null && destroyer.isHuman) {
+			if (destroyer != null && destroyer.IsToldNews) {
 				new MsgShowScienceAdvisorPopup(destroyer, $"We have destroyed the {owner.civilization.adjective} spaceship!",
 					MsgShowScienceAdvisorPopup.Mood.Happy) { newsEvent = news }.send();
 			}

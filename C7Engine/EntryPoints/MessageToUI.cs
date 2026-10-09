@@ -44,9 +44,30 @@ namespace C7Engine {
 			return told != null && player?.id == told;
 		}
 
+		// Whether a spectator watching as this player hears this news: just
+		// what the player would be told in the game. The spectators' own
+		// copies, such as a captured city's headline, are for those watching
+		// every civ, unless they tell the player what it would hear of no
+		// other way.
+		public virtual bool IsToldAsCivTo(Player player) => IsToldTo(player);
+
 		// What a spectator is shown of this news as a line in its list, or
 		// null to show it as a player would see it.
 		public virtual string SpectatorHeadline() => null;
+
+		// The line a spectator watching as the player (null for none) is
+		// shown of this news: the player's own news reads as they're told it,
+		// rather than with whose it is.
+		public string SpectatorHeadline(ID watchedAs) {
+			if (SpectatorHeadline() is not string headline) {
+				return null;
+			}
+			return watchedAs != null && recipient?.id == watchedAs && OwnHeadline() is string own ? own : headline;
+		}
+
+		// This news as the player it's for reads it; null if it reads the
+		// same to everyone.
+		protected virtual string OwnHeadline() => null;
 
 		// The event this news tells of, when several players are told of it
 		// each their own way, such as both sides of a captured city. A
@@ -59,11 +80,13 @@ namespace C7Engine {
 		// A player's own news, which reads as theirs ("We have..."), so a
 		// spectator is told whose it is.
 		protected string Whose(string message) {
-			string text = message?.Replace('\n', ' ').Trim() ?? "";
+			string text = OneLine(message);
 			Civilization civ = recipient?.civilization;
 			string who = civ?.noun ?? civ?.name;
 			return who == null ? text : $"{who}: {text}";
 		}
+
+		protected static string OneLine(string message) => message?.Replace('\n', ' ').Trim() ?? "";
 
 		// The player whose machine a LAN host should deliver this to.
 		[JsonIgnore]
@@ -162,6 +185,12 @@ namespace C7Engine {
 			return forSpectators ? player != null && HearsOfWar(player, aggressor, opponent) : base.IsToldTo(player);
 		}
 
+		// Watching as a civ, a spectator hears of the war as its player
+		// would, which the civ that declared it isn't told.
+		public override bool IsToldAsCivTo(Player player) {
+			return forSpectators && player != aggressor && IsToldTo(player);
+		}
+
 		public override string SpectatorHeadline() {
 			return $"The {aggressor.civilization.noun} declared war on the {opponent.civilization.noun}";
 		}
@@ -210,6 +239,10 @@ namespace C7Engine {
 		public override bool IsToldTo(Player player) {
 			return player != null && (player == city?.owner || player == previousOwner);
 		}
+
+		// The headline is for spectators watching every civ: one watching
+		// either side hears that side's own news of it instead.
+		public override bool IsToldAsCivTo(Player player) => false;
 
 		public override string SpectatorHeadline() {
 			return $"The {city.owner?.civilization.noun} have taken {city.name} from the {previousOwner?.civilization.noun}";
@@ -279,6 +312,8 @@ namespace C7Engine {
 		public override bool IsNews => true;
 
 		public override string SpectatorHeadline() => Whose(message);
+
+		protected override string OwnHeadline() => OneLine(message);
 	}
 
 	public class MsgShowDomesticAdvisorPopup : MessageToUI {
@@ -292,6 +327,8 @@ namespace C7Engine {
 		public override bool IsNews => true;
 
 		public override string SpectatorHeadline() => Whose(message);
+
+		protected override string OwnHeadline() => OneLine(message);
 	}
 
 	// Tells a human player that another civ has completed a great wonder.
@@ -372,6 +409,8 @@ namespace C7Engine {
 		public override bool IsNews => true;
 
 		public override string SpectatorHeadline() => Whose(message);
+
+		protected override string OwnHeadline() => OneLine(message);
 	}
 
 	public class MsgShowTemporaryPopup : MessageToUI {
@@ -604,6 +643,8 @@ namespace C7Engine {
 		public override bool IsNews => true;
 
 		public override string SpectatorHeadline() => Whose(message);
+
+		protected override string OwnHeadline() => OneLine(message);
 	}
 
 	public class MsgVictory : MessageToUI {

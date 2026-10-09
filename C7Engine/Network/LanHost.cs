@@ -289,15 +289,15 @@ public class LanHost : IDisposable {
 	private bool? allowSpectators;
 
 	// The ways spectators may see the game (see SpectatorViewMode), of which
-	// each spectator chooses one. Unless the host says otherwise, they may
-	// see it as the civilizations do, as all of them or one, while hiding
-	// what players can't see, and any way, the whole game included, when
-	// guests see the whole game too. Taking away the way a spectator sees
-	// the game has it see it another way the host allows.
+	// each spectator chooses one and may change at will. Unless the host
+	// says otherwise, they may see it any way: as any civilization, as all
+	// of them, or the whole game, whether or not players are sent only what
+	// they can see. Taking away the way a spectator sees the game has it see
+	// it another way the host allows.
 	public SpectatorViews SpectatorViews {
 		get => spectatorViews is SpectatorViews views && (views & SpectatorViews.Any) != SpectatorViews.None
 			? views & SpectatorViews.Any
-			: hideUnseen ? SpectatorViews.AsCivs : SpectatorViews.Any;
+			: SpectatorViews.Any;
 		set {
 			spectatorViews = value;
 			KeepSpectatorViewsAllowed();
@@ -1047,6 +1047,9 @@ public class LanHost : IDisposable {
 		}
 		log.Information(ban ? "Banning {Name}" : "Removing {Name} from the game", spectator.name);
 		spectatorTokens.Remove(spectator.token);
+		if (spectator.token != null) {
+			spectatorViewsChosen.Remove(spectator.token);
+		}
 		if (ban) {
 			if (spectator.token != null) {
 				bannedTokens.Add(spectator.token);
@@ -1392,7 +1395,13 @@ public class LanHost : IDisposable {
 		spectatorTokens.Remove(guest.token);
 		spectatorTokens.Add(guest.token);
 		if (spectatorTokens.Count > MaxSpectatorTokens) {
+			spectatorViewsChosen.Remove(spectatorTokens[0]);
 			spectatorTokens.RemoveAt(0);
+		}
+		// One coming back watches the way it last chose, unless it asks
+		// for another.
+		if (guest.token != null && spectatorViewsChosen.TryGetValue(guest.token, out SpectatorViewInfo chosen) && IsAllowed(chosen)) {
+			spectator.view = chosen;
 		}
 		if (IsAllowed(guest.spectatorView)) {
 			spectator.view = guest.spectatorView;
@@ -1733,22 +1742,40 @@ public class LanHost : IDisposable {
 	}
 
 	// A spectator sees the game the way it chose from now on, if the host
-	// allows it, and is told how it sees it either way.
+	// allows it, and is told how it sees it either way. The choice is kept
+	// for it to watch the same way if it comes back.
 	private void ChooseSpectatorView(Spectator spectator, SpectatorViewInfo chosen) {
 		if (IsAllowed(chosen) && chosen != spectator.view) {
 			log.Information("{Name} watches {View}", spectator.name, chosen);
-			spectator.view = chosen;
-			spectatorSnapshotPending = true;
+			SwitchView(spectator, chosen);
+			if (spectator.token != null) {
+				spectatorViewsChosen[spectator.token] = chosen;
+			}
 		}
 		SendLobby(spectator);
 	}
+
+	// The way each spectator last chose to watch, by its token.
+	private readonly Dictionary<string, SpectatorViewInfo> spectatorViewsChosen = new();
+
+	// Has the spectator see the game another way straight away: the new
+	// view's whole game is sent with the next snapshot, without waiting
+	// out the spectators' interval between them.
+	private void SwitchView(Spectator spectator, SpectatorViewInfo view) {
+		spectator.view = view;
+		spectatorSnapshotPending = true;
+		if (Started) {
+			spectator.connection.SendWholeSnapshotNext();
+			spectatorViewSwitched = true;
+		}
+	}
+	private bool spectatorViewSwitched;
 
 	// Has each spectator see the game a way the host allows.
 	private void KeepSpectatorViewsAllowed() {
 		foreach (Spectator spectator in spectators) {
 			if (!IsAllowed(spectator.view)) {
-				spectator.view = DefaultSpectatorView();
-				spectatorSnapshotPending = true;
+				SwitchView(spectator, DefaultSpectatorView());
 			}
 		}
 	}
@@ -1798,9 +1825,10 @@ public class LanHost : IDisposable {
 
 	// Whether a spectator watching this way hears the message: what's for
 	// every player, and news (see MessageToUI.IsNews) that the civilization
-	// it watches as is told, or any civilization for one watching them all.
-	// One watching the whole game hears all the news. Questions for a player
-	// to answer, and what only redraws their screens, it never hears.
+	// it watches as is told, just as its player would be (see
+	// MessageToUI.IsToldAsCivTo), or any civilization for one watching them
+	// all. One watching the whole game hears all the news. Questions for a
+	// player to answer, and what only redraws their screens, it never hears.
 	public static bool SpectatorHears(SpectatorViewInfo view, MessageToUI msg, GameData gameData) {
 		if (msg.IsForEveryone) {
 			return true;
@@ -1809,7 +1837,7 @@ public class LanHost : IDisposable {
 			return false;
 		}
 		return view?.mode switch {
-			SpectatorViewMode.OneCiv => gameData?.GetPlayer(view.playerID) is Player civ && msg.IsToldTo(civ),
+			SpectatorViewMode.OneCiv => gameData?.GetPlayer(view.playerID) is Player civ && msg.IsToldAsCivTo(civ),
 			SpectatorViewMode.AllCivs => gameData != null && gameData.players.Any(p => !p.isBarbarians && msg.IsToldTo(p)),
 			_ => true,
 		};
@@ -1903,8 +1931,9 @@ public class LanHost : IDisposable {
 			}
 		}
 
-		if (spectatorSnapshotPending && sinceSpectatorSnapshot.Elapsed >= SpectatorSnapshotInterval) {
+		if (spectatorSnapshotPending && (spectatorViewSwitched || sinceSpectatorSnapshot.Elapsed >= SpectatorSnapshotInterval)) {
 			spectatorSnapshotPending = false;
+			spectatorViewSwitched = false;
 			sinceSpectatorSnapshot.Restart();
 			List<Spectator> watching = spectators.Where(s => !s.connection.IsClosed).ToList();
 			if (watching.Count > 0) {

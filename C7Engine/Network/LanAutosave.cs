@@ -21,8 +21,8 @@ namespace C7Engine.Network;
 // null when the host left it to HideUnseen (see LanHost.AllowSpectators).
 // relayBanScope is what the relay makes the game's ban keys with, which must
 // stay the same for them to stay good. spectatorViews is null when the host
-// left the ways spectators may see the game to HideUnseen (see
-// LanHost.SpectatorViews).
+// left spectators to see the game any way they choose (see
+// LanHost.SpectatorViews), as in games saved before it was the default.
 //
 // The password's verifier is as good as the password for joining this game
 // (see GamePassword), so the file is to be kept as private as a password.

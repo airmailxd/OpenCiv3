@@ -58,7 +58,7 @@ public static class WonderUnits {
 				cb.turnsTowardFreeUnit = 0;
 				log.Information("{Building} in {City} produced a free {Unit}", building.name, city, proto.name);
 				city.AddUnit(proto, gameData);
-				if (player.isHuman) {
+				if (player.IsToldNews) {
 					new MsgShowTemporaryPopup($"{building.name} in {city.name} has produced a free {proto.name}.", city.location, player).send();
 				}
 			}

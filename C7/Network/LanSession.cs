@@ -219,6 +219,15 @@ public static class LanSession {
 		return view == null || view.mode != SpectatorViewMode.OneCiv || view.playerID == player.id;
 	}
 
+	// The player of the civilization a spectator watches as, or null when it
+	// watches more than one.
+	public static ID SpectatorWatchedAs {
+		get {
+			SpectatorViewInfo view = Client?.SpectatorView;
+			return view?.mode == SpectatorViewMode.OneCiv ? view.playerID : null;
+		}
+	}
+
 	// True when this client took several seats, whose players take turns at
 	// this machine as in a hotseat game.
 	public static bool HasSeveralLocalPlayers => Client?.PlayerIDs.Count > 1;

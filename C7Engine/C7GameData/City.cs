@@ -1498,7 +1498,7 @@ namespace C7GameData {
 			if (resisters == 0) {
 				EndResistance();
 				log.Information("Resistance in {City} has ended", this);
-				if (owner.isHuman) {
+				if (owner.IsToldNews) {
 					new MsgShowTemporaryPopup($"The resistance in {name} has been quelled.", location, owner).send();
 				}
 			}

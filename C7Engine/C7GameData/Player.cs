@@ -1368,7 +1368,7 @@ namespace C7GameData {
 				} else {
 					PlayerAI.MaybePickTechToResearch(this, gameData.techs);
 				}
-				if (isHuman) {
+				if (IsToldNews) {
 					new MsgShowTemporaryPopup($"The {library.name} in {libraryCity.name} has given us {string.Join(", ", learned.Select(t => t.Name))}.",
 						libraryCity.location, this).send();
 				}
@@ -1395,7 +1395,7 @@ namespace C7GameData {
 			}
 
 			List<Tech> learned = gameData.techs.Where(t => knownTechs.Contains(t.id) && !before.Contains(t.id)).ToList();
-			if (isHuman && learned.Count > 0 && city != null) {
+			if (IsToldNews && learned.Count > 0 && city != null) {
 				new MsgShowTemporaryPopup($"The {source} in {city.name} has given us {string.Join(", ", learned.Select(t => t.Name))}.",
 					city.location, this).send();
 			}

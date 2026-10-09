@@ -479,7 +479,7 @@ namespace C7GameData {
 			int shieldsAwarded = EngineStorage.gameData.rules.ForestValueInShields;
 			c.AddForestShields(shieldsAwarded);
 
-			if (c.owner.isHuman) {
+			if (c.owner.IsToldNews) {
 				new MsgShowTemporaryPopup($"{shieldsAwarded} shields awarded to {c.name} for clearing forests", c.location, c.owner).send();
 			}
 		}

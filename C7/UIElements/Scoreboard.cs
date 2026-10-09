@@ -145,7 +145,7 @@ public partial class Scoreboard : PanelContainer {
 			viewChoice = new OptionButton {
 				FocusMode = FocusModeEnum.None,
 				TooltipText = "How you see the game: as one civilization or all of them, which shows only what they know, "
-					+ "or the whole game, as the host allows.",
+					+ "or the whole game. Switch whenever you like, unless the host keeps spectators to some of these.",
 			};
 			viewChoice.AddThemeFontSizeOverride("font_size", 14);
 			viewChoice.ItemSelected += index => {
