@@ -200,6 +200,12 @@ namespace C7Engine {
 		private static async Task DoUnitActions(Player player, HashSet<MapUnit> explorers) {
 			// Do things with units. Copy into an array first to avoid collection-was-modified exception
 			foreach (MapUnit unit in player.units.ToArray()) {
+				// A unit may have died or been captured since the list was
+				// copied, such as a defender lost to another unit's attack.
+				if (!IsStillOurs(unit, player)) {
+					continue;
+				}
+
 				// A great leader that has reached one of our cities is used
 				// up there. Until then it heads for a city like a defender.
 				if (UseLeaderInCity(unit, player)) {
@@ -279,6 +285,12 @@ namespace C7Engine {
 					player.tileKnowledge.RecomputeActiveTiles();
 				}
 			}
+		}
+
+		// Whether the unit is still alive and the player's: a unit that dies
+		// leaves its owner's list of units.
+		internal static bool IsStillOurs(MapUnit unit, Player player) {
+			return unit.owner == player && player.units.Contains(unit);
 		}
 
 		// While a player's units are acting, the units that might have an
@@ -860,9 +872,11 @@ namespace C7Engine {
 						EngineStorage.uiControllerID = them.id;
 					}
 					EngineStorage.diplomacyPlayerID = them.id;
+					EngineStorage.diplomacyAIPlayerID = us.id;
 					new MsgShowTradeOffer(us, them, weWant, weGive).send();
 					await EngineStorage.WaitForDiplomacyCompleted(them.id);
 					EngineStorage.diplomacyPlayerID = null;
+					EngineStorage.diplomacyAIPlayerID = null;
 				} else if (them.WouldAcceptDealFrom(gD, us, weGive, weWant)) {
 					us.ExecuteDeal(gD, them, weWant, weGive);
 				}
@@ -927,25 +941,8 @@ namespace C7Engine {
 		// don't have any cities that will riot.
 		private static void FixRemainingUnhappyCities(Player player) {
 			GameData gameData = EngineStorage.gameData;
-			CitizenType defaultCitizenType = gameData.citizenTypes.Find(x => x.IsDefaultCitizen);
 			foreach (City city in player.cities) {
-				// TODO: This throws away existing nationalities, fix that.
-				int numResidents = city.residents.Count;
-				city.RemoveAllCitizens();
-
-				// Nothing the assignments depend on changes while this city's
-				// citizens are reassigned, apart from which tiles are worked,
-				// so the tile yields can be shared between them.
-				CityTileAssignmentAI.AssignmentContext context = new(gameData, city);
-				for (int i = 0; i < numResidents; ++i) {
-					CityResident newResident = new() {
-						citizenType = defaultCitizenType,
-						nationality = city.owner.civilization,
-						city = city
-					};
-					city.AddCitizen(newResident);
-					CityTileAssignmentAI.AssignNewCitizenToTile(gameData, newResident, manageMoods: true, context);
-				}
+				CityInteractions.ReassignAllCitizens(gameData, city);
 			}
 		}
 

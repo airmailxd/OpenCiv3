@@ -170,6 +170,8 @@ public class LanTest : IClassFixture<SaveGameFixture>, IDisposable {
 	public async Task HumansCanTradeWithEachOther() {
 		C7GameData.GameData gameData = await CreateTwoHumanGame();
 		Player[] humans = Humans(gameData);
+		// Only players who have met can trade.
+		humans[0].EnsureRelationshipExists(humans[1]);
 		humans[0].gold = 100;
 		humans[1].gold = 0;
 
@@ -280,6 +282,7 @@ public class LanTest : IClassFixture<SaveGameFixture>, IDisposable {
 		Assert.Equal(fortify, unit.isFortified);
 
 		// The client can't claim the host agreed to a deal: the host is asked.
+		humans[0].EnsureRelationshipExists(humans[1]);
 		humans[0].gold = 50;
 		humans[1].gold = 0;
 		hostUi.Clear();
@@ -653,6 +656,8 @@ public class LanTest : IClassFixture<SaveGameFixture>, IDisposable {
 
 		// Both play at the guest's machine, so one can agree to the other's
 		// deal there, but not to a deal on the host's behalf.
+		humans[2].EnsureRelationshipExists(humans[0]);
+		humans[2].EnsureRelationshipExists(humans[1]);
 		humans[0].gold = 50;
 		humans[1].gold = 50;
 		humans[2].gold = 0;

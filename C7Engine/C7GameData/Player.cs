@@ -706,19 +706,51 @@ namespace C7GameData {
 			return AggregateFlows().Netflows();
 		}
 
+		// How much more than it gives an AI that is winning a war wants for
+		// making peace, for each of the other side's cities.
+		private const int PeaceTributePerCity = 30;
+
+		// How much stronger than the other side an AI must be to think it is
+		// winning the war.
+		private const float WinningStrengthRatio = 1.5f;
+
 		public bool WouldAcceptDealFrom(GameData gameData, Player other, TradeOffer theirOffer, TradeOffer ourOffer) {
 			// TODO: consider any factors like trade reputations here and culture groups
-			// TODO: figure out when peace is acceptable
+			if (TradeOffer.ProblemWithDeal(gameData, other, this, theirOffer, ourOffer) != null) {
+				return false;
+			}
+			// We don't deal with a civ we refuse to talk to, as for a while
+			// after a war starts.
+			if (!WillAcceptCommunicationFrom(other, gameData.turn)) {
+				return false;
+			}
 			int theirGoldValue = theirOffer.GoldEquivalentFor(gameData, this);
 			int ourGoldValue = ourOffer.GoldEquivalentFor(gameData, this);
+
+			// Peace is welcome once we are talking again, unless we are
+			// clearly winning: then the other side has to pay for it. A
+			// placeholder until the AI weighs up wars properly.
+			if ((theirOffer.partOfPeaceTreaty || ourOffer.partOfPeaceTreaty)
+				&& CalculateMilitaryStrength() > WinningStrengthRatio * other.CalculateMilitaryStrength()) {
+				ourGoldValue += PeaceTributePerCity * Math.Max(1, other.cities.Count);
+			}
 			return theirGoldValue >= ourGoldValue;
 		}
 
-		public void ExecuteDeal(GameData gameData, Player other, TradeOffer theirOffer, TradeOffer ourOffer) {
+		// Carries out a deal in which we give ourOffer and the other player
+		// gives theirOffer. Returns false, changing nothing, if the deal can no
+		// longer be made, such as when one side spent the gold it offered
+		// while the other thought it over.
+		public bool ExecuteDeal(GameData gameData, Player other, TradeOffer theirOffer, TradeOffer ourOffer) {
+			string problem = TradeOffer.ProblemWithDeal(gameData, other, this, theirOffer, ourOffer);
+			if (problem != null) {
+				log.Warning("Not executing a trade between {Player} and {Other}: {Problem}", this, other, problem);
+				return false;
+			}
 			log.Information("Executing trade between {Player} and {Other}", this, other);
 			log.Information("  {Player} gives {Offer}, worth {Gold} gold", this, ourOffer.ToString(), ourOffer.GoldEquivalentFor(gameData, other));
 			log.Information("  {Other} gives {Offer}, worth {Gold} gold)", other, theirOffer.ToString(), theirOffer.GoldEquivalentFor(gameData, this));
-			if (theirOffer.partOfPeaceTreaty) {
+			if (theirOffer.partOfPeaceTreaty || ourOffer.partOfPeaceTreaty) {
 				SignPeaceAfterWar(this, other, gameData);
 			}
 
@@ -733,6 +765,7 @@ namespace C7GameData {
 
 			other.CompleteResearchAndBeginNew(gameData, ourOffer.techs);
 			this.CompleteResearchAndBeginNew(gameData, theirOffer.techs);
+			return true;
 		}
 
 		// The beakers all our cities produce each turn.

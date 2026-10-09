@@ -71,7 +71,21 @@ function terraforms.ai_score.railroad(context)
 end
 
 function terraforms.ai_score.clear_forest(context)
-  if context.tile.hasHadForestCleared then
+  local tile = context.tile
+  if tile.hasHadForestCleared then
+    return 0
+  end
+
+  -- Clearing trades the forest's shields for the food of the land under it,
+  -- which is only worth it when that land gives more food and the city
+  -- working the area is short of it. Otherwise the forest stays.
+  local forest = tile.overlayTerrainType
+  local cleared = tile.baseTerrainType
+  if cleared.baseFoodProduction <= forest.baseFoodProduction then
+    return 0
+  end
+  local city = tile.owningCity
+  if city == nil or city:FoodGrowthPerTurn() > 0 then
     return 0
   end
 

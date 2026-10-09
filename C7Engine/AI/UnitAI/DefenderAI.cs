@@ -29,7 +29,10 @@ namespace C7Engine.AI.UnitAI {
 
 			City cityToDefend = FindAtRiskCityToDefend(unit, player, minDefenders);
 			if (cityToDefend == null) {
-				return null;
+				// With minDefenders at int.MaxValue the caller wants a plan
+				// whatever happens; with no city to go to (such as a civ that
+				// has lost them all), the unit defends where it is.
+				return minDefenders == int.MaxValue ? MakeAiDataForDefendInPlace(unit, player) : null;
 			}
 
 			DefenderAIData ai = new DefenderAIData();
@@ -185,10 +188,11 @@ namespace C7Engine.AI.UnitAI {
 		 *
 		 * This is not a brilliant method, with many flaws such as whether the
 		 * city needs more defenders, or if the units present are defenders.
+		 * Returns null if there is none, as when the player has no cities.
 		 */
 		private static City FindAtRiskCityToDefend(MapUnit unit, Player player, int minDefenders) {
 			if (player.cities.Count == 0) {
-				return City.NONE;
+				return null;
 			}
 
 			CityDefenseSnapshot snap = GetSnapshot(unit, player);

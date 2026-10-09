@@ -26,8 +26,11 @@ namespace C7Engine {
 		public static bool uiFollowsActivePlayer = true;
 
 		// The human player an AI is waiting on to answer a trade offer, if any.
-		// They may negotiate even though it isn't their turn.
+		// They may answer it even though it isn't their turn.
 		public static ID diplomacyPlayerID;
+
+		// The AI waiting on diplomacyPlayerID's answer.
+		internal static ID diplomacyAIPlayerID;
 
 		// Whether a human player is there to be asked something. A LAN host
 		// answers for its guests' seats, which may be empty; otherwise every
@@ -42,8 +45,14 @@ namespace C7Engine {
 		internal static bool? territoryDemandAnswer;
 
 		// The sender of the message being processed, so the messages it causes
-		// go back to them.
-		internal static ID processingSenderID;
+		// go back to them. It flows with the handling of the message across
+		// its awaits, so a handler that waits (for an animation, say) still
+		// answers its own sender, and messages handled meanwhile answer theirs.
+		internal static ID processingSenderID {
+			get => processingSender.Value;
+			set => processingSender.Value = value;
+		}
+		private static readonly System.Threading.AsyncLocal<ID> processingSender = new();
 
 		// A LAN client sends messages to the host instead of its own engine, and
 		// a LAN host delivers messages to the machine of the player they are
@@ -51,8 +60,8 @@ namespace C7Engine {
 		public static Action<MessageToEngine> remoteEngine;
 		public static Action<MessageToUI> uiMessageRouter;
 
-		// Counts the messages the engine has processed, so a LAN host can tell
-		// when the game has changed.
+		// Counts the messages the engine has finished processing (or turned
+		// down), so a LAN host can tell when the game has changed.
 		public static long processedMessageCount { get; private set; }
 
 		internal static bool animationsEnabled = false;
@@ -67,24 +76,99 @@ namespace C7Engine {
 		internal static readonly Queue<AnimationMessage> animationMessages = new();
 
 		internal static readonly Dictionary<Guid, TaskCompletionSource<bool>> pendingAnimations = new();
-		static readonly Dictionary<Type, TaskCompletionSource<MessageToEngine>> pendingEngineWaiters = new();
+		static readonly Dictionary<Type, List<TaskCompletionSource<MessageToEngine>>> pendingEngineWaiters = new();
 
+		// A message whose handling has started but not yet finished, such as
+		// a unit's move waiting for its animation, or the end of a turn
+		// waiting for the AIs to play.
+		private sealed class RunningMessage {
+			public MessageToEngine msg;
+			public Task task;
+			// Whether the next message waits for this one to finish. Answers
+			// to an AI handled while it waits don't hold anything up.
+			public bool holdsQueue;
+		}
+		private static readonly List<RunningMessage> runningMessages = new();
+
+		// Handles the next message to the engine, if it may start now.
+		//
+		// The messages are handled one at a time, in order: the next doesn't
+		// start until the one before has finished, even if that one waits
+		// for animations or for the AIs to play. Some messages don't have to
+		// wait: answers to an AI that is waiting on them (it couldn't go on
+		// without them), settings of this machine, and messages the sender
+		// may not send now, which are turned down at once as they always were.
 		public static void ProcessNextMessageToEngine() {
-			if (pendingMessages.Count > 0) {
-				var msg = pendingMessages.Dequeue();
-				processingSenderID = msg.playerID;
-				bool processed;
-				try {
-					processed = msg.process();
-				} finally {
-					processingSenderID = null;
-					++processedMessageCount;
-				}
+			FinishCompletedMessages();
+			if (pendingMessages.Count == 0) {
+				return;
+			}
 
-				var type = msg.GetType();
-				if (processed && pendingEngineWaiters.TryGetValue(type, out var tcs)) {
+			bool busy = runningMessages.Exists(r => r.holdsQueue);
+			MessageToEngine msg = busy ? TakeFirstPending(m => m.MayRunWhileBusy()) : pendingMessages.Dequeue();
+			if (msg == null) {
+				return;
+			}
+
+			Task task;
+			processingSenderID = msg.playerID;
+			try {
+				task = msg.Start();
+			} catch (Exception e) {
+				ReportUnhandledException(e, msg.GetType().Name);
+				task = null;
+			} finally {
+				processingSenderID = null;
+			}
+
+			if (task == null) {
+				// Turned down, or failed.
+				++processedMessageCount;
+				return;
+			}
+			runningMessages.Add(new RunningMessage { msg = msg, task = task, holdsQueue = !busy });
+			FinishCompletedMessages();
+		}
+
+		// Removes and returns the first waiting message that matches, keeping
+		// the others in order.
+		private static MessageToEngine TakeFirstPending(Func<MessageToEngine, bool> match) {
+			MessageToEngine found = null;
+			int count = pendingMessages.Count;
+			for (int i = 0; i < count; ++i) {
+				MessageToEngine m = pendingMessages.Dequeue();
+				if (found == null && match(m)) {
+					found = m;
+				} else {
+					pendingMessages.Enqueue(m);
+				}
+			}
+			return found;
+		}
+
+		// Counts the messages that have finished, reports any that failed and
+		// wakes whoever waits for them.
+		private static void FinishCompletedMessages() {
+			for (int i = 0; i < runningMessages.Count;) {
+				RunningMessage running = runningMessages[i];
+				if (!running.task.IsCompleted) {
+					++i;
+					continue;
+				}
+				runningMessages.RemoveAt(i);
+				++processedMessageCount;
+				if (running.task.IsFaulted) {
+					ReportUnhandledException(running.task.Exception.GetBaseException(), running.msg.GetType().Name);
+				} else if (!running.task.IsCanceled) {
+					NotifyEngineWaiters(running.msg);
+				}
+			}
+		}
+
+		private static void NotifyEngineWaiters(MessageToEngine msg) {
+			if (pendingEngineWaiters.Remove(msg.GetType(), out var waiters)) {
+				foreach (TaskCompletionSource<MessageToEngine> tcs in waiters) {
 					tcs.TrySetResult(msg);
-					pendingEngineWaiters.Remove(type);
 				}
 			}
 		}
@@ -135,6 +219,7 @@ namespace C7Engine {
 			uiFollowsActivePlayer = true;
 			playerReachable = null;
 			diplomacyPlayerID = null;
+			diplomacyAIPlayerID = null;
 			pendingDeal = null;
 			territoryDemandAnswer = null;
 		}
@@ -149,11 +234,15 @@ namespace C7Engine {
 			animationMessages.Clear();
 			pendingAnimations.Clear();
 			pendingEngineWaiters.Clear();
+			runningMessages.Clear();
 			processingSenderID = null;
 			diplomacyPlayerID = null;
+			diplomacyAIPlayerID = null;
 			pendingDeal = null;
 			territoryDemandAnswer = null;
+			TurnHandling.ResetForNewGame();
 			UnitInteractions.ResetForNewGame();
+			CityInteractions.ResetForNewGame();
 			// The tile change log would otherwise keep the previous game alive.
 			TileChangeJournal.Reset();
 		}
@@ -222,11 +311,17 @@ namespace C7Engine {
 			return tcs.Task;
 		}
 
-		public static Task<T> WaitForMessageToEngine<T>() where T : MessageToEngine {
+		// Waits for the engine to finish processing the next message of the
+		// given type. Several may wait for the same type; they all get it.
+		public static async Task<T> WaitForMessageToEngine<T>() where T : MessageToEngine {
 			var tcs = new TaskCompletionSource<MessageToEngine>(TaskCreationOptions.RunContinuationsAsynchronously);
-			pendingEngineWaiters[typeof(T)] = tcs;
+			if (!pendingEngineWaiters.TryGetValue(typeof(T), out var waiters)) {
+				waiters = new();
+				pendingEngineWaiters[typeof(T)] = waiters;
+			}
+			waiters.Add(tcs);
 
-			return tcs.Task.ContinueWith(t => (T)t.Result);
+			return (T)await tcs.Task;
 		}
 
 		public static bool IsPlayerReachable(ID player) {
@@ -248,6 +343,8 @@ namespace C7Engine {
 
 		public static void InitializeGameDataForTests(GameData gD) {
 			gameData = gD;
+			// A turn loop a previous test left waiting won't resume.
+			TurnHandling.ResetForNewGame();
 		}
 	}
 }

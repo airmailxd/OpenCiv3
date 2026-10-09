@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json.Serialization;
+using System.Threading.Tasks;
 using C7Engine.AI;
 using Serilog;
 
@@ -32,28 +33,68 @@ namespace C7Engine {
 			EngineStorage.SendToEngine(this);
 		}
 
-		// Returns false if the sender may not send this message now.
+		// Returns false if the sender may not send this message now. Handling
+		// that waits (for an animation, say) goes on after this returns, and
+		// any exception it throws is reported to ReportUnhandledException.
 		public bool process() {
-			if (!IsLocal && !IsAllowed()) {
-				log.Warning("Ignoring {Message} from {Player}, who may not send it now", GetType().Name, playerID);
+			Task handling = Start();
+			if (handling == null) {
 				return false;
 			}
-			ProcessAllowed();
+			EngineStorage.ObserveTask(handling, GetType().Name);
 			return true;
 		}
 
-		protected abstract void ProcessAllowed();
+		// Starts handling the message, returning the task of handling it, or
+		// null if the sender may not send it now.
+		internal Task Start() {
+			if (!IsLocal && !IsAllowed()) {
+				log.Warning("Ignoring {Message} from {Player}, who may not send it now", GetType().Name, playerID);
+				return null;
+			}
+			return ProcessAllowedAsync();
+		}
+
+		// Handles the message. Messages whose handling waits, for animations
+		// or for other players, override ProcessAllowedAsync instead, so the
+		// engine knows when they are done.
+		protected virtual void ProcessAllowed() { }
+
+		protected virtual Task ProcessAllowedAsync() {
+			ProcessAllowed();
+			return Task.CompletedTask;
+		}
 
 		// Called on a LAN host for messages from clients, to drop anything
 		// only players at the same machine may claim. playsAtSendersMachine
 		// says whether a player is one of them.
 		public virtual void DistrustRemoteSender(Func<ID, bool> playsAtSendersMachine) { }
 
-		// Players may act on their own turn, and answer an AI that is waiting
-		// for them to respond to a trade offer.
+		// Players may act on their own turn, until they end it, and answer an
+		// AI that is waiting for them to respond to it.
 		protected virtual bool IsAllowed() {
 			return Sender != null
-				&& (TurnHandling.IsPlayersTurn(EngineStorage.gameData, playerID) || playerID == EngineStorage.diplomacyPlayerID);
+				&& (TurnHandling.IsPlayersTurn(EngineStorage.gameData, playerID) || AnswersWaitingAI());
+		}
+
+		// Whether the message is the sender's answer to an AI that, during
+		// its turn, asked them something and waits for the answer: closing
+		// the diplomacy screen, answering a demand, or accepting the AI's
+		// offer. Nothing else is allowed out of turn.
+		protected bool AnswersWaitingAI() {
+			return EngineStorage.diplomacyPlayerID != null && playerID == EngineStorage.diplomacyPlayerID
+				&& IsDiplomacyAnswer();
+		}
+
+		// Whether this kind of message can answer an AI waiting on its sender.
+		protected virtual bool IsDiplomacyAnswer() => false;
+
+		// Whether the engine may handle this message while an earlier one is
+		// still being handled (see EngineStorage.ProcessNextMessageToEngine):
+		// a setting of this machine, an answer the earlier message is waiting
+		// for, or a message to turn down anyway.
+		internal bool MayRunWhileBusy() {
+			return IsLocal || AnswersWaitingAI() || !IsAllowed();
 		}
 
 		// The sender's unit with the given ID, or null if they have no such unit.
@@ -159,15 +200,11 @@ namespace C7Engine {
 			this.dir = dir;
 		}
 
-		protected override async void ProcessAllowed() {
-			try {
-				MapUnit unit = SendersUnit(unitID);
-				if (unit == null) return;
+		protected override async Task ProcessAllowedAsync() {
+			MapUnit unit = SendersUnit(unitID);
+			if (unit == null) return;
 
-				await unit.Move(dir, true);
-			} catch (Exception e) {
-				EngineStorage.ReportUnhandledException(e, GetType().Name);
-			}
+			await unit.Move(dir, true);
 		}
 	}
 
@@ -180,21 +217,17 @@ namespace C7Engine {
 			this.path = path;
 		}
 
-		protected override async void ProcessAllowed() {
-			try {
-				MapUnit unit = SendersUnit(unitID);
-				if (unit == null || path == null) return;
-				// The path may come from another machine: every step has to be to
-				// a neighboring tile on the map.
-				if (!unit.IsFollowablePath(path)) {
-					Log.Warning("Ignoring a path for {Unit} that leaves the map or skips tiles", unit);
-					return;
-				}
-
-				await unit.SetUnitPath(path);
-			} catch (Exception e) {
-				EngineStorage.ReportUnhandledException(e, GetType().Name);
+		protected override async Task ProcessAllowedAsync() {
+			MapUnit unit = SendersUnit(unitID);
+			if (unit == null || path == null) return;
+			// The path may come from another machine: every step has to be to
+			// a neighboring tile on the map.
+			if (!unit.IsFollowablePath(path)) {
+				Log.Warning("Ignoring a path for {Unit} that leaves the map or skips tiles", unit);
+				return;
 			}
+
+			await unit.SetUnitPath(path);
 		}
 	}
 
@@ -207,15 +240,11 @@ namespace C7Engine {
 			this.tile = tile;
 		}
 
-		protected override async void ProcessAllowed() {
-			try {
-				MapUnit unit = SendersUnit(unitID);
-				if (unit == null || tile == null || tile == Tile.NONE) return;
+		protected override async Task ProcessAllowedAsync() {
+			MapUnit unit = SendersUnit(unitID);
+			if (unit == null || tile == null || tile == Tile.NONE) return;
 
-				await unit.Bombard(tile);
-			} catch (Exception e) {
-				EngineStorage.ReportUnhandledException(e, GetType().Name);
-			}
+			await unit.Bombard(tile);
 		}
 	}
 
@@ -233,8 +262,11 @@ namespace C7Engine {
 			if (unit == null) return;
 
 			if (this.transportUnitId != null) {
+				// The transport has to be right here, and boarding it takes a
+				// unit that can still move.
 				MapUnit transportUnit = EngineStorage.gameData.GetUnit(transportUnitId);
-				if (transportUnit != null)
+				if (transportUnit != null && transportUnit != unit && transportUnit.location == unit.location
+					&& !unit.IsLoaded() && unit.movementPoints.canMove)
 					unit.BoardTransport(transportUnit);
 			} else
 				unit.LoadOntoTransportHere();
@@ -282,35 +314,31 @@ namespace C7Engine {
 			this.command = command;
 		}
 
-		protected override async void ProcessAllowed() {
-			try {
-				MapUnit unit = SendersUnit(unitID);
-				if (unit == null) return;
+		protected override async Task ProcessAllowedAsync() {
+			MapUnit unit = SendersUnit(unitID);
+			if (unit == null) return;
 
-				switch (command) {
-					case Command.SkipTurn:
-						unit.SkipTurn();
-						break;
-					case Command.Disband:
-						await unit.Disband();
-						break;
-					case Command.Explore:
-						unit.Explore();
-						break;
-					case Command.Automate:
-						unit.Automate();
-						break;
-					case Command.FormArmy:
-						MapUnit army = unit.FormArmy();
-						if (army != null && army.owner.isHuman)
-							new MsgUnitMoved(army).send();
-						break;
-					case Command.HurryProduction:
-						unit.HurryProductionAsLeader();
-						break;
-				}
-			} catch (Exception e) {
-				EngineStorage.ReportUnhandledException(e, GetType().Name);
+			switch (command) {
+				case Command.SkipTurn:
+					unit.SkipTurn();
+					break;
+				case Command.Disband:
+					await unit.Disband();
+					break;
+				case Command.Explore:
+					unit.Explore();
+					break;
+				case Command.Automate:
+					unit.Automate();
+					break;
+				case Command.FormArmy:
+					MapUnit army = unit.FormArmy();
+					if (army != null && army.owner.isHuman)
+						new MsgUnitMoved(army).send();
+					break;
+				case Command.HurryProduction:
+					unit.HurryProductionAsLeader();
+					break;
 			}
 		}
 	}
@@ -397,8 +425,10 @@ namespace C7Engine {
 
 		protected override void ProcessAllowed() {
 			MapUnit unit = SendersUnit(unitID);
-			if (action != null)
-				unit?.PerformTerraformAction(action);
+			// Starting a job takes the rest of the unit's moves, so a unit
+			// that has none left can't.
+			if (action != null && unit != null && unit.movementPoints.canMove)
+				unit.PerformTerraformAction(action);
 		}
 	}
 
@@ -509,7 +539,7 @@ namespace C7Engine {
 		}
 
 		protected override void ProcessAllowed() {
-			if (!IsSendersCity(city)) return;
+			if (!IsSendersCity(city) || !CityInteractions.MayAbandon(Sender, city, EngineStorage.gameData)) return;
 
 			CityInteractions.DestroyCity(city);
 		}
@@ -622,7 +652,9 @@ namespace C7Engine {
 					LessLuxury(player);
 					break;
 				default:
-					throw new ArgumentOutOfRangeException();
+					// The choice may come from another machine.
+					Log.Warning("Ignoring an unknown slider change {Choice}", policyChoice);
+					return;
 			}
 
 			// Update the ui to reflect our changes.
@@ -697,50 +729,48 @@ namespace C7Engine {
 		// once that turn is over is ignored, rather than ending the next.
 		public int? turn;
 
-		// Only the player whose turn it is can end it.
+		// Only the player whose turn it is can end it, once. While the other
+		// players take their turns it is nobody's to end.
 		protected override bool IsAllowed() {
 			return Sender != null && TurnHandling.IsPlayersTurn(EngineStorage.gameData, playerID)
+				&& !TurnHandling.TurnInProgress
 				&& (turn == null || turn == EngineStorage.gameData.turn);
 		}
 
-		protected override async void ProcessAllowed() {
-			try {
-				Player controller = Sender;
+		protected override async Task ProcessAllowedAsync() {
+			Player controller = Sender;
 
-				TurnHandling.OnEndTurn(controller);
+			TurnHandling.OnEndTurn(controller);
 
-				// Reorder the unit list so that non-busy units will be selected
-				// first.
-				controller.units.Sort((x, y) => x.IsBusy().CompareTo(y.IsBusy()));
+			// Reorder the unit list so that non-busy units will be selected
+			// first.
+			controller.units.Sort((x, y) => x.IsBusy().CompareTo(y.IsBusy()));
 
-				controller.hasPlayedThisTurn = true;
-				GameData gameData = EngineStorage.gameData;
+			controller.hasPlayedThisTurn = true;
+			GameData gameData = EngineStorage.gameData;
 
-				// A deal left unanswered by the end of the turn is refused.
-				// With simultaneous turns, others' deals can wait for them.
-				MsgProposeDeal deal = EngineStorage.pendingDeal;
-				if (deal != null && (!gameData.simultaneousTurns || deal.Proposer == controller || deal.opponent == controller)) {
-					EngineStorage.pendingDeal = null;
-					new MsgDealResult(deal.Proposer, deal.opponent, false).send();
-				}
-
-				// With simultaneous turns, the round goes on once the last
-				// human has finished.
-				if (gameData.simultaneousTurns) {
-					List<Player> stillToMove = TurnHandling.PlayersToMove(gameData);
-					if (stillToMove.Count > 0) {
-						EngineStorage.activePlayerID = stillToMove[0].id;
-						return;
-					}
-				}
-
-				// What happens during the other players' turns isn't a reply to
-				// this player.
-				EngineStorage.processingSenderID = null;
-				await TurnHandling.AdvanceTurn();
-			} catch (Exception e) {
-				EngineStorage.ReportUnhandledException(e, GetType().Name);
+			// A deal left unanswered by the end of the turn is refused.
+			// With simultaneous turns, others' deals can wait for them.
+			MsgProposeDeal deal = EngineStorage.pendingDeal;
+			if (deal != null && (!gameData.simultaneousTurns || deal.Proposer == controller || deal.opponent == controller)) {
+				EngineStorage.pendingDeal = null;
+				new MsgDealResult(deal.Proposer, deal.opponent, false).send();
 			}
+
+			// With simultaneous turns, the round goes on once the last
+			// human has finished.
+			if (gameData.simultaneousTurns) {
+				List<Player> stillToMove = TurnHandling.PlayersToMove(gameData);
+				if (stillToMove.Count > 0) {
+					EngineStorage.activePlayerID = stillToMove[0].id;
+					return;
+				}
+			}
+
+			// What happens during the other players' turns isn't a reply to
+			// this player.
+			EngineStorage.processingSenderID = null;
+			await TurnHandling.AdvanceTurn();
 		}
 	}
 
@@ -750,14 +780,10 @@ namespace C7Engine {
 			this.unit = unit;
 		}
 
-		protected override async void ProcessAllowed() {
-			try {
-				if (unit == null || unit.owner != Sender) return;
+		protected override async Task ProcessAllowedAsync() {
+			if (unit == null || unit.owner != Sender) return;
 
-				await unit.PerformBusyAction();
-			} catch (Exception e) {
-				EngineStorage.ReportUnhandledException(e, GetType().Name);
-			}
+			await unit.PerformBusyAction();
 		}
 	}
 
@@ -822,16 +848,12 @@ namespace C7Engine {
 			this.name = name;
 		}
 
-		protected override async void ProcessAllowed() {
-			try {
-				if (unit == null || unit.owner != Sender || string.IsNullOrWhiteSpace(name)) return;
+		protected override async Task ProcessAllowedAsync() {
+			if (unit == null || unit.owner != Sender || string.IsNullOrWhiteSpace(name)) return;
 
-				City? city = await unit.BuildCity(name);
-				if (city != null) {
-					new MsgCityCreated(city).send();
-				}
-			} catch (Exception e) {
-				EngineStorage.ReportUnhandledException(e, GetType().Name);
+			City? city = await unit.BuildCity(name);
+			if (city != null) {
+				new MsgCityCreated(city).send();
 			}
 		}
 	}
@@ -844,9 +866,20 @@ namespace C7Engine {
 		}
 
 		protected override void ProcessAllowed() {
-			if (opponent == null || opponent == Sender) return;
+			GameData gameData = EngineStorage.gameData;
+			Player us = Sender;
+			// War is declared on a civ we've met, are at peace with and
+			// aren't allied to. Barbarians are always at war with everyone.
+			if (opponent == null || opponent == us || gameData.GetPlayer(opponent.id) != opponent
+				|| opponent.isBarbarians || opponent.defeated
+				|| !PlayerRelationship.TryGetRelationship(us, opponent, out _)
+				|| PlayerRelationship.AtWar(us, opponent) || gameData.AreInLockedPeace(us, opponent)) {
+				Log.Warning("{Player} can't declare war on {Opponent}", us, opponent);
+				return;
+			}
 
-			Sender.DeclareWarOn(opponent, EngineStorage.gameData.turn);
+			us.DeclareWarOn(opponent, gameData.turn);
+			MsgWarDeclaration.Announce(us, opponent);
 		}
 	}
 
@@ -867,14 +900,27 @@ namespace C7Engine {
 			this.senderWants = senderWants;
 		}
 
+		// Accepting an offer an AI made during its turn is done by proposing
+		// it back to that AI.
+		protected override bool IsDiplomacyAnswer() {
+			return opponent != null && opponent.id == EngineStorage.diplomacyAIPlayerID;
+		}
+
 		protected override void ProcessAllowed() {
 			GameData gD = EngineStorage.gameData;
 			Player proposer = Sender;
 			if (opponent == null || opponent == proposer || senderGives == null || senderWants == null) return;
 
+			string problem = TradeOffer.ProblemWithDeal(gD, proposer, opponent, senderGives, senderWants);
+			if (problem != null) {
+				Log.Warning("Turning down a deal {Player} proposed to {Opponent}: {Problem}", proposer, opponent, problem);
+				new MsgDealResult(proposer, opponent, false).send();
+				return;
+			}
+
 			if (opponent.isHuman && opponentAgreed) {
-				opponent.ExecuteDeal(gD, proposer, senderGives, senderWants);
-				new MsgDealResult(proposer, opponent, true).send();
+				bool done = opponent.ExecuteDeal(gD, proposer, senderGives, senderWants);
+				new MsgDealResult(proposer, opponent, done).send();
 				return;
 			}
 			if (opponent.isHuman && !EngineStorage.IsPlayerReachable(opponent.id)) {
@@ -895,10 +941,8 @@ namespace C7Engine {
 				return;
 			}
 
-			bool accepted = opponent.WouldAcceptDealFrom(gD, proposer, senderGives, senderWants);
-			if (accepted) {
-				opponent.ExecuteDeal(gD, proposer, senderGives, senderWants);
-			}
+			bool accepted = opponent.WouldAcceptDealFrom(gD, proposer, senderGives, senderWants)
+				&& opponent.ExecuteDeal(gD, proposer, senderGives, senderWants);
 			new MsgDealResult(proposer, opponent, accepted).send();
 		}
 
@@ -930,10 +974,10 @@ namespace C7Engine {
 			MsgProposeDeal deal = EngineStorage.pendingDeal;
 			EngineStorage.pendingDeal = null;
 
-			if (accept) {
-				Sender.ExecuteDeal(EngineStorage.gameData, deal.Proposer, deal.senderGives, deal.senderWants);
-			}
-			new MsgDealResult(deal.Proposer, Sender, accept).send();
+			// The deal is checked again: things may have changed while the
+			// sender thought it over.
+			bool accepted = accept && Sender.ExecuteDeal(EngineStorage.gameData, deal.Proposer, deal.senderGives, deal.senderWants);
+			new MsgDealResult(deal.Proposer, Sender, accepted).send();
 		}
 	}
 
@@ -949,9 +993,10 @@ namespace C7Engine {
 		// Only the human the AI is waiting on may answer, whoever's turn it
 		// was last.
 		protected override bool IsAllowed() {
-			return Sender != null && EngineStorage.diplomacyPlayerID != null
-				&& playerID == EngineStorage.diplomacyPlayerID;
+			return Sender != null && AnswersWaitingAI();
 		}
+
+		protected override bool IsDiplomacyAnswer() => true;
 
 		protected override void ProcessAllowed() {
 			EngineStorage.territoryDemandAnswer = withdraw;
@@ -969,6 +1014,11 @@ namespace C7Engine {
 
 		protected override void ProcessAllowed() {
 			if (opponent == null || opponent == Sender) return;
+			// Only a civ we've met and that will talk to us hears the demand.
+			if (!PlayerRelationship.TryGetRelationship(Sender, opponent, out _)
+				|| (!opponent.isHuman && !opponent.WillAcceptCommunicationFrom(Sender, EngineStorage.gameData.turn))) {
+				return;
+			}
 
 			bool? withdrew = TerritoryDemands.DemandFromHuman(Sender, opponent, EngineStorage.gameData);
 			if (withdrew.HasValue) {
@@ -1015,10 +1065,12 @@ namespace C7Engine {
 		// the talks; the active player may still be the last human to play.
 		protected override bool IsAllowed() {
 			if (EngineStorage.diplomacyPlayerID != null) {
-				return Sender != null && playerID == EngineStorage.diplomacyPlayerID;
+				return Sender != null && AnswersWaitingAI();
 			}
 			return base.IsAllowed();
 		}
+
+		protected override bool IsDiplomacyAnswer() => true;
 
 		protected override void ProcessAllowed() { }
 	}

@@ -23,7 +23,7 @@ namespace C7Engine {
 			// game. Copied, in case finishing a job changes it.
 			foreach (MapUnit busyWorker in player.units.ToArray())
 				if (busyWorker.WorkerJob != null)
-					EngineStorage.ObserveTask(busyWorker.PerformEndOfTurnAction(), nameof(MapUnit.PerformEndOfTurnAction));
+					busyWorker.PerformEndOfTurnAction();
 
 			// Ships left out in water they aren't built for may sink.
 			MapUnit.SinkShipsInUnsafeWater(gameData, player);
@@ -40,8 +40,41 @@ namespace C7Engine {
 			}
 		}
 
+		// The turn loop that is running, if any (see AdvanceTurn).
+		private static object runningTurnLoop;
+
+		// Whether the other players are taking their turns, so the turn loop
+		// mustn't be started again.
+		public static bool TurnInProgress => runningTurnLoop != null;
+
+		// Forgets a turn loop left waiting by the previous game: it never
+		// resumes (see EngineStorage.ResetForNewGame).
+		internal static void ResetForNewGame() {
+			runningTurnLoop = null;
+		}
+
 		// Implements the game loop. This method is called when the game is started and when the player signals that they're done moving.
+		// Only one loop runs at a time: were a second to start while the
+		// first waits (for an animation, say), the AIs would play twice.
 		public static async Task AdvanceTurn() {
+			if (runningTurnLoop != null) {
+				log.Warning("Not advancing the turn: the turn loop is already running");
+				return;
+			}
+			object loop = new();
+			runningTurnLoop = loop;
+			try {
+				await RunTurnLoop();
+			} finally {
+				// A loop dropped with its game never gets here; if it somehow
+				// did, it mustn't release the new game's loop.
+				if (runningTurnLoop == loop) {
+					runningTurnLoop = null;
+				}
+			}
+		}
+
+		private static async Task RunTurnLoop() {
 			Stopwatch stopwatch = new Stopwatch();
 			stopwatch.Start();
 			GameData gameData = EngineStorage.gameData;
@@ -207,13 +240,14 @@ namespace C7Engine {
 
 		// Whether it is the player's turn, so they may act. Without
 		// simultaneous turns that is the active player (who may be an AI
-		// being observed), whether or not they have ended their turn yet.
+		// being observed), until they end their turn: they stay the active
+		// player while the AIs play, but may no longer act.
 		public static bool IsPlayersTurn(GameData gameData, ID playerID) {
 			if (playerID == null) {
 				return false;
 			}
 			if (!gameData.simultaneousTurns) {
-				return playerID == EngineStorage.activePlayerID;
+				return playerID == EngineStorage.activePlayerID && gameData.GetPlayer(playerID)?.hasPlayedThisTurn == false;
 			}
 			return PlayersToMove(gameData).Any(p => p.id == playerID);
 		}
