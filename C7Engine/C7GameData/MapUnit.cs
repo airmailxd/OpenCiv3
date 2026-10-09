@@ -503,11 +503,12 @@ namespace C7GameData {
 
 		// The difficulty level's "attack bonus against barbarians", a
 		// percentage (800 at Chieftain down to 0 at Deity) that helps human
-		// players' units fight barbarians. Assumption: like the Great Wall it
-		// counts in any fight with them, attacking or defending, but not in
-		// bombardment; the AI has its own difficulty advantages instead.
+		// players' units attack barbarians. As its name says, it counts when
+		// attacking only (see Difficulty.AttackBonusAgainstBarbarians).
+		// TODO: "the AI has still a 200% bonus against barbarians" (it plays
+		// as at Regent, same source), which we don't give it.
 		private StrengthBonus? DifficultyBonusAgainst(MapUnit opponent, CombatRole role) {
-			if (role != CombatRole.Attack && role != CombatRole.Defense)
+			if (role != CombatRole.Attack)
 				return null;
 			if (owner == null || !owner.isHuman || opponent?.owner == null || !opponent.owner.isBarbarians)
 				return null;

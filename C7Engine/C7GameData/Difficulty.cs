@@ -24,8 +24,10 @@ namespace C7GameData {
 		public int AdditionalFreeUnitSupport;
 		public int UnitSupportBonusForEachSettlement;
 
-		// A percentage strength bonus for human players' units fighting
-		// barbarians (see MapUnit.ListStrengthBonusesVersus).
+		// A percentage strength bonus for human players' units attacking
+		// barbarians (see MapUnit.ListStrengthBonusesVersus): 800, 400, 200,
+		// 100, 50 and 0 from Chieftain to Deity
+		// (https://forums.civfanatics.com/threads/ai-difficulty-level-bonuses.37490/).
 		public int AttackBonusAgainstBarbarians;
 
 		// The cost factor for techs, growth, and production, 10 is a neutral
@@ -37,15 +39,21 @@ namespace C7GameData {
 
 		public int AIToAITradeRate;
 
-		// Scales human players' corruption and waste; 100 (the standard
-		// rules' value at every level) leaves it alone.
+		// The BIQ's corruption percentage, 100 at every level in the
+		// standard rules. UNVERIFIED (no Civ3 source found) what it does:
+		// Civ3's corruption formula only uses the percentage of optimal
+		// cities
+		// (https://civfanatics.com/civ3/strategy/game-mechanics/everything-about-corruption-c3c-edition/),
+		// so it is kept but not used.
 		public int CorruptionPercentage = 100;
 
-		// Number of citizens quelled by military.
-		//
-		// See https://www.civfanatics.com/civ3/strategy/game-mechanics/the-inner-workings-of-resistance-revealed/
-		// for details on how this is used - even though it appears to always be
-		// 1 in the default game and scenarios, it is moddable.
+		// Number of citizens quelled by military: how many resisters each
+		// unit in a conquered city can quell a turn, "the number of military
+		// units in the city times the difficulty level's number of citizens
+		// quelled by military" (see City.UpdateResistance and
+		// https://civfanatics.com/civ3/strategy/game-mechanics/the-inner-workings-of-resistance-revealed/).
+		// It appears to always be 1 in the default game and scenarios, but
+		// it is moddable.
 		public int MilitaryLaw = 1;
 	}
 }

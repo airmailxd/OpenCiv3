@@ -316,6 +316,8 @@ public class RulesReviewFixTest : IClassFixture<SaveGameFixture> {
 		gameData.gameDifficulty.AttackBonusAgainstBarbarians = 100;
 		Assert.Contains(ours.ListStrengthBonusesVersus(theirs, CombatRole.Attack, null), b => b.amount == 1.0);
 		Assert.DoesNotContain(aiUnit.ListStrengthBonusesVersus(theirs, CombatRole.Attack, null), b => b.amount == 1.0);
+		// It is an attack bonus only.
+		Assert.DoesNotContain(ours.ListStrengthBonusesVersus(theirs, CombatRole.Defense, null), b => b.amount == 1.0);
 	}
 
 	// ---- Workers ----
