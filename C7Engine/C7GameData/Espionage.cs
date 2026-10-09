@@ -85,6 +85,9 @@ namespace C7Engine {
 			// The capital an embassy was established in.
 			public City city;
 			public Player exposedSpyOwner;
+			// The sender's report and the target's warning are one event,
+			// told once to a spectator watching every civ.
+			public NewsEvent newsEvent = new();
 		}
 
 		public static string Describe(EspionageMission mission) {
@@ -328,7 +331,7 @@ namespace C7Engine {
 					ours.hasSpy = false;
 				}
 				result.message = $"Our {Describe(mission)} mission against the {target.civilization.noun} failed, and our agents were caught!";
-				NotifyTarget(target, $"We caught {actor.civilization.adjective ?? actor.civilization.noun} agents attempting to {Describe(mission).ToLowerInvariant()}"
+				NotifyTarget(target, result.newsEvent, $"We caught {actor.civilization.adjective ?? actor.civilization.noun} agents attempting to {Describe(mission).ToLowerInvariant()}"
 					+ (city != null ? $" in {city.name}" : "") + "!");
 				log.Information("{Actor}'s {Mission} against {Target} failed", actor, mission, target);
 				return result;
@@ -362,11 +365,11 @@ namespace C7Engine {
 				case EspionageMission.SabotageProduction:
 					city.SetStoredShields(0);
 					result.message = $"Our agents have sabotaged production in {city.name}.";
-					NotifyTarget(target, $"Saboteurs have destroyed the production in {city.name}!");
+					NotifyTarget(target, result.newsEvent, $"Saboteurs have destroyed the production in {city.name}!");
 					break;
 				case EspionageMission.InciteRevolt:
 					result.message = $"The people of {city.name} have revolted and joined us!";
-					NotifyTarget(target, $"{city.name} has been incited to revolt by the {actor.civilization.noun}!");
+					NotifyTarget(target, result.newsEvent, $"{city.name} has been incited to revolt by the {actor.civilization.noun}!");
 					// The city, and the target's units in it, join the actor.
 					CityInteractions.TransferCity(city, actor);
 					break;
@@ -384,8 +387,8 @@ namespace C7Engine {
 							target.playerRelationships[exposed.id].espionageIncidents++;
 							result.exposedSpyOwner = exposed;
 							result.message = $"We have exposed a {exposed.civilization.noun} spy in the {target.civilization.noun} capital!";
-							NotifyTarget(target, $"A {exposed.civilization.noun} spy has been exposed in our capital!");
-							NotifyTarget(exposed, $"Our spy in the {target.civilization.noun} capital has been exposed!");
+							NotifyTarget(target, result.newsEvent, $"A {exposed.civilization.noun} spy has been exposed in our capital!");
+							NotifyTarget(exposed, result.newsEvent, $"Our spy in the {target.civilization.noun} capital has been exposed!");
 						}
 						break;
 					}
@@ -394,9 +397,9 @@ namespace C7Engine {
 			return result;
 		}
 
-		private static void NotifyTarget(Player target, string message) {
+		private static void NotifyTarget(Player target, NewsEvent news, string message) {
 			if (target.IsToldNews) {
-				new MsgShowMilitaryAdvisorPopup(target, message, happy: false).send();
+				new MsgShowMilitaryAdvisorPopup(target, message, happy: false) { newsEvent = news }.send();
 			}
 		}
 

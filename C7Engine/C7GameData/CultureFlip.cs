@@ -252,11 +252,14 @@ namespace C7Engine {
 				city.AddUnit(defender, gameData);
 			}
 
-			if (from.isHuman) {
-				new MsgShowDomesticAdvisorPopup(from, $"The people of {city.name}, drawn by the culture of the {to.civilization.noun}, have defected to them!").send();
+			// Both sides hear of it; a spectator watching every civ hears it
+			// once.
+			NewsEvent news = new();
+			if (from.IsToldNews) {
+				new MsgShowDomesticAdvisorPopup(from, $"The people of {city.name}, drawn by the culture of the {to.civilization.noun}, have defected to them!") { newsEvent = news }.send();
 			}
-			if (to.isHuman) {
-				new MsgShowDomesticAdvisorPopup(to, $"Drawn by our culture, the people of {city.name} have left the {from.civilization.noun} and joined us!").send();
+			if (to.IsToldNews) {
+				new MsgShowDomesticAdvisorPopup(to, $"Drawn by our culture, the people of {city.name} have left the {from.civilization.noun} and joined us!") { newsEvent = news }.send();
 			}
 		}
 	}

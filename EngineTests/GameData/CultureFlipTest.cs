@@ -238,6 +238,27 @@ public class CultureFlipTest : IClassFixture<SaveGameFixture>, IDisposable {
 		Assert.False(city.IsInResistance);
 	}
 
+	// Both sides are told of a flip, as one event, so a spectator watching
+	// every civ hears of it once.
+	[Fact]
+	public void BothSidesHearOfAFlipAsOneEvent() {
+		(_, _, City city) = Setup();
+		EngineStorage.messagesToUI.Clear();
+		EngineStorage.newsForComputerPlayers = true;
+		try {
+			CultureFlip.Flip(gameData, city, them);
+		} finally {
+			EngineStorage.newsForComputerPlayers = false;
+		}
+
+		MsgShowDomesticAdvisorPopup[] told = EngineStorage.messagesToUI.OfType<MsgShowDomesticAdvisorPopup>().ToArray();
+		Assert.Equal(2, told.Length);
+		Assert.Contains(told, m => m.recipient == us);
+		Assert.Contains(told, m => m.recipient == them);
+		Assert.NotNull(told[0].newsEvent);
+		Assert.Same(told[0].newsEvent, told[1].newsEvent);
+	}
+
 	[Fact]
 	public void NoFlipsWhenTheyAreTurnedOff() {
 		(_, _, City city) = Setup();

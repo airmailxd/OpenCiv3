@@ -1105,7 +1105,7 @@ namespace C7Engine {
 
 		protected override void ProcessAllowed() {
 			Espionage.MissionResult result = Espionage.Perform(EngineStorage.gameData, Sender, mission, target, city);
-			new MsgEspionageResult(Sender, mission, result.performed, result.success, result.message, result.city).send();
+			new MsgEspionageResult(Sender, mission, result.performed, result.success, result.message, result.city) { newsEvent = result.newsEvent }.send();
 		}
 	}
 
