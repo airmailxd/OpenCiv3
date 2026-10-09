@@ -258,6 +258,20 @@ public class RulesReviewFixTest : IClassFixture<SaveGameFixture> {
 		}
 	}
 
+	// ---- Anarchy ----
+
+	[Fact]
+	public void AnarchyFollowsTheConquestsFormula() {
+		us.civilization.traits.Remove(Civilization.Trait.Religious);
+		for (int i = 0; i < 50; ++i) {
+			int turns = us.GetTurnsOfAnarchyForTransition(gameData);
+			Assert.InRange(turns, 3, 9);
+		}
+
+		us.civilization.traits.Add(Civilization.Trait.Religious);
+		Assert.Equal(2, us.GetTurnsOfAnarchyForTransition(gameData));
+	}
+
 	// ---- Trait discounts ----
 
 	[Fact]

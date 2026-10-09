@@ -1048,15 +1048,22 @@ namespace C7GameData {
 		//    and Play the World, and 2 turns in Conquests. For non-Religious
 		//    civilizations, the formula is: 1 (2 for Conquests) + random number
 		//    between 1-4 + number between 0-3 depending on size of your empire.
+		//
+		// We follow the Conquests formula from the FAQ. How the empire size
+		// maps to 0-3 isn't documented; we scale it by the optimal city
+		// number.
+		// The Conquests base length of anarchy, which is all a religious civ
+		// suffers.
+		private const int AnarchyBaseTurns = 2;
+
 		public int GetTurnsOfAnarchyForTransition(GameData gameData) {
 			if (civilization.traits.Contains(Civilization.Trait.Religious)) {
-				return 2;
+				return AnarchyBaseTurns;
 			}
 
-			// We add Next(3)+Next(3) to roughly approximate a normal
-			// distribution. With the base of 2, this gets us a random value
-			// between 2 and 6.
-			int randomPortion = 2 + GameData.rng.Next(3) + GameData.rng.Next(3);
+			// Conquests, per the FAQ above: a base of 2 plus a random 1 to 4,
+			// so 3 to 6 turns before the empire size is counted.
+			int randomPortion = AnarchyBaseTurns + 1 + GameData.rng.Next(4);
 
 			// Now we use the OCN to determine the city factor, which is between
 			// 0 and 3. This means that sprawling empires will have longer
