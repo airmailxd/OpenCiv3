@@ -42,4 +42,10 @@ public class VictoryStatus {
 	public bool ElectedSecretaryGeneral { get; set; }
 	public Player UnitedNationsOwner { get; set; }
 	public int NextUnitedNationsVote { get; set; } = -1;
+
+	// Cultural victory: the player's culture, the most any one of their
+	// cities has, and the most culture any rival has.
+	public int Culture { get; set; }
+	public int TopCityCulture { get; set; }
+	public int TopRivalCulture { get; set; }
 }

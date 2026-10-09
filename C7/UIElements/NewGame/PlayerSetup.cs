@@ -54,6 +54,13 @@ public partial class PlayerSetup : Control {
 	CheckBox acceleratedProduction;
 	CheckBox turnLimit;
 	Civ3HSlider corruptionRate;
+	// A checkbox for each victory condition the game may allow.
+	CheckBox conquestVictory;
+	CheckBox dominationVictory;
+	CheckBox spaceRaceVictory;
+	CheckBox diplomaticVictory;
+	CheckBox culturalVictory;
+	CheckBox cultureFlips;
 
 	[Export] TextureButton confirm;
 	[Export] TextureButton cancel;
@@ -143,11 +150,27 @@ public partial class PlayerSetup : Control {
 	}
 
 	private void AddRules() {
+		// The victory types a new game allows by default, with the
+		// thresholds (domination, culture) the scenario or ruleset sets.
 		victoryConditions = VictoryConditions.NewGameDefaults();
-		rulesContainer.Columns = 2;
+		victoryConditions.CopyThresholdsFrom(save.VictoryConditions);
+		rulesContainer.Columns = 3;
 		rulesContainer.AddThemeConstantOverride("v_separation", 0);
+		rulesContainer.AddThemeConstantOverride("h_separation", 12);
 
-		// TODO: Add Civ3Checkbox in rulesContainer for each victory condition, wire up to victoryConditions
+		conquestVictory = AddVictoryCheckbox("Conquest victory", victoryConditions.AllowConquestVictory,
+			"Win by eliminating every rival civilization.");
+		dominationVictory = AddVictoryCheckbox("Domination victory", victoryConditions.AllowDominationVictory,
+			$"Win by controlling {victoryConditions.DominationTerritoryPercent}% of the world's land "
+			+ $"and {victoryConditions.DominationPopulationPercent}% of its population.");
+		spaceRaceVictory = AddVictoryCheckbox("Space race victory", victoryConditions.AllowSpaceRaceVictory,
+			"Win by being the first to build every part of the spaceship. Without it, the spaceship can't be built.");
+		diplomaticVictory = AddVictoryCheckbox("Diplomatic victory", victoryConditions.AllowDiplomaticVictory,
+			"Win by being elected Secretary General in a United Nations vote. Without it, the United Nations holds no votes.");
+		culturalVictory = AddVictoryCheckbox("Cultural victory", victoryConditions.AllowCulturalVictory,
+			$"Win when one of your cities has {victoryConditions.CultureOneCityWin:N0} culture, or your civilization has "
+			+ $"{victoryConditions.CultureAllCitiesWin:N0} culture (on a standard map; less on smaller worlds, more on larger) "
+			+ "and twice as much as any rival.");
 
 		turnLimit = new Civ3Checkbox {
 			Text = $"Turn limit ({save.TimeOptions.turnLimit} turns)",
@@ -183,7 +206,27 @@ public partial class PlayerSetup : Control {
 		};
 		rulesContainer.AddChild(acceleratedProduction);
 
+		cultureFlips = new Civ3Checkbox {
+			Text = "Culture flipping",
+			FontSize = 14,
+			// As the scenario or ruleset sets it, like in Civ3.
+			ButtonPressed = save.Rules.AllowCultureFlips,
+			TooltipText = "Cities may defect to a neighboring civilization whose culture outweighs their owner's. A garrison makes it less likely.",
+		};
+		rulesContainer.AddChild(cultureFlips);
+
 		AddCorruptionRate();
+	}
+
+	private CheckBox AddVictoryCheckbox(string text, bool allowed, string tooltip) {
+		Civ3Checkbox checkbox = new() {
+			Text = text,
+			FontSize = 14,
+			ButtonPressed = allowed,
+			TooltipText = tooltip,
+		};
+		rulesContainer.AddChild(checkbox);
+		return checkbox;
 	}
 
 	// A slider for the rate corruption and waste are scaled by
@@ -474,6 +517,11 @@ public partial class PlayerSetup : Control {
 		GlobalSingleton global = GetNode<GlobalSingleton>("/root/GlobalSingleton");
 
 		victoryConditions.UseTurnLimit = turnLimit.ButtonPressed;
+		victoryConditions.AllowConquestVictory = conquestVictory.ButtonPressed;
+		victoryConditions.AllowDominationVictory = dominationVictory.ButtonPressed;
+		victoryConditions.AllowSpaceRaceVictory = spaceRaceVictory.ButtonPressed;
+		victoryConditions.AllowDiplomaticVictory = diplomaticVictory.ButtonPressed;
+		victoryConditions.AllowCulturalVictory = culturalVictory.ButtonPressed;
 
 		int guestSeats = humanToggles.Count(t => t.ButtonPressed);
 		if (hostingOnLan && guestSeats > 0) {
@@ -489,6 +537,7 @@ public partial class PlayerSetup : Control {
 				showScoreboard = showScoreboard.ButtonPressed,
 				coreCitiesFreeOfCorruption = coreCitiesFreeOfCorruption.ButtonPressed,
 				acceleratedProduction = acceleratedProduction.ButtonPressed,
+				allowCultureFlips = cultureFlips.ButtonPressed,
 				corruptionRate = (float)corruptionRate.Value,
 				invalidMapsDirectory = InvalidMaps.FolderIfEnabled,
 			};
@@ -511,6 +560,7 @@ public partial class PlayerSetup : Control {
 			showScoreboard = showScoreboard.ButtonPressed,
 			coreCitiesFreeOfCorruption = coreCitiesFreeOfCorruption.ButtonPressed,
 			acceleratedProduction = acceleratedProduction.ButtonPressed,
+			allowCultureFlips = cultureFlips.ButtonPressed,
 			corruptionRate = (float)corruptionRate.Value,
 			invalidMapsDirectory = InvalidMaps.FolderIfEnabled,
 		};

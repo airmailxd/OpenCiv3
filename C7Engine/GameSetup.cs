@@ -43,6 +43,9 @@ public class GameSetup {
 	// Scales corruption and waste (see Rules.CorruptionRate). Null keeps
 	// the rate the scenario or ruleset came with.
 	public float? corruptionRate { get; init; } = null;
+	// Whether cities may flip to another civ's culture (see
+	// Rules.AllowCultureFlips). Null keeps the scenario or ruleset's choice.
+	public bool? allowCultureFlips { get; init; } = null;
 	// Where to save each generated map that can't be played, with why, so
 	// it can be looked at; null not to save them.
 	public string invalidMapsDirectory { get; init; } = null;
@@ -53,10 +56,14 @@ public class GameSetup {
 		save.GameDifficulty = difficulty;
 
 		save.VictoryConditions = victoryConditions;
+		ScaleCulturalVictory(save);
 		save.Rules.ShowScoreboard = showScoreboard;
 		save.Rules.CoreCitiesFreeOfCorruption = coreCitiesFreeOfCorruption;
 		if (acceleratedProduction.HasValue) {
 			save.Rules.AcceleratedProduction = acceleratedProduction.Value;
+		}
+		if (allowCultureFlips.HasValue) {
+			save.Rules.AllowCultureFlips = allowCultureFlips.Value;
 		}
 		if (corruptionRate.HasValue) {
 			save.Rules.CorruptionRate = Math.Clamp(corruptionRate.Value, Rules.MinCorruptionRate, Rules.MaxCorruptionRate);
@@ -73,6 +80,17 @@ public class GameSetup {
 			ids = new(save);
 			PopulatePlayers(save);
 		}
+	}
+
+	// Conquests scales the culture a whole civ needs for a cultural victory
+	// by the world's size (see CulturalVictory.WorldSizePercent).
+	private void ScaleCulturalVictory(SaveGame save) {
+		if (victoryConditions == null || worldCharacteristics?.worldSize == null) {
+			return;
+		}
+		int size = save.WorldSizes.FindIndex(w => w.name == worldCharacteristics.worldSize.name);
+		victoryConditions.CultureAllCitiesWin = CulturalVictory.ScaleForWorldSize(
+			victoryConditions.CultureAllCitiesWin, size, save.WorldSizes.Count);
 	}
 
 	// How many maps to generate, each from a seed derived from the last,

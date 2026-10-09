@@ -87,6 +87,7 @@ public static class SnapshotFilter {
 					cities = player.cities.Count,
 					population = player.cities.Sum(c => c.residents.Count),
 					culture = player.cities.Sum(c => c.GetCulture()),
+					topCityCulture = CulturalVictory.TopCityCulture(player),
 					dominationTiles = player.tileKnowledge.DominationTiles().Count,
 					turnScore = ScoreVictory.ComputeTurnScore(player, gameData),
 				};

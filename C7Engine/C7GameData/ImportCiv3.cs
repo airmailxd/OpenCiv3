@@ -150,6 +150,7 @@ namespace C7GameData {
 			ImportSavHistory();
 			ImportSavVictory();
 			save.Rules.AcceleratedProduction = savData.Game.AcceleratedProduction;
+			save.Rules.AllowCultureFlips = savData.Game.AllowCulturalConversions;
 
 			SetMapDimensions(savData, save);
 			SetWorldWrap(savData, save);
@@ -609,6 +610,19 @@ namespace C7GameData {
 			if (game.DominationPopulation > 0) {
 				save.VictoryConditions.DominationPopulationPercent = game.DominationPopulation;
 			}
+			ImportCultureWin(save.VictoryConditions, game.OneCityCultureWin, game.AllCitiesCultureWin);
+		}
+
+		// The culture a cultural victory needs (see CulturalVictory), from
+		// the GAME section's "one city culture win" and "all cities culture
+		// win". Keep the defaults if the game doesn't set them.
+		private static void ImportCultureWin(VictoryConditions conditions, int oneCity, int allCities) {
+			if (oneCity > 0) {
+				conditions.CultureOneCityWin = oneCity;
+			}
+			if (allCities > 0) {
+				conditions.CultureAllCitiesWin = allCities;
+			}
 		}
 
 		private void ImportSavVictory() {
@@ -638,6 +652,7 @@ namespace C7GameData {
 			if (game.DominationPopulation > 0) {
 				save.VictoryConditions.DominationPopulationPercent = game.DominationPopulation;
 			}
+			ImportCultureWin(save.VictoryConditions, game.OneCityCultureWin, game.AllCitiesCultureWin);
 
 			if (game.Winner > -1) {
 				// TODO: translate victory type
@@ -2505,6 +2520,11 @@ namespace C7GameData {
 
 			save.Rules.MaximumResearchTime = rule.MaximumResearchTime;
 			save.Rules.AcceleratedProduction = GameBiq?.Game?[0].AcceleratedProduction ?? false;
+			// Only a scenario with its own rules turns culture flips off;
+			// with Civ3's default rules they are on (see Rules.AllowCultureFlips).
+			QueryCiv3.Biq.GAME[] games = GameBiq?.Game;
+			save.Rules.AllowCultureFlips = games == null || games.Length == 0 || games[0].DefaultGameRules != 0
+				|| games[0].AllowCulturalConversions;
 			save.Rules.UpgradeCostPerShield = rule.UpgradeCost;
 			save.Rules.MinimumPopulationForWeLoveTheKing = rule.MinimumPopulationForWeLoveTheKing;
 			save.Rules.GoldenAgeDuration = rule.GoldenAgeDuration;

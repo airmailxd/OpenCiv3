@@ -42,7 +42,7 @@ public partial class QuickStartSetup : Node {
 			difficulty = difficulty,
 			worldCharacteristics = global.WorldCharacteristics,
 			opponents = opponents,
-			victoryConditions = VictoryConditions.NewGameDefaults(),
+			victoryConditions = VictoryConditions.NewGameDefaults().CopyThresholdsFrom(save.VictoryConditions),
 			coreCitiesFreeOfCorruption = GetCoreCitiesFreeOfCorruption(),
 			invalidMapsDirectory = InvalidMaps.FolderIfEnabled,
 		};

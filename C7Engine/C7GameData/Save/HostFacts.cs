@@ -66,6 +66,8 @@ public class PlayerFacts {
 	public int cities;
 	public int population;
 	public int culture;
+	// The most culture any one of their cities has (see CulturalVictory).
+	public int topCityCulture;
 	// Their territory that counts towards domination.
 	public int dominationTiles;
 	// What this turn would add to their score (see ScoreVictory).
