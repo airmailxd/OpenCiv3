@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net.Sockets;
 using System.Net.WebSockets;
 using System.Text;
@@ -489,7 +490,7 @@ public class LanClient : IDisposable {
 				break;
 			case FrameKind.Lobby:
 				PasswordRequest = null;
-				Lobby = NetSerialization.DeserializeRequired<LobbyInfo>(frame.payload);
+				Lobby = WithSafeArt(NetSerialization.DeserializeRequired<LobbyInfo>(frame.payload));
 
 				ReconnectToken = Lobby.reconnectToken ?? ReconnectToken;
 				// A host with the game we're in back in its lobby is resuming
@@ -545,6 +546,20 @@ public class LanClient : IDisposable {
 				log.Warning("Ignoring unexpected {Kind} frame from the host", frame.kind);
 				break;
 		}
+	}
+
+	// The lobby without any leader art the host named that isn't one of the
+	// game's own files (see LanProtocol.IsSafeArtPath).
+	private static LobbyInfo WithSafeArt(LobbyInfo lobby) {
+		if (lobby.civilizations == null || lobby.civilizations.All(c => c == null || c.leaderArtFile == null || LanProtocol.IsSafeArtPath(c.leaderArtFile))) {
+			return lobby;
+		}
+		log.Warning("Ignoring leader art the host named outside the game's art");
+		return lobby with {
+			civilizations = lobby.civilizations
+				.Select(c => c == null || LanProtocol.IsSafeArtPath(c.leaderArtFile) ? c : c with { leaderArtFile = null })
+				.ToList(),
+		};
 	}
 
 	// A snapshot couldn't be read, so we don't have the game the next ones

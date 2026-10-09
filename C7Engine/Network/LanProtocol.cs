@@ -65,8 +65,26 @@ public static class LanProtocol {
 	public const int MaxGuestFrameBytes = 1024 * 1024;
 
 	// Snapshots that decompress to more than this are treated as broken,
-	// rather than read until memory runs out.
-	public const int MaxSnapshotJsonBytes = 1024 * 1024 * 1024;
+	// rather than read until memory runs out. The largest games are a few
+	// tens of megabytes.
+	public const int MaxSnapshotJsonBytes = 256 * 1024 * 1024;
+
+	// Whether a leader's art file a host names is one of the game's own: a
+	// .pcx under art, named plainly, which the client looks for only among
+	// its own files.
+	public static bool IsSafeArtPath(string path) {
+		if (string.IsNullOrEmpty(path) || path.Length > 200 || path.Contains("..")
+			|| !path.EndsWith(".pcx", StringComparison.OrdinalIgnoreCase)
+			|| !(path.StartsWith("art\\", StringComparison.OrdinalIgnoreCase) || path.StartsWith("art/", StringComparison.OrdinalIgnoreCase))) {
+			return false;
+		}
+		foreach (char c in path) {
+			if (!(char.IsAsciiLetterOrDigit(c) || c is '\\' or '/' or '_' or '-' or '.' or ' ')) {
+				return false;
+			}
+		}
+		return true;
+	}
 
 	public const string DiscoveryRequest = "C7-LAN-DISCOVER";
 

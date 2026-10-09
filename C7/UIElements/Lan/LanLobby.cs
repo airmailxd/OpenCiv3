@@ -1361,7 +1361,11 @@ public partial class LanLobby : Control {
 			civDescription.Text = "A random civilization nobody else has.";
 			return;
 		}
-		civDescription.Text = $"{choice.leader} of the {choice.noun}\n({string.Join(", ", choice.traits)})";
+		civDescription.Text = $"{choice.leader} of the {choice.noun}\n({string.Join(", ", choice.traits ?? [])})";
+		if (choice.leaderArtFile == null) {
+			leaderHead.Texture = null;
+			return;
+		}
 		try {
 			var key = (choice.name, choice.leaderArtFile);
 			if (!leaderHeadCache.TryGetValue(key, out ImageTexture texture) || !IsInstanceValid(texture)) {
