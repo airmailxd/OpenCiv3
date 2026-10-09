@@ -111,10 +111,14 @@ namespace C7GameData {
 		// How many unhappy citizens each happy face from luxuries or
 		// buildings makes content.
 		public int CitizensAffectedByEachHappyFace = 2;
-		// City defense bonuses, in per cent, from buildings and from
-		// citizens.
-		public int BuildingDefensiveBonus = 100;
-		public int CitizenDefensiveBonus = 25;
+		// The strengths a city's buildings and citizens defend with against
+		// bombardment. The editor: "Building Defense Bonus: Determines the
+		// defensive rating (0-1000) for each building in a city. This value
+		// is used only to determine building losses during city
+		// bombardment", and the same for citizens; 16 each in Conquests
+		// (https://forums.civfanatics.com/threads/citizen-and-buildings-defense-bonus.693504/).
+		public int BuildingDefensiveBonus = 16;
+		public int CitizenDefensiveBonus = 16;
 		// The turns of unhappiness each drafted citizen causes.
 		public int TurnPenaltyForEachDraftedCitizen = 20;
 		// The unit a unit that enslaves its defeated foe makes (Civ3's
