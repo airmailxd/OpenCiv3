@@ -629,6 +629,20 @@ public partial class Util {
 		}
 	}
 
+	// Shows an error in a plain dialog window over the given node, for screens
+	// that have no popup overlay of their own, like the new game setup.
+	public static void ShowErrorDialog(Node parent, string title, string message) {
+		AcceptDialog dialog = new() {
+			Title = title,
+			DialogText = message,
+			Exclusive = true,
+		};
+		dialog.Confirmed += dialog.QueueFree;
+		dialog.Canceled += dialog.QueueFree;
+		parent.AddChild(dialog);
+		dialog.PopupCentered();
+	}
+
 	// Allow clearing the caches, so that scenarios with different files that
 	// have the same name can be loaded independently.
 	public static void ClearCaches() {

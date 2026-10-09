@@ -2,7 +2,7 @@ using Godot;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
+using System.Threading.Tasks;
 using C7GameData;
 using C7Engine;
 using C7GameData.Save;
@@ -115,15 +115,47 @@ public partial class ScenarioSetup : Control {
 									});
 	}
 
-	private void CreateGame() {
-		GlobalSingleton global = GetNode<GlobalSingleton>("/root/GlobalSingleton");
-		loadingLabel.Visible = true;
-		SaveGame save = GetSave();
+	// Whether a game is being created, so a second click on the confirm
+	// button doesn't start a second one.
+	private bool creatingGame = false;
 
-		// World generation can take a bit of time if multiple attempts are
-		// needed, so we don't want to tie up the UI thread.
-		Thread thread = new(() => { UpdateSaveAndStartGame(save, global); });
-		thread.Start();
+	private void CreateGame() {
+		if (creatingGame) {
+			return;
+		}
+		SetCreatingGame(true);
+		try {
+			GlobalSingleton global = GetNode<GlobalSingleton>("/root/GlobalSingleton");
+			SaveGame save = GetSave();
+
+			// World generation can take a bit of time if multiple attempts are
+			// needed, so we don't want to tie up the UI thread.
+			Task.Run(() => {
+				try {
+					UpdateSaveAndStartGame(save, global);
+				} catch (Exception e) {
+					Callable.From(() => OnCreateGameFailed(e)).CallDeferred();
+				}
+			});
+		} catch (Exception e) {
+			OnCreateGameFailed(e);
+		}
+	}
+
+	private void SetCreatingGame(bool creating) {
+		creatingGame = creating;
+		loadingLabel.Visible = creating;
+		confirm.Disabled = creating;
+		cancel.Disabled = creating;
+	}
+
+	private void OnCreateGameFailed(Exception e) {
+		log.Error(e, "Couldn't create the game");
+		if (!IsInstanceValid(this) || !IsInsideTree()) {
+			return;
+		}
+		SetCreatingGame(false);
+		Util.ShowErrorDialog(this, "Couldn't create the game", e.Message);
 	}
 
 	private void UpdateSaveAndStartGame(SaveGame save, GlobalSingleton global) {
@@ -136,10 +168,17 @@ public partial class ScenarioSetup : Control {
 		global.SaveGame = save;
 
 		log.Information("opening map");
-		CallDeferred("StartGame");
+		Callable.From(StartGame).CallDeferred();
 	}
 
 	private void StartGame() {
-		LanSession.StartGame(GetTree());
+		if (!IsInstanceValid(this) || !IsInsideTree()) {
+			return;
+		}
+		try {
+			LanSession.StartGame(GetTree());
+		} catch (Exception e) {
+			OnCreateGameFailed(e);
+		}
 	}
 }
