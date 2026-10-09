@@ -14375,17 +14375,20 @@
     }
   ],
   "victoryConditions": {
-    "allowDominationVictory": false,
-    "allowSpaceRaceVictory": false,
-    "allowDiplomaticVictory": false,
-    "allowConquestVictory": false,
-    "allowCulturalVictory": false,
+    "allowDominationVictory": true,
+    "allowSpaceRaceVictory": true,
+    "allowDiplomaticVictory": true,
+    "allowConquestVictory": true,
+    "allowCulturalVictory": true,
     "allowWonderVictory": false,
     "cityElimination": false,
     "regicide": false,
     "massRegicide": false,
     "victoryLocations": false,
     "captureTheFlag": false,
-    "reverseCaptureTheFlag": false
+    "reverseCaptureTheFlag": false,
+    "useTurnLimit": false,
+    "dominationTerritoryPercent": 66,
+    "dominationPopulationPercent": 66
   }
 }

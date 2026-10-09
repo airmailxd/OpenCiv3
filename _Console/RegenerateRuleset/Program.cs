@@ -12,10 +12,11 @@ using C7GameData.Save;
 
 namespace RegenerateRuleset {
 	// Regenerates the bundled ruleset, C7/Lua/civ3/ruleset.json, from Civ3's
-	// conquests.biq. Only the sections that come from the BIQ are replaced;
-	// the hand-maintained ones are kept as they are (see readme.md for which
-	// and why). The file keeps its order of sections, its formatting and its
-	// line endings, so that a regeneration shows only real changes.
+	// conquests.biq. Only the sections that come from the BIQ, or from C7's
+	// own defaults, are replaced; the hand-maintained ones are kept as they
+	// are (see readme.md for which and why). The file keeps its order of
+	// sections, its formatting and its line endings, so that a regeneration
+	// shows only real changes.
 	class Program {
 		// The sections taken from the imported conquests.biq.
 		static readonly string[] FromBiq = {
@@ -55,9 +56,20 @@ namespace RegenerateRuleset {
 			"timeOptions",
 			// The world sizes aren't imported from the BIQ.
 			"worldSizes",
-			// The victory conditions of new games.
-			"victoryConditions",
 		};
+
+		// The sections C7 sets itself, whatever the BIQ says.
+		static Dictionary<string, JsonNode> FromC7Defaults() {
+			// Serialized as a save serializes them.
+			SaveGame defaults = new() {
+				// The victory conditions a new game starts with.
+				VictoryConditions = VictoryConditions.NewGameDefaults(),
+			};
+			JsonObject json = JsonNode.Parse(defaults.ToCompactJSON()).AsObject();
+			return new() {
+				["victoryConditions"] = json["victoryConditions"].DeepClone(),
+			};
+		}
 
 		// The repository's root: the folder with C7/C7.csproj, looked for
 		// above the working directory and the program's own folder.
@@ -97,17 +109,20 @@ namespace RegenerateRuleset {
 			string text = new UTF8Encoding(false).GetString(bytes, hasBom ? 3 : 0, bytes.Length - (hasBom ? 3 : 0));
 			JsonObject ruleset = JsonNode.Parse(text).AsObject();
 
+			Dictionary<string, JsonNode> defaults = FromC7Defaults();
 			JsonObject merged = new();
 			foreach ((string key, JsonNode value) in ruleset.ToList()) {
 				JsonNode section;
-				if (FromBiq.Contains(key)) {
+				if (defaults.TryGetValue(key, out JsonNode fromDefaults)) {
+					section = fromDefaults;
+				} else if (FromBiq.Contains(key)) {
 					section = biq[key] ?? throw new InvalidDataException($"The import of conquests.biq has no {key}");
 					biq.Remove(key);
 				} else if (Kept.Contains(key)) {
 					section = value;
 					ruleset.Remove(key);
 				} else {
-					Console.Error.WriteLine($"ruleset.json has a section {key} that is neither taken from the BIQ nor kept; add it to one of the lists in Program.cs.");
+					Console.Error.WriteLine($"ruleset.json has a section {key} that is neither taken from the BIQ, nor from C7's defaults, nor kept; add it to one of the lists in Program.cs.");
 					return 1;
 				}
 				merged[key] = section;
@@ -130,6 +145,7 @@ namespace RegenerateRuleset {
 			File.WriteAllText(rulesetPath, json, new UTF8Encoding(encoderShouldEmitUTF8Identifier: hasBom));
 			Console.WriteLine($"wrote {rulesetPath} from {biqPath}");
 			Console.WriteLine($"\tfrom the BIQ: {string.Join(", ", FromBiq)}");
+			Console.WriteLine($"\tfrom C7's defaults: {string.Join(", ", defaults.Keys)}");
 			Console.WriteLine($"\tkept: {string.Join(", ", Kept)}");
 			return 0;
 		}

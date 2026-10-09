@@ -1,7 +1,7 @@
 # RegenerateRuleset
 Regenerates the bundled ruleset, `C7/Lua/civ3/ruleset.json`, from Civ3's `conquests.biq`: imports the BIQ with
-`ImportCiv3.ImportBiq`, and replaces the sections of `ruleset.json` that come from the BIQ with the imported ones.
-The file keeps its order of sections, its formatting and its line endings, so the diff shows only real changes. With
+`ImportCiv3.ImportBiq`, replaces the sections of `ruleset.json` that come from the BIQ with the imported ones, and those
+C7 sets itself with its own defaults. The file keeps its order of sections, its formatting and its line endings, so the diff shows only real changes. With
 an unchanged importer and BIQ the output is identical to the file.
 
 ## Build
@@ -28,6 +28,9 @@ them:
 - `difficulties`: the highest is renamed from Sid to Creator.
 - `timeOptions`: the import pads the last era to 50000 turns; the file has 10000.
 - `worldSizes`: not imported from the BIQ.
-- `victoryConditions`: the victory conditions of new games.
 
-The program stops if `ruleset.json` has a section in neither list; add it to one of the lists in `Program.cs`.
+From C7's own defaults: `victoryConditions`, the victory conditions a new game starts with
+(`VictoryConditions.NewGameDefaults()`): conquest, domination, space race, diplomatic and cultural victories on, the
+turn limit off.
+
+The program stops if `ruleset.json` has a section in none of these lists; add it to one of the lists in `Program.cs`.
