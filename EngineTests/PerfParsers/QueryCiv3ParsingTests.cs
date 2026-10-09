@@ -145,8 +145,8 @@ public class QueryCiv3ParsingTests {
 			Assert.ThrowsAny<Exception>(() => embedded.ReadInt32(data.Length - 2));
 			Assert.ThrowsAny<Exception>(() => embedded.ReadByte(data.Length));
 		}
-		Assert.Throws<IndexOutOfRangeException>(() => new Civ3File(new byte[] { 0x42, 0x49, 0x43 }));
-		Assert.Throws<IndexOutOfRangeException>(() => new Civ3File(new byte[10], 8, 2));
+		Assert.Throws<InvalidDataException>(() => new Civ3File(new byte[] { 0x42, 0x49, 0x43 }));
+		Assert.Throws<InvalidDataException>(() => new Civ3File(new byte[10], 8, 2));
 	}
 
 	private static string TempFile(string extension) => Path.Combine(Path.GetTempPath(), "c7-perf-parsers-" + Guid.NewGuid() + extension);

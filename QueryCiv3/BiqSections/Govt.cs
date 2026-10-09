@@ -14,7 +14,7 @@ namespace QueryCiv3.Biq {
 		public int DefaultType;
 		public int TransitionType;
 		public int RequiresMaintenance;
-		public int Toggle1; // ??? 0: Republic/Democracy, 1: Other
+		public int Toggle1; // UNVERIFIED (guessed from observed values): 0: Republic/Democracy, 1: Other
 		public int TilePenalty;
 		public int TradeBonus;
 
@@ -51,8 +51,8 @@ namespace QueryCiv3.Biq {
 		public int PrerequisiteTechnology;
 		public int ScienceRateCap;
 		public int WorkerRate;
-		public int Toggle2; // ??? -1: Despotism/Communism, 0: Anarchy/Monarchy, 1: Republic/Democracy
-		public int Toggle3; // ??? 0: Other, 1: Republic/Democracy
+		public int Toggle2; // UNVERIFIED (guessed from observed values): -1: Despotism/Communism, 0: Anarchy/Monarchy, 1: Republic/Democracy
+		public int Toggle3; // UNVERIFIED (guessed from observed values): 0: Other, 1: Republic/Democracy
 		private fixed byte UnknownBuffer[4];
 		public int FreeUnits;
 		public int FreeUnitsPerTown;

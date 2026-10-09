@@ -67,7 +67,7 @@ namespace QueryCiv3.Sav {
 		public int Length4;
 		public IntBitmap ExploredBy;
 		public IntBitmap VisibleTo; // Visible right now to civ by units
-		public IntBitmap VisibleTo2; // Visible right now to civ by ???
+		public IntBitmap VisibleTo2; // Visible right now to civ by ??? (UNVERIFIED: what makes it differ from VisibleTo is unknown)
 		public IntBitmap VisibleTo3; // Visible right now to civ by city
 		private fixed byte UnknownBuffer5[4];
 		public short CityIDOfCitizen;

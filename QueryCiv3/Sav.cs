@@ -83,7 +83,15 @@ namespace QueryCiv3 {
 		public CITY_Building[][] CityBuilding;
 
 		private int CityIndex = 0;
+		// HEURISTIC: a CITY header followed by this length starts a real city; the many other CITY headers (more than
+		// there are cities, purpose unknown) are skipped. Found by inspection, not from a format description.
 		private const int VALID_CITY_LENGTH = 136;
+		// How often LoadSections' heuristics fired, for the debug log
+		private int skippedCityHeaders, skippedGaps;
+
+		// Not cached in a static field, so that it follows the logger the game configures
+		private static Serilog.ILogger Log => Serilog.Log.ForContext<SavData>();
+		private long ReadOffset => Sav.Length - (end - scan);
 		// The CITY struct is read in these chunks, which must add up to its size (see BiqSectionSizeTests)
 		internal const int CITY_LEN_1 = 556;
 		internal const int CITY_LEN_2 = 12;
@@ -191,6 +199,7 @@ namespace QueryCiv3 {
 			Rplt = null; RpltRple = null; RpltRpleDescription = null;
 			CityCtzn = null; CityBuilding = null;
 			CityIndex = 0;
+			skippedCityHeaders = 0; skippedGaps = 0;
 			HistTurn = null; TurnCiv = null; TurnPower = null; TurnScore = null; TurnCulture = null; TurnVP = null;
 			// The SAV's BIQ sections are loaded over those of the original BIQ, not over those of the previously loaded SAV
 			if (baseBiqBytes != null) {
@@ -224,6 +233,7 @@ namespace QueryCiv3 {
 				end = bytePtr + savBytes.Length;
 				try {
 					LoadSections();
+					Log.Debug("Loaded SAV: skipped {cityHeaders} CITY headers that aren't cities and {gaps} gaps between sections", skippedCityHeaders, skippedGaps);
 				} finally {
 					// Don't leave pointers into the no longer pinned array around
 					scan = null;
@@ -391,6 +401,7 @@ namespace QueryCiv3 {
 							Copy(ref City[CityIndex], CITY_LEN_3, CITY_LEN_1 + CITY_LEN_2);
 							CityIndex++;
 						} else {
+							skippedCityHeaders++;
 							SkipSection("CITY");
 						}
 
@@ -468,17 +479,24 @@ namespace QueryCiv3 {
 						// There are 3 places in the Sav files where an inexplicable but consistent gap between sections exists
 						// In any other case where a header isn't encounterd, we'll throw an error because something has gone wrong in the read
 						// But for these 3, I guess just skip them for now...
-						// Thoroughly magic
+						// Thoroughly magic: HEURISTIC look-ahead for the next known header (CNSL 8 bytes on, PALV 256 bytes
+						// on, PEER 4 bytes on). The gaps' sizes are consistent, but what they hold is unknown, so they are
+						// found by look-ahead rather than skipped by a fixed size after a particular section.
 						// (Only look as far ahead as the data goes)
+						long gapOffset = ReadOffset;
+						int gap;
 						if (scan + 3 * sizeof(int) <= end && header[2] == 0x4c534e43) {
-							scan += 8;
+							gap = 8;
 						} else if (scan + 65 * sizeof(int) <= end && header[64] == 0x564c4150) {
-							scan += 256;
+							gap = 256;
 						} else if (scan + 2 * sizeof(int) <= end && header[1] == 0x52454550) {
-							scan += 4;
+							gap = 4;
 						} else {
-							throw new InvalidDataException("An error occured while parsing the SAV file because no header was found where one was expected.");
+							throw new InvalidDataException($"An error occured while parsing the SAV file because no header was found where one was expected (at {gapOffset}).");
 						}
+						scan += gap;
+						skippedGaps++;
+						Log.Verbose("Skipped a {gap} byte gap between SAV sections at {offset}", gap, gapOffset);
 						break;
 				}
 			}

@@ -135,8 +135,14 @@ namespace QueryCiv3 {
 			}
 		}
 
+		// The most a compressed Civ3 file may decompress to. Real BIQ and SAV files decompress to a few megabytes; the
+		// limit stops a corrupt or hostile file from exhausting memory (BlastDecoder's own default is Array.MaxLength).
+		public const int MAX_DECOMPRESSED_SIZE = 256 * 1024 * 1024;
+
+		// Throws BlastException if the data is malformed or decompresses to more than MAX_DECOMPRESSED_SIZE bytes.
 		public static byte[] Decompress(byte[] compressedBytes) {
-			return BlastDecoder.DecompressBytes(compressedBytes);
+			ArgumentNullException.ThrowIfNull(compressedBytes);
+			return BlastDecoder.DecompressBytes(compressedBytes, 0, compressedBytes.Length, MAX_DECOMPRESSED_SIZE);
 		}
 
 		// Decodes the bytes up to (not including) the first null byte. Civ3Encoding is a single-byte code page in which

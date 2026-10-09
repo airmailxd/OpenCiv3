@@ -93,8 +93,8 @@ namespace QueryCiv3.Sav {
 		public int Researching;
 		public int TurnsResearched;
 		public int FutureTechsKnown;
-		public fixed short UnitsPerStratOwned[32]; // ???
-		public fixed short UnitsPerStratInProd[32]; // ???
+		public fixed short UnitsPerStratOwned[32]; // UNVERIFIED: meaning guessed from the name only
+		public fixed short UnitsPerStratInProd[32]; // UNVERIFIED: meaning guessed from the name only
 		public int NumberOfArmies;
 		public int NumberOfUnits;
 		public int NumberOfMilitaryUnits; // Courtesy of https://github.com/maxpetul/C3X/blob/master/Civ3Conquests.h

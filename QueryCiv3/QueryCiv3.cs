@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Buffers.Binary;
 using System.Collections.Generic;
 
@@ -14,7 +15,7 @@ namespace QueryCiv3 {
 	public class Civ3Version {
 		public FileVersion FileVersion;
 		public string FileTypeName;
-		public short MagicNumber; // not sure what it is, or even if it is in anything except .sav files
+		public short MagicNumber; // UNVERIFIED: not sure what it is, or even if it is in anything except .sav files
 		public int MajorVersion;
 		public int MinorVersion;
 	}
@@ -58,7 +59,7 @@ namespace QueryCiv3 {
 			this.DataStart = start;
 			this.DataLength = length;
 			if (length < 4) {
-				throw new IndexOutOfRangeException();
+				throw new InvalidDataException($"The file is {length} bytes long, too short to be a Civ3 file.");
 			}
 			byte[] Civ3Bytes = new byte[]{0x43, 0x49, 0x56, 0x33}; // CIV3
 			byte[] BicBytes = new byte[]{0x42, 0x49, 0x43}; // BIC
