@@ -859,6 +859,12 @@ namespace C7GameData {
 					continue;
 				}
 				Civilization civ = save.Civilizations[leader.RaceID];
+				// The GAME section's HumanPlayers and RemainingPlayers are
+				// bitmaps by LEAD index. No CivFanatics source documents them,
+				// but they were checked against 60 Conquests saves: the human
+				// slots matched the games' players, including the hotseat
+				// ones, and only civs with no cities or units were missing
+				// from RemainingPlayers.
 				SavePlayer player = MakeSavePlayerFromCiv(civ,
 										  isHuman: !civ.isBarbarian && savData.Game.HumanPlayers[i],
 										  era: theBiq.Eras[leader.Era].CivilopediaEntry,
