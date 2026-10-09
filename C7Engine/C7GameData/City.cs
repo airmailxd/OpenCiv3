@@ -431,12 +431,42 @@ namespace C7GameData {
 			return TurnsToProduce(itemBeingProduced);
 		}
 
+		// Whether the production box is empty. Hurrying then costs double, as
+		// in Civ3.
+		private bool HurryingFromAnEmptyBox() => shieldsStored == 0;
+
 		private int ShieldCostForHurrying() {
 			// If there are no shields in the box, hurrying costs double.
-			if (shieldsStored == 0) {
+			if (HurryingFromAnEmptyBox()) {
 				return owner.ShieldCost(itemBeingProduced) * 2;
 			}
 			return owner.ShieldCost(itemBeingProduced) - shieldsStored;
+		}
+
+		// The gold it costs to buy the rest of the current item. Civ3's rush
+		// buying formulas, as worked out by players, with s the shields
+		// remaining:
+		//  - improvements: 2 gold per shield;
+		//  - units: 2s + s^2/20, so big units are relatively dearer;
+		//  - either doubled when nothing has been built yet (an empty box).
+		// The BIQ's "shield value in gold" is 4 in the standard rules, which
+		// Civ3 halves for improvements and units (it's the rate a wonder would
+		// cost, and wonders can't be bought), so the per-shield rate is taken
+		// as half of it to stay rule driven.
+		internal int HurryGoldCost() {
+			int remaining = owner.ShieldCost(itemBeingProduced) - shieldsStored;
+			if (remaining <= 0) {
+				return 0;
+			}
+			int goldPerShield = Math.Max(1, owner.rules.ShieldValueInGold / 2);
+			int cost = goldPerShield * remaining;
+			if (itemBeingProduced is UnitPrototype) {
+				cost += remaining * remaining / 20;
+			}
+			if (HurryingFromAnEmptyBox()) {
+				cost *= 2;
+			}
+			return cost;
 		}
 
 		// Returns the feasibility of hurrying production
@@ -464,6 +494,12 @@ namespace C7GameData {
 				return new HurryProductionDetails() { errorMessage = "There is nothing to hurry in this city." };
 			}
 
+			// Civ3 never lets wonders, great or small, be bought or rushed
+			// with citizens.
+			if (itemBeingProduced is Building { isSmallWonder: true } || itemBeingProduced is Building b && b.IsGreatWonder()) {
+				return new HurryProductionDetails() { errorMessage = "Wonders cannot be hurried." };
+			}
+
 			switch (owner.government.hurryingType) {
 				case Government.HurryProductionType.CannotHurry:
 					return new HurryProductionDetails() { errorMessage = "We cannot hurry production with this government." };
@@ -479,7 +515,7 @@ namespace C7GameData {
 					};
 
 				case Government.HurryProductionType.PaidLabor:
-					int goldCost = shieldCost * rules.ShieldValueInGold;
+					int goldCost = HurryGoldCost();
 					if (goldCost > owner.gold) {
 						return new HurryProductionDetails() { errorMessage = $"Hurrying production would cost too much gold! ({goldCost})." };
 					}
@@ -576,7 +612,7 @@ namespace C7GameData {
 						}
 
 						foreach (City c in p.cities) {
-							if (c.itemBeingProduced.name == building.name) {
+							if (c.itemBeingProduced?.name == building.name) {
 								c.SetItemBeingProduced(c.TakeNextQueuedProduction(gameData) ?? c.GetMostExpensiveItemToProduce());
 							}
 						}
