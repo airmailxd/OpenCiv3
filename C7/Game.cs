@@ -220,7 +220,10 @@ public partial class Game : Node {
 			await InitializeGame();
 			await StartGame();
 		} catch (Exception ex) {
+			// The game is only partly set up, so nothing may be played; the
+			// error offers the way back to the menu.
 			errorOnLoad = true;
+			CurrentState = GameState.ComputerTurn;
 			string message = ex.Message;
 			string[] stack = ex.StackTrace.Split("\r\n");   //for some reason it is returned with \r\n in the string as one line.  let's make it readable!
 			foreach (string line in stack) {
@@ -1492,6 +1495,9 @@ public partial class Game : Node {
 	private static readonly long uiMessageBudgetTicks = Stopwatch.Frequency * 4 / 1000;
 
 	public override void _Process(double delta) {
+		if (errorOnLoad) {
+			return;
+		}
 		PollLanSession();
 		ProcessActions();
 
@@ -1744,6 +1750,9 @@ public partial class Game : Node {
 	}
 
 	public override void _UnhandledInput(InputEvent @event) {
+		if (errorOnLoad) {
+			return;
+		}
 		// Don't handle if there's an open modal, if it's the AI's turn, or if
 		// the screen is being handed to the next hotseat player.
 		// A spectator may always look around.
