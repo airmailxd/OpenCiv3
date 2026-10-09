@@ -201,7 +201,18 @@ public partial class MapUnit {
 		if (destination == null) {
 			return false;
 		}
+		MoveStraightTo(destination);
+		return true;
+	}
 
+	// Moves the unit, and anything it carries, straight to the city, as
+	// when the city it was in is given away (see
+	// CityInteractions.TransferCity).
+	public void WithdrawToCity(City city) {
+		MoveStraightTo(city.location);
+	}
+
+	private void MoveStraightTo(Tile destination) {
 		path = null;
 		isFortified = false;
 		if (WorkerJob != null) {
@@ -211,7 +222,42 @@ public partial class MapUnit {
 		if (owner.isHuman) {
 			new MsgUnitMoved(this).send();
 		}
-		return true;
+	}
+
+	// The nearest of the owner's cities, other than `except`, that the unit
+	// could be in (a ship only in a city by the water): the one it could
+	// get to in the fewest turns, then steps, along a path over its own
+	// kind of terrain. Failing any it can get to, the nearest in a straight
+	// line. Null if there is none.
+	public City FindNearestOwnCity(City except = null) {
+		PathingAlgorithm algorithm = PathingAlgorithmChooser.GetAlgorithm(this);
+		int maxMovementPoints = MaxMovementPoints();
+		City nearest = null;
+		int nearestTurns = int.MaxValue, nearestSteps = int.MaxValue;
+		City nearestInALine = null;
+		int nearestDistance = int.MaxValue;
+		foreach (City city in owner.cities) {
+			if (city == except || city.location == location || (IsWaterUnit() && !city.location.NeighborsWater())) {
+				continue;
+			}
+			int distance = location.DistanceTo(city.location);
+			if (distance < nearestDistance) {
+				nearestInALine = city;
+				nearestDistance = distance;
+			}
+			TilePath p = algorithm.PathFrom(location, city.location, this);
+			int steps = p?.PathLength() ?? -1;
+			if (steps <= 0) {
+				continue;
+			}
+			int turns = p.PathCost(owner, location, maxMovementPoints, maxMovementPoints);
+			if (turns < nearestTurns || (turns == nearestTurns && steps < nearestSteps)) {
+				nearest = city;
+				nearestTurns = turns;
+				nearestSteps = steps;
+			}
+		}
+		return nearest ?? nearestInALine;
 	}
 
 	// Whether WithdrawToNearestFreeTile would find somewhere to go.
