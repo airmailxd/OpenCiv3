@@ -1,8 +1,5 @@
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Reflection;
 using System.Threading;
 using C7Engine;
 
@@ -70,59 +67,23 @@ public static class EngineWaits {
 
 }
 
-// Finds exceptions the engine recorded from its async void message handlers.
-//
-// The engine may keep the last such exception in a static field or property
-// of type Exception; this looks for any such member in the engine assembly,
-// so it keeps working whatever the member is called (and does nothing if
-// there isn't one).
+// Finds exceptions the engine recorded from its async void message handlers,
+// which it keeps in EngineStorage.LastUnhandledEngineException.
 public sealed class EngineFailures {
-	private static readonly Lazy<IReadOnlyList<Func<object>>> members = new(FindMembers);
+	private readonly Exception before;
 
-	private readonly List<(Func<object> read, object before)> watched;
-
-	private EngineFailures(List<(Func<object>, object)> watched) {
-		this.watched = watched;
+	private EngineFailures(Exception before) {
+		this.before = before;
 	}
 
 	// Starts watching for exceptions recorded from now on.
 	public static EngineFailures Watch() {
-		return new EngineFailures(members.Value.Select(read => (read, read())).ToList());
+		return new EngineFailures(EngineStorage.LastUnhandledEngineException);
 	}
 
 	public void ThrowIfAny(string doing) {
-		foreach ((Func<object> read, object before) in watched) {
-			if (read() is Exception e && !ReferenceEquals(e, before)) {
-				throw new Exception($"The engine failed while {doing}: {e.Message}", e);
-			}
+		if (EngineStorage.LastUnhandledEngineException is Exception e && !ReferenceEquals(e, before)) {
+			throw new Exception($"The engine failed while {doing}: {e.Message}", e);
 		}
-	}
-
-	private static IReadOnlyList<Func<object>> FindMembers() {
-		List<Func<object>> found = [];
-		Type[] types;
-		try {
-			types = typeof(EngineStorage).Assembly.GetTypes();
-		} catch (ReflectionTypeLoadException e) {
-			types = e.Types.Where(t => t != null).ToArray();
-		}
-		const BindingFlags flags = BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
-		foreach (Type type in types) {
-			if (type.ContainsGenericParameters) {
-				continue;
-			}
-			foreach (FieldInfo field in type.GetFields(flags)) {
-				if (typeof(Exception).IsAssignableFrom(field.FieldType) && !field.IsLiteral) {
-					found.Add(() => field.GetValue(null));
-				}
-			}
-			foreach (PropertyInfo property in type.GetProperties(flags)) {
-				if (typeof(Exception).IsAssignableFrom(property.PropertyType) && property.GetMethod != null
-					&& property.GetIndexParameters().Length == 0) {
-					found.Add(() => property.GetValue(null));
-				}
-			}
-		}
-		return found;
 	}
 }

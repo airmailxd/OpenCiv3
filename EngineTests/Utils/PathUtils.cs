@@ -23,13 +23,18 @@ public class PathUtils {
 		get => Path.Combine(Civ3Location.GetCiv3Path(), "Conquests", "Text", "PediaIcons.txt");
 	}
 
+	// The test project's folder (e.g. EngineTests), found by walking up from
+	// the test assembly's folder, so it doesn't depend on the current
+	// directory. Ends with a directory separator.
 	public static string testDirectory {
 		get {
-			string[] parts = AppDomain.CurrentDomain.BaseDirectory.Split(Path.DirectorySeparatorChar);
-			int pos = parts.Reverse().ToList().FindIndex(s => C7GameDataTestsFolderNames.Contains(s));
-			string up = string.Concat("..", Path.DirectorySeparatorChar);
-			string relativePath = string.Concat(Enumerable.Repeat(up, pos - 1));
-			return Path.GetFullPath(relativePath);
+			for (DirectoryInfo dir = new(AppContext.BaseDirectory); dir != null; dir = dir.Parent) {
+				if (C7GameDataTestsFolderNames.Contains(dir.Name)) {
+					return Path.TrimEndingDirectorySeparator(dir.FullName) + Path.DirectorySeparatorChar;
+				}
+			}
+			throw new DirectoryNotFoundException($"None of the folders above the test assembly's folder {AppContext.BaseDirectory} "
+				+ $"is a test project folder ({string.Join(", ", C7GameDataTestsFolderNames)})");
 		}
 	}
 }

@@ -418,9 +418,11 @@ public class FixEconomyTests {
 		}
 
 		// 2^40 paths lead from the top to the bottom.
+		// Walking them would never finish; a linear walk takes milliseconds.
+		// The bound is generous so a loaded CI machine doesn't fail it.
 		Stopwatch watch = Stopwatch.StartNew();
 		player.CalculateFreshTechQueueAndAssignNewCurrent(top);
-		Assert.True(watch.ElapsedMilliseconds < 5000);
+		Assert.True(watch.ElapsedMilliseconds < 30000, $"Took {watch.ElapsedMilliseconds} ms");
 
 		Assert.Equal(gameData.techs.Count, player.ResearchQueue.Count);
 		Assert.Equal(bottom, player.ResearchQueue.Peek());

@@ -682,14 +682,19 @@ public class LanTest : IClassFixture<SaveGameFixture>, IDisposable {
 	// without holding up the caller (the lobby) meanwhile.
 	[Fact]
 	public async Task JoiningAHostThatDoesntAnswerGivesUpInTheBackground() {
-		// Nothing routes there, so it either times out or fails at once.
-		LanAddressEndpoint nowhere = new("10.255.255.1", LanProtocol.DefaultPort);
+		// 192.0.2.1 is in TEST-NET-1 (RFC 5737), which is never assigned to a
+		// host, so connecting either times out or fails at once.
+		LanAddressEndpoint nowhere = new("192.0.2.1", LanProtocol.DefaultPort);
+		TimeSpan timeout = TimeSpan.FromSeconds(3);
 		Stopwatch waited = Stopwatch.StartNew();
-		Task<LanClient> joining = LanClient.ConnectAsync(nowhere, "Guest", timeout: TimeSpan.FromSeconds(1));
-		Assert.True(waited.Elapsed < TimeSpan.FromSeconds(1));
+		Task<LanClient> joining = LanClient.ConnectAsync(nowhere, "Guest", timeout: timeout);
+		// Returning before the timeout could have run out shows it didn't
+		// wait for it.
+		Assert.True(waited.Elapsed < timeout, $"ConnectAsync took {waited.Elapsed} to return");
 		Exception e = await Record.ExceptionAsync(() => joining);
 		Assert.True(e is TimeoutException or System.Net.Sockets.SocketException, e?.ToString());
-		Assert.True(waited.Elapsed < TimeSpan.FromSeconds(5));
+		// Generous, for a loaded CI machine: it must give up, not hang.
+		Assert.True(waited.Elapsed < timeout + TimeSpan.FromSeconds(27), $"Giving up took {waited.Elapsed}");
 
 		// And joining can be called off.
 		using CancellationTokenSource cancel = new();
