@@ -69,6 +69,11 @@ public class PlayerRelationship {
 	// before it was, or wars that came from a scenario).
 	public bool? otherStartedCurrentWar = null;
 
+	// p1.playerRelationships[p2].warWearinessPoints is how weary p1's
+	// people are of fighting p2 (see Player.UpdateWarWeariness). Below zero
+	// it is war happiness. It lingers after peace, fading each turn.
+	public int warWearinessPoints = 0;
+
 	// p1.playerRelationships[p2].hasEmbassy is true if p1 has an embassy in
 	// p2's capital, which diplomatic missions against p2 need.
 	public bool hasEmbassy = false;

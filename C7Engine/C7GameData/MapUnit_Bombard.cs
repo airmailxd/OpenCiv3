@@ -219,6 +219,7 @@ namespace C7GameData {
 			}
 
 			bool targetDestroyed = false;
+			bool wasAboveOneHitPoint = target.CompositeHitPoints() > 1;
 			if (hitCount > 0) {
 				for (int i = 0; i < hitCount && !targetDestroyed; ++i) {
 					bool lethal = tile.IsLand() ? unitType.isLandBombardmentLethal : unitType.isSeaBombardmentLethal;
@@ -234,6 +235,8 @@ namespace C7GameData {
 				await target.animateAsync(AnimatedAction.DEATH, AnimationEnding.Pause);
 				target.RemoveFromPlay();
 				// Target destroyed, skip remaining fire -- TODO: Re-target?
+			} else if (wasAboveOneHitPoint && target.CompositeHitPoints() == 1) {
+				target.owner.AddWarWeariness(owner, Player.WarWearinessForUnitBombardedToOneHitPoint);
 			}
 
 			TriggerPopUp(hitCount, tile, "Artillery bombardment successful! Enemy units injured.");
@@ -327,6 +330,9 @@ namespace C7GameData {
 				tile.overlays.Remove(improvement);
 				// "Replace" with downgraded improvement if it exists
 				tile.overlays.Add(improvement?.upgradesFrom);
+				if (improvement != null) {
+					tile.OwningPlayer()?.AddWarWeariness(owner, Player.WarWearinessForPillagedOrBombedImprovement);
+				}
 				// TODO: Re-target?
 			});
 

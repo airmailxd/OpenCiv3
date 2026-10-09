@@ -50,6 +50,7 @@ public partial class MapUnit {
 			if (target.upgradesFrom != null)
 				location.overlays.Add(target.upgradesFrom);
 		}
+		location.OwningPlayer()?.AddWarWeariness(owner, Player.WarWearinessForPillagedOrBombedImprovement);
 		movementPoints.onUnitMove(1);
 		hasPillagedThisTurn = true;
 		Wake();

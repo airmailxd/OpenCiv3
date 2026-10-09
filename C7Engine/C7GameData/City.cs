@@ -1861,8 +1861,10 @@ namespace C7GameData {
 			// TODO: add penalty for drafting, once drafting is implemented
 			// (Government.draftLimit is imported but nothing drafts yet).
 
-			// War weariness makes citizens unhappy, like pop rushing.
+			// War weariness makes citizens unhappy, like pop rushing, and war
+			// happiness makes them happy.
 			contentToHappyMoves -= owner.WarWearinessUnhappiness(this);
+			contentToHappyMoves += owner.WarHappiness(this);
 
 			List<CityBuilding> buildings = EffectiveBuildings();
 			// TODO: add penalty for aggression against home country
