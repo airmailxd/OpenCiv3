@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -96,6 +97,53 @@ public class LanHost : IDisposable {
 	private const int MaxUnseatedGuests = 24;
 	private const int MaxUnseatedGuestsPerAddress = 4;
 
+	// How many frames a guest or spectator may have handled a second, on
+	// average, and at once; the rest wait their turn, and a peer whose
+	// frames pile up past the most a connection holds here is dropped.
+	private const double FramesPerSecond = 50;
+	private const double FrameBurst = 200;
+	private const int MaxReceivedFramesPerPeer = 5_000;
+
+	// A peer that asks for the whole game again is sent it no more often
+	// than this, since taking and encoding it is costly.
+	private static readonly TimeSpan WholeSnapshotInterval = TimeSpan.FromSeconds(5);
+
+	// The frames a peer may have handled now (see FramesPerSecond).
+	private sealed class FrameBudget {
+		private double frames = FrameBurst;
+		private long refilledAt = Stopwatch.GetTimestamp();
+
+		public bool Take() {
+			long now = Stopwatch.GetTimestamp();
+			frames = Math.Min(FrameBurst, frames + Stopwatch.GetElapsedTime(refilledAt, now).TotalSeconds * FramesPerSecond);
+			refilledAt = now;
+			if (frames < 1) {
+				return false;
+			}
+			frames -= 1;
+			return true;
+		}
+	}
+
+	// A peer's asking for the whole game: whether it's waiting for it, and
+	// when it was last sent it.
+	private sealed class WholeSnapshotRequest {
+		public bool pending;
+		public Stopwatch sinceSent;
+
+		// Has the peer sent the whole game next if it's asked and not too
+		// soon after the last time; returns whether it was.
+		public bool TakeDue(LanConnection connection) {
+			if (!pending || (sinceSent != null && sinceSent.Elapsed < WholeSnapshotInterval)) {
+				return false;
+			}
+			pending = false;
+			(sinceSent ??= new Stopwatch()).Restart();
+			RequestWholeSnapshot(connection);
+			return true;
+		}
+	}
+
 	private class Seat {
 		public SeatInfo info;
 		// The guest playing this seat, and the name of the player in it.
@@ -143,6 +191,8 @@ public class LanHost : IDisposable {
 		public bool watchOnceAdmitted;
 		// Since it connected, or was last asked for the password.
 		public readonly Stopwatch waiting = Stopwatch.StartNew();
+		public readonly FrameBudget frameBudget = new();
+		public readonly WholeSnapshotRequest wholeSnapshot = new();
 	}
 
 	private readonly string hostName;
@@ -198,6 +248,8 @@ public class LanHost : IDisposable {
 		public string name;
 		public string token;
 		public readonly List<byte[]> pendingUiMessages = new();
+		public FrameBudget frameBudget = new();
+		public readonly WholeSnapshotRequest wholeSnapshot = new();
 	}
 	private readonly List<Spectator> spectators = new();
 	private int nextSpectatorID = 1;
@@ -646,12 +698,35 @@ public class LanHost : IDisposable {
 	}
 
 	public void Poll() {
+		// What guests do here tells everyone of the lobby once, at the end.
+		deferLobby = true;
+		try {
+			PollPeers();
+		} finally {
+			deferLobby = false;
+		}
+		if (lobbyChanged) {
+			BroadcastLobby();
+		}
+
+		if (Started) {
+			UpdateTurnClock();
+			MaybeSendSnapshot();
+		}
+		PublishDiscoveryReply();
+		Online?.SetListing(ListPublicly ? CurrentListing() : null);
+		SaveResumeInfoIfChanged();
+	}
+
+	private void PollPeers() {
 		while (accepted.TryDequeue(out LanTransport transport)) {
 			if (!MakeRoomFor(transport)) {
 				transport.Dispose();
 				continue;
 			}
-			LanConnection connection = new(transport, maxFrameBytes: LanProtocol.MaxFrameBytesBeforeAdmission);
+			LanConnection connection = new(transport, maxFrameBytes: LanProtocol.MaxFrameBytesBeforeAdmission) {
+				maxReceivedFrames = MaxReceivedFramesPerPeer,
+			};
 			if (transport.RemoteHost != null && bannedAddresses.Contains(transport.RemoteHost)) {
 				log.Information("Turned away {Address}, which is banned", transport.RemoteAddress);
 				connection.Send(FrameKind.Rejected, Encoding.UTF8.GetBytes(BannedReason));
@@ -668,14 +743,6 @@ public class LanHost : IDisposable {
 		foreach (Spectator spectator in spectators.ToList()) {
 			PollSpectator(spectator);
 		}
-
-		if (Started) {
-			UpdateTurnClock();
-			MaybeSendSnapshot();
-		}
-		PublishDiscoveryReply();
-		Online?.SetListing(ListPublicly ? CurrentListing() : null);
-		SaveResumeInfoIfChanged();
 	}
 
 	// Whether a new connection may join the guests without a seat: there's
@@ -987,7 +1054,7 @@ public class LanHost : IDisposable {
 	}
 
 	private void PollGuest(Guest guest) {
-		while (guest.connection.TryReceive(out Frame frame)) {
+		while (guest.connection.TryPeek(out _) && guest.frameBudget.Take() && guest.connection.TryReceive(out Frame frame)) {
 			try {
 				if (!HandleGuestFrame(guest, frame)) {
 					// Turned away, or watching from now on.
@@ -1098,13 +1165,12 @@ public class LanHost : IDisposable {
 				return true;
 			case FrameKind.RequestSnapshot:
 				if (Started && SeatsOf(guest).Any()) {
-					RequestWholeSnapshot(guest.connection);
-					snapshotPending = true;
+					guest.wholeSnapshot.pending = true;
 				}
 				return true;
 			default:
-				log.Warning("Ignoring {Kind} frame from {Address}", frame.kind, guest.connection.RemoteAddress);
-				return true;
+				// Counted as a frame that can't be read.
+				throw new InvalidDataException($"A guest doesn't send {frame.kind} frames");
 		}
 	}
 
@@ -1203,7 +1269,9 @@ public class LanHost : IDisposable {
 			return true;
 		}
 		guests.Remove(guest);
-		Spectator spectator = new() { id = nextSpectatorID++, connection = guest.connection, name = guest.name, token = guest.token };
+		Spectator spectator = new() {
+			id = nextSpectatorID++, connection = guest.connection, name = guest.name, token = guest.token, frameBudget = guest.frameBudget,
+		};
 		spectators.Add(spectator);
 		spectatorTokens.Remove(guest.token);
 		spectatorTokens.Add(guest.token);
@@ -1223,9 +1291,12 @@ public class LanHost : IDisposable {
 	private void ClaimSeat(Guest guest, ClaimSeatInfo claim) {
 		Seat seat = seats.Find(s => s.info.playerID == claim.playerID);
 		if (seat != null && seat.guest == guest && seat.IsTaken) {
-			if (!Started && !creatingGame) {
-				seat.takenBy = SeatPlayerName(guest, claim.playerName);
+			string renamed = Started || creatingGame ? seat.takenBy : SeatPlayerName(guest, claim.playerName);
+			if (renamed == seat.takenBy) {
+				SendLobby(guest);
+				return;
 			}
+			seat.takenBy = renamed;
 			BroadcastLobby();
 			return;
 		}
@@ -1391,16 +1462,18 @@ public class LanHost : IDisposable {
 	}
 
 	private void HandleCommand(Guest guest, Frame frame) {
-		if (!Started) {
+		// Guests act only as their own players, so one without a seat has
+		// nothing to say, and isn't listened to.
+		List<Seat> theirs = SeatsOf(guest).ToList();
+		if (!Started || theirs.Count == 0) {
 			return;
 		}
 		MessageToEngine msg = NetSerialization.DeserializeRequired<MessageToEngine>(frame.payload);
 		if (msg.IsLocal) {
 			return;
 		}
-		// Guests act only as their own players. One with a single seat always
-		// acts as it; one with several says which.
-		List<Seat> theirs = SeatsOf(guest).ToList();
+		// One with a single seat always acts as it; one with several says
+		// which.
 		if (theirs.Count == 1) {
 			msg.playerID = theirs[0].info.playerID;
 		} else if (!theirs.Any(s => s.info.playerID == msg.playerID)) {
@@ -1430,12 +1503,14 @@ public class LanHost : IDisposable {
 			|| (choosable.Any(c => c.name == civilization)
 				&& civilization != hostCivilization
 				&& !seats.Any(s => s != seat && s.info.civilization == civilization));
-		if (available) {
+		if (available && seat.info.civilization != civilization) {
 			seat.info = seat.info with { civilization = civilization };
 			log.Information("{Name} chose {Civilization}", seat.takenBy, civilization ?? "a random civilization");
+			BroadcastLobby();
+		} else {
+			// The guest hears how things stand.
+			SendLobby(guest);
 		}
-		// Either way, everyone hears how things stand.
-		BroadcastLobby();
 	}
 
 	// Closes the guests' choices, and returns the guests as GameSetup's
@@ -1480,10 +1555,9 @@ public class LanHost : IDisposable {
 	// Spectators only listen: whatever they send is dropped, except asking
 	// for the whole game.
 	private void PollSpectator(Spectator spectator) {
-		while (spectator.connection.TryReceive(out Frame frame)) {
+		while (spectator.connection.TryPeek(out _) && spectator.frameBudget.Take() && spectator.connection.TryReceive(out Frame frame)) {
 			if (frame.kind == FrameKind.RequestSnapshot && Started) {
-				RequestWholeSnapshot(spectator.connection);
-				spectatorSnapshotPending = true;
+				spectator.wholeSnapshot.pending = true;
 			}
 		}
 		if (spectator.connection.IsClosed) {
@@ -1558,6 +1632,12 @@ public class LanHost : IDisposable {
 			spectatorSnapshotPending = true;
 			sinceChange.Restart();
 		}
+		foreach (Guest guest in SeatedGuests()) {
+			snapshotPending |= guest.wholeSnapshot.TakeDue(guest.connection);
+		}
+		foreach (Spectator spectator in spectators.Where(s => !s.connection.IsClosed)) {
+			spectatorSnapshotPending |= spectator.wholeSnapshot.TakeDue(spectator.connection);
+		}
 		if (EncodingSnapshot) {
 			return;
 		}
@@ -1626,9 +1706,18 @@ public class LanHost : IDisposable {
 			SimultaneousTurns, reconnectToken, HideUnseen));
 	}
 
-	private void BroadcastLobby() {
-		foreach (Guest guest in guests.Where(g => g.admitted)) {
+	// While Poll handles what guests send, the lobby is sent once at the
+	// end rather than for each thing they do.
+	private bool deferLobby;
+	private bool lobbyChanged;
 
+	private void BroadcastLobby() {
+		if (deferLobby) {
+			lobbyChanged = true;
+			return;
+		}
+		lobbyChanged = false;
+		foreach (Guest guest in guests.Where(g => g.admitted)) {
 			SendLobby(guest);
 		}
 		foreach (Spectator spectator in spectators) {
