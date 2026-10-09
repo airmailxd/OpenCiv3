@@ -42,6 +42,9 @@ namespace C7Engine {
 			MaybeDoPriorityReevaluation(player);
 			MaybePickTechToResearch(player, techs);
 
+			// Ask for peace in wars that are going badly.
+			await PeaceAI.ProposePeace(player, gameData);
+
 			// Roughly every 4 turns, see if there are trades to be made.
 			if (GameData.rng.Next(100) < 25) {
 				await AttemptTrading(player);

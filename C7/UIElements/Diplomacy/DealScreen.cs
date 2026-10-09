@@ -82,10 +82,12 @@ public partial class DealScreen : TextureRect {
 			// A tech can only go to a player who could research it themselves.
 			List<Tech> techsOpponentCanTrade = opponentPlayer.GetTechsTradableTo(humanPlayer, gD.techs);
 			List<Tech> techsHumanCanTrade = humanPlayer.GetTechsTradableTo(opponentPlayer, gD.techs);
+			List<City> citiesOpponentCanTrade = TradeOffer.TradableCities(opponentPlayer);
+			List<City> citiesHumanCanTrade = TradeOffer.TradableCities(humanPlayer);
 
 			// Left hand side UI components.
-			opponentTree = new TradingTree(fontTheme, opponentPlayer.gold, techsOpponentCanTrade, opponentOffer,
-				playersAtWar);
+			opponentTree = new TradingTree(fontTheme, opponentPlayer.gold, techsOpponentCanTrade, citiesOpponentCanTrade,
+				opponentOffer, playersAtWar);
 			AddChild(opponentTree);
 			opponentTree.Position = new Vector2(45, 220);
 
@@ -95,13 +97,13 @@ public partial class DealScreen : TextureRect {
 			weWant.Theme = blueFontTheme;
 			AddChild(weWant);
 
-			opponentOfferUi = new(fontTheme, techsOpponentCanTrade, opponentPlayer.gold, opponentOffer, playersAtWar,
+			opponentOfferUi = new(fontTheme, techsOpponentCanTrade, citiesOpponentCanTrade, opponentPlayer.gold, opponentOffer, playersAtWar,
 				HorizontalAlignment.Left);
 			AddChild(opponentOfferUi);
 			opponentOfferUi.Position = new Vector2(314, 453);
 
 			// Right hand side UI components.
-			humanTree = new TradingTree(fontTheme, humanPlayer.gold, techsHumanCanTrade, humanOffer, playersAtWar);
+			humanTree = new TradingTree(fontTheme, humanPlayer.gold, techsHumanCanTrade, citiesHumanCanTrade, humanOffer, playersAtWar);
 			AddChild(humanTree);
 			humanTree.Position = new Vector2(789, 220);
 
@@ -111,7 +113,7 @@ public partial class DealScreen : TextureRect {
 			weOffer.Theme = blueFontTheme;
 			AddChild(weOffer);
 
-			humanOfferUi = new(fontTheme, techsHumanCanTrade, humanPlayer.gold, humanOffer, playersAtWar,
+			humanOfferUi = new(fontTheme, techsHumanCanTrade, citiesHumanCanTrade, humanPlayer.gold, humanOffer, playersAtWar,
 				HorizontalAlignment.Right);
 			AddChild(humanOfferUi);
 			humanOfferUi.Position = new Vector2(527, 453);

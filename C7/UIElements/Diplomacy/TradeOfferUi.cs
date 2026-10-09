@@ -11,11 +11,13 @@ public partial class TradeOfferUi : Tree {
 	TreeItem lumpSumGold;
 	// The tech each technology item stands for.
 	Dictionary<TreeItem, Tech> techs = new();
+	// The city each city item stands for.
+	Dictionary<TreeItem, City> cities = new();
 	TradeOffer currentOffer;
 	List<Tech> tradeableTechs;
 	int playerGold;
 
-	public TradeOfferUi(Theme fontTheme, List<Tech> tradeableTechs, int playerGold,
+	public TradeOfferUi(Theme fontTheme, List<Tech> tradeableTechs, List<City> tradeableCities, int playerGold,
 						TradeOffer currentOffer, bool requiresPeaceTreaty,
 						HorizontalAlignment alignment) {
 		this.currentOffer = currentOffer;
@@ -48,6 +50,13 @@ public partial class TradeOfferUi : Tree {
 			techs[child] = tech;
 		}
 
+		foreach (City city in tradeableCities) {
+			TreeItem child = this.CreateItem(root);
+			child.SetTextAlignment(0, alignment);
+			child.SetText(0, $"{city.name} ({city.residents.Count})");
+			cities[child] = city;
+		}
+
 		RefreshUiForOffer();
 	}
 
@@ -60,6 +69,9 @@ public partial class TradeOfferUi : Tree {
 			if (techs.TryGetValue(ti, out Tech itemTech)) {
 				Tech t = tradeableTechs.Find(x => x.Name == itemTech.Name);
 				currentOffer.techs.Remove(t);
+			}
+			if (cities.TryGetValue(ti, out City itemCity)) {
+				currentOffer.cities.Remove(itemCity);
 			}
 			if (ti == lumpSumGold && mouseButtonIndex != 2) {
 				currentOffer.gold = null;
@@ -122,6 +134,9 @@ public partial class TradeOfferUi : Tree {
 		HashSet<string> offeredTechs = new(currentOffer.techs.Select(x => x.Name));
 		foreach (var (ti, tech) in techs) {
 			ti.Visible = offeredTechs.Contains(tech.Name);
+		}
+		foreach (var (ti, city) in cities) {
+			ti.Visible = currentOffer.cities.Contains(city);
 		}
 
 		if (peaceTreaty != null) {

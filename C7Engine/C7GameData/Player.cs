@@ -725,16 +725,11 @@ namespace C7GameData {
 			return AggregateFlows().Netflows();
 		}
 
-		// How much more than it gives an AI that is winning a war wants for
-		// making peace, for each of the other side's cities. This and
-		// WinningStrengthRatio are a placeholder for our AI, not Civ3
-		// behaviour, which isn't documented.
-		private const int PeaceTributePerCity = 30;
-
-		// How much stronger than the other side an AI must be to think it is
-		// winning the war.
-		private const float WinningStrengthRatio = 1.5f;
-
+		// Whether we, an AI, would accept the deal, in which the other player
+		// gives theirOffer and we give ourOffer. Cities count for nothing in
+		// the valuation (see TradeOffer.GoldEquivalentFor), and per the
+		// project owner we never give a city away except in a peace treaty.
+		// Peace is weighed up by PeaceAI.
 		public bool WouldAcceptDealFrom(GameData gameData, Player other, TradeOffer theirOffer, TradeOffer ourOffer) {
 			// TODO: consider any factors like trade reputations here and culture groups
 			if (TradeOffer.ProblemWithDeal(gameData, other, this, theirOffer, ourOffer) != null) {
@@ -748,13 +743,11 @@ namespace C7GameData {
 			int theirGoldValue = theirOffer.GoldEquivalentFor(gameData, this);
 			int ourGoldValue = ourOffer.GoldEquivalentFor(gameData, this);
 
-			// Peace is welcome once we are talking again, unless we are
-			// clearly winning: then the other side has to pay for it. A
-			// placeholder until the AI weighs up wars properly, not Civ3's
-			// AI behaviour.
-			if ((theirOffer.partOfPeaceTreaty || ourOffer.partOfPeaceTreaty)
-				&& CalculateMilitaryStrength() > WinningStrengthRatio * other.CalculateMilitaryStrength()) {
-				ourGoldValue += PeaceTributePerCity * Math.Max(1, other.cities.Count);
+			if (theirOffer.partOfPeaceTreaty || ourOffer.partOfPeaceTreaty) {
+				return C7Engine.AI.PeaceAI.WouldAcceptPeace(this, other, theirOffer, ourOffer, theirGoldValue, ourGoldValue);
+			}
+			if (ourOffer.cities.Count > 0) {
+				return false;
 			}
 			return theirGoldValue >= ourGoldValue;
 		}
@@ -787,6 +780,14 @@ namespace C7GameData {
 
 			other.CompleteResearchAndBeginNew(gameData, ourOffer.techs);
 			this.CompleteResearchAndBeginNew(gameData, theirOffer.techs);
+
+			// Cities change hands last, once the gold and techs have.
+			foreach (City city in ourOffer.cities.ToList()) {
+				CityInteractions.TransferCity(city, other, viaDeal: true);
+			}
+			foreach (City city in theirOffer.cities.ToList()) {
+				CityInteractions.TransferCity(city, this, viaDeal: true);
+			}
 			return true;
 		}
 

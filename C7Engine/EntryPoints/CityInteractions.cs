@@ -266,13 +266,22 @@ namespace C7Engine {
 		// buildings, except the palace and small wonders, which belong to the
 		// old owner's empire. As in Civ3, the old owner's units in it join the
 		// new owner along with the city.
-		public static void TransferCity(City city, Player newOwner) {
+		//
+		// viaDeal is for a city given away in a deal (see
+		// Player.ExecuteDeal), which per the project owner doesn't resist its
+		// new owner. Its old owner keeps their units, which leave for the
+		// nearest free tile (UNVERIFIED, no Civ3 source found), and are lost
+		// if there's nowhere for them to go.
+		public static void TransferCity(City city, Player newOwner, bool viaDeal = false) {
 			GameData gameData = EngineStorage.gameData;
 			Player oldOwner = city.owner;
 			Tile tile = city.location;
 
-			foreach (MapUnit unit in tile.unitsOnTile.Where(u => u.owner == oldOwner).ToList()) {
-				gameData.CaptureUnit(unit, newOwner);
+			List<MapUnit> oldOwnersUnits = tile.unitsOnTile.Where(u => u.owner == oldOwner).ToList();
+			if (!viaDeal) {
+				foreach (MapUnit unit in oldOwnersUnits) {
+					gameData.CaptureUnit(unit, newOwner);
+				}
 			}
 
 			foreach (CityBuilding cb in city.constructed_buildings.ToList()) {
@@ -296,10 +305,18 @@ namespace C7Engine {
 			BarbarianInteractions.DisperseCampsWithinBorders(gameData);
 			gameData.InvalidateCachedTradeNetwork();
 
+			if (viaDeal) {
+				foreach (MapUnit unit in oldOwnersUnits) {
+					if (unit.location == tile && !unit.WithdrawToNearestFreeTile()) {
+						gameData.RemoveUnit(unit);
+					}
+				}
+			}
+
 			city.SetItemBeingProduced(ChooseProducible.Choose(city, newOwner));
 			city.ClearProductionQueue();
 
-			log.Information("{City} changed hands from {OldOwner} to {NewOwner}", city, oldOwner, newOwner);
+			log.Information("{City} changed hands from {OldOwner} to {NewOwner}{ViaDeal}", city, oldOwner, newOwner, viaDeal ? " in a deal" : "");
 			new MsgCityCaptured(city, oldOwner).send();
 
 			gameData.CheckForCivDestructionAndNotifyUi(oldOwner);

@@ -12,9 +12,28 @@ namespace C7GameData {
 		public int? gold = null;
 		public List<Tech> techs = new();
 
+		// Cities change hands peacefully, without resistance (see
+		// CityInteractions.TransferCity with viaDeal).
+		public List<City> cities = new();
+
+		// The cities a player may give away in a deal: any but its capital,
+		// and only while it has another city to keep.
+		public static List<City> TradableCities(Player player) {
+			if (player == null || player.cities.Count < 2) {
+				return new List<City>();
+			}
+			return player.cities.Where(c => !c.IsCapital()).ToList();
+		}
+
 		// Calculate how much this trade offer is worth for a given player. This
 		// has to be per-player because tech costs vary based on how many civs
 		// a player have already researched the tech.
+		//
+		// Cities are worth nothing here: per the project owner, the AI (whose
+		// view of a deal this is) never values a city, either way. Civ3's AI
+		// "doesn't evaluate city trades very well", which is why a patch took
+		// city trading out of ordinary deals
+		// (https://forums.civfanatics.com/threads/trading-cities.177929/).
 		public int GoldEquivalentFor(GameData gameData, Player p) {
 			int result = 0;
 			if (gold.HasValue) {
@@ -49,6 +68,12 @@ namespace C7GameData {
 		//   offered only a peace treaty at war before this check existed.
 		// - UNVERIFIED (no Civ3 source found): that the two must have met.
 		//   Only civs met can be picked for diplomacy.
+		// - Cities may be traded in any deal, at peace or in a peace treaty,
+		//   per the project owner. (Civ3 patched them out of everything but
+		//   peace treaties: "You can now only 'buy' cities by demanding them
+		//   in tribute as part of a peace treaty",
+		//   https://forums.civfanatics.com/threads/trading-cities.177929/.)
+		//   A civ can't give away its capital or its last city.
 		public static string ProblemWithDeal(GameData gameData, Player proposer, Player opponent,
 			TradeOffer proposerGives, TradeOffer proposerWants) {
 			if (proposer == null || opponent == null || proposerGives == null || proposerWants == null) {
@@ -93,8 +118,25 @@ namespace C7GameData {
 			if (gold.HasValue && gold.Value > giver.gold) {
 				return $"{giver} doesn't have {gold.Value} gold";
 			}
-			if (techs == null) {
-				return "the techs are missing";
+			if (techs == null || cities == null) {
+				return "the techs or cities are missing";
+			}
+			if (cities.Count > 0) {
+				HashSet<City> given = new();
+				foreach (City c in cities) {
+					if (c == null || !given.Add(c)) {
+						return "a city is missing or offered twice";
+					}
+					if (c.owner != giver || !giver.cities.Contains(c)) {
+						return $"{giver} doesn't own {c.name}";
+					}
+					if (c.IsCapital()) {
+						return $"{giver} can't give away their capital";
+					}
+				}
+				if (cities.Count >= giver.cities.Count) {
+					return $"{giver} can't give away their last city";
+				}
 			}
 			if (techs.Count > 0) {
 				HashSet<ID> tradable = giver.GetTechsTradableTo(receiver, gameData.techs).Select(t => t.id).ToHashSet();
@@ -117,6 +159,7 @@ namespace C7GameData {
 			partOfPeaceTreaty = false;
 			gold = null;
 			techs.Clear();
+			cities.Clear();
 		}
 
 		public override string ToString() {
@@ -129,6 +172,9 @@ namespace C7GameData {
 			}
 			foreach (Tech t in techs) {
 				pieces.Add(t.Name);
+			}
+			foreach (City c in cities) {
+				pieces.Add(c.name);
 			}
 			return string.Join(",", pieces);
 		}
