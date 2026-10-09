@@ -48,6 +48,11 @@ namespace C7Engine {
 				if (tilesNearSettlerDestinations.Contains(t) || !t.IsAllowCities() || (excludedTiles != null && excludedTiles.Contains(t))) {
 					continue;
 				}
+
+				// Cities can't be founded in another civ's territory.
+				if (IsOwnedByRival(t, player)) {
+					continue;
+				}
 				candidates.Add(t);
 			}
 
@@ -62,6 +67,26 @@ namespace C7Engine {
 
 			PlayerScoreCache cache = GetPlayerScoreCache(player);
 			var maxRank = player.rules.MaxRankOfWorkableTiles;
+			Civilization.SettlerTileAdjustments adjustments = player.civilization.Adjustments;
+
+			// Distance is measured from our nearest city, so that new cities
+			// grow the empire outwards rather than wherever the settler was
+			// built. Without cities yet, it's measured from the settler.
+			List<Tile> ownCities = new();
+			foreach (City c in player.cities) {
+				ownCities.Add(c.location);
+			}
+			List<Tile> rivalCities = new();
+			foreach (Player p in EngineStorage.gameData?.players ?? new List<Player>()) {
+				if (p == player) {
+					continue;
+				}
+				foreach (City c in p.cities) {
+					if (c.location.map == startTile.map) {
+						rivalCities.Add(c.location);
+					}
+				}
+			}
 
 			foreach (Tile t in candidates) {
 				float score = cache.TileYieldScore(t);
@@ -72,6 +97,11 @@ namespace C7Engine {
 				//	  city | 100% | 75% | 50% | 25% | 0% | 0% | ..
 				BigFatCross bfc = cache.GetBigFatCross(t, maxRank);
 				for (int i = 0; i < bfc.tiles.Length; ++i) {
+					// Tiles in a rival's territory, and their resources, are
+					// theirs to work, not ours.
+					if (IsOwnedByRival(bfc.tiles[i], player)) {
+						continue;
+					}
 					score += cache.TileYieldScore(bfc.tiles[i]) * bfc.adjustments[i];
 				}
 
@@ -86,12 +116,17 @@ namespace C7Engine {
 				// Let defensibility play a role
 				score += (float)t.baseTerrainType.defenseBonus.amount * 20.0f;
 
+				// Rival cities nearby will compete for the tiles, and their
+				// borders will grow over them.
+				foreach (Tile rivalCity in rivalCities) {
+					if (t.DistanceTo(rivalCity) <= adjustments.RivalCityRadius) {
+						score += adjustments.RivalCityPenalty;
+					}
+				}
+
 				//Lower scores if they are far away
 				float preDistanceScore = score;
-				int distance = startTile.DistanceTo(t);
-				if (distance > player.civilization.Adjustments.DistancePenaltyRadius) {
-					score += player.civilization.Adjustments.DistancePenalty * distance;
-				}
+				score += DistancePenalty(DistanceFromEmpire(t, startTile, ownCities), adjustments);
 
 				//Distance can never lower score beyond 1; the AI will always try to settle those worthless tundras.
 				//(This could actually be modified in the future, but for now is also a safety rail)
@@ -102,6 +137,36 @@ namespace C7Engine {
 					scores[t] = score;
 			}
 			return scores;
+		}
+
+		// How far the tile is from our nearest city, or from `start` if we
+		// have no cities.
+		internal static int DistanceFromEmpire(Tile t, Tile start, List<Tile> ownCities) {
+			if (ownCities.Count == 0) {
+				return start.DistanceTo(t);
+			}
+			int result = int.MaxValue;
+			foreach (Tile city in ownCities) {
+				result = Math.Min(result, t.DistanceTo(city));
+			}
+			return result;
+		}
+
+		// The (negative) score adjustment for a site this far from the
+		// empire. It grows with the square of the distance beyond the radius,
+		// so that a far site needs to be much better to be worth the trip
+		// and the gap in the empire it leaves.
+		internal static float DistancePenalty(int distance, Civilization.SettlerTileAdjustments adjustments) {
+			int beyond = distance - adjustments.DistancePenaltyRadius;
+			if (beyond <= 0) {
+				return 0;
+			}
+			return adjustments.DistancePenalty * (distance + beyond * beyond);
+		}
+
+		internal static bool IsOwnedByRival(Tile t, Player player) {
+			Player owner = t.OwningPlayer();
+			return owner != null && owner != player;
 		}
 
 		private static float CalculateTileYieldScore(Tile t, Player owner) {

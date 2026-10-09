@@ -102,6 +102,52 @@ namespace EngineTests.AI.UnitAI {
 			Assert.Equal(close, chosenTile);
 		}
 
+		// Gives the tiles to a rival city that isn't on the map, so that only
+		// their ownership changes.
+		private void GiveToRival(IEnumerable<Tile> tiles) {
+			City rivalCity = new City(Tile.NONE, MakePlayer(), "Rival City", ID.None(""));
+			foreach (Tile t in tiles) {
+				t.owningCity = rivalCity;
+			}
+		}
+
+		[Fact]
+		private void NotInRivalTerritory() {
+			InitilizeStartTile(MakeHillTile(), new TileLocation(50, 50));
+			startTile.map = gameMap;
+			List<Tile> map = new() { startTile };
+			GiveToRival(map);
+
+			Player player = MakeTestPlayer(map);
+			Assert.Equal(Tile.NONE, SettlerLocationAI.FindSettlerLocation(startTile, player));
+		}
+
+		[Fact]
+		private void RivalOwnedTilesDontCountTowardsASite() {
+			// Two identical hills surrounded by flood plains, the same distance
+			// from the start, but a rival owns the flood plains around one.
+			InitilizeStartTile(MakeHillTile(), new TileLocation(44, 50));
+			Tile claimed = startTile;
+			List<Tile> claimedSurroundings = SurroundTile(claimed, MakeFloodPlainTileWithDefaultYield);
+			claimedSurroundings.Remove(claimed);
+			GiveToRival(claimedSurroundings);
+			List<Tile> map = new(claimedSurroundings) { claimed };
+
+			InitilizeStartTile(MakeHillTile(), new TileLocation(56, 50));
+			Tile free = startTile;
+			map.AddRange(SurroundTile(free, MakeFloodPlainTileWithDefaultYield));
+
+			InitilizeStartTile(MakeDesertTile(), new TileLocation(50, 50));
+			Tile start = startTile;
+			startTile.map = gameMap;
+
+			Player player = MakeTestPlayer(map);
+			// The best site is somewhere in the unclaimed cluster, not by the
+			// claimed one.
+			Tile chosen = SettlerLocationAI.FindSettlerLocation(start, player);
+			Assert.True(chosen.DistanceTo(free) <= 1, $"chose {chosen}");
+		}
+
 		[Fact]
 		private void NotAlreadyBeingSettled() {
 			// just one hill tile

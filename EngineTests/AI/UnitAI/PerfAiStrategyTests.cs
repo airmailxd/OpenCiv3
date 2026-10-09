@@ -44,6 +44,9 @@ public class PerfAiStrategyTests : IClassFixture<SaveGameFixture>, IDisposable {
 		List<MapUnit> playerSettlers = player.units.FindAll(u => u.unitType.name == "Settler");
 		IEnumerable<Tile> candidates = player.tileKnowledge.AllKnownTiles().Where(t => !IsInvalidCityLocation(t) && t.continent == start.continent);
 		candidates = candidates.Where(t => !SettlerAlreadyMovingTowardsTile(t, playerSettlers) && t.IsAllowCities() && (excludedTiles == null || !excludedTiles.Contains(t)));
+		candidates = candidates.Where(t => !SettlerLocationAI.IsOwnedByRival(t, player));
+		List<Tile> ownCities = player.cities.Select(c => c.location).ToList();
+		List<Tile> rivalCities = EngineStorage.gameData.players.Where(p => p != player).SelectMany(p => p.cities).Select(c => c.location).Where(l => l.map == start.map).ToList();
 
 		Dictionary<Tile, float> scores = new();
 		var memo = new Dictionary<string, float>();
@@ -56,6 +59,8 @@ public class PerfAiStrategyTests : IClassFixture<SaveGameFixture>, IDisposable {
 				var rank = t.RankDistanceTo(workable);
 				if (rank <= 0)
 					continue;
+				if (SettlerLocationAI.IsOwnedByRival(workable, player))
+					continue;
 				var adjustment = Math.Max(0, (maxRank - rank + 1f) / maxRank);
 				score += YieldScore(workable, player, memo) * adjustment;
 			}
@@ -66,11 +71,11 @@ public class PerfAiStrategyTests : IClassFixture<SaveGameFixture>, IDisposable {
 				score += player.civilization.Adjustments.WaterBonus;
 			}
 			score += (float)t.baseTerrainType.defenseBonus.amount * 20.0f;
+			score += player.civilization.Adjustments.RivalCityPenalty
+				* rivalCities.Count(c => t.DistanceTo(c) <= player.civilization.Adjustments.RivalCityRadius);
 			float preDistanceScore = score;
-			int distance = start.DistanceTo(t);
-			if (distance > player.civilization.Adjustments.DistancePenaltyRadius) {
-				score += player.civilization.Adjustments.DistancePenalty * distance;
-			}
+			int distance = SettlerLocationAI.DistanceFromEmpire(t, start, ownCities);
+			score += SettlerLocationAI.DistancePenalty(distance, player.civilization.Adjustments);
 			if (preDistanceScore > 0 && score <= 0) {
 				score = 1;
 			}

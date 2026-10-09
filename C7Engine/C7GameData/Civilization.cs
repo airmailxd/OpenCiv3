@@ -76,6 +76,10 @@ namespace C7GameData {
 		public class SettlerTileAdjustments {
 			public int DistancePenaltyRadius = 4;
 
+			// Each rival city within this many tiles of a site lowers its score.
+			public int RivalCityRadius = 4;
+			public float RivalCityPenalty = -25;
+
 			// TODO: Eventually, there should be different weights based on whether the AI already
 			// has the resource or not (more important to secure ones that they don't have).
 			// But since we don't have trade networks yet, for now there's only one value.
