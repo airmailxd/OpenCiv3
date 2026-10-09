@@ -165,6 +165,40 @@ public class RulesReviewFixTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(System.Math.Max(0, withoutPolice.corrupt - policeman.Corruption), withPolice.corrupt);
 	}
 
+	[Fact]
+	public void CivilEngineersOnlyHelpBuildings() {
+		City city = BuildCity(us);
+		CitizenType entertainer = gameData.citizenTypes.First(c => c.Luxuries > 0);
+		CitizenType engineer = new() { SingularName = "Civil Engineer", Construction = 2 };
+		MakeSpecialist(city, entertainer);
+		city.corruption = 0;
+		city.SetItemBeingProduced(BuildingNamed("Temple"));
+		int without = city.CurrentProductionYield().useful;
+
+		city.residents[0].citizenType = engineer;
+		Assert.Equal(without + 2, city.CurrentProductionYield().useful);
+
+		city.SetItemBeingProduced(Prototype("Warrior"));
+		Assert.Equal(without, city.CurrentProductionYield().useful);
+	}
+
+	[Fact]
+	public void TheSecretPoliceOnlyWorkUnderTheirGovernment() {
+		Building forbiddenPalace = BuildingNamed("Forbidden Palace");
+		Assert.True(forbiddenPalace.WorksAsForbiddenPalaceFor(us));
+
+		Government other = gameData.governments.First(g => g.id != us.government.id);
+		Government? required = forbiddenPalace.requiredGovernment;
+		try {
+			forbiddenPalace.requiredGovernment = other;
+			Assert.False(forbiddenPalace.WorksAsForbiddenPalaceFor(us));
+			forbiddenPalace.requiredGovernment = us.government;
+			Assert.True(forbiddenPalace.WorksAsForbiddenPalaceFor(us));
+		} finally {
+			forbiddenPalace.requiredGovernment = required;
+		}
+	}
+
 	// ---- Resistance ----
 
 	// A city of `them`'s with four of their citizens, taken by us.

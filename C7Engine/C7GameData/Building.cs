@@ -36,6 +36,17 @@ namespace C7GameData {
 		public bool increasesLuxuryTrade;
 		public bool reducesCorruption;
 		public bool isForbiddenPalace;
+
+		// Whether the building works as a Forbidden Palace for the player.
+		// One that needs a government only does under it: Civ3's Secret
+		// Police HQ "acts as a second FP while in Communism"
+		// (https://forums.civfanatics.com/threads/civ3-conquests-additions-changes-list.104294/),
+		// "a corruption-fighting building which only works under Communism"
+		// (https://sullla.com/Civ3/CQ/CQ_techs.html). Its BIQ ties it to
+		// Communism through its required government.
+		public bool WorksAsForbiddenPalaceFor(Player player) {
+			return isForbiddenPalace && (requiredGovernment == null || player?.government?.id == requiredGovernment.id);
+		}
 		public bool allowsCitySize2;
 		public bool allowsCitySize3;
 		public bool doublesCityGrowthRate;

@@ -1024,14 +1024,15 @@ namespace C7GameData {
 			float commercialCivFactor = civilization.traits.Contains(Civilization.Trait.Commercial) ? .25f : 0;
 
 			// The Secret Police HQ carries the BIQ's Forbidden Palace flag, so
-			// it counts here like a Forbidden Palace.
+			// it counts here like a Forbidden Palace, under Communism (see
+			// Building.WorksAsForbiddenPalaceFor).
 			int numCorruptionReducingSmallWondersInEmpire = 0;
 			foreach (City c in cities) {
 				// We use constructed_buildings here because great wonders can't
 				// supply small wonders like forbidden palaces, so we can avoid
 				// doing extra work for each city.
 				foreach (CityBuilding cb in c.constructed_buildings) {
-					if (cb.building.isForbiddenPalace) {
+					if (cb.building.WorksAsForbiddenPalaceFor(this)) {
 						++numCorruptionReducingSmallWondersInEmpire;
 					}
 				}
@@ -1724,7 +1725,7 @@ namespace C7GameData {
 				// We use constructed_buildings here because great wonders can't
 				// supply small wonders like forbidden palaces, so we can avoid
 				// doing extra work for each city.
-				if (c.constructed_buildings.Any(x => x.building.isForbiddenPalace)) {
+				if (c.constructed_buildings.Any(x => x.building.WorksAsForbiddenPalaceFor(this))) {
 					citiesWithCorruptionWonders.Add(c);
 				}
 			}

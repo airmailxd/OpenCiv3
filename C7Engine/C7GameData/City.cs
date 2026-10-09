@@ -936,28 +936,39 @@ namespace C7GameData {
 				result.corrupt = yield;
 			}
 
-			// Specialists work only when the city does: policemen cut waste,
-			// and civil engineers add their own shields. Assumption: the
-			// engineers' shields count before factories and power plants,
-			// like those of the city's tiles.
-			if (!owner.government.transitionType && !isInCivilDisorder) {
+			// Specialists work only when the city does. Policemen cut waste
+			// before factories and power plants multiply what's left: a
+			// policeman "reduces corruption by one shield and one commerce
+			// arrow, subject to multiplier buildings"
+			// (https://forums.civfanatics.com/threads/civ3-conquests-additions-changes-list.104294/).
+			bool working = !owner.government.transitionType && !isInCivilDisorder;
+			if (working) {
 				RecoverWithPolicemen(ref result);
-				foreach (CityResident cr in WorkingResidents()) {
-					result.useful += cr.citizenType?.Construction ?? 0;
-				}
 			}
 
 			// Factories and power plants boost the shields left after waste.
 			result.useful += result.useful * ProductionBonusPercent(buildings) / 100;
 
+			// Civil engineers then add their own shields, but only to
+			// buildings: each "produces two incorruptible, non-multiplicative
+			// shields for use on buildings" (same source), "not military,
+			// workers or settlers"
+			// (https://civfanatics.com/civ3/strategy/empire-management/the-role-of-the-specialist-citizen/).
+			if (working && itemBeingProduced is Building) {
+				foreach (CityResident cr in WorkingResidents()) {
+					result.useful += cr.citizenType?.Construction ?? 0;
+				}
+			}
+
 			return result;
 		}
 
 		// Policemen (specialists with a corruption value) win back lost
-		// commerce or shields. Civ3 doesn't document the amount; this takes
-		// the BIQ's value as an absolute amount, like the other specialists'
-		// taxes, science and shields: the standard policeman's 1 recovers one
-		// corrupt commerce and one wasted shield. Never more than was lost.
+		// commerce or shields, the BIQ's value of each: "By assigning one of
+		// your citizens to be a policeman, you can cause one corrupted
+		// commerce and one wasted shield to become uncorrupted"
+		// (https://forums.civfanatics.com/threads/everything-about-corruption-c3c-edition.76619/).
+		// Never more than was lost.
 		private void RecoverWithPolicemen(ref CorruptableValue value) {
 			int recovered = 0;
 			foreach (CityResident cr in WorkingResidents()) {
@@ -1616,15 +1627,17 @@ namespace C7GameData {
 		internal void CalculateCorruption(GameData gameData, int adjustedOptimalCityNumber) {
 			int numAntiCorruptionBuildings = 0;
 
-			// Civ3's Secret Police HQ is a second Forbidden Palace: the BIQ
-			// gives it the same "Forbidden Palace" flag, so it counts here and
-			// as a center of the empire for distance corruption.
+			// Civ3's Secret Police HQ is a second Forbidden Palace under
+			// Communism: the BIQ gives it the same "Forbidden Palace" flag, so
+			// it counts here and as a center of the empire for distance
+			// corruption while its government lasts (see
+			// Building.WorksAsForbiddenPalaceFor).
 			int numCorruptionReducingSmallWondersInCity = 0;
 			foreach (CityBuilding cb in EffectiveBuildings()) {
 				if (cb.building.reducesCorruption) {
 					++numAntiCorruptionBuildings;
 				}
-				if (cb.building.isForbiddenPalace) {
+				if (cb.building.WorksAsForbiddenPalaceFor(owner)) {
 					++numCorruptionReducingSmallWondersInCity;
 				}
 			}
