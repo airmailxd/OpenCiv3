@@ -2699,6 +2699,16 @@ public partial class Game : Node {
 			cityScreen.ShowForeignCity(gameData, capital, () => {
 				viewer.tileKnowledge.EndPeek();
 				mapView.InvalidateMap();
+			}, (GameData newGameData, City newCapital) => {
+				// A LAN snapshot replaced the players and their knowledge,
+				// so look again with the new ones.
+				Player newViewer = newGameData.GetPlayer(viewer.id);
+				if (newViewer == null) {
+					return;
+				}
+				viewer = newViewer;
+				viewer.tileKnowledge.Peek(Espionage.CityRadius(newCapital));
+				mapView.InvalidateMap();
 			});
 		});
 	}
