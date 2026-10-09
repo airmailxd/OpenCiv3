@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net.Sockets;
 using System.Net.WebSockets;
 using System.Text;
@@ -8,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using C7GameData;
 using C7GameData.Save;
+using C7Relay;
 using Serilog;
 
 namespace C7Engine.Network;
@@ -78,7 +80,18 @@ public class LanClient : IDisposable {
 	internal int SnapshotDeltasReceived { get; private set; }
 
 	// Where the host is, which is where we connect again after losing it.
-	public LanEndpoint Endpoint { get; }
+	// A host online that moves its game to another join code is followed
+	// there.
+	public LanEndpoint Endpoint {
+		get => endpoint;
+		private set => endpoint = value;
+	}
+	private volatile LanEndpoint endpoint;
+
+	// Trying to connect again stops once the relay has said for this long
+	// that there's no game with the join code: the host has stopped hosting
+	// online, or moved to a code we weren't told.
+	internal static TimeSpan GiveUpOnUnknownCode = TimeSpan.FromMinutes(3);
 	public string HostAddress => Endpoint.Description;
 
 	// The host's address on the network, or null for one joined online.
@@ -299,7 +312,14 @@ public class LanClient : IDisposable {
 					if (received == null || (shown != null && received.Hash.AsSpan().SequenceEqual(shown))) {
 						return (received, (SaveGame)null);
 					}
-					return (received, SaveGame.FromJSON(received.Json));
+					try {
+						return (received, SaveGame.FromJSON(received.Json));
+					} catch (Exception e) {
+						// Taken as one that couldn't be decompressed: the
+						// host sends the whole game.
+						log.Warning("Couldn't read the game the host sent: {Error}", e.Message);
+						return ((ReceivedSnapshot)null, (SaveGame)null);
+					}
 				}, TaskScheduler.Default);
 			}
 			if (ReferenceEquals(frame, readingFrame) && !reading.IsCompleted) {
@@ -366,6 +386,7 @@ public class LanClient : IDisposable {
 			askedForWholeSnapshot = false;
 			lastShownSnapshot = null;
 			awaitingAnswer = true;
+			sinceHello.Restart();
 			SayHello();
 			if (IsSpectator) {
 				connection.Send(FrameKind.Watch, []);
@@ -377,6 +398,12 @@ public class LanClient : IDisposable {
 			log.Information("Can't connect to the host again: {Reason}", why);
 			StopReconnecting();
 			LobbyChanged?.Invoke();
+			return;
+		}
+		if (awaitingAnswer && !connection.IsClosed && sinceHello.Elapsed > AnswerTimeout) {
+			log.Information("The host didn't answer within {Seconds} seconds, trying again", AnswerTimeout.TotalSeconds);
+			connection.Dispose();
+			StartReconnecting();
 			return;
 		}
 		bool trying = Reconnecting && !awaitingAnswer;
@@ -404,6 +431,7 @@ public class LanClient : IDisposable {
 	// called off.
 	private async Task TryConnecting(CancellationToken cancel) {
 		TimeSpan delay = FirstReconnectDelay;
+		System.Diagnostics.Stopwatch unknownCode = null;
 		while (!cancel.IsCancellationRequested) {
 			try {
 				await Task.Delay(delay, cancel);
@@ -420,16 +448,35 @@ public class LanClient : IDisposable {
 				}
 				Interlocked.Exchange(ref reconnected, transport)?.Dispose();
 				return;
+			} catch (RelayException e) when (e.MovedTo is string moved && Endpoint is RelayEndpoint online) {
+				log.Information("The host moved the game to {Code}, following it", RelayProtocol.FormatCode(moved));
+				Endpoint = online with { Code = moved };
+				lastReconnectError = e.Message;
+				delay = FirstReconnectDelay;
 			} catch (RelayException e) when (e.IsPermanent) {
 				reconnectFailedForGood = e.Message;
 				return;
+			} catch (RelayException e) when (e.CloseCode == RelayCloseCodes.UnknownRoom) {
+				lastReconnectError = e.Message;
+				unknownCode ??= System.Diagnostics.Stopwatch.StartNew();
+				if (unknownCode.Elapsed >= GiveUpOnUnknownCode) {
+					reconnectFailedForGood = "The game's join code no longer exists: the host stopped hosting it online, or moved it "
+						+ "to a new code. Ask the host for the code to join again.";
+					return;
+				}
 			} catch (Exception e) when (e is SocketException or OperationCanceledException or ObjectDisposedException
 				or TimeoutException or IOException or WebSocketException) {
 				lastReconnectError = e.Message;
+				unknownCode = null;
 				log.Debug("Couldn't reach the host on try {Attempt}: {Error}", attempt, e.Message);
 			}
 		}
 	}
+
+	// A host that takes the new connection but doesn't answer our hello in
+	// this long is given up on, and we try again.
+	internal static TimeSpan AnswerTimeout = TimeSpan.FromSeconds(15);
+	private readonly System.Diagnostics.Stopwatch sinceHello = new();
 
 	// The host has answered our hello on a new connection.
 	private void NoteAnswer() {
@@ -453,6 +500,7 @@ public class LanClient : IDisposable {
 		switch (frame.kind) {
 			case FrameKind.PasswordRequired:
 				PasswordChallengeInfo challenge = NetSerialization.DeserializeRequired<PasswordChallengeInfo>(frame.payload);
+				NoteAnswer();
 				if (password != null && !challenge.wrong) {
 					AnswerPassword(challenge);
 				} else {
@@ -462,7 +510,7 @@ public class LanClient : IDisposable {
 				break;
 			case FrameKind.Lobby:
 				PasswordRequest = null;
-				Lobby = NetSerialization.DeserializeRequired<LobbyInfo>(frame.payload);
+				Lobby = WithSafeArt(NetSerialization.DeserializeRequired<LobbyInfo>(frame.payload));
 
 				ReconnectToken = Lobby.reconnectToken ?? ReconnectToken;
 				// A host with the game we're in back in its lobby is resuming
@@ -518,6 +566,20 @@ public class LanClient : IDisposable {
 				log.Warning("Ignoring unexpected {Kind} frame from the host", frame.kind);
 				break;
 		}
+	}
+
+	// The lobby without any leader art the host named that isn't one of the
+	// game's own files (see LanProtocol.IsSafeArtPath).
+	private static LobbyInfo WithSafeArt(LobbyInfo lobby) {
+		if (lobby.civilizations == null || lobby.civilizations.All(c => c == null || c.leaderArtFile == null || LanProtocol.IsSafeArtPath(c.leaderArtFile))) {
+			return lobby;
+		}
+		log.Warning("Ignoring leader art the host named outside the game's art");
+		return lobby with {
+			civilizations = lobby.civilizations
+				.Select(c => c == null || LanProtocol.IsSafeArtPath(c.leaderArtFile) ? c : c with { leaderArtFile = null })
+				.ToList(),
+		};
 	}
 
 	// A snapshot couldn't be read, so we don't have the game the next ones

@@ -21,10 +21,24 @@ public sealed class LanTransport : IDisposable {
 	// it isn't known, as for a guest through a relay.
 	public string RemoteHost { get; init; }
 
+	// What stands for the peer's address, to count what it does (like wrong
+	// passwords) across its connections: its IP address, or what the relay
+	// gave for it; null when neither is known.
+	public string AddressKey {
+		get => addressKey ?? RemoteHost;
+		init => addressKey = value;
+	}
+	private readonly string addressKey;
+
 	// Asks the relay a guest came through to turn its address away from the
 	// host's room from now on, once the connection has sent what it has;
 	// null for a connection that isn't through a relay.
 	public Action BanAtRelay { get; init; }
+
+	// Tells the relay a guest came through that the host has let it in, so
+	// that it isn't made to give way to guests joining after it; null for a
+	// connection that isn't through a relay.
+	public Action AdmittedAtRelay { get; init; }
 
 	// Disposed along with the stream, like the TcpClient a NetworkStream
 	// came from.

@@ -22,7 +22,11 @@ public class RelayException : IOException {
 
 	// Whether trying again can't help.
 	public bool IsPermanent => CloseCode is RelayCloseCodes.WrongKey or RelayCloseCodes.UnsupportedVersion
-		or RelayCloseCodes.Replaced or RelayCloseCodes.GameVersionMismatch or RelayCloseCodes.Banned;
+		or RelayCloseCodes.Replaced or RelayCloseCodes.GameVersionMismatch or RelayCloseCodes.Banned or RelayCloseCodes.Moved;
+
+	// The join code the host moved its game to, when that's why we were
+	// turned away; null otherwise.
+	public string MovedTo => CloseCode == RelayCloseCodes.Moved ? RelayProtocol.MovedTo(Message) : null;
 
 }
 
@@ -74,10 +78,21 @@ public static class RelayConnection {
 	}
 
 	// Where a host opens a room, or claims its room again with its code and
-	// key.
-	public static Uri HostUri(string relayUrl, string code = null, string key = null) {
+	// key; with the scope of its ban keys, and for a new room, the code and
+	// key of the room it moved from (see RelayProtocol).
+	public static Uri HostUri(string relayUrl, string code = null, string key = null, string banScope = null,
+		string movedFromCode = null, string movedFromKey = null) {
 		string claim = code == null ? ""
 			: $"&{RelayProtocol.CodeParameter}={Uri.EscapeDataString(code)}&{RelayProtocol.KeyParameter}={Uri.EscapeDataString(key ?? "")}";
+		// This host says which guests it has let in.
+		claim += $"&{RelayProtocol.AdmitsParameter}=1";
+		if (banScope != null) {
+			claim += $"&{RelayProtocol.BanScopeParameter}={Uri.EscapeDataString(banScope)}";
+		}
+		if (code == null && movedFromCode != null) {
+			claim += $"&{RelayProtocol.MovedFromParameter}={Uri.EscapeDataString(movedFromCode)}"
+				+ $"&{RelayProtocol.MovedFromKeyParameter}={Uri.EscapeDataString(movedFromKey ?? "")}";
+		}
 		return WithPath(relayUrl, RelayProtocol.HostPath, claim);
 	}
 

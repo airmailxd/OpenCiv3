@@ -14,19 +14,22 @@ public sealed record RelayEndpoint(string RelayUrl, string Code) : LanEndpoint {
 	public override async Task<LanTransport> ConnectAsync(TimeSpan timeout, CancellationToken cancel = default) {
 		(ClientWebSocket socket, RelayControl welcome) =
 			await RelayConnection.ConnectAsync(RelayConnection.JoinUri(RelayUrl, Code), timeout, cancel).ConfigureAwait(false);
-		RelayGuestStream stream = new(socket, RelayConnection.QuietLimit(welcome.pingSeconds));
+		RelayGuestStream stream = new(socket, RelayConnection.QuietLimit(welcome.pingSeconds),
+			welcome.maxMessageBytes > 0 ? welcome.maxMessageBytes : RelayProtocol.DefaultMaxGuestMessageBytes);
 		return new LanTransport(stream, $"the host of {RelayProtocol.FormatCode(Code)}");
 	}
 }
 
 // A guest's connection to its host through the relay, as a stream for a
 // LanConnection. Each binary message from the relay is bytes from the host,
-// and each flush sends what was written since as one message to it. The
+// and each flush sends what was written since to it, as one message or, if
+// it's larger than the relay takes, in pieces. The
 // relay's pings are answered on the way, and a relay that stops pinging is
 // taken to have gone.
 internal sealed class RelayGuestStream : Stream {
 	private readonly ClientWebSocket socket;
 	private readonly TimeSpan quietLimit;
+	private readonly int maxMessageBytes;
 	private readonly WebSocketMessageReader reader = new();
 	private readonly SemaphoreSlim sending = new(1, 1);
 	private readonly MemoryStream unsent = new();
@@ -35,9 +38,10 @@ internal sealed class RelayGuestStream : Stream {
 	private ReadOnlyMemory<byte> received;
 	private int disposed;
 
-	public RelayGuestStream(ClientWebSocket socket, TimeSpan quietLimit) {
+	public RelayGuestStream(ClientWebSocket socket, TimeSpan quietLimit, int maxMessageBytes = RelayProtocol.DefaultMaxGuestMessageBytes) {
 		this.socket = socket;
 		this.quietLimit = quietLimit;
+		this.maxMessageBytes = maxMessageBytes;
 	}
 
 	public override int Read(Span<byte> buffer) {
@@ -95,8 +99,11 @@ internal sealed class RelayGuestStream : Stream {
 		if (unsent.Length == 0) {
 			return;
 		}
-		ReadOnlyMemory<byte> message = unsent.GetBuffer().AsMemory(0, (int)unsent.Length);
-		SendAsync(message, WebSocketMessageType.Binary).GetAwaiter().GetResult();
+		ReadOnlyMemory<byte> written = unsent.GetBuffer().AsMemory(0, (int)unsent.Length);
+		for (int start = 0; start < written.Length; start += maxMessageBytes) {
+			ReadOnlyMemory<byte> piece = written.Slice(start, Math.Min(maxMessageBytes, written.Length - start));
+			SendAsync(piece, WebSocketMessageType.Binary).GetAwaiter().GetResult();
+		}
 		unsent.SetLength(0);
 	}
 

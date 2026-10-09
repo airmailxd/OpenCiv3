@@ -51,6 +51,10 @@ public partial class LanLobby : Control {
 	private VBoxContainer listingBox;
 	private Label listingStatus;
 
+	// Hosting: whether spectators may watch, which follows hiding what
+	// players can't see until the host chooses.
+	private CheckBox spectatorsBox;
+
 	// Hosting: the password typed, and whether it was changed since it was
 	// last set.
 	private LineEdit passwordEdit;
@@ -216,6 +220,8 @@ public partial class LanLobby : Control {
 		// So that the game can be hosted again if this machine's game ends.
 		LanSession.Host.AutosaveDirectory = LanAutosave.DefaultDirectory;
 
+		content.AddChild(MakeHostNameRow());
+
 		AddLabel("Players on your network should see this game listed under \"Join LAN Game\". If it isn't listed for them, they can type in one of this computer's addresses:");
 		List<(string address, string network)> addresses = LanDiscovery.LocalAddressesByNetwork();
 		string port = LanSession.Host.Port == LanProtocol.DefaultPort ? "" : $":{LanSession.Host.Port}";
@@ -249,6 +255,36 @@ public partial class LanLobby : Control {
 
 		LanSession.Host.LobbyChanged += ShowHostSeats;
 		ShowHostSeats();
+	}
+
+	// The name the host goes by, which everyone sees in the lobby, the game
+	// and the public list, kept for next time.
+	private HBoxContainer MakeHostNameRow() {
+		LanHost host = LanSession.Host;
+		HBoxContainer row = new();
+		row.AddThemeConstantOverride("separation", 12);
+		Label label = new() { Text = "Your name:" };
+		label.AddThemeFontSizeOverride("font_size", 18);
+		row.AddChild(label);
+		LineEdit name = new() {
+			Text = host.HostName,
+			MaxLength = LanHost.MaxPlayerNameLength,
+			CustomMinimumSize = new Vector2(260, 0),
+			TooltipText = "What the other players see you as. Press Enter to change it.",
+		};
+		void Rename() {
+			if (LanSession.Host == null || string.IsNullOrWhiteSpace(name.Text)) {
+				return;
+			}
+			LanSession.Host.HostName = name.Text;
+			LanSession.PlayerName = LanSession.Host.HostName;
+			name.Text = LanSession.Host.HostName;
+			ShowHostSeats();
+		}
+		name.TextSubmitted += _ => Rename();
+		name.FocusExited += Rename;
+		row.AddChild(name);
+		return row;
 	}
 
 	// Hosting online, for players anywhere to join with a join code through
@@ -386,7 +422,8 @@ public partial class LanLobby : Control {
 			PlaceholderText = host.HasPassword ? "(kept from the saved game)" : "none",
 			CustomMinimumSize = new Vector2(220, 0),
 			TooltipText = "Players need this to join, unless they're coming back to their seats. Press Enter to set it; "
-				+ "clear it and press Enter for no password.",
+				+ "clear it and press Enter for no password. The game's LAN autosave keeps what checks the password, which "
+				+ "is as good as the password for joining this game, so keep the autosave to yourself.",
 		};
 		passwordEdit.TextChanged += _ => passwordEdited = true;
 		passwordEdit.TextSubmitted += _ => SetPassword();
@@ -397,14 +434,16 @@ public partial class LanLobby : Control {
 		row.AddChild(passwordStatus);
 		ShowPasswordStatus();
 
-		CheckBox spectators = new() {
+		spectatorsBox = new() {
 			Text = "Allow spectators",
 			ButtonPressed = host.AllowSpectators,
-			TooltipText = "Let players watch the game without playing. Spectators see the whole map.",
+			TooltipText = $"Let up to {LanHost.MaxSpectators} players watch the game without playing. Spectators see the whole game, "
+				+ "everyone's units, cities and treasuries included, so they're off unless you allow them while hiding what players "
+				+ "can't see. Turning this off stops anyone watching.",
 		};
-		spectators.AddThemeFontSizeOverride("font_size", 18);
-		spectators.Toggled += on => host.AllowSpectators = on;
-		row.AddChild(spectators);
+		spectatorsBox.AddThemeFontSizeOverride("font_size", 18);
+		spectatorsBox.Toggled += on => host.AllowSpectators = on;
+		row.AddChild(spectatorsBox);
 		return row;
 	}
 
@@ -533,10 +572,14 @@ public partial class LanLobby : Control {
 			Text = "Hide what players can't see",
 			ButtonPressed = hideUnseen,
 			TooltipText = "Each guest's computer is sent only what its players could know of the game, so nobody can read "
-				+ "other civilizations' hidden units, cities or treasuries from it. Spectators always see everything.",
+				+ "other civilizations' hidden units, cities or treasuries from it. Spectators always see everything, so "
+				+ "they're off unless you allow them.",
 		};
 		hide.AddThemeFontSizeOverride("font_size", 18);
-		hide.Toggled += on => LanSession.Host.HideUnseen = on;
+		hide.Toggled += on => {
+			LanSession.Host.HideUnseen = on;
+			spectatorsBox?.SetPressedNoSignal(LanSession.Host.AllowSpectators);
+		};
 		LanSession.Host.HideUnseen = hideUnseen;
 		row.AddChild(hide);
 		return row;
@@ -573,7 +616,7 @@ public partial class LanLobby : Control {
 		}
 		LanHost host = LanSession.Host;
 
-		AddSeatRow(seatList, $"{LanSession.PlayerName} (you, hosting), {host.HostCivilization}");
+		AddSeatRow(seatList, $"{host.HostName} (you, hosting), {host.HostCivilization}");
 		foreach (SeatInfo seat in host.Seats) {
 			// A seat held for a guest who hasn't come back can be given to
 			// anyone.
@@ -588,11 +631,11 @@ public partial class LanLobby : Control {
 			}
 			AddSeatRow(seatList, Describe(seat), release, remove, ban);
 		}
-		foreach (string spectator in host.Spectators) {
-			AddSeatRow(seatList, $"{spectator}: watching",
-				MakeSmallButton("Remove", $"Stop {spectator} watching.", () => host.KickSpectator(spectator)),
-				MakeSmallButton("Ban", $"Stop {spectator} watching, and keep them out of this game.",
-					() => HostActions.ConfirmBanSpectator(this, spectator)));
+		foreach (SpectatorInfo spectator in host.SpectatorList) {
+			AddSeatRow(seatList, $"{spectator.name}: watching",
+				MakeSmallButton("Remove", $"Stop {spectator.name} watching.", () => host.KickSpectator(spectator.id)),
+				MakeSmallButton("Ban", $"Stop {spectator.name} watching, and keep them out of this game.",
+					() => HostActions.ConfirmBanSpectator(this, spectator.name, spectator.id)));
 		}
 
 		if (createFailure != null) {
@@ -726,7 +769,7 @@ public partial class LanLobby : Control {
 		Label nameLabel = new() { Text = "Your name:" };
 		nameLabel.AddThemeFontSizeOverride("font_size", 18);
 		nameRow.AddChild(nameLabel);
-		nameEdit = new LineEdit { Text = LanSession.PlayerName, CustomMinimumSize = new Vector2(260, 0) };
+		nameEdit = new LineEdit { Text = LanSession.PlayerName, MaxLength = LanHost.MaxPlayerNameLength, CustomMinimumSize = new Vector2(260, 0) };
 		nameRow.AddChild(nameEdit);
 		content.AddChild(nameRow);
 
@@ -895,8 +938,15 @@ public partial class LanLobby : Control {
 		Label searchingLabel = new() { Text = "Searching..." };
 		hostList.AddChild(searchingLabel);
 
-		List<FoundHost> hosts = await LanDiscovery.FindHosts(TimeSpan.FromSeconds(1.5));
-		searching = false;
+		List<FoundHost> hosts;
+		try {
+			hosts = await LanDiscovery.FindHosts(TimeSpan.FromSeconds(1.5));
+		} catch (Exception e) when (e is System.Net.Sockets.SocketException or ObjectDisposedException) {
+			log.Warning("Couldn't look for LAN games: {Error}", e.Message);
+			hosts = [];
+		} finally {
+			searching = false;
+		}
 		if (!IsInstanceValid(hostList)) {
 			return;
 		}
@@ -909,12 +959,15 @@ public partial class LanLobby : Control {
 		}
 		foreach (FoundHost found in hosts) {
 			DiscoveryReply reply = found.reply;
-			string state = (reply.started ? "in progress" : "in the lobby") + (reply.hasPassword ? ", password needed" : "");
+			bool sameVersion = reply.version == LanProtocol.Version;
+			string state = !sameVersion ? "running a different version of the game"
+				: (reply.started ? "in progress" : "in the lobby") + (reply.hasPassword ? ", password needed" : "");
 			string seats = $"{reply.openSeats} open {(reply.openSeats == 1 ? "seat" : "seats")}";
 			LanAddressEndpoint endpoint = new(found.address, reply.port);
 			Button join = MakeButton("Join", () => Connect(endpoint, false));
-			join.Disabled = reply.openSeats == 0;
+			join.Disabled = reply.openSeats == 0 || !sameVersion;
 			Button watch = MakeButton("Watch", () => Connect(endpoint, true));
+			watch.Disabled = !sameVersion;
 			// The host of our last game may have moved to another address.
 			LanSession.LastGame last = LanSession.LastJoinedGame;
 			Button rejoin = last != null && last.hostName == reply.hostName && last.port == reply.port
@@ -959,7 +1012,7 @@ public partial class LanLobby : Control {
 	// our seats in it back. Connecting happens in the background, since a
 	// host that doesn't answer can take a while to give up on.
 	private async void Connect(LanEndpoint endpoint, bool watch, string reconnectToken = null, string password = null) {
-		LanSession.PlayerName = string.IsNullOrWhiteSpace(nameEdit.Text) ? LanSession.PlayerName : nameEdit.Text.Trim();
+		LanSession.PlayerName = nameEdit.Text;
 		connecting?.Cancel();
 		CancellationTokenSource cancel = new();
 		connecting = cancel;
@@ -1004,7 +1057,7 @@ public partial class LanLobby : Control {
 			passwordPrompt.Visible = true;
 			passwordPromptEdit.GrabFocus();
 			status.Text = challenge.wrong
-				? $"That isn't the password. {challenge.attemptsLeft} more {(challenge.attemptsLeft == 1 ? "try" : "tries")} on this connection."
+				? $"That isn't the password. {challenge.attemptsLeft} more {(challenge.attemptsLeft == 1 ? "try" : "tries")} before you have to wait."
 				: "This game needs a password. Ask the host for it.";
 			return;
 		}
@@ -1318,7 +1371,11 @@ public partial class LanLobby : Control {
 			civDescription.Text = "A random civilization nobody else has.";
 			return;
 		}
-		civDescription.Text = $"{choice.leader} of the {choice.noun}\n({string.Join(", ", choice.traits)})";
+		civDescription.Text = $"{choice.leader} of the {choice.noun}\n({string.Join(", ", choice.traits ?? [])})";
+		if (choice.leaderArtFile == null) {
+			leaderHead.Texture = null;
+			return;
+		}
 		try {
 			var key = (choice.name, choice.leaderArtFile);
 			if (!leaderHeadCache.TryGetValue(key, out ImageTexture texture) || !IsInstanceValid(texture)) {

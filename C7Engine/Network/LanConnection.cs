@@ -41,6 +41,11 @@ public class LanConnection : IDisposable {
 	// dropped, rather than have every one of them logged forever.
 	public const int MaxBadFramesInARow = 20;
 
+	// A frame's payload is read in pieces of this size, growing its buffer as
+	// they arrive, so that a peer can't have a large frame's memory taken
+	// just by saying how large it is.
+	private const int ReadChunkBytes = 1024 * 1024;
+
 	// How long a closed connection may spend sending what was queued before
 	// it closed, like a rejection, before giving up on the peer.
 	private static readonly TimeSpan LingerTime = TimeSpan.FromSeconds(5);
@@ -83,6 +88,15 @@ public class LanConnection : IDisposable {
 	// Set when the peer has asked for the whole game in the next snapshot.
 	private int sendWholeSnapshot;
 
+	// The largest frame taken from the peer; a larger one breaks the
+	// connection. A host lowers it for a guest until it has let it in (see
+	// LanProtocol.MaxFrameBytesBeforeAdmission).
+	public int MaxFrameBytes {
+		get => Volatile.Read(ref maxFrameBytes);
+		set => Volatile.Write(ref maxFrameBytes, value);
+	}
+	private int maxFrameBytes = LanProtocol.MaxFrameBytes;
+
 	public string RemoteAddress { get; }
 
 	// What the connection runs over.
@@ -97,9 +111,10 @@ public class LanConnection : IDisposable {
 		: this(LanTransport.Tcp(client), prepareReceived) {
 	}
 
-	public LanConnection(LanTransport transport, Func<Frame, Frame> prepareReceived = null) {
+	public LanConnection(LanTransport transport, Func<Frame, Frame> prepareReceived = null, int maxFrameBytes = LanProtocol.MaxFrameBytes) {
 		this.transport = transport;
 		this.prepareReceived = prepareReceived;
+		this.maxFrameBytes = maxFrameBytes;
 		stream = transport.Stream;
 		RemoteAddress = transport.RemoteAddress;
 
@@ -300,7 +315,7 @@ public class LanConnection : IDisposable {
 			while (!aborted) {
 				stream.ReadExactly(header);
 				int length = BinaryPrimitives.ReadInt32LittleEndian(header);
-				if (length < 0 || length > LanProtocol.MaxFrameBytes) {
+				if (length < 0 || length > MaxFrameBytes) {
 					throw new IOException($"Frame of {length} bytes is too large");
 				}
 				if (Volatile.Read(ref receivedFrames) >= maxReceivedFrames
@@ -308,8 +323,7 @@ public class LanConnection : IDisposable {
 					log.Warning("Frames from {Address} aren't being read, dropping the connection", RemoteAddress);
 					return;
 				}
-				byte[] payload = new byte[length];
-				stream.ReadExactly(payload);
+				byte[] payload = ReadPayload(length);
 				Frame frame = new((FrameKind)header[4], payload);
 				frame = prepareReceived == null ? frame : prepareReceived(frame);
 				Interlocked.Increment(ref receivedFrames);
@@ -325,6 +339,20 @@ public class LanConnection : IDisposable {
 			log.Error(e, "Receiving from {Address} failed", RemoteAddress);
 		} finally {
 			Abort();
+		}
+	}
+
+	// Reads a frame's payload, taking memory for it only as it arrives.
+	private byte[] ReadPayload(int length) {
+		byte[] payload = new byte[Math.Min(length, ReadChunkBytes)];
+		int read = 0;
+		while (true) {
+			stream.ReadExactly(payload, read, payload.Length - read);
+			read = payload.Length;
+			if (read == length) {
+				return payload;
+			}
+			Array.Resize(ref payload, (int)Math.Min(length, (long)read * 2));
 		}
 	}
 

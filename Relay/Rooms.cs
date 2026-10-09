@@ -20,6 +20,16 @@ internal sealed class Room {
 	public long HostLeftAt = Environment.TickCount64;
 	public readonly Dictionary<uint, RelayPeer> Guests = new();
 
+	// Set once the room is swept away, after which it's no one's.
+	public bool Removed;
+
+	// The code the host moved this game to, while it hasn't come back here.
+	public string MovedTo;
+
+	// Whether the host says which guests it let in, and those it has.
+	public bool HostAdmits;
+	public readonly HashSet<uint> Admitted = new();
+
 	// Guest IDs aren't reused in a room, so a message for a guest that has
 	// gone can't reach one that came after it.
 	public uint NextGuestId = 1;
@@ -31,8 +41,9 @@ internal sealed class Room {
 	public string ListedFrom;
 
 	// The keys of the addresses the host has banned (see
-	// RoomRegistry.BanKeyFor).
+	// RoomRegistry.BanKeyFor), and what they're made with.
 	public readonly HashSet<string> Bans = new();
+	public string BanScope;
 
 	// The addresses of the guests that left lately, so that the host can ban
 	// one that has gone, oldest first.
@@ -40,7 +51,31 @@ internal sealed class Room {
 	public readonly Queue<uint> RecentGuestOrder = new();
 	public const int MaxRecentGuests = 64;
 
+	// Takes out the guest the host hasn't let in that joined first, to make
+	// way for a newcomer to a full room; false if there's none to take, or
+	// the host doesn't say whom it let in.
+	public bool TakeOutWaitingGuest(out uint id, out RelayPeer guest) {
+		id = 0;
+		guest = null;
+		if (!HostAdmits) {
+			return false;
+		}
+		foreach ((uint each, RelayPeer peer) in Guests) {
+			if (!Admitted.Contains(each) && (guest == null || each < id)) {
+				id = each;
+				guest = peer;
+			}
+		}
+		if (guest == null) {
+			return false;
+		}
+		Guests.Remove(id);
+		NoteGuestLeft(id, guest.Address);
+		return true;
+	}
+
 	public void NoteGuestLeft(uint id, string address) {
+		Admitted.Remove(id);
 		if (RecentGuests.TryAdd(id, address)) {
 			RecentGuestOrder.Enqueue(id);
 		}
@@ -52,6 +87,7 @@ internal sealed class Room {
 	public Room(string code, string gameVersion) {
 		Code = code;
 		GameVersion = gameVersion;
+		BanScope = code;
 	}
 }
 
@@ -101,10 +137,11 @@ internal sealed class RoomRegistry {
 		return CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(KeyFor(code)), Encoding.UTF8.GetBytes(key));
 	}
 
-	// The key standing for a guest's address in a room's bans, which only
-	// the relay can make, so the host never learns the address.
-	public string BanKeyFor(string code, string address) {
-		byte[] mac = HMACSHA256.HashData(keySecret, Encoding.UTF8.GetBytes($"ban:{code}:{address}"));
+	// The key standing for a guest's address in a room's bans (with the
+	// room's BanScope), which only the relay can make, so the host never
+	// learns the address.
+	public string BanKeyFor(string scope, string address) {
+		byte[] mac = HMACSHA256.HashData(keySecret, Encoding.UTF8.GetBytes($"ban:{scope}:{address}"));
 		return Convert.ToHexString(mac, 0, 16).ToLowerInvariant();
 	}
 
@@ -146,6 +183,7 @@ internal sealed class RoomRegistry {
 					continue;
 				}
 				rooms.TryRemove(new KeyValuePair<string, Room>(room.Code, room));
+				room.Removed = true;
 			}
 			expired.Add(room.Code);
 		}

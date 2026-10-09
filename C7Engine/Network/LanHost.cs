@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -31,8 +32,9 @@ namespace C7Engine.Network;
 //
 // Once the game has started, a guest who loses their connection keeps their
 // seats until they say hello again with the token they were given. The host
-// saves the game as each turn begins, with those tokens, and can resume it
-// from that save, holding the seats for the guests to come back to.
+// saves the game as each turn begins, with those tokens (and saves them
+// again as they change), and can resume it from that save, holding the
+// seats for the guests to come back to.
 //
 // Guests join over TCP, or, once the host is also hosting online, through an
 // online relay with a join code (see RelayHostLink); either way they're the
@@ -82,6 +84,66 @@ public class LanHost : IDisposable {
 	// turn is over, but no more than this many.
 	private const int MaxHeldUiMessages = 200;
 
+	// A guest has this long to say hello once it connects, and this long to
+	// give the password once asked, which a player types; one that takes
+	// longer is dropped, rather than hold its connection open for nothing.
+	internal static TimeSpan HelloTimeout = TimeSpan.FromSeconds(15);
+	internal static TimeSpan PasswordTimeout = TimeSpan.FromMinutes(2);
+
+	// Guests without a seat, at most: in all, and from one address on the
+	// network. Past the first, the one waiting longest makes way for the
+	// newcomer, so that guests coming back to their seats always get in;
+	// past the second, the newcomer is turned away.
+	private const int MaxUnseatedGuests = 24;
+	private const int MaxUnseatedGuestsPerAddress = 4;
+
+	// How many frames a guest or spectator may have handled a second, on
+	// average, and at once; the rest wait their turn, and a peer whose
+	// frames pile up past the most a connection holds here is dropped.
+	private const double FramesPerSecond = 50;
+	private const double FrameBurst = 200;
+	private const int MaxReceivedFramesPerPeer = 5_000;
+
+	// A peer that asks for the whole game again is sent it no more often
+	// than this, since taking and encoding it is costly.
+	private static readonly TimeSpan WholeSnapshotInterval = TimeSpan.FromSeconds(5);
+
+	// The frames a peer may have handled now (see FramesPerSecond).
+	private sealed class FrameBudget {
+		private double frames = FrameBurst;
+		private long refilledAt = Stopwatch.GetTimestamp();
+
+		public bool Take() {
+			long now = Stopwatch.GetTimestamp();
+			frames = Math.Min(FrameBurst, frames + Stopwatch.GetElapsedTime(refilledAt, now).TotalSeconds * FramesPerSecond);
+			refilledAt = now;
+			if (frames < 1) {
+				return false;
+			}
+			frames -= 1;
+			return true;
+		}
+	}
+
+	// A peer's asking for the whole game: whether it's waiting for it, and
+	// when it was last sent it.
+	private sealed class WholeSnapshotRequest {
+		public bool pending;
+		public Stopwatch sinceSent;
+
+		// Has the peer sent the whole game next if it's asked and not too
+		// soon after the last time; returns whether it was.
+		public bool TakeDue(LanConnection connection) {
+			if (!pending || (sinceSent != null && sinceSent.Elapsed < WholeSnapshotInterval)) {
+				return false;
+			}
+			pending = false;
+			(sinceSent ??= new Stopwatch()).Restart();
+			RequestWholeSnapshot(connection);
+			return true;
+		}
+	}
+
 	private class Seat {
 		public SeatInfo info;
 		// The guest playing this seat, and the name of the player in it.
@@ -127,9 +189,13 @@ public class LanHost : IDisposable {
 		public string nonce;
 		public int wrongPasswords;
 		public bool watchOnceAdmitted;
+		// Since it connected, or was last asked for the password.
+		public readonly Stopwatch waiting = Stopwatch.StartNew();
+		public readonly FrameBudget frameBudget = new();
+		public readonly WholeSnapshotRequest wholeSnapshot = new();
 	}
 
-	private readonly string hostName;
+	private string hostName;
 	private readonly List<Seat> seats;
 	private readonly ID hostPlayerID;
 	private readonly string hostCivilization;
@@ -142,12 +208,25 @@ public class LanHost : IDisposable {
 	private string passwordSalt;
 	private string passwordVerifier;
 
+	// The wrong passwords from each address (see WrongPasswords).
+	private sealed class PasswordFailures {
+		public int count;
+		public int lockouts;
+		public long lockedUntil;
+	}
+	private readonly Dictionary<string, PasswordFailures> passwordFailures = new();
+	private const int MaxPasswordFailureAddresses = 1024;
+
 	// The guests the host banned: their tokens, and the addresses of those
 	// that joined on the network. Those through a relay, the relay turns
 	// away (see RelayHostLink.Bans), with these keys when resuming.
 	private readonly HashSet<string> bannedTokens = new();
 	private readonly HashSet<string> bannedAddresses = new();
 	private List<string> resumedRelayBans;
+
+	// The secret the relay makes this game's ban keys with, the same in
+	// every room the game has there (see RelayProtocol).
+	private string relayBanScope = NewToken();
 
 	public const string KickedReason = "The host removed you from the game.";
 	public const string BannedReason = "The host has banned you from this game.";
@@ -164,15 +243,43 @@ public class LanHost : IDisposable {
 	private readonly List<Guest> guests = new();
 
 	// Connections watching the game rather than playing in it.
+	// Each has an ID of its own, for the host to tell them apart by, and the
+	// token it was let in with, to say hello with to watch again after
+	// losing the connection.
 	private class Spectator {
+		public int id;
 		public LanConnection connection;
 		public string name;
+		public string token;
 		public readonly List<byte[]> pendingUiMessages = new();
+		public FrameBudget frameBudget = new();
+		public readonly WholeSnapshotRequest wholeSnapshot = new();
 	}
 	private readonly List<Spectator> spectators = new();
+	private int nextSpectatorID = 1;
 
-	// Whether anyone may watch the game rather than play.
-	public bool AllowSpectators { get; set; } = true;
+	// The most spectators watching at once.
+	public const int MaxSpectators = 8;
+
+	// The tokens of the spectators let in lately, who may come back to
+	// watch without the password, as players come back to their seats.
+	private readonly List<string> spectatorTokens = new();
+	private const int MaxSpectatorTokens = 256;
+
+	// Whether anyone may watch the game rather than play. Spectators see
+	// the whole game, so unless the host says otherwise they may watch only
+	// when guests see the whole game too (HideUnseen off). Not allowing them
+	// any more stops those watching.
+	public bool AllowSpectators {
+		get => allowSpectators ?? !hideUnseen;
+		set {
+			allowSpectators = value;
+			if (!value) {
+				StopSpectators();
+			}
+		}
+	}
+	private bool? allowSpectators;
 
 	// Whether the game is in the relay's public list while hosting online,
 	// under this name and description (see CurrentListing); and its map's
@@ -182,6 +289,18 @@ public class LanHost : IDisposable {
 	public string PublicDescription { get; set; }
 	public string MapSize { get; set; }
 	public string DefaultPublicName => $"{hostName}'s game";
+
+	// The name the host goes by, which everyone sees.
+	public string HostName {
+		get => hostName;
+		set {
+			string name = TidyName(value);
+			if (name != null && name != hostName) {
+				hostName = name;
+				BroadcastLobby();
+			}
+		}
+	}
 
 	// The last snapshot handed to be encoded for each view of the game (see
 	// ViewKey). Each is encoded after the one before it for the same view,
@@ -225,6 +344,10 @@ public class LanHost : IDisposable {
 		set {
 			if (hideUnseen != value) {
 				hideUnseen = value;
+				if (!AllowSpectators) {
+					// They would see what the guests are no longer sent.
+					StopSpectators();
+				}
 				BroadcastLobby();
 			}
 		}
@@ -276,6 +399,9 @@ public class LanHost : IDisposable {
 	// connection, as in a resumed game whose guests aren't all back yet.
 	public bool AllSeatsTakenOrHeld => seats.All(s => s.IsTaken || s.IsHeld);
 	public IReadOnlyList<string> Spectators => spectators.Select(s => s.name).ToList();
+
+	// The spectators with their IDs, which tell apart two with the same name.
+	public IReadOnlyList<SpectatorInfo> SpectatorList => spectators.Select(s => new SpectatorInfo(s.id, s.name)).ToList();
 	public string HostCivilization => hostCivilization;
 	public ID HostPlayerID => hostPlayerID;
 
@@ -309,7 +435,11 @@ public class LanHost : IDisposable {
 			passwordSalt = info.passwordVerifier == null ? null : info.passwordSalt,
 			passwordVerifier = info.passwordSalt == null ? null : info.passwordVerifier,
 			resumedRelayBans = info.relayBans,
-			AllowSpectators = info.allowSpectators,
+			// A game saved before ban scopes has its bans made with its
+			// room's code, and keeps them so.
+			relayBanScope = RelayProtocol.IsBanScope(info.relayBanScope) ? info.relayBanScope
+				: info.relayBans?.Count > 0 ? null : NewToken(),
+			allowSpectators = info.allowSpectators,
 			ListPublicly = info.listPublicly,
 			PublicName = info.publicName,
 			PublicDescription = info.publicDescription,
@@ -354,7 +484,7 @@ public class LanHost : IDisposable {
 
 	private LanHost(string hostName, ID hostPlayerID, string hostCivilization, List<Seat> seats,
 		List<Civilization> choosable, int port, bool answerDiscovery, int lobbyTurn) {
-		this.hostName = hostName;
+		this.hostName = TidyName(hostName) ?? UnnamedGuest;
 		this.lobbyTurn = lobbyTurn;
 		this.hostPlayerID = hostPlayerID;
 		this.hostCivilization = hostCivilization;
@@ -384,11 +514,17 @@ public class LanHost : IDisposable {
 	// Takes guests through an online relay too, alongside those on the LAN.
 	// With the code and key of a room this host had, as in a resumed game,
 	// it claims that room again, so its guests find it where they left it.
+	//
+	// Hosting online again in a new room, as when the old one couldn't be
+	// claimed again, the guests banned before stay banned, and the old
+	// room's guests are told the new code, to follow the game there.
 	public RelayHostLink HostOnline(string relayUrl, string code = null, string key = null) {
-		Online?.Dispose();
-		// The guests banned from the room before are banned again; a ban
-		// is for one room only.
-		Online = new RelayHostLink(relayUrl, accepted.Enqueue, code, key, code == null ? null : resumedRelayBans);
+		RelayHostLink previous = Online;
+		previous?.Dispose();
+		List<string> bans = previous == null ? resumedRelayBans : [.. previous.Bans];
+		bool moving = code == null && previous?.Code != null && OnlineRelay.SameRelay(previous.RelayUrl, relayUrl);
+		Online = new RelayHostLink(relayUrl, accepted.Enqueue, code, key, bans, relayBanScope,
+			moving ? previous.Code : null, moving ? previous.Key : null);
 		Online.Start();
 		return Online;
 	}
@@ -435,7 +571,9 @@ public class LanHost : IDisposable {
 			try {
 				IPEndPoint from = new(IPAddress.Any, 0);
 				byte[] request = discovery.Receive(ref from);
-				if (Encoding.UTF8.GetString(request) != LanProtocol.DiscoveryRequest) {
+				// Only machines on the same networks look for games this way;
+				// anyone else gets no answer to amplify or learn from.
+				if (!IsLocalNetwork(from.Address) || Encoding.UTF8.GetString(request) != LanProtocol.DiscoveryRequest) {
 					continue;
 				}
 				// The seats belong to the main thread, which publishes what
@@ -453,20 +591,38 @@ public class LanHost : IDisposable {
 		}
 	}
 
+	// Whether an address is on a local network: private, link-local,
+	// loopback, or a virtual network's (100.64.0.0/10, as Tailscale uses).
+	internal static bool IsLocalNetwork(IPAddress address) {
+		if (address.IsIPv4MappedToIPv6) {
+			address = address.MapToIPv4();
+		}
+		if (IPAddress.IsLoopback(address)) {
+			return true;
+		}
+		byte[] b = address.GetAddressBytes();
+		if (address.AddressFamily == AddressFamily.InterNetwork) {
+			return b[0] == 10 || (b[0] == 172 && (b[1] & 0xF0) == 16) || (b[0] == 192 && b[1] == 168)
+				|| (b[0] == 169 && b[1] == 254) || (b[0] == 100 && (b[1] & 0xC0) == 64);
+		}
+		return address.IsIPv6LinkLocal || address.IsIPv6SiteLocal || (b[0] & 0xFE) == 0xFC;
+	}
+
 	// Called on the main thread whenever the seats or the game's state may
 	// have changed.
 	private void PublishDiscoveryReply() {
 		int openSeats = seats.Count(s => !s.IsTaken && !s.IsHeld);
 		DiscoveryReply current = discoveryReply;
-		if (current == null || current.openSeats != openSeats || current.started != Started || current.hasPassword != HasPassword) {
-			discoveryReply = new DiscoveryReply(hostName, Port, openSeats, Started, HasPassword);
+		if (current == null || current.openSeats != openSeats || current.started != Started || current.hasPassword != HasPassword
+			|| current.hostName != hostName) {
+			discoveryReply = new DiscoveryReply(hostName, Port, openSeats, Started, HasPassword, LanProtocol.Version);
 		}
 	}
 
 	// The game as it stands, taken once and encoded for each view of it that
 	// is asked for: the whole game, or what a guest's players may know of it.
 	private sealed class SnapshotRound {
-		public readonly SaveGame snapshot = LanProtocol.SnapshotOf(EngineStorage.gameData);
+		public readonly SaveGame snapshot = LanProtocol.SnapshotForPeers(EngineStorage.gameData);
 		public readonly Dictionary<string, Task<EncodedSnapshot>> encodings = new();
 		// Shared by the views of the round.
 		public Dictionary<ID, string> ownTerritory;
@@ -504,6 +660,10 @@ public class LanHost : IDisposable {
 			}
 			return LanProtocol.EncodeSnapshot(view == null ? snapshot : SnapshotFilter.Filter(snapshot, view), before);
 		});
+		// Each connection waiting on it logs its failure, but one nobody
+		// waits on still has it noticed.
+		encoding.ContinueWith(t => log.Error(t.Exception?.InnerException, "Couldn't encode a snapshot"),
+			TaskContinuationOptions.OnlyOnFaulted);
 		round.encodings[key] = encoding;
 		lastEncodings[key] = encoding;
 		return encoding;
@@ -522,7 +682,7 @@ public class LanHost : IDisposable {
 	// The hash of the snapshot a guest with these players would be sent of
 	// the game as it stands (the whole game for null), for tests.
 	internal static byte[] SnapshotHashFor(IEnumerable<ID> playerIDs) {
-		SaveGame snapshot = LanProtocol.SnapshotOf(EngineStorage.gameData);
+		SaveGame snapshot = LanProtocol.SnapshotForPeers(EngineStorage.gameData);
 		if (playerIDs != null) {
 			snapshot = SnapshotFilter.Filter(snapshot, SnapshotFilter.ViewOf(EngineStorage.gameData, playerIDs));
 		}
@@ -583,13 +743,40 @@ public class LanHost : IDisposable {
 
 	private static void SendStart(Spectator spectator, Task<EncodedSnapshot> snapshot) {
 		spectator.pendingUiMessages.Clear();
-		spectator.connection.Send(FrameKind.Start, new StartInfo([]));
+		spectator.connection.Send(FrameKind.Start, new StartInfo([], spectator.token));
 		spectator.connection.SendSnapshot(snapshot);
 	}
 
 	public void Poll() {
+		// What guests do here tells everyone of the lobby once, at the end.
+		deferLobby = true;
+		try {
+			PollPeers();
+		} finally {
+			deferLobby = false;
+		}
+		if (lobbyChanged) {
+			BroadcastLobby();
+		}
+
+		if (Started) {
+			UpdateTurnClock();
+			MaybeSendSnapshot();
+		}
+		PublishDiscoveryReply();
+		Online?.SetListing(ListPublicly ? CurrentListing() : null);
+		SaveResumeInfoIfChanged();
+	}
+
+	private void PollPeers() {
 		while (accepted.TryDequeue(out LanTransport transport)) {
-			LanConnection connection = new(transport);
+			if (!MakeRoomFor(transport)) {
+				transport.Dispose();
+				continue;
+			}
+			LanConnection connection = new(transport, maxFrameBytes: LanProtocol.MaxFrameBytesBeforeAdmission) {
+				maxReceivedFrames = MaxReceivedFramesPerPeer,
+			};
 			if (transport.RemoteHost != null && bannedAddresses.Contains(transport.RemoteHost)) {
 				log.Information("Turned away {Address}, which is banned", transport.RemoteAddress);
 				connection.Send(FrameKind.Rejected, Encoding.UTF8.GetBytes(BannedReason));
@@ -602,16 +789,46 @@ public class LanHost : IDisposable {
 		foreach (Guest guest in guests.ToList()) {
 			PollGuest(guest);
 		}
+		DropGuestsTooSlowToJoin();
 		foreach (Spectator spectator in spectators.ToList()) {
 			PollSpectator(spectator);
 		}
+	}
 
-		if (Started) {
-			UpdateTurnClock();
-			MaybeSendSnapshot();
+	// Whether a new connection may join the guests without a seat: there's
+	// room for it, or the one among them waiting longest makes room, unless
+	// its address on the network has as many as it may.
+	private bool MakeRoomFor(LanTransport transport) {
+		List<Guest> unseated = guests.Where(g => !g.connection.IsClosed && !SeatsOf(g).Any()).ToList();
+		string address = transport.RemoteHost;
+		if (address != null && !IsLoopback(address)
+			&& unseated.Count(g => g.connection.Transport.RemoteHost == address) >= MaxUnseatedGuestsPerAddress) {
+			log.Information("Turned away {Address}, which has too many connections waiting", transport.RemoteAddress);
+			return false;
 		}
-		PublishDiscoveryReply();
-		Online?.SetListing(ListPublicly ? CurrentListing() : null);
+		if (unseated.Count >= MaxUnseatedGuests) {
+			// Those not yet let in go first.
+			Guest longest = unseated.OrderBy(g => g.admitted).ThenByDescending(g => g.waiting.Elapsed).First();
+			log.Information("Too many guests are waiting, dropping {Name}", longest.name ?? longest.connection.RemoteAddress);
+			Reject(longest, "The host has too many players waiting to join. Try again in a moment.");
+		}
+		return true;
+	}
+
+	// Drops the guests that haven't said hello, or given the password, in
+	// time.
+	private void DropGuestsTooSlowToJoin() {
+		foreach (Guest guest in guests.Where(g => !g.admitted).ToList()) {
+			TimeSpan allowed = guest.nonce != null ? PasswordTimeout : HelloTimeout;
+			if (guest.waiting.Elapsed > allowed) {
+				log.Information("{Name} took too long to join, dropping them", guest.name ?? guest.connection.RemoteAddress);
+				Reject(guest, guest.nonce != null ? "Took too long to give the password." : "Took too long to say hello.");
+			}
+		}
+	}
+
+	private static bool IsLoopback(string address) {
+		return IPAddress.TryParse(address, out IPAddress ip) && IPAddress.IsLoopback(ip);
 	}
 
 	// Restarts the clock when a new turn begins, and ends the humans' turns
@@ -672,8 +889,34 @@ public class LanHost : IDisposable {
 	private void Autosave() {
 		SaveGame save = LanProtocol.SnapshotOf(EngineStorage.gameData);
 		LanResumeInfo info = ResumeInfo();
+		savedResumeInfo = NetSerialization.SerializeData(info);
 		string directory = AutosaveDirectory;
 		LastAutosave = LastAutosave.ContinueWith(_ => LanAutosave.Write(directory, save, info));
+	}
+
+	// Between autosaves, what resuming needs is saved again whenever it
+	// changes (seats taken, guests banned, the password, the join code and
+	// so on), at most this often, so that the host doesn't lose it if its
+	// game ends mid-turn.
+	private static readonly TimeSpan ResumeInfoSaveInterval = TimeSpan.FromSeconds(1);
+	private readonly Stopwatch sinceResumeInfoChecked = Stopwatch.StartNew();
+	private byte[] savedResumeInfo;
+
+	private void SaveResumeInfoIfChanged() {
+		// Only beside the game it's for: one this host autosaved, or the
+		// one it resumed.
+		if (AutosaveDirectory == null || (autosavedTurn < 0 && !resumed) || sinceResumeInfoChecked.Elapsed < ResumeInfoSaveInterval) {
+			return;
+		}
+		sinceResumeInfoChecked.Restart();
+		LanResumeInfo info = ResumeInfo();
+		byte[] json = NetSerialization.SerializeData(info);
+		if (savedResumeInfo != null && json.AsSpan().SequenceEqual(savedResumeInfo)) {
+			return;
+		}
+		savedResumeInfo = json;
+		string directory = AutosaveDirectory;
+		LastAutosave = LastAutosave.ContinueWith(_ => LanAutosave.WriteResumeInfo(directory, info));
 	}
 
 	// How to host this game again, with the seats as they are now.
@@ -682,7 +925,7 @@ public class LanHost : IDisposable {
 			seats.Where(s => s.token != null).Select(s => new LanResumeSeat(s.info.playerID, s.takenBy, s.token)).ToList(),
 			Online?.RelayUrl, Online?.Code, Online?.Key, HideUnseen,
 			passwordSalt, passwordVerifier, [.. bannedTokens], [.. bannedAddresses], Online == null ? resumedRelayBans : [.. Online.Bans],
-			ListPublicly, PublicName, PublicDescription, AllowSpectators);
+			ListPublicly, PublicName, PublicDescription, allowSpectators, relayBanScope);
 	}
 
 	// The players with nobody at their machine whom the game would wait on:
@@ -705,9 +948,16 @@ public class LanHost : IDisposable {
 	// for them. The guest may join again as anyone may, unless it's banned,
 	// which also turns its token away, and its address on the network or
 	// through the relay. Works for a guest whose seat is held for it, too.
-	public bool Kick(ID playerID, bool ban = false) {
+	//
+	// occupant, if given, is the seat's OccupantOf when the host chose to do
+	// this; if someone else has the seat now, nothing is done.
+	public bool Kick(ID playerID, bool ban = false, string occupant = null) {
 		Seat seat = seats.Find(s => s.info.playerID == playerID);
 		if (seat == null || (seat.guest == null && seat.token == null)) {
+			return false;
+		}
+		if (occupant != null && OccupantOf(playerID) != occupant) {
+			log.Information("Not removing whoever is in the seat of {Player} now, who isn't the one the host meant", playerID);
 			return false;
 		}
 		Guest guest = seat.guest != null && guests.Contains(seat.guest) ? seat.guest : null;
@@ -729,22 +979,59 @@ public class LanHost : IDisposable {
 		return true;
 	}
 
-	// Stops a spectator watching, and with ban, turns away its address.
-	public bool KickSpectator(string name, bool ban = false) {
-		Spectator spectator = spectators.Find(s => s.name == name);
+	// Who is in the seat, or holds it, as something only this host can tell
+	// apart from anyone else in it later; null for nobody.
+	public string OccupantOf(ID playerID) {
+		Seat seat = seats.Find(s => s.info.playerID == playerID);
+		string token = seat?.token ?? seat?.guest?.token;
+		return token == null ? null : Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
+	}
+
+	// Stops a spectator watching, and with ban, turns away its token and
+	// address.
+	public bool KickSpectator(int id, bool ban = false) {
+		Spectator spectator = spectators.Find(s => s.id == id);
 		if (spectator == null) {
 			return false;
 		}
-		log.Information(ban ? "Banning {Name}" : "Removing {Name} from the game", name);
+		log.Information(ban ? "Banning {Name}" : "Removing {Name} from the game", spectator.name);
+		spectatorTokens.Remove(spectator.token);
 		if (ban) {
+			if (spectator.token != null) {
+				bannedTokens.Add(spectator.token);
+			}
 			BanAddress(spectator.connection)?.Invoke();
 		}
-		spectator.connection.Send(FrameKind.Rejected, Encoding.UTF8.GetBytes(ban ? BannedReason : KickedReason));
-		spectator.connection.Dispose();
-		spectators.Remove(spectator);
+		StopWatching(spectator, ban ? BannedReason : KickedReason);
 		BroadcastLobby();
 		return true;
 	}
+
+	// The same for the first spectator with the name.
+	public bool KickSpectator(string name, bool ban = false) {
+		Spectator spectator = spectators.Find(s => s.name == name);
+		return spectator != null && KickSpectator(spectator.id, ban);
+	}
+
+	private void StopWatching(Spectator spectator, string reason) {
+		spectator.connection.Send(FrameKind.Rejected, Encoding.UTF8.GetBytes(reason));
+		spectator.connection.Dispose();
+		spectators.Remove(spectator);
+	}
+
+	// Stops everyone watching, once they may not.
+	private void StopSpectators() {
+		if (spectators.Count == 0) {
+			return;
+		}
+		log.Information("Spectators may no longer watch, stopping {Count} watching", spectators.Count);
+		foreach (Spectator spectator in spectators.ToList()) {
+			StopWatching(spectator, NoSpectatorsReason);
+		}
+		BroadcastLobby();
+	}
+
+	public const string NoSpectatorsReason = "The host doesn't let anyone watch this game.";
 
 	private Action BanAddress(Guest guest) => BanAddress(guest.connection);
 
@@ -758,7 +1045,7 @@ public class LanHost : IDisposable {
 			return transport.BanAtRelay;
 		}
 		string address = transport.RemoteHost;
-		if (IPAddress.TryParse(address, out IPAddress ip) && IPAddress.IsLoopback(ip)) {
+		if (IsLoopback(address)) {
 			return null;
 		}
 		return () => bannedAddresses.Add(address);
@@ -817,7 +1104,7 @@ public class LanHost : IDisposable {
 	}
 
 	private void PollGuest(Guest guest) {
-		while (guest.connection.TryReceive(out Frame frame)) {
+		while (guest.connection.TryPeek(out _) && guest.frameBudget.Take() && guest.connection.TryReceive(out Frame frame)) {
 			try {
 				if (!HandleGuestFrame(guest, frame)) {
 					// Turned away, or watching from now on.
@@ -846,19 +1133,30 @@ public class LanHost : IDisposable {
 					log.Warning("Ignoring another hello from {Name}", guest.name);
 					return true;
 				}
-				HelloInfo hello = NetSerialization.DeserializeRequired<HelloInfo>(frame.payload);
+				HelloInfo hello;
+				try {
+					hello = NetSerialization.DeserializeRequired<HelloInfo>(frame.payload);
+				} catch (Exception e) {
+					log.Information("Couldn't read the hello from {Address}: {Error}", guest.connection.RemoteAddress, e.Message);
+					Reject(guest, $"The host couldn't understand your game; it may be running a different version (protocol {LanProtocol.Version}).");
+					return false;
+				}
 				if (hello.version != LanProtocol.Version) {
 					Reject(guest, $"The host is running a different version of the game (protocol {LanProtocol.Version}, yours is {hello.version}).");
 					return false;
 				}
-				guest.name = string.IsNullOrWhiteSpace(hello.playerName) ? guest.connection.RemoteAddress : hello.playerName.Trim();
+				guest.name = TidyName(hello.playerName) ?? UnnamedGuest;
 				if (hello.reconnectToken != null) {
 					if (bannedTokens.Contains(hello.reconnectToken)) {
 						log.Information("Turned away {Name}, who is banned", guest.name);
 						Reject(guest, BannedReason);
 						return false;
 					}
-					// Back to their seats, which needs no password.
+					// Back to their seats, which needs no password, or to
+					// watch, which they ask for next.
+					if (spectatorTokens.Contains(hello.reconnectToken) && !seats.Any(s => s.token == hello.reconnectToken)) {
+						return Admit(guest, hello.reconnectToken);
+					}
 					if (!Reattach(guest, hello.reconnectToken)) {
 						Reject(guest, "The host is no longer keeping a seat for you.");
 						return false;
@@ -866,6 +1164,11 @@ public class LanHost : IDisposable {
 					return true;
 				}
 				if (HasPassword) {
+					if (PasswordLockout(guest) is TimeSpan wait) {
+						Reject(guest, $"Too many wrong passwords from your address. Try again in {Math.Ceiling(wait.TotalMinutes):0} "
+							+ $"{(wait.TotalMinutes <= 1 ? "minute" : "minutes")}.");
+						return false;
+					}
 					AskForPassword(guest, false);
 					return true;
 				}
@@ -877,12 +1180,13 @@ public class LanHost : IDisposable {
 				PasswordInfo answer = NetSerialization.DeserializeRequired<PasswordInfo>(frame.payload);
 				// The host may have taken the password away meanwhile.
 				if (!HasPassword || GamePassword.Check(passwordVerifier, guest.nonce, answer.proof)) {
-
+					if (guest.connection.Transport.AddressKey is string key) {
+						passwordFailures.Remove(key);
+					}
 					return Admit(guest);
 				}
-				guest.wrongPasswords++;
 				log.Information("{Name} gave the wrong password", guest.name);
-				if (guest.wrongPasswords >= GamePassword.MaxWrongAttempts) {
+				if (NoteWrongPassword(guest)) {
 					Reject(guest, "Too many wrong passwords.");
 					return false;
 				}
@@ -918,30 +1222,82 @@ public class LanHost : IDisposable {
 				return true;
 			case FrameKind.RequestSnapshot:
 				if (Started && SeatsOf(guest).Any()) {
-					RequestWholeSnapshot(guest.connection);
-					snapshotPending = true;
+					guest.wholeSnapshot.pending = true;
 				}
 				return true;
 			default:
-				log.Warning("Ignoring {Kind} frame from {Address}", frame.kind, guest.connection.RemoteAddress);
-				return true;
+				// Counted as a frame that can't be read.
+				throw new InvalidDataException($"A guest doesn't send {frame.kind} frames");
 		}
 	}
 
 	// Asks the guest for the game's password, with a new nonce to sign.
 	private void AskForPassword(Guest guest, bool wrong) {
 		guest.nonce = GamePassword.NewNonce();
+		guest.waiting.Restart();
 		guest.connection.Send(FrameKind.PasswordRequired, new PasswordChallengeInfo(passwordSalt, guest.nonce, wrong,
-			GamePassword.MaxWrongAttempts - guest.wrongPasswords));
+			GamePassword.MaxWrongAttempts - WrongPasswords(guest)));
+	}
+
+	// The wrong passwords given lately from where the guest is: its address
+	// on the network, or the key the relay gave for it; or failing that, on
+	// its connection.
+	private int WrongPasswords(Guest guest) {
+		string key = guest.connection.Transport.AddressKey;
+		return key == null ? guest.wrongPasswords : passwordFailures.GetValueOrDefault(key)?.count ?? 0;
+	}
+
+	// Counts a wrong password, and returns whether that was one too many,
+	// which keeps its address from trying again for a while, longer each
+	// time; so connecting again doesn't give anyone more tries.
+	private bool NoteWrongPassword(Guest guest) {
+		string key = guest.connection.Transport.AddressKey;
+		if (key == null) {
+			return ++guest.wrongPasswords >= GamePassword.MaxWrongAttempts;
+		}
+		if (!passwordFailures.TryGetValue(key, out PasswordFailures failures)) {
+			if (passwordFailures.Count >= MaxPasswordFailureAddresses) {
+				// Forget those that may try again.
+				long now = Environment.TickCount64;
+				foreach (string old in passwordFailures.Where(f => f.Value.lockedUntil <= now).Select(f => f.Key).ToList()) {
+					passwordFailures.Remove(old);
+				}
+			}
+			failures = passwordFailures[key] = new PasswordFailures();
+		}
+		if (++failures.count < GamePassword.MaxWrongAttempts) {
+			return false;
+		}
+		failures.count = 0;
+		failures.lockouts++;
+		double seconds = Math.Min(GamePassword.FirstLockout.TotalSeconds * Math.Pow(2, failures.lockouts - 1),
+			GamePassword.MaxLockout.TotalSeconds);
+		failures.lockedUntil = Environment.TickCount64 + (long)(seconds * 1000);
+		log.Information("Too many wrong passwords from {Name}, turning their address away for {Seconds} seconds", guest.name, seconds);
+		return true;
+	}
+
+	// How long the guest's address is still kept from trying the password,
+	// or null if it isn't.
+	private TimeSpan? PasswordLockout(Guest guest) {
+		string key = guest.connection.Transport.AddressKey;
+		if (key == null || !passwordFailures.TryGetValue(key, out PasswordFailures failures)) {
+			return null;
+		}
+		long left = failures.lockedUntil - Environment.TickCount64;
+		return left > 0 ? TimeSpan.FromMilliseconds(left) : null;
 	}
 
 	// Lets the guest in, with a token for the seats it takes, and shows it
 	// the lobby; or has it watch, if it asked to meanwhile. Returns whether
 	// it's still a guest.
-	private bool Admit(Guest guest) {
+	// A spectator coming back keeps its token.
+	private bool Admit(Guest guest, string token = null) {
 		guest.admitted = true;
+		guest.connection.MaxFrameBytes = LanProtocol.MaxGuestFrameBytes;
+		guest.connection.Transport.AdmittedAtRelay?.Invoke();
 		guest.nonce = null;
-		guest.token = NewToken();
+		guest.token = token ?? NewToken();
 		if (guest.watchOnceAdmitted) {
 			return !StartWatching(guest);
 		}
@@ -957,12 +1313,28 @@ public class LanHost : IDisposable {
 			return false;
 		}
 		if (!AllowSpectators) {
-			Reject(guest, "The host doesn't let anyone watch this game.");
+			Reject(guest, NoSpectatorsReason);
+			return true;
+		}
+		// One coming back may not have been noticed to have gone.
+		foreach (Spectator old in spectators.Where(s => s.token == guest.token).ToList()) {
+			old.connection.Dispose();
+			spectators.Remove(old);
+		}
+		if (spectators.Count(s => !s.connection.IsClosed) >= MaxSpectators) {
+			Reject(guest, "The game has as many spectators as it takes.");
 			return true;
 		}
 		guests.Remove(guest);
-		Spectator spectator = new() { connection = guest.connection, name = guest.name };
+		Spectator spectator = new() {
+			id = nextSpectatorID++, connection = guest.connection, name = guest.name, token = guest.token, frameBudget = guest.frameBudget,
+		};
 		spectators.Add(spectator);
+		spectatorTokens.Remove(guest.token);
+		spectatorTokens.Add(guest.token);
+		if (spectatorTokens.Count > MaxSpectatorTokens) {
+			spectatorTokens.RemoveAt(0);
+		}
 		log.Information("{Name} is watching", guest.name);
 		if (Started) {
 			SendStart(spectator, EncodeSnapshot(new SnapshotRound()));
@@ -976,9 +1348,12 @@ public class LanHost : IDisposable {
 	private void ClaimSeat(Guest guest, ClaimSeatInfo claim) {
 		Seat seat = seats.Find(s => s.info.playerID == claim.playerID);
 		if (seat != null && seat.guest == guest && seat.IsTaken) {
-			if (!Started && !creatingGame) {
-				seat.takenBy = SeatPlayerName(guest, claim.playerName);
+			string renamed = Started || creatingGame ? seat.takenBy : SeatPlayerName(guest, claim.playerName);
+			if (renamed == seat.takenBy) {
+				SendLobby(guest);
+				return;
 			}
+			seat.takenBy = renamed;
 			BroadcastLobby();
 			return;
 		}
@@ -1008,12 +1383,19 @@ public class LanHost : IDisposable {
 	// The name of the player in a seat a guest takes: the one given, or the
 	// guest's own.
 	private static string SeatPlayerName(Guest guest, string playerName) {
-		if (string.IsNullOrWhiteSpace(playerName)) {
-			return guest.name;
-		}
-		playerName = playerName.Trim();
-		return playerName.Length > 40 ? playerName[..40] : playerName;
+		return TidyName(playerName) ?? guest.name;
 	}
+
+	// A name a guest gave, as everyone is shown it: without control or
+	// formatting characters, which could hide or reorder what's shown, and
+	// no longer than MaxPlayerNameLength; or null if nothing is left.
+	internal static string TidyName(string name) => RelayText.Tidy(name, MaxPlayerNameLength);
+
+	public const int MaxPlayerNameLength = 40;
+
+	// What a guest that gave no name is called. Never its address, which
+	// everyone else would see.
+	public const string UnnamedGuest = "Guest";
 
 	// A guest gives back a seat before the game starts. Once it has, they
 	// leave a seat only by leaving the game.
@@ -1082,6 +1464,8 @@ public class LanHost : IDisposable {
 		}
 		guest.token = token;
 		guest.admitted = true;
+		guest.connection.MaxFrameBytes = LanProtocol.MaxGuestFrameBytes;
+		guest.connection.Transport.AdmittedAtRelay?.Invoke();
 		int turn = EngineStorage.gameData?.turn ?? -1;
 		foreach (Seat seat in theirs) {
 			seat.guest = guest;
@@ -1142,16 +1526,18 @@ public class LanHost : IDisposable {
 	}
 
 	private void HandleCommand(Guest guest, Frame frame) {
-		if (!Started) {
+		// Guests act only as their own players, so one without a seat has
+		// nothing to say, and isn't listened to.
+		List<Seat> theirs = SeatsOf(guest).ToList();
+		if (!Started || theirs.Count == 0) {
 			return;
 		}
 		MessageToEngine msg = NetSerialization.DeserializeRequired<MessageToEngine>(frame.payload);
 		if (msg.IsLocal) {
 			return;
 		}
-		// Guests act only as their own players. One with a single seat always
-		// acts as it; one with several says which.
-		List<Seat> theirs = SeatsOf(guest).ToList();
+		// One with a single seat always acts as it; one with several says
+		// which.
 		if (theirs.Count == 1) {
 			msg.playerID = theirs[0].info.playerID;
 		} else if (!theirs.Any(s => s.info.playerID == msg.playerID)) {
@@ -1181,12 +1567,14 @@ public class LanHost : IDisposable {
 			|| (choosable.Any(c => c.name == civilization)
 				&& civilization != hostCivilization
 				&& !seats.Any(s => s != seat && s.info.civilization == civilization));
-		if (available) {
+		if (available && seat.info.civilization != civilization) {
 			seat.info = seat.info with { civilization = civilization };
 			log.Information("{Name} chose {Civilization}", seat.takenBy, civilization ?? "a random civilization");
+			BroadcastLobby();
+		} else {
+			// The guest hears how things stand.
+			SendLobby(guest);
 		}
-		// Either way, everyone hears how things stand.
-		BroadcastLobby();
 	}
 
 	// Closes the guests' choices, and returns the guests as GameSetup's
@@ -1231,10 +1619,9 @@ public class LanHost : IDisposable {
 	// Spectators only listen: whatever they send is dropped, except asking
 	// for the whole game.
 	private void PollSpectator(Spectator spectator) {
-		while (spectator.connection.TryReceive(out Frame frame)) {
+		while (spectator.connection.TryPeek(out _) && spectator.frameBudget.Take() && spectator.connection.TryReceive(out Frame frame)) {
 			if (frame.kind == FrameKind.RequestSnapshot && Started) {
-				RequestWholeSnapshot(spectator.connection);
-				spectatorSnapshotPending = true;
+				spectator.wholeSnapshot.pending = true;
 			}
 		}
 		if (spectator.connection.IsClosed) {
@@ -1309,6 +1696,12 @@ public class LanHost : IDisposable {
 			spectatorSnapshotPending = true;
 			sinceChange.Restart();
 		}
+		foreach (Guest guest in SeatedGuests()) {
+			snapshotPending |= guest.wholeSnapshot.TakeDue(guest.connection);
+		}
+		foreach (Spectator spectator in spectators.Where(s => !s.connection.IsClosed)) {
+			spectatorSnapshotPending |= spectator.wholeSnapshot.TakeDue(spectator.connection);
+		}
 		if (EncodingSnapshot) {
 			return;
 		}
@@ -1377,13 +1770,22 @@ public class LanHost : IDisposable {
 			SimultaneousTurns, reconnectToken, HideUnseen));
 	}
 
-	private void BroadcastLobby() {
-		foreach (Guest guest in guests.Where(g => g.admitted)) {
+	// While Poll handles what guests send, the lobby is sent once at the
+	// end rather than for each thing they do.
+	private bool deferLobby;
+	private bool lobbyChanged;
 
+	private void BroadcastLobby() {
+		if (deferLobby) {
+			lobbyChanged = true;
+			return;
+		}
+		lobbyChanged = false;
+		foreach (Guest guest in guests.Where(g => g.admitted)) {
 			SendLobby(guest);
 		}
 		foreach (Spectator spectator in spectators) {
-			SendLobby(spectator.connection, []);
+			SendLobby(spectator.connection, [], spectator.token);
 		}
 		// Who is connected has changed, and anyone who just came in needs
 		// the clock.

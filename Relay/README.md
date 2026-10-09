@@ -192,7 +192,7 @@ Set these in `appsettings.json`, or as environment variables in
 | `Relay:MaxPublicGames` | 200 | The most games `/games` returns at once. |
 | `Relay:GameListRequestsPerMinute` | 30 | Requests to `/games` per minute from one address. The game's browser asks every 20 seconds while open. |
 
-| `Relay:KeySecret` | (random each start) | Makes the hosts' keys. Set it so hosts can claim their codes across restarts. |
+| `Relay:KeySecret` | (required in production; random each start otherwise) | Makes the hosts' keys and ban keys. The relay won't start in production without it, since hosts would lose their codes and bans whenever it restarts. |
 | `Relay:TrustForwardedHeaders` | false | Take the client's address from Caddy's `X-Forwarded-For`. Only when the relay can't be reached except through the proxy. |
 | `Kestrel:Limits:MaxConcurrentUpgradedConnections` | 5000 | WebSocket connections at once. |
 

@@ -21,6 +21,19 @@ public sealed class RelayOptions {
 	// and is dropped.
 	public long MaxQueuedBytes { get; set; } = 64L * 1024 * 1024;
 
+	// While this much waits to be sent to a host, its guests are held back:
+	// what they send waits to be read, rather than pile up for the host
+	// until the host is dropped for it.
+	public long HostBackpressureBytes { get; set; } = 8L * 1024 * 1024;
+
+	// What one guest may send its host: bytes and messages a second, on
+	// average, with bursts of up to the second of each. Its game sends
+	// orders and the like, far less; a guest sending more is dropped.
+	public int GuestBytesPerSecond { get; set; } = 128 * 1024;
+	public int GuestBurstBytes { get; set; } = 1024 * 1024;
+	public int GuestMessagesPerSecond { get; set; } = 100;
+	public int GuestBurstMessages { get; set; } = 500;
+
 	public int MaxRooms { get; set; } = 1000;
 
 	// Connections open at once: from one client address, and in all.

@@ -14,8 +14,25 @@ public static class LanSession {
 	public static bool IsClient => Client != null;
 	public static bool IsSpectator => Client?.IsSpectator == true;
 
-	// The name this player goes by on the LAN.
-	public static string PlayerName = System.Environment.UserName;
+	// The name this player goes by in LAN and online games, which everyone
+	// in them sees, kept in the settings. It's never taken from the
+	// computer, whose user name is often the player's own.
+	public static string PlayerName {
+		get {
+			string name = C7Settings.GetSettingsValueOrDefault(SettingsSection, "playerName", null);
+			return string.IsNullOrWhiteSpace(name) ? DefaultPlayerName : name.Trim();
+		}
+		set {
+			if (string.IsNullOrWhiteSpace(value) || value.Trim() == PlayerName) {
+				return;
+			}
+			C7Settings.SetValue(SettingsSection, "playerName", value.Trim());
+			C7Settings.SaveSettings();
+		}
+	}
+
+	public const string DefaultPlayerName = "Player";
+	private const string SettingsSection = "lan";
 
 	// Developer options for trying LAN games from the command line, after "--":
 	//   --lan-host=<save>     host the saved game, starting once every seat is taken

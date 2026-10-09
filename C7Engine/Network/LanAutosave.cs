@@ -17,12 +17,18 @@ namespace C7Engine.Network;
 // verifier, never the password itself (see GamePassword). Guests the host
 // banned stay banned: their tokens, the addresses of those on the network,
 // and for those through the relay, the keys the relay gave for them. And
-// the game is listed publicly again if it was, as it was.
+// the game is listed publicly again if it was, as it was. allowSpectators is
+// null when the host left it to HideUnseen (see LanHost.AllowSpectators).
+// relayBanScope is what the relay makes the game's ban keys with, which must
+// stay the same for them to stay good.
+//
+// The password's verifier is as good as the password for joining this game
+// (see GamePassword), so the file is to be kept as private as a password.
 public record LanResumeInfo(string hostName, int port, double? turnSeconds, bool simultaneousTurns, List<LanResumeSeat> seats,
 	string relayUrl = null, string onlineCode = null, string onlineKey = null, bool hideUnseen = true,
 	string passwordSalt = null, string passwordVerifier = null, List<string> bannedTokens = null, List<string> bannedAddresses = null,
 	List<string> relayBans = null, bool listPublicly = false, string publicName = null, string publicDescription = null,
-	bool allowSpectators = true);
+	bool? allowSpectators = null, string relayBanScope = null);
 
 public record LanResumeSeat(ID playerID, string playerName, string reconnectToken);
 
@@ -66,13 +72,28 @@ public static class LanAutosave {
 			}
 			File.Move(temporary, latest, overwrite: true);
 
-			string infoPath = ResumeInfoPath(directory);
-			File.WriteAllBytes(infoPath + ".tmp", NetSerialization.SerializeData(info));
-			File.Move(infoPath + ".tmp", infoPath, overwrite: true);
+			WriteResumeInfoFile(directory, info);
 			log.Information("Saved the LAN game for turn {Turn} to {Path}", save.TurnNumber, latest);
 		} catch (Exception e) {
 			log.Error(e, "Couldn't save the LAN game to {Directory}", directory);
 		}
+	}
+
+	// Writes what resuming needs alone, as it changes between autosaves, in
+	// the same way.
+	public static void WriteResumeInfo(string directory, LanResumeInfo info) {
+		try {
+			Directory.CreateDirectory(directory);
+			WriteResumeInfoFile(directory, info);
+		} catch (Exception e) {
+			log.Error(e, "Couldn't save what resuming the LAN game needs to {Directory}", directory);
+		}
+	}
+
+	private static void WriteResumeInfoFile(string directory, LanResumeInfo info) {
+		string infoPath = ResumeInfoPath(directory);
+		File.WriteAllBytes(infoPath + ".tmp", NetSerialization.SerializeData(info));
+		File.Move(infoPath + ".tmp", infoPath, overwrite: true);
 	}
 
 	// What resuming needs besides the game, or null if there is nothing to

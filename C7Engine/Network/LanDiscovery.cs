@@ -38,6 +38,9 @@ public static class LanDiscovery {
 					// Windows reports a request nobody was listening for (such
 					// as the one to this machine) on the next receive.
 					continue;
+				} catch (SocketException) {
+					// What was found so far is all there is.
+					break;
 				}
 				try {
 					DiscoveryReply reply = NetSerialization.DeserializeRequired<DiscoveryReply>(result.Buffer);

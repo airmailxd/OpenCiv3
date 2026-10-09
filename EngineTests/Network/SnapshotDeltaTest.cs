@@ -71,7 +71,7 @@ public class SnapshotDeltaTest : IClassFixture<SaveGameFixture>, IDisposable {
 	}
 
 	private static byte[] HostGameHash() {
-		return SHA256.HashData(LanProtocol.SnapshotOf(EngineStorage.gameData).ToCompactJSON());
+		return SHA256.HashData(LanProtocol.SnapshotForPeers(EngineStorage.gameData).ToCompactJSON());
 	}
 
 	private static bool Has(LanClient client, byte[] hash) {
@@ -81,7 +81,7 @@ public class SnapshotDeltaTest : IClassFixture<SaveGameFixture>, IDisposable {
 	[Fact]
 	public async Task ClientsEndUpWithTheHostsGameThroughPatches() {
 		SaveGame save = SaveGameFixture.TwoHumanSave();
-		using LanHost host = new("Host", save, port: 0, answerDiscovery: false);
+		using LanHost host = new("Host", save, port: 0, answerDiscovery: false) { AllowSpectators = true };
 		ID seatID = host.Seats[0].playerID;
 		using LanClient guest = LanClient.Connect("127.0.0.1", host.Port, "Guest");
 		using LanClient spectator = LanClient.Connect("127.0.0.1", host.Port, "Watcher");

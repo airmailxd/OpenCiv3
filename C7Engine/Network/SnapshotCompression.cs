@@ -18,9 +18,13 @@ internal static class SnapshotCompression {
 	// long for little more.
 	private const int Level = 1;
 
-	// The largest window zstd allows everywhere, which a patch's prefix and
-	// the snapshot together have to fit in.
-	private const int MaxWindowLog = 30;
+	// The largest window a patch's prefix and the snapshot together may
+	// take: two of the largest snapshots (see LanProtocol.MaxSnapshotJsonBytes).
+	// A whole snapshot is compressed with a far smaller window, and one that
+	// asks for more is treated as broken, so that a host can't have a
+	// client set aside memory for one.
+	private const int MaxWindowLog = 29;
+	private const int MaxWholeWindowLog = 24;
 
 	public static byte[] Compress(byte[] json) {
 		using Compressor compressor = new(Level);
@@ -66,7 +70,7 @@ internal static class SnapshotCompression {
 	public static byte[] Decompress(ReadOnlySpan<byte> compressed, int maxBytes, byte[] reference = null) {
 		try {
 			using Decompressor decompressor = new();
-			decompressor.SetParameter(ZSTD_dParameter.ZSTD_d_windowLogMax, MaxWindowLog);
+			decompressor.SetParameter(ZSTD_dParameter.ZSTD_d_windowLogMax, reference == null ? MaxWholeWindowLog : MaxWindowLog);
 			if (reference != null) {
 				// A dictionary that isn't one of zstd's own is taken as raw
 				// content, just like a prefix.

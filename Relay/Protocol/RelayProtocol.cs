@@ -1,6 +1,7 @@
 using System;
 using System.Buffers.Binary;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Text;
 using System.Text.Json;
 
@@ -41,12 +42,29 @@ namespace C7Relay;
 // it or leaves, or stops refreshing it. GET /games returns the listings
 // (PublicGameList), and players join a game there with its code as usual.
 //
+// A guest takes one of the room's places from when it joins. A host that
+// connects with ?admits=1 says "admit" with a guest's ID once it has let the
+// guest into its game (as after its hello and password); when the room is
+// full, the guest that has waited longest without being let in gives way to
+// a newcomer, so that guests nobody let in can't keep out those coming back.
+//
 // A host can ban one of its guests: "ban" with the guest's ID closes its
 // connection, and the relay turns away its address from the room from then
 // on. The relay answers "banned" with a key standing for that address in
 // this room, which only the relay can make; the host keeps it, and gives
 // its keys back with "bans" whenever it connects, as after the relay
-// restarts or when resuming a game.
+// restarts or when resuming a game. The relay also tells the host each
+// guest's key as it joins ("guest", with its ID and key, before Open), and
+// the host bans with the key as well as the ID ("ban" with bans: [key]):
+// the key is banned even if the guest has gone, and only a guest with that
+// key is closed, whatever its ID now stands for.
+//
+// A host may say ?scope=... (16 to 64 letters and digits, a secret of its
+// own) for its ban keys to be made with, rather than the room's code, so that
+// they stay good for the same game in another room. A host that must move
+// to a new room, as when it can't claim its old one again, says
+// ?from=<old code>&fromKey=<old key>: guests joining the old code are then
+// told the new one (Moved, with MovedReason), and can follow it.
 public static class RelayProtocol {
 	// Bump when the messages change incompatibly.
 	public const int Version = 1;
@@ -60,6 +78,35 @@ public static class RelayProtocol {
 	public const string GameVersionParameter = "game";
 	public const string CodeParameter = "code";
 	public const string KeyParameter = "key";
+	public const string AdmitsParameter = "admits";
+	public const string BanScopeParameter = "scope";
+	public const string MovedFromParameter = "from";
+	public const string MovedFromKeyParameter = "fromKey";
+
+	// Whether a host's ban scope is one the relay takes.
+	public static bool IsBanScope(string scope) {
+		if (scope == null || scope.Length < 16 || scope.Length > 64) {
+			return false;
+		}
+		foreach (char c in scope) {
+			if (!char.IsAsciiLetterOrDigit(c)) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	// Why a guest of a room whose host moved to another is turned away,
+	// which gives the new code; and that code, from such a reason, or null.
+	public static string MovedReason(string newCode) => $"The host moved this game to the join code {FormatCode(newCode)}.";
+
+	public static string MovedTo(string reason) {
+		const string prefix = "The host moved this game to the join code ";
+		if (reason == null || !reason.StartsWith(prefix, StringComparison.Ordinal)) {
+			return null;
+		}
+		return NormalizeCode(reason[prefix.Length..].TrimEnd('.'));
+	}
 
 	// The public list of games, and its filters: games of this version of
 	// the game only, those with open seats, those without a password, and
@@ -174,6 +221,45 @@ public static class RelayProtocol {
 	}
 }
 
+// Text from others, as the relay keeps what hosts list and the game keeps
+// players' names.
+public static class RelayText {
+	// The text without control or formatting characters (which could reorder
+	// or hide what's shown), with whitespace collapsed and trimmed, and cut
+	// to the length; null if nothing is left.
+	public static string Tidy(string text, int maxLength) {
+		if (text == null) {
+			return null;
+		}
+		StringBuilder tidy = new(Math.Min(text.Length, maxLength));
+		bool space = false;
+		foreach (char c in text) {
+			if (char.IsWhiteSpace(c)) {
+				space = tidy.Length > 0;
+				continue;
+			}
+			UnicodeCategory category = char.GetUnicodeCategory(c);
+			if (category is UnicodeCategory.Control or UnicodeCategory.Format or UnicodeCategory.OtherNotAssigned
+				or UnicodeCategory.PrivateUse) {
+				continue;
+			}
+			if (space) {
+				tidy.Append(' ');
+				space = false;
+			}
+			tidy.Append(c);
+			if (tidy.Length >= maxLength) {
+				break;
+			}
+		}
+		// Don't leave half of a surrogate pair at the end.
+		if (tidy.Length > 0 && char.IsHighSurrogate(tidy[^1])) {
+			tidy.Length--;
+		}
+		return tidy.Length == 0 ? null : tidy.ToString();
+	}
+}
+
 // Why the relay closed a connection, as its WebSocket close status. The
 // reason that comes with it is for the player.
 public static class RelayCloseCodes {
@@ -196,15 +282,24 @@ public static class RelayCloseCodes {
 	public const int BadMessage = 4012;
 	// The host banned this guest from its game.
 	public const int Banned = 4013;
+	// The guest sent the host more, or faster, than the relay passes on.
+	public const int TooMuch = 4014;
+	// The host moved its game to another join code, which the reason gives
+	// (see RelayProtocol.MovedTo).
+	public const int Moved = 4015;
 }
 
 // A text message between the relay and a host or guest. The relay welcomes
-// a host with its room's code and key, and everyone with how often it pings.
+// a host with its room's code and key, and everyone with how often it pings
+// and the largest message it takes from them (0 from a relay that doesn't
+// say, which takes the defaults). A larger frame is sent in pieces: what a
+// guest and its host send each other through the relay is a stream of
+// bytes, however it's cut into messages.
 // The rest are for listing a game publicly and banning guests (see
 // RelayProtocol): listing is the game, error why it wasn't listed, guest the
 // guest to ban, and bans the keys of the addresses banned.
 public sealed record RelayControl(string type, string code = null, string key = null, double pingSeconds = 0,
-	GameListing listing = null, string error = null, uint guest = 0, List<string> bans = null) {
+	GameListing listing = null, string error = null, uint guest = 0, List<string> bans = null, int maxMessageBytes = 0) {
 	public const string Welcome = "welcome";
 	public const string Ping = "ping";
 	public const string Pong = "pong";
@@ -214,6 +309,8 @@ public sealed record RelayControl(string type, string code = null, string key = 
 	public const string Ban = "ban";
 	public const string Banned = "banned";
 	public const string Bans = "bans";
+	public const string Admit = "admit";
+	public const string Guest = "guest";
 
 	private static readonly JsonSerializerOptions Options = new() {
 		DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,

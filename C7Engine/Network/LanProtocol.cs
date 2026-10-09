@@ -49,7 +49,7 @@ public enum FrameKind : byte {
 
 public static class LanProtocol {
 	// Bump when the frames or the messages in them change incompatibly.
-	public const int Version = 11;
+	public const int Version = 12;
 
 	public const int DefaultPort = 47_777;
 	public const int DiscoveryPort = 47_778;
@@ -57,15 +57,40 @@ public static class LanProtocol {
 	// Frames larger than this are treated as a broken connection.
 	public const int MaxFrameBytes = 64 * 1024 * 1024;
 
+	// A guest only sends small frames: until the host has let it in, a
+	// hello or a password; after that, commands and the like (a path across
+	// a whole 100x100 map is 39 KB; see GuestFrameSizeTest). Only the host
+	// sends large ones, its snapshots.
+	public const int MaxFrameBytesBeforeAdmission = 16 * 1024;
+	public const int MaxGuestFrameBytes = 1024 * 1024;
+
 	// Snapshots that decompress to more than this are treated as broken,
-	// rather than read until memory runs out.
-	public const int MaxSnapshotJsonBytes = 1024 * 1024 * 1024;
+	// rather than read until memory runs out. The largest games are a few
+	// tens of megabytes.
+	public const int MaxSnapshotJsonBytes = 256 * 1024 * 1024;
+
+	// Whether a leader's art file a host names is one of the game's own: a
+	// .pcx under art, named plainly, which the client looks for only among
+	// its own files.
+	public static bool IsSafeArtPath(string path) {
+		if (string.IsNullOrEmpty(path) || path.Length > 200 || path.Contains("..")
+			|| !path.EndsWith(".pcx", StringComparison.OrdinalIgnoreCase)
+			|| !(path.StartsWith("art\\", StringComparison.OrdinalIgnoreCase) || path.StartsWith("art/", StringComparison.OrdinalIgnoreCase))) {
+			return false;
+		}
+		foreach (char c in path) {
+			if (!(char.IsAsciiLetterOrDigit(c) || c is '\\' or '/' or '_' or '-' or '.' or ' ')) {
+				return false;
+			}
+		}
+		return true;
+	}
 
 	public const string DiscoveryRequest = "C7-LAN-DISCOVER";
 
 	// The whole game, compressed, for a client to show.
 	public static byte[] EncodeSnapshot(GameData gameData) {
-		return EncodeSnapshot(SnapshotOf(gameData)).Compressed;
+		return EncodeSnapshot(SnapshotForPeers(gameData)).Compressed;
 	}
 
 	// The game as it stands, to be encoded by EncodeSnapshot. This must be
@@ -76,6 +101,35 @@ public static class LanProtocol {
 		SaveGame save = SaveGame.FromGameData(gameData);
 		SnapshotDetacher.Detach(save);
 		return save;
+	}
+
+	// The game as it stands, as any guest or spectator may be sent it: as
+	// SnapshotOf, less what only the host may know.
+	public static SaveGame SnapshotForPeers(GameData gameData) {
+		SaveGame save = SnapshotOf(gameData);
+		StripHostSecrets(save);
+		return save;
+	}
+
+	// Takes out of a snapshot what no client may have, whatever it sees of
+	// the game: the state of the host's random numbers, from which a client
+	// could tell how combat and the like will turn out.
+	//
+	// SaveGame.RngState comes from another branch; until it's merged here
+	// this finds it by name, so that it's stripped as soon as it exists.
+	// Once merged, this is just: save.RngState = null;
+	private static readonly System.Reflection.MemberInfo RngState =
+		(System.Reflection.MemberInfo)typeof(SaveGame).GetProperty("RngState") ?? typeof(SaveGame).GetField("RngState");
+
+	internal static void StripHostSecrets(SaveGame save) {
+		switch (RngState) {
+			case System.Reflection.PropertyInfo property when property.CanWrite:
+				property.SetValue(save, null);
+				break;
+			case System.Reflection.FieldInfo field:
+				field.SetValue(save, null);
+				break;
+		}
 	}
 
 	// Encodes a snapshot from SnapshotOf, on any thread. When it's identical
@@ -229,13 +283,17 @@ public record ChooseCivilizationInfo(string civilization, ID playerID = null);
 public record StartInfo(List<ID> yourPlayerIDs, string reconnectToken = null);
 
 // A host's answer to a discovery broadcast. hasPassword is whether joining
-// takes the game's password.
-public record DiscoveryReply(string hostName, int port, int openSeats, bool started, bool hasPassword = false);
+// takes the game's password, and version the host's LanProtocol.Version (0
+// from a host too old to say), which a guest must match to join.
+public record DiscoveryReply(string hostName, int port, int openSeats, bool started, bool hasPassword = false, int version = 0);
 
 // The host asks for the game's password: the salt to make its verifier
 // with and the nonce to sign (see GamePassword). wrong is true when the last
 // answer was wrong, and attemptsLeft how many more the host takes.
 public record PasswordChallengeInfo(string salt, string nonce, bool wrong = false, int attemptsLeft = GamePassword.MaxWrongAttempts);
+
+// A spectator as the host knows it: its ID, which is its own, and its name.
+public record SpectatorInfo(int id, string name);
 
 // A guest's answer to a PasswordChallengeInfo.
 public record PasswordInfo(string proof);
