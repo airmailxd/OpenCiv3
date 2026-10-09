@@ -935,13 +935,38 @@ namespace C7GameData {
 				result.corrupt = yield;
 			}
 
+			// Specialists work only when the city does: policemen cut waste,
+			// and civil engineers add their own shields. Assumption: the
+			// engineers' shields count before factories and power plants,
+			// like those of the city's tiles.
+			if (!owner.government.transitionType && !isInCivilDisorder) {
+				RecoverWithPolicemen(ref result);
+				foreach (CityResident cr in residents) {
+					result.useful += cr.citizenType.Construction;
+				}
+			}
+
 			// Factories and power plants boost the shields left after waste.
 			result.useful += result.useful * ProductionBonusPercent(buildings) / 100;
 
-			// TODO: add specialist shields here. Do specialists still work in
-			// civil disorder?
-
 			return result;
+		}
+
+		// Policemen (specialists with a corruption value) win back lost
+		// commerce or shields. Civ3 doesn't document the amount; this takes
+		// the BIQ's value as an absolute amount, like the other specialists'
+		// taxes, science and shields: the standard policeman's 1 recovers one
+		// corrupt commerce and one wasted shield. Never more than was lost.
+		private void RecoverWithPolicemen(ref CorruptableValue value) {
+			int recovered = 0;
+			foreach (CityResident cr in residents) {
+				recovered += cr.citizenType.Corruption;
+			}
+			recovered = Math.Min(recovered, value.corrupt);
+			if (recovered > 0) {
+				value.corrupt -= recovered;
+				value.useful += recovered;
+			}
 		}
 
 		// The percentage the given buildings add to the city's useful shields.
@@ -1005,6 +1030,7 @@ namespace C7GameData {
 			// happy at a certain luxury slider value even while the city is in
 			// civil disorder.
 			CorruptableValue commerce = new CorruptableValue(uncorruptedCommerce, corruption);
+			RecoverWithPolicemen(ref commerce);
 			bool inDisorder = isInCivilDisorder && respectCivilDisorder;
 			bool inAnarchy = owner.government.transitionType;
 			if (inAnarchy || inDisorder) {
@@ -1454,7 +1480,9 @@ namespace C7GameData {
 		internal void CalculateCorruption(GameData gameData, int adjustedOptimalCityNumber) {
 			int numAntiCorruptionBuildings = 0;
 
-			// TODO: Handle the SPHQ.
+			// Civ3's Secret Police HQ is a second Forbidden Palace: the BIQ
+			// gives it the same "Forbidden Palace" flag, so it counts here and
+			// as a center of the empire for distance corruption.
 			int numCorruptionReducingSmallWondersInCity = 0;
 			foreach (CityBuilding cb in EffectiveBuildings()) {
 				if (cb.building.reducesCorruption) {
@@ -1468,7 +1496,8 @@ namespace C7GameData {
 			corruption = (CalculateDistanceCorruption(gameData, numAntiCorruptionBuildings)
 					+ CalculateRankCorruption(adjustedOptimalCityNumber, gameData.map.optimalNumberOfCities, numAntiCorruptionBuildings))
 					* CorruptionScale;
-			// TODO: apply policeman modifiers, before applying the max
+			// Policemen are applied to the corrupt amounts themselves, see
+			// RecoverWithPolicemen.
 
 			// Corruption maxes out at 90%, and this max can be reduced further
 			// via courthouses/police stations, and the forbidden palace/SPHQ.

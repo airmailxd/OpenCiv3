@@ -148,6 +148,20 @@ public class RulesReviewFixTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(0, commerce.taxes);
 	}
 
+	[Fact]
+	public void PolicemenWinBackWaste() {
+		City city = BuildCity(us);
+		CitizenType entertainer = gameData.citizenTypes.First(c => c.Luxuries > 0);
+		CitizenType policeman = gameData.citizenTypes.First(c => c.Corruption > 0);
+		MakeSpecialist(city, entertainer);
+		city.corruption = 0.9f;
+		CorruptableValue withoutPolice = city.CurrentProductionYield();
+
+		city.residents[0].citizenType = policeman;
+		CorruptableValue withPolice = city.CurrentProductionYield();
+		Assert.Equal(System.Math.Max(0, withoutPolice.corrupt - policeman.Corruption), withPolice.corrupt);
+	}
+
 	// ---- Trait discounts ----
 
 	[Fact]
