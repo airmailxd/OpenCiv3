@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Serilog;
 
 namespace C7GameData.Save {
 	public class SaveCityResident {
@@ -155,7 +156,13 @@ namespace C7GameData.Save {
 					if (inflow.name != null) inflowsByName.TryAdd(inflow.name, inflow);
 				}
 				defaultCitizenType = citizenTypes.Find(x => x.IsDefaultCitizen);
+				fallbackProducible = inflows.Count > 0 ? inflows[0]
+					: unitPrototypes.Count > 0 ? unitPrototypes[0]
+					: null;
 			}
+
+			// What a city producing something unknown produces instead.
+			internal readonly IProducible fallbackProducible;
 
 			internal static T Find<K, T>(Dictionary<K, T> dict, K key) where T : class {
 				return key is not null && dict.TryGetValue(key, out T value) ? value : null;
@@ -189,45 +196,87 @@ namespace C7GameData.Save {
 		}
 
 		internal City ToCity(GameMap gameMap, Lookups lookups) {
+			Player cityOwner = Lookups.Find(lookups.playersById, owner)
+				?? throw new KeyNotFoundException($"City {name} ({id}) is owned by unknown player {owner}");
+			IProducible itemBeingProduced = FindProducible(lookups, producibleType, producible);
+			if (itemBeingProduced == null) {
+				itemBeingProduced = lookups.fallbackProducible
+					?? throw new KeyNotFoundException($"City {name} ({id}) is producing unknown {producibleType} {producible}");
+				Log.Warning("City {City} is producing unknown {Type} {Producible}; producing {Fallback} instead", name, producibleType, producible, itemBeingProduced.name);
+			}
 			City city = new City{
 				id = id,
 				location = gameMap.tileAt(location.X, location.Y),
-				owner = Lookups.Find(lookups.playersById, owner),
+				owner = cityOwner,
 				name = name,
-				itemBeingProduced = FindProducible(lookups, producibleType, producible),
+				itemBeingProduced = itemBeingProduced,
 				foodStored = foodStored,
 				turnsOfUnhappinessDueToPopRushing = turnsOfUnhappinessDueToPopRushing,
 				celebrating = celebrating,
 				isInCivilDisorder = isInCivilDisorder,
 				hurriedThisTurn = hurriedThisTurn,
 				capital = capital,
-				constructed_buildings = this.buildings.ConvertAll(building => building.ToCityBuilding(lookups)),
+				constructed_buildings = [],
 			};
+			foreach (SaveCityBuilding building in this.buildings) {
+				CityBuilding cityBuilding = building.ToCityBuilding(lookups);
+				if (cityBuilding.building == null) {
+					Log.Warning("City {City} has unknown building {Building}, which is left out", name, building.building);
+					continue;
+				}
+				if (cityBuilding.builtByPlayer == null) {
+					Log.Warning("The {Building} in {City} was built by unknown player {Player}; crediting the city's owner", building.building, name, building.builtByPlayer);
+					cityBuilding.builtByPlayer = cityOwner;
+				}
+				city.constructed_buildings.Add(cityBuilding);
+			}
 
 			city.SetStoredShields(shieldsStored);
 			foreach (SaveQueuedProducible queued in productionQueue ?? []) {
 				IProducible item = FindProducible(lookups, queued.type, queued.name);
 				if (item != null) {
 					city.productionQueue.Add(item);
+				} else {
+					Log.Warning("City {City} has unknown {Type} {Producible} queued, which is left out", name, queued.type, queued.name);
 				}
 			}
 
 			foreach (KeyValuePair<string, int> keyValuePair in perPlayerCulture) {
-				city.perPlayerCulture.Add(Lookups.Find(lookups.playersByIdString, keyValuePair.Key), keyValuePair.Value);
+				Player player = Lookups.Find(lookups.playersByIdString, keyValuePair.Key);
+				if (player == null) {
+					Log.Warning("City {City} has culture from unknown player {Player}, which is left out", name, keyValuePair.Key);
+					continue;
+				}
+				city.perPlayerCulture[player] = keyValuePair.Value;
 			}
 
 			city.residents = residents.ConvertAll(resident => {
+				CitizenType citizenType = Lookups.Find(lookups.citizenTypesById, resident.citizenType);
+				if (citizenType == null) {
+					Log.Warning("A citizen of {City} is of unknown type {Type}; making them a worker", name, resident.citizenType);
+					citizenType = lookups.defaultCitizenType;
+				}
+				// Older saves can lack a nationality, which is left unknown.
+				Civilization nationality = Lookups.Find(lookups.civilizationsByName, resident.nationality);
+				if (nationality == null && resident.nationality != null) {
+					Log.Warning("A citizen of {City} has unknown nationality {Nationality}; giving them the owner's", name, resident.nationality);
+					nationality = cityOwner.civilization;
+				}
 				return new CityResident {
-					citizenType = Lookups.Find(lookups.citizenTypesById, resident.citizenType),
-					nationality = Lookups.Find(lookups.civilizationsByName, resident.nationality),
+					citizenType = citizenType,
+					nationality = nationality,
 					tileWorked = gameMap.tileAt(resident.tileWorked.X, resident.tileWorked.Y),
 					city = city,
 				};
 			});
 
-			// Fill in the back pointers.
+			// Fill in the back pointers. A citizen who isn't working a tile
+			// (a specialist, or one not yet given a tile) has Tile.NONE, which
+			// all such citizens share, so it gets none.
 			foreach (CityResident cr in city.residents) {
-				cr.tileWorked.personWorkingTile = cr;
+				if (cr.tileWorked != Tile.NONE) {
+					cr.tileWorked.personWorkingTile = cr;
+				}
 			}
 
 			// Scenarios don't specify the citizens of each city, only the city
