@@ -273,17 +273,16 @@ namespace C7GameData.Save {
 		// The game's random number generator, carrying on from where it was
 		// when the game was saved. Saves made before its state was saved
 		// start it afresh each turn from the seed.
-		private Random CreateRandom() {
+		private Random CreateRandom(int seed) {
 			if (RngState is ulong state) {
 				return new GameRandom(state);
 			}
-			return new GameRandom(GameRandom.InitialState(Seed, TurnNumber));
+			return new GameRandom(GameRandom.InitialState(seed, TurnNumber));
 		}
 
 		private GameData InitializeGameData() {
 			// copy data without references
 			var data = new GameData(Seed) {
-				random = CreateRandom(),
 				turn = TurnNumber,
 				terrainTypes = TerrainTypes,
 				Resources = Resources,
@@ -305,6 +304,8 @@ namespace C7GameData.Save {
 				GreatWondersBuilt = GreatWondersBuilt,
 				unitedNations = UnitedNations ?? new UnitedNationsState(),
 			};
+			// A save without a seed has been given a random one.
+			data.random = CreateRandom(data.seed);
 
 			return data;
 		}
