@@ -437,14 +437,53 @@ public partial class LanLobby : Control {
 		spectatorsBox = new() {
 			Text = "Allow spectators",
 			ButtonPressed = host.AllowSpectators,
-			TooltipText = $"Let up to {LanHost.MaxSpectators} players watch the game without playing. Spectators see the whole game, "
-				+ "everyone's units, cities and treasuries included, so they're off unless you allow them while hiding what players "
-				+ "can't see. Turning this off stops anyone watching.",
+			TooltipText = $"Let up to {LanHost.MaxSpectators} players watch the game without playing. Even watching as a "
+				+ "civilization shows what it knows to whoever watches, who may be playing its rival, so they're off unless you "
+				+ "allow them while hiding what players can't see. Turning this off stops anyone watching.",
 		};
 		spectatorsBox.AddThemeFontSizeOverride("font_size", 18);
-		spectatorsBox.Toggled += on => host.AllowSpectators = on;
+		spectatorsBox.Toggled += on => {
+			host.AllowSpectators = on;
+			spectatorViewChoice.Disabled = !on;
+		};
 		row.AddChild(spectatorsBox);
+
+		spectatorViewChoice = new OptionButton {
+			TooltipText = "How spectators may see the game. As a civilization, they see only what it knows, as its player "
+				+ "would; as all of them, what any of them knows, so what nobody has seen stays hidden. Whoever watches "
+				+ "chooses from what you allow, and can change it during the game.",
+			Disabled = !host.AllowSpectators,
+		};
+		spectatorViewChoice.AddThemeFontSizeOverride("font_size", 18);
+		foreach ((string text, SpectatorViews _) in SpectatorViewChoices) {
+			spectatorViewChoice.AddItem(text);
+		}
+		ShowSpectatorViews();
+		spectatorViewChoice.ItemSelected += index => host.SpectatorViews = SpectatorViewChoices[(int)index].views;
+		row.AddChild(spectatorViewChoice);
 		return row;
+	}
+
+	// The ways the host can let spectators see the game.
+	private static readonly (string text, SpectatorViews views)[] SpectatorViewChoices = [
+		("Spectators see: as the civilizations, one or all", SpectatorViews.AsCivs),
+		("Spectators see: as all the civilizations", SpectatorViews.AllCivs),
+		("Spectators see: as one civilization", SpectatorViews.OneCiv),
+		("Spectators see: their choice, the whole game too", SpectatorViews.Any),
+		("Spectators see: the whole game", SpectatorViews.Omniscient),
+	];
+
+	// Hosting: how spectators may see the game, which follows hiding what
+	// players can't see until the host chooses.
+	private OptionButton spectatorViewChoice;
+
+	private void ShowSpectatorViews() {
+		if (spectatorViewChoice == null || LanSession.Host == null) {
+			return;
+		}
+		int index = Array.FindIndex(SpectatorViewChoices, c => c.views == LanSession.Host.SpectatorViews);
+		spectatorViewChoice.Select(index);
+		spectatorViewChoice.Disabled = !LanSession.Host.AllowSpectators;
 	}
 
 	private void SetPassword() {
@@ -572,15 +611,17 @@ public partial class LanLobby : Control {
 			Text = "Hide what players can't see",
 			ButtonPressed = hideUnseen,
 			TooltipText = "Each guest's computer is sent only what its players could know of the game, so nobody can read "
-				+ "other civilizations' hidden units, cities or treasuries from it. Spectators always see everything, so "
-				+ "they're off unless you allow them.",
+				+ "other civilizations' hidden units, cities or treasuries from it. Spectators are off unless you allow them, "
+				+ "and see only what the civilizations know unless you let them see the whole game.",
 		};
 		hide.AddThemeFontSizeOverride("font_size", 18);
 		hide.Toggled += on => {
 			LanSession.Host.HideUnseen = on;
 			spectatorsBox?.SetPressedNoSignal(LanSession.Host.AllowSpectators);
+			ShowSpectatorViews();
 		};
 		LanSession.Host.HideUnseen = hideUnseen;
+		ShowSpectatorViews();
 		row.AddChild(hide);
 		return row;
 	}

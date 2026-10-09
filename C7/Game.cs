@@ -429,11 +429,8 @@ public partial class Game : Node {
 			LanClient client = LanSession.Client;
 			EngineStorage.uiFollowsActivePlayer = false;
 			if (client.IsSpectator) {
-				// The whole map is shown, so whose eyes we borrow only
-				// matters for things like the starting camera position.
-				EngineStorage.gameData.observerMode = true;
-				EngineStorage.uiControllerID = EngineStorage.gameData.players
-					.FirstOrDefault(p => p.isHuman && !p.defeated)?.id ?? EngineStorage.gameData.players[0].id;
+				// As the whole game, or as one or all of the civilizations.
+				LanSession.ShowSpectatorView(EngineStorage.gameData);
 			} else {
 				// Of this machine's players, whoever plays first.
 				ID active = EngineStorage.gameData.simultaneousTurns
@@ -445,6 +442,13 @@ public partial class Game : Node {
 			client.SnapshotReceived = OnLanSnapshot;
 			client.UiMessageReceived = json => HandleEngineMessage(NetSerialization.DeserializeMessageToUI(json));
 			client.PlayersChanged = OnLanPlayersChanged;
+			// A spectator's new view shows straight away, and its snapshots
+			// follow.
+			client.SpectatorViewChanged = () => {
+				LanSession.ShowSpectatorView(EngineStorage.gameData);
+				controller = EngineStorage.gameData.GetUIControllerPlayer();
+				mapView?.InvalidateMap();
+			};
 			// Our own moves show before the host's snapshot does.
 			client.OrderPredicted = () => mapView?.InvalidateMap();
 			// Losing the host from here on, we try to get back to it; and
@@ -624,8 +628,8 @@ public partial class Game : Node {
 		C7.Textures.PlayerTextureUtil.ForgetGameObjects();
 		// Animations of units that aren't in the snapshot would never end.
 		animationController.animTracker.forgetRemovedUnits(gameData);
-		// A spectator sees the whole map.
-		gameData.observerMode = LanSession.IsSpectator;
+		// A spectator sees the map as the host sends it.
+		LanSession.ShowSpectatorView(gameData);
 
 		controller = gameData.GetUIControllerPlayer();
 		InitializeMapView();
@@ -1943,11 +1947,13 @@ public partial class Game : Node {
 	private void OnDoubleLeftMouseButtonClick(InputEventMouseButton eventMouseButton) {
 		Tile tile = pendingClickTile ?? PositionToTile(eventMouseButton.Position);
 		pendingClickTile = null;
-		if (tile?.cityAtTile != null && LanSession.IsSpectator) {
+		if (tile?.cityAtTile != null && LanSession.IsSpectator && LanSession.SpectatorMayLookAs(tile.cityAtTile.owner)) {
 			// A spectator looks at the game as the city's owner, so the city
-			// screen and the advisors show that civilization.
+			// screen and the advisors show that civilization; the map stays
+			// as the spectator watches it.
 			controller = tile.cityAtTile.owner;
 			EngineStorage.uiControllerID = controller.id;
+			LanSession.ShowSpectatorView(EngineStorage.gameData);
 			mapView.InvalidateMap();
 		}
 		if (tile?.cityAtTile?.owner == controller) {
