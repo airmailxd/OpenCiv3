@@ -448,8 +448,10 @@ public class UnitedNationsTest : System.IDisposable {
 		Befriend(greece, rome);
 		gameData.victories.Add(new DiplomaticVictory());
 
-		// The round that finds the UN schedules a vote for the coming turn.
+		// The round that finds the UN offers its AI owner an election, which
+		// it holds during the coming turn, expecting to win it.
 		Assert.Null(UnitedNations.ProcessEndOfRound(gameData));
+		Assert.Equal(50, gameData.unitedNations.offerTurn);
 		Assert.Equal(50, gameData.unitedNations.votingTurn);
 		TurnHandling.CheckVictory(gameData);
 		Assert.False(gameData.gameOver);
@@ -475,6 +477,7 @@ public class UnitedNationsTest : System.IDisposable {
 		Player human = MakePlayer("Persians", 2, human: true);
 		BuildUnitedNations(rome);
 		Meet(rome, egypt, greece, human);
+		gameData.unitedNations.votingTurn = gameData.turn;
 
 		// The vote is called as the voting turn begins.
 		Assert.Null(UnitedNations.ProcessEndOfRound(gameData));
@@ -514,8 +517,10 @@ public class UnitedNationsTest : System.IDisposable {
 		Assert.Equal(egypt.id.ToString(), gameData.unitedNations.candidateB);
 	}
 
+	// A save from before the owner was asked has a vote scheduled but no
+	// offer turn.
 	[Fact]
-	public void FailedVoteSchedulesTheNextOne() {
+	public void FailedVoteInAnOlderSaveOffersTheNextOne() {
 		Player rome = MakePlayer("Romans", 3);
 		Player egypt = MakePlayer("Egyptians", 4);
 		MakePlayer("Greeks", 2);
@@ -529,7 +534,143 @@ public class UnitedNationsTest : System.IDisposable {
 		// "The choice for the founder of the UN to have elections comes
 		// around every 11 turns".
 		Assert.Equal(11, UnitedNations.ElectionInterval);
-		Assert.Equal(49 + UnitedNations.ElectionInterval, gameData.unitedNations.votingTurn);
+		Assert.Equal(-1, gameData.unitedNations.votingTurn);
+		Assert.Equal(49 + UnitedNations.ElectionInterval, gameData.unitedNations.offerTurn);
+	}
+
+	[Fact]
+	public void FailedVoteOffersTheNextElectionElevenTurnsAfterTheLast() {
+		Player rome = MakePlayer("Romans", 3);
+		Player egypt = MakePlayer("Egyptians", 4);
+		MakePlayer("Greeks", 2);
+		BuildUnitedNations(rome);
+		Meet(rome, egypt);
+		gameData.unitedNations.offerTurn = 48;
+		gameData.unitedNations.votingTurn = 49;
+
+		Assert.Null(UnitedNations.ProcessEndOfRound(gameData).winner);
+		Assert.Equal(48 + UnitedNations.ElectionInterval, gameData.unitedNations.offerTurn);
+	}
+
+	// https://forums.civfanatics.com/threads/when-someone-else-builds-the-u-n.85895/:
+	// "If they know they will most likely lose they won't hold a vote."
+	[Fact]
+	public void AnAIFounderHoldsAnElectionOnlyWhenItExpectsToWin() {
+		Player rome = MakePlayer("Romans", 3);
+		Player egypt = MakePlayer("Egyptians", 7);
+		Player greece = MakePlayer("Greeks", 2);
+		BuildUnitedNations(rome);
+		Meet(rome, egypt, greece);
+
+		// Greece would abstain: no majority, so no election, and the next
+		// chance is ElectionInterval turns away.
+		Assert.False(UnitedNations.AIHoldsElection(gameData, rome));
+		Assert.Null(UnitedNations.ProcessEndOfRound(gameData));
+		Assert.Equal(-1, gameData.unitedNations.votingTurn);
+		Assert.Equal(50 + UnitedNations.ElectionInterval, gameData.unitedNations.offerTurn);
+		Assert.Null(gameData.unitedNations.candidateA);
+
+		// Nothing happens until then.
+		Befriend(greece, rome);
+		for (gameData.turn = 51; gameData.turn < 61; ++gameData.turn) {
+			Assert.Null(UnitedNations.ProcessEndOfRound(gameData));
+			Assert.Equal(-1, gameData.unitedNations.votingTurn);
+		}
+
+		// Now Greece would vote for Rome.
+		Assert.True(UnitedNations.AIHoldsElection(gameData, rome));
+		Assert.Null(UnitedNations.ProcessEndOfRound(gameData));
+		Assert.Equal(61, gameData.unitedNations.votingTurn);
+		Assert.Equal(rome.id.ToString(), gameData.unitedNations.candidateA);
+		Assert.Empty(EngineStorage.messagesToUI.OfType<MsgShowUnitedNationsElectionOffer>());
+	}
+
+	// "The choice for the founder of the UN to have elections comes around
+	// every 11 turns" (https://civfanatics.com/civ3/faq/).
+	[Fact]
+	public void AHumanFounderChoosesToHoldAnElection() {
+		Player human = MakePlayer("Romans", 3, human: true);
+		Player egypt = MakePlayer("Egyptians", 7);
+		Player greece = MakePlayer("Greeks", 2, human: true);
+		BuildUnitedNations(human);
+		Meet(human, egypt, greece);
+
+		Assert.Null(UnitedNations.ProcessEndOfRound(gameData));
+		Assert.Equal(50, gameData.unitedNations.offerTurn);
+		Assert.Equal(-1, gameData.unitedNations.votingTurn);
+
+		// Only the founder is asked.
+		UnitedNations.AskHumanToVote(gameData, greece);
+		Assert.Empty(EngineStorage.messagesToUI.OfType<MsgShowUnitedNationsElectionOffer>());
+		Assert.False(UnitedNations.AnswerElectionOffer(gameData, greece, true));
+		UnitedNations.AskHumanToVote(gameData, human);
+		MsgShowUnitedNationsElectionOffer offer = Assert.Single(EngineStorage.messagesToUI.OfType<MsgShowUnitedNationsElectionOffer>());
+		Assert.Equal(human, offer.recipient);
+		Assert.Equal([human, egypt], offer.candidates);
+
+		// The vote is held during the next turn.
+		Assert.True(UnitedNations.AnswerElectionOffer(gameData, human, true));
+		Assert.Equal(51, gameData.unitedNations.votingTurn);
+		Assert.False(UnitedNations.FounderShouldBeAsked(gameData, human));
+		Assert.False(UnitedNations.AnswerElectionOffer(gameData, human, false));
+
+		gameData.turn = 51;
+		Assert.Null(UnitedNations.ProcessEndOfRound(gameData));
+		Assert.Equal(human.id.ToString(), gameData.unitedNations.candidateA);
+		EngineStorage.messagesToUI.Clear();
+		UnitedNations.AskHumanToVote(gameData, greece);
+		Assert.Single(EngineStorage.messagesToUI.OfType<MsgShowUnitedNationsVote>());
+		Assert.True(UnitedNations.CastHumanVote(gameData, greece, human));
+
+		gameData.turn = 52;
+		UnitedNations.ElectionResult result = UnitedNations.ProcessEndOfRound(gameData);
+		Assert.Equal(human, result.winner);
+		Assert.Equal(-1, gameData.unitedNations.votingTurn);
+		Assert.Equal(50 + UnitedNations.ElectionInterval, gameData.unitedNations.offerTurn);
+	}
+
+	// "it's 11 turns whether the vote is inconclusive or the option
+	// declined" (https://forums.civfanatics.com/threads/diplomatic-victory.53460/).
+	[Fact]
+	public void AHumanFounderWhoDeclinesIsAskedAgainElevenTurnsLater() {
+		Player human = MakePlayer("Romans", 3, human: true);
+		Player egypt = MakePlayer("Egyptians", 7);
+		BuildUnitedNations(human);
+		Meet(human, egypt);
+		UnitedNations.ProcessEndOfRound(gameData);
+
+		Assert.True(UnitedNations.AnswerElectionOffer(gameData, human, false));
+		Assert.Equal(61, gameData.unitedNations.offerTurn);
+		Assert.Equal(-1, gameData.unitedNations.votingTurn);
+		Assert.False(UnitedNations.FounderShouldBeAsked(gameData, human));
+		UnitedNations.AskHumanToVote(gameData, human);
+		Assert.Empty(EngineStorage.messagesToUI.OfType<MsgShowUnitedNationsElectionOffer>());
+
+		for (gameData.turn = 51; gameData.turn < 61; ++gameData.turn) {
+			Assert.Null(UnitedNations.ProcessEndOfRound(gameData));
+			Assert.False(UnitedNations.FounderShouldBeAsked(gameData, human));
+		}
+		Assert.Null(UnitedNations.ProcessEndOfRound(gameData));
+		Assert.True(UnitedNations.FounderShouldBeAsked(gameData, human));
+	}
+
+	// An unanswered offer can't hold the game up: once the turn is over, it
+	// was declined.
+	[Fact]
+	public void AnUnansweredOfferIsDeclinedAtTheEndOfTheTurn() {
+		Player human = MakePlayer("Romans", 3, human: true);
+		Player egypt = MakePlayer("Egyptians", 7);
+		BuildUnitedNations(human);
+		Meet(human, egypt);
+		UnitedNations.ProcessEndOfRound(gameData);
+		Assert.True(UnitedNations.FounderShouldBeAsked(gameData, human));
+
+		gameData.turn = 51;
+		Assert.Null(UnitedNations.ProcessEndOfRound(gameData));
+		Assert.Equal(-1, gameData.unitedNations.votingTurn);
+		Assert.Equal(61, gameData.unitedNations.offerTurn);
+		Assert.False(UnitedNations.FounderShouldBeAsked(gameData, human));
+		Assert.False(UnitedNations.AnswerElectionOffer(gameData, human, true));
 	}
 
 	[Fact]

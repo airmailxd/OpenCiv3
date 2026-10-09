@@ -1390,6 +1390,21 @@ public partial class Game : Node {
 					InterestingEvent();
 					break;
 				}
+			case MsgShowUnitedNationsElectionOffer mSUNEO: {
+					string candidates = string.Join(", ", mSUNEO.candidates.Select(c => $"{c.civilization.leader} of the {c.civilization.noun}"));
+					popupOverlay.ShowPopup(
+						new ChoicePopup("United Nations",
+							"Hold a United Nations election?\n"
+							+ $"The candidates for Secretary General would be {candidates}.\n"
+							+ $"If we don't, we may next choose in {UnitedNations.ElectionInterval} turns.",
+							[
+								new ChoicePopup.Choice("Yes, hold the election.", () => new MsgHoldUnitedNationsElection(true).send()),
+								new ChoicePopup.Choice("No, not now.", () => new MsgHoldUnitedNationsElection(false).send()),
+							], cancellable: false),
+						PopupOverlay.PopupCategory.Advisor);
+					InterestingEvent();
+					break;
+				}
 			case MsgUnitedNationsElectionResult mUNER: {
 					string outcome = mUNER.winner == null
 					? "No candidate won a majority."

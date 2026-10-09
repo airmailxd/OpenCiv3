@@ -329,6 +329,7 @@ public static class SnapshotFilter {
 		}
 		return new UnitedNationsState {
 			votingTurn = state.votingTurn,
+			offerTurn = state.offerTurn,
 			humanVotes = state.humanVotes.Where(v => view.players.Contains(ID.FromString(v.Key)))
 				.ToDictionary(v => v.Key, v => v.Value),
 			candidateA = state.candidateA,

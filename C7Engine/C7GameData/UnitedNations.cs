@@ -9,8 +9,14 @@ namespace C7GameData {
 	public class UnitedNationsState {
 		// The turn during which the next vote is cast: humans are asked for
 		// their vote at the start of that turn, and the votes are counted
-		// once every player has played it. -1 if no vote is scheduled.
+		// once every player has played it. -1 if no election has been called.
 		public int votingTurn = -1;
+
+		// The turn during which the UN's owner is next offered the choice of
+		// holding an election (see C7Engine.UnitedNations), or -1 if the UN
+		// hasn't been found yet. Saves from before the owner was asked don't
+		// have it, and are offered one once their scheduled vote is counted.
+		public int offerTurn = -1;
 
 		// The votes human players cast for the coming election: the voter's
 		// ID to the ID of the candidate they voted for, or "" to abstain.
@@ -50,10 +56,19 @@ namespace C7Engine {
 	//   If not, the election is inconclusive. The choice for the founder of
 	//   the UN to have elections comes around every 11 turns"
 	//
+	// Every ElectionInterval (11) turns the founder (the UN's current owner)
+	// chooses whether to hold an election. "it's 11 turns whether the vote is
+	// inconclusive or the option declined" (MadScot,
+	// https://forums.civfanatics.com/threads/diplomatic-victory.53460/; in the
+	// same thread Darkness thought a declined vote was offered again the next
+	// turn, but the project owner chose 11 turns). UNVERIFIED (when the
+	// choice is made): a human is asked as their turn starts and the vote is
+	// held during the next turn; one who doesn't answer by the end of the
+	// turn declines. An AI decides as the turn starts (AIHoldsElection), and
+	// the vote is held during that turn.
+	//
 	// Choices the FAQ doesn't settle (UNVERIFIED):
-	// - A vote is held every ElectionInterval (11) turns, the first one on the
-	//   turn after the UN is completed; the founder isn't asked whether to
-	//   hold it.
+	// - The first election is offered on the turn after the UN is completed.
 	// - "Land" is the share of the world's land tiles counted for domination
 	//   inside a civ's borders, and "population" its share of the world's
 	//   citizens. Should more than two other civs reach 25%, the two with the
@@ -222,13 +237,54 @@ namespace C7Engine {
 			return candidates != null && !candidates.Contains(player) && candidates.Any(c => HasMet(player, c));
 		}
 
-		// Asks a human for their vote if one is due, offering the candidates
-		// they have met.
+		// Asks a human the United Nations questions due as their turn starts
+		// (or again, should they rejoin a LAN game during it): whether to
+		// hold an election, if they own the UN and are offered one, and their
+		// vote, if one is due, offering the candidates they have met.
 		public static void AskHumanToVote(GameData gameData, Player player) {
+			AskFounderToHoldElection(gameData, player);
 			if (!HumanShouldVote(gameData, player)) {
 				return;
 			}
 			new MsgShowUnitedNationsVote(player, BallotCandidates(gameData).Where(c => HasMet(player, c)).ToArray()).send();
+		}
+
+		// Whether a human who owns the United Nations is asked this turn
+		// whether to hold an election: they are offered one, haven't answered
+		// yet, and there is a rival to stand against them.
+		public static bool FounderShouldBeAsked(GameData gameData, Player player) {
+			UnitedNationsState state = gameData.unitedNations;
+			return state != null && player != null && player.isHuman && !player.defeated && DiplomaticVictoryAllowed(gameData)
+				&& state.secretaryGeneral == null && state.votingTurn < 0 && state.offerTurn == gameData.turn
+				&& Owner(gameData) == player && Candidates(gameData) != null;
+		}
+
+		// Asks a human who owns the United Nations whether to hold an
+		// election, if they are offered one; they answer with
+		// MsgHoldUnitedNationsElection.
+		public static void AskFounderToHoldElection(GameData gameData, Player player) {
+			if (FounderShouldBeAsked(gameData, player)) {
+				new MsgShowUnitedNationsElectionOffer(player, Candidates(gameData).ToArray()).send();
+			}
+		}
+
+		// Records a human founder's answer. If they hold the election, the
+		// civs vote during the next turn; if not, the next chance comes
+		// ElectionInterval turns after this one. Returns false if they
+		// weren't being asked.
+		public static bool AnswerElectionOffer(GameData gameData, Player founder, bool hold) {
+			if (!FounderShouldBeAsked(gameData, founder)) {
+				return false;
+			}
+			UnitedNationsState state = gameData.unitedNations;
+			if (hold) {
+				state.votingTurn = gameData.turn + 1;
+				log.Information("{Owner} holds a United Nations election, voting on turn {Turn}", founder, state.votingTurn);
+			} else {
+				state.offerTurn += ElectionInterval;
+				log.Information("{Owner} holds no United Nations election until offered again on turn {Turn}", founder, state.offerTurn);
+			}
+			return true;
 		}
 
 		// Records a human's vote; a null candidate abstains. Votes for anyone
@@ -254,8 +310,10 @@ namespace C7Engine {
 		}
 
 		// Called once every player has played a turn, after the turn counter
-		// has moved on. Schedules the first vote once the UN exists, and counts
-		// the votes when one is due.
+		// has moved on. Offers the UN's owner an election once the UN exists
+		// and every ElectionInterval turns after, lets an AI owner decide on
+		// it, takes a human owner's silence for no, and counts the votes when
+		// they are due.
 		public static ElectionResult ProcessEndOfRound(GameData gameData) {
 			UnitedNationsState state = gameData.unitedNations ??= new UnitedNationsState();
 			if (!DiplomaticVictoryAllowed(gameData) || state.secretaryGeneral != null) {
@@ -265,29 +323,60 @@ namespace C7Engine {
 			Player owner = Owner(gameData);
 			if (owner == null) {
 				state.votingTurn = -1;
+				state.offerTurn = -1;
 				state.humanVotes.Clear();
 				StoreCandidates(state, null);
 				return null;
 			}
 
-			if (state.votingTurn < 0) {
-				state.votingTurn = gameData.turn;
-				log.Information("The United Nations, owned by {Owner}, will vote on turn {Turn}", owner, state.votingTurn);
+			// An election has been called.
+			if (state.votingTurn >= 0) {
+				// The voting turn is beginning, so call the vote.
+				if (gameData.turn == state.votingTurn) {
+					StoreCandidates(state, Candidates(gameData));
+					return null;
+				}
+				if (gameData.turn < state.votingTurn) {
+					return null;
+				}
+				return CountVotes(gameData, state);
 			}
 
-			// The voting turn is beginning, so call the vote.
-			if (gameData.turn == state.votingTurn) {
-				StoreCandidates(state, Candidates(gameData));
-				return null;
+			if (state.offerTurn < 0) {
+				state.offerTurn = gameData.turn;
+				log.Information("The United Nations, owned by {Owner}, offers an election on turn {Turn}", owner, state.offerTurn);
 			}
-			if (gameData.turn < state.votingTurn) {
-				return null;
+			// The owner let the turn they were offered an election pass
+			// without holding one, so it is declined.
+			while (state.offerTurn < gameData.turn) {
+				state.offerTurn += ElectionInterval;
 			}
+			if (state.offerTurn == gameData.turn && !owner.isHuman) {
+				if (AIHoldsElection(gameData, owner)) {
+					// The AI decides as the turn begins, so the vote can be
+					// cast during it.
+					state.votingTurn = gameData.turn;
+					StoreCandidates(state, Candidates(gameData));
+					log.Information("{Owner} holds a United Nations election, voting on turn {Turn}", owner, state.votingTurn);
+				} else {
+					state.offerTurn += ElectionInterval;
+					log.Information("{Owner} expects to lose and holds no United Nations election", owner);
+				}
+			}
+			return null;
+		}
 
+		// Counts the votes once the voting turn is over, and schedules the
+		// next offer of an election.
+		private static ElectionResult CountVotes(GameData gameData, UnitedNationsState state) {
 			ElectionResult result = HoldElection(gameData);
 			state.humanVotes.Clear();
 			StoreCandidates(state, null);
-			state.votingTurn = gameData.turn + ElectionInterval - 1;
+			// The next chance comes ElectionInterval turns after this one was
+			// offered. Saves from before the owner was asked have no offer
+			// turn, and voted every ElectionInterval turns.
+			state.offerTurn = (state.offerTurn >= 0 ? state.offerTurn : state.votingTurn) + ElectionInterval;
+			state.votingTurn = -1;
 			if (result == null) {
 				return null;
 			}
@@ -499,6 +588,31 @@ namespace C7Engine {
 			}
 
 			return good + bad;
+		}
+
+		// Whether an AI that owns the United Nations holds the election it is
+		// offered. CivFanatics
+		// (https://forums.civfanatics.com/threads/when-someone-else-builds-the-u-n.85895/):
+		// "An AI with a bad rep will not ask for a vote as they know that no
+		// one will vote for them" (Sabo); "If they know they will most likely
+		// lose they won't hold a vote." (Tomoyo). So it holds one only if it
+		// expects to win. HEURISTIC: it expects every civ to vote as an AI
+		// would (AIVote), humans included, as it can't know their minds.
+		public static bool AIHoldsElection(GameData gameData, Player owner) {
+			List<Player> candidates = Candidates(gameData);
+			if (candidates == null || candidates[0] != owner) {
+				return false;
+			}
+			Player[] ballot = candidates.ToArray();
+			int voters = 0;
+			int forOwner = 0;
+			foreach (Player voter in Voters(gameData)) {
+				++voters;
+				if (AIVote(gameData, voter, ballot) == owner) {
+					++forOwner;
+				}
+			}
+			return 2 * forOwner > voters;
 		}
 	}
 }

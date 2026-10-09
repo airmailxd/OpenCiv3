@@ -360,6 +360,7 @@ public class EspionageTest : IClassFixture<SaveGameFixture>, System.IDisposable 
 		actor.playerRelationships[target.id].embassyReport = Espionage.Investigate(target.cities.First(), 5);
 		target.playerRelationships[actor.id].espionageIncidents = 2;
 		gameData.unitedNations.votingTurn = 42;
+		gameData.unitedNations.offerTurn = 41;
 		gameData.unitedNations.humanVotes["x"] = "y";
 
 		SaveGame save = SaveGame.FromGameData(gameData);
@@ -373,6 +374,7 @@ public class EspionageTest : IClassFixture<SaveGameFixture>, System.IDisposable 
 		Assert.Equal(target.cities.First().name, savedReport.cityName);
 		Assert.Equal(2, savedTarget.playerRelationships[actor.id.ToString()].espionageIncidents);
 		Assert.Equal(42, reloaded.UnitedNations.votingTurn);
+		Assert.Equal(41, reloaded.UnitedNations.offerTurn);
 		Assert.Equal("y", reloaded.UnitedNations.humanVotes["x"]);
 	}
 }

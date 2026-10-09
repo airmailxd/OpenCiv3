@@ -37,11 +37,13 @@ public class VictoryStatus {
 	public int SpaceshipPartsNeeded { get; set; }
 
 	// Diplomatic victory: whether the player has been elected Secretary
-	// General of the United Nations, who owns the UN, and the turn of the
-	// next vote (-1 if none is scheduled).
+	// General of the United Nations, who owns the UN, the turn of the next
+	// vote (-1 if no election has been called), and the turn the owner is
+	// next offered an election (-1 if none is scheduled).
 	public bool ElectedSecretaryGeneral { get; set; }
 	public Player UnitedNationsOwner { get; set; }
 	public int NextUnitedNationsVote { get; set; } = -1;
+	public int NextUnitedNationsElectionOffer { get; set; } = -1;
 
 	// Cultural victory: the player's culture, the most any one of their
 	// cities has, and the most culture any rival has.

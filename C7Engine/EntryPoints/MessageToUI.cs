@@ -543,6 +543,18 @@ namespace C7Engine {
 		}
 	}
 
+	// Asks the human who owns the United Nations whether to hold an election
+	// for Secretary General between the candidates; they answer with
+	// MsgHoldUnitedNationsElection.
+	public class MsgShowUnitedNationsElectionOffer : MessageToUI {
+		public List<Player> candidates;
+
+		public MsgShowUnitedNationsElectionOffer(Player recipient, params Player[] candidates) {
+			this.recipient = recipient;
+			this.candidates = candidates.Where(c => c != null).ToList();
+		}
+	}
+
 	// The outcome of a United Nations election. The winner is null if no
 	// candidate won a majority.
 	public class MsgUnitedNationsElectionResult : MessageToUI {

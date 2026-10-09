@@ -15,6 +15,7 @@ public class DiplomaticVictory : IVictory {
 			ElectedSecretaryGeneral = state?.secretaryGeneral != null && state.secretaryGeneral == player.id?.ToString(),
 			UnitedNationsOwner = UnitedNations.Owner(gameData),
 			NextUnitedNationsVote = state?.votingTurn ?? -1,
+			NextUnitedNationsElectionOffer = state?.offerTurn ?? -1,
 		};
 	}
 
@@ -30,7 +31,10 @@ public class DiplomaticVictory : IVictory {
 			"United Nations:",
 			owner == null ? "Not built" : owner.civilization?.noun ?? "",
 			"Next vote:",
-			owner == null || status.NextUnitedNationsVote < 0 ? "" : $"Turn {status.NextUnitedNationsVote}",
+			owner == null ? ""
+				: status.NextUnitedNationsVote >= 0 ? $"Turn {status.NextUnitedNationsVote}"
+				: status.NextUnitedNationsElectionOffer >= 0 ? $"Owner decides on turn {status.NextUnitedNationsElectionOffer}"
+				: "",
 		];
 	}
 }

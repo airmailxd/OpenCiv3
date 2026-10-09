@@ -1090,6 +1090,25 @@ namespace C7Engine {
 		}
 	}
 
+	// The human who owns the United Nations answers whether to hold the
+	// election they were offered (MsgShowUnitedNationsElectionOffer).
+	public class MsgHoldUnitedNationsElection : MessageToEngine {
+		public bool hold;
+
+		public MsgHoldUnitedNationsElection(bool hold) {
+			this.hold = hold;
+		}
+
+		// Only the owner, during their turn, while the offer stands.
+		protected override bool IsAllowed() {
+			return base.IsAllowed() && UnitedNations.FounderShouldBeAsked(EngineStorage.gameData, Sender);
+		}
+
+		protected override void ProcessAllowed() {
+			UnitedNations.AnswerElectionOffer(EngineStorage.gameData, Sender, hold);
+		}
+	}
+
 	// The sender sends a diplomatic or espionage mission against another
 	// civ, or one of its cities.
 	public class MsgPerformEspionage : MessageToEngine {
