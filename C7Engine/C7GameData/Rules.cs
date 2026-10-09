@@ -23,7 +23,9 @@ namespace C7GameData {
 		public float TreasuryInterestRate = .05f;
 		public int MaxInterest = 50;
 		public int ShieldCostPerGold;
-		public float ShieldRateForDisbanding; // per cent
+		// The share of a unit's shield cost a city gets when the unit is
+		// disbanded in it. Civ3 gives half (it isn't in the BIQ).
+		public float ShieldRateForDisbanding = .5f;
 		public bool AllowLesserUnitProduction; // for example, allow building a Spearman/Pikeman when we can build a Musketman (simultaneously)
 		public int RadarTileVisibility; // how many tiles, a unit with the Radar ability, can see ahead
 
@@ -74,6 +76,51 @@ namespace C7GameData {
 		public int MinimumPopulationForWeLoveTheKing = 3;
 		public int GoldenAgeDuration = 20;
 		public int UpgradeCostPerShield = 3; // gold per shield of difference between a unit and its upgrade
+
+		// The gold each civ starts a new game with.
+		public int StartingTreasury = 10;
+
+		// The civilopedia name of the first era, which civs start a new game
+		// in.
+		public string FirstEraCivilopediaName = "ERAS_Ancient_Times";
+
+		// The food each citizen eats a turn.
+		public int FoodConsumptionPerCitizen = 2;
+
+		// How many road moves a unit can make for one movement point. Games
+		// imported from Civ3 build the road's movement cost from it (see
+		// SaveTerrainImprovement.Civ3Improvements).
+		public int MovementAlongRoads = 3;
+
+		// The defense bonus of a fortress, in per cent. Games imported from
+		// Civ3 build the fortress's defense bonus from it.
+		public int FortressDefensiveBonus = 50;
+
+		// The following come from the BIQ's RULE section, but nothing uses
+		// them yet. The defaults are only for saves made before they were
+		// imported.
+
+		// How fast borders grow with culture, and the base for the culture
+		// thresholds at which they do.
+		public int BorderExpansionMultiplier = 3;
+		public int BorderFactor = 2;
+		// The cost of each future tech.
+		public int FutureTechCost;
+		// The chance, in per cent, that a city in disorder riots.
+		public int ChanceOfRioting = 20;
+		// How many unhappy citizens each happy face from luxuries or
+		// buildings makes content.
+		public int CitizensAffectedByEachHappyFace = 2;
+		// City defense bonuses, in per cent, from buildings and from
+		// citizens.
+		public int BuildingDefensiveBonus = 100;
+		public int CitizenDefensiveBonus = 25;
+		// The turns of unhappiness each drafted citizen causes.
+		public int TurnPenaltyForEachDraftedCitizen = 20;
+		// The unit a unit that enslaves its defeated foe makes (Civ3's
+		// Slave), and the unit of capture-the-flag games.
+		public string SlaveUnitType;
+		public string FlagUnitType;
 
 		// The names of a civ's culture levels, lowest first, as in "Our people
 		// have developed a Solid culture." These are the Civ3 defaults; games
