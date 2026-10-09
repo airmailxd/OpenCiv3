@@ -390,7 +390,8 @@ public partial class LanLobby : Control {
 			PlaceholderText = host.HasPassword ? "(kept from the saved game)" : "none",
 			CustomMinimumSize = new Vector2(220, 0),
 			TooltipText = "Players need this to join, unless they're coming back to their seats. Press Enter to set it; "
-				+ "clear it and press Enter for no password.",
+				+ "clear it and press Enter for no password. The game's LAN autosave keeps what checks the password, which "
+				+ "is as good as the password for joining this game, so keep the autosave to yourself.",
 		};
 		passwordEdit.TextChanged += _ => passwordEdited = true;
 		passwordEdit.TextSubmitted += _ => SetPassword();
@@ -1014,7 +1015,7 @@ public partial class LanLobby : Control {
 			passwordPrompt.Visible = true;
 			passwordPromptEdit.GrabFocus();
 			status.Text = challenge.wrong
-				? $"That isn't the password. {challenge.attemptsLeft} more {(challenge.attemptsLeft == 1 ? "try" : "tries")} on this connection."
+				? $"That isn't the password. {challenge.attemptsLeft} more {(challenge.attemptsLeft == 1 ? "try" : "tries")} before you have to wait."
 				: "This game needs a password. Ask the host for it.";
 			return;
 		}

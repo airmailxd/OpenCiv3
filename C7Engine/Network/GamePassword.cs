@@ -13,10 +13,19 @@ namespace C7Engine.Network;
 // never crosses the network, so someone watching a LAN connection (which,
 // unlike one through a relay, isn't encrypted) can't read it or replay the
 // answer; they could still try to guess it from what they saw.
+//
+// The verifier is all a guest needs to answer, so anyone who has it can join
+// as well as with the password itself: the host's autosave (see
+// LanResumeInfo) must be kept as private as the password. It doesn't give
+// away the password, which may be used elsewhere.
 public static class GamePassword {
-	// Guests may get the password wrong this many times on one connection
-	// before the host hangs up on them.
+	// Guests from one address may get the password wrong this many times
+	// before the host hangs up on them and turns the address away for a
+	// while: the first lockout's length, doubling each time after, up to
+	// the longest.
 	public const int MaxWrongAttempts = 5;
+	public static readonly TimeSpan FirstLockout = TimeSpan.FromSeconds(30);
+	public static readonly TimeSpan MaxLockout = TimeSpan.FromMinutes(30);
 
 	// The longest password the lobby takes.
 	public const int MaxLength = 64;

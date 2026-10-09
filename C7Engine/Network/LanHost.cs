@@ -157,6 +157,15 @@ public class LanHost : IDisposable {
 	private string passwordSalt;
 	private string passwordVerifier;
 
+	// The wrong passwords from each address (see WrongPasswords).
+	private sealed class PasswordFailures {
+		public int count;
+		public int lockouts;
+		public long lockedUntil;
+	}
+	private readonly Dictionary<string, PasswordFailures> passwordFailures = new();
+	private const int MaxPasswordFailureAddresses = 1024;
+
 	// The guests the host banned: their tokens, and the addresses of those
 	// that joined on the network. Those through a relay, the relay turns
 	// away (see RelayHostLink.Bans), with these keys when resuming.
@@ -1003,6 +1012,11 @@ public class LanHost : IDisposable {
 					return true;
 				}
 				if (HasPassword) {
+					if (PasswordLockout(guest) is TimeSpan wait) {
+						Reject(guest, $"Too many wrong passwords from your address. Try again in {Math.Ceiling(wait.TotalMinutes):0} "
+							+ $"{(wait.TotalMinutes <= 1 ? "minute" : "minutes")}.");
+						return false;
+					}
 					AskForPassword(guest, false);
 					return true;
 				}
@@ -1014,12 +1028,13 @@ public class LanHost : IDisposable {
 				PasswordInfo answer = NetSerialization.DeserializeRequired<PasswordInfo>(frame.payload);
 				// The host may have taken the password away meanwhile.
 				if (!HasPassword || GamePassword.Check(passwordVerifier, guest.nonce, answer.proof)) {
-
+					if (guest.connection.Transport.AddressKey is string key) {
+						passwordFailures.Remove(key);
+					}
 					return Admit(guest);
 				}
-				guest.wrongPasswords++;
 				log.Information("{Name} gave the wrong password", guest.name);
-				if (guest.wrongPasswords >= GamePassword.MaxWrongAttempts) {
+				if (NoteWrongPassword(guest)) {
 					Reject(guest, "Too many wrong passwords.");
 					return false;
 				}
@@ -1070,7 +1085,56 @@ public class LanHost : IDisposable {
 		guest.nonce = GamePassword.NewNonce();
 		guest.waiting.Restart();
 		guest.connection.Send(FrameKind.PasswordRequired, new PasswordChallengeInfo(passwordSalt, guest.nonce, wrong,
-			GamePassword.MaxWrongAttempts - guest.wrongPasswords));
+			GamePassword.MaxWrongAttempts - WrongPasswords(guest)));
+	}
+
+	// The wrong passwords given lately from where the guest is: its address
+	// on the network, or the key the relay gave for it; or failing that, on
+	// its connection.
+	private int WrongPasswords(Guest guest) {
+		string key = guest.connection.Transport.AddressKey;
+		return key == null ? guest.wrongPasswords : passwordFailures.GetValueOrDefault(key)?.count ?? 0;
+	}
+
+	// Counts a wrong password, and returns whether that was one too many,
+	// which keeps its address from trying again for a while, longer each
+	// time; so connecting again doesn't give anyone more tries.
+	private bool NoteWrongPassword(Guest guest) {
+		string key = guest.connection.Transport.AddressKey;
+		if (key == null) {
+			return ++guest.wrongPasswords >= GamePassword.MaxWrongAttempts;
+		}
+		if (!passwordFailures.TryGetValue(key, out PasswordFailures failures)) {
+			if (passwordFailures.Count >= MaxPasswordFailureAddresses) {
+				// Forget those that may try again.
+				long now = Environment.TickCount64;
+				foreach (string old in passwordFailures.Where(f => f.Value.lockedUntil <= now).Select(f => f.Key).ToList()) {
+					passwordFailures.Remove(old);
+				}
+			}
+			failures = passwordFailures[key] = new PasswordFailures();
+		}
+		if (++failures.count < GamePassword.MaxWrongAttempts) {
+			return false;
+		}
+		failures.count = 0;
+		failures.lockouts++;
+		double seconds = Math.Min(GamePassword.FirstLockout.TotalSeconds * Math.Pow(2, failures.lockouts - 1),
+			GamePassword.MaxLockout.TotalSeconds);
+		failures.lockedUntil = Environment.TickCount64 + (long)(seconds * 1000);
+		log.Information("Too many wrong passwords from {Name}, turning their address away for {Seconds} seconds", guest.name, seconds);
+		return true;
+	}
+
+	// How long the guest's address is still kept from trying the password,
+	// or null if it isn't.
+	private TimeSpan? PasswordLockout(Guest guest) {
+		string key = guest.connection.Transport.AddressKey;
+		if (key == null || !passwordFailures.TryGetValue(key, out PasswordFailures failures)) {
+			return null;
+		}
+		long left = failures.lockedUntil - Environment.TickCount64;
+		return left > 0 ? TimeSpan.FromMilliseconds(left) : null;
 	}
 
 	// Lets the guest in, with a token for the seats it takes, and shows it
