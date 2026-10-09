@@ -1752,7 +1752,7 @@ public partial class Game : Node {
 		draggingUnit = false;
 		Tile tile = PositionToTile(eventMouseButton.Position);
 		bool released = gotoInfo != null && IsMapUnitValid(CurrentlySelectedUnit);
-		if (released && tile != null && tile != CurrentlySelectedUnit.location) {
+		if (released && Tile.IsTileValid(tile) && tile != CurrentlySelectedUnit.location) {
 			gotoInfo = GetGotoInfo(tile);
 			ResolveMovement(gotoInfo);
 			SetGotoMode(false);
@@ -1761,7 +1761,7 @@ public partial class Game : Node {
 
 		// Released where it started: that's an ordinary click on the tile.
 		SetGotoMode(false);
-		if (tile == null) {
+		if (!Tile.IsTileValid(tile)) {
 			return;
 		}
 		if (CanDoubleClick(eventMouseButton)) {
@@ -1798,7 +1798,7 @@ public partial class Game : Node {
 			this.SetGotoMode(false);
 		} else if (bombardInfo != null) {
 			Tile tile = PositionToTile(eventMouseButton.Position);
-			if (bombardInfo.bombardingUnit.CanBombardTile(tile, out var bombardTarget)) {
+			if (Tile.IsTileValid(tile) && bombardInfo.bombardingUnit.CanBombardTile(tile, out var bombardTarget)) {
 				bombardInfo.bombardTarget = bombardTarget;
 				HandleBombardClick(bombardInfo, tile);
 			}
@@ -1827,7 +1827,7 @@ public partial class Game : Node {
 
 	private void HandleUnitSelectionTileClick(InputEventMouseButton eventMouseButton) {
 		Tile tile = PositionToTile(eventMouseButton.Position);
-		if (tile == null) {
+		if (!Tile.IsTileValid(tile)) {
 			return;
 		}
 
@@ -1862,7 +1862,7 @@ public partial class Game : Node {
 
 		Tile tile = PositionToTile(screenPosition);
 
-		if (!canMove) {
+		if (!canMove && Tile.IsTileValid(tile)) {
 			new MsgShowTemporaryPopup("This unit has already moved.", tile).send();
 		}
 	}
@@ -1876,7 +1876,7 @@ public partial class Game : Node {
 		this.SetGotoMode(false);
 
 		Tile tile = PositionToTile(eventMouseButton.Position);
-		if (tile != null) {
+		if (Tile.IsTileValid(tile)) {
 			HandleRightClickOnTile(tile, eventMouseButton);
 		} else {
 			log.Debug("Didn't click on any tile");
@@ -1971,7 +1971,8 @@ public partial class Game : Node {
 		} else if (gotoInfo != null) {
 			gotoInfo = GetGotoInfo(eventMouseMotion.Position);
 		} else if (bombardInfo != null) {
-			bombardInfo.mouseTile = PositionToTile(eventMouseMotion.Position);
+			Tile tile = PositionToTile(eventMouseMotion.Position);
+			bombardInfo.mouseTile = Tile.IsTileValid(tile) ? tile : null;
 		}
 	}
 
@@ -2598,7 +2599,7 @@ public partial class Game : Node {
 
 			// Figure out what unit is in goto mode. If the tile we're hovering over is
 			// different than the tile the unit is on, calculate the path to move there.
-			MapUnit unit = tile == null ? null : gameData.GetUnit(CurrentlySelectedUnit.id);
+			MapUnit unit = !Tile.IsTileValid(tile) || !IsMapUnitValid(CurrentlySelectedUnit) ? null : gameData.GetUnit(CurrentlySelectedUnit.id);
 
 			// Units like the Bomber don't have a go-to action
 			if (unit != null && !unit.GetAvailableActions().Contains(UnitAction.Goto)) {
@@ -2646,9 +2647,11 @@ public partial class Game : Node {
 	}
 
 	private void HandleBombardClick(BombardInfo info, Tile tile) {
-		if (info == null || tile == null) {
+		if (info == null || !Tile.IsTileValid(tile)) {
 			return;
 		}
+		// The unit bombarding, not whichever is selected once war is declared.
+		ID bombarderID = info.bombardingUnit.id;
 
 		EngineStorage.ReadGameData((GameData gameData) => {
 			// A nuke goes to war with every civ it hits, not only the target
@@ -2658,17 +2661,17 @@ public partial class Game : Node {
 					? []
 					: info.bombardingUnit.NuclearStrikeWarDeclarations(tile);
 				ConfirmWarDeclarations(wars, 0, gameData.turn, () => {
-					new MsgBombard(CurrentlySelectedUnit.id, tile).send();
+					new MsgBombard(bombarderID, tile).send();
 				});
 				return;
 			}
 
 			if (info.RequiresWarDeclaration(tile, out var player)) {
 				MaybeDeclareWar(player, gameData.turn, () => {
-					new MsgBombard(CurrentlySelectedUnit.id, tile).send();
+					new MsgBombard(bombarderID, tile).send();
 				});
 			} else {
-				new MsgBombard(CurrentlySelectedUnit.id, tile).send();
+				new MsgBombard(bombarderID, tile).send();
 			}
 		});
 	}
@@ -2682,7 +2685,7 @@ public partial class Game : Node {
 	}
 
 	private void OnBuildCity(string name) {
-		if (CurrentlySelectedUnit != null)
+		if (IsMapUnitValid(CurrentlySelectedUnit))
 			new MsgBuildCity(CurrentlySelectedUnit, name).send();
 	}
 

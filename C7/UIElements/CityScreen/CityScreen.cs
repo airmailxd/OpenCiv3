@@ -312,7 +312,7 @@ public partial class CityScreen : Control {
 						// The engine moves the citizen, and the city screen redraws
 						// when it hears the city changed.
 						Tile tile = mapView.tileOnScreenAt(gameData.map, eventMouseButton.Position);
-						if (tile != null) {
+						if (Tile.IsTileValid(tile)) {
 							new MsgReassignCitizen(tileAssignmentLayer.city, tile).send();
 						}
 					});
