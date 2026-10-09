@@ -180,6 +180,12 @@
 	<h2>If others still can't find or join the host</h2>
 	<p>Windows on the host's computer may be blocking the game. On the host's computer: click Start, type <b>Windows Security</b> and open it. Click <kbd>Firewall &amp; network protection</kbd>, then <kbd>Allow an app through firewall</kbd>, then <kbd>Change settings</kbd>. Find the game in the list and tick both boxes next to it (<b>Private</b> and <b>Public</b>), then click <kbd>OK</kbd>.</p>
 	<p class="muted">For whoever looks after your home internet: the host receives connections on TCP port 47777, and answers searches for games on UDP port 47778. People joining don't need anything opened.</p>
+
+	<h2>Run your own online server</h2>
+	<p>Games played over the internet with a <b>join code</b> (like <b>KQ7-4MZ</b>) pass through an <b>online server</b>, also called a relay. It doesn't run the game; it just passes messages between the host and the people joining. Anyone can run one for their friends or group.</p>
+	<p>You need a small computer on the internet that's always on. It can be free (Oracle Cloud's free tier) or cost a few euros a month (Hetzner Cloud), plus a free name for it such as one from DuckDNS. Setting it up takes about half an hour, typing a few commands the guide gives you.</p>
+	<p><a href="https://github.com/airmailxd/OpenCiv3/blob/Development/Relay/README.md#running-your-own-relay">Read the step-by-step setup guide</a></p>
+	<p>Once it's running, tell your players its name (like <b>myrelay.duckdns.org</b>). Each player types it once in the game's <kbd>Settings</kbd>, under <b>Online</b>, in the box marked <b>Relay server</b>. Or the host types it in the waiting room before clicking <kbd>Host Online</kbd>, and shares the join code, which then includes the server's name.</p>
 	</section>
 </main>
 <script>
