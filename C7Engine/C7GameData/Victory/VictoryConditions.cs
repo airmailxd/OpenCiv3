@@ -20,7 +20,11 @@ public class VictoryConditions {
 	public int DominationTerritoryPercent { get; set; } = 66;
 	public int DominationPopulationPercent { get; set; } = 66;
 
-	// The victory types a new game allows unless the player says otherwise.
+	// The victory types a new game allows unless the player says otherwise,
+	// and a BIQ that uses the default victory conditions gets.
+	// UNVERIFIED (no Civ3 source found): which victory types Civ3 turns on
+	// by default. conquests.biq doesn't say: it uses the default victory
+	// conditions, and its own victory flags are all clear.
 	public static VictoryConditions NewGameDefaults() {
 		return new VictoryConditions {
 			AllowConquestVictory = true,

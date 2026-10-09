@@ -556,18 +556,21 @@ namespace C7GameData {
 
 		}
 
-		// The turn the game ends on. A scenario's own turn limit only counts
-		// if it is set to use it; otherwise, as in Civ3, the game ends when
-		// its time scale runs out.
+		// The turn the game ends on: the GAME section's turn limit, as before
+		// eb8aad18. A limit of 0 means none (see TimeLimitVictory).
+		//
+		// Civ3's "standard game length is 540 turns"
+		// (https://civfanatics.com/civ3/faq/), which conquests.biq stores
+		// as a turn limit of 540, with its "use time limit" flag clear. The
+		// time scale can't be summed instead: the BIQ lists only 7 of its
+		// segments, 440 turns in a standard game, and "Whatever turns isn't
+		// listed...is assigned to 1 unit (year, month, week) per turn"
+		// (https://forums.civfanatics.com/threads/time-options-time-scale.456771/).
+		// UNVERIFIED (no Civ3 source found): what the "use time limit" flag
+		// does. Every BIQ that ships with Conquests that leaves it clear has
+		// a turn limit of 540.
 		private static int TurnLimit(QueryCiv3.Biq.GAME game) {
-			if (game.UseTimeLimit != 0 && game.TurnTimeLimit > 0) {
-				return game.TurnTimeLimit;
-			}
-			int timeScaleTurns = 0;
-			for (int i = 0; i < 7; ++i) {
-				timeScaleTurns += Math.Max(0, game.TimescaleNumberOfTurns[i]);
-			}
-			return timeScaleTurns > 0 ? timeScaleTurns : new TimeOptions().turnLimit;
+			return Math.Max(0, game.TurnTimeLimit);
 		}
 
 		// The victory conditions of a scenario. A scenario either uses
