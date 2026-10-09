@@ -55,12 +55,12 @@ public class WarWearinessTest {
 		C7GameData.GameData gameData = new();
 		gameData.players.Add(city.owner);
 
-		// It lingers for a while...
+		// A twentieth, rounded up, fades each turn...
 		city.owner.UpdateWarWeariness(gameData);
-		Assert.InRange(city.owner.warWeariness, 1, 49);
+		Assert.Equal(47, city.owner.warWeariness);
 
-		// ...but is gone before long.
-		for (int i = 0; i < 20; ++i) {
+		// ...so it is gone after a few dozen turns.
+		for (int i = 0; i < 40; ++i) {
 			city.owner.UpdateWarWeariness(gameData);
 		}
 		Assert.Equal(0, city.owner.warWeariness);

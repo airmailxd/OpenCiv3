@@ -1602,7 +1602,10 @@ namespace C7GameData {
 		// Civ 3 doesn't publish its war weariness formula, so this is an
 		// approximation: each turn at war adds a point per enemy, and another
 		// if we started that war; losing a unit adds a point, or three if it
-		// died attacking.
+		// died attacking. TODO: players worked out the real points, per
+		// enemy (e.g. 2 for a defeated attacker, 16 or 17 for a lost city,
+		// -30 when the AI attacks us), at
+		// https://civfanatics.com/civ3/strategy/game-mechanics/how-does-war-weariness-work/.
 		private const int WarWearinessPerTurnAtWar = 1;
 		private const int WarWearinessForStartingTheWar = 1;
 		private const int WarWearinessForUnitLostDefending = 1;
@@ -1613,11 +1616,12 @@ namespace C7GameData {
 		private const int WarWearinessPerFaceLow = 20;
 		private const int WarWearinessPerFaceHigh = 10;
 
-		// In Civ3 the weariness of a war lingers for a while after peace
-		// rather than vanishing at once. Also an approximation: each turn
-		// without a war a quarter of the points (at least one) fade, so even
-		// a long war's weariness is gone in a dozen or so turns.
-		private const int WarWearinessDecayPercentAtPeace = 25;
+		// In Civ3 the weariness of a war lingers after peace rather than
+		// vanishing at once: "Subtract 1/20 of current wwp each turn in
+		// peace (round up)", so 100% weariness in a republic takes 43 turns
+		// to fade
+		// (https://civfanatics.com/civ3/strategy/game-mechanics/how-does-war-weariness-work/).
+		private const int WarWearinessDecayDivisorAtPeace = 20;
 
 		// Called once per turn.
 		public void UpdateWarWeariness(GameData gameData) {
@@ -1625,7 +1629,7 @@ namespace C7GameData {
 				p != this && !p.isBarbarians && !p.defeated && AtWar(this, p)).ToList();
 			if (enemies.Count == 0) {
 				if (warWeariness > 0) {
-					int decay = Math.Max(1, (warWeariness * WarWearinessDecayPercentAtPeace + 99) / 100);
+					int decay = (warWeariness + WarWearinessDecayDivisorAtPeace - 1) / WarWearinessDecayDivisorAtPeace;
 					warWeariness = Math.Max(0, warWeariness - decay);
 				}
 				return;
