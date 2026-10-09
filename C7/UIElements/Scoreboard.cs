@@ -11,7 +11,8 @@ using Godot;
 // multiplayer: the time left in the current turn, and each player's score,
 // whether they are connected (on a LAN), and whether they have finished their
 // turn. It can be folded down to just the clock and this machine's own
-// player.
+// player. A spectator also chooses here how to watch the game, from the ways
+// the host allows (see SpectatorViewMode).
 public partial class Scoreboard : PanelContainer {
 	// How often the clock and scores are read again, in seconds.
 	private const double RefreshInterval = 0.25;
@@ -32,6 +33,12 @@ public partial class Scoreboard : PanelContainer {
 	private StyleBoxFlat timeBarFill;
 	private Label timeLabel;
 	private VBoxContainer rowList;
+
+	// A spectator's ways to watch the game, and what the choice shows them
+	// for, to make it again only when that changes.
+	private OptionButton viewChoice;
+	private readonly List<SpectatorViewInfo> viewChoices = [];
+	private string shownViewChoices;
 	private double sinceRefresh = RefreshInterval;
 	private bool folded = false;
 
@@ -105,6 +112,26 @@ public partial class Scoreboard : PanelContainer {
 		timeBox.AddChild(timeLabel);
 		header.AddChild(timeBox);
 
+		if (LanSession.IsSpectator) {
+			HBoxContainer watching = new() { Alignment = BoxContainer.AlignmentMode.End };
+			watching.AddThemeConstantOverride("separation", 6);
+			Label label = MakeText("Watching:");
+			watching.AddChild(label);
+			viewChoice = new OptionButton {
+				FocusMode = FocusModeEnum.None,
+				TooltipText = "How you see the game: as one civilization or all of them, which shows only what they know, "
+					+ "or the whole game, as the host allows.",
+			};
+			viewChoice.AddThemeFontSizeOverride("font_size", 14);
+			viewChoice.ItemSelected += index => {
+				if (index >= 0 && index < viewChoices.Count) {
+					LanSession.Client?.ChooseSpectatorView(viewChoices[(int)index]);
+				}
+			};
+			watching.AddChild(viewChoice);
+			layout.AddChild(watching);
+		}
+
 		rowList = new VBoxContainer();
 		rowList.AddThemeConstantOverride("separation", 2);
 		layout.AddChild(rowList);
@@ -142,6 +169,7 @@ public partial class Scoreboard : PanelContainer {
 		}
 		TurnClockInfo clock = LanSession.TurnClock ?? LocalClock(gameData);
 		ShowClock(gameData, clock);
+		ShowViewChoices(gameData);
 
 		List<Row> rows = ReadRows(gameData, clock);
 		List<RowSummary> summary = new(rows.Count);
@@ -163,6 +191,48 @@ public partial class Scoreboard : PanelContainer {
 			shownRowControls.Add((control, row.player));
 		}
 		ShowFoldedRows();
+	}
+
+	// A spectator's ways to watch, with the one it watches by chosen.
+	private void ShowViewChoices(GameData gameData) {
+		LanClient client = LanSession.Client;
+		if (viewChoice == null || client == null) {
+			return;
+		}
+		SpectatorViews allowed = client.AllowedSpectatorViews;
+		SpectatorViewInfo current = client.SpectatorView;
+		List<Player> civs = gameData.players.Where(p => !p.isBarbarians && !p.defeated).ToList();
+		string summary = $"{allowed}|{current}|{string.Join(",", civs.Select(p => p.id.ToString()))}";
+		if (summary == shownViewChoices) {
+			return;
+		}
+		shownViewChoices = summary;
+		viewChoice.Clear();
+		viewChoices.Clear();
+		if (allowed.HasFlag(SpectatorViews.AllCivs)) {
+			viewChoices.Add(new SpectatorViewInfo(SpectatorViewMode.AllCivs));
+			viewChoice.AddItem("All civilizations");
+		}
+		if (allowed.HasFlag(SpectatorViews.OneCiv)) {
+			foreach (Player civ in civs) {
+				viewChoices.Add(new SpectatorViewInfo(SpectatorViewMode.OneCiv, civ.id));
+				viewChoice.AddItem($"The {civ.civilization.name}");
+			}
+		}
+		if (allowed.HasFlag(SpectatorViews.Omniscient)) {
+			viewChoices.Add(new SpectatorViewInfo(SpectatorViewMode.Omniscient));
+			viewChoice.AddItem("The whole game");
+		}
+		int selected = viewChoices.IndexOf(current);
+		if (selected < 0 && current != null) {
+			// A civilization no longer in the game, say.
+			viewChoices.Add(current);
+			viewChoice.AddItem(current.mode == SpectatorViewMode.OneCiv
+				? $"The {gameData.GetPlayer(current.playerID)?.civilization.name ?? "civilization"}" : current.mode.ToString());
+			selected = viewChoices.Count - 1;
+		}
+		viewChoice.Select(selected);
+		viewChoice.Disabled = viewChoices.Count < 2;
 	}
 
 	// How long the human whose turn it is has had it, timed from when this

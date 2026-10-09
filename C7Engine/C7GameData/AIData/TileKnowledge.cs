@@ -243,7 +243,15 @@ namespace C7GameData {
 				improvements = null;
 				return false;
 			}
-			return rememberedImprovements.TryGetValue(t, out improvements);
+			if (rememberedImprovements.TryGetValue(t, out improvements)) {
+				return true;
+			}
+			foreach (TileKnowledge other in alsoShown ?? []) {
+				if (other.rememberedImprovements.TryGetValue(t, out improvements)) {
+					return true;
+				}
+			}
+			return false;
 		}
 
 		// The tiles out of view whose remembered improvements differ from
@@ -442,7 +450,29 @@ namespace C7GameData {
 			if (t == Tile.NONE || t == null) {
 				return false;
 			}
-			return activeTileCounts.ContainsKey(t) || (peekedTiles.Count > 0 && peekedTiles.Contains(t));
+			return activeTileCounts.ContainsKey(t) || (peekedTiles.Count > 0 && peekedTiles.Contains(t))
+				|| (alsoShown != null && alsoShown.Exists(other => other.isActiveTile(t)));
+		}
+
+		// Other players' knowledge shown along with this player's, for a
+		// LAN spectator watching the game as several civilizations at once:
+		// what any of them knows is known, and what any of them sees is in
+		// view. Only a spectator's machine, which shows the host's game
+		// rather than running it, does this; the game itself never does.
+		private List<TileKnowledge> alsoShown;
+
+		public void ShowAlso(IEnumerable<TileKnowledge> others) {
+			alsoShown = [];
+			foreach (TileKnowledge other in others) {
+				if (other == this || other == null) {
+					continue;
+				}
+				other.RecomputeActiveTiles();
+				alsoShown.Add(other);
+				knownTiles.UnionWith(other.knownTiles);
+				borderTiles.UnionWith(other.borderTiles);
+			}
+			borderTiles.ExceptWith(knownTiles);
 		}
 
 		// Tiles the player is shown as they are now for a while, though none

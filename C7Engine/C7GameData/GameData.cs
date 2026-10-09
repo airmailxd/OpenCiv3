@@ -127,6 +127,10 @@ namespace C7GameData {
 
 		public bool observerMode = false;
 
+		// On a LAN guest's machine that isn't sent all of the game, what the
+		// host worked out from what it didn't send; null otherwise.
+		public Save.HostFacts hostFacts;
+
 		// Whether the humans play their turns at the same time, rather than
 		// one after another. Only LAN games do.
 		public bool simultaneousTurns = false;

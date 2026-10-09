@@ -212,6 +212,10 @@ namespace C7Engine {
 		}
 
 		// Why the mission can't be performed, or null if it can.
+		// How many cities a player has: a LAN guest isn't sent those it
+		// hasn't seen, so the host counts them.
+		private static int CityCount(Player player) => player.hostFacts?.cities ?? player.cities.Count;
+
 		public static string Unavailable(GameData gameData, Player actor, EspionageMission mission, Player target, City city) {
 			// A LAN client's message can carry any number as the mission.
 			if (!Enum.IsDefined(mission)) {
@@ -239,7 +243,7 @@ namespace C7Engine {
 				case EspionageMission.EstablishEmbassy:
 					if (pr.hasEmbassy) return "We already have an embassy with them.";
 					if (pr.AtWar()) return "They won't receive an ambassador while we are at war.";
-					if (target.cities.Count == 0) return "They have no capital to send an ambassador to.";
+					if (CityCount(target) == 0) return "They have no capital to send an ambassador to.";
 					Tech embassyTech = gameData.techs.Find(t => t.Name == EmbassyTechName);
 					if (embassyTech != null && !actor.knownTechs.Contains(embassyTech.id)) {
 						return $"We need {EmbassyTechName} to establish embassies.";
@@ -251,7 +255,7 @@ namespace C7Engine {
 					if (!HasIntelligenceAgency(actor)) return "We need an Intelligence Agency for espionage.";
 					if (mission == EspionageMission.PlantSpy && pr.hasSpy) return "We already have a spy in their capital.";
 					if (mission == EspionageMission.ExposeEnemySpy && !pr.hasSpy) return "We need a spy in their capital first.";
-					if (target.cities.Count == 0) return "They have no capital.";
+					if (CityCount(target) == 0) return "They have no capital.";
 					break;
 				default:
 					if (!pr.hasEmbassy) return "We need an embassy with them first.";

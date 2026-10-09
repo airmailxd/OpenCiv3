@@ -66,11 +66,14 @@ public class SnapshotFilterTest : IClassFixture<SaveGameFixture>, IDisposable {
 		C7GameData.GameData gameData = await CreateGameWithCities(SaveGameFixture.TwoHumanSave());
 		(Player guest, Player other) = (Humans(gameData)[1], Humans(gameData)[0]);
 		Assert.False(guest.playerRelationships.ContainsKey(other.id));
+		City otherCity = other.cities.Single();
+		Assert.False(guest.tileKnowledge.isTileKnown(otherCity.location));
 		SaveGame whole = LanProtocol.SnapshotOf(gameData);
 		byte[] wholeHash = Hash(whole);
 		SaveGame filtered = SnapshotFilter.Filter(whole, SnapshotFilter.ViewOf(gameData, [guest.id]));
 		// Filtering leaves the snapshot it's given as it was.
 		Assert.Equal(wholeHash, Hash(whole));
+		Assert.Null(whole.HostFacts);
 
 		// All of the guest's units, and others' only where it can see them.
 		Assert.Equal(guest.units.Select(u => u.id).Order(), filtered.Units.Where(u => u.owner == guest.id).Select(u => u.id).Order());
@@ -79,9 +82,22 @@ public class SnapshotFilterTest : IClassFixture<SaveGameFixture>, IDisposable {
 		Assert.Contains(gameData.mapUnits, u => u.owner == other);
 		Assert.DoesNotContain(filtered.Units, u => u.owner == other.id);
 
-		// The other human's city is there, for the map, borders and scores,
-		// but without its insides.
-		City otherCity = other.cities.Single();
+		// The other human's city, on a tile the guest has never seen, isn't
+		// there at all; no city the guest doesn't own is on such a tile.
+		Assert.DoesNotContain(filtered.Cities, c => c.id == otherCity.id);
+		Assert.All(filtered.Cities.Where(c => c.owner != guest.id),
+			c => Assert.True(guest.tileKnowledge.isTileKnown(gameData.map.tileAt(c.location.X, c.location.Y))));
+		// The guest's own city is whole.
+		City guestCity = guest.cities.Single();
+		SaveCity own = filtered.Cities.Single(c => c.id == guestCity.id);
+		Assert.Equal(guestCity.residents.Count, own.residents.Count);
+		Assert.Equal(guestCity.itemBeingProduced.name, own.producible);
+
+		// Once the guest has seen where it is, the city is there, for the
+		// map and its borders, but without its insides.
+		guest.tileKnowledge.AddTileToKnown(otherCity.location);
+		whole = LanProtocol.SnapshotOf(gameData);
+		filtered = SnapshotFilter.Filter(whole, SnapshotFilter.ViewOf(gameData, [guest.id]));
 		SaveCity hidden = filtered.Cities.Single(c => c.id == otherCity.id);
 		Assert.Equal(otherCity.name, hidden.name);
 		Assert.Equal((otherCity.location.XCoordinate, otherCity.location.YCoordinate), (hidden.location.X, hidden.location.Y));
@@ -93,15 +109,10 @@ public class SnapshotFilterTest : IClassFixture<SaveGameFixture>, IDisposable {
 		Assert.Equal(otherCity.constructed_buildings.Count, hidden.buildings.Count);
 		Assert.Equal(otherCity.perPlayerCulture.Count, hidden.perPlayerCulture.Count);
 		Assert.NotNull(hidden.producible);
-		// The guest's own city is whole.
-		City guestCity = guest.cities.Single();
-		SaveCity own = filtered.Cities.Single(c => c.id == guestCity.id);
-		Assert.Equal(guestCity.residents.Count, own.residents.Count);
-		Assert.Equal(guestCity.itemBeingProduced.name, own.producible);
 
 		// Every player is there, for the scoreboard, but those the guest
 		// hasn't met keep their gold, techs and research to themselves, and
-		// know of the map only their own territory.
+		// know of the map only their own territory that the guest knows.
 		Assert.Equal(whole.Players.Select(p => p.id), filtered.Players.Select(p => p.id));
 		Assert.Equal(whole.History.Keys.Order(), filtered.History.Keys.Order());
 		SavePlayer otherSave = filtered.Players.Single(p => p.id == other.id);
@@ -114,28 +125,54 @@ public class SnapshotFilterTest : IClassFixture<SaveGameFixture>, IDisposable {
 		Assert.Equal(0, otherSave.beakers);
 		Assert.Empty(otherSave.outdatedTiles);
 		HashSet<int> otherKnows = SavePlayer.DecodeTileIndices(otherSave.knownTileIndices).ToHashSet();
-		Assert.True(otherKnows.Count < other.tileKnowledge.knownTiles.Count);
+		Assert.Contains(gameData.map.tiles.IndexOf(otherCity.location), otherKnows);
 		Assert.All(otherKnows, i => Assert.Equal(other.id, gameData.map.tiles[i].OwningPlayer()?.id));
+		Assert.All(otherKnows, i => Assert.True(guest.tileKnowledge.isTileKnown(gameData.map.tiles[i])));
 		Assert.Empty(otherSave.playerRelationships.Keys.Where(k => k != guest.id.ToString()));
 		// The guest's own player is whole.
 		SavePlayer guestSave = filtered.Players.Single(p => p.id == guest.id);
 		Assert.Same(whole.Players.Single(p => p.id == guest.id), guestSave);
 
-		// Tiles the guest has never seen keep their terrain but nothing more.
+		// Tiles the guest has never seen lose all but their terrain next to
+		// the tiles it knows, whose edges the map draws from them, and
+		// further off, all but whether they're land or water.
+		HashSet<Tile> edge = guest.tileKnowledge.knownTiles.SelectMany(t => t.neighbors.Values)
+			.Where(t => t != Tile.NONE && !guest.tileKnowledge.isTileKnown(t)).ToHashSet();
+		int placeholders = 0;
 		for (int i = 0; i < gameData.map.tiles.Count; ++i) {
 			Tile tile = gameData.map.tiles[i];
 			SaveTile sent = filtered.Map.tiles[i];
-			Assert.Equal(tile.baseTerrainType.Key, sent.baseTerrain);
-			Assert.Equal(tile.overlayTerrainType.Key, sent.overlayTerrain);
-			if (!guest.tileKnowledge.isTileKnown(tile)) {
-				Assert.Null(sent.resource);
-				Assert.Empty(sent.overlays);
-				Assert.DoesNotContain("barbarianCamp", sent.features);
-			} else {
+			Assert.Equal((tile.XCoordinate, tile.YCoordinate), (sent.X, sent.Y));
+			if (guest.tileKnowledge.isTileKnown(tile)) {
 				Assert.Same(whole.Map.tiles[i], sent);
+				continue;
+			}
+			Assert.Null(sent.resource);
+			Assert.Empty(sent.overlays);
+			Assert.DoesNotContain("barbarianCamp", sent.features);
+			Assert.DoesNotContain("goodyHut", sent.features);
+			if (edge.Contains(tile)) {
+				Assert.Equal(tile.baseTerrainType.Key, sent.baseTerrain);
+				Assert.Equal(tile.overlayTerrainType.Key, sent.overlayTerrain);
+			} else {
+				Assert.Equal(tile.baseTerrainType.IsWater ? "coast" : "grassland", sent.baseTerrain);
+				Assert.Equal(sent.baseTerrain, sent.overlayTerrain);
+				Assert.Empty(sent.features);
+				Assert.Null(sent.extraInfo);
+				Assert.Equal(tile.continent, sent.continent);
+				++placeholders;
 			}
 		}
+		Assert.True(placeholders > 0);
 		Assert.Contains(gameData.map.tiles, t => !guest.tileKnowledge.isTileKnown(t) && t.Resource != Resource.NONE);
+		Assert.All(filtered.Map.startingLocations, t => Assert.True(guest.tileKnowledge.isTileKnown(gameData.map.tileAt(t.X, t.Y))));
+
+		// What the guest can't work out from that, the host works out.
+		HostFacts facts = filtered.HostFacts;
+		Assert.NotNull(facts);
+		Assert.Equal(other.cities.Count, facts.players[other.id.ToString()].cities);
+		Assert.Equal(other.cities.Sum(c => c.residents.Count), facts.players[other.id.ToString()].population);
+		Assert.DoesNotContain(gameData.players.First(p => p.isBarbarians).id.ToString(), facts.players.Keys);
 
 		// The other human is sent a different game.
 		Assert.NotEqual(Hash(filtered), Hash(FilteredFor(gameData, other)));
@@ -150,28 +187,67 @@ public class SnapshotFilterTest : IClassFixture<SaveGameFixture>, IDisposable {
 	public async Task AGuestPlaysOnWhatItIsSent() {
 		C7GameData.GameData gameData = await CreateGameWithCities(SaveGameFixture.TwoHumanSave());
 		(Player guest, Player other) = (Humans(gameData)[1], Humans(gameData)[0]);
-		SaveGame filtered = FilteredFor(gameData, guest);
 		City otherCity = other.cities.Single();
-		int otherCitySize = otherCity.residents.Count;
-		List<(int, int)> otherTerritory = gameData.map.tiles.Where(t => t.OwningPlayer() == other)
+		// The guest has seen some of the other's territory, but not their
+		// city.
+		Tile seen = otherCity.location.neighbors.Values.First(t => t != Tile.NONE && t.OwningPlayer() == other);
+		guest.tileKnowledge.AddTileToKnown(seen);
+		Assert.False(guest.tileKnowledge.isTileKnown(otherCity.location));
+		SaveGame filtered = FilteredFor(gameData, guest);
+		Assert.DoesNotContain(filtered.Cities, c => c.id == otherCity.id);
+
+		// What the guest's screens show of everyone, as the host has it.
+		Dictionary<ID, (int culture, float turnScore, VictoryStatus domination)> onHost = gameData.players
+			.Where(p => !p.isBarbarians)
+			.ToDictionary(p => p.id, p => (CultureReport.TotalCulture(p), ScoreVictory.ComputeTurnScore(p, gameData),
+				new DominationVictory(50, 50).Evaluate(p, gameData)));
+		Player unitedNationsOwner = UnitedNations.Owner(gameData);
+		List<Tile> known = guest.tileKnowledge.knownTiles.ToList();
+		Dictionary<(int, int), ID> owners = known.ToDictionary(t => (t.XCoordinate, t.YCoordinate), t => t.OwningPlayer()?.id);
+		List<(int, int)> guestTerritory = gameData.map.tiles.Where(t => t.OwningPlayer() == guest)
 			.Select(t => (t.XCoordinate, t.YCoordinate)).Order().ToList();
+		int guestWorkable = guest.cities.Single().GetWorkableTiles().Count;
 
 		try {
 			// The guest's machine builds its game from it, as it does every
-			// snapshot, and works out borders, sight and moods.
+			// snapshot, and works out sight and moods.
 			C7GameData.GameData shown = CreateGame.ReplaceWithSnapshot(filtered, fixture.behaviors);
 			EngineStorage.uiControllerID = guest.id;
 			Player shownOther = shown.GetPlayer(other.id);
-			City shownCity = shown.GetCity(otherCity.id);
-			Assert.Equal(otherCitySize, shownCity.residents.Count);
-			Assert.NotNull(shownCity.itemBeingProduced);
-			Assert.Equal(otherTerritory, shown.map.tiles.Where(t => t.OwningPlayer() == shownOther)
-				.Select(t => (t.XCoordinate, t.YCoordinate)).Order().ToList());
+			Player shownGuest = shown.GetPlayer(guest.id);
+			Assert.Null(shown.GetCity(otherCity.id));
+			Assert.Empty(shownOther.cities);
 			Assert.Empty(shownOther.units);
 			Assert.NotNull(shownOther.government);
 
+			// The borders of what the guest knows are the host's, the other's
+			// city or not; and the guest's own territory and city are too.
+			foreach (((int x, int y), ID owner) in owners) {
+				Assert.Equal(owner, shown.map.tileAt(x, y).OwningPlayer()?.id);
+			}
+			Assert.Equal(other.id, shown.map.tileAt(seen.XCoordinate, seen.YCoordinate).OwningPlayer()?.id);
+			Assert.Equal(guestTerritory, shown.map.tiles.Where(t => t.OwningPlayer() == shownGuest)
+				.Select(t => (t.XCoordinate, t.YCoordinate)).Order().ToList());
+			Assert.Equal(guestWorkable, shownGuest.cities.Single().GetWorkableTiles().Count);
+
+			// And so are the scores, culture, domination and the United
+			// Nations the screens show of everyone.
+			Assert.Equal(gameData.history.Keys.Order(), shown.history.Keys.Order());
+			foreach (Player p in shown.players.Where(p => !p.isBarbarians)) {
+				(int culture, float turnScore, VictoryStatus domination) = onHost[p.id];
+				Assert.Equal(culture, CultureReport.TotalCulture(p));
+				Assert.Equal(turnScore, ScoreVictory.ComputeTurnScore(p, shown));
+				VictoryStatus status = new DominationVictory(50, 50).Evaluate(p, shown);
+				Assert.Equal(domination.TerritoryPercent, status.TerritoryPercent);
+				Assert.Equal(domination.PopulationPercent, status.PopulationPercent);
+				Assert.Equal(gameData.history[p.HistoryKey].LastOrDefault()?.Score, shown.history[p.HistoryKey].LastOrDefault()?.Score);
+			}
+			Assert.Equal(unitedNationsOwner?.id, UnitedNations.Owner(shown)?.id);
+			// Their civilization has a city to send an ambassador to.
+			Assert.NotEqual("They have no capital to send an ambassador to.",
+				Espionage.Unavailable(shown, shownGuest, EspionageMission.EstablishEmbassy, shownOther, null));
+
 			// What the UI asks of the other civs works.
-			Player shownGuest = shown.GetPlayer(guest.id);
 			foreach (Player p in shown.players.Where(p => !p.isBarbarians)) {
 				shownGuest.CompareMilitaryStrengthTo(p);
 				foreach (City c in p.cities) {
@@ -180,7 +256,6 @@ public class SnapshotFilterTest : IClassFixture<SaveGameFixture>, IDisposable {
 				}
 				shown.TechCostFor(shown.techs[0], p);
 			}
-			shown.UpdateTileOwners();
 
 			// And so does saving it, as the player may.
 			SaveGame saved = SaveGame.FromGameData(shown);
@@ -191,10 +266,27 @@ public class SnapshotFilterTest : IClassFixture<SaveGameFixture>, IDisposable {
 	}
 
 	[Fact]
+	public async Task GreatWondersShowWhereTheyAreToEveryone() {
+		C7GameData.GameData gameData = await CreateGameWithCities(SaveGameFixture.TwoHumanSave());
+		(Player guest, Player other) = (Humans(gameData)[1], Humans(gameData)[0]);
+		City otherCity = other.cities.Single();
+		Building wonder = gameData.Buildings.First(b => b.IsGreatWonder());
+		otherCity.AddBuilding(wonder);
+		gameData.GreatWondersBuilt.Add(wonder.name);
+		SaveGame filtered = FilteredFor(gameData, guest);
+		Assert.DoesNotContain(filtered.Cities, c => c.id == otherCity.id);
+		WonderFacts where = filtered.HostFacts.wonders.Single(w => w.wonder == wonder.name);
+		Assert.Equal(other.id.ToString(), where.owner);
+		Assert.Equal(otherCity.name, where.city);
+	}
+
+	[Fact]
 	public async Task AnEmbassyShowsACivsCitiesAndResearch() {
 		C7GameData.GameData gameData = await CreateGameWithCities(SaveGameFixture.TwoHumanSave());
 		(Player guest, Player other) = (Humans(gameData)[1], Humans(gameData)[0]);
 		guest.EnsureRelationshipExists(other);
+		// Where their city is, which they would have seen on meeting.
+		guest.tileKnowledge.AddTileToKnown(other.cities.Single().location);
 		other.gold = 77;
 
 		// Met: their gold and techs, for trading.
@@ -261,10 +353,14 @@ public class SnapshotFilterTest : IClassFixture<SaveGameFixture>, IDisposable {
 		spectator.SnapshotReceived = _ => { };
 		spectator.UiMessageReceived = _ => { };
 		Assert.DoesNotContain(guest.StartingGame.Units, u => u.owner == hostPlayer.id);
+		// The spectator watches as all the civilizations, unless it chooses
+		// otherwise, which shows everyone's units.
+		Assert.Equal(SpectatorViewMode.AllCivs, spectator.SpectatorView.mode);
 		Assert.Contains(spectator.StartingGame.Units, u => u.owner == hostPlayer.id);
+		List<ID> allCivs = gameData.players.Where(p => !p.isBarbarians).Select(p => p.id).ToList();
 
 		// The guest plays: it's sent its view as patches, and the spectator
-		// the whole game.
+		// what all the civilizations know.
 		Player guestPlayer = gameData.GetPlayer(seatID);
 		foreach (MapUnit unit in guestPlayer.units.Where(u => !u.isFortified).ToList()) {
 			long processed = EngineStorage.processedMessageCount;
@@ -272,8 +368,8 @@ public class SnapshotFilterTest : IClassFixture<SaveGameFixture>, IDisposable {
 			PumpUntil(host, clients, () => EngineStorage.processedMessageCount > processed);
 		}
 		byte[] guestView = LanHost.SnapshotHashFor([seatID]);
-		byte[] wholeGame = LanHost.SnapshotHashFor(null);
-		PumpUntil(host, clients, () => Has(guest, guestView) && Has(spectator, wholeGame));
+		byte[] spectatorView = LanHost.SnapshotHashFor(allCivs);
+		PumpUntil(host, clients, () => Has(guest, guestView) && Has(spectator, spectatorView));
 		Assert.Equal(1, guest.WholeSnapshotsReceived);
 		Assert.True(guest.SnapshotDeltasReceived >= 1);
 
@@ -281,8 +377,8 @@ public class SnapshotFilterTest : IClassFixture<SaveGameFixture>, IDisposable {
 		int guestSnapshots = guest.WholeSnapshotsReceived + guest.SnapshotDeltasReceived;
 		MapUnit hostUnit = hostPlayer.units.First(u => !u.isFortified);
 		new MsgSetFortification(hostUnit.id, true) { playerID = hostPlayer.id }.send();
-		wholeGame = LanHost.SnapshotHashFor(null);
-		PumpUntil(host, clients, () => Has(spectator, wholeGame));
+		spectatorView = LanHost.SnapshotHashFor(allCivs);
+		PumpUntil(host, clients, () => Has(spectator, spectatorView));
 		Assert.Equal(guestSnapshots, guest.WholeSnapshotsReceived + guest.SnapshotDeltasReceived);
 		Assert.Equal(guestView, LanHost.SnapshotHashFor([seatID]));
 
@@ -294,8 +390,88 @@ public class SnapshotFilterTest : IClassFixture<SaveGameFixture>, IDisposable {
 		long before = EngineStorage.processedMessageCount;
 		guest.SendCommand(new MsgSetFortification(another.id, false));
 		PumpUntil(host, clients, () => EngineStorage.processedMessageCount > before);
-		wholeGame = LanHost.SnapshotHashFor(null);
-		PumpUntil(host, clients, () => Has(guest, wholeGame) && Has(spectator, wholeGame));
+		byte[] wholeGame = LanHost.SnapshotHashFor(null);
+		spectatorView = LanHost.SnapshotHashFor(allCivs);
+		PumpUntil(host, clients, () => Has(guest, wholeGame) && Has(spectator, spectatorView));
+	}
+
+	[Fact]
+	public async Task SpectatorsSeeTheGameAsTheHostLetsThem() {
+		SaveGame save = SaveGameFixture.TwoHumanSave();
+		using LanHost host = new("Host", save, port: 0, answerDiscovery: false) { SimultaneousTurns = true, AllowSpectators = true };
+		// Hiding what players can't see, spectators see only what the
+		// civilizations know unless the host says otherwise.
+		Assert.Equal(SpectatorViews.AsCivs, host.SpectatorViews);
+		ID seatID = host.Seats[0].playerID;
+		using LanClient guest = LanClient.Connect("127.0.0.1", host.Port, "Guest");
+		using LanClient spectator = LanClient.Connect("127.0.0.1", host.Port, "Watcher");
+		LanClient[] clients = [guest, spectator];
+		PumpUntil(host, clients, () => guest.Lobby != null && spectator.Lobby != null);
+		guest.ClaimSeat(seatID);
+		spectator.Watch();
+		PumpUntil(host, clients, () => guest.YourSeats.Contains(seatID) && spectator.SpectatorView != null);
+		Assert.Equal(SpectatorViews.AsCivs, spectator.AllowedSpectatorViews);
+		Assert.Equal(new SpectatorViewInfo(SpectatorViewMode.AllCivs), spectator.SpectatorView);
+
+		C7GameData.GameData gameData = await CreateGameWithCities(save);
+		Player hostPlayer = gameData.players.First(p => p.isHuman && p.id != seatID);
+		List<ID> allCivs = gameData.players.Where(p => !p.isBarbarians).Select(p => p.id).ToList();
+		host.StartGame();
+		PumpUntil(host, clients, () => guest.StartingGame != null && spectator.StartingGame != null);
+		guest.SnapshotReceived = _ => { };
+		guest.UiMessageReceived = _ => { };
+		int viewChanges = 0;
+		spectator.SnapshotReceived = _ => { };
+		spectator.UiMessageReceived = _ => { };
+		spectator.SpectatorViewChanged = () => viewChanges++;
+		PumpUntil(host, clients, () => Has(spectator, LanHost.SnapshotHashFor(allCivs)));
+
+		// As all the civilizations: everyone's units and cities, but not
+		// what none of them has seen.
+		SaveGame asAll = spectator.StartingGame;
+		Assert.Contains(asAll.Units, u => u.owner == hostPlayer.id);
+		Assert.Contains(asAll.Units, u => u.owner == seatID);
+		Assert.Equal(gameData.cities.Count, asAll.Cities.Count);
+		Assert.Contains(gameData.map.tiles, t => t.Resource != Resource.NONE && !allCivs.Any(id => gameData.GetPlayer(id).tileKnowledge.isTileKnown(t)));
+		for (int i = 0; i < gameData.map.tiles.Count; ++i) {
+			Tile tile = gameData.map.tiles[i];
+			if (!allCivs.Any(id => gameData.GetPlayer(id).tileKnowledge.isTileKnown(tile))) {
+				Assert.Null(asAll.Map.tiles[i].resource);
+			}
+		}
+
+		// The whole game isn't allowed, so asking for it changes nothing;
+		// one civilization is, and is sent what the guest playing it is.
+		spectator.ChooseSpectatorView(new SpectatorViewInfo(SpectatorViewMode.Omniscient));
+		spectator.ChooseSpectatorView(new SpectatorViewInfo(SpectatorViewMode.OneCiv, seatID));
+		PumpUntil(host, clients, () => spectator.SpectatorView?.mode == SpectatorViewMode.OneCiv);
+		Assert.Equal(1, viewChanges);
+		Assert.Equal(seatID, spectator.SpectatorView.playerID);
+		byte[] guestView = LanHost.SnapshotHashFor([seatID]);
+		PumpUntil(host, clients, () => Has(spectator, guestView) && Has(guest, guestView));
+
+		// The host lets spectators see the whole game.
+		host.SpectatorViews = SpectatorViews.Any;
+		PumpUntil(host, clients, () => spectator.AllowedSpectatorViews == SpectatorViews.Any);
+		Assert.Equal(SpectatorViewMode.OneCiv, spectator.SpectatorView.mode);
+		spectator.ChooseSpectatorView(new SpectatorViewInfo(SpectatorViewMode.Omniscient));
+		PumpUntil(host, clients, () => Has(spectator, LanHost.SnapshotHashFor(null)));
+
+		// Taking a spectator's view away has it watch another way allowed.
+		host.SpectatorViews = SpectatorViews.AllCivs;
+		PumpUntil(host, clients, () => spectator.SpectatorView?.mode == SpectatorViewMode.AllCivs
+			&& Has(spectator, LanHost.SnapshotHashFor(allCivs)));
+
+		// Hosting the game again keeps how spectators may see it.
+		LanResumeInfo info = NetSerialization.DeserializeData<LanResumeInfo>(NetSerialization.SerializeData(host.ResumeInfo()));
+		Assert.Equal(SpectatorViews.AllCivs, info.spectatorViews);
+		host.Dispose();
+		using LanHost resumed = LanHost.Resume("Host", save, info, port: 0, answerDiscovery: false);
+		Assert.Equal(SpectatorViews.AllCivs, resumed.SpectatorViews);
+		// One that left it to hiding follows it.
+		using LanHost older = LanHost.Resume("Host", save, info with { spectatorViews = null, hideUnseen = false }, port: 0,
+			answerDiscovery: false);
+		Assert.Equal(SpectatorViews.Any, older.SpectatorViews);
 	}
 
 	[Fact]

@@ -166,6 +166,7 @@ namespace C7GameData.Save {
 			data.RemoveRelationshipsWithDefeatedCivs();
 
 			data.UpdateTileOwners();
+			HostFacts?.ApplyTo(data);
 			data.InvalidateCachedTradeNetwork();
 
 			data.onGameCreation += OnGameCreation;
@@ -631,6 +632,9 @@ namespace C7GameData.Save {
 		// Older saves, without it, have the humans take turns one by one.
 		public bool SimultaneousTurns { get; set; }
 		public UnitedNationsState UnitedNations = new();
+		// What a LAN host worked out for a guest that isn't sent all of the
+		// game; null otherwise.
+		public HostFacts HostFacts;
 		public List<SaveTech> Techs = new();
 		public List<CitizenType> CitizenTypes = new();
 		public List<SaveTerraform> TerraForms = new();

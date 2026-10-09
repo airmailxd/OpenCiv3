@@ -66,6 +66,11 @@ public class ScoreVictory : IVictory {
 	}
 
 	public static float ComputeTurnScore(Player player, GameData gameData) {
+		// A LAN guest isn't sent all of a rival's cities and territory, so
+		// the host works it out.
+		if (player.hostFacts != null) {
+			return player.hostFacts.turnScore;
+		}
 		List<Tile> scoredTiles = player.tileKnowledge.ScoreTiles();
 
 		int happyCitizens = 0;

@@ -184,6 +184,41 @@ public static class LanSession {
 		return Client != null && Client.PlayerIDs.Contains(player.id);
 	}
 
+	// Shows a spectator's game the way the host sends it (see
+	// SpectatorViewMode): the whole map in observer mode, or the map as the
+	// civilization it watches as knows it, or as all of them do together.
+	// The player the UI looks through stays the same where it can, for the
+	// city screen and the advisors.
+	public static void ShowSpectatorView(GameData gameData) {
+		if (!IsSpectator) {
+			return;
+		}
+		SpectatorViewInfo view = Client.SpectatorView;
+		// A host that doesn't say sends the whole game.
+		SpectatorViewMode mode = view?.mode ?? SpectatorViewMode.Omniscient;
+		Player watched = mode == SpectatorViewMode.OneCiv ? gameData.GetPlayer(view.playerID) : null;
+		if (mode == SpectatorViewMode.OneCiv && watched == null) {
+			mode = SpectatorViewMode.AllCivs;
+		}
+		gameData.observerMode = mode == SpectatorViewMode.Omniscient;
+		Player shown = watched ?? gameData.GetPlayer(EngineStorage.uiControllerID);
+		if (shown == null || shown.isBarbarians) {
+			shown = gameData.players.FirstOrDefault(p => p.isHuman && !p.defeated)
+				?? gameData.players.FirstOrDefault(p => !p.isBarbarians) ?? gameData.players[0];
+		}
+		EngineStorage.uiControllerID = shown.id;
+		if (mode == SpectatorViewMode.AllCivs) {
+			shown.tileKnowledge.ShowAlso(gameData.players.Where(p => !p.isBarbarians).Select(p => p.tileKnowledge));
+		}
+	}
+
+	// Whether a spectator may look at the city screen and advisors as this
+	// player: not when it watches as another civilization.
+	public static bool SpectatorMayLookAs(Player player) {
+		SpectatorViewInfo view = Client?.SpectatorView;
+		return view == null || view.mode != SpectatorViewMode.OneCiv || view.playerID == player.id;
+	}
+
 	// True when this client took several seats, whose players take turns at
 	// this machine as in a hotseat game.
 	public static bool HasSeveralLocalPlayers => Client?.PlayerIDs.Count > 1;

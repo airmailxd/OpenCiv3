@@ -54,14 +54,17 @@ namespace C7.Map {
 		private static readonly TileDirection[] borderDirections = [TileDirection.NORTHEAST, TileDirection.NORTHWEST, TileDirection.SOUTHEAST, TileDirection.SOUTHWEST];
 
 		public override void drawObject(LooseView looseView, GameData gameData, Tile tile, Vector2 tileCenter) {
-			if (tile.owningCity is null) {
+			// Whose territory the tile is in, which on a LAN guest's machine
+			// may be without the city it belongs to (see HostFacts).
+			Player owner = tile.OwningPlayer();
+			if (owner is null) {
 				return;
 			}
 
-			Color borderColor = TextureLoader.LoadColor(tile.owningCity.owner.GetPlayerColor());
+			Color borderColor = TextureLoader.LoadColor(owner.GetPlayerColor());
 
 			foreach (TileDirection dir in borderDirections) {
-				if (tile.neighbors[dir].owningCity?.owner != tile.owningCity?.owner) {
+				if (tile.neighbors[dir].OwningPlayer() != owner) {
 					ImageTexture texture = GetBorderTexture(tile, dir, borderColor);
 					Vector2 size = texture.GetSize();
 					Vector2 offset = size/2;

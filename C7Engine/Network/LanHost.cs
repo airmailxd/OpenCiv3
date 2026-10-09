@@ -189,6 +189,9 @@ public class LanHost : IDisposable {
 		public string nonce;
 		public int wrongPasswords;
 		public bool watchOnceAdmitted;
+		// How it asked to see the game once it watches, which a spectator
+		// coming back asks for straight after asking to watch.
+		public SpectatorViewInfo spectatorView;
 		// Since it connected, or was last asked for the password.
 		public readonly Stopwatch waiting = Stopwatch.StartNew();
 		public readonly FrameBudget frameBudget = new();
@@ -254,6 +257,8 @@ public class LanHost : IDisposable {
 		public readonly List<byte[]> pendingUiMessages = new();
 		public FrameBudget frameBudget = new();
 		public readonly WholeSnapshotRequest wholeSnapshot = new();
+		// How it sees the game, which is one of the host's SpectatorViews.
+		public SpectatorViewInfo view;
 	}
 	private readonly List<Spectator> spectators = new();
 	private int nextSpectatorID = 1;
@@ -266,10 +271,11 @@ public class LanHost : IDisposable {
 	private readonly List<string> spectatorTokens = new();
 	private const int MaxSpectatorTokens = 256;
 
-	// Whether anyone may watch the game rather than play. Spectators see
-	// the whole game, so unless the host says otherwise they may watch only
-	// when guests see the whole game too (HideUnseen off). Not allowing them
-	// any more stops those watching.
+	// Whether anyone may watch the game rather than play. Even watching as
+	// a civilization shows what that civilization knows to whoever watches,
+	// who may be playing its rival at another machine, so unless the host
+	// says otherwise they may watch only when guests see the whole game too
+	// (HideUnseen off). Not allowing them any more stops those watching.
 	public bool AllowSpectators {
 		get => allowSpectators ?? !hideUnseen;
 		set {
@@ -280,6 +286,24 @@ public class LanHost : IDisposable {
 		}
 	}
 	private bool? allowSpectators;
+
+	// The ways spectators may see the game (see SpectatorViewMode), of which
+	// each spectator chooses one. Unless the host says otherwise, they may
+	// see it as the civilizations do, as all of them or one, while hiding
+	// what players can't see, and any way, the whole game included, when
+	// guests see the whole game too. Taking away the way a spectator sees
+	// the game has it see it another way the host allows.
+	public SpectatorViews SpectatorViews {
+		get => spectatorViews is SpectatorViews views && (views & SpectatorViews.Any) != SpectatorViews.None
+			? views & SpectatorViews.Any
+			: hideUnseen ? SpectatorViews.AsCivs : SpectatorViews.Any;
+		set {
+			spectatorViews = value;
+			KeepSpectatorViewsAllowed();
+			BroadcastLobby();
+		}
+	}
+	private SpectatorViews? spectatorViews;
 
 	// Whether the game is in the relay's public list while hosting online,
 	// under this name and description (see CurrentListing); and its map's
@@ -338,7 +362,7 @@ public class LanHost : IDisposable {
 
 	// Whether each guest's machine is sent only what its players may know of
 	// the game (see SnapshotFilter), rather than the whole of it. Spectators
-	// always see everything.
+	// see it as SpectatorViews allows.
 	public bool HideUnseen {
 		get => hideUnseen;
 		set {
@@ -348,6 +372,7 @@ public class LanHost : IDisposable {
 					// They would see what the guests are no longer sent.
 					StopSpectators();
 				}
+				KeepSpectatorViewsAllowed();
 				BroadcastLobby();
 			}
 		}
@@ -440,6 +465,7 @@ public class LanHost : IDisposable {
 			relayBanScope = RelayProtocol.IsBanScope(info.relayBanScope) ? info.relayBanScope
 				: info.relayBans?.Count > 0 ? null : NewToken(),
 			allowSpectators = info.allowSpectators,
+			spectatorViews = info.spectatorViews,
 			ListPublicly = info.listPublicly,
 			PublicName = info.publicName,
 			PublicDescription = info.publicDescription,
@@ -624,29 +650,46 @@ public class LanHost : IDisposable {
 	private sealed class SnapshotRound {
 		public readonly SaveGame snapshot = LanProtocol.SnapshotForPeers(EngineStorage.gameData);
 		public readonly Dictionary<string, Task<EncodedSnapshot>> encodings = new();
-		// Shared by the views of the round.
-		public Dictionary<ID, string> ownTerritory;
+		// What the host works out for the views of the round.
+		public SnapshotFilter.Facts facts;
 	}
 
-	// What a guest is sent: "" for the whole game, as spectators are, or the
-	// IDs of the guest's players, whose view is filtered to what they know.
-	private string ViewKey(Guest guest) {
-		return hideUnseen ? string.Join(",", SeatsOf(guest).Select(s => s.info.playerID.ToString()).Order()) : "";
+	// The players whose view of the game a guest is sent (see
+	// SnapshotFilter): its own, or null for the whole game.
+	private List<ID> ViewPlayers(Guest guest) {
+		return hideUnseen ? SeatsOf(guest).Select(s => s.info.playerID).ToList() : null;
 	}
 
-	// The round's snapshot as the guest may see it, or whole for null,
-	// encoded on a worker thread. What the guest's players know is worked
-	// out here, on the main thread, and the snapshot filtered to it on the
-	// worker thread.
-	private Task<EncodedSnapshot> EncodeSnapshot(SnapshotRound round, Guest guest = null) {
-		string key = guest == null ? "" : ViewKey(guest);
+	// And a spectator's: every civilization's, the one it chose, or null for
+	// the whole game.
+	private static List<ID> ViewPlayers(Spectator spectator) {
+		return spectator.view?.mode switch {
+			SpectatorViewMode.AllCivs => EngineStorage.gameData.players.Where(p => !p.isBarbarians).Select(p => p.id).ToList(),
+			SpectatorViewMode.OneCiv => [spectator.view.playerID],
+			_ => null,
+		};
+	}
+
+	// What tells the views apart: "" for the whole game, or the players'
+	// IDs. Machines with the same view, such as a guest and a spectator
+	// watching as its civilization, share its snapshots.
+	private static string ViewKey(List<ID> players) {
+		return players == null ? "" : string.Join(",", players.Select(id => id.ToString()).Order());
+	}
+
+	// The round's snapshot as the players may see it, or whole for null,
+	// encoded on a worker thread. What the players know is worked out here,
+	// on the main thread, and the snapshot filtered to it on the worker
+	// thread.
+	private Task<EncodedSnapshot> EncodeSnapshot(SnapshotRound round, List<ID> players) {
+		string key = ViewKey(players);
 		if (round.encodings.TryGetValue(key, out Task<EncodedSnapshot> encoding)) {
 			return encoding;
 		}
-		SnapshotFilter.View view = key == ""
+		SnapshotFilter.View view = players == null
 			? null
-			: SnapshotFilter.ViewOf(EngineStorage.gameData, SeatsOf(guest).Select(s => s.info.playerID),
-				round.ownTerritory ??= SnapshotFilter.OwnTerritory(EngineStorage.gameData));
+			: SnapshotFilter.ViewOf(EngineStorage.gameData, players,
+				round.facts ??= SnapshotFilter.FactsOf(EngineStorage.gameData));
 		SaveGame snapshot = round.snapshot;
 		Task<EncodedSnapshot> previous = lastEncodings.GetValueOrDefault(key);
 		encoding = Task.Run(async () => {
@@ -671,7 +714,11 @@ public class LanHost : IDisposable {
 
 	// Forgets the views nobody is sent any more, such as a departed guest's.
 	private void ForgetUnusedViews() {
-		HashSet<string> used = [.. SeatedGuests().Select(ViewKey), ""];
+		HashSet<string> used = [
+			.. SeatedGuests().Select(g => ViewKey(ViewPlayers(g))),
+			.. spectators.Where(s => !s.connection.IsClosed).Select(s => ViewKey(ViewPlayers(s))),
+			"",
+		];
 		foreach (string key in lastEncodings.Keys.Where(k => !used.Contains(k)).ToList()) {
 			lastEncodings.Remove(key);
 		}
@@ -709,7 +756,7 @@ public class LanHost : IDisposable {
 			SendStart(guest, round);
 		}
 		foreach (Spectator spectator in spectators) {
-			SendStart(spectator, EncodeSnapshot(round));
+			SendStart(spectator, EncodeSnapshot(round, ViewPlayers(spectator)));
 		}
 		lastProcessedMessageCount = EngineStorage.processedMessageCount;
 		PublishDiscoveryReply();
@@ -726,7 +773,7 @@ public class LanHost : IDisposable {
 	// seat in a game in progress, and shows them the game.
 	private void SendStart(Guest guest, SnapshotRound round) {
 		guest.connection.Send(FrameKind.Start, new StartInfo(SeatsOf(guest).Select(s => s.info.playerID).ToList(), guest.token));
-		SendSnapshot(guest.connection, EncodeSnapshot(round, guest), guest.pendingUiMessages);
+		SendSnapshot(guest.connection, EncodeSnapshot(round, ViewPlayers(guest)), guest.pendingUiMessages);
 	}
 
 	// The engine asks a player some things only as their turn starts, and
@@ -925,7 +972,7 @@ public class LanHost : IDisposable {
 			seats.Where(s => s.token != null).Select(s => new LanResumeSeat(s.info.playerID, s.takenBy, s.token)).ToList(),
 			Online?.RelayUrl, Online?.Code, Online?.Key, HideUnseen,
 			passwordSalt, passwordVerifier, [.. bannedTokens], [.. bannedAddresses], Online == null ? resumedRelayBans : [.. Online.Bans],
-			ListPublicly, PublicName, PublicDescription, allowSpectators, relayBanScope);
+			ListPublicly, PublicName, PublicDescription, allowSpectators, relayBanScope, spectatorViews);
 	}
 
 	// The players with nobody at their machine whom the game would wait on:
@@ -1216,6 +1263,9 @@ public class LanHost : IDisposable {
 			case FrameKind.ChooseCivilization:
 				ChooseCivilization(guest, frame);
 				return true;
+			case FrameKind.ChooseSpectatorView:
+				guest.spectatorView = NetSerialization.DeserializeRequired<SpectatorViewInfo>(frame.payload);
+				return true;
 			case FrameKind.Command:
 			case FrameKind.PredictedCommand:
 				HandleCommand(guest, frame);
@@ -1332,6 +1382,7 @@ public class LanHost : IDisposable {
 			name = guest.name,
 			token = guest.token,
 			frameBudget = guest.frameBudget,
+			view = DefaultSpectatorView(),
 		};
 		spectators.Add(spectator);
 		spectatorTokens.Remove(guest.token);
@@ -1339,9 +1390,12 @@ public class LanHost : IDisposable {
 		if (spectatorTokens.Count > MaxSpectatorTokens) {
 			spectatorTokens.RemoveAt(0);
 		}
+		if (IsAllowed(guest.spectatorView)) {
+			spectator.view = guest.spectatorView;
+		}
 		log.Information("{Name} is watching", guest.name);
 		if (Started) {
-			SendStart(spectator, EncodeSnapshot(new SnapshotRound()));
+			SendStart(spectator, EncodeSnapshot(new SnapshotRound(), ViewPlayers(spectator)));
 		}
 		BroadcastLobby();
 		return true;
@@ -1621,17 +1675,77 @@ public class LanHost : IDisposable {
 	}
 
 	// Spectators only listen: whatever they send is dropped, except asking
-	// for the whole game.
+	// for the whole game and choosing how to see it.
 	private void PollSpectator(Spectator spectator) {
 		while (spectator.connection.TryPeek(out _) && spectator.frameBudget.Take() && spectator.connection.TryReceive(out Frame frame)) {
 			if (frame.kind == FrameKind.RequestSnapshot && Started) {
 				spectator.wholeSnapshot.pending = true;
+			} else if (frame.kind == FrameKind.ChooseSpectatorView) {
+				SpectatorViewInfo chosen;
+				try {
+					chosen = NetSerialization.DeserializeRequired<SpectatorViewInfo>(frame.payload);
+				} catch (System.Text.Json.JsonException e) {
+					log.Information("Couldn't read how {Name} wants to watch: {Error}", spectator.name, e.Message);
+					continue;
+				}
+				ChooseSpectatorView(spectator, chosen);
 			}
 		}
 		if (spectator.connection.IsClosed) {
 			log.Information("{Name} stopped watching", spectator.name);
 			spectators.Remove(spectator);
 			BroadcastLobby();
+		}
+	}
+
+	// The way a spectator sees the game until it chooses: as all the
+	// civilizations if the host allows it, or else as the host's, or else
+	// the whole game.
+	private SpectatorViewInfo DefaultSpectatorView() {
+		SpectatorViews allowed = SpectatorViews;
+		return allowed.HasFlag(SpectatorViews.AllCivs) ? new SpectatorViewInfo(SpectatorViewMode.AllCivs)
+			: allowed.HasFlag(SpectatorViews.OneCiv) ? new SpectatorViewInfo(SpectatorViewMode.OneCiv, hostPlayerID)
+			: new SpectatorViewInfo(SpectatorViewMode.Omniscient);
+	}
+
+	// Whether a spectator may see the game this way: the host allows it,
+	// and the civilization, for one, is in the game.
+	private bool IsAllowed(SpectatorViewInfo view) {
+		if (view == null || !SpectatorViews.HasFlag(SpectatorViewInfo.Flag(view.mode))) {
+			return false;
+		}
+		if (view.mode != SpectatorViewMode.OneCiv) {
+			return view.playerID == null;
+		}
+		if (view.playerID == null) {
+			return false;
+		}
+		// Before the game starts, the civilizations are the seats'.
+		if (!Started) {
+			return view.playerID == hostPlayerID || seats.Any(s => s.info.playerID == view.playerID);
+		}
+		Player player = EngineStorage.gameData?.GetPlayer(view.playerID);
+		return player != null && !player.isBarbarians;
+	}
+
+	// A spectator sees the game the way it chose from now on, if the host
+	// allows it, and is told how it sees it either way.
+	private void ChooseSpectatorView(Spectator spectator, SpectatorViewInfo chosen) {
+		if (IsAllowed(chosen) && chosen != spectator.view) {
+			log.Information("{Name} watches {View}", spectator.name, chosen);
+			spectator.view = chosen;
+			spectatorSnapshotPending = true;
+		}
+		SendLobby(spectator);
+	}
+
+	// Has each spectator see the game a way the host allows.
+	private void KeepSpectatorViewsAllowed() {
+		foreach (Spectator spectator in spectators) {
+			if (!IsAllowed(spectator.view)) {
+				spectator.view = DefaultSpectatorView();
+				spectatorSnapshotPending = true;
+			}
 		}
 	}
 
@@ -1722,7 +1836,8 @@ public class LanHost : IDisposable {
 				// later snapshot.
 				bool answered = !EngineStorage.HasPendingMessagesToEngine();
 				foreach (Guest guest in connected) {
-					SendSnapshot(guest.connection, EncodeSnapshot(round, guest), guest.pendingUiMessages, guest.awaitsAnswer && answered);
+					SendSnapshot(guest.connection, EncodeSnapshot(round, ViewPlayers(guest)), guest.pendingUiMessages,
+						guest.awaitsAnswer && answered);
 					guest.awaitsAnswer &= !answered;
 				}
 				ForgetUnusedViews();
@@ -1735,10 +1850,10 @@ public class LanHost : IDisposable {
 			List<Spectator> watching = spectators.Where(s => !s.connection.IsClosed).ToList();
 			if (watching.Count > 0) {
 				round ??= new SnapshotRound();
-				Task<EncodedSnapshot> snapshot = EncodeSnapshot(round);
 				foreach (Spectator spectator in watching) {
-					SendSnapshot(spectator.connection, snapshot, spectator.pendingUiMessages);
+					SendSnapshot(spectator.connection, EncodeSnapshot(round, ViewPlayers(spectator)), spectator.pendingUiMessages);
 				}
+				ForgetUnusedViews();
 			}
 		}
 	}
@@ -1763,7 +1878,11 @@ public class LanHost : IDisposable {
 		SendLobby(guest.connection, SeatsOf(guest).Select(s => s.info.playerID).ToList(), guest.token);
 	}
 
-	private void SendLobby(LanConnection connection, List<ID> yourSeats, string reconnectToken = null) {
+	private void SendLobby(Spectator spectator) {
+		SendLobby(spectator.connection, [], spectator.token, spectator.view);
+	}
+
+	private void SendLobby(LanConnection connection, List<ID> yourSeats, string reconnectToken = null, SpectatorViewInfo spectatorView = null) {
 		List<SeatInfo> seatInfos = [
 			new SeatInfo(hostPlayerID, hostCivilization, hostName, true, hostName),
 			.. Seats,
@@ -1771,7 +1890,7 @@ public class LanHost : IDisposable {
 		List<CivilizationChoice> civilizations = choosable?.Select(c => new CivilizationChoice(
 			c.name, c.leader, c.noun, c.leaderArtFile, c.traits.Select(t => t.ToString()).ToList())).ToList();
 		connection.Send(FrameKind.Lobby, new LobbyInfo(hostName, seatInfos, yourSeats, [.. Spectators], civilizations, creatingGame, Started,
-			SimultaneousTurns, reconnectToken, HideUnseen));
+			SimultaneousTurns, reconnectToken, HideUnseen, AllowSpectators ? SpectatorViews : SpectatorViews.None, spectatorView));
 	}
 
 	// While Poll handles what guests send, the lobby is sent once at the
@@ -1789,7 +1908,7 @@ public class LanHost : IDisposable {
 			SendLobby(guest);
 		}
 		foreach (Spectator spectator in spectators) {
-			SendLobby(spectator.connection, [], spectator.token);
+			SendLobby(spectator);
 		}
 		// Who is connected has changed, and anyone who just came in needs
 		// the clock.

@@ -276,14 +276,24 @@ namespace C7GameData.Save {
 		// Returns null if some tile isn't on the map, in which case the tiles
 		// have to be saved by location.
 		internal static string EncodeTileIndices(IEnumerable<Tile> tiles, GameMap map) {
-			List<byte> bytes = new();
+			List<int> indices = new();
 			Dictionary<Tile, int> indexByTile = null;
-			int previous = 0;
 			foreach (Tile tile in tiles) {
 				int index = IndexOf(tile, map, ref indexByTile);
 				if (index < 0) {
 					return null;
 				}
+				indices.Add(index);
+			}
+			return EncodeIndices(indices);
+		}
+
+		// The tiles at these places in the map's tiles, encoded as
+		// knownTileIndices; null for none.
+		internal static string EncodeIndices(IEnumerable<int> indices) {
+			List<byte> bytes = new();
+			int previous = 0;
+			foreach (int index in indices) {
 				int delta = index - previous;
 				previous = index;
 				uint zigzag = (uint)((delta << 1) ^ (delta >> 31));

@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using C7Engine;
 using C7GameData;
+using C7GameData.Save;
 using Godot;
 
 [GlobalClass]
@@ -85,6 +86,10 @@ public partial class WondersView : Control {
 		foreach (Building wonder in gameData.Buildings.Where(b => b.IsGreatWonder())) {
 			if (builtIn.TryGetValue(wonder, out City city)) {
 				AddRow(14, wonder.name, city.owner.civilization.noun, city.name);
+			} else if (gameData.hostFacts?.wonders.Find(w => w.wonder == wonder.name) is WonderFacts where) {
+				// On a LAN guest's machine, in a city it isn't sent.
+				Player owner = gameData.players.Find(p => p.id.ToString() == where.owner);
+				AddRow(14, wonder.name, owner?.civilization.noun ?? "", where.city);
 			} else if (gameData.GreatWondersBuilt.Contains(wonder.name)) {
 				AddRow(14, wonder.name, "Lost", "");
 			} else {
