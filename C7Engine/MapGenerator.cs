@@ -2139,6 +2139,40 @@ namespace C7Engine {
 			return false;
 		}
 
+		// Every civ must start where its capital can grow to at least this
+		// size working the best food tiles around it.
+		private const int MIN_START_GROWTH_SIZE = 3;
+
+		// A city center always makes this much food (see Tile.BaseFoodYield),
+		// and each citizen eats this much.
+		private const int CITY_CENTER_FOOD = 2;
+		private const int FOOD_PER_CITIZEN = 2;
+
+		// Whether a city founded on t could grow to the given size, with each
+		// citizen working the best food tile left in reach. To grow past a
+		// size the city needs a food surplus at that size.
+		private static bool CanGrowToSize(WorldCharacteristics wc, Tile t, Player player, int size) {
+			// A new city can only work tiles inside its borders, which start
+			// out covering just the tiles next to it, so only count those.
+			List<int> food = t.GetTilesWithinRankDistance(1)
+				.Where(n => n != t && n != Tile.NONE)
+				.Select(n => n.FoodYield(player).yield)
+				.OrderByDescending(f => f)
+				.ToList();
+
+			int total = CITY_CENTER_FOOD;
+			for (int citizens = 1; citizens < size; ++citizens) {
+				if (citizens > food.Count) {
+					return false;
+				}
+				total += food[citizens - 1];
+				if (total <= citizens * FOOD_PER_CITIZEN) {
+					return false;
+				}
+			}
+			return true;
+		}
+
 		// TODO: merge this with the ai logic
 		// Maps each continent id to the number of tiles in that continent.
 		private static Dictionary<int, int> ComputeContinentSizes(GameMap m) {
@@ -2152,7 +2186,7 @@ namespace C7Engine {
 		}
 
 		private static int ScorePossibleCityLocation(WorldCharacteristics wc, Tile t, Player player) {
-			if (!t.IsAllowCities()) {
+			if (!t.IsAllowCities() || !CanGrowToSize(wc, t, player, MIN_START_GROWTH_SIZE)) {
 				return int.MinValue;
 			}
 

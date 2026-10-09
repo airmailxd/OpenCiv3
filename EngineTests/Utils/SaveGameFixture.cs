@@ -47,7 +47,7 @@ public class SaveGameFixture : IDisposable {
 		return threeHumanSave.Value.Clone();
 	}
 
-	private static GameMode LoadGameMode(GameMode.Config gameModeConfig) {
+	internal static GameMode LoadGameMode(GameMode.Config gameModeConfig) {
 		return GameMode.Load(PathUtils.GameModesDir, gameModeConfig);
 	}
 
