@@ -96,7 +96,8 @@ namespace C7Engine {
 		}
 
 		// With nowhere left to found a city, the settler adds its people to
-		// the nearest of our cities with room for them. If none has room, it
+		// the nearest of our cities with room for them. (Which city to join,
+		// and when, is an AI heuristic, not a Civ3 rule.) If none has room, it
 		// waits a turn, and looks again for a city site or a city to join.
 		private C7GameData.UnitAI.MoveResult JoinCity(MapUnit unit, Player player) {
 			City here = unit.location.cityAtTile;
@@ -135,11 +136,18 @@ namespace C7Engine {
 			return moveResult;
 		}
 
-		// Whether the city can take the settler's people without growing past
-		// the size a city reaches without an aqueduct. (A city that could grow
-		// further is left alone, to keep this simple.)
+		// Whether the AI will add the settler's people to the city.
+		//
+		// The Civ3 rule: a unit can't join a city at size 6 without fresh
+		// water or an aqueduct, at size 12 without a hospital, or (since PTW
+		// 1.01f) a starving city
+		// (https://forums.civfanatics.com/threads/cant-get-settler-to-join-city.68722/).
+		// The AI heuristic, not a Civ3 rule, is to stay within the first of
+		// those caps even where a city could grow further, to keep this
+		// simple; that never joins a city Civ3 would refuse.
 		private static bool HasRoomToJoin(City city, MapUnit unit, Player player) {
-			return city.residents.Count + PopulationOf(unit) <= player.rules.MaximumLevel1CitySize;
+			return city.residents.Count + PopulationOf(unit) <= player.rules.MaximumLevel1CitySize
+				&& city.FoodGrowthPerTurn() >= 0;
 		}
 
 		private static int PopulationOf(MapUnit unit) {
