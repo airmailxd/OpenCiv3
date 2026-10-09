@@ -1073,13 +1073,15 @@ namespace C7GameData {
 		//  - https://civfanatics.com/civ3/faq/ confirms religious civs get 2
 		//    turns in Conquests, and
 		//    https://forums.civfanatics.com/threads/duration-of-anarchy.683384/
-		//    measured Conquests: "Small empires incur 3 to 7 turns of anarchy,
-		//    mid sized empires 4 to 8 turns and larger empires 5 to 9 turns",
-		//    "Religious tribes always incur 2 turns of anarchy".
+		//    measured Conquests, finding the FAQ slightly off: "Very small
+		//    empires incur 2 to 6 turns of anarchy", "Small empires incur 3 to
+		//    7 turns of anarchy, mid sized empires 4 to 8 turns and larger
+		//    empires 5 to 9 turns", "Religious tribes always incur 2 turns of
+		//    anarchy". That is 2 + a random 0 to 4 + 0 to 3 for the empire's
+		//    size, which we follow.
 		//
-		// We follow the Conquests formula from the FAQ. How the empire size
-		// maps to 0-3 isn't documented: UNVERIFIED (no Civ3 source found), we
-		// scale it by the optimal city number.
+		// How the empire size maps to 0-3 isn't documented: UNVERIFIED (no
+		// Civ3 source found), we scale it by the optimal city number.
 		// The Conquests base length of anarchy, which is all a religious civ
 		// suffers.
 		private const int AnarchyBaseTurns = 2;
@@ -1089,9 +1091,9 @@ namespace C7GameData {
 				return AnarchyBaseTurns;
 			}
 
-			// Conquests, per the FAQ above: a base of 2 plus a random 1 to 4,
-			// so 3 to 6 turns before the empire size is counted.
-			int randomPortion = AnarchyBaseTurns + 1 + GameData.rng.Next(4);
+			// Conquests, as measured above: a base of 2 plus a random 0 to 4,
+			// so 2 to 6 turns before the empire size is counted.
+			int randomPortion = AnarchyBaseTurns + GameData.rng.Next(5);
 
 			// Now we use the OCN to determine the city factor, which is between
 			// 0 and 3. This means that sprawling empires will have longer

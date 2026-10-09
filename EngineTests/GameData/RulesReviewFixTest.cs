@@ -262,7 +262,7 @@ public class RulesReviewFixTest : IClassFixture<SaveGameFixture> {
 		us.civilization.traits.Remove(Civilization.Trait.Religious);
 		for (int i = 0; i < 50; ++i) {
 			int turns = us.GetTurnsOfAnarchyForTransition(gameData);
-			Assert.InRange(turns, 3, 9);
+			Assert.InRange(turns, 2, 9);
 		}
 
 		us.civilization.traits.Add(Civilization.Trait.Religious);
