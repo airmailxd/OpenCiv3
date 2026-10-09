@@ -35,8 +35,9 @@ internal sealed class Room {
 	public string ListedFrom;
 
 	// The keys of the addresses the host has banned (see
-	// RoomRegistry.BanKeyFor).
+	// RoomRegistry.BanKeyFor), and what they're made with.
 	public readonly HashSet<string> Bans = new();
+	public string BanScope;
 
 	// The addresses of the guests that left lately, so that the host can ban
 	// one that has gone, oldest first.
@@ -80,6 +81,7 @@ internal sealed class Room {
 	public Room(string code, string gameVersion) {
 		Code = code;
 		GameVersion = gameVersion;
+		BanScope = code;
 	}
 }
 
@@ -129,10 +131,11 @@ internal sealed class RoomRegistry {
 		return CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(KeyFor(code)), Encoding.UTF8.GetBytes(key));
 	}
 
-	// The key standing for a guest's address in a room's bans, which only
-	// the relay can make, so the host never learns the address.
-	public string BanKeyFor(string code, string address) {
-		byte[] mac = HMACSHA256.HashData(keySecret, Encoding.UTF8.GetBytes($"ban:{code}:{address}"));
+	// The key standing for a guest's address in a room's bans (with the
+	// room's BanScope), which only the relay can make, so the host never
+	// learns the address.
+	public string BanKeyFor(string scope, string address) {
+		byte[] mac = HMACSHA256.HashData(keySecret, Encoding.UTF8.GetBytes($"ban:{scope}:{address}"));
 		return Convert.ToHexString(mac, 0, 16).ToLowerInvariant();
 	}
 

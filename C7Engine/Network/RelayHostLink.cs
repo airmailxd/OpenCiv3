@@ -118,6 +118,9 @@ public sealed class RelayHostLink : IDisposable {
 	private readonly object sync = new();
 	private readonly Dictionary<uint, GuestStream> guests = new();
 	private readonly Queue<(byte[] message, WebSocketMessageType type)> control = new();
+
+	// The keys the relay gave for guests about to join (see RelayProtocol).
+	private readonly Dictionary<uint, string> joiningKeys = new();
 	private ClientWebSocket socket;
 	private long nextSequence;
 
@@ -173,10 +176,28 @@ public sealed class RelayHostLink : IDisposable {
 	}
 
 	// Asks the relay to turn away the guest's address from now on, as for a
-	// guest that has gone.
-	public void Ban(uint guest) {
-		log.Information("Banning guest {Guest} at the relay", guest);
-		SendControl(new RelayControl(RelayControl.Ban, guest: guest).ToBytes(), WebSocketMessageType.Text);
+	// guest that has gone. With the key the relay gave for it, the ban is
+	// kept to give the relay whenever the link connects, so it isn't lost
+	// while the link is down.
+	private void Ban(GuestStream guest) {
+		log.Information("Banning guest {Guest} at the relay", guest.id);
+		KeepBan(guest.key);
+		SendControl(BanMessage(guest), WebSocketMessageType.Text);
+	}
+
+	private static byte[] BanMessage(GuestStream guest) {
+		return new RelayControl(RelayControl.Ban, guest: guest.id, bans: guest.key == null ? null : [guest.key]).ToBytes();
+	}
+
+	private void KeepBan(string key) {
+		if (key == null) {
+			return;
+		}
+		lock (sync) {
+			if (!bans.Contains(key)) {
+				bans.Add(key);
+			}
+		}
 	}
 
 	// What the relay needs to hear on each new connection: the guests
@@ -343,11 +364,18 @@ public sealed class RelayHostLink : IDisposable {
 				}
 				break;
 			case RelayControl.Banned:
-				lock (sync) {
-					foreach (string ban in control.bans ?? []) {
-						if (!bans.Contains(ban)) {
-							bans.Add(ban);
+				foreach (string ban in control.bans ?? []) {
+					KeepBan(ban);
+				}
+				break;
+			case RelayControl.Guest:
+				if (control.key is { Length: > 0 and <= 64 }) {
+					lock (sync) {
+						// Only the next few to join; anything more is stale.
+						if (joiningKeys.Count > 64) {
+							joiningKeys.Clear();
 						}
+						joiningKeys[control.guest] = control.key;
 					}
 				}
 				break;
@@ -357,10 +385,15 @@ public sealed class RelayHostLink : IDisposable {
 	private void GuestJoined(uint id) {
 		GuestStream guest = new(this, id);
 		lock (sync) {
+			joiningKeys.Remove(id, out guest.key);
 			guests[id] = guest;
 		}
 		log.Information("Guest {Guest} joined through the relay", id);
-		guestArrived(new LanTransport(guest, $"online guest {id}") { BanAtRelay = guest.BanWhenClosed, AdmittedAtRelay = guest.Admitted });
+		guestArrived(new LanTransport(guest, $"online guest {id}") {
+			BanAtRelay = guest.BanWhenClosed,
+			AdmittedAtRelay = guest.Admitted,
+			AddressKey = guest.key == null ? null : $"relay:{guest.key}",
+		});
 	}
 
 	private void SendControl(byte[] message, WebSocketMessageType type) {
@@ -418,7 +451,7 @@ public sealed class RelayHostLink : IDisposable {
 			}
 		}
 		if (banNow) {
-			Ban(guest.id);
+			Ban(guest);
 		}
 		wake.Release();
 	}
@@ -429,10 +462,14 @@ public sealed class RelayHostLink : IDisposable {
 		lock (sync) {
 			if (!guest.closed) {
 				guest.banOnClose = true;
+				// Kept now, in case the link goes before it's sent.
+				if (guest.key != null && !bans.Contains(guest.key)) {
+					bans.Add(guest.key);
+				}
 				return;
 			}
 		}
-		Ban(guest.id);
+		Ban(guest);
 	}
 
 	private async Task SendLoop(ClientWebSocket connected, CancellationToken cancel) {
@@ -473,7 +510,7 @@ public sealed class RelayHostLink : IDisposable {
 			if (head.message == null && head.ban) {
 				// The relay closes the guest's connection as it bans it.
 				head.ban = false;
-				return (new RelayControl(RelayControl.Ban, guest: first.id).ToBytes(), WebSocketMessageType.Text, TimeSpan.Zero);
+				return (BanMessage(first), WebSocketMessageType.Text, TimeSpan.Zero);
 			}
 			if (head.message == null) {
 				first.outgoing.Dequeue();
@@ -531,6 +568,10 @@ public sealed class RelayHostLink : IDisposable {
 	private sealed class GuestStream : Stream {
 		private readonly RelayHostLink link;
 		public readonly uint id;
+
+		// The key the relay gave for the guest's address, or null if it
+		// didn't (see RelayProtocol).
+		public string key;
 
 		// Guarded by the link.
 		public readonly Queue<Pending> outgoing = new();

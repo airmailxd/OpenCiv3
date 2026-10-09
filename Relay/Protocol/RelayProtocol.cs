@@ -52,7 +52,11 @@ namespace C7Relay;
 // on. The relay answers "banned" with a key standing for that address in
 // this room, which only the relay can make; the host keeps it, and gives
 // its keys back with "bans" whenever it connects, as after the relay
-// restarts or when resuming a game.
+// restarts or when resuming a game. The relay also tells the host each
+// guest's key as it joins ("guest", with its ID and key, before Open), and
+// the host bans with the key as well as the ID ("ban" with bans: [key]):
+// the key is banned even if the guest has gone, and only a guest with that
+// key is closed, whatever its ID now stands for.
 public static class RelayProtocol {
 	// Bump when the messages change incompatibly.
 	public const int Version = 1;
@@ -224,6 +228,7 @@ public sealed record RelayControl(string type, string code = null, string key = 
 	public const string Banned = "banned";
 	public const string Bans = "bans";
 	public const string Admit = "admit";
+	public const string Guest = "guest";
 
 	private static readonly JsonSerializerOptions Options = new() {
 		DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,

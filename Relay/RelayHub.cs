@@ -234,7 +234,8 @@ internal sealed class RelayHub {
 				host.Send(new RelayControl(RelayControl.Listed));
 				break;
 			case RelayControl.Ban:
-				Ban(room, host, control.guest);
+				string givenKey = control.bans is [string one] && one is { Length: > 0 and <= 64 } ? one : null;
+				Ban(room, host, control.guest, givenKey);
 				break;
 			case RelayControl.Admit:
 				lock (room) {
@@ -291,20 +292,32 @@ internal sealed class RelayHub {
 	// Closes a guest's connection and turns its address away from the room
 	// from now on, telling the host the key it can give back to ban that
 	// address again. A guest that has left lately can be banned too.
-	private void Ban(Room room, RelayPeer host, uint id) {
+	//
+	// A host that knows the guest's key (from "guest", as it joined) gives
+	// it too: the key is banned whether or not the guest is still here, and
+	// the guest with the ID is closed only if it has that key, so that an ID
+	// from before the relay restarted can't ban someone else.
+	private void Ban(Room room, RelayPeer host, uint id, string givenKey) {
 		RelayPeer guest;
 		string address;
 		string key;
 		lock (room) {
 			if (room.Guests.TryGetValue(id, out guest)) {
 				address = guest.Address;
-			} else if (!room.RecentGuests.TryGetValue(id, out address)) {
+			} else if (!room.RecentGuests.TryGetValue(id, out address) && givenKey == null) {
 				return;
 			}
-			if (room.Bans.Count >= RelayProtocol.MaxBans) {
+			if (givenKey != null) {
+				if (address != null && Rooms.BanKeyFor(room.BanScope, address) != givenKey) {
+					guest = null;
+				}
+				key = givenKey;
+			} else {
+				key = Rooms.BanKeyFor(room.BanScope, address);
+			}
+			if (room.Bans.Count >= RelayProtocol.MaxBans && !room.Bans.Contains(key)) {
 				return;
 			}
-			key = Rooms.BanKeyFor(room.Code, address);
 			room.Bans.Add(key);
 		}
 		guest?.Close(RelayCloseCodes.Banned, "The host has banned you from this game.");
@@ -336,7 +349,7 @@ internal sealed class RelayHub {
 			host = room.Host;
 			if (host == null) {
 				admission = Admission.HostAway;
-			} else if (room.Bans.Count > 0 && room.Bans.Contains(Rooms.BanKeyFor(room.Code, address))) {
+			} else if (room.Bans.Count > 0 && room.Bans.Contains(Rooms.BanKeyFor(room.BanScope, address))) {
 				admission = Admission.Banned;
 			} else if (room.GameVersion != gameVersion) {
 				admission = Admission.OtherVersion;
@@ -372,6 +385,12 @@ internal sealed class RelayHub {
 
 		log.LogInformation("Guest {Guest} at {Address} joined room {Code}", id, address, room.Code);
 		peer.Send(new RelayControl(RelayControl.Welcome, pingSeconds: options.PingIntervalSeconds));
+		// The guest's key first, for the host to ban it by.
+		string banKey;
+		lock (room) {
+			banKey = Rooms.BanKeyFor(room.BanScope, address);
+		}
+		host.Send(new RelayControl(RelayControl.Guest, guest: id, key: banKey));
 		host.Send(RelayProtocol.Encode(RelayProtocol.Open, id));
 
 		// A guest sending too much is dropped; one sending while its host
