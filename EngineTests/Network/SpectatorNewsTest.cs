@@ -167,8 +167,9 @@ public class SpectatorNewsTest : IClassFixture<SaveGameFixture>, IDisposable {
 		List<MessageToUI> sent = SentToUI();
 		Assert.Equal(2, sent.Count);
 
+		// They hear the builder's version, however the players are ordered.
 		foreach (SpectatorViewInfo view in new[] { AllCivs, Omniscient }) {
-			Assert.Single(Heard(view, sent, gameData));
+			Assert.Equal([sent.Single(m => m.recipient == greece)], Heard(view, sent, gameData));
 		}
 		Assert.Equal([sent.Single(m => m.recipient == greece)], Heard(As(greece), sent, gameData));
 		Assert.Equal([sent.Single(m => m.recipient == rome)], Heard(As(rome), sent, gameData));
@@ -179,6 +180,36 @@ public class SpectatorNewsTest : IClassFixture<SaveGameFixture>, IDisposable {
 		Assert.Single(sent.Where(m => news.Hears(Omniscient, m, gameData)));
 		SpaceRace.OnPartCompleted(gameData, sparta, engine);
 		Assert.Single(SentToUI().Where(m => news.Hears(Omniscient, m, gameData)));
+	}
+
+	// In a game of computer players, spectators hear the space race's news
+	// too: those watching every civ as the builder is told it, and one
+	// watching a civ as that civ is.
+	[Fact]
+	public void SpectatorsHearTheSpaceRaceOfComputerPlayers() {
+		rome.isHuman = greece.isHuman = false;
+		EngineStorage.newsForComputerPlayers = true;
+		City memphis = new(Tile.NONE, egypt, "Memphis", ID.None(""));
+		Building engine = new(new SaveBuilding { name = "SS Engine", spaceshipPart = 0 }, gameData);
+		SpaceRace.OnPartCompleted(gameData, memphis, engine);
+		List<MessageToUI> sent = SentToUI();
+		Assert.Equal(3, sent.Count);
+
+		MessageToUI egypts = sent.Single(m => m.recipient == egypt);
+		foreach (SpectatorViewInfo view in new[] { AllCivs, Omniscient }) {
+			Assert.Equal([egypts], Heard(view, sent, gameData));
+		}
+		Assert.Equal([egypts], Heard(As(egypt), sent, gameData));
+		Assert.Equal([sent.Single(m => m.recipient == rome)], Heard(As(rome), sent, gameData));
+		Assert.Equal("The player-3 have added SS Engine to their ship.", sent.Single(m => m.recipient == rome).SpectatorHeadline(rome.id));
+
+		City thebes = new(Tile.NONE, egypt, "Thebes", ID.None(""));
+		Building apollo = new(new SaveBuilding { name = "Apollo Program" }, gameData);
+		SpaceRace.OnApolloCompleted(gameData, thebes, apollo);
+		sent = SentToUI();
+		Assert.Equal(3, sent.Count);
+		Assert.StartsWith("player-3: We have completed the Apollo Program!", Assert.Single(Heard(AllCivs, sent, gameData)).SpectatorHeadline());
+		Assert.StartsWith("The player-3 have completed", Assert.Single(Heard(As(greece), sent, gameData)).SpectatorHeadline(greece.id));
 	}
 
 	// So is losing a spaceship.
