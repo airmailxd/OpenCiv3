@@ -399,9 +399,11 @@ public class SnapshotFilterTest : IClassFixture<SaveGameFixture>, IDisposable {
 	public async Task SpectatorsSeeTheGameAsTheHostLetsThem() {
 		SaveGame save = SaveGameFixture.TwoHumanSave();
 		using LanHost host = new("Host", save, port: 0, answerDiscovery: false) { SimultaneousTurns = true, AllowSpectators = true };
-		// Hiding what players can't see, spectators see only what the
-		// civilizations know unless the host says otherwise.
-		Assert.Equal(SpectatorViews.AsCivs, host.SpectatorViews);
+		// Even hiding what players can't see, spectators may watch any way
+		// unless the host says otherwise; this host keeps them to what the
+		// civilizations know.
+		Assert.Equal(SpectatorViews.Any, host.SpectatorViews);
+		host.SpectatorViews = SpectatorViews.AsCivs;
 		ID seatID = host.Seats[0].playerID;
 		using LanClient guest = LanClient.Connect("127.0.0.1", host.Port, "Guest");
 		using LanClient spectator = LanClient.Connect("127.0.0.1", host.Port, "Watcher");
@@ -468,10 +470,69 @@ public class SnapshotFilterTest : IClassFixture<SaveGameFixture>, IDisposable {
 		host.Dispose();
 		using LanHost resumed = LanHost.Resume("Host", save, info, port: 0, answerDiscovery: false);
 		Assert.Equal(SpectatorViews.AllCivs, resumed.SpectatorViews);
-		// One that left it to hiding follows it.
-		using LanHost older = LanHost.Resume("Host", save, info with { spectatorViews = null, hideUnseen = false }, port: 0,
-			answerDiscovery: false);
-		Assert.Equal(SpectatorViews.Any, older.SpectatorViews);
+		// One that left it to the default lets them watch any way, hiding
+		// or not.
+		foreach (bool hideUnseen in new[] { true, false }) {
+			using LanHost older = LanHost.Resume("Host", save, info with { spectatorViews = null, hideUnseen = hideUnseen }, port: 0,
+				answerDiscovery: false);
+			Assert.Equal(SpectatorViews.Any, older.SpectatorViews);
+		}
+	}
+
+	// A spectator may switch to any view at will, which it's sent whole
+	// straight away, and watches the same way when it comes back.
+	[Fact]
+	public async Task ASpectatorSwitchesViewsAtWillAndKeepsItsChoice() {
+		SaveGame save = SaveGameFixture.TwoHumanSave();
+		using LanHost host = new("Host", save, port: 0, answerDiscovery: false) { SimultaneousTurns = true, AllowSpectators = true };
+		Assert.True(host.HideUnseen);
+		ID seatID = host.Seats[0].playerID;
+		using LanClient guest = LanClient.Connect("127.0.0.1", host.Port, "Guest");
+		LanClient spectator = LanClient.Connect("127.0.0.1", host.Port, "Watcher");
+		try {
+			PumpUntil(host, [guest, spectator], () => guest.Lobby != null && spectator.Lobby != null);
+			guest.ClaimSeat(seatID);
+			spectator.Watch();
+			PumpUntil(host, [guest, spectator], () => guest.YourSeats.Contains(seatID) && spectator.SpectatorView != null);
+			Assert.Equal(SpectatorViews.Any, spectator.AllowedSpectatorViews);
+
+			C7GameData.GameData gameData = await CreateGameWithCities(save);
+			List<ID> allCivs = gameData.players.Where(p => !p.isBarbarians).Select(p => p.id).ToList();
+			host.StartGame();
+			PumpUntil(host, [guest, spectator], () => guest.StartingGame != null && spectator.StartingGame != null);
+			guest.SnapshotReceived = _ => { };
+			guest.UiMessageReceived = _ => { };
+			spectator.SnapshotReceived = _ => { };
+			spectator.UiMessageReceived = _ => { };
+			PumpUntil(host, [guest, spectator], () => Has(spectator, LanHost.SnapshotHashFor(allCivs)));
+
+			// Each civilization, and the whole game, while hiding what
+			// players can't see.
+			Player computer = gameData.players.First(p => !p.isHuman && !p.isBarbarians);
+			foreach (SpectatorViewInfo view in new SpectatorViewInfo[] {
+				new(SpectatorViewMode.OneCiv, seatID), new(SpectatorViewMode.Omniscient), new(SpectatorViewMode.OneCiv, computer.id) }) {
+				int whole = spectator.WholeSnapshotsReceived;
+				spectator.ChooseSpectatorView(view);
+				byte[] hash = LanHost.SnapshotHashFor(view.mode == SpectatorViewMode.Omniscient ? null : [view.playerID]);
+				PumpUntil(host, [guest, spectator], () => spectator.SpectatorView == view && Has(spectator, hash));
+				Assert.Equal(whole + 1, spectator.WholeSnapshotsReceived);
+			}
+
+			// Back after leaving, it watches as the civilization it chose.
+			string token = spectator.ReconnectToken;
+			Assert.NotNull(token);
+			spectator.Dispose();
+			spectator = LanClient.Connect("127.0.0.1", host.Port, "Watcher", token);
+			PumpUntil(host, [guest, spectator], () => spectator.Lobby != null);
+			spectator.Watch();
+			PumpUntil(host, [guest, spectator], () => spectator.StartingGame != null);
+			spectator.SnapshotReceived = _ => { };
+			spectator.UiMessageReceived = _ => { };
+			PumpUntil(host, [guest, spectator], () => spectator.SpectatorView != null);
+			Assert.Equal(new SpectatorViewInfo(SpectatorViewMode.OneCiv, computer.id), spectator.SpectatorView);
+		} finally {
+			spectator.Dispose();
+		}
 	}
 
 	[Fact]

@@ -450,8 +450,8 @@ public partial class LanLobby : Control {
 
 		spectatorViewChoice = new OptionButton {
 			TooltipText = "How spectators may see the game. As a civilization, they see only what it knows, as its player "
-				+ "would; as all of them, what any of them knows, so what nobody has seen stays hidden. Whoever watches "
-				+ "chooses from what you allow, and can change it during the game.",
+				+ "would; as all of them, what any of them knows, so what nobody has seen stays hidden; or the whole game. "
+				+ "Unless you say otherwise they may watch any way, and switch at will during the game.",
 			Disabled = !host.AllowSpectators,
 		};
 		spectatorViewChoice.AddThemeFontSizeOverride("font_size", 18);
@@ -466,15 +466,15 @@ public partial class LanLobby : Control {
 
 	// The ways the host can let spectators see the game.
 	private static readonly (string text, SpectatorViews views)[] SpectatorViewChoices = [
+		("Spectators see: any way they choose", SpectatorViews.Any),
 		("Spectators see: as the civilizations, one or all", SpectatorViews.AsCivs),
 		("Spectators see: as all the civilizations", SpectatorViews.AllCivs),
 		("Spectators see: as one civilization", SpectatorViews.OneCiv),
-		("Spectators see: their choice, the whole game too", SpectatorViews.Any),
 		("Spectators see: the whole game", SpectatorViews.Omniscient),
 	];
 
-	// Hosting: how spectators may see the game, which follows hiding what
-	// players can't see until the host chooses.
+	// Hosting: how spectators may see the game, any way they choose until
+	// the host says otherwise.
 	private OptionButton spectatorViewChoice;
 
 	private void ShowSpectatorViews() {
