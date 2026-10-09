@@ -246,6 +246,8 @@ namespace C7Engine {
 			city.isInCivilDisorder = false;
 			city.hurriedThisTurn = false;
 			city.SetStoredShields(0);
+			// With its shields gone, so are any from a cleared forest.
+			city.receivedForestShields = false;
 
 			gameData.UpdateTileOwners();
 			BarbarianInteractions.DisperseCampsWithinBorders(gameData);

@@ -431,12 +431,16 @@ namespace C7GameData {
 			MaybeAwardForestClearingShields(null);
 		}
 
-		// Awards the forest's shields to the city whose territory holds this
-		// tile, as long as the tile is also within that city's workable
-		// radius. If clearer is given, the city must belong to them: clearing
-		// a forest in someone else's territory doesn't feed their city. Cities
-		// building a wonder get nothing, and the shields don't go to any other
-		// city instead.
+		// Awards the forest's shields when the forest on this tile, within
+		// some city's borders, is cleared. If clearer is given, the territory
+		// must be theirs: clearing a forest in someone else's territory
+		// doesn't feed their city. Per the project owner, chopped shields
+		// never go to a wonder: they go to the city whose territory holds the
+		// tile unless it is building a wonder, and otherwise to the nearest
+		// other city of the same owner with the tile in its workable radius
+		// that isn't, or else they are lost. A city given them can't switch
+		// to a wonder until it completes something (see
+		// City.WhyCannotChangeProduction).
 		public void MaybeAwardForestClearingShields(Player clearer) {
 			if (hasHadForestCleared) {
 				return;
@@ -444,32 +448,34 @@ namespace C7GameData {
 			hasHadForestCleared = true;
 
 			// Shields can only be awarded if the forest is within some city's
-			// borders, and only to that city.
-			City c = cityAtTile ?? owningCity;
-			if (c == null || c.location == null || c.location == NONE) {
+			// borders.
+			City territoryCity = cityAtTile ?? owningCity;
+			if (territoryCity == null || territoryCity.location == null || territoryCity.location == NONE) {
 				return;
 			}
-			if (clearer != null && c.owner != clearer) {
+			Player beneficiary = territoryCity.owner;
+			if (clearer != null && beneficiary != clearer) {
 				return;
 			}
 
 			// The forest has to be within the city's big fat cross.
-			if (c.location != this && c.location.RankDistanceTo(this) > EngineStorage.gameData.rules.MaxRankOfWorkableTiles) {
-				return;
-			}
-
-			// Shields aren't awarded to wonders.
-			if (c.itemBeingProduced is Building b
-				&& (b.greatWonderProperties != null || b.isSmallWonder)) {
+			int maxRank = EngineStorage.gameData.rules.MaxRankOfWorkableTiles;
+			City c = beneficiary.cities
+				.Where(city => city.location != null && city.location != NONE
+					&& (city.location == this || city.location.RankDistanceTo(this) <= maxRank)
+					&& city.CanReceiveForestShields())
+				.OrderBy(city => city == territoryCity ? 0 : 1)
+				.ThenBy(city => city.location.RankDistanceTo(this))
+				.FirstOrDefault();
+			if (c == null) {
 				return;
 			}
 
 			int shieldsAwarded = EngineStorage.gameData.rules.ForestValueInShields;
-			c.SetStoredShields(shieldsAwarded, true);
-			c.SetStoredShields(Math.Min(c.shieldsStored, c.owner.ShieldCost(c.itemBeingProduced)));
+			c.AddForestShields(shieldsAwarded);
 
 			if (c.owner.isHuman) {
-				new MsgShowTemporaryPopup($"{shieldsAwarded} shields awarded for clearing forests", c.location, c.owner).send();
+				new MsgShowTemporaryPopup($"{shieldsAwarded} shields awarded to {c.name} for clearing forests", c.location, c.owner).send();
 			}
 		}
 

@@ -230,7 +230,10 @@ public class FixEngineCoreGameTests : IClassFixture<SaveGameFixture>, IDisposabl
 	private readonly Player us;
 	private readonly Player them;
 
+	private readonly SaveGameFixture fixture;
+
 	public FixEngineCoreGameTests(SaveGameFixture fixture) {
+		this.fixture = fixture;
 		gameData = fixture.saveGame.ToGameData(fixture.behaviors);
 		EngineStorage.InitializeGameDataForTests(gameData);
 		EngineStorage.animationsEnabled = false;
@@ -479,6 +482,87 @@ public class FixEngineCoreGameTests : IClassFixture<SaveGameFixture>, IDisposabl
 		forest.MaybeAwardForestClearingShields(them);
 		Assert.Equal(0, ours.shieldsStored);
 		Assert.Equal(0, theirs.shieldsStored);
+	}
+
+	// Per the project owner, chopped shields never go to a wonder: they go
+	// to the next city in range that isn't building one, which then can't
+	// switch to a wonder until it has completed something.
+	[Fact]
+	public void ForestShieldsGoToTheNextCityNotBuildingAWonder() {
+		City ours = FoundCity(us, SettlerTile(us));
+		Tile forest = ours.location.neighbors[TileDirection.EAST];
+		Tile secondSite = forest.neighbors[TileDirection.NORTHEAST];
+		secondSite.baseTerrainType = ours.location.baseTerrainType;
+		City second = FoundCity(us, secondSite);
+		forest.owningCity = ours;
+		Assert.True(second.location.RankDistanceTo(forest) <= gameData.rules.MaxRankOfWorkableTiles);
+
+		UnitPrototype warrior = gameData.unitPrototypes.First(p => p.name == "Warrior");
+		Building temple = gameData.Buildings.First(b => b.name == "Temple");
+		Building wonder = gameData.Buildings.First(b => b.IsGreatWonder());
+		ours.SetItemBeingProduced(wonder);
+		second.SetItemBeingProduced(temple);
+		ours.SetStoredShields(0);
+		second.SetStoredShields(0);
+
+		forest.hasHadForestCleared = false;
+		forest.MaybeAwardForestClearingShields(us);
+		int awarded = System.Math.Min(gameData.rules.ForestValueInShields, us.ShieldCost(temple));
+		Assert.Equal(0, ours.shieldsStored);
+		Assert.Equal(awarded, second.shieldsStored);
+		Assert.False(ours.receivedForestShields);
+		Assert.True(second.receivedForestShields);
+
+		// The city given them can't switch to a wonder, but can to
+		// anything else.
+		Assert.False(second.CanChangeProduction(wonder));
+		Assert.NotNull(second.ProductionChangeWarning(wonder));
+		Assert.True(second.CanChangeProduction(warrior));
+
+		// The flag survives a save.
+		C7GameData.GameData loaded = SaveGame.FromGameData(gameData).ToGameData(fixture.behaviors);
+		Assert.True(loaded.cities.Single(c => c.id == second.id).receivedForestShields);
+		Assert.False(loaded.cities.Single(c => c.id == ours.id).receivedForestShields);
+
+		// Completing something lifts it.
+		second.SetStoredShields(us.ShieldCost(temple));
+		second.HandleCityProduction(gameData);
+		Assert.False(second.receivedForestShields);
+		Assert.True(second.CanChangeProduction(wonder));
+
+		// With every city in range building a wonder, the shields are lost.
+		second.SetItemBeingProduced(wonder);
+		second.SetStoredShields(0);
+		forest.hasHadForestCleared = false;
+		forest.MaybeAwardForestClearingShields(us);
+		Assert.Equal(0, ours.shieldsStored);
+		Assert.Equal(0, second.shieldsStored);
+	}
+
+	// Per the project owner, shields carry over in full when switching,
+	// with no penalty between categories, but those beyond the new item's
+	// cost are lost, and the picker says how many.
+	[Fact]
+	public void SwitchingProductionWarnsOfWastedShields() {
+		City city = FoundCity(us, SettlerTile(us));
+		UnitPrototype warrior = gameData.unitPrototypes.First(p => p.name == "Warrior");
+		Building temple = gameData.Buildings.First(b => b.name == "Temple");
+		city.SetItemBeingProduced(temple);
+		int stored = us.ShieldCost(warrior) + 3;
+		city.SetStoredShields(stored);
+
+		Assert.Equal(3, city.ShieldsLostByChangingTo(warrior));
+		Assert.Equal("3 shields will be wasted", city.ProductionChangeWarning(warrior));
+		Assert.Null(city.ProductionChangeWarning(temple));
+
+		// A building to a unit: everything up to the unit's cost carries
+		// over.
+		Assert.True(city.ChangeProduction(warrior));
+		Assert.Equal(us.ShieldCost(warrior), city.shieldsStored);
+		// And back: nothing more is lost.
+		Assert.Equal(0, city.ShieldsLostByChangingTo(temple));
+		Assert.True(city.ChangeProduction(temple));
+		Assert.Equal(us.ShieldCost(warrior), city.shieldsStored);
 	}
 
 	[Fact]

@@ -129,6 +129,12 @@ namespace C7GameData {
 		// moved to something else.
 		public bool hurriedThisTurn = false;
 
+		// Whether the city has been given the shields of a cleared forest
+		// since it last completed something. Per the project owner, it then
+		// can't switch to a wonder, so chopped shields never go into one
+		// (see Tile.MaybeAwardForestClearingShields).
+		public bool receivedForestShields = false;
+
 		// Whether the city is celebrating "We Love the King Day".
 		public bool celebrating = false;
 
@@ -179,18 +185,63 @@ namespace C7GameData {
 				new MsgShowMilitaryAdvisorPopup(owner, message, happy: false).send();
 		}
 
-		// Whether the player may switch production to the item. Production
-		// hurried this turn is locked in.
+		// Whether the player may switch production to the item.
 		public bool CanChangeProduction(IProducible producible) {
-			return !hurriedThisTurn || producible == itemBeingProduced;
+			return WhyCannotChangeProduction(producible) == null;
+		}
+
+		// Why the player may not switch production to the item, or null if
+		// they may. Production hurried this turn is locked in, and a city
+		// given a cleared forest's shields can't switch to a wonder until it
+		// has completed something, per the project owner.
+		public string WhyCannotChangeProduction(IProducible producible) {
+			if (producible == itemBeingProduced) {
+				return null;
+			}
+			if (hurriedThisTurn) {
+				return "Production was hurried this turn";
+			}
+			if (receivedForestShields && IsWonder(producible)) {
+				return "Forest shields can't go to a wonder";
+			}
+			return null;
+		}
+
+		public static bool IsWonder(IProducible producible) {
+			return producible is Building b && (b.IsGreatWonder() || b.isSmallWonder);
+		}
+
+		// The stored shields that would be lost by switching production to
+		// the item: Civ3 has no penalty for switching between categories,
+		// per the project owner, but shields beyond the new item's cost
+		// don't carry over.
+		public int ShieldsLostByChangingTo(IProducible producible) {
+			if (producible == null || producible == itemBeingProduced) {
+				return 0;
+			}
+			return Math.Max(0, shieldsStored - owner.ShieldCost(producible));
+		}
+
+		// A short note for the production picker on what switching to the
+		// item would mean, or null if nothing: why it can't be chosen, or
+		// how many shields would be wasted.
+		public string ProductionChangeWarning(IProducible producible) {
+			string reason = WhyCannotChangeProduction(producible);
+			if (reason != null) {
+				return reason;
+			}
+			int lost = ShieldsLostByChangingTo(producible);
+			return lost > 0 ? $"{lost} shield{(lost == 1 ? "" : "s")} will be wasted" : null;
 		}
 
 		// Changes production at the player's request. Stored shields carry over
 		// to the new item, as in Civ 3, but any beyond its cost are lost.
-		// Returns false if production was hurried this turn and can't change.
+		// Returns false if production can't change to it (see
+		// WhyCannotChangeProduction).
 		public bool ChangeProduction(IProducible producible) {
-			if (!CanChangeProduction(producible)) {
-				log.Information("Not changing production in {City}: it was hurried this turn", this);
+			string reason = WhyCannotChangeProduction(producible);
+			if (reason != null) {
+				log.Information("Not changing production in {City} to {Producible}: {Reason}", this, producible, reason);
 				return false;
 			}
 			ChooseProduction(producible);
@@ -200,6 +251,21 @@ namespace C7GameData {
 
 		public bool IsCapital() {
 			return capital;
+		}
+
+		// Whether a cleared forest's shields may go to this city: not while
+		// it builds a wonder, per the project owner, or something that can't
+		// hold shields.
+		public bool CanReceiveForestShields() {
+			return itemBeingProduced != null && !IsWonder(itemBeingProduced) && owner.ShieldCost(itemBeingProduced) > 0;
+		}
+
+		// Adds a cleared forest's shields to the production box, up to the
+		// item's cost. The city then can't switch to a wonder until it has
+		// completed something (see WhyCannotChangeProduction).
+		public void AddForestShields(int shields) {
+			shieldsStored = Math.Min(shieldsStored + shields, owner.ShieldCost(itemBeingProduced));
+			receivedForestShields = true;
 		}
 
 		/// <summary>
@@ -581,6 +647,9 @@ namespace C7GameData {
 			}
 
 			log.Debug("Produced {ProducedItem} in {City}", producedItem, this);
+			if (producedItem is not Inflow) {
+				receivedForestShields = false;
+			}
 			if (producedItem is UnitPrototype prototype) {
 				AddUnit(prototype, gameData);
 			} else if (producedItem is Building building) {

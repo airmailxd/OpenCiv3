@@ -97,8 +97,11 @@ public partial class CityProductionPopup : Popup {
 			foreach (IProducible option in city.ListProductionOptions(gameData)) {
 				int turns = city.TurnsToProduce(option);
 				string turnsStr = turns == int.MaxValue ? "--" : $"{turns}";
+				// Say how many shields switching would waste, or why it can't.
+				string warning = city.ProductionChangeWarning(option);
 				optionButton.AddIconItem(RightClickChooseProductionMenu.GetProducibleIcon(option, city.owner),
-					$"{option.name} ({turnsStr} turns)");
+					warning == null ? $"{option.name} ({turnsStr} turns)" : $"{option.name} ({turnsStr} turns; {warning})");
+				optionButton.SetItemDisabled(options.Count, !city.CanChangeProduction(option));
 				if (option == city.itemBeingProduced) {
 					optionButton.Select(options.Count);
 				}

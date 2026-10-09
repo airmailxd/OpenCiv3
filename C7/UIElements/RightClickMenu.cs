@@ -458,7 +458,11 @@ public partial class RightClickChooseProductionMenu : RightClickMenu {
 		EngineStorage.ReadGameData((GameData gameData) => {
 			foreach (IProducible option in city.ListProductionOptions(gameData)) {
 				int buildTime = city.TurnsToProduce(option);
-				AddItem($"{option.name} ({buildTime} turns)", () => ChooseProduction(option.name), GetProducibleIcon(option, city.owner));
+				// Say how many shields switching would waste, or why it can't.
+				string warning = city.ProductionChangeWarning(option);
+				string text = warning == null ? $"{option.name} ({buildTime} turns)" : $"{option.name} ({buildTime} turns; {warning})";
+				Button item = AddItem(text, () => ChooseProduction(option.name), GetProducibleIcon(option, city.owner));
+				item.Disabled = !city.CanChangeProduction(option);
 			}
 		});
 	}
