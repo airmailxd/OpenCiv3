@@ -169,6 +169,7 @@ public partial class MiniMap : Control {
 			hash.Add(RuntimeHelpers.GetHashCode(t.baseTerrainType));
 			hash.Add(RuntimeHelpers.GetHashCode(t.overlayTerrainType));
 			hash.Add(RuntimeHelpers.GetHashCode(t.owningCity));
+			hash.Add(RuntimeHelpers.GetHashCode(t.territoryOf));
 			hash.Add(RuntimeHelpers.GetHashCode(t.cityAtTile));
 		}
 		return hash.ToHashCode();
