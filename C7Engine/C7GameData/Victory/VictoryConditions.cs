@@ -15,6 +15,11 @@ public class VictoryConditions {
 	public bool CaptureTheFlag { get; set; }
 	public bool ReverseCaptureTheFlag { get; set; }
 
+	// Whether the game ends once the time options' turn limit is reached.
+	// Off unless chosen: the game goes on until someone wins (the project
+	// owner's choice). Saves made before this was saved have no limit.
+	public bool UseTurnLimit { get; set; }
+
 	// The shares of the world's land and population needed for a
 	// domination victory.
 	public int DominationTerritoryPercent { get; set; } = 66;

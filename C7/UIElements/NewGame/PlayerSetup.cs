@@ -50,6 +50,7 @@ public partial class PlayerSetup : Control {
 	CheckBox showScoreboard;
 	CheckBox coreCitiesFreeOfCorruption;
 	CheckBox acceleratedProduction;
+	CheckBox turnLimit;
 
 	[Export] TextureButton confirm;
 	[Export] TextureButton cancel;
@@ -144,6 +145,14 @@ public partial class PlayerSetup : Control {
 		rulesContainer.AddThemeConstantOverride("v_separation", 0);
 
 		// TODO: Add Civ3Checkbox in rulesContainer for each victory condition, wire up to victoryConditions
+
+		turnLimit = new Civ3Checkbox {
+			Text = $"Turn limit ({save.TimeOptions.turnLimit} turns)",
+			FontSize = 14,
+			ButtonPressed = false,
+			TooltipText = $"End the game after turn {save.TimeOptions.turnLimit}, scoring who leads. Without it, the game goes on until someone wins.",
+		};
+		rulesContainer.AddChild(turnLimit);
 
 		showScoreboard = new Civ3Checkbox {
 			Text = "Show scoreboard",
@@ -430,6 +439,8 @@ public partial class PlayerSetup : Control {
 	private void StartCreatingGame() {
 
 		GlobalSingleton global = GetNode<GlobalSingleton>("/root/GlobalSingleton");
+
+		victoryConditions.UseTurnLimit = turnLimit.ButtonPressed;
 
 		int guestSeats = humanToggles.Count(t => t.ButtonPressed);
 		if (hostingOnLan && guestSeats > 0) {

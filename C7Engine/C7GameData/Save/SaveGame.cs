@@ -207,9 +207,11 @@ namespace C7GameData.Save {
 				data.victories.Add(new DiplomaticVictory());
 			}
 
-			// TODO: Does the original have a switch to have the game never end?
-			// Always add a time limit
-			data.victories.Add(new TimeLimitVictory(data.timeOptions.turnLimit));
+			// The game ends at the turn limit only if that was chosen;
+			// otherwise it goes on until someone wins.
+			if (conditions?.UseTurnLimit == true) {
+				data.victories.Add(new TimeLimitVictory(data.timeOptions.turnLimit));
+			}
 		}
 
 		private void OnGameCreation() {

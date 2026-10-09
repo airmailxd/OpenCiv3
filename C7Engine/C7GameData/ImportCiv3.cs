@@ -579,10 +579,14 @@ namespace C7GameData {
 			QueryCiv3.Biq.GAME[] games = GameBiq?.Game;
 			if (games == null || games.Length == 0 || games[0].DefaultVictoryConditions != 0) {
 				save.VictoryConditions = VictoryConditions.NewGameDefaults();
+				// A scenario that turns on its time limit keeps it.
+				save.VictoryConditions.UseTurnLimit = games != null && games.Length > 0 && games[0].UseTimeLimit != 0;
 				return;
 			}
 			QueryCiv3.Biq.GAME game = games[0];
 			save.VictoryConditions = new VictoryConditions {
+				// A scenario that turns on its time limit keeps it.
+				UseTurnLimit = game.UseTimeLimit != 0,
 				AllowDominationVictory = game.DominationVictory,
 				AllowSpaceRaceVictory = game.SpaceRaceVictory,
 				AllowDiplomaticVictory = game.DiplomaticVictory,

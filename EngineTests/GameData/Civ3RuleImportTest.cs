@@ -33,6 +33,9 @@ public class Civ3RuleImportTest {
 		SaveGame game = ImportScenario("Scenarios", "No Civ Traits.biq");
 
 		Assert.Equal(540, game.TimeOptions.turnLimit);
+		// Its "use time limit" flag is clear, so the game goes on until
+		// someone wins.
+		Assert.False(game.VictoryConditions.UseTurnLimit);
 	}
 
 	[SkippableFact]

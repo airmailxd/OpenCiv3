@@ -177,10 +177,20 @@ public class CheckVictoryTest : IClassFixture<SaveGameFixture> {
 	}
 
 	[Fact]
-	public void LoadedGame_RegistersScoreAndTimeLimitVictories_UsingConfiguredTurnLimit() {
+	public void LoadedGame_HasNoTurnLimitUnlessChosen() {
 		C7GameData.GameData gd = SaveGameFixture.HydrateSaveGame(fixture.saveGame);
 
 		Assert.Contains(gd.victories, v => v is ScoreVictory);
+		Assert.DoesNotContain(gd.victories, v => v is TimeLimitVictory);
+	}
+
+	[Fact]
+	public void LoadedGame_RegistersTimeLimitVictory_WhenChosen_UsingConfiguredTurnLimit() {
+		SaveGame save = fixture.saveGame;
+		save.VictoryConditions ??= new VictoryConditions();
+		save.VictoryConditions.UseTurnLimit = true;
+		C7GameData.GameData gd = SaveGameFixture.HydrateSaveGame(save);
+
 		Assert.Contains(gd.victories, v => v is TimeLimitVictory);
 
 		// Not yet ending at turn 0 with the default 540-turn limit
