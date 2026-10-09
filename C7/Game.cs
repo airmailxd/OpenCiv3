@@ -1119,13 +1119,14 @@ public partial class Game : Node {
 				popupOverlay.ShowPopup(new CivilizationDestroyed(mCivD.civilization), PopupOverlay.PopupCategory.Advisor);
 				InterestingEvent();
 				break;
-			case MsgShowMilitaryAdvisorPopup mSMAP:
-				if (!popupOverlay.Visible) {
-					var mood = mSMAP.happy ? AdvisorHead.Mood.Happy : AdvisorHead.Mood.Angry;
-					var pop = new InformationalPopup(mSMAP.message, AdvisorHead.Advisor.Military, mood);
-					popupOverlay.ShowPopup(pop, PopupOverlay.PopupCategory.Advisor);
-				}
+			case MsgShowMilitaryAdvisorPopup mSMAP: {
+				// News like a golden age or a city lost to disorder waits its
+				// turn behind any popup already showing, rather than being lost.
+				var mood = mSMAP.happy ? AdvisorHead.Mood.Happy : AdvisorHead.Mood.Angry;
+				var pop = new InformationalPopup(mSMAP.message, AdvisorHead.Advisor.Military, mood);
+				popupOverlay.ShowPopup(pop, PopupOverlay.PopupCategory.Advisor);
 				break;
+			}
 			case MsgShowScienceAdvisorPopup mSSAP: {
 				// The space race news (such as the ship being complete) is too
 				// important to drop, so it waits its turn behind any popup
@@ -1147,12 +1148,12 @@ public partial class Game : Node {
 				popupOverlay.ShowPopup(pop, PopupOverlay.PopupCategory.Advisor);
 				break;
 			}
-			case MsgShowDomesticAdvisorPopup mSDAP:
-				if (!popupOverlay.Visible) {
-					var pop = new InformationalPopup(mSDAP.message, AdvisorHead.Advisor.Domestic, AdvisorHead.Mood.Angry);
-					popupOverlay.ShowPopup(pop, PopupOverlay.PopupCategory.Advisor);
-				}
+			case MsgShowDomesticAdvisorPopup mSDAP: {
+				// Like the military advisor's news, this waits its turn.
+				var pop = new InformationalPopup(mSDAP.message, AdvisorHead.Advisor.Domestic, AdvisorHead.Mood.Angry);
+				popupOverlay.ShowPopup(pop, PopupOverlay.PopupCategory.Advisor);
 				break;
+			}
 			case MsgShowScienceAdvisor mSSA:
 				EmitSignal(SignalName.ShowSpecificAdvisor, C7Action.ShowScienceAdvisor);
 				break;
