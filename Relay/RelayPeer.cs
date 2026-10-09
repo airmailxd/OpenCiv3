@@ -84,6 +84,14 @@ internal sealed class RelayPeer {
 		outgoing.Writer.TryComplete();
 	}
 
+	// Waits while more than this is queued to be sent to the peer, until
+	// it's closing.
+	public async Task WaitForRoom(long bytes, CancellationToken cancel) {
+		while (!IsClosing && Interlocked.Read(ref queuedBytes) > bytes) {
+			await Task.Delay(20, cancel);
+		}
+	}
+
 	// The peer answered a ping.
 	public void NotePong() {
 		long sent = Volatile.Read(ref pingSentAt);
@@ -94,13 +102,16 @@ internal sealed class RelayPeer {
 
 	// Runs the connection until it closes: hands each message received to
 	// onMessage (whose data is only valid until it returns), sends what's
-	// queued, and pings.
-	public async Task RunAsync(Action<ReadOnlyMemory<byte>, WebSocketMessageType> onMessage, CancellationToken shutdown) {
+	// queued, and pings. beforeReceive, if given, is waited for before each
+	// message is read, to hold the peer back while what it sends can't be
+	// passed on.
+	public async Task RunAsync(Action<ReadOnlyMemory<byte>, WebSocketMessageType> onMessage, CancellationToken shutdown,
+		Func<CancellationToken, Task> beforeReceive = null) {
 		using CancellationTokenRegistration onShutdown = shutdown.Register(() => Close((int)WebSocketCloseStatus.EndpointUnavailable, "The relay is shutting down."));
 		Task sending = SendLoop();
 		Task pinging = PingLoop();
 		try {
-			await ReceiveLoop(onMessage);
+			await ReceiveLoop(onMessage, beforeReceive);
 		} finally {
 			Close((int)WebSocketCloseStatus.NormalClosure, "");
 			// Give the goodbye a moment to go out.
@@ -111,12 +122,15 @@ internal sealed class RelayPeer {
 		}
 	}
 
-	private async Task ReceiveLoop(Action<ReadOnlyMemory<byte>, WebSocketMessageType> onMessage) {
+	private async Task ReceiveLoop(Action<ReadOnlyMemory<byte>, WebSocketMessageType> onMessage, Func<CancellationToken, Task> beforeReceive) {
 		byte[] buffer = ArrayPool<byte>.Shared.Rent(SmallMessageBytes);
 		// How much of the buffer is taken from the budget.
 		long budgeted = 0;
 		try {
 			while (true) {
+				if (beforeReceive != null) {
+					await beforeReceive(abort.Token);
+				}
 				int length = 0;
 				ValueWebSocketReceiveResult result = default;
 				do {

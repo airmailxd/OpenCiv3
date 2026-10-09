@@ -203,6 +203,8 @@ public static class RelayCloseCodes {
 	public const int BadMessage = 4012;
 	// The host banned this guest from its game.
 	public const int Banned = 4013;
+	// The guest sent the host more, or faster, than the relay passes on.
+	public const int TooMuch = 4014;
 }
 
 // A text message between the relay and a host or guest. The relay welcomes

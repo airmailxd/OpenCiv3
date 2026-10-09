@@ -374,13 +374,22 @@ internal sealed class RelayHub {
 		peer.Send(new RelayControl(RelayControl.Welcome, pingSeconds: options.PingIntervalSeconds));
 		host.Send(RelayProtocol.Encode(RelayProtocol.Open, id));
 
+		// A guest sending too much is dropped; one sending while its host
+		// can't keep up waits, rather than have the host dropped for it.
+		TokenBucket bytes = new(options.GuestBytesPerSecond, options.GuestBurstBytes);
+		TokenBucket messages = new(options.GuestMessagesPerSecond, options.GuestBurstMessages);
 		await peer.RunAsync((message, type) => {
+			if (!bytes.Take(message.Length) || !messages.Take(1)) {
+				log.LogInformation("Guest {Guest} at {Address} in room {Code} sent too much, dropping it", id, address, room.Code);
+				peer.Close(RelayCloseCodes.TooMuch, "The game sent the relay too much, too fast.");
+				return;
+			}
 			if (type == WebSocketMessageType.Text) {
 				Answer(peer, RelayControl.Parse(message.Span));
 			} else {
 				host.Send(RelayProtocol.Encode(RelayProtocol.Data, id, message.Span));
 			}
-		}, shutdown);
+		}, shutdown, cancel => host.WaitForRoom(options.HostBackpressureBytes, cancel));
 
 		bool wasIn;
 		lock (room) {
