@@ -1184,6 +1184,13 @@ namespace C7GameData {
 			return CurrentFoodYield() - FoodConsumedPerTurn();
 		}
 
+		// The city's share of its owner's treasury, by population: what a
+		// conqueror, or barbarians sacking it, carry off.
+		public int PlunderableGold() {
+			int totalPopulation = owner.cities.Sum(c => c.residents.Count);
+			return totalPopulation > 0 ? (int)((long)owner.gold * residents.Count / totalPopulation) : 0;
+		}
+
 		// Resisters still eat: resistance stops the city's shields and
 		// commerce, not its farming (see IsInResistance).
 		public int FoodConsumedPerTurn() {

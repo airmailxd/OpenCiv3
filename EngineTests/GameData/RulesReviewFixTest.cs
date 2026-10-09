@@ -279,6 +279,20 @@ public class RulesReviewFixTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(2, us.GetTurnsOfAnarchyForTransition(gameData));
 	}
 
+	// ---- Barbarians ----
+
+	[Fact]
+	public void BarbariansPlunderTheCitysShareOfTheTreasury() {
+		City small = BuildCity(us);
+		City big = BuildCity(us);
+		for (int i = 0; i < 3; ++i) {
+			big.AddCitizen(new CityResident() { city = big, nationality = us.civilization, citizenType = gameData.citizenTypes.Find(x => x.IsDefaultCitizen) });
+		}
+		us.gold = 500;
+		int population = us.cities.Sum(c => c.residents.Count);
+		Assert.Equal(500 * small.residents.Count / population, small.PlunderableGold());
+	}
+
 	// ---- Trait discounts ----
 
 	[Fact]
