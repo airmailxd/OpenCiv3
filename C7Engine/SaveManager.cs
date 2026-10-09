@@ -19,7 +19,6 @@ namespace C7Engine {
 				".SAV" => SaveFileFormat.Sav,
 				".BIQ" => SaveFileFormat.Biq,
 				".JSON" => SaveFileFormat.C7,
-				".ZIP" => SaveFileFormat.C7,
 				_ => SaveFileFormat.Invalid,
 			};
 		}
@@ -30,7 +29,7 @@ namespace C7Engine {
 				SaveFileFormat.Sav => ImportCiv3.ImportSav(path, bicPath, getPediaIconsPath),
 				SaveFileFormat.Biq => ImportCiv3.ImportBiq(path, bicPath, getPediaIconsPath),
 				SaveFileFormat.C7 => SaveGame.Load(path, getPediaIconsPath),
-				_ => throw new FileLoadException("invalid save format"),
+				_ => throw new FileLoadException($"{Path.GetFileName(path)} is not a save C7 can load (.sav, .biq or .json)"),
 			};
 			return save;
 		}
