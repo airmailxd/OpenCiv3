@@ -97,6 +97,33 @@ public class RulesReviewFixTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(gameData.rules.ShieldValueInGold * s, city.GetHurryProductionDetails().goldCost);
 	}
 
+	// Per the project owner, the citizens a pop rush costs are rounded to
+	// the nearest whole number, not up.
+	[Fact]
+	public void PopRushingRoundsToTheNearestCitizen() {
+		Assert.Equal(1, City.PopRushCost(29, 20));
+		Assert.Equal(2, City.PopRushCost(30, 20));
+		Assert.Equal(2, City.PopRushCost(49, 20));
+		Assert.Equal(3, City.PopRushCost(50, 20));
+		// Never free.
+		Assert.Equal(1, City.PopRushCost(5, 20));
+
+		City city = BuildCity(us);
+		for (int i = 0; i < 7; ++i) {
+			AddResident(city, us.civilization);
+		}
+		us.government.hurryingType = Government.HurryProductionType.ForcedLabor;
+		Building temple = BuildingNamed("Temple");
+		city.SetItemBeingProduced(temple);
+		int perCitizen = gameData.rules.CitizenValueInShields;
+		// Just over one and a half citizens' worth of shields still needed.
+		city.SetStoredShields(us.ShieldCost(temple) - (perCitizen + perCitizen / 2 + 1));
+		Assert.Equal(2, city.GetHurryProductionDetails().popCost);
+		// Just under.
+		city.SetStoredShields(us.ShieldCost(temple) - (perCitizen + perCitizen / 2 - 1));
+		Assert.Equal(1, city.GetHurryProductionDetails().popCost);
+	}
+
 	// ---- Gold ----
 
 	[Fact]

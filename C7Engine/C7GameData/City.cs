@@ -465,6 +465,14 @@ namespace C7GameData {
 			return ShieldCostForHurrying() * owner.rules.ShieldValueInGold;
 		}
 
+		// The citizens it costs to hurry the given number of shields: the
+		// BIQ's shields per citizen, rounded to the nearest whole citizen
+		// (halves up) per the project owner, but never none.
+		internal static int PopRushCost(int shields, int citizenValueInShields) {
+			int citizens = (int)Math.Round((double)shields / Math.Max(1, citizenValueInShields), MidpointRounding.AwayFromZero);
+			return Math.Max(1, citizens);
+		}
+
 		// Returns the feasibility of hurrying production
 		public class HurryProductionDetails {
 			public string? errorMessage;
@@ -507,7 +515,7 @@ namespace C7GameData {
 					return new HurryProductionDetails() { errorMessage = "We cannot hurry production with this government." };
 
 				case Government.HurryProductionType.ForcedLabor:
-					int popCost = (int)Math.Ceiling((float)shieldCost / rules.CitizenValueInShields);
+					int popCost = PopRushCost(shieldCost, rules.CitizenValueInShields);
 					if (popCost > residents.Count / 2f) {
 						return new HurryProductionDetails() { errorMessage = $"Hurrying production would take the lives of too many citizens ({popCost})." };
 					}
