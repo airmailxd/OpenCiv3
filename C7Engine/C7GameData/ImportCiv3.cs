@@ -2032,7 +2032,12 @@ namespace C7GameData {
 				// that both raises the city's defense against land attacks
 				// and protects it from bombardment; a Coastal Fortress only
 				// guards against ships, and a wonder like the Great Wall that
-				// acts as walls does so through its own flags.
+				// acts as walls does so through its own flags. City Walls
+				// provide "a land bombardment defense of 8, and +50% to
+				// defensive bonus against land attacks", and a Coastal
+				// Fortress "a naval bombardment defense of 8, +50% against
+				// naval attacks" (https://civfanatics.com/civ3/civilopedia/improvements/),
+				// as in conquests.biq.
 				if (bldg.DefenseBonus > 0 && bldg.BombardDefense > 0 && !bldg.Wonder && !bldg.SmallWonder) {
 					building.flags.Add(SaveBuilding.Flag.ProvidesWalls);
 					building.flags.Add(SaveBuilding.Flag.CanOnlyBeBuiltInTowns);

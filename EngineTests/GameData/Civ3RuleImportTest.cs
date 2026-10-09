@@ -82,4 +82,34 @@ public class Civ3RuleImportTest {
 		Assert.NotEmpty(game.Cities);
 		Assert.Contains(game.Cities, c => c.producible == "Worker" && c.producibleType == ProducibleType.UNIT);
 	}
+
+	// A standard game's RULE values: roads let a unit "travel three tiles"
+	// for a move (https://civfanatics.com/civ3/faq/), and a fortress gives
+	// "a 50% bonus to their defense"
+	// (https://forums.civfanatics.com/threads/combat-system-explained.7679/).
+	[SkippableFact]
+	public void AStandardGamesRulesComeFromItsRule() {
+		Skip.If(Civ3TestData.ShouldSkipCiv3DependentTests(), "No Civ3 install found.");
+
+		SaveGame game = ImportScenario("Scenarios", "No Civ Traits.biq");
+
+		Assert.Equal(3, game.Rules.MovementAlongRoads);
+		Assert.Equal(50, game.Rules.FortressDefensiveBonus);
+		Assert.Equal(2, game.Rules.FoodConsumptionPerCitizen);
+		Assert.Equal(10, game.Rules.StartingTreasury);
+	}
+
+	// City Walls are the only building with both a land defense bonus and a
+	// bombard defense; Civil Defense has only the first, and a Coastal
+	// Fortress guards against ships
+	// (https://civfanatics.com/civ3/civilopedia/improvements/).
+	[SkippableFact]
+	public void OnlyCityWallsAreWalls() {
+		Skip.If(Civ3TestData.ShouldSkipCiv3DependentTests(), "No Civ3 install found.");
+
+		SaveGame game = ImportScenario("Scenarios", "No Civ Traits.biq");
+
+		SaveBuilding walls = Assert.Single(game.Buildings, b => b.flags.Contains(SaveBuilding.Flag.ProvidesWalls));
+		Assert.Equal("Walls", walls.name);
+	}
 }

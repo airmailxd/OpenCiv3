@@ -81,23 +81,30 @@ namespace C7GameData {
 		public int GoldenAgeDuration = 20;
 		public int UpgradeCostPerShield = 3; // gold per shield of difference between a unit and its upgrade
 
-		// The gold each civ starts a new game with.
+		// The gold each civ starts a new game with: the BIQ RULE's starting
+		// treasury (10 in conquests.biq).
 		public int StartingTreasury = 10;
 
 		// The civilopedia name of the first era, which civs start a new game
 		// in.
 		public string FirstEraCivilopediaName = "ERAS_Ancient_Times";
 
-		// The food each citizen eats a turn.
+		// The food each citizen eats a turn: the BIQ RULE's food consumption
+		// per citizen (2 in conquests.biq).
 		public int FoodConsumptionPerCitizen = 2;
 
 		// How many road moves a unit can make for one movement point. Games
 		// imported from Civ3 build the road's movement cost from it (see
-		// SaveTerrainImprovement.Civ3Improvements).
+		// SaveTerrainImprovement.Civ3Improvements). conquests.biq has 3: "when
+		// on a road, a unit can travel three tiles, regardless of the
+		// underlying terrain" (https://civfanatics.com/civ3/faq/).
 		public int MovementAlongRoads = 3;
 
 		// The defense bonus of a fortress, in per cent. Games imported from
-		// Civ3 build the fortress's defense bonus from it.
+		// Civ3 build the fortress's defense bonus from it. conquests.biq has
+		// 50: "When a unit is stationed in a fortress it receives a 50% bonus
+		// to their defense"
+		// (https://forums.civfanatics.com/threads/combat-system-explained.7679/).
 		public int FortressDefensiveBonus = 50;
 
 		// The following come from the BIQ's RULE section, but nothing uses
