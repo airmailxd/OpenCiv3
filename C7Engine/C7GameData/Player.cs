@@ -250,7 +250,13 @@ namespace C7GameData {
 		public int beakers = 0;
 
 		// The number of turns the player has been researching the current tech.
+		// Only turns that produced beakers count.
 		public int turnsResearched = 0;
+
+		// Whether this turn's finances put any beakers into research. Set by
+		// DoPerTurnFinanceUpdates for DoPerTurnScienceUpdates, which runs
+		// right after it, so it needn't be saved.
+		private bool researchFundedThisTurn;
 
 		// If the government is anarchy (or a govt with the transition bool set
 		// to true), the turn number at which switching governments is allowed.
@@ -1050,10 +1056,13 @@ namespace C7GameData {
 			// losing an improvement only changes the flows of its own city
 			// (wonders, small wonders and the palace are never lost here).
 			CityFlows[] cityFlows = new CityFlows[cities.Count];
+			int beakersThisTurn = 0;
 			for (int i = 0; i < cities.Count; ++i) {
 				cityFlows[i] = ComputeCityFlows(cities[i]);
-				beakers += cityFlows[i].commerce.beakers;
+				beakersThisTurn += cityFlows[i].commerce.beakers;
 			}
+			beakers += beakersThisTurn;
+			researchFundedThisTurn = beakersThisTurn > 0;
 			int unitSupportCost = TotalUnitsAllowedUnitsAndSupportCost().Item3;
 
 			// As in Civ 3, a deficit is fine while the treasury can pay for it.
@@ -1170,10 +1179,14 @@ namespace C7GameData {
 				return;
 			}
 
-			// TODO: This isn't quite accurate. This should only be
-			// incremented if the player is actually spending money on
-			// research, or has a science specialist.
-			turnsResearched++;
+			// Only turns that put beakers into the tech count towards the
+			// maximum research time. Otherwise a civ that stopped funding
+			// research would, once it started again, finish the tech at once
+			// because the clamp had run out.
+			if (researchFundedThisTurn) {
+				turnsResearched++;
+			}
+			researchFundedThisTurn = false;
 
 			// Check to see if the player has finished researching their
 			// tech, and if they have, add it to the list of known techs

@@ -107,6 +107,25 @@ public class RulesReviewFixTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(0, us.gold);
 	}
 
+	// ---- Research ----
+
+	[Fact]
+	public void UnfundedTurnsDontCountTowardsTheMaximumResearchTime() {
+		Tech tech = us.GetAvailableTechsToResearch(gameData.techs).First();
+		us.freeTechsRemaining = 0;
+		us.SetCurrentlyResearchedTech(tech.id);
+		us.taxRate = 10;
+		us.scienceRate = 0;
+		us.luxuryRate = 0;
+
+		for (int i = 0; i < 3; ++i) {
+			us.DoPerTurnFinanceUpdates(gameData);
+			us.DoPerTurnScienceUpdates(gameData);
+		}
+		Assert.Equal(0, us.turnsResearched);
+		Assert.Equal(tech.id, us.currentlyResearchedTech);
+	}
+
 	// ---- Trait discounts ----
 
 	[Fact]
