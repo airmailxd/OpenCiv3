@@ -99,10 +99,16 @@ public class FixEconomyGameTests : IClassFixture<SaveGameFixture>, System.IDispo
 
 	[Fact]
 	public void BordersAtTheMapsEdgeSkipOffMapTilesAndFarOcean() {
-		// The land tile nearest the top of the map, with borders reaching
-		// well past the edge.
-		Tile edge = gameData.map.tiles.Where(t => !t.baseTerrainType.IsWater).MinBy(t => t.YCoordinate);
-		Assert.True(edge.YCoordinate < 12);
+		// A land tile on the top rows of the map, with borders reaching well
+		// past the edge. Generated maps have water (and often ice-free sea)
+		// along the poles, so if no land is there, make some.
+		Tile edge = gameData.map.tiles.Where(t => t.YCoordinate <= 1)
+			.OrderBy(t => t.baseTerrainType.IsWater ? 1 : 0).ThenBy(t => t.YCoordinate).First();
+		if (edge.baseTerrainType.IsWater) {
+			TerrainType land = gameData.map.tiles.First(t => !t.baseTerrainType.IsWater).baseTerrainType;
+			edge.baseTerrainType = land;
+			edge.overlayTerrainType = land;
+		}
 		City city = new(edge, attacker, "Edgeville", ID.None("city"));
 		city.perPlayerCulture[attacker] = 100000;
 

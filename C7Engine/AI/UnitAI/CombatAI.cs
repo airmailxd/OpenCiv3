@@ -15,7 +15,7 @@ namespace C7Engine.AI.UnitAI {
 	/// This first iteration is focused on defeating barbarians.
 	/// </summary>
 	public class CombatAI : C7GameData.UnitAI {
-		private CombatAIData data;
+		internal CombatAIData data;
 
 		private static ILogger log = Log.ForContext<CombatAI>();
 

@@ -14,7 +14,7 @@ namespace C7Engine {
 		// against. Nothing changes while the options of one decision are
 		// scored, so each is computed at most once per decision, and only if
 		// an option needs it.
-		private sealed class ProducibleStats {
+		internal sealed class ProducibleStats {
 			public readonly City city;
 			public readonly Player player;
 
@@ -151,7 +151,7 @@ namespace C7Engine {
 			return -1000f;
 		}
 
-		private static float ScoreUnit(ProducibleStats stats, City city, Player player, UnitPrototype unit) {
+		internal static float ScoreUnit(ProducibleStats stats, City city, Player player, UnitPrototype unit) {
 			// The AI doesn't know how to use armies yet, so it doesn't build them.
 			if (unit.isArmy) {
 				return -1000f;
@@ -474,7 +474,7 @@ namespace C7Engine {
 			return score;
 		}
 
-		private static ProducibleStats CalculateStats(City city, Player player, List<IProducible> options) {
+		internal static ProducibleStats CalculateStats(City city, Player player, List<IProducible> options) {
 			ProducibleStats stats = new(city, player);
 
 			foreach (IProducible option in options) {
@@ -521,7 +521,7 @@ namespace C7Engine {
 			return false;
 		}
 
-		private static int NumberOfReachableOpenCitySpots(City city) {
+		internal static int NumberOfReachableOpenCitySpots(City city) {
 			int result = 0;
 
 			// Note: GetScoredSettlerCandidates already excludes tiles with

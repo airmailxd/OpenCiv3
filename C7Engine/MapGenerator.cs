@@ -1467,7 +1467,7 @@ namespace C7Engine {
 
 		// Marks the edge between two neighboring corners as a river, on both
 		// tiles that share it.
-		private static void setRiverFlags(GameMap m, (int x, int y) from, (int x, int y) to) {
+		internal static void setRiverFlags(GameMap m, (int x, int y) from, (int x, int y) to) {
 			int dx = to.x - from.x;
 			int dy = to.y - from.y;
 
@@ -1484,7 +1484,7 @@ namespace C7Engine {
 			SetRiverFlag(b, EdgeDirection(dx, -dy));
 		}
 
-		private static void SetRiverFlag(Tile t, TileDirection direction) {
+		internal static void SetRiverFlag(Tile t, TileDirection direction) {
 			// Neighbors off the edge of the map are Tile.NONE, which is shared
 			// by every map, so flags must never be set on it.
 			if (t == Tile.NONE) {

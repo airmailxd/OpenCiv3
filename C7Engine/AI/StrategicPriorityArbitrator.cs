@@ -104,7 +104,7 @@ namespace C7Engine.AI {
 			return topScore;
 		}
 
-		private static StrategicPriority ChooseWeightedPriority(List<StrategicPriority> possiblePriorities, Weighting weighting) {
+		internal static StrategicPriority ChooseWeightedPriority(List<StrategicPriority> possiblePriorities, Weighting weighting) {
 			double sumOfAllWeights = 0.0;
 			List<double> cutoffs = new List<double>();
 			foreach (StrategicPriority possiblePriority in possiblePriorities) {

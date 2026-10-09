@@ -125,8 +125,8 @@ public sealed class FixAiGameTests : IClassFixture<SaveGameFixture>, IDisposable
 			&& !t.IsImpassable() && t.OwningPlayer() == null;
 	}
 
-	private static T DataOf<T>(object ai) {
-		return (T)ai.GetType().GetField("data", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance).GetValue(ai);
+	private static C7GameData.AIData.CombatAIData DataOf(C7Engine.AI.UnitAI.CombatAI ai) {
+		return ai.data;
 	}
 
 	// Turns the ring of tiles around `center` into coast, making it an island.
@@ -163,15 +163,15 @@ public sealed class FixAiGameTests : IClassFixture<SaveGameFixture>, IDisposable
 		MapUnit warrior = gameData.SpawnUnit(player, Proto("Warrior"), start);
 		Assert.True(warrior.CanEnter(camp));
 		C7GameData.UnitAI ai = PlayerAI.GetAIForUnit(warrior, player);
-		Assert.False(ai is C7Engine.AI.UnitAI.CombatAI combat && DataOf<C7GameData.AIData.CombatAIData>(combat).destination == camp,
+		Assert.False(ai is C7Engine.AI.UnitAI.CombatAI combat && DataOf(combat).destination == camp,
 			"the warrior was sent to a camp it can't reach");
 
 		// A reachable camp is still attacked.
 		Tile reachable = start.GetTilesWithinTileSquare(2).First(t => t != start && IsEmptyLand(t) && t.continent == start.continent);
 		reachable.hasBarbarianCamp = true;
 		C7GameData.UnitAI ai2 = PlayerAI.GetAIForUnit(warrior, player);
-		Assert.IsType<C7Engine.AI.UnitAI.CombatAI>(ai2);
-		C7GameData.AIData.CombatAIData data = DataOf<C7GameData.AIData.CombatAIData>(ai2);
+		C7Engine.AI.UnitAI.CombatAI combat2 = Assert.IsType<C7Engine.AI.UnitAI.CombatAI>(ai2);
+		C7GameData.AIData.CombatAIData data = DataOf(combat2);
 		Assert.Equal(reachable, data.destination);
 		Assert.NotEmpty(data.path.path);
 	}
@@ -364,8 +364,7 @@ public sealed class FixAiProductionTests : IClassFixture<SaveGameFixture>, IDisp
 		}
 		Assert.True(chosen.Count > 1);
 
-		int counted = (int)typeof(ChooseProducible).GetMethod("NumberOfReachableOpenCitySpots", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
-			.Invoke(null, new object[] { city });
+		int counted = ChooseProducible.NumberOfReachableOpenCitySpots(city);
 		Assert.Equal(chosen.Count, counted);
 	}
 
@@ -376,10 +375,8 @@ public sealed class FixAiProductionTests : IClassFixture<SaveGameFixture>, IDisp
 		City city = CityInteractions.BuildCity(player.units.First(u => u.unitType.isSettler).location, player, player.GetNextCityName());
 		UnitPrototype wall = new() { name = "Wall", attack = 0, defense = 1, movement = 1, shieldCost = 10 };
 		wall.categories.Add("Land");
-		object stats = typeof(ChooseProducible).GetMethod("CalculateStats", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
-			.Invoke(null, new object[] { city, player, new List<IProducible> { wall } });
-		float score = (float)typeof(ChooseProducible).GetMethod("ScoreUnit", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
-			.Invoke(null, new object[] { stats, city, player, wall });
+		ChooseProducible.ProducibleStats stats = ChooseProducible.CalculateStats(city, player, new List<IProducible> { wall });
+		float score = ChooseProducible.ScoreUnit(stats, city, player, wall);
 		Assert.False(float.IsNaN(score));
 	}
 
@@ -388,13 +385,12 @@ public sealed class FixAiProductionTests : IClassFixture<SaveGameFixture>, IDisp
 	[Fact]
 	public void SettlerYieldCacheNoticesCityOwnerChange() {
 		City city = CityInteractions.BuildCity(player.units.First(u => u.unitType.isSettler).location, player, player.GetNextCityName());
-		Type entryType = typeof(SettlerLocationAI).GetNestedType("TileYieldEntry", System.Reflection.BindingFlags.NonPublic);
-		object entry = Activator.CreateInstance(entryType);
-		entryType.GetMethod("Capture").Invoke(entry, new object[] { city.location });
-		Assert.True((bool)entryType.GetMethod("Matches").Invoke(entry, new object[] { city.location }));
+		SettlerLocationAI.TileYieldEntry entry = new();
+		entry.Capture(city.location);
+		Assert.True(entry.Matches(city.location));
 
 		city.owner = gameData.players.First(p => p != player && !p.isBarbarians);
-		Assert.False((bool)entryType.GetMethod("Matches").Invoke(entry, new object[] { city.location }));
+		Assert.False(entry.Matches(city.location));
 	}
 
 	// After a unit is given a plan to defend a city, asking again (in the
@@ -405,17 +401,14 @@ public sealed class FixAiProductionTests : IClassFixture<SaveGameFixture>, IDisp
 		Tile elsewhere = city.location.GetTilesWithinTileSquare(3).First(t => t != Tile.NONE && t.IsLand() && !t.HasCity() && t.continent == city.location.continent && t.DistanceTo(city.location) >= 2);
 		MapUnit unit = gameData.SpawnUnit(player, gameData.unitPrototypes.First(p => p.name == "Warrior"), elsewhere);
 
-		Type defenderType = typeof(PlayerAI).Assembly.GetType("C7Engine.AI.UnitAI.DefenderAI");
-		System.Reflection.MethodInfo getSnapshot = defenderType.GetMethod("GetSnapshot", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
 		int EnRoute() {
-			object snap = getSnapshot.Invoke(null, new object[] { unit, player });
-			return ((int[])snap.GetType().GetField("enRoute").GetValue(snap)).Sum();
+			return C7Engine.AI.UnitAI.DefenderAI.GetSnapshot(unit, player).enRoute.Sum();
 		}
 
 		Assert.Equal(0, EnRoute());
-		C7GameData.AIData.DefenderAIData data = (C7GameData.AIData.DefenderAIData)defenderType.GetMethod("MakeAiDataForDefendAtRiskCity").Invoke(null, new object[] { unit, player, int.MaxValue });
+		C7GameData.AIData.DefenderAIData data = C7Engine.AI.UnitAI.DefenderAI.MakeAiDataForDefendAtRiskCity(unit, player, int.MaxValue);
 		Assert.Equal(city.location, data.destination);
-		unit.currentAI = (C7GameData.UnitAI)Activator.CreateInstance(defenderType, data);
+		unit.currentAI = new C7Engine.AI.UnitAI.DefenderAI(data);
 		Assert.Equal(1, EnRoute());
 	}
 
@@ -427,9 +420,7 @@ public sealed class FixAiProductionTests : IClassFixture<SaveGameFixture>, IDisp
 	}
 
 	private static C7Engine.AI.StrategicAI.StrategicPriority ChooseWeighted(List<C7Engine.AI.StrategicAI.StrategicPriority> options) {
-		return (C7Engine.AI.StrategicAI.StrategicPriority)typeof(C7Engine.AI.StrategicPriorityArbitrator)
-			.GetMethod("ChooseWeightedPriority", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
-			.Invoke(null, new object[] { options, Weighting.WEIGHTED_QUADRATIC });
+		return C7Engine.AI.StrategicPriorityArbitrator.ChooseWeightedPriority(options, Weighting.WEIGHTED_QUADRATIC);
 	}
 
 	[Fact]
@@ -461,9 +452,7 @@ public sealed class FixAiProductionTests : IClassFixture<SaveGameFixture>, IDisp
 		}
 		theirs.location.continent = ours.location.continent + 100000;
 
-		Player picked = (Player)typeof(C7GameData.AIData.WarPriority)
-			.GetMethod("PickPlayerToFight", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
-			.Invoke(null, new object[] { player });
+		Player picked = C7GameData.AIData.WarPriority.PickPlayerToFight(player);
 		Assert.Null(picked);
 	}
 }
@@ -498,12 +487,24 @@ public sealed class FixAiMapGeneratorTests {
 		Tile none = Tile.NONE;
 		try {
 			GameMap map = FixAiPathingTests.MakeMap(10, 10);
-			Tile edge = map.tiles.First(t => t.neighbors.Get(TileDirection.SOUTHEAST) == Tile.NONE && t.neighbors.Get(TileDirection.SOUTHWEST) == Tile.NONE);
-			System.Reflection.MethodInfo setRiverFlags = typeof(MapGenerator).GetMethod("setRiverFlags", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
-			foreach (TileDirection dir in new[] { TileDirection.SOUTHWEST, TileDirection.SOUTHEAST, TileDirection.NORTHWEST, TileDirection.NORTHEAST }) {
-				setRiverFlags.Invoke(null, new object[] { edge, dir, 0 });
+			TileDirection[] diagonals = { TileDirection.SOUTHWEST, TileDirection.SOUTHEAST, TileDirection.NORTHWEST, TileDirection.NORTHEAST };
+			foreach (TileDirection dir in diagonals) {
+				MapGenerator.SetRiverFlag(Tile.NONE, dir);
+			}
+			// Draw every diagonal river edge from every corner on the top and
+			// bottom rows, where one of the two tiles sharing it is off the map.
+			foreach (Tile t in map.tiles.Where(t => t.neighbors.Get(TileDirection.NORTHEAST) == Tile.NONE || t.neighbors.Get(TileDirection.SOUTHEAST) == Tile.NONE)) {
+				// River corners sit between tiles: one step left, right, up or
+				// down from a tile's center.
+				foreach ((int cx, int cy) in new[] { (1, 0), (-1, 0), (0, 1), (0, -1) }) {
+					(int x, int y) from = (t.XCoordinate + cx, t.YCoordinate + cy);
+					foreach ((int dx, int dy) in new[] { (1, 1), (1, -1), (-1, 1), (-1, -1) }) {
+						MapGenerator.setRiverFlags(map, from, (from.x + dx, from.y + dy));
+					}
+				}
 			}
 			Assert.False(none.BordersRiver());
+			Assert.Contains(map.tiles, t => t.BordersRiver());
 		} finally {
 			none.riverNorth = none.riverNortheast = none.riverEast = none.riverSoutheast = false;
 			none.riverSouth = none.riverSouthwest = none.riverWest = none.riverNorthwest = false;

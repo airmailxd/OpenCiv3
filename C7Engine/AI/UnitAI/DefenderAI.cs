@@ -100,7 +100,7 @@ namespace C7Engine.AI.UnitAI {
 		// for repeatedly (with different minDefenders) while choosing a plan
 		// for a unit. They're reused as long as the unit and its owner's units
 		// and cities are where they were.
-		private sealed class CityDefenseSnapshot {
+		internal sealed class CityDefenseSnapshot {
 			public MapUnit unit;
 			public C7GameData.UnitAI unitAI;
 			public Player player;
@@ -118,7 +118,7 @@ namespace C7Engine.AI.UnitAI {
 		// keep a finished game alive.
 		private static readonly ConditionalWeakTable<Player, CityDefenseSnapshot> lastSnapshots = new();
 
-		private static CityDefenseSnapshot GetSnapshot(MapUnit unit, Player player) {
+		internal static CityDefenseSnapshot GetSnapshot(MapUnit unit, Player player) {
 			int turn = CurrentTurn();
 			lastSnapshots.TryGetValue(player, out CityDefenseSnapshot snap);
 			// The unit's own current plan counts towards the units en route,

@@ -198,7 +198,7 @@ namespace C7Engine {
 		// Everything a tile's yield score depends on, besides the player's
 		// techs, government and golden age, which are checked for the whole
 		// cache at once.
-		private sealed class TileYieldEntry {
+		internal sealed class TileYieldEntry {
 			public float score;
 			public TerrainType overlayTerrainType;
 			public Resource resource;

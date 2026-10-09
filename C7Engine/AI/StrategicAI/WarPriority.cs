@@ -94,7 +94,7 @@ namespace C7GameData.AIData {
 			MsgWarDeclaration.Announce(player, opponent);
 		}
 
-		private static Player PickPlayerToFight(Player player) {
+		internal static Player PickPlayerToFight(Player player) {
 			Dictionary<Player, float> scoredOpponents = new();
 			Dictionary<Player, int> borderTileCount = CountSharedBorderTiles(player);
 
