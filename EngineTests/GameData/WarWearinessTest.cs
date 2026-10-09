@@ -147,7 +147,7 @@ public class WarWearinessTest {
 	public void WarHappinessMakesAQuarterHappy() {
 		(City city, Player enemy, _) = AtWar(warWearinessLevel: 0);
 		Player us = city.owner;
-		us.AddWarWeariness(enemy, Player.WarWearinessWhenTheAIAttacks);
+		us.AddWarWeariness(enemy, Player.WarWearinessWhenWarIsDeclaredOnUs);
 		Assert.Equal(2, us.WarHappiness(city));
 		Assert.Equal(0, us.WarWearinessUnhappiness(city));
 	}

@@ -199,14 +199,51 @@ public class FixEconomyTests {
 		Assert.Equal(-1, Player.WarWearinessLevel(human.WarWearinessPointsAgainst(ai)));
 	}
 
+	// Per the project owner, any civ war is declared on gains war
+	// happiness against the aggressor, whoever declared it.
 	[Fact]
-	public void AHumanDeclaringWarGivesNoWarHappiness() {
+	public void AHumanDeclaringWarGivesItsVictimWarHappinessAgainstIt() {
 		Player a = MakePlayer("A");
 		Player b = MakePlayer("B");
 		a.EnsureRelationshipExists(b);
 
 		a.DeclareWarOn(b, 1);
 		Assert.Equal(0, a.WarWearinessPointsAgainst(b));
+		Assert.Equal(-30, b.WarWearinessPointsAgainst(a));
+		Assert.Equal(-1, Player.WarWearinessLevel(b.WarWearinessPointsAgainst(a)));
+	}
+
+	// The war's weariness wears the war happiness away, and then turns into
+	// ordinary war weariness.
+	[Fact]
+	public void WarHappinessTurnsIntoWarWearinessAsTheWarGoesOn() {
+		Player a = MakePlayer("A");
+		Player b = MakePlayer("B");
+		a.EnsureRelationshipExists(b);
+		a.DeclareWarOn(b, 1);
+
+		Player.AddWarWearinessForLostCity(b, a, size: 5);
+		Assert.Equal(-13, b.WarWearinessPointsAgainst(a));
+		Assert.Equal(-1, Player.WarWearinessLevel(b.WarWearinessPointsAgainst(a)));
+
+		Player.AddWarWearinessForLostCity(b, a, size: 5);
+		Assert.Equal(4, b.WarWearinessPointsAgainst(a));
+		Assert.Equal(0, Player.WarWearinessLevel(b.WarWearinessPointsAgainst(a)));
+
+		Player.AddWarWearinessForLostCity(b, a, size: 5);
+		Player.AddWarWearinessForLostCity(b, a, size: 5);
+		Assert.Equal(38, b.WarWearinessPointsAgainst(a));
+		Assert.Equal(1, Player.WarWearinessLevel(b.WarWearinessPointsAgainst(a)));
+	}
+
+	[Fact]
+	public void AHumanProvokedByANuclearAtrocityGivesNoWarHappiness() {
+		Player a = MakePlayer("A");
+		Player b = MakePlayer("B");
+		a.EnsureRelationshipExists(b);
+		a.playerRelationships[b.id].nuclearAtrocityCount = 1;
+
+		a.DeclareWarOn(b, 1);
 		Assert.Equal(0, b.WarWearinessPointsAgainst(a));
 	}
 
