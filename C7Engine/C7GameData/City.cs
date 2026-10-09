@@ -114,8 +114,8 @@ namespace C7GameData {
 		public bool isInCivilDisorder = false;
 
 		// Resistance in a conquered city: the number of citizens still loyal
-		// to resistanceFrom, the civ it was taken from. While any resist the
-		// city produces no shields or commerce, as in Civ3. See
+		// to resistanceFrom, the civ it was taken from. As in Civ3 resisters
+		// work no tile and eat nothing, and the city can't hurry. See
 		// StartResistance and UpdateResistance.
 		public int resisters = 0;
 		public Player resistanceFrom;
@@ -886,7 +886,7 @@ namespace C7GameData {
 		public int CurrentFoodYield() {
 			List<CityBuilding> buildings = EffectiveBuildings();
 			int yield = location.FoodYield(this, buildings).yield;
-			foreach (CityResident r in residents) {
+			foreach (CityResident r in WorkingResidents()) {
 				yield += r.tileWorked.FoodYield(this, buildings).yield;
 			}
 			return yield * YieldMultiplier();
@@ -906,7 +906,7 @@ namespace C7GameData {
 			int food = location.FoodYield(this, buildings).penalty;
 			int shields = location.ProductionYield(this, buildings).penalty;
 			int commerce = location.CommerceYield(this, buildings).penalty;
-			foreach (CityResident r in residents) {
+			foreach (CityResident r in WorkingResidents()) {
 				food += r.tileWorked.FoodYield(this, buildings).penalty;
 				shields += r.tileWorked.ProductionYield(this, buildings).penalty;
 				commerce += r.tileWorked.CommerceYield(this, buildings).penalty;
@@ -917,7 +917,7 @@ namespace C7GameData {
 		public CorruptableValue CurrentProductionYield() {
 			List<CityBuilding> buildings = EffectiveBuildings();
 			int yield = location.ProductionYield(this, buildings).yield;
-			foreach (CityResident r in residents) {
+			foreach (CityResident r in WorkingResidents()) {
 				yield += r.tileWorked.ProductionYield(this, buildings).yield;
 			}
 			yield *= YieldMultiplier();
@@ -930,8 +930,8 @@ namespace C7GameData {
 			// setting corruption to 100% because CorruptableValue would give us
 			// one useful commerce in that situation.
 			//
-			// The same is true for civil disorder and resistance.
-			if (owner.government.transitionType || isInCivilDisorder || IsInResistance) {
+			// The same is true for civil disorder.
+			if (owner.government.transitionType || isInCivilDisorder) {
 				result.useful = 0;
 				result.corrupt = yield;
 			}
@@ -940,9 +940,9 @@ namespace C7GameData {
 			// and civil engineers add their own shields. Assumption: the
 			// engineers' shields count before factories and power plants,
 			// like those of the city's tiles.
-			if (!owner.government.transitionType && !isInCivilDisorder && !IsInResistance) {
+			if (!owner.government.transitionType && !isInCivilDisorder) {
 				RecoverWithPolicemen(ref result);
-				foreach (CityResident cr in residents) {
+				foreach (CityResident cr in WorkingResidents()) {
 					result.useful += cr.citizenType?.Construction ?? 0;
 				}
 			}
@@ -960,7 +960,7 @@ namespace C7GameData {
 		// corrupt commerce and one wasted shield. Never more than was lost.
 		private void RecoverWithPolicemen(ref CorruptableValue value) {
 			int recovered = 0;
-			foreach (CityResident cr in residents) {
+			foreach (CityResident cr in WorkingResidents()) {
 				recovered += cr.citizenType?.Corruption ?? 0;
 			}
 			recovered = Math.Min(recovered, value.corrupt);
@@ -1015,7 +1015,7 @@ namespace C7GameData {
 		public CommerceBreakdown CurrentCommerceYieldRaw(bool respectCivilDisorder = true) {
 			List<CityBuilding> buildings = EffectiveBuildings();
 			int uncorruptedCommerce = location.CommerceYield(this, buildings).yield;
-			foreach (CityResident r in residents) {
+			foreach (CityResident r in WorkingResidents()) {
 				uncorruptedCommerce += r.tileWorked.CommerceYield(this, buildings).yield;
 			}
 			uncorruptedCommerce *= YieldMultiplier();
@@ -1032,8 +1032,7 @@ namespace C7GameData {
 			// civil disorder.
 			CorruptableValue commerce = new CorruptableValue(uncorruptedCommerce, corruption);
 			RecoverWithPolicemen(ref commerce);
-			// A resisting city produces nothing, like one in disorder.
-			bool inDisorder = (isInCivilDisorder || IsInResistance) && respectCivilDisorder;
+			bool inDisorder = isInCivilDisorder && respectCivilDisorder;
 			bool inAnarchy = owner.government.transitionType;
 			if (inAnarchy || inDisorder) {
 				commerce.useful = 0;
@@ -1071,7 +1070,7 @@ namespace C7GameData {
 			// no taxes or science are collected, but entertainers still
 			// entertain (they're how a city keeps order then).
 			if (!inDisorder) {
-				foreach (CityResident cr in residents) {
+				foreach (CityResident cr in WorkingResidents()) {
 					result.happiness += cr.citizenType.Luxuries;
 					if (!inAnarchy) {
 						result.beakers += cr.citizenType.Research;
@@ -1180,35 +1179,105 @@ namespace C7GameData {
 			return totalPopulation > 0 ? (int)((long)owner.gold * residents.Count / totalPopulation) : 0;
 		}
 
-		// Resisters still eat: resistance stops the city's shields and
-		// commerce, not its farming (see IsInResistance).
+		// Resisters don't eat (see StartResistance).
 		public int FoodConsumedPerTurn() {
-			return residents.Count * 2;
+			return (residents.Count - ResistersInCity()) * 2;
 		}
 
-		// Civ3's resistance in a city taken by force. Some of the citizens of
-		// the civ it was taken from resist: assumption, half of them, rounded
-		// up (Civ3 also weighs the two civs' culture, which we don't). No one
-		// resists for the barbarians.
+		// Civ3's resistance in a city taken by force, after
+		// https://civfanatics.com/civ3/strategy/game-mechanics/the-inner-workings-of-resistance-revealed/:
+		// "upon capturing a city, each citizen has a certain chance of
+		// becoming a resistor", set by how the old owner's civ regards our
+		// culture and by the two governments. Resistors "refuse to work the
+		// land, meaning no food, shields, or commerce come out of them
+		// (although they also don't require any food)", and the city can't
+		// rush anything. No one resists for the barbarians.
+		//
+		// UNVERIFIED (no Civ3 source found): which citizens resist. The
+		// article says each citizen may; we let them all roll, whatever
+		// their nationality, and take the last ones in the city as the
+		// resisters, working no tile and making nothing as specialists.
 		public void StartResistance(Player formerOwner) {
 			if (formerOwner == null || formerOwner.isBarbarians || formerOwner == owner) {
 				return;
 			}
-			int nationals = residents.Count(r => r.nationality == formerOwner.civilization);
-			resisters = (nationals + 1) / 2;
+			int chance = ResistancePercent(formerOwner, continuing: false);
+			resisters = residents.Count(_ => GameData.rng.Next(100) < chance);
 			resistanceFrom = resisters > 0 ? formerOwner : null;
 		}
 
-		// Each turn every resister may give up, more likely the bigger the
-		// garrison: each land defender in the city quells as many resisters
-		// as the difficulty level's military law (usually 1), after the
-		// Civ3 rule documented at
-		// https://www.civfanatics.com/civ3/strategy/game-mechanics/the-inner-workings-of-resistance-revealed/.
-		// As a simple stand-in for its odds, a resister gives up with chance
-		// (1 + quelling) / (2 + resisters), at most 90%, so an ungarrisoned
-		// city calms down over a few turns and a strong garrison ends it
-		// quickly. Resistance also ends if the old owner is gone or has the
-		// city back.
+		// The residents who aren't resisting, and so work.
+		internal IEnumerable<CityResident> WorkingResidents() {
+			return residents.Take(residents.Count - ResistersInCity());
+		}
+
+		private int ResistersInCity() => Math.Clamp(resisters, 0, residents.Count);
+
+		// The chance, in per cent, that a citizen starts (or, continuing,
+		// keeps) resisting, from the article above. By how the old owner
+		// regards our culture: "disdainful of" 90% ("they have three or more
+		// times as much culture as you, OR if you don't have any culture at
+		// all"), "dismissive of" 80% ("twice as much"), "unimpressed by" 70%
+		// ("the ratio is 3:4 in favor of them"), "impressed with" 60% ("the
+		// same amount"), "admirers of" 50% ("you have twice as much") and
+		// "in awe of" 40% ("three times as much"). Continuing, "these
+		// percentages are lowered by 10%". Then 5% less if our government is
+		// higher up the list Democracy, Communism, Republic, Monarchy,
+		// Despotism, Anarchy than theirs, 5% more if lower, except that a
+		// Republic taking a Monarchy's city, or a Democracy a Communist one,
+		// is 5% more. Governments not on the list (Feudalism, Fascism) change
+		// nothing. Where the steps fall between the article's ratios is our
+		// reading of it.
+		internal int ResistancePercent(Player formerOwner, bool continuing) {
+			int ours = CultureReport.TotalCulture(owner);
+			int theirs = CultureReport.TotalCulture(formerOwner);
+			int percent;
+			if (ours <= 0 || theirs >= 3 * ours) {
+				percent = 90;
+			} else if (theirs >= 2 * ours) {
+				percent = 80;
+			} else if (3 * theirs >= 4 * ours) {
+				percent = 70;
+			} else if (ours >= 3 * theirs) {
+				percent = 40;
+			} else if (ours >= 2 * theirs) {
+				percent = 50;
+			} else {
+				percent = 60;
+			}
+			if (continuing) {
+				percent -= 10;
+			}
+			return percent + ResistanceGovernmentModifier(owner.government, formerOwner.government);
+		}
+
+		private static readonly string[] ResistanceGovernmentOrder =
+			["Democracy", "Communism", "Republic", "Monarchy", "Despotism", "Anarchy"];
+
+		private static int ResistanceGovernmentModifier(Government ours, Government theirs) {
+			int ourRank = Array.IndexOf(ResistanceGovernmentOrder, ours?.name);
+			int theirRank = Array.IndexOf(ResistanceGovernmentOrder, theirs?.name);
+			if (ourRank < 0 || theirRank < 0 || ourRank == theirRank) {
+				return 0;
+			}
+			if ((ours.name == "Republic" && theirs.name == "Monarchy")
+				|| (ours.name == "Democracy" && theirs.name == "Communism")) {
+				return 5;
+			}
+			return ourRank < theirRank ? -5 : 5;
+		}
+
+		// Each turn every resister rolls again to keep resisting, but "the
+		// maximum number of resistors that can be quelled on a certain turn
+		// is determined by the number of military units in the city times
+		// the difficulty level's number of citizens quelled by military"
+		// (the BIQ's military law), so an empty city goes on resisting. "Air
+		// units, water units, artillery units, settlers, workers, and other
+		// non-ground and/or non-combat units cannot quell resistors"; we
+		// count land units that can attack and defend. Source as above.
+		//
+		// UNVERIFIED (no Civ3 source found): resistance also ends if the old
+		// owner is gone or has the city back.
 		public void UpdateResistance(GameData gameData) {
 			if (resisters <= 0) {
 				return;
@@ -1217,18 +1286,18 @@ namespace C7GameData {
 				EndResistance();
 				return;
 			}
-			resisters = Math.Min(resisters, residents.Count);
+			resisters = ResistersInCity();
 
-			int garrison = location.unitsOnTile.Count(u => u.owner == owner && u.CanDefendOnLand());
-			int quelling = garrison * Math.Max(1, gameData.gameDifficulty?.MilitaryLaw ?? 1);
-			double chance = Math.Min(0.9, (1.0 + quelling) / (2.0 + resisters));
-			int remaining = 0;
+			int garrison = location.unitsOnTile.Count(u => u.owner == owner && u.CanAttack() && u.CanDefendOnLand());
+			int quellable = garrison * Math.Max(1, gameData.gameDifficulty?.MilitaryLaw ?? 1);
+			int chance = ResistancePercent(resistanceFrom, continuing: true);
+			int givingUp = 0;
 			for (int i = 0; i < resisters; ++i) {
-				if (GameData.rng.NextDouble() >= chance) {
-					++remaining;
+				if (GameData.rng.Next(100) >= chance) {
+					++givingUp;
 				}
 			}
-			resisters = remaining;
+			resisters -= Math.Min(givingUp, quellable);
 			if (resisters == 0) {
 				EndResistance();
 				log.Information("Resistance in {City} has ended", this);

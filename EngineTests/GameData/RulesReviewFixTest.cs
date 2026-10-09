@@ -180,7 +180,9 @@ public class RulesReviewFixTest : IClassFixture<SaveGameFixture> {
 			});
 		}
 		CityInteractions.CaptureCity(city, us);
-		city.StartResistance(them);
+		// Who resists is random; make it everyone.
+		city.resisters = city.residents.Count;
+		city.resistanceFrom = them;
 		return city;
 	}
 
@@ -189,8 +191,45 @@ public class RulesReviewFixTest : IClassFixture<SaveGameFixture> {
 		City city = CapturedCity();
 		Assert.True(city.IsInResistance);
 		Assert.Equal(them, city.resistanceFrom);
-		Assert.Equal(0, city.CurrentProductionYield().useful);
-		Assert.Equal(0, city.CurrentCommerceYieldRaw().taxes);
+
+		// Resisters work no tile and eat nothing.
+		Assert.Equal(0, city.FoodConsumedPerTurn());
+		Assert.Empty(city.WorkingResidents());
+		int resisting = city.residents.Count;
+		city.resisters = 0;
+		Assert.Equal(2 * resisting, city.FoodConsumedPerTurn());
+		Assert.Equal(resisting, city.WorkingResidents().Count());
+	}
+
+	[Fact]
+	public void AnUngarrisonedCityGoesOnResisting() {
+		City city = CapturedCity();
+		int resisters = city.resisters;
+		foreach (MapUnit u in city.location.unitsOnTile.ToList()) {
+			u.RemoveFromPlay();
+		}
+		for (int i = 0; i < 10; ++i) {
+			city.UpdateResistance(gameData);
+		}
+		Assert.Equal(resisters, city.resisters);
+	}
+
+	[Fact]
+	public void ResistanceFollowsTheCultureComparison() {
+		City city = CapturedCity();
+		// Without any culture of our own, they are disdainful of us: 90%,
+		// less 10% for carrying on resisting (both despotisms here).
+		foreach (City c in us.cities) {
+			c.perPlayerCulture[us] = 0;
+		}
+		Assert.Equal(us.government, them.government);
+		Assert.Equal(90, city.ResistancePercent(them, continuing: false));
+		Assert.Equal(80, city.ResistancePercent(them, continuing: true));
+
+		// With three times their culture we hold them in awe: 40%.
+		int theirs = them.cities.Sum(c => c.GetCulture());
+		us.cities[0].perPlayerCulture[us] = 3 * System.Math.Max(1, theirs);
+		Assert.Equal(40, city.ResistancePercent(them, continuing: false));
 	}
 
 	[Fact]
