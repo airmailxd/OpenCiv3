@@ -102,6 +102,31 @@ namespace EngineTests.AI.UnitAI {
 			Assert.Equal(close, chosenTile);
 		}
 
+		[Fact]
+		private void NearerOfTwoFarSites() {
+			// Two identical sites, both far enough away that the distance
+			// penalty outweighs their worth. The nearer one should still win,
+			// even though the farther one is known first.
+			InitilizeStartTile(MakeHillTile(), new TileLocation(125, 25));
+			Tile farther = startTile;
+			List<Tile> map = SurroundTile(farther, MakeFloodPlainTileWithDefaultYield);
+
+			InitilizeStartTile(MakeHillTile(), new TileLocation(75, 25));
+			Tile nearer = startTile;
+			map.AddRange(SurroundTile(nearer, MakeFloodPlainTileWithDefaultYield));
+
+			// The settler's tile is on the map but unknown, so it isn't a
+			// candidate itself.
+			InitilizeStartTile(MakeDesertTile(), new TileLocation(25, 25));
+			Tile start = startTile;
+			start.map = gameMap;
+			InitPartialGameMap(250, 50, new List<Tile>(map) { start });
+
+			Player player = MakeTestPlayer(map);
+			Tile chosen = SettlerLocationAI.FindSettlerLocation(start, player);
+			Assert.True(chosen.DistanceTo(nearer) <= 1, $"chose {chosen}");
+		}
+
 		// Gives the tiles to a rival city that isn't on the map, so that only
 		// their ownership changes.
 		private void GiveToRival(IEnumerable<Tile> tiles) {

@@ -211,6 +211,27 @@ namespace C7Engine {
 		}
 	}
 
+	// Tells a human player that another civ has completed a great wonder.
+	// The wonder and city are named, so the news reads the same on a LAN
+	// guest that can't see the city.
+	public class MsgWonderCompleted : MessageToUI {
+		public Player builder;
+		public string wonder;
+		public string city;
+		public MsgWonderCompleted(Player recipient, Player builder, string wonder, string city) {
+			this.recipient = recipient;
+			this.builder = builder;
+			this.wonder = wonder;
+			this.city = city;
+		}
+
+		public string Announcement() {
+			Civilization civ = builder?.civilization;
+			string civName = civ?.noun ?? civ?.name ?? builder?.ToString();
+			return $"The {civName} have completed {wonder} in {city}!";
+		}
+	}
+
 	// Asks a human player what to research next, having just discovered a
 	// tech (or null if it isn't known which).
 	public class MsgShowScienceSelection : MessageToUI {

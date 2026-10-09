@@ -90,11 +90,22 @@ namespace C7Engine {
 
 			UnitAI.Result result = escortedUnitResult;
 			if (result == UnitAI.Result.Error) {
-				// If there was an error clear out their AI logic. This would
-				// happen if the unit was moving on its own in PlayerAI, but
-				// because we're moving for them, we have to do it here.
-				data.unitToEscort.currentAI = null;
-				return result;
+				// Their plan failed, so give them a new one, as PlayerAI would
+				// if they were moving on their own. Keep escorting them: if
+				// we gave up too, PlayerAI would re-plan for us right away,
+				// and with them between plans we'd go off exploring instead.
+				MapUnit escorted = data.unitToEscort;
+				escorted.currentAI = PlayerAI.GetAIForUnit(escorted, player);
+				if (escorted.currentAI is not SettlerAI settlerAi || settlerAi.data.escort != null) {
+					return result;
+				}
+				settlerAi.data.escort = unit;
+				// We're called again after each of our moves this turn; don't
+				// re-plan for them each time.
+				escortedUnitResult = UnitAI.Result.InProgress;
+				// They head off next turn, when we have them move first again.
+				escorted.movementPoints.onConsumeAll();
+				log.Information($"Settler {escorted.id} has a new plan; {unit.id} keeps escorting it");
 			}
 
 			// If we're on the correct location, give up the rest of our MPs.

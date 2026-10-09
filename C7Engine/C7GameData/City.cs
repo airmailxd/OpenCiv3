@@ -595,18 +595,14 @@ namespace C7GameData {
 			}
 		}
 
-		// Tells every human player which civ has completed a great wonder.
+		// Tells every other human player which civ has completed a great
+		// wonder. The builder hears of it from the production popup.
 		private void AnnounceWonder(GameData gameData, Building wonder) {
-			Civilization civ = owner.civilization;
-			string civName = civ?.noun ?? civ?.name ?? owner.ToString();
 			foreach (Player p in gameData.players) {
-				if (!p.isHuman || p.defeated) {
+				if (!p.isHuman || p.defeated || p == owner) {
 					continue;
 				}
-				string message = p == owner
-					? $"We have completed {wonder.name} in {name}!"
-					: $"The {civName} have completed {wonder.name} in {name}!";
-				new MsgShowDomesticAdvisorPopup(p, message).send();
+				new MsgWonderCompleted(p, owner, wonder.name, name).send();
 			}
 		}
 

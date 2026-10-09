@@ -82,6 +82,18 @@ public static class GoodyHuts {
 		if (player.isHuman) {
 			new MsgShowMilitaryAdvisorPopup(player, message, happy: outcome != Outcome.Barbarians).send();
 		}
+
+		// What the hut brings up after the news goes after it, as the UI drops
+		// the news if another popup is already showing.
+		switch (outcome) {
+			case Outcome.Tech:
+				player.AskWhatToResearch(gameData);
+				break;
+			case Outcome.City when player.isHuman && tile.cityAtTile != null:
+				// As for a city the player founds, open its screen.
+				new MsgCityCreated(tile.cityAtTile) { recipient = player }.send();
+				break;
+		}
 		return outcome;
 	}
 
@@ -133,7 +145,8 @@ public static class GoodyHuts {
 		return Outcome.Gold;
 	}
 
-	// Gives the player what they found, returning the news for a human. If
+	// Gives the player what they found, returning the news for a human. It
+	// sends nothing to the UI, so the news can go first (see Enter). If
 	// what was picked can't happen after all (barbarians with nowhere to
 	// stand), the hut holds gold instead, and the outcome says so.
 	private static string Apply(GameData gameData, MapUnit unit, Tile tile, ref Outcome outcome, double hardness) {
@@ -143,7 +156,6 @@ public static class GoodyHuts {
 				List<Tech> techs = TechsToLearn(gameData, player);
 				Tech tech = techs[GameData.rng.Next(techs.Count)];
 				player.AcquireTech(gameData, tech);
-				player.AskWhatToResearch(gameData);
 				return $"The villagers have taught us the secrets of {tech.Name}!";
 			}
 			case Outcome.Unit: {

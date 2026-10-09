@@ -126,12 +126,17 @@ namespace C7Engine {
 
 				//Lower scores if they are far away
 				float preDistanceScore = score;
-				score += DistancePenalty(DistanceFromEmpire(t, startTile, ownCities), adjustments);
+				float distancePenalty = DistancePenalty(DistanceFromEmpire(t, startTile, ownCities), adjustments);
+				score += distancePenalty;
 
-				//Distance can never lower score beyond 1; the AI will always try to settle those worthless tundras.
+				//Distance can never make a site worth something worthless; the AI will always try to settle those worthless tundras.
 				//(This could actually be modified in the future, but for now is also a safety rail)
+				// Such sites get a small score in (0, 1/2] instead, which still
+				// falls with distance and rises with the site's worth, so that
+				// among far sites the nearer and better ones are preferred
+				// rather than whichever is known first.
 				if (preDistanceScore > 0 && score <= 0) {
-					score = 1;
+					score = preDistanceScore / (preDistanceScore - distancePenalty);
 				}
 				if (score > 0)
 					scores[t] = score;

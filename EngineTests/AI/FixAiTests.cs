@@ -255,6 +255,33 @@ public sealed class FixAiGameTests : IClassFixture<SaveGameFixture>, IDisposable
 		Assert.NotNull(site.cityAtTile);
 		Assert.Equal(C7GameData.UnitAI.Result.Done, result);
 	}
+
+	[Fact]
+	public async System.Threading.Tasks.Task EscortKeepsItsSettlerWhenTheSettlersPlanFails() {
+		MapUnit settler = player.units.First(u => u.unitType.isSettler);
+		Tile site = settler.location;
+		MapUnit escort = gameData.SpawnUnit(player, Proto("Warrior"), site);
+		SettlerAI settlerAi = new(new C7GameData.AIData.SettlerAIData() {
+			goal = C7GameData.AIData.SettlerAIData.SettlerGoal.BUILD_CITY,
+			destination = site,
+			escort = escort,
+		});
+		settler.currentAI = settlerAi;
+		EscortAI escortAi = new(new C7GameData.AIData.EscortAIData() { unitToEscort = settler });
+		escort.currentAI = escortAi;
+
+		// A city founded next to the settler's destination makes its plan fail.
+		Tile next = site.neighbors.Values.First(n => n != Tile.NONE && n.IsLand() && n.IsAllowCities() && !n.HasCity());
+		CityInteractions.BuildCity(next, player, "Neighbor");
+
+		C7GameData.UnitAI.Result result = await ((C7GameData.UnitAI)escortAi).PlayTurn(player, escort);
+		Assert.Equal(C7GameData.UnitAI.Result.InProgress, result);
+		Assert.Same(escortAi, escort.currentAI);
+		SettlerAI newSettlerAi = Assert.IsType<SettlerAI>(settler.currentAI);
+		Assert.NotSame(settlerAi, newSettlerAi);
+		Assert.Same(escort, newSettlerAi.data.escort);
+		Assert.Same(settler, escortAi.data.unitToEscort);
+	}
 }
 
 public sealed class FixAiWorkerTests : IClassFixture<SaveGameFixture>, IDisposable {

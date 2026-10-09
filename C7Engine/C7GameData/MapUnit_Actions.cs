@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using C7Engine;
+using C7Engine.Pathing;
 using C7GameData.AIData;
 
 namespace C7GameData;
@@ -46,7 +47,9 @@ public partial class MapUnit {
 			hitPointsRemaining = maxHP;
 	}
 
-	public void OnEnterTile(Tile tile) {
+	// `movedThere` is whether the unit got there by its own move, rather
+	// than being put there, as by retreating from combat or withdrawing.
+	public void OnEnterTile(Tile tile, bool movedThere) {
 		//Add to player knowledge of tiles
 		owner.tileKnowledge.AddTilesToKnown(tile);
 
@@ -58,8 +61,12 @@ public partial class MapUnit {
 			}
 		}
 
-		// See what's in the goody hut, if there is one.
-		GoodyHuts.Enter(EngineStorage.gameData, this, tile);
+		// See what's in the goody hut, if there is one. Only a unit that
+		// chose to go there opens it, not one retreating from a battle onto
+		// it.
+		if (movedThere) {
+			GoodyHuts.Enter(EngineStorage.gameData, this, tile);
+		}
 
 		// Capture the enemy city on the tile unless we're the barbarians,
 		// in which case we'll just take some gold.
@@ -268,6 +275,24 @@ public partial class MapUnit {
 
 	public async Task MoveAlongPath() {
 		while (movementPoints.canMove && path?.PathLength() > 0) {
+			// Water the path crossed while it was unexplored may turn out to
+			// be unsafe once seen. A goto never risks a ship unless told to,
+			// so go around it, or stop if there's no way around.
+			Tile peeked = path.PeekNext();
+			if (peeked != null && peeked != Tile.NONE && PathAvoids(peeked, path.destination)) {
+				TilePath detour = Tile.IsTileValid(location) && Tile.IsTileValid(path.destination)
+					? PathingAlgorithmChooser.GetAlgorithm(this).PathFrom(location, path.destination, this)
+					: null;
+				Tile first = detour?.PeekNext() ?? Tile.NONE;
+				if (first == Tile.NONE || PathAvoids(first, detour.destination)) {
+					log.Information("{Unit} stopped its goto short of unsafe water at {Tile}", this, peeked);
+					path = null;
+					return;
+				}
+				path = detour;
+				continue;
+			}
+
 			Tile next = path.Next();
 			// A step off the map has no direction to move in. Paths from
 			// elsewhere (over the network, or from a save) are checked with
@@ -449,7 +474,7 @@ public partial class MapUnit {
 		float movementCost = TilePath.GetMovementCost(this.owner, location, dir, newLoc);
 		List<MapUnit> zoneOfControlAttackers = FindZoneOfControlAttackers(location, newLoc);
 
-		RelocateTo(newLoc);
+		RelocateTo(newLoc, movedThere: true);
 		WakeNearbySentries(newLoc);
 
 		if (wait)
@@ -468,8 +493,9 @@ public partial class MapUnit {
 
 	// Moves the unit, and anything it carries, onto a neighboring tile. This
 	// doesn't check whether the move is allowed, start combat, or use
-	// movement points; callers handle those.
-	private void RelocateTo(Tile newLoc) {
+	// movement points; callers handle those. `movedThere` is whether this
+	// is the unit's own move (see OnEnterTile).
+	private void RelocateTo(Tile newLoc, bool movedThere = false) {
 		// Leave old tile
 		if (!location.unitsOnTile.Remove(this))
 			throw new System.Exception("Failed to remove unit from tile it's supposed to be on");
@@ -486,7 +512,7 @@ public partial class MapUnit {
 		// Make sure the unit is on the new location before claiming we have entered the tile
 		newLoc.unitsOnTile.Add(this);
 		location = newLoc;
-		OnEnterTile(newLoc);
+		OnEnterTile(newLoc, movedThere);
 	}
 
 	// Moves everything loaded on this unit, and anything loaded on that (like

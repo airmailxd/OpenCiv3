@@ -30,8 +30,13 @@ public partial class MapUnit {
 	// destination, as they may by moving there one step at a time, and
 	// tiles they haven't explored are assumed safe, as they're assumed
 	// passable.
+	//
+	// A ship already in unsafe water, say because the Great Lighthouse was
+	// lost or it was withdrawn there, would otherwise have no path out and
+	// sit there risking the roll every turn, so its paths may cross unsafe
+	// water to get back to safety.
 	internal bool PathAvoids(Tile tile, Tile destination) {
-		if (!IsUnsafeWater(tile)) {
+		if (!IsUnsafeWater(tile) || IsInUnsafeWater()) {
 			return false;
 		}
 		if (owner.isHuman && (tile == destination || !owner.HasExploredTile(tile))) {

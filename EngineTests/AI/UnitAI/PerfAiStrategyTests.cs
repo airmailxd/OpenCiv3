@@ -75,9 +75,10 @@ public class PerfAiStrategyTests : IClassFixture<SaveGameFixture>, IDisposable {
 				* rivalCities.Count(c => t.DistanceTo(c) <= player.civilization.Adjustments.RivalCityRadius);
 			float preDistanceScore = score;
 			int distance = SettlerLocationAI.DistanceFromEmpire(t, start, ownCities);
-			score += SettlerLocationAI.DistancePenalty(distance, player.civilization.Adjustments);
+			float distancePenalty = SettlerLocationAI.DistancePenalty(distance, player.civilization.Adjustments);
+			score += distancePenalty;
 			if (preDistanceScore > 0 && score <= 0) {
-				score = 1;
+				score = preDistanceScore / (preDistanceScore - distancePenalty);
 			}
 			if (score > 0)
 				scores[t] = score;

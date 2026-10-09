@@ -51,16 +51,20 @@ namespace C7Engine {
 			// The step must also be one Move accepts. A tile that someone we're
 			// at peace with moved onto would take a war declaration to enter,
 			// which Move refuses, so path around it instead.
+			//
+			// Nor should it be into water the path now avoids, as after the
+			// Great Lighthouse is lost, or the ship could sink there.
 			Tile nextTile = path?.PeekNext() ?? Tile.NONE;
 			if (nextTile == Tile.NONE || !IsNeighbor(unit.location, nextTile)
-				|| (!alreadyValidated && !unit.CanEnter(nextTile))) {
+				|| (!alreadyValidated && (!unit.CanEnter(nextTile) || unit.PathAvoids(nextTile, path.destination)))) {
 				Tile destination = path?.destination ?? Tile.NONE;
 				log.Information($"Attempting to repath {unit} from {unit.location} to {destination}");
 				// Attempt to repath. If we succeed, return inprogress so we get
 				// called again.
 				path = destination == Tile.NONE ? null : PathingAlgorithmChooser.GetAlgorithm(unit).PathFrom(unit.location, destination, unit);
 				Tile first = path?.PeekNext() ?? Tile.NONE;
-				if (first == Tile.NONE || !IsNeighbor(unit.location, first) || !unit.CanEnter(first)) {
+				if (first == Tile.NONE || !IsNeighbor(unit.location, first) || !unit.CanEnter(first)
+					|| unit.PathAvoids(first, path.destination)) {
 					return UnitAI.Result.Error;
 				}
 

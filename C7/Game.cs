@@ -1061,6 +1061,13 @@ public partial class Game : Node {
 				popupOverlay.ShowPopup(pop, PopupOverlay.PopupCategory.Advisor);
 				break;
 			}
+			case MsgWonderCompleted mWC: {
+				// Like the space race news, this is too important to drop, so
+				// it waits its turn behind any popup already showing.
+				var pop = new InformationalPopup(mWC.Announcement(), AdvisorHead.Advisor.Domestic, AdvisorHead.Mood.Surprised);
+				popupOverlay.ShowPopup(pop, PopupOverlay.PopupCategory.Advisor);
+				break;
+			}
 			case MsgShowDomesticAdvisorPopup mSDAP:
 				if (!popupOverlay.Visible) {
 					var pop = new InformationalPopup(mSDAP.message, AdvisorHead.Advisor.Domestic, AdvisorHead.Mood.Angry);
