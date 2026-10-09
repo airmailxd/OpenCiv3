@@ -1578,12 +1578,21 @@ namespace C7GameData {
 		private const int WarWearinessPerFaceLow = 20;
 		private const int WarWearinessPerFaceHigh = 10;
 
+		// In Civ3 the weariness of a war lingers for a while after peace
+		// rather than vanishing at once. Also an approximation: each turn
+		// without a war a quarter of the points (at least one) fade, so even
+		// a long war's weariness is gone in a dozen or so turns.
+		private const int WarWearinessDecayPercentAtPeace = 25;
+
 		// Called once per turn.
 		public void UpdateWarWeariness(GameData gameData) {
 			List<Player> enemies = gameData.players.Where(p =>
 				p != this && !p.isBarbarians && !p.defeated && AtWar(this, p)).ToList();
 			if (enemies.Count == 0) {
-				warWeariness = 0;
+				if (warWeariness > 0) {
+					int decay = Math.Max(1, (warWeariness * WarWearinessDecayPercentAtPeace + 99) / 100);
+					warWeariness = Math.Max(0, warWeariness - decay);
+				}
 				return;
 			}
 			foreach (Player enemy in enemies) {

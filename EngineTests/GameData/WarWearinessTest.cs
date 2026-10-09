@@ -50,11 +50,19 @@ public class WarWearinessTest {
 	}
 
 	[Fact]
-	public void WarWearinessClearsAtPeace() {
+	public void WarWearinessFadesAtPeace() {
 		City city = MakeCity(warWearinessLevel: 2, weariness: 50);
 		C7GameData.GameData gameData = new();
 		gameData.players.Add(city.owner);
+
+		// It lingers for a while...
 		city.owner.UpdateWarWeariness(gameData);
+		Assert.InRange(city.owner.warWeariness, 1, 49);
+
+		// ...but is gone before long.
+		for (int i = 0; i < 20; ++i) {
+			city.owner.UpdateWarWeariness(gameData);
+		}
 		Assert.Equal(0, city.owner.warWeariness);
 	}
 }
