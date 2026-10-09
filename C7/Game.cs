@@ -287,6 +287,9 @@ public partial class Game : Node {
 
 		if (ShouldShowScoreboard(EngineStorage.gameData)) {
 			ShowScoreboard();
+		} else if (LanSession.IsSpectator) {
+			// Without it, a spectator still chooses how to watch there.
+			ShowScoreboard(viewChoiceOnly: true);
 		}
 
 		if (LanSession.IsSpectator) {
@@ -724,8 +727,9 @@ public partial class Game : Node {
 
 	// The players' scores and the turn clock, in the top right corner under
 	// the toolbar. It is part of the HUD, so advisors and popups cover it.
-	private void ShowScoreboard() {
-		Scoreboard scoreboard = new();
+	// With viewChoiceOnly, it has only a spectator's choice of how to watch.
+	private void ShowScoreboard(bool viewChoiceOnly = false) {
+		Scoreboard scoreboard = new(viewChoiceOnly);
 		GetNode<Control>("CanvasLayer/Control").AddChild(scoreboard);
 		scoreboard.SetAnchorsPreset(Control.LayoutPreset.TopRight);
 		scoreboard.GrowHorizontal = Control.GrowDirection.Begin;
