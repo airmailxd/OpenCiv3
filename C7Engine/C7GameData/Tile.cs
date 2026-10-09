@@ -371,8 +371,10 @@ namespace C7GameData {
 			return riverNorth || riverNortheast || riverEast || riverSoutheast || riverSouth || riverSouthwest || riverWest || riverNorthwest;
 		}
 
-		// TODO: This method doesn't handle the electicity tech which allows
-		// irrigating without fresh water access.
+		// Whether the player can irrigate this tile. Irrigation needs fresh
+		// water (a river, lake or irrigated tile next to it) until the player
+		// knows a tech that enables irrigation everywhere (Electricity in
+		// Civ3).
 		public bool CanBeIrrigated(TerrainImprovement irrigation, Player player) {
 			// Irrigation can't be done if there is no irrigation bonus for the
 			// tile or if there's already an improvement or city on the tile.
@@ -380,6 +382,10 @@ namespace C7GameData {
 				irrigation.GetYieldBonus(overlayTerrainType, YieldType.Food) <= 0 ||
 				cityAtTile != null) {
 				return false;
+			}
+
+			if (player != null && player.KnowsTechWhere(t => t.EnablesIrrigationEverywhere)) {
+				return true;
 			}
 
 			// If a tile borders a river or fresh water, it has fresh water access.

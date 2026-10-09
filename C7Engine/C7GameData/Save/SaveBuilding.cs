@@ -123,6 +123,11 @@ namespace C7GameData.Save {
 		// Pollution the building adds to its city.
 		public int pollution;
 
+		// The BIQ's bombard defense: the strength walls (and coastal
+		// fortresses) defend themselves with against bombardment. Zero if
+		// not given; see Building.bombardDefense.
+		public int bombardDefense;
+
 		// For a spaceship part, its index in Rules.SpaceshipPartsRequired
 		// (Civ3's BLDG "spaceship part" field). Null for ordinary buildings.
 		public int? spaceshipPart;

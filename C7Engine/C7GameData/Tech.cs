@@ -12,6 +12,10 @@ namespace C7GameData {
 		public bool BonusTechToFirstCivThatResearches;
 		public bool EnablesBridges;
 		public bool DoublesWealthProduction;
+		// Irrigation no longer needs fresh water (Electricity in Civ3).
+		public bool EnablesIrrigationEverywhere;
+		// Workers work twice as fast (Replaceable Parts in Civ3).
+		public bool DoublesWorkerRate;
 
 		// The civilopedia name of the era this tech is part of
 		// (like ERA_Ancient_Times). This is what art lookups are based on.

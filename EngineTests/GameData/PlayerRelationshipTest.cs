@@ -64,8 +64,10 @@ public class PlayerRelationshipTest : IClassFixture<SaveGameFixture> {
 		RegisterMultiTurnDeal(playerA, playerB, rop);
 		Assert.True(HaveActiveRightOfPassage(playerA, playerB));
 
-		int refusal = 10;
-		DeclareWar(playerA, playerB, false, refusal);
+		// The defender refuses contact for 10 turns, the aggressor for half
+		// as long.
+		int refusal = gd.turn + 10;
+		DeclareWar(playerA, playerB, false, refusal, gd.turn);
 		Assert.True(AtWar(playerA, playerB));
 		Assert.True(IsInAnyWar(playerA, gd.players));
 		Assert.True(IsInAnyWar(playerB, gd.players));
@@ -76,7 +78,7 @@ public class PlayerRelationshipTest : IClassFixture<SaveGameFixture> {
 		Assert.False(relationshipB.wasSneakAttacked);
 		Assert.False(relationshipA.warDeclarationWithRoPActiveCount == 1);
 		Assert.True(relationshipB.warDeclarationWithRoPActiveCount == 1);
-		Assert.True(relationshipA.refuseContactUntilTurn == refusal / 2);
+		Assert.Equal(gd.turn + 5, relationshipA.refuseContactUntilTurn);
 		Assert.True(relationshipB.refuseContactUntilTurn == refusal);
 
 		SignPeaceAfterWar(playerA, playerB, gd);

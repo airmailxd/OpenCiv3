@@ -152,12 +152,10 @@ namespace C7GameData {
 		}
 
 		private async Task BombardCityWalls(Tile tile, CityBuilding walls) {
-			// CF Civilopedia: City walls have a land bombardment defense of 8
-			// CF Civilopedia: Coastal defences have a land bombardment defense of 8
 			// Anecdotal: "City walls are hit first."
-			// TODO: Make configurable
-
-			const int wallDefence = 8;
+			// The walls defend with the BIQ's bombard defense (8 for city
+			// walls in the standard rules, see Building.bombardDefense).
+			int wallDefence = walls.building.bombardDefense > 0 ? walls.building.bombardDefense : Building.DefaultWallBombardDefense;
 
 			var hitCount = 0;
 
@@ -199,6 +197,9 @@ namespace C7GameData {
 					break;
 				if (target.CompositeHitPoints() - hitCount <= 1 && tile.IsWater() && !this.unitType.isSeaBombardmentLethal)
 					break;
+				// Lethal bombardment stops once the target is dead.
+				if (target.CompositeHitPoints() - hitCount <= 0)
+					break;
 
 				var r = GameData.rng.NextDouble();
 				if (r < attackerOdds) {
@@ -208,7 +209,7 @@ namespace C7GameData {
 
 			bool targetDestroyed = false;
 			if (hitCount > 0) {
-				for (int i = 0; i < hitCount; ++i) {
+				for (int i = 0; i < hitCount && !targetDestroyed; ++i) {
 					bool lethal = tile.IsLand() ? unitType.isLandBombardmentLethal : unitType.isSeaBombardmentLethal;
 					targetDestroyed = target.AbsorbBombardHit(lethal);
 					await tile.AnimateAsync(hitList[GameData.rng.Next(0, hitList.Length)]);
@@ -227,37 +228,51 @@ namespace C7GameData {
 			TriggerPopUp(hitCount, tile, "Artillery bombardment successful! Enemy units injured.");
 		}
 
-		private async Task BombardCity(Tile tile) {
-			// Anecdotal: If there are no units left to hit, then citizens or buildings are hit, apparently with same probability.
-			// Anecdotal: "buildings (if I remember correctly) have a defense value of 16"
-			// Anecdotal: It seems population is killed off more quickly than buildings.
-			// TODO: Make configurable
+		// The strengths a city's buildings and citizens defend with against
+		// bombardment once it has no walls or defenders left to hit. Civ3
+		// keeps these in no rule, so they're estimates from play: "buildings
+		// (if I remember correctly) have a defense value of 16", and citizens
+		// seem to be killed off more quickly than buildings. Either is picked
+		// with the same probability.
+		private const int BuildingBombardDefence = 16;
+		private const int PopulationBombardDefence = 12;
+		private const float BuildingOrPopulationOdds = 0.5f;
 
-			const int buildingDefence = 16;
-			const int populationDefence = 12;
-			const float buildingOrPopulationOdds = 0.5f;
+		private async Task BombardCity(Tile tile) {
+			City city = tile.cityAtTile;
 
 			// Only buildings actually built in the city can be destroyed:
 			// buildings granted by wonders aren't stored in the city, and
 			// wonders (and the palace) can't be bombarded away.
 			// TODO: probably not canon to exclude palace
-			List<CityBuilding> eligibleBuildingsForBombardment = tile.cityAtTile.constructed_buildings.Where(IsBombardableBuilding).ToList();
+			List<CityBuilding> eligibleBuildingsForBombardment = city.constructed_buildings.Where(IsBombardableBuilding).ToList();
 
-			var targetBuildings = GameData.rng.NextDouble() <= buildingOrPopulationOdds && eligibleBuildingsForBombardment.Count > 0;
-			var defence = targetBuildings ? buildingDefence : populationDefence;
+			// Bombardment never kills a city's last citizen, so a size 1 city
+			// can only lose buildings.
+			bool canKillCitizens = city.residents.Count > 1;
+			bool canHitBuildings = eligibleBuildingsForBombardment.Count > 0;
+			if (!canKillCitizens && !canHitBuildings) {
+				// Nothing to hit, but the shot is still spent.
+				await RunAnimatedBombard(tile, 0, () => { });
+				TriggerPopUp(0, tile, string.Empty);
+				return;
+			}
+
+			var targetBuildings = canHitBuildings && (!canKillCitizens || GameData.rng.NextDouble() <= BuildingOrPopulationOdds);
+			var defence = targetBuildings ? BuildingBombardDefence : PopulationBombardDefence;
 			var destroyMsg = string.Empty;
 			Action remover = targetBuildings
 				? () =>
 				{
 					var building = eligibleBuildingsForBombardment
 						.OrderBy(x => GameData.rng.Next()).First();
-					tile.cityAtTile.RemoveBuilding(building);
-					destroyMsg = $"The {building.building.name} of {tile.cityAtTile.name} has been destroyed!";
+					city.RemoveBuilding(building);
+					destroyMsg = $"The {building.building.name} of {city.name} has been destroyed!";
 				}
 			: () =>
 				{
-					tile.cityAtTile.RemoveRandomCitizen();
-					destroyMsg = $"Some of {tile.cityAtTile.name}'s citizens have been killed!";
+					city.RemoveRandomCitizen();
+					destroyMsg = $"Some of {city.name}'s citizens have been killed!";
 				};
 
 			var hitCount = 0;
@@ -276,12 +291,14 @@ namespace C7GameData {
 			TriggerPopUp(hitCount, tile, destroyMsg);
 		}
 
-		private async Task BombardTileImprovements(Tile tile) {
-			// Anecdotal: "arty seems to wipe out improvement on 75% or more of the shots"
-			// ==> Artillery.bombard : 12 --> TileImprovement.Defense : 3
-			// TODO: Make configurable
+		// The strength a tile improvement defends with against bombardment.
+		// Not in Civ3's rules either; an estimate from play: "arty seems to
+		// wipe out improvement on 75% or more of the shots", i.e. artillery's
+		// 12 against 3.
+		private const int TileImprovementBombardDefence = 3;
 
-			const int tileImprovementDefence = 3;
+		private async Task BombardTileImprovements(Tile tile) {
+			const int tileImprovementDefence = TileImprovementBombardDefence;
 
 			var hitCount = 0;
 

@@ -77,8 +77,9 @@ namespace C7GameData {
 		public int movement { get; set; }
 		public int capacity { get; set; }
 		public int hpBonus { get; set; }
-		// How much work a worker does each turn, relative to a Worker (the
-		// BIQ's PRTO worker strength).
+
+		// How much faster than a plain worker this unit does terrain jobs
+		// (the BIQ's worker strength: 1 for Workers, 2 for Engineers).
 		public float workerStrength { get; set; } = 1;
 		// producibleBy and upgradesTo are what the cached upgrade relations
 		// (UpgradeGraph) are worked out from. They are public and mutable, so
@@ -308,7 +309,8 @@ namespace C7GameData {
 
 			(movement, capacity, hpBonus, unproducible) =
 				(proto.movement, proto.capacity, proto.hpBonus, proto.unproducible);
-			workerStrength = proto.workerStrength;
+			// Rulesets without the value leave every worker at plain speed.
+			workerStrength = proto.workerStrength > 0 ? proto.workerStrength : 1;
 
 			categories = new HashSet<string>(proto.categories);
 			actions = new HashSet<UnitAction>(proto.actions);
@@ -463,11 +465,14 @@ namespace C7GameData {
 			}
 		}
 
-		public MapUnit GetInstance(ID id, UnitPrototype proto, Player owner, Civilization nationality = null, Tile location = null, TileDirection facingDirection = TileDirection.SOUTHWEST, int hitPoints = 3) {
+		// Without hitPoints the unit starts with the full hit points of the
+		// game's default experience level (or Civ3's regular 3 if there's no
+		// game), plus the prototype's bonus.
+		public MapUnit GetInstance(ID id, UnitPrototype proto, Player owner, Civilization nationality = null, Tile location = null, TileDirection facingDirection = TileDirection.SOUTHWEST, int? hitPoints = null) {
 			MapUnit instance = new MapUnit(id);
 			instance.unitType = proto;
 			instance.name = proto.name;
-			instance.hitPointsRemaining = hitPoints;    //todo: make this configurable
+			instance.hitPointsRemaining = hitPoints ?? (EngineStorage.gameData?.defaultExperienceLevel?.baseHitPoints ?? 3) + proto.hpBonus;
 			instance.owner = owner;
 			if (nationality != null)
 				instance.nationality = nationality;

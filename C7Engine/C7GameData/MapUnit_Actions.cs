@@ -69,18 +69,32 @@ public partial class MapUnit {
 		}
 
 		// Capture the enemy city on the tile unless we're the barbarians,
-		// in which case we'll just take some gold.
+		// who don't hold cities: they sack it, carrying off the city's share
+		// of its owner's treasury, and leave. The share is the one a
+		// conqueror plunders (see CityInteractions.CaptureCity): the
+		// treasury times the city's part of the civ's population.
+		//
+		// Assumption: Civ3's exact sacking rule isn't documented; a share by
+		// population means sacking one small town of a large empire costs
+		// little, where the old flat quarter of the treasury didn't.
 		if (tile.HasCity() && !owner.IsAtPeaceWith(tile.cityAtTile.owner)) {
 			if (owner.isBarbarians) {
-				// TODO: Add rules for how much gold is taken.
-				int goldTaken = tile.cityAtTile.owner.gold / 4;
-				tile.cityAtTile.owner.gold -= goldTaken;
+				City sacked = tile.cityAtTile;
+				Player victim = sacked.owner;
+				int goldTaken = sacked.PlunderableGold();
+				victim.gold -= goldTaken;
 				this.RemoveFromPlay();
-				if (tile.cityAtTile.owner.isHuman) {
-					new MsgShowMilitaryAdvisorPopup(tile.cityAtTile.owner, $"Barbarians have stolen {goldTaken} gold from our cities!\nWe need a stronger military.", happy: false).send();
+				if (victim.isHuman) {
+					new MsgShowMilitaryAdvisorPopup(victim, $"Barbarians have sacked {sacked.name} and stolen {goldTaken} gold!\nWe need a stronger military.", happy: false).send();
 				}
 			} else {
-				CityInteractions.CaptureCity(tile.cityAtTile, owner);
+				City city = tile.cityAtTile;
+				Player formerOwner = city.owner;
+				CityInteractions.CaptureCity(city, owner);
+				// A city that survived being taken may resist its new owner.
+				if (tile.cityAtTile == city && city.owner == owner) {
+					city.StartResistance(formerOwner);
+				}
 			}
 		}
 

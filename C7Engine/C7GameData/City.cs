@@ -113,6 +113,15 @@ namespace C7GameData {
 
 		public bool isInCivilDisorder = false;
 
+		// Resistance in a conquered city: the number of citizens still loyal
+		// to resistanceFrom, the civ it was taken from. While any resist the
+		// city produces no shields or commerce, as in Civ3. See
+		// StartResistance and UpdateResistance.
+		public int resisters = 0;
+		public Player resistanceFrom;
+
+		public bool IsInResistance => resisters > 0;
+
 		// Whether production was hurried this turn, with gold, citizens or a
 		// great leader. As in Civ3, the city then can't change what it's
 		// building until the turn ends, so the hurried shields can't be
@@ -431,12 +440,42 @@ namespace C7GameData {
 			return TurnsToProduce(itemBeingProduced);
 		}
 
+		// Whether the production box is empty. Hurrying then costs double, as
+		// in Civ3.
+		private bool HurryingFromAnEmptyBox() => shieldsStored == 0;
+
 		private int ShieldCostForHurrying() {
 			// If there are no shields in the box, hurrying costs double.
-			if (shieldsStored == 0) {
+			if (HurryingFromAnEmptyBox()) {
 				return owner.ShieldCost(itemBeingProduced) * 2;
 			}
 			return owner.ShieldCost(itemBeingProduced) - shieldsStored;
+		}
+
+		// The gold it costs to buy the rest of the current item. Civ3's rush
+		// buying formulas, as worked out by players, with s the shields
+		// remaining:
+		//  - improvements: 2 gold per shield;
+		//  - units: 2s + s^2/20, so big units are relatively dearer;
+		//  - either doubled when nothing has been built yet (an empty box).
+		// The BIQ's "shield value in gold" is 4 in the standard rules, which
+		// Civ3 halves for improvements and units (it's the rate a wonder would
+		// cost, and wonders can't be bought), so the per-shield rate is taken
+		// as half of it to stay rule driven.
+		internal int HurryGoldCost() {
+			int remaining = owner.ShieldCost(itemBeingProduced) - shieldsStored;
+			if (remaining <= 0) {
+				return 0;
+			}
+			int goldPerShield = Math.Max(1, owner.rules.ShieldValueInGold / 2);
+			int cost = goldPerShield * remaining;
+			if (itemBeingProduced is UnitPrototype) {
+				cost += remaining * remaining / 20;
+			}
+			if (HurryingFromAnEmptyBox()) {
+				cost *= 2;
+			}
+			return cost;
 		}
 
 		// Returns the feasibility of hurrying production
@@ -453,6 +492,9 @@ namespace C7GameData {
 			if (isInCivilDisorder) {
 				return new HurryProductionDetails() { errorMessage = "The city is in disorder and cannot hurry production." };
 			}
+			if (IsInResistance) {
+				return new HurryProductionDetails() { errorMessage = "The city is resisting our rule and cannot hurry production." };
+			}
 
 			// Nothing to hurry: no production, a full box, or something like
 			// Wealth that costs no shields.
@@ -462,6 +504,12 @@ namespace C7GameData {
 			int shieldCost = ShieldCostForHurrying();
 			if (shieldCost <= 0) {
 				return new HurryProductionDetails() { errorMessage = "There is nothing to hurry in this city." };
+			}
+
+			// Civ3 never lets wonders, great or small, be bought or rushed
+			// with citizens.
+			if (itemBeingProduced is Building { isSmallWonder: true } || itemBeingProduced is Building b && b.IsGreatWonder()) {
+				return new HurryProductionDetails() { errorMessage = "Wonders cannot be hurried." };
 			}
 
 			switch (owner.government.hurryingType) {
@@ -479,7 +527,7 @@ namespace C7GameData {
 					};
 
 				case Government.HurryProductionType.PaidLabor:
-					int goldCost = shieldCost * rules.ShieldValueInGold;
+					int goldCost = HurryGoldCost();
 					if (goldCost > owner.gold) {
 						return new HurryProductionDetails() { errorMessage = $"Hurrying production would cost too much gold! ({goldCost})." };
 					}
@@ -576,7 +624,7 @@ namespace C7GameData {
 						}
 
 						foreach (City c in p.cities) {
-							if (c.itemBeingProduced.name == building.name) {
+							if (c.itemBeingProduced?.name == building.name) {
 								c.SetItemBeingProduced(c.TakeNextQueuedProduction(gameData) ?? c.GetMostExpensiveItemToProduce());
 							}
 						}
@@ -893,19 +941,44 @@ namespace C7GameData {
 			// setting corruption to 100% because CorruptableValue would give us
 			// one useful commerce in that situation.
 			//
-			// The same is true for civil disorder.
-			if (owner.government.transitionType || isInCivilDisorder) {
+			// The same is true for civil disorder and resistance.
+			if (owner.government.transitionType || isInCivilDisorder || IsInResistance) {
 				result.useful = 0;
 				result.corrupt = yield;
+			}
+
+			// Specialists work only when the city does: policemen cut waste,
+			// and civil engineers add their own shields. Assumption: the
+			// engineers' shields count before factories and power plants,
+			// like those of the city's tiles.
+			if (!owner.government.transitionType && !isInCivilDisorder && !IsInResistance) {
+				RecoverWithPolicemen(ref result);
+				foreach (CityResident cr in residents) {
+					result.useful += cr.citizenType.Construction;
+				}
 			}
 
 			// Factories and power plants boost the shields left after waste.
 			result.useful += result.useful * ProductionBonusPercent(buildings) / 100;
 
-			// TODO: add specialist shields here. Do specialists still work in
-			// civil disorder?
-
 			return result;
+		}
+
+		// Policemen (specialists with a corruption value) win back lost
+		// commerce or shields. Civ3 doesn't document the amount; this takes
+		// the BIQ's value as an absolute amount, like the other specialists'
+		// taxes, science and shields: the standard policeman's 1 recovers one
+		// corrupt commerce and one wasted shield. Never more than was lost.
+		private void RecoverWithPolicemen(ref CorruptableValue value) {
+			int recovered = 0;
+			foreach (CityResident cr in residents) {
+				recovered += cr.citizenType.Corruption;
+			}
+			recovered = Math.Min(recovered, value.corrupt);
+			if (recovered > 0) {
+				value.corrupt -= recovered;
+				value.useful += recovered;
+			}
 		}
 
 		// The percentage the given buildings add to the city's useful shields.
@@ -969,7 +1042,11 @@ namespace C7GameData {
 			// happy at a certain luxury slider value even while the city is in
 			// civil disorder.
 			CorruptableValue commerce = new CorruptableValue(uncorruptedCommerce, corruption);
-			if (owner.government.transitionType || (isInCivilDisorder && respectCivilDisorder)) {
+			RecoverWithPolicemen(ref commerce);
+			// A resisting city produces nothing, like one in disorder.
+			bool inDisorder = (isInCivilDisorder || IsInResistance) && respectCivilDisorder;
+			bool inAnarchy = owner.government.transitionType;
+			if (inAnarchy || inDisorder) {
 				commerce.useful = 0;
 				commerce.corrupt = uncorruptedCommerce;
 			}
@@ -1000,13 +1077,34 @@ namespace C7GameData {
 			result.happiness += result.happiness * luxuryBuildings / 2;
 			result.taxes += result.taxes * taxBuildings / 2;
 
-			foreach (CityResident cr in residents) {
-				result.beakers += cr.citizenType.Research;
-				result.happiness += cr.citizenType.Luxuries;
-				result.taxes += cr.citizenType.Taxes;
+			// Specialists add their own taxes, beakers and luxuries. A city in
+			// disorder produces nothing, specialists included. Under anarchy
+			// no taxes or science are collected, but entertainers still
+			// entertain (they're how a city keeps order then).
+			if (!inDisorder) {
+				foreach (CityResident cr in residents) {
+					result.happiness += cr.citizenType.Luxuries;
+					if (!inAnarchy) {
+						result.beakers += cr.citizenType.Research;
+						result.taxes += cr.citizenType.Taxes;
+					}
+				}
 			}
 
 			return result;
+		}
+
+		// Shares out commerce by the owner's sliders, as CurrentCommerceYieldRaw
+		// does (without the buildings' bonuses).
+		private void AddUsefulCommerce(ref CommerceBreakdown result, int commerce) {
+			if (commerce <= 0) {
+				return;
+			}
+			int happiness = RoundedShare(commerce, owner.luxuryRate);
+			int beakers = Math.Min(RoundedShare(commerce, owner.scienceRate), commerce - happiness);
+			result.happiness += happiness;
+			result.beakers += beakers;
+			result.taxes += commerce - happiness - beakers;
 		}
 
 		// The share of `commerce` a slider at `rate` (in tenths) gets, rounding
@@ -1042,8 +1140,11 @@ namespace C7GameData {
 
 			// corruption lua infow
 			if (this.itemBeingProduced is Inflow inflowCorruption && inflowCorruption.TryGetInflowYieldFunc(InflowYield.corruption, out var corruptionYieldFunc)) {
-				int lessCorruption = corruptionYieldFunc.Invoke(new ScriptContext(this.owner, this));
+				// The commerce saved from corruption is useful again, so it is
+				// shared out by the sliders like the rest.
+				int lessCorruption = Math.Min(corruptionYieldFunc.Invoke(new ScriptContext(this.owner, this)), result.corrupted);
 				result.corrupted -= lessCorruption;
+				AddUsefulCommerce(ref result, lessCorruption);
 			}
 
 			return result;
@@ -1083,9 +1184,74 @@ namespace C7GameData {
 			return CurrentFoodYield() - FoodConsumedPerTurn();
 		}
 
+		// The city's share of its owner's treasury, by population: what a
+		// conqueror, or barbarians sacking it, carry off.
+		public int PlunderableGold() {
+			int totalPopulation = owner.cities.Sum(c => c.residents.Count);
+			return totalPopulation > 0 ? (int)((long)owner.gold * residents.Count / totalPopulation) : 0;
+		}
+
+		// Resisters still eat: resistance stops the city's shields and
+		// commerce, not its farming (see IsInResistance).
 		public int FoodConsumedPerTurn() {
-			// TODO: exclude resisters in the future.
 			return residents.Count * 2;
+		}
+
+		// Civ3's resistance in a city taken by force. Some of the citizens of
+		// the civ it was taken from resist: assumption, half of them, rounded
+		// up (Civ3 also weighs the two civs' culture, which we don't). No one
+		// resists for the barbarians.
+		public void StartResistance(Player formerOwner) {
+			if (formerOwner == null || formerOwner.isBarbarians || formerOwner == owner) {
+				return;
+			}
+			int nationals = residents.Count(r => r.nationality == formerOwner.civilization);
+			resisters = (nationals + 1) / 2;
+			resistanceFrom = resisters > 0 ? formerOwner : null;
+		}
+
+		// Each turn every resister may give up, more likely the bigger the
+		// garrison: each land defender in the city quells as many resisters
+		// as the difficulty level's military law (usually 1), after the
+		// Civ3 rule documented at
+		// https://www.civfanatics.com/civ3/strategy/game-mechanics/the-inner-workings-of-resistance-revealed/.
+		// As a simple stand-in for its odds, a resister gives up with chance
+		// (1 + quelling) / (2 + resisters), at most 90%, so an ungarrisoned
+		// city calms down over a few turns and a strong garrison ends it
+		// quickly. Resistance also ends if the old owner is gone or has the
+		// city back.
+		public void UpdateResistance(GameData gameData) {
+			if (resisters <= 0) {
+				return;
+			}
+			if (resistanceFrom == null || resistanceFrom.defeated || resistanceFrom == owner) {
+				EndResistance();
+				return;
+			}
+			resisters = Math.Min(resisters, residents.Count);
+
+			int garrison = location.unitsOnTile.Count(u => u.owner == owner && u.CanDefendOnLand());
+			int quelling = garrison * Math.Max(1, gameData.gameDifficulty?.MilitaryLaw ?? 1);
+			double chance = Math.Min(0.9, (1.0 + quelling) / (2.0 + resisters));
+			int remaining = 0;
+			for (int i = 0; i < resisters; ++i) {
+				if (GameData.rng.NextDouble() >= chance) {
+					++remaining;
+				}
+			}
+			resisters = remaining;
+			if (resisters == 0) {
+				EndResistance();
+				log.Information("Resistance in {City} has ended", this);
+				if (owner.isHuman) {
+					new MsgShowTemporaryPopup($"The resistance in {name} has been quelled.", location, owner).send();
+				}
+			}
+		}
+
+		private void EndResistance() {
+			resisters = 0;
+			resistanceFrom = null;
 		}
 
 
@@ -1392,7 +1558,9 @@ namespace C7GameData {
 		internal void CalculateCorruption(GameData gameData, int adjustedOptimalCityNumber) {
 			int numAntiCorruptionBuildings = 0;
 
-			// TODO: Handle the SPHQ.
+			// Civ3's Secret Police HQ is a second Forbidden Palace: the BIQ
+			// gives it the same "Forbidden Palace" flag, so it counts here and
+			// as a center of the empire for distance corruption.
 			int numCorruptionReducingSmallWondersInCity = 0;
 			foreach (CityBuilding cb in EffectiveBuildings()) {
 				if (cb.building.reducesCorruption) {
@@ -1406,13 +1574,20 @@ namespace C7GameData {
 			corruption = (CalculateDistanceCorruption(gameData, numAntiCorruptionBuildings)
 					+ CalculateRankCorruption(adjustedOptimalCityNumber, gameData.map.optimalNumberOfCities, numAntiCorruptionBuildings))
 					* CorruptionScale;
-			// TODO: apply policeman modifiers, before applying the max
+			// Policemen are applied to the corrupt amounts themselves, see
+			// RecoverWithPolicemen.
 
 			// Corruption maxes out at 90%, and this max can be reduced further
 			// via courthouses/police stations, and the forbidden palace/SPHQ.
 			float maxCorruption = Math.Max(
 				0,
 				.9f - (.1f * numAntiCorruptionBuildings + .7f * numCorruptionReducingSmallWondersInCity));
+			// The difficulty level scales humans' corruption (100% in the
+			// standard rules); like its optimal city percentage, the AI is
+			// unaffected. 0 is taken as unset, as older games saved it so.
+			if (owner.isHuman && gameData.gameDifficulty != null && gameData.gameDifficulty.CorruptionPercentage > 0) {
+				corruption *= gameData.gameDifficulty.CorruptionPercentage / 100f;
+			}
 			corruption = Math.Max(corruption, 0);
 			corruption = Math.Min(corruption, maxCorruption);
 
@@ -1442,11 +1617,13 @@ namespace C7GameData {
 
 		// Initializes the citizen moods, before positive and negative
 		// influcences are added. A fixed number of citizens are born content,
-		// based on the difficulty level, and after that all citizens are born
+		// based on the difficulty level, less one for each step the empire is
+		// over its optimal size, and after that all citizens are born
 		// unhappy. Specialists and resisters are excluded from this.
-		private void InitializeMoodsForDifficulty(Difficulty gameDifficulty) {
+		private void InitializeMoodsForDifficulty(Difficulty gameDifficulty, int empireSizeUnhappiness) {
 			int numLaborers = residents.Count(x => x.citizenType.IsDefaultCitizen);
-			int content = Math.Min(gameDifficulty.NumberOfCitizensBornContent, numLaborers);
+			int bornContent = Math.Max(0, gameDifficulty.NumberOfCitizensBornContent - empireSizeUnhappiness);
+			int content = Math.Min(bornContent, numLaborers);
 
 			foreach (CityResident r in residents) {
 				if (!r.citizenType.IsDefaultCitizen) {
@@ -1586,7 +1763,7 @@ namespace C7GameData {
 			CityResident.Mood happy = CityResident.Mood.Happy;
 			CityResident.Mood content = CityResident.Mood.Content;
 			CityResident.Mood unhappy = CityResident.Mood.Unhappy;
-			InitializeMoodsForDifficulty(gameData.gameDifficulty);
+			InitializeMoodsForDifficulty(gameData.gameDifficulty, owner.EmpireSizeUnhappiness(gameData));
 
 			// We want to track the move deltas from content to happy and unhappy
 			// to content. We can also move from unhappy straight to content,
@@ -1601,7 +1778,8 @@ namespace C7GameData {
 				contentToHappyMoves -= (turnsOfUnhappinessDueToPopRushing - 1) / gameData.rules.TurnPenaltyForEachHurrySacrifice + 1;
 			}
 
-			// TODO: add penalty for drafting
+			// TODO: add penalty for drafting, once drafting is implemented
+			// (Government.draftLimit is imported but nothing drafts yet).
 
 			// War weariness makes citizens unhappy, like pop rushing.
 			contentToHappyMoves -= owner.WarWearinessUnhappiness(this);
@@ -1621,7 +1799,11 @@ namespace C7GameData {
 					++landDefenders;
 				}
 			}
-			unhappyToContentMoves += Math.Min(owner.government.militaryPoliceLimit, landDefenders);
+			// Each makes as many citizens content as the difficulty level's
+			// military law (1 in the standard rules).
+			// 0 is taken as unset, as older games saved it so.
+			int militaryLaw = Math.Max(1, gameData.gameDifficulty?.MilitaryLaw ?? 1);
+			unhappyToContentMoves += Math.Min(owner.government.militaryPoliceLimit, landDefenders) * militaryLaw;
 
 			// Luxury spending moves content faces to happy faces, one face for
 			// every luxury (see the civfanatics thread above: "one luxury

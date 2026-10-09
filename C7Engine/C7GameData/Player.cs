@@ -213,15 +213,19 @@ namespace C7GameData {
 			taxRate += excess;
 		}
 
-		// The amount of gold this player has.
+		// The amount of gold this player has. It never goes below zero: the
+		// callers that spend gold (hurrying, espionage, upgrades, deals) check
+		// the treasury first, and the turn's deficit is handled by selling
+		// buildings and disbanding units. Should anything still overspend,
+		// the treasury is emptied and a warning logged rather than the turn
+		// crashing.
 		private int _gold = 0;
 		public int gold {
 			get => _gold;
 			set {
 				if (value < 0) {
-					// TODO: the exception is ok for development, but perhaps a warning log
-					// and a Math Max function (0, value) is more appropriate at some point
-					throw new Exception($"bad gold value of {value} for {this}");
+					log.Warning("Tried to set {Player}'s gold to {Gold}; emptying the treasury instead", this, value);
+					value = 0;
 				}
 				_gold = value;
 			}
@@ -234,12 +238,11 @@ namespace C7GameData {
 		/// </summary>
 		/// <param name="amount">The number of gold to be added</param>
 		/// <param name="add">If true, the gold gets appended, otherwise it overwrites the current value</param>
+		/// Scripts may take more gold than there is; the treasury is then emptied.
 		[LuaMethod]
 		public void SetGold(int amount, bool add = false) {
-			if (add)
-				this.gold += amount;
-			else
-				this.gold = amount;
+			int newGold = add ? gold + amount : amount;
+			this.gold = Math.Max(0, newGold);
 		}
 
 		// The number of "beakers" (gold) spent on the currently researched
@@ -247,7 +250,13 @@ namespace C7GameData {
 		public int beakers = 0;
 
 		// The number of turns the player has been researching the current tech.
+		// Only turns that produced beakers count.
 		public int turnsResearched = 0;
+
+		// Whether this turn's finances put any beakers into research. Set by
+		// DoPerTurnFinanceUpdates for DoPerTurnScienceUpdates, which runs
+		// right after it, so it needn't be saved.
+		private bool researchFundedThisTurn;
 
 		// If the government is anarchy (or a govt with the transition bool set
 		// to true), the turn number at which switching governments is allowed.
@@ -456,7 +465,7 @@ namespace C7GameData {
 			// use a higher upper bound.
 			int refuseContactUntilTurn = currentTurn + GameData.rng.Next(5, isSneakAttack ? 16 : 12);
 
-			DeclareWar(this, other, isSneakAttack, refuseContactUntilTurn);
+			DeclareWar(this, other, isSneakAttack, refuseContactUntilTurn, currentTurn);
 
 			// Whenever war is declared, re-evaluate priorities.
 			turnsUntilPriorityReevaluation = 0;
@@ -979,6 +988,22 @@ namespace C7GameData {
 			return result;
 		}
 
+		// Whether the player knows any tech matching the predicate, e.g. one
+		// with a rule flag like Tech.EnablesIrrigationEverywhere.
+		[MoonSharpHidden]
+		public bool KnowsTechWhere(Func<Tech, bool> predicate) {
+			List<Tech> techs = EngineStorage.gameData?.techs;
+			if (techs == null) {
+				return false;
+			}
+			foreach (Tech t in techs) {
+				if (predicate(t) && knownTechs.Contains(t.id)) {
+					return true;
+				}
+			}
+			return false;
+		}
+
 		public bool HasTech(ID techId) {
 			bool hasTech = techId == null || this.knownTechs.Contains(techId);
 			return hasTech;
@@ -998,7 +1023,8 @@ namespace C7GameData {
 
 			float commercialCivFactor = civilization.traits.Contains(Civilization.Trait.Commercial) ? .25f : 0;
 
-			// TODO: Handle the SPHQ.
+			// The Secret Police HQ carries the BIQ's Forbidden Palace flag, so
+			// it counts here like a Forbidden Palace.
 			int numCorruptionReducingSmallWondersInEmpire = 0;
 			foreach (City c in cities) {
 				// We use constructed_buildings here because great wonders can't
@@ -1011,7 +1037,17 @@ namespace C7GameData {
 				}
 			}
 
-			float govtFactor = government.corruptionType switch {
+			float communalCorruptionFactor =
+				government.corruptionType == Government.CorruptionType.Communal ? 3.0f : 3.0f/8.0f;
+
+			float result = mapOptimalCityNumber * percentOptimalCities / 100.0f
+				  * (1 + commercialCivFactor + OptimalCityGovernmentFactor() + communalCorruptionFactor * numCorruptionReducingSmallWondersInEmpire);
+			return (int)result;
+		}
+
+		// How much the government adds to the optimal city number.
+		private float OptimalCityGovernmentFactor() {
+			return government.corruptionType switch {
 				Government.CorruptionType.Minimal => .1f,
 				Government.CorruptionType.Nuisance => .1f,
 				Government.CorruptionType.Problematic => 0,
@@ -1020,13 +1056,34 @@ namespace C7GameData {
 				Government.CorruptionType.Communal => 2,
 				Government.CorruptionType.Off => 0
 			};
+		}
 
-			float communalCorruptionFactor =
-				government.corruptionType == Government.CorruptionType.Communal ? 3.0f : 3.0f/8.0f;
-
-			float result = mapOptimalCityNumber * percentOptimalCities / 100.0f
-				  * (1 + commercialCivFactor + govtFactor + communalCorruptionFactor * numCorruptionReducingSmallWondersInEmpire);
-			return (int)result;
+		// Civ3's empire size unhappiness: once a civ has more cities than its
+		// optimal number, one fewer citizen is born content in every city,
+		// and one fewer again for each further optimal number of cities.
+		//
+		// The optimal number is the one rank corruption uses (the world
+		// size's, scaled for humans by the difficulty level's percentage and
+		// raised by the government and the commercial trait), but without the
+		// Forbidden Palace's boost, which Civ3 only gives against corruption.
+		//
+		// Assumption: Civ3 doesn't document the step after the first penalty;
+		// we take one more unhappy citizen per further optimal number of
+		// cities.
+		public int EmpireSizeUnhappiness(GameData gameData) {
+			// A map without an optimal number (e.g. one built for a test)
+			// has no empire size limit.
+			if (isBarbarians || gameData?.map == null || gameData.map.optimalNumberOfCities <= 0) {
+				return 0;
+			}
+			int percentOptimalCities = isHuman ? gameData.gameDifficulty.PercentageOfOptimalCities : 100;
+			float commercialCivFactor = civilization.traits.Contains(Civilization.Trait.Commercial) ? .25f : 0;
+			int optimal = Math.Max(1, (int)(gameData.map.optimalNumberOfCities * percentOptimalCities / 100.0f
+				* (1 + commercialCivFactor + OptimalCityGovernmentFactor())));
+			if (cities.Count <= optimal) {
+				return 0;
+			}
+			return 1 + (cities.Count - optimal - 1) / optimal;
 		}
 
 		// Notes:
@@ -1040,15 +1097,22 @@ namespace C7GameData {
 		//    and Play the World, and 2 turns in Conquests. For non-Religious
 		//    civilizations, the formula is: 1 (2 for Conquests) + random number
 		//    between 1-4 + number between 0-3 depending on size of your empire.
+		//
+		// We follow the Conquests formula from the FAQ. How the empire size
+		// maps to 0-3 isn't documented; we scale it by the optimal city
+		// number.
+		// The Conquests base length of anarchy, which is all a religious civ
+		// suffers.
+		private const int AnarchyBaseTurns = 2;
+
 		public int GetTurnsOfAnarchyForTransition(GameData gameData) {
 			if (civilization.traits.Contains(Civilization.Trait.Religious)) {
-				return 2;
+				return AnarchyBaseTurns;
 			}
 
-			// We add Next(3)+Next(3) to roughly approximate a normal
-			// distribution. With the base of 2, this gets us a random value
-			// between 2 and 6.
-			int randomPortion = 2 + GameData.rng.Next(3) + GameData.rng.Next(3);
+			// Conquests, per the FAQ above: a base of 2 plus a random 1 to 4,
+			// so 3 to 6 turns before the empire size is counted.
+			int randomPortion = AnarchyBaseTurns + 1 + GameData.rng.Next(4);
 
 			// Now we use the OCN to determine the city factor, which is between
 			// 0 and 3. This means that sprawling empires will have longer
@@ -1080,10 +1144,13 @@ namespace C7GameData {
 			// losing an improvement only changes the flows of its own city
 			// (wonders, small wonders and the palace are never lost here).
 			CityFlows[] cityFlows = new CityFlows[cities.Count];
+			int beakersThisTurn = 0;
 			for (int i = 0; i < cities.Count; ++i) {
 				cityFlows[i] = ComputeCityFlows(cities[i]);
-				beakers += cityFlows[i].commerce.beakers;
+				beakersThisTurn += cityFlows[i].commerce.beakers;
 			}
+			beakers += beakersThisTurn;
+			researchFundedThisTurn = beakersThisTurn > 0;
 			int unitSupportCost = TotalUnitsAllowedUnitsAndSupportCost().Item3;
 
 			// As in Civ 3, a deficit is fine while the treasury can pay for it.
@@ -1190,6 +1257,7 @@ namespace C7GameData {
 					EngineStorage.gameData.InvalidateCachedTradeNetwork();
 				}
 
+				c.UpdateResistance(gameData);
 				c.HandleCityGrowth(gameData);
 				c.HandleCityProduction(gameData);
 			}
@@ -1200,10 +1268,14 @@ namespace C7GameData {
 				return;
 			}
 
-			// TODO: This isn't quite accurate. This should only be
-			// incremented if the player is actually spending money on
-			// research, or has a science specialist.
-			turnsResearched++;
+			// Only turns that put beakers into the tech count towards the
+			// maximum research time. Otherwise a civ that stopped funding
+			// research would, once it started again, finish the tech at once
+			// because the clamp had run out.
+			if (researchFundedThisTurn) {
+				turnsResearched++;
+			}
+			researchFundedThisTurn = false;
 
 			// Check to see if the player has finished researching their
 			// tech, and if they have, add it to the list of known techs
@@ -1555,12 +1627,21 @@ namespace C7GameData {
 		private const int WarWearinessPerFaceLow = 20;
 		private const int WarWearinessPerFaceHigh = 10;
 
+		// In Civ3 the weariness of a war lingers for a while after peace
+		// rather than vanishing at once. Also an approximation: each turn
+		// without a war a quarter of the points (at least one) fade, so even
+		// a long war's weariness is gone in a dozen or so turns.
+		private const int WarWearinessDecayPercentAtPeace = 25;
+
 		// Called once per turn.
 		public void UpdateWarWeariness(GameData gameData) {
 			List<Player> enemies = gameData.players.Where(p =>
 				p != this && !p.isBarbarians && !p.defeated && AtWar(this, p)).ToList();
 			if (enemies.Count == 0) {
-				warWeariness = 0;
+				if (warWeariness > 0) {
+					int decay = Math.Max(1, (warWeariness * WarWearinessDecayPercentAtPeace + 99) / 100);
+					warWeariness = Math.Max(0, warWeariness - decay);
+				}
 				return;
 			}
 			foreach (Player enemy in enemies) {
@@ -1957,27 +2038,16 @@ namespace C7GameData {
 			for (int i = 0; i < gD.gameDifficulty.ExtraStartUnit2; ++i) {
 				cities[0].AddUnit(gD.unitPrototypes.Find(x => x.name == gD.rules.StartUnitType2), gD);
 			}
-			for (int i = 0; i < gD.gameDifficulty.NumberOfAIDefensiveStartingUnits; ++i) {
-				UnitPrototype unit = (UnitPrototype)cities[0].ListProductionOptions(gD).MaxBy(
-					x => {
-						if (x is UnitPrototype u) {
-							return u.defense;
-						}
-						return -1;
-					}
-				);
-				cities[0].AddUnit(unit, gD);
+			// The best defender and attacker the city can build, if it can
+			// build any units at all.
+			List<UnitPrototype> buildableUnits = cities[0].ListProductionOptions(gD).OfType<UnitPrototype>().ToList();
+			UnitPrototype bestDefender = buildableUnits.MaxBy(u => u.defense);
+			UnitPrototype bestAttacker = buildableUnits.MaxBy(u => u.attack);
+			for (int i = 0; i < gD.gameDifficulty.NumberOfAIDefensiveStartingUnits && bestDefender != null; ++i) {
+				cities[0].AddUnit(bestDefender, gD);
 			}
-			for (int i = 0; i < gD.gameDifficulty.NumberOfAIOffensiveStartingUnits; ++i) {
-				UnitPrototype unit = (UnitPrototype)cities[0].ListProductionOptions(gD).MaxBy(
-					x => {
-						if (x is UnitPrototype u) {
-							return u.attack;
-						}
-						return -1;
-					}
-				);
-				cities[0].AddUnit(unit, gD);
+			for (int i = 0; i < gD.gameDifficulty.NumberOfAIOffensiveStartingUnits && bestAttacker != null; ++i) {
+				cities[0].AddUnit(bestAttacker, gD);
 			}
 		}
 

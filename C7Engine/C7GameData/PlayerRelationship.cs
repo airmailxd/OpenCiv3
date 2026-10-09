@@ -152,8 +152,10 @@ public class PlayerRelationship {
 			   pr.multiTurnDeals.Any(d => d.dealSubType == DealSubType.RightOfPassage);
 	}
 
-	// Breaks peace and all other multiturn deals when war is declared 
-	public static void DeclareWar(Player aggressor, Player defender, bool sneakAttack, int refuseContactUntilTurn) {
+	// Breaks peace and all other multiturn deals when war is declared.
+	// refuseContactUntilTurn is the (absolute) turn until which the defender
+	// refuses to talk; currentTurn defaults to the game's.
+	public static void DeclareWar(Player aggressor, Player defender, bool sneakAttack, int refuseContactUntilTurn, int? currentTurn = null) {
 		var defenderRelationshipToAggressor = defender.playerRelationships[aggressor.id];
 		var aggressorRelationshipToDefender = aggressor.playerRelationships[defender.id];
 		// increment the times the aggressor has declared war on the defender
@@ -175,11 +177,13 @@ public class PlayerRelationship {
 		defenderRelationshipToAggressor.refuseContactUntilTurn = refuseContactUntilTurn;
 
 		// TODO: Figure out a better formula to calculate the aggressor's refusal in turns.
-		// Right now it's hardcoded to half of what the defender's value is.
+		// Right now the aggressor refuses contact for half as many turns as
+		// the defender.
 		//
 		// The thinking is that if AI attacks a human, the human as a defender
 		// might try to talk to the AI aggressor earlier than an AI in it's place is programmed to do.
-		aggressorRelationshipToDefender.refuseContactUntilTurn = refuseContactUntilTurn / 2;
+		int turn = currentTurn ?? EngineStorage.gameData?.turn ?? 0;
+		aggressorRelationshipToDefender.refuseContactUntilTurn = turn + Math.Max(0, refuseContactUntilTurn - turn) / 2;
 
 		// Finally clear all multi-turn deals, including Peace, which is how we actually declare war
 		aggressorRelationshipToDefender.multiTurnDeals = new List<MultiTurnDeal>();
@@ -377,7 +381,9 @@ public class PlayerRelationship {
 }
 
 public class MultiTurnDeal {
-	private const int DEFAULT_DEAL_DURATION = 20;
+	// Civ3's standard deal length, for a deal made without a game (and so
+	// without its rules' DefaultDealDuration) to hand.
+	private const int FallbackDealDuration = 20;
 	public DealType dealType { get; private set; }
 	public DealSubType dealSubType { get; private set; }
 	public DealDetails dealDetails { get; private set; }
@@ -392,19 +398,21 @@ public class MultiTurnDeal {
 	public ID againstPlayer { get; private set; }
 
 	public MultiTurnDeal(DealType dealType, DealSubType dealSubType, DealDetails dealDetails, int goldPerTurn = 0,
-		string resourcePerTurn = null, int dealDuration = DEFAULT_DEAL_DURATION, int turnStartDeal = 0, ID againstPlayer = null) {
+		string resourcePerTurn = null, int? dealDuration = null, int turnStartDeal = 0, ID againstPlayer = null) {
+		// Without a duration, deals last as long as the rules say.
+		int duration = dealDuration ?? EngineStorage.gameData?.rules?.DefaultDealDuration ?? FallbackDealDuration;
 		this.dealSubType = dealSubType;
 		this.dealType = dealType;
 		this.dealDetails = dealDetails;
 		this.goldPerTurn = goldPerTurn;
 		this.resourcePerTurn = resourcePerTurn;
-		this.dealDuration = dealDuration;
+		this.dealDuration = duration;
 		this.turnStartDeal = turnStartDeal;
 		// basically peace from the start, don't need to know when it ends
 		if (dealSubType == DealSubType.Peace && turnStartDeal == 0)
 			this.turnEndDeal = 0;
 		else
-			this.turnEndDeal = turnStartDeal + dealDuration;
+			this.turnEndDeal = turnStartDeal + duration;
 		this.againstPlayer = againstPlayer;
 	}
 

@@ -71,6 +71,10 @@ namespace C7GameData.Save {
 		public int turnsOfUnhappinessDueToPopRushing;
 		public bool celebrating;
 		public bool isInCivilDisorder;
+		// Resistance in a conquered city: the citizens resisting and the
+		// player they're loyal to.
+		public int resisters;
+		public ID resistanceFrom;
 		// Production was hurried this turn and can't be changed until it ends.
 		public bool hurriedThisTurn;
 		public List<SaveCityResident> residents = new List<SaveCityResident>();
@@ -99,6 +103,8 @@ namespace C7GameData.Save {
 			turnsOfUnhappinessDueToPopRushing = city.turnsOfUnhappinessDueToPopRushing;
 			celebrating = city.celebrating;
 			isInCivilDisorder = city.isInCivilDisorder;
+			resisters = city.resisters;
+			resistanceFrom = city.resistanceFrom?.id;
 			hurriedThisTurn = city.hurriedThisTurn;
 			residents = city.residents.ConvertAll(resident => {
 				return new SaveCityResident {
@@ -214,6 +220,8 @@ namespace C7GameData.Save {
 				turnsOfUnhappinessDueToPopRushing = turnsOfUnhappinessDueToPopRushing,
 				celebrating = celebrating,
 				isInCivilDisorder = isInCivilDisorder,
+				resisters = resisters,
+				resistanceFrom = Lookups.Find(lookups.playersById, resistanceFrom),
 				hurriedThisTurn = hurriedThisTurn,
 				capital = capital,
 				constructed_buildings = [],

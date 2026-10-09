@@ -133,16 +133,12 @@ namespace C7GameData {
 			return !this.IsBusy() && this.movementPoints.canMove;
 		}
 
+		// Whether the unit was taken from another civ (a captured worker).
+		// Nationalities are the players' own civilization objects, also
+		// after loading a save (see SaveUnit), so identity decides; two civs
+		// that merely share a name are still different nations.
 		public bool IsCaptive() {
-			Civilization civ = this.owner.civilization;
-			// Almost always the very same civilization (or name), which can't
-			// be a captive; only otherwise compare the names as before.
-			if (ReferenceEquals(this.nationality, civ))
-				return false;
-			string nationalityName = this.nationality.name, ownerName = civ.name;
-			if (ReferenceEquals(nationalityName, ownerName))
-				return false;
-			return !string.Equals(nationalityName, ownerName, StringComparison.CurrentCultureIgnoreCase);
+			return this.nationality != null && !ReferenceEquals(this.nationality, this.owner.civilization);
 		}
 
 		public bool IsArmy() {
@@ -403,8 +399,12 @@ namespace C7GameData {
 			}
 		}
 
-		private const int JOB_PROGRESS_WORKER = 2;
-		private const int JOB_PROGRESS_SLAVE = 1;
+		// Civ3's terrain job progress per turn for a plain worker when the
+		// government doesn't give its worker rate (2 under most governments
+		// in the standard rules). Foreign (captured) workers work at half
+		// speed.
+		private const int DefaultWorkerRate = 2;
+		private const float SlaveWorkerFactor = 0.5f;
 
 		private static int GetWorkerJobCost(Tile tile, Terraform workerJob) {
 			// For the movement cost multiplier, see note 7
@@ -493,6 +493,25 @@ namespace C7GameData {
 
 			if (HasGreatWallBonusAgainst(opponent, role))
 				yield return GreatWallBonus;
+
+			if (DifficultyBonusAgainst(opponent, role) is StrengthBonus difficultyBonus)
+				yield return difficultyBonus;
+		}
+
+		// The difficulty level's "attack bonus against barbarians", a
+		// percentage (800 at Chieftain down to 0 at Deity) that helps human
+		// players' units fight barbarians. Assumption: like the Great Wall it
+		// counts in any fight with them, attacking or defending, but not in
+		// bombardment; the AI has its own difficulty advantages instead.
+		private StrengthBonus? DifficultyBonusAgainst(MapUnit opponent, CombatRole role) {
+			if (role != CombatRole.Attack && role != CombatRole.Defense)
+				return null;
+			if (owner == null || !owner.isHuman || opponent?.owner == null || !opponent.owner.isBarbarians)
+				return null;
+			int percent = EngineStorage.gameData?.gameDifficulty?.AttackBonusAgainstBarbarians ?? 0;
+			if (percent <= 0)
+				return null;
+			return new StrengthBonus("Difficulty level against barbarians", percent / 100.0);
 		}
 
 		// The Great Wall doubles the strength of its owner's units, attacking
@@ -1095,7 +1114,18 @@ namespace C7GameData {
 		}
 
 		public float workerSpeed() {
-			float progressPerTurn = this.IsCaptive() ? JOB_PROGRESS_SLAVE : JOB_PROGRESS_WORKER;
+			// The government's worker rate, scaled by the unit's worker
+			// strength (Engineers work twice as fast as Workers).
+			int rate = owner?.government?.workerRate > 0 ? owner.government.workerRate : DefaultWorkerRate;
+			float strength = unitType.workerStrength > 0 ? unitType.workerStrength : 1;
+			float progressPerTurn = rate * strength;
+			// A tech like Replaceable Parts doubles the rate.
+			if (owner != null && owner.KnowsTechWhere(t => t.DoublesWorkerRate)) {
+				progressPerTurn *= 2;
+			}
+			if (this.IsCaptive()) {
+				progressPerTurn *= SlaveWorkerFactor;
+			}
 			if (owner.civilization.traits.Contains(Civilization.Trait.Industrious)) {
 				progressPerTurn *= 1.5f;
 			}
