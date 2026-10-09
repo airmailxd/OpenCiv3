@@ -337,71 +337,364 @@ namespace C7Engine {
 			return true;
 		}
 
+		// The share of hills and mountains that lie in highlands; the rest
+		// are scattered.
+		private const double HIGHLAND_SHARE = .7;
+
+		// The share of mountains scattered on their own, away from the
+		// highlands.
+		private const double LONE_MOUNTAIN_SHARE = .2;
+
+		// Adds hills and mountains the way Civ3 maps have them. Most lie in
+		// highlands: irregular belts two or three tiles wide where hills and
+		// mountains mix, with the mountains clumped along the middle. The
+		// rest are scattered over the land on their own or in twos and
+		// threes, so that most land is within a couple of tiles of a hill.
 		private static void AddHillsAndMountains(WorldCharacteristics wc, GameMap m) {
-			// Generate a new height map that has lots of smaller blobs, to avoid
-			// having one giant mountain range.
-			HeightMap hm = new(seed: wc.mapSeed + 0xfeed, width:wc.worldSize.width, height:wc.worldSize.height, scale:.2);
 			Random random = new Random(wc.mapSeed + 0xface);
 
 			TerrainType hills = wc.terrainTypes.Find(x => x.Key == "hills");
 			TerrainType mountains = wc.terrainTypes.Find(x => x.Key == "mountains");
 			TerrainType volcano = wc.terrainTypes.Find(x => x.Key == "volcano");
 
-			// Figure out the height bands for hills and mountains. We use bands
-			// so that we can have "elevated grasslands" and so that we don't
-			// get large chunks of the map just being hills/mountains, which
-			// isn't useful for cities.
-			int hillLowerBound, hillUpperBound;
-			int mountainLowerBound, mountainUpperBound;
+			// The share of land that becomes hills or mountains, and the share
+			// of those that are mountains, in percent. Older worlds are more
+			// worn down. These match Civ3's own maps; the cap on how many can
+			// share a 9x9 square (see CapHillsAndMountainsPerArea) then thins
+			// out the densest highlands.
+			double hillyPercent, mountainPercent;
 
 			// The percentage of mountains that will become volcanos.
 			int volcanoPercent;
 
 			switch (wc.age) {
 				case WorldCharacteristics.Age.Billion_3:
-					hillLowerBound = hm.FindSeaLevel(15);
-					hillUpperBound = hm.FindSeaLevel(30);
-					mountainLowerBound = hm.FindSeaLevel(60);
-					mountainUpperBound = hm.FindSeaLevel(75);
-					volcanoPercent = 5;
+					hillyPercent = 33;
+					mountainPercent = 45;
+					volcanoPercent = 6;
 					break;
 				case WorldCharacteristics.Age.Billion_4:
-					hillLowerBound = hm.FindSeaLevel(20);
-					hillUpperBound = hm.FindSeaLevel(30);
-					mountainLowerBound = hm.FindSeaLevel(65);
-					mountainUpperBound = hm.FindSeaLevel(75);
+					hillyPercent = 21;
+					mountainPercent = 41;
 					volcanoPercent = 3;
 					break;
 				case WorldCharacteristics.Age.Billion_5:
-					hillLowerBound = hm.FindSeaLevel(23);
-					hillUpperBound = hm.FindSeaLevel(30);
-					mountainLowerBound = hm.FindSeaLevel(68);
-					mountainUpperBound = hm.FindSeaLevel(75);
-					volcanoPercent = 1;
+					hillyPercent = 14;
+					mountainPercent = 41;
+					volcanoPercent = 2;
 					break;
 				default:
 					throw new Exception($"Unknown age: {wc.age}");
 			}
 
-			foreach (Tile t in m.tiles) {
-				if (!t.IsLand()) {
-					continue;
-				}
+			List<Tile> land = m.tiles.Where(t => t.IsLand()).ToList();
+			if (land.Count == 0) {
+				return;
+			}
 
-				int height = hm.GetHeight(t.XCoordinate, t.YCoordinate);
-				if (height >= hillLowerBound && height < hillUpperBound) {
+			// Some worlds are more rugged than others.
+			hillyPercent *= .8 + .4 * random.NextDouble();
+			mountainPercent *= .85 + .3 * random.NextDouble();
+			int hillyCount = (int)(land.Count * hillyPercent / 100);
+			int mountainCount = (int)(hillyCount * mountainPercent / 100);
+			int loneMountainCount = (int)(mountainCount * LONE_MOUNTAIN_SHARE);
+
+			// Lay out highlands from random spots until they've used their
+			// share, then make the tiles most suited to it mountains.
+			int highlandCount = (int)(hillyCount * HIGHLAND_SHARE);
+			Dictionary<Tile, double> highland = new();
+			for (int attempts = 0; highland.Count < highlandCount && attempts < land.Count; ++attempts) {
+				Tile start = land[random.Next(land.Count)];
+				if (!highland.ContainsKey(start)) {
+					AddHighland(start, highland, highlandCount, random);
+				}
+			}
+			int highlandMountains = Math.Min(mountainCount - loneMountainCount, highland.Count);
+			int placed = 0;
+			foreach (Tile t in highland.Keys.OrderByDescending(t => highland[t])) {
+				if (placed++ < highlandMountains) {
+					t.overlayTerrainType = random.Next(100) < volcanoPercent ? volcano : mountains;
+				} else {
 					t.overlayTerrainType = hills;
+				}
+			}
+
+			// Scatter the rest: mountains alone, hills alone or in small
+			// clumps.
+			int mountainsLeft = mountainCount - highlandMountains;
+			int hillsLeft = hillyCount - highland.Count - mountainsLeft;
+			List<Tile> flat = land.Where(t => !t.overlayTerrainType.isHilly()).ToList();
+			random.Shuffle(CollectionsMarshal.AsSpan(flat));
+			foreach (Tile t in flat) {
+				if (mountainsLeft <= 0 && hillsLeft <= 0) {
+					break;
+				}
+				if (t.overlayTerrainType.isHilly()) {
 					continue;
 				}
-				if (height >= mountainLowerBound && height < mountainUpperBound) {
-					if (random.Next(100) < volcanoPercent) {
-						t.overlayTerrainType = volcano;
-					} else {
+				// A lone mountain often has a hill beside it.
+				bool mountain = random.Next(mountainsLeft + Math.Max(0, hillsLeft)) < mountainsLeft;
+				if (mountain) {
+					t.overlayTerrainType = random.Next(100) < volcanoPercent ? volcano : mountains;
+					--mountainsLeft;
+				} else {
+					t.overlayTerrainType = hills;
+					--hillsLeft;
+				}
+				int clumpChance = mountain ? LONE_MOUNTAIN_HILL_CHANCE : SCATTERED_CLUMP_CHANCE;
+				Tile clump = t;
+				while (hillsLeft > 0 && random.Next(100) < clumpChance) {
+					List<Tile> next = clump.GetLandNeighbors().Where(n => !n.overlayTerrainType.isHilly()).ToList();
+					if (next.Count == 0) {
+						break;
+					}
+					clump = next[random.Next(next.Count)];
+					clump.overlayTerrainType = hills;
+					--hillsLeft;
+				}
+			}
+
+			CapHillsAndMountainsPerArea(wc, land, hills, mountains, random);
+		}
+
+		// The most hills and mountains (and, of those, mountains) allowed in
+		// any 9x9 square of tiles, so that highlands never pile up into a
+		// wall of peaks.
+		private const int MAX_HILLY_PER_AREA = 22;
+		private const int MAX_MOUNTAINS_PER_AREA = 9;
+		private const int AREA_RADIUS = 4;
+
+		// How many other mountains a mountain may touch, and how many
+		// mountains a 5x5 square may hold, vary over the map so that some
+		// ranges are thin spines and others broader massifs.
+		private const int MIN_MOUNTAIN_NEIGHBORS = 2;
+		private const int MAX_MOUNTAIN_NEIGHBORS = 4;
+		private const int MIN_MOUNTAINS_PER_SMALL_AREA = 4;
+		private const int MAX_MOUNTAINS_PER_SMALL_AREA = 7;
+		private const int SMALL_AREA_RADIUS = 2;
+
+		// Keeps hills and mountains from piling up. Goes over them in a random
+		// order, keeping each only if every 9x9 square it lies in stays
+		// within the limits, and, for a mountain, if it keeps the range thin
+		// enough there. A mountain that doesn't fit becomes a hill if that
+		// fits. Whatever had to go is then put back elsewhere, preferably at
+		// the end of a highland, lengthening it rather than widening it, so
+		// the map keeps its share of hills and mountains.
+		private static void CapHillsAndMountainsPerArea(WorldCharacteristics wc, List<Tile> land, TerrainType hills, TerrainType mountains, Random random) {
+			HeightMap thicknessNoise = new(seed: wc.mapSeed + 0x7417, width:wc.worldSize.width, height:wc.worldSize.height, scale:.15, forceLowPointsAtPoles:false);
+			double[] thickness = BiomeClimate.NoisePercentiles(thicknessNoise);
+			double Thickness(Tile t) => thickness[thicknessNoise.GetHeight(t.XCoordinate, t.YCoordinate)];
+
+			// Each tile's limit, picked once: mostly from the noise, but now
+			// and then a tile is allowed one more or one fewer.
+			Dictionary<Tile, int> neighborLimits = new();
+			int NeighborLimit(Tile t) {
+				if (!neighborLimits.TryGetValue(t, out int limit)) {
+					limit = MIN_MOUNTAIN_NEIGHBORS + (int)(Thickness(t) * (MAX_MOUNTAIN_NEIGHBORS - MIN_MOUNTAIN_NEIGHBORS + 1));
+					if (random.Next(100) < 25) {
+						limit += random.Next(2) == 0 ? -1 : 1;
+					}
+					limit = Math.Clamp(limit, MIN_MOUNTAIN_NEIGHBORS, MAX_MOUNTAIN_NEIGHBORS + 1);
+					neighborLimits[t] = limit;
+				}
+				return limit;
+			}
+			int SmallAreaLimit(Tile center) {
+				return MIN_MOUNTAINS_PER_SMALL_AREA + (int)(Thickness(center) * (MAX_MOUNTAINS_PER_SMALL_AREA - MIN_MOUNTAINS_PER_SMALL_AREA + 1));
+			}
+
+			// The counts in the square centered on each tile. A tile lies in
+			// exactly the squares centered on the tiles in its own square.
+			Dictionary<Tile, int> hillyCount = new();
+			Dictionary<Tile, int> mountainCount = new();
+			Dictionary<Tile, int> smallAreaMountainCount = new();
+			HashSet<Tile> keptMountains = new();
+			int MountainNeighbors(Tile t) => t.neighbors.Values.Count(keptMountains.Contains);
+
+			bool Fits(Tile t, bool mountain) {
+				List<Tile> squares = t.GetTilesWithinTileSquare(AREA_RADIUS);
+				if (!squares.All(c => hillyCount.GetValueOrDefault(c) < MAX_HILLY_PER_AREA)) {
+					return false;
+				}
+				if (!mountain) {
+					return true;
+				}
+				if (!squares.All(c => mountainCount.GetValueOrDefault(c) < MAX_MOUNTAINS_PER_AREA)) {
+					return false;
+				}
+				if (!t.GetTilesWithinTileSquare(SMALL_AREA_RADIUS).All(c => smallAreaMountainCount.GetValueOrDefault(c) < SmallAreaLimit(c))) {
+					return false;
+				}
+				// Neither this mountain nor the ones beside it may end up
+				// touching more mountains than they're allowed.
+				List<Tile> beside = t.neighbors.Values.Where(keptMountains.Contains).ToList();
+				return beside.Count <= NeighborLimit(t) && beside.All(n => MountainNeighbors(n) + 1 <= NeighborLimit(n));
+			}
+
+			void Keep(Tile t, bool mountain) {
+				foreach (Tile c in t.GetTilesWithinTileSquare(AREA_RADIUS)) {
+					hillyCount[c] = hillyCount.GetValueOrDefault(c) + 1;
+					if (mountain) {
+						mountainCount[c] = mountainCount.GetValueOrDefault(c) + 1;
+					}
+				}
+				if (mountain) {
+					foreach (Tile c in t.GetTilesWithinTileSquare(SMALL_AREA_RADIUS)) {
+						smallAreaMountainCount[c] = smallAreaMountainCount.GetValueOrDefault(c) + 1;
+					}
+					keptMountains.Add(t);
+				}
+			}
+
+			List<Tile> hilly = WalkOrder(land.Where(t => t.overlayTerrainType.isHilly()).ToList(), random);
+			int mountainsToReplace = 0, hillyToReplace = 0;
+			foreach (Tile t in hilly) {
+				bool mountain = t.overlayTerrainType.IsMountains || t.overlayTerrainType.IsVolcano;
+				if (mountain && Fits(t, true)) {
+					Keep(t, true);
+					continue;
+				}
+				if (mountain) {
+					++mountainsToReplace;
+				}
+				if (Fits(t, false)) {
+					t.overlayTerrainType = hills;
+					Keep(t, false);
+				} else {
+					t.overlayTerrainType = TerrainType.NONE;
+					++hillyToReplace;
+				}
+			}
+
+			// Put back what had to go: first on flat land touching exactly one
+			// hill or mountain, extending a highland at its end (now and then
+			// at its side), then anywhere there's room. A mountain goes back
+			// beside a mountain where it can, extending the range.
+			List<Tile> flat = land.Where(t => !t.overlayTerrainType.isHilly()).ToList();
+			foreach (bool extending in new[] { true, true }) {
+				random.Shuffle(CollectionsMarshal.AsSpan(flat));
+				foreach (Tile t in flat) {
+					if (hillyToReplace <= 0 && mountainsToReplace <= 0) {
+						return;
+					}
+					if (t.overlayTerrainType.isHilly()) {
+						continue;
+					}
+					List<Tile> hillyBeside = t.neighbors.Values.Where(n => n != Tile.NONE && n.overlayTerrainType.isHilly()).ToList();
+					if (extending && !(hillyBeside.Count == 1 || hillyBeside.Count == 2 && random.Next(100) < 25)) {
+						continue;
+					}
+					bool nextToMountain = hillyBeside.Any(keptMountains.Contains);
+					if (mountainsToReplace > 0 && (nextToMountain || !extending) && Fits(t, true)) {
 						t.overlayTerrainType = mountains;
+						Keep(t, true);
+						--mountainsToReplace;
+						--hillyToReplace;
+					} else if (hillyToReplace > 0 && Fits(t, false)) {
+						t.overlayTerrainType = hills;
+						Keep(t, false);
+						--hillyToReplace;
 					}
 				}
 			}
 		}
+
+		// Orders the tiles so each highland is gone through as one winding
+		// walk from a random tile, each step to a random unvisited neighbor,
+		// backing up when stuck. Kept in that order, a range stays connected
+		// along its length instead of breaking into scattered peaks.
+		private static List<Tile> WalkOrder(List<Tile> tiles, Random random) {
+			HashSet<Tile> remaining = tiles.ToHashSet();
+			random.Shuffle(CollectionsMarshal.AsSpan(tiles));
+			List<Tile> result = new();
+			foreach (Tile start in tiles) {
+				if (!remaining.Remove(start)) {
+					continue;
+				}
+				Stack<Tile> path = new();
+				path.Push(start);
+				result.Add(start);
+				while (path.Count > 0) {
+					List<Tile> next = path.Peek().neighbors.Values.Where(remaining.Contains).ToList();
+					if (next.Count == 0) {
+						path.Pop();
+						continue;
+					}
+					Tile step = next[random.Next(next.Count)];
+					remaining.Remove(step);
+					result.Add(step);
+					path.Push(step);
+				}
+			}
+			return result;
+		}
+
+		// How often a scattered hill grows into a clump by another tile, and
+		// how often a lone mountain gets a hill beside it.
+		private const int SCATTERED_CLUMP_CHANCE = 50;
+		private const int LONE_MOUNTAIN_HILL_CHANCE = 40;
+
+		// Lays out a highland starting at the given tile: a meandering walk
+		// with some of the tiles beside it, until the highlands reach
+		// maxCount tiles. Each tile gets a score for how suited it is to be a
+		// mountain: the walk itself is better suited than its sides, and in
+		// some highlands, which are just hill country, nothing is.
+		private static void AddHighland(Tile start, Dictionary<Tile, double> highland, int maxCount, Random random) {
+			double scale = random.Next(100) < HILL_COUNTRY_CHANCE ? .2 : 1;
+			void Add(Tile t, double score) {
+				if (highland.Count < maxCount && t != Tile.NONE && t.IsLand() && !highland.ContainsKey(t)) {
+					highland[t] = scale * (score + 2 * random.NextDouble());
+				}
+			}
+
+			// Now and then a highland runs on much further.
+			int length = HIGHLAND_MIN_LENGTH + random.Next(HIGHLAND_MAX_LENGTH - HIGHLAND_MIN_LENGTH + 1);
+			if (random.Next(100) < LONG_HIGHLAND_CHANCE) {
+				length *= 3;
+			}
+			int dir = random.Next(8);
+			Tile t = start;
+			for (int i = 0; i < length; ++i) {
+				Add(t, .5);
+				foreach (Tile n in t.neighbors.Values) {
+					if (random.Next(100) < HIGHLAND_WIDTH_CHANCE) {
+						Add(n, 0);
+					}
+				}
+
+				// Wander, mostly keeping the same heading. At the water, turn
+				// along the shore if possible.
+				int turn = random.Next(100);
+				if (turn < 20) {
+					dir = (dir + 7) % 8;
+				} else if (turn < 40) {
+					dir = (dir + 1) % 8;
+				}
+				Tile next = Tile.NONE;
+				foreach (int d in new[] { 0, 1, 7, 2, 6 }) {
+					Tile n = t.neighbors[(TileDirection)((dir + d) % 8)];
+					if (n != Tile.NONE && n.IsLand()) {
+						next = n;
+						dir = (dir + d) % 8;
+						break;
+					}
+				}
+				if (next == Tile.NONE) {
+					break;
+				}
+				t = next;
+			}
+		}
+
+		private const int HIGHLAND_MIN_LENGTH = 2;
+		private const int HIGHLAND_MAX_LENGTH = 8;
+		private const int LONG_HIGHLAND_CHANCE = 15;
+
+		// The chance of each tile beside the walk joining the highland.
+		private const int HIGHLAND_WIDTH_CHANCE = 45;
+
+		// The chance of a highland being hill country.
+		private const int HILL_COUNTRY_CHANCE = 25;
 
 		// Assigns a biome id to each land tile, creating potential biome zones
 		// that will later be assigned to actual biomes.
