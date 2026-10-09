@@ -1625,8 +1625,7 @@ public partial class Game : Node {
 		// FileDialog is a Window, not a Control, so we have the popup overlay present a blank control
 		popupOverlay.ShowBlank();
 
-		// TODO: this should go to our own saves directory.
-		FileDialog.SetDirectoryForSaving(@"Conquests/Saves");
+		FileDialog.SetDirectoryForSaving();
 
 		// TODO: sound -- see MainMenu.PlayButtonPressedSound();
 		FileDialog.Popup();
@@ -1638,8 +1637,7 @@ public partial class Game : Node {
 		// FileDialog is a Window, not a Control, so we have the popup overlay present a blank control
 		popupOverlay.ShowBlank();
 
-		// TODO: this should go to our own saves directory.
-		FileDialog.SetDirectoryForLoading(@"Conquests/Saves");
+		FileDialog.SetDirectoryForLoadingSaves();
 
 		// TODO: sound -- see MainMenu.PlayButtonPressedSound();
 		FileDialog.Popup();

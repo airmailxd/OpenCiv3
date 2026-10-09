@@ -59,7 +59,7 @@ public partial class MainMenu : Node {
 		LanSession.PendingGame = null;
 		LanSession.ResumeGame = null;
 
-		LoadDialog.SetDirectoryForLoading(@"Conquests/Saves");
+		LoadDialog.SetDirectoryForLoadingSaves();
 		LoadScenarioDialog.SetDirectoryForLoading(@"Conquests/Scenarios");
 		LoadScenarioDialog.GoToScenarioSetupAfterLoading = true;
 
