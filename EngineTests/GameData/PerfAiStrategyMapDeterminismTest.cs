@@ -19,7 +19,8 @@ namespace EngineTests.GameData;
 // Civ3-like terrain work (biomes, highlands, drainage-basin rivers, water
 // share, resource counts and start positions, 1992cb90..00fdc2a2), and
 // again when starts came to be kept the world size's distance between civs
-// apart in map coordinates, never relaxed.
+// apart in map coordinates, never relaxed, and again (the archipelago only)
+// when archipelagos came to be made of planned islands.
 //
 // Re-baselining: when a map generator change is MEANT to change the maps,
 // run only this test
@@ -84,7 +85,7 @@ public class PerfAiStrategyMapDeterminismTest {
 	[Theory]
 	[InlineData(WorldCharacteristics.Landform.Pangaea, 123456, "E3C00E4BD07FAA0D65075AE638CD5A0402F5BCADCBE84A0E5F67CD4C0870E754")]
 	[InlineData(WorldCharacteristics.Landform.Continents, 4242, "480844FCE2BA3EA9BC33B30775E9CAF21E8401899477EA6EA776B1DB1C6C77E7")]
-	[InlineData(WorldCharacteristics.Landform.Archipelago, 777, "F677DC6BA1F0CE57A1F0020398A7E47BF141A5447AC076137EC9FBB5A8E9B914")]
+	[InlineData(WorldCharacteristics.Landform.Archipelago, 777, "403651CEBBA3EC253FAC2E03809F80613B5338CF31B0EDE1052271DFC327DA90")]
 	public void SameSeedProducesSameMap(WorldCharacteristics.Landform landform, int seed, string expectedHash) {
 		string hash = HashMap(Generate(landform, seed));
 		output.WriteLine($"{landform} {seed}: {hash}");

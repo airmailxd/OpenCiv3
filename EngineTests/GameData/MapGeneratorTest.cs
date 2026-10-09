@@ -124,14 +124,14 @@ public class GameMapGeneratorTest {
 		return terrainTypes;
 	}
 
-	private static GameMap Generate(WorldCharacteristics.Landform landform, WorldCharacteristics.OceanCoverage ocean, int seed) {
+	private static GameMap Generate(WorldCharacteristics.Landform landform, WorldCharacteristics.OceanCoverage ocean, int seed, int numberOfCivs = 0) {
 		return MapGenerator.GenerateMap(new WorldCharacteristics() {
 			landform = landform,
 			oceanCoverage = ocean,
 			age = WorldCharacteristics.Age.Billion_4,
 			climate = WorldCharacteristics.Climate.Normal,
 			temperature = WorldCharacteristics.Temperature.Temperate,
-			worldSize = new WorldSize() { width = 100, height = 100 },
+			worldSize = new WorldSize() { width = 100, height = 100, numberOfCivs = numberOfCivs },
 			terrainTypes = TerrainTypes(),
 			mapSeed = seed,
 		});
@@ -217,5 +217,30 @@ public class GameMapGeneratorTest {
 			Assert.DoesNotContain(t.GetTilesWithinTileSquare(2), n => n != t && (n.hasGoodyHut || n.hasBarbarianCamp));
 			Assert.DoesNotContain(map.startingLocations, s => t.DistanceTo(s) < 3);
 		});
+	}
+
+	// Civ3's archipelago is many small and medium islands with no continent
+	// among them, where at most a few civs share an island. The generator
+	// plans the islands so that its shape check passes: more islands than
+	// civs, none with more than 3 civs' worth of land (a civ needs half its
+	// share of the land), enough of them for every civ, and most civs by
+	// themselves.
+	[Theory]
+	[InlineData(WorldCharacteristics.OceanCoverage.Percent_60)]
+	[InlineData(WorldCharacteristics.OceanCoverage.Percent_70)]
+	[InlineData(WorldCharacteristics.OceanCoverage.Percent_80)]
+	public void ArchipelagoIsManyIslandsWithoutAContinent(WorldCharacteristics.OceanCoverage ocean) {
+		const int civs = 8;
+		foreach (int seed in new[] { 1, 2, 3 }) {
+			GameMap map = Generate(WorldCharacteristics.Landform.Archipelago, ocean, seed, civs);
+			List<int> islands = map.continents.Where(c => c.First().IsLand()).Select(c => c.Count).ToList();
+			int tilesPerCiv = islands.Sum() / (2 * civs);
+			string description = $"{ocean}, seed {seed}: islands {string.Join("/", islands)}, {tilesPerCiv} tiles per civ";
+
+			Assert.True(islands.Count >= civs * 1.2, description);
+			Assert.True(islands[0] <= 3 * tilesPerCiv, description);
+			Assert.True(islands.Sum(i => i / tilesPerCiv) >= civs, description);
+			Assert.True(islands.Count(i => i / tilesPerCiv > 1) <= civs * .4, description);
+		}
 	}
 }

@@ -182,11 +182,7 @@ namespace C7Engine {
 		}
 
 		private static GameMap GenerateTerrainShape(WorldCharacteristics wc) {
-			int width = wc.worldSize.width;
-			int height = wc.worldSize.height;
-			WorldCharacteristics.OceanCoverage oceanCoverage = wc.oceanCoverage;
 			WorldCharacteristics.Landform landform = wc.landform;
-			int mapSeed = wc.mapSeed;
 
 			Stopwatch stopwatch = new Stopwatch();
 			stopwatch.Start();
@@ -195,8 +191,7 @@ namespace C7Engine {
 
 			int maxAttempts = 30;
 			for (int attempt = 0; attempt < maxAttempts; ++attempt) {
-				HeightMap hm = new(seed: mapSeed + 0x1234 * attempt, width:width, height:height, scale:GetNoiseScale(landform));
-				GameMap m = ToLandAndWaterGameMap(wc, hm, oceanCoverage);
+				GameMap m = GenerateTerrainShapeAttempt(wc, attempt);
 
 				if (MapIsAcceptable(wc, m)) {
 					stopwatch.Stop();
@@ -208,11 +203,126 @@ namespace C7Engine {
 			}
 
 			// None of the maps has the shape asked for (the shape checks are
-			// C7's own and some, like the archipelago's, rarely pass). Use
+			// C7's own, and some pass for only a few of the maps). Use
 			// the last one: whether it can be played depends on whether
 			// every civ gets a starting location (see GenerateMap).
 			log.Warning($"No map had the shape of a {landform} map after {maxAttempts} attempts; using the last one");
 			return lastMap;
+		}
+
+		// One try at the land and water of the map, which GenerateTerrainShape
+		// then checks has the shape asked for.
+		private static GameMap GenerateTerrainShapeAttempt(WorldCharacteristics wc, int attempt) {
+			int seed = wc.mapSeed + 0x1234 * attempt;
+			HeightMap hm = new(seed: seed, width:wc.worldSize.width, height:wc.worldSize.height, scale:GetNoiseScale(wc.landform));
+			if (wc.landform == WorldCharacteristics.Landform.Archipelago) {
+				hm.RaiseDomes(ArchipelagoIslands(wc, new Random(seed + 0x15a7d)), ARCHIPELAGO_DOME_WEIGHT, ARCHIPELAGO_CHANNEL);
+			}
+			return ToLandAndWaterGameMap(wc, hm, wc.oceanCoverage);
+		}
+
+		// The share of an archipelago's land that lies on its planned
+		// islands; the rest is islets the noise makes.
+		private const double ARCHIPELAGO_ISLAND_LAND_SHARE = .85;
+
+		// The planned islands of an archipelago per civ: enough that there
+		// are more islands than civs, and some are left over for settling.
+		private const double ARCHIPELAGO_ISLANDS_PER_CIV = 1.4;
+
+		// How much the islands' domes, rather than the noise, decide the
+		// height of an archipelago (see HeightMap.RaiseDomes). The noise
+		// shapes the coasts and makes the islets.
+		private const double ARCHIPELAGO_DOME_WEIGHT = .45;
+
+		// The width of the open water between neighboring islands, in map
+		// coordinates (see HeightMap.RaiseDomes).
+		private const double ARCHIPELAGO_CHANNEL = 3;
+
+		// The number of tiles an archipelago's island needs to hold a civ
+		// (see MapIsAcceptable): half of each civ's share of the land. A
+		// fixed number wouldn't do, as the land per civ varies by two and a
+		// half times with the world size and water: a Tiny world with 80%
+		// water has about 70 land tiles per civ, a Huge one with 60% water
+		// about 280.
+		private static int ArchipelagoTilesPerPlayer(int landTiles, int numberOfCivs) {
+			return Math.Max(1, landTiles / (2 * Math.Max(1, numberOfCivs)));
+		}
+
+		// The land tiles a map is meant to have: what the ocean coverage
+		// and the extra water (see ToLandAndWaterGameMap) leave.
+		private static int ExpectedLandTiles(WorldCharacteristics wc) {
+			int tiles = wc.worldSize.width * wc.worldSize.height / 2;
+			return tiles * (100 - (int)wc.oceanCoverage - EXTRA_WATER_PERCENT) / 100;
+		}
+
+		// Plans the islands of an archipelago. Civ3's archipelago is many
+		// small and medium islands with no continent among them, where at
+		// most a few civs share an island (see MapIsAcceptable). Noise alone
+		// doesn't make that: it makes dozens of specks and a few big
+		// landmasses that run into each other, so the shape check almost
+		// never passed. So the islands are planned, as domes the noise is
+		// blended with (HeightMap.RaiseDomes): 1.4 per civ, each holding
+		// about 1.2 times the land a civ needs (ArchipelagoTilesPerPlayer),
+		// in all most of the land. They are spread over a jittered
+		// hexagonal grid, away from the poles, with some places on the grid
+		// left empty, and come in different sizes and lengths.
+		private static List<HeightMap.Dome> ArchipelagoIslands(WorldCharacteristics wc, Random random) {
+			// A world size without civs (as in some tests) gets as many
+			// islands as a Standard world's 8 civs on its 5000 tiles would.
+			int civs = wc.worldSize.numberOfCivs > 0 ? wc.worldSize.numberOfCivs : Math.Max(1, wc.worldSize.width * wc.worldSize.height / 2 / 625);
+			int count = (int)Math.Ceiling(civs * ARCHIPELAGO_ISLANDS_PER_CIV);
+			double islandTiles = ExpectedLandTiles(wc) * ARCHIPELAGO_ISLAND_LAND_SHARE / count;
+
+			// A tile takes up two units of map coordinates (only every other
+			// coordinate is a tile), so a disc of radius r holds pi r^2 / 2
+			// tiles. The domes' edges end up under water, so they are made
+			// wider than the islands.
+			double radius = Math.Sqrt(2 * islandTiles / Math.PI) * 1.3;
+
+			double width = wc.worldSize.width;
+			double bandTop = wc.worldSize.height * .08;
+			double bandHeight = wc.worldSize.height * .84;
+			int places = (int)Math.Ceiling(count * 1.15);
+			double spacing = Math.Sqrt(width * bandHeight / (places * .866));
+			int columns, rows;
+			while (true) {
+				columns = Math.Max(1, (int)(width / spacing));
+				rows = Math.Max(1, (int)(bandHeight / (spacing * .866)));
+				if (columns * rows >= places) {
+					break;
+				}
+				spacing *= .95;
+			}
+			double columnWidth = width / columns;
+			double rowHeight = bandHeight / rows;
+			double neighborDistance = Math.Min(columnWidth, Math.Sqrt(columnWidth * columnWidth / 4 + rowHeight * rowHeight));
+
+			// Where land is plentiful the domes would overlap; the channels
+			// keep the islands apart anyway.
+			radius = Math.Min(radius, neighborDistance * .8);
+			double jitter = neighborDistance * .3;
+
+			List<(double x, double y)> grid = new();
+			for (int row = 0; row < rows; ++row) {
+				for (int column = 0; column < columns; ++column) {
+					double x = (column + .5 + (row % 2 == 1 ? .5 : 0)) * columnWidth;
+					double y = bandTop + (row + .5) * rowHeight;
+					grid.Add((x, y));
+				}
+			}
+
+			List<HeightMap.Dome> domes = new();
+			for (int i = 0; i < count && grid.Count > 0; ++i) {
+				int pick = random.Next(grid.Count);
+				(double x, double y) = grid[pick];
+				grid.RemoveAt(pick);
+				x += (random.NextDouble() * 2 - 1) * jitter;
+				y += (random.NextDouble() * 2 - 1) * jitter;
+				double islandRadius = radius * (.85 + .3 * random.NextDouble());
+				double stretch = 1 + 1.5 * random.NextDouble();
+				domes.Add(new HeightMap.Dome((x + width) % width, y, islandRadius, stretch, random.NextDouble() * Math.PI));
+			}
+			return domes;
 		}
 
 		private static GameMap ToLandAndWaterGameMap(WorldCharacteristics wc, HeightMap hm, WorldCharacteristics.OceanCoverage oceanCoverage) {
@@ -333,25 +443,35 @@ namespace C7Engine {
 			}
 
 			if (landform == WorldCharacteristics.Landform.Archipelago) {
-				// Ensure that we have more land continents than players.
+				// Civ3's archipelago is many small and medium islands, with
+				// no continent among them: a "true" archipelago, as
+				// CivFanatics players tested Civ3's map generator for it,
+				// has at most 3 civs on one island
+				// (https://forums.civfanatics.com/threads/map-generator-test-results-are-really-weird.35205/).
+				// An island holds as many civs as it has tilesPerPlayer
+				// tiles.
 				List<HashSet<Tile>> landContinents = m.continents.Where(x => x.First().IsLand()).ToList();
-				if (landContinents.Count < wc.worldSize.numberOfCivs * 1.2) {
+				int civs = wc.worldSize.numberOfCivs;
+				int tilesPerPlayer = ArchipelagoTilesPerPlayer(landContinents.Sum(x => x.Count), civs);
+
+				// Ensure that we have more islands than players.
+				if (landContinents.Count < civs * 1.2) {
 					return false;
 				}
 
 				// Don't have any islands so large that we'd have more than 3
 				// players on them.
-				if (landContinents[0].Count > MIN_TILES_PER_PLAYER_ISLAND * 3) {
+				if (landContinents[0].Count > tilesPerPlayer * 3) {
 					return false;
 				}
 
-				// Give each player at least the minimum tiles number of . Make
-				// sure that we have enough islands for that.
-				int playersLeft = wc.worldSize.numberOfCivs;
+				// Make sure that there are enough islands that can hold a
+				// player for every player.
+				int playersLeft = civs;
 				int islandsWithMultiplePlayers = 0;
 				foreach (var continent in landContinents) {
-					playersLeft -= continent.Count / MIN_TILES_PER_PLAYER_ISLAND;
-					if (continent.Count / MIN_TILES_PER_PLAYER_ISLAND > 1) {
+					playersLeft -= continent.Count / tilesPerPlayer;
+					if (continent.Count / tilesPerPlayer > 1) {
 						++islandsWithMultiplePlayers;
 					}
 				}
@@ -360,7 +480,7 @@ namespace C7Engine {
 				}
 
 				// Make sure most players are by themselves on an island.
-				if (islandsWithMultiplePlayers > wc.worldSize.numberOfCivs * .4) {
+				if (islandsWithMultiplePlayers > civs * .4) {
 					return false;
 				}
 

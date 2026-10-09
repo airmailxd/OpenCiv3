@@ -54,6 +54,61 @@ namespace C7GameData {
 			return noiseMap[x, y];
 		}
 
+		// A dome raised by RaiseDomes: its center and radius in map
+		// coordinates. Along its long axis, at Angle (in radians), it is
+		// Stretch times as long as it is across.
+		public readonly record struct Dome(double X, double Y, double Radius, double Stretch = 1, double Angle = 0);
+
+		// Blends the noise with domes, so that the high ground, and so the
+		// land, gathers on them: each point becomes
+		// (1 - domeWeight) * noise + domeWeight * dome, where dome is 1 at
+		// a dome's center falling to 0 at its edge (the highest of the
+		// domes it lies in, 0 outside them all). The noise still shapes
+		// the coasts, and makes islets of its own where it is high.
+		//
+		// The domes are also kept apart: the height falls to 0 along the
+		// borders between the areas nearest each dome, over a channel
+		// channelWidth wide, and rises back over as much again. So land on
+		// different domes can't run together, however low the sea is.
+		public void RaiseDomes(IReadOnlyList<Dome> domes, double domeWeight, double channelWidth) {
+			double[,] blended = new double[NOISE_WIDTH, NOISE_HEIGHT];
+			for (int x = 0; x < NOISE_WIDTH; x++) {
+				for (int y = 0; y < NOISE_HEIGHT; y++) {
+					// The map coordinates of the middle of this cell.
+					double mapX = (x + .5) * tilesPerCellX;
+					double mapY = (y + .5) * tilesPerCellY;
+					double dome = 0;
+					double nearest = double.MaxValue;
+					double secondNearest = double.MaxValue;
+					foreach (Dome d in domes) {
+						double dx = mapX - d.X;
+						if (wrapX && Math.Abs(dx) > mapWidth / 2.0) {
+							dx -= Math.Sign(dx) * mapWidth;
+						}
+						double dy = mapY - d.Y;
+						if (wrapY && Math.Abs(dy) > mapHeight / 2.0) {
+							dy -= Math.Sign(dy) * mapHeight;
+						}
+
+						double distance = Math.Sqrt(dx * dx + dy * dy);
+						if (distance < nearest) {
+							secondNearest = nearest;
+							nearest = distance;
+						} else if (distance < secondNearest) {
+							secondNearest = distance;
+						}
+
+						double along = (dx * Math.Cos(d.Angle) + dy * Math.Sin(d.Angle)) / Math.Sqrt(d.Stretch);
+						double across = (-dx * Math.Sin(d.Angle) + dy * Math.Cos(d.Angle)) * Math.Sqrt(d.Stretch);
+						dome = Math.Max(dome, 1 - (along * along + across * across) / (d.Radius * d.Radius));
+					}
+					double channel = channelWidth <= 0 ? 1 : Math.Clamp((secondNearest - nearest) / channelWidth - 1, 0, 1);
+					blended[x, y] = ((1 - domeWeight) * noiseMap[x, y] / 255.0 + domeWeight * dome) * channel;
+				}
+			}
+			noiseMap = normalizeMap(blended);
+		}
+
 		// Does a binary search to find the height that will give the specified
 		// water percentage.
 		public int FindSeaLevel(int percentWater) {
