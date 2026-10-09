@@ -379,7 +379,7 @@ public partial class MapUnit {
 		}
 	}
 
-	public async Task PerformEndOfTurnAction() {
+	public void PerformEndOfTurnAction() {
 		// Busy Worker
 		if (WorkerJob != null) {
 			WorkerProgressTowardsJob += workerSpeed();

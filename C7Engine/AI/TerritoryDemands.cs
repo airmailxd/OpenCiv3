@@ -197,12 +197,14 @@ namespace C7Engine.AI {
 				EngineStorage.uiControllerID = them.id;
 			}
 			EngineStorage.diplomacyPlayerID = them.id;
+			EngineStorage.diplomacyAIPlayerID = us.id;
 			EngineStorage.territoryDemandAnswer = null;
 			new MsgShowTerritoryDemand(us, them, unitCount, repeatOffense).send();
 			// A LAN host closes the screen for a guest who leaves or rejoins
 			// while it is up, so this always ends.
 			await EngineStorage.WaitForDiplomacyCompleted(them.id);
 			EngineStorage.diplomacyPlayerID = null;
+			EngineStorage.diplomacyAIPlayerID = null;
 
 			// Closing the screen without answering is taken as agreeing, so a
 			// stray key press can't start a war.

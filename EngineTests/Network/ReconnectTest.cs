@@ -424,6 +424,7 @@ public class ReconnectTest : IClassFixture<SaveGameFixture>, IDisposable {
 		guest.Dispose();
 		PumpUntil(host, guest, () => host.Seats[0].disconnected);
 
+		humans[0].EnsureRelationshipExists(humans[1]);
 		humans[0].gold = 50;
 		new MsgProposeDeal(humans[1], new TradeOffer { gold = 30 }, new TradeOffer()).send();
 		List<MessageToUI> hostUi = [];

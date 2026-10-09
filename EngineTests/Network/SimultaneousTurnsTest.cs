@@ -169,6 +169,9 @@ public class SimultaneousTurnsTest : IClassFixture<SaveGameFixture>, IDisposable
 	public async Task EndingATurnRefusesOnlyTheEndingPlayersDeals() {
 		C7GameData.GameData gameData = await CreateGame(SaveGameFixture.ThreeHumanSave(), simultaneous: true);
 		Player[] humans = Humans(gameData);
+		// Only players who have met can trade.
+		humans[1].EnsureRelationshipExists(humans[0]);
+		humans[1].EnsureRelationshipExists(humans[2]);
 		humans[1].gold = 50;
 		humans[2].gold = 0;
 

@@ -124,23 +124,33 @@ namespace C7Engine {
 				// We've clicked the city center, so re-assign all the citizens
 				// using the basic AI, but specify that we want to manage moods by
 				// using entertainers if necessary.
-				//
-				// TODO: This throws away existing nationalities, fix that.
-				int numResidents = city.residents.Count;
-				city.RemoveAllCitizens();
-
-				for (int i = 0; i < numResidents; ++i) {
-					CityResident newResident = new() {
-						citizenType = defaultCitizen,
-						nationality = city.owner.civilization,
-						city = city
-					};
-					city.AddCitizen(newResident);
-					CityTileAssignmentAI.AssignNewCitizenToTile(gameData, newResident, manageMoods: true);
-				}
+				ReassignAllCitizens(gameData, city);
 			}
 
 			city.RecalculateCitizenMoods(gameData);
+		}
+
+		// Takes every citizen of the city off its tile or specialty and
+		// assigns them afresh, managing moods with entertainers if need be.
+		// The citizens keep their nationalities.
+		internal static void ReassignAllCitizens(GameData gameData, City city) {
+			CitizenType defaultCitizen = gameData.citizenTypes.Find(x => x.IsDefaultCitizen);
+			List<Civilization> nationalities = city.residents.Select(r => r.nationality ?? city.owner.civilization).ToList();
+			city.RemoveAllCitizens();
+
+			// Nothing the assignments depend on changes while the citizens
+			// are reassigned, apart from which tiles are worked, so the tile
+			// yields can be shared between them.
+			CityTileAssignmentAI.AssignmentContext context = new(gameData, city);
+			foreach (Civilization nationality in nationalities) {
+				CityResident newResident = new() {
+					citizenType = defaultCitizen,
+					nationality = nationality,
+					city = city
+				};
+				city.AddCitizen(newResident);
+				CityTileAssignmentAI.AssignNewCitizenToTile(gameData, newResident, manageMoods: true, context);
+			}
 		}
 
 		// Changes a specialist to the next kind of specialist its owner knows.
@@ -235,6 +245,7 @@ namespace C7Engine {
 			log.Information("{Captor} captured {City} from {OldOwner}, plundering {Plunder} gold", captor, city, oldOwner, plunder);
 			new MsgCityCaptured(city, oldOwner).send();
 			if (captor.isHuman) {
+				capturedOnTurn[city.id] = gameData.turn;
 				new MsgShowMilitaryAdvisorPopup(captor, $"We have captured {city.name} and plundered {plunder} gold!", happy: true).send();
 				new MsgDisplayRazeCityPopup(captor, city).send();
 			}
@@ -299,6 +310,28 @@ namespace C7Engine {
 
 			oldOwner.DoCorruptionCalculations(gameData);
 			newOwner.DoCorruptionCalculations(gameData);
+		}
+
+		// The turn each city a human took was captured, so that they may
+		// raze it when they are asked to, that turn.
+		private static readonly Dictionary<ID, int> capturedOnTurn = new();
+
+		internal static void ResetForNewGame() {
+			capturedOnTurn.Clear();
+		}
+
+		// Whether the player may abandon (or raze) their city: a city they
+		// captured this turn, which they are asked whether to keep, or any
+		// city from its menu, as long as it isn't their last, which would
+		// end their civilization.
+		public static bool MayAbandon(Player player, City city, GameData gameData) {
+			if (city.owner != player) {
+				return false;
+			}
+			if (capturedOnTurn.TryGetValue(city.id, out int turn) && turn == gameData.turn) {
+				return true;
+			}
+			return player.cities.Count > 1;
 		}
 
 		private static void MovePalaceAfterLosingCapital(Player player, Tile oldCapitalLocation) {
