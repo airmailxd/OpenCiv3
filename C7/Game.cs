@@ -233,6 +233,12 @@ public partial class Game : Node {
 	}
 
 	private async Task InitializeGame() {
+		// The mod path is left over from whatever was set up last. A game
+		// made from a save object (a new game, or a scenario) takes the
+		// save's; a saved game being loaded sets its own while it loads,
+		// if it has one.
+		Util.setModPath(Global.SaveGame?.ScenarioSearchPath);
+
 		// Ensure we clear out our image caches, as scenarios and games will
 		// use the same filenames but have different content for them.
 		Util.ClearCaches();

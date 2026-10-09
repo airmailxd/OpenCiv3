@@ -130,9 +130,10 @@ public partial class Util {
 	}
 
 	/// <summary>
-	/// Sets the Civ3 legacy mod path.
+	/// Sets the Civ3 legacy mod path, or clears it when given null or an empty path.
 	/// This is here so Civ3MediaPath can refer to it, without having to grab it from all the places we might need to call
-	/// it, which is in 25 places currently.
+	/// it, which is in 25 places currently. It must be set (or cleared) for every game created or loaded, or a game
+	/// would go on using the art of the scenario played before it.
 	/// </summary>
 	private static string modPath;
 	public static void setModPath(string modPathParam) {
@@ -141,7 +142,7 @@ public partial class Util {
 		// platforms. If we didn't do this then our path searching logic below
 		// would find the default PediaIcons.txt instead of the scenario
 		// specific file.
-		modPath = modPath.Replace("\\conquests\\", "\\Conquests\\");
+		modPath = modPath?.Replace("\\conquests\\", "\\Conquests\\");
 		ClearMediaPathCache();
 	}
 
