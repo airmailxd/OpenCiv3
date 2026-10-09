@@ -24,8 +24,12 @@ namespace C7GameData {
 		public int MaxInterest = 50;
 		public int ShieldCostPerGold;
 		// The share of a unit's shield cost a city gets when the unit is
-		// disbanded in it. Civ3 gives half (it isn't in the BIQ).
-		public float ShieldRateForDisbanding = .5f;
+		// disbanded in it (rounded down, and nothing towards a wonder). Civ3
+		// gives a quarter; it isn't in the BIQ. See
+		// https://civfanatics.com/civ3/faq/ ("The number of shields added is
+		// 1/4 the shield cost of the unit, rounded down") and
+		// https://forums.civfanatics.com/threads/disbanding-units-for-shields.211405/
+		public float ShieldRateForDisbanding = .25f;
 		public bool AllowLesserUnitProduction; // for example, allow building a Spearman/Pikeman when we can build a Musketman (simultaneously)
 		public int RadarTileVisibility; // how many tiles, a unit with the Radar ability, can see ahead
 

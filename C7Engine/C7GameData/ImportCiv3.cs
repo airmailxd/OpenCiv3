@@ -2524,9 +2524,9 @@ namespace C7GameData {
 			save.Rules.MaxRankOfBarbarianCampTiles = 2;
 			save.Rules.DefaultDealDuration = 20;
 			save.Rules.ShieldCostPerGold = rule.ShieldsCostPerGold;
-			// Not in the BIQ. Civ3 gives a city half the shields of a unit
-			// disbanded in it.
-			save.Rules.ShieldRateForDisbanding = 0.5f;
+			// Not in the BIQ. Civ3 gives a city a quarter of the shields of a
+			// unit disbanded in it, rounded down (https://civfanatics.com/civ3/faq/).
+			save.Rules.ShieldRateForDisbanding = 0.25f;
 			save.Rules.AllowLesserUnitProduction = false;
 			save.Rules.RadarTileVisibility = 2;
 			save.Rules.CitiesNeededToSupportAnArmy = rule.CitiesNeededToSupportAnArmy;
