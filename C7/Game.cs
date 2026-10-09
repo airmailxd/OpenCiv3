@@ -287,6 +287,9 @@ public partial class Game : Node {
 
 		if (ShouldShowScoreboard(EngineStorage.gameData)) {
 			ShowScoreboard();
+		} else if (LanSession.IsSpectator) {
+			// Without it, a spectator still chooses how to watch there.
+			ShowScoreboard(viewChoiceOnly: true);
 		}
 
 		if (LanSession.IsSpectator) {
@@ -724,8 +727,9 @@ public partial class Game : Node {
 
 	// The players' scores and the turn clock, in the top right corner under
 	// the toolbar. It is part of the HUD, so advisors and popups cover it.
-	private void ShowScoreboard() {
-		Scoreboard scoreboard = new();
+	// With viewChoiceOnly, it has only a spectator's choice of how to watch.
+	private void ShowScoreboard(bool viewChoiceOnly = false) {
+		Scoreboard scoreboard = new(viewChoiceOnly);
 		GetNode<Control>("CanvasLayer/Control").AddChild(scoreboard);
 		scoreboard.SetAnchorsPreset(Control.LayoutPreset.TopRight);
 		scoreboard.GrowHorizontal = Control.GrowDirection.Begin;
@@ -1126,6 +1130,13 @@ public partial class Game : Node {
 	private void ShowEngineMessage(MessageToUI msg) {
 		GameData gameData = EngineStorage.gameData;
 
+		// A spectator hears the news the way it watches the game (see
+		// LanHost.SpectatorHears) without having to answer a popup for each.
+		if (LanSession.IsSpectator && msg.SpectatorHeadline() is string headline) {
+			ShowSpectatorNews(headline);
+			return;
+		}
+
 		switch (msg) {
 			case MsgStartTurn when SimultaneousLanTurns:
 				// Every human is told at once; we play ours one by one.
@@ -1141,9 +1152,6 @@ public partial class Game : Node {
 				break;
 			case MsgCityCreated mCC:
 				ShowCityScreenForCity(gameData, mCC.city);
-				break;
-			case MsgCivilizationDestroyed mCivD when LanSession.IsSpectator:
-				ShowSpectatorNews($"The {mCivD.civilization.noun} have been destroyed");
 				break;
 			case MsgCivilizationDestroyed mCivD:
 				popupOverlay.ShowPopup(new CivilizationDestroyed(mCivD.civilization), PopupOverlay.PopupCategory.Advisor);
@@ -1257,9 +1265,6 @@ public partial class Game : Node {
 							new MsgDoStopWorkerAction(mDSWA.worker).send();
 						}),
 					PopupOverlay.PopupCategory.Advisor);
-				break;
-			case MsgWarDeclaration mWD when LanSession.IsSpectator:
-				ShowSpectatorNews($"The {mWD.aggressor.civilization.noun} declared war on the {mWD.opponent.civilization.noun}");
 				break;
 			case MsgWarDeclaration mWD:
 				popupOverlay.ShowPopup(

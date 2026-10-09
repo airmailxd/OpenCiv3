@@ -65,6 +65,11 @@ namespace C7Engine {
 		public static Action<MessageToEngine> remoteEngine;
 		public static Action<MessageToUI> uiMessageRouter;
 
+		// Whether a LAN host has spectators, who may watch as a computer
+		// player and hear its news (see Player.IsToldNews). Only they are
+		// told it.
+		public static bool newsForComputerPlayers;
+
 		// Counts the messages the engine has finished processing (or turned
 		// down), so a LAN host can tell when the game has changed.
 		public static long processedMessageCount { get; private set; }
@@ -221,6 +226,7 @@ namespace C7Engine {
 		public static void ResetNetworking() {
 			remoteEngine = null;
 			uiMessageRouter = null;
+			newsForComputerPlayers = false;
 			uiFollowsActivePlayer = true;
 			playerReachable = null;
 			diplomacyPlayerID = null;

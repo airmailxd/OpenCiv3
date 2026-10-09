@@ -79,7 +79,7 @@ public static class GoodyHuts {
 		log.Information("{Player}'s {Unit} entered a goody hut at {Tile} and found {Outcome}", player, unit, tile, outcome);
 
 		string message = Apply(gameData, unit, tile, ref outcome, hardness);
-		if (player.isHuman) {
+		if (player.IsToldNews) {
 			new MsgShowMilitaryAdvisorPopup(player, message, happy: outcome != Outcome.Barbarians).send();
 		}
 

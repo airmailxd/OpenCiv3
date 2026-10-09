@@ -23,6 +23,38 @@ namespace C7Engine {
 		[JsonIgnore]
 		public virtual bool IsForSpectatorsOnly => false;
 
+		// Whether this is news a spectator may be shown: something a player
+		// is told, rather than a question for them to answer or what only
+		// redraws their screens. A LAN host shows it to those watching as a
+		// player told it (see IsToldTo); a message for every player is news
+		// to every spectator too.
+		[JsonIgnore]
+		public virtual bool IsNews => false;
+
+		// Whether the player is told this: every player if it's for everyone,
+		// otherwise the player it's delivered to, which without a recipient
+		// is whoever is at the screen.
+		public virtual bool IsToldTo(Player player) {
+			if (IsForEveryone) {
+				return true;
+			}
+			ID told = NetworkRecipient?.id ?? EngineStorage.uiControllerID;
+			return told != null && player?.id == told;
+		}
+
+		// What a spectator is shown of this news as a line in its list, or
+		// null to show it as a player would see it.
+		public virtual string SpectatorHeadline() => null;
+
+		// A player's own news, which reads as theirs ("We have..."), so a
+		// spectator is told whose it is.
+		protected string Whose(string message) {
+			string text = message?.Replace('\n', ' ').Trim() ?? "";
+			Civilization civ = recipient?.civilization;
+			string who = civ?.noun ?? civ?.name;
+			return who == null ? text : $"{who}: {text}";
+		}
+
 		// The player whose machine a LAN host should deliver this to.
 		[JsonIgnore]
 		public virtual Player NetworkRecipient => recipient;
@@ -107,6 +139,19 @@ namespace C7Engine {
 		[JsonIgnore]
 		public override bool IsForSpectatorsOnly => forSpectators;
 
+		// Spectators hear of a war from their own copy, which tells those
+		// watching as a civ that would know of it.
+		[JsonIgnore]
+		public override bool IsNews => forSpectators;
+
+		public override bool IsToldTo(Player player) {
+			return forSpectators ? player != null && HearsOfWar(player, aggressor, opponent) : base.IsToldTo(player);
+		}
+
+		public override string SpectatorHeadline() {
+			return $"The {aggressor.civilization.noun} declared war on the {opponent.civilization.noun}";
+		}
+
 		// Tells the human players who would know of the war: the civ it was
 		// declared on and those with an embassy with either side, like in
 		// Civ3. Spectators hear of every war.
@@ -143,6 +188,18 @@ namespace C7Engine {
 			this.city = city;
 			this.previousOwner = previousOwner;
 		}
+
+		// News to the city's new owner and the one it was taken from.
+		[JsonIgnore]
+		public override bool IsNews => true;
+
+		public override bool IsToldTo(Player player) {
+			return player != null && (player == city?.owner || player == previousOwner);
+		}
+
+		public override string SpectatorHeadline() {
+			return $"The {city.owner?.civilization.noun} have taken {city.name} from the {previousOwner?.civilization.noun}";
+		}
 	}
 
 	public class MsgCivilizationDestroyed : MessageToUI {
@@ -153,6 +210,8 @@ namespace C7Engine {
 		}
 
 		public override bool IsForEveryone => true;
+
+		public override string SpectatorHeadline() => $"The {civilization.noun} have been destroyed";
 	}
 
 	public class MsgCityCreated : MessageToUI {
@@ -201,6 +260,11 @@ namespace C7Engine {
 			this.message = message;
 			this.happy = happy;
 		}
+
+		[JsonIgnore]
+		public override bool IsNews => true;
+
+		public override string SpectatorHeadline() => Whose(message);
 	}
 
 	public class MsgShowDomesticAdvisorPopup : MessageToUI {
@@ -209,6 +273,11 @@ namespace C7Engine {
 			this.recipient = recipient;
 			this.message = message;
 		}
+
+		[JsonIgnore]
+		public override bool IsNews => true;
+
+		public override string SpectatorHeadline() => Whose(message);
 	}
 
 	// Tells a human player that another civ has completed a great wonder.
@@ -218,12 +287,28 @@ namespace C7Engine {
 		public Player builder;
 		public string wonder;
 		public string city;
+
+		// Whether this is the copy for spectators. Every civ is told of a
+		// wonder: the others by this news, the builder by its city.
+		[JsonIgnore]
+		public bool forSpectators;
+
 		public MsgWonderCompleted(Player recipient, Player builder, string wonder, string city) {
 			this.recipient = recipient;
 			this.builder = builder;
 			this.wonder = wonder;
 			this.city = city;
 		}
+
+		[JsonIgnore]
+		public override bool IsForSpectatorsOnly => forSpectators;
+
+		[JsonIgnore]
+		public override bool IsNews => forSpectators;
+
+		public override bool IsToldTo(Player player) => forSpectators ? player != null : base.IsToldTo(player);
+
+		public override string SpectatorHeadline() => Announcement();
 
 		public string Announcement() {
 			Civilization civ = builder?.civilization;
@@ -268,6 +353,11 @@ namespace C7Engine {
 			this.message = message;
 			this.mood = mood;
 		}
+
+		[JsonIgnore]
+		public override bool IsNews => true;
+
+		public override string SpectatorHeadline() => Whose(message);
 	}
 
 	public class MsgShowTemporaryPopup : MessageToUI {
@@ -279,6 +369,10 @@ namespace C7Engine {
 			this.location = location;
 			this.recipient = recipient;
 		}
+
+		// A spectator sees it where it happened, as the player does.
+		[JsonIgnore]
+		public override bool IsNews => true;
 	}
 
 	public class MsgShowTradeOffer : MessageToUI {
@@ -347,6 +441,16 @@ namespace C7Engine {
 			this.opponent = opponent;
 			this.withdrew = withdrew;
 		}
+
+		[JsonIgnore]
+		public override bool IsNews => true;
+
+		public override string SpectatorHeadline() {
+			string whose = recipient?.civilization.adjective ?? "foreign";
+			return withdrew
+				? $"The {opponent.civilization.noun} withdrew their units from {whose} territory"
+				: $"The {opponent.civilization.noun} refused to leave {whose} territory";
+		}
 	}
 
 	// Tells the player who proposed a deal whether it was accepted.
@@ -358,6 +462,13 @@ namespace C7Engine {
 			this.recipient = recipient;
 			this.opponent = opponent;
 			this.accepted = accepted;
+		}
+
+		[JsonIgnore]
+		public override bool IsNews => true;
+
+		public override string SpectatorHeadline() {
+			return $"The {opponent.civilization.noun} {(accepted ? "accepted" : "refused")} a deal with the {recipient?.civilization.noun}";
 		}
 	}
 
@@ -440,6 +551,12 @@ namespace C7Engine {
 		}
 
 		public override bool IsForEveryone => true;
+
+		public override string SpectatorHeadline() {
+			return winner == null
+				? "No candidate won a majority in the United Nations election"
+				: $"{winner.civilization.leader} of the {winner.civilization.noun} has been elected Secretary General";
+		}
 	}
 
 	// The outcome of a diplomatic or espionage mission the player sent.
@@ -460,6 +577,11 @@ namespace C7Engine {
 			this.message = message;
 			this.city = city;
 		}
+
+		[JsonIgnore]
+		public override bool IsNews => true;
+
+		public override string SpectatorHeadline() => Whose(message);
 	}
 
 	public class MsgVictory : MessageToUI {

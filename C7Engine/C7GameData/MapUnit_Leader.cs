@@ -68,7 +68,7 @@ public partial class MapUnit {
 		hasProducedLeader = true;
 		MapUnit leader = EngineStorage.gameData.SpawnUnit(owner, proto, location);
 		log.Information("{Unit}'s victory has produced a great leader, {Leader}", this, leader);
-		if (owner.isHuman) {
+		if (owner.IsToldNews) {
 			new MsgShowMilitaryAdvisorPopup(owner, $"Our {name}'s great victory has inspired a new leader!\nA leader can form an army or hurry production in one of our cities.", happy: true).send();
 		}
 		return leader;

@@ -723,6 +723,7 @@ namespace C7GameData {
 
 		// Tells every other human player which civ has completed a great
 		// wonder. The builder hears of it from the production popup.
+		// Spectators hear of every wonder.
 		private void AnnounceWonder(GameData gameData, Building wonder) {
 			foreach (Player p in gameData.players) {
 				if (!p.isHuman || p.defeated || p == owner) {
@@ -730,6 +731,7 @@ namespace C7GameData {
 				}
 				new MsgWonderCompleted(p, owner, wonder.name, name).send();
 			}
+			new MsgWonderCompleted(null, owner, wonder.name, name) { forSpectators = true }.send();
 		}
 
 		// What the city builds once it has finished an item: the next item in

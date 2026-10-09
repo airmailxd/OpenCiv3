@@ -12,7 +12,8 @@ using Godot;
 // whether they are connected (on a LAN), and whether they have finished their
 // turn. It can be folded down to just the clock and this machine's own
 // player. A spectator also chooses here how to watch the game, from the ways
-// the host allows (see SpectatorViewMode).
+// the host allows (see SpectatorViewMode). With the scoreboard turned off, a
+// spectator still has it, with only that choice.
 public partial class Scoreboard : PanelContainer {
 	// How often the clock and scores are read again, in seconds.
 	private const double RefreshInterval = 0.25;
@@ -27,6 +28,16 @@ public partial class Scoreboard : PanelContainer {
 	private static readonly Color PlentyOfTime = new(0.20f, 0.70f, 0.25f);
 	private static readonly Color RunningLow = new(0.85f, 0.70f, 0.15f);
 	private static readonly Color AlmostOut = new(0.80f, 0.20f, 0.15f);
+
+	// Whether this shows only a spectator's choice of how to watch, for a
+	// game with the scoreboard turned off.
+	private readonly bool viewChoiceOnly;
+
+	public Scoreboard() { }
+
+	public Scoreboard(bool viewChoiceOnly) {
+		this.viewChoiceOnly = viewChoiceOnly;
+	}
 
 	private Button foldButton;
 	private ProgressBar timeBar;
@@ -75,6 +86,11 @@ public partial class Scoreboard : PanelContainer {
 		layout.AddThemeConstantOverride("separation", 3);
 		AddChild(layout);
 
+		if (viewChoiceOnly) {
+			AddViewChoice(layout);
+			return;
+		}
+
 		HBoxContainer header = new() { Alignment = BoxContainer.AlignmentMode.End };
 		header.AddThemeConstantOverride("separation", 6);
 		layout.AddChild(header);
@@ -112,6 +128,15 @@ public partial class Scoreboard : PanelContainer {
 		timeBox.AddChild(timeLabel);
 		header.AddChild(timeBox);
 
+		AddViewChoice(layout);
+
+		rowList = new VBoxContainer();
+		rowList.AddThemeConstantOverride("separation", 2);
+		layout.AddChild(rowList);
+	}
+
+	// A spectator's choice of how to watch the game.
+	private void AddViewChoice(VBoxContainer layout) {
 		if (LanSession.IsSpectator) {
 			HBoxContainer watching = new() { Alignment = BoxContainer.AlignmentMode.End };
 			watching.AddThemeConstantOverride("separation", 6);
@@ -131,10 +156,6 @@ public partial class Scoreboard : PanelContainer {
 			watching.AddChild(viewChoice);
 			layout.AddChild(watching);
 		}
-
-		rowList = new VBoxContainer();
-		rowList.AddThemeConstantOverride("separation", 2);
-		layout.AddChild(rowList);
 	}
 
 	public override void _Process(double delta) {
@@ -165,6 +186,10 @@ public partial class Scoreboard : PanelContainer {
 
 	private void Refresh(GameData gameData) {
 		if (gameData == null) {
+			return;
+		}
+		if (viewChoiceOnly) {
+			ShowViewChoices(gameData);
 			return;
 		}
 		TurnClockInfo clock = LanSession.TurnClock ?? LocalClock(gameData);
@@ -233,6 +258,7 @@ public partial class Scoreboard : PanelContainer {
 		}
 		viewChoice.Select(selected);
 		viewChoice.Disabled = viewChoices.Count < 2;
+		ShrinkToFit();
 	}
 
 	// How long the human whose turn it is has had it, timed from when this

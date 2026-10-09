@@ -437,6 +437,11 @@ namespace C7GameData {
 		// do with the AI fog of war (see C7Engine.AI.AIFogOfWar).
 		public bool PathsByExploredMap => isHuman || (EngineStorage.aiFogOfWar && !isBarbarians);
 
+		// Whether to tell this player news meant just for them, such as a
+		// golden age beginning: a human, and while spectators may watch as
+		// it (see EngineStorage.newsForComputerPlayers), a computer player.
+		public bool IsToldNews => isHuman || (EngineStorage.newsForComputerPlayers && !isBarbarians);
+
 		public bool IsAtPeaceWith(Player other) {
 			return AtPeace(this, other);
 		}
@@ -1205,11 +1210,11 @@ namespace C7GameData {
 				break;
 			}
 
-			if (isHuman && lostImprovements.Count > 0) {
+			if (IsToldNews && lostImprovements.Count > 0) {
 				new MsgShowDomesticAdvisorPopup(this,
 					$"We can no longer support our {string.Join(", ", lostImprovements)}.\nWe must think more about our treasury!").send();
 			}
-			if (isHuman && disbandedUnits.Count > 0) {
+			if (IsToldNews && disbandedUnits.Count > 0) {
 				new MsgShowMilitaryAdvisorPopup(this,
 					$"We have insufficient gold to continue supporting all our units.\nWe had to disband: {string.Join(", ", disbandedUnits)}.", happy: false).send();
 			}
@@ -1849,7 +1854,7 @@ namespace C7GameData {
 			hadGoldenAge = true;
 			goldenAgeTurnsRemaining = gameData.rules.GoldenAgeDuration;
 			log.Information("{Player} starts a golden age: {Reason}", this, reason);
-			if (isHuman) {
+			if (IsToldNews) {
 				new MsgShowMilitaryAdvisorPopup(this, $"{reason}\nOur civilization enters a Golden Age!", happy: true).send();
 			}
 		}
