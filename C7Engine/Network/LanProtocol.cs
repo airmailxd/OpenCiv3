@@ -114,22 +114,8 @@ public static class LanProtocol {
 	// Takes out of a snapshot what no client may have, whatever it sees of
 	// the game: the state of the host's random numbers, from which a client
 	// could tell how combat and the like will turn out.
-	//
-	// SaveGame.RngState comes from another branch; until it's merged here
-	// this finds it by name, so that it's stripped as soon as it exists.
-	// Once merged, this is just: save.RngState = null;
-	private static readonly System.Reflection.MemberInfo RngState =
-		(System.Reflection.MemberInfo)typeof(SaveGame).GetProperty("RngState") ?? typeof(SaveGame).GetField("RngState");
-
 	internal static void StripHostSecrets(SaveGame save) {
-		switch (RngState) {
-			case System.Reflection.PropertyInfo property when property.CanWrite:
-				property.SetValue(save, null);
-				break;
-			case System.Reflection.FieldInfo field:
-				field.SetValue(save, null);
-				break;
-		}
+		save.RngState = null;
 	}
 
 	// Encodes a snapshot from SnapshotOf, on any thread. When it's identical
