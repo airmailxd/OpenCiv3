@@ -1187,25 +1187,77 @@ namespace C7GameData {
 			return CurrentFoodYield() - FoodConsumedPerTurn();
 		}
 
+		// What barbarians entering a city did to it.
+		public enum BarbarianSackOutcome {
+			// The city had nothing they could take.
+			Nothing,
+			// They stole gold from the owner's treasury.
+			Gold,
+			// They killed some of its citizens.
+			Citizens,
+			// They destroyed the shields stored towards its production.
+			Production,
+		}
+
+		public record struct BarbarianSack(BarbarianSackOutcome outcome, int amount);
+
+		// The chance of each thing barbarians entering a city may do, weighed
+		// slightly towards stealing gold, per the project owner. Only what
+		// they can do in the city is rolled for.
+		internal const int BarbarianGoldWeight = 40;
+		internal const int BarbarianCitizensWeight = 30;
+		internal const int BarbarianProductionWeight = 30;
+
 		// Barbarians entering the city. In Civ3 they don't take cities: "The
 		// barbs plunder the city (steal gold) or sabotage production. If they
 		// don't find anything to plunder, the population of the city is
 		// reduced by one point" (Civinator,
 		// https://forums.civfanatics.com/threads/barbarian-cities-in-civ-3.646253/).
-		// Returns the gold taken, or 0 if a citizen was lost instead.
 		//
-		// UNVERIFIED (no Civ3 source found): how much gold they take (a
-		// quarter of the owner's treasury, as before), when they sabotage
-		// production instead (never, here), and whether a size 1 city with
-		// nothing to plunder loses anything (it doesn't, here).
-		public int SackedByBarbarians() {
-			int goldTaken = owner.gold / 4;
-			if (goldTaken > 0) {
-				owner.gold -= goldTaken;
-			} else {
-				RemoveRandomCitizen();
+		// Per the project owner, each entry does one of three things, at
+		// random among those possible: take an eighth of the owner's
+		// treasury (if that is any gold), kill a citizen (if the city has
+		// two or more; one, as in the quote above) or destroy the shields
+		// stored towards its production (if there are any). With none
+		// possible, nothing happens.
+		public BarbarianSack SackedByBarbarians() {
+			int gold = owner.gold / 8;
+			List<(BarbarianSackOutcome outcome, int weight)> possible = new();
+			if (gold > 0) {
+				possible.Add((BarbarianSackOutcome.Gold, BarbarianGoldWeight));
 			}
-			return goldTaken;
+			if (residents.Count >= 2) {
+				possible.Add((BarbarianSackOutcome.Citizens, BarbarianCitizensWeight));
+			}
+			if (shieldsStored > 0) {
+				possible.Add((BarbarianSackOutcome.Production, BarbarianProductionWeight));
+			}
+			if (possible.Count == 0) {
+				return new BarbarianSack(BarbarianSackOutcome.Nothing, 0);
+			}
+
+			int roll = GameData.rng.Next(possible.Sum(p => p.weight));
+			BarbarianSackOutcome outcome = possible[^1].outcome;
+			foreach ((BarbarianSackOutcome o, int weight) in possible) {
+				if (roll < weight) {
+					outcome = o;
+					break;
+				}
+				roll -= weight;
+			}
+
+			switch (outcome) {
+				case BarbarianSackOutcome.Gold:
+					owner.gold -= gold;
+					return new BarbarianSack(outcome, gold);
+				case BarbarianSackOutcome.Citizens:
+					RemoveRandomCitizen();
+					return new BarbarianSack(outcome, 1);
+				default:
+					int shields = shieldsStored;
+					shieldsStored = 0;
+					return new BarbarianSack(outcome, shields);
+			}
 		}
 
 		// Resisters don't eat (see StartResistance).

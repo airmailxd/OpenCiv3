@@ -430,21 +430,78 @@ public class RulesReviewFixTest : IClassFixture<SaveGameFixture> {
 
 	// ---- Barbarians ----
 
-	[Fact]
-	public void BarbariansPlunderGoldOrElseACitizen() {
-		City city = BuildCity(us);
-		for (int i = 0; i < 3; ++i) {
-			city.AddCitizen(new CityResident() { city = city, nationality = us.civilization, citizenType = gameData.citizenTypes.Find(x => x.IsDefaultCitizen) });
-		}
-		us.gold = 500;
-		Assert.Equal(125, city.SackedByBarbarians());
-		Assert.Equal(375, us.gold);
-		Assert.Equal(4, city.residents.Count);
+	// Rolls the given number for every Next(max), and 0 otherwise.
+	private class FixedRandom(int roll) : System.Random {
+		public override int Next(int maxValue) => System.Math.Min(roll, maxValue - 1);
+		protected override double Sample() => 0.0;
+	}
 
-		// Nothing to plunder: the city loses a citizen.
-		us.gold = 0;
-		Assert.Equal(0, city.SackedByBarbarians());
+	private City CityToSack(int size) {
+		City city = BuildCity(us);
+		for (int i = 1; i < size; ++i) {
+			AddResident(city, us.civilization);
+		}
+		return city;
+	}
+
+	// Per the project owner: gold 40, citizens 30, production 30, out of
+	// what's possible.
+	[Fact]
+	public void BarbariansStealAnEighthOfTheTreasury() {
+		City city = CityToSack(size: 4);
+		city.SetStoredShields(10);
+		us.gold = 500;
+		gameData.random = new FixedRandom(39);
+		Assert.Equal(new City.BarbarianSack(City.BarbarianSackOutcome.Gold, 62), city.SackedByBarbarians());
+		Assert.Equal(438, us.gold);
+		Assert.Equal(4, city.residents.Count);
+		Assert.Equal(10, city.shieldsStored);
+	}
+
+	[Fact]
+	public void BarbariansKillACitizen() {
+		City city = CityToSack(size: 4);
+		city.SetStoredShields(10);
+		us.gold = 500;
+		gameData.random = new FixedRandom(40);
+		Assert.Equal(City.BarbarianSackOutcome.Citizens, city.SackedByBarbarians().outcome);
+		Assert.Equal(500, us.gold);
 		Assert.Equal(3, city.residents.Count);
+		Assert.Equal(10, city.shieldsStored);
+	}
+
+	[Fact]
+	public void BarbariansDestroyStoredProduction() {
+		City city = CityToSack(size: 4);
+		city.SetStoredShields(10);
+		us.gold = 500;
+		gameData.random = new FixedRandom(70);
+		Assert.Equal(new City.BarbarianSack(City.BarbarianSackOutcome.Production, 10), city.SackedByBarbarians());
+		Assert.Equal(500, us.gold);
+		Assert.Equal(4, city.residents.Count);
+		Assert.Equal(0, city.shieldsStored);
+	}
+
+	// What isn't possible isn't rolled for: no gold (an eighth of 7 is
+	// nothing), a size 1 city, and no shields stored.
+	[Fact]
+	public void BarbariansOnlyDoWhatTheyCan() {
+		City city = CityToSack(size: 1);
+		us.gold = 7;
+		city.SetStoredShields(0);
+		Assert.Equal(City.BarbarianSackOutcome.Nothing, city.SackedByBarbarians().outcome);
+		Assert.Equal(7, us.gold);
+		Assert.Single(city.residents);
+
+		// Only production is possible, whatever the roll.
+		city.SetStoredShields(5);
+		gameData.random = new FixedRandom(0);
+		Assert.Equal(City.BarbarianSackOutcome.Production, city.SackedByBarbarians().outcome);
+
+		// Only a citizen.
+		AddResident(city, us.civilization);
+		Assert.Equal(City.BarbarianSackOutcome.Citizens, city.SackedByBarbarians().outcome);
+		Assert.Single(city.residents);
 	}
 
 	// ---- Captives ----

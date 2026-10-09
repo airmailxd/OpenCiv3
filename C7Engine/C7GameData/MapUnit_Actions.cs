@@ -75,10 +75,15 @@ public partial class MapUnit {
 			if (owner.isBarbarians) {
 				City sacked = tile.cityAtTile;
 				Player victim = sacked.owner;
-				int goldTaken = sacked.SackedByBarbarians();
+				City.BarbarianSack sack = sacked.SackedByBarbarians();
 				this.RemoveFromPlay();
 				if (victim.isHuman) {
-					string loss = goldTaken > 0 ? $"stolen {goldTaken} gold" : "killed some of its people";
+					string loss = sack.outcome switch {
+						City.BarbarianSackOutcome.Gold => $"stolen {sack.amount} gold",
+						City.BarbarianSackOutcome.Citizens => "killed some of its people",
+						City.BarbarianSackOutcome.Production => $"destroyed {sack.amount} shields of its production",
+						_ => "found nothing to take",
+					};
 					new MsgShowMilitaryAdvisorPopup(victim, $"Barbarians have sacked {sacked.name} and {loss}!\nWe need a stronger military.", happy: false).send();
 				}
 			} else {
