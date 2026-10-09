@@ -53,6 +53,11 @@ namespace C7GameData.Save {
 		public int capacity { get; set; }
 		public int hpBonus { get; set; }
 
+		// The BIQ's worker strength: how much faster than a plain worker this
+		// unit does terrain jobs (2 for Engineers). Zero if not given, which
+		// counts as 1.
+		public float workerStrength { get; set; }
+
 		public HashSet<string> producibleBy = [];
 
 		public List<string> upgradesTo;
@@ -80,6 +85,7 @@ namespace C7GameData.Save {
 			(proto.name, proto.art, proto.shieldCost, proto.populationCost, proto.unproducible,
 			 proto.attack, proto.defense, proto.bombard, proto.bombardRange, proto.rateOfFire, proto.movement,
 			 proto.capacity, proto.hpBonus);
+			workerStrength = proto.workerStrength;
 
 			if (proto.requiredTech != null)
 				requiredTech = proto.requiredTech.id;

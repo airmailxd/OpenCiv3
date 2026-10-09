@@ -1536,6 +1536,7 @@ namespace C7GameData {
 				prototype.movement = prto.Movement;
 				prototype.capacity = prto.Capacity;
 				prototype.hpBonus = prto.HPBonus;
+				prototype.workerStrength = prto.WorkerStrength;
 				prototype.shieldCost = prto.ShieldCost;
 				prototype.populationCost = prto.PopulationCost;
 				prototype.bombard = prto.BombardStrength;

@@ -239,6 +239,25 @@ public class RulesReviewFixTest : IClassFixture<SaveGameFixture> {
 		Assert.DoesNotContain(aiUnit.ListStrengthBonusesVersus(theirs, CombatRole.Attack, null), b => b.amount == 1.0);
 	}
 
+	// ---- Workers ----
+
+	[Fact]
+	public void WorkersWorkAtTheGovernmentRateTimesTheirStrength() {
+		us.civilization.traits.Remove(Civilization.Trait.Industrious);
+		Tile tile = gameData.map.tiles.First(IsEmptyLand);
+		MapUnit worker = gameData.SpawnUnit(us, Prototype("Worker"), tile);
+
+		us.government.workerRate = 3;
+		Assert.Equal(3f, worker.workerSpeed());
+
+		worker.unitType.workerStrength = 2;
+		try {
+			Assert.Equal(6f, worker.workerSpeed());
+		} finally {
+			worker.unitType.workerStrength = 1;
+		}
+	}
+
 	// ---- Trait discounts ----
 
 	[Fact]

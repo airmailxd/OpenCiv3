@@ -403,8 +403,12 @@ namespace C7GameData {
 			}
 		}
 
-		private const int JOB_PROGRESS_WORKER = 2;
-		private const int JOB_PROGRESS_SLAVE = 1;
+		// Civ3's terrain job progress per turn for a plain worker when the
+		// government doesn't give its worker rate (2 under most governments
+		// in the standard rules). Foreign (captured) workers work at half
+		// speed.
+		private const int DefaultWorkerRate = 2;
+		private const float SlaveWorkerFactor = 0.5f;
 
 		private static int GetWorkerJobCost(Tile tile, Terraform workerJob) {
 			// For the movement cost multiplier, see note 7
@@ -1114,7 +1118,14 @@ namespace C7GameData {
 		}
 
 		public float workerSpeed() {
-			float progressPerTurn = this.IsCaptive() ? JOB_PROGRESS_SLAVE : JOB_PROGRESS_WORKER;
+			// The government's worker rate, scaled by the unit's worker
+			// strength (Engineers work twice as fast as Workers).
+			int rate = owner?.government?.workerRate > 0 ? owner.government.workerRate : DefaultWorkerRate;
+			float strength = unitType.workerStrength > 0 ? unitType.workerStrength : 1;
+			float progressPerTurn = rate * strength;
+			if (this.IsCaptive()) {
+				progressPerTurn *= SlaveWorkerFactor;
+			}
 			if (owner.civilization.traits.Contains(Civilization.Trait.Industrious)) {
 				progressPerTurn *= 1.5f;
 			}
