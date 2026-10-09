@@ -131,7 +131,10 @@ public class BarbarianInteractions {
 			return barbInfo.barbarianSeaUnitProto;
 		}
 
-		// Land units are generated in a 1:3 ratio, one advanced unit for every three basic barbarians
+		// Land units are generated in a 1:3 ratio, one advanced unit for every three basic barbarians.
+		// UNVERIFIED (no Civ3 source found): Civ3 uses only the RULE's basic and advanced barbarian
+		// and barbarian sea unit (https://forums.civfanatics.com/threads/barbarians-best-way-to-upgrade.47200/),
+		// but no source gives a ratio between them.
 		return GameData.rng.Next(100) < 25 ? barbInfo.advancedBarbarian : barbInfo.basicBarbarian;
 	}
 

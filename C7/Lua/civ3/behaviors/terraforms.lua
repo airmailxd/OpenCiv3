@@ -76,9 +76,10 @@ function terraforms.ai_score.clear_forest(context)
     return 0
   end
 
-  -- Clearing trades the forest's shields for the food of the land under it,
-  -- which is only worth it when that land gives more food and the city
-  -- working the area is short of it. Otherwise the forest stays.
+  -- An AI heuristic, not a Civ3 rule: clearing trades the forest's shields
+  -- for the food of the land under it, which is only worth it when that land
+  -- gives more food and the city working the area is short of it. Otherwise
+  -- the forest stays.
   local forest = tile.overlayTerrainType
   local cleared = tile.baseTerrainType
   if cleared.baseFoodProduction <= forest.baseFoodProduction then
