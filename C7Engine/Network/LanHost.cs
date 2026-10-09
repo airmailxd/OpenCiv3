@@ -875,7 +875,9 @@ public class LanHost : IDisposable {
 					return true;
 				}
 				PasswordInfo answer = NetSerialization.DeserializeRequired<PasswordInfo>(frame.payload);
-				if (GamePassword.Check(passwordVerifier, guest.nonce, answer.proof)) {
+				// The host may have taken the password away meanwhile.
+				if (!HasPassword || GamePassword.Check(passwordVerifier, guest.nonce, answer.proof)) {
+
 					return Admit(guest);
 				}
 				guest.wrongPasswords++;
