@@ -479,12 +479,13 @@ namespace C7GameData {
 
 			DeclareWar(this, other, isSneakAttack, refuseContactUntilTurn, currentTurn);
 
-			// The other civ's people rally against an AI attacking them,
-			// unless their nuclear weapons or their caught spies provoked it
-			// (see WarWearinessWhenTheAIAttacks).
-			if (!isHuman && !isBarbarians && playerRelationships.TryGetValue(other.id, out PlayerRelationship ourView)
+			// The other civ's people rally against whoever declares war on
+			// them, AI or human: war happiness, unless their nuclear weapons
+			// or their caught spies provoked it (see
+			// WarWearinessWhenWarIsDeclaredOnUs).
+			if (!isBarbarians && playerRelationships.TryGetValue(other.id, out PlayerRelationship ourView)
 				&& ourView.nuclearAtrocityCount == 0 && ourView.espionageIncidents == 0) {
-				other.AddWarWeariness(this, WarWearinessWhenTheAIAttacks);
+				other.AddWarWeariness(this, WarWearinessWhenWarIsDeclaredOnUs);
 			}
 
 			// Whenever war is declared, re-evaluate priorities.
@@ -1632,7 +1633,10 @@ namespace C7GameData {
 		// (PlayerRelationship.warWearinessPoints), starting at 0:
 		// - "Subtract 30 wwp if the AI attacks you, except when AI is
 		//   provoked by: use of nuclear weapons, failed spy mission". We
-		//   count the AI declaring war on us.
+		//   count war being declared on us, and per the project owner by
+		//   any civ, AI or human: the victim of a declaration starts with
+		//   war happiness against the aggressor, which the war's weariness
+		//   then wears away and eventually turns into war weariness.
 		// - "Add 1 wwp if you have units in enemys territory when in war.
 		//   (In beginning of the turn)"
 		// - "Add 1 wwp for each lost unit without defence value,
@@ -1649,7 +1653,7 @@ namespace C7GameData {
 		// that gives an AI the human's points in a human-AI battle (and both
 		// AIs the first's in an AI-AI war). We give every civ its own points
 		// as the rules above say, without the bug.
-		public const int WarWearinessWhenTheAIAttacks = -30;
+		public const int WarWearinessWhenWarIsDeclaredOnUs = -30;
 		public const int WarWearinessPerTurnInEnemyTerritory = 1;
 		public const int WarWearinessForLostUnitWithoutDefence = 1;
 		public const int WarWearinessForPillagedOrBombedImprovement = 1;

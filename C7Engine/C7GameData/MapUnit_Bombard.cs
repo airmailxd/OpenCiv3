@@ -20,6 +20,18 @@ namespace C7GameData {
 			return this.unitType.actions.Contains(UnitAction.Bombard);
 		}
 
+		// Whether this unit's bombardment can kill the target, rather than
+		// only bring it down to its last hit point. Per the project owner,
+		// the unit type's lethal land bombardment kills land units and its
+		// lethal sea bombardment kills ships: "Lethal bombardment can
+		// bombard units that are red-lined and therefore kill them"
+		// (https://forums.civfanatics.com/threads/what-is-lethal-bombardment.129927/).
+		// UNVERIFIED (no Civ3 source found): air units on the ground count
+		// as land units here.
+		public bool IsBombardmentLethalAgainst(MapUnit target) {
+			return target.IsWaterUnit() ? unitType.isSeaBombardmentLethal : unitType.isLandBombardmentLethal;
+		}
+
 		public bool CanBombardTile(Tile tile) {
 			return CanBombardTile(tile, out _);
 		}
@@ -133,9 +145,9 @@ namespace C7GameData {
 			// the bombardment units always hit units first in cities, never
 			// improvements or population"
 			// (https://forums.civfanatics.com/threads/citizen-and-buildings-defense-bonus.693504/).
-			// Per the project owner, bombardment never kills a unit, so the
-			// units are hit until all are down to their last hit point (see
-			// Tile.FindTopDefenderForBombard).
+			// Per the project owner, only lethal bombardment kills a unit;
+			// otherwise the units are hit until all are down to their last
+			// hit point (see Tile.FindTopDefenderForBombard).
 			if (hasCityWalls)
 				await BombardCityWalls(tile, destructibleWalls);
 			else if (hasTargetUnit)
@@ -218,12 +230,13 @@ namespace C7GameData {
 			var tries = 0;
 			var hitCount = 0;
 
-			// Per the project owner, bombardment can only bring a unit down
-			// to its last hit point, whatever the BIQ's lethal bombardment
-			// flags say.
+			// Per the project owner, bombardment that isn't lethal against
+			// the target can only bring it down to its last hit point;
+			// lethal bombardment stops once the target is dead.
+			bool lethal = IsBombardmentLethalAgainst(target);
 			while (tries < unitType.rateOfFire) {
 				tries++;
-				if (target.CompositeHitPoints() - hitCount <= 1)
+				if (target.CompositeHitPoints() - hitCount <= (lethal ? 0 : 1))
 					break;
 
 				var r = GameData.rng.NextDouble();
@@ -236,7 +249,7 @@ namespace C7GameData {
 			bool wasAboveOneHitPoint = target.CompositeHitPoints() > 1;
 			if (hitCount > 0) {
 				for (int i = 0; i < hitCount && !targetDestroyed; ++i) {
-					targetDestroyed = target.AbsorbBombardHit(lethal: false);
+					targetDestroyed = target.AbsorbBombardHit(lethal);
 					await tile.AnimateAsync(hitList[GameData.rng.Next(0, hitList.Length)]);
 				}
 

@@ -395,10 +395,15 @@ public class PerfCoreTypesDefenderTests : IClassFixture<SaveGameFixture> {
 		}
 
 		// Bombarding without lethal bombard skips units on their last hit
-		// point.
+		// point; with it, they can be hit.
 		MapUnit catapult = Spawn(them, "Catapult", from);
+		catapult.unitType.isLandBombardmentLethal = false;
 		MapUnit target = tile.FindTopDefenderForBombard(catapult);
 		List<MapUnit> healthy = tile.unitsOnTile.Where(u => u.IsCombatUnit() && !u.IsInArmy() && u.CompositeHitPoints() > 1).ToList();
 		Assert.Equal(OldFindTopCombatUnit(catapult, healthy), target);
+
+		catapult.unitType.isLandBombardmentLethal = true;
+		List<MapUnit> combatUnits = tile.unitsOnTile.Where(u => u.IsCombatUnit() && !u.IsInArmy()).ToList();
+		Assert.Equal(OldFindTopCombatUnit(catapult, combatUnits), tile.FindTopDefenderForBombard(catapult));
 	}
 }

@@ -287,16 +287,29 @@ namespace C7Engine {
 		//
 		// viaDeal is for a city given away in a deal (see
 		// Player.ExecuteDeal), which per the project owner doesn't resist its
-		// new owner. Its old owner keeps their units, which leave for the
-		// nearest free tile (UNVERIFIED, no Civ3 source found), and are lost
-		// if there's nowhere for them to go.
+		// new owner. Its old owner keeps their units, which per the project
+		// owner move to the old owner's nearest city (see
+		// MapUnit.FindNearestOwnCity). With no other city for them, they
+		// leave for the nearest free tile, and are lost if there's nowhere
+		// for them to go (UNVERIFIED, no Civ3 source found).
 		public static void TransferCity(City city, Player newOwner, bool viaDeal = false) {
 			GameData gameData = EngineStorage.gameData;
 			Player oldOwner = city.owner;
 			Tile tile = city.location;
 
 			List<MapUnit> oldOwnersUnits = tile.unitsOnTile.Where(u => u.owner == oldOwner).ToList();
-			if (!viaDeal) {
+			// Where the units given notice go is found while the city and the
+			// land around it are still the old owner's, so their paths out
+			// aren't blocked by the new owner's borders. Units loaded on
+			// another (in an army or aboard a ship) go with it.
+			Dictionary<MapUnit, City> destinations = new();
+			if (viaDeal) {
+				foreach (MapUnit unit in oldOwnersUnits) {
+					if (unit.Carrier() == null) {
+						destinations[unit] = unit.FindNearestOwnCity(except: city);
+					}
+				}
+			} else {
 				foreach (MapUnit unit in oldOwnersUnits) {
 					gameData.CaptureUnit(unit, newOwner);
 				}
@@ -324,8 +337,18 @@ namespace C7Engine {
 			gameData.InvalidateCachedTradeNetwork();
 
 			if (viaDeal) {
-				foreach (MapUnit unit in oldOwnersUnits) {
-					if (unit.location == tile && !unit.WithdrawToNearestFreeTile()) {
+				// Those carrying others first, so they take them along.
+				foreach (MapUnit unit in oldOwnersUnits.OrderBy(u => destinations.ContainsKey(u) ? 0 : 1)) {
+					// Units carried away with another are already gone.
+					if (unit.location != tile) {
+						continue;
+					}
+					if (!destinations.TryGetValue(unit, out City destination)) {
+						destination = unit.FindNearestOwnCity(except: city);
+					}
+					if (destination != null && destination.owner == oldOwner) {
+						unit.WithdrawToCity(destination);
+					} else if (!unit.WithdrawToNearestFreeTile()) {
 						gameData.RemoveUnit(unit);
 					}
 				}

@@ -395,13 +395,14 @@ public class FixEngineCoreGameTests : IClassFixture<SaveGameFixture>, IDisposabl
 		Assert.Single(city.residents);
 	}
 
-	// Per the project owner, bombardment never kills a unit, even with the
-	// BIQ's lethal bombardment flag: units are hit down to their last hit
-	// point, and then the city is.
+	// Per the project owner, bombardment that isn't lethal never kills a
+	// unit: units are hit down to their last hit point, and then the city
+	// is. Lethal sea bombardment doesn't make it lethal against land units.
 	[Fact]
-	public async Task BombardmentNeverKillsUnits() {
+	public async Task NonLethalBombardmentNeverKillsUnits() {
 		(City city, MapUnit catapult) = SetUpBombard(size: 3);
-		catapult.unitType.isLandBombardmentLethal = true;
+		catapult.unitType.isLandBombardmentLethal = false;
+		catapult.unitType.isSeaBombardmentLethal = true;
 		catapult.unitType.rateOfFire = 10;
 		MapUnit defender = Spawn(them, "Spearman", city.location);
 
@@ -424,6 +425,51 @@ public class FixEngineCoreGameTests : IClassFixture<SaveGameFixture>, IDisposabl
 			await BombardOnce(catapult, city.location);
 		}
 		Assert.Single(city.residents);
+	}
+
+	// Per the project owner, a bombarder with lethal land bombardment can
+	// kill land units, and only then hits the city.
+	[Fact]
+	public async Task LethalLandBombardmentKillsLandUnits() {
+		(City city, MapUnit catapult) = SetUpBombard(size: 3);
+		catapult.unitType.isLandBombardmentLethal = true;
+		catapult.unitType.isSeaBombardmentLethal = false;
+		catapult.unitType.rateOfFire = 10;
+		MapUnit defender = Spawn(them, "Spearman", city.location);
+		Assert.True(defender.hitPointsRemaining <= catapult.unitType.rateOfFire);
+
+		await BombardOnce(catapult, city.location);
+		Assert.DoesNotContain(defender, city.location.unitsOnTile);
+		Assert.Equal(3, city.residents.Count);
+
+		// With the defender gone, the city is hit.
+		await BombardOnce(catapult, city.location);
+		Assert.Equal(2, city.residents.Count);
+	}
+
+	// Per the project owner, lethal land bombardment doesn't kill ships;
+	// lethal sea bombardment does.
+	[Theory]
+	[InlineData(false)]
+	[InlineData(true)]
+	public async Task OnlyLethalSeaBombardmentKillsShips(bool lethalSea) {
+		(City city, MapUnit catapult) = SetUpBombard(size: 1);
+		catapult.unitType.isLandBombardmentLethal = true;
+		catapult.unitType.isSeaBombardmentLethal = lethalSea;
+		catapult.unitType.rateOfFire = 1_000;
+		UnitPrototype shipType = gameData.unitPrototypes.First(p => p.IsSeaUnit() && p.defense > 0);
+		gameData.SpawnUnit(them, shipType, city.location);
+		MapUnit ship = city.location.unitsOnTile.Last();
+		Assert.True(ship.IsCombatUnit());
+		Assert.True(catapult.IsBombardmentLethalAgainst(ship) == lethalSea);
+
+		await BombardOnce(catapult, city.location);
+		if (lethalSea) {
+			Assert.DoesNotContain(ship, city.location.unitsOnTile);
+		} else {
+			Assert.Contains(ship, city.location.unitsOnTile);
+			Assert.Equal(1, ship.hitPointsRemaining);
+		}
 	}
 
 	[Fact]

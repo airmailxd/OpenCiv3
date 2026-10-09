@@ -85,6 +85,60 @@ public class CityTradeAndPeaceTest : IClassFixture<SaveGameFixture> {
 		Assert.False(other.IsInResistance);
 	}
 
+	private static MapUnit Spawn(C7GameData.GameData gameData, Player owner, string prototype, Tile tile) {
+		gameData.SpawnUnit(owner, gameData.unitPrototypes.Single(p => p.name == prototype), tile);
+		return tile.unitsOnTile.Last();
+	}
+
+	// Per the project owner, the units of a city given away in a deal move
+	// to their civ's nearest city.
+	[Fact]
+	public void UnitsInACityTradedAwayGoToTheNearestCity() {
+		C7GameData.GameData gameData = Load(SaveGameFixture.TwoHumanSave(), fixture);
+		Player[] humans = gameData.players.Where(p => p.isHuman).ToArray();
+		Player giver = humans[0], receiver = humans[1];
+		giver.EnsureRelationshipExists(receiver);
+		BuildCity(gameData, giver);
+		City traded = BuildCity(gameData, giver);
+		BuildCity(gameData, giver);
+		BuildCity(gameData, receiver);
+
+		MapUnit warrior = Spawn(gameData, giver, "Warrior", traded.location);
+		MapUnit worker = Spawn(gameData, giver, "Worker", traded.location);
+		City nearest = warrior.FindNearestOwnCity(except: traded);
+		Assert.NotNull(nearest);
+		Assert.NotSame(traded, nearest);
+
+		Assert.True(receiver.ExecuteDeal(gameData, giver, new TradeOffer { cities = [traded] }, new TradeOffer()));
+		Assert.Same(receiver, traded.owner);
+		Assert.Same(nearest.location, warrior.location);
+		Assert.Same(giver, warrior.owner);
+		Assert.Contains(worker.location, giver.cities.Select(c => c.location));
+		Assert.Same(giver, worker.owner);
+		Assert.DoesNotContain(traded.location.unitsOnTile, u => u.owner == giver);
+	}
+
+	// With no other city to go to, they leave for the nearest free tile,
+	// or are lost (UNVERIFIED).
+	[Fact]
+	public void UnitsOfACivWithNoOtherCityLeaveForAFreeTile() {
+		C7GameData.GameData gameData = Load(SaveGameFixture.TwoHumanSave(), fixture);
+		Player[] humans = gameData.players.Where(p => p.isHuman).ToArray();
+		Player giver = humans[0], receiver = humans[1];
+		giver.EnsureRelationshipExists(receiver);
+		City traded = BuildCity(gameData, giver);
+		BuildCity(gameData, receiver);
+		MapUnit warrior = Spawn(gameData, giver, "Warrior", traded.location);
+		Assert.Null(warrior.FindNearestOwnCity(except: traded));
+
+		CityInteractions.TransferCity(traded, receiver, viaDeal: true);
+		Assert.DoesNotContain(warrior, traded.location.unitsOnTile);
+		if (giver.units.Contains(warrior)) {
+			Assert.NotSame(receiver, warrior.location.OwningPlayer());
+			Assert.False(warrior.location.HasCity());
+		}
+	}
+
 	private (C7GameData.GameData gameData, Player ai, Player human) AIAndHuman() {
 		C7GameData.GameData gameData = Load(fixture.saveGame, fixture);
 		Player human = gameData.players.First(p => p.isHuman);
