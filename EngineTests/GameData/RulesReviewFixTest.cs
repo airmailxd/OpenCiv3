@@ -315,10 +315,27 @@ public class RulesReviewFixTest : IClassFixture<SaveGameFixture> {
 
 		gameData.gameDifficulty.AttackBonusAgainstBarbarians = 100;
 		Assert.Contains(ours.ListStrengthBonusesVersus(theirs, CombatRole.Attack, null), b => b.amount == 1.0);
+		// The AI gets its own 200%, whatever the difficulty.
 		Assert.DoesNotContain(aiUnit.ListStrengthBonusesVersus(theirs, CombatRole.Attack, null), b => b.amount == 1.0);
 		// It counts when defending too, but not in bombardment.
 		Assert.Contains(ours.ListStrengthBonusesVersus(theirs, CombatRole.Defense, null), b => b.amount == 1.0);
 		Assert.DoesNotContain(ours.ListStrengthBonusesVersus(theirs, CombatRole.BombardDefense, null), b => b.amount == 1.0);
+	}
+
+	[Fact]
+	public void TheAIGetsTwoHundredPercentAgainstBarbariansAtAnyDifficulty() {
+		Player barbarians = gameData.players.First(p => p.isBarbarians);
+		Tile tile = gameData.map.tiles.First(IsEmptyLand);
+		MapUnit aiUnit = gameData.SpawnUnit(us, Prototype("Warrior"), tile);
+		MapUnit theirs = gameData.SpawnUnit(barbarians, Prototype("Warrior"), gameData.map.tiles.Where(IsEmptyLand).Skip(1).First());
+
+		foreach (int humanBonus in new[] { 0, 800 }) {
+			gameData.gameDifficulty.AttackBonusAgainstBarbarians = humanBonus;
+			Assert.Contains(aiUnit.ListStrengthBonusesVersus(theirs, CombatRole.Attack, null), b => b.amount == 2.0);
+			Assert.Contains(aiUnit.ListStrengthBonusesVersus(theirs, CombatRole.Defense, null), b => b.amount == 2.0);
+		}
+		// Only against barbarians, and the barbarians get nothing.
+		Assert.DoesNotContain(theirs.ListStrengthBonusesVersus(aiUnit, CombatRole.Attack, null), b => b.amount == 2.0);
 	}
 
 	// ---- Workers ----
