@@ -374,7 +374,7 @@ namespace C7GameData {
 		// Whether the player can irrigate this tile. Irrigation needs fresh
 		// water (a river, lake or irrigated tile next to it) until the player
 		// knows a tech that enables irrigation everywhere (Electricity in
-		// Civ3).
+		// Civ3, see Tech.EnablesIrrigationEverywhere).
 		public bool CanBeIrrigated(TerrainImprovement irrigation, Player player) {
 			// Irrigation can't be done if there is no irrigation bonus for the
 			// tile or if there's already an improvement or city on the tile.

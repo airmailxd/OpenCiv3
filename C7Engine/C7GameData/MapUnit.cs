@@ -402,7 +402,10 @@ namespace C7GameData {
 		// Civ3's terrain job progress per turn for a plain worker when the
 		// government doesn't give its worker rate (2 under most governments
 		// in the standard rules). Foreign (captured) workers work at half
-		// speed.
+		// speed: "all slaves, regardless of their nationality, have a
+		// production value of 50%"
+		// (https://forums.civfanatics.com/threads/worker-actions.82982/,
+		// a chart for Vanilla and PTW; no Conquests source found).
 		private const int DefaultWorkerRate = 2;
 		private const float SlaveWorkerFactor = 0.5f;
 
@@ -1115,11 +1118,20 @@ namespace C7GameData {
 
 		public float workerSpeed() {
 			// The government's worker rate, scaled by the unit's worker
-			// strength (Engineers work twice as fast as Workers).
+			// strength (Engineers work twice as fast as Workers). The
+			// standard rules' rates of 1, 2, 3 and 4 are the Civilopedia's
+			// "Worker Efficiency" of 50% (Anarchy), 100%, 150% (Democracy)
+			// and 200% (Fascism)
+			// (https://civfanatics.com/civ3/civilopedia/governments/).
 			int rate = owner?.government?.workerRate > 0 ? owner.government.workerRate : DefaultWorkerRate;
 			float strength = unitType.workerStrength > 0 ? unitType.workerStrength : 1;
 			float progressPerTurn = rate * strength;
-			// A tech like Replaceable Parts doubles the rate.
+			// A tech with the BIQ's "doubles worker rate" flag doubles it,
+			// with the government's rate and the unit's strength
+			// (https://forums.civfanatics.com/threads/doubles-worker-speed-does-not-work-for-all-workers.409473/).
+			// Replaceable Parts speeds up workers and slaves alike, "the
+			// RATIO remains constant (slave = 50% worker)" (the thread at
+			// SlaveWorkerFactor, Vanilla and PTW); the BIQ decides which tech.
 			if (owner != null && owner.KnowsTechWhere(t => t.DoublesWorkerRate)) {
 				progressPerTurn *= 2;
 			}

@@ -12,9 +12,13 @@ namespace C7GameData {
 		public bool BonusTechToFirstCivThatResearches;
 		public bool EnablesBridges;
 		public bool DoublesWealthProduction;
-		// Irrigation no longer needs fresh water (Electricity in Civ3).
+		// Irrigation no longer needs fresh water (Electricity in Civ3: "You
+		// are correct, sir! Electricity it is",
+		// https://forums.civfanatics.com/threads/irrigation-without-lake-or-river.246854/).
 		public bool EnablesIrrigationEverywhere;
-		// Workers work twice as fast (Replaceable Parts in Civ3).
+		// Workers work twice as fast (Replaceable Parts in Civ3, which
+		// speeds workers up per
+		// https://forums.civfanatics.com/threads/worker-actions.82982/).
 		public bool DoublesWorkerRate;
 
 		// The civilopedia name of the era this tech is part of
