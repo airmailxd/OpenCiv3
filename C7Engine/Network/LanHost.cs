@@ -571,7 +571,9 @@ public class LanHost : IDisposable {
 			try {
 				IPEndPoint from = new(IPAddress.Any, 0);
 				byte[] request = discovery.Receive(ref from);
-				if (Encoding.UTF8.GetString(request) != LanProtocol.DiscoveryRequest) {
+				// Only machines on the same networks look for games this way;
+				// anyone else gets no answer to amplify or learn from.
+				if (!IsLocalNetwork(from.Address) || Encoding.UTF8.GetString(request) != LanProtocol.DiscoveryRequest) {
 					continue;
 				}
 				// The seats belong to the main thread, which publishes what
@@ -589,6 +591,23 @@ public class LanHost : IDisposable {
 		}
 	}
 
+	// Whether an address is on a local network: private, link-local,
+	// loopback, or a virtual network's (100.64.0.0/10, as Tailscale uses).
+	internal static bool IsLocalNetwork(IPAddress address) {
+		if (address.IsIPv4MappedToIPv6) {
+			address = address.MapToIPv4();
+		}
+		if (IPAddress.IsLoopback(address)) {
+			return true;
+		}
+		byte[] b = address.GetAddressBytes();
+		if (address.AddressFamily == AddressFamily.InterNetwork) {
+			return b[0] == 10 || (b[0] == 172 && (b[1] & 0xF0) == 16) || (b[0] == 192 && b[1] == 168)
+				|| (b[0] == 169 && b[1] == 254) || (b[0] == 100 && (b[1] & 0xC0) == 64);
+		}
+		return address.IsIPv6LinkLocal || address.IsIPv6SiteLocal || (b[0] & 0xFE) == 0xFC;
+	}
+
 	// Called on the main thread whenever the seats or the game's state may
 	// have changed.
 	private void PublishDiscoveryReply() {
@@ -596,7 +615,7 @@ public class LanHost : IDisposable {
 		DiscoveryReply current = discoveryReply;
 		if (current == null || current.openSeats != openSeats || current.started != Started || current.hasPassword != HasPassword
 			|| current.hostName != hostName) {
-			discoveryReply = new DiscoveryReply(hostName, Port, openSeats, Started, HasPassword);
+			discoveryReply = new DiscoveryReply(hostName, Port, openSeats, Started, HasPassword, LanProtocol.Version);
 		}
 	}
 
@@ -641,6 +660,10 @@ public class LanHost : IDisposable {
 			}
 			return LanProtocol.EncodeSnapshot(view == null ? snapshot : SnapshotFilter.Filter(snapshot, view), before);
 		});
+		// Each connection waiting on it logs its failure, but one nobody
+		// waits on still has it noticed.
+		encoding.ContinueWith(t => log.Error(t.Exception?.InnerException, "Couldn't encode a snapshot"),
+			TaskContinuationOptions.OnlyOnFaulted);
 		round.encodings[key] = encoding;
 		lastEncodings[key] = encoding;
 		return encoding;
@@ -1110,7 +1133,14 @@ public class LanHost : IDisposable {
 					log.Warning("Ignoring another hello from {Name}", guest.name);
 					return true;
 				}
-				HelloInfo hello = NetSerialization.DeserializeRequired<HelloInfo>(frame.payload);
+				HelloInfo hello;
+				try {
+					hello = NetSerialization.DeserializeRequired<HelloInfo>(frame.payload);
+				} catch (Exception e) {
+					log.Information("Couldn't read the hello from {Address}: {Error}", guest.connection.RemoteAddress, e.Message);
+					Reject(guest, $"The host couldn't understand your game; it may be running a different version (protocol {LanProtocol.Version}).");
+					return false;
+				}
 				if (hello.version != LanProtocol.Version) {
 					Reject(guest, $"The host is running a different version of the game (protocol {LanProtocol.Version}, yours is {hello.version}).");
 					return false;

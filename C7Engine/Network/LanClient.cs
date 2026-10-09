@@ -312,7 +312,14 @@ public class LanClient : IDisposable {
 					if (received == null || (shown != null && received.Hash.AsSpan().SequenceEqual(shown))) {
 						return (received, (SaveGame)null);
 					}
-					return (received, SaveGame.FromJSON(received.Json));
+					try {
+						return (received, SaveGame.FromJSON(received.Json));
+					} catch (Exception e) {
+						// Taken as one that couldn't be decompressed: the
+						// host sends the whole game.
+						log.Warning("Couldn't read the game the host sent: {Error}", e.Message);
+						return ((ReceivedSnapshot)null, (SaveGame)null);
+					}
 				}, TaskScheduler.Default);
 			}
 			if (ReferenceEquals(frame, readingFrame) && !reading.IsCompleted) {
@@ -379,6 +386,7 @@ public class LanClient : IDisposable {
 			askedForWholeSnapshot = false;
 			lastShownSnapshot = null;
 			awaitingAnswer = true;
+			sinceHello.Restart();
 			SayHello();
 			if (IsSpectator) {
 				connection.Send(FrameKind.Watch, []);
@@ -390,6 +398,12 @@ public class LanClient : IDisposable {
 			log.Information("Can't connect to the host again: {Reason}", why);
 			StopReconnecting();
 			LobbyChanged?.Invoke();
+			return;
+		}
+		if (awaitingAnswer && !connection.IsClosed && sinceHello.Elapsed > AnswerTimeout) {
+			log.Information("The host didn't answer within {Seconds} seconds, trying again", AnswerTimeout.TotalSeconds);
+			connection.Dispose();
+			StartReconnecting();
 			return;
 		}
 		bool trying = Reconnecting && !awaitingAnswer;
@@ -459,6 +473,11 @@ public class LanClient : IDisposable {
 		}
 	}
 
+	// A host that takes the new connection but doesn't answer our hello in
+	// this long is given up on, and we try again.
+	internal static TimeSpan AnswerTimeout = TimeSpan.FromSeconds(15);
+	private readonly System.Diagnostics.Stopwatch sinceHello = new();
+
 	// The host has answered our hello on a new connection.
 	private void NoteAnswer() {
 		if (!awaitingAnswer) {
@@ -481,6 +500,7 @@ public class LanClient : IDisposable {
 		switch (frame.kind) {
 			case FrameKind.PasswordRequired:
 				PasswordChallengeInfo challenge = NetSerialization.DeserializeRequired<PasswordChallengeInfo>(frame.payload);
+				NoteAnswer();
 				if (password != null && !challenge.wrong) {
 					AnswerPassword(challenge);
 				} else {

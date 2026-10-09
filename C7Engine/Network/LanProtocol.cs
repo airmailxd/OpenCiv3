@@ -49,7 +49,7 @@ public enum FrameKind : byte {
 
 public static class LanProtocol {
 	// Bump when the frames or the messages in them change incompatibly.
-	public const int Version = 11;
+	public const int Version = 12;
 
 	public const int DefaultPort = 47_777;
 	public const int DiscoveryPort = 47_778;
@@ -283,8 +283,9 @@ public record ChooseCivilizationInfo(string civilization, ID playerID = null);
 public record StartInfo(List<ID> yourPlayerIDs, string reconnectToken = null);
 
 // A host's answer to a discovery broadcast. hasPassword is whether joining
-// takes the game's password.
-public record DiscoveryReply(string hostName, int port, int openSeats, bool started, bool hasPassword = false);
+// takes the game's password, and version the host's LanProtocol.Version (0
+// from a host too old to say), which a guest must match to join.
+public record DiscoveryReply(string hostName, int port, int openSeats, bool started, bool hasPassword = false, int version = 0);
 
 // The host asks for the game's password: the salt to make its verifier
 // with and the nonce to sign (see GamePassword). wrong is true when the last

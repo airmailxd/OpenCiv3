@@ -938,8 +938,15 @@ public partial class LanLobby : Control {
 		Label searchingLabel = new() { Text = "Searching..." };
 		hostList.AddChild(searchingLabel);
 
-		List<FoundHost> hosts = await LanDiscovery.FindHosts(TimeSpan.FromSeconds(1.5));
-		searching = false;
+		List<FoundHost> hosts;
+		try {
+			hosts = await LanDiscovery.FindHosts(TimeSpan.FromSeconds(1.5));
+		} catch (Exception e) when (e is System.Net.Sockets.SocketException or ObjectDisposedException) {
+			log.Warning("Couldn't look for LAN games: {Error}", e.Message);
+			hosts = [];
+		} finally {
+			searching = false;
+		}
 		if (!IsInstanceValid(hostList)) {
 			return;
 		}
@@ -952,12 +959,15 @@ public partial class LanLobby : Control {
 		}
 		foreach (FoundHost found in hosts) {
 			DiscoveryReply reply = found.reply;
-			string state = (reply.started ? "in progress" : "in the lobby") + (reply.hasPassword ? ", password needed" : "");
+			bool sameVersion = reply.version == LanProtocol.Version;
+			string state = !sameVersion ? "running a different version of the game"
+				: (reply.started ? "in progress" : "in the lobby") + (reply.hasPassword ? ", password needed" : "");
 			string seats = $"{reply.openSeats} open {(reply.openSeats == 1 ? "seat" : "seats")}";
 			LanAddressEndpoint endpoint = new(found.address, reply.port);
 			Button join = MakeButton("Join", () => Connect(endpoint, false));
-			join.Disabled = reply.openSeats == 0;
+			join.Disabled = reply.openSeats == 0 || !sameVersion;
 			Button watch = MakeButton("Watch", () => Connect(endpoint, true));
+			watch.Disabled = !sameVersion;
 			// The host of our last game may have moved to another address.
 			LanSession.LastGame last = LanSession.LastJoinedGame;
 			Button rejoin = last != null && last.hostName == reply.hostName && last.port == reply.port
