@@ -1,6 +1,8 @@
 using C7Engine;
 using C7GameData;
 using Godot;
+using Serilog;
+using System;
 
 /// This class mediates between the Engine and the game's animation
 /// system. It receives animation messages from the Engine, checks
@@ -8,6 +10,8 @@ using Godot;
 /// animations using the AnimationTracker and the AnimationManager.
 [GlobalClass]
 public partial class AnimationController : Node {
+	private static readonly ILogger log = LogManager.ForContext<AnimationController>();
+
 	public AnimationManager civ3AnimData;
 	public AnimationTracker animTracker;
 
@@ -22,6 +26,17 @@ public partial class AnimationController : Node {
 	}
 
 	public void HandleEngineMessage(AnimationMessage msg) {
+		// The engine waits for every animation it starts, so one that fails to
+		// start must still be completed, or the game would freeze.
+		try {
+			StartAnimationFor(msg);
+		} catch (Exception e) {
+			log.Error(e, "Couldn't start the animation of {Message}", msg.GetType().Name);
+			msg.markCompleted();
+		}
+	}
+
+	private void StartAnimationFor(AnimationMessage msg) {
 		GameData gameData = EngineStorage.gameData;
 
 		switch (msg) {
@@ -48,6 +63,9 @@ public partial class AnimationController : Node {
 				} else {
 					mSEA.markCompleted();
 				}
+				break;
+			default:
+				msg.markCompleted();
 				break;
 		}
 	}

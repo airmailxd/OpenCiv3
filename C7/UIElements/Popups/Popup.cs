@@ -44,6 +44,14 @@ public partial class Popup : TextureRect {
 		backgroundCache.Clear();
 	}
 
+	// What Escape does while the popup is in front: returns whether the popup
+	// should just close. Most can be closed without an answer, but one that
+	// must be answered gives its own answer (like refusing a deal) or ignores
+	// Escape, and returns false.
+	public virtual bool OnEscape() {
+		return true;
+	}
+
 	protected void AddButton(string label, int verticalPosition, Action action) {
 		const int HORIZONTAL_POSITION = 30;
 

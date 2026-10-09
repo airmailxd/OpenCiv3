@@ -55,6 +55,24 @@ public partial class RightClickMenu : VBoxContainer {
 		this.QueueFree();
 	}
 
+	// The menus in the tree. The game polls its key actions, which an event
+	// the menu accepts doesn't stop, so it checks this to leave keys like
+	// Escape (which closes the menu) and the unit hotkeys alone while a menu
+	// is open, and in the frame it closes.
+	private static readonly HashSet<RightClickMenu> menusInTree = new();
+
+	public static bool IsAnyOpen => menusInTree.Any(m => IsInstanceValid(m) && m.Visible);
+
+	public override void _EnterTree() {
+		menusInTree.Add(this);
+		base._EnterTree();
+	}
+
+	public override void _ExitTree() {
+		menusInTree.Remove(this);
+		base._ExitTree();
+	}
+
 	private static StyleBoxFlat GetItemStyleBox(Color color) {
 		return new StyleBoxFlat() {
 			BgColor = color,

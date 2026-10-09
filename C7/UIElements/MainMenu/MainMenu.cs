@@ -50,8 +50,10 @@ public partial class MainMenu : Node {
 		Global = GetNode<GlobalSingleton>("/root/GlobalSingleton");
 		Global.ResetLoadGameFields();
 
-		// Let go of anything the UI cached from the last game.
+		// Let go of anything the UI cached from the last game, including the
+		// art of a scenario it was.
 		UICaches.Clear();
+		Util.setModPath(null);
 
 		// Back at the menu, any LAN game is over.
 		LanSession.End();
@@ -59,7 +61,7 @@ public partial class MainMenu : Node {
 		LanSession.PendingGame = null;
 		LanSession.ResumeGame = null;
 
-		LoadDialog.SetDirectoryForLoading(@"Conquests/Saves");
+		LoadDialog.SetDirectoryForLoadingSaves();
 		LoadScenarioDialog.SetDirectoryForLoading(@"Conquests/Scenarios");
 		LoadScenarioDialog.GoToScenarioSetupAfterLoading = true;
 

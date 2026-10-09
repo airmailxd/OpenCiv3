@@ -40,31 +40,107 @@ public partial class AnimationTracker {
 		return Stopwatch.GetTimestamp() / stopwatchTicksPerMS;
 	}
 
-	private static void startAnimation(Dictionary<ID, ActiveAnimation> anims, long currentTimeMS, ID id, C7Animation anim, Action completionEvent, AnimationEnding ending) {
-		long animDurationMS = (long)(anim.getDuration());
+	// How much longer than its duration an animation the engine waits for may
+	// stay pending before the watchdog completes it anyway.
+	private const long watchdogGraceMS = 10000;
+
+	// A completion event the engine waits for, with the time by which it
+	// should have been triggered. The engine stops processing anything else
+	// until every animation it started is completed, so one that's never
+	// completed (say because its unit's art is broken, or it was dropped by
+	// mistake) would freeze the game.
+	private class WatchedCompletion {
+		public bool done;
+		public long deadlineMS;
+		public string description;
+	}
+
+	private readonly List<(WatchedCompletion, Action)> watchedCompletions = new();
+
+	// Wraps the completion event so it's only triggered once and the watchdog
+	// can tell whether it has been.
+	private Action watch(Action completionEvent, long deadlineMS, string description) {
+		if (completionEvent == null)
+			return null;
+		var watched = new WatchedCompletion { deadlineMS = deadlineMS, description = description };
+		Action once = () => {
+			if (watched.done)
+				return;
+			watched.done = true;
+			completionEvent();
+		};
+		watchedCompletions.Add((watched, once));
+		return once;
+	}
+
+	// Triggers the completion events that should have been triggered long ago.
+	private void checkWatchdog(long currentTimeMS) {
+		if (watchedCompletions.Count == 0)
+			return;
+		for (int i = watchedCompletions.Count - 1; i >= 0; i--) {
+			(WatchedCompletion watched, Action complete) = watchedCompletions[i];
+			if (watched.done) {
+				watchedCompletions.RemoveAt(i);
+			} else if (watched.deadlineMS <= currentTimeMS) {
+				log.Warning("Animation {Animation} was still pending {GraceMS} ms after it should have ended; completing it", watched.description, watchdogGraceMS);
+				watchedCompletions.RemoveAt(i);
+				complete();
+			}
+		}
+	}
+
+	// Starts the animation, or if it can't be started, triggers its completion
+	// event right away so the engine doesn't wait for it forever. Returns
+	// whether it was started.
+	private bool startAnimation(Dictionary<ID, ActiveAnimation> anims, long currentTimeMS, ID id, Func<C7Animation> getAnim, Action completionEvent, AnimationEnding ending, string description) {
+		C7Animation anim;
+		long animDurationMS;
+		try {
+			anim = getAnim();
+			animDurationMS = (long)(anim.getDuration());
+		} catch (Exception e) {
+			log.Error(e, "Couldn't start animation {Animation}", description);
+			completeSafely(completionEvent, description);
+			return false;
+		}
 
 		ActiveAnimation aa;
 		if (anims.TryGetValue(id, out aa)) {
 			// If there's already an animation playing for this unit, end it first before replacing it
 			// TODO: Consider instead queueing up the new animation until after the first one is completed
 			if (aa.completionEvent != null)
-				aa.completionEvent();
+				completeSafely(aa.completionEvent, description);
 		}
 		aa = new ActiveAnimation {
 			startTimeMS = currentTimeMS,
 			endTimeMS = currentTimeMS + animDurationMS,
-			completionEvent = completionEvent,
+			completionEvent = watch(completionEvent, currentTimeMS + Math.Max(0, animDurationMS) + watchdogGraceMS, description),
 			ending = ending,
 			anim = anim
 		};
 
-		anim.playSound();
-
 		anims[id] = aa;
+
+		try {
+			anim.playSound();
+		} catch (Exception e) {
+			log.Warning(e, "Couldn't play the sound of animation {Animation}", description);
+		}
+		return true;
+	}
+
+	private static void completeSafely(Action completionEvent, string description) {
+		try {
+			completionEvent?.Invoke();
+		} catch (Exception e) {
+			log.Error(e, "Completing animation {Animation} failed", description);
+		}
 	}
 
 	public void startAnimation(MapUnit unit, MapUnit.AnimatedAction action, Action completionEvent, AnimationEnding ending) {
-		startAnimation(activeAnims, getCurrentTimeMS(), unit.id, civ3AnimData.forUnit(unit, action), completionEvent, ending);
+		string description = $"{action} of {unit}";
+		if (!startAnimation(activeAnims, getCurrentTimeMS(), unit.id, () => civ3AnimData.forUnit(unit, action), completionEvent, ending, description))
+			return;
 		ActiveAnimation aa = activeAnims[unit.id];
 		aa.tileX = unit.location.XCoordinate;
 		aa.tileY = unit.location.YCoordinate;
@@ -72,7 +148,7 @@ public partial class AnimationTracker {
 	}
 
 	public void startAnimation(Tile tile, AnimatedEffect effect, Action completionEvent, AnimationEnding ending) {
-		startAnimation(activeTileEffects, getCurrentTimeMS(), tile.Id, civ3AnimData.forEffect(effect), completionEvent, ending);
+		startAnimation(activeTileEffects, getCurrentTimeMS(), tile.Id, () => civ3AnimData.forEffect(effect), completionEvent, ending, $"{effect} at {tile}");
 	}
 
 	public void endAnimation(MapUnit unit) {
@@ -161,6 +237,7 @@ public partial class AnimationTracker {
 		long currentTimeMS = (! endAllImmediately) ? getCurrentTimeMS() : long.MaxValue;
 		update(activeAnims, currentTimeMS);
 		update(activeTileEffects, currentTimeMS);
+		checkWatchdog(getCurrentTimeMS());
 	}
 
 	// Triggers the completion events of the animations that have ended, once
@@ -189,7 +266,7 @@ public partial class AnimationTracker {
 				anims[id] = aa;
 			}
 
-			completionEvent?.Invoke();
+			completeSafely(completionEvent, id.ToString());
 		}
 		finishedIds.Clear();
 	}

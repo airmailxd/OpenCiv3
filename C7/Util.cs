@@ -10,6 +10,8 @@ using Godot;
 using QueryCiv3;
 
 public partial class Util {
+	private static readonly Serilog.ILogger log = LogManager.ForContext<Util>();
+
 	private static string civ3Root = GetCiv3Path();
 
 	// Changing the root invalidates every path resolved against it.
@@ -65,7 +67,16 @@ public partial class Util {
 		string tr = null;
 		if ((!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) &&
 			System.IO.Directory.Exists(exactCaseRoot)) {
-			tr = exactCaseRoot;
+			// Compare full paths, so a relative root or one ending in a
+			// separator still lines up with the full path.
+			string root = System.IO.Path.TrimEndingDirectorySeparator(System.IO.Path.GetFullPath(exactCaseRoot));
+			// A path that climbs out of the root (e.g. a scenario's
+			// ../<scenario name>) is searched for from the top of the file
+			// system instead.
+			if (!fullPath.StartsWith(root + System.IO.Path.DirectorySeparatorChar, StringComparison.Ordinal)) {
+				root = System.IO.Path.GetPathRoot(fullPath);
+			}
+			tr = root;
 
 			// We need to update the ignored case extension before doing this
 			// search, in case the ignored case extension previously had
@@ -76,14 +87,14 @@ public partial class Util {
 			//
 			// We also strip any leading slashes, which can show up if the civ3
 			// root doesn't end in a slash.
-			ignoredCaseExtension = fullPath.Substring(exactCaseRoot.Length);
+			ignoredCaseExtension = fullPath.Substring(root.Length);
 			ignoredCaseExtension = ignoredCaseExtension.TrimPrefix("\\").TrimPrefix("/");
 
 			foreach (string step in ignoredCaseExtension.Replace('\\', '/').Split('/')) {
 				string goal = System.IO.Path.Combine(tr, step);
 				string match = null;
 				foreach (string entry in ListDirectory(tr)) {
-					if (entry.Equals(goal, StringComparison.CurrentCultureIgnoreCase)) {
+					if (entry.Equals(goal, StringComparison.OrdinalIgnoreCase)) {
 						match = entry;
 						break;
 					}
@@ -107,16 +118,22 @@ public partial class Util {
 
 	private static string[] ListDirectory(string directory) {
 		if (!directoryListings.TryGetValue(directory, out string[] entries)) {
-			entries = System.IO.Directory.GetFileSystemEntries(directory, "*");
+			try {
+				entries = System.IO.Directory.GetFileSystemEntries(directory, "*");
+			} catch (Exception e) when (e is System.IO.IOException or UnauthorizedAccessException) {
+				// A directory that can't be listed has nothing to find in it.
+				entries = [];
+			}
 			directoryListings[directory] = entries;
 		}
 		return entries;
 	}
 
 	/// <summary>
-	/// Sets the Civ3 legacy mod path.
+	/// Sets the Civ3 legacy mod path, or clears it when given null or an empty path.
 	/// This is here so Civ3MediaPath can refer to it, without having to grab it from all the places we might need to call
-	/// it, which is in 25 places currently.
+	/// it, which is in 25 places currently. It must be set (or cleared) for every game created or loaded, or a game
+	/// would go on using the art of the scenario played before it.
 	/// </summary>
 	private static string modPath;
 	public static void setModPath(string modPathParam) {
@@ -125,7 +142,7 @@ public partial class Util {
 		// platforms. If we didn't do this then our path searching logic below
 		// would find the default PediaIcons.txt instead of the scenario
 		// specific file.
-		modPath = modPath.Replace("\\conquests\\", "\\Conquests\\");
+		modPath = modPath?.Replace("\\conquests\\", "\\Conquests\\");
 		ClearMediaPathCache();
 	}
 
@@ -490,6 +507,19 @@ public partial class Util {
 		return (LoadFlicHeader(filePath), LoadFlic(filePath));
 	}
 
+	// The media paths that couldn't be loaded, so each is only warned about
+	// once (sounds are looked up again each time they play).
+	private static readonly HashSet<string> warnedMissingMedia = new();
+
+	private static void WarnOnce(Exception e, string kind, string path) {
+		lock (warnedMissingMedia) {
+			if (!warnedMissingMedia.Add(path)) {
+				return;
+			}
+		}
+		log.Warning(e, "Couldn't load {Kind} {Path}", kind, path);
+	}
+
 	// Like LoadWAVFromDisk, but the path is a relative path, not the result of
 	// calling Civ3MediaPath.
 	//
@@ -498,96 +528,267 @@ public partial class Util {
 	public static AudioStreamWav? LoadCiv3WAVFromDisk(string path) {
 		try {
 			return LoadWAVFromDisk(Civ3MediaPath(path));
-		} catch (Exception) {
+		} catch (Exception e) {
+			WarnOnce(e, "sound", path);
 			return null;
 		}
 	}
 
+	private const ushort WavePcm = 1, WaveMsAdpcm = 2, WaveImaAdpcm = 0x11;
+
+	// Loads a WAV file: PCM of 8 to 32 bits, or Microsoft or IMA ADPCM, which
+	// are decoded to 16 bit PCM (Godot's own IMA ADPCM isn't laid out like a
+	// WAV file's).
 	public static AudioStreamWav LoadWAVFromDisk(string path) {
-		FileAccess file = FileAccess.Open(path, FileAccess.ModeFlags.Read);
+		using FileAccess file = FileAccess.Open(path, FileAccess.ModeFlags.Read);
+		if (file == null) {
+			throw new Exception($"Couldn't open {path}: {FileAccess.GetOpenError()}");
+		}
 
 		byte[] riffBytes = file.GetBuffer(4);
 		if (!"RIFF"u8.SequenceEqual(riffBytes)) {
 			throw new Exception("Unsupported file, missing 'RIFF' tag");
 		}
-		uint fileSize = file.Get32();   //minus 8 bytes
+		file.Get32();   // The file size, minus 8 bytes
 
 		byte[] waveBytes = file.GetBuffer(4);
 		if (!"WAVE"u8.SequenceEqual(waveBytes)) {
 			throw new Exception("Unsupported file, missing 'WAVE' tag");
 		}
 
-		bool formatFound = false;
-		bool dataFound = false;
+		ushort compressionCode = 0, channels = 0, blockAlign = 0, formatBits = 0;
+		int sampleRate = 0;
+		byte[] formatExtra = [];
+		byte[] data = null;
 
-		AudioStreamWav wav = new();
-
-		while (!file.EofReached()) {
+		ulong length = file.GetLength();
+		while (file.GetPosition() + 8 <= length) {
 			byte[] chunkBytes = file.GetBuffer(4);
 			uint chunkSize = file.Get32();
 			ulong position = file.GetPosition();
+			// A chunk can't go past the end of the file.
+			uint available = (uint)Math.Min(chunkSize, length - position);
 
-			if (file.EofReached()) {
-				//May occur with e.g. an empty junk chunk
-				break;
-			}
-
-			if ("fmt "u8.SequenceEqual(chunkBytes))    //format chunk
-			{
-				//There is some disagreement between the C++ and GDScript sources
-				//as to which compression codes Godot supports.  The C++ has a comment
-				//saying, "Consider revision for engine version 3.0", and noting other
-				//formats are not supported in its importer.  The GDScript seems
-				//to match up with the current FormatEnum.  I'm going to go out on
-				//a limb and say the GDScript is probably more current relative
-				//to what AudioStreamWAV supports.  But that could be wrong.
-				ushort compressionCode = file.Get16();
-				if (compressionCode == 1) {
-					wav.Format = AudioStreamWav.FormatEnum.Format16Bits;
-				} else if (compressionCode == 0) {
-					wav.Format = AudioStreamWav.FormatEnum.Format8Bits;
-				} else if (compressionCode == 2) {
-					wav.Format = AudioStreamWav.FormatEnum.ImaAdpcm;
+			if ("fmt "u8.SequenceEqual(chunkBytes)) {
+				if (available < 16) {
+					throw new Exception("The format chunk is too short");
 				}
-
-				ushort channels = file.Get16();
-				if (channels == 2) {
-					wav.Stereo = true;
-				} else if (channels < 1 || channels > 5) {
-					throw new Exception("Only mono and stream WAV files supported");
+				compressionCode = file.Get16();
+				channels = file.Get16();
+				sampleRate = (int)file.Get32();
+				file.Get32();   // The average bytes per second
+				blockAlign = file.Get16();
+				formatBits = file.Get16();
+				if (available >= 18) {
+					ushort extraSize = file.Get16();
+					formatExtra = file.GetBuffer(Math.Min(extraSize, available - 18));
 				}
-
-				uint sampleRate = file.Get32();
-				wav.MixRate = (int)sampleRate;
-
-				uint averageBPS = file.Get32(); //unused
-				ushort blockAlign = file.Get16();   //unused
-				ushort formatBits = file.Get16();
-
-				if (formatBits % 8 != 0 || formatBits == 0) {
-					throw new Exception("Format bits must be a multiple of 8");
-				}
-				formatFound = true;
 			} else if ("data"u8.SequenceEqual(chunkBytes)) {
-				byte[] allTheData = file.GetBuffer(chunkSize);
-				wav.Data = allTheData;
-				dataFound = true;
+				data = file.GetBuffer(available);
 			}
 
-			file.Seek(position + chunkSize);
+			// Chunks are padded to an even size.
+			file.Seek(position + chunkSize + (chunkSize & 1));
 		}
 
-		if (!formatFound || !dataFound) {
+		if (channels == 0 || data == null) {
 			throw new Exception("Failed to find both the format and data chunks");
 		}
+		if (channels > 2) {
+			throw new Exception("Only mono and stereo WAV files are supported");
+		}
 
+		AudioStreamWav wav = new() {
+			Stereo = channels == 2,
+			MixRate = sampleRate,
+		};
+		switch (compressionCode) {
+			case WavePcm when formatBits == 8:
+				// WAV's 8 bit samples are unsigned, Godot's are signed.
+				for (int i = 0; i < data.Length; i++) {
+					data[i] ^= 0x80;
+				}
+				wav.Format = AudioStreamWav.FormatEnum.Format8Bits;
+				wav.Data = data;
+				break;
+			case WavePcm when formatBits == 16:
+				wav.Format = AudioStreamWav.FormatEnum.Format16Bits;
+				wav.Data = data;
+				break;
+			case WavePcm when formatBits is 24 or 32:
+				wav.Format = AudioStreamWav.FormatEnum.Format16Bits;
+				wav.Data = PcmTo16Bits(data, formatBits / 8);
+				break;
+			case WaveMsAdpcm:
+				wav.Format = AudioStreamWav.FormatEnum.Format16Bits;
+				wav.Data = DecodeMsAdpcm(data, channels, blockAlign, formatExtra);
+				break;
+			case WaveImaAdpcm:
+				wav.Format = AudioStreamWav.FormatEnum.Format16Bits;
+				wav.Data = DecodeImaAdpcm(data, channels, blockAlign);
+				break;
+			default:
+				throw new Exception($"Unsupported WAV format {compressionCode} with {formatBits} bits per sample");
+		}
 		return wav;
+	}
+
+	// Keeps the two most significant bytes of each little-endian sample.
+	private static byte[] PcmTo16Bits(byte[] data, int bytesPerSample) {
+		int samples = data.Length / bytesPerSample;
+		byte[] result = new byte[samples * 2];
+		for (int i = 0; i < samples; i++) {
+			int last = i * bytesPerSample + bytesPerSample - 1;
+			result[2 * i] = data[last - 1];
+			result[2 * i + 1] = data[last];
+		}
+		return result;
+	}
+
+	private static short ClampToShort(int value) {
+		return (short)Math.Clamp(value, short.MinValue, short.MaxValue);
+	}
+
+	private static void WriteSample(List<byte> output, int sample) {
+		short s = ClampToShort(sample);
+		output.Add((byte)s);
+		output.Add((byte)(s >> 8));
+	}
+
+	private static readonly int[] msAdpcmAdaptation = [230, 230, 230, 230, 307, 409, 512, 614, 768, 614, 512, 409, 307, 230, 230, 230];
+	private static readonly (int, int)[] msAdpcmDefaultCoefficients = [(256, 0), (512, -256), (0, 0), (192, 64), (240, 0), (460, -208), (392, -232)];
+
+	// Decodes Microsoft ADPCM into interleaved 16 bit samples.
+	private static byte[] DecodeMsAdpcm(byte[] data, int channels, int blockAlign, byte[] formatExtra) {
+		// The format's extra bytes hold the samples per block, then the
+		// prediction coefficients.
+		(int, int)[] coefficients = msAdpcmDefaultCoefficients;
+		if (formatExtra.Length >= 4) {
+			int count = BitConverter.ToUInt16(formatExtra, 2);
+			if (count > 0 && formatExtra.Length >= 4 + 4 * count) {
+				coefficients = new (int, int)[count];
+				for (int i = 0; i < count; i++) {
+					coefficients[i] = (BitConverter.ToInt16(formatExtra, 4 + 4 * i), BitConverter.ToInt16(formatExtra, 6 + 4 * i));
+				}
+			}
+		}
+
+		int headerSize = 7 * channels;
+		if (blockAlign <= headerSize) {
+			throw new Exception("Invalid MS ADPCM block size");
+		}
+		List<byte> output = new(data.Length * 4);
+		int[] coef1 = new int[channels], coef2 = new int[channels], delta = new int[channels];
+		int[] sample1 = new int[channels], sample2 = new int[channels];
+
+		for (int block = 0; block + headerSize <= data.Length; block += blockAlign) {
+			int end = Math.Min(block + blockAlign, data.Length);
+			int p = block;
+			for (int c = 0; c < channels; c++) {
+				(coef1[c], coef2[c]) = coefficients[Math.Min(data[p++], coefficients.Length - 1)];
+			}
+			for (int c = 0; c < channels; c++, p += 2) {
+				delta[c] = BitConverter.ToInt16(data, p);
+			}
+			for (int c = 0; c < channels; c++, p += 2) {
+				sample1[c] = BitConverter.ToInt16(data, p);
+			}
+			for (int c = 0; c < channels; c++, p += 2) {
+				sample2[c] = BitConverter.ToInt16(data, p);
+			}
+			// The header's samples come first, the older one first.
+			for (int c = 0; c < channels; c++) {
+				WriteSample(output, sample2[c]);
+			}
+			for (int c = 0; c < channels; c++) {
+				WriteSample(output, sample1[c]);
+			}
+
+			// Each byte holds two samples, high nibble first, alternating
+			// between the channels in stereo.
+			int channel = 0;
+			for (; p < end; p++) {
+				foreach (int nibble in new[] { data[p] >> 4, data[p] & 0xF }) {
+					int signedNibble = nibble >= 8 ? nibble - 16 : nibble;
+					int predicted = (sample1[channel] * coef1[channel] + sample2[channel] * coef2[channel]) >> 8;
+					int sample = ClampToShort(predicted + signedNibble * delta[channel]);
+					WriteSample(output, sample);
+					sample2[channel] = sample1[channel];
+					sample1[channel] = sample;
+					delta[channel] = Math.Max(16, (msAdpcmAdaptation[nibble] * delta[channel]) >> 8);
+					channel = (channel + 1) % channels;
+				}
+			}
+		}
+		return output.ToArray();
+	}
+
+	private static readonly int[] imaIndexTable = [-1, -1, -1, -1, 2, 4, 6, 8, -1, -1, -1, -1, 2, 4, 6, 8];
+	private static readonly int[] imaStepTable = [
+		7, 8, 9, 10, 11, 12, 13, 14, 16, 17, 19, 21, 23, 25, 28, 31, 34, 37, 41, 45, 50, 55, 60, 66, 73, 80, 88, 97, 107, 118,
+		130, 143, 157, 173, 190, 209, 230, 253, 279, 307, 337, 371, 408, 449, 494, 544, 598, 658, 724, 796, 876, 963, 1060,
+		1166, 1282, 1411, 1552, 1707, 1878, 2066, 2272, 2499, 2749, 3024, 3327, 3660, 4026, 4428, 4871, 5358, 5894, 6484,
+		7132, 7845, 8630, 9493, 10442, 11487, 12635, 13899, 15289, 16818, 18500, 20350, 22385, 24623, 27086, 29794, 32767,
+	];
+
+	// Decodes IMA ADPCM, as laid out in WAV files, into interleaved 16 bit
+	// samples.
+	private static byte[] DecodeImaAdpcm(byte[] data, int channels, int blockAlign) {
+		int headerSize = 4 * channels;
+		if (blockAlign <= headerSize) {
+			throw new Exception("Invalid IMA ADPCM block size");
+		}
+		List<byte> output = new(data.Length * 4);
+		int[] predictor = new int[channels], index = new int[channels];
+		// A block's samples, by channel, before they're interleaved.
+		List<int>[] decoded = new List<int>[channels];
+		for (int c = 0; c < channels; c++) {
+			decoded[c] = new();
+		}
+
+		for (int block = 0; block + headerSize <= data.Length; block += blockAlign) {
+			int end = Math.Min(block + blockAlign, data.Length);
+			int p = block;
+			for (int c = 0; c < channels; c++, p += 4) {
+				predictor[c] = BitConverter.ToInt16(data, p);
+				index[c] = Math.Clamp((int)data[p + 2], 0, imaStepTable.Length - 1);
+				decoded[c].Clear();
+				decoded[c].Add(predictor[c]);
+			}
+
+			// Each channel has four bytes in turn, eight samples, low nibble
+			// first.
+			while (p + 4 * channels <= end) {
+				for (int c = 0; c < channels; c++) {
+					for (int i = 0; i < 4; i++, p++) {
+						foreach (int nibble in new[] { data[p] & 0xF, data[p] >> 4 }) {
+							int step = imaStepTable[index[c]];
+							int diff = step >> 3;
+							if ((nibble & 1) != 0) diff += step >> 2;
+							if ((nibble & 2) != 0) diff += step >> 1;
+							if ((nibble & 4) != 0) diff += step;
+							predictor[c] = ClampToShort((nibble & 8) != 0 ? predictor[c] - diff : predictor[c] + diff);
+							index[c] = Math.Clamp(index[c] + imaIndexTable[nibble], 0, imaStepTable.Length - 1);
+							decoded[c].Add(predictor[c]);
+						}
+					}
+				}
+			}
+
+			for (int i = 0; i < decoded[0].Count; i++) {
+				for (int c = 0; c < channels; c++) {
+					WriteSample(output, decoded[c][i]);
+				}
+			}
+		}
+		return output.ToArray();
 	}
 
 	public static AudioStreamMP3? LoadCiv3Mp3FromDisk(string path) {
 		try {
 			return LoadMp3FromDisk(Civ3MediaPath(path));
-		} catch (Exception) {
+		} catch (Exception e) {
+			WarnOnce(e, "music", path);
 			return null;
 		}
 	}
@@ -601,7 +802,8 @@ public partial class Util {
 	public static AudioStreamOggVorbis? LoadCiv3OggFromDisk(string path) {
 		try {
 			return LoadOggFromDisk(Civ3MediaPath(path));
-		} catch (Exception) {
+		} catch (Exception e) {
+			WarnOnce(e, "music", path);
 			return null;
 		}
 	}
@@ -627,6 +829,20 @@ public partial class Util {
 		if (validProperties.Contains(propertyName)) {
 			property["usage"] = (int)PropertyUsageFlags.NoInstanceState;
 		}
+	}
+
+	// Shows an error in a plain dialog window over the given node, for screens
+	// that have no popup overlay of their own, like the new game setup.
+	public static void ShowErrorDialog(Node parent, string title, string message) {
+		AcceptDialog dialog = new() {
+			Title = title,
+			DialogText = message,
+			Exclusive = true,
+		};
+		dialog.Confirmed += dialog.QueueFree;
+		dialog.Canceled += dialog.QueueFree;
+		parent.AddChild(dialog);
+		dialog.PopupCentered();
 	}
 
 	// Allow clearing the caches, so that scenarios with different files that

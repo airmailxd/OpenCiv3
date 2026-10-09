@@ -63,7 +63,7 @@ public partial class AudioManager : Node {
 			AudioServer.SetBusVolumeDb(busIndex, volumeDb);
 
 			return true;
-		} catch (ApplicationException ex) {
+		} catch (Exception ex) {
 			log.Error(ex, "could not configure {volumeKey}", volumeKey);
 			return false;
 		}
@@ -105,7 +105,13 @@ public partial class AudioManager : Node {
 			C7Settings.SaveSettings();
 			return 0;
 		}
-		int userVolumeSetting = int.Parse(volume);
+		// A value that isn't a number (e.g. edited by hand) plays at full
+		// volume rather than leaving the game without sound.
+		if (!int.TryParse(volume, out int userVolumeSetting)) {
+			log.Warning("Ignoring {volumeKey} = {volume} in C7.ini, which isn't a number from 0 to 100", volumeKey, volume);
+			userVolumeSetting = 100;
+		}
+		userVolumeSetting = Math.Clamp(userVolumeSetting, 0, 100);
 		if (userVolumeSetting == 100) {
 			return 0;
 		} else if (userVolumeSetting == 0) {

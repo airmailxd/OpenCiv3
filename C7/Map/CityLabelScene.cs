@@ -184,6 +184,16 @@ namespace C7.Map {
 			productionLabel.VerticalAlignment = VerticalAlignment.Center;
 		}
 
+		// The capital star's panel is kept out of the tree while the city
+		// isn't a capital, where freeing the label wouldn't free it.
+		public override void _Notification(int what) {
+			if (what == NotificationPredelete && capitalPanel != null && IsInstanceValid(capitalPanel)
+				&& capitalPanel.GetParent() == null) {
+				capitalPanel.Free();
+			}
+			base._Notification(what);
+		}
+
 		private void SetupCapitalPanel() {
 			capitalPanel = new PanelContainer();
 

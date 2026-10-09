@@ -2,7 +2,7 @@ using Godot;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
+using System.Threading.Tasks;
 using C7GameData;
 using C7Engine;
 using C7Engine.Lua;
@@ -395,8 +395,39 @@ public partial class PlayerSetup : Control {
 		return players;
 	}
 
+	// Whether a game is being created, so a second click on the confirm
+	// button doesn't start a second one.
+	private bool creatingGame = false;
+
 	private void CreateGame() {
-		loadingLabel.Visible = true;
+		if (creatingGame) {
+			return;
+		}
+		SetCreatingGame(true);
+		try {
+			StartCreatingGame();
+		} catch (Exception e) {
+			OnCreateGameFailed(e);
+		}
+	}
+
+	private void SetCreatingGame(bool creating) {
+		creatingGame = creating;
+		loadingLabel.Visible = creating;
+		confirm.Disabled = creating;
+		cancel.Disabled = creating;
+	}
+
+	private void OnCreateGameFailed(Exception e) {
+		log.Error(e, "Couldn't create the game");
+		if (!IsInstanceValid(this) || !IsInsideTree()) {
+			return;
+		}
+		SetCreatingGame(false);
+		Util.ShowErrorDialog(this, "Couldn't create the game", e.Message);
+	}
+
+	private void StartCreatingGame() {
 
 		GlobalSingleton global = GetNode<GlobalSingleton>("/root/GlobalSingleton");
 
@@ -440,13 +471,17 @@ public partial class PlayerSetup : Control {
 
 		// World generation can take a bit of time if multiple attempts are
 		// needed, so we don't want to tie up the UI thread.
-		Thread thread = new(() => {
-			gameSetup.Populate(save);
+		Task.Run(() => {
+			try {
+				gameSetup.Populate(save);
+			} catch (Exception e) {
+				Callable.From(() => OnCreateGameFailed(e)).CallDeferred();
+				return;
+			}
 
 			log.Information("opening map");
-			CallDeferred(nameof(StartGame));
+			Callable.From(StartGame).CallDeferred();
 		});
-		thread.Start();
 	}
 
 	private void PersistGameSettings(GameSetup gameSetup) {
@@ -473,6 +508,13 @@ public partial class PlayerSetup : Control {
 	}
 
 	private void StartGame() {
-		LanSession.StartGame(GetTree());
+		if (!IsInstanceValid(this) || !IsInsideTree()) {
+			return;
+		}
+		try {
+			LanSession.StartGame(GetTree());
+		} catch (Exception e) {
+			OnCreateGameFailed(e);
+		}
 	}
 }

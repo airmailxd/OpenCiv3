@@ -58,7 +58,9 @@ namespace C7.Map {
 			pollutionTexture = TextureLoader.Load("terrain_improvements.pollution");
 			cratersTexture = TextureLoader.Load("terrain_improvements.craters");
 
-			rng = GameData.rng.Next(0, 5000) * 2 + 1;
+			// The layer's own random numbers: drawing must never use the
+			// game's, which decide the game's outcomes and are saved with it.
+			rng = new Random().Next(0, 5000) * 2 + 1;
 		}
 
 		public override void onGameDataReplaced(GameData gameData) {

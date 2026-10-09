@@ -29,6 +29,11 @@ public partial class ErrorMessage : Popup {
 		AddButton("Return to Menu", 290, quit);
 	}
 
+	// The game couldn't be loaded, so there's nothing to go back to.
+	public override bool OnEscape() {
+		return false;
+	}
+
 	private void quit() {
 		GetTree().ChangeSceneToFile("res://UIElements/MainMenu/main_menu.tscn");
 	}

@@ -145,6 +145,9 @@ public partial class CityScreen : Control {
 	// established: the city can be looked at, but not managed.
 	private bool foreignView = false;
 	private Action onForeignViewClosed;
+	// Called with the city on a LAN client's new game data when a snapshot
+	// replaces the game while the foreign city is shown.
+	private Action<GameData, City> onForeignViewGameReplaced;
 
 	// Called when the node enters the scene tree for the first time.
 	public override void _Ready() {
@@ -312,7 +315,7 @@ public partial class CityScreen : Control {
 						// The engine moves the citizen, and the city screen redraws
 						// when it hears the city changed.
 						Tile tile = mapView.tileOnScreenAt(gameData.map, eventMouseButton.Position);
-						if (tile != null) {
+						if (Tile.IsTileValid(tile)) {
 							new MsgReassignCitizen(tileAssignmentLayer.city, tile).send();
 						}
 					});
@@ -330,10 +333,11 @@ public partial class CityScreen : Control {
 
 	// Shows another civ's city without letting the player manage it, until
 	// the screen is closed, when onClosed is called.
-	public void ShowForeignCity(GameData gameData, City city, Action onClosed) {
+	public void ShowForeignCity(GameData gameData, City city, Action onClosed, Action<GameData, City> onGameReplaced = null) {
 		EndForeignView();
 		foreignView = true;
 		onForeignViewClosed = onClosed;
+		onForeignViewGameReplaced = onGameReplaced;
 		SetManagementControlsVisible(false);
 		city.RecalculateCitizenMoods(gameData);
 		OnShowCityScreenLocked(gameData, new ParameterWrapper<City>(city));
@@ -347,6 +351,7 @@ public partial class CityScreen : Control {
 		SetManagementControlsVisible(true);
 		Action onClosed = onForeignViewClosed;
 		onForeignViewClosed = null;
+		onForeignViewGameReplaced = null;
 		onClosed?.Invoke();
 	}
 
@@ -392,17 +397,19 @@ public partial class CityScreen : Control {
 	}
 
 	// Shows the city again after a LAN client replaced its game data with
-	// the host's latest snapshot, or closes the screen if the city is gone.
+	// the host's latest snapshot, or closes the screen if the city is gone
+	// or, unless it's another civ's city being looked at, no longer ours.
 	public void RefreshAfterGameReplaced() {
 		if (!Visible || tileAssignmentLayer.city == null) {
 			return;
 		}
 		EngineStorage.ReadGameData((GameData gameData) => {
 			City city = gameData.cities.Find(c => c.id == tileAssignmentLayer.city.id);
-			if (city == null || city.owner.id != EngineStorage.uiControllerID) {
+			if (city == null || (!foreignView && city.owner.id != EngineStorage.uiControllerID)) {
 				Hide();
 				return;
 			}
+			onForeignViewGameReplaced?.Invoke(gameData, city);
 			RenderCity(gameData, city);
 		});
 	}

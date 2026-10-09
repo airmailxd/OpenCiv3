@@ -17,6 +17,7 @@ public partial class MiniMapControls : Control {
 public partial class MiniMapBoundsOverlay : Control {
 	private readonly List<(int x0, int y0, int x1, int y1)> lines = new();
 	private int mapWidth, mapHeight;
+	private bool wrapHorizontally, wrapVertically;
 	private bool hasBounds;
 	private MapView.VisibleRegion lastRegion;
 
@@ -27,6 +28,7 @@ public partial class MiniMapBoundsOverlay : Control {
 	public void SetBounds(GameMap map, MapView.VisibleRegion vr) {
 		int width = map.numTilesWide, height = map.numTilesTall;
 		if (hasBounds && width == mapWidth && height == mapHeight
+			&& map.wrapHorizontally == wrapHorizontally && map.wrapVertically == wrapVertically
 			&& vr.upperLeftX == lastRegion.upperLeftX && vr.upperLeftY == lastRegion.upperLeftY
 			&& vr.lowerRightX == lastRegion.lowerRightX && vr.lowerRightY == lastRegion.lowerRightY) {
 			return;
@@ -34,6 +36,8 @@ public partial class MiniMapBoundsOverlay : Control {
 		hasBounds = true;
 		mapWidth = width;
 		mapHeight = height;
+		wrapHorizontally = map.wrapHorizontally;
+		wrapVertically = map.wrapVertically;
 		lastRegion = vr;
 
 		lines.Clear();
@@ -68,23 +72,40 @@ public partial class MiniMapBoundsOverlay : Control {
 		var maxHeight = mapHeight;
 		var maxPan = 100; // how many screenfuls one can pan the map
 
+		// Along a direction the map doesn't wrap in, the view past the edge
+		// shows nothing, so the rectangle stops at the edge rather than
+		// coming back in on the other side.
+		if (!wrapHorizontally) {
+			ax = Math.Clamp(ax, 0, maxWidth);
+			bx = Math.Clamp(bx, 0, maxWidth);
+		}
+		if (!wrapVertically) {
+			ay = Math.Clamp(ay, 0, maxHeight);
+			by = Math.Clamp(by, 0, maxHeight);
+		}
+
 		// Wrapped coordinates, working around modulo operator limitations.
-		var wax = (maxPan * mapWidth + ax) % mapWidth;
-		var way = (maxPan * mapHeight + ay) % mapHeight;
-		var wbx = (maxPan * mapWidth + bx) % mapWidth;
-		var wby = (maxPan * mapHeight + by) % mapHeight;
+		var wax = wrapHorizontally ? (maxPan * mapWidth + ax) % mapWidth : ax;
+		var way = wrapVertically ? (maxPan * mapHeight + ay) % mapHeight : ay;
+		var wbx = wrapHorizontally ? (maxPan * mapWidth + bx) % mapWidth : bx;
+		var wby = wrapVertically ? (maxPan * mapHeight + by) % mapHeight : by;
+
+		// A view at least as wide (or tall) as the map covers all of it.
+		if (bx - ax >= maxWidth) {
+			wax = 0;
+			wbx = maxWidth;
+		}
+		if (by - ay >= maxHeight) {
+			way = 0;
+			wby = maxHeight;
+		}
 
 		// Out of bounds
 		var isOoBx = wbx < wax; // X coordinates increase right
 		var isOoBy = wby < way; // Y coordinates increase down
-		var fullZoom = (by - ay) >= maxHeight || (bx - ax) >= maxWidth;
-
-		// TODO: make use of GameMap's wrapHorizontally, wrapVertically
 
 		// Handle the four cases
-		if (fullZoom)
-			DrawBoundsRegular(0, 0, maxWidth, maxHeight);
-		else if (isOoBx && isOoBy)
+		if (isOoBx && isOoBy)
 			DrawBoundsOverCorner(wax, way, wbx, wby, maxWidth, maxHeight);
 		else if (isOoBx)
 			DrawBoundsOverSideEdges(wax, way, wbx, wby, maxWidth, maxHeight);

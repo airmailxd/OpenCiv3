@@ -26,7 +26,28 @@ public partial class SettingsMenu : Control {
 			Build();
 		} catch (Exception ex) {
 			log.Error(ex, "Could not set up the settings page");
+			ShowBuildError(ex);
 		}
+	}
+
+	// Replaces a page that couldn't be built with what went wrong and a way
+	// back, rather than leaving it half built.
+	private void ShowBuildError(Exception ex) {
+		foreach (Node child in GetChildren()) {
+			RemoveChild(child);
+			child.QueueFree();
+		}
+		ColorRect black = new() { Color = Colors.Black };
+		black.SetAnchorsPreset(LayoutPreset.FullRect);
+		AddChild(black);
+
+		VBoxContainer box = new();
+		box.SetAnchorsPreset(LayoutPreset.Center);
+		AddChild(box);
+		box.AddChild(new Label { Text = $"The settings couldn't be shown:\n{ex.Message}" });
+		Button back = new() { Text = "Back to the menu" };
+		back.Pressed += ReturnToMenu;
+		box.AddChild(back);
 	}
 
 	public override void _UnhandledInput(InputEvent @event) {
@@ -191,13 +212,21 @@ public partial class SettingsMenu : Control {
 
 		Civ3MenuButton test = new() { Text = "Test", SizeFlagsHorizontal = SizeFlags.ShrinkCenter };
 		test.Pressed += async () => {
-			PlayClick();
-			Save();
-			string url = OnlineRelay.Url;
-			result.Text = "Checking...";
-			string problem = await OnlineRelay.CheckAsync(url);
-			if (IsInstanceValid(result)) {
-				result.Text = problem ?? "The relay server answered. Games can be hosted and joined online through it.";
+			// An async void handler's exceptions would otherwise go unseen.
+			try {
+				PlayClick();
+				Save();
+				string url = OnlineRelay.Url;
+				result.Text = "Checking...";
+				string problem = await OnlineRelay.CheckAsync(url);
+				if (IsInstanceValid(result)) {
+					result.Text = problem ?? "The relay server answered. Games can be hosted and joined online through it.";
+				}
+			} catch (Exception ex) {
+				log.Warning(ex, "Couldn't check the relay server");
+				if (IsInstanceValid(result)) {
+					result.Text = $"Couldn't check the relay server: {ex.Message}";
+				}
 			}
 		};
 		column.AddChild(MakeRow("Relay server", relay, test));

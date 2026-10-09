@@ -118,7 +118,7 @@ public partial class LowerRightInfoBox : Civ3TextureRect {
 
 		// Player info
 		boxRightRectangle.AddChild(civAndGovt);
-		civAndGovt.SetTextAndCenterLabel("Netherlands - Despotism (5.5.0)").AddXOffset(extraXOffset).AddYOffset(80);
+		civAndGovt.SetTextAndCenterLabel("").AddXOffset(extraXOffset).AddYOffset(80);
 
 		boxRightRectangle.AddChild(yearAndGold);
 		yearAndGold.SetTextAndCenterLabel("Turn 0  10 Gold (+0 per turn)").AddXOffset(extraXOffset).AddYOffset(94);
@@ -334,8 +334,10 @@ public partial class LowerRightInfoBox : Civ3TextureRect {
 		// Tech progress.
 		SetLabelText(scienceProgress, ref scienceProgressText, ScienceEstimates.SummarizeScience(gD, player, totals.beakers));
 
-		// Civ and government.
-		SetLabelText(civAndGovt, ref civAndGovtText, $"{player.civilization.name} - {player.government.name} (5.5.0)");
+		// Civ, government and rates, in tenths, in Civ 3's order: taxes,
+		// science, luxuries.
+		SetLabelText(civAndGovt, ref civAndGovtText,
+			$"{player.civilization.name} - {player.government.name} ({player.taxRate}.{player.scienceRate}.{player.luxuryRate})");
 	}
 
 	private static void SetLabelText(Label label, ref string current, string text) {

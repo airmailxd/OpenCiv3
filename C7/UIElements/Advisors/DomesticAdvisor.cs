@@ -248,36 +248,28 @@ public partial class DomesticAdvisor : Control {
 		return commerce.taxes + commerce.beakers + commerce.happiness;
 	}
 
+	// The sliders ask for the rate they were moved to, rather than a step
+	// each time they change: a click on the track jumps several steps, and
+	// the player's rates may not have caught up with an earlier move yet (as
+	// on a LAN client). Only a change the player made asks for anything.
 	private void UpdateScienceSlider(int value) {
-		if (playerController == null)
+		if (playerController == null || refreshingSliders)
 			return;
-		int scienceRate = playerController.scienceRate;
-
-		if (value == scienceRate)
-			return;
-
-		if (value > scienceRate) {
-			MoreScience();
-		} else {
-			LessScience();
-		}
+		DomesticPolicyChoice direction = value > playerController.scienceRate ? DomesticPolicyChoice.MoreScience : DomesticPolicyChoice.LessScience;
+		new MsgChangeSliders(direction, value).send();
 	}
 
 	private void UpdateLuxurySlider(int value) {
-		if (playerController == null)
+		if (playerController == null || refreshingSliders)
 			return;
-		int luxuryRate = playerController.luxuryRate;
-
-		if (value == luxuryRate)
-			return;
-
-		if (value > luxuryRate) {
-			MoreLuxury();
-		} else {
-			LessLuxury();
-		}
+		DomesticPolicyChoice direction = value > playerController.luxuryRate ? DomesticPolicyChoice.MoreLuxury : DomesticPolicyChoice.LessLuxury;
+		new MsgChangeSliders(direction, value).send();
 	}
 
+	// Set while the sliders are moved to show the player's rates.
+	private bool refreshingSliders = false;
+
+	// The plus and minus buttons move a rate one step.
 	private void MoreScience() {
 		new MsgChangeSliders(DomesticPolicyChoice.MoreScience).send();
 	}
@@ -285,6 +277,7 @@ public partial class DomesticAdvisor : Control {
 	private void MoreLuxury() {
 		new MsgChangeSliders(DomesticPolicyChoice.MoreLuxury).send();
 	}
+
 	private void LessScience() {
 		new MsgChangeSliders(DomesticPolicyChoice.LessScience).send();
 	}
@@ -304,9 +297,11 @@ public partial class DomesticAdvisor : Control {
 			int scienceRate = playerController.scienceRate;
 			int luxuryRate = playerController.luxuryRate;
 
+			refreshingSliders = true;
 			scienceSlider.Value = scienceRate;
-			scienceSliderLabel.Text = $"{scienceRate * 10}%";
 			luxurySlider.Value = luxuryRate;
+			refreshingSliders = false;
+			scienceSliderLabel.Text = $"{scienceRate * 10}%";
 			luxurySliderLabel.Text = $"{luxuryRate * 10}%";
 
 			governmentLabel.Text = $"{playerController.government.name}";
@@ -423,6 +418,7 @@ public partial class DomesticAdvisor : Control {
 		public Label foodLabel;
 		public Label shieldsLabel;
 		public Label commerceLabel;
+		public Label maintenanceLabel;
 		public Label happinessLabel;
 		public Label scienceLabel;
 		public Label taxesLabel;
@@ -487,11 +483,11 @@ public partial class DomesticAdvisor : Control {
 
 		Label maintenanceLabel = new();
 		maintenanceLabel.CustomMinimumSize = new Vector2(40, 0);
-		maintenanceLabel.Text = "0";  // TODO: track maintenance
 		maintenanceLabel.HorizontalAlignment = HorizontalAlignment.Center;
 		maintenanceLabel.VerticalAlignment = VerticalAlignment.Center;
 		maintenanceLabel.ClipText = true;
 		hboxContainer.AddChild(maintenanceLabel);
+		cityRow.maintenanceLabel = maintenanceLabel;
 
 		Label happinessLabel = new();
 		happinessLabel.CustomMinimumSize = new Vector2(40, 0);
@@ -563,6 +559,7 @@ public partial class DomesticAdvisor : Control {
 
 		CommerceBreakdown commerce = city.CurrentCommerceYield();
 		SetText(cityRow.commerceLabel, SpaceAlignedDotFormat(commerce.corrupted, CommerceAfterCorruption(commerce)));
+		SetText(cityRow.maintenanceLabel, city.MaintenanceCosts().ToString());
 
 		// Sort the residents by how they are shown, in one pass.
 		happyResidents.Clear();

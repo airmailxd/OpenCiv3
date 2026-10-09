@@ -7,6 +7,7 @@ using Serilog;
 using C7Engine.Pathing;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 using static C7GameData.MapUnit;
 using C7Engine.Network;
@@ -22,6 +23,9 @@ public class GotoInfo {
 	// Whether every unit on the selected unit's tile goes, not just the
 	// selected one (the J key).
 	public bool wholeStack = false;
+	// The unit that moves, once a war declaration has to be confirmed first,
+	// so the move doesn't go to whichever unit is selected by then.
+	public ID unitID = null;
 };
 
 public class TileInfo {
@@ -216,7 +220,10 @@ public partial class Game : Node {
 			await InitializeGame();
 			await StartGame();
 		} catch (Exception ex) {
+			// The game is only partly set up, so nothing may be played; the
+			// error offers the way back to the menu.
 			errorOnLoad = true;
+			CurrentState = GameState.ComputerTurn;
 			string message = ex.Message;
 			string[] stack = ex.StackTrace.Split("\r\n");   //for some reason it is returned with \r\n in the string as one line.  let's make it readable!
 			foreach (string line in stack) {
@@ -229,6 +236,12 @@ public partial class Game : Node {
 	}
 
 	private async Task InitializeGame() {
+		// The mod path is left over from whatever was set up last. A game
+		// made from a save object (a new game, or a scenario) takes the
+		// save's; a saved game being loaded sets its own while it loads,
+		// if it has one.
+		Util.setModPath(Global.SaveGame?.ScenarioSearchPath);
+
 		// Ensure we clear out our image caches, as scenarios and games will
 		// use the same filenames but have different content for them.
 		Util.ClearCaches();
@@ -629,6 +642,13 @@ public partial class Game : Node {
 			Tile target = gameData.map.tileAt(tileInfo.targetTile.XCoordinate, tileInfo.targetTile.YCoordinate);
 			tileInfo = target != Tile.NONE ? new TileInfo(target) : null;
 		}
+		// So do the messages held for our other players.
+		foreach (Queue<MessageToUI> held in heldMessages.Values) {
+			foreach (MessageToUI msg in held) {
+				RebindToGame(msg, gameData);
+			}
+		}
+
 		Tile gotoDestination = gotoInfo?.destinationTile;
 		lastTile = null;
 		if (gotoDestination != null) {
@@ -648,6 +668,27 @@ public partial class Game : Node {
 		}
 	}
 
+	// Points the players, cities, units and tiles a message refers to at
+	// the same ones in a LAN snapshot's game. Any that aren't in the snapshot
+	// (like a city since destroyed) are left as they were, which is enough
+	// for the message's text.
+	private static void RebindToGame(object msg, GameData gameData) {
+		for (Type type = msg.GetType(); type != null && type != typeof(object); type = type.BaseType) {
+			foreach (FieldInfo field in type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly)) {
+				object rebound = field.GetValue(msg) switch {
+					Player p => gameData.GetPlayer(p.id),
+					City c => gameData.cities.Find(x => x.id == c.id),
+					MapUnit u when u != MapUnit.NONE => gameData.GetUnit(u.id),
+					Tile t when t != Tile.NONE => gameData.map.tileAt(t.XCoordinate, t.YCoordinate),
+					_ => null,
+				};
+				if (rebound != null) {
+					field.SetValue(msg, rebound);
+				}
+			}
+		}
+	}
+
 	// With the --lan-autoplay developer option, ends our turn soon after it
 	// starts, for watching turns pass between machines.
 	private void MaybeAutoplayLanTurn() {
@@ -655,6 +696,10 @@ public partial class Game : Node {
 			return;
 		}
 		GetTree().CreateTimer(1.5).Timeout += () => {
+			// The game may have been left in the meantime.
+			if (!IsInstanceValid(this) || !IsInsideTree()) {
+				return;
+			}
 			popupOverlay.OnHidePopup();
 			if (CurrentState == GameState.PlayerTurn) {
 				DoActualEndTurn();
@@ -760,10 +805,29 @@ public partial class Game : Node {
 		// A strip across the top of the screen, below the toolbar, leaving
 		// room for the scoreboard on the right.
 		panel.SetAnchorsPreset(Control.LayoutPreset.TopWide);
-		panel.OffsetLeft = 160;
-		panel.OffsetRight = -440;
 		panel.OffsetTop = 70;
 		panel.OffsetBottom = 110;
+		label.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+		LayOutLanBanner(panel);
+		Viewport viewport = GetViewport();
+		Action relayout = () => {
+			if (IsInstanceValid(panel)) {
+				LayOutLanBanner(panel);
+			}
+		};
+		viewport.SizeChanged += relayout;
+		panel.TreeExiting += () => viewport.SizeChanged -= relayout;
+	}
+
+	// Keeps the banner clear of the toolbar on the left and the scoreboard on
+	// the right while there's room, giving up those margins in proportion on
+	// a narrow window so the strip never turns inside out.
+	private void LayOutLanBanner(Control panel) {
+		const float left = 160, right = 440, minWidth = 300;
+		float width = GetViewport().GetVisibleRect().Size.X;
+		float scale = Math.Clamp((width - minWidth) / (left + right), 0, 1);
+		panel.OffsetLeft = left * scale;
+		panel.OffsetRight = -right * scale;
 	}
 
 	// A spectator hears about the world's events without having to answer
@@ -844,9 +908,11 @@ public partial class Game : Node {
 		}
 
 		if (ours.Count == 0) {
-			// The curtain may be up for a player whose time ran out.
+			// The curtain may be up for a player whose time ran out, and
+			// others may be waiting behind it.
 			hotseatHandoff?.QueueFree();
 			hotseatHandoff = null;
+			queuedHandoffs.Clear();
 			List<Player> others = TurnHandling.PlayersToMove(gameData).Where(p => !LanSession.IsLocalPlayer(p)).ToList();
 			if (others.Count > 0) {
 				ShowLanWaiting(others);
@@ -923,7 +989,42 @@ public partial class Game : Node {
 			onBeginTurn);
 	}
 
+	// Handoffs asked for while the curtain is already up, shown in turn once
+	// it's dismissed, so that what each of them goes on to do isn't lost.
+	private readonly Queue<(ID next, string message, string buttonText, Action onContinue)> queuedHandoffs = new();
+	// Who the curtain is up for, and what it says.
+	private (ID, string) hotseatHandoffShown;
+
+	private void ShowNextQueuedHandoff() {
+		while (hotseatHandoff == null && queuedHandoffs.Count > 0) {
+			var (nextID, message, buttonText, onContinue) = queuedHandoffs.Dequeue();
+			// Found by id, as a LAN client's snapshots replace the players.
+			Player next = EngineStorage.gameData?.GetPlayer(nextID);
+			if (next == null) {
+				continue;
+			}
+			// The player is already at the screen.
+			if (next.id == controller?.id) {
+				onContinue();
+				continue;
+			}
+			ShowHotseatHandoff(next, message, buttonText, onContinue);
+		}
+	}
+
 	private void ShowHotseatHandoff(Player next, string message, string buttonText, Action onContinue) {
+		if (hotseatHandoff != null) {
+			// The same news twice, like a turn starting again for whoever the
+			// curtain is already up for, is only shown once.
+			bool duplicate = hotseatHandoffShown == (next.id, message)
+				|| queuedHandoffs.Any(h => h.next == next.id && h.message == message);
+			if (!duplicate) {
+				queuedHandoffs.Enqueue((next.id, message, buttonText, onContinue));
+			}
+			return;
+		}
+		hotseatHandoffShown = (next.id, message);
+
 		CurrentState = GameState.ComputerTurn;
 
 		// Close anything the previous player left open, and remember where
@@ -953,7 +1054,6 @@ public partial class Game : Node {
 			CenterCameraOnController();
 		}
 
-		hotseatHandoff?.QueueFree();
 		// Games without player names (e.g. older saves) fall back to the leader.
 		string playerName = controller.name ?? controller.civilization.leader;
 		hotseatHandoff = new HotseatHandoff(
@@ -963,6 +1063,7 @@ public partial class Game : Node {
 			() => {
 				hotseatHandoff = null;
 				onContinue();
+				ShowNextQueuedHandoff();
 			});
 		CanvasLayer curtainLayer = new() { Layer = 100 };
 		curtainLayer.AddChild(hotseatHandoff);
@@ -1040,13 +1141,14 @@ public partial class Game : Node {
 				popupOverlay.ShowPopup(new CivilizationDestroyed(mCivD.civilization), PopupOverlay.PopupCategory.Advisor);
 				InterestingEvent();
 				break;
-			case MsgShowMilitaryAdvisorPopup mSMAP:
-				if (!popupOverlay.Visible) {
-					var mood = mSMAP.happy ? AdvisorHead.Mood.Happy : AdvisorHead.Mood.Angry;
-					var pop = new InformationalPopup(mSMAP.message, AdvisorHead.Advisor.Military, mood);
-					popupOverlay.ShowPopup(pop, PopupOverlay.PopupCategory.Advisor);
-				}
+			case MsgShowMilitaryAdvisorPopup mSMAP: {
+				// News like a golden age or a city lost to disorder waits its
+				// turn behind any popup already showing, rather than being lost.
+				var mood = mSMAP.happy ? AdvisorHead.Mood.Happy : AdvisorHead.Mood.Angry;
+				var pop = new InformationalPopup(mSMAP.message, AdvisorHead.Advisor.Military, mood);
+				popupOverlay.ShowPopup(pop, PopupOverlay.PopupCategory.Advisor);
 				break;
+			}
 			case MsgShowScienceAdvisorPopup mSSAP: {
 				// The space race news (such as the ship being complete) is too
 				// important to drop, so it waits its turn behind any popup
@@ -1068,12 +1170,12 @@ public partial class Game : Node {
 				popupOverlay.ShowPopup(pop, PopupOverlay.PopupCategory.Advisor);
 				break;
 			}
-			case MsgShowDomesticAdvisorPopup mSDAP:
-				if (!popupOverlay.Visible) {
-					var pop = new InformationalPopup(mSDAP.message, AdvisorHead.Advisor.Domestic, AdvisorHead.Mood.Angry);
-					popupOverlay.ShowPopup(pop, PopupOverlay.PopupCategory.Advisor);
-				}
+			case MsgShowDomesticAdvisorPopup mSDAP: {
+				// Like the military advisor's news, this waits its turn.
+				var pop = new InformationalPopup(mSDAP.message, AdvisorHead.Advisor.Domestic, AdvisorHead.Mood.Angry);
+				popupOverlay.ShowPopup(pop, PopupOverlay.PopupCategory.Advisor);
 				break;
+			}
 			case MsgShowScienceAdvisor mSSA:
 				EmitSignal(SignalName.ShowSpecificAdvisor, C7Action.ShowScienceAdvisor);
 				break;
@@ -1212,7 +1314,7 @@ public partial class Game : Node {
 							"We accept.",
 							"We refuse.",
 							() => { new MsgRespondToDeal(true).send(); },
-							() => { new MsgRespondToDeal(false).send(); }),
+							() => { new MsgRespondToDeal(false).send(); }) { escapeMeansNo = true },
 						PopupOverlay.PopupCategory.Advisor);
 					InterestingEvent();
 				};
@@ -1412,6 +1514,9 @@ public partial class Game : Node {
 	private static readonly long uiMessageBudgetTicks = Stopwatch.Frequency * 4 / 1000;
 
 	public override void _Process(double delta) {
+		if (errorOnLoad) {
+			return;
+		}
 		PollLanSession();
 		ProcessActions();
 
@@ -1485,22 +1590,40 @@ public partial class Game : Node {
 
 	private int governmentPromptTurn = -1;
 
+	// If the player can now pick a new government, forces them to do so. On a
+	// LAN the choice may not be back from the host yet, so only asks once a
+	// turn.
+	private void PromptForGovernmentIfDue(GameData gameData) {
+		if (controller.government.transitionType && TurnHandling.GetTurnNumber() >= controller.inAnarchyUntilTurn
+				&& (!LanSession.IsClient || governmentPromptTurn != gameData.turn)) {
+			governmentPromptTurn = gameData.turn;
+			popupOverlay.ShowPopup(
+				new GovernmentSelection(controller, controller.GetAvailableGovernments(gameData), OnGovernmentSelectionClosed),
+				PopupOverlay.PopupCategory.Info);
+		}
+	}
+
+	// A government selection that went away without a choice (e.g. taken
+	// down while the screen changed hands) asks again if it's still this
+	// player's turn; otherwise their next turn will.
+	private void OnGovernmentSelectionClosed(bool chosen) {
+		if (chosen) {
+			return;
+		}
+		governmentPromptTurn = -1;
+		Callable.From(() => {
+			if (!IsInstanceValid(this) || !IsInsideTree() || CurrentState != GameState.PlayerTurn || hotseatHandoff != null || controller == null) {
+				return;
+			}
+			EngineStorage.ReadGameData(PromptForGovernmentIfDue);
+		}).CallDeferred();
+	}
+
 	private void OnPlayerStartTurn() {
 		EngineStorage.ReadGameData((GameData gameData) => {
 			log.Information("Starting player turn");
 
-			// If the player can now pick a new government, force them to do so.
-			// When the popup is closed we call OnPlayerStartTurn again. This isn't
-			// ideal, but we don't yet have a general purpose "show a popup and
-			// wait for the player to acknowledge it" system. On a LAN the choice
-			// may not be back from the host yet, so only ask once a turn.
-			if (controller.government.transitionType && TurnHandling.GetTurnNumber() >= controller.inAnarchyUntilTurn
-					&& (!LanSession.IsClient || governmentPromptTurn != gameData.turn)) {
-				governmentPromptTurn = gameData.turn;
-				popupOverlay.ShowPopup(
-					new GovernmentSelection(controller, controller.GetAvailableGovernments(gameData)),
-					PopupOverlay.PopupCategory.Info);
-			}
+			PromptForGovernmentIfDue(gameData);
 
 			// If the player can pick a new tech to research, the engine
 			// prompts them to do so, naming the tech they just discovered.
@@ -1607,8 +1730,7 @@ public partial class Game : Node {
 		// FileDialog is a Window, not a Control, so we have the popup overlay present a blank control
 		popupOverlay.ShowBlank();
 
-		// TODO: this should go to our own saves directory.
-		FileDialog.SetDirectoryForSaving(@"Conquests/Saves");
+		FileDialog.SetDirectoryForSaving();
 
 		// TODO: sound -- see MainMenu.PlayButtonPressedSound();
 		FileDialog.Popup();
@@ -1620,8 +1742,7 @@ public partial class Game : Node {
 		// FileDialog is a Window, not a Control, so we have the popup overlay present a blank control
 		popupOverlay.ShowBlank();
 
-		// TODO: this should go to our own saves directory.
-		FileDialog.SetDirectoryForLoading(@"Conquests/Saves");
+		FileDialog.SetDirectoryForLoadingSaves();
 
 		// TODO: sound -- see MainMenu.PlayButtonPressedSound();
 		FileDialog.Popup();
@@ -1648,6 +1769,9 @@ public partial class Game : Node {
 	}
 
 	public override void _UnhandledInput(InputEvent @event) {
+		if (errorOnLoad) {
+			return;
+		}
 		// Don't handle if there's an open modal, if it's the AI's turn, or if
 		// the screen is being handed to the next hotseat player.
 		// A spectator may always look around.
@@ -1703,9 +1827,9 @@ public partial class Game : Node {
 			IsMovingCamera = true;
 
 			if (CanDoubleClick(eventMouseButton)) {
-				doubleClickHandler.Accept(eventMouseButton);
+				AcceptPossibleDoubleClick(eventMouseButton);
 			} else {
-				OnSingleLeftMouseButtonClick(eventMouseButton);
+				HandleSingleClick(PositionToTile(eventMouseButton.Position));
 			}
 		} else {
 			IsMovingCamera = false;
@@ -1736,7 +1860,7 @@ public partial class Game : Node {
 		draggingUnit = false;
 		Tile tile = PositionToTile(eventMouseButton.Position);
 		bool released = gotoInfo != null && IsMapUnitValid(CurrentlySelectedUnit);
-		if (released && tile != null && tile != CurrentlySelectedUnit.location) {
+		if (released && Tile.IsTileValid(tile) && tile != CurrentlySelectedUnit.location) {
 			gotoInfo = GetGotoInfo(tile);
 			ResolveMovement(gotoInfo);
 			SetGotoMode(false);
@@ -1745,14 +1869,31 @@ public partial class Game : Node {
 
 		// Released where it started: that's an ordinary click on the tile.
 		SetGotoMode(false);
-		if (tile == null) {
+		if (!Tile.IsTileValid(tile)) {
 			return;
 		}
 		if (CanDoubleClick(eventMouseButton)) {
-			doubleClickHandler.Accept(eventMouseButton);
+			AcceptPossibleDoubleClick(eventMouseButton);
 		} else {
-			HandleUnitSelectionTileClick(eventMouseButton);
+			HandleUnitSelectionTileClick(tile);
 		}
+	}
+
+	// The tile pressed on and where, for a click that may turn out to be
+	// the first of a double click. The click is only handled once it's
+	// clear that it isn't, by which time the map may have been dragged, so
+	// the tile is the one under the mouse when it was pressed.
+	private Tile pendingClickTile;
+	private Vector2 pendingClickPosition;
+
+	// How far the mouse may move before a press is a drag of the map rather
+	// than a click.
+	private const float ClickSlop = 8;
+
+	private void AcceptPossibleDoubleClick(InputEventMouseButton eventMouseButton) {
+		pendingClickTile = PositionToTile(eventMouseButton.Position);
+		pendingClickPosition = eventMouseButton.Position;
+		doubleClickHandler.Accept(eventMouseButton);
 	}
 
 	// Ends a drag whose release the map didn't see, without moving the unit.
@@ -1776,25 +1917,32 @@ public partial class Game : Node {
 		return gotoInfo == null && tile?.cityAtTile != null && (tile.cityAtTile.owner == controller || LanSession.IsSpectator);
 	}
 
+	// Called by the double click handler once a click turned out to be single.
 	private void OnSingleLeftMouseButtonClick(InputEventMouseButton eventMouseButton) {
+		Tile tile = pendingClickTile ?? PositionToTile(eventMouseButton.Position);
+		pendingClickTile = null;
+		HandleSingleClick(tile);
+	}
+
+	private void HandleSingleClick(Tile tile) {
 		if (gotoInfo != null) {
 			this.ResolveMovement(gotoInfo);
 			this.SetGotoMode(false);
 		} else if (bombardInfo != null) {
-			Tile tile = PositionToTile(eventMouseButton.Position);
-			if (bombardInfo.bombardingUnit.CanBombardTile(tile, out var bombardTarget)) {
+			if (Tile.IsTileValid(tile) && bombardInfo.bombardingUnit.CanBombardTile(tile, out var bombardTarget)) {
 				bombardInfo.bombardTarget = bombardTarget;
 				HandleBombardClick(bombardInfo, tile);
 			}
 			setBombard(null);
 		} else {
 			// Select unit on tile at mouse location
-			HandleUnitSelectionTileClick(eventMouseButton);
+			HandleUnitSelectionTileClick(tile);
 		}
 	}
 
 	private void OnDoubleLeftMouseButtonClick(InputEventMouseButton eventMouseButton) {
-		Tile tile = PositionToTile(eventMouseButton.Position);
+		Tile tile = pendingClickTile ?? PositionToTile(eventMouseButton.Position);
+		pendingClickTile = null;
 		if (tile?.cityAtTile != null && LanSession.IsSpectator) {
 			// A spectator looks at the game as the city's owner, so the city
 			// screen and the advisors show that civilization.
@@ -1809,9 +1957,8 @@ public partial class Game : Node {
 		}
 	}
 
-	private void HandleUnitSelectionTileClick(InputEventMouseButton eventMouseButton) {
-		Tile tile = PositionToTile(eventMouseButton.Position);
-		if (tile == null) {
+	private void HandleUnitSelectionTileClick(Tile tile) {
+		if (!Tile.IsTileValid(tile)) {
 			return;
 		}
 
@@ -1834,33 +1981,30 @@ public partial class Game : Node {
 			return;
 		}
 
-		SelectUnit(unit, eventMouseButton.Position);
+		SelectUnit(unit, tile);
 	}
 
-	private void SelectUnit(MapUnit unit, Vector2 screenPosition) {
+	private void SelectUnit(MapUnit unit, Tile tile) {
 		bool canMove = unitSelector.SetSelectedUnit(unit);
 
 		if (unit.WorkerJob != null) {
 			return;
 		}
 
-		Tile tile = PositionToTile(screenPosition);
-
-		if (!canMove) {
+		if (!canMove && Tile.IsTileValid(tile)) {
 			new MsgShowTemporaryPopup("This unit has already moved.", tile).send();
 		}
 	}
 
 	public void SelectUnit(MapUnit unit) {
-		var screenPos = mapView.screenLocationOfTile(unit.location);
-		SelectUnit(unit, screenPos);
+		SelectUnit(unit, unit.location);
 	}
 
 	private void HandleRightMouseButton(InputEventMouseButton eventMouseButton) {
 		this.SetGotoMode(false);
 
 		Tile tile = PositionToTile(eventMouseButton.Position);
-		if (tile != null) {
+		if (Tile.IsTileValid(tile)) {
 			HandleRightClickOnTile(tile, eventMouseButton);
 		} else {
 			log.Debug("Didn't click on any tile");
@@ -1950,12 +2094,18 @@ public partial class Game : Node {
 	private void HandleMouseMotionInput(InputEventMouseMotion eventMouseMotion) {
 		if (IsMovingCamera) {
 			GetViewport().SetInputAsHandled();
+			// Dragging the map isn't clicking on it.
+			if (pendingClickTile != null && eventMouseMotion.Position.DistanceTo(pendingClickPosition) > ClickSlop) {
+				pendingClickTile = null;
+				doubleClickHandler.Cancel();
+			}
 			mapView.cameraLocation += OldPosition - eventMouseMotion.Position;
 			OldPosition = eventMouseMotion.Position;
 		} else if (gotoInfo != null) {
 			gotoInfo = GetGotoInfo(eventMouseMotion.Position);
 		} else if (bombardInfo != null) {
-			bombardInfo.mouseTile = PositionToTile(eventMouseMotion.Position);
+			Tile tile = PositionToTile(eventMouseMotion.Position);
+			bombardInfo.mouseTile = Tile.IsTileValid(tile) ? tile : null;
 		}
 	}
 
@@ -2137,10 +2287,14 @@ public partial class Game : Node {
 			}
 		}
 
+		// Keys typed into a text field are text, not commands.
+		Control focused = GetViewport().GuiGetFocusOwner();
+		bool typing = focused is LineEdit or TextEdit && focused.IsVisibleInTree();
+
 		for (int i = 0; i < inputActions.Length; i++) {
 			// Match modifiers exactly, so that Shift+Enter or Ctrl+L don't also
 			// trigger the actions bound to plain Enter or L.
-			if (Input.IsActionJustPressed(inputActions[i], exactMatch: true)) {
+			if (!typing && Input.IsActionJustPressed(inputActions[i], exactMatch: true)) {
 				ProcessAction(inputActionNames[i]);
 			} else if (Input.IsActionJustReleased(inputActions[i])) {
 				ProcessOnReleaseAction(inputActionNames[i]);
@@ -2158,7 +2312,7 @@ public partial class Game : Node {
 	}
 
 	private bool HasVisibleModal() {
-		if (popupOverlay.Visible || cityScreen.Visible || diplomacy.Visible)
+		if (popupOverlay.Visible || cityScreen.Visible || diplomacy.Visible || RightClickMenu.IsAnyOpen)
 			return true;
 
 		if (advisor.Visible || gameViews.Visible)
@@ -2181,13 +2335,18 @@ public partial class Game : Node {
 			return;
 		}
 
+		// An open right-click menu takes the keys; Escape closes it.
+		if (RightClickMenu.IsAnyOpen) {
+			return;
+		}
+
 		if (currentAction == C7Action.Escape && tileInfo != null) {
 			HideTileInfo();
 			return;
 		}
 
 		if (currentAction == C7Action.Escape && popupOverlay.ShowingPopup) {
-			popupOverlay.OnHidePopup();
+			popupOverlay.OnEscape();
 			return;
 		}
 
@@ -2304,13 +2463,15 @@ public partial class Game : Node {
 		}
 
 		if (currentAction == C7Action.UnitDisband) {
+			// The unit asked about, not whichever is selected once confirmed.
+			ID disbandedID = CurrentlySelectedUnit.id;
 			popupOverlay.ShowPopup(
 				new ConfirmationPopup(
 					$"Disband {CurrentlySelectedUnit.name}? Pardon me but these are OUR people.\nDo you really want to disband them?",
 					"Yes, we need to!",
 					"No. Maybe you are right, advisor.",
 					() => {
-						new MsgUnitCommand(CurrentlySelectedUnit.id, MsgUnitCommand.Command.Disband).send();
+						new MsgUnitCommand(disbandedID, MsgUnitCommand.Command.Disband).send();
 					}),
 				PopupOverlay.PopupCategory.Advisor);
 		}
@@ -2404,13 +2565,14 @@ public partial class Game : Node {
 
 		TerrainImprovement replacementTarget = CurrentlySelectedUnit.location.overlays.GetReplacementTarget(terraform);
 		if (replacementTarget != null) {
+			ID workerID = CurrentlySelectedUnit.id;
 			popupOverlay.ShowPopup(
 				new ConfirmationPopup(
 					$"A previous terrain enhancement ({replacementTarget.key.Capitalize()}) will be replaced \nby this operation. Do you wish to continue?",
 					"Continue.",
 					"Cancel action.",
 					() => {
-						new MsgStartWorkerJob(CurrentlySelectedUnit.id, terraform).send();
+						new MsgStartWorkerJob(workerID, terraform).send();
 					}),
 				PopupOverlay.PopupCategory.Advisor);
 			return;
@@ -2492,6 +2654,7 @@ public partial class Game : Node {
 			// war for them, clear out the player, and call this method again.
 			if (info.requiresWarDeclarationOnPlayer != null) {
 				GotoInfo stashed = info;
+				stashed.unitID ??= CurrentlySelectedUnit.id;
 				this.MaybeDeclareWar(stashed.requiresWarDeclarationOnPlayer, gameData.turn, () => {
 					stashed.requiresWarDeclarationOnPlayer = null;
 					this.ResolveMovement(stashed);
@@ -2500,7 +2663,7 @@ public partial class Game : Node {
 			} else if (info.wholeStack) {
 				MoveStack(gameData, info);
 			} else {
-				new MsgSetUnitPath(CurrentlySelectedUnit.id, info.path).send();
+				new MsgSetUnitPath(info.unitID ?? CurrentlySelectedUnit.id, info.path).send();
 			}
 		});
 	}
@@ -2509,7 +2672,10 @@ public partial class Game : Node {
 	// its tile to the same destination, each along its own path. Only the
 	// selected unit attacks; the rest go only where they can walk.
 	private void MoveStack(GameData gameData, GotoInfo info) {
-		MapUnit leader = gameData.GetUnit(CurrentlySelectedUnit.id);
+		MapUnit leader = gameData.GetUnit(info.unitID ?? CurrentlySelectedUnit.id);
+		if (leader == null) {
+			return;
+		}
 		Tile destination = info.destinationTile;
 		List<(ID, TilePath)> moves = [(leader.id, info.path)];
 		foreach (MapUnit unit in leader.location.unitsOnTile) {
@@ -2582,7 +2748,7 @@ public partial class Game : Node {
 
 			// Figure out what unit is in goto mode. If the tile we're hovering over is
 			// different than the tile the unit is on, calculate the path to move there.
-			MapUnit unit = tile == null ? null : gameData.GetUnit(CurrentlySelectedUnit.id);
+			MapUnit unit = !Tile.IsTileValid(tile) || !IsMapUnitValid(CurrentlySelectedUnit) ? null : gameData.GetUnit(CurrentlySelectedUnit.id);
 
 			// Units like the Bomber don't have a go-to action
 			if (unit != null && !unit.GetAvailableActions().Contains(UnitAction.Goto)) {
@@ -2630,9 +2796,11 @@ public partial class Game : Node {
 	}
 
 	private void HandleBombardClick(BombardInfo info, Tile tile) {
-		if (info == null || tile == null) {
+		if (info == null || !Tile.IsTileValid(tile)) {
 			return;
 		}
+		// The unit bombarding, not whichever is selected once war is declared.
+		ID bombarderID = info.bombardingUnit.id;
 
 		EngineStorage.ReadGameData((GameData gameData) => {
 			// A nuke goes to war with every civ it hits, not only the target
@@ -2642,17 +2810,17 @@ public partial class Game : Node {
 					? []
 					: info.bombardingUnit.NuclearStrikeWarDeclarations(tile);
 				ConfirmWarDeclarations(wars, 0, gameData.turn, () => {
-					new MsgBombard(CurrentlySelectedUnit.id, tile).send();
+					new MsgBombard(bombarderID, tile).send();
 				});
 				return;
 			}
 
 			if (info.RequiresWarDeclaration(tile, out var player)) {
 				MaybeDeclareWar(player, gameData.turn, () => {
-					new MsgBombard(CurrentlySelectedUnit.id, tile).send();
+					new MsgBombard(bombarderID, tile).send();
 				});
 			} else {
-				new MsgBombard(CurrentlySelectedUnit.id, tile).send();
+				new MsgBombard(bombarderID, tile).send();
 			}
 		});
 	}
@@ -2666,7 +2834,7 @@ public partial class Game : Node {
 	}
 
 	private void OnBuildCity(string name) {
-		if (CurrentlySelectedUnit != null)
+		if (IsMapUnitValid(CurrentlySelectedUnit))
 			new MsgBuildCity(CurrentlySelectedUnit, name).send();
 	}
 
@@ -2679,6 +2847,16 @@ public partial class Game : Node {
 		EngineStorage.ReadGameData((GameData gameData) => {
 			cityScreen.ShowForeignCity(gameData, capital, () => {
 				viewer.tileKnowledge.EndPeek();
+				mapView.InvalidateMap();
+			}, (GameData newGameData, City newCapital) => {
+				// A LAN snapshot replaced the players and their knowledge,
+				// so look again with the new ones.
+				Player newViewer = newGameData.GetPlayer(viewer.id);
+				if (newViewer == null) {
+					return;
+				}
+				viewer = newViewer;
+				viewer.tileKnowledge.Peek(Espionage.CityRadius(newCapital));
 				mapView.InvalidateMap();
 			});
 		});
