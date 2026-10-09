@@ -113,10 +113,11 @@ namespace C7GameData {
 
 		public bool isInCivilDisorder = false;
 
-		// Resistance in a conquered city: the number of citizens still loyal
-		// to resistanceFrom, the civ it was taken from. As in Civ3 resisters
-		// work no tile and eat nothing, and the city can't hurry. See
-		// StartResistance and UpdateResistance.
+		// Resistance in a conquered city: the number of citizens still
+		// resisting, who are the last ones in residents, and resistanceFrom,
+		// the civ it was taken from. As in Civ3 resisters work no tile and
+		// eat nothing, and the city can't hurry. See StartResistance and
+		// UpdateResistance.
 		public int resisters = 0;
 		public Player resistanceFrom;
 
@@ -1221,16 +1222,35 @@ namespace C7GameData {
 		// (although they also don't require any food)", and the city can't
 		// rush anything. No one resists for the barbarians.
 		//
-		// UNVERIFIED (no Civ3 source found): which citizens resist. The
-		// article says each citizen may; we let them all roll, whatever
-		// their nationality, and take the last ones in the city as the
-		// resisters, working no tile and making nothing as specialists.
+		// Per the project owner, every citizen who isn't of the captor's
+		// nationality may resist, whichever civ they come from, and a civ's
+		// last city doesn't resist when it is taken. Cities that change hands
+		// peacefully (see CityInteractions.TransferCity) never resist. The
+		// resisters are moved to the end of residents, keeping their order.
 		public void StartResistance(Player formerOwner) {
+			EndResistance();
 			if (formerOwner == null || formerOwner.isBarbarians || formerOwner == owner) {
 				return;
 			}
+			// The city was the old owner's last.
+			if (formerOwner.cities.Count == 0) {
+				return;
+			}
 			int chance = ResistancePercent(formerOwner, continuing: false);
-			resisters = residents.Count(_ => GameData.rng.Next(100) < chance);
+			List<CityResident> loyal = new();
+			List<CityResident> resisting = new();
+			foreach (CityResident r in residents) {
+				bool foreign = r.nationality != null && r.nationality != owner.civilization;
+				if (foreign && GameData.rng.Next(100) < chance) {
+					resisting.Add(r);
+				} else {
+					loyal.Add(r);
+				}
+			}
+			residents.Clear();
+			residents.AddRange(loyal);
+			residents.AddRange(resisting);
+			resisters = resisting.Count;
 			resistanceFrom = resisters > 0 ? formerOwner : null;
 		}
 
@@ -1304,13 +1324,13 @@ namespace C7GameData {
 		// non-ground and/or non-combat units cannot quell resistors"; we
 		// count land units that can attack and defend. Source as above.
 		//
-		// UNVERIFIED (no Civ3 source found): resistance also ends if the old
-		// owner is gone or has the city back.
+		// Per the project owner, resistance goes on after the old owner is
+		// destroyed. It ends if the old owner has the city back.
 		public void UpdateResistance(GameData gameData) {
 			if (resisters <= 0) {
 				return;
 			}
-			if (resistanceFrom == null || resistanceFrom.defeated || resistanceFrom == owner) {
+			if (resistanceFrom == null || resistanceFrom == owner) {
 				EndResistance();
 				return;
 			}
@@ -1354,12 +1374,21 @@ namespace C7GameData {
 		}
 
 		private void RemoveCitizenAt(int index) {
+			// A resister lost leaves one fewer resisting.
+			if (resisters > 0 && index >= residents.Count - ResistersInCity()) {
+				--resisters;
+				if (resisters == 0) {
+					EndResistance();
+				}
+			}
 			residents[index].tileWorked.personWorkingTile = null;
 			residents.RemoveAt(index);
 		}
 
+		// New citizens don't resist, so they go in ahead of the resisters
+		// (see StartResistance).
 		public void AddCitizen(CityResident cr) {
-			residents.Add(cr);
+			residents.Insert(residents.Count - ResistersInCity(), cr);
 		}
 
 		public void RemoveCitizens(int number) {

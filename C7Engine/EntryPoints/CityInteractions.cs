@@ -31,6 +31,7 @@ namespace C7Engine {
 
 			CityResident firstResident = new CityResident();
 			firstResident.city = newCity;
+			firstResident.nationality = owner.civilization;
 			firstResident.citizenType = gameData.citizenTypes.Find(x => x.IsDefaultCitizen);
 			newCity.AddCitizen(firstResident);
 
@@ -136,6 +137,10 @@ namespace C7Engine {
 		internal static void ReassignAllCitizens(GameData gameData, City city) {
 			CitizenType defaultCitizen = gameData.citizenTypes.Find(x => x.IsDefaultCitizen);
 			List<Civilization> nationalities = city.residents.Select(r => r.nationality ?? city.owner.civilization).ToList();
+			// The resisters are the last citizens, and stay so (see
+			// City.StartResistance).
+			int resisters = city.resisters;
+			Player resistanceFrom = city.resistanceFrom;
 			city.RemoveAllCitizens();
 
 			// Nothing the assignments depend on changes while the citizens
@@ -151,6 +156,8 @@ namespace C7Engine {
 				city.AddCitizen(newResident);
 				CityTileAssignmentAI.AssignNewCitizenToTile(gameData, newResident, manageMoods: true, context);
 			}
+			city.resisters = resisters;
+			city.resistanceFrom = resistanceFrom;
 		}
 
 		// Changes a specialist to the next kind of specialist its owner knows.
@@ -211,6 +218,12 @@ namespace C7Engine {
 				city.RemoveCitizens(1);
 			}
 
+			// Citizens of unknown nationality (e.g. from older saves) are
+			// taken to be the old owner's, so that they may resist.
+			foreach (CityResident r in city.residents) {
+				r.nationality ??= oldOwner.civilization;
+			}
+
 			// The palace and small wonders don't survive a change of owner,
 			// great wonders always do, and other buildings may be destroyed.
 			foreach (CityBuilding cb in city.constructed_buildings.ToList()) {
@@ -268,7 +281,8 @@ namespace C7Engine {
 		// incited to revolt: unlike a capture it keeps its citizens and
 		// buildings, except the palace and small wonders, which belong to the
 		// old owner's empire. As in Civ3, the old owner's units in it join the
-		// new owner along with the city.
+		// new owner along with the city. A city changing hands this way, like
+		// one ceded in a peace deal, doesn't resist, per the project owner.
 		public static void TransferCity(City city, Player newOwner) {
 			GameData gameData = EngineStorage.gameData;
 			Player oldOwner = city.owner;

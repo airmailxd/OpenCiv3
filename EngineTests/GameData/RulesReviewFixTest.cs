@@ -293,13 +293,80 @@ public class RulesReviewFixTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(them.id, loadedCity.resistanceFrom.id);
 	}
 
+	// Per the project owner, resistance goes on after the old owner is
+	// destroyed.
 	[Fact]
-	public void ResistanceEndsWhenTheOldOwnerIsGone() {
+	public void ResistanceGoesOnAfterTheOldOwnerIsGone() {
 		City city = CapturedCity();
+		int resisters = city.resisters;
 		them.defeated = true;
+		foreach (MapUnit u in city.location.unitsOnTile.ToList()) {
+			u.RemoveFromPlay();
+		}
 		city.UpdateResistance(gameData);
+		Assert.Equal(resisters, city.resisters);
+		Assert.Equal(them, city.resistanceFrom);
+	}
+
+	// Makes every random roll come out as 0, so every chance comes true.
+	private class ZeroRandom : System.Random {
+		protected override double Sample() => 0.0;
+	}
+
+	private void AddResident(City city, Civilization nationality) {
+		city.AddCitizen(new CityResident() {
+			city = city,
+			nationality = nationality,
+			citizenType = gameData.citizenTypes.Find(x => x.IsDefaultCitizen),
+		});
+	}
+
+	// Per the project owner, every citizen not of the captor's nationality
+	// may resist, not only the old owner's.
+	[Fact]
+	public void EveryForeignCitizenMayResist() {
+		Player third = gameData.players.First(p => !p.isBarbarians && p != us && p != them);
+		BuildCity(them);
+		City city = BuildCity(them);
+		AddResident(city, third.civilization);
+		AddResident(city, us.civilization);
+		AddResident(city, us.civilization);
+		AddResident(city, them.civilization);
+		// Capturing takes the last citizen.
+		AddResident(city, them.civilization);
+		CityInteractions.CaptureCity(city, us);
+		Assert.Equal(5, city.residents.Count);
+
+		gameData.random = new ZeroRandom();
+		city.StartResistance(them);
+		// Two of theirs and one of the third civ's; ours don't.
+		Assert.Equal(3, city.resisters);
+		Assert.All(city.WorkingResidents(), r => Assert.Equal(us.civilization, r.nationality));
+		Assert.All(city.residents.Skip(2), r => Assert.NotEqual(us.civilization, r.nationality));
+
+		// A new citizen doesn't resist.
+		AddResident(city, us.civilization);
+		Assert.Equal(3, city.resisters);
+		Assert.Equal(3, city.WorkingResidents().Count());
+		Assert.All(city.WorkingResidents(), r => Assert.Equal(us.civilization, r.nationality));
+	}
+
+	// Per the project owner, a civ's last city doesn't resist when taken.
+	[Fact]
+	public void ALastCityDoesNotResist() {
+		foreach (City c in them.cities.ToList()) {
+			CityInteractions.DestroyCity(c);
+		}
+		City city = BuildCity(them);
+		AddResident(city, them.civilization);
+		AddResident(city, them.civilization);
+		AddResident(city, them.civilization);
+		CityInteractions.CaptureCity(city, us);
+		Assert.Empty(them.cities);
+
+		gameData.random = new ZeroRandom();
+		city.StartResistance(them);
 		Assert.False(city.IsInResistance);
-		Assert.Null(city.resistanceFrom);
 	}
 
 	// ---- Difficulty ----
