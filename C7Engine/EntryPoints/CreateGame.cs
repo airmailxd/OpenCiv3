@@ -56,7 +56,14 @@ public class CreateGame {
 		// with every snapshot the host sends.
 		TileChangeJournal.Reset();
 		UnitInteractions.OnGameReplaced();
+		// The client's own random numbers carry on rather than being reset
+		// with every snapshot. The host decides everything that matters, so
+		// they only feed things like how the map looks.
+		Random clientRandom = EngineStorage.gameData?.random;
 		GameData gameData = save.ToGameData(behaviors);
+		if (clientRandom != null) {
+			gameData.random = clientRandom;
+		}
 		EngineStorage.gameData = gameData;
 		gameData.onGameCreation();
 		return gameData;

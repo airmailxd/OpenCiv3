@@ -16,7 +16,25 @@ namespace C7GameData {
 
 		public int seed = -1;   //change here to set a hard-coded seed
 		public int turn { get; set; }
-		public static Random rng; // TODO: Is GameData really the place for this?
+
+		// This game's random number generator. It is saved with the game (see
+		// SaveGame.RngState), so a loaded game goes on with the same random
+		// numbers. Tests may replace it with any Random.
+		public Random random;
+
+		// The random number generator of the game being played (that in
+		// EngineStorage), or, with no game, one shared by everything else.
+		public static Random rng {
+			get => EngineStorage.gameData?.random ?? (noGameRng ??= new Random());
+			set {
+				if (EngineStorage.gameData != null) {
+					EngineStorage.gameData.random = value;
+				} else {
+					noGameRng = value;
+				}
+			}
+		}
+		private static Random noGameRng;
 		public ID.Factory ids = new();
 		public GameMap map { get; set; }
 		public List<Player> players = new List<Player>();
@@ -132,10 +150,9 @@ namespace C7GameData {
 			// this will probably never happen, leaving it as a fallback
 			if (seed == -1) {
 				log.Information("Random seed was not set, generating...");
-				rng = new Random();
-				seed = rng.Next(int.MaxValue);
+				seed = Random.Shared.Next(int.MaxValue);
 			}
-			rng = new Random(seed);
+			random = new GameRandom(seed);
 			log.Information("Seed is {Seed}", seed);
 		}
 
