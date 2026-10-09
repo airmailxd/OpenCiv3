@@ -293,6 +293,22 @@ public class RulesReviewFixTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(500 * small.residents.Count / population, small.PlunderableGold());
 	}
 
+	// ---- Captives ----
+
+	[Fact]
+	public void CaptivesAreKnownByNationNotName() {
+		Tile tile = gameData.map.tiles.First(IsEmptyLand);
+		MapUnit worker = gameData.SpawnUnit(us, Prototype("Worker"), tile);
+		Assert.False(worker.IsCaptive());
+
+		worker.nationality = them.civilization;
+		Assert.True(worker.IsCaptive());
+
+		// A different nation with the same name is still foreign.
+		worker.nationality = new Civilization(us.civilization.name);
+		Assert.True(worker.IsCaptive());
+	}
+
 	// ---- Trait discounts ----
 
 	[Fact]

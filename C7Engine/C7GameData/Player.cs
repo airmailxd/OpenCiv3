@@ -2005,27 +2005,16 @@ namespace C7GameData {
 			for (int i = 0; i < gD.gameDifficulty.ExtraStartUnit2; ++i) {
 				cities[0].AddUnit(gD.unitPrototypes.Find(x => x.name == gD.rules.StartUnitType2), gD);
 			}
-			for (int i = 0; i < gD.gameDifficulty.NumberOfAIDefensiveStartingUnits; ++i) {
-				UnitPrototype unit = (UnitPrototype)cities[0].ListProductionOptions(gD).MaxBy(
-					x => {
-						if (x is UnitPrototype u) {
-							return u.defense;
-						}
-						return -1;
-					}
-				);
-				cities[0].AddUnit(unit, gD);
+			// The best defender and attacker the city can build, if it can
+			// build any units at all.
+			List<UnitPrototype> buildableUnits = cities[0].ListProductionOptions(gD).OfType<UnitPrototype>().ToList();
+			UnitPrototype bestDefender = buildableUnits.MaxBy(u => u.defense);
+			UnitPrototype bestAttacker = buildableUnits.MaxBy(u => u.attack);
+			for (int i = 0; i < gD.gameDifficulty.NumberOfAIDefensiveStartingUnits && bestDefender != null; ++i) {
+				cities[0].AddUnit(bestDefender, gD);
 			}
-			for (int i = 0; i < gD.gameDifficulty.NumberOfAIOffensiveStartingUnits; ++i) {
-				UnitPrototype unit = (UnitPrototype)cities[0].ListProductionOptions(gD).MaxBy(
-					x => {
-						if (x is UnitPrototype u) {
-							return u.attack;
-						}
-						return -1;
-					}
-				);
-				cities[0].AddUnit(unit, gD);
+			for (int i = 0; i < gD.gameDifficulty.NumberOfAIOffensiveStartingUnits && bestAttacker != null; ++i) {
+				cities[0].AddUnit(bestAttacker, gD);
 			}
 		}
 

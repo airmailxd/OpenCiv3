@@ -133,16 +133,12 @@ namespace C7GameData {
 			return !this.IsBusy() && this.movementPoints.canMove;
 		}
 
+		// Whether the unit was taken from another civ (a captured worker).
+		// Nationalities are the players' own civilization objects, also
+		// after loading a save (see SaveUnit), so identity decides; two civs
+		// that merely share a name are still different nations.
 		public bool IsCaptive() {
-			Civilization civ = this.owner.civilization;
-			// Almost always the very same civilization (or name), which can't
-			// be a captive; only otherwise compare the names as before.
-			if (ReferenceEquals(this.nationality, civ))
-				return false;
-			string nationalityName = this.nationality.name, ownerName = civ.name;
-			if (ReferenceEquals(nationalityName, ownerName))
-				return false;
-			return !string.Equals(nationalityName, ownerName, StringComparison.CurrentCultureIgnoreCase);
+			return this.nationality != null && !ReferenceEquals(this.nationality, this.owner.civilization);
 		}
 
 		public bool IsArmy() {
