@@ -504,14 +504,15 @@ namespace C7GameData {
 				yield return difficultyBonus;
 		}
 
-		// The difficulty level's "attack bonus against barbarians", a
-		// percentage (800 at Chieftain down to 0 at Deity) that helps human
-		// players' units attack barbarians. As its name says, it counts when
-		// attacking only (see Difficulty.AttackBonusAgainstBarbarians).
+		// The difficulty level's bonus against barbarians, a percentage (800
+		// at Chieftain down to 0 at Deity) that helps human players' units in
+		// fights with barbarians, attacking or defending, despite the BIQ
+		// field's name (Difficulty.AttackBonusAgainstBarbarians). Per the
+		// project owner's knowledge of Civ3. Bombardment isn't a fight.
 		// TODO: "the AI has still a 200% bonus against barbarians" (it plays
-		// as at Regent, same source), which we don't give it.
+		// as at Regent), which we don't give it.
 		private StrengthBonus? DifficultyBonusAgainst(MapUnit opponent, CombatRole role) {
-			if (role != CombatRole.Attack)
+			if (role != CombatRole.Attack && role != CombatRole.Defense)
 				return null;
 			if (owner == null || !owner.isHuman || opponent?.owner == null || !opponent.owner.isBarbarians)
 				return null;
