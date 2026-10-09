@@ -131,7 +131,7 @@ public class BarbarianInteractions {
 			return barbInfo.barbarianSeaUnitProto;
 		}
 
-		// Land units are generated in a 3:1 ratio, three advanced units for every basic barbarian
+		// Land units are generated in a 1:3 ratio, one advanced unit for every three basic barbarians
 		return GameData.rng.Next(100) < 25 ? barbInfo.advancedBarbarian : barbInfo.basicBarbarian;
 	}
 

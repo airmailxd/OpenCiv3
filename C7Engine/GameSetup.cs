@@ -192,6 +192,11 @@ public class GameSetup {
 	}
 
 	private static string RandomCivilization(SaveGame save, Random rand, HashSet<string> taken) {
+		// The first civilization is the barbarians'. With every other one
+		// taken, there is nothing to pick from.
+		if (save.Civilizations.Skip(1).All(c => taken.Contains(c.name))) {
+			throw new ArgumentException($"There are more players than the {save.Civilizations.Count - 1} civilizations to play");
+		}
 		string name;
 		do {
 			name = save.Civilizations[rand.Next(1, save.Civilizations.Count)].name;

@@ -46,82 +46,60 @@ local function disband_reward(context)
   end
 end
 
+-- Splits a count of time units since the start of a calendar into the
+-- whole periods (years, say) that passed and the 1-based unit within the
+-- current period: unit 1 is the first unit of the first period. Integer
+-- arithmetic only, so the year never comes out fractional.
+local function split_time(units_since_start, units_per_period)
+  local periods = math.floor(units_since_start / units_per_period)
+  local unit = math.floor(units_since_start - periods * units_per_period) + 1
+  return periods, unit
+end
+
+local function era_label(year)
+  local options = game_data().timeOptions
+  return year < 0 and options.negativeLabel or options.positiveLabel
+end
+
+-- The date to show for a raw time (see TimeOptions.GetRawNumber, which
+-- counts from the start month, week, day or hour). It only reads the game
+-- data, so showing a date never changes anything.
 local function get_display_time_text(raw_time)
-  local bc = game_data().timeOptions.negativeLabel
-  local ad = game_data().timeOptions.positiveLabel
+  local options = game_data().timeOptions
+  local base_unit = options.baseUnit
 
   -- Years
-  if (game_data().timeOptions.baseUnit == time_unit.Years) then
-    game_data().timeOptions.SetTimeUnitCurrent(time_unit.Years, raw_time)
-    return math.abs(raw_time) .. " " ..
-        (game_data().timeOptions.currentYear < 0 and bc or ad)
+  if base_unit == time_unit.Years then
+    return math.abs(raw_time) .. " " .. era_label(raw_time)
   end
 
-  -- Months
-  if (game_data().timeOptions.baseUnit == time_unit.Months) then
-    local month = game_data().timeOptions.startMonth
-    local start_year = game_data().timeOptions.startYear
-    game_data().timeOptions.SetTimeUnitCurrent(time_unit.Years, start_year)
-    if (raw_time > 12) then
-      month = raw_time % 12
-      game_data().timeOptions.SetTimeUnitCurrent(time_unit.Years, start_year + (raw_time / 12))
-    else
-      month = raw_time
-      game_data().timeOptions.SetTimeUnitCurrent(time_unit.Months, month)
-    end
-    local month_name = game_data().timeOptions.GetAbbrMonthNameByIndex(month) -- can be overriden with a local function if needed
-    return month_name .. ", " .. game_data().timeOptions.currentYear .. " " ..
-        (game_data().timeOptions.currentYear < 0 and bc or ad)
+  -- Months, weeks and days count from the first of the year: raw time 1 is
+  -- January (or the first week or day) of the start year.
+  if base_unit == time_unit.Months then
+    local years, month = split_time(raw_time - 1, 12)
+    local year = options.startYear + years
+    return options.GetAbbrMonthNameByIndex(month) .. ", " .. math.abs(year) .. " " .. era_label(year)
   end
 
-  -- Weeks
-  if (game_data().timeOptions.baseUnit == time_unit.Weeks) then
-    local week = game_data().timeOptions.startWeek
-    local start_year = game_data().timeOptions.startYear
-    game_data().timeOptions.SetTimeUnitCurrent(time_unit.Years, start_year)
-    if (raw_time > 52) then
-      week = raw_time % 52
-      game_data().timeOptions.SetTimeUnitCurrent(time_unit.Years, start_year + (raw_time / 52))
-    else
-      week = raw_time
-      game_data().timeOptions.SetTimeUnitCurrent(time_unit.Weeks, week)
-    end
-    return "Week " .. week .. ", " .. game_data().timeOptions.currentYear .. " " ..
-        (game_data().timeOptions.currentYear < 0 and bc or ad)
+  if base_unit == time_unit.Weeks then
+    local years, week = split_time(raw_time - 1, 52)
+    local year = options.startYear + years
+    return "Week " .. week .. ", " .. math.abs(year) .. " " .. era_label(year)
   end
 
-  -- Days
-  if (game_data().timeOptions.baseUnit == time_unit.Days) then
-    local day = game_data().timeOptions.startDay
-    local start_year = game_data().timeOptions.startYear
-    game_data().timeOptions.SetTimeUnitCurrent(time_unit.Years, start_year)
-    if (raw_time > 365) then
-      day = raw_time % 365
-      game_data().timeOptions.SetTimeUnitCurrent(time_unit.Years, start_year + (raw_time / 365))
-    else
-      day = raw_time
-      game_data().timeOptions.SetTimeUnitCurrent(time_unit.Days, day)
-    end
-    return "Day " .. day .. ", " .. game_data().timeOptions.currentYear .. " " ..
-        (game_data().timeOptions.currentYear < 0 and bc or ad)
+  if base_unit == time_unit.Days then
+    local years, day = split_time(raw_time - 1, 365)
+    local year = options.startYear + years
+    return "Day " .. day .. ", " .. math.abs(year) .. " " .. era_label(year)
   end
 
-  -- Hours
-  if (game_data().timeOptions.baseUnit == time_unit.Hours) then
-    local hour = game_data().timeOptions.startHour
-    local start_day = game_data().timeOptions.startDay
-    game_data().timeOptions.SetTimeUnitCurrent(time_unit.Days, start_day)
-    if (raw_time > 24) then
-      hour = raw_time % 24
-      game_data().timeOptions.SetTimeUnitCurrent(time_unit.Days, start_day + (raw_time / 24))
-    else
-      hour = raw_time
-      game_data().timeOptions.SetTimeUnitCurrent(time_unit.Hours, hour)
-    end
-    return "Hour " .. hour .. ", Day " .. game_data().timeOptions.currentDay
+  -- Hours count from midnight of the start day: raw time 0 is hour 0.
+  if base_unit == time_unit.Hours then
+    local days, hour = split_time(raw_time, 24)
+    return "Hour " .. (hour - 1) .. ", Day " .. (options.startDay + days)
   end
 
-  return "-12345 AD"
+  return tostring(raw_time)
 end
 
 gameplay = {
