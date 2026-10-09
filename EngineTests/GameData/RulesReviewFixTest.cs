@@ -256,6 +256,12 @@ public class RulesReviewFixTest : IClassFixture<SaveGameFixture> {
 		} finally {
 			worker.unitType.workerStrength = 1;
 		}
+
+		// A tech like Replaceable Parts doubles it.
+		Tech tech = gameData.techs.First(t => !us.knownTechs.Contains(t.id));
+		tech.DoublesWorkerRate = true;
+		us.knownTechs.Add(tech.id);
+		Assert.Equal(6f, worker.workerSpeed());
 	}
 
 	// ---- Anarchy ----

@@ -955,6 +955,22 @@ namespace C7GameData {
 			return result;
 		}
 
+		// Whether the player knows any tech matching the predicate, e.g. one
+		// with a rule flag like Tech.EnablesIrrigationEverywhere.
+		[MoonSharpHidden]
+		public bool KnowsTechWhere(Func<Tech, bool> predicate) {
+			List<Tech> techs = EngineStorage.gameData?.techs;
+			if (techs == null) {
+				return false;
+			}
+			foreach (Tech t in techs) {
+				if (predicate(t) && knownTechs.Contains(t.id)) {
+					return true;
+				}
+			}
+			return false;
+		}
+
 		public bool HasTech(ID techId) {
 			bool hasTech = techId == null || this.knownTechs.Contains(techId);
 			return hasTech;

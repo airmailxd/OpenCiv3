@@ -10,6 +10,10 @@ namespace C7GameData.Save {
 			BonusTechToFirstCivThatResearches,
 			EnablesBridges,
 			DoublesWealthProduction,
+			// Irrigation no longer needs fresh water (Electricity in Civ3).
+			EnablesIrrigationEverywhere,
+			// Workers work twice as fast (Replaceable Parts in Civ3).
+			DoublesWorkerRate,
 		}
 
 		public ID id;
@@ -46,6 +50,8 @@ namespace C7GameData.Save {
 				BonusTechToFirstCivThatResearches = this.flags.Contains(Flag.BonusTechToFirstCivThatResearches),
 				EnablesBridges = this.flags.Contains(Flag.EnablesBridges),
 				DoublesWealthProduction = this.flags.Contains(Flag.DoublesWealthProduction),
+				EnablesIrrigationEverywhere = this.flags.Contains(Flag.EnablesIrrigationEverywhere),
+				DoublesWorkerRate = this.flags.Contains(Flag.DoublesWorkerRate),
 				EraCivilopediaName = this.EraCivilopediaName,
 				SmallIconPath = this.SmallIconPath,
 				X = this.X,

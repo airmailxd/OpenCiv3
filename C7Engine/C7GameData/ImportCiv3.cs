@@ -2080,6 +2080,8 @@ namespace C7GameData {
 				(t.BonusTechToFirstCivThatResearches, SaveTech.Flag.BonusTechToFirstCivThatResearches),
 				(t.EnablesBridges, SaveTech.Flag.EnablesBridges),
 				(t.DoublesWealthProduction, SaveTech.Flag.DoublesWealthProduction),
+				(t.EnablesIrrigationEverywhere, SaveTech.Flag.EnablesIrrigationEverywhere),
+				(t.DoublesWorkerRate, SaveTech.Flag.DoublesWorkerRate),
 			}
 			.Where(t => t.Item1)
 			.Select(t => t.Item2);

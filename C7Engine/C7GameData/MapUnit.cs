@@ -1123,6 +1123,10 @@ namespace C7GameData {
 			int rate = owner?.government?.workerRate > 0 ? owner.government.workerRate : DefaultWorkerRate;
 			float strength = unitType.workerStrength > 0 ? unitType.workerStrength : 1;
 			float progressPerTurn = rate * strength;
+			// A tech like Replaceable Parts doubles the rate.
+			if (owner != null && owner.KnowsTechWhere(t => t.DoublesWorkerRate)) {
+				progressPerTurn *= 2;
+			}
 			if (this.IsCaptive()) {
 				progressPerTurn *= SlaveWorkerFactor;
 			}
