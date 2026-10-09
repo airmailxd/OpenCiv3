@@ -80,6 +80,15 @@ namespace C7Engine {
 
 		// The entry point to the overall map generation process.
 		public static GameMap GenerateMap(WorldCharacteristics wc) {
+			return GenerateMap(wc, out _);
+		}
+
+		// Generates a map, and says why it can't be played, or null if it
+		// can. A map can't be played when it has no room for a starting
+		// location for every civ, the world size's distance between civs
+		// apart. Such a map is still generated in full, so it can be looked
+		// at.
+		public static GameMap GenerateMap(WorldCharacteristics wc, out string problem) {
 			if (wc.mapSeed == -1) {
 				log.Information("Random seed is not specified, generating...");
 				wc.mapSeed = new Random().Next(int.MaxValue);
@@ -130,6 +139,10 @@ namespace C7Engine {
 			// Placing this before barb camps so barbs don't spawn <5 tiles away from players
 			// Tried placing barbs then players, but caused all players to spawn together
 			DetermineStartingLocations(wc, gameMap);
+			problem = null;
+			if (gameMap.startingLocations.Count < wc.worldSize.numberOfCivs) {
+				problem = $"Only {gameMap.startingLocations.Count} of {wc.worldSize.numberOfCivs} starting locations fit at least {wc.worldSize.distanceBetweenCivs} apart in map coordinates";
+			}
 
 			// Step 11: Add barb camps. We do this towards the end to make sure
 			// that we don't have barb camps on top of resources.
@@ -178,9 +191,6 @@ namespace C7Engine {
 			Stopwatch stopwatch = new Stopwatch();
 			stopwatch.Start();
 
-			// The first map with room for every civ, in case none has the
-			// shape asked for.
-			GameMap roomyMap = null;
 			GameMap lastMap = null;
 
 			int maxAttempts = 30;
@@ -194,30 +204,15 @@ namespace C7Engine {
 					return m;
 				}
 
-				if (roomyMap == null && HasRoomForCivs(wc, m)) {
-					roomyMap = m;
-				}
 				lastMap = m;
 			}
 
-			// None of the maps has the shape asked for. Settle for one the
-			// civs fit on, or failing that the last; DetermineStartingLocations
-			// makes do with whatever land there is.
-			if (roomyMap != null) {
-				log.Warning($"No map had the shape of a {landform} map after {maxAttempts} attempts; using one with room for every civ");
-				return roomyMap;
-			}
-			log.Warning($"No map had the shape of a {landform} map or room for {wc.worldSize.numberOfCivs} civs after {maxAttempts} attempts; using the last one");
+			// None of the maps has the shape asked for (the shape checks are
+			// C7's own and some, like the archipelago's, rarely pass). Use
+			// the last one: whether it can be played depends on whether
+			// every civ gets a starting location (see GenerateMap).
+			log.Warning($"No map had the shape of a {landform} map after {maxAttempts} attempts; using the last one");
 			return lastMap;
-		}
-
-		// Whether the map's sizeable landmasses have room for a start for
-		// each civ.
-		private static bool HasRoomForCivs(WorldCharacteristics wc, GameMap m) {
-			int roomyLand = m.continents
-				.Where(c => c.First().IsLand() && c.Count > MIN_TILES_PER_PLAYER_ISLAND / 2)
-				.Sum(c => c.Count);
-			return roomyLand >= wc.worldSize.numberOfCivs * (MIN_TILES_PER_PLAYER_ISLAND / 2);
 		}
 
 		private static GameMap ToLandAndWaterGameMap(WorldCharacteristics wc, HeightMap hm, WorldCharacteristics.OceanCoverage oceanCoverage) {
@@ -2086,7 +2081,7 @@ namespace C7Engine {
 			Dictionary<int, int> continentStartingLocationCount = new();
 			Dictionary<int, int> continentSizes = ComputeContinentSizes(m);
 
-			for (int attempt = 0; attempt < 10 && startingLocations.Count < wc.worldSize.numberOfCivs; ++attempt) {
+			for (int attempt = 0; attempt < START_PLACEMENT_PASSES && startingLocations.Count < wc.worldSize.numberOfCivs; ++attempt) {
 				foreach (Tile t in orderedTiles) {
 					if (startingLocations.Count == wc.worldSize.numberOfCivs) {
 						break;
@@ -2103,7 +2098,7 @@ namespace C7Engine {
 						continue;
 					}
 
-					if (TileIsTooCloseToOtherStarts(t, startingLocations, wc.worldSize.distanceBetweenCivs, attempt)) {
+					if (TileIsTooCloseToOtherStarts(t, startingLocations, wc.worldSize.distanceBetweenCivs)) {
 						continue;
 					}
 
@@ -2118,26 +2113,10 @@ namespace C7Engine {
 				}
 			}
 
-			// As a last resort, put the remaining civs anywhere a city could
-			// grow, then anywhere a city can be founded, as long as they
-			// aren't right next to another civ.
-			if (startingLocations.Count < wc.worldSize.numberOfCivs) {
-				log.Warning($"Only {startingLocations.Count} of {wc.worldSize.numberOfCivs} starting locations met the usual requirements; relaxing them");
-				IEnumerable<Tile> lastResort = orderedTiles.Concat(
-					m.tiles.Where(t => t.IsLand() && t.IsAllowCities() && !scoredTiles.ContainsKey(t)));
-				foreach (Tile t in lastResort) {
-					if (startingLocations.Count >= wc.worldSize.numberOfCivs) {
-						break;
-					}
-					if (startingLocations.Any(s => s.DistanceTo(t) < MIN_LAST_RESORT_START_DISTANCE)) {
-						continue;
-					}
-					startingLocations.Add(t);
-				}
-			}
-
+			// There is no last resort: a map without a start for every civ
+			// can't be played, and GameSetup generates another.
 			if (wc.worldSize.numberOfCivs > startingLocations.Count)
-				log.Error($"More civs than available starting locations: {startingLocations.Count} starts for {wc.worldSize.numberOfCivs} civs.");
+				log.Warning($"More civs than available starting locations: {startingLocations.Count} starts for {wc.worldSize.numberOfCivs} civs.");
 
 			// Before using the starting locations, shuffle them, so that the
 			// human player doesn't always get the best starting spot.
@@ -2146,8 +2125,8 @@ namespace C7Engine {
 		}
 
 		// Allow smaller continents the more desperate we are to find a starting
-		// location. Hopefully map generation will have handled this, but we
-		// do bail out of map generation eventually.
+		// location. Hopefully map generation will have handled this; if not
+		// every civ fits, GameSetup generates another map.
 		private static bool IsContinentLargeEnough(Dictionary<int, int> continentSizes, Tile t, int attempt) {
 			int continentSize = continentSizes[t.continent];
 
@@ -2179,24 +2158,37 @@ namespace C7Engine {
 			return startsOnContinent < luxuriesOnContinent;
 		}
 
-		// How close starting locations may be when there is no other way to
-		// fit every civ in. UNVERIFIED (no Civ3 source found): a C7 fallback.
-		// Civ3's own spacing is the world size's distance between civs
-		// (WSIZ), used above.
-		private const int MIN_LAST_RESORT_START_DISTANCE = 3;
+		// How many passes over the candidate tiles DetermineStartingLocations
+		// makes, relaxing the continent size and luxury requirements as it
+		// goes (see IsContinentLargeEnough and ContinentHasEnoughLuxuries).
+		// The last relaxation is on pass 6, so later passes would find
+		// nothing new.
+		private const int START_PLACEMENT_PASSES = 7;
 
-		private static bool TileIsTooCloseToOtherStarts(Tile t, List<Tile> startingLocations, int minDistance, int attempt) {
-			if (attempt > 2) {
-				minDistance /= 2;
-			}
+		// Starts on the same continent are always at least the world size's
+		// distance between civs (WSIZ) apart; that is never relaxed. The
+		// distance is in map coordinates, the units Civ3's editor gives the
+		// world size's width and height in ("in tiles", though a 100 wide
+		// map has 50 tiles to a row), so 12 is 6 moves. UNVERIFIED (no Civ3
+		// source gives the formula): the editor's help only says "the desired
+		// minimum distance (in tiles)". Measured in moves, Civ3's own maps
+		// couldn't keep it: a Civ3 huge pangaea fits its 16 civs on about
+		// 3,300 land tiles, where 24 moves apart leaves room for fewer than 10, and
+		// the turn-one autosave of a Civ3 large map has starts on the same
+		// continent 14 moves apart with a distance of 18 (28 in map
+		// coordinates).
+		// The distance between two tiles in Civ3's map coordinates, in which
+		// a map's width and height are given: each step to a neighbouring
+		// tile is 2, as rows are offset by 1 and a tile's neighbours to the
+		// east and west are 2 apart. So it is twice the number of moves.
+		private static int MapCoordinateDistance(Tile a, Tile b) {
+			return Math.Abs(a.map.CalculateXDelta(a.XCoordinate, b.XCoordinate))
+				+ Math.Abs(a.map.CalculateYDelta(a.YCoordinate, b.YCoordinate));
+		}
 
-			if (attempt > 3) {
-				minDistance -= attempt;
-				minDistance = Math.Max(minDistance, 3); // hard floor
-			}
-
+		private static bool TileIsTooCloseToOtherStarts(Tile t, List<Tile> startingLocations, int minDistance) {
 			foreach (Tile start in startingLocations) {
-				if (start.continent == t.continent && start.DistanceTo(t) < minDistance) {
+				if (start.continent == t.continent && MapCoordinateDistance(start, t) < minDistance) {
 					return true;
 				}
 			}

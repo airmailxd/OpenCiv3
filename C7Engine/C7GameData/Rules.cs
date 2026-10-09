@@ -47,6 +47,15 @@ namespace C7GameData {
 		public bool CoreCitiesFreeOfCorruption = false;
 		public int CitiesFreeOfCorruption = 5;
 
+		// Game option, not in Civ3: scales every city's corruption and waste
+		// before the cap. 1 is Civ3's rate; by default C7 runs slightly below
+		// it to go easier on players. Chosen when setting up a game, and
+		// saves made before it was saved keep the 0.9 they were played with.
+		public const float DefaultCorruptionRate = 0.9f;
+		public const float MinCorruptionRate = 0.5f;
+		public const float MaxCorruptionRate = 1.5f;
+		public float CorruptionRate = DefaultCorruptionRate;
+
 		// Game option from Civ3 (Play the World): the food, shields and
 		// commerce cities generate each turn are doubled, speeding up growth,
 		// research and production. Off by default.

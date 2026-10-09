@@ -39,6 +39,9 @@ public class VictoryConditions {
 			// Civ3 allows a diplomatic victory (through the United Nations)
 			// by default.
 			AllowDiplomaticVictory = true,
+			// The project owner's choice: new games allow a cultural
+			// victory.
+			AllowCulturalVictory = true,
 		};
 	}
 }

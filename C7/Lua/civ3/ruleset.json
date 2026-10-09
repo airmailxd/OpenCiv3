@@ -9,6 +9,7 @@
       "baseCommerceProduction": 0,
       "movementCost": 1,
       "allowCities": true,
+      "impassable": false,
       "defenseBonus": {
         "description": "Desert",
         "amount": 0.1
@@ -30,6 +31,7 @@
       "baseCommerceProduction": 0,
       "movementCost": 1,
       "allowCities": true,
+      "impassable": false,
       "defenseBonus": {
         "description": "Plains",
         "amount": 0.1
@@ -53,6 +55,7 @@
       "baseCommerceProduction": 0,
       "movementCost": 1,
       "allowCities": true,
+      "impassable": false,
       "defenseBonus": {
         "description": "Grassland",
         "amount": 0.1
@@ -75,6 +78,7 @@
       "baseCommerceProduction": 0,
       "movementCost": 1,
       "allowCities": true,
+      "impassable": false,
       "defenseBonus": {
         "description": "Tundra",
         "amount": 0.1
@@ -96,6 +100,7 @@
       "baseCommerceProduction": 0,
       "movementCost": 1,
       "allowCities": true,
+      "impassable": false,
       "defenseBonus": {
         "description": "Flood Plain",
         "amount": 0.1
@@ -114,6 +119,7 @@
       "baseCommerceProduction": 0,
       "movementCost": 2,
       "allowCities": true,
+      "impassable": false,
       "defenseBonus": {
         "description": "Hills",
         "amount": 0.5
@@ -141,6 +147,7 @@
       "baseCommerceProduction": 0,
       "movementCost": 3,
       "allowCities": false,
+      "impassable": false,
       "defenseBonus": {
         "description": "Mountains",
         "amount": 1
@@ -164,6 +171,7 @@
       "baseCommerceProduction": 0,
       "movementCost": 2,
       "allowCities": true,
+      "impassable": false,
       "defenseBonus": {
         "description": "Forest",
         "amount": 0.25
@@ -189,6 +197,7 @@
       "baseCommerceProduction": 0,
       "movementCost": 3,
       "allowCities": true,
+      "impassable": false,
       "defenseBonus": {
         "description": "Jungle",
         "amount": 0.25
@@ -213,6 +222,7 @@
       "baseCommerceProduction": 0,
       "movementCost": 2,
       "allowCities": false,
+      "impassable": false,
       "defenseBonus": {
         "description": "Marsh",
         "amount": 0.2
@@ -234,6 +244,7 @@
       "baseCommerceProduction": 0,
       "movementCost": 3,
       "allowCities": false,
+      "impassable": false,
       "defenseBonus": {
         "description": "Volcano",
         "amount": 0.8
@@ -249,6 +260,7 @@
       "baseCommerceProduction": 2,
       "movementCost": 1,
       "allowCities": false,
+      "impassable": false,
       "defenseBonus": {
         "description": "Coast",
         "amount": 0.1
@@ -267,6 +279,7 @@
       "baseCommerceProduction": 1,
       "movementCost": 1,
       "allowCities": false,
+      "impassable": false,
       "defenseBonus": {
         "description": "Sea",
         "amount": 0.1
@@ -286,6 +299,7 @@
       "baseCommerceProduction": 0,
       "movementCost": 1,
       "allowCities": false,
+      "impassable": false,
       "defenseBonus": {
         "description": "Ocean",
         "amount": 0.1
@@ -820,6 +834,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Rome",
         "Egypt",
@@ -902,6 +917,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Rome",
         "Egypt",
@@ -986,6 +1002,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Russia",
         "America",
@@ -1040,6 +1057,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Rome",
         "Egypt",
@@ -1113,6 +1131,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Rome",
         "Egypt",
@@ -1193,6 +1212,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Rome",
         "Egypt",
@@ -1273,6 +1293,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "A Barbarian Chiefdom",
         "Rome",
@@ -1354,6 +1375,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Rome",
         "Egypt",
@@ -1431,6 +1453,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Rome",
         "Egypt",
@@ -1506,6 +1529,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Egypt",
         "Greece",
@@ -1584,6 +1608,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Rome",
         "Greece",
@@ -1664,6 +1689,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "A Barbarian Chiefdom",
         "Rome",
@@ -1751,6 +1777,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Rome",
         "Egypt",
@@ -1830,6 +1857,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Rome",
         "Egypt",
@@ -1907,6 +1935,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Rome",
         "Egypt",
@@ -1988,6 +2017,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Rome",
         "Egypt",
@@ -2067,6 +2097,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Rome",
         "Egypt",
@@ -2145,6 +2176,7 @@
       "movement": 3,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Rome",
         "Egypt",
@@ -2225,6 +2257,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Rome",
         "Egypt",
@@ -2306,6 +2339,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Rome",
         "Egypt",
@@ -2391,6 +2425,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Rome",
         "Egypt",
@@ -2472,6 +2507,7 @@
       "movement": 3,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Rome",
         "Egypt",
@@ -2554,6 +2590,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Rome",
         "Egypt",
@@ -2632,6 +2669,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Rome",
         "Egypt",
@@ -2715,6 +2753,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Rome",
         "Egypt",
@@ -2793,6 +2832,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Rome",
         "Egypt",
@@ -2875,6 +2915,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Rome",
         "Egypt",
@@ -2955,6 +2996,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Rome",
         "Egypt",
@@ -3037,6 +3079,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Rome",
         "Egypt",
@@ -3117,6 +3160,7 @@
       "movement": 3,
       "capacity": 2,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Rome",
         "Egypt",
@@ -3199,6 +3243,7 @@
       "movement": 4,
       "capacity": 3,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Rome",
         "Egypt",
@@ -3279,6 +3324,7 @@
       "movement": 5,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Rome",
         "Egypt",
@@ -3358,6 +3404,7 @@
       "movement": 4,
       "capacity": 4,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Rome",
         "Egypt",
@@ -3438,6 +3485,7 @@
       "movement": 3,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Rome",
         "Egypt",
@@ -3519,6 +3567,7 @@
       "movement": 6,
       "capacity": 6,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Rome",
         "Egypt",
@@ -3595,6 +3644,7 @@
       "movement": 7,
       "capacity": 4,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Rome",
         "Egypt",
@@ -3675,6 +3725,7 @@
       "movement": 4,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Rome",
         "Egypt",
@@ -3750,6 +3801,7 @@
       "movement": 8,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Rome",
         "Egypt",
@@ -3826,6 +3878,7 @@
       "movement": 5,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Rome",
         "Egypt",
@@ -3905,6 +3958,7 @@
       "movement": 7,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Rome",
         "Egypt",
@@ -3986,6 +4040,7 @@
       "movement": 5,
       "capacity": 1,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Rome",
         "Egypt",
@@ -4065,6 +4120,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Rome",
         "Egypt",
@@ -4147,6 +4203,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Rome",
         "Egypt",
@@ -4225,6 +4282,7 @@
       "movement": 1,
       "capacity": 3,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Rome",
         "Egypt",
@@ -4303,6 +4361,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Rome",
         "Egypt",
@@ -4381,6 +4440,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Rome",
         "Egypt",
@@ -4460,6 +4520,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Rome",
         "Egypt",
@@ -4551,6 +4612,7 @@
       "movement": 3,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Rome",
         "Egypt",
@@ -4637,6 +4699,7 @@
       "movement": 1,
       "capacity": 3,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Rome",
         "Egypt",
@@ -4717,6 +4780,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Aztecs"
       ],
@@ -4768,6 +4832,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Babylon"
       ],
@@ -4819,6 +4884,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Greece"
       ],
@@ -4870,6 +4936,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Zululand"
       ],
@@ -4921,6 +4988,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Rome"
       ],
@@ -4975,6 +5043,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Persia"
       ],
@@ -5029,6 +5098,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Egypt"
       ],
@@ -5083,6 +5153,7 @@
       "movement": 3,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "China"
       ],
@@ -5138,6 +5209,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Iroquois"
       ],
@@ -5192,6 +5264,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "France"
       ],
@@ -5246,6 +5319,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Japan"
       ],
@@ -5300,6 +5374,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 1,
+      "workerStrength": 1,
       "producibleBy": [
         "India"
       ],
@@ -5351,6 +5426,7 @@
       "movement": 3,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Russia"
       ],
@@ -5404,6 +5480,7 @@
       "movement": 3,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Germany"
       ],
@@ -5461,6 +5538,7 @@
       "movement": 5,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "England"
       ],
@@ -5512,6 +5590,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "America"
       ],
@@ -5562,6 +5641,7 @@
       "movement": 5,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Rome",
         "Egypt",
@@ -5641,6 +5721,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Mongols"
       ],
@@ -5696,6 +5777,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Spain"
       ],
@@ -5748,6 +5830,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Scandinavia"
       ],
@@ -5800,6 +5883,7 @@
       "movement": 3,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Ottomans"
       ],
@@ -5853,6 +5937,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Celts"
       ],
@@ -5907,6 +5992,7 @@
       "movement": 3,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Arabia"
       ],
@@ -5962,6 +6048,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Carthage"
       ],
@@ -6013,6 +6100,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Korea"
       ],
@@ -6069,6 +6157,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Rome",
         "Egypt",
@@ -6149,6 +6238,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Rome",
         "Egypt",
@@ -6226,6 +6316,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "unproducible": true,
       "categories": [
         "Land"
@@ -6261,6 +6352,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "unproducible": true,
       "categories": [
         "Land"
@@ -6299,6 +6391,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "unproducible": true,
       "categories": [
         "Land"
@@ -6337,6 +6430,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "unproducible": true,
       "categories": [
         "Land"
@@ -6375,6 +6469,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "unproducible": true,
       "categories": [
         "Land"
@@ -6413,6 +6508,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "unproducible": true,
       "categories": [
         "Land"
@@ -6451,6 +6547,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "unproducible": true,
       "categories": [
         "Land"
@@ -6489,6 +6586,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "unproducible": true,
       "categories": [
         "Land"
@@ -6527,6 +6625,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "unproducible": true,
       "categories": [
         "Land"
@@ -6565,6 +6664,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "unproducible": true,
       "categories": [
         "Land"
@@ -6603,6 +6703,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "unproducible": true,
       "categories": [
         "Land"
@@ -6641,6 +6742,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "unproducible": true,
       "categories": [
         "Land"
@@ -6679,6 +6781,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "unproducible": true,
       "categories": [
         "Land"
@@ -6717,6 +6820,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "unproducible": true,
       "categories": [
         "Land"
@@ -6755,6 +6859,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "unproducible": true,
       "categories": [
         "Land"
@@ -6793,6 +6898,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "unproducible": true,
       "categories": [
         "Land"
@@ -6831,6 +6937,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "unproducible": true,
       "categories": [
         "Land"
@@ -6869,6 +6976,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "unproducible": true,
       "categories": [
         "Land"
@@ -6907,6 +7015,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "unproducible": true,
       "categories": [
         "Land"
@@ -6945,6 +7054,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "unproducible": true,
       "categories": [
         "Land"
@@ -6983,6 +7093,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "unproducible": true,
       "categories": [
         "Land"
@@ -7021,6 +7132,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "unproducible": true,
       "categories": [
         "Land"
@@ -7059,6 +7171,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "unproducible": true,
       "categories": [
         "Land"
@@ -7097,6 +7210,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "unproducible": true,
       "categories": [
         "Land"
@@ -7135,6 +7249,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "unproducible": true,
       "categories": [
         "Land"
@@ -7173,6 +7288,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Sumeria"
       ],
@@ -7224,6 +7340,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Hittites"
       ],
@@ -7277,6 +7394,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "unproducible": true,
       "categories": [
         "Land"
@@ -7315,6 +7433,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "unproducible": true,
       "categories": [
         "Land"
@@ -7353,6 +7472,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "unproducible": true,
       "categories": [
         "Land"
@@ -7392,6 +7512,7 @@
       "movement": 4,
       "capacity": 3,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Portugal"
       ],
@@ -7443,6 +7564,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Netherlands"
       ],
@@ -7496,6 +7618,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "unproducible": true,
       "categories": [
         "Land"
@@ -7535,6 +7658,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Rome",
         "Egypt",
@@ -7612,6 +7736,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "unproducible": true,
       "categories": [
         "Land"
@@ -7650,6 +7775,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "unproducible": true,
       "categories": [
         "Land"
@@ -7688,6 +7814,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "unproducible": true,
       "categories": [
         "Land"
@@ -7726,6 +7853,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Inca"
       ],
@@ -7777,6 +7905,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Maya"
       ],
@@ -7828,6 +7957,7 @@
       "movement": 3,
       "capacity": 2,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Byzantines"
       ],
@@ -7882,6 +8012,7 @@
       "movement": 6,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Rome",
         "Egypt",
@@ -7964,6 +8095,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "unproducible": true,
       "categories": [
         "Land"
@@ -8007,6 +8139,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 1,
+      "workerStrength": 1,
       "unproducible": true,
       "categories": [
         "Land"
@@ -8048,6 +8181,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Rome",
         "Egypt",
@@ -8130,6 +8264,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Rome",
         "Egypt",
@@ -8215,6 +8350,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Rome",
         "Egypt",
@@ -8289,6 +8425,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Rome",
         "Egypt",
@@ -8366,6 +8503,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "workerStrength": 1,
       "producibleBy": [
         "Rome",
         "Egypt",
@@ -8426,7 +8564,14 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
+      "productionBonusPercent": 0,
       "iconRowIndex": 0,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "flags": [
         "isCenterOfEmpire"
       ]
@@ -8440,7 +8585,14 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 1,
+      "productionBonusPercent": 0,
       "iconRowIndex": 1,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "flags": [
         "veteranGroundUnits"
       ],
@@ -8461,7 +8613,14 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 1,
+      "productionBonusPercent": 0,
       "iconRowIndex": 2,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "flags": [
         "doublesCityGrowthRate"
       ]
@@ -8476,7 +8635,14 @@
       "contentFacesInCity": 1,
       "combatDefenseBonus": 0,
       "maintenanceCost": 1,
+      "productionBonusPercent": 0,
       "iconRowIndex": 3,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "traits": [
         "religious"
       ]
@@ -8491,7 +8657,14 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 1,
+      "productionBonusPercent": 0,
       "iconRowIndex": 4,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "flags": [
         "increasesLuxuryTrade",
         "plus50PercentCommerce"
@@ -8510,7 +8683,14 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 1,
+      "productionBonusPercent": 0,
       "iconRowIndex": 5,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "flags": [
         "plus50PercentResearch"
       ],
@@ -8528,7 +8708,14 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 1,
+      "productionBonusPercent": 0,
       "iconRowIndex": 6,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "flags": [
         "reducesCorruption"
       ]
@@ -8543,7 +8730,14 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0.5,
       "maintenanceCost": 0,
+      "productionBonusPercent": 0,
       "iconRowIndex": 7,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 8,
+      "unitFrequency": 0,
       "flags": [
         "providesWalls",
         "canOnlyBeBuiltInTowns"
@@ -8565,7 +8759,14 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 1,
+      "productionBonusPercent": 0,
       "iconRowIndex": 8,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "flags": [
         "allowsCitySize2"
       ],
@@ -8587,7 +8788,14 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 1,
+      "productionBonusPercent": 0,
       "iconRowIndex": 9,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 1,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "flags": [
         "plus50PercentCommerce"
       ],
@@ -8606,7 +8814,14 @@
       "contentFacesInCity": 3,
       "combatDefenseBonus": 0,
       "maintenanceCost": 2,
+      "productionBonusPercent": 0,
       "iconRowIndex": 10,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 1,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "traits": [
         "religious"
       ]
@@ -8622,7 +8837,14 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 2,
+      "productionBonusPercent": 0,
       "iconRowIndex": 11,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 1,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "flags": [
         "plus50PercentResearch"
       ],
@@ -8640,7 +8862,14 @@
       "contentFacesInCity": 2,
       "combatDefenseBonus": 0,
       "maintenanceCost": 2,
-      "iconRowIndex": 12
+      "productionBonusPercent": 0,
+      "iconRowIndex": 12,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0
     },
     {
       "name": "Factory",
@@ -8654,6 +8883,12 @@
       "maintenanceCost": 3,
       "productionBonusPercent": 50,
       "iconRowIndex": 13,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 2,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "requiredResources": [
         "Iron"
       ]
@@ -8670,7 +8905,13 @@
       "combatDefenseBonus": 0,
       "maintenanceCost": 3,
       "productionBonusPercent": 50,
-      "iconRowIndex": 14
+      "iconRowIndex": 14,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 1,
+      "contentFacesAllCities": 0,
+      "pollution": 2,
+      "bombardDefense": 0,
+      "unitFrequency": 0
     },
     {
       "name": "Recycling Center",
@@ -8682,7 +8923,14 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 2,
+      "productionBonusPercent": 0,
       "iconRowIndex": 15,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "traits": [
         "agricultural"
       ]
@@ -8700,6 +8948,12 @@
       "maintenanceCost": 3,
       "productionBonusPercent": 50,
       "iconRowIndex": 16,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 1,
+      "contentFacesAllCities": 0,
+      "pollution": 2,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "flags": [
         "replacesOtherBuildings"
       ],
@@ -8720,6 +8974,12 @@
       "maintenanceCost": 3,
       "productionBonusPercent": 50,
       "iconRowIndex": 17,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 1,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "flags": [
         "mustBeNearRiver",
         "replacesOtherBuildings"
@@ -8741,6 +9001,12 @@
       "maintenanceCost": 3,
       "productionBonusPercent": 100,
       "iconRowIndex": 18,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 1,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "flags": [
         "replacesOtherBuildings"
       ],
@@ -8758,7 +9024,14 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 2,
+      "productionBonusPercent": 0,
       "iconRowIndex": 19,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "flags": [
         "allowsCitySize3"
       ],
@@ -8777,7 +9050,14 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 2,
+      "productionBonusPercent": 0,
       "iconRowIndex": 20,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 1,
+      "contentFacesAllCities": 0,
+      "pollution": 1,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "flags": [
         "plus50PercentResearch"
       ],
@@ -8795,7 +9075,14 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 2,
+      "productionBonusPercent": 0,
       "iconRowIndex": 21,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "requiredResources": [
         "Rubber"
       ]
@@ -8810,7 +9097,14 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 2,
+      "productionBonusPercent": 0,
       "iconRowIndex": 22,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "traits": [
         "militaristic"
       ],
@@ -8828,7 +9122,14 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
+      "productionBonusPercent": 0,
       "iconRowIndex": 23,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "flags": [
         "mustBeCoastal"
       ],
@@ -8857,6 +9158,12 @@
       "maintenanceCost": 3,
       "productionBonusPercent": 50,
       "iconRowIndex": 24,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 1,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "flags": [
         "replacesOtherBuildings"
       ],
@@ -8874,7 +9181,14 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 1,
+      "productionBonusPercent": 0,
       "iconRowIndex": 25,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "flags": [
         "mustBeCoastal",
         "veteranSeaUnits",
@@ -8905,7 +9219,14 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 3,
+      "productionBonusPercent": 0,
       "iconRowIndex": 26,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 2,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "flags": [
         "mustBeCoastal",
         "increasesShieldsInWater"
@@ -8930,7 +9251,14 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 2,
+      "productionBonusPercent": 0,
       "iconRowIndex": 27,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 1,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "flags": [
         "veteranAirUnits"
       ],
@@ -8949,7 +9277,14 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 2,
+      "productionBonusPercent": 0,
       "iconRowIndex": 28,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "flags": [
         "reducesCorruption",
         "reducesWarWeariness"
@@ -8968,7 +9303,14 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
+      "productionBonusPercent": 0,
       "iconRowIndex": 30,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "flags": [
         "touristAttraction"
       ],
@@ -8989,16 +9331,22 @@
       "contentFacesInCity": 3,
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
+      "productionBonusPercent": 0,
       "iconRowIndex": 31,
       "renderedObsoleteBy": "tech-45",
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 1,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "flags": [
         "touristAttraction"
       ],
       "traits": [
         "industrious",
         "agricultural"
-      ],
-      "contentFacesAllCities": 1
+      ]
     },
     {
       "name": "The Colossus",
@@ -9011,8 +9359,15 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
+      "productionBonusPercent": 0,
       "iconRowIndex": 32,
       "renderedObsoleteBy": "tech-59",
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "flags": [
         "mustBeCoastal",
         "increasedTrade",
@@ -9041,8 +9396,15 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
+      "productionBonusPercent": 0,
       "iconRowIndex": 33,
       "renderedObsoleteBy": "tech-42",
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "flags": [
         "mustBeCoastal",
         "safeSeaTravel",
@@ -9069,8 +9431,15 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
+      "productionBonusPercent": 0,
       "iconRowIndex": 34,
       "renderedObsoleteBy": "tech-30",
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "flags": [
         "gainAnyTechKnownByTwoCivs",
         "touristAttraction"
@@ -9090,15 +9459,22 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
+      "productionBonusPercent": 0,
       "iconRowIndex": 35,
       "renderedObsoleteBy": "tech-25",
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "doublesHappinessOf": "Temple",
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "flags": [
         "touristAttraction"
       ],
       "traits": [
         "religious"
-      ],
-      "doublesHappinessOf": "Temple"
+      ]
     },
     {
       "name": "The Great Wall",
@@ -9113,8 +9489,15 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
+      "productionBonusPercent": 0,
       "iconRowIndex": 36,
       "renderedObsoleteBy": "tech-39",
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "flags": [
         "doubleCombatVsBarbarians",
         "touristAttraction"
@@ -9137,7 +9520,14 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
+      "productionBonusPercent": 0,
       "iconRowIndex": 37,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "traits": [
         "militaristic"
       ]
@@ -9153,14 +9543,21 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
+      "productionBonusPercent": 0,
       "iconRowIndex": 38,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "doublesHappinessOf": "Cathedral",
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "flags": [
         "touristAttraction"
       ],
       "traits": [
         "religious"
-      ],
-      "doublesHappinessOf": "Cathedral"
+      ]
     },
     {
       "name": "Magellan's Voyage",
@@ -9173,7 +9570,14 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
+      "productionBonusPercent": 0,
       "iconRowIndex": 39,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "flags": [
         "mustBeCoastal",
         "increasedShipMovement"
@@ -9198,7 +9602,14 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
+      "productionBonusPercent": 0,
       "iconRowIndex": 40,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "flags": [
         "doublesResearchOutput",
         "touristAttraction"
@@ -9218,7 +9629,14 @@
       "contentFacesInCity": 8,
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
+      "productionBonusPercent": 0,
       "iconRowIndex": 41,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "flags": [
         "allowsCitySize3",
         "touristAttraction"
@@ -9238,7 +9656,14 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
+      "productionBonusPercent": 0,
       "iconRowIndex": 42,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "flags": [
         "cheaperUpgrades",
         "touristAttraction"
@@ -9258,15 +9683,21 @@
       "contentFacesInCity": 2,
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
+      "productionBonusPercent": 0,
       "iconRowIndex": 43,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 2,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "flags": [
         "continentalMoodEffects",
         "touristAttraction"
       ],
       "traits": [
         "religious"
-      ],
-      "contentFacesAllCities": 2
+      ]
     },
     {
       "name": "Newton's University",
@@ -9279,7 +9710,14 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
+      "productionBonusPercent": 0,
       "iconRowIndex": 44,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "flags": [
         "doublesResearchOutput",
         "touristAttraction"
@@ -9299,7 +9737,14 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
+      "productionBonusPercent": 0,
       "iconRowIndex": 45,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "flags": [
         "paysTradeMaintenance"
       ],
@@ -9319,7 +9764,14 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
+      "productionBonusPercent": 0,
       "iconRowIndex": 46,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "flags": [
         "reducesWarWearinessEverywhere"
       ],
@@ -9340,7 +9792,14 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
+      "productionBonusPercent": 0,
       "iconRowIndex": 47,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "flags": [
         "mustBeNearRiver",
         "touristAttraction"
@@ -9364,7 +9823,14 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
+      "productionBonusPercent": 0,
       "iconRowIndex": 48,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "flags": [
         "twoFreeAdvances"
       ],
@@ -9383,7 +9849,14 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
+      "productionBonusPercent": 0,
       "iconRowIndex": 49,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "flags": [
         "allowDiplomaticVictory",
         "touristAttraction"
@@ -9403,7 +9876,14 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
+      "productionBonusPercent": 0,
       "iconRowIndex": 50,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "flags": [
         "allowsNuclearWeapons"
       ],
@@ -9426,12 +9906,18 @@
       "contentFacesInCity": 1,
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
+      "productionBonusPercent": 0,
       "iconRowIndex": 51,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 1,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "traits": [
         "scientific",
         "agricultural"
-      ],
-      "contentFacesAllCities": 1
+      ]
     },
     {
       "name": "Longevity",
@@ -9444,7 +9930,14 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
+      "productionBonusPercent": 0,
       "iconRowIndex": 52,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "flags": [
         "doublesCityGrowthEverywhere"
       ],
@@ -9463,7 +9956,14 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
+      "productionBonusPercent": 0,
       "iconRowIndex": 53,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "flags": [
         "doublesResearchOutput"
       ],
@@ -9480,7 +9980,14 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
+      "productionBonusPercent": 0,
       "iconRowIndex": 54,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "flags": [
         "requiresVictoriousArmy",
         "increasesLeaderChance"
@@ -9501,11 +10008,16 @@
       "maintenanceCost": 0,
       "productionBonusPercent": 100,
       "iconRowIndex": 55,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 4,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "requiredResources": [
         "Iron",
         "Coal"
-      ],
-      "pollution": 4
+      ]
     },
     {
       "name": "Forbidden Palace",
@@ -9516,7 +10028,14 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
+      "productionBonusPercent": 0,
       "iconRowIndex": 56,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "flags": [
         "forbiddenPalace"
       ],
@@ -9534,7 +10053,14 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
+      "productionBonusPercent": 0,
       "iconRowIndex": 57,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "flags": [
         "allowsBuildArmy",
         "requiresVictoriousArmy",
@@ -9553,8 +10079,14 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
+      "productionBonusPercent": 0,
       "iconRowIndex": 58,
       "numberOfArmiesRequired": 3,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "flags": [
         "allowsLargerArmies"
       ],
@@ -9572,8 +10104,17 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
+      "productionBonusPercent": 0,
       "iconRowIndex": 59,
-      "requiredBuildingCount": 5
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 5,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
+      "flags": [
+        "treasuryEarnsInterest"
+      ]
     },
     {
       "name": "Apollo Program",
@@ -9585,7 +10126,14 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
+      "productionBonusPercent": 0,
       "iconRowIndex": 60,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "flags": [
         "buildSpaceshipParts"
       ],
@@ -9607,14 +10155,20 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
+      "productionBonusPercent": 0,
       "iconRowIndex": 61,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 5,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "flags": [
         "decreasesMissileSuccess"
       ],
       "traits": [
         "militaristic"
-      ],
-      "requiredBuildingCount": 5
+      ]
     },
     {
       "name": "Intelligence Agency",
@@ -9626,7 +10180,14 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
+      "productionBonusPercent": 0,
       "iconRowIndex": 62,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "flags": [
         "allowsSpyMissions"
       ],
@@ -9645,14 +10206,20 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
+      "productionBonusPercent": 0,
       "iconRowIndex": 63,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 5,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "flags": [
         "allowsEnemyTerritoryHealing"
       ],
       "traits": [
         "militaristic"
-      ],
-      "requiredBuildingCount": 5
+      ]
     },
     {
       "name": "SS Thrusters",
@@ -9664,8 +10231,15 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
+      "productionBonusPercent": 0,
       "iconRowIndex": 64,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
       "spaceshipPart": 0,
+      "unitFrequency": 0,
       "requiredResources": [
         "Aluminum"
       ]
@@ -9680,8 +10254,15 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
+      "productionBonusPercent": 0,
       "iconRowIndex": 65,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
       "spaceshipPart": 1,
+      "unitFrequency": 0,
       "requiredResources": [
         "Aluminum"
       ]
@@ -9696,8 +10277,15 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
+      "productionBonusPercent": 0,
       "iconRowIndex": 66,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
       "spaceshipPart": 2,
+      "unitFrequency": 0,
       "requiredResources": [
         "Aluminum"
       ]
@@ -9712,8 +10300,15 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
+      "productionBonusPercent": 0,
       "iconRowIndex": 67,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
       "spaceshipPart": 3,
+      "unitFrequency": 0,
       "requiredResources": [
         "Aluminum"
       ]
@@ -9728,8 +10323,15 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
+      "productionBonusPercent": 0,
       "iconRowIndex": 68,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
       "spaceshipPart": 4,
+      "unitFrequency": 0,
       "requiredResources": [
         "Uranium"
       ]
@@ -9744,8 +10346,15 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
+      "productionBonusPercent": 0,
       "iconRowIndex": 69,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
       "spaceshipPart": 5,
+      "unitFrequency": 0,
       "requiredResources": [
         "Aluminum"
       ]
@@ -9760,8 +10369,15 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
+      "productionBonusPercent": 0,
       "iconRowIndex": 70,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
       "spaceshipPart": 6,
+      "unitFrequency": 0,
       "requiredResources": [
         "Aluminum",
         "Uranium"
@@ -9777,8 +10393,15 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
+      "productionBonusPercent": 0,
       "iconRowIndex": 71,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
       "spaceshipPart": 7,
+      "unitFrequency": 0,
       "requiredResources": [
         "Aluminum"
       ]
@@ -9793,8 +10416,15 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
+      "productionBonusPercent": 0,
       "iconRowIndex": 72,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
       "spaceshipPart": 8,
+      "unitFrequency": 0,
       "requiredResources": [
         "Aluminum"
       ]
@@ -9809,8 +10439,15 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
+      "productionBonusPercent": 0,
       "iconRowIndex": 73,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
       "spaceshipPart": 9,
+      "unitFrequency": 0,
       "requiredResources": [
         "Aluminum",
         "Rubber"
@@ -9829,7 +10466,14 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
+      "productionBonusPercent": 0,
       "iconRowIndex": 74,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "traits": [
         "militaristic",
         "commercial",
@@ -9852,7 +10496,14 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0.5,
       "maintenanceCost": 1,
+      "productionBonusPercent": 0,
       "iconRowIndex": 75,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 1,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "traits": [
         "militaristic"
       ]
@@ -9868,7 +10519,14 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 3,
+      "productionBonusPercent": 0,
       "iconRowIndex": 76,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 1,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "flags": [
         "plus50PercentCommerce"
       ],
@@ -9887,7 +10545,14 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 2,
+      "productionBonusPercent": 0,
       "iconRowIndex": 77,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 1,
+      "contentFacesAllCities": 0,
+      "pollution": 1,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "flags": [
         "increasesTradeInWater"
       ],
@@ -9912,8 +10577,15 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
+      "productionBonusPercent": 0,
       "iconRowIndex": 78,
       "renderedObsoleteBy": "tech-30",
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "flags": [
         "touristAttraction"
       ],
@@ -9932,8 +10604,16 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
+      "productionBonusPercent": 0,
       "iconRowIndex": 79,
       "renderedObsoleteBy": "tech-39",
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitProduced": "Ancient Cavalry",
+      "unitFrequency": 5,
       "flags": [
         "touristAttraction"
       ],
@@ -9943,9 +10623,7 @@
       ],
       "requiredResources": [
         "Ivory"
-      ],
-      "unitProduced": "Ancient Cavalry",
-      "unitFrequency": 5
+      ]
     },
     {
       "name": "The Mausoleum of Mausollos",
@@ -9958,7 +10636,14 @@
       "contentFacesInCity": 3,
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
+      "productionBonusPercent": 0,
       "iconRowIndex": 80,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "flags": [
         "touristAttraction"
       ],
@@ -9978,14 +10663,20 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
+      "productionBonusPercent": 0,
       "iconRowIndex": 81,
       "renderedObsoleteBy": "tech-45",
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitProduced": "Crusader",
+      "unitFrequency": 5,
       "traits": [
         "militaristic",
         "religious"
-      ],
-      "unitProduced": "Crusader",
-      "unitFrequency": 5
+      ]
     },
     {
       "name": "Secret Police HQ",
@@ -9997,8 +10688,15 @@
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
       "maintenanceCost": 0,
+      "productionBonusPercent": 0,
       "iconRowIndex": 56,
+      "numberOfArmiesRequired": 0,
+      "requiredBuildingCount": 0,
       "requiredGovernment": "Government-4",
+      "contentFacesAllCities": 0,
+      "pollution": 0,
+      "bombardDefense": 0,
+      "unitFrequency": 0,
       "flags": [
         "forbiddenPalace"
       ]
@@ -10009,7 +10707,8 @@
     "advancedBarbarianUnit": "Horseman",
     "barbarianSeaUnit": "Galley",
     "defaultHitpoints": 2,
-    "maxHitpoints": 2
+    "maxHitpoints": 2,
+    "barbarianActivity": "roaming"
   },
   "experienceLevels": [
     {
@@ -11779,7 +12478,14 @@
     "allowLesserUnitProduction": false,
     "radarTileVisibility": 2,
     "allowUnloadFromArmy": false,
+    "showScoreboard": true,
+    "coreCitiesFreeOfCorruption": false,
+    "citiesFreeOfCorruption": 5,
+    "corruptionRate": 0.9,
+    "acceleratedProduction": false,
     "citiesNeededToSupportAnArmy": 4,
+    "buildArmyUnit": "Army",
+    "battleCreatedUnit": "Leader",
     "spaceshipPartsRequired": [
       1,
       1,
@@ -11792,11 +12498,64 @@
       1,
       1
     ],
-    "buildArmyUnit": "Army",
-    "battleCreatedUnit": "Leader",
     "minimumPopulationForWeLoveTheKing": 6,
     "goldenAgeDuration": 20,
-    "upgradeCostPerShield": 3
+    "upgradeCostPerShield": 3,
+    "startingTreasury": 10,
+    "firstEraCivilopediaName": "ERAS_Ancient_Times",
+    "foodConsumptionPerCitizen": 2,
+    "movementAlongRoads": 3,
+    "fortressDefensiveBonus": 50,
+    "borderExpansionMultiplier": 1000,
+    "borderFactor": 10,
+    "futureTechCost": 400,
+    "chanceOfRioting": 20,
+    "citizensAffectedByEachHappyFace": 1,
+    "buildingDefensiveBonus": 16,
+    "citizenDefensiveBonus": 16,
+    "turnPenaltyForEachDraftedCitizen": 20,
+    "slaveUnitType": "Worker",
+    "flagUnitType": "Princess",
+    "cultureLevelNames": [
+      "Fledgling",
+      "Weak",
+      "Fragile",
+      "Solid",
+      "Strong",
+      "Glorious"
+    ],
+    "cultureOpinions": [
+      {
+        "name": "in awe of",
+        "numerator": 3,
+        "denominator": 1
+      },
+      {
+        "name": "admirers of",
+        "numerator": 2,
+        "denominator": 1
+      },
+      {
+        "name": "impressed with",
+        "numerator": 1,
+        "denominator": 1
+      },
+      {
+        "name": "unimpressed by",
+        "numerator": 3,
+        "denominator": 4
+      },
+      {
+        "name": "dismissive of",
+        "numerator": 1,
+        "denominator": 2
+      },
+      {
+        "name": "disdainful of",
+        "numerator": 1,
+        "denominator": 3
+      }
+    ]
   },
   "timeOptions": {
     "baseUnit": "years",
@@ -12319,6 +13078,9 @@
       "y": 276,
       "prerequisites": [
         "tech-32"
+      ],
+      "flags": [
+        "doublesWealthProduction"
       ]
     },
     {
@@ -12493,6 +13255,9 @@
       "y": 464,
       "prerequisites": [
         "tech-45"
+      ],
+      "flags": [
+        "enablesIrrigationEverywhere"
       ]
     },
     {
@@ -12622,6 +13387,9 @@
       "y": 509,
       "prerequisites": [
         "tech-49"
+      ],
+      "flags": [
+        "doublesWorkerRate"
       ]
     },
     {

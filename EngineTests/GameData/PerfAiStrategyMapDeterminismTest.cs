@@ -17,7 +17,9 @@ namespace EngineTests.GameData;
 // stopped placing luxuries on tiles that already had a resource, again
 // when deserts along rivers became flood plains, and again after the
 // Civ3-like terrain work (biomes, highlands, drainage-basin rivers, water
-// share, resource counts and start positions, 1992cb90..00fdc2a2).
+// share, resource counts and start positions, 1992cb90..00fdc2a2), and
+// again when starts came to be kept the world size's distance between civs
+// apart in map coordinates, never relaxed.
 //
 // Re-baselining: when a map generator change is MEANT to change the maps,
 // run only this test
@@ -80,9 +82,9 @@ public class PerfAiStrategyMapDeterminismTest {
 	}
 
 	[Theory]
-	[InlineData(WorldCharacteristics.Landform.Pangaea, 123456, "17ED4B51AD4B1B4280C0DA79415F9915AA85DF60C21DEF9B901A941A733AFC33")]
-	[InlineData(WorldCharacteristics.Landform.Continents, 4242, "AD0DD95C044DC66C78E36D5C4CD79DD44105DEE90110C814A8B2AABE52CBE34D")]
-	[InlineData(WorldCharacteristics.Landform.Archipelago, 777, "EEBAEB9B640A3DA4174E5296AA49058E63ADE0490086D0C2B4319F97DC044915")]
+	[InlineData(WorldCharacteristics.Landform.Pangaea, 123456, "E3C00E4BD07FAA0D65075AE638CD5A0402F5BCADCBE84A0E5F67CD4C0870E754")]
+	[InlineData(WorldCharacteristics.Landform.Continents, 4242, "480844FCE2BA3EA9BC33B30775E9CAF21E8401899477EA6EA776B1DB1C6C77E7")]
+	[InlineData(WorldCharacteristics.Landform.Archipelago, 777, "F677DC6BA1F0CE57A1F0020398A7E47BF141A5447AC076137EC9FBB5A8E9B914")]
 	public void SameSeedProducesSameMap(WorldCharacteristics.Landform landform, int seed, string expectedHash) {
 		string hash = HashMap(Generate(landform, seed));
 		output.WriteLine($"{landform} {seed}: {hash}");

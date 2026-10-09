@@ -26,4 +26,9 @@ public class ConquestDominationVictoryTest {
 		Assert.True(defaults.AllowConquestVictory);
 		Assert.True(defaults.AllowDominationVictory);
 	}
+
+	[Fact]
+	public void NewGamesAllowCulturalVictory() {
+		Assert.True(VictoryConditions.NewGameDefaults().AllowCulturalVictory);
+	}
 }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using C7GameData;
 using C7GameData.Save;
@@ -39,6 +40,12 @@ public class GameSetup {
 	public bool coreCitiesFreeOfCorruption { get; init; } = false;
 	// Null keeps the setting the scenario or ruleset came with.
 	public bool? acceleratedProduction { get; init; } = null;
+	// Scales corruption and waste (see Rules.CorruptionRate). Null keeps
+	// the rate the scenario or ruleset came with.
+	public float? corruptionRate { get; init; } = null;
+	// Where to save each generated map that can't be played, with why, so
+	// it can be looked at; null not to save them.
+	public string invalidMapsDirectory { get; init; } = null;
 
 	ID.Factory ids;
 
@@ -51,10 +58,13 @@ public class GameSetup {
 		if (acceleratedProduction.HasValue) {
 			save.Rules.AcceleratedProduction = acceleratedProduction.Value;
 		}
+		if (corruptionRate.HasValue) {
+			save.Rules.CorruptionRate = Math.Clamp(corruptionRate.Value, Rules.MinCorruptionRate, Rules.MaxCorruptionRate);
+		}
 
 		if (save.Map.tiles.Count == 0) {
 			log.Information("Starting map generation");
-			save.Map = new SaveMap(GenerateMap());
+			save.Map = new SaveMap(GenerateMap(save));
 			save.Seed = worldCharacteristics.mapSeed;
 			log.Information("Done with map generation");
 		}
@@ -65,12 +75,16 @@ public class GameSetup {
 		}
 	}
 
-	// How many more maps to generate, each from a seed derived from the
-	// last, when a map doesn't have a starting location for every civ.
-	private const int ExtraMapAttempts = 2;
+	// How many maps to generate, each from a seed derived from the last,
+	// before giving up on the settings. A map is generated again when it
+	// can't be played, such as when it has no room for a starting location
+	// for every civ the world size's distance between civs apart; there is
+	// no fallback that puts civs closer or leaves some out.
+	public const int MaxMapAttempts = 25;
 
-	// Generates a map with a starting location for every civ if it can.
-	private GameMap GenerateMap() {
+	// Generates a map with a starting location for every civ, or throws if
+	// none of MaxMapAttempts maps has one.
+	private GameMap GenerateMap(SaveGame save) {
 		int civs = HumanPlayers().Count() + opponents.Count;
 		if (worldCharacteristics.worldSize.numberOfCivs < civs) {
 			log.Warning($"The {worldCharacteristics.worldSize.name} world size has room for {worldCharacteristics.worldSize.numberOfCivs} civs, but {civs} are playing; making room for them all");
@@ -78,14 +92,69 @@ public class GameSetup {
 			worldCharacteristics.worldSize.numberOfCivs = civs;
 		}
 
-		GameMap map = MapGenerator.GenerateMap(worldCharacteristics);
-		for (int attempt = 1; attempt <= ExtraMapAttempts && map.startingLocations.Count < civs; ++attempt) {
-			int seed = (int)((uint)worldCharacteristics.mapSeed * 2654435761u % int.MaxValue);
-			log.Warning($"The map from seed {worldCharacteristics.mapSeed} has {map.startingLocations.Count} starting locations for {civs} civs; trying seed {seed}");
-			worldCharacteristics.mapSeed = seed;
-			map = MapGenerator.GenerateMap(worldCharacteristics);
+		string problem = null;
+		for (int attempt = 1; attempt <= MaxMapAttempts; ++attempt) {
+			if (attempt > 1) {
+				worldCharacteristics.mapSeed = NextMapSeed(worldCharacteristics.mapSeed);
+			}
+			GameMap map = MapGenerator.GenerateMap(worldCharacteristics, out problem);
+			if (problem == null) {
+				return map;
+			}
+			log.Warning($"The map from seed {worldCharacteristics.mapSeed} can't be played ({problem}); generating another");
+			SaveInvalidMap(save, map, problem);
 		}
-		return map;
+		throw new InvalidOperationException(
+			$"Couldn't generate a map with room for each of the {civs} civilizations to start far enough apart " +
+			$"in {MaxMapAttempts} tries ({problem}). " +
+			"Try a larger world, fewer civilizations, more land or another landform.");
+	}
+
+	// The seed of the map to try after the one from the given seed.
+	public static int NextMapSeed(int seed) {
+		return (int)((uint)seed * 2654435761u % int.MaxValue);
+	}
+
+	// Saves a map that can't be played to invalidMapsDirectory, as a game
+	// that can be loaded to look at it, with a text file saying why it was
+	// turned down. Civs the map has no start for are put on any land, so
+	// the save has a player to look through. Failing to save it doesn't stop
+	// the game being set up.
+	private void SaveInvalidMap(SaveGame save, GameMap map, string problem) {
+		if (invalidMapsDirectory == null) {
+			return;
+		}
+		try {
+			SaveGame copy = save.Clone();
+			copy.Map = new SaveMap(map);
+			copy.Seed = worldCharacteristics.mapSeed;
+			int starts = copy.Map.startingLocations.Count;
+			int civs = HumanPlayers().Count() + opponents.Count;
+			HashSet<(int, int)> used = copy.Map.startingLocations.Select(t => (t.X, t.Y)).ToHashSet();
+			copy.Map.startingLocations.AddRange(copy.Map.tiles
+				.Where(t => !used.Contains((t.X, t.Y)) && t.baseTerrain is not ("coast" or "sea" or "ocean"))
+				.Take(Math.Max(0, civs - starts)));
+			if (copy.Players.Count == 0 && copy.Map.startingLocations.Count >= civs) {
+				ids = new(copy);
+				PopulatePlayers(copy);
+			}
+
+			Directory.CreateDirectory(invalidMapsDirectory);
+			string name = $"{DateTime.Now:yyyy-MM-dd HH.mm.ss} seed {worldCharacteristics.mapSeed}";
+			string path = Path.Combine(invalidMapsDirectory, name);
+			copy.Save(path + ".json");
+			File.WriteAllText(path + ".txt",
+				$"{problem}.{Environment.NewLine}" +
+				$"Seed {worldCharacteristics.mapSeed}, {worldCharacteristics.worldSize.name} world " +
+				$"({worldCharacteristics.worldSize.width}x{worldCharacteristics.worldSize.height}, " +
+				$"distance between civs {worldCharacteristics.worldSize.distanceBetweenCivs}), {civs} civilizations, " +
+				$"{worldCharacteristics.landform}, {worldCharacteristics.oceanCoverage}, {worldCharacteristics.climate}, " +
+				$"{worldCharacteristics.temperature}, {worldCharacteristics.age}.{Environment.NewLine}" +
+				$"The map had {starts} proper starting locations; in the save, civs without one start on any land.{Environment.NewLine}");
+			log.Information($"Saved the map that can't be played to {path}.json");
+		} catch (Exception e) {
+			log.Warning(e, "Couldn't save the map that can't be played");
+		}
 	}
 
 	private void PopulatePlayers(SaveGame save) {
@@ -136,34 +205,13 @@ public class GameSetup {
 			planned.Add(new PlannedPlayer { civ = civ, isHuman = false, isRandom = isRandom });
 		}
 
-		LeaveOutOpponentsWithoutStarts(save, planned, taken);
+		if (save.Map.startingLocations.Count < planned.Count) {
+			throw new InvalidOperationException($"The map has {save.Map.startingLocations.Count} starting locations, too few for {planned.Count} civilizations");
+		}
 		List<SaveTile> starts = AssignStartingLocations(save, rand, planned, taken);
 		for (int i = 0; i < planned.Count; ++i) {
 			AddPlayer(save, planned[i].civ, planned[i].isHuman, planned[i].name, starts[i]);
 		}
-	}
-
-	// If the map doesn't have a starting location for every planned player,
-	// leaves out computer opponents, the last first, until it does. Every
-	// human must have one. UNVERIFIED (no Civ3 source found): a C7 fallback,
-	// not something Civ3 is known to do.
-	private static void LeaveOutOpponentsWithoutStarts(SaveGame save, List<PlannedPlayer> planned, HashSet<string> taken) {
-		int starts = save.Map.startingLocations.Count;
-		if (planned.Count <= starts) {
-			return;
-		}
-		int humans = planned.Count(p => p.isHuman);
-		if (humans > starts) {
-			throw new InvalidOperationException($"The map has {starts} starting locations, too few for {humans} human players");
-		}
-		int opponentsBefore = planned.Count - humans;
-		for (int i = planned.Count - 1; i >= 0 && planned.Count > starts; --i) {
-			if (!planned[i].isHuman) {
-				taken.Remove(planned[i].civ.name);
-				planned.RemoveAt(i);
-			}
-		}
-		log.Warning($"The map has only {starts} starting locations, so the game has {planned.Count - humans} computer opponents instead of {opponentsBefore}");
 	}
 
 	private class PlannedPlayer {

@@ -248,11 +248,107 @@ public class FixSavesTests : IClassFixture<SaveGameFixture> {
 
 		// The shared world size is left as it was.
 		Assert.Equal(2, worldSize.numberOfCivs);
+		// No opponent is left out.
 		List<SavePlayer> civs = save.Players.Where(p => !p.isBarbarian).ToList();
-		Assert.True(civs.Count >= 2);
-		Assert.True(civs.Count <= 8);
+		Assert.Equal(8, civs.Count);
 		Assert.All(civs, p => Assert.Contains(save.Units, u => u.owner == p.id));
 		Assert.Contains(civs, p => p.human);
+	}
+
+	// Item: starts were allowed 3 tiles apart, opponents were left out, and
+	// a map without room for everyone was used anyway. Now a map without a
+	// start for every civ the world size's distance apart is generated
+	// again, and each one turned down is saved to look at.
+
+	private static GameSetup SetupFor(SaveGame save, WorldSize worldSize, int opponents, int seed, string invalidMaps) {
+		WorldCharacteristics wc = new(save) {
+			landform = WorldCharacteristics.Landform.Pangaea,
+			oceanCoverage = WorldCharacteristics.OceanCoverage.Percent_70,
+			worldSize = worldSize,
+			mapSeed = seed,
+		};
+		return new GameSetup {
+			playerCivilization = save.Civilizations.First(c => !c.isBarbarian),
+			difficulty = save.Difficulties.First(),
+			worldCharacteristics = wc,
+			opponents = Enumerable.Repeat(new SelectedOpponent { isRandom = true }, opponents).ToList(),
+			victoryConditions = new VictoryConditions(),
+			invalidMapsDirectory = invalidMaps,
+		};
+	}
+
+	[Fact]
+	public void StartsOnAContinentAreTheDistanceBetweenCivsApart() {
+		SaveGame save = SaveGameFixture.LoadGameMode(new GameMode.Config("civ3")).GetSave();
+		WorldSize worldSize = new() { name = "Test", width = 80, height = 80, numberOfCivs = 6, distanceBetweenCivs = 14 };
+		SetupFor(save, worldSize, 5, 21, null).Populate(save);
+
+		List<SaveTile> starts = save.Map.startingLocations;
+		Assert.Equal(6, save.Players.Count(p => !p.isBarbarian));
+		C7GameData.GameData gameData = NewGame(save);
+		foreach (SaveTile a in starts) {
+			foreach (SaveTile b in starts.Where(b => b != a)) {
+				Tile ta = gameData.map.tileAt(a.X, a.Y);
+				Tile tb = gameData.map.tileAt(b.X, b.Y);
+				if (ta.continent != tb.continent) {
+					continue;
+				}
+				int distance = Math.Abs(gameData.map.CalculateXDelta(a.X, b.X)) + Math.Abs(gameData.map.CalculateYDelta(a.Y, b.Y));
+				Assert.True(distance >= 14, $"starts at {a.X},{a.Y} and {b.X},{b.Y} are {distance} apart");
+			}
+		}
+	}
+
+	[Fact]
+	public void ImpossibleSettingsFailClearlyAndSaveTheMapsTurnedDown() {
+		SaveGame save = SaveGameFixture.LoadGameMode(new GameMode.Config("civ3")).GetSave();
+		// Eight civs can't start 60 apart on a 30 by 30 map.
+		WorldSize worldSize = new() { name = "Test", width = 30, height = 30, numberOfCivs = 8, distanceBetweenCivs = 60 };
+		string folder = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"c7-invalid-maps-{Guid.NewGuid():N}");
+		try {
+			InvalidOperationException e = Assert.Throws<InvalidOperationException>(() => SetupFor(save, worldSize, 7, 3, folder).Populate(save));
+			Assert.Contains("start far enough apart", e.Message);
+			Assert.Empty(save.Players);
+
+			string[] maps = System.IO.Directory.GetFiles(folder, "*.json");
+			Assert.Equal(GameSetup.MaxMapAttempts, maps.Length);
+			Assert.Equal(GameSetup.MaxMapAttempts, System.IO.Directory.GetFiles(folder, "*.txt").Length);
+			string reason = System.IO.File.ReadAllText(System.IO.Path.ChangeExtension(maps[0], ".txt"));
+			Assert.Contains("starting locations fit", reason);
+
+			// Each can be loaded as a game, with every civ somewhere.
+			SaveGame invalid = SaveGame.FromJSON(System.IO.File.ReadAllBytes(maps[0]));
+			Assert.NotEmpty(invalid.Map.tiles);
+			Assert.Equal(8, invalid.Players.Count(p => !invalid.Civilizations.Find(c => c.name == p.civilization).isBarbarian));
+			NewGame(invalid);
+		} finally {
+			if (System.IO.Directory.Exists(folder)) {
+				System.IO.Directory.Delete(folder, recursive: true);
+			}
+		}
+	}
+
+	[Fact]
+	public void AMapWithoutRoomIsGeneratedAgainFromAnotherSeed() {
+		SaveGame save = SaveGameFixture.LoadGameMode(new GameMode.Config("civ3")).GetSave();
+		WorldSize worldSize = new() { name = "Test", width = 60, height = 60, numberOfCivs = 6, distanceBetweenCivs = 22 };
+		// Find a seed whose map has no room, and check the game is set up on
+		// the next seed that has.
+		int seed = Enumerable.Range(1, 40).First(s => {
+			MapGenerator.GenerateMap(new WorldCharacteristics(save) {
+				landform = WorldCharacteristics.Landform.Pangaea,
+				oceanCoverage = WorldCharacteristics.OceanCoverage.Percent_70,
+				worldSize = worldSize,
+				mapSeed = s,
+			}, out string problem);
+			return problem != null;
+		});
+		GameSetup setup = SetupFor(save, worldSize, 5, seed, null);
+		setup.Populate(save);
+
+		Assert.NotEqual(seed, save.Seed);
+		Assert.Equal(6, save.Players.Count(p => !p.isBarbarian));
+		Assert.Equal(6, save.Map.startingLocations.Count);
 	}
 
 	[Fact]
