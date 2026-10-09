@@ -28,6 +28,39 @@ public class BarbarianCampTest : IClassFixture<SaveGameFixture> {
 	}
 
 	[Fact]
+	public void AdvancedBarbariansWaitUntilTwoCivsKnowHorsebackRiding() {
+		C7GameData.GameData gameData = fixture.saveGame.ToGameData(fixture.behaviors);
+		Tech horsebackRiding = gameData.techs.Single(t => t.Name == "Horseback Riding");
+		List<Player> civs = gameData.players.Where(p => !p.isBarbarians).ToList();
+		foreach (Player civ in civs) {
+			civ.knownTechs.Remove(horsebackRiding.id);
+		}
+		Assert.False(BarbarianInteractions.AdvancedBarbariansAvailable(gameData));
+
+		civs[0].knownTechs.Add(horsebackRiding.id);
+		Assert.False(BarbarianInteractions.AdvancedBarbariansAvailable(gameData));
+
+		civs[1].knownTechs.Add(horsebackRiding.id);
+		Assert.True(BarbarianInteractions.AdvancedBarbariansAvailable(gameData));
+	}
+
+	[Fact]
+	public void OnlyBasicBarbariansSpawnBeforeHorsebackRiding() {
+		C7GameData.GameData gameData = fixture.saveGame.ToGameData(fixture.behaviors);
+		Tile inland = gameData.map.tiles.First(t => t.IsLand() && !t.NeighborsWater());
+		for (int i = 0; i < 200; ++i) {
+			Assert.Equal(gameData.barbarianInfo.basicBarbarian,
+				BarbarianInteractions.SelectBarbarianUnitType(gameData.barbarianInfo, inland, advancedAllowed: false));
+		}
+		bool sawAdvanced = false;
+		for (int i = 0; i < 200 && !sawAdvanced; ++i) {
+			sawAdvanced = BarbarianInteractions.SelectBarbarianUnitType(gameData.barbarianInfo, inland, advancedAllowed: true)
+				== gameData.barbarianInfo.advancedBarbarian;
+		}
+		Assert.True(sawAdvanced);
+	}
+
+	[Fact]
 	public void CampsStopSpawningOnceFull() {
 		C7GameData.GameData gameData = fixture.saveGame.ToGameData(fixture.behaviors);
 		gameData.barbarianInfo.barbarianActivity = BarbarianActivity.Raging;

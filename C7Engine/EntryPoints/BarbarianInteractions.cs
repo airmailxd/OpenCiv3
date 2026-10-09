@@ -66,6 +66,7 @@ public class BarbarianInteractions {
 			return 0;
 		}
 		int barbariansSpawned = 0;
+		bool advancedAllowed = AdvancedBarbariansAvailable(gameData);
 		foreach (Tile camp in gameData.map.barbarianCamps.ToList()) {
 			if (camp.unitsOnTile.Count >= MaxUnitsPerCamp) {
 				continue;
@@ -74,7 +75,7 @@ public class BarbarianInteractions {
 				continue;
 			}
 
-			UnitPrototype unitType = SelectBarbarianUnitType(gameData.barbarianInfo, camp);
+			UnitPrototype unitType = SelectBarbarianUnitType(gameData.barbarianInfo, camp, advancedAllowed);
 			Tile tile = SelectSpawnTile(barbPlayer, camp, unitType);
 			if (tile != null) {
 				gameData.SpawnUnit(barbPlayer, unitType, tile);
@@ -125,7 +126,31 @@ public class BarbarianInteractions {
 
 	}
 
-	public static UnitPrototype SelectBarbarianUnitType(BarbarianInfo barbInfo, Tile tile) {
+	// The tech that lets barbarians field their advanced unit (normally
+	// horsemen), and how many civs must know it first: "once two civs know
+	// horseback riding, Barb camps can spawn horsemen" (Padma,
+	// https://forums.civfanatics.com/threads/barbarian-horsemen.50956/).
+	public const string AdvancedBarbarianTechName = "Horseback Riding";
+	public const int CivsKnowingTechForAdvancedBarbarians = 2;
+
+	// Whether barbarians may field their advanced unit yet: once two civs in
+	// the game know Horseback Riding. A ruleset without that tech has
+	// nothing to gate them on, so they may.
+	public static bool AdvancedBarbariansAvailable(GameData gameData) {
+		Tech horsebackRiding = gameData.techs?.Find(t => string.Equals(t.Name, AdvancedBarbarianTechName, StringComparison.OrdinalIgnoreCase));
+		if (horsebackRiding == null) {
+			return true;
+		}
+		int civsKnowing = 0;
+		foreach (Player player in gameData.players) {
+			if (!player.isBarbarians && player.knownTechs.Contains(horsebackRiding.id)) {
+				++civsKnowing;
+			}
+		}
+		return civsKnowing >= CivsKnowingTechForAdvancedBarbarians;
+	}
+
+	public static UnitPrototype SelectBarbarianUnitType(BarbarianInfo barbInfo, Tile tile, bool advancedAllowed = true) {
 		// Coastal camps have a 20% chance of spawning a sea unit
 		if (tile.NeighborsWater() && GameData.rng.Next(100) < 20) {
 			return barbInfo.barbarianSeaUnitProto;
@@ -135,7 +160,8 @@ public class BarbarianInteractions {
 		// UNVERIFIED (no Civ3 source found): Civ3 uses only the RULE's basic and advanced barbarian
 		// and barbarian sea unit (https://forums.civfanatics.com/threads/barbarians-best-way-to-upgrade.47200/),
 		// but no source gives a ratio between them.
-		return GameData.rng.Next(100) < 25 ? barbInfo.advancedBarbarian : barbInfo.basicBarbarian;
+		bool advanced = GameData.rng.Next(100) < 25;
+		return advanced && advancedAllowed && barbInfo.advancedBarbarian != null ? barbInfo.advancedBarbarian : barbInfo.basicBarbarian;
 	}
 
 	public static Tile SelectSpawnTile(Player player, Tile camp, UnitPrototype unitType) {
