@@ -208,6 +208,12 @@ namespace C7GameData.Save {
 
 		public SavePlayer() { }
 
+		// A copy sharing everything with this one, for a LAN host to change
+		// a little for one guest (see C7Engine.Network.SnapshotFilter).
+		internal SavePlayer ShallowCopy() {
+			return (SavePlayer)MemberwiseClone();
+		}
+
 		public SavePlayer(Player player) : this(player, null) { }
 
 		// With a map, the known tiles are saved in the compact form.

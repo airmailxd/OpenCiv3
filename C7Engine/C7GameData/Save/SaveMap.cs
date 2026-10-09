@@ -12,6 +12,12 @@ namespace C7GameData.Save {
 		public List<SaveTile> startingLocations = new();
 		public SaveMap() { }
 
+		// A copy sharing everything with this one, for a LAN host to change
+		// a little for one guest (see C7Engine.Network.SnapshotFilter).
+		internal SaveMap ShallowCopy() {
+			return (SaveMap)MemberwiseClone();
+		}
+
 		public SaveMap(GameMap map) {
 			tilesWide = map.numTilesWide;
 			tilesTall = map.numTilesTall;

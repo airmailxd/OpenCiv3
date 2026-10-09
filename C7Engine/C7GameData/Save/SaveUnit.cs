@@ -36,6 +36,12 @@ namespace C7GameData.Save {
 
 		public SaveUnit() { }
 
+		// A copy sharing everything with this one, for a LAN host to change
+		// a little for one guest (see C7Engine.Network.SnapshotFilter).
+		internal SaveUnit ShallowCopy() {
+			return (SaveUnit)MemberwiseClone();
+		}
+
 		public SaveUnit(MapUnit unit) {
 			id = unit.id;
 			name = unit.name;

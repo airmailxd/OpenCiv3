@@ -7,6 +7,12 @@ namespace C7GameData.Save {
 	public class SaveTile {
 		public SaveTile() { }
 
+		// A copy sharing everything with this one, for a LAN host to change
+		// a little for one guest (see C7Engine.Network.SnapshotFilter).
+		internal SaveTile ShallowCopy() {
+			return (SaveTile)MemberwiseClone();
+		}
+
 		public SaveTile(Tile tile) {
 			id = tile.Id;
 			extraInfo = tile.ExtraInfo;

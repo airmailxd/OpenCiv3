@@ -55,6 +55,12 @@ namespace C7GameData.Save {
 
 		public SaveGame() { }
 
+		// A copy sharing everything with this one, for a LAN host to change
+		// a little for one guest (see C7Engine.Network.SnapshotFilter).
+		internal SaveGame ShallowCopy() {
+			return (SaveGame)MemberwiseClone();
+		}
+
 		public static SaveGame FromGameData(GameData data) {
 			SaveGame save = new SaveGame {
 				Seed = data.seed,
