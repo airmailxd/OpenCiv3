@@ -240,7 +240,7 @@ public class SnapshotFilterTest : IClassFixture<SaveGameFixture>, IDisposable {
 	[Fact]
 	public async Task EachMachineIsSentItsOwnView() {
 		SaveGame save = SaveGameFixture.TwoHumanSave();
-		using LanHost host = new("Host", save, port: 0, answerDiscovery: false) { SimultaneousTurns = true };
+		using LanHost host = new("Host", save, port: 0, answerDiscovery: false) { SimultaneousTurns = true, AllowSpectators = true };
 		Assert.True(host.HideUnseen);
 		ID seatID = host.Seats[0].playerID;
 		using LanClient guest = LanClient.Connect("127.0.0.1", host.Port, "Guest");

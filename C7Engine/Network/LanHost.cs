@@ -179,15 +179,41 @@ public class LanHost : IDisposable {
 	private readonly List<Guest> guests = new();
 
 	// Connections watching the game rather than playing in it.
+	// Each has an ID of its own, for the host to tell them apart by, and the
+	// token it was let in with, to say hello with to watch again after
+	// losing the connection.
 	private class Spectator {
+		public int id;
 		public LanConnection connection;
 		public string name;
+		public string token;
 		public readonly List<byte[]> pendingUiMessages = new();
 	}
 	private readonly List<Spectator> spectators = new();
+	private int nextSpectatorID = 1;
 
-	// Whether anyone may watch the game rather than play.
-	public bool AllowSpectators { get; set; } = true;
+	// The most spectators watching at once.
+	public const int MaxSpectators = 8;
+
+	// The tokens of the spectators let in lately, who may come back to
+	// watch without the password, as players come back to their seats.
+	private readonly List<string> spectatorTokens = new();
+	private const int MaxSpectatorTokens = 256;
+
+	// Whether anyone may watch the game rather than play. Spectators see
+	// the whole game, so unless the host says otherwise they may watch only
+	// when guests see the whole game too (HideUnseen off). Not allowing them
+	// any more stops those watching.
+	public bool AllowSpectators {
+		get => allowSpectators ?? !hideUnseen;
+		set {
+			allowSpectators = value;
+			if (!value) {
+				StopSpectators();
+			}
+		}
+	}
+	private bool? allowSpectators;
 
 	// Whether the game is in the relay's public list while hosting online,
 	// under this name and description (see CurrentListing); and its map's
@@ -240,6 +266,10 @@ public class LanHost : IDisposable {
 		set {
 			if (hideUnseen != value) {
 				hideUnseen = value;
+				if (!AllowSpectators) {
+					// They would see what the guests are no longer sent.
+					StopSpectators();
+				}
 				BroadcastLobby();
 			}
 		}
@@ -291,6 +321,9 @@ public class LanHost : IDisposable {
 	// connection, as in a resumed game whose guests aren't all back yet.
 	public bool AllSeatsTakenOrHeld => seats.All(s => s.IsTaken || s.IsHeld);
 	public IReadOnlyList<string> Spectators => spectators.Select(s => s.name).ToList();
+
+	// The spectators with their IDs, which tell apart two with the same name.
+	public IReadOnlyList<SpectatorInfo> SpectatorList => spectators.Select(s => new SpectatorInfo(s.id, s.name)).ToList();
 	public string HostCivilization => hostCivilization;
 	public ID HostPlayerID => hostPlayerID;
 
@@ -324,7 +357,7 @@ public class LanHost : IDisposable {
 			passwordSalt = info.passwordVerifier == null ? null : info.passwordSalt,
 			passwordVerifier = info.passwordSalt == null ? null : info.passwordVerifier,
 			resumedRelayBans = info.relayBans,
-			AllowSpectators = info.allowSpectators,
+			allowSpectators = info.allowSpectators,
 			ListPublicly = info.listPublicly,
 			PublicName = info.publicName,
 			PublicDescription = info.publicDescription,
@@ -598,7 +631,7 @@ public class LanHost : IDisposable {
 
 	private static void SendStart(Spectator spectator, Task<EncodedSnapshot> snapshot) {
 		spectator.pendingUiMessages.Clear();
-		spectator.connection.Send(FrameKind.Start, new StartInfo([]));
+		spectator.connection.Send(FrameKind.Start, new StartInfo([], spectator.token));
 		spectator.connection.SendSnapshot(snapshot);
 	}
 
@@ -738,7 +771,7 @@ public class LanHost : IDisposable {
 			seats.Where(s => s.token != null).Select(s => new LanResumeSeat(s.info.playerID, s.takenBy, s.token)).ToList(),
 			Online?.RelayUrl, Online?.Code, Online?.Key, HideUnseen,
 			passwordSalt, passwordVerifier, [.. bannedTokens], [.. bannedAddresses], Online == null ? resumedRelayBans : [.. Online.Bans],
-			ListPublicly, PublicName, PublicDescription, AllowSpectators);
+			ListPublicly, PublicName, PublicDescription, allowSpectators);
 	}
 
 	// The players with nobody at their machine whom the game would wait on:
@@ -761,9 +794,16 @@ public class LanHost : IDisposable {
 	// for them. The guest may join again as anyone may, unless it's banned,
 	// which also turns its token away, and its address on the network or
 	// through the relay. Works for a guest whose seat is held for it, too.
-	public bool Kick(ID playerID, bool ban = false) {
+	//
+	// occupant, if given, is the seat's OccupantOf when the host chose to do
+	// this; if someone else has the seat now, nothing is done.
+	public bool Kick(ID playerID, bool ban = false, string occupant = null) {
 		Seat seat = seats.Find(s => s.info.playerID == playerID);
 		if (seat == null || (seat.guest == null && seat.token == null)) {
+			return false;
+		}
+		if (occupant != null && OccupantOf(playerID) != occupant) {
+			log.Information("Not removing whoever is in the seat of {Player} now, who isn't the one the host meant", playerID);
 			return false;
 		}
 		Guest guest = seat.guest != null && guests.Contains(seat.guest) ? seat.guest : null;
@@ -785,22 +825,59 @@ public class LanHost : IDisposable {
 		return true;
 	}
 
-	// Stops a spectator watching, and with ban, turns away its address.
-	public bool KickSpectator(string name, bool ban = false) {
-		Spectator spectator = spectators.Find(s => s.name == name);
+	// Who is in the seat, or holds it, as something only this host can tell
+	// apart from anyone else in it later; null for nobody.
+	public string OccupantOf(ID playerID) {
+		Seat seat = seats.Find(s => s.info.playerID == playerID);
+		string token = seat?.token ?? seat?.guest?.token;
+		return token == null ? null : Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
+	}
+
+	// Stops a spectator watching, and with ban, turns away its token and
+	// address.
+	public bool KickSpectator(int id, bool ban = false) {
+		Spectator spectator = spectators.Find(s => s.id == id);
 		if (spectator == null) {
 			return false;
 		}
-		log.Information(ban ? "Banning {Name}" : "Removing {Name} from the game", name);
+		log.Information(ban ? "Banning {Name}" : "Removing {Name} from the game", spectator.name);
+		spectatorTokens.Remove(spectator.token);
 		if (ban) {
+			if (spectator.token != null) {
+				bannedTokens.Add(spectator.token);
+			}
 			BanAddress(spectator.connection)?.Invoke();
 		}
-		spectator.connection.Send(FrameKind.Rejected, Encoding.UTF8.GetBytes(ban ? BannedReason : KickedReason));
-		spectator.connection.Dispose();
-		spectators.Remove(spectator);
+		StopWatching(spectator, ban ? BannedReason : KickedReason);
 		BroadcastLobby();
 		return true;
 	}
+
+	// The same for the first spectator with the name.
+	public bool KickSpectator(string name, bool ban = false) {
+		Spectator spectator = spectators.Find(s => s.name == name);
+		return spectator != null && KickSpectator(spectator.id, ban);
+	}
+
+	private void StopWatching(Spectator spectator, string reason) {
+		spectator.connection.Send(FrameKind.Rejected, Encoding.UTF8.GetBytes(reason));
+		spectator.connection.Dispose();
+		spectators.Remove(spectator);
+	}
+
+	// Stops everyone watching, once they may not.
+	private void StopSpectators() {
+		if (spectators.Count == 0) {
+			return;
+		}
+		log.Information("Spectators may no longer watch, stopping {Count} watching", spectators.Count);
+		foreach (Spectator spectator in spectators.ToList()) {
+			StopWatching(spectator, NoSpectatorsReason);
+		}
+		BroadcastLobby();
+	}
+
+	public const string NoSpectatorsReason = "The host doesn't let anyone watch this game.";
 
 	private Action BanAddress(Guest guest) => BanAddress(guest.connection);
 
@@ -914,7 +991,11 @@ public class LanHost : IDisposable {
 						Reject(guest, BannedReason);
 						return false;
 					}
-					// Back to their seats, which needs no password.
+					// Back to their seats, which needs no password, or to
+					// watch, which they ask for next.
+					if (spectatorTokens.Contains(hello.reconnectToken) && !seats.Any(s => s.token == hello.reconnectToken)) {
+						return Admit(guest, hello.reconnectToken);
+					}
 					if (!Reattach(guest, hello.reconnectToken)) {
 						Reject(guest, "The host is no longer keeping a seat for you.");
 						return false;
@@ -995,12 +1076,13 @@ public class LanHost : IDisposable {
 	// Lets the guest in, with a token for the seats it takes, and shows it
 	// the lobby; or has it watch, if it asked to meanwhile. Returns whether
 	// it's still a guest.
-	private bool Admit(Guest guest) {
+	// A spectator coming back keeps its token.
+	private bool Admit(Guest guest, string token = null) {
 		guest.admitted = true;
 		guest.connection.MaxFrameBytes = LanProtocol.MaxGuestFrameBytes;
 		guest.connection.Transport.AdmittedAtRelay?.Invoke();
 		guest.nonce = null;
-		guest.token = NewToken();
+		guest.token = token ?? NewToken();
 		if (guest.watchOnceAdmitted) {
 			return !StartWatching(guest);
 		}
@@ -1016,12 +1098,26 @@ public class LanHost : IDisposable {
 			return false;
 		}
 		if (!AllowSpectators) {
-			Reject(guest, "The host doesn't let anyone watch this game.");
+			Reject(guest, NoSpectatorsReason);
+			return true;
+		}
+		// One coming back may not have been noticed to have gone.
+		foreach (Spectator old in spectators.Where(s => s.token == guest.token).ToList()) {
+			old.connection.Dispose();
+			spectators.Remove(old);
+		}
+		if (spectators.Count(s => !s.connection.IsClosed) >= MaxSpectators) {
+			Reject(guest, "The game has as many spectators as it takes.");
 			return true;
 		}
 		guests.Remove(guest);
-		Spectator spectator = new() { connection = guest.connection, name = guest.name };
+		Spectator spectator = new() { id = nextSpectatorID++, connection = guest.connection, name = guest.name, token = guest.token };
 		spectators.Add(spectator);
+		spectatorTokens.Remove(guest.token);
+		spectatorTokens.Add(guest.token);
+		if (spectatorTokens.Count > MaxSpectatorTokens) {
+			spectatorTokens.RemoveAt(0);
+		}
 		log.Information("{Name} is watching", guest.name);
 		if (Started) {
 			SendStart(spectator, EncodeSnapshot(new SnapshotRound()));
@@ -1444,7 +1540,7 @@ public class LanHost : IDisposable {
 			SendLobby(guest);
 		}
 		foreach (Spectator spectator in spectators) {
-			SendLobby(spectator.connection, []);
+			SendLobby(spectator.connection, [], spectator.token);
 		}
 		// Who is connected has changed, and anyone who just came in needs
 		// the clock.

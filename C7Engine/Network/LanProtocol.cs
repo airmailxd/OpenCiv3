@@ -244,6 +244,9 @@ public record DiscoveryReply(string hostName, int port, int openSeats, bool star
 // answer was wrong, and attemptsLeft how many more the host takes.
 public record PasswordChallengeInfo(string salt, string nonce, bool wrong = false, int attemptsLeft = GamePassword.MaxWrongAttempts);
 
+// A spectator as the host knows it: its ID, which is its own, and its name.
+public record SpectatorInfo(int id, string name);
+
 // A guest's answer to a PasswordChallengeInfo.
 public record PasswordInfo(string proof);
 

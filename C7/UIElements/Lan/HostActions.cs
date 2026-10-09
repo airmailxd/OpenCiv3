@@ -13,12 +13,16 @@ public static class HostActions {
 	}
 
 	// Asks the host to confirm banning the guest in the seat, then bans them.
+	// The guest is the one in the seat as the host is asked: if they've gone
+	// by the time the host confirms, whoever took the seat since isn't
+	// banned in their place.
 	public static void ConfirmBan(Node parent, string name, ID playerID) {
-		Confirm(parent, name, () => LanSession.Host?.Kick(playerID, ban: true));
+		string occupant = LanSession.Host?.OccupantOf(playerID);
+		Confirm(parent, name, () => LanSession.Host?.Kick(playerID, ban: true, occupant));
 	}
 
-	public static void ConfirmBanSpectator(Node parent, string name) {
-		Confirm(parent, name, () => LanSession.Host?.KickSpectator(name, ban: true));
+	public static void ConfirmBanSpectator(Node parent, string name, int spectatorID) {
+		Confirm(parent, name, () => LanSession.Host?.KickSpectator(spectatorID, ban: true));
 	}
 
 	private static void Confirm(Node parent, string name, Action ban) {

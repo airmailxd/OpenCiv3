@@ -109,7 +109,7 @@ public class HostControlsTest : IClassFixture<SaveGameFixture>, IDisposable {
 	[Fact]
 	public void AGuestNeedsThePasswordToJoin() {
 		SaveGame save = SaveGameFixture.TwoHumanSave();
-		using LanHost host = new("Host", save, port: 0, answerDiscovery: false);
+		using LanHost host = new("Host", save, port: 0, answerDiscovery: false) { AllowSpectators = true };
 		host.SetPassword("swordfish");
 		Assert.True(host.HasPassword);
 
@@ -276,7 +276,7 @@ public class HostControlsTest : IClassFixture<SaveGameFixture>, IDisposable {
 	[Fact]
 	public void TheHostCanBanAConnectedGuestAndRemoveSpectators() {
 		SaveGame save = SaveGameFixture.TwoHumanSave();
-		using LanHost host = new("Host", save, port: 0, answerDiscovery: false);
+		using LanHost host = new("Host", save, port: 0, answerDiscovery: false) { AllowSpectators = true };
 		ID seatID = host.Seats[0].playerID;
 		using LanClient guest = JoinAndTake(host, "Guest", seatID);
 		string token = guest.ReconnectToken;

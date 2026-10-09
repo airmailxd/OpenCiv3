@@ -364,7 +364,7 @@ public class LanTest : IClassFixture<SaveGameFixture>, IDisposable {
 	[Fact]
 	public async Task SpectatorsWatchWithoutPlaying() {
 		SaveGame save = SaveGameFixture.TwoHumanSave();
-		using LanHost host = new("Host", save, port: 0, answerDiscovery: false);
+		using LanHost host = new("Host", save, port: 0, answerDiscovery: false) { AllowSpectators = true };
 		ID seatID = host.Seats[0].playerID;
 
 		using LanClient player = LanClient.Connect("127.0.0.1", host.Port, "Guest");

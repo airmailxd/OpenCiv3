@@ -51,6 +51,10 @@ public partial class LanLobby : Control {
 	private VBoxContainer listingBox;
 	private Label listingStatus;
 
+	// Hosting: whether spectators may watch, which follows hiding what
+	// players can't see until the host chooses.
+	private CheckBox spectatorsBox;
+
 	// Hosting: the password typed, and whether it was changed since it was
 	// last set.
 	private LineEdit passwordEdit;
@@ -397,14 +401,16 @@ public partial class LanLobby : Control {
 		row.AddChild(passwordStatus);
 		ShowPasswordStatus();
 
-		CheckBox spectators = new() {
+		spectatorsBox = new() {
 			Text = "Allow spectators",
 			ButtonPressed = host.AllowSpectators,
-			TooltipText = "Let players watch the game without playing. Spectators see the whole map.",
+			TooltipText = $"Let up to {LanHost.MaxSpectators} players watch the game without playing. Spectators see the whole game, "
+				+ "everyone's units, cities and treasuries included, so they're off unless you allow them while hiding what players "
+				+ "can't see. Turning this off stops anyone watching.",
 		};
-		spectators.AddThemeFontSizeOverride("font_size", 18);
-		spectators.Toggled += on => host.AllowSpectators = on;
-		row.AddChild(spectators);
+		spectatorsBox.AddThemeFontSizeOverride("font_size", 18);
+		spectatorsBox.Toggled += on => host.AllowSpectators = on;
+		row.AddChild(spectatorsBox);
 		return row;
 	}
 
@@ -533,10 +539,14 @@ public partial class LanLobby : Control {
 			Text = "Hide what players can't see",
 			ButtonPressed = hideUnseen,
 			TooltipText = "Each guest's computer is sent only what its players could know of the game, so nobody can read "
-				+ "other civilizations' hidden units, cities or treasuries from it. Spectators always see everything.",
+				+ "other civilizations' hidden units, cities or treasuries from it. Spectators always see everything, so "
+				+ "they're off unless you allow them.",
 		};
 		hide.AddThemeFontSizeOverride("font_size", 18);
-		hide.Toggled += on => LanSession.Host.HideUnseen = on;
+		hide.Toggled += on => {
+			LanSession.Host.HideUnseen = on;
+			spectatorsBox?.SetPressedNoSignal(LanSession.Host.AllowSpectators);
+		};
 		LanSession.Host.HideUnseen = hideUnseen;
 		row.AddChild(hide);
 		return row;
@@ -588,11 +598,11 @@ public partial class LanLobby : Control {
 			}
 			AddSeatRow(seatList, Describe(seat), release, remove, ban);
 		}
-		foreach (string spectator in host.Spectators) {
-			AddSeatRow(seatList, $"{spectator}: watching",
-				MakeSmallButton("Remove", $"Stop {spectator} watching.", () => host.KickSpectator(spectator)),
-				MakeSmallButton("Ban", $"Stop {spectator} watching, and keep them out of this game.",
-					() => HostActions.ConfirmBanSpectator(this, spectator)));
+		foreach (SpectatorInfo spectator in host.SpectatorList) {
+			AddSeatRow(seatList, $"{spectator.name}: watching",
+				MakeSmallButton("Remove", $"Stop {spectator.name} watching.", () => host.KickSpectator(spectator.id)),
+				MakeSmallButton("Ban", $"Stop {spectator.name} watching, and keep them out of this game.",
+					() => HostActions.ConfirmBanSpectator(this, spectator.name, spectator.id)));
 		}
 
 		if (createFailure != null) {
