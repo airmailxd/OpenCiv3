@@ -195,7 +195,7 @@ public class LanHost : IDisposable {
 		public readonly WholeSnapshotRequest wholeSnapshot = new();
 	}
 
-	private readonly string hostName;
+	private string hostName;
 	private readonly List<Seat> seats;
 	private readonly ID hostPlayerID;
 	private readonly string hostCivilization;
@@ -285,6 +285,18 @@ public class LanHost : IDisposable {
 	public string PublicDescription { get; set; }
 	public string MapSize { get; set; }
 	public string DefaultPublicName => $"{hostName}'s game";
+
+	// The name the host goes by, which everyone sees.
+	public string HostName {
+		get => hostName;
+		set {
+			string name = TidyName(value);
+			if (name != null && name != hostName) {
+				hostName = name;
+				BroadcastLobby();
+			}
+		}
+	}
 
 	// The last snapshot handed to be encoded for each view of the game (see
 	// ViewKey). Each is encoded after the one before it for the same view,
@@ -464,7 +476,7 @@ public class LanHost : IDisposable {
 
 	private LanHost(string hostName, ID hostPlayerID, string hostCivilization, List<Seat> seats,
 		List<Civilization> choosable, int port, bool answerDiscovery, int lobbyTurn) {
-		this.hostName = hostName;
+		this.hostName = TidyName(hostName) ?? UnnamedGuest;
 		this.lobbyTurn = lobbyTurn;
 		this.hostPlayerID = hostPlayerID;
 		this.hostCivilization = hostCivilization;
@@ -568,7 +580,8 @@ public class LanHost : IDisposable {
 	private void PublishDiscoveryReply() {
 		int openSeats = seats.Count(s => !s.IsTaken && !s.IsHeld);
 		DiscoveryReply current = discoveryReply;
-		if (current == null || current.openSeats != openSeats || current.started != Started || current.hasPassword != HasPassword) {
+		if (current == null || current.openSeats != openSeats || current.started != Started || current.hasPassword != HasPassword
+			|| current.hostName != hostName) {
 			discoveryReply = new DiscoveryReply(hostName, Port, openSeats, Started, HasPassword);
 		}
 	}
@@ -1088,7 +1101,7 @@ public class LanHost : IDisposable {
 					Reject(guest, $"The host is running a different version of the game (protocol {LanProtocol.Version}, yours is {hello.version}).");
 					return false;
 				}
-				guest.name = string.IsNullOrWhiteSpace(hello.playerName) ? guest.connection.RemoteAddress : hello.playerName.Trim();
+				guest.name = TidyName(hello.playerName) ?? UnnamedGuest;
 				if (hello.reconnectToken != null) {
 					if (bannedTokens.Contains(hello.reconnectToken)) {
 						log.Information("Turned away {Name}, who is banned", guest.name);
@@ -1326,12 +1339,19 @@ public class LanHost : IDisposable {
 	// The name of the player in a seat a guest takes: the one given, or the
 	// guest's own.
 	private static string SeatPlayerName(Guest guest, string playerName) {
-		if (string.IsNullOrWhiteSpace(playerName)) {
-			return guest.name;
-		}
-		playerName = playerName.Trim();
-		return playerName.Length > 40 ? playerName[..40] : playerName;
+		return TidyName(playerName) ?? guest.name;
 	}
+
+	// A name a guest gave, as everyone is shown it: without control or
+	// formatting characters, which could hide or reorder what's shown, and
+	// no longer than MaxPlayerNameLength; or null if nothing is left.
+	internal static string TidyName(string name) => RelayText.Tidy(name, MaxPlayerNameLength);
+
+	public const int MaxPlayerNameLength = 40;
+
+	// What a guest that gave no name is called. Never its address, which
+	// everyone else would see.
+	public const string UnnamedGuest = "Guest";
 
 	// A guest gives back a seat before the game starts. Once it has, they
 	// leave a seat only by leaving the game.

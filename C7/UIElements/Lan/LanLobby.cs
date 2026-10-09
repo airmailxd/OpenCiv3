@@ -220,6 +220,8 @@ public partial class LanLobby : Control {
 		// So that the game can be hosted again if this machine's game ends.
 		LanSession.Host.AutosaveDirectory = LanAutosave.DefaultDirectory;
 
+		content.AddChild(MakeHostNameRow());
+
 		AddLabel("Players on your network should see this game listed under \"Join LAN Game\". If it isn't listed for them, they can type in one of this computer's addresses:");
 		List<(string address, string network)> addresses = LanDiscovery.LocalAddressesByNetwork();
 		string port = LanSession.Host.Port == LanProtocol.DefaultPort ? "" : $":{LanSession.Host.Port}";
@@ -253,6 +255,36 @@ public partial class LanLobby : Control {
 
 		LanSession.Host.LobbyChanged += ShowHostSeats;
 		ShowHostSeats();
+	}
+
+	// The name the host goes by, which everyone sees in the lobby, the game
+	// and the public list, kept for next time.
+	private HBoxContainer MakeHostNameRow() {
+		LanHost host = LanSession.Host;
+		HBoxContainer row = new();
+		row.AddThemeConstantOverride("separation", 12);
+		Label label = new() { Text = "Your name:" };
+		label.AddThemeFontSizeOverride("font_size", 18);
+		row.AddChild(label);
+		LineEdit name = new() {
+			Text = host.HostName,
+			MaxLength = LanHost.MaxPlayerNameLength,
+			CustomMinimumSize = new Vector2(260, 0),
+			TooltipText = "What the other players see you as. Press Enter to change it.",
+		};
+		void Rename() {
+			if (LanSession.Host == null || string.IsNullOrWhiteSpace(name.Text)) {
+				return;
+			}
+			LanSession.Host.HostName = name.Text;
+			LanSession.PlayerName = LanSession.Host.HostName;
+			name.Text = LanSession.Host.HostName;
+			ShowHostSeats();
+		}
+		name.TextSubmitted += _ => Rename();
+		name.FocusExited += Rename;
+		row.AddChild(name);
+		return row;
 	}
 
 	// Hosting online, for players anywhere to join with a join code through
@@ -584,7 +616,7 @@ public partial class LanLobby : Control {
 		}
 		LanHost host = LanSession.Host;
 
-		AddSeatRow(seatList, $"{LanSession.PlayerName} (you, hosting), {host.HostCivilization}");
+		AddSeatRow(seatList, $"{host.HostName} (you, hosting), {host.HostCivilization}");
 		foreach (SeatInfo seat in host.Seats) {
 			// A seat held for a guest who hasn't come back can be given to
 			// anyone.
@@ -737,7 +769,7 @@ public partial class LanLobby : Control {
 		Label nameLabel = new() { Text = "Your name:" };
 		nameLabel.AddThemeFontSizeOverride("font_size", 18);
 		nameRow.AddChild(nameLabel);
-		nameEdit = new LineEdit { Text = LanSession.PlayerName, CustomMinimumSize = new Vector2(260, 0) };
+		nameEdit = new LineEdit { Text = LanSession.PlayerName, MaxLength = LanHost.MaxPlayerNameLength, CustomMinimumSize = new Vector2(260, 0) };
 		nameRow.AddChild(nameEdit);
 		content.AddChild(nameRow);
 
@@ -970,7 +1002,7 @@ public partial class LanLobby : Control {
 	// our seats in it back. Connecting happens in the background, since a
 	// host that doesn't answer can take a while to give up on.
 	private async void Connect(LanEndpoint endpoint, bool watch, string reconnectToken = null, string password = null) {
-		LanSession.PlayerName = string.IsNullOrWhiteSpace(nameEdit.Text) ? LanSession.PlayerName : nameEdit.Text.Trim();
+		LanSession.PlayerName = nameEdit.Text;
 		connecting?.Cancel();
 		CancellationTokenSource cancel = new();
 		connecting = cancel;

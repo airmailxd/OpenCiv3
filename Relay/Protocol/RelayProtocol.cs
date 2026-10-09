@@ -1,6 +1,7 @@
 using System;
 using System.Buffers.Binary;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Text;
 using System.Text.Json;
 
@@ -182,6 +183,45 @@ public static class RelayProtocol {
 
 	public static ReadOnlySpan<byte> Payload(ReadOnlySpan<byte> message, int guests) {
 		return message[HeaderLength(guests)..];
+	}
+}
+
+// Text from others, as the relay keeps what hosts list and the game keeps
+// players' names.
+public static class RelayText {
+	// The text without control or formatting characters (which could reorder
+	// or hide what's shown), with whitespace collapsed and trimmed, and cut
+	// to the length; null if nothing is left.
+	public static string Tidy(string text, int maxLength) {
+		if (text == null) {
+			return null;
+		}
+		StringBuilder tidy = new(Math.Min(text.Length, maxLength));
+		bool space = false;
+		foreach (char c in text) {
+			if (char.IsWhiteSpace(c)) {
+				space = tidy.Length > 0;
+				continue;
+			}
+			UnicodeCategory category = char.GetUnicodeCategory(c);
+			if (category is UnicodeCategory.Control or UnicodeCategory.Format or UnicodeCategory.OtherNotAssigned
+				or UnicodeCategory.PrivateUse) {
+				continue;
+			}
+			if (space) {
+				tidy.Append(' ');
+				space = false;
+			}
+			tidy.Append(c);
+			if (tidy.Length >= maxLength) {
+				break;
+			}
+		}
+		// Don't leave half of a surrogate pair at the end.
+		if (tidy.Length > 0 && char.IsHighSurrogate(tidy[^1])) {
+			tidy.Length--;
+		}
+		return tidy.Length == 0 ? null : tidy.ToString();
 	}
 }
 
