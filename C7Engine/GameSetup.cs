@@ -145,7 +145,8 @@ public class GameSetup {
 
 	// If the map doesn't have a starting location for every planned player,
 	// leaves out computer opponents, the last first, until it does. Every
-	// human must have one.
+	// human must have one. UNVERIFIED (no Civ3 source found): a C7 fallback,
+	// not something Civ3 is known to do.
 	private static void LeaveOutOpponentsWithoutStarts(SaveGame save, List<PlannedPlayer> planned, HashSet<string> taken) {
 		int starts = save.Map.startingLocations.Count;
 		if (planned.Count <= starts) {
