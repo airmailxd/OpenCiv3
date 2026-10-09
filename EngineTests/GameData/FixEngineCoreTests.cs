@@ -335,19 +335,92 @@ public class FixEngineCoreGameTests : IClassFixture<SaveGameFixture>, IDisposabl
 	}
 
 	[Fact]
-	public async Task BuiltWallsAreBombardedFirst() {
+	public async Task BuiltWallsAreBombardedFirstByLandUnits() {
 		(City city, MapUnit catapult) = SetUpBombard(size: 2);
 		Building walls = Walls();
 		city.AddBuilding(walls);
-		city.AddBuilding(GreatWall());
 		MapUnit defender = Spawn(them, "Spearman", city.location);
 		int hitPoints = defender.hitPointsRemaining;
 
 		await BombardOnce(catapult, city.location);
 		Assert.DoesNotContain(city.constructed_buildings, cb => cb.building == walls);
 		Assert.Equal(hitPoints, defender.hitPointsRemaining);
-		// The Great Wall's walls remain.
+	}
+
+	// Per the project owner, what a wonder provides can't be bombarded, so
+	// walls built in a city the Great Wall also gives walls to stay.
+	[Fact]
+	public async Task WallsAWonderAlsoProvidesAreNotBombarded() {
+		(City city, MapUnit catapult) = SetUpBombard(size: 1);
+		Building walls = Walls();
+		city.AddBuilding(walls);
+		city.AddBuilding(GreatWall());
+		Assert.True(city.IsProvidedByWonders(walls));
+
+		// Size 1 with nothing else to hit: nothing is destroyed.
+		for (int i = 0; i < 20; i++) {
+			await BombardOnce(catapult, city.location);
+		}
+		Assert.Contains(city.constructed_buildings, cb => cb.building == walls);
 		Assert.Contains(city.GetBuildings(), cb => cb.building.providesWalls);
+	}
+
+	// Per the project owner, ships and planes don't hit walls first: they
+	// hit the units, and then the walls like any other building.
+	[Fact]
+	public async Task ShipsHitWallsLikeAnyOtherBuilding() {
+		(City city, MapUnit catapult) = SetUpBombard(size: 1);
+		Building walls = Walls();
+		city.AddBuilding(walls);
+		UnitPrototype shipType = gameData.unitPrototypes.First(p => p.IsSeaUnit() && p.bombard > 0);
+		shipType.bombard = 1_000_000;
+		gameData.SpawnUnit(us, shipType, catapult.location);
+		MapUnit ship = catapult.location.unitsOnTile.Last();
+		Assert.False(ship.IsLandUnit());
+
+		MapUnit defender = Spawn(them, "Spearman", city.location);
+		int hitPoints = defender.hitPointsRemaining;
+		await BombardOnce(ship, city.location);
+		Assert.True(defender.hitPointsRemaining < hitPoints);
+		Assert.Contains(city.constructed_buildings, cb => cb.building == walls);
+
+		// With no units, the walls are the only building it can hit, and
+		// the city's only citizen can't be.
+		defender.RemoveFromPlay();
+		await BombardOnce(ship, city.location);
+		Assert.DoesNotContain(city.constructed_buildings, cb => cb.building == walls);
+		Assert.Single(city.residents);
+	}
+
+	// Per the project owner, bombardment never kills a unit, even with the
+	// BIQ's lethal bombardment flag: units are hit down to their last hit
+	// point, and then the city is.
+	[Fact]
+	public async Task BombardmentNeverKillsUnits() {
+		(City city, MapUnit catapult) = SetUpBombard(size: 3);
+		catapult.unitType.isLandBombardmentLethal = true;
+		catapult.unitType.rateOfFire = 10;
+		MapUnit defender = Spawn(them, "Spearman", city.location);
+
+		// With its rate of fire, one bombardment takes the defender down to
+		// its last hit point, but no further, and leaves the city alone.
+		Assert.True(defender.hitPointsRemaining <= catapult.unitType.rateOfFire);
+		await BombardOnce(catapult, city.location);
+		Assert.Contains(defender, city.location.unitsOnTile);
+		Assert.Equal(1, defender.hitPointsRemaining);
+		Assert.Equal(3, city.residents.Count);
+
+		// Nothing left to hit but the city: a citizen goes (there is no
+		// building it can hit).
+		await BombardOnce(catapult, city.location);
+		Assert.Equal(1, defender.hitPointsRemaining);
+		Assert.Equal(2, city.residents.Count);
+
+		// Population never drops below 1.
+		for (int i = 0; i < 10; i++) {
+			await BombardOnce(catapult, city.location);
+		}
+		Assert.Single(city.residents);
 	}
 
 	[Fact]

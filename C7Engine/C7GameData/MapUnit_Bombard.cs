@@ -112,10 +112,13 @@ namespace C7GameData {
 
 			var hasTargetUnit = target != NONE && target.owner != owner;
 			var hasForeignCity = tile.HasCity() && tile.cityAtTile.owner != owner;
-			// Only walls built in the city can be knocked down. Walls granted
-			// by a wonder (e.g. the Great Wall) are indestructible, so with
-			// only those the bombardment goes on to the units or the city.
-			CityBuilding destructibleWalls = hasForeignCity ? FindDestructibleWalls(tile.cityAtTile) : null;
+			// Only land bombarders hit the walls first; ships and planes hit
+			// them like any other building (see BombardCity), per the project
+			// owner. Only walls built in the city can be knocked down: walls
+			// a wonder provides (e.g. the Great Wall) are indestructible, so
+			// with only those the bombardment goes on to the units or the
+			// city.
+			CityBuilding destructibleWalls = hasForeignCity && IsLandUnit() ? FindDestructibleWalls(tile.cityAtTile) : null;
 			var hasCityWalls = destructibleWalls != null;
 			var hasTileImprovements = tile.HasImprovements;
 
@@ -130,6 +133,9 @@ namespace C7GameData {
 			// the bombardment units always hit units first in cities, never
 			// improvements or population"
 			// (https://forums.civfanatics.com/threads/citizen-and-buildings-defense-bonus.693504/).
+			// Per the project owner, bombardment never kills a unit, so the
+			// units are hit until all are down to their last hit point (see
+			// Tile.FindTopDefenderForBombard).
 			if (hasCityWalls)
 				await BombardCityWalls(tile, destructibleWalls);
 			else if (hasTargetUnit)
@@ -142,7 +148,7 @@ namespace C7GameData {
 
 		private static CityBuilding FindDestructibleWalls(City city) {
 			foreach (CityBuilding cb in city.constructed_buildings) {
-				if (cb.building.providesWalls) {
+				if (cb.building.providesWalls && IsBombardableBuilding(city, cb)) {
 					return cb;
 				}
 			}
@@ -150,7 +156,16 @@ namespace C7GameData {
 		}
 
 		// Whether bombardment can destroy the building: anything built in the
-		// city except wonders and the palace.
+		// city except wonders, great and small, and the palace. Per the
+		// project owner, a building a wonder provides can't be bombarded
+		// either: those granted by the wonder aren't stored in the city, and
+		// one also built there is left alone, so the wonder's effect stays.
+		private static bool IsBombardableBuilding(City city, CityBuilding cb) {
+			return IsBombardableBuilding(cb) && !city.IsProvidedByWonders(cb.building);
+		}
+
+		// Whether the building can be destroyed at all, by bombardment or a
+		// nuclear strike: anything but wonders and the palace.
 		private static bool IsBombardableBuilding(CityBuilding cb) {
 			Building b = cb.building;
 			return !b.isCenterOfEmpire && !b.isSmallWonder && !b.IsGreatWonder();
@@ -164,8 +179,9 @@ namespace C7GameData {
 			// (by damaging them as if they were a unit with a defensive
 			// strength of 8) before you can harm anything else"
 			// (alexman, https://codehappy.net/apolyton/threads/84569-1.htm).
-			// TODO: he adds that for ships and planes "walls are just as
-			// likely to be destroyed as any other improvement".
+			// Only land units: he adds that for ships and planes "walls are
+			// just as likely to be destroyed as any other improvement", which
+			// is how they hit them here, per the project owner (see Bombard).
 			int wallDefence = walls.building.bombardDefense > 0 ? walls.building.bombardDefense : Building.DefaultWallBombardDefense;
 
 			var hitCount = 0;
@@ -202,14 +218,12 @@ namespace C7GameData {
 			var tries = 0;
 			var hitCount = 0;
 
+			// Per the project owner, bombardment can only bring a unit down
+			// to its last hit point, whatever the BIQ's lethal bombardment
+			// flags say.
 			while (tries < unitType.rateOfFire) {
 				tries++;
-				if (target.CompositeHitPoints() - hitCount <= 1 && tile.IsLand() && !this.unitType.isLandBombardmentLethal)
-					break;
-				if (target.CompositeHitPoints() - hitCount <= 1 && tile.IsWater() && !this.unitType.isSeaBombardmentLethal)
-					break;
-				// Lethal bombardment stops once the target is dead.
-				if (target.CompositeHitPoints() - hitCount <= 0)
+				if (target.CompositeHitPoints() - hitCount <= 1)
 					break;
 
 				var r = GameData.rng.NextDouble();
@@ -221,8 +235,7 @@ namespace C7GameData {
 			bool targetDestroyed = false;
 			if (hitCount > 0) {
 				for (int i = 0; i < hitCount && !targetDestroyed; ++i) {
-					bool lethal = tile.IsLand() ? unitType.isLandBombardmentLethal : unitType.isSeaBombardmentLethal;
-					targetDestroyed = target.AbsorbBombardHit(lethal);
+					targetDestroyed = target.AbsorbBombardHit(lethal: false);
 					await tile.AnimateAsync(hitList[GameData.rng.Next(0, hitList.Length)]);
 				}
 
@@ -242,30 +255,36 @@ namespace C7GameData {
 		// Once a city has no walls or defenders left to hit, its buildings
 		// and citizens are hit with the same probability: "a 25% chance of
 		// targetting population, and a 25% chance of targetting
-		// improvements" (alexman, https://codehappy.net/apolyton/threads/84569-1.htm).
-		// They defend with the rules' building and citizen defensive
-		// bonuses (see Rules.BuildingDefensiveBonus).
+		// improvements" (alexman, https://codehappy.net/apolyton/threads/84569-1.htm),
+		// a 50/50 roll per the project owner. They defend with the rules'
+		// building and citizen defensive bonuses (see
+		// Rules.BuildingDefensiveBonus).
 		private const float BuildingOrPopulationOdds = 0.5f;
 
 		private async Task BombardCity(Tile tile) {
 			City city = tile.cityAtTile;
 
-			// Only buildings actually built in the city can be destroyed:
-			// buildings granted by wonders aren't stored in the city, and
-			// wonders (and the palace) can't be bombarded away.
+			// Only buildings actually built in the city can be destroyed, and
+			// not wonders, the palace or what a wonder provides (see
+			// IsBombardableBuilding). Walls are among them when a ship or
+			// plane bombards.
 			// TODO: probably not canon to exclude palace
-			List<CityBuilding> eligibleBuildingsForBombardment = city.constructed_buildings.Where(IsBombardableBuilding).ToList();
+			List<CityBuilding> eligibleBuildingsForBombardment = city.constructed_buildings.Where(cb => IsBombardableBuilding(city, cb)).ToList();
 
-			// UNVERIFIED (no Civ3 source found): bombardment never kills a
-			// city's last citizen. A shot aimed at a size 1 city's citizens,
-			// or at buildings it doesn't have, is spent for nothing.
+			// Per the project owner, bombardment never kills a city's last
+			// citizen. What can't be hit isn't rolled for, so a size 1 city
+			// only loses buildings, and a city with neither buildings to lose
+			// nor citizens to spare takes the shot for nothing.
 			bool canHitBuildings = eligibleBuildingsForBombardment.Count > 0;
-			var targetBuildings = GameData.rng.NextDouble() <= BuildingOrPopulationOdds;
-			if (targetBuildings ? !canHitBuildings : city.residents.Count <= 1) {
+			bool canHitCitizens = city.residents.Count > 1;
+			if (!canHitBuildings && !canHitCitizens) {
 				await RunAnimatedBombard(tile, 0, () => { });
 				TriggerPopUp(0, tile, string.Empty);
 				return;
 			}
+			bool targetBuildings = canHitBuildings && canHitCitizens
+				? GameData.rng.NextDouble() < BuildingOrPopulationOdds
+				: canHitBuildings;
 
 			Rules rules = EngineStorage.gameData.rules;
 			var defence = targetBuildings ? rules.BuildingDefensiveBonus : rules.CitizenDefensiveBonus;
@@ -300,10 +319,10 @@ namespace C7GameData {
 			TriggerPopUp(hitCount, tile, destroyMsg);
 		}
 
-		// The strength a tile improvement defends with against bombardment.
-		// UNVERIFIED (no Civ3 source found), and in no rule; an estimate from
-		// play: "arty seems to wipe out improvement on 75% or more of the
-		// shots", i.e. artillery's 12 against 3.
+		// The strength a tile improvement defends with against bombardment,
+		// per the project owner. It is in no rule; an estimate from play:
+		// "arty seems to wipe out improvement on 75% or more of the shots",
+		// i.e. artillery's 12 against 3.
 		private const int TileImprovementBombardDefence = 3;
 
 		private async Task BombardTileImprovements(Tile tile) {

@@ -1153,6 +1153,13 @@ namespace C7GameData {
 			return result;
 		}
 
+		// Whether one of the owner's wonders provides the building to this
+		// city (as the Pyramids may a granary), whether or not it was also
+		// built here.
+		public bool IsProvidedByWonders(Building building) {
+			return GetEffectiveBuildingsCache().providedByWonders.Contains(building);
+		}
+
 		public int MaintenanceCostsRaw() {
 			EffectiveBuildingsCache cache = GetEffectiveBuildingsCache();
 			bool commercialUpkeepPaid = cache.wonders.paysTradeMaintenance;

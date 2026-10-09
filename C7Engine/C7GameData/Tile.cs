@@ -478,11 +478,10 @@ namespace C7GameData {
 		}
 
 		public MapUnit FindTopDefenderForBombard(Tile tile, MapUnit opponent) {
-			// Units in an army are hit through the army. Unless the
-			// bombardment is lethal, units down to their last hit point can't
-			// be hit.
-			bool lethal = (tile.IsLand() && opponent.unitType.isLandBombardmentLethal) || (tile.IsWater() && opponent.unitType.isSeaBombardmentLethal);
-			return FindTopCombatUnit(opponent, tile.unitsOnTile, lethal ? CandidateFilter.BombardTarget : CandidateFilter.NonLethalBombardTarget);
+			// Units in an army are hit through the army. Bombardment never
+			// kills, per the project owner, so units down to their last hit
+			// point can't be hit.
+			return FindTopCombatUnit(opponent, tile.unitsOnTile, CandidateFilter.NonLethalBombardTarget);
 		}
 
 		public MapUnit FindTopDefender(MapUnit opponent) {
