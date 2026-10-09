@@ -136,7 +136,7 @@ namespace C7Engine.Pathing {
 		// After an exhaustive search, returns true if a path to `c` exists:
 		// either the search expanded it, or it can be entered from a tile the
 		// search expanded. Intermediate tiles are always checked for peaceful
-		// entry, and only the destination for forceful entry, so the tiles
+		// entry, and only the destination with CanEnterAsDestination, so the tiles
 		// expanded by a failed search are exactly those reachable with
 		// peaceful moves (plus the start).
 		private bool IsReachableFromExpanded(PathSearchContext ctx, Tile start, Tile c, MapUnit pathUnit, ref PathingShortcuts.WaterBodies waterBodies) {
@@ -171,7 +171,7 @@ namespace C7Engine.Pathing {
 				break;
 			}
 
-			return adjacentToExpanded && unit.CanEnterForcefully(c) && !unit.PathAvoids(c, c);
+			return adjacentToExpanded && CanEnterAsDestination(c) && !unit.PathAvoids(c, c);
 		}
 
 		// The terrain part of UnitWalker's edge filter.
@@ -283,11 +283,19 @@ namespace C7Engine.Pathing {
 				return (f & PathSearchContext.PASSABLE) != 0;
 			}
 
-			bool passable = (neighbor == destination ? unit.CanEnterForcefully(neighbor) : unit.CanEnterPeacefully(neighbor))
+			bool passable = (neighbor == destination ? CanEnterAsDestination(neighbor) : unit.CanEnterPeacefully(neighbor))
 				&& !unit.PathAvoids(neighbor, destination);
 
 			ctx.flags[id] = (byte)(f | PathSearchContext.PASSABILITY_KNOWN | (passable ? PathSearchContext.PASSABLE : 0));
 			return passable;
+		}
+
+		// Whether a path may end on the tile. Humans may path onto a tile that
+		// would take a war declaration to enter, and are asked to confirm it,
+		// but the AI never declares war by moving (Move refuses it), so for AI
+		// units such a tile can't be reached.
+		private bool CanEnterAsDestination(Tile tile) {
+			return unit.owner.isHuman ? unit.CanEnterForcefully(tile) : unit.CanEnter(tile);
 		}
 
 		private static double Heuristic(Tile from, Tile to, double scale) {

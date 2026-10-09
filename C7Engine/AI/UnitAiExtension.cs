@@ -47,16 +47,20 @@ namespace C7Engine {
 			// The next step must be next to us. It may not be if we were
 			// stopped on the way, e.g. when combat didn't let us move in, or
 			// if the path was made from somewhere else.
+			//
+			// The step must also be one Move accepts. A tile that someone we're
+			// at peace with moved onto would take a war declaration to enter,
+			// which Move refuses, so path around it instead.
 			Tile nextTile = path?.PeekNext() ?? Tile.NONE;
 			if (nextTile == Tile.NONE || !IsNeighbor(unit.location, nextTile)
-				|| (!alreadyValidated && !unit.CanEnterForcefully(nextTile))) {
+				|| (!alreadyValidated && !unit.CanEnter(nextTile))) {
 				Tile destination = path?.destination ?? Tile.NONE;
 				log.Information($"Attempting to repath {unit} from {unit.location} to {destination}");
 				// Attempt to repath. If we succeed, return inprogress so we get
 				// called again.
 				path = destination == Tile.NONE ? null : PathingAlgorithmChooser.GetAlgorithm(unit).PathFrom(unit.location, destination, unit);
 				Tile first = path?.PeekNext() ?? Tile.NONE;
-				if (first == Tile.NONE || !IsNeighbor(unit.location, first) || !unit.CanEnterForcefully(first)) {
+				if (first == Tile.NONE || !IsNeighbor(unit.location, first) || !unit.CanEnter(first)) {
 					return UnitAI.Result.Error;
 				}
 

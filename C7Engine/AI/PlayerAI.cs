@@ -244,9 +244,15 @@ namespace C7Engine {
 						break;
 					}
 
+					// A plan that failed, e.g. because its destination got blocked,
+					// shouldn't cost the unit the rest of its turn: pick a new one
+					// now if it can still move.
 					if (result == UnitAI.Result.Error) {
 						unit.currentAI = null;
-						break;
+						if (unit.hitPointsRemaining <= 0 || !unit.movementPoints.canMove) {
+							break;
+						}
+						continue;
 					}
 
 					if (unit.hitPointsRemaining <= 0 || unit.isFortified) {
