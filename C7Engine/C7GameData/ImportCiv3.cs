@@ -1755,6 +1755,7 @@ namespace C7GameData {
 
 				building.contentFacesAllCities = bldg.ContentFacesAllCities - bldg.UnhappyFacesAllCities;
 				building.pollution = bldg.Pollution;
+				building.bombardDefense = bldg.BombardDefense;
 				if (bldg.SpaceshipPart >= 0) {
 					building.spaceshipPart = bldg.SpaceshipPart;
 				}

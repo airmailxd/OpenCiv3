@@ -89,6 +89,12 @@ namespace C7GameData {
 		// Filled in in SaveGame::ConvertBuildings.
 		public Building? doublesHappinessOf;
 		public int pollution;
+		// The strength the building defends itself with against bombardment
+		// (BIQ "bombard defense"), for walls. Rulesets without the value get
+		// Civ3's 8 for walls (Civilopedia: "City walls have a land
+		// bombardment defense of 8").
+		public int bombardDefense;
+		internal const int DefaultWallBombardDefense = 8;
 		// Resolved by name against GameData.unitPrototypes when needed.
 		public string? unitProducedName;
 		public int unitFrequency;
@@ -191,6 +197,8 @@ namespace C7GameData {
 			goodsMustBeInCityRadius = building.flags.Contains(SaveBuilding.Flag.GoodsMustBeInCityRadius);
 			contentFacesAllCities = building.contentFacesAllCities;
 			pollution = building.pollution;
+			bombardDefense = building.bombardDefense > 0 ? building.bombardDefense
+				: providesWalls ? DefaultWallBombardDefense : 0;
 			unitProducedName = building.unitProduced;
 			unitFrequency = building.unitFrequency;
 
