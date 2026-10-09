@@ -284,6 +284,7 @@ public class SpectatorNewsTest : IClassFixture<SaveGameFixture>, IDisposable {
 			new MsgShowScienceSelection(greece, null),
 			new MsgDisplayRazeCityPopup(greece, null),
 			new MsgShowUnitedNationsVote(greece, rome, egypt),
+			new MsgShowUnitedNationsElectionOffer(greece, rome, egypt),
 			new MsgCityProductionCompleted(greece, null, "Warrior", "Settler"),
 			new MsgDisplayAbandonCityPopup(null) { recipient = greece },
 			new MsgCityCreated(null) { recipient = greece },
