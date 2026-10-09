@@ -106,6 +106,11 @@ public sealed class RelayHostLink : IDisposable {
 	// it, which leaves its LanConnection to merge the snapshots waiting.
 	private const long MaxQueuedBytesPerGuest = 1024 * 1024;
 
+	// What a guest sent that its connection hasn't read yet. A guest's
+	// frames are small (see LanProtocol.MaxGuestFrameBytes) and read as they
+	// come, so a guest with more than this waiting is dropped.
+	private const long MaxIncomingBytesPerGuest = 4 * LanProtocol.MaxGuestFrameBytes;
+
 	private readonly Action<LanTransport> guestArrived;
 	private readonly CancellationTokenSource disposed = new();
 
@@ -535,6 +540,7 @@ public sealed class RelayHostLink : IDisposable {
 
 		// Guarded by itself.
 		private readonly Queue<byte[]> incoming = new();
+		private long incomingBytes;
 		private byte[] current = [];
 		private int read;
 		private bool ended;
@@ -549,11 +555,23 @@ public sealed class RelayHostLink : IDisposable {
 		public void BanWhenClosed() => link.BanWhenClosed(this);
 
 		public void Deliver(byte[] bytes) {
-
 			lock (incoming) {
-				incoming.Enqueue(bytes);
-				Monitor.Pulse(incoming);
+				if (ended) {
+					return;
+				}
+				if (incomingBytes + bytes.Length <= MaxIncomingBytesPerGuest) {
+					incoming.Enqueue(bytes);
+					incomingBytes += bytes.Length;
+					Monitor.Pulse(incoming);
+					return;
+				}
+				ended = true;
+				incoming.Clear();
+				incomingBytes = 0;
+				Monitor.PulseAll(incoming);
 			}
+			log.Warning("Guest {Guest} sent more than its connection can take, dropping it", id);
+			link.Close(this);
 		}
 
 		// The guest has gone, or the relay with it.
@@ -576,6 +594,7 @@ public sealed class RelayHostLink : IDisposable {
 					if (incoming.TryDequeue(out byte[] next)) {
 						current = next;
 						read = 0;
+						incomingBytes -= next.Length;
 					} else if (ended) {
 						return 0;
 					} else {

@@ -589,7 +589,7 @@ public class LanHost : IDisposable {
 
 	public void Poll() {
 		while (accepted.TryDequeue(out LanTransport transport)) {
-			LanConnection connection = new(transport);
+			LanConnection connection = new(transport, maxFrameBytes: LanProtocol.MaxFrameBytesBeforeAdmission);
 			if (transport.RemoteHost != null && bannedAddresses.Contains(transport.RemoteHost)) {
 				log.Information("Turned away {Address}, which is banned", transport.RemoteAddress);
 				connection.Send(FrameKind.Rejected, Encoding.UTF8.GetBytes(BannedReason));
@@ -940,6 +940,7 @@ public class LanHost : IDisposable {
 	// it's still a guest.
 	private bool Admit(Guest guest) {
 		guest.admitted = true;
+		guest.connection.MaxFrameBytes = LanProtocol.MaxGuestFrameBytes;
 		guest.nonce = null;
 		guest.token = NewToken();
 		if (guest.watchOnceAdmitted) {
@@ -1082,6 +1083,7 @@ public class LanHost : IDisposable {
 		}
 		guest.token = token;
 		guest.admitted = true;
+		guest.connection.MaxFrameBytes = LanProtocol.MaxGuestFrameBytes;
 		int turn = EngineStorage.gameData?.turn ?? -1;
 		foreach (Seat seat in theirs) {
 			seat.guest = guest;

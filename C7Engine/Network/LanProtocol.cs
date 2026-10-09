@@ -57,6 +57,13 @@ public static class LanProtocol {
 	// Frames larger than this are treated as a broken connection.
 	public const int MaxFrameBytes = 64 * 1024 * 1024;
 
+	// A guest only sends small frames: until the host has let it in, a
+	// hello or a password; after that, commands and the like (a path across
+	// a whole 100x100 map is 39 KB; see GuestFrameSizeTest). Only the host
+	// sends large ones, its snapshots.
+	public const int MaxFrameBytesBeforeAdmission = 16 * 1024;
+	public const int MaxGuestFrameBytes = 1024 * 1024;
+
 	// Snapshots that decompress to more than this are treated as broken,
 	// rather than read until memory runs out.
 	public const int MaxSnapshotJsonBytes = 1024 * 1024 * 1024;
