@@ -6,7 +6,8 @@ using C7Engine.Pathing;
 namespace C7GameData {
 	// What the cultural advisor reports, worked out from the game data.
 	public static class CultureReport {
-		public static int TotalCulture(Player player) => player.cities.Sum(c => c.GetCulture());
+		// A LAN guest isn't sent all of a rival's cities, so the host sums them.
+		public static int TotalCulture(Player player) => player.hostFacts?.culture ?? player.cities.Sum(c => c.GetCulture());
 
 		public static int CulturePerTurn(Player player) => player.cities.Sum(c => c.GetCulturePerTurn());
 

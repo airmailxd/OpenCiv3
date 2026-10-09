@@ -142,6 +142,11 @@ namespace C7GameData {
 		public List<City> cities = new List<City>();
 		public TileKnowledge tileKnowledge { get; private set; }
 
+		// On a LAN guest's machine that isn't sent all of the game, this
+		// player's totals as the host worked them out (see HostFacts); null
+		// otherwise.
+		public Save.PlayerFacts hostFacts;
+
 		//Ordered list of priority data.  First is most important.
 		public List<StrategicPriority> strategicPriorityData = new List<StrategicPriority>();
 

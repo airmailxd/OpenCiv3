@@ -424,8 +424,13 @@ namespace C7GameData {
 			if (owningCity != null) {
 				return owningCity.owner;
 			}
-			return null;
+			return territoryOf;
 		}
+
+		// On a LAN guest's machine, the player whose territory the tile is
+		// in when the host didn't send the city it belongs to (see
+		// HostFacts). Null otherwise.
+		public Player? territoryOf;
 
 		public void MaybeAwardForestClearingShields() {
 			MaybeAwardForestClearingShields(null);

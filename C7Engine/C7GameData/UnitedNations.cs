@@ -86,6 +86,11 @@ namespace C7Engine {
 		}
 
 		public static Player Owner(GameData gameData) {
+			// A LAN guest may not be sent the city, so the host says.
+			if (gameData.hostFacts != null) {
+				string owner = gameData.hostFacts.unitedNationsOwner;
+				return owner == null ? null : gameData.players.Find(p => p.id.ToString() == owner);
+			}
 			return City(gameData)?.owner;
 		}
 

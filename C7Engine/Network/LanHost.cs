@@ -650,8 +650,8 @@ public class LanHost : IDisposable {
 	private sealed class SnapshotRound {
 		public readonly SaveGame snapshot = LanProtocol.SnapshotForPeers(EngineStorage.gameData);
 		public readonly Dictionary<string, Task<EncodedSnapshot>> encodings = new();
-		// Shared by the views of the round.
-		public Dictionary<ID, string> ownTerritory;
+		// What the host works out for the views of the round.
+		public SnapshotFilter.Facts facts;
 	}
 
 	// The players whose view of the game a guest is sent (see
@@ -689,7 +689,7 @@ public class LanHost : IDisposable {
 		SnapshotFilter.View view = players == null
 			? null
 			: SnapshotFilter.ViewOf(EngineStorage.gameData, players,
-				round.ownTerritory ??= SnapshotFilter.OwnTerritory(EngineStorage.gameData));
+				round.facts ??= SnapshotFilter.FactsOf(EngineStorage.gameData));
 		SaveGame snapshot = round.snapshot;
 		Task<EncodedSnapshot> previous = lastEncodings.GetValueOrDefault(key);
 		encoding = Task.Run(async () => {
