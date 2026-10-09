@@ -1070,9 +1070,16 @@ namespace C7GameData {
 		//    civilizations, the formula is: 1 (2 for Conquests) + random number
 		//    between 1-4 + number between 0-3 depending on size of your empire.
 		//
+		//  - https://civfanatics.com/civ3/faq/ confirms religious civs get 2
+		//    turns in Conquests, and
+		//    https://forums.civfanatics.com/threads/duration-of-anarchy.683384/
+		//    measured Conquests: "Small empires incur 3 to 7 turns of anarchy,
+		//    mid sized empires 4 to 8 turns and larger empires 5 to 9 turns",
+		//    "Religious tribes always incur 2 turns of anarchy".
+		//
 		// We follow the Conquests formula from the FAQ. How the empire size
-		// maps to 0-3 isn't documented; we scale it by the optimal city
-		// number.
+		// maps to 0-3 isn't documented: UNVERIFIED (no Civ3 source found), we
+		// scale it by the optimal city number.
 		// The Conquests base length of anarchy, which is all a religious civ
 		// suffers.
 		private const int AnarchyBaseTurns = 2;

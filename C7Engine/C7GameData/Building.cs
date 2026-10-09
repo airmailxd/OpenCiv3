@@ -463,9 +463,15 @@ namespace C7GameData {
 		// The civilization strengths this building is associated with.
 		public IReadOnlySet<Civilization.Trait> traits => dataSource.traits;
 
-		// Civ3 halves the cost of the improvements tied to a civ's traits
-		// (e.g. the Temple for religious civs). Wonders carry trait flags too,
-		// but those only decide golden ages, never the cost.
+		// Civ3 halves the cost of the improvements tied to a civ's traits.
+		// The FAQ lists them all, and none is a wonder: "Religious buildings
+		// (Temples, Cathedrals) are all half price", "Scientific buildings
+		// (Libraries, Universities, Research Labs) are half price", ...
+		// (https://civfanatics.com/civ3/faq/). Wonders carry trait flags too,
+		// but "the trait of a wonder determines what civilisations it can
+		// trigger golden ages for"
+		// (https://civfanatics.com/civ3/strategy/empire-management/a-guide-to-great-wonders-and-how-to-use-them/).
+		// No source says outright that wonders are never discounted.
 		public int ShieldCost(HashSet<Civilization.Trait> civTraits, float costFactor) {
 			if (IsGreatWonder() || isSmallWonder) {
 				return (int)(shieldCost * costFactor);
