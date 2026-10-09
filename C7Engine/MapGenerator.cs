@@ -204,9 +204,13 @@ namespace C7Engine {
 			m.techRate = wc.worldSize.techRate;
 
 			ID.Factory factory = new();
-			int seaLevel = hm.FindSeaLevel((int)oceanCoverage);
-			int mediumWaterLevel = hm.FindSeaLevel((int)((int)oceanCoverage * .9));
-			int deepWaterLevel = hm.FindSeaLevel((int)((int)oceanCoverage * .7));
+			// Civ3's maps come out with a few points more water than the setting
+			// says (a 70% map is about 74% water), and with relatively more
+			// deep ocean, so match that.
+			int waterPercent = (int)oceanCoverage + EXTRA_WATER_PERCENT;
+			int seaLevel = hm.FindSeaLevel(waterPercent);
+			int mediumWaterLevel = hm.FindSeaLevel((int)(waterPercent * .92));
+			int deepWaterLevel = hm.FindSeaLevel((int)(waterPercent * .78));
 
 			for (int Y = 0; Y < m.numTilesTall; Y++) {
 				for (int X = Y % 2; X < m.numTilesWide; X += 2) {
@@ -237,6 +241,8 @@ namespace C7Engine {
 
 			return m;
 		}
+
+		private const int EXTRA_WATER_PERCENT = 4;
 
 		private static double GetNoiseScale(WorldCharacteristics.Landform landform) {
 			return landform switch {
