@@ -412,7 +412,8 @@ public sealed class RelayHostLink : IDisposable {
 	private void GuestJoined(uint id) {
 		GuestStream guest = new(this, id);
 		lock (sync) {
-			joiningKeys.Remove(id, out guest.key);
+			joiningKeys.Remove(id, out string key);
+			guest.key = key;
 			guests[id] = guest;
 		}
 		log.Information("Guest {Guest} joined through the relay", id);

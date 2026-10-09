@@ -107,6 +107,10 @@ internal sealed class RawClient : IAsyncDisposable {
 	// Whether to answer the relay's pings, as the game does.
 	public bool AnswerPings = true;
 
+	// For a host: the key the relay gave for each guest as it joined, which
+	// the relay says before Open (see RelayProtocol).
+	public readonly System.Collections.Generic.Dictionary<uint, string> GuestKeys = new();
+
 	public static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
 
 	public static async Task<RawClient> Connect(Uri uri) {
@@ -136,6 +140,10 @@ internal sealed class RawClient : IAsyncDisposable {
 				if (AnswerPings) {
 					await SendText(new RelayControl(RelayControl.Pong));
 				}
+				continue;
+			}
+			if (result.MessageType == WebSocketMessageType.Text && RelayControl.Parse(data) is { type: RelayControl.Guest } guest) {
+				GuestKeys[guest.guest] = guest.key;
 				continue;
 			}
 			return (result.MessageType, data);
@@ -185,6 +193,12 @@ internal sealed class RawClient : IAsyncDisposable {
 		Socket.Dispose();
 	}
 
-	public static Uri HostUri(TestRelay relay, string code = null, string key = null) => RelayConnection.HostUri(relay.Url, code, key);
+	// A bare host doesn't say which guests it let in, unless asked to (see
+	// RelayProtocol), so the relay treats it as it would a game from before
+	// it could.
+	public static Uri HostUri(TestRelay relay, string code = null, string key = null, bool admits = false) {
+		Uri uri = RelayConnection.HostUri(relay.Url, code, key);
+		return admits ? uri : new Uri(uri.ToString().Replace($"&{RelayProtocol.AdmitsParameter}=1", ""));
+	}
 	public static Uri JoinUri(TestRelay relay, string code) => RelayConnection.JoinUri(relay.Url, code);
 }
