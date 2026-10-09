@@ -603,7 +603,7 @@ public class LanHost : IDisposable {
 	// The game as it stands, taken once and encoded for each view of it that
 	// is asked for: the whole game, or what a guest's players may know of it.
 	private sealed class SnapshotRound {
-		public readonly SaveGame snapshot = LanProtocol.SnapshotOf(EngineStorage.gameData);
+		public readonly SaveGame snapshot = LanProtocol.SnapshotForPeers(EngineStorage.gameData);
 		public readonly Dictionary<string, Task<EncodedSnapshot>> encodings = new();
 		// Shared by the views of the round.
 		public Dictionary<ID, string> ownTerritory;
@@ -659,7 +659,7 @@ public class LanHost : IDisposable {
 	// The hash of the snapshot a guest with these players would be sent of
 	// the game as it stands (the whole game for null), for tests.
 	internal static byte[] SnapshotHashFor(IEnumerable<ID> playerIDs) {
-		SaveGame snapshot = LanProtocol.SnapshotOf(EngineStorage.gameData);
+		SaveGame snapshot = LanProtocol.SnapshotForPeers(EngineStorage.gameData);
 		if (playerIDs != null) {
 			snapshot = SnapshotFilter.Filter(snapshot, SnapshotFilter.ViewOf(EngineStorage.gameData, playerIDs));
 		}

@@ -71,7 +71,7 @@ public class SnapshotDeltaTest : IClassFixture<SaveGameFixture>, IDisposable {
 	}
 
 	private static byte[] HostGameHash() {
-		return SHA256.HashData(LanProtocol.SnapshotOf(EngineStorage.gameData).ToCompactJSON());
+		return SHA256.HashData(LanProtocol.SnapshotForPeers(EngineStorage.gameData).ToCompactJSON());
 	}
 
 	private static bool Has(LanClient client, byte[] hash) {

@@ -90,7 +90,7 @@ public static class LanProtocol {
 
 	// The whole game, compressed, for a client to show.
 	public static byte[] EncodeSnapshot(GameData gameData) {
-		return EncodeSnapshot(SnapshotOf(gameData)).Compressed;
+		return EncodeSnapshot(SnapshotForPeers(gameData)).Compressed;
 	}
 
 	// The game as it stands, to be encoded by EncodeSnapshot. This must be
@@ -101,6 +101,35 @@ public static class LanProtocol {
 		SaveGame save = SaveGame.FromGameData(gameData);
 		SnapshotDetacher.Detach(save);
 		return save;
+	}
+
+	// The game as it stands, as any guest or spectator may be sent it: as
+	// SnapshotOf, less what only the host may know.
+	public static SaveGame SnapshotForPeers(GameData gameData) {
+		SaveGame save = SnapshotOf(gameData);
+		StripHostSecrets(save);
+		return save;
+	}
+
+	// Takes out of a snapshot what no client may have, whatever it sees of
+	// the game: the state of the host's random numbers, from which a client
+	// could tell how combat and the like will turn out.
+	//
+	// SaveGame.RngState comes from another branch; until it's merged here
+	// this finds it by name, so that it's stripped as soon as it exists.
+	// Once merged, this is just: save.RngState = null;
+	private static readonly System.Reflection.MemberInfo RngState =
+		(System.Reflection.MemberInfo)typeof(SaveGame).GetProperty("RngState") ?? typeof(SaveGame).GetField("RngState");
+
+	internal static void StripHostSecrets(SaveGame save) {
+		switch (RngState) {
+			case System.Reflection.PropertyInfo property when property.CanWrite:
+				property.SetValue(save, null);
+				break;
+			case System.Reflection.FieldInfo field:
+				field.SetValue(save, null);
+				break;
+		}
 	}
 
 	// Encodes a snapshot from SnapshotOf, on any thread. When it's identical
