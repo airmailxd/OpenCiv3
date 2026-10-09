@@ -20,7 +20,7 @@ namespace C7Engine.Pathing {
 		// `start`: pass the same variable (initially null) for every
 		// destination checked from the same start, so it's only computed once.
 		public static bool IsTriviallyUnreachable(Tile start, Tile destination, MapUnit unit, ref WaterBodies waterBodies) {
-			if (unit.owner.isHuman || start == destination) {
+			if (unit.owner.PathsByExploredMap || start == destination) {
 				return false;
 			}
 

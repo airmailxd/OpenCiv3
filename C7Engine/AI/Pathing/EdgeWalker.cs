@@ -16,7 +16,7 @@ namespace C7Engine.Pathing {
 		public override IEnumerable<Edge<Tile>> getEdges(Tile node) {
 			List<Edge<Tile>> result = new List<Edge<Tile>>(8);
 			Player owner = unit.owner;
-			bool isHuman = owner.isHuman;
+			bool byExploredMap = owner.PathsByExploredMap;
 			bool isLandUnit = unit.IsLandUnit();
 			bool isWaterUnit = unit.IsWaterUnit();
 			float unitMovementPoints = unit.MaxMovementPoints();
@@ -31,7 +31,7 @@ namespace C7Engine.Pathing {
 
 				bool isPassable = false;
 
-				if (isHuman && !owner.HasExploredTile(neighbor)) {
+				if (byExploredMap && !owner.HasExploredTile(neighbor)) {
 					isPassable = true;
 				} else {
 					if (isLandUnit)

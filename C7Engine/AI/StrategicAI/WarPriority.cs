@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Collections.Generic;
 using C7Engine;
+using C7Engine.AI;
 using C7Engine.AI.StrategicAI;
 using C7GameData.Save;
 using Serilog;
@@ -169,8 +170,12 @@ namespace C7GameData.AIData {
 					continue;
 				}
 
-				// Check to see if we have a neighbor owned by our opponent.
+				// Check to see if we have a neighbor owned by our opponent
+				// (that we know of, with the AI fog of war).
 				foreach (Tile n in t.neighbors.Values) {
+					if (!AIFogOfWar.KnowsTile(player, n)) {
+						continue;
+					}
 					Player? other = n.OwningPlayer();
 					if (other == null) {
 						continue;
@@ -194,6 +199,10 @@ namespace C7GameData.AIData {
 
 			foreach (City ca in a.cities) {
 				foreach (City cb in b.cities) {
+					// With the AI fog of war, only the cities we know of.
+					if (!AIFogOfWar.KnowsTile(a, cb.location)) {
+						continue;
+					}
 					// TODO: Implement cross-continent fighting.
 					if (ca.location.continent != cb.location.continent) {
 						continue;

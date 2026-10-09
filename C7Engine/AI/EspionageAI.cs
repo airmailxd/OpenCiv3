@@ -31,7 +31,9 @@ namespace C7Engine.AI {
 					TryMission(gameData, player, EspionageMission.PlantSpy, other, null, GoldReserve);
 				}
 				if (pr.AtWar() && GameData.rng.Next(100) < TheftChancePercent) {
-					City target = other.cities.FirstOrDefault(c => c.IsCapital()) ?? other.cities.FirstOrDefault();
+					// With the AI fog of war, only a city we know of.
+					City target = other.cities.Where(c => AIFogOfWar.KnowsTile(player, c.location))
+						.OrderByDescending(c => c.IsCapital()).FirstOrDefault();
 					if (target != null) {
 						TryMission(gameData, player, EspionageMission.StealTechnology, other, target, TheftReserve);
 					}

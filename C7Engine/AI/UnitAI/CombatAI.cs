@@ -24,6 +24,7 @@ namespace C7Engine.AI.UnitAI {
 		}
 
 		public static CombatAIData? MakeAiData(MapUnit unit, Player player) {
+			AIFogOfWar.Refresh(player);
 			CombatAIData? result = GetBestTileToAttack(unit, player, GetPlayersAtWarWith(player));
 			if (result == null) {
 				return result;
@@ -75,10 +76,13 @@ namespace C7Engine.AI.UnitAI {
 			}
 
 			// If there is a no longer an enemy on the tile we were heading
-			// towards, ensure we recalculate our plan.
+			// towards, ensure we recalculate our plan. With the AI fog of war
+			// we only know that once we can see the tile again.
 			Tile dest = data.destination;
-			bool destinationHasEnemyUnits = dest.unitsOnTile.Count > 0
-				&& !dest.unitsOnTile[0].owner.IsAtPeaceWith(unit.owner);
+			AIFogOfWar.Refresh(player);
+			bool canSeeDestination = AIFogOfWar.SeesUnitsOn(player, dest);
+			bool destinationHasEnemyUnits = !canSeeDestination || (dest.unitsOnTile.Count > 0
+				&& !dest.unitsOnTile[0].owner.IsAtPeaceWith(unit.owner));
 			bool destinationHasEnemyCity = dest.cityAtTile != null
 				&& !data.destination.cityAtTile.owner.IsAtPeaceWith(unit.owner);
 			bool destinationHasBarbCamp = dest.hasBarbarianCamp;
@@ -193,9 +197,11 @@ namespace C7Engine.AI.UnitAI {
 						result.Add(t);
 					}
 				}
+				// With the AI fog of war, only the units we can see now.
 				foreach (MapUnit u in enemy.units) {
 					Tile t = u.location;
-					if (t != null && t != Tile.NONE && player.tileKnowledge.isTileKnown(t) && seen.Add(t)) {
+					if (t != null && t != Tile.NONE && player.tileKnowledge.isTileKnown(t)
+						&& AIFogOfWar.SeesUnitsOn(player, t) && seen.Add(t)) {
 						result.Add(t);
 					}
 				}
@@ -238,7 +244,10 @@ namespace C7Engine.AI.UnitAI {
 
 		private static float ScoreTile(Tile t, MapUnit unit, Player player, HashSet<Player> enemies) {
 			bool hasEnemyCity = t.cityAtTile != null && enemies.Contains(t.cityAtTile.owner);
-			bool hasEnemyUnits = t.unitsOnTile.Count > 0 && enemies.Contains(t.unitsOnTile[0].owner);
+			// With the AI fog of war, the units in a city we can't see now
+			// are unknown: we assume it is defended, by nobody in particular.
+			bool seesUnits = AIFogOfWar.SeesUnitsOn(player, t);
+			bool hasEnemyUnits = seesUnits ? t.unitsOnTile.Count > 0 && enemies.Contains(t.unitsOnTile[0].owner) : hasEnemyCity;
 			float score = 0;
 
 			// Ignore tiles without units or cities.
@@ -253,7 +262,7 @@ namespace C7Engine.AI.UnitAI {
 
 			// Don't throw units away on defenders they are unlikely to beat.
 			// FindTopDefender gives MapUnit.NONE, not null, when there's none.
-			MapUnit defender = hasEnemyUnits ? t.FindTopDefender(unit) : MapUnit.NONE;
+			MapUnit defender = hasEnemyUnits && seesUnits ? t.FindTopDefender(unit) : MapUnit.NONE;
 			double winChance = MapUnit.IsMapUnitValid(defender) ? EstimateChanceToWin(unit, defender) : 1.0;
 			if (winChance < MIN_CHANCE_TO_ATTACK) {
 				return int.MinValue;

@@ -25,6 +25,11 @@ namespace C7Engine {
 		public static ID activePlayerID;
 		public static bool uiFollowsActivePlayer = true;
 
+		// Whether the AI plans only with what it knows (see
+		// C7Engine.AI.AIFogOfWar). A testing option, set when a game starts
+		// or loads.
+		public static bool aiFogOfWar = false;
+
 		// The human player an AI is waiting on to answer a trade offer, if any.
 		// They may answer it even though it isn't their turn.
 		public static ID diplomacyPlayerID;

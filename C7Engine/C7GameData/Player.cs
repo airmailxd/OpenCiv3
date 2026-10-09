@@ -427,6 +427,11 @@ namespace C7GameData {
 			return this.tileKnowledge.knownTiles.Contains(tile);
 		}
 
+		// Whether paths for our units go only by what we've explored, taking
+		// tiles we haven't to be passable: a human's always do, and an AI's
+		// do with the AI fog of war (see C7Engine.AI.AIFogOfWar).
+		public bool PathsByExploredMap => isHuman || (EngineStorage.aiFogOfWar && !isBarbarians);
+
 		public bool IsAtPeaceWith(Player other) {
 			return AtPeace(this, other);
 		}

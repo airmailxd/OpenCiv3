@@ -1,4 +1,5 @@
 using System;
+using C7Engine.AI;
 using C7GameData;
 using System.Collections.Generic;
 using System.Linq;
@@ -82,7 +83,8 @@ namespace C7Engine {
 					continue;
 				}
 				foreach (City c in p.cities) {
-					if (c.location.map == startTile.map) {
+					// With the AI fog of war, only the cities we know of.
+					if (c.location.map == startTile.map && AIFogOfWar.KnowsTile(player, c.location)) {
 						rivalCities.Add(c.location);
 					}
 				}
@@ -100,6 +102,11 @@ namespace C7Engine {
 					// Tiles in a rival's territory, and their resources, are
 					// theirs to work, not ours.
 					if (IsOwnedByRival(bfc.tiles[i], player)) {
+						continue;
+					}
+					// With the AI fog of war, tiles we haven't explored are
+					// worth nothing to us yet.
+					if (!AIFogOfWar.KnowsTile(player, bfc.tiles[i])) {
 						continue;
 					}
 					score += cache.TileYieldScore(bfc.tiles[i]) * bfc.adjustments[i];
