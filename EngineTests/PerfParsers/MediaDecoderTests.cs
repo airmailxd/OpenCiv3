@@ -103,7 +103,9 @@ public class MediaDecoderTests {
 		Skip.If(Civ3TestData.ShouldSkipCiv3DependentTests(), "No Civ3 install found.");
 
 		string art = Path.Combine(Civ3Location.GetCiv3Path(), "Art");
-		foreach (string file in Directory.EnumerateFiles(art, "*.pcx", SearchOption.AllDirectories).OrderBy(f => f).Where((f, i) => i % 40 == 0)) {
+		List<string> files = Civ3TestData.EnumerateFiles(art, "*.pcx");
+		Assert.NotEmpty(files);
+		foreach (string file in files.Where((f, i) => i % 40 == 0)) {
 			AssertPcxMatchesReference(File.ReadAllBytes(file));
 		}
 	}
@@ -411,7 +413,9 @@ public class MediaDecoderTests {
 		Skip.If(Civ3TestData.ShouldSkipCiv3DependentTests(), "No Civ3 install found.");
 
 		string art = Path.Combine(Civ3Location.GetCiv3Path(), "Art");
-		foreach (string file in Directory.EnumerateFiles(art, "*.flc", SearchOption.AllDirectories).OrderBy(f => f).Where((f, i) => i % 60 == 0)) {
+		List<string> files = Civ3TestData.EnumerateFiles(art, "*.flc");
+		Assert.NotEmpty(files);
+		foreach (string file in files.Where((f, i) => i % 60 == 0)) {
 			AssertFlicMatchesReference(File.ReadAllBytes(file));
 		}
 	}
@@ -465,7 +469,10 @@ public class MediaDecoderTests {
 			for (int length = 0; length < valid.Length; length += 1 + length / 8) {
 				File.WriteAllBytes(path, valid.AsSpan(0, length).ToArray());
 				Exception e = Record.Exception(() => new Flic(path));
-				Assert.True(e is InvalidDataException || e is IndexOutOfRangeException || e is ApplicationException, $"length {length}: {e}");
+				// The last animation's ring frame (an empty 16 byte chunk here) isn't read, so a file cut off within
+				// it still loads
+				bool onlyLastRingFrameCut = length >= valid.Length - 16;
+				Assert.True((e == null && onlyLastRingFrameCut) || e is InvalidDataException || e is IndexOutOfRangeException || e is ApplicationException, $"length {length}: {e}");
 				e = Record.Exception(() => Flic.ReadHeader(path));
 				Assert.True(e == null || length >= FlicHeader.Size || e is InvalidDataException, $"header, length {length}: {e}");
 			}

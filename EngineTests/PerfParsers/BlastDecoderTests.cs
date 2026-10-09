@@ -349,17 +349,18 @@ public class BlastDecoderTests {
 
 		string conquests = Path.Combine(Civ3Location.GetCiv3Path(), "Conquests");
 		List<string> files = new() { Path.Combine(conquests, "conquests.biq") };
-		string saves = Path.Combine(conquests, "Saves");
-		if (Directory.Exists(saves)) {
-			files.AddRange(Directory.EnumerateFiles(saves, "*.sav", SearchOption.AllDirectories).OrderBy(f => f).Take(8));
-		}
+		files.AddRange(Civ3TestData.EnumerateFiles(Path.Combine(conquests, "Saves"), "*.sav").Take(8));
 
+		int compressedFiles = 0;
 		foreach (string file in files) {
 			byte[] compressed = File.ReadAllBytes(file);
-			if (compressed[0] != 0 || compressed[1] < 4 || compressed[1] > 6) {
+			if (compressed.Length < 2 || compressed[0] != 0 || compressed[1] < 4 || compressed[1] > 6) {
 				continue; // not compressed
 			}
+			++compressedFiles;
 			Assert.Equal(ReferenceDecoders.BlastDecoder.Decompress(compressed), Util.Decompress(compressed));
 		}
+		// Civ3 ships conquests.biq compressed, so something was compared.
+		Assert.True(compressedFiles > 0, $"None of the {files.Count} Civ3 files checked was compressed");
 	}
 }
