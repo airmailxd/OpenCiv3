@@ -961,8 +961,8 @@ namespace C7Engine {
 
 				// Without forceLowPointsAtPoles, since that would drag the
 				// noise at the poles toward the middle of the range.
-				temperatureNoise = new(seed: wc.mapSeed + 0xdad, width:wc.worldSize.width, height:wc.worldSize.height, scale:.4, forceLowPointsAtPoles:false);
-				moistureNoise = new(seed: wc.mapSeed + 0x3e7, width:wc.worldSize.width, height:wc.worldSize.height, scale:.3, forceLowPointsAtPoles:false);
+				temperatureNoise = new(seed: wc.mapSeed + 0xdad, width: wc.worldSize.width, height: wc.worldSize.height, scale: .4, forceLowPointsAtPoles: false);
+				moistureNoise = new(seed: wc.mapSeed + 0x3e7, width: wc.worldSize.width, height: wc.worldSize.height, scale: .3, forceLowPointsAtPoles: false);
 				temperaturePercentiles = NoisePercentiles(temperatureNoise);
 				moisturePercentiles = NoisePercentiles(moistureNoise);
 

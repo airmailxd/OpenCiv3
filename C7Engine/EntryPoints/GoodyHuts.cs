@@ -153,44 +153,44 @@ public static class GoodyHuts {
 		Player player = unit.owner;
 		switch (outcome) {
 			case Outcome.Tech: {
-				List<Tech> techs = TechsToLearn(gameData, player);
-				Tech tech = techs[GameData.rng.Next(techs.Count)];
-				player.AcquireTech(gameData, tech);
-				return $"The villagers have taught us the secrets of {tech.Name}!";
-			}
+					List<Tech> techs = TechsToLearn(gameData, player);
+					Tech tech = techs[GameData.rng.Next(techs.Count)];
+					player.AcquireTech(gameData, tech);
+					return $"The villagers have taught us the secrets of {tech.Name}!";
+				}
 			case Outcome.Unit: {
-				UnitPrototype type = HutUnitFor(gameData);
-				MapUnit recruit = gameData.SpawnUnit(player, type, tile);
-				// Conscripts, the least experienced level.
-				if (gameData.experienceLevels.Count > 0) {
-					recruit.experienceLevel = gameData.experienceLevels[0];
-					recruit.experienceLevelKey = recruit.experienceLevel.key;
-					recruit.hitPointsRemaining = recruit.maxHitPoints;
+					UnitPrototype type = HutUnitFor(gameData);
+					MapUnit recruit = gameData.SpawnUnit(player, type, tile);
+					// Conscripts, the least experienced level.
+					if (gameData.experienceLevels.Count > 0) {
+						recruit.experienceLevel = gameData.experienceLevels[0];
+						recruit.experienceLevelKey = recruit.experienceLevel.key;
+						recruit.hitPointsRemaining = recruit.maxHitPoints;
+					}
+					return $"Warriors from the village have joined our cause!";
 				}
-				return $"Warriors from the village have joined our cause!";
-			}
 			case Outcome.Settler: {
-				UnitPrototype type = SettlerFor(gameData, player);
-				gameData.SpawnUnit(player, type, tile);
-				return "Nomads from the village have joined us, eager to found a new city!";
-			}
-			case Outcome.City: {
-				City city = CityInteractions.BuildCity(tile, player, player.GetNextCityName());
-				return $"The villagers have joined our civilization, founding the city of {city.name}!";
-			}
-			case Outcome.Barbarians: {
-				if (ReleaseBarbarians(gameData, tile, hardness) > 0) {
-					return "The village was full of barbarians, and they're out for blood!";
+					UnitPrototype type = SettlerFor(gameData, player);
+					gameData.SpawnUnit(player, type, tile);
+					return "Nomads from the village have joined us, eager to found a new city!";
 				}
-				outcome = Outcome.Gold;
-				goto default;
-			}
+			case Outcome.City: {
+					City city = CityInteractions.BuildCity(tile, player, player.GetNextCityName());
+					return $"The villagers have joined our civilization, founding the city of {city.name}!";
+				}
+			case Outcome.Barbarians: {
+					if (ReleaseBarbarians(gameData, tile, hardness) > 0) {
+						return "The village was full of barbarians, and they're out for blood!";
+					}
+					outcome = Outcome.Gold;
+					goto default;
+				}
 			case Outcome.Gold:
 			default: {
-				int gold = GoldFor(player);
-				player.gold += gold;
-				return $"The villagers have given us {gold} gold in tribute!";
-			}
+					int gold = GoldFor(player);
+					player.gold += gold;
+					return $"The villagers have given us {gold} gold in tribute!";
+				}
 		}
 	}
 

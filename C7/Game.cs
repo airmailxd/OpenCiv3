@@ -1142,40 +1142,40 @@ public partial class Game : Node {
 				InterestingEvent();
 				break;
 			case MsgShowMilitaryAdvisorPopup mSMAP: {
-				// News like a golden age or a city lost to disorder waits its
-				// turn behind any popup already showing, rather than being lost.
-				var mood = mSMAP.happy ? AdvisorHead.Mood.Happy : AdvisorHead.Mood.Angry;
-				var pop = new InformationalPopup(mSMAP.message, AdvisorHead.Advisor.Military, mood);
-				popupOverlay.ShowPopup(pop, PopupOverlay.PopupCategory.Advisor);
-				break;
-			}
+					// News like a golden age or a city lost to disorder waits its
+					// turn behind any popup already showing, rather than being lost.
+					var mood = mSMAP.happy ? AdvisorHead.Mood.Happy : AdvisorHead.Mood.Angry;
+					var pop = new InformationalPopup(mSMAP.message, AdvisorHead.Advisor.Military, mood);
+					popupOverlay.ShowPopup(pop, PopupOverlay.PopupCategory.Advisor);
+					break;
+				}
 			case MsgShowScienceAdvisorPopup mSSAP: {
-				// The space race news (such as the ship being complete) is too
-				// important to drop, so it waits its turn behind any popup
-				// already showing.
-				AdvisorHead.Mood scienceMood = mSSAP.mood switch {
-					MsgShowScienceAdvisorPopup.Mood.Happy => AdvisorHead.Mood.Happy,
-					MsgShowScienceAdvisorPopup.Mood.Angry => AdvisorHead.Mood.Angry,
-					MsgShowScienceAdvisorPopup.Mood.Sad => AdvisorHead.Mood.Sad,
-					_ => AdvisorHead.Mood.Surprised,
-				};
-				var pop = new InformationalPopup(mSSAP.message, AdvisorHead.Advisor.Science, scienceMood);
-				popupOverlay.ShowPopup(pop, PopupOverlay.PopupCategory.Advisor);
-				break;
-			}
+					// The space race news (such as the ship being complete) is too
+					// important to drop, so it waits its turn behind any popup
+					// already showing.
+					AdvisorHead.Mood scienceMood = mSSAP.mood switch {
+						MsgShowScienceAdvisorPopup.Mood.Happy => AdvisorHead.Mood.Happy,
+						MsgShowScienceAdvisorPopup.Mood.Angry => AdvisorHead.Mood.Angry,
+						MsgShowScienceAdvisorPopup.Mood.Sad => AdvisorHead.Mood.Sad,
+						_ => AdvisorHead.Mood.Surprised,
+					};
+					var pop = new InformationalPopup(mSSAP.message, AdvisorHead.Advisor.Science, scienceMood);
+					popupOverlay.ShowPopup(pop, PopupOverlay.PopupCategory.Advisor);
+					break;
+				}
 			case MsgWonderCompleted mWC: {
-				// Like the space race news, this is too important to drop, so
-				// it waits its turn behind any popup already showing.
-				var pop = new InformationalPopup(mWC.Announcement(), AdvisorHead.Advisor.Domestic, AdvisorHead.Mood.Surprised);
-				popupOverlay.ShowPopup(pop, PopupOverlay.PopupCategory.Advisor);
-				break;
-			}
+					// Like the space race news, this is too important to drop, so
+					// it waits its turn behind any popup already showing.
+					var pop = new InformationalPopup(mWC.Announcement(), AdvisorHead.Advisor.Domestic, AdvisorHead.Mood.Surprised);
+					popupOverlay.ShowPopup(pop, PopupOverlay.PopupCategory.Advisor);
+					break;
+				}
 			case MsgShowDomesticAdvisorPopup mSDAP: {
-				// Like the military advisor's news, this waits its turn.
-				var pop = new InformationalPopup(mSDAP.message, AdvisorHead.Advisor.Domestic, AdvisorHead.Mood.Angry);
-				popupOverlay.ShowPopup(pop, PopupOverlay.PopupCategory.Advisor);
-				break;
-			}
+					// Like the military advisor's news, this waits its turn.
+					var pop = new InformationalPopup(mSDAP.message, AdvisorHead.Advisor.Domestic, AdvisorHead.Mood.Angry);
+					popupOverlay.ShowPopup(pop, PopupOverlay.PopupCategory.Advisor);
+					break;
+				}
 			case MsgShowScienceAdvisor mSSA:
 				EmitSignal(SignalName.ShowSpecificAdvisor, C7Action.ShowScienceAdvisor);
 				break;
@@ -1352,54 +1352,54 @@ public partial class Game : Node {
 				cityScreen.RefreshCity(mCC.city);
 				break;
 			case MsgShowUnitedNationsVote mSUNV: {
-				List<ChoicePopup.Choice> choices = new();
-				foreach (Player candidate in new[] { mSUNV.candidateA, mSUNV.candidateB }) {
-					if (candidate != null) {
-						choices.Add(new ChoicePopup.Choice($"Vote for {candidate.civilization.leader} of the {candidate.civilization.noun}",
-							() => new MsgCastUnitedNationsVote(candidate).send()));
+					List<ChoicePopup.Choice> choices = new();
+					foreach (Player candidate in new[] { mSUNV.candidateA, mSUNV.candidateB }) {
+						if (candidate != null) {
+							choices.Add(new ChoicePopup.Choice($"Vote for {candidate.civilization.leader} of the {candidate.civilization.noun}",
+								() => new MsgCastUnitedNationsVote(candidate).send()));
+						}
 					}
+					choices.Add(new ChoicePopup.Choice("Abstain", () => new MsgCastUnitedNationsVote(null).send()));
+					popupOverlay.ShowPopup(
+						new ChoicePopup("United Nations",
+							"The United Nations is electing a Secretary General.\nHow do we vote?",
+							choices, cancellable: false),
+						PopupOverlay.PopupCategory.Advisor);
+					InterestingEvent();
+					break;
 				}
-				choices.Add(new ChoicePopup.Choice("Abstain", () => new MsgCastUnitedNationsVote(null).send()));
-				popupOverlay.ShowPopup(
-					new ChoicePopup("United Nations",
-						"The United Nations is electing a Secretary General.\nHow do we vote?",
-						choices, cancellable: false),
-					PopupOverlay.PopupCategory.Advisor);
-				InterestingEvent();
-				break;
-			}
 			case MsgUnitedNationsElectionResult mUNER: {
-				string outcome = mUNER.winner == null
+					string outcome = mUNER.winner == null
 					? "No candidate won a majority."
 					: $"{mUNER.winner.civilization.leader} of the {mUNER.winner.civilization.noun} has been elected Secretary General!";
-				popupOverlay.ShowPopup(
-					new ChoicePopup("United Nations",
-						$"{mUNER.candidateA.civilization.noun}: {mUNER.votesForA} votes\n"
-						+ $"{mUNER.candidateB.civilization.noun}: {mUNER.votesForB} votes\n"
-						+ $"Abstaining: {mUNER.abstentions} votes\n{outcome}",
-						[new ChoicePopup.Choice("Very well.", () => { })], cancellable: false),
-					PopupOverlay.PopupCategory.Advisor);
-				InterestingEvent();
-				break;
-			}
-			case MsgEspionageResult mER: {
-				// A new embassy shows us their capital once, then the land
-				// around it stays on the map as it was.
-				bool showCapital = mER.success && mER.mission == EspionageMission.EstablishEmbassy && mER.city != null;
-				if (showCapital) {
-					mapView.InvalidateMap();
+					popupOverlay.ShowPopup(
+						new ChoicePopup("United Nations",
+							$"{mUNER.candidateA.civilization.noun}: {mUNER.votesForA} votes\n"
+							+ $"{mUNER.candidateB.civilization.noun}: {mUNER.votesForB} votes\n"
+							+ $"Abstaining: {mUNER.abstentions} votes\n{outcome}",
+							[new ChoicePopup.Choice("Very well.", () => { })], cancellable: false),
+						PopupOverlay.PopupCategory.Advisor);
+					InterestingEvent();
+					break;
 				}
-				City capital = mER.city;
-				popupOverlay.ShowPopup(
-					new ChoicePopup(Espionage.Describe(mER.mission), Embassies.Wrap(mER.message ?? ""),
-						[new ChoicePopup.Choice("Very well.", () => {
+			case MsgEspionageResult mER: {
+					// A new embassy shows us their capital once, then the land
+					// around it stays on the map as it was.
+					bool showCapital = mER.success && mER.mission == EspionageMission.EstablishEmbassy && mER.city != null;
+					if (showCapital) {
+						mapView.InvalidateMap();
+					}
+					City capital = mER.city;
+					popupOverlay.ShowPopup(
+						new ChoicePopup(Espionage.Describe(mER.mission), Embassies.Wrap(mER.message ?? ""),
+							[new ChoicePopup.Choice("Very well.", () => {
 							if (showCapital) {
 								ShowEmbassyCapital(capital);
 							}
 						})], cancellable: false),
-					PopupOverlay.PopupCategory.Advisor);
-				break;
-			}
+						PopupOverlay.PopupCategory.Advisor);
+					break;
+				}
 			case MsgVictory mV:
 				var endMsg =
 					$"The {mV.winner.civilization.noun} have won a {mV.victory.Header()} victory!\n"
@@ -1685,8 +1685,8 @@ public partial class Game : Node {
 		log.Information("Starting computer turn");
 		CurrentState = GameState.ComputerTurn;
 		new MsgEndTurn { turn = EngineStorage.gameData.turn }.send(); // Triggers actual backend processing
-		// Production news the player hasn't seen is out of date. Other
-		// hotseat players keep theirs for their own turns.
+																	  // Production news the player hasn't seen is out of date. Other
+																	  // hotseat players keep theirs for their own turns.
 		if (controller != null) {
 			pendingProductionPopups.Remove(controller.id);
 		}

@@ -13,8 +13,8 @@ namespace C7GameData {
 		public int year;
 		public int totalCulture; // This represents the total culture produced by the building.
 								 // In Civ3, this value is displayed in the cultural advisor tab
-		// For a building that grants a unit every few turns (the Statue of
-		// Zeus, Knights Templar), the turns since it last did.
+								 // For a building that grants a unit every few turns (the Statue of
+								 // Zeus, Knights Templar), the turns since it last did.
 		public int turnsTowardFreeUnit;
 	}
 

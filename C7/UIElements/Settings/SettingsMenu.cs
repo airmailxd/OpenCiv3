@@ -82,8 +82,14 @@ public partial class SettingsMenu : Control {
 		panel.AddThemeStyleboxOverride("panel", new StyleBoxFlat {
 			BgColor = new Color(0.93f, 0.88f, 0.76f, 0.97f),
 			BorderColor = new Color(0.42f, 0.27f, 0.12f),
-			BorderWidthLeft = 2, BorderWidthTop = 2, BorderWidthRight = 2, BorderWidthBottom = 2,
-			CornerRadiusTopLeft = 4, CornerRadiusTopRight = 4, CornerRadiusBottomLeft = 4, CornerRadiusBottomRight = 4,
+			BorderWidthLeft = 2,
+			BorderWidthTop = 2,
+			BorderWidthRight = 2,
+			BorderWidthBottom = 2,
+			CornerRadiusTopLeft = 4,
+			CornerRadiusTopRight = 4,
+			CornerRadiusBottomLeft = 4,
+			CornerRadiusBottomRight = 4,
 			ShadowColor = new Color(0, 0, 0, 0.5f),
 			ShadowSize = 8,
 		});

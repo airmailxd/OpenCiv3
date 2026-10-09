@@ -332,29 +332,29 @@ namespace C7Engine {
 
 			switch (mission) {
 				case EspionageMission.EstablishEmbassy: {
-					// The embassy reports on the capital as it is now, and
-					// shows us the land around it.
-					City capital = Capital(target);
-					ours.hasEmbassy = true;
-					ours.embassyReport = Investigate(capital, gameData.turn);
-					RevealCityRadius(actor, capital);
-					result.report = ours.embassyReport;
-					result.city = capital;
-					result.message = $"We have established an embassy with the {target.civilization.noun} in {capital.name}.";
-					break;
-				}
+						// The embassy reports on the capital as it is now, and
+						// shows us the land around it.
+						City capital = Capital(target);
+						ours.hasEmbassy = true;
+						ours.embassyReport = Investigate(capital, gameData.turn);
+						RevealCityRadius(actor, capital);
+						result.report = ours.embassyReport;
+						result.city = capital;
+						result.message = $"We have established an embassy with the {target.civilization.noun} in {capital.name}.";
+						break;
+					}
 				case EspionageMission.InvestigateCity:
 					result.report = Investigate(city, gameData.turn);
 					result.message = DescribeReport(result.report);
 					break;
 				case EspionageMission.StealTechnology: {
-					List<Tech> stealable = StealableTechs(gameData, actor, target);
-					Tech tech = stealable[GameData.rng.Next(stealable.Count)];
-					actor.AcquireTech(gameData, tech);
-					result.stolenTech = tech;
-					result.message = $"Our agents in {city.name} have stolen the secrets of {tech.Name}!";
-					break;
-				}
+						List<Tech> stealable = StealableTechs(gameData, actor, target);
+						Tech tech = stealable[GameData.rng.Next(stealable.Count)];
+						actor.AcquireTech(gameData, tech);
+						result.stolenTech = tech;
+						result.message = $"Our agents in {city.name} have stolen the secrets of {tech.Name}!";
+						break;
+					}
 				case EspionageMission.SabotageProduction:
 					city.SetStoredShields(0);
 					result.message = $"Our agents have sabotaged production in {city.name}.";
@@ -371,20 +371,20 @@ namespace C7Engine {
 					result.message = $"We have planted a spy in the {target.civilization.noun} capital.";
 					break;
 				case EspionageMission.ExposeEnemySpy: {
-					Player exposed = gameData.players.FirstOrDefault(p => p != actor && p != target
+						Player exposed = gameData.players.FirstOrDefault(p => p != actor && p != target
 						&& PlayerRelationship.TryGetRelationship(p, target, out var spyRelationship) && spyRelationship.hasSpy);
-					if (exposed == null) {
-						result.message = $"Our spy found no foreign agents in the {target.civilization.noun} capital.";
-					} else {
-						exposed.playerRelationships[target.id].hasSpy = false;
-						target.playerRelationships[exposed.id].espionageIncidents++;
-						result.exposedSpyOwner = exposed;
-						result.message = $"We have exposed a {exposed.civilization.noun} spy in the {target.civilization.noun} capital!";
-						NotifyTarget(target, $"A {exposed.civilization.noun} spy has been exposed in our capital!");
-						NotifyTarget(exposed, $"Our spy in the {target.civilization.noun} capital has been exposed!");
+						if (exposed == null) {
+							result.message = $"Our spy found no foreign agents in the {target.civilization.noun} capital.";
+						} else {
+							exposed.playerRelationships[target.id].hasSpy = false;
+							target.playerRelationships[exposed.id].espionageIncidents++;
+							result.exposedSpyOwner = exposed;
+							result.message = $"We have exposed a {exposed.civilization.noun} spy in the {target.civilization.noun} capital!";
+							NotifyTarget(target, $"A {exposed.civilization.noun} spy has been exposed in our capital!");
+							NotifyTarget(exposed, $"Our spy in the {target.civilization.noun} capital has been exposed!");
+						}
+						break;
 					}
-					break;
-				}
 			}
 			log.Information("{Actor}'s {Mission} against {Target} succeeded: {Message}", actor, mission, target, result.message);
 			return result;

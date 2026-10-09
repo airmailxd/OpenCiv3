@@ -276,10 +276,7 @@ public partial class MiniMap : Control {
 	private static (int, int) TileCoordsShownAt(GameMap map, float mapX, float mapY) {
 		var (x, y) = TileCoordsForMapLocation(mapX, mapY);
 		if (!map.isTileAt(x, y)) {
-			if (map.isTileAt(x + 1, y + 1)) { x++; y++; }
-			else if (map.isTileAt(x - 1, y - 1)) { x--; y--; }
-			else if (map.isTileAt(x + 1, y - 1)) { x++; y--; }
-			else if (map.isTileAt(x - 1, y + 1)) { x--; y++; }
+			if (map.isTileAt(x + 1, y + 1)) { x++; y++; } else if (map.isTileAt(x - 1, y - 1)) { x--; y--; } else if (map.isTileAt(x + 1, y - 1)) { x++; y--; } else if (map.isTileAt(x - 1, y + 1)) { x--; y++; }
 		}
 		return (x, y);
 	}

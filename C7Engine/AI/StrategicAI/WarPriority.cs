@@ -177,8 +177,8 @@ namespace C7GameData.AIData {
 					}
 
 					if (borderTiles.TryGetValue(other, out HashSet<Tile> tiles)) {
-					tiles.Add(n);
-				}
+						tiles.Add(n);
+					}
 				}
 			}
 

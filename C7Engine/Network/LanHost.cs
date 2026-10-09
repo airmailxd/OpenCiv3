@@ -1327,7 +1327,11 @@ public class LanHost : IDisposable {
 		}
 		guests.Remove(guest);
 		Spectator spectator = new() {
-			id = nextSpectatorID++, connection = guest.connection, name = guest.name, token = guest.token, frameBudget = guest.frameBudget,
+			id = nextSpectatorID++,
+			connection = guest.connection,
+			name = guest.name,
+			token = guest.token,
+			frameBudget = guest.frameBudget,
 		};
 		spectators.Add(spectator);
 		spectatorTokens.Remove(guest.token);

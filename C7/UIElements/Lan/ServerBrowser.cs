@@ -75,8 +75,14 @@ public partial class ServerBrowser : Control {
 		panel.AddThemeStyleboxOverride("panel", new StyleBoxFlat {
 			BgColor = new Color(0.12f, 0.11f, 0.09f),
 			BorderColor = new Color(0.55f, 0.48f, 0.30f),
-			BorderWidthLeft = 2, BorderWidthRight = 2, BorderWidthTop = 2, BorderWidthBottom = 2,
-			ContentMarginLeft = 14, ContentMarginRight = 14, ContentMarginTop = 10, ContentMarginBottom = 10,
+			BorderWidthLeft = 2,
+			BorderWidthRight = 2,
+			BorderWidthTop = 2,
+			BorderWidthBottom = 2,
+			ContentMarginLeft = 14,
+			ContentMarginRight = 14,
+			ContentMarginTop = 10,
+			ContentMarginBottom = 10,
 		});
 		center.AddChild(panel);
 

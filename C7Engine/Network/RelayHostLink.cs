@@ -473,7 +473,9 @@ public sealed class RelayHostLink : IDisposable {
 				banNow = guest.banOnClose;
 			} else {
 				guest.outgoing.Enqueue(new Pending {
-					ban = guest.banOnClose, sequence = nextSequence++, queuedAt = Stopwatch.GetTimestamp(),
+					ban = guest.banOnClose,
+					sequence = nextSequence++,
+					queuedAt = Stopwatch.GetTimestamp(),
 				});
 				Monitor.PulseAll(sync);
 			}
