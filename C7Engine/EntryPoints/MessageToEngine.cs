@@ -601,14 +601,45 @@ namespace C7Engine {
 
 		public DomesticPolicyChoice policyChoice;
 
-		public MsgChangeSliders(DomesticPolicyChoice policyChoice) {
+		// If set, the rate the slider the choice is about should end at: the
+		// change is repeated until it gets there or can't go further. A slider
+		// can jump several steps at once, and the UI's idea of the current
+		// rate may be out of date (as on a LAN client).
+		public int? targetRate;
+
+		public MsgChangeSliders(DomesticPolicyChoice policyChoice, int? targetRate = null) {
 			this.policyChoice = policyChoice;
+			this.targetRate = targetRate;
 		}
 
 		protected override void ProcessAllowed() {
 			Player player = Sender;
 
-			switch (policyChoice) {
+			if (targetRate is int target) {
+				bool science = policyChoice is DomesticPolicyChoice.MoreScience or DomesticPolicyChoice.LessScience;
+				for (int step = 0; step < 10; step++) {
+					int rate = science ? player.scienceRate : player.luxuryRate;
+					if (rate == target) {
+						break;
+					}
+					DomesticPolicyChoice choice = science
+						? (rate < target ? DomesticPolicyChoice.MoreScience : DomesticPolicyChoice.LessScience)
+						: (rate < target ? DomesticPolicyChoice.MoreLuxury : DomesticPolicyChoice.LessLuxury);
+					Step(player, choice);
+					if ((science ? player.scienceRate : player.luxuryRate) == rate) {
+						break;
+					}
+				}
+			} else {
+				Step(player, policyChoice);
+			}
+
+			// Update the ui to reflect our changes.
+			new MsgUpdateUiAfterDomesticChange().send();
+		}
+
+		private void Step(Player player, DomesticPolicyChoice choice) {
+			switch (choice) {
 				case DomesticPolicyChoice.MoreScience:
 					MoreScience(player);
 					break;
@@ -624,9 +655,6 @@ namespace C7Engine {
 				default:
 					throw new ArgumentOutOfRangeException();
 			}
-
-			// Update the ui to reflect our changes.
-			new MsgUpdateUiAfterDomesticChange().send();
 		}
 
 		// Increase our science rate, taking away from tax rate if we can,
