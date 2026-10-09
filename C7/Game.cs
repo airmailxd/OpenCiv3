@@ -7,6 +7,7 @@ using Serilog;
 using C7Engine.Pathing;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 using static C7GameData.MapUnit;
 using C7Engine.Network;
@@ -632,6 +633,13 @@ public partial class Game : Node {
 			Tile target = gameData.map.tileAt(tileInfo.targetTile.XCoordinate, tileInfo.targetTile.YCoordinate);
 			tileInfo = target != Tile.NONE ? new TileInfo(target) : null;
 		}
+		// So do the messages held for our other players.
+		foreach (Queue<MessageToUI> held in heldMessages.Values) {
+			foreach (MessageToUI msg in held) {
+				RebindToGame(msg, gameData);
+			}
+		}
+
 		Tile gotoDestination = gotoInfo?.destinationTile;
 		lastTile = null;
 		if (gotoDestination != null) {
@@ -651,6 +659,27 @@ public partial class Game : Node {
 		}
 	}
 
+	// Points the players, cities, units and tiles a message refers to at
+	// the same ones in a LAN snapshot's game. Any that aren't in the snapshot
+	// (like a city since destroyed) are left as they were, which is enough
+	// for the message's text.
+	private static void RebindToGame(object msg, GameData gameData) {
+		for (Type type = msg.GetType(); type != null && type != typeof(object); type = type.BaseType) {
+			foreach (FieldInfo field in type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly)) {
+				object rebound = field.GetValue(msg) switch {
+					Player p => gameData.GetPlayer(p.id),
+					City c => gameData.cities.Find(x => x.id == c.id),
+					MapUnit u when u != MapUnit.NONE => gameData.GetUnit(u.id),
+					Tile t when t != Tile.NONE => gameData.map.tileAt(t.XCoordinate, t.YCoordinate),
+					_ => null,
+				};
+				if (rebound != null) {
+					field.SetValue(msg, rebound);
+				}
+			}
+		}
+	}
+
 	// With the --lan-autoplay developer option, ends our turn soon after it
 	// starts, for watching turns pass between machines.
 	private void MaybeAutoplayLanTurn() {
@@ -658,6 +687,10 @@ public partial class Game : Node {
 			return;
 		}
 		GetTree().CreateTimer(1.5).Timeout += () => {
+			// The game may have been left in the meantime.
+			if (!IsInstanceValid(this) || !IsInsideTree()) {
+				return;
+			}
 			popupOverlay.OnHidePopup();
 			if (CurrentState == GameState.PlayerTurn) {
 				DoActualEndTurn();
