@@ -1580,6 +1580,8 @@ namespace C7Engine {
 		// appearance seems to have a default of 100 for civ3, but if it isn't
 		// specified (like for luxuries) it is some random value less than 100
 		// but always larger than 50.
+		private const int APPEARANCE_PERCENT = 72;
+
 		private static int GetAppearance(WorldCharacteristics wc, Random rand, Resource r, int minCount) {
 			// The the appearance ratio, with a random number between 50 and
 			// 100 if it isn't specified. Use multiple random calls to roughly
@@ -1590,7 +1592,9 @@ namespace C7Engine {
 			}
 
 			// Scale the appearance based on the number of civs in the game.
-			int targetCount = (wc.worldSize.numberOfCivs * baseCount) / 100;
+			// Civ3's own maps hold about 72% of that. Round to the nearest
+			// count: rounding down cost about half of each resource per map.
+			int targetCount = (int)Math.Round(wc.worldSize.numberOfCivs * baseCount * APPEARANCE_PERCENT / 10000.0);
 			targetCount = Math.Max(minCount, targetCount);
 			return targetCount;
 		}
@@ -1608,8 +1612,8 @@ namespace C7Engine {
 					continue;
 				}
 
-				// Skip tiles that are already next to a resource.
-				if (IsNextToExistingResource(t)) {
+				// Skip tiles that already have a resource or are next to one.
+				if ((t.Resource != null && t.Resource != Resource.NONE) || IsNextToExistingResource(t)) {
 					continue;
 				}
 
@@ -1672,9 +1676,12 @@ namespace C7Engine {
 				return false;
 			}
 
-			int minLuxurySpacing = (m.numTilesTall + m.numTilesWide) / 40;
+			// Keep different luxuries apart, so each region has its own (copies
+			// of the same luxury clump together), but not so far apart that a
+			// crowded continent runs out of room for them.
+			int minLuxurySpacing = (m.numTilesTall + m.numTilesWide) / 60;
 			minLuxurySpacing = Math.Max(2, minLuxurySpacing);
-			minLuxurySpacing = Math.Min(minLuxurySpacing, 10);
+			minLuxurySpacing = Math.Min(minLuxurySpacing, 5);
 
 			foreach (Tile x in t.GetTilesWithinRankDistance(minLuxurySpacing)) {
 				if (x.Resource != null
@@ -1718,8 +1725,11 @@ namespace C7Engine {
 					continue;
 				}
 
-				// Skip tiles that are already next to a resource.
-				if (IsNextToExistingResource(t)) {
+				// Skip tiles that already have a resource or are next to one.
+				// Every resource goes through the tiles in the same order, so
+				// without the first check each would land on, and replace,
+				// the ones placed before it.
+				if ((t.Resource != null && t.Resource != Resource.NONE) || IsNextToExistingResource(t)) {
 					continue;
 				}
 
@@ -1746,9 +1756,9 @@ namespace C7Engine {
 				return false;
 			}
 
-			int minSpacing = (m.numTilesTall + m.numTilesWide) / 30;
+			int minSpacing = (m.numTilesTall + m.numTilesWide) / 60;
 			minSpacing = Math.Max(2, minSpacing);
-			minSpacing = Math.Min(minSpacing, 10);
+			minSpacing = Math.Min(minSpacing, 5);
 
 			// Ensure strategic resources of the same kind don't clump up.
 			foreach (Tile x in t.GetTilesWithinRankDistance(minSpacing)) {
@@ -1771,7 +1781,8 @@ namespace C7Engine {
 
 		private static void PlaceBonusResources(Random rand, WorldCharacteristics wc, GameMap m,
 												List<Resource> bonusResources, List<int> tileIndicies) {
-			int totalPossibleBonusResources = m.tiles.Count / 32;
+			// About as dense as on Civ3's maps.
+			int totalPossibleBonusResources = m.tiles.Count * 22 / 1000;
 			int placed = 0;
 
 			Dictionary<Resource, int> terrainScores = CalculateBonusResourceTerrainScores(wc, bonusResources);
@@ -1781,7 +1792,7 @@ namespace C7Engine {
 			// later searches can skip past it.
 			Dictionary<Resource, int> searchCursors = new();
 
-			for (int pass = 0; pass < 32 && placed < totalPossibleBonusResources; ++pass) {
+			for (int pass = 0; pass < 200 && placed < totalPossibleBonusResources; ++pass) {
 				rand.Shuffle<Resource>(CollectionsMarshal.AsSpan(bonusResources));
 
 				foreach (Resource r in bonusResources) {
@@ -2212,8 +2223,9 @@ namespace C7Engine {
 					continue;
 				}
 
-				// Each grassland tile has a 25% chance.
-				if (rand.Next(100) >= 25) {
+				// Each grassland tile has a third of a chance, about as often
+				// as on Civ3's maps.
+				if (rand.Next(100) >= 33) {
 					continue;
 				}
 
