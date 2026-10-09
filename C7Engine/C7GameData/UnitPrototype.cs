@@ -242,10 +242,9 @@ namespace C7GameData {
 			}
 		}
 
-		// Coastal ships, like the Galley, are unsafe on Sea tiles (unless their
-		// owner has the Great Lighthouse), and those like the Caravel on Ocean
-		// tiles: they may sink if they end a turn there. See
-		// MapUnit.IsUnsafeWater.
+		// Ships that can't brave the Sea, like the Galley, or the Ocean, like
+		// the Caravel. Learning to build a ship without the flag makes that
+		// water safe for all of a civ's ships. See Player.CanSailSafelyOn.
 		public bool sinksInSea {
 			get => flags.Contains(SaveUnitPrototype.Flag.SinksInSea);
 			set {

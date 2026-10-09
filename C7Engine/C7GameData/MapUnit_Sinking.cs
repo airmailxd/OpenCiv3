@@ -4,8 +4,9 @@ using C7Engine;
 
 namespace C7GameData;
 
-// Ships that sail into water they aren't built for, like a Galley out on the
-// Sea or a Caravel on the Ocean, may sink if they end their turn there.
+// Ships that sail into water their civ hasn't yet learned to sail, like the
+// Sea before Astronomy or the Ocean before Magnetism, may sink if they end
+// their turn there.
 public partial class MapUnit {
 	// The chance a ship in unsafe water sinks at the end of its owner's turn.
 	// The same for Sea and Ocean tiles.

@@ -884,21 +884,18 @@ namespace C7GameData {
 		}
 
 		// Whether the tile is water this ship risks sinking in. Ships that
-		// "sink in sea" (the Galley) are unsafe on Sea tiles unless their
-		// owner has a safe sea travel wonder (the Great Lighthouse), and those
-		// that "sink in ocean" (the Galley, the Caravel) are unsafe on Ocean
-		// tiles. As in the original game, rather than Conquests, they may
-		// still sail there, but may sink if they end their turn there (see
-		// SinkShipsInUnsafeWater).
+		// "sink in sea" (the Galley) are at risk on Sea tiles, and those that
+		// "sink in ocean" (the Galley, the Caravel) on Ocean tiles, but only
+		// until their owner learns to sail those waters (see
+		// Player.CanSailSafelyOn): a Galley is safe anywhere once its owner
+		// can build Galleons. Ships may still sail into unsafe water, but may
+		// sink if they end their turn there (see SinkShipsInUnsafeWater).
 		public bool IsUnsafeWater(Tile tile) {
 			if (!IsWaterUnit())
 				return false;
 			TerrainType terrain = tile.baseTerrainType;
-			if (terrain.IsOcean)
-				return unitType.sinksInOcean;
-			if (terrain.IsSea)
-				return unitType.sinksInSea && !owner.HasSafeSeaTravel();
-			return false;
+			bool atRisk = (terrain.IsOcean && unitType.sinksInOcean) || (terrain.IsSea && unitType.sinksInSea);
+			return atRisk && !owner.CanSailSafelyOn(terrain);
 		}
 
 		public bool CanEnterPeacefully(Tile tile) {

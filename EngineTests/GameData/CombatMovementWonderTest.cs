@@ -223,8 +223,19 @@ public class CombatMovementWonderTest : IClassFixture<SaveGameFixture> {
 
 	// ---- Coastal ships ----
 
+	// Learns the tech for a ship, and what it needs.
+	private void Learn(Player player, string prototype) {
+		Tech tech = Prototype(prototype).requiredTech;
+		foreach (Tech prereq in tech.Prerequisites) {
+			player.knownTechs.Add(prereq.id);
+		}
+		player.knownTechs.Add(tech.id);
+	}
+
+	// The fixture's civs are still in the Ancient era, without Astronomy.
 	[Fact]
-	public void GalleyIsUnsafeOnSeaAndOceanWithoutTheLighthouse() {
+	public void SeaAndOceanAreUnsafeWithoutNavalResearch() {
+		Assert.DoesNotContain(Prototype("Caravel").requiredTech.id, us.knownTechs);
 		MapUnit galley = Spawn(us, "Galley", FindCoast());
 
 		Assert.False(galley.IsUnsafeWater(FindCoast()));
@@ -233,7 +244,7 @@ public class CombatMovementWonderTest : IClassFixture<SaveGameFixture> {
 	}
 
 	[Fact]
-	public void GreatLighthouseMakesSeaButNotOceanSafeForGalleys() {
+	public void GreatLighthouseMakesSeaButNotOceanSafe() {
 		Give(us, BuildingNamed("The Great Lighthouse"));
 		MapUnit galley = Spawn(us, "Galley", FindCoast());
 
@@ -241,18 +252,48 @@ public class CombatMovementWonderTest : IClassFixture<SaveGameFixture> {
 		Assert.True(galley.IsUnsafeWater(FindOcean()));
 	}
 
+	// Safety comes from the owner's research, not the ship: once a civ can
+	// build Caravels the Sea is safe for its Galleys too, and once it can
+	// build Galleons so is the Ocean.
 	[Fact]
-	public void CaravelIsSafeOnSeaButNotOcean() {
-		MapUnit caravel = Spawn(us, "Caravel", FindCoast());
-		Assert.False(caravel.IsUnsafeWater(FindSea()));
-		Assert.True(caravel.IsUnsafeWater(FindOcean()));
+	public void NavalResearchMakesTheWatersSafeForEveryShip() {
+		Assert.Contains(us.civilization, Prototype("Caravel").producibleBy);
+		MapUnit galley = Spawn(us, "Galley", FindCoast());
+		MapUnit theirGalley = Spawn(them, "Galley", FindCoast());
 
-		MapUnit galleon = Spawn(us, "Galleon", FindCoast());
-		Assert.False(galleon.IsUnsafeWater(FindOcean()));
+		Learn(us, "Caravel");
+		Assert.False(galley.IsUnsafeWater(FindSea()));
+		Assert.True(galley.IsUnsafeWater(FindOcean()));
+
+		Learn(us, "Galleon");
+		Assert.False(galley.IsUnsafeWater(FindSea()));
+		Assert.False(galley.IsUnsafeWater(FindOcean()));
+
+		// Only for the civ that learned it.
+		Assert.True(theirGalley.IsUnsafeWater(FindOcean()));
 	}
 
-	// Ships may sail into water they aren't built for, though paths keep
-	// them out of it.
+	// Ships may sail into water their civ can't yet sail safely, though
+	// paths keep them out of it.
+	// Another civ's unique ship doesn't count: the Carrack sails the Ocean,
+	// but only for the civ that can build it.
+	[Fact]
+	public void OnlyTheCivsOwnShipsMakeTheWatersSafe() {
+		UnitPrototype carrack = Prototype("Carrack");
+		Assert.DoesNotContain(us.civilization, carrack.producibleBy);
+		us.knownTechs.Add(carrack.requiredTech.id);
+		MapUnit galley = Spawn(us, "Galley", FindCoast());
+		Assert.True(galley.IsUnsafeWater(FindOcean()));
+
+		// Were it theirs, it would. (What's safe is worked out again when a
+		// tech is learned, so learn one that no ship needs.)
+		carrack.producibleBy.Add(us.civilization);
+		Tech other = gameData.techs.First(t => !us.knownTechs.Contains(t.id)
+			&& !gameData.unitPrototypes.Any(p => p.IsSeaUnit() && p.requiredTech == t));
+		us.knownTechs.Add(other.id);
+		Assert.False(galley.IsUnsafeWater(FindOcean()));
+	}
+
 	[Fact]
 	public void GalleyMayMoveFromCoastOntoSeaButPathsAvoidIt() {
 		Tile coast = FindWater(t => t.IsCoast() && t.neighbors.Values.Any(n => n != Tile.NONE && n.IsSea() && n.unitsOnTile.Count == 0));
@@ -270,7 +311,8 @@ public class CombatMovementWonderTest : IClassFixture<SaveGameFixture> {
 	public void ShipsInUnsafeWaterSinkWithTheirCargo() {
 		MapUnit galley = Spawn(us, "Galley", FindOcean());
 		MapUnit safeGalley = Spawn(us, "Galley", FindCoast());
-		MapUnit galleon = Spawn(us, "Galleon", FindOcean());
+		MapUnit theirGalley = Spawn(them, "Galley", FindOcean());
+		Learn(them, "Galleon");
 
 		System.Random original = C7GameData.GameData.rng;
 		C7GameData.GameData.rng = new ZeroRandom();
@@ -282,7 +324,8 @@ public class CombatMovementWonderTest : IClassFixture<SaveGameFixture> {
 
 		Assert.DoesNotContain(galley, us.units);
 		Assert.Contains(safeGalley, us.units);
-		Assert.Contains(galleon, us.units);
+		Assert.Empty(MapUnit.SinkShipsInUnsafeWater(gameData, them));
+		Assert.Contains(theirGalley, them.units);
 	}
 
 	// A roll at or above the chance spares the ship.

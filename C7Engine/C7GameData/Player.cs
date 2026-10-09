@@ -1854,6 +1854,51 @@ namespace C7GameData {
 			return GetBuildingSnapshot().safeSeaTravel;
 		}
 
+		// Whether this player's ships are safe on water of the given terrain.
+		// Coast is always safe. Sea is safe once the player can build a ship
+		// that doesn't "sink in sea" (in Conquests, the Caravel, with
+		// Astronomy), or has the Great Lighthouse, and Ocean once they can
+		// build one that doesn't "sink in ocean" (the Galleon, with
+		// Magnetism, or for the Portuguese their Carrack, with Astronomy).
+		// Only the civ's own ships count, so others' unique units don't, and
+		// resources aren't needed. See MapUnit.IsUnsafeWater.
+		public bool CanSailSafelyOn(TerrainType terrain) {
+			if (terrain.IsOcean) {
+				UpdateSafeWaters();
+				return safeOnOcean;
+			}
+			if (terrain.IsSea) {
+				UpdateSafeWaters();
+				return safeOnSea || HasSafeSeaTravel();
+			}
+			return true;
+		}
+
+		// What the player's naval research makes safe, worked out again only
+		// when they learn a tech, as pathfinding asks for every water tile.
+		private int safeWatersTechCount = -1;
+		private bool safeOnSea;
+		private bool safeOnOcean;
+
+		private void UpdateSafeWaters() {
+			if (knownTechs.Count == safeWatersTechCount) {
+				return;
+			}
+			safeWatersTechCount = knownTechs.Count;
+			safeOnSea = false;
+			safeOnOcean = false;
+			foreach (UnitPrototype p in EngineStorage.gameData?.unitPrototypes ?? []) {
+				if (!p.IsSeaUnit() || (p.requiredTech != null && !knownTechs.Contains(p.requiredTech.id))) {
+					continue;
+				}
+				if (civilization != null && !p.producibleBy.Contains(civilization)) {
+					continue;
+				}
+				safeOnSea |= !p.sinksInSea;
+				safeOnOcean |= !p.sinksInOcean;
+			}
+		}
+
 		// Whether this player's units fight at double strength against
 		// barbarians, thanks to the Great Wall.
 		public bool HasDoubleCombatVsBarbarians() {
