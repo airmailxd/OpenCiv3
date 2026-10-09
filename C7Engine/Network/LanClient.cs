@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using C7GameData;
 using C7GameData.Save;
+using C7Relay;
 using Serilog;
 
 namespace C7Engine.Network;
@@ -78,7 +79,18 @@ public class LanClient : IDisposable {
 	internal int SnapshotDeltasReceived { get; private set; }
 
 	// Where the host is, which is where we connect again after losing it.
-	public LanEndpoint Endpoint { get; }
+	// A host online that moves its game to another join code is followed
+	// there.
+	public LanEndpoint Endpoint {
+		get => endpoint;
+		private set => endpoint = value;
+	}
+	private volatile LanEndpoint endpoint;
+
+	// Trying to connect again stops once the relay has said for this long
+	// that there's no game with the join code: the host has stopped hosting
+	// online, or moved to a code we weren't told.
+	internal static TimeSpan GiveUpOnUnknownCode = TimeSpan.FromMinutes(3);
 	public string HostAddress => Endpoint.Description;
 
 	// The host's address on the network, or null for one joined online.
@@ -404,6 +416,7 @@ public class LanClient : IDisposable {
 	// called off.
 	private async Task TryConnecting(CancellationToken cancel) {
 		TimeSpan delay = FirstReconnectDelay;
+		System.Diagnostics.Stopwatch unknownCode = null;
 		while (!cancel.IsCancellationRequested) {
 			try {
 				await Task.Delay(delay, cancel);
@@ -420,12 +433,26 @@ public class LanClient : IDisposable {
 				}
 				Interlocked.Exchange(ref reconnected, transport)?.Dispose();
 				return;
+			} catch (RelayException e) when (e.MovedTo is string moved && Endpoint is RelayEndpoint online) {
+				log.Information("The host moved the game to {Code}, following it", RelayProtocol.FormatCode(moved));
+				Endpoint = online with { Code = moved };
+				lastReconnectError = e.Message;
+				delay = FirstReconnectDelay;
 			} catch (RelayException e) when (e.IsPermanent) {
 				reconnectFailedForGood = e.Message;
 				return;
+			} catch (RelayException e) when (e.CloseCode == RelayCloseCodes.UnknownRoom) {
+				lastReconnectError = e.Message;
+				unknownCode ??= System.Diagnostics.Stopwatch.StartNew();
+				if (unknownCode.Elapsed >= GiveUpOnUnknownCode) {
+					reconnectFailedForGood = "The game's join code no longer exists: the host stopped hosting it online, or moved it "
+						+ "to a new code. Ask the host for the code to join again.";
+					return;
+				}
 			} catch (Exception e) when (e is SocketException or OperationCanceledException or ObjectDisposedException
 				or TimeoutException or IOException or WebSocketException) {
 				lastReconnectError = e.Message;
+				unknownCode = null;
 				log.Debug("Couldn't reach the host on try {Attempt}: {Error}", attempt, e.Message);
 			}
 		}

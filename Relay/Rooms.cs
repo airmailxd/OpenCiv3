@@ -20,6 +20,9 @@ internal sealed class Room {
 	public long HostLeftAt = Environment.TickCount64;
 	public readonly Dictionary<uint, RelayPeer> Guests = new();
 
+	// The code the host moved this game to, while it hasn't come back here.
+	public string MovedTo;
+
 	// Whether the host says which guests it let in, and those it has.
 	public bool HostAdmits;
 	public readonly HashSet<uint> Admitted = new();

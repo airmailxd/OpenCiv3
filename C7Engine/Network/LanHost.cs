@@ -224,6 +224,10 @@ public class LanHost : IDisposable {
 	private readonly HashSet<string> bannedAddresses = new();
 	private List<string> resumedRelayBans;
 
+	// The secret the relay makes this game's ban keys with, the same in
+	// every room the game has there (see RelayProtocol).
+	private string relayBanScope = NewToken();
+
 	public const string KickedReason = "The host removed you from the game.";
 	public const string BannedReason = "The host has banned you from this game.";
 
@@ -431,6 +435,10 @@ public class LanHost : IDisposable {
 			passwordSalt = info.passwordVerifier == null ? null : info.passwordSalt,
 			passwordVerifier = info.passwordSalt == null ? null : info.passwordVerifier,
 			resumedRelayBans = info.relayBans,
+			// A game saved before ban scopes has its bans made with its
+			// room's code, and keeps them so.
+			relayBanScope = RelayProtocol.IsBanScope(info.relayBanScope) ? info.relayBanScope
+				: info.relayBans?.Count > 0 ? null : NewToken(),
 			allowSpectators = info.allowSpectators,
 			ListPublicly = info.listPublicly,
 			PublicName = info.publicName,
@@ -506,11 +514,17 @@ public class LanHost : IDisposable {
 	// Takes guests through an online relay too, alongside those on the LAN.
 	// With the code and key of a room this host had, as in a resumed game,
 	// it claims that room again, so its guests find it where they left it.
+	//
+	// Hosting online again in a new room, as when the old one couldn't be
+	// claimed again, the guests banned before stay banned, and the old
+	// room's guests are told the new code, to follow the game there.
 	public RelayHostLink HostOnline(string relayUrl, string code = null, string key = null) {
-		Online?.Dispose();
-		// The guests banned from the room before are banned again; a ban
-		// is for one room only.
-		Online = new RelayHostLink(relayUrl, accepted.Enqueue, code, key, code == null ? null : resumedRelayBans);
+		RelayHostLink previous = Online;
+		previous?.Dispose();
+		List<string> bans = previous == null ? resumedRelayBans : [.. previous.Bans];
+		bool moving = code == null && previous?.Code != null && OnlineRelay.SameRelay(previous.RelayUrl, relayUrl);
+		Online = new RelayHostLink(relayUrl, accepted.Enqueue, code, key, bans, relayBanScope,
+			moving ? previous.Code : null, moving ? previous.Key : null);
 		Online.Start();
 		return Online;
 	}
@@ -888,7 +902,7 @@ public class LanHost : IDisposable {
 			seats.Where(s => s.token != null).Select(s => new LanResumeSeat(s.info.playerID, s.takenBy, s.token)).ToList(),
 			Online?.RelayUrl, Online?.Code, Online?.Key, HideUnseen,
 			passwordSalt, passwordVerifier, [.. bannedTokens], [.. bannedAddresses], Online == null ? resumedRelayBans : [.. Online.Bans],
-			ListPublicly, PublicName, PublicDescription, allowSpectators);
+			ListPublicly, PublicName, PublicDescription, allowSpectators, relayBanScope);
 	}
 
 	// The players with nobody at their machine whom the game would wait on:

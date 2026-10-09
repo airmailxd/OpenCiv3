@@ -131,6 +131,7 @@ internal sealed class RelayHub {
 		}
 
 		bool admits = context.Request.Query[RelayProtocol.AdmitsParameter] == "1";
+		string scope = context.Request.Query[RelayProtocol.BanScopeParameter];
 		RelayPeer previous;
 		List<RelayPeer> guests;
 		lock (room) {
@@ -138,6 +139,10 @@ internal sealed class RelayHub {
 			room.Host = peer;
 			room.GameVersion = gameVersion;
 			room.HostAdmits = admits;
+			room.MovedTo = null;
+			// Kept apart from codes, so that a host can't make its keys a
+			// room without a scope makes.
+			room.BanScope = RelayProtocol.IsBanScope(scope) ? $"host:{scope}" : room.Code;
 			guests = [.. room.Guests.Values];
 			room.Guests.Clear();
 			room.Admitted.Clear();
@@ -151,6 +156,9 @@ internal sealed class RelayHub {
 
 		log.LogInformation(reclaiming ? "Host at {Address} is back in room {Code}" : "Host at {Address} opened room {Code}",
 			address, room.Code);
+		if (!reclaiming) {
+			NoteMoved(context, address, room, gameVersion);
+		}
 		peer.Send(new RelayControl(RelayControl.Welcome, room.Code, Rooms.KeyFor(room.Code), options.PingIntervalSeconds));
 
 		await peer.RunAsync((message, type) => FromHost(room, peer, address, message, type), shutdown);
@@ -178,6 +186,31 @@ internal sealed class RelayHub {
 		}
 		log.LogInformation("Host at {Address} left room {Code}, having sent {Received} bytes and been sent {Sent}",
 			address, room.Code, peer.BytesReceived, peer.BytesSent);
+	}
+
+	// A host in a new room that had another, as when it couldn't claim the
+	// old one again, has the old one's guests told where it went, given the
+	// old one's key.
+	private void NoteMoved(HttpContext context, string address, Room room, string gameVersion) {
+		string from = RelayProtocol.NormalizeCode(context.Request.Query[RelayProtocol.MovedFromParameter]);
+		if (from == null || from == room.Code) {
+			return;
+		}
+		if (!Rooms.IsKeyFor(from, context.Request.Query[RelayProtocol.MovedFromKeyParameter])) {
+			Limits.NoteFailedJoin(address);
+			log.LogInformation("{Address} said it moved from {Code} without its key", address, from);
+			return;
+		}
+		Room old = Rooms.Reclaim(from, gameVersion);
+		if (old == null) {
+			return;
+		}
+		lock (old) {
+			if (old.Host == null) {
+				old.MovedTo = room.Code;
+			}
+		}
+		log.LogInformation("The host of room {Code} moved to room {NewCode}", from, room.Code);
 	}
 
 	private void FromHost(Room room, RelayPeer host, string address, ReadOnlyMemory<byte> message, WebSocketMessageType type) {
@@ -325,7 +358,7 @@ internal sealed class RelayHub {
 		host.Send(new RelayControl(RelayControl.Banned, guest: id, bans: [key]));
 	}
 
-	private enum Admission { Admitted, HostAway, OtherVersion, Full, Banned }
+	private enum Admission { Admitted, HostAway, Moved, OtherVersion, Full, Banned }
 
 	private async Task RunGuest(HttpContext context, RelayPeer peer, string address, string typedCode) {
 		if (CheckVersions(context, out string gameVersion) is string versionError) {
@@ -345,9 +378,13 @@ internal sealed class RelayHub {
 		Admission admission;
 		uint madeWay = 0;
 		RelayPeer madeWayFor = null;
+		string movedTo;
 		lock (room) {
 			host = room.Host;
-			if (host == null) {
+			movedTo = room.MovedTo;
+			if (host == null && movedTo != null) {
+				admission = Admission.Moved;
+			} else if (host == null) {
 				admission = Admission.HostAway;
 			} else if (room.Bans.Count > 0 && room.Bans.Contains(Rooms.BanKeyFor(room.BanScope, address))) {
 				admission = Admission.Banned;
@@ -370,6 +407,9 @@ internal sealed class RelayHub {
 		switch (admission) {
 			case Admission.HostAway:
 				await Reject(peer, RelayCloseCodes.HostAway, "The host isn't connected to the relay right now.");
+				return;
+			case Admission.Moved:
+				await Reject(peer, RelayCloseCodes.Moved, RelayProtocol.MovedReason(movedTo));
 				return;
 			case Admission.OtherVersion:
 				await Reject(peer, RelayCloseCodes.GameVersionMismatch, "The host is running a different version of the game.");

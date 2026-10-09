@@ -19,6 +19,8 @@ namespace C7Engine.Network;
 // and for those through the relay, the keys the relay gave for them. And
 // the game is listed publicly again if it was, as it was. allowSpectators is
 // null when the host left it to HideUnseen (see LanHost.AllowSpectators).
+// relayBanScope is what the relay makes the game's ban keys with, which must
+// stay the same for them to stay good.
 //
 // The password's verifier is as good as the password for joining this game
 // (see GamePassword), so the file is to be kept as private as a password.
@@ -26,7 +28,7 @@ public record LanResumeInfo(string hostName, int port, double? turnSeconds, bool
 	string relayUrl = null, string onlineCode = null, string onlineKey = null, bool hideUnseen = true,
 	string passwordSalt = null, string passwordVerifier = null, List<string> bannedTokens = null, List<string> bannedAddresses = null,
 	List<string> relayBans = null, bool listPublicly = false, string publicName = null, string publicDescription = null,
-	bool? allowSpectators = null);
+	bool? allowSpectators = null, string relayBanScope = null);
 
 public record LanResumeSeat(ID playerID, string playerName, string reconnectToken);
 

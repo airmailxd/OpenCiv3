@@ -58,6 +58,13 @@ namespace C7Relay;
 // the host bans with the key as well as the ID ("ban" with bans: [key]):
 // the key is banned even if the guest has gone, and only a guest with that
 // key is closed, whatever its ID now stands for.
+//
+// A host may say ?scope=... (16 to 64 letters and digits, a secret of its
+// own) for its ban keys to be made with, rather than the room's code, so that
+// they stay good for the same game in another room. A host that must move
+// to a new room, as when it can't claim its old one again, says
+// ?from=<old code>&fromKey=<old key>: guests joining the old code are then
+// told the new one (Moved, with MovedReason), and can follow it.
 public static class RelayProtocol {
 	// Bump when the messages change incompatibly.
 	public const int Version = 1;
@@ -72,6 +79,34 @@ public static class RelayProtocol {
 	public const string CodeParameter = "code";
 	public const string KeyParameter = "key";
 	public const string AdmitsParameter = "admits";
+	public const string BanScopeParameter = "scope";
+	public const string MovedFromParameter = "from";
+	public const string MovedFromKeyParameter = "fromKey";
+
+	// Whether a host's ban scope is one the relay takes.
+	public static bool IsBanScope(string scope) {
+		if (scope == null || scope.Length < 16 || scope.Length > 64) {
+			return false;
+		}
+		foreach (char c in scope) {
+			if (!char.IsAsciiLetterOrDigit(c)) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	// Why a guest of a room whose host moved to another is turned away,
+	// which gives the new code; and that code, from such a reason, or null.
+	public static string MovedReason(string newCode) => $"The host moved this game to the join code {FormatCode(newCode)}.";
+
+	public static string MovedTo(string reason) {
+		const string prefix = "The host moved this game to the join code ";
+		if (reason == null || !reason.StartsWith(prefix, StringComparison.Ordinal)) {
+			return null;
+		}
+		return NormalizeCode(reason[prefix.Length..].TrimEnd('.'));
+	}
 
 	// The public list of games, and its filters: games of this version of
 	// the game only, those with open seats, those without a password, and
@@ -249,6 +284,9 @@ public static class RelayCloseCodes {
 	public const int Banned = 4013;
 	// The guest sent the host more, or faster, than the relay passes on.
 	public const int TooMuch = 4014;
+	// The host moved its game to another join code, which the reason gives
+	// (see RelayProtocol.MovedTo).
+	public const int Moved = 4015;
 }
 
 // A text message between the relay and a host or guest. The relay welcomes

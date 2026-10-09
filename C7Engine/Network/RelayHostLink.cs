@@ -127,17 +127,29 @@ public sealed class RelayHostLink : IDisposable {
 	// Released whenever there may be something new to send.
 	private readonly SemaphoreSlim wake = new(0);
 
+	// The secret the relay makes this game's ban keys with, and the room
+	// the game moved from (see RelayProtocol).
+	private readonly string banScope;
+	private readonly string movedFromCode;
+	private readonly string movedFromKey;
+
 	// guestArrived is called on a worker thread for each guest that joins.
 	// With the code and key of a room this host had, it claims that room
 	// again, as when resuming a game, and with the keys of the guests it
-	// banned, bans them again.
+	// banned, bans them again. Its ban keys are made with banScope, if
+	// given, so that they're good in any room this game has; and a new room
+	// tells the guests of the room the game had before, if given, where it
+	// went.
 	public RelayHostLink(string relayUrl, Action<LanTransport> guestArrived, string code = null, string key = null,
-		IEnumerable<string> bans = null) {
+		IEnumerable<string> bans = null, string banScope = null, string movedFromCode = null, string movedFromKey = null) {
 		RelayUrl = relayUrl;
 		this.guestArrived = guestArrived;
 		this.code = code;
 		this.key = key;
 		this.bans.AddRange(bans ?? []);
+		this.banScope = banScope;
+		this.movedFromCode = movedFromCode;
+		this.movedFromKey = movedFromKey;
 	}
 
 	// Lists the game publicly as it is now, or takes it off the list for
@@ -229,7 +241,7 @@ public sealed class RelayHostLink : IDisposable {
 		while (!cancel.IsCancellationRequested) {
 			try {
 				(ClientWebSocket connected, RelayControl welcome) = await RelayConnection.ConnectAsync(
-					RelayConnection.HostUri(RelayUrl, code, key), ConnectTimeout, cancel);
+					RelayConnection.HostUri(RelayUrl, code, key, banScope, movedFromCode, movedFromKey), ConnectTimeout, cancel);
 				code = welcome.code;
 				key = welcome.key;
 				error = null;
