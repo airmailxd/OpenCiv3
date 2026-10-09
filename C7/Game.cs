@@ -2154,10 +2154,14 @@ public partial class Game : Node {
 			}
 		}
 
+		// Keys typed into a text field are text, not commands.
+		Control focused = GetViewport().GuiGetFocusOwner();
+		bool typing = focused is LineEdit or TextEdit && focused.IsVisibleInTree();
+
 		for (int i = 0; i < inputActions.Length; i++) {
 			// Match modifiers exactly, so that Shift+Enter or Ctrl+L don't also
 			// trigger the actions bound to plain Enter or L.
-			if (Input.IsActionJustPressed(inputActions[i], exactMatch: true)) {
+			if (!typing && Input.IsActionJustPressed(inputActions[i], exactMatch: true)) {
 				ProcessAction(inputActionNames[i]);
 			} else if (Input.IsActionJustReleased(inputActions[i])) {
 				ProcessOnReleaseAction(inputActionNames[i]);
@@ -2175,7 +2179,7 @@ public partial class Game : Node {
 	}
 
 	private bool HasVisibleModal() {
-		if (popupOverlay.Visible || cityScreen.Visible || diplomacy.Visible)
+		if (popupOverlay.Visible || cityScreen.Visible || diplomacy.Visible || RightClickMenu.IsAnyOpen)
 			return true;
 
 		if (advisor.Visible || gameViews.Visible)
@@ -2195,6 +2199,11 @@ public partial class Game : Node {
 	private void ProcessAction(string currentAction) {
 		// Nothing happens behind the hotseat curtain.
 		if (hotseatHandoff != null) {
+			return;
+		}
+
+		// An open right-click menu takes the keys; Escape closes it.
+		if (RightClickMenu.IsAnyOpen) {
 			return;
 		}
 
