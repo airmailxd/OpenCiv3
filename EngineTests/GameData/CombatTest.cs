@@ -84,6 +84,62 @@ public class CombatTest : IClassFixture<SaveGameFixture> {
 		return t.IsLand() && t.unitsOnTile.Count == 0 && !t.HasCity() && !t.hasBarbarianCamp;
 	}
 
+	// A unit with a move left can board a transport on a neighbouring tile:
+	// it steps onto the transport's tile, which boards it.
+	[Fact]
+	public void AUnitBoardsATransportOnANeighbouringTile() {
+		(Tile land, Tile sea) = FindCoast();
+		MapUnit galley = Spawn(us, "Galley", sea);
+		MapUnit warrior = Spawn(us, "Warrior", land);
+		EngineStorage.pendingMessages.Clear();
+		EngineStorage.activePlayerID = us.id;
+		try {
+			new MsgLoadToTransport(warrior.id, galley.id) { playerID = us.id }.send();
+			while (EngineStorage.HasPendingMessagesToEngine()) {
+				EngineStorage.ProcessNextMessageToEngine();
+			}
+		} finally {
+			EngineStorage.activePlayerID = null;
+		}
+
+		Assert.Equal(sea, warrior.location);
+		Assert.Equal(galley.id, warrior.loadedOnUnitId);
+	}
+
+	// A unit with no moves left can't.
+	[Fact]
+	public void AUnitWithNoMovesLeftCantBoardANeighbouringTransport() {
+		(Tile land, Tile sea) = FindCoast();
+		MapUnit galley = Spawn(us, "Galley", sea);
+		MapUnit warrior = Spawn(us, "Warrior", land);
+		warrior.movementPoints.onUnitMove(warrior.movementPoints.remaining);
+		EngineStorage.pendingMessages.Clear();
+		EngineStorage.activePlayerID = us.id;
+		try {
+			new MsgLoadToTransport(warrior.id, galley.id) { playerID = us.id }.send();
+			while (EngineStorage.HasPendingMessagesToEngine()) {
+				EngineStorage.ProcessNextMessageToEngine();
+			}
+		} finally {
+			EngineStorage.activePlayerID = null;
+		}
+
+		Assert.Equal(land, warrior.location);
+		Assert.Null(warrior.loadedOnUnitId);
+	}
+
+	// An empty land tile outside anyone's borders, next to empty coastal sea.
+	private (Tile land, Tile sea) FindCoast() {
+		foreach (Tile land in gameData.map.tiles.Where(t => IsEmptyLand(t) && t.OwningPlayer() == null)) {
+			foreach (Tile sea in land.neighbors.Values) {
+				if (sea != Tile.NONE && sea.IsWater() && !sea.isFreshWater && sea.unitsOnTile.Count == 0 && sea.OwningPlayer() == null) {
+					return (land, sea);
+				}
+			}
+		}
+		throw new System.Exception("No coast found");
+	}
+
 	[Fact]
 	public void CargoSinksWithItsTransport() {
 		Tile sea = gameData.map.tiles.First(t => t.IsWater() && !t.isFreshWater && t.unitsOnTile.Count == 0);

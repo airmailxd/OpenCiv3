@@ -257,17 +257,24 @@ namespace C7Engine {
 			this.transportUnitId = transportUnitId;
 		}
 
-		protected override void ProcessAllowed() {
+		protected override async Task ProcessAllowedAsync() {
 			MapUnit unit = SendersUnit(unitID);
 			if (unit == null) return;
 
 			if (this.transportUnitId != null) {
-				// The transport has to be right here, and boarding it takes a
-				// unit that can still move.
+				// Boarding takes a unit that can still move, onto a transport
+				// on its own tile or a neighbouring one (per the project
+				// owner's knowledge of Civ3). From a neighbouring tile the
+				// unit moves onto the transport's tile, which boards it and
+				// costs the move like any other step.
 				MapUnit transportUnit = EngineStorage.gameData.GetUnit(transportUnitId);
-				if (transportUnit != null && transportUnit != unit && transportUnit.location == unit.location
-					&& !unit.IsLoaded() && unit.movementPoints.canMove)
+				if (transportUnit == null || transportUnit == unit || unit.IsLoaded() || !unit.movementPoints.canMove)
+					return;
+				if (transportUnit.location == unit.location) {
 					unit.BoardTransport(transportUnit);
+				} else if (unit.location.neighbors.Values.Contains(transportUnit.location)) {
+					await unit.Move(unit.location.DirectionTo(transportUnit.location), true);
+				}
 			} else
 				unit.LoadOntoTransportHere();
 		}
