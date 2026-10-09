@@ -456,6 +456,7 @@ public partial class PlayerSetup : Control {
 				showScoreboard = showScoreboard.ButtonPressed,
 				coreCitiesFreeOfCorruption = coreCitiesFreeOfCorruption.ButtonPressed,
 				acceleratedProduction = acceleratedProduction.ButtonPressed,
+				invalidMapsDirectory = InvalidMaps.FolderIfEnabled,
 			};
 			PersistGameSettings(lanSetup);
 			LanSession.PendingGame = new PendingLanGame(lanSetup, save, guestSeats);
@@ -476,6 +477,7 @@ public partial class PlayerSetup : Control {
 			showScoreboard = showScoreboard.ButtonPressed,
 			coreCitiesFreeOfCorruption = coreCitiesFreeOfCorruption.ButtonPressed,
 			acceleratedProduction = acceleratedProduction.ButtonPressed,
+			invalidMapsDirectory = InvalidMaps.FolderIfEnabled,
 		};
 
 		PersistGameSettings(gameSetup);

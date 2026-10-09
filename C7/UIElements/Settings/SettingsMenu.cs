@@ -110,6 +110,7 @@ public partial class SettingsMenu : Control {
 		AddGraphicsSettings(column);
 		AddAudioSettings(column);
 		AddOnlineSettings(column);
+		AddMapGenerationSettings(column);
 
 		column.AddChild(new Control { CustomMinimumSize = new Vector2(0, 6) });
 		Civ3MenuButton back = new() { Text = "Back to Main Menu", SizeFlagsHorizontal = SizeFlags.ShrinkCenter };
@@ -241,6 +242,28 @@ public partial class SettingsMenu : Control {
 			"Games hosted online go through this server, which gives each a join code. A host can also choose " +
 			"one when hosting; players joining that host's game are told it along with the code. Leave it blank " +
 			"for the default."));
+	}
+
+	private void AddMapGenerationSettings(VBoxContainer column) {
+		column.AddChild(MakeHeading("Map Generation"));
+
+		Civ3Checkbox saveInvalidMaps = new() {
+			Text = "Save invalid maps",
+			FontSize = 16,
+			ToggleMode = true,
+			ButtonPressed = InvalidMaps.Enabled,
+			SizeFlagsHorizontal = SizeFlags.ShrinkBegin,
+		};
+		saveInvalidMaps.Toggled += (bool on) => {
+			PlayClick();
+			InvalidMaps.SetEnabled(on);
+			log.Information("Saving invalid maps turned {State}", on ? "on" : "off");
+		};
+		column.AddChild(saveInvalidMaps);
+		column.AddChild(MakeNote(
+			"When a new map has no room for every civilization to start far enough apart, another is generated. " +
+			"With this on, each map turned down is saved to the Invalid Maps folder, with a note saying why, " +
+			"so it can be loaded and looked at."));
 	}
 
 	private static Civ3HSlider MakeSlider(double min, double max, double step, double value) {

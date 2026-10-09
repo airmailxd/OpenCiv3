@@ -44,6 +44,7 @@ public partial class QuickStartSetup : Node {
 			opponents = opponents,
 			victoryConditions = VictoryConditions.NewGameDefaults(),
 			coreCitiesFreeOfCorruption = GetCoreCitiesFreeOfCorruption(),
+			invalidMapsDirectory = InvalidMaps.FolderIfEnabled,
 		};
 
 		gameSetup.Populate(save);
