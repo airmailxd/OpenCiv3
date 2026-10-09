@@ -22,6 +22,9 @@ public class GotoInfo {
 	// Whether every unit on the selected unit's tile goes, not just the
 	// selected one (the J key).
 	public bool wholeStack = false;
+	// The unit that moves, once a war declaration has to be confirmed first,
+	// so the move doesn't go to whichever unit is selected by then.
+	public ID unitID = null;
 };
 
 public class TileInfo {
@@ -2330,13 +2333,15 @@ public partial class Game : Node {
 		}
 
 		if (currentAction == C7Action.UnitDisband) {
+			// The unit asked about, not whichever is selected once confirmed.
+			ID disbandedID = CurrentlySelectedUnit.id;
 			popupOverlay.ShowPopup(
 				new ConfirmationPopup(
 					$"Disband {CurrentlySelectedUnit.name}? Pardon me but these are OUR people.\nDo you really want to disband them?",
 					"Yes, we need to!",
 					"No. Maybe you are right, advisor.",
 					() => {
-						new MsgUnitCommand(CurrentlySelectedUnit.id, MsgUnitCommand.Command.Disband).send();
+						new MsgUnitCommand(disbandedID, MsgUnitCommand.Command.Disband).send();
 					}),
 				PopupOverlay.PopupCategory.Advisor);
 		}
@@ -2430,13 +2435,14 @@ public partial class Game : Node {
 
 		TerrainImprovement replacementTarget = CurrentlySelectedUnit.location.overlays.GetReplacementTarget(terraform);
 		if (replacementTarget != null) {
+			ID workerID = CurrentlySelectedUnit.id;
 			popupOverlay.ShowPopup(
 				new ConfirmationPopup(
 					$"A previous terrain enhancement ({replacementTarget.key.Capitalize()}) will be replaced \nby this operation. Do you wish to continue?",
 					"Continue.",
 					"Cancel action.",
 					() => {
-						new MsgStartWorkerJob(CurrentlySelectedUnit.id, terraform).send();
+						new MsgStartWorkerJob(workerID, terraform).send();
 					}),
 				PopupOverlay.PopupCategory.Advisor);
 			return;
@@ -2518,6 +2524,7 @@ public partial class Game : Node {
 			// war for them, clear out the player, and call this method again.
 			if (info.requiresWarDeclarationOnPlayer != null) {
 				GotoInfo stashed = info;
+				stashed.unitID ??= CurrentlySelectedUnit.id;
 				this.MaybeDeclareWar(stashed.requiresWarDeclarationOnPlayer, gameData.turn, () => {
 					stashed.requiresWarDeclarationOnPlayer = null;
 					this.ResolveMovement(stashed);
@@ -2526,7 +2533,7 @@ public partial class Game : Node {
 			} else if (info.wholeStack) {
 				MoveStack(gameData, info);
 			} else {
-				new MsgSetUnitPath(CurrentlySelectedUnit.id, info.path).send();
+				new MsgSetUnitPath(info.unitID ?? CurrentlySelectedUnit.id, info.path).send();
 			}
 		});
 	}
@@ -2535,7 +2542,10 @@ public partial class Game : Node {
 	// its tile to the same destination, each along its own path. Only the
 	// selected unit attacks; the rest go only where they can walk.
 	private void MoveStack(GameData gameData, GotoInfo info) {
-		MapUnit leader = gameData.GetUnit(CurrentlySelectedUnit.id);
+		MapUnit leader = gameData.GetUnit(info.unitID ?? CurrentlySelectedUnit.id);
+		if (leader == null) {
+			return;
+		}
 		Tile destination = info.destinationTile;
 		List<(ID, TilePath)> moves = [(leader.id, info.path)];
 		foreach (MapUnit unit in leader.location.unitsOnTile) {
