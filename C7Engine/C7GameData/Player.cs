@@ -1201,6 +1201,7 @@ namespace C7GameData {
 					EngineStorage.gameData.InvalidateCachedTradeNetwork();
 				}
 
+				c.UpdateResistance(gameData);
 				c.HandleCityGrowth(gameData);
 				c.HandleCityProduction(gameData);
 			}

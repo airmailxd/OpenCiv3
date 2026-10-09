@@ -175,6 +175,54 @@ public class RulesReviewFixTest : IClassFixture<SaveGameFixture> {
 		Assert.True(us.EmpireSizeUnhappiness(gameData) >= 1);
 	}
 
+	// ---- Resistance ----
+
+	// A city of `them`'s with four of their citizens, taken by us.
+	private City CapturedCity() {
+		// A second city keeps them in the game.
+		BuildCity(them);
+		City city = BuildCity(them);
+		for (int i = 1; i < 4; ++i) {
+			city.AddCitizen(new CityResident() {
+				city = city,
+				nationality = them.civilization,
+				citizenType = gameData.citizenTypes.Find(x => x.IsDefaultCitizen),
+			});
+		}
+		CityInteractions.CaptureCity(city, us);
+		city.StartResistance(them);
+		return city;
+	}
+
+	[Fact]
+	public void ConqueredCitiesResist() {
+		City city = CapturedCity();
+		Assert.True(city.IsInResistance);
+		Assert.Equal(them, city.resistanceFrom);
+		Assert.Equal(0, city.CurrentProductionYield().useful);
+		Assert.Equal(0, city.CurrentCommerceYieldRaw().taxes);
+	}
+
+	[Fact]
+	public void ResistanceSurvivesASave() {
+		City city = CapturedCity();
+		int resisters = city.resisters;
+
+		C7GameData.GameData loaded = SaveGame.FromGameData(gameData).ToGameData(fixture.behaviors);
+		City loadedCity = loaded.cities.Single(c => c.id == city.id);
+		Assert.Equal(resisters, loadedCity.resisters);
+		Assert.Equal(them.id, loadedCity.resistanceFrom.id);
+	}
+
+	[Fact]
+	public void ResistanceEndsWhenTheOldOwnerIsGone() {
+		City city = CapturedCity();
+		them.defeated = true;
+		city.UpdateResistance(gameData);
+		Assert.False(city.IsInResistance);
+		Assert.Null(city.resistanceFrom);
+	}
+
 	// ---- Trait discounts ----
 
 	[Fact]

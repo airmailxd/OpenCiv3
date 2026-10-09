@@ -113,6 +113,15 @@ namespace C7GameData {
 
 		public bool isInCivilDisorder = false;
 
+		// Resistance in a conquered city: the number of citizens still loyal
+		// to resistanceFrom, the civ it was taken from. While any resist the
+		// city produces no shields or commerce, as in Civ3. See
+		// StartResistance and UpdateResistance.
+		public int resisters = 0;
+		public Player resistanceFrom;
+
+		public bool IsInResistance => resisters > 0;
+
 		// Whether production was hurried this turn, with gold, citizens or a
 		// great leader. As in Civ3, the city then can't change what it's
 		// building until the turn ends, so the hurried shields can't be
@@ -482,6 +491,9 @@ namespace C7GameData {
 
 			if (isInCivilDisorder) {
 				return new HurryProductionDetails() { errorMessage = "The city is in disorder and cannot hurry production." };
+			}
+			if (IsInResistance) {
+				return new HurryProductionDetails() { errorMessage = "The city is resisting our rule and cannot hurry production." };
 			}
 
 			// Nothing to hurry: no production, a full box, or something like
@@ -929,8 +941,8 @@ namespace C7GameData {
 			// setting corruption to 100% because CorruptableValue would give us
 			// one useful commerce in that situation.
 			//
-			// The same is true for civil disorder.
-			if (owner.government.transitionType || isInCivilDisorder) {
+			// The same is true for civil disorder and resistance.
+			if (owner.government.transitionType || isInCivilDisorder || IsInResistance) {
 				result.useful = 0;
 				result.corrupt = yield;
 			}
@@ -939,7 +951,7 @@ namespace C7GameData {
 			// and civil engineers add their own shields. Assumption: the
 			// engineers' shields count before factories and power plants,
 			// like those of the city's tiles.
-			if (!owner.government.transitionType && !isInCivilDisorder) {
+			if (!owner.government.transitionType && !isInCivilDisorder && !IsInResistance) {
 				RecoverWithPolicemen(ref result);
 				foreach (CityResident cr in residents) {
 					result.useful += cr.citizenType.Construction;
@@ -1031,7 +1043,8 @@ namespace C7GameData {
 			// civil disorder.
 			CorruptableValue commerce = new CorruptableValue(uncorruptedCommerce, corruption);
 			RecoverWithPolicemen(ref commerce);
-			bool inDisorder = isInCivilDisorder && respectCivilDisorder;
+			// A resisting city produces nothing, like one in disorder.
+			bool inDisorder = (isInCivilDisorder || IsInResistance) && respectCivilDisorder;
 			bool inAnarchy = owner.government.transitionType;
 			if (inAnarchy || inDisorder) {
 				commerce.useful = 0;
@@ -1171,9 +1184,67 @@ namespace C7GameData {
 			return CurrentFoodYield() - FoodConsumedPerTurn();
 		}
 
+		// Resisters still eat: resistance stops the city's shields and
+		// commerce, not its farming (see IsInResistance).
 		public int FoodConsumedPerTurn() {
-			// TODO: exclude resisters in the future.
 			return residents.Count * 2;
+		}
+
+		// Civ3's resistance in a city taken by force. Some of the citizens of
+		// the civ it was taken from resist: assumption, half of them, rounded
+		// up (Civ3 also weighs the two civs' culture, which we don't). No one
+		// resists for the barbarians.
+		public void StartResistance(Player formerOwner) {
+			if (formerOwner == null || formerOwner.isBarbarians || formerOwner == owner) {
+				return;
+			}
+			int nationals = residents.Count(r => r.nationality == formerOwner.civilization);
+			resisters = (nationals + 1) / 2;
+			resistanceFrom = resisters > 0 ? formerOwner : null;
+		}
+
+		// Each turn every resister may give up, more likely the bigger the
+		// garrison: each land defender in the city quells as many resisters
+		// as the difficulty level's military law (usually 1), after the
+		// Civ3 rule documented at
+		// https://www.civfanatics.com/civ3/strategy/game-mechanics/the-inner-workings-of-resistance-revealed/.
+		// As a simple stand-in for its odds, a resister gives up with chance
+		// (1 + quelling) / (2 + resisters), at most 90%, so an ungarrisoned
+		// city calms down over a few turns and a strong garrison ends it
+		// quickly. Resistance also ends if the old owner is gone or has the
+		// city back.
+		public void UpdateResistance(GameData gameData) {
+			if (resisters <= 0) {
+				return;
+			}
+			if (resistanceFrom == null || resistanceFrom.defeated || resistanceFrom == owner) {
+				EndResistance();
+				return;
+			}
+			resisters = Math.Min(resisters, residents.Count);
+
+			int garrison = location.unitsOnTile.Count(u => u.owner == owner && u.CanDefendOnLand());
+			int quelling = garrison * Math.Max(1, gameData.gameDifficulty?.MilitaryLaw ?? 1);
+			double chance = Math.Min(0.9, (1.0 + quelling) / (2.0 + resisters));
+			int remaining = 0;
+			for (int i = 0; i < resisters; ++i) {
+				if (GameData.rng.NextDouble() >= chance) {
+					++remaining;
+				}
+			}
+			resisters = remaining;
+			if (resisters == 0) {
+				EndResistance();
+				log.Information("Resistance in {City} has ended", this);
+				if (owner.isHuman) {
+					new MsgShowTemporaryPopup($"The resistance in {name} has been quelled.", location, owner).send();
+				}
+			}
+		}
+
+		private void EndResistance() {
+			resisters = 0;
+			resistanceFrom = null;
 		}
 
 

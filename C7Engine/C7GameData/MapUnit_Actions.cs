@@ -80,7 +80,13 @@ public partial class MapUnit {
 					new MsgShowMilitaryAdvisorPopup(tile.cityAtTile.owner, $"Barbarians have stolen {goldTaken} gold from our cities!\nWe need a stronger military.", happy: false).send();
 				}
 			} else {
-				CityInteractions.CaptureCity(tile.cityAtTile, owner);
+				City city = tile.cityAtTile;
+				Player formerOwner = city.owner;
+				CityInteractions.CaptureCity(city, owner);
+				// A city that survived being taken may resist its new owner.
+				if (tile.cityAtTile == city && city.owner == owner) {
+					city.StartResistance(formerOwner);
+				}
 			}
 		}
 
