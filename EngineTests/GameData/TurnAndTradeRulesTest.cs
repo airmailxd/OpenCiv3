@@ -155,13 +155,9 @@ public class TurnAndTradeRulesTest : IDisposable {
 	}
 
 	[Fact]
-	public void APlayersLastCityCantBeAbandoned() {
+	public void OnlyTheOwnerMayAbandonACity() {
 		City capital = new(Tile.NONE, us, "Capital", ID.None("city"));
 		us.cities.Add(capital);
-		Assert.False(CityInteractions.MayAbandon(us, capital, gameData));
-
-		City other = new(Tile.NONE, us, "Other", ID.None("city"));
-		us.cities.Add(other);
 		Assert.True(CityInteractions.MayAbandon(us, capital, gameData));
 		Assert.False(CityInteractions.MayAbandon(them, capital, gameData));
 	}

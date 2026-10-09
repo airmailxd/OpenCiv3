@@ -242,7 +242,6 @@ namespace C7Engine {
 			territoryDemandAnswer = null;
 			TurnHandling.ResetForNewGame();
 			UnitInteractions.ResetForNewGame();
-			CityInteractions.ResetForNewGame();
 			// The tile change log would otherwise keep the previous game alive.
 			TileChangeJournal.Reset();
 		}

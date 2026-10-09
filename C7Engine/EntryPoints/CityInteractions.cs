@@ -245,7 +245,6 @@ namespace C7Engine {
 			log.Information("{Captor} captured {City} from {OldOwner}, plundering {Plunder} gold", captor, city, oldOwner, plunder);
 			new MsgCityCaptured(city, oldOwner).send();
 			if (captor.isHuman) {
-				capturedOnTurn[city.id] = gameData.turn;
 				new MsgShowMilitaryAdvisorPopup(captor, $"We have captured {city.name} and plundered {plunder} gold!", happy: true).send();
 				new MsgDisplayRazeCityPopup(captor, city).send();
 			}
@@ -312,26 +311,18 @@ namespace C7Engine {
 			newOwner.DoCorruptionCalculations(gameData);
 		}
 
-		// The turn each city a human took was captured, so that they may
-		// raze it when they are asked to, that turn.
-		private static readonly Dictionary<ID, int> capturedOnTurn = new();
-
-		internal static void ResetForNewGame() {
-			capturedOnTurn.Clear();
-		}
-
 		// Whether the player may abandon (or raze) their city: a city they
-		// captured this turn, which they are asked whether to keep, or any
-		// city from its menu, as long as it isn't their last, which would
-		// end their civilization.
+		// captured, which they are asked whether to keep, or any city of
+		// theirs from its menu, which Civ3 offers: "right-click on
+		// the cities you want to remove, and you'll get a pop-up menu that
+		// has 'Abandon city' way down at the bottom of the menu"
+		// (https://forums.civfanatics.com/threads/getting-rid-of-unwanted-cities.353125/).
+		//
+		// UNVERIFIED (no Civ3 source found): whether Civ3 lets a player
+		// abandon their last city. As before the check was added, it may be
+		// (the UI asks first).
 		public static bool MayAbandon(Player player, City city, GameData gameData) {
-			if (city.owner != player) {
-				return false;
-			}
-			if (capturedOnTurn.TryGetValue(city.id, out int turn) && turn == gameData.turn) {
-				return true;
-			}
-			return player.cities.Count > 1;
+			return city.owner == player;
 		}
 
 		private static void MovePalaceAfterLosingCapital(Player player, Tile oldCapitalLocation) {
