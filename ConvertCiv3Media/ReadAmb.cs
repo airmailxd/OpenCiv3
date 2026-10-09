@@ -53,8 +53,19 @@ public class Amb {
 
 		if (midi.ticksPerQuarterNote > 0) {
 			secondsPerTick = secondsPerQuarterNote / midi.ticksPerQuarterNote;
+		} else if (midi.ticksPerQuarterNote < 0) {
+			// SMPTE time (no Civ3 AMB uses it): the high byte is minus the frames per second, the low byte the ticks
+			// per frame, and the tempo doesn't matter.
+			int framesPerSecond = -(sbyte)(midi.ticksPerQuarterNote >> 8);
+			int ticksPerFrame = midi.ticksPerQuarterNote & 0xff;
+			if (framesPerSecond > 0 && ticksPerFrame > 0) {
+				secondsPerTick = 1f / (framesPerSecond * ticksPerFrame);
+			} else {
+				log.Warning("Invalid SMPTE MIDI division in {path}; playing all sounds at once", this.path);
+			}
+		} else {
+			log.Warning("MIDI division of 0 in {path}; playing all sounds at once", this.path);
 		}
-		// else ?
 
 		foreach (SoundTrack st in midi.soundTracks) {
 			// skip the info track, and tracks that don't play anything
@@ -69,14 +80,15 @@ public class Amb {
 				continue;
 			}
 			KmapChunk kmapChunk = FindKmapChunk(prgmChunk);
-			string wavFileName = kmapChunk?.items.FirstOrDefault()?.wavFileName; // should we be accessing [0] in items?
+			string wavFileName = PickKmapItem(kmapChunk, st.NoteOnEvent.key)?.wavFileName;
 
 			if (string.IsNullOrEmpty(wavFileName)) {
 				// Attempt to correct some known broken .amb
 				// TODO: move to lua maybe?
-				if (this.path.EndsWith("ArcherRun.amb") && prgmChunk.varName == "Breath 1") {
+				bool isArcherRun = Path.GetFileName(this.path).Equals("ArcherRun.amb", StringComparison.OrdinalIgnoreCase);
+				if (isArcherRun && prgmChunk.varName == "Breath 1") {
 					wavFileName = "ArchRunBreath1.wav";
-				} else if (this.path.EndsWith("ArcherRun.amb") && prgmChunk.varName == "Breath 2") {
+				} else if (isArcherRun && prgmChunk.varName == "Breath 2") {
 					wavFileName = "ArchRunBreath2.wav";
 				} else {
 					log.Warning("Missing wav file name for {name} in {path}", prgmChunk.varName, this.path);
@@ -116,6 +128,27 @@ public class Amb {
 		}
 		return ambData.prgmChunks.FirstOrDefault(p => string.Equals(p.effectName, trackName, StringComparison.OrdinalIgnoreCase))
 			?? ambData.prgmChunks.FirstOrDefault(p => string.Equals(p.varName, trackName, StringComparison.OrdinalIgnoreCase));
+	}
+
+	// The kmap item to play for a note. Every kmap item in Civ3's AMB files has unknown1 = 127, unknown2 = 0 and
+	// unknown3 = 1, which looks like a MIDI key range (high, low) as in a sampler key map, and no Civ3 AMB has more
+	// than one item per kmap (1532 kmaps with one item and 14 with none, in the Complete edition). So with several
+	// items, the first whose range holds the note's key is played, but that reading of the fields is unverified;
+	// failing it, the first item is.
+	private KmapItem PickKmapItem(KmapChunk kmap, int key) {
+		if (kmap == null || kmap.items.Length == 0) {
+			return null;
+		}
+		if (kmap.items.Length == 1) {
+			return kmap.items[0];
+		}
+		foreach (KmapItem item in kmap.items) {
+			if (key >= Math.Min(item.unknown1, item.unknown2) && key <= Math.Max(item.unknown1, item.unknown2)) {
+				return item;
+			}
+		}
+		log.Debug("No kmap item of {name} covers key {key} in {path}; using the first", kmap.varName, key, this.path);
+		return kmap.items[0];
 	}
 
 	// The kmap chunk with the prgm chunk's variable name (ignoring case, which sometimes differs). Failing that (the
@@ -284,8 +317,13 @@ public class AmbData {
 						trackCount = GetInt16FromBigEndian(ambBytes, offset + 10),
 						ticksPerQuarterNote = GetInt16FromBigEndian(ambBytes, offset + 12),
 					};
+					// The header's length doesn't count the tag and length fields; it is 6 in standard MIDI files, but a
+					// longer header must be stepped over whole.
+					if (midi.headerSize < MTHD_SIZE - HEADER_SIZE || midi.headerSize > ambBytes.Length - offset - HEADER_SIZE) {
+						throw new InvalidDataException($"Invalid MIDI header size {midi.headerSize} at {offset} in {path}");
+					}
 					this.midiData = midi;
-					offset += MTHD_SIZE;
+					offset += HEADER_SIZE + midi.headerSize;
 					break;
 				}
 				case 0x6b72544d: { // MTrk

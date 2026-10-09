@@ -71,15 +71,14 @@ namespace ConvertCiv3Media {
 
 			int width = this.Width;
 			int height = this.Height;
-			int ImageLength = width * height;
+			// The header's counts and sizes are checked before anything is
+			// allocated from them: a corrupt header could otherwise ask for
+			// tens of gigabytes.
+			int ImageLength = CheckedImageLength(header, FlicBytes.Length, path);
 
-			// Initialize image frames
+			// The frames themselves are allocated as they are decoded, so a
+			// file that ends early fails before allocating all of them.
 			this.Images = new byte[NumAnimations, this.FramesPerAnimation][];
-			for (int i = 0; i < this.NumAnimations; i++) {
-				for (int j = 0; j < this.FramesPerAnimation; j++) {
-					this.Images[i, j] = new byte[ImageLength];
-				}
-			}
 
 			// technically should be UInt32 I think
 			// frame 1 chunk offset
@@ -89,7 +88,8 @@ namespace ConvertCiv3Media {
 			for (int anim = 0; anim < NumAnimations; anim++) {
 				// Flic frames loop
 				for (int f = 0; f < this.FramesPerAnimation; f++) {
-					byte[] frame = this.Images[anim, f];
+					byte[] frame = new byte[ImageLength];
+					this.Images[anim, f] = frame;
 					// A frame only describes how it differs from the previous one: a delta changes some of its pixels, and a
 					// frame without any image data (e.g. the second frame of some scenario leaderheads) is the same.
 					// The first frame of each animation is drawn from scratch; in Civ3 files it is always a full frame.
@@ -162,10 +162,43 @@ namespace ConvertCiv3Media {
 					}
 					Offset = ChunkEnd;
 				}
-				// skip ring frame
-				int RingChunkLength = ReadInt32(FlicBytes, Offset);
-				Offset += RingChunkLength;
+				// Skip the ring frame (which loops back to the animation's first
+				// frame) between animations. Nothing is read after the last
+				// animation, so files without a final ring frame (as leaderheads
+				// may be) still load.
+				if (anim + 1 < NumAnimations) {
+					int RingChunkLength = ReadInt32(FlicBytes, Offset);
+					if (RingChunkLength < CHUNK_HEADER_SIZE || RingChunkLength > FlicBytes.Length - Offset) {
+						throw new InvalidDataException($"Flic ring frame chunk at {Offset} has an invalid length {RingChunkLength}");
+					}
+					Offset += RingChunkLength;
+				}
 			}
+		}
+
+		// The largest Flic frame and the most decoded pixels (over all frames)
+		// that Load accepts. Civ3's largest Flics (leaderheads, 240x240 units)
+		// are far below these.
+		private const int MAX_DIMENSION = 4096;
+		private const long MAX_TOTAL_PIXELS = 512L * 1024 * 1024;
+
+		// Width * height, after checking that the header's frame counts and
+		// sizes could belong to a file of fileLength bytes and that decoding
+		// every frame takes a sane amount of memory.
+		private static int CheckedImageLength(FlicHeader header, int fileLength, string path) {
+			if (header.Width > MAX_DIMENSION || header.Height > MAX_DIMENSION) {
+				throw new InvalidDataException($"Flic {path} is {header.Width}x{header.Height}, larger than the supported {MAX_DIMENSION}x{MAX_DIMENSION}");
+			}
+			long imageLength = (long)header.Width * header.Height;
+			long frames = (long)header.NumAnimations * header.FramesPerAnimation;
+			// Every frame has a chunk header in the file.
+			if (frames * CHUNK_HEADER_SIZE > fileLength) {
+				throw new InvalidDataException($"Flic {path} claims {header.NumAnimations} animations of {header.FramesPerAnimation} frames, too many for its {fileLength} bytes");
+			}
+			if (frames * imageLength > MAX_TOTAL_PIXELS) {
+				throw new InvalidDataException($"Flic {path} would decode to {frames * imageLength} bytes of frames, more than the supported {MAX_TOTAL_PIXELS}");
+			}
+			return (int)imageLength;
 		}
 
 		private static int ReadInt32(byte[] bytes, int offset) {
@@ -426,8 +459,9 @@ namespace ConvertCiv3Media {
 				// technically should be UInt32 I think
 				FirstFrameOffset = BitConverter.ToInt32(FlicBytes, 80),
 			};
-			// Leaderheads don't have the above values, so revert to act like a regular Flic
-			// TODO: See if this affects my ring-frame skip
+			// Leaderheads don't have the above values, so revert to act like a regular Flic.
+			// (Flic.Load only skips ring frames between animations, so a single
+			// animation never needs one.)
 			if (header.NumAnimations == 0) {
 				header.NumAnimations = 1;
 				header.FramesPerAnimation = header.NumFrames;
