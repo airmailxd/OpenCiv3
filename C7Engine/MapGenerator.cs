@@ -527,107 +527,58 @@ namespace C7Engine {
 			TerrainType desert = wc.terrainTypes.Find(x => x.Key == "desert");
 			TerrainType plains = wc.terrainTypes.Find(x => x.Key == "plains");
 
-			// Like with mountains, use a very blobby scale for our temperature map.
-			HeightMap hm = new(seed: wc.mapSeed + 0xdad, width:wc.worldSize.width, height:wc.worldSize.height, scale:.4);
-
-			// Tundra also has a latitude threshold, not just a temperature
-			// check, to prevent equatorial tundras.
-			int tundraLatitudeThreshold;
-
-			int plainsLowerBound, plainsUpperBound;
-			int desertLowerBound, desertUpperBound;
-			int tundraLowerBound, tundraUpperBound;
-
-			// While biomes are mostly affected by temperature, give plains and
-			// deserts a boost when there is less moisture.
-			int aridPlainsBoost = wc.climate == WorldCharacteristics.Climate.Arid ? 8 : 0;
-			int aridDesertBoost = wc.climate == WorldCharacteristics.Climate.Arid ? 5 : 0;
-
-			switch (wc.temperature) {
-				case WorldCharacteristics.Temperature.Cool:
-					// About where Minneapolis is - in the last ice age glaciers
-					// went lower, but we don't want all tundra.
-					tundraLatitudeThreshold = 45;
-
-					// For all the bounds here we're picking arbitrary temperature
-					// bounds. So roughly 23% of the map is eligible for being
-					// tundra here, though the latitude threshold also comes into
-					// play later.
-					tundraLowerBound = hm.FindSeaLevel(70);
-					tundraUpperBound = hm.FindSeaLevel(93);
-
-					// Roughly 15% of the map is eligible for plains, though this
-					// can be boosted for arid maps.
-					plainsLowerBound = hm.FindSeaLevel(15);
-					plainsUpperBound = hm.FindSeaLevel(30 + aridPlainsBoost);
-
-					// Another 15% for deserts.
-					desertLowerBound = hm.FindSeaLevel(45);
-					desertUpperBound = hm.FindSeaLevel(60 + aridDesertBoost);
-					break;
-				case WorldCharacteristics.Temperature.Temperate:
-					// About where Stockholm is.
-					tundraLatitudeThreshold = 59;
-
-					tundraLowerBound = hm.FindSeaLevel(77);
-					tundraUpperBound = hm.FindSeaLevel(93);
-
-					plainsLowerBound = hm.FindSeaLevel(15);
-					plainsUpperBound = hm.FindSeaLevel(35 + aridPlainsBoost);
-
-					desertLowerBound = hm.FindSeaLevel(45);
-					desertUpperBound = hm.FindSeaLevel(65 + aridDesertBoost);
-					break;
-				case WorldCharacteristics.Temperature.Warm:
-					// About where the arctic circle is today.
-					tundraLatitudeThreshold = 66;
-
-					tundraLowerBound = hm.FindSeaLevel(83);
-					tundraUpperBound = hm.FindSeaLevel(93);
-
-					plainsLowerBound = hm.FindSeaLevel(15);
-					plainsUpperBound = hm.FindSeaLevel(40 + aridPlainsBoost);
-
-					desertLowerBound = hm.FindSeaLevel(45);
-					desertUpperBound = hm.FindSeaLevel(70 + aridDesertBoost);
-					break;
-				default:
-					throw new Exception($"Unknown temperature: {wc.temperature}");
-			}
-
-			// Randomize the order we iterate through the tiles.
-			Random rand = new(wc.mapSeed + 0xba5e);
-			List<int> tileIndicies = Enumerable.Range(0, m.tiles.Count).ToList();
-			rand.Shuffle<int>(CollectionsMarshal.AsSpan(tileIndicies));
+			BiomeClimate climate = new(wc, m);
 
 			// Group the tiles by biome region once, so filling a region doesn't
 			// need to scan the whole map. Biome regions don't change here.
 			Dictionary<int, List<Tile>> tilesByBiomeRegion = GroupTilesByBiomeRegion(m);
 
-			foreach (int tileIndex in tileIndicies) {
-				Tile t = m.tiles[tileIndex];
-
-				// Skip water tiles and tiles that already have their biome
-				// assigned.
-				if (!t.IsLand() || t.overlayTerrainType != TerrainType.NONE) {
+			foreach ((int biomeRegion, List<Tile> tiles) in tilesByBiomeRegion) {
+				// Water and hills aren't part of any biome region.
+				if (biomeRegion == -1) {
 					continue;
 				}
 
-				int height = hm.GetHeight(t.XCoordinate, t.YCoordinate);
-
-				// Figure out the latitude of this tile.
-				double normalizedY = (double)t.YCoordinate / (m.numTilesTall - 1.0);
-				double latitude = Math.Abs(90.0 - (normalizedY * 180.0));
-
-				if (height >= plainsLowerBound && height < plainsUpperBound) {
-					FillBiomeRegion(tilesByBiomeRegion, t, plains, plains);
-				} else if (height >= desertLowerBound && height < desertUpperBound) {
-					FillBiomeRegion(tilesByBiomeRegion, t, desert, desert);
-				} else if (height >= tundraLowerBound && height < tundraUpperBound && latitude > tundraLatitudeThreshold) {
-					FillBiomeRegion(tilesByBiomeRegion, t, tundra, tundra);
-				} else {
-					FillBiomeRegion(tilesByBiomeRegion, t, grassland, grassland);
+				// Each region takes the average climate of its tiles. Since the
+				// climate changes smoothly across the map, neighbouring regions
+				// end up with similar climates and so similar terrain.
+				double latitude = 0, moisture = 0;
+				foreach (Tile t in tiles) {
+					latitude += climate.EffectiveLatitude(t);
+					moisture += climate.Moisture(t);
 				}
+				latitude /= tiles.Count;
+				moisture /= tiles.Count;
+
+				TerrainType biome;
+				if (latitude >= BiomeClimate.TUNDRA_LATITUDE) {
+					biome = tundra;
+				} else if (moisture < .31 && latitude < 38 || moisture < .05) {
+					// Deserts mostly sit in the dry subtropics, with the odd
+					// cold desert further out where it's very dry.
+					biome = desert;
+				} else if (moisture < .425) {
+					biome = plains;
+				} else {
+					biome = grassland;
+				}
+				FillBiomeRegion(tilesByBiomeRegion, tiles[0], biome, biome);
+			}
+
+			// Deserts fade into grassland through plains, so turn grassland
+			// touching a desert into plains.
+			List<Tile> desertEdges = new();
+			foreach (Tile t in m.tiles) {
+				if (t.baseTerrainType.Key != "grassland" || t.overlayTerrainType.isHilly()) {
+					continue;
+				}
+				if (t.neighbors.Values.Any(n => n != Tile.NONE && n.baseTerrainType.Key == "desert")) {
+					desertEdges.Add(t);
+				}
+			}
+			foreach (Tile t in desertEdges) {
+				t.baseTerrainType = plains;
+				t.overlayTerrainType = plains;
 			}
 
 			// Do one more pass to ensure that tundra tiles never border land
@@ -652,6 +603,102 @@ namespace C7Engine {
 			}
 		}
 
+		// The climate of a map, used to pick biomes and vegetation. Temperature
+		// comes mostly from latitude, with a blobby noise map nudging the bands
+		// around so their edges aren't straight lines. Moisture has its own
+		// noise map, shaped by latitude like on Earth: wet at the equator, dry
+		// in the subtropics (the Sahara, the Outback), and middling beyond.
+		private class BiomeClimate {
+			// Land at or above this effective latitude is tundra.
+			public const double TUNDRA_LATITUDE = 70;
+
+			private readonly GameMap map;
+			private readonly HeightMap temperatureNoise;
+			private readonly HeightMap moistureNoise;
+			private readonly double[] temperaturePercentiles;
+			private readonly double[] moisturePercentiles;
+
+			// Cool worlds push the bands toward the equator and warm worlds
+			// push them toward the poles.
+			private readonly double latitudeShift;
+
+			// Arid worlds are drier everywhere, wet worlds wetter.
+			private readonly double moistureShift;
+
+			public BiomeClimate(WorldCharacteristics wc, GameMap m) {
+				map = m;
+
+				// Without forceLowPointsAtPoles, since that would drag the
+				// noise at the poles toward the middle of the range.
+				temperatureNoise = new(seed: wc.mapSeed + 0xdad, width:wc.worldSize.width, height:wc.worldSize.height, scale:.4, forceLowPointsAtPoles:false);
+				moistureNoise = new(seed: wc.mapSeed + 0x3e7, width:wc.worldSize.width, height:wc.worldSize.height, scale:.3, forceLowPointsAtPoles:false);
+				temperaturePercentiles = NoisePercentiles(temperatureNoise);
+				moisturePercentiles = NoisePercentiles(moistureNoise);
+
+				latitudeShift = wc.temperature switch {
+					WorldCharacteristics.Temperature.Cool => 8,
+					WorldCharacteristics.Temperature.Temperate => 0,
+					WorldCharacteristics.Temperature.Warm => -8,
+					_ => throw new Exception($"Unknown temperature: {wc.temperature}"),
+				};
+				moistureShift = wc.climate switch {
+					WorldCharacteristics.Climate.Arid => -.08,
+					WorldCharacteristics.Climate.Normal => 0,
+					WorldCharacteristics.Climate.Wet => .08,
+					_ => throw new Exception($"Unknown climate: {wc.climate}"),
+				};
+			}
+
+			// The tile's distance from the equator, in degrees.
+			public double Latitude(Tile t) {
+				double normalizedY = (double)t.YCoordinate / (map.numTilesTall - 1.0);
+				return Math.Abs(90.0 - (normalizedY * 180.0));
+			}
+
+			// The latitude whose temperature this tile has: its real latitude,
+			// moved by the temperature setting and up to 12 degrees of noise.
+			public double EffectiveLatitude(Tile t) {
+				double noise = temperaturePercentiles[temperatureNoise.GetHeight(t.XCoordinate, t.YCoordinate)];
+				return Latitude(t) + latitudeShift + (noise - .5) * 24;
+			}
+
+			// Roughly 0 (dry) to 1 (wet), though latitude and climate can push
+			// it a bit past either end.
+			public double Moisture(Tile t) {
+				double noise = moisturePercentiles[moistureNoise.GetHeight(t.XCoordinate, t.YCoordinate)];
+				double latitude = EffectiveLatitude(t);
+				double belts = .25 * Bump(latitude, 0, 12)
+					- .35 * Bump(latitude, 25, 9)
+					+ .1 * Bump(latitude, 50, 15);
+				return noise + belts + moistureShift;
+			}
+
+			private static double Bump(double x, double centre, double width) {
+				double d = (x - centre) / width;
+				return Math.Exp(-d * d);
+			}
+
+			// Maps each noise value to the share of the map below it, so a
+			// noise map can be read as values spread evenly between 0 and 1.
+			public static double[] NoisePercentiles(HeightMap hm) {
+				int[] counts = new int[256];
+				for (int x = 0; x < hm.mapWidth; x++) {
+					for (int y = 0; y < hm.mapHeight; y++) {
+						++counts[hm.GetHeight(x, y)];
+					}
+				}
+
+				double total = hm.mapWidth * hm.mapHeight;
+				double[] result = new double[256];
+				int below = 0;
+				for (int i = 0; i < 256; i++) {
+					result[i] = (below + counts[i] / 2.0) / total;
+					below += counts[i];
+				}
+				return result;
+			}
+		}
+
 		private static Dictionary<int, List<Tile>> GroupTilesByBiomeRegion(GameMap m) {
 			Dictionary<int, List<Tile>> result = new();
 			foreach (Tile t in m.tiles) {
@@ -671,59 +718,45 @@ namespace C7Engine {
 			}
 		}
 
+		// Forest grows more readily on tundra than elsewhere: Civ3's maps have
+		// a lot of taiga.
+		private const double TUNDRA_FOREST_BONUS = .08;
+
 		private static void AddVegetation(WorldCharacteristics wc, GameMap m) {
 			TerrainType forest = wc.terrainTypes.Find(x => x.Key == "forest");
 			TerrainType jungle = wc.terrainTypes.Find(x => x.Key == "jungle");
 			TerrainType marsh = wc.terrainTypes.Find(x => x.Key == "marsh");
 
-			HeightMap hm = new(seed: wc.mapSeed + 0xabcde, width:wc.worldSize.width, height:wc.worldSize.height, scale:.3);
+			BiomeClimate climate = new(wc, m);
 
-			// For jungle we also rely on latitude, not just moisture.
-			int jungleLatitudeThreshold;
+			// Vegetation grows in patches: a blobby noise map sets how thick
+			// it is in each area, and a finer one breaks that up into smaller
+			// woods. A finer one again places the small marshes.
+			HeightMap growthNoise = new(seed: wc.mapSeed + 0xabcde, width:wc.worldSize.width, height:wc.worldSize.height, scale:.5, forceLowPointsAtPoles:false);
+			HeightMap patchNoise = new(seed: wc.mapSeed + 0x9a7c, width:wc.worldSize.width, height:wc.worldSize.height, scale:1.0, forceLowPointsAtPoles:false);
+			double[] growthPercentiles = BiomeClimate.NoisePercentiles(growthNoise);
+			double[] patchPercentiles = BiomeClimate.NoisePercentiles(patchNoise);
+			HeightMap marshNoise = new(seed: wc.mapSeed + 0x3a75, width:wc.worldSize.width, height:wc.worldSize.height, scale:1.2, forceLowPointsAtPoles:false);
+			int marshLevel = marshNoise.FindSeaLevel(94);
 
-			int forestLowerBound, forestUpperBound, forestProbability;
-			int jungleLowerBound, jungleUpperBound;
-			int marshLowerBound, marshUpperBound;
-
+			// Jungle only grows near the equator. Wetter worlds grow more of
+			// everything, and spread jungle further out.
+			double jungleLatitude, jungleThreshold, forestThreshold;
 			switch (wc.climate) {
 				case WorldCharacteristics.Climate.Wet:
-					jungleLatitudeThreshold = 30;
-
-					forestLowerBound = hm.FindSeaLevel(60);
-					forestUpperBound = hm.FindSeaLevel(93);
-					forestProbability = 30;
-
-					jungleLowerBound = hm.FindSeaLevel(15);
-					jungleUpperBound = hm.FindSeaLevel(35);
-
-					marshLowerBound = hm.FindSeaLevel(55);
-					marshUpperBound = hm.FindSeaLevel(60);
+					jungleLatitude = 20;
+					jungleThreshold = .64;
+					forestThreshold = .69;
 					break;
 				case WorldCharacteristics.Climate.Normal:
-					jungleLatitudeThreshold = 23;
-
-					forestLowerBound = hm.FindSeaLevel(65);
-					forestUpperBound = hm.FindSeaLevel(93);
-					forestProbability = 20;
-
-					jungleLowerBound = hm.FindSeaLevel(15);
-					jungleUpperBound = hm.FindSeaLevel(28);
-
-					marshLowerBound = hm.FindSeaLevel(55);
-					marshUpperBound = hm.FindSeaLevel(58);
+					jungleLatitude = 16;
+					jungleThreshold = .68;
+					forestThreshold = .73;
 					break;
 				case WorldCharacteristics.Climate.Arid:
-					jungleLatitudeThreshold = 20;
-
-					forestLowerBound = hm.FindSeaLevel(70);
-					forestUpperBound = hm.FindSeaLevel(93);
-					forestProbability = 10;
-
-					jungleLowerBound = hm.FindSeaLevel(15);
-					jungleUpperBound = hm.FindSeaLevel(20);
-
-					marshLowerBound = hm.FindSeaLevel(55);
-					marshUpperBound = hm.FindSeaLevel(56);
+					jungleLatitude = 12;
+					jungleThreshold = .74;
+					forestThreshold = .78;
 					break;
 				default:
 					throw new Exception($"Unknown climate: {wc.climate}");
@@ -736,20 +769,28 @@ namespace C7Engine {
 					continue;
 				}
 
-				int height = hm.GetHeight(t.XCoordinate, t.YCoordinate);
+				// Patches of growth, with more of it where it's wet, and a bit
+				// of randomness per tile so the patches have ragged edges.
+				double moisture = climate.Moisture(t);
+				double growth = .35 * growthPercentiles[growthNoise.GetHeight(t.XCoordinate, t.YCoordinate)]
+					+ .65 * patchPercentiles[patchNoise.GetHeight(t.XCoordinate, t.YCoordinate)]
+					+ (moisture - .5) * .25
+					+ (rand.NextDouble() - .5) * .1;
+				double latitude = climate.EffectiveLatitude(t);
+				string terrain = t.overlayTerrainType.Key;
 
-				// Figure out the latitude of this tile.
-				double normalizedY = (double)t.YCoordinate / (m.numTilesTall - 1.0);
-				double latitude = Math.Abs(90.0 - (normalizedY * 180.0));
-
-				if (height >= forestLowerBound && height < forestUpperBound && rand.Next(100) < forestProbability) {
-					// Forests can go on any terrain type.
-					t.overlayTerrainType = forest;
-				} else if (height >= jungleLowerBound && height < jungleUpperBound
-							&& latitude < jungleLatitudeThreshold && t.overlayTerrainType.Key == "grassland") {
+				// Jungle thins out toward the edge of its band instead of
+				// stopping at a line.
+				double jungleFade = Math.Max(0, latitude) / jungleLatitude;
+				if (terrain == "grassland" && latitude < jungleLatitude && growth > jungleThreshold + .12 * jungleFade * jungleFade) {
 					// We only put jungle on grassland.
 					t.overlayTerrainType = jungle;
-				} else if (height >= marshLowerBound && height < marshUpperBound && t.overlayTerrainType.Key == "grassland") {
+				} else if ((terrain == "grassland" || terrain == "plains" || terrain == "tundra")
+						&& growth > forestThreshold - (terrain == "tundra" ? TUNDRA_FOREST_BONUS : 0)) {
+					// Forests grow on anything but desert, including the
+					// taiga on the tundra.
+					t.overlayTerrainType = forest;
+				} else if (terrain == "grassland" && moisture > .4 && marshNoise.GetHeight(t.XCoordinate, t.YCoordinate) >= marshLevel) {
 					// We only put marsh on grassland.
 					t.overlayTerrainType = marsh;
 				}
