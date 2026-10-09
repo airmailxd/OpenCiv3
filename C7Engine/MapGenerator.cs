@@ -1090,54 +1090,243 @@ namespace C7Engine {
 			}
 		}
 
+		// The drainage threshold is picked so that about this share of the
+		// land borders a river.
+		private const int RIVER_LAND_PERCENT = 22;
+
+		// Rivers flowing into the sea or a lake shorter than this many tiles
+		// are thrown away, and so are tributaries shorter than this.
+		private const int MIN_RIVER_LENGTH = 3;
+		private const int MIN_TRIBUTARY_LENGTH = 2;
+
+		// Rivers only form where at least this many tiles drain, so the
+		// smallest islands get none.
+		private const int MIN_RIVER_DRAINAGE = 3;
+
+		// As in Civ3, rivers run from the highlands to the sea (or a lake),
+		// and merge with each other as tributaries instead of forking. Every
+		// land tile drains to a neighbor along the cheapest way to water,
+		// where hills and mountains are costly to cross and noise makes the
+		// way wander, so the land splits into basins. Rivers run where
+		// enough of the land drains through, which makes them converge into
+		// trees instead of running side by side to the coast.
 		private static void AddRivers(WorldCharacteristics wc, GameMap m) {
 			Random rand = new(wc.mapSeed + 0xabc12);
-			HeightMap hm = new(seed: wc.mapSeed + 0x21cba, width:wc.worldSize.width, height:wc.worldSize.height, scale:.1);
+			HeightMap hm = new(seed: wc.mapSeed + 0x21cba, width:wc.worldSize.width, height:wc.worldSize.height, scale:.1, forceLowPointsAtPoles: false);
 
-			// Find possible places for rivers to start and then shuffle them.
-			List<Tile> potentialSources = FindPotentialRiverSources(m);
-			rand.Shuffle<Tile>(CollectionsMarshal.AsSpan(potentialSources));
+			Dictionary<Tile, Tile> downstream = new();
+			List<Tile> drainOrder = FindDrainage(m, hm, rand, downstream);
 
-			// Cap the number of rivers based on the amount of land we have.
-			int totalTiles = m.tiles.Count;
-			int expectedLandTiles = (int)(totalTiles * (1 - (int)wc.oceanCoverage/100.0));
-			int maxRivers = (int)(expectedLandTiles / 100.0);
-			int riversStarted = 0;
+			// How many tiles drain through each tile, counting itself, and
+			// how many steps it is from water.
+			Dictionary<Tile, int> drainage = new();
+			for (int i = drainOrder.Count - 1; i >= 0; --i) {
+				Tile t = drainOrder[i];
+				drainage[t] = drainage.GetValueOrDefault(t) + 1;
+				drainage[downstream[t]] = drainage.GetValueOrDefault(downstream[t]) + drainage[t];
+			}
+			Dictionary<Tile, int> stepsToWater = new();
+			foreach (Tile t in drainOrder) {
+				stepsToWater[t] = stepsToWater.GetValueOrDefault(downstream[t]) + 1;
+			}
 
-			foreach (Tile t in potentialSources) {
-				if (riversStarted == maxRivers) {
-					break;
+			// Vary how much river each map gets by up to 2% of the land either
+			// way, so maps don't all feel the same.
+			int riverPerMille = RIVER_LAND_PERCENT * 10 + rand.Next(-20, 21);
+			int target = m.tiles.Count(t => t.IsLand()) * riverPerMille / 1000;
+			int drawSeed = rand.Next();
+
+			// Lower thresholds give more and longer rivers. Find the highest
+			// one that reaches the target, then keep whichever of it and the
+			// one above it comes closer.
+			List<int> thresholds = drainOrder.Select(t => drainage[t]).Where(d => d >= MIN_RIVER_DRAINAGE).Distinct().OrderByDescending(d => d).ToList();
+			if (thresholds.Count == 0) {
+				return;
+			}
+			Dictionary<int, int> riverLand = new();
+			int Draw(int i) {
+				if (!riverLand.TryGetValue(i, out int count)) {
+					count = riverLand[i] = DrawRivers(m, downstream, drainage, stepsToWater, thresholds[i], new Random(drawSeed));
 				}
+				return count;
+			}
+			int lo = 0;
+			int hi = thresholds.Count - 1;
+			while (lo < hi) {
+				int mid = (lo + hi) / 2;
+				if (Draw(mid) >= target) {
+					hi = mid;
+				} else {
+					lo = mid + 1;
+				}
+			}
+			int best = lo;
+			if (lo > 0 && target - Draw(lo - 1) < Draw(lo) - target) {
+				best = lo - 1;
+			}
+			DrawRivers(m, downstream, drainage, stepsToWater, thresholds[best], new Random(drawSeed));
+		}
 
-				// Some sources border a river after a previous river was added.
-				// Skip those.
-				if (t.BordersRiver()) {
+		// Finds where each land tile drains to, with a priority flood from
+		// all water across tile edges. Each land tile drains to the tile it
+		// was reached from, so all of them drain to water without pits.
+		// Returns the land tiles that reach water, downstream ones first.
+		private static List<Tile> FindDrainage(GameMap m, HeightMap hm, Random rand, Dictionary<Tile, Tile> downstream) {
+			// The cost of draining across each tile. Hills and mountains are
+			// where rivers start and basins divide.
+			Dictionary<Tile, int> stepCost = new();
+			foreach (Tile t in m.tiles) {
+				if (t.IsLand()) {
+					int terrain = t.overlayTerrainType.IsMountains ? 150 : t.overlayTerrainType.isHilly() ? 80 : 0;
+					stepCost[t] = 100 + terrain + hm.GetHeight(t.XCoordinate, t.YCoordinate) + rand.Next(100);
+				}
+			}
+
+			Dictionary<Tile, int> cost = new();
+			PriorityQueue<Tile, int> queue = new();
+			foreach (Tile t in m.tiles) {
+				if (!t.IsLand()) {
+					cost[t] = 0;
+					queue.Enqueue(t, 0);
+				}
+			}
+
+			List<Tile> result = new();
+			HashSet<Tile> done = new();
+			while (queue.TryDequeue(out Tile t, out int c)) {
+				if (!done.Add(t)) {
+					continue;
+				}
+				if (t.IsLand()) {
+					result.Add(t);
+				}
+				foreach (Tile neighbor in t.GetEdgeNeighbors()) {
+					if (!neighbor.IsLand() || done.Contains(neighbor)) {
+						continue;
+					}
+					int newCost = c + stepCost[neighbor];
+					if (!cost.TryGetValue(neighbor, out int oldCost) || newCost < oldCost) {
+						cost[neighbor] = newCost;
+						downstream[neighbor] = t;
+						queue.Enqueue(neighbor, newCost);
+					}
+				}
+			}
+			return result;
+		}
+
+		// Clears any rivers, then draws one along every tile that at least
+		// the threshold number of tiles drain through. The longest rivers are
+		// drawn first, then their tributaries down to where they join them.
+		// Returns the number of land tiles bordering a river.
+		private static int DrawRivers(GameMap m, Dictionary<Tile, Tile> downstream, Dictionary<Tile, int> drainage, Dictionary<Tile, int> stepsToWater,
+				int threshold, Random rand) {
+			foreach (Tile t in m.tiles) {
+				t.riverNortheast = t.riverNorthwest = t.riverSoutheast = t.riverSouthwest = false;
+			}
+
+			// Rivers start where no river drains into them.
+			HashSet<Tile> fed = new();
+			foreach ((Tile t, int d) in drainage) {
+				if (d >= threshold && t.IsLand()) {
+					fed.Add(downstream[t]);
+				}
+			}
+			List<Tile> heads = new();
+			foreach (Tile t in m.tiles) {
+				if (t.IsLand() && drainage.GetValueOrDefault(t) >= threshold && !fed.Contains(t)) {
+					heads.Add(t);
+				}
+			}
+			rand.Shuffle<Tile>(CollectionsMarshal.AsSpan(heads));
+
+			// Run each river up to its source, along the branch most of the
+			// land drains from, so that rivers start in the highlands instead
+			// of where they get big enough.
+			Dictionary<Tile, Tile> mainBranch = new();
+			foreach ((Tile t, int d) in drainage) {
+				if (t.IsLand() && (!mainBranch.TryGetValue(downstream[t], out Tile other) || drainage[other] < d)) {
+					mainBranch[downstream[t]] = t;
+				}
+			}
+			for (int i = 0; i < heads.Count; ++i) {
+				while (mainBranch.TryGetValue(heads[i], out Tile up)) {
+					heads[i] = up;
+				}
+			}
+			heads = heads.OrderByDescending(t => stepsToWater[t]).ToList();
+
+			HashSet<Tile> riverTiles = new();
+			foreach (Tile head in heads) {
+				// Follow the drainage until it reaches water or comes next to a
+				// river already drawn, which it joins. The last tile is the
+				// water or river tile it flows into.
+				List<Tile> river = new();
+				for (Tile t = head; ; t = downstream[t]) {
+					if (!t.IsLand()) {
+						river.Add(t);
+						break;
+					}
+					if (TouchesAny(t, riverTiles)) {
+						if (river.Count > 0) {
+							river.Add(t);
+							river.Add(JoinedRiverTile(t, downstream[t], riverTiles));
+						}
+						break;
+					}
+					river.Add(t);
+				}
+				if (river.Count == 0 || river.Count - 1 < (river[^1].IsLand() ? MIN_TRIBUTARY_LENGTH : MIN_RIVER_LENGTH)) {
 					continue;
 				}
 
-				TileDirection[] directions = {
-					TileDirection.NORTHEAST,
-					TileDirection.NORTHWEST,
-					TileDirection.SOUTHWEST,
-					TileDirection.SOUTHEAST,
-				};
-
-				TileDirection bestDir = TileDirection.NORTHEAST;
-				int bestScore = int.MinValue;
-
-				foreach (TileDirection dir in directions) {
-					int score = calculateRiverDescentScore(hm, t, dir);
-					if (score > bestScore) {
-						bestDir = dir;
-						bestScore = score;
-					}
+				// Usually start the drawn river from the far side of its source
+				// so it runs the full length of the tile, but not always.
+				List<(int x, int y)> corners = null;
+				if (rand.Next(100) < 60) {
+					corners = TraceRiverCorners(m, river, fromFarSide: true);
+				}
+				corners ??= TraceRiverCorners(m, river, fromFarSide: false);
+				if (corners == null) {
+					continue;
 				}
 
-				if (bestScore > int.MinValue) {
-					++riversStarted;
-					flowRiver(hm, rand, t, bestDir, depth: 0);
+				for (int i = 0; i + 1 < river.Count; ++i) {
+					riverTiles.Add(river[i]);
+				}
+				for (int i = 0; i + 1 < corners.Count; ++i) {
+					setRiverFlags(m, corners[i], corners[i + 1]);
 				}
 			}
+			return m.tiles.Count(t => t.IsLand() && t.BordersRiver());
+		}
+
+		// The river tile a river at t joins: the one it drains into if that
+		// has a river, else one sharing an edge with t, else one touching it.
+		private static Tile JoinedRiverTile(Tile t, Tile next, HashSet<Tile> riverTiles) {
+			if (riverTiles.Contains(next)) {
+				return next;
+			}
+			foreach (Tile neighbor in t.GetEdgeNeighbors()) {
+				if (riverTiles.Contains(neighbor)) {
+					return neighbor;
+				}
+			}
+			return t.neighbors.Values.First(riverTiles.Contains);
+		}
+
+		// Whether the tile is, or touches (including at a corner), any of the
+		// given tiles.
+		private static bool TouchesAny(Tile t, HashSet<Tile> tiles, Tile except1 = null, Tile except2 = null) {
+			if (tiles.Contains(t) && t != except1 && t != except2) {
+				return true;
+			}
+			foreach (Tile neighbor in t.neighbors.Values) {
+				if (neighbor != except1 && neighbor != except2 && tiles.Contains(neighbor)) {
+					return true;
+				}
+			}
+			return false;
 		}
 
 		// As in Civ3, a flood plain is a desert tile bordering a river: it
@@ -1156,196 +1345,151 @@ namespace C7Engine {
 			}
 		}
 
-		private static bool flowRiver(HeightMap hm, Random rand, Tile t, TileDirection incomingDir, int depth) {
-			// Don't let rivers get too long.
-			if (depth > 16) {
-				return false;
-			}
+		// Rivers run along tile edges, from corner to corner. A corner is
+		// given by map coordinates halfway between tiles: the tile at (x, y)
+		// has its north corner at (x, y - 1), east at (x + 1, y), south at
+		// (x, y + 1) and west at (x - 1, y). Neighboring corners differ by
+		// one in both x and y.
+		private static readonly (int dx, int dy)[] CornerSteps = { (1, -1), (-1, -1), (1, 1), (-1, 1) };
 
-			// We're done if we flowed into water or off the edge.
-			//
-			// TODO: This doesn't quite seem to avoid the problem of running
-			// alongside water.
-			if (t == Tile.NONE || !t.IsLand()) {
-				return false;
-			}
+		// Finds the shortest chain of corners that follows the river's tiles
+		// in order, from a corner of the source to a corner touching the
+		// water or the river it flows into, without touching water or another
+		// river on the way. Returns null if there is none.
+		// With fromFarSide, the chain only starts from the corners of the
+		// source facing away from the next river tile.
+		private static List<(int x, int y)> TraceRiverCorners(GameMap m, List<Tile> river, bool fromFarSide) {
+			Tile end = river[^1];
+			int lastOwn = river.Count - 2;
 
-			// Mark ourself as part of the river.
-			setRiverFlags(t, incomingDir, depth);
+			// The chain may also walk around the river it joins, until it
+			// meets that river's edges.
+			int lastWalkable = end.IsLand() ? river.Count - 1 : lastOwn;
 
-			// Figure out which way to flow next.
-			// We use +6 to avoid mods of negative numbers.
-			TileDirection[] options = {
-				(TileDirection)(((int)incomingDir + 6) % 8), // left
-				(TileDirection)(((int)incomingDir + 2) % 8), // right
-				incomingDir, // center
-			};
-			int[] scores = {
-				calculateRiverDescentScore(hm, t, options[0]),
-				calculateRiverDescentScore(hm, t, options[1]),
-				calculateRiverDescentScore(hm, t, options[2]),
-			};
-
-			int bestScore = int.MinValue;
-			int bestIndex = 0;
-			for (int i = 0; i < 3; ++i) {
-				if (scores[i] > bestScore) {
-					bestIndex = i;
-					bestScore = scores[i];
+			// Each state is a corner and the index of the river tile it is a
+			// corner of.
+			Dictionary<(int x, int y, int i), (int x, int y, int i)> cameFrom = new();
+			Queue<(int x, int y, int i)> queue = new();
+			foreach ((int x, int y) corner in CornersOf(m, river[0])) {
+				if (fromFarSide && IsCornerOf(m, corner, river[1])) {
+					continue;
+				}
+				if (!CornerTouchesWater(m, corner) && !CornerOnRiver(m, corner)) {
+					cameFrom[(corner.x, corner.y, 0)] = (0, 0, -1);
+					queue.Enqueue((corner.x, corner.y, 0));
 				}
 			}
 
-			if (bestScore == int.MinValue) {
-				return false; // no flow happened.
-			}
+			while (queue.Count > 0) {
+				(int x, int y, int i) state = queue.Dequeue();
+				foreach ((int dx, int dy) in CornerSteps) {
+					// Only follow edges between two land tiles.
+					Tile a = m.tileAt(state.x + dx, state.y);
+					Tile b = m.tileAt(state.x, state.y + dy);
+					if (a == Tile.NONE || b == Tile.NONE || !a.IsLand() || !b.IsLand()) {
+						continue;
+					}
 
-			// Flow in the main direction.
-			bool flowed = flowRiver(hm, rand, t.neighbors[options[bestIndex]], options[bestIndex], depth + 1);
+					(int x, int y) next = (m.wrapTileX(state.x + dx), state.y + dy);
+					for (int j = state.i; j <= Math.Min(state.i + 1, lastWalkable); ++j) {
+						if (!IsCornerOf(m, next, river[j]) || cameFrom.ContainsKey((next.x, next.y, j))) {
+							continue;
+						}
+						cameFrom[(next.x, next.y, j)] = state;
 
-			// See if there's a second valid flow direction.
-			int secondBestScore = int.MinValue;
-			int secondBestIndex = 0;
+						bool reachedWater = j >= lastOwn && CornerTouchesWater(m, next);
+						if (reachedWater || CornerOnRiver(m, next)) {
+							List<(int x, int y)> result = new();
+							for ((int x, int y, int i) s = (next.x, next.y, j); s.i >= 0; s = cameFrom[s]) {
+								result.Add((s.x, s.y));
+							}
+							result.Reverse();
+							return result;
+						}
 
-			for (int i = 0; i < 3; ++i) {
-				if (scores[i] > secondBestScore && i != bestIndex) {
-					secondBestIndex = i;
-					secondBestScore = scores[i];
+						if (!CornerTouchesWater(m, next)) {
+							queue.Enqueue((next.x, next.y, j));
+						}
+					}
 				}
 			}
-
-			if (secondBestScore == int.MinValue) {
-				return flowed;
-			}
-
-			// Only branch if the second best direction is close to the first
-			// best direction, with some random chance mixed in.
-			if (bestScore < secondBestScore + 30 && rand.Next(100) < 33) {
-				flowed |= flowRiver(hm, rand, t.neighbors[options[secondBestIndex]], options[secondBestIndex], depth + 1);
-			}
-
-			return flowed;
+			return null;
 		}
 
-		// This is super hacky and needs to be improved. The general idea is to
-		// prefer to use the SW and SE edges as the river primary edges.
-		//
-		// Things that need to be improved:
-		//   - when corners are turned, sometimes we get a dangly edge
-		//   - the N S E W river flags aren't set
-		private static void setRiverFlags(Tile t, TileDirection incomingDir, int depth) {
-			//             <      >
-			//         <  NW  ><  NE  >
-			//     <      >< Tile ><      >
-			//         <  SW  ><  SE  >
-			//             <      >
-			//
+		private static (int x, int y)[] CornersOf(GameMap m, Tile t) {
+			int x = t.XCoordinate;
+			int y = t.YCoordinate;
+			return new[] { (x, y - 1), (m.wrapTileX(x + 1), y), (x, y + 1), (m.wrapTileX(x - 1), y) };
+		}
+
+		// The up to four tiles meeting at a corner.
+		private static Tile[] TilesAtCorner(GameMap m, (int x, int y) corner) {
+			return new[] {
+				m.tileAt(corner.x, corner.y - 1),
+				m.tileAt(corner.x + 1, corner.y),
+				m.tileAt(corner.x, corner.y + 1),
+				m.tileAt(corner.x - 1, corner.y),
+			};
+		}
+
+		private static bool IsCornerOf(GameMap m, (int x, int y) corner, Tile t) {
+			return TilesAtCorner(m, corner).Contains(t);
+		}
+
+		private static bool CornerTouchesWater(GameMap m, (int x, int y) corner) {
+			return TilesAtCorner(m, corner).Any(t => t != Tile.NONE && !t.IsLand());
+		}
+
+		// Whether any river edge already ends at the corner.
+		private static bool CornerOnRiver(GameMap m, (int x, int y) corner) {
+			foreach ((int dx, int dy) in CornerSteps) {
+				Tile a = m.tileAt(corner.x + dx, corner.y);
+				if (a != Tile.NONE && a.HasRiverCrossing(EdgeDirection(-dx, dy))) {
+					return true;
+				}
+			}
+			return false;
+		}
+
+		// The direction of the tile one step (dx, dy) away, for diagonal steps.
+		private static TileDirection EdgeDirection(int dx, int dy) {
+			if (dy < 0) {
+				return dx > 0 ? TileDirection.NORTHEAST : TileDirection.NORTHWEST;
+			}
+			return dx > 0 ? TileDirection.SOUTHEAST : TileDirection.SOUTHWEST;
+		}
+
+		// Marks the edge between two neighboring corners as a river, on both
+		// tiles that share it.
+		private static void setRiverFlags(GameMap m, (int x, int y) from, (int x, int y) to) {
+			int dx = to.x - from.x;
+			int dy = to.y - from.y;
+
+			// Undo the world wrap.
+			if (Math.Abs(dx) > 1) {
+				dx = -Math.Sign(dx);
+			}
+
+			// The two tiles sharing the edge are off to the side of it, so
+			// from one to the other is the step (-dx, dy).
+			Tile a = m.tileAt(from.x + dx, from.y);
+			Tile b = m.tileAt(from.x, from.y + dy);
+			SetRiverFlag(a, EdgeDirection(-dx, dy));
+			SetRiverFlag(b, EdgeDirection(dx, -dy));
+		}
+
+		private static void SetRiverFlag(Tile t, TileDirection direction) {
 			// Neighbors off the edge of the map are Tile.NONE, which is shared
 			// by every map, so flags must never be set on it.
-			Tile se = Neighbor(t, TileDirection.SOUTHEAST);
-			Tile sw = Neighbor(t, TileDirection.SOUTHWEST);
-			if (incomingDir == TileDirection.SOUTHWEST) {
-				t.riverSoutheast = true;
-				if (se != Tile.NONE) {
-					se.riverNorthwest = true;
-				}
-			} else if (incomingDir == TileDirection.NORTHWEST) {
-				t.riverSouthwest = true;
-				if (sw != Tile.NONE) {
-					sw.riverNortheast = true;
-				}
-
-				if (se != Tile.NONE && se.riverSoutheast) {
-					se.riverSouthwest = true;
-					Tile seSw = Neighbor(se, TileDirection.SOUTHWEST);
-					if (seSw != Tile.NONE) {
-						seSw.riverNortheast = true;
-					}
-				}
-			} else if (incomingDir == TileDirection.NORTHEAST) {
-				t.riverSoutheast = true;
-				if (se != Tile.NONE) {
-					se.riverNorthwest = true;
-				}
-
-				if (sw != Tile.NONE && sw.riverSouthwest) {
-					sw.riverSoutheast = true;
-					Tile swSe = Neighbor(sw, TileDirection.SOUTHEAST);
-					if (swSe != Tile.NONE) {
-						swSe.riverNorthwest = true;
-					}
-				}
-			} else if (incomingDir == TileDirection.SOUTHEAST) {
-				t.riverSouthwest = true;
-				if (sw != Tile.NONE) {
-					sw.riverNortheast = true;
-				}
+			if (t == Tile.NONE) {
+				return;
 			}
-		}
-
-		// The neighbor in the given direction, or Tile.NONE if there is none.
-		private static Tile Neighbor(Tile t, TileDirection direction) {
-			return t.neighbors.Get(direction) ?? Tile.NONE;
-		}
-
-		private static int calculateRiverDescentScore(HeightMap hm, Tile t, TileDirection direction) {
-			Tile neighbor = t.neighbors[direction];
-
-			// Invalid tiles and tiles with rivers shouldn't get new rivers.
-			if (neighbor == Tile.NONE || neighbor.BordersRiver()) {
-				return int.MinValue;
+			switch (direction) {
+				case TileDirection.NORTHEAST: t.riverNortheast = true; break;
+				case TileDirection.NORTHWEST: t.riverNorthwest = true; break;
+				case TileDirection.SOUTHEAST: t.riverSoutheast = true; break;
+				case TileDirection.SOUTHWEST: t.riverSouthwest = true; break;
 			}
-
-			TileDirection[] neighborNeighborDirs = {
-				(TileDirection)(((int)direction + 6) % 8), // left
-				(TileDirection)(((int)direction + 2) % 8), // right
-				direction, // center
-			};
-			foreach (TileDirection dir in neighborNeighborDirs) {
-				if (neighbor.neighbors[dir].BordersRiver()) {
-					return int.MinValue;
-				}
-			}
-
-			// Flowing into water is highly encouraged.
-			if (!neighbor.IsLand()) {
-				return 1000;
-			}
-			foreach (TileDirection dir in neighborNeighborDirs) {
-				if (!neighbor.neighbors[dir].IsLand()) {
-					return 500;
-				}
-			}
-
-			// Compute a score based on the heigh difference, where the neighbor
-			// being lower results in a better score.
-			int currentHeight = hm.GetHeight(t.XCoordinate, t.YCoordinate);
-			int neighborHeight = hm.GetHeight(neighbor.XCoordinate, neighbor.YCoordinate);
-			return neighborHeight - currentHeight;
-		}
-
-		// Find hilly/mountainous tiles that don't border water.
-		private static List<Tile> FindPotentialRiverSources(GameMap m) {
-			List<Tile> result = new();
-			foreach (Tile t in m.tiles) {
-				if (!t.overlayTerrainType.isHilly()) {
-					continue;
-				}
-
-				bool neighborsWater = false;
-				foreach (Tile neighbor in t.neighbors.Values) {
-					if (!neighbor.IsLand()) {
-						neighborsWater = true;
-						break;
-					}
-				}
-				if (neighborsWater) {
-					continue;
-				}
-
-				result.Add(t);
-			}
-
-			return result;
 		}
 
 		private static void FixContinentalShelf(WorldCharacteristics wc, GameMap m) {
