@@ -22,6 +22,23 @@
     <PackageReference Include="Microsoft.TestPlatform.ObjectModel" Version="18.5.1" />
     <PackageReference Include="Xunit.SkippableFact" Version="1.5.61" />
   </ItemGroup>
+
+  <!--
+    SixLabors.ImageSharp 3.1.12 has five advisories that are only fixed in
+    4.x, which needs a Six Labors license key to build in Release. The tests
+    only draw images in memory and save them as PNGs (DebugImages,
+    HeightMapTest, MapGeneratorTest), and none of the vulnerable code is
+    reached: ICC/BigTIFF decoding, TIFF CCITT T4/T6 encoding and
+    HistogramEqualization. So the package stays on 3.1.12 and these warnings
+    are silenced. Revisit if the tests start reading images.
+  -->
+  <ItemGroup>
+    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-gwg2-r3hj-4w44" />
+    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-j3p4-wp97-rph4" />
+    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-j9gm-c75j-xc9q" />
+    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-jjfr-hcj7-qf5w" />
+    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-wmxv-xphr-5c9g" />
+  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\C7Engine\C7Engine.csproj" />
     <ProjectReference Include="..\ConvertCiv3Media\ConvertCiv3Media.csproj" />
