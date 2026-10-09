@@ -1271,6 +1271,17 @@ public partial class Game : Node {
 				EmitSignal(SignalName.UnitMoved, new ParameterWrapper<MapUnit>(mTU.Unit));
 				break;
 			case MsgDisplayAbandonCityPopup mDACP:
+				// The menu greys the order out for a city that can't be
+				// abandoned (e.g. our only one), but explain if it gets here.
+				string cannotAbandon = null;
+				EngineStorage.ReadGameData((GameData gameData) => {
+					cannotAbandon = CityInteractions.WhyCannotAbandon(mDACP.city.owner, mDACP.city);
+				});
+				if (cannotAbandon != null) {
+					popupOverlay.ShowPopup(new InformationalPopup(cannotAbandon, AdvisorHead.Advisor.Domestic, AdvisorHead.Mood.Sad),
+						PopupOverlay.PopupCategory.Advisor);
+					break;
+				}
 				popupOverlay.ShowPopup(
 					new ConfirmationPopup(
 						$"Are you sure you want to abandon {mDACP.city.name}?",

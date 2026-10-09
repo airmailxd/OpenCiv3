@@ -77,6 +77,10 @@ namespace C7GameData.Save {
 		public ID resistanceFrom;
 		// Production was hurried this turn and can't be changed until it ends.
 		public bool hurriedThisTurn;
+		// The city was given a cleared forest's shields since it last
+		// completed something, so it can't switch to a wonder. Older saves
+		// lack it, and those cities may.
+		public bool receivedForestShields;
 		public List<SaveCityResident> residents = new List<SaveCityResident>();
 		public List<SaveCityBuilding> buildings = [];
 		public List<SaveQueuedProducible> productionQueue = [];
@@ -106,6 +110,7 @@ namespace C7GameData.Save {
 			resisters = city.resisters;
 			resistanceFrom = city.resistanceFrom?.id;
 			hurriedThisTurn = city.hurriedThisTurn;
+			receivedForestShields = city.receivedForestShields;
 			residents = city.residents.ConvertAll(resident => {
 				return new SaveCityResident {
 					nationality = resident.nationality?.name,
@@ -223,6 +228,7 @@ namespace C7GameData.Save {
 				resisters = resisters,
 				resistanceFrom = Lookups.Find(lookups.playersById, resistanceFrom),
 				hurriedThisTurn = hurriedThisTurn,
+				receivedForestShields = receivedForestShields,
 				capital = capital,
 				constructed_buildings = [],
 			};

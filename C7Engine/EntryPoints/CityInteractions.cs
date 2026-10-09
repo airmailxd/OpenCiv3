@@ -31,6 +31,7 @@ namespace C7Engine {
 
 			CityResident firstResident = new CityResident();
 			firstResident.city = newCity;
+			firstResident.nationality = owner.civilization;
 			firstResident.citizenType = gameData.citizenTypes.Find(x => x.IsDefaultCitizen);
 			newCity.AddCitizen(firstResident);
 
@@ -136,6 +137,10 @@ namespace C7Engine {
 		internal static void ReassignAllCitizens(GameData gameData, City city) {
 			CitizenType defaultCitizen = gameData.citizenTypes.Find(x => x.IsDefaultCitizen);
 			List<Civilization> nationalities = city.residents.Select(r => r.nationality ?? city.owner.civilization).ToList();
+			// The resisters are the last citizens, and stay so (see
+			// City.StartResistance).
+			int resisters = city.resisters;
+			Player resistanceFrom = city.resistanceFrom;
 			city.RemoveAllCitizens();
 
 			// Nothing the assignments depend on changes while the citizens
@@ -151,6 +156,8 @@ namespace C7Engine {
 				city.AddCitizen(newResident);
 				CityTileAssignmentAI.AssignNewCitizenToTile(gameData, newResident, manageMoods: true, context);
 			}
+			city.resisters = resisters;
+			city.resistanceFrom = resistanceFrom;
 		}
 
 		// Changes a specialist to the next kind of specialist its owner knows.
@@ -211,6 +218,12 @@ namespace C7Engine {
 				city.RemoveCitizens(1);
 			}
 
+			// Citizens of unknown nationality (e.g. from older saves) are
+			// taken to be the old owner's, so that they may resist.
+			foreach (CityResident r in city.residents) {
+				r.nationality ??= oldOwner.civilization;
+			}
+
 			// The palace and small wonders don't survive a change of owner,
 			// great wonders always do, and other buildings may be destroyed.
 			foreach (CityBuilding cb in city.constructed_buildings.ToList()) {
@@ -233,6 +246,8 @@ namespace C7Engine {
 			city.isInCivilDisorder = false;
 			city.hurriedThisTurn = false;
 			city.SetStoredShields(0);
+			// With its shields gone, so are any from a cleared forest.
+			city.receivedForestShields = false;
 
 			gameData.UpdateTileOwners();
 			BarbarianInteractions.DisperseCampsWithinBorders(gameData);
@@ -246,7 +261,10 @@ namespace C7Engine {
 			new MsgCityCaptured(city, oldOwner).send();
 			if (captor.isHuman) {
 				new MsgShowMilitaryAdvisorPopup(captor, $"We have captured {city.name} and plundered {plunder} gold!", happy: true).send();
-				new MsgDisplayRazeCityPopup(captor, city).send();
+				// A captor can't raze what is now their only city.
+				if (MayAbandon(captor, city, gameData)) {
+					new MsgDisplayRazeCityPopup(captor, city).send();
+				}
 			}
 			if (oldOwner.isHuman) {
 				new MsgShowMilitaryAdvisorPopup(oldOwner, $"{city.name} has fallen to the {captor.civilization.noun}!", happy: false).send();
@@ -265,7 +283,8 @@ namespace C7Engine {
 		// incited to revolt: unlike a capture it keeps its citizens and
 		// buildings, except the palace and small wonders, which belong to the
 		// old owner's empire. As in Civ3, the old owner's units in it join the
-		// new owner along with the city.
+		// new owner along with the city. A city changing hands this way, like
+		// one ceded in a peace deal, doesn't resist, per the project owner.
 		public static void TransferCity(City city, Player newOwner) {
 			GameData gameData = EngineStorage.gameData;
 			Player oldOwner = city.owner;
@@ -317,12 +336,21 @@ namespace C7Engine {
 		// the cities you want to remove, and you'll get a pop-up menu that
 		// has 'Abandon city' way down at the bottom of the menu"
 		// (https://forums.civfanatics.com/threads/getting-rid-of-unwanted-cities.353125/).
-		//
-		// UNVERIFIED (no Civ3 source found): whether Civ3 lets a player
-		// abandon their last city. As before the check was added, it may be
-		// (the UI asks first).
+		// A player may never abandon their only city, per the project owner.
 		public static bool MayAbandon(Player player, City city, GameData gameData) {
-			return city.owner == player;
+			return WhyCannotAbandon(player, city) == null;
+		}
+
+		// Why the player may not abandon the city, for the UI to show, or
+		// null if they may.
+		public static string WhyCannotAbandon(Player player, City city) {
+			if (city == null || city.owner != player) {
+				return "It is not our city.";
+			}
+			if (player.cities.Count <= 1) {
+				return "We cannot abandon our only city.";
+			}
+			return null;
 		}
 
 		private static void MovePalaceAfterLosingCapital(Player player, Tile oldCapitalLocation) {

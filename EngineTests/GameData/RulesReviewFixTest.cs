@@ -97,6 +97,33 @@ public class RulesReviewFixTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(gameData.rules.ShieldValueInGold * s, city.GetHurryProductionDetails().goldCost);
 	}
 
+	// Per the project owner, the citizens a pop rush costs are rounded to
+	// the nearest whole number, not up.
+	[Fact]
+	public void PopRushingRoundsToTheNearestCitizen() {
+		Assert.Equal(1, City.PopRushCost(29, 20));
+		Assert.Equal(2, City.PopRushCost(30, 20));
+		Assert.Equal(2, City.PopRushCost(49, 20));
+		Assert.Equal(3, City.PopRushCost(50, 20));
+		// Never free.
+		Assert.Equal(1, City.PopRushCost(5, 20));
+
+		City city = BuildCity(us);
+		for (int i = 0; i < 7; ++i) {
+			AddResident(city, us.civilization);
+		}
+		us.government.hurryingType = Government.HurryProductionType.ForcedLabor;
+		Building temple = BuildingNamed("Temple");
+		city.SetItemBeingProduced(temple);
+		int perCitizen = gameData.rules.CitizenValueInShields;
+		// Just over one and a half citizens' worth of shields still needed.
+		city.SetStoredShields(us.ShieldCost(temple) - (perCitizen + perCitizen / 2 + 1));
+		Assert.Equal(2, city.GetHurryProductionDetails().popCost);
+		// Just under.
+		city.SetStoredShields(us.ShieldCost(temple) - (perCitizen + perCitizen / 2 - 1));
+		Assert.Equal(1, city.GetHurryProductionDetails().popCost);
+	}
+
 	// ---- Gold ----
 
 	[Fact]
@@ -293,13 +320,111 @@ public class RulesReviewFixTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(them.id, loadedCity.resistanceFrom.id);
 	}
 
+	// Per the project owner, resistance goes on after the old owner is
+	// destroyed.
 	[Fact]
-	public void ResistanceEndsWhenTheOldOwnerIsGone() {
+	public void ResistanceGoesOnAfterTheOldOwnerIsGone() {
 		City city = CapturedCity();
+		int resisters = city.resisters;
 		them.defeated = true;
+		foreach (MapUnit u in city.location.unitsOnTile.ToList()) {
+			u.RemoveFromPlay();
+		}
 		city.UpdateResistance(gameData);
+		Assert.Equal(resisters, city.resisters);
+		Assert.Equal(them, city.resistanceFrom);
+	}
+
+	// Makes every random roll come out as 0, so every chance comes true.
+	private class ZeroRandom : System.Random {
+		protected override double Sample() => 0.0;
+	}
+
+	private void AddResident(City city, Civilization nationality) {
+		city.AddCitizen(new CityResident() {
+			city = city,
+			nationality = nationality,
+			citizenType = gameData.citizenTypes.Find(x => x.IsDefaultCitizen),
+		});
+	}
+
+	// Per the project owner, every citizen not of the captor's nationality
+	// may resist, not only the old owner's.
+	[Fact]
+	public void EveryForeignCitizenMayResist() {
+		Player third = gameData.players.First(p => !p.isBarbarians && p != us && p != them);
+		BuildCity(them);
+		City city = BuildCity(them);
+		AddResident(city, third.civilization);
+		AddResident(city, us.civilization);
+		AddResident(city, us.civilization);
+		AddResident(city, them.civilization);
+		// Capturing takes the last citizen.
+		AddResident(city, them.civilization);
+		CityInteractions.CaptureCity(city, us);
+		Assert.Equal(5, city.residents.Count);
+
+		gameData.random = new ZeroRandom();
+		city.StartResistance(them);
+		// Two of theirs and one of the third civ's; ours don't.
+		Assert.Equal(3, city.resisters);
+		Assert.All(city.WorkingResidents(), r => Assert.Equal(us.civilization, r.nationality));
+		Assert.All(city.residents.Skip(2), r => Assert.NotEqual(us.civilization, r.nationality));
+
+		// A new citizen doesn't resist.
+		AddResident(city, us.civilization);
+		Assert.Equal(3, city.resisters);
+		Assert.Equal(3, city.WorkingResidents().Count());
+		Assert.All(city.WorkingResidents(), r => Assert.Equal(us.civilization, r.nationality));
+	}
+
+	// Per the project owner, a civ's last city doesn't resist when taken.
+	[Fact]
+	public void ALastCityDoesNotResist() {
+		foreach (City c in them.cities.ToList()) {
+			CityInteractions.DestroyCity(c);
+		}
+		City city = BuildCity(them);
+		AddResident(city, them.civilization);
+		AddResident(city, them.civilization);
+		AddResident(city, them.civilization);
+		CityInteractions.CaptureCity(city, us);
+		Assert.Empty(them.cities);
+
+		gameData.random = new ZeroRandom();
+		city.StartResistance(them);
 		Assert.False(city.IsInResistance);
-		Assert.Null(city.resistanceFrom);
+	}
+
+	// ---- We Love the King Day ----
+
+	// In Conquests a celebration lowers waste only: "For waste calculations
+	// only, when the city is in a WLTKD celebration, divide da by 2" and
+	// "add OCN/4 to Nopt"
+	// (https://civfanatics.com/civ3/strategy/game-mechanics/everything-about-corruption-c3c-edition/).
+	[Fact]
+	public void CelebrationsHalveTheDistanceAndRaiseTheOptimalCityNumberForWasteOnly() {
+		gameData.rules.CoreCitiesFreeOfCorruption = false;
+		BuildCity(us);
+		City city = BuildCity(us);
+		int adjusted = us.GetAdjustedOptimalCityNumber(gameData);
+		// Some rank corruption, but not up to the cap.
+		city.rankIndex = adjusted;
+		city.CalculateCorruption(gameData, adjusted);
+		Assert.True(city.corruption > 0);
+
+		float distance = city.CalculateDistanceCorruption(gameData, 0);
+		Assert.Equal(distance / 2, city.CalculateDistanceCorruption(gameData, 1), 5);
+		// One "courthouse" raises Nopt by OCN/4.
+		float rank = city.CalculateRankCorruption(adjusted, gameData.map.optimalNumberOfCities, 1);
+		float expected = System.Math.Clamp((distance / 2 + rank) * City.CorruptionScale, 0, 0.9f);
+		Assert.Equal(expected, city.celebrationWaste, 5);
+		Assert.True(city.celebrationWaste < city.corruption);
+
+		// Commerce is corrupted the same either way.
+		CommerceBreakdown before = city.CurrentCommerceYieldRaw();
+		city.celebrating = true;
+		Assert.Equal(before.corrupted, city.CurrentCommerceYieldRaw().corrupted);
 	}
 
 	// ---- Difficulty ----
@@ -363,21 +488,78 @@ public class RulesReviewFixTest : IClassFixture<SaveGameFixture> {
 
 	// ---- Barbarians ----
 
-	[Fact]
-	public void BarbariansPlunderGoldOrElseACitizen() {
-		City city = BuildCity(us);
-		for (int i = 0; i < 3; ++i) {
-			city.AddCitizen(new CityResident() { city = city, nationality = us.civilization, citizenType = gameData.citizenTypes.Find(x => x.IsDefaultCitizen) });
-		}
-		us.gold = 500;
-		Assert.Equal(125, city.SackedByBarbarians());
-		Assert.Equal(375, us.gold);
-		Assert.Equal(4, city.residents.Count);
+	// Rolls the given number for every Next(max), and 0 otherwise.
+	private class FixedRandom(int roll) : System.Random {
+		public override int Next(int maxValue) => System.Math.Min(roll, maxValue - 1);
+		protected override double Sample() => 0.0;
+	}
 
-		// Nothing to plunder: the city loses a citizen.
-		us.gold = 0;
-		Assert.Equal(0, city.SackedByBarbarians());
+	private City CityToSack(int size) {
+		City city = BuildCity(us);
+		for (int i = 1; i < size; ++i) {
+			AddResident(city, us.civilization);
+		}
+		return city;
+	}
+
+	// Per the project owner: gold 40, citizens 30, production 30, out of
+	// what's possible.
+	[Fact]
+	public void BarbariansStealAnEighthOfTheTreasury() {
+		City city = CityToSack(size: 4);
+		city.SetStoredShields(10);
+		us.gold = 500;
+		gameData.random = new FixedRandom(39);
+		Assert.Equal(new City.BarbarianSack(City.BarbarianSackOutcome.Gold, 62), city.SackedByBarbarians());
+		Assert.Equal(438, us.gold);
+		Assert.Equal(4, city.residents.Count);
+		Assert.Equal(10, city.shieldsStored);
+	}
+
+	[Fact]
+	public void BarbariansKillACitizen() {
+		City city = CityToSack(size: 4);
+		city.SetStoredShields(10);
+		us.gold = 500;
+		gameData.random = new FixedRandom(40);
+		Assert.Equal(City.BarbarianSackOutcome.Citizens, city.SackedByBarbarians().outcome);
+		Assert.Equal(500, us.gold);
 		Assert.Equal(3, city.residents.Count);
+		Assert.Equal(10, city.shieldsStored);
+	}
+
+	[Fact]
+	public void BarbariansDestroyStoredProduction() {
+		City city = CityToSack(size: 4);
+		city.SetStoredShields(10);
+		us.gold = 500;
+		gameData.random = new FixedRandom(70);
+		Assert.Equal(new City.BarbarianSack(City.BarbarianSackOutcome.Production, 10), city.SackedByBarbarians());
+		Assert.Equal(500, us.gold);
+		Assert.Equal(4, city.residents.Count);
+		Assert.Equal(0, city.shieldsStored);
+	}
+
+	// What isn't possible isn't rolled for: no gold (an eighth of 7 is
+	// nothing), a size 1 city, and no shields stored.
+	[Fact]
+	public void BarbariansOnlyDoWhatTheyCan() {
+		City city = CityToSack(size: 1);
+		us.gold = 7;
+		city.SetStoredShields(0);
+		Assert.Equal(City.BarbarianSackOutcome.Nothing, city.SackedByBarbarians().outcome);
+		Assert.Equal(7, us.gold);
+		Assert.Single(city.residents);
+
+		// Only production is possible, whatever the roll.
+		city.SetStoredShields(5);
+		gameData.random = new FixedRandom(0);
+		Assert.Equal(City.BarbarianSackOutcome.Production, city.SackedByBarbarians().outcome);
+
+		// Only a citizen.
+		AddResident(city, us.civilization);
+		Assert.Equal(City.BarbarianSackOutcome.Citizens, city.SackedByBarbarians().outcome);
+		Assert.Single(city.residents);
 	}
 
 	// ---- Captives ----

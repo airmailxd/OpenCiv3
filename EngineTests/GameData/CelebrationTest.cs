@@ -50,11 +50,14 @@ public class CelebrationTest {
 		Assert.False(city.QualifiesForCelebration(rules));
 	}
 
+	// Celebrating cities waste shields at the lower celebration rate (see
+	// City.CalculateCorruption and RulesReviewFixTest).
 	[Fact]
-	public void CelebratingCitiesWasteHalfAsManyShields() {
+	public void CelebratingCitiesWasteFewerShields() {
 		City city = MakeCity(new Government(), CityResident.Mood.Happy);
 		city.residents[0].tileWorked.overlayTerrainType.baseShieldProduction = 9;
 		city.corruption = 0.5f;
+		city.celebrationWaste = 0.25f;
 
 		CorruptableValue normal = city.CurrentProductionYield();
 		city.celebrating = true;

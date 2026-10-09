@@ -106,6 +106,11 @@ namespace C7GameData {
 		// The amount of corruption, between 0 and 1.
 		public float corruption = 0;
 
+		// The share of shields wasted while celebrating "We Love the King
+		// Day", between 0 and 1: less than corruption (see
+		// CalculateCorruption). Commerce is corrupted as usual.
+		public float celebrationWaste = 0;
+
 		// The number of turns of unhappiness this city will experience due to
 		// pop rushing. Larger values result in larger numbers of citizens being
 		// unhappy as well, in addition to the time penalty.
@@ -113,10 +118,11 @@ namespace C7GameData {
 
 		public bool isInCivilDisorder = false;
 
-		// Resistance in a conquered city: the number of citizens still loyal
-		// to resistanceFrom, the civ it was taken from. As in Civ3 resisters
-		// work no tile and eat nothing, and the city can't hurry. See
-		// StartResistance and UpdateResistance.
+		// Resistance in a conquered city: the number of citizens still
+		// resisting, who are the last ones in residents, and resistanceFrom,
+		// the civ it was taken from. As in Civ3 resisters work no tile and
+		// eat nothing, and the city can't hurry. See StartResistance and
+		// UpdateResistance.
 		public int resisters = 0;
 		public Player resistanceFrom;
 
@@ -127,6 +133,12 @@ namespace C7GameData {
 		// building until the turn ends, so the hurried shields can't be
 		// moved to something else.
 		public bool hurriedThisTurn = false;
+
+		// Whether the city has been given the shields of a cleared forest
+		// since it last completed something. Per the project owner, it then
+		// can't switch to a wonder, so chopped shields never go into one
+		// (see Tile.MaybeAwardForestClearingShields).
+		public bool receivedForestShields = false;
 
 		// Whether the city is celebrating "We Love the King Day".
 		public bool celebrating = false;
@@ -178,18 +190,63 @@ namespace C7GameData {
 				new MsgShowMilitaryAdvisorPopup(owner, message, happy: false).send();
 		}
 
-		// Whether the player may switch production to the item. Production
-		// hurried this turn is locked in.
+		// Whether the player may switch production to the item.
 		public bool CanChangeProduction(IProducible producible) {
-			return !hurriedThisTurn || producible == itemBeingProduced;
+			return WhyCannotChangeProduction(producible) == null;
+		}
+
+		// Why the player may not switch production to the item, or null if
+		// they may. Production hurried this turn is locked in, and a city
+		// given a cleared forest's shields can't switch to a wonder until it
+		// has completed something, per the project owner.
+		public string WhyCannotChangeProduction(IProducible producible) {
+			if (producible == itemBeingProduced) {
+				return null;
+			}
+			if (hurriedThisTurn) {
+				return "Production was hurried this turn";
+			}
+			if (receivedForestShields && IsWonder(producible)) {
+				return "Forest shields can't go to a wonder";
+			}
+			return null;
+		}
+
+		public static bool IsWonder(IProducible producible) {
+			return producible is Building b && (b.IsGreatWonder() || b.isSmallWonder);
+		}
+
+		// The stored shields that would be lost by switching production to
+		// the item: Civ3 has no penalty for switching between categories,
+		// per the project owner, but shields beyond the new item's cost
+		// don't carry over.
+		public int ShieldsLostByChangingTo(IProducible producible) {
+			if (producible == null || producible == itemBeingProduced) {
+				return 0;
+			}
+			return Math.Max(0, shieldsStored - owner.ShieldCost(producible));
+		}
+
+		// A short note for the production picker on what switching to the
+		// item would mean, or null if nothing: why it can't be chosen, or
+		// how many shields would be wasted.
+		public string ProductionChangeWarning(IProducible producible) {
+			string reason = WhyCannotChangeProduction(producible);
+			if (reason != null) {
+				return reason;
+			}
+			int lost = ShieldsLostByChangingTo(producible);
+			return lost > 0 ? $"{lost} shield{(lost == 1 ? "" : "s")} will be wasted" : null;
 		}
 
 		// Changes production at the player's request. Stored shields carry over
 		// to the new item, as in Civ 3, but any beyond its cost are lost.
-		// Returns false if production was hurried this turn and can't change.
+		// Returns false if production can't change to it (see
+		// WhyCannotChangeProduction).
 		public bool ChangeProduction(IProducible producible) {
-			if (!CanChangeProduction(producible)) {
-				log.Information("Not changing production in {City}: it was hurried this turn", this);
+			string reason = WhyCannotChangeProduction(producible);
+			if (reason != null) {
+				log.Information("Not changing production in {City} to {Producible}: {Reason}", this, producible, reason);
 				return false;
 			}
 			ChooseProduction(producible);
@@ -199,6 +256,21 @@ namespace C7GameData {
 
 		public bool IsCapital() {
 			return capital;
+		}
+
+		// Whether a cleared forest's shields may go to this city: not while
+		// it builds a wonder, per the project owner, or something that can't
+		// hold shields.
+		public bool CanReceiveForestShields() {
+			return itemBeingProduced != null && !IsWonder(itemBeingProduced) && owner.ShieldCost(itemBeingProduced) > 0;
+		}
+
+		// Adds a cleared forest's shields to the production box, up to the
+		// item's cost. The city then can't switch to a wonder until it has
+		// completed something (see WhyCannotChangeProduction).
+		public void AddForestShields(int shields) {
+			shieldsStored = Math.Min(shieldsStored + shields, owner.ShieldCost(itemBeingProduced));
+			receivedForestShields = true;
 		}
 
 		/// <summary>
@@ -464,6 +536,14 @@ namespace C7GameData {
 			return ShieldCostForHurrying() * owner.rules.ShieldValueInGold;
 		}
 
+		// The citizens it costs to hurry the given number of shields: the
+		// BIQ's shields per citizen, rounded to the nearest whole citizen
+		// (halves up) per the project owner, but never none.
+		internal static int PopRushCost(int shields, int citizenValueInShields) {
+			int citizens = (int)Math.Round((double)shields / Math.Max(1, citizenValueInShields), MidpointRounding.AwayFromZero);
+			return Math.Max(1, citizens);
+		}
+
 		// Returns the feasibility of hurrying production
 		public class HurryProductionDetails {
 			public string? errorMessage;
@@ -506,7 +586,7 @@ namespace C7GameData {
 					return new HurryProductionDetails() { errorMessage = "We cannot hurry production with this government." };
 
 				case Government.HurryProductionType.ForcedLabor:
-					int popCost = (int)Math.Ceiling((float)shieldCost / rules.CitizenValueInShields);
+					int popCost = PopRushCost(shieldCost, rules.CitizenValueInShields);
 					if (popCost > residents.Count / 2f) {
 						return new HurryProductionDetails() { errorMessage = $"Hurrying production would take the lives of too many citizens ({popCost})." };
 					}
@@ -572,6 +652,9 @@ namespace C7GameData {
 			}
 
 			log.Debug("Produced {ProducedItem} in {City}", producedItem, this);
+			if (producedItem is not Inflow) {
+				receivedForestShields = false;
+			}
 			if (producedItem is UnitPrototype prototype) {
 				AddUnit(prototype, gameData);
 			} else if (producedItem is Building building) {
@@ -921,8 +1004,8 @@ namespace C7GameData {
 				yield += r.tileWorked.ProductionYield(this, buildings).yield;
 			}
 			yield *= YieldMultiplier();
-			// A celebrating city wastes half as many shields.
-			CorruptableValue result = new(yield, celebrating ? corruption / 2 : corruption);
+			// A celebrating city wastes fewer shields (see CalculateCorruption).
+			CorruptableValue result = new(yield, celebrating ? celebrationWaste : corruption);
 
 			// Using our value of corruption, figure out how much useful
 			// production we have to work with. Special case anarchy, where no
@@ -1152,6 +1235,13 @@ namespace C7GameData {
 			return result;
 		}
 
+		// Whether one of the owner's wonders provides the building to this
+		// city (as the Pyramids may a granary), whether or not it was also
+		// built here.
+		public bool IsProvidedByWonders(Building building) {
+			return GetEffectiveBuildingsCache().providedByWonders.Contains(building);
+		}
+
 		public int MaintenanceCostsRaw() {
 			EffectiveBuildingsCache cache = GetEffectiveBuildingsCache();
 			bool commercialUpkeepPaid = cache.wonders.paysTradeMaintenance;
@@ -1186,25 +1276,77 @@ namespace C7GameData {
 			return CurrentFoodYield() - FoodConsumedPerTurn();
 		}
 
+		// What barbarians entering a city did to it.
+		public enum BarbarianSackOutcome {
+			// The city had nothing they could take.
+			Nothing,
+			// They stole gold from the owner's treasury.
+			Gold,
+			// They killed some of its citizens.
+			Citizens,
+			// They destroyed the shields stored towards its production.
+			Production,
+		}
+
+		public record struct BarbarianSack(BarbarianSackOutcome outcome, int amount);
+
+		// The chance of each thing barbarians entering a city may do, weighed
+		// slightly towards stealing gold, per the project owner. Only what
+		// they can do in the city is rolled for.
+		internal const int BarbarianGoldWeight = 40;
+		internal const int BarbarianCitizensWeight = 30;
+		internal const int BarbarianProductionWeight = 30;
+
 		// Barbarians entering the city. In Civ3 they don't take cities: "The
 		// barbs plunder the city (steal gold) or sabotage production. If they
 		// don't find anything to plunder, the population of the city is
 		// reduced by one point" (Civinator,
 		// https://forums.civfanatics.com/threads/barbarian-cities-in-civ-3.646253/).
-		// Returns the gold taken, or 0 if a citizen was lost instead.
 		//
-		// UNVERIFIED (no Civ3 source found): how much gold they take (a
-		// quarter of the owner's treasury, as before), when they sabotage
-		// production instead (never, here), and whether a size 1 city with
-		// nothing to plunder loses anything (it doesn't, here).
-		public int SackedByBarbarians() {
-			int goldTaken = owner.gold / 4;
-			if (goldTaken > 0) {
-				owner.gold -= goldTaken;
-			} else {
-				RemoveRandomCitizen();
+		// Per the project owner, each entry does one of three things, at
+		// random among those possible: take an eighth of the owner's
+		// treasury (if that is any gold), kill a citizen (if the city has
+		// two or more; one, as in the quote above) or destroy the shields
+		// stored towards its production (if there are any). With none
+		// possible, nothing happens.
+		public BarbarianSack SackedByBarbarians() {
+			int gold = owner.gold / 8;
+			List<(BarbarianSackOutcome outcome, int weight)> possible = new();
+			if (gold > 0) {
+				possible.Add((BarbarianSackOutcome.Gold, BarbarianGoldWeight));
 			}
-			return goldTaken;
+			if (residents.Count >= 2) {
+				possible.Add((BarbarianSackOutcome.Citizens, BarbarianCitizensWeight));
+			}
+			if (shieldsStored > 0) {
+				possible.Add((BarbarianSackOutcome.Production, BarbarianProductionWeight));
+			}
+			if (possible.Count == 0) {
+				return new BarbarianSack(BarbarianSackOutcome.Nothing, 0);
+			}
+
+			int roll = GameData.rng.Next(possible.Sum(p => p.weight));
+			BarbarianSackOutcome outcome = possible[^1].outcome;
+			foreach ((BarbarianSackOutcome o, int weight) in possible) {
+				if (roll < weight) {
+					outcome = o;
+					break;
+				}
+				roll -= weight;
+			}
+
+			switch (outcome) {
+				case BarbarianSackOutcome.Gold:
+					owner.gold -= gold;
+					return new BarbarianSack(outcome, gold);
+				case BarbarianSackOutcome.Citizens:
+					RemoveRandomCitizen();
+					return new BarbarianSack(outcome, 1);
+				default:
+					int shields = shieldsStored;
+					shieldsStored = 0;
+					return new BarbarianSack(outcome, shields);
+			}
 		}
 
 		// Resisters don't eat (see StartResistance).
@@ -1221,16 +1363,35 @@ namespace C7GameData {
 		// (although they also don't require any food)", and the city can't
 		// rush anything. No one resists for the barbarians.
 		//
-		// UNVERIFIED (no Civ3 source found): which citizens resist. The
-		// article says each citizen may; we let them all roll, whatever
-		// their nationality, and take the last ones in the city as the
-		// resisters, working no tile and making nothing as specialists.
+		// Per the project owner, every citizen who isn't of the captor's
+		// nationality may resist, whichever civ they come from, and a civ's
+		// last city doesn't resist when it is taken. Cities that change hands
+		// peacefully (see CityInteractions.TransferCity) never resist. The
+		// resisters are moved to the end of residents, keeping their order.
 		public void StartResistance(Player formerOwner) {
+			EndResistance();
 			if (formerOwner == null || formerOwner.isBarbarians || formerOwner == owner) {
 				return;
 			}
+			// The city was the old owner's last.
+			if (formerOwner.cities.Count == 0) {
+				return;
+			}
 			int chance = ResistancePercent(formerOwner, continuing: false);
-			resisters = residents.Count(_ => GameData.rng.Next(100) < chance);
+			List<CityResident> loyal = new();
+			List<CityResident> resisting = new();
+			foreach (CityResident r in residents) {
+				bool foreign = r.nationality != null && r.nationality != owner.civilization;
+				if (foreign && GameData.rng.Next(100) < chance) {
+					resisting.Add(r);
+				} else {
+					loyal.Add(r);
+				}
+			}
+			residents.Clear();
+			residents.AddRange(loyal);
+			residents.AddRange(resisting);
+			resisters = resisting.Count;
 			resistanceFrom = resisters > 0 ? formerOwner : null;
 		}
 
@@ -1304,13 +1465,13 @@ namespace C7GameData {
 		// non-ground and/or non-combat units cannot quell resistors"; we
 		// count land units that can attack and defend. Source as above.
 		//
-		// UNVERIFIED (no Civ3 source found): resistance also ends if the old
-		// owner is gone or has the city back.
+		// Per the project owner, resistance goes on after the old owner is
+		// destroyed. It ends if the old owner has the city back.
 		public void UpdateResistance(GameData gameData) {
 			if (resisters <= 0) {
 				return;
 			}
-			if (resistanceFrom == null || resistanceFrom.defeated || resistanceFrom == owner) {
+			if (resistanceFrom == null || resistanceFrom == owner) {
 				EndResistance();
 				return;
 			}
@@ -1354,12 +1515,21 @@ namespace C7GameData {
 		}
 
 		private void RemoveCitizenAt(int index) {
+			// A resister lost leaves one fewer resisting.
+			if (resisters > 0 && index >= residents.Count - ResistersInCity()) {
+				--resisters;
+				if (resisters == 0) {
+					EndResistance();
+				}
+			}
 			residents[index].tileWorked.personWorkingTile = null;
 			residents.RemoveAt(index);
 		}
 
+		// New citizens don't resist, so they go in ahead of the resisters
+		// (see StartResistance).
 		public void AddCitizen(CityResident cr) {
-			residents.Add(cr);
+			residents.Insert(residents.Count - ResistersInCity(), cr);
 		}
 
 		public void RemoveCitizens(int number) {
@@ -1579,7 +1749,7 @@ namespace C7GameData {
 		}
 
 		// See https://forums.civfanatics.com/threads/everything-about-corruption-c3c-edition.76619/
-		private float CalculateDistanceCorruption(GameData gameData, int numAntiCorruptionBuildings) {
+		internal float CalculateDistanceCorruption(GameData gameData, int numAntiCorruptionBuildings) {
 			float maxD = (location.map.numTilesWide + location.map.numTilesTall) / 4;
 
 			float distanceToPalace = owner.citiesWithCorruptionWonders.Min(x => location.RankDistanceTo(x.location));
@@ -1665,6 +1835,19 @@ namespace C7GameData {
 			// Policemen are applied to the corrupt amounts themselves, see
 			// RecoverWithPolicemen.
 
+			// We Love the King Day lowers waste, not corruption: "For waste
+			// calculations only, when the city is in a WLTKD celebration,
+			// divide da by 2" and "add OCN/4 to Nopt"
+			// (https://civfanatics.com/civ3/strategy/game-mechanics/everything-about-corruption-c3c-edition/;
+			// "WLTKD does nothing for corruption, the loss of commerce",
+			// https://forums.civfanatics.com/threads/we-love-the-king-days.34249/).
+			// That is what one more courthouse does to each part, without
+			// lowering the cap below. It is worked out whether or not the city
+			// is celebrating, since that can change before the next update.
+			celebrationWaste = (CalculateDistanceCorruption(gameData, numAntiCorruptionBuildings + 1)
+					+ CalculateRankCorruption(adjustedOptimalCityNumber, gameData.map.optimalNumberOfCities, numAntiCorruptionBuildings + 1))
+					* CorruptionScale;
+
 			// Corruption maxes out at 90%, and this max can be reduced further
 			// via courthouses/police stations, and the forbidden palace/SPHQ.
 			float maxCorruption = Math.Max(
@@ -1672,12 +1855,14 @@ namespace C7GameData {
 				.9f - (.1f * numAntiCorruptionBuildings + .7f * numCorruptionReducingSmallWondersInCity));
 			corruption = Math.Max(corruption, 0);
 			corruption = Math.Min(corruption, maxCorruption);
+			celebrationWaste = Math.Clamp(celebrationWaste, 0, maxCorruption);
 
 			// The capital is rank 0, so the next CitiesFreeOfCorruption
 			// cities nearest it are ranks 1 to CitiesFreeOfCorruption.
 			Rules rules = gameData.rules;
 			if (rules != null && rules.CoreCitiesFreeOfCorruption && rankIndex <= rules.CitiesFreeOfCorruption) {
 				corruption = 0;
+				celebrationWaste = 0;
 			}
 		}
 

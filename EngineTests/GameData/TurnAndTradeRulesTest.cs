@@ -156,9 +156,22 @@ public class TurnAndTradeRulesTest : IDisposable {
 
 	[Fact]
 	public void OnlyTheOwnerMayAbandonACity() {
+		us.cities.Clear();
 		City capital = new(Tile.NONE, us, "Capital", ID.None("city"));
+		City other = new(Tile.NONE, us, "Other", ID.None("city"));
 		us.cities.Add(capital);
+		us.cities.Add(other);
 		Assert.True(CityInteractions.MayAbandon(us, capital, gameData));
 		Assert.False(CityInteractions.MayAbandon(them, capital, gameData));
+	}
+
+	// Per the project owner, a player's only city can't be abandoned.
+	[Fact]
+	public void TheOnlyCityCannotBeAbandoned() {
+		us.cities.Clear();
+		City capital = new(Tile.NONE, us, "Capital", ID.None("city"));
+		us.cities.Add(capital);
+		Assert.False(CityInteractions.MayAbandon(us, capital, gameData));
+		Assert.NotNull(CityInteractions.WhyCannotAbandon(us, capital));
 	}
 }

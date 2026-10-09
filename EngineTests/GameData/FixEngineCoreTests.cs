@@ -230,7 +230,10 @@ public class FixEngineCoreGameTests : IClassFixture<SaveGameFixture>, IDisposabl
 	private readonly Player us;
 	private readonly Player them;
 
+	private readonly SaveGameFixture fixture;
+
 	public FixEngineCoreGameTests(SaveGameFixture fixture) {
+		this.fixture = fixture;
 		gameData = fixture.saveGame.ToGameData(fixture.behaviors);
 		EngineStorage.InitializeGameDataForTests(gameData);
 		EngineStorage.animationsEnabled = false;
@@ -335,19 +338,92 @@ public class FixEngineCoreGameTests : IClassFixture<SaveGameFixture>, IDisposabl
 	}
 
 	[Fact]
-	public async Task BuiltWallsAreBombardedFirst() {
+	public async Task BuiltWallsAreBombardedFirstByLandUnits() {
 		(City city, MapUnit catapult) = SetUpBombard(size: 2);
 		Building walls = Walls();
 		city.AddBuilding(walls);
-		city.AddBuilding(GreatWall());
 		MapUnit defender = Spawn(them, "Spearman", city.location);
 		int hitPoints = defender.hitPointsRemaining;
 
 		await BombardOnce(catapult, city.location);
 		Assert.DoesNotContain(city.constructed_buildings, cb => cb.building == walls);
 		Assert.Equal(hitPoints, defender.hitPointsRemaining);
-		// The Great Wall's walls remain.
+	}
+
+	// Per the project owner, what a wonder provides can't be bombarded, so
+	// walls built in a city the Great Wall also gives walls to stay.
+	[Fact]
+	public async Task WallsAWonderAlsoProvidesAreNotBombarded() {
+		(City city, MapUnit catapult) = SetUpBombard(size: 1);
+		Building walls = Walls();
+		city.AddBuilding(walls);
+		city.AddBuilding(GreatWall());
+		Assert.True(city.IsProvidedByWonders(walls));
+
+		// Size 1 with nothing else to hit: nothing is destroyed.
+		for (int i = 0; i < 20; i++) {
+			await BombardOnce(catapult, city.location);
+		}
+		Assert.Contains(city.constructed_buildings, cb => cb.building == walls);
 		Assert.Contains(city.GetBuildings(), cb => cb.building.providesWalls);
+	}
+
+	// Per the project owner, ships and planes don't hit walls first: they
+	// hit the units, and then the walls like any other building.
+	[Fact]
+	public async Task ShipsHitWallsLikeAnyOtherBuilding() {
+		(City city, MapUnit catapult) = SetUpBombard(size: 1);
+		Building walls = Walls();
+		city.AddBuilding(walls);
+		UnitPrototype shipType = gameData.unitPrototypes.First(p => p.IsSeaUnit() && p.bombard > 0);
+		shipType.bombard = 1_000_000;
+		gameData.SpawnUnit(us, shipType, catapult.location);
+		MapUnit ship = catapult.location.unitsOnTile.Last();
+		Assert.False(ship.IsLandUnit());
+
+		MapUnit defender = Spawn(them, "Spearman", city.location);
+		int hitPoints = defender.hitPointsRemaining;
+		await BombardOnce(ship, city.location);
+		Assert.True(defender.hitPointsRemaining < hitPoints);
+		Assert.Contains(city.constructed_buildings, cb => cb.building == walls);
+
+		// With no units, the walls are the only building it can hit, and
+		// the city's only citizen can't be.
+		defender.RemoveFromPlay();
+		await BombardOnce(ship, city.location);
+		Assert.DoesNotContain(city.constructed_buildings, cb => cb.building == walls);
+		Assert.Single(city.residents);
+	}
+
+	// Per the project owner, bombardment never kills a unit, even with the
+	// BIQ's lethal bombardment flag: units are hit down to their last hit
+	// point, and then the city is.
+	[Fact]
+	public async Task BombardmentNeverKillsUnits() {
+		(City city, MapUnit catapult) = SetUpBombard(size: 3);
+		catapult.unitType.isLandBombardmentLethal = true;
+		catapult.unitType.rateOfFire = 10;
+		MapUnit defender = Spawn(them, "Spearman", city.location);
+
+		// With its rate of fire, one bombardment takes the defender down to
+		// its last hit point, but no further, and leaves the city alone.
+		Assert.True(defender.hitPointsRemaining <= catapult.unitType.rateOfFire);
+		await BombardOnce(catapult, city.location);
+		Assert.Contains(defender, city.location.unitsOnTile);
+		Assert.Equal(1, defender.hitPointsRemaining);
+		Assert.Equal(3, city.residents.Count);
+
+		// Nothing left to hit but the city: a citizen goes (there is no
+		// building it can hit).
+		await BombardOnce(catapult, city.location);
+		Assert.Equal(1, defender.hitPointsRemaining);
+		Assert.Equal(2, city.residents.Count);
+
+		// Population never drops below 1.
+		for (int i = 0; i < 10; i++) {
+			await BombardOnce(catapult, city.location);
+		}
+		Assert.Single(city.residents);
 	}
 
 	[Fact]
@@ -406,6 +482,87 @@ public class FixEngineCoreGameTests : IClassFixture<SaveGameFixture>, IDisposabl
 		forest.MaybeAwardForestClearingShields(them);
 		Assert.Equal(0, ours.shieldsStored);
 		Assert.Equal(0, theirs.shieldsStored);
+	}
+
+	// Per the project owner, chopped shields never go to a wonder: they go
+	// to the next city in range that isn't building one, which then can't
+	// switch to a wonder until it has completed something.
+	[Fact]
+	public void ForestShieldsGoToTheNextCityNotBuildingAWonder() {
+		City ours = FoundCity(us, SettlerTile(us));
+		Tile forest = ours.location.neighbors[TileDirection.EAST];
+		Tile secondSite = forest.neighbors[TileDirection.NORTHEAST];
+		secondSite.baseTerrainType = ours.location.baseTerrainType;
+		City second = FoundCity(us, secondSite);
+		forest.owningCity = ours;
+		Assert.True(second.location.RankDistanceTo(forest) <= gameData.rules.MaxRankOfWorkableTiles);
+
+		UnitPrototype warrior = gameData.unitPrototypes.First(p => p.name == "Warrior");
+		Building temple = gameData.Buildings.First(b => b.name == "Temple");
+		Building wonder = gameData.Buildings.First(b => b.IsGreatWonder());
+		ours.SetItemBeingProduced(wonder);
+		second.SetItemBeingProduced(temple);
+		ours.SetStoredShields(0);
+		second.SetStoredShields(0);
+
+		forest.hasHadForestCleared = false;
+		forest.MaybeAwardForestClearingShields(us);
+		int awarded = System.Math.Min(gameData.rules.ForestValueInShields, us.ShieldCost(temple));
+		Assert.Equal(0, ours.shieldsStored);
+		Assert.Equal(awarded, second.shieldsStored);
+		Assert.False(ours.receivedForestShields);
+		Assert.True(second.receivedForestShields);
+
+		// The city given them can't switch to a wonder, but can to
+		// anything else.
+		Assert.False(second.CanChangeProduction(wonder));
+		Assert.NotNull(second.ProductionChangeWarning(wonder));
+		Assert.True(second.CanChangeProduction(warrior));
+
+		// The flag survives a save.
+		C7GameData.GameData loaded = SaveGame.FromGameData(gameData).ToGameData(fixture.behaviors);
+		Assert.True(loaded.cities.Single(c => c.id == second.id).receivedForestShields);
+		Assert.False(loaded.cities.Single(c => c.id == ours.id).receivedForestShields);
+
+		// Completing something lifts it.
+		second.SetStoredShields(us.ShieldCost(temple));
+		second.HandleCityProduction(gameData);
+		Assert.False(second.receivedForestShields);
+		Assert.True(second.CanChangeProduction(wonder));
+
+		// With every city in range building a wonder, the shields are lost.
+		second.SetItemBeingProduced(wonder);
+		second.SetStoredShields(0);
+		forest.hasHadForestCleared = false;
+		forest.MaybeAwardForestClearingShields(us);
+		Assert.Equal(0, ours.shieldsStored);
+		Assert.Equal(0, second.shieldsStored);
+	}
+
+	// Per the project owner, shields carry over in full when switching,
+	// with no penalty between categories, but those beyond the new item's
+	// cost are lost, and the picker says how many.
+	[Fact]
+	public void SwitchingProductionWarnsOfWastedShields() {
+		City city = FoundCity(us, SettlerTile(us));
+		UnitPrototype warrior = gameData.unitPrototypes.First(p => p.name == "Warrior");
+		Building temple = gameData.Buildings.First(b => b.name == "Temple");
+		city.SetItemBeingProduced(temple);
+		int stored = us.ShieldCost(warrior) + 3;
+		city.SetStoredShields(stored);
+
+		Assert.Equal(3, city.ShieldsLostByChangingTo(warrior));
+		Assert.Equal("3 shields will be wasted", city.ProductionChangeWarning(warrior));
+		Assert.Null(city.ProductionChangeWarning(temple));
+
+		// A building to a unit: everything up to the unit's cost carries
+		// over.
+		Assert.True(city.ChangeProduction(warrior));
+		Assert.Equal(us.ShieldCost(warrior), city.shieldsStored);
+		// And back: nothing more is lost.
+		Assert.Equal(0, city.ShieldsLostByChangingTo(temple));
+		Assert.True(city.ChangeProduction(temple));
+		Assert.Equal(us.ShieldCost(warrior), city.shieldsStored);
 	}
 
 	[Fact]

@@ -84,7 +84,7 @@ public partial class ProductionMenu : Civ3TextureRect {
 		}
 		if (sameOptions) {
 			foreach (var (item, option) in itemMapping) {
-				item.SetText(1, $"{city.TurnsToProduce(option)} turns");
+				SetItemText(item, option);
 			}
 			return;
 		}
@@ -107,16 +107,8 @@ public partial class ProductionMenu : Civ3TextureRect {
 		TreeItem root = TradingTree.CreateTreeRoot(tree);
 
 		foreach (IProducible option in options) {
-			int buildTime = city.TurnsToProduce(option);
-
 			TreeItem child = tree.CreateItem(root);
-			string text = $"{option.name}";
-			if (option is UnitPrototype proto) {
-				string attackDesc = (proto.bombard > 0) ? $"{proto.attack}({proto.bombard})" : proto.attack.ToString();
-				text += $" {attackDesc}.{proto.defense}.{proto.movement}";
-			}
-			child.SetText(0, text);
-			child.SetText(1, $"{buildTime} turns");
+			SetItemText(child, option);
 			child.SetIcon(0, RightClickChooseProductionMenu.GetProducibleIcon(option, city.owner));
 			child.SetCustomMinimumHeight(40);
 			child.SetAutowrapMode(0, TextServer.AutowrapMode.WordSmart);
@@ -130,6 +122,32 @@ public partial class ProductionMenu : Civ3TextureRect {
 					}
 				}).CallDeferred();
 			}
+		}
+	}
+
+	// Shows the option's name, build time and, before the player switches
+	// to it, how many stored shields switching would waste (or why it
+	// can't be chosen).
+	private void SetItemText(TreeItem item, IProducible option) {
+		string text = $"{option.name}";
+		if (option is UnitPrototype proto) {
+			string attackDesc = (proto.bombard > 0) ? $"{proto.attack}({proto.bombard})" : proto.attack.ToString();
+			text += $" {attackDesc}.{proto.defense}.{proto.movement}";
+		}
+		string warning = city.ProductionChangeWarning(option);
+		if (warning != null) {
+			text += $"\n({warning})";
+		}
+		item.SetText(0, text);
+		item.SetTooltipText(0, warning ?? "");
+		item.SetText(1, $"{city.TurnsToProduce(option)} turns");
+		bool blocked = !city.CanChangeProduction(option);
+		item.SetSelectable(0, !blocked);
+		item.SetSelectable(1, !blocked);
+		if (warning != null) {
+			item.SetCustomColor(0, blocked ? Colors.DimGray : Colors.DarkRed);
+		} else {
+			item.ClearCustomColor(0);
 		}
 	}
 
