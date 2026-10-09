@@ -18,7 +18,9 @@ using Godot;
 public partial class DoubleClickHandler : Node {
 	int leftMouseButtonClickCount = 0;
 	InputEventMouseButton lastEventMouseButton;
-	const double DOUBLE_CLICK_DELAY = 0.2;
+	// About as long as most systems allow between the clicks of a double
+	// click, which is also how long a single click on a city waits.
+	const double DOUBLE_CLICK_DELAY = 0.35;
 
 	Timer timer = new();
 
@@ -43,6 +45,12 @@ public partial class DoubleClickHandler : Node {
 		} else {
 			timer.Start(DOUBLE_CLICK_DELAY);
 		}
+	}
+
+	// Forgets a click that turned into something else, like a drag.
+	public void Cancel() {
+		timer.Stop();
+		leftMouseButtonClickCount = 0;
 	}
 
 	private void OnTimeout() {

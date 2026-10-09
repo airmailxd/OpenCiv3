@@ -1792,9 +1792,9 @@ public partial class Game : Node {
 			IsMovingCamera = true;
 
 			if (CanDoubleClick(eventMouseButton)) {
-				doubleClickHandler.Accept(eventMouseButton);
+				AcceptPossibleDoubleClick(eventMouseButton);
 			} else {
-				OnSingleLeftMouseButtonClick(eventMouseButton);
+				HandleSingleClick(PositionToTile(eventMouseButton.Position));
 			}
 		} else {
 			IsMovingCamera = false;
@@ -1838,10 +1838,27 @@ public partial class Game : Node {
 			return;
 		}
 		if (CanDoubleClick(eventMouseButton)) {
-			doubleClickHandler.Accept(eventMouseButton);
+			AcceptPossibleDoubleClick(eventMouseButton);
 		} else {
-			HandleUnitSelectionTileClick(eventMouseButton);
+			HandleUnitSelectionTileClick(tile);
 		}
+	}
+
+	// The tile pressed on and where, for a click that may turn out to be
+	// the first of a double click. The click is only handled once it's
+	// clear that it isn't, by which time the map may have been dragged, so
+	// the tile is the one under the mouse when it was pressed.
+	private Tile pendingClickTile;
+	private Vector2 pendingClickPosition;
+
+	// How far the mouse may move before a press is a drag of the map rather
+	// than a click.
+	private const float ClickSlop = 8;
+
+	private void AcceptPossibleDoubleClick(InputEventMouseButton eventMouseButton) {
+		pendingClickTile = PositionToTile(eventMouseButton.Position);
+		pendingClickPosition = eventMouseButton.Position;
+		doubleClickHandler.Accept(eventMouseButton);
 	}
 
 	// Ends a drag whose release the map didn't see, without moving the unit.
@@ -1865,12 +1882,18 @@ public partial class Game : Node {
 		return gotoInfo == null && tile?.cityAtTile != null && (tile.cityAtTile.owner == controller || LanSession.IsSpectator);
 	}
 
+	// Called by the double click handler once a click turned out to be single.
 	private void OnSingleLeftMouseButtonClick(InputEventMouseButton eventMouseButton) {
+		Tile tile = pendingClickTile ?? PositionToTile(eventMouseButton.Position);
+		pendingClickTile = null;
+		HandleSingleClick(tile);
+	}
+
+	private void HandleSingleClick(Tile tile) {
 		if (gotoInfo != null) {
 			this.ResolveMovement(gotoInfo);
 			this.SetGotoMode(false);
 		} else if (bombardInfo != null) {
-			Tile tile = PositionToTile(eventMouseButton.Position);
 			if (Tile.IsTileValid(tile) && bombardInfo.bombardingUnit.CanBombardTile(tile, out var bombardTarget)) {
 				bombardInfo.bombardTarget = bombardTarget;
 				HandleBombardClick(bombardInfo, tile);
@@ -1878,12 +1901,13 @@ public partial class Game : Node {
 			setBombard(null);
 		} else {
 			// Select unit on tile at mouse location
-			HandleUnitSelectionTileClick(eventMouseButton);
+			HandleUnitSelectionTileClick(tile);
 		}
 	}
 
 	private void OnDoubleLeftMouseButtonClick(InputEventMouseButton eventMouseButton) {
-		Tile tile = PositionToTile(eventMouseButton.Position);
+		Tile tile = pendingClickTile ?? PositionToTile(eventMouseButton.Position);
+		pendingClickTile = null;
 		if (tile?.cityAtTile != null && LanSession.IsSpectator) {
 			// A spectator looks at the game as the city's owner, so the city
 			// screen and the advisors show that civilization.
@@ -1898,8 +1922,7 @@ public partial class Game : Node {
 		}
 	}
 
-	private void HandleUnitSelectionTileClick(InputEventMouseButton eventMouseButton) {
-		Tile tile = PositionToTile(eventMouseButton.Position);
+	private void HandleUnitSelectionTileClick(Tile tile) {
 		if (!Tile.IsTileValid(tile)) {
 			return;
 		}
@@ -1923,17 +1946,15 @@ public partial class Game : Node {
 			return;
 		}
 
-		SelectUnit(unit, eventMouseButton.Position);
+		SelectUnit(unit, tile);
 	}
 
-	private void SelectUnit(MapUnit unit, Vector2 screenPosition) {
+	private void SelectUnit(MapUnit unit, Tile tile) {
 		bool canMove = unitSelector.SetSelectedUnit(unit);
 
 		if (unit.WorkerJob != null) {
 			return;
 		}
-
-		Tile tile = PositionToTile(screenPosition);
 
 		if (!canMove && Tile.IsTileValid(tile)) {
 			new MsgShowTemporaryPopup("This unit has already moved.", tile).send();
@@ -1941,8 +1962,7 @@ public partial class Game : Node {
 	}
 
 	public void SelectUnit(MapUnit unit) {
-		var screenPos = mapView.screenLocationOfTile(unit.location);
-		SelectUnit(unit, screenPos);
+		SelectUnit(unit, unit.location);
 	}
 
 	private void HandleRightMouseButton(InputEventMouseButton eventMouseButton) {
@@ -2039,6 +2059,11 @@ public partial class Game : Node {
 	private void HandleMouseMotionInput(InputEventMouseMotion eventMouseMotion) {
 		if (IsMovingCamera) {
 			GetViewport().SetInputAsHandled();
+			// Dragging the map isn't clicking on it.
+			if (pendingClickTile != null && eventMouseMotion.Position.DistanceTo(pendingClickPosition) > ClickSlop) {
+				pendingClickTile = null;
+				doubleClickHandler.Cancel();
+			}
 			mapView.cameraLocation += OldPosition - eventMouseMotion.Position;
 			OldPosition = eventMouseMotion.Position;
 		} else if (gotoInfo != null) {
