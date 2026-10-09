@@ -4,10 +4,14 @@ description: "Performs cross-platform build setup"
 runs:
   using: "composite"
   steps:
+  # Workflow inputs and the actor name are passed through env rather than
+  # interpolated into the scripts, so they can't inject shell commands.
   - name: Optionally set BUILD_SUFFIX
     shell: bash
+    env:
+      DEBUG_BUILD: ${{ github.event.inputs.debug-build || 'true' }}
     run: |
-      if [[ ${{ github.event.inputs.debug-build || 'true' }} == 'true' ]]; then
+      if [[ "${DEBUG_BUILD}" == 'true' ]]; then
         echo "BUILD_SUFFIX=-debug" >> $GITHUB_ENV
       else
         echo "BUILD_SUFFIX=-release" >> $GITHUB_ENV
@@ -15,8 +19,10 @@ runs:
   - name: Optionally set GH_USERNAME
     shell: bash
     if: github.event.inputs.include-username == 'true'
+    env:
+      ACTOR: ${{ github.actor }}
     run: |
-      echo "GH_USERNAME=-${{ github.actor }}" >> $GITHUB_ENV
+      echo "GH_USERNAME=-${ACTOR}" >> $GITHUB_ENV
   - name: Optionally set BUILD_TIME
     shell: bash
     if: github.event.inputs.include-datetime == 'true'
@@ -37,8 +43,13 @@ runs:
       fi
   - name: Set FOLDER_NAME
     shell: bash
+    env:
+      FOLDER_SUFFIX: ${{ github.event.inputs.folder-suffix || 'automated_build' }}
     run: |
-      echo "FOLDER_NAME=${EXPORT_NAME}${{ github.event.inputs.folder-suffix || 'automated_build' }}${GH_USERNAME}${BUILD_TIME}" >> $GITHUB_ENV
+      # Keep the folder name to safe characters: it ends up in paths and in
+      # $GITHUB_ENV, where a newline could smuggle in other variables.
+      SAFE_SUFFIX=$(printf '%s' "${FOLDER_SUFFIX}" | tr -c 'A-Za-z0-9._-' '_')
+      echo "FOLDER_NAME=${EXPORT_NAME}${SAFE_SUFFIX}${GH_USERNAME}${BUILD_TIME}" >> $GITHUB_ENV
   - name: Setup
     shell: bash
     run: |

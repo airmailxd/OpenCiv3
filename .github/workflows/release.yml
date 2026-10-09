@@ -15,6 +15,9 @@ env:
   PROJECT_DIR: C7
   TAG: ${{ github.event.inputs.tag || github.ref_name }}
 
+# NOTE: releases do not run the test suite or the formatting check; those run
+# in export-c7.yml on every push to Development. Whether a release should be
+# gated on them is an open decision.
 jobs:
   Build:
     runs-on: ubuntu-latest

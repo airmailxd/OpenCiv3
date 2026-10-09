@@ -39,7 +39,7 @@ jobs:
       image: barichello/godot-ci:mono-4.4.1
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
       with:
         lfs: true
         submodules: true
@@ -50,32 +50,15 @@ jobs:
         cd ${PROJECT_DIR}
         dotnet build
         godot -v --headless --export${BUILD_SUFFIX} "Windows Desktop" ../build/${FOLDER_NAME}/${EXPORT_NAME}.exe
-    - name: Run tests
-      run: |
-        dotnet test C7 --blame-hang-dump-type full --blame-hang-timeout 5m --logger:"console;verbosity=detailed"
-    - name: Upload Hang Dump
-      if: failure()
-      uses: actions/upload-artifact@v4
-      with:
-        name: hang-dump-${{ github.job }}-${{ github.run_id }}
-        path: |
-          EngineTests/TestResults/**/*.dmp
-          EngineTests/TestResults/**/*.xml
-    - name: Verify formatting (`run dotnet format C7/C7.sln whitespace` to fix)
-      run: |
-        dotnet format C7/C7.sln whitespace --verify-no-changes
     - name: Copy Static Files
       run: |
-        if cp -r ${PROJECT_DIR}/Text build/${FOLDER_NAME}/Text && \\
-           cp -r ${PROJECT_DIR}/Assets build/${FOLDER_NAME}/Assets && \\
-           cp -r ${PROJECT_DIR}/Lua build/${FOLDER_NAME}/Lua && \
-           cp -r ${PROJECT_DIR}/ModernArt build/${FOLDER_NAME}/ModernArt
-        then
-          echo "successfully copied static files to build"
-        else
-          echo "::warning title=Static File Copy Failed::Failed to add the static files to the build"
-          exit 1
-        fi
+        for dir in Text Assets Lua ModernArt; do
+          cp -r ${PROJECT_DIR}/${dir} build/${FOLDER_NAME}/${dir} || {
+            echo "::error title=Static File Copy Failed::Failed to copy ${dir} into the build"
+            exit 1
+          }
+        done
+        echo "successfully copied static files to build"
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
@@ -87,7 +70,7 @@ jobs:
       image: barichello/godot-ci:mono-4.4.1
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
       with:
         lfs: true
         submodules: true
@@ -98,7 +81,15 @@ jobs:
         cd ${PROJECT_DIR}
         dotnet build
         godot -v --headless --export${BUILD_SUFFIX} "Linux/X11" ../build/${FOLDER_NAME}/${EXPORT_NAME}.x86_64
+    # Formatting and tests run once, in this job only: all three jobs use the
+    # same Linux container, so repeating them per export target only triples
+    # CI time. Formatting runs before the tests so a failing test can't hide
+    # a formatting failure, and the tests still run if formatting fails.
+    - name: Verify formatting (`run dotnet format C7/C7.sln whitespace` to fix)
+      run: |
+        dotnet format C7/C7.sln whitespace --verify-no-changes
     - name: Run tests
+      if: success() || failure()
       run: |
         dotnet test C7 --blame-hang-dump-type full --blame-hang-timeout 5m --logger:"console;verbosity=detailed"
     - name: Upload Hang Dump
@@ -109,21 +100,15 @@ jobs:
         path: |
           EngineTests/TestResults/**/*.dmp
           EngineTests/TestResults/**/*.xml
-    - name: Verify formatting (`run dotnet format C7/C7.sln whitespace` to fix)
-      run: |
-        dotnet format C7/C7.sln whitespace --verify-no-changes
     - name: Copy Static Files
       run: |
-        if cp -r ${PROJECT_DIR}/Text build/${FOLDER_NAME}/Text && \\
-           cp -r ${PROJECT_DIR}/Assets build/${FOLDER_NAME}/Assets && \\
-           cp -r ${PROJECT_DIR}/Lua build/${FOLDER_NAME}/Lua && \
-           cp -r ${PROJECT_DIR}/ModernArt build/${FOLDER_NAME}/ModernArt
-        then
-          echo "successfully copied static files to build"
-        else
-          echo "::warning title=Static File Copy Failed::Failed to add the static files to the build"
-          exit 1
-        fi
+        for dir in Text Assets Lua ModernArt; do
+          cp -r ${PROJECT_DIR}/${dir} build/${FOLDER_NAME}/${dir} || {
+            echo "::error title=Static File Copy Failed::Failed to copy ${dir} into the build"
+            exit 1
+          }
+        done
+        echo "successfully copied static files to build"
     - name: Create Tar Archive
       run: |
         tar -C build -zcvf build/${FOLDER_NAME}.tgz ${FOLDER_NAME}
@@ -138,7 +123,7 @@ jobs:
       image: barichello/godot-ci:mono-4.4.1
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
       with:
         lfs: true
         submodules: true
@@ -149,20 +134,6 @@ jobs:
         cd ${PROJECT_DIR}
         dotnet build
         godot -v --headless --export${BUILD_SUFFIX} "macOS" ../build/${FOLDER_NAME}.zip
-    - name: Run tests
-      run: |
-        dotnet test C7 --blame-hang-dump-type full --blame-hang-timeout 5m --logger:"console;verbosity=detailed"
-    - name: Upload Hang Dump
-      if: failure()
-      uses: actions/upload-artifact@v4
-      with:
-        name: hang-dump-${{ github.job }}-${{ github.run_id }}
-        path: |
-          EngineTests/TestResults/**/*.dmp
-          EngineTests/TestResults/**/*.xml
-    - name: Verify formatting (`run dotnet format C7/C7.sln whitespace` to fix)
-      run: |
-        dotnet format C7/C7.sln whitespace --verify-no-changes
     - name: Copy Static Files
       run: |
         cd ${PROJECT_DIR}
