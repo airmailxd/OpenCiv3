@@ -171,7 +171,7 @@ namespace C7Engine.Pathing {
 				break;
 			}
 
-			return adjacentToExpanded && unit.CanEnterForcefully(c);
+			return adjacentToExpanded && unit.CanEnterForcefully(c) && !unit.PathAvoids(c, c);
 		}
 
 		// The terrain part of UnitWalker's edge filter.
@@ -283,7 +283,8 @@ namespace C7Engine.Pathing {
 				return (f & PathSearchContext.PASSABLE) != 0;
 			}
 
-			bool passable = neighbor == destination ? unit.CanEnterForcefully(neighbor) : unit.CanEnterPeacefully(neighbor);
+			bool passable = (neighbor == destination ? unit.CanEnterForcefully(neighbor) : unit.CanEnterPeacefully(neighbor))
+				&& !unit.PathAvoids(neighbor, destination);
 
 			ctx.flags[id] = (byte)(f | PathSearchContext.PASSABILITY_KNOWN | (passable ? PathSearchContext.PASSABLE : 0));
 			return passable;

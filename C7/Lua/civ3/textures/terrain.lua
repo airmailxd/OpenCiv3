@@ -71,6 +71,14 @@ terrain.barbarian_camp = {
   shadows = false,
 }
 
+-- goodyhuts.pcx holds eight variations of a village in a 3x3 grid of 128x64
+-- cells (the last cell is empty).
+terrain.goody_hut = {
+  path = TERRAIN .. "goodyhuts.pcx",
+  crop_region = { 0, 0, 128, 64 },
+  shadows = false,
+}
+
 terrain.marsh = {
   large = {
     path = TERRAIN .. "marsh.pcx",

@@ -132,7 +132,9 @@ namespace C7Engine {
 			// Previously step 10
 			AddBarbarianCamps(wc, gameMap);
 
-			// TODO: Goody huts, barbarian camps.
+			// Step 12: Add goody huts, away from the players and the barb
+			// camps.
+			AddGoodyHuts(wc, gameMap);
 
 			// Last step: Assign the terrain file and image ids to each tile so
 			// we know which texture to use when displaying them.
@@ -1428,6 +1430,60 @@ namespace C7Engine {
 					log.Warning("Unknown Barbarian Activity at barb camps derivation.");
 					return totalCampsBaseline;
 			}
+		}
+
+		// About one goody hut for every this many land tiles.
+		private const int LandTilesPerGoodyHut = 60;
+
+		private static void AddGoodyHuts(WorldCharacteristics wc, GameMap m) {
+			Random rand = new(wc.mapSeed + 0x900d7);
+			List<int> tileIndicies = Enumerable.Range(0, m.tiles.Count).ToList();
+			rand.Shuffle<int>(CollectionsMarshal.AsSpan(tileIndicies));
+
+			int landTiles = m.tiles.Count(t => t.IsLand());
+			int totalHuts = landTiles / LandTilesPerGoodyHut;
+			Dictionary<int, int> continentSizes = ComputeContinentSizes(m);
+
+			int numHuts = 0;
+			for (int i = 0; i < tileIndicies.Count && numHuts < totalHuts; ++i) {
+				Tile t = m.tiles[tileIndicies[i]];
+				if (IsValidForGoodyHut(m, t, continentSizes)) {
+					t.hasGoodyHut = true;
+					++numHuts;
+				}
+			}
+		}
+
+		private static bool IsValidForGoodyHut(GameMap m, Tile t, Dictionary<int, int> continentSizes) {
+			if (t == Tile.NONE || !t.IsLand() || t.IsImpassable() || t.hasBarbarianCamp || t.overlayTerrainType.Key == "volcano") {
+				return false;
+			}
+
+			// Not on luxury or strategic resources, which would otherwise be
+			// hidden under the hut.
+			if (t.Resource != null && t.Resource != Resource.NONE &&
+				(t.Resource.Category == ResourceCategory.STRATEGIC || t.Resource.Category == ResourceCategory.LUXURY)) {
+				return false;
+			}
+
+			// Not on islands too small to settle.
+			if (continentSizes[t.continent] < 5) {
+				return false;
+			}
+
+			// Spread out, and not right next to a barbarian camp.
+			foreach (Tile n in t.GetTilesWithinTileSquare(2)) {
+				if (n.hasGoodyHut || n.hasBarbarianCamp) {
+					return false;
+				}
+			}
+
+			// Not where the players start, or on their doorstep.
+			if (m.startingLocations.Any(x => t.DistanceTo(x) < 3)) {
+				return false;
+			}
+
+			return true;
 		}
 
 		private static bool IsValidForBarbarianCamp(WorldCharacteristics wc, GameMap m, Tile t, Dictionary<int, int> continentSizes) {

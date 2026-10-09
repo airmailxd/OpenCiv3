@@ -22,8 +22,9 @@ public partial class MapUnit {
 			return false;
 		}
 		// A tile out of sight may hide units, and anything not ours is
-		// someone to fight, capture, notice or ask.
-		if (!owner.tileKnowledge.isActiveTile(tile) || tile.hasBarbarianCamp
+		// someone to fight, capture, notice or ask. What's in a goody hut is
+		// left to chance.
+		if (!owner.tileKnowledge.isActiveTile(tile) || tile.hasBarbarianCamp || tile.hasGoodyHut
 			|| (tile.HasCity() && tile.cityAtTile.owner != owner)
 			|| tile.unitsOnTile.Any(u => u.owner != owner)) {
 			return false;

@@ -11,6 +11,7 @@ local c7_texture_list = {
   "Art/Terrain/Mountains-snow.png",
   "Art/Terrain/Mountains.png",
   "Art/Terrain/TerrainBuildings.png",
+  "Art/Terrain/goodyhuts.png",
   "Art/Terrain/Volcanos forests.png",
   "Art/Terrain/Volcanos jungles.png",
   "Art/Terrain/Volcanos.png",

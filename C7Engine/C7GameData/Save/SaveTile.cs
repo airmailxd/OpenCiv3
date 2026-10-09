@@ -46,6 +46,9 @@ namespace C7GameData.Save {
 			if (tile.hasBarbarianCamp) {
 				features.Add("barbarianCamp");
 			}
+			if (tile.hasGoodyHut) {
+				features.Add("goodyHut");
+			}
 			if (tile.hasHadForestCleared) {
 				features.Add("hasHadForestCleared");
 			}
@@ -93,6 +96,7 @@ namespace C7GameData.Save {
 				baseTerrainType = Lookups.Find(lookups.terrainTypesByKey, baseTerrain),
 				overlayTerrainType = Lookups.Find(lookups.terrainTypesByKey, overlayTerrain),
 				hasBarbarianCamp = features.Contains("barbarianCamp"),
+				hasGoodyHut = features.Contains("goodyHut"),
 				hasHadForestCleared = features.Contains("hasHadForestCleared"),
 				// TODO: load working tile
 				ResourceKey = resource is null ? Resource.NONE.Key : resource,

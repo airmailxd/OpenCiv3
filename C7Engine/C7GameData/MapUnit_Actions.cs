@@ -58,6 +58,9 @@ public partial class MapUnit {
 			}
 		}
 
+		// See what's in the goody hut, if there is one.
+		GoodyHuts.Enter(EngineStorage.gameData, this, tile);
+
 		// Capture the enemy city on the tile unless we're the barbarians,
 		// in which case we'll just take some gold.
 		if (tile.HasCity() && !owner.IsAtPeaceWith(tile.cityAtTile.owner)) {

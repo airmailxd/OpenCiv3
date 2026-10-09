@@ -258,7 +258,7 @@ namespace C7GameData {
 		}
 
 		// Ships get extra movement from their owner's wonders, like the Great
-		// Lighthouse and Magellan's Voyage.
+		// Lighthouse and Magellan's Voyage, and from the seafaring trait.
 		private int ShipMovementBonus() {
 			if (owner == null || !IsWaterUnit())
 				return 0;
@@ -798,8 +798,6 @@ namespace C7GameData {
 
 				return Intent.Disabled;
 			}
-			if (this.IsWaterUnit() && !CanEnterWaterTerrain(tile))
-				return Intent.Disabled;
 
 			if (this.CanBoardTransportOnTile(tile))
 				return Intent.Load;
@@ -885,19 +883,22 @@ namespace C7GameData {
 			return Intent.MoveFreely;
 		}
 
-		// Whether this ship may sail onto the tile's terrain. Ships that "sink
-		// in sea" (the Galley) can't enter Sea tiles unless their owner has a
-		// safe sea travel wonder (the Great Lighthouse), and those that "sink
-		// in ocean" (the Galley, the Caravel) can't enter Ocean tiles at all.
-		// As in Conquests, these are hard limits on movement, rather than the
-		// original game's chance of a trireme sinking at the end of its turn.
-		public bool CanEnterWaterTerrain(Tile tile) {
+		// Whether the tile is water this ship risks sinking in. Ships that
+		// "sink in sea" (the Galley) are unsafe on Sea tiles unless their
+		// owner has a safe sea travel wonder (the Great Lighthouse), and those
+		// that "sink in ocean" (the Galley, the Caravel) are unsafe on Ocean
+		// tiles. As in the original game, rather than Conquests, they may
+		// still sail there, but may sink if they end their turn there (see
+		// SinkShipsInUnsafeWater).
+		public bool IsUnsafeWater(Tile tile) {
+			if (!IsWaterUnit())
+				return false;
 			TerrainType terrain = tile.baseTerrainType;
 			if (terrain.IsOcean)
-				return !unitType.sinksInOcean;
+				return unitType.sinksInOcean;
 			if (terrain.IsSea)
-				return !unitType.sinksInSea || owner.HasSafeSeaTravel();
-			return true;
+				return unitType.sinksInSea && !owner.HasSafeSeaTravel();
+			return false;
 		}
 
 		public bool CanEnterPeacefully(Tile tile) {

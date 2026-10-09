@@ -27,6 +27,11 @@ public class CombatMovementWonderTest : IClassFixture<SaveGameFixture> {
 		us = civs[0];
 		them = civs[1];
 		barbarians = gameData.players.First(p => p.isBarbarians);
+
+		// Seafaring gives ships a move too; the tests of the wonders' moves
+		// leave it out.
+		us.civilization.traits.Remove(Civilization.Trait.Seafaring);
+		them.civilization.traits.Remove(Civilization.Trait.Seafaring);
 	}
 
 	// Makes every random roll come out as 0, so attackers win every round
@@ -219,45 +224,104 @@ public class CombatMovementWonderTest : IClassFixture<SaveGameFixture> {
 	// ---- Coastal ships ----
 
 	[Fact]
-	public void GalleyStaysOffSeaAndOceanWithoutTheLighthouse() {
+	public void GalleyIsUnsafeOnSeaAndOceanWithoutTheLighthouse() {
 		MapUnit galley = Spawn(us, "Galley", FindCoast());
-		Tile sea = FindSea();
-		Tile ocean = FindOcean();
 
-		Assert.True(galley.CanEnterWaterTerrain(FindCoast()));
-		Assert.False(galley.CanEnterWaterTerrain(sea));
-		Assert.False(galley.CanEnterWaterTerrain(ocean));
+		Assert.False(galley.IsUnsafeWater(FindCoast()));
+		Assert.True(galley.IsUnsafeWater(FindSea()));
+		Assert.True(galley.IsUnsafeWater(FindOcean()));
 	}
 
 	[Fact]
-	public void GreatLighthouseLetsGalleysEnterSeaButNotOcean() {
+	public void GreatLighthouseMakesSeaButNotOceanSafeForGalleys() {
 		Give(us, BuildingNamed("The Great Lighthouse"));
 		MapUnit galley = Spawn(us, "Galley", FindCoast());
 
-		Assert.True(galley.CanEnterWaterTerrain(FindSea()));
-		Assert.False(galley.CanEnterWaterTerrain(FindOcean()));
+		Assert.False(galley.IsUnsafeWater(FindSea()));
+		Assert.True(galley.IsUnsafeWater(FindOcean()));
 	}
 
 	[Fact]
-	public void CaravelEntersSeaButNotOcean() {
+	public void CaravelIsSafeOnSeaButNotOcean() {
 		MapUnit caravel = Spawn(us, "Caravel", FindCoast());
-		Assert.True(caravel.CanEnterWaterTerrain(FindSea()));
-		Assert.False(caravel.CanEnterWaterTerrain(FindOcean()));
+		Assert.False(caravel.IsUnsafeWater(FindSea()));
+		Assert.True(caravel.IsUnsafeWater(FindOcean()));
 
 		MapUnit galleon = Spawn(us, "Galleon", FindCoast());
-		Assert.True(galleon.CanEnterWaterTerrain(FindOcean()));
+		Assert.False(galleon.IsUnsafeWater(FindOcean()));
 	}
 
+	// Ships may sail into water they aren't built for, though paths keep
+	// them out of it.
 	[Fact]
-	public void GalleyCannotMoveFromCoastOntoSea() {
+	public void GalleyMayMoveFromCoastOntoSeaButPathsAvoidIt() {
 		Tile coast = FindWater(t => t.IsCoast() && t.neighbors.Values.Any(n => n != Tile.NONE && n.IsSea() && n.unitsOnTile.Count == 0));
 		(TileDirection dir, Tile sea) = coast.neighbors.First(kv => kv.Value != Tile.NONE && kv.Value.IsSea() && kv.Value.unitsOnTile.Count == 0);
 		MapUnit galley = Spawn(us, "Galley", coast);
 
-		Assert.False(galley.CanEnter(sea));
+		Assert.True(galley.CanEnter(sea));
+		Assert.True(galley.PathAvoids(sea, null));
 
 		Give(us, BuildingNamed("The Great Lighthouse"));
-		Assert.True(galley.CanEnter(sea));
+		Assert.False(galley.PathAvoids(sea, null));
+	}
+
+	[Fact]
+	public void ShipsInUnsafeWaterSinkWithTheirCargo() {
+		MapUnit galley = Spawn(us, "Galley", FindOcean());
+		MapUnit safeGalley = Spawn(us, "Galley", FindCoast());
+		MapUnit galleon = Spawn(us, "Galleon", FindOcean());
+
+		System.Random original = C7GameData.GameData.rng;
+		C7GameData.GameData.rng = new ZeroRandom();
+		try {
+			Assert.Equal([galley], MapUnit.SinkShipsInUnsafeWater(gameData, us));
+		} finally {
+			C7GameData.GameData.rng = original;
+		}
+
+		Assert.DoesNotContain(galley, us.units);
+		Assert.Contains(safeGalley, us.units);
+		Assert.Contains(galleon, us.units);
+	}
+
+	// A roll at or above the chance spares the ship.
+	private class HighRandom : System.Random {
+		protected override double Sample() => 0.99;
+	}
+
+	[Fact]
+	public void ShipsInUnsafeWaterMaySurvive() {
+		MapUnit galley = Spawn(us, "Galley", FindOcean());
+
+		System.Random original = C7GameData.GameData.rng;
+		C7GameData.GameData.rng = new HighRandom();
+		try {
+			Assert.Empty(MapUnit.SinkShipsInUnsafeWater(gameData, us));
+		} finally {
+			C7GameData.GameData.rng = original;
+		}
+		Assert.Contains(galley, us.units);
+	}
+
+	// ---- Seafaring ----
+
+	[Fact]
+	public void SeafaringCivsShipsGetAMove() {
+		MapUnit galley = Spawn(us, "Galley", FindCoast());
+		(Tile land, _, _) = FindAdjacentLand();
+		MapUnit warrior = Spawn(us, "Warrior", land);
+		MapUnit theirGalley = Spawn(them, "Galley", FindCoast());
+
+		us.civilization.traits.Add(Civilization.Trait.Seafaring);
+
+		Assert.Equal(Prototype("Galley").movement + 1, galley.MaxMovementPoints());
+		// It adds to the wonders' moves.
+		Give(us, BuildingNamed("Magellan's Voyage"));
+		Assert.Equal(Prototype("Galley").movement + 2, galley.MaxMovementPoints());
+		// Land units and other civs' ships don't benefit.
+		Assert.Equal(Prototype("Warrior").movement, warrior.MaxMovementPoints());
+		Assert.Equal(Prototype("Galley").movement, theirGalley.MaxMovementPoints());
 	}
 
 	// ---- Great leaders ----

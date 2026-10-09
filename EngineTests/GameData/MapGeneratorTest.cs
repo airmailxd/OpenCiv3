@@ -201,4 +201,21 @@ public class GameMapGeneratorTest {
 		});
 		Assert.Contains(map.tiles, t => t.overlayTerrainType.IsFloodPlain);
 	}
+
+	[Theory]
+	[InlineData(WorldCharacteristics.Landform.Archipelago)]
+	[InlineData(WorldCharacteristics.Landform.Continents)]
+	[InlineData(WorldCharacteristics.Landform.Pangaea)]
+	public void GoodyHutsArePlacedApartOnLand(WorldCharacteristics.Landform landform) {
+		GameMap map = Generate(landform, WorldCharacteristics.OceanCoverage.Percent_60, seed: 20240501);
+
+		List<Tile> huts = map.tiles.Where(t => t.hasGoodyHut).ToList();
+		Assert.NotEmpty(huts);
+		Assert.All(huts, t => {
+			Assert.True(t.IsLand());
+			Assert.False(t.hasBarbarianCamp);
+			Assert.DoesNotContain(t.GetTilesWithinTileSquare(2), n => n != t && (n.hasGoodyHut || n.hasBarbarianCamp));
+			Assert.DoesNotContain(map.startingLocations, s => t.DistanceTo(s) < 3);
+		});
+	}
 }

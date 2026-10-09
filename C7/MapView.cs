@@ -648,15 +648,21 @@ public partial class GridLayer : LooseLayer {
 
 public partial class BuildingLayer : LooseLayer {
 	private ImageTexture barbCamp;
+	private ImageTexture goodyHut;
 
 	public BuildingLayer() {
 		barbCamp = TextureLoader.Load("terrain.barbarian_camp");
+		goodyHut = TextureLoader.Load("terrain.goody_hut");
 	}
 
 	public override void drawObject(LooseView looseView, GameData gameData, Tile tile, Vector2 tileCenter) {
 		if (tile.hasBarbarianCamp) {
 			Rect2 screenRect = new(tileCenter - 0.5f * barbCamp.GetSize(), barbCamp.GetSize());
 			looseView.DrawTextureRect(barbCamp, screenRect, tile: false);
+		}
+		if (tile.hasGoodyHut) {
+			Rect2 screenRect = new(tileCenter - 0.5f * goodyHut.GetSize(), goodyHut.GetSize());
+			looseView.DrawTextureRect(goodyHut, screenRect, tile: false);
 		}
 	}
 }

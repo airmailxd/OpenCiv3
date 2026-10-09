@@ -1838,9 +1838,14 @@ namespace C7GameData {
 		}
 
 		// The extra movement points this player's ships get from wonders
-		// like the Great Lighthouse and Magellan's Voyage.
+		// like the Great Lighthouse and Magellan's Voyage, and one more if
+		// the civ is seafaring.
 		public int ShipMovementBonus() {
-			return GetBuildingSnapshot().shipMovementBonus;
+			int bonus = GetBuildingSnapshot().shipMovementBonus;
+			if (civilization?.traits.Contains(Civilization.Trait.Seafaring) == true) {
+				bonus += 1;
+			}
+			return bonus;
 		}
 
 		// Whether this player's coastal ships (like the Galley) may enter

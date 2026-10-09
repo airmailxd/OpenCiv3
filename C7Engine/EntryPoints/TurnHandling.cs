@@ -24,6 +24,9 @@ namespace C7Engine {
 			foreach (MapUnit busyWorker in player.units.ToArray())
 				if (busyWorker.WorkerJob != null)
 					EngineStorage.ObserveTask(busyWorker.PerformEndOfTurnAction(), nameof(MapUnit.PerformEndOfTurnAction));
+
+			// Ships left out in water they aren't built for may sink.
+			MapUnit.SinkShipsInUnsafeWater(gameData, player);
 		}
 
 		public static void InitTurnData(Player player = null, bool skipTurn = false) {

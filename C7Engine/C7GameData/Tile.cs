@@ -82,6 +82,10 @@ namespace C7GameData {
 
 		public bool hasBarbarianCamp = false;
 
+		// A tribal village that gives a reward, or trouble, to the first civ
+		// to enter it. See GoodyHuts.
+		public bool hasGoodyHut = false;
+
 		//See discussion on page 4 of the "Babylon" thread (https://forums.civfanatics.com/threads/0-1-babylon-progress-thread.673959) about sub-terrain type and Civ3 properties.
 		//We may well move these properties somewhere, whether that's Civ3ExtraInfo, a Civ3Tile child class, a Dictionary property, or something else, in the future.
 		public bool isBonusShield;

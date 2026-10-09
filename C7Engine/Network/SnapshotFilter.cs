@@ -120,13 +120,13 @@ public static class SnapshotFilter {
 		SaveMap filtered = map.ShallowCopy();
 		filtered.tiles = map.tiles.ConvertAll(tile => {
 			if (view.known.Contains((tile.X, tile.Y))
-				|| (tile.resource == null && tile.overlays.Count == 0 && !tile.features.Contains("barbarianCamp"))) {
+				|| (tile.resource == null && tile.overlays.Count == 0 && !tile.features.Contains("barbarianCamp") && !tile.features.Contains("goodyHut"))) {
 				return tile;
 			}
 			SaveTile unseen = tile.ShallowCopy();
 			unseen.resource = null;
 			unseen.overlays = [];
-			unseen.features = tile.features.Where(f => f != "barbarianCamp").ToList();
+			unseen.features = tile.features.Where(f => f != "barbarianCamp" && f != "goodyHut").ToList();
 			return unseen;
 		});
 		return filtered;

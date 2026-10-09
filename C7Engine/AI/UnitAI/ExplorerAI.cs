@@ -31,6 +31,14 @@ namespace C7Engine {
 		public static ExplorerAIData? MaybeMakeAiData(MapUnit unit, Player player) {
 			ForgetAbandonedExplorationTargets(player, unit);
 
+			// A goody hut close by is worth a detour.
+			ExplorerAIData? hut = FindNearbyGoodyHut(unit, player);
+			if (hut != null) {
+				log.Information($"Set AI for unit {unit.id} at {unit.location} to visit the goody hut at {hut.destination}");
+				player.tileKnowledge.aiExplorationTargets.Add(hut.destination);
+				return hut;
+			}
+
 			HashSet<Tile> borderTiles = player.tileKnowledge.borderTiles;
 
 			IEnumerable<Tile> candidates = borderTiles.Where(x => (x.IsLand() && unit.IsLandUnit()) || (!x.IsLand() && !unit.IsLandUnit()));
@@ -53,7 +61,9 @@ namespace C7Engine {
 				return UnitAI.Result.Error;
 			}
 
-			if (player.tileKnowledge.isTileKnown(data.destination)) {
+			// A goody hut is known before it's reached; it's done with once
+			// someone has opened it.
+			if (!data.destination.hasGoodyHut && player.tileKnowledge.isTileKnown(data.destination)) {
 				player.tileKnowledge.aiExplorationTargets.Remove(data.destination);
 				return UnitAI.Result.Done;
 			}
@@ -95,6 +105,36 @@ namespace C7Engine {
 				}
 			});
 			return activeTargets;
+		}
+
+		// How far, in tiles, an explorer will go for a goody hut.
+		private const int MaxGoodyHutDistance = 4;
+
+		// A plan to visit the nearest known goody hut the unit can get to
+		// within MaxGoodyHutDistance tiles, that no other explorer is
+		// heading for, or null.
+		private static ExplorerAIData? FindNearbyGoodyHut(MapUnit unit, Player player) {
+			if (!unit.IsLandUnit()) {
+				return null;
+			}
+			List<Tile> huts = unit.location.GetTilesWithinTileSquare(MaxGoodyHutDistance)
+				.Where(t => t != Tile.NONE && t.hasGoodyHut && player.tileKnowledge.isTileKnown(t)
+					&& !player.tileKnowledge.aiExplorationTargets.Contains(t))
+				.OrderBy(t => t.DistanceTo(unit.location))
+				.ToList();
+			if (huts.Count == 0) {
+				return null;
+			}
+			PathingAlgorithm algorithm = PathingAlgorithmChooser.GetAlgorithm(unit);
+			int index = algorithm.FindFirstReachable(unit.location, huts, unit, out TilePath path);
+			if (index < 0) {
+				return null;
+			}
+			return new ExplorerAIData {
+				destination = huts[index],
+				pathToDestination = path,
+				explorer = unit,
+			};
 		}
 
 		private static int DistanceToNearestCity(Player player, Tile t) {

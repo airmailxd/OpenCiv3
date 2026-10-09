@@ -242,9 +242,10 @@ namespace C7GameData {
 			}
 		}
 
-		// Coastal ships, like the Galley, can't enter Sea tiles (unless their
-		// owner has the Great Lighthouse), and those like the Caravel can't
-		// enter Ocean tiles. See MapUnit.CanEnterWaterTerrain.
+		// Coastal ships, like the Galley, are unsafe on Sea tiles (unless their
+		// owner has the Great Lighthouse), and those like the Caravel on Ocean
+		// tiles: they may sink if they end a turn there. See
+		// MapUnit.IsUnsafeWater.
 		public bool sinksInSea {
 			get => flags.Contains(SaveUnitPrototype.Flag.SinksInSea);
 			set {

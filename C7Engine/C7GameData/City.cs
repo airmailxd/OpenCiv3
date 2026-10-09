@@ -568,6 +568,7 @@ namespace C7GameData {
 				if (building.greatWonderProperties != null) {
 					gameData.GreatWondersBuilt.Add(building.name);
 					owner.MaybeStartGoldenAgeFromWonders(gameData);
+					AnnounceWonder(gameData, building);
 
 					foreach (Player p in gameData.players) {
 						if (p == this.owner) {
@@ -591,6 +592,21 @@ namespace C7GameData {
 			SetItemBeingProduced(next);
 			if (owner.isHuman) {
 				new MsgCityProductionCompleted(owner, this, producedItem.name, next?.name).send();
+			}
+		}
+
+		// Tells every human player which civ has completed a great wonder.
+		private void AnnounceWonder(GameData gameData, Building wonder) {
+			Civilization civ = owner.civilization;
+			string civName = civ?.noun ?? civ?.name ?? owner.ToString();
+			foreach (Player p in gameData.players) {
+				if (!p.isHuman || p.defeated) {
+					continue;
+				}
+				string message = p == owner
+					? $"We have completed {wonder.name} in {name}!"
+					: $"The {civName} have completed {wonder.name} in {name}!";
+				new MsgShowDomesticAdvisorPopup(p, message).send();
 			}
 		}
 
