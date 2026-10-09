@@ -1021,7 +1021,9 @@ namespace C7GameData {
 			// The difficulty level's percentage only applies to humans; the AI
 			// always gets the full optimal city number. Fitted against 24k
 			// cities from Civ3 saves: using the difficulty level for the AI
-			// too made its corruption far too high on the hard levels.
+			// too made its corruption far too high on the hard levels. This
+			// is deliberate, and the project owner confirmed it stays
+			// human-only.
 			int percentOptimalCities = isHuman ? gameData.gameDifficulty.PercentageOfOptimalCities : 100;
 
 			float commercialCivFactor = civilization.traits.Contains(Civilization.Trait.Commercial) ? .25f : 0;
