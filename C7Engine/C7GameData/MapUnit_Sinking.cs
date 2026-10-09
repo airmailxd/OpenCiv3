@@ -8,10 +8,17 @@ namespace C7GameData;
 // Sea before Astronomy or the Ocean before Magnetism, may sink if they end
 // their turn there.
 public partial class MapUnit {
-	// The chance a ship in unsafe water sinks at the end of its owner's turn.
-	// The same for Sea and Ocean tiles.
+	// The chance a ship in unsafe water sinks at the end of its owner's turn,
+	// the same for Sea and Ocean tiles. Seafaring civs' ships are hardier.
 	// TODO: make this configurable
 	public const double UnsafeWaterSinkChance = 0.5;
+	public const double SeafaringUnsafeWaterSinkChance = 0.25;
+
+	public static double SinkChanceFor(Player player) {
+		return player.civilization?.traits.Contains(Civilization.Trait.Seafaring) == true
+			? SeafaringUnsafeWaterSinkChance
+			: UnsafeWaterSinkChance;
+	}
 
 	public bool IsInUnsafeWater() {
 		return Tile.IsTileValid(location) && !IsLoaded() && IsUnsafeWater(location);
@@ -39,8 +46,9 @@ public partial class MapUnit {
 	internal static List<MapUnit> SinkShipsInUnsafeWater(GameData gameData, Player player) {
 		List<MapUnit> sunk = new();
 		List<string> losses = new();
+		double chance = SinkChanceFor(player);
 		foreach (MapUnit ship in player.units.Where(u => u.IsInUnsafeWater()).ToList()) {
-			if (GameData.rng.NextDouble() >= UnsafeWaterSinkChance) {
+			if (GameData.rng.NextDouble() >= chance) {
 				continue;
 			}
 			int lostAboard = ship.Passengers().Count;

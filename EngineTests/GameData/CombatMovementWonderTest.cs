@@ -328,6 +328,28 @@ public class CombatMovementWonderTest : IClassFixture<SaveGameFixture> {
 		Assert.Contains(theirGalley, them.units);
 	}
 
+	[Fact]
+	public void SeafaringCivsShipsSinkHalfAsOften() {
+		Assert.Equal(0.5, MapUnit.SinkChanceFor(us));
+		us.civilization.traits.Add(Civilization.Trait.Seafaring);
+		Assert.Equal(0.25, MapUnit.SinkChanceFor(us));
+
+		// A roll that would sink a non-seafaring civ's ship spares theirs.
+		MapUnit galley = Spawn(us, "Galley", FindOcean());
+		System.Random original = C7GameData.GameData.rng;
+		C7GameData.GameData.rng = new FixedRandom(0.3);
+		try {
+			Assert.Empty(MapUnit.SinkShipsInUnsafeWater(gameData, us));
+		} finally {
+			C7GameData.GameData.rng = original;
+		}
+		Assert.Contains(galley, us.units);
+	}
+
+	private class FixedRandom(double sample) : System.Random {
+		protected override double Sample() => sample;
+	}
+
 	// A roll at or above the chance spares the ship.
 	private class HighRandom : System.Random {
 		protected override double Sample() => 0.99;
