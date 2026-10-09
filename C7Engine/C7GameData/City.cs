@@ -1005,7 +1005,9 @@ namespace C7GameData {
 			// happy at a certain luxury slider value even while the city is in
 			// civil disorder.
 			CorruptableValue commerce = new CorruptableValue(uncorruptedCommerce, corruption);
-			if (owner.government.transitionType || (isInCivilDisorder && respectCivilDisorder)) {
+			bool inDisorder = isInCivilDisorder && respectCivilDisorder;
+			bool inAnarchy = owner.government.transitionType;
+			if (inAnarchy || inDisorder) {
 				commerce.useful = 0;
 				commerce.corrupt = uncorruptedCommerce;
 			}
@@ -1036,10 +1038,18 @@ namespace C7GameData {
 			result.happiness += result.happiness * luxuryBuildings / 2;
 			result.taxes += result.taxes * taxBuildings / 2;
 
-			foreach (CityResident cr in residents) {
-				result.beakers += cr.citizenType.Research;
-				result.happiness += cr.citizenType.Luxuries;
-				result.taxes += cr.citizenType.Taxes;
+			// Specialists add their own taxes, beakers and luxuries. A city in
+			// disorder produces nothing, specialists included. Under anarchy
+			// no taxes or science are collected, but entertainers still
+			// entertain (they're how a city keeps order then).
+			if (!inDisorder) {
+				foreach (CityResident cr in residents) {
+					result.happiness += cr.citizenType.Luxuries;
+					if (!inAnarchy) {
+						result.beakers += cr.citizenType.Research;
+						result.taxes += cr.citizenType.Taxes;
+					}
+				}
 			}
 
 			return result;

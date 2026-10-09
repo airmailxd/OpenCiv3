@@ -126,6 +126,28 @@ public class RulesReviewFixTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(tech.id, us.currentlyResearchedTech);
 	}
 
+	// ---- Specialists ----
+
+	// Turns the city's only citizen into the given specialist.
+	private static void MakeSpecialist(City city, CitizenType type) {
+		CityResident resident = city.residents[0];
+		resident.tileWorked.personWorkingTile = null;
+		resident.tileWorked = Tile.NONE;
+		resident.citizenType = type;
+	}
+
+	[Fact]
+	public void SpecialistsProduceNothingInDisorder() {
+		City city = BuildCity(us);
+		MakeSpecialist(city, gameData.citizenTypes.First(c => c.Research > 0));
+		Assert.True(city.CurrentCommerceYieldRaw().beakers > 0);
+
+		city.isInCivilDisorder = true;
+		CommerceBreakdown commerce = city.CurrentCommerceYieldRaw();
+		Assert.Equal(0, commerce.beakers);
+		Assert.Equal(0, commerce.taxes);
+	}
+
 	// ---- Trait discounts ----
 
 	[Fact]
