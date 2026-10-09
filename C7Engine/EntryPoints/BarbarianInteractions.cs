@@ -59,8 +59,12 @@ public class BarbarianInteractions {
 			return 0;
 
 		// Each camp has a chance to spawn a unit each turn, set by the
-		// barbarian activity level.
-		var spawnRate = DetermineSpawnRate(activity);
+		// barbarian activity level, and held back while civs are still
+		// founding their second city.
+		var spawnRate = DetermineSpawnRate(activity) * SettledCivShare(gameData);
+		if (spawnRate <= 0) {
+			return 0;
+		}
 		int barbariansSpawned = 0;
 		foreach (Tile camp in gameData.map.barbarianCamps.ToList()) {
 			if (camp.unitsOnTile.Count >= MaxUnitsPerCamp) {
@@ -79,6 +83,23 @@ public class BarbarianInteractions {
 		}
 
 		return barbariansSpawned;
+	}
+
+	// The share of civs still in the game that have at least two cities.
+	// Barbarians spawn at their full rate once every civ has, and not at all
+	// until one has, so they don't overrun civs that are just starting out.
+	public static float SettledCivShare(GameData gameData) {
+		int civs = 0, settled = 0;
+		foreach (Player player in gameData.players) {
+			if (player.isBarbarians || player.defeated || !player.isIncludedInGame) {
+				continue;
+			}
+			++civs;
+			if (player.cities.Count >= 2) {
+				++settled;
+			}
+		}
+		return civs == 0 ? 1 : (float)settled / civs;
 	}
 
 	/// <summary>
