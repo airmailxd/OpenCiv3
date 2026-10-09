@@ -96,16 +96,11 @@ public static class OnlineRelay {
 		if (Problem(url) is string problem) {
 			return problem;
 		}
-		Uri relay = RelayConnection.BaseUri(url);
-		UriBuilder health = new(relay) {
-			Scheme = relay.Scheme == "ws" ? "http" : "https",
-			// Changing the scheme drops the port.
-			Port = relay.IsDefaultPort ? -1 : relay.Port,
-		};
-		health.Path = health.Path.TrimEnd('/') + "/health";
+		Uri health = PublicGames.HttpUri(url, RelayProtocol.HealthPath);
 		try {
 			using HttpClient http = new() { Timeout = TimeSpan.FromSeconds(8) };
-			using HttpResponseMessage response = await http.GetAsync(health.Uri, cancel);
+			using HttpResponseMessage response = await http.GetAsync(health, cancel);
+
 			return response.IsSuccessStatusCode ? null : $"The server answered, but not as a relay ({(int)response.StatusCode}).";
 		} catch (OperationCanceledException) when (!cancel.IsCancellationRequested) {
 			return "The server didn't answer in time.";
