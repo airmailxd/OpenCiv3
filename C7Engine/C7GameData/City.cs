@@ -1186,11 +1186,25 @@ namespace C7GameData {
 			return CurrentFoodYield() - FoodConsumedPerTurn();
 		}
 
-		// The city's share of its owner's treasury, by population: what a
-		// conqueror, or barbarians sacking it, carry off.
-		public int PlunderableGold() {
-			int totalPopulation = owner.cities.Sum(c => c.residents.Count);
-			return totalPopulation > 0 ? (int)((long)owner.gold * residents.Count / totalPopulation) : 0;
+		// Barbarians entering the city. In Civ3 they don't take cities: "The
+		// barbs plunder the city (steal gold) or sabotage production. If they
+		// don't find anything to plunder, the population of the city is
+		// reduced by one point" (Civinator,
+		// https://forums.civfanatics.com/threads/barbarian-cities-in-civ-3.646253/).
+		// Returns the gold taken, or 0 if a citizen was lost instead.
+		//
+		// UNVERIFIED (no Civ3 source found): how much gold they take (a
+		// quarter of the owner's treasury, as before), when they sabotage
+		// production instead (never, here), and whether a size 1 city with
+		// nothing to plunder loses anything (it doesn't, here).
+		public int SackedByBarbarians() {
+			int goldTaken = owner.gold / 4;
+			if (goldTaken > 0) {
+				owner.gold -= goldTaken;
+			} else {
+				RemoveRandomCitizen();
+			}
+			return goldTaken;
 		}
 
 		// Resisters don't eat (see StartResistance).

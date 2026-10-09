@@ -363,15 +363,20 @@ public class RulesReviewFixTest : IClassFixture<SaveGameFixture> {
 	// ---- Barbarians ----
 
 	[Fact]
-	public void BarbariansPlunderTheCitysShareOfTheTreasury() {
-		City small = BuildCity(us);
-		City big = BuildCity(us);
+	public void BarbariansPlunderGoldOrElseACitizen() {
+		City city = BuildCity(us);
 		for (int i = 0; i < 3; ++i) {
-			big.AddCitizen(new CityResident() { city = big, nationality = us.civilization, citizenType = gameData.citizenTypes.Find(x => x.IsDefaultCitizen) });
+			city.AddCitizen(new CityResident() { city = city, nationality = us.civilization, citizenType = gameData.citizenTypes.Find(x => x.IsDefaultCitizen) });
 		}
 		us.gold = 500;
-		int population = us.cities.Sum(c => c.residents.Count);
-		Assert.Equal(500 * small.residents.Count / population, small.PlunderableGold());
+		Assert.Equal(125, city.SackedByBarbarians());
+		Assert.Equal(375, us.gold);
+		Assert.Equal(4, city.residents.Count);
+
+		// Nothing to plunder: the city loses a citizen.
+		us.gold = 0;
+		Assert.Equal(0, city.SackedByBarbarians());
+		Assert.Equal(3, city.residents.Count);
 	}
 
 	// ---- Captives ----
