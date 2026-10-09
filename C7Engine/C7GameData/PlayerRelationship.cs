@@ -384,6 +384,9 @@ public class MultiTurnDeal {
 	// Civ3's standard deal length, for a deal made without a game (and so
 	// without its rules' DefaultDealDuration) to hand.
 	private const int FallbackDealDuration = 20;
+
+	// Passed for a deal's duration to mean the rules' default.
+	public const int DefaultDuration = -1;
 	public DealType dealType { get; private set; }
 	public DealSubType dealSubType { get; private set; }
 	public DealDetails dealDetails { get; private set; }
@@ -398,9 +401,13 @@ public class MultiTurnDeal {
 	public ID againstPlayer { get; private set; }
 
 	public MultiTurnDeal(DealType dealType, DealSubType dealSubType, DealDetails dealDetails, int goldPerTurn = 0,
-		string resourcePerTurn = null, int? dealDuration = null, int turnStartDeal = 0, ID againstPlayer = null) {
-		// Without a duration, deals last as long as the rules say.
-		int duration = dealDuration ?? EngineStorage.gameData?.rules?.DefaultDealDuration ?? FallbackDealDuration;
+		string resourcePerTurn = null, int dealDuration = DefaultDuration, int turnStartDeal = 0, ID againstPlayer = null) {
+		// Without a duration, deals last as long as the rules say. (The
+		// parameter is an int, not int?, because loading a save builds deals
+		// through this constructor, whose parameters must match the
+		// properties' types.)
+		int duration = dealDuration != DefaultDuration ? dealDuration
+			: EngineStorage.gameData?.rules?.DefaultDealDuration ?? FallbackDealDuration;
 		this.dealSubType = dealSubType;
 		this.dealType = dealType;
 		this.dealDetails = dealDetails;

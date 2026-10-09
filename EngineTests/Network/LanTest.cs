@@ -509,10 +509,10 @@ public class LanTest : IClassFixture<SaveGameFixture>, IDisposable {
 		PumpUntil(host, bob, () => bob.Lobby.seats.Any(s => s.civilization == picked.name));
 		Assert.Equal(picked.name, host.Seats[0].civilization);
 
-		// Bob can't have Ann's civilization, or one that doesn't exist. The
-		// host answers every choice, so record Bob's seat each time, and end
-		// with a choice that's allowed: once it's taken, the two before it
-		// have been refused.
+		// Bob can't have Ann's civilization, or one that doesn't exist. Record
+		// Bob's seat whenever the lobby changes, and end with a choice that's
+		// allowed: once it's taken, the two before it have been refused. (A
+		// refused choice is answered to Bob alone, without telling everyone.)
 		List<string> bobsChoices = [];
 		host.LobbyChanged += () => bobsChoices.Add(host.Seats[1].civilization);
 		Civilization allowed = playable[5];
@@ -520,7 +520,9 @@ public class LanTest : IClassFixture<SaveGameFixture>, IDisposable {
 		bob.ChooseCivilization("Atlantis");
 		bob.ChooseCivilization(allowed.name);
 		PumpUntil(host, bob, () => host.Seats[1].civilization == allowed.name);
-		Assert.Equal([null, null, allowed.name], bobsChoices);
+		Assert.Equal(allowed.name, bobsChoices.Last());
+		Assert.DoesNotContain(picked.name, bobsChoices);
+		Assert.DoesNotContain("Atlantis", bobsChoices);
 
 		// And can go back to a random one.
 		bob.ChooseCivilization(null);

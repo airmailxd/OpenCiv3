@@ -84,6 +84,15 @@ public class SaveTests : IClassFixture<SaveGameFixture> {
 			}
 		}
 
+		// A game always has its random numbers' state and its difficulty's
+		// index, so a save written without them has them once it's been a
+		// game.
+		foreach (string derived in new[] { "rngState", "gameDifficultyIndex" }) {
+			if (neverGameDataJson[derived] == null) {
+				wasGameDataJson.Remove(derived);
+			}
+		}
+
 		// saved files should be the same as the original
 		Assert.True(JToken.DeepEquals(wasGameDataJson, neverGameDataJson),
 			$"The save changed when converted to GameData and back; see {output.Path} (set C7_KEEP_TEST_OUTPUT to keep it)");

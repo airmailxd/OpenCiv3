@@ -10,7 +10,7 @@ public class TimeLimitVictoryTest {
 	[InlineData(200, 199, false)]
 	[InlineData(200, 200, true)]  // reaching the limit exactly counts
 	[InlineData(200, 201, true)]
-	[InlineData(0, 0, true)]
+	[InlineData(0, 0, false)]  // a limit of 0 or less means there is no limit
 	public void HasVictory_TrueOnceCurrentTurnReachesLimit(int limit, int currentTurn, bool expected) {
 		var victory = new TimeLimitVictory(limit);
 		var status = new VictoryStatus { CurrentTurn = currentTurn };

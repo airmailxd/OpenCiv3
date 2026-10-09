@@ -115,6 +115,14 @@ namespace C7Engine {
 		}
 
 		private static void MaybeDoPriorityReevaluation(Player player) {
+			// Priorities aren't saved, so a loaded game's AIs work theirs out
+			// again, quietly: choosing them already happened, and doing it
+			// again (declaring war, waking units) would make a reloaded game
+			// play differently.
+			if (player.strategicPriorityData.Count == 0 && player.turnsUntilPriorityReevaluation > 0) {
+				player.strategicPriorityData.AddRange(StrategicPriorityArbitrator.Arbitrate(player));
+			}
+
 			if (player.turnsUntilPriorityReevaluation == 0) {
 				log.Information("Re-evaluating strategic priorities for " + player);
 				List<StrategicPriority> priorities = StrategicPriorityArbitrator.Arbitrate(player);

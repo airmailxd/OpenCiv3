@@ -148,7 +148,10 @@ public class FixSavesTests : IClassFixture<SaveGameFixture> {
 	// Item: the AI's priorities aren't saved, but their countdown was.
 
 	[Fact]
-	public void LoadedAIReevaluatesItsPriorities() {
+	public void LoadedAIKeepsItsReevaluationCountdown() {
+		// Priorities themselves aren't saved: PlayerAI works them out again
+		// quietly on the AI's next turn. The countdown is kept, so saving a
+		// loaded game again gives the same save.
 		C7GameData.GameData gameData = NewGame(fixture.saveGame);
 		foreach (Player p in gameData.players) {
 			p.turnsUntilPriorityReevaluation = 7;
@@ -156,7 +159,8 @@ public class FixSavesTests : IClassFixture<SaveGameFixture> {
 
 		C7GameData.GameData loaded = SaveAndLoad(gameData);
 
-		Assert.All(loaded.players, p => Assert.Equal(0, p.turnsUntilPriorityReevaluation));
+		Assert.All(loaded.players, p => Assert.Equal(7, p.turnsUntilPriorityReevaluation));
+		Assert.All(loaded.players, p => Assert.Empty(p.strategicPriorityData));
 	}
 
 	// Item: units' defensive bombards and players' skipFirstTurn weren't

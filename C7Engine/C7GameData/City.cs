@@ -954,7 +954,7 @@ namespace C7GameData {
 			if (!owner.government.transitionType && !isInCivilDisorder && !IsInResistance) {
 				RecoverWithPolicemen(ref result);
 				foreach (CityResident cr in residents) {
-					result.useful += cr.citizenType.Construction;
+					result.useful += cr.citizenType?.Construction ?? 0;
 				}
 			}
 
@@ -972,7 +972,7 @@ namespace C7GameData {
 		private void RecoverWithPolicemen(ref CorruptableValue value) {
 			int recovered = 0;
 			foreach (CityResident cr in residents) {
-				recovered += cr.citizenType.Corruption;
+				recovered += cr.citizenType?.Corruption ?? 0;
 			}
 			recovered = Math.Min(recovered, value.corrupt);
 			if (recovered > 0) {

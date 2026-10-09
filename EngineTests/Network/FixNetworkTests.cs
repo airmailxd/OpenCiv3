@@ -84,7 +84,8 @@ public class FixNetworkTests : IClassFixture<SaveGameFixture>, IDisposable {
 		ID seatID = host.Seats[0].playerID;
 		using LanConnection guest = ConnectRaw(host);
 
-		guest.Send(FrameKind.Hello, Utf8("null"));
+		// (A Hello that can't be read is refused outright, so the garbage
+		// comes after a good one.)
 		guest.Send(FrameKind.Hello, new HelloInfo(LanProtocol.Version, "Guest"));
 		guest.Send(FrameKind.ClaimSeat, Utf8("null"));
 		guest.Send(FrameKind.ClaimSeat, Utf8("{\"playerID\":\"Player-none\"}"));

@@ -141,10 +141,9 @@ namespace C7GameData.Save {
 				citiesFounded = citiesFounded,
 				freeTechsRemaining = freeTechsRemaining,
 				neverHadCityOrSettler = neverHadCityOrSettler,
-				// The AI's strategic priorities aren't saved, so an AI works
-				// out new ones as soon as the game is loaded rather than
-				// going without them until the countdown runs out.
-				turnsUntilPriorityReevaluation = 0,
+				// The AI's strategic priorities aren't saved; PlayerAI works
+				// them out again quietly on the AI's first turn after a load.
+				turnsUntilPriorityReevaluation = turnsUntilPriorityReevaluation,
 				inAnarchyUntilTurn = inAnarchyUntilTurn,
 				government = governments.Find(x => x.id == governmentId),
 				rules = rules,

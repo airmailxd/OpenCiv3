@@ -252,8 +252,9 @@ namespace C7Engine.AI.UnitAI {
 			}
 
 			// Don't throw units away on defenders they are unlikely to beat.
-			MapUnit defender = hasEnemyUnits ? t.FindTopDefender(unit) : null;
-			double winChance = defender != null ? EstimateChanceToWin(unit, defender) : 1.0;
+			// FindTopDefender gives MapUnit.NONE, not null, when there's none.
+			MapUnit defender = hasEnemyUnits ? t.FindTopDefender(unit) : MapUnit.NONE;
+			double winChance = MapUnit.IsMapUnitValid(defender) ? EstimateChanceToWin(unit, defender) : 1.0;
 			if (winChance < MIN_CHANCE_TO_ATTACK) {
 				return int.MinValue;
 			}
