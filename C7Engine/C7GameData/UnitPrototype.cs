@@ -77,6 +77,9 @@ namespace C7GameData {
 		public int movement { get; set; }
 		public int capacity { get; set; }
 		public int hpBonus { get; set; }
+		// How much work a worker does each turn, relative to a Worker (the
+		// BIQ's PRTO worker strength).
+		public float workerStrength { get; set; } = 1;
 		// producibleBy and upgradesTo are what the cached upgrade relations
 		// (UpgradeGraph) are worked out from. They are public and mutable, so
 		// any access from outside this class, which might be followed by a
@@ -305,6 +308,7 @@ namespace C7GameData {
 
 			(movement, capacity, hpBonus, unproducible) =
 				(proto.movement, proto.capacity, proto.hpBonus, proto.unproducible);
+			workerStrength = proto.workerStrength;
 
 			categories = new HashSet<string>(proto.categories);
 			actions = new HashSet<UnitAction>(proto.actions);

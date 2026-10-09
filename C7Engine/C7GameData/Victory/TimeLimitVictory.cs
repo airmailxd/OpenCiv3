@@ -19,8 +19,9 @@ public class TimeLimitVictory : IVictory {
 		};
 	}
 
+	// A turn limit of 0 or less means the game has none.
 	public bool HasVictory(VictoryStatus status) {
-		return status.CurrentTurn >= _turnLimit;
+		return _turnLimit > 0 && status.CurrentTurn >= _turnLimit;
 	}
 
 	public IEnumerable<string[]> GenerateStatusRows(VictoryStatus status, List<VictoryStatus> rivalStatuses) {

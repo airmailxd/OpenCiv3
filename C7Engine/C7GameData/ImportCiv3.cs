@@ -90,7 +90,10 @@ namespace C7GameData {
 		/// <param name="theBiq">Source BIQ</param>
 		/// <param name="c7Save">Destination C7 in-memory structure</param>
 		private void ImportSharedBiqData() {
-			save.TerrainImprovements = SaveTerrainImprovement.Civ3Improvements().ToList();
+			RULE improvementRule = (biq.Rule ?? defaultBiq.Rule)[0];
+			save.TerrainImprovements = SaveTerrainImprovement.Civ3Improvements(
+				fortressDefenseBonus: improvementRule.FortressDefensiveBonus / 100.0,
+				roadMovementCost: improvementRule.MovementAlongRoads > 0 ? 1.0f / improvementRule.MovementAlongRoads : 1.0f / 3).ToList();
 
 			ImportTimeScale();
 			ImportRaces();
@@ -131,7 +134,8 @@ namespace C7GameData {
 			byte[] defaultBicBytes = Util.ReadFile(defaultBicPath);
 			savData = new SavData(Util.ReadFile(savePath), defaultBicBytes);
 			biq = savData.Bic;
-			pediaIcons = new(getPediaIconsPath(biq.Game[0].ScenarioSearchFolders));
+			this.defaultBiqPath = defaultBicPath;
+			pediaIcons = new(getPediaIconsPath(GameBiq?.Game?[0].ScenarioSearchFolders ?? ""));
 			save.TurnNumber = savData.Game.TurnNumber;
 			save.Seed = savData.Wrld.WorldSeed;
 
@@ -139,7 +143,9 @@ namespace C7GameData {
 			ImportSavLeaders();
 			ImportSavUnits();
 			ImportSavCities();
-			save.GameDifficulty = save.Difficulties[savData.Game.DifficultyID];
+			if (savData.Game.DifficultyID >= 0 && savData.Game.DifficultyID < save.Difficulties.Count) {
+				save.GameDifficulty = save.Difficulties[savData.Game.DifficultyID];
+			}
 
 			ImportSavHistory();
 			ImportSavVictory();
@@ -185,6 +191,7 @@ namespace C7GameData {
 				if (civ3Tile.Craters) {
 					tile.overlays.Add(CRATERS);
 				}
+				ImportHoldings(tile, civ3Tile.Fortress, civ3Tile.Barricade, civ3Tile.Airfield, civ3Tile.RadarTower, civ3Tile.Outpost, civ3Tile.ColonyID >= 0);
 				if (civ3Tile.BonusShield) {
 					tile.features.Add("bonusShield");
 				}
@@ -234,20 +241,46 @@ namespace C7GameData {
 					tile.resource = save.Resources[civ3Tile.ResourceID].Key;
 				}
 				save.Map.tiles.Add(tile);
-				for (int playerIndex = 0; playerIndex < save.Players.Count; playerIndex++) {
-					if (civ3Tile.ExploredBy[playerIndex]) {
-						SavePlayer player = save.Players[playerIndex];
-						player.tileKnowledge.Add(new TileLocation(X, Y));
+				for (int lead = 0; lead < savLeadPlayers.Length; lead++) {
+					if (savLeadPlayers[lead] != null && civ3Tile.ExploredBy[lead]) {
+						savLeadPlayers[lead].tileKnowledge.Add(new TileLocation(X, Y));
 					}
 				}
 				i++;
 			}
 			MarkLakes();
+			LogUnsupportedHoldings();
 
 			// make barbarians unpickable
 			save.Players.Where(p => p.isBarbarian).ToList().ForEach(p => p.canBePicked = false);
 
 			return save;
+		}
+
+		// The tile improvements Civ3 has that C7 doesn't yet, with how many
+		// tiles had each, logged once the map is imported.
+		private readonly Dictionary<string, int> unsupportedHoldings = new();
+
+		// Imports the holdings layer (fortresses and the like) of a tile. A
+		// barricade is an upgraded fortress. C7 has no airfields, radar
+		// towers, outposts or colonies yet, so those are left out.
+		private void ImportHoldings(SaveTile tile, bool fortress, bool barricade, bool airfield, bool radarTower, bool outpost, bool colony) {
+			if (barricade) {
+				tile.overlays.Add(BARRICADE);
+			} else if (fortress) {
+				tile.overlays.Add(FORTRESS);
+			}
+			foreach ((bool has, string name) in new[] { (airfield, "airfield"), (radarTower, "radar tower"), (outpost, "outpost"), (colony, "colony") }) {
+				if (has) {
+					unsupportedHoldings[name] = unsupportedHoldings.GetValueOrDefault(name) + 1;
+				}
+			}
+		}
+
+		private void LogUnsupportedHoldings() {
+			foreach (KeyValuePair<string, int> holding in unsupportedHoldings) {
+				log.Warning("The map has {Count} tiles with a {Improvement}, which C7 doesn't have yet; they are left out", holding.Value, holding.Key);
+			}
 		}
 
 		// Marks the tiles of small bodies of water as fresh water lakes, as
@@ -256,8 +289,7 @@ namespace C7GameData {
 		private void MarkLakes() {
 			HashSet<string> waterTerrains = save.TerrainTypes.Where(t => t.IsWater).Select(t => t.Key).ToHashSet();
 			foreach (IGrouping<int, SaveTile> body in save.Map.tiles.Where(t => waterTerrains.Contains(t.baseTerrain)).GroupBy(t => t.continent)) {
-				// TODO: share the size limit with recomputeContinents.
-				if (body.Count() <= 20) {
+				if (body.Count() <= GameMap.MaxFreshWaterLakeTiles) {
 					foreach (SaveTile t in body) {
 						t.isFreshWater = true;
 					}
@@ -266,10 +298,8 @@ namespace C7GameData {
 		}
 
 		private void ImportSavHistory() {
-			Dictionary<int, ID> civPlayerMap = BuildCivIdPlayerMap();
-
-			foreach (ID player in civPlayerMap.Values) {
-				save.History[player.ToString()] = new List<HistTurnRecord>();
+			foreach (SavePlayer player in savLeadPlayers.Where(p => p != null && !p.isBarbarian)) {
+				save.History[player.id.ToString()] = new List<HistTurnRecord>();
 			}
 
 			foreach (var turn in savData.HistTurn) {
@@ -279,8 +309,13 @@ namespace C7GameData {
 				var cultures = savData.TurnCulture[turn.TurnNumber];
 				var vps = savData.TurnVP[turn.TurnNumber];
 				foreach ((int civ, int idx) in civs.Select((civ, idx) => (civ, idx))) {
-					var player = civPlayerMap[civ];
-					save.History[player.ToString()].Add(new HistTurnRecord {
+					// The history lists civs by LEAD, including ones that
+					// joined the game after the first turn.
+					SavePlayer player = SavPlayer(civ);
+					if (player == null || !save.History.TryGetValue(player.id.ToString(), out List<HistTurnRecord> history)) {
+						continue;
+					}
+					history.Add(new HistTurnRecord {
 						Date = turn.Date,
 						Power = powers[idx],
 						Score = scores[idx],
@@ -289,19 +324,6 @@ namespace C7GameData {
 					});
 				}
 			}
-		}
-
-		private Dictionary<int, ID> BuildCivIdPlayerMap() {
-			var civ3CivIdToPlayerId = new Dictionary<int, ID>();
-			var civs = savData.TurnCiv[0];
-			foreach (int civ in civs) {
-				var raceId = savData.Lead[civ].RaceID;
-				var race = savData.Bic.Race[raceId];
-				string raceName = race.Name;
-				var player = save.Players.First(p => p.civilization == raceName);
-				civ3CivIdToPlayerId[civ] = player.id;
-			}
-			return civ3CivIdToPlayerId;
 		}
 
 		/**
@@ -316,22 +338,39 @@ namespace C7GameData {
 		private SaveGame importBiq(string biqPath, string defaultBiqPath, Func<string, string> getPediaIconsPath) {
 			biq = BiqData.LoadFile(biqPath);
 			this.defaultBiqPath = defaultBiqPath;
-			pediaIcons = new(getPediaIconsPath(biq.Game[0].ScenarioSearchFolders));
-			save.Seed = biq.Wmap[0].MapSeed;
+			pediaIcons = new(getPediaIconsPath(GameBiq?.Game?[0].ScenarioSearchFolders ?? ""));
+
+			// A BIQ may have no map, only rules. Then the map and the players
+			// are left for GameSetup.Populate to make.
+			bool hasMap = biq.Wmap?.Length > 0 && biq.Tile?.Length > 0;
+
+			// Civ3 replays a scenario's random numbers only if it asks to
+			// preserve its random seed.
+			if (hasMap && GameBiq?.Game?[0].PreserveRandomSeed == true) {
+				save.Seed = biq.Wmap[0].MapSeed;
+			} else {
+				save.Seed = Random.Shared.Next(int.MaxValue);
+			}
 
 			ImportSharedBiqData();
-			ImportBicLeaders();
-			ImportBicUnits();
-			ImportBicCities();
-			ImportEmbassies();
-			ImportAlliances();
+			ImportBiqVictory();
+			if (hasMap) {
+				ImportBicLeaders();
+				ImportBicUnits();
+				ImportBicCities();
+				ImportEmbassies();
+				ImportAlliances();
+			} else {
+				log.Information("{Biq} has no map, so the map and players will be generated", biqPath);
+			}
 
 			SetMapDimensions(biq, save);
 			SetWorldWrap(biq, save);
 
 			// Import tiles
 			int i = 0;
-			foreach (QueryCiv3.Biq.TILE civ3Tile in biq.Tile) {
+			bool mapVisible = GameBiq?.Game?[0].MapVisible == 1;
+			foreach (QueryCiv3.Biq.TILE civ3Tile in hasMap ? biq.Tile : Array.Empty<QueryCiv3.Biq.TILE>()) {
 				(int X, int Y) = GetMapCoordinates(i, biq.Wmap[0].Width);
 				Civ3ExtraInfo extra = new Civ3ExtraInfo
 				{
@@ -362,6 +401,7 @@ namespace C7GameData {
 				if (civ3Tile.Craters) {
 					tile.overlays.Add(CRATERS);
 				}
+				ImportHoldings(tile, civ3Tile.Fortress, civ3Tile.Barricade, civ3Tile.Airfield, civ3Tile.RadarTower, civ3Tile.Outpost, civ3Tile.Colony >= 0);
 				if (civ3Tile.BonusGrassland) {
 					tile.features.Add("bonusShield");
 				}
@@ -415,7 +455,7 @@ namespace C7GameData {
 				// discovery. Other scenarios set the entire map to be visible.
 				//
 				// Add those tiles ahead of time.
-				if (civ3Tile.FogOfWar != 0 || biq.Game[0].MapVisible == 1) {
+				if (civ3Tile.FogOfWar != 0 || mapVisible) {
 					for (int playerIndex = 0; playerIndex < save.Players.Count; playerIndex++) {
 						SavePlayer player = save.Players[playerIndex];
 						player.tileKnowledge.Add(new TileLocation(X, Y));
@@ -426,6 +466,7 @@ namespace C7GameData {
 				i++;
 			}
 			MarkLakes();
+			LogUnsupportedHoldings();
 
 			// The rest of the fog of war is done unit by unit; each unit can see their
 			// own tile and the neighbor tiles.
@@ -460,6 +501,12 @@ namespace C7GameData {
 			// to check for playable players, offset array indexes by the difference, etc,
 			// as we are parsing the file, which is 10 times the hassle compared to this approach
 			save.Players = save.Players.Where(p => p.isBarbarian || p.isIncludedInGame).ToList();
+			HashSet<ID> remaining = save.Players.Select(p => p.id).ToHashSet();
+			int unitsLeftOut = save.Units.RemoveAll(u => !remaining.Contains(u.owner));
+			int citiesLeftOut = save.Cities.RemoveAll(c => !remaining.Contains(c.owner));
+			if (unitsLeftOut > 0 || citiesLeftOut > 0) {
+				log.Warning("Left out {Units} units and {Cities} cities of civs that aren't in the game", unitsLeftOut, citiesLeftOut);
+			}
 
 			// make barbarians unpickable
 			save.Players.Where(p => p.isBarbarian).ToList().ForEach(p => p.canBePicked = false);
@@ -474,13 +521,17 @@ namespace C7GameData {
 		}
 
 		private void ImportTimeScale() {
-			var games = GameBiq.Game;
+			var games = GameBiq?.Game;
+			if (games == null || games.Length == 0) {
+				log.Warning("No GAME section to take the time scale from; using the defaults");
+				return;
+			}
 			save.TimeOptions = new TimeOptions() {
 				baseUnit = (TimeUnit)games[0].BaseTimeUnit,
 				startYear = games[0].StartYear,
 				startMonth = games[0].StartMonth,
 				startWeek = games[0].StartWeek,
-				turnLimit = games[0].TurnTimeLimit,
+				turnLimit = TurnLimit(games[0]),
 				negativeLabel = "BC",
 				positiveLabel = "AD",
 			};
@@ -500,6 +551,54 @@ namespace C7GameData {
 			save.TimeOptions.timeScale[0, 7] = 50000;
 			save.TimeOptions.timeScale[1, 7] = 1;
 
+		}
+
+		// The turn the game ends on. A scenario's own turn limit only counts
+		// if it is set to use it; otherwise, as in Civ3, the game ends when
+		// its time scale runs out.
+		private static int TurnLimit(QueryCiv3.Biq.GAME game) {
+			if (game.UseTimeLimit != 0 && game.TurnTimeLimit > 0) {
+				return game.TurnTimeLimit;
+			}
+			int timeScaleTurns = 0;
+			for (int i = 0; i < 7; ++i) {
+				timeScaleTurns += Math.Max(0, game.TimescaleNumberOfTurns[i]);
+			}
+			return timeScaleTurns > 0 ? timeScaleTurns : new TimeOptions().turnLimit;
+		}
+
+		// The victory conditions of a scenario. A scenario either uses
+		// Civ3's default ones or sets its own.
+		private void ImportBiqVictory() {
+			QueryCiv3.Biq.GAME[] games = GameBiq?.Game;
+			if (games == null || games.Length == 0 || games[0].DefaultVictoryConditions != 0) {
+				save.VictoryConditions = VictoryConditions.NewGameDefaults();
+				return;
+			}
+			QueryCiv3.Biq.GAME game = games[0];
+			save.VictoryConditions = new VictoryConditions {
+				AllowDominationVictory = game.DominationVictory,
+				AllowSpaceRaceVictory = game.SpaceRaceVictory,
+				AllowDiplomaticVictory = game.DiplomaticVictory,
+				AllowConquestVictory = game.ConquestVictory,
+				AllowCulturalVictory = game.CulturalVictory,
+
+				AllowWonderVictory = game.WonderVictory,
+
+				CityElimination = game.CityElimination,
+				Regicide = game.Regicide,
+				MassRegicide = game.MassRegicide,
+				VictoryLocations = game.VictoryLocations,
+				CaptureTheFlag = game.CaptureTheFlag,
+				ReverseCaptureTheFlag = game.ReverseCaptureTheFlag,
+			};
+			// Keep the defaults if the game doesn't set the thresholds.
+			if (game.DominationTerrain > 0) {
+				save.VictoryConditions.DominationTerritoryPercent = game.DominationTerrain;
+			}
+			if (game.DominationPopulation > 0) {
+				save.VictoryConditions.DominationPopulationPercent = game.DominationPopulation;
+			}
 		}
 
 		private void ImportSavVictory() {
@@ -531,11 +630,10 @@ namespace C7GameData {
 			}
 
 			if (game.Winner > -1) {
-				// TODO: load winner
 				// TODO: translate victory type
-				Log.Warning("This game is over - Unknown winner and victory type");
-				save.Winner = new SavePlayer();
+				save.Winner = SavPlayer(game.Winner);
 				save.GameOver = true;
+				log.Warning("This game is over: {Winner} won, by an unknown kind of victory ({Type})", save.Winner?.civilization ?? "an unknown civ", game.VictoryType);
 			}
 
 		}
@@ -685,6 +783,11 @@ namespace C7GameData {
 			bool foundHuman = false;
 			int leadIndex = 0;
 			foreach (LEAD lead in leadBiq.Lead) {
+				if (lead.Civ < 0 || lead.Civ >= save.Players.Count) {
+					log.Warning("LEAD {Lead} is of unknown civ {Civ}, and is left out", leadIndex, lead.Civ);
+					++leadIndex;
+					continue;
+				}
 				SavePlayer player = save.Players[lead.Civ];
 
 				player.canBePicked = lead.HumanPlayer == 1;
@@ -725,17 +828,33 @@ namespace C7GameData {
 			}
 		}
 
+		// The player for each of the SAV's LEADs, by LEAD index, or null for
+		// a LEAD slot no civ uses. Everything in a SAV refers to players by
+		// LEAD index, but the unused slots aren't made players, so the
+		// indices into save.Players can differ.
+		private SavePlayer[] savLeadPlayers = [];
+
+		// The player for the SAV's LEAD at the given index, or null.
+		private SavePlayer SavPlayer(int lead) {
+			return lead >= 0 && lead < savLeadPlayers.Length ? savLeadPlayers[lead] : null;
+		}
+
 		private void ImportSavLeaders() {
 			BiqData theBiq = biq.Eras is null ? defaultBiq : biq;
 			int currentTurn = save.TurnNumber;
-			int i = 0;
-			foreach (QueryCiv3.Sav.LEAD leader in savData.Lead) {
-				if (leader.RaceID == -1) {
-					continue; // can probably break here
+			savLeadPlayers = new SavePlayer[savData.Lead.Length];
+			for (int i = 0; i < savData.Lead.Length; ++i) {
+				QueryCiv3.Sav.LEAD leader = savData.Lead[i];
+				if (leader.RaceID < 0) {
+					continue;
+				}
+				if (leader.RaceID >= save.Civilizations.Count) {
+					log.Warning("LEAD {Lead} is of unknown civ {Race}, and is left out", i, leader.RaceID);
+					continue;
 				}
 				Civilization civ = save.Civilizations[leader.RaceID];
 				SavePlayer player = MakeSavePlayerFromCiv(civ,
-										  isHuman: i == 1,
+										  isHuman: !civ.isBarbarian && savData.Game.HumanPlayers[i],
 										  era: theBiq.Eras[leader.Era].CivilopediaEntry,
                                           // by default if the player is in the .sav file, well, it's included in the game
                                           // in contrast to a .biq file where it can have a player/civ that is not included in the final gameplay
@@ -772,7 +891,7 @@ namespace C7GameData {
 				// The golden age still runs on its end turn.
 				player.goldenAgeTurnsRemaining = Math.Max(0, leader.GoldenAgeEndTurn - save.TurnNumber + 1);
 
-				player.defeated = IsDefeated(player, leader);
+				player.defeated = !player.isBarbarian && !savData.Game.RemainingPlayers[i];
 				player.hasVictoriousArmy = leader.HasVictoriousArmy;
 				short[] spaceshipParts = savData.LeadSpaceshipParts?[i];
 				if (spaceshipParts != null && spaceshipParts.Any(n => n > 0)) {
@@ -780,19 +899,36 @@ namespace C7GameData {
 				}
 
 				save.Players.Add(player);
-				i++;
+				savLeadPlayers[i] = player;
+			}
+
+			// A game always has a human player. Should the save not mark one,
+			// fall back to the first civ, the one a single-player game's
+			// human plays.
+			if (!save.Players.Any(p => p.human)) {
+				SavePlayer first = save.Players.FirstOrDefault(p => !p.isBarbarian);
+				if (first != null) {
+					log.Warning("The save marks no player as human; making {Player} human", first.civilization);
+					first.human = true;
+				}
 			}
 
 			// Now that we know all the players, fill in details about their
 			// relationship to each other.
-			i = 0;
-			foreach (QueryCiv3.Sav.LEAD leader in savData.Lead) {
+			for (int i = 0; i < savData.Lead.Length; ++i) {
+				QueryCiv3.Sav.LEAD leader = savData.Lead[i];
+				SavePlayer player = SavPlayer(i);
+				if (player == null) {
+					continue;
+				}
 				List<int> contacts = leader.GetContact();
 				List<int> refuseContactForTurns = leader.GetRefuseContactForTurns();
 				for (int j = 0; j < contacts.Count; ++j) {
-					if (contacts[j] > 0) {
+					SavePlayer other = SavPlayer(j);
+					if (contacts[j] > 0 && other != null && other != player
+						&& i < savData.ReputationRelationship.Length && j < savData.ReputationRelationship[i].Length) {
 						QueryCiv3.Sav.LEAD_LEAD relationship = savData.ReputationRelationship[i][j];
-						save.Players[i].playerRelationships.Add(save.Players[j].id.ToString(), new PlayerRelationship() {
+						player.playerRelationships.TryAdd(other.id.ToString(), new PlayerRelationship() {
 							warDeclarationCount = relationship.WarDeclarationCount,
 							// I don't think there is a way to figure this out for .sav or .biq files
 							// so by default we set this to 0 for these games
@@ -806,7 +942,6 @@ namespace C7GameData {
 						});
 					}
 				}
-				++i;
 			}
 
 			// Multi-Turn deals
@@ -938,19 +1073,21 @@ namespace C7GameData {
 			// they only know that they are receiving something up to turn 40
 			#endregion
 
-			i = 0;
-			foreach (QueryCiv3.Sav.LEAD leader in savData.Lead) {
+			for (int i = 0; i < savData.Lead.Length; ++i) {
+				QueryCiv3.Sav.LEAD leader = savData.Lead[i];
 				int turnsRemaining = 0;
 				int dealStart = 0;
 				int defaultDealDuration = save.Rules.DefaultDealDuration;
 				List<int> contacts = leader.GetContact();
+				SavePlayer player = SavPlayer(i);
 				for (int j = 0; j < contacts.Count; ++j) {
 					if (contacts[j] > 0) {
 						// skip barbarians, they can't have any diplomatic relationships, they are at war against everyone, at all times
 						if (i <= 0 || j <= 0) continue;
 
-						// skip indexes of players that are not active
-						if (j >= save.Players.Count || i >= save.Players.Count) continue;
+						// skip LEADs that aren't players
+						SavePlayer other = SavPlayer(j);
+						if (player == null || other == null) continue;
 
 						QueryCiv3.Sav.LEAD_LEAD_Diplomacy[] diplomacy = savData.LeadLeadDiplomacy[i, j];
 						// a civ doesn't have any diplomatic relationships with itself, or with another civ they are at war with
@@ -991,12 +1128,14 @@ namespace C7GameData {
 									dealDetails = DealDetails.Exchange;
 								} else if (deadType == DealType.Alliance) {
 									dealSubType = DealSubType.MilitaryAlliance;
-									againstPlayer = save.Players[diplomacy[d + 1].Data1].id;
+									againstPlayer = SavPlayer(diplomacy[d + 1].Data1)?.id;
 									dealDetails = DealDetails.Exchange;
+									if (againstPlayer == null) continue;
 								} else if (deadType == DealType.Embargo) {
 									dealSubType = DealSubType.TradeEmbargo;
-									againstPlayer = save.Players[diplomacy[d + 1].Data1].id;
+									againstPlayer = SavPlayer(diplomacy[d + 1].Data1)?.id;
 									dealDetails = DealDetails.Exchange;
+									if (againstPlayer == null) continue;
 								}
 								  // These types of deals are only present in full on the civ that gives the gold/resources/luxuries
 								  else if (deadType == DealType.Gold) {
@@ -1018,7 +1157,7 @@ namespace C7GameData {
 								}
 
 								if (dealSubType != DealSubType.None
-									&& save.Players[i].playerRelationships.TryGetValue(save.Players[j].id.ToString(), out PlayerRelationship pr)) {
+									&& player.playerRelationships.TryGetValue(other.id.ToString(), out PlayerRelationship pr)) {
 									MultiTurnDeal mtd = new MultiTurnDeal(deadType, dealSubType, dealDetails, goldPerTurn, resourcePerTurn, defaultDealDuration, dealStart, againstPlayer);
 									pr.multiTurnDeals.Add(mtd);
 								}
@@ -1026,7 +1165,7 @@ namespace C7GameData {
 								// Add inbound info to other player because that info is not exactly present in the binary
 								if (dealDetails == DealDetails.Outbound
 									&& dealSubType != DealSubType.None
-									&& save.Players[j].playerRelationships.TryGetValue(save.Players[i].id.ToString(), out PlayerRelationship prOther)) {
+									&& other.playerRelationships.TryGetValue(player.id.ToString(), out PlayerRelationship prOther)) {
 									MultiTurnDeal mtd = new MultiTurnDeal(deadType, dealSubType, DealDetails.Inbound, goldPerTurn, resourcePerTurn, defaultDealDuration, dealStart, againstPlayer);
 									prOther.multiTurnDeals.Add(mtd);
 								}
@@ -1034,7 +1173,6 @@ namespace C7GameData {
 						}
 					}
 				}
-				++i;
 			}
 
 			foreach (SavePlayer savePlayer in save.Players) {
@@ -1056,14 +1194,6 @@ namespace C7GameData {
 					}
 				}
 			}
-		}
-
-		// TODO: Confirm IsDefeated logic
-		private static bool IsDefeated(SavePlayer player, QueryCiv3.Sav.LEAD leader) {
-			if (player.isBarbarian)
-				return false;
-
-			return leader.CapitalCity < 0 && leader.NumberOfUnits < 1;
 		}
 
 		private SavePlayer MakeSavePlayerFromCiv(Civilization civ, bool isHuman, string era, bool isIncludedInGame = true) {
@@ -1091,7 +1221,7 @@ namespace C7GameData {
 
 			for (int i = 0; i < theBiq.Lead.Length; ++i) {
 				var lead = theBiq.Lead[i];
-				if (lead.StartEmbassies == 1) {
+				if (lead.StartEmbassies == 1 && lead.Civ >= 0 && lead.Civ < save.Players.Count) {
 					var player = save.Players[lead.Civ];
 					if (!player.isBarbarian)
 						playerWithEmbassies.Add(player);
@@ -1193,10 +1323,10 @@ namespace C7GameData {
 			var loadMap = new Dictionary<ID, int>();
 
 			foreach (QueryCiv3.Sav.UNIT unit in savData.Unit) {
-				if (unit.OwnerID < 0 || unit.OwnerID >= save.Players.Count) {
+				SavePlayer player = SavPlayer(unit.OwnerID);
+				if (player == null) {
 					continue;
 				}
-				SavePlayer player = save.Players[unit.OwnerID];
 				PRTO prototype = savData.Bic.Prto[unit.UnitType];
 				string prototypeName = prototype.Name;
 				string unitName = unit.Name;
@@ -1225,7 +1355,8 @@ namespace C7GameData {
 				}
 
 				shadowIdMap[unit.ID] = saveUnit.id;
-				if (unit.LoadedOnUnitId > 0)
+				// Unit IDs start at 0; -1 means the unit isn't loaded.
+				if (unit.LoadedOnUnitId >= 0)
 					loadMap[saveUnit.id] = unit.LoadedOnUnitId;
 
 				save.Units.Add(saveUnit);
@@ -1236,8 +1367,13 @@ namespace C7GameData {
 			// gathered above. Note that we can't be sure to be able to resolve identifiers
 			// until we have scanned all units. Hence a second pass for these mappings.
 			foreach (var saveUnit in save.Units) {
-				if (loadMap.TryGetValue(saveUnit.id, out var loadedOnUnitId))
-					saveUnit.loadedOnUnitId = shadowIdMap[loadedOnUnitId];
+				if (loadMap.TryGetValue(saveUnit.id, out var loadedOnUnitId)) {
+					if (shadowIdMap.TryGetValue(loadedOnUnitId, out ID carrier)) {
+						saveUnit.loadedOnUnitId = carrier;
+					} else {
+						log.Warning("{Unit} is loaded on unit {Carrier}, which isn't in the game; unloading it", saveUnit.name, loadedOnUnitId);
+					}
+				}
 			}
 		}
 
@@ -1268,49 +1404,83 @@ namespace C7GameData {
 			};
 
 			foreach (UNIT unit in biq.Unit ?? []) {
-				// Only barbarians can have an owner index larger than 31,
-				// as it denotes the tribe index rather that the player index.
-				// That is why we exclude barbarians (ownerType == 1) from this.
-				if (unit.Owner >= save.Players.Count && unit.OwnerType != 1) {
-					log.Warning("Unit has owner with index {Owner}, but there are only {PlayerCount} players", unit.Owner, save.Players.Count);
+				// Barbarian units' owner is their tribe, which C7 doesn't
+				// have yet, so they all belong to the barbarians.
+				// TODO: implement tribes for barbarians
+				SavePlayer player = BiqOwner(unit.OwnerType, unit.Owner, $"unit {unit.Name}");
+				if (player == null) {
 					continue;
 				}
-
-				// The owner index is into the list of civs, and we have a 1:1
-				// mapping of players and civs.
-				// The exception to this are barbarian units (unit.OwnerType == 1),
-				// where the owner points to the tribe (city name in other civs), rather than the player/civ
-				// TODO: implement tribes for barbarians
-				int owner = unit.OwnerType == 1 ? 0 : unit.Owner;
-				SavePlayer player = save.Players[owner];
+				if (unit.ExperienceLevel < 0 || unit.ExperienceLevel >= save.ExperienceLevels.Count || unit.UnitType < 0 || unit.UnitType >= prtos.Length) {
+					log.Warning("Unit {Unit} at ({X}, {Y}) has unknown type {Type} or experience level {Level}, and is left out", unit.Name, unit.X, unit.Y, unit.UnitType, unit.ExperienceLevel);
+					continue;
+				}
 				ExperienceLevel experience = save.ExperienceLevels[unit.ExperienceLevel];
 				save.Units.Add(createUnitAtLocation(player, unit.Name, unit.UnitType, experience.key, experience.baseHitPoints, unit.X, unit.Y));
 			}
 
+			// Each civ's starting location gets the starting units, at the
+			// default experience level.
 			RULE rule = biq.Rule?[0] ?? defaultBiq.Rule[0];
+			ExperienceLevel startLevel = save.ExperienceLevels.Find(e => e.key == save.DefaultExperienceLevel) ?? save.ExperienceLevels[0];
 			foreach (SLOC starting_location in biq.Sloc ?? []) {
-				// Skip barbarians
+				// Skip unowned and barbarian starting locations
 				if (starting_location.OwnerType <= 1) {
 					continue;
 				}
 
-				// The owner index is into the list of civs, and we have a 1:1
-				// mapping of players and civs.
-				SavePlayer player = save.Players[starting_location.Owner];
-				int baseHitPoints = 3;
-				if (rule.StartUnitType1 >= 0) {
-					save.Units.Add(createUnitAtLocation(player, prtos[rule.StartUnitType1].Name, rule.StartUnitType1, "Regular", baseHitPoints, starting_location.X, starting_location.Y));
+				SavePlayer player = BiqOwner(starting_location.OwnerType, starting_location.Owner, "starting location");
+				if (player == null) {
+					continue;
 				}
-				if (rule.StartUnitType2 >= 0) {
-					save.Units.Add(createUnitAtLocation(player, prtos[rule.StartUnitType2].Name, rule.StartUnitType2, "Regular", baseHitPoints, starting_location.X, starting_location.Y));
+				foreach (int unitType in new[] { rule.StartUnitType1, rule.StartUnitType2 }) {
+					if (unitType >= 0 && unitType < prtos.Length) {
+						save.Units.Add(createUnitAtLocation(player, prtos[unitType].Name, unitType, startLevel.key, startLevel.baseHitPoints, starting_location.X, starting_location.Y));
+					}
 				}
 			}
+		}
+
+		// The player that owns something in a BIQ, given its owner type
+		// (0: none, 1: barbarians, 2: a civ, 3: a player, that is a LEAD)
+		// and owner index, or null if there is none.
+		private SavePlayer BiqOwner(int ownerType, int owner, string what) {
+			// Until the players are filtered at the end of importBiq, there
+			// is a player for each civ, in the same order.
+			int civ;
+			switch (ownerType) {
+				case 1:
+					return save.Players.FirstOrDefault(p => p.isBarbarian);
+				case 2:
+					civ = owner;
+					break;
+				case 3:
+					LEAD[] leads = LeadBiq?.Lead;
+					if (leads == null || owner < 0 || owner >= leads.Length) {
+						log.Warning("The {What} belongs to unknown player {Owner}, and is left out", what, owner);
+						return null;
+					}
+					civ = leads[owner].Civ;
+					break;
+				default:
+					log.Information("The {What} belongs to no one, and is left out", what);
+					return null;
+			}
+			if (civ < 0 || civ >= save.Players.Count) {
+				log.Warning("The {What} belongs to civ {Owner}, but there are only {PlayerCount} civs; it is left out", what, civ, save.Players.Count);
+				return null;
+			}
+			return save.Players[civ];
 		}
 
 		private void ImportSavCities() {
 			for (int i = 0; i < savData.City.Length; ++i) {
 				QueryCiv3.Sav.CITY city = savData.City[i];
-				SavePlayer owner = save.Players[city.Owner];
+				SavePlayer owner = SavPlayer(city.Owner);
+				if (owner == null) {
+					log.Warning("City {City} belongs to LEAD {Owner}, which isn't a player; it is left out", city.Name, city.Owner);
+					continue;
+				}
 
 				var (producible, producibleType) = CityToProducible(city);
 
@@ -1330,29 +1500,34 @@ namespace C7GameData {
 				};
 
 				List<int> culturePerLeader = city.GetCulturePerLeader();
-				for (int j = 0; j < 32; ++j) {
-					if (culturePerLeader[j] > 0 || j == city.Owner) {
-						saveCity.perPlayerCulture.Add(save.Players[j].id.ToString(), culturePerLeader[j]);
+				for (int j = 0; j < culturePerLeader.Count; ++j) {
+					SavePlayer player = SavPlayer(j);
+					if (player != null && (culturePerLeader[j] > 0 || j == city.Owner)) {
+						saveCity.perPlayerCulture.TryAdd(player.id.ToString(), culturePerLeader[j]);
 					}
 				}
 
+				ID defaultCitizenType = save.CitizenTypes.Find(x => x.IsDefaultCitizen).Id;
 				foreach (QueryCiv3.Sav.CTZN ctzn in savData.CityCtzn[i]) {
-					if (ctzn.Type == 4) {  // Specialist
-						SaveCityResident scr = new();
-						scr.city = saveCity.id;
-						scr.nationality = save.Civilizations[ctzn.Nationality].name;
-						scr.citizenType = save.CitizenTypes.Find(x => x.SpecialistIndex == ctzn.SpecialistType).Id;
-						saveCity.residents.Add(scr);
-					} else if (ctzn.TileWorked == 0) {
-						// TODO: handle resistors
-					} else {
-						SaveCityResident scr = new();
-						scr.city = saveCity.id;
+					SaveCityResident scr = new() {
+						city = saveCity.id,
+						nationality = ctzn.Nationality >= 0 && ctzn.Nationality < save.Civilizations.Count
+							? save.Civilizations[ctzn.Nationality].name : owner.civilization,
+						// Not working a tile, unless set below.
+						tileWorked = new TileLocation(),
+						citizenType = defaultCitizenType,
+					};
+					CitizenType specialist = ctzn.Type == 4 ? save.CitizenTypes.Find(x => x.SpecialistIndex == ctzn.SpecialistType) : null;
+					if (specialist != null) {
+						scr.citizenType = specialist.Id;
+					} else if (ctzn.TileWorked != 0) {
 						scr.tileWorked = GetTileFromSpiral(saveCity.location, ctzn.TileWorked);
-						scr.nationality = save.Civilizations[ctzn.Nationality].name;
-						scr.citizenType = save.CitizenTypes.Find(x => x.IsDefaultCitizen).Id;
-						saveCity.residents.Add(scr);
 					}
+					// Otherwise the citizen works no tile (as resistors and
+					// citizens of a city in disorder may not), and is given one
+					// when the game starts (see SaveGame.OnGameCreation).
+					// TODO: handle resistors
+					saveCity.residents.Add(scr);
 				}
 				save.Cities.Add(saveCity);
 			}
@@ -1374,7 +1549,9 @@ namespace C7GameData {
 					string buildingName = bldg.Name;
 					res.Add(new SaveCityBuilding {
 						building = buildingName,
-						builtByPlayer = save.Players[building.BuiltByPlayer].id,
+						// Buildings the save doesn't say who built are
+						// credited to the city's owner.
+						builtByPlayer = (SavPlayer(building.BuiltByPlayer) ?? SavPlayer(city.Owner)).id,
 						year = building.Year,
 						totalCulture = building.Culture,
 					});
@@ -1416,9 +1593,11 @@ namespace C7GameData {
 			PRTO[] unitPrototypes = biq.Prto ?? defaultBiq.Prto;
 			BiqData theBiq = biq.Bldg is null ? defaultBiq : biq;
 
-			// 29 is the wealth code
-			// In .sav files wealth is ConstructingType 1, but we want to translate it differently
-			if (city is { ConstructingType: 1, Constructing: 29 })
+			// In .sav files Wealth (the building with the capitalization
+			// flag) is a building (ConstructingType 1), but in C7 it is an
+			// inflow.
+			if (city.ConstructingType == 1 && city.Constructing >= 0 && city.Constructing < theBiq.Bldg.Length
+				&& theBiq.Bldg[city.Constructing].Capitalization)
 				city.ConstructingType = 0;
 
 			return city.ConstructingType switch {
@@ -1436,18 +1615,19 @@ namespace C7GameData {
 			for (int cityIndex = 0; cityIndex < cities.Length; ++cityIndex) {
 				CITY city = cities[cityIndex];
 
-				// The owner index is into the list of civs, and we have a 1:1
-				// mapping of players and civs.
-				SavePlayer player = save.Players[city.Owner];
+				SavePlayer player = BiqOwner(city.OwnerType, city.Owner, $"city {city.Name}");
+				if (player == null) {
+					continue;
+				}
+				(string producible, ProducibleType producibleType) = StartingProduction(player);
 
 				SaveCity saveCity = new SaveCity{
 					id = ids.CreateID("city"),
 					owner = player.id,
 					location = new TileLocation(city.X, city.Y),
 					capital = city.HasPalace != 0,
-					// TODO: try and get this from the unit prototype
-					producible = "Worker",
-					producibleType = ProducibleType.UNIT,
+					producible = producible,
+					producibleType = producibleType,
 					name = city.Name,
 					size = city.Size,
 					buildings = ImportCityBuildingsFromBiq(cityIndex, player.id),
@@ -1458,6 +1638,30 @@ namespace C7GameData {
 
 				save.Cities.Add(saveCity);
 			}
+		}
+
+		// What a scenario's city starts out producing, since the BIQ doesn't
+		// say: the cheapest land unit the owner can build with the techs it
+		// starts with, or else the first inflow (Wealth). The player can
+		// change it.
+		private (string, ProducibleType) StartingProduction(SavePlayer player) {
+			Civilization civ = save.Civilizations.Find(c => c.name == player.civilization);
+			HashSet<ID> techs = new(player.knownTechs);
+			if (civ != null) {
+				techs.UnionWith(civ.startingTechs);
+			}
+			SaveUnitPrototype unit = save.UnitPrototypes
+				.Where(p => !p.unproducible && p.categories.Contains("Land") && p.producibleBy.Contains(player.civilization)
+					&& (p.requiredTech == null || techs.Contains(p.requiredTech)) && p.requiredResources.Count == 0)
+				.OrderBy(p => p.shieldCost)
+				.FirstOrDefault();
+			if (unit != null) {
+				return (unit.name, ProducibleType.UNIT);
+			}
+			if (save.Inflows.Count > 0) {
+				return (save.Inflows[0].name, ProducibleType.INFLOW);
+			}
+			return (save.UnitPrototypes.First().name, ProducibleType.UNIT);
 		}
 
 		private static IEnumerable<UnitAction> GetUnitActions(PRTO prto) {
@@ -1541,6 +1745,8 @@ namespace C7GameData {
 				prototype.bombard = prto.BombardStrength;
 				prototype.bombardRange = prto.BombardRange;
 				prototype.rateOfFire = prto.RateOfFire;
+				// How much a worker does each turn, relative to a Worker.
+				prototype.workerStrength = prto.WorkerStrength > 0 ? prto.WorkerStrength : 1;
 
 				if (prto.TurnToAttack) prototype.flags.Add(SaveUnitPrototype.Flag.RotateBeforeAttack);
 
@@ -1581,9 +1787,19 @@ namespace C7GameData {
 
 				prototype.producibleBy = ImportUnitAvailability(prto);
 
-				//Temporary check until #330 is finished
-				if (!save.UnitPrototypes.Any(p => p.name == prototype.name)) {
+				// Units are known by name, so only the first unit of each name
+				// is kept. Civ3 repeats a unit for each extra AI strategy it
+				// has, which is expected; two different units of the same
+				// name are not, and are logged.
+				// Temporary check until #330 is finished
+				SaveUnitPrototype existing = save.UnitPrototypes.Find(p => p.name == prototype.name);
+				if (existing == null) {
 					save.UnitPrototypes.Add(prototype);
+				} else if (existing.attack != prototype.attack || existing.defense != prototype.defense
+						|| existing.movement != prototype.movement || existing.shieldCost != prototype.shieldCost
+						|| existing.hpBonus != prototype.hpBonus || existing.requiredTech != prototype.requiredTech
+						|| !existing.producibleBy.SetEquals(prototype.producibleBy)) {
+					log.Warning("There are two different units named {Unit}; only the first is kept", prototype.name);
 				}
 			}
 		}
@@ -1712,7 +1928,9 @@ namespace C7GameData {
 			BLDG[] Bldg = biq.Bldg ?? defaultBiq.Bldg;
 
 			foreach (BLDG bldg in Bldg) {
-				if (bldg.Name == "Wealth") {
+				// Civ3's Wealth is a building with the capitalization flag,
+				// but in C7 it is an inflow.
+				if (bldg.Capitalization) {
 					SaveInflow inflow = new () {
 						name = bldg.Name,
 						iconRowIndex = pediaIcons.buildingToRowNumberMapping[bldg.CivilopediaEntry],
@@ -1789,8 +2007,12 @@ namespace C7GameData {
 				building.flags = LoadBuildingFlags(bldg).ToHashSet();
 				building.traits = LoadBuildingTraits(bldg).ToHashSet();
 
-				// Buildings with bombard defense are treated as walls in civ3.
-				if (bldg.BombardDefense > 0) {
+				// Civ3 has no walls flag. Its City Walls are the building
+				// that both raises the city's defense against land attacks
+				// and protects it from bombardment; a Coastal Fortress only
+				// guards against ships, and a wonder like the Great Wall that
+				// acts as walls does so through its own flags.
+				if (bldg.DefenseBonus > 0 && bldg.BombardDefense > 0 && !bldg.Wonder && !bldg.SmallWonder) {
 					building.flags.Add(SaveBuilding.Flag.ProvidesWalls);
 					building.flags.Add(SaveBuilding.Flag.CanOnlyBeBuiltInTowns);
 				}
@@ -2261,7 +2483,31 @@ namespace C7GameData {
 			save.Rules.ForestValueInShields = rule.ForestValueInShields;
 			save.Rules.CitizenValueInShields = rule.CitizenValueInShields;
 			save.Rules.TurnPenaltyForEachHurrySacrifice = rule.TurnPenaltyForEachHurrySacrifice;
-			save.GameDifficulty = save.Difficulties[rule.DefaultDifficultyLevel];
+			if (rule.DefaultDifficultyLevel >= 0 && rule.DefaultDifficultyLevel < save.Difficulties.Count) {
+				save.GameDifficulty = save.Difficulties[rule.DefaultDifficultyLevel];
+			}
+			save.Rules.StartingTreasury = rule.StartingTreasury;
+			ERAS[] eras = biq.Eras ?? defaultBiq.Eras;
+			if (eras?.Length > 0) {
+				save.Rules.FirstEraCivilopediaName = eras[0].CivilopediaEntry;
+			}
+			save.Rules.FoodConsumptionPerCitizen = rule.FoodConsumptionPerCitizen;
+			save.Rules.MovementAlongRoads = rule.MovementAlongRoads;
+			save.Rules.FortressDefensiveBonus = rule.FortressDefensiveBonus;
+			save.Rules.BorderExpansionMultiplier = rule.BorderExpansionMultiplier;
+			save.Rules.BorderFactor = rule.BorderFactor;
+			save.Rules.FutureTechCost = rule.FutureTechCost;
+			save.Rules.ChanceOfRioting = rule.ChanceOfRioting;
+			save.Rules.CitizensAffectedByEachHappyFace = rule.CitizensAffectedByEachHappyFace;
+			save.Rules.BuildingDefensiveBonus = rule.BuildingDefensiveBonus;
+			save.Rules.CitizenDefensiveBonus = rule.CitizenDefensiveBonus;
+			save.Rules.TurnPenaltyForEachDraftedCitizen = rule.TurnPenaltyForEachDraftedCitizen;
+			if (rule.Slave >= 0 && rule.Slave < theBiq.Prto.Length) {
+				save.Rules.SlaveUnitType = theBiq.Prto[rule.Slave].Name;
+			}
+			if (rule.FlagUnitType >= 0 && rule.FlagUnitType < theBiq.Prto.Length) {
+				save.Rules.FlagUnitType = theBiq.Prto[rule.FlagUnitType].Name;
+			}
 			if (rule.StartUnitType1 >= 0) {
 				save.Rules.StartUnitType1 = theBiq.Prto[rule.StartUnitType1].Name;
 			}
@@ -2275,7 +2521,9 @@ namespace C7GameData {
 			save.Rules.MaxRankOfBarbarianCampTiles = 2;
 			save.Rules.DefaultDealDuration = 20;
 			save.Rules.ShieldCostPerGold = rule.ShieldsCostPerGold;
-			save.Rules.ShieldRateForDisbanding = 0.25f;
+			// Not in the BIQ. Civ3 gives a city half the shields of a unit
+			// disbanded in it.
+			save.Rules.ShieldRateForDisbanding = 0.5f;
 			save.Rules.AllowLesserUnitProduction = false;
 			save.Rules.RadarTileVisibility = 2;
 			save.Rules.CitiesNeededToSupportAnArmy = rule.CitiesNeededToSupportAnArmy;
@@ -2333,12 +2581,19 @@ namespace C7GameData {
 			}
 		}
 
-		private static void SetMapDimensions(BiqData biq, SaveGame save) {
+		private void SetMapDimensions(BiqData biq, SaveGame save) {
 			if (biq is not null && biq.Wmap is not null && biq.Wmap.Length > 0) {
 				save.Map.tilesTall = biq.Wmap[0].Height;
 				save.Map.tilesWide = biq.Wmap[0].Width;
-				save.Map.techRate = biq.Wsiz[biq.Wchr[0].WorldSize].TechRate;
-				save.Map.optimalNumberOfCities = biq.Wsiz[biq.Wchr[0].WorldSize].OptimalNumberOfCities;
+				// The world sizes may come from the default BIQ.
+				WSIZ[] sizes = biq.Wsiz ?? defaultBiq?.Wsiz;
+				int size = biq.Wchr?.Length > 0 ? biq.Wchr[0].WorldSize : -1;
+				if (sizes != null && size >= 0 && size < sizes.Length) {
+					save.Map.techRate = sizes[size].TechRate;
+					save.Map.optimalNumberOfCities = sizes[size].OptimalNumberOfCities;
+				} else {
+					log.Warning("The map has no world size, so its tech rate and optimal number of cities are unknown");
+				}
 			}
 		}
 

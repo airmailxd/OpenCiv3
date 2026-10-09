@@ -7,7 +7,11 @@ namespace C7GameData.Save;
 public class SaveTerrainImprovement {
 	// The following method is used to generate terrain improvement
 	// data when loading a CIV3 SAV or BIQ file
-	public static IEnumerable<SaveTerrainImprovement> Civ3Improvements() {
+	//
+	// The fortress's defense bonus and the road's movement cost come from
+	// the BIQ's RULE (FortressDefensiveBonus, MovementAlongRoads); the
+	// defaults are Civ3's.
+	public static IEnumerable<SaveTerrainImprovement> Civ3Improvements(double fortressDefenseBonus = 0.5, float roadMovementCost = 1.0f / 3) {
 		yield return new(
 			IRRIGATION,
 			Layer.ResourceDevelopment,
@@ -21,7 +25,7 @@ public class SaveTerrainImprovement {
 		yield return new(
 			ROAD,
 			Layer.Roads,
-			movementCost: 1.0f / 3,
+			movementCost: roadMovementCost,
 			zIndex: 1);
 
 		yield return new(
@@ -36,7 +40,7 @@ public class SaveTerrainImprovement {
 		yield return new(
 			FORTRESS,
 			Layer.Holdings,
-			defenseBonus: new(FORTRESS, 0.5),
+			defenseBonus: new(FORTRESS, fortressDefenseBonus),
 			zIndex: 6
 		);
 		yield return new(
@@ -67,7 +71,8 @@ public class SaveTerrainImprovement {
 			zIndex: 11
 		);
 
-		// TODO: Add colony, outpost, airfield, radar tower
+		// TODO: Add colony, outpost, airfield, radar tower. Until then,
+		// importing a Civ3 game leaves them out (see ImportCiv3.ImportHoldings).
 	}
 
 	public readonly string key;

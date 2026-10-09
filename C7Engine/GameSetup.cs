@@ -54,7 +54,7 @@ public class GameSetup {
 
 		if (save.Map.tiles.Count == 0) {
 			log.Information("Starting map generation");
-			save.Map = new SaveMap(MapGenerator.GenerateMap(worldCharacteristics));
+			save.Map = new SaveMap(GenerateMap());
 			save.Seed = worldCharacteristics.mapSeed;
 			log.Information("Done with map generation");
 		}
@@ -63,6 +63,29 @@ public class GameSetup {
 			ids = new(save);
 			PopulatePlayers(save);
 		}
+	}
+
+	// How many more maps to generate, each from a seed derived from the
+	// last, when a map doesn't have a starting location for every civ.
+	private const int ExtraMapAttempts = 2;
+
+	// Generates a map with a starting location for every civ if it can.
+	private GameMap GenerateMap() {
+		int civs = HumanPlayers().Count() + opponents.Count;
+		if (worldCharacteristics.worldSize.numberOfCivs < civs) {
+			log.Warning($"The {worldCharacteristics.worldSize.name} world size has room for {worldCharacteristics.worldSize.numberOfCivs} civs, but {civs} are playing; making room for them all");
+			worldCharacteristics.worldSize = worldCharacteristics.worldSize.Clone();
+			worldCharacteristics.worldSize.numberOfCivs = civs;
+		}
+
+		GameMap map = MapGenerator.GenerateMap(worldCharacteristics);
+		for (int attempt = 1; attempt <= ExtraMapAttempts && map.startingLocations.Count < civs; ++attempt) {
+			int seed = (int)((uint)worldCharacteristics.mapSeed * 2654435761u % int.MaxValue);
+			log.Warning($"The map from seed {worldCharacteristics.mapSeed} has {map.startingLocations.Count} starting locations for {civs} civs; trying seed {seed}");
+			worldCharacteristics.mapSeed = seed;
+			map = MapGenerator.GenerateMap(worldCharacteristics);
+		}
+		return map;
 	}
 
 	private void PopulatePlayers(SaveGame save) {
@@ -113,10 +136,33 @@ public class GameSetup {
 			planned.Add(new PlannedPlayer { civ = civ, isHuman = false, isRandom = isRandom });
 		}
 
+		LeaveOutOpponentsWithoutStarts(save, planned, taken);
 		List<SaveTile> starts = AssignStartingLocations(save, rand, planned, taken);
 		for (int i = 0; i < planned.Count; ++i) {
-			AddPlayer(save, planned[i].civ, planned[i].isHuman, planned[i].name, i < starts.Count ? starts[i] : null);
+			AddPlayer(save, planned[i].civ, planned[i].isHuman, planned[i].name, starts[i]);
 		}
+	}
+
+	// If the map doesn't have a starting location for every planned player,
+	// leaves out computer opponents, the last first, until it does. Every
+	// human must have one.
+	private static void LeaveOutOpponentsWithoutStarts(SaveGame save, List<PlannedPlayer> planned, HashSet<string> taken) {
+		int starts = save.Map.startingLocations.Count;
+		if (planned.Count <= starts) {
+			return;
+		}
+		int humans = planned.Count(p => p.isHuman);
+		if (humans > starts) {
+			throw new InvalidOperationException($"The map has {starts} starting locations, too few for {humans} human players");
+		}
+		int opponentsBefore = planned.Count - humans;
+		for (int i = planned.Count - 1; i >= 0 && planned.Count > starts; --i) {
+			if (!planned[i].isHuman) {
+				taken.Remove(planned[i].civ.name);
+				planned.RemoveAt(i);
+			}
+		}
+		log.Warning($"The map has only {starts} starting locations, so the game has {planned.Count - humans} computer opponents instead of {opponentsBefore}");
 	}
 
 	private class PlannedPlayer {
@@ -236,10 +282,8 @@ public class GameSetup {
 			secondaryColorIndex = civ.secondaryColorIndex,
 			civilization = civ.name,
 			knownTechs = new HashSet<ID>(civ.startingTechs),
-			// TODO: stop hardcoding this
-			eraCivilopediaName = "ERAS_Ancient_Times",
-			// TODO: load this from the rules
-			gold = 10,
+			eraCivilopediaName = save.Rules.FirstEraCivilopediaName,
+			gold = save.Rules.StartingTreasury,
 			governmentId = worldCharacteristics.defaultGovernment.id,
 		};
 		save.Players.Add(player);
@@ -249,7 +293,9 @@ public class GameSetup {
 			return player;
 		}
 
-		startingTile ??= save.Map.startingLocations[save.Players.Count - 2];
+		if (startingTile == null) {
+			throw new ArgumentException($"{civ.name} has no starting location");
+		}
 		TileLocation startingLocation = new TileLocation(startingTile.X, startingTile.Y);
 
 		AddUnit(save, player, save.Rules.StartUnitType1, startingLocation);

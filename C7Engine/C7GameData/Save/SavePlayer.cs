@@ -141,7 +141,10 @@ namespace C7GameData.Save {
 				citiesFounded = citiesFounded,
 				freeTechsRemaining = freeTechsRemaining,
 				neverHadCityOrSettler = neverHadCityOrSettler,
-				turnsUntilPriorityReevaluation = turnsUntilPriorityReevaluation,
+				// The AI's strategic priorities aren't saved, so an AI works
+				// out new ones as soon as the game is loaded rather than
+				// going without them until the countdown runs out.
+				turnsUntilPriorityReevaluation = 0,
 				inAnarchyUntilTurn = inAnarchyUntilTurn,
 				government = governments.Find(x => x.id == governmentId),
 				rules = rules,
@@ -226,6 +229,7 @@ namespace C7GameData.Save {
 			secondaryColorIndex = player.secondaryColorIndex;
 			human = player.isHuman;
 			hasPlayedCurrentTurn = player.hasPlayedThisTurn;
+			skipFirstTurn = player.skipFirstTurn;
 			name = player.name;
 			defeated = player.defeated;
 			civilization = player.civilization?.name;

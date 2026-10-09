@@ -55,6 +55,9 @@ namespace C7Engine {
 		public int maxRankOfWorkableTiles;
 		public int maxRankOfBarbarianCampTiles;
 
+		// The food each citizen eats a turn (the BIQ's RULE).
+		public int foodPerCitizen = 2;
+
 		public WorldCharacteristics() { }
 
 		public WorldCharacteristics(SaveGame save) {
@@ -64,6 +67,7 @@ namespace C7Engine {
 
 			maxRankOfWorkableTiles = save.Rules.MaxRankOfWorkableTiles;
 			maxRankOfBarbarianCampTiles = save.Rules.MaxRankOfBarbarianCampTiles;
+			foodPerCitizen = save.Rules.FoodConsumptionPerCitizen;
 
 			barbarianActivity = save.BarbarianInfo.barbarianActivity;
 		}
@@ -147,6 +151,12 @@ namespace C7Engine {
 			// TODO: Supporting maps of odd dimensions should be doable, but beyond current tiling implementation 
 			// As a mitigation, we simply shrink the map dimensions a bit 
 
+			// The world size is usually one of the game's list of sizes, so
+			// change a copy of it.
+			if (wc.worldSize.width % 2 == 1 || wc.worldSize.height % 2 == 1) {
+				wc.worldSize = wc.worldSize.Clone();
+			}
+
 			if (wc.worldSize.width % 2 == 1) {
 				log.Warning("Uneven map width. Shrinking by one.");
 				wc.worldSize.width -= 1;
@@ -168,6 +178,11 @@ namespace C7Engine {
 			Stopwatch stopwatch = new Stopwatch();
 			stopwatch.Start();
 
+			// The first map with room for every civ, in case none has the
+			// shape asked for.
+			GameMap roomyMap = null;
+			GameMap lastMap = null;
+
 			int maxAttempts = 30;
 			for (int attempt = 0; attempt < maxAttempts; ++attempt) {
 				HeightMap hm = new(seed: mapSeed + 0x1234 * attempt, width:width, height:height, scale:GetNoiseScale(landform));
@@ -179,13 +194,30 @@ namespace C7Engine {
 					return m;
 				}
 
-				if (attempt == maxAttempts - 1) {
-					log.Information($"Bailing out of generating a {landform} map");
-					return m;
+				if (roomyMap == null && HasRoomForCivs(wc, m)) {
+					roomyMap = m;
 				}
+				lastMap = m;
 			}
 
-			return null;
+			// None of the maps has the shape asked for. Settle for one the
+			// civs fit on, or failing that the last; DetermineStartingLocations
+			// makes do with whatever land there is.
+			if (roomyMap != null) {
+				log.Warning($"No map had the shape of a {landform} map after {maxAttempts} attempts; using one with room for every civ");
+				return roomyMap;
+			}
+			log.Warning($"No map had the shape of a {landform} map or room for {wc.worldSize.numberOfCivs} civs after {maxAttempts} attempts; using the last one");
+			return lastMap;
+		}
+
+		// Whether the map's sizeable landmasses have room for a start for
+		// each civ.
+		private static bool HasRoomForCivs(WorldCharacteristics wc, GameMap m) {
+			int roomyLand = m.continents
+				.Where(c => c.First().IsLand() && c.Count > MIN_TILES_PER_PLAYER_ISLAND / 2)
+				.Sum(c => c.Count);
+			return roomyLand >= wc.worldSize.numberOfCivs * (MIN_TILES_PER_PLAYER_ISLAND / 2);
 		}
 
 		private static GameMap ToLandAndWaterGameMap(WorldCharacteristics wc, HeightMap hm, WorldCharacteristics.OceanCoverage oceanCoverage) {
@@ -1903,13 +1935,21 @@ namespace C7Engine {
 			}
 		}
 
+		// How many barbarian camps a map starts with: one for every
+		// LAND_TILES_PER_BARBARIAN_CAMP land tiles, with more at the higher
+		// barbarian activity levels. These are tuned guesses, NOT taken from
+		// Civ3, whose own numbers aren't known.
+		private const int LAND_TILES_PER_BARBARIAN_CAMP = 100;
+		private const double RESTLESS_BARBARIAN_CAMP_FACTOR = 1.25;
+		private const double RAGING_BARBARIAN_CAMP_FACTOR = 1.5;
+
 		/// <summary>
 		/// Apply barbarian activity level to barbarian camp spawn rate. Currently NOT based on Civ3 values.
 		/// TODO: Make configurable
 		/// TODO: Determine what these values are in Civ3 
 		/// </summary>
 		private static int DeriveTotalPossibleBarbCamps(WorldCharacteristics wc, int landTiles) {
-			var totalCampsBaseline = landTiles / 100;
+			var totalCampsBaseline = landTiles / LAND_TILES_PER_BARBARIAN_CAMP;
 			switch (wc.barbarianActivity) {
 				case BarbarianActivity.None:
 					return 0;
@@ -1918,16 +1958,17 @@ namespace C7Engine {
 				case BarbarianActivity.Roaming:
 					return totalCampsBaseline;
 				case BarbarianActivity.Restless:
-					return (int)Math.Round(totalCampsBaseline * 1.25); // extra 25%
+					return (int)Math.Round(totalCampsBaseline * RESTLESS_BARBARIAN_CAMP_FACTOR);
 				case BarbarianActivity.Raging:
-					return (int)Math.Round(totalCampsBaseline * 1.50); // extra 50%
+					return (int)Math.Round(totalCampsBaseline * RAGING_BARBARIAN_CAMP_FACTOR);
 				default:
 					log.Warning("Unknown Barbarian Activity at barb camps derivation.");
 					return totalCampsBaseline;
 			}
 		}
 
-		// About one goody hut for every this many land tiles.
+		// About one goody hut for every this many land tiles. A tuned guess,
+		// NOT taken from Civ3.
 		private const int LandTilesPerGoodyHut = 60;
 
 		private static void AddGoodyHuts(WorldCharacteristics wc, GameMap m) {
@@ -2055,8 +2096,8 @@ namespace C7Engine {
 						continue;
 					}
 
-					// TODO: We need to consider the number of seafaring civs,
-					// since they need to start on a coastal tile.
+					// Seafaring civs are given coastal starts when the starts
+					// are handed out (see GameSetup.AssignStartingLocations).
 
 					if (!ContinentHasEnoughLuxuries(t, continentLuxuryCount, continentStartingLocationCount, attempt)) {
 						continue;
@@ -2077,8 +2118,26 @@ namespace C7Engine {
 				}
 			}
 
+			// As a last resort, put the remaining civs anywhere a city could
+			// grow, then anywhere a city can be founded, as long as they
+			// aren't right next to another civ.
+			if (startingLocations.Count < wc.worldSize.numberOfCivs) {
+				log.Warning($"Only {startingLocations.Count} of {wc.worldSize.numberOfCivs} starting locations met the usual requirements; relaxing them");
+				IEnumerable<Tile> lastResort = orderedTiles.Concat(
+					m.tiles.Where(t => t.IsLand() && t.IsAllowCities() && !scoredTiles.ContainsKey(t)));
+				foreach (Tile t in lastResort) {
+					if (startingLocations.Count >= wc.worldSize.numberOfCivs) {
+						break;
+					}
+					if (startingLocations.Any(s => s.DistanceTo(t) < MIN_LAST_RESORT_START_DISTANCE)) {
+						continue;
+					}
+					startingLocations.Add(t);
+				}
+			}
+
 			if (wc.worldSize.numberOfCivs > startingLocations.Count)
-				log.Error("More civs than available starting locations.");
+				log.Error($"More civs than available starting locations: {startingLocations.Count} starts for {wc.worldSize.numberOfCivs} civs.");
 
 			// Before using the starting locations, shuffle them, so that the
 			// human player doesn't always get the best starting spot.
@@ -2120,6 +2179,10 @@ namespace C7Engine {
 			return startsOnContinent < luxuriesOnContinent;
 		}
 
+		// How close starting locations may be when there is no other way to
+		// fit every civ in.
+		private const int MIN_LAST_RESORT_START_DISTANCE = 3;
+
 		private static bool TileIsTooCloseToOtherStarts(Tile t, List<Tile> startingLocations, int minDistance, int attempt) {
 			if (attempt > 2) {
 				minDistance /= 2;
@@ -2143,10 +2206,9 @@ namespace C7Engine {
 		// size working the best food tiles around it.
 		private const int MIN_START_GROWTH_SIZE = 3;
 
-		// A city center always makes this much food (see Tile.BaseFoodYield),
-		// and each citizen eats this much.
+		// A city center always makes this much food (see Tile.BaseFoodYield).
+		// Each citizen eats the rules' foodPerCitizen.
 		private const int CITY_CENTER_FOOD = 2;
-		private const int FOOD_PER_CITIZEN = 2;
 
 		// Whether a city founded on t could grow to the given size, with each
 		// citizen working the best food tile left in reach. To grow past a
@@ -2166,7 +2228,7 @@ namespace C7Engine {
 					return false;
 				}
 				total += food[citizens - 1];
-				if (total <= citizens * FOOD_PER_CITIZEN) {
+				if (total <= citizens * wc.foodPerCitizen) {
 					return false;
 				}
 			}
@@ -2196,7 +2258,9 @@ namespace C7Engine {
 			const int RiverPoints = 35;
 			const int CoastPoints = 30;
 			const int LandTilePoints = 1;
-			const int BarbarianCampPoints = -50;
+			// Barbarian camps aren't scored: starting locations are chosen
+			// before the camps are placed, and the camps keep away from them
+			// (see IsValidForBarbarianCamp).
 
 			// Calculate the score for tiles in the immediate area.
 			int score = 0;
@@ -2204,9 +2268,6 @@ namespace C7Engine {
 				score += CommercePoints * n.CommerceYield(player).yield;
 				score += ShieldPoints * n.ProductionYield(player).yield;
 				score += FoodPoints * n.FoodYield(player).yield;
-				if (n.hasBarbarianCamp) {
-					score += BarbarianCampPoints;
-				}
 
 				if (!n.IsLand()) {
 					score += CoastPoints;
@@ -2219,9 +2280,6 @@ namespace C7Engine {
 				score += CommercePoints * n.CommerceYield(player).yield;
 				score += ShieldPoints * n.ProductionYield(player).yield;
 				score += FoodPoints * n.FoodYield(player).yield;
-				if (n.hasBarbarianCamp) {
-					score += BarbarianCampPoints;
-				}
 			}
 
 			// Give an extra bonus for rivers.

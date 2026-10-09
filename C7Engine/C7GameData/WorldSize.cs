@@ -13,6 +13,12 @@ namespace C7GameData {
 
 		public bool isDefault;
 
+		// A copy, to change without changing the world size it came from
+		// (which the game's list of world sizes may share).
+		public WorldSize Clone() {
+			return (WorldSize)MemberwiseClone();
+		}
+
 		public static WorldSize Generic() {
 			return new WorldSize() {
 				name = "Default",

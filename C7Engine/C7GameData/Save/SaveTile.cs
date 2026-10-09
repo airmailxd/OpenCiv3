@@ -87,14 +87,21 @@ namespace C7GameData.Save {
 		}
 
 		internal Tile ToTile(Lookups lookups) {
+			// A tile can't do without its terrain, so an unknown one is an
+			// error in the save.
+			TerrainType baseTerrainType = Lookups.Find(lookups.terrainTypesByKey, baseTerrain)
+				?? throw new KeyNotFoundException($"The tile at ({X}, {Y}) has unknown base terrain {baseTerrain}");
+			TerrainType overlayTerrainType = overlayTerrain == null ? baseTerrainType
+				: Lookups.Find(lookups.terrainTypesByKey, overlayTerrain)
+					?? throw new KeyNotFoundException($"The tile at ({X}, {Y}) has unknown overlay terrain {overlayTerrain}");
 			Tile tile = new Tile(id){
 				ExtraInfo = extraInfo,
 				XCoordinate = X,
 				YCoordinate = Y,
 				continent = continent,
 				isFreshWater = isFreshWater,
-				baseTerrainType = Lookups.Find(lookups.terrainTypesByKey, baseTerrain),
-				overlayTerrainType = Lookups.Find(lookups.terrainTypesByKey, overlayTerrain),
+				baseTerrainType = baseTerrainType,
+				overlayTerrainType = overlayTerrainType,
 				hasBarbarianCamp = features.Contains("barbarianCamp"),
 				hasGoodyHut = features.Contains("goodyHut"),
 				hasHadForestCleared = features.Contains("hasHadForestCleared"),
@@ -113,8 +120,24 @@ namespace C7GameData.Save {
 				isPineForest = features.Contains("pineForest"),
 			};
 
-			tile.Resource = tile.ResourceKey == Resource.NONE.Key ? Resource.NONE : Lookups.Find(lookups.resourcesByKey, tile.ResourceKey);
-			overlays.ForEach(key => tile.overlays.Add(Lookups.Find(lookups.improvementsByKey, key)));
+			if (tile.ResourceKey == Resource.NONE.Key) {
+				tile.Resource = Resource.NONE;
+			} else {
+				tile.Resource = Lookups.Find(lookups.resourcesByKey, tile.ResourceKey);
+				if (tile.Resource == null) {
+					Serilog.Log.Warning("The tile at ({X}, {Y}) has unknown resource {Resource}, which is left out", X, Y, tile.ResourceKey);
+					tile.Resource = Resource.NONE;
+					tile.ResourceKey = Resource.NONE.Key;
+				}
+			}
+			foreach (string key in overlays) {
+				TerrainImprovement improvement = Lookups.Find(lookups.improvementsByKey, key);
+				if (improvement == null) {
+					Serilog.Log.Warning("The tile at ({X}, {Y}) has unknown terrain improvement {Improvement}, which is left out", X, Y, key);
+					continue;
+				}
+				tile.overlays.Add(improvement);
+			}
 
 			return tile;
 		}

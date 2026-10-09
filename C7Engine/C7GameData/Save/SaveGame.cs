@@ -29,6 +29,7 @@ namespace C7GameData.Save {
 	}
 
 	public class SaveGame {
+		private static readonly ILogger log = Log.ForContext<SaveGame>();
 
 		private static JsonSerializerOptions CreateJsonOptions(bool writeIndented) {
 			return new JsonSerializerOptions {
@@ -63,7 +64,9 @@ namespace C7GameData.Save {
 
 		public static SaveGame FromGameData(GameData data) {
 			SaveGame save = new SaveGame {
+				FormatVersion = CurrentFormatVersion,
 				Seed = data.seed,
+				RngState = (data.random as GameRandom)?.State,
 				TurnNumber = data.turn,
 				Civilizations = data.civilizations,
 				CultureGroups = data.cultureGroups,
@@ -89,6 +92,7 @@ namespace C7GameData.Save {
 				WorldSizes = data.worldSizes,
 				Difficulties = data.difficulties,
 				GameDifficulty = data.gameDifficulty,
+				GameDifficultyIndex = data.difficulties.IndexOf(data.gameDifficulty) is int index && index >= 0 ? index : null,
 				Rules = data.rules,
 				TimeOptions = data.timeOptions,
 				History = data.history,
@@ -237,6 +241,45 @@ namespace C7GameData.Save {
 			}
 		}
 
+		// The difficulty the game is played at, as one of Difficulties, since
+		// game rules (such as the score) tell the difficulty by its place in
+		// that list. GameDifficulty is saved as a copy, and may be set to one
+		// from another copy of the rules (as by GameSetup), so it is matched
+		// by id or name; saves made before the index was saved have only
+		// those.
+		internal Difficulty ResolveGameDifficulty() {
+			if (GameDifficulty != null) {
+				Difficulty match = Difficulties.Find(d => ReferenceEquals(d, GameDifficulty))
+					?? (GameDifficulty.id is null ? null : Difficulties.Find(d => d.id == GameDifficulty.id));
+				if (match == null && GameDifficulty.Name != null) {
+					List<Difficulty> named = Difficulties.FindAll(d => d.Name == GameDifficulty.Name);
+					if (named.Count == 1) {
+						match = named[0];
+					}
+				}
+				if (match != null) {
+					return match;
+				}
+			}
+			if (GameDifficultyIndex is int index && index >= 0 && index < Difficulties.Count) {
+				return Difficulties[index];
+			}
+			if (Difficulties.Count > 0) {
+				log.Warning("The game difficulty {Difficulty} is not one of the game's difficulties", GameDifficulty?.Name);
+			}
+			return GameDifficulty ?? new Difficulty();
+		}
+
+		// The game's random number generator, carrying on from where it was
+		// when the game was saved. Saves made before its state was saved
+		// start it afresh each turn from the seed.
+		private Random CreateRandom(int seed) {
+			if (RngState is ulong state) {
+				return new GameRandom(state);
+			}
+			return new GameRandom(GameRandom.InitialState(seed, TurnNumber));
+		}
+
 		private GameData InitializeGameData() {
 			// copy data without references
 			var data = new GameData(Seed) {
@@ -251,7 +294,7 @@ namespace C7GameData.Save {
 				governments = Governments,
 				worldSizes = WorldSizes,
 				difficulties = Difficulties,
-				gameDifficulty = GameDifficulty,
+				gameDifficulty = ResolveGameDifficulty(),
 				ids = new ID.Factory(this),
 				experienceLevels = ExperienceLevels,
 				rules = Rules,
@@ -261,6 +304,8 @@ namespace C7GameData.Save {
 				GreatWondersBuilt = GreatWondersBuilt,
 				unitedNations = UnitedNations ?? new UnitedNationsState(),
 			};
+			// A save without a seed has been given a random one.
+			data.random = CreateRandom(data.seed);
 
 			return data;
 		}
@@ -393,7 +438,7 @@ namespace C7GameData.Save {
 
 			// map units need game map and players to populate location and owner.
 			// Each unit is added to its tile's list of units as it is created.
-			SaveUnit.Lookups lookups = new(data.unitPrototypes, ExperienceLevels, data.players, data.Terraforms);
+			SaveUnit.Lookups lookups = new(data.unitPrototypes, ExperienceLevels, data.players, data.Terraforms, DefaultExperienceLevel);
 			data.mapUnits = Units.ConvertAll(unit => unit.ToMapUnit(lookups, data.map));
 
 			// A unit that isn't on the map can't take part in the game (it
@@ -533,8 +578,28 @@ namespace C7GameData.Save {
 			}
 		}
 
+		// The version of the save format this build writes. Bump it when the
+		// format changes in a way loading has to know about, and add a step
+		// to Migrations to bring older saves up to date.
+		public const int CurrentFormatVersion = 1;
+
+		// The steps that bring a save from each format version to the next.
+		// Format 0 is every save made before the format was versioned. Fields
+		// added since (RngState, GameDifficultyIndex) are optional, and
+		// loading copes without them, so there is nothing to rewrite.
+		private static readonly Dictionary<int, Action<SaveGame>> Migrations = new() {
+			[0] = save => { },
+		};
+
+		// Not used; kept so that older builds can still read the field.
 		public string Version = "0.0.0";
+		// The format version the save was written with, or null for one made
+		// before saves were versioned.
+		public int? FormatVersion;
 		public int Seed = -1;
+		// The state of the game's random number generator (see GameRandom),
+		// or null in saves made before it was saved.
+		public ulong? RngState;
 		public int TurnNumber = 0;
 		public SaveMap Map = new SaveMap();
 		public List<TerrainType> TerrainTypes = new List<TerrainType>();
@@ -577,21 +642,46 @@ namespace C7GameData.Save {
 
 		public List<Difficulty> Difficulties = new();
 		public Difficulty GameDifficulty = new();
+		// GameDifficulty's place in Difficulties, or null in saves made
+		// before it was saved (see ResolveGameDifficulty).
+		public int? GameDifficultyIndex;
 
 		public GameMode.Config GameModeConfig = new("civ3");
 
 		public void Save(string path) {
+			FormatVersion ??= CurrentFormatVersion;
 			byte[] json = JsonSerializer.SerializeToUtf8Bytes(this, JsonOptions);
 			File.WriteAllBytes(path, json);
 		}
 
 		// Serializes without indentation, for sending over the network.
 		public byte[] ToCompactJSON() {
+			FormatVersion ??= CurrentFormatVersion;
 			return JsonSerializer.SerializeToUtf8Bytes(this, CompactJsonOptions);
 		}
 
 		public static SaveGame FromJSON(byte[] json) {
-			return JsonSerializer.Deserialize<SaveGame>(json, JsonOptions);
+			return Migrate(JsonSerializer.Deserialize<SaveGame>(json, JsonOptions));
+		}
+
+		// Brings a save just read up to the current format, or throws if it
+		// was written by a newer build than this one.
+		internal static SaveGame Migrate(SaveGame save) {
+			if (save == null) {
+				return null;
+			}
+			int version = save.FormatVersion ?? 0;
+			if (version > CurrentFormatVersion) {
+				throw new NotSupportedException($"The save is in format version {version}, but this build only reads up to version {CurrentFormatVersion}. It was made by a newer version of the game.");
+			}
+			for (; version < CurrentFormatVersion; ++version) {
+				if (Migrations.TryGetValue(version, out Action<SaveGame> step)) {
+					log.Information("Migrating the save from format version {From} to {To}", version, version + 1);
+					step(save);
+				}
+			}
+			save.FormatVersion = CurrentFormatVersion;
+			return save;
 		}
 
 		// Makes a deep copy of a SaveGame instance via JSON serialization
@@ -617,7 +707,7 @@ namespace C7GameData.Save {
 		}
 
 		internal static SaveGame LoadFromJSON(string json) {
-			return JsonSerializer.Deserialize<SaveGame>(json, JsonOptions);
+			return Migrate(JsonSerializer.Deserialize<SaveGame>(json, JsonOptions));
 		}
 	}
 }

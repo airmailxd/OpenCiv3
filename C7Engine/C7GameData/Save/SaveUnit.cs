@@ -34,6 +34,10 @@ namespace C7GameData.Save {
 		// produces at most one.
 		public bool hasProducedLeader;
 
+		// How many more times this turn the unit may bombard an attacker of
+		// its tile. Saves made before it was saved give a fresh unit's one.
+		public int defensiveBombardsRemaining = 1;
+
 		public SaveUnit() { }
 
 		// A copy sharing everything with this one, for a LAN host to change
@@ -65,6 +69,7 @@ namespace C7GameData.Save {
 			hasAttackedThisTurn = unit.hasAttackedThisTurn;
 			hasPillagedThisTurn = unit.hasPillagedThisTurn;
 			hasProducedLeader = unit.hasProducedLeader;
+			defensiveBombardsRemaining = unit.defensiveBombardsRemaining;
 			facingDirection = unit.facingDirection;
 			experience = unit.experienceLevelKey;
 			movePointsRemaining = unit.movementPoints.remaining;
@@ -82,8 +87,11 @@ namespace C7GameData.Save {
 			internal readonly Dictionary<ID, Player> playersById = new();
 			internal readonly Dictionary<string, Player> playersByCivilizationName = new();
 			internal readonly Dictionary<ID, Terraform> terraformsById = new();
+			// The experience level of a unit whose level is unknown.
+			internal readonly ExperienceLevel defaultExperienceLevel;
 
-			internal Lookups(List<UnitPrototype> prototypes, List<ExperienceLevel> experienceLevels, List<Player> players, List<Terraform> terraforms) {
+			internal Lookups(List<UnitPrototype> prototypes, List<ExperienceLevel> experienceLevels, List<Player> players, List<Terraform> terraforms,
+					string defaultExperienceLevelKey = null) {
 				foreach (UnitPrototype p in prototypes) {
 					if (p.name != null) prototypesByName.TryAdd(p.name, p);
 				}
@@ -97,6 +105,8 @@ namespace C7GameData.Save {
 				foreach (Terraform tf in terraforms) {
 					if (tf.Id is not null) terraformsById.TryAdd(tf.Id, tf);
 				}
+				defaultExperienceLevel = Find(experienceLevelsByKey, defaultExperienceLevelKey)
+					?? (experienceLevels.Count > 0 ? experienceLevels[0] : null);
 			}
 
 			internal static T Find<K, T>(Dictionary<K, T> dict, K key) where T : class {
@@ -109,12 +119,25 @@ namespace C7GameData.Save {
 		}
 
 		internal MapUnit ToMapUnit(Lookups lookups, GameMap map) {
+			UnitPrototype unitType = Lookups.Find(lookups.prototypesByName, prototype)
+				?? throw new KeyNotFoundException($"Unit {id} is of unknown type {prototype}");
+			Player unitOwner = Lookups.Find(lookups.playersById, owner)
+				?? throw new KeyNotFoundException($"Unit {id} is owned by unknown player {owner}");
+			ExperienceLevel experienceLevel = Lookups.Find(lookups.experienceLevelsByKey, experience);
+			if (experienceLevel == null && lookups.defaultExperienceLevel != null) {
+				Serilog.Log.Warning("Unit {Id} has unknown experience level {Level}; making it {Default}", id, experience, lookups.defaultExperienceLevel.key);
+				experienceLevel = lookups.defaultExperienceLevel;
+			}
+			Terraform workerJob = WorkerJob == null ? null : Lookups.Find(lookups.terraformsById, WorkerJob);
+			if (WorkerJob != null && workerJob == null) {
+				Serilog.Log.Warning("Unit {Id} was working on unknown job {Job}, which it stops", id, WorkerJob);
+			}
 			MapUnit unit = new MapUnit{
 				id = id,
-				unitType = Lookups.Find(lookups.prototypesByName, prototype),
-				experienceLevelKey = experience,
-				experienceLevel = Lookups.Find(lookups.experienceLevelsByKey, experience),
-				owner = Lookups.Find(lookups.playersById, owner),
+				unitType = unitType,
+				experienceLevelKey = experienceLevel?.key ?? experience,
+				experienceLevel = experienceLevel,
+				owner = unitOwner,
 				location = map.tileAt(currentLocation.X, currentLocation.Y),
 				loadedOnUnitId = loadedOnUnitId,
 				previousLocation = previousLocation.X == -1 ? Tile.NONE : map.tileAt(previousLocation.X, previousLocation.Y),
@@ -128,9 +151,10 @@ namespace C7GameData.Save {
 				hasAttackedThisTurn = hasAttackedThisTurn,
 				hasPillagedThisTurn = hasPillagedThisTurn,
 				hasProducedLeader = hasProducedLeader,
+				defensiveBombardsRemaining = defensiveBombardsRemaining,
 				facingDirection = facingDirection,
 				WorkerProgressTowardsJob = WorkerProgressTowardsJob,
-				WorkerJob = WorkerJob == null ? null : Lookups.Find(lookups.terraformsById, WorkerJob)
+				WorkerJob = workerJob,
 			};
 			// A unit that isn't on the map can't be put on a tile; in
 			// particular it mustn't be added to the shared Tile.NONE. The game
