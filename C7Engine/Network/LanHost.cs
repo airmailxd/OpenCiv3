@@ -259,6 +259,7 @@ public class LanHost : IDisposable {
 		public readonly WholeSnapshotRequest wholeSnapshot = new();
 		// How it sees the game, which is one of the host's SpectatorViews.
 		public SpectatorViewInfo view;
+		public readonly SpectatorNews news = new();
 	}
 	private readonly List<Spectator> spectators = new();
 	private int nextSpectatorID = 1;
@@ -1787,7 +1788,7 @@ public class LanHost : IDisposable {
 	private void TellSpectators(MessageToUI msg) {
 		byte[] json = null;
 		foreach (Spectator spectator in spectators.Where(s => !s.connection.IsClosed)) {
-			if (SpectatorHears(spectator.view, msg, EngineStorage.gameData)) {
+			if (spectator.news.Hears(spectator.view, msg, EngineStorage.gameData)) {
 				json ??= NetSerialization.Serialize(msg);
 				spectator.pendingUiMessages.Add(json);
 				spectatorSnapshotPending = true;
@@ -1812,6 +1813,33 @@ public class LanHost : IDisposable {
 			SpectatorViewMode.AllCivs => gameData != null && gameData.players.Any(p => !p.isBarbarians && msg.IsToldTo(p)),
 			_ => true,
 		};
+	}
+
+	// The news one spectator hears (see SpectatorHears), each event once.
+	// Several civs may each be told of an event their own way, such as
+	// both sides of a captured city; a spectator watching more than one civ
+	// hears only the first of the copies (see MessageToUI.newsEvent), while
+	// one watching a single civ hears that civ's own.
+	public class SpectatorNews {
+		// The events heard of this turn; the copies of an event are told
+		// together, so older ones needn't be kept.
+		private readonly HashSet<NewsEvent> eventsHeard = new();
+		private int turn = int.MinValue;
+
+		public bool Hears(SpectatorViewInfo view, MessageToUI msg, GameData gameData) {
+			if (!SpectatorHears(view, msg, gameData)) {
+				return false;
+			}
+			if (msg.newsEvent == null || view?.mode == SpectatorViewMode.OneCiv) {
+				return true;
+			}
+			int now = gameData?.turn ?? 0;
+			if (now != turn) {
+				turn = now;
+				eventsHeard.Clear();
+			}
+			return eventsHeard.Add(msg.newsEvent);
+		}
 	}
 
 	// Keeps a message for a disconnected player, to give them if they're

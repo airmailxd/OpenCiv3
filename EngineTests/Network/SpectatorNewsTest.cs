@@ -132,6 +132,103 @@ public class SpectatorNewsTest : IClassFixture<SaveGameFixture>, IDisposable {
 		Assert.Equal("The player-2 have taken Thebes from the player-3", news.SpectatorHeadline());
 	}
 
+	private static List<MessageToUI> SentToUI() {
+		List<MessageToUI> sent = [];
+		while (EngineStorage.TryDequeueNextMessageToUI(out MessageToUI msg)) {
+			sent.Add(msg);
+		}
+		return sent;
+	}
+
+	// What a spectator watching this way hears of the messages, as the host
+	// passes them on one by one.
+	private static List<MessageToUI> Heard(SpectatorViewInfo view, IEnumerable<MessageToUI> messages, C7GameData.GameData game) {
+		LanHost.SpectatorNews news = new();
+		return messages.Where(m => news.Hears(view, m, game)).ToList();
+	}
+
+	// Each civ is told of a spaceship part its own way; a spectator
+	// watching them all hears of it once, and one watching a civ hears that
+	// civ's own version.
+	[Fact]
+	public void ASpaceshipPartIsNewsOnceForSpectatorsWatchingEveryCiv() {
+		City sparta = new(Tile.NONE, greece, "Sparta", ID.None(""));
+		Building engine = new(new SaveBuilding { name = "SS Engine", spaceshipPart = 0 }, gameData);
+		SpaceRace.OnPartCompleted(gameData, sparta, engine);
+		List<MessageToUI> sent = SentToUI();
+		Assert.Equal(2, sent.Count);
+
+		foreach (SpectatorViewInfo view in new[] { AllCivs, Omniscient }) {
+			Assert.Single(Heard(view, sent, gameData));
+		}
+		Assert.Equal([sent.Single(m => m.recipient == greece)], Heard(As(greece), sent, gameData));
+		Assert.Equal([sent.Single(m => m.recipient == rome)], Heard(As(rome), sent, gameData));
+		Assert.Empty(Heard(As(egypt), sent, gameData));
+
+		// Another part is news of its own.
+		LanHost.SpectatorNews news = new();
+		Assert.Single(sent.Where(m => news.Hears(Omniscient, m, gameData)));
+		SpaceRace.OnPartCompleted(gameData, sparta, engine);
+		Assert.Single(SentToUI().Where(m => news.Hears(Omniscient, m, gameData)));
+	}
+
+	// So is losing a spaceship.
+	[Fact]
+	public void ADestroyedSpaceshipIsNewsOnceForSpectatorsWatchingEveryCiv() {
+		greece.spaceshipParts.Add(1);
+		SpaceRace.DestroySpaceship(greece, rome);
+		List<MessageToUI> sent = SentToUI();
+		Assert.Equal(2, sent.Count);
+		Assert.Single(Heard(AllCivs, sent, gameData));
+		Assert.Single(Heard(Omniscient, sent, gameData));
+		Assert.Single(Heard(As(greece), sent, gameData));
+		Assert.Single(Heard(As(rome), sent, gameData));
+	}
+
+	// A captured city is told to both sides, and each side is also told it
+	// by its military advisor. A spectator watching every civ hears only the
+	// headline; one watching either side hears that side's news as before.
+	[Fact]
+	public void ACapturedCityIsNewsOnceForSpectatorsWatchingEveryCiv() {
+		C7GameData.GameData game = fixture.saveGame.ToGameData(fixture.behaviors);
+		EngineStorage.InitializeGameDataForTests(game);
+		Player[] civs = game.players.Where(p => !p.isBarbarians && p.units.Any(u => u.unitType.isSettler)).ToArray();
+		Player captor = civs[0], loser = civs[1];
+		captor.isHuman = loser.isHuman = true;
+		City FoundCity(Player player, int size) {
+			Tile tile = player.units.First(u => u.unitType.isSettler).location;
+			City city = CityInteractions.BuildCity(tile, player, player.GetNextCityName());
+			while (city.residents.Count < size) {
+				city.AddCitizen(new CityResident() {
+					city = city,
+					citizenType = city.residents[0].citizenType,
+					tileWorked = city.residents[0].tileWorked,
+				});
+			}
+			return city;
+		}
+		FoundCity(captor, 1);
+		City city = FoundCity(loser, 3);
+		SentToUI();
+
+		CityInteractions.CaptureCity(city, captor);
+		List<MessageToUI> news = SentToUI().Where(m => m.newsEvent != null).ToList();
+		Assert.Equal(3, news.Count);
+
+		foreach (SpectatorViewInfo view in new[] { AllCivs, Omniscient }) {
+			MessageToUI heard = Assert.Single(Heard(view, news, game));
+			Assert.IsType<MsgCityCaptured>(heard);
+			Assert.Equal($"The {captor.civilization.noun} have taken {city.name} from the {loser.civilization.noun}", heard.SpectatorHeadline());
+		}
+
+		SpectatorViewInfo asCaptor = new(SpectatorViewMode.OneCiv, captor.id);
+		Assert.Equal(["MsgCityCaptured", $"We have captured {city.name}"],
+			Heard(asCaptor, news, game).Select(m => m is MsgShowMilitaryAdvisorPopup p ? p.message[..p.message.IndexOf(" and")] : m.GetType().Name));
+		SpectatorViewInfo asLoser = new(SpectatorViewMode.OneCiv, loser.id);
+		Assert.Equal(["MsgCityCaptured", $"{city.name} has fallen to the {captor.civilization.noun}!"],
+			Heard(asLoser, news, game).Select(m => m is MsgShowMilitaryAdvisorPopup p ? p.message : m.GetType().Name));
+	}
+
 	// What asks a player to decide something, or only redraws their
 	// screens, is theirs alone, however a spectator watches.
 	[Fact]

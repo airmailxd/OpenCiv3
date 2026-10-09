@@ -46,6 +46,14 @@ namespace C7Engine {
 		// null to show it as a player would see it.
 		public virtual string SpectatorHeadline() => null;
 
+		// The event this news tells of, when several players are told of it
+		// each their own way, such as both sides of a captured city. A
+		// spectator watching more than one civ hears only the first of its
+		// copies (see LanHost.SpectatorNews); one watching a single civ hears
+		// that civ's own. Null when there is only the one copy.
+		[JsonIgnore]
+		public NewsEvent newsEvent;
+
 		// A player's own news, which reads as theirs ("We have..."), so a
 		// spectator is told whose it is.
 		protected string Whose(string message) {
@@ -68,6 +76,10 @@ namespace C7Engine {
 			EngineStorage.SendToUI(this);
 		}
 	}
+
+	// One event that several players are told of, which the copies told to
+	// each share (see MessageToUI.newsEvent).
+	public sealed class NewsEvent { }
 
 	public class AnimationMessage : IMessageToUI {
 		internal Guid animationId = Guid.NewGuid();

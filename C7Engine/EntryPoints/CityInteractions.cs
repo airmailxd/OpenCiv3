@@ -258,16 +258,18 @@ namespace C7Engine {
 			city.ClearProductionQueue();
 
 			log.Information("{Captor} captured {City} from {OldOwner}, plundering {Plunder} gold", captor, city, oldOwner, plunder);
-			new MsgCityCaptured(city, oldOwner).send();
+			// One capture, which each side is also told its own way.
+			NewsEvent capture = new();
+			new MsgCityCaptured(city, oldOwner) { newsEvent = capture }.send();
 			if (captor.isHuman) {
-				new MsgShowMilitaryAdvisorPopup(captor, $"We have captured {city.name} and plundered {plunder} gold!", happy: true).send();
+				new MsgShowMilitaryAdvisorPopup(captor, $"We have captured {city.name} and plundered {plunder} gold!", happy: true) { newsEvent = capture }.send();
 				// A captor can't raze what is now their only city.
 				if (MayAbandon(captor, city, gameData)) {
 					new MsgDisplayRazeCityPopup(captor, city).send();
 				}
 			}
 			if (oldOwner.isHuman) {
-				new MsgShowMilitaryAdvisorPopup(oldOwner, $"{city.name} has fallen to the {captor.civilization.noun}!", happy: false).send();
+				new MsgShowMilitaryAdvisorPopup(oldOwner, $"{city.name} has fallen to the {captor.civilization.noun}!", happy: false) { newsEvent = capture }.send();
 			}
 
 			gameData.CheckForCivDestructionAndNotifyUi(oldOwner);

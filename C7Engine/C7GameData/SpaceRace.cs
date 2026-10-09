@@ -138,6 +138,7 @@ namespace C7Engine {
 			(int built, int needed) = Progress(gameData, owner);
 			log.Information("{Player} built {Part} in {City} ({Built}/{Needed} spaceship parts)", owner, part, city, built, needed);
 
+			NewsEvent news = new();
 			foreach (Player p in gameData.players) {
 				if (!p.isHuman || p.defeated) {
 					continue;
@@ -146,10 +147,10 @@ namespace C7Engine {
 					string message = built >= needed
 						? $"Our spaceship is complete! It launches for Alpha Centauri."
 						: $"{city.name} has completed the {part.name}. Our spaceship has {built} of its {needed} parts.";
-					new MsgShowScienceAdvisorPopup(p, message, MsgShowScienceAdvisorPopup.Mood.Happy).send();
+					new MsgShowScienceAdvisorPopup(p, message, MsgShowScienceAdvisorPopup.Mood.Happy) { newsEvent = news }.send();
 				} else if (p.playerRelationships.ContainsKey(owner.id) || built >= needed) {
 					new MsgShowScienceAdvisorPopup(p, $"The {owner.civilization.noun} have added {part.name} to their ship.",
-						MsgShowScienceAdvisorPopup.Mood.Surprised).send();
+						MsgShowScienceAdvisorPopup.Mood.Surprised) { newsEvent = news }.send();
 				}
 			}
 		}
@@ -160,6 +161,7 @@ namespace C7Engine {
 			RevealMapToAll(gameData);
 			log.Information("{Player} completed {Building} in {City}; the map is revealed to all", city.owner, apollo, city);
 
+			NewsEvent news = new();
 			foreach (Player p in gameData.players) {
 				if (!p.isHuman || p.defeated) {
 					continue;
@@ -167,7 +169,7 @@ namespace C7Engine {
 				string who = p == city.owner ? "We have" : $"The {city.owner.civilization.noun} have";
 				new MsgShowScienceAdvisorPopup(p,
 					$"{who} completed the {apollo.name}! The whole world is revealed, and every civilization may now build spaceship parts.",
-					p == city.owner ? MsgShowScienceAdvisorPopup.Mood.Happy : MsgShowScienceAdvisorPopup.Mood.Surprised).send();
+					p == city.owner ? MsgShowScienceAdvisorPopup.Mood.Happy : MsgShowScienceAdvisorPopup.Mood.Surprised) { newsEvent = news }.send();
 			}
 		}
 
@@ -193,15 +195,16 @@ namespace C7Engine {
 			owner.spaceshipParts.Clear();
 			log.Information("{Player}'s spaceship was destroyed by {Destroyer}", owner, destroyer);
 
+			NewsEvent news = new();
 			if (owner.isHuman) {
 				string message = destroyer != null
 					? $"The {destroyer.civilization.noun} have destroyed our spaceship!"
 					: "With the loss of our capital, our spaceship has been destroyed!";
-				new MsgShowScienceAdvisorPopup(owner, message, MsgShowScienceAdvisorPopup.Mood.Angry).send();
+				new MsgShowScienceAdvisorPopup(owner, message, MsgShowScienceAdvisorPopup.Mood.Angry) { newsEvent = news }.send();
 			}
 			if (destroyer != null && destroyer.isHuman) {
 				new MsgShowScienceAdvisorPopup(destroyer, $"We have destroyed the {owner.civilization.adjective} spaceship!",
-					MsgShowScienceAdvisorPopup.Mood.Happy).send();
+					MsgShowScienceAdvisorPopup.Mood.Happy) { newsEvent = news }.send();
 			}
 		}
 	}

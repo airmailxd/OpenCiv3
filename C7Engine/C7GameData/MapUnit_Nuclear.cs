@@ -197,14 +197,16 @@ namespace C7GameData {
 			Player attacker = owner;
 			bool tellAttacker = attacker.IsToldNews;
 			NuclearStrikeResult result = LaunchNuke(tile);
+			// Each side is told of the strike its own way.
+			NewsEvent news = new();
 
 			if (result.intercepted) {
 				await tile.AnimateAsync(tile.IsWater() ? AnimatedEffect.WaterMiss : AnimatedEffect.Miss);
 				if (tellAttacker) {
-					new MsgShowTemporaryPopup("Our nuclear missile was shot down by a Strategic Missile Defense!", tile, attacker).send();
+					new MsgShowTemporaryPopup("Our nuclear missile was shot down by a Strategic Missile Defense!", tile, attacker) { newsEvent = news }.send();
 				}
 				foreach (Player victim in result.victims.Where(v => v.IsToldNews)) {
-					new MsgShowTemporaryPopup("Our Strategic Missile Defense shot down an incoming nuclear missile!", tile, victim).send();
+					new MsgShowTemporaryPopup("Our Strategic Missile Defense shot down an incoming nuclear missile!", tile, victim) { newsEvent = news }.send();
 				}
 				return;
 			}
@@ -219,10 +221,10 @@ namespace C7GameData {
 			}
 			summary += ".";
 			if (tellAttacker) {
-				new MsgShowTemporaryPopup(summary, tile, attacker).send();
+				new MsgShowTemporaryPopup(summary, tile, attacker) { newsEvent = news }.send();
 			}
 			foreach (Player victim in result.victims.Where(v => v.IsToldNews && v != attacker)) {
-				new MsgShowTemporaryPopup($"The {attacker.civilization?.noun ?? "enemy"} have attacked us with nuclear weapons! " + summary, tile, victim).send();
+				new MsgShowTemporaryPopup($"The {attacker.civilization?.noun ?? "enemy"} have attacked us with nuclear weapons! " + summary, tile, victim) { newsEvent = news }.send();
 			}
 		}
 
