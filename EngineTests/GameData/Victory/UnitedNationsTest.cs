@@ -75,17 +75,52 @@ public class UnitedNationsTest : System.IDisposable {
 		Assert.Equal(-1, gameData.unitedNations.votingTurn);
 	}
 
+	// https://civfanatics.com/civ3/faq/: "the civilization that builds the
+	// UN is always a candidate, and then if civilization(s) have 25% of the
+	// land OR population, they will also be eligible."
 	[Fact]
-	public void CandidatesAreTheOwnerAndTheMostPopulousRival() {
+	public void CandidatesAreTheOwnerAndCivsWithAQuarterOfThePopulation() {
 		Player rome = MakePlayer("Romans", 3);
 		MakePlayer("Greeks", 2);
 		Player egypt = MakePlayer("Egyptians", 7);
 		BuildUnitedNations(rome);
 
-		var candidates = UnitedNations.Candidates(gameData);
-		Assert.NotNull(candidates);
-		Assert.Equal(rome, candidates.Value.owner);
-		Assert.Equal(egypt, candidates.Value.rival);
+		// Egypt has 7 of 12 citizens; Greece 2.
+		Assert.Equal([rome, egypt], UnitedNations.Candidates(gameData));
+	}
+
+	// "At maximum, there can be three candidates".
+	[Fact]
+	public void ThereAreAtMostThreeCandidates() {
+		Player rome = MakePlayer("Romans", 1);
+		Player egypt = MakePlayer("Egyptians", 3);
+		Player greece = MakePlayer("Greeks", 3);
+		MakePlayer("Persians", 3);
+		BuildUnitedNations(rome);
+
+		// Each rival has 30% of the citizens; ties go to the civ listed first.
+		Assert.Equal([rome, egypt, greece], UnitedNations.Candidates(gameData));
+
+		// The larger share stands first.
+		greece.cities[0].residents.Add(new CityResident { city = greece.cities[0] });
+		Assert.Equal([rome, greece, egypt], UnitedNations.Candidates(gameData));
+	}
+
+	// "If there are no civilizations with 25% land or population, then the
+	// civilization with the highest score becomes the second candidate."
+	[Fact]
+	public void WithoutAQuarterOfTheWorldTheHighestScoringCivStands() {
+		Player rome = MakePlayer("Romans", 4);
+		MakePlayer("Egyptians", 2);
+		Player greece = MakePlayer("Greeks", 2);
+		MakePlayer("Persians", 2);
+		MakePlayer("Aztecs", 2);
+		BuildUnitedNations(rome);
+		gameData.history[greece.id.ToString()][0].Score = 100;
+		// The owner is a candidate already, however high its score.
+		gameData.history[rome.id.ToString()][0].Score = 500;
+
+		Assert.Equal([rome, greece], UnitedNations.Candidates(gameData));
 	}
 
 	[Fact]
@@ -139,21 +174,59 @@ public class UnitedNationsTest : System.IDisposable {
 	}
 
 	[Fact]
-	public void VotesAreWeightedByPopulationAndNeedAMajority() {
+	public void AIChoosesAmongThreeCandidates() {
 		Player rome = MakePlayer("Romans", 3);
 		Player egypt = MakePlayer("Egyptians", 7);
-		Player greece = MakePlayer("Greeks", 6);
-		BuildUnitedNations(rome);
-		Meet(rome, egypt, greece);
-		PlayerRelationship.DeclareWar(greece, egypt, false, 0);
+		Player persia = MakePlayer("Persians", 5);
+		Player greece = MakePlayer("Greeks", 2);
+		Meet(rome, egypt, persia, greece);
+		PlayerRelationship.DeclareWar(greece, rome, false, 0);
 
+		// At war with Rome, and Persia is the smaller of the others.
+		Assert.Equal(persia, UnitedNations.AIVote(greece, rome, egypt, persia));
+
+		PlayerRelationship.RegisterMultiTurnDeal(greece, egypt, MultiTurnDeal.DEFAULT_MUTUAL_PROTECTION_PACT);
+		Assert.Equal(egypt, UnitedNations.AIVote(greece, rome, egypt, persia));
+	}
+
+	// "Each civilization gets 1 vote" and "If a civilization gains a
+	// majority of the votes in the election, they become Secretary General".
+	[Fact]
+	public void EachCivHasOneVoteAndAMajorityWins() {
+		Player rome = MakePlayer("Romans", 1);
+		Player egypt = MakePlayer("Egyptians", 20);
+		Player greece = MakePlayer("Greeks", 1);
+		Player persia = MakePlayer("Persians", 1);
+		BuildUnitedNations(rome);
+		Meet(rome, egypt, greece, persia);
+		PlayerRelationship.DeclareWar(greece, egypt, false, 0);
+		PlayerRelationship.DeclareWar(persia, egypt, false, 0);
+
+		// Egypt's 20 citizens count for no more than Rome's one.
 		UnitedNations.ElectionResult result = UnitedNations.HoldElection(gameData);
-		Assert.Equal(rome, result.candidateA);
-		Assert.Equal(egypt, result.candidateB);
-		Assert.Equal(9, result.votesForA);
-		Assert.Equal(7, result.votesForB);
+		Assert.Equal([rome, egypt], result.candidates);
+		Assert.Equal([3, 1], result.votes);
 		Assert.Equal(0, result.abstentions);
 		Assert.Equal(rome, result.winner);
+	}
+
+	[Fact]
+	public void AThirdCandidateCanDenyAMajority() {
+		Player rome = MakePlayer("Romans", 3);
+		Player egypt = MakePlayer("Egyptians", 4);
+		Player greece = MakePlayer("Greeks", 4);
+		Player persia = MakePlayer("Persians", 1);
+		BuildUnitedNations(rome);
+		Meet(rome, egypt, greece, persia);
+		PlayerRelationship.DeclareWar(persia, egypt, false, 0);
+		PlayerRelationship.DeclareWar(persia, greece, false, 0);
+
+		// Rome 2 (with Persia), Egypt 1, Greece 1: not more than half of 4.
+		UnitedNations.ElectionResult result = UnitedNations.HoldElection(gameData);
+		Assert.Equal([rome, egypt, greece], result.candidates);
+		Assert.Equal(2, result.VotesFor(rome));
+		Assert.Equal(1, result.VotesFor(greece));
+		Assert.Null(result.winner);
 	}
 
 	[Fact]
@@ -164,9 +237,9 @@ public class UnitedNationsTest : System.IDisposable {
 		BuildUnitedNations(rome);
 		Meet(rome, egypt);
 
-		// 3 for Rome, 4 for Egypt, 2 abstaining: no majority of 9.
+		// 1 for Rome, 1 for Egypt, 1 abstaining: no majority of 3.
 		UnitedNations.ElectionResult result = UnitedNations.HoldElection(gameData);
-		Assert.Equal(2, result.abstentions);
+		Assert.Equal(1, result.abstentions);
 		Assert.Null(result.ballots[greece]);
 		Assert.Null(result.winner);
 	}
@@ -175,7 +248,7 @@ public class UnitedNationsTest : System.IDisposable {
 	public void HumansVoteAsTheyChoseAndOtherwiseAbstain() {
 		Player rome = MakePlayer("Romans", 3);
 		Player egypt = MakePlayer("Egyptians", 7);
-		Player human = MakePlayer("Greeks", 6, human: true);
+		Player human = MakePlayer("Greeks", 2, human: true);
 		BuildUnitedNations(rome);
 		Meet(rome, egypt, human);
 		gameData.unitedNations.votingTurn = gameData.turn;
@@ -195,7 +268,7 @@ public class UnitedNationsTest : System.IDisposable {
 	public void HumanIsAskedToVoteOnlyOnTheVotingTurn() {
 		Player rome = MakePlayer("Romans", 3);
 		Player egypt = MakePlayer("Egyptians", 7);
-		Player human = MakePlayer("Greeks", 6, human: true);
+		Player human = MakePlayer("Greeks", 2, human: true);
 		BuildUnitedNations(rome);
 		Meet(rome, egypt, human);
 		gameData.unitedNations.votingTurn = gameData.turn + 1;
@@ -207,15 +280,34 @@ public class UnitedNationsTest : System.IDisposable {
 		UnitedNations.AskHumanToVote(gameData, human);
 		MsgShowUnitedNationsVote msg = Assert.Single(EngineStorage.messagesToUI.OfType<MsgShowUnitedNationsVote>());
 		Assert.Equal(human, msg.recipient);
-		Assert.Equal(rome, msg.candidateA);
-		Assert.Equal(egypt, msg.candidateB);
+		Assert.Equal([rome, egypt], msg.candidates);
+	}
+
+	[Fact]
+	public void HumanIsOfferedOnlyTheCandidatesTheyHaveMet() {
+		Player rome = MakePlayer("Romans", 3);
+		Player egypt = MakePlayer("Egyptians", 5);
+		Player persia = MakePlayer("Persians", 5);
+		Player human = MakePlayer("Greeks", 2, human: true);
+		BuildUnitedNations(rome);
+		Meet(rome, egypt, persia);
+		Meet(human, rome);
+		Meet(human, persia);
+		gameData.unitedNations.votingTurn = gameData.turn;
+
+		UnitedNations.AskHumanToVote(gameData, human);
+		MsgShowUnitedNationsVote msg = Assert.Single(EngineStorage.messagesToUI.OfType<MsgShowUnitedNationsVote>());
+		Assert.Equal([rome, persia], msg.candidates);
+		Assert.Equal(persia.id.ToString(), gameData.unitedNations.candidateC);
+		Assert.False(UnitedNations.CastHumanVote(gameData, human, egypt));
+		Assert.True(UnitedNations.CastHumanVote(gameData, human, persia));
 	}
 
 	[Fact]
 	public void ElectionIsScheduledThenHeldAndTheWinnerGetsADiplomaticVictory() {
 		Player rome = MakePlayer("Romans", 3);
 		Player egypt = MakePlayer("Egyptians", 7);
-		Player greece = MakePlayer("Greeks", 6);
+		Player greece = MakePlayer("Greeks", 2);
 		BuildUnitedNations(rome);
 		Meet(rome, egypt, greece);
 		PlayerRelationship.DeclareWar(greece, egypt, false, 0);
@@ -244,7 +336,7 @@ public class UnitedNationsTest : System.IDisposable {
 	public void VotesAreCountedForTheCandidatesTheHumanWasAskedAbout() {
 		Player rome = MakePlayer("Romans", 3);
 		Player egypt = MakePlayer("Egyptians", 7);
-		Player greece = MakePlayer("Greeks", 6);
+		Player greece = MakePlayer("Greeks", 2);
 		Player human = MakePlayer("Persians", 2, human: true);
 		BuildUnitedNations(rome);
 		Meet(rome, egypt, greece, human);
@@ -253,22 +345,24 @@ public class UnitedNationsTest : System.IDisposable {
 		Assert.Null(UnitedNations.ProcessEndOfRound(gameData));
 		Assert.Equal(egypt.id.ToString(), gameData.unitedNations.candidateB);
 		UnitedNations.AskHumanToVote(gameData, human);
+		Assert.Null(gameData.unitedNations.candidateC);
 		MsgShowUnitedNationsVote msg = Assert.Single(EngineStorage.messagesToUI.OfType<MsgShowUnitedNationsVote>());
-		Assert.Equal(egypt, msg.candidateB);
+		Assert.Equal([rome, egypt], msg.candidates);
 		Assert.True(UnitedNations.CastHumanVote(gameData, human, egypt));
 
-		// Greece overtakes Egypt during the voting turn, but the human's
-		// vote still counts.
-		for (int i = 0; i < 4; i++) {
+		// Greece grows to a third of the world during the voting turn, but
+		// the vote is still between the candidates the human was asked about.
+		for (int i = 0; i < 5; i++) {
 			greece.cities[0].residents.Add(new CityResident { city = greece.cities[0] });
 		}
-		Assert.Equal(greece, UnitedNations.Candidates(gameData).Value.rival);
+		Assert.Contains(greece, UnitedNations.Candidates(gameData));
 		gameData.turn = 51;
 		UnitedNations.ElectionResult result = UnitedNations.ProcessEndOfRound(gameData);
-		Assert.Equal(egypt, result.candidateB);
+		Assert.Equal([rome, egypt], result.candidates);
 		Assert.Equal(egypt, result.ballots[human]);
 		Assert.Null(gameData.unitedNations.candidateA);
 		Assert.Null(gameData.unitedNations.candidateB);
+		Assert.Null(gameData.unitedNations.candidateC);
 	}
 
 	[Fact]
@@ -297,6 +391,9 @@ public class UnitedNationsTest : System.IDisposable {
 		UnitedNations.ElectionResult result = UnitedNations.ProcessEndOfRound(gameData);
 		Assert.Null(result.winner);
 		Assert.Null(gameData.unitedNations.secretaryGeneral);
+		// "The choice for the founder of the UN to have elections comes
+		// around every 11 turns".
+		Assert.Equal(11, UnitedNations.ElectionInterval);
 		Assert.Equal(49 + UnitedNations.ElectionInterval, gameData.unitedNations.votingTurn);
 	}
 

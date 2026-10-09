@@ -1377,11 +1377,9 @@ public partial class Game : Node {
 				break;
 			case MsgShowUnitedNationsVote mSUNV: {
 					List<ChoicePopup.Choice> choices = new();
-					foreach (Player candidate in new[] { mSUNV.candidateA, mSUNV.candidateB }) {
-						if (candidate != null) {
-							choices.Add(new ChoicePopup.Choice($"Vote for {candidate.civilization.leader} of the {candidate.civilization.noun}",
-								() => new MsgCastUnitedNationsVote(candidate).send()));
-						}
+					foreach (Player candidate in mSUNV.candidates) {
+						choices.Add(new ChoicePopup.Choice($"Vote for {candidate.civilization.leader} of the {candidate.civilization.noun}",
+							() => new MsgCastUnitedNationsVote(candidate).send()));
 					}
 					choices.Add(new ChoicePopup.Choice("Abstain", () => new MsgCastUnitedNationsVote(null).send()));
 					popupOverlay.ShowPopup(
@@ -1398,8 +1396,7 @@ public partial class Game : Node {
 					: $"{mUNER.winner.civilization.leader} of the {mUNER.winner.civilization.noun} has been elected Secretary General!";
 					popupOverlay.ShowPopup(
 						new ChoicePopup("United Nations",
-							$"{mUNER.candidateA.civilization.noun}: {mUNER.votesForA} votes\n"
-							+ $"{mUNER.candidateB.civilization.noun}: {mUNER.votesForB} votes\n"
+							string.Concat(mUNER.candidates.Select((c, i) => $"{c.civilization.noun}: {mUNER.votes[i]} votes\n"))
 							+ $"Abstaining: {mUNER.abstentions} votes\n{outcome}",
 							[new ChoicePopup.Choice("Very well.", () => { })], cancellable: false),
 						PopupOverlay.PopupCategory.Advisor);

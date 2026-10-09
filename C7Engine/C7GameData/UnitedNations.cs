@@ -16,13 +16,15 @@ namespace C7GameData {
 		// ID to the ID of the candidate they voted for, or "" to abstain.
 		public Dictionary<string, string> humanVotes = new();
 
-		// The IDs of the two candidates in the coming election, stored when
-		// the voting turn begins so the humans are asked about, and the votes
-		// counted for, the same two civs. Null outside a voting turn, and in
-		// saves from before they were stored, which store them when first
-		// needed.
+		// The IDs of the (two or three) candidates in the coming election,
+		// stored when the voting turn begins so the humans are asked about,
+		// and the votes counted for, the same civs. Null outside a voting
+		// turn, and in saves from before they were stored, which store them
+		// when first needed. candidateC is null when there are only two
+		// candidates, and in saves from before there could be three.
 		public string candidateA;
 		public string candidateB;
+		public string candidateC;
 
 		// The player elected Secretary General, who has won a diplomatic
 		// victory, or null.
@@ -34,36 +36,60 @@ namespace C7Engine {
 	// Civ3's diplomatic victory. Once the United Nations (a great wonder with
 	// the "allow diplomatic victory" flag) is built, and the game allows a
 	// diplomatic victory, the civs vote every few turns for a Secretary
-	// General. The candidates are the owner of the UN and the most populous
-	// other civ. Every civ votes, weighted by its population, and a candidate
-	// elected by a majority of the world's population wins.
+	// General.
 	//
-	// Assumptions where Civ3's rules are uncertain:
-	// - Votes are held every ElectionInterval (10) turns, the first one on the
-	//   turn after the UN is completed.
-	// - The second candidate is the civ with the most citizens other than the
-	//   UN owner (ties go to the civ listed first).
-	// - Each civ's vote is weighted by its population (citizens), and a
-	//   candidate needs more than half the votes of every living civ,
-	//   abstentions included, to win.
-	// - A civ may only vote for a candidate it has met; one that has met
-	//   neither abstains. Candidates vote for themselves.
+	// The CivFanatics Civ3 FAQ (https://civfanatics.com/civ3/faq/):
+	//   "Each civilization gets 1 vote, and can vote for one of the
+	//   candidates. At maximum, there can be three candidates: the
+	//   civilization that builds the UN is always a candidate, and then if
+	//   civilization(s) have 25% of the land OR population, they will also be
+	//   eligible. If there are no civilizations with 25% land or population,
+	//   then the civilization with the highest score becomes the second
+	//   candidate. If a civilization gains a majority of the votes in the
+	//   election, they become Secretary General and win a diplomatic victory!
+	//   If not, the election is inconclusive. The choice for the founder of
+	//   the UN to have elections comes around every 11 turns"
+	//
+	// Choices the FAQ doesn't settle (UNVERIFIED):
+	// - A vote is held every ElectionInterval (11) turns, the first one on the
+	//   turn after the UN is completed; the founder isn't asked whether to
+	//   hold it.
+	// - "Land" is the share of the world's land tiles counted for domination
+	//   inside a civ's borders, and "population" its share of the world's
+	//   citizens. Should more than two other civs reach 25%, the two with the
+	//   largest share (of land or population, whichever is larger) stand.
+	// - Score is the civ's accumulated score; ties go to the more populous
+	//   civ, then to the civ listed first. The UN owner never counts as the
+	//   highest-scoring civ, as it is a candidate already.
+	// - A majority means more than half of the votes of every living civ,
+	//   abstentions included.
+	// - A civ may only vote for a candidate it has met; one that has met none
+	//   abstains. Candidates vote for themselves.
 	public static class UnitedNations {
 		private static readonly ILogger log = Log.ForContext(typeof(UnitedNations));
 
-		public const int ElectionInterval = 10;
+		public const int ElectionInterval = 11;
+
+		// The most candidates in an election, and the share of the world's
+		// land or population that makes a civ one.
+		public const int MaxCandidates = 3;
+		public const double CandidateShare = 0.25;
 
 		public class ElectionResult {
-			public Player candidateA;
-			public Player candidateB;
-			public int votesForA;
-			public int votesForB;
+			public List<Player> candidates = new();
+			// The votes for each candidate, in the order of candidates.
+			public List<int> votes = new();
 			public int abstentions;
 			// Every voter, and the candidate they voted for (null to abstain).
 			public Dictionary<Player, Player> ballots = new();
 			public Player winner;
 
-			public int TotalVotes => votesForA + votesForB + abstentions;
+			public int VotesFor(Player candidate) {
+				int i = candidates.IndexOf(candidate);
+				return i < 0 ? 0 : votes[i];
+			}
+
+			public int TotalVotes => votes.Sum() + abstentions;
 		}
 
 		public static bool DiplomaticVictoryAllowed(GameData gameData) {
@@ -102,81 +128,107 @@ namespace C7Engine {
 			return result;
 		}
 
+		// The tiles of the civ's territory counted as its land.
+		private static int Land(Player player) {
+			return player.tileKnowledge.DominationTiles().Count;
+		}
+
+		private static int Score(GameData gameData, Player player) {
+			return gameData.history != null && gameData.history.TryGetValue(player.HistoryKey, out List<HistTurnRecord> turns)
+				? turns.LastOrDefault()?.Score ?? 0
+				: 0;
+		}
+
 		private static IEnumerable<Player> Voters(GameData gameData) {
 			return gameData.players.Where(p => !p.isBarbarians && !p.defeated && p.isIncludedInGame);
 		}
 
-		// The two candidates: the UN owner, and the most populous other civ.
-		// Null if there is no UN or no rival.
-		public static (Player owner, Player rival)? Candidates(GameData gameData) {
+		// The candidates: the UN owner first, then up to two civs with 25% of
+		// the world's land or population, or if there are none, the
+		// highest-scoring other civ. Null if there is no UN or no rival.
+		public static List<Player> Candidates(GameData gameData) {
 			Player owner = Owner(gameData);
 			if (owner == null) {
 				return null;
 			}
-			Player rival = null;
-			int rivalPopulation = -1;
-			foreach (Player p in Voters(gameData)) {
-				if (p == owner) {
-					continue;
-				}
-				int population = Population(p);
-				if (population > rivalPopulation) {
-					rival = p;
-					rivalPopulation = population;
+			List<Player> rivals = Voters(gameData).Where(p => p != owner).ToList();
+			if (rivals.Count == 0) {
+				return null;
+			}
+
+			int worldLand = 0;
+			foreach (Tile t in gameData.map?.tiles ?? []) {
+				if (t.IsCountedForDomination()) {
+					++worldLand;
 				}
 			}
-			return rival == null ? null : (owner, rival);
+			int worldPopulation = Voters(gameData).Sum(Population);
+			double Share(int part, int whole) => whole == 0 ? 0 : (double)part / whole;
+
+			List<Player> result = [owner];
+			// OrderBy is stable, so ties go to the civ listed first.
+			result.AddRange(rivals
+				.Select(p => (player: p, share: System.Math.Max(Share(Land(p), worldLand), Share(Population(p), worldPopulation))))
+				.Where(ps => ps.share >= CandidateShare)
+				.OrderByDescending(ps => ps.share)
+				.Take(MaxCandidates - 1)
+				.Select(ps => ps.player));
+			if (result.Count == 1) {
+				result.Add(rivals.OrderByDescending(p => Score(gameData, p)).ThenByDescending(Population).First());
+			}
+			return result;
 		}
 
 		// The candidates in the election under way: the ones stored when the
 		// vote was called, or else the current ones, which are stored if this
-		// is the voting turn. A stored candidate who has since been destroyed
-		// is replaced. Null if there is no UN or no rival.
-		public static (Player a, Player b)? BallotCandidates(GameData gameData) {
+		// is the voting turn. If a stored candidate has since been destroyed,
+		// the candidates are chosen again. Null if there is no UN or no rival.
+		public static List<Player> BallotCandidates(GameData gameData) {
 			UnitedNationsState state = gameData.unitedNations;
 			if (state?.candidateA != null && state.candidateB != null) {
-				Player a = gameData.players.Find(p => p.id.ToString() == state.candidateA);
-				Player b = gameData.players.Find(p => p.id.ToString() == state.candidateB);
-				if (a != null && b != null && !a.defeated && !b.defeated) {
-					return (a, b);
+				List<Player> stored = new();
+				foreach (string id in new[] { state.candidateA, state.candidateB, state.candidateC }) {
+					if (id != null) {
+						stored.Add(gameData.players.Find(p => p.id.ToString() == id));
+					}
+				}
+				if (stored.All(p => p != null && !p.defeated)) {
+					return stored;
 				}
 			}
-			var candidates = Candidates(gameData);
+			List<Player> candidates = Candidates(gameData);
 			if (state != null && state.votingTurn == gameData.turn) {
 				StoreCandidates(state, candidates);
 			}
 			return candidates;
 		}
 
-		private static void StoreCandidates(UnitedNationsState state, (Player a, Player b)? candidates) {
-			state.candidateA = candidates?.a.id.ToString();
-			state.candidateB = candidates?.b.id.ToString();
+		private static void StoreCandidates(UnitedNationsState state, List<Player> candidates) {
+			state.candidateA = candidates?.ElementAtOrDefault(0)?.id.ToString();
+			state.candidateB = candidates?.ElementAtOrDefault(1)?.id.ToString();
+			state.candidateC = candidates?.ElementAtOrDefault(2)?.id.ToString();
 		}
 
 		// Whether a human player is asked for a vote this turn: a vote is due
 		// at the end of it, and the human isn't a candidate (who vote for
-		// themselves) and hasn't voted yet.
+		// themselves), has met a candidate, and hasn't voted yet.
 		public static bool HumanShouldVote(GameData gameData, Player player) {
 			UnitedNationsState state = gameData.unitedNations;
 			if (state == null || !player.isHuman || player.defeated || !DiplomaticVictoryAllowed(gameData)
 				|| state.votingTurn != gameData.turn || state.humanVotes.ContainsKey(player.id.ToString())) {
 				return false;
 			}
-			var candidates = BallotCandidates(gameData);
-			if (candidates == null) {
-				return false;
-			}
-			var (a, b) = candidates.Value;
-			return player != a && player != b && (HasMet(player, a) || HasMet(player, b));
+			List<Player> candidates = BallotCandidates(gameData);
+			return candidates != null && !candidates.Contains(player) && candidates.Any(c => HasMet(player, c));
 		}
 
-		// Asks a human for their vote if one is due.
+		// Asks a human for their vote if one is due, offering the candidates
+		// they have met.
 		public static void AskHumanToVote(GameData gameData, Player player) {
 			if (!HumanShouldVote(gameData, player)) {
 				return;
 			}
-			var (a, b) = BallotCandidates(gameData).Value;
-			new MsgShowUnitedNationsVote(player, HasMet(player, a) ? a : null, HasMet(player, b) ? b : null).send();
+			new MsgShowUnitedNationsVote(player, BallotCandidates(gameData).Where(c => HasMet(player, c)).ToArray()).send();
 		}
 
 		// Records a human's vote; a null candidate abstains. Votes for anyone
@@ -186,12 +238,11 @@ namespace C7Engine {
 			if (state == null || state.votingTurn != gameData.turn) {
 				return false;
 			}
-			var candidates = BallotCandidates(gameData);
+			List<Player> candidates = BallotCandidates(gameData);
 			if (candidates == null) {
 				return false;
 			}
-			var (a, b) = candidates.Value;
-			if (candidate != null && ((candidate != a && candidate != b) || !HasMet(voter, candidate))) {
+			if (candidate != null && (!candidates.Contains(candidate) || !HasMet(voter, candidate))) {
 				return false;
 			}
 			state.humanVotes[voter.id.ToString()] = candidate?.id.ToString() ?? "";
@@ -244,82 +295,76 @@ namespace C7Engine {
 			if (result.winner != null) {
 				state.secretaryGeneral = result.winner.id.ToString();
 			}
-			log.Information("United Nations vote: {A} {VotesA}, {B} {VotesB}, {Abstentions} abstaining; winner {Winner}",
-				result.candidateA, result.votesForA, result.candidateB, result.votesForB, result.abstentions, result.winner);
-			new MsgUnitedNationsElectionResult(result.candidateA, result.candidateB, result.votesForA, result.votesForB,
-				result.abstentions, result.winner).send();
+			log.Information("United Nations vote: {Candidates} got {Votes}, {Abstentions} abstaining; winner {Winner}",
+				result.candidates, result.votes, result.abstentions, result.winner);
+			new MsgUnitedNationsElectionResult(result.candidates, result.votes, result.abstentions, result.winner).send();
 			return result;
 		}
 
-		// Counts the votes of every civ for the candidates of the vote that
-		// was called. Doesn't change any state once the voting turn is over.
+		// Counts the votes of every civ, one each, for the candidates of the
+		// vote that was called. Doesn't change any state once the voting turn
+		// is over.
 		public static ElectionResult HoldElection(GameData gameData) {
-			var candidates = BallotCandidates(gameData);
+			List<Player> candidates = BallotCandidates(gameData);
 			if (candidates == null) {
 				return null;
 			}
-			var (a, b) = candidates.Value;
-			ElectionResult result = new() { candidateA = a, candidateB = b };
+			ElectionResult result = new() { candidates = candidates, votes = candidates.Select(_ => 0).ToList() };
+			Player[] ballot = candidates.ToArray();
 			foreach (Player voter in Voters(gameData)) {
-				Player choice = Vote(gameData, voter, a, b);
-				int weight = Population(voter);
+				Player choice = Vote(gameData, voter, ballot);
 				result.ballots[voter] = choice;
-				if (choice == a) {
-					result.votesForA += weight;
-				} else if (choice == b) {
-					result.votesForB += weight;
+				int i = choice == null ? -1 : candidates.IndexOf(choice);
+				if (i >= 0) {
+					++result.votes[i];
 				} else {
-					result.abstentions += weight;
+					++result.abstentions;
 				}
 			}
 			int total = result.TotalVotes;
-			if (total > 0) {
-				if (2 * result.votesForA > total) {
-					result.winner = a;
-				} else if (2 * result.votesForB > total) {
-					result.winner = b;
+			for (int i = 0; i < candidates.Count; i++) {
+				if (total > 0 && 2 * result.votes[i] > total) {
+					result.winner = candidates[i];
 				}
 			}
 			return result;
 		}
 
 		// Who the voter votes for, or null to abstain.
-		public static Player Vote(GameData gameData, Player voter, Player a, Player b) {
-			if (voter == a || voter == b) {
+		public static Player Vote(GameData gameData, Player voter, params Player[] candidates) {
+			if (candidates.Contains(voter)) {
 				return voter;
 			}
 			if (voter.isHuman) {
 				UnitedNationsState state = gameData.unitedNations;
 				if (state != null && state.humanVotes.TryGetValue(voter.id.ToString(), out string vote)) {
-					if (vote == a.id.ToString() && HasMet(voter, a)) return a;
-					if (vote == b.id.ToString() && HasMet(voter, b)) return b;
+					return candidates.FirstOrDefault(c => vote == c.id.ToString() && HasMet(voter, c));
 				}
 				return null;
 			}
-			return AIVote(voter, a, b);
+			return AIVote(voter, candidates);
 		}
 
-		// An AI votes for the candidate it likes better, judged by war, treaties
+		// An AI votes for the candidate it likes best, judged by war, treaties
 		// and grievances. If it is at war with every candidate it has met, it
-		// abstains. Between equally liked candidates it votes for the smaller
-		// one, so as not to hand the world to the strongest civ.
-		public static Player AIVote(Player voter, Player a, Player b) {
-			int? scoreA = Opinion(voter, a);
-			int? scoreB = Opinion(voter, b);
-			if (scoreA == null && scoreB == null) {
-				return null;
+		// abstains. Between equally liked candidates it votes for the smallest
+		// one, so as not to hand the world to the strongest civ (further ties
+		// go to the candidate listed first).
+		public static Player AIVote(Player voter, params Player[] candidates) {
+			Player best = null;
+			int bestOpinion = int.MinValue;
+			foreach (Player candidate in candidates) {
+				int? opinion = Opinion(voter, candidate);
+				if (opinion == null) {
+					continue;
+				}
+				if (best == null || opinion > bestOpinion
+					|| (opinion == bestOpinion && Population(candidate) < Population(best))) {
+					best = candidate;
+					bestOpinion = opinion.Value;
+				}
 			}
-			if (scoreB == null || (scoreA != null && scoreA > scoreB)) {
-				return scoreA <= AtWarOpinion ? null : a;
-			}
-			if (scoreA == null || scoreB > scoreA) {
-				return scoreB <= AtWarOpinion ? null : b;
-			}
-			// A tie.
-			if (scoreA <= AtWarOpinion) {
-				return null;
-			}
-			return Population(a) <= Population(b) ? a : b;
+			return best == null || bestOpinion <= AtWarOpinion ? null : best;
 		}
 
 		// An opinion at or below this is no better than being at war.

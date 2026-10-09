@@ -32,8 +32,11 @@ namespace C7Engine {
 	//    of that city flipping"), 1/2 celebrating ("We Love the King...Day in
 	//    a city halves the chance"), else 1.
 	//  - Cte / Cty: the other civ's total culture over the owner's.
-	//  - G: "the number of land-based combat units ... in the city in question
-	//    are subtracted". Air units don't count (alexman,
+	//  - G: "the number of land-based combat units (e.g., any unit with at
+	//    least 1 point of offensive and defensive capability) in the city in
+	//    question are subtracted": the owner's land units with attack >= 1
+	//    and defence >= 1, so defenceless or attackless units (workers,
+	//    catapults) don't count. Air units don't count (alexman,
 	//    https://codehappy.net/apolyton/threads/51715-4.htm); since patch
 	//    1.17f "it is now possible to completely suppress a city's cultural
 	//    reversion with enough military units"
@@ -53,8 +56,17 @@ namespace C7Engine {
 	// https://forums.civfanatics.com/threads/armies-captured-in-culture-flips.90904/).
 	//
 	// Disputed or unsourced, and our choices:
-	//  - Magaha measures distance by the shortest path to the capital; the
-	//    calculators (and we) use the straight-line distance above.
+	//  - Distance: Magaha later wrote in the thread "I would assume this is
+	//    measured in tiles, based on the pathfinding algorithm's
+	//    determination of the shortest path from the city in question to the
+	//    civ's capital city". As that is hedged ("I would assume"), and the
+	//    calculators, fitted to observed flips, use the straight-line
+	//    distance above, so do we (UNVERIFIED; a path can also be undefined,
+	//    e.g. to a capital overseas).
+	//  - Each city's memory (City.perPlayerCulture) is the culture the city
+	//    made while each civ owned it: a turn's culture is added to its owner
+	//    at the time, the totals are kept when the city changes hands, and
+	//    they are saved (SaveCity.perPlayerCulture).
 	//  - UNVERIFIED: which civ a city flips to when several could take it.
 	//    Each civ's chance is worked out and the city may flip only to the
 	//    one with the best chance, with a single roll.
@@ -165,11 +177,20 @@ namespace C7Engine {
 			return chance;
 		}
 
-		// The owner's land combat units in the city. Every unit in an army
-		// counts, and the army too: "all individual units within an army
-		// count, including the actual army unit" (alexman, above).
+		// The owner's land combat units in the city: those with at least 1
+		// attack and 1 defence (Magaha, above). Every unit in an army counts,
+		// and the army too, though it has no strength of its own, so long as
+		// it holds a unit that can fight: "all individual units within an
+		// army count, including the actual army unit" (alexman, above).
 		public static int Garrison(City city) {
-			return city.location.unitsOnTile.Count(u => u.owner == city.owner && u.IsLandUnit() && u.IsCombatUnit());
+			return city.location.unitsOnTile.Count(u => u.owner == city.owner && u.IsLandUnit() && CountsAsGarrison(u));
+		}
+
+		private static bool CountsAsGarrison(MapUnit unit) {
+			if (unit.IsArmy()) {
+				return unit.IsCombatUnit();
+			}
+			return unit.unitType.attack >= 1 && unit.unitType.defense >= 1;
 		}
 
 		// d: the other civ's capital's distance from the city over the
