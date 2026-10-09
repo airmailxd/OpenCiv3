@@ -4,9 +4,8 @@ export.cfg
 logs/
 .godot
 
-### This is excluded because Android builds may have secrets in export_presets.cfg ; see https://github.com/godotengine/godot-demo-projects/issues/329
-# re-ignoring it so manual exports don't mess with the to-be-finely-honed settings; can manually add if needs updating
-export_presets.cfg
+# C7/export_presets.cfg is tracked (CI exports with it). Godot 4 keeps export
+# secrets in .godot/export_credentials.cfg, which .godot above ignores.
 mono_crash.*.json
 mono_crash.*.blob
 
@@ -78,3 +77,6 @@ msbuild.wrn
 # Unit animations for the Graphics Overhaul, only played with animations on.
 # They're big, so they're built locally (python ArtGen/units/build.py --animations).
 C7/ModernArtAnimations/
+
+# Local, untracked test probes (excluded from the EngineTests build)
+EngineTests/Scratch/
