@@ -33,6 +33,10 @@ namespace C7Engine.Network;
 // frames are the only source of the game, so hanging up wouldn't get a
 // better one.
 //
+// With PredictMoves on, our players' simple orders are carried out on our
+// game as they're sent (see MovePrediction), and the host answers them with
+// a snapshot even if they change nothing there, which puts our game right.
+//
 // Once in the game, a client that loses the host keeps trying to connect
 // again in the background, and says hello with the token the host gave it,
 // to have its seats back where it left them.
@@ -65,6 +69,7 @@ public class LanClient : IDisposable {
 	// and as patches, for tests.
 	internal byte[] ReceivedSnapshotHash => decompressed.IsCompletedSuccessfully ? decompressed.Result?.Hash : null;
 	internal int WholeSnapshotsReceived { get; private set; }
+	internal byte[] ShownSnapshotHash => lastShownSnapshot;
 	internal int SnapshotDeltasReceived { get; private set; }
 
 	// Where the host is, which is where we connect again after losing it.
@@ -95,6 +100,11 @@ public class LanClient : IDisposable {
 
 	// What the host gave us to say hello with to have our seats back.
 	public string ReconnectToken { get; private set; }
+
+	// Whether our players' simple orders, like moving a unit, are carried
+	// out on our game as they're sent, rather than shown once the host's
+	// snapshot comes back (see MovePrediction).
+	public bool PredictMoves { get; set; }
 
 	// Whether to try connecting again when the connection to the host is
 	// lost, which the game screen turns on.
@@ -147,6 +157,10 @@ public class LanClient : IDisposable {
 	// are ours, after we take another seat in the game in progress or come
 	// back after losing the connection.
 	public Action PlayersChanged;
+
+	// Set by the game screen: called when one of our orders has been
+	// carried out on our game ahead of the host (see PredictMoves).
+	public Action OrderPredicted;
 
 	private LanClient(LanTransport transport, LanEndpoint endpoint, string playerName, string reconnectToken) {
 		connection = new LanConnection(transport);
@@ -207,7 +221,16 @@ public class LanClient : IDisposable {
 		if (IsSpectator) {
 			return;
 		}
-		connection.Send(FrameKind.Command, NetSerialization.Serialize(msg));
+		byte[] payload = NetSerialization.Serialize(msg);
+		if (PredictMoves && MovePrediction.Predict(msg)) {
+			// Our game is no longer the one the host last sent, so the
+			// host's answer is shown even if it's that one again.
+			lastShownSnapshot = null;
+			connection.Send(FrameKind.PredictedCommand, payload);
+			OrderPredicted?.Invoke();
+		} else {
+			connection.Send(FrameKind.Command, payload);
+		}
 	}
 
 	// The turn clock as it stands now, or null until the host sends it.

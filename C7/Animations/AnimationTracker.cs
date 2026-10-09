@@ -18,6 +18,8 @@ public partial class AnimationTracker {
 		public Action completionEvent;
 		public AnimationEnding ending;
 		public C7Animation anim;
+		// The tile a unit's animation shows it on.
+		public int tileX, tileY;
 	}
 
 	// Unit animations are keyed by unit ID and effect animations by tile ID.
@@ -63,6 +65,10 @@ public partial class AnimationTracker {
 
 	public void startAnimation(MapUnit unit, MapUnit.AnimatedAction action, Action completionEvent, AnimationEnding ending) {
 		startAnimation(activeAnims, getCurrentTimeMS(), unit.id, civ3AnimData.forUnit(unit, action), completionEvent, ending);
+		ActiveAnimation aa = activeAnims[unit.id];
+		aa.tileX = unit.location.XCoordinate;
+		aa.tileY = unit.location.YCoordinate;
+		activeAnims[unit.id] = aa;
 	}
 
 	public void startAnimation(Tile tile, AnimatedEffect effect, Action completionEvent, AnimationEnding ending) {
@@ -94,8 +100,9 @@ public partial class AnimationTracker {
 
 	// Drops the animations of units that are no longer in the game, like
 	// units that died (their death animation pauses on its last frame) or,
-	// on a LAN client, units that aren't in the host's latest snapshot.
-	// Animations that repeat or pause are otherwise kept until they're
+	// on a LAN client, units that aren't in the host's latest snapshot, and
+	// of units the snapshot has on another tile than their animation, like
+	// a step the client guessed wrong. Animations that repeat or pause are otherwise kept until they're
 	// replaced, which may be never. Any completion event that hasn't been
 	// triggered yet is triggered, so nothing waits for the animation forever.
 	public void forgetRemovedUnits(GameData gameData) {
@@ -104,8 +111,9 @@ public partial class AnimationTracker {
 		}
 
 		removedIds.Clear();
-		foreach (ID id in activeAnims.Keys) {
-			if (gameData.GetUnit(id) == null) {
+		foreach ((ID id, ActiveAnimation aa) in activeAnims) {
+			MapUnit unit = gameData.GetUnit(id);
+			if (unit == null || unit.location.XCoordinate != aa.tileX || unit.location.YCoordinate != aa.tileY) {
 				removedIds.Add(id);
 			}
 		}

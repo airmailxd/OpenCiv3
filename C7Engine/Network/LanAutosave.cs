@@ -11,9 +11,11 @@ namespace C7Engine.Network;
 // where and how it was hosted, and the guest in each human seat, with the
 // token that guest says hello with to have the seat back. A game hosted
 // online also has the relay, and the join code and the key to claim it
-// again, so that guests find it where they left it.
+// again, so that guests find it where they left it. hideUnseen is whether
+// guests are sent only what their players may know; older saves, without
+// it, hide it, as new games do.
 public record LanResumeInfo(string hostName, int port, double? turnSeconds, bool simultaneousTurns, List<LanResumeSeat> seats,
-	string relayUrl = null, string onlineCode = null, string onlineKey = null);
+	string relayUrl = null, string onlineCode = null, string onlineKey = null, bool hideUnseen = true);
 
 public record LanResumeSeat(ID playerID, string playerName, string reconnectToken);
 

@@ -26,6 +26,10 @@ public enum FrameKind : byte {
 	// Asks for the whole game in the next snapshot, from a client that
 	// couldn't apply a SnapshotDelta.
 	RequestSnapshot = 7,
+	// A Command the client has already carried out on its own game (see
+	// MovePrediction), which the host answers with a snapshot even if its
+	// game is unchanged, to put the client's right.
+	PredictedCommand = 8,
 
 	// Host to client.
 	Lobby = 10,
@@ -40,7 +44,7 @@ public enum FrameKind : byte {
 
 public static class LanProtocol {
 	// Bump when the frames or the messages in them change incompatibly.
-	public const int Version = 9;
+	public const int Version = 10;
 
 	public const int DefaultPort = 47_777;
 	public const int DiscoveryPort = 47_778;
@@ -205,10 +209,11 @@ public record CivilizationChoice(string name, string leader, string noun, string
 // closed. yourSeats are the seats this guest has taken, in turn order.
 // simultaneousTurns is whether the humans will play their turns at once.
 // reconnectToken is this guest's, to say hello with to have its seats back
-// if the connection is lost.
+// if the connection is lost. hideUnseen is whether each guest is sent only
+// what its players may know of the game.
 public record LobbyInfo(string hostName, List<SeatInfo> seats, List<ID> yourSeats, List<string> spectators = null,
 	List<CivilizationChoice> civilizations = null, bool creatingGame = false, bool started = false,
-	bool simultaneousTurns = false, string reconnectToken = null);
+	bool simultaneousTurns = false, string reconnectToken = null, bool hideUnseen = false);
 
 // The civilization's name, or null for a random one, for one of the guest's
 // seats; null for their first.

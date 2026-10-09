@@ -51,6 +51,7 @@ public class LanConnection : IDisposable {
 		public FrameKind kind;
 		public byte[] payload;
 		public Task<EncodedSnapshot> snapshot;
+		public bool evenIfSame;
 	}
 
 	private readonly LanTransport transport;
@@ -163,8 +164,12 @@ public class LanConnection : IDisposable {
 	// queued in between, since the newer one shows everything the older
 	// one would have. The first snapshot a connection writes is the whole
 	// game, and those after it patches to the one written before them.
-	public void SendSnapshot(Task<EncodedSnapshot> snapshot) {
-		Enqueue(new Outgoing { kind = FrameKind.Snapshot, snapshot = snapshot }, supersede: true);
+	//
+	// evenIfSame sends it even if it's identical to the last one written,
+	// as an answer to a peer that may have changed its copy of the game
+	// meanwhile (see MovePrediction).
+	public void SendSnapshot(Task<EncodedSnapshot> snapshot, bool evenIfSame = false) {
+		Enqueue(new Outgoing { kind = FrameKind.Snapshot, snapshot = snapshot, evenIfSame = evenIfSame }, supersede: true);
 	}
 
 	// Has the next snapshot written be the whole game, even if the peer has
@@ -182,6 +187,7 @@ public class LanConnection : IDisposable {
 			}
 			if (supersede && lastQueued?.snapshot != null) {
 				lastQueued.snapshot = frame.snapshot;
+				lastQueued.evenIfSame |= frame.evenIfSame;
 				return;
 			}
 			if (outgoing.Count < MaxQueuedFrames && queuedBytes + bytes <= MaxQueuedBytes) {
@@ -226,7 +232,7 @@ public class LanConnection : IDisposable {
 					if (snapshot == null) {
 						continue;
 					}
-					(kind, payload) = SnapshotFrame(snapshot);
+					(kind, payload) = SnapshotFrame(snapshot, next.evenIfSame);
 					if (payload == null) {
 						continue;
 					}
@@ -252,12 +258,12 @@ public class LanConnection : IDisposable {
 
 	// How to write a snapshot, given what the peer has: as a patch to it,
 	// or else whole; or a null payload if the peer has this very snapshot.
-	private (FrameKind, byte[]) SnapshotFrame(EncodedSnapshot snapshot) {
+	private (FrameKind, byte[]) SnapshotFrame(EncodedSnapshot snapshot, bool evenIfSame) {
 		bool whole = Interlocked.Exchange(ref sendWholeSnapshot, 0) == 1;
 		if (lastSnapshot == null || whole) {
 			return (FrameKind.Snapshot, snapshot.Compressed);
 		}
-		if (lastSnapshot.Hash.AsSpan().SequenceEqual(snapshot.Hash)) {
+		if (!evenIfSame && lastSnapshot.Hash.AsSpan().SequenceEqual(snapshot.Hash)) {
 			return (FrameKind.Snapshot, null);
 		}
 		byte[] patch = null;

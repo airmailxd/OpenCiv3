@@ -396,6 +396,20 @@ public partial class LanLobby : Control {
 		simultaneous.Toggled += on => LanSession.Host.SimultaneousTurns = on;
 		LanSession.Host.SimultaneousTurns = simultaneousTurns;
 		row.AddChild(simultaneous);
+
+		// Guests are sent only what their players could know, unless a
+		// resumed game wasn't.
+		bool hideUnseen = LanSession.ResumeGame?.hideUnseen ?? true;
+		CheckBox hide = new() {
+			Text = "Hide what players can't see",
+			ButtonPressed = hideUnseen,
+			TooltipText = "Each guest's computer is sent only what its players could know of the game, so nobody can read "
+				+ "other civilizations' hidden units, cities or treasuries from it. Spectators always see everything.",
+		};
+		hide.AddThemeFontSizeOverride("font_size", 18);
+		hide.Toggled += on => LanSession.Host.HideUnseen = on;
+		LanSession.Host.HideUnseen = hideUnseen;
+		row.AddChild(hide);
 		return row;
 	}
 
@@ -803,7 +817,14 @@ public partial class LanLobby : Control {
 		foreach (Node child in seatList.GetChildren()) {
 			child.QueueFree();
 		}
-		string turns = lobby.simultaneousTurns ? " (simultaneous turns)" : "";
+		List<string> options = [];
+		if (lobby.simultaneousTurns) {
+			options.Add("simultaneous turns");
+		}
+		if (lobby.hideUnseen) {
+			options.Add("hiding what players can't see");
+		}
+		string turns = options.Count > 0 ? $" ({string.Join(", ", options)})" : "";
 		Label header = new() { Text = $"Seats in {lobby.hostName}'s game{turns}:" };
 		header.AddThemeFontSizeOverride("font_size", 20);
 		seatList.AddChild(header);

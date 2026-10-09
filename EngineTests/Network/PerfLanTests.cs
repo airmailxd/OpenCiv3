@@ -262,7 +262,9 @@ public class PerfLanTests : IClassFixture<SaveGameFixture>, IDisposable {
 
 	[Fact]
 	public async Task TheHostSendsNoSnapshotWhenNothingChanged() {
-		using LanHost host = new("Host", SaveGameFixture.TwoHumanSave(), port: 0, answerDiscovery: false);
+		// The host's own move is the change here, which the guest would
+		// otherwise not be sent.
+		using LanHost host = new("Host", SaveGameFixture.TwoHumanSave(), port: 0, answerDiscovery: false) { HideUnseen = false };
 		ID seatID = host.Seats[0].playerID;
 		using LanClient client = LanClient.Connect("127.0.0.1", host.Port, "Guest");
 		PumpUntil(host, client, () => client.Lobby != null);

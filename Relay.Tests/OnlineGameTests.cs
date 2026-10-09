@@ -229,9 +229,11 @@ public class OnlineGameTests : IClassFixture<SaveGameFixture>, IDisposable {
 		while (EngineStorage.HasPendingMessagesToEngine()) {
 			EngineStorage.ProcessNextMessageToEngine();
 		}
-		byte[] expected = System.Security.Cryptography.SHA256.HashData(LanProtocol.SnapshotOf(gameData).ToCompactJSON());
-		PumpUntil(host, both, () => ann.ReceivedSnapshotHash?.AsSpan().SequenceEqual(expected) == true
-			&& bob.ReceivedSnapshotHash?.AsSpan().SequenceEqual(expected) == true);
+		// Each has what its player may see of the host's game.
+		byte[] annExpected = LanHost.SnapshotHashFor([humans[1].id]);
+		byte[] bobExpected = LanHost.SnapshotHashFor([humans[2].id]);
+		PumpUntil(host, both, () => ann.ReceivedSnapshotHash?.AsSpan().SequenceEqual(annExpected) == true
+			&& bob.ReceivedSnapshotHash?.AsSpan().SequenceEqual(bobExpected) == true);
 	}
 
 	[Fact]

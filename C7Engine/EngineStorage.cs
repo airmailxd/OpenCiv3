@@ -57,6 +57,11 @@ namespace C7Engine {
 
 		internal static bool animationsEnabled = false;
 
+		// Set while a LAN guest predicts one of its own orders (see
+		// MovePrediction): the host tells its UI what came of the order, so
+		// nothing is sent to the UI meanwhile but animations.
+		internal static bool predicting = false;
+
 		internal static readonly Queue<MessageToEngine> pendingMessages = new();
 		internal static readonly Queue<MessageToUI> messagesToUI = new();
 		internal static readonly Queue<AnimationMessage> animationMessages = new();
@@ -93,6 +98,9 @@ namespace C7Engine {
 		}
 
 		internal static void SendToUI(MessageToUI msg) {
+			if (predicting) {
+				return;
+			}
 			// Without a LAN host to pass it on, only a game being watched
 			// rather than played has a spectator to show it to.
 			if (msg.IsForSpectatorsOnly && uiMessageRouter == null && gameData?.observerMode != true) {

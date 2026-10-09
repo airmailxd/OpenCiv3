@@ -78,6 +78,12 @@ namespace C7GameData.Save {
 
 		public SaveCity() { }
 
+		// A copy sharing everything with this one, for a LAN host to change
+		// a little for one guest (see C7Engine.Network.SnapshotFilter).
+		internal SaveCity ShallowCopy() {
+			return (SaveCity)MemberwiseClone();
+		}
+
 		public SaveCity(City city) {
 			id = city.id;
 			owner = city.owner.id;

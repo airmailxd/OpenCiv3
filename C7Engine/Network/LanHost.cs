@@ -49,6 +49,11 @@ namespace C7Engine.Network;
 // last one a connection was sent isn't sent again. Each connection is sent
 // the whole game once, and after that patches to the last snapshot it was
 // sent (see EncodedSnapshot), until its client asks for the whole game again.
+//
+// Unless the host turns HideUnseen off, each guest's snapshots hold only what
+// the players at its machine may know (see SnapshotFilter): the game is taken
+// once, and filtered and encoded for each machine on worker threads. A
+// machine's snapshots are patches to its own last one, as before.
 public class LanHost : IDisposable {
 	private static readonly ILogger log = Log.ForContext<LanHost>();
 
@@ -98,6 +103,10 @@ public class LanHost : IDisposable {
 		// with when it comes back to its seats.
 		public string token;
 		public readonly List<byte[]> pendingUiMessages = new();
+		// The guest guessed at what its orders do (see MovePrediction), so
+		// its next snapshot is sent even if the game hasn't changed, which
+		// only a snapshot would show it otherwise.
+		public bool awaitsAnswer;
 	}
 
 	private readonly string hostName;
@@ -124,9 +133,10 @@ public class LanHost : IDisposable {
 	}
 	private readonly List<Spectator> spectators = new();
 
-	// The last snapshot handed to be encoded. Each is encoded after the one
-	// before, so it can reuse that one's encoding when nothing changed.
-	private Task<EncodedSnapshot> lastEncoding;
+	// The last snapshot handed to be encoded for each view of the game (see
+	// ViewKey). Each is encoded after the one before it for the same view,
+	// so it can reuse that one's encoding when nothing changed.
+	private readonly Dictionary<string, Task<EncodedSnapshot>> lastEncodings = new();
 
 	// What discovery answers, published whole for the discovery thread.
 	private volatile DiscoveryReply discoveryReply;
@@ -156,6 +166,20 @@ public class LanHost : IDisposable {
 		}
 	}
 	private bool simultaneousTurns;
+
+	// Whether each guest's machine is sent only what its players may know of
+	// the game (see SnapshotFilter), rather than the whole of it. Spectators
+	// always see everything.
+	public bool HideUnseen {
+		get => hideUnseen;
+		set {
+			if (hideUnseen != value) {
+				hideUnseen = value;
+				BroadcastLobby();
+			}
+		}
+	}
+	private bool hideUnseen = true;
 
 	// The turn being timed: whose it is, who is yet to finish it, and since
 	// when.
@@ -226,6 +250,7 @@ public class LanHost : IDisposable {
 		LanHost host = new(hostName, save, port ?? info.port, answerDiscovery) {
 			TurnTimeLimit = info.turnSeconds is double seconds ? TimeSpan.FromSeconds(seconds) : null,
 			SimultaneousTurns = info.simultaneousTurns,
+			HideUnseen = info.hideUnseen,
 			resumed = true,
 		};
 		foreach (LanResumeSeat saved in info.seats ?? []) {
@@ -345,12 +370,37 @@ public class LanHost : IDisposable {
 		}
 	}
 
-	// Takes a snapshot of the game as it stands, and encodes it on a worker
-	// thread.
-	private Task<EncodedSnapshot> EncodeSnapshot() {
-		SaveGame snapshot = LanProtocol.SnapshotOf(EngineStorage.gameData);
-		Task<EncodedSnapshot> previous = lastEncoding;
-		lastEncoding = Task.Run(async () => {
+	// The game as it stands, taken once and encoded for each view of it that
+	// is asked for: the whole game, or what a guest's players may know of it.
+	private sealed class SnapshotRound {
+		public readonly SaveGame snapshot = LanProtocol.SnapshotOf(EngineStorage.gameData);
+		public readonly Dictionary<string, Task<EncodedSnapshot>> encodings = new();
+		// Shared by the views of the round.
+		public Dictionary<ID, string> ownTerritory;
+	}
+
+	// What a guest is sent: "" for the whole game, as spectators are, or the
+	// IDs of the guest's players, whose view is filtered to what they know.
+	private string ViewKey(Guest guest) {
+		return hideUnseen ? string.Join(",", SeatsOf(guest).Select(s => s.info.playerID.ToString()).Order()) : "";
+	}
+
+	// The round's snapshot as the guest may see it, or whole for null,
+	// encoded on a worker thread. What the guest's players know is worked
+	// out here, on the main thread, and the snapshot filtered to it on the
+	// worker thread.
+	private Task<EncodedSnapshot> EncodeSnapshot(SnapshotRound round, Guest guest = null) {
+		string key = guest == null ? "" : ViewKey(guest);
+		if (round.encodings.TryGetValue(key, out Task<EncodedSnapshot> encoding)) {
+			return encoding;
+		}
+		SnapshotFilter.View view = key == ""
+			? null
+			: SnapshotFilter.ViewOf(EngineStorage.gameData, SeatsOf(guest).Select(s => s.info.playerID),
+				round.ownTerritory ??= SnapshotFilter.OwnTerritory(EngineStorage.gameData));
+		SaveGame snapshot = round.snapshot;
+		Task<EncodedSnapshot> previous = lastEncodings.GetValueOrDefault(key);
+		encoding = Task.Run(async () => {
 			EncodedSnapshot before = null;
 			if (previous != null) {
 				try {
@@ -359,12 +409,32 @@ public class LanHost : IDisposable {
 					// The connections waiting on it have logged why.
 				}
 			}
-			return LanProtocol.EncodeSnapshot(snapshot, before);
+			return LanProtocol.EncodeSnapshot(view == null ? snapshot : SnapshotFilter.Filter(snapshot, view), before);
 		});
-		return lastEncoding;
+		round.encodings[key] = encoding;
+		lastEncodings[key] = encoding;
+		return encoding;
 	}
 
-	private bool EncodingSnapshot => lastEncoding != null && !lastEncoding.IsCompleted;
+	// Forgets the views nobody is sent any more, such as a departed guest's.
+	private void ForgetUnusedViews() {
+		HashSet<string> used = [.. SeatedGuests().Select(ViewKey), ""];
+		foreach (string key in lastEncodings.Keys.Where(k => !used.Contains(k)).ToList()) {
+			lastEncodings.Remove(key);
+		}
+	}
+
+	private bool EncodingSnapshot => lastEncodings.Values.Any(e => !e.IsCompleted);
+
+	// The hash of the snapshot a guest with these players would be sent of
+	// the game as it stands (the whole game for null), for tests.
+	internal static byte[] SnapshotHashFor(IEnumerable<ID> playerIDs) {
+		SaveGame snapshot = LanProtocol.SnapshotOf(EngineStorage.gameData);
+		if (playerIDs != null) {
+			snapshot = SnapshotFilter.Filter(snapshot, SnapshotFilter.ViewOf(EngineStorage.gameData, playerIDs));
+		}
+		return SHA256.HashData(snapshot.ToCompactJSON());
+	}
 
 	// Starts the game once the host's engine has loaded it: from now on
 	// clients' messages go to the engine, and the engine's messages to them.
@@ -381,12 +451,12 @@ public class LanHost : IDisposable {
 		EngineStorage.uiMessageRouter = RouteMessageToUI;
 		EngineStorage.playerReachable = IsReachable;
 
-		Task<EncodedSnapshot> snapshot = EncodeSnapshot();
+		SnapshotRound round = new();
 		foreach (Guest guest in SeatedGuests()) {
-			SendStart(guest, snapshot);
+			SendStart(guest, round);
 		}
 		foreach (Spectator spectator in spectators) {
-			SendStart(spectator, snapshot);
+			SendStart(spectator, EncodeSnapshot(round));
 		}
 		lastProcessedMessageCount = EngineStorage.processedMessageCount;
 		PublishDiscoveryReply();
@@ -401,9 +471,9 @@ public class LanHost : IDisposable {
 
 	// Tells a guest which players are theirs, now or after taking another
 	// seat in a game in progress, and shows them the game.
-	private void SendStart(Guest guest, Task<EncodedSnapshot> snapshot) {
+	private void SendStart(Guest guest, SnapshotRound round) {
 		guest.connection.Send(FrameKind.Start, new StartInfo(SeatsOf(guest).Select(s => s.info.playerID).ToList(), guest.token));
-		SendSnapshot(guest.connection, snapshot, guest.pendingUiMessages);
+		SendSnapshot(guest.connection, EncodeSnapshot(round, guest), guest.pendingUiMessages);
 	}
 
 	// The engine asks a player some things only as their turn starts, and
@@ -509,7 +579,7 @@ public class LanHost : IDisposable {
 	public LanResumeInfo ResumeInfo() {
 		return new LanResumeInfo(hostName, Port, TurnTimeLimit?.TotalSeconds, SimultaneousTurns,
 			seats.Where(s => s.token != null).Select(s => new LanResumeSeat(s.info.playerID, s.takenBy, s.token)).ToList(),
-			Online?.RelayUrl, Online?.Code, Online?.Key);
+			Online?.RelayUrl, Online?.Code, Online?.Key, HideUnseen);
 	}
 
 	// The players with nobody at their machine whom the game would wait on:
@@ -645,7 +715,7 @@ public class LanHost : IDisposable {
 				spectators.Add(spectator);
 				log.Information("{Name} is watching", guest.name);
 				if (Started) {
-					SendStart(spectator, EncodeSnapshot());
+					SendStart(spectator, EncodeSnapshot(new SnapshotRound()));
 				}
 				BroadcastLobby();
 				return false;
@@ -653,6 +723,7 @@ public class LanHost : IDisposable {
 				ChooseCivilization(guest, frame);
 				return true;
 			case FrameKind.Command:
+			case FrameKind.PredictedCommand:
 				HandleCommand(guest, frame);
 				return true;
 			case FrameKind.RequestSnapshot:
@@ -692,8 +763,9 @@ public class LanHost : IDisposable {
 		seat.takenBy = SeatPlayerName(guest, claim.playerName);
 		log.Information("{Name} took the seat of {Player} for {SeatName}", guest.name, seat.info.playerID, seat.takenBy);
 		if (Started) {
-			// A player rejoining a game in progress.
-			SendStart(guest, EncodeSnapshot());
+			// A player rejoining a game in progress, or taking another seat,
+			// which changes what they may see.
+			SendStart(guest, new SnapshotRound());
 			ResendTurnPrompts(seat);
 		}
 		BroadcastLobby();
@@ -792,7 +864,7 @@ public class LanHost : IDisposable {
 			if (clock != null) {
 				guest.connection.Send(FrameKind.TurnClock, clock);
 			}
-			SendStart(guest, EncodeSnapshot());
+			SendStart(guest, new SnapshotRound());
 			foreach (Seat seat in theirs) {
 				ResendTurnPrompts(seat);
 			}
@@ -851,6 +923,7 @@ public class LanHost : IDisposable {
 		}
 		msg.DistrustRemoteSender(id => theirs.Any(s => s.info.playerID == id));
 		EngineStorage.ReceiveFromRemote(msg);
+		guest.awaitsAnswer |= frame.kind == FrameKind.PredictedCommand;
 	}
 
 	// A guest's choice of civilization: one nobody else has chosen, or null
@@ -1003,17 +1076,22 @@ public class LanHost : IDisposable {
 			return;
 		}
 		bool settled = !EngineStorage.HasPendingMessagesToEngine() && sinceChange.Elapsed >= SnapshotDelay;
-		Task<EncodedSnapshot> snapshot = null;
+		SnapshotRound round = null;
 
 		if (snapshotPending && (settled || sinceSnapshot.Elapsed >= MaxSnapshotDelay)) {
 			snapshotPending = false;
 			sinceSnapshot.Restart();
 			List<Guest> connected = SeatedGuests();
 			if (connected.Count > 0) {
-				snapshot = EncodeSnapshot();
+				round = new SnapshotRound();
+				// Orders the engine is yet to carry out are answered by a
+				// later snapshot.
+				bool answered = !EngineStorage.HasPendingMessagesToEngine();
 				foreach (Guest guest in connected) {
-					SendSnapshot(guest.connection, snapshot, guest.pendingUiMessages);
+					SendSnapshot(guest.connection, EncodeSnapshot(round, guest), guest.pendingUiMessages, guest.awaitsAnswer && answered);
+					guest.awaitsAnswer &= !answered;
 				}
+				ForgetUnusedViews();
 			}
 		}
 
@@ -1022,7 +1100,8 @@ public class LanHost : IDisposable {
 			sinceSpectatorSnapshot.Restart();
 			List<Spectator> watching = spectators.Where(s => !s.connection.IsClosed).ToList();
 			if (watching.Count > 0) {
-				snapshot ??= EncodeSnapshot();
+				round ??= new SnapshotRound();
+				Task<EncodedSnapshot> snapshot = EncodeSnapshot(round);
 				foreach (Spectator spectator in watching) {
 					SendSnapshot(spectator.connection, snapshot, spectator.pendingUiMessages);
 				}
@@ -1037,8 +1116,9 @@ public class LanHost : IDisposable {
 		connection.SendWholeSnapshotNext();
 	}
 
-	private static void SendSnapshot(LanConnection connection, Task<EncodedSnapshot> snapshot, List<byte[]> pendingUiMessages) {
-		connection.SendSnapshot(snapshot);
+	private static void SendSnapshot(LanConnection connection, Task<EncodedSnapshot> snapshot, List<byte[]> pendingUiMessages,
+		bool evenIfSame = false) {
+		connection.SendSnapshot(snapshot, evenIfSame);
 		foreach (byte[] json in pendingUiMessages) {
 			connection.Send(FrameKind.UiMessage, json);
 		}
@@ -1057,7 +1137,7 @@ public class LanHost : IDisposable {
 		List<CivilizationChoice> civilizations = choosable?.Select(c => new CivilizationChoice(
 			c.name, c.leader, c.noun, c.leaderArtFile, c.traits.Select(t => t.ToString()).ToList())).ToList();
 		connection.Send(FrameKind.Lobby, new LobbyInfo(hostName, seatInfos, yourSeats, [.. Spectators], civilizations, creatingGame, Started,
-			SimultaneousTurns, reconnectToken));
+			SimultaneousTurns, reconnectToken, HideUnseen));
 	}
 
 	private void BroadcastLobby() {

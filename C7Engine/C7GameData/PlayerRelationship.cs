@@ -86,6 +86,12 @@ public class PlayerRelationship {
 	// diplomatic or espionage missions against p1 that were caught.
 	public int espionageIncidents = 0;
 
+	// A copy sharing its deals and report with this one, for a LAN host to
+	// change a little for one guest (see C7Engine.Network.SnapshotFilter).
+	internal PlayerRelationship ShallowCopy() {
+		return (PlayerRelationship)MemberwiseClone();
+	}
+
 	public bool AtWar() {
 		return multiTurnDeals.Count == 0;
 	}

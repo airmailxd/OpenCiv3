@@ -291,7 +291,9 @@ public class ReconnectTest : IClassFixture<SaveGameFixture>, IDisposable {
 		while (EngineStorage.HasPendingMessagesToEngine()) {
 			EngineStorage.ProcessNextMessageToEngine();
 		}
-		byte[] expected = System.Security.Cryptography.SHA256.HashData(LanProtocol.SnapshotOf(gameData).ToCompactJSON());
+		// What its player may see of the game, as before the network went
+		// down.
+		byte[] expected = LanHost.SnapshotHashFor([seatID]);
 		PumpUntil(host, guest, () => guest.ReceivedSnapshotHash?.AsSpan().SequenceEqual(expected) == true);
 		Assert.Equal(2, guest.WholeSnapshotsReceived);
 		Assert.True(guest.SnapshotDeltasReceived > deltas);

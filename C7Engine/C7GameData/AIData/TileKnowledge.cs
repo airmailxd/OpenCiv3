@@ -553,6 +553,17 @@ namespace C7GameData {
 			return result;
 		}
 
+		// The tiles the player sees now: the active tiles as they were last
+		// brought up to date, and those peeked at.
+		internal IEnumerable<Tile> VisibleTiles() {
+			foreach (Tile t in activeTileCounts.Keys) {
+				yield return t;
+			}
+			foreach (Tile t in peekedTiles) {
+				yield return t;
+			}
+		}
+
 		// For tests: the current set of active tiles.
 		internal HashSet<Tile> ActiveTiles() {
 			HashSet<Tile> result = new(activeTileCounts.Keys);

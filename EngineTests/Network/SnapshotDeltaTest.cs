@@ -120,12 +120,15 @@ public class SnapshotDeltaTest : IClassFixture<SaveGameFixture>, IDisposable {
 			Assert.Equal(turn, gameData.turn);
 		}
 
-		// Once the host settles, both have exactly its game.
+		// Once the host settles, both have exactly its game: the spectator
+		// the whole of it, and the guest what its player may see.
 		while (EngineStorage.HasPendingMessagesToEngine()) {
 			EngineStorage.ProcessNextMessageToEngine();
 		}
 		byte[] expected = HostGameHash();
-		PumpUntil(host, clients, () => Has(guest, expected) && Has(spectator, expected));
+		byte[] guestExpected = LanHost.SnapshotHashFor([seatID]);
+		Assert.NotEqual(expected, guestExpected);
+		PumpUntil(host, clients, () => Has(guest, guestExpected) && Has(spectator, expected));
 
 		// Each had the whole game once, and patches after that.
 		Assert.Equal(1, guest.WholeSnapshotsReceived);
@@ -322,7 +325,9 @@ public class SnapshotDeltaTest : IClassFixture<SaveGameFixture>, IDisposable {
 	[Fact]
 	public async Task TheHostSendsTheWholeGameWhenAsked() {
 		SaveGame save = SaveGameFixture.TwoHumanSave();
-		using LanHost host = new("Host", save, port: 0, answerDiscovery: false);
+		// The host's own moves are what change here, which the guest would
+		// otherwise not be sent.
+		using LanHost host = new("Host", save, port: 0, answerDiscovery: false) { HideUnseen = false };
 		ID seatID = host.Seats[0].playerID;
 		using TcpClient tcp = new("127.0.0.1", host.Port);
 		using LanConnection guest = new(tcp);
