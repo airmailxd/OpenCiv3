@@ -251,6 +251,13 @@ namespace C7Engine.AI.UnitAI {
 				return int.MinValue;
 			}
 
+			// Don't throw units away on defenders they are unlikely to beat.
+			MapUnit defender = hasEnemyUnits ? t.FindTopDefender(unit) : null;
+			double winChance = defender != null ? EstimateChanceToWin(unit, defender) : 1.0;
+			if (winChance < MIN_CHANCE_TO_ATTACK) {
+				return int.MinValue;
+			}
+
 			// Handle the case of units running around.
 			//
 			// Note: Civ3 rates unit strength using this formula:
@@ -258,9 +265,7 @@ namespace C7Engine.AI.UnitAI {
 			//   (https://forums.civfanatics.com/threads/study-of-inner-workings-of-military-advisor.83599/)
 			//
 			// TODO: We should figure out how to incorporate this.
-			if (hasEnemyUnits && !hasEnemyCity) {
-				MapUnit defender = t.FindTopDefender(unit);
-
+			if (defender != null && !hasEnemyCity) {
 				// Units in our territory are a threat.
 				if (t.owningCity != null && t.owningCity.owner == player) {
 					score += 3 * defender.unitType.attack;
@@ -287,16 +292,42 @@ namespace C7Engine.AI.UnitAI {
 				if (!hasEnemyUnits) {
 					score += 20;
 				} else {
-					// TODO: this should incorporate defender strength
 					// TODO: we really want stack attacks
 					score += 10;
 				}
+			}
+
+			// Prefer fights we are more likely to win.
+			if (score > 0) {
+				score *= (float)winChance;
 			}
 
 			// Prefer to attack nearer targets.
 			score -= (float)Math.Pow(t.DistanceTo(unit.location), 2);
 
 			return score;
+		}
+
+		// Below this estimated chance of winning, a unit doesn't attack.
+		private const double MIN_CHANCE_TO_ATTACK = 0.3;
+
+		// A rough estimate of the attacker's chance to beat the defender: the
+		// chance of winning each round of combat, weighed by the hit points
+		// each side can lose. Bonuses that depend on where the attack comes
+		// from (like river crossings) are left out.
+		internal static double EstimateChanceToWin(MapUnit attacker, MapUnit defender) {
+			double attack = attacker.StrengthVersus(defender, CombatRole.Attack, null);
+			double defense = defender.StrengthVersus(attacker, CombatRole.Defense, null);
+			if (attack <= 0) {
+				return 0;
+			}
+			if (defense <= 0) {
+				return 1;
+			}
+			double roundOdds = attack / (attack + defense);
+			double ours = roundOdds * Math.Max(1, attacker.hitPointsRemaining);
+			double theirs = (1 - roundOdds) * Math.Max(1, defender.hitPointsRemaining);
+			return ours / (ours + theirs);
 		}
 	}
 }

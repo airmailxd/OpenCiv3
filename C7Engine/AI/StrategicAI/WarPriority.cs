@@ -85,13 +85,21 @@ namespace C7GameData.AIData {
 		}
 
 		public override void OnChosen(Player player) {
-			if (opponent == null
-				|| (player.playerRelationships.TryGetValue(opponent.id, out PlayerRelationship relationship) && relationship.AtWar())) {
+			if (opponent == null || !CanDeclareWarOn(player, opponent)) {
 				return;
 			}
 			player.DeclareWarOn(opponent, EngineStorage.gameData.turn);
 			log.Information($"{player} declared war on {opponent}");
 			MsgWarDeclaration.Announce(player, opponent);
+		}
+
+		// Whether we may declare war on the other player: one we've met and
+		// are at peace with, outside our alliance. Barbarians are always at
+		// war with everyone.
+		private static bool CanDeclareWarOn(Player player, Player other) {
+			return player != other && !other.isBarbarians && !other.defeated
+				&& player.playerRelationships.TryGetValue(other.id, out PlayerRelationship relationship) && !relationship.AtWar()
+				&& !EngineStorage.gameData.AreInLockedPeace(player, other);
 		}
 
 		private static Player PickPlayerToFight(Player player) {
@@ -103,22 +111,10 @@ namespace C7GameData.AIData {
 
 			// Calculate a score for each of our potential opponents.
 			foreach (Player p in EngineStorage.gameData.players) {
-				float score = 0;
-
 				// We always fight barbarians, we don't need to declare war on
-				// them.
-				if (p.isBarbarians) {
-					continue;
-				}
-
-				// We can't fight ourselves.
-				if (player == p) {
-					continue;
-				}
-
-				// We can only declare war on players we've met and who are
-				// still in the game.
-				if (p.defeated || !player.playerRelationships.ContainsKey(p.id)) {
+				// them. We can't fight ourselves, our allies or players we
+				// haven't met or who are out of the game.
+				if (!CanDeclareWarOn(player, p)) {
 					continue;
 				}
 
@@ -130,17 +126,16 @@ namespace C7GameData.AIData {
 				}
 
 				// Players we share a longer border with are more likely to be
-				// our enemy.
-				score += borderTileCount.GetValueOrDefault(p);
-
-				// The further away an opponent is the harder a war will be.
-				score -= distance;
+				// our enemy, and the further away an opponent is the harder a
+				// war will be. The score stays positive, so that scaling it
+				// by strength below favors the weaker opponents.
+				float score = (1f + borderTileCount.GetValueOrDefault(p)) / (1f + distance);
 
 				// We want to be more likely to declare war on our weaker opponents,
 				// so scale our scores based on strength.
 				float them = p.CalculateMilitaryStrength();
 
-				score *= them > 0 ? us / them : 1;
+				score *= them > 0 ? us / them : us;
 
 				scoredOpponents[p] = score;
 			}

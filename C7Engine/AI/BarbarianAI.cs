@@ -36,6 +36,10 @@ namespace C7Engine {
 			player.tileKnowledge.RecomputeActiveTiles();
 
 			foreach (MapUnit unit in player.units.ToArray()) {
+				// A unit may have died since the list was copied.
+				if (!PlayerAI.IsStillOurs(unit, player)) {
+					continue;
+				}
 				await strategy.PlayUnitTurn(player, unit);
 
 				// Moving already updates our knowledge (and the active tiles)

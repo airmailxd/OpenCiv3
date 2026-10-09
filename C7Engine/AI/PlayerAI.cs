@@ -200,6 +200,12 @@ namespace C7Engine {
 		private static async Task DoUnitActions(Player player, HashSet<MapUnit> explorers) {
 			// Do things with units. Copy into an array first to avoid collection-was-modified exception
 			foreach (MapUnit unit in player.units.ToArray()) {
+				// A unit may have died or been captured since the list was
+				// copied, such as a defender lost to another unit's attack.
+				if (!IsStillOurs(unit, player)) {
+					continue;
+				}
+
 				// A great leader that has reached one of our cities is used
 				// up there. Until then it heads for a city like a defender.
 				if (UseLeaderInCity(unit, player)) {
@@ -279,6 +285,12 @@ namespace C7Engine {
 					player.tileKnowledge.RecomputeActiveTiles();
 				}
 			}
+		}
+
+		// Whether the unit is still alive and the player's: a unit that dies
+		// leaves its owner's list of units.
+		internal static bool IsStillOurs(MapUnit unit, Player player) {
+			return unit.owner == player && player.units.Contains(unit);
 		}
 
 		// While a player's units are acting, the units that might have an

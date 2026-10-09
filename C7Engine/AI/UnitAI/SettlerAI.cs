@@ -1,3 +1,7 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using C7Engine.AI;
 using C7Engine.Pathing;
 using C7GameData;
 using C7GameData.AIData;
@@ -12,7 +16,7 @@ namespace C7Engine {
 			SettlerAIData settlerAiData = new SettlerAIData();
 			settlerAiData.goal = SettlerAIData.SettlerGoal.BUILD_CITY;
 			//If it's the starting settler, have it settle in place.  Otherwise, use an AI to find a location.
-			if (player.cities.Count == 0 && unit.location.cityAtTile == null) {
+			if (player.cities.Count == 0 && CanFoundCityHere(unit, player)) {
 				settlerAiData.destination = unit.location;
 				log.Information("No cities yet!  Set AI for unit to settler AI with destination of " + settlerAiData.destination);
 			} else {
@@ -56,6 +60,12 @@ namespace C7Engine {
 					}
 
 					if (unit.location == data.destination) {
+						// The same rules as for a human's settler, and no
+						// founding cities inside another civ's borders.
+						if (!CanFoundCityHere(unit, player)) {
+							log.Information("Settler " + unit.id + " can't build a city at " + data.destination + ", seeking a new destination");
+							return C7GameData.UnitAI.Result.Error;
+						}
 						log.Information("Building city with " + unit);
 						//TODO: This should use a message, and the message handler should cause the disbanding to happen.
 						CityInteractions.BuildCity(unit.location, player, unit.owner.GetNextCityName());
@@ -73,19 +83,84 @@ namespace C7Engine {
 					}
 					break;
 				case SettlerAIData.SettlerGoal.JOIN_CITY:
-					if (unit.location.cityAtTile != null) {
-						//TODO: Actually join the city.  Haven't added that action.
-						//For now, just get rid of the unit.  Sorry, bro.
-						unit.RemoveFromPlay();
-					} else {
-						//TODO: Eventually, go to the city we're supposed to join
-						//For now, just disband
-						unit.RemoveFromPlay();
-					}
-					break;
+					return JoinCity(unit, player);
 			}
 
 			return C7GameData.UnitAI.Result.Done;
+		}
+
+		// Whether the settler may found a city where it stands.
+		private static bool CanFoundCityHere(MapUnit unit, Player player) {
+			Player territoryOwner = unit.location.OwningPlayer();
+			return unit.canBuildCity() && (territoryOwner == null || territoryOwner == player);
+		}
+
+		// With nowhere left to found a city, the settler adds its people to
+		// the nearest of our cities with room for them. If none has room, it
+		// waits a turn, and looks again for a city site or a city to join.
+		private C7GameData.UnitAI.MoveResult JoinCity(MapUnit unit, Player player) {
+			City here = unit.location.cityAtTile;
+			if (here != null && here.owner == player && HasRoomToJoin(here, unit, player)) {
+				AddPopulation(here, unit);
+				return C7GameData.UnitAI.Result.Done;
+			}
+
+			City destination = data.destination?.cityAtTile;
+			if (destination == null || destination.owner != player || !HasRoomToJoin(destination, unit, player)
+				|| data.pathToDestination == null) {
+				List<Tile> candidates = player.cities.Where(c => HasRoomToJoin(c, unit, player))
+					.OrderBy(c => c.location.DistanceTo(unit.location)).Select(c => c.location).ToList();
+				PathingAlgorithm algorithm = PathingAlgorithmChooser.GetAlgorithm(unit);
+				TilePath path = null;
+				int index = candidates.Count > 0 ? algorithm.FindFirstReachable(unit.location, candidates, unit, out path) : -1;
+				if (index < 0) {
+					log.Information($"Settler {unit.id} has no city to join, waiting");
+					data.destination = null;
+					data.pathToDestination = null;
+					unit.movementPoints.onConsumeAll();
+					return C7GameData.UnitAI.Result.Done;
+				}
+				data.destination = candidates[index];
+				data.pathToDestination = path;
+				log.Information($"Settler {unit.id} heading to join {data.destination.cityAtTile}");
+			}
+
+			C7GameData.UnitAI.MoveResult moveResult = this.TryToMoveAlongPath(unit, ref data.pathToDestination);
+			if (moveResult.Result == C7GameData.UnitAI.Result.Error) {
+				// Look for another way, or another city, next turn.
+				data.pathToDestination = null;
+				unit.movementPoints.onConsumeAll();
+				return C7GameData.UnitAI.Result.InProgress;
+			}
+			return moveResult;
+		}
+
+		// Whether the city can take the settler's people without growing past
+		// the size a city reaches without an aqueduct. (A city that could grow
+		// further is left alone, to keep this simple.)
+		private static bool HasRoomToJoin(City city, MapUnit unit, Player player) {
+			return city.residents.Count + PopulationOf(unit) <= player.rules.MaximumLevel1CitySize;
+		}
+
+		private static int PopulationOf(MapUnit unit) {
+			return Math.Max(1, unit.unitType.populationCost);
+		}
+
+		private static void AddPopulation(City city, MapUnit unit) {
+			GameData gameData = EngineStorage.gameData;
+			CitizenType defaultCitizen = gameData.citizenTypes.Find(x => x.IsDefaultCitizen);
+			for (int i = 0; i < PopulationOf(unit); ++i) {
+				CityResident resident = new() {
+					citizenType = defaultCitizen,
+					nationality = unit.owner.civilization,
+					city = city
+				};
+				city.AddCitizen(resident);
+				CityTileAssignmentAI.AssignNewCitizenToTile(gameData, resident);
+			}
+			city.RecalculateCitizenMoods(gameData);
+			log.Information($"Settler {unit.id} joined {city}");
+			unit.RemoveFromPlay();
 		}
 
 		private static bool IsInvalidCityLocation(Tile tile) {

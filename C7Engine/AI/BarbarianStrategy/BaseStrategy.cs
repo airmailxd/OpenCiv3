@@ -75,17 +75,20 @@ internal abstract class BaseStrategy : IBarbarianStrategy {
 		if (orientation.IsLastUnitInCamp)
 			return new DefenderAI(DefenderAI.MakeAiDataForDefendInPlace(unit, player));
 
+		// Otherwise a unit keeps to a plan in progress while it is still
+		// worth following, rather than rolling the dice afresh every turn.
+		// An attack gives up by itself once its target is gone.
+		if (unit.currentAI is CombatAI currentAttack)
+			return currentAttack;
+		if (unit.currentAI is ExplorerAI currentExploration && IsStillExploring(player, unit, currentExploration))
+			return currentExploration;
+
 		// Decide whether to engage enemy units
 		if (MayEngage && orientation.CanEngage() && DecideToEngage(player, unit, orientation))
 			return new CombatAI(orientation.CombatIntel);
 
 		// Decide whether to explore
 		if (DecideToExplore(player, unit, orientation)) {
-			// Keep heading towards the tile we were already exploring towards,
-			// as long as it's still worth exploring.
-			if (unit.currentAI is ExplorerAI currentExplorer && IsStillExploring(player, unit, currentExplorer))
-				return currentExplorer;
-
 			var maybeAiData = ExplorerAI.MaybeMakeAiData(unit, player);
 			if (maybeAiData != null)
 				return new ExplorerAI(maybeAiData);
