@@ -85,6 +85,9 @@ public class LanConnection : IDisposable {
 
 	public string RemoteAddress { get; }
 
+	// What the connection runs over.
+	internal LanTransport Transport => transport;
+
 	// True once either side has closed the connection or it broke.
 	public bool IsClosed => closing || aborted;
 

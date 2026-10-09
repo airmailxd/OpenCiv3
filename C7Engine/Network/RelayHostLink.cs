@@ -24,6 +24,11 @@ namespace C7Engine.Network;
 // usually do for snapshots and turn clocks, it sends them once, addressed to
 // all of them. It waits a moment for the others' copies before sending, since
 // each connection writes on its own thread.
+//
+// The link also lists the host's game in the relay's public list, when the
+// host asks it to (see SetListing), and asks the relay to ban guests,
+// keeping the keys the relay gives for them to ban them again whenever it
+// connects.
 public sealed class RelayHostLink : IDisposable {
 	private static readonly ILogger log = Log.ForContext<RelayHostLink>();
 
@@ -46,6 +51,33 @@ public sealed class RelayHostLink : IDisposable {
 	// null while online.
 	public string Error => error;
 	private volatile string error;
+
+	// The game as last listed publicly, or null when it isn't; and whether
+	// the relay has listed it, or why it wouldn't.
+	public GameListing Listing {
+		get {
+			lock (sync) {
+				return listing;
+			}
+		}
+	}
+	public bool IsListed => Listing != null && listedByRelay;
+	public string ListingError => listingError;
+	private GameListing listing;
+	private long listingSentAt;
+	private volatile bool listedByRelay;
+	private volatile string listingError;
+
+	// The keys of the guests' addresses banned from the room (see
+	// RelayProtocol), to give the relay whenever the link connects.
+	public IReadOnlyList<string> Bans {
+		get {
+			lock (sync) {
+				return [.. bans];
+			}
+		}
+	}
+	private readonly List<string> bans = [];
 
 	// How many guests are connected through the relay.
 	public int GuestCount {
@@ -89,12 +121,76 @@ public sealed class RelayHostLink : IDisposable {
 
 	// guestArrived is called on a worker thread for each guest that joins.
 	// With the code and key of a room this host had, it claims that room
-	// again, as when resuming a game.
-	public RelayHostLink(string relayUrl, Action<LanTransport> guestArrived, string code = null, string key = null) {
+	// again, as when resuming a game, and with the keys of the guests it
+	// banned, bans them again.
+	public RelayHostLink(string relayUrl, Action<LanTransport> guestArrived, string code = null, string key = null,
+		IEnumerable<string> bans = null) {
 		RelayUrl = relayUrl;
 		this.guestArrived = guestArrived;
 		this.code = code;
 		this.key = key;
+		this.bans.AddRange(bans ?? []);
+	}
+
+	// Lists the game publicly as it is now, or takes it off the list for
+	// null. The game is listed again only when it changes, and every so
+	// often to keep it listed, so this can be called as often as the host
+	// likes.
+	public void SetListing(GameListing current) {
+		lock (sync) {
+			bool due = current != null
+				&& Stopwatch.GetElapsedTime(listingSentAt) >= TimeSpan.FromSeconds(RelayProtocol.ListingRefreshSeconds);
+			if (Equals(current, listing) && !due) {
+				return;
+			}
+			bool wasListed = listing != null;
+			listing = current;
+			if (current == null) {
+				listedByRelay = false;
+				listingError = null;
+				if (!wasListed) {
+					return;
+				}
+			}
+		}
+		SendListing();
+	}
+
+	// Sends the listing, or takes it down.
+	private void SendListing() {
+		GameListing current;
+		lock (sync) {
+			current = listing;
+			listingSentAt = Stopwatch.GetTimestamp();
+		}
+		RelayControl control = current == null ? new RelayControl(RelayControl.Unlist) : new RelayControl(RelayControl.List, listing: current);
+		SendControl(control.ToBytes(), WebSocketMessageType.Text);
+	}
+
+	// Asks the relay to turn away the guest's address from now on, as for a
+	// guest that has gone.
+	public void Ban(uint guest) {
+		log.Information("Banning guest {Guest} at the relay", guest);
+		SendControl(new RelayControl(RelayControl.Ban, guest: guest).ToBytes(), WebSocketMessageType.Text);
+	}
+
+	// What the relay needs to hear on each new connection: the guests
+	// banned, and the game's listing.
+	private void Connected() {
+		List<string> banned;
+		bool listed;
+		lock (sync) {
+			banned = [.. bans];
+			listed = listing != null;
+		}
+		if (banned.Count > 0) {
+			SendControl(new RelayControl(RelayControl.Bans, bans: banned.TakeLast(RelayProtocol.MaxBans).ToList()).ToBytes(),
+				WebSocketMessageType.Text);
+		}
+		listedByRelay = false;
+		if (listed) {
+			SendListing();
+		}
 	}
 
 	public void Start() {
@@ -151,6 +247,7 @@ public sealed class RelayHostLink : IDisposable {
 			socket = connected;
 		}
 		Task sending = SendLoop(connected, stop.Token);
+		Connected();
 		try {
 			await ReceiveLoop(connected, quietLimit, stop.Token);
 		} catch (RelayException e) when (!e.IsPermanent) {
@@ -193,9 +290,7 @@ public sealed class RelayHostLink : IDisposable {
 				throw RelayConnection.ClosedBy(connected);
 			}
 			if (type == WebSocketMessageType.Text) {
-				if (RelayControl.Parse(message.Span)?.type == RelayControl.Ping) {
-					SendControl(new RelayControl(RelayControl.Pong).ToBytes(), WebSocketMessageType.Text);
-				}
+				FromRelay(RelayControl.Parse(message.Span));
 				continue;
 			}
 			if (!RelayProtocol.TryReadHeader(message.Span, out byte kind, out int count)) {
@@ -228,13 +323,39 @@ public sealed class RelayHostLink : IDisposable {
 		}
 	}
 
+	// What the relay says in text: its pings, and its answers about the
+	// listing and bans.
+	private void FromRelay(RelayControl control) {
+		switch (control?.type) {
+			case RelayControl.Ping:
+				SendControl(new RelayControl(RelayControl.Pong).ToBytes(), WebSocketMessageType.Text);
+				break;
+			case RelayControl.Listed:
+				listingError = control.error;
+				listedByRelay = control.error == null && Listing != null;
+				if (control.error != null) {
+					log.Information("The relay didn't list the game: {Error}", control.error);
+				}
+				break;
+			case RelayControl.Banned:
+				lock (sync) {
+					foreach (string ban in control.bans ?? []) {
+						if (!bans.Contains(ban)) {
+							bans.Add(ban);
+						}
+					}
+				}
+				break;
+		}
+	}
+
 	private void GuestJoined(uint id) {
 		GuestStream guest = new(this, id);
 		lock (sync) {
 			guests[id] = guest;
 		}
 		log.Information("Guest {Guest} joined through the relay", id);
-		guestArrived(new LanTransport(guest, $"online guest {id}"));
+		guestArrived(new LanTransport(guest, $"online guest {id}") { BanAtRelay = guest.BanWhenClosed });
 	}
 
 	private void SendControl(byte[] message, WebSocketMessageType type) {
@@ -248,9 +369,11 @@ public sealed class RelayHostLink : IDisposable {
 	}
 
 	// A message waiting to go to a guest; a null message closes the guest's
-	// connection once what it was sent before has gone.
+	// connection once what it was sent before has gone, or with ban, bans
+	// the guest first.
 	private sealed class Pending {
 		public byte[] message;
+		public bool ban;
 		public long sequence;
 		public long queuedAt;
 	}
@@ -271,8 +394,9 @@ public sealed class RelayHostLink : IDisposable {
 	}
 
 	// The guest's connection is closing: the relay closes it once what was
-	// queued for it has gone.
+	// queued for it has gone, banning it first if the host asked.
 	private void Close(GuestStream guest) {
+		bool banNow = false;
 		lock (sync) {
 			if (guest.closed) {
 				return;
@@ -280,12 +404,30 @@ public sealed class RelayHostLink : IDisposable {
 			guest.closed = true;
 			if (socket == null || !guests.ContainsKey(guest.id)) {
 				guests.Remove(guest.id);
-				return;
+				banNow = guest.banOnClose;
+			} else {
+				guest.outgoing.Enqueue(new Pending {
+					ban = guest.banOnClose, sequence = nextSequence++, queuedAt = Stopwatch.GetTimestamp(),
+				});
+				Monitor.PulseAll(sync);
 			}
-			guest.outgoing.Enqueue(new Pending { message = null, sequence = nextSequence++, queuedAt = Stopwatch.GetTimestamp() });
-			Monitor.PulseAll(sync);
+		}
+		if (banNow) {
+			Ban(guest.id);
 		}
 		wake.Release();
+	}
+
+	// Bans the guest once its connection has sent what it has, or now if
+	// it's closed already.
+	private void BanWhenClosed(GuestStream guest) {
+		lock (sync) {
+			if (!guest.closed) {
+				guest.banOnClose = true;
+				return;
+			}
+		}
+		Ban(guest.id);
 	}
 
 	private async Task SendLoop(ClientWebSocket connected, CancellationToken cancel) {
@@ -323,6 +465,11 @@ public sealed class RelayHostLink : IDisposable {
 				return (null, default, TimeSpan.Zero);
 			}
 			Pending head = first.outgoing.Peek();
+			if (head.message == null && head.ban) {
+				// The relay closes the guest's connection as it bans it.
+				head.ban = false;
+				return (new RelayControl(RelayControl.Ban, guest: first.id).ToBytes(), WebSocketMessageType.Text, TimeSpan.Zero);
+			}
 			if (head.message == null) {
 				first.outgoing.Dequeue();
 				guests.Remove(first.id);
@@ -384,6 +531,7 @@ public sealed class RelayHostLink : IDisposable {
 		public readonly Queue<Pending> outgoing = new();
 		public long queuedBytes;
 		public bool closed;
+		public bool banOnClose;
 
 		// Guarded by itself.
 		private readonly Queue<byte[]> incoming = new();
@@ -398,7 +546,10 @@ public sealed class RelayHostLink : IDisposable {
 			this.id = id;
 		}
 
+		public void BanWhenClosed() => link.BanWhenClosed(this);
+
 		public void Deliver(byte[] bytes) {
+
 			lock (incoming) {
 				incoming.Enqueue(bytes);
 				Monitor.Pulse(incoming);

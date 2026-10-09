@@ -1,5 +1,7 @@
 using System;
 using System.IO;
+using System.Net;
+
 using System.Net.Sockets;
 using Serilog;
 
@@ -14,6 +16,15 @@ public sealed class LanTransport : IDisposable {
 
 	public Stream Stream { get; }
 	public string RemoteAddress { get; }
+
+	// The peer's IP address, without the port, for a host to ban; null when
+	// it isn't known, as for a guest through a relay.
+	public string RemoteHost { get; init; }
+
+	// Asks the relay a guest came through to turn its address away from the
+	// host's room from now on, once the connection has sent what it has;
+	// null for a connection that isn't through a relay.
+	public Action BanAtRelay { get; init; }
 
 	// Disposed along with the stream, like the TcpClient a NetworkStream
 	// came from.
@@ -30,7 +41,16 @@ public sealed class LanTransport : IDisposable {
 	public static LanTransport Tcp(TcpClient client) {
 		client.NoDelay = true;
 		KeepAlive(client.Client);
-		return new LanTransport(client.GetStream(), client.Client.RemoteEndPoint?.ToString() ?? "unknown", client);
+		IPEndPoint remote = client.Client.RemoteEndPoint as IPEndPoint;
+		return new LanTransport(client.GetStream(), remote?.ToString() ?? "unknown", client) {
+			RemoteHost = remote == null ? null : HostOf(remote.Address),
+		};
+	}
+
+	// An address as a host bans it: an IPv4 address mapped into IPv6 the way
+	// it would come over IPv4.
+	internal static string HostOf(IPAddress address) {
+		return (address.IsIPv4MappedToIPv6 ? address.MapToIPv4() : address).ToString();
 	}
 
 	// A peer that vanishes without closing the connection, like one whose

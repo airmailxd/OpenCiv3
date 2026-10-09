@@ -13,9 +13,16 @@ namespace C7Engine.Network;
 // online also has the relay, and the join code and the key to claim it
 // again, so that guests find it where they left it. hideUnseen is whether
 // guests are sent only what their players may know; older saves, without
-// it, hide it, as new games do.
+// it, hide it, as new games do. A game with a password keeps its salt and
+// verifier, never the password itself (see GamePassword). Guests the host
+// banned stay banned: their tokens, the addresses of those on the network,
+// and for those through the relay, the keys the relay gave for them. And
+// the game is listed publicly again if it was, as it was.
 public record LanResumeInfo(string hostName, int port, double? turnSeconds, bool simultaneousTurns, List<LanResumeSeat> seats,
-	string relayUrl = null, string onlineCode = null, string onlineKey = null, bool hideUnseen = true);
+	string relayUrl = null, string onlineCode = null, string onlineKey = null, bool hideUnseen = true,
+	string passwordSalt = null, string passwordVerifier = null, List<string> bannedTokens = null, List<string> bannedAddresses = null,
+	List<string> relayBans = null, bool listPublicly = false, string publicName = null, string publicDescription = null,
+	bool allowSpectators = true);
 
 public record LanResumeSeat(ID playerID, string playerName, string reconnectToken);
 

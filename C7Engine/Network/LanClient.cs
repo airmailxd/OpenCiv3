@@ -40,6 +40,11 @@ namespace C7Engine.Network;
 // Once in the game, a client that loses the host keeps trying to connect
 // again in the background, and says hello with the token the host gave it,
 // to have its seats back where it left them.
+//
+// A host with a password asks for it before letting us in, unless we're back
+// with our token: the password given when joining answers it, or the player
+// is asked for it (see PasswordRequest), and it's kept to answer the host
+// again after losing the connection.
 public class LanClient : IDisposable {
 	private static readonly ILogger log = Log.ForContext<LanClient>();
 
@@ -82,6 +87,13 @@ public class LanClient : IDisposable {
 	public LobbyInfo Lobby { get; private set; }
 	public string RejectedReason { get; private set; }
 
+	// The host asks for the game's password, which the player hasn't given
+	// or got wrong: answer with SendPassword. Null otherwise.
+	public PasswordChallengeInfo PasswordRequest { get; private set; }
+
+	// The password to answer the host with, once given.
+	private string password;
+
 	// The players this client plays, in turn order, once the game has
 	// started: more than one when they take turns at this machine. Empty for
 	// a spectator.
@@ -119,6 +131,10 @@ public class LanClient : IDisposable {
 	// Why the last try to connect again failed, or null.
 	public string LastReconnectError => lastReconnectError;
 	private volatile string lastReconnectError;
+
+	// Why trying to connect again can't work, as when the relay says we're
+	// banned; Poll turns us away with it.
+	private volatile string reconnectFailedForGood;
 
 	// The waits between tries start at the first and double up to the
 	// longest.
@@ -162,11 +178,12 @@ public class LanClient : IDisposable {
 	// carried out on our game ahead of the host (see PredictMoves).
 	public Action OrderPredicted;
 
-	private LanClient(LanTransport transport, LanEndpoint endpoint, string playerName, string reconnectToken) {
+	private LanClient(LanTransport transport, LanEndpoint endpoint, string playerName, string reconnectToken, string password) {
 		connection = new LanConnection(transport);
 		Endpoint = endpoint;
 		this.playerName = playerName;
 		ReconnectToken = reconnectToken;
+		this.password = string.IsNullOrEmpty(password) ? null : password;
 	}
 
 	// Joins the host there, waiting until connected. With the token from a
@@ -176,21 +193,37 @@ public class LanClient : IDisposable {
 	}
 
 	// Joins the host there without holding up the caller, giving up with a
-	// TimeoutException if it doesn't answer in time.
+	// TimeoutException if it doesn't answer in time. The password, if
+	// given, is the game's, for a host that asks for one.
 	public static async Task<LanClient> ConnectAsync(LanEndpoint endpoint, string playerName, string reconnectToken = null,
-		TimeSpan? timeout = null, CancellationToken cancel = default) {
+		TimeSpan? timeout = null, CancellationToken cancel = default, string password = null) {
 		LanTransport transport = await endpoint.ConnectAsync(timeout ?? InitialConnectTimeout, cancel).ConfigureAwait(false);
 		if (cancel.IsCancellationRequested) {
 			transport.Dispose();
 			cancel.ThrowIfCancellationRequested();
 		}
-		LanClient client = new(transport, endpoint, playerName, reconnectToken);
+		LanClient client = new(transport, endpoint, playerName, reconnectToken, password);
 		client.SayHello();
 		return client;
 	}
 
 	private void SayHello() {
 		connection.Send(FrameKind.Hello, new HelloInfo(LanProtocol.Version, playerName, ReconnectToken));
+	}
+
+	// Answers the host's PasswordRequest with the game's password, which is
+	// kept to answer the host again after losing the connection.
+	public void SendPassword(string typed) {
+		password = typed ?? "";
+		if (PasswordRequest is PasswordChallengeInfo challenge) {
+			PasswordRequest = null;
+			AnswerPassword(challenge);
+		}
+	}
+
+	private void AnswerPassword(PasswordChallengeInfo challenge) {
+		string verifier = GamePassword.Verifier(password, challenge.salt);
+		connection.Send(FrameKind.Password, new PasswordInfo(GamePassword.Proof(verifier, challenge.nonce)));
 	}
 
 	// Takes a seat, alongside any taken already, for the player named (or
@@ -339,6 +372,13 @@ public class LanClient : IDisposable {
 			}
 			return;
 		}
+		if (reconnectFailedForGood is string why && RejectedReason == null) {
+			RejectedReason = why;
+			log.Information("Can't connect to the host again: {Reason}", why);
+			StopReconnecting();
+			LobbyChanged?.Invoke();
+			return;
+		}
 		bool trying = Reconnecting && !awaitingAnswer;
 		if (trying || disposed || !ReconnectAutomatically || RejectedReason != null
 			|| !connection.IsClosed || connection.TryPeek(out _)) {
@@ -380,6 +420,9 @@ public class LanClient : IDisposable {
 				}
 				Interlocked.Exchange(ref reconnected, transport)?.Dispose();
 				return;
+			} catch (RelayException e) when (e.IsPermanent) {
+				reconnectFailedForGood = e.Message;
+				return;
 			} catch (Exception e) when (e is SocketException or OperationCanceledException or ObjectDisposedException
 				or TimeoutException or IOException or WebSocketException) {
 				lastReconnectError = e.Message;
@@ -408,8 +451,19 @@ public class LanClient : IDisposable {
 
 	private void Handle(Frame frame) {
 		switch (frame.kind) {
+			case FrameKind.PasswordRequired:
+				PasswordChallengeInfo challenge = NetSerialization.DeserializeRequired<PasswordChallengeInfo>(frame.payload);
+				if (password != null && !challenge.wrong) {
+					AnswerPassword(challenge);
+				} else {
+					PasswordRequest = challenge;
+					LobbyChanged?.Invoke();
+				}
+				break;
 			case FrameKind.Lobby:
+				PasswordRequest = null;
 				Lobby = NetSerialization.DeserializeRequired<LobbyInfo>(frame.payload);
+
 				ReconnectToken = Lobby.reconnectToken ?? ReconnectToken;
 				// A host with the game we're in back in its lobby is resuming
 				// it.

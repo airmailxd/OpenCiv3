@@ -236,8 +236,91 @@ public class OnlineGameTests : IClassFixture<SaveGameFixture>, IDisposable {
 			&& bob.ReceivedSnapshotHash?.AsSpan().SequenceEqual(bobExpected) == true);
 	}
 
+	// The listing as the relay has it now, or null.
+	private static GameListing ListingOn(TestRelay relay, string code) {
+		string json = relay.ListingOf(code);
+		return json == null ? null : System.Text.Json.JsonSerializer.Deserialize<GameListing>(json);
+	}
+
+	[Fact]
+	public async Task AGameListedPubliclyIsFoundAndKeptUpToDate() {
+		await using TestRelay relay = await TestRelay.Start();
+		SaveGame save = SaveGameFixture.TwoHumanSave();
+		using LanHost host = new("Ann", save, port: 0, answerDiscovery: false);
+		string code = GoOnline(host, relay);
+		ID seatID = host.Seats[0].playerID;
+		Assert.Empty((await PublicGames.FetchAsync(relay.Url)).games);
+
+		host.ListPublicly = true;
+		host.PublicName = "Ann's\u0007  game";
+		host.SetPassword("swordfish");
+		PumpUntil(host, [], () => host.Online.IsListed);
+		PublicGame game = Assert.Single((await PublicGames.FetchAsync(relay.Url)).games);
+		Assert.Equal(code, game.code);
+		Assert.True(PublicGames.IsCompatible(game));
+		Assert.Equal("Ann's game", game.game.name);
+		Assert.Equal("Ann", game.game.hostName);
+		Assert.True(game.game.hasPassword);
+		Assert.Equal(1, game.seatsOpen);
+		Assert.False(game.game.started);
+
+		// A player finds it and joins with the password.
+		using LanClient bob = LanClient.ConnectAsync(new RelayEndpoint(relay.Url, game.code), "Bob", password: "swordfish")
+			.GetAwaiter().GetResult();
+		PumpUntil(host, [bob], () => bob.Lobby != null);
+		bob.ClaimSeat(seatID);
+		PumpUntil(host, [bob], () => ListingOn(relay, code)?.seatsTaken == 2);
+
+		C7GameData.GameData gameData = await CreateGame(save);
+		host.StartGame();
+		PumpUntil(host, [bob], () => bob.StartingGame != null && ListingOn(relay, code)?.started == true);
+		Play(bob);
+		new MsgEndTurn().send();
+		PumpUntil(host, [bob], () => EngineStorage.activePlayerID == seatID);
+		bob.SendCommand(new MsgEndTurn());
+		PumpUntil(host, [bob], () => gameData.turn == 1 && ListingOn(relay, code)?.turn == 1);
+		game = Assert.Single((await PublicGames.FetchAsync(relay.Url)).games);
+		Assert.Equal(0, game.seatsOpen);
+
+		// Taken off the list.
+		host.ListPublicly = false;
+		PumpUntil(host, [bob], () => ListingOn(relay, code) == null);
+		Assert.False(host.Online.IsListed);
+	}
+
+	[Fact]
+	public async Task AGuestBannedOnlineIsTurnedAwayByTheRelay() {
+		await using TestRelay relay = await TestRelay.Start();
+		SaveGame save = SaveGameFixture.TwoHumanSave();
+		using LanHost host = new("Host", save, port: 0, answerDiscovery: false);
+		string code = GoOnline(host, relay);
+		ID seatID = host.Seats[0].playerID;
+		using LanClient guest = Join(relay, code, "Guest");
+		PumpUntil(host, [guest], () => guest.Lobby != null);
+		guest.ClaimSeat(seatID);
+		PumpUntil(host, [guest], () => host.AllSeatsTaken);
+		await CreateGame(save);
+		host.StartGame();
+		PumpUntil(host, [guest], () => guest.StartingGame != null);
+		Play(guest);
+
+		Assert.True(host.Kick(seatID, ban: true));
+		PumpUntil(host, [guest], () => guest.RejectedReason != null && host.Online.Bans.Count == 1);
+		Assert.Equal(LanHost.BannedReason, guest.RejectedReason);
+		Assert.False(guest.Reconnecting);
+		Assert.Equal(host.Online.Bans, host.ResumeInfo().relayBans);
+		Assert.Null(host.Seats[0].takenBy);
+
+		// The relay turns the guest's address away from this game.
+		RelayException e = await Assert.ThrowsAsync<RelayException>(
+			() => LanClient.ConnectAsync(new RelayEndpoint(relay.Url, code), "Guest again"));
+		Assert.Equal(RelayCloseCodes.Banned, e.CloseCode);
+		Assert.True(e.IsPermanent);
+	}
+
 	[Fact]
 	public async Task AResumedOnlineGameKeepsItsCode() {
+
 		await using TestRelay relay = await TestRelay.Start();
 		using TempDirectory saves = new("online-autosave");
 		SaveGame save = SaveGameFixture.TwoHumanSave();

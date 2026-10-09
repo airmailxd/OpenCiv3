@@ -74,7 +74,17 @@ internal sealed class TestRelay : IAsyncDisposable {
 		}
 	}
 
+	// The room's public listing as the relay keeps it, as JSON, or null when
+	// it isn't listed.
+	public string ListingOf(string code) {
+		Room room = RoomFor(code);
+		lock (room) {
+			return room.Listing == null ? null : System.Text.Json.JsonSerializer.Serialize(room.Listing);
+		}
+	}
+
 	public int GuestsIn(string code) {
+
 		Room room = RoomFor(code);
 		lock (room) {
 			return room.Guests.Count;

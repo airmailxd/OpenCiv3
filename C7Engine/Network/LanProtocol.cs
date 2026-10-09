@@ -30,6 +30,8 @@ public enum FrameKind : byte {
 	// MovePrediction), which the host answers with a snapshot even if its
 	// game is unchanged, to put the client's right.
 	PredictedCommand = 8,
+	// The answer to a PasswordRequired (see GamePassword).
+	Password = 9,
 
 	// Host to client.
 	Lobby = 10,
@@ -40,11 +42,14 @@ public enum FrameKind : byte {
 	TurnClock = 15,
 	// A snapshot as a patch to the one sent before it (see EncodedSnapshot).
 	SnapshotDelta = 16,
+	// The game has a password: the host asks for it before letting the
+	// guest in, as after a Hello without a token for seats it holds.
+	PasswordRequired = 17,
 }
 
 public static class LanProtocol {
 	// Bump when the frames or the messages in them change incompatibly.
-	public const int Version = 10;
+	public const int Version = 11;
 
 	public const int DefaultPort = 47_777;
 	public const int DiscoveryPort = 47_778;
@@ -223,8 +228,18 @@ public record ChooseCivilizationInfo(string civilization, ID playerID = null);
 // token is as in LobbyInfo.
 public record StartInfo(List<ID> yourPlayerIDs, string reconnectToken = null);
 
-// A host's answer to a discovery broadcast.
-public record DiscoveryReply(string hostName, int port, int openSeats, bool started);
+// A host's answer to a discovery broadcast. hasPassword is whether joining
+// takes the game's password.
+public record DiscoveryReply(string hostName, int port, int openSeats, bool started, bool hasPassword = false);
+
+// The host asks for the game's password: the salt to make its verifier
+// with and the nonce to sign (see GamePassword). wrong is true when the last
+// answer was wrong, and attemptsLeft how many more the host takes.
+public record PasswordChallengeInfo(string salt, string nonce, bool wrong = false, int attemptsLeft = GamePassword.MaxWrongAttempts);
+
+// A guest's answer to a PasswordChallengeInfo.
+public record PasswordInfo(string proof);
+
 
 // Whose turn it is and how long they have had it, for the scoreboard, and
 // which players are at their machines. secondsAllowed is null when turns have
