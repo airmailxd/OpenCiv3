@@ -40,6 +40,9 @@ public class GameSetup {
 	public bool coreCitiesFreeOfCorruption { get; init; } = false;
 	// Null keeps the setting the scenario or ruleset came with.
 	public bool? acceleratedProduction { get; init; } = null;
+	// Scales corruption and waste (see Rules.CorruptionRate). Null keeps
+	// the rate the scenario or ruleset came with.
+	public float? corruptionRate { get; init; } = null;
 	// Where to save each generated map that can't be played, with why, so
 	// it can be looked at; null not to save them.
 	public string invalidMapsDirectory { get; init; } = null;
@@ -54,6 +57,9 @@ public class GameSetup {
 		save.Rules.CoreCitiesFreeOfCorruption = coreCitiesFreeOfCorruption;
 		if (acceleratedProduction.HasValue) {
 			save.Rules.AcceleratedProduction = acceleratedProduction.Value;
+		}
+		if (corruptionRate.HasValue) {
+			save.Rules.CorruptionRate = Math.Clamp(corruptionRate.Value, Rules.MinCorruptionRate, Rules.MaxCorruptionRate);
 		}
 
 		if (save.Map.tiles.Count == 0) {

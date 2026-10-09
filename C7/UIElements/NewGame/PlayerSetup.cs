@@ -1,12 +1,14 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using C7GameData;
 using C7Engine;
 using C7Engine.Lua;
 using C7GameData.Save;
+using C7.UIElements;
 using Serilog;
 
 public partial class PlayerSetup : Control {
@@ -51,6 +53,7 @@ public partial class PlayerSetup : Control {
 	CheckBox coreCitiesFreeOfCorruption;
 	CheckBox acceleratedProduction;
 	CheckBox turnLimit;
+	Civ3HSlider corruptionRate;
 
 	[Export] TextureButton confirm;
 	[Export] TextureButton cancel;
@@ -179,6 +182,36 @@ public partial class PlayerSetup : Control {
 			TooltipText = "Cities generate double the food, shields and commerce each turn, speeding up growth, research and production.",
 		};
 		rulesContainer.AddChild(acceleratedProduction);
+
+		AddCorruptionRate();
+	}
+
+	// A slider for the rate corruption and waste are scaled by
+	// (Rules.CorruptionRate), starting at the rate the ruleset gives.
+	private void AddCorruptionRate() {
+		const string tooltip = "Scales every city's corruption and waste. 1.00 is Civ3's rate; "
+			+ "the default, 0.90, goes slightly easier on everyone.";
+		HBoxContainer row = new() { TooltipText = tooltip };
+		row.AddThemeConstantOverride("separation", 8);
+		Label label = new() { TooltipText = tooltip, MouseFilter = MouseFilterEnum.Pass };
+		label.AddThemeFontSizeOverride("font_size", 14);
+		corruptionRate = new Civ3HSlider {
+			MinValue = Rules.MinCorruptionRate,
+			MaxValue = Rules.MaxCorruptionRate,
+			Step = 0.05,
+			Value = save.Rules.CorruptionRate,
+			CustomMinimumSize = new Vector2(140, 20),
+			SizeFlagsVertical = SizeFlags.ShrinkCenter,
+			TooltipText = tooltip,
+		};
+		void ShowRate(double rate) {
+			label.Text = $"Corruption rate {rate.ToString("0.00", CultureInfo.InvariantCulture)}";
+		}
+		ShowRate(corruptionRate.Value);
+		corruptionRate.ValueChanged += ShowRate;
+		row.AddChild(label);
+		row.AddChild(corruptionRate);
+		rulesContainer.AddChild(row);
 	}
 
 	private void BackToMainMenu() {
@@ -456,6 +489,7 @@ public partial class PlayerSetup : Control {
 				showScoreboard = showScoreboard.ButtonPressed,
 				coreCitiesFreeOfCorruption = coreCitiesFreeOfCorruption.ButtonPressed,
 				acceleratedProduction = acceleratedProduction.ButtonPressed,
+				corruptionRate = (float)corruptionRate.Value,
 				invalidMapsDirectory = InvalidMaps.FolderIfEnabled,
 			};
 			PersistGameSettings(lanSetup);
@@ -477,6 +511,7 @@ public partial class PlayerSetup : Control {
 			showScoreboard = showScoreboard.ButtonPressed,
 			coreCitiesFreeOfCorruption = coreCitiesFreeOfCorruption.ButtonPressed,
 			acceleratedProduction = acceleratedProduction.ButtonPressed,
+			corruptionRate = (float)corruptionRate.Value,
 			invalidMapsDirectory = InvalidMaps.FolderIfEnabled,
 		};
 

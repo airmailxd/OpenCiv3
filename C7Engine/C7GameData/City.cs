@@ -1661,7 +1661,7 @@ namespace C7GameData {
 
 			corruption = (CalculateDistanceCorruption(gameData, numAntiCorruptionBuildings)
 					+ CalculateRankCorruption(adjustedOptimalCityNumber, gameData.map.optimalNumberOfCities, numAntiCorruptionBuildings))
-					* CorruptionScale;
+					* gameData.rules.CorruptionRate;
 			// Policemen are applied to the corrupt amounts themselves, see
 			// RecoverWithPolicemen.
 
