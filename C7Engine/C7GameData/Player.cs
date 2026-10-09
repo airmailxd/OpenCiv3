@@ -465,7 +465,10 @@ namespace C7GameData {
 		// afterWarning is true when the other civ told us to leave its
 		// territory or face war, and we chose war: that is no sneak attack,
 		// even though our units are inside its borders.
-		public void DeclareWarOn(Player other, int currentTurn, bool afterWarning = false) {
+		// afterWarning: the other civ was warned, so this isn't a sneak attack.
+		// provoked: the other civ brought the war on itself, so its people
+		// don't rally against us.
+		public void DeclareWarOn(Player other, int currentTurn, bool afterWarning = false, bool provoked = false) {
 			EnsureRelationshipExists(other);
 
 			// Check to see if there was a sneak attack - we consider a sneak
@@ -485,10 +488,11 @@ namespace C7GameData {
 			DeclareWar(this, other, isSneakAttack, refuseContactUntilTurn, currentTurn);
 
 			// The other civ's people rally against whoever declares war on
-			// them, AI or human: war happiness, unless their nuclear weapons
-			// or their caught spies provoked it (see
-			// WarWearinessWhenWarIsDeclaredOnUs).
-			if (!isBarbarians && playerRelationships.TryGetValue(other.id, out PlayerRelationship ourView)
+			// them, AI or human: war happiness, unless they provoked it, by
+			// their nuclear weapons, their caught spies, or (per the project
+			// owner) ignoring our demand to take their units out of our
+			// territory (see WarWearinessWhenWarIsDeclaredOnUs).
+			if (!isBarbarians && !provoked && playerRelationships.TryGetValue(other.id, out PlayerRelationship ourView)
 				&& ourView.nuclearAtrocityCount == 0 && ourView.espionageIncidents == 0) {
 				other.AddWarWeariness(this, WarWearinessWhenWarIsDeclaredOnUs);
 			}
@@ -1641,7 +1645,10 @@ namespace C7GameData {
 		//   count war being declared on us, and per the project owner by
 		//   any civ, AI or human: the victim of a declaration starts with
 		//   war happiness against the aggressor, which the war's weariness
-		//   then wears away and eventually turns into war weariness.
+		//   then wears away and eventually turns into war weariness. Also per
+		//   the project owner, a civ that ignored a demand to take its units
+		//   out of the aggressor's territory provoked the war, and gets none
+		//   (TerritoryDemands).
 		// - "Add 1 wwp if you have units in enemys territory when in war.
 		//   (In beginning of the turn)"
 		// - "Add 1 wwp for each lost unit without defence value,

@@ -234,8 +234,11 @@ namespace C7Engine.AI {
 			return withdrawn;
 		}
 
+		// War on a civ that wouldn't take its units out of our territory, or
+		// kept bringing them back. Per the project owner, it provoked the war,
+		// so its people don't rally against us (no war happiness).
 		private static void DeclareWar(Player aggressor, Player defender) {
-			aggressor.DeclareWarOn(defender, EngineStorage.gameData.turn);
+			aggressor.DeclareWarOn(defender, EngineStorage.gameData.turn, provoked: true);
 			MsgWarDeclaration.Announce(aggressor, defender);
 		}
 	}
