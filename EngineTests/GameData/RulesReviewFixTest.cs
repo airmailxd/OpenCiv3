@@ -396,6 +396,37 @@ public class RulesReviewFixTest : IClassFixture<SaveGameFixture> {
 		Assert.False(city.IsInResistance);
 	}
 
+	// ---- We Love the King Day ----
+
+	// In Conquests a celebration lowers waste only: "For waste calculations
+	// only, when the city is in a WLTKD celebration, divide da by 2" and
+	// "add OCN/4 to Nopt"
+	// (https://civfanatics.com/civ3/strategy/game-mechanics/everything-about-corruption-c3c-edition/).
+	[Fact]
+	public void CelebrationsHalveTheDistanceAndRaiseTheOptimalCityNumberForWasteOnly() {
+		gameData.rules.CoreCitiesFreeOfCorruption = false;
+		BuildCity(us);
+		City city = BuildCity(us);
+		int adjusted = us.GetAdjustedOptimalCityNumber(gameData);
+		// Some rank corruption, but not up to the cap.
+		city.rankIndex = adjusted;
+		city.CalculateCorruption(gameData, adjusted);
+		Assert.True(city.corruption > 0);
+
+		float distance = city.CalculateDistanceCorruption(gameData, 0);
+		Assert.Equal(distance / 2, city.CalculateDistanceCorruption(gameData, 1), 5);
+		// One "courthouse" raises Nopt by OCN/4.
+		float rank = city.CalculateRankCorruption(adjusted, gameData.map.optimalNumberOfCities, 1);
+		float expected = System.Math.Clamp((distance / 2 + rank) * City.CorruptionScale, 0, 0.9f);
+		Assert.Equal(expected, city.celebrationWaste, 5);
+		Assert.True(city.celebrationWaste < city.corruption);
+
+		// Commerce is corrupted the same either way.
+		CommerceBreakdown before = city.CurrentCommerceYieldRaw();
+		city.celebrating = true;
+		Assert.Equal(before.corrupted, city.CurrentCommerceYieldRaw().corrupted);
+	}
+
 	// ---- Difficulty ----
 
 	[Fact]

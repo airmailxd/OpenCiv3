@@ -106,6 +106,11 @@ namespace C7GameData {
 		// The amount of corruption, between 0 and 1.
 		public float corruption = 0;
 
+		// The share of shields wasted while celebrating "We Love the King
+		// Day", between 0 and 1: less than corruption (see
+		// CalculateCorruption). Commerce is corrupted as usual.
+		public float celebrationWaste = 0;
+
 		// The number of turns of unhappiness this city will experience due to
 		// pop rushing. Larger values result in larger numbers of citizens being
 		// unhappy as well, in addition to the time penalty.
@@ -999,8 +1004,8 @@ namespace C7GameData {
 				yield += r.tileWorked.ProductionYield(this, buildings).yield;
 			}
 			yield *= YieldMultiplier();
-			// A celebrating city wastes half as many shields.
-			CorruptableValue result = new(yield, celebrating ? corruption / 2 : corruption);
+			// A celebrating city wastes fewer shields (see CalculateCorruption).
+			CorruptableValue result = new(yield, celebrating ? celebrationWaste : corruption);
 
 			// Using our value of corruption, figure out how much useful
 			// production we have to work with. Special case anarchy, where no
@@ -1744,7 +1749,7 @@ namespace C7GameData {
 		}
 
 		// See https://forums.civfanatics.com/threads/everything-about-corruption-c3c-edition.76619/
-		private float CalculateDistanceCorruption(GameData gameData, int numAntiCorruptionBuildings) {
+		internal float CalculateDistanceCorruption(GameData gameData, int numAntiCorruptionBuildings) {
 			float maxD = (location.map.numTilesWide + location.map.numTilesTall) / 4;
 
 			float distanceToPalace = owner.citiesWithCorruptionWonders.Min(x => location.RankDistanceTo(x.location));
@@ -1830,6 +1835,19 @@ namespace C7GameData {
 			// Policemen are applied to the corrupt amounts themselves, see
 			// RecoverWithPolicemen.
 
+			// We Love the King Day lowers waste, not corruption: "For waste
+			// calculations only, when the city is in a WLTKD celebration,
+			// divide da by 2" and "add OCN/4 to Nopt"
+			// (https://civfanatics.com/civ3/strategy/game-mechanics/everything-about-corruption-c3c-edition/;
+			// "WLTKD does nothing for corruption, the loss of commerce",
+			// https://forums.civfanatics.com/threads/we-love-the-king-days.34249/).
+			// That is what one more courthouse does to each part, without
+			// lowering the cap below. It is worked out whether or not the city
+			// is celebrating, since that can change before the next update.
+			celebrationWaste = (CalculateDistanceCorruption(gameData, numAntiCorruptionBuildings + 1)
+					+ CalculateRankCorruption(adjustedOptimalCityNumber, gameData.map.optimalNumberOfCities, numAntiCorruptionBuildings + 1))
+					* CorruptionScale;
+
 			// Corruption maxes out at 90%, and this max can be reduced further
 			// via courthouses/police stations, and the forbidden palace/SPHQ.
 			float maxCorruption = Math.Max(
@@ -1837,12 +1855,14 @@ namespace C7GameData {
 				.9f - (.1f * numAntiCorruptionBuildings + .7f * numCorruptionReducingSmallWondersInCity));
 			corruption = Math.Max(corruption, 0);
 			corruption = Math.Min(corruption, maxCorruption);
+			celebrationWaste = Math.Clamp(celebrationWaste, 0, maxCorruption);
 
 			// The capital is rank 0, so the next CitiesFreeOfCorruption
 			// cities nearest it are ranks 1 to CitiesFreeOfCorruption.
 			Rules rules = gameData.rules;
 			if (rules != null && rules.CoreCitiesFreeOfCorruption && rankIndex <= rules.CitiesFreeOfCorruption) {
 				corruption = 0;
+				celebrationWaste = 0;
 			}
 		}
 
