@@ -20,6 +20,9 @@ internal sealed class Room {
 	public long HostLeftAt = Environment.TickCount64;
 	public readonly Dictionary<uint, RelayPeer> Guests = new();
 
+	// Set once the room is swept away, after which it's no one's.
+	public bool Removed;
+
 	// The code the host moved this game to, while it hasn't come back here.
 	public string MovedTo;
 
@@ -180,6 +183,7 @@ internal sealed class RoomRegistry {
 					continue;
 				}
 				rooms.TryRemove(new KeyValuePair<string, Room>(room.Code, room));
+				room.Removed = true;
 			}
 			expired.Add(room.Code);
 		}

@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Net;
+using System.Net.Sockets;
 using System.Threading;
 
 namespace C7Relay;
@@ -30,6 +32,23 @@ internal sealed class RateLimits {
 
 	public RateLimits(RelayOptions options) {
 		this.options = options;
+	}
+
+	// An address as the relay counts it: IPv4 as it is, and IPv6 by its
+	// /64, since one client usually has a whole /64 to pick addresses from.
+	public static string KeyOf(IPAddress address) {
+		if (address == null) {
+			return "unknown";
+		}
+		if (address.IsIPv4MappedToIPv6) {
+			address = address.MapToIPv4();
+		}
+		if (address.AddressFamily != AddressFamily.InterNetworkV6 || IPAddress.IsLoopback(address)) {
+			return address.ToString();
+		}
+		byte[] bytes = address.GetAddressBytes();
+		Array.Clear(bytes, 8, 8);
+		return $"{new IPAddress(bytes)}/64";
 	}
 
 	// Counts a connection, and says whether to allow it.

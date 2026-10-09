@@ -28,10 +28,18 @@ internal sealed class RelayHub {
 	// What the connections hold of large messages as they arrive.
 	public ByteBudget ReceiveBuffers { get; }
 
-	public RelayHub(IOptions<RelayOptions> options, ILogger<RelayHub> log, IHostApplicationLifetime lifetime) {
+	// Taken while listing a game (see List).
+	private readonly object listing = new();
+
+	public RelayHub(IOptions<RelayOptions> options, ILogger<RelayHub> log, IHostApplicationLifetime lifetime, IHostEnvironment environment) {
 		this.options = options.Value;
 		this.log = log;
 		shutdown = lifetime.ApplicationStopping;
+		// Without a secret, hosts lose their codes and bans whenever the
+		// relay restarts, which a relay players use can't have.
+		if (string.IsNullOrEmpty(this.options.KeySecret) && environment.IsProduction()) {
+			throw new InvalidOperationException("Set Relay:KeySecret (or Relay__KeySecret) to a long random string to run the relay in production");
+		}
 		Rooms = new RoomRegistry(this.options);
 		Limits = new RateLimits(this.options);
 		ReceiveBuffers = new ByteBudget(this.options.MaxReceiveBufferBytes);
@@ -40,7 +48,9 @@ internal sealed class RelayHub {
 		}
 	}
 
-	private static string AddressOf(HttpContext context) => context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+	// A client's address, as the relay counts and bans it: an IPv6 address
+	// by its /64, which one client usually has all of.
+	private static string AddressOf(HttpContext context) => RateLimits.KeyOf(context.Connection.RemoteIpAddress);
 
 	// Takes up a connection and runs it, after turning away what isn't a
 	// WebSocket, or comes from an address that's trying too often or has
@@ -132,21 +142,37 @@ internal sealed class RelayHub {
 
 		bool admits = context.Request.Query[RelayProtocol.AdmitsParameter] == "1";
 		string scope = context.Request.Query[RelayProtocol.BanScopeParameter];
-		RelayPeer previous;
-		List<RelayPeer> guests;
-		lock (room) {
-			previous = room.Host;
-			room.Host = peer;
-			room.GameVersion = gameVersion;
-			room.HostAdmits = admits;
-			room.MovedTo = null;
-			// Kept apart from codes, so that a host can't make its keys a
-			// room without a scope makes.
-			room.BanScope = RelayProtocol.IsBanScope(scope) ? $"host:{scope}" : room.Code;
-			guests = [.. room.Guests.Values];
-			room.Guests.Clear();
-			room.Admitted.Clear();
+		RelayPeer previous = null;
+		List<RelayPeer> guests = null;
+		// A room swept away just as it was claimed is made again.
+		while (!TakeRoom(room)) {
+			room = reclaiming ? Rooms.Reclaim(room.Code, gameVersion) : Rooms.Create(gameVersion);
+			if (room == null) {
+				await Reject(peer, RelayCloseCodes.RelayFull, "The relay is full. Try again later.");
+				return;
+			}
 		}
+
+		bool TakeRoom(Room room) {
+			lock (room) {
+				if (room.Removed) {
+					return false;
+				}
+				previous = room.Host;
+				room.Host = peer;
+				room.GameVersion = gameVersion;
+				room.HostAdmits = admits;
+				room.MovedTo = null;
+				// Kept apart from codes, so that a host can't make its keys a
+				// room without a scope makes.
+				room.BanScope = RelayProtocol.IsBanScope(scope) ? $"host:{scope}" : room.Code;
+				guests = [.. room.Guests.Values];
+				room.Guests.Clear();
+				room.Admitted.Clear();
+				return true;
+			}
+		}
+
 		// A host back before the relay noticed it had gone starts afresh, and
 		// its guests connect again.
 		previous?.Close(RelayCloseCodes.Replaced, "The host connected again from elsewhere.");
@@ -304,18 +330,21 @@ internal sealed class RelayHub {
 			}
 			listedBefore = room.Listing != null;
 		}
-		// Counted outside the room's lock, since counting takes each room's;
-		// two listings at once from one address may both get in.
-		if (!listedBefore && Rooms.ListedFrom(address) >= options.MaxListingsPerAddress) {
-			return $"Your address already lists {options.MaxListingsPerAddress} games, as many as this relay takes from one address.";
-		}
-		lock (room) {
-			if (room.Host != host) {
-				return "The game isn't connected to the relay.";
+		// Counted outside the room's lock, since counting takes each room's,
+		// but under the listing lock, so that two listings at once from one
+		// address can't both get in past the limit.
+		lock (listing) {
+			if (!listedBefore && Rooms.ListedFrom(address) >= options.MaxListingsPerAddress) {
+				return $"Your address already lists {options.MaxListingsPerAddress} games, as many as this relay takes from one address.";
 			}
-			room.Listing = tidy;
-			room.ListedAt = Environment.TickCount64;
-			room.ListedFrom = address;
+			lock (room) {
+				if (room.Host != host) {
+					return "The game isn't connected to the relay.";
+				}
+				room.Listing = tidy;
+				room.ListedAt = Environment.TickCount64;
+				room.ListedFrom = address;
+			}
 		}
 		if (!listedBefore) {
 			log.LogInformation("Room {Code} is listed publicly", room.Code);
