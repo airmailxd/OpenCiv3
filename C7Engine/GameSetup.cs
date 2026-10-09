@@ -76,8 +76,8 @@ public class GameSetup {
 		// TODO: There is an option called "Culturally Linked Start Loc."
 		// which (if on) puts players with the same culture group near each other
 
-		// Add the human players, with the civilizations they picked; the
-		// others get a random one nobody picked.
+		// Pick the human players' civilizations, the ones they chose or a
+		// random one nobody picked, then the opponents'.
 		HashSet<string> taken = new();
 		List<HotseatPlayer> humans = HumanPlayers().ToList();
 		foreach (HotseatPlayer human in humans.Where(h => h.civilization != null)) {
@@ -85,6 +85,7 @@ public class GameSetup {
 				throw new ArgumentException($"{human.civilization.name} was picked by more than one human player");
 			}
 		}
+		List<PlannedPlayer> planned = new();
 		foreach (HotseatPlayer human in humans) {
 			Civilization civ = human.civilization;
 			if (civ == null) {
@@ -92,10 +93,8 @@ public class GameSetup {
 				taken.Add(name);
 				civ = save.Civilizations.Find(c => c.name == name);
 			}
-			AddPlayer(save, civ, isHuman: true, human.name);
+			planned.Add(new PlannedPlayer { civ = civ, isHuman = true, name = human.name, isRandom = human.civilization == null });
 		}
-
-		// Add the opponents.
 
 		foreach (SelectedOpponent opponent in opponents) {
 			bool isRandom = opponent.isRandom;
@@ -111,8 +110,85 @@ public class GameSetup {
 			taken.Add(selectedName);
 
 			Civilization civ = save.Civilizations.Find(x => x.name == selectedName);
-			AddPlayer(save, civ, isHuman: false);
+			planned.Add(new PlannedPlayer { civ = civ, isHuman = false, isRandom = isRandom });
 		}
+
+		List<SaveTile> starts = AssignStartingLocations(save, rand, planned, taken);
+		for (int i = 0; i < planned.Count; ++i) {
+			AddPlayer(save, planned[i].civ, planned[i].isHuman, planned[i].name, i < starts.Count ? starts[i] : null);
+		}
+	}
+
+	private class PlannedPlayer {
+		public Civilization civ;
+		public bool isHuman;
+		public string name;
+		// Whether the civilization was picked at random, so it may be
+		// swapped for another.
+		public bool isRandom;
+	}
+
+	private static bool IsSeafaring(Civilization civ) {
+		return civ.traits.Contains(Civilization.Trait.Seafaring);
+	}
+
+	// Pairs each planned player with a starting location, in order.
+	// Seafaring civs must start next to the sea: if one would start inland,
+	// it swaps starts with a civ that isn't seafaring but has a coastal one.
+	// If there are more seafaring civs than coastal starts, seafaring civs
+	// that were picked at random are swapped for other civs first.
+	private static List<SaveTile> AssignStartingLocations(SaveGame save, Random rand, List<PlannedPlayer> planned, HashSet<string> taken) {
+		List<SaveTile> starts = save.Map.startingLocations.Take(planned.Count).ToList();
+		HashSet<SaveTile> coastal = starts.Where(t => IsNextToSea(save.Map, t)).ToHashSet();
+
+		int seafaring = planned.Take(starts.Count).Count(p => IsSeafaring(p.civ));
+		foreach (PlannedPlayer p in planned.Take(starts.Count).Where(p => p.isRandom && IsSeafaring(p.civ)).ToList()) {
+			if (seafaring <= coastal.Count) {
+				break;
+			}
+			List<Civilization> others = save.Civilizations.Skip(1)
+				.Where(c => !c.isBarbarian && !taken.Contains(c.name) && !IsSeafaring(c)).ToList();
+			if (others.Count == 0) {
+				break;
+			}
+			Civilization replacement = others[rand.Next(others.Count)];
+			taken.Remove(p.civ.name);
+			taken.Add(replacement.name);
+			p.civ = replacement;
+			--seafaring;
+		}
+
+		for (int i = 0; i < starts.Count; ++i) {
+			if (!IsSeafaring(planned[i].civ) || coastal.Contains(starts[i])) {
+				continue;
+			}
+			List<int> swaps = Enumerable.Range(0, starts.Count)
+				.Where(j => coastal.Contains(starts[j]) && !IsSeafaring(planned[j].civ)).ToList();
+			if (swaps.Count == 0) {
+				log.Warning($"No coastal start left for seafaring {planned[i].civ.name}");
+				continue;
+			}
+			int j = swaps[rand.Next(swaps.Count)];
+			(starts[i], starts[j]) = (starts[j], starts[i]);
+		}
+		return starts;
+	}
+
+	// Whether any of the eight tiles around the tile is salt water.
+	private static bool IsNextToSea(SaveMap map, SaveTile tile) {
+		(int dx, int dy)[] around = { (1, -1), (1, 1), (-1, 1), (-1, -1), (2, 0), (-2, 0), (0, 2), (0, -2) };
+		foreach ((int dx, int dy) in around) {
+			int x = tile.X + dx;
+			int y = tile.Y + dy;
+			if (map.wrapHorizontally) {
+				x = (x % map.tilesWide + map.tilesWide) % map.tilesWide;
+			}
+			SaveTile n = map.tiles.Find(t => t.X == x && t.Y == y);
+			if (n != null && !n.isFreshWater && n.baseTerrain is "coast" or "sea" or "ocean") {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	private static string RandomCivilization(SaveGame save, Random rand, HashSet<string> taken) {
@@ -150,7 +226,7 @@ public class GameSetup {
 		}
 	}
 
-	private SavePlayer AddPlayer(SaveGame save, Civilization civ, bool isHuman, string name = null) {
+	private SavePlayer AddPlayer(SaveGame save, Civilization civ, bool isHuman, string name = null, SaveTile startingTile = null) {
 		SavePlayer player = new() {
 			isBarbarian = civ.isBarbarian,
 			human = isHuman,
@@ -173,7 +249,7 @@ public class GameSetup {
 			return player;
 		}
 
-		SaveTile startingTile = save.Map.startingLocations[save.Players.Count - 2];
+		startingTile ??= save.Map.startingLocations[save.Players.Count - 2];
 		TileLocation startingLocation = new TileLocation(startingTile.X, startingTile.Y);
 
 		AddUnit(save, player, save.Rules.StartUnitType1, startingLocation);
