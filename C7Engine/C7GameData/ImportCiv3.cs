@@ -1426,7 +1426,10 @@ namespace C7GameData {
 			}
 
 			// Each civ's starting location gets the starting units, at the
-			// default experience level.
+			// default experience level (the second EXPR, Regular in Civ3's
+			// rules, which these units were hardcoded to before eb8aad18).
+			// UNVERIFIED (no Civ3 source found): the experience Civ3 gives
+			// them. Units placed on the map take their level from the BIQ.
 			RULE rule = biq.Rule?[0] ?? defaultBiq.Rule[0];
 			ExperienceLevel startLevel = save.ExperienceLevels.Find(e => e.key == save.DefaultExperienceLevel) ?? save.ExperienceLevels[0];
 			foreach (SLOC starting_location in biq.Sloc ?? []) {
@@ -1647,20 +1650,25 @@ namespace C7GameData {
 		}
 
 		// What a scenario's city starts out producing, since the BIQ doesn't
-		// say: the cheapest land unit the owner can build with the techs it
-		// starts with, or else the first inflow (Wealth). The player can
-		// change it.
+		// say. The player can change it.
+		//
+		// UNVERIFIED (no Civ3 source found): what Civ3 starts a scenario's
+		// cities on. As before eb8aad18, it is a Worker, if the owner can
+		// build one. Otherwise it is the cheapest land unit the owner can
+		// build with the techs it starts with, or else the first inflow
+		// (Wealth), a C7 fallback.
 		private (string, ProducibleType) StartingProduction(SavePlayer player) {
 			Civilization civ = save.Civilizations.Find(c => c.name == player.civilization);
 			HashSet<ID> techs = new(player.knownTechs);
 			if (civ != null) {
 				techs.UnionWith(civ.startingTechs);
 			}
-			SaveUnitPrototype unit = save.UnitPrototypes
+			List<SaveUnitPrototype> buildable = save.UnitPrototypes
 				.Where(p => !p.unproducible && p.categories.Contains("Land") && p.producibleBy.Contains(player.civilization)
 					&& (p.requiredTech == null || techs.Contains(p.requiredTech)) && p.requiredResources.Count == 0)
-				.OrderBy(p => p.shieldCost)
-				.FirstOrDefault();
+				.ToList();
+			SaveUnitPrototype unit = buildable.Find(p => p.name == "Worker")
+				?? buildable.OrderBy(p => p.shieldCost).FirstOrDefault();
 			if (unit != null) {
 				return (unit.name, ProducibleType.UNIT);
 			}

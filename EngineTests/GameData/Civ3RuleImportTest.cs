@@ -70,4 +70,16 @@ public class Civ3RuleImportTest {
 		Assert.Equal(0.25f, game.Rules.ShieldRateForDisbanding);
 		Assert.Equal(0.25f, new Rules().ShieldRateForDisbanding);
 	}
+
+	// No Civ3 source says what a scenario's cities start on, so they start
+	// on a Worker, as before eb8aad18, where their owner can build one.
+	[SkippableFact]
+	public void AScenariosCitiesStartOnAWorker() {
+		Skip.If(Civ3TestData.ShouldSkipCiv3DependentTests(), "No Civ3 install found.");
+
+		SaveGame game = ImportScenario("Conquests", "4 Middle Ages.biq");
+
+		Assert.NotEmpty(game.Cities);
+		Assert.Contains(game.Cities, c => c.producible == "Worker" && c.producibleType == ProducibleType.UNIT);
+	}
 }
