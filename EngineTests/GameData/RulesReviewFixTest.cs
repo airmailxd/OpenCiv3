@@ -162,19 +162,6 @@ public class RulesReviewFixTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(System.Math.Max(0, withoutPolice.corrupt - policeman.Corruption), withPolice.corrupt);
 	}
 
-	// ---- Empire size ----
-
-	[Fact]
-	public void SprawlingEmpiresHaveFewerContentCitizens() {
-		Assert.Equal(0, us.EmpireSizeUnhappiness(gameData));
-
-		// Shrink the map's optimal number so a couple of cities is too many.
-		gameData.map.optimalNumberOfCities = 1;
-		BuildCity(us);
-		BuildCity(us);
-		Assert.True(us.EmpireSizeUnhappiness(gameData) >= 1);
-	}
-
 	// ---- Resistance ----
 
 	// A city of `them`'s with four of their citizens, taken by us.

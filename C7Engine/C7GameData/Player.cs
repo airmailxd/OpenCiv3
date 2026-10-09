@@ -1058,34 +1058,6 @@ namespace C7GameData {
 			};
 		}
 
-		// Civ3's empire size unhappiness: once a civ has more cities than its
-		// optimal number, one fewer citizen is born content in every city,
-		// and one fewer again for each further optimal number of cities.
-		//
-		// The optimal number is the one rank corruption uses (the world
-		// size's, scaled for humans by the difficulty level's percentage and
-		// raised by the government and the commercial trait), but without the
-		// Forbidden Palace's boost, which Civ3 only gives against corruption.
-		//
-		// Assumption: Civ3 doesn't document the step after the first penalty;
-		// we take one more unhappy citizen per further optimal number of
-		// cities.
-		public int EmpireSizeUnhappiness(GameData gameData) {
-			// A map without an optimal number (e.g. one built for a test)
-			// has no empire size limit.
-			if (isBarbarians || gameData?.map == null || gameData.map.optimalNumberOfCities <= 0) {
-				return 0;
-			}
-			int percentOptimalCities = isHuman ? gameData.gameDifficulty.PercentageOfOptimalCities : 100;
-			float commercialCivFactor = civilization.traits.Contains(Civilization.Trait.Commercial) ? .25f : 0;
-			int optimal = Math.Max(1, (int)(gameData.map.optimalNumberOfCities * percentOptimalCities / 100.0f
-				* (1 + commercialCivFactor + OptimalCityGovernmentFactor())));
-			if (cities.Count <= optimal) {
-				return 0;
-			}
-			return 1 + (cities.Count - optimal - 1) / optimal;
-		}
-
 		// Notes:
 		//  - see https://www.civforum.de/showthread.php?3153-Anarchie-Wieviel-Runden-welche-Strategie&p=67682&viewfull=1#post67682 (in German)
 		//    This claims Soren Johnson said the time is

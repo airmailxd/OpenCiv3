@@ -1617,13 +1617,11 @@ namespace C7GameData {
 
 		// Initializes the citizen moods, before positive and negative
 		// influcences are added. A fixed number of citizens are born content,
-		// based on the difficulty level, less one for each step the empire is
-		// over its optimal size, and after that all citizens are born
+		// based on the difficulty level, and after that all citizens are born
 		// unhappy. Specialists and resisters are excluded from this.
-		private void InitializeMoodsForDifficulty(Difficulty gameDifficulty, int empireSizeUnhappiness) {
+		private void InitializeMoodsForDifficulty(Difficulty gameDifficulty) {
 			int numLaborers = residents.Count(x => x.citizenType.IsDefaultCitizen);
-			int bornContent = Math.Max(0, gameDifficulty.NumberOfCitizensBornContent - empireSizeUnhappiness);
-			int content = Math.Min(bornContent, numLaborers);
+			int content = Math.Min(gameDifficulty.NumberOfCitizensBornContent, numLaborers);
 
 			foreach (CityResident r in residents) {
 				if (!r.citizenType.IsDefaultCitizen) {
@@ -1763,7 +1761,7 @@ namespace C7GameData {
 			CityResident.Mood happy = CityResident.Mood.Happy;
 			CityResident.Mood content = CityResident.Mood.Content;
 			CityResident.Mood unhappy = CityResident.Mood.Unhappy;
-			InitializeMoodsForDifficulty(gameData.gameDifficulty, owner.EmpireSizeUnhappiness(gameData));
+			InitializeMoodsForDifficulty(gameData.gameDifficulty);
 
 			// We want to track the move deltas from content to happy and unhappy
 			// to content. We can also move from unhappy straight to content,
