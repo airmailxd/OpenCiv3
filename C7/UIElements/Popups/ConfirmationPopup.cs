@@ -14,6 +14,10 @@ public partial class ConfirmationPopup : Popup {
 	Action yesAction;
 	Action noAction;
 
+	// Whether Escape answers no, for a question that must be answered (like
+	// a deal someone is waiting on), rather than just closing the popup.
+	public bool escapeMeansNo = false;
+
 	public ConfirmationPopup(string message, string yesText, string noText, Action yesAction, Action noAction = null) {
 		alignment = BoxContainer.AlignmentMode.End;
 		margins = new Margins(right: 10);
@@ -78,6 +82,14 @@ public partial class ConfirmationPopup : Popup {
 	private void confirmed() {
 		GetParent().EmitSignal(PopupOverlay.SignalName.HidePopup);
 		yesAction();
+	}
+
+	public override bool OnEscape() {
+		if (escapeMeansNo) {
+			cancel();
+			return false;
+		}
+		return true;
 	}
 
 	private void cancel() {

@@ -65,6 +65,15 @@ public partial class PopupOverlay : HBoxContainer {
 		Hide();
 	}
 
+	// Closes the popup in front when the player presses Escape, unless it's
+	// one that must be answered.
+	public void OnEscape() {
+		if (currentChild is Popup popup && !popup.OnEscape()) {
+			return;
+		}
+		OnHidePopup();
+	}
+
 	public bool ShowingPopup => currentChild is not null;
 
 	/// <summary>The popup currently in front, or null.</summary>

@@ -20,6 +20,8 @@ public partial class ChoicePopup : Popup {
 	private readonly List<Choice> choices;
 	private readonly bool cancellable;
 
+	// A popup that isn't cancellable must be answered, so Escape picks its last
+	// available choice, which should be the most neutral one (like abstaining).
 	public ChoicePopup(string header, string message, List<Choice> choices, bool cancellable = true) {
 		alignment = BoxContainer.AlignmentMode.Center;
 		margins = new Margins(top: 100);
@@ -27,6 +29,19 @@ public partial class ChoicePopup : Popup {
 		this.message = message;
 		this.choices = choices;
 		this.cancellable = cancellable;
+	}
+
+	public override bool OnEscape() {
+		if (cancellable) {
+			return true;
+		}
+		Choice last = choices.FindLast(c => c.action != null);
+		if (last != null) {
+			GetParent().EmitSignal(PopupOverlay.SignalName.HidePopup);
+			last.action();
+			return false;
+		}
+		return true;
 	}
 
 	public override void _Ready() {

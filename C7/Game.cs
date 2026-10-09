@@ -1212,7 +1212,7 @@ public partial class Game : Node {
 							"We accept.",
 							"We refuse.",
 							() => { new MsgRespondToDeal(true).send(); },
-							() => { new MsgRespondToDeal(false).send(); }),
+							() => { new MsgRespondToDeal(false).send(); }) { escapeMeansNo = true },
 						PopupOverlay.PopupCategory.Advisor);
 					InterestingEvent();
 				};
@@ -1485,22 +1485,40 @@ public partial class Game : Node {
 
 	private int governmentPromptTurn = -1;
 
+	// If the player can now pick a new government, forces them to do so. On a
+	// LAN the choice may not be back from the host yet, so only asks once a
+	// turn.
+	private void PromptForGovernmentIfDue(GameData gameData) {
+		if (controller.government.transitionType && TurnHandling.GetTurnNumber() >= controller.inAnarchyUntilTurn
+				&& (!LanSession.IsClient || governmentPromptTurn != gameData.turn)) {
+			governmentPromptTurn = gameData.turn;
+			popupOverlay.ShowPopup(
+				new GovernmentSelection(controller, controller.GetAvailableGovernments(gameData), OnGovernmentSelectionClosed),
+				PopupOverlay.PopupCategory.Info);
+		}
+	}
+
+	// A government selection that went away without a choice (e.g. taken
+	// down while the screen changed hands) asks again if it's still this
+	// player's turn; otherwise their next turn will.
+	private void OnGovernmentSelectionClosed(bool chosen) {
+		if (chosen) {
+			return;
+		}
+		governmentPromptTurn = -1;
+		Callable.From(() => {
+			if (!IsInstanceValid(this) || !IsInsideTree() || CurrentState != GameState.PlayerTurn || hotseatHandoff != null || controller == null) {
+				return;
+			}
+			EngineStorage.ReadGameData(PromptForGovernmentIfDue);
+		}).CallDeferred();
+	}
+
 	private void OnPlayerStartTurn() {
 		EngineStorage.ReadGameData((GameData gameData) => {
 			log.Information("Starting player turn");
 
-			// If the player can now pick a new government, force them to do so.
-			// When the popup is closed we call OnPlayerStartTurn again. This isn't
-			// ideal, but we don't yet have a general purpose "show a popup and
-			// wait for the player to acknowledge it" system. On a LAN the choice
-			// may not be back from the host yet, so only ask once a turn.
-			if (controller.government.transitionType && TurnHandling.GetTurnNumber() >= controller.inAnarchyUntilTurn
-					&& (!LanSession.IsClient || governmentPromptTurn != gameData.turn)) {
-				governmentPromptTurn = gameData.turn;
-				popupOverlay.ShowPopup(
-					new GovernmentSelection(controller, controller.GetAvailableGovernments(gameData)),
-					PopupOverlay.PopupCategory.Info);
-			}
+			PromptForGovernmentIfDue(gameData);
 
 			// If the player can pick a new tech to research, the engine
 			// prompts them to do so, naming the tech they just discovered.
@@ -2187,7 +2205,7 @@ public partial class Game : Node {
 		}
 
 		if (currentAction == C7Action.Escape && popupOverlay.ShowingPopup) {
-			popupOverlay.OnHidePopup();
+			popupOverlay.OnEscape();
 			return;
 		}
 

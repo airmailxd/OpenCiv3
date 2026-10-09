@@ -7,16 +7,26 @@ using C7GameData.Save;
 using System.Collections.Generic;
 using Serilog;
 
-// The popup for selecting which other civilization to contact.
+// The popup for picking a new government once anarchy is over.
 public partial class GovernmentSelection : Popup {
 	private Player player;
 	private List<Government> governments;
 
-	public GovernmentSelection(Player player, List<Government> governments) {
+	// Called when the popup goes away, with whether a government was picked.
+	private readonly Action<bool> onClosed;
+	private bool chosen = false;
+
+	public GovernmentSelection(Player player, List<Government> governments, Action<bool> onClosed = null) {
 		alignment = BoxContainer.AlignmentMode.Center;
 		margins = new Margins(top: 200);
 		this.player = player;
 		this.governments = governments;
+		this.onClosed = onClosed;
+	}
+
+	// A government must be picked.
+	public override bool OnEscape() {
+		return false;
 	}
 
 	public override void _Ready() {
@@ -32,6 +42,7 @@ public partial class GovernmentSelection : Popup {
 		foreach (Government g in governments) {
 			AddButton($"{g.name}", vOffset, () => {
 				Node parent = GetParent();
+				chosen = true;
 				new SelectGovernmentMsg(g).send();
 				parent.EmitSignal(PopupOverlay.SignalName.HidePopup);
 			});
@@ -40,8 +51,8 @@ public partial class GovernmentSelection : Popup {
 	}
 
 	public override void _ExitTree() {
-		// Restart the turn once a selection has been made.
-		EngineStorage.SendToLocalUI(new MsgStartTurn(player));
+		onClosed?.Invoke(chosen);
+		base._ExitTree();
 	}
 
 }
