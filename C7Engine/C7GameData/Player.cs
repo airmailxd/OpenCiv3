@@ -490,8 +490,9 @@ namespace C7GameData {
 			// The other civ's people rally against whoever declares war on
 			// them, AI or human: war happiness, unless they provoked it, by
 			// their nuclear weapons, their caught spies, or (per the project
-			// owner) ignoring our demand to take their units out of our
-			// territory (see WarWearinessWhenWarIsDeclaredOnUs).
+			// owner) refusing our demand to take their units out of our
+			// territory, when the war is the direct result of that refusal
+			// (see WarWearinessWhenWarIsDeclaredOnUs).
 			if (!isBarbarians && !provoked && playerRelationships.TryGetValue(other.id, out PlayerRelationship ourView)
 				&& ourView.nuclearAtrocityCount == 0 && ourView.espionageIncidents == 0) {
 				other.AddWarWeariness(this, WarWearinessWhenWarIsDeclaredOnUs);
@@ -1646,8 +1647,10 @@ namespace C7GameData {
 		//   any civ, AI or human: the victim of a declaration starts with
 		//   war happiness against the aggressor, which the war's weariness
 		//   then wears away and eventually turns into war weariness. Also per
-		//   the project owner, a civ that ignored a demand to take its units
-		//   out of the aggressor's territory provoked the war, and gets none
+		//   the project owner, a civ that refused a demand to take its units
+		//   out of the aggressor's territory provoked the war, and gets none,
+		//   but only when the war is the direct result of that refusal; one
+		//   that kept coming back after promising to leave gets it as normal
 		//   (TerritoryDemands).
 		// - "Add 1 wwp if you have units in enemys territory when in war.
 		//   (In beginning of the turn)"

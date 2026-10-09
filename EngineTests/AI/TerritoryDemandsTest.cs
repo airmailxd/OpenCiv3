@@ -132,8 +132,9 @@ public class TerritoryDemandsTest : MapBase, IDisposable {
 		Assert.True(AtWar(us, them));
 		// We threw them out, so we started it.
 		Assert.True(them.playerRelationships[us.id].otherStartedCurrentWar);
-		// But they provoked it, so their people don't rally (project owner).
-		Assert.Equal(0, them.WarWearinessPointsAgainst(us));
+		// They never refused, so the war isn't the direct result of a
+		// refusal: their people rally as usual (project owner).
+		Assert.Equal(Player.WarWearinessWhenWarIsDeclaredOnUs, them.WarWearinessPointsAgainst(us));
 	}
 
 	[Fact]
@@ -300,8 +301,8 @@ public class TerritoryDemandsTest : MapBase, IDisposable {
 		Assert.Same(them, shown.humanPlayer);
 		Assert.Equal(2, shown.unitCount);
 		Assert.True(AtWar(us, them));
-		// Ignoring our demand provoked the war, so the human gets no war
-		// happiness against us (project owner).
+		// Refusing our demand directly provoked the war, so the human gets no
+		// war happiness against us (project owner).
 		Assert.Equal(0, them.WarWearinessPointsAgainst(us));
 	}
 

@@ -62,7 +62,9 @@ namespace C7Engine.AI {
 
 				if (them.isHuman && ourView.recentWithdrawals >= WITHDRAWALS_BEFORE_WAR) {
 					log.Information("{Us} has had enough of {Them} trespassing and declares war", us, them);
-					DeclareWar(us, them);
+					// They kept their word each time, so this war isn't the
+					// direct result of a refusal: their people rally as usual.
+					DeclareWar(us, them, provoked: false);
 					continue;
 				}
 
@@ -76,7 +78,7 @@ namespace C7Engine.AI {
 				} else {
 					// Then we'll throw them out by force.
 					log.Information("{Them} refused to leave {Us}'s territory", them, us);
-					DeclareWar(us, them);
+					DeclareWar(us, them, provoked: true);
 				}
 			}
 		}
@@ -235,10 +237,12 @@ namespace C7Engine.AI {
 		}
 
 		// War on a civ that wouldn't take its units out of our territory, or
-		// kept bringing them back. Per the project owner, it provoked the war,
-		// so its people don't rally against us (no war happiness).
-		private static void DeclareWar(Player aggressor, Player defender) {
-			aggressor.DeclareWarOn(defender, EngineStorage.gameData.turn, provoked: true);
+		// kept bringing them back. Per the project owner, only a war that is
+		// the direct result of refusing to leave is provoked, so the refuser's
+		// people don't rally against us (no war happiness); a civ that kept
+		// coming back after promising to leave gets war happiness as normal.
+		private static void DeclareWar(Player aggressor, Player defender, bool provoked) {
+			aggressor.DeclareWarOn(defender, EngineStorage.gameData.turn, provoked: provoked);
 			MsgWarDeclaration.Announce(aggressor, defender);
 		}
 	}

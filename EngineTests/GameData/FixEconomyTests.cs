@@ -259,8 +259,9 @@ public class FixEconomyTests {
 		Assert.Equal(0, human.WarWearinessPointsAgainst(ai));
 	}
 
-	// Per the project owner, a human who ignored an AI's demand to leave its
-	// territory provoked the war (see TerritoryDemands).
+	// Per the project owner, a human whose refusal of an AI's demand to leave
+	// its territory directly caused the war provoked it (see
+	// TerritoryDemands), but only then.
 	[Fact]
 	public void AnAIProvokedByTrespassersGivesNoWarHappiness() {
 		Player human = MakePlayer("Humans");
@@ -271,6 +272,17 @@ public class FixEconomyTests {
 		ai.DeclareWarOn(human, 1, provoked: true);
 		Assert.Equal(0, human.WarWearinessPointsAgainst(ai));
 		Assert.Equal(0, ai.WarWearinessPointsAgainst(human));
+	}
+
+	[Fact]
+	public void AnUnprovokedWarOnTrespassersGivesWarHappiness() {
+		Player human = MakePlayer("Humans");
+		Player ai = MakePlayer("Robots");
+		ai.isHuman = false;
+		human.EnsureRelationshipExists(ai);
+
+		ai.DeclareWarOn(human, 1, provoked: false);
+		Assert.Equal(Player.WarWearinessWhenWarIsDeclaredOnUs, human.WarWearinessPointsAgainst(ai));
 	}
 
 	// City names
