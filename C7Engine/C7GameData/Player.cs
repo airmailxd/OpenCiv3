@@ -1251,9 +1251,13 @@ namespace C7GameData {
 			}
 
 			// Only turns that put beakers into the tech count towards the
-			// maximum research time. Otherwise a civ that stopped funding
-			// research would, once it started again, finish the tech at once
-			// because the clamp had run out.
+			// maximum research time: "You cannot use up more than 50 turns of
+			// actual research, no matter how little you spend, as long as you
+			// spend more than zero"
+			// (https://forums.civfanatics.com/threads/the-research-slider.662300/).
+			// Otherwise a civ that stopped funding research would, once it
+			// started again, finish the tech at once because the clamp had
+			// run out.
 			if (researchFundedThisTurn) {
 				turnsResearched++;
 			}

@@ -152,6 +152,22 @@ public class RulesReviewFixTest : IClassFixture<SaveGameFixture> {
 	}
 
 	[Fact]
+	public void SpecialistsStillWorkUnderAnarchy() {
+		City city = BuildCity(us);
+		CitizenType scientist = gameData.citizenTypes.First(c => c.Research > 0);
+		MakeSpecialist(city, scientist);
+
+		// The city's commerce is lost, but not the scientist's beakers.
+		Government government = us.government;
+		try {
+			us.government = gameData.governments.First(g => g.transitionType);
+			Assert.Equal(scientist.Research, city.CurrentCommerceYieldRaw().beakers);
+		} finally {
+			us.government = government;
+		}
+	}
+
+	[Fact]
 	public void PolicemenWinBackWaste() {
 		City city = BuildCity(us);
 		CitizenType entertainer = gameData.citizenTypes.First(c => c.Luxuries > 0);

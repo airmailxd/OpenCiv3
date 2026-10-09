@@ -1076,17 +1076,20 @@ namespace C7GameData {
 			result.happiness += result.happiness * luxuryBuildings / 2;
 			result.taxes += result.taxes * taxBuildings / 2;
 
-			// Specialists add their own taxes, beakers and luxuries. A city in
-			// disorder produces nothing, specialists included. Under anarchy
-			// no taxes or science are collected, but entertainers still
-			// entertain (they're how a city keeps order then).
+			// Specialists add their own taxes, beakers and luxuries. Under
+			// anarchy they go on working: "No city production, no research
+			// ... Specialists still work"
+			// (https://civfanatics.com/civ3/civilopedia/governments/). A city
+			// in disorder produces nothing, specialists included: "Civil
+			// disorder is when your city stops producing any commerce and
+			// shields - it essentially stops all production in that city"
+			// (https://civfanatics.com/civ3/faq/), which doesn't name
+			// specialists.
 			if (!inDisorder) {
 				foreach (CityResident cr in WorkingResidents()) {
 					result.happiness += cr.citizenType.Luxuries;
-					if (!inAnarchy) {
-						result.beakers += cr.citizenType.Research;
-						result.taxes += cr.citizenType.Taxes;
-					}
+					result.beakers += cr.citizenType.Research;
+					result.taxes += cr.citizenType.Taxes;
 				}
 			}
 
