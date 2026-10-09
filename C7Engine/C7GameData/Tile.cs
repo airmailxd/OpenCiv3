@@ -489,10 +489,11 @@ namespace C7GameData {
 		}
 
 		public MapUnit FindTopDefenderForBombard(Tile tile, MapUnit opponent) {
-			// Units in an army are hit through the army. Bombardment never
-			// kills, per the project owner, so units down to their last hit
-			// point can't be hit.
-			return FindTopCombatUnit(opponent, tile.unitsOnTile, CandidateFilter.NonLethalBombardTarget);
+			// Units in an army are hit through the army. Per the project
+			// owner, only a bombarder whose bombardment is lethal against a
+			// unit can kill it (see MapUnit.IsBombardmentLethalAgainst), so
+			// otherwise units down to their last hit point can't be hit.
+			return FindTopCombatUnit(opponent, tile.unitsOnTile, CandidateFilter.BombardTarget);
 		}
 
 		public MapUnit FindTopDefender(MapUnit opponent) {
@@ -513,7 +514,6 @@ namespace C7GameData {
 			All,
 			Defender,
 			BombardTarget,
-			NonLethalBombardTarget,
 		}
 
 		private static bool IsCandidate(MapUnit u, MapUnit opponent, CandidateFilter filter) {
@@ -521,9 +521,8 @@ namespace C7GameData {
 				case CandidateFilter.Defender:
 					return u.CanDefendAgainst(opponent) && !u.IsInArmy();
 				case CandidateFilter.BombardTarget:
-					return u.IsCombatUnit() && !u.IsInArmy();
-				case CandidateFilter.NonLethalBombardTarget:
-					return u.IsCombatUnit() && !u.IsInArmy() && u.CompositeHitPoints() > 1;
+					return u.IsCombatUnit() && !u.IsInArmy()
+						&& (u.CompositeHitPoints() > 1 || opponent.IsBombardmentLethalAgainst(u));
 				default:
 					return true;
 			}
