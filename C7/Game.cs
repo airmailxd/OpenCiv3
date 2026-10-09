@@ -847,9 +847,11 @@ public partial class Game : Node {
 		}
 
 		if (ours.Count == 0) {
-			// The curtain may be up for a player whose time ran out.
+			// The curtain may be up for a player whose time ran out, and
+			// others may be waiting behind it.
 			hotseatHandoff?.QueueFree();
 			hotseatHandoff = null;
+			queuedHandoffs.Clear();
 			List<Player> others = TurnHandling.PlayersToMove(gameData).Where(p => !LanSession.IsLocalPlayer(p)).ToList();
 			if (others.Count > 0) {
 				ShowLanWaiting(others);
@@ -926,7 +928,42 @@ public partial class Game : Node {
 			onBeginTurn);
 	}
 
+	// Handoffs asked for while the curtain is already up, shown in turn once
+	// it's dismissed, so that what each of them goes on to do isn't lost.
+	private readonly Queue<(ID next, string message, string buttonText, Action onContinue)> queuedHandoffs = new();
+	// Who the curtain is up for, and what it says.
+	private (ID, string) hotseatHandoffShown;
+
+	private void ShowNextQueuedHandoff() {
+		while (hotseatHandoff == null && queuedHandoffs.Count > 0) {
+			var (nextID, message, buttonText, onContinue) = queuedHandoffs.Dequeue();
+			// Found by id, as a LAN client's snapshots replace the players.
+			Player next = EngineStorage.gameData?.GetPlayer(nextID);
+			if (next == null) {
+				continue;
+			}
+			// The player is already at the screen.
+			if (next.id == controller?.id) {
+				onContinue();
+				continue;
+			}
+			ShowHotseatHandoff(next, message, buttonText, onContinue);
+		}
+	}
+
 	private void ShowHotseatHandoff(Player next, string message, string buttonText, Action onContinue) {
+		if (hotseatHandoff != null) {
+			// The same news twice, like a turn starting again for whoever the
+			// curtain is already up for, is only shown once.
+			bool duplicate = hotseatHandoffShown == (next.id, message)
+				|| queuedHandoffs.Any(h => h.next == next.id && h.message == message);
+			if (!duplicate) {
+				queuedHandoffs.Enqueue((next.id, message, buttonText, onContinue));
+			}
+			return;
+		}
+		hotseatHandoffShown = (next.id, message);
+
 		CurrentState = GameState.ComputerTurn;
 
 		// Close anything the previous player left open, and remember where
@@ -956,7 +993,6 @@ public partial class Game : Node {
 			CenterCameraOnController();
 		}
 
-		hotseatHandoff?.QueueFree();
 		// Games without player names (e.g. older saves) fall back to the leader.
 		string playerName = controller.name ?? controller.civilization.leader;
 		hotseatHandoff = new HotseatHandoff(
@@ -966,6 +1002,7 @@ public partial class Game : Node {
 			() => {
 				hotseatHandoff = null;
 				onContinue();
+				ShowNextQueuedHandoff();
 			});
 		CanvasLayer curtainLayer = new() { Layer = 100 };
 		curtainLayer.AddChild(hotseatHandoff);
