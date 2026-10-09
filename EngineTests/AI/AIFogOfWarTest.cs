@@ -73,8 +73,11 @@ public sealed class AIFogOfWarTest : IClassFixture<SaveGameFixture>, IDisposable
 		EngineStorage.aiFogOfWar = true;
 		Assert.Null(CombatDestination(ours));
 
-		// Once it can see the enemy, it goes for it.
-		Tile next = theirs.location.neighbors.Values.First(t => t != Tile.NONE && IsEmptyLand(t));
+		// Once it can see the enemy, it goes for it. Its new unit stands on a
+		// tile it has explored, next to the enemy (a unit on an unexplored
+		// tile sees nothing).
+		Tile next = theirs.location.neighbors.Values.First(t => t != Tile.NONE && IsEmptyLand(t)
+			&& ai.tileKnowledge.isTileKnown(t));
 		gameData.SpawnUnit(ai, gameData.unitPrototypes.First(p => p.name == "Warrior"), next);
 		Assert.Equal(theirs.location, CombatDestination(ours));
 	}
