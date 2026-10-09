@@ -47,6 +47,13 @@
 	.muted { color: var(--muted); }
 	.note { background: var(--note); border-left: 4px solid var(--note-line); padding: 0.6rem 0.9rem; border-radius: 4px; margin: 1rem 0; }
 	kbd { font: inherit; font-weight: 600; }
+	.tabs { display: flex; gap: 0.25rem; margin: 2rem 0 0; border-bottom: 1px solid var(--line); }
+	.tabs a { padding: 0.5rem 0.9rem; color: var(--muted); text-decoration: none; font-weight: 600;
+		border: 1px solid transparent; border-bottom: none; border-radius: 6px 6px 0 0; margin-bottom: -1px; }
+	.tabs a:hover { color: var(--text); }
+	.tabs a[aria-selected="true"] { color: var(--text); background: var(--bg); border-color: var(--line); }
+	.tab > h2:first-child { border-top: none; margin-top: 1rem; padding-top: 0; }
+	h4 { font-size: 1rem; margin: 1.25rem 0 0.25rem; }
 </style>
 </head>
 <body>
@@ -57,6 +64,12 @@
 		<p><b>Mac:</b> <a href="https://github.com/airmailxd/OpenCiv3/releases/latest/download/mac.zip">mac.zip</a></p>
 	</section>
 
+	<nav class="tabs" role="tablist">
+		<a href="#install" id="tab-install" role="tab" aria-controls="install">Download &amp; install</a>
+		<a href="#server" id="tab-server" role="tab" aria-controls="server">Server setup</a>
+	</nav>
+
+	<section class="tab" id="install" role="tabpanel" aria-labelledby="tab-install">
 	<h2>Windows setup</h2>
 	<ol>
 		<li>Click <b>windows.zip</b> above to download it.</li>
@@ -88,35 +101,108 @@
 		<li>Open the new folder and double-click the file ending in <b>.x86_64</b>. If nothing happens, right-click it, open <kbd>Properties</kbd>, turn on <kbd>Allow executing file as program</kbd>, and try again.</li>
 	</ol>
 
-	<h2>Playing together on the same network</h2>
+	<h2>Updating</h2>
+	<p>Download the newest file from this page and extract it in place of the old folder. Your settings are kept.</p>
+	<p class="muted">Playing with friends? See <a href="#server">Server setup</a>.</p>
+	</section>
+
+	<section class="tab" id="server" role="tabpanel" aria-labelledby="tab-server">
+	<h2>Hosting a game</h2>
+	<p>There's no separate server to install: one player hosts the game on their own computer, and everyone else joins it. The host's computer runs the game for everybody, so it has to stay on with the game open until you stop playing.</p>
+
+	<h3>Before you start</h3>
+	<ul>
+		<li>Everyone needs the <b>same version</b> of the game. If in doubt, everyone downloads again from this page.</li>
+		<li>Pick a computer that will stay on for the whole session as the host. One plugged into the router with a cable is ideal.</li>
+	</ul>
+
+	<h3>Start a new game</h3>
+	<ol>
+		<li>From the main menu, choose <kbd>Host LAN Game</kbd>, then <kbd>New Game</kbd>.</li>
+		<li>Set up the world as usual.</li>
+		<li>On the player setup screen, tick <kbd>Human</kbd> on one rival for <b>each person joining</b>. Their civilization shows as <b>Player's choice</b>: they pick it themselves in the lobby.</li>
+		<li>Start the game. Instead of the map, you'll see the lobby.</li>
+	</ol>
+
+	<h3>Host a saved game</h3>
+	<ul>
+		<li>Choose <kbd>Host LAN Game</kbd>, then <kbd>Load Game</kbd>, and pick a game saved with more than one human player.</li>
+		<li>To carry on from last time, choose <kbd>Resume Last LAN Game</kbd>. It goes back to the start of the last turn, and players get their seats back when they reconnect.</li>
+	</ul>
+
+	<h3>In the lobby</h3>
+	<ol>
+		<li>The lobby lists this computer's addresses. Players on the same network usually see your game listed and don't need them. If they can't, read out the one that starts with <b>192.168.</b> or <b>10.</b></li>
+		<li>Optionally set <kbd>Time per turn</kbd>. When a player runs out of time, their turn ends for them.</li>
+		<li>Wait until every human seat is taken. When the lobby says <b>Everyone is here</b>, click <kbd>Start Game</kbd>.</li>
+	</ol>
+	<div class="note">Keep the game open on the host's computer. If the host quits or loses its connection, the game stops for everyone. A player who drops out can rejoin the game in progress and take their seat back.</div>
+
+	<h3>Joining a game</h3>
+	<ol>
+		<li>From the main menu, choose <kbd>Join LAN Game</kbd> and type your name.</li>
+		<li>Click <kbd>Join</kbd> next to the host's game under <b>Games on your network</b>. If it isn't listed, type the host's address into <b>Or join by address</b>.</li>
+		<li>Click <kbd>Take Seat</kbd> on an open seat. In a new game, choose your civilization, then wait for the host to start.</li>
+		<li>Rejoining a game in progress: tick <kbd>Take</kbd> next to your seat, then click <kbd>Join Game</kbd>.</li>
+	</ol>
+	<p class="muted">To follow along without playing, click <kbd>Watch</kbd> instead of Join.</p>
+
+	<h3>Several players at one computer</h3>
+	<p>People sharing a computer can join together and take turns at it, as in a hotseat game:</p>
+	<ol>
+		<li>Join the game once, then click <kbd>Take Seat</kbd> on a seat for each person at the computer.</li>
+		<li>Type each player's name in the box beside their seat.</li>
+		<li>In a new game, click <kbd>Choose Civilization</kbd> beside a seat to pick that player's civilization.</li>
+	</ol>
+	<p>During the game, a screen asks the right person to take over before each of their turns.</p>
+
+	<h3>Ports and firewalls</h3>
+	<p>The host uses <b>TCP port 47777</b> for the game, and <b>UDP port 47778</b> so others on the network can find it. Players joining don't need to open anything.</p>
+
+	<h3>Playing together on the same network</h3>
 	<ul>
 		<li>Everyone needs the <b>same version</b>. If in doubt, download again from this page.</li>
 		<li>On Windows, the first time someone hosts a game, Windows asks about network access. Click <kbd>Allow</kbd> (with <b>Private networks</b> ticked). If you clicked Cancel by mistake, other players won't be able to find or join your game.</li>
 		<li>Everyone must be on the same Wi-Fi or home network. Guest Wi-Fi networks often block this.</li>
 	</ul>
 
-	<h2>Playing together over the internet</h2>
+	<h3>Playing together over the internet</h3>
 	<p>Friends in other homes can join using <b>Tailscale</b>, a free app that links your computers as if they were on the same network. Each person sets it up once.</p>
-	<h3>Everyone</h3>
+	<h4>Everyone</h4>
 	<ol>
 		<li>Download Tailscale from <a href="https://tailscale.com/download">tailscale.com/download</a>, install it, and sign in (a Google, Microsoft or Apple account works).</li>
 		<li>Make sure everyone has the <b>same version</b> of the game from this page.</li>
 	</ol>
-	<h3>The person hosting</h3>
+	<h4>The person hosting</h4>
 	<ol>
 		<li>Go to <a href="https://login.tailscale.com/admin/machines">login.tailscale.com/admin/machines</a>, click <kbd>…</kbd> next to your computer and choose <kbd>Share…</kbd>. Send the invite link to each friend. They open it and click <kbd>Accept</kbd>.</li>
 		<li>Start the game and host a game as usual. The game lists this computer's addresses: tell your friends the one that starts with <b>100.</b> (for example <b>100.101.102.103</b>).</li>
 		<li>When Windows asks about network access, click <kbd>Allow</kbd>.</li>
 	</ol>
-	<h3>Friends joining</h3>
+	<h4>Friends joining</h4>
 	<ol>
 		<li>In the game, go to joining a game. Games over the internet aren't listed automatically, so type the host's <b>100.</b> address into <b>"Or join by address"</b> and press Enter.</li>
 		<li>Pick your seat as usual.</li>
 	</ol>
 	<p class="muted">If friends can't connect: check that Tailscale says <b>Connected</b> on both computers, and that the host's computer appears in the friend's Tailscale app. If it still fails, the host's Windows may be treating Tailscale as a public network: open <b>Windows Security</b> → <kbd>Firewall &amp; network protection</kbd> → <kbd>Allow an app through firewall</kbd>, and tick both <b>Private</b> and <b>Public</b> for the game.</p>
 
-	<h2>Updating</h2>
-	<p>Download the newest file from this page and extract it in place of the old folder. Your settings are kept.</p>
+	</section>
 </main>
+<script>
+	// Shows one tab at a time, chosen by the address's #install or #server.
+	(function () {
+		var tabs = ["install", "server"];
+		function show() {
+			var current = location.hash.slice(1);
+			if (tabs.indexOf(current) < 0) current = "install";
+			tabs.forEach(function (id) {
+				document.getElementById(id).hidden = id !== current;
+				document.getElementById("tab-" + id).setAttribute("aria-selected", String(id === current));
+			});
+		}
+		window.addEventListener("hashchange", function () { show(); window.scrollTo(0, 0); });
+		show();
+	})();
+</script>
 </body>
 </html>
