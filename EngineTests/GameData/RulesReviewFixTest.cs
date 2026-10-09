@@ -223,6 +223,22 @@ public class RulesReviewFixTest : IClassFixture<SaveGameFixture> {
 		Assert.Null(city.resistanceFrom);
 	}
 
+	// ---- Difficulty ----
+
+	[Fact]
+	public void HumansGetTheDifficultyBonusAgainstBarbarians() {
+		Player human = gameData.players.First(p => p.isHuman);
+		Player barbarians = gameData.players.First(p => p.isBarbarians);
+		Tile tile = gameData.map.tiles.First(IsEmptyLand);
+		MapUnit ours = gameData.SpawnUnit(human, Prototype("Warrior"), tile);
+		MapUnit theirs = gameData.SpawnUnit(barbarians, Prototype("Warrior"), tile.neighbors.Values.First(IsEmptyLand));
+		MapUnit aiUnit = gameData.SpawnUnit(us, Prototype("Warrior"), tile);
+
+		gameData.gameDifficulty.AttackBonusAgainstBarbarians = 100;
+		Assert.Contains(ours.ListStrengthBonusesVersus(theirs, CombatRole.Attack, null), b => b.amount == 1.0);
+		Assert.DoesNotContain(aiUnit.ListStrengthBonusesVersus(theirs, CombatRole.Attack, null), b => b.amount == 1.0);
+	}
+
 	// ---- Trait discounts ----
 
 	[Fact]

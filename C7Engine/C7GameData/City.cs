@@ -1575,6 +1575,12 @@ namespace C7GameData {
 			float maxCorruption = Math.Max(
 				0,
 				.9f - (.1f * numAntiCorruptionBuildings + .7f * numCorruptionReducingSmallWondersInCity));
+			// The difficulty level scales humans' corruption (100% in the
+			// standard rules); like its optimal city percentage, the AI is
+			// unaffected. 0 is taken as unset, as older games saved it so.
+			if (owner.isHuman && gameData.gameDifficulty != null && gameData.gameDifficulty.CorruptionPercentage > 0) {
+				corruption *= gameData.gameDifficulty.CorruptionPercentage / 100f;
+			}
 			corruption = Math.Max(corruption, 0);
 			corruption = Math.Min(corruption, maxCorruption);
 
@@ -1786,7 +1792,11 @@ namespace C7GameData {
 					++landDefenders;
 				}
 			}
-			unhappyToContentMoves += Math.Min(owner.government.militaryPoliceLimit, landDefenders);
+			// Each makes as many citizens content as the difficulty level's
+			// military law (1 in the standard rules).
+			// 0 is taken as unset, as older games saved it so.
+			int militaryLaw = Math.Max(1, gameData.gameDifficulty?.MilitaryLaw ?? 1);
+			unhappyToContentMoves += Math.Min(owner.government.militaryPoliceLimit, landDefenders) * militaryLaw;
 
 			// Luxury spending moves content faces to happy faces, one face for
 			// every luxury (see the civfanatics thread above: "one luxury

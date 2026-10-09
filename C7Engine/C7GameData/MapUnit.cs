@@ -493,6 +493,25 @@ namespace C7GameData {
 
 			if (HasGreatWallBonusAgainst(opponent, role))
 				yield return GreatWallBonus;
+
+			if (DifficultyBonusAgainst(opponent, role) is StrengthBonus difficultyBonus)
+				yield return difficultyBonus;
+		}
+
+		// The difficulty level's "attack bonus against barbarians", a
+		// percentage (800 at Chieftain down to 0 at Deity) that helps human
+		// players' units fight barbarians. Assumption: like the Great Wall it
+		// counts in any fight with them, attacking or defending, but not in
+		// bombardment; the AI has its own difficulty advantages instead.
+		private StrengthBonus? DifficultyBonusAgainst(MapUnit opponent, CombatRole role) {
+			if (role != CombatRole.Attack && role != CombatRole.Defense)
+				return null;
+			if (owner == null || !owner.isHuman || opponent?.owner == null || !opponent.owner.isBarbarians)
+				return null;
+			int percent = EngineStorage.gameData?.gameDifficulty?.AttackBonusAgainstBarbarians ?? 0;
+			if (percent <= 0)
+				return null;
+			return new StrengthBonus("Difficulty level against barbarians", percent / 100.0);
 		}
 
 		// The Great Wall doubles the strength of its owner's units, attacking

@@ -24,6 +24,8 @@ namespace C7GameData {
 		public int AdditionalFreeUnitSupport;
 		public int UnitSupportBonusForEachSettlement;
 
+		// A percentage strength bonus for human players' units fighting
+		// barbarians (see MapUnit.ListStrengthBonusesVersus).
 		public int AttackBonusAgainstBarbarians;
 
 		// The cost factor for techs, growth, and production, 10 is a neutral
@@ -34,13 +36,16 @@ namespace C7GameData {
 		public int PercentageOfOptimalCities;
 
 		public int AIToAITradeRate;
-		public int CorruptionPercentage;
+
+		// Scales human players' corruption and waste; 100 (the standard
+		// rules' value at every level) leaves it alone.
+		public int CorruptionPercentage = 100;
 
 		// Number of citizens quelled by military.
 		//
 		// See https://www.civfanatics.com/civ3/strategy/game-mechanics/the-inner-workings-of-resistance-revealed/
 		// for details on how this is used - even though it appears to always be
 		// 1 in the default game and scenarios, it is moddable.
-		public int MilitaryLaw;
+		public int MilitaryLaw = 1;
 	}
 }
