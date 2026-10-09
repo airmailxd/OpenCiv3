@@ -262,6 +262,7 @@ public class RulesReviewFixTest : IClassFixture<SaveGameFixture> {
 
 	[Fact]
 	public void AnarchyFollowsTheConquestsFormula() {
+		gameData.gameDifficulty.MaxAiGovernmentTransitionTime = 0;
 		us.civilization.traits.Remove(Civilization.Trait.Religious);
 		for (int i = 0; i < 50; ++i) {
 			int turns = us.GetTurnsOfAnarchyForTransition(gameData);
