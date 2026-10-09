@@ -805,10 +805,29 @@ public partial class Game : Node {
 		// A strip across the top of the screen, below the toolbar, leaving
 		// room for the scoreboard on the right.
 		panel.SetAnchorsPreset(Control.LayoutPreset.TopWide);
-		panel.OffsetLeft = 160;
-		panel.OffsetRight = -440;
 		panel.OffsetTop = 70;
 		panel.OffsetBottom = 110;
+		label.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+		LayOutLanBanner(panel);
+		Viewport viewport = GetViewport();
+		Action relayout = () => {
+			if (IsInstanceValid(panel)) {
+				LayOutLanBanner(panel);
+			}
+		};
+		viewport.SizeChanged += relayout;
+		panel.TreeExiting += () => viewport.SizeChanged -= relayout;
+	}
+
+	// Keeps the banner clear of the toolbar on the left and the scoreboard on
+	// the right while there's room, giving up those margins in proportion on
+	// a narrow window so the strip never turns inside out.
+	private void LayOutLanBanner(Control panel) {
+		const float left = 160, right = 440, minWidth = 300;
+		float width = GetViewport().GetVisibleRect().Size.X;
+		float scale = Math.Clamp((width - minWidth) / (left + right), 0, 1);
+		panel.OffsetLeft = left * scale;
+		panel.OffsetRight = -right * scale;
 	}
 
 	// A spectator hears about the world's events without having to answer
