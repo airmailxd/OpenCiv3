@@ -1,5 +1,4 @@
 using Godot;
-using System.Threading.Tasks;
 
 public partial class TemporaryPopup : Label {
 	private int durationInMillis;
@@ -63,11 +62,15 @@ public partial class TemporaryPopup : Label {
 		popup.ShowPopup();
 	}
 
-	public async void ShowPopup() {
-		// Wait until we hit our duration then destroy ourself.
-		await Task.Delay(durationInMillis);
-
-		Visible = false;
-		QueueFree();
+	public void ShowPopup() {
+		// Wait until we hit our duration then destroy ourself. A tree timer
+		// runs on the main thread and stops with the tree, unlike a task
+		// delay, and the popup may have been freed meanwhile (e.g. with the
+		// rest of the game).
+		GetTree().CreateTimer(durationInMillis / 1000.0).Timeout += () => {
+			if (IsInstanceValid(this)) {
+				QueueFree();
+			}
+		};
 	}
 }
