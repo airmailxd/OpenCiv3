@@ -988,7 +988,17 @@ namespace C7GameData {
 				}
 			}
 
-			float govtFactor = government.corruptionType switch {
+			float communalCorruptionFactor =
+				government.corruptionType == Government.CorruptionType.Communal ? 3.0f : 3.0f/8.0f;
+
+			float result = mapOptimalCityNumber * percentOptimalCities / 100.0f
+				  * (1 + commercialCivFactor + OptimalCityGovernmentFactor() + communalCorruptionFactor * numCorruptionReducingSmallWondersInEmpire);
+			return (int)result;
+		}
+
+		// How much the government adds to the optimal city number.
+		private float OptimalCityGovernmentFactor() {
+			return government.corruptionType switch {
 				Government.CorruptionType.Minimal => .1f,
 				Government.CorruptionType.Nuisance => .1f,
 				Government.CorruptionType.Problematic => 0,
@@ -997,13 +1007,34 @@ namespace C7GameData {
 				Government.CorruptionType.Communal => 2,
 				Government.CorruptionType.Off => 0
 			};
+		}
 
-			float communalCorruptionFactor =
-				government.corruptionType == Government.CorruptionType.Communal ? 3.0f : 3.0f/8.0f;
-
-			float result = mapOptimalCityNumber * percentOptimalCities / 100.0f
-				  * (1 + commercialCivFactor + govtFactor + communalCorruptionFactor * numCorruptionReducingSmallWondersInEmpire);
-			return (int)result;
+		// Civ3's empire size unhappiness: once a civ has more cities than its
+		// optimal number, one fewer citizen is born content in every city,
+		// and one fewer again for each further optimal number of cities.
+		//
+		// The optimal number is the one rank corruption uses (the world
+		// size's, scaled for humans by the difficulty level's percentage and
+		// raised by the government and the commercial trait), but without the
+		// Forbidden Palace's boost, which Civ3 only gives against corruption.
+		//
+		// Assumption: Civ3 doesn't document the step after the first penalty;
+		// we take one more unhappy citizen per further optimal number of
+		// cities.
+		public int EmpireSizeUnhappiness(GameData gameData) {
+			// A map without an optimal number (e.g. one built for a test)
+			// has no empire size limit.
+			if (isBarbarians || gameData?.map == null || gameData.map.optimalNumberOfCities <= 0) {
+				return 0;
+			}
+			int percentOptimalCities = isHuman ? gameData.gameDifficulty.PercentageOfOptimalCities : 100;
+			float commercialCivFactor = civilization.traits.Contains(Civilization.Trait.Commercial) ? .25f : 0;
+			int optimal = Math.Max(1, (int)(gameData.map.optimalNumberOfCities * percentOptimalCities / 100.0f
+				* (1 + commercialCivFactor + OptimalCityGovernmentFactor())));
+			if (cities.Count <= optimal) {
+				return 0;
+			}
+			return 1 + (cities.Count - optimal - 1) / optimal;
 		}
 
 		// Notes:
