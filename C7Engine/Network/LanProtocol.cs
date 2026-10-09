@@ -45,11 +45,15 @@ public enum FrameKind : byte {
 	// The game has a password: the host asks for it before letting the
 	// guest in, as after a Hello without a token for seats it holds.
 	PasswordRequired = 17,
+
+	// Client to host: how a spectator wants to see the game, from what the
+	// host allows (see SpectatorViewInfo).
+	ChooseSpectatorView = 18,
 }
 
 public static class LanProtocol {
 	// Bump when the frames or the messages in them change incompatibly.
-	public const int Version = 12;
+	public const int Version = 13;
 
 	public const int DefaultPort = 47_777;
 	public const int DiscoveryPort = 47_778;
@@ -255,10 +259,46 @@ public record CivilizationChoice(string name, string leader, string noun, string
 // simultaneousTurns is whether the humans will play their turns at once.
 // reconnectToken is this guest's, to say hello with to have its seats back
 // if the connection is lost. hideUnseen is whether each guest is sent only
-// what its players may know of the game.
+// what its players may know of the game. spectatorViews are the ways the
+// host lets spectators see the game, and yourSpectatorView, for a spectator,
+// the way it's sent the game now.
 public record LobbyInfo(string hostName, List<SeatInfo> seats, List<ID> yourSeats, List<string> spectators = null,
 	List<CivilizationChoice> civilizations = null, bool creatingGame = false, bool started = false,
-	bool simultaneousTurns = false, string reconnectToken = null, bool hideUnseen = false);
+	bool simultaneousTurns = false, string reconnectToken = null, bool hideUnseen = false,
+	SpectatorViews spectatorViews = SpectatorViews.None, SpectatorViewInfo yourSpectatorView = null);
+
+// How a spectator sees the game: as all the civilizations at once, which is
+// everything any of them knows, so what none of them has seen stays hidden;
+// as one of them, which is what that civilization knows, as its player would;
+// or the whole game.
+public enum SpectatorViewMode {
+	AllCivs,
+	OneCiv,
+	Omniscient,
+}
+
+// The ways the host lets spectators see the game.
+[Flags]
+public enum SpectatorViews {
+	None = 0,
+	AllCivs = 1,
+	OneCiv = 2,
+	Omniscient = 4,
+	// The spectator's choice of the views that keep to what the
+	// civilizations know.
+	AsCivs = AllCivs | OneCiv,
+	Any = AllCivs | OneCiv | Omniscient,
+}
+
+// A spectator's view of the game; playerID is the civilization's player
+// for OneCiv.
+public record SpectatorViewInfo(SpectatorViewMode mode, ID playerID = null) {
+	public static SpectatorViews Flag(SpectatorViewMode mode) => mode switch {
+		SpectatorViewMode.AllCivs => SpectatorViews.AllCivs,
+		SpectatorViewMode.OneCiv => SpectatorViews.OneCiv,
+		_ => SpectatorViews.Omniscient,
+	};
+}
 
 // The civilization's name, or null for a random one, for one of the guest's
 // seats; null for their first.

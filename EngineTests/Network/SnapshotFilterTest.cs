@@ -261,10 +261,14 @@ public class SnapshotFilterTest : IClassFixture<SaveGameFixture>, IDisposable {
 		spectator.SnapshotReceived = _ => { };
 		spectator.UiMessageReceived = _ => { };
 		Assert.DoesNotContain(guest.StartingGame.Units, u => u.owner == hostPlayer.id);
+		// The spectator watches as all the civilizations, unless it chooses
+		// otherwise, which shows everyone's units.
+		Assert.Equal(SpectatorViewMode.AllCivs, spectator.SpectatorView.mode);
 		Assert.Contains(spectator.StartingGame.Units, u => u.owner == hostPlayer.id);
+		List<ID> allCivs = gameData.players.Where(p => !p.isBarbarians).Select(p => p.id).ToList();
 
 		// The guest plays: it's sent its view as patches, and the spectator
-		// the whole game.
+		// what all the civilizations know.
 		Player guestPlayer = gameData.GetPlayer(seatID);
 		foreach (MapUnit unit in guestPlayer.units.Where(u => !u.isFortified).ToList()) {
 			long processed = EngineStorage.processedMessageCount;
@@ -272,8 +276,8 @@ public class SnapshotFilterTest : IClassFixture<SaveGameFixture>, IDisposable {
 			PumpUntil(host, clients, () => EngineStorage.processedMessageCount > processed);
 		}
 		byte[] guestView = LanHost.SnapshotHashFor([seatID]);
-		byte[] wholeGame = LanHost.SnapshotHashFor(null);
-		PumpUntil(host, clients, () => Has(guest, guestView) && Has(spectator, wholeGame));
+		byte[] spectatorView = LanHost.SnapshotHashFor(allCivs);
+		PumpUntil(host, clients, () => Has(guest, guestView) && Has(spectator, spectatorView));
 		Assert.Equal(1, guest.WholeSnapshotsReceived);
 		Assert.True(guest.SnapshotDeltasReceived >= 1);
 
@@ -281,8 +285,8 @@ public class SnapshotFilterTest : IClassFixture<SaveGameFixture>, IDisposable {
 		int guestSnapshots = guest.WholeSnapshotsReceived + guest.SnapshotDeltasReceived;
 		MapUnit hostUnit = hostPlayer.units.First(u => !u.isFortified);
 		new MsgSetFortification(hostUnit.id, true) { playerID = hostPlayer.id }.send();
-		wholeGame = LanHost.SnapshotHashFor(null);
-		PumpUntil(host, clients, () => Has(spectator, wholeGame));
+		spectatorView = LanHost.SnapshotHashFor(allCivs);
+		PumpUntil(host, clients, () => Has(spectator, spectatorView));
 		Assert.Equal(guestSnapshots, guest.WholeSnapshotsReceived + guest.SnapshotDeltasReceived);
 		Assert.Equal(guestView, LanHost.SnapshotHashFor([seatID]));
 
@@ -294,8 +298,88 @@ public class SnapshotFilterTest : IClassFixture<SaveGameFixture>, IDisposable {
 		long before = EngineStorage.processedMessageCount;
 		guest.SendCommand(new MsgSetFortification(another.id, false));
 		PumpUntil(host, clients, () => EngineStorage.processedMessageCount > before);
-		wholeGame = LanHost.SnapshotHashFor(null);
-		PumpUntil(host, clients, () => Has(guest, wholeGame) && Has(spectator, wholeGame));
+		byte[] wholeGame = LanHost.SnapshotHashFor(null);
+		spectatorView = LanHost.SnapshotHashFor(allCivs);
+		PumpUntil(host, clients, () => Has(guest, wholeGame) && Has(spectator, spectatorView));
+	}
+
+	[Fact]
+	public async Task SpectatorsSeeTheGameAsTheHostLetsThem() {
+		SaveGame save = SaveGameFixture.TwoHumanSave();
+		using LanHost host = new("Host", save, port: 0, answerDiscovery: false) { SimultaneousTurns = true, AllowSpectators = true };
+		// Hiding what players can't see, spectators see only what the
+		// civilizations know unless the host says otherwise.
+		Assert.Equal(SpectatorViews.AsCivs, host.SpectatorViews);
+		ID seatID = host.Seats[0].playerID;
+		using LanClient guest = LanClient.Connect("127.0.0.1", host.Port, "Guest");
+		using LanClient spectator = LanClient.Connect("127.0.0.1", host.Port, "Watcher");
+		LanClient[] clients = [guest, spectator];
+		PumpUntil(host, clients, () => guest.Lobby != null && spectator.Lobby != null);
+		guest.ClaimSeat(seatID);
+		spectator.Watch();
+		PumpUntil(host, clients, () => guest.YourSeats.Contains(seatID) && spectator.SpectatorView != null);
+		Assert.Equal(SpectatorViews.AsCivs, spectator.AllowedSpectatorViews);
+		Assert.Equal(new SpectatorViewInfo(SpectatorViewMode.AllCivs), spectator.SpectatorView);
+
+		C7GameData.GameData gameData = await CreateGameWithCities(save);
+		Player hostPlayer = gameData.players.First(p => p.isHuman && p.id != seatID);
+		List<ID> allCivs = gameData.players.Where(p => !p.isBarbarians).Select(p => p.id).ToList();
+		host.StartGame();
+		PumpUntil(host, clients, () => guest.StartingGame != null && spectator.StartingGame != null);
+		guest.SnapshotReceived = _ => { };
+		guest.UiMessageReceived = _ => { };
+		int viewChanges = 0;
+		spectator.SnapshotReceived = _ => { };
+		spectator.UiMessageReceived = _ => { };
+		spectator.SpectatorViewChanged = () => viewChanges++;
+		PumpUntil(host, clients, () => Has(spectator, LanHost.SnapshotHashFor(allCivs)));
+
+		// As all the civilizations: everyone's units and cities, but not
+		// what none of them has seen.
+		SaveGame asAll = spectator.StartingGame;
+		Assert.Contains(asAll.Units, u => u.owner == hostPlayer.id);
+		Assert.Contains(asAll.Units, u => u.owner == seatID);
+		Assert.Equal(gameData.cities.Count, asAll.Cities.Count);
+		Assert.Contains(gameData.map.tiles, t => t.Resource != Resource.NONE && !allCivs.Any(id => gameData.GetPlayer(id).tileKnowledge.isTileKnown(t)));
+		for (int i = 0; i < gameData.map.tiles.Count; ++i) {
+			Tile tile = gameData.map.tiles[i];
+			if (!allCivs.Any(id => gameData.GetPlayer(id).tileKnowledge.isTileKnown(tile))) {
+				Assert.Null(asAll.Map.tiles[i].resource);
+			}
+		}
+
+		// The whole game isn't allowed, so asking for it changes nothing;
+		// one civilization is, and is sent what the guest playing it is.
+		spectator.ChooseSpectatorView(new SpectatorViewInfo(SpectatorViewMode.Omniscient));
+		spectator.ChooseSpectatorView(new SpectatorViewInfo(SpectatorViewMode.OneCiv, seatID));
+		PumpUntil(host, clients, () => spectator.SpectatorView?.mode == SpectatorViewMode.OneCiv);
+		Assert.Equal(1, viewChanges);
+		Assert.Equal(seatID, spectator.SpectatorView.playerID);
+		byte[] guestView = LanHost.SnapshotHashFor([seatID]);
+		PumpUntil(host, clients, () => Has(spectator, guestView) && Has(guest, guestView));
+
+		// The host lets spectators see the whole game.
+		host.SpectatorViews = SpectatorViews.Any;
+		PumpUntil(host, clients, () => spectator.AllowedSpectatorViews == SpectatorViews.Any);
+		Assert.Equal(SpectatorViewMode.OneCiv, spectator.SpectatorView.mode);
+		spectator.ChooseSpectatorView(new SpectatorViewInfo(SpectatorViewMode.Omniscient));
+		PumpUntil(host, clients, () => Has(spectator, LanHost.SnapshotHashFor(null)));
+
+		// Taking a spectator's view away has it watch another way allowed.
+		host.SpectatorViews = SpectatorViews.AllCivs;
+		PumpUntil(host, clients, () => spectator.SpectatorView?.mode == SpectatorViewMode.AllCivs
+			&& Has(spectator, LanHost.SnapshotHashFor(allCivs)));
+
+		// Hosting the game again keeps how spectators may see it.
+		LanResumeInfo info = NetSerialization.DeserializeData<LanResumeInfo>(NetSerialization.SerializeData(host.ResumeInfo()));
+		Assert.Equal(SpectatorViews.AllCivs, info.spectatorViews);
+		host.Dispose();
+		using LanHost resumed = LanHost.Resume("Host", save, info, port: 0, answerDiscovery: false);
+		Assert.Equal(SpectatorViews.AllCivs, resumed.SpectatorViews);
+		// One that left it to hiding follows it.
+		using LanHost older = LanHost.Resume("Host", save, info with { spectatorViews = null, hideUnseen = false }, port: 0,
+			answerDiscovery: false);
+		Assert.Equal(SpectatorViews.Any, older.SpectatorViews);
 	}
 
 	[Fact]

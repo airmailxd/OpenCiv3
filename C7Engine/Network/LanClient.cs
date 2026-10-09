@@ -187,6 +187,10 @@ public class LanClient : IDisposable {
 	// back after losing the connection.
 	public Action PlayersChanged;
 
+	// Set by the game screen: called when the host says it sends this
+	// spectator the game another way, ahead of the snapshots of it.
+	public Action SpectatorViewChanged;
+
 	// Set by the game screen: called when one of our orders has been
 	// carried out on our game ahead of the host (see PredictMoves).
 	public Action OrderPredicted;
@@ -262,6 +266,25 @@ public class LanClient : IDisposable {
 		IsSpectator = true;
 		connection.Send(FrameKind.Watch, []);
 	}
+
+	// How the host sends this spectator the game now, or null if it hasn't
+	// said.
+	public SpectatorViewInfo SpectatorView => IsSpectator ? Lobby?.yourSpectatorView : null;
+
+	// The ways the host lets spectators see the game.
+	public SpectatorViews AllowedSpectatorViews => Lobby?.spectatorViews ?? SpectatorViews.None;
+
+	// Asks the host to send this spectator the game another way, which it
+	// does if it allows it; the lobby it answers with says how it's sent.
+	// The choice is asked for again after losing the connection.
+	public void ChooseSpectatorView(SpectatorViewInfo view) {
+		if (!IsSpectator || view == null) {
+			return;
+		}
+		chosenSpectatorView = view;
+		connection.Send(FrameKind.ChooseSpectatorView, view);
+	}
+	private SpectatorViewInfo chosenSpectatorView;
 
 	public void SendCommand(MessageToEngine msg) {
 		if (IsSpectator) {
@@ -390,6 +413,9 @@ public class LanClient : IDisposable {
 			SayHello();
 			if (IsSpectator) {
 				connection.Send(FrameKind.Watch, []);
+				if (chosenSpectatorView != null) {
+					connection.Send(FrameKind.ChooseSpectatorView, chosenSpectatorView);
+				}
 			}
 			return;
 		}
@@ -510,7 +536,11 @@ public class LanClient : IDisposable {
 				break;
 			case FrameKind.Lobby:
 				PasswordRequest = null;
+				SpectatorViewInfo viewBefore = SpectatorView;
 				Lobby = WithSafeArt(NetSerialization.DeserializeRequired<LobbyInfo>(frame.payload));
+				if (SpectatorView != viewBefore) {
+					SpectatorViewChanged?.Invoke();
+				}
 
 				ReconnectToken = Lobby.reconnectToken ?? ReconnectToken;
 				// A host with the game we're in back in its lobby is resuming
