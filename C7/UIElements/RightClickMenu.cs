@@ -97,6 +97,24 @@ public partial class RightClickMenu : VBoxContainer {
 		return button;
 	}
 
+	// The "Abandon City" item, greyed out with the reason when the city
+	// can't be abandoned, e.g. because it is the player's only one.
+	protected void AddAbandonCityItem(City city) {
+		string reason = null;
+		EngineStorage.ReadGameData((GameData gameData) => {
+			reason = CityInteractions.WhyCannotAbandon(city.owner, city);
+		});
+		if (reason != null) {
+			Button item = AddItem($"Abandon City ({reason.TrimEnd('.')})", null);
+			item.Disabled = true;
+			return;
+		}
+		AddItem("Abandon City", () => {
+			this.CloseAndDelete();
+			new MsgDisplayAbandonCityPopup(city).send();
+		});
+	}
+
 	protected void AddTreeSeparator() {
 		var background = new ColorRect();
 		background.Color = Color.Color8(255, 247, 222, 255);
@@ -265,14 +283,7 @@ public partial class RightClickTileMenu : RightClickMenu {
 			// TODO: Set Continental Rally Point
 			// TODO: Clear Continental Rally Point
 
-			AddItem("Abandon City", () => {
-				this.CloseAndDelete();
-				EngineStorage.ReadGameData((GameData gameData) => {
-					// TODO: perhaps add some conditions as to when we are able to do that,
-					// and if not add a popup message to explain why not (eg last city)
-					new MsgDisplayAbandonCityPopup(tile.cityAtTile).send();
-				});
-			});
+			AddAbandonCityItem(tile.cityAtTile);
 
 			// AddTreeSeparator();
 			// TODO: Wikipedia links
@@ -422,14 +433,7 @@ public partial class RightClickCityMenu : RightClickMenu {
 					new MsgDisplayHurryProductionPopup(tile.cityAtTile, details).send();
 				});
 			});
-			AddItem("Abandon City", () => {
-				this.CloseAndDelete();
-				EngineStorage.ReadGameData((GameData gameData) => {
-					// TODO: perhaps add some conditions as to when we are able to do that,
-					// and if not add a popup message to explain why not (eg last city)
-					new MsgDisplayAbandonCityPopup(tile.cityAtTile).send();
-				});
-			});
+			AddAbandonCityItem(tile.cityAtTile);
 		}
 	}
 }

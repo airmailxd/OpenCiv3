@@ -246,7 +246,10 @@ namespace C7Engine {
 			new MsgCityCaptured(city, oldOwner).send();
 			if (captor.isHuman) {
 				new MsgShowMilitaryAdvisorPopup(captor, $"We have captured {city.name} and plundered {plunder} gold!", happy: true).send();
-				new MsgDisplayRazeCityPopup(captor, city).send();
+				// A captor can't raze what is now their only city.
+				if (MayAbandon(captor, city, gameData)) {
+					new MsgDisplayRazeCityPopup(captor, city).send();
+				}
 			}
 			if (oldOwner.isHuman) {
 				new MsgShowMilitaryAdvisorPopup(oldOwner, $"{city.name} has fallen to the {captor.civilization.noun}!", happy: false).send();
@@ -317,12 +320,21 @@ namespace C7Engine {
 		// the cities you want to remove, and you'll get a pop-up menu that
 		// has 'Abandon city' way down at the bottom of the menu"
 		// (https://forums.civfanatics.com/threads/getting-rid-of-unwanted-cities.353125/).
-		//
-		// UNVERIFIED (no Civ3 source found): whether Civ3 lets a player
-		// abandon their last city. As before the check was added, it may be
-		// (the UI asks first).
+		// A player may never abandon their only city, per the project owner.
 		public static bool MayAbandon(Player player, City city, GameData gameData) {
-			return city.owner == player;
+			return WhyCannotAbandon(player, city) == null;
+		}
+
+		// Why the player may not abandon the city, for the UI to show, or
+		// null if they may.
+		public static string WhyCannotAbandon(Player player, City city) {
+			if (city == null || city.owner != player) {
+				return "It is not our city.";
+			}
+			if (player.cities.Count <= 1) {
+				return "We cannot abandon our only city.";
+			}
+			return null;
 		}
 
 		private static void MovePalaceAfterLosingCapital(Player player, Tile oldCapitalLocation) {
