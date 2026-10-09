@@ -426,7 +426,12 @@ namespace C7Engine {
 		protected override void ProcessAllowed() {
 			MapUnit unit = SendersUnit(unitID);
 			// Starting a job takes the rest of the unit's moves, so a unit
-			// that has none left can't.
+			// that has none left can't. In Civ3 a worker that has moved but
+			// has moves left still does a full turn of work, while one that
+			// spends its turn moving onto a tile starts work the next turn
+			// ("one to move there and three to build the road"):
+			// https://forums.civfanatics.com/threads/worker-moves.93408/ and
+			// https://civfanatics.com/civ3/strategy/game-mechanics/worker-moves/
 			if (action != null && unit != null && unit.movementPoints.canMove)
 				unit.PerformTerraformAction(action);
 		}
@@ -898,6 +903,11 @@ namespace C7Engine {
 			Player us = Sender;
 			// War is declared on a civ we've met, are at peace with and
 			// aren't allied to. Barbarians are always at war with everyone.
+			// Civs in the same alliance a scenario locks "can _never_ attack
+			// one another"
+			// (https://forums.civfanatics.com/threads/how-do-i-add-alliances-in-editor.188963/).
+			// UNVERIFIED (no Civ3 source found): that a civ must have met
+			// the other to declare war on it.
 			if (opponent == null || opponent == us || gameData.GetPlayer(opponent.id) != opponent
 				|| opponent.isBarbarians || opponent.defeated
 				|| !PlayerRelationship.TryGetRelationship(us, opponent, out _)
@@ -1043,6 +1053,10 @@ namespace C7Engine {
 		protected override void ProcessAllowed() {
 			if (opponent == null || opponent == Sender) return;
 			// Only a civ we've met and that will talk to us hears the demand.
+			// A Civ3 AI refuses to meet for some turns after a war starts
+			// (https://forums.civfanatics.com/threads/when-will-ai-sue-for-peace.85975/).
+			// UNVERIFIED (no Civ3 source found): that this refusal, or not
+			// having met, also stops a demand to withdraw.
 			if (!PlayerRelationship.TryGetRelationship(Sender, opponent, out _)
 				|| (!opponent.isHuman && !opponent.WillAcceptCommunicationFrom(Sender, EngineStorage.gameData.turn))) {
 				return;
