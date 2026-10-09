@@ -333,6 +333,7 @@ public static class SnapshotFilter {
 				.ToDictionary(v => v.Key, v => v.Value),
 			candidateA = state.candidateA,
 			candidateB = state.candidateB,
+			candidateC = state.candidateC,
 			secretaryGeneral = state.secretaryGeneral,
 		};
 	}

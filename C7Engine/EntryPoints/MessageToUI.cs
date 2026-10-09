@@ -1,6 +1,8 @@
 namespace C7Engine {
 	using C7GameData;
 	using System;
+	using System.Collections.Generic;
+	using System.Linq;
 	using System.Text.Json.Serialization;
 
 	public interface IMessageToUI {
@@ -517,35 +519,31 @@ namespace C7Engine {
 		public override bool IsForEveryone => true;
 	}
 
-	// Asks a human player how they vote in the United Nations election. A
-	// candidate they haven't met is null; they answer with
+	// Asks a human player how they vote in the United Nations election,
+	// offering the (up to three) candidates they have met; they answer with
 	// MsgCastUnitedNationsVote.
 	public class MsgShowUnitedNationsVote : MessageToUI {
-		public Player candidateA;
-		public Player candidateB;
+		public List<Player> candidates;
 
-		public MsgShowUnitedNationsVote(Player recipient, Player candidateA, Player candidateB) {
+		public MsgShowUnitedNationsVote(Player recipient, params Player[] candidates) {
 			this.recipient = recipient;
-			this.candidateA = candidateA;
-			this.candidateB = candidateB;
+			this.candidates = candidates.Where(c => c != null).ToList();
 		}
 	}
 
 	// The outcome of a United Nations election. The winner is null if no
 	// candidate won a majority.
 	public class MsgUnitedNationsElectionResult : MessageToUI {
-		public Player candidateA;
-		public Player candidateB;
-		public int votesForA;
-		public int votesForB;
+		public List<Player> candidates;
+		// The votes for each candidate, one per civ, in the order of
+		// candidates.
+		public List<int> votes;
 		public int abstentions;
 		public Player winner;
 
-		public MsgUnitedNationsElectionResult(Player candidateA, Player candidateB, int votesForA, int votesForB, int abstentions, Player winner) {
-			this.candidateA = candidateA;
-			this.candidateB = candidateB;
-			this.votesForA = votesForA;
-			this.votesForB = votesForB;
+		public MsgUnitedNationsElectionResult(List<Player> candidates, List<int> votes, int abstentions, Player winner) {
+			this.candidates = candidates;
+			this.votes = votes;
 			this.abstentions = abstentions;
 			this.winner = winner;
 		}
