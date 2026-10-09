@@ -47,7 +47,7 @@ namespace C7Engine {
 					++campsDispersed;
 				}
 			}
-			if (campsDispersed > 0 && owner.isHuman) {
+			if (campsDispersed > 0 && owner.IsToldNews) {
 				string camps = campsDispersed == 1 ? "a barbarian encampment" : $"{campsDispersed} barbarian encampments";
 				new MsgShowMilitaryAdvisorPopup(owner, $"Our new city {name} dispersed {camps} and earned {campsDispersed * BarbarianInteractions.CampDispersalGold} gold!", happy: true).send();
 			}
@@ -261,14 +261,14 @@ namespace C7Engine {
 			// One capture, which each side is also told its own way.
 			NewsEvent capture = new();
 			new MsgCityCaptured(city, oldOwner) { newsEvent = capture }.send();
-			if (captor.isHuman) {
+			if (captor.IsToldNews) {
 				new MsgShowMilitaryAdvisorPopup(captor, $"We have captured {city.name} and plundered {plunder} gold!", happy: true) { newsEvent = capture }.send();
-				// A captor can't raze what is now their only city.
-				if (MayAbandon(captor, city, gameData)) {
-					new MsgDisplayRazeCityPopup(captor, city).send();
-				}
 			}
-			if (oldOwner.isHuman) {
+			// A captor can't raze what is now their only city.
+			if (captor.isHuman && MayAbandon(captor, city, gameData)) {
+				new MsgDisplayRazeCityPopup(captor, city).send();
+			}
+			if (oldOwner.IsToldNews) {
 				new MsgShowMilitaryAdvisorPopup(oldOwner, $"{city.name} has fallen to the {captor.civilization.noun}!", happy: false) { newsEvent = capture }.send();
 			}
 
@@ -396,7 +396,7 @@ namespace C7Engine {
 
 		private static void MovePalaceAfterLosingCapital(Player player, Tile oldCapitalLocation) {
 			City newCapital = player.RelocatePalace(EngineStorage.gameData, oldCapitalLocation);
-			if (newCapital != null && player.isHuman) {
+			if (newCapital != null && player.IsToldNews) {
 				new MsgShowMilitaryAdvisorPopup(player, $"With our capital lost, the palace has been rebuilt in {newCapital.name}.", happy: false).send();
 			}
 		}

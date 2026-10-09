@@ -1131,8 +1131,9 @@ public partial class Game : Node {
 		GameData gameData = EngineStorage.gameData;
 
 		// A spectator hears the news the way it watches the game (see
-		// LanHost.SpectatorHears) without having to answer a popup for each.
-		if (LanSession.IsSpectator && msg.SpectatorHeadline() is string headline) {
+		// LanHost.SpectatorHears) without having to answer a popup for each;
+		// watching as a civ, its own news reads as its player is told it.
+		if (LanSession.IsSpectator && msg.SpectatorHeadline(LanSession.SpectatorWatchedAs) is string headline) {
 			ShowSpectatorNews(headline);
 			return;
 		}

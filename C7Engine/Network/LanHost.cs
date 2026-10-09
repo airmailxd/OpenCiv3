@@ -1798,9 +1798,10 @@ public class LanHost : IDisposable {
 
 	// Whether a spectator watching this way hears the message: what's for
 	// every player, and news (see MessageToUI.IsNews) that the civilization
-	// it watches as is told, or any civilization for one watching them all.
-	// One watching the whole game hears all the news. Questions for a player
-	// to answer, and what only redraws their screens, it never hears.
+	// it watches as is told, just as its player would be (see
+	// MessageToUI.IsToldAsCivTo), or any civilization for one watching them
+	// all. One watching the whole game hears all the news. Questions for a
+	// player to answer, and what only redraws their screens, it never hears.
 	public static bool SpectatorHears(SpectatorViewInfo view, MessageToUI msg, GameData gameData) {
 		if (msg.IsForEveryone) {
 			return true;
@@ -1809,7 +1810,7 @@ public class LanHost : IDisposable {
 			return false;
 		}
 		return view?.mode switch {
-			SpectatorViewMode.OneCiv => gameData?.GetPlayer(view.playerID) is Player civ && msg.IsToldTo(civ),
+			SpectatorViewMode.OneCiv => gameData?.GetPlayer(view.playerID) is Player civ && msg.IsToldAsCivTo(civ),
 			SpectatorViewMode.AllCivs => gameData != null && gameData.players.Any(p => !p.isBarbarians && msg.IsToldTo(p)),
 			_ => true,
 		};

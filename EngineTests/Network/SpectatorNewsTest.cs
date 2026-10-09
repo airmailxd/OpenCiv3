@@ -67,6 +67,11 @@ public class SpectatorNewsTest : IClassFixture<SaveGameFixture>, IDisposable {
 		Assert.True(Hears(AllCivs, news));
 		Assert.True(Hears(Omniscient, news));
 		Assert.Equal("player-2: We have captured Thebes!", news.SpectatorHeadline());
+
+		// Watching as the civ, it reads as the civ's own news.
+		Assert.Equal("We have captured Thebes!", news.SpectatorHeadline(greece.id));
+		Assert.Equal("player-2: We have captured Thebes!", news.SpectatorHeadline(rome.id));
+		Assert.Equal("player-2: We have captured Thebes!", news.SpectatorHeadline((ID)null));
 	}
 
 	[Fact]
@@ -90,7 +95,8 @@ public class SpectatorNewsTest : IClassFixture<SaveGameFixture>, IDisposable {
 	[Fact]
 	public void ASpectatorHearsOfAWarIfTheCivItWatchesAsWould() {
 		MsgWarDeclaration copy = new(egypt, greece) { forSpectators = true };
-		Assert.True(Hears(As(egypt), copy));
+		// The civ that declared it isn't told, as its player wouldn't be.
+		Assert.False(Hears(As(egypt), copy));
 		Assert.True(Hears(As(greece), copy));
 		Assert.False(Hears(As(rome), copy));
 		Assert.True(Hears(AllCivs, copy));
@@ -120,15 +126,18 @@ public class SpectatorNewsTest : IClassFixture<SaveGameFixture>, IDisposable {
 		Assert.False(Hears(Omniscient, players));
 	}
 
+	// The headline of a captured city is for spectators watching every
+	// civ; one watching either side hears that side's own news of it.
 	[Fact]
-	public void BothSidesHearOfACapturedCity() {
+	public void ACapturedCitysHeadlineIsForSpectatorsWatchingEveryCiv() {
 		City thebes = new(Tile.NONE, greece, "Thebes", ID.None(""));
 		MsgCityCaptured news = new(thebes, egypt);
 
-		Assert.True(Hears(As(greece), news));
-		Assert.True(Hears(As(egypt), news));
+		Assert.False(Hears(As(greece), news));
+		Assert.False(Hears(As(egypt), news));
 		Assert.False(Hears(As(rome), news));
 		Assert.True(Hears(AllCivs, news));
+		Assert.True(Hears(Omniscient, news));
 		Assert.Equal("The player-2 have taken Thebes from the player-3", news.SpectatorHeadline());
 	}
 
@@ -187,14 +196,18 @@ public class SpectatorNewsTest : IClassFixture<SaveGameFixture>, IDisposable {
 
 	// A captured city is told to both sides, and each side is also told it
 	// by its military advisor. A spectator watching every civ hears only the
-	// headline; one watching either side hears that side's news as before.
-	[Fact]
-	public void ACapturedCityIsNewsOnceForSpectatorsWatchingEveryCiv() {
+	// headline; one watching either side hears only that side's own news,
+	// computer players' too while spectators watch.
+	[Theory]
+	[InlineData(true)]
+	[InlineData(false)]
+	public void ACapturedCityIsNewsOnceForSpectatorsWatchingEveryCiv(bool humans) {
 		C7GameData.GameData game = fixture.saveGame.ToGameData(fixture.behaviors);
 		EngineStorage.InitializeGameDataForTests(game);
+		EngineStorage.newsForComputerPlayers = true;
 		Player[] civs = game.players.Where(p => !p.isBarbarians && p.units.Any(u => u.unitType.isSettler)).ToArray();
 		Player captor = civs[0], loser = civs[1];
-		captor.isHuman = loser.isHuman = true;
+		captor.isHuman = loser.isHuman = humans;
 		City FoundCity(Player player, int size) {
 			Tile tile = player.units.First(u => u.unitType.isSettler).location;
 			City city = CityInteractions.BuildCity(tile, player, player.GetNextCityName());
@@ -222,10 +235,10 @@ public class SpectatorNewsTest : IClassFixture<SaveGameFixture>, IDisposable {
 		}
 
 		SpectatorViewInfo asCaptor = new(SpectatorViewMode.OneCiv, captor.id);
-		Assert.Equal(["MsgCityCaptured", $"We have captured {city.name}"],
+		Assert.Equal([$"We have captured {city.name}"],
 			Heard(asCaptor, news, game).Select(m => m is MsgShowMilitaryAdvisorPopup p ? p.message[..p.message.IndexOf(" and")] : m.GetType().Name));
 		SpectatorViewInfo asLoser = new(SpectatorViewMode.OneCiv, loser.id);
-		Assert.Equal(["MsgCityCaptured", $"{city.name} has fallen to the {captor.civilization.noun}!"],
+		Assert.Equal([$"{city.name} has fallen to the {captor.civilization.noun}!"],
 			Heard(asLoser, news, game).Select(m => m is MsgShowMilitaryAdvisorPopup p ? p.message : m.GetType().Name));
 	}
 
