@@ -777,10 +777,11 @@ public partial class LooseView : Node2D {
 
 	// Whether the UI's player knows the tile. Only valid while the view is being drawn.
 	public bool IsTileKnown(Tile tile) {
-		if (observerMode) {
-			return true;
+		// Off the map there's nothing to know, even when the whole map is shown.
+		if (!Tile.IsTileValid(tile)) {
+			return false;
 		}
-		return tile != Tile.NONE && tileKnowledge.isTileKnown(tile);
+		return observerMode || tileKnowledge.isTileKnown(tile);
 	}
 
 	public bool IsTileCoveredByTileInfo(Tile tile) {
@@ -1213,7 +1214,7 @@ public partial class MapView : Node2D {
 						tileCenter = cellSize * new Vector2(X + 1, Y + 1),
 						x = X,
 						y = Y,
-						known = knowledge == null || (tile != Tile.NONE && knowledge.isTileKnown(tile)),
+						known = tile != Tile.NONE && (knowledge == null || knowledge.isTileKnown(tile)),
 					});
 				}
 			}
