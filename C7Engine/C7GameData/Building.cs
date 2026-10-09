@@ -455,7 +455,13 @@ namespace C7GameData {
 		// The civilization strengths this building is associated with.
 		public IReadOnlySet<Civilization.Trait> traits => dataSource.traits;
 
+		// Civ3 halves the cost of the improvements tied to a civ's traits
+		// (e.g. the Temple for religious civs). Wonders carry trait flags too,
+		// but those only decide golden ages, never the cost.
 		public int ShieldCost(HashSet<Civilization.Trait> civTraits, float costFactor) {
+			if (IsGreatWonder() || isSmallWonder) {
+				return (int)(shieldCost * costFactor);
+			}
 			foreach (Civilization.Trait trait in dataSource.traits) {
 				if (civTraits.Contains(trait)) {
 					return (int)(shieldCost * EngineStorage.gameData.rules.BuildingDiscountForCivTraits * costFactor);
