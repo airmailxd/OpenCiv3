@@ -395,7 +395,7 @@ namespace C7Engine {
 		}
 
 		private static void NotifyTarget(Player target, string message) {
-			if (target.isHuman) {
+			if (target.IsToldNews) {
 				new MsgShowMilitaryAdvisorPopup(target, message, happy: false).send();
 			}
 		}

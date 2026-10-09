@@ -840,6 +840,9 @@ public class LanHost : IDisposable {
 		foreach (Spectator spectator in spectators.ToList()) {
 			PollSpectator(spectator);
 		}
+		if (Started) {
+			EngineStorage.newsForComputerPlayers = spectators.Any(s => !s.connection.IsClosed);
+		}
 	}
 
 	// Whether a new connection may join the guests without a seat: there's
@@ -1750,12 +1753,8 @@ public class LanHost : IDisposable {
 	}
 
 	private void RouteMessageToUI(MessageToUI msg) {
+		TellSpectators(msg);
 		if (msg.IsForSpectatorsOnly) {
-			byte[] spectatorJson = NetSerialization.Serialize(msg);
-			foreach (Spectator spectator in spectators.Where(s => !s.connection.IsClosed)) {
-				spectator.pendingUiMessages.Add(spectatorJson);
-				spectatorSnapshotPending = true;
-			}
 			return;
 		}
 
@@ -1765,14 +1764,14 @@ public class LanHost : IDisposable {
 			foreach (Guest guest in SeatedGuests()) {
 				QueueUiMessage(guest, json);
 			}
-			foreach (Spectator spectator in spectators.Where(s => !s.connection.IsClosed)) {
-				spectator.pendingUiMessages.Add(json);
-				spectatorSnapshotPending = true;
-			}
 			return;
 		}
 
 		Player to = msg.NetworkRecipient;
+		if (to != null && !to.isHuman) {
+			// A computer player's news is only for spectators watching as it.
+			return;
+		}
 		Seat recipientSeat = to == null ? null : seats.Find(s => s.info.playerID == to.id);
 		if (recipientSeat == null) {
 			EngineStorage.SendToLocalUI(msg);
@@ -1781,6 +1780,38 @@ public class LanHost : IDisposable {
 		} else if (recipientSeat.IsHeld) {
 			HoldUiMessage(recipientSeat, NetSerialization.Serialize(msg));
 		}
+	}
+
+	// Passes the message to each spectator that hears it, watching the way
+	// it does.
+	private void TellSpectators(MessageToUI msg) {
+		byte[] json = null;
+		foreach (Spectator spectator in spectators.Where(s => !s.connection.IsClosed)) {
+			if (SpectatorHears(spectator.view, msg, EngineStorage.gameData)) {
+				json ??= NetSerialization.Serialize(msg);
+				spectator.pendingUiMessages.Add(json);
+				spectatorSnapshotPending = true;
+			}
+		}
+	}
+
+	// Whether a spectator watching this way hears the message: what's for
+	// every player, and news (see MessageToUI.IsNews) that the civilization
+	// it watches as is told, or any civilization for one watching them all.
+	// One watching the whole game hears all the news. Questions for a player
+	// to answer, and what only redraws their screens, it never hears.
+	public static bool SpectatorHears(SpectatorViewInfo view, MessageToUI msg, GameData gameData) {
+		if (msg.IsForEveryone) {
+			return true;
+		}
+		if (!msg.IsNews) {
+			return false;
+		}
+		return view?.mode switch {
+			SpectatorViewMode.OneCiv => gameData?.GetPlayer(view.playerID) is Player civ && msg.IsToldTo(civ),
+			SpectatorViewMode.AllCivs => gameData != null && gameData.players.Any(p => !p.isBarbarians && msg.IsToldTo(p)),
+			_ => true,
+		};
 	}
 
 	// Keeps a message for a disconnected player, to give them if they're

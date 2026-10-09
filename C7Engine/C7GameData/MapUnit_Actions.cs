@@ -56,7 +56,7 @@ public partial class MapUnit {
 		// Disperse barb camp
 		if (BarbarianInteractions.DisperseCamp(EngineStorage.gameData, tile, owner)) {
 			animate(MapUnit.AnimatedAction.VICTORY);
-			if (owner.isHuman) {
+			if (owner.IsToldNews) {
 				new MsgShowMilitaryAdvisorPopup(owner, $"We cleared a barbarian encampment and earned {BarbarianInteractions.CampDispersalGold} gold!", happy: true).send();
 			}
 		}
@@ -77,7 +77,7 @@ public partial class MapUnit {
 				Player victim = sacked.owner;
 				City.BarbarianSack sack = sacked.SackedByBarbarians();
 				this.RemoveFromPlay();
-				if (victim.isHuman) {
+				if (victim.IsToldNews) {
 					string loss = sack.outcome switch {
 						City.BarbarianSackOutcome.Gold => $"stolen {sack.amount} gold",
 						City.BarbarianSackOutcome.Citizens => "killed some of its people",

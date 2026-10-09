@@ -1126,6 +1126,13 @@ public partial class Game : Node {
 	private void ShowEngineMessage(MessageToUI msg) {
 		GameData gameData = EngineStorage.gameData;
 
+		// A spectator hears the news the way it watches the game (see
+		// LanHost.SpectatorHears) without having to answer a popup for each.
+		if (LanSession.IsSpectator && msg.SpectatorHeadline() is string headline) {
+			ShowSpectatorNews(headline);
+			return;
+		}
+
 		switch (msg) {
 			case MsgStartTurn when SimultaneousLanTurns:
 				// Every human is told at once; we play ours one by one.
@@ -1141,9 +1148,6 @@ public partial class Game : Node {
 				break;
 			case MsgCityCreated mCC:
 				ShowCityScreenForCity(gameData, mCC.city);
-				break;
-			case MsgCivilizationDestroyed mCivD when LanSession.IsSpectator:
-				ShowSpectatorNews($"The {mCivD.civilization.noun} have been destroyed");
 				break;
 			case MsgCivilizationDestroyed mCivD:
 				popupOverlay.ShowPopup(new CivilizationDestroyed(mCivD.civilization), PopupOverlay.PopupCategory.Advisor);
@@ -1257,9 +1261,6 @@ public partial class Game : Node {
 							new MsgDoStopWorkerAction(mDSWA.worker).send();
 						}),
 					PopupOverlay.PopupCategory.Advisor);
-				break;
-			case MsgWarDeclaration mWD when LanSession.IsSpectator:
-				ShowSpectatorNews($"The {mWD.aggressor.civilization.noun} declared war on the {mWD.opponent.civilization.noun}");
 				break;
 			case MsgWarDeclaration mWD:
 				popupOverlay.ShowPopup(

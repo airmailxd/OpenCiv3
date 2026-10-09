@@ -66,7 +66,7 @@ public partial class MapUnit {
 			sunk.Add(ship);
 		}
 
-		if (player.isHuman && losses.Count > 0 && !player.defeated) {
+		if (player.IsToldNews && losses.Count > 0 && !player.defeated) {
 			string lost = losses.Count == 1 ? losses[0] : string.Join(", ", losses.SkipLast(1)) + " and " + losses[^1];
 			new MsgShowMilitaryAdvisorPopup(player, $"Rough waters have sunk {lost}! Ships out of safe waters risk sinking at the end of each turn.", happy: false).send();
 		}

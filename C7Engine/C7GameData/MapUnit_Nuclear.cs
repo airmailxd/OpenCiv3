@@ -195,7 +195,7 @@ namespace C7GameData {
 			// engine no longer knows who gave the order, so each one names its
 			// recipient.
 			Player attacker = owner;
-			bool tellAttacker = attacker.isHuman;
+			bool tellAttacker = attacker.IsToldNews;
 			NuclearStrikeResult result = LaunchNuke(tile);
 
 			if (result.intercepted) {
@@ -203,7 +203,7 @@ namespace C7GameData {
 				if (tellAttacker) {
 					new MsgShowTemporaryPopup("Our nuclear missile was shot down by a Strategic Missile Defense!", tile, attacker).send();
 				}
-				foreach (Player victim in result.victims.Where(v => v.isHuman)) {
+				foreach (Player victim in result.victims.Where(v => v.IsToldNews)) {
 					new MsgShowTemporaryPopup("Our Strategic Missile Defense shot down an incoming nuclear missile!", tile, victim).send();
 				}
 				return;
@@ -221,7 +221,7 @@ namespace C7GameData {
 			if (tellAttacker) {
 				new MsgShowTemporaryPopup(summary, tile, attacker).send();
 			}
-			foreach (Player victim in result.victims.Where(v => v.isHuman && v != attacker)) {
+			foreach (Player victim in result.victims.Where(v => v.IsToldNews && v != attacker)) {
 				new MsgShowTemporaryPopup($"The {attacker.civilization?.noun ?? "enemy"} have attacked us with nuclear weapons! " + summary, tile, victim).send();
 			}
 		}
