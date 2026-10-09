@@ -52,6 +52,10 @@ namespace C7GameData.Save {
 		public int movement { get; set; }
 		public int capacity { get; set; }
 		public int hpBonus { get; set; }
+		// How much work a worker does each turn, relative to a Worker (the
+		// BIQ's PRTO worker strength). Saves made before it was saved have
+		// 1.
+		public float workerStrength { get; set; } = 1;
 
 		public HashSet<string> producibleBy = [];
 
@@ -80,6 +84,7 @@ namespace C7GameData.Save {
 			(proto.name, proto.art, proto.shieldCost, proto.populationCost, proto.unproducible,
 			 proto.attack, proto.defense, proto.bombard, proto.bombardRange, proto.rateOfFire, proto.movement,
 			 proto.capacity, proto.hpBonus);
+			workerStrength = proto.workerStrength;
 
 			if (proto.requiredTech != null)
 				requiredTech = proto.requiredTech.id;

@@ -247,17 +247,20 @@ namespace C7GameData {
 					continue;
 				}
 
-				// Bodies of water under 20 tiles are fresh water
-				// (https://civilization.fandom.com/wiki/Fresh_Water_Lake_(Civ3)).
-				//
-				// TODO: consider making this part of the rules.
-				if (continent.Count <= 20) {
+				if (continent.Count <= MaxFreshWaterLakeTiles) {
 					foreach (Tile t in continent) {
 						t.isFreshWater = true;
 					}
 				}
 			}
 		}
+
+		// Bodies of water of at most this many tiles are fresh water lakes
+		// (https://civilization.fandom.com/wiki/Fresh_Water_Lake_(Civ3)).
+		// Shared by generated maps and imported Civ3 ones.
+		//
+		// TODO: consider making this part of the rules.
+		public const int MaxFreshWaterLakeTiles = 20;
 
 		// The index of the tile in tiles, or -1 if it isn't one of them.
 		private int IndexOfTile(Tile t) {
