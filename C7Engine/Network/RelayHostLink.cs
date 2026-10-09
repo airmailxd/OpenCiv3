@@ -360,7 +360,7 @@ public sealed class RelayHostLink : IDisposable {
 			guests[id] = guest;
 		}
 		log.Information("Guest {Guest} joined through the relay", id);
-		guestArrived(new LanTransport(guest, $"online guest {id}") { BanAtRelay = guest.BanWhenClosed });
+		guestArrived(new LanTransport(guest, $"online guest {id}") { BanAtRelay = guest.BanWhenClosed, AdmittedAtRelay = guest.Admitted });
 	}
 
 	private void SendControl(byte[] message, WebSocketMessageType type) {
@@ -553,6 +553,9 @@ public sealed class RelayHostLink : IDisposable {
 		}
 
 		public void BanWhenClosed() => link.BanWhenClosed(this);
+
+		// The host has let the guest in (see RelayProtocol).
+		public void Admitted() => link.SendControl(new RelayControl(RelayControl.Admit, guest: id).ToBytes(), WebSocketMessageType.Text);
 
 		public void Deliver(byte[] bytes) {
 			lock (incoming) {

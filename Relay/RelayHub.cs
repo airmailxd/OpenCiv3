@@ -130,14 +130,17 @@ internal sealed class RelayHub {
 			return;
 		}
 
+		bool admits = context.Request.Query[RelayProtocol.AdmitsParameter] == "1";
 		RelayPeer previous;
 		List<RelayPeer> guests;
 		lock (room) {
 			previous = room.Host;
 			room.Host = peer;
 			room.GameVersion = gameVersion;
+			room.HostAdmits = admits;
 			guests = [.. room.Guests.Values];
 			room.Guests.Clear();
+			room.Admitted.Clear();
 		}
 		// A host back before the relay noticed it had gone starts afresh, and
 		// its guests connect again.
@@ -233,6 +236,13 @@ internal sealed class RelayHub {
 			case RelayControl.Ban:
 				Ban(room, host, control.guest);
 				break;
+			case RelayControl.Admit:
+				lock (room) {
+					if (room.Host == host && room.Guests.ContainsKey(control.guest)) {
+						room.Admitted.Add(control.guest);
+					}
+				}
+				break;
 			case RelayControl.Bans:
 				lock (room) {
 					foreach (string key in (control.bans ?? []).Take(RelayProtocol.MaxBans)) {
@@ -320,6 +330,8 @@ internal sealed class RelayHub {
 		RelayPeer host;
 		uint id = 0;
 		Admission admission;
+		uint madeWay = 0;
+		RelayPeer madeWayFor = null;
 		lock (room) {
 			host = room.Host;
 			if (host == null) {
@@ -328,13 +340,19 @@ internal sealed class RelayHub {
 				admission = Admission.Banned;
 			} else if (room.GameVersion != gameVersion) {
 				admission = Admission.OtherVersion;
-			} else if (room.Guests.Count >= options.MaxGuestsPerRoom) {
+			} else if (room.Guests.Count >= options.MaxGuestsPerRoom && !room.TakeOutWaitingGuest(out madeWay, out madeWayFor)) {
 				admission = Admission.Full;
 			} else {
 				admission = Admission.Admitted;
 				id = room.NextGuestId++;
 				room.Guests[id] = peer;
 			}
+		}
+		if (madeWayFor != null) {
+			// The host hears it has gone, as it would once it closed.
+			log.LogInformation("Guest {Guest} in room {Code} made way for a newcomer, not having been let in", madeWay, room.Code);
+			madeWayFor.Close(RelayCloseCodes.RoomFull, "The game has too many players waiting to join. Try again in a moment.");
+			host.Send(RelayProtocol.Encode(RelayProtocol.Close, madeWay));
 		}
 		switch (admission) {
 			case Admission.HostAway:

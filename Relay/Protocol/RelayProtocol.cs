@@ -41,6 +41,12 @@ namespace C7Relay;
 // it or leaves, or stops refreshing it. GET /games returns the listings
 // (PublicGameList), and players join a game there with its code as usual.
 //
+// A guest takes one of the room's places from when it joins. A host that
+// connects with ?admits=1 says "admit" with a guest's ID once it has let the
+// guest into its game (as after its hello and password); when the room is
+// full, the guest that has waited longest without being let in gives way to
+// a newcomer, so that guests nobody let in can't keep out those coming back.
+//
 // A host can ban one of its guests: "ban" with the guest's ID closes its
 // connection, and the relay turns away its address from the room from then
 // on. The relay answers "banned" with a key standing for that address in
@@ -60,6 +66,7 @@ public static class RelayProtocol {
 	public const string GameVersionParameter = "game";
 	public const string CodeParameter = "code";
 	public const string KeyParameter = "key";
+	public const string AdmitsParameter = "admits";
 
 	// The public list of games, and its filters: games of this version of
 	// the game only, those with open seats, those without a password, and
@@ -214,6 +221,7 @@ public sealed record RelayControl(string type, string code = null, string key = 
 	public const string Ban = "ban";
 	public const string Banned = "banned";
 	public const string Bans = "bans";
+	public const string Admit = "admit";
 
 	private static readonly JsonSerializerOptions Options = new() {
 		DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,

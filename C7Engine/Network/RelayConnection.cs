@@ -78,6 +78,8 @@ public static class RelayConnection {
 	public static Uri HostUri(string relayUrl, string code = null, string key = null) {
 		string claim = code == null ? ""
 			: $"&{RelayProtocol.CodeParameter}={Uri.EscapeDataString(code)}&{RelayProtocol.KeyParameter}={Uri.EscapeDataString(key ?? "")}";
+		// This host says which guests it has let in.
+		claim += $"&{RelayProtocol.AdmitsParameter}=1";
 		return WithPath(relayUrl, RelayProtocol.HostPath, claim);
 	}
 

@@ -82,6 +82,19 @@ public class LanHost : IDisposable {
 	// turn is over, but no more than this many.
 	private const int MaxHeldUiMessages = 200;
 
+	// A guest has this long to say hello once it connects, and this long to
+	// give the password once asked, which a player types; one that takes
+	// longer is dropped, rather than hold its connection open for nothing.
+	internal static TimeSpan HelloTimeout = TimeSpan.FromSeconds(15);
+	internal static TimeSpan PasswordTimeout = TimeSpan.FromMinutes(2);
+
+	// Guests without a seat, at most: in all, and from one address on the
+	// network. Past the first, the one waiting longest makes way for the
+	// newcomer, so that guests coming back to their seats always get in;
+	// past the second, the newcomer is turned away.
+	private const int MaxUnseatedGuests = 24;
+	private const int MaxUnseatedGuestsPerAddress = 4;
+
 	private class Seat {
 		public SeatInfo info;
 		// The guest playing this seat, and the name of the player in it.
@@ -127,6 +140,8 @@ public class LanHost : IDisposable {
 		public string nonce;
 		public int wrongPasswords;
 		public bool watchOnceAdmitted;
+		// Since it connected, or was last asked for the password.
+		public readonly Stopwatch waiting = Stopwatch.StartNew();
 	}
 
 	private readonly string hostName;
@@ -589,6 +604,10 @@ public class LanHost : IDisposable {
 
 	public void Poll() {
 		while (accepted.TryDequeue(out LanTransport transport)) {
+			if (!MakeRoomFor(transport)) {
+				transport.Dispose();
+				continue;
+			}
 			LanConnection connection = new(transport, maxFrameBytes: LanProtocol.MaxFrameBytesBeforeAdmission);
 			if (transport.RemoteHost != null && bannedAddresses.Contains(transport.RemoteHost)) {
 				log.Information("Turned away {Address}, which is banned", transport.RemoteAddress);
@@ -602,6 +621,7 @@ public class LanHost : IDisposable {
 		foreach (Guest guest in guests.ToList()) {
 			PollGuest(guest);
 		}
+		DropGuestsTooSlowToJoin();
 		foreach (Spectator spectator in spectators.ToList()) {
 			PollSpectator(spectator);
 		}
@@ -612,6 +632,42 @@ public class LanHost : IDisposable {
 		}
 		PublishDiscoveryReply();
 		Online?.SetListing(ListPublicly ? CurrentListing() : null);
+	}
+
+	// Whether a new connection may join the guests without a seat: there's
+	// room for it, or the one among them waiting longest makes room, unless
+	// its address on the network has as many as it may.
+	private bool MakeRoomFor(LanTransport transport) {
+		List<Guest> unseated = guests.Where(g => !g.connection.IsClosed && !SeatsOf(g).Any()).ToList();
+		string address = transport.RemoteHost;
+		if (address != null && !IsLoopback(address)
+			&& unseated.Count(g => g.connection.Transport.RemoteHost == address) >= MaxUnseatedGuestsPerAddress) {
+			log.Information("Turned away {Address}, which has too many connections waiting", transport.RemoteAddress);
+			return false;
+		}
+		if (unseated.Count >= MaxUnseatedGuests) {
+			// Those not yet let in go first.
+			Guest longest = unseated.OrderBy(g => g.admitted).ThenByDescending(g => g.waiting.Elapsed).First();
+			log.Information("Too many guests are waiting, dropping {Name}", longest.name ?? longest.connection.RemoteAddress);
+			Reject(longest, "The host has too many players waiting to join. Try again in a moment.");
+		}
+		return true;
+	}
+
+	// Drops the guests that haven't said hello, or given the password, in
+	// time.
+	private void DropGuestsTooSlowToJoin() {
+		foreach (Guest guest in guests.Where(g => !g.admitted).ToList()) {
+			TimeSpan allowed = guest.nonce != null ? PasswordTimeout : HelloTimeout;
+			if (guest.waiting.Elapsed > allowed) {
+				log.Information("{Name} took too long to join, dropping them", guest.name ?? guest.connection.RemoteAddress);
+				Reject(guest, guest.nonce != null ? "Took too long to give the password." : "Took too long to say hello.");
+			}
+		}
+	}
+
+	private static bool IsLoopback(string address) {
+		return IPAddress.TryParse(address, out IPAddress ip) && IPAddress.IsLoopback(ip);
 	}
 
 	// Restarts the clock when a new turn begins, and ends the humans' turns
@@ -758,7 +814,7 @@ public class LanHost : IDisposable {
 			return transport.BanAtRelay;
 		}
 		string address = transport.RemoteHost;
-		if (IPAddress.TryParse(address, out IPAddress ip) && IPAddress.IsLoopback(ip)) {
+		if (IsLoopback(address)) {
 			return null;
 		}
 		return () => bannedAddresses.Add(address);
@@ -931,6 +987,7 @@ public class LanHost : IDisposable {
 	// Asks the guest for the game's password, with a new nonce to sign.
 	private void AskForPassword(Guest guest, bool wrong) {
 		guest.nonce = GamePassword.NewNonce();
+		guest.waiting.Restart();
 		guest.connection.Send(FrameKind.PasswordRequired, new PasswordChallengeInfo(passwordSalt, guest.nonce, wrong,
 			GamePassword.MaxWrongAttempts - guest.wrongPasswords));
 	}
@@ -941,6 +998,7 @@ public class LanHost : IDisposable {
 	private bool Admit(Guest guest) {
 		guest.admitted = true;
 		guest.connection.MaxFrameBytes = LanProtocol.MaxGuestFrameBytes;
+		guest.connection.Transport.AdmittedAtRelay?.Invoke();
 		guest.nonce = null;
 		guest.token = NewToken();
 		if (guest.watchOnceAdmitted) {
@@ -1084,6 +1142,7 @@ public class LanHost : IDisposable {
 		guest.token = token;
 		guest.admitted = true;
 		guest.connection.MaxFrameBytes = LanProtocol.MaxGuestFrameBytes;
+		guest.connection.Transport.AdmittedAtRelay?.Invoke();
 		int turn = EngineStorage.gameData?.turn ?? -1;
 		foreach (Seat seat in theirs) {
 			seat.guest = guest;

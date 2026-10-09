@@ -20,6 +20,10 @@ internal sealed class Room {
 	public long HostLeftAt = Environment.TickCount64;
 	public readonly Dictionary<uint, RelayPeer> Guests = new();
 
+	// Whether the host says which guests it let in, and those it has.
+	public bool HostAdmits;
+	public readonly HashSet<uint> Admitted = new();
+
 	// Guest IDs aren't reused in a room, so a message for a guest that has
 	// gone can't reach one that came after it.
 	public uint NextGuestId = 1;
@@ -40,7 +44,31 @@ internal sealed class Room {
 	public readonly Queue<uint> RecentGuestOrder = new();
 	public const int MaxRecentGuests = 64;
 
+	// Takes out the guest the host hasn't let in that joined first, to make
+	// way for a newcomer to a full room; false if there's none to take, or
+	// the host doesn't say whom it let in.
+	public bool TakeOutWaitingGuest(out uint id, out RelayPeer guest) {
+		id = 0;
+		guest = null;
+		if (!HostAdmits) {
+			return false;
+		}
+		foreach ((uint each, RelayPeer peer) in Guests) {
+			if (!Admitted.Contains(each) && (guest == null || each < id)) {
+				id = each;
+				guest = peer;
+			}
+		}
+		if (guest == null) {
+			return false;
+		}
+		Guests.Remove(id);
+		NoteGuestLeft(id, guest.Address);
+		return true;
+	}
+
 	public void NoteGuestLeft(uint id, string address) {
+		Admitted.Remove(id);
 		if (RecentGuests.TryAdd(id, address)) {
 			RecentGuestOrder.Enqueue(id);
 		}

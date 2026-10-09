@@ -26,6 +26,11 @@ public sealed class LanTransport : IDisposable {
 	// null for a connection that isn't through a relay.
 	public Action BanAtRelay { get; init; }
 
+	// Tells the relay a guest came through that the host has let it in, so
+	// that it isn't made to give way to guests joining after it; null for a
+	// connection that isn't through a relay.
+	public Action AdmittedAtRelay { get; init; }
+
 	// Disposed along with the stream, like the TcpClient a NetworkStream
 	// came from.
 	private readonly IDisposable owner;
