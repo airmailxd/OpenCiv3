@@ -467,7 +467,8 @@ namespace C7GameData {
 
 		// Without hitPoints the unit starts with the full hit points of the
 		// game's default experience level (or Civ3's regular 3 if there's no
-		// game), plus the prototype's bonus.
+		// game), plus the prototype's bonus: "3 hit points is a regular, 4
+		// hit points is a veteran" (https://civfanatics.com/civ3/faq/).
 		public MapUnit GetInstance(ID id, UnitPrototype proto, Player owner, Civilization nationality = null, Tile location = null, TileDirection facingDirection = TileDirection.SOUTHWEST, int? hitPoints = null) {
 			MapUnit instance = new MapUnit(id);
 			instance.unitType = proto;

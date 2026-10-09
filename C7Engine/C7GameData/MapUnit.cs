@@ -246,7 +246,10 @@ namespace C7GameData {
 						min = m.unitType.movement;
 					any = true;
 				}
-				// An army moves one faster than its slowest member.
+				// An army moves one faster than its slowest member: "In
+				// Conquests, an Army will get an additional movement point
+				// above the movement point of the slowest unit in the Army"
+				// (https://civfanatics.com/civ3/faq/).
 				if (any)
 					return min + 1;
 			}

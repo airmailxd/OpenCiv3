@@ -716,7 +716,9 @@ namespace C7GameData {
 		}
 
 		// How much more than it gives an AI that is winning a war wants for
-		// making peace, for each of the other side's cities.
+		// making peace, for each of the other side's cities. This and
+		// WinningStrengthRatio are a placeholder for our AI, not Civ3
+		// behaviour, which isn't documented.
 		private const int PeaceTributePerCity = 30;
 
 		// How much stronger than the other side an AI must be to think it is
@@ -738,7 +740,8 @@ namespace C7GameData {
 
 			// Peace is welcome once we are talking again, unless we are
 			// clearly winning: then the other side has to pay for it. A
-			// placeholder until the AI weighs up wars properly.
+			// placeholder until the AI weighs up wars properly, not Civ3's
+			// AI behaviour.
 			if ((theirOffer.partOfPeaceTreaty || ourOffer.partOfPeaceTreaty)
 				&& CalculateMilitaryStrength() > WinningStrengthRatio * other.CalculateMilitaryStrength()) {
 				ourGoldValue += PeaceTributePerCity * Math.Max(1, other.cities.Count);
