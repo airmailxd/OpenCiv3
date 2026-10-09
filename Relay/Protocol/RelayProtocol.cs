@@ -290,12 +290,16 @@ public static class RelayCloseCodes {
 }
 
 // A text message between the relay and a host or guest. The relay welcomes
-// a host with its room's code and key, and everyone with how often it pings.
+// a host with its room's code and key, and everyone with how often it pings
+// and the largest message it takes from them (0 from a relay that doesn't
+// say, which takes the defaults). A larger frame is sent in pieces: what a
+// guest and its host send each other through the relay is a stream of
+// bytes, however it's cut into messages.
 // The rest are for listing a game publicly and banning guests (see
 // RelayProtocol): listing is the game, error why it wasn't listed, guest the
 // guest to ban, and bans the keys of the addresses banned.
 public sealed record RelayControl(string type, string code = null, string key = null, double pingSeconds = 0,
-	GameListing listing = null, string error = null, uint guest = 0, List<string> bans = null) {
+	GameListing listing = null, string error = null, uint guest = 0, List<string> bans = null, int maxMessageBytes = 0) {
 	public const string Welcome = "welcome";
 	public const string Ping = "ping";
 	public const string Pong = "pong";

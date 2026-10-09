@@ -127,6 +127,15 @@ public sealed class RelayHostLink : IDisposable {
 	// Released whenever there may be something new to send.
 	private readonly SemaphoreSlim wake = new(0);
 
+	// The most of a guest's bytes one message to the relay carries, which
+	// leaves room for its header (see RelayControl.maxMessageBytes).
+	private volatile int maxPayloadBytes = PayloadBytesFor(0);
+
+	private static int PayloadBytesFor(int maxMessageBytes) {
+		int max = maxMessageBytes > 0 ? maxMessageBytes : RelayProtocol.DefaultMaxHostMessageBytes;
+		return Math.Max(16 * 1024, max - RelayProtocol.HeaderLength(RelayProtocol.MaxGuestsPerMessage));
+	}
+
 	// The secret the relay makes this game's ban keys with, and the room
 	// the game moved from (see RelayProtocol).
 	private readonly string banScope;
@@ -244,6 +253,7 @@ public sealed class RelayHostLink : IDisposable {
 					RelayConnection.HostUri(RelayUrl, code, key, banScope, movedFromCode, movedFromKey), ConnectTimeout, cancel);
 				code = welcome.code;
 				key = welcome.key;
+				maxPayloadBytes = PayloadBytesFor(welcome.maxMessageBytes);
 				error = null;
 				state = LinkState.Online;
 				delay = FirstRetryDelay;
@@ -277,8 +287,8 @@ public sealed class RelayHostLink : IDisposable {
 		}
 	}
 
-	// Passes messages both ways until the connection is lost or the link is
-	// closed. Its guests go with it.
+	// Passes messages both ways until the connection is lost, either way,
+	// or the link is closed. Its guests go with it.
 	private async Task RunConnection(ClientWebSocket connected, TimeSpan quietLimit, CancellationToken cancel) {
 		using CancellationTokenSource stop = CancellationTokenSource.CreateLinkedTokenSource(cancel);
 		lock (sync) {
@@ -286,11 +296,14 @@ public sealed class RelayHostLink : IDisposable {
 		}
 		Task sending = SendLoop(connected, stop.Token);
 		Connected();
+		Task receiving = ReceiveLoop(connected, quietLimit, stop.Token);
 		try {
-			await ReceiveLoop(connected, quietLimit, stop.Token);
+			// Sending runs until it's stopped, so if it ends first it failed.
+			await await Task.WhenAny(receiving, sending);
 		} catch (RelayException e) when (!e.IsPermanent) {
 			error = e.Message;
-		} catch (Exception e) when (e is WebSocketException or IOException or OperationCanceledException) {
+		} catch (Exception e) when (e is WebSocketException or IOException or OperationCanceledException or ObjectDisposedException
+			or InvalidOperationException) {
 			error = cancel.IsCancellationRequested ? null : e is OperationCanceledException ? "The relay stopped answering." : e.Message;
 		} finally {
 			stop.Cancel();
@@ -305,12 +318,14 @@ public sealed class RelayHostLink : IDisposable {
 			foreach (GuestStream guest in gone) {
 				guest.RemoteClosed();
 			}
-			try {
-				await sending;
-			} catch (Exception) {
-				// Gone with the connection.
-			}
 			connected.Abort();
+			foreach (Task loop in new[] { sending, receiving }) {
+				try {
+					await loop;
+				} catch (Exception) {
+					// Gone with the connection.
+				}
+			}
 			connected.Dispose();
 		}
 	}
@@ -670,13 +685,19 @@ public sealed class RelayHostLink : IDisposable {
 
 		public override void Write(byte[] buffer, int offset, int count) => unsent.Write(buffer, offset, count);
 
+		// A frame larger than the relay takes in one message goes in pieces,
+		// which the guest reads as one stream.
 		public override void Flush() {
 			if (unsent.Length == 0) {
 				return;
 			}
-			byte[] message = unsent.ToArray();
+			byte[] written = unsent.GetBuffer();
+			int length = (int)unsent.Length;
+			int piece = link.maxPayloadBytes;
+			for (int start = 0; start < length; start += piece) {
+				link.Queue(this, written.AsSpan(start, Math.Min(piece, length - start)).ToArray());
+			}
 			unsent.SetLength(0);
-			link.Queue(this, message);
 		}
 
 		protected override void Dispose(bool disposing) {

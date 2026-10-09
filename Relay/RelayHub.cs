@@ -159,7 +159,8 @@ internal sealed class RelayHub {
 		if (!reclaiming) {
 			NoteMoved(context, address, room, gameVersion);
 		}
-		peer.Send(new RelayControl(RelayControl.Welcome, room.Code, Rooms.KeyFor(room.Code), options.PingIntervalSeconds));
+		peer.Send(new RelayControl(RelayControl.Welcome, room.Code, Rooms.KeyFor(room.Code), options.PingIntervalSeconds,
+			maxMessageBytes: options.MaxHostMessageBytes));
 
 		await peer.RunAsync((message, type) => FromHost(room, peer, address, message, type), shutdown);
 
@@ -424,7 +425,7 @@ internal sealed class RelayHub {
 		}
 
 		log.LogInformation("Guest {Guest} at {Address} joined room {Code}", id, address, room.Code);
-		peer.Send(new RelayControl(RelayControl.Welcome, pingSeconds: options.PingIntervalSeconds));
+		peer.Send(new RelayControl(RelayControl.Welcome, pingSeconds: options.PingIntervalSeconds, maxMessageBytes: options.MaxGuestMessageBytes));
 		// The guest's key first, for the host to ban it by.
 		string banKey;
 		lock (room) {
