@@ -56,8 +56,9 @@ public class NuclearWeaponsTest : IClassFixture<SaveGameFixture>, System.IDispos
 		return gameData.Buildings.Single(b => b.name == name);
 	}
 
-	private City FoundCity(Player player, int size) {
-		Tile tile = player.units.First(u => u.unitType.isSettler).location;
+	// Founds the player's city where its settler stands, or on the tile.
+	private City FoundCity(Player player, int size, Tile tile = null) {
+		tile ??= player.units.First(u => u.unitType.isSettler).location;
 		City city = CityInteractions.BuildCity(tile, player, player.GetNextCityName());
 		while (city.residents.Count < size) {
 			city.AddCitizen(new CityResident() {
@@ -259,9 +260,14 @@ public class NuclearWeaponsTest : IClassFixture<SaveGameFixture>, System.IDispos
 
 	[Fact]
 	public void TacticalNukesCanBeFiredFromSubmarines() {
-		City target = FoundCity(them, 4);
-		Tile sea = gameData.map.tiles.First(t => t.IsWater() && t.unitsOnTile.Count == 0
-			&& t.DistanceTo(target.location) <= 6 && t.DistanceTo(target.location) > 1);
+		// A city within a submarine's reach of the sea, wherever the map
+		// has one.
+		static bool InReach(Tile sea, Tile land) => sea.IsWater() && sea.unitsOnTile.Count == 0
+			&& sea.DistanceTo(land) <= 6 && sea.DistanceTo(land) > 1;
+		Tile site = gameData.map.tiles.First(t => t.IsLand() && t.IsAllowCities() && !t.HasCity() && t.unitsOnTile.Count == 0
+			&& gameData.map.tiles.Any(w => InReach(w, t)));
+		City target = FoundCity(them, 4, site);
+		Tile sea = gameData.map.tiles.First(t => InReach(t, target.location));
 		MapUnit sub = Spawn(us, "Nuclear Submarine", sea);
 		MapUnit nuke = ReadyNuke("Tactical Nuke", sea, target.location);
 		nuke.BoardTransport(sub);

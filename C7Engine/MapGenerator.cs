@@ -390,10 +390,11 @@ namespace C7Engine {
 		}
 
 		private static bool MapIsAcceptable(WorldCharacteristics wc, GameMap m) {
-			WorldCharacteristics.OceanCoverage oceanCoverage = wc.oceanCoverage;
 			WorldCharacteristics.Landform landform = wc.landform;
-			int totalTiles = m.tiles.Count;
-			int expectedLandTiles = (int)(totalTiles * (1 - (int)oceanCoverage/100.0));
+			// The land the map is made with, after the extra water. Leaving
+			// that out asked for more land than there is, which an 80% water
+			// pangaea's largest landmass almost never had.
+			int expectedLandTiles = ExpectedLandTiles(wc);
 
 			// Count the tiles that are too close to the poles.
 			int tilesInTopOrBottom10Percent = 0;
