@@ -103,6 +103,10 @@ public class LanHost : IDisposable {
 		// with when it comes back to its seats.
 		public string token;
 		public readonly List<byte[]> pendingUiMessages = new();
+		// The guest guessed at what its orders do (see MovePrediction), so
+		// its next snapshot is sent even if the game hasn't changed, which
+		// only a snapshot would show it otherwise.
+		public bool awaitsAnswer;
 	}
 
 	private readonly string hostName;
@@ -719,6 +723,7 @@ public class LanHost : IDisposable {
 				ChooseCivilization(guest, frame);
 				return true;
 			case FrameKind.Command:
+			case FrameKind.PredictedCommand:
 				HandleCommand(guest, frame);
 				return true;
 			case FrameKind.RequestSnapshot:
@@ -918,6 +923,7 @@ public class LanHost : IDisposable {
 		}
 		msg.DistrustRemoteSender(id => theirs.Any(s => s.info.playerID == id));
 		EngineStorage.ReceiveFromRemote(msg);
+		guest.awaitsAnswer |= frame.kind == FrameKind.PredictedCommand;
 	}
 
 	// A guest's choice of civilization: one nobody else has chosen, or null
@@ -1078,8 +1084,12 @@ public class LanHost : IDisposable {
 			List<Guest> connected = SeatedGuests();
 			if (connected.Count > 0) {
 				round = new SnapshotRound();
+				// Orders the engine is yet to carry out are answered by a
+				// later snapshot.
+				bool answered = !EngineStorage.HasPendingMessagesToEngine();
 				foreach (Guest guest in connected) {
-					SendSnapshot(guest.connection, EncodeSnapshot(round, guest), guest.pendingUiMessages);
+					SendSnapshot(guest.connection, EncodeSnapshot(round, guest), guest.pendingUiMessages, guest.awaitsAnswer && answered);
+					guest.awaitsAnswer &= !answered;
 				}
 				ForgetUnusedViews();
 			}
@@ -1106,8 +1116,9 @@ public class LanHost : IDisposable {
 		connection.SendWholeSnapshotNext();
 	}
 
-	private static void SendSnapshot(LanConnection connection, Task<EncodedSnapshot> snapshot, List<byte[]> pendingUiMessages) {
-		connection.SendSnapshot(snapshot);
+	private static void SendSnapshot(LanConnection connection, Task<EncodedSnapshot> snapshot, List<byte[]> pendingUiMessages,
+		bool evenIfSame = false) {
+		connection.SendSnapshot(snapshot, evenIfSame);
 		foreach (byte[] json in pendingUiMessages) {
 			connection.Send(FrameKind.UiMessage, json);
 		}

@@ -26,6 +26,10 @@ public enum FrameKind : byte {
 	// Asks for the whole game in the next snapshot, from a client that
 	// couldn't apply a SnapshotDelta.
 	RequestSnapshot = 7,
+	// A Command the client has already carried out on its own game (see
+	// MovePrediction), which the host answers with a snapshot even if its
+	// game is unchanged, to put the client's right.
+	PredictedCommand = 8,
 
 	// Host to client.
 	Lobby = 10,

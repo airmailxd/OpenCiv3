@@ -154,6 +154,7 @@ public static class LanSession {
 	public static void BeginJoining(LanClient client) {
 		End();
 		Client = client;
+		client.PredictMoves = MovePrediction.Enabled;
 		EngineStorage.remoteEngine = client.SendCommand;
 	}
 
