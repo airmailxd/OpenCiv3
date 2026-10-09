@@ -123,15 +123,52 @@ public class UnitedNationsTest : System.IDisposable {
 		Assert.Equal([rome, greece], UnitedNations.Candidates(gameData));
 	}
 
+	private static void Deal(Player a, Player b, DealSubType type) {
+		PlayerRelationship.RegisterMultiTurnDeal(a, b,
+			new MultiTurnDeal(DealType.DiplomaticAgreement, type, DealDetails.Exchange, 0, null, 0, 0, null));
+	}
+
+	// A Right of Passage makes an AI polite (-5 attitude points).
+	private static void Befriend(Player a, Player b) => Deal(a, b, DealSubType.RightOfPassage);
+
+	private int Attitude(Player voter, Player candidate) => UnitedNations.Attitude(gameData, voter, candidate).Value;
+
+	// https://civfanatics.com/civ3/strategy/game-mechanics/ai-attitude-study/:
+	// "The AI must be at least polite or better to vote for you in the UN".
 	[Fact]
-	public void AIVotesForTheCandidateItIsAtPeaceWith() {
+	public void AIAbstainsWhenMerelyAtPeace() {
 		Player rome = MakePlayer("Romans", 3);
-		Player egypt = MakePlayer("Egyptians", 7);
+		Player egypt = MakePlayer("Egyptians", 3);
 		Player greece = MakePlayer("Greeks", 2);
 		Meet(rome, egypt, greece);
-		PlayerRelationship.DeclareWar(greece, egypt, false, 0);
 
-		Assert.Equal(rome, UnitedNations.AIVote(greece, rome, egypt));
+		Assert.Equal(0, Attitude(greece, rome));
+		Assert.Null(UnitedNations.AIVote(gameData, greece, rome, egypt));
+
+		Befriend(greece, rome);
+		Assert.Equal(-5, Attitude(greece, rome));
+		Assert.Equal(rome, UnitedNations.AIVote(gameData, greece, rome, egypt));
+	}
+
+	// https://forums.civfanatics.com/threads/diplomatic-victory.53460/ (Catt):
+	// "An AI will not vote for a civ with whom it is at war".
+	[Fact]
+	public void AINeverVotesForAnEnemy() {
+		Player rome = MakePlayer("Romans", 3);
+		Player egypt = MakePlayer("Egyptians", 3);
+		Player greece = MakePlayer("Greeks", 2);
+		Meet(rome, egypt, greece);
+		Befriend(greece, egypt);
+		Assert.Equal(egypt, UnitedNations.AIVote(gameData, greece, rome, egypt));
+
+		PlayerRelationship.DeclareWar(greece, egypt, false, 0);
+		// However well it might think of them otherwise.
+		egypt.playerRelationships[greece.id].hasEmbassy = true;
+		Assert.True(Attitude(greece, egypt) <= UnitedNations.PoliteAttitude);
+		Assert.Null(UnitedNations.AIVote(gameData, greece, rome, egypt));
+
+		Befriend(greece, rome);
+		Assert.Equal(rome, UnitedNations.AIVote(gameData, greece, rome, egypt));
 	}
 
 	[Fact]
@@ -140,7 +177,7 @@ public class UnitedNationsTest : System.IDisposable {
 		Player egypt = MakePlayer("Egyptians", 7);
 		Player greece = MakePlayer("Greeks", 2);
 
-		Assert.Null(UnitedNations.AIVote(greece, rome, egypt));
+		Assert.Null(UnitedNations.AIVote(gameData, greece, rome, egypt));
 	}
 
 	[Fact]
@@ -152,41 +189,135 @@ public class UnitedNationsTest : System.IDisposable {
 		PlayerRelationship.DeclareWar(greece, egypt, false, 0);
 		PlayerRelationship.DeclareWar(greece, rome, false, 0);
 
-		Assert.Null(UnitedNations.AIVote(greece, rome, egypt));
+		Assert.Null(UnitedNations.AIVote(gameData, greece, rome, egypt));
 	}
 
+	// https://forums.civfanatics.com/threads/when-someone-else-builds-the-u-n.85895/
+	// (Evertonian): "An AI always votes for itself if able".
 	[Fact]
-	public void AIPrefersAnAllyAndBreaksTiesForTheSmallerCandidate() {
+	public void ACandidateVotesForItself() {
 		Player rome = MakePlayer("Romans", 3);
 		Player egypt = MakePlayer("Egyptians", 7);
+		Meet(rome, egypt);
+		Deal(rome, egypt, DealSubType.MutualProtectionPact);
+
+		Assert.Equal(egypt, UnitedNations.AIVote(gameData, egypt, rome, egypt));
+	}
+
+	// Evertonian: an AI polite to more than one candidate votes for the one
+	// it favours most.
+	[Fact]
+	public void AIPrefersTheFriendlierCandidate() {
+		Player rome = MakePlayer("Romans", 3);
+		Player egypt = MakePlayer("Egyptians", 3);
 		Player greece = MakePlayer("Greeks", 2);
 		Meet(rome, egypt, greece);
+		Befriend(greece, rome);
+		Deal(greece, egypt, DealSubType.MutualProtectionPact);
 
-		// Equally liked: the smaller civ gets the vote.
-		Assert.Equal(rome, UnitedNations.AIVote(greece, rome, egypt));
+		Assert.Equal(-5, Attitude(greece, rome));
+		Assert.Equal(-10, Attitude(greece, egypt));
+		Assert.Equal(egypt, UnitedNations.AIVote(gameData, greece, rome, egypt));
 
-		PlayerRelationship.RegisterMultiTurnDeal(greece, egypt, MultiTurnDeal.DEFAULT_MUTUAL_PROTECTION_PACT);
-		Assert.Equal(egypt, UnitedNations.AIVote(greece, rome, egypt));
+		// Caught spies (+1 each) and past wars (+4 each) count against a
+		// candidate.
+		greece.playerRelationships[egypt.id].espionageIncidents = 2;
+		greece.playerRelationships[egypt.id].warDeclarationCount = 1;
+		Assert.Equal(-4, Attitude(greece, egypt));
+		Assert.Equal(rome, UnitedNations.AIVote(gameData, greece, rome, egypt));
+	}
 
-		// Caught spies count against a candidate.
-		greece.playerRelationships[egypt.id].espionageIncidents = 10;
-		Assert.Equal(rome, UnitedNations.AIVote(greece, rome, egypt));
+	// The study's "War with common enemy: -3".
+	[Fact]
+	public void AFellowEnemyOfAThirdCivIsLiked() {
+		Player rome = MakePlayer("Romans", 3);
+		Player egypt = MakePlayer("Egyptians", 3);
+		Player greece = MakePlayer("Greeks", 2);
+		Player persia = MakePlayer("Persians", 2);
+		Meet(rome, egypt, greece, persia);
+		PlayerRelationship.DeclareWar(greece, persia, false, 0);
+		PlayerRelationship.DeclareWar(egypt, persia, false, 0);
+
+		// Less the +1 to its reputation for declaring war on Persia.
+		Assert.Equal(-2, Attitude(greece, egypt));
+		Assert.Equal(egypt, UnitedNations.AIVote(gameData, greece, rome, egypt));
+	}
+
+	// Reputation: the study's "Break peace treaty: +4 (other civs: +1)".
+	[Fact]
+	public void ACandidateThatDeclaredWarOnOthersIsLikedLess() {
+		Player rome = MakePlayer("Romans", 3);
+		Player egypt = MakePlayer("Egyptians", 2);
+		Player greece = MakePlayer("Greeks", 2);
+		Player persia = MakePlayer("Persians", 2);
+		Meet(rome, egypt, greece, persia);
+		Befriend(greece, rome);
+		Befriend(greece, egypt);
+
+		// Equally liked, so the smaller civ gets the vote.
+		Assert.Equal(egypt, UnitedNations.AIVote(gameData, greece, rome, egypt));
+
+		persia.playerRelationships[egypt.id].warDeclarationCount = 2;
+		Assert.Equal(-3, Attitude(greece, egypt));
+		Assert.Equal(rome, UnitedNations.AIVote(gameData, greece, rome, egypt));
+	}
+
+	// HEURISTIC (the project owner: size counts): an AI is wary of a much
+	// larger candidate.
+	[Fact]
+	public void AIIsWaryOfAMuchLargerCandidate() {
+		Player rome = MakePlayer("Romans", 2);
+		Player egypt = MakePlayer("Egyptians", 8);
+		Player greece = MakePlayer("Greeks", 2);
+		Meet(rome, egypt, greece);
+		Befriend(greece, rome);
+		Befriend(greece, egypt);
+		Deal(greece, egypt, DealSubType.GoldPerTurn);
+
+		// Egypt has four times Greece's citizens: -5 - 1 + 2.
+		Assert.Equal(-4, Attitude(greece, egypt));
+		Assert.Equal(rome, UnitedNations.AIVote(gameData, greece, rome, egypt));
+	}
+
+	// The study: "If you have a power lead, most of the good effects
+	// (negative numbers) are halved."
+	[Fact]
+	public void AStrongerCandidateCountsForHalf() {
+		Player rome = MakePlayer("Romans", 2);
+		Player egypt = MakePlayer("Egyptians", 2);
+		Player greece = MakePlayer("Greeks", 2);
+		Meet(rome, egypt, greece);
+		Befriend(greece, rome);
+		Deal(greece, rome, DealSubType.GoldPerTurn);
+		Deal(greece, egypt, DealSubType.MutualProtectionPact);
+		Assert.Equal(egypt, UnitedNations.AIVote(gameData, greece, rome, egypt));
+
+		egypt.units.Add(new MapUnit(ID.FromString("unit-1")) {
+			owner = egypt,
+			unitType = new UnitPrototype { attack = 10, defense = 10 },
+			experienceLevel = new ExperienceLevel("regular", "Regular", 3, 0, 0),
+		});
+		Assert.Equal(-5, Attitude(greece, egypt));
+		Assert.Equal(rome, UnitedNations.AIVote(gameData, greece, rome, egypt));
 	}
 
 	[Fact]
 	public void AIChoosesAmongThreeCandidates() {
 		Player rome = MakePlayer("Romans", 3);
-		Player egypt = MakePlayer("Egyptians", 7);
-		Player persia = MakePlayer("Persians", 5);
+		Player egypt = MakePlayer("Egyptians", 3);
+		Player persia = MakePlayer("Persians", 3);
 		Player greece = MakePlayer("Greeks", 2);
 		Meet(rome, egypt, persia, greece);
+		Befriend(greece, egypt);
+		Befriend(greece, persia);
+		Deal(greece, rome, DealSubType.MutualProtectionPact);
 		PlayerRelationship.DeclareWar(greece, rome, false, 0);
 
-		// At war with Rome, and Persia is the smaller of the others.
-		Assert.Equal(persia, UnitedNations.AIVote(greece, rome, egypt, persia));
+		// At war with Rome; Egypt and Persia equally liked, Egypt listed first.
+		Assert.Equal(egypt, UnitedNations.AIVote(gameData, greece, rome, egypt, persia));
 
-		PlayerRelationship.RegisterMultiTurnDeal(greece, egypt, MultiTurnDeal.DEFAULT_MUTUAL_PROTECTION_PACT);
-		Assert.Equal(egypt, UnitedNations.AIVote(greece, rome, egypt, persia));
+		Deal(greece, persia, DealSubType.GoldPerTurn);
+		Assert.Equal(persia, UnitedNations.AIVote(gameData, greece, rome, egypt, persia));
 	}
 
 	// "Each civilization gets 1 vote" and "If a civilization gains a
@@ -201,6 +332,8 @@ public class UnitedNationsTest : System.IDisposable {
 		Meet(rome, egypt, greece, persia);
 		PlayerRelationship.DeclareWar(greece, egypt, false, 0);
 		PlayerRelationship.DeclareWar(persia, egypt, false, 0);
+		Befriend(greece, rome);
+		Befriend(persia, rome);
 
 		// Egypt's 20 citizens count for no more than Rome's one.
 		UnitedNations.ElectionResult result = UnitedNations.HoldElection(gameData);
@@ -220,6 +353,7 @@ public class UnitedNationsTest : System.IDisposable {
 		Meet(rome, egypt, greece, persia);
 		PlayerRelationship.DeclareWar(persia, egypt, false, 0);
 		PlayerRelationship.DeclareWar(persia, greece, false, 0);
+		Befriend(persia, rome);
 
 		// Rome 2 (with Persia), Egypt 1, Greece 1: not more than half of 4.
 		UnitedNations.ElectionResult result = UnitedNations.HoldElection(gameData);
@@ -311,6 +445,7 @@ public class UnitedNationsTest : System.IDisposable {
 		BuildUnitedNations(rome);
 		Meet(rome, egypt, greece);
 		PlayerRelationship.DeclareWar(greece, egypt, false, 0);
+		Befriend(greece, rome);
 		gameData.victories.Add(new DiplomaticVictory());
 
 		// The round that finds the UN schedules a vote for the coming turn.

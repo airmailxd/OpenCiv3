@@ -342,67 +342,163 @@ namespace C7Engine {
 				}
 				return null;
 			}
-			return AIVote(voter, candidates);
+			return AIVote(gameData, voter, candidates);
 		}
 
-		// An AI votes for the candidate it likes best, judged by war, treaties
-		// and grievances. If it is at war with every candidate it has met, it
-		// abstains. Between equally liked candidates it votes for the smallest
-		// one, so as not to hand the world to the strongest civ (further ties
-		// go to the candidate listed first).
-		public static Player AIVote(Player voter, params Player[] candidates) {
+		// How an AI votes. From CivFanatics:
+		// - https://forums.civfanatics.com/threads/when-someone-else-builds-the-u-n.85895/
+		//   (Evertonian): "The AI will vote for you if their attitude towards
+		//   you is 'polite' or better", unless it likes another candidate
+		//   better, in which case it votes for the one it favours most; it
+		//   abstains if it is cautious or worse toward every candidate, and
+		//   "always votes for itself if able".
+		// - https://civfanatics.com/civ3/strategy/game-mechanics/ai-attitude-study/:
+		//   "The AI must be at least polite or better to vote for you in the
+		//   UN, otherwise, they will abstain or vote for the other guy."
+		// - https://forums.civfanatics.com/threads/diplomatic-victory.53460/
+		//   (Catt): "An AI will not vote for a civ with whom it is at war".
+		// The attitude itself is Attitude below. HEURISTIC: between candidates
+		// it likes equally, it votes for the smaller one (by citizens), so as
+		// not to hand the world to the strongest civ; further ties go to the
+		// candidate listed first. No randomness is involved.
+		public static Player AIVote(GameData gameData, Player voter, params Player[] candidates) {
+			if (candidates.Contains(voter)) {
+				return voter;
+			}
 			Player best = null;
-			int bestOpinion = int.MinValue;
+			int bestAttitude = int.MaxValue;
 			foreach (Player candidate in candidates) {
-				int? opinion = Opinion(voter, candidate);
-				if (opinion == null) {
+				int? attitude = Attitude(gameData, voter, candidate);
+				if (attitude == null || PlayerRelationship.AtWar(voter, candidate)) {
 					continue;
 				}
-				if (best == null || opinion > bestOpinion
-					|| (opinion == bestOpinion && Population(candidate) < Population(best))) {
+				if (best == null || attitude < bestAttitude
+					|| (attitude == bestAttitude && Population(candidate) < Population(best))) {
 					best = candidate;
-					bestOpinion = opinion.Value;
+					bestAttitude = attitude.Value;
 				}
 			}
-			return best == null || bestOpinion <= AtWarOpinion ? null : best;
+			return best != null && bestAttitude <= PoliteAttitude ? best : null;
 		}
 
-		// An opinion at or below this is no better than being at war.
-		private const int AtWarOpinion = 0;
+		// The AI Attitude Study
+		// (https://civfanatics.com/civ3/strategy/game-mechanics/ai-attitude-study/)
+		// counts an AI's attitude in points where "Good things actually give
+		// you a negative number, and bad things give you a positive number":
+		// "-11 and lower = Gracious", "-1 through -10 = Polite", "0 =
+		// Cautious", "1-10 = Annoyed", "11 through 100 = Furious".
+		public const int PoliteAttitude = -1;
 
-		// How much the voter likes the candidate; higher is better, and at or
-		// below zero means at war. Null if they haven't met.
-		internal static int? Opinion(Player voter, Player candidate) {
+		// HEURISTIC (per the project owner, the candidate's size counts): an
+		// AI is wary of a candidate with at least twice its citizens, and more
+		// so of one with four times as many. These are attitude points.
+		private const int WaryOfTwiceOurSize = 1;
+		private const int WaryOfFourTimesOurSize = 2;
+
+		// The voter's attitude toward the candidate, in the Attitude Study's
+		// points (lower is better; see PoliteAttitude), from what the engine
+		// records of the two civs; null if they haven't met. The values are
+		// the study's, for the factors the engine tracks. The study's
+		// aggression levels, favourite and shunned governments, culture lead,
+		// gifts, tribute and the temporary effects of combat aren't tracked,
+		// so they don't count.
+		internal static int? Attitude(GameData gameData, Player voter, Player candidate) {
 			if (!PlayerRelationship.TryGetRelationship(voter, candidate, out PlayerRelationship pr)) {
 				return null;
 			}
-			if (pr.AtWar()) {
-				return -100 - 10 * pr.warDeclarationCount;
-			}
-			int opinion = 100;
-			foreach (MultiTurnDeal deal in pr.multiTurnDeals) {
-				opinion += deal.dealSubType switch {
-					DealSubType.MilitaryAlliance => 40,
-					DealSubType.MutualProtectionPact => 30,
-					DealSubType.RightOfPassage => 10,
-					DealSubType.GoldPerTurn or DealSubType.ResourcePerTurn or DealSubType.LuxuryPerTurn => 5,
-					_ => 0,
-				};
-			}
-			if (voter.alliance != null && voter.alliance == candidate.alliance) {
-				opinion += 50;
-			}
+			PlayerRelationship.TryGetRelationship(candidate, voter, out PlayerRelationship theirs);
+
+			// Good things (negative points). The study: "Same culture group:
+			// -1", "Same government: -1", "Right of Passage: -5", "Mutual
+			// Protection Pact: -10", "Alliance signed: -2", "Trade embargo
+			// signed: -1", "Trade/donate resource: -5", "Recent trades: -1",
+			// "War with common enemy: -3", "Embassy: -2".
+			int good = 0;
 			string cultureGroup = voter.civilization?.cultureGroup?.name;
 			if (cultureGroup != null && cultureGroup == candidate.civilization?.cultureGroup?.name) {
-				opinion += 5;
+				good -= 1;
 			}
-			opinion -= 10 * pr.warDeclarationCount;
-			opinion -= 10 * pr.warDeclarationWithRoPActiveCount;
-			opinion -= pr.wasSneakAttacked ? 20 : 0;
-			opinion -= 5 * pr.espionageIncidents;
-			opinion -= 15 * pr.nuclearAtrocityCount;
-			// Peace still counts for something, however bad the history.
-			return System.Math.Max(opinion, AtWarOpinion + 1);
+			if (voter.government?.name != null && voter.government.name == candidate.government?.name) {
+				good -= 1;
+			}
+			bool HasDeal(params DealSubType[] types) => pr.multiTurnDeals.Any(d => types.Contains(d.dealSubType));
+			if (HasDeal(DealSubType.RightOfPassage)) {
+				good -= 5;
+			}
+			if (HasDeal(DealSubType.MutualProtectionPact)) {
+				good -= 10;
+			}
+			// UNVERIFIED: that a scenario's alliance counts as one signed.
+			if (HasDeal(DealSubType.MilitaryAlliance) || (voter.alliance != null && voter.alliance == candidate.alliance)) {
+				good -= 2;
+			}
+			if (HasDeal(DealSubType.TradeEmbargo)) {
+				good -= 1;
+			}
+			// UNVERIFIED: that a resource deal counts whichever way the
+			// resource goes, and that a gold-per-turn deal is a recent trade.
+			if (HasDeal(DealSubType.ResourcePerTurn, DealSubType.LuxuryPerTurn)) {
+				good -= 5;
+			}
+			if (HasDeal(DealSubType.GoldPerTurn)) {
+				good -= 1;
+			}
+			if (gameData.players.Any(p => p != voter && p != candidate
+				&& PlayerRelationship.TryGetRelationship(voter, p, out PlayerRelationship v) && v.AtWar()
+				&& PlayerRelationship.TryGetRelationship(candidate, p, out PlayerRelationship c) && c.AtWar())) {
+				good -= 3;
+			}
+			if (theirs?.hasEmbassy == true) {
+				good -= 2;
+			}
+			// "If you have a power lead, most of the good effects (negative
+			// numbers) are halved." UNVERIFIED: that a power lead is being
+			// stronger than the voter as the military advisor judges it
+			// (Player.CompareMilitaryStrengthTo), that all the good effects
+			// are halved, and that halves are rounded toward zero.
+			if (candidate.CompareMilitaryStrengthTo(voter) == Player.MilitaryStrength.StrongTo) {
+				good /= 2;
+			}
+
+			// Bad things (positive points), which the study counts for good:
+			// "Declared war previously: +4", "Break ROP (no units in
+			// territory): +4", "Failed espionage (permanent): +1", "Use nukes:
+			// +32 victim (other civs: +16)". UNVERIFIED: the engine doesn't
+			// record whether units were inside the borders when a Right of
+			// Passage was broken (+6 then), the temporary +4 of a failed
+			// mission, or who a nuclear attack hit, so each counts as given.
+			int bad = 4 * pr.warDeclarationCount
+				+ 4 * pr.warDeclarationWithRoPActiveCount
+				+ pr.espionageIncidents
+				+ 16 * pr.nuclearAtrocityCount;
+
+			// Reputation: what the candidate did to other civs. The study's
+			// "Break peace treaty: +4 (other civs: +1)" and "Break ROP (no
+			// units in territory): +4 (other civs: +1)". UNVERIFIED: that
+			// every war the candidate declared broke a peace treaty.
+			foreach (Player other in gameData.players) {
+				if (other != voter && other != candidate
+					&& PlayerRelationship.TryGetRelationship(other, candidate, out PlayerRelationship victim)) {
+					bad += victim.warDeclarationCount + victim.warDeclarationWithRoPActiveCount;
+				}
+			}
+			// "Trade embargo victim: +10": the candidate signed an embargo
+			// against the voter.
+			if (candidate.playerRelationships.Values.Any(r => r.multiTurnDeals.Any(
+				d => d.dealSubType == DealSubType.TradeEmbargo && d.againstPlayer == voter.id))) {
+				bad += 10;
+			}
+
+			// HEURISTIC: size (see WaryOfTwiceOurSize).
+			int ours = System.Math.Max(1, Population(voter));
+			int theirSize = Population(candidate);
+			if (theirSize >= 4 * ours) {
+				bad += WaryOfFourTimesOurSize;
+			} else if (theirSize >= 2 * ours) {
+				bad += WaryOfTwiceOurSize;
+			}
+
+			return good + bad;
 		}
 	}
 }
