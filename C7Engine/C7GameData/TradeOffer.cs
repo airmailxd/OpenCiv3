@@ -33,6 +33,22 @@ namespace C7GameData {
 		// trusted: each side must have the gold and techs it gives, the
 		// other side must be able to use the techs, the two must have met,
 		// and while at war they can only make peace (and peace only then).
+		//
+		// Civ3 sources for these rules:
+		// - Techs go only to a civ that has their prerequisites: "they can
+		//   be traded with any other civilization, as long as that civ has
+		//   the prerequisite technologies"
+		//   (https://forums.civfanatics.com/threads/revolutionizing-the-tech-tree-mechanics.102803/).
+		// - A peace treaty may come with gold and techs (but not resources)
+		//   (https://forums.civfanatics.com/threads/a-question-about-peace-treaties.400809/).
+		// - Civs in alliances a scenario locks at war "will _always_ remain
+		//   at war" with each other, so can't make peace
+		//   (https://forums.civfanatics.com/threads/how-do-i-add-alliances-in-editor.188963/).
+		// - UNVERIFIED (no Civ3 source found): that while at war nothing can
+		//   be traded without a peace treaty. The deal screen already
+		//   offered only a peace treaty at war before this check existed.
+		// - UNVERIFIED (no Civ3 source found): that the two must have met.
+		//   Only civs met can be picked for diplomacy.
 		public static string ProblemWithDeal(GameData gameData, Player proposer, Player opponent,
 			TradeOffer proposerGives, TradeOffer proposerWants) {
 			if (proposer == null || opponent == null || proposerGives == null || proposerWants == null) {

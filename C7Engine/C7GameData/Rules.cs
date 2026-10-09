@@ -24,8 +24,12 @@ namespace C7GameData {
 		public int MaxInterest = 50;
 		public int ShieldCostPerGold;
 		// The share of a unit's shield cost a city gets when the unit is
-		// disbanded in it. Civ3 gives half (it isn't in the BIQ).
-		public float ShieldRateForDisbanding = .5f;
+		// disbanded in it (rounded down, and nothing towards a wonder). Civ3
+		// gives a quarter; it isn't in the BIQ. See
+		// https://civfanatics.com/civ3/faq/ ("The number of shields added is
+		// 1/4 the shield cost of the unit, rounded down") and
+		// https://forums.civfanatics.com/threads/disbanding-units-for-shields.211405/
+		public float ShieldRateForDisbanding = .25f;
 		public bool AllowLesserUnitProduction; // for example, allow building a Spearman/Pikeman when we can build a Musketman (simultaneously)
 		public int RadarTileVisibility; // how many tiles, a unit with the Radar ability, can see ahead
 
@@ -77,23 +81,30 @@ namespace C7GameData {
 		public int GoldenAgeDuration = 20;
 		public int UpgradeCostPerShield = 3; // gold per shield of difference between a unit and its upgrade
 
-		// The gold each civ starts a new game with.
+		// The gold each civ starts a new game with: the BIQ RULE's starting
+		// treasury (10 in conquests.biq).
 		public int StartingTreasury = 10;
 
 		// The civilopedia name of the first era, which civs start a new game
 		// in.
 		public string FirstEraCivilopediaName = "ERAS_Ancient_Times";
 
-		// The food each citizen eats a turn.
+		// The food each citizen eats a turn: the BIQ RULE's food consumption
+		// per citizen (2 in conquests.biq).
 		public int FoodConsumptionPerCitizen = 2;
 
 		// How many road moves a unit can make for one movement point. Games
 		// imported from Civ3 build the road's movement cost from it (see
-		// SaveTerrainImprovement.Civ3Improvements).
+		// SaveTerrainImprovement.Civ3Improvements). conquests.biq has 3: "when
+		// on a road, a unit can travel three tiles, regardless of the
+		// underlying terrain" (https://civfanatics.com/civ3/faq/).
 		public int MovementAlongRoads = 3;
 
 		// The defense bonus of a fortress, in per cent. Games imported from
-		// Civ3 build the fortress's defense bonus from it.
+		// Civ3 build the fortress's defense bonus from it. conquests.biq has
+		// 50: "When a unit is stationed in a fortress it receives a 50% bonus
+		// to their defense"
+		// (https://forums.civfanatics.com/threads/combat-system-explained.7679/).
 		public int FortressDefensiveBonus = 50;
 
 		// The following come from the BIQ's RULE section, but nothing uses

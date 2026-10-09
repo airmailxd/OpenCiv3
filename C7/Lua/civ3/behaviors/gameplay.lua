@@ -64,6 +64,14 @@ end
 -- The date to show for a raw time (see TimeOptions.GetRawNumber, which
 -- counts from the start month, week, day or hour). It only reads the game
 -- data, so showing a date never changes anything.
+--
+-- Civ3 counts a scenario in years, months or weeks, and its start date is
+-- the date of turn 0
+-- (https://forums.civfanatics.com/threads/time-options-time-scale.456771/),
+-- which is what this shows for raw time 1 of a month or week calendar.
+-- UNVERIFIED (no Civ3 source found): how Civ3 writes month and week dates
+-- ("Jan, 1942 AD", "Week 1, 1942 AD"), and that its year has 52 weeks.
+-- Days and hours are C7's own; Civ3 has no such time units.
 local function get_display_time_text(raw_time)
   local options = game_data().timeOptions
   local base_unit = options.baseUnit

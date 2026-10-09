@@ -344,13 +344,16 @@ namespace C7GameData {
 			// are left for GameSetup.Populate to make.
 			bool hasMap = biq.Wmap?.Length > 0 && biq.Tile?.Length > 0;
 
-			// Civ3 replays a scenario's random numbers only if it asks to
-			// preserve its random seed.
-			if (hasMap && GameBiq?.Game?[0].PreserveRandomSeed == true) {
-				save.Seed = biq.Wmap[0].MapSeed;
-			} else {
-				save.Seed = Random.Shared.Next(int.MaxValue);
-			}
+			// The game's random numbers start from the map's seed. Civ3's
+			// "Preserve random seed" doesn't choose this seed: it "means that
+			// the randomly generated number for something such as a battle or
+			// anarchy calculation will be stored in the game so that you
+			// cannot save your game and reload continuously to get a favored
+			// outcome" (https://civfanatics.com/civ3/faq/). C7 always saves
+			// its random state (GameRandom), so it always behaves that way.
+			// Without a map, GameSetup.Populate sets the seed of the map it
+			// generates.
+			save.Seed = hasMap ? biq.Wmap[0].MapSeed : Random.Shared.Next(int.MaxValue);
 
 			ImportSharedBiqData();
 			ImportBiqVictory();
@@ -553,18 +556,21 @@ namespace C7GameData {
 
 		}
 
-		// The turn the game ends on. A scenario's own turn limit only counts
-		// if it is set to use it; otherwise, as in Civ3, the game ends when
-		// its time scale runs out.
+		// The turn the game ends on: the GAME section's turn limit, as before
+		// eb8aad18. A limit of 0 means none (see TimeLimitVictory).
+		//
+		// Civ3's "standard game length is 540 turns"
+		// (https://civfanatics.com/civ3/faq/), which conquests.biq stores
+		// as a turn limit of 540, with its "use time limit" flag clear. The
+		// time scale can't be summed instead: the BIQ lists only 7 of its
+		// segments, 440 turns in a standard game, and "Whatever turns isn't
+		// listed...is assigned to 1 unit (year, month, week) per turn"
+		// (https://forums.civfanatics.com/threads/time-options-time-scale.456771/).
+		// UNVERIFIED (no Civ3 source found): what the "use time limit" flag
+		// does. Every BIQ that ships with Conquests that leaves it clear has
+		// a turn limit of 540.
 		private static int TurnLimit(QueryCiv3.Biq.GAME game) {
-			if (game.UseTimeLimit != 0 && game.TurnTimeLimit > 0) {
-				return game.TurnTimeLimit;
-			}
-			int timeScaleTurns = 0;
-			for (int i = 0; i < 7; ++i) {
-				timeScaleTurns += Math.Max(0, game.TimescaleNumberOfTurns[i]);
-			}
-			return timeScaleTurns > 0 ? timeScaleTurns : new TimeOptions().turnLimit;
+			return Math.Max(0, game.TurnTimeLimit);
 		}
 
 		// The victory conditions of a scenario. A scenario either uses
@@ -853,6 +859,12 @@ namespace C7GameData {
 					continue;
 				}
 				Civilization civ = save.Civilizations[leader.RaceID];
+				// The GAME section's HumanPlayers and RemainingPlayers are
+				// bitmaps by LEAD index. No CivFanatics source documents them,
+				// but they were checked against 60 Conquests saves: the human
+				// slots matched the games' players, including the hotseat
+				// ones, and only civs with no cities or units were missing
+				// from RemainingPlayers.
 				SavePlayer player = MakeSavePlayerFromCiv(civ,
 										  isHuman: !civ.isBarbarian && savData.Game.HumanPlayers[i],
 										  era: theBiq.Eras[leader.Era].CivilopediaEntry,
@@ -1420,7 +1432,10 @@ namespace C7GameData {
 			}
 
 			// Each civ's starting location gets the starting units, at the
-			// default experience level.
+			// default experience level (the second EXPR, Regular in Civ3's
+			// rules, which these units were hardcoded to before eb8aad18).
+			// UNVERIFIED (no Civ3 source found): the experience Civ3 gives
+			// them. Units placed on the map take their level from the BIQ.
 			RULE rule = biq.Rule?[0] ?? defaultBiq.Rule[0];
 			ExperienceLevel startLevel = save.ExperienceLevels.Find(e => e.key == save.DefaultExperienceLevel) ?? save.ExperienceLevels[0];
 			foreach (SLOC starting_location in biq.Sloc ?? []) {
@@ -1641,20 +1656,25 @@ namespace C7GameData {
 		}
 
 		// What a scenario's city starts out producing, since the BIQ doesn't
-		// say: the cheapest land unit the owner can build with the techs it
-		// starts with, or else the first inflow (Wealth). The player can
-		// change it.
+		// say. The player can change it.
+		//
+		// UNVERIFIED (no Civ3 source found): what Civ3 starts a scenario's
+		// cities on. As before eb8aad18, it is a Worker, if the owner can
+		// build one. Otherwise it is the cheapest land unit the owner can
+		// build with the techs it starts with, or else the first inflow
+		// (Wealth), a C7 fallback.
 		private (string, ProducibleType) StartingProduction(SavePlayer player) {
 			Civilization civ = save.Civilizations.Find(c => c.name == player.civilization);
 			HashSet<ID> techs = new(player.knownTechs);
 			if (civ != null) {
 				techs.UnionWith(civ.startingTechs);
 			}
-			SaveUnitPrototype unit = save.UnitPrototypes
+			List<SaveUnitPrototype> buildable = save.UnitPrototypes
 				.Where(p => !p.unproducible && p.categories.Contains("Land") && p.producibleBy.Contains(player.civilization)
 					&& (p.requiredTech == null || techs.Contains(p.requiredTech)) && p.requiredResources.Count == 0)
-				.OrderBy(p => p.shieldCost)
-				.FirstOrDefault();
+				.ToList();
+			SaveUnitPrototype unit = buildable.Find(p => p.name == "Worker")
+				?? buildable.OrderBy(p => p.shieldCost).FirstOrDefault();
 			if (unit != null) {
 				return (unit.name, ProducibleType.UNIT);
 			}
@@ -2012,7 +2032,12 @@ namespace C7GameData {
 				// that both raises the city's defense against land attacks
 				// and protects it from bombardment; a Coastal Fortress only
 				// guards against ships, and a wonder like the Great Wall that
-				// acts as walls does so through its own flags.
+				// acts as walls does so through its own flags. City Walls
+				// provide "a land bombardment defense of 8, and +50% to
+				// defensive bonus against land attacks", and a Coastal
+				// Fortress "a naval bombardment defense of 8, +50% against
+				// naval attacks" (https://civfanatics.com/civ3/civilopedia/improvements/),
+				// as in conquests.biq.
 				if (bldg.DefenseBonus > 0 && bldg.BombardDefense > 0 && !bldg.Wonder && !bldg.SmallWonder) {
 					building.flags.Add(SaveBuilding.Flag.ProvidesWalls);
 					building.flags.Add(SaveBuilding.Flag.CanOnlyBeBuiltInTowns);
@@ -2524,9 +2549,9 @@ namespace C7GameData {
 			save.Rules.MaxRankOfBarbarianCampTiles = 2;
 			save.Rules.DefaultDealDuration = 20;
 			save.Rules.ShieldCostPerGold = rule.ShieldsCostPerGold;
-			// Not in the BIQ. Civ3 gives a city half the shields of a unit
-			// disbanded in it.
-			save.Rules.ShieldRateForDisbanding = 0.5f;
+			// Not in the BIQ. Civ3 gives a city a quarter of the shields of a
+			// unit disbanded in it, rounded down (https://civfanatics.com/civ3/faq/).
+			save.Rules.ShieldRateForDisbanding = 0.25f;
 			save.Rules.AllowLesserUnitProduction = false;
 			save.Rules.RadarTileVisibility = 2;
 			save.Rules.CitiesNeededToSupportAnArmy = rule.CitiesNeededToSupportAnArmy;

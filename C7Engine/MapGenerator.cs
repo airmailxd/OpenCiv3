@@ -2180,7 +2180,9 @@ namespace C7Engine {
 		}
 
 		// How close starting locations may be when there is no other way to
-		// fit every civ in.
+		// fit every civ in. UNVERIFIED (no Civ3 source found): a C7 fallback.
+		// Civ3's own spacing is the world size's distance between civs
+		// (WSIZ), used above.
 		private const int MIN_LAST_RESORT_START_DISTANCE = 3;
 
 		private static bool TileIsTooCloseToOtherStarts(Tile t, List<Tile> startingLocations, int minDistance, int attempt) {
