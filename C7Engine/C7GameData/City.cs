@@ -452,30 +452,16 @@ namespace C7GameData {
 			return owner.ShieldCost(itemBeingProduced) - shieldsStored;
 		}
 
-		// The gold it costs to buy the rest of the current item. Civ3's rush
-		// buying formulas, as worked out by players, with s the shields
-		// remaining:
-		//  - improvements: 2 gold per shield;
-		//  - units: 2s + s^2/20, so big units are relatively dearer;
-		//  - either doubled when nothing has been built yet (an empty box).
-		// The BIQ's "shield value in gold" is 4 in the standard rules, which
-		// Civ3 halves for improvements and units (it's the rate a wonder would
-		// cost, and wonders can't be bought), so the per-shield rate is taken
-		// as half of it to stay rule driven.
+		// The gold it costs to buy the rest of the current item: the BIQ's
+		// "shield value in gold" (4 in the standard rules) for each shield
+		// still needed, the same for units and improvements, doubled from an
+		// empty box. "The cost is four gold per shield purchased (or eight if
+		// no shields have yet been expended on building it--this represents
+		// the extra cost of starting and finishing the project on the same
+		// turn)."
+		// https://apolyton.net/forum/civilization-series/civilization-iii/132835-food-shield-gold-explanation-help-please
 		internal int HurryGoldCost() {
-			int remaining = owner.ShieldCost(itemBeingProduced) - shieldsStored;
-			if (remaining <= 0) {
-				return 0;
-			}
-			int goldPerShield = Math.Max(1, owner.rules.ShieldValueInGold / 2);
-			int cost = goldPerShield * remaining;
-			if (itemBeingProduced is UnitPrototype) {
-				cost += remaining * remaining / 20;
-			}
-			if (HurryingFromAnEmptyBox()) {
-				cost *= 2;
-			}
-			return cost;
+			return ShieldCostForHurrying() * owner.rules.ShieldValueInGold;
 		}
 
 		// Returns the feasibility of hurrying production
@@ -507,7 +493,10 @@ namespace C7GameData {
 			}
 
 			// Civ3 never lets wonders, great or small, be bought or rushed
-			// with citizens.
+			// with citizens: "you cannot rush wonders, even the small ones"
+			// (https://apolyton.net/forum/miscellaneous/archives/civ3-strategy-archive/85927-when-and-why-to-hurry-the-production);
+			// "a Leader is the only way to speed up Wonder production"
+			// (https://apolyton.net/forum/civilization-series/civilization-iii/44853-can-you-hurry-up-wonders).
 			if (itemBeingProduced is Building { isSmallWonder: true } || itemBeingProduced is Building b && b.IsGreatWonder()) {
 				return new HurryProductionDetails() { errorMessage = "Wonders cannot be hurried." };
 			}

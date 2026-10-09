@@ -64,8 +64,10 @@ public class RulesReviewFixTest : IClassFixture<SaveGameFixture> {
 		Assert.NotNull(city.GetHurryProductionDetails().errorMessage);
 	}
 
+	// Civ3 charges the BIQ's shield value in gold (4) for every shield still
+	// needed, units and improvements alike, and double from an empty box.
 	[Fact]
-	public void BuyingAnImprovementCostsTwoGoldAShield() {
+	public void BuyingAnImprovementCostsTheShieldValueInGoldAShield() {
 		City city = BuildCity(us);
 		us.gold = 100000;
 		us.government.hurryingType = Government.HurryProductionType.PaidLabor;
@@ -74,15 +76,16 @@ public class RulesReviewFixTest : IClassFixture<SaveGameFixture> {
 		city.SetStoredShields(10);
 
 		int remaining = us.ShieldCost(temple) - 10;
-		Assert.Equal(2 * remaining, city.GetHurryProductionDetails().goldCost);
+		Assert.Equal(4, gameData.rules.ShieldValueInGold);
+		Assert.Equal(4 * remaining, city.GetHurryProductionDetails().goldCost);
 
 		// Nothing built yet: double.
 		city.SetStoredShields(0);
-		Assert.Equal(4 * us.ShieldCost(temple), city.GetHurryProductionDetails().goldCost);
+		Assert.Equal(8 * us.ShieldCost(temple), city.GetHurryProductionDetails().goldCost);
 	}
 
 	[Fact]
-	public void BuyingAUnitCostsMoreForBigUnits() {
+	public void BuyingAUnitCostsTheSameAShieldAsAnImprovement() {
 		City city = BuildCity(us);
 		us.gold = 100000;
 		us.government.hurryingType = Government.HurryProductionType.PaidLabor;
@@ -91,7 +94,7 @@ public class RulesReviewFixTest : IClassFixture<SaveGameFixture> {
 		city.SetStoredShields(1);
 
 		int s = us.ShieldCost(settler) - 1;
-		Assert.Equal(2 * s + s * s / 20, city.GetHurryProductionDetails().goldCost);
+		Assert.Equal(gameData.rules.ShieldValueInGold * s, city.GetHurryProductionDetails().goldCost);
 	}
 
 	// ---- Gold ----
