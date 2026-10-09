@@ -232,113 +232,113 @@ public class AmbData {
 
 			switch (header) {
 				case 0x6d677270: { // prgm
-					int size = ChunkSize(ambBytes, offset, PRGM_FIXED_SIZE, "prgm"); // does not count itself or the header tag
-					int chunkEnd = offset + HEADER_SIZE + size;
-					var prgm = new PrgmChunk() {
-						size = size,
-						index = BitConverter.ToInt32(ambBytes, offset + 8),
-						randomizePlaybackSpeed = GetFlag(ambBytes[offset + 12], 0),
-						randomizeVolume = GetFlag(ambBytes[offset + 12], 1),
-						maxRandomSpeed = BitConverter.ToInt32(ambBytes, offset + 16),
-						minRandomSpeed = BitConverter.ToInt32(ambBytes, offset + 20),
-						maxRandomVolume = BitConverter.ToInt32(ambBytes, offset + 24),
-						minRandomVolume = BitConverter.ToInt32(ambBytes, offset + 28),
-					};
-					// skip 4 bytes for 0xFA that terminates the chunk (early)
-					var eff = GetNullTerminatedString(ambBytes, offset + 36, chunkEnd);
-					prgm.effectName = eff.text;
-					var var = GetNullTerminatedString(ambBytes, offset + 36 + eff.size + 1, chunkEnd); // +1 to account for the terminating byte 0x00
-					prgm.varName = var.text;
-					this.prgmChunks.Add(prgm);
-					offset = chunkEnd;
-					break;
-				}
-				case 0x70616d6b: { // kmap
-					// The size is not always accurate (e.g. GalleyAttack.amb, where a name is a byte longer than it allows
-					// for), so the chunk is stepped over by its contents
-					CheckRange(ambBytes, offset, 20);
-					var varName = GetNullTerminatedString(ambBytes, offset + 20, ambBytes.Length);
-					int countOffset = offset + 20 + varName.size + 1;
-					CheckRange(ambBytes, countOffset, 8);
-					var kmap = new KmapChunk() {
-						size = BitConverter.ToInt32(ambBytes, offset + 4), // does not count itself or the header tag
-						unknownFlag1 = GetFlag(ambBytes[offset + 8], 0),
-						unknownFlag2 = GetFlag(ambBytes[offset + 8], 1),
-						unknownInt1 = BitConverter.ToInt32(ambBytes, offset + 12),
-						unknownInt2 = BitConverter.ToInt32(ambBytes, offset + 16),
-						varName = varName.text,
-						itemCount = BitConverter.ToInt32(ambBytes, countOffset),
-						dataSize = BitConverter.ToInt32(ambBytes, countOffset + 4),
-					};
-					// Each item is at least its three values and a terminating null
-					if (kmap.itemCount < 0 || kmap.itemCount > (ambBytes.Length - countOffset) / 13) {
-						throw new InvalidDataException($"Invalid kmap item count {kmap.itemCount} at {offset} in {path}");
-					}
-
-					kmap.items = new KmapItem[kmap.itemCount];
-					int itemOffset = countOffset + 8;
-					for (int i = 0; i < kmap.items.Length; i++) {
-						CheckRange(ambBytes, itemOffset, 12);
-						var wavFile = GetNullTerminatedString(ambBytes, itemOffset + 12, ambBytes.Length);
-						kmap.items[i] = new KmapItem() {
-							size = 12 + wavFile.size + 1,
-							unknown1 = BitConverter.ToInt32(ambBytes, itemOffset),
-							unknown2 = BitConverter.ToInt32(ambBytes, itemOffset + 4),
-							unknown3 = BitConverter.ToInt32(ambBytes, itemOffset + 8),
-							wavFileName = wavFile.text
+						int size = ChunkSize(ambBytes, offset, PRGM_FIXED_SIZE, "prgm"); // does not count itself or the header tag
+						int chunkEnd = offset + HEADER_SIZE + size;
+						var prgm = new PrgmChunk() {
+							size = size,
+							index = BitConverter.ToInt32(ambBytes, offset + 8),
+							randomizePlaybackSpeed = GetFlag(ambBytes[offset + 12], 0),
+							randomizeVolume = GetFlag(ambBytes[offset + 12], 1),
+							maxRandomSpeed = BitConverter.ToInt32(ambBytes, offset + 16),
+							minRandomSpeed = BitConverter.ToInt32(ambBytes, offset + 20),
+							maxRandomVolume = BitConverter.ToInt32(ambBytes, offset + 24),
+							minRandomVolume = BitConverter.ToInt32(ambBytes, offset + 28),
 						};
-						itemOffset += kmap.items[i].size;
+						// skip 4 bytes for 0xFA that terminates the chunk (early)
+						var eff = GetNullTerminatedString(ambBytes, offset + 36, chunkEnd);
+						prgm.effectName = eff.text;
+						var var = GetNullTerminatedString(ambBytes, offset + 36 + eff.size + 1, chunkEnd); // +1 to account for the terminating byte 0x00
+						prgm.varName = var.text;
+						this.prgmChunks.Add(prgm);
+						offset = chunkEnd;
+						break;
 					}
-					this.kmapChunks.Add(kmap);
-					// The items are followed by a 4 byte value (0xFA)
-					offset = itemOffset + 4;
-					break;
-				}
+				case 0x70616d6b: { // kmap
+								   // The size is not always accurate (e.g. GalleyAttack.amb, where a name is a byte longer than it allows
+								   // for), so the chunk is stepped over by its contents
+						CheckRange(ambBytes, offset, 20);
+						var varName = GetNullTerminatedString(ambBytes, offset + 20, ambBytes.Length);
+						int countOffset = offset + 20 + varName.size + 1;
+						CheckRange(ambBytes, countOffset, 8);
+						var kmap = new KmapChunk() {
+							size = BitConverter.ToInt32(ambBytes, offset + 4), // does not count itself or the header tag
+							unknownFlag1 = GetFlag(ambBytes[offset + 8], 0),
+							unknownFlag2 = GetFlag(ambBytes[offset + 8], 1),
+							unknownInt1 = BitConverter.ToInt32(ambBytes, offset + 12),
+							unknownInt2 = BitConverter.ToInt32(ambBytes, offset + 16),
+							varName = varName.text,
+							itemCount = BitConverter.ToInt32(ambBytes, countOffset),
+							dataSize = BitConverter.ToInt32(ambBytes, countOffset + 4),
+						};
+						// Each item is at least its three values and a terminating null
+						if (kmap.itemCount < 0 || kmap.itemCount > (ambBytes.Length - countOffset) / 13) {
+							throw new InvalidDataException($"Invalid kmap item count {kmap.itemCount} at {offset} in {path}");
+						}
+
+						kmap.items = new KmapItem[kmap.itemCount];
+						int itemOffset = countOffset + 8;
+						for (int i = 0; i < kmap.items.Length; i++) {
+							CheckRange(ambBytes, itemOffset, 12);
+							var wavFile = GetNullTerminatedString(ambBytes, itemOffset + 12, ambBytes.Length);
+							kmap.items[i] = new KmapItem() {
+								size = 12 + wavFile.size + 1,
+								unknown1 = BitConverter.ToInt32(ambBytes, itemOffset),
+								unknown2 = BitConverter.ToInt32(ambBytes, itemOffset + 4),
+								unknown3 = BitConverter.ToInt32(ambBytes, itemOffset + 8),
+								wavFileName = wavFile.text
+							};
+							itemOffset += kmap.items[i].size;
+						}
+						this.kmapChunks.Add(kmap);
+						// The items are followed by a 4 byte value (0xFA)
+						offset = itemOffset + 4;
+						break;
+					}
 				case 0x6c626c67: { // glbl
-					int size = ChunkSize(ambBytes, offset, 0, "glbl");
-					CheckRange(ambBytes, offset + 8, 16);
-					var glbl = new GlblChunk() {
-						size = size,
-						dataSize = BitConverter.ToInt32(ambBytes, offset + 8),
-						unknownInt1 = BitConverter.ToInt32(ambBytes, offset + 12),
-						unknownInt2 = BitConverter.ToInt32(ambBytes, offset + 16),
-						terminated = GetBytes(ambBytes, offset + 20, 4),
-					};
-					this.glblChunk = glbl;
-					offset += size + HEADER_SIZE;
-					break;
-				}
+						int size = ChunkSize(ambBytes, offset, 0, "glbl");
+						CheckRange(ambBytes, offset + 8, 16);
+						var glbl = new GlblChunk() {
+							size = size,
+							dataSize = BitConverter.ToInt32(ambBytes, offset + 8),
+							unknownInt1 = BitConverter.ToInt32(ambBytes, offset + 12),
+							unknownInt2 = BitConverter.ToInt32(ambBytes, offset + 16),
+							terminated = GetBytes(ambBytes, offset + 20, 4),
+						};
+						this.glblChunk = glbl;
+						offset += size + HEADER_SIZE;
+						break;
+					}
 				// start of Midi section
 				case 0x6468544d: { // MThd
-					CheckRange(ambBytes, offset, MTHD_SIZE);
-					var midi = new MidiData() {
-						headerSize = GetInt32FromBigEndian(ambBytes, offset + 4),
-						midiFormat = GetInt16FromBigEndian(ambBytes, offset + 8),
-						trackCount = GetInt16FromBigEndian(ambBytes, offset + 10),
-						ticksPerQuarterNote = GetInt16FromBigEndian(ambBytes, offset + 12),
-					};
-					// The header's length doesn't count the tag and length fields; it is 6 in standard MIDI files, but a
-					// longer header must be stepped over whole.
-					if (midi.headerSize < MTHD_SIZE - HEADER_SIZE || midi.headerSize > ambBytes.Length - offset - HEADER_SIZE) {
-						throw new InvalidDataException($"Invalid MIDI header size {midi.headerSize} at {offset} in {path}");
+						CheckRange(ambBytes, offset, MTHD_SIZE);
+						var midi = new MidiData() {
+							headerSize = GetInt32FromBigEndian(ambBytes, offset + 4),
+							midiFormat = GetInt16FromBigEndian(ambBytes, offset + 8),
+							trackCount = GetInt16FromBigEndian(ambBytes, offset + 10),
+							ticksPerQuarterNote = GetInt16FromBigEndian(ambBytes, offset + 12),
+						};
+						// The header's length doesn't count the tag and length fields; it is 6 in standard MIDI files, but a
+						// longer header must be stepped over whole.
+						if (midi.headerSize < MTHD_SIZE - HEADER_SIZE || midi.headerSize > ambBytes.Length - offset - HEADER_SIZE) {
+							throw new InvalidDataException($"Invalid MIDI header size {midi.headerSize} at {offset} in {path}");
+						}
+						this.midiData = midi;
+						offset += HEADER_SIZE + midi.headerSize;
+						break;
 					}
-					this.midiData = midi;
-					offset += HEADER_SIZE + midi.headerSize;
-					break;
-				}
 				case 0x6b72544d: { // MTrk
-					if (this.midiData == null) {
-						throw new InvalidDataException($"MIDI track before the MIDI header at {offset} in {path}");
+						if (this.midiData == null) {
+							throw new InvalidDataException($"MIDI track before the MIDI header at {offset} in {path}");
+						}
+						var trackSize = GetInt32FromBigEndian(ambBytes, offset + 4);
+						if (trackSize < 0 || trackSize > ambBytes.Length - offset - HEADER_SIZE) {
+							throw new InvalidDataException($"Invalid MIDI track size {trackSize} at {offset} in {path}");
+						}
+						offset += HEADER_SIZE;
+						soundTracks.Add(ParseTrack(ambBytes, offset, offset + trackSize, path));
+						offset += trackSize;
+						break;
 					}
-					var trackSize = GetInt32FromBigEndian(ambBytes, offset + 4);
-					if (trackSize < 0 || trackSize > ambBytes.Length - offset - HEADER_SIZE) {
-						throw new InvalidDataException($"Invalid MIDI track size {trackSize} at {offset} in {path}");
-					}
-					offset += HEADER_SIZE;
-					soundTracks.Add(ParseTrack(ambBytes, offset, offset + trackSize, path));
-					offset += trackSize;
-					break;
-				}
 				default:
 					throw new InvalidDataException($"Unknown header: 0x{header:x} ({header}) at offset {offset} in {path}");
 			}

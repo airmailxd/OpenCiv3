@@ -69,7 +69,7 @@ namespace QueryCiv3 {
 		public int[][] LeadTechQueue;
 
 		private const int LEAD_COUNT = 32; // should always be 32 in Conquests savs
-		// The LEAD struct is read in these chunks, which must add up to its size (see BiqSectionSizeTests)
+										   // The LEAD struct is read in these chunks, which must add up to its size (see BiqSectionSizeTests)
 		internal const int LEAD_LEN_1 = 412;
 		internal const int LEAD_LEN_2 = 2696;
 		internal const int LEAD_LEN_3 = 108;
@@ -345,8 +345,8 @@ namespace QueryCiv3 {
 						}
 						break;
 					case 0x534c5052: // RPLS
-						// RPLS just consists of the 4-byte header and a 32-bit integer for the number of turns (RPLTs)
-						// Because it's so simple, don't even both memory-copying into a struct for it and just get the RPLT length
+									 // RPLS just consists of the 4-byte header and a 32-bit integer for the number of turns (RPLTs)
+									 // Because it's so simple, don't even both memory-copying into a struct for it and just get the RPLT length
 						Take(4, "RPLS header");
 						int rpltLength = CheckCount<RPLT>(ReadInt32("RPLS length"), "replay turns");
 
@@ -385,8 +385,8 @@ namespace QueryCiv3 {
 						CopyArray(ref Radt, Game.NumberOfRadarTowers);
 						break;
 					case 0x59544943: // CITY
-						// Sav files contain many "bad" City headers. In fact, there are more bad ones than valid ones
-						// The purpose behind these headers is yet to be determined, but for now, they can be skipped
+									 // Sav files contain many "bad" City headers. In fact, there are more bad ones than valid ones
+									 // The purpose behind these headers is yet to be determined, but for now, they can be skipped
 						if (SectionDataLength("CITY") == VALID_CITY_LENGTH) {
 							if (City == null) {
 								throw Malformed("a city comes before the GAME section");
@@ -454,8 +454,8 @@ namespace QueryCiv3 {
 						}
 						break;
 					case 0x54494e55: // UNIT
-						// Because most units have IDLS sections, it's easier to keep the array lengths the same and accept
-						// that some indexes of Idls will be unused
+									 // Because most units have IDLS sections, it's easier to keep the array lengths the same and accept
+									 // that some indexes of Idls will be unused
 						int unitCount = CheckCount<UNIT>(Game.NumberOfUnits, "units");
 						Unit = new UNIT[unitCount];
 						Idls = new IDLS[unitCount];
@@ -469,7 +469,7 @@ namespace QueryCiv3 {
 
 						break;
 					case 0x47505443: // CTPG
-						// It's unclear what CTPG does, so for now, give it the invalid CITY treatment
+									 // It's unclear what CTPG does, so for now, give it the invalid CITY treatment
 						SkipSection("CTPG");
 						break;
 					case 0x594e4c43: // CLNY

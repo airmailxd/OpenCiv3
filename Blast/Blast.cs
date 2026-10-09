@@ -100,7 +100,7 @@ namespace Blast {
 		private readonly Stream _outputStream;
 		private byte[] _outputBuffer;
 		private int _outputBufferPos = 0; // index of next write location in _outputBuffer[]
-		// The most output to decode to memory
+										  // The most output to decode to memory
 		private readonly long _maxOutputLength = Array.MaxLength;
 
 		/// <summary>

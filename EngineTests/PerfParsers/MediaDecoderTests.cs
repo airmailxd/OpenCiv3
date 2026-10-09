@@ -455,7 +455,7 @@ public class MediaDecoderTests {
 				// delta frame was decoded correctly. (That isn't exact for a few animations in 25 of the 1760 Civ3 Flics,
 				// including some of the Fire Galley's.)
 				if (!name.Contains("Fire Galley"))
-				Assert.True(ringFrames[anim].AsSpan().SequenceEqual(flic.Images[anim, 0]), $"{name}: animation {anim} doesn't loop back to its first frame");
+					Assert.True(ringFrames[anim].AsSpan().SequenceEqual(flic.Images[anim, 0]), $"{name}: animation {anim} doesn't loop back to its first frame");
 			}
 		}
 	}

@@ -151,7 +151,7 @@ namespace QueryCiv3 {
 				long offset = SECTION_HEADERS_START;
 
 				while (offset < length) { // Don't read past the end
-					// We don't know what orders the headers come in or which headers will be set, so get the next header and switch off it:
+										  // We don't know what orders the headers come in or which headers will be set, so get the next header and switch off it:
 					CheckRange(offset, 8, length, "header");
 					// Every header is exactly 4 chars long, so like in SavData it can be switched on as a 32-bit integer
 					int header = *(int*)(bytePtr + offset);
@@ -215,9 +215,9 @@ namespace QueryCiv3 {
 							Expr = ReadStaticSection<EXPR>(bytePtr, ref offset, length, count, section);
 							break;
 						case 0x56414c46: // FLAV
-							// FLAV has two oddities compared with other sections:
-							// 1. FLAV is the only section which is divided into section groups. The number of section groups (the
-							//   header's count) is always 1, and is followed by the number of flavors in the group
+										 // FLAV has two oddities compared with other sections:
+										 // 1. FLAV is the only section which is divided into section groups. The number of section groups (the
+										 //   header's count) is always 1, and is followed by the number of flavors in the group
 							if (count != 1) {
 								throw new NotSupportedException($"Unsupported BIQ file: its FLAV section has {count} groups of flavors, but only 1 is supported.");
 							}
@@ -316,8 +316,8 @@ namespace QueryCiv3 {
 							}
 							break;
 						case 0x45434152: // RACE
-							// For getting dynamic race data, we need to know the number of eras as defined earlier, so the ERAS section
-							// of a BIQ must appear before its RACE section
+										 // For getting dynamic race data, we need to know the number of eras as defined earlier, so the ERAS section
+										 // of a BIQ must appear before its RACE section
 							if (Eras == null) {
 								throw Malformed(section, "it comes before the ERAS section it depends on");
 							}
