@@ -70,13 +70,28 @@ public static class LanAutosave {
 			}
 			File.Move(temporary, latest, overwrite: true);
 
-			string infoPath = ResumeInfoPath(directory);
-			File.WriteAllBytes(infoPath + ".tmp", NetSerialization.SerializeData(info));
-			File.Move(infoPath + ".tmp", infoPath, overwrite: true);
+			WriteResumeInfoFile(directory, info);
 			log.Information("Saved the LAN game for turn {Turn} to {Path}", save.TurnNumber, latest);
 		} catch (Exception e) {
 			log.Error(e, "Couldn't save the LAN game to {Directory}", directory);
 		}
+	}
+
+	// Writes what resuming needs alone, as it changes between autosaves, in
+	// the same way.
+	public static void WriteResumeInfo(string directory, LanResumeInfo info) {
+		try {
+			Directory.CreateDirectory(directory);
+			WriteResumeInfoFile(directory, info);
+		} catch (Exception e) {
+			log.Error(e, "Couldn't save what resuming the LAN game needs to {Directory}", directory);
+		}
+	}
+
+	private static void WriteResumeInfoFile(string directory, LanResumeInfo info) {
+		string infoPath = ResumeInfoPath(directory);
+		File.WriteAllBytes(infoPath + ".tmp", NetSerialization.SerializeData(info));
+		File.Move(infoPath + ".tmp", infoPath, overwrite: true);
 	}
 
 	// What resuming needs besides the game, or null if there is nothing to

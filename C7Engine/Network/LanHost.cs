@@ -31,8 +31,9 @@ namespace C7Engine.Network;
 //
 // Once the game has started, a guest who loses their connection keeps their
 // seats until they say hello again with the token they were given. The host
-// saves the game as each turn begins, with those tokens, and can resume it
-// from that save, holding the seats for the guests to come back to.
+// saves the game as each turn begins, with those tokens (and saves them
+// again as they change), and can resume it from that save, holding the
+// seats for the guests to come back to.
 //
 // Guests join over TCP, or, once the host is also hosting online, through an
 // online relay with a join code (see RelayHostLink); either way they're the
@@ -674,6 +675,7 @@ public class LanHost : IDisposable {
 		}
 		PublishDiscoveryReply();
 		Online?.SetListing(ListPublicly ? CurrentListing() : null);
+		SaveResumeInfoIfChanged();
 	}
 
 	// Whether a new connection may join the guests without a seat: there's
@@ -770,8 +772,34 @@ public class LanHost : IDisposable {
 	private void Autosave() {
 		SaveGame save = LanProtocol.SnapshotOf(EngineStorage.gameData);
 		LanResumeInfo info = ResumeInfo();
+		savedResumeInfo = NetSerialization.SerializeData(info);
 		string directory = AutosaveDirectory;
 		LastAutosave = LastAutosave.ContinueWith(_ => LanAutosave.Write(directory, save, info));
+	}
+
+	// Between autosaves, what resuming needs is saved again whenever it
+	// changes (seats taken, guests banned, the password, the join code and
+	// so on), at most this often, so that the host doesn't lose it if its
+	// game ends mid-turn.
+	private static readonly TimeSpan ResumeInfoSaveInterval = TimeSpan.FromSeconds(1);
+	private readonly Stopwatch sinceResumeInfoChecked = Stopwatch.StartNew();
+	private byte[] savedResumeInfo;
+
+	private void SaveResumeInfoIfChanged() {
+		// Only beside the game it's for: one this host autosaved, or the
+		// one it resumed.
+		if (AutosaveDirectory == null || (autosavedTurn < 0 && !resumed) || sinceResumeInfoChecked.Elapsed < ResumeInfoSaveInterval) {
+			return;
+		}
+		sinceResumeInfoChecked.Restart();
+		LanResumeInfo info = ResumeInfo();
+		byte[] json = NetSerialization.SerializeData(info);
+		if (savedResumeInfo != null && json.AsSpan().SequenceEqual(savedResumeInfo)) {
+			return;
+		}
+		savedResumeInfo = json;
+		string directory = AutosaveDirectory;
+		LastAutosave = LastAutosave.ContinueWith(_ => LanAutosave.WriteResumeInfo(directory, info));
 	}
 
 	// How to host this game again, with the seats as they are now.
