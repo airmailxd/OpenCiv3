@@ -213,15 +213,19 @@ namespace C7GameData {
 			taxRate += excess;
 		}
 
-		// The amount of gold this player has.
+		// The amount of gold this player has. It never goes below zero: the
+		// callers that spend gold (hurrying, espionage, upgrades, deals) check
+		// the treasury first, and the turn's deficit is handled by selling
+		// buildings and disbanding units. Should anything still overspend,
+		// the treasury is emptied and a warning logged rather than the turn
+		// crashing.
 		private int _gold = 0;
 		public int gold {
 			get => _gold;
 			set {
 				if (value < 0) {
-					// TODO: the exception is ok for development, but perhaps a warning log
-					// and a Math Max function (0, value) is more appropriate at some point
-					throw new Exception($"bad gold value of {value} for {this}");
+					log.Warning("Tried to set {Player}'s gold to {Gold}; emptying the treasury instead", this, value);
+					value = 0;
 				}
 				_gold = value;
 			}
@@ -234,12 +238,11 @@ namespace C7GameData {
 		/// </summary>
 		/// <param name="amount">The number of gold to be added</param>
 		/// <param name="add">If true, the gold gets appended, otherwise it overwrites the current value</param>
+		/// Scripts may take more gold than there is; the treasury is then emptied.
 		[LuaMethod]
 		public void SetGold(int amount, bool add = false) {
-			if (add)
-				this.gold += amount;
-			else
-				this.gold = amount;
+			int newGold = add ? gold + amount : amount;
+			this.gold = Math.Max(0, newGold);
 		}
 
 		// The number of "beakers" (gold) spent on the currently researched

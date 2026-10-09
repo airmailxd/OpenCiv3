@@ -94,6 +94,19 @@ public class RulesReviewFixTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(2 * s + s * s / 20, city.GetHurryProductionDetails().goldCost);
 	}
 
+	// ---- Gold ----
+
+	[Fact]
+	public void OverspendingEmptiesTheTreasuryInsteadOfThrowing() {
+		us.gold = 10;
+		us.gold -= 25;
+		Assert.Equal(0, us.gold);
+
+		us.SetGold(10);
+		us.SetGold(-30, add: true);
+		Assert.Equal(0, us.gold);
+	}
+
 	// ---- Trait discounts ----
 
 	[Fact]
