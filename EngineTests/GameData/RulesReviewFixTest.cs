@@ -231,7 +231,7 @@ public class RulesReviewFixTest : IClassFixture<SaveGameFixture> {
 		Player barbarians = gameData.players.First(p => p.isBarbarians);
 		Tile tile = gameData.map.tiles.First(IsEmptyLand);
 		MapUnit ours = gameData.SpawnUnit(human, Prototype("Warrior"), tile);
-		MapUnit theirs = gameData.SpawnUnit(barbarians, Prototype("Warrior"), tile.neighbors.Values.First(IsEmptyLand));
+		MapUnit theirs = gameData.SpawnUnit(barbarians, Prototype("Warrior"), gameData.map.tiles.Where(IsEmptyLand).Skip(1).First());
 		MapUnit aiUnit = gameData.SpawnUnit(us, Prototype("Warrior"), tile);
 
 		gameData.gameDifficulty.AttackBonusAgainstBarbarians = 100;
