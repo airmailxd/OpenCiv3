@@ -685,7 +685,7 @@ public partial class LooseView : Node2D {
 	private static ILogger log = Log.ForContext<LooseView>();
 
 	// Valid while the view is being drawn: the region of tiles being drawn, and the player whose view of the map is shown (null in
-	// observer mode, where everything is known).
+	// observer mode, where everything is known). The tile knowledge is also null while the whole map is revealed.
 	public MapView.VisibleRegion drawRegion { get; private set; }
 	public Player uiPlayer { get; private set; }
 	public TileKnowledge tileKnowledge { get; private set; }
@@ -717,9 +717,9 @@ public partial class LooseView : Node2D {
 			List<MapView.VisibleTile> tiles = mapView.GetVisibleTiles(gD, onlyOnScreen ? visRegion : null);
 			drawRegion = onlyOnScreen ? visRegion : mapView.drawnRegion;
 
-			observerMode = gD.observerMode;
-			uiPlayer = observerMode ? null : gD.GetUIControllerPlayer();
-			tileKnowledge = uiPlayer?.tileKnowledge;
+			observerMode = mapView.ShowsWholeMap(gD);
+			uiPlayer = gD.observerMode ? null : gD.GetUIControllerPlayer();
+			tileKnowledge = observerMode ? null : uiPlayer?.tileKnowledge;
 
 			long start = Stopwatch.GetTimestamp();
 			foreach (LooseLayer layer in layers) {
@@ -757,7 +757,7 @@ public partial class LooseView : Node2D {
 				log.Warning($"-> End draw: {elapsedMilliseconds} milliseconds");
 			}
 
-			if (!gD.observerMode) {
+			if (!observerMode) {
 				foreach (LooseLayer layer in layers) {
 					if (layer is not FogOfWarLayer) {
 						continue;
@@ -893,6 +893,25 @@ public partial class MapView : Node2D {
 		}
 	}
 	private bool isBareMap = false;
+
+	// Shows the whole map without fog of war, as observers see it, but without handing the game over to the AI. Only changes what this
+	// client draws, to look over the generated terrain; the players' knowledge of the map is untouched, so turning it off restores the fog.
+	public bool revealWholeMap {
+		get => isWholeMapRevealed;
+		set {
+			if (isWholeMapRevealed == value) {
+				return;
+			}
+			isWholeMapRevealed = value;
+			InvalidateMap();
+		}
+	}
+	private bool isWholeMapRevealed = false;
+
+	// Whether every tile is drawn as known: in observer mode, or while the whole map is revealed.
+	public bool ShowsWholeMap(GameData gD) {
+		return gD.observerMode || revealWholeMap;
+	}
 
 	const float MIN_SCALE = 0.1f;
 	const float MAX_SCALE = 4.0f;
@@ -1183,7 +1202,7 @@ public partial class MapView : Node2D {
 	private void CollectVisibleTiles(GameData gD) {
 		visibleTiles.Clear();
 
-		TileKnowledge knowledge = gD.observerMode ? null : gD.GetUIControllerPlayer().tileKnowledge;
+		TileKnowledge knowledge = ShowsWholeMap(gD) ? null : gD.GetUIControllerPlayer().tileKnowledge;
 		VisibleRegion region = drawnRegion;
 		for (int Y = region.upperLeftY; Y < region.lowerRightY; Y++) {
 			if (gD.map.isRowAt(Y)) {

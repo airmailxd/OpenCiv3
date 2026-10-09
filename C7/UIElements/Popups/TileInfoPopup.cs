@@ -110,7 +110,7 @@ public partial class TileInfoPopup : Popup {
 
 	private void SetTileInfoContent(Tile tile, GameData gameData) {
 		var player = gameData.GetUIControllerPlayer();
-		var isObserverMode = gameData.observerMode;
+		var isObserverMode = _game.ShowsWholeMap(gameData);
 
 		if (player.tileKnowledge.isTileKnown(tile) || isObserverMode) {
 			terrainLabel.Text = tile.baseTerrainType?.DisplayName ?? "";

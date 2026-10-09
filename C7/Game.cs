@@ -1578,6 +1578,24 @@ public partial class Game : Node {
 		}
 	}
 
+	// Whether the whole map can be revealed: not in LAN games, where it would show other players what they haven't explored.
+	public bool CanRevealWholeMap => !LanSession.IsActive && mapView != null;
+
+	public bool IsWholeMapRevealed => mapView?.revealWholeMap ?? false;
+
+	// Whether every tile is drawn as known: in observer mode, or while the whole map is revealed.
+	public bool ShowsWholeMap(GameData gameData) {
+		return mapView?.ShowsWholeMap(gameData) ?? gameData.observerMode;
+	}
+
+	// Reveals the whole map, or puts the fog of war back. Only this client's drawing changes; the engine's map knowledge is untouched.
+	public void OnToggleRevealWholeMap() {
+		if (!CanRevealWholeMap) {
+			return;
+		}
+		mapView.revealWholeMap = !mapView.revealWholeMap;
+	}
+
 	public void OnRetire() {
 		// Quit to main menu, freeing previous scene data
 		GetTree().ChangeSceneToFile("res://UIElements/MainMenu/main_menu.tscn");

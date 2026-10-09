@@ -13,7 +13,10 @@ public partial class MenuButton : Civ3TextureButton {
 	}
 
 	public override void _Pressed() {
-		popupOverlay.ShowPopup(new GameMenu(), PopupOverlay.PopupCategory.Info);
+		// The menu button belongs to the game scene, whose root is the game.
+		Game game = Owner as Game;
+		GameMenu menu = new(canRevealWholeMap: game?.CanRevealWholeMap ?? false, wholeMapRevealed: game?.IsWholeMapRevealed ?? false);
+		popupOverlay.ShowPopup(menu, PopupOverlay.PopupCategory.Info);
 		ReleaseFocus();
 	}
 

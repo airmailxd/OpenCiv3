@@ -15,6 +15,7 @@ public partial class MiniMap : Control {
 
 	private MiniMapFrame frame;
 	private List<MiniMapLayer> layers;
+	private FogOfWarMiniLayer fogLayer;
 	private MiniMapControls controls;
 
 	// The minimap pixels, drawn in managed code and only uploaded to the GPU
@@ -77,12 +78,13 @@ public partial class MiniMap : Control {
 		frame = new MiniMapFrame(mapView);
 		AddChild(frame);
 
+		fogLayer = new FogOfWarMiniLayer();
 		layers = new List<MiniMapLayer>
 		{
 			new BaseLandMiniLayer(),
 			new TerrainMiniLayer(),
 			new PlayerColorMiniLayer(),
-			new FogOfWarMiniLayer()
+			fogLayer
 		};
 
 		controls = new MiniMapControls();
@@ -133,7 +135,12 @@ public partial class MiniMap : Control {
 		}
 	}
 
-	private static MapStamp ComputeStamp(GameData gD) {
+	// Whether every tile is shown: in observer mode, or while the map view reveals the whole map.
+	private bool ShowsWholeMap(GameData gD) {
+		return mapView?.ShowsWholeMap(gD) ?? gD.observerMode;
+	}
+
+	private MapStamp ComputeStamp(GameData gD) {
 		Player controller = gD.GetUIControllerPlayer();
 		TileKnowledge knowledge = controller?.tileKnowledge;
 		int cityHash = 17;
@@ -146,7 +153,7 @@ public partial class MiniMap : Control {
 			controller = controller,
 			knowledge = knowledge,
 			turn = gD.turn,
-			observerMode = gD.observerMode,
+			observerMode = ShowsWholeMap(gD),
 			knownTiles = knowledge?.knownTiles.Count ?? 0,
 			borderTiles = knowledge?.borderTiles.Count ?? 0,
 			cityCount = gD.cities.Count,
@@ -196,6 +203,7 @@ public partial class MiniMap : Control {
 		}
 
 		// Work out each tile's colour, layer at a time
+		fogLayer.visible = !ShowsWholeMap(gD);
 		foreach (var layer in layers)
 			layer.Configure(gD);
 		int tileBytes = map.tiles.Count * 4;
@@ -297,14 +305,15 @@ public partial class MiniMap : Control {
 	// map, so even a small minimap shows them clearly.
 	private void DrawCities(GameData gD, int width, int height) {
 		var map = gD.map;
-		TileKnowledge knowledge = gD.observerMode ? null : gD.GetUIControllerPlayer()?.tileKnowledge;
+		bool showsWholeMap = ShowsWholeMap(gD);
+		TileKnowledge knowledge = showsWholeMap ? null : gD.GetUIControllerPlayer()?.tileKnowledge;
 		float scaleX = (float)width / map.numTilesWide, scaleY = (float)height / map.numTilesTall;
 		int side = Math.Max(3, Mathf.RoundToInt(Mathf.Min(scaleX, scaleY) * 2));
 		foreach (City city in gD.cities) {
 			Tile tile = city.location;
 			if (tile == null || tile == Tile.NONE)
 				continue;
-			if (!gD.observerMode && (knowledge == null || !knowledge.knownTiles.Contains(tile)))
+			if (!showsWholeMap && (knowledge == null || !knowledge.knownTiles.Contains(tile)))
 				continue;
 			int x0 = Mathf.RoundToInt((tile.XCoordinate + 1) * scaleX - side / 2f);
 			int y0 = Mathf.RoundToInt((tile.YCoordinate + 1) * scaleY - side / 2f);

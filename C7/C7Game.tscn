@@ -337,3 +337,4 @@ visible = false
 [connection signal="Retire" from="CanvasLayer/PopupOverlay" to="." method="OnRetire"]
 [connection signal="SaveGame" from="CanvasLayer/PopupOverlay" to="." method="OnSaveGame"]
 [connection signal="LoadGame" from="CanvasLayer/PopupOverlay" to="." method="OnLoadGame"]
+[connection signal="ToggleRevealWholeMap" from="CanvasLayer/PopupOverlay" to="." method="OnToggleRevealWholeMap"]
