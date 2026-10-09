@@ -32,12 +32,24 @@ connections that port forwarding would otherwise give it.
 - Both sides say which version of the relay protocol and of the game they
   run, so an out-of-date game gets a clear message rather than a broken
   game.
+- A host can list its game publicly (**List publicly** in its lobby), and
+  players find it under **Browse Online Games**. The relay keeps the list
+  in memory: each relay has its own. A listing goes when the host unlists
+  it or leaves, or after 90 seconds without the host listing it again
+  (hosts do every 30 seconds). `GET /games` returns the list as JSON, and
+  takes `?version=11` (the game's protocol version), `?notFull=true`,
+  `?noPassword=true` and `?limit=50`. A listing says whether the game has a
+  password, never the password itself.
+- A host can ban a guest. The relay then turns that guest's address away
+  from the host's room, and gives the host a key standing for the address
+  (not the address itself), which the host gives back to have the ban again
+  after the relay restarts or when it resumes the game.
 
 The full protocol is described in [`Protocol/RelayProtocol.cs`](Protocol/RelayProtocol.cs),
 which the game compiles too.
 
 The relay logs who connects to which room and how many bytes they sent,
-never what. Traffic is encrypted between each game and Caddy (TLS), but
+never what; of a game listed publicly, only its code. Traffic is encrypted between each game and Caddy (TLS), but
 not end to end: whoever runs the relay could read the game's bytes.
 
 ## Running it locally
@@ -56,7 +68,8 @@ OpenCiv3 folder):
 relayUrl=ws://localhost:5080
 ```
 
-`http://localhost:5080/health` says how many rooms and guests there are.
+`http://localhost:5080/health` says how many rooms and guests there are,
+and how many games are listed; `http://localhost:5080/games` lists them.
 
 The tests run a relay in-process: `dotnet test Relay.Tests`.
 
@@ -124,7 +137,7 @@ their codes again after the relay restarts.
 
 ```sh
 curl https://relay.example.org/health
-# {"status":"ok","version":1,"rooms":0,"hosts":0,"guests":0}
+# {"status":"ok","version":1,"rooms":0,"hosts":0,"guests":0,"listed":0}
 
 docker compose logs -f relay   # the relay's log
 docker compose logs caddy      # if the certificate didn't come
@@ -174,6 +187,11 @@ Set these in `appsettings.json`, or as environment variables in
 | `Relay:ConnectionsPerMinute` | 120 | Connections per minute from one address. |
 | `Relay:RoomsPerHour` | 30 | Rooms made per hour from one address. |
 | `Relay:FailedJoinsPerTenMinutes` | 20 | Wrong codes (or keys) from one address, after which it can't join for the rest of the ten minutes. |
+| `Relay:MaxListingsPerAddress` | 3 | Games one address may list publicly at once. |
+| `Relay:ListingTtlSeconds` | 90 | How long a listing lasts without its host listing it again. Hosts do every 30 seconds. |
+| `Relay:MaxPublicGames` | 200 | The most games `/games` returns at once. |
+| `Relay:GameListRequestsPerMinute` | 30 | Requests to `/games` per minute from one address. The game's browser asks every 20 seconds while open. |
+
 | `Relay:KeySecret` | (random each start) | Makes the hosts' keys. Set it so hosts can claim their codes across restarts. |
 | `Relay:TrustForwardedHeaders` | false | Take the client's address from Caddy's `X-Forwarded-For`. Only when the relay can't be reached except through the proxy. |
 | `Kestrel:Limits:MaxConcurrentUpgradedConnections` | 5000 | WebSocket connections at once. |

@@ -6,8 +6,8 @@ using System.Threading;
 namespace C7Relay;
 
 // Counts what each client address does in fixed windows of time, to turn
-// away an address that connects too often, makes too many rooms, or tries
-// too many codes that aren't anyone's.
+// away an address that connects too often, makes too many rooms, tries too
+// many codes that aren't anyone's, or asks for the list of games too often.
 internal sealed class RateLimits {
 	private sealed class Window {
 		public long start;
@@ -18,6 +18,7 @@ internal sealed class RateLimits {
 	private readonly ConcurrentDictionary<string, Window> connections = new();
 	private readonly ConcurrentDictionary<string, Window> roomsMade = new();
 	private readonly ConcurrentDictionary<string, Window> failedJoins = new();
+	private readonly ConcurrentDictionary<string, Window> listRequests = new();
 
 	// The connections open from each address, and in all.
 	private readonly ConcurrentDictionary<string, int> open = new();
@@ -36,6 +37,10 @@ internal sealed class RateLimits {
 
 	// Counts a room made, and says whether to allow it.
 	public bool AllowRoom(string address) => Take(roomsMade, address, Hour, options.RoomsPerHour);
+
+	// Counts a request for the public list of games, and says whether to
+	// answer it.
+	public bool AllowGameList(string address) => Take(listRequests, address, Minute, options.GameListRequestsPerMinute);
 
 	// Whether the address has tried too many wrong codes or keys lately.
 	public bool IsLockedOut(string address) => Count(failedJoins, address, TenMinutes) >= options.FailedJoinsPerTenMinutes;
@@ -105,6 +110,7 @@ internal sealed class RateLimits {
 		Sweep(connections, Minute);
 		Sweep(roomsMade, Hour);
 		Sweep(failedJoins, TenMinutes);
+		Sweep(listRequests, Minute);
 	}
 
 	private static void Sweep(ConcurrentDictionary<string, Window> windows, TimeSpan length) {

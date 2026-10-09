@@ -32,6 +32,21 @@ namespace C7Relay;
 // drop whoever has gone quiet; they can tell the relay has gone if its pings
 // stop. A connection the relay turns away or drops is closed with one of
 // RelayCloseCodes and a reason to show the player.
+//
+// A host may also list its game publicly, for players to find in the game's
+// server browser: it sends a RelayControl "list" with a GameListing, again
+// whenever the game changes and at least every ListingRefreshSeconds, and
+// "unlist" to take it down. The relay answers each with "listed", with an
+// error if it wouldn't list the game. A listing goes when the host unlists
+// it or leaves, or stops refreshing it. GET /games returns the listings
+// (PublicGameList), and players join a game there with its code as usual.
+//
+// A host can ban one of its guests: "ban" with the guest's ID closes its
+// connection, and the relay turns away its address from the room from then
+// on. The relay answers "banned" with a key standing for that address in
+// this room, which only the relay can make; the host keeps it, and gives
+// its keys back with "bans" whenever it connects, as after the relay
+// restarts or when resuming a game.
 public static class RelayProtocol {
 	// Bump when the messages change incompatibly.
 	public const int Version = 1;
@@ -45,6 +60,32 @@ public static class RelayProtocol {
 	public const string GameVersionParameter = "game";
 	public const string CodeParameter = "code";
 	public const string KeyParameter = "key";
+
+	// The public list of games, and its filters: games of this version of
+	// the game only, those with open seats, those without a password, and
+	// how many to return at most.
+	public const string GamesPath = "/games";
+	public const string HealthPath = "/health";
+	public const string VersionFilter = "version";
+	public const string NotFullFilter = "notFull";
+	public const string NoPasswordFilter = "noPassword";
+	public const string LimitFilter = "limit";
+
+	// How long a game's name, description and the other text in its listing
+	// may be; the relay cuts anything longer.
+	public const int MaxGameNameLength = 48;
+	public const int MaxGameDescriptionLength = 200;
+	public const int MaxListingTextLength = 32;
+
+	// How often a host lists its game again while nothing changes. The
+	// relay drops a listing it hasn't heard of for a few times this.
+	public const double ListingRefreshSeconds = 30;
+
+	// Text messages larger than this aren't read.
+	public const int MaxControlBytes = 16 * 1024;
+
+	// The most ban keys a host gives back at once.
+	public const int MaxBans = 256;
 
 	public const byte Open = 1;
 	public const byte Data = 2;
@@ -153,19 +194,38 @@ public static class RelayCloseCodes {
 	public const int TimedOut = 4010;
 	public const int TooSlow = 4011;
 	public const int BadMessage = 4012;
+	// The host banned this guest from its game.
+	public const int Banned = 4013;
 }
 
 // A text message between the relay and a host or guest. The relay welcomes
 // a host with its room's code and key, and everyone with how often it pings.
-public sealed record RelayControl(string type, string code = null, string key = null, double pingSeconds = 0) {
+// The rest are for listing a game publicly and banning guests (see
+// RelayProtocol): listing is the game, error why it wasn't listed, guest the
+// guest to ban, and bans the keys of the addresses banned.
+public sealed record RelayControl(string type, string code = null, string key = null, double pingSeconds = 0,
+	GameListing listing = null, string error = null, uint guest = 0, List<string> bans = null) {
 	public const string Welcome = "welcome";
 	public const string Ping = "ping";
 	public const string Pong = "pong";
+	public const string List = "list";
+	public const string Unlist = "unlist";
+	public const string Listed = "listed";
+	public const string Ban = "ban";
+	public const string Banned = "banned";
+	public const string Bans = "bans";
 
-	public byte[] ToBytes() => JsonSerializer.SerializeToUtf8Bytes(this);
+	private static readonly JsonSerializerOptions Options = new() {
+		DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
+	};
+
+	public byte[] ToBytes() => JsonSerializer.SerializeToUtf8Bytes(this, Options);
 
 	// The message, or null if it isn't one.
 	public static RelayControl Parse(ReadOnlySpan<byte> json) {
+		if (json.Length > RelayProtocol.MaxControlBytes) {
+			return null;
+		}
 		try {
 			return JsonSerializer.Deserialize<RelayControl>(json);
 		} catch (JsonException) {
@@ -173,3 +233,24 @@ public sealed record RelayControl(string type, string code = null, string key = 
 		}
 	}
 }
+
+// What a host says of its game in the public list. seatsTotal counts every
+// human player, the host's own included, and seatsTaken those someone has
+// taken or is coming back to. turn is the game's turn, in the lobby too for
+// a saved game. turnSeconds is how long each turn may take, or null for no
+// limit; hideUnseen whether guests are sent only what their players may
+// know. locale is like "en-US", a hint at where the host is.
+public sealed record GameListing(string name, string description = null, bool hasPassword = false,
+	int seatsTotal = 0, int seatsTaken = 0, bool spectatorsAllowed = true, int turn = 0, bool started = false,
+	string mapSize = null, bool simultaneousTurns = false, double? turnSeconds = null, bool hideUnseen = true,
+	string hostName = null, string locale = null);
+
+// A game in the public list: its join code, the game's version (as the host
+// connected with it, which guests must match), its listing with the
+// relay's own seatsOpen, and how long the host takes to answer the relay's
+// pings, in milliseconds, or null until it has.
+public sealed record PublicGame(string code, string gameVersion, GameListing game, int seatsOpen, int? hostPingMs = null);
+
+// What GET /games returns: the games, up to the limit, and how many matched
+// in all.
+public sealed record PublicGameList(int relayVersion, List<PublicGame> games, int total);

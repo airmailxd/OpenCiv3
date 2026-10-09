@@ -22,7 +22,8 @@ public class RelayException : IOException {
 
 	// Whether trying again can't help.
 	public bool IsPermanent => CloseCode is RelayCloseCodes.WrongKey or RelayCloseCodes.UnsupportedVersion
-		or RelayCloseCodes.Replaced or RelayCloseCodes.GameVersionMismatch;
+		or RelayCloseCodes.Replaced or RelayCloseCodes.GameVersionMismatch or RelayCloseCodes.Banned;
+
 }
 
 // Connecting to an online relay (see RelayProtocol), for a host or a guest.

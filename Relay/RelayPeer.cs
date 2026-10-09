@@ -42,6 +42,12 @@ internal sealed class RelayPeer {
 
 	public bool IsClosing => Volatile.Read(ref closing) != 0;
 
+	// How long the peer took to answer the last ping it answered, in
+	// milliseconds, or -1 until it has.
+	public int RoundTripMs => Volatile.Read(ref roundTripMs);
+	private int roundTripMs = -1;
+	private long pingSentAt;
+
 	public RelayPeer(WebSocket socket, string address, RelayOptions options, int maxMessageBytes, ByteBudget receiveBuffers) {
 		this.socket = socket;
 		this.options = options;
@@ -76,6 +82,14 @@ internal sealed class RelayPeer {
 		// A close reason can be at most 123 bytes.
 		closeReason = reason.Length > 120 ? reason[..120] : reason;
 		outgoing.Writer.TryComplete();
+	}
+
+	// The peer answered a ping.
+	public void NotePong() {
+		long sent = Volatile.Read(ref pingSentAt);
+		if (sent != 0) {
+			Volatile.Write(ref roundTripMs, (int)Math.Min(Environment.TickCount64 - sent, int.MaxValue));
+		}
 	}
 
 	// Runs the connection until it closes: hands each message received to
@@ -185,6 +199,7 @@ internal sealed class RelayPeer {
 					Close(RelayCloseCodes.TimedOut, "The relay heard nothing from the game for too long.");
 					return;
 				}
+				Volatile.Write(ref pingSentAt, Environment.TickCount64);
 				Send(new RelayControl(RelayControl.Ping));
 			}
 		} catch (OperationCanceledException) {

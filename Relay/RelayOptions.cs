@@ -44,6 +44,15 @@ public sealed class RelayOptions {
 	public int RoomsPerHour { get; set; } = 30;
 	public int FailedJoinsPerTenMinutes { get; set; } = 20;
 
+	// The public list of games: how many games one address may list at
+	// once, how long a listing lasts without the host listing it again, the
+	// most games GET /games returns, and how often one address may ask for
+	// them a minute.
+	public int MaxListingsPerAddress { get; set; } = 3;
+	public double ListingTtlSeconds { get; set; } = 90;
+	public int MaxPublicGames { get; set; } = 200;
+	public int GameListRequestsPerMinute { get; set; } = 30;
+
 	// The secret a room's key is made from, so that a host can claim its
 	// code again even after the relay restarts. Set it to a long random
 	// string; when empty, a new one is made each time the relay starts.
@@ -61,4 +70,5 @@ public sealed class RelayOptions {
 	internal TimeSpan RoomTtl => TimeSpan.FromSeconds(RoomTtlSeconds);
 	internal TimeSpan PingInterval => TimeSpan.FromSeconds(PingIntervalSeconds);
 	internal TimeSpan IdleTimeout => TimeSpan.FromSeconds(IdleTimeoutSeconds);
+	internal TimeSpan ListingTtl => TimeSpan.FromSeconds(ListingTtlSeconds);
 }

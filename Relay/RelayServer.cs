@@ -11,7 +11,8 @@ using Microsoft.Extensions.Options;
 namespace C7Relay;
 
 // Sets up the relay's web app: the WebSocket endpoints for hosts and guests,
-// and /health.
+// the public list of games at /games, and /health.
+
 public static class RelayServer {
 	// The app, not yet started. configure, if given, adjusts the settings
 	// after they're read, as tests do.
@@ -39,7 +40,8 @@ public static class RelayServer {
 		RelayHub hub = app.Services.GetRequiredService<RelayHub>();
 		app.Map(RelayProtocol.HostPath, context => hub.Host(context));
 		app.Map(RelayProtocol.JoinPath + "{code}", context => hub.Join(context, (string)context.Request.RouteValues["code"]));
-		app.MapGet("/health", () => Results.Json(hub.Health()));
+		app.MapGet(RelayProtocol.HealthPath, () => Results.Json(hub.Health()));
+		app.MapGet(RelayProtocol.GamesPath, (HttpContext context) => hub.Games(context));
 		app.MapGet("/", () => "OpenCiv3 relay. Connect to it from the game.");
 		return app;
 	}

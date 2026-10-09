@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+
 using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
@@ -12,8 +14,9 @@ namespace C7Relay;
 
 // Brings hosts and guests together: gives each host a room with a join code,
 // and passes the bytes between the host and each guest in it, without
-// reading them. See RelayProtocol. Only who connects where, and how much they
-// sent, is logged; never what.
+// reading them; and keeps the public list of the games hosts list there. See
+// RelayProtocol. Only who connects where, and how much they sent, is logged;
+// never what, nor anything of a listed game but its code.
 internal sealed class RelayHub {
 	private readonly RelayOptions options;
 	private readonly ILogger<RelayHub> log;
@@ -147,11 +150,16 @@ internal sealed class RelayHub {
 			address, room.Code);
 		peer.Send(new RelayControl(RelayControl.Welcome, room.Code, Rooms.KeyFor(room.Code), options.PingIntervalSeconds));
 
-		await peer.RunAsync((message, type) => FromHost(room, peer, message, type), shutdown);
+		await peer.RunAsync((message, type) => FromHost(room, peer, address, message, type), shutdown);
 
+		bool wasListed = false;
 		lock (room) {
 			if (room.Host == peer) {
 				room.Host = null;
+				// A game whose host has gone can't be joined: it's listed
+				// again once the host is back.
+				wasListed = room.Listing != null;
+				room.Listing = null;
 				room.HostLeftAt = Environment.TickCount64;
 				guests = [.. room.Guests.Values];
 				room.Guests.Clear();
@@ -162,13 +170,16 @@ internal sealed class RelayHub {
 		foreach (RelayPeer guest in guests) {
 			guest.Close(RelayCloseCodes.HostAway, "The host lost its connection to the relay.");
 		}
+		if (wasListed) {
+			log.LogInformation("Room {Code} is no longer listed", room.Code);
+		}
 		log.LogInformation("Host at {Address} left room {Code}, having sent {Received} bytes and been sent {Sent}",
 			address, room.Code, peer.BytesReceived, peer.BytesSent);
 	}
 
-	private void FromHost(Room room, RelayPeer host, ReadOnlyMemory<byte> message, WebSocketMessageType type) {
+	private void FromHost(Room room, RelayPeer host, string address, ReadOnlyMemory<byte> message, WebSocketMessageType type) {
 		if (type == WebSocketMessageType.Text) {
-			Answer(host, message);
+			FromHost(room, host, address, RelayControl.Parse(message.Span));
 			return;
 		}
 		ReadOnlySpan<byte> span = message.Span;
@@ -195,7 +206,103 @@ internal sealed class RelayHub {
 		}
 	}
 
-	private enum Admission { Admitted, HostAway, OtherVersion, Full }
+	// What the host says in text: answers to pings, and listing its game and
+	// banning guests.
+	private void FromHost(Room room, RelayPeer host, string address, RelayControl control) {
+		switch (control?.type) {
+			case RelayControl.Ping:
+			case RelayControl.Pong:
+				Answer(host, control);
+				break;
+			case RelayControl.List:
+				host.Send(new RelayControl(RelayControl.Listed, error: List(room, host, address, control.listing)));
+				break;
+			case RelayControl.Unlist:
+				bool wasListed;
+				lock (room) {
+					wasListed = room.Listing != null && room.Host == host;
+					if (wasListed) {
+						room.Listing = null;
+					}
+				}
+				if (wasListed) {
+					log.LogInformation("Room {Code} is no longer listed", room.Code);
+				}
+				host.Send(new RelayControl(RelayControl.Listed));
+				break;
+			case RelayControl.Ban:
+				Ban(room, host, control.guest);
+				break;
+			case RelayControl.Bans:
+				lock (room) {
+					foreach (string key in (control.bans ?? []).Take(RelayProtocol.MaxBans)) {
+						if (room.Bans.Count < RelayProtocol.MaxBans && key is { Length: > 0 and <= 64 }) {
+							room.Bans.Add(key);
+						}
+					}
+				}
+				break;
+		}
+	}
+
+	// Lists the room's game publicly, or lists it again as it is now.
+	// Returns why it wasn't listed, or null if it was.
+	private string List(Room room, RelayPeer host, string address, GameListing listing) {
+		GameListing tidy = GameList.Tidy(listing);
+		if (tidy == null) {
+			return "A public game needs a name.";
+		}
+		bool listedBefore;
+		lock (room) {
+			if (room.Host != host) {
+				return "The game isn't connected to the relay.";
+			}
+			listedBefore = room.Listing != null;
+		}
+		// Counted outside the room's lock, since counting takes each room's;
+		// two listings at once from one address may both get in.
+		if (!listedBefore && Rooms.ListedFrom(address) >= options.MaxListingsPerAddress) {
+			return $"Your address already lists {options.MaxListingsPerAddress} games, as many as this relay takes from one address.";
+		}
+		lock (room) {
+			if (room.Host != host) {
+				return "The game isn't connected to the relay.";
+			}
+			room.Listing = tidy;
+			room.ListedAt = Environment.TickCount64;
+			room.ListedFrom = address;
+		}
+		if (!listedBefore) {
+			log.LogInformation("Room {Code} is listed publicly", room.Code);
+		}
+		return null;
+	}
+
+	// Closes a guest's connection and turns its address away from the room
+	// from now on, telling the host the key it can give back to ban that
+	// address again. A guest that has left lately can be banned too.
+	private void Ban(Room room, RelayPeer host, uint id) {
+		RelayPeer guest;
+		string address;
+		string key;
+		lock (room) {
+			if (room.Guests.TryGetValue(id, out guest)) {
+				address = guest.Address;
+			} else if (!room.RecentGuests.TryGetValue(id, out address)) {
+				return;
+			}
+			if (room.Bans.Count >= RelayProtocol.MaxBans) {
+				return;
+			}
+			key = Rooms.BanKeyFor(room.Code, address);
+			room.Bans.Add(key);
+		}
+		guest?.Close(RelayCloseCodes.Banned, "The host has banned you from this game.");
+		log.LogInformation("The host of room {Code} banned guest {Guest}", room.Code, id);
+		host.Send(new RelayControl(RelayControl.Banned, guest: id, bans: [key]));
+	}
+
+	private enum Admission { Admitted, HostAway, OtherVersion, Full, Banned }
 
 	private async Task RunGuest(HttpContext context, RelayPeer peer, string address, string typedCode) {
 		if (CheckVersions(context, out string gameVersion) is string versionError) {
@@ -217,6 +324,8 @@ internal sealed class RelayHub {
 			host = room.Host;
 			if (host == null) {
 				admission = Admission.HostAway;
+			} else if (room.Bans.Count > 0 && room.Bans.Contains(Rooms.BanKeyFor(room.Code, address))) {
+				admission = Admission.Banned;
 			} else if (room.GameVersion != gameVersion) {
 				admission = Admission.OtherVersion;
 			} else if (room.Guests.Count >= options.MaxGuestsPerRoom) {
@@ -234,6 +343,10 @@ internal sealed class RelayHub {
 			case Admission.OtherVersion:
 				await Reject(peer, RelayCloseCodes.GameVersionMismatch, "The host is running a different version of the game.");
 				return;
+			case Admission.Banned:
+				log.LogInformation("Turned away a banned guest at {Address} from room {Code}", address, room.Code);
+				await Reject(peer, RelayCloseCodes.Banned, "The host has banned you from this game.");
+				return;
 			case Admission.Full:
 				await Reject(peer, RelayCloseCodes.RoomFull, "This game has as many players as it can take through the relay.");
 				return;
@@ -245,7 +358,7 @@ internal sealed class RelayHub {
 
 		await peer.RunAsync((message, type) => {
 			if (type == WebSocketMessageType.Text) {
-				Answer(peer, message);
+				Answer(peer, RelayControl.Parse(message.Span));
 			} else {
 				host.Send(RelayProtocol.Encode(RelayProtocol.Data, id, message.Span));
 			}
@@ -254,6 +367,7 @@ internal sealed class RelayHub {
 		bool wasIn;
 		lock (room) {
 			wasIn = room.Guests.Remove(id);
+			room.NoteGuestLeft(id, address);
 		}
 		if (wasIn) {
 			host.Send(RelayProtocol.Encode(RelayProtocol.Close, id));
@@ -262,12 +376,51 @@ internal sealed class RelayHub {
 			id, address, room.Code, peer.BytesReceived, peer.BytesSent);
 	}
 
-	// Answers a ping; nothing else said in text needs an answer.
-	private static void Answer(RelayPeer peer, ReadOnlyMemory<byte> message) {
-		if (RelayControl.Parse(message.Span)?.type == RelayControl.Ping) {
+	// Answers a ping, and times the answer to ours; nothing else a guest
+	// says in text needs an answer.
+	private static void Answer(RelayPeer peer, RelayControl control) {
+		if (control?.type == RelayControl.Ping) {
 			peer.Send(new RelayControl(RelayControl.Pong));
+		} else if (control?.type == RelayControl.Pong) {
+			peer.NotePong();
 		}
 	}
+
+	// The games listed publicly now: those whose hosts are connected and
+	// have listed them lately.
+	private List<PublicGame> ListedGames() {
+		long now = Environment.TickCount64;
+		List<PublicGame> listed = [];
+		foreach (Room room in Rooms.All) {
+			lock (room) {
+				if (room.Host == null || room.Listing == null || now - room.ListedAt >= options.ListingTtl.TotalMilliseconds) {
+					continue;
+				}
+				int ping = room.Host.RoundTripMs;
+				listed.Add(new PublicGame(room.Code, room.GameVersion, room.Listing,
+					room.Listing.seatsTotal - room.Listing.seatsTaken, ping < 0 ? null : ping));
+			}
+		}
+		return listed;
+	}
+
+	// Answers GET /games with the public list, filtered as asked.
+	public IResult Games(HttpContext context) {
+		if (!Limits.AllowGameList(AddressOf(context))) {
+			return Results.StatusCode(StatusCodes.Status429TooManyRequests);
+		}
+		IQueryCollection query = context.Request.Query;
+		string version = query[RelayProtocol.VersionFilter];
+		GameList.Query asked = new(
+			string.IsNullOrEmpty(version) ? null : version,
+			IsTrue(query[RelayProtocol.NotFullFilter]),
+			IsTrue(query[RelayProtocol.NoPasswordFilter]),
+			int.TryParse(query[RelayProtocol.LimitFilter], out int limit) ? limit : null);
+		(List<PublicGame> games, int total) = GameList.Choose(ListedGames(), asked, options.MaxPublicGames);
+		return Results.Json(new PublicGameList(RelayProtocol.Version, games, total));
+	}
+
+	private static bool IsTrue(string value) => value == "1" || (bool.TryParse(value, out bool on) && on);
 
 	// What /health reports.
 	public object Health() {
@@ -278,12 +431,26 @@ internal sealed class RelayHub {
 				guests += room.Guests.Count;
 			}
 		}
-		return new { status = "ok", version = RelayProtocol.Version, rooms = Rooms.Count, hosts, guests };
+		return new { status = "ok", version = RelayProtocol.Version, rooms = Rooms.Count, hosts, guests, listed = ListedGames().Count };
 	}
 
 	public void Sweep() {
 		foreach (string code in Rooms.Sweep()) {
 			log.LogInformation("Room {Code} closed: its host didn't come back", code);
+		}
+		// Listings their hosts stopped listing again.
+		long now = Environment.TickCount64;
+		foreach (Room room in Rooms.All) {
+			bool expired;
+			lock (room) {
+				expired = room.Listing != null && now - room.ListedAt >= options.ListingTtl.TotalMilliseconds;
+				if (expired) {
+					room.Listing = null;
+				}
+			}
+			if (expired) {
+				log.LogInformation("Room {Code} is no longer listed: its host stopped listing it", room.Code);
+			}
 		}
 		Limits.Sweep();
 	}

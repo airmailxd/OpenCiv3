@@ -24,6 +24,31 @@ internal sealed class Room {
 	// gone can't reach one that came after it.
 	public uint NextGuestId = 1;
 
+	// The game as the host lists it publicly, already tidied, with when the
+	// host last listed it and from where; null while it isn't listed.
+	public GameListing Listing;
+	public long ListedAt;
+	public string ListedFrom;
+
+	// The keys of the addresses the host has banned (see
+	// RoomRegistry.BanKeyFor).
+	public readonly HashSet<string> Bans = new();
+
+	// The addresses of the guests that left lately, so that the host can ban
+	// one that has gone, oldest first.
+	public readonly Dictionary<uint, string> RecentGuests = new();
+	public readonly Queue<uint> RecentGuestOrder = new();
+	public const int MaxRecentGuests = 64;
+
+	public void NoteGuestLeft(uint id, string address) {
+		if (RecentGuests.TryAdd(id, address)) {
+			RecentGuestOrder.Enqueue(id);
+		}
+		while (RecentGuestOrder.Count > MaxRecentGuests) {
+			RecentGuests.Remove(RecentGuestOrder.Dequeue());
+		}
+	}
+
 	public Room(string code, string gameVersion) {
 		Code = code;
 		GameVersion = gameVersion;
@@ -46,6 +71,20 @@ internal sealed class RoomRegistry {
 	}
 
 	public int Count => rooms.Count;
+
+	// How many rooms are listed publicly from the address.
+	public int ListedFrom(string address) {
+		int count = 0;
+		foreach (Room room in rooms.Values) {
+			lock (room) {
+				if (room.Listing != null && room.ListedFrom == address) {
+					++count;
+				}
+			}
+		}
+		return count;
+	}
+
 	public IEnumerable<Room> All => rooms.Values;
 
 	// The key to a code, which only the relay can make: it's the code
@@ -60,6 +99,13 @@ internal sealed class RoomRegistry {
 			return false;
 		}
 		return CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(KeyFor(code)), Encoding.UTF8.GetBytes(key));
+	}
+
+	// The key standing for a guest's address in a room's bans, which only
+	// the relay can make, so the host never learns the address.
+	public string BanKeyFor(string code, string address) {
+		byte[] mac = HMACSHA256.HashData(keySecret, Encoding.UTF8.GetBytes($"ban:{code}:{address}"));
+		return Convert.ToHexString(mac, 0, 16).ToLowerInvariant();
 	}
 
 	public bool TryGet(string code, out Room room) => rooms.TryGetValue(code, out room);
