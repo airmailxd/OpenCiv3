@@ -417,7 +417,7 @@ public class RulesReviewFixTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(distance / 2, city.CalculateDistanceCorruption(gameData, 1), 5);
 		// One "courthouse" raises Nopt by OCN/4.
 		float rank = city.CalculateRankCorruption(adjusted, gameData.map.optimalNumberOfCities, 1);
-		float expected = System.Math.Clamp((distance / 2 + rank) * City.CorruptionScale, 0, 0.9f);
+		float expected = System.Math.Clamp((distance / 2 + rank) * gameData.rules.CorruptionRate, 0, 0.9f);
 		Assert.Equal(expected, city.celebrationWaste, 5);
 		Assert.True(city.celebrationWaste < city.corruption);
 

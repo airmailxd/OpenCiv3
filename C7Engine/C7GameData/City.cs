@@ -1804,10 +1804,6 @@ namespace C7GameData {
 			CalculateCorruption(gameData, owner.GetAdjustedOptimalCityNumber(gameData));
 		}
 
-		// Scales every city's corruption and waste before the cap. Civ3's
-		// formula is 1; we run slightly below it to go easier on players.
-		internal const float CorruptionScale = 0.9f;
-
 		// The adjusted optimal city number is empire-wide, so when updating
 		// every city Player.DoCorruptionCalculations works it out once and
 		// passes it in rather than rescanning the empire for each city.
@@ -1846,7 +1842,7 @@ namespace C7GameData {
 			// is celebrating, since that can change before the next update.
 			celebrationWaste = (CalculateDistanceCorruption(gameData, numAntiCorruptionBuildings + 1)
 					+ CalculateRankCorruption(adjustedOptimalCityNumber, gameData.map.optimalNumberOfCities, numAntiCorruptionBuildings + 1))
-					* CorruptionScale;
+					* gameData.rules.CorruptionRate;
 
 			// Corruption maxes out at 90%, and this max can be reduced further
 			// via courthouses/police stations, and the forbidden palace/SPHQ.
