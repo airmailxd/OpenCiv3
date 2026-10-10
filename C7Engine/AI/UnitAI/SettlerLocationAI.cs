@@ -92,6 +92,8 @@ namespace C7Engine {
 				}
 			}
 
+			cache.UpdateCities(ownCities, rivalCities, adjustments.RivalCityRadius);
+
 			foreach (Tile t in candidates) {
 				float score = cache.TileYieldScore(t);
 
@@ -126,16 +128,17 @@ namespace C7Engine {
 				score += (float)t.baseTerrainType.defenseBonus.amount * 20.0f;
 
 				// Rival cities nearby will compete for the tiles, and their
-				// borders will grow over them.
-				foreach (Tile rivalCity in rivalCities) {
-					if (t.DistanceTo(rivalCity) <= adjustments.RivalCityRadius) {
-						score += adjustments.RivalCityPenalty;
-					}
+				// borders will grow over them. (The penalty is added once
+				// per city, as a sum of the same float, in any order.)
+				int nearbyRivalCities = cache.RivalCitiesWithin(t);
+				for (int i = 0; i < nearbyRivalCities; ++i) {
+					score += adjustments.RivalCityPenalty;
 				}
 
 				//Lower scores if they are far away
 				float preDistanceScore = score;
-				float distancePenalty = DistancePenalty(DistanceFromEmpire(t, startTile, ownCities), adjustments);
+				int distanceFromEmpire = ownCities.Count == 0 ? DistanceFromEmpire(t, startTile, ownCities) : cache.DistanceFromCities(t);
+				float distancePenalty = DistancePenalty(distanceFromEmpire, adjustments);
 				score += distancePenalty;
 
 				//Distance can never make a site worth something worthless; the AI will always try to settle those worthless tundras.
@@ -281,8 +284,102 @@ namespace C7Engine {
 			private readonly Dictionary<Tile, BigFatCross> bigFatCrosses = new();
 			private int bigFatCrossRank = -1;
 
+			// How far each tile is from the nearest of empireCities, and how
+			// many of rivalCities are within rivalCityRadius of it. These
+			// only depend on the tile and the city lists, so they are kept
+			// while the lists stay the same, and brought up to date when
+			// cities are only added. Call UpdateCities before asking.
+			private readonly List<Tile> empireCities = new();
+			private readonly Dictionary<Tile, int> empireDistances = new();
+			private readonly List<Tile> rivalCities = new();
+			private int rivalCityRadius = -1;
+			private readonly Dictionary<Tile, int> rivalCityCounts = new();
+
 			public PlayerScoreCache(Player player) {
 				this.player = player;
+			}
+
+			public void UpdateCities(List<Tile> ownCities, List<Tile> rivals, int radius) {
+				List<Tile> added = AddedTiles(empireCities, ownCities);
+				if (added == null) {
+					empireDistances.Clear();
+				} else if (added.Count > 0) {
+					foreach (Tile t in new List<Tile>(empireDistances.Keys)) {
+						empireDistances[t] = Math.Min(empireDistances[t], DistanceFromEmpire(t, null, added));
+					}
+				}
+				empireCities.Clear();
+				empireCities.AddRange(ownCities);
+
+				added = radius == rivalCityRadius ? AddedTiles(rivalCities, rivals) : null;
+				if (added == null) {
+					rivalCityCounts.Clear();
+				} else if (added.Count > 0) {
+					foreach (Tile t in new List<Tile>(rivalCityCounts.Keys)) {
+						rivalCityCounts[t] += CountWithin(t, added, radius);
+					}
+				}
+				rivalCities.Clear();
+				rivalCities.AddRange(rivals);
+				rivalCityRadius = radius;
+			}
+
+			// How far the tile is from the nearest of the cities given to
+			// UpdateCities, which must not be empty.
+			public int DistanceFromCities(Tile t) {
+				if (!empireDistances.TryGetValue(t, out int distance)) {
+					distance = DistanceFromEmpire(t, null, empireCities);
+					empireDistances[t] = distance;
+				}
+				return distance;
+			}
+
+			// How many of the rival cities given to UpdateCities are within
+			// its radius of the tile.
+			public int RivalCitiesWithin(Tile t) {
+				if (!rivalCityCounts.TryGetValue(t, out int count)) {
+					count = CountWithin(t, rivalCities, rivalCityRadius);
+					rivalCityCounts[t] = count;
+				}
+				return count;
+			}
+
+			private static int CountWithin(Tile t, List<Tile> cities, int radius) {
+				int count = 0;
+				foreach (Tile city in cities) {
+					if (t.DistanceTo(city) <= radius) {
+						++count;
+					}
+				}
+				return count;
+			}
+
+			// The tiles in `now` that aren't in `old`, or null if some tile of
+			// `old` is missing from `now`.
+			private static List<Tile> AddedTiles(List<Tile> old, List<Tile> now) {
+				if (old.Count == now.Count) {
+					bool same = true;
+					for (int i = 0; i < old.Count && same; ++i) {
+						same = old[i] == now[i];
+					}
+					if (same) {
+						return new List<Tile>();
+					}
+				}
+				HashSet<Tile> nowSet = new(now);
+				foreach (Tile t in old) {
+					if (!nowSet.Contains(t)) {
+						return null;
+					}
+				}
+				HashSet<Tile> oldSet = new(old);
+				List<Tile> added = new();
+				foreach (Tile t in nowSet) {
+					if (!oldSet.Contains(t)) {
+						added.Add(t);
+					}
+				}
+				return added;
 			}
 
 			// Drops all yield scores if something that affects the yields of
@@ -377,15 +474,45 @@ namespace C7Engine {
 			changed |= i != cityTiles.Count;
 
 			if (changed) {
-				memo.memo.Clear();
-				cityTiles.Clear();
+				List<Tile> newCityTiles = new();
 				foreach (Player p in gameData.players) {
 					foreach (City c in p.cities) {
-						cityTiles.Add(c.location);
+						newCityTiles.Add(c.location);
+					}
+				}
+				ForgetChangedLocations(memo.memo, cityTiles, newCityTiles);
+				cityTiles.Clear();
+				cityTiles.AddRange(newCityTiles);
+			}
+			return memo.memo;
+		}
+
+		// Founding a city only changes the answer for the tiles within two
+		// steps of it, so when cities were only added, only those tiles are
+		// forgotten; they're worked out again when next asked about. Cities
+		// going away (or moving between lists, as on capture) are rare
+		// enough that everything is forgotten then.
+		private static void ForgetChangedLocations(Dictionary<Tile, bool> memo, List<Tile> oldCityTiles, List<Tile> newCityTiles) {
+			HashSet<Tile> newSet = new(newCityTiles);
+			HashSet<Tile> oldSet = new(oldCityTiles);
+			if (!oldSet.IsSubsetOf(newSet)) {
+				memo.Clear();
+				return;
+			}
+			foreach (Tile city in newSet) {
+				if (oldSet.Contains(city)) {
+					continue;
+				}
+				// The neighbour relation is symmetric, so these are exactly
+				// the tiles that have the new city within two steps.
+				memo.Remove(city);
+				foreach (Tile neighbor in city.neighbors.Values) {
+					memo.Remove(neighbor);
+					foreach (Tile neighborOfNeighbor in neighbor.neighbors.Values) {
+						memo.Remove(neighborOfNeighbor);
 					}
 				}
 			}
-			return memo.memo;
 		}
 
 		private static bool IsInvalidCityLocation(Tile tile, Dictionary<Tile, bool> memo) {
