@@ -432,6 +432,10 @@ namespace C7GameData {
 		// HostFacts). Null otherwise.
 		public Player? territoryOf;
 
+		// The last pass of TileKnowledge.RecomputeActiveTiles to look at
+		// this tile, so that a pass looks at it only once.
+		internal long activeTilesPass;
+
 		public void MaybeAwardForestClearingShields() {
 			MaybeAwardForestClearingShields(null);
 		}

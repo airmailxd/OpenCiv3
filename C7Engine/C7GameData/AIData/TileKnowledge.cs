@@ -520,16 +520,31 @@ namespace C7GameData {
 				return;
 			}
 
+			// A tile is often in the journal many times (each unit moving
+			// through it records it). Looking at it again in the same pass
+			// would change nothing, since nothing a tile's contribution
+			// depends on changes during the pass, so look at it only once.
+			long pass = System.Threading.Interlocked.Increment(ref lastPass);
 			foreach (Tile t in newlyKnownTiles) {
-				Reevaluate(t);
+				ReevaluateOnce(t, pass);
 			}
 			for (long i = journalPosition; i < head; ++i) {
-				Reevaluate(TileChangeJournal.EntryAt(i));
+				ReevaluateOnce(TileChangeJournal.EntryAt(i), pass);
 			}
 
 			newlyKnownTiles.Clear();
 			knownTileCountAtLastUpdate = knownTiles.Count;
 			journalPosition = head;
+		}
+
+		private static long lastPass;
+
+		private void ReevaluateOnce(Tile t, long pass) {
+			if (t == null || t.activeTilesPass == pass) {
+				return;
+			}
+			t.activeTilesPass = pass;
+			Reevaluate(t);
 		}
 
 		// The number of times the active tiles were recomputed from scratch.
