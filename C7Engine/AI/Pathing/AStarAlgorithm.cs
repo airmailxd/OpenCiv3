@@ -54,6 +54,16 @@ namespace C7Engine.Pathing {
 		}
 
 		public override int FindFirstReachable(Tile start, IReadOnlyList<Tile> candidates, MapUnit unit, out TilePath path) {
+			return FindFirstReachable(start, candidates, unit, true, out path);
+		}
+
+		// Doesn't search again for the path to a candidate that was found to
+		// be reachable by a failed search for an earlier one.
+		public override int FindFirstReachableIndex(Tile start, IReadOnlyList<Tile> candidates, MapUnit unit) {
+			return FindFirstReachable(start, candidates, unit, false, out _);
+		}
+
+		private int FindFirstReachable(Tile start, IReadOnlyList<Tile> candidates, MapUnit unit, bool wantPath, out TilePath path) {
 			// For human water units, whether land strips block movement depends
 			// on whether the destination was explored, so a single search can't
 			// answer for every candidate.
@@ -117,8 +127,8 @@ namespace C7Engine.Pathing {
 				PathSearchContext.Return(ctx);
 			}
 
-			if (next < 0) {
-				return -1;
+			if (next < 0 || !wantPath) {
+				return next;
 			}
 
 			// The candidate is known to be reachable, so search for it
