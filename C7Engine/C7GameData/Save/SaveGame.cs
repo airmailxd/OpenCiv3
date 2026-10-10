@@ -62,7 +62,11 @@ namespace C7GameData.Save {
 			return (SaveGame)MemberwiseClone();
 		}
 
-		public static SaveGame FromGameData(GameData data) {
+		public static SaveGame FromGameData(GameData data) => FromGameData(data, null);
+
+		// With the map of a save made before, the tiles that are the same are
+		// shared with it (see SaveMap).
+		internal static SaveGame FromGameData(GameData data, SaveMap mapBefore) {
 			SaveGame save = new SaveGame {
 				FormatVersion = CurrentFormatVersion,
 				Seed = data.seed,
@@ -71,7 +75,7 @@ namespace C7GameData.Save {
 				Civilizations = data.civilizations,
 				CultureGroups = data.cultureGroups,
 				Alliances = data.alliances,
-				Map = new SaveMap(data.map),
+				Map = new SaveMap(data.map, mapBefore),
 				TerrainTypes = data.terrainTypes,
 				Resources = data.Resources,
 				Buildings = data.Buildings.ConvertAll(building => building.ToSaveBuilding()),
@@ -705,13 +709,43 @@ namespace C7GameData.Save {
 		// or BattleCreatedUnit, or the fallout terrain improvement, goes on
 		// without it. Nothing fills it in from the current ruleset.
 		public static SaveGame Load(string path, Func<string, string> getPediaIconsPath) {
-			SaveGame result = LoadFromJSON(File.ReadAllText(path));
+			SaveGame result = LoadFromUtf8(File.ReadAllBytes(path));
 
 			// This lambda has side effects in the Game.cs code.
 			if (result.ScenarioSearchPath?.Count() > 0) {
 				getPediaIconsPath(result.ScenarioSearchPath);
 			}
 			return result;
+		}
+
+		// Reads a save file's bytes as they are, rather than as text that
+		// the JSON reader would have to turn back into UTF-8. A file that
+		// isn't plain UTF-8 (as one saved by a text editor might not be) is
+		// read as text, as before.
+		private static SaveGame LoadFromUtf8(byte[] file) {
+			ReadOnlySpan<byte> json = file;
+			if (json.StartsWith(Utf8Bom)) {
+				json = json[Utf8Bom.Length..];
+			} else if (json.StartsWith(Utf16LittleEndianBom) || json.StartsWith(Utf16BigEndianBom)) {
+				return LoadFromText(file);
+			}
+			try {
+				return Migrate(JsonSerializer.Deserialize<SaveGame>(json, JsonOptions));
+			} catch (Exception) when (!System.Text.Unicode.Utf8.IsValid(file)) {
+				// Read as text, broken characters are replaced rather than
+				// failing.
+				return LoadFromText(file);
+			}
+		}
+
+		private static ReadOnlySpan<byte> Utf8Bom => [0xEF, 0xBB, 0xBF];
+		private static ReadOnlySpan<byte> Utf16LittleEndianBom => [0xFF, 0xFE];
+		private static ReadOnlySpan<byte> Utf16BigEndianBom => [0xFE, 0xFF];
+
+		// As File.ReadAllText reads it.
+		private static SaveGame LoadFromText(byte[] file) {
+			using StreamReader reader = new(new MemoryStream(file), System.Text.Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+			return LoadFromJSON(reader.ReadToEnd());
 		}
 
 		internal static SaveGame LoadFromJSON(string json) {

@@ -18,14 +18,25 @@ namespace C7GameData.Save {
 			return (SaveMap)MemberwiseClone();
 		}
 
-		public SaveMap(GameMap map) {
+		public SaveMap(GameMap map) : this(map, null) { }
+
+		// With the map saved before, its tiles that are still the same are
+		// used again rather than saved afresh. They're shared, so nothing may
+		// change the tiles of either save.
+		internal SaveMap(GameMap map, SaveMap before) {
 			tilesWide = map.numTilesWide;
 			tilesTall = map.numTilesTall;
 			wrapHorizontally = map.wrapHorizontally;
 			wrapVertically = map.wrapVertically;
 			techRate = map.techRate;
 			optimalNumberOfCities = map.optimalNumberOfCities;
-			tiles = map.tiles.ConvertAll(tile => new SaveTile(tile));
+			List<SaveTile> previous = before?.tiles.Count == map.tiles.Count ? before.tiles : null;
+			tiles = new List<SaveTile>(map.tiles.Count);
+			for (int i = 0; i < map.tiles.Count; ++i) {
+				Tile tile = map.tiles[i];
+				SaveTile saved = previous?[i];
+				tiles.Add(saved != null && saved.Describes(tile) ? saved : new SaveTile(tile));
+			}
 			startingLocations = map.startingLocations.ConvertAll(x => new SaveTile(x));
 		}
 		public GameMap ToGameMap(GameData gd) {

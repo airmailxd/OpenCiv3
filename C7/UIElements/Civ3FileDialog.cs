@@ -100,14 +100,28 @@ public partial class Civ3FileDialog : FileDialog {
 			}
 
 			log.Information($"Saving game to {path}");
+			// The game is taken now, and written on a worker thread.
+			Node parent = GetParent() ?? this;
 			try {
-				EngineStorage.ReadGameData((GameData gameData) => {
-					C7GameData.Save.SaveGame.FromGameData(gameData).Save(path);
-				});
+				ReportSaveFailure(SaveManager.SaveInBackground(EngineStorage.gameData, path), path, parent);
 			} catch (System.Exception e) {
-				log.Error(e, "Couldn't save the game to {Path}", path);
-				Util.ShowErrorDialog(GetParent() ?? this, "Couldn't save the game", $"The game couldn't be saved to\n{path}\n\n{e.Message}");
+				ShowSaveFailure(e, path, parent);
 			}
+		}
+	}
+
+	private async void ReportSaveFailure(System.Threading.Tasks.Task saving, string path, Node parent) {
+		try {
+			await saving;
+		} catch (System.Exception e) {
+			ShowSaveFailure(e, path, parent);
+		}
+	}
+
+	private void ShowSaveFailure(System.Exception e, string path, Node parent) {
+		log.Error(e, "Couldn't save the game to {Path}", path);
+		if (IsInstanceValid(parent) && parent.IsInsideTree()) {
+			Util.ShowErrorDialog(parent, "Couldn't save the game", $"The game couldn't be saved to\n{path}\n\n{e.Message}");
 		}
 	}
 }

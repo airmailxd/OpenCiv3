@@ -962,6 +962,8 @@ public partial class Game : Node {
 	public override void _ExitTree() {
 		// Leaving the game leaves the LAN game, too.
 		LanSession.End();
+		// A save still being written is finished before quitting.
+		SaveManager.WaitForPendingSaves();
 	}
 
 	// Called when the engine hands the UI to a player at the start of their
@@ -1561,6 +1563,9 @@ public partial class Game : Node {
 	// How long a frame may spend handling the engine's messages to the UI.
 	private static readonly long uiMessageBudgetTicks = Stopwatch.Frequency * 4 / 1000;
 
+	// How long a frame may spend handling a run of messages to the engine.
+	private static readonly TimeSpan engineMessageBudget = TimeSpan.FromMilliseconds(4);
+
 	public override void _Process(double delta) {
 		if (errorOnLoad) {
 			return;
@@ -1570,7 +1575,7 @@ public partial class Game : Node {
 
 		// The engine waits for animations to finish before going on.
 		if (!EngineStorage.HasPendingAnimations())
-			EngineStorage.ProcessNextMessageToEngine();
+			EngineStorage.ProcessMessagesToEngine(engineMessageBudget);
 
 		// Handle the waiting messages to the UI, as many as fit in the frame's
 		// budget. None of them start animations (those have their own queue),

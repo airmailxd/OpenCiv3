@@ -56,6 +56,48 @@ namespace C7GameData.Save {
 			overlays.AddRange(tile.overlays.GetImprovements().Select(i => i.key));
 		}
 
+		// Whether new SaveTile(tile) would be the same as this, field for
+		// field, so this can stand in for it. A LAN host saves the map for
+		// every snapshot, and most tiles don't change between them.
+		internal bool Describes(Tile tile) {
+			if (id != tile.Id || extraInfo != tile.ExtraInfo || X != tile.XCoordinate || Y != tile.YCoordinate
+				|| continent != tile.continent || isFreshWater != tile.isFreshWater
+				|| baseTerrain != tile.baseTerrainType.Key || overlayTerrain != tile.overlayTerrainType.Key
+				|| resource != (tile.Resource != Resource.NONE ? tile.ResourceKey : null)) {
+				return false;
+			}
+			// The features in the order the constructor adds them.
+			int feature = 0;
+			bool same = HasFeature(tile.isBonusShield, "bonusShield", ref feature)
+				&& HasFeature(tile.isSnowCapped, "snowCapped", ref feature)
+				&& HasFeature(tile.isPineForest, "pineForest", ref feature)
+				&& HasFeature(tile.riverNorth, "riverNorth", ref feature)
+				&& HasFeature(tile.riverNortheast, "riverNortheast", ref feature)
+				&& HasFeature(tile.riverEast, "riverEast", ref feature)
+				&& HasFeature(tile.riverSoutheast, "riverSoutheast", ref feature)
+				&& HasFeature(tile.riverSouth, "riverSouth", ref feature)
+				&& HasFeature(tile.riverSouthwest, "riverSouthwest", ref feature)
+				&& HasFeature(tile.riverWest, "riverWest", ref feature)
+				&& HasFeature(tile.riverNorthwest, "riverNorthwest", ref feature)
+				&& HasFeature(tile.hasBarbarianCamp, "barbarianCamp", ref feature)
+				&& HasFeature(tile.hasGoodyHut, "goodyHut", ref feature)
+				&& HasFeature(tile.hasHadForestCleared, "hasHadForestCleared", ref feature);
+			if (!same || feature != features.Count) {
+				return false;
+			}
+			int overlay = 0;
+			foreach (TerrainImprovement improvement in tile.overlays.GetImprovements()) {
+				if (overlay >= overlays.Count || overlays[overlay++] != improvement.key) {
+					return false;
+				}
+			}
+			return overlay == overlays.Count;
+		}
+
+		private bool HasFeature(bool has, string name, ref int next) {
+			return !has || (next < features.Count && features[next++] == name);
+		}
+
 		// Lookup tables for converting many tiles, built once rather than
 		// searching the lists for every tile. Like List.Find, the first match
 		// wins.
@@ -81,7 +123,6 @@ namespace C7GameData.Save {
 			}
 		}
 
-		// TODO: if this is slow, features can be read from JSON and then hashed so the Contains check is faster
 		public Tile ToTile(List<TerrainType> terrainTypes, List<Resource> resources, List<TerrainImprovement> improvements) {
 			return ToTile(new Lookups(terrainTypes, resources, improvements));
 		}
@@ -102,23 +143,29 @@ namespace C7GameData.Save {
 				isFreshWater = isFreshWater,
 				baseTerrainType = baseTerrainType,
 				overlayTerrainType = overlayTerrainType,
-				hasBarbarianCamp = features.Contains("barbarianCamp"),
-				hasGoodyHut = features.Contains("goodyHut"),
-				hasHadForestCleared = features.Contains("hasHadForestCleared"),
 				// TODO: load working tile
 				ResourceKey = resource is null ? Resource.NONE.Key : resource,
-				riverNorth = features.Contains("riverNorth"),
-				riverNortheast = features.Contains("riverNortheast"),
-				riverEast = features.Contains("riverEast"),
-				riverSoutheast = features.Contains("riverSoutheast"),
-				riverSouth = features.Contains("riverSouth"),
-				riverSouthwest = features.Contains("riverSouthwest"),
-				riverWest = features.Contains("riverWest"),
-				riverNorthwest = features.Contains("riverNorthwest"),
-				isBonusShield = features.Contains("bonusShield"),
-				isSnowCapped = features.Contains("snowCapped"),
-				isPineForest = features.Contains("pineForest"),
 			};
+			// One pass over the features, rather than a search for each.
+			// Unknown ones are ignored.
+			foreach (string feature in features) {
+				switch (feature) {
+					case "barbarianCamp": tile.hasBarbarianCamp = true; break;
+					case "goodyHut": tile.hasGoodyHut = true; break;
+					case "hasHadForestCleared": tile.hasHadForestCleared = true; break;
+					case "riverNorth": tile.riverNorth = true; break;
+					case "riverNortheast": tile.riverNortheast = true; break;
+					case "riverEast": tile.riverEast = true; break;
+					case "riverSoutheast": tile.riverSoutheast = true; break;
+					case "riverSouth": tile.riverSouth = true; break;
+					case "riverSouthwest": tile.riverSouthwest = true; break;
+					case "riverWest": tile.riverWest = true; break;
+					case "riverNorthwest": tile.riverNorthwest = true; break;
+					case "bonusShield": tile.isBonusShield = true; break;
+					case "snowCapped": tile.isSnowCapped = true; break;
+					case "pineForest": tile.isPineForest = true; break;
+				}
+			}
 
 			if (tile.ResourceKey == Resource.NONE.Key) {
 				tile.Resource = Resource.NONE;

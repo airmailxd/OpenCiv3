@@ -140,6 +140,29 @@ namespace C7Engine {
 			FinishCompletedMessages();
 		}
 
+		// Handles waiting messages one after another, as successive calls to
+		// ProcessNextMessageToEngine would, for up to the given time, so that
+		// a burst of them (orders from a LAN host's guests, say) doesn't take
+		// a frame each. It stops after a message that is still running (as
+		// one waiting for an animation or the AIs is), or that gave this
+		// machine's UI something to show or animate, so the UI sees each such
+		// message's results before the next starts, as it did when one
+		// message was handled each frame.
+		public static void ProcessMessagesToEngine(TimeSpan budget) {
+			long start = System.Diagnostics.Stopwatch.GetTimestamp();
+			while (true) {
+				long processed = processedMessageCount;
+				int forUI = messagesToUI.Count;
+				int animations = animationMessages.Count;
+				ProcessNextMessageToEngine();
+				if (processedMessageCount == processed || runningMessages.Count > 0 || pendingMessages.Count == 0
+					|| messagesToUI.Count != forUI || animationMessages.Count != animations || pendingAnimations.Count > 0
+					|| System.Diagnostics.Stopwatch.GetElapsedTime(start) >= budget) {
+					return;
+				}
+			}
+		}
+
 		// Removes and returns the first waiting message that matches, keeping
 		// the others in order.
 		private static MessageToEngine TakeFirstPending(Func<MessageToEngine, bool> match) {
