@@ -17,6 +17,7 @@ public sealed class PerfTradeNetworkTests : MapBase {
 	// The original algorithm: one flood fill over roads per unseen city.
 	private sealed class ReferenceNetwork {
 		private readonly Dictionary<City, TradeNetworkSegment> segments = new();
+		private readonly Dictionary<Tile, TradeNetworkSegment> tileSegments = new();
 
 		public ReferenceNetwork(Player player) {
 			HashSet<Tile> seen = new();
@@ -32,6 +33,7 @@ public sealed class PerfTradeNetworkTests : MapBase {
 				while (toCheck.Count > 0) {
 					Tile x = toCheck.Dequeue();
 					segment.AddTile(x, player);
+					tileSegments[x] = segment;
 					if (x.cityAtTile != null) {
 						segments[x.cityAtTile] = segment;
 					}
@@ -52,7 +54,7 @@ public sealed class PerfTradeNetworkTests : MapBase {
 			if (!p.KnowsAboutResource(r)) {
 				return false;
 			}
-			return segments.Values.Any(s => s.tiles.Contains(t) && s.resourceCounts.TryGetValue(r, out int count) && count > 0);
+			return tileSegments.TryGetValue(t, out TradeNetworkSegment s) && s.resourceCounts.TryGetValue(r, out int count) && count > 0;
 		}
 
 		public bool ConnectedToCapital(Player p, City c) {
@@ -126,16 +128,7 @@ public sealed class PerfTradeNetworkTests : MapBase {
 
 		TradeNetwork network = new(gameData);
 		foreach (Player p in players) {
-			ReferenceNetwork reference = new(p);
-			foreach (City c in p.cities) {
-				Assert.Equal(reference.Resources(p, c).OrderBy(x => x.Key.Key), network.GetResourcesAvailableToCity(p, c).OrderBy(x => x.Key.Key));
-				Assert.Equal(reference.ConnectedToCapital(p, c), network.ConnectedToCapital(p, c));
-			}
-			foreach (Tile t in map.tiles) {
-				foreach (Resource r in resources) {
-					Assert.Equal(reference.HasTradeAccess(t, p, r), network.HasTradeAccess(t, p, r));
-				}
-			}
+			AssertMatchesReference(network, p, map, resources);
 		}
 
 		// Learning a tech makes its resources available.
@@ -150,6 +143,42 @@ public sealed class PerfTradeNetworkTests : MapBase {
 		players[0].cities[2].capital = true;
 		foreach (City c in players[0].cities) {
 			Assert.Equal(updated.ConnectedToCapital(players[0], c), network.ConnectedToCapital(players[0], c));
+		}
+
+		// Building and removing roads drops only the networks they can
+		// change; every network still matches one computed from scratch.
+		TradeNetwork gameNetwork = gameData.GetTradeNetwork();
+		for (int i = 0; i < 300; ++i) {
+			Tile t = map.tiles[rng.Next(map.tiles.Count)];
+			if (t.cityAtTile != null) {
+				continue;
+			}
+			TerrainImprovement road = t.overlays.ImprovementAtLayer(TerrainImprovement.Layer.Roads);
+			if (road != null) {
+				t.overlays.Remove(road);
+			} else {
+				t.overlays.Add(testRoad);
+			}
+			// Only query some of the time, so that some changes happen to
+			// networks that are cached and some to ones that aren't.
+			if (i % 3 == 0) {
+				foreach (Player p in players) {
+					AssertMatchesReference(gameNetwork, p, map, resources);
+				}
+			}
+		}
+	}
+
+	private static void AssertMatchesReference(TradeNetwork network, Player p, GameMap map, Resource[] resources) {
+		ReferenceNetwork reference = new(p);
+		foreach (City c in p.cities) {
+			Assert.Equal(reference.Resources(p, c).OrderBy(x => x.Key.Key), network.GetResourcesAvailableToCity(p, c).OrderBy(x => x.Key.Key));
+			Assert.Equal(reference.ConnectedToCapital(p, c), network.ConnectedToCapital(p, c));
+		}
+		foreach (Tile t in map.tiles) {
+			foreach (Resource r in resources) {
+				Assert.Equal(reference.HasTradeAccess(t, p, r), network.HasTradeAccess(t, p, r));
+			}
 		}
 	}
 }

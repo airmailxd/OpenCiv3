@@ -132,13 +132,14 @@ public partial class Tile {
 			ApplyTerrainImprovementChange(improvement, null);
 		}
 
-		private static void ApplyTerrainImprovementChange(TerrainImprovement oldImprovement, TerrainImprovement newImprovement) {
+		private void ApplyTerrainImprovementChange(TerrainImprovement oldImprovement, TerrainImprovement newImprovement) {
 			var roadCreated = oldImprovement == null && newImprovement?.layer == Layer.Roads;
 			var roadRemoved = oldImprovement?.layer == Layer.Roads && newImprovement == null;
 
-			// If there's a change in road coverage, invalidate the cached trade network
+			// If there's a change in road coverage, invalidate the cached trade
+			// networks it can change.
 			if (roadCreated || roadRemoved) {
-				EngineStorage.gameData.InvalidateCachedTradeNetwork();
+				EngineStorage.gameData.GetTradeNetwork().OnRoadChanged(tile);
 			}
 		}
 
