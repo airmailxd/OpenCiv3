@@ -285,8 +285,6 @@ namespace C7Engine {
 			private bool inGoldenAge;
 			private int knownTechCount = -1;
 			private readonly Dictionary<Tile, TileYieldEntry> yieldScores = new();
-			private readonly Dictionary<Tile, BigFatCross> bigFatCrosses = new();
-			private int bigFatCrossRank = -1;
 
 			// How far each tile is from the nearest of empireCities, and how
 			// many of rivalCities are within rivalCityRadius of it. These
@@ -420,11 +418,14 @@ namespace C7Engine {
 
 			// The map doesn't change shape, so these are computed once.
 			public BigFatCross GetBigFatCross(Tile t, int maxRank) {
-				if (bigFatCrossRank != maxRank) {
-					bigFatCrosses.Clear();
-					bigFatCrossRank = maxRank;
+				BigFatCrosses cache = t.map != null
+					? bigFatCrossesByMap.GetValue(t.map, _ => new BigFatCrosses())
+					: ownBigFatCrosses;
+				if (cache.rank != maxRank) {
+					cache.crosses.Clear();
+					cache.rank = maxRank;
 				}
-				if (bigFatCrosses.TryGetValue(t, out BigFatCross bfc)) {
+				if (cache.crosses.TryGetValue(t, out BigFatCross bfc)) {
 					return bfc;
 				}
 
@@ -440,10 +441,22 @@ namespace C7Engine {
 					adjustments.Add(Math.Max(0, (maxRank - rank + 1f) / maxRank));
 				}
 				bfc = new BigFatCross() { tiles = tiles.ToArray(), adjustments = adjustments.ToArray() };
-				bigFatCrosses[t] = bfc;
+				cache.crosses[t] = bfc;
 				return bfc;
 			}
+
+			// For tiles without a map, as in some tests.
+			private readonly BigFatCrosses ownBigFatCrosses = new();
 		}
+
+		// The big fat crosses only depend on the shape of the map, so they are
+		// shared by every player.
+		private sealed class BigFatCrosses {
+			public int rank = -1;
+			public readonly Dictionary<Tile, BigFatCross> crosses = new();
+		}
+
+		private static readonly ConditionalWeakTable<GameMap, BigFatCrosses> bigFatCrossesByMap = new();
 
 		private static readonly ConditionalWeakTable<Player, PlayerScoreCache> playerScoreCaches = new();
 
