@@ -226,7 +226,8 @@ public partial class Tile {
 	// GetTileAtNeighborIndex(i). Offsets that fall off a non-wrapping edge of
 	// the map are skipped, so the result never contains Tile.NONE.
 	public List<Tile> GetTilesWithinRankDistance(int rank) {
-		List<Tile> result = new();
+		// Room for the whole square, so the list never grows.
+		List<Tile> result = new(Math.Max(0, (rank * 2 + 1) * (rank * 2 + 1)));
 		GetTilesWithinRankDistance(rank, result);
 		return result;
 	}
