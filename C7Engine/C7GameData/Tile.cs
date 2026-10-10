@@ -9,6 +9,8 @@ using static C7GameData.Tile.TileOverlays;
 
 namespace C7GameData {
 	public partial class Tile {
+		private static readonly Serilog.ILogger log = Serilog.Log.ForContext<Tile>();
+
 		public ID Id { get; internal set; }
 		public Civ3ExtraInfo ExtraInfo;
 		public int XCoordinate;
@@ -597,6 +599,14 @@ namespace C7GameData {
 				if (currentWorkerJob == unit.WorkerJob) {
 					unit.resetWorkerJob();
 				}
+			}
+
+			// The tile may have changed since the job began, as when a city
+			// is founded on it, so that the improvement can't go on it any
+			// more. The job comes to nothing rather than stopping the game.
+			if (currentWorkerJob.Improvement != null && !overlays.CanAdd(this, currentWorkerJob.Improvement)) {
+				log.Warning("Dropping the finished {Job} at {Tile}, which can no longer take it (city: {HasCity})", currentWorkerJob, this, HasCity());
+				return;
 			}
 
 			currentWorkerJob.OnComplete(player, this);
