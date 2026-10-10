@@ -303,20 +303,16 @@ public partial class UnitLayer : LooseLayer {
 		AnimationController animationController = looseView.mapView.game.animationController;
 		AnimationTracker animTracker = animationController.animTracker;
 		AnimationManager manager = animationController.civ3AnimData;
-		bool stillLooping = true;
-		EngineStorage.ReadGameData((GameData gameData) => {
-			foreach (LoopingUnit looping in loopingUnits) {
-				MapUnit.Appearance appearance = animTracker.getUnitAppearance(looping.unit);
-				if (appearance.ending != AnimationEnding.Repeat) {
-					stillLooping = false;
-					return;
-				}
-				AnimationManager.AnimationInfo animation = manager.GetUnitAnimation(looping.art, appearance.action, appearance.direction);
-				looping.inst.SetPosition(GetFramePosition(appearance, animation, looping.tileCenter));
-				looping.inst.SetAnimationFrame(animation.animationName, animation.FrameAtProgress(appearance.progress));
+		foreach (LoopingUnit looping in loopingUnits) {
+			MapUnit.Appearance appearance = animTracker.getUnitAppearance(looping.unit);
+			if (appearance.ending != AnimationEnding.Repeat) {
+				return false;
 			}
-		});
-		return stillLooping;
+			AnimationManager.AnimationInfo animation = manager.GetUnitAnimation(looping.art, appearance.action, appearance.direction);
+			looping.inst.SetPosition(GetFramePosition(appearance, animation, looping.tileCenter));
+			looping.inst.SetAnimationFrame(animation.animationName, animation.FrameAtProgress(appearance.progress));
+		}
+		return true;
 	}
 
 	private AnimationInstance drawUnitAnimFrame(LooseView looseView, Tile tile, MapUnit unit, AnimationManager.AnimationInfo animation,
@@ -412,9 +408,6 @@ public partial class UnitLayer : LooseLayer {
 		cursorSprite?.Hide();
 		BeginIndicators(looseView);
 
-		// The MapView brought the animations up to date earlier this frame.
-		AnimationController animationController = looseView.mapView.game.animationController;
-
 		// The displayed units are worked out again every turn, and for every game.
 		bool newTurnOrGame = gameData != displayedUnitsGame || gameData.turn != displayedUnitsTurn;
 		if (newTurnOrGame || displayedUnits.Count > MaxDisplayedUnitsCached) {
@@ -422,18 +415,90 @@ public partial class UnitLayer : LooseLayer {
 			displayedUnitsGame = gameData;
 			displayedUnitsTurn = gameData.turn;
 		}
+	}
 
-		// Animations that pause or repeat, like a death or a worker at work, are kept until they're replaced, so drop the ones of units that
-		// are gone every turn and every few seconds.
-		long now = animationController.animTracker.getCurrentTimeMS();
-		if (newTurnOrGame || now - lastAnimationPruneMS >= AnimationPruneIntervalMS) {
+	// Animations that pause or repeat, like a death or a worker at work, are kept until they're replaced, so drop the ones of units that are
+	// gone every turn and every few seconds. Dropping one completes it, which the engine may be waiting for, so the MapView does this every
+	// frame, however rarely the units are drawn.
+	public void PruneAnimations(AnimationTracker animTracker, GameData gameData) {
+		long now = animTracker.getCurrentTimeMS();
+		if (gameData != prunedGame || gameData.turn != prunedTurn || now - lastAnimationPruneMS >= AnimationPruneIntervalMS) {
+			prunedGame = gameData;
+			prunedTurn = gameData.turn;
 			lastAnimationPruneMS = now;
-			animationController.animTracker.forgetRemovedUnits(gameData);
+			animTracker.forgetRemovedUnits(gameData);
 		}
 	}
 
+	private GameData prunedGame = null;
+	private int prunedTurn = -1;
 	private long lastAnimationPruneMS = 0;
 	private const long AnimationPruneIntervalMS = 2000;
+
+	// Only the tiles with units or animations are drawn, in the order the MapView would give them, so that a big map with a few units on it
+	// isn't looked over tile by tile; see TilesToDraw.
+	private readonly List<MapView.VisibleTile> tilesToDraw = new();
+	private readonly HashSet<Tile> tilesSeen = new(ReferenceEqualityComparer.Instance);
+	private readonly List<(int x, int y)> animatedTiles = new();
+
+	public override List<MapView.VisibleTile> TilesToDraw(LooseView looseView, GameData gameData) {
+		tilesToDraw.Clear();
+		tilesSeen.Clear();
+		MapView mapView = looseView.mapView;
+		MapView.VisibleRegion region = looseView.drawRegion;
+		foreach (MapUnit unit in gameData.mapUnits) {
+			AddTileToDraw(looseView, mapView, region, unit.location);
+		}
+		// Units being animated are on their tiles too, but in case one isn't listed (say it has just died), and for effects.
+		animatedTiles.Clear();
+		looseView.mapView.game.animationController.animTracker.CollectAnimatedTiles(animatedTiles);
+		foreach ((int x, int y) in animatedTiles) {
+			AddTileToDraw(looseView, mapView, region, gameData.map.tileAt(x, y));
+		}
+		tilesSeen.Clear();
+		tilesToDraw.Sort(static (a, b) => a.y != b.y ? a.y.CompareTo(b.y) : a.x.CompareTo(b.x));
+		return tilesToDraw;
+	}
+
+	// Adds each of the tile's wrapped positions in the region.
+	private void AddTileToDraw(LooseView looseView, MapView mapView, MapView.VisibleRegion region, Tile tile) {
+		if (tile == null || tile == Tile.NONE || !tilesSeen.Add(tile)) {
+			return;
+		}
+		bool known = looseView.IsTileKnown(tile);
+		int periodX = mapView.wrapHorizontally ? mapView.mapWidth : 0;
+		int periodY = mapView.wrapVertically ? mapView.mapHeight : 0;
+		for (int y = FirstCopy(tile.YCoordinate, region.upperLeftY, periodY); y < region.lowerRightY; y += periodY) {
+			if (y >= region.upperLeftY) {
+				for (int x = FirstCopy(tile.XCoordinate, region.upperLeftX, periodX); x < region.lowerRightX; x += periodX) {
+					if (x >= region.upperLeftX) {
+						tilesToDraw.Add(new MapView.VisibleTile {
+							tile = tile,
+							tileCenter = MapView.cellSize * new Vector2(x + 1, y + 1),
+							x = x,
+							y = y,
+							known = known,
+						});
+					}
+					if (periodX <= 0) {
+						break;
+					}
+				}
+			}
+			if (periodY <= 0) {
+				break;
+			}
+		}
+	}
+
+	// The first of the coordinate's copies, a multiple of period apart, at or after low; the coordinate itself if there's no period.
+	private static int FirstCopy(int coordinate, int low, int period) {
+		if (period <= 0) {
+			return coordinate;
+		}
+		int offset = (coordinate - low) % period;
+		return low + (offset < 0 ? offset + period : offset);
+	}
 
 	public override void onEndDraw(LooseView looseView, GameData gameData) {
 		FreeUnusedInstances(unitInsts);

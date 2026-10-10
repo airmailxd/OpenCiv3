@@ -26,6 +26,10 @@ public abstract class LooseLayer {
 	public virtual void onBeginDraw(LooseView looseView, GameData gameData) { }
 	public virtual void onEndDraw(LooseView looseView, GameData gameData) { }
 
+	// A layer that only draws on a few of the tiles in the drawn region, like the units, returns them here, in the order the region's tiles
+	// are drawn in, so the others needn't be looked at; null to be given every tile. Called after onBeginDraw.
+	public virtual List<MapView.VisibleTile> TilesToDraw(LooseView looseView, GameData gameData) => null;
+
 	// Called when a LAN client swaps in the host's snapshot. Layers must forget what they remember about the old game's tiles, cities and
 	// units, since the new game data is made of new objects.
 	public virtual void onGameDataReplaced(GameData gameData) { }
@@ -737,7 +741,7 @@ public partial class LooseView : Node2D {
 					continue;
 				}
 				layer.onBeginDraw(this, gD);
-				foreach (MapView.VisibleTile vT in tiles) {
+				foreach (MapView.VisibleTile vT in layer.TilesToDraw(this, gD) ?? tiles) {
 					if (vT.known && (!onlyOnScreen || visRegion.Contains(vT.x, vT.y))) {
 						layer.drawObject(this, gD, vT.tile, vT.tileCenter);
 					}
@@ -1098,6 +1102,9 @@ public partial class MapView : Node2D {
 		// Brings the animations up to date before the units are drawn. This happens here rather than when the units are drawn because the
 		// unit view isn't drawn in bare map mode, and the engine waits for the animations it starts to finish.
 		game.animationController?.updateAnimations();
+		if (game.animationController != null && EngineStorage.gameData != null) {
+			unitLayer.PruneAnimations(game.animationController.animTracker, EngineStorage.gameData);
+		}
 
 		// Nothing to draw while the map is hidden; catch up once it's back.
 		bool hidden = game.IsMapHidden;

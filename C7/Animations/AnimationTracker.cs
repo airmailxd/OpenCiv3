@@ -148,7 +148,21 @@ public partial class AnimationTracker {
 	}
 
 	public void startAnimation(Tile tile, AnimatedEffect effect, Action completionEvent, AnimationEnding ending) {
-		startAnimation(activeTileEffects, getCurrentTimeMS(), tile.Id, () => civ3AnimData.forEffect(effect), completionEvent, ending, $"{effect} at {tile}");
+		if (!startAnimation(activeTileEffects, getCurrentTimeMS(), tile.Id, () => civ3AnimData.forEffect(effect), completionEvent, ending, $"{effect} at {tile}"))
+			return;
+		ActiveAnimation aa = activeTileEffects[tile.Id];
+		aa.tileX = tile.XCoordinate;
+		aa.tileY = tile.YCoordinate;
+		activeTileEffects[tile.Id] = aa;
+	}
+
+	// Adds the coordinates of the tiles where unit animations and effects are playing, so the units can be drawn there even without
+	// looking at every tile.
+	public void CollectAnimatedTiles(List<(int x, int y)> tiles) {
+		foreach (ActiveAnimation aa in activeAnims.Values)
+			tiles.Add((aa.tileX, aa.tileY));
+		foreach (ActiveAnimation aa in activeTileEffects.Values)
+			tiles.Add((aa.tileX, aa.tileY));
 	}
 
 	public void endAnimation(MapUnit unit) {
@@ -182,6 +196,8 @@ public partial class AnimationTracker {
 	// replaced, which may be never. Any completion event that hasn't been
 	// triggered yet is triggered, so nothing waits for the animation forever.
 	public void forgetRemovedUnits(GameData gameData) {
+		// Also forget the work loops of units that may be gone; they're worked out again as needed.
+		workLoops.Clear();
 		if (activeAnims.Count == 0) {
 			return;
 		}
@@ -293,6 +309,37 @@ public partial class AnimationTracker {
 	// loop doesn't need its flic header looked up every frame.
 	private readonly Dictionary<(string, MapUnit.AnimatedAction), long> workDurationsMS = new();
 
+	// The duration of each worker's work animation and what it was worked
+	// out from, so that a worker drawn every frame doesn't need its art and
+	// duration looked up by name every frame. Not kept for armies, whose art
+	// changes with their members (see AnimationManager.ArtMayChange).
+	private readonly struct WorkLoop {
+		public readonly Terraform job;
+		public readonly UnitPrototype unitType;
+		public readonly Player owner;
+		public readonly string era;
+		public readonly Civilization nationality;
+		public readonly long durationMS;
+
+		public WorkLoop(MapUnit unit, long durationMS) {
+			job = unit.WorkerJob;
+			unitType = unit.unitType;
+			owner = unit.owner;
+			era = unit.owner?.eraCivilopediaName;
+			nationality = unit.nationality;
+			this.durationMS = durationMS;
+		}
+
+		// Whether the unit's art and job are still what the duration was worked out for: the art is chosen by the unit's type, its
+		// owner's era and whether it's a captive.
+		public bool Matches(MapUnit unit) {
+			return ReferenceEquals(job, unit.WorkerJob) && ReferenceEquals(unitType, unit.unitType) && ReferenceEquals(owner, unit.owner)
+				&& ReferenceEquals(era, unit.owner?.eraCivilopediaName) && ReferenceEquals(nationality, unit.nationality);
+		}
+	}
+	private readonly Dictionary<MapUnit, WorkLoop> workLoops = new(ReferenceEqualityComparer.Instance);
+	private const int MaxWorkLoops = 4096;
+
 	// The animation of a worker at work, which is worked out from its job
 	// rather than from the animation started when it was given the job. That
 	// one is lost when a game is loaded, isn't sent to LAN clients and isn't
@@ -303,23 +350,35 @@ public partial class AnimationTracker {
 			return false;
 		}
 
-		// Art that's missing or broken shows the worker in its usual pose,
-		// which is remembered as a duration of zero so it's only tried once.
-		string artName;
-		try {
-			artName = AnimationManager.ArtNameFor(unit);
-		} catch (Exception e) {
-			log.Warning(e, "Couldn't find the art of {Unit}", unit);
-			return false;
-		}
-		if (!workDurationsMS.TryGetValue((artName, action), out long durationMS)) {
+		long durationMS;
+		bool cacheable = !AnimationManager.ArtMayChange(unit);
+		if (cacheable && workLoops.TryGetValue(unit, out WorkLoop loop) && loop.Matches(unit)) {
+			durationMS = loop.durationMS;
+		} else {
+			// Art that's missing or broken shows the worker in its usual pose,
+			// which is remembered as a duration of zero so it's only tried once.
+			string artName;
 			try {
-				durationMS = Math.Max(1, (long)civ3AnimData.forUnit(unit, action).getDuration());
+				artName = AnimationManager.ArtNameFor(unit);
 			} catch (Exception e) {
-				log.Warning(e, "Couldn't load the {Action} animation of {Art}", action, artName);
-				durationMS = 0;
+				log.Warning(e, "Couldn't find the art of {Unit}", unit);
+				return false;
 			}
-			workDurationsMS[(artName, action)] = durationMS;
+			if (!workDurationsMS.TryGetValue((artName, action), out durationMS)) {
+				try {
+					durationMS = Math.Max(1, (long)civ3AnimData.forUnit(unit, action).getDuration());
+				} catch (Exception e) {
+					log.Warning(e, "Couldn't load the {Action} animation of {Art}", action, artName);
+					durationMS = 0;
+				}
+				workDurationsMS[(artName, action)] = durationMS;
+			}
+			if (cacheable) {
+				if (workLoops.Count >= MaxWorkLoops) {
+					workLoops.Clear();
+				}
+				workLoops[unit] = new WorkLoop(unit, durationMS);
+			}
 		}
 		if (durationMS == 0) {
 			return false;
