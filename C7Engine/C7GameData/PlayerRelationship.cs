@@ -342,7 +342,9 @@ public class PlayerRelationship {
 			if (!TryGetRelationship(exporter, importer, out PlayerRelationship relationship) || relationship.AtWar()) {
 				continue;
 			}
-			bool connected = network.CapitalsConnected(exporter, importer);
+			// Only worked out for players with resource deals, as it may
+			// need both players' networks to be computed.
+			bool? connected = null;
 			foreach (MultiTurnDeal deal in relationship.multiTurnDeals) {
 				if (deal == null || deal.dealDetails != DealDetails.Outbound || deal.resourcePerTurn == null
 					|| deal.dealSubType is not (DealSubType.ResourcePerTurn or DealSubType.LuxuryPerTurn)) {
@@ -352,7 +354,8 @@ public class PlayerRelationship {
 				if (resource == null) {
 					continue;
 				}
-				if (!connected) {
+				connected ??= network.CapitalsConnected(exporter, importer);
+				if (connected == false) {
 					result.Add((exporter, importer, deal, resource));
 					continue;
 				}
