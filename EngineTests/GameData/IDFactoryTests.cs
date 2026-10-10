@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Text.Json;
 using C7GameData;
 using C7GameData.Save;
 using Xunit;
@@ -49,6 +51,42 @@ public class IDFactoryTests {
 		Assert.Equal("warrior-4", newUnitID.ToString());
 		Assert.Equal("worker-3", newWorkerID.ToString());
 		Assert.Equal("city-2", newCityID.ToString());
+	}
+
+	// IDJsonConverter writes and reads IDs without strings, but must give
+	// exactly what writing ToString() and reading with FromString would.
+	[Theory]
+	[InlineData("unit-1")]
+	[InlineData("Man-O-War-12")]
+	[InlineData("tile-none")]
+	[InlineData("Leonardo's Workshop-3")]
+	[InlineData("Ägypten-5")]
+	[InlineData("key-0007")]
+	[InlineData("key-2147483647")]
+	[InlineData("key-99999999999")]
+	[InlineData("key-+5")]
+	[InlineData("key- 5")]
+	[InlineData("key--1")]
+	[InlineData("key-")]
+	[InlineData("-5")]
+	[InlineData("nodash")]
+	[InlineData("tab\t-4")]
+	public void IDJsonConverter_MatchesStrings(string text) {
+		JsonSerializerOptions options = new() { Converters = { new IDJsonConverter() } };
+		string json = JsonSerializer.Serialize(text);
+		ID expected = null;
+		try {
+			expected = ID.FromString(text);
+		} catch (FormatException) {
+		}
+		if (expected == null) {
+			Assert.ThrowsAny<FormatException>(() => JsonSerializer.Deserialize<ID>(json, options));
+			return;
+		}
+		ID read = JsonSerializer.Deserialize<ID>(json, options);
+		Assert.Equal(expected, read);
+		Assert.Equal(expected.ToString(), read.ToString());
+		Assert.Equal(JsonSerializer.Serialize(expected.ToString()), JsonSerializer.Serialize(read, options));
 	}
 
 	[Fact]
