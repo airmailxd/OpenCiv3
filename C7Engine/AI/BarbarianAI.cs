@@ -36,6 +36,9 @@ namespace C7Engine {
 			player.tileKnowledge.RecomputeActiveTiles();
 
 			foreach (MapUnit unit in player.units.ToArray()) {
+				// Let the window draw between units on a long turn.
+				await EngineStorage.YieldIfFrameBudgetSpent();
+
 				// A unit may have died since the list was copied.
 				if (!PlayerAI.IsStillOurs(unit, player)) {
 					continue;

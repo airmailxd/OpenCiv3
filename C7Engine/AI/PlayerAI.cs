@@ -37,14 +37,21 @@ namespace C7Engine {
 
 			// Tell anyone wandering around our territory to leave. Any war that
 			// starts gets planned for in the priorities and unit moves below.
+			// (Each step may take a while on a big map, so the window gets to
+			// draw between them.)
+			await EngineStorage.YieldIfFrameBudgetSpent();
 			await TerritoryDemands.MakeDemands(player, gameData);
 
+			await EngineStorage.YieldIfFrameBudgetSpent();
 			MaybeDoPriorityReevaluation(player);
+			await EngineStorage.YieldIfFrameBudgetSpent();
 			MaybePickTechToResearch(player, techs);
 			GovernmentAI.PlayTurn(player, gameData);
+			await EngineStorage.YieldIfFrameBudgetSpent();
 			ReconsiderWealth(player);
 
 			// Ask for peace in wars that are going badly.
+			await EngineStorage.YieldIfFrameBudgetSpent();
 			await PeaceAI.ProposePeace(player, gameData);
 
 			// Roughly every 4 turns, see if there are trades to be made.
@@ -52,9 +59,12 @@ namespace C7Engine {
 				await AttemptTrading(player);
 			}
 
+			await EngineStorage.YieldIfFrameBudgetSpent();
 			EspionageAI.PlayTurn(player, gameData);
 
+			await EngineStorage.YieldIfFrameBudgetSpent();
 			UpgradeUnits(player);
+			await EngineStorage.YieldIfFrameBudgetSpent();
 			await DoUnitActions(player);
 
 			// Before ending the turn, adjust our sliders. We do this after unit
@@ -230,6 +240,9 @@ namespace C7Engine {
 		private static async Task DoUnitActions(Player player, HashSet<MapUnit> explorers) {
 			// Do things with units. Copy into an array first to avoid collection-was-modified exception
 			foreach (MapUnit unit in player.units.ToArray()) {
+				// Let the window draw between units on a long turn.
+				await EngineStorage.YieldIfFrameBudgetSpent();
+
 				// A unit may have died or been captured since the list was
 				// copied, such as a defender lost to another unit's attack.
 				if (!IsStillOurs(unit, player)) {

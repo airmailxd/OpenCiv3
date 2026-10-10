@@ -90,6 +90,9 @@ public class AiGameDeterminismTest : IClassFixture<SaveGameFixture> {
 
 		new MsgSetAnimationsEnabled(false).send();
 		EngineStorage.ProcessNextMessageToEngine();
+		// C7_DETERMINISM_FRAME_MS spreads the AIs' turns over frames, as the
+		// game does, which mustn't change what happens.
+		EngineStorage.frameBudget = TimeSpan.FromMilliseconds(Setting("C7_DETERMINISM_FRAME_MS", 0));
 
 		await CreateGame.createGame(NewSave(size, civs, seed), (_) => fixture.behaviors);
 		C7GameData.GameData gameData = EngineStorage.gameData;
@@ -106,8 +109,11 @@ public class AiGameDeterminismTest : IClassFixture<SaveGameFixture> {
 		try {
 			TurnHandling.OnBeginTurn();
 			TurnHandling.InitTurnData();
-			await TurnHandling.AdvanceTurn();
+			// Not awaited: the AIs may wait for the next frame, which only
+			// handling the engine's messages gives them, as the game does.
+			Task firstTurn = TurnHandling.AdvanceTurn();
 			EngineWaits.WaitForStartTurnMessage(_ => { });
+			await firstTurn;
 			for (int turn = 0; turn < turns && !gameData.gameOver; ++turn) {
 				Stopwatch watch = Stopwatch.StartNew();
 				new MsgEndTurn { turn = gameData.turn }.send();
@@ -122,6 +128,7 @@ public class AiGameDeterminismTest : IClassFixture<SaveGameFixture> {
 			lines.Add($"total ms={total.ElapsedMilliseconds}");
 			File.WriteAllLines(outPath, lines);
 			gameData.observerMode = false;
+			EngineStorage.frameBudget = TimeSpan.Zero;
 		}
 	}
 }

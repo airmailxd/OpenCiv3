@@ -35,8 +35,9 @@ public static class EngineWaits {
 		long lastProcessed = EngineStorage.processedMessageCount;
 
 		while (true) {
+			bool resumed = EngineStorage.IsWaitingForNextFrame;
 			EngineStorage.ProcessNextMessageToEngine();
-			bool progressed = EngineStorage.processedMessageCount != lastProcessed;
+			bool progressed = resumed || EngineStorage.processedMessageCount != lastProcessed;
 			lastProcessed = EngineStorage.processedMessageCount;
 
 			while (EngineStorage.TryDequeueNextMessageToUI(out MessageToUI msg)) {

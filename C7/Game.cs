@@ -204,6 +204,7 @@ public partial class Game : Node {
 	bool errorOnLoad = false;
 
 	public override void _EnterTree() {
+		EngineStorage.frameBudget = engineWorkBudget;
 		loadTimer.Start();
 	}
 
@@ -1565,6 +1566,10 @@ public partial class Game : Node {
 
 	// How long a frame may spend handling a run of messages to the engine.
 	private static readonly TimeSpan engineMessageBudget = TimeSpan.FromMilliseconds(4);
+
+	// How long a frame may spend on the AIs' turns before drawing, so the
+	// window doesn't freeze while they play.
+	private static readonly TimeSpan engineWorkBudget = TimeSpan.FromMilliseconds(8);
 
 	public override void _Process(double delta) {
 		if (errorOnLoad) {

@@ -796,6 +796,11 @@ public class LanHost : IDisposable {
 	}
 
 	public void Poll() {
+		// While the AIs' turns are spread over frames, nobody hears of them
+		// or acts until they're done, as when they were played in one frame.
+		if (EngineStorage.IsWaitingForNextFrame) {
+			return;
+		}
 		// What guests do here tells everyone of the lobby once, at the end.
 		deferLobby = true;
 		try {

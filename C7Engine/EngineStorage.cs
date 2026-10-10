@@ -109,8 +109,13 @@ namespace C7Engine {
 		// without them), settings of this machine, and messages the sender
 		// may not send now, which are turned down at once as they always were.
 		public static void ProcessNextMessageToEngine() {
+			StartFrameSlice();
+			ResumeYieldedWork();
 			FinishCompletedMessages();
-			if (pendingMessages.Count == 0) {
+			// Work that handed the rest of its frame back goes on next frame
+			// before anything else starts, just as nothing could start while
+			// the AIs played their turns in one go.
+			if (frameYield != null || pendingMessages.Count == 0) {
 				return;
 			}
 
@@ -161,6 +166,54 @@ namespace C7Engine {
 					return;
 				}
 			}
+		}
+
+		// How long engine work that may be split across frames (the AIs'
+		// turns, the between-turns updates) runs before handing the rest of
+		// the frame back, so the window keeps drawing and taking input. Zero,
+		// as in tests, runs it all in one go.
+		public static TimeSpan frameBudget = TimeSpan.Zero;
+
+		// Set while engine work waits for the next frame (see
+		// YieldIfFrameBudgetSpent). It is completed, running the work on,
+		// by the next ProcessNextMessageToEngine.
+		private static TaskCompletionSource frameYield;
+
+		// When this frame's engine work began. Work that goes on outside
+		// ProcessNextMessageToEngine (as after an animation) counts from
+		// there too, so it may wait for the next frame at once.
+		private static long frameSliceStart;
+
+		// Whether engine work is waiting for the next frame to go on.
+		public static bool IsWaitingForNextFrame => frameYield != null;
+
+		private static void StartFrameSlice() {
+			frameSliceStart = System.Diagnostics.Stopwatch.GetTimestamp();
+		}
+
+		private static void ResumeYieldedWork() {
+			TaskCompletionSource yielded = frameYield;
+			if (yielded != null) {
+				frameYield = null;
+				// Not run asynchronously, so the work goes on here, now.
+				yielded.SetResult();
+			}
+		}
+
+		// Waits for the next frame if this frame's engine work has run for
+		// frameBudget, and otherwise goes straight on. Called between steps
+		// of long engine work, where the game is in a consistent state for
+		// the UI to draw. Nothing else in the engine runs before the work
+		// goes on, so the game plays out exactly as it would in one go.
+		internal static Task YieldIfFrameBudgetSpent() {
+			if (frameBudget <= TimeSpan.Zero) {
+				return Task.CompletedTask;
+			}
+			if (System.Diagnostics.Stopwatch.GetElapsedTime(frameSliceStart) < frameBudget) {
+				return Task.CompletedTask;
+			}
+			frameYield ??= new TaskCompletionSource();
+			return frameYield.Task;
 		}
 
 		// Removes and returns the first waiting message that matches, keeping
@@ -269,6 +322,8 @@ namespace C7Engine {
 			pendingAnimations.Clear();
 			pendingEngineWaiters.Clear();
 			runningMessages.Clear();
+			// The previous game's work never resumes.
+			frameYield = null;
 			processingSenderID = null;
 			diplomacyPlayerID = null;
 			diplomacyAIPlayerID = null;

@@ -115,6 +115,7 @@ namespace C7Engine {
 				gameData.turn++;
 				gameData.DestroyDefeatedCivs();
 				foreach (Player player in gameData.players) {
+					await EngineStorage.YieldIfFrameBudgetSpent();
 					player.MaybeSpawnBonusUnits(gameData);
 					player.DecrementCityUnhappinessPenalties(gameData);
 					player.UpdateWarWeariness(gameData);
@@ -195,6 +196,7 @@ namespace C7Engine {
 					continue;
 				}
 
+				await EngineStorage.YieldIfFrameBudgetSpent();
 				if (player.isBarbarians) {
 					await BarbarianAI.PlayTurn(player, gameData);
 				} else if (!player.isHuman) {
