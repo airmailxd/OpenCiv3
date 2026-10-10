@@ -6,15 +6,14 @@ using C7GameData;
 namespace C7Engine.Pathing {
 	public class TradeNetworkSegment {
 		public Dictionary<Resource, int> resourceCounts = new();
-		public HashSet<Tile> tiles = new();
 
 		// The resources in this segment that the owning player knows about,
 		// cached until the player learns a new tech.
 		internal Dictionary<Resource, int> availableResources;
 		internal int availableResourcesTechCount = -1;
 
+		// The network's tileToSegment says which tiles are in the segment.
 		public void AddTile(Tile t, Player p) {
-			tiles.Add(t);
 			if (t.Resource != Resource.NONE && t.OwningPlayer() == p) {
 				if (resourceCounts.TryGetValue(t.Resource, out int currentCount)) {
 					resourceCounts[t.Resource] = currentCount + 1;
@@ -32,8 +31,10 @@ namespace C7Engine.Pathing {
 	// do a simple flood fill of the road network, rather than needing to do
 	// actual pathfinding between different tiles.
 	//
-	// Any road change anywhere invalidates the whole TradeNetwork, so each
-	// player's network is only computed the first time it is queried.
+	// Each player's network is only computed the first time it is queried.
+	// Changes to cities and borders invalidate the whole TradeNetwork; a
+	// road built or removed only drops the networks it can change (see
+	// OnRoadChanged).
 	//
 	// TODO: Handle harbors and airports
 	// TODO: Account for passing through the borders of civs we're at war with
@@ -59,6 +60,39 @@ namespace C7Engine.Pathing {
 				}
 				return network;
 			}
+		}
+
+		// A road appearing or going away at `tile` can only change a player's
+		// network if the flood fill reaches the tile or one of its
+		// neighbours: the fill only steps onto roaded tiles next to tiles it
+		// has reached. Other players' networks would come out the same if
+		// recomputed, so they are kept.
+		public void OnRoadChanged(Tile tile) {
+			lock (networks) {
+				List<Player> affected = null;
+				foreach ((Player player, PlayerNetwork network) in networks) {
+					if (Touches(network, tile)) {
+						(affected ??= new()).Add(player);
+					}
+				}
+				if (affected != null) {
+					foreach (Player player in affected) {
+						networks.Remove(player);
+					}
+				}
+			}
+		}
+
+		private static bool Touches(PlayerNetwork network, Tile tile) {
+			if (network.tileToSegment.ContainsKey(tile)) {
+				return true;
+			}
+			foreach (Tile n in tile.neighbors.Values) {
+				if (network.tileToSegment.ContainsKey(n)) {
+					return true;
+				}
+			}
+			return false;
 		}
 
 		private static PlayerNetwork ComputeTradeNetwork(Player player) {

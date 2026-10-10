@@ -686,7 +686,7 @@ namespace C7Engine {
 			Tile start = unit.location;
 			candidates.Sort((a, b) => start.DistanceTo(a).CompareTo(start.DistanceTo(b)));
 			PathingAlgorithm algorithm = PathingAlgorithmChooser.GetAlgorithm(unit);
-			return algorithm.FindFirstReachable(start, candidates, unit, out _) >= 0;
+			return algorithm.FindFirstReachableIndex(start, candidates, unit) >= 0;
 		}
 
 		// Matches ExplorerAI's test for whether a tile is worth exploring (at

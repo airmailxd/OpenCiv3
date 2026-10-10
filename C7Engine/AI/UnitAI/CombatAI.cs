@@ -214,7 +214,14 @@ namespace C7Engine.AI.UnitAI {
 			// enemy units. As of 2025-03-09, we don't track known and visible
 			// tiles separately, so this should be updated in the future.
 			List<(Tile tile, float score)> scoredTiles = new();
+			PathingShortcuts.WaterBodies waterBodies = null;
 			foreach (Tile t in GetCandidateTiles(unit, player, enemies)) {
+				// FindFirstReachable would never pick a tile we can't possibly
+				// get to (e.g. on another continent), so don't score it.
+				// Leaving it out of the stable sort keeps the others' order.
+				if (PathingShortcuts.IsTriviallyUnreachable(unit.location, t, unit, ref waterBodies)) {
+					continue;
+				}
 				float score = ScoreTile(t, unit, player, enemies);
 				if (score == int.MinValue) {
 					continue;

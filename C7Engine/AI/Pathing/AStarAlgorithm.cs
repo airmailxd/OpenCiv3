@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using C7GameData;
 
@@ -19,6 +20,10 @@ namespace C7Engine.Pathing {
 		// as UnitWalker, use an admissible and consistent heuristic computed
 		// per search, and check passability with the unit's CanEnter* methods.
 		private readonly MapUnit unit;
+
+		// Whether AI land units' searches also use LandmarkHeuristic. Only
+		// turned off by tests that compare against the plain heuristic.
+		internal static bool UseLandmarks = true;
 
 		// Creates an A* search specialized for moving the given unit.
 		public AStarAlgorithm(MapUnit unit) {
@@ -54,6 +59,16 @@ namespace C7Engine.Pathing {
 		}
 
 		public override int FindFirstReachable(Tile start, IReadOnlyList<Tile> candidates, MapUnit unit, out TilePath path) {
+			return FindFirstReachable(start, candidates, unit, true, out path);
+		}
+
+		// Doesn't search again for the path to a candidate that was found to
+		// be reachable by a failed search for an earlier one.
+		public override int FindFirstReachableIndex(Tile start, IReadOnlyList<Tile> candidates, MapUnit unit) {
+			return FindFirstReachable(start, candidates, unit, false, out _);
+		}
+
+		private int FindFirstReachable(Tile start, IReadOnlyList<Tile> candidates, MapUnit unit, bool wantPath, out TilePath path) {
 			// For human water units, whether land strips block movement depends
 			// on whether the destination was explored, so a single search can't
 			// answer for every candidate.
@@ -117,8 +132,8 @@ namespace C7Engine.Pathing {
 				PathSearchContext.Return(ctx);
 			}
 
-			if (next < 0) {
-				return -1;
+			if (next < 0 || !wantPath) {
+				return next;
 			}
 
 			// The candidate is known to be reachable, so search for it
@@ -208,6 +223,10 @@ namespace C7Engine.Pathing {
 			float tileFloor = MovementCostFloor.MinimumTileCost(unit, start);
 			double heuristicScale = MovementCostFloor.EdgeFloor(tileFloor, movementPoints) * (1 - 1e-6);
 
+			// For AI land units, the larger of that and the landmark bound,
+			// which stays useful where railroads make steps free.
+			LandmarkHeuristic.Goal landmarks = UseLandmarks ? LandmarkHeuristic.ForSearch(unit, destination, movementPoints) : null;
+
 			// Note: ctx's arrays may be reallocated by ctx.Id, so they are
 			// always accessed through ctx.
 			int startId = ctx.Id(start);
@@ -253,14 +272,15 @@ namespace C7Engine.Pathing {
 					}
 
 					float edgeCost = UnitWalker.EdgeCost(owner, currentTile, pair.Key, neighbor, movementPoints);
-					Relax(ctx, current, id, neighbor, destination, currentCost + edgeCost, maxCost, heuristicScale);
+					Relax(ctx, current, id, neighbor, destination, currentCost + edgeCost, maxCost, heuristicScale, landmarks);
 				}
 			}
 
 			return -1;
 		}
 
-		private void Relax(PathSearchContext ctx, int from, int id, Tile neighbor, Tile destination, double newCost, double maxCost, double heuristicScale) {
+		private void Relax(PathSearchContext ctx, int from, int id, Tile neighbor, Tile destination, double newCost, double maxCost, double heuristicScale,
+				LandmarkHeuristic.Goal landmarks) {
 			// Only consider edges that improve on what we already know, and
 			// only then pay for the passability check.
 			if (newCost >= ctx.cost[id] || newCost > maxCost) {
@@ -272,7 +292,12 @@ namespace C7Engine.Pathing {
 
 			ctx.cost[id] = newCost;
 			ctx.parent[id] = from;
-			double estimate = newCost + Heuristic(neighbor, destination, heuristicScale);
+			double heuristic = Heuristic(neighbor, destination, heuristicScale);
+			if (landmarks != null) {
+				// Node ids are map indices for the map's tiles.
+				heuristic = Math.Max(heuristic, landmarks.Estimate(id));
+			}
+			double estimate = newCost + heuristic;
 			ctx.open.Enqueue(new PathSearchContext.Entry(id, newCost), estimate);
 		}
 

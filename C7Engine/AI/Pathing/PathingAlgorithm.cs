@@ -27,6 +27,11 @@ namespace C7Engine.Pathing {
 			path = null;
 			return -1;
 		}
+
+		// Like FindFirstReachable, for callers that don't need the path.
+		public virtual int FindFirstReachableIndex(Tile start, IReadOnlyList<Tile> candidates, MapUnit unit) {
+			return FindFirstReachable(start, candidates, unit, out _);
+		}
 	}
 
 }

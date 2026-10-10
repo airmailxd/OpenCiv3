@@ -6,6 +6,7 @@ using C7Engine.AI.UnitAI;
 using C7GameData;
 using C7GameData.AIData;
 using C7Engine.Pathing;
+using C7Engine.AI;
 using Serilog;
 
 namespace C7Engine {
@@ -138,31 +139,22 @@ namespace C7Engine {
 			};
 		}
 
-		private static int DistanceToNearestCity(Player player, Tile t) {
-			int result = int.MaxValue;
-			foreach (City c in player.cities) {
-				int distance = t.DistanceTo(c.location);
-				if (distance < result) {
-					result = distance;
-				}
-			}
-			return result;
-		}
-
-		private static int DistanceToNearestExplorationTarget(Player player, Tile t) {
-			int result = int.MaxValue;
-			foreach (Tile target in player.tileKnowledge.aiExplorationTargets) {
-				int distance = t.DistanceTo(target);
-				if (distance < result) {
-					result = distance;
-				}
-			}
-			return result;
-		}
-
 		private static Dictionary<Tile, float> CalculateExplorationScores(Player player, MapUnit unit, IEnumerable<Tile> possibleNewLocations) {
 			Dictionary<Tile, float> explorationScores = new Dictionary<Tile, float>();
+
+			// Every candidate is measured against every city and exploration
+			// target (barbarians can have hundreds of targets), so index them.
+			NearestTileIndex cities = new(player.cities.Select(c => c.location));
+			NearestTileIndex targets = new(player.tileKnowledge.aiExplorationTargets);
+			PathingShortcuts.WaterBodies waterBodies = null;
 			foreach (Tile t in possibleNewLocations) {
+				// PickBestTileToExplore would never pick a tile the unit can't
+				// possibly get to (such as on another landmass), so don't score
+				// it. Leaving it out keeps the others in the same order.
+				if (PathingShortcuts.IsTriviallyUnreachable(unit.location, t, unit, ref waterBodies)) {
+					continue;
+				}
+
 				int numUnknownNeighbors = numUnknownNeighboringTiles(player, t);
 
 				// Don't waste time on uninteresting tiles.
@@ -183,7 +175,7 @@ namespace C7Engine {
 				// encourate semi-local exploration. Without this we won't know
 				// city sites.
 				if (player.cities.Count > 0) {
-					score -= DistanceToNearestCity(player, t);
+					score -= cities.DistanceToNearest(t);
 				}
 
 				// Similarly with tiles that are far away from us. We use
@@ -195,7 +187,7 @@ namespace C7Engine {
 				// being explored by other explorers to encourage exploring in
 				// different directions.
 				if (player.tileKnowledge.aiExplorationTargets.Count > 0) {
-					score += DistanceToNearestExplorationTarget(player, t);
+					score += targets.DistanceToNearest(t);
 				}
 
 				explorationScores[t] = score;

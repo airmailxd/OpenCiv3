@@ -336,8 +336,13 @@ namespace C7GameData {
 			return overlayTerrainType.IsVolcano;
 		}
 
+		// The same as HasRoad() || HasRailroad(), with one lookup: the trade
+		// network asks this of every tile next to its roads.
 		public bool IsRoaded() {
-			return this.HasRoad() || this.HasRailroad();
+			if (this.overlays.terrainImprovementByLayer.TryGetValue(Layer.Roads, out var value)) {
+				return value.key == ROAD || value.key == RAILROAD;
+			}
+			return false;
 		}
 
 		public bool HasRoad() {
