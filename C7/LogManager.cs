@@ -1,6 +1,7 @@
 using System;
 using Godot;
 using Serilog;
+using Serilog.Events;
 using Serilog.Templates;
 
 // Configures Serilog for the game. It must be the FIRST autoload in
@@ -47,6 +48,12 @@ public partial class LogManager : Node {
 		// suggested:
 		// filter += " OR SourceContext like 'C7Engine.AI.%'"; // (insert the namespace you need to debug)
 
+		// Nothing below Information gets past the filter above, so don't
+		// let Serilog build those events only to drop them: the engine logs
+		// at Debug for every AI unit's every move. Lower this to Debug (or
+		// Verbose) along with widening the filter.
+		LogEventLevel minimumLevel = LogEventLevel.Information;
+
 		Log.Logger = new LoggerConfiguration()
 			// C7_LOG picks another file, e.g. for running two instances side by side.
 			// At 50 MB the log rolls over to log_001.txt and so on, keeping the
@@ -56,7 +63,7 @@ public partial class LogManager : Node {
 						  outputTemplate: "[{Level:u3}] {Timestamp:HH:mm:ss} {SourceContext}: {Message:lj} {NewLine}{Exception}")
 			.WriteTo.Console(consoleTemplate)
 			.Filter.ByIncludingOnly(filter)
-			.MinimumLevel.Debug()
+			.MinimumLevel.Is(minimumLevel)
 			.CreateLogger();
 
 		// The file sink is buffered, so flush whenever the process goes away,
