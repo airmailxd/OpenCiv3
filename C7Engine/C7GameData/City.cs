@@ -1719,7 +1719,7 @@ namespace C7GameData {
 
 			location.unitsOnTile.Add(newUnit);
 			TileChangeJournal.Record(location);
-			gameData.mapUnits.Add(newUnit);
+			gameData.AddMapUnit(newUnit);
 			owner.AddUnit(newUnit);
 
 			foreach (CityBuilding b in EffectiveBuildings()) {
@@ -1758,21 +1758,15 @@ namespace C7GameData {
 		// Like GetTilesWithinRankDistance, but with the filtering of ocean
 		// tiles for city border calculations.
 		private List<Tile> GetTilesOfRank(int rank) {
-			List<Tile> result = new();
-			foreach (Tile t in location.GetTilesWithinRankDistance(rank)) {
+			// Filtered in place, keeping the order, rather than copied.
+			List<Tile> result = location.GetTilesWithinRankDistance(rank);
+			result.RemoveAll(t =>
 				// Borders of a city near the map's edge run off it: skip the
 				// off-map placeholder, which has no terrain or map.
-				if (t == Tile.NONE) {
-					continue;
-				}
-
+				t == Tile.NONE
 				// Law II
 				// Ocean tiles may only hold claims of rank 2.
-				if (t.baseTerrainType.IsOcean && t.RankDistanceTo(location) > 2) {
-					continue;
-				}
-				result.Add(t);
-			}
+				|| (t.baseTerrainType.IsOcean && t.RankDistanceTo(location) > 2));
 			return result;
 		}
 
