@@ -525,6 +525,8 @@ public class PerfStateSaveTests : IClassFixture<SaveGameFixture>, IDisposable {
 			Assert.Equal(owned, p.tileKnowledge.OwnedTiles());
 			Assert.Equal(owned.Where(t => t.IsCountedForDomination()).ToList(), p.tileKnowledge.DominationTiles());
 			Assert.Equal(owned.Where(t => t.IsCountedForScore()).ToList(), p.tileKnowledge.ScoreTiles());
+			Assert.Equal(p.tileKnowledge.DominationTiles().Count, p.tileKnowledge.CountDominationTiles());
+			Assert.Equal(p.tileKnowledge.ScoreTiles().Count, p.tileKnowledge.CountScoreTiles());
 		}
 	}
 }

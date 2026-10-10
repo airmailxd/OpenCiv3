@@ -71,7 +71,7 @@ public class ScoreVictory : IVictory {
 		if (player.hostFacts != null) {
 			return player.hostFacts.turnScore;
 		}
-		List<Tile> scoredTiles = player.tileKnowledge.ScoreTiles();
+		int scoredTiles = player.tileKnowledge.CountScoreTiles();
 
 		int happyCitizens = 0;
 		int contentCitizens = 0;
@@ -93,7 +93,7 @@ public class ScoreVictory : IVictory {
 		// TODO: gameData.gameDifficulty.ScoreMultiplier
 		float difficultyFactor = GetDifficultyScoreFactor(gameData);
 
-		float turnScore = (scoredTiles.Count + (2 * happyCitizens) + contentCitizens + specialists + futureTechs);
+		float turnScore = (scoredTiles + (2 * happyCitizens) + contentCitizens + specialists + futureTechs);
 		turnScore *= difficultyFactor;
 
 		return turnScore;

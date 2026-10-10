@@ -145,7 +145,7 @@ namespace C7Engine {
 
 		// The tiles of the civ's territory counted as its land.
 		private static int Land(Player player) {
-			return player.tileKnowledge.DominationTiles().Count;
+			return player.tileKnowledge.CountDominationTiles();
 		}
 
 		private static int Score(GameData gameData, Player player) {

@@ -733,5 +733,28 @@ namespace C7GameData {
 			}
 			return result;
 		}
+
+		// DominationTiles().Count and ScoreTiles().Count, without building
+		// the lists: victory checks and the score want only the number,
+		// every turn for every player.
+		public int CountDominationTiles() {
+			int count = 0;
+			foreach (Tile t in knownTiles) {
+				if (t.OwningPlayer() == _player && t.IsCountedForDomination()) {
+					++count;
+				}
+			}
+			return count;
+		}
+
+		public int CountScoreTiles() {
+			int count = 0;
+			foreach (Tile t in knownTiles) {
+				if (t.OwningPlayer() == _player && t.IsCountedForScore()) {
+					++count;
+				}
+			}
+			return count;
+		}
 	}
 }

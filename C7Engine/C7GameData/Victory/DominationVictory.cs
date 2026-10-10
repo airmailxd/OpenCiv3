@@ -64,7 +64,7 @@ public class DominationVictory : IVictory {
 	public VictoryStatus Evaluate(Player player, GameData gameData) {
 		// A LAN guest isn't sent all of the world, so the host counts it.
 		int totalTerritory = gameData.hostFacts?.dominationTiles ?? TotalTerritory(gameData);
-		int ourTerritory = player.hostFacts?.dominationTiles ?? player.tileKnowledge.DominationTiles().Count;
+		int ourTerritory = player.hostFacts?.dominationTiles ?? player.tileKnowledge.CountDominationTiles();
 
 		// Population is cheap to sum (no tiles involved), and it can change
 		// during a turn, so it isn't cached.
