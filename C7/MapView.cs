@@ -776,11 +776,13 @@ public partial class LooseView : Node2D {
 					if (layer is not FogOfWarLayer) {
 						continue;
 					}
+					layer.onBeginDraw(this, gD);
 					foreach (MapView.VisibleTile vT in tiles) {
 						if (vT.tile != Tile.NONE && (!onlyOnScreen || visRegion.Contains(vT.x, vT.y))) {
 							layer.drawObject(this, gD, vT.tile, vT.tileCenter);
 						}
 					}
+					layer.onEndDraw(this, gD);
 				}
 			}
 

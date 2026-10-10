@@ -1,3 +1,4 @@
+using System;
 using C7GameData;
 using Godot;
 
@@ -7,9 +8,57 @@ namespace C7.Map {
 		private readonly ImageTexture fogOfWarTexture;
 		private readonly Vector2 tileSize;
 
+		// What the player sees of each tile, by tile index, worked out once per draw: each tile is a corner of the fog of four tiles, and
+		// looking up what the player knows of a tile is costly. See Status.
+		private const byte Unseen = 0, Known = 1, InView = 2, NotWorkedOut = 255;
+		private byte[] statuses = [];
+		private GameMap statusMap;
+		private TileKnowledge knowledge;
+		private Tile target;
+
 		public FogOfWarLayer() {
 			fogOfWarTexture = TextureLoader.Load("terrain.fog_of_war");
 			tileSize = fogOfWarTexture.GetSize() / 9;
+		}
+
+		public override void onBeginDraw(LooseView looseView, GameData gameData) {
+			statusMap = gameData.map;
+			if (statuses.Length != statusMap.tiles.Count) {
+				statuses = new byte[statusMap.tiles.Count];
+			}
+			Array.Fill(statuses, NotWorkedOut);
+			knowledge = looseView.tileKnowledge;
+			target = looseView.mapView.game.tileInfo?.targetTile;
+		}
+
+		public override void onEndDraw(LooseView looseView, GameData gameData) {
+			statusMap = null;
+			knowledge = null;
+			target = null;
+		}
+
+		// Whether the player doesn't know the tile, knows it, or has it in view, which includes the tile the tile info box is about.
+		private byte Status(Tile tile) {
+			if (tile == null || tile == Tile.NONE) {
+				return Unseen;
+			}
+			int index = statusMap.tileCoordsToIndex(tile.XCoordinate, tile.YCoordinate);
+			if (index < 0 || index >= statuses.Length || statusMap.tiles[index] != tile) {
+				return WorkOutStatus(tile);
+			}
+			byte status = statuses[index];
+			if (status == NotWorkedOut) {
+				status = WorkOutStatus(tile);
+				statuses[index] = status;
+			}
+			return status;
+		}
+
+		private byte WorkOutStatus(Tile tile) {
+			if (!knowledge.isTileKnown(tile)) {
+				return Unseen;
+			}
+			return knowledge.isActiveTile(tile) || tile == target ? InView : Known;
 		}
 
 		public override void drawObject(LooseView looseView, GameData gameData, Tile tile, Vector2 tileCenter) {
@@ -22,28 +71,9 @@ namespace C7.Map {
 			Tile east = tile.neighbors[TileDirection.NORTHEAST];
 			Tile west = tile.neighbors[TileDirection.NORTHWEST];
 
-			var tk = looseView.tileKnowledge;
-			var ti = looseView.mapView.game.tileInfo;
-
-			(bool, bool, bool) Status(Tile tile) {
-				return (tk.isTileKnown(tile), tk.isActiveTile(tile), ti?.targetTile == tile);
-			}
-
-			int column = 0;
-			int row = 0;
-			bool known, active, target;
-
-			(known, active, target) = Status(north);
-			column += known ? (active || target) ? 2 : 1 : 0;
-
-			(known, active, target) = Status(west);
-			column += known ? (active || target) ? 6 : 3 : 0;
-
-			(known, active, target) = Status(east);
-			row += known ? (active || target) ? 2 : 1 : 0;
-
-			(known, active, target) = Status(south);
-			row += known ? (active || target) ? 6 : 3 : 0;
+			// Unseen, known and in view count 0, 1 and 2 at the north and east corners, and three times that at the west and south ones.
+			int column = Status(north) + 3 * Status(west);
+			int row = Status(east) + 3 * Status(south);
 
 			// save a few draw calls when the tile is completely visible
 			if (column == 8 && row == 8) {
