@@ -116,9 +116,9 @@ public class UnitedNationsTest : System.IDisposable {
 		MakePlayer("Persians", 2);
 		MakePlayer("Aztecs", 2);
 		BuildUnitedNations(rome);
-		gameData.history[greece.id.ToString()][0].Score = 100;
+		gameData.history[greece.id.ToString()][0] = new HistTurnRecord { Score = 100 };
 		// The owner is a candidate already, however high its score.
-		gameData.history[rome.id.ToString()][0].Score = 500;
+		gameData.history[rome.id.ToString()][0] = new HistTurnRecord { Score = 500 };
 
 		Assert.Equal([rome, greece], UnitedNations.Candidates(gameData));
 	}
