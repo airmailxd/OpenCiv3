@@ -962,6 +962,8 @@ public partial class Game : Node {
 	public override void _ExitTree() {
 		// Leaving the game leaves the LAN game, too.
 		LanSession.End();
+		// A save still being written is finished before quitting.
+		SaveManager.WaitForPendingSaves();
 	}
 
 	// Called when the engine hands the UI to a player at the start of their
