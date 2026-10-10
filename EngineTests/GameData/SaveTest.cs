@@ -247,6 +247,35 @@ public class SaveTests : IClassFixture<SaveGameFixture> {
 		Assert.Equal(directSaveLines, roundTrippedSaveLines);
 	}
 
+	// Saving in the background writes just what saving straight away does,
+	// however the game changes meanwhile, and loading reads a file with or
+	// without a byte order mark, or in UTF-16, alike.
+	[Fact]
+	public void SaveInBackgroundAndLoad() {
+		using TempDirectory output = new();
+		C7GameData.GameData gameData = ToGameData(GetSave(SaveType.basic));
+		string direct = output.File("direct.json");
+		SaveGame.FromGameData(gameData).Save(direct);
+		byte[] expected = File.ReadAllBytes(direct);
+
+		string background = output.File("background.json");
+		System.Threading.Tasks.Task saving = SaveManager.SaveInBackground(gameData, background);
+		gameData.history.Values.First().Add(new HistTurnRecord { Score = 1 });
+		gameData.players[0].gold += 100;
+		saving.Wait();
+		Assert.Equal(expected, File.ReadAllBytes(background));
+
+		byte[] compact = SaveGame.Load(direct, _ => "").ToCompactJSON();
+		string bom = output.File("bom.json");
+		File.WriteAllBytes(bom, [0xEF, 0xBB, 0xBF, .. expected]);
+		Assert.Equal(compact, SaveGame.Load(bom, _ => "").ToCompactJSON());
+		string utf16 = output.File("utf16.json");
+		File.WriteAllText(utf16, File.ReadAllText(direct), System.Text.Encoding.Unicode);
+		Assert.Equal(compact, SaveGame.Load(utf16, _ => "").ToCompactJSON());
+
+		Assert.ThrowsAny<Exception>(() => SaveManager.SaveInBackground(gameData, output.File("missing/dir/x.json")).Wait());
+	}
+
 	[Fact]
 	public async Task WorldWrapDetails() {
 		Player human = await CreateHeadlessGame(fixture.saveGame);
