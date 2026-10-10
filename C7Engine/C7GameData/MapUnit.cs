@@ -607,7 +607,7 @@ namespace C7GameData {
 
 			combatant.hitPointsRemaining -= 1;
 			if (combatant.hitPointsRemaining <= 0) {
-				log.Information($"{combatant} died fighting for {this}");
+				log.Information("{Combatant} died fighting for {Unit}", combatant, this);
 				EngineStorage.gameData.RemoveUnit(combatant);
 			}
 			return LoseArmyIfEmpty();

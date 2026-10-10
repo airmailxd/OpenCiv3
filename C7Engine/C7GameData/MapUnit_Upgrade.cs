@@ -80,7 +80,7 @@ public partial class MapUnit {
 			return false;
 		}
 
-		log.Information($"Upgrading {this} to {upgrade.name} for {cost} gold");
+		log.Information("Upgrading {Unit} to {Upgrade} for {Cost} gold", this, upgrade.name, cost);
 		owner.gold -= cost;
 		ChangeTypeForUpgrade(upgrade);
 		return true;

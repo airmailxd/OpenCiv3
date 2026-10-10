@@ -45,7 +45,7 @@ public partial class MapUnit {
 			return false;
 		}
 		foreach (TerrainImprovement target in PillageTargets()) {
-			log.Information($"{this} pillages the {target.key} at {location}");
+			log.Information("{Unit} pillages the {Improvement} at {Tile}", this, target.key, location);
 			location.overlays.Remove(target);
 			if (target.upgradesFrom != null)
 				location.overlays.Add(target.upgradesFrom);
