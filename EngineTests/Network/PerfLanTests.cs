@@ -229,6 +229,46 @@ public class PerfLanTests : IClassFixture<SaveGameFixture>, IDisposable {
 		Assert.Equal(expected, LanProtocol.DecodeSnapshot(encoded.Compressed).ToCompactJSON());
 	}
 
+	// A snapshot shares the tiles that haven't changed with the one before,
+	// and is still just what the game saves as.
+	[Fact]
+	public async Task SnapshotsShareOnlyUnchangedTiles() {
+		C7GameData.GameData gameData = await CreateTwoHumanGame();
+		SaveGame first = LanProtocol.SnapshotOf(gameData);
+		byte[] firstJson = first.ToCompactJSON();
+
+		List<Tile> land = gameData.map.tiles.Where(t => t.IsLand()).ToList();
+		TerrainImprovement road = gameData.terrainImprovements.First();
+		Resource resource = gameData.Resources.First();
+		TerrainType otherTerrain = gameData.terrainTypes.First(t => t != land[6].baseTerrainType);
+		List<Action> changes = [
+			() => land[0].riverNorth = !land[0].riverNorth,
+			() => land[1].riverNorthwest = !land[1].riverNorthwest,
+			() => land[2].hasGoodyHut = !land[2].hasGoodyHut,
+			() => land[3].hasBarbarianCamp = !land[3].hasBarbarianCamp,
+			() => land[4].hasHadForestCleared = !land[4].hasHadForestCleared,
+			() => land[5].overlays.Add(road),
+			() => land[6].baseTerrainType = otherTerrain,
+			() => land[7].overlayTerrainType = otherTerrain,
+			() => { land[8].Resource = resource; land[8].ResourceKey = resource.Key; },
+			() => land[9].continent += 1,
+			() => land[10].isFreshWater = !land[10].isFreshWater,
+			() => land[11].isPineForest = !land[11].isPineForest,
+			() => land[12].ExtraInfo = new Civ3ExtraInfo(),
+		];
+		SaveGame before = first;
+		for (int i = 0; i < changes.Count; ++i) {
+			changes[i]();
+			SaveGame snapshot = LanProtocol.SnapshotOf(gameData);
+			Assert.Equal(SaveGame.FromGameData(gameData).ToCompactJSON(), snapshot.ToCompactJSON());
+			int changed = gameData.map.tiles.IndexOf(land[i]);
+			Assert.NotSame(before.Map.tiles[changed], snapshot.Map.tiles[changed]);
+			Assert.Same(before.Map.tiles[changed == 0 ? 1 : 0], snapshot.Map.tiles[changed == 0 ? 1 : 0]);
+			before = snapshot;
+		}
+		Assert.Equal(firstJson, first.ToCompactJSON());
+	}
+
 	[Fact]
 	public async Task AnUnchangedSnapshotReusesTheLastEncoding() {
 		C7GameData.GameData gameData = await CreateTwoHumanGame();

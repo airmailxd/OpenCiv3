@@ -102,10 +102,15 @@ public static class LanProtocol {
 	// nothing the game goes on to change, so it can be encoded on another
 	// thread while the game carries on.
 	public static SaveGame SnapshotOf(GameData gameData) {
-		SaveGame save = SaveGame.FromGameData(gameData);
+		// Most of the map is as it was in the last snapshot, whose tiles
+		// nothing changes, so those are shared rather than saved again.
+		SaveGame save = SaveGame.FromGameData(gameData, lastSnapshotMap);
+		lastSnapshotMap = save.Map;
 		SnapshotDetacher.Detach(save);
 		return save;
 	}
+
+	private static SaveMap lastSnapshotMap;
 
 	// The game as it stands, as any guest or spectator may be sent it: as
 	// SnapshotOf, less what only the host may know.

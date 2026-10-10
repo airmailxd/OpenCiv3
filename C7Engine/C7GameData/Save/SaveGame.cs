@@ -62,7 +62,11 @@ namespace C7GameData.Save {
 			return (SaveGame)MemberwiseClone();
 		}
 
-		public static SaveGame FromGameData(GameData data) {
+		public static SaveGame FromGameData(GameData data) => FromGameData(data, null);
+
+		// With the map of a save made before, the tiles that are the same are
+		// shared with it (see SaveMap).
+		internal static SaveGame FromGameData(GameData data, SaveMap mapBefore) {
 			SaveGame save = new SaveGame {
 				FormatVersion = CurrentFormatVersion,
 				Seed = data.seed,
@@ -71,7 +75,7 @@ namespace C7GameData.Save {
 				Civilizations = data.civilizations,
 				CultureGroups = data.cultureGroups,
 				Alliances = data.alliances,
-				Map = new SaveMap(data.map),
+				Map = new SaveMap(data.map, mapBefore),
 				TerrainTypes = data.terrainTypes,
 				Resources = data.Resources,
 				Buildings = data.Buildings.ConvertAll(building => building.ToSaveBuilding()),
