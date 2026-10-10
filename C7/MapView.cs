@@ -1231,12 +1231,21 @@ public partial class MapView : Node2D {
 		VisibleRegion visible = getVisibleRegion();
 		int padX = Math.Max(4, (visible.lowerRightX - visible.upperLeftX) / 16 * 2);
 		int padY = Math.Max(4, (visible.lowerRightY - visible.upperLeftY) / 16 * 2);
+		// Along a wrapping edge, the camera is moved back by whole copies of the map to stay in the drawn region (see
+		// WrapCameraIntoDrawnRegion), so padding by half the map is enough for the camera to go anywhere without a redraw. Zoomed far out,
+		// more would draw the same tiles again just off screen. The padding stays even, so the tiles' rows stay staggered the same way.
+		if (wrapHorizontally && mapWidth > 0) {
+			padX = Math.Min(padX, Math.Max(4, (mapWidth / 2 + 1) & ~1));
+		}
+		if (wrapVertically && mapHeight > 0) {
+			padY = Math.Min(padY, Math.Max(4, (mapHeight / 2 + 1) & ~1));
+		}
 
 		if (hasDrawnRegion) {
 			VisibleRegion drawn = drawnRegion;
 			bool tooBig = (drawn.lowerRightX - drawn.upperLeftX) > (visible.lowerRightX - visible.upperLeftX) + 4 * padX
 				|| (drawn.lowerRightY - drawn.upperLeftY) > (visible.lowerRightY - visible.upperLeftY) + 4 * padY;
-			if (drawn.Covers(visible) && !tooBig) {
+			if (!tooBig && (drawn.Covers(visible) || WrapCameraIntoDrawnRegion(drawn, visible))) {
 				return;
 			}
 		}
@@ -1256,6 +1265,40 @@ public partial class MapView : Node2D {
 				looseView.QueueRedraw();
 			}
 		}
+	}
+
+	// On a map that wraps, moves the camera by whole copies of the map, which shows exactly the same thing, if that puts the screen back in
+	// the drawn region, so the map needn't be redrawn. Returns whether it did.
+	private bool WrapCameraIntoDrawnRegion(VisibleRegion drawn, VisibleRegion visible) {
+		int copiesX = 0, copiesY = 0;
+		if (wrapHorizontally && mapWidth > 0) {
+			float offset = (drawn.upperLeftX + drawn.lowerRightX - visible.upperLeftX - visible.lowerRightX) / 2f;
+			copiesX = (int)Math.Round(offset / mapWidth);
+		}
+		if (wrapVertically && mapHeight > 0) {
+			float offset = (drawn.upperLeftY + drawn.lowerRightY - visible.upperLeftY - visible.lowerRightY) / 2f;
+			copiesY = (int)Math.Round(offset / mapHeight);
+		}
+		if (copiesX == 0 && copiesY == 0) {
+			return false;
+		}
+		VisibleRegion moved = new() {
+			upperLeftX = visible.upperLeftX + copiesX * mapWidth,
+			upperLeftY = visible.upperLeftY + copiesY * mapHeight,
+			lowerRightX = visible.lowerRightX + copiesX * mapWidth,
+			lowerRightY = visible.lowerRightY + copiesY * mapHeight,
+		};
+		if (!drawn.Covers(moved)) {
+			return false;
+		}
+		internalCameraLocation += cellSize * new Vector2(copiesX * mapWidth, copiesY * mapHeight) * cameraZoom;
+		foreach (LooseView looseView in looseViews) {
+			looseView.Position = -internalCameraLocation;
+		}
+		// The selection cursor is at the copy of the selected unit nearest the middle of the screen, which may now be another one.
+		unitsChanged = true;
+		// The rounding of the camera's new location could have moved the screen by a tile.
+		return drawn.Covers(getVisibleRegion());
 	}
 
 	// Returns the tiles in the drawn region, collecting them if needed. If onScreen is given, the drawn region is first made to cover it.

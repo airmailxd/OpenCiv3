@@ -382,7 +382,18 @@ public partial class UnitLayer : LooseLayer {
 
 	private AnimatedSprite2D cursorSprite = null;
 
+	// Where the middle of the screen is in this draw, and how far from it the cursor is, so that on a map that wraps the cursor goes to the
+	// copy of the selected unit nearest the middle of the screen.
+	private Vector2 drawCenter;
+	private float cursorDistance;
+
 	public void drawCursor(LooseView looseView, Vector2 position) {
+		float distance = position.DistanceSquaredTo(drawCenter);
+		if (distance >= cursorDistance) {
+			return;
+		}
+		cursorDistance = distance;
+
 		// Initialize cursor if necessary
 		if (cursorSprite == null) {
 			cursorSprite = new AnimatedSprite2D();
@@ -406,6 +417,8 @@ public partial class UnitLayer : LooseLayer {
 
 		// Hide cursor if it's been initialized
 		cursorSprite?.Hide();
+		drawCenter = looseView.mapView.CameraCenterInMap();
+		cursorDistance = float.PositiveInfinity;
 		BeginIndicators(looseView);
 
 		// The displayed units are worked out again every turn, and for every game.
