@@ -6,6 +6,7 @@ using C7GameData;
 using C7Engine;
 using Serilog;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 // Loose layers are for drawing things on the map on a per-tile basis. (Historical aside: There used to be another kind of layer called a TileLayer
 // that was intended to draw regularly tiled objects like terrain sprites but using LooseLayers for everything was found to be a prefereable
@@ -673,6 +674,9 @@ public partial class LooseView : Node2D {
 		// Only when what's on the map or the drawn region changes. The view draws a region somewhat larger than the screen so that the
 		// camera can move a little without a redraw.
 		WhenMapChanges,
+		// Like WhenMapChanges, and also whenever MapView.contentVersion changes, for views that keep things worked out against it up to date
+		// as they're drawn, like the city labels.
+		WhenContentChanges,
 		// Every frame while the player is choosing a goto destination or a bombard target.
 		WhileTargeting,
 		// Like WhenMapChanges, and also every frame while an animation is playing, whenever what the units are drawn for (the selected unit,
@@ -686,6 +690,8 @@ public partial class LooseView : Node2D {
 	public MapView mapView;
 	public List<LooseLayer> layers = new List<LooseLayer>();
 	public readonly RedrawPolicy redrawPolicy;
+	// The MapView.contentVersion the view was last queued for redrawing at; see RedrawPolicy.WhenContentChanges.
+	internal int queuedContentVersion = -1;
 	private static ILogger log = Log.ForContext<LooseView>();
 
 	// Valid while the view is being drawn: the region of tiles being drawn, and the player whose view of the map is shown (null in
@@ -716,7 +722,7 @@ public partial class LooseView : Node2D {
 		EngineStorage.ReadGameData((GameData gD) => {
 			// Iterating over visible tiles is unfortunately pretty expensive, so the MapView collects them once and shares them with every
 			// view. Views drawn every frame only draw what's on screen; the others draw everything the MapView collected.
-			bool onlyOnScreen = redrawPolicy != RedrawPolicy.WhenMapChanges && redrawPolicy != RedrawPolicy.WhenUnitsChange;
+			bool onlyOnScreen = redrawPolicy == RedrawPolicy.WhileTargeting || redrawPolicy == RedrawPolicy.EveryFrame;
 			MapView.VisibleRegion visRegion = onlyOnScreen ? mapView.getVisibleRegion() : default;
 			List<MapView.VisibleTile> tiles = mapView.GetVisibleTiles(gD, onlyOnScreen ? visRegion : null);
 			drawRegion = onlyOnScreen ? visRegion : mapView.drawnRegion;
@@ -935,19 +941,24 @@ public partial class MapView : Node2D {
 	// Bumped whenever something on the map may have changed. Layers use it to know when to recompute what they remember, such as city
 	// labels.
 	public int contentVersion { get; private set; } = 0;
+	// Whether every view is to be redrawn, and whether the units are.
 	private bool mapChanged = true;
+	private bool unitsChanged = true;
 
-	// While the engine is busy (the AI is playing, animations are running) the game changes without telling the UI, so the map is redrawn
-	// every frame until a little after it is done, and once more when it's done. During the computer's turn, the views that are only redrawn
-	// when the map changes are only redrawn several times a second instead (units are drawn every frame anyway); on the player's turn, they
-	// keep up with the player's units revealing the map as they move. Things remembered against contentVersion are recomputed a few times a
-	// second meanwhile.
+	// While the engine is busy (the AI is playing, animations are running) the game changes without telling the UI. The units are redrawn
+	// every frame until a little after it is done, and once more when it's done; during the computer's turn, only several times a second.
+	// The other views, which are costly to redraw, are only redrawn when mapChangeTracker notices something they show may have changed, as
+	// often as the units at most, and in case it missed something every BusyFullRedrawSeconds and once more when the engine is done.
+	// Things remembered against contentVersion are recomputed a few times a second meanwhile.
 	private const int BusyGraceFrames = 10;
 	private const double BusyRedrawSeconds = 0.1;
 	private const double BusyRefreshSeconds = 0.25;
+	private const double BusyFullRedrawSeconds = 1.0;
 	private int busyFramesLeft = 0;
 	private double busyRedrawTimer = 0;
 	private double busyRefreshTimer = 0;
+	private double busyFullRedrawTimer = 0;
+	private readonly MapChangeTracker mapChangeTracker = new();
 	private long lastProcessedMessageCount = -1;
 	private bool mapWasHidden = false;
 	private bool targetingViewDrawn = false;
@@ -1017,11 +1028,11 @@ public partial class MapView : Node2D {
 		terrainView.layers.Add(borderLayer);
 		layersHiddenOnBareMap.AddRange([tileOverlayLayer, buildingLayer, borderLayer]);
 
-		LooseView cityView = new(this, LooseView.RedrawPolicy.WhenMapChanges);
+		LooseView cityView = new(this, LooseView.RedrawPolicy.WhenContentChanges);
 		this.cityLayer = new();
 		cityView.layers.Add(this.cityLayer);
 
-		LooseView tileAssignmentView = new(this, LooseView.RedrawPolicy.WhenMapChanges);
+		LooseView tileAssignmentView = new(this, LooseView.RedrawPolicy.WhenContentChanges);
 		this.tileAssignmentLayer = new();
 		tileAssignmentView.layers.Add(this.tileAssignmentLayer);
 
@@ -1111,14 +1122,22 @@ public partial class MapView : Node2D {
 			}
 			busyFramesLeft = BusyGraceFrames;
 		}
+		// Whether to look for changes the engine didn't tell us about.
+		bool checkForChanges = true;
 		if (busyFramesLeft > 0) {
 			--busyFramesLeft;
 			// The last busy frame shows and remembers the game as the engine left it.
 			bool done = busyFramesLeft == 0;
 			busyRedrawTimer += delta;
 			bool throttled = game.CurrentState == Game.GameState.ComputerTurn;
-			if (!throttled || busyRedrawTimer >= BusyRedrawSeconds || done) {
+			checkForChanges = !throttled || busyRedrawTimer >= BusyRedrawSeconds || done;
+			if (checkForChanges) {
 				busyRedrawTimer = 0;
+				unitsChanged = true;
+			}
+			busyFullRedrawTimer += delta;
+			if (busyFullRedrawTimer >= BusyFullRedrawSeconds || done) {
+				busyFullRedrawTimer = 0;
 				mapChanged = true;
 			}
 			busyRefreshTimer += delta;
@@ -1129,11 +1148,20 @@ public partial class MapView : Node2D {
 		} else {
 			busyRedrawTimer = 0;
 			busyRefreshTimer = 0;
+			busyFullRedrawTimer = 0;
 		}
 
 		UpdateDrawnRegion();
 		// Also catches the screen changing size.
 		cityLayer.PlaceScenes(this);
+
+		// Done after the drawn region is settled, since only changes in it matter. While the map is hidden the changes are kept for later.
+		if (checkForChanges && !hidden) {
+			GameData gD = EngineStorage.gameData;
+			if (gD != null && mapChangeTracker.Check(gD, this, drawnRegion)) {
+				mapChanged = true;
+			}
+		}
 
 		if (mapChanged) {
 			visibleTilesStale = true;
@@ -1142,10 +1170,14 @@ public partial class MapView : Node2D {
 		foreach (LooseView looseView in looseViews) {
 			switch (looseView.redrawPolicy) {
 				case LooseView.RedrawPolicy.WhenMapChanges:
+				case LooseView.RedrawPolicy.WhenContentChanges:
 					if (hidden) {
 						break;
 					}
-					if (looseView.TakeRedrawRequest() || mapChanged) {
+					bool contentChanged = looseView.redrawPolicy == LooseView.RedrawPolicy.WhenContentChanges
+						&& looseView.queuedContentVersion != contentVersion;
+					if (looseView.TakeRedrawRequest() || mapChanged || contentChanged) {
+						looseView.queuedContentVersion = contentVersion;
 						looseView.QueueRedraw();
 					}
 					break;
@@ -1156,7 +1188,7 @@ public partial class MapView : Node2D {
 					unitsDrawnSeconds += delta;
 					UnitsDrawnFor drawnFor = new(drawnRegion, UnitLayer.IndicatorZoom(cameraZoom), game.CurrentlySelectedUnit, game.controller,
 						game.tileInfo, unitLayer.visible, game.animationController.animTracker.hasPlayingAnimations());
-					if (looseView.TakeRedrawRequest() || mapChanged || drawnFor.animating || drawnFor != unitsDrawnFor
+					if (looseView.TakeRedrawRequest() || mapChanged || unitsChanged || drawnFor.animating || drawnFor != unitsDrawnFor
 						|| unitsDrawnSeconds >= UnitsRefreshSeconds || !unitLayer.UpdateLoopingAnimations(looseView)) {
 						unitsDrawnFor = drawnFor;
 						unitsDrawnSeconds = 0;
@@ -1180,6 +1212,7 @@ public partial class MapView : Node2D {
 
 		if (!hidden) {
 			mapChanged = false;
+			unitsChanged = false;
 		}
 	}
 
@@ -1209,7 +1242,8 @@ public partial class MapView : Node2D {
 		visibleTilesStale = true;
 
 		foreach (LooseView looseView in looseViews) {
-			if (looseView.redrawPolicy == LooseView.RedrawPolicy.WhenMapChanges) {
+			if (looseView.redrawPolicy == LooseView.RedrawPolicy.WhenMapChanges
+				|| looseView.redrawPolicy == LooseView.RedrawPolicy.WhenContentChanges) {
 				looseView.QueueRedraw();
 			}
 		}
@@ -1422,5 +1456,131 @@ public partial class MapView : Node2D {
 		if (!MapUnit.IsMapUnitValid(currentlySelectedUnit))
 			return;
 		centerCameraOnTile(currentlySelectedUnit.location);
+	}
+
+	// Whether the tile, at any of its wrapped positions, is within margin tiles of the region.
+	public bool IsTileNear(Tile tile, VisibleRegion region, int margin) {
+		return IsNear(tile.XCoordinate, region.upperLeftX - margin, region.lowerRightX + margin, wrapHorizontally ? mapWidth : 0)
+			&& IsNear(tile.YCoordinate, region.upperLeftY - margin, region.lowerRightY + margin, wrapVertically ? mapHeight : 0);
+	}
+
+	// Whether the coordinate, or one of its copies a multiple of period away (if period isn't zero), is in [low, high).
+	private static bool IsNear(int coordinate, int low, int high, int period) {
+		if (period <= 0) {
+			return coordinate >= low && coordinate < high;
+		}
+		if (high - low >= period) {
+			return true;
+		}
+		int offset = (coordinate - low) % period;
+		if (offset < 0) {
+			offset += period;
+		}
+		return offset < high - low;
+	}
+
+	// Notices changes the engine doesn't tell the UI about, as while the AI plays, to what the terrain, fog of war and city views show in
+	// the drawn region, so that they're only redrawn when they may have changed. It watches what the UI's player knows of the map and of
+	// technology (for resources), the turn, the number of cities, and the tiles recorded in the engine's TileChangeJournal (see
+	// TileChanges): any change to a tile's terrain or its units' owners, to who owns it, and so on, records the tile. Most of the recorded
+	// changes are units moving, which the terrain and fog don't show, so each tile's signature (see Signature) is kept and only a tile whose
+	// signature changed counts. Changes that aren't recorded, like a road being finished, are left to the MapView's regular full redraws
+	// while the engine is busy, and to the messages the engine sends.
+	private sealed class MapChangeTracker {
+		private GameData gameData;
+		private Player player;
+		private bool wholeMap;
+		private int turn, knownTiles, knownTechs, cityCount;
+		private long journalEpoch, journalPosition;
+
+		// Each tile's signature when it was last recorded in the journal, by tile index; zero for tiles not seen yet.
+		private long[] signatures = [];
+
+		// Returns whether something the views show in the region may have changed since the last call.
+		public bool Check(GameData gD, MapView mapView, VisibleRegion region) {
+			bool wholeMap = mapView.ShowsWholeMap(gD);
+			Player player = gD.observerMode ? null : gD.GetUIControllerPlayer();
+			TileKnowledge knowledge = player?.tileKnowledge;
+			int knownTiles = knowledge?.knownTiles.Count ?? 0;
+			int knownTechs = player?.knownTechs.Count ?? 0;
+			bool changed = gD != gameData || player != this.player || wholeMap != this.wholeMap || gD.turn != turn
+				|| knownTiles != this.knownTiles || knownTechs != this.knownTechs || gD.cities.Count != cityCount;
+			if (gD != gameData || signatures.Length != gD.map.tiles.Count) {
+				signatures = new long[gD.map.tiles.Count];
+			}
+			gameData = gD;
+			this.player = player;
+			this.wholeMap = wholeMap;
+			turn = gD.turn;
+			this.knownTiles = knownTiles;
+			this.knownTechs = knownTechs;
+			cityCount = gD.cities.Count;
+
+			long head = TileChanges.Head;
+			if (TileChanges.Epoch != journalEpoch || head - journalPosition > TileChanges.Capacity || head < journalPosition) {
+				// What changed was forgotten.
+				journalEpoch = TileChanges.Epoch;
+				journalPosition = head;
+				return true;
+			}
+
+			// A unit sees up to two tiles away, or further with radar, so a unit just outside the region can change the fog inside it. The
+			// terrain's art depends on the neighboring tiles too.
+			int margin = 2 * Math.Max(2, gD.rules?.RadarTileVisibility ?? 0) + 2;
+			for (long i = journalPosition; i < head; ++i) {
+				Tile tile = TileChanges.At(i);
+				if (tile == null || tile == Tile.NONE || tile.XCoordinate < 0 || tile.YCoordinate < 0
+					|| tile.XCoordinate >= gD.map.numTilesWide || tile.YCoordinate >= gD.map.numTilesTall) {
+					continue;
+				}
+				int index = gD.map.tileCoordsToIndex(tile.XCoordinate, tile.YCoordinate);
+				if (index < 0 || index >= signatures.Length || gD.map.tiles[index] != tile) {
+					// Not a tile of this game.
+					continue;
+				}
+				long signature = Signature(tile, player);
+				if (signature != signatures[index]) {
+					signatures[index] = signature;
+					changed = changed || mapView.IsTileNear(tile, region, margin);
+				}
+			}
+			journalPosition = head;
+			return changed;
+		}
+
+		// A value that changes whenever anything the terrain, fog of war and city views show of the tile changes in a way the engine records
+		// in the journal: its terrain, resource, improvements, goody hut or barbarian camp, owner and city, and whether one of the UI's
+		// player's units is on top there (the fog of war around a tile with a unit depends on whose unit it is, and on radar). Never zero.
+		private static long Signature(Tile tile, Player player) {
+			long signature = Mix(17, RuntimeHelpers.GetHashCode(tile.baseTerrainType));
+			signature = Mix(signature, RuntimeHelpers.GetHashCode(tile.overlayTerrainType));
+			signature = Mix(signature, RuntimeHelpers.GetHashCode(tile.Resource));
+			signature = Mix(signature, RuntimeHelpers.GetHashCode(tile.OwningPlayer()));
+			signature = Mix(signature, RuntimeHelpers.GetHashCode(tile.cityAtTile));
+			// In any order, since the improvements may be listed in another order without having changed.
+			long improvements = 0;
+			foreach (TerrainImprovement improvement in tile.overlays.terrainImprovementByLayer.Values) {
+				improvements += Mix(23, RuntimeHelpers.GetHashCode(improvement));
+			}
+			signature = Mix(signature, improvements);
+			List<MapUnit> units = tile.unitsOnTile;
+			bool ours = player != null && units.Count > 0 && units[0].owner == player;
+			bool radar = false;
+			if (ours) {
+				foreach (MapUnit unit in units) {
+					radar |= unit.unitType.hasRadar;
+				}
+			}
+			signature = Mix(signature, (tile.hasGoodyHut ? 1 : 0) | (tile.hasBarbarianCamp ? 2 : 0) | (ours ? 4 : 0) | (radar ? 8 : 0));
+			return signature == 0 ? 1 : signature;
+		}
+
+		private static long Mix(long hash, long value) {
+			unchecked {
+				hash ^= value * -7046029254386353131L; // 0x9E3779B97F4A7C15
+				hash = (hash ^ (hash >> 29)) * -4658895280553007687L; // 0xBF58476D1CE4E5B9
+				return hash ^ (hash >> 32);
+			}
+		}
 	}
 }
