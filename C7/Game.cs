@@ -1563,6 +1563,9 @@ public partial class Game : Node {
 	// How long a frame may spend handling the engine's messages to the UI.
 	private static readonly long uiMessageBudgetTicks = Stopwatch.Frequency * 4 / 1000;
 
+	// How long a frame may spend handling a run of messages to the engine.
+	private static readonly TimeSpan engineMessageBudget = TimeSpan.FromMilliseconds(4);
+
 	public override void _Process(double delta) {
 		if (errorOnLoad) {
 			return;
@@ -1572,7 +1575,7 @@ public partial class Game : Node {
 
 		// The engine waits for animations to finish before going on.
 		if (!EngineStorage.HasPendingAnimations())
-			EngineStorage.ProcessNextMessageToEngine();
+			EngineStorage.ProcessMessagesToEngine(engineMessageBudget);
 
 		// Handle the waiting messages to the UI, as many as fit in the frame's
 		// budget. None of them start animations (those have their own queue),
