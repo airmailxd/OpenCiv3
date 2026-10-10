@@ -26,6 +26,10 @@ public abstract class LooseLayer {
 	public virtual void onBeginDraw(LooseView looseView, GameData gameData) { }
 	public virtual void onEndDraw(LooseView looseView, GameData gameData) { }
 
+	// Whether the layer has nothing to draw at the moment, like the tile assignments while no city is shown. A view whose layers are all
+	// blank isn't redrawn again once it's been drawn blank.
+	public virtual bool IsBlank => false;
+
 	// A layer that only draws on a few of the tiles in the drawn region, like the units, returns them here, in the order the region's tiles
 	// are drawn in, so the others needn't be looked at; null to be given every tile. Called after onBeginDraw.
 	public virtual List<MapView.VisibleTile> TilesToDraw(LooseView looseView, GameData gameData) => null;
@@ -696,6 +700,23 @@ public partial class LooseView : Node2D {
 	public readonly RedrawPolicy redrawPolicy;
 	// The MapView.contentVersion the view was last queued for redrawing at; see RedrawPolicy.WhenContentChanges.
 	internal int queuedContentVersion = -1;
+	// Whether the view was last queued for redrawing with nothing to draw; see LooseLayer.IsBlank.
+	private bool queuedBlank = false;
+
+	// Queues the view to be redrawn, unless it has nothing to draw and has already been drawn that way.
+	public void QueueRedrawUnlessBlank() {
+		bool blank = true;
+		foreach (LooseLayer layer in layers) {
+			if (layer.visible && !layer.IsBlank) {
+				blank = false;
+				break;
+			}
+		}
+		if (!blank || !queuedBlank) {
+			QueueRedraw();
+		}
+		queuedBlank = blank;
+	}
 	private static ILogger log = Log.ForContext<LooseView>();
 
 	// Valid while the view is being drawn: the region of tiles being drawn, and the player whose view of the map is shown (null in
@@ -1187,7 +1208,7 @@ public partial class MapView : Node2D {
 						&& looseView.queuedContentVersion != contentVersion;
 					if (looseView.TakeRedrawRequest() || mapChanged || contentChanged) {
 						looseView.queuedContentVersion = contentVersion;
-						looseView.QueueRedraw();
+						looseView.QueueRedrawUnlessBlank();
 					}
 					break;
 				case LooseView.RedrawPolicy.WhenUnitsChange:
@@ -1262,7 +1283,7 @@ public partial class MapView : Node2D {
 		foreach (LooseView looseView in looseViews) {
 			if (looseView.redrawPolicy == LooseView.RedrawPolicy.WhenMapChanges
 				|| looseView.redrawPolicy == LooseView.RedrawPolicy.WhenContentChanges) {
-				looseView.QueueRedraw();
+				looseView.QueueRedrawUnlessBlank();
 			}
 		}
 	}
