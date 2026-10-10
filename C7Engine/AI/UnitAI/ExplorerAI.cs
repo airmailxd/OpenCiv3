@@ -146,7 +146,15 @@ namespace C7Engine {
 			// target (barbarians can have hundreds of targets), so index them.
 			NearestTileIndex cities = new(player.cities.Select(c => c.location));
 			NearestTileIndex targets = new(player.tileKnowledge.aiExplorationTargets);
+			PathingShortcuts.WaterBodies waterBodies = null;
 			foreach (Tile t in possibleNewLocations) {
+				// PickBestTileToExplore would never pick a tile the unit can't
+				// possibly get to (such as on another landmass), so don't score
+				// it. Leaving it out keeps the others in the same order.
+				if (PathingShortcuts.IsTriviallyUnreachable(unit.location, t, unit, ref waterBodies)) {
+					continue;
+				}
+
 				int numUnknownNeighbors = numUnknownNeighboringTiles(player, t);
 
 				// Don't waste time on uninteresting tiles.
