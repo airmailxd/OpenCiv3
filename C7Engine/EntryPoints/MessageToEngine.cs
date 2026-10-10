@@ -780,6 +780,15 @@ namespace C7Engine {
 		protected override async Task ProcessAllowedAsync() {
 			Player controller = Sender;
 
+			// An observed player whose turn began before observing, as the
+			// first turn of a game watched from the start does, has the AI
+			// play it now rather than miss it.
+			if (EngineStorage.gameData.observerMode && !controller.isHuman && !controller.isBarbarians
+				&& TurnHandling.aiPlayedPausedTurn != controller.id) {
+				await PlayerAI.PlayTurn(controller, EngineStorage.gameData);
+			}
+			TurnHandling.aiPlayedPausedTurn = null;
+
 			TurnHandling.OnEndTurn(controller);
 
 			// Reorder the unit list so that non-busy units will be selected

@@ -19,6 +19,8 @@ public partial class MainMenu : Node {
 	MenuButtonContainer ButtonContainer;
 
 	GlobalSingleton Global;
+
+	private static bool devWatchUsed = false;
 	AudioManager AudioManager;
 
 	public override void _Ready() {
@@ -39,6 +41,11 @@ public partial class MainMenu : Node {
 
 			if (LanSession.TakeDevStart()) {
 				CallDeferred(nameof(StartDevLanGame));
+			} else if (!devWatchUsed && Array.IndexOf(OS.GetCmdlineUserArgs(), "--watch-ai") >= 0) {
+				// The --watch-ai developer option goes straight into a game
+				// to watch, the first time the menu shows.
+				devWatchUsed = true;
+				CallDeferred(nameof(WatchAiGame));
 			}
 		} catch (Exception ex) {
 			log.Error(ex, "Could not set up the main menu");
@@ -60,6 +67,7 @@ public partial class MainMenu : Node {
 		LanSession.HostNextGame = false;
 		LanSession.PendingGame = null;
 		LanSession.ResumeGame = null;
+		Global.WatchNextGame = false;
 
 		LoadDialog.SetDirectoryForLoadingSaves();
 		LoadScenarioDialog.SetDirectoryForLoading(@"Conquests/Scenarios");
@@ -80,6 +88,7 @@ public partial class MainMenu : Node {
 			GoToWorldSetup();
 		};
 		ButtonContainer.QuickStart.Pressed += QuickStartGame;
+		ButtonContainer.WatchAi.Pressed += WatchAiGame;
 		ButtonContainer.Tutorial.Pressed += QuickStartGame;
 		ButtonContainer.Tutorial.Visible = false;
 		ButtonContainer.LoadGame.Pressed += LoadGame;
@@ -146,6 +155,13 @@ public partial class MainMenu : Node {
 		PlayButtonPressedSound();
 		QuickStartSetup.Init(Global);
 		GetTree().ChangeSceneToFile("res://C7Game.tscn");
+	}
+
+	// Starts a game as Quick Start would, for the AIs to play while the user
+	// watches.
+	public void WatchAiGame() {
+		Global.WatchNextGame = true;
+		QuickStartGame();
 	}
 
 	public void LoadGame() {

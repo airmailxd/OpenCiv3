@@ -27,6 +27,10 @@ public partial class GlobalSingleton : Node {
 	// setup screen, which is what actually kicks off the world generation.
 	public WorldCharacteristics WorldCharacteristics;
 
+	// Whether the game about to start is one the user only watches, with the
+	// AI playing every civilization from the first turn.
+	public bool WatchNextGame;
+
 	public GlobalSingleton() {
 		if (C7Settings.UseStandaloneMode()) {
 			ActivateGameMode(GamePaths.standalone);

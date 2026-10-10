@@ -196,6 +196,11 @@ public partial class Game : Node {
 	// without pressing the spacebar repeatedly.
 	public int turnsLeftToFastForward = 0;
 
+	// When in observer mode, how many turns to play each time the user ends
+	// the turn, so the game pauses for review every that many turns. 0 to
+	// play one turn at a time.
+	private int fastForwardInterval = 0;
+
 	bool errorOnLoad = false;
 
 	public override void _EnterTree() {
@@ -276,6 +281,12 @@ public partial class Game : Node {
 
 	private async Task StartGame() {
 		log.Information("Now in game!");
+
+		bool watching = Global.WatchNextGame && !LanSession.IsActive;
+		Global.WatchNextGame = false;
+		if (watching) {
+			ToggleObserverMode();
+		}
 
 		TurnHandling.OnBeginTurn();
 
@@ -1721,6 +1732,10 @@ public partial class Game : Node {
 		EmitSignal(SignalName.TurnEnded);
 		log.Information("Starting computer turn");
 		CurrentState = GameState.ComputerTurn;
+		// Ending the turn by hand in observer mode plays on to the next pause.
+		if (EngineStorage.gameData.observerMode && fastForwardInterval > 0) {
+			turnsLeftToFastForward = fastForwardInterval - 1;
+		}
 		new MsgEndTurn { turn = EngineStorage.gameData.turn }.send(); // Triggers actual backend processing
 																	  // Production news the player hasn't seen is out of date. Other
 																	  // hotseat players keep theirs for their own turns.
@@ -2278,19 +2293,26 @@ public partial class Game : Node {
 		}
 		animationController.SetAnimationsEnabled(false);
 		popupOverlay.ShowPopup(
-			new TextDialog("How many turns to fast forward through?",
+			new TextDialog("Pause every how many turns?",
 							"Turns: ", "100",
 							BoxContainer.AlignmentMode.Begin,
 							(string turns) => {
 								// Ignore what isn't a number of turns rather than throwing.
 								if (int.TryParse(turns, out int n) && n >= 0) {
+									fastForwardInterval = n;
 									turnsLeftToFastForward = n;
+								}
+								// Play on to the first pause straight away.
+								if (CurrentState == GameState.PlayerTurn) {
+									DoActualEndTurn();
 								}
 							}),
 				PopupOverlay.PopupCategory.Advisor);
 	}
 
 	private void SetObserverModeOff(GameData gameData) {
+		fastForwardInterval = 0;
+		turnsLeftToFastForward = 0;
 		foreach (Player player in gameData.players) {
 			if (player.id == EngineStorage.uiControllerID || observerModeHumans.Contains(player.id)) {
 				player.isHuman = true;

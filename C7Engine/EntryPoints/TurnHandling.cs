@@ -51,7 +51,13 @@ namespace C7Engine {
 		// resumes (see EngineStorage.ResetForNewGame).
 		internal static void ResetForNewGame() {
 			runningTurnLoop = null;
+			aiPlayedPausedTurn = null;
 		}
+
+		// In observer mode, the player whose turn the game paused on after
+		// the AI played it. A turn that began before observing hasn't been
+		// played by the AI; see MsgEndTurn.
+		internal static ID aiPlayedPausedTurn;
 
 		// Implements the game loop. This method is called when the game is started and when the player signals that they're done moving.
 		// Only one loop runs at a time: were a second to start while the
@@ -206,6 +212,7 @@ namespace C7Engine {
 
 				//Human player check. Let the human see what's going on even if they are in observer mode.
 				if (player.id == EngineStorage.activePlayerID) {
+					aiPlayedPausedTurn = player.isHuman ? null : player.id;
 					StartHumanTurn(player, gameData);
 					return true;
 				}
