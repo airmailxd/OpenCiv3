@@ -225,6 +225,10 @@ namespace C7Engine {
 		// cache at once.
 		internal sealed class TileYieldEntry {
 			public float score;
+			// The scoring pass in which the entry was last checked against
+			// its tile: tiles don't change while sites are being scored, so
+			// within a pass the check is only needed once.
+			public int checkedPass;
 			public TerrainType overlayTerrainType;
 			public Resource resource;
 			public bool isBonusShield;
@@ -382,9 +386,14 @@ namespace C7Engine {
 				return added;
 			}
 
-			// Drops all yield scores if something that affects the yields of
-			// every tile changed.
+			// Counts the calls to Validate, each of which starts a scoring
+			// pass.
+			private int pass;
+
+			// Starts a scoring pass, dropping all yield scores if something
+			// that affects the yields of every tile changed.
 			public void Validate() {
+				++pass;
 				if (government != player.government || inGoldenAge != player.InGoldenAge || knownTechCount != player.knownTechs.Count) {
 					yieldScores.Clear();
 					government = player.government;
@@ -395,13 +404,15 @@ namespace C7Engine {
 
 			public float TileYieldScore(Tile t) {
 				if (yieldScores.TryGetValue(t, out TileYieldEntry entry)) {
-					if (entry.Matches(t)) {
+					if (entry.checkedPass == pass || entry.Matches(t)) {
+						entry.checkedPass = pass;
 						return entry.score;
 					}
 				} else {
 					entry = new TileYieldEntry();
 					yieldScores[t] = entry;
 				}
+				entry.checkedPass = pass;
 				entry.Capture(t);
 				entry.score = CalculateTileYieldScore(t, player);
 				return entry.score;
