@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using C7.Textures;
+using C7Engine;
 using C7GameData;
 using Godot;
 using Serilog;
@@ -110,27 +111,27 @@ public partial class UnitLayer : LooseLayer {
 	}
 
 	// AnimationInstance represents an animation appearing on the screen. It's specific to a unit, action, and direction. AnimationInstances have
-	// two sprites: the base sprite and the tint sprite, which is drawn with the unit tint shader (UnitTint.gdshader) to color it with the civ
-	// color. The shader materials are shared by all units of a civ, so the sprites can be batched. AnimationInstances are only active for one
-	// frame at a time but they live as long as the UnitLayer. They are retrieved or created as needed by getBlankAnimationInstance during the
-	// drawing of units, and the ones left unused at the end of a frame are hidden. To spare calls into the engine, an instance remembers what
-	// it's showing and only updates its sprites when that changes.
+	// two sprites: the base sprite and the tint sprite, which is colored with the civ color by its SelfModulate, as UnitTint.gdshader colors
+	// it elsewhere. Without a material of their own, all the sprites can be batched. AnimationInstances live as long as the UnitLayer and are
+	// kept for the tile they last drew (see GetInstance), so a tile keeps its sprites from one draw to the next; the ones left unused at the
+	// end of a draw are hidden and reused. To spare calls into the engine, an instance remembers what it's showing and only updates its
+	// sprites when that changes.
 
 	// should hold animation players instead of animations
 	public partial class AnimationInstance {
 
 		public AnimatedSprite2D sprite;
 		public AnimatedSprite2D spriteTint;
-		// The material of the tint sprite, shared with other instances.
-		public ShaderMaterial material;
 
-		// The material for tint sprites that haven't drawn a unit yet, which
-		// has the shader's default tint.
-		private static ShaderMaterial untintedMaterial;
+		// The draw this instance was last used in; see GetInstance.
+		public int drawnIn = -1;
+
+		// What the tint sprite is colored with when it doesn't draw a unit, UnitTint.gdshader's default tint.
+		private static readonly Color untinted = new(0, 0, 0);
 
 		private StringName currentAnimation = null;
 		private int currentFrame = -1;
-		private int currentCivColor = -1;
+		private int currentCivColor = -2;
 		private int currentZIndex = unitAnimZIndex;
 		private Vector2 currentPosition;
 		private bool visible = true;
@@ -193,17 +194,16 @@ public partial class UnitLayer : LooseLayer {
 			if (civColorIndex == currentCivColor)
 				return;
 			currentCivColor = civColorIndex;
-			this.material = PlayerTextureUtil.GetShaderMaterialForUnit(civColorIndex);
-			this.spriteTint.Material = this.material;
+			Color civColor = TextureLoader.LoadColor(civColorIndex);
+			this.spriteTint.SelfModulate = new Color(civColor.R, civColor.G, civColor.B);
 		}
 
 		// Gives the tint sprite the shader's default tint, for what doesn't belong to a civ, like effects.
 		public void SetUntinted() {
-			if (ReferenceEquals(this.material, untintedMaterial))
+			if (currentCivColor == -1)
 				return;
 			currentCivColor = -1;
-			this.material = untintedMaterial;
-			this.spriteTint.Material = this.material;
+			this.spriteTint.SelfModulate = untinted;
 		}
 
 		public void Show() {
@@ -239,46 +239,95 @@ public partial class UnitLayer : LooseLayer {
 			this.spriteTint.SpriteFrames = manager.tintFrames;
 			this.spriteTint.TextureFilter = ModernGraphics.SpriteFilter;
 
-			if (untintedMaterial == null) {
-				untintedMaterial = new ShaderMaterial();
-				untintedMaterial.Shader = GD.Load<Shader>("res://UnitTint.gdshader");
-			}
-			this.material = untintedMaterial;
-			this.spriteTint.Material = this.material;
+			SetUntinted();
 
 			looseView.AddChild(sprite);
 			looseView.AddChild(spriteTint);
 		}
 	}
 
-	private List<AnimationInstance> animInsts = new List<AnimationInstance>();
-	private int nextBlankAnimInst = 0;
-	// How many instances were used in the previous frame.
-	private int animInstsUsedLastFrame = 0;
+	// The instances drawing each tile's unit and effect, kept from one draw to the next so that a tile whose unit hasn't changed doesn't need
+	// its sprites updated, even when the tiles drawn before it have changed. Instances no tile uses wait in freeInsts.
+	private readonly Dictionary<Tile, AnimationInstance> unitInsts = new(ReferenceEqualityComparer.Instance);
+	private readonly Dictionary<Tile, AnimationInstance> effectInsts = new(ReferenceEqualityComparer.Instance);
+	private readonly Stack<AnimationInstance> freeInsts = new();
+	// Instances for a tile drawn twice in one draw, as a map that wraps can be when zoomed far out.
+	private readonly List<AnimationInstance> extraInsts = new();
+	private readonly List<Tile> unusedTiles = new();
+	private int drawNumber = 0;
 
-	// Returns the next unused AnimationInstance or creates & returns a new one if none are available.
-	public AnimationInstance getBlankAnimationInstance(LooseView looseView) {
-		if (nextBlankAnimInst >= animInsts.Count) {
-			animInsts.Add(new AnimationInstance(looseView));
+	// Returns the instance to draw a tile's unit or effect with in this draw: the one it had last time if it had one.
+	private AnimationInstance GetInstance(LooseView looseView, Dictionary<Tile, AnimationInstance> insts, Tile tile) {
+		if (!insts.TryGetValue(tile, out AnimationInstance inst)) {
+			inst = TakeFreeInstance(looseView);
+			insts[tile] = inst;
+		} else if (inst.drawnIn == drawNumber) {
+			inst = TakeFreeInstance(looseView);
+			extraInsts.Add(inst);
 		}
-		AnimationInstance inst = animInsts[nextBlankAnimInst];
-		nextBlankAnimInst++;
+		inst.drawnIn = drawNumber;
 		return inst;
 	}
 
-	public void drawUnitAnimFrame(LooseView looseView, MapUnit unit, MapUnit.Appearance appearance, Vector2 tileCenter) {
-		AnimationManager manager = looseView.mapView.game.animationController.civ3AnimData;
-		drawUnitAnimFrame(looseView, unit, manager.GetUnitAnimation(unit, appearance.action, appearance.direction), appearance, tileCenter);
+	private AnimationInstance TakeFreeInstance(LooseView looseView) {
+		return freeInsts.Count > 0 ? freeInsts.Pop() : new AnimationInstance(looseView);
 	}
 
-	private void drawUnitAnimFrame(LooseView looseView, MapUnit unit, AnimationManager.AnimationInfo animation, MapUnit.Appearance appearance,
-			Vector2 tileCenter) {
-		AnimationInstance inst = getBlankAnimationInstance(looseView);
+	// Hides the instances that weren't used in this draw and frees them for other tiles.
+	private void FreeUnusedInstances(Dictionary<Tile, AnimationInstance> insts) {
+		unusedTiles.Clear();
+		foreach ((Tile tile, AnimationInstance inst) in insts) {
+			if (inst.drawnIn != drawNumber) {
+				unusedTiles.Add(tile);
+			}
+		}
+		foreach (Tile tile in unusedTiles) {
+			insts.Remove(tile, out AnimationInstance inst);
+			inst.Hide();
+			freeInsts.Push(inst);
+		}
+		unusedTiles.Clear();
+	}
+
+	// A drawn unit whose art is playing a looping animation, like a worker at work, which UpdateLoopingAnimations keeps going between draws.
+	private readonly record struct LoopingUnit(AnimationInstance inst, MapUnit unit, AnimationManager.UnitArt art, Vector2 tileCenter);
+
+	private readonly List<LoopingUnit> loopingUnits = new();
+
+	// Moves the looping animations of the units drawn last on to their current frames, so that the units don't need to be drawn again just
+	// for that. Returns false if one of them has stopped looping, so the units need drawing again.
+	public bool UpdateLoopingAnimations(LooseView looseView) {
+		if (loopingUnits.Count == 0) {
+			return true;
+		}
+		AnimationController animationController = looseView.mapView.game.animationController;
+		AnimationTracker animTracker = animationController.animTracker;
+		AnimationManager manager = animationController.civ3AnimData;
+		bool stillLooping = true;
+		EngineStorage.ReadGameData((GameData gameData) => {
+			foreach (LoopingUnit looping in loopingUnits) {
+				MapUnit.Appearance appearance = animTracker.getUnitAppearance(looping.unit);
+				if (appearance.ending != AnimationEnding.Repeat) {
+					stillLooping = false;
+					return;
+				}
+				AnimationManager.AnimationInfo animation = manager.GetUnitAnimation(looping.art, appearance.action, appearance.direction);
+				looping.inst.SetPosition(GetFramePosition(appearance, animation, looping.tileCenter));
+				looping.inst.SetAnimationFrame(animation.animationName, animation.FrameAtProgress(appearance.progress));
+			}
+		});
+		return stillLooping;
+	}
+
+	private AnimationInstance drawUnitAnimFrame(LooseView looseView, Tile tile, MapUnit unit, AnimationManager.AnimationInfo animation,
+			MapUnit.Appearance appearance, Vector2 tileCenter) {
+		AnimationInstance inst = GetInstance(looseView, unitInsts, tile);
 		inst.SetZIndex(unitAnimZIndex);
 		inst.SetPosition(GetFramePosition(appearance, animation, tileCenter));
 		inst.SetCivColor(unit.owner.GetPlayerColor());
 		inst.SetAnimationFrame(animation.animationName, animation.FrameAtProgress(appearance.progress));
 		inst.Show();
+		return inst;
 	}
 
 	// Returns the art to draw a tile's displayed unit with, worked out again only when it may have changed: when the unit's owner enters a new
@@ -322,8 +371,8 @@ public partial class UnitLayer : LooseLayer {
 		return tileCenter + animOffset + flicOffsetWithAlignedFrame - (flicOriginalSize / 2);
 	}
 
-	public void drawEffectAnimFrame(LooseView looseView, C7Animation anim, float progress, Vector2 tileCenter) {
-		AnimationInstance inst = getBlankAnimationInstance(looseView);
+	public void drawEffectAnimFrame(LooseView looseView, Tile tile, C7Animation anim, float progress, Vector2 tileCenter) {
+		AnimationInstance inst = GetInstance(looseView, effectInsts, tile);
 		inst.SetZIndex(effectAnimZIndex);
 		// Effects don't belong to a civ, so don't keep the tint of whatever unit the instance drew before.
 		inst.SetUntinted();
@@ -355,10 +404,9 @@ public partial class UnitLayer : LooseLayer {
 	}
 
 	public override void onBeginDraw(LooseView looseView, GameData gameData) {
-		// Reuse the animation instances from the start. The ones that don't
-		// get used this frame are hidden in onEndDraw.
-		animInstsUsedLastFrame = Math.Max(animInstsUsedLastFrame, nextBlankAnimInst);
-		nextBlankAnimInst = 0;
+		// The instances that don't get used in this draw are hidden in onEndDraw.
+		++drawNumber;
+		loopingUnits.Clear();
 
 		// Hide cursor if it's been initialized
 		cursorSprite?.Hide();
@@ -388,10 +436,16 @@ public partial class UnitLayer : LooseLayer {
 	private const long AnimationPruneIntervalMS = 2000;
 
 	public override void onEndDraw(LooseView looseView, GameData gameData) {
-		for (int n = nextBlankAnimInst; n < animInstsUsedLastFrame; n++) {
-			animInsts[n].Hide();
+		FreeUnusedInstances(unitInsts);
+		FreeUnusedInstances(effectInsts);
+		for (int n = extraInsts.Count - 1; n >= 0; n--) {
+			AnimationInstance inst = extraInsts[n];
+			if (inst.drawnIn != drawNumber) {
+				extraInsts.RemoveAt(n);
+				inst.Hide();
+				freeInsts.Push(inst);
+			}
 		}
-		animInstsUsedLastFrame = nextBlankAnimInst;
 	}
 
 	// The unit shown on a tile, and its hit points, which only need working out
@@ -550,7 +604,7 @@ public partial class UnitLayer : LooseLayer {
 			C7Animation tileEffect = animTracker.getTileEffect(tile);
 			if (tileEffect != null) {
 				(_, float progress, _) = animTracker.getCurrentActionAndProgress(tile);
-				drawEffectAnimFrame(looseView, tileEffect, progress, tileCenter);
+				drawEffectAnimFrame(looseView, tile, tileEffect, progress, tileCenter);
 			}
 		}
 
@@ -572,7 +626,11 @@ public partial class UnitLayer : LooseLayer {
 
 		AnimationManager manager = looseView.mapView.game.animationController.civ3AnimData;
 		AnimationManager.UnitArt art = GetDisplayedUnitArt(manager, displayed);
-		drawUnitAnimFrame(looseView, unit, manager.GetUnitAnimation(art, appearance.action, appearance.direction), appearance, tileCenter);
+		AnimationInstance unitInst = drawUnitAnimFrame(looseView, tile, unit, manager.GetUnitAnimation(art, appearance.action, appearance.direction),
+			appearance, tileCenter);
+		if (appearance.ending == AnimationEnding.Repeat) {
+			loopingUnits.Add(new LoopingUnit(unitInst, unit, art, tileCenter));
+		}
 
 		// The indicators go on their own canvas item, above the units; see indicatorZIndex.
 
@@ -581,7 +639,7 @@ public partial class UnitLayer : LooseLayer {
 
 		// Option B: 2 Zoom levels regular, and double size.
 		// At larger distances it stays relatively small, but at this point I don't think we need to see the HP
-		float cameraZoom = Math.Clamp(looseView.mapView.cameraZoom, 0.5f, 1.0f);
+		float cameraZoom = IndicatorZoom(looseView.mapView.cameraZoom);
 
 		float offsetXFromCenter = 26;
 		Vector2 hpStartingLocation = tileCenter - new Vector2(offsetXFromCenter, 0) + animOffset;
@@ -655,6 +713,11 @@ public partial class UnitLayer : LooseLayer {
 				DrawIndicatorLine(lineStart + new Vector2(0, 1) / cameraZoom, lineStart + new Vector2(4, 1) / cameraZoom, Color.Color8(75, 75, 75));
 			}
 		}
+	}
+
+	// The zoom the indicators are sized for at a camera zoom.
+	public static float IndicatorZoom(float cameraZoom) {
+		return Math.Clamp(cameraZoom, 0.5f, 1.0f);
 	}
 
 	// The most hit points the bar is drawn with one segment each.

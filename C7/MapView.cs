@@ -675,6 +675,10 @@ public partial class LooseView : Node2D {
 		WhenMapChanges,
 		// Every frame while the player is choosing a goto destination or a bombard target.
 		WhileTargeting,
+		// Like WhenMapChanges, and also every frame while an animation is playing, whenever what the units are drawn for (the selected unit,
+		// the UI's player, the zoom) changes, and a couple of times a second in case something else changed. Looping animations, like a
+		// worker at work, are kept going in between without drawing the units again; see UnitLayer.UpdateLoopingAnimations.
+		WhenUnitsChange,
 		// Every frame.
 		EveryFrame,
 	}
@@ -712,7 +716,7 @@ public partial class LooseView : Node2D {
 		EngineStorage.ReadGameData((GameData gD) => {
 			// Iterating over visible tiles is unfortunately pretty expensive, so the MapView collects them once and shares them with every
 			// view. Views drawn every frame only draw what's on screen; the others draw everything the MapView collected.
-			bool onlyOnScreen = redrawPolicy != RedrawPolicy.WhenMapChanges;
+			bool onlyOnScreen = redrawPolicy != RedrawPolicy.WhenMapChanges && redrawPolicy != RedrawPolicy.WhenUnitsChange;
 			MapView.VisibleRegion visRegion = onlyOnScreen ? mapView.getVisibleRegion() : default;
 			List<MapView.VisibleTile> tiles = mapView.GetVisibleTiles(gD, onlyOnScreen ? visRegion : null);
 			drawRegion = onlyOnScreen ? visRegion : mapView.drawnRegion;
@@ -754,7 +758,7 @@ public partial class LooseView : Node2D {
 
 			long elapsedMilliseconds = (Stopwatch.GetTimestamp() - start) * 1000 / Stopwatch.Frequency;
 			if (elapsedMilliseconds > 100) {
-				log.Warning($"-> End draw: {elapsedMilliseconds} milliseconds");
+				log.Warning("-> End draw of the {View} view: {Milliseconds} milliseconds", layers.Count > 0 ? layers[0].GetType().Name : "empty", elapsedMilliseconds);
 			}
 
 			if (!observerMode) {
@@ -869,6 +873,7 @@ public partial class MapView : Node2D {
 
 	public GridLayer gridLayer { get; private set; }
 	public CityLayer cityLayer { get; private set; }
+	private UnitLayer unitLayer;
 	public TileAssignmentLayer tileAssignmentLayer { get; private set; }
 
 	// What bare map mode hides: whole views (cities and units are child nodes, so skipping their layers wouldn't hide them) and the layers
@@ -947,6 +952,13 @@ public partial class MapView : Node2D {
 	private bool mapWasHidden = false;
 	private bool targetingViewDrawn = false;
 
+	// What the units were last drawn for, and how long ago; see RedrawPolicy.WhenUnitsChange.
+	private readonly record struct UnitsDrawnFor(VisibleRegion region, float indicatorZoom, MapUnit selected, Player controller,
+		TileInfo tileInfo, bool unitsVisible, bool animating);
+	private UnitsDrawnFor unitsDrawnFor;
+	private double unitsDrawnSeconds = 0;
+	private const double UnitsRefreshSeconds = 0.5;
+
 	public override void _Ready() {
 		lowerRightInfoBox = GetNode<LowerRightInfoBox>("/root/C7Game/CanvasLayer/Control/GameStatus/LowerRightInfoBox");
 		lowerRightInfoBox.game = game;
@@ -1019,8 +1031,9 @@ public partial class MapView : Node2D {
 		LooseView unitView = new(this, LooseView.RedrawPolicy.WhileTargeting);
 		unitView.layers.Add(new GotoLayer());
 		unitView.layers.Add(new BombardLayer());
-		LooseView otherView = new(this, LooseView.RedrawPolicy.EveryFrame);
-		otherView.layers.Add(new UnitLayer());
+		LooseView otherView = new(this, LooseView.RedrawPolicy.WhenUnitsChange);
+		unitLayer = new UnitLayer();
+		otherView.layers.Add(unitLayer);
 
 		AddChild(terrainView);
 		looseViews.Add(terrainView);
@@ -1133,6 +1146,20 @@ public partial class MapView : Node2D {
 						break;
 					}
 					if (looseView.TakeRedrawRequest() || mapChanged) {
+						looseView.QueueRedraw();
+					}
+					break;
+				case LooseView.RedrawPolicy.WhenUnitsChange:
+					if (hidden) {
+						break;
+					}
+					unitsDrawnSeconds += delta;
+					UnitsDrawnFor drawnFor = new(drawnRegion, UnitLayer.IndicatorZoom(cameraZoom), game.CurrentlySelectedUnit, game.controller,
+						game.tileInfo, unitLayer.visible, game.animationController.animTracker.hasPlayingAnimations());
+					if (looseView.TakeRedrawRequest() || mapChanged || drawnFor.animating || drawnFor != unitsDrawnFor
+						|| unitsDrawnSeconds >= UnitsRefreshSeconds || !unitLayer.UpdateLoopingAnimations(looseView)) {
+						unitsDrawnFor = drawnFor;
+						unitsDrawnSeconds = 0;
 						looseView.QueueRedraw();
 					}
 					break;

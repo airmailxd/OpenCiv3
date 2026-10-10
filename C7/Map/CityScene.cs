@@ -4,6 +4,8 @@ using Godot;
 using Serilog;
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
+using C7Engine;
 
 namespace C7.Map {
 	public record struct CityGraphicsDetails(
@@ -28,8 +30,9 @@ namespace C7.Map {
 		private Vector2I tileCenter;
 		private bool positioned = false;
 
-		// The MapView.contentVersion the city was last refreshed for.
+		// The MapView.contentVersion the city was last refreshed for, and the city's stamp then; see CityStamp.
 		private int refreshedVersion;
+		private long refreshedStamp;
 		private bool refreshed = false;
 		private bool refreshedShowDetails;
 
@@ -110,9 +113,16 @@ namespace C7.Map {
 			if (refreshed && contentVersion == refreshedVersion && showDetails == refreshedShowDetails) {
 				return;
 			}
+			// The map changes all the time while the AI plays, but most cities don't, so only update the ones that may have.
+			long stamp = CityStamp();
+			bool changed = !refreshed || stamp != refreshedStamp || showDetails != refreshedShowDetails;
 			refreshed = true;
 			refreshedVersion = contentVersion;
+			refreshedStamp = stamp;
 			refreshedShowDetails = showDetails;
+			if (!changed) {
+				return;
+			}
 
 			// A captured city is shown in its new owner's colors.
 			if (city.owner != shownOwner) {
@@ -176,6 +186,34 @@ namespace C7.Map {
 		}
 
 		// Shows the icon for the building, or hides it when there's no building.
+		// Returns a value that changes whenever anything the city's graphics and label show may have: its owner and their era, name, size,
+		// capital and disorder, what it's building, its food and shields, the tiles its citizens work and its buildings. Anything else that
+		// changes the yields its growth and production are worked out from, like a mine finished nearby, only changes between turns, so the
+		// turn is part of it too.
+		private long CityStamp() {
+			long stamp = Mix(17, EngineStorage.gameData?.turn ?? 0);
+			stamp = Mix(stamp, RuntimeHelpers.GetHashCode(city.owner));
+			stamp = Mix(stamp, city.name?.GetHashCode() ?? 0);
+			stamp = Mix(stamp, city.owner.EraIndex());
+			stamp = Mix(stamp, (city.IsCapital() ? 1 : 0) | (city.isInCivilDisorder ? 2 : 0));
+			stamp = Mix(stamp, RuntimeHelpers.GetHashCode(city.itemBeingProduced));
+			stamp = Mix(stamp, ((long)city.foodStored << 32) | (uint)city.shieldsStored);
+			stamp = Mix(stamp, city.constructed_buildings.Count);
+			stamp = Mix(stamp, city.residents.Count);
+			foreach (CityResident resident in city.residents) {
+				stamp = Mix(stamp, RuntimeHelpers.GetHashCode(resident.tileWorked));
+			}
+			return stamp;
+		}
+
+		private static long Mix(long hash, long value) {
+			unchecked {
+				hash ^= value * -7046029254386353131L; // 0x9E3779B97F4A7C15
+				hash = (hash ^ (hash >> 29)) * -4658895280553007687L; // 0xBF58476D1CE4E5B9
+				return hash ^ (hash >> 32);
+			}
+		}
+
 		private void ShowBuildingIcon(BuildingIcon icon, Building building) {
 			if (building == null) {
 				if (icon.rect != null) {

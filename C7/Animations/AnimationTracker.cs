@@ -205,6 +205,24 @@ public partial class AnimationTracker {
 	// Whether any effect animations (like a hit or a miss) are playing on tiles.
 	public bool hasTileEffects => activeTileEffects.Count > 0;
 
+	// Whether an effect, or a unit animation that moves on, like a step or an attack, is playing, rather than one that loops or has stopped
+	// on its last frame.
+	public bool hasPlayingAnimations() {
+		if (activeTileEffects.Count > 0) {
+			return true;
+		}
+		if (activeAnims.Count == 0) {
+			return false;
+		}
+		long now = getCurrentTimeMS();
+		foreach (ActiveAnimation aa in activeAnims.Values) {
+			if (aa.ending != AnimationEnding.Repeat && aa.endTimeMS > now) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	private (MapUnit.AnimatedAction, float, AnimationEnding) getActionAndProgress(in ActiveAnimation aa) {
 		var durationMS = (double)(aa.endTimeMS - aa.startTimeMS);
 		if (durationMS <= 0.0)

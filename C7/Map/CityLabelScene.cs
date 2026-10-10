@@ -263,6 +263,7 @@ namespace C7.Map {
 		// The label shows what the city is doing, which is worked out from its yields, so it's only updated when the city may have changed.
 		// As in Civ3, other players' cities only show their name and size, not their growth or production.
 		public void UpdateContent(bool showDetails) {
+			bool changed = centerDivider.Visible != showDetails || productionLabel.Visible != showDetails;
 			centerDivider.Visible = showDetails;
 			productionLabel.Visible = showDetails;
 
@@ -281,9 +282,9 @@ namespace C7.Map {
 				productionText = "-- : --";
 			}
 
-			SetText(cityNameLabel, ref cityNameText, showDetails ? $"{city.name} : {turnsUntilGrowthText}" : city.name);
-			SetText(productionLabel, ref productionLabelText, productionText);
-			SetText(popSizeLabel, ref popSizeText, city.residents.Count.ToString());
+			changed |= SetText(cityNameLabel, ref cityNameText, showDetails ? $"{city.name} : {turnsUntilGrowthText}" : city.name);
+			changed |= SetText(productionLabel, ref productionLabelText, productionText);
+			changed |= SetText(popSizeLabel, ref popSizeText, city.residents.Count.ToString());
 
 			// Update population label color based on growth
 			bool shrinking = turnsUntilGrowth < 0;
@@ -300,20 +301,26 @@ namespace C7.Map {
 					SetupCapitalPanel();
 				}
 				mainContainer.AddChild(capitalPanel);
+				changed = true;
 			} else if (!city.IsCapital() && hasCapitalIndicator) {
 				mainContainer.RemoveChild(capitalPanel);
+				changed = true;
 			}
 
-			// Force the layout to recalculate
-			ShrinkToContents();
+			// Force the layout to recalculate, if anything in it changed.
+			if (changed) {
+				ShrinkToContents();
+			}
 		}
 
-		// Label.Text crosses into the engine and relayouts the label, so only set it when it changes.
-		private static void SetText(Label label, ref string current, string text) {
-			if (current != text) {
-				current = text;
-				label.Text = text;
+		// Label.Text crosses into the engine and relayouts the label, so only set it when it changes. Returns whether it did.
+		private static bool SetText(Label label, ref string current, string text) {
+			if (current == text) {
+				return false;
 			}
+			current = text;
+			label.Text = text;
+			return true;
 		}
 	}
 }

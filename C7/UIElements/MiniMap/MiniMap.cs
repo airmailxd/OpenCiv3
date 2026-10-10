@@ -34,9 +34,10 @@ public partial class MiniMap : Control {
 	private int pixelTilesMapWidth, pixelTilesMapHeight;
 
 	// A cheap summary of the game state the minimap depends on; the map is
-	// only redrawn when it changes. Terrain and border changes aren't in it,
-	// so every RECHECK_INTERVAL seconds a hash of each tile's terrain, city
-	// and owning city is checked, and the map redrawn if it changed. As a
+	// only redrawn when it changes. Terrain, border and city owner changes
+	// aren't in it, so every RECHECK_INTERVAL seconds a hash of each tile's
+	// terrain, city and owning city, and of each city's owner, is checked,
+	// and the map redrawn if it changed. As a
 	// last safety net for anything else, the map is also redrawn (but only
 	// re-uploaded if a pixel actually changed) every FULL_RECHECK_INTERVAL
 	// seconds. (An engine counter of map changes would make both checks
@@ -54,19 +55,17 @@ public partial class MiniMap : Control {
 		public GameMap map;
 		public Player controller;
 		public TileKnowledge knowledge;
-		public int turn;
 		public bool observerMode;
 		public int knownTiles;
 		public int borderTiles;
 		public int cityCount;
-		public int cityHash;
 
 		public bool Equals(MapStamp o) {
 			return ReferenceEquals(gameData, o.gameData) && ReferenceEquals(map, o.map)
 				&& ReferenceEquals(controller, o.controller) && ReferenceEquals(knowledge, o.knowledge)
-				&& turn == o.turn && observerMode == o.observerMode
+				&& observerMode == o.observerMode
 				&& knownTiles == o.knownTiles && borderTiles == o.borderTiles
-				&& cityCount == o.cityCount && cityHash == o.cityHash;
+				&& cityCount == o.cityCount;
 		}
 	}
 
@@ -115,13 +114,13 @@ public partial class MiniMap : Control {
 		bool redraw = stampChanged || timeSinceRedraw >= FULL_RECHECK_INTERVAL;
 		if (!redraw && timeSinceRecheck >= RECHECK_INTERVAL) {
 			timeSinceRecheck = 0;
-			redraw = ComputeTileHash(map) != lastTileHash;
+			redraw = ComputeTileHash(gD) != lastTileHash;
 		}
 		if (redraw) {
 			RedrawMap(gD, forceUpload: stampChanged);
 			lastStamp = stamp;
 			lastImageSize = imageSize;
-			lastTileHash = ComputeTileHash(map);
+			lastTileHash = ComputeTileHash(gD);
 			hasDrawn = true;
 			timeSinceRedraw = 0;
 			timeSinceRecheck = 0;
@@ -143,29 +142,28 @@ public partial class MiniMap : Control {
 	private MapStamp ComputeStamp(GameData gD) {
 		Player controller = gD.GetUIControllerPlayer();
 		TileKnowledge knowledge = controller?.tileKnowledge;
-		int cityHash = 17;
-		foreach (City city in gD.cities) {
-			cityHash = HashCode.Combine(cityHash, city, city.owner);
-		}
 		return new MapStamp {
 			gameData = gD,
 			map = gD.map,
 			controller = controller,
 			knowledge = knowledge,
-			turn = gD.turn,
 			observerMode = ShowsWholeMap(gD),
 			knownTiles = knowledge?.knownTiles.Count ?? 0,
 			borderTiles = knowledge?.borderTiles.Count ?? 0,
 			cityCount = gD.cities.Count,
-			cityHash = cityHash,
 		};
 	}
 
 	// What each tile shows on the minimap besides the fog: its terrain, and
-	// whose it is. Objects are hashed by identity, which is cheap.
-	private static int ComputeTileHash(GameMap map) {
+	// whose it is, including whose its city is. Objects are hashed by
+	// identity, which is cheap.
+	private static int ComputeTileHash(GameData gD) {
 		HashCode hash = new();
-		foreach (Tile t in map.tiles) {
+		foreach (City city in gD.cities) {
+			hash.Add(RuntimeHelpers.GetHashCode(city));
+			hash.Add(RuntimeHelpers.GetHashCode(city.owner));
+		}
+		foreach (Tile t in gD.map.tiles) {
 			hash.Add(RuntimeHelpers.GetHashCode(t.baseTerrainType));
 			hash.Add(RuntimeHelpers.GetHashCode(t.overlayTerrainType));
 			hash.Add(RuntimeHelpers.GetHashCode(t.owningCity));
