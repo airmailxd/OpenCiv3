@@ -59,16 +59,21 @@ namespace C7Engine.Pathing {
 		}
 
 		public override int FindFirstReachable(Tile start, IReadOnlyList<Tile> candidates, MapUnit unit, out TilePath path) {
-			return FindFirstReachable(start, candidates, unit, true, out path);
+			return FindFirstReachable(start, candidates, unit, null, true, out path);
+		}
+
+		public override int FindFirstReachable(Tile start, IReadOnlyList<Tile> candidates, MapUnit unit, ReachableTiles reachable, out TilePath path) {
+			return FindFirstReachable(start, candidates, unit, reachable, true, out path);
 		}
 
 		// Doesn't search again for the path to a candidate that was found to
 		// be reachable by a failed search for an earlier one.
 		public override int FindFirstReachableIndex(Tile start, IReadOnlyList<Tile> candidates, MapUnit unit) {
-			return FindFirstReachable(start, candidates, unit, false, out _);
+			return FindFirstReachable(start, candidates, unit, null, false, out _);
 		}
 
-		private int FindFirstReachable(Tile start, IReadOnlyList<Tile> candidates, MapUnit unit, bool wantPath, out TilePath path) {
+		private int FindFirstReachable(Tile start, IReadOnlyList<Tile> candidates, MapUnit unit, ReachableTiles reachable, bool wantPath,
+				out TilePath path) {
 			// For human water units, whether land strips block movement depends
 			// on whether the destination was explored, so a single search can't
 			// answer for every candidate.
@@ -81,6 +86,17 @@ namespace C7Engine.Pathing {
 			PathingShortcuts.WaterBodies waterBodies = null;
 
 			path = null;
+
+			// An earlier failed search from here already tells which tiles
+			// are reachable, just as one does below.
+			if (reachable != null && reachable.Knows(start, unit)) {
+				int known = FirstReachableFromExpanded(reachable.search, start, candidates, 0, unit, ref waterBodies, out path);
+				if (known >= 0 && path == null && wantPath) {
+					path = SearchForPath(start, candidates[known], unit);
+				}
+				return known;
+			}
+
 			int first = -1;
 			for (int i = 0; i < candidates.Count; ++i) {
 				Tile c = candidates[i];
@@ -102,7 +118,7 @@ namespace C7Engine.Pathing {
 
 			// Usually the best candidate is reachable, and a targeted A* search
 			// finds it quickly.
-			int next = -1;
+			int next;
 			PathSearchContext ctx = PathSearchContext.Rent(start.map);
 			try {
 				int found = Search(ctx, start, candidates[first], unit, double.PositiveInfinity);
@@ -114,38 +130,59 @@ namespace C7Engine.Pathing {
 				// Otherwise the failed search has expanded every tile reachable
 				// from the start, so we can tell which candidates are reachable
 				// without searching for each of them.
-				for (int i = first + 1; i < candidates.Count; ++i) {
-					Tile c = candidates[i];
-					if (c == null || c == Tile.NONE) {
-						continue;
-					}
-					if (c == start) {
-						path = TilePath.EmptyPath(start);
-						return i;
-					}
-					if (IsReachableFromExpanded(ctx, start, c, unit, ref waterBodies)) {
-						next = i;
-						break;
-					}
+				next = FirstReachableFromExpanded(ctx, start, candidates, first + 1, unit, ref waterBodies, out path);
+
+				// Which tiles were reachable doesn't depend on the tile the
+				// search was for (see IsReachableFromExpanded), so the caller
+				// may keep it for later questions.
+				if (reachable != null) {
+					reachable.Dispose();
+					(reachable.start, reachable.unit, reachable.search) = (start, unit, ctx);
+					ctx = null;
 				}
 			} finally {
-				PathSearchContext.Return(ctx);
+				if (ctx != null) {
+					PathSearchContext.Return(ctx);
+				}
 			}
 
-			if (next < 0 || !wantPath) {
-				return next;
+			if (next >= 0 && path == null && wantPath) {
+				path = SearchForPath(start, candidates[next], unit);
 			}
+			return next;
+		}
 
-			// The candidate is known to be reachable, so search for it
-			// directly rather than repeating PathFrom's shortcut checks.
-			ctx = PathSearchContext.Rent(start.map);
+		// After a failed search, the first candidate from index `from` on
+		// that is reachable, or -1. `path` is set only for the start itself.
+		private int FirstReachableFromExpanded(PathSearchContext ctx, Tile start, IReadOnlyList<Tile> candidates, int from, MapUnit pathUnit,
+				ref PathingShortcuts.WaterBodies waterBodies, out TilePath path) {
+			path = null;
+			for (int i = from; i < candidates.Count; ++i) {
+				Tile c = candidates[i];
+				if (c == null || c == Tile.NONE) {
+					continue;
+				}
+				if (c == start) {
+					path = TilePath.EmptyPath(start);
+					return i;
+				}
+				if (IsReachableFromExpanded(ctx, start, c, pathUnit, ref waterBodies)) {
+					return i;
+				}
+			}
+			return -1;
+		}
+
+		// The path to a candidate known to be reachable, searched for
+		// directly rather than repeating PathFrom's shortcut checks.
+		private TilePath SearchForPath(Tile start, Tile destination, MapUnit pathUnit) {
+			PathSearchContext ctx = PathSearchContext.Rent(start.map);
 			try {
-				int found = Search(ctx, start, candidates[next], unit, double.PositiveInfinity);
-				path = found >= 0 ? ctx.MakePath(found, candidates[next]) : TilePath.EmptyPath(candidates[next]);
+				int found = Search(ctx, start, destination, pathUnit, double.PositiveInfinity);
+				return found >= 0 ? ctx.MakePath(found, destination) : TilePath.EmptyPath(destination);
 			} finally {
 				PathSearchContext.Return(ctx);
 			}
-			return next;
 		}
 
 		// After an exhaustive search, returns true if a path to `c` exists:

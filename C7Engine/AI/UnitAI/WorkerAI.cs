@@ -120,14 +120,18 @@ namespace C7Engine {
 				}
 			});
 
-			WorkerAIData? result = GetPlanToImproveNearestUnimproved(unit, player, highPriorityTiles, reservedTiles);
+			// Looking for a tile the worker can reach may take a search over
+			// every tile it can reach, which is kept for the next question
+			// rather than done again for each distance and list.
+			using ReachableTiles reachable = new();
+			WorkerAIData? result = GetPlanToImproveNearestUnimproved(unit, player, highPriorityTiles, reservedTiles, reachable);
 			if (result != null) {
 				return result;
 			}
 
 			// If all our high priority tiles are improved, improve the lower
 			// priority tiles.
-			return GetPlanToImproveNearestUnimproved(unit, player, lowPriorityTiles, reservedTiles);
+			return GetPlanToImproveNearestUnimproved(unit, player, lowPriorityTiles, reservedTiles, reachable);
 		}
 
 		// The tiles our workers might improve. First, the tiles our civ works
@@ -295,7 +299,8 @@ namespace C7Engine {
 		// unimproved tile that no other worker has claimed. Among equally near
 		// tiles, the one with the best yield wins, and then the one listed
 		// first.
-		private static WorkerAIData? GetPlanToImproveNearestUnimproved(MapUnit unit, Player player, List<Tile> tiles, HashSet<Tile> reservedTiles) {
+		private static WorkerAIData? GetPlanToImproveNearestUnimproved(MapUnit unit, Player player, List<Tile> tiles, HashSet<Tile> reservedTiles,
+				ReachableTiles reachable) {
 			// Sort the tiles by distance, keeping the list order for ties.
 			int[] distances = new int[tiles.Count];
 			int[] order = new int[tiles.Count];
@@ -362,7 +367,7 @@ namespace C7Engine {
 						ordered.Add(tile);
 					}
 					algorithm ??= PathingAlgorithmChooser.GetAlgorithm(unit);
-					int index = algorithm.FindFirstReachable(unit.location, ordered, unit, out TilePath path);
+					int index = algorithm.FindFirstReachable(unit.location, ordered, unit, reachable, out TilePath path);
 					if (index >= 0) {
 						return MakePlan(unit, options[index].tile, options[index].improvement, path);
 					}
