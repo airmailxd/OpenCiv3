@@ -113,30 +113,82 @@ namespace C7Engine {
 			if (gameData.rules?.AllowCultureFlips == false) {
 				return;
 			}
+			RoundFacts facts = new();
 			foreach (City city in gameData.cities.ToList()) {
-				Chance chance = BestChance(gameData, city);
+				Chance chance = BestChance(gameData, city, facts);
 				if (chance == null || chance.probability <= 0) {
 					continue;
 				}
 				if (GameData.rng.NextDouble() < chance.probability) {
 					Flip(gameData, city, chance.to);
+					// The flip changes both civs' culture and may move
+					// their capitals.
+					facts = new();
 				}
 			}
+		}
+
+		// What every city's chances need to know about the civs, worked out
+		// once per round rather than once per city and civ. Thrown away when
+		// a city flips.
+		private sealed class RoundFacts {
+			private readonly Dictionary<Player, int> totalCulture = new();
+
+			public int TotalCulture(Player player) {
+				if (!totalCulture.TryGetValue(player, out int culture)) {
+					culture = CultureReport.TotalCulture(player);
+					totalCulture[player] = culture;
+				}
+				return culture;
+			}
+
+			// Reused for each city: how many of the tiles around it each
+			// civ owns.
+			public readonly Dictionary<Player, int> tilesOwned = new();
+			public readonly List<Tile> tilesScratch = new();
 		}
 
 		// The civ the city is likeliest to flip to this interturn, with the
 		// chance, or null if it can't flip.
 		public static Chance BestChance(GameData gameData, City city) {
+			return BestChance(gameData, city, new RoundFacts());
+		}
+
+		private static Chance BestChance(GameData gameData, City city, RoundFacts facts) {
 			Player owner = city.owner;
 			if (owner == null || owner.isBarbarians || owner.defeated || city.ownerChangedTurn == gameData.turn) {
 				return null;
 			}
+
+			// The foreigners and the tiles each civ owns around the city,
+			// counted once for every civ.
+			int foreigners = Foreigners(city);
+			Dictionary<Player, int> tilesOwned = facts.tilesOwned;
+			tilesOwned.Clear();
+			List<Tile> around = facts.tilesScratch;
+			around.Clear();
+			city.location.GetTilesWithinRankDistance(FlipRadius(gameData), around);
+			foreach (Tile t in around) {
+				Player tileOwner = t.OwningPlayer();
+				if (t != city.location && tileOwner != null) {
+					tilesOwned.TryGetValue(tileOwner, out int n);
+					tilesOwned[tileOwner] = n + 1;
+				}
+			}
+
 			Chance best = null;
 			foreach (Player other in gameData.players) {
 				if (other == owner || other.isBarbarians || other.defeated || other.cities.Count == 0) {
 					continue;
 				}
-				Chance chance = ChanceOfFlippingTo(gameData, city, other);
+				tilesOwned.TryGetValue(other, out int tiles);
+				// With no foreigners and none of the other civ's tiles
+				// around, its influence is nothing, so the chance is never
+				// above 0 and the civ can't be the best.
+				if (foreigners + tiles == 0) {
+					continue;
+				}
+				Chance chance = ChanceOfFlippingTo(gameData, city, other, foreigners, tiles, facts);
 				if (chance.probability > 0 && (best == null || chance.probability > best.probability)) {
 					best = chance;
 				}
@@ -147,28 +199,41 @@ namespace C7Engine {
 		// The chance, from 0 to 1, that the city flips to the other civ this
 		// interturn, by the formula above.
 		public static Chance ChanceOfFlippingTo(GameData gameData, City city, Player other) {
-			Player owner = city.owner;
-			Chance chance = new() { to = other };
+			int tiles = 0;
+			foreach (Tile t in city.location.GetTilesWithinRankDistance(FlipRadius(gameData))) {
+				if (t != city.location && t.OwningPlayer() == other) {
+					++tiles;
+				}
+			}
+			return ChanceOfFlippingTo(gameData, city, other, Foreigners(city), tiles, new RoundFacts());
+		}
 
+		// The radius of the city's tiles that count towards T.
+		private static int FlipRadius(GameData gameData) {
+			return Math.Max(1, gameData.rules?.MaxRankOfWorkableTiles ?? 2);
+		}
+
+		// F: the citizens not of the owner's nationality, resisters twice.
+		private static int Foreigners(City city) {
+			int foreigners = 0;
 			int resistersFrom = city.residents.Count - Math.Clamp(city.resisters, 0, city.residents.Count);
 			for (int i = 0; i < city.residents.Count; ++i) {
 				Civilization nationality = city.residents[i].nationality;
-				if (nationality != null && nationality != owner.civilization) {
+				if (nationality != null && nationality != city.owner.civilization) {
 					// Resisters, the last ones in residents, count twice.
-					chance.foreigners += i >= resistersFrom ? 2 : 1;
+					foreigners += i >= resistersFrom ? 2 : 1;
 				}
 			}
+			return foreigners;
+		}
 
-			int radius = Math.Max(1, gameData.rules?.MaxRankOfWorkableTiles ?? 2);
-			foreach (Tile t in city.location.GetTilesWithinRankDistance(radius)) {
-				if (t != city.location && t.OwningPlayer() == other) {
-					++chance.tiles;
-				}
-			}
+		private static Chance ChanceOfFlippingTo(GameData gameData, City city, Player other, int foreigners, int tiles, RoundFacts facts) {
+			Player owner = city.owner;
+			Chance chance = new() { to = other, foreigners = foreigners, tiles = tiles };
 
 			chance.memoryFactor = city.GetCultureFor(other) > city.GetCultureFor(owner) ? 2 : 1;
 			chance.moodFactor = city.isInCivilDisorder ? 2 : city.celebrating ? 0.5 : 1;
-			chance.cultureRatio = (double)CultureReport.TotalCulture(other) / Math.Max(1, CultureReport.TotalCulture(owner));
+			chance.cultureRatio = (double)facts.TotalCulture(other) / Math.Max(1, facts.TotalCulture(owner));
 			chance.garrison = Garrison(city);
 			chance.distanceRatio = DistanceRatio(city, owner, other);
 
