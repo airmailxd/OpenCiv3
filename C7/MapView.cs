@@ -744,72 +744,75 @@ public partial class LooseView : Node2D {
 	public override void _Draw() {
 		base._Draw();
 
-		EngineStorage.ReadGameData((GameData gD) => {
-			// Iterating over visible tiles is unfortunately pretty expensive, so the MapView collects them once and shares them with every
-			// view. Views drawn every frame only draw what's on screen; the others draw everything the MapView collected.
-			bool onlyOnScreen = redrawPolicy == RedrawPolicy.WhileTargeting || redrawPolicy == RedrawPolicy.EveryFrame;
-			MapView.VisibleRegion visRegion = onlyOnScreen ? mapView.getVisibleRegion() : default;
-			List<MapView.VisibleTile> tiles = mapView.GetVisibleTiles(gD, onlyOnScreen ? visRegion : null);
-			drawRegion = onlyOnScreen ? visRegion : mapView.drawnRegion;
+		// EngineStorage.ReadGameData only hands over the game data, so it's read directly, sparing a closure every draw.
+		DrawLayers(EngineStorage.gameData);
+	}
 
-			observerMode = mapView.ShowsWholeMap(gD);
-			uiPlayer = gD.observerMode ? null : gD.GetUIControllerPlayer();
-			tileKnowledge = observerMode ? null : uiPlayer?.tileKnowledge;
+	private void DrawLayers(GameData gD) {
+		// Iterating over visible tiles is unfortunately pretty expensive, so the MapView collects them once and shares them with every
+		// view. Views drawn every frame only draw what's on screen; the others draw everything the MapView collected.
+		bool onlyOnScreen = redrawPolicy == RedrawPolicy.WhileTargeting || redrawPolicy == RedrawPolicy.EveryFrame;
+		MapView.VisibleRegion visRegion = onlyOnScreen ? mapView.getVisibleRegion() : default;
+		List<MapView.VisibleTile> tiles = mapView.GetVisibleTiles(gD, onlyOnScreen ? visRegion : null);
+		drawRegion = onlyOnScreen ? visRegion : mapView.drawnRegion;
 
-			long start = Stopwatch.GetTimestamp();
+		observerMode = mapView.ShowsWholeMap(gD);
+		uiPlayer = gD.observerMode ? null : gD.GetUIControllerPlayer();
+		tileKnowledge = observerMode ? null : uiPlayer?.tileKnowledge;
+
+		long start = Stopwatch.GetTimestamp();
+		foreach (LooseLayer layer in layers) {
+			if (!layer.visible || layer is FogOfWarLayer || layer is GridLayer) {
+				continue;
+			}
+			layer.onBeginDraw(this, gD);
+			foreach (MapView.VisibleTile vT in layer.TilesToDraw(this, gD) ?? tiles) {
+				if (vT.known && (!onlyOnScreen || visRegion.Contains(vT.x, vT.y))) {
+					layer.drawObject(this, gD, vT.tile, vT.tileCenter);
+				}
+			}
+			layer.onEndDraw(this, gD);
+		}
+
+		foreach (LooseLayer layer in layers) {
+			if (!layer.visible || layer is not GridLayer) {
+				continue;
+			}
+			layer.onBeginDraw(this, gD);
+			// Known tiles first, then the unknown ones.
+			for (int pass = 0; pass < 2; pass++) {
+				bool known = pass == 0;
+				foreach (MapView.VisibleTile vT in tiles) {
+					if (vT.known == known && (!onlyOnScreen || visRegion.Contains(vT.x, vT.y))) {
+						layer.drawObject(this, gD, vT.tile, vT.tileCenter);
+					}
+				}
+			}
+			layer.onEndDraw(this, gD);
+		}
+
+		long elapsedMilliseconds = (Stopwatch.GetTimestamp() - start) * 1000 / Stopwatch.Frequency;
+		if (elapsedMilliseconds > 100) {
+			log.Warning("-> End draw of the {View} view: {Milliseconds} milliseconds", layers.Count > 0 ? layers[0].GetType().Name : "empty", elapsedMilliseconds);
+		}
+
+		if (!observerMode) {
 			foreach (LooseLayer layer in layers) {
-				if (!layer.visible || layer is FogOfWarLayer || layer is GridLayer) {
+				if (layer is not FogOfWarLayer) {
 					continue;
 				}
 				layer.onBeginDraw(this, gD);
-				foreach (MapView.VisibleTile vT in layer.TilesToDraw(this, gD) ?? tiles) {
-					if (vT.known && (!onlyOnScreen || visRegion.Contains(vT.x, vT.y))) {
+				foreach (MapView.VisibleTile vT in tiles) {
+					if (vT.tile != Tile.NONE && (!onlyOnScreen || visRegion.Contains(vT.x, vT.y))) {
 						layer.drawObject(this, gD, vT.tile, vT.tileCenter);
 					}
 				}
 				layer.onEndDraw(this, gD);
 			}
+		}
 
-			foreach (LooseLayer layer in layers) {
-				if (!layer.visible || layer is not GridLayer) {
-					continue;
-				}
-				layer.onBeginDraw(this, gD);
-				// Known tiles first, then the unknown ones.
-				for (int pass = 0; pass < 2; pass++) {
-					bool known = pass == 0;
-					foreach (MapView.VisibleTile vT in tiles) {
-						if (vT.known == known && (!onlyOnScreen || visRegion.Contains(vT.x, vT.y))) {
-							layer.drawObject(this, gD, vT.tile, vT.tileCenter);
-						}
-					}
-				}
-				layer.onEndDraw(this, gD);
-			}
-
-			long elapsedMilliseconds = (Stopwatch.GetTimestamp() - start) * 1000 / Stopwatch.Frequency;
-			if (elapsedMilliseconds > 100) {
-				log.Warning("-> End draw of the {View} view: {Milliseconds} milliseconds", layers.Count > 0 ? layers[0].GetType().Name : "empty", elapsedMilliseconds);
-			}
-
-			if (!observerMode) {
-				foreach (LooseLayer layer in layers) {
-					if (layer is not FogOfWarLayer) {
-						continue;
-					}
-					layer.onBeginDraw(this, gD);
-					foreach (MapView.VisibleTile vT in tiles) {
-						if (vT.tile != Tile.NONE && (!onlyOnScreen || visRegion.Contains(vT.x, vT.y))) {
-							layer.drawObject(this, gD, vT.tile, vT.tileCenter);
-						}
-					}
-					layer.onEndDraw(this, gD);
-				}
-			}
-
-			uiPlayer = null;
-			tileKnowledge = null;
-		});
+		uiPlayer = null;
+		tileKnowledge = null;
 	}
 
 	// Whether the UI's player knows the tile. Only valid while the view is being drawn.
