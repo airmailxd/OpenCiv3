@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using C7GameData;
@@ -63,27 +64,44 @@ public static class SnapshotFilter {
 		internal readonly int dominationTiles;
 		internal readonly List<WonderFacts> wonders = new();
 		internal readonly string unitedNationsOwner;
+		// Just beyond the largest coordinates of the map's tiles.
+		internal readonly int mapWidth, mapHeight;
 
 		internal Facts(GameData gameData) {
 			List<Tile> tiles = gameData.map.tiles;
 			owners = new string[tiles.Count];
-			Dictionary<Tile, int> places = new(tiles.Count);
+			// Each player's ID, written once, and the places of the tiles
+			// they know within their borders, found in one pass over the
+			// map, which gives them in order.
+			Dictionary<Player, (string id, List<int> places)> territories = new();
+			foreach (Player player in gameData.players) {
+				territories[player] = (player.id.ToString(), new List<int>());
+			}
 			for (int i = 0; i < tiles.Count; ++i) {
 				Tile tile = tiles[i];
-				places.TryAdd(tile, i);
-				owners[i] = tile.OwningPlayer()?.id.ToString();
+				mapWidth = Math.Max(mapWidth, tile.XCoordinate + 1);
+				mapHeight = Math.Max(mapHeight, tile.YCoordinate + 1);
+				Player owner = tile.OwningPlayer();
+				if (owner != null) {
+					if (territories.TryGetValue(owner, out (string id, List<int> places) territory)) {
+						owners[i] = territory.id;
+						if (owner.tileKnowledge.knownTiles.Contains(tile)) {
+							territory.places.Add(i);
+						}
+					} else {
+						owners[i] = owner.id.ToString();
+					}
+				}
 				if (tile.IsCountedForDomination()) {
 					++dominationTiles;
 				}
 			}
 			foreach (Player player in gameData.players) {
-				ownTerritory[player.id] = player.tileKnowledge.knownTiles
-					.Where(t => t.OwningPlayer() == player && places.ContainsKey(t))
-					.Select(t => places[t]).Order().ToArray();
+				ownTerritory[player.id] = territories[player].places.ToArray();
 				if (player.isBarbarians) {
 					continue;
 				}
-				players[player.id.ToString()] = new PlayerFacts {
+				players[territories[player].id] = new PlayerFacts {
 					cities = player.cities.Count,
 					population = player.cities.Sum(c => c.residents.Count),
 					culture = player.cities.Sum(c => c.GetCulture()),
@@ -107,10 +125,10 @@ public static class SnapshotFilter {
 	// from the game itself, for Filter to use on another thread.
 	public sealed class View {
 		internal readonly HashSet<ID> players;
-		internal readonly HashSet<(int, int)> known = new();
+		internal readonly TileSet known;
 		// The tiles they don't know next to those they do.
-		internal readonly HashSet<(int, int)> edge = new();
-		internal readonly HashSet<(int, int)> visible = new();
+		internal readonly TileSet edge;
+		internal readonly TileSet visible;
 		// The players they've met, and those they have an embassy with.
 		internal readonly HashSet<ID> met = new();
 		internal readonly HashSet<ID> embassies = new();
@@ -119,7 +137,39 @@ public static class SnapshotFilter {
 		internal View(HashSet<ID> players, Facts facts) {
 			this.players = players;
 			this.facts = facts;
+			known = new TileSet(facts.mapWidth, facts.mapHeight);
+			edge = new TileSet(facts.mapWidth, facts.mapHeight);
+			visible = new TileSet(facts.mapWidth, facts.mapHeight);
 		}
+	}
+
+	// A set of places on the map, by their coordinates, as a flag for each,
+	// which is far quicker to fill and look up than a hash set for the tens
+	// of thousands of tiles players may know. It has room for the
+	// coordinates of all the map's tiles, which are all a snapshot has;
+	// others are left out, since no tile in a snapshot could be at them.
+	internal sealed class TileSet {
+		private readonly int width, height;
+		private readonly bool[] contains;
+
+		internal TileSet(int width, int height) {
+			this.width = width;
+			this.height = height;
+			contains = new bool[width * height];
+		}
+
+		internal void Add(Tile tile) {
+			int x = tile.XCoordinate, y = tile.YCoordinate;
+			if (IsInside(x, y)) {
+				contains[y * width + x] = true;
+			}
+		}
+
+		internal bool Contains(Tile tile) => Contains(tile.XCoordinate, tile.YCoordinate);
+
+		internal bool Contains(int x, int y) => IsInside(x, y) && contains[y * width + x];
+
+		private bool IsInside(int x, int y) => x >= 0 && y >= 0 && x < width && y < height;
 	}
 
 	// What the host works out for every view of the game as it stands.
@@ -140,11 +190,11 @@ public static class SnapshotFilter {
 			knowledges.Add(knowledge);
 			knowledge.RecomputeActiveTiles();
 			foreach (Tile tile in knowledge.knownTiles) {
-				view.known.Add((tile.XCoordinate, tile.YCoordinate));
+				view.known.Add(tile);
 			}
 			foreach (Tile tile in knowledge.VisibleTiles()) {
 				if (tile != null && tile != Tile.NONE) {
-					view.visible.Add((tile.XCoordinate, tile.YCoordinate));
+					view.visible.Add(tile);
 				}
 			}
 			foreach ((ID other, PlayerRelationship relationship) in player.playerRelationships) {
@@ -157,8 +207,8 @@ public static class SnapshotFilter {
 		foreach (TileKnowledge knowledge in knowledges) {
 			foreach (Tile tile in knowledge.knownTiles) {
 				foreach (Tile neighbor in tile.neighbors.Values) {
-					if (neighbor != null && neighbor != Tile.NONE && !view.known.Contains((neighbor.XCoordinate, neighbor.YCoordinate))) {
-						view.edge.Add((neighbor.XCoordinate, neighbor.YCoordinate));
+					if (neighbor != null && neighbor != Tile.NONE && !view.known.Contains(neighbor)) {
+						view.edge.Add(neighbor);
 					}
 				}
 			}
@@ -172,10 +222,10 @@ public static class SnapshotFilter {
 	// thread, as long as nothing changes the snapshot meanwhile.
 	public static SaveGame Filter(SaveGame snapshot, View view) {
 		SaveGame filtered = snapshot.ShallowCopy();
-		bool[] known = snapshot.Map.tiles.Select(t => view.known.Contains((t.X, t.Y))).ToArray();
+		bool[] known = snapshot.Map.tiles.Select(t => view.known.Contains(t.X, t.Y)).ToArray();
 		filtered.Map = FilterMap(snapshot, view);
 		filtered.Units = snapshot.Units
-			.Where(u => view.players.Contains(u.owner) || view.visible.Contains((u.currentLocation.X, u.currentLocation.Y)))
+			.Where(u => view.players.Contains(u.owner) || view.visible.Contains(u.currentLocation.X, u.currentLocation.Y))
 			.Select(u => view.players.Contains(u.owner) || u.path == null ? u : WithoutPath(u))
 			.ToList();
 		filtered.Cities = FilterCities(snapshot, view);
@@ -215,10 +265,10 @@ public static class SnapshotFilter {
 		string water = snapshot.TerrainTypes.Find(t => t.IsCoast)?.Key;
 		HashSet<string> waterKeys = snapshot.TerrainTypes.Where(t => t.IsWater).Select(t => t.Key).ToHashSet();
 		filtered.tiles = map.tiles.ConvertAll(tile => {
-			if (view.known.Contains((tile.X, tile.Y))) {
+			if (view.known.Contains(tile.X, tile.Y)) {
 				return tile;
 			}
-			if (!view.edge.Contains((tile.X, tile.Y))) {
+			if (!view.edge.Contains(tile.X, tile.Y)) {
 				string placeholder = waterKeys.Contains(tile.baseTerrain) ? water : land;
 				if (placeholder != null) {
 					return new SaveTile {
@@ -240,7 +290,7 @@ public static class SnapshotFilter {
 			unseen.features = tile.features.Where(f => f != "barbarianCamp" && f != "goodyHut").ToList();
 			return unseen;
 		});
-		filtered.startingLocations = map.startingLocations.Where(t => view.known.Contains((t.X, t.Y))).ToList();
+		filtered.startingLocations = map.startingLocations.Where(t => view.known.Contains(t.X, t.Y)).ToList();
 		return filtered;
 	}
 
@@ -257,7 +307,7 @@ public static class SnapshotFilter {
 		// shows the real thing.
 		string placeholder = snapshot.UnitPrototypes.FirstOrDefault()?.name;
 		return snapshot.Cities
-			.Where(city => view.players.Contains(city.owner) || view.known.Contains((city.location.X, city.location.Y)))
+			.Where(city => view.players.Contains(city.owner) || view.known.Contains(city.location.X, city.location.Y))
 			.Select(city => {
 				if (view.players.Contains(city.owner) || view.embassies.Contains(city.owner)) {
 					return city;
