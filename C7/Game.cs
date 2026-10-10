@@ -1567,6 +1567,7 @@ public partial class Game : Node {
 		}
 		PollLanSession();
 		ProcessActions();
+		UpdateGotoPath();
 
 		// The engine waits for animations to finish before going on.
 		if (!EngineStorage.HasPendingAnimations())
@@ -2156,7 +2157,8 @@ public partial class Game : Node {
 			mapView.cameraLocation += OldPosition - eventMouseMotion.Position;
 			OldPosition = eventMouseMotion.Position;
 		} else if (gotoInfo != null) {
-			gotoInfo = GetGotoInfo(eventMouseMotion.Position);
+			// The path to the tile under the mouse is found once a frame, for wherever the mouse ended up; see _Process.
+			gotoMousePosition = eventMouseMotion.Position;
 		} else if (bombardInfo != null) {
 			Tile tile = PositionToTile(eventMouseMotion.Position);
 			bombardInfo.mouseTile = Tile.IsTileValid(tile) ? tile : null;
@@ -2780,6 +2782,19 @@ public partial class Game : Node {
 		MaybeDeclareWar(players[index], currentTurn, () => {
 			ConfirmWarDeclarations(players, index + 1, currentTurn, callback);
 		});
+	}
+
+	// Where the mouse moved to in goto mode since the path to it was last found. Finding a path can be costly, and the mouse can cross several
+	// tiles in a frame.
+	private Vector2? gotoMousePosition = null;
+
+	private void UpdateGotoPath() {
+		if (gotoMousePosition is Vector2 position) {
+			gotoMousePosition = null;
+			if (gotoInfo != null) {
+				gotoInfo = GetGotoInfo(position);
+			}
+		}
 	}
 
 	private Tile lastTile = null;
