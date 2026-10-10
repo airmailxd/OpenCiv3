@@ -80,16 +80,19 @@ namespace C7GameData {
 		public static List<ResourceDeal> ResourceDeals(GameData gameData, Player player, DealDetails direction) {
 			List<ResourceDeal> result = new();
 			foreach ((ID partnerId, PlayerRelationship relationship) in player.playerRelationships) {
-				Player partner = gameData.GetPlayer(partnerId);
-				if (partner == null) {
-					continue;
-				}
+				// Looked up only once a deal turns up: this is asked for
+				// each city's resources, and most civs have no such deals.
+				Player partner = null;
 				foreach (MultiTurnDeal deal in relationship.multiTurnDeals) {
 					if (deal.dealDetails != direction || deal.resourcePerTurn == null) {
 						continue;
 					}
 					if (deal.dealSubType is not (DealSubType.ResourcePerTurn or DealSubType.LuxuryPerTurn)) {
 						continue;
+					}
+					partner ??= gameData.GetPlayer(partnerId);
+					if (partner == null) {
+						break;
 					}
 					Resource resource = gameData.Resources.Find(r => r.Key == deal.resourcePerTurn);
 					if (resource != null) {
