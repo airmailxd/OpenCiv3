@@ -276,38 +276,67 @@ namespace C7GameData.Save {
 		// Returns null if some tile isn't on the map, in which case the tiles
 		// have to be saved by location.
 		internal static string EncodeTileIndices(IEnumerable<Tile> tiles, GameMap map) {
-			List<int> indices = new();
+			IndexEncoder encoder = new();
 			Dictionary<Tile, int> indexByTile = null;
 			foreach (Tile tile in tiles) {
 				int index = IndexOf(tile, map, ref indexByTile);
 				if (index < 0) {
 					return null;
 				}
-				indices.Add(index);
+				encoder.Add(index);
 			}
-			return EncodeIndices(indices);
+			return encoder.Finish();
 		}
 
 		// The tiles at these places in the map's tiles, encoded as
 		// knownTileIndices; null for none.
 		internal static string EncodeIndices(IEnumerable<int> indices) {
-			List<byte> bytes = new();
-			int previous = 0;
+			IndexEncoder encoder = new();
 			foreach (int index in indices) {
+				encoder.Add(index);
+			}
+			return encoder.Finish();
+		}
+
+		// Encodes indices one by one as knownTileIndices. Every player's known
+		// tiles are encoded for each snapshot a LAN host sends, so this
+		// writes straight to bytes, then to the string.
+		private struct IndexEncoder {
+			private byte[] bytes;
+			private int length;
+			private int previous;
+
+			public void Add(int index) {
+				bytes ??= new byte[256];
+				if (bytes.Length - length < 5) {
+					Array.Resize(ref bytes, bytes.Length * 2);
+				}
 				int delta = index - previous;
 				previous = index;
 				uint zigzag = (uint)((delta << 1) ^ (delta >> 31));
 				while (zigzag >= 0x80) {
-					bytes.Add((byte)(zigzag | 0x80));
+					bytes[length++] = (byte)(zigzag | 0x80);
 					zigzag >>= 7;
 				}
-				bytes.Add((byte)zigzag);
+				bytes[length++] = (byte)zigzag;
 			}
-			if (bytes.Count == 0) {
-				return null;
+
+			public readonly string Finish() {
+				if (length == 0) {
+					return null;
+				}
+				return string.Create((length + 2) / 3 * 4, (bytes, length), static (chars, encoded) => {
+					Convert.TryToBase64Chars(encoded.bytes.AsSpan(0, encoded.length), chars, out _);
+					// Use the URL-safe alphabet, since JSON escapes '+'.
+					for (int i = 0; i < chars.Length; ++i) {
+						if (chars[i] == '+') {
+							chars[i] = '-';
+						} else if (chars[i] == '/') {
+							chars[i] = '_';
+						}
+					}
+				});
 			}
-			// Use the URL-safe alphabet, since JSON escapes '+'.
-			return Convert.ToBase64String(bytes.ToArray()).Replace('+', '-').Replace('/', '_');
 		}
 
 		private static int IndexOf(Tile tile, GameMap map, ref Dictionary<Tile, int> indexByTile) {
