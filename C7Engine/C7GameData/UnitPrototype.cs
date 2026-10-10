@@ -87,6 +87,12 @@ namespace C7GameData {
 		// change to the set or list, bumps UpgradeDataVersion. That lets the
 		// cache trust its last validation, in O(1), until then. Code in this
 		// class reads the backing fields, which doesn't bump the version.
+		// Whether the civ may build this unit, read without bumping
+		// UpgradeDataVersion as producibleBy would.
+		public bool IsProducibleBy(Civilization civ) {
+			return producibleBySet.Contains(civ);
+		}
+
 		public HashSet<Civilization> producibleBy {
 			get {
 				OnUpgradeDataAccessed();

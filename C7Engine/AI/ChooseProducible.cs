@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Serilog;
 using Serilog.Events;
+using C7Engine.AI;
 using C7GameData;
 using static C7GameData.PlayerRelationship;
 
@@ -63,6 +64,11 @@ namespace C7Engine {
 
 			private bool? connectedToCapital;
 			public bool ConnectedToCapital => connectedToCapital ??= EngineStorage.gameData.GetTradeNetwork().ConnectedToCapital(player, city);
+
+			// Whether a settler is waiting at this city for a transport that
+			// no ship of ours can take on and no city is building yet.
+			private bool? needsTransport;
+			public bool NeedsTransport => needsTransport ??= ChooseProducible.NeedsTransport(city, player);
 
 			private bool? neighborsOcean;
 			public bool NeighborsOcean => neighborsOcean ??= city.location.NeighborsOcean();
@@ -216,6 +222,11 @@ namespace C7Engine {
 			///
 
 			if (unit.categories.Contains("Sea")) {
+				// A settler waiting here to sail gets its transport first.
+				if (stats.NeedsTransport && stats.CityGuarded && SeaRoutes.IsTransport(unit) && unit == SeaRoutes.BuildableTransport(player)) {
+					return TransportScore;
+				}
+
 				// Don't bother building naval units unless we border the ocean.
 				// This does mean that inland seas are excluded.
 				if (!stats.NeighborsOcean) {
@@ -522,6 +533,31 @@ namespace C7Engine {
 				if (cr.citizenType.Luxuries > 0) { ++entertainerCount; }
 			}
 			return (unhappyCount, entertainerCount);
+		}
+
+		// High enough to come before anything else the city might build: the
+		// settler and its escort wait idle in port until the transport is done.
+		// (A city without a defender builds one first; see NeedsTransport's
+		// caller.)
+		private const float TransportScore = 500;
+
+		private static bool NeedsTransport(City city, Player player) {
+			bool waiting = false;
+			foreach (MapUnit u in player.units) {
+				if (u.currentAI is SettlerAI settlerAi && settlerAi.data.port == city && !FerryAI.HasLiveFerry(settlerAi.data, player)) {
+					waiting = true;
+					break;
+				}
+			}
+			if (!waiting || SeaRoutes.TransportsReaching(player, city.location).Any()) {
+				return false;
+			}
+			foreach (City c in player.cities) {
+				if (c != city && c.itemBeingProduced is UnitPrototype type && SeaRoutes.IsTransport(type)) {
+					return false;
+				}
+			}
+			return true;
 		}
 
 		private static bool HasUnescortedSettler(City city) {

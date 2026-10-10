@@ -21,7 +21,8 @@ namespace C7Engine {
 			return result;
 		}
 
-		// Scores the known tiles on the start tile's continent where the player
+		// Scores the known tiles on the start tile's continent, and on the
+		// landmasses our transports can reach (see SeaRoutes), where the player
 		// could found a city with no city within 2 tiles. Every such tile is in
 		// the result with a positive score, however poor the site. The result
 		// lists the tiles in the order of the player's known tiles.
@@ -36,11 +37,22 @@ namespace C7Engine {
 			Dictionary<Tile, bool> invalidLocations = InvalidLocationMemo();
 			HashSet<Tile> tilesNearSettlerDestinations = null;
 
-			// TODO: handle settling other continents
+			// Other landmasses are settled by sea, once we have (or can build)
+			// a transport that can reach them.
+			HashSet<int> overseas = null;
 			List<Tile> candidates = new();
 			foreach (Tile t in player.tileKnowledge.knownTiles) {
 				// Cheapest checks first.
-				if (t.continent != start.continent || IsInvalidCityLocation(t, invalidLocations)) {
+				if (t.continent != start.continent) {
+					if (!t.IsLand()) {
+						continue;
+					}
+					overseas ??= SeaRoutes.ReachableLandmasses(player);
+					if (!overseas.Contains(t.continent)) {
+						continue;
+					}
+				}
+				if (IsInvalidCityLocation(t, invalidLocations)) {
 					continue;
 				}
 

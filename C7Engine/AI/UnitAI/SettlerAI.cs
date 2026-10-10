@@ -28,14 +28,45 @@ namespace C7Engine {
 					settlerAiData.goal = SettlerAIData.SettlerGoal.JOIN_CITY;
 					log.Information($"Set AI for unit {unit.id} of {unit.owner.civilization.name} to JOIN_CITY due to lack of locations to settle");
 				} else {
-					PathingAlgorithm algorithm = PathingAlgorithmChooser.GetAlgorithm(unit);
-					settlerAiData.pathToDestination = algorithm.PathFrom(unit.location, settlerAiData.destination, unit);
+					ChooseRoute(unit, player, settlerAiData);
 					log.Information($"Set AI for unit {unit.id} of {unit.owner.civilization.name} to BUILD_CITY with destination of " + settlerAiData.destination);
 				}
 
 				// TODO: return the ranked list, so we can check paths here and avoid duplicate calculations.
 			}
 			return settlerAiData;
+		}
+
+		// Walks to the destination, or goes by sea when that is quicker by
+		// SeaRoutes.TurnsSavedToSail turns or more, or the only way there.
+		// (An AI heuristic, not a Civ3 rule.)
+		internal static void ChooseRoute(MapUnit unit, Player player, SettlerAIData data) {
+			data.port = null;
+			data.ferry = null;
+			data.landing = null;
+			data.waitingSinceTurn = -1;
+
+			PathingAlgorithm algorithm = PathingAlgorithmChooser.GetAlgorithm(unit);
+			TilePath walk = algorithm.PathFrom(unit.location, data.destination, unit);
+			data.pathToDestination = walk;
+			int walkTurns = walk != null && walk.PathLength() > 0
+				? walk.PathCost(player, unit.location, unit.MaxMovementPoints(), unit.movementPoints.remaining)
+				: int.MaxValue;
+
+			// Sailing can't save enough turns on a short walk.
+			if (walkTurns <= SeaRoutes.TurnsSavedToSail) {
+				return;
+			}
+			int maxTurns = walkTurns == int.MaxValue ? int.MaxValue : walkTurns - SeaRoutes.TurnsSavedToSail + 1;
+			SeaRoutes.Voyage voyage = SeaRoutes.PlanVoyage(unit, data.destination, maxTurns);
+			if (voyage == null) {
+				return;
+			}
+			data.port = voyage.port;
+			data.landing = voyage.landing;
+			data.pathToDestination = voyage.port.location == unit.location ? null : algorithm.PathFrom(unit.location, voyage.port.location, unit);
+			log.Information("Settler {Unit} will sail from {Port} to land at {Landing}, about {Turns} turns rather than {WalkTurns}",
+				unit.id, voyage.port, voyage.landing, voyage.turns, walkTurns == int.MaxValue ? "never" : walkTurns);
 		}
 
 		public SettlerAI(SettlerAIData d) {
@@ -49,9 +80,19 @@ namespace C7Engine {
 				escortAi.data.unitToEscort = null;
 			}
 			data.escort = null;
+			if (data.ferry?.currentAI is FerryAI ferryAi && ferryAi.data.settler != null) {
+				ferryAi.data.settler = null;
+			}
+			data.ferry = null;
 		}
 
 		C7GameData.UnitAI.MoveResult UnitAI.PlayTurnImpl(Player player, MapUnit unit) {
+			// Aboard a ferry, which does the moving. Whether the site is still
+			// open is looked at again ashore.
+			if (unit.IsLoaded() && data.port != null) {
+				unit.movementPoints.onConsumeAll();
+				return C7GameData.UnitAI.Result.InProgress;
+			}
 			switch (data.goal) {
 				case SettlerAIData.SettlerGoal.BUILD_CITY:
 					if (IsInvalidCityLocation(data.destination)) {
@@ -74,6 +115,8 @@ namespace C7Engine {
 						log.Information($"Settler {unit.id} is waiting for an escort");
 						unit.movementPoints.onConsumeAll();
 						return C7GameData.UnitAI.Result.InProgress;
+					} else if (data.port != null) {
+						return GoToPort(unit, player);
 					} else {
 						C7GameData.UnitAI.MoveResult moveResult = this.TryToMoveAlongPath(unit, ref data.pathToDestination);
 						if (moveResult.Result == C7GameData.UnitAI.Result.Error) {
@@ -87,6 +130,63 @@ namespace C7Engine {
 			}
 
 			return C7GameData.UnitAI.Result.Done;
+		}
+
+		// Going by sea: walk to the port, and wait there for a transport,
+		// which takes the settler and its escort aboard and puts them ashore
+		// (see FerryAI).
+		private C7GameData.UnitAI.MoveResult GoToPort(MapUnit unit, Player player) {
+			if (data.port.owner != player) {
+				return GiveUpSailing(unit, player);
+			}
+
+			Tile port = data.port.location;
+			if (unit.location != port) {
+				data.waitingSinceTurn = -1;
+				C7GameData.UnitAI.MoveResult moveResult = this.TryToMoveAlongPath(unit, ref data.pathToDestination);
+				if (moveResult.Result == C7GameData.UnitAI.Result.Error) {
+					return GiveUpSailing(unit, player);
+				}
+				return moveResult;
+			}
+
+			int turn = EngineStorage.gameData.turn;
+			if (data.waitingSinceTurn < 0) {
+				data.waitingSinceTurn = turn;
+			} else if (turn - data.waitingSinceTurn > SeaRoutes.MaxTurnsWaitingForTransport) {
+				log.Information($"Settler {unit.id} waited too long for a transport at {data.port}");
+				return GiveUpSailing(unit, player);
+			}
+
+			// Take one of our idle transports if there is one; otherwise
+			// the port builds one (see ChooseProducible).
+			if (!FerryAI.HasLiveFerry(data, player)) {
+				data.ferry = null;
+				MapUnit ship = SeaRoutes.TransportsReaching(player, port).FirstOrDefault();
+				if (ship != null) {
+					data.ferry = ship;
+					ship.currentAI = new FerryAI(new FerryAIData { settler = unit });
+					log.Information($"Settler {unit.id} takes {ship} to sail from {data.port}");
+				}
+			}
+			unit.movementPoints.onConsumeAll();
+			return C7GameData.UnitAI.Result.InProgress;
+		}
+
+		// The voyage is off: walk if we can, or find somewhere else.
+		private C7GameData.UnitAI.MoveResult GiveUpSailing(MapUnit unit, Player player) {
+			if (data.ferry?.currentAI is FerryAI ferryAi) {
+				ferryAi.data.settler = null;
+			}
+			data.port = null;
+			data.ferry = null;
+			data.landing = null;
+			data.waitingSinceTurn = -1;
+			data.pathToDestination = PathingAlgorithmChooser.GetAlgorithm(unit).PathFrom(unit.location, data.destination, unit);
+			if (data.pathToDestination == null || data.pathToDestination.PathLength() <= 0) {
+				return FindNewDestination(unit, player);
+			}
+			return C7GameData.UnitAI.Result.InProgress;
 		}
 
 		// Whether the settler may found a city where it stands.
@@ -200,8 +300,7 @@ namespace C7Engine {
 				log.Information($"Settler {unit.id} has no reachable destination left, joining a city instead");
 			} else {
 				data.destination = newDestination;
-				PathingAlgorithm algorithm = PathingAlgorithmChooser.GetAlgorithm(unit);
-				data.pathToDestination = algorithm.PathFrom(unit.location, newDestination, unit);
+				ChooseRoute(unit, player, data);
 				log.Information($"Settler {unit.id} retargeting from an unreachable tile to {newDestination}");
 			}
 

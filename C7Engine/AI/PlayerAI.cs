@@ -237,6 +237,25 @@ namespace C7Engine {
 			}
 		}
 
+		// Sails the ship to the nearest water it can't sink in, or one of
+		// our cities, that it can reach. (An AI heuristic.)
+		private static async Task MakeForSafeWater(MapUnit ship, Player player) {
+			int reach = Math.Max(1, ship.MaxMovementPoints());
+			List<Tile> safe = ship.location.GetTilesWithinRankDistance(reach * 2)
+				.Where(t => t != ship.location && (t.cityAtTile?.owner == player || (t.IsWater() && !t.HasCity() && !ship.IsUnsafeWater(t))))
+				.OrderBy(t => t.DistanceTo(ship.location))
+				.ToList();
+			if (PathingAlgorithmChooser.GetAlgorithm(ship).FindFirstReachable(ship.location, safe, ship, out TilePath path) < 0) {
+				return;
+			}
+			while (ship.movementPoints.canMove && ship.IsInUnsafeWater() && path.PathLength() > 0) {
+				Tile next = path.Next();
+				if (!await ship.Move(ship.location.DirectionTo(next)) || ship.location != next) {
+					break;
+				}
+			}
+		}
+
 		private static async Task DoUnitActions(Player player, HashSet<MapUnit> explorers) {
 			// Do things with units. Copy into an array first to avoid collection-was-modified exception
 			foreach (MapUnit unit in player.units.ToArray()) {
@@ -246,6 +265,21 @@ namespace C7Engine {
 				// A unit may have died or been captured since the list was
 				// copied, such as a defender lost to another unit's attack.
 				if (!IsStillOurs(unit, player)) {
+					continue;
+				}
+
+				// Our ships end their turns where they can't sink. The paths
+				// they follow keep out of such water, so one is only caught in
+				// it when the water turns unsafe under it (as when the Great
+				// Lighthouse is lost): it makes for safety first.
+				if (unit.IsInUnsafeWater()) {
+					await MakeForSafeWater(unit, player);
+				}
+
+				// Passengers on a ferry go where it takes them (see FerryAI).
+				// Being woken, as all our units are when priorities change,
+				// mustn't have them make other plans on the way.
+				if (unit.IsLoaded() && unit.Carrier()?.currentAI is FerryAI) {
 					continue;
 				}
 
@@ -479,6 +513,8 @@ namespace C7Engine {
 				return new SettlerAI(SettlerAI.MakeAiData(unit, player));
 			} else if (unit.unitType.name == "Worker") {
 				return new WorkerAI(WorkerAI.MakeAiData(unit, player));
+			} else if (FerryAI.MaybeMakeAiData(unit, player) is FerryAIData ferryData) {
+				return new FerryAI(ferryData);
 			} else if (unit.location.cityAtTile != null && unit.CanDefendOnLand() && unit.location.unitsOnTile.Count(u => u.CanDefendOnLand() && u != unit) == 0) {
 				return new DefenderAI(DefenderAI.MakeAiDataForDefendInPlace(unit, player));
 			} else if (GetCombatAIIfUnitCanAttackNearbyBarbCamp(unit, player) is UnitAI unitAI && unitAI != null) {
@@ -626,6 +662,10 @@ namespace C7Engine {
 			// Mirror the checks GetAIForUnit makes before considering
 			// exploration.
 			if (unit.IsLeader() || unit.unitType.name == "Settler" || unit.unitType.name == "Worker") {
+				return false;
+			}
+			// A transport would ferry a settler waiting for one.
+			if (FerryAI.SettlerWaitingForTransport(unit, player) != null) {
 				return false;
 			}
 			if (unit.location.cityAtTile != null && unit.CanDefendOnLand() && unit.location.unitsOnTile.Count(u => u.CanDefendOnLand() && u != unit) == 0) {

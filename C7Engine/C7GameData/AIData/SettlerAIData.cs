@@ -27,11 +27,21 @@ namespace C7GameData.AIData {
 		public TilePath pathToDestination;
 		public MapUnit escort;
 
+		// When going by sea (see SeaRoutes and FerryAI): the city to board a
+		// transport at, the transport, and the tile to step ashore onto.
+		// pathToDestination leads to the port until the settler is ashore.
+		// The port is null when walking.
+		public City port;
+		public MapUnit ferry;
+		public Tile landing;
+		// The turn the settler reached the port, or -1.
+		public int waitingSinceTurn = -1;
+
 		// Tiles the settler could not reach (issue #213). Cleared when the AI is re-created.
 		public HashSet<Tile> unreachableDestinations = new();
 
 		public override string ToString() {
-			return goal + " at " + destination;
+			return goal + " at " + destination + (port != null ? $" by sea from {port}, landing at {landing}" : "");
 		}
 	}
 }

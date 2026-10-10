@@ -83,6 +83,12 @@ namespace C7Engine {
 				return UnitAI.Result.Error;
 			}
 
+			// Aboard a ferry with the unit we escort, which does the moving.
+			if (unit.IsLoaded() && unit.Carrier()?.currentAI is FerryAI) {
+				unit.movementPoints.onConsumeAll();
+				return UnitAI.Result.InProgress;
+			}
+
 			if (escortedUnitPlayedTurn != turn) {
 				escortedUnitPlayedTurn = turn;
 				return UnitAI.MoveResult.MoveRequested(PlayEscortedUnitTurn(player, data.unitToEscort));
