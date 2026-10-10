@@ -45,11 +45,19 @@ public class BehaviorEngine {
 			throw new InvalidOperationException("Non-null function path expected");
 
 		Closure closure = ResolveFunctionPath(functionPath);
-		Delegate del = DelegateConverter.CreateDelegate(script, closure, typeof(T));
+		// A stock function with a C# version runs as C#, which is much
+		// faster; see NativeBehaviors.
+		Delegate del = NativeBehaviors.Find<T>(closure) ?? DelegateConverter.CreateDelegate(script, closure, typeof(T));
 
 		funcCache[functionPath] = del;
 
 		return (T)(object)del;
+	}
+
+	// Like ImportFunc, but always calls the Lua, even for a stock function
+	// with a C# version. For tests comparing the two.
+	internal T ImportLuaFunc<T>(string functionPath) where T : Delegate {
+		return (T)DelegateConverter.CreateDelegate(script, ResolveFunctionPath(functionPath), typeof(T));
 	}
 
 	Closure ResolveFunctionPath(string functionPath) {

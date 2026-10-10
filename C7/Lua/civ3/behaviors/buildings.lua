@@ -47,30 +47,35 @@ buildings.unit_production_effects = {
   end,
 }
 
+-- NATIVE_DEFAULT marks a function that the game runs as C# instead, since
+-- tile yields are worked out very often. If you change what such a function
+-- does, take away its NATIVE_DEFAULT so the game runs your Lua (or change the
+-- C# in C7Engine/Lua/NativeBehaviors.cs to match). A function put in its place
+-- by an addon always runs as Lua.
 buildings.tile_modifiers = {
-  increases_food_in_water = function(yield)
+  increases_food_in_water = NATIVE_DEFAULT("buildings.tile_modifiers.increases_food_in_water", function(yield)
     if yield.type == YieldType.Food and yield.tile:IsWater() and yield.baseYield > 0 then
       yield.bonus = yield.bonus + 1
     end
-  end,
+  end),
 
-  increases_shields_in_water = function(yield)
+  increases_shields_in_water = NATIVE_DEFAULT("buildings.tile_modifiers.increases_shields_in_water", function(yield)
     if yield.type == YieldType.Production and yield.tile:IsWater() then
       yield.bonus = yield.bonus + 1
     end
-  end,
+  end),
 
-  increases_trade_in_water = function(yield)
+  increases_trade_in_water = NATIVE_DEFAULT("buildings.tile_modifiers.increases_trade_in_water", function(yield)
     if yield.type == YieldType.Commerce and yield.tile:IsWater() and yield.baseYield > 0 then
       yield.bonus = yield.bonus + 1
     end
-  end,
+  end),
 
   -- The Colossus: +1 commerce on every tile of the city, land or water,
   -- that already makes commerce, the city center included. Civ3 adds it
   -- before the despotism penalty, so a tile it raises from 2 to 3 is
   -- brought back down to 2.
-  increased_trade = function(yield)
+  increased_trade = NATIVE_DEFAULT("buildings.tile_modifiers.increased_trade", function(yield)
     if yield.type == YieldType.Commerce and yield.baseYield > 0 then
       yield.bonus = yield.bonus + 1
       local owner = yield.tile:OwningPlayer()
@@ -78,7 +83,7 @@ buildings.tile_modifiers = {
         yield.penalty = yield.penalty + 1
       end
     end
-  end,
+  end),
 }
 
 return buildings

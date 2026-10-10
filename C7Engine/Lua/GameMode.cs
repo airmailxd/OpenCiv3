@@ -191,6 +191,7 @@ internal class GameModeLoader {
 /// The class registers the following Lua globals:
 /// - GAME_DATA(): Function returning the current game data instance.
 /// - ENUMS:  Table containing definitions of public enums from the C7GameData namespace.
+/// - NATIVE_DEFAULT(name, function): Marks a stock function that has a C# version (see NativeBehaviors).
 ///   Note that nested enums are registered under a name concatenating the outer class and the enum names (e.g., Tile_YieldType)
 internal class ScriptInitializer {
 	static ILogger log = Log.ForContext<ScriptInitializer>();
@@ -246,5 +247,6 @@ internal class ScriptInitializer {
 
 	static void RegisterGlobals(Script script) {
 		script.Globals["GAME_DATA"] = () => DynValue.FromObject(script, EngineStorage.gameData);
+		script.Globals["NATIVE_DEFAULT"] = DynValue.NewCallback(NativeBehaviors.MarkDefault, "NATIVE_DEFAULT");
 	}
 }
