@@ -330,6 +330,48 @@ public sealed class FixAiWorkerTests : IClassFixture<SaveGameFixture>, IDisposab
 		C7GameData.AIData.WorkerAIData plan = WorkerAI.MakeAiData(worker, player);
 		Assert.True(plan == null || plan.destination != island, "the worker was sent across the water");
 	}
+
+	// A mine and irrigation replace each other, and whichever one a tile has
+	// can't be built again. Workers used to see the other one as a pure gain
+	// and swap the two forever; once the better one is built, it must stay.
+	[Fact]
+	public void WorkersDontSwapMinesAndIrrigationBackAndForth() {
+		MapUnit settler = player.units.First(u => u.unitType.isSettler);
+		Tile site = settler.location;
+		City city = CityInteractions.BuildCity(site, player, player.GetNextCityName());
+
+		// Desert takes both a mine and irrigation, whatever the government.
+		// Knowing a tech that irrigates anywhere rules out water access.
+		TerrainType desert = gameData.terrainTypes.First(t => t.Key == "desert");
+		Tile tile = site.neighbors.Values.First(t => t != Tile.NONE && t.IsLand() && !t.HasCity());
+		tile.baseTerrainType = desert;
+		tile.overlayTerrainType = desert;
+		tile.Resource = Resource.NONE;
+		tile.overlays.Clear();
+		foreach (MapUnit u in tile.unitsOnTile.ToList()) {
+			gameData.RemoveUnit(u);
+		}
+		player.knownTechs.Add(gameData.techs.First(t => t.EnablesIrrigationEverywhere).id);
+		city.residents[0].tileWorked = tile;
+		MapUnit worker = gameData.SpawnUnit(player, gameData.unitPrototypes.First(p => p.name == "Worker"), tile);
+
+		// Finish whatever job the worker picks for the tile, several times
+		// over, noting what ends up on the tile.
+		List<string> history = new();
+		for (int i = 0; i < 6; ++i) {
+			C7GameData.AIData.WorkerAIData plan = WorkerAI.MakeAiData(worker, player);
+			if (plan == null || plan.destination != tile) {
+				break;
+			}
+			plan.workerMove.OnComplete(player, tile);
+			TerrainImprovement built = tile.overlays.ImprovementAtLayer(TerrainImprovement.Layer.ResourceDevelopment);
+			if (built != null && (history.Count == 0 || history[^1] != built.key)) {
+				history.Add(built.key);
+			}
+		}
+
+		Assert.Equal(new List<string> { Tile.TileOverlays.IRRIGATION }, history);
+	}
 }
 
 public sealed class FixAiProductionTests : IClassFixture<SaveGameFixture>, IDisposable {

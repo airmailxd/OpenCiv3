@@ -28,8 +28,14 @@ namespace C7Engine {
 			private int? numberOfReachableOpenCitySpots;
 			public int NumberOfReachableOpenCitySpots => numberOfReachableOpenCitySpots ??= ChooseProducible.NumberOfReachableOpenCitySpots(city);
 
+			// We keep expanding while there's an open city spot on our
+			// continent that no settler is being built for yet: the project
+			// owner's AI preference is to fill every gap of 3 or more tiles
+			// between cities (see SettlerLocationAI), however poor the site.
+			// Once settlers are being built for all the spots, the other
+			// cities go back to building up.
 			private bool? inExpansionPhase;
-			public bool InExpansionPhase => inExpansionPhase ??= player.cities.Count < 5 || NumberOfReachableOpenCitySpots > player.cities.Count * 2;
+			public bool InExpansionPhase => inExpansionPhase ??= player.cities.Count < 5 || NumberOfReachableOpenCitySpots > SettlersUnderConstruction;
 
 			public ProducibleStats(City city, Player player) {
 				this.city = city;
@@ -138,14 +144,26 @@ namespace C7Engine {
 			}
 		}
 
-		private static float ScoreInflow(ProducibleStats stats, City city, Player player, Inflow inflow) {
-			// TODO: score this properly, right now we give a very low score to avoid auto picking this
-			// I am not sure how civ III does this, although I guess we should consider stuff like
-			// no more buildings to build, reached unit cap, very bad economy with no other options,
-			// the WealthNever and WealthOften flags from RACE, etc
+		// How many turns ahead the AI looks for running out of gold before it
+		// turns cities to Wealth.
+		private const int WealthHorizonTurns = 5;
 
-			if (HasWeakEconomy(player)) {
-				return 100 - player.gold;
+		private static float ScoreInflow(ProducibleStats stats, City city, Player player, Inflow inflow) {
+			// TODO: the WealthNever and WealthOften flags from RACE.
+			//
+			// Wealth only while the treasury would otherwise run dry within
+			// a few turns, which would cost units and buildings (see
+			// Player.DoPerTurnFinanceUpdates). The gold per turn is worked out
+			// as it stands, so it counts the Wealth other cities are already
+			// making, and only as many cities turn to Wealth as the deficit
+			// needs. A city already on Wealth is judged as if it stopped, so
+			// it doesn't leave the moment its own Wealth balances the budget.
+			int goldPerTurn = player.CalculateGoldPerTurn();
+			if (city.itemBeingProduced is Inflow) {
+				goldPerTurn -= city.CurrentCommerceYield().wealth;
+			}
+			if (goldPerTurn < 0 && player.gold + WealthHorizonTurns * goldPerTurn < 0) {
+				return 100;
 			}
 
 			return -1000f;
@@ -227,15 +245,15 @@ namespace C7Engine {
 			}
 
 			// Penalize going over the unit support cap unless we're at war or
-			// still in the expansion phase.
-			if (!atWar && !stats.InExpansionPhase) {
-				int unitSupportCost = stats.UnitSupportCost;
-				if (unitSupportCost > 0) {
+			// still in the expansion phase, and even then if we can't afford
+			// it: units we can't pay for are disbanded anyway.
+			int unitSupportCost = stats.UnitSupportCost;
+			if (unitSupportCost > 0) {
+				if (!atWar && !stats.InExpansionPhase) {
 					score -= unitSupportCost / 2;
-
-					if (HasWeakEconomy(player)) {
-						score -= unitSupportCost * 2;
-					}
+				}
+				if (HasWeakEconomy(player)) {
+					score -= unitSupportCost * 2;
 				}
 			}
 
@@ -292,12 +310,6 @@ namespace C7Engine {
 			bool atWar = stats.atWar;
 
 			float score = 0;
-
-			// The AI doesn't move its palace on purpose; losing the capital
-			// rebuilds it for free.
-			if (building.isCenterOfEmpire) {
-				return int.MinValue;
-			}
 
 			if (building.isSmallWonder) {
 				float? smallWonderScore = ScoreSmallWonder(stats, city, player, building);
@@ -585,8 +597,13 @@ namespace C7Engine {
 			return result;
 		}
 
+		// Whether the treasury is a struggle: it takes more than half the
+		// sliders on taxes to keep from losing money. It used to take a science rate of zero,
+		// which the AI hardly ever needs (AdjustSliders keeps some science
+		// whenever it can), so the AI went on adding upkeep and units until
+		// maintenance ate its whole tax income.
 		public static bool HasWeakEconomy(Player player) {
-			return player.luxuryRate == 0 && player.scienceRate == 0 && player.gold < 100;
+			return player.scienceRate < 5 && player.gold < 200;
 		}
 	}
 }

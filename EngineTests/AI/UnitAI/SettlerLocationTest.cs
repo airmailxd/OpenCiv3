@@ -173,6 +173,32 @@ namespace EngineTests.AI.UnitAI {
 			Assert.True(chosen.DistanceTo(free) <= 1, $"chose {chosen}");
 		}
 
+		// A site worth nothing is still settled if it's open (the project
+		// owner's AI preference); it used to be skipped.
+		[Fact]
+		private void WorthlessSiteIsStillChosen() {
+			InitilizeStartTile(MakeDesertTile(), new TileLocation(50, 50));
+			startTile.map = gameMap;
+			Player player = MakeTestPlayer(new List<Tile> { startTile });
+			Assert.Equal(startTile, SettlerLocationAI.FindSettlerLocation(startTile, player));
+		}
+
+		// A settler waiting for a city to join has no destination, which
+		// used to crash the search for a site in a long game.
+		[Fact]
+		private void SettlerJoiningACityWithNoDestinationIsIgnored() {
+			InitilizeStartTile(MakeHillTile(), new TileLocation(50, 50));
+			startTile.map = gameMap;
+			Player player = MakeTestPlayer(new List<Tile> { startTile });
+
+			MapUnit joiner = MakeLandUnit();
+			joiner.unitType.name = "Settler";
+			joiner.currentAI = new SettlerAI(new SettlerAIData() { goal = SettlerAIData.SettlerGoal.JOIN_CITY, destination = null });
+			player.units.Add(joiner);
+
+			Assert.Equal(startTile, SettlerLocationAI.FindSettlerLocation(startTile, player));
+		}
+
 		[Fact]
 		private void NotAlreadyBeingSettled() {
 			// just one hill tile

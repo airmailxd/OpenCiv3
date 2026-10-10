@@ -1,6 +1,7 @@
 using System;
 using C7Engine.AI;
 using C7GameData;
+using C7GameData.AIData;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -21,8 +22,9 @@ namespace C7Engine {
 		}
 
 		// Scores the known tiles on the start tile's continent where the player
-		// could found a city. The result lists the tiles in the order of the
-		// player's known tiles.
+		// could found a city with no city within 2 tiles. Every such tile is in
+		// the result with a positive score, however poor the site. The result
+		// lists the tiles in the order of the player's known tiles.
 		//
 		// This runs for every production decision and settler plan, so the
 		// parts that rarely change are cached between calls: which tiles are
@@ -145,8 +147,21 @@ namespace C7Engine {
 				if (preDistanceScore > 0 && score <= 0) {
 					score = preDistanceScore / (preDistanceScore - distancePenalty);
 				}
-				if (score > 0)
-					scores[t] = score;
+
+				// Every candidate is a site worth settling, however poor: the
+				// project owner's AI preference is that any open land tile with
+				// no city within 2 tiles gets a city, so that gaps in the AI's
+				// land are filled rather than skipped. (That 2-tile gap is an
+				// AI choice, not a Civ3 rule; see IsInvalidCityLocation.) Sites
+				// that are worthless even before distance (e.g. crowded by
+				// rival cities) get a score in (0, 1/4], scaled down by the
+				// distance penalty the same way as the far sites above, so
+				// that they rank below any site of worth 1 or more at the same
+				// distance, and the nearer and less bad ones come first.
+				if (score <= 0) {
+					score = 1f / ((4f - preDistanceScore) * (1f - distancePenalty));
+				}
+				scores[t] = score;
 			}
 			return scores;
 		}
@@ -384,6 +399,13 @@ namespace C7Engine {
 			return result;
 		}
 
+		// Whether there's a city within 2 tiles (in steps, as Tile.DistanceTo
+		// measures). The Civ3 rule is only that a city can't be founded next
+		// to another (a minimum distance of 2, which the editor can't change:
+		// https://steamcommunity.com/app/3910/discussions/0/3453716885198230413/;
+		// MapUnit.canBuildCity enforces it). Keeping a free tile between the
+		// AI's cities as well is the project owner's AI preference, and every
+		// legal tile outside that gap is a candidate site.
 		private static bool IsInvalidCityLocation(Tile tile) {
 			if (tile == Tile.NONE || tile.HasCity())
 				return true;
@@ -410,7 +432,10 @@ namespace C7Engine {
 		private static HashSet<Tile> TilesNearSettlerDestinations(List<MapUnit> playerSettlers) {
 			HashSet<Tile> result = new();
 			foreach (MapUnit otherSettler in playerSettlers) {
-				if (otherSettler.currentAI is SettlerAI otherSettlerAI) {
+				// A settler joining a city isn't heading for a city site, and
+				// may have no destination at all while it waits for room.
+				if (otherSettler.currentAI is SettlerAI otherSettlerAI && otherSettlerAI.data.goal == SettlerAIData.SettlerGoal.BUILD_CITY
+					&& otherSettlerAI.data.destination != null && otherSettlerAI.data.destination != Tile.NONE) {
 					Tile otherDestination = otherSettlerAI.data.destination;
 					result.Add(otherDestination);
 					foreach (Tile innerRingTile in otherDestination.GetLandNeighbors()) {

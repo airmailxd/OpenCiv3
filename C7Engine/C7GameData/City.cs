@@ -455,6 +455,13 @@ namespace C7GameData {
 
 			Building.ProductionContext context = null;
 			foreach (Building building in gameData.Buildings) {
+				// Per the project owner, the AI never builds a palace to move
+				// its capital (losing the capital rebuilds it for free). Leaving
+				// it out here covers every way the AI picks production: scoring,
+				// the most expensive item after a lost wonder, leader hurries.
+				if (building.isCenterOfEmpire && !owner.isHuman) {
+					continue;
+				}
 				context ??= new Building.ProductionContext(this);
 				if (building.CanProduce(this, accessibleResources, context)) {
 					yield return building;
@@ -474,13 +481,26 @@ namespace C7GameData {
 
 		public int FoodNeededToGrow() {
 			Rules rules = owner.rules;
+			int food;
 			if (residents.Count <= rules.MaximumLevel1CitySize) {
-				return rules.FoodNeededToGrowForLevel1Cities;
+				food = rules.FoodNeededToGrowForLevel1Cities;
 			} else if (residents.Count <= rules.MaximumLevel2CitySize) {
-				return rules.FoodNeededToGrowForLevel2Cities;
+				food = rules.FoodNeededToGrowForLevel2Cities;
 			} else {
-				return rules.FoodNeededToGrowForLevel3Cities;
+				food = rules.FoodNeededToGrowForLevel3Cities;
 			}
+
+			// The difficulty's cost factor applies to the AI's growth as well
+			// as its shields and research: "Cost Factor (affects growth,
+			// shields, research) ... player cost factor is always 10", so on
+			// Emperor (8) an AI city's food box is 8/10 the size
+			// (https://forums.civfanatics.com/threads/ai-difficulty-level-bonuses.37490/).
+			// See Player.ShieldCost and GameData.TechCostFor.
+			Difficulty difficulty = EngineStorage.gameData?.gameDifficulty;
+			if (!owner.isHuman && difficulty != null && difficulty.AiCostFactor > 0) {
+				food = Math.Max(1, food * difficulty.AiCostFactor / difficulty.HumanCostFactor);
+			}
+			return food;
 		}
 
 		public int TurnsUntilGrowth() {

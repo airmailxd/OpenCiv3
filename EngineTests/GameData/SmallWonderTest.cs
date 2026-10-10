@@ -221,6 +221,9 @@ public class SmallWonderTest : IClassFixture<SaveGameFixture>, System.IDisposabl
 	public void ThePalaceCanBeRebuiltToMoveTheCapital() {
 		Building palace = gameData.Buildings.Single(b => b.isCenterOfEmpire);
 		Learn(palace);
+		// The AI is never offered the palace (see AiPalaceTest); this is
+		// the rule for a human.
+		us.isHuman = true;
 		City capital = BuildCity(us);
 		City other = BuildCity(us);
 

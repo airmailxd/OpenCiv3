@@ -41,6 +41,8 @@ namespace C7Engine {
 
 			MaybeDoPriorityReevaluation(player);
 			MaybePickTechToResearch(player, techs);
+			GovernmentAI.PlayTurn(player, gameData);
+			ReconsiderWealth(player);
 
 			// Ask for peace in wars that are going badly.
 			await PeaceAI.ProposePeace(player, gameData);
@@ -61,6 +63,23 @@ namespace C7Engine {
 			AdjustSliders(player);
 
 			log.Information("-> End " + player.civilization.cityNames[0] + $" turn {stopwatch.ElapsedMilliseconds} milliseconds");
+		}
+
+		// Wealth (an Inflow) is never completed, so nothing else ever moves a
+		// city off it: a city that turned to Wealth in a short cash crunch kept
+		// at it for the rest of the game, and more and more cities piled up on
+		// it. Choose again each turn instead; the choice keeps Wealth only
+		// while the treasury still needs it (see ChooseProducible.ScoreInflow).
+		// Wealth stores no shields, so switching away loses nothing.
+		private static void ReconsiderWealth(Player player) {
+			foreach (City city in player.cities) {
+				if (city.itemBeingProduced is Inflow) {
+					IProducible choice = ChooseProducible.Choose(city, player);
+					if (choice != null && choice != city.itemBeingProduced) {
+						city.ChangeProduction(choice);
+					}
+				}
+			}
 		}
 
 		// Upgrade units sitting in cities that can upgrade them, keeping a

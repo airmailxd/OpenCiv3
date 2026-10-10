@@ -236,6 +236,17 @@ namespace C7Engine {
 					continue;
 				}
 				int aiScore = terraform.CalculateAIScore(player, t);
+
+				// Building over an improvement (e.g. irrigating a mined tile)
+				// throws the old one away, so only what it adds on top of the
+				// old one counts. Without this, whichever of a mine or
+				// irrigation the tile has can't be built again, so the other
+				// always looked like a pure gain and workers swapped the two
+				// back and forth forever.
+				TerrainImprovement replaced = t.overlays.GetReplacementTarget(terraform);
+				if (replaced != null) {
+					aiScore -= KeptImprovementScore(player, t, replaced) + ReplacementMargin;
+				}
 				if (aiScore <= 0) {
 					continue;
 				}
@@ -246,6 +257,23 @@ namespace C7Engine {
 			}
 
 			return best;
+		}
+
+		// How much better than the improvement already on a tile a replacement
+		// must score before a worker tears the old one down. Small differences
+		// aren't worth the worker turns, and the margin keeps the choice from
+		// wavering between two improvements that score about the same.
+		private const int ReplacementMargin = 1;
+
+		// The AI score of the improvement already on the tile, as if it were
+		// being built now, or 0 if no terraform builds it.
+		private static int KeptImprovementScore(Player player, Tile t, TerrainImprovement existing) {
+			foreach (Terraform terraform in EngineStorage.gameData.Terraforms) {
+				if (terraform.Improvement == existing) {
+					return Math.Max(0, terraform.CalculateAIScore(player, t));
+				}
+			}
+			return 0;
 		}
 
 		private UnitAI.Result PerformWorkerMove(MapUnit unit, Terraform workerMove) {
@@ -352,7 +380,7 @@ namespace C7Engine {
 				pathToDestination = path,
 				worker = unit,
 			};
-			log.Information($"Set AI for unit at {unit.location} to {improvement} with destination of " + result.destination);
+			log.Debug("Set AI for unit at {Location} to {Improvement} with destination of {Destination}", unit.location, improvement, result.destination);
 			return result;
 		}
 	}
