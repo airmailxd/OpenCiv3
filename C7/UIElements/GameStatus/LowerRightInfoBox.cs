@@ -247,9 +247,11 @@ public partial class LowerRightInfoBox : Civ3TextureRect {
 	// The player summary (turn, gold, science, government) is only worked out
 	// again when something it depends on may have changed, and at most every
 	// SUMMARY_REFRESH_INTERVAL seconds otherwise, as the economy is costly to
-	// add up.
+	// add up. While the engine handles one message after another, as when a
+	// unit walks a long path, it's worked out at most every
+	// SUMMARY_MIN_INTERVAL seconds, which is soon enough to read.
 	private const double SUMMARY_REFRESH_INTERVAL = 1.5;
-	private const double SUMMARY_MIN_INTERVAL = 0.05;
+	private const double SUMMARY_MIN_INTERVAL = 0.25;
 	private double timeSinceSummaryRefresh = double.MaxValue;
 	private SummaryStamp lastSummaryStamp;
 
