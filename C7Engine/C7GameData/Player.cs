@@ -1759,6 +1759,10 @@ namespace C7GameData {
 			if (isBarbarians) {
 				return;
 			}
+			// Whose territory our units are in, found the first time we're at
+			// war with someone, in one pass over our units rather than one
+			// per enemy.
+			HashSet<Player> territoriesWeAreIn = null;
 			foreach (Player other in gameData.players) {
 				if (other == this || other.isBarbarians || other.id == null
 					|| !playerRelationships.TryGetValue(other.id, out PlayerRelationship pr)) {
@@ -1768,14 +1772,28 @@ namespace C7GameData {
 					pr.warWearinessPoints -= DecayAtPeace(pr.warWearinessPoints);
 					continue;
 				}
-				bool weAreInTheirTerritory = HasUnitsInTerritoryOf(other);
-				bool theyAreInOurTerritory = other.HasUnitsInTerritoryOf(this);
-				if (weAreInTheirTerritory) {
+				territoriesWeAreIn ??= TerritoriesWithUnits();
+				if (territoriesWeAreIn.Contains(other)) {
 					pr.warWearinessPoints += WarWearinessPerTurnInEnemyTerritory;
-				} else if (!theyAreInOurTerritory && WarWearinessLevel(pr.warWearinessPoints) >= 1) {
+				} else if (WarWearinessLevel(pr.warWearinessPoints) >= 1 && !other.HasUnitsInTerritoryOf(this)) {
 					pr.warWearinessPoints -= WarWearinessRecoveryPerQuietTurn;
 				}
 			}
+		}
+
+		// The players in whose territory we have units.
+		private HashSet<Player> TerritoriesWithUnits() {
+			HashSet<Player> result = new();
+			foreach (MapUnit unit in units) {
+				Tile location = unit.location;
+				if (location != null && location != Tile.NONE) {
+					Player owner = location.OwningPlayer();
+					if (owner != null) {
+						result.Add(owner);
+					}
+				}
+			}
+			return result;
 		}
 
 		// A twentieth of the points, rounded up, toward 0. The article only
