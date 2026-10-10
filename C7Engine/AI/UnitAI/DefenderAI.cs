@@ -17,7 +17,7 @@ namespace C7Engine.AI.UnitAI {
 			ai.goal = DefenderAIData.DefenderGoal.DEFEND_CITY;
 			ai.destination = unit.location;
 			ai.defender = unit;
-			log.Information("Set defender AI for " + unit + " with destination of " + ai.destination);
+			log.Debug("Set defender AI for {Unit} with destination of {Destination}", unit, ai.destination);
 			return ai;
 		}
 
@@ -43,7 +43,7 @@ namespace C7Engine.AI.UnitAI {
 			PathingAlgorithm algorithm = PathingAlgorithmChooser.GetAlgorithm(unit);
 			ai.pathToDestination = algorithm.PathFrom(unit.location, ai.destination, unit);
 
-			log.Information($"Unit {unit} tasked with defending {cityToDefend.name}");
+			log.Debug("Unit {Unit} tasked with defending {City}", unit, cityToDefend.name);
 			return ai;
 		}
 
@@ -84,7 +84,7 @@ namespace C7Engine.AI.UnitAI {
 			if (data.destination == unit.location) {
 				if (!unit.isFortified) {
 					unit.Fortify();
-					log.Information("Fortifying " + unit + " at " + data.destination);
+					log.Debug("Fortifying {Unit} at {Destination}", unit, data.destination);
 				}
 				return C7GameData.UnitAI.Result.Done;
 			} else {

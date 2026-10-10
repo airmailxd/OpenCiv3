@@ -700,7 +700,7 @@ namespace C7GameData {
 			Player owner = unit.owner;
 			owner.units.Remove(unit);
 
-			log.Information("Player {Player} removed unit: {Unit}", owner, unit);
+			log.Debug("Player {Player} removed unit: {Unit}", owner, unit);
 
 			// Only the tiles recorded in the journal are re-examined, so this
 			// is cheap.

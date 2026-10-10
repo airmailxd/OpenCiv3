@@ -58,7 +58,7 @@ namespace C7Engine {
 			if (nextTile == Tile.NONE || !IsNeighbor(unit.location, nextTile)
 				|| (!alreadyValidated && (!unit.CanEnter(nextTile) || unit.PathAvoids(nextTile, path.destination)))) {
 				Tile destination = path?.destination ?? Tile.NONE;
-				log.Information($"Attempting to repath {unit} from {unit.location} to {destination}");
+				log.Debug("Attempting to repath {Unit} from {From} to {Destination}", unit, unit.location, destination);
 				// Attempt to repath. If we succeed, return inprogress so we get
 				// called again.
 				path = destination == Tile.NONE ? null : PathingAlgorithmChooser.GetAlgorithm(unit).PathFrom(unit.location, destination, unit);
