@@ -33,21 +33,19 @@ public partial class MiniMap : Control {
 	private GameMap pixelTilesMap;
 	private int pixelTilesMapWidth, pixelTilesMapHeight;
 
-	// A cheap summary of the game state the minimap depends on; the map is
-	// only redrawn when it changes. Terrain, border and city owner changes
-	// aren't in it, so every RECHECK_INTERVAL seconds a hash of each tile's
-	// terrain, city and owning city, and of each city's owner, is checked,
-	// and the map redrawn if it changed. As a
-	// last safety net for anything else, the map is also redrawn (but only
-	// re-uploaded if a pixel actually changed) every FULL_RECHECK_INTERVAL
-	// seconds. (An engine counter of map changes would make both checks
-	// unnecessary.)
+	// A cheap summary of the game state the minimap depends on. When it
+	// changes every tile's colour is worked out again. Changes to a tile's
+	// terrain and owner (which includes its city changing hands) are
+	// recorded in the engine's tile change journal (see TileChanges), so
+	// only the recorded tiles are worked out again for those, and the
+	// cities are watched for the squares drawn over them. As a last safety
+	// net for anything else, the map is also redrawn (but only re-uploaded
+	// if a pixel actually changed) every FULL_RECHECK_INTERVAL seconds.
 	private MapStamp lastStamp;
 	private bool hasDrawn;
 	private double timeSinceRedraw;
-	private double timeSinceRecheck;
-	private int lastTileHash;
-	private const double RECHECK_INTERVAL = 1.0;
+	private long journalEpoch, journalPosition;
+	private long lastCitiesHash;
 	private const double FULL_RECHECK_INTERVAL = 5.0;
 
 	private struct MapStamp : IEquatable<MapStamp> {
@@ -58,14 +56,12 @@ public partial class MiniMap : Control {
 		public bool observerMode;
 		public int knownTiles;
 		public int borderTiles;
-		public int cityCount;
 
 		public bool Equals(MapStamp o) {
 			return ReferenceEquals(gameData, o.gameData) && ReferenceEquals(map, o.map)
 				&& ReferenceEquals(controller, o.controller) && ReferenceEquals(knowledge, o.knowledge)
 				&& observerMode == o.observerMode
-				&& knownTiles == o.knownTiles && borderTiles == o.borderTiles
-				&& cityCount == o.cityCount;
+				&& knownTiles == o.knownTiles && borderTiles == o.borderTiles;
 		}
 	}
 
@@ -108,23 +104,23 @@ public partial class MiniMap : Control {
 
 		MapStamp stamp = ComputeStamp(gD);
 		timeSinceRedraw += delta;
-		timeSinceRecheck += delta;
 		Vector2I imageSize = ComputeImageSize();
 		bool stampChanged = !hasDrawn || !stamp.Equals(lastStamp) || imageSize != lastImageSize;
-		bool redraw = stampChanged || timeSinceRedraw >= FULL_RECHECK_INTERVAL;
-		if (!redraw && timeSinceRecheck >= RECHECK_INTERVAL) {
-			timeSinceRecheck = 0;
-			redraw = ComputeTileHash(gD) != lastTileHash;
-		}
-		if (redraw) {
+		long head = TileChanges.Head;
+		bool journalLost = TileChanges.Epoch != journalEpoch || head - journalPosition > TileChanges.Capacity || head < journalPosition;
+		long citiesHash = ComputeCitiesHash(gD);
+		if (stampChanged || journalLost || timeSinceRedraw >= FULL_RECHECK_INTERVAL) {
 			RedrawMap(gD, forceUpload: stampChanged);
 			lastStamp = stamp;
 			lastImageSize = imageSize;
-			lastTileHash = ComputeTileHash(gD);
 			hasDrawn = true;
 			timeSinceRedraw = 0;
-			timeSinceRecheck = 0;
+		} else if (head != journalPosition || citiesHash != lastCitiesHash) {
+			UpdateTiles(gD, journalPosition, head, citiesHash != lastCitiesHash);
 		}
+		journalEpoch = TileChanges.Epoch;
+		journalPosition = head;
+		lastCitiesHash = citiesHash;
 
 		// The viewport bounds are drawn over the map, so moving the camera
 		// never touches the map image.
@@ -150,25 +146,17 @@ public partial class MiniMap : Control {
 			observerMode = ShowsWholeMap(gD),
 			knownTiles = knowledge?.knownTiles.Count ?? 0,
 			borderTiles = knowledge?.borderTiles.Count ?? 0,
-			cityCount = gD.cities.Count,
 		};
 	}
 
-	// What each tile shows on the minimap besides the fog: its terrain, and
-	// whose it is, including whose its city is. Objects are hashed by
-	// identity, which is cheap.
-	private static int ComputeTileHash(GameData gD) {
+	// Where the cities are, for the squares drawn over them. Objects are
+	// hashed by identity, which is cheap.
+	private static long ComputeCitiesHash(GameData gD) {
 		HashCode hash = new();
+		hash.Add(gD.cities.Count);
 		foreach (City city in gD.cities) {
 			hash.Add(RuntimeHelpers.GetHashCode(city));
-			hash.Add(RuntimeHelpers.GetHashCode(city.owner));
-		}
-		foreach (Tile t in gD.map.tiles) {
-			hash.Add(RuntimeHelpers.GetHashCode(t.baseTerrainType));
-			hash.Add(RuntimeHelpers.GetHashCode(t.overlayTerrainType));
-			hash.Add(RuntimeHelpers.GetHashCode(t.owningCity));
-			hash.Add(RuntimeHelpers.GetHashCode(t.territoryOf));
-			hash.Add(RuntimeHelpers.GetHashCode(t.cityAtTile));
+			hash.Add(RuntimeHelpers.GetHashCode(city.location));
 		}
 		return hash.ToHashCode();
 	}
@@ -202,19 +190,68 @@ public partial class MiniMap : Control {
 		}
 
 		// Work out each tile's colour, layer at a time
-		fogLayer.visible = !ShowsWholeMap(gD);
-		foreach (var layer in layers)
-			layer.Configure(gD);
+		ConfigureLayers(gD);
 		int tileBytes = map.tiles.Count * 4;
 		if (tileColors.Length != tileBytes)
 			tileColors = new byte[tileBytes];
-		else
-			Array.Clear(tileColors);
 		for (int i = 0; i < map.tiles.Count; i++) {
-			foreach (var layer in layers)
-				layer.DrawTile(tileColors, i * 4, map.tiles[i]);
+			ColorTile(map, i);
 		}
 
+		PaintAndUpload(gD, width, height, forceUpload);
+	}
+
+	private void ConfigureLayers(GameData gD) {
+		fogLayer.visible = !ShowsWholeMap(gD);
+		foreach (var layer in layers)
+			layer.Configure(gD);
+	}
+
+	// Works out a tile's colour from scratch. Returns whether it changed.
+	private bool ColorTile(GameMap map, int index) {
+		int offset = index * 4;
+		uint old = BitConverter.ToUInt32(tileColors, offset);
+		Array.Clear(tileColors, offset, 4);
+		foreach (var layer in layers)
+			layer.DrawTile(tileColors, offset, map.tiles[index]);
+		return BitConverter.ToUInt32(tileColors, offset) != old;
+	}
+
+	// Brings the minimap up to date with the tiles recorded in the tile
+	// change journal from `from` to `to`, and with the cities, without
+	// working out every tile's colour again. Most recorded changes are
+	// units moving, which the minimap doesn't show, so the image is only
+	// painted again if a tile's colour or the cities changed.
+	private void UpdateTiles(GameData gD, long from, long to, bool citiesChanged) {
+		var map = gD.map;
+		Vector2I imageSize = ComputeImageSize();
+		if (!hasDrawn || tileColors.Length != map.tiles.Count * 4 || pixels.Length != imageSize.X * imageSize.Y * 4
+			|| pixelTiles.Length != imageSize.X * imageSize.Y) {
+			RedrawMap(gD, forceUpload: true);
+			return;
+		}
+		ConfigureLayers(gD);
+		bool changed = citiesChanged;
+		for (long i = from; i < to; ++i) {
+			Tile tile = TileChanges.At(i);
+			if (tile == null || tile == Tile.NONE || tile.XCoordinate < 0 || tile.YCoordinate < 0
+				|| tile.XCoordinate >= map.numTilesWide || tile.YCoordinate >= map.numTilesTall) {
+				continue;
+			}
+			int index = map.tileCoordsToIndex(tile.XCoordinate, tile.YCoordinate);
+			if (index >= 0 && index < map.tiles.Count && map.tiles[index] == tile) {
+				changed |= ColorTile(map, index);
+			}
+		}
+		if (changed) {
+			PaintAndUpload(gD, imageSize.X, imageSize.Y, forceUpload: false);
+		}
+	}
+
+	// Paints the map image from the tiles' colours, draws the cities over
+	// it and uploads it if it changed.
+	private void PaintAndUpload(GameData gD, int width, int height, bool forceUpload) {
+		int size = width * height * 4;
 		// Paint every pixel with the colour of the tile under it
 		for (int p = 0; p < pixelTiles.Length; p++) {
 			int t = pixelTiles[p];

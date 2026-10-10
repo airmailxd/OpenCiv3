@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using C7.Textures;
 using C7GameData;
 using Godot;
@@ -32,10 +33,25 @@ namespace C7.Map {
 		PanelContainer capitalPanel;
 		HSeparator centerDivider = new();
 
-		// The styles in the owner's color, kept so they can be recolored.
-		StyleBoxFlat popStyle;
-		StyleBoxLine centerSeparatorStyle;
-		StyleBoxFlat capitalStyle;
+		// The styles in the owner's color, shared by every label in that color. Like the other styles, which every label shares, they must
+		// not be changed.
+		private sealed class CivStyles {
+			public readonly StyleBoxFlat pop;
+			public readonly StyleBoxLine centerSeparator;
+			public readonly StyleBoxFlat capital;
+
+			public CivStyles(Color color) {
+				pop = new() { BgColor = color };
+				centerSeparator = new() {
+					Color = color,
+					GrowBegin = CENTRAL_PANEL_SEPARATOR_WIDTH,
+					GrowEnd = CENTRAL_PANEL_SEPARATOR_WIDTH,
+				};
+				capital = new() { BgColor = color };
+			}
+		}
+		static readonly Dictionary<Color, CivStyles> civStyles = new();
+		CivStyles styles;
 
 		HSeparator borderTop = new();
 		HSeparator borderBottom = new();
@@ -53,10 +69,43 @@ namespace C7.Map {
 		string popSizeText = null;
 		bool popSizeRed = false;
 
-		Color topRowGrey = Color.Color8(32, 32, 32, TRANSPARENCY);
-		Color bottomRowGrey = Color.Color8(48, 48, 48, TRANSPARENCY);
-		Color backgroundGrey = Color.Color8(64, 64, 64, TRANSPARENCY);
-		Color borderGrey = Color.Color8(80, 80, 80, TRANSPARENCY);
+		static readonly Color topRowGrey = Color.Color8(32, 32, 32, TRANSPARENCY);
+		static readonly Color bottomRowGrey = Color.Color8(48, 48, 48, TRANSPARENCY);
+		static readonly Color backgroundGrey = Color.Color8(64, 64, 64, TRANSPARENCY);
+		static readonly Color borderGrey = Color.Color8(80, 80, 80, TRANSPARENCY);
+
+		// The styles that don't depend on the city, shared by every label, since a map can show hundreds of them.
+		static readonly StyleBoxFlat labelStyle = new() {
+			BgColor = backgroundGrey,
+			BorderColor = borderGrey,
+			BorderWidthBottom = 1,
+			BorderWidthLeft = 1,
+			BorderWidthRight = 1,
+			BorderWidthTop = 1
+		};
+		static readonly StyleBoxLine bottomBorderStyle = new() {
+			Color = bottomRowGrey,
+			GrowBegin = CENTRAL_PANEL_SEPARATOR_WIDTH,
+			GrowEnd = CENTRAL_PANEL_SEPARATOR_WIDTH,
+		};
+		static readonly StyleBoxLine topBorderStyle = new() {
+			Color = topRowGrey,
+			GrowBegin = CENTRAL_PANEL_SEPARATOR_WIDTH,
+			GrowEnd = CENTRAL_PANEL_SEPARATOR_WIDTH,
+		};
+		static readonly StyleBoxLine separatorStyle = new() {
+			Color = new Color(0, 0, 0, 0), // transparent,
+			Thickness = CENTRAL_PANEL_SEPARATOR_WIDTH,
+			Vertical = true
+		};
+
+		private static CivStyles StylesFor(Color color) {
+			if (!civStyles.TryGetValue(color, out CivStyles found)) {
+				found = new CivStyles(color);
+				civStyles[color] = found;
+			}
+			return found;
+		}
 
 		// The fonts are loaded before the themes that use them are made.
 		static CityLabelScene() {
@@ -144,11 +193,10 @@ namespace C7.Map {
 				return;
 			}
 			civColor = color;
-			popStyle.BgColor = color;
-			centerSeparatorStyle.Color = color;
-			if (capitalStyle != null) {
-				capitalStyle.BgColor = color;
-			}
+			styles = StylesFor(color);
+			popSizePanel.AddThemeStyleboxOverride("panel", styles.pop);
+			centerDivider.AddThemeStyleboxOverride("separator", styles.centerSeparator);
+			capitalPanel?.AddThemeStyleboxOverride("panel", styles.capital);
 		}
 
 		public void SetTileCenter(Vector2I tileCenter) {
@@ -197,11 +245,7 @@ namespace C7.Map {
 		private void SetupCapitalPanel() {
 			capitalPanel = new PanelContainer();
 
-			capitalStyle = new() {
-				BgColor = civColor
-			};
-
-			capitalPanel.AddThemeStyleboxOverride("panel", capitalStyle);
+			capitalPanel.AddThemeStyleboxOverride("panel", styles.capital);
 			capitalPanel.CustomMinimumSize = new Vector2(LEFT_RIGHT_BOXES_WIDTH, LEFT_RIGHT_BOXES_HEIGHT);
 
 			TextureRect starTextureRect = new() {
@@ -213,47 +257,10 @@ namespace C7.Map {
 		}
 
 		private void ApplyStyles() {
-			// style for the main panel
-			StyleBoxFlat labelStyle = new() {
-				BgColor = backgroundGrey,
-				BorderColor = borderGrey,
-				BorderWidthBottom = 1,
-				BorderWidthLeft = 1,
-				BorderWidthRight = 1,
-				BorderWidthTop = 1
-			};
-
-			popStyle = new() {
-				BgColor = civColor
-			};
-
-			centerSeparatorStyle = new() {
-				Color = civColor,
-				GrowBegin = CENTRAL_PANEL_SEPARATOR_WIDTH,
-				GrowEnd = CENTRAL_PANEL_SEPARATOR_WIDTH,
-			};
-
-			StyleBoxLine bottomBorderStyle = new() {
-				Color = bottomRowGrey,
-				GrowBegin = CENTRAL_PANEL_SEPARATOR_WIDTH,
-				GrowEnd = CENTRAL_PANEL_SEPARATOR_WIDTH,
-			};
-
-			StyleBoxLine topBorderStyle = new() {
-				Color = topRowGrey,
-				GrowBegin = CENTRAL_PANEL_SEPARATOR_WIDTH,
-				GrowEnd = CENTRAL_PANEL_SEPARATOR_WIDTH,
-			};
-
-			StyleBoxLine separatorStyle = new() {
-				Color = new Color(0, 0, 0, 0), // transparent,
-				Thickness = CENTRAL_PANEL_SEPARATOR_WIDTH,
-				Vertical = true
-			};
-
+			styles = StylesFor(civColor);
 			labelPanel.AddThemeStyleboxOverride("panel", labelStyle);
-			popSizePanel.AddThemeStyleboxOverride("panel", popStyle);
-			centerDivider.AddThemeStyleboxOverride("separator", centerSeparatorStyle);
+			popSizePanel.AddThemeStyleboxOverride("panel", styles.pop);
+			centerDivider.AddThemeStyleboxOverride("separator", styles.centerSeparator);
 			borderTop.AddThemeStyleboxOverride("separator", topBorderStyle);
 			borderBottom.AddThemeStyleboxOverride("separator", bottomBorderStyle);
 			leftSeparator.AddThemeStyleboxOverride("separator", separatorStyle);

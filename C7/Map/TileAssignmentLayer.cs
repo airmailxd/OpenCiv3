@@ -32,6 +32,13 @@ namespace C7.Map {
 		}
 		private City shownCity = null;
 
+		public override bool IsBlank => shownCity == null;
+
+		// Reused for every tile, rather than made anew for each.
+		private readonly List<ImageTexture> keptIcons = new();
+		private readonly List<ImageTexture> lostIcons = new();
+		private readonly Vector2[] dimPolygon = new Vector2[4];
+
 		// What we know about the shown city's tiles, worked out again when the city or the map changes.
 		private readonly HashSet<Tile> workableTiles = new();
 		private readonly Dictionary<Tile, TileYields> yields = new();
@@ -131,11 +138,13 @@ namespace C7.Map {
 			// to a penalty (e.g. despotism) is struck through in a
 			// second row beneath it.
 			// Like Civ3, a long row squeezes its icons together to stay within the tile.
-			List<ImageTexture> kept = new();
+			List<ImageTexture> kept = keptIcons;
+			kept.Clear();
 			AddIcons(kept, foodTexture, tileYields.food);
 			AddIcons(kept, shieldTexture, tileYields.shields);
 			AddIcons(kept, goldTexture, tileYields.gold);
-			List<ImageTexture> lost = new();
+			List<ImageTexture> lost = lostIcons;
+			lost.Clear();
 			AddIcons(lost, foodTexture, tileYields.foodPenalty);
 			AddIcons(lost, shieldTexture, tileYields.shieldPenalty);
 			AddIcons(lost, goldTexture, tileYields.goldPenalty);
@@ -182,12 +191,12 @@ namespace C7.Map {
 		}
 
 		private void DimTile(LooseView looseView, Vector2 tileCenter) {
-			looseView.DrawColoredPolygon([
-				tileCenter + new Vector2(-tileWidth / 2, 0),
-				tileCenter + new Vector2(0, -tileHeight / 2),
-				tileCenter + new Vector2(tileWidth / 2, 0),
-				tileCenter + new Vector2(0, tileHeight / 2),
-			], OutsideRadiusDim);
+			// Godot copies the points, so the array can be reused.
+			dimPolygon[0] = tileCenter + new Vector2(-tileWidth / 2, 0);
+			dimPolygon[1] = tileCenter + new Vector2(0, -tileHeight / 2);
+			dimPolygon[2] = tileCenter + new Vector2(tileWidth / 2, 0);
+			dimPolygon[3] = tileCenter + new Vector2(0, tileHeight / 2);
+			looseView.DrawColoredPolygon(dimPolygon, OutsideRadiusDim);
 		}
 
 		private void DrawWorkableTileBorder(LooseView looseView, Tile tile, Vector2 tileCenter) {

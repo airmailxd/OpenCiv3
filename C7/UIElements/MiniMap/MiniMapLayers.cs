@@ -31,9 +31,11 @@ public abstract class MiniMapLayer {
 }
 
 public class BaseLandMiniLayer : MiniMapLayer {
+	private static readonly Color LandColor = TerrainMiniLayer.TerrainColorMap["grassland"];
+
 	public override void DrawTile(byte[] pixels, int offset, Tile tile) {
 		if (visible && tile.IsLand())
-			SetPixel(pixels, offset, TerrainMiniLayer.TerrainColorMap["grassland"]);
+			SetPixel(pixels, offset, LandColor);
 	}
 }
 
@@ -58,9 +60,28 @@ public class TerrainMiniLayer : MiniMapLayer {
 		{ "ocean",       Color.Color8(25, 64, 74) },
 	};
 
+	// The colour of each terrain type, if it has one, so tiles don't look theirs up by name.
+	private readonly Dictionary<TerrainType, (bool hasColor, Color color)> colors = new(ReferenceEqualityComparer.Instance);
+
+	public override void Configure(GameData gD) {
+		// Terrain types belong to a game.
+		if (!ReferenceEquals(gD, configuredFor)) {
+			configuredFor = gD;
+			colors.Clear();
+		}
+	}
+	private GameData configuredFor;
+
 	public override void DrawTile(byte[] pixels, int offset, Tile tile) {
-		if (visible && TerrainColorMap.TryGetValue(tile.overlayTerrainType.Key, out Color value))
-			SetPixel(pixels, offset, value);
+		if (!visible)
+			return;
+		TerrainType type = tile.overlayTerrainType;
+		if (!colors.TryGetValue(type, out (bool hasColor, Color color) entry)) {
+			entry.hasColor = TerrainColorMap.TryGetValue(type.Key, out entry.color);
+			colors[type] = entry;
+		}
+		if (entry.hasColor)
+			SetPixel(pixels, offset, entry.color);
 	}
 }
 
@@ -86,8 +107,17 @@ public class PlayerColorMiniLayer : MiniMapLayer {
 	// owned tile.
 	private readonly Dictionary<Player, Color> civColors = new();
 
+	// Each terrain type's shade, so tiles don't look theirs up by name.
+	private readonly Dictionary<TerrainType, float> shades = new(ReferenceEqualityComparer.Instance);
+	private GameData configuredFor;
+
 	public override void Configure(GameData gD) {
 		civColors.Clear();
+		// Terrain types belong to a game.
+		if (!ReferenceEquals(gD, configuredFor)) {
+			configuredFor = gD;
+			shades.Clear();
+		}
 	}
 
 	public override void DrawTile(byte[] pixels, int offset, Tile tile) {
@@ -100,7 +130,11 @@ public class PlayerColorMiniLayer : MiniMapLayer {
 			civColor = TextureLoader.LoadColor(owner.GetPlayerColor());
 			civColors[owner] = civColor;
 		}
-		float shade = TerrainShade.GetValueOrDefault(tile.overlayTerrainType.Key, 1f);
+		TerrainType type = tile.overlayTerrainType;
+		if (!shades.TryGetValue(type, out float shade)) {
+			shade = TerrainShade.GetValueOrDefault(type.Key, 1f);
+			shades[type] = shade;
+		}
 		SetPixel(pixels, offset, new Color(civColor.R * shade, civColor.G * shade, civColor.B * shade));
 	}
 }

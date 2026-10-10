@@ -81,6 +81,25 @@ namespace C7GameData {
 		}
 	}
 
+	// Read-only access to the TileChangeJournal for the UI, which uses it to
+	// redraw the map only where it may have changed while the engine changes
+	// the game without telling it, as while the AI plays.
+	public static class TileChanges {
+		// The number of changes ever recorded.
+		public static long Head => TileChangeJournal.head;
+
+		// Changes whenever the recorded changes can't be relied on, so
+		// everything should be looked at again.
+		public static long Epoch => TileChangeJournal.epoch;
+
+		// How many of the latest changes are kept.
+		public const int Capacity = TileChangeJournal.Capacity;
+
+		// The tile of a change, if it is among the latest Capacity ones;
+		// null if it has been forgotten.
+		public static Tile At(long position) => TileChangeJournal.EntryAt(position);
+	}
+
 	public class TileKnowledge {
 		private readonly Player _player;
 
