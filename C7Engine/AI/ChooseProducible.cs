@@ -317,7 +317,7 @@ namespace C7Engine {
 			return score;
 		}
 
-		private static float ScoreBuilding(ProducibleStats stats, City city, Player player, Building building) {
+		internal static float ScoreBuilding(ProducibleStats stats, City city, Player player, Building building) {
 			bool atWar = stats.atWar;
 
 			float score = 0;

@@ -312,6 +312,11 @@ namespace C7Engine {
 					continue;
 				}
 
+				// A hurt veteran stops attacking to heal (see RestAI).
+				if (unit.currentAI is CombatAI && RestAI.ShouldRest(unit, player)) {
+					unit.currentAI = null;
+				}
+
 				// For each unit, if there's already an AI task assigned, it will attempt to complete its goal.
 				// It may fail due to conditions having changed since that goal was assigned; in that case it will
 				// get a new task to try to complete.
@@ -421,6 +426,13 @@ namespace C7Engine {
 			if (ArmyAI.ShouldFormArmy(unit, player)) {
 				return ArmyAI.FormArmy(unit, player) != null;
 			}
+			// On trial: hurry the most valuable improvement the city could
+			// build, rather than whichever it happens to be building.
+			if (AiExperiments.Has(player, "leader-hurry-best") && unit.location.cityAtTile is City here && !here.hurriedThisTurn
+					&& !(here.itemBeingProduced is Building building && building.IsGreatWonder())
+					&& BestImprovementForLeader(here) is Building better && better != here.itemBeingProduced) {
+				here.ChangeProduction(better);
+			}
 			if (unit.CanHurryProduction()) {
 				return unit.HurryProductionAsLeader();
 			}
@@ -452,13 +464,36 @@ namespace C7Engine {
 		}
 
 		// The most expensive improvement or small wonder the city can build
-		// that a leader could hurry, or null.
+		// that a leader could hurry, or null. On trial ("leader-hurry-best"),
+		// the one that would save the most shields among those the city
+		// would want to build at all.
 		private static Building BestImprovementForLeader(City city) {
+			if (AiExperiments.Has(city.owner, "leader-hurry-best") && BestWantedImprovementForLeader(city) is Building wanted) {
+				return wanted;
+			}
 			Building best = null;
 			foreach (IProducible p in city.ListProductionOptions(EngineStorage.gameData)) {
 				if (p is Building b && !b.IsGreatWonder() && city.owner.ShieldCost(b) > city.shieldsStored
 						&& (best == null || city.owner.ShieldCost(b) > city.owner.ShieldCost(best))) {
 					best = b;
+				}
+			}
+			return best;
+		}
+
+		private static Building BestWantedImprovementForLeader(City city) {
+			List<IProducible> options = city.ListProductionOptions(EngineStorage.gameData).ToList();
+			ChooseProducible.ProducibleStats stats = ChooseProducible.CalculateStats(city, city.owner, options);
+			Building best = null;
+			int bestRemaining = 0;
+			foreach (IProducible p in options) {
+				if (p is not Building b || b.IsGreatWonder()) {
+					continue;
+				}
+				int remaining = city.owner.ShieldCost(b) - city.shieldsStored;
+				if (remaining > bestRemaining && ChooseProducible.ScoreBuilding(stats, city, city.owner, b) > 0) {
+					best = b;
+					bestRemaining = remaining;
 				}
 			}
 			return best;
@@ -517,6 +552,9 @@ namespace C7Engine {
 			//TODO: Use strategies, not names
 			if (unit.IsArmy() && ArmyAI.IsEnabled(player)) {
 				return new ArmyAI();
+			}
+			if (RestAI.ShouldRest(unit, player) && RestAI.Make(unit, player) is RestAI rest) {
+				return rest;
 			}
 			if (unit.IsLeader()) {
 				return MakeLeaderAI(unit, player);

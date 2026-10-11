@@ -114,4 +114,64 @@ public class ArmyAITest : IClassFixture<SaveGameFixture> {
 		Assert.False(army.movementPoints.canMove);
 		Assert.True(army.heldWithoutMoving);
 	}
+
+	private void MakeElite(MapUnit unit) {
+		unit.experienceLevel = gameData.experienceLevels.Last();
+		unit.experienceLevelKey = unit.experienceLevel.key;
+		unit.hitPointsRemaining = unit.maxHitPoints;
+	}
+
+	[Fact]
+	public void AHurtEliteAttackerGoesToHeal() {
+		AiExperiments.Enable(us, "elite-care");
+		City city = BuildCity(us);
+		Spawn(us, "Spearman", city.location);
+		MapUnit sword = Spawn(us, "Swordsman", city.location);
+		MakeElite(sword);
+		sword.hitPointsRemaining -= 2;
+
+		C7GameData.UnitAI ai = PlayerAI.GetAIForUnit(sword, us);
+
+		RestAI rest = Assert.IsType<RestAI>(ai);
+		rest.PlayTurnImpl(us, sword);
+		Assert.True(sword.heldWithoutMoving);
+	}
+
+	[Fact]
+	public void AHurtRegularOrAHealthyEliteDoesNotRest() {
+		AiExperiments.Enable(us, "elite-care");
+		City city = BuildCity(us);
+		MapUnit regular = Spawn(us, "Swordsman", city.location);
+		regular.hitPointsRemaining -= 1;
+		MapUnit elite = Spawn(us, "Swordsman", city.location);
+		MakeElite(elite);
+
+		Assert.False(RestAI.ShouldRest(regular, us));
+		Assert.False(RestAI.ShouldRest(elite, us));
+	}
+
+	[Fact]
+	public void WithoutTheSwitchAHurtEliteDoesNotRest() {
+		City city = BuildCity(us);
+		MapUnit sword = Spawn(us, "Swordsman", city.location);
+		MakeElite(sword);
+		sword.hitPointsRemaining -= 2;
+
+		Assert.False(RestAI.ShouldRest(sword, us));
+	}
+
+	[Fact]
+	public void LeaderHurriesAnImprovementTheCityWants() {
+		AiExperiments.Enable(us, "leader-hurry-best");
+		City city = BuildCity(us);
+		Spawn(us, "Spearman", city.location);
+		MapUnit leader = Spawn(us, "Leader", city.location);
+		city.SetItemBeingProduced(Prototype("Warrior"));
+
+		Assert.True(PlayerAI.UseLeaderInCity(leader, us));
+
+		Building building = Assert.IsType<Building>(city.itemBeingProduced);
+		Assert.False(building.IsGreatWonder());
+		Assert.Equal(us.ShieldCost(building), city.shieldsStored);
+	}
 }
