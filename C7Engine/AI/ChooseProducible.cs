@@ -91,6 +91,9 @@ namespace C7Engine {
 			private (int unhappy, int entertainers)? unhappyAndEntertainers;
 			public (int unhappy, int entertainers) UnhappyAndEntertainers => unhappyAndEntertainers ??= CountUnhappyAndEntertainers(city);
 
+			private WonderPlanner.Plan wonderPlan;
+			public WonderPlanner.Plan WonderPlan => wonderPlan ??= new(city, player);
+
 			private int? turnsUntilGrowth;
 			public int TurnsUntilGrowth => turnsUntilGrowth ??= city.TurnsUntilGrowth();
 
@@ -322,6 +325,20 @@ namespace C7Engine {
 
 			float score = 0;
 
+			// Great wonders on trial (see WonderPlanner): only at the right
+			// time, and valued by their effect instead of the culture and
+			// happiness terms below.
+			bool valuedWonder = false;
+			if (building.IsGreatWonder()) {
+				if (AiExperiments.Has(player, WonderPlanner.Timing) && !WonderPlanner.TimingAllows(stats, city, building)) {
+					return -1000f;
+				}
+				if (AiExperiments.Has(player, WonderPlanner.Value)) {
+					valuedWonder = true;
+					score += WonderPlanner.EffectScore(stats, city, player, building);
+				}
+			}
+
 			if (building.isSmallWonder) {
 				float? smallWonderScore = ScoreSmallWonder(stats, city, player, building);
 				if (smallWonderScore == null) {
@@ -375,7 +392,7 @@ namespace C7Engine {
 			// Boost buildings that help with happiness if we have some unhappy
 			// citizens in the city or if we have a decently large value on the
 			// luxury slider.
-			if (building.contentFacesInCity > 0) {
+			if (building.contentFacesInCity > 0 && !valuedWonder) {
 				(int unhappyCount, int entertainerCount) = stats.UnhappyAndEntertainers;
 
 				if (unhappyCount > 0 || (player.luxuryRate > 3 && city.residents.Count > 4)) {
@@ -387,7 +404,7 @@ namespace C7Engine {
 			// Boost buildings that provide culture, especially if could claim
 			// additional tiles by expanding our borders, or if we are next to
 			// an enemy city.
-			if (building.culturePerTurn > 0) {
+			if (building.culturePerTurn > 0 && !valuedWonder) {
 				(int unclaimedTilesInOuterRing, int enemyTilesInOuterRing) = stats.OuterRingTiles;
 
 				if (stats.CulturePerTurn == 0) {
