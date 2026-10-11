@@ -723,7 +723,13 @@ namespace C7GameData {
 
 						foreach (City c in p.cities) {
 							if (c.itemBeingProduced?.name == building.name) {
-								c.SetItemBeingProduced(c.TakeNextQueuedProduction(gameData) ?? c.GetMostExpensiveItemToProduce());
+								// On trial: the AI moves the shields to the
+								// best item that holds them.
+								IProducible replacement = c.TakeNextQueuedProduction(gameData);
+								if (replacement == null && !p.isHuman && C7Engine.AI.AiExperiments.Has(p, C7Engine.AI.WonderPlanner.Race)) {
+									replacement = C7Engine.AI.WonderPlanner.ChooseAfterLostRace(c, p);
+								}
+								c.SetItemBeingProduced(replacement ?? c.GetMostExpensiveItemToProduce());
 							}
 						}
 					}

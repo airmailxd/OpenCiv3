@@ -91,6 +91,9 @@ namespace C7Engine {
 			private (int unhappy, int entertainers)? unhappyAndEntertainers;
 			public (int unhappy, int entertainers) UnhappyAndEntertainers => unhappyAndEntertainers ??= CountUnhappyAndEntertainers(city);
 
+			private WonderPlanner.Plan wonderPlan;
+			public WonderPlanner.Plan WonderPlan => wonderPlan ??= new(city, player);
+
 			private int? turnsUntilGrowth;
 			public int TurnsUntilGrowth => turnsUntilGrowth ??= city.TurnsUntilGrowth();
 
@@ -110,7 +113,12 @@ namespace C7Engine {
 		}
 
 		public static IProducible Choose(City city, Player player) {
-			List<IProducible> options = city.ListProductionOptions(EngineStorage.gameData).ToList();
+			return ChooseAmong(city, player, city.ListProductionOptions(EngineStorage.gameData).ToList());
+		}
+
+		// The best of the given options, which the city must be able to
+		// produce.
+		internal static IProducible ChooseAmong(City city, Player player, List<IProducible> options) {
 			ProducibleStats stats = CalculateStats(city, player, options);
 
 			IProducible best = null;
@@ -322,6 +330,29 @@ namespace C7Engine {
 
 			float score = 0;
 
+			// Great wonders on trial (see WonderPlanner): only in a city fit
+			// to build one, and valued by their effect instead of the culture
+			// and happiness terms below.
+			bool valuedWonder = false;
+			if (building.IsGreatWonder()) {
+				if (AiExperiments.Has(player, WonderPlanner.Site) && !WonderPlanner.SiteAllows(stats, city, player, building)) {
+					return -1000f;
+				}
+				if (AiExperiments.Has(player, WonderPlanner.Quick) && !WonderPlanner.QuickAllows(city, building)) {
+					return -1000f;
+				}
+				if (AiExperiments.Has(player, WonderPlanner.Timing) && !WonderPlanner.TimingAllows(stats, city, building)) {
+					return -1000f;
+				}
+				if (WonderPlanner.ValuesWonders(player)) {
+					valuedWonder = true;
+					score += WonderPlanner.EffectScore(stats, city, player, building);
+				}
+				if (AiExperiments.Has(player, WonderPlanner.Odds)) {
+					score -= WonderPlanner.RivalPenalty(player, building);
+				}
+			}
+
 			if (building.isSmallWonder) {
 				float? smallWonderScore = ScoreSmallWonder(stats, city, player, building);
 				if (smallWonderScore == null) {
@@ -375,7 +406,7 @@ namespace C7Engine {
 			// Boost buildings that help with happiness if we have some unhappy
 			// citizens in the city or if we have a decently large value on the
 			// luxury slider.
-			if (building.contentFacesInCity > 0) {
+			if (building.contentFacesInCity > 0 && !valuedWonder) {
 				(int unhappyCount, int entertainerCount) = stats.UnhappyAndEntertainers;
 
 				if (unhappyCount > 0 || (player.luxuryRate > 3 && city.residents.Count > 4)) {
@@ -387,7 +418,7 @@ namespace C7Engine {
 			// Boost buildings that provide culture, especially if could claim
 			// additional tiles by expanding our borders, or if we are next to
 			// an enemy city.
-			if (building.culturePerTurn > 0) {
+			if (building.culturePerTurn > 0 && !valuedWonder) {
 				(int unclaimedTilesInOuterRing, int enemyTilesInOuterRing) = stats.OuterRingTiles;
 
 				if (stats.CulturePerTurn == 0) {
