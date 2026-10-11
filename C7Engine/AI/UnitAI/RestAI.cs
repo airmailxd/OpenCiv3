@@ -20,15 +20,16 @@ namespace C7Engine.AI.UnitAI {
 		private Tile destination;
 		private TilePath path;
 
-		public static bool IsEnabled(Player player) {
-			return AiExperiments.Has(player, "elite-care");
-		}
-
-		// Whether the unit should stop what it's doing and heal.
+		// Whether the unit should stop what it's doing and heal. With the
+		// "heal-attackers" switch, any hurt attacker does, not just veterans.
 		public static bool ShouldRest(MapUnit unit, Player player) {
-			return IsEnabled(player) && unit.IsLandUnit() && !unit.IsArmy() && unit.CanAttack()
+			bool all = AiExperiments.Has(player, "heal-attackers");
+			if (!all && !AiExperiments.Has(player, "elite-care")) {
+				return false;
+			}
+			return unit.IsLandUnit() && !unit.IsArmy() && unit.CanAttack()
 				&& unit.unitType.attack >= unit.unitType.defense
-				&& unit.hitPointsRemaining < unit.maxHitPoints && IsVeteranOrBetter(unit);
+				&& unit.hitPointsRemaining < unit.maxHitPoints && (all || IsVeteranOrBetter(unit));
 		}
 
 		private static bool IsVeteranOrBetter(MapUnit unit) {

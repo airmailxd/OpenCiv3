@@ -143,7 +143,7 @@ namespace C7Engine.AI.UnitAI {
 
 		private C7GameData.UnitAI.MoveResult Attack(MapUnit army, Player player) {
 			if (attack == null) {
-				CombatAIData target = CombatAI.MakeAiData(army, player);
+				CombatAIData target = CityToAttack(army, player) ?? CombatAI.MakeAiData(army, player);
 				if (target == null || !WorthAttacking(army, target.destination)) {
 					// Nothing worth an army to attack: wait where we are, or
 					// in a city.
@@ -154,6 +154,7 @@ namespace C7Engine.AI.UnitAI {
 					return GoHome(army, player);
 				}
 				attack = new CombatAI(target);
+				log.Information("{Army} with {Members} members at {Health:0%} attacking {Target}", army, army.PassengerCount(), HealthOf(army), target.destination);
 			}
 
 			// Check the odds again before each attack: the defenders may have
@@ -173,6 +174,38 @@ namespace C7Engine.AI.UnitAI {
 				return army.movementPoints.canMove ? C7GameData.UnitAI.Result.InProgress : result;
 			}
 			return result;
+		}
+
+		// How far (in tiles) the army looks for an enemy city to take.
+		private const int CityRange = 10;
+
+		// The nearest enemy city within reach that the army is likely to
+		// take: a city is what an army is best at attacking, its hit points
+		// lasting through several defenders. A city whose defenders we can't
+		// see now is tried, and the odds checked again on arrival.
+		private static CombatAIData CityToAttack(MapUnit army, Player player) {
+			AIFogOfWar.Refresh(player);
+			List<Tile> cities = new();
+			foreach (City c in EngineStorage.gameData.cities) {
+				Tile t = c.location;
+				if (c.owner == player || !AtWar(player, c.owner) || t.DistanceTo(army.location) > CityRange
+						|| !player.tileKnowledge.isTileKnown(t)) {
+					continue;
+				}
+				if (AIFogOfWar.SeesUnitsOn(player, t) && !WorthAttacking(army, t)) {
+					continue;
+				}
+				cities.Add(t);
+			}
+			if (cities.Count == 0) {
+				return null;
+			}
+			cities = cities.OrderBy(t => t.DistanceTo(army.location)).ToList();
+			int index = PathingAlgorithmChooser.GetAlgorithm(army).FindFirstReachable(army.location, cities, army, out TilePath path);
+			if (index < 0 || path == null) {
+				return null;
+			}
+			return new CombatAIData() { destination = cities[index], path = path };
 		}
 
 		// Whether the army should move onto the tile: there's no enemy there
@@ -200,6 +233,7 @@ namespace C7Engine.AI.UnitAI {
 					return C7GameData.UnitAI.Result.InProgress;
 				}
 				pathHome = path;
+				log.Information("{Army} with {Members} members at {Health:0%} heading back to {City}", army, army.PassengerCount(), HealthOf(army), cities[index]);
 			}
 			C7GameData.UnitAI.MoveResult result = this.TryToMoveAlongPath(army, ref pathHome);
 			if (result.Result == C7GameData.UnitAI.Result.Error) {
