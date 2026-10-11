@@ -6,43 +6,21 @@ using C7GameData;
 namespace C7Engine.AI {
 	// How the AI plans great wonders, on trial (see AiExperiments):
 	//
-	//   wonder-site   builds great wonders only in its most productive
-	//                 cities, a limited number at a time, and not ones it
-	//                 couldn't finish in reasonable time.
 	//   wonder-value  values a great wonder by what its effect is worth to
 	//                 this civ now, rather than mostly by its culture.
-	//   wonder-race   when a rival finishes the wonder a city was building,
-	//                 moves the shields to the best item that can hold them
-	//                 rather than to whatever is most expensive.
-	//   wonder-odds   shies away from wonders that many rivals we know of
-	//                 can already build, as we're likely to lose the race.
-	//   wonder-value-lite  wonder-value with half the weight.
-	//   wonder-quick  starts no great wonder that would take over 30 turns.
 	//   wonder-timing while the civ is expanding, builds great wonders only
 	//                 in its most productive city, one at a time.
 	//
 	// Without the switches the AI scores great wonders like any other
-	// building.
+	// building. Other ideas tried and dropped, as they did no better (see
+	// the commit that removed them): building wonders only in the more
+	// productive cities, a few at a time; only ones finished within 30
+	// turns; shying away from wonders many known rivals can build; and
+	// moving the shields of a wonder lost to a rival to the best item that
+	// holds them rather than the most expensive one.
 	public static class WonderPlanner {
-		public const string Site = "wonder-site";
 		public const string Value = "wonder-value";
-		public const string Race = "wonder-race";
-		public const string Odds = "wonder-odds";
-		public const string ValueLite = "wonder-value-lite";
-		public const string Quick = "wonder-quick";
 		public const string Timing = "wonder-timing";
-
-		internal static bool ValuesWonders(Player player) {
-			return AiExperiments.Has(player, Value) || AiExperiments.Has(player, ValueLite);
-		}
-
-		// Under wonder-quick, a city starts no great wonder it would take
-		// longer than this to build.
-		private const int QuickTurns = 30;
-
-		internal static bool QuickAllows(City city, Building wonder) {
-			return city.itemBeingProduced == wonder || city.TurnsToProduce(wonder) <= QuickTurns;
-		}
 
 		// Under wonder-timing, while the civ is still expanding only its most
 		// productive city builds a great wonder, one at a time: the others
@@ -54,11 +32,6 @@ namespace C7Engine.AI {
 			Plan plan = stats.WonderPlan;
 			return plan.Rank(city) == 0 && plan.otherWonderBuilds == 0;
 		}
-
-		// A wonder taking longer than this is likely to be beaten by a rival
-		// (the AI's own wonders take about 20 turns), and ties the city up
-		// for too long.
-		private const int MaxTurnsToBuild = 40;
 
 		// What a civ's cities are doing, gathered once per production
 		// decision.
@@ -83,42 +56,11 @@ namespace C7Engine.AI {
 			}
 		}
 
-		// Whether the city may start (or keep building) the great wonder, by
-		// the wonder-site rules: it is one of the civ's most productive
-		// cities, the civ isn't already building too many wonders, and the
-		// city can finish it in reasonable time.
-		internal static bool SiteAllows(ChooseProducible.ProducibleStats stats, City city, Player player, Building wonder) {
-			// Whatever the city is building already, it keeps building: the
-			// shields are in.
-			if (city.itemBeingProduced == wonder) {
-				return true;
-			}
-			Plan plan = stats.WonderPlan;
-			int cities = player.cities.Count;
-
-			// The more productive half of the cities.
-			int topCities = Math.Max(1, (cities + 1) / 2);
-			if (plan.Rank(city) >= topCities) {
-				return false;
-			}
-
-			// One wonder at a time per four cities.
-			int maxBuilds = Math.Max(1, cities / 4);
-			if (plan.otherWonderBuilds >= maxBuilds) {
-				return false;
-			}
-
-			return city.TurnsToProduce(wonder) <= MaxTurnsToBuild;
-		}
-
 		// The score of a great wonder for its effect for the civ, in place of
 		// the culture and happiness terms that ChooseProducible gives every
 		// building. About 40 for a wonder whose effect is worth its cost.
 		internal static float EffectScore(ChooseProducible.ProducibleStats stats, City city, Player player, Building wonder) {
 			float cost = Math.Max(1, player.ShieldCost(wonder));
-			if (AiExperiments.Has(player, ValueLite)) {
-				return 25 * Math.Min(EffectWorth(stats, city, player, wonder) / cost, 2f);
-			}
 			return 40 * Math.Min(EffectWorth(stats, city, player, wonder) / cost, 2.5f);
 		}
 
@@ -262,39 +204,6 @@ namespace C7Engine.AI {
 			int behind = gameData.techs.Count(t => !player.knownTechs.Contains(t.id)
 				&& contacts.Count(p => p.knownTechs.Contains(t.id)) >= 2);
 			return behind + 1;
-		}
-
-		// How much less to want a great wonder for each rival we've met
-		// that has its tech (as the diplomacy screen shows) and so may be
-		// building it already.
-		private const float PenaltyPerRival = 10;
-
-		internal static float RivalPenalty(Player player, Building wonder) {
-			if (wonder.requiredTech == null) {
-				return 0;
-			}
-			int rivals = 0;
-			foreach (Player p in EngineStorage.gameData.players) {
-				if (p != player && !p.isBarbarians && !p.defeated && player.playerRelationships.ContainsKey(p.id)
-						&& p.knownTechs.Contains(wonder.requiredTech.id)) {
-					++rivals;
-				}
-			}
-			return rivals * PenaltyPerRival;
-		}
-
-		// After a rival finished the wonder the city was building: the best
-		// item that holds most of the stored shields, as ChooseProducible
-		// would score it, or else the most expensive item.
-		internal static IProducible ChooseAfterLostRace(City city, Player player) {
-			List<IProducible> options = city.ListProductionOptions(EngineStorage.gameData).ToList();
-			if (options.Count == 0) {
-				return null;
-			}
-			int stored = city.shieldsStored;
-			List<IProducible> holding = options.Where(o => player.ShieldCost(o) >= stored * 0.8f && o is not Inflow).ToList();
-			IProducible best = holding.Count > 0 ? ChooseProducible.ChooseAmong(city, player, holding) : null;
-			return best ?? options.OrderByDescending(o => player.ShieldCost(o)).First();
 		}
 	}
 }

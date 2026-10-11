@@ -113,12 +113,7 @@ namespace C7Engine {
 		}
 
 		public static IProducible Choose(City city, Player player) {
-			return ChooseAmong(city, player, city.ListProductionOptions(EngineStorage.gameData).ToList());
-		}
-
-		// The best of the given options, which the city must be able to
-		// produce.
-		internal static IProducible ChooseAmong(City city, Player player, List<IProducible> options) {
+			List<IProducible> options = city.ListProductionOptions(EngineStorage.gameData).ToList();
 			ProducibleStats stats = CalculateStats(city, player, options);
 
 			IProducible best = null;
@@ -330,26 +325,17 @@ namespace C7Engine {
 
 			float score = 0;
 
-			// Great wonders on trial (see WonderPlanner): only in a city fit
-			// to build one, and valued by their effect instead of the culture
-			// and happiness terms below.
+			// Great wonders on trial (see WonderPlanner): only at the right
+			// time, and valued by their effect instead of the culture and
+			// happiness terms below.
 			bool valuedWonder = false;
 			if (building.IsGreatWonder()) {
-				if (AiExperiments.Has(player, WonderPlanner.Site) && !WonderPlanner.SiteAllows(stats, city, player, building)) {
-					return -1000f;
-				}
-				if (AiExperiments.Has(player, WonderPlanner.Quick) && !WonderPlanner.QuickAllows(city, building)) {
-					return -1000f;
-				}
 				if (AiExperiments.Has(player, WonderPlanner.Timing) && !WonderPlanner.TimingAllows(stats, city, building)) {
 					return -1000f;
 				}
-				if (WonderPlanner.ValuesWonders(player)) {
+				if (AiExperiments.Has(player, WonderPlanner.Value)) {
 					valuedWonder = true;
 					score += WonderPlanner.EffectScore(stats, city, player, building);
-				}
-				if (AiExperiments.Has(player, WonderPlanner.Odds)) {
-					score -= WonderPlanner.RivalPenalty(player, building);
 				}
 			}
 
