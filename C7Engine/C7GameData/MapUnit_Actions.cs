@@ -820,6 +820,7 @@ public partial class MapUnit {
 
 		// War weariness for the attack (see Player.WarWearinessForUnitAttacked).
 		Player.AddWarWearinessForAttack(attacker, defender, attackerDefeated: result == CombatResult.AttackerKilled);
+		C7Engine.AI.AiExperiments.onCombat?.Invoke(attacker, defender, result);
 
 		return result;
 	}

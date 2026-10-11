@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using C7GameData;
@@ -18,5 +19,10 @@ namespace C7Engine.AI {
 		public static void Enable(Player player, string name) {
 			enabled.GetOrCreateValue(player).Add(name);
 		}
+
+		// Lets AiTrialTest count battles and war declarations. Null outside
+		// a trial.
+		internal static Action<MapUnit, MapUnit, CombatResult> onCombat;
+		internal static Action<Player, Player> onWarDeclared;
 	}
 }

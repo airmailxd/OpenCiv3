@@ -223,6 +223,11 @@ namespace C7Engine {
 			// Penalize units that consume population.
 			score -= populationCostPenalty;
 
+			// On trial: the productive cities arm a war campaign that needs it.
+			if (AiExperiments.Has(player, "war-production")) {
+				score += WarCampaignUnitBonus(city, player, unit, stats.bestAttack);
+			}
+
 			////////////////////////////////////////////////////////////////////
 			///
 			/// Naval units
@@ -589,6 +594,25 @@ namespace C7Engine {
 				}
 			}
 			return true;
+		}
+
+		// How much more a city wants the unit for a war campaign (see
+		// WarCampaign): attackers while the campaign is short of them, in
+		// cities producing at least as much as our average, and a couple of
+		// siege engines.
+		private static float WarCampaignUnitBonus(City city, Player player, UnitPrototype unit, float bestAttack) {
+			if (!unit.IsLandUnit() || unit.isArmy || bestAttack <= 0) {
+				return 0;
+			}
+			if (unit.attack > unit.defense && WarCampaign.WantsAttackers(player)) {
+				float average = (float)player.cities.Average(c => c.CurrentProductionYield().useful);
+				if (city.CurrentProductionYield().useful >= average) {
+					return 20 * unit.attack / bestAttack;
+				}
+			} else if (unit.bombard > 0 && unit.attack == 0 && WarCampaign.WantsBombarders(player)) {
+				return 30;
+			}
+			return 0;
 		}
 
 		private static bool HasUnescortedSettler(City city) {

@@ -74,6 +74,11 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			// the percentage of its worked tiles that are unimproved.
 			"city5turn", "city10turn", "midtechs", "midcities", "midcitizens", "anarchy", "despotism", "disorder",
 			"gpt", "beakers", "unimproved",
+			// How the civ makes war: wars it declared, turns it spent at war
+			// with another civ, attacks it made (and won), units it killed
+			// and lost in battle, and the turn it first took a city (the
+			// game's length if it never did).
+			"wars", "warTurns", "attacks", "attackWins", "kills", "unitsLost", "firstCap",
 		];
 		public readonly double[] values = new double[Names.Length];
 	}
@@ -308,11 +313,38 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 				d.disorder += p.cities.Count(c => c.isInCivilDisorder);
 			}
 		}
+		Dictionary<Player, int> firstCapture = civs.ToDictionary(p => p, _ => turns);
+		Dictionary<Player, int> wars = civs.ToDictionary(p => p, _ => 0);
+		Dictionary<Player, int> warTurns = civs.ToDictionary(p => p, _ => 0);
+		Dictionary<Player, int> attacks = civs.ToDictionary(p => p, _ => 0);
+		Dictionary<Player, int> attackWins = civs.ToDictionary(p => p, _ => 0);
+		Dictionary<Player, int> kills = civs.ToDictionary(p => p, _ => 0);
+		Dictionary<Player, int> unitsLost = civs.ToDictionary(p => p, _ => 0);
+		void Add(Dictionary<Player, int> counts, Player p) {
+			if (p != null && counts.ContainsKey(p)) {
+				++counts[p];
+			}
+		}
+		AiExperiments.onWarDeclared = (aggressor, _) => Add(wars, aggressor);
+		AiExperiments.onCombat = (attacker, defender, result) => {
+			Add(attacks, attacker.owner);
+			if (result == CombatResult.DefenderKilled || result == CombatResult.DefenderRetreated) {
+				Add(attackWins, attacker.owner);
+			}
+			if (result == CombatResult.DefenderKilled) {
+				Add(kills, attacker.owner);
+				Add(unitsLost, defender.owner);
+			} else if (result == CombatResult.AttackerKilled) {
+				Add(kills, defender.owner);
+				Add(unitsLost, attacker.owner);
+			}
+		};
 		void CountCaptures() {
 			foreach (City city in gameData.cities) {
 				if (cityOwners.TryGetValue(city.id, out Player before) && before != city.owner) {
 					if (captured.ContainsKey(city.owner)) {
 						++captured[city.owner];
+						firstCapture[city.owner] = Math.Min(firstCapture[city.owner], gameData.turn);
 					}
 					if (lost.ContainsKey(before)) {
 						++lost[before];
@@ -344,9 +376,16 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 				CountCaptures();
 				wonders.Update(gameData);
 				RecordDevelopment(turn + 1);
+				foreach (Player p in civs) {
+					if (!p.defeated && civs.Any(o => o != p && !o.defeated && p.playerRelationships.TryGetValue(o.id, out PlayerRelationship r) && r.AtWar())) {
+						++warTurns[p];
+					}
+				}
 			}
 		} finally {
 			gameData.observerMode = false;
+			AiExperiments.onWarDeclared = null;
+			AiExperiments.onCombat = null;
 		}
 
 		Dictionary<Player, int> land = civs.ToDictionary(p => p, _ => 0);
@@ -400,6 +439,13 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 				}
 			}
 			m.values[i++] = worked == 0 ? 0 : 100.0 * unimproved / worked;
+			m.values[i++] = wars[p];
+			m.values[i++] = warTurns[p];
+			m.values[i++] = attacks[p];
+			m.values[i++] = attackWins[p];
+			m.values[i++] = kills[p];
+			m.values[i++] = unitsLost[p];
+			m.values[i++] = firstCapture[p];
 			return m;
 		}
 

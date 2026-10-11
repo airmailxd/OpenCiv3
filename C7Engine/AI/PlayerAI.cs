@@ -64,6 +64,8 @@ namespace C7Engine {
 
 			await EngineStorage.YieldIfFrameBudgetSpent();
 			UpgradeUnits(player);
+			// On trial: march on enemy cities in force (see WarCampaign).
+			await WarCampaign.PlayTurn(player, gameData);
 			await EngineStorage.YieldIfFrameBudgetSpent();
 			await DoUnitActions(player);
 			DevelopmentAI.HurryProduction(player);
@@ -282,6 +284,11 @@ namespace C7Engine {
 				// Being woken, as all our units are when priorities change,
 				// mustn't have them make other plans on the way.
 				if (unit.IsLoaded() && unit.Carrier()?.currentAI is FerryAI) {
+					continue;
+				}
+
+				// Units on a war campaign move with it (see WarCampaign).
+				if (unit.currentAI is WarCampaign.MemberAI) {
 					continue;
 				}
 
