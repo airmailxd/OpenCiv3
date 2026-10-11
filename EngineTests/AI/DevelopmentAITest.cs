@@ -48,7 +48,6 @@ public sealed class DevelopmentAITest : IClassFixture<SaveGameFixture>, IDisposa
 
 	[Fact]
 	public void ResearchHeadsForMonarchy() {
-		AiExperiments.Enable(player, DevelopmentAI.ResearchMonarchy);
 		player.SetCurrentlyResearchedTech(null);
 		HashSet<Tech> path = UnknownPathTo(player, TechNamed("Monarchy"));
 		Assert.NotEmpty(path);
@@ -61,15 +60,9 @@ public sealed class DevelopmentAITest : IClassFixture<SaveGameFixture>, IDisposa
 
 	[Fact]
 	public void ResearchFallsBackOnceTheGoalIsKnown() {
-		AiExperiments.Enable(player, DevelopmentAI.ResearchMonarchy);
 		foreach (Tech t in UnknownPathTo(player, TechNamed("Monarchy"))) {
 			player.knownTechs.Add(t.id);
 		}
-		Assert.Null(DevelopmentAI.ChooseResearch(player, gameData.techs, player.GetAvailableTechsToResearch(gameData.techs)));
-	}
-
-	[Fact]
-	public void ResearchIsUnchangedWithoutTheSwitch() {
 		Assert.Null(DevelopmentAI.ChooseResearch(player, gameData.techs, player.GetAvailableTechsToResearch(gameData.techs)));
 	}
 
@@ -130,9 +123,17 @@ public sealed class DevelopmentAITest : IClassFixture<SaveGameFixture>, IDisposa
 
 	[Fact]
 	public void FoodFirstAimsForMoreFoodInASmallCity() {
-		Assert.Equal(2, DevelopmentAI.DesiredFoodSurplus(city, 2));
-		AiExperiments.Enable(player, DevelopmentAI.FoodFirst);
 		Assert.True(DevelopmentAI.DesiredFoodSurplus(city, 2) > 2);
+	}
+
+	[Fact]
+	public void FoodFirstLeavesHumansCitiesAlone() {
+		player.isHuman = true;
+		try {
+			Assert.Equal(2, DevelopmentAI.DesiredFoodSurplus(city, 2));
+		} finally {
+			player.isHuman = false;
+		}
 	}
 
 	private float WarriorScore() {

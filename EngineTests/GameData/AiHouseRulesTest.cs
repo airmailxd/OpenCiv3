@@ -36,6 +36,7 @@ public class AiHouseRulesTest : IClassFixture<SaveGameFixture> {
 	[Fact]
 	public void MaintenanceIsScaledForTheAiOnly() {
 		(C7GameData.GameData gameData, City aiCity) = CityWithBuildings(human: false);
+		gameData.rules.AiBuildingMaintenancePercent = 100;
 		int full = aiCity.MaintenanceCostsRaw();
 		Assert.True(full > 0);
 		gameData.rules.AiBuildingMaintenancePercent = 50;
@@ -80,7 +81,8 @@ public class AiHouseRulesTest : IClassFixture<SaveGameFixture> {
 	[Fact]
 	public void TheRulesDefaultToCiv3AndAreSaved() {
 		Rules rules = new();
-		Assert.Equal(100, rules.AiBuildingMaintenancePercent);
+		// The owner's choice: the AI pays no building maintenance.
+		Assert.Equal(0, rules.AiBuildingMaintenancePercent);
 		Assert.Equal(0, rules.AiExtraFreeUnitsPerCity);
 		Assert.Equal(100, rules.AiCorruptionPercent);
 		Assert.Equal(0, rules.AiExtraContentCitizens);

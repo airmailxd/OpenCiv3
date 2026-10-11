@@ -5,10 +5,10 @@ using C7GameData;
 using Serilog;
 
 namespace C7Engine.AI {
-	// Trials of how fast the AI develops its empire: what its cities build,
-	// what it researches, how it hurries production and works its tiles. Each
-	// idea is behind its own AiExperiments switch, and all of them are AI
-	// preferences, not rules.
+	// How fast the AI develops its empire: what it researches and how its
+	// cities work their tiles, and, still on trial behind AiExperiments
+	// switches, what its cities build and how it hurries production. All of
+	// them are AI preferences, not rules.
 	public static class DevelopmentAI {
 		private static readonly ILogger log = Log.ForContext(typeof(DevelopmentAI));
 
@@ -19,20 +19,11 @@ namespace C7Engine.AI {
 		// for 11 cities by turn 200, and paid for most of them.
 		public const string LeanMilitary = "lean-military";
 
-		// Research heads for Monarchy, then picks the cheapest tech as
-		// before. Cheapest first left Monarchy, among the dearest ancient
-		// techs, until nearly all the others were known: the AI spent some
-		// 175 of its first 200 turns under Despotism's tile penalty.
-		public const string ResearchMonarchy = "research-monarchy";
-
 		// Spends gold above a reserve to finish settlers, workers, defenders
 		// of unguarded cities and useful buildings, under governments that
 		// hurry with gold. The AI didn't hurry production at all.
 		public const string RushBuy = "rush-buy";
 
-		// Cities work their food tiles harder while they are small, or while
-		// they build a settler or worker.
-		public const string FoodFirst = "food-first";
 
 		////////////////////////////////////////////////////////////////////
 		// lean-military
@@ -136,15 +127,18 @@ namespace C7Engine.AI {
 		}
 
 		////////////////////////////////////////////////////////////////////
-		// research-monarchy
+		// Research
 
+		// Research heads for Monarchy, then picks the cheapest tech as
+		// before. Cheapest first left Monarchy, among the dearest ancient
+		// techs, until nearly all the others were known: the AI spent some
+		// 175 of its first 200 turns under Despotism's tile penalty. In AI
+		// trials (AiTrialTest), civs doing this had about 20% more score
+		// after 200 turns, along with the war campaigns and food first.
 		private static readonly string[] MonarchyGoals = ["Monarchy"];
 
 		// The tech to research next, or null to research as before.
 		public static Tech ChooseResearch(Player player, List<Tech> techs, IEnumerable<Tech> available) {
-			if (!AiExperiments.Has(player, ResearchMonarchy)) {
-				return null;
-			}
 			List<Tech> availableList = available.ToList();
 			foreach (string goalName in MonarchyGoals) {
 				Tech goal = techs.Find(t => t.Name == goalName);
@@ -245,11 +239,14 @@ namespace C7Engine.AI {
 		}
 
 		////////////////////////////////////////////////////////////////////
-		// food-first
+		// Food first
 
-		// The food surplus the city's citizens aim for, from the usual one.
+		// The food surplus the citizens of an AI's city aim for, from the
+		// usual one: they work their food tiles harder while the city is
+		// small, or while it builds a settler or worker. Humans' cities are
+		// left as they were.
 		public static int DesiredFoodSurplus(City city, int usual) {
-			if (!AiExperiments.Has(city.owner, FoodFirst)) {
+			if (city.owner == null || city.owner.isHuman || city.owner.isBarbarians) {
 				return usual;
 			}
 			if (city.itemBeingProduced is UnitPrototype u && u.populationCost > 0) {

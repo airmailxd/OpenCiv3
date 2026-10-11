@@ -17,17 +17,16 @@ namespace C7Engine.AI {
 	// attacks with the best odds until the city falls. Then it garrisons the
 	// city and goes on to the next.
 	//
-	// "war-campaign" runs campaigns in the wars the AI is in. "war-declare"
-	// also starts them in peacetime against a weaker neighbour, declaring
-	// war only once the attackers are gathered.
+	// It runs campaigns in the wars the AI is in, and also starts them in
+	// peacetime against a weaker neighbour, declaring war only once the
+	// attackers are gathered (WarPriority no longer declares wars itself).
+	// In AI trials (AiTrialTest), civs playing this way took about 3 more
+	// cities each in 200 turns.
 	public static class WarCampaign {
 		private static readonly ILogger log = Log.ForContext(typeof(WarCampaign));
 
-		public const string CampaignSwitch = "war-campaign";
-		public const string DeclareSwitch = "war-declare";
-
 		public static bool Enabled(Player player) {
-			return AiExperiments.Has(player, CampaignSwitch) || AiExperiments.Has(player, DeclareSwitch);
+			return !player.isHuman && !player.isBarbarians;
 		}
 
 		private enum Phase {
@@ -186,7 +185,7 @@ namespace C7Engine.AI {
 				return false;
 			}
 			// Before war, only a campaign we may still declare.
-			if (!atWar && (!AiExperiments.Has(player, DeclareSwitch) || !CanDeclareWarOn(player, c.enemy))) {
+			if (!atWar && !CanDeclareWarOn(player, c.enemy)) {
 				return false;
 			}
 
@@ -287,7 +286,7 @@ namespace C7Engine.AI {
 				}
 			}
 
-			if (enemy == null && AiExperiments.Has(player, DeclareSwitch) && !PlayerRelationship.IsInAnyWar(player, gameData.players)
+			if (enemy == null && !PlayerRelationship.IsInAnyWar(player, gameData.players)
 					&& player.cities.Count >= 3) {
 				float us = player.CalculateMilitaryStrength();
 				foreach (Player p in gameData.players) {

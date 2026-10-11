@@ -94,6 +94,9 @@ public sealed class AiEconomyTest : IClassFixture<SaveGameFixture>, IDisposable 
 
 	[Fact]
 	public void AiPicksWealthWhenAboutToGoBankrupt() {
+		// With the house rule that spares the AI building upkeep turned off,
+		// so that it can run short.
+		player.rules.AiBuildingMaintenancePercent = 100;
 		foreach (Tech tech in gameData.techs) {
 			player.knownTechs.Add(tech.id);
 		}

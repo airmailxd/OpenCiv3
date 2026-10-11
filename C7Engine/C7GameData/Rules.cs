@@ -59,11 +59,13 @@ namespace C7GameData {
 		// HOUSE RULES, not Civ3: bonuses for AI players only, to make the AI
 		// a stronger opponent beyond what Civ3's difficulty levels give it
 		// (see Difficulty). Human players are never affected. Each default
-		// leaves the game as Civ3 plays it. See AiHouseRules, which applies
+		// but AiBuildingMaintenancePercent's leaves the game as Civ3 plays it. See AiHouseRules, which applies
 		// them.
 		//
 		// The percentage of their normal maintenance the AI's buildings cost.
-		public int AiBuildingMaintenancePercent = 100;
+		// The owner chose to have the AI pay none by default, which in AI
+		// trials gave it more units and techs and a few more conquests.
+		public int AiBuildingMaintenancePercent = 0;
 		// Units each AI city supports for free on top of what its government
 		// and the difficulty level allow.
 		public int AiExtraFreeUnitsPerCity = 0;
