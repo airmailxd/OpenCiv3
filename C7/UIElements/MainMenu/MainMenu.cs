@@ -45,7 +45,7 @@ public partial class MainMenu : Node {
 				// The --watch-ai developer option goes straight into a game
 				// to watch, the first time the menu shows.
 				devWatchUsed = true;
-				CallDeferred(nameof(WatchAiGame));
+				CallDeferred(nameof(WatchAiQuickStart));
 			}
 		} catch (Exception ex) {
 			log.Error(ex, "Could not set up the main menu");
@@ -157,9 +157,17 @@ public partial class MainMenu : Node {
 		GetTree().ChangeSceneToFile("res://C7Game.tscn");
 	}
 
-	// Starts a game as Quick Start would, for the AIs to play while the user
-	// watches.
+	// Sets up a game as New Game does, with the map, rivals and rules the
+	// user chooses, for the AIs to play while the user watches.
 	public void WatchAiGame() {
+		Global.WatchNextGame = true;
+		LanSession.HostNextGame = false;
+		GoToWorldSetup();
+	}
+
+	// Starts a game to watch straight away, as Quick Start would (the
+	// --watch-ai developer option).
+	public void WatchAiQuickStart() {
 		Global.WatchNextGame = true;
 		QuickStartGame();
 	}

@@ -2295,6 +2295,9 @@ public partial class Game : Node {
 		mapView.InvalidateMap();
 	}
 
+	// The most turns observer mode plays between pauses.
+	private const int MaxTurnsBetweenPauses = 2500;
+
 	// The human players to restore when observer mode is turned off.
 	private HashSet<ID> observerModeHumans = new();
 
@@ -2305,12 +2308,13 @@ public partial class Game : Node {
 		}
 		animationController.SetAnimationsEnabled(false);
 		popupOverlay.ShowPopup(
-			new TextDialog("Pause every how many turns?",
+			new TextDialog($"Pause every how many turns? (up to {MaxTurnsBetweenPauses})",
 							"Turns: ", "100",
 							BoxContainer.AlignmentMode.Begin,
 							(string turns) => {
 								// Ignore what isn't a number of turns rather than throwing.
 								if (int.TryParse(turns, out int n) && n >= 0) {
+									n = Math.Min(n, MaxTurnsBetweenPauses);
 									fastForwardInterval = n;
 									turnsLeftToFastForward = n;
 								}
