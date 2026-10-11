@@ -140,11 +140,17 @@ public partial class Tile {
 		int yield = BaseFoodYield(city.owner);
 		Yield result = Yield.CalculateForCity(this, yield, YieldType.Food, city, cityBuildings);
 
-		// The despotism penalty spares an agricultural city's extra food when
-		// the city is on a river or by a lake, or has reached size 7.
+		// The despotism penalty spares an agricultural city's extra food only
+		// when the city is on a river or by a lake: "In despotism, the bonus
+		// food only appears if the city is by fresh water"
+		// (https://forums.civfanatics.com/threads/civ3-conquests-additions-changes-list.104294/).
+		// The German wiki also spares cities of size 7 or more, but Civ3
+		// saves disagree: their agricultural cities of size 7+ away from
+		// fresh water make 2 food in the center under Despotism and Anarchy
+		// (42 of 44 such cities), as do their towns.
 		if (result.penalty > 0 && cityAtTile == city
 			&& city.owner.civilization?.traits.Contains(Civilization.Trait.Agricultural) == true
-			&& (BordersRiver() || NeighborsFreshWater() || city.residents.Count > EngineStorage.gameData.rules.MaximumLevel1CitySize)) {
+			&& (BordersRiver() || NeighborsFreshWater())) {
 			result.penalty -= 1;
 		}
 		return result;
