@@ -216,6 +216,14 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			}
 		}
 
+		// A game can end during the AIs' turns, by a victory or by the
+		// destruction of the civ being observed, and then no turn starts
+		// again.
+		void WaitForTurnOrGameOver() {
+			while (EngineWaits.WaitForMessageToUI<MessageToUI>() is not MsgStartTurn && !gameData.gameOver) {
+			}
+		}
+
 		try {
 			TurnHandling.OnBeginTurn();
 			TurnHandling.InitTurnData();
@@ -224,7 +232,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			await firstTurn;
 			for (int turn = 0; turn < turns && !gameData.gameOver; ++turn) {
 				new MsgEndTurn { turn = gameData.turn }.send();
-				EngineWaits.WaitForStartTurnMessage(_ => { });
+				WaitForTurnOrGameOver();
 				CountCaptures();
 				foreach (Player p in civs) {
 					if (!p.defeated && civs.Any(o => o != p && !o.defeated && p.playerRelationships.TryGetValue(o.id, out PlayerRelationship r) && r.AtWar())) {
