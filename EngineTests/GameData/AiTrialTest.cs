@@ -53,6 +53,11 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 	private sealed class Measures {
 		public static readonly string[] Names = [
 			"score", "cities", "citizens", "land", "techs", "wonders", "military", "captured", "lost", "alive",
+			// Great leaders and armies: elite land units at the end (only
+			// they produce leaders), leaders that appeared, armies the
+			// civ had (formed by a leader or built), armies it lost, and
+			// cities it captured with an army on the city's tile.
+			"elites", "leaders", "armies", "armylost", "armycaps",
 		];
 		public readonly double[] values = new double[Names.Length];
 	}
@@ -170,11 +175,26 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 		Dictionary<Player, int> captured = civs.ToDictionary(p => p, _ => 0);
 		Dictionary<Player, int> lost = civs.ToDictionary(p => p, _ => 0);
 		Dictionary<ID, Player> cityOwners = new();
+		Dictionary<Player, HashSet<ID>> leaders = civs.ToDictionary(p => p, _ => new HashSet<ID>());
+		Dictionary<Player, HashSet<ID>> armies = civs.ToDictionary(p => p, _ => new HashSet<ID>());
+		Dictionary<Player, int> armyCaptures = civs.ToDictionary(p => p, _ => 0);
 		void CountCaptures() {
+			foreach (Player p in civs) {
+				foreach (MapUnit u in p.units) {
+					if (u.IsLeader()) {
+						leaders[p].Add(u.id);
+					} else if (u.IsArmy()) {
+						armies[p].Add(u.id);
+					}
+				}
+			}
 			foreach (City city in gameData.cities) {
 				if (cityOwners.TryGetValue(city.id, out Player before) && before != city.owner) {
 					if (captured.ContainsKey(city.owner)) {
 						++captured[city.owner];
+						if (city.location.unitsOnTile.Any(u => u.IsArmy() && u.owner == city.owner)) {
+							++armyCaptures[city.owner];
+						}
 					}
 					if (lost.ContainsKey(before)) {
 						++lost[before];
@@ -219,6 +239,11 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			m.values[i++] = captured[p];
 			m.values[i++] = lost[p];
 			m.values[i++] = p.defeated ? 0 : 1;
+			m.values[i++] = p.units.Count(u => u.IsLandUnit() && !u.IsArmy() && u.IsElite());
+			m.values[i++] = leaders[p].Count;
+			m.values[i++] = armies[p].Count;
+			m.values[i++] = armies[p].Count(id => !p.units.Any(u => u.id == id));
+			m.values[i++] = armyCaptures[p];
 			return m;
 		}
 
