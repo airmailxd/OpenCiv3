@@ -89,6 +89,11 @@ namespace C7GameData.AIData {
 			if (opponent == null || !CanDeclareWarOn(player, opponent)) {
 				return;
 			}
+			// On trial: wars are declared once an army is gathered for one
+			// (see WarCampaign), not on a whim.
+			if (AiExperiments.Has(player, WarCampaign.DeclareSwitch)) {
+				return;
+			}
 			player.DeclareWarOn(opponent, EngineStorage.gameData.turn);
 			log.Information($"{player} declared war on {opponent}");
 			MsgWarDeclaration.Announce(player, opponent);
