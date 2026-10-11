@@ -342,7 +342,9 @@ namespace C7Engine.AI.UnitAI {
 				return 1;
 			}
 			double roundOdds = attack / (attack + defense);
-			double ours = roundOdds * Math.Max(1, attacker.hitPointsRemaining);
+			// An army fights with all its members' hit points; for other
+			// units this is just their own.
+			double ours = roundOdds * Math.Max(1, attacker.CompositeHitPoints());
 			double theirs = (1 - roundOdds) * Math.Max(1, defender.hitPointsRemaining);
 			return ours / (ours + theirs);
 		}

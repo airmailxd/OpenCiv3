@@ -283,6 +283,11 @@ namespace C7Engine {
 					continue;
 				}
 
+				// Members of an army go where the army goes (see ArmyAI).
+				if (unit.IsLockedInArmy() && ArmyAI.IsEnabled(player)) {
+					continue;
+				}
+
 				// A great leader that has reached one of our cities is used
 				// up there. Until then it heads for a city like a defender.
 				if (UseLeaderInCity(unit, player)) {
@@ -413,6 +418,9 @@ namespace C7Engine {
 			if (!unit.IsLeader() || !unit.CanOfferHurryProduction()) {
 				return false;
 			}
+			if (ArmyAI.ShouldFormArmy(unit, player)) {
+				return ArmyAI.FormArmy(unit, player) != null;
+			}
 			if (unit.CanHurryProduction()) {
 				return unit.HurryProductionAsLeader();
 			}
@@ -507,6 +515,9 @@ namespace C7Engine {
 		public static UnitAI GetAIForUnit(MapUnit unit, Player player) {
 			//figure out an AI behavior
 			//TODO: Use strategies, not names
+			if (unit.IsArmy() && ArmyAI.IsEnabled(player)) {
+				return new ArmyAI();
+			}
 			if (unit.IsLeader()) {
 				return MakeLeaderAI(unit, player);
 			} else if (unit.unitType.name == "Settler") {

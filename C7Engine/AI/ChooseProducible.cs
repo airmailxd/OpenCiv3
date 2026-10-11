@@ -176,9 +176,9 @@ namespace C7Engine {
 		}
 
 		internal static float ScoreUnit(ProducibleStats stats, City city, Player player, UnitPrototype unit) {
-			// The AI doesn't know how to use armies yet, so it doesn't build them.
+			// Armies are only built on trial (see ArmyAI.ScoreArmy).
 			if (unit.isArmy) {
-				return -1000f;
+				return C7Engine.AI.UnitAI.ArmyAI.ScoreArmy(city, player, unit, stats.atWar) ?? -1000f;
 			}
 
 			bool isSettler = unit.actions.Contains(UnitAction.BuildCity);
@@ -440,10 +440,14 @@ namespace C7Engine {
 			bool atWar = stats.atWar;
 			float score = 0;
 
-			// The AI doesn't use armies yet, so the army wonders are wasted
-			// on it.
+			// The army wonders are wasted on an AI that doesn't build armies
+			// (on trial, see ArmyAI.ScoreArmyWonder).
 			if (building.allowsBuildArmy || building.allowsLargerArmies) {
-				return null;
+				float? armyScore = C7Engine.AI.UnitAI.ArmyAI.ScoreArmyWonder(player, building, atWar);
+				if (armyScore == null) {
+					return null;
+				}
+				score += armyScore.Value;
 			}
 
 			// A Forbidden Palace (or Secret Police HQ) pays off in a large
