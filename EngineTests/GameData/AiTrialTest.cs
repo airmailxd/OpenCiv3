@@ -221,6 +221,21 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 		}
 	}
 
+	// Waits for the next turn to start. False if the game ended instead: a
+	// civ won, or the civ being watched was destroyed, which ends a game
+	// without humans.
+	private static bool WaitForNextTurn() {
+		while (true) {
+			MessageToUI msg = EngineWaits.WaitForMessageToUI<MessageToUI>();
+			if (msg is MsgStartTurn) {
+				return true;
+			}
+			if (msg is MsgNoHumansRemain or MsgVictory) {
+				return false;
+			}
+		}
+	}
+
 	private async Task<(List<Measures> trial, List<Measures> others, double averageTechs, WonderTracker wonders, HashSet<Player> trialCivs)> PlayGame(SaveGame save, string[] experiments, int turns, int trialHalf) {
 		new MsgSetAnimationsEnabled(false).send();
 		EngineStorage.ProcessNextMessageToEngine();
@@ -266,7 +281,9 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			await firstTurn;
 			for (int turn = 0; turn < turns && !gameData.gameOver; ++turn) {
 				new MsgEndTurn { turn = gameData.turn }.send();
-				EngineWaits.WaitForStartTurnMessage(_ => { });
+				if (!WaitForNextTurn()) {
+					break;
+				}
 				CountCaptures();
 				wonders.Update(gameData);
 			}
