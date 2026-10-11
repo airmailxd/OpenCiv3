@@ -94,6 +94,10 @@ namespace C7Engine {
 			private WonderPlanner.Plan wonderPlan;
 			public WonderPlanner.Plan WonderPlan => wonderPlan ??= new(city, player);
 
+			// For the lean-military trial (see DevelopmentAI).
+			private (int have, int want)? militaryNeed;
+			public (int have, int want) MilitaryNeed => militaryNeed ??= DevelopmentAI.MilitaryNeed(player);
+
 			private int? turnsUntilGrowth;
 			public int TurnsUntilGrowth => turnsUntilGrowth ??= city.TurnsUntilGrowth();
 
@@ -281,6 +285,10 @@ namespace C7Engine {
 				return int.MinValue;
 			}
 
+			if (AiExperiments.Has(player, DevelopmentAI.LeanMilitary)) {
+				score += DevelopmentAI.LeanMilitaryAdjustment(stats, unit);
+			}
+
 			if (isSettler) {
 				// Don't build settlers if we don't have anywhere to go or if we
 				// already have enough settlers under construction to fill all
@@ -430,6 +438,10 @@ namespace C7Engine {
 				} else if (building.buildSpaceshipParts && !SpaceRace.ApolloProgramBuilt(EngineStorage.gameData)) {
 					score += atWar ? 20 : 40;
 				}
+			}
+
+			if (AiExperiments.Has(player, DevelopmentAI.LeanMilitary)) {
+				score += DevelopmentAI.LeanMilitaryAdjustment(stats, building);
 			}
 
 			// Penalize more expensive buildings.

@@ -76,7 +76,7 @@ namespace C7Engine.AI {
 
 			int foodYield = context?.CurrentFoodYield() ?? city.CurrentFoodYield();
 
-			int desiredFoodRate = city.residents.Count * FOOD_PER_CITIZEN + DesiredFoodSurplusPerTurn;
+			int desiredFoodRate = city.residents.Count * FOOD_PER_CITIZEN + DevelopmentAI.DesiredFoodSurplus(city, DesiredFoodSurplusPerTurn);
 			int targetTileFoodAmount = desiredFoodRate - foodYield;
 
 			bool debugLogging = log.IsEnabled(LogEventLevel.Debug);
