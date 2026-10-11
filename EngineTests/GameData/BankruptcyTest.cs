@@ -14,7 +14,8 @@ public class BankruptcyTest {
 		player = new() {
 			civilization = new Civilization(),
 			government = new Government(),
-			rules = new Rules(),
+			// Civ3's own upkeep, without the house rule that spares AI players it.
+			rules = new Rules { AiBuildingMaintenancePercent = 100 },
 			taxRate = 0,
 			scienceRate = 10,
 			luxuryRate = 0,
