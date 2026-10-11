@@ -93,7 +93,7 @@ public sealed class AiEconomyTest : IClassFixture<SaveGameFixture>, IDisposable 
 	}
 
 	[Fact]
-	public void AiPicksWealthWhenAboutToGoBankrupt() {
+	public void AiNeverPicksWealthEvenWhenAboutToGoBankrupt() {
 		// With the house rule that spares the AI building upkeep turned off,
 		// so that it can run short.
 		player.rules.AiBuildingMaintenancePercent = 100;
@@ -105,6 +105,6 @@ public sealed class AiEconomyTest : IClassFixture<SaveGameFixture>, IDisposable 
 		}
 		player.gold = 0;
 		Assert.True(player.CalculateGoldPerTurn() < 0);
-		Assert.Contains(ChooseProducible.Choose(city, player), gameData.Inflows);
+		Assert.DoesNotContain(ChooseProducible.Choose(city, player), gameData.Inflows);
 	}
 }

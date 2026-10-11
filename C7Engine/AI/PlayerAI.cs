@@ -79,10 +79,9 @@ namespace C7Engine {
 		}
 
 		// Wealth (an Inflow) is never completed, so nothing else ever moves a
-		// city off it: a city that turned to Wealth in a short cash crunch kept
-		// at it for the rest of the game, and more and more cities piled up on
-		// it. Choose again each turn instead; the choice keeps Wealth only
-		// while the treasury still needs it (see ChooseProducible.ScoreInflow).
+		// city off it. The AI no longer chooses Wealth (see
+		// ChooseProducible.ScoreInflow), but a city may be on it from an older
+		// save or a human's choice before observer mode, so choose again.
 		// Wealth stores no shields, so switching away loses nothing.
 		private static void ReconsiderWealth(Player player) {
 			foreach (City city in player.cities) {

@@ -157,29 +157,11 @@ namespace C7Engine {
 			}
 		}
 
-		// How many turns ahead the AI looks for running out of gold before it
-		// turns cities to Wealth.
-		private const int WealthHorizonTurns = 5;
-
 		private static float ScoreInflow(ProducibleStats stats, City city, Player player, Inflow inflow) {
-			// TODO: the WealthNever and WealthOften flags from RACE.
-			//
-			// Wealth only while the treasury would otherwise run dry within
-			// a few turns, which would cost units and buildings (see
-			// Player.DoPerTurnFinanceUpdates). The gold per turn is worked out
-			// as it stands, so it counts the Wealth other cities are already
-			// making, and only as many cities turn to Wealth as the deficit
-			// needs. A city already on Wealth is judged as if it stopped, so
-			// it doesn't leave the moment its own Wealth balances the budget.
-			int goldPerTurn = player.CalculateGoldPerTurn();
-			if (city.itemBeingProduced is Inflow) {
-				goldPerTurn -= city.CurrentCommerceYield().wealth;
-			}
-			if (goldPerTurn < 0 && player.gold + WealthHorizonTurns * goldPerTurn < 0) {
-				return 100;
-			}
-
-			return -1000f;
+			// The AI never builds Wealth: the owner's choice is that more units
+			// are always worth more to it than the gold. (It used to, when its
+			// treasury would otherwise run dry within a few turns.)
+			return float.NegativeInfinity;
 		}
 
 		internal static float ScoreUnit(ProducibleStats stats, City city, Player player, UnitPrototype unit) {
