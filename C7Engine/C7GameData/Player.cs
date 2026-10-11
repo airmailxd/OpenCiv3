@@ -1060,6 +1060,8 @@ namespace C7GameData {
 			// human-only.
 			int percentOptimalCities = isHuman ? gameData.gameDifficulty.PercentageOfOptimalCities : 100;
 
+			// "The OCN (Optimal City Number) is increased 25% for Commercial
+			// civilizations" (https://civfanatics.com/civ3/faq/).
 			float commercialCivFactor = civilization.traits.Contains(Civilization.Trait.Commercial) ? .25f : 0;
 
 			// The Secret Police HQ carries the BIQ's Forbidden Palace flag, so
@@ -1936,7 +1938,9 @@ namespace C7GameData {
 		}
 
 		// A golden age starts once the great wonders this civ has built cover
-		// all of its strengths.
+		// all of its strengths: "If a civilization builds a Great Wonder (or
+		// Wonders) that corresponds to [both] its unique strengths, its Golden
+		// Age can be triggered" (the Conquests Civilopedia, GCON_Golden_Age).
 		public void MaybeStartGoldenAgeFromWonders(GameData gameData) {
 			if (hadGoldenAge || civilization.traits.Count == 0) {
 				return;

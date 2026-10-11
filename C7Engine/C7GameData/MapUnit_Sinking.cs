@@ -9,7 +9,10 @@ namespace C7GameData;
 // their turn there.
 public partial class MapUnit {
 	// The chance a ship in unsafe water sinks at the end of its owner's turn,
-	// the same for Sea and Ocean tiles. Seafaring civs' ships are hardier.
+	// the same for Sea and Ocean tiles. Seafaring civs' ships are hardier:
+	// "For Seafaring civilizations, the percentage is 25% that it will sink
+	// - for non-Seafaring, it is 50%"
+	// (https://forums.civfanatics.com/threads/frequently-asked-questions-civ3-play-the-world-conquests.170282/).
 	// TODO: make this configurable
 	public const double UnsafeWaterSinkChance = 0.5;
 	public const double SeafaringUnsafeWaterSinkChance = 0.25;

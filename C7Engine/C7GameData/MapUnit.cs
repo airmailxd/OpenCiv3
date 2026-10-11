@@ -712,6 +712,10 @@ namespace C7GameData {
 			double promotionChance = experienceLevel.promotionChance;
 			if (opponent.owner.isBarbarians)
 				promotionChance /= 2.0;
+			// A militaristic civ's promotions are twice as likely, and halved
+			// against barbarians like anyone's: 1 in 1, 2 and 4 against civs,
+			// 1 in 2, 4 and 8 against barbarians
+			// (https://forums.civfanatics.com/threads/frequently-asked-questions-civ3-play-the-world-conquests.170282/).
 			if (owner.civilization.traits.Contains(Civilization.Trait.Militaristic))
 				promotionChance *= 2;
 			if (GameData.rng.NextDouble() < promotionChance) {
@@ -1152,6 +1156,8 @@ namespace C7GameData {
 			if (this.IsCaptive()) {
 				progressPerTurn *= SlaveWorkerFactor;
 			}
+			// Industrious workers are "50% faster in Conquests"
+			// (https://civfanatics.com/civ3/faq/).
 			if (owner.civilization.traits.Contains(Civilization.Trait.Industrious)) {
 				progressPerTurn *= 1.5f;
 			}
