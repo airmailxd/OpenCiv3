@@ -1,0 +1,22 @@
+using System.Collections.Generic;
+using System.Runtime.CompilerServices;
+using C7GameData;
+
+namespace C7Engine.AI {
+	// Switches for AI changes still on trial. AiTrialTest turns one on for
+	// half the civs of a game and compares how they fare against the rest;
+	// a change that proves itself becomes how every AI plays, and its switch
+	// goes away. Nothing turns these on in a real game, and they aren't
+	// saved.
+	public static class AiExperiments {
+		private static readonly ConditionalWeakTable<Player, HashSet<string>> enabled = new();
+
+		public static bool Has(Player player, string name) {
+			return player != null && enabled.TryGetValue(player, out HashSet<string> names) && names.Contains(name);
+		}
+
+		public static void Enable(Player player, string name) {
+			enabled.GetOrCreateValue(player).Add(name);
+		}
+	}
+}
