@@ -1049,8 +1049,10 @@ namespace C7Engine {
 			player.taxRate = MAX_SLIDER_VALUE - player.luxuryRate - player.scienceRate;
 			player.ApplyGovernmentRateCap();
 			int goldPerTurn;
+			// At war it also saves up gold to hurry units with.
+			int wantedGoldPerTurn = DevelopmentAI.WantedGoldPerTurn(player);
 			if (player.scienceRate > 0 && player.taxRate < player.maxRate
-				&& !IsTolerable(player, goldPerTurn = player.CalculateGoldPerTurn())) {
+				&& !IsTolerable(player, goldPerTurn = player.CalculateGoldPerTurn(), wantedGoldPerTurn)) {
 				// Only the cities' commerce changes as the sliders move; see
 				// CityTaxesAndWealth.
 				int fixedGoldPerTurn = goldPerTurn - CityTaxesAndWealth(player);
@@ -1058,7 +1060,7 @@ namespace C7Engine {
 					player.scienceRate--;
 					player.taxRate++;
 				} while (player.scienceRate > 0 && player.taxRate < player.maxRate
-					&& !IsTolerable(player, fixedGoldPerTurn + CityTaxesAndWealth(player)));
+					&& !IsTolerable(player, fixedGoldPerTurn + CityTaxesAndWealth(player), wantedGoldPerTurn));
 			}
 
 			log.Information($"{player} slider values: Science: {player.scienceRate}, Luxury: {player.luxuryRate}, Tax: {player.taxRate}");
@@ -1090,7 +1092,10 @@ namespace C7Engine {
 			return IsTolerable(player, player.CalculateGoldPerTurn());
 		}
 
-		private static bool IsTolerable(Player player, int gpt) {
+		private static bool IsTolerable(Player player, int gpt, int wanted = 0) {
+			if (gpt < wanted) {
+				return false;
+			}
 			var tolerableDeficit = gpt > player.gold * -0.1;
 			return gpt > 0 || tolerableDeficit;
 		}

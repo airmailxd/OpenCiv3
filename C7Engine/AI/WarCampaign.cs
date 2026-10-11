@@ -120,6 +120,13 @@ namespace C7Engine.AI {
 			return c.units.Count(IsBombarder) + building < 2;
 		}
 
+		// The city a campaign gathers its units in, or null without a
+		// campaign: units bought near it join the campaign soonest (see
+		// DevelopmentAI.HurryProduction).
+		public static City CampaignStagingCity(Player player) {
+			return campaigns.TryGetValue(player, out Campaign c) && c.target != null ? StagingCity(player, c) : null;
+		}
+
 		public static bool HasCampaignAgainst(Player player, Player enemy) {
 			return campaigns.TryGetValue(player, out Campaign c) && c.enemy == enemy && c.phase != Phase.Gather;
 		}

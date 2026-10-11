@@ -85,6 +85,9 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			// won a battle, armies it lost, and
 			// cities it captured with an army on the city's tile.
 			"elites", "leaders", "armies", "armywon", "armylost", "armycaps",
+			// Hurried production: items the AI hurried, and the gold it
+			// paid for them.
+			"rushes", "rushGold",
 		];
 		public readonly double[] values = new double[Names.Length];
 	}
@@ -332,6 +335,14 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			}
 		}
 		AiExperiments.onWarDeclared = (aggressor, _) => Add(wars, aggressor);
+		Dictionary<Player, int> rushes = civs.ToDictionary(p => p, _ => 0);
+		Dictionary<Player, int> rushGold = civs.ToDictionary(p => p, _ => 0);
+		AiExperiments.onHurry = (city, gold) => {
+			if (rushes.ContainsKey(city.owner)) {
+				++rushes[city.owner];
+				rushGold[city.owner] += gold;
+			}
+		};
 		AiExperiments.onCombat = (attacker, defender, result) => {
 			Add(attacks, attacker.owner);
 			if (result == CombatResult.DefenderKilled || result == CombatResult.DefenderRetreated) {
@@ -407,6 +418,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			gameData.observerMode = false;
 			AiExperiments.onWarDeclared = null;
 			AiExperiments.onCombat = null;
+			AiExperiments.onHurry = null;
 		}
 
 		Dictionary<Player, int> land = civs.ToDictionary(p => p, _ => 0);
@@ -473,6 +485,8 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			m.values[i++] = p.hasVictoriousArmy ? 1 : 0;
 			m.values[i++] = armies[p].Count(id => !p.units.Any(u => u.id == id));
 			m.values[i++] = armyCaptures[p];
+			m.values[i++] = rushes[p];
+			m.values[i++] = rushGold[p];
 			return m;
 		}
 
