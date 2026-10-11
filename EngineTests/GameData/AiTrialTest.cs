@@ -53,8 +53,65 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 	private sealed class Measures {
 		public static readonly string[] Names = [
 			"score", "cities", "citizens", "land", "techs", "wonders", "military", "captured", "lost", "alive",
+			// Great wonder builds: begun, lost to a rival who finished the
+			// wonder first, the shields in the box when they were lost, and
+			// the city-turns spent building great wonders (lost ones too).
+			"wStarted", "wLost", "wLostSh", "wCityTurns",
 		];
 		public readonly double[] values = new double[Names.Length];
+	}
+
+	// Follows each city's great wonder builds turn by turn: when one starts,
+	// and whether it ends completed, lost to a rival or dropped.
+	private sealed class WonderTracker {
+		private sealed class Build {
+			public Building wonder;
+			public Player owner;
+			public int startTurn;
+			public int shields;
+		}
+
+		private readonly Dictionary<ID, Build> builds = new();
+		public readonly Dictionary<Player, int> started = new();
+		public readonly Dictionary<Player, int> lost = new();
+		public readonly Dictionary<Player, int> lostShields = new();
+		public readonly Dictionary<Player, int> cityTurns = new();
+		// Per civ, the name of each completed wonder and the turns it took.
+		public readonly Dictionary<Player, List<(string name, int turns)>> completed = new();
+
+		private static void Add(Dictionary<Player, int> d, Player p, int n) {
+			d[p] = d.GetValueOrDefault(p) + n;
+		}
+
+		public void Update(C7GameData.GameData gameData) {
+			int turn = gameData.turn;
+			foreach (City city in gameData.cities) {
+				Building current = city.itemBeingProduced is Building b && b.IsGreatWonder() ? b : null;
+				builds.TryGetValue(city.id, out Build build);
+				if (build != null && (build.owner != city.owner || current != build.wonder)) {
+					if (build.owner == city.owner && city.constructed_buildings.Exists(cb => cb.building == build.wonder)) {
+						if (!completed.TryGetValue(build.owner, out List<(string name, int turns)> list)) {
+							completed[build.owner] = list = new();
+						}
+						list.Add((build.wonder.name, turn - build.startTurn));
+					} else if (gameData.GreatWondersBuilt.Contains(build.wonder.name)) {
+						Add(lost, build.owner, 1);
+						Add(lostShields, build.owner, build.shields);
+					}
+					builds.Remove(city.id);
+					build = null;
+				}
+				if (current != null) {
+					if (build == null) {
+						build = new Build { wonder = current, owner = city.owner, startTurn = turn };
+						builds[city.id] = build;
+						Add(started, city.owner, 1);
+					}
+					build.shields = city.shieldsStored;
+					Add(cityTurns, city.owner, 1);
+				}
+			}
+		}
 	}
 
 	private static SaveGame NewSave(int size, int civs, int seed, int difficulty, WorldCharacteristics.Landform landform) {
@@ -110,12 +167,24 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 		double[] trialSums = new double[Measures.Names.Length];
 		double[] otherSums = new double[Measures.Names.Length];
 		double[] allTechs = new double[games];
+		// Over all games: the turns each completed great wonder took, and
+		// how often each wonder was built, by the trial civs and the others.
+		List<int> trialWonderTurns = new(), otherWonderTurns = new();
+		Dictionary<string, (int trial, int others)> wondersByName = new();
 		Stopwatch total = Stopwatch.StartNew();
 
 		for (int game = 0; game < games; ++game) {
 			int seed = firstSeed + game;
-			(List<Measures> trial, List<Measures> others, double averageTechs) =
+			(List<Measures> trial, List<Measures> others, double averageTechs, WonderTracker wonders, HashSet<Player> trialCivs) =
 				await PlayGame(NewSave(size, civs, seed, difficulty, landform), experiments, turns, trialHalf: game % 2);
+			foreach ((Player p, List<(string name, int turns)> list) in wonders.completed) {
+				bool isTrial = trialCivs.Contains(p);
+				foreach ((string name, int t) in list) {
+					(isTrial ? trialWonderTurns : otherWonderTurns).Add(t);
+					(int tr, int ot) = wondersByName.GetValueOrDefault(name);
+					wondersByName[name] = isTrial ? (tr + 1, ot) : (tr, ot + 1);
+				}
+			}
 			double[] difference = new double[Measures.Names.Length];
 			for (int m = 0; m < Measures.Names.Length; ++m) {
 				double t = trial.Average(x => x.values[m]);
@@ -141,6 +210,10 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			lines.Add($"{Measures.Names[m],-9} {trialSums[m] / games,8:0.0} vs {otherSums[m] / games,8:0.0}   {mean:+0.00;-0.00} +- {se:0.00}{(se > 0 && Math.Abs(mean) > 2 * se ? "  *" : "")}");
 		}
 		lines.Add($"techs known per civ at the end, all civs: {allTechs.Average():0.0}");
+		static string TurnsSummary(List<int> t) => t.Count == 0 ? "none" : $"{t.Count} wonders, {t.Average():0.0} turns on average (median {t.OrderBy(x => x).ElementAt(t.Count / 2)})";
+		lines.Add($"great wonders completed by the trial civs: {TurnsSummary(trialWonderTurns)}");
+		lines.Add($"great wonders completed by the others:     {TurnsSummary(otherWonderTurns)}");
+		lines.Add("great wonders built (trial/others): " + string.Join(", ", wondersByName.OrderBy(kv => kv.Key).Select(kv => $"{kv.Key} {kv.Value.trial}/{kv.Value.others}")));
 		lines.Add($"total ms={total.ElapsedMilliseconds}");
 		File.WriteAllLines(outPath, lines);
 		foreach (string line in lines) {
@@ -148,7 +221,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 		}
 	}
 
-	private async Task<(List<Measures> trial, List<Measures> others, double averageTechs)> PlayGame(SaveGame save, string[] experiments, int turns, int trialHalf) {
+	private async Task<(List<Measures> trial, List<Measures> others, double averageTechs, WonderTracker wonders, HashSet<Player> trialCivs)> PlayGame(SaveGame save, string[] experiments, int turns, int trialHalf) {
 		new MsgSetAnimationsEnabled(false).send();
 		EngineStorage.ProcessNextMessageToEngine();
 		await CreateGame.createGame(save, (_) => fixture.behaviors);
@@ -184,6 +257,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			}
 		}
 
+		WonderTracker wonders = new();
 		try {
 			TurnHandling.OnBeginTurn();
 			TurnHandling.InitTurnData();
@@ -194,6 +268,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 				new MsgEndTurn { turn = gameData.turn }.send();
 				EngineWaits.WaitForStartTurnMessage(_ => { });
 				CountCaptures();
+				wonders.Update(gameData);
 			}
 		} finally {
 			gameData.observerMode = false;
@@ -219,11 +294,15 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			m.values[i++] = captured[p];
 			m.values[i++] = lost[p];
 			m.values[i++] = p.defeated ? 0 : 1;
+			m.values[i++] = wonders.started.GetValueOrDefault(p);
+			m.values[i++] = wonders.lost.GetValueOrDefault(p);
+			m.values[i++] = wonders.lostShields.GetValueOrDefault(p);
+			m.values[i++] = wonders.cityTurns.GetValueOrDefault(p);
 			return m;
 		}
 
 		List<Measures> trial = civs.Where(trialCivs.Contains).Select(Measure).ToList();
 		List<Measures> others = civs.Where(p => !trialCivs.Contains(p)).Select(Measure).ToList();
-		return (trial, others, civs.Average(p => p.knownTechs.Count));
+		return (trial, others, civs.Average(p => p.knownTechs.Count), wonders, trialCivs);
 	}
 }
