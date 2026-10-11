@@ -204,6 +204,28 @@ public class CombatTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(us, worker.owner);
 	}
 
+	// Capturing the last settler of a civ with no cities destroys the civ,
+	// which removes its other units, among them a worker on the same tile:
+	// that one mustn't then be captured too, which would leave the captor a
+	// unit on no tile.
+	[Fact]
+	public async Task NoWorkerIsCapturedAfterItsCivIsDestroyed() {
+		GoToWar();
+		(Tile from, TileDirection dir, Tile to) = FindAdjacentLand();
+		MapUnit warrior = Spawn(us, "Warrior", from);
+		Spawn(them, "Settler", to);
+		Spawn(them, "Worker", to);
+		foreach (MapUnit u in them.units.Where(u => u.location != to).ToList()) {
+			gameData.RemoveUnit(u);
+		}
+		them.cities.Clear();
+
+		Assert.True(await warrior.Move(dir));
+
+		Assert.True(them.defeated);
+		Assert.All(us.units, u => Assert.Contains(u, u.location.unitsOnTile));
+	}
+
 	[Fact]
 	public async Task CapturedSettlerBecomesTwoSlaveWorkers() {
 		GoToWar();
