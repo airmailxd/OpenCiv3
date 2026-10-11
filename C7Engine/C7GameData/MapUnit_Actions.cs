@@ -603,6 +603,11 @@ public partial class MapUnit {
 	private void CaptureDefencelessUnits(Tile tile) {
 		GameData gameData = EngineStorage.gameData;
 		foreach (MapUnit enemy in tile.unitsOnTile.Where(u => !owner.IsAtPeaceWith(u.owner)).ToList()) {
+			// Taking the last of a civ's units destroys the civ, removing the
+			// rest of its units, these too: one already gone isn't taken.
+			if (!tile.unitsOnTile.Contains(enemy)) {
+				continue;
+			}
 			enemy.owner.AddWarWeariness(owner, Player.WarWearinessForLostUnitWithoutDefence);
 			if (owner.isBarbarians) {
 				gameData.RemoveUnit(enemy);
