@@ -498,6 +498,8 @@ namespace C7GameData {
 				other.AddWarWeariness(this, WarWearinessWhenWarIsDeclaredOnUs);
 			}
 
+			C7Engine.AI.AiExperiments.onWarDeclared?.Invoke(this, other);
+
 			// Whenever war is declared, re-evaluate priorities.
 			turnsUntilPriorityReevaluation = 0;
 			other.turnsUntilPriorityReevaluation = 0;
