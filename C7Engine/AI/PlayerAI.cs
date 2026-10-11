@@ -66,6 +66,7 @@ namespace C7Engine {
 			UpgradeUnits(player);
 			await EngineStorage.YieldIfFrameBudgetSpent();
 			await DoUnitActions(player);
+			DevelopmentAI.HurryProduction(player);
 
 			// Before ending the turn, adjust our sliders. We do this after unit
 			// moves so that any worker moves that finished during the unit moves
@@ -180,7 +181,8 @@ namespace C7Engine {
 
 		public static void MaybePickTechToResearch(Player player, List<Tech> techs) {
 			while (player.currentlyResearchedTech == null || player.knownTechs.Contains(player.currentlyResearchedTech)) {
-				Tech toResearch = player.GetAvailableTechsToResearch(techs).FirstOrDefault();
+				OrderedTechSet available = player.GetAvailableTechsToResearch(techs);
+				Tech toResearch = DevelopmentAI.ChooseResearch(player, techs, available) ?? available.FirstOrDefault();
 				if (toResearch == null) {
 					log.Information($"Player {player.civilization.name} has no techs available to research.");
 					player.SetCurrentlyResearchedTech(null);
