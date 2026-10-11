@@ -55,9 +55,10 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			"score", "cities", "citizens", "land", "techs", "wonders", "military", "captured", "lost", "alive",
 			// Great leaders and armies: elite land units at the end (only
 			// they produce leaders), leaders that appeared, armies the
-			// civ had (formed by a leader or built), armies it lost, and
+			// civ had (formed by a leader or built), whether an army of its
+			// won a battle, armies it lost, and
 			// cities it captured with an army on the city's tile.
-			"elites", "leaders", "armies", "armylost", "armycaps",
+			"elites", "leaders", "armies", "armywon", "armylost", "armycaps",
 		];
 		public readonly double[] values = new double[Names.Length];
 	}
@@ -242,6 +243,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			m.values[i++] = p.units.Count(u => u.IsLandUnit() && !u.IsArmy() && u.IsElite());
 			m.values[i++] = leaders[p].Count;
 			m.values[i++] = armies[p].Count;
+			m.values[i++] = p.hasVictoriousArmy ? 1 : 0;
 			m.values[i++] = armies[p].Count(id => !p.units.Any(u => u.id == id));
 			m.values[i++] = armyCaptures[p];
 			return m;
