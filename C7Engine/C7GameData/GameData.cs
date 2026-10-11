@@ -97,6 +97,21 @@ namespace C7GameData {
 		public List<WorldSize> worldSizes = new();
 		public List<Difficulty> difficulties = new();
 		public Difficulty gameDifficulty = new();
+
+		// The difficulty level whose rules the AI plays by for the citizens
+		// born content, whatever the game's level. Civ3's AI plays as on its
+		// "default AI intelligence" level, Regent: "The AI players play as
+		// regent players when it comes to these factors. It means that on
+		// emperor/deity you have only your first citizen born content, while
+		// the AI still has two"; "This is in the general settings page under
+		// 'default AI intelligence'"
+		// (https://forums.civfanatics.com/threads/ai-difficulty-level-bonuses.37490/).
+		// Regent is the level with the neutral cost factor, at which the AI
+		// also researches (see TechCostFor). The game's level if there is
+		// none.
+		public Difficulty AiRulesDifficulty() {
+			return difficulties.FirstOrDefault(d => d.AiCostFactor == d.HumanCostFactor) ?? gameDifficulty;
+		}
 		public string defaultExperienceLevelKey;
 		public ExperienceLevel defaultExperienceLevel;
 		public Rules rules;
