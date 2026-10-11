@@ -133,6 +133,12 @@ namespace C7Engine.AI {
 			if (ourOffer.cities.Count > MaxCitiesToCede(outlook)) {
 				return false;
 			}
+			// On trial: an AI whose army is on the march against them, and
+			// that isn't losing, fights on unless offered a city.
+			if (AiExperiments.Has(us, "war-no-peace") && outlook >= WarOutlook.Even && theirOffer.cities.Count == 0
+				&& WarCampaign.HasCampaignAgainst(us, them)) {
+				return false;
+			}
 			// Dominating, a city of theirs is our price, whatever else is in
 			// the deal; failing that, tribute.
 			if (outlook == WarOutlook.Dominating && theirOffer.cities.Count > 0) {
