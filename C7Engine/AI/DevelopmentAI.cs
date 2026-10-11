@@ -5,9 +5,9 @@ using C7GameData;
 using Serilog;
 
 namespace C7Engine.AI {
-	// How fast the AI develops its empire: what it researches and how its
-	// cities work their tiles, and, still on trial behind AiExperiments
-	// switches, what its cities build and how it hurries production. All of
+	// How fast the AI develops its empire: what it researches, how its
+	// cities work their tiles, which units it hurries with gold, and, still
+	// on trial behind an AiExperiments switch, what its cities build. All of
 	// them are AI preferences, not rules.
 	public static class DevelopmentAI {
 		private static readonly ILogger log = Log.ForContext(typeof(DevelopmentAI));
@@ -18,12 +18,6 @@ namespace C7Engine.AI {
 		// nor walls or barracks. Without this the AI kept some 80 land units
 		// for 11 cities by turn 200, and paid for most of them.
 		public const string LeanMilitary = "lean-military";
-
-		// Spends gold above a reserve to finish settlers, workers, defenders
-		// of unguarded cities and useful buildings, under governments that
-		// hurry with gold. The AI didn't hurry production at all.
-		public const string RushBuy = "rush-buy";
-
 
 		////////////////////////////////////////////////////////////////////
 		// lean-military
@@ -166,24 +160,61 @@ namespace C7Engine.AI {
 		}
 
 		////////////////////////////////////////////////////////////////////
-		// rush-buy
+		// Hurrying production
 
-		// Hurries the most valuable items the treasury can pay for, keeping a
-		// reserve for upkeep and emergencies.
+		// Why a unit is worth hurrying, least urgent first.
+		private enum RushReason {
+			None,
+			Worker,
+			Settler,
+			Escort,
+			Campaign,
+			Defense,
+		}
+
+		// Under governments that hurry with gold, buys the units that matter
+		// now, most urgent first: defenders for unguarded or threatened
+		// cities, attackers and siege engines for a war campaign, escorts for
+		// waiting settlers, settlers, and workers while short of them.
+		//
+		// Not hurried, as AI trials (AiTrialTest) found no gain or a loss:
+		// buildings (the gold went to units first anyway, and with the taxes
+		// below they cost beakers); any soldier at war (it mostly bought
+		// obsolete warriors and archers); and units bought with citizens
+		// under Despotism and the like (fewer units and lower scores).
+		// Hurrying as it is, with the taxes at war, civs had some 66 more
+		// score after 200 turns over 64 paired games on Continents and
+		// Pangaea (+-47; ahead on each map and seed set), most on Pangaea,
+		// where they also lost fewer cities.
 		public static void HurryProduction(Player player) {
-			if (!AiExperiments.Has(player, RushBuy) || player.government.hurryingType != Government.HurryProductionType.PaidLabor) {
+			if (player.isHuman || player.isBarbarians || player.cities.Count == 0
+					|| player.government.hurryingType != Government.HurryProductionType.PaidLabor) {
 				return;
 			}
-			int reserve = 20 + 3 * player.cities.Count;
-			bool atWar = PlayerRelationship.IsInAnyWar(player, EngineStorage.gameData.players);
-			List<(City city, float value, int cost)> candidates = new();
+			City staging = WarCampaign.CampaignStagingCity(player);
+			bool atWar = staging != null || PlayerRelationship.IsInAnyWar(player, EngineStorage.gameData.players);
+			// The reserve also covers ten turns of any deficit, so that the
+			// sliders (PlayerAI.AdjustSliders, which tolerates a deficit of a
+			// tenth of the treasury) needn't take beakers for taxes.
+			int deficit = Math.Max(0, -player.CalculateGoldPerTurn());
+			int reserve = Math.Max(BaseReserve(player), ReserveDeficitTurns * deficit);
+			// At war, or gathering for one, gold kept back is worth less than
+			// soldiers in the field.
+			int warReserve = atWar ? reserve / 2 : reserve;
+			int workers = player.units.Count(u => u.unitType.isWorker);
+
+			List<(City city, RushReason reason, int cost)> candidates = new();
 			foreach (City city in player.cities) {
-				// From an empty box hurrying costs double; wait a turn.
-				if (city.hurriedThisTurn || city.itemBeingProduced == null || city.shieldsStored == 0) {
+				if (city.hurriedThisTurn || city.itemBeingProduced == null) {
 					continue;
 				}
-				float value = RushValue(city, atWar);
-				if (value <= 0) {
+				RushReason reason = UnitRushReason(player, city, staging, workers);
+				if (reason == RushReason.None) {
+					continue;
+				}
+				// From an empty box hurrying costs double; wait a turn unless
+				// the city is in danger.
+				if (city.shieldsStored == 0 && reason != RushReason.Defense) {
 					continue;
 				}
 				// Done next turn anyway.
@@ -198,44 +229,103 @@ namespace C7Engine.AI {
 				if (details.errorMessage != null || details.goldCost <= 0) {
 					continue;
 				}
-				candidates.Add((city, value, details.goldCost));
+				candidates.Add((city, reason, details.goldCost));
 			}
-			foreach ((City city, float value, int cost) in candidates.OrderByDescending(c => c.value / c.cost)) {
-				if (player.gold - cost < reserve) {
+			// The most urgent first, and among equals the cheapest (the
+			// nearest to done), so the gold buys the most.
+			foreach ((City city, RushReason reason, int cost) in candidates.OrderByDescending(c => c.reason).ThenBy(c => c.cost)) {
+				int keep = reason switch {
+					RushReason.Defense => 0,
+					RushReason.Campaign => warReserve,
+					_ => reserve,
+				};
+				if (player.gold - cost < keep) {
 					continue;
 				}
-				log.Debug("{Player} hurries {Item} in {City} for {Cost}", player, city.itemBeingProduced, city, cost);
+				log.Debug("{Player} hurries {Item} in {City} for {Cost} ({Reason})", player, city.itemBeingProduced, city, cost, reason);
 				city.HurryProduction();
+				AiExperiments.onHurry?.Invoke(city, cost);
 			}
 		}
 
-		// How much it is worth to finish the city's item now, or 0 if it
-		// isn't worth gold.
-		private static float RushValue(City city, bool atWar) {
-			if (city.itemBeingProduced is UnitPrototype unit) {
-				if (unit.actions.Contains(UnitAction.BuildCity)) {
-					return 3;
-				}
-				if (unit.isWorker) {
-					return 2;
-				}
-				bool guarded = city.location.unitsOnTile.Any(u => u.CanDefendOnLand());
-				if (!guarded && unit.defense > 0) {
-					return 4;
-				}
-				return atWar && IsMilitaryLandUnit(unit) ? 1 : 0;
+		// HEURISTIC: the gold kept back from hurrying: a base and so much per
+		// city, or ten turns of deficit if that is more. A reserve of 30 and
+		// 5 a city left the AI's small treasuries nearly untouched.
+		private const int ReserveBase = 10;
+		private const int ReservePerCity = 2;
+		private const int ReserveDeficitTurns = 10;
+
+		private static int BaseReserve(Player player) {
+			return ReserveBase + ReservePerCity * player.cities.Count;
+		}
+
+		// The gold per turn the sliders should at least bring in (see
+		// PlayerAI.AdjustSliders), or int.MinValue for no more than usual:
+		// a gold per city while at war or gathering for one, under
+		// governments that hurry with gold, until the treasury holds three
+		// times the reserve. The AI otherwise ran its treasury at about
+		// nothing a turn, so had little to hurry with when it mattered.
+		public static int WantedGoldPerTurn(Player player) {
+			if (player.isHuman || player.isBarbarians
+					|| player.government.hurryingType != Government.HurryProductionType.PaidLabor
+					|| player.gold > 3 * BaseReserve(player)) {
+				return int.MinValue;
 			}
-			if (city.itemBeingProduced is Building b) {
-				if (b.IsGreatWonder() || b.isSmallWonder) {
-					return 0;
-				}
-				if (b.contentFacesInCity > 0 || b.increasesResearch || b.increasesTax || b.increasesLuxury
-						|| b.reducesCorruption || b.allowsCitySize2 || b.tileModifier != null) {
-					return 1.5f;
-				}
-				return 0.5f;
+			if (WarCampaign.CampaignStagingCity(player) == null && !PlayerRelationship.IsInAnyWar(player, EngineStorage.gameData.players)) {
+				return int.MinValue;
 			}
-			return 0;
+			return player.cities.Count;
+		}
+
+		// HEURISTIC: how many tiles from a campaign's staging city a city may
+		// be for the attackers it buys to join the campaign in time.
+		private const int CampaignRushDistance = 8;
+
+		private static RushReason UnitRushReason(Player player, City city, City staging, int workers) {
+			if (city.itemBeingProduced is not UnitPrototype unit || !unit.IsLandUnit() || unit.isArmy) {
+				return RushReason.None;
+			}
+			if (unit.defense > 0 && (!city.location.unitsOnTile.Any(u => u.owner == player && u.CanDefendOnLand()) || Threatened(player, city))) {
+				return RushReason.Defense;
+			}
+			if (staging != null && city.location.continent == staging.location.continent
+					&& city.location.DistanceTo(staging.location) <= CampaignRushDistance) {
+				if ((unit.attack > unit.defense && WarCampaign.WantsAttackers(player))
+						|| (unit.bombard > 0 && unit.attack == 0 && WarCampaign.WantsBombarders(player))) {
+					return RushReason.Campaign;
+				}
+			}
+			if (unit.defense > 0 && unit.defense >= unit.attack
+					&& city.location.unitsOnTile.Any(u => u.owner == player && u.currentAI is SettlerAI s && s.data.escort == null)) {
+				return RushReason.Escort;
+			}
+			if (unit.actions.Contains(UnitAction.BuildCity)) {
+				return RushReason.Settler;
+			}
+			if (unit.isWorker && workers < player.cities.Count) {
+				return RushReason.Worker;
+			}
+			return RushReason.None;
+		}
+
+		// HEURISTIC: how near an enemy unit must be for its city to be in
+		// danger.
+		private const int ThreatDistance = 2;
+
+		// Whether an enemy land unit that can attack stands, as far as we
+		// can see, near the city.
+		private static bool Threatened(Player player, City city) {
+			foreach (Tile t in city.location.GetTilesWithinRankDistance(ThreatDistance)) {
+				if (!AIFogOfWar.SeesUnitsOn(player, t)) {
+					continue;
+				}
+				foreach (MapUnit u in t.unitsOnTile) {
+					if (u.owner != player && u.IsLandUnit() && u.unitType.attack > 0 && !u.owner.IsAtPeaceWith(player)) {
+						return true;
+					}
+				}
+			}
+			return false;
 		}
 
 		////////////////////////////////////////////////////////////////////

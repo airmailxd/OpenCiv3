@@ -24,5 +24,7 @@ namespace C7Engine.AI {
 		// a trial.
 		internal static Action<MapUnit, MapUnit, CombatResult> onCombat;
 		internal static Action<Player, Player> onWarDeclared;
+		// And the AI's hurried production: the city and the gold it paid.
+		internal static Action<City, int> onHurry;
 	}
 }

@@ -71,12 +71,27 @@ public sealed class DevelopmentAITest : IClassFixture<SaveGameFixture>, IDisposa
 		city.SetStoredShields(shields);
 	}
 
+	private UnitPrototype UnitNamed(string name) => gameData.unitPrototypes.First(p => p.name == name);
+
+	private void StartUnit(string name, int shields) {
+		city.SetItemBeingProduced(UnitNamed(name));
+		city.SetStoredShields(shields);
+	}
+
+	// A guarded city building a worker, which is wanted: the player has
+	// fewer workers than cities, and the city a citizen to spare.
+	private void StartWantedWorker(int shields) {
+		gameData.SpawnUnit(player, UnitNamed("Warrior"), city.location);
+		player.units.RemoveAll(u => u.unitType.isWorker);
+		city.AddCitizen(new CityResident { city = city, nationality = player.civilization, citizenType = gameData.citizenTypes.First(c => c.IsDefaultCitizen) });
+		StartUnit("Worker", shields);
+	}
+
 	[Fact]
-	public void RushBuyFinishesAnImprovementUnderMonarchy() {
-		AiExperiments.Enable(player, DevelopmentAI.RushBuy);
+	public void HurryBuysADefenderForAnUnguardedCity() {
 		player.government = Government("Monarchy");
 		player.gold = 1000;
-		StartTemple(1);
+		StartUnit("Spearman", 1);
 
 		DevelopmentAI.HurryProduction(player);
 
@@ -85,11 +100,32 @@ public sealed class DevelopmentAITest : IClassFixture<SaveGameFixture>, IDisposa
 	}
 
 	[Fact]
-	public void RushBuyKeepsAReserve() {
-		AiExperiments.Enable(player, DevelopmentAI.RushBuy);
+	public void HurryBuysAnUnguardedCitysDefenderEvenFromAnEmptyBox() {
 		player.government = Government("Monarchy");
-		StartTemple(1);
-		// Just enough for the temple, but nothing would be left over.
+		player.gold = 1000;
+		StartUnit("Spearman", 0);
+
+		DevelopmentAI.HurryProduction(player);
+
+		Assert.Equal(player.ShieldCost(city.itemBeingProduced), city.shieldsStored);
+	}
+
+	[Fact]
+	public void HurryBuysAWorkerWhenShortOfThem() {
+		player.government = Government("Monarchy");
+		player.gold = 1000;
+		StartWantedWorker(1);
+
+		DevelopmentAI.HurryProduction(player);
+
+		Assert.Equal(player.ShieldCost(city.itemBeingProduced), city.shieldsStored);
+	}
+
+	[Fact]
+	public void HurryKeepsAReserve() {
+		player.government = Government("Monarchy");
+		StartWantedWorker(1);
+		// Just enough for the worker, but nothing would be left over.
 		player.gold = city.GetHurryProductionDetails().goldCost;
 
 		DevelopmentAI.HurryProduction(player);
@@ -98,11 +134,10 @@ public sealed class DevelopmentAITest : IClassFixture<SaveGameFixture>, IDisposa
 	}
 
 	[Fact]
-	public void RushBuyDoesNotPayFromAnEmptyBox() {
-		AiExperiments.Enable(player, DevelopmentAI.RushBuy);
+	public void HurryDoesNotPayDoubleForAWorker() {
 		player.government = Government("Monarchy");
 		player.gold = 1000;
-		StartTemple(0);
+		StartWantedWorker(0);
 
 		DevelopmentAI.HurryProduction(player);
 
@@ -111,7 +146,7 @@ public sealed class DevelopmentAITest : IClassFixture<SaveGameFixture>, IDisposa
 	}
 
 	[Fact]
-	public void RushBuyNeedsTheSwitch() {
+	public void HurryLeavesImprovementsAlone() {
 		player.government = Government("Monarchy");
 		player.gold = 1000;
 		StartTemple(1);
@@ -119,6 +154,44 @@ public sealed class DevelopmentAITest : IClassFixture<SaveGameFixture>, IDisposa
 		DevelopmentAI.HurryProduction(player);
 
 		Assert.Equal(1, city.shieldsStored);
+		Assert.Equal(1000, player.gold);
+	}
+
+	[Fact]
+	public void HurrySacrificesNoCitizensUnderDespotism() {
+		player.government = Government("Despotism");
+		StartUnit("Spearman", 1);
+		int residents = city.residents.Count;
+
+		DevelopmentAI.HurryProduction(player);
+
+		Assert.Equal(1, city.shieldsStored);
+		Assert.Equal(residents, city.residents.Count);
+	}
+
+	[Fact]
+	public void HurryLeavesHumansAlone() {
+		player.isHuman = true;
+		try {
+			player.government = Government("Monarchy");
+			player.gold = 1000;
+			StartUnit("Spearman", 1);
+
+			DevelopmentAI.HurryProduction(player);
+
+			Assert.Equal(1, city.shieldsStored);
+		} finally {
+			player.isHuman = false;
+		}
+	}
+
+	[Fact]
+	public void NoExtraTaxesForHurryingInPeacetime() {
+		player.government = Government("Monarchy");
+		player.gold = 0;
+		Assert.False(PlayerRelationship.IsInAnyWar(player, gameData.players));
+
+		Assert.Equal(int.MinValue, DevelopmentAI.WantedGoldPerTurn(player));
 	}
 
 	[Fact]
