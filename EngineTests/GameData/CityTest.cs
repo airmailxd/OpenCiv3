@@ -37,7 +37,9 @@ public class CityTest {
 
 	[Fact]
 	public void CityWith2ProductionPerTurn_ShouldReturn1TurnIf19_of_20FoodDone() {
-		Player player = new();
+		// Human, so the food box doesn't depend on the difficulty another
+		// test left behind (the AI's is scaled by its cost factor).
+		Player player = new() { isHuman = true };
 		player.government = new Government();
 		player.rules = new() { MaximumLevel1CitySize = 6 };
 		TerrainType oneShield = new TerrainType();
