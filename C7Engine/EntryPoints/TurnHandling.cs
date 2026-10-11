@@ -87,6 +87,12 @@ namespace C7Engine {
 
 			// Loop ends with a function return once we reach the UI controller during the movement phase
 			while (true) {
+				// Watching the AIs play, the game goes on when the civ being
+				// followed is destroyed: the view follows another.
+				if (gameData.observerMode) {
+					FollowAnotherCivIfFollowedOneFell(gameData);
+				}
+
 				// The loop hands control back at a human, or at the player
 				// being observed. With neither left, the AIs would play
 				// against each other forever with nothing for the UI to do.
@@ -223,6 +229,22 @@ namespace C7Engine {
 				player.hasPlayedThisTurn = true;
 			}
 			return false;
+		}
+
+		// In observer mode, follows the first civ still in the game, in turn
+		// order, if the one being followed has been destroyed.
+		private static void FollowAnotherCivIfFollowedOneFell(GameData gameData) {
+			Player followed = gameData.GetPlayer(EngineStorage.activePlayerID);
+			if (followed != null && !followed.defeated) {
+				return;
+			}
+			Player next = PlayersInTurnOrder(gameData).FirstOrDefault(p => !p.defeated && !p.isBarbarians);
+			if (next == null) {
+				return;
+			}
+			log.Information("{Followed} has been destroyed; now following {Next}", followed, next);
+			EngineStorage.activePlayerID = next.id;
+			EngineStorage.uiControllerID = next.id;
 		}
 
 		// Hands the turn to a human, or to the player being observed.

@@ -1152,6 +1152,16 @@ public partial class Game : Node {
 			return;
 		}
 
+		// Watching the AIs play here, news doesn't stop the game or wait to be
+		// read: the wars are listed at each pause (see WarList), and the
+		// rest, such as wonders built, isn't announced.
+		if (WatchingAiGame && msg.SpectatorHeadline() != null) {
+			if (msg is MsgWarDeclaration war) {
+				WarListForWatching().RecordDeclaration(war.aggressor, war.opponent);
+			}
+			return;
+		}
+
 		switch (msg) {
 			case MsgStartTurn when SimultaneousLanTurns:
 				// Every human is told at once; we play ours one by one.
@@ -1216,7 +1226,11 @@ public partial class Game : Node {
 				new MsgPickDefaultResearch().send();
 				break;
 			case MsgCityProductionCompleted mCPC when mCPC.city != null:
-				EnqueueProductionPopup(mCPC);
+				// Nor are the watched civ's builds (wonders among them)
+				// announced while watching the AIs play.
+				if (!WatchingAiGame) {
+					EnqueueProductionPopup(mCPC);
+				}
 				break;
 			case MsgUpdateUiAfterDomesticChange mUUASC:
 				// Ensure the citizen moods are correct before displaying them.
@@ -1688,11 +1702,20 @@ public partial class Game : Node {
 			// prompts them to do so, naming the tech they just discovered.
 			new MsgAskWhatToResearch().send();
 
+			if (WatchingAiGame) {
+				WarListForWatching().Track(gameData);
+			}
+
 			// Allow fast forwarding in observer mode.
 			if (gameData.observerMode && turnsLeftToFastForward > 0) {
 				--turnsLeftToFastForward;
 				new MsgEndTurn().send();
 				return;
+			}
+
+			// Paused while watching: show who's at war.
+			if (WatchingAiGame) {
+				WarListForWatching().ShowAtPause(gameData.turn);
 			}
 
 			CurrentState = GameState.PlayerTurn;
@@ -1743,6 +1766,7 @@ public partial class Game : Node {
 		EmitSignal(SignalName.TurnEnded);
 		log.Information("Starting computer turn");
 		CurrentState = GameState.ComputerTurn;
+		warList?.HideAndContinue();
 		// Ending the turn by hand in observer mode plays on to the next pause.
 		if (EngineStorage.gameData.observerMode && fastForwardInterval > 0) {
 			turnsLeftToFastForward = fastForwardInterval - 1;
@@ -2295,6 +2319,21 @@ public partial class Game : Node {
 		mapView.InvalidateMap();
 	}
 
+	// Whether the user is watching the AIs play on this machine (observer
+	// mode outside a LAN game, whose spectators have their own news).
+	private static bool WatchingAiGame => EngineStorage.gameData?.observerMode == true && !LanSession.IsActive;
+
+	// The wars shown at each pause while watching, made when first needed.
+	private WarList warList;
+
+	private WarList WarListForWatching() {
+		if (warList == null) {
+			warList = new WarList();
+			AddChild(warList);
+		}
+		return warList;
+	}
+
 	// The most turns observer mode plays between pauses.
 	private const int MaxTurnsBetweenPauses = 2500;
 
@@ -2329,6 +2368,7 @@ public partial class Game : Node {
 	private void SetObserverModeOff(GameData gameData) {
 		fastForwardInterval = 0;
 		turnsLeftToFastForward = 0;
+		warList?.HideAndContinue();
 		foreach (Player player in gameData.players) {
 			if (player.id == EngineStorage.uiControllerID || observerModeHumans.Contains(player.id)) {
 				player.isHuman = true;
