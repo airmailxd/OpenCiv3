@@ -4,23 +4,111 @@ using System.Linq;
 using C7GameData;
 
 namespace C7Engine.AI {
-	// How the AI plans great wonders, on trial (see AiExperiments):
+	// How the AI plans great wonders.
+	//
+	// Every AI builds great wonders in its safe, productive cities (see
+	// SiteAdjustment). In AI trials (AiTrialTest, 16 paired games on each of
+	// four seed sets) that won about 0.5 more wonders per civ on Continents
+	// and 0.9 on Pangaea, with score, cities and cities lost unchanged within
+	// the noise; more wonders were also lost to rivals, as more were begun.
+	// Tried and dropped: never starting a wonder in the less productive
+	// cities, or only keeping threatened cities off wonders, both of which
+	// built fewer wonders for nothing; and having threatened cities favour
+	// combat units, which only added noise.
+	//
+	// On trial (see AiExperiments):
 	//
 	//   wonder-value  values a great wonder by what its effect is worth to
 	//                 this civ now, rather than mostly by its culture.
 	//   wonder-timing while the civ is expanding, builds great wonders only
 	//                 in its most productive city, one at a time.
 	//
-	// Without the switches the AI scores great wonders like any other
-	// building. Other ideas tried and dropped, as they did no better (see
-	// the commit that removed them): building wonders only in the more
-	// productive cities, a few at a time; only ones finished within 30
-	// turns; shying away from wonders many known rivals can build; and
-	// moving the shields of a wonder lost to a rival to the best item that
-	// holds them rather than the most expensive one.
+	// Other ideas tried and dropped, as they did no better (see the commit
+	// that removed them): building wonders only in the more productive
+	// cities, a few at a time; only ones finished within 30 turns; shying
+	// away from wonders many known rivals can build; and moving the shields
+	// of a wonder lost to a rival to the best item that holds them rather
+	// than the most expensive one.
 	public static class WonderPlanner {
 		public const string Value = "wonder-value";
 		public const string Timing = "wonder-timing";
+
+		// HEURISTIC: how near an enemy unit (one we can see) or an enemy
+		// city must be for a city to count as threatened.
+		private const int ThreatUnitDistance = 3;
+		private const int FrontLineDistance = 6;
+		// HEURISTIC: how much more (or less) a city wants a great wonder for
+		// being among the civ's most (or least) productive.
+		private const float ProductiveCityBonus = 15;
+
+		// Great wonders go to the civ's most productive cities, where they
+		// finish soonest and are least likely to be lost to a rival, and
+		// never to a city under threat in a war, which needs its shields for
+		// defenders and could lose the wonder with the city. A civ at war
+		// still builds them in its safe cities. Null if the city shouldn't
+		// start a wonder at all, otherwise the change to the wonder's score.
+		internal static float? SiteAdjustment(ChooseProducible.ProducibleStats stats, City city, Player player, Building wonder) {
+			// A wonder already under way keeps its shields where they are.
+			if (city.itemBeingProduced == wonder) {
+				return 0;
+			}
+			Plan plan = stats.WonderPlan;
+			if (plan.Threatened) {
+				return null;
+			}
+			int n = plan.byProduction.Count;
+			int rank = plan.Rank(city);
+			int best = plan.byProduction[0].shields;
+			int mine = rank < 0 ? 0 : plan.byProduction[rank].shields;
+			// The top third of the civ's cities, or nearly as productive as
+			// the best of them.
+			if (rank < Math.Max(1, n / 3) || mine * 4 >= best * 3) {
+				return ProductiveCityBonus;
+			}
+			// Well short of the best city: a wonder would take long here, so
+			// it may still build one, but only if it is wanted a lot.
+			if (mine * 2 < best) {
+				return -ProductiveCityBonus;
+			}
+			return 0;
+		}
+
+		// Whether a city is threatened in a war, from what the AI may know:
+		// enemy units it can see close by, or a known enemy city near it on
+		// its continent.
+		internal static bool IsThreatened(City city, Player player) {
+			GameData gameData = EngineStorage.gameData;
+			bool fogRefreshed = false;
+			foreach (Player other in gameData.players) {
+				if (other == player || other.defeated || !PlayerRelationship.AtWar(player, other)) {
+					continue;
+				}
+				foreach (MapUnit u in other.units) {
+					Tile t = u.location;
+					if (t == null || t == Tile.NONE || !u.IsLandUnit() || !u.CanAttack()
+							|| t.continent != city.location.continent || t.DistanceTo(city.location) > ThreatUnitDistance) {
+						continue;
+					}
+					if (!fogRefreshed) {
+						AIFogOfWar.Refresh(player);
+						fogRefreshed = true;
+					}
+					if (AIFogOfWar.SeesUnitsOn(player, t)) {
+						return true;
+					}
+				}
+				if (other.isBarbarians) {
+					continue;
+				}
+				foreach (City c in other.cities) {
+					if (c.location.continent == city.location.continent && c.location.DistanceTo(city.location) <= FrontLineDistance
+							&& AIFogOfWar.KnowsTile(player, c.location)) {
+						return true;
+					}
+				}
+			}
+			return false;
+		}
 
 		// Under wonder-timing, while the civ is still expanding only its most
 		// productive city builds a great wonder, one at a time: the others
@@ -42,6 +130,8 @@ namespace C7Engine.AI {
 			public readonly int otherWonderBuilds;
 
 			public Plan(City city, Player player) {
+				this.city = city;
+				this.player = player;
 				byProduction = player.cities.Select(c => (c, c.CurrentProductionYield().useful))
 					.OrderByDescending(x => x.Item2).ToList();
 				foreach (City c in player.cities) {
@@ -50,6 +140,11 @@ namespace C7Engine.AI {
 					}
 				}
 			}
+
+			private readonly City city;
+			private readonly Player player;
+			private bool? threatened;
+			public bool Threatened => threatened ??= IsThreatened(city, player);
 
 			public int Rank(City city) {
 				return byProduction.FindIndex(x => x.city == city);
