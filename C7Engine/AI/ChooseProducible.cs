@@ -320,13 +320,21 @@ namespace C7Engine {
 
 			float score = 0;
 
-			// Great wonders on trial (see WonderPlanner): only at the right
-			// time, and valued by their effect instead of the culture and
-			// happiness terms below.
+			// Great wonders (see WonderPlanner): the AI builds them in its
+			// safe, productive cities. On trial: only at the right time, and
+			// valued by their effect instead of the culture and happiness
+			// terms below.
 			bool valuedWonder = false;
 			if (building.IsGreatWonder()) {
 				if (AiExperiments.Has(player, WonderPlanner.Timing) && !WonderPlanner.TimingAllows(stats, city, building)) {
 					return -1000f;
+				}
+				if (!player.isHuman) {
+					float? site = WonderPlanner.SiteAdjustment(stats, city, player, building);
+					if (site == null) {
+						return -1000f;
+					}
+					score += site.Value;
 				}
 				if (AiExperiments.Has(player, WonderPlanner.Value)) {
 					valuedWonder = true;
