@@ -116,8 +116,9 @@ namespace C7Engine.AI {
 			}
 			Difficulty difficulty = EngineStorage.gameData.gameDifficulty;
 			int free = difficulty.AdditionalFreeUnitSupport;
+			int extraPerCity = AiHouseRules.ExtraFreeUnitsPerCity(player);
 			foreach (City city in player.cities) {
-				free += difficulty.UnitSupportBonusForEachSettlement;
+				free += difficulty.UnitSupportBonusForEachSettlement + extraPerCity;
 				if (city.residents.Count <= player.rules.MaximumLevel1CitySize) {
 					free += government.freeUnitsPerTown;
 				} else if (city.residents.Count <= player.rules.MaximumLevel2CitySize) {

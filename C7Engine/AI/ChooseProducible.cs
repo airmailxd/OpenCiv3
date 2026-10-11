@@ -418,8 +418,10 @@ namespace C7Engine {
 			// Penalize more expensive buildings.
 			score -= city.TurnsToProduce(building) / (stats.InExpansionPhase ? 1 : 2);
 
-			// Penalize buildings with higher maintenance costs.
-			score -= building.maintenanceCost;
+			// Penalize buildings with higher maintenance costs, as much of
+			// them as a house rule leaves us to pay (see AiHouseRules).
+			float maintenance = building.maintenanceCost * AiHouseRules.BuildingMaintenancePercent(player) / 100f;
+			score -= maintenance;
 
 			// Boost buildings a bit if we aren't at war and aren't expanding.
 			if (!stats.InExpansionPhase && !atWar) {
@@ -428,7 +430,7 @@ namespace C7Engine {
 
 			// Penalize buildings if economy is weak
 			if (HasWeakEconomy(player)) {
-				score -= 10 * building.maintenanceCost;
+				score -= 10 * maintenance;
 			}
 
 			return score;

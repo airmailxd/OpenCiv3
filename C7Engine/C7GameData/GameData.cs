@@ -812,6 +812,8 @@ namespace C7GameData {
 			int difficultyFactor = player.isHuman ? gameDifficulty.AiCostFactor : gameDifficulty.HumanCostFactor;
 			float knowledgeFactor = 1.0f - knownCivsThatKnowTheTech / (civsLeft * 1.75f);
 			float researchCost = map.techRate * 10 * tech.Cost  * knowledgeFactor/ (difficultyFactor * 10);
+			// A house rule may make the AI's research cheaper (see AiHouseRules).
+			researchCost *= AiHouseRules.CostFactor(player);
 
 			// Only include the progress factor if this is the tech actively
 			// being researched.

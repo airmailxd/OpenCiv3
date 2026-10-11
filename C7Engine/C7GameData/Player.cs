@@ -1509,10 +1509,12 @@ namespace C7GameData {
 			if (!isHuman) {
 				freeUnits += difficulty.AdditionalFreeUnitSupport;
 			}
+			// A house rule may support more of the AI's units (see AiHouseRules).
+			int extraPerCity = AiHouseRules.ExtraFreeUnitsPerCity(this);
 
 			foreach (City city in cities) {
 				if (!isHuman) {
-					freeUnits += difficulty.UnitSupportBonusForEachSettlement;
+					freeUnits += difficulty.UnitSupportBonusForEachSettlement + extraPerCity;
 				}
 
 				if (city.residents.Count <= rules.MaximumLevel1CitySize) {
@@ -2262,6 +2264,8 @@ namespace C7GameData {
 			// At higher difficulties, AI players get a cost discount.
 			Difficulty difficulty = EngineStorage.gameData.gameDifficulty;
 			float costFactor = isHuman ? 1.0f : difficulty.AiCostFactor / (float)(difficulty.HumanCostFactor);
+			// A house rule may make it cheaper still (see AiHouseRules).
+			costFactor *= AiHouseRules.CostFactor(this);
 
 			return producible.ShieldCost(civilization.traits, costFactor);
 		}

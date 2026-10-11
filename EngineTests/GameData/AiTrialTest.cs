@@ -53,6 +53,9 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 	private sealed class Measures {
 		public static readonly string[] Names = [
 			"score", "cities", "citizens", "land", "techs", "wonders", "military", "captured", "lost", "alive",
+			// Economy: the treasury, gold per turn, buildings (not wonders),
+			// building upkeep per turn, units, and cities halfway through.
+			"gold", "gpt", "buildings", "upkeep", "units", "midCities",
 		];
 		public readonly double[] values = new double[Names.Length];
 	}
@@ -184,6 +187,8 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			}
 		}
 
+		Dictionary<Player, int> midCities = civs.ToDictionary(p => p, _ => 0);
+
 		try {
 			TurnHandling.OnBeginTurn();
 			TurnHandling.InitTurnData();
@@ -194,6 +199,11 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 				new MsgEndTurn { turn = gameData.turn }.send();
 				EngineWaits.WaitForStartTurnMessage(_ => { });
 				CountCaptures();
+				if (turn == turns / 2) {
+					foreach (Player p in civs) {
+						midCities[p] = p.cities.Count;
+					}
+				}
 			}
 		} finally {
 			gameData.observerMode = false;
@@ -219,6 +229,12 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			m.values[i++] = captured[p];
 			m.values[i++] = lost[p];
 			m.values[i++] = p.defeated ? 0 : 1;
+			m.values[i++] = p.gold;
+			m.values[i++] = p.cities.Count > 0 ? p.CalculateGoldPerTurn() : 0;
+			m.values[i++] = p.cities.Sum(c => c.constructed_buildings.Count(b => !b.building.IsGreatWonder() && !b.building.isSmallWonder));
+			m.values[i++] = p.MaintenanceCosts();
+			m.values[i++] = p.units.Count;
+			m.values[i++] = midCities[p];
 			return m;
 		}
 

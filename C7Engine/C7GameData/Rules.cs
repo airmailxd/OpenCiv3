@@ -56,6 +56,30 @@ namespace C7GameData {
 		public const float MaxCorruptionRate = 1.5f;
 		public float CorruptionRate = DefaultCorruptionRate;
 
+		// HOUSE RULES, not Civ3: bonuses for AI players only, to make the AI
+		// a stronger opponent beyond what Civ3's difficulty levels give it
+		// (see Difficulty). Human players are never affected. Each default
+		// leaves the game as Civ3 plays it. See AiHouseRules, which applies
+		// them.
+		//
+		// The percentage of their normal maintenance the AI's buildings cost.
+		public int AiBuildingMaintenancePercent = 100;
+		// Units each AI city supports for free on top of what its government
+		// and the difficulty level allow.
+		public int AiExtraFreeUnitsPerCity = 0;
+		// The percentage of their normal corruption and waste the AI's
+		// cities suffer.
+		public int AiCorruptionPercent = 100;
+		// Citizens born content in each AI city on top of the difficulty
+		// level's number.
+		public int AiExtraContentCitizens = 0;
+		// The percentage of their normal cost the AI pays in shields, food
+		// to grow and research, on top of the difficulty level's cost factor.
+		public int AiCostPercent = 100;
+		// Whether the AI's new fighting units start veteran, as if every AI
+		// city had barracks, a harbor and an airport.
+		public bool AiUnitsStartVeteran = false;
+
 		// Game option from Civ3 (Play the World): the food, shields and
 		// commerce cities generate each turn are doubled, speeding up growth,
 		// research and production. Off by default.

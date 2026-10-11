@@ -500,6 +500,12 @@ namespace C7GameData {
 			if (!owner.isHuman && difficulty != null && difficulty.AiCostFactor > 0) {
 				food = Math.Max(1, food * difficulty.AiCostFactor / difficulty.HumanCostFactor);
 			}
+			// A house rule may make the AI's growth cheaper still (see
+			// AiHouseRules).
+			float houseFactor = AiHouseRules.CostFactor(owner);
+			if (houseFactor != 1) {
+				food = Math.Max(1, (int)(food * houseFactor));
+			}
 			return food;
 		}
 
@@ -1285,6 +1291,11 @@ namespace C7GameData {
 				}
 				result += b.maintenanceCost;
 			}
+			// A house rule may cut the AI's upkeep (see AiHouseRules).
+			int percent = AiHouseRules.BuildingMaintenancePercent(owner);
+			if (percent != 100) {
+				result = (result * percent + 50) / 100;
+			}
 			return result;
 		}
 
@@ -1725,6 +1736,12 @@ namespace C7GameData {
 			foreach (CityBuilding b in EffectiveBuildings()) {
 				b.building.onFinishedUnitProduction?.Invoke(newUnit);
 			}
+			// A house rule may train the AI's fighting units as veterans (see
+			// AiHouseRules); one that a barracks made veteran stays veteran.
+			if (newUnit.unitType.attack + newUnit.unitType.defense > 0 && !newUnit.unitType.isSettler
+				&& newUnit.experienceLevel == gameData.defaultExperienceLevel && AiHouseRules.UnitsStartVeteran(owner)) {
+				newUnit.Promote();
+			}
 		}
 
 		// The list of tiles that could be worked by this city.
@@ -1847,9 +1864,12 @@ namespace C7GameData {
 				}
 			}
 
+			// A house rule may spare the AI some corruption and waste (see
+			// AiHouseRules).
+			float houseCorruptionFactor = AiHouseRules.CorruptionFactor(owner);
 			corruption = (CalculateDistanceCorruption(gameData, numAntiCorruptionBuildings)
 					+ CalculateRankCorruption(adjustedOptimalCityNumber, gameData.map.optimalNumberOfCities, numAntiCorruptionBuildings))
-					* gameData.rules.CorruptionRate;
+					* gameData.rules.CorruptionRate * houseCorruptionFactor;
 			// Policemen are applied to the corrupt amounts themselves, see
 			// RecoverWithPolicemen.
 
@@ -1864,7 +1884,7 @@ namespace C7GameData {
 			// is celebrating, since that can change before the next update.
 			celebrationWaste = (CalculateDistanceCorruption(gameData, numAntiCorruptionBuildings + 1)
 					+ CalculateRankCorruption(adjustedOptimalCityNumber, gameData.map.optimalNumberOfCities, numAntiCorruptionBuildings + 1))
-					* gameData.rules.CorruptionRate;
+					* gameData.rules.CorruptionRate * houseCorruptionFactor;
 
 			// Corruption maxes out at 90%, and this max can be reduced further
 			// via courthouses/police stations, and the forbidden palace/SPHQ.
@@ -1906,7 +1926,9 @@ namespace C7GameData {
 		// unhappy. Specialists and resisters are excluded from this.
 		private void InitializeMoodsForDifficulty(Difficulty gameDifficulty) {
 			int numLaborers = residents.Count(x => x.citizenType.IsDefaultCitizen);
-			int content = Math.Min(gameDifficulty.NumberOfCitizensBornContent, numLaborers);
+			// A house rule may make more of the AI's citizens content (see
+			// AiHouseRules).
+			int content = Math.Min(gameDifficulty.NumberOfCitizensBornContent + AiHouseRules.ExtraContentCitizens(owner), numLaborers);
 
 			foreach (CityResident r in residents) {
 				if (!r.citizenType.IsDefaultCitizen) {
