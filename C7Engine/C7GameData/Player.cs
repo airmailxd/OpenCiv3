@@ -1060,6 +1060,8 @@ namespace C7GameData {
 			// human-only.
 			int percentOptimalCities = isHuman ? gameData.gameDifficulty.PercentageOfOptimalCities : 100;
 
+			// "The OCN (Optimal City Number) is increased 25% for Commercial
+			// civilizations" (https://civfanatics.com/civ3/faq/).
 			float commercialCivFactor = civilization.traits.Contains(Civilization.Trait.Commercial) ? .25f : 0;
 
 			// The Secret Police HQ carries the BIQ's Forbidden Palace flag, so
@@ -1469,7 +1471,44 @@ namespace C7GameData {
 			ResearchQueue = new Queue<Tech>(ResearchQueue.Where(t => t.id != tech.id));
 
 			if (CanAdvanceToNextEra(gameData)) {
+				string previousEra = eraCivilopediaName;
 				eraCivilopediaName = GetNextEraNameByIndex(EraIndex());
+				// The last era has no next one to enter.
+				if (eraCivilopediaName != previousEra) {
+					GrantScientificEraTech(gameData);
+				}
+			}
+		}
+
+		// A scientific civ "receives a free Civilization Advance at the start
+		// of every era" (the Conquests Civilopedia, GCON_Strengths): "one of
+		// the starting technologies for that age"
+		// (https://civfanatics.com/civ3/faq/). Players found "the free tech
+		// is always one of the first set of new age techs", picked at random
+		// (https://forums.civfanatics.com/threads/scientific-civ-and-the-free-tech.75647/),
+		// so we pick at random among the new era's techs that can be
+		// researched now.
+		//
+		// UNVERIFIED: the same thread says a human may instead pick the tech
+		// from the science advisor's "Big Picture" as they enter the era; we
+		// always pick at random.
+		private void GrantScientificEraTech(GameData gameData) {
+			if (civilization?.traits.Contains(Civilization.Trait.Scientific) != true) {
+				return;
+			}
+			List<Tech> candidates = GetAvailableTechsToResearch(gameData.techs)
+				.Where(t => t.EraCivilopediaName == eraCivilopediaName)
+				.ToList();
+			if (candidates.Count == 0) {
+				return;
+			}
+			Tech gained = candidates[GameData.rng.Next(candidates.Count)];
+			log.Information("{Player} is scientific and learns {Tech} on entering {Era}", this, gained.Name, eraCivilopediaName);
+			CompleteResearchingTech(gameData, gained);
+			if (IsToldNews) {
+				new MsgShowScienceAdvisorPopup(this,
+					$"Our scholars greet the {EraUtils.GetNiceEraName(eraCivilopediaName)} with a new advance: {gained.Name}.",
+					MsgShowScienceAdvisorPopup.Mood.Happy).send();
 			}
 		}
 
@@ -1899,7 +1938,9 @@ namespace C7GameData {
 		}
 
 		// A golden age starts once the great wonders this civ has built cover
-		// all of its strengths.
+		// all of its strengths: "If a civilization builds a Great Wonder (or
+		// Wonders) that corresponds to [both] its unique strengths, its Golden
+		// Age can be triggered" (the Conquests Civilopedia, GCON_Golden_Age).
 		public void MaybeStartGoldenAgeFromWonders(GameData gameData) {
 			if (hadGoldenAge || civilization.traits.Count == 0) {
 				return;
