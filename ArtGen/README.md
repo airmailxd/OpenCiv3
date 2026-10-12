@@ -10,6 +10,12 @@ original Civ3 art everywhere else. See `C7/Textures/ModernGraphics.cs`.
 Build everything: `python ArtGen/build_all.py`. Each area can also be built on
 its own: `python ArtGen/<area>/build.py`.
 
+`civilopedia_icons/` is the odd one out: it makes the Civilopedia's icons for
+standalone mode (a 128x128 and a 32x32 picture per entry, in
+`C7/Civilopedia/Art/Civilopedia/Icons/`, listed in
+`C7/Civilopedia/Text/PediaIcons.txt`) from the other areas' models and art,
+so `build_all.py` runs it last. See its `build.py`.
+
 ## The contract with the game
 
 * **Same file, same layout, twice the pixels.** The remake of
