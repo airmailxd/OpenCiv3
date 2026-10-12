@@ -1,0 +1,16 @@
+{
+  "actions": {
+    "DEFAULT": "GalleonDefault",
+    "RUN": "GalleonRun",
+    "ATTACK1": "GalleonAttackA",
+    "DEATH": "GalleonDeath",
+    "FIDGET": "GalleonFidget"
+  },
+  "flics": {
+    "GalleonAttackA": {"size": [113, 92], "directions": 8, "frames": 20, "frameMs": 66, "offset": [64, 54], "canvas": [240, 240]},
+    "GalleonDeath": {"size": [134, 102], "directions": 8, "frames": 20, "frameMs": 83, "offset": [53, 53], "canvas": [240, 240]},
+    "GalleonDefault": {"size": [96, 83], "directions": 8, "frames": 10, "frameMs": 166, "offset": [69, 59], "canvas": [240, 240]},
+    "GalleonFidget": {"size": [95, 83], "directions": 8, "frames": 5, "frameMs": 125, "offset": [70, 59], "canvas": [240, 240]},
+    "GalleonRun": {"size": [97, 83], "directions": 8, "frames": 10, "frameMs": 125, "offset": [69, 59], "canvas": [240, 240]}
+  }
+}

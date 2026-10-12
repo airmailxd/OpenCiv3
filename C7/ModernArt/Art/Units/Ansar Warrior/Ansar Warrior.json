@@ -1,0 +1,22 @@
+{
+  "actions": {
+    "DEFAULT": "x_Ansar Warrior default",
+    "RUN": "x_Ansar Warrior run",
+    "ATTACK1": "x_Ansar Warrior attack_a",
+    "ATTACK2": "x_Ansar Warrior attack_b",
+    "DEATH": "x_Ansar Warrior death",
+    "FORTIFY": "x_Ansar Warrior fortify",
+    "FIDGET": "x_Ansar Warrior fidget",
+    "VICTORY": "x_Ansar Warrior victory"
+  },
+  "flics": {
+    "x_Ansar Warrior attack_a": {"size": [125, 85], "directions": 8, "frames": 15, "frameMs": 83, "offset": [52, 62], "canvas": [240, 240]},
+    "x_Ansar Warrior attack_b": {"size": [83, 72], "directions": 8, "frames": 15, "frameMs": 66, "offset": [72, 66], "canvas": [240, 240]},
+    "x_Ansar Warrior death": {"size": [106, 81], "directions": 8, "frames": 15, "frameMs": 66, "offset": [65, 69], "canvas": [240, 240]},
+    "x_Ansar Warrior default": {"size": [80, 67], "directions": 8, "frames": 15, "frameMs": 125, "offset": [73, 70], "canvas": [240, 240]},
+    "x_Ansar Warrior fidget": {"size": [87, 70], "directions": 8, "frames": 14, "frameMs": 83, "offset": [70, 70], "canvas": [240, 240]},
+    "x_Ansar Warrior fortify": {"size": [84, 71], "directions": 8, "frames": 10, "frameMs": 83, "offset": [72, 67], "canvas": [240, 240]},
+    "x_Ansar Warrior run": {"size": [84, 72], "directions": 8, "frames": 10, "frameMs": 66, "offset": [72, 66], "canvas": [240, 240]},
+    "x_Ansar Warrior victory": {"size": [80, 69], "directions": 8, "frames": 14, "frameMs": 83, "offset": [73, 68], "canvas": [240, 240]}
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "actions": {
+    "DEFAULT": "x_The King default",
+    "RUN": "x_The King run",
+    "DEATH": "x_The King death",
+    "FORTIFY": "x_The King fidget",
+    "FIDGET": "x_The King fidget"
+  },
+  "flics": {
+    "x_The King death": {"size": [98, 67], "directions": 8, "frames": 15, "frameMs": 66, "offset": [71, 79], "canvas": [240, 240]},
+    "x_The King default": {"size": [53, 53], "directions": 8, "frames": 15, "frameMs": 125, "offset": [88, 76], "canvas": [240, 240]},
+    "x_The King fidget": {"size": [65, 57], "directions": 8, "frames": 15, "frameMs": 83, "offset": [82, 76], "canvas": [240, 240]},
+    "x_The King run": {"size": [49, 55], "directions": 8, "frames": 10, "frameMs": 66, "offset": [91, 75], "canvas": [240, 240]}
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "actions": {
+    "DEFAULT": "ModernArmorDefault",
+    "RUN": "ModernArmorRun",
+    "ATTACK1": "ModernArmorAttackA",
+    "DEATH": "ModernArmorDeath",
+    "FORTIFY": "ModernArmorFidget",
+    "FIDGET": "ModernArmorFidget"
+  },
+  "flics": {
+    "ModernArmorAttackA": {"size": [240, 240], "directions": 8, "frames": 10, "frameMs": 66, "offset": [0, 0], "canvas": [240, 240]},
+    "ModernArmorDeath": {"size": [240, 240], "directions": 8, "frames": 15, "frameMs": 90, "offset": [0, 0], "canvas": [240, 240]},
+    "ModernArmorDefault": {"size": [99, 67], "directions": 8, "frames": 5, "frameMs": 66, "offset": [69, 77], "canvas": [240, 240]},
+    "ModernArmorFidget": {"size": [100, 67], "directions": 8, "frames": 10, "frameMs": 100, "offset": [68, 77], "canvas": [240, 240]},
+    "ModernArmorRun": {"size": [101, 69], "directions": 8, "frames": 15, "frameMs": 90, "offset": [68, 76], "canvas": [240, 240]}
+  }
+}

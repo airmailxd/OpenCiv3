@@ -1,0 +1,20 @@
+{
+  "actions": {
+    "DEFAULT": "QuadFlak_Default",
+    "RUN": "QuadFlak_Run",
+    "ATTACK1": "QuadFlak_Attack",
+    "DEATH": "QuadFlak_Death",
+    "FORTIFY": "QuadFlak_Fortify",
+    "FIDGET": "QuadFlak_Fidget",
+    "VICTORY": "QuadFlak_Victory"
+  },
+  "flics": {
+    "QuadFlak_Attack": {"size": [107, 112], "directions": 8, "frames": 15, "frameMs": 66, "offset": [62, 33], "canvas": [240, 240]},
+    "QuadFlak_Death": {"size": [120, 95], "directions": 8, "frames": 15, "frameMs": 66, "offset": [53, 50], "canvas": [240, 240]},
+    "QuadFlak_Default": {"size": [109, 90], "directions": 8, "frames": 15, "frameMs": 125, "offset": [59, 55], "canvas": [240, 240]},
+    "QuadFlak_Fidget": {"size": [109, 91], "directions": 8, "frames": 15, "frameMs": 83, "offset": [59, 54], "canvas": [240, 240]},
+    "QuadFlak_Fortify": {"size": [112, 93], "directions": 8, "frames": 10, "frameMs": 83, "offset": [56, 52], "canvas": [240, 240]},
+    "QuadFlak_Run": {"size": [109, 94], "directions": 8, "frames": 10, "frameMs": 66, "offset": [56, 47], "canvas": [240, 240]},
+    "QuadFlak_Victory": {"size": [109, 92], "directions": 8, "frames": 15, "frameMs": 66, "offset": [59, 53], "canvas": [240, 240]}
+  }
+}

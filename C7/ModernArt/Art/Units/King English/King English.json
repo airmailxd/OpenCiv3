@@ -1,0 +1,15 @@
+{
+  "actions": {
+    "DEFAULT": "x_Elizabeth default",
+    "RUN": "x_Elizabeth run",
+    "DEATH": "x_Elizabeth death",
+    "FORTIFY": "x_Elizabeth fidget",
+    "FIDGET": "x_Elizabeth fidget"
+  },
+  "flics": {
+    "x_Elizabeth death": {"size": [84, 64], "directions": 8, "frames": 15, "frameMs": 66, "offset": [77, 77], "canvas": [240, 240]},
+    "x_Elizabeth default": {"size": [42, 54], "directions": 8, "frames": 15, "frameMs": 125, "offset": [93, 75], "canvas": [240, 240]},
+    "x_Elizabeth fidget": {"size": [74, 64], "directions": 8, "frames": 15, "frameMs": 83, "offset": [75, 66], "canvas": [240, 240]},
+    "x_Elizabeth run": {"size": [55, 58], "directions": 8, "frames": 10, "frameMs": 66, "offset": [89, 75], "canvas": [240, 240]}
+  }
+}

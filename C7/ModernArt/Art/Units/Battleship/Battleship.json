@@ -1,0 +1,16 @@
+{
+  "actions": {
+    "DEFAULT": "BattleshipDefault",
+    "RUN": "BattleshipRun",
+    "ATTACK1": "BattleshipAttackA",
+    "DEATH": "BattleshipDeath",
+    "FIDGET": "BattleshipFidget"
+  },
+  "flics": {
+    "BattleshipAttackA": {"size": [168, 115], "directions": 8, "frames": 20, "frameMs": 100, "offset": [37, 43], "canvas": [240, 240]},
+    "BattleshipDeath": {"size": [240, 240], "directions": 8, "frames": 20, "frameMs": 100, "offset": [0, 0], "canvas": [240, 240]},
+    "BattleshipDefault": {"size": [136, 75], "directions": 8, "frames": 10, "frameMs": 200, "offset": [52, 77], "canvas": [240, 240]},
+    "BattleshipFidget": {"size": [136, 75], "directions": 8, "frames": 10, "frameMs": 111, "offset": [52, 77], "canvas": [240, 240]},
+    "BattleshipRun": {"size": [170, 86], "directions": 8, "frames": 15, "frameMs": 125, "offset": [35, 77], "canvas": [240, 240]}
+  }
+}

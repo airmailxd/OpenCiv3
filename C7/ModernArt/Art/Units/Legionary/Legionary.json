@@ -1,0 +1,26 @@
+{
+  "actions": {
+    "DEFAULT": "LegionaryDefault",
+    "RUN": "LegionaryRun",
+    "ATTACK1": "LegionaryAttackA",
+    "ATTACK2": "LegionaryAttack2",
+    "DEATH": "LegionaryDeath",
+    "FORTIFY": "LegionaryFortify",
+    "FIDGET": "LegionaryFidget",
+    "VICTORY": "LegionaryVictory",
+    "ROAD": "Legionary_build_road",
+    "FORTRESS": "Legionary_build_fort"
+  },
+  "flics": {
+    "Legionary_build_fort": {"size": [54, 62], "directions": 8, "frames": 15, "frameMs": 66, "offset": [85, 67], "canvas": [240, 240]},
+    "Legionary_build_road": {"size": [68, 61], "directions": 8, "frames": 10, "frameMs": 100, "offset": [85, 78], "canvas": [240, 240]},
+    "LegionaryAttack2": {"size": [65, 66], "directions": 8, "frames": 15, "frameMs": 83, "offset": [85, 67], "canvas": [240, 240]},
+    "LegionaryAttackA": {"size": [69, 64], "directions": 8, "frames": 15, "frameMs": 83, "offset": [85, 72], "canvas": [240, 240]},
+    "LegionaryDeath": {"size": [129, 104], "directions": 8, "frames": 15, "frameMs": 83, "offset": [55, 50], "canvas": [240, 240]},
+    "LegionaryDefault": {"size": [40, 51], "directions": 8, "frames": 15, "frameMs": 125, "offset": [98, 77], "canvas": [240, 240]},
+    "LegionaryFidget": {"size": [149, 139], "directions": 8, "frames": 15, "frameMs": 83, "offset": [82, 70], "canvas": [240, 240]},
+    "LegionaryFortify": {"size": [48, 55], "directions": 8, "frames": 10, "frameMs": 66, "offset": [93, 74], "canvas": [240, 240]},
+    "LegionaryRun": {"size": [40, 54], "directions": 8, "frames": 10, "frameMs": 66, "offset": [98, 75], "canvas": [240, 240]},
+    "LegionaryVictory": {"size": [51, 62], "directions": 8, "frames": 15, "frameMs": 83, "offset": [91, 69], "canvas": [240, 240]}
+  }
+}

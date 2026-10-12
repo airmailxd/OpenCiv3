@@ -1,0 +1,16 @@
+{
+  "actions": {
+    "DEFAULT": "JetFighterDefault",
+    "RUN": "JetFighterRun",
+    "ATTACK1": "JetFighterAttackA",
+    "DEATH": "JetFighterDeath",
+    "VICTORY": "JetFighterBomb"
+  },
+  "flics": {
+    "JetFighterAttackA": {"size": [240, 240], "directions": 8, "frames": 10, "frameMs": 62, "offset": [0, 0], "canvas": [240, 240]},
+    "JetFighterBomb": {"size": [240, 240], "directions": 8, "frames": 14, "frameMs": 90, "offset": [0, 0], "canvas": [240, 240]},
+    "JetFighterDeath": {"size": [240, 240], "directions": 8, "frames": 15, "frameMs": 90, "offset": [0, 0], "canvas": [240, 240]},
+    "JetFighterDefault": {"size": [77, 85], "directions": 8, "frames": 1, "frameMs": 66, "offset": [82, 63], "canvas": [240, 240]},
+    "JetFighterRun": {"size": [240, 240], "directions": 8, "frames": 5, "frameMs": 90, "offset": [0, 0], "canvas": [240, 240]}
+  }
+}

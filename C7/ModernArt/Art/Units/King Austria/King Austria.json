@@ -1,0 +1,15 @@
+{
+  "actions": {
+    "DEFAULT": "X2_Charles_default",
+    "RUN": "X2_Charles_run",
+    "DEATH": "X2_Charles_death",
+    "FORTIFY": "X2_Charles_fidget",
+    "FIDGET": "X2_Charles_fidget"
+  },
+  "flics": {
+    "X2_Charles_death": {"size": [154, 92], "directions": 8, "frames": 15, "frameMs": 66, "offset": [41, 66], "canvas": [240, 240]},
+    "X2_Charles_default": {"size": [62, 56], "directions": 8, "frames": 15, "frameMs": 125, "offset": [85, 76], "canvas": [240, 240]},
+    "X2_Charles_fidget": {"size": [62, 56], "directions": 8, "frames": 15, "frameMs": 83, "offset": [84, 76], "canvas": [240, 240]},
+    "X2_Charles_run": {"size": [60, 61], "directions": 8, "frames": 10, "frameMs": 66, "offset": [87, 73], "canvas": [240, 240]}
+  }
+}

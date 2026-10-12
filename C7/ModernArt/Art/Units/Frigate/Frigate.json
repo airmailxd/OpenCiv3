@@ -1,0 +1,17 @@
+{
+  "actions": {
+    "DEFAULT": "FrigateDefault",
+    "RUN": "FrigateRun",
+    "ATTACK1": "FrigateAttackA",
+    "DEATH": "FrigateDeath",
+    "FORTIFY": "FrigateFidget",
+    "FIDGET": "FrigateFidget"
+  },
+  "flics": {
+    "FrigateAttackA": {"size": [113, 88], "directions": 8, "frames": 20, "frameMs": 100, "offset": [63, 58], "canvas": [240, 240]},
+    "FrigateDeath": {"size": [131, 120], "directions": 8, "frames": 20, "frameMs": 100, "offset": [55, 34], "canvas": [240, 240]},
+    "FrigateDefault": {"size": [97, 83], "directions": 8, "frames": 10, "frameMs": 166, "offset": [71, 60], "canvas": [240, 240]},
+    "FrigateFidget": {"size": [97, 83], "directions": 8, "frames": 5, "frameMs": 125, "offset": [71, 60], "canvas": [240, 240]},
+    "FrigateRun": {"size": [97, 84], "directions": 8, "frames": 14, "frameMs": 125, "offset": [71, 60], "canvas": [240, 240]}
+  }
+}

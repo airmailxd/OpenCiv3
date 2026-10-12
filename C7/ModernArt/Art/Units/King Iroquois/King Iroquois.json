@@ -1,0 +1,15 @@
+{
+  "actions": {
+    "DEFAULT": "x_Hiawatha default",
+    "RUN": "x_Hiawatha run",
+    "DEATH": "x_Hiawatha death",
+    "FORTIFY": "x_Hiawatha fidget",
+    "FIDGET": "x_Hiawatha fidget"
+  },
+  "flics": {
+    "x_Hiawatha death": {"size": [164, 111], "directions": 8, "frames": 15, "frameMs": 66, "offset": [37, 55], "canvas": [240, 240]},
+    "x_Hiawatha default": {"size": [65, 69], "directions": 8, "frames": 15, "frameMs": 125, "offset": [78, 61], "canvas": [240, 240]},
+    "x_Hiawatha fidget": {"size": [62, 68], "directions": 8, "frames": 15, "frameMs": 83, "offset": [80, 62], "canvas": [240, 240]},
+    "x_Hiawatha run": {"size": [71, 79], "directions": 8, "frames": 10, "frameMs": 66, "offset": [80, 56], "canvas": [240, 240]}
+  }
+}

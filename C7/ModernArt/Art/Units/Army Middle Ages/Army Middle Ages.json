@@ -1,0 +1,14 @@
+{
+  "actions": {
+    "DEFAULT": "ArmyMiddleDefault",
+    "RUN": "ArmyMiddleRun",
+    "ATTACK1": "ArmyMiddleAttackA",
+    "DEATH": "ArmyMiddleDeath"
+  },
+  "flics": {
+    "ArmyMiddleAttackA": {"size": [55, 73], "directions": 8, "frames": 15, "frameMs": 83, "offset": [87, 56], "canvas": [240, 240]},
+    "ArmyMiddleDeath": {"size": [59, 77], "directions": 8, "frames": 15, "frameMs": 100, "offset": [88, 58], "canvas": [240, 240]},
+    "ArmyMiddleDefault": {"size": [45, 66], "directions": 8, "frames": 15, "frameMs": 100, "offset": [92, 61], "canvas": [240, 240]},
+    "ArmyMiddleRun": {"size": [58, 76], "directions": 8, "frames": 10, "frameMs": 66, "offset": [88, 57], "canvas": [240, 240]}
+  }
+}

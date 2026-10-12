@@ -1,0 +1,20 @@
+{
+  "actions": {
+    "DEFAULT": "EnkiduWarrior_default",
+    "RUN": "EnkiduWarrior_run",
+    "ATTACK1": "EnkiduWarrior_attack",
+    "DEATH": "EnkiduWarrior_death",
+    "FORTIFY": "EnkiduWarrior_fortify",
+    "FIDGET": "EnkiduWarrior_fidget",
+    "VICTORY": "EnkiduWarrior_victory"
+  },
+  "flics": {
+    "EnkiduWarrior_attack": {"size": [240, 240], "directions": 8, "frames": 15, "frameMs": 66, "offset": [0, 0], "canvas": [240, 240]},
+    "EnkiduWarrior_death": {"size": [153, 96], "directions": 8, "frames": 15, "frameMs": 66, "offset": [44, 65], "canvas": [240, 240]},
+    "EnkiduWarrior_default": {"size": [45, 55], "directions": 8, "frames": 15, "frameMs": 125, "offset": [91, 71], "canvas": [240, 240]},
+    "EnkiduWarrior_fidget": {"size": [66, 61], "directions": 8, "frames": 15, "frameMs": 100, "offset": [79, 66], "canvas": [240, 240]},
+    "EnkiduWarrior_fortify": {"size": [64, 66], "directions": 8, "frames": 10, "frameMs": 83, "offset": [82, 64], "canvas": [240, 240]},
+    "EnkiduWarrior_run": {"size": [74, 69], "directions": 8, "frames": 10, "frameMs": 66, "offset": [75, 60], "canvas": [240, 240]},
+    "EnkiduWarrior_victory": {"size": [83, 80], "directions": 8, "frames": 15, "frameMs": 83, "offset": [71, 51], "canvas": [240, 240]}
+  }
+}
