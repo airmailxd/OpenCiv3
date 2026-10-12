@@ -124,21 +124,31 @@ def _():
 
 
 def _eagle(d, heads=1):
-    # a spread eagle, wings up
-    poly(d, [(120, 80), (138, 96), (136, 150), (120, 176), (104, 150), (102, 96)])     # body
+    """A heraldic eagle displayed: wings raised with stepped feathers, a
+    fanned tail, legs spread."""
+    d.ellipse((104, 84, 136, 150), fill=255)                                          # body
     for s in (-1, 1):
-        pts = [(120 + s * 14, 100), (120 + s * 40, 70), (120 + s * 70, 52), (120 + s * 82, 70), (120 + s * 72, 84),
-               (120 + s * 84, 96), (120 + s * 70, 108), (120 + s * 80, 122), (120 + s * 60, 130), (120 + s * 64, 142),
-               (120 + s * 36, 136), (120 + s * 16, 130)]
-        poly(d, pts)
-        poly(d, [(120 + s * 6, 170), (120 + s * 26, 196), (120 + s * 14, 198), (120 + s * 2, 180)])  # tail/legs
+        X = lambda dx: 120 + s * dx
+        # the wing: from the shoulder up and out, its lower edge in feather steps
+        poly(d, [(X(10), 96), (X(30), 76), (X(56), 56), (X(84), 44), (X(90), 52),
+                 (X(84), 62), (X(94), 70), (X(84), 80), (X(92), 90), (X(80), 98), (X(86), 108),
+                 (X(70), 114), (X(72), 124), (X(52), 122), (X(30), 116), (X(14), 116)])
+        # legs and talons
+        poly(d, [(X(6), 144), (X(16), 140), (X(32), 170), (X(24), 174)])
+        for k in range(3):
+            poly(d, [(X(26), 170), (X(30 + 8 * k - 6), 186), (X(34 + 8 * k - 6), 184), (X(30), 168)])
+    # the tail
+    poly(d, [(108, 146), (132, 146), (142, 192), (130, 184), (120, 196), (110, 184), (98, 192)])
     if heads == 1:
-        d.ellipse((108, 58, 132, 84), fill=255)
-        poly(d, [(130, 66), (144, 72), (130, 78)])
+        d.ellipse((108, 56, 132, 82), fill=255)
+        d.rectangle((112, 76, 128, 92), fill=255)
+        poly(d, [(130, 62), (146, 70), (136, 78), (128, 74)])
     else:
         for s in (-1, 1):
-            d.ellipse((120 + s * 14 - 11, 58, 120 + s * 14 + 11, 80), fill=255)
-            poly(d, [(120 + s * 22, 64), (120 + s * 36, 70), (120 + s * 22, 76)])
+            cx = 120 + s * 16
+            d.ellipse((cx - 11, 54, cx + 11, 76), fill=255)
+            poly(d, [(120 + s * 4, 72), (120 + s * 22, 70), (120 + s * 14, 92), (120 + s * 2, 92)])
+            poly(d, [(cx + s * 8, 60), (cx + s * 22, 66), (cx + s * 12, 72)])
 
 
 @symbol('RACE_GERMANS')
@@ -214,28 +224,24 @@ def _():
 @symbol('RACE_FRENCH')
 def _():
     # a fleur-de-lis
+    xx, yy = _xy()
+    def disc(cx, cy, r):
+        return (xx - cx) ** 2 + (yy - cy) ** 2 < r * r
+    # the middle petal: a tall pointed lens
+    m = disc(186, 82, 84) & disc(54, 82, 84) & (yy < 134)
+    # the side petals: crescents curling out and down, apart from the middle one
+    for s in (-1, 1):
+        outer = disc(120 + s * 34, 104, 28)
+        inner = disc(120 + s * 46, 118, 22)
+        m |= outer & ~inner & (s * (xx - 120) > 22) & (yy < 134)
+        m |= (s * (xx - 120) > 14) & (s * (xx - 120) < 26) & (yy > 118) & (yy < 134)
+    # the band, and the foot below it
+    m |= (np.abs(xx - 120) < 38) & (yy > 132) & (yy < 146)
     im, d = _c()
-    # the middle petal: a tall pointed leaf
-    pts = []
-    for i in range(21):
-        t = i / 20
-        pts.append((120 + 22 * math.sin(math.pi * t) ** 0.8, 138 - 100 * t))
-    pts += [(240 - x, y) for x, y in pts[::-1]]
-    poly(d, pts)
-    # the side petals: curling out and down from the band
+    poly(d, [(110, 146), (130, 146), (120, 184)])
     for s in (-1, 1):
-        outer, inner = [], []
-        for i in range(25):
-            t = i / 24
-            a = math.pi * 1.25 * t
-            outer.append((120 + s * (14 + 42 * math.sin(a) + 14 * t), 134 - 52 * math.sin(a * 0.8) + 30 * t ** 2))
-            inner.append((120 + s * (14 + 26 * math.sin(a) + 10 * t), 134 - 30 * math.sin(a * 0.8) + 26 * t ** 2))
-        poly(d, outer + inner[::-1])
-    d.rectangle((86, 136, 154, 150), fill=255)
-    for s in (-1, 1):
-        poly(d, [(120 + s * 4, 150), (120 + s * 30, 168), (120 + s * 36, 196), (120 + s * 16, 178), (120, 172)])
-    poly(d, [(112, 150), (128, 150), (124, 196), (116, 196)])
-    return _mask(im)
+        poly(d, [(120 + s * 12, 146), (120 + s * 36, 150), (120 + s * 46, 172), (120 + s * 32, 162), (120 + s * 14, 154)])
+    return m | _mask(im)
 
 
 @symbol('RACE_INDIAN')
