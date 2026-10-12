@@ -67,7 +67,7 @@ namespace C7GameData {
 		// the coasts, and makes islets of its own where it is high.
 		//
 		// The domes are also kept apart: the height falls to 0 along the
-		// borders between the areas nearest each dome, over a channel
+		// borders between the areas nearest each dome's edge, over a channel
 		// channelWidth wide, and rises back over as much again. So land on
 		// different domes can't run together, however low the sea is.
 		public void RaiseDomes(IReadOnlyList<Dome> domes, double domeWeight, double channelWidth) {
@@ -90,7 +90,10 @@ namespace C7GameData {
 							dy -= Math.Sign(dy) * mapHeight;
 						}
 
-						double distance = Math.Sqrt(dx * dx + dy * dy);
+						// How far the point is past the dome's edge, so a big
+						// dome's area reaches further than a small one's next
+						// to it and the channel doesn't cut into it.
+						double distance = Math.Sqrt(dx * dx + dy * dy) - d.Radius;
 						if (distance < nearest) {
 							secondNearest = nearest;
 							nearest = distance;

@@ -9,18 +9,30 @@ using Xunit;
 
 namespace EngineTests.GameData;
 
-// When there are at least as many islands that can hold a civ as there are
-// civs, each civ starts on an island of its own, rather than two sharing one
-// while another is left empty (owner's decision, 2026-10-12). Seed 632203657
-// is the owner's archipelago game, where the English and French shared an
-// island, as did the Maya and Hittites, with six big islands empty.
+// How civs are spread over an archipelago's islands. Each civ gets an
+// island of its own where there are enough, rather than two sharing one
+// while another is left empty (owner's decision, 2026-10-12); seed
+// 632203657 is the owner's archipelago game where the English and French
+// shared an island, as did the Maya and Hittites, with six big islands
+// empty. Since then the islands come in different sizes, so a big island
+// holds two or three civs and the islands left empty are the smaller ones
+// meant for settling, and every civ starts on the coast (owner's report on
+// seed 405802261, a Huge archipelago where every island was 105 to 201
+// tiles, each civ had one, and every start was 2 to 4 tiles from water).
 public class IslandStartsTest {
-	// More than this many land tiles makes an island one a civ can start on
-	// in the first placement passes (MapGenerator.MIN_TILES_PER_PLAYER_ISLAND).
-	private const int IslandForACiv = 81;
+	// A civ's room on an archipelago: half its share of the land
+	// (MapGenerator.ArchipelagoTilesPerPlayer).
+	private static int TilesPerCiv(GameMap map, int civs) {
+		return Islands(map).Sum(c => c.Count) / (2 * civs);
+	}
 
-	private static GameMap Generate(WorldCharacteristics.OceanCoverage ocean, int seed) {
-		return Generate("Standard", ocean, seed);
+	// A civ shares an island only if its share of it is at least this
+	// share of every empty island (MapGenerator.ISLAND_JOIN_SHARE, with
+	// a little slack).
+	private const double JoinShare = 0.6;
+
+	private static List<HashSet<Tile>> Islands(GameMap map) {
+		return map.continents.Where(c => c.First().IsLand()).ToList();
 	}
 
 	private static GameMap Generate(string worldSize, WorldCharacteristics.OceanCoverage ocean, int seed) {
@@ -38,36 +50,99 @@ public class IslandStartsTest {
 		return MapGenerator.GenerateMap(wc);
 	}
 
-	[Theory]
-	[InlineData(WorldCharacteristics.OceanCoverage.Percent_70, 632203657)]
-	[InlineData(WorldCharacteristics.OceanCoverage.Percent_60, 632203657)]
-	[InlineData(WorldCharacteristics.OceanCoverage.Percent_70, 1)]
-	[InlineData(WorldCharacteristics.OceanCoverage.Percent_70, 2)]
-	[InlineData(WorldCharacteristics.OceanCoverage.Percent_60, 3)]
-	public void EachCivGetsAnIslandOfItsOwnWhenThereAreEnough(WorldCharacteristics.OceanCoverage ocean, int seed) {
-		GameMap map = Generate(ocean, seed);
-		List<int> bigIslands = map.continents.Where(c => c.First().IsLand() && c.Count > IslandForACiv).Select(c => c.First().continent).ToList();
-		Assert.True(bigIslands.Count >= map.startingLocations.Count, $"only {bigIslands.Count} big islands for {map.startingLocations.Count} civs");
-
-		Dictionary<int, int> startsPerIsland = map.startingLocations.GroupBy(s => s.continent).ToDictionary(g => g.Key, g => g.Count());
-		Assert.All(startsPerIsland, kv => Assert.True(kv.Value == 1, $"{kv.Value} civs start on island {kv.Key}"));
+	private static string Describe(GameMap map) {
+		Dictionary<int, int> starts = map.startingLocations.GroupBy(s => s.continent).ToDictionary(g => g.Key, g => g.Count());
+		return string.Join(" ", Islands(map).OrderByDescending(c => c.Count).Where(c => c.Count >= 10)
+			.Select(c => c.Count + (starts.TryGetValue(c.First().continent, out int n) ? $"({n})" : "")));
 	}
 
-	// On an archipelago every civ starts on the coast (owner's report,
-	// 2026-10-12: on seed 405802261, a Huge archipelago, every start was 2
-	// to 4 tiles from water).
 	[Theory]
 	[InlineData("Huge", WorldCharacteristics.OceanCoverage.Percent_70, 405802261)]
 	[InlineData("Huge", WorldCharacteristics.OceanCoverage.Percent_60, 405802261)]
 	[InlineData("Huge", WorldCharacteristics.OceanCoverage.Percent_80, 405802261)]
 	[InlineData("Standard", WorldCharacteristics.OceanCoverage.Percent_70, 632203657)]
+	[InlineData("Standard", WorldCharacteristics.OceanCoverage.Percent_60, 632203657)]
 	[InlineData("Standard", WorldCharacteristics.OceanCoverage.Percent_70, 1)]
 	[InlineData("Small", WorldCharacteristics.OceanCoverage.Percent_80, 3)]
 	[InlineData("Tiny", WorldCharacteristics.OceanCoverage.Percent_80, 2)]
+	[InlineData("Tiny", WorldCharacteristics.OceanCoverage.Percent_80, 4)]
 	[InlineData("Large", WorldCharacteristics.OceanCoverage.Percent_60, 4)]
 	public void EveryCivStartsOnTheCoast(string worldSize, WorldCharacteristics.OceanCoverage ocean, int seed) {
 		GameMap map = Generate(worldSize, ocean, seed);
 		Assert.NotEmpty(map.startingLocations);
 		Assert.All(map.startingLocations, s => Assert.True(s.NeighborsOcean(), $"start at {s.XCoordinate},{s.YCoordinate} is inland"));
+	}
+
+	// No island holds more civs than it has room for, and civs share an
+	// island only when no island about as big as each one's share of it is
+	// left empty.
+	[Theory]
+	[InlineData("Huge", WorldCharacteristics.OceanCoverage.Percent_70, 405802261)]
+	[InlineData("Huge", WorldCharacteristics.OceanCoverage.Percent_60, 405802261)]
+	[InlineData("Standard", WorldCharacteristics.OceanCoverage.Percent_70, 632203657)]
+	[InlineData("Standard", WorldCharacteristics.OceanCoverage.Percent_60, 632203657)]
+	[InlineData("Standard", WorldCharacteristics.OceanCoverage.Percent_70, 1)]
+	[InlineData("Standard", WorldCharacteristics.OceanCoverage.Percent_70, 2)]
+	[InlineData("Standard", WorldCharacteristics.OceanCoverage.Percent_60, 3)]
+	[InlineData("Small", WorldCharacteristics.OceanCoverage.Percent_80, 3)]
+	[InlineData("Large", WorldCharacteristics.OceanCoverage.Percent_80, 2)]
+	public void CivsShareAnIslandOnlyWhenNoComparableIslandIsLeftEmpty(string worldSize, WorldCharacteristics.OceanCoverage ocean, int seed) {
+		GameMap map = Generate(worldSize, ocean, seed);
+		int civs = map.startingLocations.Count;
+		int tilesPerCiv = TilesPerCiv(map, civs);
+		string description = Describe(map);
+
+		Dictionary<int, int> startsPerIsland = map.startingLocations.GroupBy(s => s.continent).ToDictionary(g => g.Key, g => g.Count());
+		List<int> emptyIslands = Islands(map).Where(c => !startsPerIsland.ContainsKey(c.First().continent)).Select(c => c.Count).ToList();
+		foreach (HashSet<Tile> island in Islands(map).Where(c => startsPerIsland.ContainsKey(c.First().continent))) {
+			int starts = startsPerIsland[island.First().continent];
+			if (starts == 1) {
+				continue;
+			}
+			Assert.True(starts <= 3 && starts <= island.Count / tilesPerCiv, $"{starts} civs on an island of {island.Count} tiles: {description}");
+			double share = island.Count / (double)starts;
+			Assert.All(emptyIslands, empty => Assert.True(share >= empty * JoinShare, $"civs share an island of {island.Count} tiles while one of {empty} is empty: {description}"));
+		}
+	}
+
+	// The islands come in different sizes: big ones that two or three civs
+	// share, middling ones and small ones left empty for settling. Not every
+	// map has an island two civs share, as a big island may not have room
+	// for two starts the world size's distance between civs apart.
+	[Theory]
+	[InlineData("Huge", WorldCharacteristics.OceanCoverage.Percent_70)]
+	[InlineData("Huge", WorldCharacteristics.OceanCoverage.Percent_60)]
+	[InlineData("Large", WorldCharacteristics.OceanCoverage.Percent_70)]
+	[InlineData("Standard", WorldCharacteristics.OceanCoverage.Percent_70)]
+	[InlineData("Standard", WorldCharacteristics.OceanCoverage.Percent_80)]
+	public void IslandsVaryInSizeAndSomeAreLeftToSettle(string worldSize, WorldCharacteristics.OceanCoverage ocean) {
+		int big = 0, middling = 0, small = 0, shared = 0;
+		foreach (int seed in new[] { 405802261, 1, 2 }) {
+			GameMap map = Generate(worldSize, ocean, seed);
+			int civs = map.startingLocations.Count;
+			int share = 2 * TilesPerCiv(map, civs);
+			string description = $"seed {seed}: {Describe(map)}";
+			List<int> sizes = Islands(map).Select(c => c.Count).ToList();
+			big += sizes.Count(s => s >= share);
+			middling += sizes.Count(s => s >= share * .4 && s < share);
+			small += sizes.Count(s => s >= share * .1 && s < share * .4);
+
+			Dictionary<int, int> startsPerIsland = map.startingLocations.GroupBy(s => s.continent).ToDictionary(g => g.Key, g => g.Count());
+			shared += startsPerIsland.Values.Count(n => n >= 2);
+			Assert.True(Islands(map).Count(c => c.Count >= share * .1 && !startsPerIsland.ContainsKey(c.First().continent)) >= civs / 4,
+				$"too few islands left to settle, {description}");
+		}
+		Assert.True(big >= 3, $"{big} big islands");
+		Assert.True(middling >= 3, $"{middling} middling islands");
+		Assert.True(small >= 3, $"{small} small islands");
+		Assert.True(shared >= 3, $"{shared} islands shared by two or more civs");
+	}
+
+	[Fact]
+	public void SameSeedMakesTheSameIslandsAndStarts() {
+		GameMap a = Generate("Huge", WorldCharacteristics.OceanCoverage.Percent_70, 405802261);
+		GameMap b = Generate("Huge", WorldCharacteristics.OceanCoverage.Percent_70, 405802261);
+		Assert.Equal(Describe(a), Describe(b));
+		Assert.Equal(a.startingLocations.Select(t => (t.XCoordinate, t.YCoordinate)), b.startingLocations.Select(t => (t.XCoordinate, t.YCoordinate)));
 	}
 }
