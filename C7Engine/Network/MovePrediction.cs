@@ -166,7 +166,8 @@ public static class MovePrediction {
 	// Starts the unit's animation, as the engine would, without waiting for
 	// it. A step is shown from the tile the unit was on before it.
 	private static void Animate(MapUnit unit, MapUnit.AnimatedAction action) {
-		if (!EngineStorage.animationsEnabled || EngineStorage.gameData.observerMode) {
+		if (!EngineStorage.animationsEnabled || EngineStorage.gameData.observerMode
+				|| !(EngineStorage.uiShowsUnitAnimation?.Invoke(unit, action) ?? true)) {
 			return;
 		}
 		new MsgStartUnitAnimation(unit, action, AnimationEnding.Stop).send();

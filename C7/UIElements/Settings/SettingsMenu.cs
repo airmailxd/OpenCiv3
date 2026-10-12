@@ -1,6 +1,7 @@
 using System;
 using System.Globalization;
 using C7.UIElements;
+using C7Engine;
 using C7Engine.Network;
 using Godot;
 using Serilog;
@@ -15,6 +16,10 @@ public partial class SettingsMenu : Control {
 	private static readonly Color HeadingColor = new(0.55f, 0.08f, 0f);
 	private static readonly Color TextColor = new(0f, 0f, 0f);
 	private static readonly Color NoteColor = new(0.22f, 0.2f, 0.16f);
+	private static readonly Color DisabledModulate = new(1, 1, 1, 0.5f);
+
+	// The room left above and below the page.
+	private const float WindowMargin = 16;
 
 	private AudioManager audioManager;
 	private DisplayScale displayScale;
@@ -95,11 +100,23 @@ public partial class SettingsMenu : Control {
 		});
 		center.AddChild(panel);
 
+		// The page scrolls when it's taller than the window.
+		ScrollContainer scroll = new() { HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
+		panel.AddChild(scroll);
+
 		MarginContainer margin = new();
 		foreach (string side in new[] { "left", "right", "top", "bottom" }) {
 			margin.AddThemeConstantOverride($"margin_{side}", 24);
 		}
-		panel.AddChild(margin);
+		scroll.AddChild(margin);
+		void FitToWindow() {
+			Vector2 content = margin.GetCombinedMinimumSize();
+			float room = GetViewportRect().Size.Y - 2 * WindowMargin;
+			float scrollBar = content.Y > room ? scroll.GetVScrollBar().GetCombinedMinimumSize().X : 0;
+			scroll.CustomMinimumSize = new Vector2(content.X + scrollBar, Mathf.Min(content.Y, room));
+		}
+		Resized += FitToWindow;
+		Callable.From(FitToWindow).CallDeferred();
 
 		VBoxContainer column = new() { CustomMinimumSize = new Vector2(560, 0) };
 		column.AddThemeConstantOverride("separation", 10);
@@ -107,6 +124,7 @@ public partial class SettingsMenu : Control {
 
 		column.AddChild(MakeLabel("Settings", 28, HeadingColor, HorizontalAlignment.Center));
 
+		AddGameSettings(column);
 		AddGraphicsSettings(column);
 		AddAudioSettings(column);
 		AddOnlineSettings(column);
@@ -117,6 +135,45 @@ public partial class SettingsMenu : Control {
 		Civ3MenuButton back = new() { Text = "Back to Main Menu", SizeFlagsHorizontal = SizeFlags.ShrinkCenter };
 		back.Pressed += ReturnToMenu;
 		column.AddChild(back);
+	}
+
+	// Standalone mode: playing with the game's own art and rules, without
+	// Civ3's files.
+	private void AddGameSettings(VBoxContainer column) {
+		GlobalSingleton global = GetNodeOrNull<GlobalSingleton>("/root/GlobalSingleton");
+		if (global == null) {
+			return;
+		}
+		column.AddChild(MakeHeading("Game"));
+
+		bool civ3Available = GamePaths.Civ3Available();
+		Civ3Checkbox standalone = new() {
+			Text = "Play without Civ3 (standalone)",
+			FontSize = 16,
+			ToggleMode = true,
+			ButtonPressed = C7Settings.UseStandaloneMode(),
+			// Without Civ3's files there's nothing else to play with.
+			Disabled = !civ3Available,
+			SizeFlagsHorizontal = SizeFlags.ShrinkBegin,
+		};
+		if (!civ3Available) {
+			standalone.Modulate = DisabledModulate;
+		}
+		standalone.Toggled += (bool on) => {
+			PlayClick();
+			// The same switch the game makes for a save of the other mode.
+			if (on != C7Settings.UseStandaloneMode()) {
+				global.ToggleStandaloneMode();
+			}
+			log.Information("Standalone mode turned {State}", on ? "on" : "off");
+		};
+		column.AddChild(standalone);
+		column.AddChild(MakeNote(civ3Available
+			? "Plays with the game's own art and rules. Off, it uses the art, sounds and rules of your " +
+				"Civilization III install instead. Takes effect for the next game you start; a saved game loads " +
+				"in the mode it was saved in, which switches this too."
+			: "No Civilization III install was found, so the game plays with its own art and rules. " +
+				"To play with Civ3's instead, install Civilization III."));
 	}
 
 	private void AddGraphicsSettings(VBoxContainer column) {

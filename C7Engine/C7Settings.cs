@@ -146,8 +146,10 @@ namespace C7Engine {
 			return Enum.TryParse(value, true, out T result) ? result : defaultValue;
 		}
 
+		// Whether to play with the game's own art and rules rather than a Civ3
+		// install's. Standalone is the default until the player chooses.
 		public static bool UseStandaloneMode() {
-			return GetSettingsValueOrDefault("locations", "useStandaloneMode", "false") == "true";
+			return GetSettingsValueOrDefault("locations", "useStandaloneMode", "true") == "true";
 		}
 	}
 }

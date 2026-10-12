@@ -229,6 +229,12 @@ public partial class Game : Node {
 		// say; on to the next.
 		cityScreen.Hidden += ShowNextProductionPopup;
 
+		// Without Always Wait at End of Turn, the turn ends once no unit
+		// needs orders (see EndTurnIfNothingToDo).
+		unitSelector.NoMoreAutoselectableUnits += () => endTurnWhenIdle = true;
+		unitSelector.NewAutoselectedUnit += () => endTurnWhenIdle = false;
+		PlayerTurnEnd += () => endTurnWhenIdle = false;
+
 		try {
 			await InitializeGame();
 			await StartGame();
@@ -289,6 +295,9 @@ public partial class Game : Node {
 
 	private async Task StartGame() {
 		log.Information("Now in game!");
+
+		// Show the moves and battles the player's preferences ask for.
+		animationController.ApplyPreferences();
 
 		bool watching = Global.WatchNextGame && !LanSession.IsActive;
 		Global.WatchNextGame = false;
@@ -1560,6 +1569,12 @@ public partial class Game : Node {
 			if (city == null || city.owner?.id != controller.id) {
 				continue;
 			}
+			// The player may prefer not to be asked after a unit: the city
+			// goes on with what it chose next.
+			if (!Preferences.AskForBuildOrdersAfterUnitConstruction && msg.next != null
+					&& EngineStorage.gameData.unitPrototypes.Exists(p => p.name == msg.completed)) {
+				continue;
+			}
 			mapView?.centerCameraOnTile(city.location);
 			CityProductionPopup popup = new(city, msg.completed,
 				// The next popup waits for the city screen to close.
@@ -1640,6 +1655,45 @@ public partial class Game : Node {
 		}
 		if (!handledMessage)
 			ReplayHeldMessage();
+
+		EndTurnIfNothingToDo(delta);
+	}
+
+	// Set once no unit needs orders this turn, until one does again.
+	private bool endTurnWhenIdle = false;
+	private double idleSeconds = 0;
+
+	// How long nothing needs doing before the turn ends by itself, so the
+	// player sees the last move and anything that comes up stops it.
+	private const double IdleSecondsBeforeEndingTurn = 1.0;
+
+	// The preferences' Always Wait at End of Turn: when it's off, the turn
+	// ends by itself once none of the player's units needs orders and
+	// nothing is on screen for them to answer or look at.
+	private void EndTurnIfNothingToDo(double delta) {
+		bool idle = endTurnWhenIdle
+			&& !Preferences.AlwaysWaitAtEndOfTurn
+			&& CurrentState == GameState.PlayerTurn
+			&& hotseatHandoff == null
+			&& !LanSession.IsSpectator
+			&& !WatchingAiGame
+			&& CurrentlySelectedUnit == MapUnit.NONE
+			&& !HasVisibleModal()
+			&& !IsChoosingProduction
+			&& !(FileDialog?.Visible ?? false)
+			&& !EngineStorage.HasPendingAnimations()
+			&& !EngineStorage.HasPendingMessagesToEngine();
+		if (!idle) {
+			idleSeconds = 0;
+			return;
+		}
+		idleSeconds += delta;
+		if (idleSeconds >= IdleSecondsBeforeEndingTurn) {
+			idleSeconds = 0;
+			endTurnWhenIdle = false;
+			log.Information("Nothing left to do this turn; ending it");
+			OnPlayerEndTurn();
+		}
 	}
 
 	// Whether the hotseat curtain hides the whole map.
@@ -1747,6 +1801,8 @@ public partial class Game : Node {
 				WarListForWatching().ShowAtPause(gameData.turn);
 			}
 
+			AutosaveIfDue(gameData);
+
 			CurrentState = GameState.PlayerTurn;
 		});
 
@@ -1754,6 +1810,44 @@ public partial class Game : Node {
 		// can tell the player now.
 		ShowNextProductionPopup();
 		EmitSignal(SignalName.PlayerTurnStart);
+	}
+
+	// The autosaves kept, the latest first; older ones are deleted.
+	private const int AutosavesKept = 10;
+	private const string AutosavePrefix = "Autosave Turn ";
+	private int autosavedTurn = -1;
+
+	// The preferences' Auto-Save: saves the game as each of the player's
+	// turns begins (once a round in a hotseat game), to Saves/Auto. Not in a
+	// LAN game, whose host keeps its own autosave, nor while watching the AIs.
+	private void AutosaveIfDue(GameData gameData) {
+		if (!Preferences.AutoSave || LanSession.IsActive || gameData.observerMode || gameData.turn == autosavedTurn) {
+			return;
+		}
+		autosavedTurn = gameData.turn;
+		string directory = System.IO.Path.Combine(Civ3FileDialog.SavesDirectory, "Auto");
+		string path = System.IO.Path.Combine(directory, $"{AutosavePrefix}{gameData.turn}.json");
+		try {
+			System.IO.Directory.CreateDirectory(directory);
+			DeleteOldAutosaves(directory);
+			log.Information("Autosaving the game to {Path}", path);
+			SaveManager.SaveInBackground(gameData, path).ContinueWith(
+				saving => log.Warning(saving.Exception, "Couldn't autosave the game to {Path}", path),
+				TaskContinuationOptions.OnlyOnFaulted);
+		} catch (Exception e) {
+			// An autosave that fails mustn't stop the game.
+			log.Warning(e, "Couldn't autosave the game to {Path}", path);
+		}
+	}
+
+	// Leaves room for the autosave about to be written.
+	private static void DeleteOldAutosaves(string directory) {
+		var old = new System.IO.DirectoryInfo(directory).GetFiles(AutosavePrefix + "*.json")
+			.OrderByDescending(file => file.LastWriteTimeUtc)
+			.Skip(AutosavesKept - 1);
+		foreach (System.IO.FileInfo file in old) {
+			file.Delete();
+		}
 	}
 
 	private void OnPlayerEndTurn() {
@@ -1850,6 +1944,11 @@ public partial class Game : Node {
 
 		// TODO: sound -- see MainMenu.PlayButtonPressedSound();
 		FileDialog.Popup();
+	}
+
+	// Civ3's Preferences (Ctrl-P, or from the game menu).
+	public void ShowPreferences() {
+		popupOverlay.ShowPopup(new PreferencesPopup(), PopupOverlay.PopupCategory.Info);
 	}
 
 	public void OnLoadGame() {
@@ -2413,6 +2512,7 @@ public partial class Game : Node {
 				player.isHuman = true;
 			}
 		}
+		animationController.ApplyPreferences();
 	}
 
 	private void ToggleGridCoordinates() {
@@ -2458,12 +2558,9 @@ public partial class Game : Node {
 		}
 	}
 
-	private bool tempAnimationsFlipped = false;
-
 	private void ProcessOnReleaseAction(string currentAction) {
-		if (currentAction == C7Action.EnableTempAnimations && tempAnimationsFlipped) {
-			tempAnimationsFlipped = false;
-			animationController.ToggleAnimationsEnabled();
+		if (currentAction == C7Action.EnableTempAnimations) {
+			animationController.EndTemporaryToggle();
 		}
 	}
 
@@ -2587,9 +2684,12 @@ public partial class Game : Node {
 		}
 
 		// Holding the key flips animations until it's released.
-		if (currentAction == C7Action.EnableTempAnimations && !tempAnimationsFlipped) {
-			tempAnimationsFlipped = true;
-			animationController.ToggleAnimationsEnabled();
+		if (currentAction == C7Action.EnableTempAnimations) {
+			animationController.BeginTemporaryToggle();
+		}
+
+		if (currentAction == C7Action.ShowPreferences) {
+			ShowPreferences();
 		}
 
 		// actions with unit buttons, which are only relevant during the player

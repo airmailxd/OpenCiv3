@@ -74,7 +74,8 @@ public partial class MainMenu : Node {
 		LoadScenarioDialog.GoToScenarioSetupAfterLoading = true;
 
 		// Without a Civ3 install, play in standalone mode rather than asking.
-		if (!C7Settings.UseStandaloneMode() && !ClassicGraphicsAvailable()) {
+		// The Settings page switches between the two.
+		if (!C7Settings.UseStandaloneMode() && !GamePaths.Civ3Available()) {
 			log.Information("No Civ3 install found, switching to standalone mode");
 			Global.ActivateGameMode(GamePaths.standalone);
 		}
@@ -106,43 +107,8 @@ public partial class MainMenu : Node {
 		ButtonContainer.Credits.Pressed += showCredits;
 		ButtonContainer.Exit.Pressed += _on_Exit_pressed;
 
-		ButtonContainer.ToggleGraphics.Pressed += () => {
-			Global.ToggleStandaloneMode();
-			GetTree().ChangeSceneToFile("res://UIElements/MainMenu/main_menu.tscn");
-		};
-		SetToggleGraphicsText();
-
-		// We can't toggle to using civ3 graphics in standalone mode.
-		if (C7Settings.UseStandaloneMode() && !ClassicGraphicsAvailable()) {
-			ButtonContainer.ToggleGraphics.Visible = false;
-		}
-
 		// Hide if valid path is present as proven by reaching this point in code
 		NoCiv3Options.Visible = false;
-	}
-
-	private bool ClassicGraphicsAvailable() {
-		if (string.IsNullOrEmpty(Util.Civ3Root)) {
-			return false;
-		}
-
-		string[] basePaths = ["Conquests", "civ3PTW", ""];
-		foreach (string basePath in basePaths) {
-			string relPath = string.IsNullOrEmpty(basePath) ? "Art/buttonsFINAL.pcx" : $"{basePath}/Art/buttonsFINAL.pcx";
-			if (Util.FileExistsIgnoringCase(Util.Civ3Root, relPath) != null) {
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-	private void SetToggleGraphicsText() {
-		if (C7Settings.UseStandaloneMode()) {
-			ButtonContainer.ToggleGraphics.Text = "Use Civilization III Media";
-		} else {
-			ButtonContainer.ToggleGraphics.Text = "Use OpenCiv3 Media";
-		}
 	}
 
 	public void GoToWorldSetup() {

@@ -10,6 +10,7 @@ public static class C7Action {
 	public const string EndTurnNow = "end_turn_now"; // even with units left to move
 	public const string SaveGame = "save_game";
 	public const string LoadGame = "load_game";
+	public const string ShowPreferences = "show_preferences"; // Ctrl-P
 	public const string Escape = "escape";
 
 	public const string MoveUnitSouthwest = "move_unit_southwest";

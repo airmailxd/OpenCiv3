@@ -31,7 +31,7 @@ public partial class GameMenu : Popup {
 			new("Load Game", Load),
 			// new("New Game (Ctrl-Shift-Q)", NewGame),
 			// TODO: Quick Start?
-			// new("Preferences (Ctrl-P)", OpenPreferences),
+			new("Preferences (Ctrl-P)", OpenPreferences),
 			new("Retire", Retire),
 			new("Save Game", Save),
 			new("Quit Game (ESC)", Quit)
@@ -83,6 +83,8 @@ public partial class GameMenu : Popup {
 	}
 
 	private void OpenPreferences() {
-		// TODO: Preferences management - disable animation, etc.
+		PopupOverlay overlay = GetParent<PopupOverlay>();
+		overlay.OnHidePopup();
+		overlay.ShowPopup(new PreferencesPopup(), PopupOverlay.PopupCategory.Info);
 	}
 }
