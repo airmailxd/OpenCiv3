@@ -24,7 +24,9 @@ namespace EngineTests.GameData;
 // pangaea only) when the shape check came to count the extra water, and
 // again when starts came to be spread over the land rather than packed
 // into the best of it, and again (the archipelago only) when each civ
-// came to get an island of its own where there are enough.
+// came to get an island of its own where there are enough, and again when
+// starts came to lean to the coast and to fresh water (and, on an
+// archipelago, to be on the coast).
 //
 // Re-baselining: when a map generator change is MEANT to change the maps,
 // run only this test
@@ -87,9 +89,9 @@ public class PerfAiStrategyMapDeterminismTest {
 	}
 
 	[Theory]
-	[InlineData(WorldCharacteristics.Landform.Pangaea, 123456, "14262B33354FAC9CABA4CB7A7404991964C28843EABF9DC2A821A6B81CC87F77")]
-	[InlineData(WorldCharacteristics.Landform.Continents, 4242, "B528C1D0B76512C85531D82DA58805E8AFAA789DD371C427D77E9E8145CB2EAD")]
-	[InlineData(WorldCharacteristics.Landform.Archipelago, 777, "DF336F6CE7D22962434282AC878F2E1267F9AF6E3C7FEB23AFE417C2E29F099F")]
+	[InlineData(WorldCharacteristics.Landform.Pangaea, 123456, "3176AB5099163806142ADD0173F6C08820DA3AC5B6A5C49B276B19D4CF41A0CD")]
+	[InlineData(WorldCharacteristics.Landform.Continents, 4242, "0025E5955EC55EEA19BF6E0A7514E76C027219E665BE99E8C9730E8A176B27DB")]
+	[InlineData(WorldCharacteristics.Landform.Archipelago, 777, "91A3AB3946A738F84DABCAF2EA041A9DFB241C087C8630D12B8157F8D353AE7B")]
 	public void SameSeedProducesSameMap(WorldCharacteristics.Landform landform, int seed, string expectedHash) {
 		string hash = HashMap(Generate(landform, seed));
 		output.WriteLine($"{landform} {seed}: {hash}");

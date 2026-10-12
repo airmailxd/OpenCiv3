@@ -2193,7 +2193,7 @@ namespace C7Engine {
 			foreach (Tile t in m.tiles) {
 				int score = ScorePossibleCityLocation(wc, t, scoringPlayer);
 				if (score > 0) {
-					scoredTiles[t] = score;
+					scoredTiles[t] = StartScore(t, score);
 				}
 			}
 			List<Tile> orderedTiles = scoredTiles.OrderByDescending(t => t.Value).Select(x => x.Key).ToList();
@@ -2204,6 +2204,7 @@ namespace C7Engine {
 			Dictionary<int, int> continentSizes = ComputeContinentSizes(m);
 
 			int spacing = StartSpacing(wc, continentSizes);
+			bool archipelago = wc.landform == WorldCharacteristics.Landform.Archipelago;
 			double qualityFloor = orderedTiles.Count > 0 ? scoredTiles[orderedTiles[0]] * START_QUALITY_FLOOR : 0;
 
 			for (int attempt = 0; attempt < START_PLACEMENT_PASSES && startingLocations.Count < wc.worldSize.numberOfCivs; ++attempt) {
@@ -2254,8 +2255,16 @@ namespace C7Engine {
 							continue;
 						}
 
-						// Seafaring civs are given coastal starts when the starts
-						// are handed out (see GameSetup.AssignStartingLocations).
+						// On an archipelago every civ starts on the coast
+						// (owner's decision, 2026-10-12: "on an archipelago a
+						// start should almost always be coastal"), but for
+						// the last pass, so that a map with room for every
+						// civ isn't turned down for it. Seafaring civs are
+						// given coastal starts when the starts are handed out
+						// (see GameSetup.AssignStartingLocations).
+						if (archipelago && attempt < START_PLACEMENT_PASSES - 1 && !candidate.NeighborsOcean()) {
+							continue;
+						}
 
 						if (!ContinentHasEnoughLuxuries(candidate, continentLuxuryCount, continentStartingLocationCount, attempt)) {
 							continue;
@@ -2298,6 +2307,26 @@ namespace C7Engine {
 			// human player doesn't always get the best starting spot.
 			rand.Shuffle<Tile>(CollectionsMarshal.AsSpan(startingLocations));
 			m.startingLocations = startingLocations;
+		}
+
+		// A start next to the sea, or next to fresh water (a river or a
+		// lake), scores this many percent more. Not from Civ3, which says
+		// nothing of how it places starts: the owner asked that starts lean
+		// to the coast, ideally with fresh water too (2026-10-12). A coastal
+		// capital can build harbours and boats and reach other land early.
+		// The bonuses tip a choice between sites about as good, while a
+		// clearly better site still wins. Without the fresh water bonus,
+		// leaning to the coast took about a tenth of the starts away from
+		// rivers.
+		private const int COASTAL_START_BONUS_PERCENT = 8;
+		private const int FRESH_WATER_START_BONUS_PERCENT = 5;
+
+		// A candidate start's score: the city site's (ScorePossibleCityLocation)
+		// with the coast and fresh water bonuses.
+		private static int StartScore(Tile t, int score) {
+			int bonus = (t.NeighborsOcean() ? COASTAL_START_BONUS_PERCENT : 0)
+				+ (t.BordersRiver() || t.NeighborsFreshWater() ? FRESH_WATER_START_BONUS_PERCENT : 0);
+			return score * (100 + bonus) / 100;
 		}
 
 		// How far apart, in moves, starts on the same continent should be for
@@ -2495,9 +2524,9 @@ namespace C7Engine {
 				score += FoodPoints * n.FoodYield(player).yield;
 			}
 
-			// Give an extra bonus for rivers.
-			// TODO: freshwater lakes?
-			if (t.BordersRiver()) {
+			// Give an extra bonus for fresh water, a river or a lake (the
+			// owner asked for starts with fresh water, 2026-10-12).
+			if (t.BordersRiver() || t.NeighborsFreshWater()) {
 				score += RiverPoints;
 			}
 

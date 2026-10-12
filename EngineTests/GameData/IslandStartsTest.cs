@@ -20,6 +20,10 @@ public class IslandStartsTest {
 	private const int IslandForACiv = 81;
 
 	private static GameMap Generate(WorldCharacteristics.OceanCoverage ocean, int seed) {
+		return Generate("Standard", ocean, seed);
+	}
+
+	private static GameMap Generate(string worldSize, WorldCharacteristics.OceanCoverage ocean, int seed) {
 		SaveGame save = GameMode.Load(PathUtils.GameModesDir, new GameMode.Config("civ3")).GetSave();
 		WorldCharacteristics wc = new(save) {
 			landform = WorldCharacteristics.Landform.Archipelago,
@@ -28,7 +32,7 @@ public class IslandStartsTest {
 			climate = WorldCharacteristics.Climate.Normal,
 			temperature = WorldCharacteristics.Temperature.Temperate,
 			barbarianActivity = BarbarianActivity.Roaming,
-			worldSize = save.WorldSizes.First(w => w.name == "Standard"),
+			worldSize = save.WorldSizes.First(w => w.name == worldSize),
 			mapSeed = seed,
 		};
 		return MapGenerator.GenerateMap(wc);
@@ -47,5 +51,23 @@ public class IslandStartsTest {
 
 		Dictionary<int, int> startsPerIsland = map.startingLocations.GroupBy(s => s.continent).ToDictionary(g => g.Key, g => g.Count());
 		Assert.All(startsPerIsland, kv => Assert.True(kv.Value == 1, $"{kv.Value} civs start on island {kv.Key}"));
+	}
+
+	// On an archipelago every civ starts on the coast (owner's report,
+	// 2026-10-12: on seed 405802261, a Huge archipelago, every start was 2
+	// to 4 tiles from water).
+	[Theory]
+	[InlineData("Huge", WorldCharacteristics.OceanCoverage.Percent_70, 405802261)]
+	[InlineData("Huge", WorldCharacteristics.OceanCoverage.Percent_60, 405802261)]
+	[InlineData("Huge", WorldCharacteristics.OceanCoverage.Percent_80, 405802261)]
+	[InlineData("Standard", WorldCharacteristics.OceanCoverage.Percent_70, 632203657)]
+	[InlineData("Standard", WorldCharacteristics.OceanCoverage.Percent_70, 1)]
+	[InlineData("Small", WorldCharacteristics.OceanCoverage.Percent_80, 3)]
+	[InlineData("Tiny", WorldCharacteristics.OceanCoverage.Percent_80, 2)]
+	[InlineData("Large", WorldCharacteristics.OceanCoverage.Percent_60, 4)]
+	public void EveryCivStartsOnTheCoast(string worldSize, WorldCharacteristics.OceanCoverage ocean, int seed) {
+		GameMap map = Generate(worldSize, ocean, seed);
+		Assert.NotEmpty(map.startingLocations);
+		Assert.All(map.startingLocations, s => Assert.True(s.NeighborsOcean(), $"start at {s.XCoordinate},{s.YCoordinate} is inland"));
 	}
 }
