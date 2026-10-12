@@ -41,6 +41,26 @@ public static class C7Action {
 	public const string ShowSpaceRaceView = "show_space_race_view";
 	public const string ShowDemographicsView = "show_demographics_view"; // F11
 
+	// The advisors and the other report screens, in the order of their keys
+	// (F1 to F11), as the advisors menu lists them.
+	public static readonly (string action, string name, bool isAdvisor)[] AdvisorScreens = [
+		(ShowDomesticAdvisor, "Domestic Advisor", true),
+		(ShowTradeAdvisor, "Trade Advisor", true),
+		(ShowMilitaryAdvisor, "Military Advisor", true),
+		(ShowForeignAdvisor, "Foreign Advisor", true),
+		(ShowCulturalAdvisor, "Cultural Advisor", true),
+		(ShowScienceAdvisor, "Science Advisor", true),
+		(ShowWondersView, "Wonders of the World", false),
+		(ShowVictoryStatusView, "Victory Status", false),
+		(ShowPalaceView, "Palace", false),
+		(ShowSpaceRaceView, "Space Race", false),
+		(ShowDemographicsView, "Demographics", false),
+	];
+
+	// The name of an advisor or report screen with its key, e.g.
+	// "Trade Advisor (F2)".
+	public static string AdvisorScreenLabel(int index) => $"{AdvisorScreens[index].name} (F{index + 1})";
+
 	public const string UnitBombard = "unit_bombard";
 	public const string UnitBuildCity = "unit_build_city";
 	public const string UnitBuildRoad = "unit_build_road";
