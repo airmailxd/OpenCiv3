@@ -816,7 +816,9 @@ public partial class MapUnit {
 			if (survivingMember.unitType.startsGoldenAge && !dead.owner.isBarbarians) {
 				alive.owner.StartGoldenAge(EngineStorage.gameData, $"Our {survivingMember.unitType.name} has won a great victory.");
 			}
-			await dead.animateAsync(MapUnit.AnimatedAction.DEATH);
+			// Pause on the last frame, so the dead unit doesn't stand up again
+			// before it's removed.
+			await dead.animateAsync(MapUnit.AnimatedAction.DEATH, AnimationEnding.Pause);
 			dead.RemoveFromPlay();
 		}
 
