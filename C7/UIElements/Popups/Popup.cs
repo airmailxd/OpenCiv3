@@ -129,7 +129,7 @@ public partial class Popup : TextureRect {
 			return rect;
 		}
 
-		Image image = Image.Create(width, height, false, Image.Format.Rgba8);
+		Image image = Image.CreateEmpty(width, height, false, Image.Format.Rgba8);
 
 		//The pop-up part is the tricky part
 		Stopwatch imageTimer = new Stopwatch();

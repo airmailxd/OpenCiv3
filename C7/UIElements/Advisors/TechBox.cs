@@ -128,7 +128,6 @@ public partial class TechBox : TextureButton {
 
 		int offsetX = techIconTexture.GetWidth() + 7;
 		int offsetY = 0;
-		int counter = 0;
 
 		List<ImageTexture> techEffects = TechEffectTextures();
 

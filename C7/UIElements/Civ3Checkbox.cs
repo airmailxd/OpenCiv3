@@ -16,9 +16,11 @@ public partial class Civ3Checkbox : CheckBox {
 	private Texture2D hoverTexture = TextureLoader.Load("ui.checkbox.hover");
 	private Texture2D pressedTexture = TextureLoader.Load("ui.checkbox.pressed");
 
+	// Hides Button.Text on purpose: the text is drawn by our own label, so the
+	// button's own text stays empty.
 	private string _text;
 	[Export]
-	public string Text {
+	public new string Text {
 		get => _text;
 		set {
 			_text = value;
