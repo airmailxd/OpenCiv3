@@ -195,7 +195,9 @@ def save_sheets(unit, name, fl, base, tint):
     By flic.flic_kind: a worker's job loop goes whole to C7/ModernArt; a
     standing/fortified flic goes whole to C7/ModernArtAnimations plus, as a
     one-column "still" of its last frame (what the game shows with animations
-    off), to C7/ModernArt; any other animation only to ModernArtAnimations."""
+    off), to C7/ModernArt; a move (RUN) flic goes whole to
+    ModernArtAnimations plus, as a cycle of every other frame, to ModernArt
+    (save_move); any other animation only to ModernArtAnimations."""
     exp = (fl.n_anims * fl.height * SCALE, fl.n_frames * fl.width * SCALE)
     assert base.shape[:2] == exp, f'{unit}/{name}: sheet {base.shape[:2]} != {exp}'
     kind = F.flic_kind(unit, name)
@@ -205,7 +207,38 @@ def save_sheets(unit, name, fl, base, tint):
     if kind == 'still':
         W = fl.width * SCALE
         paths += _save_pair(base[:, -W:], tint[:, -W:], sheet_path(unit, name), sheet_path(unit, name, '_tint'))
+    elif kind == 'move':
+        paths += save_move(unit, name, fl, base, tint)
     return paths
+
+
+def _columns(sheet, fl, cols):
+    W = fl.width * SCALE
+    return np.concatenate([sheet[:, c * W:(c + 1) * W] for c in cols], 1)
+
+
+def _quantized(rgba):
+    """A 256-color (palette with alpha) image of an RGBA array, about a
+    quarter of the size of a true-color one and hard to tell from it."""
+    return Image.fromarray(np.ascontiguousarray(rgba), 'RGBA').quantize(
+        256, method=Image.Quantize.FASTOCTREE, dither=Image.Dither.NONE)
+
+
+def save_move(unit, name, fl, base, tint):
+    """Writes the committed move cycle of a RUN flic: the columns of
+    flic.move_columns (every other frame) of sheets rendered whole or with
+    only those columns, as 256-color PNGs in C7/ModernArt. The game shows
+    each column for the frames it stands for (ModernGraphics.LoadFlicFrame)."""
+    cols = F.move_columns(fl.n_frames)
+    b, t = _columns(base, fl, cols), _columns(tint, fl, cols)
+    p, pt = sheet_path(unit, name), sheet_path(unit, name, '_tint')
+    os.makedirs(os.path.dirname(p), exist_ok=True)
+    _quantized(b).save(p, optimize=True)
+    if t[..., 3].any():
+        _quantized(t).save(pt, optimize=True)
+    elif os.path.exists(pt):
+        os.remove(pt)
+    return [p] + ([pt] if os.path.exists(pt) else [])
 
 
 def save_still(unit, name, fl, base, tint):

@@ -44,9 +44,19 @@ so `build_all.py` runs it last. See its `build.py`.
 * **Animations are optional.** The game is played with animations off, so the
   committed art is what shows then: units standing or fortified (stored as a
   one-column "still" of the flic's last frame) and workers at work (whole
-  loops). `python ArtGen/units/build.py` renders just those; `--animations`
-  also renders attacks, deaths and the like into `C7/ModernArtAnimations/`,
-  which isn't committed and is used by the game when present.
+  loops). Each unit's RUN flic is also committed as a "move cycle" of every
+  other frame (a 256-color sheet with half the columns; the game shows each
+  column for the frames it stands for). `python ArtGen/units/build.py`
+  renders just those; `--animations` also renders attacks, deaths, whole
+  runs and the like into `C7/ModernArtAnimations/`, which isn't committed and
+  is used by the game when present.
+* **Standalone mode draws units only with this art.** Without Civ3's files,
+  the game reads each unit folder's `<unit>.json` (written by
+  `ArtGen/units/metadata.py`: the flic of each action and the header values
+  of each flic) in place of its `.INI` and `.flc` files, and shows
+  `<unit>_32.png` (64x64, `ArtGen/units/thumbnails.py`) in place of its spot
+  in `units_32.pcx`. In standalone mode everything under `Art/Units` comes
+  from here whatever the Graphics Overhaul setting.
 * **Don't remake** `Territory.pcx` (borders are recolored by exact color),
   `FogOfWar.pcx`, or any interface art.
 * **Deterministic.** Fixed random seeds, so a rebuild gives the same art.
