@@ -128,7 +128,7 @@ public class SnapshotFilterTest : IClassFixture<SaveGameFixture>, IDisposable {
 		Assert.Contains(gameData.map.tiles.IndexOf(otherCity.location), otherKnows);
 		Assert.All(otherKnows, i => Assert.Equal(other.id, gameData.map.tiles[i].OwningPlayer()?.id));
 		Assert.All(otherKnows, i => Assert.True(guest.tileKnowledge.isTileKnown(gameData.map.tiles[i])));
-		Assert.Empty(otherSave.playerRelationships.Keys.Where(k => k != guest.id.ToString()));
+		Assert.DoesNotContain(otherSave.playerRelationships.Keys, k => k != guest.id.ToString());
 		// The guest's own player is whole.
 		SavePlayer guestSave = filtered.Players.Single(p => p.id == guest.id);
 		Assert.Same(whole.Players.Single(p => p.id == guest.id), guestSave);

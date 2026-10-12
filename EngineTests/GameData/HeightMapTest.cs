@@ -19,7 +19,7 @@ public class HeightMapTest {
 	// Set C7_DEBUG_IMAGE_DIR to see the maps, which makes it easier to
 	// understand how the scale parameter (and other height map parameters)
 	// change things.
-	public static void SaveNoiseMapAsPng(List<HeightMap> heightMaps, string fileName) {
+	private static void SaveNoiseMapAsPng(List<HeightMap> heightMaps, string fileName) {
 		using Image<Bgra32> image = new(heightMaps[0].mapWidth, heightMaps[0].mapHeight * heightMaps.Count);
 		for (int i = 0; i < heightMaps.Count; ++i) {
 			for (int x = 0; x < heightMaps[i].mapWidth; x++) {

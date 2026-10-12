@@ -251,7 +251,7 @@ public class SaveTests : IClassFixture<SaveGameFixture> {
 	// however the game changes meanwhile, and loading reads a file with or
 	// without a byte order mark, or in UTF-16, alike.
 	[Fact]
-	public void SaveInBackgroundAndLoad() {
+	public async Task SaveInBackgroundAndLoad() {
 		using TempDirectory output = new();
 		C7GameData.GameData gameData = ToGameData(GetSave(SaveType.basic));
 		string direct = output.File("direct.json");
@@ -262,7 +262,7 @@ public class SaveTests : IClassFixture<SaveGameFixture> {
 		System.Threading.Tasks.Task saving = SaveManager.SaveInBackground(gameData, background);
 		gameData.history.Values.First().Add(new HistTurnRecord { Score = 1 });
 		gameData.players[0].gold += 100;
-		saving.Wait();
+		await saving;
 		Assert.Equal(expected, File.ReadAllBytes(background));
 
 		byte[] compact = SaveGame.Load(direct, _ => "").ToCompactJSON();
@@ -288,14 +288,14 @@ public class SaveTests : IClassFixture<SaveGameFixture> {
 		Tile t1 = gd.map.tileAt(99, 33);
 		Tile t2 = gd.map.tileAt(1, 33);
 
-		Assert.Equal(t0.DistanceTo(t1), 1);
-		Assert.Equal(t1.DistanceTo(t0), 1);
+		Assert.Equal(1, t0.DistanceTo(t1));
+		Assert.Equal(1, t1.DistanceTo(t0));
 
-		Assert.Equal(t1.DistanceTo(t2), 1);
-		Assert.Equal(t2.DistanceTo(t1), 1);
+		Assert.Equal(1, t1.DistanceTo(t2));
+		Assert.Equal(1, t2.DistanceTo(t1));
 
-		Assert.Equal(t0.DistanceTo(t2), 2);
-		Assert.Equal(t2.DistanceTo(t0), 2);
+		Assert.Equal(2, t0.DistanceTo(t2));
+		Assert.Equal(2, t2.DistanceTo(t0));
 	}
 
 

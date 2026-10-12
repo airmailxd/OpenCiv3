@@ -121,7 +121,7 @@ public class FixEngineCoreTests {
 	[InlineData("warrior-99999999999")]
 	[InlineData("")]
 	[InlineData(null)]
-	public void MalformedIdsThrowFormatException(string str) {
+	public void MalformedIdsThrowFormatException(string? str) {
 		Assert.Throws<FormatException>(() => ID.FromString(str));
 	}
 
@@ -164,7 +164,7 @@ public class FixEngineCoreTests {
 	}
 
 	[Fact]
-	public void CyclicUpgradesDoNotLoopForever() {
+	public async Task CyclicUpgradesDoNotLoopForever() {
 		(C7GameData.GameData gameData, Civilization civ, City city) = MakeUpgradeGame();
 		UnitPrototype a = AddPrototype(gameData, civ, "A");
 		UnitPrototype b = AddPrototype(gameData, civ, "B");
@@ -172,8 +172,8 @@ public class FixEngineCoreTests {
 		b.upgradesTo.Add(a);
 
 		Task<UnitPrototype> task = Task.Run(() => a.GetProducibleUpgrade(city, []));
-		Assert.True(task.Wait(TimeSpan.FromSeconds(10)), "GetProducibleUpgrade looped");
-		Assert.Equal(b, task.Result);
+		Assert.True(await Task.WhenAny(task, Task.Delay(TimeSpan.FromSeconds(10))) == task, "GetProducibleUpgrade looped");
+		Assert.Equal(b, await task);
 		Assert.Equal(a, b.GetProducibleUpgrade(city, []));
 	}
 

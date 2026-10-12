@@ -177,9 +177,9 @@ public class SpectatorNewsTest : IClassFixture<SaveGameFixture>, IDisposable {
 
 		// Another part is news of its own.
 		LanHost.SpectatorNews news = new();
-		Assert.Single(sent.Where(m => news.Hears(Omniscient, m, gameData)));
+		Assert.Single(sent, m => news.Hears(Omniscient, m, gameData));
 		SpaceRace.OnPartCompleted(gameData, sparta, engine);
-		Assert.Single(SentToUI().Where(m => news.Hears(Omniscient, m, gameData)));
+		Assert.Single(SentToUI(), m => news.Hears(Omniscient, m, gameData));
 	}
 
 	// In a game of computer players, spectators hear the space race's news

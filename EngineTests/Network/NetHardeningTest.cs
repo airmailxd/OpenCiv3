@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using C7Engine;
 using C7Engine.Network;
 using C7GameData;
@@ -127,13 +128,13 @@ public class NetHardeningTest : IClassFixture<SaveGameFixture>, IDisposable {
 	}
 
 	[Fact]
-	public void ASpectatorComesBackWithItsToken() {
+	public async Task ASpectatorComesBackWithItsToken() {
 		using LanHost host = NewHost();
 		host.AllowSpectators = true;
 		host.SetPassword("swordfish");
 		string token;
-		using (LanClient watcher = LanClient.ConnectAsync(new LanAddressEndpoint("127.0.0.1", host.Port), "Watcher",
-			password: "swordfish").GetAwaiter().GetResult()) {
+		using (LanClient watcher = await LanClient.ConnectAsync(new LanAddressEndpoint("127.0.0.1", host.Port), "Watcher",
+			password: "swordfish")) {
 			watcher.Watch();
 			PumpUntil(host, watcher, () => host.Spectators.Count == 1 && watcher.ReconnectToken != null);
 			token = watcher.ReconnectToken;

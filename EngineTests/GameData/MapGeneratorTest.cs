@@ -12,7 +12,7 @@ namespace EngineTests.GameData;
 
 public class GameMapGeneratorTest {
 	// Set C7_DEBUG_IMAGE_DIR to see the maps.
-	public static void SaveMapsAsWaterLandPng(List<List<GameMap>> maps, string fileName) {
+	private static void SaveMapsAsWaterLandPng(List<List<GameMap>> maps, string fileName) {
 		int mapWidthPx = maps[0][0].numTilesWide * 2 + 1;
 		int mapHeightPx = maps[0][0].numTilesTall + 1;
 

@@ -166,7 +166,7 @@ public class PerfLanTests : IClassFixture<SaveGameFixture>, IDisposable {
 	}
 
 	[Fact]
-	public void APeerThatDoesNotReadDoesNotHoldUpTheSender() {
+	public async Task APeerThatDoesNotReadDoesNotHoldUpTheSender() {
 		TcpListener listener = new(IPAddress.Loopback, 0);
 		listener.Start();
 		using TcpClient stalled = new();
@@ -183,7 +183,8 @@ public class PerfLanTests : IClassFixture<SaveGameFixture>, IDisposable {
 				sender.Send(FrameKind.UiMessage, payload);
 			}
 		});
-		Assert.True(sending.Wait(TimeSpan.FromSeconds(60)), "Sending waited for a peer that never reads");
+		Assert.True(await Task.WhenAny(sending, Task.Delay(TimeSpan.FromSeconds(60))) == sending, "Sending waited for a peer that never reads");
+		await sending;
 		Assert.False(sender.IsClosed);
 	}
 

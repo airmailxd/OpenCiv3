@@ -143,10 +143,10 @@ public class UnitPrototypeConquestsTest : RemoteSaveLoader {
 		Tile ankaraTile = new Tile(ID.None("tile"));
 		City ankara = new City(ankaraTile, otto, "Ankara", gd.ids.CreateID("Ankara"));
 
-		Assert.True(horseman.producibleBy.Contains(ottomans));
-		Assert.True(knight.producibleBy.Contains(ottomans));
-		Assert.True(sipahi.producibleBy.Contains(ottomans));
-		Assert.False(cavalry.producibleBy.Contains(ottomans));
+		Assert.Contains(ottomans, horseman.producibleBy);
+		Assert.Contains(ottomans, knight.producibleBy);
+		Assert.Contains(ottomans, sipahi.producibleBy);
+		Assert.DoesNotContain(ottomans, cavalry.producibleBy);
 
 		otto.knownTechs.Add(horsebackRiding.id);
 
@@ -177,7 +177,7 @@ public class UnitPrototypeConquestsTest : RemoteSaveLoader {
 		Tile amsterdamTile = new Tile(ID.None("tile"));
 		City amsterdam = new City(amsterdamTile, nether, "Amsterdam", gd.ids.CreateID("Amsterdam"));
 
-		Assert.True(spearman.producibleBy.Contains(netherlands));
+		Assert.Contains(netherlands, spearman.producibleBy);
 
 		nether.knownTechs.Add(bronze.id);
 
@@ -216,9 +216,9 @@ public class UnitPrototypeConquestsTest : RemoteSaveLoader {
 		Tile hattusasTile = new Tile(ID.None("tile"));
 		City hattusas = new City(hattusasTile, hit, "Hattusas", gd.ids.CreateID("Hattusas"));
 
-		Assert.True(horseman.producibleBy.Contains(hittites));
-		Assert.False(chariot.producibleBy.Contains(hittites));
-		Assert.True(threeManChariot.producibleBy.Contains(hittites));
+		Assert.Contains(hittites, horseman.producibleBy);
+		Assert.DoesNotContain(hittites, chariot.producibleBy);
+		Assert.Contains(hittites, threeManChariot.producibleBy);
 
 
 		hit.knownTechs.Add(wheel.id);
@@ -233,12 +233,12 @@ public class UnitPrototypeConquestsTest : RemoteSaveLoader {
 		Tile moscowTile = new Tile(ID.None("tile"));
 		City moscow = new City(moscowTile, rus, "Moscow", gd.ids.CreateID("Moscow"));
 
-		Assert.True(horseman.producibleBy.Contains(russians));
-		Assert.True(scout.producibleBy.Contains(russians));
-		Assert.True(explorer.producibleBy.Contains(russians));
-		Assert.True(knight.producibleBy.Contains(russians));
-		Assert.True(cossack.producibleBy.Contains(russians));
-		Assert.False(cavalry.producibleBy.Contains(russians));
+		Assert.Contains(russians, horseman.producibleBy);
+		Assert.Contains(russians, scout.producibleBy);
+		Assert.Contains(russians, explorer.producibleBy);
+		Assert.Contains(russians, knight.producibleBy);
+		Assert.Contains(russians, cossack.producibleBy);
+		Assert.DoesNotContain(russians, cavalry.producibleBy);
 
 		Assert.True(scout.CanProduce(moscow, noResources));
 		Assert.Null(scout.GetProducibleUpgrade(moscow, noResources));
@@ -281,10 +281,10 @@ public class UnitPrototypeConquestsTest : RemoteSaveLoader {
 		// In conquests they both the Cannon and the Hwacha are permitted in the rules for the Koreans,
 		// maybe an oversight in the original rules, but it's there.
 		// We only care that the Trebuchet can upgrade to a Hwacha and not to a Cannon
-		Assert.True(catapult.producibleBy.Contains(koreans));
-		Assert.True(trebuchet.producibleBy.Contains(koreans));
-		Assert.True(cannon.producibleBy.Contains(koreans));
-		Assert.True(hwacha.producibleBy.Contains(koreans));
+		Assert.Contains(koreans, catapult.producibleBy);
+		Assert.Contains(koreans, trebuchet.producibleBy);
+		Assert.Contains(koreans, cannon.producibleBy);
+		Assert.Contains(koreans, hwacha.producibleBy);
 
 		Assert.False(catapult.CanProduce(seoul, noResources));
 		Assert.False(trebuchet.CanProduce(seoul, noResources));
@@ -328,9 +328,9 @@ public class UnitPrototypeConquestsTest : RemoteSaveLoader {
 		Tile seattleTile = new Tile(ID.None("tile"));
 		City seattle = new City(seattleTile, amer, "Seattle", gd.ids.CreateID("Seattle"));
 
-		Assert.True(fighter.producibleBy.Contains(americans));
-		Assert.False(jet.producibleBy.Contains(americans));
-		Assert.True(f15.producibleBy.Contains(americans));
+		Assert.Contains(americans, fighter.producibleBy);
+		Assert.DoesNotContain(americans, jet.producibleBy);
+		Assert.Contains(americans, f15.producibleBy);
 
 		Assert.False(fighter.CanProduce(seattle, new HashSet<Resource>() { oil, aluminum }));
 		Assert.False(jet.CanProduce(seattle, new HashSet<Resource>() { oil, aluminum }));
@@ -356,8 +356,8 @@ public class UnitPrototypeConquestsTest : RemoteSaveLoader {
 		Tile persepolisTile = new Tile(ID.None("tile"));
 		City persepolis = new City(persepolisTile, per, "Persepolis", gd.ids.CreateID("Persepolis"));
 
-		Assert.False(swordsman.producibleBy.Contains(persians));
-		Assert.True(immortals.producibleBy.Contains(persians));
+		Assert.DoesNotContain(persians, swordsman.producibleBy);
+		Assert.Contains(persians, immortals.producibleBy);
 
 		per.knownTechs.Add(ironWorking.id);
 
@@ -512,9 +512,9 @@ public class UnitPrototypeScenarioTest : RemoteSaveLoader {
 		Tile constantinopleTile = new Tile(ID.None("tile"));
 		City constantinople = new City(constantinopleTile, byz, "Constantinople", gd.ids.CreateID("Constantinople"));
 
-		Assert.True(horseman.producibleBy.Contains(byzantines));
-		Assert.True(cataphract.producibleBy.Contains(byzantines));
-		Assert.False(knight.producibleBy.Contains(byzantines));
+		Assert.Contains(byzantines, horseman.producibleBy);
+		Assert.Contains(byzantines, cataphract.producibleBy);
+		Assert.DoesNotContain(byzantines, knight.producibleBy);
 
 		byz.knownTechs.Add(horsebackRiding.id);
 
@@ -540,9 +540,9 @@ public class UnitPrototypeScenarioTest : RemoteSaveLoader {
 		Tile sofiaTile = new Tile(ID.None("tile"));
 		City sofia = new City(sofiaTile, bul, "Sofia", gd.ids.CreateID("Sofia"));
 
-		Assert.True(horseman.producibleBy.Contains(bulgars));
-		Assert.False(cataphract.producibleBy.Contains(bulgars));
-		Assert.False(knight.producibleBy.Contains(bulgars));
+		Assert.Contains(bulgars, horseman.producibleBy);
+		Assert.DoesNotContain(bulgars, cataphract.producibleBy);
+		Assert.DoesNotContain(bulgars, knight.producibleBy);
 
 		bul.knownTechs.Add(horsebackRiding.id);
 

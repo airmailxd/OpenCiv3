@@ -265,8 +265,7 @@ public class OnlineGameTests : IClassFixture<SaveGameFixture>, IDisposable {
 		Assert.False(game.game.started);
 
 		// A player finds it and joins with the password.
-		using LanClient bob = LanClient.ConnectAsync(new RelayEndpoint(relay.Url, game.code), "Bob", password: "swordfish")
-			.GetAwaiter().GetResult();
+		using LanClient bob = await LanClient.ConnectAsync(new RelayEndpoint(relay.Url, game.code), "Bob", password: "swordfish");
 		PumpUntil(host, [bob], () => bob.Lobby != null);
 		bob.ClaimSeat(seatID);
 		PumpUntil(host, [bob], () => ListingOn(relay, code)?.seatsTaken == 2);

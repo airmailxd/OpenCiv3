@@ -87,7 +87,7 @@ public class CityTest {
 		// Confirm we lose population without enough food.
 		Assert.Equal(2, city.residents.Count);
 		city.HandleCityGrowth(gameData);
-		Assert.Equal(1, city.residents.Count);
+		Assert.Single(city.residents);
 	}
 
 	[Fact]
@@ -105,7 +105,7 @@ public class CityTest {
 		city.residents.Add(new CityResident());
 
 		city.HandleCityGrowth(gameData);
-		Assert.Equal(1, city.residents.Count);
+		Assert.Single(city.residents);
 		Assert.Equal(0, city.foodStored);
 	}
 
