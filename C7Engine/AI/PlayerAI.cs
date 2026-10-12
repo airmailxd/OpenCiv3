@@ -64,6 +64,8 @@ namespace C7Engine {
 
 			await EngineStorage.YieldIfFrameBudgetSpent();
 			UpgradeUnits(player);
+			// Stop paying for obsolete units over the free support (see ObsoleteUnits).
+			await ObsoleteUnits.DisbandOverSupport(player);
 			// On trial: march on enemy cities in force (see WarCampaign).
 			await WarCampaign.PlayTurn(player, gameData);
 			await EngineStorage.YieldIfFrameBudgetSpent();
