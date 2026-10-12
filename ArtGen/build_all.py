@@ -7,6 +7,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 
 if __name__ == '__main__':
     areas = sorted(d for d in os.listdir(HERE) if os.path.isfile(os.path.join(HERE, d, 'build.py')))
+    # The Civilopedia's icons are made from the other areas' art: build them last.
+    areas.sort(key=lambda d: d == 'civilopedia_icons')
     for area in areas:
         print(f'== {area}', flush=True)
         subprocess.run([sys.executable, os.path.join(HERE, area, 'build.py')], check=True)
