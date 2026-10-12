@@ -1926,8 +1926,8 @@ bearer. They were built for shock, to crash into the enemy's lines.
 ^At the battle of Kadesh around 1274 BC, a great Hittite chariot charge nearly destroyed the army of Ramesses II.
 
 #PRTO_Mounted_Warrior
-^The [Mounted Warrior] is the $LINK<Iroquois=RACE_IROQUOIS> special unit: a horseman that attacks more strongly
-than an ordinary one. It moves two squares a turn and can withdraw from a losing battle against slower units. It
+^The [Mounted Warrior] is the $LINK<Iroquois=RACE_IROQUOIS> special unit, which the Iroquois build instead
+of the $LINK<Horseman=PRTO_Horseman>: a horseman that attacks more strongly than an ordinary one. It moves two squares a turn and can withdraw from a losing battle against slower units. It
 needs $LINK<horses=GOOD_Horses>.
 
 #DESC_PRTO_Mounted_Warrior
@@ -5114,8 +5114,8 @@ conquered. The Zulu remain the largest ethnic group in South Africa.
 
 #RACE_IROQUOIS
 ^The [Iroquois] are $LINK<Commercial and Agricultural=GCON_Strengths>. They begin with
-$LINK<Pottery=TECH_Pottery> and $LINK<Alphabet=TECH_Alphabet>, and can build the
-$LINK<Mounted Warrior=PRTO_Mounted_Warrior>.
+$LINK<Pottery=TECH_Pottery> and $LINK<Alphabet=TECH_Alphabet>, and build the
+$LINK<Mounted Warrior=PRTO_Mounted_Warrior> instead of the $LINK<Horseman=PRTO_Horseman>.
 
 #DESC_RACE_IROQUOIS
 ^The Iroquois, or Haudenosaunee, were a confederacy of five nations of northeastern North America: the Mohawk,
