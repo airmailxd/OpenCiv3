@@ -232,12 +232,12 @@ public partial class UnitLayer : LooseLayer {
 			this.sprite = new AnimatedSprite2D();
 			this.sprite.ZIndex = unitAnimZIndex;
 			this.sprite.SpriteFrames = manager.spriteFrames;
-			this.sprite.TextureFilter = ModernGraphics.SpriteFilter;
+			this.sprite.TextureFilter = ModernGraphics.UnitSpriteFilter;
 
 			this.spriteTint = new AnimatedSprite2D();
 			this.spriteTint.ZIndex = unitAnimZIndex;
 			this.spriteTint.SpriteFrames = manager.tintFrames;
-			this.spriteTint.TextureFilter = ModernGraphics.SpriteFilter;
+			this.spriteTint.TextureFilter = ModernGraphics.UnitSpriteFilter;
 
 			SetUntinted();
 

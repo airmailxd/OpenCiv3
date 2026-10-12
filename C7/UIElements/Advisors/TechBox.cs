@@ -267,7 +267,10 @@ public partial class TechBox : TextureButton {
 
 		// Units
 		foreach (UnitPrototype unit in Units) {
-			ImageTexture texture = TextureLoader.LoadByPath(unit.art.pediaArt.small);
+			// In standalone mode the icon is one of our Civilopedia's.
+			ImageTexture texture = C7Settings.UseStandaloneMode()
+				? CivilopediaArt.Load(unit.art.pediaArt.small) as ImageTexture
+				: TextureLoader.LoadByPath(unit.art.pediaArt.small);
 			textures.Add(texture);
 		}
 
