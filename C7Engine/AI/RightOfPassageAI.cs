@@ -273,7 +273,7 @@ namespace C7Engine.AI {
 					await OfferToHuman(player, them, weGive, weWant);
 				} else if (them.WouldAcceptDealFrom(gameData, player, weGive, weWant)) {
 					// We propose it, so they carry it out (see ExecuteDeal).
-				them.ExecuteDeal(gameData, player, weGive, weWant);
+					them.ExecuteDeal(gameData, player, weGive, weWant);
 				}
 				if (HaveActiveRightOfPassage(player, them)) {
 					log.Information("{Player} and {Them} signed a right of passage", player, them);

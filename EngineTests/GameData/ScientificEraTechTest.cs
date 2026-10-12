@@ -27,7 +27,10 @@ public class ScientificEraTechTest {
 
 	private Tech NewTech(int id, string name, string era, bool required, params Tech[] prereqs) {
 		Tech tech = new() {
-			id = ID.FromString($"tech-{id}"), Name = name, Cost = 10, EraCivilopediaName = era,
+			id = ID.FromString($"tech-{id}"),
+			Name = name,
+			Cost = 10,
+			EraCivilopediaName = era,
 			RequiredForEraAdvancement = required,
 		};
 		tech.Prerequisites.AddRange(prereqs);
