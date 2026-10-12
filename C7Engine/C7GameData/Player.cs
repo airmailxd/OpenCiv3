@@ -1312,7 +1312,18 @@ namespace C7GameData {
 				return;
 			}
 
+			// Being the first to research a tech may bring a scientific
+			// leader (see MapUnit_ScientificLeader.cs).
+			bool first = IsFirstToLearn(gameData, tech);
 			CompleteResearchAndBeginNew(gameData, tech);
+			if (first) {
+				MapUnit.RollForScientificLeader(gameData, this, tech);
+			}
+		}
+
+		// Whether no other civ knows the tech yet. Barbarians don't count.
+		internal bool IsFirstToLearn(GameData gameData, Tech tech) {
+			return !gameData.players.Any(p => p != this && !p.isBarbarians && p.knownTechs.Contains(tech.id));
 		}
 
 		// The Great Library: each turn, while it is active, its owner learns
@@ -1368,7 +1379,7 @@ namespace C7GameData {
 			if (learned.Count > 0) {
 				// As with research, a human with nothing queued chooses what
 				// to research next rather than having it picked for them.
-				if (isHuman && currentlyResearchedTech == null && ResearchQueue.Count == 0) {
+				if (ChoosesResearchThemselves) {
 					lastDiscoveredTech = learned[^1];
 				} else {
 					PlayerAI.MaybePickTechToResearch(this, gameData.techs);
@@ -1414,11 +1425,28 @@ namespace C7GameData {
 		}
 
 		private void CompleteResearchAndBeginNew(GameData gameData, IEnumerable<Tech> techs) {
+			Tech last = null;
 			foreach (Tech tech in techs) {
 				CompleteResearchingTech(gameData, tech);
+				last = tech;
+			}
+			if (ChoosesResearchThemselves) {
+				lastDiscoveredTech = last ?? lastDiscoveredTech;
+				return;
 			}
 			PlayerAI.MaybePickTechToResearch(this, gameData.techs);
 		}
+
+		// Whether this player, having nothing to research, is to be asked
+		// what to research next (see AskWhatToResearch) rather than have it
+		// picked for them: a human whose research queue has run out, or a
+		// human with a free tech to come (such as Philosophy's), who chooses
+		// that tech themselves rather than have it spent on the next tech in
+		// their research queue (owner's decision, 2026-10-11: "Philosophy
+		// should have a human choice"). Their choice replaces the queue, as
+		// any choice of research does. AIs always pick for themselves.
+		private bool ChoosesResearchThemselves => isHuman && currentlyResearchedTech == null
+			&& (ResearchQueue.Count == 0 || freeTechsRemaining > 0);
 		// Asks a human with nothing to research what to research next, once
 		// they have a city. The message names the tech just discovered, which
 		// a LAN client doesn't otherwise know.
@@ -1435,7 +1463,7 @@ namespace C7GameData {
 			// A human whose research queue has run out is asked what to
 			// research next (see AskWhatToResearch) rather than having it
 			// picked for them.
-			if (isHuman && currentlyResearchedTech == null && ResearchQueue.Count == 0) {
+			if (ChoosesResearchThemselves) {
 				lastDiscoveredTech = tech;
 				return;
 			}

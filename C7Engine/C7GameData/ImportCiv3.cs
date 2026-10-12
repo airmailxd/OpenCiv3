@@ -151,6 +151,7 @@ namespace C7GameData {
 			ImportSavVictory();
 			save.Rules.AcceleratedProduction = savData.Game.AcceleratedProduction;
 			save.Rules.AllowCultureFlips = savData.Game.AllowCulturalConversions;
+			save.Rules.ScientificLeaders = savData.Game.AllowScientificLeaders;
 
 			SetMapDimensions(savData, save);
 			SetWorldWrap(savData, save);
@@ -2524,6 +2525,9 @@ namespace C7GameData {
 			QueryCiv3.Biq.GAME[] games = GameBiq?.Game;
 			save.Rules.AllowCultureFlips = games == null || games.Length == 0 || games[0].DefaultGameRules != 0
 				|| games[0].AllowCulturalConversions;
+			// Scientific leaders likewise (see Rules.ScientificLeaders).
+			save.Rules.ScientificLeaders = games == null || games.Length == 0 || games[0].DefaultGameRules != 0
+				|| games[0].AllowScientificLeaders;
 			save.Rules.UpgradeCostPerShield = rule.UpgradeCost;
 			save.Rules.MinimumPopulationForWeLoveTheKing = rule.MinimumPopulationForWeLoveTheKing;
 			save.Rules.GoldenAgeDuration = rule.GoldenAgeDuration;

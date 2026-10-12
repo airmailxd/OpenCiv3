@@ -30,7 +30,7 @@ public partial class MapUnit {
 	// leader, before the roll. Only elite land units fighting for themselves
 	// (not as members of an army) qualify, victories over barbarians don't
 	// count, each unit produces at most one leader, and a civ has at most one
-	// leader at a time.
+	// military leader at a time (a scientific leader doesn't count).
 	internal bool CouldProduceLeaderBeating(MapUnit opponent, bool wasElite) {
 		if (!wasElite || hasProducedLeader || IsInArmy() || IsArmy() || !IsLandUnit())
 			return false;
@@ -38,7 +38,7 @@ public partial class MapUnit {
 			return false;
 		if (LeaderPrototype() == null)
 			return false;
-		return !owner.units.Any(u => u.IsLeader());
+		return !owner.units.Any(u => u.IsLeader() && !u.isScientificLeader);
 	}
 
 	private static UnitPrototype LeaderPrototype() {
@@ -74,11 +74,12 @@ public partial class MapUnit {
 		return leader;
 	}
 
-	// A leader in one of its owner's cities can form an army there. Unlike
+	// A military leader in one of its owner's cities can form an army there
+	// (a scientific one can't; see MapUnit_ScientificLeader.cs). Unlike
 	// armies built by the Military Academy, these don't need cities to
 	// support them (an assumption, from how Conquests plays).
 	public bool CanFormArmy() {
-		if (!IsLeader() || !movementPoints.canMove || !InOwnCity())
+		if (!IsLeader() || isScientificLeader || !movementPoints.canMove || !InOwnCity())
 			return false;
 		return ArmyPrototype() != null;
 	}
@@ -112,6 +113,8 @@ public partial class MapUnit {
 	// A leader in one of its owner's cities can finish the city's current
 	// improvement or small wonder. In Conquests military leaders can't hurry
 	// great wonders (that's for scientific leaders) or units (an assumption).
+	// A scientific leader can finish anything, great wonders and units
+	// included (see MapUnit_ScientificLeader.cs).
 	public bool CanHurryProduction() {
 		return CanOfferHurryProduction() && HurryProductionBlocker() == null;
 	}
@@ -128,6 +131,14 @@ public partial class MapUnit {
 		if (!CanOfferHurryProduction())
 			return "A leader must be in one of our cities, with moves left, to hurry production.";
 		City city = location.cityAtTile;
+		if (isScientificLeader) {
+			return city.itemBeingProduced switch {
+				null => $"{city.name} isn't building anything.",
+				Inflow => $"A leader can't hurry {city.name}'s {city.itemBeingProduced.name}.",
+				IProducible p when city.shieldsStored >= owner.ShieldCost(p) => $"{city.name} will already finish its {p.name} this turn.",
+				_ => null,
+			};
+		}
 		return city.itemBeingProduced switch {
 			null => $"{city.name} isn't building anything.",
 			UnitPrototype => $"A leader can't hurry units. Switch {city.name}'s production to an improvement or small wonder first.",

@@ -214,6 +214,42 @@ public class TechWonderTest {
 		Assert.Equal(alphabet, us.lastDiscoveredTech);
 	}
 
+	// Philosophy's free tech: a human always chooses it rather than have it
+	// spent on their research queue (owner's decision, 2026-10-11).
+	[Fact]
+	public void AHumanChoosesPhilosophysFreeTechOverTheirQueue() {
+		alphabet.BonusTechToFirstCivThatResearches = true;
+		us.isHuman = true;
+		us.cities.Add(new City(Tile.NONE, us, "Thebes", ID.None("city")));
+		us.CalculateFreshTechQueueAndAssignNewCurrent(alphabet);
+		us.AddTechItemToResearchQueue(pottery);
+
+		us.AcquireTech(gameData, alphabet);
+
+		// The queued Pottery isn't taken for free; the player is asked.
+		Assert.Equal(1, us.freeTechsRemaining);
+		Assert.DoesNotContain(pottery.id, us.knownTechs);
+		Assert.Null(us.currentlyResearchedTech);
+		Assert.Equal(alphabet, us.lastDiscoveredTech);
+
+		// Their choice is learned at once.
+		us.CalculateFreshTechQueueAndAssignNewCurrent(writing);
+		Assert.Contains(writing.id, us.knownTechs);
+		Assert.Equal(0, us.freeTechsRemaining);
+	}
+
+	[Fact]
+	public void AnAIsPhilosophyFreeTechFollowsItsQueue() {
+		alphabet.BonusTechToFirstCivThatResearches = true;
+		us.CalculateFreshTechQueueAndAssignNewCurrent(alphabet);
+		us.AddTechItemToResearchQueue(pottery);
+
+		us.AcquireTech(gameData, alphabet);
+
+		Assert.Contains(pottery.id, us.knownTechs);
+		Assert.Equal(0, us.freeTechsRemaining);
+	}
+
 	[Fact]
 	public void GreatLibraryFollowsAHumansResearchQueue() {
 		BuildWonder(SaveBuilding.Flag.GainAnyTechKnownByTwoCivs);

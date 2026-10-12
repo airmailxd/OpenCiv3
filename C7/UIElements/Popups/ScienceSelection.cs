@@ -36,9 +36,14 @@ public partial class ScienceSelection : Popup {
 		AddHeader("Science Advisor", 120);
 
 		Label messageLabel = new();
+		// A free tech (such as Philosophy's) is chosen here too, and is
+		// learned at once.
+		string question = player.freeTechsRemaining > 0
+			? "Which advance shall we take for free?"
+			: "What shall we explore now?";
 		messageLabel.Text = discovered == null
-			? "What shall we explore now?"
-			: $"We have discovered {discovered.Name}!\nWhat shall we explore now?";
+			? question
+			: $"We have discovered {discovered.Name}!\n{question}";
 		messageLabel.SetPosition(new Vector2(25, discovered == null ? 160 : 148));
 		AddChild(messageLabel);
 

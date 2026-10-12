@@ -56,7 +56,7 @@ public class GoodyHutTest : IClassFixture<SaveGameFixture> {
 	// outcome: the roll lands in the middle of that outcome's share, the
 	// shares coming in the outcomes' order.
 	private GoodyHuts.Outcome? EnterFinding(MapUnit unit, Tile hut, GoodyHuts.Outcome wanted) {
-		Dictionary<GoodyHuts.Outcome, double> weights = GoodyHuts.Weigh(gameData, unit, hut, GoodyHuts.Hardness(gameData, unit.owner));
+		Dictionary<GoodyHuts.Outcome, double> weights = GoodyHuts.Weigh(gameData, unit, hut, GoodyHuts.Level(gameData, unit.owner));
 		Assert.True(weights[wanted] > 0);
 		double before = System.Enum.GetValues<GoodyHuts.Outcome>().TakeWhile(o => o != wanted).Sum(o => weights.GetValueOrDefault(o));
 		double sample = (before + weights[wanted] / 2) / weights.Values.Sum();
@@ -111,9 +111,10 @@ public class GoodyHutTest : IClassFixture<SaveGameFixture> {
 	public void HarderLevelsHaveStingierHuts() {
 		(Tile from, _, Tile hut) = FindHutSite();
 		MapUnit warrior = gameData.SpawnUnit(ai, Prototype("Warrior"), from);
+		ai.civilization.traits.Remove(Civilization.Trait.Expansionist);
 
 		Dictionary<GoodyHuts.Outcome, double> easy = GoodyHuts.Weigh(gameData, warrior, hut, 0);
-		Dictionary<GoodyHuts.Outcome, double> hard = GoodyHuts.Weigh(gameData, warrior, hut, 1);
+		Dictionary<GoodyHuts.Outcome, double> hard = GoodyHuts.Weigh(gameData, warrior, hut, 7);
 
 		Assert.True(hard[GoodyHuts.Outcome.Barbarians] >= easy[GoodyHuts.Outcome.Barbarians]);
 		Assert.True(hard[GoodyHuts.Outcome.Unit] < easy[GoodyHuts.Outcome.Unit]);
@@ -134,7 +135,7 @@ public class GoodyHutTest : IClassFixture<SaveGameFixture> {
 		(Tile from, _, Tile hut) = FindHutSite();
 		MapUnit warrior = gameData.SpawnUnit(ai, Prototype("Warrior"), from);
 		ai.eraCivilopediaName = "ERAS_Middle_Ages";
-		Assert.Equal(0, GoodyHuts.Weigh(gameData, warrior, hut, 0.5)[GoodyHuts.Outcome.Tech]);
+		Assert.Equal(0, GoodyHuts.Weigh(gameData, warrior, hut, GoodyHuts.MiddleLevel)[GoodyHuts.Outcome.Tech]);
 	}
 
 	[Fact]
@@ -142,7 +143,7 @@ public class GoodyHutTest : IClassFixture<SaveGameFixture> {
 		(Tile from, _, Tile hut) = FindHutSite();
 		UnitPrototype scoutType = gameData.unitPrototypes.First(p => p.IsLandUnit() && p.attack == 0 && !p.isSettler && !p.isWorker);
 		MapUnit scout = gameData.SpawnUnit(ai, scoutType, from);
-		Assert.Equal(0, GoodyHuts.Weigh(gameData, scout, hut, 1)[GoodyHuts.Outcome.Barbarians]);
+		Assert.Equal(0, GoodyHuts.Weigh(gameData, scout, hut, 7)[GoodyHuts.Outcome.Barbarians]);
 	}
 
 	[Fact]
@@ -150,17 +151,105 @@ public class GoodyHutTest : IClassFixture<SaveGameFixture> {
 		(Tile from, _, Tile hut) = FindHutSite();
 		MapUnit warrior = gameData.SpawnUnit(ai, Prototype("Warrior"), from);
 		ai.civilization.traits.Add(Civilization.Trait.Expansionist);
-		Assert.Equal(0, GoodyHuts.Weigh(gameData, warrior, hut, 1)[GoodyHuts.Outcome.Barbarians]);
+		Assert.Equal(0, GoodyHuts.Weigh(gameData, warrior, hut, 7)[GoodyHuts.Outcome.Barbarians]);
 	}
 
 	[Fact]
 	public void HumansHutsFollowTheDifficultyLevel() {
-		gameData.gameDifficulty = gameData.difficulties.First();
-		Assert.Equal(0, GoodyHuts.Hardness(gameData, human));
-		gameData.gameDifficulty = gameData.difficulties.Last();
-		Assert.Equal(1, GoodyHuts.Hardness(gameData, human));
+		Assert.Equal(GoodyHuts.LevelCount, gameData.difficulties.Count);
+		for (int i = 0; i < gameData.difficulties.Count; i++) {
+			gameData.gameDifficulty = gameData.difficulties[i];
+			Assert.Equal(i, GoodyHuts.Level(gameData, human));
+		}
 		// AIs always get middling huts.
-		Assert.Equal(0.5, GoodyHuts.Hardness(gameData, ai));
+		Assert.Equal(GoodyHuts.MiddleLevel, GoodyHuts.Level(gameData, ai));
+	}
+
+	// A ruleset with fewer levels spreads them over the table's columns.
+	[Fact]
+	public void OtherNumbersOfLevelsSpanTheTable() {
+		gameData.difficulties.RemoveRange(4, gameData.difficulties.Count - 4);
+		gameData.gameDifficulty = gameData.difficulties[0];
+		Assert.Equal(0, GoodyHuts.Level(gameData, human));
+		gameData.gameDifficulty = gameData.difficulties[3];
+		Assert.Equal(7, GoodyHuts.Level(gameData, human));
+		gameData.gameDifficulty = gameData.difficulties[1];
+		Assert.Equal(2, GoodyHuts.Level(gameData, human));
+	}
+
+	[Fact]
+	public void EachLevelsOddsAddUpToAHundred() {
+		for (int level = 0; level < GoodyHuts.LevelCount; level++) {
+			Assert.Equal(100, GoodyHuts.BaseOdds.Values.Sum(row => row[level]), 3);
+			// The transcribed percentages are rounded to a tenth.
+			Assert.InRange(GoodyHuts.ExpansionistOdds.Values.Sum(row => row[level]), 99.6, 100.4);
+		}
+	}
+
+	// The odds of what's possible are the table's, on the player's level.
+	[Theory]
+	[InlineData(0)]
+	[InlineData(2)]
+	[InlineData(7)]
+	public void TheOddsComeFromTheTable(int level) {
+		(Tile from, _, Tile hut) = FindHutSite(t => t.Resource == null || t.Resource == Resource.NONE);
+		MapUnit warrior = gameData.SpawnUnit(ai, Prototype("Warrior"), from);
+		ai.civilization.traits.Remove(Civilization.Trait.Expansionist);
+		Dictionary<GoodyHuts.Outcome, double> weights = GoodyHuts.Weigh(gameData, warrior, hut, level);
+		foreach (GoodyHuts.Outcome o in new[] { GoodyHuts.Outcome.Gold, GoodyHuts.Outcome.Map, GoodyHuts.Outcome.Unit, GoodyHuts.Outcome.Nothing }) {
+			Assert.Equal(GoodyHuts.BaseOdds[o][level], weights[o]);
+		}
+
+		ai.civilization.traits.Add(Civilization.Trait.Expansionist);
+		weights = GoodyHuts.Weigh(gameData, warrior, hut, level);
+		foreach (GoodyHuts.Outcome o in new[] { GoodyHuts.Outcome.Gold, GoodyHuts.Outcome.Map, GoodyHuts.Outcome.Unit, GoodyHuts.Outcome.Nothing }) {
+			Assert.Equal(GoodyHuts.ExpansionistOdds[o][level], weights[o]);
+		}
+	}
+
+	// Picking with the table's odds finds each outcome about as often as the
+	// table says, and an outcome that can't happen never, its share going to
+	// the rest in proportion.
+	[Theory]
+	[InlineData(false)]
+	[InlineData(true)]
+	public void PicksFollowTheOdds(bool expansionist) {
+		IReadOnlyDictionary<GoodyHuts.Outcome, double[]> table = expansionist ? GoodyHuts.ExpansionistOdds : GoodyHuts.BaseOdds;
+		const int level = 2; // Regent
+		Dictionary<GoodyHuts.Outcome, double> weights = table.ToDictionary(kv => kv.Key, kv => kv.Value[level]);
+		weights[GoodyHuts.Outcome.Tech] = 0;
+		double total = weights.Values.Sum();
+
+		System.Random original = C7GameData.GameData.rng;
+		C7GameData.GameData.rng = new System.Random(12345);
+		Dictionary<GoodyHuts.Outcome, int> counts = new();
+		const int samples = 40000;
+		try {
+			for (int i = 0; i < samples; i++) {
+				GoodyHuts.Outcome o = GoodyHuts.Pick(weights);
+				counts[o] = counts.GetValueOrDefault(o) + 1;
+			}
+		} finally {
+			C7GameData.GameData.rng = original;
+		}
+
+		Assert.Equal(0, counts.GetValueOrDefault(GoodyHuts.Outcome.Tech));
+		foreach ((GoodyHuts.Outcome o, double weight) in weights) {
+			Assert.InRange(counts.GetValueOrDefault(o) / (double)samples, weight / total - 0.01, weight / total + 0.01);
+		}
+	}
+
+	[Fact]
+	public void AHutsMapShowsTheLandAround() {
+		(Tile from, _, Tile hut) = FindHutSite();
+		hut.hasGoodyHut = true;
+		MapUnit warrior = gameData.SpawnUnit(ai, Prototype("Warrior"), from);
+		Tile far = hut.GetTilesWithinRankDistance(GoodyHuts.MapRadius)
+			.FirstOrDefault(t => t != Tile.NONE && t.DistanceTo(hut) >= 4 && !ai.tileKnowledge.isTileKnown(t));
+		Assert.NotNull(far);
+
+		Assert.Equal(GoodyHuts.Outcome.Map, EnterFinding(warrior, hut, GoodyHuts.Outcome.Map));
+		Assert.True(ai.tileKnowledge.isTileKnown(far));
 	}
 
 	[Fact]
@@ -175,7 +264,7 @@ public class GoodyHutTest : IClassFixture<SaveGameFixture> {
 			Player other = gameData.players.First(p => p != ai && !p.isBarbarians);
 			CityInteractions.BuildCity(gameData.map.tiles.First(t => IsEmptyLand(t) && t.IsAllowCities() && t.DistanceTo(hut) > 3), other, "Elsewhere");
 		}
-		Assert.True(GoodyHuts.Weigh(gameData, warrior, hut, 0.5)[GoodyHuts.Outcome.City] > 0);
+		Assert.True(GoodyHuts.Weigh(gameData, warrior, hut, GoodyHuts.MiddleLevel)[GoodyHuts.Outcome.City] > 0);
 
 		// With every other civ's cities gone, it's ahead of the average.
 		ai.cities.AddRange(aiCities);
@@ -185,7 +274,7 @@ public class GoodyHutTest : IClassFixture<SaveGameFixture> {
 		foreach (Player p in gameData.players.Where(p => p != ai)) {
 			p.cities.Clear();
 		}
-		Dictionary<GoodyHuts.Outcome, double> ahead = GoodyHuts.Weigh(gameData, warrior, hut, 0.5);
+		Dictionary<GoodyHuts.Outcome, double> ahead = GoodyHuts.Weigh(gameData, warrior, hut, GoodyHuts.MiddleLevel);
 		Assert.Equal(0, ahead[GoodyHuts.Outcome.City]);
 		Assert.Equal(0, ahead[GoodyHuts.Outcome.Settler]);
 	}
