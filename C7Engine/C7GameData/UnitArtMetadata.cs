@@ -122,8 +122,9 @@ namespace C7GameData {
 		// The column of a sheet with `columns` columns that shows frame
 		// `frame` of an animation of `frames` frames. A sheet may have fewer
 		// columns than the animation has frames: a still has one, which
-		// stands for every frame, and a move cycle has every other frame,
-		// each column standing for the frames up to the next column's.
+		// stands for every frame, and a move cycle or victory has every
+		// other frame, each column standing for the frames up to the next
+		// column's.
 		public static int SheetColumn(int frame, int frames, int columns) {
 			if (columns >= frames || frames <= 0) {
 				return frame;

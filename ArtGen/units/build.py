@@ -5,14 +5,16 @@
     python build.py --jobs=8           # worker processes (default: all cores)
     python build.py --list             # catalogued units, and which Civ3 units are not
     python build.py --animations       # also the animations only played with animations on
-    python build.py --kinds=move       # only these kinds of flic (still, loop, move, animation)
+    python build.py --kinds=move       # only these kinds of flic (still, loop, move, combat, animation)
 
 By default only the flics that are committed are rendered: what the game
-shows with animations off (standing, fortified, and workers at work) and a
-move cycle of every other frame of each unit's RUN flic (see flic.flic_kind
-and framework.save_sheets for where each goes). --animations adds the rest
-(attacks, deaths, whole runs...), which go to C7/ModernArtAnimations, not
-committed. The unit's metadata (metadata.py), which standalone mode reads
+shows with animations off (standing, fortified, and workers at work), a
+move cycle of every other frame of each unit's RUN flic, and what combat
+plays: the ATTACK1 and DEATH flics whole and VICTORY at every other frame,
+as 256-color sheets (see flic.flic_kind and framework.save_sheets for where
+each goes). --animations adds the rest (other attacks, fidgets, whole
+runs...) and the full-color whole sheets, which go to
+C7/ModernArtAnimations, not committed. The unit's metadata (metadata.py), which standalone mode reads
 instead of Civ3's INI and flics, and its thumbnail (thumbnails.py) are
 rewritten too (the thumbnails not with --kinds).
 
@@ -60,10 +62,10 @@ def render_one(task):
             n = F.load_unit_flic(unit, name).n_frames
             base, tint, fl = job.render_flic(action, name, cols=[n - 1])
             paths = framework.save_still(unit, name, fl, base, tint)
-        elif partial == 'move':
-            # Only every other frame is committed.
+        elif partial in ('move', 'combat'):
+            # Only these frames are committed (every other one of a move).
             n = F.load_unit_flic(unit, name).n_frames
-            base, tint, fl = job.render_flic(action, name, cols=F.move_columns(n))
+            base, tint, fl = job.render_flic(action, name, cols=F.committed_columns(unit, name, n))
             paths = framework.save_move(unit, name, fl, base, tint)
         else:
             base, tint, fl = job.render_flic(action, name)
@@ -94,9 +96,9 @@ def tasks_for(units, animations=False):
             if not animations and kind == 'animation':
                 continue
             seen.add(name.lower())
-            # Without --animations, a still or move flic is only rendered
-            # in part (what's committed); with it, whole.
-            out.append((unit, action, name, kind if kind in ('still', 'move') and not animations else None))
+            # Without --animations, a still, move or combat flic is only
+            # rendered in part (what's committed); with it, whole.
+            out.append((unit, action, name, kind if kind in ('still', 'move', 'combat') and not animations else None))
     # biggest first, so the pool finishes evenly
     def cost(t):
         try:

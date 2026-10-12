@@ -195,9 +195,10 @@ def save_sheets(unit, name, fl, base, tint):
     By flic.flic_kind: a worker's job loop goes whole to C7/ModernArt; a
     standing/fortified flic goes whole to C7/ModernArtAnimations plus, as a
     one-column "still" of its last frame (what the game shows with animations
-    off), to C7/ModernArt; a move (RUN) flic goes whole to
-    ModernArtAnimations plus, as a cycle of every other frame, to ModernArt
-    (save_move); any other animation only to ModernArtAnimations."""
+    off), to C7/ModernArt; a move (RUN) or combat (attack, death, victory)
+    flic goes whole to ModernArtAnimations plus, as a 256-color sheet of the
+    committed frames, to ModernArt (save_move); any other animation only to
+    ModernArtAnimations."""
     exp = (fl.n_anims * fl.height * SCALE, fl.n_frames * fl.width * SCALE)
     assert base.shape[:2] == exp, f'{unit}/{name}: sheet {base.shape[:2]} != {exp}'
     kind = F.flic_kind(unit, name)
@@ -207,7 +208,7 @@ def save_sheets(unit, name, fl, base, tint):
     if kind == 'still':
         W = fl.width * SCALE
         paths += _save_pair(base[:, -W:], tint[:, -W:], sheet_path(unit, name), sheet_path(unit, name, '_tint'))
-    elif kind == 'move':
+    elif kind in ('move', 'combat'):
         paths += save_move(unit, name, fl, base, tint)
     return paths
 
@@ -225,11 +226,13 @@ def _quantized(rgba):
 
 
 def save_move(unit, name, fl, base, tint):
-    """Writes the committed move cycle of a RUN flic: the columns of
-    flic.move_columns (every other frame) of sheets rendered whole or with
-    only those columns, as 256-color PNGs in C7/ModernArt. The game shows
-    each column for the frames it stands for (ModernGraphics.LoadFlicFrame)."""
-    cols = F.move_columns(fl.n_frames)
+    """Writes the committed sheets of a move (RUN) or combat flic: the
+    columns of flic.committed_columns (every other frame of a move cycle or
+    victory, every frame of an attack or death) of sheets rendered whole or
+    with only those columns, as 256-color PNGs in C7/ModernArt. The game
+    shows each column for the frames it stands for
+    (ModernGraphics.LoadFlicFrame)."""
+    cols = F.committed_columns(unit, name, fl.n_frames)
     b, t = _columns(base, fl, cols), _columns(tint, fl, cols)
     p, pt = sheet_path(unit, name), sheet_path(unit, name, '_tint')
     os.makedirs(os.path.dirname(p), exist_ok=True)

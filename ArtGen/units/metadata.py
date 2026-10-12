@@ -12,7 +12,7 @@ what the game reads from its header: the frame size (the sheet cells are
 twice that), the number of directions (sheet rows) and frames, the time per
 frame, and where the frame sits on the 240x240 canvas the game places
 units with. A flic's sheet may have fewer columns than the flic has frames
-(a still has one, a move cycle every other frame); the game then shows each
+(a still has one, a move cycle or victory every other frame); the game then shows each
 column for the frames it stands for. See C7Engine/C7GameData/UnitArtMetadata.cs.
 
     {
@@ -25,8 +25,8 @@ column for the frames it stands for. See C7Engine/C7GameData/UnitArtMetadata.cs.
     }
 
 Every action of the original's INI is listed, also those whose sheets are
-only made with --animations (attacks, deaths...); the game falls back on
-DEFAULT for an action whose sheet isn't there.
+only made with --animations (other attacks, fidgets...); the game falls back
+on DEFAULT for an action whose sheet isn't there.
 """
 import json
 import os

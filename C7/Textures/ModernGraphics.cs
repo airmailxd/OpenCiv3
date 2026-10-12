@@ -25,9 +25,12 @@ using Godot;
 // stands in for every frame.
 //
 // The ModernArt folder holds what's shown with animations off (units standing
-// or fortified, as stills, and workers at work). The rest of the unit
-// animations are big, so they're kept out of git in a ModernArtAnimations
-// folder laid out the same way, which is used when it's there.
+// or fortified, as stills, and workers at work), and, as 256-color sheets,
+// units moving (every other frame), attacking and dying (every frame) and
+// winning (every other frame). The rest of the unit animations, and all of
+// them whole in full color, are big, so they're kept out of git in a
+// ModernArtAnimations folder laid out the same way, which is used when it's
+// there.
 //
 // In standalone mode there's no Civ3 art at all, so units are always drawn
 // with the remade art, whatever the setting: everything under Art/Units comes
@@ -105,6 +108,22 @@ public static class ModernGraphics {
 	// hasn't been remade.
 	private static readonly Dictionary<string, Image> images = [];
 
+	// The files of the remade art by the media path they replace, null for
+	// art that hasn't been remade.
+	private static readonly Dictionary<string, string> files = [];
+
+	// The file of the remade art at a media path, or null if there's none.
+	private static string FindFile(string mediaPath, string suffix) {
+		string key = mediaPath + suffix;
+		if (!files.TryGetValue(key, out string fullPath)) {
+			string relPath = System.IO.Path.ChangeExtension(mediaPath, null) + suffix + ".png";
+			fullPath = Util.FileExistsIgnoringCase(AnimationsRoot, relPath)
+				?? Util.FileExistsIgnoringCase(Root, relPath);
+			files[key] = fullPath;
+		}
+		return fullPath;
+	}
+
 	// The remade image for the art at a media path (such as
 	// "Art/Terrain/xtgc.pcx"), or null if the overhaul is off or there's none.
 	private static Image FindImage(string mediaPath, string suffix = "") {
@@ -113,9 +132,7 @@ public static class ModernGraphics {
 		}
 		string key = mediaPath + suffix;
 		if (!images.TryGetValue(key, out Image image)) {
-			string relPath = System.IO.Path.ChangeExtension(mediaPath, null) + suffix + ".png";
-			string fullPath = Util.FileExistsIgnoringCase(AnimationsRoot, relPath)
-				?? Util.FileExistsIgnoringCase(Root, relPath);
+			string fullPath = FindFile(mediaPath, suffix);
 			image = fullPath != null ? Image.LoadFromFile(fullPath) : null;
 			if (image != null && image.GetFormat() != Image.Format.Rgba8) {
 				image.Convert(Image.Format.Rgba8);
@@ -153,7 +170,7 @@ public static class ModernGraphics {
 	// The same for a flic described by its frame size and number of frames
 	// per direction rather than read from its file. A sheet may have fewer
 	// columns than the flic has frames: a still has one, which stands for
-	// every frame, and a move cycle has every other frame (see
+	// every frame, and a move cycle or victory has every other frame (see
 	// UnitArtMetadata.SheetColumn).
 	public static (ImageTexture, ImageTexture) LoadFlicFrame(string flicPath, int width, int height, int frames, int row, int col) {
 		Image baseSheet = FindImage(flicPath);
@@ -179,9 +196,21 @@ public static class ModernGraphics {
 		return (baseTexture, tintTexture);
 	}
 
-	// Whether there's a remade sheet for a flic.
+	// Whether there's a remade sheet for a flic, without loading it.
 	public static bool HasFlicSheet(string flicPath) {
-		return FindImage(flicPath) != null;
+		return flicPath != null && UsedFor(flicPath) && FindFile(flicPath, "") != null;
+	}
+
+	// Forgets the sheets of a flic once its frames have been made, as an
+	// animation's frames are kept by whoever asked for them and its sheets
+	// can be big (a death, with every frame, is tens of megabytes once
+	// decoded).
+	public static void ForgetFlicSheets(string flicPath) {
+		if (flicPath == null) {
+			return;
+		}
+		images.Remove(flicPath);
+		images.Remove(flicPath + "_tint");
 	}
 
 	// The metadata of our own art for a unit art name (the art's folder), by
@@ -210,6 +239,7 @@ public static class ModernGraphics {
 
 	public static void ClearCache() {
 		images.Clear();
+		files.Clear();
 		unitMetadata.Clear();
 	}
 }
