@@ -54,7 +54,7 @@ public class CivilopediaCatalogTest : IClassFixture<SaveGameFixture> {
 
 		Assert.Contains(Tech("Iron Working"), catalog.LeadsTo(Tech("Bronze Working")));
 		Assert.DoesNotContain(Tech("Writing"), catalog.LeadsTo(Tech("Bronze Working")));
-		Assert.Empty(catalog.LeadsTo(Tech("Bronze Working")).Where(t => !t.Prerequisites.Contains(Tech("Bronze Working"))));
+		Assert.DoesNotContain(catalog.LeadsTo(Tech("Bronze Working")), t => !t.Prerequisites.Contains(Tech("Bronze Working")));
 	}
 
 	[Fact]
