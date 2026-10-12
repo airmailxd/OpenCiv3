@@ -249,23 +249,44 @@ def unit_flics(unit):
 # animations on plays its RUN flic: a "move" cycle of every other frame is
 # committed too (as a 256-color sheet, see framework.save_move), so units
 # don't glide in standalone mode, where there's no Civ3 art to fall back on.
+# What combat plays is committed too, as 256-color sheets (a "combat" flic):
+# the attack (ATTACK1, the only attack the game plays) and the death whole,
+# and the victory as every other frame, like a move cycle.
 # Everything else is an optional extra, kept out of git in
 # C7/ModernArtAnimations.
 STILL_ACTIONS = {'DEFAULT', 'FORTIFY'}
 LOOP_ACTIONS = {'ROAD', 'MINE', 'FORTRESS', 'IRRIGATE', 'JUNGLE', 'FOREST', 'PLANT'}
 MOVE_ACTIONS = {'RUN'}
+COMBAT_ACTIONS = {'ATTACK1', 'DEATH', 'VICTORY'}
+# The combat actions committed with every frame (the others with every other).
+WHOLE_COMBAT_ACTIONS = {'ATTACK1', 'DEATH'}
+
+
+def flic_actions(unit, name):
+    """The actions of a unit's INI that play a flic."""
+    return {a.upper() for a, n in unit_flics(unit).items() if n.lower() == name.lower()}
 
 
 def flic_kind(unit, name):
-    """'loop', 'still', 'move' or 'animation' (see above)."""
-    actions = {a.upper() for a, n in unit_flics(unit).items() if n.lower() == name.lower()}
+    """'loop', 'still', 'move', 'combat' or 'animation' (see above)."""
+    actions = flic_actions(unit, name)
     if actions & LOOP_ACTIONS:
         return 'loop'
     if actions & STILL_ACTIONS:
         return 'still'
     if actions & MOVE_ACTIONS:
         return 'move'
+    if actions & COMBAT_ACTIONS:
+        return 'combat'
     return 'animation'
+
+
+def committed_columns(unit, name, n_frames):
+    """The frames of a move or combat flic that are committed: every frame
+    of an attack or death, every other one of a move cycle or victory."""
+    if flic_kind(unit, name) == 'combat' and flic_actions(unit, name) & WHOLE_COMBAT_ACTIONS:
+        return list(range(n_frames))
+    return move_columns(n_frames)
 
 
 def move_columns(n_frames):

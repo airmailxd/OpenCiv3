@@ -20,11 +20,14 @@ public class StandaloneUnitArtTest {
 	private static string CivilopediaFolder => PathUtils.getBasePath("../C7/Civilopedia/");
 
 	// The actions whose sheets must be committed: what's shown with
-	// animations off (standing, fortified, workers at work) and the move
-	// cycle. See ArtGen/units/flic.py.
+	// animations off (standing, fortified, workers at work), the move cycle
+	// and what combat plays (the attack and the death with every frame, the
+	// victory with every other). See ArtGen/units/flic.py.
 	private static readonly string[] StillActions = ["DEFAULT", "FORTIFY"];
 	private static readonly string[] LoopActions = ["ROAD", "MINE", "IRRIGATE", "FORTRESS", "JUNGLE", "FOREST", "PLANT"];
 	private const string MoveAction = "RUN";
+	private static readonly string[] WholeCombatActions = ["ATTACK1", "DEATH"];
+	private const string VictoryAction = "VICTORY";
 
 	private static readonly Lazy<SaveGame> standaloneRules = new(() => SaveGameFixture.LoadGameMode(new GameMode.Config("civ3", ["standalone"])).GetSave());
 	private static readonly Lazy<SaveGame> basicRules = new(() => SaveGameFixture.LoadGameMode(new GameMode.Config("civ3")).GetSave());
@@ -109,13 +112,14 @@ public class StandaloneUnitArtTest {
 				string upper = action.ToUpperInvariant();
 				bool still = StillActions.Contains(upper);
 				bool loop = LoopActions.Contains(upper);
-				bool move = upper == MoveAction;
-				if (!still && !loop && !move) {
+				bool move = upper == MoveAction || upper == VictoryAction;
+				bool whole = WholeCombatActions.Contains(upper);
+				if (!still && !loop && !move && !whole) {
 					continue; // only made with --animations, not committed
 				}
 				UnitArtMetadata.Flic flic = metadata.GetFlic(flicName);
 				int cellWidth = flic.Width * 2, cellHeight = flic.Height * 2;
-				int[] columns = still ? [1] : loop ? [flic.Frames] : [(flic.Frames + 1) / 2, flic.Frames];
+				int[] columns = still ? [1] : loop || whole ? [flic.Frames] : [(flic.Frames + 1) / 2, flic.Frames];
 				foreach (string suffix in new[] { "", "_tint" }) {
 					string sheet = FindIgnoringCase(folder, flicName + suffix + ".png");
 					if (sheet == null) {
@@ -132,8 +136,10 @@ public class StandaloneUnitArtTest {
 					}
 				}
 			}
-			if (metadata.FlicNameOf(MoveAction) == null) {
-				problems.Add($"{unit}: {art} has no {MoveAction} animation");
+			foreach (string action in new[] { MoveAction, "DEATH" }) {
+				if (metadata.FlicNameOf(action) == null) {
+					problems.Add($"{unit}: {art} has no {action} animation");
+				}
 			}
 
 			string thumbnail = FindIgnoringCase(folder, art + "_32.png");

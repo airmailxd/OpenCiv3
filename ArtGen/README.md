@@ -46,10 +46,13 @@ so `build_all.py` runs it last. See its `build.py`.
   one-column "still" of the flic's last frame) and workers at work (whole
   loops). Each unit's RUN flic is also committed as a "move cycle" of every
   other frame (a 256-color sheet with half the columns; the game shows each
-  column for the frames it stands for). `python ArtGen/units/build.py`
-  renders just those; `--animations` also renders attacks, deaths, whole
-  runs and the like into `C7/ModernArtAnimations/`, which isn't committed and
-  is used by the game when present.
+  column for the frames it stands for), and so is what combat plays, as
+  256-color sheets: the ATTACK1 (the only attack the game plays) and DEATH
+  flics with every frame, and VICTORY with every other frame.
+  `python ArtGen/units/build.py` renders just those; `--animations` also
+  renders the other attacks, fidgets, whole runs and the like, and every
+  animation whole in full color, into `C7/ModernArtAnimations/`, which isn't
+  committed and is used by the game when present.
 * **Standalone mode draws units only with this art.** Without Civ3's files,
   the game reads each unit folder's `<unit>.json` (written by
   `ArtGen/units/metadata.py`: the flic of each action and the header values

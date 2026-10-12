@@ -10,6 +10,7 @@ python ArtGen/units/build.py                  # every catalogued unit (all cores
 python ArtGen/units/build.py Warrior Archer   # just these
 python ArtGen/units/build.py --list           # what is / isn't catalogued
 python ArtGen/units/build.py --kinds=move     # only the committed move cycles (RUN, every other frame)
+python ArtGen/units/build.py --kinds=combat   # only the committed combat sheets (ATTACK1, DEATH whole; VICTORY every other frame)
 python ArtGen/units/metadata.py               # the metadata standalone mode reads
 python ArtGen/units/thumbnails.py             # the thumbnails standalone mode shows
 python ArtGen/units/preview.py Warrior                       # original | remake, every flic
