@@ -61,98 +61,521 @@
 <main>
 	<p><a href="./">&larr; Back to the downloads</a></p>
 	<h1>What's new</h1>
-	<p class="muted">Everything that changed since version 0.5.1. Newest first.</p>
+	<p class="muted">Everything that changed since this fork began, version by version. Newest first.</p>
 
-	<h2>Version 0.7.1 <span class="muted">(October 12, 2026)</span></h2>
+	<nav aria-label="Versions">
+		<ul>
+			<li><a href="#v0.7.1">Version 0.7.1</a> <span class="muted">(October 12, 2026)</span></li>
+			<li><a href="#v0.7.0">Version 0.7.0</a> <span class="muted">(October 12, 2026)</span></li>
+			<li><a href="#v0.6.1">Version 0.6.1</a> <span class="muted">(October 10, 2026)</span></li>
+			<li><a href="#v0.6.0">Version 0.6.0</a> <span class="muted">(October 9, 2026)</span></li>
+			<li><a href="#v0.5.1">Version 0.5.1</a> <span class="muted">(October 9, 2026)</span></li>
+			<li><a href="#v0.5.0">Version 0.5.0</a> <span class="muted">(October 8, 2026)</span></li>
+			<li><a href="#v0.4.6">Versions 0.4.1 to 0.4.6</a> <span class="muted">(October 7, 2026)</span></li>
+			<li><a href="#v0.4.0">Version 0.4.0, and everything before it</a> <span class="muted">(October 4 to 7, 2026)</span></li>
+		</ul>
+	</nav>
+	<p class="muted">A few words that come up a lot: <b>playing without Civ3</b> means playing on a computer that doesn't have the original Civilization III installed, using the game's own art and rules instead. The <b>Graphics Overhaul</b> is the game's own remade, sharper art for the map, which you can switch on or off in <kbd>Settings</kbd>. <b>Computer players</b> are the civilizations the game plays itself (the "AI").</p>
+
+	<h2 id="v0.7.1">Version 0.7.1 <span class="muted">(October 12, 2026)</span></h2>
 	<h3>Playing without Civ3</h3>
 	<ul>
-		<li>The game no longer needs Civ3 for the Civilopedia. Without Civ3, it has its own pages, pictures and newly written articles for every unit, building, wonder, advance, government, terrain, resource, worker action, civilization and game rule.</li>
-		<li>All 124 units can now be built without Civ3, each drawn with the game's own new art, in place of the 28 there were. With animations on, they walk as they move.</li>
-		<li>Games without Civ3 start even with the Graphics Overhaul turned off.</li>
+		<li>The Civilopedia (the game's built-in encyclopedia) no longer needs Civ3. Without Civ3 it has its own newly written articles and histories for every civilization, advance, building, wonder, government, unit, worker action, terrain, resource and game rule, and a test makes sure every link in them leads somewhere.</li>
+		<li>It has its own look too: parchment pages set in a stone-coloured frame, with its own covers, name bars, arrows and buttons, laid out just like Civ3's.</li>
+		<li>Every entry has its own picture, large and small: 124 units, 83 advances, 83 buildings and wonders, 8 governments, 17 terrains, 26 resources, 14 worker actions and 31 civilizations. Units are close-ups of their remade models, buildings are little city scenes, and advances and governments are symbols and emblems. Some of the first pictures were redrawn to be clearer, such as the statues on the Colossus, the Statue of Zeus and the Heroic Epic, the roads and railroads, and the fleur-de-lis and eagles on the civilization emblems.</li>
+		<li>If you do have Civ3, its own Civilopedia text and pictures are used first, and the game's own fill in anything missing.</li>
+		<li>All 124 units can now be built without Civ3, each drawn with the game's own new art, in place of the 28 there were before. Units keep their upgrades, and their looks change by era as in Civ3. Lists of units show a small picture of each one, and the science advisor shows each unit's Civilopedia picture.</li>
+		<li>With animations on, units walk as they move instead of gliding along. (Attacks and deaths still show the unit standing, and units make no sounds without Civ3.)</li>
+		<li>Games without Civ3 now start even with the Graphics Overhaul turned off. Before, a missing picture (flood plains, for one) stopped the game from starting; now the remade art fills in anything the basic art doesn't have.</li>
 	</ul>
 	<h3>With Civ3</h3>
 	<ul>
 		<li>With the Graphics Overhaul and animations both on, moving units use the new walking animations.</li>
 	</ul>
+	<h3>Download page</h3>
+	<ul>
+		<li>This What's new page was added, and the download page now shows the newest version's highlights and links here. It also explains great scientists and the Scientific civilizations' free advance separately, since anyone can get a great scientist.</li>
+	</ul>
+	<h3>Behind the scenes</h3>
+	<ul>
+		<li>New tests check that every Civilopedia entry has its article and pictures, that every unit has all its art, and that the unit art's details are read correctly.</li>
+		<li>The scripts that draw the Civilopedia pictures and the units' walking art and thumbnails were added to the project.</li>
+	</ul>
 
-	<h2>Version 0.7.0 <span class="muted">(October 12, 2026)</span></h2>
+	<h2 id="v0.7.0">Version 0.7.0 <span class="muted">(October 12, 2026)</span></h2>
 	<h3>The Civilopedia</h3>
 	<ul>
-		<li>Civ3's Civilopedia is in the game. Click the book at the top left, or press <kbd>Ctrl</kbd>+<kbd>C</kbd>, to look up any unit, building, wonder, advance, government, terrain, resource, worker action, civilization or game rule.</li>
-		<li>Every page shows what the thing costs and does, what it needs, and what it leads to. Click any link or icon to jump to that page, and use the arrows to go back. The <kbd>Description</kbd> button shows its history.</li>
-		<li>Right-click an advance in the science advisor, or a building or production choice in a city, to go straight to its page. The right-click menus on the map have a "View Civilopedia entry" item too.</li>
+		<li>Civ3's Civilopedia is in the game. Click the book at the top left, or press <kbd>Ctrl</kbd>+<kbd>C</kbd>, to look up any unit, building, wonder, advance, government, terrain, resource, worker action, civilization or game rule. It opens over the map or whatever screen you're on, with Civ3's own menus and an A to Z index.</li>
+		<li>Every page shows what the thing costs and does, what it needs, and what it leads to. Click any link or icon to jump to that page, and use the arrows to go back and forward. The <kbd>Description</kbd> button shows its history.</li>
+		<li>Right-click an advance in the science advisor, or a building or production choice in a city, to go straight to its page. The right-click menus of cities and units on the map have a "View Civilopedia entry" item too.</li>
+		<li>Scenarios with their own Civilopedia text use it. In this version, without Civ3 the Civilopedia had plain panels and no pictures; version 0.7.1 gave it its own.</li>
 	</ul>
-	<h3>Computer players</h3>
+	<h3>Computer players: diplomacy</h3>
 	<ul>
-		<li>When they're stronger than you, they may demand tribute. Pay up, or risk war.</li>
-		<li>Their mood toward you, from Gracious to Furious, now shows when you talk to them. It depends on how you've treated them, as in Civ3: gifts, tribute, trades, shared enemies, captured workers and more.</li>
-		<li>They settle more of the map before going to war, and carry settlers across the sea to new land.</li>
-		<li>At war they gather an army first and march on one city at a time, rest their hurt units, fight with armies, and while on the march won't make peace unless it gives them a city.</li>
-		<li>They build wonders in their safest, most productive cities, buy the units they need with gold, and slowly retire units that are out of date.</li>
+		<li>When they're stronger than you and at peace with you, they may demand tribute: a little gold, or an advance if you have no gold. Paying pleases them. Refusing means war on Regent difficulty and up; on easier levels they may back down, but they'll hold it against you.</li>
+		<li>Their mood toward you, from Gracious to Furious, now shows when you talk to them (it always said "Cautious" before). It's worked out as in Civ3, from how aggressive each leader is, the governments they like and dislike, gifts, tribute, trades, advances traded lately, shared enemies, captured workers and more. United Nations votes use the same moods.</li>
+		<li>A computer player with plenty of open land left (enough to double its cities) doesn't start wars on weaker neighbours, and asks them for tribute instead. In test games this cut the wars each civilization started from about one to about a third.</li>
 	</ul>
-	<h3>Diplomacy</h3>
+	<h3>Diplomacy: right of passage</h3>
 	<ul>
-		<li>Civilizations with an embassy can agree to let each other's units pass through their land. Friendly computer players offer it, and ask for it when they need to cross your land to reach an enemy.</li>
+		<li>Civilizations can now sign a <b>right of passage</b>, letting each other's units through their land, from the deal screen. It lasts 20 turns. The civilization asking needs Writing and its own embassy with the other. It can't be signed at war or as part of a peace treaty.</li>
+		<li>Roads and railroads in another civilization's land only speed you up if you have a right of passage with them.</li>
+		<li>Declaring war while your units are inside a partner's land under a right of passage counts as a betrayal: others won't sign one with you again, and it counts against you in United Nations votes.</li>
+		<li>Computer players value a right of passage by the size of both empires and whether they need to cross your land to reach an enemy. They refuse betrayers and civilizations at war with their allies. Now and then a friendly one offers one for nothing, and at war they ask civilizations in the way for one, setting up an embassy first if needed and paying what's asked.</li>
+	</ul>
+	<h3>Computer players: growing and building</h3>
+	<ul>
+		<li>They settle more of the map before going to war: settlers are valued more while open land remains. In test games on island maps, each civilization ended up with about 3 more cities.</li>
+		<li>They carry settlers (and their escorts) by ship to new land, or along the coast when that's at least two turns quicker than walking, building a ship if none is free. Their ships never stay in waters they could sink in.</li>
+		<li>They head for Monarchy early instead of leaving it nearly to last, and their small cities, and cities building settlers or workers, work more food tiles. Together with the war changes below, this gave them about 20% more score in test games and some 50 fewer turns stuck in Despotism.</li>
+		<li>They build great wonders in their safest, most productive cities, never in a city threatened by war.</li>
+		<li>They buy the units that matter with gold (defenders for unguarded cities, attackers for a campaign, escorts, settlers and workers), keeping some money back. At war they raise taxes a little to pay for it.</li>
+		<li>At peace, an army that's too big and costing money is slowly trimmed: one out-of-date unit disbanded every 5 turns, weakest first.</li>
+		<li>They never build Wealth or Explorers any more.</li>
+		<li>House rule: computer players now pay no upkeep for their buildings (they do in Civ3). This gave them more units and advances in test games. You're never affected.</li>
+		<li>On Emperor difficulty and above, computer players now get the same number of content citizens as on Regent, as in Civ3. Before, they had one too many unhappy citizens per city on the hardest levels.</li>
+	</ul>
+	<h3>Computer players: war</h3>
+	<ul>
+		<li>At war they pick one enemy city (a big, weakly held, nearby one), gather enough attackers, siege units and a defender in their nearest city, march together at the pace of the slowest, bombard, and attack only when together they expect to take it. If they aren't strong enough they wait, then fall back to heal and come back stronger. Once a city is taken they garrison it and move on to the next.</li>
+		<li>They declare war on a much weaker neighbour only once their army is gathered and ready.</li>
+		<li>Hurt units (below 70% of their hit points) go back to a city to heal instead of fighting on, and leave enemy land to do it, since units don't heal there.</li>
+		<li>Their great leaders form armies, they build armies at war, and a campaign leads its attacks with up to two full, healthy armies.</li>
 	</ul>
 	<h3>Rules</h3>
 	<ul>
-		<li>Great scientists: when a civilization is the first to discover an advance, a great scientist may appear (a 3% chance, or 5% for Scientific civilizations). It can rush what its city is building.</li>
-		<li>Scientific civilizations get a free advance as they enter each new era.</li>
-		<li>Goody huts give what they give in Conquests at each difficulty level.</li>
-		<li>You always get to choose your free advance from Philosophy.</li>
+		<li>Great scientists: when a civilization is the first to discover an advance, a great scientist may appear in its capital (a 3% chance, or 5% for Scientific civilizations). It can finish anything a city is building, great wonders included, but can't lead an army. A game setting turns them off.</li>
+		<li>Scientific civilizations get a free advance, picked at random from the new era's first advances, as they enter each new era.</li>
+		<li>Goody huts give what they give in Conquests at each difficulty level, with Expansionist civilizations' own odds. A hut can now also hold a map of the area, or nothing at all.</li>
+		<li>You always get to choose your free advance from Philosophy, rather than it going to whatever your research list said.</li>
+		<li>Under Despotism, an Agricultural civilization's city only gets its extra food if it's by fresh water, as in Civ3.</li>
 	</ul>
 	<h3>Maps and play</h3>
 	<ul>
-		<li>Civilizations start further apart, spread over the land instead of crowded into the best of it.</li>
-		<li>The camera stays on a city while you choose what it builds next.</li>
-		<li>Turns go faster, the map keeps moving smoothly while the computer players take their turns, and games are saved in the background.</li>
+		<li>Civilizations start further apart, spread over the land instead of crowded into the best of it at the closest allowed distance.</li>
+		<li>The camera stays on a city while you choose what it builds next, instead of jumping to the next unit.</li>
+	</ul>
+	<h3>Watch AI Game</h3>
+	<ul>
+		<li>Watch AI Game now goes through the usual setup screens, so you can pick the map, its size, the rivals, the difficulty and the rules. It can pause every so many turns, up to 2500.</li>
+		<li>A watched game no longer stops for news. At each pause, a panel lists the wars going on, since when, and which started or ended since the last pause. If the civilization you're following is destroyed, the view follows another one still in the game.</li>
+	</ul>
+	<h3>Speed</h3>
+	<ul>
+		<li>The window keeps drawing while the computer players take their turns, instead of freezing until they've all moved, and the map stays smooth meanwhile.</li>
+		<li>Turns go much faster, especially on big maps late in the game: route finding, worker planning, city site choice, explorers and attack planning all do far less work. The map, fog, units and small map are only redrawn when something they show has changed.</li>
+		<li>Games are saved in the background, so saving no longer holds up play.</li>
+		<li>Online and network games send their updates with less work for the host.</li>
+	</ul>
+	<h3>Fixes</h3>
+	<ul>
+		<li>A city founded where a worker was irrigating or mining could stop the game advancing; the job is now simply dropped.</li>
+		<li>Capturing a civilization's last settler, with a worker on the same square, could break the game later.</li>
+	</ul>
+	<h3>Behind the scenes</h3>
+	<ul>
+		<li>A test-game setup plays many computer-only games with a change switched on for half the civilizations, and compares how they do (score, cities, wonders, wars and much more). The computer player changes above were picked this way; ideas that didn't help (several wonder strategies, a leaner army, buying buildings) were dropped or left switched off.</li>
+		<li>A test plays a computer-only game turn by turn and checks that speed-ups don't change what happens.</li>
+		<li>Some of the game's built-in scripts now run as faster built-in code; the game's log skips detail it doesn't keep; build warnings were fixed.</li>
 	</ul>
 
-	<h2>Version 0.6.1 <span class="muted">(October 10, 2026)</span></h2>
+	<h2 id="v0.6.1">Version 0.6.1 <span class="muted">(October 10, 2026)</span></h2>
+	<h3>Watch AI Game</h3>
 	<ul>
-		<li>New: <b>Watch AI Game</b>. Let the computer players play a game on their own, pausing every so many turns so you can look around.</li>
-		<li>Computer players manage their money and found cities better.</li>
+		<li>New: <b>Watch AI Game</b> on the main menu. The computer players play a whole game on their own, every civilization included, pausing every so many turns (you choose how often) so you can look around. Each <kbd>End Turn</kbd> plays on to the next pause.</li>
+	</ul>
+	<h3>Computer players</h3>
+	<ul>
+		<li>They leave Despotism for a better government, build Wealth only when close to running out of money, never build a Palace, stop their workers switching a tile back and forth between a mine and irrigation, and settle every open spot at least 3 squares from a city.</li>
+		<li>Their food box is now scaled by the difficulty level's cost factor, as in Civ3, so their cities grow faster on harder levels.</li>
+	</ul>
+	<h3>Speed</h3>
+	<ul>
 		<li>The map draws faster: units, city names and the small map are only redrawn when they change.</li>
 	</ul>
+	<h3>Behind the scenes</h3>
+	<ul>
+		<li>The computer players' unit-by-unit decisions are kept out of the normal log.</li>
+	</ul>
 
-	<h2>Version 0.6.0 <span class="muted">(October 9, 2026)</span></h2>
+	<h2 id="v0.6.0">Version 0.6.0 <span class="muted">(October 9, 2026)</span></h2>
+	<p class="muted">In this version a great many rules were checked against what Civ3 players have measured and written up on CivFanatics, and changed to match where they didn't.</p>
 	<h3>Winning and the United Nations</h3>
 	<ul>
-		<li>Choose how a game can be won when you set it up, including a cultural victory. A game ends only when someone wins, with an optional turn limit.</li>
-		<li>United Nations elections work as in Civ3: the founder decides whether to hold each vote, and computer players vote by how they feel about each candidate.</li>
+		<li>A game now ends only when someone wins. The turn limit is a new-game option, off by default (scenarios keep their own).</li>
+		<li>The new game screen has a checkbox for each way to win: conquest, domination, space race, diplomatic and cultural, all on by default.</li>
+		<li>Cultural victory: 20,000 culture in one city, or 100,000 across your empire (scaled by map size, from 60,000 on tiny maps to 160,000 on huge ones), and twice as much as the next civilization.</li>
+		<li>United Nations elections work as in Civ3: every 11 turns the founder chooses whether to hold one; there are up to three candidates (the founder, plus civilizations with a quarter of the world's land or people, or failing that the highest scorer); each civilization has one vote. Computer players vote by how they feel about each candidate and never for someone they're at war with, and a computer founder only holds a vote it expects to win.</li>
+		<li>The United Nations can't be built in a game without diplomatic victory.</li>
 	</ul>
-	<h3>Culture, war and peace</h3>
+	<h3>Culture and conquered cities</h3>
 	<ul>
-		<li>Cities can flip to a neighbour with a much stronger culture. Conquered cities resist their new owner for a while.</li>
-		<li>War weariness builds up separately against each enemy and fades slowly after peace.</li>
-		<li>Cities can be traded in deals, and a losing computer player may offer one for peace.</li>
-		<li>Bombarding damages units, buildings and citizens as in Civ3, and city walls help against it.</li>
+		<li>Cities can flip to a neighbour with much stronger culture, by the formula Civ3 players worked out: more likely with many foreign citizens, the neighbour's land all around, disorder, and a capital far away; less likely with a garrison of fighting units or a celebration. Units in the city are lost and the new owner gets a free defender. A game setting turns flipping off.</li>
+		<li>Conquered cities resist their new owner. Each foreign citizen may resist (more likely the less their people think of your culture). Resisters work no tile and eat nothing, the city can't hurry production, and each turn they are less likely to keep going. A garrison helps put them down. Your last city, and cities handed over in a deal, don't resist.</li>
+	</ul>
+	<h3>War and peace</h3>
+	<ul>
+		<li>War weariness now follows the points Civ3 players measured, kept separately against each enemy: units in enemy land, units lost, improvements pillaged, cities lost and so on. It fades slowly (a twentieth each turn) after peace. Police stations take a quarter off.</li>
+		<li>A civilization that has war declared on it rallies (war happiness) against the attacker, unless it brought the war on itself with nukes, spies or refusing to leave someone's land.</li>
+		<li>Cities can be traded in deals (never your capital or your last city). Cities given away don't resist, and the old owner's units in them go to its nearest city.</li>
+		<li>A computer player that's losing a war offers advances, or a city if it's losing badly, for peace, and asks for peace itself; one that's winning big demands a city.</li>
+		<li>Bombarding works as in Civ3: it hits the units first, then a building or a citizen. Units are only killed by units with "lethal" bombardment; others leave them at one hit point. Cities never drop below size 1. Wonders, and buildings that wonders give a city (like the Great Wall's walls), can't be destroyed. City walls stand up to land bombardment first.</li>
+		<li>Your units get your difficulty level's bonus against barbarians when attacking and defending; computer players always get a 200% bonus against them.</li>
+		<li>Military police make one citizen content each, up to the government's limit.</li>
 	</ul>
 	<h3>Barbarians</h3>
 	<ul>
-		<li>Barbarians plunder gold, or carry off a citizen when there's none, and sack the cities they take. Their stronger units only appear once two civilizations know Horseback Riding.</li>
-	</ul>
-	<h3>Maps</h3>
-	<ul>
-		<li>Archipelago maps are made of planned islands, and every civilization gets a place to start: if a map can't fit them all, another one is made.</li>
+		<li>Barbarians entering a city do one of three things: steal an eighth of the treasury, kill a citizen (only in a city of size 2 or more) or destroy the shields stored toward production.</li>
+		<li>Their stronger units (Horsemen) only appear once two civilizations know Horseback Riding.</li>
 	</ul>
 	<h3>Cities and money</h3>
 	<ul>
-		<li>Buying production costs what it does in Civ3, and wonders can't be bought.</li>
+		<li>Buying production costs what it does in Civ3: 4 gold for each shield still needed, double if nothing's been built up yet. Wonders can't be bought or hurried with citizens. Hurrying with citizens costs the nearest whole number of citizens, never none.</li>
+		<li>Wonders are no longer half price for civilizations whose traits match them; only improvements are.</li>
 		<li>Disbanding a unit in a city gives back a quarter of its cost.</li>
-		<li>Choose how much corruption there is when setting up a game.</li>
-		<li>Policemen and civil engineers can be put to work. Electricity lets you irrigate anywhere, and Replaceable Parts speeds up workers.</li>
+		<li>Choose how much corruption there is when setting up a game, with a slider from 0.50 to 1.50 times Civ3's (0.90 to start with).</li>
+		<li>A celebrating city ("We Love the King Day") wastes fewer shields, as in Conquests, instead of half as many.</li>
+		<li>Policemen cut corruption and waste, and civil engineers add shields when the city is building a building or wonder. The Secret Police HQ only counts as a second palace under Communism.</li>
+		<li>A city in disorder produces nothing at all. Under anarchy, specialists still work.</li>
+		<li>Anarchy lasts 2 to 9 turns, by chance and by empire size, or 2 for Religious civilizations, as measured in Conquests.</li>
+		<li>Switching production never loses shields except those beyond the new item's cost, and the production lists now tell you how many that would be, and grey out what can't be chosen, saying why.</li>
+		<li>Shields from chopping forests never go into a wonder: if the nearest city is building one, they go to another of your cities nearby, or are lost. A city given forest shields can't switch to a wonder until it has finished something.</li>
+		<li>Newly built units start with their experience level's hit points.</li>
+		<li>Workers work at their government's rate (and Engineers twice as fast), captured workers at half speed. Electricity lets you irrigate anywhere, and Replaceable Parts doubles worker speed.</li>
+		<li>Turns without any research no longer count toward the longest a discovery can take.</li>
+		<li>Building pollution now counts in games without Civ3.</li>
+	</ul>
+	<h3>Maps and starting</h3>
+	<ul>
+		<li>Every civilization gets a place to start. If a map can't fit them all at the proper distance apart, another one is made (up to 25 tries) instead of crowding civilizations together or leaving some out. Rejected maps can be kept in an "Invalid Maps" folder to look at (a setting turns this off).</li>
+		<li>Archipelago maps are made of planned islands, about one and a half per civilization, so they really are archipelagos (the first try now works almost every time, where it almost never did). Pangaea maps also come out the right shape far more often.</li>
+		<li>Starting gold and era come from the game's rules, as in Civ3.</li>
+		<li>If making a world fails, you're told why instead of the game crashing.</li>
 	</ul>
 	<h3>Playing together</h3>
 	<ul>
-		<li>Watch a game as a spectator: follow one civilization, all of them, or the whole map, and switch whenever you like.</li>
-		<li>Online games are more reliable, and the host can ban unwanted guests. You can also run your own online server; see <a href="./#server">Play with friends</a>.</li>
-	</ul>
-	<h3>Everything else</h3>
-	<ul>
-		<li>Games are saved in the game's own saves folder, and you're told if saving fails.</li>
-		<li>Civ3 saved games and scenarios load more faithfully, and Civ3 is found on Linux and in extra Steam libraries.</li>
+		<li><b>Spectators</b> (people who watch a game without playing) can watch as one civilization, as all of them, or the whole map, and switch whenever they like. They hear the news of the way they're watching, as a list rather than popups, and can come back after losing their connection. At most 8 can watch.</li>
+		<li>People joining a game are no longer sent the cities they have never seen, so they can't peek at them.</li>
+		<li>Large games work through the online server: big updates are sent in pieces.</li>
+		<li>The host keeps its bans when it hosts online again, and guests trying the old join code are pointed to the new one.</li>
+		<li>Wrong passwords lock out that computer for 30 seconds, doubling each time up to 30 minutes.</li>
+		<li>Players' names are no longer taken from the computer's user name (often someone's real name); set yours in Settings. Names are tidied and kept to 40 letters.</li>
+		<li>Many protections against guests who misbehave or connect without joining, and the join screen greys out games running a different version.</li>
+		<li>Everything needed to resume a game (seats, bans, password and so on) is saved within a second of changing, not just at the start of each turn.</li>
+		<li>Once you've ended your turn you can't act again while the computer players move, and trades are checked again when they're carried out (for example, that the gold is still there).</li>
+		<li>An embassy's view of a foreign capital stays open in network games, the waiting banner reads properly on narrow windows, and the hotseat screen no longer gets stuck when two things ask for it at once.</li>
 		<li>Units can board a ship on a neighbouring square.</li>
+		<li>You can run your own online server; see <a href="./#server">Play with friends</a>. The setup guides cover free and cheap server providers step by step.</li>
+	</ul>
+	<h3>Saving and loading</h3>
+	<ul>
+		<li>Games are saved in the game's own Saves folder, with buttons to switch to Civ3's, and you're told if saving fails.</li>
+		<li>Saved games remember the game's dice, so loading a game no longer changes how fights and other chances turn out. The difficulty level is also kept properly on loading.</li>
+		<li>Civ3 saved games and scenarios load more faithfully: owners, starting units, victory conditions, turn limits, fortresses, finished games' winners and much more.</li>
+		<li>Civ3 is found on Linux and in extra Steam libraries.</li>
+		<li>A scenario's art is forgotten once you leave it, and zip files are no longer offered as saves.</li>
+		<li>A save containing something the game doesn't know loads with a warning where it can, instead of failing later. A game that fails to load can no longer be played half set up.</li>
+		<li>A broken settings file is kept as C7.ini.bak instead of being silently replaced.</li>
+	</ul>
+	<h3>Interface</h3>
+	<ul>
+		<li><kbd>Escape</kbd> no longer skips popups that need an answer.</li>
+		<li>The domestic advisor's sliders jump straight to where you click, and its maintenance column shows each city's real upkeep.</li>
+		<li>The info box shows your real tax, science and luxury rates.</li>
+		<li>Confirmations (disband, replacing an improvement, declaring war by moving) act on the unit you asked about. Keys do nothing else while a right-click menu is open or you're typing. Clicking a city then dragging the map no longer picks the wrong square.</li>
+		<li>You can't abandon your only city.</li>
+		<li>Sounds play properly: some Civ3 sound files were read wrongly. A bad volume in the settings file no longer breaks the sound.</li>
+		<li>The military and domestic advisors' news waits behind other popups instead of being lost.</li>
+		<li>Picking a random civilization when all are taken says so instead of hanging.</li>
+	</ul>
+	<h3>Computer players</h3>
+	<ul>
+		<li>They pick wars more sensibly (no longer preferring their strongest neighbours, and never their allies), don't attack defenders they'd likely lose to, and prefer fights they can win.</li>
+		<li>Their settlers only found cities where you could, outside other civilizations' borders, and join a city when no site is left instead of vanishing (never a starving one).</li>
+		<li>Barbarians keep at an attack or exploration instead of changing their minds every turn.</li>
+		<li>They only clear forests where it gives a city more food it needs.</li>
+		<li>A developer setting, "AI Fog of War", makes computer players plan only with what they can see.</li>
+	</ul>
+	<h3>Fixes</h3>
+	<ul>
+		<li>The game can no longer freeze during the computer's turn waiting for an animation that never started.</li>
+		<li>Dates in months, weeks or days display properly; the small map's view frame stays inside maps that don't wrap; clicks off the edge of the map no longer cause errors.</li>
+	</ul>
+	<h3>Behind the scenes</h3>
+	<ul>
+		<li>Each rule now names its source; rules nobody could find a Civ3 source for are marked as such.</li>
+		<li>The log file starts a new file when full instead of stopping.</li>
+		<li>Many new tests, test fixes and build fixes; the bundled rules were regenerated from Civ3's data with a new tool; multiplayer and online server hardening.</li>
+	</ul>
+
+	<h2 id="v0.5.1">Version 0.5.1 <span class="muted">(October 9, 2026)</span></h2>
+	<h3>Goody huts</h3>
+	<ul>
+		<li>Goody huts are on the map. The first civilization to walk a land unit in finds gold (25 in the Ancient era, 25 more each later era), an advance, barbarians, a settler, a Warrior or even a city. As in Civ3, advances only come in the Ancient era, settlers and cities only for civilizations behind on cities, and scouts and Expansionist civilizations never meet barbarians. Computer explorers go out of their way for nearby huts.</li>
+	</ul>
+	<h3>Ships</h3>
+	<ul>
+		<li>Galleys and other early ships, which since version 0.4.0 couldn't sail onto sea or ocean they might sink in, can now risk it, but have a 50% chance of sinking with everyone aboard if they end the turn there (25% for Seafaring civilizations). Once a civilization can build a ship that's safe there (the Caravel for sea, the Galleon for ocean), all its ships are safe there. Seafaring civilizations' ships also get an extra move.</li>
+	</ul>
+	<h3>Maps</h3>
+	<ul>
+		<li>New maps look more like Civ3's: climate follows latitude and rainfall, with smaller woods and less jungle; hills and mountains form highlands; rivers join up like real river systems; the share of water and deep ocean and the number of resources match Civ3.</li>
+		<li>Civilizations only start where their capital can grow to size 3, and Seafaring civilizations start by the sea.</li>
+		<li>Barbarians wait until civilizations have founded their second city before appearing.</li>
+		<li>A "Reveal Whole Map" option in the game menu shows the whole map.</li>
+	</ul>
+	<h3>Computer players</h3>
+	<ul>
+		<li>Their settlers stay near home and out of rivals' land, instead of wandering across the continent.</li>
+		<li>Their units find a way around squares they can't enter without starting a war, instead of getting stuck.</li>
+		<li>Fixes: barbarians stop heading for goody huts they can't open, an escort no longer wanders off from its settler, and settlers pick the nearest good far-off site.</li>
+	</ul>
+	<h3>Fixes</h3>
+	<ul>
+		<li>Only a unit's own move opens a goody hut, not retreating onto it. A hut's news comes before the research choice, and a city found in a hut opens its city screen.</li>
+		<li>A ship caught in unsafe water can find its way back to safety, and routes go around water a ship now avoids.</li>
+	</ul>
+	<h3>Interface</h3>
+	<ul>
+		<li>Every other human player is told when a civilization finishes a great wonder. Information popups wrap their text and grow to fit.</li>
+	</ul>
+	<h3>Download page</h3>
+	<ul>
+		<li>The download page was rewritten in plain language, and split into two tabs: Download &amp; install, and Play with friends, which walks through hosting, carrying on a game, joining, and several people at one computer.</li>
+	</ul>
+
+	<h2 id="v0.5.0">Version 0.5.0 <span class="muted">(October 8, 2026)</span></h2>
+	<h3>Online play</h3>
+	<ul>
+		<li>Play over the internet with a <b>join code</b> (like KQ7-4MZ), no router setup needed. Games go through a <b>relay</b>: an online server that passes messages between the host and the people joining. The host clicks <kbd>Host Online</kbd> in the waiting room and shares the code; others type it under "Join online".</li>
+		<li>Choose which relay to use in Settings, under Online, with a Test button. A join code for another relay includes its name (like KQ7-4MZ@relay.example.org).</li>
+		<li>A <b>server browser</b> lists the games hosts have made public, with sortable columns, filters for full, password-protected or incompatible games, a ping for each, and a tab of games you joined lately.</li>
+		<li>The host can set a <b>password</b> (it never crosses the network), and <b>remove</b> or <b>ban</b> guests and spectators from the waiting room, or by right-clicking them on the scoreboard during the game.</li>
+		<li>Each player is only sent what their civilizations can know (other players' hidden units, cities, money and research stay hidden). This is on by default.</li>
+		<li>Your own simple moves show at once over the internet, instead of waiting for the host to answer.</li>
+		<li>If the host drops off the relay, it gets its join code back and guests reconnect through it; a room waits 10 minutes for its host. Resuming a game hosts it online again with the same code.</li>
+		<li>The host can also keep spectators out altogether.</li>
+		<li>The setup files and a guide for running your own relay were added.</li>
+	</ul>
+	<h3>Network games</h3>
+	<ul>
+		<li><b>Simultaneous turns</b>: every human moves at the same time, then the computer players. It's on by default and chosen in the waiting room.</li>
+		<li>If you lose the connection, the game keeps trying to get you back in, and your seats are held for you. While someone's away, everyone sees who they're waiting for, and the host can carry on without them.</li>
+		<li>The host's game is saved automatically each turn, and <kbd>Resume Last LAN Game</kbd> hosts it again with the same settings and seats. Guests can rejoin the last game they were in from the join screen.</li>
+		<li>Joining no longer freezes the waiting room for 20 seconds on an address that doesn't answer.</li>
+		<li>After the first one, updates sent to players are far smaller: a few hundred bytes to a few KB, where the whole game (86 KB for a new two-player game, 200 KB for sixteen players) used to be sent after every change. Games run smoother on slow connections.</li>
+		<li>Computer players don't propose deals to someone who has lost their connection.</li>
+		<li>The host's waiting room says which of its addresses come from apps like Tailscale, and the download page explains playing over the internet with Tailscale.</li>
+	</ul>
+	<h3>Behind the scenes</h3>
+	<ul>
+		<li>The relay has limits on message sizes, rooms and connections so it can't be overwhelmed, and its own tests that play games through it.</li>
+		<li>Network connections were reworked so they can run over the relay as well as a home network.</li>
+	</ul>
+
+	<h2 id="v0.4.6">Versions 0.4.1 to 0.4.6 <span class="muted">(October 7, 2026)</span></h2>
+	<p class="muted">Six quick updates on the day of the first release.</p>
+	<h3>Version 0.4.6</h3>
+	<ul>
+		<li>Each player sharing a computer in a network game has their own name box in the waiting room.</li>
+	</ul>
+	<h3 id="v0.4.5">Version 0.4.5</h3>
+	<ul>
+		<li>New game option: <b>Accelerated Production</b>, as in Civ3. Cities make double the food, shields and commerce, while citizens eat the same.</li>
+		<li>Someone joining a network game can take several seats and play them in turn on one computer, with the screen covered between players.</li>
+		<li>Civilizations that ended up with the same colour get different ones.</li>
+		<li>The download page explains, step by step, how to unpack and start the game on Windows, Mac and Linux, what to do about the warnings each system shows, and how to play on a home network and update.</li>
+	</ul>
+	<h3 id="v0.4.4">Version 0.4.4</h3>
+	<ul>
+		<li>Fixed the main menu's buttons doing nothing when the game was installed somewhere it couldn't save its settings (like Program Files). Settings and the log now go to a folder the game can write to.</li>
+	</ul>
+	<h3 id="v0.4.3">Version 0.4.3</h3>
+	<ul>
+		<li>Behind the scenes: release builds no longer hang (they stop after 30 minutes, and no longer download a tool that kept failing).</li>
+	</ul>
+	<h3 id="v0.4.2">Version 0.4.2</h3>
+	<ul>
+		<li>The Graphics Overhaul is on by default (you can still turn it off in Settings).</li>
+		<li>Without Civ3, the game starts straight away in its own mode instead of showing a "not found" screen.</li>
+		<li>The folder in the download is called OpenCiv3.</li>
+	</ul>
+	<h3 id="v0.4.1">Version 0.4.1</h3>
+	<ul>
+		<li>The Graphics Overhaul's art is now included in the downloads; version 0.4.0 left it out, so it showed the original art.</li>
+	</ul>
+
+	<h2 id="v0.4.0">Version 0.4.0, and everything before it <span class="muted">(October 4 to 7, 2026)</span></h2>
+	<p class="muted">This fork split from the OpenCiv3 project on October 4, 2026. Everything below was built in its first days and came out together as version 0.4.0, the first download.</p>
+	<h3>Playing together on one computer</h3>
+	<ul>
+		<li><b>Hotseat</b> games, where several people take turns at one computer: tick "Human" on any rival when setting up a game. A rival left on "Random" gets a civilization nobody else has picked.</li>
+		<li>Each player can be given a name (or is "Player 1", "Player 2" and so on). Between turns the screen goes dark and says whose turn it is ("Name - Civilization"), so the others can look away, and the next player clicks <kbd>Begin Turn</kbd>. Any city screen or advisor the last player left open is closed, and each player's view of the map is remembered.</li>
+		<li>News meant for a player who isn't at the screen, like barbarians stealing their gold during the computer's turn, waits until their turn, one popup at a time; so does what their cities finished building. A trade offer from a computer player brings the right person to the screen first.</li>
+		<li>Players at the same computer negotiate with each other directly: the other player sees the deal and accepts or refuses it themselves.</li>
+		<li>A hotseat game saved partway through a round carries on with the first player who hadn't moved yet.</li>
+	</ul>
+	<h3>Network games</h3>
+	<ul>
+		<li><b>LAN multiplayer</b> (games between computers in the same home): Host LAN Game and Join LAN Game on the main menu. The host runs the game and everyone else joins.</li>
+		<li>People joining choose their own civilizations in the waiting room (ones already taken are greyed out, and Random is allowed). The waiting room has Civ3's parchment look, shows the host's address clearly, and explains how to find it when the game isn't listed.</li>
+		<li>You can watch a game as a spectator instead of taking a seat. The host keeps a clock for each turn and can end turns that run over a time limit.</li>
+		<li>Games with several people show a scoreboard, which can be turned off when setting up.</li>
+		<li>Updates between computers are prepared in the background, so a big map or a slow computer no longer stalls the game; a computer that falls hopelessly behind is dropped. Badly formed messages are refused safely, and the map view is kept between updates instead of being rebuilt each time.</li>
+		<li>The rules are checked by the host, so for example nobody can change government without going through anarchy.</li>
+	</ul>
+	<h3>Winning</h3>
+	<ul>
+		<li><b>Conquest</b> victory (last civilization standing) and <b>domination</b> victory (66% of the world's land and people), both on in new games, with progress on the victory screen.</li>
+		<li>The <b>space race</b>: the Apollo Program starts it and reveals the map to everyone, spaceship parts go to your ship rather than the city, losing your capital destroys the ship, and finishing it wins. Computer players build Apollo and the parts, and the science advisor reports progress.</li>
+		<li>The <b>United Nations</b> and diplomatic victory: civilizations vote every ten turns between the founder and the most populous other civilization, and you vote through a popup. (In this version votes were weighted by population; version 0.6.0 changed elections to Civ3's rules.)</li>
+		<li>The score average no longer creeps up or down from rounding each turn.</li>
+	</ul>
+	<h3>Capturing cities and units</h3>
+	<ul>
+		<li>Taking a city of size 2 or more now captures it instead of destroying it. It loses a citizen, its stored shields, its palace and small wonders, and each other building has an even chance of being destroyed; the captor takes the city's share of the old owner's treasury. Both sides are told, and the city is redrawn in its new colours.</li>
+		<li>A captured size 1 city survives if its old owner's culture had pushed its borders out, and its borders shrink to fit its new owner's culture.</li>
+		<li>When you capture a city you choose whether to keep or raze it. Computer players keep every city they take.</li>
+		<li>If the capital falls, the palace moves for free to the nearest city, preferring bigger ones, and you're told where. A civilization without a capital gets one in its next new city.</li>
+		<li>Workers and settlers are captured instead of fought: a captured settler becomes two slave workers. Captives can move straight away. Barbarians don't take captives.</li>
+		<li>Once the last real defender on a square falls, the attacker moves in and captures whatever is left, taking the city; capturing doesn't count as an attack.</li>
+		<li>Buildings a wonder gave a city (like the Temple of Artemis's temples) give their culture to whoever owns the city now.</li>
+	</ul>
+	<h3>Combat</h3>
+	<ul>
+		<li>Units attack once per turn, unless they can blitz (Tanks, Modern Armor, Panzers, Cossacks and armies keep attacking while they have moves left).</li>
+		<li>Zone of control: units with the ability (Cavalry, Tanks and the like) get one free round of combat against an enemy moving past them. It can wound but not kill. Land units only watch land units, and ships ships.</li>
+		<li>Only Marines and Berserks can attack the shore straight from a ship.</li>
+		<li>A winning attacker isn't charged twice for moving in. A retreating defender really moves, and never into another fight.</li>
+		<li>Transports sink with everyone aboard; in port, the passengers are unloaded instead.</li>
+		<li>Bombarding hits only buildings built in the city, never wonders, and can't knock down walls a wonder provides.</li>
+		<li><b>Nuclear weapons</b>: Tactical Nukes and ICBMs, fired with the bombard order once the Manhattan Project exists. Unless a Strategic Missile Defense shoots one down, a nuke destroys every unit around the target, halves the cities there, wrecks some buildings and leaves fallout. Every civilization hit goes to war with the attacker (you're asked about each one first), and every civilization remembers it as an atrocity. Nuclear submarines carry tactical nukes only.</li>
+	</ul>
+	<h3>Armies</h3>
+	<ul>
+		<li><b>Armies</b> hold several land units. A unit joins one only when you tell it to. In a fight, one member fights at a time, the healthiest first, swapping in a fresh one when it's down to its last hit point. The army dies with its last member.</li>
+		<li>An army moves one square faster than its slowest member, and its members heal when it rests.</li>
+		<li>A city with a Military Academy can build armies. The Military Academy can be built once one of your armies has won a battle, and the Pentagon once you have three armies; the Pentagon lets each army carry one more unit. Each army needs four cities to support it: you're warned, and it waits in the build box until you have them.</li>
+		<li>Units locked in an army take no orders of their own, and armies are drawn with their first member's art.</li>
+	</ul>
+	<h3>Units</h3>
+	<ul>
+		<li>Units heal in their own and neutral land, but not in the land of a civilization they're at war with (unless they know Battlefield Medicine). Barracks fully heal land units, and harbours ships. Units told to hold now heal too.</li>
+		<li>Upgrade a unit in a city with barracks or a harbour, for gold, keeping its experience: use the new Upgrade button or <kbd>U</kbd>. Upgrades only follow a unit's own line (so a Warrior can no longer become a Longbowman), and Leonardo's Workshop halves the cost.</li>
+		<li>Pillage with <kbd>Shift</kbd>+<kbd>P</kbd>: it costs one move and removes every improvement on the square, except that a railroad is pillaged first and leaves its road. Only armies can pillage more than once a turn.</li>
+		<li>Sentry with <kbd>Y</kbd> (wakes when any foreign unit comes near) or <kbd>Shift</kbd>+<kbd>Y</kbd> (only enemies).</li>
+		<li>Newly built units start with full hit points for their experience.</li>
+		<li>Workers can clean up pollution and nuclear fallout, and finish a job at once when they've done enough work (faster workers used to wait until the end of the turn).</li>
+	</ul>
+	<h3>Diplomacy and espionage</h3>
+	<ul>
+		<li>Diplomatic and spy missions from a foreign city's right-click menu: embassies, planting spies, stealing advances, inciting revolt and Civ3's other missions. Caught missions are remembered. Computer players set up embassies, plant spies once they have the Intelligence Agency, and now and then steal advances from enemies.</li>
+		<li>An embassy page (the <kbd>E</kbd> button) lists the civilizations you've met and what your embassy saw of each capital (size, production, buildings, garrison, treasury), with the missions you could send. Setting up an embassy opens their capital's city screen, read-only, showing the land around it as it is that turn. <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> opens the diplomacy list.</li>
+		<li>Computer players tell civilizations at peace with them to take threatening units out of their land (two or more units right away; a lone land unit is put up with for two or three turns; a lone ship is left alone). Agree and your units are moved out; refuse, or keep coming back, and it's war. You can tell them the same from the talk screen: they leave, unless they're clearly stronger.</li>
+		<li>An Active Deals button on the negotiation screen lists the deals in force with that civilization.</li>
+		<li>Traded luxuries and strategic resources reach every city connected to your capital, for happiness, building and upgrading, so traded Iron and Coal allow railroads. A resource deal ends, and you're told, when the seller runs short or the capitals lose their road connection.</li>
+		<li>Only advances the other side could research can be traded.</li>
+		<li>News of a war only reaches civilizations with an embassy with one side, as in Civ3.</li>
+		<li>Fixes: deals with gold every turn no longer end at once, deals end on time, and civilizations that are wiped out leave the diplomacy list.</li>
+	</ul>
+	<h3>Wonders and buildings</h3>
+	<ul>
+		<li>Great and small wonders now do what they do in Civ3: the happiness wonders (in one city, all cities, a continent, or doubling temples or cathedrals), research and production wonders, Longevity, the Great Library, Theory of Evolution, Smith's Trading Co., tourism, Leonardo's Workshop, the free units of the Statue of Zeus and Knights Templar, and the Great Wall, Great Lighthouse and Magellan's effects on combat and ships.</li>
+		<li>Small wonders and palaces can be built. A new palace moves your capital, Forbidden Palaces can't go in the capital, and required buildings and governments are enforced.</li>
+		<li>Libraries, universities and research labs add 50% to research; marketplaces, banks and stock exchanges add 50% to taxes and luxuries; factories and power plants add their production bonus.</li>
+		<li>Buildings that need another building first (Bank, University and so on) can actually be built now.</li>
+		<li>Great leaders come from elite units' victories and can form an army or hurry production.</li>
+		<li>Buildings' culture doubles once after a thousand years, counted from when each was really built (before, they were all counted as built in year 1).</li>
+		<li>A city building a great wonder keeps it in its list, and moves on in its queue when someone else finishes it first.</li>
+	</ul>
+	<h3>Cities and production</h3>
+	<ul>
+		<li>A production queue: <kbd>Shift</kbd>+click in the production menu or right-click menu. When nothing is queued, your city builds the same unit again. A popup says what a city finished, offering to carry on, pick something else or go to it, and discovering an advance asks what to research next.</li>
+		<li>Switching production keeps your shields, as in Civ3; only shields beyond the new item's cost are lost.</li>
+		<li>Production hurried this turn (with gold or a great leader) can't be changed until the turn ends.</li>
+		<li>"We Love the King Day" celebrations: a city big enough, not starving, with no unhappy citizens and more happy than content ones, celebrates, and wastes half as many shields.</li>
+		<li><b>Golden ages</b> of 20 turns, once for each civilization, started when your great wonders cover all your civilization's strengths or when your unique unit first beats another civilization's unit. During one, squares already making shields or commerce make one more of each.</li>
+		<li><b>War weariness</b>: under Republic and Feudalism (a little) and Democracy (a lot), citizens grow unhappy during a war, faster for wars you started and as your units die; police stations and Universal Suffrage halve it. (An estimate in this version; version 0.6.0 replaced it with Civ3's measured rules.)</li>
+		<li>A starving size 1 city stays at size 1 instead of disappearing. A city riots only because of its working citizens, not its specialists.</li>
+		<li>Two points of luxury buy one happy face, and one luxury resource makes one citizen happy.</li>
+		<li>Forest-clearing shields go only to the city whose land the forest is in, and never into a wonder.</li>
+	</ul>
+	<h3>Money and research</h3>
+	<ul>
+		<li>Each government caps the tax, science and luxury sliders (stock Civ3 rules allow 100%, so this matters in scenarios and mods).</li>
+		<li>Running out of money no longer moves your sliders behind your back. As in Civ3, units over your support limit are disbanded one at a time, then buildings are sold, most expensive to keep first, until the budget balances; the palace and wonders are never lost. You're told what was lost, in Civ3's words.</li>
+		<li>Research adds up correctly: commerce moved to taxes no longer also counts as science that turn, and an advance already paid for completes even with science at zero.</li>
+		<li>Free advances from Philosophy or Theory of Evolution are saved until you use them, and you choose your research after the Great Library gives you an advance.</li>
+	</ul>
+	<h3>Matching Civ3's numbers</h3>
+	<ul>
+		<li>City yields, corruption and borders were checked against real Civ3 saved games. Corruption and waste were refitted against 24,235 cities: exact matches went from about 63-76% of cities to 83-89%. Computer players always get the full optimal number of cities, Commercial civilizations get a quarter more, and each courthouse or police station counts properly.</li>
+		<li>Commerce shares are rounded, government penalties no longer cancel building bonuses, Agricultural and Commercial civilizations get their city bonuses, city squares get no road commerce, lakes count as fresh water and give more food, fallout yields nothing, and only humans pay the difficulty's cost for advances.</li>
+		<li>Corruption runs at 90% of Civ3's. An optional new-game setting spares the cities nearest the capital (off by default).</li>
+		<li>Borders: a city's first ring always beats another city's later growth, culture only settles claims of the same rank, and older cities win ties. Being connected to the capital for corruption uses the real trade network and the real capital.</li>
+		<li>More of Civ3's rules data is read from its files and from the game's own rules: wonder effects, spaceship parts, the great leader unit, culture levels and more.</li>
+		<li>Scenario civilizations that start with only units stay alive while they have units.</li>
+	</ul>
+	<h3>Barbarians</h3>
+	<ul>
+		<li>Every barbarian camp starts the game guarded by a Warrior.</li>
+		<li>Each camp has its own chance to release a unit, set by the barbarian activity level, and stops once it holds three units.</li>
+		<li>A camp is dispersed when your borders take it in, whether by founding a city, borders growing or a city changing hands, and you're paid for it.</li>
+	</ul>
+	<h3>Advisors and screens</h3>
+	<ul>
+		<li>The cultural, military and trade advisors show Civ3's reports: culture levels and opinions, other civilizations' militaries, and resources by source and trade route. Every advisor has Civ3's row of advisor faces, the domestic advisor sorts by column, and the space race view shows the ship's progress.</li>
+		<li>The trade advisor only lists resources you know about.</li>
+		<li>The city screen shows taxes, science and luxuries as Civ3 does, what the government's square penalty takes, and the garrison. Worked squares show Civ3's small yield icons, with penalized yield struck through. Long item names wrap on the production button.</li>
+		<li>The Wonders view lists each great wonder's owner and who is building it.</li>
+	</ul>
+	<h3>The map</h3>
+	<ul>
+		<li>Roads, mines and other improvements built or pillaged out of your sight show as you last saw them.</li>
+		<li>Other players' cities show only their name and size. Barracks, harbour and airport icons sit beside your cities, as in Civ3.</li>
+		<li>Workers are shown at work (also after loading and in network games), with a badge for jobs their art has no animation for.</li>
+		<li>Flood plains are drawn, and deserts along rivers become flood plains on new maps. A bare map mode hides everything but the terrain.</li>
+		<li>Hit point bars stay readable for large armies, and cities no longer vanish at the edge of small maps that wrap around.</li>
+		<li>The small map is drawn at its real size in Civ3's muted colours, and clicking it no longer throws the view off the map.</li>
+		<li>Map fixes: rivers at the edge of the map, luxuries piled onto squares that already had a resource, and crashes for cities near the top corners.</li>
+	</ul>
+	<h3>Interface</h3>
+	<ul>
+		<li>A <b>Settings</b> page on the main menu with the interface size, the volumes (0 now mutes) and the new <b>Graphics Overhaul</b>: remade art for the whole map (terrain, hills, forests, rivers, roads, irrigation, mines, fortresses, resources, cities and every unit), drawn at twice the detail in a calm, muted take on the originals. It was off by default in this version.</li>
+		<li>Scale the whole interface with <kbd>Ctrl</kbd> and <kbd>+</kbd>, <kbd>-</kbd> or <kbd>0</kbd>; it's remembered. The window starts maximized.</li>
+		<li>Drag a unit to where it should go. <kbd>J</kbd> moves the whole stack.</li>
+		<li>New keys: <kbd>Shift</kbd>+<kbd>Enter</kbd> ends the turn even with units left to move; <kbd>Ctrl</kbd>+<kbd>S</kbd> and <kbd>Ctrl</kbd>+<kbd>L</kbd> save and load.</li>
+		<li>Movement animations are off by default; hold <kbd>Shift</kbd> to see them.</li>
+		<li>Selecting the next unit goes through the rest of the last unit's stack first, and Wake All selects only the first unit it wakes.</li>
+		<li>Popups wait their turn instead of piling up, so a deal offer is never lost.</li>
+		<li>"Please wait..." shows properly when you end your turn, and movement points show the right fraction.</li>
+	</ul>
+	<h3>Computer players</h3>
+	<ul>
+		<li>They declare war only when they've really decided to, and only on civilizations they've met and who share their continent; deals between them need both sides to agree.</li>
+		<li>Their workers don't all chase the same square, skip squares they can't reach, and put cleaning pollution first.</li>
+		<li>Their units only go for targets, camps and explore spots they can reach, find a way around blockers, and no longer get stuck repeating a move.</li>
+		<li>Their great leaders hurry production in the nearest city, and they upgrade units while keeping some gold back.</li>
+		<li>Their unit choices no longer break down when none of the choices can attack.</li>
+	</ul>
+	<h3>Civ3 files</h3>
+	<ul>
+		<li>Some leader portraits and animations that showed blank or wrong frames now play correctly (such as the tactical nuke attack and several Conquests leaders), and some units no longer play the wrong sound.</li>
+		<li>Two Civ3 scenarios that failed to load now do. Files from before Conquests, and broken files, are refused cleanly instead of crashing the game.</li>
+		<li>Without Civ3, armies are drawn with stand-in art, and units keep the upgrades they have art for.</li>
+	</ul>
+	<h3>Speed</h3>
+	<ul>
+		<li>Much faster everywhere: route finding (which now also finds the truly shortest route for ships), the computer players' turns, map making, saving and loading, reading Civ3's files, and drawing the map, which is only redrawn when something on it changes.</li>
+	</ul>
+	<h3>Download page</h3>
+	<ul>
+		<li>Each version is now published for Windows, Mac and Linux, with a download page linking to the newest.</li>
+	</ul>
+	<h3>Behind the scenes</h3>
+	<ul>
+		<li>Many new tests, including ones that compare the game against real Civ3 saved games, check that faster code gives exactly the same results, and make the network tests reliable.</li>
+		<li>Large parts of the game were rewritten for speed without changing what happens; the default window size became 1440 by 1080.</li>
 	</ul>
 </main>
 </body>
