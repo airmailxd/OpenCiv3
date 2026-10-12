@@ -26,9 +26,10 @@ namespace C7Engine.AI {
 	// should scale off of each member's empire size" (owner's decision,
 	// 2026-10-11). Without the embassy it needs as the proposer, it
 	// establishes one first if it can spare the gold. Now and then it also
-	// offers one for nothing to a civ it is at peace with, as Civ3's AI
-	// does to be friendly (owner's decision, 2026-10-11); the other civ
-	// signs if it is worth it to them. In paired AI trials (AiTrialTest, 16 games
+	// offers one to a civ it is at peace with, as Civ3's AI does to be
+	// friendly (owner's decision, 2026-10-11), with gold as the sizes say
+	// (below); the other civ signs if it is worth it to them. In paired AI
+	// trials (AiTrialTest, 16 games
 	// each) it did no harm: civs asking signed about one right of passage a
 	// game on Pangaea and scored a little higher (+122 +- 115), and were
 	// unchanged on Continents (-29 +- 48).
@@ -37,17 +38,30 @@ namespace C7Engine.AI {
 	// other's land, so the civ with the bigger empire gives more. Its worth
 	// to a civ, in gold, is
 	//
-	//   Need(civ, partner) + GoldPerCity * (Cities(partner) - Cities(civ))
+	//   Need(civ, partner) + SizePayment(civ, partner) - SizePayment(partner, civ)
 	//
 	// where Need is WarNeedGold plus TileNeedGold for each of the partner's
 	// tiles on the way to the enemy (up to MaxTilesCounted), or nothing if
-	// the way doesn't cross the partner's land. The size part is what one
-	// side gains and the other gives, so a smaller civ pays a bigger one
-	// for it, and the needs are the deal's surplus. The AI accepts a deal
-	// with a right of passage when its worth plus what it is given covers
-	// what it gives, and pays a partner what the partner would ask (in gold,
-	// or techs when short of gold) as long as that is no more than the
-	// right of passage is worth to it.
+	// the way doesn't cross the partner's land, and SizePayment is what
+	// the size part says the first pays the second (below). The size part
+	// is what one side gains and the other gives, so a smaller civ pays a
+	// bigger one for it, and the needs are the deal's surplus. The AI
+	// accepts a deal with a right of passage when its worth plus what it is
+	// given covers what it gives, and pays a partner what the partner would
+	// ask (in gold, or techs when short of gold) as long as that is no more
+	// than the right of passage is worth to it.
+	//
+	// The bigger empire is paid: the AI "should ask for gold if their
+	// empire is bigger, or offer gold if smaller" (owner's decision,
+	// 2026-10-12). The size part is SizeGold, GoldPerCity for each city
+	// the bigger has more, paid by the smaller as far as its treasury goes
+	// (SizePayment); equal sizes, no gold. So proposing one (asking for one
+	// at war, or in friendship), the AI asks a smaller partner for that
+	// gold, and offers a bigger one what it'd ask (an AI's needs lower it;
+	// for a human, as much of it as we can spare); and offered one, it
+	// wants that gold from a smaller civ and pays a bigger one up to it.
+	// What it asks always passes its own valuation, as a human agreeing to
+	// an AI's offer proposes it back.
 	//
 	// It refuses one, whatever it is offered, to (HEURISTIC, unless cited):
 	// - a civ that broke one with its units inside someone's borders:
@@ -77,8 +91,8 @@ namespace C7Engine.AI {
 		// HEURISTIC: how far (in tiles) a city of an enemy without a
 		// campaign may be from our nearest city to plan a way to it.
 		private const int MaxRouteDistance = 20;
-		// HEURISTIC: the chance each turn of offering a right of passage
-		// for nothing to a civ we're at peace with.
+		// HEURISTIC: the chance each turn of offering a right of passage in
+		// friendship to a civ we're at peace with.
 		public const int FriendlyOfferChancePercent = 5;
 		// HEURISTIC: the gold the AI keeps when paying for one.
 		private const int GoldReserve = 25;
@@ -106,7 +120,22 @@ namespace C7Engine.AI {
 
 		// The right of passage's worth to us, in gold (see above).
 		public static int Worth(GameData gameData, Player us, Player partner) {
-			return Need(gameData, us, partner) + GoldPerCity * (Cities(partner) - Cities(us));
+			return Need(gameData, us, partner) + SizePayment(us, partner) - SizePayment(partner, us);
+		}
+
+		// The size part in gold, whichever side pays it (see above).
+		public static int SizeGold(Player a, Player b) {
+			return GoldPerCity * Math.Abs(Cities(a) - Cities(b));
+		}
+
+		// The gold the payer, if the smaller, pays the bigger payee for the
+		// size part, as far as its treasury goes, or 0 if it isn't the
+		// smaller (owner's decision, 2026-10-12; see above).
+		public static int SizePayment(Player payer, Player payee) {
+			if (Cities(payer) >= Cities(payee)) {
+				return 0;
+			}
+			return Math.Min(SizeGold(payer, payee), Math.Max(0, payer.gold));
 		}
 
 		// What getting through the partner's territory to our enemies is
@@ -267,7 +296,8 @@ namespace C7Engine.AI {
 					continue;
 				}
 				lastRequestTurn.GetOrCreateValue(player)[them.id] = gameData.turn;
-				log.Information("{Player} asks {Them} for a right of passage, offering {Offer}", player, them, weGive.ToString());
+				log.Information("{Player} asks {Them} for a right of passage, offering {Offer} for {Want}", player, them, weGive.ToString(),
+					weWant.ToString());
 
 				if (them.isHuman) {
 					await OfferToHuman(player, them, weGive, weWant);
@@ -286,23 +316,30 @@ namespace C7Engine.AI {
 			}
 		}
 
-		// Offers a right of passage for nothing to a civ we're at peace with
-		// and could sign one with, the nearest first: an AI signs it if it is
-		// worth it to them, a human is asked.
+		// Offers a right of passage to a civ we're at peace with and could
+		// sign one with, the nearest first, asking or offering gold as the
+		// sizes say (but never techs: it is only friendship): an AI signs it
+		// if it is worth it to them, a human is asked.
 		internal static async Task OfferFriendlyPassage(Player player, GameData gameData) {
-			Player them = gameData.players
+			Player them = null;
+			TradeOffer weGive = null, weWant = null;
+			foreach (Player p in gameData.players
 				.Where(p => p != player && !p.isBarbarians && !p.defeated && RightOfPassage.CanSign(gameData, player, p)
 					&& !Refuses(gameData, player, p) && !RecentlyAsked(gameData, player, p)
 					&& p.WillAcceptCommunicationFrom(player, gameData.turn))
-				.OrderBy(p => NearestCityDistance(player, p))
-				.FirstOrDefault();
+				.OrderBy(p => NearestCityDistance(player, p))) {
+				(weGive, weWant) = MakeOffer(gameData, player, p, payWithTechs: false);
+				if (weGive != null) {
+					them = p;
+					break;
+				}
+			}
 			if (them == null) {
 				return;
 			}
 			lastRequestTurn.GetOrCreateValue(player)[them.id] = gameData.turn;
-			TradeOffer weGive = new() { rightOfPassage = true };
-			TradeOffer weWant = new() { rightOfPassage = true };
-			log.Information("{Player} offers {Them} a right of passage in friendship", player, them);
+			log.Information("{Player} offers {Them} a right of passage in friendship, giving {Offer} for {Want}", player, them,
+				weGive.ToString(), weWant.ToString());
 			if (them.isHuman) {
 				await OfferToHuman(player, them, weGive, weWant);
 			} else if (them.WouldAcceptDealFrom(gameData, player, weGive, weWant)) {
@@ -347,29 +384,43 @@ namespace C7Engine.AI {
 				&& gameData.turn - turn < TurnsBetweenRequests;
 		}
 
-		// A right of passage for what they'd ask, or nulls if it is worth
-		// less than that to us or we can't pay it. An AI asks what it'd need
-		// to accept (minus its worth); with a human, whose needs we don't
-		// know, we offer what the size part says they give.
-		public static (TradeOffer weGive, TradeOffer weWant) MakeOffer(GameData gameData, Player us, Player them) {
+		// A right of passage on the terms the sizes say (owner's decision,
+		// 2026-10-12; see above), or nulls if it is worth too little to us
+		// or we can't pay. Bigger than them, we ask their SizePayment, which
+		// our worth always covers. Smaller, we offer what they'd ask: an AI
+		// what it'd need to accept (minus its worth); a human, whose needs we
+		// don't know, SizeGold, or as much of it as we can spare. Short of
+		// gold for an AI, we make it up with techs if payWithTechs.
+		public static (TradeOffer weGive, TradeOffer weWant) MakeOffer(GameData gameData, Player us, Player them,
+				bool payWithTechs = true) {
 			if (!them.isHuman && Refuses(gameData, them, us)) {
 				return (null, null);
 			}
-			int theirWorth = them.isHuman ? GoldPerCity * (Cities(us) - Cities(them)) : Worth(gameData, them, us);
-			int price = Math.Max(0, -theirWorth);
+			TradeOffer weGive = new() { rightOfPassage = true };
+			TradeOffer weWant = new() { rightOfPassage = true };
+			int spare = Math.Max(0, us.gold - GoldReserve);
+
+			if (Cities(us) > Cities(them)) {
+				int ask = SizePayment(them, us);
+				if (ask > 0) {
+					weWant.gold = ask;
+				}
+				return (weGive, weWant);
+			}
+
+			int price = them.isHuman ? Math.Min(SizeGold(us, them), spare) : Math.Max(0, -Worth(gameData, them, us));
 			if (price > Worth(gameData, us, them)) {
 				return (null, null);
 			}
-
-			TradeOffer weGive = new() { rightOfPassage = true };
-			TradeOffer weWant = new() { rightOfPassage = true };
 			if (price == 0) {
 				return (weGive, weWant);
 			}
-			int spare = Math.Max(0, us.gold - GoldReserve);
 			if (spare >= price) {
 				weGive.gold = price;
 				return (weGive, weWant);
+			}
+			if (!payWithTechs) {
+				return (null, null);
 			}
 			// Short of gold: make it up with techs, the cheapest to them
 			// first, so as to give away as little as we can.
