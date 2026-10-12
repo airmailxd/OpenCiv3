@@ -77,7 +77,7 @@ public partial class DealScreen : TextureRect {
 			Player humanPlayer = gD.players.Find(x => x.id == humanPlayerId);
 			bool playersAtWar = AtWar(humanPlayer, opponentPlayer);
 			bool canSignRightOfPassage = !playersAtWar && RightOfPassage.CanSign(gD, humanPlayer, opponentPlayer);
-			GetParent<Diplomacy>().AddLeaderHeadAndLabel(this, opponentPlayer, fontTheme);
+			GetParent<Diplomacy>().AddLeaderHeadAndLabel(this, gD, opponentPlayer, humanPlayer, fontTheme);
 
 			// Figure out which technologies can be traded by each player, if any.
 			// A tech can only go to a player who could research it themselves.

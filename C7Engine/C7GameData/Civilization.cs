@@ -73,6 +73,16 @@ namespace C7GameData {
 
 		public bool isBarbarian = false;
 
+		// How aggressive the civ's AI is, from -2 (the least) to 2 (the
+		// most), as in Civ3's editor. It sets the AI's starting attitude (see
+		// Attitudes).
+		public int aggressionLevel = 0;
+
+		// The names of the governments the civ's AI favours and shuns, or
+		// null for none. They change its attitude (see Attitudes).
+		public string favoriteGovernment;
+		public string shunnedGovernment;
+
 		public class SettlerTileAdjustments {
 			public int DistancePenaltyRadius = 4;
 

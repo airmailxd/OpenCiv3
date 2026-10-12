@@ -17,6 +17,7 @@ public partial class Diplomacy : CenterContainer {
 	private TalkScreen talkScreen;
 	private DealScreen dealScreen;
 	private TerritoryDemandScreen territoryDemandScreen;
+	private TributeDemandScreen tributeDemandScreen;
 
 	// Popups the talk and deal screens put up. Their answers go to the
 	// screen, so they are taken down along with it.
@@ -63,6 +64,11 @@ public partial class Diplomacy : CenterContainer {
 			territoryDemandScreen.QueueFree();
 			territoryDemandScreen = null;
 		}
+		if (tributeDemandScreen != null) {
+			RemoveChild(tributeDemandScreen);
+			tributeDemandScreen.QueueFree();
+			tributeDemandScreen = null;
+		}
 	}
 
 	public void ShowDealScreenForPlayer(ID humanPlayer, ID opponentPlayer) {
@@ -93,6 +99,14 @@ public partial class Diplomacy : CenterContainer {
 		this.Show();
 	}
 
+	public void ShowTributeDemand(ID humanPlayer, ID opponentPlayer, int gold, string techName) {
+		RemoveOtherScreens();
+
+		tributeDemandScreen = new TributeDemandScreen(humanPlayer, opponentPlayer, gold, techName);
+		AddChild(tributeDemandScreen);
+		this.Show();
+	}
+
 	public void ShowTalkScreenForPlayer(ID humanPlayer, ID opponentPlayer) {
 		RemoveOtherScreens();
 
@@ -115,7 +129,9 @@ public partial class Diplomacy : CenterContainer {
 		this.Show();
 	}
 
-	public void AddLeaderHeadAndLabel(TextureRect node, Player player, Theme fontTheme) {
+	// The AI's leader head, and its civ's name with its attitude toward the
+	// human it is talking to, as in Civ3.
+	public void AddLeaderHeadAndLabel(TextureRect node, GameData gameData, Player player, Player human, Theme fontTheme) {
 		ColorRect headBackground = new();
 		headBackground.Color = Colors.Black;
 		headBackground.Size = new Vector2(200, 240);
@@ -128,7 +144,8 @@ public partial class Diplomacy : CenterContainer {
 		leaderHead.SetPosition(new Vector2(512 - (115 * 1.7f) / 2, 59 + 120 - (115 * 1.7f) / 2));
 		node.AddChild(leaderHead);
 
-		string civNameText = $"{player.civilization.name} (Cautious)";
+		AttitudeLevel attitude = (human == null ? null : Attitudes.Level(gameData, player, human)) ?? AttitudeLevel.Cautious;
+		string civNameText = $"{player.civilization.name} ({attitude})";
 		Label civName = new();
 		civName.SetPosition(new Vector2(0, 330));
 		node.AddChild(civName);

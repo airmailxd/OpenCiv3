@@ -49,6 +49,10 @@ namespace C7Engine {
 		// withdraw, false to refuse, null if they haven't answered.
 		internal static bool? territoryDemandAnswer;
 
+		// How the human an AI demanded tribute from answered: true to pay,
+		// false to refuse, null if they haven't answered.
+		internal static bool? tributeDemandAnswer;
+
 		// The sender of the message being processed, so the messages it causes
 		// go back to them. It flows with the handling of the message across
 		// its awaits, so a handler that waits (for an animation, say) still
@@ -309,6 +313,7 @@ namespace C7Engine {
 			diplomacyAIPlayerID = null;
 			pendingDeal = null;
 			territoryDemandAnswer = null;
+			tributeDemandAnswer = null;
 		}
 
 		// Drops the work left over from a previous game, so it can't block
@@ -329,6 +334,7 @@ namespace C7Engine {
 			diplomacyAIPlayerID = null;
 			pendingDeal = null;
 			territoryDemandAnswer = null;
+			tributeDemandAnswer = null;
 			TurnHandling.ResetForNewGame();
 			UnitInteractions.ResetForNewGame();
 			// The tile change log would otherwise keep the previous game alive.

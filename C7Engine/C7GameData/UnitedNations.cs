@@ -470,130 +470,33 @@ namespace C7Engine {
 			return best != null && bestAttitude <= PoliteAttitude ? best : null;
 		}
 
-		// The AI Attitude Study
-		// (https://civfanatics.com/civ3/strategy/game-mechanics/ai-attitude-study/)
-		// counts an AI's attitude in points where "Good things actually give
-		// you a negative number, and bad things give you a positive number":
-		// "-11 and lower = Gracious", "-1 through -10 = Polite", "0 =
-		// Cautious", "1-10 = Annoyed", "11 through 100 = Furious".
-		public const int PoliteAttitude = -1;
+		// See Attitudes.
+		public const int PoliteAttitude = Attitudes.PoliteAttitude;
 
-		// HEURISTIC (per the project owner, the candidate's size counts): an
-		// AI is wary of a candidate with at least twice its citizens, and more
-		// so of one with four times as many. These are attitude points.
+		// HEURISTIC: an AI is wary of a candidate with at least twice its
+		// citizens, and more so of one with four times as many. These are
+		// attitude points.
 		private const int WaryOfTwiceOurSize = 1;
 		private const int WaryOfFourTimesOurSize = 2;
 
 		// The voter's attitude toward the candidate, in the Attitude Study's
-		// points (lower is better; see PoliteAttitude), from what the engine
-		// records of the two civs; null if they haven't met. The values are
-		// the study's, for the factors the engine tracks. The study's
-		// aggression levels, favourite and shunned governments, culture lead,
-		// gifts, tribute and the temporary effects of combat aren't tracked,
-		// so they don't count.
+		// points (lower is better; see Attitudes), or null if they haven't
+		// met. Per the project owner, the candidate's size counts too.
 		internal static int? Attitude(GameData gameData, Player voter, Player candidate) {
-			if (!PlayerRelationship.TryGetRelationship(voter, candidate, out PlayerRelationship pr)) {
+			int? points = Attitudes.Points(gameData, voter, candidate);
+			if (points == null) {
 				return null;
-			}
-			PlayerRelationship.TryGetRelationship(candidate, voter, out PlayerRelationship theirs);
-
-			// Good things (negative points). The study: "Same culture group:
-			// -1", "Same government: -1", "Right of Passage: -5", "Mutual
-			// Protection Pact: -10", "Alliance signed: -2", "Trade embargo
-			// signed: -1", "Trade/donate resource: -5", "Recent trades: -1",
-			// "War with common enemy: -3", "Embassy: -2".
-			int good = 0;
-			string cultureGroup = voter.civilization?.cultureGroup?.name;
-			if (cultureGroup != null && cultureGroup == candidate.civilization?.cultureGroup?.name) {
-				good -= 1;
-			}
-			if (voter.government?.name != null && voter.government.name == candidate.government?.name) {
-				good -= 1;
-			}
-			bool HasDeal(params DealSubType[] types) => pr.multiTurnDeals.Any(d => types.Contains(d.dealSubType));
-			// "ROP is one of them that still gives you the full points no
-			// matter who has the power lead", so it is added after the
-			// halving below.
-			int rightOfPassage = HasDeal(DealSubType.RightOfPassage) ? -5 : 0;
-			if (HasDeal(DealSubType.MutualProtectionPact)) {
-				good -= 10;
-			}
-			// UNVERIFIED: that a scenario's alliance counts as one signed.
-			if (HasDeal(DealSubType.MilitaryAlliance) || (voter.alliance != null && voter.alliance == candidate.alliance)) {
-				good -= 2;
-			}
-			if (HasDeal(DealSubType.TradeEmbargo)) {
-				good -= 1;
-			}
-			// UNVERIFIED: that a resource deal counts whichever way the
-			// resource goes, and that a gold-per-turn deal is a recent trade.
-			if (HasDeal(DealSubType.ResourcePerTurn, DealSubType.LuxuryPerTurn)) {
-				good -= 5;
-			}
-			if (HasDeal(DealSubType.GoldPerTurn)) {
-				good -= 1;
-			}
-			if (gameData.players.Any(p => p != voter && p != candidate
-				&& PlayerRelationship.TryGetRelationship(voter, p, out PlayerRelationship v) && v.AtWar()
-				&& PlayerRelationship.TryGetRelationship(candidate, p, out PlayerRelationship c) && c.AtWar())) {
-				good -= 3;
-			}
-			if (theirs?.hasEmbassy == true) {
-				good -= 2;
-			}
-			// "If you have a power lead, most of the good effects (negative
-			// numbers) are halved." UNVERIFIED: that a power lead is being
-			// stronger than the voter as the military advisor judges it
-			// (Player.CompareMilitaryStrengthTo), that all the good effects
-			// are halved, and that halves are rounded toward zero.
-			if (candidate.CompareMilitaryStrengthTo(voter) == Player.MilitaryStrength.StrongTo) {
-				good /= 2;
-			}
-			good += rightOfPassage;
-
-			// Bad things (positive points), which the study counts for good:
-			// "Declared war previously: +4", "Break ROP (no units in
-			// territory): +4", "Failed espionage (permanent): +1", "Use nukes:
-			// +32 victim (other civs: +16)", and "+6 If you have any units
-			// in their territory when you break the ROP treaty, ... other
-			// civs ... will add +2". UNVERIFIED: the engine doesn't record
-			// the temporary +4 of a failed mission, or who a nuclear attack
-			// hit, so each counts as given.
-			int bad = 4 * pr.warDeclarationCount
-				+ 4 * (pr.warDeclarationWithRoPActiveCount - pr.rightOfPassageBetrayals)
-				+ 6 * pr.rightOfPassageBetrayals
-				+ pr.espionageIncidents
-				+ 16 * pr.nuclearAtrocityCount;
-
-			// Reputation: what the candidate did to other civs. The study's
-			// "Break peace treaty: +4 (other civs: +1)" and "Break ROP (no
-			// units in territory): +4 (other civs: +1)", with units inside
-			// "other civs ... will add +2" (one more here). UNVERIFIED: that
-			// every war the candidate declared broke a peace treaty.
-			foreach (Player other in gameData.players) {
-				if (other != voter && other != candidate
-					&& PlayerRelationship.TryGetRelationship(other, candidate, out PlayerRelationship victim)) {
-					bad += victim.warDeclarationCount + victim.warDeclarationWithRoPActiveCount
-						+ victim.rightOfPassageBetrayals;
-				}
-			}
-			// "Trade embargo victim: +10": the candidate signed an embargo
-			// against the voter.
-			if (candidate.playerRelationships.Values.Any(r => r.multiTurnDeals.Any(
-				d => d.dealSubType == DealSubType.TradeEmbargo && d.againstPlayer == voter.id))) {
-				bad += 10;
 			}
 
 			// HEURISTIC: size (see WaryOfTwiceOurSize).
 			int ours = System.Math.Max(1, Population(voter));
 			int theirSize = Population(candidate);
 			if (theirSize >= 4 * ours) {
-				bad += WaryOfFourTimesOurSize;
+				return points + WaryOfFourTimesOurSize;
 			} else if (theirSize >= 2 * ours) {
-				bad += WaryOfTwiceOurSize;
+				return points + WaryOfTwiceOurSize;
 			}
-
-			return good + bad;
+			return points;
 		}
 
 		// Whether an AI that owns the United Nations holds the election it is

@@ -1267,6 +1267,18 @@ public partial class Game : Node {
 					showDemand();
 				}
 				break;
+			case MsgShowTributeDemand mSTrD:
+				Action showTributeDemand = () => diplomacy.ShowTributeDemand(
+					mSTrD.humanPlayer.id, mSTrD.aiPlayer.id, mSTrD.gold, mSTrD.tech?.Name);
+				if (mSTrD.humanPlayer.id != controller.id) {
+					ShowHotseatHandoff(mSTrD.humanPlayer,
+						$"The {mSTrD.aiPlayer.civilization.noun} demand to speak with you.",
+						"Hear Them Out",
+						showTributeDemand);
+				} else {
+					showTributeDemand();
+				}
+				break;
 			case MsgDisplayHurryProductionPopup mDHPP:
 				if (mDHPP.details.errorMessage != null) {
 					popupOverlay.ShowPopup(

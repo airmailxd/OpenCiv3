@@ -26,7 +26,7 @@ public partial class TerritoryDemandScreen : TextureRect {
 		string adjective = "";
 		EngineStorage.ReadGameData((GameData gD) => {
 			Player opponent = gD.GetPlayer(opponentPlayerId);
-			GetParent<Diplomacy>().AddLeaderHeadAndLabel(this, opponent, fontTheme);
+			GetParent<Diplomacy>().AddLeaderHeadAndLabel(this, gD, opponent, gD.GetPlayer(humanPlayerId), fontTheme);
 			adjective = opponent.civilization.noun;
 		});
 

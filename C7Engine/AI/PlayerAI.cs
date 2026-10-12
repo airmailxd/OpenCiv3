@@ -41,6 +41,9 @@ namespace C7Engine {
 			// draw between them.)
 			await EngineStorage.YieldIfFrameBudgetSpent();
 			await TerritoryDemands.MakeDemands(player, gameData);
+			// And demand tribute of humans weaker than us.
+			await EngineStorage.YieldIfFrameBudgetSpent();
+			await TributeDemands.MakeDemands(player, gameData);
 
 			await EngineStorage.YieldIfFrameBudgetSpent();
 			MaybeDoPriorityReevaluation(player);

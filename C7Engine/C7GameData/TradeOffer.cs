@@ -24,6 +24,11 @@ namespace C7GameData {
 		// CityInteractions.TransferCity with viaDeal).
 		public List<City> cities = new();
 
+		// Whether this side of a deal gives nothing at all.
+		public bool IsEmpty() {
+			return !partOfPeaceTreaty && !rightOfPassage && (gold ?? 0) == 0 && techs.Count == 0 && cities.Count == 0;
+		}
+
 		// The cities a player may give away in a deal: any but its capital,
 		// and only while it has another city to keep.
 		public static List<City> TradableCities(Player player) {

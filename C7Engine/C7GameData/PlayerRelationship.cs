@@ -64,6 +64,27 @@ public class PlayerRelationship {
 	// forgot about it (see TerritoryDemands).
 	public int recentWithdrawals = 0;
 
+	// p1.playerRelationships[p2].lastTributeDemandTurn is the turn p1 last
+	// demanded tribute from p2, or -1 if never (see TributeDemands).
+	public int lastTributeDemandTurn = -1;
+
+	// What p2 did that changes p1's attitude toward it (see Attitudes): the
+	// last turn p2 paid p1 tribute, how many times p2 refused p1's demand
+	// for tribute without p1 going to war, and how many of p1's workers p2
+	// captured, or -1 and 0 if never.
+	public int lastTributePaidTurn = -1;
+	public int tributeBluffsCalled = 0;
+	public int workersCaptured = 0;
+
+	// The last turn p1 and p2 traded techs, or -1 if never.
+	public int lastTechTradeTurn = -1;
+
+	// The gold worth of p2's gifts to p1 (gold or techs given for nothing),
+	// as it stood on giftTurn, the turn of the last; p1 forgets it bit by
+	// bit (see Attitudes.RememberedGiftGold).
+	public int giftGold = 0;
+	public int giftTurn = -1;
+
 	// p1.playerRelationships[p2].loneTrespasserSinceTurn is the turn p2
 	// started keeping a single combat unit in p1's territory, which p1
 	// puts up with for loneTrespasserPatience turns, or -1 if it isn't.

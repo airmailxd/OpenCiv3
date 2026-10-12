@@ -730,6 +730,9 @@ namespace C7GameData {
 				}
 				civ.traits = LoadCivTraits(race).ToHashSet();
 				civ.cultureGroupKey = GetCultureGroupIdentifier(race.CultureGroup);
+				civ.aggressionLevel = race.AggressionLevel;
+				civ.favoriteGovernment = GovernmentName(race.FavoriteGovernment);
+				civ.shunnedGovernment = GovernmentName(race.ShunnedGovernment);
 
 				// Look up the image for non-barbarian civs.
 				string artName = pediaIcons.GetLeaderArtName(race.CivilopediaEntry);
@@ -740,6 +743,12 @@ namespace C7GameData {
 				save.Civilizations.Add(civ);
 				i++;
 			}
+		}
+
+		// The name of the BIQ's government with this index, or null for none.
+		private string GovernmentName(int index) {
+			BiqData theBiq = biq.Govt is null ? defaultBiq : biq;
+			return index >= 0 && index < theBiq.Govt.Length ? theBiq.Govt[index].Name : null;
 		}
 
 		private static string GetCultureGroupIdentifier(int cultureGroupIndex) {

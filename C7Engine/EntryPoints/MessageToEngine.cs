@@ -1057,6 +1057,28 @@ namespace C7Engine {
 		}
 	}
 
+	// A human answers an AI's demand for tribute: pay it, or refuse and go
+	// to war.
+	public class MsgRespondToTributeDemand : MessageToEngine {
+		public bool pay;
+
+		public MsgRespondToTributeDemand(bool pay) {
+			this.pay = pay;
+		}
+
+		// Only the human the AI is waiting on may answer, whoever's turn it
+		// was last.
+		protected override bool IsAllowed() {
+			return Sender != null && AnswersWaitingAI();
+		}
+
+		protected override bool IsDiplomacyAnswer() => true;
+
+		protected override void ProcessAllowed() {
+			EngineStorage.tributeDemandAnswer = pay;
+		}
+	}
+
 	// A human tells an AI to take its units out of the human's territory or
 	// prepare for war. The AI answers at once with MsgWithdrawalDemandResult.
 	public class MsgDemandWithdrawal : MessageToEngine {

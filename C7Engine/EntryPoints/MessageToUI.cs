@@ -467,6 +467,27 @@ namespace C7Engine {
 		public override Player NetworkRecipient => humanPlayer;
 	}
 
+	// An AI demands tribute from a human, gold or a tech, or it will declare
+	// war. The human answers with MsgRespondToTributeDemand.
+	public class MsgShowTributeDemand : MessageToUI {
+		public Player aiPlayer;
+		public Player humanPlayer;
+
+		// The gold demanded, or 0 if a tech is demanded instead.
+		public int gold;
+		public Tech tech;
+
+		public MsgShowTributeDemand(Player aiPlayer, Player humanPlayer, int gold, Tech tech) {
+			this.aiPlayer = aiPlayer;
+			this.humanPlayer = humanPlayer;
+			this.gold = gold;
+			this.tech = tech;
+		}
+
+		// Like a trade offer, this goes to the human's own machine on a LAN.
+		public override Player NetworkRecipient => humanPlayer;
+	}
+
 	// Another human on a LAN proposes a deal, which the recipient accepts or
 	// refuses with MsgRespondToDeal.
 	public class MsgShowDealProposal : MessageToUI {

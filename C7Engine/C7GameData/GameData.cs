@@ -733,6 +733,16 @@ namespace C7GameData {
 			Player previousOwner = unit.owner;
 			log.Information("Player {Captor} captured unit: {Unit}", captor, unit);
 
+			// Its owner holds the capture of a worker against the captor (see
+			// Attitudes).
+			if (unit.unitType.isWorker && previousOwner != captor && !previousOwner.isBarbarians && !captor.isBarbarians) {
+				previousOwner.EnsureRelationshipExists(captor);
+				// There is none with a defeated civ.
+				if (previousOwner.playerRelationships.TryGetValue(captor.id, out PlayerRelationship relationship)) {
+					relationship.workersCaptured++;
+				}
+			}
+
 			if (unit.currentAI != null) {
 				unit.currentAI.UpdateOnDeath();
 				unit.currentAI = null;

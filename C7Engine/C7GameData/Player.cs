@@ -771,7 +771,10 @@ namespace C7GameData {
 		// gives theirOffer. Returns false, changing nothing, if the deal can no
 		// longer be made, such as when one side spent the gold it offered
 		// while the other thought it over.
-		public bool ExecuteDeal(GameData gameData, Player other, TradeOffer theirOffer, TradeOffer ourOffer) {
+		//
+		// A deal in which one side gives nothing is a gift, which the
+		// receiver remembers fondly (see Attitudes), unless it is tribute.
+		public bool ExecuteDeal(GameData gameData, Player other, TradeOffer theirOffer, TradeOffer ourOffer, bool tribute = false) {
 			string problem = TradeOffer.ProblemWithDeal(gameData, other, this, theirOffer, ourOffer);
 			if (problem != null) {
 				log.Warning("Not executing a trade between {Player} and {Other}: {Problem}", this, other, problem);
@@ -794,6 +797,19 @@ namespace C7GameData {
 			if (theirOffer.gold.HasValue) {
 				this.gold += theirOffer.gold.Value;
 				other.gold -= theirOffer.gold.Value;
+			}
+
+			// The attitudes, valuing the gifts before the techs are known.
+			EnsureRelationshipExists(other);
+			other.EnsureRelationshipExists(this);
+			if (ourOffer.techs.Count > 0 || theirOffer.techs.Count > 0) {
+				playerRelationships[other.id].lastTechTradeTurn = gameData.turn;
+				other.playerRelationships[id].lastTechTradeTurn = gameData.turn;
+			}
+			if (!tribute && ourOffer.IsEmpty() && !theirOffer.IsEmpty()) {
+				Attitudes.RecordGift(playerRelationships[other.id], theirOffer.GoldEquivalentFor(gameData, this), gameData.turn);
+			} else if (!tribute && theirOffer.IsEmpty() && !ourOffer.IsEmpty()) {
+				Attitudes.RecordGift(other.playerRelationships[id], ourOffer.GoldEquivalentFor(gameData, other), gameData.turn);
 			}
 
 			other.CompleteResearchAndBeginNew(gameData, ourOffer.techs);
