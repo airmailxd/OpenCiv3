@@ -123,6 +123,14 @@ def flag(sc, x, y, z, h, col, w=7.0, fh=4.5):
     return b
 
 
+def statue(sc, folder, at, height, color='#a8743e', **kw):
+    """A unit's model cast in bronze (or stone) standing at `at`, `height`
+    world units tall: drawn over the scene by make()."""
+    if not hasattr(sc, 'statues'):
+        sc.statues = []
+    sc.statues.append(dict(folder=folder, at=at, height=height, color=color, **kw))
+
+
 def tree(sc, x, y, h, rng, palm=False):
     BD.tree(sc, x, y, h, P, rng, palm=palm)
 
@@ -161,9 +169,23 @@ def make(building, kind='improvement'):
     if spec.get('space'):
         return spec['fn'](None, None)
     sc, spec, gz = scene_of(key)
+    statues = getattr(sc, 'statues', [])
+    extra = []
+    for s in statues:
+        x, y, z = s['at']
+        extra += [(x, y, z), (x, y, z + s['height'] * 1.1)]
     out = []
     for n, f, ss in ((C.LARGE, spec['fill'], 3), (C.SMALL * 2, min(0.95, spec['fill'] * 1.06), 3)):
-        img = B3.fit_render(sc, n, f, ss=ss, center=spec['center'], ground_z=gz)
+        zoom, cx, cy = B3.fit(sc, n, f, spec['center'], extra)
+        img = B3.render_zoom(sc, n, n, cx, cy, zoom, ss, ground_z=gz)
+        for s in statues:
+            import units
+            ax, ay = B3.project(s['at'], zoom, cx, cy)
+            # a figure 1.8 m tall is s['height'] world units
+            ppm = zoom * s['height'] / 1.8
+            fig = units.render_statue(s['folder'], ppm, (ax, ay), n, n, s.get('color', '#a8743e'), yaw=s.get('yaw', 150.0),
+                                      spec=s.get('spec', 0.5), action=s.get('action', 'DEFAULT'))
+            img = C.over(fig, img)
         img = C.over(img, backdrop(n, kind))
         img[..., :3] = C.frame_edges(img[..., :3])
         out.append(img)

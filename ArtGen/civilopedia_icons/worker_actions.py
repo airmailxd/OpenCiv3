@@ -129,6 +129,24 @@ def _radar(sc):
     box(sc, cx - 1.2, cy - 1.2, cx + 1.2, cy + 1.2, H + 2, cz - 3, steel, R3.METAL, b3)
 
 
+def _road(sc, rail=False):
+    """A road (or a railroad) across the tile, corner to corner along x: the
+    map's road art is too thin to read in an icon."""
+    import render3d as R3
+    from geom import box
+    bid = sc.new_building()
+    if not rail:
+        box(sc, -62, -7, 62, 7, 0, 0.6, _lin('9a8462'), R3.RUBBLE, bid)
+        box(sc, -62, -8.5, 62, -7, 0, 0.3, _lin('7d7a4e'), R3.PLAIN, bid)
+        box(sc, -62, 7, 62, 8.5, 0, 0.3, _lin('7d7a4e'), R3.PLAIN, bid)
+        return
+    box(sc, -62, -8, 62, 8, 0, 1.0, _lin('8c877c'), R3.RUBBLE, bid)
+    for x in range(-60, 61, 5):
+        box(sc, x - 1.2, -7, x + 1.2, 7, 1.0, 1.8, _lin('5e4632'), R3.WOOD, bid)
+    for y in (-3.6, 3.6):
+        box(sc, -62, y - 0.6, 62, y + 0.6, 1.8, 3.0, _lin('9a9ea2'), R3.METAL, bid)
+
+
 def action_patch(key):
     """(patch, extra drawing) for a worker action."""
     t = key[len('TFRM_'):]
@@ -144,13 +162,9 @@ def action_patch(key):
         p.set((0, 0), base='grassland', building=(0, 1), bscale=1.45, boffset=(18, -6))
         extra = _worker('FORTRESS', 0.35, at=(-58, 30))
     elif t == 'Road':
-        for i in range(-3, 4):
-            p.set((i, 0), base='grassland', road=True)
-        extra = _worker('ROAD', 0.3, at=(36, -10))
+        extra = _then(_scene_sprite(lambda sc: _road(sc), W=320, H=200, oy=0.5), _worker('ROAD', 0.3, at=(30, -22)))
     elif t == 'Railroad':
-        for i in range(-3, 4):
-            p.set((i, 0), base='grassland', rail=True)
-        extra = _worker('ROAD', 0.3, at=(36, -10))
+        extra = _then(_scene_sprite(lambda sc: _road(sc, rail=True), W=320, H=200, oy=0.5), _worker('ROAD', 0.3, at=(30, -22)))
     elif t == 'Plant_Forest':
         p.set((0, 0), base='grassland', overlay='forest_small')
         extra = _worker('PLANT', 0.35, at=(-30, 40))

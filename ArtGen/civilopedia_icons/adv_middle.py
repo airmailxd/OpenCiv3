@@ -270,15 +270,22 @@ def _(k):
         k.sph(c, 0.1, 'silver', seg=18)
 
 
-@icon('TECH_Metallurgy', yaw=-25, pitch=6, ground=True)
+@icon('TECH_Metallurgy', yaw=-30, pitch=4, ground=True)
 def _(k):
-    # a crucible pouring molten metal into a mold
-    k.box((1.2, 0.6, 0.3), 'dark_stone', center=(0.2, 0, 0.15))
-    k.box((0.9, 0.35, 0.05), k.m('molten', '#f0a040', spec=0.2), center=(0.2, 0, 0.305))
-    T = M.translate(-0.45, 0, 1.0) @ M.rot_y(-50)
-    k.lathe([(0, 0.18), (0.05, 0.25), (0.5, 0.32), (0.52, 0.001)], 'iron', T, seg=24)
-    k.cyl((-0.15, 0, 1.25), (0.1, 0, 0.32), 0.05, 'molten', r1=0.04)
-    k.cyl((-0.85, 0, 0.75), (-0.5, 0, 0.92), 0.04, 'dark_metal')
+    # a cast bronze cannon on its carriage, with shot
+    T = M.translate(0.0, -0.2, 0.62) @ M.rot_x(-80)          # barrel along -y (toward the viewer), raised a little
+    k.lathe([(-0.75, 0.001), (-0.72, 0.17), (-0.6, 0.2), (-0.5, 0.2), (-0.45, 0.24), (0.0, 0.21), (0.9, 0.15),
+             (0.95, 0.18), (1.05, 0.18), (1.07, 0.11), (1.0, 0.07)], 'bronze', T, seg=32)
+    k.sph(np.array((0.0, 0.0, 0.62)) + (T[:3, :3] @ np.array((0, 0, -0.82))), 0.08, 'bronze')
+    k.cyl((-0.28, -0.25, 0.62), (0.28, -0.25, 0.62), 0.06, 'bronze')
+    for s in (-1, 1):
+        k.extrude([(-0.55, 0.0), (0.55, 0.0), (0.45, 0.25), (-0.1, 0.62), (-0.5, 0.45)], 0.08, 'dark_wood',
+                  M.translate(s * 0.26, 0.1, 0) @ M.rot_z(90))
+        k.cyl((s * 0.36, 0.0, 0.3), (s * 0.46, 0.0, 0.3), 0.3, 'dark_wood', seg=24)
+        k.torus(0.3, 0.025, 'iron', M.translate(s * 0.47, 0.0, 0.3) @ M.rot_y(90), seg=24, tube=6)
+    k.cyl((-0.42, 0, 0.3), (0.42, 0, 0.3), 0.05, 'iron')
+    for (x, y, z) in ((0.75, -0.55, 0.1), (0.95, -0.4, 0.1), (0.85, -0.47, 0.27)):
+        k.sph((x, y, z), 0.1, 'black', seg=14)
 
 
 @icon('TECH_Free_Artistry', yaw=-10, pitch=-30)

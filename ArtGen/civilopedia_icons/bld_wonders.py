@@ -6,7 +6,7 @@ import numpy as np
 import buildings as BD
 import geom as G
 from bld3d import lin, plinth, water_plinth, GRASS
-from improvements import (bicon, P, nb, sphere, seg_box, beam, flag, tree,
+from improvements import (bicon, P, nb, sphere, seg_box, beam, flag, tree, statue,
                           PLAIN, STUCCO, WINDOWS, ROOF_TILE, THATCH, SLATE, GLASS, BRICK, METAL, DOME, STONE, WATER,
                           FOLIAGE, WOOD, GOLD, RUBBLE, PAVING)
 
@@ -87,17 +87,17 @@ def _(sc, rng):
 
 @bicon('BLDG_Colossus', fill=0.9)
 def _(sc, rng):
+    # the bronze giant on its pedestal at the harbor mouth, a ship passing
     water_plinth(sc, -30, -30, 30, 30)
+    plinth(sc, -30, -30, -14, 30, h=4)
     b = nb(sc)
-    for (x, y) in ((-6, -10), (-6, 10)):
-        G.box(sc, x - 5, y - 5, x + 5, y + 5, -1, 8, lin('c4baa4'), STONE, b)
-    figure(sc, -6, 0, 8, 52, BRONZE, METAL, nb(sc))
-    beam(sc, (-6, -10, 8), (-6, -2, 30), 2.4, BRONZE, METAL, nb(sc))
-    beam(sc, (-6, 10, 8), (-6, 2, 30), 2.4, BRONZE, METAL, nb(sc))
+    G.box(sc, -12, -10, 4, 6, -1, 6, lin('c4baa4'), STONE, b)
+    G.box(sc, -10, -8, 2, 4, 6, 12, lin('d2c8b0'), STONE, b)
+    statue(sc, 'King Greek', (-4, -2, 12), 46, '#b07a42', yaw=135.0)
     bs = nb(sc)
-    G.lathe(sc, 18, 2, [(4, -1), (5, 2), (0.0, 2.1)], lin('7a4a30'), WOOD, bs, seg=12, sx=2.4, sy=0.6)
-    G.lathe(sc, 18, 2, [(0.4, 2), (0.3, 16)], lin('5a4430'), WOOD, bs, seg=6)
-    sc.quad((14, 2, 6), (22, 2, 6), (22, 2, 15), (14, 2, 15), lin('ece6d4'), PLAIN, bs)
+    G.lathe(sc, 18, 16, [(4, -1), (5, 2), (0.0, 2.1)], lin('7a4a30'), WOOD, bs, seg=12, sx=2.4, sy=0.6)
+    G.lathe(sc, 18, 16, [(0.4, 2), (0.3, 16)], lin('5a4430'), WOOD, bs, seg=6)
+    sc.quad((14, 16, 6), (22, 16, 6), (22, 16, 15), (14, 16, 15), lin('ece6d4'), PLAIN, bs)
 
 
 @bicon('BLDG_Lighthouse', fill=0.9)
@@ -521,19 +521,19 @@ def _(sc, rng):
 
 @bicon('BLDG_Zeus')
 def _(sc, rng):
-    # the colossal seated Zeus of gold and ivory, before the back wall of his temple
+    # the colossal Zeus of gold and ivory, before the back walls of his temple
     plinth(sc, -26, -22, 26, 22)
     b = nb(sc)
     G.box(sc, -22, -18, 18, 18, 0, 3, MARBLE, PLAIN, b)
     G.box(sc, -22, -18, -18, 18, 3, 40, lin('d8ceb6'), STONE, b)
     G.box(sc, -22, -18, 18, -15, 3, 40, lin('d8ceb6'), STONE, b)
-    G.box(sc, -22, -18, 18, 18, 40, 43, MARBLE, PLAIN, b)
-    for (x, y) in ((15, -15), (15, 15), (-18, 15), (0, 15)):
+    G.box(sc, -22, -18, -15, 18, 40, 43, MARBLE, PLAIN, b)
+    G.box(sc, -22, -18, 18, -11, 40, 43, MARBLE, PLAIN, b)
+    for (x, y) in ((15, -15), (-18, 15)):
         G.lathe(sc, x, y, [(1.4, 3), (1.2, 40)], MARBLE, PLAIN, nb(sc), seg=10)
-    G.box(sc, -14, -8, 2, 8, 3, 8, lin('6a5e4a'), STONE, nb(sc))
-    figure(sc, -6, 0, 8, 30, lin('ece2c8'), PLAIN, nb(sc), seated=True)
-    G.box(sc, -9, -4.5, -3, 4.5, 13, 18, GOLDC, GOLD, nb(sc))
-    sphere(sc, -6.3, 0, 31, 2.0, GOLDC, GOLD)
+    G.box(sc, -12, -8, 4, 8, 3, 9, lin('6a5e4a'), STONE, nb(sc))
+    G.box(sc, -11, -7, 3, 7, 9, 10, GOLDC, GOLD, nb(sc))
+    statue(sc, 'King Greek', (-4, 0, 10), 30, '#e2d2a8', yaw=135.0, spec=0.35)
 
 
 @bicon('BLDG_Mausoleum')
@@ -579,8 +579,9 @@ def _(sc, rng):
 @bicon('BLDG_Epic')
 def _(sc, rng):
     plinth(sc, -26, -22, 26, 22)
+    # a victory monument: an arch crowned with a hero's statue
     BD.triumphal_arch(sc, (-18, -8, 14, 8), 30, P, rng)
-    figure(sc, -2, 0, 30, 14, BRONZE, METAL, nb(sc))
+    statue(sc, 'Swordsman', (-2, 0, 30), 16, '#b07a42', yaw=135.0)
 
 
 @bicon('BLDG_Great_Ironworks')

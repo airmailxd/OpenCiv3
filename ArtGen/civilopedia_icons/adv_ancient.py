@@ -113,27 +113,19 @@ def _(k):
               (pupils, 'dark_metal', 0.02, 1.0), (sprig, 'silver', 0.03, 1.5)], 2.0)
 
 
-@icon('TECH_Code_of_Laws', yaw=-18, pitch=4)
+@icon('TECH_Code_of_Laws', yaw=-25, pitch=8, ground=True)
 def _(k):
-    # a law stele with engraved lines
-    im, d = K.canvas(160)
-    d.rounded_rectangle((30, 4, 130, 156), radius=40, fill=255)
-    mask = K.mask_of(im)
-    im2, d2 = K.canvas(160)
-    rng = np.random.default_rng(3)
-    for y in range(70, 146, 12):
-        x = 46
-        while x < 110:
-            w = int(rng.integers(6, 16))
-            d2.line((x, y, min(x + w, 114), y), fill=255, width=3)
-            x += w + 5
-    # a carved scene at the top: a seated figure and a standing one
-    d2.ellipse((58, 18, 70, 30), fill=255)
-    d2.polygon([(54, 32), (74, 32), (78, 56), (50, 56)], fill=255)
-    d2.ellipse((92, 14, 104, 26), fill=255)
-    d2.polygon([(90, 28), (106, 28), (108, 56), (88, 56)], fill=255)
-    lines = K.mask_of(im2) & mask
-    k.relief([(mask, k.m('basalt', '#8a857a'), 0.22, 6.0), (lines, k.m('carved', '#4e4a44'), -0.02, 1.0)], 1.0)
+    # a judge's gavel resting on its sounding block, by a book of laws
+    k.lathe([(0, 0.62), (0.16, 0.62), (0.18, 0.58), (0.2, 0.001)], 'dark_wood', seg=40)
+    k.lathe([(0.2, 0.5), (0.22, 0.001)], 'wood', seg=40)
+    T = M.translate(-0.05, 0.05, 0.45) @ M.rot_z(25) @ M.rot_y(90)
+    k.lathe([(-0.42, 0.001), (-0.4, 0.2), (-0.36, 0.24), (0.36, 0.24), (0.4, 0.2), (0.42, 0.001)], 'dark_wood', T, seg=28)
+    for zz in (-0.28, 0.28):
+        k.lathe([(zz - 0.03, 0.25), (zz + 0.03, 0.25)], 'brass', T, seg=28)
+    k.cyl((-0.05, 0.05, 0.45), (0.5, -1.0, 0.25), 0.08, 'wood', r1=0.1)
+    k.sph((0.5, -1.0, 0.25), 0.1, 'wood')
+    k.box((0.9, 0.65, 0.2), 'dark_red', center=(0.75, 0.55, 0.1), T=M.rot_z(-12), bevel=0.02)
+    k.box((0.86, 0.6, 0.16), 'paper', center=(0.79, 0.55, 0.1), T=M.rot_z(-12))
 
 
 @icon('TECH_Literature', yaw=-10, pitch=40)

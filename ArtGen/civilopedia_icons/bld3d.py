@@ -123,15 +123,28 @@ def render_zoom(scene, W, H, cx, cy, zoom, ss=3, shadow_strength=0.42, contour=0
     return np.concatenate([rgb, a[..., None]], -1).astype(np.float32)
 
 
-def fit_render(scene, size, fill=0.84, ss=3, center=(0.5, 0.52), ground_z=0.0):
-    """Renders the scene fitted into size x size."""
-    V = scene.arrays()[0]
-    sx = V[..., 0] - V[..., 1]
-    sy = (V[..., 0] + V[..., 1]) / 2 - V[..., 2]
+def fit(scene, size, fill=0.84, center=(0.5, 0.52), extra_points=()):
+    """(zoom, cx, cy) fitting the scene (and extra world points) into size x size."""
+    V = scene.arrays()[0].reshape(-1, 3)
+    if len(extra_points):
+        V = np.concatenate([V, np.asarray(extra_points, float).reshape(-1, 3)])
+    sx = V[:, 0] - V[:, 1]
+    sy = (V[:, 0] + V[:, 1]) / 2 - V[:, 2]
     x0, x1, y0, y1 = sx.min(), sx.max(), sy.min(), sy.max()
     zoom = min(size * fill / (x1 - x0), size * fill / (y1 - y0))
     cx = size * center[0] - (x0 + x1) / 2 * zoom
     cy = size * center[1] - (y0 + y1) / 2 * zoom
+    return zoom, cx, cy
+
+
+def project(p, zoom, cx, cy):
+    x, y, z = p
+    return cx + (x - y) * zoom, cy + ((x + y) / 2 - z) * zoom
+
+
+def fit_render(scene, size, fill=0.84, ss=3, center=(0.5, 0.52), ground_z=0.0):
+    """Renders the scene fitted into size x size."""
+    zoom, cx, cy = fit(scene, size, fill, center)
     return render_zoom(scene, size, size, cx, cy, zoom, ss, ground_z=ground_z)
 
 

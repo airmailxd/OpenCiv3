@@ -25,7 +25,9 @@ class _Ctx:
     """Stands in for framework.ActionContext: no original flic to measure."""
 
     def __init__(self, unit, action, n):
-        self.unit, self.action, self.n, self.speed, self.m, self.flic = unit, action, n, 60, None, None
+        from types import SimpleNamespace
+        self.unit, self.action, self.n, self.speed, self.m = unit, action, n, 60, None
+        self.flic = SimpleNamespace(n_anims=8, n_frames=n, speed=60, width=240, height=240, offset_left=0, offset_top=0)
 
     def event(self, name, default=None):
         return default
@@ -120,6 +122,24 @@ def render_unit_at(folder, action, t, ppm, anchor, W, H, color=None, yaw=YAW):
     mesh = local.transformed(_yaw(yaw))
     b, tn = R.render_cell(mesh, model.mats.arrays(), R.Camera(ppm, anchor), W, H, style=IconStyle, shadow=True)
     return tinted(b, tn, DEFAULT_TINT if color is None else color)
+
+
+def render_statue(folder, ppm, anchor, W, H, color='#a8743e', yaw=YAW, spec=0.5, gloss=16, action='DEFAULT'):
+    """A unit's model cast as a statue (every material in one metal or stone
+    color), drawn like render_unit_at."""
+    name, entry = unit_entry(folder)
+    model = models.ARCHETYPES[entry['archetype']](name, entry)
+    local = model.frame(action, 14, 15, _Ctx(name, action, 15))
+    mats = model.mats
+    for i in range(len(mats.names)):
+        mats.color[i] = tuple(int(color.lstrip('#')[j:j + 2], 16) for j in (0, 2, 4))
+        mats.tint[i] = False
+        mats.spec[i] = spec
+        mats.gloss[i] = gloss
+        mats.metal[i] = spec > 0.3
+    mesh = local.transformed(_yaw(yaw))
+    b, _ = R.render_cell(mesh, mats.arrays(), R.Camera(ppm, anchor), W, H, style=IconStyle, shadow=True)
+    return b.astype(np.float32) / 255
 
 
 # ---------------------------------------------------------------- backdrops

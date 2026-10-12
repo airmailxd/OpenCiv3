@@ -17,13 +17,17 @@ def _ring(k, z, r, mat, tube=0.04):
 
 @space('BLDG_SS_Thrusters')
 def _(k):
-    # a cluster of small thruster nozzles on a frame
+    # a thruster block: four nozzles firing toward the viewer
     k.m('hull', HULL, spec=0.3)
-    k.box((1.6, 1.6, 0.25), 'hull', center=(0, 0, 0.9), bevel=0.04)
-    for (x, y) in ((-0.45, -0.45), (0.45, -0.45), (-0.45, 0.45), (0.45, 0.45)):
-        k.lathe([(0.0, 0.12), (0.25, 0.14), (0.75, 0.32), (0.8, 0.33)], 'dark_metal', M.translate(x, y, 0.8) @ M.rot_x(180), seg=24)
-        k.lathe([(0.78, 0.29), (0.8, 0.001)], k.m('glow', '#f0a050', spec=0.0), M.translate(x, y, 0.8) @ M.rot_x(180), seg=24)
-    k.cyl((0, 0, 1.0), (0, 0, 1.5), 0.3, 'steel')
+    T = M.rot_x(90)          # model +z (the thrust) toward the camera
+    k.lathe([(-1.4, 0.001), (-1.35, 0.85), (-0.2, 0.85), (-0.1, 0.8), (0.0, 0.001)], 'hull', T, seg=36)
+    for (x, z) in ((-0.38, -0.38), (0.38, -0.38), (-0.38, 0.38), (0.38, 0.38)):
+        Tn = M.translate(x, 0, z) @ T
+        k.lathe([(0.0, 0.1), (0.15, 0.12), (0.55, 0.3), (0.6, 0.31)], 'dark_metal', Tn, seg=24)
+        k.lathe([(0.56, 0.27), (0.58, 0.001)], k.m('glow', '#f0a050', spec=0.0), Tn, seg=24)
+    for a in range(0, 360, 90):
+        r = math.radians(a + 45)
+        k.box((0.12, 1.2, 0.12), 'steel', center=(0.86 * math.cos(r), 0.6, 0.86 * math.sin(r)))
 
 
 @space('BLDG_SS_Engine')

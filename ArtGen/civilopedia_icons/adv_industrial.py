@@ -210,17 +210,26 @@ def _(k):
         k.sph(p[:3], 0.08, k.m('electron', '#7ab0e0', spec=0.4), seg=12)
 
 
-@icon('TECH_Combustion', yaw=-25, pitch=6, ground=True)
+@icon('TECH_Combustion', yaw=-25, pitch=6, fill=0.86)
 def _(k):
-    # an engine piston on its connecting rod
-    k.cyl((0, 0, 0.9), (0, 0, 1.55), 0.42, 'steel', seg=36)
-    for z in (1.4, 1.47):
-        k.torus(0.425, 0.012, 'dark_metal', M.translate(0, 0, z), seg=36)
-    k.cyl((-0.3, 0, 0.0), (0, 0, 1.0), 0.07, 'iron')
-    k.cyl((-0.3, -0.08, 0.0), (-0.3, 0.08, 0.0), 0.16, 'iron', seg=20)
-    k.cyl((0, -0.12, 1.0), (0, 0.12, 1.0), 0.09, 'iron')
-    k.sph((0.0, -0.2, 1.85), 0.15, 'flame', seg=12)
-    k.sph((0.15, -0.2, 1.75), 0.1, 'orange', seg=12)
+    # a spark plug, sparking
+    T = M.rot_y(-50)
+    k.lathe([(0.0, 0.07), (0.6, 0.07)], 'steel', T, seg=20)
+    for i in range(9):
+        k.torus(0.075, 0.018, 'steel', T @ M.translate(0, 0, 0.06 + i * 0.06), seg=20, tube=6)
+    k.add(M.cylinder(0.17, 0.17, 0.2, k.m('steel'), seg=6, smooth=False), T @ M.translate(0, 0, 0.62))
+    k.lathe([(0.82, 0.12), (0.84, 0.11), (1.0, 0.1), (1.6, 0.08), (1.65, 0.06), (1.7, 0.001)],
+            k.m('porcelain', '#efece4', spec=0.4, gloss=24), T, seg=28)
+    for z in (1.12, 1.2, 1.28, 1.36):
+        k.torus(0.095, 0.012, 'porcelain', T @ M.translate(0, 0, z), seg=24, tube=6)
+    k.lathe([(1.68, 0.035), (1.85, 0.03), (1.9, 0.001)], 'silver', T, seg=12)
+    k.box((0.04, 0.04, 0.1), 'steel', center=(0, 0, -0.05), T=T)
+    k.box((0.16, 0.04, 0.04), 'steel', center=(0.06, 0, -0.1), T=T)
+    spark = k.m('spark', '#f6e070', spec=0.0)
+    p = (T @ np.array([0, 0, -0.12, 1.0]))[:3]
+    for a in range(0, 360, 45):
+        r = math.radians(a)
+        k.cyl(p + 0.08 * np.array((math.cos(r), 0, math.sin(r))), p + 0.22 * np.array((math.cos(r), 0, math.sin(r))), 0.018, spark)
 
 
 @icon('TECH_Replaceable_Parts', yaw=-25, pitch=10, ground=True)
@@ -252,13 +261,19 @@ def _(k):
 
 @icon('TECH_Amphibious_Warfare', yaw=-35, pitch=6, ground=True)
 def _(k):
-    # a landing craft with its ramp down, on a strip of beach
-    k.box((2.4, 1.6, 0.06), k.m('sand', '#d8c48c'), center=(0, 0.2, 0.03))
-    k.box((2.4, 0.7, 0.07), 'water', center=(0, 1.2, 0.035))
-    k.box((0.8, 1.4, 0.4), k.m('olive', '#6a6e4a'), center=(0, 0.35, 0.25))
-    k.box((0.7, 1.2, 0.36), k.m('olive_dark', '#4c5036'), center=(0, 0.3, 0.3))
-    k.box((0.8, 0.05, 0.6), 'olive', center=(0, -0.55, 0.12), T=M.rot_x(-60))
-    k.box((0.3, 0.3, 0.3), 'olive', center=(0, 0.9, 0.6))
+    # a landing craft run up on the beach, its ramp down
+    k.box((1.5, 0.7, 0.04), k.m('sand', '#d8c48c'), center=(0, -0.95, 0.02))
+    k.box((1.5, 1.5, 0.04), 'water', center=(0, 0.15, 0.02))
+    olive, dark = k.m('olive', '#6e7250'), k.m('olive_dark', '#4c5036')
+    k.box((0.8, 1.3, 0.12), dark, center=(0, 0.25, 0.1))
+    for s in (-1, 1):
+        k.box((0.08, 1.3, 0.42), olive, center=(s * 0.4, 0.25, 0.25))
+    k.box((0.8, 0.08, 0.42), olive, center=(0, 0.9, 0.25))
+    k.box((0.3, 0.25, 0.25), olive, center=(0, 0.75, 0.55))
+    k.box((0.76, 0.06, 0.62), olive, center=(0, -0.62, 0.17), T=M.rot_x(-62))
+    for x in (-0.18, 0.08):
+        k.cyl((x, 0.2, 0.16), (x, 0.2, 0.4), 0.06, k.m('soldier', '#5a5e40'))
+        k.sph((x, 0.2, 0.46), 0.07, k.m('helmet', '#4a4e34'), seg=10)
 
 
 @icon('TECH_Mass_Production', yaw=-30, pitch=8, ground=True)
