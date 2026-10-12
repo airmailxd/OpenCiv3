@@ -34,6 +34,9 @@ namespace C7GameData.Save {
 		// produces at most one.
 		public bool hasProducedLeader;
 
+		// Whether the unit, a great leader, is a scientific one.
+		public bool isScientificLeader;
+
 		// How many more times this turn the unit may bombard an attacker of
 		// its tile. Saves made before it was saved give a fresh unit's one.
 		public int defensiveBombardsRemaining = 1;
@@ -69,6 +72,7 @@ namespace C7GameData.Save {
 			hasAttackedThisTurn = unit.hasAttackedThisTurn;
 			hasPillagedThisTurn = unit.hasPillagedThisTurn;
 			hasProducedLeader = unit.hasProducedLeader;
+			isScientificLeader = unit.isScientificLeader;
 			defensiveBombardsRemaining = unit.defensiveBombardsRemaining;
 			facingDirection = unit.facingDirection;
 			experience = unit.experienceLevelKey;
@@ -151,6 +155,7 @@ namespace C7GameData.Save {
 				hasAttackedThisTurn = hasAttackedThisTurn,
 				hasPillagedThisTurn = hasPillagedThisTurn,
 				hasProducedLeader = hasProducedLeader,
+				isScientificLeader = isScientificLeader,
 				defensiveBombardsRemaining = defensiveBombardsRemaining,
 				facingDirection = facingDirection,
 				WorkerProgressTowardsJob = WorkerProgressTowardsJob,

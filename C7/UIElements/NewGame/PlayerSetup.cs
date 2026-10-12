@@ -61,6 +61,7 @@ public partial class PlayerSetup : Control {
 	CheckBox diplomaticVictory;
 	CheckBox culturalVictory;
 	CheckBox cultureFlips;
+	CheckBox scientificLeaders;
 
 	[Export] TextureButton confirm;
 	[Export] TextureButton cancel;
@@ -214,6 +215,15 @@ public partial class PlayerSetup : Control {
 			TooltipText = "Cities may defect to a neighboring civilization whose culture outweighs their owner's. A garrison makes it less likely.",
 		};
 		rulesContainer.AddChild(cultureFlips);
+
+		scientificLeaders = new Civ3Checkbox {
+			Text = "Scientific leaders",
+			FontSize = 14,
+			// As the scenario or ruleset sets it, like in Civ3.
+			ButtonPressed = save.Rules.ScientificLeaders,
+			TooltipText = "The first civilization to discover an advance may gain a scientific leader (3% chance, 5% for scientific civilizations), who can complete anything a city is building, wonders included.",
+		};
+		rulesContainer.AddChild(scientificLeaders);
 
 		AddCorruptionRate();
 	}
@@ -538,6 +548,7 @@ public partial class PlayerSetup : Control {
 				coreCitiesFreeOfCorruption = coreCitiesFreeOfCorruption.ButtonPressed,
 				acceleratedProduction = acceleratedProduction.ButtonPressed,
 				allowCultureFlips = cultureFlips.ButtonPressed,
+				scientificLeaders = scientificLeaders.ButtonPressed,
 				corruptionRate = (float)corruptionRate.Value,
 				invalidMapsDirectory = InvalidMaps.FolderIfEnabled,
 			};
@@ -561,6 +572,7 @@ public partial class PlayerSetup : Control {
 			coreCitiesFreeOfCorruption = coreCitiesFreeOfCorruption.ButtonPressed,
 			acceleratedProduction = acceleratedProduction.ButtonPressed,
 			allowCultureFlips = cultureFlips.ButtonPressed,
+			scientificLeaders = scientificLeaders.ButtonPressed,
 			corruptionRate = (float)corruptionRate.Value,
 			invalidMapsDirectory = InvalidMaps.FolderIfEnabled,
 		};

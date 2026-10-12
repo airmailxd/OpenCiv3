@@ -1311,7 +1311,18 @@ namespace C7GameData {
 				return;
 			}
 
+			// Being the first to research a tech may bring a scientific
+			// leader (see MapUnit_ScientificLeader.cs).
+			bool first = IsFirstToLearn(gameData, tech);
 			CompleteResearchAndBeginNew(gameData, tech);
+			if (first) {
+				MapUnit.RollForScientificLeader(gameData, this, tech);
+			}
+		}
+
+		// Whether no other civ knows the tech yet. Barbarians don't count.
+		internal bool IsFirstToLearn(GameData gameData, Tech tech) {
+			return !gameData.players.Any(p => p != this && !p.isBarbarians && p.knownTechs.Contains(tech.id));
 		}
 
 		// The Great Library: each turn, while it is active, its owner learns

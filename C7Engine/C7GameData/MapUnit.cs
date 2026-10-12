@@ -71,6 +71,11 @@ namespace C7GameData {
 		// Each unit produces at most one (see MapUnit_Leader.cs).
 		public bool hasProducedLeader;
 
+		// Whether this great leader is a scientific one (see
+		// MapUnit_ScientificLeader.cs). As in Conquests, both kinds are the
+		// same unit type, the leader, told apart only by this.
+		public bool isScientificLeader;
+
 		public TileDirection facingDirection = TileDirection.SOUTHEAST;
 
 		public float WorkerProgressTowardsJob { get; set; }
@@ -333,10 +338,12 @@ namespace C7GameData {
 						return slaveArt;
 				}
 
+				// A scientific leader has the leader type's science art.
+				if (this.isScientificLeader && variations.TryGetValue(ScientificLeaderArt, out string sci))
+					return sci;
+
 				if (variations.TryGetValue(this.owner.eraCivilopediaName ?? "", out var value))
 					return value;
-
-				//TODO: add military + science leader variation
 			}
 
 			return this.unitType.art.mainArt.defaultName;

@@ -96,6 +96,15 @@ namespace C7GameData {
 		// The BIQ and SAV GAME sections' "allow cultural conversions" flag.
 		public bool AllowCultureFlips = true;
 
+		// Game option from Conquests: whether a civ that is the first to
+		// discover a tech may gain a scientific great leader (see
+		// MapUnit_ScientificLeader.cs). "Cultural flips and SGL's can be
+		// turned off on the game setup screen" (the thread above). The
+		// owner asked for the option, on by default (owner's decision,
+		// 2026-10-11). The BIQ and SAV GAME sections' "allow scientific
+		// leaders" flag.
+		public bool ScientificLeaders = true;
+
 		// Each army needs this many cities to support it. A civ can't build an
 		// army unless (armies + 1) * CitiesNeededToSupportAnArmy <= cities.
 		public int CitiesNeededToSupportAnArmy = 4;

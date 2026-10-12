@@ -46,6 +46,9 @@ public class GameSetup {
 	// Whether cities may flip to another civ's culture (see
 	// Rules.AllowCultureFlips). Null keeps the scenario or ruleset's choice.
 	public bool? allowCultureFlips { get; init; } = null;
+	// Whether civs may gain scientific great leaders (see
+	// Rules.ScientificLeaders). Null keeps the scenario or ruleset's choice.
+	public bool? scientificLeaders { get; init; } = null;
 	// Where to save each generated map that can't be played, with why, so
 	// it can be looked at; null not to save them.
 	public string invalidMapsDirectory { get; init; } = null;
@@ -64,6 +67,9 @@ public class GameSetup {
 		}
 		if (allowCultureFlips.HasValue) {
 			save.Rules.AllowCultureFlips = allowCultureFlips.Value;
+		}
+		if (scientificLeaders.HasValue) {
+			save.Rules.ScientificLeaders = scientificLeaders.Value;
 		}
 		if (corruptionRate.HasValue) {
 			save.Rules.CorruptionRate = Math.Clamp(corruptionRate.Value, Rules.MinCorruptionRate, Rules.MaxCorruptionRate);

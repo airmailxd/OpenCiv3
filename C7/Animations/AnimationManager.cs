@@ -33,8 +33,9 @@ public partial class AnimationManager {
 	private static readonly Dictionary<string, bool> unitArtExists = new();
 
 	// What a unit's own art name (MapUnit.GetArtName) depends on: its type,
-	// its owner's era and, for workers, whether it's a captive.
-	private readonly record struct ArtNameKey(UnitPrototype unitType, string era, bool captiveWorker);
+	// its owner's era, for workers whether it's a captive, and for leaders
+	// whether it's a scientific one.
+	private readonly record struct ArtNameKey(UnitPrototype unitType, string era, bool captiveWorker, bool scientificLeader);
 
 	// The results of ArtNameFor that don't depend on anything but the key.
 	private static readonly Dictionary<ArtNameKey, string> artNames = new();
@@ -59,7 +60,7 @@ public partial class AnimationManager {
 
 		UnitPrototype unitType = unit.unitType;
 		bool captiveWorker = unitType.isWorker && unitType.art.mainArt.variations != null && unit.IsCaptive();
-		ArtNameKey key = new(unitType, unit.owner?.eraCivilopediaName, captiveWorker);
+		ArtNameKey key = new(unitType, unit.owner?.eraCivilopediaName, captiveWorker, unit.isScientificLeader);
 		if (artNames.TryGetValue(key, out string cached)) {
 			return cached;
 		}
