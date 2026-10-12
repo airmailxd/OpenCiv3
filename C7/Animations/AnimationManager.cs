@@ -125,8 +125,8 @@ public partial class AnimationManager {
 	}
 
 	// The flic of our own art an action is drawn with: its own if it has one
-	// and its sheet is there (the sheets of animations only played with
-	// animations on may not be), else the DEFAULT one, as with an INI.
+	// and its sheet is there (only those the game plays are committed, not
+	// the other attacks or fidgets), else the DEFAULT one, as with an INI.
 	private static string OwnFlicName(string artName, MapUnit.AnimatedAction action) {
 		UnitArtMetadata metadata = OwnMetadata(artName);
 		string own = metadata.FlicNameOf(action.ToString());
@@ -437,6 +437,8 @@ public partial class AnimationManager {
 				tint.AddFrame(animationName, tl, 0.5f);   // TODO: frame duration is controlled by .ini
 			}
 		}
+		// The frames are kept here, so the remade sheets needn't be.
+		ModernGraphics.ForgetFlicSheets(path);
 	}
 
 	// Loads the animations of a flic of our own art, described by its header
@@ -452,6 +454,7 @@ public partial class AnimationManager {
 				tint.AddFrame(animationName, tl, 0.5f);
 			}
 		}
+		ModernGraphics.ForgetFlicSheets(path);
 	}
 
 	// A missing frame of our own art is drawn empty rather than failing.
