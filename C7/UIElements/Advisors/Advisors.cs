@@ -28,10 +28,6 @@ public partial class Advisors : CenterContainer {
 		Hide();
 	}
 
-	private void ShowLatestAdvisor() {
-		OnShowSpecificAdvisor(latest);
-	}
-
 	/// <summary>
 	/// Switches to the given advisor, as when its face in the sidebar is clicked.
 	/// </summary>

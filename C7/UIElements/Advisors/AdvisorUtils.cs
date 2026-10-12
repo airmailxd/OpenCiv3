@@ -46,7 +46,8 @@ public static class AdvisorUtils {
 
 		foreach (AdvisorHead.Advisor advisor in System.Enum.GetValues<AdvisorHead.Advisor>()) {
 			string key = "advisors.sidebar." + SidebarKey(advisor);
-			TextureButton face = new();
+			// Named, as the faces alone don't say which advisor is which.
+			TextureButton face = new() { TooltipText = C7Action.AdvisorScreenLabel((int)advisor) };
 			if (advisor == current) {
 				ImageTexture active = TextureLoader.Load(key + ".active");
 				face.TextureNormal = active;
