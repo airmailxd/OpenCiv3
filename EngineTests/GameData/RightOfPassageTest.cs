@@ -244,6 +244,7 @@ public class RightOfPassageTest : MapBase {
 	[Fact]
 	public void TheBiggerEmpireGivesMoreSoTheSmallerPays() {
 		AddCities(third, 4);
+		us.gold = 100;
 
 		// No war: only the sizes count.
 		Assert.Equal(RightOfPassageAI.GoldPerCity * 4, RightOfPassageAI.Worth(gameData, us, third));
@@ -252,7 +253,6 @@ public class RightOfPassageTest : MapBase {
 		GiveEmbassy(us, third);
 		// The third civ, an AI, wants paying for letting a smaller civ in.
 		Assert.False(third.WouldAcceptDealFrom(gameData, us, Passage(), Passage()));
-		us.gold = 100;
 		TradeOffer paid = new() { rightOfPassage = true, gold = RightOfPassageAI.GoldPerCity * 4 };
 		Assert.True(third.WouldAcceptDealFrom(gameData, us, paid, Passage()));
 		// And we, the smaller, take one for nothing (when they propose it,
@@ -332,18 +332,127 @@ public class RightOfPassageTest : MapBase {
 		Assert.False(HaveActiveRightOfPassage(us, third));
 	}
 
-	// Now and then an AI offers a right of passage for nothing, in
-	// friendship (owner's decision, 2026-10-11); a smaller civ, which gets
-	// more out of it, signs.
+	// The size part is paid only as far as the payer's treasury goes
+	// (owner's decision, 2026-10-12).
+	[Fact]
+	public void TheSizePaymentIsCappedByThePayersTreasury() {
+		AddCities(third, 4);
+		us.gold = 7;
+
+		Assert.Equal(RightOfPassageAI.GoldPerCity * 4, RightOfPassageAI.SizeGold(us, third));
+		Assert.Equal(7, RightOfPassageAI.SizePayment(us, third));
+		Assert.Equal(0, RightOfPassageAI.SizePayment(third, us));
+		Assert.Equal(-7, RightOfPassageAI.Worth(gameData, third, us));
+	}
+
+	// An AI "should ask for gold if their empire is bigger, or offer gold
+	// if smaller" (owner's decision, 2026-10-12).
+	[Fact]
+	public void ABiggerAiAsksAHumanForGold() {
+		AddCities(us, 3);
+		third.isHuman = true;
+		third.gold = 100;
+		GiveEmbassy(us, third);
+		GiveEmbassy(third, us);
+
+		(TradeOffer weGive, TradeOffer weWant) = RightOfPassageAI.MakeOffer(gameData, us, third);
+
+		Assert.Null(weGive.gold);
+		Assert.Equal(RightOfPassageAI.GoldPerCity * 3, weWant.gold);
+		// The human agreeing proposes it back, and we accept it, but not
+		// without the gold.
+		Assert.True(us.WouldAcceptDealFrom(gameData, third, weWant, weGive));
+		Assert.False(us.WouldAcceptDealFrom(gameData, third, Passage(), Passage()));
+	}
+
+	[Fact]
+	public void ABiggerAiAsksOnlyWhatThePartnerHas() {
+		AddCities(us, 3);
+		third.isHuman = true;
+		third.gold = 6;
+		GiveEmbassy(us, third);
+		GiveEmbassy(third, us);
+
+		(TradeOffer weGive, TradeOffer weWant) = RightOfPassageAI.MakeOffer(gameData, us, third);
+
+		Assert.Equal(6, weWant.gold);
+		Assert.True(us.WouldAcceptDealFrom(gameData, third, weWant, weGive));
+	}
+
+	[Fact]
+	public void ASmallerAiOffersAHumanGold() {
+		AddCities(third, 2);
+		third.isHuman = true;
+		us.gold = 100;
+		GiveEmbassy(us, third);
+		GiveEmbassy(third, us);
+
+		(TradeOffer weGive, TradeOffer weWant) = RightOfPassageAI.MakeOffer(gameData, us, third);
+
+		Assert.Equal(RightOfPassageAI.GoldPerCity * 2, weGive.gold);
+		Assert.Null(weWant.gold);
+		Assert.True(us.WouldAcceptDealFrom(gameData, third, weWant, weGive));
+	}
+
+	[Fact]
+	public void EqualEmpiresTradeNoGold() {
+		third.isHuman = true;
+		us.gold = 100;
+		third.gold = 100;
+		GiveEmbassy(us, third);
+
+		(TradeOffer weGive, TradeOffer weWant) = RightOfPassageAI.MakeOffer(gameData, us, third);
+
+		Assert.Null(weGive.gold);
+		Assert.Null(weWant.gold);
+	}
+
+	// Offered one by a bigger civ, a smaller AI pays up to the size part.
+	[Fact]
+	public void ASmallerAiPaysABiggerCivUpToTheSizePart() {
+		AddCities(third, 2);
+		us.gold = 100;
+		GiveEmbassy(third, us);
+
+		Assert.True(us.WouldAcceptDealFrom(gameData, third, Passage(),
+			new TradeOffer { rightOfPassage = true, gold = RightOfPassageAI.GoldPerCity * 2 }));
+		Assert.False(us.WouldAcceptDealFrom(gameData, third, Passage(),
+			new TradeOffer { rightOfPassage = true, gold = RightOfPassageAI.GoldPerCity * 2 + 1 }));
+	}
+
+	// Now and then an AI offers a right of passage in friendship (owner's
+	// decision, 2026-10-11); a smaller civ, which gets more out of it,
+	// signs, and pays the bigger for it (owner's decision, 2026-10-12).
 	[Fact]
 	public async Task AnAiOffersARightOfPassageInFriendship() {
 		AddCities(us, 3);
 		GiveEmbassy(us, third);
 		GiveEmbassy(us, enemy);
+		third.gold = 50;
+		enemy.gold = 50;
 
 		await RightOfPassageAI.OfferFriendlyPassage(us, gameData);
 
-		Assert.True(HaveActiveRightOfPassage(us, third) || HaveActiveRightOfPassage(us, enemy));
+		// The third civ is the nearest.
+		Assert.True(HaveActiveRightOfPassage(us, third));
+		Assert.Equal(RightOfPassageAI.GoldPerCity * 3, us.gold);
+		Assert.Equal(50 - RightOfPassageAI.GoldPerCity * 3, third.gold);
+	}
+
+	// A smaller AI offers a bigger one gold with it.
+	[Fact]
+	public async Task ASmallerAiOffersGoldInFriendship() {
+		AddCities(third, 3);
+		AddCities(enemy, 3);
+		GiveEmbassy(us, third);
+		GiveEmbassy(us, enemy);
+		us.gold = 100;
+
+		await RightOfPassageAI.OfferFriendlyPassage(us, gameData);
+
+		Assert.True(HaveActiveRightOfPassage(us, third));
+		Assert.Equal(100 - RightOfPassageAI.GoldPerCity * 3, us.gold);
+		Assert.Equal(RightOfPassageAI.GoldPerCity * 3, third.gold);
 	}
 
 	// A much stronger neighbour isn't refused for its strength (owner's
