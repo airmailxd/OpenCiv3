@@ -397,6 +397,39 @@ namespace C7Engine {
 			return unit.owner == player && player.units.Contains(unit);
 		}
 
+		// Whether a soldier stays near home to escort settlers rather than
+		// exploring: we keep one soldier beyond each city's guard for each
+		// settler we have or are building, and one more while we have
+		// fewer than EARLY_EXPANSION_CITIES cities, so that settlers
+		// find an escort close by (see SettlerAI.TryToTakeEscort). Owner's
+		// decision, 2026-10-12: "The AI should keep some nearby to
+		// escort". Before, every bonus starting unit but the capital's
+		// defender went exploring, and settlers waited for escorts.
+		internal static bool KeepForEscorts(MapUnit unit, Player player) {
+			if (!unit.IsLandUnit() || !DevelopmentAI.IsMilitaryLandUnit(unit.unitType)) {
+				return false;
+			}
+			int wanted = player.cities.Count < EARLY_EXPANSION_CITIES ? 1 : 0;
+			int soldiers = 0;
+			foreach (MapUnit u in player.units) {
+				if (u.unitType.actions.Contains(UnitAction.BuildCity)) {
+					++wanted;
+				} else if (u != unit && u.IsLandUnit() && DevelopmentAI.IsMilitaryLandUnit(u.unitType)
+						&& u.currentAI is not ExplorerAI && u.currentAI is not EscortAI) {
+					++soldiers;
+				}
+			}
+			foreach (City c in player.cities) {
+				if (c.itemBeingProduced is UnitPrototype p && p.actions.Contains(UnitAction.BuildCity)) {
+					++wanted;
+				}
+			}
+			int spare = soldiers - Math.Max(1, player.cities.Count);
+			return spare < wanted;
+		}
+
+		private const int EARLY_EXPANSION_CITIES = 4;
+
 		// While a player's units are acting, the units that might have an
 		// ExplorerAI: every unit that had one when the units started acting
 		// or was given one since. Whether each still does is checked when
@@ -757,7 +790,7 @@ namespace C7Engine {
 			// As long as we don't have too many explorers yet of this unit's
 			// type (land vs sea), start a new exploring unit.
 			int maxExplorers = unit.IsLandUnit() ? MAX_LAND_EXPLORERS : MAX_WATER_EXPLORERS;
-			if (CountExplorers(player, unit.IsLandUnit()) < maxExplorers) {
+			if (CountExplorers(player, unit.IsLandUnit()) < maxExplorers && !KeepForEscorts(unit, player)) {
 				ExplorerAIData? maybeAiData = ExplorerAI.MaybeMakeAiData(unit, player);
 				if (maybeAiData != null) {
 					return new ExplorerAI(maybeAiData);
@@ -879,7 +912,7 @@ namespace C7Engine {
 				return false;
 			}
 			int maxExplorers = unit.IsLandUnit() ? MAX_LAND_EXPLORERS : MAX_WATER_EXPLORERS;
-			if (CountExplorers(player, unit.IsLandUnit()) >= maxExplorers) {
+			if (CountExplorers(player, unit.IsLandUnit()) >= maxExplorers || KeepForEscorts(unit, player)) {
 				return false;
 			}
 			return hypothetical ? HasTileToExploreCached(unit, player) : HasTileToExplore(unit, player);

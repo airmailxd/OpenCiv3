@@ -111,11 +111,20 @@ namespace C7Engine {
 						//TODO: This should use a message, and the message handler should cause the disbanding to happen.
 						CityInteractions.BuildCity(unit.location, player, unit.owner.GetNextCityName());
 						unit.RemoveFromPlay();
-					} else if (data.escort == null) {
-						log.Information($"Settler {unit.id} is waiting for an escort");
+						return C7GameData.UnitAI.Result.Done;
+					}
+					// Take a spare unit nearby as an escort; it catches up.
+					// With none to spare, a settler going by land sets off
+					// alone rather than waiting (owner's decision,
+					// 2026-10-12: "if no escort is available, send the
+					// settler alone"), while one going by sea still waits
+					// in port for a defender to land with it.
+					if (data.escort == null && !TryToTakeEscort(unit, player) && data.port != null) {
+						log.Information($"Settler {unit.id} is waiting for an escort to sail with");
 						unit.movementPoints.onConsumeAll();
 						return C7GameData.UnitAI.Result.InProgress;
-					} else if (data.port != null) {
+					}
+					if (data.port != null) {
 						return GoToPort(unit, player);
 					} else {
 						C7GameData.UnitAI.MoveResult moveResult = this.TryToMoveAlongPath(unit, ref data.pathToDestination);
@@ -124,12 +133,48 @@ namespace C7Engine {
 						}
 						return moveResult;
 					}
-					break;
 				case SettlerAIData.SettlerGoal.JOIN_CITY:
 					return JoinCity(unit, player);
 			}
 
 			return C7GameData.UnitAI.Result.Done;
+		}
+
+		// How far, in tiles, a settler looks for a spare unit to escort it.
+		private const int ESCORT_SEARCH_DISTANCE = 3;
+
+		// Makes the nearest of our spare soldiers within
+		// ESCORT_SEARCH_DISTANCE tiles, on the settler's landmass, the
+		// settler's escort. A soldier is spare if it's exploring or
+		// defending, but not if it's the only defender of a city.
+		internal bool TryToTakeEscort(MapUnit unit, Player player) {
+			MapUnit best = null;
+			int bestDistance = int.MaxValue;
+			foreach (MapUnit u in player.units) {
+				if (u == unit || u.hitPointsRemaining <= 0 || u.IsLoaded() || u.IsLeader() || u.IsArmy()
+						|| !u.CanDefendOnLand() || !DevelopmentAI.IsMilitaryLandUnit(u.unitType)
+						|| !(u.currentAI == null || u.currentAI is C7Engine.AI.UnitAI.DefenderAI || u.currentAI is ExplorerAI)
+						|| u.location.continent != unit.location.continent) {
+					continue;
+				}
+				int distance = u.location.DistanceTo(unit.location);
+				if (distance > ESCORT_SEARCH_DISTANCE || distance >= bestDistance) {
+					continue;
+				}
+				if (u.location.cityAtTile != null && !u.location.unitsOnTile.Any(o => o != u && o.owner == player && o.CanDefendOnLand())) {
+					continue;
+				}
+				best = u;
+				bestDistance = distance;
+			}
+			if (best == null) {
+				return false;
+			}
+			best.Wake();
+			best.currentAI = new EscortAI(new EscortAIData { unitToEscort = unit });
+			data.escort = best;
+			log.Information($"Settler {unit.id} takes {best.id} {best} as its escort");
+			return true;
 		}
 
 		// Going by sea: walk to the port, and wait there for a transport,
