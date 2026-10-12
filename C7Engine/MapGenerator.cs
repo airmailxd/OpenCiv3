@@ -2203,25 +2203,47 @@ namespace C7Engine {
 			Dictionary<int, int> continentStartingLocationCount = new();
 			Dictionary<int, int> continentSizes = ComputeContinentSizes(m);
 
+			int spacing = StartSpacing(wc, continentSizes);
+			double qualityFloor = orderedTiles.Count > 0 ? scoredTiles[orderedTiles[0]] * START_QUALITY_FLOOR : 0;
+
 			for (int attempt = 0; attempt < START_PLACEMENT_PASSES && startingLocations.Count < wc.worldSize.numberOfCivs; ++attempt) {
-				foreach (Tile t in orderedTiles) {
-					if (startingLocations.Count == wc.worldSize.numberOfCivs) {
+				while (startingLocations.Count < wc.worldSize.numberOfCivs) {
+					// Take the valid tile with the best score, discounted by
+					// how much closer than the spacing it is to a start on
+					// its continent. Taking the best scores alone packs every
+					// civ into the best land at the minimum distance apart.
+					Tile t = null;
+					double bestValue = 0;
+					foreach (Tile candidate in orderedTiles) {
+						// The tiles are in score order, so none after this
+						// one is good enough.
+						if (attempt < START_QUALITY_FLOOR_PASSES && scoredTiles[candidate] < qualityFloor) {
+							break;
+						}
+
+						if (!IsContinentLargeEnough(continentSizes, candidate, attempt)) {
+							continue;
+						}
+
+						// Seafaring civs are given coastal starts when the starts
+						// are handed out (see GameSetup.AssignStartingLocations).
+
+						if (!ContinentHasEnoughLuxuries(candidate, continentLuxuryCount, continentStartingLocationCount, attempt)) {
+							continue;
+						}
+
+						if (TileIsTooCloseToOtherStarts(candidate, startingLocations, wc.worldSize.distanceBetweenCivs)) {
+							continue;
+						}
+
+						double value = scoredTiles[candidate] * SpreadFactor(candidate, startingLocations, spacing);
+						if (value > bestValue) {
+							t = candidate;
+							bestValue = value;
+						}
+					}
+					if (t == null) {
 						break;
-					}
-
-					if (!IsContinentLargeEnough(continentSizes, t, attempt)) {
-						continue;
-					}
-
-					// Seafaring civs are given coastal starts when the starts
-					// are handed out (see GameSetup.AssignStartingLocations).
-
-					if (!ContinentHasEnoughLuxuries(t, continentLuxuryCount, continentStartingLocationCount, attempt)) {
-						continue;
-					}
-
-					if (TileIsTooCloseToOtherStarts(t, startingLocations, wc.worldSize.distanceBetweenCivs)) {
-						continue;
 					}
 
 					// This is a valid starting location.
@@ -2244,6 +2266,34 @@ namespace C7Engine {
 			// human player doesn't always get the best starting spot.
 			rand.Shuffle<Tile>(CollectionsMarshal.AsSpan(startingLocations));
 			m.startingLocations = startingLocations;
+		}
+
+		// How far apart, in moves, starts on the same continent should be for
+		// each civ to get an even share of the land: the side of a square of
+		// land per civ. Civ3 spreads its starts out about this far: in its
+		// turn-one saves and on the capitals of its standard pangaeas, the
+		// average distance from a start to the nearest on its continent comes
+		// within a move or two of it. UNVERIFIED as Civ3's method; no Civ3
+		// source describes how it places starts.
+		private static int StartSpacing(WorldCharacteristics wc, Dictionary<int, int> continentSizes) {
+			int land = continentSizes.Values.Where(size => size > MIN_TILES_PER_PLAYER_ISLAND).Sum();
+			if (land == 0) {
+				land = continentSizes.Values.Sum();
+			}
+			return Math.Max(1, (int)Math.Round(Math.Sqrt(land / (double)Math.Max(1, wc.worldSize.numberOfCivs))));
+		}
+
+		// Scales a candidate start's score down linearly the closer it is than
+		// the spacing to the nearest start on its continent. A start on
+		// another continent is no crowding.
+		private static double SpreadFactor(Tile t, List<Tile> startingLocations, int spacing) {
+			int nearest = spacing;
+			foreach (Tile start in startingLocations) {
+				if (start.continent == t.continent) {
+					nearest = Math.Min(nearest, t.DistanceTo(start));
+				}
+			}
+			return nearest / (double)spacing;
 		}
 
 		// Allow smaller continents the more desperate we are to find a starting
@@ -2287,6 +2337,15 @@ namespace C7Engine {
 		// nothing new.
 		private const int START_PLACEMENT_PASSES = 7;
 
+		// On the first passes, a start must score at least this share of the
+		// best candidate on the map, so that spreading the starts out doesn't
+		// put a civ on land much worse than its rivals'. Not from Civ3: with
+		// it, generated standard pangaeas space their starts as Civ3's do
+		// (see StartSpacing) while the starts stay in about the best eighth
+		// of the candidate tiles.
+		private const double START_QUALITY_FLOOR = 0.8;
+		private const int START_QUALITY_FLOOR_PASSES = 3;
+
 		// Starts on the same continent are always at least the world size's
 		// distance between civs (WSIZ) apart; that is never relaxed. The
 		// distance is in map coordinates, the units Civ3's editor gives the
@@ -2298,7 +2357,9 @@ namespace C7Engine {
 		// 3,300 land tiles, where 24 moves apart leaves room for fewer than 10, and
 		// the turn-one autosave of a Civ3 large map has starts on the same
 		// continent 14 moves apart with a distance of 18 (28 in map
-		// coordinates).
+		// coordinates). Its turn-one saves of huge maps (24) have starts on the
+		// same continent 20 to 22 apart in map coordinates, so it seems to bend
+		// even this a little when a map is crowded.
 		// The distance between two tiles in Civ3's map coordinates, in which
 		// a map's width and height are given: each step to a neighbouring
 		// tile is 2, as rows are offset by 1 and a tile's neighbours to the

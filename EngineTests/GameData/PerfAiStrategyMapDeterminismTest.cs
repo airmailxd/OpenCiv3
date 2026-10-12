@@ -21,7 +21,9 @@ namespace EngineTests.GameData;
 // again when starts came to be kept the world size's distance between civs
 // apart in map coordinates, never relaxed, and again (the archipelago only)
 // when archipelagos came to be made of planned islands, and again (the
-// pangaea only) when the shape check came to count the extra water.
+// pangaea only) when the shape check came to count the extra water, and
+// again when starts came to be spread over the land rather than packed
+// into the best of it.
 //
 // Re-baselining: when a map generator change is MEANT to change the maps,
 // run only this test
@@ -84,9 +86,9 @@ public class PerfAiStrategyMapDeterminismTest {
 	}
 
 	[Theory]
-	[InlineData(WorldCharacteristics.Landform.Pangaea, 123456, "AA4DEC3593004D3B287983F30635F84D8E095BC670494ECACFD76F3C01121D73")]
-	[InlineData(WorldCharacteristics.Landform.Continents, 4242, "480844FCE2BA3EA9BC33B30775E9CAF21E8401899477EA6EA776B1DB1C6C77E7")]
-	[InlineData(WorldCharacteristics.Landform.Archipelago, 777, "403651CEBBA3EC253FAC2E03809F80613B5338CF31B0EDE1052271DFC327DA90")]
+	[InlineData(WorldCharacteristics.Landform.Pangaea, 123456, "14262B33354FAC9CABA4CB7A7404991964C28843EABF9DC2A821A6B81CC87F77")]
+	[InlineData(WorldCharacteristics.Landform.Continents, 4242, "B528C1D0B76512C85531D82DA58805E8AFAA789DD371C427D77E9E8145CB2EAD")]
+	[InlineData(WorldCharacteristics.Landform.Archipelago, 777, "2B26850B3F7B345AE997FD1AB8CD35B90F7E001BEFCC846D22183AC172346D7D")]
 	public void SameSeedProducesSameMap(WorldCharacteristics.Landform landform, int seed, string expectedHash) {
 		string hash = HashMap(Generate(landform, seed));
 		output.WriteLine($"{landform} {seed}: {hash}");
