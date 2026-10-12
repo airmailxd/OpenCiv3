@@ -67,7 +67,8 @@ public partial class ScenarioSetup : Control {
 
 		// Set up the difficulty buttons
 		difficultyContainer.Columns = save.Difficulties.Count;
-		string initiallySelectedDifficulty = save.Difficulties.Any(x => x.Name == "Regent") ? "Regent" : save.Difficulties[0].Name;
+		// The difficulty chosen for the last game, if the scenario has it.
+		string initiallySelectedDifficulty = NewGameChoices.Load().ChosenDifficulty(save.Difficulties).Name;
 		foreach (Difficulty difficulty in save.Difficulties) {
 			CenterContainer container = new();
 			difficultyContainer.AddChild(container);
@@ -127,6 +128,12 @@ public partial class ScenarioSetup : Control {
 		try {
 			GlobalSingleton global = GetNode<GlobalSingleton>("/root/GlobalSingleton");
 			SaveGame save = GetSave();
+
+			// Remembered for the next game, as on the player setup screen.
+			// The civilization is the scenario's own, so isn't.
+			NewGameChoices choices = NewGameChoices.Load();
+			choices.Difficulty = difficulty.Name;
+			choices.Save();
 
 			// World generation can take a bit of time if multiple attempts are
 			// needed, so we don't want to tie up the UI thread.

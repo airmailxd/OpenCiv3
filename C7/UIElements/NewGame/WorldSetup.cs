@@ -74,6 +74,14 @@ public partial class WorldSetup : Control {
 	WorldCharacteristics.Climate clim = WorldCharacteristics.Climate.Normal;
 
 	private BarbarianActivity _barbarianActivity = BarbarianActivity.Roaming;
+	// Whether the barbarians' activity or world size was left to chance, so
+	// it's left to chance again next time.
+	private bool _randomBarbarians = false;
+	private bool _randomWorldSize = false;
+
+	// The choices made when setting up the last game, which this screen
+	// starts from.
+	private NewGameChoices _choices = new();
 
 	private WorldSize _worldSize = WorldSize.Generic();
 	private SaveGame _saveGame;
@@ -254,22 +262,24 @@ public partial class WorldSetup : Control {
 		billion4Large.Texture = TextureLoader.Load("world_setup.large.billion4");
 		billion5Large.Texture = TextureLoader.Load("world_setup.large.billion5");
 
-		ResetLandformGraphics();
-		pangaea70Large.Visible = true;
-		pangaea70.ButtonPressed = true;
-		pangaeaLabel.Text = "Pangaea (70% water)";
-
-		ResetClimateGraphics();
-		normalLarge.Visible = true;
-		normal.ButtonPressed = true;
-
-		ResetTemperatureGraphics();
-		temperateLarge.Visible = true;
-		temperate.ButtonPressed = true;
-
-		ResetAgeGraphics();
-		billion4Large.Visible = true;
-		billion4.ButtonPressed = true;
+		// Start from the choices made for the last game.
+		_choices = NewGameChoices.Load();
+		Choose(LandformButton(_choices.Landform, _choices.OceanCoverage));
+		Choose(_choices.Climate switch {
+			WorldCharacteristics.Climate.Arid => arid,
+			WorldCharacteristics.Climate.Wet => wet,
+			_ => normal,
+		});
+		Choose(_choices.Temperature switch {
+			WorldCharacteristics.Temperature.Cool => cool,
+			WorldCharacteristics.Temperature.Warm => warm,
+			_ => temperate,
+		});
+		Choose(_choices.Age switch {
+			WorldCharacteristics.Age.Billion_3 => billion3,
+			WorldCharacteristics.Age.Billion_5 => billion5,
+			_ => billion4,
+		});
 
 		var game = GameMode.Load(GamePaths.GameModesDir, GamePaths.GameMode);
 		_saveGame = game.GetSave();
@@ -278,9 +288,29 @@ public partial class WorldSetup : Control {
 		InitMapSizes();
 	}
 
+	// Presses one of the toggle buttons, as if the player had clicked it.
+	private static void Choose(BaseButton button) {
+		button.ButtonPressed = true;
+		button.EmitSignal(BaseButton.SignalName.Pressed);
+	}
+
+	private TextureButton LandformButton(WorldCharacteristics.Landform landform, WorldCharacteristics.OceanCoverage ocean) {
+		return (landform, ocean) switch {
+			(WorldCharacteristics.Landform.Pangaea, WorldCharacteristics.OceanCoverage.Percent_60) => pangaea60,
+			(WorldCharacteristics.Landform.Pangaea, WorldCharacteristics.OceanCoverage.Percent_80) => pangaea80,
+			(WorldCharacteristics.Landform.Pangaea, _) => pangaea70,
+			(WorldCharacteristics.Landform.Continents, WorldCharacteristics.OceanCoverage.Percent_60) => continents60,
+			(WorldCharacteristics.Landform.Continents, WorldCharacteristics.OceanCoverage.Percent_80) => continents80,
+			(WorldCharacteristics.Landform.Continents, _) => continents70,
+			(WorldCharacteristics.Landform.Archipelago, WorldCharacteristics.OceanCoverage.Percent_60) => archipelago60,
+			(WorldCharacteristics.Landform.Archipelago, WorldCharacteristics.OceanCoverage.Percent_80) => archipelago80,
+			(WorldCharacteristics.Landform.Archipelago, _) => archipelago70,
+			_ => pangaea70,
+		};
+	}
+
 	private void InitBarbarianActivityOptions() {
 		var barbRandom = new Random();
-		var barbDefault = BarbarianActivity.Roaming;
 		var barbOptions = Enum.GetValues<BarbarianActivity>().OrderBy(x => x).ToList();
 
 		var barbActivityButtonGroup = new ButtonGroup() { ResourceName = "BarbActivityButtonGroup" };
@@ -294,9 +324,10 @@ public partial class WorldSetup : Control {
 		};
 		randomSizeButton.Pressed += () => {
 			_barbarianActivity = barbOptions[barbRandom.Next(barbOptions.Count)];
+			_randomBarbarians = true;
 		};
 
-		// Dynamically create a new button for each barbarian activity option 
+		// Dynamically create a new button for each barbarian activity option
 		foreach (var ba in barbOptions) {
 			var barbActivityButton = new Civ3MenuButton
 			{
@@ -305,14 +336,22 @@ public partial class WorldSetup : Control {
 				FontSize = 0,
 				ButtonGroup = barbActivityButtonGroup,
 				ToggleMode = true,
-				ButtonPressed = ba == barbDefault
 			};
-			barbActivityButton.Pressed += () => _barbarianActivity = ba;
+			barbActivityButton.Pressed += () => {
+				_barbarianActivity = ba;
+				_randomBarbarians = false;
+			};
 			barbActivityButtonsContainer.AddChild(barbActivityButton);
+			if (ba == _choices.Barbarians) {
+				Choose(barbActivityButton);
+			}
 		}
 
-		// Append random as last in the list 
+		// Append random as last in the list
 		barbActivityButtonsContainer.AddChild(randomSizeButton);
+		if (_choices.Barbarians == null) {
+			Choose(randomSizeButton);
+		}
 	}
 
 	private void InitMapSizes() {
@@ -331,9 +370,18 @@ public partial class WorldSetup : Control {
 		randomSizeButton.Pressed += () => {
 			var wss = _saveGame?.WorldSizes ?? [];
 			_worldSize = wss.Count > 0 ? wss[sizeRandom.Next(wss.Count)] : WorldSize.Generic();
+			_randomWorldSize = true;
 		};
 
 		try {
+			// The size chosen last time, or the default if this ruleset
+			// doesn't have it.
+			bool chooseRandom = _choices.WorldSize == NewGameChoices.Random && _saveGame.WorldSizes.Count > 0;
+			WorldSize initial = NewGameChoices.DefaultWorldSize(_saveGame.WorldSizes);
+			if (!chooseRandom) {
+				initial = _choices.ChosenWorldSize(_saveGame.WorldSizes, sizeRandom);
+			}
+
 			// Dynamically create a new button for each world size in the game
 			foreach (var ws in _saveGame.WorldSizes) {
 				var worldSizeButton = new Civ3MenuButton
@@ -343,18 +391,23 @@ public partial class WorldSetup : Control {
 					FontSize = 0,
 					ButtonGroup = worldSizeButtonGroup,
 					ToggleMode = true,
-					ButtonPressed = ws.isDefault
 				};
-				worldSizeButton.Pressed += () => _worldSize = ws;
+				worldSizeButton.Pressed += () => {
+					_worldSize = ws;
+					_randomWorldSize = false;
+				};
 				worldSizeButtonsContainer.AddChild(worldSizeButton);
 
-				// apply the default immediately (last isDefault=true wins)
-				if (ws.isDefault)
-					_worldSize = ws;
+				if (!chooseRandom && ws == initial) {
+					Choose(worldSizeButton);
+				}
 			}
 
-			// Append random as last in the list 
+			// Append random as last in the list
 			worldSizeButtonsContainer.AddChild(randomSizeButton);
+			if (chooseRandom) {
+				Choose(randomSizeButton);
+			}
 		} catch (Exception ex) {
 			log.Warning(ex, "Failed to load map sizes from game mode.");
 		}
@@ -410,6 +463,17 @@ public partial class WorldSetup : Control {
 		};
 
 		Global.SaveGame = _saveGame;
+
+		// Remembered once the game starts, with the choices made on the
+		// player setup screen.
+		_choices.WorldSize = _randomWorldSize ? NewGameChoices.Random : _worldSize.name;
+		_choices.Barbarians = _randomBarbarians ? null : _barbarianActivity;
+		_choices.Landform = landform;
+		_choices.OceanCoverage = ocean;
+		_choices.Climate = clim;
+		_choices.Temperature = temp;
+		_choices.Age = age;
+		Global.NewGameChoices = _choices;
 
 		GetTree().ChangeSceneToFile("res://UIElements/NewGame/player_setup.tscn");
 	}

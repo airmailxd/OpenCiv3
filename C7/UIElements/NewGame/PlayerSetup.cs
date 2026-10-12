@@ -74,14 +74,19 @@ public partial class PlayerSetup : Control {
 	Difficulty selectedDifficulty;
 	VictoryConditions victoryConditions;
 
+	// The choices made when setting up the last game, which this screen
+	// starts from, with those just made on the world setup screen.
+	NewGameChoices choices;
+
 	// Called when the node enters the scene tree for the first time.
 	public override void _Ready() {
 		GlobalSingleton global = GetNode<GlobalSingleton>("/root/GlobalSingleton");
 		save = global.SaveGame;
+		choices = global.NewGameChoices ?? NewGameChoices.Load();
 
 		// Set up buttons for the civs the player can play as.
 		playerListContainer.Columns = (int)Math.Ceiling(save.Civilizations.Count / 12.0);
-		string initiallySelectedCiv = save.Civilizations.Any(x => x.name == "Netherlands") ? "Netherlands" : save.Civilizations[1].name;
+		string initiallySelectedCiv = choices.ChosenCivilization(save.Civilizations).name;
 		foreach (Civilization civ in save.Civilizations) {
 			if (civ.isBarbarian) {
 				continue;
@@ -116,18 +121,20 @@ public partial class PlayerSetup : Control {
 			Position = new Vector2(421, 372),
 			CustomMinimumSize = new Vector2(187, 0),
 			TooltipText = "Your name, shown when the screen is handed to you.",
+			Text = hostingOnLan ? "" : choices.PlayerName ?? "",
 		};
 		background.AddChild(playerNameEdit);
 
 		// Set up the options for opponents.
 		AddOpponentSelectors(global.WorldCharacteristics.worldSize.numberOfCivs);
+		ChooseOpponentsAsLastTime();
 
 		// Set up game rules
 		AddRules();
 
 		// Set up the difficulty buttons
 		difficultyContainer.Columns = save.Difficulties.Count;
-		string initiallySelectedDifficulty = save.Difficulties.Any(x => x.Name == "Regent") ? "Regent" : save.Difficulties[0].Name;
+		string initiallySelectedDifficulty = choices.ChosenDifficulty(save.Difficulties).Name;
 		foreach (Difficulty difficulty in save.Difficulties) {
 			CenterContainer container = new();
 			difficultyContainer.AddChild(container);
@@ -151,10 +158,9 @@ public partial class PlayerSetup : Control {
 	}
 
 	private void AddRules() {
-		// The victory types a new game allows by default, with the
+		// The victory types allowed last time (or by default), with the
 		// thresholds (domination, culture) the scenario or ruleset sets.
-		victoryConditions = VictoryConditions.NewGameDefaults();
-		victoryConditions.CopyThresholdsFrom(save.VictoryConditions);
+		victoryConditions = choices.ChosenVictoryConditions(save.VictoryConditions);
 		rulesContainer.Columns = 3;
 		rulesContainer.AddThemeConstantOverride("v_separation", 0);
 		rulesContainer.AddThemeConstantOverride("h_separation", 12);
@@ -176,7 +182,7 @@ public partial class PlayerSetup : Control {
 		turnLimit = new Civ3Checkbox {
 			Text = $"Turn limit ({save.TimeOptions.turnLimit} turns)",
 			FontSize = 14,
-			ButtonPressed = false,
+			ButtonPressed = victoryConditions.UseTurnLimit,
 			TooltipText = $"End the game after turn {save.TimeOptions.turnLimit}, scoring who leads. Without it, the game goes on until someone wins.",
 		};
 		rulesContainer.AddChild(turnLimit);
@@ -184,7 +190,7 @@ public partial class PlayerSetup : Control {
 		showScoreboard = new Civ3Checkbox {
 			Text = "Show scoreboard",
 			FontSize = 14,
-			ButtonPressed = true,
+			ButtonPressed = choices.ShowScoreboard ?? true,
 			TooltipText = "With more than one human player, show everyone's score and how long the current turn has taken.",
 		};
 		rulesContainer.AddChild(showScoreboard);
@@ -193,7 +199,7 @@ public partial class PlayerSetup : Control {
 			Text = "No corruption near capital",
 			FontSize = 14,
 			// Off unless it was chosen for the last game, like the rule itself.
-			ButtonPressed = C7Settings.GetSettingsValueOrDefault(C7Settings.LastGame.SectionName, C7Settings.LastGame.CoreCitiesFreeOfCorruption, "false") == "true",
+			ButtonPressed = choices.CoreCitiesFreeOfCorruption ?? false,
 			TooltipText = "Custom rule: the capital and the 5 cities nearest it have no corruption or waste.",
 		};
 		rulesContainer.AddChild(coreCitiesFreeOfCorruption);
@@ -201,8 +207,9 @@ public partial class PlayerSetup : Control {
 		acceleratedProduction = new Civ3Checkbox {
 			Text = "Accelerated production",
 			FontSize = 14,
-			// As the scenario or ruleset sets it, like in Civ3.
-			ButtonPressed = save.Rules.AcceleratedProduction,
+			// As chosen last time, or as the scenario or ruleset sets it,
+			// like in Civ3.
+			ButtonPressed = choices.AcceleratedProduction ?? save.Rules.AcceleratedProduction,
 			TooltipText = "Cities generate double the food, shields and commerce each turn, speeding up growth, research and production.",
 		};
 		rulesContainer.AddChild(acceleratedProduction);
@@ -210,8 +217,9 @@ public partial class PlayerSetup : Control {
 		cultureFlips = new Civ3Checkbox {
 			Text = "Culture flipping",
 			FontSize = 14,
-			// As the scenario or ruleset sets it, like in Civ3.
-			ButtonPressed = save.Rules.AllowCultureFlips,
+			// As chosen last time, or as the scenario or ruleset sets it,
+			// like in Civ3.
+			ButtonPressed = choices.CultureFlips ?? save.Rules.AllowCultureFlips,
 			TooltipText = "Cities may defect to a neighboring civilization whose culture outweighs their owner's. A garrison makes it less likely.",
 		};
 		rulesContainer.AddChild(cultureFlips);
@@ -219,8 +227,9 @@ public partial class PlayerSetup : Control {
 		scientificLeaders = new Civ3Checkbox {
 			Text = "Scientific leaders",
 			FontSize = 14,
-			// As the scenario or ruleset sets it, like in Civ3.
-			ButtonPressed = save.Rules.ScientificLeaders,
+			// As chosen last time, or as the scenario or ruleset sets it,
+			// like in Civ3.
+			ButtonPressed = choices.ScientificLeaders ?? save.Rules.ScientificLeaders,
 			TooltipText = "The first civilization to discover an advance may gain a scientific leader (3% chance, 5% for scientific civilizations), who can complete anything a city is building, wonders included.",
 		};
 		rulesContainer.AddChild(scientificLeaders);
@@ -240,7 +249,8 @@ public partial class PlayerSetup : Control {
 	}
 
 	// A slider for the rate corruption and waste are scaled by
-	// (Rules.CorruptionRate), starting at the rate the ruleset gives.
+	// (Rules.CorruptionRate), starting at the rate chosen last time or the
+	// one the ruleset gives.
 	private void AddCorruptionRate() {
 		const string tooltip = "Scales every city's corruption and waste. 1.00 is Civ3's rate; "
 			+ "the default, 0.90, goes slightly easier on everyone.";
@@ -252,7 +262,7 @@ public partial class PlayerSetup : Control {
 			MinValue = Rules.MinCorruptionRate,
 			MaxValue = Rules.MaxCorruptionRate,
 			Step = 0.05,
-			Value = save.Rules.CorruptionRate,
+			Value = choices.CorruptionRate ?? save.Rules.CorruptionRate,
 			CustomMinimumSize = new Vector2(140, 20),
 			SizeFlagsVertical = SizeFlags.ShrinkCenter,
 			TooltipText = tooltip,
@@ -374,6 +384,26 @@ public partial class PlayerSetup : Control {
 			optionButton.ItemSelected += (long i) => { UpdateOpponentSelectors(); };
 		}
 
+		UpdateOpponentSelectors();
+	}
+
+	// Sets each rival's slot as it was set up last time: the civilization
+	// chosen for it (if this ruleset has it and nobody else has it), and
+	// whether a person plays it, hotseat or over the LAN.
+	private void ChooseOpponentsAsLastTime() {
+		List<string> civs = choices.ChosenOpponents(opponentSelectors.Count, save.Civilizations, selectedCivilization.name);
+		for (int i = 0; i < opponentSelectors.Count; ++i) {
+			int item = civs[i] == null ? -1 : opponentItemTexts.IndexOf(civs[i]);
+			if (item >= 0) {
+				opponentSelectors[i].Select(item);
+			}
+			if (hostingOnLan) {
+				humanToggles[i].ButtonPressed = choices.LanSlots.Contains(i);
+			} else if (choices.HotseatSlots.TryGetValue(i, out string name)) {
+				humanNames[i].Text = name;
+				humanToggles[i].ButtonPressed = true;
+			}
+		}
 		UpdateOpponentSelectors();
 	}
 
@@ -594,24 +624,39 @@ public partial class PlayerSetup : Control {
 		});
 	}
 
+	// Remembers every choice made on this and the world setup screen, for
+	// the next game's setup and Quick Start.
 	private void PersistGameSettings(GameSetup gameSetup) {
 		try {
-			C7Settings.SetValue(C7Settings.LastGame.SectionName, C7Settings.LastGame.WorldSize, gameSetup.worldCharacteristics.worldSize.name);
-			C7Settings.SetValue(C7Settings.LastGame.SectionName, C7Settings.LastGame.BarbarianActivity, gameSetup.worldCharacteristics.barbarianActivity.ToString());
-			C7Settings.SetValue(C7Settings.LastGame.SectionName, C7Settings.LastGame.Landform, gameSetup.worldCharacteristics.landform.ToString());
-			C7Settings.SetValue(C7Settings.LastGame.SectionName, C7Settings.LastGame.OceanCoverage, gameSetup.worldCharacteristics.oceanCoverage.ToString());
-			C7Settings.SetValue(C7Settings.LastGame.SectionName, C7Settings.LastGame.Climate, gameSetup.worldCharacteristics.climate.ToString());
-			C7Settings.SetValue(C7Settings.LastGame.SectionName, C7Settings.LastGame.Temperature, gameSetup.worldCharacteristics.temperature.ToString());
-			C7Settings.SetValue(C7Settings.LastGame.SectionName, C7Settings.LastGame.Age, gameSetup.worldCharacteristics.age.ToString());
-			C7Settings.SetValue(C7Settings.LastGame.SectionName, C7Settings.LastGame.Civilization, gameSetup.playerCivilization.name);
-			C7Settings.SetValue(C7Settings.LastGame.SectionName, C7Settings.LastGame.Difficulty, gameSetup.difficulty.Name);
+			choices.Civilization = gameSetup.playerCivilization.name;
+			choices.Difficulty = gameSetup.difficulty.Name;
 
-			List<SelectedOpponent> ops = gameSetup.opponents;
-			string opponentsValue = string.Join("|", ops.Select(o => o.isRandom ? "Random" : o.Name));
-			C7Settings.SetValue(C7Settings.LastGame.SectionName, C7Settings.LastGame.Opponents, opponentsValue);
-			C7Settings.SetValue(C7Settings.LastGame.SectionName, C7Settings.LastGame.CoreCitiesFreeOfCorruption, gameSetup.coreCitiesFreeOfCorruption ? "true" : "false");
+			choices.Opponents = opponentSelectors.Select(ob => ob.GetItemText(ob.Selected)).ToList();
+			if (hostingOnLan) {
+				// The LAN seats, for the next game hosted; this game has no
+				// hotseat players.
+				choices.LanSlots = new(Enumerable.Range(0, humanToggles.Count).Where(i => humanToggles[i].ButtonPressed));
+				choices.HotseatSlots = [];
+			} else {
+				string playerName = playerNameEdit.Text.Trim();
+				choices.PlayerName = playerName != "" ? playerName : null;
+				choices.HotseatSlots = [];
+				for (int i = 0; i < humanToggles.Count; ++i) {
+					if (humanToggles[i].ButtonPressed) {
+						choices.HotseatSlots[i] = humanNames[i].Text.Trim();
+					}
+				}
+			}
 
-			C7Settings.SaveSettings();
+			choices.SetVictoryConditions(gameSetup.victoryConditions);
+			choices.ShowScoreboard = gameSetup.showScoreboard;
+			choices.CoreCitiesFreeOfCorruption = gameSetup.coreCitiesFreeOfCorruption;
+			choices.AcceleratedProduction = gameSetup.acceleratedProduction;
+			choices.CultureFlips = gameSetup.allowCultureFlips;
+			choices.ScientificLeaders = gameSetup.scientificLeaders;
+			choices.CorruptionRate = gameSetup.corruptionRate;
+
+			choices.Save();
 		} catch (Exception e) {
 			log.Error(e, "Failed to persist game settings to C7.ini");
 		}
