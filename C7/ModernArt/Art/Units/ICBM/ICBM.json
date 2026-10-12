@@ -1,0 +1,16 @@
+{
+  "actions": {
+    "DEFAULT": "ICBMDefault",
+    "RUN": "ICBM trail",
+    "DEATH": "ICBMBomb",
+    "VICTORY": "ICBMDeath",
+    "CAPTURE": "ICBM launch"
+  },
+  "flics": {
+    "ICBM launch": {"size": [69, 234], "directions": 1, "frames": 38, "frameMs": 66, "offset": [189, 11], "canvas": [450, 450]},
+    "ICBM trail": {"size": [30, 259], "directions": 2, "frames": 21, "frameMs": 66, "offset": [209, 1], "canvas": [450, 450]},
+    "ICBMBomb": {"size": [142, 156], "directions": 1, "frames": 29, "frameMs": 71, "offset": [62, 3], "canvas": [240, 240]},
+    "ICBMDeath": {"size": [103, 113], "directions": 1, "frames": 29, "frameMs": 76, "offset": [75, 42], "canvas": [240, 240]},
+    "ICBMDefault": {"size": [22, 67], "directions": 1, "frames": 10, "frameMs": 125, "offset": [103, 57], "canvas": [240, 240]}
+  }
+}

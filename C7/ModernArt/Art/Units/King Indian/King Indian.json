@@ -1,0 +1,15 @@
+{
+  "actions": {
+    "DEFAULT": "x_Gandhi default",
+    "RUN": "x_Gandhi run",
+    "DEATH": "x_Gandhi death",
+    "FORTIFY": "x_Gandhi fidget",
+    "FIDGET": "x_Gandhi fidget"
+  },
+  "flics": {
+    "x_Gandhi death": {"size": [136, 82], "directions": 8, "frames": 15, "frameMs": 66, "offset": [51, 73], "canvas": [240, 240]},
+    "x_Gandhi default": {"size": [45, 51], "directions": 8, "frames": 15, "frameMs": 125, "offset": [90, 77], "canvas": [240, 240]},
+    "x_Gandhi fidget": {"size": [56, 54], "directions": 8, "frames": 15, "frameMs": 83, "offset": [85, 74], "canvas": [240, 240]},
+    "x_Gandhi run": {"size": [49, 57], "directions": 8, "frames": 10, "frameMs": 66, "offset": [92, 73], "canvas": [240, 240]}
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "actions": {
+    "DEFAULT": "PanzerDefault",
+    "RUN": "PanzerRun",
+    "ATTACK1": "PanzerAttackA",
+    "DEATH": "PanzerDeath",
+    "FORTIFY": "PanzerFidget",
+    "FIDGET": "PanzerFidget"
+  },
+  "flics": {
+    "PanzerAttackA": {"size": [156, 110], "directions": 8, "frames": 20, "frameMs": 90, "offset": [43, 31], "canvas": [240, 240]},
+    "PanzerDeath": {"size": [88, 83], "directions": 8, "frames": 15, "frameMs": 90, "offset": [74, 59], "canvas": [240, 240]},
+    "PanzerDefault": {"size": [80, 62], "directions": 8, "frames": 5, "frameMs": 100, "offset": [79, 78], "canvas": [240, 240]},
+    "PanzerFidget": {"size": [78, 60], "directions": 8, "frames": 10, "frameMs": 111, "offset": [79, 79], "canvas": [240, 240]},
+    "PanzerRun": {"size": [78, 61], "directions": 8, "frames": 14, "frameMs": 58, "offset": [79, 78], "canvas": [240, 240]}
+  }
+}

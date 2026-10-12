@@ -1,0 +1,22 @@
+{
+  "actions": {
+    "DEFAULT": "SwordsmanDefault",
+    "RUN": "SwordsmanRun",
+    "ATTACK1": "SwordsmanAttackA",
+    "ATTACK2": "SwordsmanAttackB",
+    "DEATH": "SwordsmanDeath",
+    "FORTIFY": "SwordsmanFortify",
+    "FIDGET": "SwordsmanFidget",
+    "VICTORY": "SwordsmanVictory"
+  },
+  "flics": {
+    "SwordsmanAttackA": {"size": [92, 76], "directions": 8, "frames": 15, "frameMs": 66, "offset": [73, 67], "canvas": [240, 240]},
+    "SwordsmanAttackB": {"size": [126, 78], "directions": 8, "frames": 15, "frameMs": 66, "offset": [55, 72], "canvas": [240, 240]},
+    "SwordsmanDeath": {"size": [137, 92], "directions": 8, "frames": 15, "frameMs": 83, "offset": [52, 63], "canvas": [240, 240]},
+    "SwordsmanDefault": {"size": [48, 52], "directions": 8, "frames": 15, "frameMs": 125, "offset": [95, 78], "canvas": [240, 240]},
+    "SwordsmanFidget": {"size": [68, 76], "directions": 8, "frames": 15, "frameMs": 100, "offset": [83, 57], "canvas": [240, 240]},
+    "SwordsmanFortify": {"size": [75, 59], "directions": 8, "frames": 10, "frameMs": 66, "offset": [80, 76], "canvas": [240, 240]},
+    "SwordsmanRun": {"size": [64, 70], "directions": 8, "frames": 10, "frameMs": 66, "offset": [85, 63], "canvas": [240, 240]},
+    "SwordsmanVictory": {"size": [70, 75], "directions": 8, "frames": 15, "frameMs": 83, "offset": [80, 58], "canvas": [240, 240]}
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "actions": {
+    "DEFAULT": "StealthFighterDefault",
+    "RUN": "StealthFighterRun",
+    "ATTACK1": "StealthFighterAttackA",
+    "DEATH": "StealthFighterDeath",
+    "VICTORY": "StealthFighterBomb"
+  },
+  "flics": {
+    "StealthFighterAttackA": {"size": [240, 240], "directions": 8, "frames": 10, "frameMs": 83, "offset": [0, 0], "canvas": [240, 240]},
+    "StealthFighterBomb": {"size": [240, 240], "directions": 8, "frames": 14, "frameMs": 90, "offset": [0, 0], "canvas": [240, 240]},
+    "StealthFighterDeath": {"size": [240, 240], "directions": 8, "frames": 14, "frameMs": 76, "offset": [0, 0], "canvas": [240, 240]},
+    "StealthFighterDefault": {"size": [78, 82], "directions": 8, "frames": 1, "frameMs": 1000, "offset": [82, 66], "canvas": [240, 240]},
+    "StealthFighterRun": {"size": [240, 240], "directions": 8, "frames": 5, "frameMs": 83, "offset": [0, 0], "canvas": [240, 240]}
+  }
+}

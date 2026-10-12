@@ -1,0 +1,15 @@
+{
+  "actions": {
+    "DEFAULT": "x_Temujin default",
+    "RUN": "x_Temujin run",
+    "DEATH": "x_Temujin death",
+    "FORTIFY": "x_Temujin fidget",
+    "FIDGET": "x_Temujin fidget"
+  },
+  "flics": {
+    "x_Temujin death": {"size": [137, 92], "directions": 8, "frames": 15, "frameMs": 66, "offset": [52, 64], "canvas": [240, 240]},
+    "x_Temujin default": {"size": [39, 50], "directions": 8, "frames": 15, "frameMs": 125, "offset": [97, 77], "canvas": [240, 240]},
+    "x_Temujin fidget": {"size": [54, 51], "directions": 8, "frames": 15, "frameMs": 83, "offset": [87, 76], "canvas": [240, 240]},
+    "x_Temujin run": {"size": [56, 55], "directions": 8, "frames": 10, "frameMs": 66, "offset": [86, 76], "canvas": [240, 240]}
+  }
+}

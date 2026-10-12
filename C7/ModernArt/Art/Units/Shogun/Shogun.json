@@ -1,0 +1,22 @@
+{
+  "actions": {
+    "DEFAULT": "shogun_default",
+    "RUN": "shogun_run",
+    "ATTACK1": "shogun_attackA",
+    "ATTACK2": "shogun_attackB",
+    "DEATH": "shogun_death",
+    "FORTIFY": "shogun_fortify",
+    "FIDGET": "shogun_fidget",
+    "VICTORY": "shogun_victory"
+  },
+  "flics": {
+    "shogun_attackA": {"size": [120, 77], "directions": 1, "frames": 120, "frameMs": 66, "offset": [0, 0], "canvas": [0, 0]},
+    "shogun_attackB": {"size": [97, 98], "directions": 8, "frames": 15, "frameMs": 83, "offset": [63, 44], "canvas": [240, 240]},
+    "shogun_death": {"size": [136, 91], "directions": 8, "frames": 15, "frameMs": 66, "offset": [52, 64], "canvas": [240, 240]},
+    "shogun_default": {"size": [58, 56], "directions": 8, "frames": 15, "frameMs": 125, "offset": [84, 73], "canvas": [240, 240]},
+    "shogun_fidget": {"size": [60, 58], "directions": 8, "frames": 15, "frameMs": 83, "offset": [83, 71], "canvas": [240, 240]},
+    "shogun_fortify": {"size": [93, 73], "directions": 8, "frames": 10, "frameMs": 100, "offset": [68, 63], "canvas": [240, 240]},
+    "shogun_run": {"size": [76, 65], "directions": 8, "frames": 10, "frameMs": 66, "offset": [80, 74], "canvas": [240, 240]},
+    "shogun_victory": {"size": [96, 90], "directions": 8, "frames": 15, "frameMs": 83, "offset": [67, 50], "canvas": [240, 240]}
+  }
+}

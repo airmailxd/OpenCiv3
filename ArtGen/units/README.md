@@ -9,6 +9,9 @@ contract in `ArtGen/README.md`).
 python ArtGen/units/build.py                  # every catalogued unit (all cores)
 python ArtGen/units/build.py Warrior Archer   # just these
 python ArtGen/units/build.py --list           # what is / isn't catalogued
+python ArtGen/units/build.py --kinds=move     # only the committed move cycles (RUN, every other frame)
+python ArtGen/units/metadata.py               # the metadata standalone mode reads
+python ArtGen/units/thumbnails.py             # the thumbnails standalone mode shows
 python ArtGen/units/preview.py Warrior                       # original | remake, every flic
 python ArtGen/units/preview.py Warrior ATTACK1 --dirs=1,3 --frames=0,5,9 --scale=2
 python ArtGen/units/preview.py --showcase Warrior Spearman   # default frame, 4 directions
@@ -32,6 +35,8 @@ the game keeps their original art.
 | `models/` | Archetypes (`@archetype('name')` classes), loaded automatically. `humanoid.py`: foot units; `props.py`: weapons, tools, shields and worn gear shared by all archetypes. |
 | `catalog/` | Which unit folders are remade and with what parameters. Every module's `UNITS` dict is merged; a unit may only appear once. `ancient.py` holds the first batch. |
 | `build.py` | Parallel driver (one task per flic, `multiprocessing` over all cores). |
+| `metadata.py` | Writes `<unit>/<unit>.json` next to the sheets: each action's flic and each flic's header values (frame size, directions, frames, ms per frame, offset, canvas). Standalone mode reads it instead of Civ3's INI and flics (`C7Engine/C7GameData/UnitArtMetadata.cs`). `build.py` rewrites it for the units it builds. |
+| `thumbnails.py` | Writes `<unit>/<unit>_32.png`, the 64x64 (2x) thumbnail standalone mode shows in lists (production, garrison, menus) instead of `units_32.pcx`: the unit's model, rendered like its Civilopedia icon on a transparent background. |
 
 ### The humanoid archetype (`models/humanoid.py`)
 

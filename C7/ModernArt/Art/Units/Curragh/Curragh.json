@@ -1,0 +1,16 @@
+{
+  "actions": {
+    "DEFAULT": "Curragh_default",
+    "RUN": "Curragh_run",
+    "ATTACK1": "Curragh_attackA",
+    "DEATH": "Curragh_death",
+    "FIDGET": "Curragh_fidget"
+  },
+  "flics": {
+    "Curragh_attackA": {"size": [172, 90], "directions": 8, "frames": 15, "frameMs": 83, "offset": [34, 74], "canvas": [240, 240]},
+    "Curragh_death": {"size": [74, 53], "directions": 8, "frames": 15, "frameMs": 83, "offset": [84, 87], "canvas": [240, 240]},
+    "Curragh_default": {"size": [49, 45], "directions": 8, "frames": 15, "frameMs": 125, "offset": [95, 88], "canvas": [240, 240]},
+    "Curragh_fidget": {"size": [49, 45], "directions": 8, "frames": 15, "frameMs": 83, "offset": [95, 88], "canvas": [240, 240]},
+    "Curragh_run": {"size": [54, 46], "directions": 8, "frames": 10, "frameMs": 66, "offset": [93, 88], "canvas": [240, 240]}
+  }
+}

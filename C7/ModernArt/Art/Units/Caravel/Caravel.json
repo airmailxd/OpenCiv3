@@ -1,0 +1,16 @@
+{
+  "actions": {
+    "DEFAULT": "CaravelDefault",
+    "RUN": "CaravelRun",
+    "ATTACK1": "CaravelAttackA",
+    "DEATH": "CaravelDeath",
+    "FIDGET": "CaravelFidget"
+  },
+  "flics": {
+    "CaravelAttackA": {"size": [83, 69], "directions": 8, "frames": 20, "frameMs": 66, "offset": [79, 69], "canvas": [240, 240]},
+    "CaravelDeath": {"size": [104, 82], "directions": 8, "frames": 20, "frameMs": 83, "offset": [69, 64], "canvas": [240, 240]},
+    "CaravelDefault": {"size": [77, 68], "directions": 8, "frames": 10, "frameMs": 166, "offset": [79, 70], "canvas": [240, 240]},
+    "CaravelFidget": {"size": [77, 68], "directions": 8, "frames": 5, "frameMs": 125, "offset": [79, 70], "canvas": [240, 240]},
+    "CaravelRun": {"size": [79, 68], "directions": 8, "frames": 10, "frameMs": 125, "offset": [77, 70], "canvas": [240, 240]}
+  }
+}

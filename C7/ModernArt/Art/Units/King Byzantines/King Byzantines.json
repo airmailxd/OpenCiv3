@@ -1,0 +1,15 @@
+{
+  "actions": {
+    "DEFAULT": "X2_Theodora_default",
+    "RUN": "X2_Theodora_run",
+    "DEATH": "X2_Theodora_death",
+    "FORTIFY": "X2_Theodora_fidget",
+    "FIDGET": "X2_Theodora_fidget"
+  },
+  "flics": {
+    "X2_Theodora_death": {"size": [78, 64], "directions": 8, "frames": 15, "frameMs": 83, "offset": [80, 76], "canvas": [240, 240]},
+    "X2_Theodora_default": {"size": [34, 48], "directions": 8, "frames": 15, "frameMs": 125, "offset": [97, 77], "canvas": [240, 240]},
+    "X2_Theodora_fidget": {"size": [62, 54], "directions": 8, "frames": 15, "frameMs": 83, "offset": [82, 73], "canvas": [240, 240]},
+    "X2_Theodora_run": {"size": [64, 55], "directions": 8, "frames": 10, "frameMs": 66, "offset": [85, 78], "canvas": [240, 240]}
+  }
+}

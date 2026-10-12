@@ -1,0 +1,15 @@
+{
+  "actions": {
+    "DEFAULT": "x_Caesar default",
+    "RUN": "x_Caesar run",
+    "DEATH": "x_Caesar death",
+    "FORTIFY": "x_Caesar fidget",
+    "FIDGET": "x_Caesar fidget"
+  },
+  "flics": {
+    "x_Caesar death": {"size": [130, 87], "directions": 8, "frames": 15, "frameMs": 66, "offset": [54, 66], "canvas": [240, 240]},
+    "x_Caesar default": {"size": [45, 55], "directions": 8, "frames": 15, "frameMs": 125, "offset": [90, 72], "canvas": [240, 240]},
+    "x_Caesar fidget": {"size": [93, 76], "directions": 8, "frames": 15, "frameMs": 83, "offset": [65, 57], "canvas": [240, 240]},
+    "x_Caesar run": {"size": [72, 67], "directions": 8, "frames": 10, "frameMs": 66, "offset": [79, 67], "canvas": [240, 240]}
+  }
+}

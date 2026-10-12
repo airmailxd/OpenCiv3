@@ -1,0 +1,20 @@
+{
+  "actions": {
+    "DEFAULT": "Three_Man_Chariot_default",
+    "RUN": "Three_Man_Chariot_run",
+    "ATTACK1": "Three_Man_Chariot_attackA",
+    "DEATH": "Three_Man_Chariot_death",
+    "FORTIFY": "Three_Man_Chariot_fortify",
+    "FIDGET": "Three_Man_Chariot_fidget",
+    "VICTORY": "Three_Man_Chariot_victory"
+  },
+  "flics": {
+    "Three_Man_Chariot_attackA": {"size": [131, 98], "directions": 8, "frames": 15, "frameMs": 66, "offset": [44, 45], "canvas": [240, 240]},
+    "Three_Man_Chariot_death": {"size": [240, 167], "directions": 8, "frames": 15, "frameMs": 83, "offset": [0, 26], "canvas": [240, 240]},
+    "Three_Man_Chariot_default": {"size": [132, 111], "directions": 8, "frames": 15, "frameMs": 125, "offset": [44, 31], "canvas": [240, 240]},
+    "Three_Man_Chariot_fidget": {"size": [132, 112], "directions": 8, "frames": 15, "frameMs": 100, "offset": [44, 30], "canvas": [240, 240]},
+    "Three_Man_Chariot_fortify": {"size": [131, 111], "directions": 8, "frames": 10, "frameMs": 83, "offset": [44, 31], "canvas": [240, 240]},
+    "Three_Man_Chariot_run": {"size": [136, 101], "directions": 8, "frames": 10, "frameMs": 66, "offset": [43, 41], "canvas": [240, 240]},
+    "Three_Man_Chariot_victory": {"size": [131, 112], "directions": 8, "frames": 15, "frameMs": 83, "offset": [44, 31], "canvas": [240, 240]}
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "actions": {
+    "DEFAULT": "x_Cleopatra default",
+    "RUN": "x_Cleopatra run",
+    "DEATH": "x_Cleopatra death",
+    "FORTIFY": "x_Cleopatra fidget",
+    "FIDGET": "x_Cleopatra fidget"
+  },
+  "flics": {
+    "x_Cleopatra death": {"size": [88, 67], "directions": 8, "frames": 15, "frameMs": 66, "offset": [75, 75], "canvas": [240, 240]},
+    "x_Cleopatra default": {"size": [65, 56], "directions": 8, "frames": 15, "frameMs": 125, "offset": [82, 74], "canvas": [240, 240]},
+    "x_Cleopatra fidget": {"size": [93, 76], "directions": 8, "frames": 15, "frameMs": 83, "offset": [65, 56], "canvas": [240, 240]},
+    "x_Cleopatra run": {"size": [55, 56], "directions": 8, "frames": 10, "frameMs": 66, "offset": [86, 73], "canvas": [240, 240]}
+  }
+}

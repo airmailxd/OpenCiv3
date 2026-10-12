@@ -1,0 +1,15 @@
+{
+  "actions": {
+    "DEFAULT": "LeaderAncientDefault",
+    "RUN": "LeaderAncientRun",
+    "DEATH": "LeaderAncientDeath",
+    "FORTIFY": "LeaderAncientFidget",
+    "FIDGET": "LeaderAncientFidget"
+  },
+  "flics": {
+    "LeaderAncientDeath": {"size": [108, 79], "directions": 8, "frames": 15, "frameMs": 83, "offset": [66, 68], "canvas": [240, 240]},
+    "LeaderAncientDefault": {"size": [40, 60], "directions": 8, "frames": 15, "frameMs": 125, "offset": [100, 68], "canvas": [240, 240]},
+    "LeaderAncientFidget": {"size": [60, 68], "directions": 8, "frames": 15, "frameMs": 83, "offset": [90, 60], "canvas": [240, 240]},
+    "LeaderAncientRun": {"size": [58, 67], "directions": 8, "frames": 10, "frameMs": 66, "offset": [86, 62], "canvas": [240, 240]}
+  }
+}

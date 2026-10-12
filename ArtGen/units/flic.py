@@ -245,20 +245,36 @@ def unit_flics(unit):
 # What the game shows with animations off (the art that's committed):
 # a standing or fortified unit shows the last frame of its DEFAULT or FORTIFY
 # flic, so only that frame is needed (a "still"); a worker at work plays its
-# job's flic in a loop, so those are kept whole. Everything else is an
-# optional extra, kept out of git in C7/ModernArtAnimations.
+# job's flic in a loop, so those are kept whole. A unit moving with
+# animations on plays its RUN flic: a "move" cycle of every other frame is
+# committed too (as a 256-color sheet, see framework.save_move), so units
+# don't glide in standalone mode, where there's no Civ3 art to fall back on.
+# Everything else is an optional extra, kept out of git in
+# C7/ModernArtAnimations.
 STILL_ACTIONS = {'DEFAULT', 'FORTIFY'}
 LOOP_ACTIONS = {'ROAD', 'MINE', 'FORTRESS', 'IRRIGATE', 'JUNGLE', 'FOREST', 'PLANT'}
+MOVE_ACTIONS = {'RUN'}
 
 
 def flic_kind(unit, name):
-    """'loop', 'still' or 'animation' (see above)."""
+    """'loop', 'still', 'move' or 'animation' (see above)."""
     actions = {a.upper() for a, n in unit_flics(unit).items() if n.lower() == name.lower()}
     if actions & LOOP_ACTIONS:
         return 'loop'
     if actions & STILL_ACTIONS:
         return 'still'
+    if actions & MOVE_ACTIONS:
+        return 'move'
     return 'animation'
+
+
+def move_columns(n_frames):
+    """The frames of a flic kept in its committed move cycle: every other
+    one (0, 2, 4, ...). With k columns for n frames the game shows column c
+    for the frames f with f*k/n rounded down equal to c
+    (UnitArtMetadata.SheetColumn), the first of which is c*n/k rounded up,
+    which for k = n/2 rounded up is 2c: these frames."""
+    return list(range(0, n_frames, 2))
 
 
 def flic_rel(unit, name):

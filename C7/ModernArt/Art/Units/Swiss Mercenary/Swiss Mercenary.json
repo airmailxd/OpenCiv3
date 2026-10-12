@@ -1,0 +1,20 @@
+{
+  "actions": {
+    "DEFAULT": "SwissMercenary_default",
+    "RUN": "SwissMercenary_run",
+    "ATTACK1": "SwissMercenary_attackA",
+    "DEATH": "SwissMercenary_death",
+    "FORTIFY": "SwissMercenary_fortify",
+    "FIDGET": "SwissMercenary_fidget",
+    "VICTORY": "SwissMercenary_victory"
+  },
+  "flics": {
+    "SwissMercenary_attackA": {"size": [160, 93], "directions": 8, "frames": 15, "frameMs": 66, "offset": [36, 61], "canvas": [240, 240]},
+    "SwissMercenary_death": {"size": [154, 118], "directions": 8, "frames": 15, "frameMs": 66, "offset": [43, 41], "canvas": [240, 240]},
+    "SwissMercenary_default": {"size": [52, 76], "directions": 8, "frames": 15, "frameMs": 125, "offset": [83, 52], "canvas": [240, 240]},
+    "SwissMercenary_fidget": {"size": [54, 78], "directions": 8, "frames": 15, "frameMs": 100, "offset": [82, 51], "canvas": [240, 240]},
+    "SwissMercenary_fortify": {"size": [117, 93], "directions": 8, "frames": 10, "frameMs": 83, "offset": [54, 49], "canvas": [240, 240]},
+    "SwissMercenary_run": {"size": [84, 81], "directions": 8, "frames": 11, "frameMs": 66, "offset": [69, 53], "canvas": [240, 240]},
+    "SwissMercenary_victory": {"size": [107, 101], "directions": 8, "frames": 15, "frameMs": 83, "offset": [61, 41], "canvas": [240, 240]}
+  }
+}

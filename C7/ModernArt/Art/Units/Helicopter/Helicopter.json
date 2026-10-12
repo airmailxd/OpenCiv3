@@ -1,0 +1,16 @@
+{
+  "actions": {
+    "DEFAULT": "HelicopterDefault",
+    "RUN": "HelicopterRun",
+    "ATTACK1": "HelicopterAttackA",
+    "DEATH": "HelicopterDeath",
+    "BUILD": "HelicopterFidget"
+  },
+  "flics": {
+    "HelicopterAttackA": {"size": [123, 118], "directions": 8, "frames": 10, "frameMs": 66, "offset": [59, 19], "canvas": [240, 240]},
+    "HelicopterDeath": {"size": [139, 150], "directions": 8, "frames": 14, "frameMs": 71, "offset": [53, 10], "canvas": [240, 240]},
+    "HelicopterDefault": {"size": [103, 113], "directions": 8, "frames": 1, "frameMs": 1000, "offset": [69, 22], "canvas": [240, 240]},
+    "HelicopterFidget": {"size": [115, 118], "directions": 8, "frames": 15, "frameMs": 66, "offset": [63, 22], "canvas": [240, 240]},
+    "HelicopterRun": {"size": [113, 118], "directions": 8, "frames": 5, "frameMs": 66, "offset": [64, 19], "canvas": [240, 240]}
+  }
+}

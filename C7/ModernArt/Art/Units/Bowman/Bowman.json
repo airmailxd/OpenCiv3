@@ -1,0 +1,20 @@
+{
+  "actions": {
+    "DEFAULT": "bowmanDefault",
+    "RUN": "bowmanRun",
+    "ATTACK1": "bowmanAttackA",
+    "DEATH": "bowmanDeath",
+    "FORTIFY": "bowmanFortify",
+    "FIDGET": "bowmanFidget",
+    "VICTORY": "bowmanVictory"
+  },
+  "flics": {
+    "bowmanAttackA": {"size": [122, 91], "directions": 8, "frames": 15, "frameMs": 66, "offset": [56, 56], "canvas": [240, 240]},
+    "bowmanDeath": {"size": [93, 69], "directions": 8, "frames": 15, "frameMs": 66, "offset": [74, 76], "canvas": [240, 240]},
+    "bowmanDefault": {"size": [52, 55], "directions": 8, "frames": 15, "frameMs": 125, "offset": [93, 78], "canvas": [240, 240]},
+    "bowmanFidget": {"size": [65, 58], "directions": 8, "frames": 15, "frameMs": 83, "offset": [86, 77], "canvas": [240, 240]},
+    "bowmanFortify": {"size": [74, 60], "directions": 8, "frames": 10, "frameMs": 66, "offset": [81, 76], "canvas": [240, 240]},
+    "bowmanRun": {"size": [64, 57], "directions": 8, "frames": 10, "frameMs": 66, "offset": [86, 77], "canvas": [240, 240]},
+    "bowmanVictory": {"size": [77, 72], "directions": 8, "frames": 15, "frameMs": 83, "offset": [79, 65], "canvas": [240, 240]}
+  }
+}

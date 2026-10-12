@@ -1,0 +1,15 @@
+{
+  "actions": {
+    "DEFAULT": "x_Shaka default",
+    "RUN": "x_Shaka run",
+    "DEATH": "x_Shaka death",
+    "FORTIFY": "x_Shaka fidget",
+    "FIDGET": "x_Shaka fidget"
+  },
+  "flics": {
+    "x_Shaka death": {"size": [147, 86], "directions": 8, "frames": 15, "frameMs": 66, "offset": [47, 72], "canvas": [240, 240]},
+    "x_Shaka default": {"size": [54, 56], "directions": 8, "frames": 15, "frameMs": 125, "offset": [89, 74], "canvas": [240, 240]},
+    "x_Shaka fidget": {"size": [86, 69], "directions": 8, "frames": 15, "frameMs": 83, "offset": [69, 63], "canvas": [240, 240]},
+    "x_Shaka run": {"size": [64, 59], "directions": 8, "frames": 10, "frameMs": 66, "offset": [80, 71], "canvas": [240, 240]}
+  }
+}

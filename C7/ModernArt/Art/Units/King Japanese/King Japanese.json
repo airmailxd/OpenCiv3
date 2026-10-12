@@ -1,0 +1,15 @@
+{
+  "actions": {
+    "DEFAULT": "x_Tokugawa default",
+    "RUN": "x_Tokugawa run",
+    "DEATH": "x_Tokugawa death",
+    "FORTIFY": "x_Tokugawa fidget",
+    "FIDGET": "x_Tokugawa fidget"
+  },
+  "flics": {
+    "x_Tokugawa death": {"size": [105, 71], "directions": 8, "frames": 15, "frameMs": 66, "offset": [66, 76], "canvas": [240, 240]},
+    "x_Tokugawa default": {"size": [42, 52], "directions": 8, "frames": 15, "frameMs": 125, "offset": [93, 74], "canvas": [240, 240]},
+    "x_Tokugawa fidget": {"size": [56, 52], "directions": 8, "frames": 15, "frameMs": 83, "offset": [86, 74], "canvas": [240, 240]},
+    "x_Tokugawa run": {"size": [48, 56], "directions": 8, "frames": 10, "frameMs": 66, "offset": [93, 74], "canvas": [240, 240]}
+  }
+}

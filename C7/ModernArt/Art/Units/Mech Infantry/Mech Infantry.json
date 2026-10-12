@@ -1,0 +1,17 @@
+{
+  "actions": {
+    "DEFAULT": "MechInfantryDefault",
+    "RUN": "MechInfantryRun",
+    "ATTACK1": "MechInfantryAttackA",
+    "DEATH": "MechInfantryDeath",
+    "FORTIFY": "MechInfantryFidget",
+    "FIDGET": "MechInfantryFidget"
+  },
+  "flics": {
+    "MechInfantryAttackA": {"size": [117, 86], "directions": 8, "frames": 20, "frameMs": 90, "offset": [62, 56], "canvas": [240, 240]},
+    "MechInfantryDeath": {"size": [90, 105], "directions": 8, "frames": 15, "frameMs": 90, "offset": [74, 38], "canvas": [240, 240]},
+    "MechInfantryDefault": {"size": [90, 65], "directions": 8, "frames": 5, "frameMs": 83, "offset": [73, 75], "canvas": [240, 240]},
+    "MechInfantryFidget": {"size": [91, 65], "directions": 8, "frames": 10, "frameMs": 111, "offset": [73, 76], "canvas": [240, 240]},
+    "MechInfantryRun": {"size": [91, 69], "directions": 8, "frames": 15, "frameMs": 83, "offset": [72, 72], "canvas": [240, 240]}
+  }
+}

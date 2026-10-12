@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using C7Engine;
+using C7GameData;
 using ConvertCiv3Media;
 using Godot;
 
@@ -27,8 +29,16 @@ using Godot;
 // animations are big, so they're kept out of git in a ModernArtAnimations
 // folder laid out the same way, which is used when it's there.
 //
+// In standalone mode there's no Civ3 art at all, so units are always drawn
+// with the remade art, whatever the setting: everything under Art/Units comes
+// from here, and a unit's .INI and the headers of its flics are replaced by
+// the metadata saved with its sheets (UnitArtMetadata, <art>/<art>.json),
+// and units_32.pcx by a thumbnail per unit art (<art>/<art>_32.png).
+//
 // The art is made by the scripts in the ArtGen folder at the root of the repo.
 public static class ModernGraphics {
+	private static readonly Serilog.ILogger log = Serilog.Log.ForContext(typeof(ModernGraphics));
+
 	public const string SettingsSection = "graphics";
 	public const string SettingsKey = "modernGraphics";
 
@@ -63,6 +73,22 @@ public static class ModernGraphics {
 	public static CanvasItem.TextureFilterEnum SpriteFilter =>
 		Enabled ? CanvasItem.TextureFilterEnum.Linear : CanvasItem.TextureFilterEnum.ParentNode;
 
+	// The filter for unit sprites, which in standalone mode are always the
+	// remade art.
+	public static CanvasItem.TextureFilterEnum UnitSpriteFilter =>
+		Enabled || C7Settings.UseStandaloneMode() ? CanvasItem.TextureFilterEnum.Linear : CanvasItem.TextureFilterEnum.ParentNode;
+
+	private const string UnitsFolder = "Art/Units/";
+
+	// Whether the remade art is used for a media path: with the overhaul on,
+	// or in standalone mode for unit art, which has nothing else to fall back on.
+	private static bool UsedFor(string mediaPath) {
+		if (Enabled) {
+			return true;
+		}
+		return mediaPath.Replace('\\', '/').StartsWith(UnitsFolder, StringComparison.OrdinalIgnoreCase) && C7Settings.UseStandaloneMode();
+	}
+
 	private static string Root => FolderPath("ModernArt");
 	private static string AnimationsRoot => FolderPath("ModernArtAnimations");
 
@@ -77,7 +103,7 @@ public static class ModernGraphics {
 	// The remade image for the art at a media path (such as
 	// "Art/Terrain/xtgc.pcx"), or null if the overhaul is off or there's none.
 	private static Image FindImage(string mediaPath, string suffix = "") {
-		if (!Enabled || mediaPath == null) {
+		if (mediaPath == null || !UsedFor(mediaPath)) {
 			return null;
 		}
 		string key = mediaPath + suffix;
@@ -116,18 +142,25 @@ public static class ModernGraphics {
 	// The remade base and tint textures of a frame of a unit animation, or
 	// nulls if the animation hasn't been remade.
 	public static (ImageTexture, ImageTexture) LoadFlicFrame(string flicPath, Flic flic, int row, int col) {
+		return LoadFlicFrame(flicPath, flic.Width, flic.Height, flic.Images.GetLength(1), row, col);
+	}
+
+	// The same for a flic described by its frame size and number of frames
+	// per direction rather than read from its file. A sheet may have fewer
+	// columns than the flic has frames: a still has one, which stands for
+	// every frame, and a move cycle has every other frame (see
+	// UnitArtMetadata.SheetColumn).
+	public static (ImageTexture, ImageTexture) LoadFlicFrame(string flicPath, int width, int height, int frames, int row, int col) {
 		Image baseSheet = FindImage(flicPath);
 		if (baseSheet == null) {
 			return (null, null);
 		}
-		if (baseSheet.GetWidth() == flic.Width * Scale) {
-			col = 0;
-		}
-		Rect2I cell = new(col * flic.Width * Scale, row * flic.Height * Scale, flic.Width * Scale, flic.Height * Scale);
+		col = UnitArtMetadata.SheetColumn(col, frames, baseSheet.GetWidth() / (width * Scale));
+		Rect2I cell = new(col * width * Scale, row * height * Scale, width * Scale, height * Scale);
 		if (cell.End.X > baseSheet.GetWidth() || cell.End.Y > baseSheet.GetHeight()) {
 			return (null, null);
 		}
-		Vector2I size = new(flic.Width, flic.Height);
+		Vector2I size = new(width, height);
 		ImageTexture baseTexture = ImageTexture.CreateFromImage(baseSheet.GetRegion(cell));
 		baseTexture.SetSizeOverride(size);
 
@@ -141,7 +174,37 @@ public static class ModernGraphics {
 		return (baseTexture, tintTexture);
 	}
 
+	// Whether there's a remade sheet for a flic.
+	public static bool HasFlicSheet(string flicPath) {
+		return FindImage(flicPath) != null;
+	}
+
+	// The metadata of our own art for a unit art name (the art's folder), by
+	// name ignoring case, null for those that couldn't be loaded.
+	private static readonly Dictionary<string, UnitArtMetadata> unitMetadata = new(StringComparer.OrdinalIgnoreCase);
+
+	// The metadata saved with our own art of a unit, which describes its
+	// animations in place of Civ3's INI and flics, or null if there's none.
+	public static UnitArtMetadata LoadUnitMetadata(string artName) {
+		if (string.IsNullOrEmpty(artName)) {
+			return null;
+		}
+		if (!unitMetadata.TryGetValue(artName, out UnitArtMetadata metadata)) {
+			string path = Util.FileExistsIgnoringCase(Root, $"{UnitsFolder}{artName}/{artName}.json");
+			if (path != null) {
+				try {
+					metadata = UnitArtMetadata.Load(path);
+				} catch (Exception e) {
+					log.Warning(e, "Couldn't read the unit art metadata {Path}", path);
+				}
+			}
+			unitMetadata[artName] = metadata;
+		}
+		return metadata;
+	}
+
 	public static void ClearCache() {
 		images.Clear();
+		unitMetadata.Clear();
 	}
 }

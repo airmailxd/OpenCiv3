@@ -14,6 +14,11 @@
 //   AnimationManager.forUnit("Warrior", MapUnit.AnimatedAction.FORTIFY).playSound()
 // To play the warrior's foritfy sound effect.
 
+// In standalone mode there are no Civ3 files: a unit's art is then our own
+// (C7/ModernArt/Art/Units/<art>), and what the INI and the flic headers would
+// say is read from the metadata saved with it (UnitArtMetadata), while the
+// frames come from its sheets (ModernGraphics). Units make no sounds then.
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -83,21 +88,71 @@ public partial class AnimationManager {
 		return unit.IsArmy();
 	}
 
+	// Whether units are drawn with our own art, described by its metadata,
+	// rather than with Civ3's INIs and flics: in standalone mode.
+	private static bool OwnUnitArt => C7Engine.C7Settings.UseStandaloneMode();
+
 	private static bool HasUnitArt(string name) {
 		if (string.IsNullOrEmpty(name)) {
 			return false;
 		}
 		if (!unitArtExists.TryGetValue(name, out bool exists)) {
-			try {
-				Util.Civ3MediaPath(string.Format("Art/Units/{0}/{0}.INI", name));
-				exists = true;
-			} catch (ApplicationException) {
+			if (OwnUnitArt) {
+				exists = ModernGraphics.LoadUnitMetadata(name) != null;
+			} else {
+				try {
+					Util.Civ3MediaPath(string.Format("Art/Units/{0}/{0}.INI", name));
+					exists = true;
+				} catch (ApplicationException) {
+					exists = false;
+				}
+			}
+			if (!exists) {
 				log.Warning($"No unit art found for {name}");
-				exists = false;
 			}
 			unitArtExists[name] = exists;
 		}
 		return exists;
+	}
+
+	// The metadata of our own art for a unit art name, which must exist.
+	private static UnitArtMetadata OwnMetadata(string artName) {
+		return ModernGraphics.LoadUnitMetadata(artName) ?? throw new ApplicationException($"No unit art metadata for {artName}");
+	}
+
+	private static string OwnFlicPath(string artName, string flicName) {
+		return $"Art/Units/{artName}/{flicName}.flc";
+	}
+
+	// The flic of our own art an action is drawn with: its own if it has one
+	// and its sheet is there (the sheets of animations only played with
+	// animations on may not be), else the DEFAULT one, as with an INI.
+	private static string OwnFlicName(string artName, MapUnit.AnimatedAction action) {
+		UnitArtMetadata metadata = OwnMetadata(artName);
+		string own = metadata.FlicNameOf(action.ToString());
+		if (own != null && ModernGraphics.HasFlicSheet(OwnFlicPath(artName, own))) {
+			return own;
+		}
+		return metadata.FlicNameOrDefault(UnitArtMetadata.DefaultAction);
+	}
+
+	// The header values of the flic a unit art's action is drawn with.
+	public Util.FlicSheet GetUnitFlicSheet(string artName, MapUnit.AnimatedAction action) {
+		if (!OwnUnitArt) {
+			return getFlicSheet("Art/Units/" + artName, getUnitINIData(artName), action);
+		}
+		UnitArtMetadata.Flic flic = OwnMetadata(artName).GetFlic(OwnFlicName(artName, action));
+		return new Util.FlicSheet {
+			spriteOriginalWidth = flic.CanvasWidth,
+			spriteOriginalHeight = flic.CanvasHeight,
+			spriteWidth = flic.Width,
+			spriteHeight = flic.Height,
+			offsetLeft = flic.OffsetLeft,
+			offsetTop = flic.OffsetTop,
+			framesPerAnimation = flic.Frames,
+			numberOfAnimations = flic.Directions,
+			animationSpeed = flic.FrameMs,
+		};
 	}
 
 	public static string BaseAnimationKey(string unitName, MapUnit.AnimatedAction action) {
@@ -212,9 +267,7 @@ public partial class AnimationManager {
 
 		string artName = art.artName;
 		LoadAnimation(artName, action);
-		string folderPath = "Art/Units/" + artName;
-		IniData iniData = getUnitINIData(artName);
-		AnimationInfo info = new(spriteFrames, AnimationKey(BaseAnimationKey(artName, action), direction), getFlicSheet(folderPath, iniData, action));
+		AnimationInfo info = new(spriteFrames, AnimationKey(BaseAnimationKey(artName, action), direction), GetUnitFlicSheet(artName, action));
 		if (indexable) {
 			art.animations[index] = info;
 		}
@@ -263,10 +316,15 @@ public partial class AnimationManager {
 
 		string filepath = getUnitFlicFilepath(unit, thumbnailAction);
 
-		Flic flic = Util.LoadFlic(filepath);
-
 		// This actually doesn't return the tint frame with the civ color applied. The shader still needs to be applied.
-		(ImageTexture baseFrame, ImageTexture tintFrame) = LoadFrame(filepath, flic, flicAnimationDirectionToRow(thumbnailDirection), thumbnailFrame);
+		ImageTexture baseFrame, tintFrame;
+		if (OwnUnitArt) {
+			Util.FlicSheet sheet = GetUnitFlicSheet(ArtNameFor(unit), thumbnailAction);
+			(baseFrame, tintFrame) = LoadOwnFrame(filepath, sheet, flicAnimationDirectionToRow(thumbnailDirection), thumbnailFrame);
+		} else {
+			Flic flic = Util.LoadFlic(filepath);
+			(baseFrame, tintFrame) = LoadFrame(filepath, flic, flicAnimationDirectionToRow(thumbnailDirection), thumbnailFrame);
+		}
 		AnimationThumbnails[key] = baseFrame;
 		AnimationTintThumbnails[key] = tintFrame;
 
@@ -298,7 +356,9 @@ public partial class AnimationManager {
 		}
 		if (!unitActionExists.TryGetValue((artName, action), out bool exists)) {
 			try {
-				exists = HasUnitArt(artName) && !string.IsNullOrEmpty(getUnitINIData(artName)["Animations"][action.ToString()]);
+				exists = HasUnitArt(artName) && (OwnUnitArt
+					? OwnFlicName(artName, action) == OwnMetadata(artName).FlicNameOf(action.ToString())
+					: !string.IsNullOrEmpty(getUnitINIData(artName)["Animations"][action.ToString()]));
 			} catch (Exception e) {
 				log.Warning(e, "Couldn't read the {Action} animation of {Art}", action, artName);
 				exists = false;
@@ -321,6 +381,9 @@ public partial class AnimationManager {
 	}
 
 	public string getUnitFlicFilepath(string artName, MapUnit.AnimatedAction action) {
+		if (OwnUnitArt) {
+			return OwnFlicPath(artName, OwnFlicName(artName, action));
+		}
 		string directory = string.Format("Art/Units/{0}", artName);
 		IniData ini = getUnitINIData(artName);
 		string filename = getFlicFileName(ini, action);
@@ -376,6 +439,34 @@ public partial class AnimationManager {
 		}
 	}
 
+	// Loads the animations of a flic of our own art, described by its header
+	// values, from its sheets.
+	private static void loadOwnAnimation(string path, Util.FlicSheet sheet, string name, SpriteFrames frames, SpriteFrames tint) {
+		for (int row = 0; row < sheet.numberOfAnimations; row++) {
+			string animationName = name + "_" + flicRowToAnimationDirection(row).ToString();
+			frames.AddAnimation(animationName);
+			tint.AddAnimation(animationName);
+			for (int col = 0; col < sheet.framesPerAnimation; col++) {
+				(ImageTexture bl, ImageTexture tl) = LoadOwnFrame(path, sheet, row, col);
+				frames.AddFrame(animationName, bl, 0.5f);
+				tint.AddFrame(animationName, tl, 0.5f);
+			}
+		}
+	}
+
+	// A missing frame of our own art is drawn empty rather than failing.
+	private static ImageTexture emptyFrame;
+
+	private static (ImageTexture, ImageTexture) LoadOwnFrame(string path, Util.FlicSheet sheet, int row, int col) {
+		(ImageTexture b, ImageTexture t) = ModernGraphics.LoadFlicFrame(path, sheet.spriteWidth, sheet.spriteHeight, sheet.framesPerAnimation, row, col);
+		if (b != null) {
+			return (b, t);
+		}
+		log.Warning("Missing frame {Col} of direction {Row} of {Path}", col, row, path);
+		emptyFrame ??= ImageTexture.CreateFromImage(Image.CreateEmpty(1, 1, false, Image.Format.Rgba8));
+		return (emptyFrame, emptyFrame);
+	}
+
 	// The base and tint textures of a frame of a flic, remade ones if the
 	// graphics overhaul is on and the flic has been remade.
 	private static (ImageTexture, ImageTexture) LoadFrame(string path, Flic flic, int row, int col) {
@@ -413,7 +504,11 @@ public partial class AnimationManager {
 			return false;
 		}
 		string filepath = getUnitFlicFilepath(artName, action);
-		loadFlicAnimation(filepath, name, ref this.spriteFrames, ref this.tintFrames);
+		if (OwnUnitArt) {
+			loadOwnAnimation(filepath, GetUnitFlicSheet(artName, action), name, spriteFrames, tintFrames);
+		} else {
+			loadFlicAnimation(filepath, name, ref this.spriteFrames, ref this.tintFrames);
+		}
 		return true;
 	}
 
@@ -530,7 +625,9 @@ public partial class C7Animation {
 	private Util.FlicSheet? flicSheet = null;
 
 	public Util.FlicSheet getFlicSheet() {
-		flicSheet ??= animationManager.getFlicSheet(folderPath, getINIData(), action);
+		flicSheet ??= artName != null
+			? animationManager.GetUnitFlicSheet(artName, action)
+			: animationManager.getFlicSheet(folderPath, getINIData(), action);
 		return flicSheet.Value;
 	}
 
@@ -544,6 +641,10 @@ public partial class C7Animation {
 	}
 
 	public void playSound() {
+		// Our own unit art (standalone mode) has no sounds.
+		if (artName != null && C7Engine.C7Settings.UseStandaloneMode()) {
+			return;
+		}
 		animationManager.playSound(folderPath, getINIData(), action);
 	}
 

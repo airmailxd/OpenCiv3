@@ -1,0 +1,17 @@
+{
+  "actions": {
+    "DEFAULT": "AegisCruiserDefault",
+    "RUN": "AegisCruiserRun",
+    "ATTACK1": "AegisCruiserAttackA",
+    "DEATH": "AegisCruiserDeath",
+    "FORTIFY": "AegisCruiserFidget",
+    "FIDGET": "AegisCruiserFidget"
+  },
+  "flics": {
+    "AegisCruiserAttackA": {"size": [240, 240], "directions": 8, "frames": 20, "frameMs": 100, "offset": [0, 0], "canvas": [240, 240]},
+    "AegisCruiserDeath": {"size": [240, 240], "directions": 8, "frames": 20, "frameMs": 83, "offset": [0, 0], "canvas": [240, 240]},
+    "AegisCruiserDefault": {"size": [106, 72], "directions": 8, "frames": 10, "frameMs": 142, "offset": [67, 73], "canvas": [240, 240]},
+    "AegisCruiserFidget": {"size": [106, 72], "directions": 8, "frames": 10, "frameMs": 100, "offset": [67, 73], "canvas": [240, 240]},
+    "AegisCruiserRun": {"size": [116, 76], "directions": 8, "frames": 14, "frameMs": 125, "offset": [62, 73], "canvas": [240, 240]}
+  }
+}

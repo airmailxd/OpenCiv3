@@ -1,0 +1,20 @@
+{
+  "actions": {
+    "DEFAULT": "CavalryDefault",
+    "RUN": "CavalryRun",
+    "ATTACK1": "CavalryAttackA",
+    "DEATH": "CavalryDeath",
+    "FORTIFY": "CavalryFortify",
+    "FIDGET": "CavalryFidget",
+    "VICTORY": "CavalryVictory"
+  },
+  "flics": {
+    "CavalryAttackA": {"size": [65, 75], "directions": 8, "frames": 15, "frameMs": 83, "offset": [83, 58], "canvas": [240, 240]},
+    "CavalryDeath": {"size": [109, 91], "directions": 8, "frames": 15, "frameMs": 83, "offset": [66, 58], "canvas": [240, 240]},
+    "CavalryDefault": {"size": [66, 69], "directions": 8, "frames": 15, "frameMs": 125, "offset": [84, 65], "canvas": [240, 240]},
+    "CavalryFidget": {"size": [66, 71], "directions": 8, "frames": 15, "frameMs": 83, "offset": [84, 64], "canvas": [240, 240]},
+    "CavalryFortify": {"size": [67, 78], "directions": 8, "frames": 10, "frameMs": 66, "offset": [83, 56], "canvas": [240, 240]},
+    "CavalryRun": {"size": [73, 73], "directions": 8, "frames": 10, "frameMs": 66, "offset": [82, 64], "canvas": [240, 240]},
+    "CavalryVictory": {"size": [69, 87], "directions": 8, "frames": 15, "frameMs": 83, "offset": [83, 49], "canvas": [240, 240]}
+  }
+}

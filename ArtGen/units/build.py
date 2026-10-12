@@ -5,11 +5,16 @@
     python build.py --jobs=8           # worker processes (default: all cores)
     python build.py --list             # catalogued units, and which Civ3 units are not
     python build.py --animations       # also the animations only played with animations on
+    python build.py --kinds=move       # only these kinds of flic (still, loop, move, animation)
 
-By default only the flics the game shows with animations off are rendered:
-standing, fortified, and workers at work (see flic.flic_kind and
-framework.save_sheets for where each goes). --animations adds the rest
-(attacks, deaths, runs...), which go to C7/ModernArtAnimations, not committed.
+By default only the flics that are committed are rendered: what the game
+shows with animations off (standing, fortified, and workers at work) and a
+move cycle of every other frame of each unit's RUN flic (see flic.flic_kind
+and framework.save_sheets for where each goes). --animations adds the rest
+(attacks, deaths, whole runs...), which go to C7/ModernArtAnimations, not
+committed. The unit's metadata (metadata.py), which standalone mode reads
+instead of Civ3's INI and flics, and its thumbnail (thumbnails.py) are
+rewritten too (the thumbnails not with --kinds).
 
 Each flic the unit's INI lists becomes <flic>.png and <flic>_tint.png next to
 where the game looks for the flic (see framework.save_sheets). Flics are
@@ -34,6 +39,7 @@ import flic as F  # noqa: E402  (puts ArtGen/common on the path)
 import civ3art  # noqa: E402
 import catalog  # noqa: E402
 import framework  # noqa: E402
+import metadata  # noqa: E402
 
 _jobs = {}
 
@@ -45,15 +51,20 @@ def _job(unit):
 
 
 def render_one(task):
-    unit, action, name, still_only = task
+    unit, action, name, partial = task
     t0 = time.time()
     try:
         job = _job(unit)
-        if still_only:
+        if partial == 'still':
             # Only the last frame is shown with animations off.
             n = F.load_unit_flic(unit, name).n_frames
             base, tint, fl = job.render_flic(action, name, cols=[n - 1])
             paths = framework.save_still(unit, name, fl, base, tint)
+        elif partial == 'move':
+            # Only every other frame is committed.
+            n = F.load_unit_flic(unit, name).n_frames
+            base, tint, fl = job.render_flic(action, name, cols=F.move_columns(n))
+            paths = framework.save_move(unit, name, fl, base, tint)
         else:
             base, tint, fl = job.render_flic(action, name)
             paths = framework.save_sheets(unit, name, fl, base, tint)
@@ -83,7 +94,9 @@ def tasks_for(units, animations=False):
             if not animations and kind == 'animation':
                 continue
             seen.add(name.lower())
-            out.append((unit, action, name, kind == 'still' and not animations))
+            # Without --animations, a still or move flic is only rendered
+            # in part (what's committed); with it, whole.
+            out.append((unit, action, name, kind if kind in ('still', 'move') and not animations else None))
     # biggest first, so the pool finishes evenly
     def cost(t):
         try:
@@ -107,7 +120,12 @@ def main(argv):
     if missing:
         print('not in the catalog, skipped:', ', '.join(missing))
     units = [u for u in units if u in cat]
+    for unit in units:
+        metadata.write(unit)
     tasks = tasks_for(units, animations='animations' in opts)
+    if 'kinds' in opts:
+        kinds = set(opts['kinds'].split(','))
+        tasks = [t for t in tasks if F.flic_kind(t[0], t[2]) in kinds]
     n = int(opts.get('jobs', os.cpu_count() or 4))
     print(f'{len(units)} units, {len(tasks)} flics, {n} processes', flush=True)
     t0 = time.time()
@@ -146,6 +164,10 @@ def main(argv):
         print(f'  {u:24s} {fr:5d} frames  {s:7.0f} cpu-s  {b / 1024 / 1024:6.2f} MB')
     if any('error' in r for r in results):
         sys.exit(1)
+    if 'kinds' not in opts:
+        # The thumbnails standalone mode shows, from the same models.
+        import thumbnails
+        thumbnails.main(units + [f'--jobs={n}'])
 
 
 if __name__ == '__main__':

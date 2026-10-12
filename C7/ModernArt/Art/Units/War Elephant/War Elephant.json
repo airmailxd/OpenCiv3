@@ -1,0 +1,20 @@
+{
+  "actions": {
+    "DEFAULT": "WarElephantDefault",
+    "RUN": "WarElephantRun",
+    "ATTACK1": "WarElephantAttackA",
+    "DEATH": "WarElephantDeath",
+    "FORTIFY": "WarElephantFortify",
+    "FIDGET": "WarElephantFidget",
+    "VICTORY": "WarElephantVictory"
+  },
+  "flics": {
+    "WarElephantAttackA": {"size": [119, 91], "directions": 8, "frames": 15, "frameMs": 66, "offset": [58, 56], "canvas": [240, 240]},
+    "WarElephantDeath": {"size": [125, 96], "directions": 8, "frames": 15, "frameMs": 66, "offset": [56, 55], "canvas": [240, 240]},
+    "WarElephantDefault": {"size": [92, 86], "directions": 8, "frames": 15, "frameMs": 125, "offset": [73, 57], "canvas": [240, 240]},
+    "WarElephantFidget": {"size": [102, 87], "directions": 8, "frames": 15, "frameMs": 83, "offset": [68, 58], "canvas": [240, 240]},
+    "WarElephantFortify": {"size": [102, 88], "directions": 8, "frames": 10, "frameMs": 66, "offset": [68, 57], "canvas": [240, 240]},
+    "WarElephantRun": {"size": [102, 89], "directions": 8, "frames": 10, "frameMs": 66, "offset": [68, 56], "canvas": [240, 240]},
+    "WarElephantVictory": {"size": [116, 93], "directions": 8, "frames": 15, "frameMs": 83, "offset": [59, 55], "canvas": [240, 240]}
+  }
+}

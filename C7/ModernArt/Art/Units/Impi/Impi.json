@@ -1,0 +1,20 @@
+{
+  "actions": {
+    "DEFAULT": "ImpiDefault",
+    "RUN": "ImpiRun",
+    "ATTACK1": "ImpiAttackA",
+    "DEATH": "ImpiDeath",
+    "FORTIFY": "ImpiFortify",
+    "FIDGET": "ImpiFidget",
+    "VICTORY": "ImpiVictory"
+  },
+  "flics": {
+    "ImpiAttackA": {"size": [98, 78], "directions": 8, "frames": 15, "frameMs": 83, "offset": [69, 64], "canvas": [240, 240]},
+    "ImpiDeath": {"size": [132, 81], "directions": 8, "frames": 15, "frameMs": 83, "offset": [54, 73], "canvas": [240, 240]},
+    "ImpiDefault": {"size": [50, 58], "directions": 8, "frames": 15, "frameMs": 125, "offset": [93, 73], "canvas": [240, 240]},
+    "ImpiFidget": {"size": [56, 64], "directions": 8, "frames": 15, "frameMs": 83, "offset": [90, 69], "canvas": [240, 240]},
+    "ImpiFortify": {"size": [54, 59], "directions": 8, "frames": 10, "frameMs": 66, "offset": [92, 74], "canvas": [240, 240]},
+    "ImpiRun": {"size": [57, 59], "directions": 8, "frames": 10, "frameMs": 66, "offset": [90, 75], "canvas": [240, 240]},
+    "ImpiVictory": {"size": [56, 75], "directions": 8, "frames": 15, "frameMs": 83, "offset": [89, 57], "canvas": [240, 240]}
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "actions": {
+    "DEFAULT": "hopliteDefault",
+    "RUN": "hopliteRun",
+    "ATTACK1": "hopliteAttackA",
+    "ATTACK2": "hopliteAttackB",
+    "DEATH": "hopliteDeath",
+    "FORTIFY": "hopliteFortify",
+    "FIDGET": "hopliteFidget",
+    "VICTORY": "hopliteVictory"
+  },
+  "flics": {
+    "hopliteAttackA": {"size": [108, 73], "directions": 8, "frames": 15, "frameMs": 66, "offset": [64, 72], "canvas": [240, 240]},
+    "hopliteAttackB": {"size": [101, 74], "directions": 8, "frames": 15, "frameMs": 66, "offset": [67, 68], "canvas": [240, 240]},
+    "hopliteDeath": {"size": [106, 79], "directions": 8, "frames": 15, "frameMs": 83, "offset": [67, 68], "canvas": [240, 240]},
+    "hopliteDefault": {"size": [47, 60], "directions": 8, "frames": 15, "frameMs": 125, "offset": [92, 67], "canvas": [240, 240]},
+    "hopliteFidget": {"size": [47, 63], "directions": 8, "frames": 15, "frameMs": 83, "offset": [92, 67], "canvas": [240, 240]},
+    "hopliteFortify": {"size": [56, 66], "directions": 8, "frames": 10, "frameMs": 66, "offset": [89, 67], "canvas": [240, 240]},
+    "hopliteRun": {"size": [72, 62], "directions": 8, "frames": 10, "frameMs": 66, "offset": [81, 72], "canvas": [240, 240]},
+    "hopliteVictory": {"size": [56, 67], "directions": 8, "frames": 15, "frameMs": 83, "offset": [91, 67], "canvas": [240, 240]}
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "actions": {
+    "DEFAULT": "ImmortalDefault",
+    "RUN": "ImmortalRun",
+    "ATTACK1": "ImmortalAttackA",
+    "ATTACK2": "ImmortalAttackB",
+    "DEATH": "ImmortalDeath",
+    "FORTIFY": "ImmortalFortify",
+    "FIDGET": "ImmortalFidget",
+    "VICTORY": "ImmortalVictory"
+  },
+  "flics": {
+    "ImmortalAttackA": {"size": [76, 65], "directions": 8, "frames": 15, "frameMs": 66, "offset": [79, 72], "canvas": [240, 240]},
+    "ImmortalAttackB": {"size": [80, 68], "directions": 8, "frames": 15, "frameMs": 66, "offset": [79, 70], "canvas": [240, 240]},
+    "ImmortalDeath": {"size": [90, 79], "directions": 8, "frames": 15, "frameMs": 66, "offset": [75, 64], "canvas": [240, 240]},
+    "ImmortalDefault": {"size": [42, 45], "directions": 8, "frames": 15, "frameMs": 125, "offset": [99, 79], "canvas": [240, 240]},
+    "ImmortalFidget": {"size": [52, 53], "directions": 8, "frames": 15, "frameMs": 83, "offset": [94, 71], "canvas": [240, 240]},
+    "ImmortalFortify": {"size": [42, 53], "directions": 8, "frames": 10, "frameMs": 66, "offset": [99, 72], "canvas": [240, 240]},
+    "ImmortalRun": {"size": [50, 57], "directions": 8, "frames": 10, "frameMs": 66, "offset": [95, 69], "canvas": [240, 240]},
+    "ImmortalVictory": {"size": [48, 56], "directions": 8, "frames": 15, "frameMs": 83, "offset": [96, 69], "canvas": [240, 240]}
+  }
+}

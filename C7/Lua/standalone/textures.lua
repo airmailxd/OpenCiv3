@@ -243,5 +243,22 @@ return function(civ3_textures)
     return 0
   end
 
+  -- Instead of a place in Civ3's units_32.pcx, each unit art has its own
+  -- thumbnail next to its sheets (C7/ModernArt/Art/Units/<art>/<art>_32.png,
+  -- made by ArtGen/units/thumbnails.py), which ModernGraphics loads. It's the
+  -- thumbnail of the art the player's unit is drawn with in their era, so
+  -- it changes with the era like the unit does.
+  -- Context - ItemContext (UnitPrototype proto, Player player)
+  function c7_textures.unit_icons:map_object_to_sprite(context)
+    local main_art = context.proto.art.mainArt
+    local art = main_art.defaultName
+    local variations = main_art.variations
+    local era = context.player.eraCivilopediaName
+    if variations and era and variations[era] then
+      art = variations[era]
+    end
+    return { path = "Art/Units/" .. art .. "/" .. art .. "_32.png" }
+  end
+
   return c7_textures
 end

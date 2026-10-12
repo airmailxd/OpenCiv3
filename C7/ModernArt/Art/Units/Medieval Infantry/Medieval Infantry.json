@@ -1,0 +1,22 @@
+{
+  "actions": {
+    "DEFAULT": "x_Medieval infantry default",
+    "RUN": "x_Medieval infantry run",
+    "ATTACK1": "x_Medieval infantry attack_a",
+    "ATTACK2": "x_Medieval infantry attack_b",
+    "DEATH": "x_Medieval infantry death",
+    "FORTIFY": "x_Medieval infantry fortify",
+    "FIDGET": "x_Medieval infantry fidget",
+    "VICTORY": "x_Medieval infantry victory"
+  },
+  "flics": {
+    "x_Medieval infantry attack_a": {"size": [99, 83], "directions": 8, "frames": 15, "frameMs": 83, "offset": [64, 54], "canvas": [240, 240]},
+    "x_Medieval infantry attack_b": {"size": [101, 73], "directions": 8, "frames": 15, "frameMs": 83, "offset": [63, 65], "canvas": [240, 240]},
+    "x_Medieval infantry death": {"size": [93, 65], "directions": 8, "frames": 15, "frameMs": 66, "offset": [73, 79], "canvas": [240, 240]},
+    "x_Medieval infantry default": {"size": [41, 49], "directions": 8, "frames": 15, "frameMs": 125, "offset": [96, 80], "canvas": [240, 240]},
+    "x_Medieval infantry fidget": {"size": [45, 49], "directions": 8, "frames": 15, "frameMs": 83, "offset": [94, 80], "canvas": [240, 240]},
+    "x_Medieval infantry fortify": {"size": [81, 57], "directions": 8, "frames": 10, "frameMs": 83, "offset": [75, 78], "canvas": [240, 240]},
+    "x_Medieval infantry run": {"size": [60, 54], "directions": 8, "frames": 10, "frameMs": 66, "offset": [87, 79], "canvas": [240, 240]},
+    "x_Medieval infantry victory": {"size": [82, 66], "directions": 8, "frames": 15, "frameMs": 83, "offset": [72, 68], "canvas": [240, 240]}
+  }
+}

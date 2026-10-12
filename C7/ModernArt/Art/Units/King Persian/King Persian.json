@@ -1,0 +1,15 @@
+{
+  "actions": {
+    "DEFAULT": "x_Xerxes default",
+    "RUN": "x_Xerxes run",
+    "DEATH": "x_Xerxes death",
+    "FORTIFY": "x_Xerxes fidget",
+    "FIDGET": "x_Xerxes fidget"
+  },
+  "flics": {
+    "x_Xerxes death": {"size": [141, 81], "directions": 8, "frames": 15, "frameMs": 66, "offset": [49, 75], "canvas": [240, 240]},
+    "x_Xerxes default": {"size": [35, 53], "directions": 8, "frames": 15, "frameMs": 125, "offset": [96, 73], "canvas": [240, 240]},
+    "x_Xerxes fidget": {"size": [58, 53], "directions": 8, "frames": 15, "frameMs": 83, "offset": [85, 73], "canvas": [240, 240]},
+    "x_Xerxes run": {"size": [48, 58], "directions": 8, "frames": 10, "frameMs": 66, "offset": [92, 72], "canvas": [240, 240]}
+  }
+}

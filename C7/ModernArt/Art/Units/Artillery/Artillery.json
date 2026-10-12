@@ -1,0 +1,18 @@
+{
+  "actions": {
+    "DEFAULT": "ArtilleryDefault",
+    "RUN": "ArtilleryRun",
+    "ATTACK1": "ArtilleryAttackA",
+    "DEATH": "ArtilleryDeath",
+    "FORTIFY": "ArtilleryFortify",
+    "FIDGET": "ArtilleryFidget"
+  },
+  "flics": {
+    "ArtilleryAttackA": {"size": [166, 113], "directions": 8, "frames": 15, "frameMs": 66, "offset": [38, 37], "canvas": [240, 240]},
+    "ArtilleryDeath": {"size": [103, 75], "directions": 8, "frames": 12, "frameMs": 83, "offset": [68, 72], "canvas": [240, 240]},
+    "ArtilleryDefault": {"size": [69, 51], "directions": 8, "frames": 1, "frameMs": 1000, "offset": [84, 87], "canvas": [240, 240]},
+    "ArtilleryFidget": {"size": [73, 53], "directions": 8, "frames": 16, "frameMs": 83, "offset": [83, 86], "canvas": [240, 240]},
+    "ArtilleryFortify": {"size": [71, 53], "directions": 8, "frames": 10, "frameMs": 66, "offset": [84, 86], "canvas": [240, 240]},
+    "ArtilleryRun": {"size": [70, 51], "directions": 8, "frames": 10, "frameMs": 66, "offset": [83, 87], "canvas": [240, 240]}
+  }
+}
