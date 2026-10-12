@@ -84,6 +84,7 @@ public class OpenCiv3CivilopediaTest : IClassFixture<SaveGameFixture> {
 	public void TheFileIsPlainAscii() {
 		byte[] bytes = File.ReadAllBytes(TextPath);
 
-		Assert.DoesNotContain(bytes, b => b > 126 || (b < 32 && b != '\t' && b != '\n'));
+		// Git may check it out with Windows line endings.
+		Assert.DoesNotContain(bytes, b => b > 126 || (b < 32 && b != '\t' && b != '\n' && b != '\r'));
 	}
 }
