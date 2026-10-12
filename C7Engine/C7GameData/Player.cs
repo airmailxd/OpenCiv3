@@ -454,8 +454,9 @@ namespace C7GameData {
 			// were not aware of each other (aka they just met), and therefore cannot be at war.
 			// Initialize the relationship and establish peace automatically between them.
 			if (!this.playerRelationships.ContainsKey(other.id) || !other.playerRelationships.ContainsKey(this.id)) {
-				this.playerRelationships.TryAdd(other.id, new PlayerRelationship());
-				other.playerRelationships.TryAdd(this.id, new PlayerRelationship());
+				int turn = EngineStorage.gameData?.turn ?? -1;
+				this.playerRelationships.TryAdd(other.id, new PlayerRelationship() { firstContactTurn = turn });
+				other.playerRelationships.TryAdd(this.id, new PlayerRelationship() { firstContactTurn = turn });
 				RegisterMultiTurnDeal(this, other, DEFAULT_PEACE);
 
 				log.Information("Established first contact and relationship between players {Player} and {Other}", this, other);

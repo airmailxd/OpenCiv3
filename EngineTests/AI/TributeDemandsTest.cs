@@ -82,6 +82,42 @@ public class TributeDemandsTest : MapBase, IDisposable {
 	}
 
 	[Fact]
+	public void NoTributeIsDemandedEarlyInTheGame() {
+		AddWarriors(us, 4);
+		AddWarriors(them, 1);
+		gameData.turn = TributeDemands.FIRST_DEMAND_TURN - 1;
+
+		Assert.False(TributeDemands.WouldDemandFrom(us, them, gameData));
+
+		gameData.turn = TributeDemands.FIRST_DEMAND_TURN;
+		Assert.True(TributeDemands.WouldDemandFrom(us, them, gameData));
+	}
+
+	[Fact]
+	public void NoTributeIsDemandedSoonAfterMeeting() {
+		AddWarriors(us, 4);
+		AddWarriors(them, 1);
+		us.playerRelationships[them.id].firstContactTurn = 45;
+
+		gameData.turn = 45 + TributeDemands.TURNS_AFTER_CONTACT_BEFORE_DEMANDS - 1;
+		Assert.False(TributeDemands.WouldDemandFrom(us, them, gameData));
+
+		gameData.turn = 45 + TributeDemands.TURNS_AFTER_CONTACT_BEFORE_DEMANDS;
+		Assert.True(TributeDemands.WouldDemandFrom(us, them, gameData));
+	}
+
+	[Fact]
+	public void MeetingRecordsTheTurn() {
+		Player other = MakeCiv("player-3");
+		gameData.players.Add(other);
+
+		us.EnsureRelationshipExists(other);
+
+		Assert.Equal(50, us.playerRelationships[other.id].firstContactTurn);
+		Assert.Equal(50, other.playerRelationships[us.id].firstContactTurn);
+	}
+
+	[Fact]
 	public void NoTributeIsDemandedOfAnEqual() {
 		AddWarriors(us, 2);
 		AddWarriors(them, 2);

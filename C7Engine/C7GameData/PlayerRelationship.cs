@@ -64,6 +64,10 @@ public class PlayerRelationship {
 	// forgot about it (see TerritoryDemands).
 	public int recentWithdrawals = 0;
 
+	// The turn p1 and p2 first met, or -1 if it isn't known (relationships
+	// from saves made before it was recorded count as long ago).
+	public int firstContactTurn = -1;
+
 	// p1.playerRelationships[p2].lastTributeDemandTurn is the turn p1 last
 	// demanded tribute from p2, or -1 if never (see TributeDemands).
 	public int lastTributeDemandTurn = -1;

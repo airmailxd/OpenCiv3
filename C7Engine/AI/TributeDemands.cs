@@ -40,6 +40,16 @@ namespace C7Engine.AI {
 		// treasury, rounded down to a multiple of 10. Below the minimum, a
 		// tech is demanded instead.
 		public const int GOLD_SHARE_PERCENT = 50;
+
+		// HEURISTIC (owner's request, 2026-10-12): a grace period before an
+		// AI makes demands, so it doesn't bully a human it has only just
+		// met, or anyone in the first turns of the game, before there's
+		// much of an army to judge by. No demands before this turn of the
+		// game...
+		public const int FIRST_DEMAND_TURN = 25;
+
+		// ...nor within this many turns of the two civs first meeting.
+		public const int TURNS_AFTER_CONTACT_BEFORE_DEMANDS = 10;
 		public const int MIN_GOLD_DEMANDED = 20;
 
 		public static async Task MakeDemands(Player us, GameData gameData) {
@@ -75,7 +85,20 @@ namespace C7Engine.AI {
 				&& gameData.turn - ourView.lastTributeDemandTurn < MIN_TURNS_BETWEEN_DEMANDS) {
 				return false;
 			}
+			if (InGracePeriod(ourView, gameData)) {
+				return false;
+			}
 			return us.CompareMilitaryStrengthTo(them) == Player.MilitaryStrength.StrongTo;
+		}
+
+		// Whether it's too early for a demand: early in the game, or soon
+		// after the two civs met.
+		public static bool InGracePeriod(PlayerRelationship ourView, GameData gameData) {
+			if (gameData.turn < FIRST_DEMAND_TURN) {
+				return true;
+			}
+			return ourView.firstContactTurn >= 0
+				&& gameData.turn - ourView.firstContactTurn < TURNS_AFTER_CONTACT_BEFORE_DEMANDS;
 		}
 
 		// What us demands of them: some of their gold if they have enough,
