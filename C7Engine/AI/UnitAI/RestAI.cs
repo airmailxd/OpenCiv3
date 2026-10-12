@@ -5,11 +5,15 @@ using C7GameData;
 using Serilog;
 
 namespace C7Engine.AI.UnitAI {
-	// A hurt veteran or elite attacker going back to one of our cities to
-	// heal before it fights again (on trial, see the "elite-care" switch).
-	// Only elite units can produce great leaders, and a unit needs many
-	// victories to become one, so it's worth more alive and healthy than
-	// spent on one more attack at half strength.
+	// A hurt attacker going back to one of our cities to heal before it
+	// fights again, rather than attacking at a fraction of its strength or
+	// wandering about. It heals where it is if that's safe and no city is
+	// near; units don't heal in enemy territory (without Battlefield
+	// Medicine), so from there it goes further back. Units marching with a
+	// war campaign heal with the campaign (see WarCampaign), and armies
+	// look after themselves (see ArmyAI). In AI trials, civs whose hurt
+	// attackers healed had about 3 more cities after 200 turns on Pangaea,
+	// and did as well on Continents.
 	public class RestAI : C7GameData.UnitAI {
 		private static ILogger log = Log.ForContext<RestAI>();
 
@@ -17,25 +21,26 @@ namespace C7Engine.AI.UnitAI {
 		// away it heals where it is.
 		private const int MaxDistanceToCity = 6;
 
+		// How far a unit that can't heal where it is goes back to a city.
+		private const int FarthestCity = 12;
+
 		private Tile destination;
 		private TilePath path;
 
-		// Whether the unit should stop what it's doing and heal. With the
-		// "heal-attackers" switch, any hurt attacker does, not just veterans.
+		// Whether the unit should stop what it's doing and heal.
 		public static bool ShouldRest(MapUnit unit, Player player) {
-			bool all = AiExperiments.Has(player, "heal-attackers");
-			if (!all && !AiExperiments.Has(player, "elite-care")) {
-				return false;
-			}
-			return unit.IsLandUnit() && !unit.IsArmy() && unit.CanAttack()
-				&& unit.unitType.attack >= unit.unitType.defense
-				&& unit.hitPointsRemaining < unit.maxHitPoints && (all || IsVeteranOrBetter(unit));
+			return !player.isHuman && !player.isBarbarians && unit.IsLandUnit() && !unit.IsArmy() && unit.CanAttack()
+				&& unit.unitType.attack >= unit.unitType.defense && unit.currentAI is not WarCampaign.MemberAI && Hurt(unit);
 		}
 
-		private static bool IsVeteranOrBetter(MapUnit unit) {
-			GameData gameData = EngineStorage.gameData;
-			ExperienceLevel next = gameData.GetExperienceLevelAfter(unit.experienceLevel);
-			return next == null || gameData.GetExperienceLevelAfter(next) == null;
+		// HEURISTIC: below this share of its hit points an attacker stops to
+		// heal. A regular unit (3 hit points) that has lost one heals; a
+		// veteran or elite can take one more hit first. Its odds in its next
+		// fight fall about as fast as its hit points.
+		private const double HurtHealth = 0.7;
+
+		private static bool Hurt(MapUnit unit) {
+			return unit.hitPointsRemaining < HurtHealth * unit.maxHitPoints;
 		}
 
 		// A plan to heal in the nearest of our cities nearby, or where the
@@ -49,12 +54,34 @@ namespace C7Engine.AI.UnitAI {
 				if (cities.Count > 0 && PathingAlgorithmChooser.GetAlgorithm(unit).FindFirstReachable(unit.location, cities, unit, out TilePath p) is int i && i >= 0) {
 					ai.destination = cities[i];
 					ai.path = p;
-				} else if (unit.HealRateAt(unit.location) <= 0) {
-					return null;
+				} else if (unit.HealRateAt(unit.location) <= 0 || NextToEnemy(unit, player)) {
+					// Units don't heal in enemy territory, nor safely next
+					// to an enemy: go further back.
+					List<Tile> further = player.cities.Select(c => c.location)
+						.Where(t => t.DistanceTo(unit.location) <= FarthestCity)
+						.OrderBy(t => t.DistanceTo(unit.location)).ToList();
+					TilePath p2 = null;
+					int j = further.Count == 0 ? -1 : PathingAlgorithmChooser.GetAlgorithm(unit).FindFirstReachable(unit.location, further, unit, out p2);
+					if (j < 0) {
+						return unit.HealRateAt(unit.location) > 0 ? ai : null;
+					}
+					ai.destination = further[j];
+					ai.path = p2;
 				}
 			}
 			log.Information("{Unit} going to heal at {Destination}", unit, ai.destination);
 			return ai;
+		}
+
+		private static bool NextToEnemy(MapUnit unit, Player player) {
+			foreach (Tile t in unit.location.neighbors.Values) {
+				foreach (MapUnit u in t.unitsOnTile) {
+					if (u.owner != player && !u.owner.IsAtPeaceWith(player) && u.CanAttack()) {
+						return true;
+					}
+				}
+			}
+			return false;
 		}
 
 		public C7GameData.UnitAI.MoveResult PlayTurnImpl(Player player, MapUnit unit) {

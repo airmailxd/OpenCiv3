@@ -8,7 +8,7 @@ using Serilog;
 using static C7GameData.PlayerRelationship;
 
 namespace C7Engine.AI.UnitAI {
-	// Plays an army (on trial, see the "army-use" switch). An army's strength
+	// Plays an AI's army. An army's strength
 	// is the hit points of all its members, fighting one after the other, so
 	// it's the unit most likely to take a defended city and survive doing so.
 	// It's wasted if it attacks half empty or half dead, so:
@@ -17,7 +17,9 @@ namespace C7Engine.AI.UnitAI {
 	//  - badly hurt, it goes back to a city and rests until its members heal;
 	//  - at war, full and healthy, it attacks like any other attacker (see
 	//    CombatAI), but only where it's likely to win;
-	//  - at peace it waits in a city.
+	//  - at peace it waits in a city;
+	//  - a war campaign takes it to lead its attack (see WarCampaign).
+	// Leaders, which only elite units produce, are rare, so armies are too.
 	public class ArmyAI : C7GameData.UnitAI {
 		private static ILogger log = Log.ForContext<ArmyAI>();
 
@@ -39,20 +41,18 @@ namespace C7Engine.AI.UnitAI {
 		// The path to the city the army is going back to, while it is.
 		private TilePath pathHome;
 
-		// Every switch that gives the AI armies needs it to know how to use
-		// them.
+		// Whether the player's armies are played by ArmyAI: an AI's are.
 		public static bool IsEnabled(Player player) {
-			return AiExperiments.Has(player, "army-use") || AiExperiments.Has(player, "leader-army")
-				|| AiExperiments.Has(player, "army-build");
+			return !player.isHuman && !player.isBarbarians;
 		}
 
 		// Whether a leader in one of our cities should form an army there
-		// rather than hurry the city's production (on trial, see the
-		// "leader-army" switch). An army is worth most at war, with
+		// rather than hurry the city's production. An army is worth most at
+		// war, with
 		// offensive units nearby to fill it; at peace, only if we have none
 		// yet and the units for one.
 		internal static bool ShouldFormArmy(MapUnit leader, Player player) {
-			if (!AiExperiments.Has(player, "leader-army") || !leader.CanFormArmy()) {
+			if (!IsEnabled(player) || !leader.CanFormArmy()) {
 				return false;
 			}
 			Tile tile = leader.location;
@@ -63,11 +63,11 @@ namespace C7Engine.AI.UnitAI {
 			return recruits >= 3 && player.ArmyCount() == 0;
 		}
 
-		// The score of building an army in the city (on trial, see the
-		// "army-build" switch), or null not to. Only at war, when the empire
+		// The score of building an army in the city, or null not to. Only at
+		// war, when the empire
 		// can support another, with offensive units nearby to fill it.
 		internal static float? ScoreArmy(City city, Player player, UnitPrototype unit, bool atWar) {
-			if (!AiExperiments.Has(player, "army-build") || !atWar || !player.CanSupportAnotherArmy()) {
+			if (!IsEnabled(player) || !atWar || !player.CanSupportAnotherArmy()) {
 				return null;
 			}
 			int recruits = player.units.Count(u => IsRecruit(u, player) && u.location.DistanceTo(city.location) <= RecruitRange);
@@ -78,10 +78,9 @@ namespace C7Engine.AI.UnitAI {
 		}
 
 		// The extra score of the Military Academy (which builds armies) or
-		// the Pentagon (larger armies), or null if it isn't worth building
-		// (on trial, see the "army-build" switch).
+		// the Pentagon (larger armies), or null if it isn't worth building.
 		internal static float? ScoreArmyWonder(Player player, Building building, bool atWar) {
-			if (!AiExperiments.Has(player, "army-build")) {
+			if (!IsEnabled(player)) {
 				return null;
 			}
 			if (building.allowsBuildArmy) {
@@ -244,9 +243,10 @@ namespace C7Engine.AI.UnitAI {
 			return result;
 		}
 
-		// Whether a unit should join an army: one of ours, meant for attack.
+		// Whether a unit should join an army: one of ours, meant for attack,
+		// and not marching with a war campaign.
 		private static bool IsRecruit(MapUnit u, Player player) {
-			return u.owner == player && !u.IsLoaded() && !u.IsArmy() && u.unitType.CanJoinArmy()
+			return u.owner == player && !u.IsLoaded() && !u.IsArmy() && u.unitType.CanJoinArmy() && u.currentAI is not WarCampaign.MemberAI
 				&& u.unitType.attack > u.unitType.defense && u.hitPointsRemaining > 0;
 		}
 

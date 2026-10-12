@@ -17,6 +17,15 @@ namespace C7Engine.AI {
 	// attacks with the best odds until the city falls. Then it garrisons the
 	// city and goes on to the next.
 	//
+	// The stack attacks a city only when, all together, its attackers can
+	// expect to wear down every defender (with a margin); short of that it
+	// waits a turn or two for those catching up and then falls back together
+	// to one of our cities, where the hurt heal before it sets out again
+	// with more. An army, if we have one, leads the attack. In AI trials
+	// this, with hurt units healing (see RestAI) and the same rule for lone
+	// attackers (see CombatAI), made civs about as strong on Continents and
+	// stronger on Pangaea (about 4 more cities each in 200 turns).
+	//
 	// It runs campaigns in the wars the AI is in, and also starts them in
 	// peacetime against a weaker neighbour, declaring war only once the
 	// attackers are gathered (WarPriority no longer declares wars itself).
@@ -33,6 +42,9 @@ namespace C7Engine.AI {
 			Gather,
 			March,
 			Siege,
+			// Too weak to take the target: the stack goes back to a city of
+			// ours together, to heal and wait for more attackers.
+			Retreat,
 		}
 
 		private sealed class Campaign {
@@ -45,7 +57,23 @@ namespace C7Engine.AI {
 			public readonly List<MapUnit> units = new();
 			// How many times an assault on the target failed.
 			public int failures;
+			// What we last saw of the target's defenders: their hit points,
+			// and the hits one of our attackers can expect to deal them, or
+			// -1 if we haven't seen them.
+			public double knownDefenderHitPoints = -1;
+			public double knownHitsEach;
+			// Turns in a row the stack has sat outside the target without the
+			// force to take it.
+			public int shortTurns;
+			// The city the stack is falling back to.
+			public Tile retreatTo;
 		}
+
+		// HEURISTIC: how many failed attempts on a target (assaults that
+		// ran out of attackers, marches that stalled, falling back for want
+		// of force) end the campaign. In AI trials, allowing a third did no
+		// better.
+		private const int MaxFailures = 2;
 
 		private static readonly ConditionalWeakTable<Player, Campaign> campaigns = new();
 
@@ -61,13 +89,11 @@ namespace C7Engine.AI {
 		private const int MaxGatherTurns = 25;
 		// HEURISTIC: how long to sit outside a city without taking it.
 		private const int MaxSiegeTurns = 12;
-		// HEURISTIC: an attack on a city at worse odds than this waits for
-		// bombardment or more attackers.
-		private const double MinSiegeOdds = 0.3;
-		// HEURISTIC: in an all-out assault, the attacks not even worth that.
+		// HEURISTIC: in an all-out assault, the attacks not worth making.
 		private const double MinAssaultOdds = 0.05;
-		// HEURISTIC: the odds the stack needs to clear its way on the march.
-		private const double MinMarchOdds = 0.4;
+		// HEURISTIC: in an all-out attack on enemies in the stack's way on
+		// the march, likewise.
+		private const double MinMarchOdds = 0.2;
 		// HEURISTIC: how long the march may take.
 		private const int MaxMarchTurns = 15;
 		// HEURISTIC: how much stronger than the enemy (by the military
@@ -96,6 +122,23 @@ namespace C7Engine.AI {
 		internal static bool IsAttacker(MapUnit u) {
 			return u.IsLandUnit() && !u.IsArmy() && !u.IsLeader() && !u.IsNuclearWeapon() && u.CanAttack()
 				&& u.unitType.attack > u.unitType.defense && !u.unitType.isSettler && !u.unitType.isWorker;
+		}
+
+		// An army with members to fight with.
+		private static bool IsFightingArmy(MapUnit u) {
+			return u.IsArmy() && u.IsLandUnit() && u.PassengerCount() > 0;
+		}
+
+		// A unit of the stack that attacks: an attacker or an army.
+		private static bool IsFighter(MapUnit u) {
+			return IsAttacker(u) || IsFightingArmy(u);
+		}
+
+		// The unit's hit points as a share of what it has when healthy (for
+		// an army, its members').
+		private static double Health(MapUnit u) {
+			int max = u.CompositeMaxHitPoints();
+			return max > 0 ? (double)u.CompositeHitPoints() / max : 0;
 		}
 
 		internal static bool IsBombarder(MapUnit u) {
@@ -183,7 +226,8 @@ namespace C7Engine.AI {
 		private static async Task<bool> PlayCampaign(Player player, GameData gameData, Campaign c) {
 			c.units.RemoveAll(u => !PlayerAI.IsStillOurs(u, player) || u.currentAI is not MemberAI);
 
-			if (c.enemy.defeated || c.failures >= 2) {
+			// A stack falling back gets home before the campaign is given up.
+			if (c.enemy.defeated || (c.failures >= MaxFailures && c.phase != Phase.Retreat)) {
 				return false;
 			}
 			bool atWar = AtWarWith(player, c.enemy);
@@ -208,6 +252,7 @@ namespace C7Engine.AI {
 				}
 				c.target = next;
 				c.failures = 0;
+				c.knownDefenderHitPoints = -1;
 				SetPhase(c, Phase.Gather);
 			}
 
@@ -217,10 +262,12 @@ namespace C7Engine.AI {
 				return await Gather(player, gameData, c, atWar);
 			}
 
-			// Units not with the stack catch up with it.
+			// Units not with the stack catch up with it, or, when it falls
+			// back, go straight to where it's going.
+			Tile meet = c.phase == Phase.Retreat ? c.retreatTo : c.stackTile;
 			foreach (MapUnit u in c.units.ToList()) {
-				if (u.location != c.stackTile) {
-					await MoveTowards(player, u, c.stackTile);
+				if (u.location != c.stackTile && u.location != meet) {
+					await MoveTowards(player, u, meet);
 				}
 			}
 
@@ -230,13 +277,17 @@ namespace C7Engine.AI {
 			if (c.phase == Phase.Siege) {
 				await Siege(player, c);
 			}
-
-			// Nothing left to attack with: regroup.
-			if (c.phase != Phase.Gather && !c.units.Any(u => IsAttacker(u) && PlayerAI.IsStillOurs(u, player))) {
-				++c.failures;
-				SetPhase(c, Phase.Gather);
+			if (c.phase == Phase.Retreat) {
+				await Retreat(player, c);
 			}
-			if (c.failures >= 2) {
+
+			// Nothing left to attack with: what's left (the stack's defender,
+			// its siege engines) goes home together.
+			if (c.phase != Phase.Gather && c.phase != Phase.Retreat
+					&& !c.units.Any(u => IsFighter(u) && PlayerAI.IsStillOurs(u, player))) {
+				StartRetreat(player, c);
+			}
+			if (c.failures >= MaxFailures && c.phase != Phase.Retreat) {
 				return false;
 			}
 
@@ -367,7 +418,9 @@ namespace C7Engine.AI {
 		// dies: it wins each round with some chance, and dies after losing as
 		// many rounds as it has hit points. Even a lost fight wears the
 		// defender down for the next attacker.
-		private static double ExpectedHits(MapUnit attacker, MapUnit defender) {
+		// An army fights on with each of its members in turn, so it lasts
+		// for all their hit points.
+		internal static double ExpectedHits(MapUnit attacker, MapUnit defender) {
 			double attack = attacker.StrengthVersus(defender, CombatRole.Attack, null);
 			double defense = defender.StrengthVersus(attacker, CombatRole.Defense, null);
 			if (attack <= 0) {
@@ -377,17 +430,30 @@ namespace C7Engine.AI {
 				return 100;
 			}
 			double roundOdds = attack / (attack + defense);
-			return Math.Max(1, attacker.hitPointsRemaining) * roundOdds / (1 - roundOdds);
+			return Math.Max(1, attacker.CompositeHitPoints()) * roundOdds / (1 - roundOdds);
 		}
 
-		private static int DefenderHitPoints(Player player, Tile tile) {
+		// The hit points of the enemy units on the tile that can defend it.
+		// Units in an army are counted through the army.
+		internal static int DefenderHitPoints(Player player, Tile tile) {
 			int result = 0;
 			foreach (MapUnit u in tile.unitsOnTile) {
-				if (!u.owner.IsAtPeaceWith(player) && u.CanDefendOnLand()) {
-					result += Math.Max(1, u.hitPointsRemaining);
+				if (!u.IsLoaded() && !u.owner.IsAtPeaceWith(player) && u.CanDefendOnLand()) {
+					result += Math.Max(1, u.CompositeHitPoints());
 				}
 			}
 			return result;
+		}
+
+		// The hits the units can expect to deal the tile's defenders, each
+		// against the defender that would face it.
+		private static double ForceAgainst(IEnumerable<MapUnit> units, Tile tile) {
+			double hits = 0;
+			foreach (MapUnit u in units) {
+				MapUnit defender = tile.FindTopDefender(u);
+				hits += MapUnit.IsMapUnitValid(defender) ? ExpectedHits(u, defender) : 100;
+			}
+			return hits;
 		}
 
 		// HEURISTIC: how many more hits than the defenders have left the
@@ -397,19 +463,29 @@ namespace C7Engine.AI {
 		// Whether the attackers, all together, can expect to wear down every
 		// defender of the city.
 		private static bool AssaultWorthwhile(Player player, List<MapUnit> stack, Tile city) {
-			double hits = 0;
-			foreach (MapUnit u in stack) {
-				if (!PlayerAI.IsStillOurs(u, player) || !IsAttacker(u) || !u.movementPoints.canMove || !u.CanAttackAgainThisTurn()
-					|| triedToAttack.Contains(u)) {
-					continue;
-				}
-				MapUnit defender = city.FindTopDefender(u);
-				if (!MapUnit.IsMapUnitValid(defender)) {
-					return true;
-				}
-				hits += ExpectedHits(u, defender);
+			List<MapUnit> able = stack.Where(u => PlayerAI.IsStillOurs(u, player) && IsFighter(u) && u.movementPoints.canMove
+				&& u.CanAttackAgainThisTurn() && !triedToAttack.Contains(u)).ToList();
+			return ForceAgainst(able, city) >= AssaultMargin * DefenderHitPoints(player, city);
+		}
+
+		// Whether the campaign's fighters, all of them, healthy or not, here
+		// or on their way, could expect to take the tile.
+		private static bool CampaignStrongEnough(Player player, Campaign c, Tile tile, double margin) {
+			List<MapUnit> fighters = c.units.Where(u => PlayerAI.IsStillOurs(u, player) && IsFighter(u)).ToList();
+			return ForceAgainst(fighters, tile) >= margin * DefenderHitPoints(player, tile);
+		}
+
+		// Notes what the target's defenders are like while we can see them,
+		// for planning when we no longer can.
+		private static void RememberDefenders(Player player, Campaign c) {
+			Tile city = c.target.location;
+			if (!AIFogOfWar.SeesUnitsOn(player, city)) {
+				return;
 			}
-			return hits >= AssaultMargin * DefenderHitPoints(player, city);
+			c.knownDefenderHitPoints = DefenderHitPoints(player, city);
+			MapUnit sample = c.units.Where(IsAttacker).OrderByDescending(u => u.unitType.attack).FirstOrDefault();
+			MapUnit defender = sample == null ? null : city.FindTopDefender(sample);
+			c.knownHitsEach = MapUnit.IsMapUnitValid(defender) ? ExpectedHits(sample, defender) * sample.maxHitPoints / Math.Max(1, sample.hitPointsRemaining) : 0;
 		}
 
 		// How many attackers to gather: enough to expect to wear down every
@@ -425,13 +501,23 @@ namespace C7Engine.AI {
 					hitsEach = ExpectedHits(sample, defender);
 					defenderHitPoints = DefenderHitPoints(player, city);
 				}
+			} else if (c.knownDefenderHitPoints >= 0) {
+				// The defenders we saw last time: a stack that fell back
+				// for want of attackers comes back with enough.
+				defenderHitPoints = Math.Max(defenderHitPoints, c.knownDefenderHitPoints);
+				if (c.knownHitsEach > 0) {
+					hitsEach = c.knownHitsEach;
+				}
 			}
 			// Bombardment softens the defenders.
 			if (c.units.Any(IsBombarder)) {
 				defenderHitPoints *= 0.8;
 			}
 			int needed = (int)Math.Ceiling(AssaultMargin * defenderHitPoints / Math.Max(0.5, hitsEach)) + 1;
-			return Math.Clamp(needed, 3, MaxAttackers);
+			// An army counts for (at least) as many attackers as it has
+			// members.
+			int armyMembers = c.units.Where(IsFightingArmy).Sum(a => a.PassengerCount());
+			return Math.Clamp(needed - armyMembers, armyMembers > 0 ? 1 : 3, MaxAttackers);
 		}
 
 		// HEURISTIC: the most attackers a campaign gathers.
@@ -474,12 +560,28 @@ namespace C7Engine.AI {
 			int attackers = c.units.Count(IsAttacker);
 			int bombarders = c.units.Count(IsBombarder);
 			int escorts = c.units.Count(IsEscort);
+			int armies = c.units.Count(IsFightingArmy);
 			foreach (MapUnit u in player.units.ToList()) {
 				if (u.currentAI is MemberAI || u.location.continent != continent || u.IsLoaded()
-					|| u.currentAI is EscortAI || u.currentAI is FerryAI) {
+					|| u.currentAI is EscortAI || u.currentAI is FerryAI || IsJoiningArmy(u, player)) {
 					continue;
 				}
 				bool take;
+				if (IsFightingArmy(u)) {
+					// An army leads the attack: it can take on a city's
+					// best defenders and live. Only one that's filled up and
+					// healthy.
+					if (armies >= MaxArmies || Health(u) < ReadyHealth
+						|| u.PassengerCount() < Math.Min(2, u.Capacity())) {
+						continue;
+					}
+					c.units.Add(u);
+					u.currentAI = new MemberAI();
+					u.Wake();
+					++armies;
+					log.Information("{Player} has {Army} lead its campaign against {City}", player, u, c.target.name);
+					continue;
+				}
 				if (IsAttacker(u)) {
 					take = attackers < needed + 2;
 				} else if (IsBombarder(u)) {
@@ -510,6 +612,17 @@ namespace C7Engine.AI {
 			}
 		}
 
+		// HEURISTIC: the most armies one campaign takes.
+		private const int MaxArmies = 2;
+		// HEURISTIC: the share of its hit points a unit needs to set out.
+		private const double ReadyHealth = 0.7;
+
+		// Whether the unit is on its way to join an army (see ArmyAI.Recruit).
+		private static bool IsJoiningArmy(MapUnit u, Player player) {
+			return u.currentAI is DefenderAI d && d.data.destination is Tile t && t != Tile.NONE
+				&& t.unitsOnTile.Any(x => x.IsArmy() && x.owner == player);
+		}
+
 		private static async Task<bool> Gather(Player player, GameData gameData, Campaign c, bool atWar) {
 			City staging = StagingCity(player, c);
 			if (staging == null) {
@@ -522,12 +635,16 @@ namespace C7Engine.AI {
 			}
 			c.units.RemoveAll(u => !PlayerAI.IsStillOurs(u, player));
 
-			List<MapUnit> ready = c.units.Where(u => u.location == staging.location
-				&& u.hitPointsRemaining * 10 >= u.maxHitPoints * 7).ToList();
+			List<MapUnit> ready = c.units.Where(u => u.location == staging.location && Health(u) >= ReadyHealth).ToList();
 			int readyAttackers = ready.Count(IsAttacker);
 			int needed = NeededAttackers(player, c);
 			int waited = Turn - c.phaseStartTurn;
-			bool go = readyAttackers >= needed || (atWar && waited >= MaxGatherTurns / 2 && readyAttackers >= 3);
+			// At war, after a while we go with most of what we need: the
+			// stack won't attack without the force to win anyway, but more
+			// may join it on the way, and seeing the defenders may show
+			// fewer are needed.
+			int enough = Math.Max(3, needed * 2 / 3);
+			bool go = readyAttackers >= needed || (atWar && waited >= MaxGatherTurns / 2 && readyAttackers >= enough);
 			if (!go) {
 				foreach (MapUnit u in c.units) {
 					if (u.location == staging.location && !u.isFortified) {
@@ -598,6 +715,16 @@ namespace C7Engine.AI {
 				SetPhase(c, Phase.Siege);
 				return;
 			}
+			RememberDefenders(player, c);
+			// Once we can see the defenders, a stack that couldn't take the
+			// city even with everyone who's on the way doesn't go and stand
+			// outside it.
+			if (AIFogOfWar.SeesUnitsOn(player, c.target.location) && HasArmedEnemy(player, c.target.location)
+					&& !CampaignStrongEnough(player, c, c.target.location, HopelessMargin(c))) {
+				log.Information("{Player} sees {City} is too strongly held, and falls back", player, c.target.name);
+				StartRetreat(player, c);
+				return;
+			}
 			List<MapUnit> stack = c.units.Where(u => u.location == c.stackTile).OrderBy(u => u.MaxMovementPoints()).ToList();
 			if (stack.Count == 0) {
 				return;
@@ -611,11 +738,26 @@ namespace C7Engine.AI {
 				return;
 			}
 
+			await MoveStack(player, c, stack, path);
+
+			if (IsNeighbor(c.stackTile, c.target.location)) {
+				SetPhase(c, Phase.Siege);
+			} else if (Turn - c.phaseStartTurn > MaxMarchTurns) {
+				++c.failures;
+				SetPhase(c, Phase.Gather);
+			}
+		}
+
+		// Moves the stack (the campaign's units on its tile, slowest first)
+		// along the path together as far as the slowest can go, fighting
+		// its way past enemies in the way when it's strong enough to.
+		private static async Task MoveStack(Player player, Campaign c, List<MapUnit> stack, TilePath path) {
+			MapUnit lead = stack[0];
 			while (path.PathLength() > 0 && lead.movementPoints.canMove && PlayerAI.IsStillOurs(lead, player)) {
 				Tile next = path.PeekNext();
 				if (next.unitsOnTile.Any(u => !u.owner.IsAtPeaceWith(player))) {
 					// Someone is in the way: attack if the odds are good.
-					if (!await AttackIfGoodOdds(player, stack, next, MinMarchOdds) || HasArmedEnemy(player, next)) {
+					if (!await ClearTheWay(player, stack, next) || HasArmedEnemy(player, next)) {
 						break;
 					}
 					continue;
@@ -640,29 +782,55 @@ namespace C7Engine.AI {
 					break;
 				}
 			}
-
-			if (IsNeighbor(c.stackTile, c.target.location)) {
-				SetPhase(c, Phase.Siege);
-			} else if (Turn - c.phaseStartTurn > MaxMarchTurns) {
-				++c.failures;
-				SetPhase(c, Phase.Gather);
-			}
 		}
 
+		// Below this many expected hits per defender hit point, not even
+		// everyone in the campaign could take the city: they don't expect to
+		// wear down every defender (bombardment helping).
+		private static double HopelessMargin(Campaign c) {
+			return c.units.Any(IsBombarder) ? 0.8 : 1.0;
+		}
+
+		// HEURISTIC: an attack the stack makes even without the force to win
+		// the whole fight: it's very likely to kill a defender.
+		private const double SureOdds = 0.7;
+
+		// Attacks enemies in the stack's way: all out if the stack can expect
+		// to beat every unit there, and otherwise only at very good odds, so
+		// it doesn't spend itself on a stack it can't destroy. Returns
+		// whether it attacked.
+		private static async Task<bool> ClearTheWay(Player player, List<MapUnit> stack, Tile tile) {
+			bool enough = AssaultWorthwhile(player, stack, tile);
+			return await AttackIfGoodOdds(player, stack, tile, enough ? MinMarchOdds : SureOdds);
+		}
+
+		// The least an army's odds must be for it to attack: losing it loses
+		// all its members.
+		private const double MinArmyOdds = 0.6;
+
 		// Attacks the tile with the unit of the stack that has the best odds
-		// against its defender, if they are at least minOdds. Returns whether
-		// it attacked.
+		// against its defender, if they are at least minOdds. An army goes
+		// first when its odds are good: its hit points last through more
+		// than one defender. Returns whether it attacked.
 		private static async Task<bool> AttackIfGoodOdds(Player player, List<MapUnit> stack, Tile tile, double minOdds) {
 			MapUnit best = null;
 			double bestOdds = minOdds;
+			bool bestIsArmy = false;
 			foreach (MapUnit u in stack) {
-				if (!PlayerAI.IsStillOurs(u, player) || !IsAttacker(u) || !u.movementPoints.canMove || !u.CanAttackAgainThisTurn()
+				bool army = IsFightingArmy(u);
+				if (!PlayerAI.IsStillOurs(u, player) || !(IsAttacker(u) || army) || !u.movementPoints.canMove || !u.CanAttackAgainThisTurn()
 					|| !IsNeighbor(u.location, tile) || triedToAttack.Contains(u)) {
 					continue;
 				}
 				MapUnit defender = tile.FindTopDefender(u);
 				double odds = MapUnit.IsMapUnitValid(defender) ? CombatAI.EstimateChanceToWin(u, defender) : 1;
-				if (odds >= bestOdds) {
+				if (army) {
+					if (odds >= Math.Max(minOdds, MinArmyOdds) && (!bestIsArmy || odds >= bestOdds)) {
+						bestOdds = odds;
+						best = u;
+						bestIsArmy = true;
+					}
+				} else if (!bestIsArmy && odds >= bestOdds) {
 					bestOdds = odds;
 					best = u;
 				}
@@ -674,6 +842,12 @@ namespace C7Engine.AI {
 			await best.Move(best.location.DirectionTo(tile));
 			return true;
 		}
+
+		// HEURISTIC: how many turns a stack too weak to take the city waits
+		// outside it for more attackers, and how many when more are on their
+		// way.
+		private const int ShortWaitTurns = 1;
+		private const int ReinforcedWaitTurns = 4;
 
 		private static async Task Siege(Player player, Campaign c) {
 			Tile city = c.target.location;
@@ -689,11 +863,14 @@ namespace C7Engine.AI {
 					await u.Bombard(city);
 				}
 			}
+			RememberDefenders(player, c);
 
-			// Then attack, best odds first, while the odds are worth it, or
-			// all out if together we can expect to take the city.
+			// Then attack, all out if together we can expect to take the
+			// city, best odds first. Short of that, only attacks very likely
+			// to win: trickling attackers in one at a time against a city we
+			// can't take only loses them.
 			while (HasArmedEnemy(player, city)
-				&& await AttackIfGoodOdds(player, stack, city, AssaultWorthwhile(player, stack, city) ? MinAssaultOdds : MinSiegeOdds)) {
+				&& await AttackIfGoodOdds(player, stack, city, AssaultWorthwhile(player, stack, city) ? MinAssaultOdds : SureOdds)) {
 				stack.RemoveAll(u => !PlayerAI.IsStillOurs(u, player));
 			}
 
@@ -719,8 +896,81 @@ namespace C7Engine.AI {
 				return;
 			}
 
+			// Not strong enough to take the city next turn, even with the
+			// units about to catch up: wait a little for them, then fall back
+			// together rather than stand exposed. (Units don't heal in enemy
+			// territory, so waiting there doesn't help the hurt.)
+			List<MapUnit> nextTurn = c.units.Where(u => PlayerAI.IsStillOurs(u, player) && IsFighter(u)
+				&& u.location.DistanceTo(c.stackTile) <= 1).ToList();
+			if (!HasArmedEnemy(player, city) || ForceAgainst(nextTurn, city) >= AssaultMargin * DefenderHitPoints(player, city)) {
+				c.shortTurns = 0;
+			} else {
+				++c.shortTurns;
+				bool reinforcements = c.units.Any(u => PlayerAI.IsStillOurs(u, player) && IsFighter(u) && u.location.DistanceTo(c.stackTile) > 1)
+					&& CampaignStrongEnough(player, c, city, HopelessMargin(c));
+				if (c.shortTurns > (reinforcements ? ReinforcedWaitTurns : ShortWaitTurns)) {
+					log.Information("{Player} is too weak to take {City}, and falls back", player, c.target.name);
+					StartRetreat(player, c);
+					return;
+				}
+			}
+
 			if (Turn - c.phaseStartTurn > MaxSiegeTurns) {
-				++c.failures;
+				StartRetreat(player, c);
+			}
+		}
+
+		// Our city nearest the stack, preferring the staging city, that the
+		// stack falls back to.
+		private static Tile RetreatCity(Player player, Campaign c) {
+			City staging = StagingCity(player, c);
+			Tile from = c.stackTile ?? staging?.location;
+			if (from == null) {
+				return null;
+			}
+			City nearest = player.cities.Where(city => city.location.continent == from.continent)
+				.OrderBy(city => city.location.DistanceTo(from)).FirstOrDefault();
+			if (staging != null && nearest != null && staging.location.DistanceTo(from) <= nearest.location.DistanceTo(from) + 2) {
+				return staging.location;
+			}
+			return nearest?.location ?? staging?.location;
+		}
+
+		// Gives up the attack on the target for now: the stack goes back to
+		// one of our cities together, heals, and gathers more attackers.
+		private static void StartRetreat(Player player, Campaign c) {
+			++c.failures;
+			c.shortTurns = 0;
+			c.retreatTo = RetreatCity(player, c);
+			if (c.retreatTo == null || c.stackTile == null) {
+				SetPhase(c, Phase.Gather);
+				return;
+			}
+			SetPhase(c, Phase.Retreat);
+		}
+
+		// Moves the stack back to the city it's falling back to, all
+		// together, at the pace of the slowest.
+		private static async Task Retreat(Player player, Campaign c) {
+			if (c.retreatTo.cityAtTile?.owner != player) {
+				c.retreatTo = RetreatCity(player, c);
+			}
+			if (c.retreatTo == null || c.stackTile == c.retreatTo || Turn - c.phaseStartTurn > MaxMarchTurns) {
+				SetPhase(c, Phase.Gather);
+				return;
+			}
+			List<MapUnit> stack = c.units.Where(u => u.location == c.stackTile).OrderBy(u => u.MaxMovementPoints()).ToList();
+			if (stack.Count == 0) {
+				SetPhase(c, Phase.Gather);
+				return;
+			}
+			TilePath path = PathingAlgorithmChooser.GetAlgorithm(stack[0]).PathFrom(c.stackTile, c.retreatTo, stack[0]);
+			if (path == null) {
+				SetPhase(c, Phase.Gather);
+				return;
+			}
+			await MoveStack(player, c, stack, path);
+			if (c.stackTile == c.retreatTo) {
 				SetPhase(c, Phase.Gather);
 			}
 		}

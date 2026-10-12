@@ -274,6 +274,10 @@ namespace C7Engine.AI.UnitAI {
 			if (winChance < MIN_CHANCE_TO_ATTACK) {
 				return int.MinValue;
 			}
+			if (MapUnit.IsMapUnitValid(defender) && !player.isBarbarians
+					&& winChance < SURE_CHANCE && !EnoughForceNearby(unit, player, t, hasEnemyCity)) {
+				return int.MinValue;
+			}
 
 			// Handle the case of units running around.
 			//
@@ -327,6 +331,49 @@ namespace C7Engine.AI.UnitAI {
 
 		// Below this estimated chance of winning, a unit doesn't attack.
 		private const double MIN_CHANCE_TO_ATTACK = 0.3;
+
+		// At this estimated chance of winning, a unit attacks a city or a
+		// stack even alone: it's very likely to kill a defender.
+		private const double SURE_CHANCE = 0.7;
+
+		// How near (in tiles) a unit of ours must be to the tile to count as
+		// joining in an attack on it.
+		private const int NEARBY_FORCE_RANGE = 2;
+
+		// HEURISTIC: how many more hits than the defenders have the attackers
+		// must expect to deal (as for a war campaign's assault).
+		private const double FORCE_MARGIN = 1.3;
+
+		// Whether a city, or a stack of more than one defender, is worth
+		// attacking: our attackers near it (this one too), together, can
+		// expect to wear down every defender, so the attacks take the city or
+		// destroy the stack rather than trickle in one at a time and die.
+		// A lone defender in the open is fought by the odds alone.
+		private static bool EnoughForceNearby(MapUnit unit, Player player, Tile t, bool isCity) {
+			int defenders = 0;
+			foreach (MapUnit u in t.unitsOnTile) {
+				if (!u.IsLoaded() && !u.owner.IsAtPeaceWith(player) && u.CanDefendOnLand()) {
+					++defenders;
+				}
+			}
+			if (!isCity && defenders < 2) {
+				return true;
+			}
+			double hits = WarCampaign.ExpectedHits(unit, t.FindTopDefender(unit));
+			foreach (Tile near in t.GetTilesWithinRankDistance(NEARBY_FORCE_RANGE)) {
+				foreach (MapUnit u in near.unitsOnTile) {
+					if (u == unit || u.owner != player || u.IsLoaded() || !u.IsLandUnit() || u.currentAI is WarCampaign.MemberAI
+							|| !(WarCampaign.IsAttacker(u) || (u.IsArmy() && u.PassengerCount() > 0))) {
+						continue;
+					}
+					MapUnit defender = t.FindTopDefender(u);
+					if (MapUnit.IsMapUnitValid(defender)) {
+						hits += WarCampaign.ExpectedHits(u, defender);
+					}
+				}
+			}
+			return hits >= FORCE_MARGIN * WarCampaign.DefenderHitPoints(player, t);
+		}
 
 		// A rough estimate of the attacker's chance to beat the defender: the
 		// chance of winning each round of combat, weighed by the hit points

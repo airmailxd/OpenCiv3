@@ -320,8 +320,9 @@ namespace C7Engine {
 					continue;
 				}
 
-				// A hurt veteran stops attacking to heal (see RestAI).
-				if (unit.currentAI is CombatAI && RestAI.ShouldRest(unit, player)) {
+				// A hurt attacker stops attacking (or exploring) to heal (see
+				// RestAI).
+				if ((unit.currentAI is CombatAI || unit.currentAI is ExplorerAI) && RestAI.ShouldRest(unit, player)) {
 					unit.currentAI = null;
 				}
 

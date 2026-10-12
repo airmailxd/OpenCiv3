@@ -9,8 +9,8 @@ using Xunit;
 
 namespace EngineTests.GameData;
 
-// The AI's use of leaders and armies on trial (the "leader-army",
-// "army-use" and "army-build" switches, see ArmyAI).
+// The AI's use of leaders and armies (see ArmyAI), and its hurt units
+// healing (see RestAI).
 public class ArmyAITest : IClassFixture<SaveGameFixture> {
 	private readonly C7GameData.GameData gameData;
 	private readonly Player us;
@@ -46,7 +46,6 @@ public class ArmyAITest : IClassFixture<SaveGameFixture> {
 
 	[Fact]
 	public void LeaderAtWarFormsAnArmyFromTheAttackersAtHand() {
-		AiExperiments.Enable(us, "leader-army");
 		City city = BuildCity(us);
 		them.DeclareWarOn(us, gameData.turn);
 		MapUnit spearman = Spawn(us, "Spearman", city.location);
@@ -68,7 +67,6 @@ public class ArmyAITest : IClassFixture<SaveGameFixture> {
 
 	[Fact]
 	public void LeaderWithoutAttackersNearbyHurriesInstead() {
-		AiExperiments.Enable(us, "leader-army");
 		City city = BuildCity(us);
 		them.DeclareWarOn(us, gameData.turn);
 		Spawn(us, "Spearman", city.location);
@@ -94,7 +92,6 @@ public class ArmyAITest : IClassFixture<SaveGameFixture> {
 
 	[Fact]
 	public void AHurtArmyRestsInACity() {
-		AiExperiments.Enable(us, "army-use");
 		City city = BuildCity(us);
 		them.DeclareWarOn(us, gameData.turn);
 		Spawn(us, "Spearman", city.location);
@@ -123,7 +120,6 @@ public class ArmyAITest : IClassFixture<SaveGameFixture> {
 
 	[Fact]
 	public void AHurtEliteAttackerGoesToHeal() {
-		AiExperiments.Enable(us, "elite-care");
 		City city = BuildCity(us);
 		Spawn(us, "Spearman", city.location);
 		MapUnit sword = Spawn(us, "Swordsman", city.location);
@@ -138,24 +134,32 @@ public class ArmyAITest : IClassFixture<SaveGameFixture> {
 	}
 
 	[Fact]
-	public void AHurtRegularOrAHealthyEliteDoesNotRest() {
-		AiExperiments.Enable(us, "elite-care");
+	public void ARegularAttackerDownAHitPointRests() {
 		City city = BuildCity(us);
 		MapUnit regular = Spawn(us, "Swordsman", city.location);
 		regular.hitPointsRemaining -= 1;
+
+		Assert.True(RestAI.ShouldRest(regular, us));
+	}
+
+	[Fact]
+	public void AnEliteDownAHitPointOrAHealthyAttackerDoesNotRest() {
+		City city = BuildCity(us);
+		MapUnit healthy = Spawn(us, "Swordsman", city.location);
 		MapUnit elite = Spawn(us, "Swordsman", city.location);
 		MakeElite(elite);
+		elite.hitPointsRemaining -= 1;
 
-		Assert.False(RestAI.ShouldRest(regular, us));
+		Assert.False(RestAI.ShouldRest(healthy, us));
 		Assert.False(RestAI.ShouldRest(elite, us));
 	}
 
 	[Fact]
-	public void WithoutTheSwitchAHurtEliteDoesNotRest() {
+	public void AHumansHurtUnitIsLeftAlone() {
+		us.isHuman = true;
 		City city = BuildCity(us);
 		MapUnit sword = Spawn(us, "Swordsman", city.location);
-		MakeElite(sword);
-		sword.hitPointsRemaining -= 2;
+		sword.hitPointsRemaining = 1;
 
 		Assert.False(RestAI.ShouldRest(sword, us));
 	}
