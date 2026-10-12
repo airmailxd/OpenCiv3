@@ -107,4 +107,17 @@ public sealed class AiEconomyTest : IClassFixture<SaveGameFixture>, IDisposable 
 		Assert.True(player.CalculateGoldPerTurn() < 0);
 		Assert.DoesNotContain(ChooseProducible.Choose(city, player), gameData.Inflows);
 	}
+
+	// The owner's choice: the AI never builds Explorers, even knowing how.
+	[Fact]
+	public void AiNeverBuildsExplorers() {
+		foreach (Tech tech in gameData.techs) {
+			player.knownTechs.Add(tech.id);
+		}
+		UnitPrototype explorer = gameData.unitPrototypes.First(p => p.name == "Explorer");
+		Assert.Contains(explorer, city.ListProductionOptions(gameData));
+		for (int i = 0; i < 20; ++i) {
+			Assert.NotEqual<IProducible>(explorer, ChooseProducible.Choose(city, player));
+		}
+	}
 }

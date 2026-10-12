@@ -170,6 +170,11 @@ namespace C7Engine {
 				return C7Engine.AI.UnitAI.ArmyAI.ScoreArmy(city, player, unit, stats.atWar) ?? -1000f;
 			}
 
+			// The owner's choice: the AI never builds Explorers.
+			if (unit.name == "Explorer") {
+				return int.MinValue;
+			}
+
 			bool isSettler = unit.actions.Contains(UnitAction.BuildCity);
 			bool isWorker = unit.isWorker;
 			bool atWar = stats.atWar;
