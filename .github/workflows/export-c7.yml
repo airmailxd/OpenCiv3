@@ -85,9 +85,16 @@ jobs:
     # same Linux container, so repeating them per export target only triples
     # CI time. Formatting runs before the tests so a failing test can't hide
     # a formatting failure, and the tests still run if formatting fails.
+    # The check uses the .NET SDK the game is developed with, not the
+    # container's 8.0: their formatters disagree (8.0 wants long list
+    # literals one item per line), so code formatted on a developer's
+    # machine would fail here.
     - name: Verify formatting (`run dotnet format C7/C7.sln whitespace` to fix)
       run: |
-        dotnet format C7/C7.sln whitespace --verify-no-changes
+        curl -sSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh \
+          || wget -qO /tmp/dotnet-install.sh https://dot.net/v1/dotnet-install.sh
+        bash /tmp/dotnet-install.sh --version 10.0.401 --install-dir /tmp/dotnet10
+        DOTNET_ROOT=/tmp/dotnet10 /tmp/dotnet10/dotnet format C7/C7.sln whitespace --verify-no-changes
     - name: Run tests
       if: success() || failure()
       run: |
