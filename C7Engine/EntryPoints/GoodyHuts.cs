@@ -10,13 +10,11 @@ namespace C7Engine;
 // game. The first civ to walk a land unit into one gets what's inside, and the
 // hut is gone.
 //
-// As in Civ3, a hut holds gold, a tech, barbarians, a settler, a conscript
-// Warrior, or a city. What's inside is picked at random, on a sliding scale:
-// the easier the difficulty level the better the odds of a good outcome and
-// the fewer the barbarians, and civs that have fallen behind the average are
-// more likely to be helped to catch up, with a settler or a city when they
-// have fewer cities, and a tech when they know fewer techs. AIs get the huts
-// of a middling difficulty level.
+// As in Civ3, a hut holds a city, a tech, gold, a settler, a map of the
+// area, a conscript Warrior, barbarians, or nothing. What's inside is picked
+// at random with the odds of Conquests' table for the difficulty level, with
+// a table of its own for Expansionist civs, which never find barbarians (see
+// BaseOdds and ExpansionistOdds).
 //
 // Which outcomes are possible follows the conditions Firaxis gave for Civ3
 // (see https://forums.civfanatics.com/threads/goody-huts.60142/ and
@@ -24,7 +22,11 @@ namespace C7Engine;
 // gold only where there's no resource, techs only in the Ancient era,
 // settlers only for civs with fewer cities than average and no settler of
 // their own, and barbarians only for non-expansionist civs with a city and a
-// military unit, away from any city.
+// military unit, away from any city. Maps and nothing are always possible.
+// An outcome that can't happen gets no odds, and the rest share its odds in
+// proportion to their own: the article names the conditions but not what
+// the game does when one isn't met, and dropping the outcome and weighing
+// the rest keeps the table's proportions between them.
 public static class GoodyHuts {
 	private static readonly ILogger log = Log.ForContext(typeof(GoodyHuts));
 
@@ -35,7 +37,47 @@ public static class GoodyHuts {
 		Settler,
 		City,
 		Barbarians,
+		// A map of the land around the hut.
+		Map,
+		Nothing,
 	}
+
+	// The odds of each outcome, in percent, on each difficulty level from
+	// Chieftain to Sid, from CivFanatics' "Probabilities of Goody Huts (C3C)"
+	// (https://civfanatics.com/civ3/strategy/game-mechanics/probabilities-of-goody-huts-c3c/),
+	// as transcribed by the project's owner (owner's decision, 2026-10-11).
+	internal const int LevelCount = 8;
+	internal static readonly IReadOnlyDictionary<Outcome, double[]> BaseOdds = new Dictionary<Outcome, double[]> {
+		[Outcome.City] = [5, 10, 5, 5, 5, 0, 0, 0],
+		[Outcome.Tech] = [35, 25, 20, 15, 10, 5, 0, 0],
+		[Outcome.Gold] = [15, 10, 10, 10, 5, 5, 5, 0],
+		[Outcome.Settler] = [15, 10, 10, 10, 5, 5, 0, 0],
+		[Outcome.Map] = [10, 10, 10, 10, 5, 5, 5, 5],
+		[Outcome.Unit] = [10, 10, 10, 10, 5, 5, 5, 5],
+		[Outcome.Nothing] = [0, 0, 0, 0, 0, 0, 0, 0],
+		[Outcome.Barbarians] = [10, 25, 35, 40, 65, 75, 85, 90],
+	};
+
+	// Expansionist civs' odds. The owner's note on the source: "Expansion
+	// gives the probabilities of one level lower (for Chieftain, there is no
+	// difference). Exception: City and Map are increased by 5 for Warlord and
+	// Chieftain." The values are the base table one level lower with the
+	// barbarians taken out and the rest scaled back up to 100%, and are used
+	// as given.
+	internal static readonly IReadOnlyDictionary<Outcome, double[]> ExpansionistOdds = new Dictionary<Outcome, double[]> {
+		[Outcome.City] = [10.0, 10.0, 13.3, 7.7, 8.3, 14.3, 0.0, 0.0],
+		[Outcome.Tech] = [35.0, 35.0, 33.3, 30.8, 25.0, 28.6, 20.0, 0.0],
+		[Outcome.Gold] = [15.0, 15.0, 13.3, 15.4, 16.7, 14.3, 20.0, 33.3],
+		[Outcome.Settler] = [15.0, 15.0, 13.3, 15.4, 16.7, 14.3, 20.0, 0.0],
+		[Outcome.Map] = [10.0, 10.0, 13.3, 15.4, 16.7, 14.3, 20.0, 33.3],
+		[Outcome.Unit] = [10.0, 10.0, 13.3, 15.4, 16.7, 14.3, 20.0, 33.3],
+		[Outcome.Nothing] = [5.0, 5.0, 0, 0, 0, 0, 0, 0],
+		[Outcome.Barbarians] = [0, 0, 0, 0, 0, 0, 0, 0],
+	};
+
+	// How far around the hut its map shows. UNVERIFIED: Civ3's map from a
+	// hut shows the area around it, but how much isn't documented.
+	internal const int MapRadius = 5;
 
 	// The unit a hut's warriors join as, if the rules have it.
 	internal const string HutUnitName = "Warrior";
@@ -46,20 +88,35 @@ public static class GoodyHuts {
 	internal const int AncientGold = 25;
 	internal const int GoldPerLaterEra = 25;
 
-	// How hard the game is for the player, from 0 (the easiest difficulty
-	// level) to 1 (the hardest). AIs, and games whose level isn't among the
-	// listed ones, count as halfway.
-	internal static double Hardness(GameData gameData, Player player) {
+	// The column of the odds tables for the player: the difficulty level's
+	// place among the game's levels, from 0 (Chieftain) to 7 (Sid). A ruleset
+	// with other than eight levels has its levels spread over the columns,
+	// its easiest on Chieftain's and its hardest on Sid's.
+	//
+	// AIs, and games whose level isn't among the listed ones, get Monarch's
+	// odds, the middle of the scale. UNVERIFIED: which odds Civ3 gives the
+	// AIs isn't documented.
+	internal const int MiddleLevel = 3;
+	internal static int Level(GameData gameData, Player player) {
 		if (!player.isHuman) {
-			return 0.5;
+			return MiddleLevel;
 		}
 		List<Difficulty> levels = gameData.difficulties;
 		Difficulty current = gameData.gameDifficulty;
 		int index = levels.FindIndex(d => d == current || (current?.Name != null && d.Name == current.Name));
 		if (index < 0 || levels.Count < 2) {
-			return 0.5;
+			return MiddleLevel;
 		}
-		return index / (double)(levels.Count - 1);
+		if (levels.Count == LevelCount) {
+			return index;
+		}
+		return (int)Math.Round(index * (LevelCount - 1) / (double)(levels.Count - 1));
+	}
+
+	// How hard the level is, from 0 (Chieftain) to 1 (Sid), for how many
+	// barbarians come out of a hut.
+	internal static double Hardness(int level) {
+		return level / (double)(LevelCount - 1);
 	}
 
 	// Opens the hut on the tile for the unit that entered it, if there is
@@ -73,14 +130,14 @@ public static class GoodyHuts {
 		TileChangeJournal.Record(tile);
 
 		Player player = unit.owner;
-		double hardness = Hardness(gameData, player);
-		Dictionary<Outcome, double> weights = Weigh(gameData, unit, tile, hardness);
+		int level = Level(gameData, player);
+		Dictionary<Outcome, double> weights = Weigh(gameData, unit, tile, level);
 		Outcome outcome = Pick(weights);
 		log.Information("{Player}'s {Unit} entered a goody hut at {Tile} and found {Outcome}", player, unit, tile, outcome);
 
-		string message = Apply(gameData, unit, tile, ref outcome, hardness);
+		string message = Apply(gameData, unit, tile, ref outcome, Hardness(level));
 		if (player.IsToldNews) {
-			new MsgShowMilitaryAdvisorPopup(player, message, happy: outcome != Outcome.Barbarians).send();
+			new MsgShowMilitaryAdvisorPopup(player, message, happy: outcome is not (Outcome.Barbarians or Outcome.Nothing)).send();
 		}
 
 		// What the hut brings up after the news goes after it, as the UI drops
@@ -97,31 +154,40 @@ public static class GoodyHuts {
 		return outcome;
 	}
 
-	// The odds of each outcome for this player. Outcomes that can't happen,
-	// like a tech when there's nothing left to learn, have none.
-	internal static Dictionary<Outcome, double> Weigh(GameData gameData, MapUnit unit, Tile tile, double hardness) {
+	// The odds of each outcome for this player, in percent, on the level
+	// (see Level). Outcomes that can't happen, like a tech when there's
+	// nothing left to learn, have none, and the rest are weighed against
+	// each other.
+	internal static Dictionary<Outcome, double> Weigh(GameData gameData, MapUnit unit, Tile tile, int level) {
 		Player player = unit.owner;
-		// Close to 1.25 on the easiest level, 0.75 on the hardest.
-		double generosity = 1.25 - 0.5 * hardness;
+		level = Math.Clamp(level, 0, LevelCount - 1);
+		bool expansionist = player.civilization?.traits.Contains(Civilization.Trait.Expansionist) == true;
+		IReadOnlyDictionary<Outcome, double[]> odds = expansionist ? ExpansionistOdds : BaseOdds;
 		List<Player> civs = gameData.players.Where(p => !p.isBarbarians && !p.defeated).ToList();
 
-		Dictionary<Outcome, double> weights = new() {
-			[Outcome.Gold] = tile.Resource == null || tile.Resource == Resource.NONE ? 30 : 0,
-			[Outcome.Unit] = HutUnitFor(gameData) != null ? 15 * generosity : 0,
+		// Settlers go only to civs with fewer cities than the average. Cities
+		// do too: UNVERIFIED, as the article gives no condition for a city
+		// beyond somewhere to found it.
+		bool behindOnCities = player.cities.Count < Average(civs, p => p.cities.Count);
+		Dictionary<Outcome, bool> possible = new() {
+			[Outcome.Gold] = tile.Resource == null || tile.Resource == Resource.NONE,
+			[Outcome.Unit] = HutUnitFor(gameData) != null,
+			[Outcome.Tech] = player.EraIndex() == 0 && TechsToLearn(gameData, player).Count > 0,
+			[Outcome.Settler] = behindOnCities && SettlerFor(gameData, player) != null && !HasSettler(player),
+			[Outcome.City] = behindOnCities && CanFoundCity(player, tile),
+			[Outcome.Barbarians] = CanReleaseBarbarians(gameData, unit, tile),
+			[Outcome.Map] = true,
+			[Outcome.Nothing] = true,
 		};
 
-		double techBehind = Average(civs, p => p.knownTechs.Count) - player.knownTechs.Count;
-		weights[Outcome.Tech] = player.EraIndex() == 0 && TechsToLearn(gameData, player).Count > 0
-			? (15 + 10 * Math.Clamp(techBehind, 0, 2)) * generosity
-			: 0;
-
-		// Settlers and cities only go to civs with fewer cities than average.
-		double citiesBehind = Average(civs, p => p.cities.Count) - player.cities.Count;
-		double catchUp = citiesBehind > 0 ? (10 + 10 * Math.Min(citiesBehind, 2)) * generosity : 0;
-		weights[Outcome.Settler] = SettlerFor(gameData, player) != null && !HasSettler(player) ? catchUp : 0;
-		weights[Outcome.City] = CanFoundCity(player, tile) ? catchUp : 0;
-
-		weights[Outcome.Barbarians] = CanReleaseBarbarians(gameData, unit, tile) ? 5 + 20 * hardness : 0;
+		Dictionary<Outcome, double> weights = new();
+		foreach (Outcome outcome in Enum.GetValues<Outcome>()) {
+			weights[outcome] = possible[outcome] ? odds[outcome][level] : 0;
+		}
+		// Should nothing on the table be possible, the hut is empty.
+		if (weights.Values.Sum() <= 0) {
+			weights[Outcome.Nothing] = 1;
+		}
 		return weights;
 	}
 
@@ -129,7 +195,7 @@ public static class GoodyHuts {
 		return civs.Count == 0 ? 0 : civs.Average(measure);
 	}
 
-	private static Outcome Pick(Dictionary<Outcome, double> weights) {
+	internal static Outcome Pick(Dictionary<Outcome, double> weights) {
 		double total = weights.Values.Sum();
 		double roll = GameData.rng.NextDouble() * total;
 		// Enum order, so the same roll always picks the same outcome.
@@ -142,7 +208,7 @@ public static class GoodyHuts {
 			}
 			roll -= weight;
 		}
-		return Outcome.Gold;
+		return Outcome.Nothing;
 	}
 
 	// Gives the player what they found, returning the news for a human. It
@@ -178,6 +244,12 @@ public static class GoodyHuts {
 					City city = CityInteractions.BuildCity(tile, player, player.GetNextCityName());
 					return $"The villagers have joined our civilization, founding the city of {city.name}!";
 				}
+			case Outcome.Map: {
+					RevealMap(player, tile);
+					return "The villagers have given us a map of the surrounding lands!";
+				}
+			case Outcome.Nothing:
+				return "The village is deserted. We found nothing of value.";
 			case Outcome.Barbarians: {
 					if (ReleaseBarbarians(gameData, tile, hardness) > 0) {
 						return "The village was full of barbarians, and they're out for blood!";
@@ -192,6 +264,17 @@ public static class GoodyHuts {
 					return $"The villagers have given us {gold} gold in tribute!";
 				}
 		}
+	}
+
+	// Shows the player the land around the hut, remembering it as it is now.
+	private static void RevealMap(Player player, Tile tile) {
+		foreach (Tile t in tile.GetTilesWithinRankDistance(MapRadius)) {
+			if (t != Tile.NONE) {
+				player.tileKnowledge.AddTileToKnown(t);
+				player.tileKnowledge.RememberImprovements(t);
+			}
+		}
+		player.tileKnowledge.RecomputeActiveTiles();
 	}
 
 	internal static int GoldFor(Player player) {
