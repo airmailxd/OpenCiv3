@@ -116,6 +116,12 @@ public class GameSetup {
 			worldCharacteristics.worldSize.numberOfCivs = civs;
 		}
 
+		// The seafaring civs picked for the game must start on the coast.
+		// Random civs that turn out seafaring are swapped for others if
+		// there aren't coastal starts enough (see AssignStartingLocations).
+		worldCharacteristics.coastalStartsNeeded = HumanPlayers().Count(h => h.civilization != null && IsSeafaring(h.civilization))
+			+ opponents.Count(o => !o.isRandom && save.Civilizations.FirstOrDefault(c => c.name == o.Name) is Civilization civ && IsSeafaring(civ));
+
 		string problem = null;
 		for (int attempt = 1; attempt <= MaxMapAttempts; ++attempt) {
 			if (attempt > 1) {

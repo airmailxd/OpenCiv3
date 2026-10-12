@@ -35,7 +35,7 @@ public class IslandStartsTest {
 		return map.continents.Where(c => c.First().IsLand()).ToList();
 	}
 
-	private static GameMap Generate(string worldSize, WorldCharacteristics.OceanCoverage ocean, int seed) {
+	private static GameMap Generate(string worldSize, WorldCharacteristics.OceanCoverage ocean, int seed, int coastalStartsNeeded = 0) {
 		SaveGame save = GameMode.Load(PathUtils.GameModesDir, new GameMode.Config("civ3")).GetSave();
 		WorldCharacteristics wc = new(save) {
 			landform = WorldCharacteristics.Landform.Archipelago,
@@ -46,6 +46,7 @@ public class IslandStartsTest {
 			barbarianActivity = BarbarianActivity.Roaming,
 			worldSize = save.WorldSizes.First(w => w.name == worldSize),
 			mapSeed = seed,
+			coastalStartsNeeded = coastalStartsNeeded,
 		};
 		return MapGenerator.GenerateMap(wc);
 	}
@@ -67,10 +68,16 @@ public class IslandStartsTest {
 	[InlineData("Tiny", WorldCharacteristics.OceanCoverage.Percent_80, 2)]
 	[InlineData("Tiny", WorldCharacteristics.OceanCoverage.Percent_80, 4)]
 	[InlineData("Large", WorldCharacteristics.OceanCoverage.Percent_60, 4)]
-	public void EveryCivStartsOnTheCoast(string worldSize, WorldCharacteristics.OceanCoverage ocean, int seed) {
-		GameMap map = Generate(worldSize, ocean, seed);
-		Assert.NotEmpty(map.startingLocations);
-		Assert.All(map.startingLocations, s => Assert.True(s.NeighborsOcean(), $"start at {s.XCoordinate},{s.YCoordinate} is inland"));
+	// Only the seafaring civs must start on the coast (owner's decision,
+	// 2026-10-12): the map has a coastal start for each of them, however
+	// many there are.
+	public void ThereIsACoastalStartForEachSeafaringCiv(string worldSize, WorldCharacteristics.OceanCoverage ocean, int seed) {
+		int civs = GameMode.Load(PathUtils.GameModesDir, new GameMode.Config("civ3")).GetSave().WorldSizes.First(w => w.name == worldSize).numberOfCivs;
+		foreach (int needed in new[] { 1, civs / 2, civs }) {
+			GameMap map = Generate(worldSize, ocean, seed, needed);
+			Assert.NotEmpty(map.startingLocations);
+			Assert.True(map.startingLocations.Count(s => s.NeighborsOcean()) >= needed, $"{needed} coastal starts needed: {map.startingLocations.Count(s => s.NeighborsOcean())}");
+		}
 	}
 
 	// No island holds more civs than it has room for, and civs share an

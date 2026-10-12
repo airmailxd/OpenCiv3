@@ -48,6 +48,10 @@ namespace C7Engine {
 
 		public int mapSeed = -1;
 		public WorldSize worldSize;
+		// How many of the starts must be next to the sea: one for each
+		// seafaring civ picked for the game (see GameSetup), which must start
+		// on the coast. Other civs may start anywhere.
+		public int coastalStartsNeeded;
 		public List<TerrainType> terrainTypes;
 		public List<Resource> resources = new();
 		public Government defaultGovernment = new();
@@ -142,6 +146,8 @@ namespace C7Engine {
 			problem = null;
 			if (gameMap.startingLocations.Count < wc.worldSize.numberOfCivs) {
 				problem = $"Only {gameMap.startingLocations.Count} of {wc.worldSize.numberOfCivs} starting locations fit at least {wc.worldSize.distanceBetweenCivs} apart in map coordinates";
+			} else if (gameMap.startingLocations.Count(s => s.NeighborsOcean()) < wc.coastalStartsNeeded) {
+				problem = $"Fewer than {wc.coastalStartsNeeded} coastal starting locations for the seafaring civs";
 			}
 
 			// Step 11: Add barb camps. We do this towards the end to make sure
@@ -2316,7 +2322,7 @@ namespace C7Engine {
 					bool islandEach = attempt < START_PLACEMENT_PASSES - 1
 						&& (archipelago || (largestIslandWithRoom > 0 && islands >= wc.worldSize.numberOfCivs * ISLAND_EACH_SHARE));
 					if (islandEach && leavesRoom == null) {
-						leavesRoom = TilesLeavingRoomForAnotherStart(wc, orderedTiles, scoredTiles, qualityFloor, continentSizes, tilesPerPlayer, archipelago, attempt);
+						leavesRoom = TilesLeavingRoomForAnotherStart(wc, orderedTiles, scoredTiles, qualityFloor, continentSizes, tilesPerPlayer, attempt);
 						islandsWithRoom = leavesRoom.Select(x => x.continent).ToHashSet();
 					}
 
@@ -2328,6 +2334,9 @@ namespace C7Engine {
 					// taken on the biggest island that still has room and a
 					// valid tile, so that the big islands fill up and the
 					// islands left empty are the smallest.
+					int coastalStarts = startingLocations.Count(s => s.NeighborsOcean());
+					bool mustBeCoastal = wc.worldSize.numberOfCivs - startingLocations.Count <= wc.coastalStartsNeeded - coastalStarts;
+
 					Tile t = null;
 					double bestValue = 0;
 					int bestIsland = 0;
@@ -2364,15 +2373,13 @@ namespace C7Engine {
 							continue;
 						}
 
-						// On an archipelago every civ starts on the coast
-						// (owner's decision, 2026-10-12: "on an archipelago a
-						// start should almost always be coastal"), even on the
-						// last pass: every island has a coast, and letting the
-						// last pass start a civ inland put one in the middle
-						// of a small island. Seafaring civs are given coastal
-						// starts when the starts are handed out (see
-						// GameSetup.AssignStartingLocations).
-						if (archipelago && !candidate.NeighborsOcean()) {
+						// Only seafaring civs must start on the coast; the
+						// others may start anywhere (owner's decision,
+						// 2026-10-12). When the starts left are only enough
+						// for the coastal ones still needed, they must be
+						// coastal. GameSetup.AssignStartingLocations gives
+						// the seafaring civs those starts.
+						if (mustBeCoastal && !candidate.NeighborsOcean()) {
 							continue;
 						}
 
@@ -2427,12 +2434,11 @@ namespace C7Engine {
 		// island the world size's distance between civs away, among the
 		// candidates the given pass of DetermineStartingLocations may take.
 		private static HashSet<Tile> TilesLeavingRoomForAnotherStart(WorldCharacteristics wc, List<Tile> orderedTiles, Dictionary<Tile, int> scoredTiles,
-				double qualityFloor, Dictionary<int, int> continentSizes, int tilesPerPlayer, bool archipelago, int attempt) {
+				double qualityFloor, Dictionary<int, int> continentSizes, int tilesPerPlayer, int attempt) {
 			HashSet<Tile> result = new();
 			IEnumerable<IGrouping<int, Tile>> islands = orderedTiles
 				.Where(t => attempt >= START_QUALITY_FLOOR_PASSES || scoredTiles[t] >= qualityFloor)
 				.Where(t => IsContinentLargeEnough(continentSizes, t.continent, attempt) && IslandCapacity(continentSizes[t.continent], tilesPerPlayer) > 1)
-				.Where(t => !archipelago || t.NeighborsOcean())
 				.GroupBy(t => t.continent);
 			foreach (IGrouping<int, Tile> island in islands) {
 				foreach (Tile t in island) {
@@ -2453,23 +2459,18 @@ namespace C7Engine {
 			return Math.Clamp(islandSize / tilesPerPlayer, 1, 3);
 		}
 
-		// A start next to the sea, or next to fresh water (a river or a
-		// lake), scores this many percent more. Not from Civ3, which says
-		// nothing of how it places starts: the owner asked that starts lean
-		// to the coast, ideally with fresh water too (2026-10-12). A coastal
-		// capital can build harbours and boats and reach other land early.
-		// The bonuses tip a choice between sites about as good, while a
-		// clearly better site still wins. Without the fresh water bonus,
-		// leaning to the coast took about a tenth of the starts away from
-		// rivers.
-		private const int COASTAL_START_BONUS_PERCENT = 8;
+		// A start next to fresh water (a river or a lake) scores this many
+		// percent more. Not from Civ3, which says nothing of how it places
+		// starts. It tips a choice between sites about as good, while a
+		// clearly better site still wins. Starts don't lean to the coast:
+		// only seafaring civs must start there (owner's decision,
+		// 2026-10-12; see coastalStartsNeeded).
 		private const int FRESH_WATER_START_BONUS_PERCENT = 5;
 
 		// A candidate start's score: the city site's (ScorePossibleCityLocation)
-		// with the coast and fresh water bonuses.
+		// with the fresh water bonus.
 		private static int StartScore(Tile t, int score) {
-			int bonus = (t.NeighborsOcean() ? COASTAL_START_BONUS_PERCENT : 0)
-				+ (t.BordersRiver() || t.NeighborsFreshWater() ? FRESH_WATER_START_BONUS_PERCENT : 0);
+			int bonus = t.BordersRiver() || t.NeighborsFreshWater() ? FRESH_WATER_START_BONUS_PERCENT : 0;
 			return score * (100 + bonus) / 100;
 		}
 

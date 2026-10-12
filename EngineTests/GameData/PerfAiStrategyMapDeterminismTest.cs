@@ -29,6 +29,8 @@ namespace EngineTests.GameData;
 // archipelago, to be on the coast), and again (the archipelago only) when
 // its islands came in different sizes and a big island came to hold
 // several civs.
+// And again when starts stopped leaning to the coast, with only the
+// seafaring civs' starts having to be coastal.
 //
 // Re-baselining: when a map generator change is MEANT to change the maps,
 // run only this test
@@ -91,9 +93,9 @@ public class PerfAiStrategyMapDeterminismTest {
 	}
 
 	[Theory]
-	[InlineData(WorldCharacteristics.Landform.Pangaea, 123456, "3176AB5099163806142ADD0173F6C08820DA3AC5B6A5C49B276B19D4CF41A0CD")]
-	[InlineData(WorldCharacteristics.Landform.Continents, 4242, "0025E5955EC55EEA19BF6E0A7514E76C027219E665BE99E8C9730E8A176B27DB")]
-	[InlineData(WorldCharacteristics.Landform.Archipelago, 777, "B4D731853451B291C9250AD2A433547FF82D365CAB5427CC04F1297F59F1A669")]
+	[InlineData(WorldCharacteristics.Landform.Pangaea, 123456, "B2B656D1D8F7032667757FB7CAABA7A2B797EF233A359B18C2FF0AB4481DB5BF")]
+	[InlineData(WorldCharacteristics.Landform.Continents, 4242, "CB09E66C312CCD8B7FAD5EF15021E75E152B15C650DBCACBECA82B3451302205")]
+	[InlineData(WorldCharacteristics.Landform.Archipelago, 777, "0415A000BDD9758641FBD7891A4963B9885F0F760E073C2A73A163183A13A42B")]
 	public void SameSeedProducesSameMap(WorldCharacteristics.Landform landform, int seed, string expectedHash) {
 		string hash = HashMap(Generate(landform, seed));
 		output.WriteLine($"{landform} {seed}: {hash}");
