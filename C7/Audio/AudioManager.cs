@@ -44,6 +44,33 @@ public partial class AudioManager : Node {
 
 		ambienceAudioEnabled = ConfigureVolume("ambienceAudioVolume", AmbienceAudioBus);
 		_polyAmbienceAudioPlayer = new PolyphonicAudioPlayer(ambienceAudioPlayer, 8);
+
+		ApplySoundPreferences();
+		Preferences.Changed += OnPreferenceChanged;
+	}
+
+	public override void _ExitTree() {
+		Preferences.Changed -= OnPreferenceChanged;
+		base._ExitTree();
+	}
+
+	private void OnPreferenceChanged(Preferences.Option option) {
+		if (option is Preferences.Option.AllSoundsOn or Preferences.Option.MusicOn or Preferences.Option.SoundFxOn) {
+			ApplySoundPreferences();
+		}
+	}
+
+	// The preferences' All Sounds On, Music On and Sound FX On mute the
+	// buses, on top of a volume of 0 muting its own.
+	private void ApplySoundPreferences() {
+		AudioServer.SetBusMute(0, !Preferences.AllSoundsOn);
+		foreach ((string key, string bus, string _) in VolumeSettings) {
+			AudioServer.SetBusMute(AudioServer.GetBusIndex(bus), GetVolume(key) == 0 || MutedByPreferences(bus));
+		}
+	}
+
+	private static bool MutedByPreferences(string audioBus) {
+		return audioBus == MusicBus ? !Preferences.MusicOn : !Preferences.SoundFxOn;
 	}
 
 	private bool ConfigureVolume(string volumeKey, string audioBus) {
@@ -52,7 +79,7 @@ public partial class AudioManager : Node {
 			float volumeDb = LogicalVolumeAsDecibel(volume, volumeKey);
 
 			int busIndex = AudioServer.GetBusIndex(audioBus);
-			AudioServer.SetBusMute(busIndex, volumeDb == float.MinValue);
+			AudioServer.SetBusMute(busIndex, volumeDb == float.MinValue || MutedByPreferences(audioBus));
 			if (volumeDb == float.MinValue) {
 				return false;
 			}

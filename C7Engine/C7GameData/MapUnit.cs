@@ -433,7 +433,8 @@ namespace C7GameData {
 			var animationsEnabled = EngineStorage.animationsEnabled && !EngineStorage.gameData.observerMode;
 			var skipAnimations = SkipAnimations(action);
 
-			if (animationsEnabled && !skipAnimations && IsAnimationVisibleToUIPlayer()) {
+			if (animationsEnabled && !skipAnimations && IsAnimationVisibleToUIPlayer()
+					&& (EngineStorage.uiShowsUnitAnimation?.Invoke(this, action) ?? true)) {
 				var msg = new MsgStartUnitAnimation(this, action, ending);
 				msg.send();
 

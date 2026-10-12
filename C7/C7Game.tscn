@@ -303,6 +303,7 @@ script = ExtResource("9")
 control = NodePath("../Control")
 
 [node name="PopupSound" type="AudioStreamPlayer" parent="CanvasLayer/PopupOverlay"]
+bus = &"UI"
 
 [node name="LoadDialog" parent="." instance=ExtResource("12_yjlfl")]
 unique_name_in_owner = true

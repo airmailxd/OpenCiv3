@@ -80,6 +80,14 @@ namespace C7Engine {
 
 		internal static bool animationsEnabled = false;
 
+		// Whether this machine's UI would show a unit's animation, or an
+		// effect on a tile (its player's preferences, such as whose moves to
+		// show). Asked before an animation is sent, so the engine doesn't
+		// wait for one the UI would only mark finished. They decide what's
+		// shown, never what happens. Null shows them all.
+		public static Func<MapUnit, MapUnit.AnimatedAction, bool> uiShowsUnitAnimation;
+		public static Func<Tile, bool> uiShowsEffectAnimation;
+
 		// Set while a LAN guest predicts one of its own orders (see
 		// MovePrediction): the host tells its UI what came of the order, so
 		// nothing is sent to the UI meanwhile but animations.

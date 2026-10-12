@@ -629,6 +629,7 @@ namespace C7GameData {
 			// just marks the others completed on its next frame. Skip those
 			// here so the engine doesn't wait a frame for nothing.
 			if (!IsVisibleToUIPlayer(this)) return;
+			if (!(EngineStorage.uiShowsEffectAnimation?.Invoke(this) ?? true)) return;
 
 			var msg = new MsgStartEffectAnimation(this, effect, AnimationEnding.Stop);
 			msg.send();
