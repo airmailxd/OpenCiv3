@@ -247,7 +247,7 @@ public partial class Civilopedia : CenterContainer {
 	}
 
 	// Reads Civilopedia.txt and PediaIcons.txt, again only if the game's
-	// scenario uses others.
+	// scenario, or a switch to or from standalone mode, means others.
 	private static void LoadLegacyFiles() {
 		string newTextPath = MediaPath("Text/Civilopedia.txt");
 		if (text == null || newTextPath != textPath) {
@@ -269,11 +269,7 @@ public partial class Civilopedia : CenterContainer {
 	}
 
 	private static string MediaPath(string relative) {
-		try {
-			return Util.Civ3MediaPath(relative);
-		} catch (Exception) {
-			return null;
-		}
+		return CivilopediaArt.FindFile(relative)?.Path;
 	}
 
 	private Texture2D EntryIcon(CivilopediaEntry entry, bool large) {
@@ -296,7 +292,7 @@ public partial class Civilopedia : CenterContainer {
 		};
 		window.AddChild(background);
 
-		// A plain frame, for when Civ3's art is missing.
+		// A plain frame, for when the art is missing.
 		if (CivilopediaArt.Load(CivilopediaArt.Folder + "civilopediaBackground.pcx") == null) {
 			window.AddChild(new ColorRect { Color = new Color("c8c0a0"), Position = new Vector2(173, 12), Size = new Vector2(676, 734), MouseFilter = MouseFilterEnum.Ignore });
 			window.AddChild(new ColorRect { Color = new Color("f2e8c8"), Position = new Vector2(199, 110), Size = new Vector2(470, 602), MouseFilter = MouseFilterEnum.Ignore });
@@ -637,7 +633,7 @@ public partial class Civilopedia : CenterContainer {
 	}
 
 	// Covers part of a page that has nothing to show, with one of the
-	// pieces of art Civ3 has for that.
+	// pieces of art for that.
 	private void Cover(string file) {
 		Texture2D texture = CivilopediaArt.Load(CivilopediaArt.Folder + file);
 		if (texture != null) {

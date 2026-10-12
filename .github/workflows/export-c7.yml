@@ -52,7 +52,7 @@ jobs:
         godot -v --headless --export${BUILD_SUFFIX} "Windows Desktop" ../build/${FOLDER_NAME}/${EXPORT_NAME}.exe
     - name: Copy Static Files
       run: |
-        for dir in Text Assets Lua ModernArt; do
+        for dir in Text Assets Lua ModernArt Civilopedia; do
           cp -r ${PROJECT_DIR}/${dir} build/${FOLDER_NAME}/${dir} || {
             echo "::error title=Static File Copy Failed::Failed to copy ${dir} into the build"
             exit 1
@@ -102,7 +102,7 @@ jobs:
           EngineTests/TestResults/**/*.xml
     - name: Copy Static Files
       run: |
-        for dir in Text Assets Lua ModernArt; do
+        for dir in Text Assets Lua ModernArt Civilopedia; do
           cp -r ${PROJECT_DIR}/${dir} build/${FOLDER_NAME}/${dir} || {
             echo "::error title=Static File Copy Failed::Failed to copy ${dir} into the build"
             exit 1
@@ -137,7 +137,7 @@ jobs:
     - name: Copy Static Files
       run: |
         cd ${PROJECT_DIR}
-        if zip -r ../build/${FOLDER_NAME}.zip Assets Text Lua ModernArt
+        if zip -r ../build/${FOLDER_NAME}.zip Assets Text Lua ModernArt Civilopedia
         then
           echo "successfully copied static files to build"
         else

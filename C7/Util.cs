@@ -854,6 +854,7 @@ public partial class Util {
 		PCXToGodot.ClearCache();
 		TextureLoader.ClearCache();
 		ModernGraphics.ClearCache();
+		CivilopediaArt.ClearCache();
 		AnimationManager.ClearCache();
 		PlayerTextureUtil.ClearCache();
 		UICaches.Clear();

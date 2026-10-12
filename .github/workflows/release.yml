@@ -58,14 +58,14 @@ jobs:
       run: |
         case "${{ matrix.platform }}" in
           mac)
-            cd ${PROJECT_DIR} && zip -q -r ../build/mac.zip Assets Text Lua ModernArt
+            cd ${PROJECT_DIR} && zip -q -r ../build/mac.zip Assets Text Lua ModernArt Civilopedia
             ;;
           linux)
-            cp -r ${PROJECT_DIR}/Text ${PROJECT_DIR}/Assets ${PROJECT_DIR}/Lua ${PROJECT_DIR}/ModernArt build/OpenCiv3/
+            cp -r ${PROJECT_DIR}/Text ${PROJECT_DIR}/Assets ${PROJECT_DIR}/Lua ${PROJECT_DIR}/ModernArt ${PROJECT_DIR}/Civilopedia build/OpenCiv3/
             tar -C build -zcf build/linux.tar.gz OpenCiv3
             ;;
           windows)
-            cp -r ${PROJECT_DIR}/Text ${PROJECT_DIR}/Assets ${PROJECT_DIR}/Lua ${PROJECT_DIR}/ModernArt build/OpenCiv3/
+            cp -r ${PROJECT_DIR}/Text ${PROJECT_DIR}/Assets ${PROJECT_DIR}/Lua ${PROJECT_DIR}/ModernArt ${PROJECT_DIR}/Civilopedia build/OpenCiv3/
             cd build && zip -q -r windows.zip OpenCiv3
             ;;
         esac

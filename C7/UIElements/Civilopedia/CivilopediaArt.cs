@@ -1,33 +1,69 @@
 using System;
 using System.Collections.Generic;
+using C7Engine;
 using C7GameData;
 using Godot;
 using Serilog;
 
 // The Civilopedia's art: the page backgrounds, buttons and colored bars in
 // Art/Civilopedia, and the icons of its entries listed in PediaIcons.txt.
-// Anything missing (e.g. in standalone mode, which has no Civ3 art) loads as
-// null, and the Civilopedia draws without it.
+// It comes from Civ3, or from the Civilopedia folder OpenCiv3 ships (see
+// CivilopediaFiles), which is all there is in standalone mode. Anything
+// missing loads as null, and the Civilopedia draws without it.
 public static class CivilopediaArt {
 	private static readonly ILogger log = Log.ForContext(typeof(CivilopediaArt));
 
 	public const string Folder = "Art/Civilopedia/";
 	public const string IconFolder = "Art/Civilopedia/Icons/";
 
-	// The paths that failed to load, so each is only tried (and logged) once.
-	private static readonly HashSet<string> missing = new(StringComparer.OrdinalIgnoreCase);
+	// Our own Civilopedia, shipped next to the game like ModernArt.
+	public static string OurFolder => OS.HasFeature("editor")
+		? "res://Civilopedia"
+		: System.IO.Path.Combine(GamePaths.BaseDir, "Civilopedia");
+
+	// The textures by media path, null for those that couldn't be loaded,
+	// so each is only tried (and logged) once.
+	private static readonly Dictionary<string, Texture2D> textures = new(StringComparer.OrdinalIgnoreCase);
+
+	// The file for a media path, like Text/Civilopedia.txt, or null if
+	// neither Civ3 nor our folder has it.
+	public static CivilopediaFiles.Found? FindFile(string mediaPath) {
+		return CivilopediaFiles.Find(mediaPath, C7Settings.UseStandaloneMode(), InCiv3, InOurFolder);
+	}
+
+	private static string InCiv3(string mediaPath) {
+		try {
+			return Util.Civ3MediaPath(mediaPath);
+		} catch (ApplicationException) {
+			return null;
+		}
+	}
+
+	private static string InOurFolder(string path) => Util.FileExistsIgnoringCase(OurFolder, path);
 
 	public static Texture2D Load(string path) {
-		if (string.IsNullOrEmpty(path) || missing.Contains(path)) {
+		if (string.IsNullOrEmpty(path)) {
 			return null;
+		}
+		path = path.Replace('\\', '/');
+		if (textures.TryGetValue(path, out Texture2D texture)) {
+			return texture;
 		}
 		try {
-			return TextureLoader.LoadByPath(path.Replace('\\', '/'));
+			CivilopediaFiles.Found? file = FindFile(path);
+			if (file is { IsOurs: true } ours) {
+				texture = ImageTexture.CreateFromImage(Image.LoadFromFile(ours.Path));
+			} else if (file != null) {
+				texture = TextureLoader.LoadByPath(path);
+			}
 		} catch (Exception e) {
-			missing.Add(path);
-			log.Debug("No Civilopedia art at {path}: {message}", path, e.Message);
-			return null;
+			log.Debug("Could not load Civilopedia art at {path}: {message}", path, e.Message);
 		}
+		if (texture == null) {
+			log.Debug("No Civilopedia art at {path}", path);
+		}
+		textures[path] = texture;
+		return texture;
 	}
 
 	// A part of a sprite sheet, or null if the sheet is missing.
@@ -39,8 +75,10 @@ public static class CivilopediaArt {
 		return new AtlasTexture { Atlas = sheet, Region = new Rect2(x, y, width, height) };
 	}
 
-	public static void ForgetMissing() {
-		missing.Clear();
+	// Forgets the textures, as when standalone mode is switched and they'd
+	// come from elsewhere.
+	public static void ClearCache() {
+		textures.Clear();
 	}
 
 	// The color of the bar behind an entry's name, which differs by section.
