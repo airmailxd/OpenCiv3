@@ -127,6 +127,7 @@ namespace C7Engine {
 					if (data.port != null) {
 						return GoToPort(unit, player);
 					} else {
+						KeepToOurLandIfAlone(unit, data.destination);
 						C7GameData.UnitAI.MoveResult moveResult = this.TryToMoveAlongPath(unit, ref data.pathToDestination);
 						if (moveResult.Result == C7GameData.UnitAI.Result.Error) {
 							return FindNewDestination(unit, player);
@@ -138,6 +139,29 @@ namespace C7Engine {
 			}
 
 			return C7GameData.UnitAI.Result.Done;
+		}
+
+		// What a step outside our territory costs an unescorted settler on
+		// top of its moves, in turns of movement (a step on open ground costs
+		// a settler one): a settler alone takes up to this many more steps
+		// within our borders to save a step outside them.
+		private const float OUTSIDE_TERRITORY_STEP_COST = 2;
+
+		// A settler without an escort goes the way with the fewest moves
+		// outside our territory, where it could be captured, rather than
+		// the shortest (owner's decision, 2026-10-12: "make unescorted
+		// settlers prioritize minimal moves past owned territory"). The
+		// path is found again each turn it moves alone, as the borders and
+		// its escort may change.
+		private void KeepToOurLandIfAlone(MapUnit unit, Tile destination) {
+			if (data.escort != null) {
+				return;
+			}
+			AStarAlgorithm algorithm = new(unit) { OutsideTerritoryCost = OUTSIDE_TERRITORY_STEP_COST };
+			TilePath path = algorithm.PathFrom(unit.location, destination, unit);
+			if (path != null && path.PathLength() > 0) {
+				data.pathToDestination = path;
+			}
 		}
 
 		// How far, in tiles, a settler looks for a spare unit to escort it.
@@ -188,6 +212,7 @@ namespace C7Engine {
 			Tile port = data.port.location;
 			if (unit.location != port) {
 				data.waitingSinceTurn = -1;
+				KeepToOurLandIfAlone(unit, port);
 				C7GameData.UnitAI.MoveResult moveResult = this.TryToMoveAlongPath(unit, ref data.pathToDestination);
 				if (moveResult.Result == C7GameData.UnitAI.Result.Error) {
 					return GiveUpSailing(unit, player);

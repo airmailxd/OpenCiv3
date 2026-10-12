@@ -521,3 +521,31 @@ public sealed class AStarPathFindingWaterUnitTest : MapBase {
 		Assert.True(tilePath.path.Contains(destination));
 	}
 }
+
+// With a cost on steps outside the owner's territory (see SettlerAI), the
+// path keeps to the owner's land when that's not much longer.
+public sealed class AStarOutsideTerritoryTest : MapBase {
+	[Fact]
+	private void APathKeepsToOurLandWhenStepsOutsideCostMore() {
+		InitilizeStartTile(MakePlainsTile(), new TileLocation(50, 50));
+		// The short way, two steps east over land nobody owns, and the long
+		// way, three steps round through our own land.
+		Tile outside = AddNeighborsAndUpdateMap(startTile, MakePlainsTile(), TileDirection.EAST);
+		Tile destination = AddNeighborsAndUpdateMap(outside, MakePlainsTile(), TileDirection.EAST);
+		Tile ours1 = AddNeighborsAndUpdateMap(startTile, MakePlainsTile(), TileDirection.NORTHEAST);
+		Tile ours2 = AddNeighborsAndUpdateMap(ours1, MakePlainsTile(), TileDirection.EAST);
+		ours2.neighbors[TileDirection.SOUTHWEST] = destination;
+
+		MapUnit unit = MakeLandUnit();
+		City city = new(startTile, unit.owner, "Home", ID.None(""));
+		startTile.cityAtTile = city;
+		ours1.owningCity = city;
+		ours2.owningCity = city;
+
+		TilePath shortest = new AStarAlgorithm(unit).PathFrom(startTile, destination, unit);
+		Assert.Equal([outside, destination], shortest.path);
+
+		TilePath ours = new AStarAlgorithm(unit) { OutsideTerritoryCost = 2 }.PathFrom(startTile, destination, unit);
+		Assert.Equal([ours1, ours2, destination], ours.path);
+	}
+}

@@ -25,6 +25,13 @@ namespace C7Engine.Pathing {
 		// turned off by tests that compare against the plain heuristic.
 		internal static bool UseLandmarks = true;
 
+		// Added to the cost of each step onto a tile outside the unit's
+		// owner's territory, so that the path keeps to our own land where
+		// it can (see SettlerAI). Zero for the plain shortest path. Only
+		// adding to step costs keeps the heuristic a lower bound, so the
+		// paths found are still the cheapest by these costs.
+		public float OutsideTerritoryCost;
+
 		// Creates an A* search specialized for moving the given unit.
 		public AStarAlgorithm(MapUnit unit) {
 			this.unit = unit;
@@ -309,6 +316,9 @@ namespace C7Engine.Pathing {
 					}
 
 					float edgeCost = UnitWalker.EdgeCost(owner, currentTile, pair.Key, neighbor, movementPoints);
+					if (OutsideTerritoryCost > 0 && neighbor.OwningPlayer() != owner) {
+						edgeCost += OutsideTerritoryCost;
+					}
 					Relax(ctx, current, id, neighbor, destination, currentCost + edgeCost, maxCost, heuristicScale, landmarks);
 				}
 			}
