@@ -12783,6 +12783,9 @@
       "prerequisites": [
         "tech-9",
         "tech-4"
+      ],
+      "flags": [
+        "enablesRightOfPassage"
       ]
     },
     {

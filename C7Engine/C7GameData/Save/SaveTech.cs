@@ -14,6 +14,9 @@ namespace C7GameData.Save {
 			EnablesIrrigationEverywhere,
 			// Workers work twice as fast (Replaceable Parts in Civ3).
 			DoublesWorkerRate,
+			// Civs may sign right of passage agreements (Map Making in
+			// Civ3).
+			EnablesRightOfPassage,
 		}
 
 		public ID id;
@@ -52,6 +55,7 @@ namespace C7GameData.Save {
 				DoublesWealthProduction = this.flags.Contains(Flag.DoublesWealthProduction),
 				EnablesIrrigationEverywhere = this.flags.Contains(Flag.EnablesIrrigationEverywhere),
 				DoublesWorkerRate = this.flags.Contains(Flag.DoublesWorkerRate),
+				EnablesRightOfPassage = this.flags.Contains(Flag.EnablesRightOfPassage),
 				EraCivilopediaName = this.EraCivilopediaName,
 				SmallIconPath = this.SmallIconPath,
 				X = this.X,

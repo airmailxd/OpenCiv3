@@ -9,6 +9,14 @@ namespace C7GameData {
 		// the agreement.
 		public bool partOfPeaceTreaty = false;
 
+		// A right of passage is mutual (see RightOfPassage), so like a peace
+		// treaty it is on the table if either side's offer has it.
+		public bool rightOfPassage = false;
+
+		public static bool IncludesRightOfPassage(TradeOffer a, TradeOffer b) {
+			return (a?.rightOfPassage ?? false) || (b?.rightOfPassage ?? false);
+		}
+
 		public int? gold = null;
 		public List<Tech> techs = new();
 
@@ -104,6 +112,18 @@ namespace C7GameData {
 			if (peace && gameData.AreInLockedWar(proposer, opponent)) {
 				return "the players' alliances are at war";
 			}
+			// UNVERIFIED (no Civ3 source found): that a peace treaty can't
+			// come with a right of passage. A right of passage needs peace
+			// (RightOfPassage.ProblemSigning), which the treaty only makes.
+			if (IncludesRightOfPassage(proposerGives, proposerWants)) {
+				if (peace) {
+					return "a right of passage can't be part of a peace treaty";
+				}
+				string problem = RightOfPassage.ProblemSigning(gameData, proposer, opponent);
+				if (problem != null) {
+					return problem;
+				}
+			}
 
 			return proposerGives.ProblemGiving(gameData, proposer, opponent)
 				?? proposerWants.ProblemGiving(gameData, opponent, proposer);
@@ -157,6 +177,7 @@ namespace C7GameData {
 
 		public void Clear() {
 			partOfPeaceTreaty = false;
+			rightOfPassage = false;
 			gold = null;
 			techs.Clear();
 			cities.Clear();
@@ -166,6 +187,9 @@ namespace C7GameData {
 			List<string> pieces = new();
 			if (partOfPeaceTreaty) {
 				pieces.Add("peace treaty");
+			}
+			if (rightOfPassage) {
+				pieces.Add("right of passage");
 			}
 			if (gold != null) {
 				pieces.Add($"{gold.Value} gold");

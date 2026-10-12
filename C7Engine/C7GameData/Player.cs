@@ -545,33 +545,22 @@ namespace C7GameData {
 			return this.isBarbarians || this.skipFirstTurn;
 		}
 
+		// Whether the player's units get the roads' and railroads' movement
+		// between the two tiles. "Rival civilizations cannot benefit from the
+		// roads or rails within your territory without a right of passage
+		// agreement" (Conquests Civilopedia, GCON_Territory), so both tiles
+		// must be unowned, ours, or a right of passage partner's: a road
+		// from a partner's land into a third civ's is no faster.
 		public static bool CanMoveFreely(Player player, Tile sourceTile, Tile targetTile) {
 			if (!player.HasExploredTile(targetTile))
 				return true;
 
-			Player targetTileOwner = targetTile.OwningPlayer();
-			Player sourceTileOwner = sourceTile.OwningPlayer();
+			return MayUseRoadsOn(player, sourceTile.OwningPlayer())
+				&& MayUseRoadsOn(player, targetTile.OwningPlayer());
+		}
 
-			// We are free to move if:
-			// - the tile we are on is unowned, or we own the tile
-			// - and the tile we are moving to is unowned, or we own the tile
-			if ((sourceTileOwner == null || sourceTileOwner == player)
-				&& (targetTileOwner == player || targetTileOwner == null))
-				return true;
-
-			// All the other cases are either from or to "enemy" tiles
-			// and without a RoP agreement the cost is never reduced.
-			// check other && RoP
-			if (sourceTileOwner != null && sourceTileOwner != player
-				&& HaveActiveRightOfPassage(player, sourceTileOwner)) {
-				return true;
-			}
-			if (targetTileOwner != null && targetTileOwner != player
-				&& HaveActiveRightOfPassage(player, targetTileOwner)) {
-				return true;
-			}
-
-			return false;
+		private static bool MayUseRoadsOn(Player player, Player tileOwner) {
+			return tileOwner == null || tileOwner == player || HaveActiveRightOfPassage(player, tileOwner);
 		}
 
 		public bool KnowsAboutResource(Resource resource) {
@@ -772,6 +761,9 @@ namespace C7GameData {
 			if (ourOffer.cities.Count > 0) {
 				return false;
 			}
+			if (TradeOffer.IncludesRightOfPassage(theirOffer, ourOffer)) {
+				return C7Engine.AI.RightOfPassageAI.WouldAccept(gameData, this, other, theirGoldValue, ourGoldValue);
+			}
 			return theirGoldValue >= ourGoldValue;
 		}
 
@@ -790,6 +782,9 @@ namespace C7GameData {
 			log.Information("  {Other} gives {Offer}, worth {Gold} gold)", other, theirOffer.ToString(), theirOffer.GoldEquivalentFor(gameData, this));
 			if (theirOffer.partOfPeaceTreaty || ourOffer.partOfPeaceTreaty) {
 				SignPeaceAfterWar(this, other, gameData);
+			}
+			if (TradeOffer.IncludesRightOfPassage(theirOffer, ourOffer)) {
+				RightOfPassage.Sign(gameData, this, other);
 			}
 
 			if (ourOffer.gold.HasValue) {

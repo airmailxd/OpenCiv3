@@ -2347,6 +2347,7 @@ namespace C7GameData {
 				(t.DoublesWealthProduction, SaveTech.Flag.DoublesWealthProduction),
 				(t.EnablesIrrigationEverywhere, SaveTech.Flag.EnablesIrrigationEverywhere),
 				(t.DoublesWorkerRate, SaveTech.Flag.DoublesWorkerRate),
+				(t.EnablesRightOfPassage, SaveTech.Flag.EnablesRightOfPassage),
 			}
 			.Where(t => t.Item1)
 			.Select(t => t.Item2);

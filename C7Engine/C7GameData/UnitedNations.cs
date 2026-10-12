@@ -511,9 +511,10 @@ namespace C7Engine {
 				good -= 1;
 			}
 			bool HasDeal(params DealSubType[] types) => pr.multiTurnDeals.Any(d => types.Contains(d.dealSubType));
-			if (HasDeal(DealSubType.RightOfPassage)) {
-				good -= 5;
-			}
+			// "ROP is one of them that still gives you the full points no
+			// matter who has the power lead", so it is added after the
+			// halving below.
+			int rightOfPassage = HasDeal(DealSubType.RightOfPassage) ? -5 : 0;
 			if (HasDeal(DealSubType.MutualProtectionPact)) {
 				good -= 10;
 			}
@@ -548,27 +549,32 @@ namespace C7Engine {
 			if (candidate.CompareMilitaryStrengthTo(voter) == Player.MilitaryStrength.StrongTo) {
 				good /= 2;
 			}
+			good += rightOfPassage;
 
 			// Bad things (positive points), which the study counts for good:
 			// "Declared war previously: +4", "Break ROP (no units in
 			// territory): +4", "Failed espionage (permanent): +1", "Use nukes:
-			// +32 victim (other civs: +16)". UNVERIFIED: the engine doesn't
-			// record whether units were inside the borders when a Right of
-			// Passage was broken (+6 then), the temporary +4 of a failed
-			// mission, or who a nuclear attack hit, so each counts as given.
+			// +32 victim (other civs: +16)", and "+6 If you have any units
+			// in their territory when you break the ROP treaty, ... other
+			// civs ... will add +2". UNVERIFIED: the engine doesn't record
+			// the temporary +4 of a failed mission, or who a nuclear attack
+			// hit, so each counts as given.
 			int bad = 4 * pr.warDeclarationCount
-				+ 4 * pr.warDeclarationWithRoPActiveCount
+				+ 4 * (pr.warDeclarationWithRoPActiveCount - pr.rightOfPassageBetrayals)
+				+ 6 * pr.rightOfPassageBetrayals
 				+ pr.espionageIncidents
 				+ 16 * pr.nuclearAtrocityCount;
 
 			// Reputation: what the candidate did to other civs. The study's
 			// "Break peace treaty: +4 (other civs: +1)" and "Break ROP (no
-			// units in territory): +4 (other civs: +1)". UNVERIFIED: that
+			// units in territory): +4 (other civs: +1)", with units inside
+			// "other civs ... will add +2" (one more here). UNVERIFIED: that
 			// every war the candidate declared broke a peace treaty.
 			foreach (Player other in gameData.players) {
 				if (other != voter && other != candidate
 					&& PlayerRelationship.TryGetRelationship(other, candidate, out PlayerRelationship victim)) {
-					bad += victim.warDeclarationCount + victim.warDeclarationWithRoPActiveCount;
+					bad += victim.warDeclarationCount + victim.warDeclarationWithRoPActiveCount
+						+ victim.rightOfPassageBetrayals;
 				}
 			}
 			// "Trade embargo victim: +10": the candidate signed an embargo

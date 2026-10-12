@@ -76,6 +76,7 @@ public partial class DealScreen : TextureRect {
 			Player opponentPlayer = gD.players.Find(x => x.id == opponentPlayerId);
 			Player humanPlayer = gD.players.Find(x => x.id == humanPlayerId);
 			bool playersAtWar = AtWar(humanPlayer, opponentPlayer);
+			bool canSignRightOfPassage = !playersAtWar && RightOfPassage.CanSign(gD, humanPlayer, opponentPlayer);
 			GetParent<Diplomacy>().AddLeaderHeadAndLabel(this, opponentPlayer, fontTheme);
 
 			// Figure out which technologies can be traded by each player, if any.
@@ -87,7 +88,7 @@ public partial class DealScreen : TextureRect {
 
 			// Left hand side UI components.
 			opponentTree = new TradingTree(fontTheme, opponentPlayer.gold, techsOpponentCanTrade, citiesOpponentCanTrade,
-				opponentOffer, playersAtWar);
+				opponentOffer, playersAtWar, canSignRightOfPassage);
 			AddChild(opponentTree);
 			opponentTree.Position = new Vector2(45, 220);
 
@@ -103,7 +104,8 @@ public partial class DealScreen : TextureRect {
 			opponentOfferUi.Position = new Vector2(314, 453);
 
 			// Right hand side UI components.
-			humanTree = new TradingTree(fontTheme, humanPlayer.gold, techsHumanCanTrade, citiesHumanCanTrade, humanOffer, playersAtWar);
+			humanTree = new TradingTree(fontTheme, humanPlayer.gold, techsHumanCanTrade, citiesHumanCanTrade, humanOffer, playersAtWar,
+				canSignRightOfPassage);
 			AddChild(humanTree);
 			humanTree.Position = new Vector2(789, 220);
 
@@ -369,8 +371,16 @@ public partial class DealScreen : TextureRect {
 
 			int theirGoldValue = opponentOffer.GoldEquivalentFor(gD, opponentPlayer);
 			int ourGoldValue = humanOffer.GoldEquivalentFor(gD, opponentPlayer);
-			opponentResponse.Text =
-				$"\"I value my offer at {theirGoldValue} gold and I value your offer at {ourGoldValue} gold\"";
+			string text = $"I value my offer at {theirGoldValue} gold and I value your offer at {ourGoldValue} gold";
+			if (TradeOffer.IncludesRightOfPassage(humanOffer, opponentOffer)) {
+				// What the AI weighs it at (see RightOfPassageAI).
+				if (C7Engine.AI.RightOfPassageAI.Refuses(gD, opponentPlayer, humanPlayer)) {
+					text += ", and I will not sign a right of passage with you";
+				} else {
+					text += $", and a right of passage at {C7Engine.AI.RightOfPassageAI.Worth(gD, opponentPlayer, humanPlayer)} gold";
+				}
+			}
+			opponentResponse.Text = $"\"{text}\"";
 		});
 	}
 }

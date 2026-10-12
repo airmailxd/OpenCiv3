@@ -30,6 +30,13 @@ public class PlayerRelationship {
 	// TODO: contribute towards reputation
 	public int warDeclarationWithRoPActiveCount = 0;
 
+	// p1.playerRelationships[p2].rightOfPassageBetrayals is the number of
+	// those times p2 had units inside p1's borders: a sneak attack, after
+	// which "other civs won't sign ROP with you anymore"
+	// (https://civfanatics.com/civ3/strategy/game-mechanics/ai-attitude-study/;
+	// see RightOfPassage.HasBetrayed).
+	public int rightOfPassageBetrayals = 0;
+
 	// p1.playerRelationships[p2].nuclearAtrocityCount is the number of
 	// nuclear attacks p2 has made (on anyone) since p1 knew them. Civ3
 	// treats using nuclear weapons as an atrocity every civ resents.
@@ -173,6 +180,12 @@ public class PlayerRelationship {
 		// increment the times the aggressor has declared war on the defender while there is an active RoP
 		if (HaveActiveRightOfPassage(aggressor, defender)) {
 			defenderRelationshipToAggressor.warDeclarationWithRoPActiveCount++;
+			// The aggressor's units, let in by the agreement, are still
+			// inside: Civ3 leaves them there to attack from (see
+			// RightOfPassage), but nobody trusts it with one again.
+			if (sneakAttack) {
+				defenderRelationshipToAggressor.rightOfPassageBetrayals++;
+			}
 		}
 
 		// update whether the defender was sneak attacked

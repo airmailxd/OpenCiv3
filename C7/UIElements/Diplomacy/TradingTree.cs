@@ -14,6 +14,7 @@ public partial class TradingTree : Tree {
 	Dictionary<TreeItem, Tech> techItems = new();
 	TreeItem diplomacyHeader;
 	TreeItem peaceTreaty;
+	TreeItem rightOfPassage;
 	TreeItem cityHeader;
 	// The city each city item stands for.
 	Dictionary<TreeItem, City> cityItems = new();
@@ -25,7 +26,8 @@ public partial class TradingTree : Tree {
 	public TradingTree(Theme fontTheme,
 						int playerGold,
 						List<Tech> tradeableTechs, List<City> tradeableCities,
-						TradeOffer currentOffer, bool requiresPeaceTreaty) {
+						TradeOffer currentOffer, bool requiresPeaceTreaty,
+						bool canSignRightOfPassage = false) {
 		this.tradeableTechs = tradeableTechs;
 		this.currentOffer = currentOffer;
 		this.playerGold = playerGold;
@@ -44,8 +46,16 @@ public partial class TradingTree : Tree {
 
 			peaceTreaty = this.CreateItem(diplomacyHeader);
 			peaceTreaty.SetText(0, "Peace Treaty");
+		} else if (canSignRightOfPassage) {
+			// Only offered to civs that may sign one (see RightOfPassage).
+			diplomacyHeader = this.CreateItem(root);
+			diplomacyHeader.SetText(0, "Diplomatic Agreements");
+			diplomacyHeader.Collapsed = false;
 
-			// TODO: right of passage, mutual protection pacts, ect.
+			rightOfPassage = this.CreateItem(diplomacyHeader);
+			rightOfPassage.SetText(0, "Right of Passage");
+
+			// TODO: mutual protection pacts, military alliances, etc.
 		}
 
 		// Gold
@@ -154,6 +164,13 @@ public partial class TradingTree : Tree {
 				other.currentOffer.partOfPeaceTreaty = true;
 			}
 
+			// A right of passage is mutual, so it goes on both sides of the
+			// table.
+			if (ti != null && ti == rightOfPassage) {
+				currentOffer.rightOfPassage = true;
+				other.currentOffer.rightOfPassage = true;
+			}
+
 			offerUpdated();
 			RefreshUiForOffer();
 		};
@@ -194,6 +211,9 @@ public partial class TradingTree : Tree {
 
 			if (peaceTreaty != null) {
 				peaceTreaty.Visible = false;
+			}
+			if (rightOfPassage != null) {
+				rightOfPassage.Visible = !currentOffer.rightOfPassage;
 			}
 		}
 	}

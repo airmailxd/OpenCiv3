@@ -20,6 +20,11 @@ namespace C7GameData {
 		// speeds workers up per
 		// https://forums.civfanatics.com/threads/worker-actions.82982/).
 		public bool DoublesWorkerRate;
+		// Civs may sign right of passage agreements: in Civ3, Map Making
+		// "Can now negotiate right of passage agreements" (Conquests
+		// Civilopedia, TECH_Map_Making), the BIQ's "enables right of
+		// passage" tech flag.
+		public bool EnablesRightOfPassage;
 
 		// The civilopedia name of the era this tech is part of
 		// (like ERA_Ancient_Times). This is what art lookups are based on.

@@ -8,6 +8,7 @@ using ConvertCiv3Media;
 
 public partial class TradeOfferUi : Tree {
 	TreeItem peaceTreaty;
+	TreeItem rightOfPassage;
 	TreeItem lumpSumGold;
 	// The tech each technology item stands for.
 	Dictionary<TreeItem, Tech> techs = new();
@@ -36,6 +37,11 @@ public partial class TradeOfferUi : Tree {
 			peaceTreaty.SetTextAlignment(0, alignment);
 			peaceTreaty.SetText(0, "Peace Treaty");
 		}
+
+		// Always there, hidden unless offered: an AI may offer one.
+		rightOfPassage = this.CreateItem(root);
+		rightOfPassage.SetTextAlignment(0, alignment);
+		rightOfPassage.SetText(0, "Right of Passage");
 
 		// Add tree items for all the possible things that could be traded - we
 		// determine whether they're visible based on the current offer in
@@ -107,6 +113,13 @@ public partial class TradeOfferUi : Tree {
 											handleTextInput));
 			}
 
+			// A right of passage is mutual, so it leaves both sides of the
+			// table.
+			if (ti == rightOfPassage) {
+				currentOffer.rightOfPassage = false;
+				other.currentOffer.rightOfPassage = false;
+			}
+
 			if (ti == peaceTreaty) {
 				// If we click the peace treaty off the trading table, remove
 				// everything else too.
@@ -142,5 +155,6 @@ public partial class TradeOfferUi : Tree {
 		if (peaceTreaty != null) {
 			peaceTreaty.Visible = currentOffer.partOfPeaceTreaty;
 		}
+		rightOfPassage.Visible = currentOffer.rightOfPassage;
 	}
 }

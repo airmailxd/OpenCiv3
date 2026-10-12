@@ -170,6 +170,24 @@ namespace C7Engine.AI {
 			return campaigns.TryGetValue(player, out Campaign c) && c.target != null ? StagingCity(player, c) : null;
 		}
 
+		// The enemy and city a campaign is after, and the city it gathers
+		// in, for working out the way there (see RightOfPassageAI). False
+		// without a campaign.
+		internal static bool TryGetCampaign(Player player, out Player enemy, out City target, out City staging, out List<MapUnit> units) {
+			enemy = null;
+			target = null;
+			staging = null;
+			units = null;
+			if (!campaigns.TryGetValue(player, out Campaign c) || c.target == null) {
+				return false;
+			}
+			enemy = c.enemy;
+			target = c.target;
+			staging = StagingCity(player, c);
+			units = c.units;
+			return staging != null;
+		}
+
 		public static bool HasCampaignAgainst(Player player, Player enemy) {
 			return campaigns.TryGetValue(player, out Campaign c) && c.enemy == enemy && c.phase != Phase.Gather;
 		}
