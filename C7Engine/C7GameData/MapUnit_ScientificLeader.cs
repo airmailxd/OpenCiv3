@@ -22,10 +22,11 @@ namespace C7GameData;
 // type's "SCI" art. It "can also be used to hurry the construction of any
 // improvement (including a Great Wonder) of the city he's currently in"
 // (GCON_Leaders); players report it can "rush anything in a city
-// (improvement, wonder, unit)" (https://civfanatics.com/civ3/faq/). It can't
-// form an army. Its other use, starting an Age of Science, isn't
-// implemented: in Conquests "it is bugged, and it doesn't work"
-// (https://civfanatics.com/civ3/faq/).
+// (improvement, wonder, unit)" (https://civfanatics.com/civ3/faq/). So it
+// can hurry anything a city builds, any improvement, wonder or unit, not
+// only wonders (owner's decision, 2026-10-12). It can't form an army. Its
+// other use, starting an Age of Science, isn't implemented: in Conquests "it
+// is bugged, and it doesn't work" (https://civfanatics.com/civ3/faq/).
 public partial class MapUnit {
 	internal const double ScientificLeaderChance = 0.03;
 	internal const double ScientificTraitLeaderChance = 0.05;

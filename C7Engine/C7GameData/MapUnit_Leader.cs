@@ -114,7 +114,8 @@ public partial class MapUnit {
 	// improvement or small wonder. In Conquests military leaders can't hurry
 	// great wonders (that's for scientific leaders) or units (an assumption).
 	// A scientific leader can finish anything, great wonders and units
-	// included (see MapUnit_ScientificLeader.cs).
+	// included (owner's decision, 2026-10-12; see
+	// MapUnit_ScientificLeader.cs).
 	public bool CanHurryProduction() {
 		return CanOfferHurryProduction() && HurryProductionBlocker() == null;
 	}

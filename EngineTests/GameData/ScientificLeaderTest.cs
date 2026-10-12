@@ -166,6 +166,44 @@ public class ScientificLeaderTest : IClassFixture<SaveGameFixture> {
 		Assert.Contains(wonder.name, gameData.GreatWondersBuilt);
 	}
 
+	// It can hurry anything, not only wonders (owner's decision, 2026-10-12).
+	[Fact]
+	public void ItFinishesAnImprovement() {
+		MapUnit leader = SpawnScientificLeader(capital.location);
+		Building temple = BuildingNamed("Temple");
+		capital.SetItemBeingProduced(temple);
+		capital.SetStoredShields(0);
+
+		Assert.Null(leader.HurryProductionBlocker());
+		Assert.True(leader.HurryProductionAsLeader());
+		Assert.Equal(us.ShieldCost(temple), capital.shieldsStored);
+		Assert.DoesNotContain(leader, gameData.mapUnits);
+	}
+
+	[Fact]
+	public void ItFinishesAUnit() {
+		MapUnit leader = SpawnScientificLeader(capital.location);
+		UnitPrototype catapult = gameData.unitPrototypes.Single(p => p.name == "Catapult");
+		capital.SetItemBeingProduced(catapult);
+		capital.SetStoredShields(0);
+
+		Assert.Null(leader.HurryProductionBlocker());
+		Assert.Contains(UnitAction.HurryBuilding, leader.GetAvailableActions());
+		Assert.True(leader.HurryProductionAsLeader());
+		Assert.Equal(us.ShieldCost(catapult), capital.shieldsStored);
+		Assert.DoesNotContain(leader, gameData.mapUnits);
+	}
+
+	// A military leader still can't hurry a unit.
+	[Fact]
+	public void AMilitaryLeaderCantFinishAUnit() {
+		MapUnit leader = gameData.SpawnUnit(us, gameData.unitPrototypes.Single(p => p.name == "Leader"), capital.location);
+		capital.SetItemBeingProduced(gameData.unitPrototypes.Single(p => p.name == "Catapult"));
+		capital.SetStoredShields(0);
+		Assert.NotNull(leader.HurryProductionBlocker());
+		Assert.False(leader.HurryProductionAsLeader());
+	}
+
 	[Fact]
 	public void ItCantFormAnArmy() {
 		MapUnit leader = SpawnScientificLeader(capital.location);
@@ -218,5 +256,50 @@ public class ScientificLeaderTest : IClassFixture<SaveGameFixture> {
 		Assert.False(PlayerAI.UseLeaderInCity(leader, us));
 		DefenderAI ai = Assert.IsType<DefenderAI>(leader.currentAI);
 		Assert.Equal(city.location, ai.data.destination);
+	}
+
+	// With no wonder it could build, the AI finishes the costliest thing
+	// it can elsewhere: here, the unit a city is building, which costs more
+	// than any improvement it would switch to.
+	[Fact]
+	public void WithNoWonderTheAIFinishesTheCostliestBuild() {
+		foreach (City c in us.cities) {
+			c.receivedForestShields = true;
+			c.SetItemBeingProduced(BuildingNamed("Temple"));
+			c.SetStoredShields(us.ShieldCost(BuildingNamed("Temple")));
+		}
+		Assert.Null(PlayerAI.BestWonderForScientificLeader(us).Item1);
+		UnitPrototype costliest = gameData.unitPrototypes.Where(p => p.shieldCost > 0)
+			.OrderByDescending(p => us.ShieldCost(p)).First();
+		capital.SetItemBeingProduced(costliest);
+		capital.SetStoredShields(0);
+
+		(City city, IProducible item) = PlayerAI.BestBuildForScientificLeader(us);
+		Assert.Equal(capital, city);
+		Assert.Equal(costliest, item);
+
+		MapUnit leader = SpawnScientificLeader(capital.location);
+		Assert.True(PlayerAI.UseLeaderInCity(leader, us));
+		Assert.Equal(costliest, capital.itemBeingProduced);
+		Assert.Equal(us.ShieldCost(costliest), capital.shieldsStored);
+		Assert.DoesNotContain(leader, gameData.mapUnits);
+	}
+
+	// With nothing to finish anywhere, it waits in the capital.
+	[Fact]
+	public void WithNothingToFinishTheAIKeepsItInTheCapital() {
+		foreach (City c in us.cities) {
+			c.receivedForestShields = true;
+			c.hurriedThisTurn = true;
+			c.SetItemBeingProduced(BuildingNamed("Temple"));
+			c.SetStoredShields(us.ShieldCost(BuildingNamed("Temple")));
+		}
+		(City city, IProducible item) = PlayerAI.BestBuildForScientificLeader(us);
+		Assert.Equal(us.cities.FirstOrDefault(c => c.capital), city);
+		Assert.Null(item);
+
+		MapUnit leader = SpawnScientificLeader(capital.location);
+		Assert.False(PlayerAI.UseLeaderInCity(leader, us));
+		Assert.Contains(leader, gameData.mapUnits);
 	}
 }
