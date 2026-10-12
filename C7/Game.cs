@@ -1946,6 +1946,31 @@ public partial class Game : Node {
 		FileDialog.Popup();
 	}
 
+	// New Game (Ctrl-Shift-Q, or from the game menu): leaves this game for
+	// the new game screens, once the player agrees to abandon it.
+	public void AskToStartNewGame() {
+		AskToAbandonGame(() => GetTree().ChangeSceneToFile("res://UIElements/NewGame/world_setup.tscn"));
+	}
+
+	// Quick Start from the game menu: a new game with the last game's setup
+	// on a new map.
+	public void AskToQuickStart() {
+		AskToAbandonGame(() => {
+			QuickStartSetup.Init(Global);
+			GetTree().ChangeSceneToFile("res://C7Game.tscn");
+		});
+	}
+
+	private void AskToAbandonGame(Action startAnother) {
+		if (LanSession.IsActive) {
+			return;
+		}
+		popupOverlay.OnHidePopup();
+		popupOverlay.ShowPopup(new ConfirmationPopup(
+			"Abandon this game? Anything not saved will be lost.",
+			"Yes, start a new game.", "No, keep playing.", startAnother), PopupOverlay.PopupCategory.Info);
+	}
+
 	// Civ3's Preferences (Ctrl-P, or from the game menu).
 	public void ShowPreferences() {
 		popupOverlay.ShowPopup(new PreferencesPopup(), PopupOverlay.PopupCategory.Info);
@@ -2376,6 +2401,15 @@ public partial class Game : Node {
 			&& !eventKeyDown.AltPressed
 			&& !eventKeyDown.Echo) {
 			statusMenu.OpenDiplomacyPopup();
+		}
+
+		// New Game, as in Civ3.
+		if (eventKeyDown.Keycode == Godot.Key.Q
+			&& eventKeyDown.IsCommandOrControlPressed()
+			&& eventKeyDown.ShiftPressed
+			&& !eventKeyDown.AltPressed
+			&& !eventKeyDown.Echo) {
+			AskToStartNewGame();
 		}
 
 		// Ctrl-C opens the Civilopedia, as in Civ3.

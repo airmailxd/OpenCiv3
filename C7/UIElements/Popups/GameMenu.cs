@@ -9,9 +9,16 @@ public partial class GameMenu : Popup {
 	private readonly bool canRevealWholeMap;
 	private readonly bool wholeMapRevealed;
 
-	public GameMenu(bool canRevealWholeMap = false, bool wholeMapRevealed = false) {
+	// What New Game and Quick Start do, or null to leave them out (as in a
+	// LAN game, which can't be swapped for another on one machine).
+	private readonly Action newGame;
+	private readonly Action quickStart;
+
+	public GameMenu(bool canRevealWholeMap = false, bool wholeMapRevealed = false, Action newGame = null, Action quickStart = null) {
 		this.canRevealWholeMap = canRevealWholeMap;
 		this.wholeMapRevealed = wholeMapRevealed;
+		this.newGame = newGame;
+		this.quickStart = quickStart;
 		alignment = BoxContainer.AlignmentMode.Center;
 		margins = new Margins(top: 100);
 	}
@@ -29,13 +36,19 @@ public partial class GameMenu : Popup {
 		List<Tuple<string, Action>> buttons = [
 			new("Map", ShowMap),
 			new("Load Game", Load),
-			// new("New Game (Ctrl-Shift-Q)", NewGame),
-			// TODO: Quick Start?
+		];
+		if (newGame != null) {
+			buttons.Add(new("New Game (Ctrl-Shift-Q)", newGame));
+		}
+		if (quickStart != null) {
+			buttons.Add(new("Quick Start", quickStart));
+		}
+		buttons.AddRange([
 			new("Preferences (Ctrl-P)", OpenPreferences),
 			new("Retire", Retire),
 			new("Save Game", Save),
-			new("Quit Game (ESC)", Quit)
-		];
+			new("Quit Game (ESC)", Quit),
+		]);
 		// Shows the whole map without fog of war, to look over the generated terrain.
 		if (canRevealWholeMap) {
 			buttons.Add(new(wholeMapRevealed ? "Hide Unexplored Map" : "Reveal Whole Map", ToggleRevealWholeMap));
@@ -76,10 +89,6 @@ public partial class GameMenu : Popup {
 
 	private void Quit() {
 		GetParent().EmitSignal(PopupOverlay.SignalName.Quit);
-	}
-
-	private void NewGame() {
-		// TODO: Wire to a NewGame scene
 	}
 
 	private void OpenPreferences() {
