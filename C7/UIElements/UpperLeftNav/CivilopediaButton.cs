@@ -13,5 +13,6 @@ public partial class CivilopediaButton : Civ3TextureButton {
 	public override void _Pressed() {
 		base._Pressed();
 		ReleaseFocus();
+		Civilopedia.Open();
 	}
 }

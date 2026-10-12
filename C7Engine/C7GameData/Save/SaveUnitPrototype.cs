@@ -40,6 +40,8 @@ namespace C7GameData.Save {
 		}
 
 		public string name { get; set; }
+		// The unit's key in the Civilopedia, like PRTO_Warrior.
+		public string civilopediaEntry { get; set; }
 		public Art art { get; set; }
 		public int shieldCost { get; set; }
 		public int populationCost { get; set; }
@@ -85,6 +87,7 @@ namespace C7GameData.Save {
 			 proto.attack, proto.defense, proto.bombard, proto.bombardRange, proto.rateOfFire, proto.movement,
 			 proto.capacity, proto.hpBonus);
 			workerStrength = proto.workerStrength;
+			civilopediaEntry = proto.civilopediaEntry;
 
 			if (proto.requiredTech != null)
 				requiredTech = proto.requiredTech.id;

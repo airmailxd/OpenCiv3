@@ -548,19 +548,32 @@ public partial class CityScreen : Control {
 			: "";
 	}
 
+	// The buildings the labels of the city's buildings are for, in order.
+	private readonly List<Building> shownBuildings = new();
+
 	private void RenderExistingBuildings(List<CityBuilding> buildings) {
 		ClearListPlaceholders();
 
 		int index = 0;
+		shownBuildings.Clear();
 		foreach (CityBuilding building in buildings) {
 			if (index == buildingLabels.Count) {
-				Label newLabel = new();
+				Label newLabel = new() { MouseFilter = MouseFilterEnum.Pass };
+				// Right-clicking a building shows it in the Civilopedia.
+				int labelIndex = index;
+				newLabel.GuiInput += (InputEvent e) => {
+					if (e is InputEventMouseButton { ButtonIndex: MouseButton.Right, Pressed: true }
+						&& labelIndex < shownBuildings.Count && Civilopedia.OpenFor(shownBuildings[labelIndex])) {
+						newLabel.AcceptEvent();
+					}
+				};
 				existingBuildings.AddChild(newLabel);
 				buildingLabels.Add(newLabel);
 			}
 			Label label = buildingLabels[index++];
 			label.Text = building.building.name;
 			label.Show();
+			shownBuildings.Add(building.building);
 		}
 		for (int i = index; i < buildingLabels.Count; ++i) {
 			buildingLabels[i].Hide();

@@ -82,6 +82,8 @@ namespace C7GameData.Save {
 		}
 
 		public string name;
+		// The building's key in the Civilopedia, like BLDG_Barracks.
+		public string civilopediaEntry;
 		public int shieldCost;
 		public int populationCost;
 		public ID requiredTech;

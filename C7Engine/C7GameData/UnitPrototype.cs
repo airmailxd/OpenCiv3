@@ -65,6 +65,9 @@ namespace C7GameData {
 	 **/
 	public class UnitPrototype : IProducible {
 		public string name { get; set; }
+		// The unit's key in the Civilopedia, like PRTO_Warrior, or null if
+		// the rules don't say.
+		public string civilopediaEntry { get; set; }
 		public Art art { get; set; }
 		public int shieldCost { get; set; }
 		public int populationCost { get; set; }
@@ -317,6 +320,7 @@ namespace C7GameData {
 				(proto.movement, proto.capacity, proto.hpBonus, proto.unproducible);
 			// Rulesets without the value leave every worker at plain speed.
 			workerStrength = proto.workerStrength > 0 ? proto.workerStrength : 1;
+			civilopediaEntry = proto.civilopediaEntry;
 
 			categories = new HashSet<string>(proto.categories);
 			actions = new HashSet<UnitAction>(proto.actions);

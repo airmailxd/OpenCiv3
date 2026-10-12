@@ -165,6 +165,16 @@ public partial class ProductionMenu : Civ3TextureRect {
 		tree.SetColumnTitleAlignment(1, HorizontalAlignment.Right);
 		TradingTree.ConfigureTreeTheme(tree, fontTheme);
 
+		// Right-clicking an option shows it in the Civilopedia.
+		tree.GuiInput += (InputEvent e) => {
+			if (e is InputEventMouseButton { ButtonIndex: MouseButton.Right, Pressed: true } click) {
+				TreeItem item = tree.GetItemAtPosition(click.Position);
+				if (item != null && itemMapping.TryGetValue(item, out IProducible option) && Civilopedia.OpenFor(option)) {
+					tree.AcceptEvent();
+				}
+			}
+		};
+
 		// We only want clickable behavior, not selectable behavior.
 		tree.ItemSelected += () => {
 			TreeItem ti = tree.GetSelected();

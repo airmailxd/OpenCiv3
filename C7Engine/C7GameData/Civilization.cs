@@ -63,6 +63,10 @@ namespace C7GameData {
 		// Like `art\advisors\LZ_all.pcx` for the English.
 		public string leaderArtFile;
 
+		// The civilization's key in the Civilopedia, like RACE_Romans, or
+		// null if the rules don't say.
+		public string civilopediaEntry;
+
 		public List<string> cityNames = new List<string>();
 
 		// The IDs of all the techs that this civ starts with.

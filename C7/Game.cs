@@ -118,6 +118,7 @@ public partial class Game : Node {
 	private CityScreen cityScreen;
 	[Export]
 	private Advisors advisor;
+	private Civilopedia civilopedia;
 	[Export]
 	private GameViews gameViews;
 	[Export]
@@ -213,6 +214,12 @@ public partial class Game : Node {
 	// that gives an error if we fail to load for some reason.
 	public override async void _Ready() {
 		Global = GetNode<GlobalSingleton>("/root/GlobalSingleton");
+
+		// The Civilopedia is drawn over the map and the other screens, but
+		// under popups.
+		civilopedia = new Civilopedia();
+		popupOverlay.GetParent().AddChild(civilopedia);
+		popupOverlay.GetParent().MoveChild(civilopedia, popupOverlay.GetIndex());
 
 		FileDialog = GetNode<Civ3FileDialog>("%LoadDialog");
 		FileDialog.Canceled += OnResolved;
@@ -680,6 +687,7 @@ public partial class Game : Node {
 
 		// An open advisor shows the old game's cities and techs.
 		advisor.RefreshAfterGameReplaced();
+		civilopedia.ForgetGameObjects();
 
 		if (lanResyncPending && LanSession.Client?.HostIsResuming != true) {
 			lanResyncPending = false;
@@ -1064,6 +1072,7 @@ public partial class Game : Node {
 		advisor.Hide();
 		gameViews.Hide();
 		diplomacy.Hide();
+		civilopedia.Hide();
 		// Production news waits for its owner's turn.
 		HoldShownProductionPopup();
 		if (controller != null && controller != next) {
@@ -2270,6 +2279,16 @@ public partial class Game : Node {
 			statusMenu.OpenDiplomacyPopup();
 		}
 
+		// Ctrl-C opens the Civilopedia, as in Civ3.
+		if (eventKeyDown.Keycode == Godot.Key.C
+			&& eventKeyDown.IsCommandOrControlPressed()
+			&& !eventKeyDown.ShiftPressed
+			&& !eventKeyDown.AltPressed
+			&& !eventKeyDown.Echo) {
+			Civilopedia.Open();
+			return;
+		}
+
 		if (eventKeyDown.Keycode == Godot.Key.C && HasCurrentlySelectedUnit()) {
 			mapView.centerCameraOnTile(CurrentlySelectedUnit.location);
 		}
@@ -2452,7 +2471,7 @@ public partial class Game : Node {
 		if (popupOverlay.Visible || cityScreen.Visible || diplomacy.Visible || RightClickMenu.IsAnyOpen)
 			return true;
 
-		if (advisor.Visible || gameViews.Visible)
+		if (advisor.Visible || gameViews.Visible || civilopedia.Visible)
 			return true;
 
 		return false;
@@ -2484,6 +2503,11 @@ public partial class Game : Node {
 
 		if (currentAction == C7Action.Escape && popupOverlay.ShowingPopup) {
 			popupOverlay.OnEscape();
+			return;
+		}
+
+		if (currentAction == C7Action.Escape && civilopedia.Visible) {
+			civilopedia.Hide();
 			return;
 		}
 

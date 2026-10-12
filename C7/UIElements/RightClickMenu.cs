@@ -99,6 +99,21 @@ public partial class RightClickMenu : VBoxContainer {
 
 	// The "Abandon City" item, greyed out with the reason when the city
 	// can't be abandoned, e.g. because it is the player's only one.
+	// As in Civ3, the city menu ends with the Civilopedia entry for what the
+	// city is building.
+	protected void AddCivilopediaItem(City city) {
+		object producing = city.itemBeingProduced;
+		if (producing is not (UnitPrototype or Building)) {
+			return;
+		}
+		string name = producing is UnitPrototype unit ? unit.name : ((Building)producing).name;
+		AddTreeSeparator();
+		AddItem($"View Civilopedia entry for {name}", () => {
+			CloseAndDelete();
+			Civilopedia.OpenFor(producing);
+		});
+	}
+
 	protected void AddAbandonCityItem(City city) {
 		string reason = null;
 		EngineStorage.ReadGameData((GameData gameData) => {
@@ -284,9 +299,7 @@ public partial class RightClickTileMenu : RightClickMenu {
 			// TODO: Clear Continental Rally Point
 
 			AddAbandonCityItem(tile.cityAtTile);
-
-			// AddTreeSeparator();
-			// TODO: Wikipedia links
+			AddCivilopediaItem(tile.cityAtTile);
 
 		}
 
@@ -324,6 +337,19 @@ public partial class RightClickTileMenu : RightClickMenu {
 				this.CloseAndDelete();
 				game.ShowEspionageMissions(foreignCity.owner, foreignCity);
 			});
+		}
+
+		// The Civilopedia entries of the kinds of units listed, at most a few.
+		IEnumerable<MapUnit> listed = playerUnits.Concat(tile.cityAtTile == null ? nonPlayerUnits : nonPlayerUnits.Take(1));
+		List<UnitPrototype> unitTypes = listed.Select(u => u.unitType).Where(t => t != null).Distinct().Take(3).ToList();
+		if (unitTypes.Count > 0) {
+			AddTreeSeparator();
+			foreach (UnitPrototype unitType in unitTypes) {
+				AddItem($"View Civilopedia entry for {unitType.name}", () => {
+					CloseAndDelete();
+					Civilopedia.OpenFor(unitType);
+				});
+			}
 		}
 	}
 
@@ -434,6 +460,7 @@ public partial class RightClickCityMenu : RightClickMenu {
 				});
 			});
 			AddAbandonCityItem(tile.cityAtTile);
+			AddCivilopediaItem(tile.cityAtTile);
 		}
 	}
 }

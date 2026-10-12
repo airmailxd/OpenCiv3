@@ -205,6 +205,13 @@ public partial class ScienceAdvisor : Control {
 				SelectionMode selection = Input.IsKeyPressed(Key.Shift) ? SelectionMode.Multi : SelectionMode.Single;
 				new MsgChooseResearch(tech, AdvisorState.Show, selection).send();
 			};
+			// As in Civ3, right-clicking an advance shows it in the Civilopedia.
+			techButton.GuiInput += (InputEvent e) => {
+				if (e is InputEventMouseButton { ButtonIndex: MouseButton.Right, Pressed: true }) {
+					Civilopedia.OpenFor(tech);
+					techButton.AcceptEvent();
+				}
+			};
 			background.AddChild(techButton);
 			techBoxes.Add(techButton);
 			techBoxByTech[tech] = techButton;

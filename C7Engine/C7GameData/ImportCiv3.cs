@@ -733,6 +733,7 @@ namespace C7GameData {
 				civ.aggressionLevel = race.AggressionLevel;
 				civ.favoriteGovernment = GovernmentName(race.FavoriteGovernment);
 				civ.shunnedGovernment = GovernmentName(race.ShunnedGovernment);
+				civ.civilopediaEntry = race.CivilopediaEntry?.Trim();
 
 				// Look up the image for non-barbarian civs.
 				string artName = pediaIcons.GetLeaderArtName(race.CivilopediaEntry);
@@ -1776,6 +1777,7 @@ namespace C7GameData {
 				}
 
 				prototype.name = prto.Name;
+				prototype.civilopediaEntry = prto.CivilopediaEntry?.Trim();
 
 				Art unitArt = new Art();
 				unitArt.mainArt = pediaIcons.GetUnitMainArt(prto.CivilopediaEntry);
@@ -1992,6 +1994,7 @@ namespace C7GameData {
 
 				SaveBuilding building = new() {
 					name=bldg.Name,
+					civilopediaEntry=bldg.CivilopediaEntry?.Trim(),
 					shieldCost=bldg.Cost * 10, // In Civ3 files, building costs are stored at 1/10th of their actual value
 					populationCost=0, // In Civ3, a building cannot have a population cost
 					isSmallWonder=bldg.SmallWonder,

@@ -15,6 +15,9 @@ namespace C7GameData {
 		}
 
 		public string name { get; set; }
+		// The building's key in the Civilopedia, like BLDG_Barracks, or null
+		// if the rules don't say.
+		public string civilopediaEntry;
 		public int shieldCost { get; set; }
 		public int populationCost { get; set; } // Will always be equal to 0 in the Civ3 rule set
 
@@ -140,6 +143,7 @@ namespace C7GameData {
 			dataSource = building;
 
 			name = building.name;
+			civilopediaEntry = building.civilopediaEntry;
 			shieldCost = building.shieldCost;
 			populationCost = building.populationCost;
 			isSmallWonder = building.isSmallWonder;
