@@ -28,18 +28,23 @@ namespace C7Engine.AI {
 
 		// HEURISTIC: the fewest turns between demands from one AI to one
 		// human. Civ3's interval "varies with the leader, ranging from about
-		// 20 turns to around 100 turns" (same thread).
-		public const int MIN_TURNS_BETWEEN_DEMANDS = 20;
+		// 20 turns to around 100 turns" (same thread). Raised from 20 at the
+		// owner's request (2026-10-12): the AIs were far too demanding.
+		public const int MIN_TURNS_BETWEEN_DEMANDS = 40;
 
 		// HEURISTIC: once that long has passed, the chance each turn that
-		// the AI makes a demand, so that demands come about 20 to 40 turns
+		// the AI makes a demand, so that demands come about 40 to 80 turns
 		// apart rather than like clockwork.
-		public const int DEMAND_CHANCE_PERCENT = 10;
+		public const int DEMAND_CHANCE_PERCENT = 5;
 
-		// HEURISTIC: the gold demanded is this share of the human's
-		// treasury, rounded down to a multiple of 10. Below the minimum, a
-		// tech is demanded instead.
-		public const int GOLD_SHARE_PERCENT = 50;
+		// HEURISTIC (owner's request, 2026-10-12): the fewest turns between
+		// demands made of one human by any AI, so that several strong
+		// neighbours don't take turns asking.
+		public const int MIN_TURNS_BETWEEN_ANY_DEMANDS = 15;
+
+		// HEURISTIC (owner's request, 2026-10-12): the gold demanded is this
+		// share of the human's treasury, rounded down to a multiple of 10.
+		public const int GOLD_SHARE_PERCENT = 20;
 
 		// HEURISTIC (owner's request, 2026-10-12): a grace period before an
 		// AI makes demands, so it doesn't bully a human it has only just
@@ -88,6 +93,9 @@ namespace C7Engine.AI {
 			if (InGracePeriod(ourView, gameData)) {
 				return false;
 			}
+			if (DemandedOfRecently(them, gameData)) {
+				return false;
+			}
 			return us.CompareMilitaryStrengthTo(them) == Player.MilitaryStrength.StrongTo;
 		}
 
@@ -101,20 +109,44 @@ namespace C7Engine.AI {
 				&& gameData.turn - ourView.firstContactTurn < TURNS_AFTER_CONTACT_BEFORE_DEMANDS;
 		}
 
-		// What us demands of them: some of their gold if they have enough,
-		// otherwise the cheapest tech they could give us, or null if neither.
-		public static TradeOffer ChooseTribute(Player us, Player them, GameData gameData) {
-			int gold = them.gold * GOLD_SHARE_PERCENT / 100 / 10 * 10;
-			if (gold >= MIN_GOLD_DEMANDED) {
-				return new TradeOffer() { gold = gold };
+		// Whether any AI has made a demand of them within the last
+		// MIN_TURNS_BETWEEN_ANY_DEMANDS turns.
+		public static bool DemandedOfRecently(Player them, GameData gameData) {
+			foreach (Player other in gameData.players) {
+				if (other != them && other.playerRelationships.TryGetValue(them.id, out PlayerRelationship view)
+					&& view.lastTributeDemandTurn >= 0
+					&& gameData.turn - view.lastTributeDemandTurn < MIN_TURNS_BETWEEN_ANY_DEMANDS) {
+					return true;
+				}
 			}
+			return false;
+		}
+
+		// What us demands of them: some of their gold or the cheapest tech
+		// they could give us, picked at random when both are possible, or
+		// null if neither.
+		public static TradeOffer ChooseTribute(Player us, Player them, GameData gameData) {
+			return ChooseTribute(us, them, gameData, preferGold: GameData.rng.Next(2) == 0);
+		}
+
+		// The same, with the choice of gold or tech made: what's preferred
+		// if they have it, otherwise the other.
+		public static TradeOffer ChooseTribute(Player us, Player them, GameData gameData, bool preferGold) {
+			TradeOffer gold = GoldTribute(them);
+			TradeOffer tech = TechTribute(us, them, gameData);
+			return preferGold ? gold ?? tech : tech ?? gold;
+		}
+
+		private static TradeOffer GoldTribute(Player them) {
+			int gold = them.gold * GOLD_SHARE_PERCENT / 100 / 10 * 10;
+			return gold >= MIN_GOLD_DEMANDED ? new TradeOffer() { gold = gold } : null;
+		}
+
+		private static TradeOffer TechTribute(Player us, Player them, GameData gameData) {
 			Tech tech = them.GetTechsTradableTo(us, gameData.techs)
 				.OrderBy(t => gameData.TechCostFor(t, us))
 				.FirstOrDefault();
-			if (tech != null) {
-				return new TradeOffer() { techs = new List<Tech> { tech } };
-			}
-			return null;
+			return tech != null ? new TradeOffer() { techs = new List<Tech> { tech } } : null;
 		}
 
 		// Demands the tribute, and declares war if it is refused.

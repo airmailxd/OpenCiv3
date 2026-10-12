@@ -155,12 +155,35 @@ public class TributeDemandsTest : MapBase, IDisposable {
 	}
 
 	[Fact]
-	public void HalfTheTreasuryIsDemanded() {
+	public void AFifthOfTheTreasuryIsDemanded() {
 		them.gold = 157;
 
-		TradeOffer tribute = TributeDemands.ChooseTribute(us, them, gameData);
+		TradeOffer tribute = TributeDemands.ChooseTribute(us, them, gameData, preferGold: true);
 
-		Assert.Equal(70, tribute.gold);
+		Assert.Equal(30, tribute.gold);
+	}
+
+	[Fact]
+	public void GoldIsDemandedWhenThereIsNoTechToGive() {
+		them.gold = 157;
+
+		TradeOffer tribute = TributeDemands.ChooseTribute(us, them, gameData, preferGold: false);
+
+		Assert.Equal(30, tribute.gold);
+	}
+
+	[Fact]
+	public void NoOtherAiDemandsTributeSoonAfterOneHas() {
+		Player other = MakeCiv("player-3");
+		gameData.players.Add(other);
+		other.EnsureRelationshipExists(them);
+		AddWarriors(us, 4);
+		other.playerRelationships[them.id].lastTributeDemandTurn = gameData.turn - 1;
+
+		Assert.False(TributeDemands.WouldDemandFrom(us, them, gameData));
+
+		other.playerRelationships[them.id].lastTributeDemandTurn = gameData.turn - TributeDemands.MIN_TURNS_BETWEEN_ANY_DEMANDS;
+		Assert.True(TributeDemands.WouldDemandFrom(us, them, gameData));
 	}
 
 	[Fact]
