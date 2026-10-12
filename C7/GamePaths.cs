@@ -35,6 +35,24 @@ public static class GamePaths {
 	public static GameMode.Config basic = new("civ3");
 	public static GameMode.Config standalone = new("civ3", ["standalone"]);
 
+	// Whether a Civ3 install was found that the game can play with, rather
+	// than only in standalone mode.
+	public static bool Civ3Available() {
+		if (string.IsNullOrEmpty(Util.Civ3Root)) {
+			return false;
+		}
+
+		string[] basePaths = ["Conquests", "civ3PTW", ""];
+		foreach (string basePath in basePaths) {
+			string relPath = string.IsNullOrEmpty(basePath) ? "Art/buttonsFINAL.pcx" : $"{basePath}/Art/buttonsFINAL.pcx";
+			if (Util.FileExistsIgnoringCase(Util.Civ3Root, relPath) != null) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
 	// For now this needs to get passed to QueryCiv3 when importing.
 	public static string DefaultBicPath { get => Util.GetCiv3Path() + "/Conquests/conquests.biq"; }
 }
