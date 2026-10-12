@@ -28,7 +28,8 @@ namespace C7Engine.AI {
 	//
 	// It runs campaigns in the wars the AI is in, and also starts them in
 	// peacetime against a weaker neighbour, declaring war only once the
-	// attackers are gathered (WarPriority no longer declares wars itself).
+	// attackers are gathered (WarPriority no longer declares wars itself),
+	// though not while it still has wide-open land to settle.
 	// In AI trials (AiTrialTest), civs playing this way took about 3 more
 	// cities each in 200 turns.
 	public static class WarCampaign {
@@ -382,6 +383,15 @@ namespace C7Engine.AI {
 						target = t;
 					}
 				}
+
+				// While there's wide-open land to settle, we settle it rather
+				// than start a war, and demand tribute of the weak instead
+				// (see TributeDemands). Checked last, as finding the open land
+				// scores every known tile.
+				if (enemy != null && HasWideOpenLand(player)) {
+					log.Debug("{Player} is still expanding, so doesn't attack {Enemy}", player, enemy);
+					return null;
+				}
 			}
 
 			if (enemy == null) {
@@ -391,6 +401,23 @@ namespace C7Engine.AI {
 			Campaign c = new() { enemy = enemy, target = target };
 			SetPhase(c, Phase.Gather);
 			return c;
+		}
+
+		// HEURISTIC: a civ with at least this many open city sites it can
+		// reach for each city it has is still settling wide-open land. In AI
+		// games on standard pangaeas, civs have 35 to 60 such sites until
+		// about turn 70, and fewer than their cities only after about turn
+		// 105. In AI trials (8 paired standard pangaeas, 150 turns), holding
+		// off until then cut the wars civs started from 1.1 each to 0.3,
+		// with no measurable change in their score or cities.
+		private const int OpenSitesPerCityWhileExpanding = 1;
+
+		// Whether the player still has wide-open land to settle: enough open
+		// city sites to double its cities. Judged from its capital, or its
+		// first city without one.
+		private static bool HasWideOpenLand(Player player) {
+			City home = player.cities.Find(c => c.IsCapital()) ?? player.cities[0];
+			return ChooseProducible.NumberOfReachableOpenCitySpots(home) >= OpenSitesPerCityWhileExpanding * player.cities.Count;
 		}
 
 		private static City PickTarget(Player player, Player enemy) {

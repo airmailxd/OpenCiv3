@@ -50,7 +50,12 @@ public class SettlerSailsOverseasTest : IClassFixture<SaveGameFixture> {
 		};
 		new GameSetup {
 			playerCivilization = save.Civilizations.First(c => !c.isBarbarian),
-			difficulty = save.Difficulties.First(),
+			// Monarch, where the AI's cities grow and build at the human's
+			// pace. On Chieftain their food boxes and shield costs are
+			// doubled (its AI cost factor is 20 to the human's 10), and on
+			// this map they don't fill their own islands in time to need
+			// to sail.
+			difficulty = save.Difficulties.First(d => d.Name == "Monarch"),
 			worldCharacteristics = wc,
 			opponents = Enumerable.Repeat(new SelectedOpponent { isRandom = true }, civs - 1).ToList(),
 			victoryConditions = new VictoryConditions(),
