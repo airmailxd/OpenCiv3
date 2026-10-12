@@ -15,8 +15,7 @@ public class StandalonePediaIconsTest : IClassFixture<SaveGameFixture> {
 
 	private readonly C7GameData.GameData gameData;
 
-	// A game of the bundled rules with every unit: standalone mode leaves out
-	// the units it has no map art for yet, but they all have icons.
+	// A game of the bundled rules, which standalone mode keeps every unit of.
 	public StandalonePediaIconsTest(SaveGameFixture fixture) {
 		gameData = fixture.saveGame.ToGameData(fixture.behaviors);
 	}
