@@ -5,6 +5,9 @@ using Blast;
 using System.Text;
 
 namespace QueryCiv3 {
+	// The Flags fields are never assigned in code: these structs are filled by
+	// reading a file's bytes straight into the structs that hold them.
+#pragma warning disable CS0649
 	public struct ByteBitmap {
 		private byte Flags;
 		public bool this[int i] { get => ((Flags >> i) & 1) == 1; }
@@ -14,6 +17,7 @@ namespace QueryCiv3 {
 		private int Flags;
 		public bool this[int i] { get => ((Flags >> i) & 1) == 1; }
 	}
+#pragma warning restore CS0649
 
 	public class Util {
 		// Encoding code page ID; 1252 is Civ3 encoding for US language version

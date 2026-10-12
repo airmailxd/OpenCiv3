@@ -179,7 +179,6 @@ namespace C7Engine {
 			float populationWeight = 10;
 			float populationCostPenalty = populationWeight * unit.populationCost;
 			float noTradeAccessBoost = 10;
-			float unitSupportCapPenalty = 10;
 
 			float score = 0;
 

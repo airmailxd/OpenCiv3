@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Serilog;
 
@@ -189,6 +190,7 @@ namespace C7GameData.Save {
 				Inflow => ProducibleType.INFLOW,
 				UnitPrototype => ProducibleType.UNIT,
 				Building => ProducibleType.BUILDING,
+				_ => throw new ArgumentException($"Unknown producible type {producible?.GetType()}", nameof(producible)),
 			};
 		}
 
@@ -197,6 +199,7 @@ namespace C7GameData.Save {
 				ProducibleType.INFLOW => Lookups.Find(lookups.inflowsByName, name),
 				ProducibleType.UNIT => Lookups.Find(lookups.unitPrototypesByName, name),
 				ProducibleType.BUILDING => Lookups.Find(lookups.buildingsByName, name),
+				_ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
 			};
 		}
 

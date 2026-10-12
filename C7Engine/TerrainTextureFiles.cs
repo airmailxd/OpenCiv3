@@ -216,7 +216,6 @@ namespace C7Engine {
 						break;
 					default:
 						throw new Exception($"Unexpected textureFile type: {textureFile}");
-						break;
 				}
 
 				// Add the cumulative weight for the current position based on the chosen set

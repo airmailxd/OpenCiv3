@@ -17,8 +17,6 @@ namespace C7GameData.AIData {
 	public class WarPriority : StrategicPriority {
 		private static ILogger log = Log.ForContext<WarPriority>();
 
-		private readonly int TEMP_WAR_PRIORITY_WEIGHT = 50; //temporary weight of this priority, if it isn't zero
-
 		// The player we plan to declare war on if this priority is chosen.
 		private Player opponent;
 

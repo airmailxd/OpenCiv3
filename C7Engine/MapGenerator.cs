@@ -386,6 +386,7 @@ namespace C7Engine {
 				WorldCharacteristics.Landform.Archipelago => 0.2,
 				WorldCharacteristics.Landform.Continents => 0.05,
 				WorldCharacteristics.Landform.Pangaea => 0.02,
+				_ => throw new ArgumentOutOfRangeException(nameof(landform), landform, null),
 			};
 		}
 

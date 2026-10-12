@@ -1096,7 +1096,8 @@ namespace C7GameData {
 				Government.CorruptionType.Rampant => 0,
 				Government.CorruptionType.Catastrophic => 0, // anarchy, special cased
 				Government.CorruptionType.Communal => 2,
-				Government.CorruptionType.Off => 0
+				Government.CorruptionType.Off => 0,
+				_ => throw new ArgumentOutOfRangeException(nameof(government.corruptionType), government.corruptionType, null)
 			};
 		}
 

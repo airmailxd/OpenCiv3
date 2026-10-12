@@ -151,13 +151,14 @@ internal sealed class RateLimits {
 // What one connection may do over time: up to burst at once, refilling at
 // perSecond. Used from one thread at a time.
 internal sealed class TokenBucket(double perSecond, double burst) {
+	private readonly double capacity = burst;
 	private double tokens = burst;
 	private long refilledAt = Environment.TickCount64;
 
 	// Takes the amount if there's that much left, and says whether it did.
 	public bool Take(double amount) {
 		long now = Environment.TickCount64;
-		tokens = Math.Min(burst, tokens + (now - refilledAt) / 1000.0 * perSecond);
+		tokens = Math.Min(capacity, tokens + (now - refilledAt) / 1000.0 * perSecond);
 		refilledAt = now;
 		if (tokens < amount) {
 			return false;

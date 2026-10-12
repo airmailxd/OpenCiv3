@@ -698,7 +698,6 @@ namespace C7GameData {
 			BiqData theBiq = biq.Race is null ? defaultBiq : biq;
 			HashSet<CultureGroup> cultureGroups = new HashSet<CultureGroup>();
 			HashSet<int> cultureGroupsIndexes = new HashSet<int>();
-			int i = 0;
 			foreach (RACE race in theBiq.Race) {
 				if (cultureGroupsIndexes.Add(race.CultureGroup)) {
 					var cg = new CultureGroup() {
