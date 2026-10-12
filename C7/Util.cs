@@ -166,6 +166,18 @@ public partial class Util {
 	/// <returns>The path to the media on the file system, or an exception if it cannot be found</returns>
 	/// <exception cref="ApplicationException"></exception>
 	public static string Civ3MediaPath(string mediaPath) {
+		string result = CachedCiv3MediaPath(mediaPath);
+		if (result == null)
+			throw new ApplicationException("Media path not found: " + mediaPath);
+		return result;
+	}
+
+	// Whether Civ3MediaPath can find the media.
+	public static bool HasCiv3Media(string mediaPath) {
+		return CachedCiv3MediaPath(mediaPath) != null;
+	}
+
+	private static string CachedCiv3MediaPath(string mediaPath) {
 		bool standalone = C7Settings.UseStandaloneMode();
 		if (standalone != mediaPathCacheStandalone) {
 			ClearMediaPathCache();
@@ -176,9 +188,6 @@ public partial class Util {
 			result = FindCiv3MediaPath(mediaPath, standalone);
 			mediaPathCache[mediaPath] = result;
 		}
-
-		if (result == null)
-			throw new ApplicationException("Media path not found: " + mediaPath);
 		return result;
 	}
 

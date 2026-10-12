@@ -81,12 +81,17 @@ public static class ModernGraphics {
 	private const string UnitsFolder = "Art/Units/";
 
 	// Whether the remade art is used for a media path: with the overhaul on,
-	// or in standalone mode for unit art, which has nothing else to fall back on.
+	// or in standalone mode for unit art and for any art the standalone asset
+	// pack doesn't have (such as flood plains), which have nothing else to
+	// fall back on.
 	private static bool UsedFor(string mediaPath) {
 		if (Enabled) {
 			return true;
 		}
-		return mediaPath.Replace('\\', '/').StartsWith(UnitsFolder, StringComparison.OrdinalIgnoreCase) && C7Settings.UseStandaloneMode();
+		if (!C7Settings.UseStandaloneMode()) {
+			return false;
+		}
+		return mediaPath.Replace('\\', '/').StartsWith(UnitsFolder, StringComparison.OrdinalIgnoreCase) || !Util.HasCiv3Media(mediaPath);
 	}
 
 	private static string Root => FolderPath("ModernArt");
