@@ -39,4 +39,13 @@ public class AdvisorScreensTest {
 		}
 		Assert.Equal("Trade Advisor (F2)", C7Action.AdvisorScreenLabel(1));
 	}
+
+	// On a Mac each screen also has a Cmd shortcut, shown in the menu.
+	[Fact]
+	public void EachScreenHasAMacShortcut() {
+		Assert.Equal(C7Action.AdvisorScreens.Length, C7Action.MacAdvisorScreenKeys.Length);
+		Assert.Equal(C7Action.MacAdvisorScreenKeys.Length, C7Action.MacAdvisorScreenKeys.Distinct().Count());
+		Assert.Equal("Trade Advisor (⌘2)", C7Action.AdvisorScreenLabel(1, mac: true));
+		Assert.Equal("Demographics (⌘-)", C7Action.AdvisorScreenLabel(10, mac: true));
+	}
 }

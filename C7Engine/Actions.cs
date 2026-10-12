@@ -57,9 +57,14 @@ public static class C7Action {
 		(ShowDemographicsView, "Demographics", false),
 	];
 
+	// The keys that also open the advisor and report screens on a Mac, with
+	// Cmd held, in the order of AdvisorScreens (see C7's MacShortcuts).
+	public static readonly string[] MacAdvisorScreenKeys = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-"];
+
 	// The name of an advisor or report screen with its key, e.g.
-	// "Trade Advisor (F2)".
-	public static string AdvisorScreenLabel(int index) => $"{AdvisorScreens[index].name} (F{index + 1})";
+	// "Trade Advisor (F2)", or on a Mac "Trade Advisor (⌘2)".
+	public static string AdvisorScreenLabel(int index, bool mac = false) =>
+		mac ? $"{AdvisorScreens[index].name} (⌘{MacAdvisorScreenKeys[index]})" : $"{AdvisorScreens[index].name} (F{index + 1})";
 
 	public const string UnitBombard = "unit_bombard";
 	public const string UnitBuildCity = "unit_build_city";

@@ -34,7 +34,7 @@ public partial class AdvisorMenu : RightClickMenu {
 			if (i > 0 && advisor != items[i - 1].isAdvisor) {
 				AddTreeSeparator();
 			}
-			AddItem(C7Action.AdvisorScreenLabel(i), () => {
+			AddItem(C7Action.AdvisorScreenLabel(i, MacShortcuts.IsMac), () => {
 				CloseAndDelete();
 				game.EmitSignal(advisor ? Game.SignalName.ShowSpecificAdvisor : Game.SignalName.ShowGameView, action);
 			});
