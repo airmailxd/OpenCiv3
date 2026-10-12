@@ -29,21 +29,16 @@ namespace C7GameData {
 	//   anymore" (https://civfanatics.com/civ3/strategy/game-mechanics/ai-attitude-study/);
 	//   see PlayerRelationship.rightOfPassageBetrayals.
 	public static class RightOfPassage {
-		// Why the two civs can't sign a right of passage now, or null if
-		// they can.
+		// Why the proposer can't sign a right of passage with the other civ
+		// now, or null if it can.
 		//
-		// - An embassy, either way round: "When your civilization builds an
-		//   embassy in a rival's capital city, or when a rival builds one in
-		//   your capital, you can negotiate Diplomatic Agreements with that
-		//   civilization" (Conquests Civilopedia, GCON_Agreements), and the
-		//   project owner: "An embassy must be present to make a ROP"
-		//   (owner's decision, 2026-10-11).
-		// - The tech that enables it, Map Making in Civ3 ("Can now
+		// - The proposer must know Writing and have an embassy with the
+		//   other civ (owner's decision, 2026-10-11: "The deal creator must
+		//   have Writing and an embassy. Map making isnt needed"). The BIQ's
+		//   flag on Map Making (Tech.EnablesRightOfPassage, "Can now
 		//   negotiate right of passage agreements", Conquests Civilopedia,
-		//   TECH_Map_Making; the BIQ flags it on Map Making alone).
-		//   UNVERIFIED (no Civ3 source found): that both civs need it, not
-		//   just one. A game whose rules flag no tech (like a save made
-		//   before the flag was read) needs none.
+		//   TECH_Map_Making) is read but not used. Rules with no tech named
+		//   Writing need none.
 		// - At peace: at war the only deal is peace (TradeOffer.ProblemWithDeal).
 		// - Not already in force.
 		public static string ProblemSigning(GameData gameData, Player a, Player b) {
@@ -60,11 +55,11 @@ namespace C7GameData {
 			if (PlayerRelationship.HaveActiveRightOfPassage(a, b)) {
 				return "the civs already have a right of passage";
 			}
-			if (!ab.hasEmbassy && !ba.hasEmbassy) {
-				return "neither civ has an embassy with the other";
+			if (!ab.hasEmbassy) {
+				return "a right of passage needs an embassy with the other civ";
 			}
-			if (!KnowsEnablingTech(gameData, a) || !KnowsEnablingTech(gameData, b)) {
-				return "a right of passage needs Map Making";
+			if (!KnowsWriting(gameData, a)) {
+				return "a right of passage needs Writing";
 			}
 			return null;
 		}
@@ -73,14 +68,10 @@ namespace C7GameData {
 			return ProblemSigning(gameData, a, b) == null;
 		}
 
-		// Whether the player knows a tech that lets civs sign rights of
-		// passage, or the rules have no such tech.
-		public static bool KnowsEnablingTech(GameData gameData, Player player) {
-			List<Tech> techs = gameData?.techs;
-			if (techs == null || !techs.Any(t => t.EnablesRightOfPassage)) {
-				return true;
-			}
-			return techs.Any(t => t.EnablesRightOfPassage && player.knownTechs.Contains(t.id));
+		// Whether the player knows Writing, or the rules have no such tech.
+		public static bool KnowsWriting(GameData gameData, Player player) {
+			Tech writing = gameData?.techs?.Find(t => t.Name == "Writing");
+			return writing == null || player.knownTechs.Contains(writing.id);
 		}
 
 		// Signs a right of passage between the two, for the rules' deal

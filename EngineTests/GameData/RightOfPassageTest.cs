@@ -111,27 +111,34 @@ public class RightOfPassageTest : MapBase {
 
 	// The rules
 
+	// The proposer needs an embassy with the other civ; theirs with the
+	// proposer doesn't do (owner's decision, 2026-10-11).
 	[Fact]
-	public void ARightOfPassageNeedsAnEmbassyEitherWay() {
+	public void TheProposerNeedsAnEmbassy() {
 		Assert.NotNull(RightOfPassage.ProblemSigning(gameData, us, third));
 		Assert.NotNull(TradeOffer.ProblemWithDeal(gameData, us, third, Passage(), Passage()));
 
-		// Their embassy with us does as well as ours with them.
 		GiveEmbassy(third, us);
+		Assert.NotNull(RightOfPassage.ProblemSigning(gameData, us, third));
+		Assert.Null(RightOfPassage.ProblemSigning(gameData, third, us));
+
+		GiveEmbassy(us, third);
 		Assert.Null(RightOfPassage.ProblemSigning(gameData, us, third));
 		Assert.Null(TradeOffer.ProblemWithDeal(gameData, us, third, Passage(), Passage()));
 	}
 
+	// The proposer needs Writing, the other civ doesn't, and Map Making
+	// isn't needed (owner's decision, 2026-10-11).
 	[Fact]
-	public void ARightOfPassageNeedsMapMakingWhereTheRulesHaveIt() {
+	public void TheProposerNeedsWriting() {
 		GiveEmbassy(us, third);
+		Tech writing = new() { id = ID.FromString("tech-99"), Name = "Writing" };
 		Tech mapMaking = new() { id = ID.FromString("tech-15"), Name = "Map Making", EnablesRightOfPassage = true };
+		gameData.techs.Add(writing);
 		gameData.techs.Add(mapMaking);
 
 		Assert.NotNull(RightOfPassage.ProblemSigning(gameData, us, third));
-		us.knownTechs.Add(mapMaking.id);
-		Assert.NotNull(RightOfPassage.ProblemSigning(gameData, us, third));
-		third.knownTechs.Add(mapMaking.id);
+		us.knownTechs.Add(writing.id);
 		Assert.Null(RightOfPassage.ProblemSigning(gameData, us, third));
 	}
 
@@ -248,7 +255,9 @@ public class RightOfPassageTest : MapBase {
 		us.gold = 100;
 		TradeOffer paid = new() { rightOfPassage = true, gold = RightOfPassageAI.GoldPerCity * 4 };
 		Assert.True(third.WouldAcceptDealFrom(gameData, us, paid, Passage()));
-		// And we, the smaller, take one for nothing.
+		// And we, the smaller, take one for nothing (when they propose it,
+		// they need their embassy).
+		GiveEmbassy(third, us);
 		Assert.True(us.WouldAcceptDealFrom(gameData, third, Passage(), Passage()));
 	}
 
@@ -323,22 +332,29 @@ public class RightOfPassageTest : MapBase {
 		Assert.False(HaveActiveRightOfPassage(us, third));
 	}
 
+	// Now and then an AI offers a right of passage for nothing, in
+	// friendship (owner's decision, 2026-10-11); a smaller civ, which gets
+	// more out of it, signs.
 	[Fact]
-	public void AnAiDoesNotLetAMuchStrongerNeighbourIn() {
+	public async Task AnAiOffersARightOfPassageInFriendship() {
+		AddCities(us, 3);
+		GiveEmbassy(us, third);
+		GiveEmbassy(us, enemy);
+
+		await RightOfPassageAI.OfferFriendlyPassage(us, gameData);
+
+		Assert.True(HaveActiveRightOfPassage(us, third) || HaveActiveRightOfPassage(us, enemy));
+	}
+
+	// A much stronger neighbour isn't refused for its strength (owner's
+	// decision, 2026-10-11).
+	[Fact]
+	public void AnAiDoesNotRefuseAMuchStrongerNeighbour() {
 		GiveEmbassy(us, third);
 		for (int i = 0; i < 5; ++i) {
 			MakeUnit(us, ourCity.location, attack: 4, defense: 2);
 		}
-		Assert.True(RightOfPassageAI.IsThreat(third, us));
-		// Not the other way round, nor when it's far off.
-		Assert.False(RightOfPassageAI.IsThreat(us, third));
-		ourCity.location.cityAtTile = null;
-		us.cities.Clear();
-		AddCities(us, 1);
-		Assert.False(RightOfPassageAI.IsThreat(third, us));
-		ourCity.location.cityAtTile = ourCity;
-		us.cities.Add(ourCity);
-		Assert.False(third.WouldAcceptDealFrom(gameData, us, new TradeOffer { rightOfPassage = true }, Passage()));
+		Assert.False(RightOfPassageAI.Refuses(gameData, third, us));
 	}
 
 	[Fact]

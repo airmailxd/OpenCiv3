@@ -24,8 +24,11 @@ namespace C7Engine.AI {
 	// owner: "AI should seek Rights of passage when at war with a civ and
 	// needing to run through 3rd civ's territory to get to the enemy. Value
 	// should scale off of each member's empire size" (owner's decision,
-	// 2026-10-11). Without the embassy one needs, it establishes one first
-	// if it can spare the gold. In paired AI trials (AiTrialTest, 16 games
+	// 2026-10-11). Without the embassy it needs as the proposer, it
+	// establishes one first if it can spare the gold. Now and then it also
+	// offers one for nothing to a civ it is at peace with, as Civ3's AI
+	// does to be friendly (owner's decision, 2026-10-11); the other civ
+	// signs if it is worth it to them. In paired AI trials (AiTrialTest, 16 games
 	// each) it did no harm: civs asking signed about one right of passage a
 	// game on Pangaea and scored a little higher (+122 +- 115), and were
 	// unchanged on Continents (-29 +- 48).
@@ -53,12 +56,6 @@ namespace C7Engine.AI {
 	//   and "the last time we had a right of passage treaty with $CIVNAME1,
 	//   you sort of attacked us" (Conquests diplomacy.txt,
 	//   #AIREJECTPASSAGEVIOLATION);
-	// - a neighbour much stronger than it (ThreatStrengthRatio), whose
-	//   armies it doesn't want inside its borders on its roads, as Civ3's AI
-	//   is known to use them for attacks ("An AI ally can use RoP to ride
-	//   your railroads into your core, declare on you, and walk into one of
-	//   your undefended cities", per
-	//   https://forums.civfanatics.com/threads/right-of-passage-agreements.427477/);
 	// - a civ at war with its military ally or mutual protection partner,
 	//   so as not to open the way to them.
 	//
@@ -80,10 +77,9 @@ namespace C7Engine.AI {
 		// HEURISTIC: how far (in tiles) a city of an enemy without a
 		// campaign may be from our nearest city to plan a way to it.
 		private const int MaxRouteDistance = 20;
-		// HEURISTIC: how much stronger a neighbour must be to be refused.
-		public const float ThreatStrengthRatio = 2f;
-		// HEURISTIC: cities this close make two civs neighbours.
-		private const int NeighbourDistance = 8;
+		// HEURISTIC: the chance each turn of offering a right of passage
+		// for nothing to a civ we're at peace with.
+		public const int FriendlyOfferChancePercent = 5;
 		// HEURISTIC: the gold the AI keeps when paying for one.
 		private const int GoldReserve = 25;
 		// HEURISTIC: the gold the AI keeps when establishing an embassy to
@@ -141,30 +137,10 @@ namespace C7Engine.AI {
 			if (RightOfPassage.HasBetrayed(them, gameData.players)) {
 				return true;
 			}
-			if (IsThreat(us, them)) {
-				return true;
-			}
 			foreach (Player p in gameData.players) {
 				if (p != us && p != them && AtWar(them, p) && TryGetRelationship(us, p, out PlayerRelationship ours)
 					&& ours.multiTurnDeals.Any(d => d.dealSubType is DealSubType.MilitaryAlliance or DealSubType.MutualProtectionPact)) {
 					return true;
-				}
-			}
-			return false;
-		}
-
-		// A neighbour much stronger than us.
-		public static bool IsThreat(Player us, Player them) {
-			float ours = us.CalculateMilitaryStrength();
-			float theirs = them.CalculateMilitaryStrength();
-			if (theirs < ThreatStrengthRatio * Math.Max(1f, ours)) {
-				return false;
-			}
-			foreach (City a in us.cities) {
-				foreach (City b in them.cities) {
-					if (a.location.DistanceTo(b.location) <= NeighbourDistance) {
-						return true;
-					}
 				}
 			}
 			return false;
@@ -296,22 +272,66 @@ namespace C7Engine.AI {
 				if (them.isHuman) {
 					await OfferToHuman(player, them, weGive, weWant);
 				} else if (them.WouldAcceptDealFrom(gameData, player, weGive, weWant)) {
-					player.ExecuteDeal(gameData, them, weWant, weGive);
+					// We propose it, so they carry it out (see ExecuteDeal).
+				them.ExecuteDeal(gameData, player, weGive, weWant);
 				}
 				if (HaveActiveRightOfPassage(player, them)) {
 					log.Information("{Player} and {Them} signed a right of passage", player, them);
 					onSigned?.Invoke(player, them);
 				}
 			}
+
+			if (GameData.rng.Next(100) < FriendlyOfferChancePercent) {
+				await OfferFriendlyPassage(player, gameData);
+			}
 		}
 
-		// A right of passage needs an embassy (see RightOfPassage), so
-		// without one, either way, we establish one, as the AI does anyway
-		// when it can spare the gold (see EspionageAI), but keeping less in
-		// reserve, as we need it now.
+		// Offers a right of passage for nothing to a civ we're at peace with
+		// and could sign one with, the nearest first: an AI signs it if it is
+		// worth it to them, a human is asked.
+		internal static async Task OfferFriendlyPassage(Player player, GameData gameData) {
+			Player them = gameData.players
+				.Where(p => p != player && !p.isBarbarians && !p.defeated && RightOfPassage.CanSign(gameData, player, p)
+					&& !Refuses(gameData, player, p) && !RecentlyAsked(gameData, player, p)
+					&& p.WillAcceptCommunicationFrom(player, gameData.turn))
+				.OrderBy(p => NearestCityDistance(player, p))
+				.FirstOrDefault();
+			if (them == null) {
+				return;
+			}
+			lastRequestTurn.GetOrCreateValue(player)[them.id] = gameData.turn;
+			TradeOffer weGive = new() { rightOfPassage = true };
+			TradeOffer weWant = new() { rightOfPassage = true };
+			log.Information("{Player} offers {Them} a right of passage in friendship", player, them);
+			if (them.isHuman) {
+				await OfferToHuman(player, them, weGive, weWant);
+			} else if (them.WouldAcceptDealFrom(gameData, player, weGive, weWant)) {
+				// We propose it, so they carry it out (see ExecuteDeal).
+				them.ExecuteDeal(gameData, player, weGive, weWant);
+			}
+			if (HaveActiveRightOfPassage(player, them)) {
+				onSigned?.Invoke(player, them);
+			}
+		}
+
+		private static int NearestCityDistance(Player a, Player b) {
+			int best = int.MaxValue;
+			foreach (City x in a.cities) {
+				foreach (City y in b.cities) {
+					if (x.location.map != null && x.location.map == y.location.map) {
+						best = Math.Min(best, x.location.DistanceTo(y.location));
+					}
+				}
+			}
+			return best;
+		}
+
+		// Proposing a right of passage needs our embassy with them (see
+		// RightOfPassage), so without one we establish one, as the AI does
+		// anyway when it can spare the gold (see EspionageAI), but keeping
+		// less in reserve, as we need it now.
 		private static void EstablishEmbassyIfNeeded(GameData gameData, Player player, Player them) {
-			if (!TryGetRelationship(player, them, out PlayerRelationship ours) || !TryGetRelationship(them, player, out PlayerRelationship theirs)
-				|| ours.hasEmbassy || theirs.hasEmbassy) {
+			if (!TryGetRelationship(player, them, out PlayerRelationship ours) || ours.hasEmbassy) {
 				return;
 			}
 			if (Espionage.Unavailable(gameData, player, EspionageMission.EstablishEmbassy, them, null) != null
