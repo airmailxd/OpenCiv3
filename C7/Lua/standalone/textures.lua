@@ -171,6 +171,17 @@ local tech_icon_replacement_map = {
   ["tech-16"] = "HorsebackRiding.png",
 }
 
+-- The civilizations that have a leader head of our own, by name (see
+-- leader_heads below).
+local leader_head_civs = {}
+for _, name in ipairs({
+  "America", "Arabia", "Aztecs", "Babylon", "Byzantines", "Carthage", "Celts", "China",
+  "Egypt", "England", "France", "Germany", "Greece", "Hittites", "Inca", "India",
+  "Iroquois", "Japan", "Korea", "Maya", "Mongols", "Netherlands", "Ottomans", "Persia",
+  "Portugal", "Rome", "Russia", "Scandinavia", "Spain", "Sumeria", "Zululand",
+}) do
+  leader_head_civs[name] = true
+end
 
 -- Build lookup table from c7_texture_list without extensions
 local lookup = {}
@@ -225,7 +236,19 @@ return function(civ3_textures)
     return { path = "Art/Tech Chooser/Icons/" .. icon }
   end
   
+  -- Each civilization of the bundled rules has its own leader head
+  -- (C7/ModernArt/Art/Leaderheads/<civ name>.png, made by
+  -- ArtGen/leaderheads), whose 2x picture ModernGraphics loads at Civ3's
+  -- 115x115. There's one per leader, the same in every era and mood. Any
+  -- other civilization shows the placeholder.
   function c7_textures.leader_heads:map_object_to_sprite(player_or_civ)
+    local civ = player_or_civ
+    if player_or_civ:GetType().Name == "Player" then
+      civ = player_or_civ.civilization
+    end
+    if civ and leader_head_civs[civ.name] then
+      return { path = "Art/Leaderheads/" .. civ.name .. ".png" }
+    end
     return {
       path = "Art/Advisors/placeholder_leaderhead.png",
     }
