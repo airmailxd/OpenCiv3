@@ -2208,6 +2208,31 @@ namespace C7Engine {
 
 			for (int attempt = 0; attempt < START_PLACEMENT_PASSES && startingLocations.Count < wc.worldSize.numberOfCivs; ++attempt) {
 				while (startingLocations.Count < wc.worldSize.numberOfCivs) {
+					// On a map with about as many islands that can hold a civ
+					// as there are civs, each civ gets an island of its own,
+					// the bigger ones first, rather than two sharing one while
+					// another is left empty; civs share only once every such
+					// island has one. Not on the last pass, so that a map with
+					// room for every civ isn't turned down for it. A map of a
+					// few big continents isn't affected. (Owner's decision,
+					// 2026-10-12: "when there are at least as many suitable
+					// islands as civs (or close to it), place one civ per
+					// island, using the largest/best islands first".)
+					int largestEmptyIsland = 0;
+					int emptyIslands = 0;
+					int islands = 0;
+					foreach (int continent in orderedTiles.Select(c => c.continent).Distinct()) {
+						if (IsContinentLargeEnough(continentSizes, continent, attempt)) {
+							++islands;
+							if (!continentStartingLocationCount.ContainsKey(continent)) {
+								++emptyIslands;
+								largestEmptyIsland = Math.Max(largestEmptyIsland, continentSizes[continent]);
+							}
+						}
+					}
+					bool islandEach = attempt < START_PLACEMENT_PASSES - 1 && emptyIslands > 0
+						&& islands >= wc.worldSize.numberOfCivs * ISLAND_EACH_SHARE;
+
 					// Take the valid tile with the best score, discounted by
 					// how much closer than the spacing it is to a start on
 					// its continent. Taking the best scores alone packs every
@@ -2221,7 +2246,11 @@ namespace C7Engine {
 							break;
 						}
 
-						if (!IsContinentLargeEnough(continentSizes, candidate, attempt)) {
+						if (!IsContinentLargeEnough(continentSizes, candidate.continent, attempt)) {
+							continue;
+						}
+
+						if (islandEach && continentStartingLocationCount.ContainsKey(candidate.continent)) {
 							continue;
 						}
 
@@ -2237,6 +2266,9 @@ namespace C7Engine {
 						}
 
 						double value = scoredTiles[candidate] * SpreadFactor(candidate, startingLocations, spacing);
+						if (islandEach) {
+							value *= Math.Sqrt(continentSizes[candidate.continent] / (double)largestEmptyIsland);
+						}
 						if (value > bestValue) {
 							t = candidate;
 							bestValue = value;
@@ -2299,8 +2331,8 @@ namespace C7Engine {
 		// Allow smaller continents the more desperate we are to find a starting
 		// location. Hopefully map generation will have handled this; if not
 		// every civ fits, GameSetup generates another map.
-		private static bool IsContinentLargeEnough(Dictionary<int, int> continentSizes, Tile t, int attempt) {
-			int continentSize = continentSizes[t.continent];
+		private static bool IsContinentLargeEnough(Dictionary<int, int> continentSizes, int continent, int attempt) {
+			int continentSize = continentSizes[continent];
 
 			if (attempt < 3) {
 				return continentSize > MIN_TILES_PER_PLAYER_ISLAND;
@@ -2336,6 +2368,10 @@ namespace C7Engine {
 		// The last relaxation is on pass 6, so later passes would find
 		// nothing new.
 		private const int START_PLACEMENT_PASSES = 7;
+
+		// The share of the civs there must be islands for, for each civ to
+		// get one of its own (owner's "or close to it").
+		private const double ISLAND_EACH_SHARE = 0.75;
 
 		// On the first passes, a start must score at least this share of the
 		// best candidate on the map, so that spreading the starts out doesn't
