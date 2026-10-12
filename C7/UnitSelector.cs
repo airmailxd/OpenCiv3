@@ -45,6 +45,7 @@ public partial class UnitSelector : Node {
 		if (game.CurrentState != GameState.PlayerTurn) return;
 		if (NoMoreAutoselectableUnitsEmitted) return;
 		if (EngineStorage.HasPendingAnimations()) return;
+		if (game.IsChoosingProduction) return;
 
 		// If no unit is selected, move to the next one
 		if (CurrentlySelectedUnit == MapUnit.NONE) {

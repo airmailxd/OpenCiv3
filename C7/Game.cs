@@ -1506,6 +1506,14 @@ public partial class Game : Node {
 	private CityProductionPopup shownProductionPopup = null;
 	private MsgCityProductionCompleted shownProductionMessage = null;
 
+	// Whether the player is choosing what a city builds next: its production
+	// popup is up, another is waiting its turn, or the city screen is open.
+	// The unit selector holds off until they're done, so the camera stays
+	// on the city rather than moving to the next unit.
+	public bool IsChoosingProduction => shownProductionPopup != null
+		|| cityScreen.Visible
+		|| (controller != null && pendingProductionPopups.TryGetValue(controller.id, out LinkedList<MsgCityProductionCompleted> pending) && pending.Count > 0);
+
 	private LinkedList<MsgCityProductionCompleted> PendingProductionPopupsFor(ID playerID) {
 		if (!pendingProductionPopups.TryGetValue(playerID, out LinkedList<MsgCityProductionCompleted> pending)) {
 			pending = new();
