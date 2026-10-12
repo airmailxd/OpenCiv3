@@ -121,3 +121,15 @@ file is the PNG of the same name as a Civ3 file, with the same size and the
 same sprite rectangles, and every panel, tab and well where the Civilopedia's
 layout code expects it. The layout is measured from Civ3's art and written down
 at the top of the script.
+
+## The leader heads
+
+`python ArtGen/leaderheads/build.py` draws a leader head for every
+civilization of the bundled rules, for standalone mode, into
+`C7/ModernArt/Art/Leaderheads/<civ name>.png` (230x230: twice Civ3's 115x115).
+Each is the leader's own 3D model (their "King" unit, `units/catalog/leaders.py`)
+seen up close at eye level, with a face detailed for the close-up, the
+civ-colored parts in the civilization's color and a soft backdrop tinted with
+it. `C7/Lua/standalone/textures.lua` lists the civilizations that have one;
+there's one per leader, not one per era and mood. A contact sheet goes to
+`ArtGen/_previews/leaderheads.png`.
