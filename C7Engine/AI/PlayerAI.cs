@@ -519,22 +519,25 @@ namespace C7Engine {
 			return best;
 		}
 
-		// A scientific leader is kept for a wonder, the costliest things to
-		// build and, for great wonders, beyond a military leader (see
-		// MapUnit_ScientificLeader.cs). It goes to
-		// the city where it would save the most shields on a wonder, great or
-		// small, and finishes it there, switching the city to the wonder if
-		// need be (Civ3 has no penalty for switching between improvements and
-		// wonders). With no wonder to build anywhere it waits in the capital.
+		// A scientific leader can finish anything a city builds (owner's
+		// decision, 2026-10-12; see MapUnit_ScientificLeader.cs), so it goes
+		// where it saves the most shields. Wonders, great or small, are the
+		// costliest things to build and great ones are beyond a military
+		// leader, so it looks for one first. Failing that, it finishes the
+		// costliest remaining build in a city not threatened in a war, where
+		// what it finishes won't just be captured, and failing that in the
+		// capital. It switches the city to the chosen item if need be (Civ3
+		// has no penalty for switching between categories). With nothing to
+		// finish anywhere it waits in the capital.
 		// Returns true if the leader was used up.
 		internal static bool UseScientificLeader(MapUnit unit, Player player) {
-			(City target, Building wonder) = BestWonderForScientificLeader(player);
-			if (target == null) {
+			(City target, IProducible item) = BestBuildForScientificLeader(player);
+			if (target == null || item == null) {
 				return false;
 			}
 			if (unit.location == target.location && unit.CanOfferHurryProduction()) {
-				if (target.itemBeingProduced != wonder) {
-					target.ChangeProduction(wonder);
+				if (target.itemBeingProduced != item) {
+					target.ChangeProduction(item);
 				}
 				if (unit.CanHurryProduction()) {
 					return unit.HurryProductionAsLeader();
@@ -549,6 +552,58 @@ namespace C7Engine {
 				}
 			}
 			return false;
+		}
+
+		// The city, and item, a scientific leader should finish (see
+		// UseScientificLeader): the wonder that would save the most shields;
+		// else the costliest remaining build in a safe city; else the
+		// capital's. The item is null if the capital has nothing to finish,
+		// and the city is null too with no capital.
+		internal static (City, IProducible) BestBuildForScientificLeader(Player player) {
+			(City wonderCity, Building wonder) = BestWonderForScientificLeader(player);
+			if (wonderCity != null) {
+				return (wonderCity, wonder);
+			}
+			City bestCity = null;
+			IProducible best = null;
+			int bestRemaining = 0;
+			foreach (City city in player.cities) {
+				if (WonderPlanner.IsThreatened(city, player)) {
+					continue;
+				}
+				(IProducible item, int remaining) = BestNonWonderForScientificLeader(city);
+				if (item != null && remaining > bestRemaining) {
+					(bestCity, best, bestRemaining) = (city, item, remaining);
+				}
+			}
+			if (bestCity != null) {
+				return (bestCity, best);
+			}
+			City capital = player.cities.FirstOrDefault(c => c.capital);
+			return capital == null ? (null, null) : (capital, BestNonWonderForScientificLeader(capital).Item1);
+		}
+
+		// The non-wonder build in the city that would save the most shields,
+		// and the shields it would save: what the city is building, unit or
+		// improvement, or an improvement it would want and could switch to.
+		// It doesn't switch to a unit, which the city may not need.
+		private static (IProducible, int) BestNonWonderForScientificLeader(City city) {
+			IProducible best = null;
+			int bestRemaining = 0;
+			IProducible current = city.itemBeingProduced;
+			if (current is UnitPrototype or Building && !City.IsWonder(current)) {
+				int remaining = city.owner.ShieldCost(current) - city.shieldsStored;
+				if (remaining > bestRemaining) {
+					(best, bestRemaining) = (current, remaining);
+				}
+			}
+			if (!city.hurriedThisTurn && BestWantedImprovementForLeader(city) is Building wanted && city.CanChangeProduction(wanted)) {
+				int remaining = city.owner.ShieldCost(wanted) - city.shieldsStored;
+				if (remaining > bestRemaining) {
+					(best, bestRemaining) = (wanted, remaining);
+				}
+			}
+			return (best, bestRemaining);
 		}
 
 		// The city, and wonder, where a scientific leader would save the most
@@ -597,11 +652,11 @@ namespace C7Engine {
 			PathingAlgorithm algorithm = PathingAlgorithmChooser.GetAlgorithm(unit);
 			Tile destination = null;
 			TilePath path = null;
-			// A scientific leader makes for the city with the wonder it would
-			// save the most on, or else the capital (see UseScientificLeader).
+			// A scientific leader makes for the city where it would save the
+			// most, or else the capital (see UseScientificLeader).
 			City scientificTarget = null;
 			if (unit.IsScientificLeader()) {
-				scientificTarget = BestWonderForScientificLeader(player).Item1
+				scientificTarget = BestBuildForScientificLeader(player).Item1
 					?? player.cities.FirstOrDefault(c => c.capital);
 			}
 			foreach (bool needUsable in new[] { true, false }) {
