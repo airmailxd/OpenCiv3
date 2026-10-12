@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What's new</title>
+<style>
+	:root {
+		color-scheme: light dark;
+		--bg: #ffffff;
+		--text: #1f2328;
+		--muted: #59636e;
+		--line: #d1d9e0;
+		--note: #fff8c5;
+		--note-line: #d4a72c;
+		--link: #0969da;
+	}
+	@media (prefers-color-scheme: dark) {
+		:root:not([data-theme="light"]) {
+			--bg: #0d1117;
+			--text: #e6edf3;
+			--muted: #9198a1;
+			--line: #3d444d;
+			--note: #2e2a1a;
+			--note-line: #9e7c1f;
+			--link: #4493f8;
+		}
+	}
+	:root[data-theme="dark"] {
+		--bg: #0d1117;
+		--text: #e6edf3;
+		--muted: #9198a1;
+		--line: #3d444d;
+		--note: #2e2a1a;
+		--note-line: #9e7c1f;
+		--link: #4493f8;
+	}
+	body { background: var(--bg); color: var(--text); font: 17px/1.6 system-ui, sans-serif; margin: 0; }
+	main { max-width: 40rem; margin: 0 auto; padding: 2.5rem 16px 4rem; }
+	a { color: var(--link); }
+	.downloads p { margin: 0; font-size: 18px; line-height: 1.9; }
+	.downloads b { display: inline-block; width: 5.5rem; }
+	h2 { font-size: 1.3rem; margin: 2.5rem 0 0.5rem; padding-top: 1.5rem; border-top: 1px solid var(--line); }
+	h3 { font-size: 1.05rem; margin: 1.5rem 0 0.25rem; }
+	ol, ul { padding-left: 1.4rem; }
+	li { margin: 0.35rem 0; }
+	.muted { color: var(--muted); }
+	.note { background: var(--note); border-left: 4px solid var(--note-line); padding: 0.6rem 0.9rem; border-radius: 4px; margin: 1rem 0; }
+	kbd { font: inherit; font-weight: 600; }
+	.tabs { display: flex; gap: 0.25rem; margin: 2rem 0 0; border-bottom: 1px solid var(--line); }
+	.tabs a { padding: 0.5rem 0.9rem; color: var(--muted); text-decoration: none; font-weight: 600;
+		border: 1px solid transparent; border-bottom: none; border-radius: 6px 6px 0 0; margin-bottom: -1px; }
+	.tabs a:hover { color: var(--text); }
+	.tabs a[aria-selected="true"] { color: var(--text); background: var(--bg); border-color: var(--line); }
+	.tab > h2:first-child { border-top: none; margin-top: 1rem; padding-top: 0; }
+	h4 { font-size: 1rem; margin: 1.25rem 0 0.25rem; }
+	h1 { font-size: 1.6rem; margin: 1rem 0 0.25rem; }
+</style>
+</head>
+<body>
+<main>
+	<p><a href="./">&larr; Back to the downloads</a></p>
+	<h1>What's new</h1>
+	<p class="muted">Everything that changed since version 0.5.0. Newest first.</p>
+
+	<h2>Version 0.7.0 <span class="muted">(October 12, 2026)</span></h2>
+	<h3>The Civilopedia</h3>
+	<ul>
+		<li>Civ3's Civilopedia is in the game. Click the book at the top left, or press <kbd>Ctrl</kbd>+<kbd>C</kbd>, to look up any unit, building, wonder, advance, government, terrain, resource, worker action, civilization or game rule.</li>
+		<li>Every page shows what the thing costs and does, what it needs, and what it leads to. Click any link or icon to jump to that page, and use the arrows to go back. The <kbd>Description</kbd> button shows its history.</li>
+		<li>Right-click an advance in the science advisor, or a building or production choice in a city, to go straight to its page. The right-click menus on the map have a "View Civilopedia entry" item too.</li>
+	</ul>
+	<h3>Computer players</h3>
+	<ul>
+		<li>When they're stronger than you, they may demand tribute. Pay up, or risk war.</li>
+		<li>Their mood toward you, from Gracious to Furious, now shows when you talk to them. It depends on how you've treated them, as in Civ3: gifts, tribute, trades, shared enemies, captured workers and more.</li>
+		<li>They settle more of the map before going to war, and carry settlers across the sea to new land.</li>
+		<li>At war they gather an army first and march on one city at a time, rest their hurt units, fight with armies, and while on the march won't make peace unless it gives them a city.</li>
+		<li>They build wonders in their safest, most productive cities, buy the units they need with gold, and slowly retire units that are out of date.</li>
+	</ul>
+	<h3>Diplomacy</h3>
+	<ul>
+		<li>Civilizations with an embassy can agree to let each other's units pass through their land. Friendly computer players offer it, and ask for it when they need to cross your land to reach an enemy.</li>
+	</ul>
+	<h3>Rules</h3>
+	<ul>
+		<li>Scientific civilizations get great scientists, and a free advance as they enter each new era.</li>
+		<li>Goody huts give what they give in Conquests at each difficulty level.</li>
+		<li>You always get to choose your free advance from Philosophy.</li>
+	</ul>
+	<h3>Maps and play</h3>
+	<ul>
+		<li>Civilizations start further apart, spread over the land instead of crowded into the best of it.</li>
+		<li>The camera stays on a city while you choose what it builds next.</li>
+		<li>Turns go faster, the map keeps moving smoothly while the computer players take their turns, and games are saved in the background.</li>
+	</ul>
+
+	<h2>Version 0.6.1 <span class="muted">(October 10, 2026)</span></h2>
+	<ul>
+		<li>New: <b>Watch AI Game</b>. Let the computer players play a game on their own, pausing every so many turns so you can look around.</li>
+		<li>Computer players manage their money and found cities better.</li>
+		<li>The map draws faster: units, city names and the small map are only redrawn when they change.</li>
+	</ul>
+
+	<h2>Version 0.6.0 <span class="muted">(October 9, 2026)</span></h2>
+	<h3>Winning and the United Nations</h3>
+	<ul>
+		<li>Choose how a game can be won when you set it up, including a cultural victory. A game ends only when someone wins, with an optional turn limit.</li>
+		<li>United Nations elections work as in Civ3: the founder decides whether to hold each vote, and computer players vote by how they feel about each candidate.</li>
+	</ul>
+	<h3>Culture, war and peace</h3>
+	<ul>
+		<li>Cities can flip to a neighbour with a much stronger culture. Conquered cities resist their new owner for a while.</li>
+		<li>War weariness builds up separately against each enemy and fades slowly after peace.</li>
+		<li>Cities can be traded in deals, and a losing computer player may offer one for peace.</li>
+		<li>Bombarding damages units, buildings and citizens as in Civ3, and city walls help against it.</li>
+	</ul>
+	<h3>Barbarians</h3>
+	<ul>
+		<li>Barbarians stay away until civilizations have founded their second city. Once they arrive, they plunder gold or carry off citizens, and sack the cities they take.</li>
+	</ul>
+	<h3>New maps</h3>
+	<ul>
+		<li>Rivers flow into each other like real river systems, hills and mountains form ranges, and forests, jungles and deserts follow climate.</li>
+		<li>Land, water and resources come in the amounts Civ3 has. Seafaring civilizations start by the sea, and every capital has room to grow.</li>
+		<li>Goody huts are on the map. Ships can risk dangerous waters, which get safer as you learn about the sea.</li>
+		<li>Wonders are announced when they're built, and a new menu option shows the whole map.</li>
+	</ul>
+	<h3>Cities and money</h3>
+	<ul>
+		<li>Buying production costs what it does in Civ3, and wonders can't be bought.</li>
+		<li>Disbanding a unit in a city gives back a quarter of its cost.</li>
+		<li>Choose how much corruption there is when setting up a game.</li>
+		<li>Policemen and civil engineers can be put to work. Electricity lets you irrigate anywhere, and Replaceable Parts speeds up workers.</li>
+	</ul>
+	<h3>Playing together</h3>
+	<ul>
+		<li>Watch a game as a spectator: follow one civilization, all of them, or the whole map, and switch whenever you like.</li>
+		<li>Online games are more reliable, and the host can ban unwanted guests. You can also run your own online server; see <a href="./#server">Play with friends</a>.</li>
+	</ul>
+	<h3>Everything else</h3>
+	<ul>
+		<li>Games are saved in the game's own saves folder, and you're told if saving fails.</li>
+		<li>Civ3 saved games and scenarios load more faithfully, and Civ3 is found on Linux and in extra Steam libraries.</li>
+		<li>Units can board a ship on a neighbouring square.</li>
+	</ul>
+</main>
+</body>
+</html>
