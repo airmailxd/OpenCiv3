@@ -162,7 +162,7 @@ public partial class Civilopedia : CenterContainer {
 		} else if (historyIndex < 0) {
 			Navigate(new Page(CivilopediaSection.Main, null, false));
 		} else {
-			Draw(current);
+			DrawPage(current);
 		}
 		Show();
 		GrabFocus();
@@ -435,7 +435,7 @@ public partial class Civilopedia : CenterContainer {
 
 	private void Navigate(Page page) {
 		if (historyIndex >= 0 && history[historyIndex] == page) {
-			Draw(page);
+			DrawPage(page);
 			return;
 		}
 		// Going somewhere new drops the pages ahead in the history.
@@ -444,20 +444,20 @@ public partial class Civilopedia : CenterContainer {
 		}
 		history.Add(page);
 		historyIndex = history.Count - 1;
-		Draw(page);
+		DrawPage(page);
 	}
 
 	private void GoBack() {
 		if (historyIndex > 0) {
 			historyIndex--;
-			Draw(history[historyIndex]);
+			DrawPage(history[historyIndex]);
 		}
 	}
 
 	private void GoForward() {
 		if (historyIndex < history.Count - 1) {
 			historyIndex++;
-			Draw(history[historyIndex]);
+			DrawPage(history[historyIndex]);
 		}
 	}
 
@@ -546,13 +546,13 @@ public partial class Civilopedia : CenterContainer {
 			if (historyIndex >= 0) {
 				history[historyIndex] = toggled;
 			}
-			Draw(toggled);
+			DrawPage(toggled);
 		}
 	}
 
 	// ---- Drawing pages ----
 
-	private void Draw(Page page) {
+	private void DrawPage(Page page) {
 		current = page;
 		ClearPage();
 
