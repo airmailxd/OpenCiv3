@@ -61,6 +61,9 @@ namespace C7Engine {
 
 			await EngineStorage.YieldIfFrameBudgetSpent();
 			EspionageAI.PlayTurn(player, gameData);
+			// Ask for a right of passage where the way to an enemy crosses a
+			// third civ's land (see RightOfPassageAI).
+			await RightOfPassageAI.PlayTurn(player, gameData);
 
 			await EngineStorage.YieldIfFrameBudgetSpent();
 			UpgradeUnits(player);

@@ -88,6 +88,9 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			// Hurried production: items the AI hurried, and the gold it
 			// paid for them.
 			"rushes", "rushGold",
+			// Rights of passage the civ signed when it asked for one (see
+			// RightOfPassageAI), as either side.
+			"rops",
 		];
 		public readonly double[] values = new double[Names.Length];
 	}
@@ -343,6 +346,11 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 				rushGold[city.owner] += gold;
 			}
 		};
+		Dictionary<Player, int> rops = civs.ToDictionary(p => p, _ => 0);
+		RightOfPassageAI.onSigned = (asker, partner) => {
+			Add(rops, asker);
+			Add(rops, partner);
+		};
 		AiExperiments.onCombat = (attacker, defender, result) => {
 			Add(attacks, attacker.owner);
 			if (result == CombatResult.DefenderKilled || result == CombatResult.DefenderRetreated) {
@@ -419,6 +427,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			AiExperiments.onWarDeclared = null;
 			AiExperiments.onCombat = null;
 			AiExperiments.onHurry = null;
+			RightOfPassageAI.onSigned = null;
 		}
 
 		Dictionary<Player, int> land = civs.ToDictionary(p => p, _ => 0);
@@ -487,6 +496,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			m.values[i++] = armyCaptures[p];
 			m.values[i++] = rushes[p];
 			m.values[i++] = rushGold[p];
+			m.values[i++] = rops[p];
 			return m;
 		}
 

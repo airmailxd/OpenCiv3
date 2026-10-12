@@ -24,7 +24,11 @@ namespace C7Engine.AI {
 	// owner: "AI should seek Rights of passage when at war with a civ and
 	// needing to run through 3rd civ's territory to get to the enemy. Value
 	// should scale off of each member's empire size" (owner's decision,
-	// 2026-10-11).
+	// 2026-10-11). Without the embassy one needs, it establishes one first
+	// if it can spare the gold. In paired AI trials (AiTrialTest, 16 games
+	// each) it did no harm: civs asking signed about one right of passage a
+	// game on Pangaea and scored a little higher (+122 +- 115), and were
+	// unchanged on Continents (-29 +- 48).
 	//
 	// Valuation (HEURISTIC): a right of passage lets each side into the
 	// other's land, so the civ with the bigger empire gives more. Its worth
@@ -65,7 +69,7 @@ namespace C7Engine.AI {
 		private static readonly ILogger log = Log.ForContext(typeof(RightOfPassageAI));
 
 		// HEURISTIC: the gold a partner's city is worth in the size part.
-		public const int GoldPerCity = 10;
+		public const int GoldPerCity = 5;
 		// HEURISTIC: what getting through to an enemy is worth.
 		public const int WarNeedGold = 50;
 		public const int TileNeedGold = 10;
@@ -81,7 +85,10 @@ namespace C7Engine.AI {
 		// HEURISTIC: cities this close make two civs neighbours.
 		private const int NeighbourDistance = 8;
 		// HEURISTIC: the gold the AI keeps when paying for one.
-		private const int GoldReserve = 50;
+		private const int GoldReserve = 25;
+		// HEURISTIC: the gold the AI keeps when establishing an embassy to
+		// ask for one.
+		private const int EmbassyGoldReserve = 10;
 		// HEURISTIC: how often to ask the same civ again.
 		private const int TurnsBetweenRequests = 10;
 
@@ -272,6 +279,9 @@ namespace C7Engine.AI {
 			}
 			Dictionary<Player, int> crossed = TerritoryOnWarRoutes(gameData, player);
 			foreach ((Player them, int tiles) in crossed.ToList()) {
+				if (tiles >= MinTilesCrossed) {
+					EstablishEmbassyIfNeeded(gameData, player, them);
+				}
 				if (tiles < MinTilesCrossed || !RightOfPassage.CanSign(gameData, player, them)
 					|| !them.WillAcceptCommunicationFrom(player, gameData.turn) || RecentlyAsked(gameData, player, them)) {
 					continue;
@@ -293,6 +303,23 @@ namespace C7Engine.AI {
 					onSigned?.Invoke(player, them);
 				}
 			}
+		}
+
+		// A right of passage needs an embassy (see RightOfPassage), so
+		// without one, either way, we establish one, as the AI does anyway
+		// when it can spare the gold (see EspionageAI), but keeping less in
+		// reserve, as we need it now.
+		private static void EstablishEmbassyIfNeeded(GameData gameData, Player player, Player them) {
+			if (!TryGetRelationship(player, them, out PlayerRelationship ours) || !TryGetRelationship(them, player, out PlayerRelationship theirs)
+				|| ours.hasEmbassy || theirs.hasEmbassy) {
+				return;
+			}
+			if (Espionage.Unavailable(gameData, player, EspionageMission.EstablishEmbassy, them, null) != null
+				|| player.gold - Espionage.Cost(gameData, player, EspionageMission.EstablishEmbassy, them, null) < EmbassyGoldReserve) {
+				return;
+			}
+			log.Information("{Player} establishes an embassy with {Them} to ask for a right of passage", player, them);
+			Espionage.Perform(gameData, player, EspionageMission.EstablishEmbassy, them, null);
 		}
 
 		private static bool RecentlyAsked(GameData gameData, Player player, Player them) {

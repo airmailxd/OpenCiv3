@@ -288,12 +288,28 @@ public class RightOfPassageTest : MapBase {
 	[Fact]
 	public async Task NoRightOfPassageWithoutAnEmbassy() {
 		MakeUnit(us, ourCity.location);
+		MakeUnit(third, thirdCity.location, attack: 1, defense: 2);
+		// Too little gold to establish one.
+		us.gold = 20;
+		us.DeclareWarOn(enemy, gameData.turn);
+
+		await RightOfPassageAI.PlayTurn(us, gameData);
+
+		Assert.False(us.playerRelationships[third.id].hasEmbassy);
+		Assert.False(HaveActiveRightOfPassage(us, third));
+	}
+
+	[Fact]
+	public async Task AnAiEstablishesTheEmbassyItNeedsToAskForOne() {
+		MakeUnit(us, ourCity.location);
+		MakeUnit(third, thirdCity.location, attack: 1, defense: 2);
 		us.gold = 100;
 		us.DeclareWarOn(enemy, gameData.turn);
 
 		await RightOfPassageAI.PlayTurn(us, gameData);
 
-		Assert.False(HaveActiveRightOfPassage(us, third));
+		Assert.True(us.playerRelationships[third.id].hasEmbassy);
+		Assert.True(HaveActiveRightOfPassage(us, third));
 	}
 
 	[Fact]
