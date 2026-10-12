@@ -89,3 +89,16 @@ always be obvious what's going on: what each tile is, what each unit is.
   modern art at each zoom, and quits (it needs about 20–40 seconds). A good save:
   `D:/Steam/steamapps/common/Sid Meier's Civilization III Complete/Conquests/Saves/Auto/Conquests Autosave 280 AD.SAV`.
   The C# is already built; don't edit or rebuild the C# project.
+
+## The Civilopedia's art
+
+`python ArtGen/civilopedia/build.py` draws the art of OpenCiv3's own
+Civilopedia (page backgrounds, covers, name bars, buttons, arrows and section
+icons) into `C7/Civilopedia/Art/Civilopedia/`, which is used in standalone
+mode and wherever Civ3's own Civilopedia art is missing (see
+`C7Engine/C7GameData/CivilopediaFiles.cs`). Unlike the map art, these are our
+own designs rather than remakes, at the originals' size (1x, not 2x): each
+file is the PNG of the same name as a Civ3 file, with the same size and the
+same sprite rectangles, and every panel, tab and well where the Civilopedia's
+layout code expects it. The layout is measured from Civ3's art and written down
+at the top of the script.
