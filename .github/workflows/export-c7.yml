@@ -128,6 +128,8 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: barichello/godot-ci:mono-4.4.1
+    outputs:
+      folder: ${{ steps.folder.outputs.name }}
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -156,3 +158,33 @@ jobs:
       with:
         name: ${{ env.FOLDER_NAME }}-Mac
         path: build/${{ env.FOLDER_NAME }}.zip
+    - name: Pass the folder name to the re-sign job
+      id: folder
+      run: echo "name=${FOLDER_NAME}" >> "$GITHUB_OUTPUT"
+  # Godot's ad-hoc signature, made on Linux, gets the app killed at launch on
+  # newer Apple Silicon Macs. Re-sign it with Apple's codesign and replace
+  # the Mac artifact.
+  Sign-C7-Mac:
+    needs: Export-C7-Mac
+    runs-on: macos-latest
+    timeout-minutes: 15
+    env:
+      FOLDER_NAME: ${{ needs.Export-C7-Mac.outputs.folder }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        sparse-checkout: .github
+    - uses: actions/download-artifact@v4
+      with:
+        name: ${{ env.FOLDER_NAME }}-Mac
+        path: build
+    - uses: ./.github/workflows/composite/macResign
+      with:
+        zip: build/${{ env.FOLDER_NAME }}.zip
+    - name: Upload  Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ env.FOLDER_NAME }}-Mac
+        path: build/${{ env.FOLDER_NAME }}.zip
+        overwrite: true

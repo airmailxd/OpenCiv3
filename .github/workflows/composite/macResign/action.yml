@@ -1,0 +1,60 @@
+name: "Re-sign Mac build"
+description: >
+  Re-signs the .app inside a Godot macOS export zip with Apple's codesign
+  (ad-hoc, hardened runtime, keeping the entitlements Godot exported), then
+  re-zips it with the same top-level layout. Must run on a macOS runner.
+  Godot's own ad-hoc signature, made on Linux, passes codesign --verify, but
+  Apple Silicon Macs on macOS 26 kill the game at launch (exit 137); signing
+  it again with Apple's codesign fixes that.
+
+inputs:
+  zip:
+    description: Path to the zip; it is replaced in place
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+  - name: Re-sign the app
+    shell: bash
+    env:
+      ZIP_INPUT: ${{ inputs.zip }}
+    run: |
+      set -euo pipefail
+      ZIP="$(cd "$(dirname "$ZIP_INPUT")" && pwd)/$(basename "$ZIP_INPUT")"
+      STAGE="$RUNNER_TEMP/mac-resign"
+      ENTITLEMENTS="$RUNNER_TEMP/entitlements.plist"
+      rm -rf "$STAGE"
+      mkdir -p "$STAGE"
+      ditto -x -k "$ZIP" "$STAGE"
+
+      shopt -s nullglob
+      apps=("$STAGE"/*.app)
+      if [ "${#apps[@]}" -ne 1 ]; then
+        echo "::error title=Mac re-sign::Expected one .app at the top of the zip, found ${#apps[@]}"
+        ls -la "$STAGE"
+        exit 1
+      fi
+      APP="${apps[0]}"
+      echo "Re-signing $(basename "$APP")"
+
+      # Keep whatever entitlements Godot gave the app (the .NET runtime needs
+      # its JIT ones under the hardened runtime).
+      codesign -d --entitlements - --xml "$APP" > "$ENTITLEMENTS"
+      if [ -s "$ENTITLEMENTS" ]; then
+        plutil -lint "$ENTITLEMENTS"
+        plutil -p "$ENTITLEMENTS"
+        codesign --force --deep --options runtime --entitlements "$ENTITLEMENTS" -s - "$APP"
+      else
+        echo "::warning title=Mac re-sign::The exported app had no entitlements"
+        codesign --force --deep --options runtime -s - "$APP"
+      fi
+      codesign --verify --deep --strict --verbose=2 "$APP"
+      codesign -d --verbose=2 "$APP"
+
+      # Re-zip the folder's contents (not the folder itself), so the app and
+      # the game's data folders stay at the top level of the zip, as before.
+      rm -f "$ZIP"
+      ditto -c -k --norsrc --noextattr --noacl "$STAGE" "$ZIP"
+      echo "Top level of the new zip:"
+      zipinfo -1 "$ZIP" | cut -d/ -f1 | sort -u

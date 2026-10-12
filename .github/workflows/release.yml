@@ -74,8 +74,35 @@ jobs:
         name: ${{ matrix.platform }}
         path: build/${{ matrix.platform == 'linux' && 'linux.tar.gz' || format('{0}.zip', matrix.platform) }}
 
-  Publish-Release:
+  # The Mac app is signed ad-hoc by Godot on Linux, which newer Apple Silicon
+  # Macs refuse to launch. Re-sign it with Apple's codesign and replace the
+  # mac artifact before publishing.
+  Sign-Mac:
     needs: Build
+    runs-on: macos-latest
+    timeout-minutes: 15
+    steps:
+    # Only the workflow files are needed here, from this run's own commit
+    # (a re-released older tag may predate the re-sign action).
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        sparse-checkout: .github
+    - uses: actions/download-artifact@v4
+      with:
+        name: mac
+        path: build
+    - uses: ./.github/workflows/composite/macResign
+      with:
+        zip: build/mac.zip
+    - uses: actions/upload-artifact@v4
+      with:
+        name: mac
+        path: build/mac.zip
+        overwrite: true
+
+  Publish-Release:
+    needs: [Build, Sign-Mac]
     runs-on: ubuntu-latest
     permissions:
       contents: write
