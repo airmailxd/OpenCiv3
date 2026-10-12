@@ -232,18 +232,20 @@ namespace C7Engine {
 		private const double ARCHIPELAGO_ISLAND_LAND_SHARE = .85;
 
 		// The sizes of an archipelago's planned islands, in civs' shares of
-		// the land (the land over the number of civs). Civ3's archipelagos
-		// mix big islands two or three civs share, middling ones a civ has
-		// to itself and small ones left to settle (owner's report,
-		// 2026-10-12), so the islands come in three kinds, each of a random
-		// size within its range:
-		// - big islands, one per five civs, each with room for two civs
-		//   (MapIsAcceptable counts a civ's room as half a share, and lets
-		//   no island have room for more than three);
+		// the land (the land over the number of civs). The islands mix big
+		// ones several civs share, middling ones a civ has to itself and
+		// small ones left to settle (owner's report, 2026-10-12). An island
+		// may be any size, as long as the land and water add up (owner's
+		// decision, 2026-10-12: "A long winding island with 5 civs is
+		// fine... There is no arbitrary limit"), so the islands come in
+		// three kinds, each of a random size within its range:
+		// - big islands, taking about two civs per five, each with room for
+		//   two civs or more (MapIsAcceptable counts a civ's room as half a
+		//   share), the most room drawn from those left;
 		// - middling islands, one for each civ left, and one per ten civs
 		//   more that are left empty;
 		// - small islands, from the rest of the land.
-		private const double ARCHIPELAGO_BIG_ISLANDS_PER_CIV = .2;
+		private const double ARCHIPELAGO_BIG_ISLAND_CIVS_SHARE = .4;
 		private const double ARCHIPELAGO_BIG_ISLAND_MIN = 1.1;
 		private const double ARCHIPELAGO_BIG_ISLAND_MAX = 1.35;
 		private const double ARCHIPELAGO_SPARE_MIDDLING_ISLANDS_PER_CIV = .1;
@@ -285,18 +287,28 @@ namespace C7Engine {
 		}
 
 		// The sizes, in tiles, of an archipelago's planned islands, biggest
-		// kind first (see ARCHIPELAGO_BIG_ISLANDS_PER_CIV).
+		// kind first (see ARCHIPELAGO_BIG_ISLAND_CIVS_SHARE).
 		private static List<double> ArchipelagoIslandSizes(int civs, double landTiles, Random random) {
 			double share = landTiles / civs;
 			List<double> sizes = new();
 			double Draw(double min, double max) => share * (min + (max - min) * random.NextDouble());
 
-			// A map of fewer than four civs has no island for two.
-			int big = civs < 4 ? 0 : Math.Max(1, (int)Math.Round(civs * ARCHIPELAGO_BIG_ISLANDS_PER_CIV));
-			int middling = civs - 2 * big + (int)Math.Round(civs * ARCHIPELAGO_SPARE_MIDDLING_ISLANDS_PER_CIV);
-			for (int i = 0; i < big; ++i) {
-				sizes.Add(Draw(ARCHIPELAGO_BIG_ISLAND_MIN, ARCHIPELAGO_BIG_ISLAND_MAX));
+			// A map of fewer than four civs has no island for two. A big
+			// island has room for two civs or more, up to all the civs left
+			// for the big islands: a big island's size is its civs' share
+			// and a bit (a civ's room being half a share).
+			int bigCivs = civs < 4 ? 0 : Math.Max(2, (int)Math.Round(civs * ARCHIPELAGO_BIG_ISLAND_CIVS_SHARE));
+			int civsLeft = bigCivs;
+			while (civsLeft >= 2) {
+				int islandCivs = civsLeft == 2 ? 2 : 2 + random.Next(civsLeft - 1);
+				// Not leaving one civ over, which would have no big island.
+				if (civsLeft - islandCivs == 1) {
+					++islandCivs;
+				}
+				sizes.Add(islandCivs / 2.0 * Draw(ARCHIPELAGO_BIG_ISLAND_MIN, ARCHIPELAGO_BIG_ISLAND_MAX));
+				civsLeft -= islandCivs;
 			}
+			int middling = civs - bigCivs + (int)Math.Round(civs * ARCHIPELAGO_SPARE_MIDDLING_ISLANDS_PER_CIV);
 			for (int i = 0; i < middling; ++i) {
 				sizes.Add(Draw(ARCHIPELAGO_MIDDLING_ISLAND_MIN, ARCHIPELAGO_MIDDLING_ISLAND_MAX));
 			}
@@ -386,10 +398,10 @@ namespace C7Engine {
 				// other coordinate is a tile), so a disc of radius r holds
 				// pi r^2 / 2 tiles. The domes' edges end up under water, so
 				// they are made wider than the islands. A big island is
-				// long, to have room for two civs the world size's distance
-				// between civs apart.
+				// long, to have room for its civs the world size's distance
+				// between civs apart, and the more civs, the longer.
 				double radius = Math.Sqrt(2 * size / Math.PI) + ARCHIPELAGO_DOME_MARGIN;
-				double stretch = isBig ? 2 + random.NextDouble() : 1 + 1.5 * random.NextDouble();
+				double stretch = isBig ? 1.5 + size / share * .5 + random.NextDouble() : 1 + 1.5 * random.NextDouble();
 				domes.Add(new HeightMap.Dome((x + width) % width, y, radius, stretch, random.NextDouble() * Math.PI));
 			}
 			return domes;
@@ -523,13 +535,10 @@ namespace C7Engine {
 			}
 
 			if (landform == WorldCharacteristics.Landform.Archipelago) {
-				// Civ3's archipelago is many small and medium islands, with
-				// no continent among them: a "true" archipelago, as
-				// CivFanatics players tested Civ3's map generator for it,
-				// has at most 3 civs on one island
-				// (https://forums.civfanatics.com/threads/map-generator-test-results-are-really-weird.35205/).
-				// An island holds as many civs as it has tilesPerPlayer
-				// tiles.
+				// An archipelago is many islands. An island may be any size
+				// and hold any number of civs (owner's decision,
+				// 2026-10-12: "There is no arbitrary limit"). An island
+				// holds as many civs as it has tilesPerPlayer tiles.
 				List<HashSet<Tile>> landContinents = m.continents.Where(x => x.First().IsLand()).ToList();
 				int civs = wc.worldSize.numberOfCivs;
 				int tilesPerPlayer = ArchipelagoTilesPerPlayer(landContinents.Sum(x => x.Count), civs);
@@ -539,28 +548,13 @@ namespace C7Engine {
 					return false;
 				}
 
-				// Don't have any islands so large that we'd have more than 3
-				// players on them.
-				if (landContinents[0].Count > tilesPerPlayer * 3) {
-					return false;
-				}
-
 				// Make sure that there are enough islands that can hold a
 				// player for every player.
 				int playersLeft = civs;
-				int islandsWithMultiplePlayers = 0;
 				foreach (var continent in landContinents) {
 					playersLeft -= continent.Count / tilesPerPlayer;
-					if (continent.Count / tilesPerPlayer > 1) {
-						++islandsWithMultiplePlayers;
-					}
 				}
 				if (playersLeft > 0) {
-					return false;
-				}
-
-				// Make sure most players are by themselves on an island.
-				if (islandsWithMultiplePlayers > civs * .4) {
 					return false;
 				}
 
@@ -2299,7 +2293,7 @@ namespace C7Engine {
 					// civ per island, using the largest/best islands first".)
 					// An island's room is counted by its size
 					// (IslandCapacity), so that a big island holds two or
-					// three civs spaced apart and the islands left empty are
+					// more civs spaced apart and the islands left empty are
 					// the small ones meant for settling (owner's report,
 					// 2026-10-12). Not on the last pass, so that a map with
 					// room for every civ isn't turned down for it. A map of
@@ -2453,10 +2447,9 @@ namespace C7Engine {
 		// How many civs an island has room for when each civ gets an island
 		// of its own where it can (see DetermineStartingLocations): one per
 		// tilesPerPlayer tiles, the land a civ needs on an archipelago, but
-		// at least one and at most three, Civ3's most on one island of a
-		// "true" archipelago (see MapIsAcceptable).
+		// at least one. There is no most (owner's decision, 2026-10-12).
 		private static int IslandCapacity(int islandSize, int tilesPerPlayer) {
-			return Math.Clamp(islandSize / tilesPerPlayer, 1, 3);
+			return Math.Max(1, islandSize / tilesPerPlayer);
 		}
 
 		// A start next to fresh water (a river or a lake) scores this many

@@ -15,8 +15,8 @@ namespace EngineTests.GameData;
 // 632203657 is the owner's archipelago game where the English and French
 // shared an island, as did the Maya and Hittites, with six big islands
 // empty. Since then the islands come in different sizes, so a big island
-// holds two or three civs and the islands left empty are the smaller ones
-// meant for settling, and every civ starts on the coast (owner's report on
+// holds two or more civs (any number: owner's decision, 2026-10-12) and
+// the islands left empty are the smaller ones meant for settling (owner's report on
 // seed 405802261, a Huge archipelago where every island was 105 to 201
 // tiles, each civ had one, and every start was 2 to 4 tiles from water).
 public class IslandStartsTest {
@@ -106,13 +106,13 @@ public class IslandStartsTest {
 			if (starts == 1) {
 				continue;
 			}
-			Assert.True(starts <= 3 && starts <= island.Count / tilesPerCiv, $"{starts} civs on an island of {island.Count} tiles: {description}");
+			Assert.True(starts <= island.Count / tilesPerCiv, $"{starts} civs on an island of {island.Count} tiles: {description}");
 			double share = island.Count / (double)starts;
 			Assert.All(emptyIslands, empty => Assert.True(share >= empty * JoinShare, $"civs share an island of {island.Count} tiles while one of {empty} is empty: {description}"));
 		}
 	}
 
-	// The islands come in different sizes: big ones that two or three civs
+	// The islands come in different sizes: big ones that two or more civs
 	// share, middling ones and small ones left empty for settling. Not every
 	// map has an island two civs share, as a big island may not have room
 	// for two starts the world size's distance between civs apart.

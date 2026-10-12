@@ -219,12 +219,11 @@ public class GameMapGeneratorTest {
 		});
 	}
 
-	// Civ3's archipelago is many small and medium islands with no continent
-	// among them, where at most a few civs share an island. The generator
-	// plans the islands so that its shape check passes: more islands than
-	// civs, none with more than 3 civs' worth of land (a civ needs half its
-	// share of the land), enough of them for every civ, and most civs by
-	// themselves.
+	// An archipelago is many islands, of any size (owner's decision,
+	// 2026-10-12: "There is no arbitrary limit"). The generator plans the
+	// islands so that its shape check passes: more islands than civs, and
+	// enough room on them for every civ (a civ needs half its share of the
+	// land).
 	[Theory]
 	[InlineData(WorldCharacteristics.OceanCoverage.Percent_60)]
 	[InlineData(WorldCharacteristics.OceanCoverage.Percent_70)]
@@ -238,9 +237,7 @@ public class GameMapGeneratorTest {
 			string description = $"{ocean}, seed {seed}: islands {string.Join("/", islands)}, {tilesPerCiv} tiles per civ";
 
 			Assert.True(islands.Count >= civs * 1.2, description);
-			Assert.True(islands[0] <= 3 * tilesPerCiv, description);
 			Assert.True(islands.Sum(i => i / tilesPerCiv) >= civs, description);
-			Assert.True(islands.Count(i => i / tilesPerCiv > 1) <= civs * .4, description);
 		}
 	}
 }
