@@ -119,9 +119,9 @@ namespace C7.Map {
 						break;
 					default:
 						if (!plainImprovementTextures.TryGetValue(ti.key, out ImageTexture texture)) {
-							// Outposts and colonies may have no art (as in
-							// standalone mode without it), and are drawn
-							// instead.
+							// Outposts, colonies, airfields and radar towers
+							// may have no art (as in standalone mode without
+							// it), and are drawn instead.
 							texture = Tile.TileOverlays.IsOwnedHolding(ti)
 								? TextureLoader.TryLoad($"terrain_improvements.{ti.key}")
 								: TextureLoader.Load($"terrain_improvements.{ti.key}");
@@ -304,9 +304,35 @@ namespace C7.Map {
 		private static readonly Color holdingRoof = new(0.35f, 0.2f, 0.1f);
 		private static readonly Color holdingOutline = new(0.15f, 0.1f, 0.05f);
 
-		// An outpost or colony with no art: a little watchtower, or a pair of
-		// huts, standing in the middle of the tile.
+		private static readonly Color holdingConcrete = new(0.62f, 0.6f, 0.55f);
+		private static readonly Color holdingSteel = new(0.3f, 0.32f, 0.35f);
+
+		// An outpost, colony, airfield or radar tower with no art: a little
+		// watchtower, a pair of huts, a runway with its control tower, or a
+		// dish on a mast, standing in the middle of the tile.
 		private static void DrawHoldingWithoutArt(LooseView looseView, string key, Vector2 tileCenter) {
+			if (key == AIRFIELD) {
+				// A runway along the tile's long axis.
+				Vector2[] runway = [tileCenter + new Vector2(-34, 6), tileCenter + new Vector2(-22, 12),
+					tileCenter + new Vector2(34, -6), tileCenter + new Vector2(22, -12)];
+				looseView.DrawColoredPolygon(runway, holdingConcrete);
+				looseView.DrawPolyline([.. runway, runway[0]], holdingOutline);
+				Rect2 tower = new(tileCenter + new Vector2(-18, -22), new Vector2(6, 18));
+				looseView.DrawRect(tower, holdingConcrete);
+				looseView.DrawRect(tower, holdingOutline, filled: false);
+				looseView.DrawRect(new Rect2(tileCenter + new Vector2(-21, -27), new Vector2(12, 6)), holdingSteel);
+				return;
+			}
+			if (key == RADAR_TOWER) {
+				Vector2 foot = tileCenter + new Vector2(0, 4);
+				looseView.DrawLine(foot + new Vector2(-7, 0), foot + new Vector2(-2, -26), holdingSteel, 2);
+				looseView.DrawLine(foot + new Vector2(7, 0), foot + new Vector2(2, -26), holdingSteel, 2);
+				looseView.DrawLine(foot + new Vector2(-6, -4), foot + new Vector2(4, -14), holdingSteel, 1);
+				looseView.DrawLine(foot + new Vector2(6, -4), foot + new Vector2(-4, -14), holdingSteel, 1);
+				looseView.DrawCircle(foot + new Vector2(0, -32), 9, holdingConcrete);
+				looseView.DrawArc(foot + new Vector2(0, -32), 9, 0, Mathf.Tau, 16, holdingOutline, 1);
+				return;
+			}
 			if (key == OUTPOST) {
 				Rect2 tower = new(tileCenter + new Vector2(-6, -30), new Vector2(12, 34));
 				looseView.DrawRect(tower, holdingWood);

@@ -1,10 +1,11 @@
 """Unit order buttons for standalone mode that the asset pack lacks.
 
 The standalone asset pack's Art/interface/NormButtons.png has blank buttons
-where Civ3's has Build Outpost and Build Colony. Each of these is drawn as a
+where Civ3's has Build Outpost, Build Colony, Build Airfield and Build Radar
+Tower. Each of these is drawn as a
 file of its own, Art/interface/<order>.png in C7/ModernArt: the normal, hover
 and pressed buttons side by side, each 64x64 (twice Civ3's 32x32 button, as
-all the remade art is). C7/Lua/standalone/textures.lua points the two orders'
+all the remade art is). C7/Lua/standalone/textures.lua points the orders'
 buttons at them.
 
 It also draws the air missions' and the airdrop's buttons (see
@@ -80,6 +81,40 @@ def colony_glyph(draw):
     draw.rectangle([44 * u, 39 * u, 52 * u, 46 * u], fill=GLYPH)
 
 
+def airfield_glyph(draw):
+    """A control tower beside a runway, with a plane above it, as Civ3's
+    button has."""
+    u = S / 64
+    # the runway, seen at an angle
+    draw.polygon([(8 * u, 50 * u), (46 * u, 50 * u), (56 * u, 42 * u), (18 * u, 42 * u)], fill=GLYPH)
+    # the control tower: a shaft with a cab on top
+    draw.rectangle([14 * u, 24 * u, 19 * u, 44 * u], fill=GLYPH)
+    draw.polygon([(10 * u, 24 * u), (23 * u, 24 * u), (21 * u, 17 * u), (12 * u, 17 * u)], fill=GLYPH)
+    # a plane: fuselage, wings and tail
+    draw.polygon([(26 * u, 27 * u), (54 * u, 22 * u), (56 * u, 24 * u), (28 * u, 30 * u)], fill=GLYPH)
+    draw.polygon([(38 * u, 25 * u), (44 * u, 24 * u), (36 * u, 12 * u), (33 * u, 13 * u)], fill=GLYPH)
+    draw.polygon([(38 * u, 27 * u), (44 * u, 26 * u), (40 * u, 36 * u), (37 * u, 36 * u)], fill=GLYPH)
+    draw.polygon([(26 * u, 27 * u), (29 * u, 27 * u), (27 * u, 20 * u), (25 * u, 20 * u)], fill=GLYPH)
+
+
+def radar_tower_glyph(draw):
+    """A radar dish on a lattice tower."""
+    u = S / 64
+    draw.polygon([(16 * u, 52 * u), (48 * u, 52 * u), (44 * u, 47 * u), (20 * u, 47 * u)], fill=GLYPH)
+    # the tower's legs and braces
+    for x0, x1 in ((24, 29), (40, 35)):
+        draw.line([(x0 * u, 48 * u), (x1 * u, 28 * u)], fill=GLYPH, width=int(3 * u))
+    for y0, y1 in ((46, 39), (39, 32)):
+        draw.line([(25 * u, y0 * u), (38 * u, y1 * u)], fill=GLYPH, width=int(2 * u))
+        draw.line([(39 * u, y0 * u), (26 * u, y1 * u)], fill=GLYPH, width=int(2 * u))
+    # the dish, a crescent turned up to the sky (a disc with a smaller
+    # one cut out of it toward the upper right), and its feed
+    draw.ellipse([13 * u, 5 * u, 45 * u, 37 * u], fill=GLYPH)
+    draw.ellipse([19 * u, 1 * u, 49 * u, 31 * u], fill=(0, 0, 0, 0))
+    draw.line([(26 * u, 24 * u), (40 * u, 12 * u)], fill=GLYPH, width=int(2 * u))
+    draw.ellipse([38 * u, 8 * u, 45 * u, 15 * u], fill=GLYPH)
+
+
 def button(glyph, brightness, offset):
     img = ball(brightness)
     layer = Image.new('RGBA', (S, S), (0, 0, 0, 0))
@@ -108,4 +143,6 @@ def build(name, glyph):
 if __name__ == '__main__':
     build('unit_build_outpost', outpost_glyph)
     build('unit_build_colony', colony_glyph)
+    build('unit_build_airfield', airfield_glyph)
+    build('unit_build_radar_tower', radar_tower_glyph)
     air_missions.main()
