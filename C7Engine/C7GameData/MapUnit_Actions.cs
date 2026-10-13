@@ -480,9 +480,10 @@ public partial class MapUnit {
 	/// <param name="unit"></param>
 	/// <param name="dir">Which direction to move, e.g. northeast, west, etc.</param>
 	/// <param name="wait">Whether the method should wait to return until animations complete</param>
+	/// <param name="stealthTarget">The unit a stealth attack singles out, if its owner chose one (see MapUnit_StealthAttack.cs)</param>
 	/// <returns>True if the unit is alive after the movement, false otherwise</returns>
 	/// <exception cref="Exception"></exception>
-	public async Task<bool> Move(TileDirection dir, bool wait = false) {
+	public async Task<bool> Move(TileDirection dir, bool wait = false, ID stealthTarget = null) {
 		(int dx, int dy) = dir.ToCoordDiff();
 
 		Tile newLoc = EngineStorage.gameData.map.tileAt(dx + location.XCoordinate, dy + location.YCoordinate);
@@ -501,7 +502,7 @@ public partial class MapUnit {
 		}
 
 		// Trigger combat if the tile we're moving into has an enemy  Or if this unit can't fight, do nothing.
-		MapUnit defender = newLoc.FindTopDefender(this);
+		MapUnit defender = DefenderAgainstAttackOn(newLoc, stealthTarget);
 		bool enemyOnTile = defender != MapUnit.NONE && !owner.IsAtPeaceWith(defender.owner);
 		bool armedEnemyOnTile = enemyOnTile && HasArmedEnemyDefender(newLoc);
 		// Units that can't attack, including empty armies, don't start fights

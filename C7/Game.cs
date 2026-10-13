@@ -3034,10 +3034,36 @@ public partial class Game : Node {
 				});
 			} else if (info.wholeStack) {
 				MoveStack(gameData, info);
-			} else {
+			} else if (!MaybeChooseStealthTarget(gameData, info)) {
 				new MsgSetUnitPath(info.unitID ?? CurrentlySelectedUnit.id, info.path).send();
 			}
 		});
+	}
+
+	// "As soon as a unit with stealth capability attacks a stack of enemy
+	// units, a selection box appears listing the target units" (Civilopedia,
+	// GCON_Stealth_Attack). Asks which unit to attack, and attacks it, if the
+	// move is a stealth attack on the next tile; returns whether it was. The
+	// wording is script.txt's SELECT_ASSASSIN.
+	private bool MaybeChooseStealthTarget(GameData gameData, GotoInfo info) {
+		MapUnit unit = gameData.GetUnit(info.unitID ?? CurrentlySelectedUnit?.id);
+		Tile tile = info.destinationTile;
+		if (unit == null || tile == null || unit.location == null || unit.location.DistanceTo(tile) != 1) {
+			return false;
+		}
+		List<MapUnit> targets = unit.StealthAttackTargets(tile);
+		if (targets.Count == 0) {
+			return false;
+		}
+		ID unitID = unit.id;
+		TileDirection dir = unit.location.DirectionTo(tile);
+		List<ChoicePopup.Choice> choices = targets.ConvertAll(target => {
+			ID targetID = target.id;
+			return new ChoicePopup.Choice(target.Describe(), () => new MsgMoveUnit(unitID, dir) { stealthTarget = targetID }.send());
+		});
+		popupOverlay.ShowPopup(new ChoicePopup("What should be targeted?", "Select a target for attack:", choices),
+			PopupOverlay.PopupCategory.Advisor);
+		return true;
 	}
 
 	// Sends the selected unit along its path and every other unit of ours on
