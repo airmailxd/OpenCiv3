@@ -318,6 +318,8 @@ namespace C7GameData {
 		public bool canCarryTacticalMissiles => flags.Contains(SaveUnitPrototype.Flag.CanCarryTacticalMissiles);
 		public bool canCarryAircraft => flags.Contains(SaveUnitPrototype.Flag.CanCarryAircraft);
 		public bool isStealth => flags.Contains(SaveUnitPrototype.Flag.Stealth);
+		// See MapUnit.Bombard.
+		public bool isCruiseMissile => flags.Contains(SaveUnitPrototype.Flag.CruiseMissile);
 
 		// "[Submarines] can operate invisibly to enemy units ... However,
 		// other submarines and AEGIS Cruisers and Destroyers can see them

@@ -165,6 +165,15 @@ namespace C7GameData {
 				await BombardCity(tile);
 			else
 				await BombardTileImprovements(tile);
+
+			// A cruise missile is used up: "[Missile attacks] are like
+			// bombardment, but the unit never returns to its base and the
+			// attacks can destroy enemy units" (Conquests Civilopedia,
+			// GCON_Combat). Which units are missiles is the BIQ's PRTO "Cruise
+			// Missile" flag (the Cruise Missile in conquests.biq).
+			if (unitType.isCruiseMissile && hitPointsRemaining > 0) {
+				RemoveFromPlay();
+			}
 		}
 
 		private static CityBuilding FindDestructibleWalls(City city) {

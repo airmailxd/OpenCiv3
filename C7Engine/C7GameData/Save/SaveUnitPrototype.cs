@@ -66,6 +66,9 @@ namespace C7GameData.Save {
 			// The unit picks which unit of a stack it attacks, from its
 			// stealth targets (the BIQ's "Stealth Attack").
 			StealthAttack,
+			// The unit is a cruise missile, used up by its attack (the BIQ's
+			// "Cruise Missile").
+			CruiseMissile,
 		}
 
 		public string name { get; set; }
