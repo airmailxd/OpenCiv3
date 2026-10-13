@@ -68,10 +68,10 @@ namespace C7GameData {
 			return ProblemSigning(gameData, a, b) == null;
 		}
 
-		// Whether the player knows Writing, or the rules have no such tech.
+		// Whether the player knows Writing (the tech with the BIQ's "enables
+		// diplomats" flag), or the rules have no such tech.
 		public static bool KnowsWriting(GameData gameData, Player player) {
-			Tech writing = gameData?.techs?.Find(t => t.Name == "Writing");
-			return writing == null || player.knownTechs.Contains(writing.id);
+			return player.KnowsEmbassyTech(gameData?.techs);
 		}
 
 		// Signs a right of passage between the two, for the rules' deal

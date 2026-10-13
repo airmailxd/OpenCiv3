@@ -26,6 +26,37 @@ namespace C7GameData {
 		// passage" tech flag.
 		public bool EnablesRightOfPassage;
 
+		// All of the tech's BIQ flags, including the ones above. Query with
+		// HasFlag, or Player.HasTechEnabling for "does the player know a tech
+		// with this flag".
+		public HashSet<SaveTech.Flag> Flags = new();
+
+		public bool HasFlag(SaveTech.Flag flag) => Flags.Contains(flag);
+
+		// The tech can't be traded in diplomacy (the BIQ's "Cannot be
+		// traded" advance flag, added by Conquests:
+		// https://forums.civfanatics.com/threads/civ3-conquests-editor-features.67911/).
+		public bool CannotBeTraded => HasFlag(SaveTech.Flag.CannotBeTraded);
+
+		// Learning the tech reveals the whole map (the BIQ's "Reveal Map"
+		// advance flag; Satellites in Conquests: "Upon discovering this tech,
+		// the whole map is revealed to your civ",
+		// https://sullla.com/Civ3/CQ/CQ_techs.html).
+		public bool RevealsWorldMap => HasFlag(SaveTech.Flag.RevealsWorldMap);
+
+		// The tech needed to establish embassies (the BIQ's "enables
+		// diplomats" flag; Writing in Conquests: "Writing allows you to found
+		// embassies", https://sullla.com/Civ3/CQ/CQ_techs.html), or null if
+		// the rules have none. Saves made before the flag was imported have
+		// no tech with it, so for them the tech named Writing is used.
+		public static Tech FindEmbassyTech(List<Tech> techs) {
+			if (techs == null) {
+				return null;
+			}
+			return techs.Find(t => t.HasFlag(SaveTech.Flag.EnablesDiplomats))
+				?? techs.Find(t => t.Name == "Writing");
+		}
+
 		// The civilopedia name of the era this tech is part of
 		// (like ERA_Ancient_Times). This is what art lookups are based on.
 		public string EraCivilopediaName { get; set; }
