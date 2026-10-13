@@ -141,12 +141,13 @@ namespace C7Engine {
 			// City.StartResistance).
 			int resisters = city.resisters;
 			Player resistanceFrom = city.resistanceFrom;
+			bool foodIsWasted = CityTileAssignmentAI.FoodIsWasted(gameData, city);
 			city.RemoveAllCitizens();
 
 			// Nothing the assignments depend on changes while the citizens
 			// are reassigned, apart from which tiles are worked, so the tile
 			// yields can be shared between them.
-			CityTileAssignmentAI.AssignmentContext context = new(gameData, city);
+			CityTileAssignmentAI.AssignmentContext context = new(gameData, city, foodIsWasted);
 			foreach (Civilization nationality in nationalities) {
 				CityResident newResident = new() {
 					citizenType = defaultCitizen,

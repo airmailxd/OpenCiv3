@@ -52,6 +52,7 @@ namespace C7Engine {
 			GovernmentAI.PlayTurn(player, gameData);
 			await EngineStorage.YieldIfFrameBudgetSpent();
 			ReconsiderWealth(player);
+			ReassignCitizensForGrowth(player, gameData);
 
 			// Ask for peace in wars that are going badly.
 			await EngineStorage.YieldIfFrameBudgetSpent();
@@ -98,6 +99,24 @@ namespace C7Engine {
 					if (choice != null && choice != city.itemBeingProduced) {
 						city.ChangeProduction(choice);
 					}
+				}
+			}
+		}
+
+		// Citizens are placed when they're born, so a city that grew to its
+		// size limit still works the food tiles it grew on, and its food is
+		// wasted. So a city that can't grow but has food to spare places
+		// its citizens again, for shields and trade (see
+		// CityTileAssignmentAI.AssignNewCitizenToTile); and once it can
+		// grow again (it built an aqueduct), a city with no food to spare
+		// places them again for food.
+		private static void ReassignCitizensForGrowth(Player player, GameData gameData) {
+			foreach (City city in player.cities) {
+				int surplus = city.FoodGrowthPerTurn();
+				bool canGrow = city.CanGrowPopulationByOne(gameData);
+				if ((!canGrow && surplus > 0)
+						|| (canGrow && surplus <= 0 && city.residents.Count > 0)) {
+					CityInteractions.ReassignAllCitizens(gameData, city);
 				}
 			}
 		}

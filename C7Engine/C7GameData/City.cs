@@ -860,7 +860,7 @@ namespace C7GameData {
 			}
 		}
 
-		private bool CanGrowPopulationByOne(GameData gD) {
+		internal bool CanGrowPopulationByOne(GameData gD) {
 			// We can always grow up to size 6.
 			if (residents.Count + 1 <= gD.rules.MaximumLevel1CitySize) {
 				return true;

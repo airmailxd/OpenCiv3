@@ -29,9 +29,16 @@ namespace C7Engine.AI {
 			private readonly Dictionary<Tile, int> cityFoodYields = new();
 			private List<CitizenType> knownSpecialists;
 
-			public AssignmentContext(GameData gameData, City city) {
+			// Whether the city's food beyond what its citizens eat is wasted
+			// (see AssignNewCitizenToTile), decided before its citizens were
+			// taken off their tiles to be placed again, when its size still
+			// showed whether it can grow.
+			public readonly bool? foodIsWasted;
+
+			public AssignmentContext(GameData gameData, City city, bool? foodIsWasted = null) {
 				this.gameData = gameData;
 				this.city = city;
+				this.foodIsWasted = foodIsWasted;
 				workableTiles = city.GetWorkableTiles();
 			}
 
@@ -76,7 +83,15 @@ namespace C7Engine.AI {
 
 			int foodYield = context?.CurrentFoodYield() ?? city.CurrentFoodYield();
 
-			int desiredFoodRate = city.residents.Count * FOOD_PER_CITIZEN + DevelopmentAI.DesiredFoodSurplus(city, DesiredFoodSurplusPerTurn);
+			// A computer player's city that can't grow (it needs an
+			// aqueduct or hospital) wants only the food its citizens eat:
+			// more would be wasted, so its citizens work the tiles with the
+			// most shields and trade instead. Owner's decision, 2026-10-12:
+			// a size 12 French capital worked flood plains for 1 shield a
+			// turn and could barely build anything.
+			bool foodIsWasted = context?.foodIsWasted ?? FoodIsWasted(gameData, city);
+			int desiredFoodRate = city.residents.Count * FOOD_PER_CITIZEN
+				+ (foodIsWasted ? 0 : DevelopmentAI.DesiredFoodSurplus(city, DesiredFoodSurplusPerTurn));
 			int targetTileFoodAmount = desiredFoodRate - foodYield;
 
 			bool debugLogging = log.IsEnabled(LogEventLevel.Debug);
@@ -87,9 +102,10 @@ namespace C7Engine.AI {
 					double score;
 					if (context != null) {
 						var (food, production, commerce) = context.PlayerYields(t);
-						score = CalculateTileYieldScore(food, production, commerce, targetTileFoodAmount);
+						score = CalculateTileYieldScore(food, production, commerce, targetTileFoodAmount, foodIsWasted);
 					} else {
-						score = CalculateTileYieldScore(t, targetTileFoodAmount, city.owner);
+						score = CalculateTileYieldScore(t.FoodYield(city.owner).yield, t.ProductionYield(city.owner).yield, t.CommerceYield(city.owner).yield,
+							targetTileFoodAmount, foodIsWasted);
 					}
 					if (debugLogging) {
 						log.Debug("Tile {Tile} scored {Score}", t, score);
@@ -125,11 +141,21 @@ namespace C7Engine.AI {
 			}
 		}
 
+		internal static bool FoodIsWasted(GameData gameData, City city) {
+			return !city.owner.isHuman && !city.CanGrowPopulationByOne(gameData);
+		}
+
 		public static double CalculateTileYieldScore(Tile t, int targetFoodAmount, Player player) {
 			return CalculateTileYieldScore(t.FoodYield(player).yield, t.ProductionYield(player).yield, t.CommerceYield(player).yield, targetFoodAmount);
 		}
 
-		private static double CalculateTileYieldScore(int food, int production, int commerce, int targetFoodAmount) {
+		// With foodIsWasted, food beyond what the city still needs counts
+		// for nothing.
+		private static double CalculateTileYieldScore(int food, int production, int commerce, int targetFoodAmount, bool foodIsWasted = false) {
+			if (foodIsWasted) {
+				food = Math.Min(food, Math.Max(0, targetFoodAmount));
+				targetFoodAmount = food;
+			}
 			int score = food * foodPriorityRate
 				+ production * productionPriorityRate
 				+ commerce * commercePriorityRate;
