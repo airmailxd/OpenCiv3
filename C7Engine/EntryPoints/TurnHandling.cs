@@ -116,7 +116,7 @@ namespace C7Engine {
 				// at the same place in the order. Confirmed this is what Civ3 does.
 				UnitInteractions.ClearWaitQueue();
 
-				BarbarianInteractions.SpawnBarbarians(gameData);
+				BarbarianInteractions.DoTurn(gameData);
 
 				gameData.turn++;
 				gameData.DestroyDefeatedCivs();

@@ -51,6 +51,101 @@ public class BarbarianInteractions {
 		}
 	}
 
+	// The barbarians' part of the end of a turn: new camps, then units
+	// from the camps.
+	public static void DoTurn(GameData gameData) {
+		MaybeAddCamp(gameData);
+		SpawnBarbarians(gameData);
+	}
+
+	// New barbarian camps appear during the game, and dispersed ones are
+	// replaced, wherever no civ can see:
+	//   "They always appear in the place which no unit can see at the
+	//   moment but it can be in explored terrain as well. They also
+	//   regenerate, that means when somebody disperses a camp, another one
+	//   is created (assuming there is available place in the fog of war)."
+	//   (Gen, https://forums.civfanatics.com/threads/barbarian-camps.42410/)
+	// The Civ3 Civilopedia (GCON_Barbarians) agrees: after a camp is
+	// destroyed "the survivors will move to a new site in explored or
+	// unexplored territory and begin raiding from there". Camps can't stand
+	// inside a civ's borders (see DisperseCampsWithinBorders), so they only
+	// appear on unowned land.
+	// UNVERIFIED (no Civ3 source found): how often a camp appears at each
+	// barbarian activity level. These per-turn chances are guesses, rolled
+	// once a turn, with the camp spacing rules of map generation limiting
+	// how many there can be. Also unverified is ProPain's observation in the
+	// same thread that only military units keep camps away; here any unit
+	// or city's sight does.
+	public static double NewCampChance(BarbarianActivity activity) {
+		return activity switch {
+			BarbarianActivity.Sedentary => 0.02,
+			BarbarianActivity.Roaming => 0.04,
+			BarbarianActivity.Restless => 0.06,
+			BarbarianActivity.Raging => 0.08,
+			_ => 0,
+		};
+	}
+
+	// Rolls for a new barbarian camp and places it if the roll succeeds and
+	// there is a suitable tile. Returns the new camp's tile, or null.
+	public static Tile MaybeAddCamp(GameData gameData) {
+		double chance = NewCampChance(gameData.barbarianInfo.barbarianActivity);
+		if (chance <= 0 || GameData.rng.NextDouble() >= chance) {
+			return null;
+		}
+		List<Tile> sites = PossibleNewCampSites(gameData);
+		if (sites.Count == 0) {
+			return null;
+		}
+		Tile site = sites[GameData.rng.Next(sites.Count)];
+		AddCamp(gameData, site);
+		return site;
+	}
+
+	// Places a camp on the tile, guarded like the camps placed with the map
+	// by a basic barbarian unit.
+	public static void AddCamp(GameData gameData, Tile tile) {
+		tile.hasBarbarianCamp = true;
+		gameData.map.barbarianCamps.Add(tile);
+		Player barbarians = gameData.players.Find(p => p.isBarbarians);
+		if (barbarians != null && gameData.barbarianInfo.basicBarbarian != null) {
+			gameData.SpawnUnit(barbarians, gameData.barbarianInfo.basicBarbarian, tile);
+		}
+	}
+
+	// The tiles a new camp may appear on: unowned land, empty of units,
+	// cities and goody huts, that no civ can see, which meet the terrain and
+	// spacing rules of the camps placed with the map.
+	public static List<Tile> PossibleNewCampSites(GameData gameData) {
+		List<Player> civs = gameData.players.Where(p => !p.isBarbarians && !p.defeated).ToList();
+		foreach (Player civ in civs) {
+			civ.tileKnowledge.RecomputeActiveTiles();
+		}
+
+		// The continents' sizes aren't kept with a saved game, so count them.
+		Dictionary<int, int> continentSizes = new();
+		foreach (Tile t in gameData.map.tiles) {
+			continentSizes.TryGetValue(t.continent, out int size);
+			continentSizes[t.continent] = size + 1;
+		}
+
+		int spacing = gameData.rules?.MaxRankOfBarbarianCampTiles ?? 0;
+		List<Tile> result = new();
+		foreach (Tile t in gameData.map.tiles) {
+			if (!t.IsLand() || t.hasBarbarianCamp || t.hasGoodyHut || t.cityAtTile != null
+				|| t.owningCity != null || t.unitsOnTile.Count > 0) {
+				continue;
+			}
+			if (civs.Exists(civ => civ.tileKnowledge.isActiveTile(t))) {
+				continue;
+			}
+			if (MapGenerator.IsCampSiteSuitable(t, c => continentSizes.GetValueOrDefault(c), spacing)) {
+				result.Add(t);
+			}
+		}
+		return result;
+	}
+
 	public static int SpawnBarbarians(GameData gameData) {
 		Player barbPlayer = gameData.players.Find(player => player.isBarbarians);
 		var activity = gameData.barbarianInfo.barbarianActivity;
