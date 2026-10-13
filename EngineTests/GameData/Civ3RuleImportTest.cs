@@ -1,4 +1,5 @@
 using System.IO;
+using System.Linq;
 using C7GameData;
 using C7GameData.Save;
 using EngineTests.Utils;
@@ -114,5 +115,18 @@ public class Civ3RuleImportTest {
 
 		SaveBuilding walls = Assert.Single(game.Buildings, b => b.flags.Contains(SaveBuilding.Flag.ProvidesWalls));
 		Assert.Equal("Walls", walls.name);
+	}
+
+	// A Coastal Fortress gives "+50% against naval attacks", and City Walls
+	// nothing against them
+	// (https://civfanatics.com/civ3/civilopedia/improvements/).
+	[SkippableFact]
+	public void CoastalFortressDefendsAgainstShips() {
+		Skip.If(Civ3TestData.ShouldSkipCiv3DependentTests(), "No Civ3 install found.");
+
+		SaveGame game = ImportScenario("Scenarios", "No Civ Traits.biq");
+
+		Assert.Equal(0.5, game.Buildings.Single(b => b.name == "Coastal Fortress").navalDefenseBonus);
+		Assert.Equal(0, game.Buildings.Single(b => b.name == "Walls").navalDefenseBonus);
 	}
 }

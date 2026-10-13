@@ -57,7 +57,10 @@ namespace C7GameData {
 		public bool onlyUsefulInTowns;
 		// A city keeps only one building with this flag (the power plants).
 		public bool replacesOtherBuildings;
+		// Against land attacks, and against naval ones (see
+		// City.GetDefenseBonuses).
 		public StrengthBonus? combatDefenseBonus;
+		public StrengthBonus? navalDefenseBonus;
 		public bool providesVeteranGroundUnits;
 		public bool providesVeteranSeaUnits;
 		public bool providesVeteranAirUnits;
@@ -159,6 +162,9 @@ namespace C7GameData {
 
 			if (building.combatDefenseBonus > 0) {
 				combatDefenseBonus = new(name, building.combatDefenseBonus);
+			}
+			if (building.navalDefenseBonus > 0) {
+				navalDefenseBonus = new(name, building.navalDefenseBonus);
 			}
 
 			isCenterOfEmpire = building.flags.Contains(SaveBuilding.Flag.IsCenterOfEmpire);

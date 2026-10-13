@@ -284,6 +284,31 @@ public class CombatTest : IClassFixture<SaveGameFixture> {
 		Assert.DoesNotContain(catapult, to.unitsOnTile);
 	}
 
+	// City Walls give "+50% to defensive bonus against land attacks", a
+	// Coastal Fortress "+50% against naval attacks"
+	// (https://civfanatics.com/civ3/civilopedia/improvements/).
+	[Fact]
+	public void WallsDefendAgainstLandAttacksAndCoastalFortressesAgainstShips() {
+		(Tile land, Tile sea) = FindCoast();
+		City city = CityInteractions.BuildCity(land, them, them.GetNextCityName());
+		Building walls = gameData.Buildings.Single(b => b.name == "Walls");
+		Building fortress = gameData.Buildings.Single(b => b.name == "Coastal Fortress");
+		city.AddBuilding(walls);
+		city.AddBuilding(fortress);
+		MapUnit galley = Spawn(us, "Galley", sea);
+		(Tile from, _, _) = FindAdjacentLand();
+		MapUnit warrior = Spawn(us, "Warrior", from);
+
+		List<string> versusShip = city.GetDefenseBonuses(galley).Select(b => b.description).ToList();
+		List<string> versusLand = city.GetDefenseBonuses(warrior).Select(b => b.description).ToList();
+
+		Assert.Contains("Coastal Fortress", versusShip);
+		Assert.DoesNotContain("Walls", versusShip);
+		Assert.Contains("Walls", versusLand);
+		Assert.DoesNotContain("Coastal Fortress", versusLand);
+		Assert.Equal(0.5, city.GetDefenseBonuses(galley).Single(b => b.description == "Coastal Fortress").amount);
+	}
+
 	[Fact]
 	public async Task WinningAttackerPaysOnlyForTheMove() {
 		GoToWar();

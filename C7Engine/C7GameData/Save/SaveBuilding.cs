@@ -92,7 +92,12 @@ namespace C7GameData.Save {
 		public bool isSmallWonder;
 		public int culturePerTurn;
 		public int contentFacesInCity;
+		// The defense bonus the building gives units in the city against
+		// land attacks (BIQ "defense bonus"), and against naval attacks (BIQ
+		// "naval defense bonus"), as fractions: 0.5 is +50%. See
+		// City.GetDefenseBonuses.
 		public double combatDefenseBonus;
+		public double navalDefenseBonus;
 		public int maintenanceCost;
 		// The percentage by which the building increases the city's useful
 		// shield production.

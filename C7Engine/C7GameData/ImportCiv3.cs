@@ -2003,6 +2003,7 @@ namespace C7GameData {
 					contentFacesInCity=bldg.ContentFaces - bldg.UnhappyFaces,
 					iconRowIndex=pediaIcons.buildingToRowNumberMapping[bldg.CivilopediaEntry],
 					combatDefenseBonus=bldg.DefenseBonus / 100.0,
+					navalDefenseBonus=bldg.NavalDefenseBonus / 100.0,
 					maintenanceCost=bldg.MaintenanceCost,
 					numberOfArmiesRequired=bldg.NumberOfArmiesRequired,
 					// Production is stored in 25% steps.

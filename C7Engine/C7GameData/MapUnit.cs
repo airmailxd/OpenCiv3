@@ -499,7 +499,7 @@ namespace C7GameData {
 					yield return gD.riverCrossingBonus;
 
 				if (location.cityAtTile != null) {
-					foreach (StrengthBonus sb in location.cityAtTile.GetDefenseBonuses()) {
+					foreach (StrengthBonus sb in location.cityAtTile.GetDefenseBonuses(opponent)) {
 						yield return sb;
 					}
 				}
