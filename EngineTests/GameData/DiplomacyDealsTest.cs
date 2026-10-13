@@ -121,3 +121,135 @@ public class DiplomacyDealsSaveTest : IClassFixture<EngineTests.Utils.SaveGameFi
 		Assert.All(again.playerRelationships.Where(r => r.Key != otherId), r => Assert.False(r.Value.brokeTradeDeal));
 	}
 }
+
+// Negotiated gold per turn and resources, on a map with roads like
+// ResourceDealsTest's: our capital in the west, theirs in the east, joined
+// by a road along the top row.
+public class GoldPerTurnAndResourceDealsTest {
+	private static readonly TerrainImprovement road = new("road", TerrainImprovement.Layer.Roads, movementCost: 1.0f / 3);
+
+	private readonly Resource wines = new() { Key = "Wines", Name = "Wines", Category = ResourceCategory.LUXURY };
+	private readonly Resource iron = new() { Key = "Iron", Name = "Iron", Category = ResourceCategory.STRATEGIC };
+
+	private readonly C7GameData.GameData gameData;
+	private readonly GameMap map;
+	private readonly Player us, them;
+	private readonly City ourCapital, theirCapital;
+
+	public GoldPerTurnAndResourceDealsTest() {
+		gameData = new C7GameData.GameData() { gameDifficulty = new Difficulty(), rules = new Rules() { DefaultDealDuration = 20 } };
+		gameData.Resources.AddRange(new[] { wines, iron });
+		EngineStorage.InitializeGameDataForTests(gameData);
+
+		map = new() { numTilesWide = 20, numTilesTall = 2, tiles = new System.Collections.Generic.List<Tile>() };
+		for (int i = 0; i < 20; ++i) {
+			map.tileIndexToCoords(i, out int x, out int y);
+			map.tiles.Add(new Tile(ID.None("tile")) { XCoordinate = x, YCoordinate = y });
+		}
+		map.computeNeighbors();
+		gameData.map = map;
+
+		us = new() { civilization = new Civilization("Rome"), id = ID.FromString("player-1"), government = new Government(), isHuman = true, rules = gameData.rules };
+		them = new() { civilization = new Civilization("Greece"), id = ID.FromString("player-2"), government = new Government(), rules = gameData.rules };
+		gameData.players.Add(us);
+		gameData.players.Add(them);
+		us.EnsureRelationshipExists(them);
+
+		ourCapital = MakeCapital(us, map.tileAt(0, 0));
+		theirCapital = MakeCapital(them, map.tileAt(8, 0));
+		for (int x = 0; x <= 8; x += 2) {
+			map.tileAt(x, 0).overlays.Add(road);
+		}
+
+		// Two wines and one iron by their capital, on the road.
+		Place(wines, map.tileAt(6, 0));
+		Place(wines, map.tileAt(4, 0));
+		Place(iron, map.tileAt(2, 0));
+		map.tileAt(2, 0).owningCity = theirCapital;
+		gameData.InvalidateCachedTradeNetwork();
+	}
+
+	private void Place(Resource resource, Tile tile) {
+		tile.Resource = resource;
+		tile.owningCity = theirCapital;
+	}
+
+	private static City MakeCapital(Player owner, Tile tile) {
+		City city = new(tile, owner, owner.civilization.name, ID.None("city")) { capital = true };
+		tile.cityAtTile = city;
+		owner.cities.Add(city);
+		return city;
+	}
+
+	[Fact]
+	public void ALuxuryDealSendsTheLuxury() {
+		Assert.Empty(ourCapital.GetLuxuries(gameData));
+		TradeOffer theyGive = new() { resources = { wines.Key } };
+
+		Assert.True(us.ExecuteDeal(gameData, them, theyGive, new TradeOffer()));
+
+		MultiTurnDeal inbound = Assert.Single(us.playerRelationships[them.id].multiTurnDeals, d => d.dealSubType == DealSubType.LuxuryPerTurn);
+		Assert.Equal(DealDetails.Inbound, inbound.dealDetails);
+		Assert.Equal(wines.Key, inbound.resourcePerTurn);
+		Assert.Equal(20, inbound.TurnsRemaining(gameData.turn));
+		MultiTurnDeal outbound = Assert.Single(them.playerRelationships[us.id].multiTurnDeals, d => d.dealSubType == DealSubType.LuxuryPerTurn);
+		Assert.Equal(DealDetails.Outbound, outbound.dealDetails);
+		Assert.Contains(wines, ourCapital.GetLuxuries(gameData).Keys);
+
+		// They had only one to spare.
+		Assert.NotNull(TradeOffer.ProblemWithDeal(gameData, them, us, theyGive, new TradeOffer()));
+	}
+
+	[Fact]
+	public void OnlySpareConnectedResourcesCanBeTraded() {
+		// Their only iron.
+		Assert.NotNull(TradeOffer.ProblemWithDeal(gameData, them, us, new TradeOffer { resources = { iron.Key } }, new TradeOffer()));
+		Assert.Null(TradeOffer.ProblemWithDeal(gameData, them, us, new TradeOffer { resources = { wines.Key } }, new TradeOffer()));
+
+		// Cut the road between the capitals.
+		map.tileAt(2, 0).overlays.Remove(road);
+		map.tileAt(2, 0).Resource = Resource.NONE;
+		gameData.InvalidateCachedTradeNetwork();
+		Assert.NotNull(TradeOffer.ProblemWithDeal(gameData, them, us, new TradeOffer { resources = { wines.Key } }, new TradeOffer()));
+	}
+
+	[Fact]
+	public void GoldPerTurnIsPaidEachTurnUntilTheDealEnds() {
+		us.gold = 100;
+		// Our income and a tenth of the treasury.
+		int max = us.CalculateGoldPerTurn() + 10;
+		Assert.Equal(max, TradeOffer.MaxGoldPerTurn(us));
+		Assert.NotNull(TradeOffer.ProblemWithDeal(gameData, us, them, new TradeOffer { goldPerTurn = max + 1 }, new TradeOffer()));
+
+		Assert.True(them.ExecuteDeal(gameData, us, new TradeOffer { goldPerTurn = 3 }, new TradeOffer()));
+
+		int paid = 0;
+		for (int turn = 0; turn < 30; ++turn) {
+			gameData.turn = turn;
+			PlayerRelationship.CheckForObsoleteDeals(us, gameData.players, turn);
+			int received = them.AggregateFlows().fromOtherCivs;
+			Assert.Equal(received, us.AggregateFlows().toOtherCivs);
+			Assert.Equal(turn < 20 ? 3 : 0, received);
+			paid += received;
+			int expected = us.gold + us.CalculateGoldPerTurn();
+			us.DoPerTurnFinanceUpdates(gameData);
+			Assert.Equal(expected, us.gold);
+		}
+		Assert.Equal(60, paid);
+	}
+
+	[Fact]
+	public void TheAIWeighsResourcesByNeed() {
+		TradeOffer luxury = new() { resources = { wines.Key } };
+		// We have no wines, so they'd please us; they have spare.
+		Assert.True(luxury.GoldEquivalentFor(gameData, us) > luxury.GoldEquivalentFor(gameData, them, given: true));
+		Assert.Equal(0, luxury.GoldEquivalentFor(gameData, them));
+		Assert.Equal(20 * 5, new TradeOffer { goldPerTurn = 5 }.GoldEquivalentFor(gameData, them));
+
+		// The AI sells a luxury it has to spare for enough gold.
+		TradeOffer price = new() { gold = luxury.GoldEquivalentFor(gameData, them, given: true) };
+		us.gold = price.gold.Value;
+		Assert.True(them.WouldAcceptDealFrom(gameData, us, price, luxury));
+		Assert.False(them.WouldAcceptDealFrom(gameData, us, new TradeOffer { gold = price.gold - 1 }, luxury));
+	}
+}

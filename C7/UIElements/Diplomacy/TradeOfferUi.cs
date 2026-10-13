@@ -1,6 +1,7 @@
 using C7Engine;
 using C7GameData;
 using Godot;
+using Resource = C7GameData.Resource;
 using System;
 using System.Linq;
 using System.Collections.Generic;
@@ -10,6 +11,9 @@ public partial class TradeOfferUi : Tree {
 	TreeItem peaceTreaty;
 	TreeItem rightOfPassage;
 	TreeItem lumpSumGold;
+	TreeItem goldPerTurn;
+	// The resource (by key) each resource item stands for.
+	Dictionary<TreeItem, string> resources = new();
 	// The tech each technology item stands for.
 	Dictionary<TreeItem, Tech> techs = new();
 	// The city each city item stands for.
@@ -20,7 +24,7 @@ public partial class TradeOfferUi : Tree {
 
 	public TradeOfferUi(Theme fontTheme, List<Tech> tradeableTechs, List<City> tradeableCities, int playerGold,
 						TradeOffer currentOffer, bool requiresPeaceTreaty,
-						HorizontalAlignment alignment) {
+						HorizontalAlignment alignment, List<Resource> tradeableResources = null) {
 		this.currentOffer = currentOffer;
 		this.tradeableTechs = tradeableTechs;
 		this.playerGold = playerGold;
@@ -48,6 +52,15 @@ public partial class TradeOfferUi : Tree {
 		// RefreshUiForOffer.
 		lumpSumGold = this.CreateItem(root);
 		lumpSumGold.SetTextAlignment(0, alignment);
+		goldPerTurn = this.CreateItem(root);
+		goldPerTurn.SetTextAlignment(0, alignment);
+
+		foreach (Resource r in tradeableResources ?? new()) {
+			TreeItem child = this.CreateItem(root);
+			child.SetTextAlignment(0, alignment);
+			child.SetText(0, r.Name);
+			resources[child] = r.Key;
+		}
 
 		foreach (Tech tech in tradeableTechs) {
 			TreeItem child = this.CreateItem(root);
@@ -78,6 +91,12 @@ public partial class TradeOfferUi : Tree {
 			}
 			if (cities.TryGetValue(ti, out City itemCity)) {
 				currentOffer.cities.Remove(itemCity);
+			}
+			if (resources.TryGetValue(ti, out string resourceKey)) {
+				currentOffer.resources.Remove(resourceKey);
+			}
+			if (ti == goldPerTurn) {
+				currentOffer.goldPerTurn = 0;
 			}
 			if (ti == lumpSumGold && mouseButtonIndex != 2) {
 				currentOffer.gold = null;
@@ -142,6 +161,12 @@ public partial class TradeOfferUi : Tree {
 			lumpSumGold.Visible = true;
 		} else {
 			lumpSumGold.Visible = false;
+		}
+
+		goldPerTurn.SetText(0, $"{currentOffer.goldPerTurn} gold per turn");
+		goldPerTurn.Visible = currentOffer.goldPerTurn > 0;
+		foreach (var (ti, key) in resources) {
+			ti.Visible = currentOffer.resources.Contains(key);
 		}
 
 		HashSet<string> offeredTechs = new(currentOffer.techs.Select(x => x.Name));

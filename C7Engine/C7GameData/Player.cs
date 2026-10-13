@@ -763,7 +763,7 @@ namespace C7GameData {
 				return false;
 			}
 			int theirGoldValue = theirOffer.GoldEquivalentFor(gameData, this);
-			int ourGoldValue = ourOffer.GoldEquivalentFor(gameData, this);
+			int ourGoldValue = ourOffer.GoldEquivalentFor(gameData, this, given: true);
 
 			if (theirOffer.partOfPeaceTreaty || ourOffer.partOfPeaceTreaty) {
 				return C7Engine.AI.PeaceAI.WouldAcceptPeace(this, other, theirOffer, ourOffer, theirGoldValue, ourGoldValue);
@@ -809,9 +809,13 @@ namespace C7GameData {
 				other.gold -= theirOffer.gold.Value;
 			}
 
-			// The attitudes, valuing the gifts before the techs are known.
+			// Gold per turn and resources are sent for the deal's length.
 			EnsureRelationshipExists(other);
 			other.EnsureRelationshipExists(this);
+			RegisterDealsOverTime(gameData, this, other, ourOffer);
+			RegisterDealsOverTime(gameData, other, this, theirOffer);
+
+			// The attitudes, valuing the gifts before the techs are known.
 			if (ourOffer.techs.Count > 0 || theirOffer.techs.Count > 0) {
 				playerRelationships[other.id].lastTechTradeTurn = gameData.turn;
 				other.playerRelationships[id].lastTechTradeTurn = gameData.turn;
@@ -833,6 +837,27 @@ namespace C7GameData {
 				CityInteractions.TransferCity(city, this, viaDeal: true);
 			}
 			return true;
+		}
+
+		// Registers what the giver sends the receiver over time in a deal
+		// just made, as the giver's Outbound deals (and the receiver's
+		// Inbound ones), for the rules' deal length from this turn. They end
+		// in PlayerRelationship.CheckForObsoleteDeals; the gold is paid in
+		// DoPerTurnFinanceUpdates, and the resources reach the receiver's
+		// cities through City.GetAvailableResources.
+		private static void RegisterDealsOverTime(GameData gameData, Player giver, Player receiver, TradeOffer offer) {
+			int duration = TradeOffer.DealDuration(gameData);
+			if (offer.goldPerTurn > 0) {
+				RegisterMultiTurnDeal(giver, receiver, new MultiTurnDeal(DealType.Gold, DealSubType.GoldPerTurn,
+					DealDetails.Outbound, offer.goldPerTurn, null, duration, gameData.turn));
+			}
+			foreach (string key in offer.resources) {
+				Resource r = gameData.Resources.Find(x => x.Key == key);
+				bool luxury = r?.Category == ResourceCategory.LUXURY;
+				RegisterMultiTurnDeal(giver, receiver, new MultiTurnDeal(luxury ? DealType.Luxury : DealType.Resource,
+					luxury ? DealSubType.LuxuryPerTurn : DealSubType.ResourcePerTurn,
+					DealDetails.Outbound, 0, key, duration, gameData.turn));
+			}
 		}
 
 		// The beakers all our cities produce each turn.

@@ -2,6 +2,7 @@ using C7Engine;
 using System.Linq;
 using C7GameData;
 using Godot;
+using Resource = C7GameData.Resource;
 using System;
 using System.Collections.Generic;
 using ConvertCiv3Media;
@@ -10,6 +11,11 @@ public partial class TradingTree : Tree {
 	TreeItem goldHeader;
 	TreeItem techHeader;
 	TreeItem lumpSum;
+	TreeItem perTurn;
+	TreeItem luxuryHeader;
+	TreeItem resourceHeader;
+	// The resource (by key) each luxury or resource item stands for.
+	Dictionary<TreeItem, string> resourceItems = new();
 	// The tech each technology item stands for.
 	Dictionary<TreeItem, Tech> techItems = new();
 	TreeItem diplomacyHeader;
@@ -22,15 +28,21 @@ public partial class TradingTree : Tree {
 	List<Tech> tradeableTechs;
 	TradeOffer currentOffer;
 	int playerGold;
+	int maxGoldPerTurn;
 
+	// maxGoldPerTurn is the most gold per turn the player can promise (see
+	// TradeOffer.MaxGoldPerTurn), and tradeableResources the luxuries and
+	// strategic resources it has to spare (TradeOffer.TradableResources).
 	public TradingTree(Theme fontTheme,
 						int playerGold,
 						List<Tech> tradeableTechs, List<City> tradeableCities,
 						TradeOffer currentOffer, bool requiresPeaceTreaty,
-						bool canSignRightOfPassage = false) {
+						bool canSignRightOfPassage = false,
+						int maxGoldPerTurn = 0, List<Resource> tradeableResources = null) {
 		this.tradeableTechs = tradeableTechs;
 		this.currentOffer = currentOffer;
 		this.playerGold = playerGold;
+		this.maxGoldPerTurn = maxGoldPerTurn;
 		this.Columns = 1;
 
 		ConfigureTreeTheme(this, fontTheme);
@@ -64,10 +76,35 @@ public partial class TradingTree : Tree {
 			goldHeader.SetText(0, $"Gold ({playerGold} in treasury)");
 			goldHeader.Collapsed = true;
 
-			// TODO: per-turn gold
-
 			lumpSum = this.CreateItem(goldHeader);
 			lumpSum.SetText(0, "Lump sum");
+
+			if (maxGoldPerTurn > 0) {
+				perTurn = this.CreateItem(goldHeader);
+				perTurn.SetText(0, $"Per turn ({maxGoldPerTurn} available)");
+			}
+		}
+
+		// Only spare luxuries and strategic resources may be traded, and not
+		// in a peace treaty (see TradeOffer.ProblemWithDeal).
+		if (!requiresPeaceTreaty && tradeableResources != null) {
+			foreach (Resource r in tradeableResources) {
+				bool luxury = r.Category == ResourceCategory.LUXURY;
+				TreeItem header = luxury ? luxuryHeader : resourceHeader;
+				if (header == null) {
+					header = this.CreateItem(root);
+					header.SetText(0, luxury ? "Luxuries" : "Resources");
+					header.Collapsed = true;
+					if (luxury) {
+						luxuryHeader = header;
+					} else {
+						resourceHeader = header;
+					}
+				}
+				TreeItem child = this.CreateItem(header);
+				child.SetText(0, r.Name);
+				resourceItems[child] = r.Key;
+			}
 		}
 
 		if (tradeableTechs.Count > 0) {
@@ -118,6 +155,16 @@ public partial class TradingTree : Tree {
 			if (ti == cityHeader && other.cityHeader != null) {
 				other.cityHeader.Collapsed = cityHeader.Collapsed;
 			}
+			if (ti == luxuryHeader && other.luxuryHeader != null) {
+				other.luxuryHeader.Collapsed = luxuryHeader.Collapsed;
+			}
+			if (ti == resourceHeader && other.resourceHeader != null) {
+				other.resourceHeader.Collapsed = resourceHeader.Collapsed;
+			}
+
+			if (resourceItems.TryGetValue(ti, out string resourceKey) && !currentOffer.resources.Contains(resourceKey)) {
+				currentOffer.resources.Add(resourceKey);
+			}
 
 			if (cityItems.TryGetValue(ti, out City itemCity) && !currentOffer.cities.Contains(itemCity)) {
 				currentOffer.cities.Add(itemCity);
@@ -159,6 +206,31 @@ public partial class TradingTree : Tree {
 											handleTextInput));
 			}
 
+			if (ti != null && ti == perTurn) {
+				Diplomacy diplomacy = GetParent<DealScreen>().GetParent<Diplomacy>();
+				var handleGoldPerTurn = (string input) => {
+					// The deal screen may have been replaced while the
+					// dialog was up.
+					if (!IsInstanceValid(this) || !IsInsideTree()) {
+						return;
+					}
+					if (!int.TryParse(input, out int amount)) {
+						return;
+					}
+					if (amount > maxGoldPerTurn || amount <= 0) {
+						diplomacy.ShowScreenPopup(new InformationalPopup("Insufficient gold"));
+						return;
+					}
+					currentOffer.goldPerTurn = amount;
+					offerUpdated();
+					RefreshUiForOffer();
+				};
+				diplomacy.ShowScreenPopup(new TextDialog("Enter amount...",
+											"Gold per turn: ", "0",
+											BoxContainer.AlignmentMode.Center,
+											handleGoldPerTurn));
+			}
+
 			if (ti == peaceTreaty) {
 				currentOffer.partOfPeaceTreaty = true;
 				other.currentOffer.partOfPeaceTreaty = true;
@@ -192,6 +264,12 @@ public partial class TradingTree : Tree {
 		} else {
 			goldHeader.Visible = true;
 			lumpSum.Visible = !currentOffer.gold.HasValue;
+			if (perTurn != null) {
+				perTurn.Visible = currentOffer.goldPerTurn == 0;
+			}
+			foreach (var (ti, key) in resourceItems) {
+				ti.Visible = !currentOffer.resources.Contains(key);
+			}
 
 			if (techHeader != null) {
 				techHeader.Visible = true;
