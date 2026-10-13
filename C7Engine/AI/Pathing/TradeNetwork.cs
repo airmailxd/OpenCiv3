@@ -158,6 +158,12 @@ namespace C7Engine.Pathing {
 			return result;
 		}
 
+		// Whether the tile is joined by the player's trade network to one of
+		// their cities (or is a city's tile).
+		public bool IsJoinedToCity(Tile t, Player p) {
+			return GetNetwork(p).tileToSegment.ContainsKey(t);
+		}
+
 		public bool HasTradeAccess(Tile t, Player p, Resource r) {
 			if (!p.KnowsAboutResource(r)) {
 				return false;

@@ -1208,6 +1208,13 @@ public partial class Game : Node {
 					popupOverlay.ShowPopup(pop, PopupOverlay.PopupCategory.Advisor);
 					break;
 				}
+			case MsgShowTradeAdvisorPopup mSTAP: {
+					// Like the military advisor's news, this waits its turn.
+					var mood = mSTAP.happy ? AdvisorHead.Mood.Happy : AdvisorHead.Mood.Surprised;
+					var pop = new InformationalPopup(mSTAP.message, AdvisorHead.Advisor.Trade, mood);
+					popupOverlay.ShowPopup(pop, PopupOverlay.PopupCategory.Advisor);
+					break;
+				}
 			case MsgShowScienceAdvisorPopup mSSAP: {
 					// The space race news (such as the ship being complete) is too
 					// important to drop, so it waits its turn behind any popup

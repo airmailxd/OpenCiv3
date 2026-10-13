@@ -154,6 +154,9 @@ namespace C7Engine {
 				// outweighs their owner's.
 				CultureFlip.ProcessEndOfRound(gameData);
 
+				// Strategic resources in use may run out.
+				ResourceDepletion.ProcessEndOfRound(gameData);
+
 				// The United Nations votes once everyone has played the
 				// voting turn, and may elect a winner.
 				UnitedNations.ProcessEndOfRound(gameData);
