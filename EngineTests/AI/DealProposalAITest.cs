@@ -147,13 +147,13 @@ public class DealProposalAITest : System.IDisposable {
 		a.playerRelationships[b.id].multiTurnDeals.Any(d => d.dealSubType == DealSubType.LuxuryPerTurn);
 
 	[Fact]
-	public void AnExpiredDealIsRenewedBetweenAIsThatStillWantIt() {
+	public async Task AnExpiredDealIsRenewedBetweenAIsThatStillWantIt() {
 		BuyWines();
 		gameData.turn = 20;
 		PlayerRelationship.CheckForObsoleteDeals(us, gameData.players, gameData.turn);
 		Assert.False(HasWinesDeal(us, them));
 
-		PlayerAI.RenewExpiredDeals(us, gameData).GetAwaiter().GetResult();
+		await PlayerAI.RenewExpiredDeals(us, gameData);
 
 		Assert.True(HasWinesDeal(us, them));
 		MultiTurnDeal renewed = us.playerRelationships[them.id].multiTurnDeals.Single(d => d.dealSubType == DealSubType.LuxuryPerTurn);
@@ -181,7 +181,7 @@ public class DealProposalAITest : System.IDisposable {
 	}
 
 	[Fact]
-	public void AnAIThatNoLongerWantsTheDealDoesNotRenewIt() {
+	public async Task AnAIThatNoLongerWantsTheDealDoesNotRenewIt() {
 		BuyWines();
 		gameData.turn = 20;
 		// We have wines of our own now, so don't want theirs.
@@ -191,7 +191,7 @@ public class DealProposalAITest : System.IDisposable {
 		gameData.InvalidateCachedTradeNetwork();
 		PlayerRelationship.CheckForObsoleteDeals(us, gameData.players, gameData.turn);
 
-		PlayerAI.RenewExpiredDeals(us, gameData).GetAwaiter().GetResult();
+		await PlayerAI.RenewExpiredDeals(us, gameData);
 
 		Assert.False(HasWinesDeal(us, them));
 	}
