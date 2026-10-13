@@ -138,6 +138,13 @@ namespace C7GameData {
 		// treasury (10 in conquests.biq).
 		public int StartingTreasury = 10;
 
+		// The volcano eruption period, in years: the BIQ GAME section's
+		// (5000 in conquests.biq). "Each volcano on the map will erupt at
+		// least once within the indicated eruption period (shown in years)"
+		// (https://forums.civfanatics.com/threads/questions-regarding-volcanos.330741/).
+		// 0 or less, volcanoes never erupt. See Volcano.
+		public int VolcanoEruptionPeriod = 5000;
+
 		// The civilopedia name of the first era, which civs start a new game
 		// in.
 		public string FirstEraCivilopediaName = "ERAS_Ancient_Times";

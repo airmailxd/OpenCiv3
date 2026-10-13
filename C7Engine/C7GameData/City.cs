@@ -1766,6 +1766,14 @@ namespace C7GameData {
 			RemoveCitizenAt(idx);
 		}
 
+		// Removes the given citizen, if it lives here.
+		public void RemoveCitizen(CityResident resident) {
+			int index = residents.IndexOf(resident);
+			if (index >= 0) {
+				RemoveCitizenAt(index);
+			}
+		}
+
 		private void RemoveCitizenAt(int index) {
 			// A resister lost leaves one fewer resisting.
 			if (resisters > 0 && index >= residents.Count - ResistersInCity()) {
