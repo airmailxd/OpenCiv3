@@ -329,6 +329,21 @@ namespace C7GameData.Save {
 
 			// players need game map to populate tile knowledge
 			data.players = Players.ConvertAll(player => player.ToPlayer(data.map, Civilizations, data.governments, data.techs, data.rules, data.alliances, data.terrainImprovements));
+
+			// The owners of outposts and colonies, now that there are players.
+			Dictionary<ID, Player> playersById = null;
+			for (int i = 0; i < Map.tiles.Count && i < data.map.tiles.Count; ++i) {
+				ID ownerId = Map.tiles[i].holdingOwner;
+				if (ownerId == null) {
+					continue;
+				}
+				playersById ??= data.players.Where(p => p.id != null).GroupBy(p => p.id).ToDictionary(g => g.Key, g => g.First());
+				if (playersById.TryGetValue(ownerId, out Player owner)) {
+					data.map.tiles[i].holdingOwner = owner;
+				} else {
+					Serilog.Log.Warning("The outpost or colony at {Tile} belongs to unknown player {Owner}, so to no one", data.map.tiles[i], ownerId);
+				}
+			}
 		}
 
 		private void ConvertTerrainImprovements(GameData gameData) {

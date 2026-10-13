@@ -14,7 +14,7 @@ namespace C7Engine {
 	// - Only a source "available to a city" can run out: one inside the civ's
 	//   borders and joined to one of its cities by the trade network. A roaded
 	//   source not joined to a city doesn't, nor does one the civ can only
-	//   reach through a colony (C3 has no colonies yet). Same thread; also
+	//   reach through a colony (see Tile_Holdings). Same thread; also
 	//   "resources which are not connected to a road won't disappear",
 	//   https://forums.civfanatics.com/threads/resource-exhaustion.65409/
 	// - "The amount of each resource on the map is fixed - if a coal deposit

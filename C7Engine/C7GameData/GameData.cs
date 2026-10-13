@@ -524,11 +524,15 @@ namespace C7GameData {
 		}
 
 		// Changes the city that owns a tile. All ownership changes should go
-		// through here, so that the players' active tiles are kept up to date.
+		// through here, so that the players' active tiles are kept up to date,
+		// and so that borders take in the colonies and outposts they reach.
 		private static void SetTileOwner(Tile t, City city) {
 			if (t.owningCity != city) {
 				t.owningCity = city;
 				TileChangeJournal.Record(t);
+				if (city != null) {
+					t.CheckHoldingAgainstBorders();
+				}
 			}
 		}
 

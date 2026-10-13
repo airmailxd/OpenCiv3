@@ -71,8 +71,23 @@ public class SaveTerrainImprovement {
 			zIndex: 11
 		);
 
-		// TODO: Add colony, outpost, airfield, radar tower. Until then,
-		// importing a Civ3 game leaves them out (see ImportCiv3.ImportHoldings).
+		// Outposts and colonies belong to the civ that built them (see
+		// Tile_Holdings). Like a fortress, an outpost takes the tile's holdings;
+		// a colony has a layer of its own, as it can share its tile with a
+		// fortress.
+		yield return new(
+			OUTPOST,
+			Layer.Holdings,
+			zIndex: 6
+		);
+		yield return new(
+			COLONY,
+			Layer.Colonies,
+			zIndex: 4
+		);
+
+		// TODO: Add airfield, radar tower. Until then, importing a Civ3 game
+		// leaves them out (see ImportCiv3.ImportHoldings).
 	}
 
 	public readonly string key;

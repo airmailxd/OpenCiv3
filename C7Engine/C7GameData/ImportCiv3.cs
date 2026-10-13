@@ -160,6 +160,7 @@ namespace C7GameData {
 
 			// Import tiles.  This is similar to, but different from the BIQ version as tile contents may have changed in-game.
 			int i = 0;
+			MapHoldings holdings = SavHoldings();
 			foreach (QueryCiv3.Sav.TILE civ3Tile in savData.Tile) {
 				// TODO: Civ3ExtraInfo can be removed when migrating to rendering via tilemap
 				Civ3ExtraInfo extra = new Civ3ExtraInfo
@@ -193,7 +194,7 @@ namespace C7GameData {
 				if (civ3Tile.Craters) {
 					tile.overlays.Add(CRATERS);
 				}
-				ImportHoldings(tile, civ3Tile.Fortress, civ3Tile.Barricade, civ3Tile.Airfield, civ3Tile.RadarTower, civ3Tile.Outpost, civ3Tile.ColonyID >= 0);
+				ImportHoldings(tile, civ3Tile.Fortress, civ3Tile.Barricade, civ3Tile.Airfield, civ3Tile.RadarTower, civ3Tile.Outpost, holdings);
 				if (civ3Tile.BonusShield) {
 					tile.features.Add("bonusShield");
 				}
@@ -263,20 +264,84 @@ namespace C7GameData {
 		// tiles had each, logged once the map is imported.
 		private readonly Dictionary<string, int> unsupportedHoldings = new();
 
+		// Where a Civ3 map's colonies and outposts are, by their (X, Y), with
+		// the ID of each one's owner (null if it has none we know of).
+		private sealed class MapHoldings {
+			public readonly Dictionary<(int, int), ID> colonies = new();
+			public readonly Dictionary<(int, int), ID> outposts = new();
+		}
+
 		// Imports the holdings layer (fortresses and the like) of a tile. A
-		// barricade is an upgraded fortress. C7 has no airfields, radar
-		// towers, outposts or colonies yet, so those are left out.
-		private void ImportHoldings(SaveTile tile, bool fortress, bool barricade, bool airfield, bool radarTower, bool outpost, bool colony) {
-			if (barricade) {
-				tile.overlays.Add(BARRICADE);
-			} else if (fortress) {
-				tile.overlays.Add(FORTRESS);
+		// barricade is an upgraded fortress. A colony is wherever the map's
+		// list of colonies has one (see SavHoldings and BiqHoldings); an
+		// outpost is marked on the tile. A colony can share its tile with a
+		// fortress, but C7 has a tile hold only one civ's outpost or colony.
+		// C7 has no airfields or radar towers yet, so those are left out, as
+		// is anything more than that on a tile.
+		private void ImportHoldings(SaveTile tile, bool fortress, bool barricade, bool airfield, bool radarTower, bool outpost, MapHoldings holdings) {
+			bool colony = holdings.colonies.TryGetValue((tile.X, tile.Y), out ID colonyOwner);
+			string holding = barricade ? BARRICADE : fortress ? FORTRESS : outpost && !colony ? OUTPOST : null;
+			if (holding != null) {
+				tile.overlays.Add(holding);
 			}
-			foreach ((bool has, string name) in new[] { (airfield, "airfield"), (radarTower, "radar tower"), (outpost, "outpost"), (colony, "colony") }) {
+			if (colony) {
+				tile.overlays.Add(COLONY);
+			}
+			if (colony || holding == OUTPOST) {
+				tile.holdingOwner = colony ? colonyOwner : holdings.outposts.GetValueOrDefault((tile.X, tile.Y));
+				if (tile.holdingOwner == null) {
+					log.Information("The {Holding} at ({X}, {Y}) belongs to no one", colony ? COLONY : OUTPOST, tile.X, tile.Y);
+				}
+			}
+			foreach ((bool has, string name) in new[] {
+				(airfield, "airfield"), (radarTower, "radar tower"),
+				(outpost && holding != OUTPOST, "outpost") }) {
 				if (has) {
 					unsupportedHoldings[name] = unsupportedHoldings.GetValueOrDefault(name) + 1;
 				}
 			}
+		}
+
+		// A SAV's colonies and outposts. The CLNY and OUTP sections give each
+		// one's place and its player's index into LEAD. (A tile's ColonyID is
+		// set for both, and airfields and radar towers too, so it doesn't
+		// tell them apart: in the SAVs looked at, the tiles with an outpost
+		// had the ColonyID of an OUTP entry, those with a colony a CLNY one.)
+		private MapHoldings SavHoldings() {
+			MapHoldings holdings = new();
+			ID Owner(int lead) {
+				return lead >= 0 && lead < savLeadPlayers.Length ? savLeadPlayers[lead]?.id : null;
+			}
+			foreach (QueryCiv3.Sav.CLNY colony in savData.Clny ?? []) {
+				holdings.colonies.TryAdd((colony.XCoordinate, colony.YCoordinate), Owner(colony.PlayerID));
+			}
+			foreach (QueryCiv3.Sav.OUTP outpost in savData.Outp ?? []) {
+				holdings.outposts.TryAdd((outpost.XCoordinate, outpost.YCoordinate), Owner(outpost.PlayerID));
+			}
+			return holdings;
+		}
+
+		// A BIQ map's colonies and the owners of its outposts, from its CLNY
+		// section, whose entries have an improvement type. The scenarios
+		// that come with Conquests show 0 is a colony (Fall of Rome's one
+		// entry is on a tile without an airfield, radar tower or outpost),
+		// and 1 and 2 airfields and radar towers (WWII in the Pacific has two
+		// airfields, with two entries of type 1, and seven radar towers, with
+		// seven of type 2). A tile's Colony field isn't an index into the
+		// CLNY: scenarios without any CLNY entries have it set.
+		// UNVERIFIED: that an outpost placed in the editor has an entry (of
+		// type 3) for its owner; none of the scenarios has an outpost. One
+		// without an entry belongs to no one.
+		private MapHoldings BiqHoldings() {
+			MapHoldings holdings = new();
+			foreach (QueryCiv3.Biq.CLNY entry in biq.Clny ?? []) {
+				if (entry.ImprovementType is 1 or 2) {
+					continue;
+				}
+				ID owner = BiqOwner(entry.OwnerType, entry.Owner, $"{(entry.ImprovementType == 0 ? "colony" : "outpost")} at ({entry.X}, {entry.Y})")?.id;
+				(entry.ImprovementType == 0 ? holdings.colonies : holdings.outposts).TryAdd((entry.X, entry.Y), owner);
+			}
+			return holdings;
 		}
 
 		private void LogUnsupportedHoldings() {
@@ -374,6 +439,7 @@ namespace C7GameData {
 
 			// Import tiles
 			int i = 0;
+			MapHoldings holdings = hasMap ? BiqHoldings() : new();
 			bool mapVisible = GameBiq?.Game?[0].MapVisible == 1;
 			foreach (QueryCiv3.Biq.TILE civ3Tile in hasMap ? biq.Tile : Array.Empty<QueryCiv3.Biq.TILE>()) {
 				(int X, int Y) = GetMapCoordinates(i, biq.Wmap[0].Width);
@@ -406,7 +472,7 @@ namespace C7GameData {
 				if (civ3Tile.Craters) {
 					tile.overlays.Add(CRATERS);
 				}
-				ImportHoldings(tile, civ3Tile.Fortress, civ3Tile.Barricade, civ3Tile.Airfield, civ3Tile.RadarTower, civ3Tile.Outpost, civ3Tile.Colony >= 0);
+				ImportHoldings(tile, civ3Tile.Fortress, civ3Tile.Barricade, civ3Tile.Airfield, civ3Tile.RadarTower, civ3Tile.Outpost, holdings);
 				if (civ3Tile.BonusGrassland) {
 					tile.features.Add("bonusShield");
 				}
@@ -1730,6 +1796,7 @@ namespace C7GameData {
 			if (prto.UpgradeUnit) yield return UnitAction.Upgrade;
 			if (prto.Pillage) yield return UnitAction.Pillage;
 			if (prto.Sentry) yield return UnitAction.Sentry;
+			if (prto.BuildColony) yield return UnitAction.BuildColony;
 		}
 
 		private static IEnumerable<TerraformKey> GetUnitTerraforms(PRTO prto) {
@@ -1742,6 +1809,7 @@ namespace C7GameData {
 			if (prto.ClearPollution) yield return TerraformKey.ClearDamage;
 			if (prto.BuildBarricade) yield return TerraformKey.BuildBarricade;
 			if (prto.BuildFortress) yield return TerraformKey.BuildFortress;
+			if (prto.BuildOutpost) yield return TerraformKey.BuildOutpost;
 		}
 
 		private static bool IsUnproducible(PRTO prto) {
@@ -1826,7 +1894,9 @@ namespace C7GameData {
 				if (prto.Draft) prototype.flags.Add(SaveUnitPrototype.Flag.Draftable);
 
 				prototype.actions.UnionWith(GetUnitActions(prto));
-				prototype.terraformActions.UnionWith(GetUnitTerraforms(prto).Select(tfKey => terraformIdByCiv3Key[tfKey]));
+				// A job the BIQ has no TFRM for (such as an outpost in a BIQ
+				// from before Conquests) is left out.
+				prototype.terraformActions.UnionWith(GetUnitTerraforms(prto).Where(terraformIdByCiv3Key.ContainsKey).Select(tfKey => terraformIdByCiv3Key[tfKey]));
 
 				prototype.unproducible = IsUnproducible(prto);
 

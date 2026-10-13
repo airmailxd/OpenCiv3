@@ -1276,6 +1276,9 @@ namespace C7GameData {
 			if (canAutomate()) {
 				result.Add(UnitAction.Automate);
 			}
+			if (CanBuildColony()) {
+				result.Add(UnitAction.BuildColony);
+			}
 
 			if (CanBoardTransportOnTile(this.location, explicitLoad: true) && this.loadedOnUnitId == null) {
 				result.Add(UnitAction.Load);

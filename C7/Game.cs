@@ -2848,6 +2848,13 @@ public partial class Game : Node {
 			new MsgPillage(CurrentlySelectedUnit.id).send();
 		}
 
+		// B builds a city, or with a worker a colony: "Build/Join city/colony
+		// B" (Conquests Civilopedia, the keyboard shortcuts).
+		if ((currentAction == C7Action.UnitBuildColony || (currentAction == C7Action.UnitBuildCity && !CurrentlySelectedUnit.canBuildCity()))
+			&& CurrentlySelectedUnit.CanBuildColony()) {
+			new MsgUnitCommand(CurrentlySelectedUnit.id, MsgUnitCommand.Command.BuildColony).send();
+		}
+
 		if (currentAction == C7Action.UnitBuildArmy && CurrentlySelectedUnit.CanFormArmy()) {
 			new MsgUnitCommand(CurrentlySelectedUnit.id, MsgUnitCommand.Command.FormArmy).send();
 		}

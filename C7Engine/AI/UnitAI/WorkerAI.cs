@@ -212,6 +212,12 @@ namespace C7Engine {
 			return ComputeTileImprovement(t, unit);
 		}
 
+		// TODO: Colonies. A worker could found a colony (MapUnit.BuildColony)
+		// on a strategic or luxury resource the civ lacks just outside its
+		// borders, and road it to a city. That needs choosing which worker to
+		// give up and sending it beyond the borders, which this AI doesn't
+		// plan for yet; outposts (scored 0, see terraforms.ai_score.default)
+		// are never built by it either.
 		private static Terraform? ComputeTileImprovement(Tile t, MapUnit unit) {
 			if (!t.IsLand()) {
 				return null;

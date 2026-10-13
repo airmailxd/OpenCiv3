@@ -594,9 +594,11 @@ namespace C7GameData {
 		public void FinishWorkerJob(Terraform currentWorkerJob) {
 			// Reset All Workers working on the finished Job
 			Player player = null;
+			MapUnit firstWorker = null;
 			foreach (MapUnit unit in unitsOnTile) {
 				player = unit.owner;
 				if (currentWorkerJob == unit.WorkerJob) {
+					firstWorker ??= unit;
 					unit.resetWorkerJob();
 				}
 			}
@@ -609,7 +611,19 @@ namespace C7GameData {
 				return;
 			}
 
+			// The job is the first worker's, whoever else helped.
+			if (firstWorker != null) {
+				player = firstWorker.owner;
+			}
 			currentWorkerJob.OnComplete(player, this);
+
+			// Building an outpost uses up a worker. Any others that helped
+			// are left.
+			// UNVERIFIED: the Civilopedia says only "consumes the worker";
+			// what becomes of other workers helping with the job isn't stated.
+			if (currentWorkerJob.ConsumesWorker && firstWorker != null) {
+				firstWorker.RemoveFromPlay();
+			}
 		}
 
 		public float GetCurrentUnaccountedJobProgress(Terraform currentWorkerJob) {
