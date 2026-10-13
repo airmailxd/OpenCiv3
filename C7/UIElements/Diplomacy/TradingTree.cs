@@ -21,6 +21,10 @@ public partial class TradingTree : Tree {
 	TreeItem diplomacyHeader;
 	TreeItem peaceTreaty;
 	TreeItem rightOfPassage;
+	TreeItem mutualProtectionPact;
+	// The civ each military alliance or trade embargo item is against.
+	Dictionary<TreeItem, ID> allianceItems = new();
+	Dictionary<TreeItem, ID> embargoItems = new();
 	TreeItem cityHeader;
 	// The city each city item stands for.
 	Dictionary<TreeItem, City> cityItems = new();
@@ -33,12 +37,18 @@ public partial class TradingTree : Tree {
 	// maxGoldPerTurn is the most gold per turn the player can promise (see
 	// TradeOffer.MaxGoldPerTurn), and tradeableResources the luxuries and
 	// strategic resources it has to spare (TradeOffer.TradableResources).
+	// The pacts (see Pacts) the two civs may sign: a mutual protection
+	// pact, and military alliances and trade embargoes against these civs.
+	public record PactChoices(bool mutualProtectionPact, List<Player> allianceTargets, List<Player> embargoTargets) {
+		public bool Any => mutualProtectionPact || allianceTargets.Count > 0 || embargoTargets.Count > 0;
+	}
+
 	public TradingTree(Theme fontTheme,
 						int playerGold,
 						List<Tech> tradeableTechs, List<City> tradeableCities,
 						TradeOffer currentOffer, bool requiresPeaceTreaty,
 						bool canSignRightOfPassage = false,
-						int maxGoldPerTurn = 0, List<Resource> tradeableResources = null) {
+						int maxGoldPerTurn = 0, List<Resource> tradeableResources = null, PactChoices pacts = null) {
 		this.tradeableTechs = tradeableTechs;
 		this.currentOffer = currentOffer;
 		this.playerGold = playerGold;
@@ -58,16 +68,30 @@ public partial class TradingTree : Tree {
 
 			peaceTreaty = this.CreateItem(diplomacyHeader);
 			peaceTreaty.SetText(0, "Peace Treaty");
-		} else if (canSignRightOfPassage) {
-			// Only offered to civs that may sign one (see RightOfPassage).
+		} else if (canSignRightOfPassage || (pacts?.Any ?? false)) {
+			// Only what the civs may sign (see RightOfPassage and Pacts).
 			diplomacyHeader = this.CreateItem(root);
 			diplomacyHeader.SetText(0, "Diplomatic Agreements");
 			diplomacyHeader.Collapsed = false;
 
-			rightOfPassage = this.CreateItem(diplomacyHeader);
-			rightOfPassage.SetText(0, "Right of Passage");
-
-			// TODO: mutual protection pacts, military alliances, etc.
+			if (canSignRightOfPassage) {
+				rightOfPassage = this.CreateItem(diplomacyHeader);
+				rightOfPassage.SetText(0, "Right of Passage");
+			}
+			if (pacts?.mutualProtectionPact ?? false) {
+				mutualProtectionPact = this.CreateItem(diplomacyHeader);
+				mutualProtectionPact.SetText(0, "Mutual Protection Pact");
+			}
+			foreach (Player target in pacts?.allianceTargets ?? new()) {
+				TreeItem child = this.CreateItem(diplomacyHeader);
+				child.SetText(0, $"Military Alliance against the {target.civilization?.noun}");
+				allianceItems[child] = target.id;
+			}
+			foreach (Player target in pacts?.embargoTargets ?? new()) {
+				TreeItem child = this.CreateItem(diplomacyHeader);
+				child.SetText(0, $"Trade Embargo against the {target.civilization?.noun}");
+				embargoItems[child] = target.id;
+			}
 		}
 
 		// Gold
@@ -243,6 +267,20 @@ public partial class TradingTree : Tree {
 				other.currentOffer.rightOfPassage = true;
 			}
 
+			// So are the pacts.
+			if (ti != null && ti == mutualProtectionPact) {
+				currentOffer.mutualProtectionPact = true;
+				other.currentOffer.mutualProtectionPact = true;
+			}
+			if (ti != null && allianceItems.TryGetValue(ti, out ID enemy)) {
+				currentOffer.militaryAllianceAgainst = enemy;
+				other.currentOffer.militaryAllianceAgainst = enemy;
+			}
+			if (ti != null && embargoItems.TryGetValue(ti, out ID embargoed)) {
+				currentOffer.tradeEmbargoAgainst = embargoed;
+				other.currentOffer.tradeEmbargoAgainst = embargoed;
+			}
+
 			offerUpdated();
 			RefreshUiForOffer();
 		};
@@ -289,6 +327,16 @@ public partial class TradingTree : Tree {
 
 			if (peaceTreaty != null) {
 				peaceTreaty.Visible = false;
+			}
+			if (mutualProtectionPact != null) {
+				mutualProtectionPact.Visible = !currentOffer.mutualProtectionPact;
+			}
+			// One alliance and one embargo a deal.
+			foreach (TreeItem ti in allianceItems.Keys) {
+				ti.Visible = currentOffer.militaryAllianceAgainst == null;
+			}
+			foreach (TreeItem ti in embargoItems.Keys) {
+				ti.Visible = currentOffer.tradeEmbargoAgainst == null;
 			}
 			if (rightOfPassage != null) {
 				rightOfPassage.Visible = !currentOffer.rightOfPassage;

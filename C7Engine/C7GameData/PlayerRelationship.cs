@@ -200,8 +200,11 @@ public class PlayerRelationship {
 
 	// Breaks peace and all other multiturn deals when war is declared.
 	// refuseContactUntilTurn is the (absolute) turn until which the defender
-	// refuses to talk; currentTurn defaults to the game's.
-	public static void DeclareWar(Player aggressor, Player defender, bool sneakAttack, int refuseContactUntilTurn, int? currentTurn = null) {
+	// refuses to talk; currentTurn defaults to the game's. Unless
+	// honourPacts is false, the defender's mutual protection partners join
+	// the war (see Pacts.HonourPacts).
+	public static void DeclareWar(Player aggressor, Player defender, bool sneakAttack, int refuseContactUntilTurn, int? currentTurn = null,
+			bool honourPacts = true) {
 		var defenderRelationshipToAggressor = defender.playerRelationships[aggressor.id];
 		var aggressorRelationshipToDefender = aggressor.playerRelationships[defender.id];
 		// increment the times the aggressor has declared war on the defender
@@ -252,6 +255,10 @@ public class PlayerRelationship {
 						" ({Turns} turns)!",
 						aggressor, defender, sneakAttack ? " in a sneak attack" : "",
 						refuseContactUntilTurn, refuseContactUntilTurn - EngineStorage.gameData.turn);
+
+		if (honourPacts) {
+			Pacts.HonourPacts(EngineStorage.gameData, aggressor, defender, refuseContactUntilTurn, turn);
+		}
 	}
 
 	// Civ3's trading reputation. A civ that breaks a deal with an AI is
@@ -321,6 +328,9 @@ public class PlayerRelationship {
 			0, null, gameData.rules.DefaultDealDuration, gameData.turn, null);
 
 		RegisterMultiTurnDeal(left, right, mtd);
+
+		// Peace breaks an alliance either had against the other.
+		Pacts.BreakAlliancesAgainst(gameData, left, right);
 
 		left.playerRelationships[right.id].refuseContactUntilTurn = -1;
 		right.playerRelationships[left.id].refuseContactUntilTurn = -1;

@@ -755,7 +755,8 @@ namespace C7GameData {
 			}
 			// A civ that broke a deal it paid for over time isn't trusted to
 			// pay over time again (see PlayerRelationship.TradingReputationBroken).
-			if (theirOffer.GivesOverTime() && TradingReputationBroken(this, other, gameData.players)) {
+			if ((theirOffer.GivesOverTime() || TradeOffer.IncludesAllianceOrPact(theirOffer, ourOffer))
+				&& TradingReputationBroken(this, other, gameData.players)) {
 				return false;
 			}
 			// We don't deal with a civ we refuse to talk to, as for a while
@@ -772,10 +773,14 @@ namespace C7GameData {
 			if (ourOffer.cities.Count > 0) {
 				return false;
 			}
+			bool pacts = TradeOffer.IncludesAllianceOrPact(theirOffer, ourOffer) || TradeOffer.EmbargoTarget(theirOffer, ourOffer) != null;
+			if (pacts && !C7Engine.AI.PactAI.WouldAccept(gameData, this, other, theirOffer, ourOffer, theirGoldValue, ourGoldValue)) {
+				return false;
+			}
 			if (TradeOffer.IncludesRightOfPassage(theirOffer, ourOffer)) {
 				return C7Engine.AI.RightOfPassageAI.WouldAccept(gameData, this, other, theirGoldValue, ourGoldValue);
 			}
-			return theirGoldValue >= ourGoldValue;
+			return pacts || theirGoldValue >= ourGoldValue;
 		}
 
 		// Carries out a deal in which we give ourOffer and the other player
@@ -799,6 +804,12 @@ namespace C7GameData {
 			}
 			if (TradeOffer.IncludesRightOfPassage(theirOffer, ourOffer)) {
 				RightOfPassage.Sign(gameData, this, other);
+			}
+			if (TradeOffer.IncludesMutualProtectionPact(theirOffer, ourOffer)) {
+				Pacts.SignMutualProtectionPact(gameData, this, other);
+			}
+			if (TradeOffer.EmbargoTarget(theirOffer, ourOffer) is ID embargoed) {
+				Pacts.SignTradeEmbargo(gameData, this, other, gameData.GetPlayer(embargoed));
 			}
 
 			if (ourOffer.gold.HasValue) {
@@ -829,6 +840,11 @@ namespace C7GameData {
 
 			other.CompleteResearchAndBeginNew(gameData, ourOffer.techs);
 			this.CompleteResearchAndBeginNew(gameData, theirOffer.techs);
+
+			// An alliance last, as it may start wars.
+			if (TradeOffer.AllianceTarget(theirOffer, ourOffer) is ID enemy) {
+				Pacts.SignMilitaryAlliance(gameData, this, other, gameData.GetPlayer(enemy));
+			}
 
 			// Cities change hands last, once the gold and techs have.
 			foreach (City city in ourOffer.cities.ToList()) {

@@ -93,10 +93,25 @@ public partial class DealScreen : TextureRect {
 			AddOffered(gD, resourcesOpponentCanTrade, opponentOffer);
 			AddOffered(gD, resourcesHumanCanTrade, humanOffer);
 
+			// The pacts the two may sign (see Pacts), and any already on
+			// the table.
+			TradingTree.PactChoices pacts = new(
+				!playersAtWar && Pacts.ProblemSigningMutualProtectionPact(gD, humanPlayer, opponentPlayer) == null,
+				playersAtWar ? new() : Pacts.AllianceTargets(gD, humanPlayer, opponentPlayer),
+				playersAtWar ? new() : Pacts.EmbargoTargets(gD, humanPlayer, opponentPlayer));
+			void AddTarget(List<Player> targets, ID target) {
+				Player p = target == null ? null : gD.GetPlayer(target);
+				if (p != null && !targets.Contains(p)) {
+					targets.Add(p);
+				}
+			}
+			AddTarget(pacts.allianceTargets, TradeOffer.AllianceTarget(humanOffer, opponentOffer));
+			AddTarget(pacts.embargoTargets, TradeOffer.EmbargoTarget(humanOffer, opponentOffer));
+
 			// Left hand side UI components.
 			opponentTree = new TradingTree(fontTheme, opponentPlayer.gold, techsOpponentCanTrade, citiesOpponentCanTrade,
 				opponentOffer, playersAtWar, canSignRightOfPassage,
-				TradeOffer.MaxGoldPerTurn(opponentPlayer), resourcesOpponentCanTrade);
+				TradeOffer.MaxGoldPerTurn(opponentPlayer), resourcesOpponentCanTrade, pacts);
 			AddChild(opponentTree);
 			opponentTree.Position = new Vector2(45, 220);
 
@@ -107,13 +122,13 @@ public partial class DealScreen : TextureRect {
 			AddChild(weWant);
 
 			opponentOfferUi = new(fontTheme, techsOpponentCanTrade, citiesOpponentCanTrade, opponentPlayer.gold, opponentOffer, playersAtWar,
-				HorizontalAlignment.Left, resourcesOpponentCanTrade);
+				HorizontalAlignment.Left, resourcesOpponentCanTrade, pacts);
 			AddChild(opponentOfferUi);
 			opponentOfferUi.Position = new Vector2(314, 453);
 
 			// Right hand side UI components.
 			humanTree = new TradingTree(fontTheme, humanPlayer.gold, techsHumanCanTrade, citiesHumanCanTrade, humanOffer, playersAtWar,
-				canSignRightOfPassage, TradeOffer.MaxGoldPerTurn(humanPlayer), resourcesHumanCanTrade);
+				canSignRightOfPassage, TradeOffer.MaxGoldPerTurn(humanPlayer), resourcesHumanCanTrade, pacts);
 			AddChild(humanTree);
 			humanTree.Position = new Vector2(789, 220);
 
@@ -124,7 +139,7 @@ public partial class DealScreen : TextureRect {
 			AddChild(weOffer);
 
 			humanOfferUi = new(fontTheme, techsHumanCanTrade, citiesHumanCanTrade, humanPlayer.gold, humanOffer, playersAtWar,
-				HorizontalAlignment.Right, resourcesHumanCanTrade);
+				HorizontalAlignment.Right, resourcesHumanCanTrade, pacts);
 			AddChild(humanOfferUi);
 			humanOfferUi.Position = new Vector2(527, 453);
 

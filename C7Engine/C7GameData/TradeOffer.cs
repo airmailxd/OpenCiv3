@@ -18,6 +18,32 @@ namespace C7GameData {
 			return (a?.rightOfPassage ?? false) || (b?.rightOfPassage ?? false);
 		}
 
+		// The pacts (see Pacts) are mutual too, so on the table if either
+		// side's offer has them. A military alliance or trade embargo is
+		// against the civ with that id.
+		public bool mutualProtectionPact = false;
+		public ID militaryAllianceAgainst = null;
+		public ID tradeEmbargoAgainst = null;
+
+		public static bool IncludesMutualProtectionPact(TradeOffer a, TradeOffer b) {
+			return (a?.mutualProtectionPact ?? false) || (b?.mutualProtectionPact ?? false);
+		}
+
+		public static ID AllianceTarget(TradeOffer a, TradeOffer b) {
+			return a?.militaryAllianceAgainst ?? b?.militaryAllianceAgainst;
+		}
+
+		public static ID EmbargoTarget(TradeOffer a, TradeOffer b) {
+			return a?.tradeEmbargoAgainst ?? b?.tradeEmbargoAgainst;
+		}
+
+		// Whether the deal has a pact, which, like things given over time,
+		// counts toward trading reputation (see
+		// PlayerRelationship.BreaksReputation).
+		public static bool IncludesAllianceOrPact(TradeOffer a, TradeOffer b) {
+			return IncludesMutualProtectionPact(a, b) || AllianceTarget(a, b) != null;
+		}
+
 		public int? gold = null;
 		public List<Tech> techs = new();
 
@@ -42,7 +68,8 @@ namespace C7GameData {
 
 		// Whether this side of a deal gives nothing at all.
 		public bool IsEmpty() {
-			return !partOfPeaceTreaty && !rightOfPassage && (gold ?? 0) == 0 && techs.Count == 0 && cities.Count == 0
+			return !partOfPeaceTreaty && !rightOfPassage && !mutualProtectionPact && militaryAllianceAgainst == null
+				&& tradeEmbargoAgainst == null && (gold ?? 0) == 0 && techs.Count == 0 && cities.Count == 0
 				&& !GivesOverTime();
 		}
 
@@ -237,8 +264,60 @@ namespace C7GameData {
 				}
 			}
 
+			string pactProblem = ProblemWithPacts(gameData, proposer, opponent, proposerGives, proposerWants, peace);
+			if (pactProblem != null) {
+				return pactProblem;
+			}
+
+			// Civs under a trade embargo don't trade (see Pacts).
+			if ((proposerGives.GivesOverTime() || proposerWants.GivesOverTime())
+				&& (Pacts.Embargoes(proposer, opponent) || Pacts.Embargoes(opponent, proposer))) {
+				return "one of the civs has an embargo against the other";
+			}
+
 			return proposerGives.ProblemGiving(gameData, proposer, opponent, peace)
 				?? proposerWants.ProblemGiving(gameData, opponent, proposer, peace);
+		}
+
+		// Why the pacts in the deal can't be made (see Pacts), or null.
+		// UNVERIFIED (no Civ3 source found): that none can be part of a peace
+		// treaty, like a right of passage (above).
+		private static string ProblemWithPacts(GameData gameData, Player proposer, Player opponent,
+				TradeOffer gives, TradeOffer wants, bool peace) {
+			bool pact = IncludesMutualProtectionPact(gives, wants);
+			ID allianceTarget = AllianceTarget(gives, wants);
+			ID embargoTarget = EmbargoTarget(gives, wants);
+			if (!pact && allianceTarget == null && embargoTarget == null) {
+				return null;
+			}
+			if (peace) {
+				return "an agreement can't be part of a peace treaty";
+			}
+			if ((gives.militaryAllianceAgainst != null && wants.militaryAllianceAgainst != null
+					&& gives.militaryAllianceAgainst != wants.militaryAllianceAgainst)
+				|| (gives.tradeEmbargoAgainst != null && wants.tradeEmbargoAgainst != null
+					&& gives.tradeEmbargoAgainst != wants.tradeEmbargoAgainst)) {
+				return "the two sides name different civs";
+			}
+			if (pact) {
+				string problem = Pacts.ProblemSigningMutualProtectionPact(gameData, proposer, opponent);
+				if (problem != null) {
+					return problem;
+				}
+			}
+			if (allianceTarget != null) {
+				string problem = Pacts.ProblemSigningMilitaryAlliance(gameData, proposer, opponent, gameData.GetPlayer(allianceTarget));
+				if (problem != null) {
+					return problem;
+				}
+			}
+			if (embargoTarget != null) {
+				string problem = Pacts.ProblemSigningTradeEmbargo(gameData, proposer, opponent, gameData.GetPlayer(embargoTarget));
+				if (problem != null) {
+					return problem;
+				}
+			}
+			return null;
 		}
 
 		// Why the giver can't give this side of a deal to the receiver, or
@@ -319,6 +398,14 @@ namespace C7GameData {
 			cities.Clear();
 			goldPerTurn = 0;
 			resources.Clear();
+			mutualProtectionPact = false;
+			militaryAllianceAgainst = null;
+			tradeEmbargoAgainst = null;
+		}
+
+		private static string Noun(ID id) {
+			Player p = C7Engine.EngineStorage.gameData?.GetPlayer(id);
+			return p?.civilization?.noun ?? id.ToString();
 		}
 
 		public override string ToString() {
@@ -328,6 +415,15 @@ namespace C7GameData {
 			}
 			if (rightOfPassage) {
 				pieces.Add("right of passage");
+			}
+			if (mutualProtectionPact) {
+				pieces.Add("mutual protection pact");
+			}
+			if (militaryAllianceAgainst != null) {
+				pieces.Add($"military alliance against {Noun(militaryAllianceAgainst)}");
+			}
+			if (tradeEmbargoAgainst != null) {
+				pieces.Add($"trade embargo against {Noun(tradeEmbargoAgainst)}");
 			}
 			if (gold != null) {
 				pieces.Add($"{gold.Value} gold");

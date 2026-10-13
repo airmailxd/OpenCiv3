@@ -83,6 +83,128 @@ public class DiplomacyDealsTest : IDisposable {
 		Assert.True(AcceptsGoldPerTurnFromUs(third));
 	}
 
+	private void GiveEmbassies() {
+		foreach (Player a in gameData.players) {
+			foreach (ID b in a.playerRelationships.Keys) {
+				a.playerRelationships[b].hasEmbassy = true;
+			}
+		}
+	}
+
+	private static TradeOffer Pact() => new() { mutualProtectionPact = true };
+
+	[Fact]
+	public void AMutualProtectionPactCallsThePartnerToWar() {
+		GiveEmbassies();
+		Assert.True(third.ExecuteDeal(gameData, victim, Pact(), Pact()));
+		Assert.True(Pacts.HasDeal(third, victim, DealSubType.MutualProtectionPact));
+		Assert.NotNull(TradeOffer.ProblemWithDeal(gameData, third, victim, Pact(), Pact()));
+
+		us.DeclareWarOn(victim, gameData.turn);
+
+		Assert.True(AtWar(third, us));
+		Assert.True(third.playerRelationships[us.id].otherStartedCurrentWar == false);
+		// The pact holds.
+		Assert.True(Pacts.HasDeal(third, victim, DealSubType.MutualProtectionPact));
+	}
+
+	[Fact]
+	public void AMutualProtectionPactDoesNotFollowItsPartnerIntoWar() {
+		GiveEmbassies();
+		Assert.True(us.ExecuteDeal(gameData, third, Pact(), Pact()));
+
+		us.DeclareWarOn(victim, gameData.turn);
+
+		Assert.False(AtWar(third, victim));
+	}
+
+	[Fact]
+	public void PactsNeedAnEmbassyAndTheirTech() {
+		Assert.NotNull(TradeOffer.ProblemWithDeal(gameData, us, third, Pact(), Pact()));
+		GiveEmbassies();
+		Assert.Null(TradeOffer.ProblemWithDeal(gameData, us, third, Pact(), Pact()));
+
+		Tech nationalism = new() { id = ID.FromString("tech-1"), Name = "Nationalism" };
+		nationalism.Flags.Add(C7GameData.Save.SaveTech.Flag.EnablesMutualProtection);
+		gameData.techs.Add(nationalism);
+		us.knownTechs.Add(nationalism.id);
+		Assert.NotNull(TradeOffer.ProblemWithDeal(gameData, us, third, Pact(), Pact()));
+		third.knownTechs.Add(nationalism.id);
+		Assert.Null(TradeOffer.ProblemWithDeal(gameData, us, third, Pact(), Pact()));
+	}
+
+	[Fact]
+	public void AMilitaryAllianceBringsTheAllyIntoTheWar() {
+		GiveEmbassies();
+		TradeOffer alliance() => new() { militaryAllianceAgainst = victim.id };
+		// Neither is at war with the victim yet.
+		Assert.NotNull(TradeOffer.ProblemWithDeal(gameData, us, third, alliance(), alliance()));
+
+		us.DeclareWarOn(victim, gameData.turn);
+		Assert.True(us.ExecuteDeal(gameData, third, alliance(), alliance()));
+
+		Assert.True(AtWar(third, victim));
+		Assert.True(Pacts.HasDeal(us, third, DealSubType.MilitaryAlliance, victim.id));
+		Assert.Contains(ActiveDeals.Between(gameData, us, third).agreements, a => a.StartsWith("Military Alliance against"));
+
+		// Making peace with the enemy breaks the alliance, and the ally
+		// remembers.
+		SignPeaceAfterWar(third, victim, gameData);
+		Assert.False(Pacts.HasDeal(us, third, DealSubType.MilitaryAlliance));
+		Assert.False(Pacts.HasDeal(third, us, DealSubType.MilitaryAlliance));
+		Assert.True(us.playerRelationships[third.id].brokeTradeDeal);
+	}
+
+	[Fact]
+	public void TheAIJoinsAWarItIsAlreadyFighting() {
+		GiveEmbassies();
+		TradeOffer alliance() => new() { militaryAllianceAgainst = victim.id };
+		us.DeclareWarOn(victim, gameData.turn);
+		// Not at war with the victim, and not annoyed with it.
+		Assert.False(third.WouldAcceptDealFrom(gameData, us, alliance(), alliance()));
+
+		third.DeclareWarOn(victim, gameData.turn);
+		Assert.True(third.WouldAcceptDealFrom(gameData, us, alliance(), alliance()));
+
+		// But not with a civ that broke a deal.
+		third.playerRelationships[us.id].brokeTradeDeal = true;
+		Assert.False(third.WouldAcceptDealFrom(gameData, us, alliance(), alliance()));
+	}
+
+	[Fact]
+	public void TheAIOnlySignsAPactWithACivItLikes() {
+		GiveEmbassies();
+		Assert.Equal(AttitudeLevel.Polite, Attitudes.Level(gameData, third, us));
+		Assert.True(third.WouldAcceptDealFrom(gameData, us, Pact(), Pact()));
+
+		// Not with a civ at war.
+		us.DeclareWarOn(victim, gameData.turn);
+		Assert.False(third.WouldAcceptDealFrom(gameData, us, Pact(), Pact()));
+	}
+
+	[Fact]
+	public void AnEmbargoStopsTradeWithItsTarget() {
+		GiveEmbassies();
+		third.gold = 1000;
+		TradeOffer embargo() => new() { tradeEmbargoAgainst = victim.id };
+		PayEachTurn(third, victim, 1);
+		// Not while one of them still trades with it.
+		Assert.NotNull(TradeOffer.ProblemWithDeal(gameData, us, third, embargo(), embargo()));
+		third.playerRelationships[victim.id].multiTurnDeals.RemoveAll(d => d.dealSubType == DealSubType.GoldPerTurn);
+		victim.playerRelationships[third.id].multiTurnDeals.RemoveAll(d => d.dealSubType == DealSubType.GoldPerTurn);
+
+		Assert.True(us.ExecuteDeal(gameData, third, embargo(), embargo()));
+		Assert.True(Pacts.Embargoes(third, victim));
+
+		Assert.NotNull(TradeOffer.ProblemWithDeal(gameData, third, victim, new TradeOffer { goldPerTurn = 5 }, new TradeOffer()));
+		Assert.NotNull(TradeOffer.ProblemWithDeal(gameData, victim, third, new TradeOffer(), new TradeOffer { goldPerTurn = 5 }));
+		// Other trade goes on.
+		Assert.Null(TradeOffer.ProblemWithDeal(gameData, third, victim, new TradeOffer { gold = 5 }, new TradeOffer()));
+		// Both parties are bound.
+		victim.gold = 1000;
+		Assert.NotNull(TradeOffer.ProblemWithDeal(gameData, victim, us, new TradeOffer { goldPerTurn = 5 }, new TradeOffer()));
+	}
+
 	[Fact]
 	public void WarWithoutAPerTurnDealDoesNotRuinOurReputation() {
 		// The other civ paying us isn't our deal to keep.
