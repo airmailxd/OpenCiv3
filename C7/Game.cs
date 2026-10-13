@@ -1285,7 +1285,8 @@ public partial class Game : Node {
 				Action showOffer = () => diplomacy.ShowDealScreenForPlayer(
 					mSTO.humanPlayer.id, mSTO.aiPlayer.id,
 					humanGives: mSTO.aiWant,
-					humanWants: mSTO.aiGive);
+					humanWants: mSTO.aiGive,
+					greeting: mSTO.greeting);
 				// In a hotseat game the offer may be for a player who isn't at
 				// the screen, so hand it to them first.
 				if (mSTO.humanPlayer.id != controller.id) {

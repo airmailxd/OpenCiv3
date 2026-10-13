@@ -1094,11 +1094,15 @@ namespace C7Engine {
 					continue;
 				}
 
-				// A tech trade if there is one to make, otherwise a resource
-				// deal, otherwise a pact (see DealProposalAI).
-				(TradeOffer weGive, TradeOffer weWant)? deal = TechDeal(gD, us, them)
+				// At war, now and then, a military alliance against the enemy;
+				// otherwise a tech trade if there is one to make, otherwise a
+				// resource deal, otherwise a pact or embargo (see
+				// DealProposalAI).
+				(TradeOffer weGive, TradeOffer weWant)? deal = DealProposalAI.AllianceDeal(gD, us, them)
+					?? TechDeal(gD, us, them)
 					?? DealProposalAI.ResourceDeal(gD, us, them)
-					?? DealProposalAI.PactDeal(gD, us, them);
+					?? DealProposalAI.PactDeal(gD, us, them)
+					?? DealProposalAI.EmbargoDeal(gD, us, them);
 				if (deal is not (TradeOffer weGive, TradeOffer weWant)) {
 					continue;
 				}
@@ -1122,7 +1126,7 @@ namespace C7Engine {
 				}
 				EngineStorage.diplomacyPlayerID = them.id;
 				EngineStorage.diplomacyAIPlayerID = us.id;
-				new MsgShowTradeOffer(us, them, weWant, weGive).send();
+				new MsgShowTradeOffer(us, them, weWant, weGive, DealProposalAI.Greeting(gD, weGive, weWant)).send();
 				await EngineStorage.WaitForDiplomacyCompleted(them.id);
 				EngineStorage.diplomacyPlayerID = null;
 				EngineStorage.diplomacyAIPlayerID = null;

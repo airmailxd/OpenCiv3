@@ -481,12 +481,15 @@ namespace C7Engine {
 		public Player humanPlayer;
 		public TradeOffer aiWant;
 		public TradeOffer aiGive;
+		// What the AI says as it makes the offer, or null for the usual.
+		public string greeting;
 
-		public MsgShowTradeOffer(Player aiPlayer, Player humanPlayer, TradeOffer aiWant, TradeOffer aiGive) {
+		public MsgShowTradeOffer(Player aiPlayer, Player humanPlayer, TradeOffer aiWant, TradeOffer aiGive, string greeting = null) {
 			this.aiPlayer = aiPlayer;
 			this.humanPlayer = humanPlayer;
 			this.aiWant = aiWant;
 			this.aiGive = aiGive;
+			this.greeting = greeting;
 		}
 
 		// Hotseat hands the screen to the human with a handoff, so this has no
