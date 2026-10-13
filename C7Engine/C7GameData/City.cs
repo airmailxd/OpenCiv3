@@ -2059,6 +2059,53 @@ namespace C7GameData {
 			return result;
 		}
 
+		// The number of citizens made unhappy because we're at war with the
+		// civ they come from. The Civilopedia's Nationality entry: "Having a
+		// city with foreign nationals is not a problem unless you are at war
+		// with the nation that originally produced them"; such citizens say
+		// "Stop the aggression against our mother country!" and "will remain
+		// unhappy until you peace with the civ concern"
+		// (https://forums.civfanatics.com/threads/why-are-the-citizens-of-my-newly-conquered-cities-so-unhappy.79817/),
+		// and the happiness thread lists "aggression against their mother
+		// land" with war weariness, the whip and conscription as the
+		// modifiers that make citizens unhappy
+		// (https://forums.civfanatics.com/threads/how-is-happiness-calculated.74966/),
+		// so it is applied the same way as those.
+		//
+		// UNVERIFIED: how many. The only figure found is "About 50% of those
+		// citizen will be unhappy if I remember correctly"
+		// (https://forums.civfanatics.com/threads/wartime-unhappiness-problems.62461/).
+		// We use half of them per enemy civ, rounded up so a lone foreigner
+		// still protests ("will become unhappy if you go to war with the
+		// country that they come from",
+		// https://forums.civfanatics.com/threads/getting-rid-of-foreigners.10085/).
+		internal int MotherlandUnhappiness(GameData gameData) {
+			if (owner == null || owner.isBarbarians) {
+				return 0;
+			}
+			Dictionary<Civilization, int> foreigners = null;
+			foreach (CityResident r in residents) {
+				if (r.nationality == null || r.nationality == owner.civilization) {
+					continue;
+				}
+				foreigners ??= new();
+				foreigners[r.nationality] = foreigners.GetValueOrDefault(r.nationality) + 1;
+			}
+			if (foreigners == null) {
+				return 0;
+			}
+			int unhappy = 0;
+			foreach (Player p in gameData.players) {
+				if (p == owner || p.isBarbarians || p.defeated || p.civilization == null
+					|| !foreigners.TryGetValue(p.civilization, out int count)
+					|| !PlayerRelationship.AtWar(owner, p)) {
+					continue;
+				}
+				unhappy += (count + 1) / 2;
+			}
+			return Math.Min(unhappy, residents.Count);
+		}
+
 		// This function does the heavy lifting of happiness calculations,
 		// combining the various bonuses and penalties that affect citizen moods.
 		//
@@ -2093,8 +2140,11 @@ namespace C7GameData {
 			contentToHappyMoves -= owner.WarWearinessUnhappiness(this);
 			contentToHappyMoves += owner.WarHappiness(this);
 
+			// Citizens of a civ we're at war with protest "Stop the aggression
+			// against our mother country!", like the whip and war weariness.
+			contentToHappyMoves -= MotherlandUnhappiness(gameData);
+
 			List<CityBuilding> buildings = EffectiveBuildings();
-			// TODO: add penalty for aggression against home country
 
 			// Building and wonder happiness/unhappiness, which only affects the
 			// unhappy to content transition, nothing with happy faces.
