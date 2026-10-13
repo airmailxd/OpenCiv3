@@ -311,6 +311,8 @@ namespace C7Engine {
 			// A great leader forms an army, or hurries its city's production.
 			FormArmy,
 			HurryProduction,
+			// A worker founds a colony where it stands.
+			BuildColony,
 		}
 
 		public ID unitID;
@@ -345,6 +347,9 @@ namespace C7Engine {
 					break;
 				case Command.HurryProduction:
 					unit.HurryProductionAsLeader();
+					break;
+				case Command.BuildColony:
+					unit.BuildColony();
 					break;
 			}
 		}

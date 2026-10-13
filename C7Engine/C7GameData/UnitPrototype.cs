@@ -29,6 +29,9 @@ namespace C7GameData {
 		BuildArmy,
 		// A great leader finishes a city's improvement.
 		HurryBuilding,
+		// A worker founds a colony on a resource outside every civ's borders
+		// (see Tile_Holdings).
+		BuildColony,
 	}
 
 	public struct ItemContext(UnitPrototype proto, Player player) {

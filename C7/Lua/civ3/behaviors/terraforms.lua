@@ -23,6 +23,11 @@ terraforms.validators = {
   clear_damage = function(context)
     return context.tile:HasDamage()
   end,
+  -- A land tile in neutral or owned territory, empty but for mines,
+  -- irrigation and roads (see Tile.CanTakeOutpost).
+  outpost = function(context)
+    return context.tile:CanTakeOutpost(context.player)
+  end,
 }
 
 terraforms.effects = {

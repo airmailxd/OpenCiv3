@@ -106,6 +106,10 @@ public partial class Tile {
 		public const string POLLUTION = "pollution";
 		public const string CRATERS = "craters";
 		public const string FALLOUT = "fallout";
+		// Holdings a worker builds for its civ, which belong to it (see
+		// Tile.holdingOwner).
+		public const string OUTPOST = "outpost";
+		public const string COLONY = "colony";
 
 		private readonly Tile tile;
 		public Dictionary<Layer, TerrainImprovement> terrainImprovementByLayer { get; private set; } = [];
@@ -146,6 +150,19 @@ public partial class Tile {
 			if (roadCreated || roadRemoved) {
 				EngineStorage.gameData.GetTradeNetwork().OnRoadChanged(tile);
 			}
+
+			// An outpost or colony going away, however it goes (pillaged,
+			// bombarded, built over, taken in by borders), takes its owner's
+			// sight or resource with it.
+			if (oldImprovement != null && oldImprovement != newImprovement && IsOwnedHolding(oldImprovement)) {
+				tile.ForgetHolding(oldImprovement);
+			}
+		}
+
+		// Whether the improvement is one that belongs to a civ: an outpost
+		// or a colony.
+		public static bool IsOwnedHolding(TerrainImprovement improvement) {
+			return improvement.key == OUTPOST || improvement.key == COLONY;
 		}
 
 		public TerrainImprovement ImprovementAtLayer(Layer layer) {
@@ -268,7 +285,11 @@ public partial class Tile {
 		}
 
 		public void Clear() {
+			TerrainImprovement holding = tile.OwnedHolding();
 			terrainImprovementByLayer.Clear();
+			if (holding != null) {
+				tile.ForgetHolding(holding);
+			}
 			// Also called when a city is built or destroyed, which changes the
 			// tile's movement cost without a road.
 			C7Engine.Pathing.LandmarkHeuristic.OnOverlaysChanged(tile);

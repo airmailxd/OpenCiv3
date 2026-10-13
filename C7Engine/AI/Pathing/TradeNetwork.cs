@@ -13,8 +13,10 @@ namespace C7Engine.Pathing {
 		internal int availableResourcesTechCount = -1;
 
 		// The network's tileToSegment says which tiles are in the segment.
+		// A resource counts inside the player's borders, or outside every
+		// civ's borders under the player's colony (see Tile_Holdings).
 		public void AddTile(Tile t, Player p) {
-			if (t.Resource != Resource.NONE && t.OwningPlayer() == p) {
+			if (t.Resource != Resource.NONE && (t.OwningPlayer() == p || (t.holdingOwner == p && t.OwningPlayer() == null && t.HasColony()))) {
 				if (resourceCounts.TryGetValue(t.Resource, out int currentCount)) {
 					resourceCounts[t.Resource] = currentCount + 1;
 				} else {

@@ -455,6 +455,18 @@
       "upgradesFrom": "fortress"
     },
     {
+      "key": "outpost",
+      "layer": "holdings",
+      "zIndex": 6,
+      "movementCost": -1
+    },
+    {
+      "key": "colony",
+      "layer": "colonies",
+      "zIndex": 4,
+      "movementCost": -1
+    },
+    {
       "key": "ruins",
       "layer": "ruins",
       "zIndex": 2,
@@ -966,7 +978,8 @@
         "explore",
         "automate",
         "load",
-        "sentry"
+        "sentry",
+        "buildColony"
       ],
       "terraformActions": [
         "Terraform-4",
@@ -977,7 +990,8 @@
         "Terraform-7",
         "Terraform-9",
         "Terraform-13",
-        "Terraform-3"
+        "Terraform-3",
+        "Terraform-12"
       ]
     },
     {
@@ -14307,9 +14321,14 @@
       "civilopediaEntry": "TFRM_Outpost",
       "turnsToComplete": 1,
       "requiredTech": "tech-2",
+      "improvement": "outpost",
+      "validators": [
+        "terraforms.validators.outpost"
+      ],
       "aiScore": "terraforms.ai_score.default",
       "uiAction": "unit_build_outpost",
-      "buttonTexture": "ui.unit_control.unit_build_outpost"
+      "buttonTexture": "ui.unit_control.unit_build_outpost",
+      "consumesWorker": true
     },
     {
       "id": "Terraform-13",
