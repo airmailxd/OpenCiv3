@@ -2359,39 +2359,10 @@ public partial class Game : Node {
 			}
 		}
 
-		if (eventKeyDown.Keycode == Godot.Key.F1) {
-			EmitSignal(SignalName.ShowSpecificAdvisor, C7Action.ShowDomesticAdvisor);
-		}
-		if (eventKeyDown.Keycode == Godot.Key.F2) {
-			EmitSignal(SignalName.ShowSpecificAdvisor, C7Action.ShowTradeAdvisor);
-		}
-		if (eventKeyDown.Keycode == Godot.Key.F3) {
-			EmitSignal(SignalName.ShowSpecificAdvisor, C7Action.ShowMilitaryAdvisor);
-		}
-		if (eventKeyDown.Keycode == Godot.Key.F4) {
-			EmitSignal(SignalName.ShowSpecificAdvisor, C7Action.ShowForeignAdvisor);
-		}
-		if (eventKeyDown.Keycode == Godot.Key.F5) {
-			EmitSignal(SignalName.ShowSpecificAdvisor, C7Action.ShowCulturalAdvisor);
-		}
-		if (eventKeyDown.Keycode == Godot.Key.F6) {
-			EmitSignal(SignalName.ShowSpecificAdvisor, C7Action.ShowScienceAdvisor);
-		}
-
-		if (eventKeyDown.Keycode == Godot.Key.F7) {
-			EmitSignal(SignalName.ShowGameView, C7Action.ShowWondersView);
-		}
-		if (eventKeyDown.Keycode == Godot.Key.F8) {
-			EmitSignal(SignalName.ShowGameView, C7Action.ShowVictoryStatusView);
-		}
-		if (eventKeyDown.Keycode == Godot.Key.F9) {
-			EmitSignal(SignalName.ShowGameView, C7Action.ShowPalaceView);
-		}
-		if (eventKeyDown.Keycode == Godot.Key.F10) {
-			EmitSignal(SignalName.ShowGameView, C7Action.ShowSpaceRaceView);
-		}
-		if (eventKeyDown.Keycode == Godot.Key.F11) {
-			EmitSignal(SignalName.ShowGameView, C7Action.ShowDemographicsView);
+		int screen = AdvisorScreenFor(eventKeyDown);
+		if (screen >= 0) {
+			(string action, _, bool isAdvisor) = C7Action.AdvisorScreens[screen];
+			EmitSignal(isAdvisor ? SignalName.ShowSpecificAdvisor : SignalName.ShowGameView, action);
 		}
 
 		// The same as the diplomacy button.
@@ -2610,10 +2581,24 @@ public partial class Game : Node {
 
 	private bool IsModalSwitchEvent(InputEvent @event) {
 		if (@event is InputEventKey eventKeyDown && eventKeyDown.Pressed) {
-			return eventKeyDown.Keycode is >= Key.F1 and <= Key.F11;
+			return AdvisorScreenFor(eventKeyDown) >= 0;
 		}
 
 		return false;
+	}
+
+	// The index in C7Action.AdvisorScreens of the advisor or report screen a
+	// key opens, or -1: F1 to F11 (the keys of the screens' input actions),
+	// and on a Mac also Cmd+1 to Cmd+-, which MacShortcuts adds to the
+	// actions. Those were never looked for, only the F keys themselves, so
+	// on a Mac the Cmd keys did nothing (owner's report, 2026-10-12).
+	private static int AdvisorScreenFor(InputEventKey key) {
+		for (int i = 0; i < C7Action.AdvisorScreens.Length; i++) {
+			if (key.IsAction(C7Action.AdvisorScreens[i].action)) {
+				return i;
+			}
+		}
+		return -1;
 	}
 
 	private void ProcessAction(string currentAction) {
