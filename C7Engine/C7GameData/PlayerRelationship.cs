@@ -128,6 +128,11 @@ public class PlayerRelationship {
 	// against p2 need.
 	public bool hasSpy = false;
 
+	// p1.playerRelationships[p2].spyPlantFailed is true after p1 failed to
+	// plant a spy in p2's capital, until it clears (a 1 in 3 chance each
+	// turn); p1 can't try again until then (see Espionage).
+	public bool spyPlantFailed = false;
+
 	// p1.playerRelationships[p2].espionageIncidents is the number of p2's
 	// diplomatic or espionage missions against p1 that were caught.
 	public int espionageIncidents = 0;

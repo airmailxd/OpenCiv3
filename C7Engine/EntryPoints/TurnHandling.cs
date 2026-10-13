@@ -124,6 +124,7 @@ namespace C7Engine {
 					await EngineStorage.YieldIfFrameBudgetSpent();
 					player.MaybeSpawnBonusUnits(gameData);
 					player.DecrementCityUnhappinessPenalties(gameData);
+					Espionage.DoPerTurnUpdates(player, gameData);
 					player.UpdateWarWeariness(gameData);
 					player.RecalculateCitizenMoods(gameData, goIntoDisorderIfUnhappy: true);
 					player.DoCorruptionCalculations(gameData);

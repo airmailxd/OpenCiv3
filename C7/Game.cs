@@ -1488,7 +1488,11 @@ public partial class Game : Node {
 					// A new embassy shows us their capital once, then the land
 					// around it stays on the map as it was.
 					bool showCapital = mER.success && mER.mission == EspionageMission.EstablishEmbassy && mER.city != null;
-					if (showCapital) {
+					// A stolen map, stolen plans or a city won by propaganda change
+					// what the map shows.
+					bool mapChanged = mER.success && mER.mission is EspionageMission.StealWorldMap or EspionageMission.StealPlans
+						or EspionageMission.Propaganda;
+					if (showCapital || mapChanged) {
 						mapView.InvalidateMap();
 					}
 					City capital = mER.city;

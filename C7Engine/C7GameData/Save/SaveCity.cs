@@ -70,6 +70,8 @@ namespace C7GameData.Save {
 		public int shieldsStored;
 		public int foodStored;
 		public int turnsOfUnhappinessDueToPopRushing;
+		// Citizens confused by enemy propaganda (City.propagandaConfusedCitizens).
+		public int propagandaConfusedCitizens;
 		public bool celebrating;
 		public bool isInCivilDisorder;
 		// Resistance in a conquered city: the citizens resisting and the
@@ -109,6 +111,7 @@ namespace C7GameData.Save {
 			shieldsStored = city.shieldsStored;
 			foodStored = city.foodStored;
 			turnsOfUnhappinessDueToPopRushing = city.turnsOfUnhappinessDueToPopRushing;
+			propagandaConfusedCitizens = city.propagandaConfusedCitizens;
 			celebrating = city.celebrating;
 			isInCivilDisorder = city.isInCivilDisorder;
 			resisters = city.resisters;
@@ -230,6 +233,7 @@ namespace C7GameData.Save {
 				itemBeingProduced = itemBeingProduced,
 				foodStored = foodStored,
 				turnsOfUnhappinessDueToPopRushing = turnsOfUnhappinessDueToPopRushing,
+				propagandaConfusedCitizens = propagandaConfusedCitizens,
 				celebrating = celebrating,
 				isInCivilDisorder = isInCivilDisorder,
 				resisters = resisters,
