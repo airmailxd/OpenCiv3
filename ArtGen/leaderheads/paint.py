@@ -167,7 +167,7 @@ def backdrop(n, seed):
 
 def paint(img, seed=0, strength=1.0, oval=1.0, keep=0.4, broad=70, bg=0.92, color=0.75, erode=60, level=0.42,
           fixed=None, plain=None, contrast=1.0, texture=1.0, green=None, hand=None, soften=0,
-          hand_only=False):
+          hand_only=False, local=0, feather=0):
     """The painted finish on a PIL RGB picture (returns float RGB 0..1).
     Per picture: oval, how sure the center is the sitter (lower for a
     sitter before a bright wall, which would glow); keep, how much of the
@@ -182,6 +182,11 @@ def paint(img, seed=0, strength=1.0, oval=1.0, keep=0.4, broad=70, bg=0.92, colo
     if contrast != 1.0:
         a = np.clip((a - a.mean()) * contrast + a.mean(), 0, 1)
     mask, wall = subject_mask(a, oval, erode, plain)
+    if local:
+        # local contrast: detail relative to the neighborhood amplified, so a
+        # pale face on pale silk keeps its features
+        base = nd.gaussian_filter(a, (n / 30, n / 30, 0))
+        a = np.clip(base + (a - base) * local, 0, 1)
     if hand:
         # a hand-placed outline: polygons (in fractions of the side) of the
         # sitter; outside them is background whatever the mask thought
@@ -203,6 +208,10 @@ def paint(img, seed=0, strength=1.0, oval=1.0, keep=0.4, broad=70, bg=0.92, colo
         body = (yy > cy + ry * 0.6) & (np.abs(xx - cx) < rx * 1.9 + (yy - cy - ry * 0.6) * 1.2)
         mask = np.clip(nd.gaussian_filter((head | body).astype(np.float32), n / 50), 0, 1)
         wall = np.zeros_like(mask)
+    if feather:
+        # a softer sitter's edge, so it doesn't look cut out
+        mask = nd.gaussian_filter(mask, feather * n / 230)
+        wall = nd.gaussian_filter(wall, feather * n / 230)
     # strokes: light smoothing on the subject (the face keeps its detail),
     # broader in the background
     fine = kuwahara(a, max(2, n // 150))
