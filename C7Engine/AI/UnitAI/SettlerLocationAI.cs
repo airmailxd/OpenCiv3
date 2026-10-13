@@ -33,7 +33,7 @@ namespace C7Engine {
 		// tile's yield score (until something its yields depend on changes).
 		// The results are the same as computing everything from scratch.
 		public static Dictionary<Tile, float> GetScoredSettlerCandidates(Tile start, Player player, HashSet<Tile> excludedTiles = null) {
-			List<MapUnit> playerSettlers = player.units.FindAll(u => u.unitType.name == "Settler");
+			List<MapUnit> playerSettlers = player.units.FindAll(u => u.unitType.isSettler);
 			Dictionary<Tile, bool> invalidLocations = InvalidLocationMemo();
 			HashSet<Tile> tilesNearSettlerDestinations = null;
 

@@ -753,9 +753,14 @@ namespace C7Engine {
 			return new DefenderAI(data);
 		}
 
+		// Land units that bombard but can't attack: catapults, cannons,
+		// artillery and the like.
+		internal static bool IsArtillery(MapUnit unit) {
+			return unit.IsLandUnit() && unit.unitType.bombard > 0 && unit.unitType.attack == 0;
+		}
+
 		public static UnitAI GetAIForUnit(MapUnit unit, Player player) {
 			//figure out an AI behavior
-			//TODO: Use strategies, not names
 			if (unit.IsArmy() && ArmyAI.IsEnabled(player)) {
 				return new ArmyAI();
 			}
@@ -764,9 +769,9 @@ namespace C7Engine {
 			}
 			if (unit.IsLeader()) {
 				return MakeLeaderAI(unit, player);
-			} else if (unit.unitType.name == "Settler") {
+			} else if (unit.unitType.isSettler) {
 				return new SettlerAI(SettlerAI.MakeAiData(unit, player));
-			} else if (unit.unitType.name == "Worker") {
+			} else if (unit.unitType.isWorker) {
 				return new WorkerAI(WorkerAI.MakeAiData(unit, player));
 			} else if (FerryAI.MaybeMakeAiData(unit, player) is FerryAIData ferryData) {
 				return new FerryAI(ferryData);
@@ -774,8 +779,8 @@ namespace C7Engine {
 				return new DefenderAI(DefenderAI.MakeAiDataForDefendInPlace(unit, player));
 			} else if (GetCombatAIIfUnitCanAttackNearbyBarbCamp(unit, player) is UnitAI unitAI && unitAI != null) {
 				return unitAI;
-			} else if (unit.unitType.name == "Catapult") {
-				//For now tell catapults to sit tight.  It's getting really annoying watching them pointlessly bombard barb camps forever
+			} else if (IsArtillery(unit)) {
+				//For now tell artillery to sit tight.  It's getting really annoying watching them pointlessly bombard barb camps forever
 				return new DefenderAI(DefenderAI.MakeAiDataForDefendInPlace(unit, player));
 			}
 
@@ -916,7 +921,7 @@ namespace C7Engine {
 		internal static bool WouldExplore(MapUnit unit, Player player, bool hypothetical = false) {
 			// Mirror the checks GetAIForUnit makes before considering
 			// exploration.
-			if (unit.IsLeader() || unit.unitType.name == "Settler" || unit.unitType.name == "Worker") {
+			if (unit.IsLeader() || unit.unitType.isSettler || unit.unitType.isWorker) {
 				return false;
 			}
 			// A transport would ferry a settler waiting for one.
@@ -929,7 +934,7 @@ namespace C7Engine {
 			if (unit.unitType.attack > 0 && FindNearbyBarbCamp(unit, player, out _) != Tile.NONE) {
 				return false;
 			}
-			if (unit.unitType.name == "Catapult") {
+			if (IsArtillery(unit)) {
 				return false;
 			}
 			if (IsInAnyWar(player, EngineStorage.gameData.players)) {

@@ -282,6 +282,32 @@ public sealed class FixAiGameTests : IClassFixture<SaveGameFixture>, IDisposable
 		Assert.Same(escort, newSettlerAi.data.escort);
 		Assert.Same(settler, escortAi.data.unitToEscort);
 	}
+
+	// Units are given their jobs by what they can do, not by their names, so
+	// Engineers work the land like Workers do.
+	[Fact]
+	public void EngineersGetWorkerAI() {
+		Tile start = FindOpenLand();
+		UnitPrototype worker = Proto("Worker");
+		UnitPrototype engineers = new() { name = "Engineer", movement = 1, workerStrength = 2 };
+		engineers.categories.UnionWith(worker.categories);
+		engineers.actions.UnionWith(worker.actions);
+		engineers.terraformActions.UnionWith(worker.terraformActions);
+		MapUnit engineer = gameData.SpawnUnit(player, worker, start);
+		engineer.unitType = engineers;
+		Assert.True(engineers.isWorker);
+		Assert.IsType<WorkerAI>(PlayerAI.GetAIForUnit(engineer, player));
+		Assert.False(PlayerAI.WouldExplore(engineer, player));
+	}
+
+	[Fact]
+	public void ArtilleryIsRecognizedByBombardWithoutAttack() {
+		Tile start = FindOpenLand();
+		Assert.True(PlayerAI.IsArtillery(gameData.SpawnUnit(player, Proto("Catapult"), start)));
+		Assert.True(PlayerAI.IsArtillery(gameData.SpawnUnit(player, Proto("Cannon"), start)));
+		Assert.True(PlayerAI.IsArtillery(gameData.SpawnUnit(player, Proto("Artillery"), start)));
+		Assert.False(PlayerAI.IsArtillery(gameData.SpawnUnit(player, Proto("Warrior"), start)));
+	}
 }
 
 public sealed class FixAiWorkerTests : IClassFixture<SaveGameFixture>, IDisposable {
