@@ -56,6 +56,14 @@ local unit_control = {
   unit_build_radar_tower = make_entry(2, 4),
   unit_build_outpost = make_entry(3, 4),
   unit_build_barricade = make_entry(4, 4),
+  -- The buttons are in the order of the unit actions in labels.txt
+  -- (#UNIT_ACTIONS), as all of the above are.
+  unit_airdrop = make_entry(4, 1),
+  unit_bombing = make_entry(5, 4),
+  unit_recon = make_entry(6, 4),
+  unit_air_superiority = make_entry(7, 4),
+  unit_rebase = make_entry(0, 5),
+  unit_precision_bombing = make_entry(1, 5),
 
   movement_indicators = {
     path = INTERFACE .. "MovementLED.PCX",

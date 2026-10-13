@@ -65,6 +65,7 @@ local c7_texture_list = {
   "Art/interface/NormButtons.png",
   "Art/interface/rolloverbuttons.png",
   "Art/interface/highlightedbuttons.png",
+  "Art/interface/AirMissionButtons.png",
   "Art/interface/box left color.png",
   "Art/interface/box right color.png",
   "Art/interface/nextturn states color.png",
@@ -280,6 +281,25 @@ return function(civ3_textures)
   c7_textures.city_building_icons.barracks.map_object_to_sprite = building_icon
   c7_textures.city_building_icons.harbor.map_object_to_sprite = building_icon
   c7_textures.city_building_icons.airport.map_object_to_sprite = building_icon
+
+  -- The asset pack's button sheet is blank where Civ3's has the air
+  -- missions and the airdrop, so they have buttons of our own
+  -- (C7/ModernArt/Art/interface/AirMissionButtons.png, made by
+  -- ArtGen/ui_buttons/air_missions.py): a column per button, a row per
+  -- state.
+  local air_mission_buttons = {
+    "unit_bombing", "unit_precision_bombing", "unit_recon",
+    "unit_air_superiority", "unit_rebase", "unit_airdrop",
+  }
+  for column, action in ipairs(air_mission_buttons) do
+    local function cell(row)
+      return {
+        path = "Art/interface/AirMissionButtons.png",
+        crop_region = { (column - 1) * 32, row * 32, 32, 32 },
+      }
+    end
+    c7_textures.ui.unit_control[action] = { normal = cell(0), hover = cell(1), pressed = cell(2) }
+  end
 
   function c7_textures.borders:find_column(_)
     return 0

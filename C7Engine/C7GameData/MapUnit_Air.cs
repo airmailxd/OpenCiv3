@@ -296,6 +296,27 @@ namespace C7GameData {
 			EndMission();
 		}
 
+		// Whether the unit can fly the mission (or make the airdrop) at the
+		// tile now; bombardTarget is what a bombing run would hit there.
+		public bool CanFlyMissionAt(UnitAction mission, Tile tile, out BombardTarget bombardTarget) {
+			bombardTarget = BombardTarget.None;
+			return mission switch {
+				UnitAction.Bombing => CanAirBombTile(tile, out bombardTarget),
+				UnitAction.PrecisionBombing => CanPrecisionBombTile(tile, out bombardTarget),
+				UnitAction.Recon => CanReconTile(tile),
+				UnitAction.Rebase => CanRebaseTo(tile),
+				UnitAction.Airdrop => CanAirdropTo(tile),
+				_ => false,
+			};
+		}
+
+		public bool CanFlyMissionAt(UnitAction mission, Tile tile) => CanFlyMissionAt(mission, tile, out _);
+
+		// How far the mission reaches, in tiles.
+		public int MissionRange(UnitAction mission) {
+			return mission == UnitAction.Rebase ? RebaseRange() : OperationalRange();
+		}
+
 		private static readonly UnitAction[] PeacefulMissions = [UnitAction.Recon, UnitAction.Intercept, UnitAction.Rebase];
 
 		// The air missions, and the airdrop, the unit can be ordered to fly

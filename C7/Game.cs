@@ -61,10 +61,27 @@ public class BombardInfo {
 	public MapUnit bombardingUnit;
 	public Tile mouseTile;
 	public MapUnit.BombardTarget bombardTarget = MapUnit.BombardTarget.None;
+	// The air mission (or airdrop) whose target is being picked, or null for
+	// a bombardment.
+	public UnitAction? airMission;
 
-	public BombardInfo(MapUnit bombardingUnit) {
+	public BombardInfo(MapUnit bombardingUnit, UnitAction? airMission = null) {
 		this.bombardingUnit = bombardingUnit;
+		this.airMission = airMission;
 	}
+
+	// Whether the unit can bombard, or fly its mission at, the tile.
+	public bool CanTarget(Tile tile, out MapUnit.BombardTarget target) {
+		target = MapUnit.BombardTarget.None;
+		if (!Tile.IsTileValid(tile)) {
+			return false;
+		}
+		return airMission is UnitAction mission
+			? bombardingUnit.CanFlyMissionAt(mission, tile, out target)
+			: bombardingUnit.CanBombardTile(tile, out target);
+	}
+
+	public bool CanTarget(Tile tile) => CanTarget(tile, out _);
 
 	public bool RequiresWarDeclaration(Tile tile, out Player player) {
 		player = null;
@@ -672,7 +689,7 @@ public partial class Game : Node {
 		cityScreen.RefreshAfterGameReplaced();
 		if (bombardInfo != null) {
 			MapUnit bombarder = gameData.GetUnit(bombardInfo.bombardingUnit.id);
-			setBombard(bombarder);
+			setBombard(bombarder, bombardInfo.airMission);
 		}
 
 		// The tile info box and the goto path refer to tiles, which are
@@ -2180,7 +2197,7 @@ public partial class Game : Node {
 			this.ResolveMovement(gotoInfo);
 			this.SetGotoMode(false);
 		} else if (bombardInfo != null) {
-			if (Tile.IsTileValid(tile) && bombardInfo.bombardingUnit.CanBombardTile(tile, out var bombardTarget)) {
+			if (bombardInfo.CanTarget(tile, out var bombardTarget)) {
 				bombardInfo.bombardTarget = bombardTarget;
 				HandleBombardClick(bombardInfo, tile);
 			}
@@ -2807,6 +2824,25 @@ public partial class Game : Node {
 					MapUnit currentUnit = gameData.GetUnit(CurrentlySelectedUnit.id);
 					setBombard(currentUnit);
 				});
+			} else if (CurrentlySelectedUnit.GetAvailableActions().Contains(UnitAction.Bombing)) {
+				// B is Civ3's key for both bombarding and bombing missions.
+				ProcessAction(C7Action.UnitBombing);
+			}
+		}
+
+		// Air missions: air superiority is ordered at once; the others,
+		// like a bombardment, wait for a target tile to be clicked (see
+		// HandleSingleClick).
+		if (C7Action.ToUnitAction(currentAction) is UnitAction airAction
+			&& (airAction == UnitAction.Intercept || C7Action.IsTargetedAirMission(airAction))
+			&& CurrentlySelectedUnit.GetAvailableActions().Contains(airAction)) {
+			if (airAction == UnitAction.Intercept) {
+				new MsgAirMission(CurrentlySelectedUnit.id, UnitAction.Intercept, null).send();
+			} else {
+				EngineStorage.ReadGameData((GameData gameData) => {
+					MapUnit currentUnit = gameData.GetUnit(CurrentlySelectedUnit.id);
+					setBombard(currentUnit, airAction);
+				});
 			}
 		}
 
@@ -2909,8 +2945,8 @@ public partial class Game : Node {
 		}
 	}
 
-	private void setBombard(MapUnit bombardingUnit) {
-		bombardInfo = bombardingUnit == null ? null : new BombardInfo(bombardingUnit);
+	private void setBombard(MapUnit bombardingUnit, UnitAction? airMission = null) {
+		bombardInfo = bombardingUnit == null ? null : new BombardInfo(bombardingUnit, airMission);
 		if (bombardingUnit == null)
 			Input.SetCustomMouseCursor(null);
 	}
@@ -3105,6 +3141,21 @@ public partial class Game : Node {
 		}
 		// The unit bombarding, not whichever is selected once war is declared.
 		ID bombarderID = info.bombardingUnit.id;
+
+		if (info.airMission is UnitAction mission) {
+			EngineStorage.ReadGameData((GameData gameData) => {
+				// Only bombing runs attack; the other missions are peaceful.
+				bool attack = mission == UnitAction.Bombing || mission == UnitAction.PrecisionBombing;
+				if (attack && info.RequiresWarDeclaration(tile, out var victim)) {
+					MaybeDeclareWar(victim, gameData.turn, () => {
+						new MsgAirMission(bombarderID, mission, tile).send();
+					});
+				} else {
+					new MsgAirMission(bombarderID, mission, tile).send();
+				}
+			});
+			return;
+		}
 
 		EngineStorage.ReadGameData((GameData gameData) => {
 			// A nuke goes to war with every civ it hits, not only the target
