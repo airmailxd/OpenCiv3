@@ -54,31 +54,105 @@ jobs:
         else
           godot -v --headless --export-release "${{ matrix.preset }}" ../build/OpenCiv3/${EXPORT_NAME}.exe
         fi
+    # Besides the full download, each platform gets a game package (the game
+    # plus Text, Lua and Civilopedia) for the launcher, which fetches the art
+    # separately and only when it changes (owner's decision, 2026-10-12). Its
+    # files sit at the top of the zip, as the launcher unpacks it straight
+    # into the game's folder. zip keeps the Linux and Mac executable bits,
+    # which the manifest then lists for the launcher.
     - name: Package
       run: |
         case "${{ matrix.platform }}" in
           mac)
-            cd ${PROJECT_DIR} && zip -q -r ../build/mac.zip Assets Text Lua ModernArt Civilopedia
+            cp build/mac.zip build/game-mac.zip
+            cd ${PROJECT_DIR}
+            zip -q -r ../build/game-mac.zip Text Lua Civilopedia
+            zip -q -r ../build/mac.zip Assets Text Lua ModernArt Civilopedia
             ;;
           linux)
-            cp -r ${PROJECT_DIR}/Text ${PROJECT_DIR}/Assets ${PROJECT_DIR}/Lua ${PROJECT_DIR}/ModernArt ${PROJECT_DIR}/Civilopedia build/OpenCiv3/
+            cp -r ${PROJECT_DIR}/Text ${PROJECT_DIR}/Lua ${PROJECT_DIR}/Civilopedia build/OpenCiv3/
+            (cd build/OpenCiv3 && zip -q -r ../game-linux.zip .)
+            cp -r ${PROJECT_DIR}/Assets ${PROJECT_DIR}/ModernArt build/OpenCiv3/
             tar -C build -zcf build/linux.tar.gz OpenCiv3
             ;;
           windows)
-            cp -r ${PROJECT_DIR}/Text ${PROJECT_DIR}/Assets ${PROJECT_DIR}/Lua ${PROJECT_DIR}/ModernArt ${PROJECT_DIR}/Civilopedia build/OpenCiv3/
+            cp -r ${PROJECT_DIR}/Text ${PROJECT_DIR}/Lua ${PROJECT_DIR}/Civilopedia build/OpenCiv3/
+            (cd build/OpenCiv3 && zip -q -r ../game-windows.zip .)
+            cp -r ${PROJECT_DIR}/Assets ${PROJECT_DIR}/ModernArt build/OpenCiv3/
             cd build && zip -q -r windows.zip OpenCiv3
             ;;
         esac
     - uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.platform }}
-        path: build/${{ matrix.platform == 'linux' && 'linux.tar.gz' || format('{0}.zip', matrix.platform) }}
+        path: |
+          build/${{ matrix.platform == 'linux' && 'linux.tar.gz' || format('{0}.zip', matrix.platform) }}
+          build/game-${{ matrix.platform }}.zip
+
+  # The art (Assets and ModernArt) is the same on every platform, so it's
+  # packed once, for the launcher (owner's decision, 2026-10-12).
+  Art:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ env.TAG }}
+        lfs: true
+    - name: Package
+      run: |
+        mkdir -v -p build
+        cd ${PROJECT_DIR} && zip -q -r ../build/art.zip Assets ModernArt
+    - uses: actions/upload-artifact@v4
+      with:
+        name: art
+        path: build/art.zip
+
+  # The launcher installs and updates the game. It's plain GDScript, so it's
+  # exported with the small Godot without .NET (owner's decision,
+  # 2026-10-12). Each zip holds an OpenCiv3 folder with the launcher inside,
+  # which the launcher then fills with the game.
+  Launcher:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    container:
+      image: barichello/godot-ci:4.4.1
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ env.TAG }}
+    - name: Export
+      run: |
+        # The image keeps its export templates under /root, but GitHub runs
+        # the container with another home folder (as in buildSetup).
+        if [ ! -d ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable ]; then
+          mkdir -v -p ~/.local/share/godot/export_templates
+          mv /root/.local/share/godot/export_templates/${GODOT_VERSION}.stable ~/.local/share/godot/export_templates/
+        fi
+        mkdir -v -p build/windows/OpenCiv3 build/linux/OpenCiv3
+        # Import once first, so the export finds the project's resources.
+        godot --headless --path Launcher --import || true
+        godot -v --headless --path Launcher --export-release "Windows Desktop" "$PWD/build/windows/OpenCiv3/OpenCiv3 Launcher.exe"
+        godot -v --headless --path Launcher --export-release "Linux/X11" "$PWD/build/linux/OpenCiv3/OpenCiv3-Launcher.x86_64"
+        godot -v --headless --path Launcher --export-release "macOS" "$PWD/build/launcher-mac.zip"
+        (cd build/windows && zip -q -r ../launcher-windows.zip OpenCiv3)
+        (cd build/linux && zip -q -r ../launcher-linux.zip OpenCiv3)
+    - uses: actions/upload-artifact@v4
+      with:
+        name: launcher
+        path: |
+          build/launcher-windows.zip
+          build/launcher-linux.zip
+          build/launcher-mac.zip
 
   # The Mac app is signed ad-hoc by Godot on Linux, which newer Apple Silicon
   # Macs refuse to launch. Re-sign it with Apple's codesign and replace the
-  # mac artifact before publishing.
+  # mac artifacts before publishing: the full download, the game package and
+  # the launcher.
   Sign-Mac:
-    needs: Build
+    needs: [Build, Launcher]
     runs-on: macos-latest
     timeout-minutes: 15
     steps:
@@ -92,21 +166,58 @@ jobs:
       with:
         name: mac
         path: build
+    - uses: actions/download-artifact@v4
+      with:
+        name: launcher
+        path: launcher
     - uses: ./.github/workflows/composite/macResign
       with:
         zip: build/mac.zip
+    - uses: ./.github/workflows/composite/macResign
+      with:
+        zip: build/game-mac.zip
+    - uses: ./.github/workflows/composite/macResign
+      with:
+        zip: launcher/launcher-mac.zip
+    # Like the other launchers, put the app in an OpenCiv3 folder, which the
+    # launcher fills with the game.
+    - name: Put the Mac launcher in a folder
+      run: |
+        set -euo pipefail
+        STAGE="$RUNNER_TEMP/launcher-mac"
+        rm -rf "$STAGE"
+        mkdir -p "$STAGE/OpenCiv3"
+        ditto -x -k launcher/launcher-mac.zip "$STAGE/OpenCiv3"
+        rm launcher/launcher-mac.zip
+        ditto -c -k --norsrc --noextattr --noacl --keepParent "$STAGE/OpenCiv3" launcher/launcher-mac.zip
+        zipinfo -1 launcher/launcher-mac.zip | cut -d/ -f1-2 | sort -u
     - uses: actions/upload-artifact@v4
       with:
         name: mac
-        path: build/mac.zip
+        path: |
+          build/mac.zip
+          build/game-mac.zip
+        overwrite: true
+    - uses: actions/upload-artifact@v4
+      with:
+        name: launcher
+        path: |
+          launcher/launcher-windows.zip
+          launcher/launcher-linux.zip
+          launcher/launcher-mac.zip
         overwrite: true
 
   Publish-Release:
-    needs: [Build, Sign-Mac]
+    needs: [Build, Art, Launcher, Sign-Mac]
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
+    # For the manifest script, from this run's own commit, like Sign-Mac.
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        sparse-checkout: .github
     - uses: actions/download-artifact@v4
       with:
         path: dist
@@ -123,10 +234,23 @@ jobs:
         mv dist/windows.zip "dist/openciv-windows-${VERSION}.zip"
         mv dist/mac.zip "dist/openciv-mac-${VERSION}.zip"
         mv dist/linux.tar.gz "dist/openciv-linux-${VERSION}.tar.gz"
+        # The launcher's files (owner's decision, 2026-10-12): the game for
+        # each platform, the art once, and manifest.json describing them.
+        # The launchers keep the same names every release, so the download
+        # page can link to them without asking GitHub.
+        for platform in windows linux mac; do
+          mv "dist/game-${platform}.zip" "dist/openciv-game-${platform}-${VERSION}.zip"
+          mv "dist/launcher-${platform}.zip" "dist/openciv-launcher-${platform}.zip"
+        done
+        mv dist/art.zip "dist/openciv-art-${VERSION}.zip"
+        python3 .github/workflows/scripts/release_manifest.py "$VERSION" dist dist/manifest.json \
+          "art=openciv-art-${VERSION}.zip" \
+          "game-windows=openciv-game-windows-${VERSION}.zip" \
+          "game-linux=openciv-game-linux-${VERSION}.zip" \
+          "game-mac=openciv-game-mac-${VERSION}.zip"
         ls -la dist
         if gh release view "$TAG" > /dev/null 2>&1; then
           gh release upload "$TAG" dist/* --clobber
         else
           gh release create "$TAG" dist/* --title "$TAG" --generate-notes --latest
         fi
-

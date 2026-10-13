@@ -1,0 +1,32 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+[application]
+
+config/name="OpenCiv3 Launcher"
+config/description="Installs, updates and starts OpenCiv3."
+run/main_scene="res://main.tscn"
+config/use_custom_user_dir=true
+config/custom_user_dir_name="OpenCiv3 Launcher"
+config/features=PackedStringArray("4.4", "GL Compatibility")
+run/low_processor_mode=true
+config/icon="res://icon.png"
+
+[display]
+
+window/size/viewport_width=600
+window/size/viewport_height=400
+window/size/resizable=false
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+textures/vram_compression/import_etc2_astc=true
