@@ -1819,12 +1819,20 @@ namespace C7GameData {
 				if (prto.SinkInSea) prototype.flags.Add(SaveUnitPrototype.Flag.SinksInSea);
 				if (prto.SinkInOcean) prototype.flags.Add(SaveUnitPrototype.Flag.SinksInOcean);
 				if (prto.Leader) prototype.flags.Add(SaveUnitPrototype.Flag.Leader);
+				if (prto.Wheeled) prototype.flags.Add(SaveUnitPrototype.Flag.Wheeled);
+				if (prto.FootSoldier) prototype.flags.Add(SaveUnitPrototype.Flag.FootSoldier);
+				if (prto.AllTerrainAsRoads) prototype.flags.Add(SaveUnitPrototype.Flag.AllTerrainAsRoads);
+				if (prto.Immobile) prototype.flags.Add(SaveUnitPrototype.Flag.Immobile);
 				if (prto.Draft) prototype.flags.Add(SaveUnitPrototype.Flag.Draftable);
 
 				prototype.actions.UnionWith(GetUnitActions(prto));
 				prototype.terraformActions.UnionWith(GetUnitTerraforms(prto).Select(tfKey => terraformIdByCiv3Key[tfKey]));
 
 				prototype.unproducible = IsUnproducible(prto);
+
+				if (prto.EnslaveResults >= 0 && prto.EnslaveResults < Prto.Length) {
+					prototype.enslavesTo = Prto[prto.EnslaveResults].Name;
+				}
 
 				if (prto.Required != -1) {
 					prototype.requiredTech = save.Techs[prto.Required].id;
@@ -2006,6 +2014,7 @@ namespace C7GameData {
 					contentFacesInCity=bldg.ContentFaces - bldg.UnhappyFaces,
 					iconRowIndex=pediaIcons.buildingToRowNumberMapping[bldg.CivilopediaEntry],
 					combatDefenseBonus=bldg.DefenseBonus / 100.0,
+					navalDefenseBonus=bldg.NavalDefenseBonus / 100.0,
 					maintenanceCost=bldg.MaintenanceCost,
 					numberOfArmiesRequired=bldg.NumberOfArmiesRequired,
 					// Production is stored in 25% steps.
@@ -2168,6 +2177,9 @@ namespace C7GameData {
 			{
 				{ SaveBuilding.Flag.VeteranGroundUnits, "veteran_ground_units" },
 				{ SaveBuilding.Flag.VeteranSeaUnits, "veteran_sea_units" },
+				// The Airport "Produces veteran air units"
+				// (https://civfanatics.com/civ3/civilopedia/improvements/).
+				{ SaveBuilding.Flag.VeteranAirUnits, "veteran_air_units" },
 			};
 
 			var flagToTileModifier = new Dictionary<SaveBuilding.Flag, string>
@@ -2365,7 +2377,22 @@ namespace C7GameData {
 				(t.EnablesIrrigationEverywhere, SaveTech.Flag.EnablesIrrigationEverywhere),
 				(t.DoublesWorkerRate, SaveTech.Flag.DoublesWorkerRate),
 				(t.EnablesRightOfPassage, SaveTech.Flag.EnablesRightOfPassage),
+				(t.EnablesDiplomats, SaveTech.Flag.EnablesDiplomats),
+				(t.DisablesDiseases, SaveTech.Flag.DisablesDiseases),
 				(t.EnablesConscription, SaveTech.Flag.EnablesConscription),
+				(t.EnablesMobilization, SaveTech.Flag.EnablesMobilization),
+				(t.EnablesRecycling, SaveTech.Flag.EnablesRecycling),
+				(t.EnablesPrecisionBombing, SaveTech.Flag.EnablesPrecisionBombing),
+				(t.EnablesMutualProtection, SaveTech.Flag.EnablesMutualProtection),
+				(t.EnablesMilitaryAlliances, SaveTech.Flag.EnablesMilitaryAlliances),
+				(t.EnablesTradeEmbargoes, SaveTech.Flag.EnablesTradeEmbargoes),
+				(t.EnablesTradeOverSea, SaveTech.Flag.EnablesTradeOverSea),
+				(t.EnablesTradeOverOcean, SaveTech.Flag.EnablesTradeOverOcean),
+				(t.EnablesMapTrading, SaveTech.Flag.EnablesMapTrading),
+				(t.EnablesCommunicationTrading, SaveTech.Flag.EnablesCommunicationTrading),
+				(t.CannotBeTraded, SaveTech.Flag.CannotBeTraded),
+				(t.PermitsSacrifice, SaveTech.Flag.PermitsSacrifice),
+				(t.RevealsWorldMap, SaveTech.Flag.RevealsWorldMap),
 			}
 			.Where(t => t.Item1)
 			.Select(t => t.Item2);

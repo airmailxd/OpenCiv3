@@ -76,6 +76,8 @@ namespace C7GameData.Save {
 		public int unitsDraftedThisTurn;
 		// A building was sold here this turn (see City.SellBuilding).
 		public bool soldBuildingThisTurn;
+		// Citizens confused by enemy propaganda (City.propagandaConfusedCitizens).
+		public int propagandaConfusedCitizens;
 		public bool celebrating;
 		public bool isInCivilDisorder;
 		// Resistance in a conquered city: the citizens resisting and the
@@ -118,6 +120,7 @@ namespace C7GameData.Save {
 			turnsOfUnhappinessDueToDrafting = city.turnsOfUnhappinessDueToDrafting;
 			unitsDraftedThisTurn = city.unitsDraftedThisTurn;
 			soldBuildingThisTurn = city.soldBuildingThisTurn;
+			propagandaConfusedCitizens = city.propagandaConfusedCitizens;
 			celebrating = city.celebrating;
 			isInCivilDisorder = city.isInCivilDisorder;
 			resisters = city.resisters;
@@ -242,6 +245,7 @@ namespace C7GameData.Save {
 				turnsOfUnhappinessDueToDrafting = turnsOfUnhappinessDueToDrafting,
 				unitsDraftedThisTurn = unitsDraftedThisTurn,
 				soldBuildingThisTurn = soldBuildingThisTurn,
+				propagandaConfusedCitizens = propagandaConfusedCitizens,
 				celebrating = celebrating,
 				isInCivilDisorder = isInCivilDisorder,
 				resisters = resisters,

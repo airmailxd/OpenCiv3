@@ -486,7 +486,9 @@ namespace C7GameData {
 			GameData gD = EngineStorage.gameData;
 
 			if (role.Defending()) {
-				if (isFortified)
+				// "There is no defensive bonus for fortified ships"
+				// (https://forums.civfanatics.com/threads/do-ships-get-a-defense-bonus-when-fortified.95400/).
+				if (isFortified && !IsWaterUnit())
 					yield return gD.fortificationBonus;
 
 				yield return location.overlayTerrainType.defenseBonus;
@@ -499,7 +501,7 @@ namespace C7GameData {
 					yield return gD.riverCrossingBonus;
 
 				if (location.cityAtTile != null) {
-					foreach (StrengthBonus sb in location.cityAtTile.GetDefenseBonuses()) {
+					foreach (StrengthBonus sb in location.cityAtTile.GetDefenseBonuses(opponent)) {
 						yield return sb;
 					}
 				}
@@ -732,6 +734,40 @@ namespace C7GameData {
 			}
 		}
 
+		// The chance a unit that enslaves makes a slave of a foe it beats
+		// attacking: "a 33% chance", which "is hardcoded"
+		// (https://forums.civfanatics.com/threads/anyone-know-exactly-how-enslavement-works.107253/).
+		public const double EnslaveChance = 1.0 / 3;
+
+		// Rolls, after this unit beat the opponent attacking, for the unit
+		// its type enslaves to (the Javelin Thrower's Worker, the Privateer's
+		// Privateer), which joins its owner on this unit's tile with the
+		// loser's nationality, like a captured worker. "It's the unit that
+		// is doing the attacking" that enslaves (same thread). "Barbarian
+		// units are not able to enslave other units"
+		// (https://forums.civfanatics.com/threads/allowing-barbarians-to-enslave-units.677365/),
+		// but barbarian units can be enslaved (players note enslaving them
+		// early is valuable, first thread). UNVERIFIED: where the slave
+		// appears; here it's on the winner's tile, and none is made if it
+		// couldn't stand there (a land unit at sea).
+		public MapUnit RollToEnslave(MapUnit opponent) {
+			if (unitType.enslavesTo == null || owner.isBarbarians) {
+				return null;
+			}
+			GameData gameData = EngineStorage.gameData;
+			UnitPrototype slaveType = gameData.unitPrototypes.FirstOrDefault(p => p.name == unitType.enslavesTo);
+			if (slaveType == null || GameData.rng.NextDouble() >= EnslaveChance) {
+				return null;
+			}
+			if ((slaveType.IsLandUnit() && !location.IsLand()) || (slaveType.IsSeaUnit() && !location.IsWater() && !location.HasCity())) {
+				return null;
+			}
+			MapUnit slave = gameData.SpawnUnit(owner, slaveType, location);
+			slave.nationality = opponent.nationality ?? opponent.owner.civilization;
+			log.Information("{Unit} enslaved {Opponent} as {Slave}", this, opponent, slave);
+			return slave;
+		}
+
 		public void Promote() {
 			ExperienceLevel nextLevel = EngineStorage.gameData.GetExperienceLevelAfter(experienceLevel);
 			if (nextLevel != null) {
@@ -822,6 +858,11 @@ namespace C7GameData {
 			if (IsLockedInArmy())
 				return Intent.Disabled;
 
+			// "Immobile: Can't move"
+			// (https://forums.civfanatics.com/threads/is-there-a-guide-on-unit-abilities.57822/).
+			if (unitType.isImmobile)
+				return Intent.Disabled;
+
 			// Impassable terrain (e.g. some mods' deserts) cannot be entered
 			// by any unit, but a barbarian camp tile stays enterable (like a
 			// city) so the camp's garrison can move out and back in.
@@ -839,6 +880,13 @@ namespace C7GameData {
 				return Intent.MoveFreely;
 
 			var hasOwnCity = HasOwnCity(tile, unitOwner);
+
+			// Wheeled units stay off mountains, jungle and the like without a
+			// road. Whether the tile they come from has one too is checked by
+			// the move itself (see UnitPrototype.CanMoveBetween), since this
+			// is also asked about tiles further away.
+			if (!unitType.CanEnterTerrainOf(tile))
+				return Intent.Disabled;
 
 			// Keep land units on land and sea units on water
 			if (this.IsWaterUnit() && tile.IsLand()) {
@@ -1029,10 +1077,16 @@ namespace C7GameData {
 
 			// Armies only take land combat units. Units that carry tactical
 			// missiles (Nuclear Submarines) take only those, and carriers take
-			// only aircraft. Other transports take any land unit for now.
+			// only aircraft. Transports that "can only transport units w/
+			// Foot unit Flag" (the Helicopter;
+			// https://forums.civfanatics.com/threads/is-there-a-guide-on-unit-abilities.57822/)
+			// take only foot soldiers. Other transports take any land unit
+			// for now.
 			bool suitableUnit;
 			if (IsArmy())
 				suitableUnit = mapUnit.unitType.CanJoinArmy();
+			else if (unitType.canCarryFootUnitsOnly)
+				suitableUnit = mapUnit.IsLandUnit() && mapUnit.unitType.isFootSoldier;
 			else if (unitType.canCarryTacticalMissiles)
 				suitableUnit = mapUnit.unitType.isTacticalMissile;
 			else if (unitType.canCarryAircraft)

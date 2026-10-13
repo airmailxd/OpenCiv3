@@ -208,23 +208,75 @@ public class EspionageTest : IClassFixture<SaveGameFixture>, System.IDisposable 
 		Assert.NotNull(Espionage.Unavailable(gameData, actor, EspionageMission.StealTechnology, target, city));
 	}
 
-	[Fact]
-	public void CaughtMissionsCostGoldAndCauseAnIncident() {
+	// A city with a spy planted in its civ, and the Intelligence Agency.
+	private City SetUpSpy() {
 		City city = SetUpEmbassy();
+		GiveIntelligenceAgency(actor);
+		actor.playerRelationships[target.id].hasSpy = true;
+		return city;
+	}
+
+	[Fact]
+	public void CaughtMissionsCostGoldCauseAnIncidentAndLoseTheSpy() {
+		City city = SetUpSpy();
 		city.SetStoredShields(20);
 		int cost = Espionage.Cost(gameData, actor, EspionageMission.SabotageProduction, target, city);
 
 		Espionage.MissionResult result = Espionage.Perform(gameData, actor, EspionageMission.SabotageProduction, target, city, Fail);
 		Assert.True(result.performed);
 		Assert.False(result.success);
+		Assert.True(result.caught);
 		Assert.Equal(20, city.shieldsStored);
 		Assert.Equal(100000 - cost, actor.gold);
 		Assert.Equal(1, target.playerRelationships[actor.id].espionageIncidents);
+		Assert.False(Espionage.HasSpy(actor, target));
+	}
+
+	// Between the success chance and the chance of getting away, the
+	// mission fails but nobody notices.
+	[Fact]
+	public void FailedMissionsCanGoUnnoticed() {
+		City city = SetUpSpy();
+		city.SetStoredShields(20);
+		int success = Espionage.SuccessPercent(gameData, actor, EspionageMission.SabotageProduction, target, city);
+
+		Espionage.MissionResult result = Espionage.Perform(gameData, actor, EspionageMission.SabotageProduction, target, city, success);
+		Assert.False(result.success);
+		Assert.False(result.caught);
+		Assert.Equal(20, city.shieldsStored);
+		Assert.Equal(0, target.playerRelationships[actor.id].espionageIncidents);
+		Assert.True(Espionage.HasSpy(actor, target));
+	}
+
+	[Fact]
+	public void SabotageNeedsTheAgencyAndAPlantedSpy() {
+		City city = SetUpEmbassy();
+		city.SetStoredShields(20);
+		Assert.NotNull(Espionage.Unavailable(gameData, actor, EspionageMission.SabotageProduction, target, city));
+		Espionage.MissionResult result = Espionage.Perform(gameData, actor, EspionageMission.SabotageProduction, target, city, Succeed);
+		Assert.False(result.performed);
+		Assert.Equal(20, city.shieldsStored);
+
+		GiveIntelligenceAgency(actor);
+		Assert.NotNull(Espionage.Unavailable(gameData, actor, EspionageMission.SabotageProduction, target, city));
+
+		actor.playerRelationships[target.id].hasSpy = true;
+		Assert.Null(Espionage.Unavailable(gameData, actor, EspionageMission.SabotageProduction, target, city));
+	}
+
+	[Fact]
+	public void SpyMissionsNeedAPlantedSpy() {
+		City city = SetUpEmbassy();
+		GiveIntelligenceAgency(actor);
+		foreach (EspionageMission mission in new[] { EspionageMission.StealWorldMap, EspionageMission.StealPlans,
+			EspionageMission.Propaganda, EspionageMission.ExposeEnemySpy }) {
+			Assert.NotNull(Espionage.Unavailable(gameData, actor, mission, target, city));
+		}
 	}
 
 	[Fact]
 	public void SabotageDestroysProduction() {
-		City city = SetUpEmbassy();
+		City city = SetUpSpy();
 		city.SetStoredShields(20);
 
 		Espionage.MissionResult result = Espionage.Perform(gameData, actor, EspionageMission.SabotageProduction, target, city, Succeed);
@@ -232,33 +284,148 @@ public class EspionageTest : IClassFixture<SaveGameFixture>, System.IDisposable 
 		Assert.Equal(0, city.shieldsStored);
 	}
 
+	// The study's chances for missions sent immediately: 80% of getting
+	// away, which is 40% from an embassy and 60% for a regular spy.
 	[Fact]
-	public void CapitalsCannotBeIncited() {
+	public void ASpyStealsBetterThanAnEmbassy() {
+		City city = SetUpEmbassy();
+		Assert.Equal(32, Espionage.SuccessPercent(gameData, actor, EspionageMission.StealTechnology, target, city));
+		GiveIntelligenceAgency(actor);
+		actor.playerRelationships[target.id].hasSpy = true;
+		Assert.Equal(48, Espionage.SuccessPercent(gameData, actor, EspionageMission.StealTechnology, target, city));
+	}
+
+	// "Plant Spy  60 dist*level + base": a base of 60 plus the distance
+	// from their capital to our nearest city times the capital's level.
+	[Fact]
+	public void CostsFollowTheStudysFormulas() {
 		City capital = SetUpEmbassy();
-		Assert.True(capital.IsCapital());
-		Assert.NotNull(Espionage.Unavailable(gameData, actor, EspionageMission.InciteRevolt, target, capital));
+		int distance = actor.cities.Min(c => c.location.DistanceTo(capital.location));
+		Assert.Equal(1, Espionage.SettlementLevel(capital));
+		Assert.Equal(distance + 60, Espionage.Cost(gameData, actor, EspionageMission.PlantSpy, target, null));
+		Assert.Equal(distance + 80, Espionage.Cost(gameData, actor, EspionageMission.ExposeEnemySpy, target, null));
+		Assert.Equal(distance + 20 + 4, Espionage.Cost(gameData, actor, EspionageMission.EstablishEmbassy, target, null));
+		Assert.Equal(distance + 10 * 4, Espionage.Cost(gameData, actor, EspionageMission.InvestigateCity, target, capital));
+		capital.SetStoredShields(25);
+		Assert.Equal(distance + 10 * 25, Espionage.Cost(gameData, actor, EspionageMission.SabotageProduction, target, capital));
 	}
 
 	[Fact]
-	public void IncitedCityJoinsTheActorWithItsUnits() {
-		SetUpEmbassy();
-		City city = FoundSecondCity(target, 3);
-		MapUnit defender = target.units.First(u => !u.unitType.isSettler && u.location != null);
-		defender.location.unitsOnTile.Remove(defender);
-		defender.location = city.location;
-		city.location.unitsOnTile.Add(defender);
+	public void StealingTheWorldMapRevealsTheirTiles() {
+		SetUpSpy();
+		List<Tile> theirs = gameData.map.tiles.Where(t => !actor.tileKnowledge.isTileKnown(t)).Take(5).ToList();
+		Assert.Equal(5, theirs.Count);
+		foreach (Tile t in theirs) {
+			target.tileKnowledge.knownTiles.Add(t);
+		}
 
-		Espionage.MissionResult result = Espionage.Perform(gameData, actor, EspionageMission.InciteRevolt, target, city, Succeed);
+		Espionage.MissionResult result = Espionage.Perform(gameData, actor, EspionageMission.StealWorldMap, target, null, Succeed);
 		Assert.True(result.success);
+		Assert.All(theirs, t => Assert.True(actor.tileKnowledge.isTileKnown(t)));
+		Assert.True(result.tilesRevealed >= 5);
+	}
+
+	[Fact]
+	public void StealingPlansShowsTheirTroopsUntilNextTurn() {
+		City capital = SetUpSpy();
+		UnitPrototype warrior = capital.ListProductionOptions(gameData).OfType<UnitPrototype>().First(u => u.attack > 0);
+		capital.AddUnit(warrior, gameData);
+		Tile tile = capital.location;
+		actor.tileKnowledge.knownTiles.Remove(tile);
+
+		Espionage.MissionResult result = Espionage.Perform(gameData, actor, EspionageMission.StealPlans, target, null, Succeed);
+		Assert.True(result.success);
+		Assert.Contains(tile, result.unitTiles);
+		Assert.True(actor.tileKnowledge.isTileKnown(tile));
+		Assert.True(actor.tileKnowledge.isActiveTile(tile));
+
+		Espionage.DoPerTurnUpdates(actor, gameData);
+		Assert.True(actor.tileKnowledge.isTileKnown(tile));
+	}
+
+	// "If at least 3/4 of the citizen are persuading, the city will flip."
+	[Fact]
+	public void PropagandaFlipsTheCityAtThreeQuarters() {
+		Assert.True(Espionage.PropagandaFlips(3, 4));
+		Assert.False(Espionage.PropagandaFlips(2, 4));
+		Assert.False(Espionage.PropagandaFlips(2, 3));
+		Assert.True(Espionage.PropagandaFlips(3, 3));
+
+		SetUpSpy();
+		City city = FoundSecondCity(target, 4);
+		Espionage.ApplyPropaganda(gameData, actor, city, 2);
+		Assert.Equal(target, city.owner);
+		Assert.Equal(2, city.propagandaConfusedCitizens);
+
+		// The confusion fades a citizen a turn, and isn't cumulative.
+		Espionage.ApplyPropaganda(gameData, actor, city, 1);
+		Assert.Equal(2, city.propagandaConfusedCitizens);
+		Espionage.DoPerTurnUpdates(target, gameData);
+		Assert.Equal(1, city.propagandaConfusedCitizens);
+
+		Espionage.ApplyPropaganda(gameData, actor, city, 3);
 		Assert.Equal(actor, city.owner);
 		Assert.Contains(city, actor.cities);
-		Assert.DoesNotContain(city, target.cities);
-		Assert.Equal(3, city.residents.Count);
-		Assert.Equal(actor, defender.owner);
+	}
+
+	// "You will never get caught."
+	[Fact]
+	public void PropagandaIsNeverCaught() {
+		SetUpSpy();
+		City city = FoundSecondCity(target, 4);
+		Espionage.MissionResult result = Espionage.Perform(gameData, actor, EspionageMission.Propaganda, target, city, Fail);
+		Assert.True(result.performed);
+		Assert.False(result.success);
+		Assert.Equal(target, city.owner);
+		Assert.Equal(0, target.playerRelationships[actor.id].espionageIncidents);
+		Assert.True(Espionage.HasSpy(actor, target));
 	}
 
 	[Fact]
-	public void IncitedCityForgetsTheOldOwnersProductionQueue() {
+	public void PropagandaWinsOverPersuadedCities() {
+		SetUpSpy();
+		City city = FoundSecondCity(target, 4);
+		// Our own people are easier to persuade.
+		foreach (CityResident resident in city.residents) {
+			resident.nationality = actor.civilization;
+		}
+		Assert.True(Espionage.PersuasionPercent(gameData, actor, city, city.residents[0]) > 0);
+
+		Espionage.MissionResult result = Espionage.Perform(gameData, actor, EspionageMission.Propaganda, target, city, Succeed);
+		Assert.True(result.success);
+		Assert.Equal(4, result.persuaded);
+		Assert.Equal(actor, city.owner);
+	}
+
+	[Fact]
+	public void DemocraciesAreImmuneToPropaganda() {
+		SetUpSpy();
+		City city = FoundSecondCity(target, 4);
+		Government democracy = gameData.governments.Find(g => g.name == "Democracy");
+		Assert.NotNull(democracy);
+		target.government = democracy;
+		Assert.NotNull(Espionage.Unavailable(gameData, actor, EspionageMission.Propaganda, target, city));
+	}
+
+	[Fact]
+	public void AFailedPlantKeepsUsFromTryingAgainForAWhile() {
+		SetUpEmbassy();
+		GiveIntelligenceAgency(actor);
+		Espionage.MissionResult result = Espionage.Perform(gameData, actor, EspionageMission.PlantSpy, target, null, Fail);
+		Assert.False(result.success);
+		Assert.True(actor.playerRelationships[target.id].spyPlantFailed);
+		Assert.NotNull(Espionage.Unavailable(gameData, actor, EspionageMission.PlantSpy, target, null));
+
+		// A one in three chance each turn of clearing.
+		for (int i = 0; i < 200 && actor.playerRelationships[target.id].spyPlantFailed; i++) {
+			Espionage.DoPerTurnUpdates(actor, gameData);
+		}
+		Assert.False(actor.playerRelationships[target.id].spyPlantFailed);
+		Assert.Null(Espionage.Unavailable(gameData, actor, EspionageMission.PlantSpy, target, null));
+	}
+
+	[Fact]
+	public void ATransferredCityForgetsTheOldOwnersProductionQueue() {
 		SetUpEmbassy();
 		City city = FoundSecondCity(target, 3);
 		city.EnqueueProduction(city.ListProductionOptions(gameData).First());
@@ -286,20 +453,6 @@ public class EspionageTest : IClassFixture<SaveGameFixture>, System.IDisposable 
 	}
 
 	[Fact]
-	public void InciteRevoltCostFollowsTheTargetsTreasuryAndDisorder() {
-		SetUpEmbassy();
-		City city = FoundSecondCity(target, 4);
-		target.gold = 0;
-		int calm = Espionage.InciteRevoltCost(actor, city);
-		target.gold = 1000;
-		int rich = Espionage.InciteRevoltCost(actor, city);
-		Assert.True(rich > calm);
-
-		city.isInCivilDisorder = true;
-		Assert.True(Espionage.InciteRevoltCost(actor, city) < rich);
-	}
-
-	[Fact]
 	public void SpiesNeedTheIntelligenceAgency() {
 		SetUpEmbassy();
 		Assert.NotNull(Espionage.Unavailable(gameData, actor, EspionageMission.PlantSpy, target, null));
@@ -310,30 +463,23 @@ public class EspionageTest : IClassFixture<SaveGameFixture>, System.IDisposable 
 		Assert.True(Espionage.HasSpy(actor, target));
 	}
 
+	// "If you suspect a rival has planted a spy in one of your cities you
+	// can attempt to expose the intruder."
 	[Fact]
-	public void SpiesAndTheAgencyImproveTheChances() {
-		City city = SetUpEmbassy();
-		int before = Espionage.SuccessPercent(gameData, actor, EspionageMission.StealTechnology, target, city);
-		GiveIntelligenceAgency(actor);
-		actor.playerRelationships[target.id].hasSpy = true;
-		int after = Espionage.SuccessPercent(gameData, actor, EspionageMission.StealTechnology, target, city);
-		Assert.Equal(before + 25, after);
-	}
+	public void ExposingAnEnemySpyRemovesTheirSpyFromUs() {
+		SetUpSpy();
+		Meet(target, actor);
+		Assert.Equal(0, Espionage.SuccessPercent(gameData, actor, EspionageMission.ExposeEnemySpy, target, null));
+		Espionage.MissionResult nothing = Espionage.Perform(gameData, actor, EspionageMission.ExposeEnemySpy, target, null, Succeed);
+		Assert.False(nothing.success);
+		Assert.False(nothing.caught);
 
-	[Fact]
-	public void ExposingAnEnemySpyRemovesIt() {
-		SetUpEmbassy();
-		GiveIntelligenceAgency(actor);
-		actor.playerRelationships[target.id].hasSpy = true;
-		FoundCity(third, 2);
-		Meet(third, target);
-		third.playerRelationships[target.id].hasSpy = true;
-
+		target.playerRelationships[actor.id].hasSpy = true;
 		Espionage.MissionResult result = Espionage.Perform(gameData, actor, EspionageMission.ExposeEnemySpy, target, null, Succeed);
 		Assert.True(result.success);
-		Assert.Equal(third, result.exposedSpyOwner);
-		Assert.False(third.playerRelationships[target.id].hasSpy);
-		Assert.Equal(1, target.playerRelationships[third.id].espionageIncidents);
+		Assert.Equal(target, result.exposedSpyOwner);
+		Assert.False(target.playerRelationships[actor.id].hasSpy);
+		Assert.Equal(1, actor.playerRelationships[target.id].espionageIncidents);
 	}
 
 	[Fact]
@@ -357,6 +503,8 @@ public class EspionageTest : IClassFixture<SaveGameFixture>, System.IDisposable 
 	public void EmbassiesAndSpiesAreSaved() {
 		SetUpEmbassy();
 		actor.playerRelationships[target.id].hasSpy = true;
+		actor.playerRelationships[target.id].spyPlantFailed = true;
+		target.cities.First().propagandaConfusedCitizens = 2;
 		actor.playerRelationships[target.id].embassyReport = Espionage.Investigate(target.cities.First(), 5);
 		target.playerRelationships[actor.id].espionageIncidents = 2;
 		gameData.unitedNations.votingTurn = 42;
@@ -369,6 +517,8 @@ public class EspionageTest : IClassFixture<SaveGameFixture>, System.IDisposable 
 		SavePlayer savedTarget = reloaded.Players.First(p => p.id.ToString() == target.id.ToString());
 		Assert.True(savedActor.playerRelationships[target.id.ToString()].hasEmbassy);
 		Assert.True(savedActor.playerRelationships[target.id.ToString()].hasSpy);
+		Assert.True(savedActor.playerRelationships[target.id.ToString()].spyPlantFailed);
+		Assert.Equal(2, reloaded.Cities.First(c => c.name == target.cities.First().name).propagandaConfusedCitizens);
 		Espionage.CityReport savedReport = savedActor.playerRelationships[target.id.ToString()].embassyReport;
 		Assert.Equal(5, savedReport.turn);
 		Assert.Equal(target.cities.First().name, savedReport.cityName);

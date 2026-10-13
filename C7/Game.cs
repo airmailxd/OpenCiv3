@@ -1208,6 +1208,13 @@ public partial class Game : Node {
 					popupOverlay.ShowPopup(pop, PopupOverlay.PopupCategory.Advisor);
 					break;
 				}
+			case MsgShowTradeAdvisorPopup mSTAP: {
+					// Like the military advisor's news, this waits its turn.
+					var mood = mSTAP.happy ? AdvisorHead.Mood.Happy : AdvisorHead.Mood.Surprised;
+					var pop = new InformationalPopup(mSTAP.message, AdvisorHead.Advisor.Trade, mood);
+					popupOverlay.ShowPopup(pop, PopupOverlay.PopupCategory.Advisor);
+					break;
+				}
 			case MsgShowScienceAdvisorPopup mSSAP: {
 					// The space race news (such as the ship being complete) is too
 					// important to drop, so it waits its turn behind any popup
@@ -1514,7 +1521,11 @@ public partial class Game : Node {
 					// A new embassy shows us their capital once, then the land
 					// around it stays on the map as it was.
 					bool showCapital = mER.success && mER.mission == EspionageMission.EstablishEmbassy && mER.city != null;
-					if (showCapital) {
+					// A stolen map, stolen plans or a city won by propaganda change
+					// what the map shows.
+					bool mapChanged = mER.success && mER.mission is EspionageMission.StealWorldMap or EspionageMission.StealPlans
+						or EspionageMission.Propaganda;
+					if (showCapital || mapChanged) {
 						mapView.InvalidateMap();
 					}
 					City capital = mER.city;
@@ -3082,7 +3093,7 @@ public partial class Game : Node {
 			} else if (unit != null && unit.location != tile) {
 				result.path = PathingAlgorithmChooser.GetAlgorithm(unit).PathFrom(unit.location, tile, unit);
 				result.moveCost =
-					result.path.PathCost(unit.owner, unit.location, unit.MaxMovementPoints(), unit.movementPoints.remaining);
+					result.path.PathCost(unit.owner, unit.location, unit.MaxMovementPoints(), unit.movementPoints.remaining, unit.unitType.allTerrainAsRoads);
 				result.pathCoords = result.path.GetPathCoords();
 
 				// If we couldn't path onto the tile, but the tile is next to us and
@@ -3092,13 +3103,13 @@ public partial class Game : Node {
 				var canEnterForcefully = unit.CanEnterForcefully(tile, out Intent intent);
 				result.intent = intent;
 
-				if (distanceToTile == 1 && canEnterForcefully) {
+				if (distanceToTile == 1 && canEnterForcefully && unit.unitType.CanMoveBetween(unit.location, tile)) {
 					Queue<Tile> pathQueue = new();
 					pathQueue.Enqueue(tile);
 
 					result.path = new TilePath(tile, pathQueue);
 					result.moveCost = result.path.PathCost(unit.owner, unit.location, unit.MaxMovementPoints(),
-						unit.movementPoints.remaining);
+						unit.movementPoints.remaining, unit.unitType.allTerrainAsRoads);
 					result.pathCoords = result.path.GetPathCoords();
 
 					// If we couldn't enter this tile without a war declaration,

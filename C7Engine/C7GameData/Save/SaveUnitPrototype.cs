@@ -37,6 +37,16 @@ namespace C7GameData.Save {
 			SinksInOcean,
 			// The unit is a military great leader, created by elite victories.
 			Leader,
+			// The unit can't enter terrain that is impassable to wheeled
+			// units (mountains, jungle...) except along a road.
+			Wheeled,
+			// The unit can be carried by transports that carry only foot
+			// units (CanCarryFootUnitsOnly).
+			FootSoldier,
+			// Every tile costs the unit only as much as a road would.
+			AllTerrainAsRoads,
+			// The unit can't move.
+			Immobile,
 			// A city may draft the unit (the BIQ's PRTO "Draft" flag).
 			Draftable,
 		}
@@ -66,6 +76,11 @@ namespace C7GameData.Save {
 		public List<string> upgradesTo;
 		public bool unproducible;
 
+		// The unit this one may make of a foe it defeats (the BIQ's PRTO
+		// "enslave results"), like the Javelin Thrower's workers. Null if it
+		// doesn't enslave. See MapUnit.RollToEnslave.
+		public string enslavesTo;
+
 		// Assorted boolean flags for the unit prototype. They're stored in
 		// this set rather than as booleans to avoid bloating the json file.
 		public HashSet<Flag> flags = [];
@@ -90,6 +105,7 @@ namespace C7GameData.Save {
 			 proto.capacity, proto.hpBonus);
 			workerStrength = proto.workerStrength;
 			civilopediaEntry = proto.civilopediaEntry;
+			enslavesTo = proto.enslavesTo;
 
 			if (proto.requiredTech != null)
 				requiredTech = proto.requiredTech.id;

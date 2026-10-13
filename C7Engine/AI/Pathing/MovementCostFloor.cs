@@ -105,6 +105,15 @@ namespace C7Engine.Pathing {
 				}
 			}
 
+			// A unit that treats all terrain as roads pays at most a road's
+			// cost for any step (see TilePath.GetMovementCost).
+			if (unit.unitType.allTerrainAsRoads) {
+				float road = TilePath.RoadMovementCost();
+				if (road >= 0) {
+					floor = Math.Min(floor, road);
+				}
+			}
+
 			return Math.Max(0f, floor);
 		}
 

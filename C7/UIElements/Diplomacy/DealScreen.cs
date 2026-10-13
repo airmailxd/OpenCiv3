@@ -1,6 +1,7 @@
 using C7Engine;
 using C7GameData;
 using Godot;
+using Resource = C7GameData.Resource;
 using System.Collections.Generic;
 using static C7GameData.PlayerRelationship;
 
@@ -85,10 +86,32 @@ public partial class DealScreen : TextureRect {
 			List<Tech> techsHumanCanTrade = humanPlayer.GetTechsTradableTo(opponentPlayer, gD.techs);
 			List<City> citiesOpponentCanTrade = TradeOffer.TradableCities(opponentPlayer);
 			List<City> citiesHumanCanTrade = TradeOffer.TradableCities(humanPlayer);
+			List<Resource> resourcesOpponentCanTrade = TradeOffer.TradableResources(gD, opponentPlayer, humanPlayer);
+			List<Resource> resourcesHumanCanTrade = TradeOffer.TradableResources(gD, humanPlayer, opponentPlayer);
+			// Resources already on the table (as in an offer from an AI)
+			// show even if no longer spare.
+			AddOffered(gD, resourcesOpponentCanTrade, opponentOffer);
+			AddOffered(gD, resourcesHumanCanTrade, humanOffer);
+
+			// The pacts the two may sign (see Pacts), and any already on
+			// the table.
+			TradingTree.PactChoices pacts = new(
+				!playersAtWar && Pacts.ProblemSigningMutualProtectionPact(gD, humanPlayer, opponentPlayer) == null,
+				playersAtWar ? new() : Pacts.AllianceTargets(gD, humanPlayer, opponentPlayer),
+				playersAtWar ? new() : Pacts.EmbargoTargets(gD, humanPlayer, opponentPlayer));
+			void AddTarget(List<Player> targets, ID target) {
+				Player p = target == null ? null : gD.GetPlayer(target);
+				if (p != null && !targets.Contains(p)) {
+					targets.Add(p);
+				}
+			}
+			AddTarget(pacts.allianceTargets, TradeOffer.AllianceTarget(humanOffer, opponentOffer));
+			AddTarget(pacts.embargoTargets, TradeOffer.EmbargoTarget(humanOffer, opponentOffer));
 
 			// Left hand side UI components.
 			opponentTree = new TradingTree(fontTheme, opponentPlayer.gold, techsOpponentCanTrade, citiesOpponentCanTrade,
-				opponentOffer, playersAtWar, canSignRightOfPassage);
+				opponentOffer, playersAtWar, canSignRightOfPassage,
+				TradeOffer.MaxGoldPerTurn(opponentPlayer), resourcesOpponentCanTrade, pacts);
 			AddChild(opponentTree);
 			opponentTree.Position = new Vector2(45, 220);
 
@@ -99,13 +122,13 @@ public partial class DealScreen : TextureRect {
 			AddChild(weWant);
 
 			opponentOfferUi = new(fontTheme, techsOpponentCanTrade, citiesOpponentCanTrade, opponentPlayer.gold, opponentOffer, playersAtWar,
-				HorizontalAlignment.Left);
+				HorizontalAlignment.Left, resourcesOpponentCanTrade, pacts);
 			AddChild(opponentOfferUi);
 			opponentOfferUi.Position = new Vector2(314, 453);
 
 			// Right hand side UI components.
 			humanTree = new TradingTree(fontTheme, humanPlayer.gold, techsHumanCanTrade, citiesHumanCanTrade, humanOffer, playersAtWar,
-				canSignRightOfPassage);
+				canSignRightOfPassage, TradeOffer.MaxGoldPerTurn(humanPlayer), resourcesHumanCanTrade, pacts);
 			AddChild(humanTree);
 			humanTree.Position = new Vector2(789, 220);
 
@@ -116,7 +139,7 @@ public partial class DealScreen : TextureRect {
 			AddChild(weOffer);
 
 			humanOfferUi = new(fontTheme, techsHumanCanTrade, citiesHumanCanTrade, humanPlayer.gold, humanOffer, playersAtWar,
-				HorizontalAlignment.Right);
+				HorizontalAlignment.Right, resourcesHumanCanTrade, pacts);
 			AddChild(humanOfferUi);
 			humanOfferUi.Position = new Vector2(527, 453);
 
@@ -331,6 +354,16 @@ public partial class DealScreen : TextureRect {
 				}));
 	}
 
+	// Adds the resources in the offer that aren't in the list.
+	private static void AddOffered(GameData gD, List<Resource> list, TradeOffer offer) {
+		foreach (string key in offer.resources) {
+			Resource r = gD.Resources.Find(x => x.Key == key);
+			if (r != null && !list.Contains(r)) {
+				list.Add(r);
+			}
+		}
+	}
+
 	public static string DescribeDeal(Player proposer, TradeOffer proposerGives, TradeOffer proposerWants) {
 		static string Describe(TradeOffer offer) {
 			string description = offer.ToString();
@@ -369,7 +402,7 @@ public partial class DealScreen : TextureRect {
 				return;
 			}
 
-			int theirGoldValue = opponentOffer.GoldEquivalentFor(gD, opponentPlayer);
+			int theirGoldValue = opponentOffer.GoldEquivalentFor(gD, opponentPlayer, given: true);
 			int ourGoldValue = humanOffer.GoldEquivalentFor(gD, opponentPlayer);
 			string text = $"I value my offer at {theirGoldValue} gold and I value your offer at {ourGoldValue} gold";
 			if (TradeOffer.IncludesRightOfPassage(humanOffer, opponentOffer)) {

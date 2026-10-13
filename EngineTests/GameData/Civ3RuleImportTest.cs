@@ -1,4 +1,5 @@
 using System.IO;
+using System.Linq;
 using C7GameData;
 using C7GameData.Save;
 using EngineTests.Utils;
@@ -114,5 +115,53 @@ public class Civ3RuleImportTest {
 
 		SaveBuilding walls = Assert.Single(game.Buildings, b => b.flags.Contains(SaveBuilding.Flag.ProvidesWalls));
 		Assert.Equal("Walls", walls.name);
+	}
+
+	// A Coastal Fortress gives "+50% against naval attacks", and City Walls
+	// nothing against them
+	// (https://civfanatics.com/civ3/civilopedia/improvements/).
+	[SkippableFact]
+	public void CoastalFortressDefendsAgainstShips() {
+		Skip.If(Civ3TestData.ShouldSkipCiv3DependentTests(), "No Civ3 install found.");
+
+		SaveGame game = ImportScenario("Scenarios", "No Civ Traits.biq");
+
+		Assert.Equal(0.5, game.Buildings.Single(b => b.name == "Coastal Fortress").navalDefenseBonus);
+		Assert.Equal(0, game.Buildings.Single(b => b.name == "Walls").navalDefenseBonus);
+	}
+
+	// Wheeled units "cannot cross mountains or jungle tiles without a road"
+	// (https://sullla.com/Civ3/CQ/CQ_units.html); the Helicopter carries
+	// only foot soldiers, and the Explorer treats all terrain as roads
+	// (https://forums.civfanatics.com/threads/is-there-a-guide-on-unit-abilities.57822/).
+	[SkippableFact]
+	public void MovementFlagsAreImported() {
+		Skip.If(Civ3TestData.ShouldSkipCiv3DependentTests(), "No Civ3 install found.");
+
+		SaveGame game = ImportScenario("Scenarios", "No Civ Traits.biq");
+
+		Assert.True(game.TerrainTypes.Single(t => t.Key == "mountains").impassableByWheeled);
+		Assert.True(game.TerrainTypes.Single(t => t.Key == "jungle").impassableByWheeled);
+		Assert.False(game.TerrainTypes.Single(t => t.Key == "grassland").impassableByWheeled);
+		SaveUnitPrototype Unit(string name) => game.UnitPrototypes.Single(p => p.name == name);
+		Assert.Contains(SaveUnitPrototype.Flag.Wheeled, Unit("Catapult").flags);
+		Assert.Contains(SaveUnitPrototype.Flag.FootSoldier, Unit("Warrior").flags);
+		Assert.Contains(SaveUnitPrototype.Flag.CanCarryFootUnitsOnly, Unit("Helicopter").flags);
+		Assert.Contains(SaveUnitPrototype.Flag.AllTerrainAsRoads, Unit("Explorer").flags);
+		Assert.DoesNotContain(SaveUnitPrototype.Flag.Wheeled, Unit("Warrior").flags);
+	}
+
+	// The Javelin Thrower enslaves its foes as Workers, the Privateer as
+	// Privateers
+	// (https://forums.civfanatics.com/threads/anyone-know-exactly-how-enslavement-works.107253/).
+	[SkippableFact]
+	public void EnslaveResultsAreImported() {
+		Skip.If(Civ3TestData.ShouldSkipCiv3DependentTests(), "No Civ3 install found.");
+
+		SaveGame game = ImportScenario("Scenarios", "No Civ Traits.biq");
+
+		Assert.Equal("Worker", game.UnitPrototypes.Single(p => p.name == "Javelin Thrower").enslavesTo);
+		Assert.Equal("Privateer", game.UnitPrototypes.Single(p => p.name == "Privateer").enslavesTo);
+		Assert.Null(game.UnitPrototypes.Single(p => p.name == "Warrior").enslavesTo);
 	}
 }

@@ -96,6 +96,19 @@ namespace C7GameData {
 			return producibleBySet.Contains(civ);
 		}
 
+		// Whether the captor takes this unit, when it's caught undefended,
+		// rather than destroying it. Civ3 captures an undefended zero-defence
+		// unit, like a catapult or artillery, only if the captor could build
+		// it: the unit must be available to the captor's civ and the captor
+		// must know its required tech. Resources don't matter.
+		// https://forums.civfanatics.com/threads/capturing-units-with-zero-defense.631539/
+		// https://civfanatics.com/civ3/infocenter/
+		// UNVERIFIED: whether an obsolete unit can still be captured; it can
+		// here, since only tech and civ availability are named.
+		public bool CanBeCapturedBy(Player captor) {
+			return !unproducible && IsProducibleBy(captor.civilization) && captor.HasRequiredTechnology(this);
+		}
+
 		public HashSet<Civilization> producibleBy {
 			get {
 				OnUpgradeDataAccessed();
@@ -126,7 +139,47 @@ namespace C7GameData {
 			Interlocked.Increment(ref upgradeDataVersion);
 		}
 		public bool unproducible;
+		// The name of the unit this one may make of a foe it defeats, or
+		// null (see MapUnit.RollToEnslave).
+		public string enslavesTo;
 		public HashSet<SaveUnitPrototype.Flag> flags = [];
+
+		// Civ3's movement flags (https://forums.civfanatics.com/threads/is-there-a-guide-on-unit-abilities.57822/):
+		// "Wheeled: The unit may not enter any terrain with 'Impassable by
+		// Wheeled Units' checked" (mountains, jungle, marsh and volcanoes in
+		// conquests.biq), unless "following a road" (see CanMoveBetween);
+		// "Foot Unit: ... can be transported by any transport", including
+		// those that "can only transport units w/ Foot unit Flag"; "All
+		// Terrain As Roads: whether improved w/ road or not, will lose only
+		// as much movement as improved terrain"; "Immobile: Can't move".
+		public bool isWheeled => flags.Contains(SaveUnitPrototype.Flag.Wheeled);
+		public bool isFootSoldier => flags.Contains(SaveUnitPrototype.Flag.FootSoldier);
+		public bool allTerrainAsRoads => flags.Contains(SaveUnitPrototype.Flag.AllTerrainAsRoads);
+		public bool isImmobile => flags.Contains(SaveUnitPrototype.Flag.Immobile);
+		public bool canCarryFootUnitsOnly => flags.Contains(SaveUnitPrototype.Flag.CanCarryFootUnitsOnly);
+
+		// Whether the unit's type lets it step from one tile onto a
+		// neighbouring one. Wheeled units, like catapults and chariots,
+		// "cannot cross mountains or jungle tiles without a road"
+		// (https://sullla.com/Civ3/CQ/CQ_units.html): they can't enter
+		// terrain impassable to wheeled units unless the move follows a
+		// road, so both tiles need one. In Civ3 "if you are on an unroaded
+		// tile, you can't go on a mountain tile even if it's roaded"
+		// (stavrosfa, https://github.com/C7-Game/OpenCiv3/pull/1029). A city
+		// counts as a road. UNVERIFIED: whether a river crossing without
+		// bridges breaks the road here; it doesn't.
+		public bool CanMoveBetween(Tile from, Tile to) {
+			return CanEnterTerrainOf(to) && (!isWheeled || !to.overlayTerrainType.impassableByWheeled || IsRoaded(from));
+		}
+
+		// The part of CanMoveBetween that depends only on the tile entered.
+		public bool CanEnterTerrainOf(Tile to) {
+			return !isWheeled || !to.overlayTerrainType.impassableByWheeled || IsRoaded(to);
+		}
+
+		private static bool IsRoaded(Tile tile) {
+			return tile.HasRoad() || tile.HasCity();
+		}
 		public bool rotateBeforeAttack {
 			get => flags.Contains(SaveUnitPrototype.Flag.RotateBeforeAttack);
 			set {
@@ -334,6 +387,7 @@ namespace C7GameData {
 			// Rulesets without the value leave every worker at plain speed.
 			workerStrength = proto.workerStrength > 0 ? proto.workerStrength : 1;
 			civilopediaEntry = proto.civilopediaEntry;
+			enslavesTo = proto.enslavesTo;
 
 			categories = new HashSet<string>(proto.categories);
 			actions = new HashSet<UnitAction>(proto.actions);

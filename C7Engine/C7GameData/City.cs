@@ -123,6 +123,10 @@ namespace C7GameData {
 
 		// Whether a building was sold here this turn (see SellBuilding).
 		public bool soldBuildingThisTurn = false;
+		// Citizens confused by enemy propaganda that didn't make the city
+		// defect; each is an unhappy face, and one fewer each turn (see
+		// Espionage.ApplyPropaganda).
+		public int propagandaConfusedCitizens = 0;
 
 		public bool isInCivilDisorder = false;
 
@@ -137,7 +141,7 @@ namespace C7GameData {
 		public bool IsInResistance => resisters > 0;
 
 		// The turn the city last changed hands (taken, flipped, traded or
-		// incited), or -1 if it never has or the save doesn't say. A city
+		// won by propaganda), or -1 if it never has or the save doesn't say. A city
 		// never flips to another civ's culture on the turn it changed hands
 		// (see CultureFlip).
 		public int ownerChangedTurn = -1;
@@ -723,7 +727,7 @@ namespace C7GameData {
 
 		// Why this city can't draft a citizen now, or null if it can.
 		public string WhyCannotDraft(GameData gameData) {
-			if (!owner.KnowsTechWhere(t => t.EnablesConscription)) {
+			if (!owner.HasTechEnabling(C7GameData.Save.SaveTech.Flag.EnablesConscription)) {
 				return "We do not yet know how to draft citizens.";
 			}
 			if (owner.government.transitionType || owner.government.draftLimit <= 0) {
@@ -1049,7 +1053,9 @@ namespace C7GameData {
 			return null;
 		}
 
-		public IEnumerable<StrengthBonus> GetDefenseBonuses() {
+		// The bonuses units in the city get defending against the attacker
+		// (null if unknown, treated as a land unit).
+		public IEnumerable<StrengthBonus> GetDefenseBonuses(MapUnit attacker = null) {
 			GameData gD = EngineStorage.gameData;
 
 			// Cities give defense bonuses based on their size.
@@ -1063,9 +1069,17 @@ namespace C7GameData {
 
 			bool isTown = residents.Count <= gD.rules.MaximumLevel1CitySize;
 
-			// Buildings, such as walls, can also give bonuses.
+			// Buildings, such as walls, can also give bonuses. The BIQ gives a
+			// building one bonus against land attacks and another against
+			// naval ones: City Walls give "+50% to defensive bonus against
+			// land attacks", a Coastal Fortress "+50% against naval attacks"
+			// (https://civfanatics.com/civ3/civilopedia/improvements/).
+			// UNVERIFIED: which applies against air units, which only
+			// bombard in Civ3; the land one does, as before.
+			bool navalAttack = attacker != null && attacker.IsWaterUnit();
 			foreach (CityBuilding cb in EffectiveBuildings()) {
-				if (cb.building.combatDefenseBonus is not StrengthBonus defenseBonus) {
+				StrengthBonus? bonus = navalAttack ? cb.building.navalDefenseBonus : cb.building.combatDefenseBonus;
+				if (bonus is not StrengthBonus defenseBonus) {
 					continue;
 				}
 
@@ -2391,6 +2405,11 @@ namespace C7GameData {
 			if (turnsOfUnhappinessDueToPopRushing > 0) {
 				contentToHappyMoves -= (turnsOfUnhappinessDueToPopRushing - 1) / gameData.rules.TurnPenaltyForEachHurrySacrifice + 1;
 			}
+
+			// "If the city does not flip, the persuaded citizen will be
+			// confused. Each will give 1 unhappy face."
+			// (https://civfanatics.com/civ3/strategy/game-mechanics/a-study-of-espionage-missions/)
+			contentToHappyMoves -= Math.Min(propagandaConfusedCitizens, residents.Count);
 
 			// Drafting works the same way: "it makes 1 citizen per unit
 			// drafted unhappy for 20 turns" (the BIQ's turn penalty per

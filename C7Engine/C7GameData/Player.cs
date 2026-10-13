@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using C7Engine.AI.StrategicAI;
 using C7Engine;
+using C7GameData.Save;
 using MoonSharp.Interpreter;
 using Serilog;
 using static C7GameData.EraUtils;
@@ -744,8 +745,18 @@ namespace C7GameData {
 		// project owner we never give a city away except in a peace treaty.
 		// Peace is weighed up by PeaceAI.
 		public bool WouldAcceptDealFrom(GameData gameData, Player other, TradeOffer theirOffer, TradeOffer ourOffer) {
-			// TODO: consider any factors like trade reputations here and culture groups
+			// TODO: culture groups.
+			// UNVERIFIED: Civ3's AI prices deals by its attitude ("DiploEffect",
+			// per https://forums.civfanatics.com/threads/aggression-level-ai-attitude-and-trading.699178/,
+			// which shows prices changing with attitude but gives no
+			// formula), so attitude isn't counted here.
 			if (TradeOffer.ProblemWithDeal(gameData, other, this, theirOffer, ourOffer) != null) {
+				return false;
+			}
+			// A civ that broke a deal it paid for over time isn't trusted to
+			// pay over time again (see PlayerRelationship.TradingReputationBroken).
+			if ((theirOffer.GivesOverTime() || TradeOffer.IncludesAllianceOrPact(theirOffer, ourOffer))
+				&& TradingReputationBroken(this, other, gameData.players)) {
 				return false;
 			}
 			// We don't deal with a civ we refuse to talk to, as for a while
@@ -754,7 +765,7 @@ namespace C7GameData {
 				return false;
 			}
 			int theirGoldValue = theirOffer.GoldEquivalentFor(gameData, this);
-			int ourGoldValue = ourOffer.GoldEquivalentFor(gameData, this);
+			int ourGoldValue = ourOffer.GoldEquivalentFor(gameData, this, given: true);
 
 			if (theirOffer.partOfPeaceTreaty || ourOffer.partOfPeaceTreaty) {
 				return C7Engine.AI.PeaceAI.WouldAcceptPeace(this, other, theirOffer, ourOffer, theirGoldValue, ourGoldValue);
@@ -762,10 +773,14 @@ namespace C7GameData {
 			if (ourOffer.cities.Count > 0) {
 				return false;
 			}
+			bool pacts = TradeOffer.IncludesAllianceOrPact(theirOffer, ourOffer) || TradeOffer.EmbargoTarget(theirOffer, ourOffer) != null;
+			if (pacts && !C7Engine.AI.PactAI.WouldAccept(gameData, this, other, theirOffer, ourOffer, theirGoldValue, ourGoldValue)) {
+				return false;
+			}
 			if (TradeOffer.IncludesRightOfPassage(theirOffer, ourOffer)) {
 				return C7Engine.AI.RightOfPassageAI.WouldAccept(gameData, this, other, theirGoldValue, ourGoldValue);
 			}
-			return theirGoldValue >= ourGoldValue;
+			return pacts || theirGoldValue >= ourGoldValue;
 		}
 
 		// Carries out a deal in which we give ourOffer and the other player
@@ -790,6 +805,12 @@ namespace C7GameData {
 			if (TradeOffer.IncludesRightOfPassage(theirOffer, ourOffer)) {
 				RightOfPassage.Sign(gameData, this, other);
 			}
+			if (TradeOffer.IncludesMutualProtectionPact(theirOffer, ourOffer)) {
+				Pacts.SignMutualProtectionPact(gameData, this, other);
+			}
+			if (TradeOffer.EmbargoTarget(theirOffer, ourOffer) is ID embargoed) {
+				Pacts.SignTradeEmbargo(gameData, this, other, gameData.GetPlayer(embargoed));
+			}
 
 			if (ourOffer.gold.HasValue) {
 				other.gold += ourOffer.gold.Value;
@@ -800,9 +821,13 @@ namespace C7GameData {
 				other.gold -= theirOffer.gold.Value;
 			}
 
-			// The attitudes, valuing the gifts before the techs are known.
+			// Gold per turn and resources are sent for the deal's length.
 			EnsureRelationshipExists(other);
 			other.EnsureRelationshipExists(this);
+			RegisterDealsOverTime(gameData, this, other, ourOffer);
+			RegisterDealsOverTime(gameData, other, this, theirOffer);
+
+			// The attitudes, valuing the gifts before the techs are known.
 			if (ourOffer.techs.Count > 0 || theirOffer.techs.Count > 0) {
 				playerRelationships[other.id].lastTechTradeTurn = gameData.turn;
 				other.playerRelationships[id].lastTechTradeTurn = gameData.turn;
@@ -816,6 +841,11 @@ namespace C7GameData {
 			other.CompleteResearchAndBeginNew(gameData, ourOffer.techs);
 			this.CompleteResearchAndBeginNew(gameData, theirOffer.techs);
 
+			// An alliance last, as it may start wars.
+			if (TradeOffer.AllianceTarget(theirOffer, ourOffer) is ID enemy) {
+				Pacts.SignMilitaryAlliance(gameData, this, other, gameData.GetPlayer(enemy));
+			}
+
 			// Cities change hands last, once the gold and techs have.
 			foreach (City city in ourOffer.cities.ToList()) {
 				CityInteractions.TransferCity(city, other, viaDeal: true);
@@ -824,6 +854,27 @@ namespace C7GameData {
 				CityInteractions.TransferCity(city, this, viaDeal: true);
 			}
 			return true;
+		}
+
+		// Registers what the giver sends the receiver over time in a deal
+		// just made, as the giver's Outbound deals (and the receiver's
+		// Inbound ones), for the rules' deal length from this turn. They end
+		// in PlayerRelationship.CheckForObsoleteDeals; the gold is paid in
+		// DoPerTurnFinanceUpdates, and the resources reach the receiver's
+		// cities through City.GetAvailableResources.
+		private static void RegisterDealsOverTime(GameData gameData, Player giver, Player receiver, TradeOffer offer) {
+			int duration = TradeOffer.DealDuration(gameData);
+			if (offer.goldPerTurn > 0) {
+				RegisterMultiTurnDeal(giver, receiver, new MultiTurnDeal(DealType.Gold, DealSubType.GoldPerTurn,
+					DealDetails.Outbound, offer.goldPerTurn, null, duration, gameData.turn));
+			}
+			foreach (string key in offer.resources) {
+				Resource r = gameData.Resources.Find(x => x.Key == key);
+				bool luxury = r?.Category == ResourceCategory.LUXURY;
+				RegisterMultiTurnDeal(giver, receiver, new MultiTurnDeal(luxury ? DealType.Luxury : DealType.Resource,
+					luxury ? DealSubType.LuxuryPerTurn : DealSubType.ResourcePerTurn,
+					DealDetails.Outbound, 0, key, duration, gameData.turn));
+			}
 		}
 
 		// The beakers all our cities produce each turn.
@@ -999,7 +1050,11 @@ namespace C7GameData {
 		/// </summary>
 		public List<Tech> GetTechsTradableTo(Player recipient, List<Tech> allTechs) {
 			OrderedTechSet researchable = recipient.GetAvailableTechsToResearch(allTechs);
-			return allTechs.FindAll(t => knownTechs.Contains(t.id) && researchable.Contains(t));
+			// A tech with the BIQ's "Cannot be traded" flag is never offered
+			// (https://forums.civfanatics.com/threads/civ3-conquests-editor-features.67911/).
+			// The AI's trades, the deal screen and TradeOffer's validation all
+			// go through here.
+			return allTechs.FindAll(t => knownTechs.Contains(t.id) && researchable.Contains(t) && !t.CannotBeTraded);
 		}
 
 		// Placeholder ordering of techs. Duplicates are dropped, keeping the
@@ -1051,6 +1106,20 @@ namespace C7GameData {
 				}
 			}
 			return false;
+		}
+
+		// Whether the player knows a tech with the BIQ flag, e.g.
+		// HasTechEnabling(SaveTech.Flag.EnablesMapTrading).
+		[MoonSharpHidden]
+		public bool HasTechEnabling(SaveTech.Flag flag) {
+			return KnowsTechWhere(t => t.HasFlag(flag));
+		}
+
+		// Whether the player knows the tech needed for embassies, or the
+		// rules have none (see Tech.FindEmbassyTech).
+		public bool KnowsEmbassyTech(List<Tech> techs) {
+			Tech tech = Tech.FindEmbassyTech(techs);
+			return tech == null || knownTechs.Contains(tech.id);
 		}
 
 		public bool HasTech(ID techId) {
@@ -1435,6 +1504,25 @@ namespace C7GameData {
 			return learned;
 		}
 
+		// Shows the player every tile of the map, as learning Satellites does
+		// in Conquests ("Upon discovering this tech, the whole map is revealed
+		// to your civ", https://sullla.com/Civ3/CQ/CQ_techs.html). The tiles
+		// become known, as explored ones are, not watched: units on them stay
+		// hidden in the fog.
+		//
+		// UNVERIFIED: whether Civ3 shows the cities and improvements on the
+		// tiles revealed this way (we show them as they are now, as any newly
+		// known tile does, and as SpaceRace.RevealMapToAll does).
+		public void RevealWholeMap(GameData gameData) {
+			if (gameData?.map?.tiles == null) {
+				return;
+			}
+			foreach (Tile t in gameData.map.tiles) {
+				tileKnowledge.AddTileToKnown(t);
+			}
+			tileKnowledge.RecomputeActiveTiles();
+		}
+
 		// Learns a tech acquired outside research, such as one stolen by
 		// espionage, then carries on researching.
 		public void AcquireTech(GameData gameData, Tech tech) {
@@ -1503,6 +1591,9 @@ namespace C7GameData {
 			}
 
 			knownTechs.Add(tech.id);
+			if (tech.RevealsWorldMap) {
+				RevealWholeMap(gameData);
+			}
 			// trigger callback for techs that enable improvements to redraw map
 			TechImprovementCallback(this, tech);
 

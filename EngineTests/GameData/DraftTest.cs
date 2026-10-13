@@ -22,7 +22,7 @@ public class DraftTest : IClassFixture<SaveGameFixture> {
 		Tile tile = player.units.First(u => u.unitType.isSettler).location;
 		city = CityInteractions.BuildCity(tile, player, player.GetNextCityName());
 		player.government = gameData.governments.First(g => g.name == "Monarchy");
-		player.knownTechs.Add(gameData.techs.First(t => t.EnablesConscription).id);
+		player.knownTechs.Add(gameData.techs.First(t => t.HasFlag(SaveTech.Flag.EnablesConscription)).id);
 		player.knownTechs.Add(gameData.unitPrototypes.First(u => u.name == "Spearman").requiredTech.id);
 		GrowTo(7);
 	}
@@ -41,7 +41,7 @@ public class DraftTest : IClassFixture<SaveGameFixture> {
 
 	[Fact]
 	public void NationalismEnablesConscriptionAndTheBasicDefendersAreDraftable() {
-		Assert.Equal("Nationalism", gameData.techs.Single(t => t.EnablesConscription).Name);
+		Assert.Equal("Nationalism", gameData.techs.Single(t => t.HasFlag(SaveTech.Flag.EnablesConscription)).Name);
 		string[] draftable = gameData.unitPrototypes.Where(u => u.isDraftable).Select(u => u.name).ToArray();
 		Assert.Contains("Spearman", draftable);
 		Assert.Contains("Pikeman", draftable);
@@ -78,7 +78,7 @@ public class DraftTest : IClassFixture<SaveGameFixture> {
 
 	[Fact]
 	public void NationalismIsNeeded() {
-		player.knownTechs.Remove(gameData.techs.First(t => t.EnablesConscription).id);
+		player.knownTechs.Remove(gameData.techs.First(t => t.HasFlag(SaveTech.Flag.EnablesConscription)).id);
 		Assert.NotNull(city.WhyCannotDraft(gameData));
 	}
 
@@ -143,7 +143,7 @@ public class DraftTest : IClassFixture<SaveGameFixture> {
 	public void TheStandaloneRulesetHasTheDraftFlags() {
 		SaveGameFixture fixture = new();
 		C7GameData.GameData standalone = fixture.standaloneSaveGame.ToGameData(fixture.behaviors);
-		Assert.Equal("Nationalism", standalone.techs.Single(t => t.EnablesConscription).Name);
+		Assert.Equal("Nationalism", standalone.techs.Single(t => t.HasFlag(SaveTech.Flag.EnablesConscription)).Name);
 		Assert.Contains(standalone.unitPrototypes, u => u.isDraftable && u.name == "Rifleman");
 	}
 }

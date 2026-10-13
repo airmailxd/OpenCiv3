@@ -6,8 +6,9 @@ namespace C7Engine.AI {
 	// A simple espionage policy for the AI: establish embassies with every
 	// civ it has met, plant spies once it has the Intelligence Agency, and
 	// now and then steal technology from civs it is at war with. It always
-	// keeps a reserve of gold. More hostile missions (sabotage, inciting
-	// revolts) are left to human players for now.
+	// keeps a reserve of gold. The other spy missions (sabotage,
+	// propaganda, stealing plans or maps, exposing spies) are left to human
+	// players for now.
 	public static class EspionageAI {
 		private const int GoldReserve = 100;
 		// Theft is only tried when the treasury is comfortably above the
@@ -31,12 +32,7 @@ namespace C7Engine.AI {
 					TryMission(gameData, player, EspionageMission.PlantSpy, other, null, GoldReserve);
 				}
 				if (pr.AtWar() && GameData.rng.Next(100) < TheftChancePercent) {
-					// With the AI fog of war, only a city we know of.
-					City target = other.cities.Where(c => AIFogOfWar.KnowsTile(player, c.location))
-						.OrderByDescending(c => c.IsCapital()).FirstOrDefault();
-					if (target != null) {
-						TryMission(gameData, player, EspionageMission.StealTechnology, other, target, TheftReserve);
-					}
+					TryMission(gameData, player, EspionageMission.StealTechnology, other, null, TheftReserve);
 				}
 			}
 		}

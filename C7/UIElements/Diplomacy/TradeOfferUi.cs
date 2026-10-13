@@ -1,6 +1,7 @@
 using C7Engine;
 using C7GameData;
 using Godot;
+using Resource = C7GameData.Resource;
 using System;
 using System.Linq;
 using System.Collections.Generic;
@@ -9,7 +10,14 @@ using ConvertCiv3Media;
 public partial class TradeOfferUi : Tree {
 	TreeItem peaceTreaty;
 	TreeItem rightOfPassage;
+	TreeItem mutualProtectionPact;
+	// The civ each military alliance or trade embargo item is against.
+	Dictionary<TreeItem, ID> alliances = new();
+	Dictionary<TreeItem, ID> embargoes = new();
 	TreeItem lumpSumGold;
+	TreeItem goldPerTurn;
+	// The resource (by key) each resource item stands for.
+	Dictionary<TreeItem, string> resources = new();
 	// The tech each technology item stands for.
 	Dictionary<TreeItem, Tech> techs = new();
 	// The city each city item stands for.
@@ -20,7 +28,8 @@ public partial class TradeOfferUi : Tree {
 
 	public TradeOfferUi(Theme fontTheme, List<Tech> tradeableTechs, List<City> tradeableCities, int playerGold,
 						TradeOffer currentOffer, bool requiresPeaceTreaty,
-						HorizontalAlignment alignment) {
+						HorizontalAlignment alignment, List<Resource> tradeableResources = null,
+						TradingTree.PactChoices pacts = null) {
 		this.currentOffer = currentOffer;
 		this.tradeableTechs = tradeableTechs;
 		this.playerGold = playerGold;
@@ -43,11 +52,36 @@ public partial class TradeOfferUi : Tree {
 		rightOfPassage.SetTextAlignment(0, alignment);
 		rightOfPassage.SetText(0, "Right of Passage");
 
+		mutualProtectionPact = this.CreateItem(root);
+		mutualProtectionPact.SetTextAlignment(0, alignment);
+		mutualProtectionPact.SetText(0, "Mutual Protection Pact");
+		foreach (Player target in pacts?.allianceTargets ?? new()) {
+			TreeItem child = this.CreateItem(root);
+			child.SetTextAlignment(0, alignment);
+			child.SetText(0, $"Military Alliance against the {target.civilization?.noun}");
+			alliances[child] = target.id;
+		}
+		foreach (Player target in pacts?.embargoTargets ?? new()) {
+			TreeItem child = this.CreateItem(root);
+			child.SetTextAlignment(0, alignment);
+			child.SetText(0, $"Trade Embargo against the {target.civilization?.noun}");
+			embargoes[child] = target.id;
+		}
+
 		// Add tree items for all the possible things that could be traded - we
 		// determine whether they're visible based on the current offer in
 		// RefreshUiForOffer.
 		lumpSumGold = this.CreateItem(root);
 		lumpSumGold.SetTextAlignment(0, alignment);
+		goldPerTurn = this.CreateItem(root);
+		goldPerTurn.SetTextAlignment(0, alignment);
+
+		foreach (Resource r in tradeableResources ?? new()) {
+			TreeItem child = this.CreateItem(root);
+			child.SetTextAlignment(0, alignment);
+			child.SetText(0, r.Name);
+			resources[child] = r.Key;
+		}
 
 		foreach (Tech tech in tradeableTechs) {
 			TreeItem child = this.CreateItem(root);
@@ -78,6 +112,12 @@ public partial class TradeOfferUi : Tree {
 			}
 			if (cities.TryGetValue(ti, out City itemCity)) {
 				currentOffer.cities.Remove(itemCity);
+			}
+			if (resources.TryGetValue(ti, out string resourceKey)) {
+				currentOffer.resources.Remove(resourceKey);
+			}
+			if (ti == goldPerTurn) {
+				currentOffer.goldPerTurn = 0;
 			}
 			if (ti == lumpSumGold && mouseButtonIndex != 2) {
 				currentOffer.gold = null;
@@ -119,6 +159,18 @@ public partial class TradeOfferUi : Tree {
 				currentOffer.rightOfPassage = false;
 				other.currentOffer.rightOfPassage = false;
 			}
+			if (ti == mutualProtectionPact) {
+				currentOffer.mutualProtectionPact = false;
+				other.currentOffer.mutualProtectionPact = false;
+			}
+			if (alliances.ContainsKey(ti)) {
+				currentOffer.militaryAllianceAgainst = null;
+				other.currentOffer.militaryAllianceAgainst = null;
+			}
+			if (embargoes.ContainsKey(ti)) {
+				currentOffer.tradeEmbargoAgainst = null;
+				other.currentOffer.tradeEmbargoAgainst = null;
+			}
 
 			if (ti == peaceTreaty) {
 				// If we click the peace treaty off the trading table, remove
@@ -144,6 +196,12 @@ public partial class TradeOfferUi : Tree {
 			lumpSumGold.Visible = false;
 		}
 
+		goldPerTurn.SetText(0, $"{currentOffer.goldPerTurn} gold per turn");
+		goldPerTurn.Visible = currentOffer.goldPerTurn > 0;
+		foreach (var (ti, key) in resources) {
+			ti.Visible = currentOffer.resources.Contains(key);
+		}
+
 		HashSet<string> offeredTechs = new(currentOffer.techs.Select(x => x.Name));
 		foreach (var (ti, tech) in techs) {
 			ti.Visible = offeredTechs.Contains(tech.Name);
@@ -156,5 +214,12 @@ public partial class TradeOfferUi : Tree {
 			peaceTreaty.Visible = currentOffer.partOfPeaceTreaty;
 		}
 		rightOfPassage.Visible = currentOffer.rightOfPassage;
+		mutualProtectionPact.Visible = currentOffer.mutualProtectionPact;
+		foreach (var (ti, target) in alliances) {
+			ti.Visible = currentOffer.militaryAllianceAgainst == target;
+		}
+		foreach (var (ti, target) in embargoes) {
+			ti.Visible = currentOffer.tradeEmbargoAgainst == target;
+		}
 	}
 }

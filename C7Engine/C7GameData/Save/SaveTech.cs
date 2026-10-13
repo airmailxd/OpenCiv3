@@ -17,8 +17,50 @@ namespace C7GameData.Save {
 			// Civs may sign right of passage agreements (Map Making in
 			// Civ3).
 			EnablesRightOfPassage,
-			// Cities may draft citizens (Nationalism in Civ3).
+
+			// The rest of the BIQ's tech flags ("advance flags" in the Civ3
+			// editor). The Conquests editor added "Cannot be traded, Permits
+			// Sacrifice, Bonus Tech, Reveal Map"
+			// (https://forums.civfanatics.com/threads/civ3-conquests-editor-features.67911/).
+			//
+			// Embassies can be established (Writing in Conquests: "Writing
+			// allows you to found embassies",
+			// https://sullla.com/Civ3/CQ/CQ_techs.html). Used by
+			// Tech.FindEmbassyTech.
+			EnablesDiplomats,
+			// TODO(consumer): disease (plague) isn't modelled yet.
+			DisablesDiseases,
+			// TODO(consumer): drafting citizens into units.
 			EnablesConscription,
+			// TODO(consumer): the Mobilization war-time production mode.
+			EnablesMobilization,
+			// TODO(consumer): recycling centers / pollution.
+			EnablesRecycling,
+			// TODO(consumer): precision strikes by bombers.
+			EnablesPrecisionBombing,
+			// TODO(consumer): mutual protection pacts in diplomacy.
+			EnablesMutualProtection,
+			// TODO(consumer): military alliances in diplomacy.
+			EnablesMilitaryAlliances,
+			// TODO(consumer): trade embargoes in diplomacy.
+			EnablesTradeEmbargoes,
+			// TODO(consumer): trade routes over sea tiles (TradeNetwork).
+			EnablesTradeOverSea,
+			// TODO(consumer): trade routes over ocean tiles (TradeNetwork).
+			EnablesTradeOverOcean,
+			// TODO(consumer): trading world maps in diplomacy (Navigation in
+			// Conquests, https://sullla.com/Civ3/CQ/CQ_techs.html).
+			EnablesMapTrading,
+			// TODO(consumer): trading contacts in diplomacy.
+			EnablesCommunicationTrading,
+			// The tech can't be traded in diplomacy (see
+			// Player.GetTechsTradableTo).
+			CannotBeTraded,
+			// TODO(consumer): sacrificing citizens (the Sacrifice Altar).
+			PermitsSacrifice,
+			// Learning the tech reveals the whole map (Satellites in
+			// Conquests; see Player.RevealWholeMap).
+			RevealsWorldMap,
 		}
 
 		public ID id;
@@ -58,7 +100,7 @@ namespace C7GameData.Save {
 				EnablesIrrigationEverywhere = this.flags.Contains(Flag.EnablesIrrigationEverywhere),
 				DoublesWorkerRate = this.flags.Contains(Flag.DoublesWorkerRate),
 				EnablesRightOfPassage = this.flags.Contains(Flag.EnablesRightOfPassage),
-				EnablesConscription = this.flags.Contains(Flag.EnablesConscription),
+				Flags = new HashSet<Flag>(this.flags),
 				EraCivilopediaName = this.EraCivilopediaName,
 				SmallIconPath = this.SmallIconPath,
 				X = this.X,

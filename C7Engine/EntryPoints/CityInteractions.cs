@@ -295,8 +295,8 @@ namespace C7Engine {
 			captor.DoCorruptionCalculations(gameData);
 		}
 
-		// Hands a city over to another player peacefully, as when it is
-		// incited to revolt: unlike a capture it keeps its citizens and
+		// Hands a city over to another player peacefully, as when it
+		// defects or is traded: unlike a capture it keeps its citizens and
 		// buildings, except the palace and small wonders, which belong to the
 		// old owner's empire. As in Civ3, the old owner's units in it join the
 		// new owner along with the city.
