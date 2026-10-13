@@ -39,7 +39,9 @@ public partial class MapUnit {
 	}
 
 	// Destroys the improvements on the unit's tile (see PillageTargets) for
-	// one movement point.
+	// one movement point. Armies pillage for nothing: in Conquests "Armies
+	// now have blitz ... and can pillage without expending a movement point"
+	// (https://forums.civfanatics.com/threads/civ3-conquests-additions-changes-list.104294/).
 	public bool Pillage() {
 		if (!CanPillage()) {
 			return false;
@@ -51,7 +53,8 @@ public partial class MapUnit {
 				location.overlays.Add(target.upgradesFrom);
 		}
 		location.OwningPlayer()?.AddWarWeariness(owner, Player.WarWearinessForPillagedOrBombedImprovement);
-		movementPoints.onUnitMove(1);
+		if (!IsArmy())
+			movementPoints.onUnitMove(1);
 		hasPillagedThisTurn = true;
 		Wake();
 		return true;
