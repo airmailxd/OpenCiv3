@@ -35,7 +35,7 @@ public partial class TradeAdvisor : Control {
 	}
 
 	public override void _Ready() {
-		this.CreateUI();
+		AdvisorUtils.CreateUI(this, CreateUI);
 	}
 
 	private void CreateUI() {

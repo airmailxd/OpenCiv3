@@ -26,8 +26,22 @@ public partial class GameViews : CenterContainer {
 	}
 
 	private void OnShowGameView(string gameView) {
+		log.Information("Showing {GameView}", gameView);
 		HideGameViews();
 
+		// As with the advisors, a view that fails to fill itself in is still
+		// shown, and the failure logged to the game's log rather than only to
+		// Godot's own (owner's report, 2026-10-12).
+		try {
+			ShowGameViewScreen(gameView);
+		} catch (System.Exception e) {
+			log.Error(e, "Couldn't fill in {GameView}", gameView);
+		}
+
+		Show();
+	}
+
+	private void ShowGameViewScreen(string gameView) {
 		switch (gameView) {
 			case C7Action.ShowWondersView:
 				wondersView.ShowView();
@@ -48,8 +62,6 @@ public partial class GameViews : CenterContainer {
 				log.Warning("Unknown game view: " + gameView);
 				break;
 		}
-
-		Show();
 	}
 
 	private void HideGameViews() {

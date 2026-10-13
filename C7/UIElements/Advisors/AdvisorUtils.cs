@@ -3,6 +3,23 @@ using C7GameData;
 using Godot;
 
 public static class AdvisorUtils {
+	private static readonly Serilog.ILogger log = LogManager.ForContext<Advisors>();
+
+	/// <summary>
+	/// Builds an advisor screen, logging anything that goes wrong to the
+	/// game's log. An exception in a screen's _Ready only reached Godot's own
+	/// log, so when the art of the advisor faces was missing every advisor
+	/// screen but the Domestic advisor's failed to open without a trace in
+	/// the game's log (owner's report, 2026-10-12).
+	/// </summary>
+	public static void CreateUI(Control screen, System.Action create) {
+		try {
+			create();
+		} catch (System.Exception e) {
+			log.Error(e, "Couldn't build the {Screen} screen", screen.Name);
+		}
+	}
+
 	public static TextureButton CreateExitButton(Control parent, Vector2? position = null) {
 		Vector2 buttonPosition = position ?? new Vector2(952, 720);
 
@@ -46,20 +63,71 @@ public static class AdvisorUtils {
 
 		foreach (AdvisorHead.Advisor advisor in System.Enum.GetValues<AdvisorHead.Advisor>()) {
 			string key = "advisors.sidebar." + SidebarKey(advisor);
+			// Without the art of the faces (as in a standalone release that
+			// shipped without it, owner's report, 2026-10-12), they're drawn
+			// from the advisors' popup heads.
+			bool drawn = TextureLoader.TryLoad(key + ".normal") == null;
 			// Named, as the faces alone don't say which advisor is which.
 			TextureButton face = new() { TooltipText = C7Action.AdvisorScreenLabel((int)advisor, MacShortcuts.IsMac) };
 			if (advisor == current) {
-				ImageTexture active = TextureLoader.Load(key + ".active");
+				ImageTexture active = drawn ? DrawSidebarFace(advisor, ActiveRing) : TextureLoader.Load(key + ".active");
 				face.TextureNormal = active;
 				face.TextureDisabled = active;
 				face.Disabled = true;
 			} else {
-				TextureLoader.SetButtonTextures(face, key);
+				if (drawn) {
+					face.TextureNormal = DrawSidebarFace(advisor, NormalRing);
+					face.TextureHover = DrawSidebarFace(advisor, HoverRing);
+					face.TexturePressed = DrawSidebarFace(advisor, ActiveRing);
+				} else {
+					TextureLoader.SetButtonTextures(face, key);
+				}
 				face.Pressed += () => FindAdvisors(parent)?.ShowAdvisor(advisor);
+			}
+			if (drawn) {
+				// A face whose head couldn't be drawn either can still be clicked.
+				face.CustomMinimumSize = new Vector2(SidebarFaceSize, SidebarFaceSize);
 			}
 			face.SetPosition(sidebarPosition + new Vector2(0, spacing * (int)advisor));
 			parent.AddChild(face);
 		}
+	}
+
+	// The faces drawn when the sidebar's art is missing, as big as Civ3's,
+	// in rings of the colors of its states.
+	private const int SidebarFaceSize = 54;
+	private static readonly Color NormalRing = Color.Color8(214, 190, 130);
+	private static readonly Color HoverRing = Color.Color8(242, 228, 188);
+	private static readonly Color ActiveRing = Color.Color8(115, 135, 214);
+
+	// An advisor's face for the sidebar drawn from their popup head: a round
+	// crop of the face in a ring of the given color, or null if there's no
+	// head to draw it from.
+	private static ImageTexture DrawSidebarFace(AdvisorHead.Advisor advisor, Color ring) {
+		Image head = AdvisorHead.GetPopupImage(advisor, AdvisorHead.Mood.Happy, eraIndex: 0)?.GetImage();
+		if (head == null || head.IsEmpty()) {
+			return null;
+		}
+		// The face is in the middle of the head, which is wider than it's tall.
+		int side = Mathf.Min(head.GetWidth(), head.GetHeight());
+		Image face = head.GetRegion(new Rect2I((head.GetWidth() - side) / 2, 0, side, side));
+		face.Convert(Image.Format.Rgba8);
+		face.Resize(SidebarFaceSize, SidebarFaceSize, Image.Interpolation.Lanczos);
+
+		Vector2 center = new Vector2(SidebarFaceSize, SidebarFaceSize) / 2;
+		float outer = SidebarFaceSize / 2f;
+		float inner = outer - 3;
+		for (int y = 0; y < SidebarFaceSize; y++) {
+			for (int x = 0; x < SidebarFaceSize; x++) {
+				float distance = new Vector2(x + 0.5f, y + 0.5f).DistanceTo(center);
+				if (distance > outer) {
+					face.SetPixel(x, y, Colors.Transparent);
+				} else if (distance > inner) {
+					face.SetPixel(x, y, ring);
+				}
+			}
+		}
+		return ImageTexture.CreateFromImage(face);
 	}
 
 	private static Advisors FindAdvisors(Node node) {

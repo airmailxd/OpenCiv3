@@ -36,7 +36,7 @@ public partial class MilitaryAdvisor : Control {
 	}
 
 	public override void _Ready() {
-		this.CreateUI();
+		AdvisorUtils.CreateUI(this, CreateUI);
 	}
 
 	private void CreateUI() {
@@ -130,11 +130,48 @@ public partial class MilitaryAdvisor : Control {
 				_ => "We are even",
 			};
 			_intelligenceList.AddChild(AdvisorUtils.MakeRow(22,
-				AdvisorUtils.MakeIcon(TextureLoader.Load(atWar ? "advisors.military.status.war" : "advisors.military.status.peace"), 11),
+				AdvisorUtils.MakeIcon(StatusIcon(atWar), 11),
 				AdvisorUtils.MakeLabel(AdvisorUtils.CivName(rival), 12, 92),
 				AdvisorUtils.MakeLabel(atWar ? "At War" : "At Peace", 12, 60),
 				AdvisorUtils.MakeLabel(strength, 12)));
 		}
+	}
+
+	// The icons drawn when the art of the war and peace icons is missing (as
+	// in a standalone release that shipped without it, owner's report,
+	// 2026-10-12), by whether at war.
+	private static readonly Dictionary<bool, ImageTexture> drawnStatusIcons = [];
+
+	// The icon of whether we're at war or peace with a civ: Civ3's red dot
+	// for war and red ring for peace.
+	private static Texture2D StatusIcon(bool atWar) {
+		ImageTexture art = TextureLoader.TryLoad(atWar ? "advisors.military.status.war" : "advisors.military.status.peace");
+		if (art != null) {
+			return art;
+		}
+		if (!drawnStatusIcons.TryGetValue(atWar, out ImageTexture drawn)) {
+			drawn = DrawStatusIcon(atWar);
+			drawnStatusIcons[atWar] = drawn;
+		}
+		return drawn;
+	}
+
+	private static ImageTexture DrawStatusIcon(bool atWar) {
+		const int size = 11;
+		Color red = Color.Color8(205, 30, 30);
+		Image image = Image.CreateEmpty(size, size, false, Image.Format.Rgba8);
+		Vector2 center = new Vector2(size, size) / 2;
+		for (int y = 0; y < size; y++) {
+			for (int x = 0; x < size; x++) {
+				float distance = new Vector2(x + 0.5f, y + 0.5f).DistanceTo(center);
+				if (distance <= size / 2f && (atWar || distance > size / 2f - 1.5f)) {
+					image.SetPixel(x, y, red);
+				} else if (distance <= size / 2f) {
+					image.SetPixel(x, y, Colors.White);
+				}
+			}
+		}
+		return ImageTexture.CreateFromImage(image);
 	}
 
 	private void FillArmyByUnit(GameData gameData, Player player) {
