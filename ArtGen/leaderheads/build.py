@@ -154,7 +154,7 @@ PAINT = {
     # statues before a light wall: the sitter's outline pulled in further,
     # so no light rim of the wall glows round the head
     'Babylon': {'erode': 15, 'plain': 1.0, 'edge': 3},
-    'Hittites': {'erode': 8, 'hand_only': True, 'level': 0.36, 'local': 1.5, 'feather': 4, 'edge': 5, 'shrink': 2, 'bg': 1.0,
+    'Hittites': {'erode': 8, 'hand_only': True, 'level': 0.36, 'local': 1.5, 'feather': 4, 'edge': 7, 'shrink': 4, 'bg': 1.0,
                  'hand': [[(0.24, 0.42), (0.3, 0.25), (0.42, 0.06), (0.5, 0.0), (0.58, 0.04), (0.72, 0.25), (0.8, 0.45),
                            (0.86, 0.6), (0.82, 0.68), (0.8, 0.8), (0.75, 0.9), (0.72, 1), (0.3, 1), (0.26, 0.85),
                            (0.24, 0.7), (0.22, 0.55)]]},
@@ -170,7 +170,7 @@ PAINT = {
                            (0.34, 0.77), (0.37, 0.62), (0.3, 0.5)]]},
     # a pale face on pale silk the mask can't tell apart
     'Korea': {'keep': 1.0, 'color': 0.7, 'level': 0.22, 'hand_only': True, 'local': 3.0, 'feather': 5, 'erode': 15,
-              'edge': 5, 'shrink': 2, 'bg': 1.0,
+              'edge': 7, 'shrink': 4, 'bg': 1.0,
               'hand': [[(0.38, 0.06), (0.64, 0.06), (0.67, 0.3), (0.67, 0.45), (0.67, 0.5), (0.67, 0.62), (0.66, 0.72),
                         (1, 0.78), (1, 1), (0, 1), (0, 0.78), (0.34, 0.72), (0.33, 0.62), (0.33, 0.5), (0.33, 0.45),
                         (0.33, 0.3)]]},
@@ -201,6 +201,10 @@ PAINT = {
 
 # The brightness every portrait's mid-tones are brought toward (0..1).
 TARGET_LEVEL = 0.42
+# Faces much paler than the set's (Wang Kon's stand-in, a pale painted face
+# on silk): (cx, cy, rx, ry, brightness) of an ellipse brought to about the
+# set's typical face brightness.
+FACE = {'Korea': (0.51, 0.58, 0.17, 0.16, 0.55)}
 
 
 # ---------------------------------------------------------------- Commons
@@ -428,7 +432,29 @@ def make(civ_name, painted=False):
         a = paint.paint(im, seed=sum(map(ord, civ_name)), **{'level': TARGET_LEVEL, **PAINT.get(civ_name, {})})
         im = Image.fromarray((a * 255 + 0.5).astype(np.uint8), 'RGB').resize((SIZE, SIZE), Image.LANCZOS)
         sharpen = 0   # (sharpening brightens the ground's edge into rims)
-    return finish(im, sharpen=sharpen, level=not painted), info
+    out = finish(im, sharpen=sharpen, level=not painted)
+    if painted and civ_name in FACE:
+        out = _face_level(out, *FACE[civ_name])
+    return out, info
+
+
+def _face_level(im, cx, cy, rx, ry, target):
+    """A face much lighter than the set's (a pale painted face): within a
+    soft ellipse (center and radii in fractions of the tile), a gamma that
+    brings its mean brightness to target, and a slight warm tint."""
+    a = np.asarray(im, np.float32) / 255
+    n = a.shape[0]
+    y, x = np.mgrid[0:n, 0:n].astype(np.float32) / n
+    r = np.hypot((x - cx) / rx, (y - cy) / ry)
+    w = np.clip((1.25 - r) / 0.5, 0, 1)[..., None]
+    mean = float(_luma(a)[r < 1].mean())
+    g = np.log(target) / np.log(max(1e-3, min(mean, 0.99)))
+    d = a ** g
+    # (a gamma on a yellowish face saturates it: half its color taken back)
+    d = d * 0.5 + _luma(d)[..., None] * 0.5
+    warm = np.clip(d * np.array([1.06, 0.97, 0.86], np.float32), 0, 1)
+    a = a * (1 - w) + warm * w
+    return Image.fromarray((np.clip(a, 0, 1) * 255 + 0.5).astype(np.uint8), 'RGB')
 
 
 # ---------------------------------------------------------------- previews
