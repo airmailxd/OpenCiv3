@@ -167,7 +167,8 @@ def backdrop(n, seed):
 
 def paint(img, seed=0, strength=1.0, oval=1.0, keep=0.4, broad=70, bg=0.92, color=0.75, erode=60, level=0.42,
           fixed=None, plain=None, contrast=1.0, texture=1.0, green=None, hand=None, soften=0,
-          hand_only=False, local=0, feather=0, edge=0, shrink=0, gamma=1.0, surround=0.0):
+          hand_only=False, local=0, feather=0, edge=0, shrink=0, gamma=1.0, surround=0.0,
+          around=(0.5, 0.62, 0.22, 0.28), deep=0.75, collar=None, wallgrade=0.95):
     """The painted finish on a PIL RGB picture (returns float RGB 0..1).
     Per picture: oval, how sure the center is the sitter (lower for a
     sitter before a bright wall, which would glow); keep, how much of the
@@ -182,6 +183,16 @@ def paint(img, seed=0, strength=1.0, oval=1.0, keep=0.4, broad=70, bg=0.92, colo
     if gamma != 1.0:
         # the whole source darkened (or lightened) before anything else
         a = a ** gamma
+    if collar:
+        # a pale bluish band (a white under-collar) between rows y0..y1
+        # (fractions of the tile) darkened and warmed to the robe around it
+        y0, y1 = (int(v * n) for v in collar)
+        seg = a[y0:y1]
+        lz = _luma(seg)
+        sel = np.clip((lz - 0.35) / 0.15, 0, 1) * np.clip((seg[..., 2] - seg[..., 0] + 0.05) / 0.1, 0, 1)
+        sel = nd.gaussian_filter(sel, 2)[..., None]
+        a = a.copy()
+        a[y0:y1] = seg * (1 - sel) + (seg * 0.35) * sel
     if contrast != 1.0:
         a = np.clip((a - a.mean()) * contrast + a.mean(), 0, 1)
     mask, wall = subject_mask(a, oval, erode, plain)
@@ -307,11 +318,15 @@ def paint(img, seed=0, strength=1.0, oval=1.0, keep=0.4, broad=70, bg=0.92, colo
         # (a painting kept whole, its own background: everything outside a
         # soft oval round the sitter darkened and calmed into the umber key)
         yy, xx = np.mgrid[0:n, 0:n].astype(np.float32)
-        ov = np.exp(-(((xx - n * 0.5) / (n * 0.22)) ** 2 + ((yy - n * 0.62) / (n * 0.28)) ** 2))[..., None]
+        acx, acy, arx, ary = around
+        ov = np.exp(-(((xx - n * acx) / (n * arx)) ** 2 + ((yy - n * acy) / (n * ary)) ** 2))[..., None]
         lq = _luma(np.clip(p, 0, 1))[..., None]
         calm = lq * 0.6 + p * 0.4
-        dark = calm * 0.25 + bd * 0.75
-        k = surround * (1 - ov)
+        dark = calm * (1 - deep) + bd * deep
+        # (and the old wall even close to the sitter, where it matches the
+        # border: darkened in proportion, so no cut edge and no light rim)
+        wsoft = np.clip(nd.gaussian_filter(wall, n / 160), 0, 1)[..., None]
+        k = surround * np.maximum(1 - ov, wsoft * wallgrade)
         p = p * (1 - k) + dark * k
     # brush texture: faint strokes along the forms on the subject, a
     # crisscrossed brushed ground behind

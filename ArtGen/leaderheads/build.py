@@ -153,12 +153,12 @@ PAINT = {
                        (0.29, 0.5)]]},
     # statues before a light wall: the sitter's outline pulled in further,
     # so no light rim of the wall glows round the head
-    'Babylon': {'erode': 15, 'plain': 1.0, 'edge': 5, 'shrink': 1},
+    'Babylon': {'erode': 15, 'plain': 1.0, 'edge': 7, 'shrink': 2},
     'Hittites': {'erode': 8, 'hand_only': True, 'level': 0.36, 'local': 1.5, 'feather': 4, 'edge': 7, 'shrink': 4, 'bg': 1.0,
                  'hand': [[(0.24, 0.42), (0.3, 0.25), (0.42, 0.06), (0.5, 0.0), (0.58, 0.04), (0.72, 0.25), (0.8, 0.45),
                            (0.86, 0.6), (0.82, 0.68), (0.8, 0.8), (0.75, 0.9), (0.72, 1), (0.3, 1), (0.26, 0.85),
                            (0.24, 0.7), (0.22, 0.55)]]},
-    'Sumeria': {'erode': 15, 'edge': 3},
+    'Sumeria': {'erode': 15, 'edge': 6, 'shrink': 2},
     'Greece': {'hand_only': True,
                'hand': [[(0.16, 0.3), (0.19, 0.15), (0.3, 0.09), (0.55, 0.08), (0.75, 0.13), (0.85, 0.22), (0.89, 0.5),
                          (0.86, 1), (0.22, 1), (0.16, 0.65)]]},
@@ -171,11 +171,9 @@ PAINT = {
     # a pale face on pale silk the mask can't tell apart
     # a pale face on pale silk: the whole picture darkened first, and an
     # outline for the hat, face and shoulders, which the mask can't find
-    'Korea': {'keep': 1.0, 'color': 0.6, 'level': 0, 'hand_only': True, 'local': 2.0, 'gamma': 1.3, 'feather': 5,
-              'edge': 5, 'shrink': 2, 'bg': 1.0,
-              'hand': [[(0.36, 0.03), (0.66, 0.03), (0.72, 0.3), (0.73, 0.45), (0.74, 0.55), (0.72, 0.65), (0.68, 0.74),
-                        (1, 0.78), (1, 1), (0, 1), (0, 0.78), (0.33, 0.74), (0.29, 0.65), (0.27, 0.55), (0.28, 0.45),
-                        (0.3, 0.3)]]},
+    'Korea': {'bg': 0.0, 'surround': 1.0, 'wallgrade': 0.0, 'around': (0.51, 0.42, 0.2, 0.36), 'deep': 0.8,
+              'gamma': 1.6, 'color': 0.6, 'local': 2.0, 'keep': 0.9, 'level': 0.30, 'collar': (0.66, 0.84),
+              'post': 0.75},
     # photographs: more of the real picture kept on the face, so the
     # strokes don't break skin into patches
     'America': {'keep': 0.55, 'erode': 30, 'feather': 3},
@@ -184,10 +182,11 @@ PAINT = {
     'Mongols': {'color': 0.35, 'level': 0.30, 'keep': 0.8, 'feather': 3, 'edge': 5, 'shrink': 3, 'bg': 1.0,
                 'hand': [[(0.22, 0.6), (0.24, 0.25), (0.33, 0.1), (0.5, 0.05), (0.67, 0.1), (0.78, 0.25), (0.84, 0.6),
                           (1, 0.7), (1, 1), (0, 1), (0, 0.7)]]},
-    'Japan': {'edge': 3, 'feather': 5, 'texture': 0.3, 'hand': [[(0.36, 0.45), (0.4, 0.3), (0.5, 0.2), (0.62, 0.18), (0.7, 0.25), (0.76, 0.35), (0.8, 0.5),
+    'Japan': {'edge': 6, 'shrink': 2, 'feather': 5, 'texture': 0.3, 'broad': 140,
+              'hand': [[(0.36, 0.45), (0.4, 0.3), (0.5, 0.2), (0.62, 0.18), (0.7, 0.25), (0.76, 0.35), (0.8, 0.5),
                         (0.82, 0.55), (1, 0.52), (1, 1), (0, 1), (0, 0.75), (0.3, 0.68), (0.36, 0.6)]]},
     # a painting kept whole, its own background darkened into the key
-    'Celts': {'bg': 0.0, 'surround': 1.0, 'texture': 0.5, 'level': 0.34},
+    'Celts': {'bg': 0.0, 'surround': 1.0, 'deep': 0.9, 'texture': 0.5, 'level': 0.34, 'local': 1.4, 'post': 0.5},
     'Byzantines': {'keep': 0.75, 'broad': 150},
     'Aztecs': {'broad': 140,
                'hand': [[(0.38, 0.25), (0.42, 0.1), (0.5, 0.05), (0.62, 0.02), (0.75, 0.02), (0.8, 0.1), (0.78, 0.3),
@@ -205,7 +204,7 @@ TARGET_LEVEL = 0.42
 # Faces much paler than the set's (Wang Kon's stand-in, a pale painted face
 # on silk): (cx, cy, rx, ry, brightness) of an ellipse brought to about the
 # set's typical face brightness.
-FACE = {'Korea': (0.51, 0.58, 0.22, 0.19, 0.52)}
+FACE = {}
 
 
 # ---------------------------------------------------------------- Commons
@@ -430,13 +429,33 @@ def make(civ_name, painted=False):
     sharpen = extra.get('sharpen', 45 if upscale < 0.8 else 25)
     if painted:
         import paint
-        a = paint.paint(im, seed=sum(map(ord, civ_name)), **{'level': TARGET_LEVEL, **PAINT.get(civ_name, {})})
+        a = paint.paint(im, seed=sum(map(ord, civ_name)),
+                        **{'level': TARGET_LEVEL, **{k: v for k, v in PAINT.get(civ_name, {}).items() if k != 'post'}})
         im = Image.fromarray((a * 255 + 0.5).astype(np.uint8), 'RGB').resize((SIZE, SIZE), Image.LANCZOS)
         sharpen = 0   # (sharpening brightens the ground's edge into rims)
     out = finish(im, sharpen=sharpen, level=not painted)
+    if painted and PAINT.get(civ_name, {}).get('surround'):
+        # (the levels in finish lift a darkened surround again: darkened once
+        # more after them, toward the set's dark umber)
+        ps = PAINT[civ_name]
+        out = _surround_post(out, ps.get('around', (0.5, 0.62, 0.22, 0.28)), ps.get('post', 0.6))
     if painted and civ_name in FACE:
         out = _face_level(out, *FACE[civ_name])
     return out, info
+
+
+def _surround_post(im, around, amount):
+    """Everything outside a soft oval (cx, cy, rx, ry in fractions of the
+    tile) multiplied darker by up to amount, and warmed toward umber."""
+    a = np.asarray(im, np.float32) / 255
+    n = a.shape[0]
+    cx, cy, rx, ry = around
+    y, x = np.mgrid[0:n, 0:n].astype(np.float32) / n
+    ov = np.exp(-(((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2))[..., None]
+    k = amount * (1 - ov)
+    umber = _luma(a)[..., None] * np.array([0.62, 0.48, 0.34], np.float32)
+    a = a * (1 - k) + umber * k * 0.55
+    return Image.fromarray((np.clip(a, 0, 1) * 255 + 0.5).astype(np.uint8), 'RGB')
 
 
 def _face_level(im, cx, cy, rx, ry, target):
