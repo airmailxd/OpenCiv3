@@ -33,6 +33,7 @@ public partial class MapUnit {
 		defensiveBombardsRemaining = 1;
 		hasAttackedThisTurn = false;
 		hasPillagedThisTurn = false;
+		ResetAirMissions();
 
 		if (isSentried && location.neighbors.Values.Any(t => t.unitsOnTile.Any(ShouldWakeSentryFor))) {
 			Wake();
