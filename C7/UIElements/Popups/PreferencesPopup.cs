@@ -32,7 +32,8 @@ public partial class PreferencesPopup : Popup {
 		AddUnavailable(game, "Map Scroll Speed", "Not available yet: the map is moved by dragging it.");
 		AddOption(game, "Auto-Save", Preferences.Option.AutoSave,
 			"Saves the game as each of your turns begins, in the Auto folder of the saves. The last 10 are kept.");
-		AddUnavailable(game, "Capital Governor is Default for New Cities");
+		AddOption(game, "Capital Governor is Default for New Cities", Preferences.Option.CapitalGovernorIsDefaultForNewCities,
+			"The cities you found start with the options of your capital's governor (Contact Governor on a city).");
 		AddOption(game, "Always Wait at End of Turn", Preferences.Option.AlwaysWaitAtEndOfTurn,
 			"Off, your turn ends by itself once none of your units needs orders and nothing is waiting for an answer.");
 		AddUnavailable(game, "Show Civilopedia Book Cursor");

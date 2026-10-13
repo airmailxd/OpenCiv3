@@ -563,6 +563,8 @@ namespace C7GameData {
 		// tile owners afterwards hands those to whoever has claim to them.
 		internal void OnCityOwnerChanged(City city) {
 			city.ownerChangedTurn = turn;
+			// The old owner's governor doesn't serve the new one.
+			city.governor = new();
 			HashSet<Tile> withinBorders = city.GetTilesWithinBorders().ToHashSet();
 			foreach (Tile t in map.tiles) {
 				if (t.owningCity != city) {

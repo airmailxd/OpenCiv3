@@ -2060,6 +2060,11 @@ namespace C7GameData {
 
 		public void RecalculateCitizenMoods(GameData gameData, bool goIntoDisorderIfUnhappy = false) {
 			foreach (City c in cities) {
+				// A governor managing moods gets its turn first, so its city
+				// doesn't riot (after war weariness grows, say).
+				if (goIntoDisorderIfUnhappy) {
+					C7Engine.AI.CityTileAssignmentAI.GovernMoods(gameData, c);
+				}
 				City.Mood cityMood = c.RecalculateCitizenMoods(gameData);
 
 				// Disorder and celebrations start and end only at the turn's

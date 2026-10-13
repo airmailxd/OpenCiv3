@@ -1971,6 +1971,11 @@ public partial class Game : Node {
 			"Yes, start a new game.", "No, keep playing.", startAnother), PopupOverlay.PopupCategory.Info);
 	}
 
+	// Civ3's City Governor for one of the player's cities.
+	public void ShowGovernor(City city) {
+		popupOverlay.ShowPopup(new GovernorPopup(city), PopupOverlay.PopupCategory.Info);
+	}
+
 	// Civ3's Preferences (Ctrl-P, or from the game menu).
 	public void ShowPreferences() {
 		popupOverlay.ShowPopup(new PreferencesPopup(), PopupOverlay.PopupCategory.Info);
@@ -3128,7 +3133,9 @@ public partial class Game : Node {
 
 	private void OnBuildCity(string name) {
 		if (IsMapUnitValid(CurrentlySelectedUnit))
-			new MsgBuildCity(CurrentlySelectedUnit, name).send();
+			new MsgBuildCity(CurrentlySelectedUnit, name) {
+				capitalGovernorIsDefault = Preferences.CapitalGovernorIsDefaultForNewCities,
+			}.send();
 	}
 
 	// Shows the capital a new embassy reports on, with the tiles around it as

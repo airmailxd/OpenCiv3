@@ -149,6 +149,10 @@ namespace C7GameData {
 		// Whether the city is celebrating "We Love the King Day".
 		public bool celebrating = false;
 
+		// What the city's governor (Civ3's "Contact Governor") manages for
+		// its owner. See CityGovernor.
+		public CityGovernor governor = new();
+
 		public static City NONE = new City(Tile.NONE, null, "Dummy City", ID.None("city"));
 
 		public static bool IsValidCity(City city) {
@@ -847,7 +851,7 @@ namespace C7GameData {
 				newResident.city = this;
 				newResident.citizenType = gameData.citizenTypes.Find(x => x.IsDefaultCitizen);
 				AddCitizen(newResident);
-				C7Engine.AI.CityTileAssignmentAI.AssignNewCitizenToTile(gameData, newResident);
+				C7Engine.AI.CityTileAssignmentAI.AssignNewCitizenToTile(gameData, newResident, manageMoods: governor.manageMoods);
 				grew = true;
 			}
 

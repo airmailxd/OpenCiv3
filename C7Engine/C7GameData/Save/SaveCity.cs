@@ -85,6 +85,11 @@ namespace C7GameData.Save {
 		// completed something, so it can't switch to a wonder. Older saves
 		// lack it, and those cities may.
 		public bool receivedForestShields;
+		// The city's governor (see CityGovernor); all off in older saves.
+		public bool governorManagesMoods;
+		public bool governorEmphasizesFood;
+		public bool governorEmphasizesProduction;
+		public bool governorEmphasizesCommerce;
 		public List<SaveCityResident> residents = new List<SaveCityResident>();
 		public List<SaveCityBuilding> buildings = [];
 		public List<SaveQueuedProducible> productionQueue = [];
@@ -116,6 +121,10 @@ namespace C7GameData.Save {
 			ownerChangedTurn = city.ownerChangedTurn >= 0 ? city.ownerChangedTurn : null;
 			hurriedThisTurn = city.hurriedThisTurn;
 			receivedForestShields = city.receivedForestShields;
+			governorManagesMoods = city.governor.manageMoods;
+			governorEmphasizesFood = city.governor.emphasizeFood;
+			governorEmphasizesProduction = city.governor.emphasizeProduction;
+			governorEmphasizesCommerce = city.governor.emphasizeCommerce;
 			residents = city.residents.ConvertAll(resident => {
 				return new SaveCityResident {
 					nationality = resident.nationality?.name,
@@ -237,6 +246,12 @@ namespace C7GameData.Save {
 				ownerChangedTurn = ownerChangedTurn ?? -1,
 				hurriedThisTurn = hurriedThisTurn,
 				receivedForestShields = receivedForestShields,
+				governor = new CityGovernor {
+					manageMoods = governorManagesMoods,
+					emphasizeFood = governorEmphasizesFood,
+					emphasizeProduction = governorEmphasizesProduction,
+					emphasizeCommerce = governorEmphasizesCommerce,
+				},
 				capital = capital,
 				constructed_buildings = [],
 			};

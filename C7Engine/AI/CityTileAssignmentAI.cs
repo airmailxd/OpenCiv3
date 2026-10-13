@@ -15,6 +15,11 @@ namespace C7Engine.AI {
 		private static int productionPriorityRate = 50;
 		private static int commercePriorityRate = 30;
 
+		// How much more a yield the city's governor emphasizes counts.
+		// UNVERIFIED: Civ3 doesn't say how strongly its governor favours an
+		// emphasized yield, so it simply counts twice.
+		private const int EmphasisMultiplier = 2;
+
 		private static ILogger log = Log.ForContext<CityTileAssignmentAI>();
 
 		// Values that stay the same while several citizens of one city are
@@ -102,10 +107,10 @@ namespace C7Engine.AI {
 					double score;
 					if (context != null) {
 						var (food, production, commerce) = context.PlayerYields(t);
-						score = CalculateTileYieldScore(food, production, commerce, targetTileFoodAmount, foodIsWasted);
+						score = CalculateTileYieldScore(food, production, commerce, targetTileFoodAmount, foodIsWasted, city.governor);
 					} else {
 						score = CalculateTileYieldScore(t.FoodYield(city.owner).yield, t.ProductionYield(city.owner).yield, t.CommerceYield(city.owner).yield,
-							targetTileFoodAmount, foodIsWasted);
+							targetTileFoodAmount, foodIsWasted, city.governor);
 					}
 					if (debugLogging) {
 						log.Debug("Tile {Tile} scored {Score}", t, score);
@@ -141,6 +146,72 @@ namespace C7Engine.AI {
 			}
 		}
 
+		private static int WeightedYield(int food, int production, int commerce, CityGovernor governor) {
+			return food * foodPriorityRate * (governor?.emphasizeFood == true ? EmphasisMultiplier : 1)
+				+ production * productionPriorityRate * (governor?.emphasizeProduction == true ? EmphasisMultiplier : 1)
+				+ commerce * commercePriorityRate * (governor?.emphasizeCommerce == true ? EmphasisMultiplier : 1);
+		}
+
+		// What a city's governor does when it manages citizen moods (Civ3's
+		// "Manage citizen moods"): if the city would riot, its laborers
+		// on the least valuable tiles become entertainers until it wouldn't;
+		// otherwise its entertainers go back to work, one at a time, as long
+		// as the city stays in order. Other specialists are the player's
+		// choice and left alone, as are resisters. Returns whether any
+		// citizen changed.
+		//
+		// UNVERIFIED: how Civ3's governor picks which citizens to move isn't
+		// documented; this is the simplest behaviour that keeps the city out
+		// of disorder without idling more citizens than it needs to.
+		public static bool GovernMoods(GameData gameData, City city) {
+			if (!city.governor.manageMoods || city.residents.Count == 0) {
+				return false;
+			}
+			List<CitizenType> specialists = city.owner.GetKnownSpecialists(gameData);
+			if (specialists.Count == 0) {
+				return false;
+			}
+			CitizenType entertainer = specialists.MaxBy(x => x.Luxuries);
+			// The resisters are the last citizens (see City.StartResistance).
+			List<CityResident> governed = city.residents.Take(city.residents.Count - city.resisters).ToList();
+			bool changed = false;
+
+			if (city.RecalculateCitizenMoods(gameData) == City.Mood.Unhappy) {
+				while (true) {
+					CityResident worst = governed
+						.Where(r => r.citizenType.IsDefaultCitizen && r.tileWorked != Tile.NONE)
+						.MinBy(r => WeightedYield(r.tileWorked.FoodYield(city.owner).yield, r.tileWorked.ProductionYield(city.owner).yield,
+							r.tileWorked.CommerceYield(city.owner).yield, city.governor));
+					if (worst == null) {
+						break;
+					}
+					worst.tileWorked.personWorkingTile = null;
+					worst.tileWorked = Tile.NONE;
+					worst.citizenType = entertainer;
+					changed = true;
+					if (city.RecalculateCitizenMoods(gameData) != City.Mood.Unhappy) {
+						break;
+					}
+				}
+				return changed;
+			}
+
+			CitizenType laborer = gameData.citizenTypes.Find(x => x.IsDefaultCitizen);
+			foreach (CityResident r in governed.Where(r => !r.citizenType.IsDefaultCitizen && r.citizenType.Luxuries > 0).ToList()) {
+				CitizenType wasType = r.citizenType;
+				r.citizenType = laborer;
+				AssignNewCitizenToTile(gameData, r, manageMoods: true);
+				if (!r.citizenType.IsDefaultCitizen) {
+					// No free tile, or working one would make the city riot.
+					r.citizenType = wasType;
+					break;
+				}
+				changed = true;
+			}
+			city.RecalculateCitizenMoods(gameData);
+			return changed;
+		}
+
 		internal static bool FoodIsWasted(GameData gameData, City city) {
 			return !city.owner.isHuman && !city.CanGrowPopulationByOne(gameData);
 		}
@@ -151,14 +222,14 @@ namespace C7Engine.AI {
 
 		// With foodIsWasted, food beyond what the city still needs counts
 		// for nothing.
-		private static double CalculateTileYieldScore(int food, int production, int commerce, int targetFoodAmount, bool foodIsWasted = false) {
+		// The yields the city's governor emphasizes, if any, count for more.
+		private static double CalculateTileYieldScore(int food, int production, int commerce, int targetFoodAmount, bool foodIsWasted = false,
+				CityGovernor governor = null) {
 			if (foodIsWasted) {
 				food = Math.Min(food, Math.Max(0, targetFoodAmount));
 				targetFoodAmount = food;
 			}
-			int score = food * foodPriorityRate
-				+ production * productionPriorityRate
-				+ commerce * commercePriorityRate;
+			int score = WeightedYield(food, production, commerce, governor);
 			int penalty = (targetFoodAmount - food);
 			if (penalty <= 0) {
 				return score;
