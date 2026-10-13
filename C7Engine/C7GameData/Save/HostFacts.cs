@@ -72,6 +72,9 @@ public class PlayerFacts {
 	public int dominationTiles;
 	// What this turn would add to their score (see ScoreVictory).
 	public float turnScore;
+	// Their values on the Demographics screen, in the order of
+	// DemographicsReport.Row. Null from hosts that didn't send them.
+	public long[] demographics;
 }
 
 // A great wonder, the ID of the player who has it, and the name of its city.
