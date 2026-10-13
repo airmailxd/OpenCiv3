@@ -9866,10 +9866,15 @@
       "airPower": 0,
       "unitFrequency": 0,
       "flags": [
+        "mustBeNearWater",
+        "canMeltdown",
         "replacesOtherBuildings"
       ],
       "requiredResources": [
         "Uranium"
+      ],
+      "productionPrerequisites": [
+        "buildings.production_rules.must_be_near_water"
       ]
     },
     {

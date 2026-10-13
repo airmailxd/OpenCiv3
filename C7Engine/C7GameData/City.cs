@@ -975,6 +975,26 @@ namespace C7GameData {
 			}
 		}
 
+		// Whether a fresh water source is within the city's radius, as a
+		// Nuclear Plant needs: "A city must have fresh water within its
+		// radius to build a Nuclear Plant" (Conquests Civilopedia,
+		// BLDG_Nuclear_Plant; "a source of fresh water within its 21-tile
+		// city radius",
+		// https://civfanatics.com/civ3/strategy/game-mechanics/everything-you-wanted-to-know-about-power-plants/).
+		// Fresh water is a river or a lake (Civilopedia, TERR_River and
+		// TERR_Lake), so a tile in the radius along a river or a lake tile.
+		public bool HasFreshWaterInRadius() {
+			foreach (Tile t in GetTilesOfRank(owner.rules.MaxRankOfWorkableTiles)) {
+				if (t == null || t == Tile.NONE) {
+					continue;
+				}
+				if (t.BordersRiver() || (t.IsWater() && t.isFreshWater)) {
+					return true;
+				}
+			}
+			return false;
+		}
+
 		internal bool CanGrowPopulationByOne(GameData gD) {
 			// We can always grow up to size 6.
 			if (residents.Count + 1 <= gD.rules.MaximumLevel1CitySize) {

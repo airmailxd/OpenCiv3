@@ -10,6 +10,14 @@ namespace C7GameData.Save {
 			VeteranAirUnits,
 			MustBeCoastal,
 			MustBeNearRiver,
+			// The city needs fresh water within its radius: "A city must have
+			// fresh water within its radius to build a Nuclear Plant"
+			// (Conquests Civilopedia, BLDG_Nuclear_Plant). See
+			// City.HasFreshWaterInRadius.
+			MustBeNearWater,
+			// The building can melt down while its city is in disorder (the
+			// Nuclear Plant). See Meltdown.
+			CanMeltdown,
 			IncreasesLuxuryTrade,
 			ReducesCorruption,
 			ForbiddenPalace,

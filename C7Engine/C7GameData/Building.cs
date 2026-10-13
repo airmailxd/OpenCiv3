@@ -67,6 +67,8 @@ namespace C7GameData {
 		// Trade network links (see SaveBuilding.Flag.AllowsWaterTrade).
 		public bool allowsWaterTrade;
 		public bool allowsAirTrade;
+		// Can melt down in a city in disorder (see Meltdown).
+		public bool canMeltdown;
 		public bool allowsEnemyTerritoryHealing;
 		public bool reducesWarWeariness;
 		// See City.PollutionIcons.
@@ -194,6 +196,7 @@ namespace C7GameData {
 			providesVeteranAirUnits = building.flags.Contains(SaveBuilding.Flag.VeteranAirUnits);
 			allowsWaterTrade = building.flags.Contains(SaveBuilding.Flag.AllowsWaterTrade);
 			allowsAirTrade = building.flags.Contains(SaveBuilding.Flag.AllowsAirTrade);
+			canMeltdown = building.flags.Contains(SaveBuilding.Flag.CanMeltdown);
 			allowsEnemyTerritoryHealing = building.flags.Contains(SaveBuilding.Flag.AllowsEnemyTerritoryHealing);
 			reducesWarWeariness = building.flags.Contains(SaveBuilding.Flag.ReducesWarWeariness);
 			removesPopulationPollution = building.flags.Contains(SaveBuilding.Flag.RemovesPopulationPollution);

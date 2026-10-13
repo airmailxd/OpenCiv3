@@ -2212,6 +2212,8 @@ namespace C7GameData {
 				(bldg.CenterOfEmpire, SaveBuilding.Flag.IsCenterOfEmpire),
 				(bldg.CoastalInstallation, SaveBuilding.Flag.MustBeCoastal),
 				(bldg.MustBeNearRiver, SaveBuilding.Flag.MustBeNearRiver),
+				(bldg.MustBeNearWater, SaveBuilding.Flag.MustBeNearWater),
+				(bldg.CanMeltdown, SaveBuilding.Flag.CanMeltdown),
 				(bldg.VeteranGroundUnits, SaveBuilding.Flag.VeteranGroundUnits),
 				(bldg.VeteranSeaUnits, SaveBuilding.Flag.VeteranSeaUnits),
 				(bldg.VeteranAirUnits, SaveBuilding.Flag.VeteranAirUnits),
@@ -2285,6 +2287,7 @@ namespace C7GameData {
 			{
 				{ SaveBuilding.Flag.MustBeCoastal, "must_be_coastal" },
 				{ SaveBuilding.Flag.MustBeNearRiver, "must_be_near_river" },
+				{ SaveBuilding.Flag.MustBeNearWater, "must_be_near_water" },
 				{ SaveBuilding.Flag.AllowsCitySize2, "allows_city_size_2" },
 				{ SaveBuilding.Flag.AllowsCitySize3, "allows_city_size_3" },
 				{ SaveBuilding.Flag.CanOnlyBeBuiltInTowns, "can_only_be_built_in_towns"}

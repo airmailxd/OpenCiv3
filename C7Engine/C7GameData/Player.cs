@@ -2232,8 +2232,14 @@ namespace C7GameData {
 				// check, so a recalculation elsewhere (e.g. loading a save)
 				// leaves them alone.
 				if (goIntoDisorderIfUnhappy) {
+					bool wasInDisorder = c.isInCivilDisorder;
 					c.isInCivilDisorder = cityMood == City.Mood.Unhappy;
 					c.celebrating = !c.isInCivilDisorder && c.QualifiesForCelebration(rules);
+					// A city kept in disorder through a whole turn may have
+					// its nuclear plant melt down (see Meltdown).
+					if (wasInDisorder && c.isInCivilDisorder) {
+						C7Engine.Meltdown.MaybeMeltDown(gameData, c);
+					}
 				}
 			}
 		}

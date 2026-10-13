@@ -15,6 +15,12 @@ buildings.production_rules = {
     return city.location:BordersRiver()
   end,
 
+  -- "A city must have fresh water within its radius to build a Nuclear
+  -- Plant" (Conquests Civilopedia, BLDG_Nuclear_Plant).
+  must_be_near_water = function(city)
+    return city:HasFreshWaterInRadius()
+  end,
+
   can_only_be_built_in_towns = function(city)
     return #city.residents <= rules().MaximumLevel1CitySize
   end,
