@@ -170,8 +170,8 @@ Netherlands.png (William)
   License: Public domain
 
 Portugal.png (Henry)
-  Henry the Navigator: detail of the Saint Vincent Panels by Nuno Goncalves, 1470s
-  Source:  https://commons.wikimedia.org/wiki/File:Henry_the_Navigator1.jpg
+  Henry the Navigator: detail of the Panel of the Infante, Saint Vincent Panels, by Nuno Goncalves, 1470s
+  Source:  https://commons.wikimedia.org/wiki/File:Pain%C3%A9is_de_S%C3%A3o_Vicente_de_Fora_-_Painel_do_Infante_(MNAA,_inv._1361_Pint).png
   Artist:  Nuno Gonçalves
   License: Public domain
 
