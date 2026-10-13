@@ -764,8 +764,8 @@ namespace C7GameData {
 			if (!WillAcceptCommunicationFrom(other, gameData.turn)) {
 				return false;
 			}
-			int theirGoldValue = theirOffer.GoldEquivalentFor(gameData, this);
-			int ourGoldValue = ourOffer.GoldEquivalentFor(gameData, this, given: true);
+			int theirGoldValue = theirOffer.GoldEquivalentFor(gameData, this, counterpart: other);
+			int ourGoldValue = ourOffer.GoldEquivalentFor(gameData, this, given: true, counterpart: other);
 
 			if (theirOffer.partOfPeaceTreaty || ourOffer.partOfPeaceTreaty) {
 				return C7Engine.AI.PeaceAI.WouldAcceptPeace(this, other, theirOffer, ourOffer, theirGoldValue, ourGoldValue);
@@ -833,10 +833,14 @@ namespace C7GameData {
 				other.playerRelationships[id].lastTechTradeTurn = gameData.turn;
 			}
 			if (!tribute && ourOffer.IsEmpty() && !theirOffer.IsEmpty()) {
-				Attitudes.RecordGift(playerRelationships[other.id], theirOffer.GoldEquivalentFor(gameData, this), gameData.turn);
+				Attitudes.RecordGift(playerRelationships[other.id], theirOffer.GoldEquivalentFor(gameData, this, counterpart: other), gameData.turn);
 			} else if (!tribute && theirOffer.IsEmpty() && !ourOffer.IsEmpty()) {
-				Attitudes.RecordGift(other.playerRelationships[id], ourOffer.GoldEquivalentFor(gameData, other), gameData.turn);
+				Attitudes.RecordGift(other.playerRelationships[id], ourOffer.GoldEquivalentFor(gameData, other, counterpart: this), gameData.turn);
 			}
+
+			// Maps and introductions, once valued.
+			GiveMapsAndContacts(this, other, ourOffer);
+			GiveMapsAndContacts(other, this, theirOffer);
 
 			other.CompleteResearchAndBeginNew(gameData, ourOffer.techs);
 			this.CompleteResearchAndBeginNew(gameData, theirOffer.techs);
@@ -854,6 +858,18 @@ namespace C7GameData {
 				CityInteractions.TransferCity(city, this, viaDeal: true);
 			}
 			return true;
+		}
+
+		private static void GiveMapsAndContacts(Player giver, Player receiver, TradeOffer offer) {
+			if (offer.worldMap || offer.territoryMap) {
+				TradeOffer.GiveMap(giver, receiver, territoryOnly: !offer.worldMap);
+			}
+			foreach (ID id in offer.contacts ?? new()) {
+				Player third = EngineStorage.gameData?.GetPlayer(id);
+				if (third != null) {
+					receiver.EnsureRelationshipExists(third);
+				}
+			}
 		}
 
 		// Registers what the giver sends the receiver over time in a deal
