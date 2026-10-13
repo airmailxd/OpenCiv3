@@ -27,13 +27,15 @@ public class SaveTerraform {
 	public string ButtonTexture;
 
 	// Whether finishing the job uses up a worker that did it, as building an
-	// outpost does: "Construction of the Outpost consumes the worker"
-	// (Conquests Civilopedia, GCON_Outposts).
+	// outpost, airfield or radar tower does: "Construction of the Outpost
+	// consumes the worker" (Conquests Civilopedia, GCON_Outposts), and
+	// likewise for the Airfield (GCON_Airfields) and the Radar Tower
+	// (GCON_Radar_Towers).
 	public bool ConsumesWorker;
 
 	public void SetUpByTerraformKey(TerraformKey tfKey) {
 		Improvement = TerraformKeyToTerrainImprovement(tfKey);
-		ConsumesWorker = tfKey == TerraformKey.BuildOutpost;
+		ConsumesWorker = tfKey is TerraformKey.BuildOutpost or TerraformKey.BuildAirfield or TerraformKey.BuildRadarTower;
 		UIAction = TerraformKeyToUIAction(tfKey);
 		ButtonTexture = TerraformKeyToButtonTexture(tfKey);
 		Animation = TerraformKeyToAnimation(tfKey);
@@ -87,7 +89,8 @@ public class SaveTerraform {
 			TerraformKey.BuildRoad => ROAD,
 			TerraformKey.BuildRailroad => RAILROAD,
 			TerraformKey.BuildOutpost => OUTPOST,
-			// TODO: airfields and radar towers.
+			TerraformKey.BuildAirfield => AIRFIELD,
+			TerraformKey.BuildRadarTower => RADAR_TOWER,
 			_ => null,
 		};
 	}
@@ -100,6 +103,8 @@ public class SaveTerraform {
 			TerraformKey.ClearForest => "clear_forest",
 			TerraformKey.ClearDamage => "clear_damage",
 			TerraformKey.BuildOutpost => "outpost",
+			TerraformKey.BuildAirfield => "airfield",
+			TerraformKey.BuildRadarTower => "radar_tower",
 			_ => null,
 		};
 

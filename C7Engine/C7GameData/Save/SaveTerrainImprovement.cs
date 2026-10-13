@@ -86,8 +86,18 @@ public class SaveTerrainImprovement {
 			zIndex: 4
 		);
 
-		// TODO: Add airfield, radar tower. Until then, importing a Civ3 game
-		// leaves them out (see ImportCiv3.ImportHoldings).
+		// Airfields and radar towers belong to the civ that built them too,
+		// and take the tile's holdings, as an outpost does.
+		yield return new(
+			AIRFIELD,
+			Layer.Holdings,
+			zIndex: 6
+		);
+		yield return new(
+			RADAR_TOWER,
+			Layer.Holdings,
+			zIndex: 6
+		);
 	}
 
 	public readonly string key;

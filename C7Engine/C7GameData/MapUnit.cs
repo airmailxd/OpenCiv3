@@ -510,6 +510,9 @@ namespace C7GameData {
 			if (HasGreatWallBonusAgainst(opponent, role))
 				yield return GreatWallBonus;
 
+			if (HasRadarBonus(role))
+				yield return RadarTowerBonus;
+
 			if (DifficultyBonusAgainst(opponent, role) is StrengthBonus difficultyBonus)
 				yield return difficultyBonus;
 		}
@@ -553,6 +556,20 @@ namespace C7GameData {
 			if (opponent?.owner == null || !opponent.owner.isBarbarians || owner == null || owner.isBarbarians)
 				return false;
 			return owner.HasDoubleCombatVsBarbarians();
+		}
+
+		// "Friendly units within the Radar Towers range get a +25% attack and
+		// defense bonus. This bonus can only be applied once, even if multiple
+		// towers overlap. Radar Towers can only be used by the player who
+		// created them" (Conquests Civilopedia, GCON_Radar_Towers). Like the
+		// other combat modifiers it adds to the rest. UNVERIFIED: whether it
+		// counts in bombardments; here, as with the Great Wall, it doesn't.
+		private static readonly StrengthBonus RadarTowerBonus = new("Radar tower", 0.25);
+
+		private bool HasRadarBonus(CombatRole role) {
+			if (role != CombatRole.Attack && role != CombatRole.Defense)
+				return false;
+			return owner != null && Tile.IsTileValid(location) && location.IsCoveredByRadarOf(owner);
 		}
 
 		public double StrengthVersus(MapUnit opponent, CombatRole role, TileDirection? attackDirection) {

@@ -121,6 +121,8 @@ public partial class Tile {
 		// Tile.holdingOwner).
 		public const string OUTPOST = "outpost";
 		public const string COLONY = "colony";
+		public const string AIRFIELD = "airfield";
+		public const string RADAR_TOWER = "radarTower";
 
 		private readonly Tile tile;
 		public Dictionary<Layer, TerrainImprovement> terrainImprovementByLayer { get; private set; } = [];
@@ -162,18 +164,18 @@ public partial class Tile {
 				EngineStorage.gameData.GetTradeNetwork().OnRoadChanged(tile);
 			}
 
-			// An outpost or colony going away, however it goes (pillaged,
-			// bombarded, built over, taken in by borders), takes its owner's
-			// sight or resource with it.
+			// An outpost, colony, airfield or radar tower going away, however
+			// it goes (pillaged, bombarded, built over, taken in by borders),
+			// takes its owner's sight, resource, air base or radar with it.
 			if (oldImprovement != null && oldImprovement != newImprovement && IsOwnedHolding(oldImprovement)) {
 				tile.ForgetHolding(oldImprovement);
 			}
 		}
 
-		// Whether the improvement is one that belongs to a civ: an outpost
-		// or a colony.
+		// Whether the improvement is one that belongs to a civ: an outpost,
+		// a colony, an airfield or a radar tower.
 		public static bool IsOwnedHolding(TerrainImprovement improvement) {
-			return improvement.key == OUTPOST || improvement.key == COLONY;
+			return improvement.key is OUTPOST or COLONY or AIRFIELD or RADAR_TOWER;
 		}
 
 		public TerrainImprovement ImprovementAtLayer(Layer layer) {

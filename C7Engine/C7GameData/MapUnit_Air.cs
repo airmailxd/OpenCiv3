@@ -65,10 +65,11 @@ namespace C7GameData {
 		// Whether the tile has an airfield the player may fly from:
 		// "Airfields function in the same manner that a city with an airport
 		// would for air units ... All air missions can be launched from an
-		// airfield" (GCON_Airfields). C7 doesn't have airfields yet; this is
-		// where they come in.
+		// airfield ... Airfields can only be used by the player who created
+		// it" (GCON_Airfields), or who has since taken it over (see
+		// Tile.CheckHoldingAgainstBorders).
 		public static bool HasAirfieldFor(Tile tile, Player player) {
-			return false;
+			return player != null && Tile.IsTileValid(tile) && tile.AirfieldOwner() == player;
 		}
 
 		// Whether the aircraft is on a base it can fly missions from: one of
@@ -255,7 +256,11 @@ namespace C7GameData {
 
 		// Airdrops: "When a paratrooper is active in a city with an airport
 		// it may perform an airdrop. Press [A] then click a target square
-		// within range to launch the airdrop" (PRTO_Paratrooper). The range
+		// within range to launch the airdrop" (PRTO_Paratrooper). They may
+		// also drop from one of their owner's airfields: "Any paratrooper with
+		// full movement points can move to that airfield on rails and get
+		// airdropped on the next target" (Death from Above: C3C Airborne
+		// Operations, https://civfanatics.com/civ3/strategy/military/death-from-above-c3c-airborne-operations/). The range
 		// is the unit's operational range. UNVERIFIED (no Civ3 source
 		// found): the target must be land the paratrooper could walk onto
 		// with no other civ's units, city or a barbarian camp on it, and the
@@ -266,7 +271,13 @@ namespace C7GameData {
 			if (!IsLandUnit() || !unitType.actions.Contains(UnitAction.Airdrop) || unitType.operationalRange <= 0) {
 				return false;
 			}
-			if (!movementPoints.canMove || IsLoaded() || !Tile.IsTileValid(location) || !location.HasCity()) {
+			if (!movementPoints.canMove || IsLoaded() || !Tile.IsTileValid(location)) {
+				return false;
+			}
+			if (HasAirfieldFor(location, owner)) {
+				return true;
+			}
+			if (!location.HasCity()) {
 				return false;
 			}
 			City city = location.cityAtTile;
