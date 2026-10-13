@@ -116,7 +116,7 @@ Spain.png (Isabella)
 Scandinavia.png (Ragnar Lodbrok)
   A typical Viking chieftain, standing in for Ragnar Lodbrok, of whom no likeness survives: Leif Erikson in "Leif Erikson Discovers America" by Hans Dahl
   Source:  https://commons.wikimedia.org/wiki/File:Leif_Erikson_Discovers_America_Hans_Dahl.jpg
-  Artist:  unknown
+  Artist:  Hans Dahl
   License: Public domain
 
 Ottomans.png (Osman)
@@ -150,10 +150,10 @@ Korea.png (Wang Kon)
   License: Public domain
 
 Sumeria.png (Gilgamesh)
-  A typical Mesopotamian king, standing in for Gilgamesh, of whom no likeness survives: "Head of One of the Three Kings: Melchior, the Assyrian King" by Rubens and studio, about 1618
-  Source:  https://commons.wikimedia.org/wiki/File:Sir_Peter_Paul_Rubens_and_Studio,_Head_of_One_of_the_Three_Kings_-_Melchior,_The_Assyrian_King,_c._1618,_NGA_12207.jpg
-  Artist:  anonymous
-  License: CC0
+  A typical Sumerian ruler, standing in for Gilgamesh, of whom no likeness survives: Gudea of Lagash, diorite statue, Louvre
+  Source:  https://commons.wikimedia.org/wiki/File:Gudea_of_Lagash_Girsu.jpg
+  Artist:  Jastrow
+  License: Public domain
 
 Hittites.png (Mursilis)
   A typical Hittite king, standing in for Mursilis, of whom no likeness survives: basalt statue of a priest-king with bone eyes, about 1600 BC, Cleveland Museum of Art

@@ -109,8 +109,8 @@ SOURCES = {
                  'Hannibal: the marble bust found at Capua'),
     'Korea': ('File:Taejo Wangkun.jpg',
              (0.3, 0.06, 0.36), 'Wang Kon (Taejo of Goryeo): royal portrait at Sungeuijeon, a copy (before 1950) of a Joseon-era painting'),
-    'Sumeria': ('File:Sir Peter Paul Rubens and Studio, Head of One of the Three Kings - Melchior, The Assyrian King, c. 1618, NGA 12207.jpg',
-               (0.1, 0.15, 0.68), 'A typical Mesopotamian king, standing in for Gilgamesh, of whom no likeness survives: "Head of One of the Three Kings: Melchior, the Assyrian King" by Rubens and studio, about 1618'),
+    'Sumeria': ('File:Gudea of Lagash Girsu.jpg',
+                (0.17, 0.03, 0.66), 'A typical Sumerian ruler, standing in for Gilgamesh, of whom no likeness survives: Gudea of Lagash, diorite statue, Louvre'),
     'Hittites': ('File:Priest-King or Diety, about 1600 BC, Hittite, North Syria, basalt with bone eyes - Cleveland Museum of Art - DSC08114.JPG',
                 (0.36, 0.13, 0.27), 'A typical Hittite king, standing in for Mursilis, of whom no likeness survives: basalt statue of a priest-king with bone eyes, about 1600 BC, Cleveland Museum of Art'),
     'Netherlands': ('File:William I, Prince of Orange by Adriaen Thomasz. Key Rijksmuseum Amsterdam SK-A-3148.jpg',
@@ -124,6 +124,9 @@ SOURCES = {
     'Maya': ('File:Mayan - Stucco Portrait Head - Walters 20092026.jpg',
             (0.1, 0.12, 0.84), 'A typical Maya noble, standing in for Smoke-Jaguar, of whom no likeness is in the public domain: Classic Maya stucco portrait head from Campeche, Walters Art Museum'),
 }
+
+# Artists Commons' metadata doesn't name, by civilization.
+ARTIST = {'Scandinavia': 'Hans Dahl'}
 
 # A little more for a few sources: contrast for a faded print; less
 # sharpening for small sources scaled up, so they don't get an artificial
@@ -420,7 +423,7 @@ def write_credits(civs):
             f'{name}.png ({leader})',
             f'  {note}',
             f'  Source:  {info["page"]}',
-            f'  Artist:  {info["artist"]}',
+            f'  Artist:  {ARTIST.get(name, info["artist"])}',
             f'  License: {info["license"]}',
             '',
         ]
