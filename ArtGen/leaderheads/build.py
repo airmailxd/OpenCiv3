@@ -255,9 +255,9 @@ def source_image(title):
 
 # ---------------------------------------------------------------- the picture
 
-def crop(im, box):
+def crop(im, box, size=SIZE):
     """The square (left, top, side), in fractions of the width, scaled to
-    SIZE. Parts outside the picture are filled with its edge colors."""
+    size (SIZE). Parts outside the picture are filled with its edge colors."""
     w, h = im.size
     left, top, side = (v * w for v in box)
     x0, y0, s = int(round(left)), int(round(top)), max(1, int(round(side)))
@@ -267,9 +267,9 @@ def crop(im, box):
         x0, y0 = x0 + pad, y0 + pad
     sq = im.crop((x0, y0, x0 + s, y0 + s))
     # downscale in steps for a clean result from big sources
-    while sq.width > SIZE * 3:
+    while sq.width > size * 3:
         sq = sq.resize((sq.width // 2, sq.height // 2), Image.LANCZOS)
-    return sq.resize((SIZE, SIZE), Image.LANCZOS)
+    return sq.resize((size, size), Image.LANCZOS)
 
 
 def _luma(a):
@@ -347,7 +347,9 @@ def _disc(im):
     return Image.fromarray(a.astype(np.uint8))
 
 
-def make(civ_name):
+def make(civ_name, painted=False):
+    """A civilization's portrait; painted, with the set's shared painted
+    finish (paint.py) done on a picture twice the size and scaled down."""
     title, box, _ = SOURCES[civ_name]
     im, info = source_image(title)
     extra = TOUCH.get(civ_name, {})
@@ -355,7 +357,7 @@ def make(civ_name):
         im = _cover(im, extra['cover'])
     # how much the crop is enlarged: sharpening only for sources with pixels to spare
     upscale = SIZE / max(1.0, box[2] * im.width)
-    im = crop(im, box)
+    im = crop(im, box, SIZE * 2 if painted else SIZE)
     if extra.get('disc'):
         im = _disc(im)
     if 'contrast' in extra:
@@ -363,6 +365,11 @@ def make(civ_name):
     if 'color' in extra:
         im = ImageEnhance.Color(im).enhance(extra['color'])
     sharpen = extra.get('sharpen', 45 if upscale < 0.8 else 25)
+    if painted:
+        import paint
+        a = paint.paint(im, seed=sum(map(ord, civ_name)))
+        im = Image.fromarray((a * 255 + 0.5).astype(np.uint8), 'RGB').resize((SIZE, SIZE), Image.LANCZOS)
+        sharpen = min(sharpen, 30)
     return finish(im, sharpen=sharpen), info
 
 
@@ -438,8 +445,41 @@ def civilizations():
         return [c for c in json.load(f)['civilizations'] if not c.get('isBarbarian')]
 
 
+UNIFIED_SAMPLES = ['America', 'Rome', 'Byzantines', 'England', 'India', 'Hittites']
+
+
+def unified_samples():
+    """Before and after the shared painted finish, side by side, for a few
+    portraits of each kind of source (photos, a bust, a mosaic, a painting,
+    a statue), to ArtGen/_previews/leaderheads_unified_samples.png, with
+    both at the size the game shows them underneath. Doesn't touch the
+    game's pictures."""
+    pad, label, small = 8, 16, 57
+    cols = len(UNIFIED_SAMPLES)
+    sheet = Image.new('RGB', (cols * (SIZE + pad) + pad, 2 * (SIZE + pad + label) + 2 * pad + small),
+                      (205, 205, 205))
+    dr = ImageDraw.Draw(sheet)
+    for i, name in enumerate(UNIFIED_SAMPLES):
+        x = pad + i * (SIZE + pad)
+        for row, painted in enumerate((False, True)):
+            img, _ = make(name, painted=painted)
+            y = pad + row * (SIZE + pad + label)
+            sheet.paste(img, (x, y + label))
+            dr.text((x + 2, y + 2), f'{name}: {"painted" if painted else "now"}', fill=(0, 0, 0))
+            sheet.paste(img.resize((small, small), Image.LANCZOS),
+                        (x + row * (small + 6), 2 * (SIZE + pad + label) + pad))
+        print(f'  {name}', flush=True)
+    path = os.path.join(PREVIEWS, 'leaderheads_unified_samples.png')
+    os.makedirs(PREVIEWS, exist_ok=True)
+    sheet.save(path)
+    return path
+
+
 def main(argv):
     opts = {a[2:] for a in argv if a.startswith('--')}
+    if 'unified-samples' in opts:
+        print(f'samples: {unified_samples()}')
+        return
     names = [a.lower() for a in argv if not a.startswith('--')]
     all_civs = civilizations()
     missing = [c['name'] for c in all_civs if c['name'] not in SOURCES]
