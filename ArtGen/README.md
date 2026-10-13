@@ -132,7 +132,8 @@ likeness of the leader (a painting, photograph, bust, relief or engraving)
 from Wikimedia Commons, public domain or CC0 only. The script's `SOURCES`
 table names each Commons file and the square to crop; it downloads the files
 into `ArtGen/leaderheads/_cache/` (not committed), checks their licenses,
-crops them to the head and shoulders and gives them all the same light grade,
+crops them to the head and shoulders and gives them all the same grade (a
+common brightness, black and white toned warm, a little warmth),
 vignette and edge. It writes each picture's source, artist and license to
 `C7/ModernArt/Art/Leaderheads/CREDITS.txt`. `--sources` also writes each
 whole source with a grid and the crop to `ArtGen/_previews/leaderheads_sources/`,

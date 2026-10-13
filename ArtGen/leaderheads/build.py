@@ -65,52 +65,52 @@ SOURCES = {
              'Julius Caesar: Roman marble bust in the Greek Cross Hall of the Vatican Museums'),
     'Egypt': ('File:Cleopatra-VII-Antikensammlung-Berlin.jpg', (0.12, 0.18, 0.86),
               'Cleopatra VII: the "Berlin Cleopatra", a Roman marble portrait of about 40-30 BC'),
-    'Greece': ('File:Alejandro Magno, Alexander The Great Bust Alexander BM 1857 (cropped).jpg', (0.0, 0.0, 1.0),
-               'Alexander the Great: Hellenistic marble head in the British Museum'),
+    'Greece': ('File:Bust Alexander BM 1857.jpg',
+              (0.0, 0.1, 1.0), 'Alexander the Great: Hellenistic marble head in the British Museum'),
     'Babylon': ('File:Tête royale dite tête de Hammurabi - Musée du Louvre Antiquités orientales SB 95.jpg',
                 (0.05, 0.05, 0.90), 'Hammurabi: the diorite royal head known as the "head of Hammurabi", Louvre'),
     'Germany': ('File:Franz von Lenbach - Bildnis Otto Eduard Leopold von Bismarck (Indianapolis).jpg',
                 (0.18, 0.12, 0.66), 'Otto von Bismarck by Franz von Lenbach, 1879 (Indianapolis Museum of Art)'),
     'Russia': ('File:Catherine II after Roslin, Rokotov (1780s, Kunsthistorisches Museum).jpg', (0.1, 0.0, 0.8),
                'Catherine the Great by Fyodor Rokotov after Roslin, 1780s'),
-    'China': ('File:Mao Zedong sitting (3x4 cropped)(2).jpg', (0.0, 0.0, 1.0),
-              'Mao Zedong, official portrait photograph'),
+    'China': ('File:Mao Zedong 1950 Portrait (3x4 cropped).jpg',
+             (0.12, 0.08, 0.76), 'Mao Zedong, portrait photograph by Chen Zhengqing, 1950'),
     'America': ('File:Abraham Lincoln O-77 matte collodion print.jpg', (0.1, 0.05, 0.8),
                 'Abraham Lincoln photographed by Alexander Gardner, 1863'),
     'Japan': ('File:Tokugawa Ieyasu2.JPG', (0.29, 0.40, 0.28),
               'Tokugawa Ieyasu by Kano Tan\'yu, 17th century'),
-    'France': ('File:Dante Gabriel Rossetti - Joan of Arc (1882).jpg', (0.25, 0.0, 0.66),
-               'Joan of Arc by Dante Gabriel Rossetti, 1882 (no likeness from her lifetime survives)'),
-    'India': ('File:Mohandas K. Gandhi, portrait.jpg', (0.05, 0.05, 0.9),
-              'Mohandas K. Gandhi, studio photograph'),
-    'Persia': ('File:Ahasuerus by Ernest Normand.jpg', (0.12, 0.10, 0.80),
-               'Xerxes I as Ahasuerus: detail of a painting by Ernest Normand, 19th century (his own reliefs at Persepolis are defaced)'),
-    'Aztecs': ('File:Moctezuma Xocoyotzin.png', (0.2, 0.05, 0.6),
-               'Moctezuma II, 17th-century painting by Antonio Rodriguez'),
-    'Zululand': ('File:Shaka Zulu incisione ottocentesca.jpg', (0.22, 0.27, 0.55),
-                 'Shaka, 19th-century engraving after the drawing by James King'),
+    'France': ('File:Ingres coronation charles vii.jpg',
+              (0.33, 0.1, 0.32), 'Joan of Arc: detail of "Joan of Arc at the Coronation of Charles VII" by Ingres, 1854 (no likeness from her lifetime survives)'),
+    'India': ('File:Gandhi portrait, 1940.jpg',
+             (0.04, 0.0, 0.96), 'Mohandas K. Gandhi, photograph, 1940'),
+    'Persia': ('File:Ahasuerus by Ernest Normand.jpg',
+              (0.22, 0.17, 0.55), 'Xerxes I as Ahasuerus: detail of a painting by Ernest Normand, 19th century (his own reliefs at Persepolis are defaced)'),
+    'Aztecs': ('File:Moctezuma Xocoyotzin.png',
+              (0.22, 0.03, 0.5), 'Moctezuma II, 17th-century painting attributed to Antonio Rodriguez'),
+    'Zululand': ('File:Shaka Zulu incisione ottocentesca.jpg',
+                (0.315, 0.3, 0.35), 'Shaka, 19th-century print after the drawing by James King'),
     'Iroquois': ('File:Hiawatha MET DP371840.jpg', (0.08, 0.10, 0.84),
                  'Hiawatha: marble bust by Edmonia Lewis, 1868 (Metropolitan Museum of Art)'),
     'England': ('File:Darnley stage 3.jpg', (0.17, 0.0, 0.52),
                 'Elizabeth I: the "Darnley Portrait", about 1575'),
-    'Mongols': ('File:YuanEmperorAlbumGenghisPortrait.jpg', (0.15, 0.05, 0.7),
-                'Genghis Khan (Temujin): portrait from the Yuan emperors\' album, National Palace Museum, Taipei'),
+    'Mongols': ('File:YuanEmperorAlbumGenghisPortrait.jpg',
+               (0.2, 0.3, 0.6), "Genghis Khan (Temujin): portrait from the Yuan emperors' album, National Palace Museum, Taipei"),
     'Spain': ('File:Juan de Flandes - Isabel la Católica (Palacio Real, Madrid, 1500-04. Óleo sobre tabla, 63 x 55 cm).jpg',
               (0.1, 0.05, 0.8), 'Isabella I of Castile by Juan de Flandes, about 1500'),
-    'Scandinavia': ('File:Rayner Lothbroc & Kraka by August Malmström c 1880.jpg', (0.215, 0.335, 0.25),
-                    'Ragnar Lodbrok meeting Kraka: wood engraving after August Malmstrom, about 1880'),
+    'Scandinavia': ('File:Rayner Lothbroc & Kraka by August Malmström c 1880.jpg',
+                   (0.245, 0.34, 0.19), 'Ragnar Lodbrok: detail of "Ragnar Lodbrok and Kraka", engraving after August Malmstrom, about 1880'),
     'Ottomans': ('File:Paolo Veronese (Nachfolger) - Sultan Osman I. - 2242 - Bavarian State Painting Collections.jpg',
-                 (0.1, 0.05, 0.8), 'Osman I, 16th-century Venetian portrait (follower of Paolo Veronese)'),
-    'Celts': ('File:Brennus.jpg', (0.20, 0.28, 0.44),
-              'Brennus: wood engraving by Therond of the statue by Ferdinand Taluet, 19th century'),
-    'Arabia': ('File:The first caliph Abu Bakr.png', (0.0, 0.0, 1.0),
-               'Abu Bakr: calligraphic roundel of his name, as he is shown in Islamic tradition (no likeness exists)'),
+                (0.255, 0.25, 0.60), 'Osman I, 16th-century Venetian portrait (follower of Paolo Veronese)'),
+    'Celts': ('File:Le Brenn et sa part de butin (Paul Jamin).jpg',
+             (0.07, 0.13, 0.2), 'Brennus: detail of "Le Brenn et sa part de butin" by Paul Jamin, 1893'),
+    'Arabia': ('File:Abu Bakr Caliph Calligraphy.png',
+              (0.006, 0.0, 0.988), 'Abu Bakr: his name in the roundel design by Kazasker Mustafa Izzet Efendi (Hagia Sophia, 19th century); no likeness of him exists, and Islamic tradition shows him by his name'),
     'Carthage': ('File:Hannibal Barca bust from Capua photo.jpg', (0.1, 0.0, 0.8),
                  'Hannibal: the marble bust found at Capua'),
-    'Korea': ('File:초등대한역사 제3편 1.jpg', (0.0, 0.0, 1.0),
-              'Wang Kon (Taejo of Goryeo): illustration from a 1908 Korean history textbook'),
-    'Sumeria': ('File:Hero lion Dur-Sharrukin Louvre AO19862.jpg', (0.20, 0.06, 0.52),
-                'Gilgamesh: the "hero mastering a lion" relief from Dur-Sharrukin, Louvre'),
+    'Korea': ('File:Taejo Wangkun.jpg',
+             (0.3, 0.06, 0.36), 'Wang Kon (Taejo of Goryeo): royal portrait at Sungeuijeon, a copy (before 1950) of a Joseon-era painting'),
+    'Sumeria': ('File:Hero lion Dur-Sharrukin Louvre AO19862.jpg',
+               (0.31, 0.06, 0.44), 'Gilgamesh: the "hero mastering a lion" relief from Dur-Sharrukin, Louvre'),
     'Hittites': ('File:Priest-King or Diety, about 1600 BC, Hittite, North Syria, basalt with bone eyes - Cleveland Museum of Art - DSC08114.JPG',
                  (0.33, 0.10, 0.36), 'A Hittite priest-king, basalt statue of about 1600 BC, Cleveland Museum of Art (no likeness of Mursili survives)'),
     'Netherlands': ('File:William I, Prince of Orange by Adriaen Thomasz. Key Rijksmuseum Amsterdam SK-A-3148.jpg',
@@ -120,14 +120,22 @@ SOURCES = {
     'Byzantines': ('File:Mosaic of empress Theodora, Ravenna, San Vitale, 547.jpg', (0.15, 0.10, 0.62),
                    'Empress Theodora: mosaic in the Basilica of San Vitale, Ravenna, 547'),
     'Inca': ('File:Brooklyn Museum - Pachacuti, Tenth Inca, 1 of 14 Portraits of Inca Kings (cropped).jpg',
-             (0.1, 0.05, 0.8), 'Pachacuti: Cuzco School painting, 18th century (Brooklyn Museum)'),
-    'Maya': ('File:Copán Stela A 01.jpg', (0.36, 0.30, 0.32),
-             'Stela A at Copan, showing 18 Rabbit, Smoke-Jaguar\'s successor (no public domain likeness of Smoke-Jaguar (Chan Imix K\'awiil) himself was found)'),
+            (0.27, 0.21, 0.46), 'Pachacuti: Cuzco School painting, 18th century (Brooklyn Museum)'),
+    'Maya': ('File:Copán Stela A 01.jpg',
+            (0.41, 0.35, 0.22), "Stela A at Copan, showing 18 Rabbit, Smoke-Jaguar's successor (no public domain likeness of Smoke-Jaguar (Chan Imix K'awiil) himself was found)"),
 }
 
-# Pen drawings whose fine lines would fade when scaled down: their lines are
-# darkened by this gamma.
-INK = {'Korea': 2.2}
+# A little more for a few sources: contrast for a faded print, sharpening
+# for a soft scan.
+TOUCH = {
+    'Zululand': {'contrast': 1.25},
+    'Persia': {'sharpen': 90},
+    'Korea': {'sharpen': 90, 'contrast': 1.2},
+    'Arabia': {'color': 0.5},
+    'Celts': {'sharpen': 70},
+}
+# The brightness every portrait's mid-tones are brought toward (0..1).
+TARGET_LEVEL = 0.42
 
 
 # ---------------------------------------------------------------- Commons
@@ -202,16 +210,18 @@ def license_templates(title):
     # {{self|cc-by-sa-4.0|...}} lists the uploader's licenses as parameters
     names = [n for m in re.findall(r'\{\{\s*self\s*\|([^}]*)\}\}', text, re.I) for n in m.split('|')]
     names += re.findall(r'\{\{\s*([^|}\n]+)', text)
-    return [n.strip() for n in names if re.match(r'\s*(pd|cc|gfdl|fal\b|attribution|licensed|public)', n, re.I)]
+    return [n.strip() for n in names if re.match(r'\s*(pd|cc|gfdl|fal\b|attribution|licensed|public|not-pd)', n, re.I)]
 
 
 def is_free(info):
     """Only public domain and CC0 pictures are used (no attribution or
     share-alike terms on the game's art): the license is public domain or
-    CC0, and no license on the page asks for attribution or share-alike."""
+    CC0, no license on the page asks for attribution or share-alike, and
+    the page doesn't say it's still under copyright in the US
+    ({{Not-PD-US-...}})."""
     if not re.match(r'(public domain|pd\b|pd-|cc0)', info['license'].strip(), re.I):
         return False
-    return not any(re.match(r'(cc-by|gfdl|fal\b|attribution)', t, re.I) for t in info['license_templates'])
+    return not any(re.match(r'(cc-by|gfdl|fal\b|attribution|not-pd)', t, re.I) for t in info['license_templates'])
 
 
 def source_image(title):
@@ -254,18 +264,39 @@ def crop(im, box):
     return sq.resize((SIZE, SIZE), Image.LANCZOS)
 
 
-def finish(im):
-    """The same gentle grade for every portrait: levels, slightly muted and
-    warmed color, a little sharpening, a soft vignette and a beveled edge."""
+def _luma(a):
+    return a @ np.array([0.299, 0.587, 0.114], np.float32)
+
+
+def finish(im, sharpen=45):
+    """The same grade for every portrait, so the set looks of a piece:
+    levels, mid-tones brought to a common brightness, black and white
+    pictures toned warm like old prints, slightly muted and warmed color,
+    a little sharpening, a soft vignette and a beveled edge."""
     im = ImageOps.autocontrast(im, cutoff=(0.4, 0.4), preserve_tone=True)
+    a = np.asarray(im, np.float32) / 255
+    # even out brightness: a gamma that brings the middle of the picture's
+    # tones (weighted to its center, where the face is) toward one level
+    n = SIZE
+    y, x = np.mgrid[0:n, 0:n].astype(np.float32)
+    wgt = np.exp(-(((x - n / 2) / (n * 0.3)) ** 2 + ((y - n * 0.45) / (n * 0.3)) ** 2))
+    mean = float((_luma(a) * wgt).sum() / wgt.sum())
+    g = np.clip(np.log(TARGET_LEVEL) / np.log(max(1e-3, min(mean, 0.97))), 0.7, 1.45)
+    a = np.clip(a, 0, 1) ** g
+    # black and white (and near it): toned like a warm old print
+    sat = float((a.max(-1) - a.min(-1)).mean())
+    if sat < 0.1:
+        lum = _luma(a)[..., None]
+        sepia = np.clip(lum * np.array([1.08, 0.98, 0.82], np.float32) + np.array([0.02, 0.01, 0.0], np.float32), 0, 1)
+        k = 0.75 * (1 - sat / 0.1)
+        a = a * (1 - k) + sepia * k
+    im = Image.fromarray((np.clip(a, 0, 1) * 255 + 0.5).astype(np.uint8), 'RGB')
     im = ImageEnhance.Color(im).enhance(0.88)
-    im = im.filter(ImageFilter.UnsharpMask(radius=1.2, percent=45, threshold=2))
+    im = im.filter(ImageFilter.UnsharpMask(radius=1.2, percent=sharpen, threshold=2))
     a = np.asarray(im, np.float32) / 255
     # warm: a touch of old varnish over everything
     a = a * np.array([1.03, 1.0, 0.92], np.float32) + np.array([0.012, 0.006, 0.0], np.float32)
-    n = SIZE
-    y, x = np.mgrid[0:n, 0:n].astype(np.float32)
-    d = np.hypot((x - n / 2) / (n * 0.62), (y - n * 0.45) / (n * 0.66))
+    d =np.hypot((x - n / 2) / (n * 0.62), (y - n * 0.45) / (n * 0.66))
     a *= (1 - 0.30 * np.clip(d - 0.35, 0, 1) ** 1.6)[..., None]
     # beveled edge: a dark rim, light inner line top and left, dark bottom and right
     w = 3
@@ -282,10 +313,12 @@ def make(civ_name):
     title, box, _ = SOURCES[civ_name]
     im, info = source_image(title)
     im = crop(im, box)
-    if civ_name in INK:
-        g = INK[civ_name]
-        im = im.point(lambda v: int(255 * (v / 255) ** g + 0.5))
-    return finish(im), info
+    extra = TOUCH.get(civ_name, {})
+    if 'contrast' in extra:
+        im = ImageEnhance.Contrast(im).enhance(extra['contrast'])
+    if 'color' in extra:
+        im = ImageEnhance.Color(im).enhance(extra['color'])
+    return finish(im, sharpen=extra.get('sharpen', 45)), info
 
 
 # ---------------------------------------------------------------- previews

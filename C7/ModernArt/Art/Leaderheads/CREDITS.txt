@@ -19,7 +19,7 @@ Egypt.png (Cleopatra)
 
 Greece.png (Alexander)
   Alexander the Great: Hellenistic marble head in the British Museum
-  Source:  https://commons.wikimedia.org/wiki/File:Alejandro_Magno,_Alexander_The_Great_Bust_Alexander_BM_1857_(cropped).jpg
+  Source:  https://commons.wikimedia.org/wiki/File:Bust_Alexander_BM_1857.jpg
   Artist:  Unknown artist
   License: Public domain
 
@@ -42,9 +42,9 @@ Russia.png (Catherine)
   License: Public domain
 
 China.png (Mao)
-  Mao Zedong, official portrait photograph
-  Source:  https://commons.wikimedia.org/wiki/File:Mao_Zedong_sitting_(3x4_cropped)(2).jpg
-  Artist:  The People's Republic of China Printing Office
+  Mao Zedong, portrait photograph by Chen Zhengqing, 1950
+  Source:  https://commons.wikimedia.org/wiki/File:Mao_Zedong_1950_Portrait_(3x4_cropped).jpg
+  Artist:  Chen Zhengqing (1917–1966)
   License: Public domain
 
 America.png (Lincoln)
@@ -60,15 +60,15 @@ Japan.png (Tokugawa)
   License: Public domain
 
 France.png (Joan d'Arc)
-  Joan of Arc by Dante Gabriel Rossetti, 1882 (no likeness from her lifetime survives)
-  Source:  https://commons.wikimedia.org/wiki/File:Dante_Gabriel_Rossetti_-_Joan_of_Arc_(1882).jpg
-  Artist:  Dante Gabriel Rossetti
+  Joan of Arc: detail of "Joan of Arc at the Coronation of Charles VII" by Ingres, 1854 (no likeness from her lifetime survives)
+  Source:  https://commons.wikimedia.org/wiki/File:Ingres_coronation_charles_vii.jpg
+  Artist:  Jean-Auguste-Dominique Ingres
   License: Public domain
 
 India.png (Gandhi)
-  Mohandas K. Gandhi, studio photograph
-  Source:  https://commons.wikimedia.org/wiki/File:Mohandas_K._Gandhi,_portrait.jpg
-  Artist:  Fox Photos / Getty (see Getty for date, author and context)
+  Mohandas K. Gandhi, photograph, 1940
+  Source:  https://commons.wikimedia.org/wiki/File:Gandhi_portrait,_1940.jpg
+  Artist:  Unknown author
   License: Public domain
 
 Persia.png (Xerxes)
@@ -78,13 +78,13 @@ Persia.png (Xerxes)
   License: Public domain
 
 Aztecs.png (Montezuma)
-  Moctezuma II, 17th-century painting by Antonio Rodriguez
+  Moctezuma II, 17th-century painting attributed to Antonio Rodriguez
   Source:  https://commons.wikimedia.org/wiki/File:Moctezuma_Xocoyotzin.png
   Artist:  attributed to Antonio Rodriguez (1636-1691)
   License: Public domain
 
 Zululand.png (Shaka)
-  Shaka, 19th-century engraving after the drawing by James King
+  Shaka, 19th-century print after the drawing by James King
   Source:  https://commons.wikimedia.org/wiki/File:Shaka_Zulu_incisione_ottocentesca.jpg
   Artist:  Anonymous
   License: Public domain
@@ -114,7 +114,7 @@ Spain.png (Isabella)
   License: Public domain
 
 Scandinavia.png (Ragnar Lodbrok)
-  Ragnar Lodbrok meeting Kraka: wood engraving after August Malmstrom, about 1880
+  Ragnar Lodbrok: detail of "Ragnar Lodbrok and Kraka", engraving after August Malmstrom, about 1880
   Source:  https://commons.wikimedia.org/wiki/File:Rayner_Lothbroc_%26_Kraka_by_August_Malmstr%C3%B6m_c_1880.jpg
   Artist:  August Malmström
   License: Public domain
@@ -126,15 +126,15 @@ Ottomans.png (Osman)
   License: Public domain
 
 Celts.png (Brennus)
-  Brennus: wood engraving by Therond of the statue by Ferdinand Taluet, 19th century
-  Source:  https://commons.wikimedia.org/wiki/File:Brennus.jpg
-  Artist:  Ferdinand Taluet / Émile Théodore Therond / Joseph Ettlin
+  Brennus: detail of "Le Brenn et sa part de butin" by Paul Jamin, 1893
+  Source:  https://commons.wikimedia.org/wiki/File:Le_Brenn_et_sa_part_de_butin_(Paul_Jamin).jpg
+  Artist:  Paul Joseph Jamin
   License: Public domain
 
 Arabia.png (Abu Bakr)
-  Abu Bakr: calligraphic roundel of his name, as he is shown in Islamic tradition (no likeness exists)
-  Source:  https://commons.wikimedia.org/wiki/File:The_first_caliph_Abu_Bakr.png
-  Artist:  عبدالعزيز علي
+  Abu Bakr: his name in the roundel design by Kazasker Mustafa Izzet Efendi (Hagia Sophia, 19th century); no likeness of him exists, and Islamic tradition shows him by his name
+  Source:  https://commons.wikimedia.org/wiki/File:Abu_Bakr_Caliph_Calligraphy.png
+  Artist:  M. Izzet Efendi
   License: Public domain
 
 Carthage.png (Hannibal)
@@ -144,9 +144,9 @@ Carthage.png (Hannibal)
   License: Public domain
 
 Korea.png (Wang Kon)
-  Wang Kon (Taejo of Goryeo): illustration from a 1908 Korean history textbook
-  Source:  https://commons.wikimedia.org/wiki/File:%EC%B4%88%EB%93%B1%EB%8C%80%ED%95%9C%EC%97%AD%EC%82%AC_%EC%A0%9C3%ED%8E%B8_1.jpg
-  Artist:  Original: Jeong Inho Transcription: History Net, National Institute of Korean History
+  Wang Kon (Taejo of Goryeo): royal portrait at Sungeuijeon, a copy (before 1950) of a Joseon-era painting
+  Source:  https://commons.wikimedia.org/wiki/File:Taejo_Wangkun.jpg
+  Artist:  User:Dikinodon
   License: Public domain
 
 Sumeria.png (Gilgamesh)
