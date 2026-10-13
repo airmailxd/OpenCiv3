@@ -598,8 +598,11 @@ public partial class MapUnit {
 	}
 
 	// Captures the enemy workers on the tile, turns enemy settlers into two
-	// slave workers, and destroys any other enemy units there that can't be
-	// captured. Barbarians don't take captives.
+	// slave workers, captures other zero-defence units (like catapults) the
+	// captor could build, and destroys the rest. Barbarians don't take
+	// captives.
+	// https://civfanatics.com/civ3/infocenter/
+	// https://forums.civfanatics.com/threads/capturing-units-with-zero-defense.631539/
 	private void CaptureDefencelessUnits(Tile tile) {
 		GameData gameData = EngineStorage.gameData;
 		foreach (MapUnit enemy in tile.unitsOnTile.Where(u => !owner.IsAtPeaceWith(u.owner)).ToList()) {
@@ -613,7 +616,7 @@ public partial class MapUnit {
 				gameData.RemoveUnit(enemy);
 			} else if (enemy.unitType.isSettler) {
 				gameData.CaptureSettler(enemy, owner);
-			} else if (enemy.unitType.isWorker) {
+			} else if (enemy.unitType.isWorker || enemy.unitType.CanBeCapturedBy(owner)) {
 				gameData.CaptureUnit(enemy, owner);
 			} else {
 				gameData.RemoveUnit(enemy);

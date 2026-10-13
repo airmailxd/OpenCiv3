@@ -96,6 +96,19 @@ namespace C7GameData {
 			return producibleBySet.Contains(civ);
 		}
 
+		// Whether the captor takes this unit, when it's caught undefended,
+		// rather than destroying it. Civ3 captures an undefended zero-defence
+		// unit, like a catapult or artillery, only if the captor could build
+		// it: the unit must be available to the captor's civ and the captor
+		// must know its required tech. Resources don't matter.
+		// https://forums.civfanatics.com/threads/capturing-units-with-zero-defense.631539/
+		// https://civfanatics.com/civ3/infocenter/
+		// UNVERIFIED: whether an obsolete unit can still be captured; it can
+		// here, since only tech and civ availability are named.
+		public bool CanBeCapturedBy(Player captor) {
+			return !unproducible && IsProducibleBy(captor.civilization) && captor.HasRequiredTechnology(this);
+		}
+
 		public HashSet<Civilization> producibleBy {
 			get {
 				OnUpgradeDataAccessed();

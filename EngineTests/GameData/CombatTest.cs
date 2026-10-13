@@ -248,6 +248,42 @@ public class CombatTest : IClassFixture<SaveGameFixture> {
 		});
 	}
 
+	// Civ3 captures an undefended zero-defence unit if the captor could
+	// build it, and destroys it otherwise.
+	// https://forums.civfanatics.com/threads/capturing-units-with-zero-defense.631539/
+	[Fact]
+	public async Task ACatapultIsCapturedByACivThatCanBuildIt() {
+		GoToWar();
+		(Tile from, TileDirection dir, Tile to) = FindAdjacentLand();
+		MapUnit warrior = Spawn(us, "Warrior", from);
+		MapUnit catapult = Spawn(them, "Catapult", to);
+		us.knownTechs.Add(catapult.unitType.requiredTech.id);
+
+		Assert.True(await warrior.Move(dir));
+
+		Assert.Equal(to, warrior.location);
+		Assert.Equal(us, catapult.owner);
+		Assert.Contains(catapult, us.units);
+		Assert.DoesNotContain(catapult, them.units);
+		Assert.Contains(catapult, to.unitsOnTile);
+	}
+
+	[Fact]
+	public async Task ACatapultIsDestroyedByACivThatCantBuildIt() {
+		GoToWar();
+		(Tile from, TileDirection dir, Tile to) = FindAdjacentLand();
+		MapUnit warrior = Spawn(us, "Warrior", from);
+		MapUnit catapult = Spawn(them, "Catapult", to);
+		us.knownTechs.Remove(catapult.unitType.requiredTech.id);
+
+		Assert.True(await warrior.Move(dir));
+
+		Assert.Equal(to, warrior.location);
+		Assert.DoesNotContain(catapult, gameData.mapUnits);
+		Assert.DoesNotContain(catapult, us.units);
+		Assert.DoesNotContain(catapult, to.unitsOnTile);
+	}
+
 	[Fact]
 	public async Task WinningAttackerPaysOnlyForTheMove() {
 		GoToWar();
