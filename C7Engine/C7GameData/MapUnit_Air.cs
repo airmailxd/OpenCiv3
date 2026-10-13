@@ -264,10 +264,28 @@ namespace C7GameData {
 		// is the unit's operational range. UNVERIFIED (no Civ3 source
 		// found): the target must be land the paratrooper could walk onto
 		// with no other civ's units, city or a barbarian camp on it, and the
-		// drop takes the unit's turn. Only land units drop here; the
-		// Helicopter, which has the BIQ's airdrop too, doesn't carry troops
-		// yet.
+		// drop takes the unit's turn.
+		//
+		// An aircraft with the BIQ's airdrop that carries units (the
+		// Helicopter) drops its passengers instead: "[Helicopters] are
+		// essentially air transports that can transport units to any square
+		// within their operational range, regardless of enemy units.
+		// Helicopters may carry foot soldiers only" (PRTO_Helicopter); "To
+		// board a helicopter a ground unit must start its turn in a city
+		// with the chopper and use the Load command button"
+		// (GCON_Transport). It "can pick up units at airfields and in towns
+		// and drop them so far, BUT they can't pick them out of trouble and
+		// bring them back home", and "airdrop uses up all it's moves in one
+		// go" (https://forums.civfanatics.com/threads/helicopter-thread.464662/):
+		// the helicopter stays at its base, with its turn used. UNVERIFIED
+		// (no Civ3 source found; sources differ): the passengers all drop
+		// together, onto a tile a paratrooper could drop onto, and their
+		// turn is used up as a paratrooper's is.
 		public bool CanAirdropFrom() {
+			if (IsAirUnit()) {
+				return IsAirdroppingTransport() && movementPoints.canMove && !IsLockedInArmy() && IsAtAirBase()
+					&& FirstPassenger() != null;
+			}
 			if (!IsLandUnit() || !unitType.actions.Contains(UnitAction.Airdrop) || unitType.operationalRange <= 0) {
 				return false;
 			}
@@ -291,7 +309,16 @@ namespace C7GameData {
 			if (location.DistanceTo(tile) > OperationalRange() || !tile.IsLand() || tile.IsImpassable() || tile.hasBarbarianCamp) {
 				return false;
 			}
-			if (!unitType.CanEnterTerrainOf(tile) || (tile.HasCity() && tile.cityAtTile.owner != owner)) {
+			if (tile.HasCity() && tile.cityAtTile.owner != owner) {
+				return false;
+			}
+			if (IsAirUnit()) {
+				foreach (MapUnit passenger in Passengers()) {
+					if (!passenger.unitType.CanEnterTerrainOf(tile)) {
+						return false;
+					}
+				}
+			} else if (!unitType.CanEnterTerrainOf(tile)) {
 				return false;
 			}
 			foreach (MapUnit u in tile.unitsOnTile) {
@@ -302,11 +329,26 @@ namespace C7GameData {
 			return true;
 		}
 
+		// Whether the unit is an aircraft that airdrops the units it
+		// carries (the Helicopter).
+		public bool IsAirdroppingTransport() {
+			return IsAirUnit() && unitType.actions.Contains(UnitAction.Airdrop) && unitType.operationalRange > 0 && CanCarryUnits();
+		}
+
 		public void Airdrop(Tile tile) {
 			if (!CanAirdropTo(tile)) {
 				return;
 			}
-			MoveStraightTo(tile);
+			if (IsAirUnit()) {
+				foreach (MapUnit passenger in Passengers()) {
+					// Moving the passenger onto land takes it off the
+					// helicopter (see RelocateTo).
+					passenger.MoveStraightTo(tile);
+					passenger.EndMission();
+				}
+			} else {
+				MoveStraightTo(tile);
+			}
 			EndMission();
 		}
 
