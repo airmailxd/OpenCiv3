@@ -43,7 +43,7 @@ def _gradient_map(lum):
     return np.stack([np.interp(lum, xs, cs[:, i]) for i in range(3)], -1).astype(np.float32)
 
 
-def subject_mask(a):
+def subject_mask(a, oval_weight=1.0, erode=60, plain=None):
     """0 (background) to 1 (subject): color distance from the median of the
     picture's border, smoothed, with a central oval where the sitter is."""
     n = a.shape[0]
@@ -60,15 +60,32 @@ def subject_mask(a):
     g = np.hypot(nd.sobel(lum, 0), nd.sobel(lum, 1))
     busy = nd.gaussian_filter(g, n / 40)
     busy_bg = np.median(np.concatenate([busy[:b].ravel(), busy[-b:].ravel(), busy[:, :b].ravel(), busy[:, -b:].ravel()]))
-    m = np.maximum(m, np.clip((busy - busy_bg * 1.6) / (busy_bg * 2 + 0.05), 0, 1))
+    busy_m = np.clip((busy - busy_bg * 1.6) / (busy_bg * 2 + 0.05), 0, 1)
+    m = np.maximum(m, busy_m)
     y, x = np.mgrid[0:n, 0:n].astype(np.float32)
     oval = np.exp(-(((x - n / 2) / (n * 0.30)) ** 2 + ((y - n * 0.50) / (n * 0.40)) ** 4))
-    m = np.maximum(m, oval)
+    # the oval counts for less where a pixel matches an even backdrop (a
+    # bright museum wall behind a bust would otherwise glow round its head)
+    # (plain: how sure the backdrop is plain, if known; else from its spread)
+    even = np.clip(1 - (spread - 0.04) / 0.12, 0, 1) if plain is None else plain
+    close = np.clip(1 - d / (3 * spread), 0, 1) * even
+    m = np.maximum(m, oval * oval_weight * (1 - 0.85 * close))
     # close small holes, pull the edge in a little (so no rim of the old
     # background is left around the sitter), then soften it
     m = nd.grey_closing(m, size=max(3, n // 30))
-    m = nd.grey_erosion(m, size=max(3, n // 60))
-    return np.clip(nd.gaussian_filter(m, n / 120), 0, 1)
+    m = nd.grey_erosion(m, size=max(3, n // erode))
+    m = np.clip(nd.gaussian_filter(m, n / 120), 0, 1)
+    # the old wall itself: smooth and the color of an even border, wherever it
+    # is (the painted ground replaces it even inside the oval)
+    # (measured close up, so the rim just outside the sitter's edge, which
+    # the broad masks above take in, is found too)
+    d_px = np.abs(nd.gaussian_filter(a, (1, 1, 0)) - ref).sum(-1)
+    even_px = np.clip(1 - (spread - 0.04) / 0.25, 0, 1) if plain is None else plain
+    close_px = np.clip(1.6 - d_px / spread, 0, 1) * even_px
+    busy_px = nd.gaussian_filter(g, n / 150)
+    busy_px = np.clip((busy_px - busy_bg * 1.6) / (busy_bg * 2 + 0.05), 0, 1)
+    wall = nd.gaussian_filter(np.maximum(close * (1 - busy_m), close_px), 1.0)
+    return m, np.clip(wall, 0, 1)
 
 
 def kuwahara(a, r):
@@ -148,18 +165,33 @@ def backdrop(n, seed):
     return BACK_DARK * (1 - t) + BACK_LIGHT * t
 
 
-def paint(img, seed=0, strength=1.0):
-    """The painted finish on a PIL RGB picture (returns float RGB 0..1)."""
+def paint(img, seed=0, strength=1.0, oval=1.0, keep=0.4, broad=70, bg=0.92, color=0.75, erode=60, level=0.42,
+          fixed=None, plain=None):
+    """The painted finish on a PIL RGB picture (returns float RGB 0..1).
+    Per picture: oval, how sure the center is the sitter (lower for a
+    sitter before a bright wall, which would glow); keep, how much of the
+    real picture is kept on the sitter (higher for fine detail like a
+    mosaic); broad, the background strokes' size as a fraction (n // broad);
+    bg, how much of the old background the painted ground replaces."""
     a = np.asarray(img, np.float32) / 255
     n = a.shape[0]
-    mask = subject_mask(a)
+    mask, wall = subject_mask(a, oval, erode, plain)
+    if fixed:
+        # a sitter the mask can't find (pale on pale paper): a fixed soft
+        # silhouette, an oval head over wide shoulders, (cx, cy, rx, ry)
+        cx, cy, rx, ry = fixed
+        yy, xx = np.mgrid[0:n, 0:n].astype(np.float32) / n
+        head = ((xx - cx) / rx) ** 2 + ((yy - cy) / ry) ** 2 < 1
+        body = (yy > cy + ry * 0.6) & (np.abs(xx - cx) < rx * 1.9 + (yy - cy - ry * 0.6) * 1.2)
+        mask = np.clip(nd.gaussian_filter((head | body).astype(np.float32), n / 50), 0, 1)
+        wall = np.zeros_like(mask)
     # strokes: light smoothing on the subject (the face keeps its detail),
     # broader in the background
     fine = kuwahara(a, max(2, n // 150))
-    broad = kuwahara(a, max(4, n // 70))
+    broad = kuwahara(a, max(2, n // broad))
     m3 = mask[..., None]
     # on the subject, half the stroke-smoothed picture and half the real one
-    p = (fine * 0.6 + a * 0.4) * m3 + broad * (1 - m3)
+    p = (fine * (1 - keep) + a * keep) * m3 + broad * (1 - m3)
     # one palette: a gradient map by brightness, with the picture's own
     # color kept on top (pictures in color stay in color, but share a key)
     lum = _luma(np.clip(p, 0, 1))
@@ -168,12 +200,25 @@ def paint(img, seed=0, strength=1.0):
     sat = float(np.abs(chroma).mean())
     if sat > 0.03:
         # the shared key, with the picture's own (somewhat calmer) color
-        p = (mapped * 0.55 + lum[..., None] * 0.45) + chroma * 0.75
+        # (strong colors limited, so no face goes neon)
+        c = np.linalg.norm(chroma, axis=-1, keepdims=True)
+        chroma = chroma * np.minimum(1, 0.3 / (c + 1e-6))
+        p = (mapped * 0.55 + lum[..., None] * 0.45) + chroma * color
     else:                                        # black and white: all gradient map
         p = mapped
+    # one brightness: the sitter's mid-tones (weighted to the face) brought
+    # to one level, before the ground goes in, so every ground is as dark
+    if level:
+        y, x = np.mgrid[0:n, 0:n].astype(np.float32)
+        wgt = mask * np.exp(-(((x - n / 2) / (n * 0.3)) ** 2 + ((y - n * 0.45) / (n * 0.3)) ** 2))
+        mean = float((_luma(np.clip(p, 0, 1)) * wgt).sum() / (wgt.sum() + 1e-6))
+        g = np.clip(np.log(level) / np.log(max(1e-3, min(mean, 0.97))), 0.7, 1.45)
+        p = np.clip(p, 0, 1) ** g
     # one backdrop
     bd = backdrop(n, seed)
-    bg_share = (1 - mask)[..., None] * 0.92 * strength
+    # (the ground takes over quickly past the sitter's edge, so no rim of the
+    # old wall shows in the soft band between)
+    bg_share = np.maximum(1 - mask, wall * 0.9)[..., None] * bg * strength
     p = p * (1 - bg_share) + bd * bg_share
     # brush texture: faint strokes along the forms on the subject, a
     # crisscrossed brushed ground behind

@@ -142,6 +142,27 @@ TOUCH = {
     'Arabia': {'color': 0.4, 'disc': True},
     'Ottomans': {'cover': [(0.02, 0.57, 0.30, 0.76)]},
 }
+# The painted finish (paint.py) adjusted for a few pictures: see paint.paint.
+PAINT = {
+    'Rome': {'broad': 140, 'keep': 0.5},
+    # statues before a light wall: the sitter's outline pulled in further,
+    # so no light rim of the wall glows round the head
+    'Babylon': {'erode': 22, 'plain': 1.0},
+    'Hittites': {'oval': 0.6, 'erode': 25},
+    'Greece': {'erode': 30},
+    'Zululand': {'erode': 30},
+    # a small, pale old painting on pale paper, where the mask finds nothing:
+    # a fixed silhouette, and its own strokes kept
+    'Korea': {'bg': 0.9, 'keep': 1.0, 'fixed': (0.55, 0.36, 0.27, 0.36), 'level': 0.3},
+    # photographs: more of the real picture kept on the face, so the
+    # strokes don't break skin into patches
+    'America': {'keep': 0.65},
+    'China': {'keep': 0.65},
+    'India': {'keep': 0.65},
+    'Mongols': {'color': 0.6, 'level': 0.34},
+    'Byzantines': {'keep': 0.75, 'broad': 150},
+}
+
 # The brightness every portrait's mid-tones are brought toward (0..1).
 TARGET_LEVEL = 0.42
 
@@ -276,7 +297,7 @@ def _luma(a):
     return a @ np.array([0.299, 0.587, 0.114], np.float32)
 
 
-def finish(im, sharpen=45):
+def finish(im, sharpen=45, level=True):
     """The same grade for every portrait, so the set looks of a piece:
     levels, mid-tones brought to a common brightness, black and white
     pictures toned warm like old prints, slightly muted and warmed color,
@@ -290,7 +311,8 @@ def finish(im, sharpen=45):
     wgt = np.exp(-(((x - n / 2) / (n * 0.3)) ** 2 + ((y - n * 0.45) / (n * 0.3)) ** 2))
     mean = float((_luma(a) * wgt).sum() / wgt.sum())
     g = np.clip(np.log(TARGET_LEVEL) / np.log(max(1e-3, min(mean, 0.97))), 0.7, 1.45)
-    a = np.clip(a, 0, 1) ** g
+    if level:
+        a = np.clip(a, 0, 1) ** g
     # black and white (and near it): toned like a warm old print
     sat = float((a.max(-1) - a.min(-1)).mean())
     if sat < 0.1:
@@ -367,10 +389,10 @@ def make(civ_name, painted=False):
     sharpen = extra.get('sharpen', 45 if upscale < 0.8 else 25)
     if painted:
         import paint
-        a = paint.paint(im, seed=sum(map(ord, civ_name)))
+        a = paint.paint(im, seed=sum(map(ord, civ_name)), **{'level': TARGET_LEVEL, **PAINT.get(civ_name, {})})
         im = Image.fromarray((a * 255 + 0.5).astype(np.uint8), 'RGB').resize((SIZE, SIZE), Image.LANCZOS)
         sharpen = min(sharpen, 30)
-    return finish(im, sharpen=sharpen), info
+    return finish(im, sharpen=sharpen, level=not painted), info
 
 
 # ---------------------------------------------------------------- previews
@@ -419,7 +441,9 @@ def write_credits(civs):
         '',
         'Made by ArtGen/leaderheads/build.py from public domain and CC0 pictures',
         'on Wikimedia Commons: cropped to the head and shoulders, scaled, and given',
-        'a light color grade, vignette and edge.',
+        'a shared painted finish (ArtGen/leaderheads/paint.py: edge-preserving stroke',
+        'smoothing, one palette, one painted backdrop, brush texture; image processing',
+        'only, nothing generated), a color grade, vignette and edge.',
         '',
     ]
     for civ in civs:
@@ -486,18 +510,43 @@ def main(argv):
     if missing:
         sys.exit(f'No portrait source for {", ".join(missing)}: add them to SOURCES')
     civs = [c for c in all_civs if not names or c['name'].lower() in names]
-    done = []
+    painted = 'flat' not in opts
+    done, pairs = [], []
     for civ in civs:
         name = civ['name']
-        img, info = make(name)
+        img, info = make(name, painted=painted)
         img.save(os.path.join(OUT, f'{name}.png'), optimize=True)
         if 'sources' in opts:
             source_preview(name, source_image(SOURCES[name][0])[0])
+        if 'compare' in opts:
+            pairs.append((name, make(name)[0], img))
         print(f'  {name:12} {info["license"]:14} {info["title"]}', flush=True)
         done.append((name, img))
     if not names:
         write_credits(all_civs)
+    if pairs:
+        print(f'before and after: {compare_sheet(pairs)}')
     print(f'{len(done)} leader heads; preview: {contact_sheet(done)}')
+
+
+def compare_sheet(pairs):
+    """Each portrait without and with the painted finish, side by side, to
+    ArtGen/_previews/leaderheads_unified_all.png."""
+    cols, pad, label = 4, 6, 14
+    rows = (len(pairs) + cols - 1) // cols
+    cw = 2 * SIZE + 3 * pad
+    sheet = Image.new('RGB', (cols * cw + pad, rows * (SIZE + pad + label) + pad), (205, 205, 205))
+    dr = ImageDraw.Draw(sheet)
+    for i, (name, before, after) in enumerate(pairs):
+        r, c = divmod(i, cols)
+        x, y = pad + c * cw, pad + r * (SIZE + pad + label)
+        sheet.paste(before, (x, y))
+        sheet.paste(after, (x + SIZE + pad, y))
+        dr.text((x + 2, y + SIZE + 1), f'{name}: before / painted', fill=(0, 0, 0))
+    path = os.path.join(PREVIEWS, 'leaderheads_unified_all.png')
+    os.makedirs(PREVIEWS, exist_ok=True)
+    sheet.save(path)
+    return path
 
 
 if __name__ == '__main__':
