@@ -11,7 +11,7 @@ namespace EngineTests.GameData;
 // The air missions and the airdrop have unit command buttons in both modes:
 // Civ3's own (NormButtons.pcx) and, in standalone mode, ours
 // (C7/ModernArt/Art/interface/AirMissionButtons.png, made by
-// ArtGen/ui_buttons/air_missions.py), since the standalone asset pack's
+// ArtGen/ui_buttons/build.py), since the standalone asset pack's
 // button sheet is blank there.
 public class AirMissionButtonsTest {
 	private static readonly string[] actions = [

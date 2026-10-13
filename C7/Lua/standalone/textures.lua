@@ -285,7 +285,7 @@ return function(civ3_textures)
   -- The asset pack's button sheet is blank where Civ3's has the air
   -- missions and the airdrop, so they have buttons of our own
   -- (C7/ModernArt/Art/interface/AirMissionButtons.png, made by
-  -- ArtGen/ui_buttons/air_missions.py): a column per button, a row per
+  -- ArtGen/ui_buttons/build.py): a column per button, a row per
   -- state.
   local air_mission_buttons = {
     "unit_bombing", "unit_precision_bombing", "unit_recon",

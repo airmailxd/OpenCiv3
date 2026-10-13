@@ -2,7 +2,7 @@
 mode, which has no Civ3 art: the standalone asset pack's button sheet
 (Art/interface/NormButtons.png) has only blank buttons where Civ3's has them.
 
-    python ArtGen/ui_buttons/air_missions.py
+    python ArtGen/ui_buttons/build.py
 
 writes C7/ModernArt/Art/interface/AirMissionButtons.png: a column per button
 (bombing, precision strike, recon, air superiority, re-base, airdrop) and a

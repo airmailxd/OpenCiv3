@@ -19,6 +19,11 @@ the advance and building icons of the tech tree, production menus and city
 screen in standalone mode from the same pictures (in `C7/ModernArt`, listed
 in `C7/Lua/standalone/icon_files.lua`).
 
+`ui_buttons/` draws the unit command buttons the standalone asset pack lacks
+(the air missions and the airdrop) into
+`C7/ModernArt/Art/interface/AirMissionButtons.png`, which
+`C7/Lua/standalone/textures.lua` points those buttons at.
+
 ## The contract with the game
 
 * **Same file, same layout, twice the pixels.** The remake of
