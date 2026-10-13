@@ -77,6 +77,8 @@ namespace C7Engine {
 			await ObsoleteUnits.DisbandOverSupport(player);
 			// On trial: march on enemy cities in force (see WarCampaign).
 			await WarCampaign.PlayTurn(player, gameData);
+			// Draft defenders in cities about to be attacked (see DraftAI).
+			DraftAI.PlayTurn(player, gameData);
 			await EngineStorage.YieldIfFrameBudgetSpent();
 			await DoUnitActions(player);
 			DevelopmentAI.HurryProduction(player);
