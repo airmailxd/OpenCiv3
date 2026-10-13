@@ -320,6 +320,7 @@ namespace C7GameData {
 				UnitAction.Recon => CanReconTile(tile),
 				UnitAction.Rebase => CanRebaseTo(tile),
 				UnitAction.Airdrop => CanAirdropTo(tile),
+				UnitAction.Airlift => CanAirliftTo(tile),
 				_ => false,
 			};
 		}
@@ -338,6 +339,9 @@ namespace C7GameData {
 		private void AddAvailableAirMissions(List<UnitAction> actions) {
 			if (CanAirdropFrom()) {
 				actions.Add(UnitAction.Airdrop);
+			}
+			if (CanAirliftFrom()) {
+				actions.Add(UnitAction.Airlift);
 			}
 			if (!IsAirUnit() || !movementPoints.canMove || IsLockedInArmy()) {
 				return;

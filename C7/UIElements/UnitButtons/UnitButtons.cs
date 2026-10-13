@@ -60,6 +60,7 @@ public partial class UnitButtons : VBoxContainer {
 		//   ******* SPECIALIZED CONTROLS *************
 		AddNewButton(specializedControls, C7Action.UnitLoad);
 		AddNewButton(specializedControls, C7Action.UnitUnload);
+		AddNewButton(specializedControls, C7Action.UnitAirlift);
 		AddNewButton(specializedControls, C7Action.UnitPillage);
 		AddNewButton(specializedControls, C7Action.UnitBombard);
 		// AddNewButton(specializedControls, "autobombard");

@@ -40,6 +40,9 @@ namespace C7GameData {
 		// A worker founds a colony on a resource outside every civ's borders
 		// (see Tile_Holdings).
 		BuildColony,
+		// A land unit flies from one of its owner's airports or airfields to
+		// another (see MapUnit_Airlift.cs).
+		Airlift,
 	}
 
 	public struct ItemContext(UnitPrototype proto, Player player) {

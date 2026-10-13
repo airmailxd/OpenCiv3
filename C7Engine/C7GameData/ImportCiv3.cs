@@ -1827,6 +1827,7 @@ namespace C7GameData {
 			if (prto.Rebase) yield return UnitAction.Rebase;
 			if (prto.PrecisionBombing) yield return UnitAction.PrecisionBombing;
 			if (prto.BuildColony) yield return UnitAction.BuildColony;
+			if (prto.Airlift) yield return UnitAction.Airlift;
 		}
 
 		private static IEnumerable<TerraformKey> GetUnitTerraforms(PRTO prto) {

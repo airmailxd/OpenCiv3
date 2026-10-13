@@ -52,4 +52,22 @@ public class AirMissionButtonsTest {
 			Assert.Equal("Art/interface/AirMissionButtons.png", normal.Get("path").String);
 		}
 	}
+
+	// Airlift's button is Civ3's (labels.txt lists it after Unload, so it's
+	// the cell after Unload's) and, in standalone mode, our own
+	// (C7/ModernArt/Art/interface/unit_airlift.png, made by
+	// ArtGen/ui_buttons/build.py).
+	[Fact]
+	public void AirliftHasAButtonInBothModes() {
+		Table civ3Normal = Button(civ3.Value, C7Action.UnitAirlift).Get("normal").Table;
+		Table unloadNormal = Button(civ3.Value, C7Action.UnitUnload).Get("normal").Table;
+		Assert.Equal(unloadNormal.Get("crop_region").Table.Get(1).Number + 32, civ3Normal.Get("crop_region").Table.Get(1).Number);
+		Assert.Equal(unloadNormal.Get("crop_region").Table.Get(2).Number, civ3Normal.Get("crop_region").Table.Get(2).Number);
+
+		string file = PathUtils.getBasePath("../C7/ModernArt/Art/interface/unit_airlift.png");
+		Assert.True(File.Exists(file), file);
+		foreach (string state in new[] { "normal", "hover", "pressed" }) {
+			Assert.Equal("Art/interface/unit_airlift.png", Button(standalone.Value, C7Action.UnitAirlift).Get(state).Table.Get("path").String);
+		}
+	}
 }

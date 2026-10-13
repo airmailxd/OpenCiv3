@@ -107,6 +107,11 @@ namespace C7GameData.Save {
 		// How many of each spaceship part (by index) the player has built.
 		public List<int> spaceshipParts = new();
 
+		// The turn of airliftOrigins, the airports and airfields the player
+		// has airlifted a unit from that turn. Null when there are none.
+		public int airliftTurn = -1;
+		public List<TileLocation> airliftOrigins;
+
 		// Used when importing from .biq, to make it easier to distinguish barbarians from other players.
 		// It's not meant to be saved in the json.
 		[JsonIgnore]
@@ -150,6 +155,13 @@ namespace C7GameData.Save {
 				hasVictoriousArmy = hasVictoriousArmy,
 				spaceshipParts = spaceshipParts == null ? new() : new List<int>(spaceshipParts),
 			};
+			player.airliftTurn = airliftTurn;
+			foreach (TileLocation origin in airliftOrigins ?? []) {
+				Tile tile = map.tileAt(origin.X, origin.Y);
+				if (Tile.IsTileValid(tile)) {
+					player.airliftOrigins.Add(tile);
+				}
+			}
 			if (!string.IsNullOrEmpty(knownTileIndices)) {
 				foreach (int index in DecodeTileIndices(knownTileIndices)) {
 					if (index < 0 || index >= map.tiles.Count) {
@@ -267,6 +279,10 @@ namespace C7GameData.Save {
 			governmentId = player.government.id;
 			hasVictoriousArmy = player.hasVictoriousArmy;
 			spaceshipParts = new List<int>(player.spaceshipParts);
+			if (player.airliftOrigins.Count > 0) {
+				airliftTurn = player.airliftTurn;
+				airliftOrigins = player.airliftOrigins.Select(t => new TileLocation(t)).ToList();
+			}
 
 			foreach (KeyValuePair<ID, PlayerRelationship> keyValuePair in player.playerRelationships) {
 				playerRelationships.Add(keyValuePair.Key.ToString(), keyValuePair.Value);

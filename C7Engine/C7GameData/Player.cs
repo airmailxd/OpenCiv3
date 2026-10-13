@@ -296,6 +296,26 @@ namespace C7GameData {
 		// this civ has built. Losing the capital destroys them. See SpaceRace.
 		public List<int> spaceshipParts = new();
 
+		// The airports and airfields this player has airlifted a unit from
+		// on turn airliftTurn; each sends one a turn (see MapUnit_Airlift.cs).
+		public int airliftTurn = -1;
+		public HashSet<Tile> airliftOrigins = new();
+
+		public bool HasAirliftedFromThisTurn(Tile tile) {
+			return airliftTurn == CurrentTurn() && airliftOrigins.Contains(tile);
+		}
+
+		public void RecordAirliftFrom(Tile tile) {
+			int turn = CurrentTurn();
+			if (airliftTurn != turn) {
+				airliftTurn = turn;
+				airliftOrigins.Clear();
+			}
+			airliftOrigins.Add(tile);
+		}
+
+		private static int CurrentTurn() => EngineStorage.gameData?.turn ?? 0;
+
 		// War weariness points from saves made before they were kept per
 		// enemy (see PlayerRelationship.warWearinessPoints), which can't be
 		// put down to any one civ. They count like one more enemy's and fade

@@ -251,8 +251,8 @@ namespace C7Engine {
 		}
 	}
 
-	// An aircraft's mission (see MapUnit_Air.cs), or a paratrooper's
-	// airdrop, at the tile. Air superiority needs no tile.
+	// An aircraft's mission (see MapUnit_Air.cs), a paratrooper's airdrop,
+	// or an airlift (see MapUnit_Airlift.cs), at the tile. Air superiority needs no tile.
 	public class MsgAirMission : MessageToEngine {
 		public ID unitID;
 		public UnitAction mission;
@@ -288,6 +288,9 @@ namespace C7Engine {
 					break;
 				case UnitAction.Airdrop:
 					unit.Airdrop(tile);
+					break;
+				case UnitAction.Airlift:
+					unit.Airlift(tile);
 					break;
 			}
 		}
