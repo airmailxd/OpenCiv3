@@ -2382,11 +2382,15 @@ namespace C7GameData {
 
 			// TODO: Make formulas moddable
 
-			// "Power is an amalgam of cities, gold, culture, advances, resources, military strength,
-			// nuclear weapons, and wonder."
-			// Exact formula is unknown, so we repeat the previous value.
-			// TODO: Figure out power formula
-			int power = (lastTurn?.Power ?? 100);
+			// The power the Histograph shows. "Power is an amalgam of cities,
+			// gold, culture, advances, resources, military strength, nuclear
+			// weapons, and wonder." The AI's PowerRank uses "the same power
+			// values shown on the F8 histograph screen"
+			// (https://forums.civfanatics.com/threads/all-about-ai-aggression-levels-and-war-plotting.703785/),
+			// but no source gives its formula. UNVERIFIED: the military
+			// strength the military advisor compares (CalculateMilitaryStrength)
+			// stands in for it.
+			int power = (int)Math.Round(CalculateMilitaryStrength());
 
 			// Score is the _average_ of "turn scores". We keep the exact sum
 			// of the turn scores and round only the average, as rounding a
