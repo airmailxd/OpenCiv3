@@ -955,6 +955,15 @@ namespace C7GameData {
 					}
 					return Intent.Fight;
 				}
+				// Hidden nationality units attack units of civs they're at
+				// peace with, outside cities, without war (see
+				// MapUnit_HiddenNationality.cs).
+				if (hasForeignUnits && !tile.HasCity() && unitType.hasHiddenNationality && distanceToTile == 1) {
+					if (this.IsLandUnit() && !this.location.IsLand() && !this.unitType.isAmphibious) {
+						return Intent.Disabled;
+					}
+					return Intent.Fight;
+				}
 				if (hasForeignUnits) {
 					if (distanceToTile == 1) {
 						if (EngineStorage.gameData.AreInLockedPeace(unitOwner, foreignOwner)) {
