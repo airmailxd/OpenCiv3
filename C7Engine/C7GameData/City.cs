@@ -116,6 +116,11 @@ namespace C7GameData {
 		// unhappy as well, in addition to the time penalty.
 		public int turnsOfUnhappinessDueToPopRushing = 0;
 
+		// Citizens confused by enemy propaganda that didn't make the city
+		// defect; each is an unhappy face, and one fewer each turn (see
+		// Espionage.ApplyPropaganda).
+		public int propagandaConfusedCitizens = 0;
+
 		public bool isInCivilDisorder = false;
 
 		// Resistance in a conquered city: the number of citizens still
@@ -129,7 +134,7 @@ namespace C7GameData {
 		public bool IsInResistance => resisters > 0;
 
 		// The turn the city last changed hands (taken, flipped, traded or
-		// incited), or -1 if it never has or the save doesn't say. A city
+		// won by propaganda), or -1 if it never has or the save doesn't say. A city
 		// never flips to another civ's culture on the turn it changed hands
 		// (see CultureFlip).
 		public int ownerChangedTurn = -1;
@@ -2084,6 +2089,11 @@ namespace C7GameData {
 			if (turnsOfUnhappinessDueToPopRushing > 0) {
 				contentToHappyMoves -= (turnsOfUnhappinessDueToPopRushing - 1) / gameData.rules.TurnPenaltyForEachHurrySacrifice + 1;
 			}
+
+			// "If the city does not flip, the persuaded citizen will be
+			// confused. Each will give 1 unhappy face."
+			// (https://civfanatics.com/civ3/strategy/game-mechanics/a-study-of-espionage-missions/)
+			contentToHappyMoves -= Math.Min(propagandaConfusedCitizens, residents.Count);
 
 			// TODO: add penalty for drafting, once drafting is implemented
 			// (Government.draftLimit is imported but nothing drafts yet).

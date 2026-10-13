@@ -318,6 +318,7 @@ public static class SnapshotFilter {
 				hidden.foodStored = 0;
 				hidden.shieldsStored = 0;
 				hidden.turnsOfUnhappinessDueToPopRushing = 0;
+				hidden.propagandaConfusedCitizens = 0;
 				hidden.hurriedThisTurn = false;
 				hidden.productionQueue = [];
 				bool shown = city.producibleType == ProducibleType.INFLOW

@@ -78,8 +78,8 @@ namespace C7Engine {
 	//    D = 8000 and they rarely flip.
 	//  - UNVERIFIED: the free defender is the best defensive land unit the
 	//    new owner can build in the city.
-	//  - UNVERIFIED: the city otherwise changes hands as when incited to
-	//    revolt (CityInteractions.TransferCity): it keeps its citizens and
+	//  - UNVERIFIED: the city otherwise changes hands as when traded
+	//    (CityInteractions.TransferCity): it keeps its citizens and
 	//    buildings, except the palace and small wonders, and doesn't resist.
 	//  - UNVERIFIED: flips happen at war or at peace alike, with no
 	//    diplomatic penalty; no source says otherwise.
@@ -289,8 +289,10 @@ namespace C7Engine {
 			return Math.Max(a, b) + 0.5 * Math.Min(a, b);
 		}
 
-		// Hands the city to the civ whose culture won it over.
-		public static void Flip(GameData gameData, City city, Player to) {
+		// Hands the city to the civ whose culture won it over. Propaganda
+		// (Espionage) makes a city defect the same way, and tells the two
+		// sides itself, so notify is false for it.
+		public static void Flip(GameData gameData, City city, Player to, bool notify = true) {
 			Player from = city.owner;
 			Tile tile = city.location;
 			log.Information("{City} has flipped from {From} to {To}", city, from, to);
@@ -315,6 +317,10 @@ namespace C7Engine {
 				.MaxBy(u => u.defense);
 			if (defender != null) {
 				city.AddUnit(defender, gameData);
+			}
+
+			if (!notify) {
+				return;
 			}
 
 			// Both sides hear of it; a spectator watching every civ hears it
