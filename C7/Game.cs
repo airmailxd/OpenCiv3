@@ -1434,6 +1434,7 @@ public partial class Game : Node {
 					PopupOverlay.PopupCategory.Advisor);
 				break;
 			case MsgNoHumansRemain:
+				RecordInHallOfFame(HallOfFame.ForDefeat);
 				popupOverlay.ShowPopup(
 					new ConfirmationPopup(
 						"Every human player has been defeated.\nThis game is over.\n\n",
@@ -1557,6 +1558,8 @@ public partial class Game : Node {
 					break;
 				}
 			case MsgVictory mV:
+				RecordInHallOfFame((gameData, player, date, now) =>
+					HallOfFame.ForVictory(gameData, player, mV.winner, mV.victory, date, now));
 				var endMsg =
 					$"The {mV.winner.civilization.noun} have won a {mV.victory.Header()} victory!\n"
 					+ "This game is over: No further score will be entered.\n\n";
@@ -1993,6 +1996,43 @@ public partial class Game : Node {
 	public void OnRetire() {
 		// Quit to main menu, freeing previous scene data
 		GetTree().ChangeSceneToFile("res://UIElements/MainMenu/main_menu.tscn");
+	}
+
+	// Retire from the game menu: as in Civ3, the game goes into the Hall of
+	// Fame as "Retired", unless it was already over.
+	public void OnRetireFromGameMenu() {
+		bool over = false;
+		EngineStorage.ReadGameData((GameData gameData) => over = gameData.gameOver);
+		if (!over) {
+			RecordInHallOfFame(HallOfFame.ForRetirement);
+		}
+		OnRetire();
+	}
+
+	// Whether this game is in the Hall of Fame yet, so it goes in only once
+	// however it ends.
+	private bool recordedInHallOfFame = false;
+
+	// Puts the game into the Hall of Fame for the player playing it here,
+	// unless they're only watching the AIs.
+	private void RecordInHallOfFame(Func<GameData, Player, string, DateTime, HallOfFameEntry> makeEntry) {
+		if (recordedInHallOfFame) {
+			return;
+		}
+		EngineStorage.ReadGameData((GameData gameData) => {
+			Player player = gameData.GetUIControllerPlayer();
+			if (player == null || !player.isHuman) {
+				return;
+			}
+			string date = "";
+			try {
+				date = gameData.timeOptions?.GetDisplayTime(gameData.turn) ?? "";
+			} catch (Exception e) {
+				log.Warning(e, "Couldn't work out the date for the Hall of Fame");
+			}
+			recordedInHallOfFame = true;
+			HallOfFame.Add(HallOfFameScreen.GlobalPath, makeEntry(gameData, player, date, DateTime.UtcNow));
+		});
 	}
 
 	public void OnSaveGame() {

@@ -184,6 +184,9 @@ textures.screens = {
   wonders = {
     background = ADVISORS .. "wonders_background.pcx",
   },
+  hall_of_fame = {
+    background = ADVISORS .. "hall_o_fame_background.pcx",
+  },
   standing = {
     victory_status = {
       background = ROOT .. "histograph-win5_final.pcx",
