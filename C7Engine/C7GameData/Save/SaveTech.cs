@@ -44,9 +44,9 @@ namespace C7GameData.Save {
 			EnablesMilitaryAlliances,
 			// TODO(consumer): trade embargoes in diplomacy.
 			EnablesTradeEmbargoes,
-			// TODO(consumer): trade routes over sea tiles (TradeNetwork).
+			// Harbors link over sea tiles (see TradeNetwork).
 			EnablesTradeOverSea,
-			// TODO(consumer): trade routes over ocean tiles (TradeNetwork).
+			// Harbors link over ocean tiles (see TradeNetwork).
 			EnablesTradeOverOcean,
 			// TODO(consumer): trading world maps in diplomacy (Navigation in
 			// Conquests, https://sullla.com/Civ3/CQ/CQ_techs.html).
