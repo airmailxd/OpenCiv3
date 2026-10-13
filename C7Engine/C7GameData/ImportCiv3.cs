@@ -2659,6 +2659,9 @@ namespace C7GameData {
 				save.GameDifficulty = save.Difficulties[rule.DefaultDifficultyLevel];
 			}
 			save.Rules.StartingTreasury = rule.StartingTreasury;
+			if (games != null && games.Length > 0) {
+				save.Rules.VolcanoEruptionPeriod = games[0].EruptionPeriod;
+			}
 			ERAS[] eras = biq.Eras ?? defaultBiq.Eras;
 			if (eras?.Length > 0) {
 				save.Rules.FirstEraCivilopediaName = eras[0].CivilopediaEntry;

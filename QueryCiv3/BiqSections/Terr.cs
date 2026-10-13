@@ -55,7 +55,19 @@ namespace QueryCiv3.Biq {
 		public string LandmarkCivilopediaEntry { get => Util.GetString(ref this, 189, 32); }
 
 		private int Unknown2;
+		// Only the low bits are meaningful: conquests.biq has 0xCC filler
+		// above them (e.g. 0xCCCCCCCC for Flood Plain, 0xCCCCCCC0 for
+		// Grassland). Quintillus's editor reads "causes disease" and
+		// "disease can be cured" from them
+		// (https://github.com/instafluff0/C3X_Editor/blob/main/docs/biq/sections/TERR.md).
+		// Which bit is which is inferred from conquests.biq: 0x4 is set for
+		// exactly Flood Plain, Jungle and Marsh, the terrains the Conquests
+		// Civilopedia (GCON_Disease) says cause disease, and 0x8 for Flood
+		// Plain alone, the only one Sanitation cures (TECH_Sanitation:
+		// "Disease from Floodplains is eliminated").
 		public int TerrainFlags;
+		public readonly bool CausesDisease { get => (TerrainFlags & 0x4) != 0; }
+		public readonly bool DiseaseCanBeCured { get => (TerrainFlags & 0x8) != 0; }
 		public int DiseaseStrength;
 	}
 }

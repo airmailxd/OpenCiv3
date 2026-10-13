@@ -11,6 +11,9 @@
       "allowCities": true,
       "impassable": false,
       "impassableByWheeled": false,
+      "causesDisease": false,
+      "diseaseCanBeCured": false,
+      "diseaseStrength": 50,
       "defenseBonus": {
         "description": "Desert",
         "amount": 0.1
@@ -34,6 +37,9 @@
       "allowCities": true,
       "impassable": false,
       "impassableByWheeled": false,
+      "causesDisease": false,
+      "diseaseCanBeCured": false,
+      "diseaseStrength": 50,
       "defenseBonus": {
         "description": "Plains",
         "amount": 0.1
@@ -59,6 +65,9 @@
       "allowCities": true,
       "impassable": false,
       "impassableByWheeled": false,
+      "causesDisease": false,
+      "diseaseCanBeCured": false,
+      "diseaseStrength": 50,
       "defenseBonus": {
         "description": "Grassland",
         "amount": 0.1
@@ -83,6 +92,9 @@
       "allowCities": true,
       "impassable": false,
       "impassableByWheeled": false,
+      "causesDisease": false,
+      "diseaseCanBeCured": false,
+      "diseaseStrength": 50,
       "defenseBonus": {
         "description": "Tundra",
         "amount": 0.1
@@ -106,6 +118,9 @@
       "allowCities": true,
       "impassable": false,
       "impassableByWheeled": false,
+      "causesDisease": true,
+      "diseaseCanBeCured": true,
+      "diseaseStrength": 50,
       "defenseBonus": {
         "description": "Flood Plain",
         "amount": 0.1
@@ -126,6 +141,9 @@
       "allowCities": true,
       "impassable": false,
       "impassableByWheeled": false,
+      "causesDisease": false,
+      "diseaseCanBeCured": false,
+      "diseaseStrength": 50,
       "defenseBonus": {
         "description": "Hills",
         "amount": 0.5
@@ -155,6 +173,9 @@
       "allowCities": false,
       "impassable": false,
       "impassableByWheeled": true,
+      "causesDisease": false,
+      "diseaseCanBeCured": false,
+      "diseaseStrength": 50,
       "defenseBonus": {
         "description": "Mountains",
         "amount": 1
@@ -180,6 +201,9 @@
       "allowCities": true,
       "impassable": false,
       "impassableByWheeled": false,
+      "causesDisease": false,
+      "diseaseCanBeCured": false,
+      "diseaseStrength": 50,
       "defenseBonus": {
         "description": "Forest",
         "amount": 0.25
@@ -207,6 +231,9 @@
       "allowCities": true,
       "impassable": false,
       "impassableByWheeled": true,
+      "causesDisease": true,
+      "diseaseCanBeCured": false,
+      "diseaseStrength": 50,
       "defenseBonus": {
         "description": "Jungle",
         "amount": 0.25
@@ -233,6 +260,9 @@
       "allowCities": false,
       "impassable": false,
       "impassableByWheeled": true,
+      "causesDisease": true,
+      "diseaseCanBeCured": false,
+      "diseaseStrength": 50,
       "defenseBonus": {
         "description": "Marsh",
         "amount": 0.2
@@ -256,6 +286,9 @@
       "allowCities": false,
       "impassable": false,
       "impassableByWheeled": true,
+      "causesDisease": false,
+      "diseaseCanBeCured": false,
+      "diseaseStrength": 50,
       "defenseBonus": {
         "description": "Volcano",
         "amount": 0.8
@@ -273,6 +306,9 @@
       "allowCities": false,
       "impassable": false,
       "impassableByWheeled": false,
+      "causesDisease": false,
+      "diseaseCanBeCured": false,
+      "diseaseStrength": 50,
       "defenseBonus": {
         "description": "Coast",
         "amount": 0.1
@@ -293,6 +329,9 @@
       "allowCities": false,
       "impassable": false,
       "impassableByWheeled": false,
+      "causesDisease": false,
+      "diseaseCanBeCured": false,
+      "diseaseStrength": 50,
       "defenseBonus": {
         "description": "Sea",
         "amount": 0.1
@@ -314,6 +353,9 @@
       "allowCities": false,
       "impassable": false,
       "impassableByWheeled": false,
+      "causesDisease": false,
+      "diseaseCanBeCured": false,
+      "diseaseStrength": 50,
       "defenseBonus": {
         "description": "Ocean",
         "amount": 0.1
@@ -13052,6 +13094,7 @@
     "goldenAgeDuration": 20,
     "upgradeCostPerShield": 3,
     "startingTreasury": 10,
+    "volcanoEruptionPeriod": 5000,
     "firstEraCivilopediaName": "ERAS_Ancient_Times",
     "foodConsumptionPerCitizen": 2,
     "movementAlongRoads": 3,
