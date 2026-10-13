@@ -26,7 +26,8 @@ namespace C7Engine.Network;
 // keeps and sends whole.
 //
 // - Other players' units on tiles none of the players can see now are left
-//   out, and those they can see lose their paths.
+//   out, as are invisible units (Submarines) none of them detects, and
+//   those they can see lose their paths.
 // - Tiles none of the players has ever seen lose their resource, barbarian
 //   camp, goody hut and improvements. Those next to a tile they know keep
 //   their terrain and rivers, since the map draws the edges of the known
@@ -132,6 +133,9 @@ public static class SnapshotFilter {
 		// The players they've met, and those they have an embassy with.
 		internal readonly HashSet<ID> met = new();
 		internal readonly HashSet<ID> embassies = new();
+		// Other players' invisible units on tiles they see, which none of
+		// them detects (see MapUnit.IsSeenBy).
+		internal readonly HashSet<ID> unseenUnits = new();
 		internal readonly Facts facts;
 
 		internal View(HashSet<ID> players, Facts facts) {
@@ -204,6 +208,13 @@ public static class SnapshotFilter {
 				}
 			}
 		}
+		List<Player> viewers = view.players.Select(gameData.GetPlayer).Where(p => p != null).ToList();
+		foreach (MapUnit unit in gameData.mapUnits) {
+			if (unit.owner != null && !view.players.Contains(unit.owner.id) && Tile.IsTileValid(unit.location)
+					&& view.visible.Contains(unit.location) && !viewers.Any(unit.IsSeenBy)) {
+				view.unseenUnits.Add(unit.id);
+			}
+		}
 		foreach (TileKnowledge knowledge in knowledges) {
 			foreach (Tile tile in knowledge.knownTiles) {
 				foreach (Tile neighbor in tile.neighbors.Values) {
@@ -225,7 +236,8 @@ public static class SnapshotFilter {
 		bool[] known = snapshot.Map.tiles.Select(t => view.known.Contains(t.X, t.Y)).ToArray();
 		filtered.Map = FilterMap(snapshot, view);
 		filtered.Units = snapshot.Units
-			.Where(u => view.players.Contains(u.owner) || view.visible.Contains(u.currentLocation.X, u.currentLocation.Y))
+			.Where(u => view.players.Contains(u.owner)
+				|| (view.visible.Contains(u.currentLocation.X, u.currentLocation.Y) && !view.unseenUnits.Contains(u.id)))
 			.Select(u => view.players.Contains(u.owner) || u.path == null ? u : WithoutPath(u))
 			.ToList();
 		filtered.Cities = FilterCities(snapshot, view);

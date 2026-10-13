@@ -499,6 +499,18 @@ namespace C7GameData {
 			return FindTopDefenderForBombard(this, opponent);
 		}
 
+		// The units on the tile the viewer can see when it sees the tile:
+		// all but the invisible ones it has no unit to detect (see
+		// MapUnit.IsSeenBy). The tile's own list when it sees them all.
+		public List<MapUnit> UnitsSeenBy(Player viewer) {
+			for (int i = 0; i < unitsOnTile.Count; ++i) {
+				if (!unitsOnTile[i].IsSeenBy(viewer)) {
+					return unitsOnTile.Where(u => u.IsSeenBy(viewer)).ToList();
+				}
+			}
+			return unitsOnTile;
+		}
+
 		public MapUnit FindTopDefenderForBombard(Tile tile, MapUnit opponent) {
 			// Units in an army are hit through the army. Per the project
 			// owner, only a bombarder whose bombardment is lethal against a
@@ -532,7 +544,9 @@ namespace C7GameData {
 				case CandidateFilter.Defender:
 					return u.CanDefendAgainst(opponent) && !u.IsInArmy();
 				case CandidateFilter.BombardTarget:
-					return u.IsCombatUnit() && !u.IsInArmy()
+					// UNVERIFIED: a bombarder can't single out an
+					// invisible unit its owner doesn't see.
+					return u.IsCombatUnit() && !u.IsInArmy() && u.IsSeenBy(opponent.owner)
 						&& (u.CompositeHitPoints() > 1 || opponent.IsBombardmentLethalAgainst(u));
 				default:
 					return true;

@@ -493,6 +493,13 @@ public partial class MapUnit {
 		facingDirection = dir;
 		Wake();
 
+		// An invisible unit we couldn't see, of a civ we aren't at war with,
+		// is in the way: the move stops there (see MapUnit_Invisible.cs).
+		if (newLoc.unitsOnTile.Any(u => u.owner != owner && owner.IsAtPeaceWith(u.owner) && !u.IsSeenBy(owner))) {
+			this.path = TilePath.NONE;
+			return true;
+		}
+
 		// Trigger combat if the tile we're moving into has an enemy  Or if this unit can't fight, do nothing.
 		MapUnit defender = newLoc.FindTopDefender(this);
 		bool enemyOnTile = defender != MapUnit.NONE && !owner.IsAtPeaceWith(defender.owner);

@@ -906,7 +906,9 @@ namespace C7GameData {
 
 			// Nothing on the tile to notice or fight: everything below comes
 			// down to moving freely.
-			if (tile.unitsOnTile.Count == 0 && !tile.HasCity() && !tile.hasBarbarianCamp)
+			// Invisible units the owner can't see don't count (see
+			// MapUnit_Invisible.cs).
+			if (tile.UnitsSeenBy(unitOwner).Count == 0 && !tile.HasCity() && !tile.hasBarbarianCamp)
 				return Intent.MoveFreely;
 
 			var hasForeignCity = HasForeignCity(tile, unitOwner);
@@ -923,7 +925,7 @@ namespace C7GameData {
 
 			var hasHostileUnits = HasHostileUnits(tile, unitOwner);
 			var hasForeignUnits = HasForeignUnits(tile, unitOwner);
-			var foreignOwner = ForeignOwner(tile);
+			var foreignOwner = ForeignOwner(tile, unitOwner);
 			var hasHostileCity = HasHostileCity(tile, unitOwner);
 			var cityOwner = tile.cityAtTile?.owner;
 			var hasBarbCamp = tile.hasBarbarianCamp;
@@ -1116,21 +1118,26 @@ namespace C7GameData {
 
 		private static bool HasHostileUnits(Tile tile, Player player) {
 			foreach (MapUnit other in tile.unitsOnTile) {
-				if (player != other.owner && AtWar(player, other.owner))
+				if (player != other.owner && AtWar(player, other.owner) && other.IsSeenBy(player))
 					return true;
 			}
 			return false;
 		}
 		private static bool HasForeignUnits(Tile tile, Player player) {
 			foreach (MapUnit other in tile.unitsOnTile) {
-				if (player != other.owner)
+				if (player != other.owner && other.IsSeenBy(player))
 					return true;
 			}
 			return false;
 		}
 
-		private static Player ForeignOwner(Tile tile) {
-			return tile.unitsOnTile.Count > 0 ? tile.unitsOnTile[0]?.owner : null;
+		// The owner of the first foreign unit on the tile the player sees.
+		private static Player ForeignOwner(Tile tile, Player player) {
+			foreach (MapUnit other in tile.unitsOnTile) {
+				if (other.owner != player && other.IsSeenBy(player))
+					return other.owner;
+			}
+			return null;
 		}
 
 		private static bool HasHostileCity(Tile tile, Player player) {

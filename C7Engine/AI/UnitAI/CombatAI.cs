@@ -81,8 +81,9 @@ namespace C7Engine.AI.UnitAI {
 			Tile dest = data.destination;
 			AIFogOfWar.Refresh(player);
 			bool canSeeDestination = AIFogOfWar.SeesUnitsOn(player, dest);
-			bool destinationHasEnemyUnits = !canSeeDestination || (dest.unitsOnTile.Count > 0
-				&& !dest.unitsOnTile[0].owner.IsAtPeaceWith(unit.owner));
+			List<MapUnit> destUnits = dest.UnitsSeenBy(player);
+			bool destinationHasEnemyUnits = !canSeeDestination || (destUnits.Count > 0
+				&& !destUnits[0].owner.IsAtPeaceWith(unit.owner));
 			bool destinationHasEnemyCity = dest.cityAtTile != null
 				&& !data.destination.cityAtTile.owner.IsAtPeaceWith(unit.owner);
 			bool destinationHasBarbCamp = dest.hasBarbarianCamp;
@@ -97,7 +98,8 @@ namespace C7Engine.AI.UnitAI {
 			if (data.path.PathLength() > 1) {
 				foreach (Tile t in unit.location.neighbors.Values) {
 					bool nextToEnemyCity = t.cityAtTile != null && !t.cityAtTile.owner.IsAtPeaceWith(unit.owner);
-					bool nextToEnemyUnit = t.unitsOnTile.Count > 0 && !t.unitsOnTile[0].owner.IsAtPeaceWith(unit.owner);
+					List<MapUnit> seenThere = t.UnitsSeenBy(player);
+					bool nextToEnemyUnit = seenThere.Count > 0 && !seenThere[0].owner.IsAtPeaceWith(unit.owner);
 					bool nextToBarbCamp = t.hasBarbarianCamp;
 
 					if (!nextToEnemyCity && !nextToEnemyUnit && !nextToBarbCamp) {
@@ -201,7 +203,7 @@ namespace C7Engine.AI.UnitAI {
 				foreach (MapUnit u in enemy.units) {
 					Tile t = u.location;
 					if (t != null && t != Tile.NONE && player.tileKnowledge.isTileKnown(t)
-						&& AIFogOfWar.SeesUnitsOn(player, t) && seen.Add(t)) {
+						&& AIFogOfWar.SeesUnitsOn(player, t) && u.IsSeenBy(player) && seen.Add(t)) {
 						result.Add(t);
 					}
 				}
@@ -254,7 +256,8 @@ namespace C7Engine.AI.UnitAI {
 			// With the AI fog of war, the units in a city we can't see now
 			// are unknown: we assume it is defended, by nobody in particular.
 			bool seesUnits = AIFogOfWar.SeesUnitsOn(player, t);
-			bool hasEnemyUnits = seesUnits ? t.unitsOnTile.Count > 0 && enemies.Contains(t.unitsOnTile[0].owner) : hasEnemyCity;
+			List<MapUnit> seenUnits = seesUnits ? t.UnitsSeenBy(player) : null;
+			bool hasEnemyUnits = seesUnits ? seenUnits.Count > 0 && enemies.Contains(seenUnits[0].owner) : hasEnemyCity;
 			float score = 0;
 
 			// Ignore tiles without units or cities.

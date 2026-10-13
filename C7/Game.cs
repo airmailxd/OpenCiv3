@@ -2329,7 +2329,7 @@ public partial class Game : Node {
 		// Handle the shortcut of shift+right clicking a city to get the change production menu.
 		else if (shiftDown && activeTile && tile.cityAtTile?.owner == controller)
 			new RightClickChooseProductionMenu(this, tile.cityAtTile).Open(eventMouseButton.Position);
-		else if (!shiftDown && activeTile && tile.unitsOnTile.Count > 0)
+		else if (!shiftDown && activeTile && tile.UnitsSeenBy(controller).Count > 0)
 			// There are units on this title, so open that menu.
 			new RightClickTileMenu(this, tile).Open(eventMouseButton.Position);
 		else if (!shiftDown && activeTile && tile.cityAtTile?.owner == controller)
@@ -3167,7 +3167,10 @@ public partial class Game : Node {
 						if (tile.cityAtTile != null) {
 							result.requiresWarDeclarationOnPlayer = tile.cityAtTile.owner;
 						} else {
-							result.requiresWarDeclarationOnPlayer = tile.unitsOnTile[0].owner;
+							// The owner of the first unit we see there, not of
+							// an invisible one we don't.
+							result.requiresWarDeclarationOnPlayer = tile.UnitsSeenBy(unit.owner).FirstOrDefault(u => u.owner != unit.owner)?.owner
+								?? tile.unitsOnTile[0].owner;
 						}
 					}
 				}
