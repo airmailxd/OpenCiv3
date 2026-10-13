@@ -116,6 +116,11 @@ namespace C7GameData {
 		// unhappy as well, in addition to the time penalty.
 		public int turnsOfUnhappinessDueToPopRushing = 0;
 
+		// The same for drafting (see Draft), and the citizens drafted this
+		// turn, against the government's draft limit.
+		public int turnsOfUnhappinessDueToDrafting = 0;
+		public int unitsDraftedThisTurn = 0;
+
 		public bool isInCivilDisorder = false;
 
 		// Resistance in a conquered city: the number of citizens still
@@ -666,6 +671,102 @@ namespace C7GameData {
 			hurriedThisTurn = true;
 		}
 
+		// The Conquests Civilopedia (GCON_Draft): "When a civilization
+		// develops Nationalism its citizens can be drafted into military
+		// service. Each city can draft some of its population each turn,
+		// depending upon the government currently in effect. A civilization
+		// in Anarchy may not use the draft. A city in a Democracy or Republic
+		// can draft [one] citizen per turn. A city in a country under
+		// Communism, Despotism, Fascism, Feudalism, or Monarchy can draft
+		// [two] citizens per turn. ... You may only draft citizens from a
+		// city with a population of 7 or higher. The draft produces the
+		// following conscript units, depending upon your level of scientific
+		// development: Spearman, Pikeman, Musketman, Rifleman, Infantry, Mech.
+		// Infantry ... However, drafting citizens will cause unhappiness in
+		// the city." The tech is the BIQ's "enables conscription" one, the
+		// per-city limit the government's draft limit, and the units those
+		// with the BIQ's Draft flag; "you can't draft from any city less than
+		// size 7" and "it makes 1 citizen per unit drafted unhappy for 20
+		// turns" (https://forums.civfanatics.com/threads/question-about-drafting-in-civ3.107429/),
+		// the 20 being the BIQ's turn penalty per drafted citizen.
+		//
+		// UNVERIFIED (simplest consistent behaviour):
+		// - each draft costs one citizen, the Civilopedia's "draft [one]
+		//   citizen" (a forum post says two, another one:
+		//   https://forums.civfanatics.com/threads/draft-citizens.40326/);
+		// - the draftee is the strongest defender with the Draft flag the
+		//   city could build now (strategic resources included: "anywhere
+		//   from a Spearman (all resources cut off) to a Mechanized
+		//   Infantry", same thread), ties going to the attack, then the cost;
+		// - like hurrying, a city in disorder or resisting can't draft;
+		// - the citizen drafted is the last one, as for the whip.
+		public const int MinimumPopulationToDraft = 7;
+
+		// The unit a draft here would give, or null if none could be.
+		public UnitPrototype DraftableUnit(GameData gameData) {
+			UnitPrototype best = null;
+			foreach (IProducible p in ListProductionOptions(gameData)) {
+				if (p is not UnitPrototype u || !u.isDraftable) {
+					continue;
+				}
+				if (best == null || u.defense > best.defense
+					|| (u.defense == best.defense && (u.attack > best.attack
+						|| (u.attack == best.attack && u.shieldCost > best.shieldCost)))) {
+					best = u;
+				}
+			}
+			return best;
+		}
+
+		// Why this city can't draft a citizen now, or null if it can.
+		public string WhyCannotDraft(GameData gameData) {
+			if (!owner.KnowsTechWhere(t => t.EnablesConscription)) {
+				return "We do not yet know how to draft citizens.";
+			}
+			if (owner.government.transitionType || owner.government.draftLimit <= 0) {
+				return "We cannot draft citizens with this government.";
+			}
+			if (isInCivilDisorder) {
+				return "The city is in disorder and cannot draft citizens.";
+			}
+			if (IsInResistance) {
+				return "The city is resisting our rule and cannot draft citizens.";
+			}
+			if (residents.Count < MinimumPopulationToDraft) {
+				return $"Only cities of size {MinimumPopulationToDraft} or more can draft citizens.";
+			}
+			if (unitsDraftedThisTurn >= owner.government.draftLimit) {
+				return "The city has drafted all the citizens it can this turn.";
+			}
+			if (DraftableUnit(gameData) == null) {
+				return "There is no unit for the draftees.";
+			}
+			return null;
+		}
+
+		// Drafts a citizen into a conscript unit, returning it, or null if
+		// the city can't draft (see WhyCannotDraft).
+		public MapUnit Draft(GameData gameData) {
+			string why = WhyCannotDraft(gameData);
+			if (why != null) {
+				log.Warning("Not drafting in {City}: {Error}", this, why);
+				return null;
+			}
+			UnitPrototype type = DraftableUnit(gameData);
+			RemoveLastCitizen();
+			++unitsDraftedThisTurn;
+			turnsOfUnhappinessDueToDrafting += gameData.rules.TurnPenaltyForEachDraftedCitizen;
+
+			MapUnit unit = gameData.SpawnUnit(owner, type, location);
+			// Conscripts, the least experienced level.
+			if (gameData.experienceLevels.Count > 0) {
+				unit.experienceLevel = gameData.experienceLevels[0];
+				unit.experienceLevelKey = unit.experienceLevel.key;
+				unit.hitPointsRemaining = unit.maxHitPoints;
+			}
+			return unit;
+		}
+
 		// Fills the production box, so that the current item is finished at
 		// the end of the turn. A great leader hurries production this way.
 		internal void FillProductionBox() {
@@ -676,8 +777,10 @@ namespace C7GameData {
 		}
 
 		public void HandleCityProduction(GameData gameData) {
-			// The turn is over, so production can be changed again.
+			// The turn is over, so production can be changed again, and the
+			// city may draft again.
 			hurriedThisTurn = false;
+			unitsDraftedThisTurn = 0;
 			IProducible producedItem = ComputeTurnProduction();
 			if (producedItem == null) {
 				return;
@@ -2149,8 +2252,14 @@ namespace C7GameData {
 				contentToHappyMoves -= (turnsOfUnhappinessDueToPopRushing - 1) / gameData.rules.TurnPenaltyForEachHurrySacrifice + 1;
 			}
 
-			// TODO: add penalty for drafting, once drafting is implemented
-			// (Government.draftLimit is imported but nothing drafts yet).
+			// Drafting works the same way: "it makes 1 citizen per unit
+			// drafted unhappy for 20 turns" (the BIQ's turn penalty per
+			// drafted citizen),
+			// https://forums.civfanatics.com/threads/question-about-drafting-in-civ3.107429/.
+			if (turnsOfUnhappinessDueToDrafting > 0) {
+				int penalty = Math.Max(1, gameData.rules.TurnPenaltyForEachDraftedCitizen);
+				contentToHappyMoves -= (turnsOfUnhappinessDueToDrafting - 1) / penalty + 1;
+			}
 
 			// War weariness makes citizens unhappy, like pop rushing, and war
 			// happiness makes them happy.

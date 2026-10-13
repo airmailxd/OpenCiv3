@@ -37,6 +37,8 @@ namespace C7GameData.Save {
 			SinksInOcean,
 			// The unit is a military great leader, created by elite victories.
 			Leader,
+			// A city may draft the unit (the BIQ's PRTO "Draft" flag).
+			Draftable,
 		}
 
 		public string name { get; set; }

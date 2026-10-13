@@ -279,6 +279,20 @@ namespace C7Engine {
 		}
 	}
 
+	// The player asked to draft a citizen in the city: why it can't, or the
+	// unit a draft would give.
+	public class MsgDisplayDraftPopup : MessageToUI {
+		public City city;
+		public string errorMessage;
+		public string unitName;
+
+		public MsgDisplayDraftPopup(City city, string errorMessage, string unitName) {
+			this.city = city;
+			this.errorMessage = errorMessage;
+			this.unitName = unitName;
+		}
+	}
+
 	public class MsgDisplayStopWorkerActionPopup : MessageToUI {
 		public MapUnit worker;
 		public Terraform workerJob;

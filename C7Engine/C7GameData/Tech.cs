@@ -25,6 +25,11 @@ namespace C7GameData {
 		// Civilopedia, TECH_Map_Making), the BIQ's "enables right of
 		// passage" tech flag.
 		public bool EnablesRightOfPassage;
+		// Cities may draft citizens: "When a civilization develops
+		// Nationalism its citizens can be drafted into military service"
+		// (Conquests Civilopedia, GCON_Draft), the BIQ's "enables
+		// conscription" tech flag.
+		public bool EnablesConscription;
 
 		// The civilopedia name of the era this tech is part of
 		// (like ERA_Ancient_Times). This is what art lookups are based on.

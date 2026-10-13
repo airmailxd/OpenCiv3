@@ -1497,6 +1497,9 @@
         "Pikeman"
       ],
       "unproducible": false,
+      "flags": [
+        "draftable"
+      ],
       "categories": [
         "Land"
       ],
@@ -1826,6 +1829,9 @@
         "Musketman"
       ],
       "unproducible": false,
+      "flags": [
+        "draftable"
+      ],
       "categories": [
         "Land"
       ],
@@ -1988,6 +1994,9 @@
         "Swiss Mercenary"
       ],
       "unproducible": false,
+      "flags": [
+        "draftable"
+      ],
       "categories": [
         "Land"
       ],
@@ -2152,6 +2161,9 @@
         "Infantry"
       ],
       "unproducible": false,
+      "flags": [
+        "draftable"
+      ],
       "categories": [
         "Land"
       ],
@@ -2314,6 +2326,9 @@
         "Mech Infantry"
       ],
       "unproducible": false,
+      "flags": [
+        "draftable"
+      ],
       "categories": [
         "Land"
       ],
@@ -2482,7 +2497,8 @@
       ],
       "unproducible": false,
       "flags": [
-        "zoneOfControl"
+        "zoneOfControl",
+        "draftable"
       ],
       "categories": [
         "Land"
@@ -6130,7 +6146,8 @@
       ],
       "unproducible": false,
       "flags": [
-        "startsGoldenAge"
+        "startsGoldenAge",
+        "draftable"
       ],
       "categories": [
         "Land"
@@ -6269,6 +6286,9 @@
         "Guerilla"
       ],
       "unproducible": false,
+      "flags": [
+        "draftable"
+      ],
       "categories": [
         "Land"
       ],
@@ -6352,6 +6372,9 @@
         "TOW Infantry"
       ],
       "unproducible": false,
+      "flags": [
+        "draftable"
+      ],
       "categories": [
         "Land"
       ],
@@ -7681,7 +7704,8 @@
       ],
       "unproducible": false,
       "flags": [
-        "startsGoldenAge"
+        "startsGoldenAge",
+        "draftable"
       ],
       "categories": [
         "Land"
@@ -8507,6 +8531,9 @@
         "Maya"
       ],
       "unproducible": false,
+      "flags": [
+        "draftable"
+      ],
       "categories": [
         "Land"
       ],
@@ -13524,7 +13551,10 @@
       "requiredForEraAdvancement": false,
       "smallIconPath": "Art\\tech chooser\\Icons\\51-Nationalism-small.pcx",
       "x": 75,
-      "y": 116
+      "y": 116,
+      "flags": [
+        "enablesConscription"
+      ]
     },
     {
       "name": "Steam Power",

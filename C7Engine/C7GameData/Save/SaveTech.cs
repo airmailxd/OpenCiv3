@@ -17,6 +17,8 @@ namespace C7GameData.Save {
 			// Civs may sign right of passage agreements (Map Making in
 			// Civ3).
 			EnablesRightOfPassage,
+			// Cities may draft citizens (Nationalism in Civ3).
+			EnablesConscription,
 		}
 
 		public ID id;
@@ -56,6 +58,7 @@ namespace C7GameData.Save {
 				EnablesIrrigationEverywhere = this.flags.Contains(Flag.EnablesIrrigationEverywhere),
 				DoublesWorkerRate = this.flags.Contains(Flag.DoublesWorkerRate),
 				EnablesRightOfPassage = this.flags.Contains(Flag.EnablesRightOfPassage),
+				EnablesConscription = this.flags.Contains(Flag.EnablesConscription),
 				EraCivilopediaName = this.EraCivilopediaName,
 				SmallIconPath = this.SmallIconPath,
 				X = this.X,

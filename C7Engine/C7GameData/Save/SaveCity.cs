@@ -70,6 +70,10 @@ namespace C7GameData.Save {
 		public int shieldsStored;
 		public int foodStored;
 		public int turnsOfUnhappinessDueToPopRushing;
+		// Drafting: the turns of unhappiness left and the citizens drafted
+		// this turn (see City.Draft). Older saves have 0.
+		public int turnsOfUnhappinessDueToDrafting;
+		public int unitsDraftedThisTurn;
 		public bool celebrating;
 		public bool isInCivilDisorder;
 		// Resistance in a conquered city: the citizens resisting and the
@@ -109,6 +113,8 @@ namespace C7GameData.Save {
 			shieldsStored = city.shieldsStored;
 			foodStored = city.foodStored;
 			turnsOfUnhappinessDueToPopRushing = city.turnsOfUnhappinessDueToPopRushing;
+			turnsOfUnhappinessDueToDrafting = city.turnsOfUnhappinessDueToDrafting;
+			unitsDraftedThisTurn = city.unitsDraftedThisTurn;
 			celebrating = city.celebrating;
 			isInCivilDisorder = city.isInCivilDisorder;
 			resisters = city.resisters;
@@ -230,6 +236,8 @@ namespace C7GameData.Save {
 				itemBeingProduced = itemBeingProduced,
 				foodStored = foodStored,
 				turnsOfUnhappinessDueToPopRushing = turnsOfUnhappinessDueToPopRushing,
+				turnsOfUnhappinessDueToDrafting = turnsOfUnhappinessDueToDrafting,
+				unitsDraftedThisTurn = unitsDraftedThisTurn,
 				celebrating = celebrating,
 				isInCivilDisorder = isInCivilDisorder,
 				resisters = resisters,

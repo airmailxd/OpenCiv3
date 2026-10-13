@@ -1313,6 +1313,22 @@ public partial class Game : Node {
 						PopupOverlay.PopupCategory.Advisor);
 				}
 				break;
+			case MsgDisplayDraftPopup mDDP:
+				if (mDDP.errorMessage != null) {
+					popupOverlay.ShowPopup(
+						new InformationalPopup(mDDP.errorMessage),
+						PopupOverlay.PopupCategory.Advisor);
+				} else {
+					popupOverlay.ShowPopup(
+						new ConfirmationPopup(message: $"Draft a citizen of {mDDP.city.name} into a conscript {mDDP.unitName}? The draft will make the city unhappy.",
+												yesText: "Yes, draft them.",
+												noText: "No, leave them be.",
+												yesAction: () => {
+													new MsgDoDraft(mDDP.city).send();
+												}),
+						PopupOverlay.PopupCategory.Advisor);
+				}
+				break;
 			case MsgDisplayStopWorkerActionPopup mDSWA:
 				popupOverlay.ShowPopup(
 					new ConfirmationPopup(

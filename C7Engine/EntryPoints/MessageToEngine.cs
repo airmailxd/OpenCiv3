@@ -850,6 +850,24 @@ namespace C7Engine {
 		}
 	}
 
+	// Drafts a citizen of the sender's city (see City.Draft).
+	public class MsgDoDraft : MessageToEngine {
+		public City city;
+		public MsgDoDraft(City city) {
+			this.city = city;
+		}
+
+		protected override void ProcessAllowed() {
+			if (!IsSendersCity(city)) return;
+
+			MapUnit unit = city.Draft(EngineStorage.gameData);
+			new MsgCityChanged(city).send();
+			if (unit != null) {
+				new MsgUnitMoved(unit).send();
+			}
+		}
+	}
+
 	public class MsgDoStopWorkerAction : MessageToEngine {
 		public MapUnit worker;
 		public MsgDoStopWorkerAction(MapUnit worker) {

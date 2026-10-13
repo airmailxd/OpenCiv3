@@ -292,6 +292,19 @@ namespace C7GameData {
 			}
 		}
 
+		// A city may draft the unit (the BIQ's PRTO "Draft" flag). See
+		// City.Draft.
+		public bool isDraftable {
+			get => flags.Contains(SaveUnitPrototype.Flag.Draftable);
+			set {
+				if (value) {
+					flags.Add(SaveUnitPrototype.Flag.Draftable);
+				} else {
+					flags.Remove(SaveUnitPrototype.Flag.Draftable);
+				}
+			}
+		}
+
 		public HashSet<string> categories = new HashSet<string>();
 
 		public HashSet<UnitAction> actions = [];

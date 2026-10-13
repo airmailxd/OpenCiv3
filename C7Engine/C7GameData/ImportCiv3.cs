@@ -1541,6 +1541,8 @@ namespace C7GameData {
 					foodStored = city.TotalFood,
 					buildings = ImportCityBuildingsFromSav(i),
 					turnsOfUnhappinessDueToPopRushing = city.TurnsOfUnhappinessDueToPopRushing,
+					turnsOfUnhappinessDueToDrafting = city.TurnsOfUnhappinessDueToDrafting,
+					unitsDraftedThisTurn = city.NumUnitsDraftedThisTurn,
 				};
 
 				List<int> culturePerLeader = city.GetCulturePerLeader();
@@ -1817,6 +1819,7 @@ namespace C7GameData {
 				if (prto.SinkInSea) prototype.flags.Add(SaveUnitPrototype.Flag.SinksInSea);
 				if (prto.SinkInOcean) prototype.flags.Add(SaveUnitPrototype.Flag.SinksInOcean);
 				if (prto.Leader) prototype.flags.Add(SaveUnitPrototype.Flag.Leader);
+				if (prto.Draft) prototype.flags.Add(SaveUnitPrototype.Flag.Draftable);
 
 				prototype.actions.UnionWith(GetUnitActions(prto));
 				prototype.terraformActions.UnionWith(GetUnitTerraforms(prto).Select(tfKey => terraformIdByCiv3Key[tfKey]));
@@ -2360,6 +2363,7 @@ namespace C7GameData {
 				(t.EnablesIrrigationEverywhere, SaveTech.Flag.EnablesIrrigationEverywhere),
 				(t.DoublesWorkerRate, SaveTech.Flag.DoublesWorkerRate),
 				(t.EnablesRightOfPassage, SaveTech.Flag.EnablesRightOfPassage),
+				(t.EnablesConscription, SaveTech.Flag.EnablesConscription),
 			}
 			.Where(t => t.Item1)
 			.Select(t => t.Item2);
