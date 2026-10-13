@@ -92,7 +92,8 @@ public sealed class PerfTradeNetworkTests : MapBase {
 			new() { Key = "coal", Name = "coal", Prerequisite = unknownTech },
 		};
 
-		List<Player> players = new() { new Player(), new Player() };
+		// Civs that have not met, so not at war (see TradeNetwork).
+		List<Player> players = new() { new Player() { civilization = new Civilization("A") }, new Player() { civilization = new Civilization("B") } };
 		players[0].knownTechs.Add(knownTech);
 		gameData.players.AddRange(players);
 

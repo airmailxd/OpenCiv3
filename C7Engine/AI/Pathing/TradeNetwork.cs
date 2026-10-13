@@ -62,10 +62,32 @@ namespace C7Engine.Pathing {
 	// with harbors or airports is also recomputed when the player learns a
 	// tech, and once a turn.
 	//
-	// TODO: Account for passing through the borders of civs we're at war with
-	// TODO: A harbor blockaded by enemy ships doesn't link (Civilopedia,
-	// GCON_Trade); blockades aren't modelled.
-	// TODO: Invalidate the trade network when war status changes.
+	// War cuts routes. The Civilopedia (GCON_Trade): "two cities are not
+	// connected if the only road/rail that connects them passes through
+	// enemy territory, or if a harbor is blockaded by enemy naval forces."
+	// - Roads don't run through tiles owned by a civ the player is at war
+	//   with. Nor do water routes: "a city surrounded by water owned by a
+	//   Civilization with which you do not have open borders, will be
+	//   unable to create a trade route between it and the capital by way of
+	//   the harbour"
+	//   (https://forums.civfanatics.com/resources/how-do-trade-routes-roads-railroads-harbours-work-vanilla.25620/).
+	//   That guide also has neutral territory cutting routes; the
+	//   Civilopedia says enemy territory, which is what is followed here.
+	// - A blockade: "An enemy naval unit can break a trade route between a
+	//   city and the capital if its zone of control (one hex in a circle
+	//   around the unit) blocks the continuous (invisible) trade route line
+	//   between two harbours" (the same guide). Water routes don't cross the
+	//   tile of an enemy ship or the tiles around it, so a ship next to a
+	//   harbor city on a straight coast shuts its port. Barbarian ships
+	//   count: "check for barb ships. They can and will interrupt your
+	//   trade" (https://forums.civfanatics.com/threads/trade-route-keeps-being-broken.415882/).
+	//   UNVERIFIED (simplest consistent behaviour): which ships blockade.
+	//   Here any enemy ship that can attack (attack above 0) and isn't
+	//   carried, whether or not it has the BIQ's zone of control flag, which
+	//   no conquests.biq ship has.
+	// A network is recomputed when the civs the player is at war with
+	// change. Ships move without telling the network, so blockades are seen
+	// at the once-a-turn recomputation of networks with harbors.
 	public class TradeNetwork {
 		private sealed class PlayerNetwork {
 			public readonly Dictionary<City, TradeNetworkSegment> cityToSegment = new();
@@ -86,13 +108,54 @@ namespace C7Engine.Pathing {
 			public bool hasLinks;
 			public int techCount;
 			public int turn;
+			// The civs the player was at war with, in the game's player order.
+			public List<Player> enemies;
 
-			public bool IsValidFor(Player player, int turn) {
+			public bool IsValidFor(Player player, int turn, List<Player> players) {
 				if (buildingsVersion != player.BuildingsVersion) {
+					return false;
+				}
+				if (!SameEnemies(player, players, enemies)) {
 					return false;
 				}
 				return !hasLinks || (techCount == (player.knownTechs?.Count ?? 0) && this.turn == turn);
 			}
+		}
+
+		// The civs the player is at war with, in the game's player order.
+		private static List<Player> Enemies(Player player, List<Player> players) {
+			List<Player> result = new();
+			if (players == null) {
+				return result;
+			}
+			foreach (Player other in players) {
+				if (IsEnemy(player, other)) {
+					result.Add(other);
+				}
+			}
+			return result;
+		}
+
+		private static bool IsEnemy(Player player, Player other) {
+			return other != null && other != player && !other.defeated && PlayerRelationship.AtWar(player, other);
+		}
+
+		// Whether the player is at war with just the given civs, checked
+		// without making a list, as this runs on every query.
+		private static bool SameEnemies(Player player, List<Player> players, List<Player> enemies) {
+			int i = 0;
+			if (players != null) {
+				foreach (Player other in players) {
+					if (!IsEnemy(player, other)) {
+						continue;
+					}
+					if (i >= enemies.Count || enemies[i] != other) {
+						return false;
+					}
+					++i;
+				}
+			}
+			return i == enemies.Count;
 		}
 
 		private readonly Dictionary<Player, PlayerNetwork> networks = new();
@@ -104,9 +167,10 @@ namespace C7Engine.Pathing {
 
 		private PlayerNetwork GetNetwork(Player player) {
 			int turn = gameData?.turn ?? 0;
+			List<Player> players = gameData?.players;
 			lock (networks) {
-				if (!networks.TryGetValue(player, out PlayerNetwork network) || !network.IsValidFor(player, turn)) {
-					network = ComputeTradeNetwork(player, turn);
+				if (!networks.TryGetValue(player, out PlayerNetwork network) || !network.IsValidFor(player, turn, players)) {
+					network = ComputeTradeNetwork(player, turn, Enemies(player, players));
 					networks[player] = network;
 				}
 				return network;
@@ -146,12 +210,14 @@ namespace C7Engine.Pathing {
 			return false;
 		}
 
-		private static PlayerNetwork ComputeTradeNetwork(Player player, int turn) {
+		private static PlayerNetwork ComputeTradeNetwork(Player player, int turn, List<Player> enemies) {
 			PlayerNetwork network = new() {
 				buildingsVersion = player.BuildingsVersion,
 				techCount = player.knownTechs?.Count ?? 0,
 				turn = turn,
+				enemies = enemies,
 			};
+			HashSet<Player> enemySet = new(enemies);
 			Dictionary<City, TradeNetworkSegment> segments = network.cityToSegment;
 			Dictionary<Tile, TradeNetworkSegment> seen = network.tileToSegment;
 
@@ -179,14 +245,46 @@ namespace C7Engine.Pathing {
 					}
 
 					foreach (Tile n in x.neighbors.Values) {
-						if (n.IsRoaded() && seen.TryAdd(n, segment)) {
+						if (n.IsRoaded() && !InEnemyTerritory(n, enemySet) && seen.TryAdd(n, segment)) {
 							toCheck.Enqueue(n);
 						}
 					}
 				}
 			}
-			JoinByHarborsAndAirports(player, network);
+			JoinByHarborsAndAirports(player, network, enemySet);
 			return network;
+		}
+
+		private static bool InEnemyTerritory(Tile t, HashSet<Player> enemies) {
+			if (enemies.Count == 0) {
+				return false;
+			}
+			Player owner = t.OwningPlayer();
+			return owner != null && enemies.Contains(owner);
+		}
+
+		// The water tiles enemy ships blockade: each ship's tile and the
+		// tiles around it (see the class comment).
+		private static HashSet<Tile> BlockadedTiles(HashSet<Player> enemies) {
+			HashSet<Tile> result = new();
+			foreach (Player enemy in enemies) {
+				foreach (MapUnit u in enemy.units) {
+					if (!Blockades(u)) {
+						continue;
+					}
+					result.Add(u.location);
+					foreach (Tile n in u.location.neighbors.Values) {
+						result.Add(n);
+					}
+				}
+			}
+			return result;
+		}
+
+		// Whether the ship can blockade a harbor (see the class comment).
+		public static bool Blockades(MapUnit u) {
+			return u != null && u.location != null && u.location != Tile.NONE && u.hitPointsRemaining > 0
+				&& u.IsWaterUnit() && u.unitType.attack > 0 && !u.IsLoaded();
 		}
 
 		// Whether the city has a building that links it by water (a Harbor)
@@ -212,7 +310,7 @@ namespace C7Engine.Pathing {
 
 		// Merges the road segments that harbors and airports link, and
 		// records which water the harbors reach (for CapitalsConnected).
-		private static void JoinByHarborsAndAirports(Player player, PlayerNetwork network) {
+		private static void JoinByHarborsAndAirports(Player player, PlayerNetwork network, HashSet<Player> enemies) {
 			List<City> harbors = null;
 			List<City> airports = null;
 			foreach (City c in player.cities) {
@@ -261,6 +359,9 @@ namespace C7Engine.Pathing {
 				bool overSea = player.HasTechEnabling(C7GameData.Save.SaveTech.Flag.EnablesTradeOverSea) || player.HasSafeSeaTravel();
 				bool overOcean = player.HasTechEnabling(C7GameData.Save.SaveTech.Flag.EnablesTradeOverOcean);
 				TileKnowledge knowledge = player.tileKnowledge;
+				HashSet<Tile> blockaded = BlockadedTiles(enemies);
+				bool CanUse(Tile t) => knowledge.isTileKnown(t) && CanTradeOver(t, overSea, overOcean)
+					&& !blockaded.Contains(t) && !InEnemyTerritory(t, enemies);
 				Dictionary<Tile, int> label = network.waterLabel;
 				Dictionary<int, TradeNetworkSegment> labelSegment = new();
 				int nextLabel = 0;
@@ -274,7 +375,7 @@ namespace C7Engine.Pathing {
 						}
 						// "A visible water route": only water the player has
 						// seen.
-						if (knowledge == null || !knowledge.isTileKnown(start) || !CanTradeOver(start, overSea, overOcean)) {
+						if (knowledge == null || !CanUse(start)) {
 							continue;
 						}
 						int id = nextLabel++;
@@ -284,7 +385,7 @@ namespace C7Engine.Pathing {
 						while (toCheck.Count > 0) {
 							Tile x = toCheck.Dequeue();
 							foreach (Tile n in x.neighbors.Values) {
-								if (!label.ContainsKey(n) && knowledge.isTileKnown(n) && CanTradeOver(n, overSea, overOcean)) {
+								if (!label.ContainsKey(n) && CanUse(n)) {
 									label[n] = id;
 									toCheck.Enqueue(n);
 								}
