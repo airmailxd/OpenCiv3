@@ -158,18 +158,10 @@ local civ_colors = {
   "696969"  -- Dim Gray
 }
 
-local tech_icon_replacement_map = {
-  ["tech-2"] = "Masonry.png",
-  ["tech-3"] = "Alphabet.png",
-  ["tech-5"] = "TheWheel.png",
-  ["tech-6"] = "WarriorCode.png",
-  ["tech-7"] = "CeremonialBurial.png",
-  ["tech-10"] = "Mysticism.png",
-  ["tech-13"] = "Code of Laws.png",
-  ["tech-14"] = "Literature.png",
-  ["tech-15"] = "MapMaking.png",
-  ["tech-16"] = "HorsebackRiding.png",
-}
+-- The icon files of the advances and buildings of the bundled rules
+-- (C7/ModernArt, made by ArtGen/civilopedia_icons/ui_icons.py from their
+-- Civilopedia icons), by Civilopedia entry.
+local icon_files = require "icon_files"
 
 -- The civilizations that have a leader head of our own, by name (see
 -- leader_heads below).
@@ -231,11 +223,38 @@ return function(civ3_textures)
     frame_duration = 0.6,
   }
 
+  -- The standalone asset pack only has placeholders for Civ3's advance and
+  -- building icons, which showed the words "Tech" and "Bldg" in the tech
+  -- tree and the production menus (owner's report, 2026-10-12). Advances
+  -- and buildings of the bundled rules show their own icons instead, the
+  -- same pictures as their Civilopedia icons; any others (from an addon)
+  -- still show the placeholders.
   function c7_textures.tech_icons.small:map_object_to_sprite(tech)
-    local icon = tech_icon_replacement_map[tostring(tech.id)] or "placeholder.png"
-    return { path = "Art/Tech Chooser/Icons/" .. icon }
+    local path = icon_files.advances[tech.CivilopediaEntry]
+    return { path = path or "Art/Tech Chooser/Icons/placeholder.png" }
   end
-  
+
+  -- A building's entry, or for Wealth (an Inflow) the Civilopedia's.
+  local function building_entry(building)
+    if building:GetType().Name == "Inflow" then
+      return "BLDG_" .. building.name
+    end
+    return building.civilopediaEntry
+  end
+  local function use_own_icons(size)
+    local icons = c7_textures.building_icons[size]
+    local placeholder = icons.map_object_to_sprite
+    function icons:map_object_to_sprite(building)
+      local files = icon_files.buildings[building_entry(building)]
+      if files then
+        return { path = files[size] }
+      end
+      return placeholder(self, building)
+    end
+  end
+  use_own_icons("small")
+  use_own_icons("large")
+
   -- Each civilization of the bundled rules has its own leader head
   -- (C7/ModernArt/Art/Leaderheads/<civ name>.png, made by
   -- ArtGen/leaderheads), whose 2x picture ModernGraphics loads at Civ3's

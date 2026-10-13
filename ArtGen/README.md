@@ -14,7 +14,10 @@ its own: `python ArtGen/<area>/build.py`.
 standalone mode (a 128x128 and a 32x32 picture per entry, in
 `C7/Civilopedia/Art/Civilopedia/Icons/`, listed in
 `C7/Civilopedia/Text/PediaIcons.txt`) from the other areas' models and art,
-so `build_all.py` runs it last. See its `build.py`.
+so `build_all.py` runs it last. See its `build.py`. Its `ui_icons.py` makes
+the advance and building icons of the tech tree, production menus and city
+screen in standalone mode from the same pictures (in `C7/ModernArt`, listed
+in `C7/Lua/standalone/icon_files.lua`).
 
 ## The contract with the game
 
