@@ -46,6 +46,16 @@ public class AirUnitTest : IClassFixture<SaveGameFixture>, System.IDisposable {
 		}
 	}
 
+	private static async Task<T> WithRandomAsync<T>(int next, double sample, System.Func<Task<T>> action) {
+		System.Random original = C7GameData.GameData.rng;
+		C7GameData.GameData.rng = new FixedRandom(next, sample);
+		try {
+			return await action();
+		} finally {
+			C7GameData.GameData.rng = original;
+		}
+	}
+
 	private UnitPrototype Prototype(string name) => gameData.unitPrototypes.Single(p => p.name == name);
 
 	private MapUnit Spawn(Player owner, string prototype, Tile tile) => gameData.SpawnUnit(owner, Prototype(prototype), tile);
@@ -138,7 +148,7 @@ public class AirUnitTest : IClassFixture<SaveGameFixture>, System.IDisposable {
 	}
 
 	[Fact]
-	public void BombersBombWithinTheirOperationalRange() {
+	public async Task BombersBombWithinTheirOperationalRange() {
 		City home = FoundCity(us);
 		MapUnit bomber = Spawn(us, "Bomber", home.location);
 		int range = bomber.OperationalRange();
@@ -154,7 +164,7 @@ public class AirUnitTest : IClassFixture<SaveGameFixture>, System.IDisposable {
 		Assert.True(bomber.CanAirBombTile(inRange));
 		// Nobody intercepts, and every shot hits: the Bomber's bombardment
 		// is lethal on land.
-		bool reached = WithRandom(0, 0.0, () => bomber.AirBomb(inRange).Result);
+		bool reached = await WithRandomAsync(0, 0.0, () => bomber.AirBomb(inRange));
 
 		Assert.True(reached);
 		Assert.True(target.hitPointsRemaining <= 0 || !inRange.unitsOnTile.Contains(target));
@@ -163,7 +173,7 @@ public class AirUnitTest : IClassFixture<SaveGameFixture>, System.IDisposable {
 	}
 
 	[Fact]
-	public void FightersOnAirSuperiorityInterceptBombersOncePerTurn() {
+	public async Task FightersOnAirSuperiorityInterceptBombersOncePerTurn() {
 		GoToWar();
 		City ours = FoundCity(us);
 		City theirs = FoundCity(them, EmptyLandAt(ours.location, 4));
@@ -178,7 +188,7 @@ public class AirUnitTest : IClassFixture<SaveGameFixture>, System.IDisposable {
 
 		// The fighter tries (0 < 50) and, firing 0 against its chance,
 		// shoots the bomber down. The run never reaches the target.
-		bool reached = WithRandom(0, 0.0, () => bomber.AirBomb(target).Result);
+		bool reached = await WithRandomAsync(0, 0.0, () => bomber.AirBomb(target));
 
 		Assert.False(reached);
 		Assert.DoesNotContain(bomber, ours.location.unitsOnTile);
@@ -187,7 +197,7 @@ public class AirUnitTest : IClassFixture<SaveGameFixture>, System.IDisposable {
 
 		// Its interception for the turn is spent.
 		MapUnit second = Spawn(us, "Bomber", ours.location);
-		Assert.True(WithRandom(0, 0.0, () => second.AirBomb(target).Result));
+		Assert.True(await WithRandomAsync(0, 0.0, () => second.AirBomb(target)));
 
 		// The stance ends when its owner's turn begins.
 		fighter.OnBeginTurn();
@@ -196,7 +206,7 @@ public class AirUnitTest : IClassFixture<SaveGameFixture>, System.IDisposable {
 	}
 
 	[Fact]
-	public void AnInterceptedBomberThatSurvivesStillFailsItsRun() {
+	public async Task AnInterceptedBomberThatSurvivesStillFailsItsRun() {
 		GoToWar();
 		City ours = FoundCity(us);
 		City theirs = FoundCity(them, EmptyLandAt(ours.location, 4));
@@ -207,7 +217,7 @@ public class AirUnitTest : IClassFixture<SaveGameFixture>, System.IDisposable {
 		MapUnit bomber = Spawn(us, "Bomber", ours.location);
 		Assert.True(bomber.CanAirBombTile(target));
 
-		bool reached = WithRandom(0, 0.999, () => bomber.AirBomb(target).Result);
+		bool reached = await WithRandomAsync(0, 0.999, () => bomber.AirBomb(target));
 
 		Assert.False(reached);
 		Assert.Contains(bomber, ours.location.unitsOnTile);
@@ -234,6 +244,30 @@ public class AirUnitTest : IClassFixture<SaveGameFixture>, System.IDisposable {
 	}
 
 	[Fact]
+	public async Task SamBatteriesFireAtAircraftBombingTheirCity() {
+		GoToWar();
+		City ours = FoundCity(us);
+		City theirs = FoundCity(them, EmptyLandAt(ours.location, 4));
+		Building sam = gameData.Buildings.Single(b => b.name == "SAM Missile Battery");
+		Assert.Equal(8, sam.airPower);
+		theirs.AddBuilding(sam);
+		MapUnit bomber = Spawn(us, "Bomber", ours.location);
+		MapUnit stealth = Spawn(us, "Stealth Bomber", ours.location);
+		Assert.True(bomber.CanAirBombTile(theirs.location));
+
+		// A roll of 10 fires at the bomber (under 50%) but not at the
+		// stealth bomber (5%); 0.9 is over the SAM's 8/(8+2) to hit, so the
+		// bomber survives but fails its run.
+		Assert.True(WithRandom(10, 0.9, () => bomber.TryToIntercept(theirs.location, out bool down) && !down));
+		Assert.False(WithRandom(10, 0.9, () => stealth.TryToIntercept(theirs.location, out _)));
+
+		// Under 0.8 it's shot down.
+		bool reached = await WithRandomAsync(0, 0.5, () => bomber.AirBomb(theirs.location));
+		Assert.False(reached);
+		Assert.DoesNotContain(bomber, us.units);
+	}
+
+	[Fact]
 	public void ReconRevealsTheTargetAndItsNeighbours() {
 		City home = FoundCity(us);
 		MapUnit fighter = Spawn(us, "Fighter", home.location);
@@ -252,7 +286,7 @@ public class AirUnitTest : IClassFixture<SaveGameFixture>, System.IDisposable {
 	}
 
 	[Fact]
-	public void PrecisionStrikesNeedSmartWeaponsAndHitOnlyBuildings() {
+	public async Task PrecisionStrikesNeedSmartWeaponsAndHitOnlyBuildings() {
 		City ours = FoundCity(us);
 		City theirs = FoundCity(them, EmptyLandAt(ours.location, 4));
 		while (theirs.residents.Count < 4) {
@@ -271,7 +305,7 @@ public class AirUnitTest : IClassFixture<SaveGameFixture>, System.IDisposable {
 		us.knownTechs.Add(smartWeapons.id);
 		Assert.True(stealth.CanPrecisionBombTile(theirs.location));
 
-		bool reached = WithRandom(99, 0.0, () => stealth.PrecisionBomb(theirs.location).Result);
+		bool reached = await WithRandomAsync(99, 0.0, () => stealth.PrecisionBomb(theirs.location));
 
 		Assert.True(reached);
 		Assert.Equal(4, theirs.residents.Count);
@@ -298,7 +332,7 @@ public class AirUnitTest : IClassFixture<SaveGameFixture>, System.IDisposable {
 	}
 
 	[Fact]
-	public void TheAIBombsEnemiesNearItsCitiesOnlyAtWar() {
+	public async Task TheAIBombsEnemiesNearItsCitiesOnlyAtWar() {
 		City theirs = FoundCity(them);
 		MapUnit bomber = Spawn(them, "Bomber", theirs.location);
 		Tile near = EmptyLandAt(theirs.location, 2);
@@ -306,25 +340,25 @@ public class AirUnitTest : IClassFixture<SaveGameFixture>, System.IDisposable {
 
 		// At peace nothing is bombed.
 		us.EnsureRelationshipExists(them);
-		AirAI.PlayTurn(them, bomber).Wait();
+		await AirAI.PlayTurn(them, bomber);
 		Assert.True(bomber.movementPoints.canMove);
 
 		GoToWar();
 		Assert.Same(near, AirAI.ChooseBombingTarget(them, bomber));
-		WithRandom(0, 0.0, () => { AirAI.PlayTurn(them, bomber).Wait(); return 0; });
+		await WithRandomAsync(0, 0.0, async () => { await AirAI.PlayTurn(them, bomber); return 0; });
 
 		Assert.False(bomber.movementPoints.canMove);
 		Assert.True(intruder.hitPointsRemaining <= 0 || !near.unitsOnTile.Contains(intruder));
 	}
 
 	[Fact]
-	public void TheAIFliesAirSuperiorityOverThreatenedCities() {
+	public async Task TheAIFliesAirSuperiorityOverThreatenedCities() {
 		City theirs = FoundCity(them);
 		MapUnit fighter = Spawn(them, "Fighter", theirs.location);
 		Spawn(us, "Warrior", EmptyLandAt(theirs.location, 2));
 		GoToWar();
 
-		AirAI.PlayTurn(them, fighter).Wait();
+		await AirAI.PlayTurn(them, fighter);
 
 		Assert.True(fighter.isOnAirSuperiority);
 	}

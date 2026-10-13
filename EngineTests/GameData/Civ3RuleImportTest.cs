@@ -192,5 +192,7 @@ public class Civ3RuleImportTest {
 		Assert.Contains(UnitAction.Airdrop, Unit("Paratrooper").actions);
 		Assert.Equal(50, game.Rules.ChanceToInterceptAirMissions);
 		Assert.Equal(5, game.Rules.ChanceToInterceptStealthMissions);
+		// "A=8 for the SAM" (alexman, same thread).
+		Assert.Equal(8, game.Buildings.Single(b => b.name == "SAM Missile Battery").airPower);
 	}
 }

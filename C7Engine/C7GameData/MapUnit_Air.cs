@@ -395,7 +395,40 @@ namespace C7GameData {
 					return true;
 				}
 			}
+
+			// A SAM battery in the target city: "For each bomber, there is a
+			// chance equal to the interception chance for the SAM to fire
+			// (50% against conventional, 5% against stealth). ... If the SAM
+			// fires, it has a A/(A+D) probability to shoot down the plane",
+			// "A=8 for the SAM", its BIQ air power; "If the plane is not shot
+			// down, the Bomber survives, but it loses its chance to do any
+			// damage as well" (alexman,
+			// https://forums.civfanatics.com/threads/aerial-combat-mechanics.90783/).
+			// With several such buildings "the highest value is used once"
+			// (AnthonyBoscia,
+			// https://forums.civfanatics.com/threads/questions-on-air-units.680192/).
+			int samPower = SamPower(target);
+			if (samPower > 0 && GameData.rng.Next(100) < chance) {
+				shotDown = TryToBeShotDown(samPower, null, target);
+				return true;
+			}
 			return false;
+		}
+
+		// The strongest air power among the buildings of an enemy city on
+		// the tile, or 0.
+		private int SamPower(Tile target) {
+			City city = target.cityAtTile;
+			if (city == null || city.owner == owner) {
+				return 0;
+			}
+			int best = 0;
+			foreach (CityBuilding cb in city.EffectiveBuildings()) {
+				if (cb.building.airPower > best) {
+					best = cb.building.airPower;
+				}
+			}
+			return best;
 		}
 
 		// Whether this fighter, flying air superiority, can intercept a
@@ -411,7 +444,7 @@ namespace C7GameData {
 		private bool TryToBeShotDown(int attack, MapUnit interceptor, Tile target) {
 			int defence = unitType.defense;
 			bool shotDown = attack > 0 && GameData.rng.NextDouble() < (double)attack / (attack + defence);
-			string what = interceptor != null ? $"{interceptor.owner.civilization.adjective} {interceptor.unitType.name}" : "anti-aircraft fire";
+			string what = interceptor != null ? $"{interceptor.owner.civilization.adjective} {interceptor.unitType.name}" : $"the air defences of {target.cityAtTile?.name}";
 			if (owner.isHuman) {
 				new MsgShowTemporaryPopup(shotDown ? $"Our {unitType.name} was shot down by {what}!" : $"Our {unitType.name} was intercepted by {what}.", target, owner).send();
 			}
