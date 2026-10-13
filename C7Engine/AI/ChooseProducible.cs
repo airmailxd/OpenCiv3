@@ -98,6 +98,16 @@ namespace C7Engine {
 			private (int have, int want)? militaryNeed;
 			public (int have, int want) MilitaryNeed => militaryNeed ??= DevelopmentAI.MilitaryNeed(player);
 
+			// For valuing improvements by their effect (see BuildingEffects).
+			private CommerceBreakdown? commerce;
+			public CommerceBreakdown Commerce => commerce ??= city.CurrentCommerceYieldRaw();
+
+			private int? goldPerTurn;
+			public int GoldPerTurn => goldPerTurn ??= player.CalculateGoldPerTurn();
+
+			internal bool? enemyAircraftNear;
+			internal bool? enemyWarshipsNear;
+
 			private int? turnsUntilGrowth;
 			public int TurnsUntilGrowth => turnsUntilGrowth ??= city.TurnsUntilGrowth();
 
@@ -443,6 +453,14 @@ namespace C7Engine {
 			if (AiExperiments.Has(player, DevelopmentAI.LeanMilitary)) {
 				score += DevelopmentAI.LeanMilitaryAdjustment(stats, building);
 			}
+
+			// What the improvement's effect is worth here (see
+			// BuildingEffects).
+			float? effect = BuildingEffects.Score(stats, city, player, building);
+			if (effect == null) {
+				return -1000f;
+			}
+			score += effect.Value;
 
 			// Penalize more expensive buildings.
 			score -= city.TurnsToProduce(building) / (stats.InExpansionPhase ? 1 : 2);

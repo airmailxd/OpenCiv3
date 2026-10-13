@@ -94,7 +94,9 @@ public class SettlerSailsOverseasTest : IClassFixture<SaveGameFixture> {
 			Task firstTurn = TurnHandling.AdvanceTurn();
 			EngineWaits.WaitForStartTurnMessage(_ => { });
 			await firstTurn;
-			for (int turn = 0; turn < 150; ++turn) {
+			// The civs fill their own islands first, which takes this map's
+			// civs 140 to 180 turns depending on what their cities build.
+			for (int turn = 0; turn < 220; ++turn) {
 				new MsgEndTurn { turn = gameData.turn }.send();
 				EngineWaits.WaitForStartTurnMessage(_ => { });
 
