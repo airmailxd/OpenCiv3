@@ -34,6 +34,8 @@ namespace C7Engine {
 			// For example unless we have a good reason, as a human, receiving luxuries, gpt,
 			// or having an active RoP, doesn't hurt us.
 			PlayerRelationship.CheckForObsoleteDeals(player, EngineStorage.gameData.players, EngineStorage.gameData.turn);
+			// Offer to renew the deals that ran out, if we still want them.
+			await RenewExpiredDeals(player, gameData);
 
 			// Tell anyone wandering around our territory to leave. Any war that
 			// starts gets planned for in the priorities and unit moves below.
@@ -1087,136 +1089,177 @@ namespace C7Engine {
 					continue;
 				}
 
-				// Figure out what techs are available for trading.
-				List<Tech> techsTheyCanTrade = them.GetTechsTradableTo(us, gD.techs);
-				List<Tech> techsWeCanTrade = us.GetTechsTradableTo(them, gD.techs);
-
-				// If we can't trade techs there's no point in continuing - we
-				// can't yet trade anything else interesting.
-				if (techsWeCanTrade.Count == 0 && techsTheyCanTrade.Count == 0) {
+				// A tech trade if there is one to make, otherwise a resource
+				// deal, otherwise a pact (see DealProposalAI).
+				(TradeOffer weGive, TradeOffer weWant)? deal = TechDeal(gD, us, them)
+					?? DealProposalAI.ResourceDeal(gD, us, them)
+					?? DealProposalAI.PactDeal(gD, us, them);
+				if (deal is not (TradeOffer weGive, TradeOffer weWant)) {
 					continue;
 				}
 
-				// Tech costs don't change until a deal is made, so look each
-				// one up once. Every tech traded here is in one of the two
-				// lists, and we need its cost for both players.
-				Dictionary<Tech, int> costForUs = new();
-				Dictionary<Tech, int> costForThem = new();
-				foreach (Tech t in techsTheyCanTrade.Concat(techsWeCanTrade)) {
-					costForUs[t] = gD.TechCostFor(t, us);
-					costForThem[t] = gD.TechCostFor(t, them);
+				await Propose(gD, us, them, weGive, weWant);
+			}
+		}
+
+		// Offers them a deal in which we give weGive for weWant: a human is
+		// shown it to accept or change, another AI takes it if it would.
+		private static async Task Propose(GameData gD, Player us, Player them, TradeOffer weGive, TradeOffer weWant) {
+			if (them.isHuman) {
+				// A LAN guest who has left can't answer, so isn't asked.
+				if (!EngineStorage.IsPlayerReachable(them.id)) {
+					return;
 				}
-
-				techsTheyCanTrade.Sort((a, b) => { return costForUs[b].CompareTo(costForUs[a]); });
-				techsWeCanTrade.Sort((a, b) => { return costForThem[b].CompareTo(costForThem[a]); });
-
-				// The value of each offer to each player, kept up to date as
-				// techs are added or removed. This matches
-				// TradeOffer.GoldEquivalentFor, without the gold.
-				int weGiveTechsForThem = 0;
-				int weGiveTechsForUs = 0;
-				int weWantTechsForThem = 0;
-				int weWantTechsForUs = 0;
-
-				TradeOffer weGive = new();
-				Func<int> CalculateWeGiveValue = () => {
-					int gold = weGive.gold ?? 0;
-					return Math.Max(gold + weGiveTechsForThem, gold + weGiveTechsForUs);
-				};
-				TradeOffer weWant = new();
-				Func<int> CalculateWeWantValue = () => {
-					int gold = weWant.gold ?? 0;
-					return Math.Min(gold + weWantTechsForThem, gold + weWantTechsForUs);
-				};
-
-				// Figure out the value of what we have available to trade.
-				weGive.gold = us.gold;
-				foreach (Tech t in techsWeCanTrade) {
-					weGive.techs.Add(t);
-					weGiveTechsForThem += costForThem[t];
-					weGiveTechsForUs += costForUs[t];
+				// The human receiving the offer takes the UI to respond.
+				// In a hotseat game they may not be the player at the screen.
+				if (EngineStorage.uiFollowsActivePlayer) {
+					EngineStorage.uiControllerID = them.id;
 				}
-				int ourMaxPossibleOffer = CalculateWeGiveValue();
+				EngineStorage.diplomacyPlayerID = them.id;
+				EngineStorage.diplomacyAIPlayerID = us.id;
+				new MsgShowTradeOffer(us, them, weWant, weGive).send();
+				await EngineStorage.WaitForDiplomacyCompleted(them.id);
+				EngineStorage.diplomacyPlayerID = null;
+				EngineStorage.diplomacyAIPlayerID = null;
+			} else if (them.WouldAcceptDealFrom(gD, us, weGive, weWant)) {
+				us.ExecuteDeal(gD, them, weWant, weGive);
+			}
+		}
 
-				// Going from the most to the least valuable valuable techs, see
-				// if we can afford them. This greedy algorithm should be good
-				// enough - we don't need perfect binpacking.
-				foreach (Tech t in techsTheyCanTrade) {
-					int cost = costForUs[t];
-					if (cost < ourMaxPossibleOffer) {
-						weWant.techs.Add(t);
-						weWantTechsForThem += costForThem[t];
-						weWantTechsForUs += costForUs[t];
-						ourMaxPossibleOffer -= cost;
-					}
-				}
-
-				// Also ask for any gold we can get.
-				weWant.gold = Math.Min(ourMaxPossibleOffer, them.gold);
-
-				// At this point we are getting as much as we possibly can get
-				// from the opponent. However, we might be overpaying, possibly
-				// by a significant amount. Keep removing techs from our offer
-				// as long as it doesn't make our offer worse than theirs.
-				int theirOfferValue = CalculateWeWantValue();
-				for (int i = 0; i < weGive.techs.Count;) {
-					Tech t = weGive.techs[i];
-					if (CalculateWeGiveValue() - costForThem[t] >= theirOfferValue) {
-						weGive.techs.RemoveAt(i);
-						weGiveTechsForThem -= costForThem[t];
-						weGiveTechsForUs -= costForUs[t];
-					} else {
-						++i;
-					}
-				}
-
-				// Now use any gold to even things out, if possible.
-				int remainingDelta = Math.Max(0, CalculateWeGiveValue() - theirOfferValue);
-				weGive.gold -= Math.Min(remainingDelta, weGive.gold.Value);
-
-				// And ensure we minimize the total gold traded, to keep the
-				// logs cleaner.
-				int redundantGold = Math.Min(weGive.gold.Value, weWant.gold.Value);
-				weGive.gold -= redundantGold;
-				weWant.gold -= redundantGold;
-				if (weGive.gold == 0) {
-					weGive.gold = null;
-				}
-				if (weWant.gold == 0) {
-					weWant.gold = null;
-				}
-
-				// Finally if the deal is too mismatched or only contains a swap
-				// of gold, abandon it. Otherwise we can execute the deal.
-
-				float tradeFactor = them.isHuman ? 1.0f : gD.gameDifficulty.AIToAITradeRate / 100.0f;
-				if (CalculateWeGiveValue() > tradeFactor * CalculateWeWantValue()) {
+		// The deals with us that ran out (see DealRenewal): we offer each
+		// again, on the same terms, if we would still accept it; otherwise a
+		// human is told we don't wish to extend it.
+		internal static async Task RenewExpiredDeals(Player us, GameData gD) {
+			foreach ((TradeOffer weGave, Player them, TradeOffer theyGave) in DealRenewal.TakeFor(gD, us)) {
+				if (them.defeated || (weGave.IsEmpty() && theyGave.IsEmpty())) {
 					continue;
 				}
-				if (weGive.techs.Count == 0 && weWant.techs.Count == 0) {
+				bool wanted = TradeOffer.ProblemWithDeal(gD, us, them, weGave, theyGave) == null
+					&& us.WouldAcceptDealFrom(gD, them, theyGave, weGave);
+				if (!wanted) {
+					if (them.isHuman) {
+						DealRenewal.Tell(them, $"The {us.civilization?.noun} do not wish to extend their deal with us.");
+					}
 					continue;
 				}
+				log.Information("{Us} offers to renew a deal with {Them}", us, them);
+				await Propose(gD, us, them, weGave, theyGave);
+			}
+		}
 
-				if (them.isHuman) {
-					// A LAN guest who has left can't answer, so isn't asked.
-					if (!EngineStorage.IsPlayerReachable(them.id)) {
-						continue;
-					}
-					// The human receiving the offer takes the UI to respond.
-					// In a hotseat game they may not be the player at the screen.
-					if (EngineStorage.uiFollowsActivePlayer) {
-						EngineStorage.uiControllerID = them.id;
-					}
-					EngineStorage.diplomacyPlayerID = them.id;
-					EngineStorage.diplomacyAIPlayerID = us.id;
-					new MsgShowTradeOffer(us, them, weWant, weGive).send();
-					await EngineStorage.WaitForDiplomacyCompleted(them.id);
-					EngineStorage.diplomacyPlayerID = null;
-					EngineStorage.diplomacyAIPlayerID = null;
-				} else if (them.WouldAcceptDealFrom(gD, us, weGive, weWant)) {
-					us.ExecuteDeal(gD, them, weWant, weGive);
+		// The trade of techs (and gold to even it out) we would offer them,
+		// or null if there is none worth making.
+		private static (TradeOffer weGive, TradeOffer weWant)? TechDeal(GameData gD, Player us, Player them) {
+			// Figure out what techs are available for trading.
+			List<Tech> techsTheyCanTrade = them.GetTechsTradableTo(us, gD.techs);
+			List<Tech> techsWeCanTrade = us.GetTechsTradableTo(them, gD.techs);
+
+			// If we can't trade techs there's no point in continuing - we
+			// can't yet trade anything else interesting.
+			if (techsWeCanTrade.Count == 0 && techsTheyCanTrade.Count == 0) {
+				return null;
+			}
+
+			// Tech costs don't change until a deal is made, so look each
+			// one up once. Every tech traded here is in one of the two
+			// lists, and we need its cost for both players.
+			Dictionary<Tech, int> costForUs = new();
+			Dictionary<Tech, int> costForThem = new();
+			foreach (Tech t in techsTheyCanTrade.Concat(techsWeCanTrade)) {
+				costForUs[t] = gD.TechCostFor(t, us);
+				costForThem[t] = gD.TechCostFor(t, them);
+			}
+
+			techsTheyCanTrade.Sort((a, b) => { return costForUs[b].CompareTo(costForUs[a]); });
+			techsWeCanTrade.Sort((a, b) => { return costForThem[b].CompareTo(costForThem[a]); });
+
+			// The value of each offer to each player, kept up to date as
+			// techs are added or removed. This matches
+			// TradeOffer.GoldEquivalentFor, without the gold.
+			int weGiveTechsForThem = 0;
+			int weGiveTechsForUs = 0;
+			int weWantTechsForThem = 0;
+			int weWantTechsForUs = 0;
+
+			TradeOffer weGive = new();
+			Func<int> CalculateWeGiveValue = () => {
+				int gold = weGive.gold ?? 0;
+				return Math.Max(gold + weGiveTechsForThem, gold + weGiveTechsForUs);
+			};
+			TradeOffer weWant = new();
+			Func<int> CalculateWeWantValue = () => {
+				int gold = weWant.gold ?? 0;
+				return Math.Min(gold + weWantTechsForThem, gold + weWantTechsForUs);
+			};
+
+			// Figure out the value of what we have available to trade.
+			weGive.gold = us.gold;
+			foreach (Tech t in techsWeCanTrade) {
+				weGive.techs.Add(t);
+				weGiveTechsForThem += costForThem[t];
+				weGiveTechsForUs += costForUs[t];
+			}
+			int ourMaxPossibleOffer = CalculateWeGiveValue();
+
+			// Going from the most to the least valuable valuable techs, see
+			// if we can afford them. This greedy algorithm should be good
+			// enough - we don't need perfect binpacking.
+			foreach (Tech t in techsTheyCanTrade) {
+				int cost = costForUs[t];
+				if (cost < ourMaxPossibleOffer) {
+					weWant.techs.Add(t);
+					weWantTechsForThem += costForThem[t];
+					weWantTechsForUs += costForUs[t];
+					ourMaxPossibleOffer -= cost;
 				}
 			}
+
+			// Also ask for any gold we can get.
+			weWant.gold = Math.Min(ourMaxPossibleOffer, them.gold);
+
+			// At this point we are getting as much as we possibly can get
+			// from the opponent. However, we might be overpaying, possibly
+			// by a significant amount. Keep removing techs from our offer
+			// as long as it doesn't make our offer worse than theirs.
+			int theirOfferValue = CalculateWeWantValue();
+			for (int i = 0; i < weGive.techs.Count;) {
+				Tech t = weGive.techs[i];
+				if (CalculateWeGiveValue() - costForThem[t] >= theirOfferValue) {
+					weGive.techs.RemoveAt(i);
+					weGiveTechsForThem -= costForThem[t];
+					weGiveTechsForUs -= costForUs[t];
+				} else {
+					++i;
+				}
+			}
+
+			// Now use any gold to even things out, if possible.
+			int remainingDelta = Math.Max(0, CalculateWeGiveValue() - theirOfferValue);
+			weGive.gold -= Math.Min(remainingDelta, weGive.gold.Value);
+
+			// And ensure we minimize the total gold traded, to keep the
+			// logs cleaner.
+			int redundantGold = Math.Min(weGive.gold.Value, weWant.gold.Value);
+			weGive.gold -= redundantGold;
+			weWant.gold -= redundantGold;
+			if (weGive.gold == 0) {
+				weGive.gold = null;
+			}
+			if (weWant.gold == 0) {
+				weWant.gold = null;
+			}
+
+			// Finally if the deal is too mismatched or only contains a swap
+			// of gold, abandon it. Otherwise we can execute the deal.
+
+			float tradeFactor = them.isHuman ? 1.0f : gD.gameDifficulty.AIToAITradeRate / 100.0f;
+			if (CalculateWeGiveValue() > tradeFactor * CalculateWeWantValue()) {
+				return null;
+			}
+			if (weGive.techs.Count == 0 && weWant.techs.Count == 0) {
+				return null;
+			}
+			return (weGive, weWant);
 		}
 
 		private static void AdjustSliders(Player player) {

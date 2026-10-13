@@ -116,6 +116,13 @@ namespace C7GameData {
 		// unhappy as well, in addition to the time penalty.
 		public int turnsOfUnhappinessDueToPopRushing = 0;
 
+		// The same for drafting (see Draft), and the citizens drafted this
+		// turn, against the government's draft limit.
+		public int turnsOfUnhappinessDueToDrafting = 0;
+		public int unitsDraftedThisTurn = 0;
+
+		// Whether a building was sold here this turn (see SellBuilding).
+		public bool soldBuildingThisTurn = false;
 		// Citizens confused by enemy propaganda that didn't make the city
 		// defect; each is an unhappy face, and one fewer each turn (see
 		// Espionage.ApplyPropaganda).
@@ -671,6 +678,102 @@ namespace C7GameData {
 			hurriedThisTurn = true;
 		}
 
+		// The Conquests Civilopedia (GCON_Draft): "When a civilization
+		// develops Nationalism its citizens can be drafted into military
+		// service. Each city can draft some of its population each turn,
+		// depending upon the government currently in effect. A civilization
+		// in Anarchy may not use the draft. A city in a Democracy or Republic
+		// can draft [one] citizen per turn. A city in a country under
+		// Communism, Despotism, Fascism, Feudalism, or Monarchy can draft
+		// [two] citizens per turn. ... You may only draft citizens from a
+		// city with a population of 7 or higher. The draft produces the
+		// following conscript units, depending upon your level of scientific
+		// development: Spearman, Pikeman, Musketman, Rifleman, Infantry, Mech.
+		// Infantry ... However, drafting citizens will cause unhappiness in
+		// the city." The tech is the BIQ's "enables conscription" one, the
+		// per-city limit the government's draft limit, and the units those
+		// with the BIQ's Draft flag; "you can't draft from any city less than
+		// size 7" and "it makes 1 citizen per unit drafted unhappy for 20
+		// turns" (https://forums.civfanatics.com/threads/question-about-drafting-in-civ3.107429/),
+		// the 20 being the BIQ's turn penalty per drafted citizen.
+		//
+		// UNVERIFIED (simplest consistent behaviour):
+		// - each draft costs one citizen, the Civilopedia's "draft [one]
+		//   citizen" (a forum post says two, another one:
+		//   https://forums.civfanatics.com/threads/draft-citizens.40326/);
+		// - the draftee is the strongest defender with the Draft flag the
+		//   city could build now (strategic resources included: "anywhere
+		//   from a Spearman (all resources cut off) to a Mechanized
+		//   Infantry", same thread), ties going to the attack, then the cost;
+		// - like hurrying, a city in disorder or resisting can't draft;
+		// - the citizen drafted is the last one, as for the whip.
+		public const int MinimumPopulationToDraft = 7;
+
+		// The unit a draft here would give, or null if none could be.
+		public UnitPrototype DraftableUnit(GameData gameData) {
+			UnitPrototype best = null;
+			foreach (IProducible p in ListProductionOptions(gameData)) {
+				if (p is not UnitPrototype u || !u.isDraftable) {
+					continue;
+				}
+				if (best == null || u.defense > best.defense
+					|| (u.defense == best.defense && (u.attack > best.attack
+						|| (u.attack == best.attack && u.shieldCost > best.shieldCost)))) {
+					best = u;
+				}
+			}
+			return best;
+		}
+
+		// Why this city can't draft a citizen now, or null if it can.
+		public string WhyCannotDraft(GameData gameData) {
+			if (!owner.HasTechEnabling(C7GameData.Save.SaveTech.Flag.EnablesConscription)) {
+				return "We do not yet know how to draft citizens.";
+			}
+			if (owner.government.transitionType || owner.government.draftLimit <= 0) {
+				return "We cannot draft citizens with this government.";
+			}
+			if (isInCivilDisorder) {
+				return "The city is in disorder and cannot draft citizens.";
+			}
+			if (IsInResistance) {
+				return "The city is resisting our rule and cannot draft citizens.";
+			}
+			if (residents.Count < MinimumPopulationToDraft) {
+				return $"Only cities of size {MinimumPopulationToDraft} or more can draft citizens.";
+			}
+			if (unitsDraftedThisTurn >= owner.government.draftLimit) {
+				return "The city has drafted all the citizens it can this turn.";
+			}
+			if (DraftableUnit(gameData) == null) {
+				return "There is no unit for the draftees.";
+			}
+			return null;
+		}
+
+		// Drafts a citizen into a conscript unit, returning it, or null if
+		// the city can't draft (see WhyCannotDraft).
+		public MapUnit Draft(GameData gameData) {
+			string why = WhyCannotDraft(gameData);
+			if (why != null) {
+				log.Warning("Not drafting in {City}: {Error}", this, why);
+				return null;
+			}
+			UnitPrototype type = DraftableUnit(gameData);
+			RemoveLastCitizen();
+			++unitsDraftedThisTurn;
+			turnsOfUnhappinessDueToDrafting += gameData.rules.TurnPenaltyForEachDraftedCitizen;
+
+			MapUnit unit = gameData.SpawnUnit(owner, type, location);
+			// Conscripts, the least experienced level.
+			if (gameData.experienceLevels.Count > 0) {
+				unit.experienceLevel = gameData.experienceLevels[0];
+				unit.experienceLevelKey = unit.experienceLevel.key;
+				unit.hitPointsRemaining = unit.maxHitPoints;
+			}
+			return unit;
+		}
+
 		// Fills the production box, so that the current item is finished at
 		// the end of the turn. A great leader hurries production this way.
 		internal void FillProductionBox() {
@@ -681,8 +784,11 @@ namespace C7GameData {
 		}
 
 		public void HandleCityProduction(GameData gameData) {
-			// The turn is over, so production can be changed again.
+			// The turn is over, so production can be changed again, and the
+			// city may draft again.
 			hurriedThisTurn = false;
+			unitsDraftedThisTurn = 0;
+			soldBuildingThisTurn = false;
 			IProducible producedItem = ComputeTurnProduction();
 			if (producedItem == null) {
 				return;
@@ -1142,17 +1248,90 @@ namespace C7GameData {
 
 		// The pollution the city's buildings add to it, from the BIQ's
 		// per-building pollution value (e.g. the Iron Works' 4).
-		//
-		// TODO: nothing consumes this yet. Civ3's city pollution (from
-		// population and production, reduced by the Mass Transit System and
-		// Recycling Center) and the chance of polluting tiles it drives aren't
-		// implemented.
 		public int BuildingPollution() {
 			int result = 0;
 			foreach (CityBuilding cb in EffectiveBuildings()) {
 				result += cb.building.pollution;
 			}
 			return result;
+		}
+
+		// The city's pollution icons ("triangles"), each a 1% chance a turn
+		// that pollution strikes the city (see MaybePollute). From
+		// https://alt.games.civ3.narkive.com/xmuzDw5z/civ-3-pollution-reduction:
+		// "Each population point above 12 will produce 1 pollution icon in
+		// the city display"; "Certain buildings produce pollution icons. For
+		// example... a factory will always produce 2 pollution icons"; mass
+		// transit "eliminates all but 1 pollution icons due to population";
+		// a recycling center "removes all but 1 icon due to improvements";
+		// "each icon represents a 1% chance of pollution hitting that city
+		// each turn". The same "one pollution point for each citizen over
+		// 12 in a city, plus those from buildings" is in
+		// https://steamcommunity.com/sharedfiles/filedetails/?id=1265159547,
+		// "it will only cut it down to 1 for pop and 1 for buildings" and
+		// population pollution "linked to city size level 3, i.e. ... only
+		// ... in a metropolis" in
+		// https://forums.civfanatics.com/threads/pollution-from-population.299975/,
+		// so the 12 is the BIQ's largest size-2 city. The Conquests
+		// Civilopedia: "The Mass Transit System reduces pollution caused by
+		// population", "The Recycling Center decreases pollution caused by
+		// city improvements" (the BIQ's two pollution flags).
+		public int PollutionIcons(Rules rules) {
+			int population = Math.Max(0, residents.Count - rules.MaximumLevel2CitySize);
+			int buildingPollution = 0;
+			bool removesPopulation = false;
+			bool reducesBuildings = false;
+			foreach (CityBuilding cb in EffectiveBuildings()) {
+				buildingPollution += cb.building.pollution;
+				removesPopulation |= cb.building.removesPopulationPollution;
+				reducesBuildings |= cb.building.reducesBuildingPollution;
+			}
+			if (removesPopulation) {
+				population = Math.Min(population, 1);
+			}
+			if (reducesBuildings) {
+				buildingPollution = Math.Min(buildingPollution, 1);
+			}
+			return population + Math.Max(0, buildingPollution);
+		}
+
+		// Called once a turn: with a chance of 1% per pollution icon,
+		// pollution strikes one of the city's tiles, which is returned.
+		//
+		// UNVERIFIED (simplest consistent behaviour): which tile. A random
+		// land tile in the city's work radius, other than the city's own
+		// ("a tile outside your city",
+		// https://apolyton.net/forum/miscellaneous/archives/civ3-strategy-archive-aa/54340-pollution),
+		// that isn't already polluted; none, no pollution.
+		//
+		// Global warming isn't modelled. The Conquests Civilopedia
+		// (GCON_Pollution) says only that "If world pollution reaches
+		// sufficiently critical levels, there is a chance that global warming
+		// will occur. It can cause forests and jungles to disappear, and
+		// grasslands to become plains, and plains to become desert. World
+		// pollution is the sum of all city pollution, nuclear explosions, and
+		// meltdowns"; no source found gives the level or the chance.
+		public Tile MaybePollute(GameData gameData) {
+			int icons = PollutionIcons(gameData.rules);
+			// No draw without icons, so cities that can't pollute leave the
+			// random numbers alone.
+			if (icons <= 0 || GameData.rng.Next(100) >= icons) {
+				return null;
+			}
+			List<Tile> candidates = new();
+			foreach (Tile t in GetTilesOfRank(gameData.rules.MaxRankOfWorkableTiles)) {
+				if (t != location && t != Tile.NONE && !t.IsWater() && !t.HasPollution()) {
+					candidates.Add(t);
+				}
+			}
+			if (candidates.Count == 0) {
+				return null;
+			}
+			Tile tile = candidates[GameData.rng.Next(candidates.Count)];
+			if (!Tile.TryAddPollution(tile)) {
+				return null;
+			}
+			return tile;
 		}
 
 		public CommerceBreakdown CurrentCommerceYieldRaw(bool respectCivilDisorder = true) {
@@ -1292,6 +1471,11 @@ namespace C7GameData {
 		}
 
 		public int MaintenanceCostsRaw() {
+			// Anarchy: "No maintenance costs or unit upkeep needed"
+			// (https://civfanatics.com/civ3/civilopedia/governments/).
+			if (owner?.government != null && !owner.government.RequiresMaintenance()) {
+				return 0;
+			}
 			EffectiveBuildingsCache cache = GetEffectiveBuildingsCache();
 			bool commercialUpkeepPaid = cache.wonders.paysTradeMaintenance;
 			int result = 0;
@@ -1300,6 +1484,13 @@ namespace C7GameData {
 				// Civ3 charges nothing for a building one of the owner's
 				// wonders also provides (a granary alongside the Pyramids),
 				// and Smith's Trading Company pays for commercial buildings.
+				// The Conquests Civilopedia (BLDG_Trading_Company): "Pays
+				// maintenance costs for all trade-based city improvements
+				// (Harbors, Marketplaces, Banks, Airports, Commerical Dock and
+				// Stock Exchanges)", the buildings with the Commercial trait.
+				// Older lists of just Harbors, Marketplaces, Banks and Airports
+				// (https://civfanatics.com/civ3/civilopedia/wonders/) predate
+				// the Commercial Dock.
 				if (cache.providedByWonders.Contains(b)
 					|| (commercialUpkeepPaid && b.traits.Contains(Civilization.Trait.Commercial))) {
 					continue;
@@ -1316,6 +1507,9 @@ namespace C7GameData {
 
 		[MoonSharpHidden]
 		public int MaintenanceCosts() {
+			if (owner?.government != null && !owner.government.RequiresMaintenance()) {
+				return 0;
+			}
 			int result = 0;
 			result += MaintenanceCostsRaw();
 			// maintenance lua infow
@@ -1732,6 +1926,69 @@ namespace C7GameData {
 			}
 			owner?.OnBuildingsChanged();
 		}
+		// Selling a building, from the city screen's list of improvements
+		// as in Civ3 ("The top of the 3 options will be Sell",
+		// https://forums.civfanatics.com/threads/can-you-sell-city-improvements.9238/).
+		// "You can only sell one building in a given city per turn"; "Wonders
+		// of the World also cannot be sold"; "Your palace cannot be sold";
+		// "If a building exists in a city solely because of a Wonder, then
+		// you can't sell the building", even a temple the city built itself
+		// under the Temple of Artemis; and "the aqueduct falls into this
+		// category, and I think the hospital does as well"
+		// (https://www.gog.com/forum/sid_meiers_civilization_series/civilization_3_cant_sell_city_improvements).
+		// Civ3 asks "Are you sure you want to sell this improvement for $NUM0
+		// gold and $NUM1 shields?" (Script.txt, IMPROVEMENT_SCRAP); the
+		// shields are Recycling's "Returns 25% of the shield cost when
+		// selling improvements in addition to the gold received" (Conquests
+		// Civilopedia, TECH_Recycling), which no BIQ flag we read gives, so
+		// it isn't modelled.
+		//
+		// UNVERIFIED (simplest consistent behaviour): the gold. No source
+		// found gives it; we pay the building's shield cost in gold. Small
+		// wonders count as wonders, and the buildings that lift the city's
+		// size limit (aqueducts, hospitals) as the ones that can't be sold.
+		public string WhyCannotSell(Building building) {
+			CityBuilding cb = constructed_buildings.Find(c => c.building == building);
+			if (cb == null) {
+				return "The city has no such improvement.";
+			}
+			if (building.isCenterOfEmpire) {
+				return "The palace cannot be sold.";
+			}
+			if (building.IsGreatWonder() || building.isSmallWonder) {
+				return "Wonders cannot be sold.";
+			}
+			if (IsProvidedByWonders(building)) {
+				return $"The {building.name} comes from a wonder and cannot be sold.";
+			}
+			if (building.allowsCitySize2 || building.allowsCitySize3) {
+				return $"The {building.name} cannot be sold.";
+			}
+			if (soldBuildingThisTurn) {
+				return "The city has already sold an improvement this turn.";
+			}
+			return null;
+		}
+
+		public int SalePrice(Building building) {
+			return Math.Max(0, owner.ShieldCost(building));
+		}
+
+		// Sells the building, returning the gold it brought, or -1 if it
+		// can't be sold (see WhyCannotSell).
+		public int SellBuilding(Building building) {
+			string why = WhyCannotSell(building);
+			if (why != null) {
+				log.Warning("Not selling {Building} in {City}: {Error}", building, this, why);
+				return -1;
+			}
+			int gold = SalePrice(building);
+			RemoveBuilding(constructed_buildings.Find(c => c.building == building));
+			owner.gold += gold;
+			soldBuildingThisTurn = true;
+			return gold;
+		}
+
 		public void RemoveBuilding(CityBuilding building) {
 			constructed_buildings.Remove(building);
 			owner?.OnBuildingsChanged();
@@ -2074,6 +2331,55 @@ namespace C7GameData {
 			return result;
 		}
 
+		// The number of citizens made unhappy because we're at war with the
+		// civ they come from. The Conquests Civilopedia (GCON_Nationality):
+		// "Having a city with foreign nationals is not a problem unless you
+		// are at war with the nation that originally produced them. When at
+		// war, foreign nationals become unhappy more quickly than others";
+		// such citizens say
+		// "Stop the aggression against our mother country!" and "will remain
+		// unhappy until you peace with the civ concern"
+		// (https://forums.civfanatics.com/threads/why-are-the-citizens-of-my-newly-conquered-cities-so-unhappy.79817/),
+		// and the happiness thread lists "aggression against their mother
+		// land" with war weariness, the whip and conscription as the
+		// modifiers that make citizens unhappy
+		// (https://forums.civfanatics.com/threads/how-is-happiness-calculated.74966/),
+		// so it is applied the same way as those.
+		//
+		// UNVERIFIED: how many. The only figure found is "About 50% of those
+		// citizen will be unhappy if I remember correctly"
+		// (https://forums.civfanatics.com/threads/wartime-unhappiness-problems.62461/).
+		// We use half of them per enemy civ, rounded up so a lone foreigner
+		// still protests ("will become unhappy if you go to war with the
+		// country that they come from",
+		// https://forums.civfanatics.com/threads/getting-rid-of-foreigners.10085/).
+		internal int MotherlandUnhappiness(GameData gameData) {
+			if (owner == null || owner.isBarbarians) {
+				return 0;
+			}
+			Dictionary<Civilization, int> foreigners = null;
+			foreach (CityResident r in residents) {
+				if (r.nationality == null || r.nationality == owner.civilization) {
+					continue;
+				}
+				foreigners ??= new();
+				foreigners[r.nationality] = foreigners.GetValueOrDefault(r.nationality) + 1;
+			}
+			if (foreigners == null) {
+				return 0;
+			}
+			int unhappy = 0;
+			foreach (Player p in gameData.players) {
+				if (p == owner || p.isBarbarians || p.defeated || p.civilization == null
+					|| !foreigners.TryGetValue(p.civilization, out int count)
+					|| !PlayerRelationship.AtWar(owner, p)) {
+					continue;
+				}
+				unhappy += (count + 1) / 2;
+			}
+			return Math.Min(unhappy, residents.Count);
+		}
+
 		// This function does the heavy lifting of happiness calculations,
 		// combining the various bonuses and penalties that affect citizen moods.
 		//
@@ -2105,16 +2411,25 @@ namespace C7GameData {
 			// (https://civfanatics.com/civ3/strategy/game-mechanics/a-study-of-espionage-missions/)
 			contentToHappyMoves -= Math.Min(propagandaConfusedCitizens, residents.Count);
 
-			// TODO: add penalty for drafting, once drafting is implemented
-			// (Government.draftLimit is imported but nothing drafts yet).
+			// Drafting works the same way: "it makes 1 citizen per unit
+			// drafted unhappy for 20 turns" (the BIQ's turn penalty per
+			// drafted citizen),
+			// https://forums.civfanatics.com/threads/question-about-drafting-in-civ3.107429/.
+			if (turnsOfUnhappinessDueToDrafting > 0) {
+				int penalty = Math.Max(1, gameData.rules.TurnPenaltyForEachDraftedCitizen);
+				contentToHappyMoves -= (turnsOfUnhappinessDueToDrafting - 1) / penalty + 1;
+			}
 
 			// War weariness makes citizens unhappy, like pop rushing, and war
 			// happiness makes them happy.
 			contentToHappyMoves -= owner.WarWearinessUnhappiness(this);
 			contentToHappyMoves += owner.WarHappiness(this);
 
+			// Citizens of a civ we're at war with protest "Stop the aggression
+			// against our mother country!", like the whip and war weariness.
+			contentToHappyMoves -= MotherlandUnhappiness(gameData);
+
 			List<CityBuilding> buildings = EffectiveBuildings();
-			// TODO: add penalty for aggression against home country
 
 			// Building and wonder happiness/unhappiness, which only affects the
 			// unhappy to content transition, nothing with happy faces.

@@ -16,6 +16,17 @@ namespace C7GameData {
 		// If true, this is the government used while switching governments.
 		public bool transitionType;
 
+		// Whether buildings cost upkeep under this government (the BIQ's
+		// RequiresMaintenance). Civ3's Anarchy has "No maintenance costs or
+		// unit upkeep needed" (https://civfanatics.com/civ3/civilopedia/governments/).
+		// Null in saves from before it was imported, where the transition
+		// government (Anarchy) is the one without.
+		public bool? requiresMaintenance;
+
+		public bool RequiresMaintenance() {
+			return requiresMaintenance ?? !transitionType;
+		}
+
 		// The "despotism penalty" applies for this goverment; reduces all 
 		// commerce, production and food output done by citizen laborers by -1 
 		// when they produce more than 2.

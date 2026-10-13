@@ -72,6 +72,18 @@ namespace C7GameData.Save {
 			// The required resources must be on tiles in the city's radius,
 			// not merely connected to it by the trade network.
 			GoodsMustBeInCityRadius,
+			// The BIQ's pollution flags: "The Mass Transit System reduces
+			// pollution caused by population" and "The Recycling Center
+			// decreases pollution caused by city improvements" (Conquests
+			// Civilopedia). See City.PollutionIcons.
+			RemovesPopulationPollution,
+			ReducesBuildingPollution,
+			// The city is a link in the trade network over water to other
+			// cities with such a building (the Harbor), and through the air
+			// to other cities with an air-trade building (the Airport). See
+			// TradeNetwork.
+			AllowsWaterTrade,
+			AllowsAirTrade,
 		}
 
 		public class GreatWonderProperties {

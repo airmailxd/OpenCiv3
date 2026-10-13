@@ -279,6 +279,36 @@ namespace C7Engine {
 		}
 	}
 
+	// The player asked to sell an improvement in the city: why it can't, or
+	// the gold it would bring.
+	public class MsgDisplaySellBuildingPopup : MessageToUI {
+		public City city;
+		public Building building;
+		public string errorMessage;
+		public int gold;
+
+		public MsgDisplaySellBuildingPopup(City city, Building building, string errorMessage, int gold) {
+			this.city = city;
+			this.building = building;
+			this.errorMessage = errorMessage;
+			this.gold = gold;
+		}
+	}
+
+	// The player asked to draft a citizen in the city: why it can't, or the
+	// unit a draft would give.
+	public class MsgDisplayDraftPopup : MessageToUI {
+		public City city;
+		public string errorMessage;
+		public string unitName;
+
+		public MsgDisplayDraftPopup(City city, string errorMessage, string unitName) {
+			this.city = city;
+			this.errorMessage = errorMessage;
+			this.unitName = unitName;
+		}
+	}
+
 	public class MsgDisplayStopWorkerActionPopup : MessageToUI {
 		public MapUnit worker;
 		public Terraform workerJob;

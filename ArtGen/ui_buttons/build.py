@@ -1,141 +1,111 @@
-"""The unit command buttons of the air missions and the airdrop for standalone
-mode, which has no Civ3 art: the standalone asset pack's button sheet
-(Art/interface/NormButtons.png) has only blank buttons where Civ3's has them.
+"""Unit order buttons for standalone mode that the asset pack lacks.
 
-    python ArtGen/ui_buttons/build.py
+The standalone asset pack's Art/interface/NormButtons.png has blank buttons
+where Civ3's has Build Outpost and Build Colony. Each of these is drawn as a
+file of its own, Art/interface/<order>.png in C7/ModernArt: the normal, hover
+and pressed buttons side by side, each 64x64 (twice Civ3's 32x32 button, as
+all the remade art is). C7/Lua/standalone/textures.lua points the two orders'
+buttons at them.
 
-writes C7/ModernArt/Art/interface/AirMissionButtons.png: a column per button
-(bombing, precision strike, recon, air superiority, re-base, airdrop) and a
-row per state (normal, hover, pressed), each cell 32x32 like Civ3's buttons,
-with twice the pixels like all of ModernArt. C7/Lua/standalone/textures.lua
-points the buttons at it.
+It also draws the air missions' and the airdrop's buttons (see
+air_missions.py), which are blank in the asset pack too.
+
+The buttons copy the asset pack's look: a golden ball with the order drawn on
+it in dark brown.
 """
+import math
 import os
+import sys
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFilter
 
-REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-OUT = os.path.join(REPO, 'C7', 'ModernArt', 'Art', 'interface', 'AirMissionButtons.png')
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'common'))
+import civ3art  # noqa: E402
 
-CELL = 64          # 32x32 buttons, twice the pixels
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import air_missions  # noqa: E402
+
+CELL = 64          # one button at 2x
 SS = 4             # supersampling
-N = CELL * SS
-INK = (62, 36, 10, 255)
+S = CELL * SS
 
-# Ball colors per state: (rim, body, highlight), like the asset pack's gold.
-STATES = [
-    ((120, 80, 20), (184, 134, 42), (236, 196, 96)),   # normal
-    ((140, 96, 28), (210, 160, 60), (252, 220, 130)),  # hover
-    ((100, 60, 14), (160, 104, 28), (214, 160, 70)),   # pressed
-]
+GLYPH = (58, 36, 14, 255)
 
 
-def ball(state):
-    rim, body, high = STATES[state]
-    img = Image.new('RGBA', (N, N), (0, 0, 0, 0))
+def ball(brightness):
+    """A golden ball lit from the upper left, as big as the cell."""
+    img = Image.new('RGBA', (S, S), (0, 0, 0, 0))
     px = img.load()
-    c = N / 2
-    r = N / 2 - SS
-    hx, hy = c - r * 0.35, c - r * 0.4
-    for y in range(N):
-        for x in range(N):
-            d = ((x - c) ** 2 + (y - c) ** 2) ** 0.5
-            if d > r:
+    c = S / 2
+    r = S / 2 - 2 * SS
+    lx, ly = -0.45, -0.55
+    for y in range(S):
+        for x in range(S):
+            dx, dy = (x + 0.5 - c) / r, (y + 0.5 - c) / r
+            d2 = dx * dx + dy * dy
+            if d2 > 1:
                 continue
-            h = max(0.0, 1 - ((x - hx) ** 2 + (y - hy) ** 2) ** 0.5 / (r * 1.1))
-            edge = min(1.0, max(0.0, (d - r * 0.82) / (r * 0.18)))
-            col = [body[i] + (high[i] - body[i]) * h * h for i in range(3)]
-            col = [col[i] + (rim[i] - col[i]) * edge for i in range(3)]
-            px[x, y] = (int(col[0]), int(col[1]), int(col[2]), 255)
+            dz = math.sqrt(1 - d2)
+            light = max(0.0, -(dx * lx + dy * ly) + dz * 0.7)
+            shade = 0.55 + 0.45 * light
+            rim = 1 - 0.25 * max(0.0, math.sqrt(d2) - 0.85) / 0.15
+            k = shade * rim * brightness
+            px[x, y] = (min(255, int(214 * k)), min(255, int(160 * k)), min(255, int(62 * k)), 255)
     return img
 
 
-def s(v):
-    """A coordinate on a 64-pixel cell, supersampled."""
-    return v * SS
+def outpost_glyph(draw):
+    """A watchtower on a mound: legs, a platform and a pointed roof."""
+    u = S / 64
+    draw.polygon([(14 * u, 50 * u), (50 * u, 50 * u), (44 * u, 45 * u), (20 * u, 45 * u)], fill=GLYPH)
+    for x0, x1 in ((23, 26), (38, 41)):
+        draw.polygon([(x0 * u, 46 * u), ((x0 + 3) * u, 46 * u), ((x1 + 1) * u, 26 * u), ((x1 - 2) * u, 26 * u)], fill=GLYPH)
+    draw.line([(25 * u, 38 * u), (39 * u, 32 * u)], fill=GLYPH, width=int(2 * u))
+    draw.line([(25 * u, 32 * u), (39 * u, 38 * u)], fill=GLYPH, width=int(2 * u))
+    draw.rectangle([20 * u, 21 * u, 44 * u, 27 * u], fill=GLYPH)
+    draw.polygon([(17 * u, 21 * u), (47 * u, 21 * u), (32 * u, 9 * u)], fill=GLYPH)
 
 
-def plane(d, cx, cy, size):
-    """A top-down aircraft pointing up, centered on (cx, cy)."""
-    k = size / 20
-    body = [(cx - 1.5 * k, cy - 9 * k), (cx + 1.5 * k, cy - 9 * k), (cx + 1.5 * k, cy + 9 * k), (cx - 1.5 * k, cy + 9 * k)]
-    wings = [(cx, cy - 3 * k), (cx + 10 * k, cy + 3 * k), (cx + 10 * k, cy + 5 * k), (cx, cy + 2 * k),
-             (cx - 10 * k, cy + 5 * k), (cx - 10 * k, cy + 3 * k)]
-    tail = [(cx, cy + 6 * k), (cx + 4 * k, cy + 9 * k), (cx + 4 * k, cy + 10 * k), (cx, cy + 9 * k),
-            (cx - 4 * k, cy + 10 * k), (cx - 4 * k, cy + 9 * k)]
-    for poly in (body, wings, tail):
-        d.polygon([(s(x), s(y)) for x, y in poly], fill=INK)
+def colony_glyph(draw):
+    """Two huts on a piece of land, with a crate of goods."""
+    u = S / 64
+    draw.polygon([(10 * u, 48 * u), (54 * u, 48 * u), (48 * u, 43 * u), (16 * u, 43 * u)], fill=GLYPH)
+    # the big hut
+    draw.rectangle([15 * u, 30 * u, 31 * u, 44 * u], fill=GLYPH)
+    draw.polygon([(12 * u, 31 * u), (34 * u, 31 * u), (23 * u, 19 * u)], fill=GLYPH)
+    # the small hut
+    draw.rectangle([35 * u, 35 * u, 47 * u, 44 * u], fill=GLYPH)
+    draw.polygon([(33 * u, 36 * u), (49 * u, 36 * u), (41 * u, 27 * u)], fill=GLYPH)
+    # a crate
+    draw.rectangle([44 * u, 39 * u, 52 * u, 46 * u], fill=GLYPH)
 
 
-def bomb(d, cx, cy, size):
-    """A bomb falling, nose down."""
-    k = size / 20
-    d.ellipse([s(cx - 5 * k), s(cy - 6 * k), s(cx + 5 * k), s(cy + 9 * k)], fill=INK)
-    d.polygon([(s(cx - 6 * k), s(cy - 12 * k)), (s(cx + 6 * k), s(cy - 12 * k)), (s(cx + 2 * k), s(cy - 4 * k)),
-               (s(cx - 2 * k), s(cy - 4 * k))], fill=INK)
+def button(glyph, brightness, offset):
+    img = ball(brightness)
+    layer = Image.new('RGBA', (S, S), (0, 0, 0, 0))
+    glyph(ImageDraw.Draw(layer))
+    # A pressed button's picture sits a little lower.
+    layer = layer.transform(layer.size, Image.AFFINE, (1, 0, 0, 0, 1, -offset * SS))
+    # A faint light edge under the picture, as if pressed into the metal.
+    edge = layer.split()[3].filter(ImageFilter.GaussianBlur(SS))
+    light = Image.new('RGBA', (S, S), (255, 230, 160, 0))
+    light.putalpha(edge.point(lambda a: a // 3))
+    img.alpha_composite(light, (SS, SS))
+    img.alpha_composite(layer)
+    return img.resize((CELL, CELL), Image.LANCZOS)
 
 
-def draw_bombing(d):
-    bomb(d, 25, 30, 18)
-    bomb(d, 39, 34, 18)
-
-
-def draw_precision(d):
-    w = s(3)
-    d.ellipse([s(16), s(16), s(48), s(48)], outline=INK, width=w)
-    d.ellipse([s(25), s(25), s(39), s(39)], outline=INK, width=w)
-    for a, b in (((32, 10), (32, 22)), ((32, 42), (32, 54)), ((10, 32), (22, 32)), ((42, 32), (54, 32))):
-        d.line([(s(a[0]), s(a[1])), (s(b[0]), s(b[1]))], fill=INK, width=w)
-    d.ellipse([s(30), s(30), s(34), s(34)], fill=INK)
-
-
-def draw_recon(d):
-    # An eye.
-    d.chord([s(12), s(18), s(52), s(54)], 200, 340, fill=INK)
-    d.chord([s(12), s(10), s(52), s(46)], 20, 160, fill=INK)
-    d.ellipse([s(20), s(24), s(44), s(40)], fill=(0, 0, 0, 0))
-    d.ellipse([s(26), s(26), s(38), s(38)], fill=INK)
-
-
-def draw_air_superiority(d):
-    plane(d, 32, 30, 24)
-    w = s(3)
-    d.arc([s(10), s(10), s(54), s(54)], 200, 340, fill=INK, width=w)
-
-
-def draw_rebase(d):
-    plane(d, 24, 32, 18)
-    w = s(3)
-    d.line([(s(36), s(32)), (s(52), s(32))], fill=INK, width=w)
-    d.polygon([(s(54), s(32)), (s(46), s(26)), (s(46), s(38))], fill=INK)
-
-
-def draw_airdrop(d):
-    d.pieslice([s(14), s(12), s(50), s(44)], 180, 360, fill=INK)
-    w = s(2)
-    for x in (15, 24, 40, 49):
-        d.line([(s(x), s(28)), (s(32), s(44))], fill=INK, width=w)
-    d.ellipse([s(29), s(42), s(35), s(48)], fill=INK)
-    d.line([(s(32), s(47)), (s(32), s(54))], fill=INK, width=s(3))
-
-
-BUTTONS = [draw_bombing, draw_precision, draw_recon, draw_air_superiority, draw_rebase, draw_airdrop]
-
-
-def main():
-    sheet = Image.new('RGBA', (CELL * len(BUTTONS), CELL * len(STATES)), (0, 0, 0, 0))
-    for row in range(len(STATES)):
-        base = ball(row)
-        for col, draw in enumerate(BUTTONS):
-            img = base.copy()
-            glyph = Image.new('RGBA', (N, N), (0, 0, 0, 0))
-            draw(ImageDraw.Draw(glyph))
-            img.alpha_composite(glyph)
-            sheet.alpha_composite(img.resize((CELL, CELL), Image.LANCZOS), (col * CELL, row * CELL))
-    os.makedirs(os.path.dirname(OUT), exist_ok=True)
-    sheet.save(OUT, optimize=True)
-    print('wrote', OUT)
+def build(name, glyph):
+    sheet = Image.new('RGBA', (CELL * 3, CELL), (0, 0, 0, 0))
+    for i, (brightness, offset) in enumerate(((1.0, 0), (1.15, 0), (0.85, 1))):
+        sheet.paste(button(glyph, brightness, offset), (CELL * i, 0))
+    path = os.path.join(civ3art.MODERN_ART, 'Art', 'interface', name + '.png')
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    sheet.save(path, optimize=True)
+    print('wrote', path)
 
 
 if __name__ == '__main__':
-    main()
+    build('unit_build_outpost', outpost_glyph)
+    build('unit_build_colony', colony_glyph)
+    air_missions.main()

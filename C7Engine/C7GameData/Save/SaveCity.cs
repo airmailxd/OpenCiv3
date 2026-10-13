@@ -70,6 +70,12 @@ namespace C7GameData.Save {
 		public int shieldsStored;
 		public int foodStored;
 		public int turnsOfUnhappinessDueToPopRushing;
+		// Drafting: the turns of unhappiness left and the citizens drafted
+		// this turn (see City.Draft). Older saves have 0.
+		public int turnsOfUnhappinessDueToDrafting;
+		public int unitsDraftedThisTurn;
+		// A building was sold here this turn (see City.SellBuilding).
+		public bool soldBuildingThisTurn;
 		// Citizens confused by enemy propaganda (City.propagandaConfusedCitizens).
 		public int propagandaConfusedCitizens;
 		public bool celebrating;
@@ -111,6 +117,9 @@ namespace C7GameData.Save {
 			shieldsStored = city.shieldsStored;
 			foodStored = city.foodStored;
 			turnsOfUnhappinessDueToPopRushing = city.turnsOfUnhappinessDueToPopRushing;
+			turnsOfUnhappinessDueToDrafting = city.turnsOfUnhappinessDueToDrafting;
+			unitsDraftedThisTurn = city.unitsDraftedThisTurn;
+			soldBuildingThisTurn = city.soldBuildingThisTurn;
 			propagandaConfusedCitizens = city.propagandaConfusedCitizens;
 			celebrating = city.celebrating;
 			isInCivilDisorder = city.isInCivilDisorder;
@@ -233,6 +242,9 @@ namespace C7GameData.Save {
 				itemBeingProduced = itemBeingProduced,
 				foodStored = foodStored,
 				turnsOfUnhappinessDueToPopRushing = turnsOfUnhappinessDueToPopRushing,
+				turnsOfUnhappinessDueToDrafting = turnsOfUnhappinessDueToDrafting,
+				unitsDraftedThisTurn = unitsDraftedThisTurn,
+				soldBuildingThisTurn = soldBuildingThisTurn,
 				propagandaConfusedCitizens = propagandaConfusedCitizens,
 				celebrating = celebrating,
 				isInCivilDisorder = isInCivilDisorder,

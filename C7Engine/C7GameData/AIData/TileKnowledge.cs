@@ -120,13 +120,15 @@ namespace C7GameData {
 		// The active tiles are the union of the tiles contributed by each
 		// "source": a known tile with one of our units on top (contributing
 		// what the unit can see), or a known tile within our borders with no
-		// units on it (contributing itself and its neighbors).
+		// units on it (contributing itself and its neighbors), or a known tile
+		// with our outpost (contributing what the outpost can see, and what
+		// our unit there can see if one is on top).
 		//
 		// We keep the contribution of each source and a count, per tile, of the
 		// sources contributing it, so that RecomputeActiveTiles only has to
 		// re-examine the tiles that may have changed since it last ran. The
 		// result is always the same as recomputing from scratch.
-		private enum SourceKind : byte { None, City, Unit }
+		private enum SourceKind : byte { None, City, Unit, Outpost }
 
 		private sealed class Source {
 			public SourceKind kind;
@@ -165,7 +167,8 @@ namespace C7GameData {
 		public void AddTilesToKnown(Tile unitLocation, bool recomputeActiveTiles = true) {
 			CheckForOutsideChanges();
 
-			if (saturationTrusted && !HasRadarUnits(unitLocation) && IsSaturated(unitLocation)) {
+			bool outpost = HasOwnOutpost(unitLocation);
+			if (saturationTrusted && !outpost && !HasRadarUnits(unitLocation) && IsSaturated(unitLocation)) {
 				// Everything the tile can see is already known, so the loop
 				// below would not change anything.
 				if (recomputeActiveTiles) {
@@ -194,6 +197,9 @@ namespace C7GameData {
 
 			visibleScratch.Clear();
 			CollectTilesVisibleToUnit(unitLocation, visibleScratch);
+			if (outpost) {
+				CollectTilesSeenFromOutpost(unitLocation, visibleScratch);
+			}
 			foreach (Tile t in visibleScratch) {
 				MarkKnown(t);
 				borderTiles.Remove(t);
@@ -297,6 +303,25 @@ namespace C7GameData {
 			List<Tile> result = new(25);
 			CollectTilesVisibleToUnit(unitLocation, result);
 			return result;
+		}
+
+		// Whether the tile has this player's outpost.
+		private bool HasOwnOutpost(Tile tile) {
+			return tile.holdingOwner == _player && tile.HasOutpost();
+		}
+
+		// The tiles an outpost sees: all those within its sight range
+		// (Tile.OutpostSightRange), whatever the terrain between, as a radar
+		// unit sees.
+		// UNVERIFIED: the Civilopedia gives only the range; whether hills and
+		// mountains in between block an outpost's view isn't stated, so they
+		// don't.
+		private static void CollectTilesSeenFromOutpost(Tile outpost, List<Tile> result) {
+			foreach (Tile t in outpost.GetTilesWithinTileSquare(outpost.OutpostSightRange())) {
+				if (Tile.IsTileValid(t)) {
+					result.Add(t);
+				}
+			}
 		}
 
 		private static bool HasRadarUnits(Tile tile) {
@@ -612,6 +637,13 @@ namespace C7GameData {
 						result.Add(x);
 					}
 				}
+
+				// An outpost of ours sees around it.
+				if (HasOwnOutpost(t)) {
+					List<Tile> seen = new();
+					CollectTilesSeenFromOutpost(t, seen);
+					result.UnionWith(seen);
+				}
 			}
 			result.Remove(Tile.NONE);
 			return result;
@@ -638,6 +670,9 @@ namespace C7GameData {
 		private SourceKind KindOf(Tile t) {
 			if (t == null || !knownTiles.Contains(t)) {
 				return SourceKind.None;
+			}
+			if (t.holdingOwner == _player && t.HasOutpost()) {
+				return SourceKind.Outpost;
 			}
 			List<MapUnit> units = t.unitsOnTile;
 			if (units.Count > 0) {
@@ -694,6 +729,23 @@ namespace C7GameData {
 					Tile[] unitTiles = visibleScratch.ToArray();
 					Acquire(unitTiles);
 					sources[t] = new Source { kind = SourceKind.Unit, radar = radar, tiles = unitTiles };
+					return;
+
+				case SourceKind.Outpost:
+					visibleScratch.Clear();
+					CollectTilesSeenFromOutpost(t, visibleScratch);
+					if (t.unitsOnTile.Count > 0 && t.unitsOnTile[0].owner == _player) {
+						CollectTilesVisibleToUnit(t, visibleScratch);
+					}
+					if (old != null && old.kind == SourceKind.Outpost && SameTiles(old.tiles, visibleScratch)) {
+						return;
+					}
+					if (old != null) {
+						Release(old.tiles);
+					}
+					Tile[] outpostTiles = visibleScratch.ToArray();
+					Acquire(outpostTiles);
+					sources[t] = new Source { kind = SourceKind.Outpost, tiles = outpostTiles };
 					return;
 			}
 		}

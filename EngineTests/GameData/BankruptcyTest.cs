@@ -69,4 +69,32 @@ public class BankruptcyTest {
 		Assert.Single(city.constructed_buildings);
 		Assert.Equal(0, player.gold);
 	}
+
+	// Anarchy: "No maintenance costs or unit upkeep needed"
+	// (https://civfanatics.com/civ3/civilopedia/governments/), so a broke
+	// civ in anarchy keeps its buildings.
+	[Fact]
+	public void AnarchyChargesNoMaintenance() {
+		player.government = new Government { transitionType = true, requiresMaintenance = false };
+		CityBuilding temple = AddBuilding("Temple", 1);
+		CityBuilding bank = AddBuilding("Bank", 2);
+		player.gold = 0;
+
+		for (int turn = 0; turn < 3; ++turn) {
+			player.DoPerTurnFinanceUpdates(gameData);
+		}
+
+		Assert.Equal(0, city.MaintenanceCosts());
+		Assert.Contains(temple, city.constructed_buildings);
+		Assert.Contains(bank, city.constructed_buildings);
+		Assert.Equal(0, player.gold);
+	}
+
+	// Saves from before the flag was imported: the transition government is
+	// the one without maintenance.
+	[Fact]
+	public void OldSavesTreatTheTransitionGovernmentAsMaintenanceFree() {
+		Assert.False(new Government { transitionType = true }.RequiresMaintenance());
+		Assert.True(new Government().RequiresMaintenance());
+	}
 }

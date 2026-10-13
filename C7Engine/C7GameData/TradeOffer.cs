@@ -66,11 +66,23 @@ namespace C7GameData {
 		// CityInteractions.TransferCity with viaDeal).
 		public List<City> cities = new();
 
+		// Civ3's "Maps" (World Map, Territory Map) and "Communications"
+		// ("with the ...") deal items (the deal screen's headings in
+		// Conquests' Text/diplomacy.txt). The world map is every tile the
+		// giver has explored; the territory map only those under its
+		// cultural influence (Civilopedia, GCON_Maps). Contacts are
+		// introductions to the third civs with these ids (GCON_Agreements:
+		// "introductions to a third civilization you can grant or receive
+		// from a rival").
+		public bool worldMap = false;
+		public bool territoryMap = false;
+		public List<ID> contacts = new();
+
 		// Whether this side of a deal gives nothing at all.
 		public bool IsEmpty() {
 			return !partOfPeaceTreaty && !rightOfPassage && !mutualProtectionPact && militaryAllianceAgainst == null
 				&& tradeEmbargoAgainst == null && (gold ?? 0) == 0 && techs.Count == 0 && cities.Count == 0
-				&& !GivesOverTime();
+				&& !GivesOverTime() && !worldMap && !territoryMap && (contacts?.Count ?? 0) == 0;
 		}
 
 		// The cities a player may give away in a deal: any but its capital,
@@ -97,7 +109,10 @@ namespace C7GameData {
 		// resource is worth what p needs it for (see ResourceWorth). given
 		// is true when p gives this side, false when p is given it, which
 		// matters only for resources.
-		public int GoldEquivalentFor(GameData gameData, Player p, bool given = false) {
+		//
+		// counterpart is the other side of the deal: the one giving this side
+		// to p, or receiving it from p. Maps are worth nothing without it.
+		public int GoldEquivalentFor(GameData gameData, Player p, bool given = false, Player counterpart = null) {
 			int result = 0;
 			if (gold.HasValue) {
 				result += gold.Value;
@@ -113,8 +128,86 @@ namespace C7GameData {
 					result += ResourceWorth(gameData, p, r, given) * turns;
 				}
 			}
+			if (counterpart != null) {
+				Player giver = given ? p : counterpart;
+				Player receiver = given ? counterpart : p;
+				if (worldMap) {
+					result += MapWorth(gameData, giver, receiver, territoryOnly: false);
+				} else if (territoryMap) {
+					result += MapWorth(gameData, giver, receiver, territoryOnly: true);
+				}
+			}
+			result += (contacts?.Count ?? 0) * (given ? ContactGivenGold : ContactGold);
 
 			return result;
+		}
+
+		// HEURISTIC (no Civ3 source gives the AI's prices): a map is worth a
+		// gold for each MapTilesPerGold tiles it shows the receiver that it
+		// hasn't seen, to either side; an introduction to a civ is worth
+		// ContactGold to the civ introduced, and costs the introducer
+		// ContactGivenGold.
+		public const int MapTilesPerGold = 10;
+		public const int ContactGold = 30;
+		public const int ContactGivenGold = 10;
+
+		public static int MapWorth(GameData gameData, Player giver, Player receiver, bool territoryOnly) {
+			return MapTiles(giver, receiver, territoryOnly).Count() / MapTilesPerGold;
+		}
+
+		// The tiles the giver's map shows that the receiver doesn't know.
+		private static IEnumerable<Tile> MapTiles(Player giver, Player receiver, bool territoryOnly) {
+			if (giver?.tileKnowledge == null || receiver?.tileKnowledge == null) {
+				return Enumerable.Empty<Tile>();
+			}
+			return giver.tileKnowledge.knownTiles.Where(t => !receiver.tileKnowledge.isTileKnown(t)
+				&& (!territoryOnly || t.OwningPlayer() == giver));
+		}
+
+		// Shows the receiver the giver's world or territory map. The tiles
+		// become known as they are now, as with Player.RevealWholeMap.
+		// UNVERIFIED: whether Civ3 shows them as the giver last saw them.
+		public static void GiveMap(Player giver, Player receiver, bool territoryOnly) {
+			List<Tile> tiles = MapTiles(giver, receiver, territoryOnly).ToList();
+			foreach (Tile t in tiles) {
+				receiver.tileKnowledge.AddTileToKnown(t);
+			}
+			if (tiles.Count > 0) {
+				receiver.tileKnowledge.RecomputeActiveTiles();
+			}
+		}
+
+		// Why the giver can't give the receiver its maps, or null. Maps can
+		// be traded "after your civilization discovers Navigation"
+		// (Civilopedia, GCON_Maps), the BIQ's EnablesMapTrading flag.
+		// UNVERIFIED (no Civ3 source found): that the receiver must know it
+		// too, as for the pacts (see Pacts), and that the territory map
+		// needs the same tech.
+		public static string ProblemTradingMaps(GameData gameData, Player giver, Player receiver) {
+			if (!Pacts.KnowsTech(gameData, giver, Save.SaveTech.Flag.EnablesMapTrading)
+				|| !Pacts.KnowsTech(gameData, receiver, Save.SaveTech.Flag.EnablesMapTrading)) {
+				return "trading maps needs a tech both civs must know";
+			}
+			return null;
+		}
+
+		// The civs the giver can introduce the receiver to: ones the giver
+		// has met and the receiver hasn't. Contacts are traded "through your
+		// Embassies" (Civilopedia, GCON_Agreements; either civ's will do, as
+		// for the agreements, see Pacts) once both know the tech that
+		// "Can now trade communications between civilizations" (Printing
+		// Press, the BIQ's EnablesCommunicationTrading flag). UNVERIFIED (no
+		// Civ3 source found): that the receiver must know the tech too.
+		public static List<Player> TradableContacts(GameData gameData, Player giver, Player receiver) {
+			if (giver == null || receiver == null || !Pacts.HasEmbassyEitherWay(giver, receiver)
+				|| !Pacts.KnowsTech(gameData, giver, Save.SaveTech.Flag.EnablesCommunicationTrading)
+				|| !Pacts.KnowsTech(gameData, receiver, Save.SaveTech.Flag.EnablesCommunicationTrading)) {
+				return new List<Player>();
+			}
+			return gameData.players.Where(third => third != giver && third != receiver && !third.isBarbarians && !third.defeated
+				&& PlayerRelationship.TryGetRelationship(giver, third, out _) && PlayerRelationship.TryGetRelationship(third, giver, out _)
+				&& !receiver.playerRelationships.ContainsKey(third.id) && !third.playerRelationships.ContainsKey(receiver.id))
+				.ToList();
 		}
 
 		// How long deals made now last: the rules' DefaultDealDuration, 20
@@ -329,8 +422,32 @@ namespace C7GameData {
 			if (gold.HasValue && gold.Value > giver.gold) {
 				return $"{giver} doesn't have {gold.Value} gold";
 			}
-			if (techs == null || cities == null || resources == null) {
-				return "the techs, cities or resources are missing";
+			if (techs == null || cities == null || resources == null || contacts == null) {
+				return "the techs, cities, resources or contacts are missing";
+			}
+			// UNVERIFIED (no Civ3 source found): that maps and contacts
+			// can't come with a peace treaty, which is known to take gold
+			// and techs (above).
+			if ((worldMap || territoryMap || contacts.Count > 0) && peace) {
+				return "maps and contacts can't be part of a peace treaty";
+			}
+			if (worldMap || territoryMap) {
+				string problem = ProblemTradingMaps(gameData, giver, receiver);
+				if (problem != null) {
+					return problem;
+				}
+			}
+			if (contacts.Count > 0) {
+				List<Player> tradable = TradableContacts(gameData, giver, receiver);
+				HashSet<ID> offered = new();
+				foreach (ID third in contacts) {
+					if (third == null || !offered.Add(third)) {
+						return "a contact is missing or offered twice";
+					}
+					if (!tradable.Exists(p => p.id == third)) {
+						return $"{giver} can't introduce {receiver} to {third}";
+					}
+				}
 			}
 			if (goldPerTurn < 0) {
 				return $"{giver} can't give negative gold per turn";
@@ -401,6 +518,9 @@ namespace C7GameData {
 			mutualProtectionPact = false;
 			militaryAllianceAgainst = null;
 			tradeEmbargoAgainst = null;
+			worldMap = false;
+			territoryMap = false;
+			contacts.Clear();
 		}
 
 		private static string Noun(ID id) {
@@ -439,6 +559,15 @@ namespace C7GameData {
 			}
 			foreach (City c in cities) {
 				pieces.Add(c.name);
+			}
+			if (worldMap) {
+				pieces.Add("world map");
+			}
+			if (territoryMap) {
+				pieces.Add("territory map");
+			}
+			foreach (ID c in contacts ?? new()) {
+				pieces.Add($"contact with the {Noun(c)}");
 			}
 			return string.Join(",", pieces);
 		}

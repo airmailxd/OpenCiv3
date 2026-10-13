@@ -42,6 +42,7 @@ public partial class UnitButtons : VBoxContainer {
 		C7Action.UnitBuildBarricade,
 		C7Action.UnitPlantForest,
 		C7Action.UnitClearDamage,
+		C7Action.UnitBuildOutpost,
 	];
 
 	private void SetUpControlButtons() {
@@ -73,6 +74,7 @@ public partial class UnitButtons : VBoxContainer {
 		// AddNewButton(specializedControls, "sacrifice");
 		// AddNewButton(specializedControls, "scienceAge");
 		AddNewButton(specializedControls, C7Action.UnitBuildCity);
+		AddNewButton(specializedControls, C7Action.UnitBuildColony);
 
 		SetUpTerraformButtons();
 

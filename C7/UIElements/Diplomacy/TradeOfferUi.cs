@@ -22,6 +22,10 @@ public partial class TradeOfferUi : Tree {
 	Dictionary<TreeItem, Tech> techs = new();
 	// The city each city item stands for.
 	Dictionary<TreeItem, City> cities = new();
+	TreeItem worldMap;
+	TreeItem territoryMap;
+	// The civ each communications item introduces.
+	Dictionary<TreeItem, ID> contacts = new();
 	TradeOffer currentOffer;
 	List<Tech> tradeableTechs;
 	int playerGold;
@@ -29,7 +33,7 @@ public partial class TradeOfferUi : Tree {
 	public TradeOfferUi(Theme fontTheme, List<Tech> tradeableTechs, List<City> tradeableCities, int playerGold,
 						TradeOffer currentOffer, bool requiresPeaceTreaty,
 						HorizontalAlignment alignment, List<Resource> tradeableResources = null,
-						TradingTree.PactChoices pacts = null) {
+						TradingTree.PactChoices pacts = null, TradingTree.MapChoices maps = null) {
 		this.currentOffer = currentOffer;
 		this.tradeableTechs = tradeableTechs;
 		this.playerGold = playerGold;
@@ -97,6 +101,20 @@ public partial class TradeOfferUi : Tree {
 			cities[child] = city;
 		}
 
+		// Always there, hidden unless offered: an AI may offer one.
+		worldMap = this.CreateItem(root);
+		worldMap.SetTextAlignment(0, alignment);
+		worldMap.SetText(0, "World Map");
+		territoryMap = this.CreateItem(root);
+		territoryMap.SetTextAlignment(0, alignment);
+		territoryMap.SetText(0, "Territory Map");
+		foreach (Player third in maps?.contacts ?? new()) {
+			TreeItem child = this.CreateItem(root);
+			child.SetTextAlignment(0, alignment);
+			child.SetText(0, $"Communications with the {third.civilization?.noun}");
+			contacts[child] = third.id;
+		}
+
 		RefreshUiForOffer();
 	}
 
@@ -118,6 +136,15 @@ public partial class TradeOfferUi : Tree {
 			}
 			if (ti == goldPerTurn) {
 				currentOffer.goldPerTurn = 0;
+			}
+			if (ti == worldMap) {
+				currentOffer.worldMap = false;
+			}
+			if (ti == territoryMap) {
+				currentOffer.territoryMap = false;
+			}
+			if (contacts.TryGetValue(ti, out ID contact)) {
+				currentOffer.contacts.Remove(contact);
 			}
 			if (ti == lumpSumGold && mouseButtonIndex != 2) {
 				currentOffer.gold = null;
@@ -208,6 +235,11 @@ public partial class TradeOfferUi : Tree {
 		}
 		foreach (var (ti, city) in cities) {
 			ti.Visible = currentOffer.cities.Contains(city);
+		}
+		worldMap.Visible = currentOffer.worldMap;
+		territoryMap.Visible = currentOffer.territoryMap;
+		foreach (var (ti, contact) in contacts) {
+			ti.Visible = currentOffer.contacts.Contains(contact);
 		}
 
 		if (peaceTreaty != null) {

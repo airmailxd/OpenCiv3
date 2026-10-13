@@ -318,6 +318,9 @@ public static class SnapshotFilter {
 				hidden.foodStored = 0;
 				hidden.shieldsStored = 0;
 				hidden.turnsOfUnhappinessDueToPopRushing = 0;
+				hidden.turnsOfUnhappinessDueToDrafting = 0;
+				hidden.unitsDraftedThisTurn = 0;
+				hidden.soldBuildingThisTurn = false;
 				hidden.propagandaConfusedCitizens = 0;
 				hidden.hurriedThisTurn = false;
 				hidden.productionQueue = [];

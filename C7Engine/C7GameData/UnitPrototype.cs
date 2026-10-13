@@ -37,6 +37,9 @@ namespace C7GameData {
 		PrecisionBombing,
 		// Paratroopers jump from a city onto a tile within range.
 		Airdrop,
+		// A worker founds a colony on a resource outside every civ's borders
+		// (see Tile_Holdings).
+		BuildColony,
 	}
 
 	public struct ItemContext(UnitPrototype proto, Player player) {
@@ -353,6 +356,19 @@ namespace C7GameData {
 					flags.Add(SaveUnitPrototype.Flag.Leader);
 				} else {
 					flags.Remove(SaveUnitPrototype.Flag.Leader);
+				}
+			}
+		}
+
+		// A city may draft the unit (the BIQ's PRTO "Draft" flag). See
+		// City.Draft.
+		public bool isDraftable {
+			get => flags.Contains(SaveUnitPrototype.Flag.Draftable);
+			set {
+				if (value) {
+					flags.Add(SaveUnitPrototype.Flag.Draftable);
+				} else {
+					flags.Remove(SaveUnitPrototype.Flag.Draftable);
 				}
 			}
 		}

@@ -26,8 +26,14 @@ public class SaveTerraform {
 	public string UIAction;
 	public string ButtonTexture;
 
+	// Whether finishing the job uses up a worker that did it, as building an
+	// outpost does: "Construction of the Outpost consumes the worker"
+	// (Conquests Civilopedia, GCON_Outposts).
+	public bool ConsumesWorker;
+
 	public void SetUpByTerraformKey(TerraformKey tfKey) {
 		Improvement = TerraformKeyToTerrainImprovement(tfKey);
+		ConsumesWorker = tfKey == TerraformKey.BuildOutpost;
 		UIAction = TerraformKeyToUIAction(tfKey);
 		ButtonTexture = TerraformKeyToButtonTexture(tfKey);
 		Animation = TerraformKeyToAnimation(tfKey);
@@ -80,6 +86,8 @@ public class SaveTerraform {
 			TerraformKey.BuildBarricade => BARRICADE,
 			TerraformKey.BuildRoad => ROAD,
 			TerraformKey.BuildRailroad => RAILROAD,
+			TerraformKey.BuildOutpost => OUTPOST,
+			// TODO: airfields and radar towers.
 			_ => null,
 		};
 	}
@@ -91,6 +99,7 @@ public class SaveTerraform {
 			TerraformKey.ClearWetlands => "clear_wetlands",
 			TerraformKey.ClearForest => "clear_forest",
 			TerraformKey.ClearDamage => "clear_damage",
+			TerraformKey.BuildOutpost => "outpost",
 			_ => null,
 		};
 

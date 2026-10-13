@@ -353,6 +353,8 @@ namespace C7Engine {
 			// A great leader forms an army, or hurries its city's production.
 			FormArmy,
 			HurryProduction,
+			// A worker founds a colony where it stands.
+			BuildColony,
 		}
 
 		public ID unitID;
@@ -387,6 +389,9 @@ namespace C7Engine {
 					break;
 				case Command.HurryProduction:
 					unit.HurryProductionAsLeader();
+					break;
+				case Command.BuildColony:
+					unit.BuildColony();
 					break;
 			}
 		}
@@ -889,6 +894,41 @@ namespace C7Engine {
 
 			city.HurryProduction();
 			new MsgCityChanged(city).send();
+		}
+	}
+
+	// Sells an improvement in the sender's city (see City.SellBuilding).
+	public class MsgSellBuilding : MessageToEngine {
+		public City city;
+		public Building building;
+		public MsgSellBuilding(City city, Building building) {
+			this.city = city;
+			this.building = building;
+		}
+
+		protected override void ProcessAllowed() {
+			if (!IsSendersCity(city) || building == null) return;
+
+			CityInteractions.SellBuilding(city, building);
+			new MsgCityChanged(city).send();
+		}
+	}
+
+	// Drafts a citizen of the sender's city (see City.Draft).
+	public class MsgDoDraft : MessageToEngine {
+		public City city;
+		public MsgDoDraft(City city) {
+			this.city = city;
+		}
+
+		protected override void ProcessAllowed() {
+			if (!IsSendersCity(city)) return;
+
+			MapUnit unit = city.Draft(EngineStorage.gameData);
+			new MsgCityChanged(city).send();
+			if (unit != null) {
+				new MsgUnitMoved(unit).send();
+			}
 		}
 	}
 

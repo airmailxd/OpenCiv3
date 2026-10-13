@@ -764,8 +764,8 @@ namespace C7GameData {
 			if (!WillAcceptCommunicationFrom(other, gameData.turn)) {
 				return false;
 			}
-			int theirGoldValue = theirOffer.GoldEquivalentFor(gameData, this);
-			int ourGoldValue = ourOffer.GoldEquivalentFor(gameData, this, given: true);
+			int theirGoldValue = theirOffer.GoldEquivalentFor(gameData, this, counterpart: other);
+			int ourGoldValue = ourOffer.GoldEquivalentFor(gameData, this, given: true, counterpart: other);
 
 			if (theirOffer.partOfPeaceTreaty || ourOffer.partOfPeaceTreaty) {
 				return C7Engine.AI.PeaceAI.WouldAcceptPeace(this, other, theirOffer, ourOffer, theirGoldValue, ourGoldValue);
@@ -833,10 +833,14 @@ namespace C7GameData {
 				other.playerRelationships[id].lastTechTradeTurn = gameData.turn;
 			}
 			if (!tribute && ourOffer.IsEmpty() && !theirOffer.IsEmpty()) {
-				Attitudes.RecordGift(playerRelationships[other.id], theirOffer.GoldEquivalentFor(gameData, this), gameData.turn);
+				Attitudes.RecordGift(playerRelationships[other.id], theirOffer.GoldEquivalentFor(gameData, this, counterpart: other), gameData.turn);
 			} else if (!tribute && theirOffer.IsEmpty() && !ourOffer.IsEmpty()) {
-				Attitudes.RecordGift(other.playerRelationships[id], ourOffer.GoldEquivalentFor(gameData, other), gameData.turn);
+				Attitudes.RecordGift(other.playerRelationships[id], ourOffer.GoldEquivalentFor(gameData, other, counterpart: this), gameData.turn);
 			}
+
+			// Maps and introductions, once valued.
+			GiveMapsAndContacts(this, other, ourOffer);
+			GiveMapsAndContacts(other, this, theirOffer);
 
 			other.CompleteResearchAndBeginNew(gameData, ourOffer.techs);
 			this.CompleteResearchAndBeginNew(gameData, theirOffer.techs);
@@ -854,6 +858,18 @@ namespace C7GameData {
 				CityInteractions.TransferCity(city, this, viaDeal: true);
 			}
 			return true;
+		}
+
+		private static void GiveMapsAndContacts(Player giver, Player receiver, TradeOffer offer) {
+			if (offer.worldMap || offer.territoryMap) {
+				TradeOffer.GiveMap(giver, receiver, territoryOnly: !offer.worldMap);
+			}
+			foreach (ID id in offer.contacts ?? new()) {
+				Player third = EngineStorage.gameData?.GetPlayer(id);
+				if (third != null) {
+					receiver.EnsureRelationshipExists(third);
+				}
+			}
 		}
 
 		// Registers what the giver sends the receiver over time in a deal
@@ -1365,6 +1381,11 @@ namespace C7GameData {
 				c.UpdateResistance(gameData);
 				c.HandleCityGrowth(gameData);
 				c.HandleCityProduction(gameData);
+				Tile polluted = c.MaybePollute(gameData);
+				if (polluted != null && IsToldNews) {
+					// Civ3's Script.txt, POLLUTION.
+					new MsgShowDomesticAdvisorPopup(this, $"Pollution strikes {c.name}.").send();
+				}
 			}
 		}
 
@@ -1874,8 +1895,7 @@ namespace C7GameData {
 		// The share of a city's citizens (in percent) made unhappy at each
 		// level (0 to 4), by government war weariness: low as in the
 		// article's Republic, high as in its Democracy. A Democracy at level
-		// 3 or more revolts in Civ3; we don't model that, so it stays at
-		// 100% unhappy.
+		// 3 or more revolts (see RevoltFromWarWeariness).
 		private static readonly int[] LowWarWearinessUnhappyPercent = { 0, 25, 50, 50, 100 };
 		private static readonly int[] HighWarWearinessUnhappyPercent = { 0, 50, 100, 100, 100 };
 
@@ -1954,6 +1974,48 @@ namespace C7GameData {
 					pr.warWearinessPoints -= WarWearinessRecoveryPerQuietTurn;
 				}
 			}
+			RevoltFromWarWeariness(gameData);
+		}
+
+		// The level at which a government with high war weariness falls: the
+		// article above gives Democracy "Level 1: 50% unhappy people, Level
+		// 2: 100% unhappy people, Level 3: Revolt", and the Civilopedia's
+		// government summary says Anarchy "occurs when WW reaches 100% when
+		// under Democracy" (https://civfanatics.com/civ3/civilopedia/governments/).
+		// Democracy is the only government with high war weariness in the
+		// standard rules, so that is the BIQ value we go by.
+		private const int WarWearinessRevoltLevel = 3;
+
+		// A government with high war weariness that reaches the revolt level
+		// against any civ is overthrown, as a revolution started by the
+		// player would be: "Our people are overthrowing our $GOVERNMENT0. Our
+		// Civilization is descending into Anarchy!" (Civ3's Script.txt,
+		// REVOLUTION).
+		internal bool RevoltFromWarWeariness(GameData gameData) {
+			if (isBarbarians || government == null || government.transitionType || government.warWeariness < 2) {
+				return false;
+			}
+			bool revolt = false;
+			foreach (int points in WarWearinessPointSources()) {
+				if (WarWearinessLevel(points) >= WarWearinessRevoltLevel) {
+					revolt = true;
+					break;
+				}
+			}
+			Government anarchy = gameData.governments.Find(g => g.transitionType);
+			if (!revolt || anarchy == null) {
+				return false;
+			}
+			string overthrown = government.name;
+			log.Information("{Player}'s {Government} is overthrown by war weariness", this, overthrown);
+			government = anarchy;
+			ApplyGovernmentRateCap();
+			inAnarchyUntilTurn = gameData.turn + GetTurnsOfAnarchyForTransition(gameData);
+			if (IsToldNews) {
+				new MsgShowDomesticAdvisorPopup(this,
+					$"Our people are overthrowing our {overthrown}. Our Civilization is descending into Anarchy!").send();
+			}
+			return true;
 		}
 
 		// The players in whose territory we have units.
@@ -2144,8 +2206,8 @@ namespace C7GameData {
 		// Call once at turn advance, decrement penalty turns of unhappiness for drafting / whipping
 		public void DecrementCityUnhappinessPenalties(GameData gameData) {
 			foreach (City c in cities) {
-				// TODO: Add drafting unhappiness decrement when implemented
 				c.turnsOfUnhappinessDueToPopRushing -= (c.turnsOfUnhappinessDueToPopRushing > 0) ? 1 : 0;
+				c.turnsOfUnhappinessDueToDrafting -= (c.turnsOfUnhappinessDueToDrafting > 0) ? 1 : 0;
 			}
 		}
 

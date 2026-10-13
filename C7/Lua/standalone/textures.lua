@@ -120,7 +120,10 @@ local c7_texture_list = {
   "Art/Advisors/domestic_plusminus.png",
   "Art/histograph-win5_final.png",
   "Art/histograph-top5_final.png",
-  "Art/3checkboxes-USE.png"
+  "Art/3checkboxes-USE.png",
+  -- Not Civ3 art: buttons of our own (see own_button below).
+  "Art/interface/unit_build_outpost.png",
+  "Art/interface/unit_build_colony.png"
 }
 
 --- For ease of editing, we define the civ colors as hex codes, not 1x1 px images
@@ -300,6 +303,28 @@ return function(civ3_textures)
     end
     c7_textures.ui.unit_control[action] = { normal = cell(0), hover = cell(1), pressed = cell(2) }
   end
+  -- The asset pack's NormButtons.png has blank buttons where Civ3's has
+  -- Build Outpost and Build Colony, so those two have buttons of their own
+  -- (C7/ModernArt/Art/interface/<order>.png, made by
+  -- ArtGen/ui_buttons/build.py): the normal, hover and pressed buttons side
+  -- by side.
+  local function own_button(order)
+    local path = "Art/interface/" .. order .. ".png"
+    return {
+      normal = { path = path, crop_region = { 0, 0, 32, 32 } },
+      hover = { path = path, crop_region = { 32, 0, 32, 32 } },
+      pressed = { path = path, crop_region = { 64, 0, 32, 32 } },
+    }
+  end
+  c7_textures.ui.unit_control.unit_build_outpost = own_button("unit_build_outpost")
+  c7_textures.ui.unit_control.unit_build_colony = own_button("unit_build_colony")
+
+  -- The asset pack's TerrainBuildings.png only has a placeholder where the
+  -- colonies go. Named by Civ3's file, which the pack doesn't have, a colony
+  -- comes from the remade sheet (C7/ModernArt/Art/Terrain/TerrainBuildings.png),
+  -- as ModernGraphics uses the remade art for anything the pack lacks.
+  -- There's no art for outposts at all; the map draws them itself.
+  c7_textures.terrain_improvements.colony.path = "Art/Terrain/TerrainBuildings.pcx"
 
   function c7_textures.borders:find_column(_)
     return 0

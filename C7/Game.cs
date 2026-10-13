@@ -1337,6 +1337,39 @@ public partial class Game : Node {
 						PopupOverlay.PopupCategory.Advisor);
 				}
 				break;
+			case MsgDisplaySellBuildingPopup mDSBP:
+				if (mDSBP.errorMessage != null) {
+					popupOverlay.ShowPopup(
+						new InformationalPopup(mDSBP.errorMessage),
+						PopupOverlay.PopupCategory.Advisor);
+				} else {
+					// Civ3's Script.txt, IMPROVEMENT_SCRAP.
+					popupOverlay.ShowPopup(
+						new ConfirmationPopup(message: $"Are you sure you want to sell this improvement for {mDSBP.gold} gold?",
+												yesText: "Sure I'm sure!",
+												noText: "No I've had second thoughts!",
+												yesAction: () => {
+													new MsgSellBuilding(mDSBP.city, mDSBP.building).send();
+												}),
+						PopupOverlay.PopupCategory.Advisor);
+				}
+				break;
+			case MsgDisplayDraftPopup mDDP:
+				if (mDDP.errorMessage != null) {
+					popupOverlay.ShowPopup(
+						new InformationalPopup(mDDP.errorMessage),
+						PopupOverlay.PopupCategory.Advisor);
+				} else {
+					popupOverlay.ShowPopup(
+						new ConfirmationPopup(message: $"Draft a citizen of {mDDP.city.name} into a conscript {mDDP.unitName}? The draft will make the city unhappy.",
+												yesText: "Yes, draft them.",
+												noText: "No, leave them be.",
+												yesAction: () => {
+													new MsgDoDraft(mDDP.city).send();
+												}),
+						PopupOverlay.PopupCategory.Advisor);
+				}
+				break;
 			case MsgDisplayStopWorkerActionPopup mDSWA:
 				popupOverlay.ShowPopup(
 					new ConfirmationPopup(
@@ -2849,6 +2882,13 @@ public partial class Game : Node {
 
 		if (currentAction == C7Action.UnitPillage && CurrentlySelectedUnit.CanPillage()) {
 			new MsgPillage(CurrentlySelectedUnit.id).send();
+		}
+
+		// B builds a city, or with a worker a colony: "Build/Join city/colony
+		// B" (Conquests Civilopedia, the keyboard shortcuts).
+		if ((currentAction == C7Action.UnitBuildColony || (currentAction == C7Action.UnitBuildCity && !CurrentlySelectedUnit.canBuildCity()))
+			&& CurrentlySelectedUnit.CanBuildColony()) {
+			new MsgUnitCommand(CurrentlySelectedUnit.id, MsgUnitCommand.Command.BuildColony).send();
 		}
 
 		if (currentAction == C7Action.UnitBuildArmy && CurrentlySelectedUnit.CanFormArmy()) {

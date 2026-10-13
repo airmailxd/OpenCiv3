@@ -293,6 +293,13 @@ public partial class RightClickTileMenu : RightClickMenu {
 					new MsgDisplayHurryProductionPopup(tile.cityAtTile, details).send();
 				});
 			});
+			AddItem("Draft Citizen", () => {
+				this.CloseAndDelete();
+				EngineStorage.ReadGameData((GameData gameData) => {
+					City city = tile.cityAtTile;
+					new MsgDisplayDraftPopup(city, city.WhyCannotDraft(gameData), city.DraftableUnit(gameData)?.name).send();
+				});
+			});
 			// TODO: Contact Governor
 			// TODO: Set Rally Point
 			// TODO: Set Continental Rally Point
@@ -457,6 +464,13 @@ public partial class RightClickCityMenu : RightClickMenu {
 				EngineStorage.ReadGameData((GameData gameData) => {
 					City.HurryProductionDetails details = tile.cityAtTile.GetHurryProductionDetails();
 					new MsgDisplayHurryProductionPopup(tile.cityAtTile, details).send();
+				});
+			});
+			AddItem("Draft Citizen", () => {
+				this.CloseAndDelete();
+				EngineStorage.ReadGameData((GameData gameData) => {
+					City city = tile.cityAtTile;
+					new MsgDisplayDraftPopup(city, city.WhyCannotDraft(gameData), city.DraftableUnit(gameData)?.name).send();
 				});
 			});
 			AddAbandonCityItem(tile.cityAtTile);

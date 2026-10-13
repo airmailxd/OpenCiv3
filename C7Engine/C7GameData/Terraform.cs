@@ -37,6 +37,10 @@ public class Terraform {
 	// Path to the texture definition in the texture config
 	public readonly string ButtonTexture;
 
+	// Whether finishing the job uses up a worker that did it (as building an
+	// outpost does).
+	public readonly bool ConsumesWorker;
+
 	private SaveTerraform dataSource;
 
 	public Terraform(SaveTerraform saveTerraform, GameData gameData) {
@@ -48,6 +52,7 @@ public class Terraform {
 		Animation = saveTerraform.Animation;
 		UIAction = saveTerraform.UIAction;
 		ButtonTexture = saveTerraform.ButtonTexture;
+		ConsumesWorker = saveTerraform.ConsumesWorker;
 		dataSource = saveTerraform;
 		RequiredResources = saveTerraform.RequiredResources.ConvertAll(resKey => gameData.Resources.Find(res => res.Key == resKey));
 
@@ -83,6 +88,10 @@ public class Terraform {
 		if (Improvement != null && !tile.overlays.CanAdd(tile, Improvement)) {
 			return false;
 		}
+		// A job that would use up the worker for nothing isn't offered.
+		if (ConsumesWorker && Improvement == null) {
+			return false;
+		}
 
 		// Checking resource access needs the trade network. Resources
 		// imported through deals count on the capital's network.
@@ -112,6 +121,12 @@ public class Terraform {
 		if (Improvement != null) {
 			if (!tile.overlays.CanAdd(tile, Improvement))
 				throw new InvalidOperationException($"Cannot add {Improvement.key} to the tile {tile}");
+			// An outpost belongs to whoever built it.
+			if (Tile.TileOverlays.IsOwnedHolding(Improvement)) {
+				tile.PlaceHolding(Improvement, player);
+				return;
+			}
+
 			// Building any improvement clears the rubble of a destroyed city
 			Tile.TryRemoveRuins(tile);
 			tile.overlays.Add(Improvement);

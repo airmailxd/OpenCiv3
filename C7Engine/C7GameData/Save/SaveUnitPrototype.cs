@@ -51,6 +51,8 @@ namespace C7GameData.Save {
 			// fighters and SAM batteries intercept with the rules' chance
 			// to intercept stealth missions rather than air missions.
 			Stealth,
+			// A city may draft the unit (the BIQ's PRTO "Draft" flag).
+			Draftable,
 		}
 
 		public string name { get; set; }

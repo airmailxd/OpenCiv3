@@ -41,6 +41,9 @@ local unit_control = {
   unit_upgrade = make_entry(7, 1),
 
   unit_build_city = make_entry(5, 2),
+  -- UNVERIFIED: the cell is the one next to Build City whose picture looks
+  -- like a colony (small buildings on open land); no source names it.
+  unit_build_colony = make_entry(4, 2),
   unit_build_road = make_entry(6, 2),
   unit_build_railroad = make_entry(7, 2),
 

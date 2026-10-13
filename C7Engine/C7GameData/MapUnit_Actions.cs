@@ -877,6 +877,10 @@ public partial class MapUnit {
 		// overshoot the cost.
 		if (terraformProgress + turnProgress >= totalCost) {
 			FinishWorkerJobAt(location, WorkerJob);
+			// A job like an outpost uses up the worker.
+			if (hitPointsRemaining <= 0) {
+				return;
+			}
 		}
 
 		Wake();
