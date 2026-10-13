@@ -160,6 +160,20 @@ namespace C7GameData {
 		// (https://forums.civfanatics.com/threads/combat-system-explained.7679/).
 		public int FortressDefensiveBonus = 50;
 
+		// The chances, in per cent, that a fighter flying air superiority,
+		// or a SAM battery, intercepts an enemy bombing run: the BIQ RULE's
+		// chances to intercept enemy air and stealth missions (50 and 5 in
+		// conquests.biq). "Fighters, when in a city or airbase and given the
+		// 'Air Superiority' order, have a 50% chance to attempt to
+		// intercept"; stealth aircraft "have a very low chance (5%?) of
+		// getting intercepted" (T-hawk), and "the 'Chance to Intercept Enemy
+		// Stealth Missions' is used instead" for them (Ozymandias)
+		// (https://forums.civfanatics.com/threads/aerial-combat-mechanics.90783/,
+		// https://forums.civfanatics.com/threads/air-units-bombing-mechanics-in-the-open.678152/).
+		// See MapUnit_Air.cs.
+		public int ChanceToInterceptAirMissions = 50;
+		public int ChanceToInterceptStealthMissions = 5;
+
 		// The following come from the BIQ's RULE section, but nothing uses
 		// them yet. The defaults are only for saves made before they were
 		// imported.

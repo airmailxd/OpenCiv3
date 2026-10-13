@@ -29,6 +29,14 @@ namespace C7GameData {
 		BuildArmy,
 		// A great leader finishes a city's improvement.
 		HurryBuilding,
+		// Air missions (the BIQ's PRTO air missions; see MapUnit_Air.cs).
+		Bombing,
+		Recon,
+		Intercept,
+		Rebase,
+		PrecisionBombing,
+		// Paratroopers jump from a city onto a tile within range.
+		Airdrop,
 	}
 
 	public struct ItemContext(UnitPrototype proto, Player player) {
@@ -80,6 +88,9 @@ namespace C7GameData {
 		public int movement { get; set; }
 		public int capacity { get; set; }
 		public int hpBonus { get; set; }
+		// How far, in tiles, an aircraft flies on its missions from its base
+		// (the BIQ's PRTO operational range); see MapUnit_Air.cs.
+		public int operationalRange { get; set; }
 
 		// How much faster than a plain worker this unit does terrain jobs
 		// (the BIQ's worker strength: 1 for Workers, 2 for Engineers).
@@ -294,6 +305,7 @@ namespace C7GameData {
 		}
 		public bool canCarryTacticalMissiles => flags.Contains(SaveUnitPrototype.Flag.CanCarryTacticalMissiles);
 		public bool canCarryAircraft => flags.Contains(SaveUnitPrototype.Flag.CanCarryAircraft);
+		public bool isStealth => flags.Contains(SaveUnitPrototype.Flag.Stealth);
 
 		// An army is a container that carries other units into battle as a
 		// single stack, rather than fighting with strength of its own.
@@ -373,6 +385,7 @@ namespace C7GameData {
 				(proto.movement, proto.capacity, proto.hpBonus, proto.unproducible);
 			// Rulesets without the value leave every worker at plain speed.
 			workerStrength = proto.workerStrength > 0 ? proto.workerStrength : 1;
+			operationalRange = proto.operationalRange;
 			civilopediaEntry = proto.civilopediaEntry;
 			enslavesTo = proto.enslavesTo;
 

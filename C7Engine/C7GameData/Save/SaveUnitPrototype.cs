@@ -47,6 +47,10 @@ namespace C7GameData.Save {
 			AllTerrainAsRoads,
 			// The unit can't move.
 			Immobile,
+			// The aircraft is a stealth one, which enemy air superiority
+			// fighters and SAM batteries intercept with the rules' chance
+			// to intercept stealth missions rather than air missions.
+			Stealth,
 		}
 
 		public string name { get; set; }
@@ -64,6 +68,10 @@ namespace C7GameData.Save {
 		public int movement { get; set; }
 		public int capacity { get; set; }
 		public int hpBonus { get; set; }
+		// How far, in tiles, an aircraft flies on its missions from its
+		// base (the BIQ's PRTO operational range). 0 for units that don't
+		// fly, and in saves made before it was saved.
+		public int operationalRange { get; set; }
 		// How much work a worker does each turn, relative to a Worker (the
 		// BIQ's PRTO worker strength). Saves made before it was saved have
 		// 1.
@@ -102,6 +110,7 @@ namespace C7GameData.Save {
 			 proto.attack, proto.defense, proto.bombard, proto.bombardRange, proto.rateOfFire, proto.movement,
 			 proto.capacity, proto.hpBonus);
 			workerStrength = proto.workerStrength;
+			operationalRange = proto.operationalRange;
 			civilopediaEntry = proto.civilopediaEntry;
 			enslavesTo = proto.enslavesTo;
 

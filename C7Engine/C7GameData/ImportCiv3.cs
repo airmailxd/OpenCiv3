@@ -1728,6 +1728,12 @@ namespace C7GameData {
 			if (prto.UpgradeUnit) yield return UnitAction.Upgrade;
 			if (prto.Pillage) yield return UnitAction.Pillage;
 			if (prto.Sentry) yield return UnitAction.Sentry;
+			if (prto.Airdrop) yield return UnitAction.Airdrop;
+			if (prto.Bombing) yield return UnitAction.Bombing;
+			if (prto.Recon) yield return UnitAction.Recon;
+			if (prto.Intercept) yield return UnitAction.Intercept;
+			if (prto.Rebase) yield return UnitAction.Rebase;
+			if (prto.PrecisionBombing) yield return UnitAction.PrecisionBombing;
 		}
 
 		private static IEnumerable<TerraformKey> GetUnitTerraforms(PRTO prto) {
@@ -1795,6 +1801,7 @@ namespace C7GameData {
 				prototype.bombard = prto.BombardStrength;
 				prototype.bombardRange = prto.BombardRange;
 				prototype.rateOfFire = prto.RateOfFire;
+				prototype.operationalRange = prto.OperationalRange;
 				// How much a worker does each turn, relative to a Worker.
 				prototype.workerStrength = prto.WorkerStrength > 0 ? prto.WorkerStrength : 1;
 
@@ -1821,6 +1828,7 @@ namespace C7GameData {
 				if (prto.FootSoldier) prototype.flags.Add(SaveUnitPrototype.Flag.FootSoldier);
 				if (prto.AllTerrainAsRoads) prototype.flags.Add(SaveUnitPrototype.Flag.AllTerrainAsRoads);
 				if (prto.Immobile) prototype.flags.Add(SaveUnitPrototype.Flag.Immobile);
+				if (prto.Stealth) prototype.flags.Add(SaveUnitPrototype.Flag.Stealth);
 
 				prototype.actions.UnionWith(GetUnitActions(prto));
 				prototype.terraformActions.UnionWith(GetUnitTerraforms(prto).Select(tfKey => terraformIdByCiv3Key[tfKey]));
@@ -2590,6 +2598,8 @@ namespace C7GameData {
 			save.Rules.FoodConsumptionPerCitizen = rule.FoodConsumptionPerCitizen;
 			save.Rules.MovementAlongRoads = rule.MovementAlongRoads;
 			save.Rules.FortressDefensiveBonus = rule.FortressDefensiveBonus;
+			save.Rules.ChanceToInterceptAirMissions = rule.ChanceToInterceptEnemyAirMissions;
+			save.Rules.ChanceToInterceptStealthMissions = rule.ChanceToInterceptEnemyStealthMissions;
 			save.Rules.BorderExpansionMultiplier = rule.BorderExpansionMultiplier;
 			save.Rules.BorderFactor = rule.BorderFactor;
 			save.Rules.FutureTechCost = rule.FutureTechCost;
