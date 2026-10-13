@@ -167,7 +167,7 @@ def backdrop(n, seed):
 
 def paint(img, seed=0, strength=1.0, oval=1.0, keep=0.4, broad=70, bg=0.92, color=0.75, erode=60, level=0.42,
           fixed=None, plain=None, contrast=1.0, texture=1.0, green=None, hand=None, soften=0,
-          hand_only=False, local=0, feather=0, edge=0, shrink=0):
+          hand_only=False, local=0, feather=0, edge=0, shrink=0, gamma=1.0, surround=0.0):
     """The painted finish on a PIL RGB picture (returns float RGB 0..1).
     Per picture: oval, how sure the center is the sitter (lower for a
     sitter before a bright wall, which would glow); keep, how much of the
@@ -179,6 +179,9 @@ def paint(img, seed=0, strength=1.0, oval=1.0, keep=0.4, broad=70, bg=0.92, colo
     if soften:
         # (a print: its hatching softened into tone first)
         a = nd.gaussian_filter(a, (soften, soften, 0))
+    if gamma != 1.0:
+        # the whole source darkened (or lightened) before anything else
+        a = a ** gamma
     if contrast != 1.0:
         a = np.clip((a - a.mean()) * contrast + a.mean(), 0, 1)
     mask, wall = subject_mask(a, oval, erode, plain)
@@ -300,6 +303,16 @@ def paint(img, seed=0, strength=1.0, oval=1.0, keep=0.4, broad=70, bg=0.92, colo
         isg = np.clip((p[..., 1] - np.maximum(p[..., 0], p[..., 2])) * 20, 0, 1)[..., None]
         verd = lg * np.array([1.0, 0.9, 0.62], np.float32) * 0.7
         p = p * (1 - isg) + (p * green + verd * (1 - green)) * isg
+    if surround:
+        # (a painting kept whole, its own background: everything outside a
+        # soft oval round the sitter darkened and calmed into the umber key)
+        yy, xx = np.mgrid[0:n, 0:n].astype(np.float32)
+        ov = np.exp(-(((xx - n * 0.5) / (n * 0.22)) ** 2 + ((yy - n * 0.62) / (n * 0.28)) ** 2))[..., None]
+        lq = _luma(np.clip(p, 0, 1))[..., None]
+        calm = lq * 0.6 + p * 0.4
+        dark = calm * 0.25 + bd * 0.75
+        k = surround * (1 - ov)
+        p = p * (1 - k) + dark * k
     # brush texture: faint strokes along the forms on the subject, a
     # crisscrossed brushed ground behind
     lp = _luma(np.clip(p, 0, 1))

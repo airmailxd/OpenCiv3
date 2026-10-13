@@ -102,7 +102,7 @@ SOURCES = {
     'Ottomans': ('File:Paolo Veronese (Nachfolger) - Sultan Osman I. - 2242 - Bavarian State Painting Collections.jpg',
                 (0.135, 0.19, 0.77), 'Osman I, 16th-century Venetian portrait (follower of Paolo Veronese)'),
     'Celts': ('File:Le Brenn et sa part de butin (Paul Jamin).jpg',
-             (0.09, 0.13, 0.2), 'Brennus: detail of "Le Brenn et sa part de butin" by Paul Jamin, 1893'),
+             (0.1, 0.145, 0.17), 'Brennus: detail of "Le Brenn et sa part de butin" by Paul Jamin, 1893'),
     'Arabia': ('File:Abu Bakr Caliph Calligraphy.png',
               (0.006, 0.0, 0.988), 'Abu Bakr: his name in the roundel design by Kazasker Mustafa Izzet Efendi (Hagia Sophia, 19th century); no likeness of him exists, and Islamic tradition shows him by his name'),
     'Carthage': ('File:Hannibal Barca bust from Capua photo.jpg', (0.1, 0.0, 0.8),
@@ -153,7 +153,7 @@ PAINT = {
                        (0.29, 0.5)]]},
     # statues before a light wall: the sitter's outline pulled in further,
     # so no light rim of the wall glows round the head
-    'Babylon': {'erode': 15, 'plain': 1.0, 'edge': 3},
+    'Babylon': {'erode': 15, 'plain': 1.0, 'edge': 5, 'shrink': 1},
     'Hittites': {'erode': 8, 'hand_only': True, 'level': 0.36, 'local': 1.5, 'feather': 4, 'edge': 7, 'shrink': 4, 'bg': 1.0,
                  'hand': [[(0.24, 0.42), (0.3, 0.25), (0.42, 0.06), (0.5, 0.0), (0.58, 0.04), (0.72, 0.25), (0.8, 0.45),
                            (0.86, 0.6), (0.82, 0.68), (0.8, 0.8), (0.75, 0.9), (0.72, 1), (0.3, 1), (0.26, 0.85),
@@ -169,11 +169,13 @@ PAINT = {
                            (0.7, 0.45), (0.62, 0.62), (0.64, 0.76), (1, 0.86), (1, 1), (0, 1), (0, 0.88),
                            (0.34, 0.77), (0.37, 0.62), (0.3, 0.5)]]},
     # a pale face on pale silk the mask can't tell apart
-    'Korea': {'keep': 1.0, 'color': 0.7, 'level': 0.22, 'hand_only': True, 'local': 3.0, 'feather': 5, 'erode': 15,
-              'edge': 7, 'shrink': 4, 'bg': 1.0,
-              'hand': [[(0.38, 0.06), (0.64, 0.06), (0.67, 0.3), (0.67, 0.45), (0.67, 0.5), (0.67, 0.62), (0.66, 0.72),
-                        (1, 0.78), (1, 1), (0, 1), (0, 0.78), (0.34, 0.72), (0.33, 0.62), (0.33, 0.5), (0.33, 0.45),
-                        (0.33, 0.3)]]},
+    # a pale face on pale silk: the whole picture darkened first, and an
+    # outline for the hat, face and shoulders, which the mask can't find
+    'Korea': {'keep': 1.0, 'color': 0.6, 'level': 0, 'hand_only': True, 'local': 2.0, 'gamma': 1.3, 'feather': 5,
+              'edge': 5, 'shrink': 2, 'bg': 1.0,
+              'hand': [[(0.36, 0.03), (0.66, 0.03), (0.72, 0.3), (0.73, 0.45), (0.74, 0.55), (0.72, 0.65), (0.68, 0.74),
+                        (1, 0.78), (1, 1), (0, 1), (0, 0.78), (0.33, 0.74), (0.29, 0.65), (0.27, 0.55), (0.28, 0.45),
+                        (0.3, 0.3)]]},
     # photographs: more of the real picture kept on the face, so the
     # strokes don't break skin into patches
     'America': {'keep': 0.55, 'erode': 30, 'feather': 3},
@@ -182,11 +184,10 @@ PAINT = {
     'Mongols': {'color': 0.35, 'level': 0.30, 'keep': 0.8, 'feather': 3, 'edge': 5, 'shrink': 3, 'bg': 1.0,
                 'hand': [[(0.22, 0.6), (0.24, 0.25), (0.33, 0.1), (0.5, 0.05), (0.67, 0.1), (0.78, 0.25), (0.84, 0.6),
                           (1, 0.7), (1, 1), (0, 1), (0, 0.7)]]},
-    'Japan': {'edge': 3, 'hand': [[(0.36, 0.45), (0.4, 0.3), (0.5, 0.2), (0.62, 0.18), (0.7, 0.25), (0.76, 0.35), (0.8, 0.5),
+    'Japan': {'edge': 3, 'feather': 5, 'texture': 0.3, 'hand': [[(0.36, 0.45), (0.4, 0.3), (0.5, 0.2), (0.62, 0.18), (0.7, 0.25), (0.76, 0.35), (0.8, 0.5),
                         (0.82, 0.55), (1, 0.52), (1, 1), (0, 1), (0, 0.75), (0.3, 0.68), (0.36, 0.6)]]},
-    'Celts': {'feather': 3, 'hand_only': True, 'edge': 5, 'shrink': 2, 'bg': 1.0,
-              'hand': [[(0.33, 0.4), (0.36, 0.22), (0.45, 0.33), (0.58, 0.38), (0.62, 0.48), (0.63, 0.62), (0.66, 0.74),
-                        (0.85, 0.8), (0.92, 1), (0.08, 1), (0.15, 0.8), (0.3, 0.74), (0.31, 0.6), (0.31, 0.48)]]},
+    # a painting kept whole, its own background darkened into the key
+    'Celts': {'bg': 0.0, 'surround': 1.0, 'texture': 0.5, 'level': 0.34},
     'Byzantines': {'keep': 0.75, 'broad': 150},
     'Aztecs': {'broad': 140,
                'hand': [[(0.38, 0.25), (0.42, 0.1), (0.5, 0.05), (0.62, 0.02), (0.75, 0.02), (0.8, 0.1), (0.78, 0.3),
@@ -204,7 +205,7 @@ TARGET_LEVEL = 0.42
 # Faces much paler than the set's (Wang Kon's stand-in, a pale painted face
 # on silk): (cx, cy, rx, ry, brightness) of an ellipse brought to about the
 # set's typical face brightness.
-FACE = {'Korea': (0.51, 0.58, 0.17, 0.16, 0.55)}
+FACE = {'Korea': (0.51, 0.58, 0.22, 0.19, 0.52)}
 
 
 # ---------------------------------------------------------------- Commons
@@ -446,7 +447,9 @@ def _face_level(im, cx, cy, rx, ry, target):
     n = a.shape[0]
     y, x = np.mgrid[0:n, 0:n].astype(np.float32) / n
     r = np.hypot((x - cx) / rx, (y - cy) / ry)
-    w = np.clip((1.25 - r) / 0.5, 0, 1)[..., None]
+    # (a wide, smooth falloff: no edge where the face's grade stops)
+    t = np.clip((1.6 - r) / 0.6, 0, 1)
+    w = (t * t * (3 - 2 * t))[..., None]
     mean = float(_luma(a)[r < 1].mean())
     g = np.log(target) / np.log(max(1e-3, min(mean, 0.99)))
     d = a ** g
