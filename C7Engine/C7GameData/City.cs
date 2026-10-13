@@ -2075,9 +2075,11 @@ namespace C7GameData {
 		}
 
 		// The number of citizens made unhappy because we're at war with the
-		// civ they come from. The Civilopedia's Nationality entry: "Having a
-		// city with foreign nationals is not a problem unless you are at war
-		// with the nation that originally produced them"; such citizens say
+		// civ they come from. The Conquests Civilopedia (GCON_Nationality):
+		// "Having a city with foreign nationals is not a problem unless you
+		// are at war with the nation that originally produced them. When at
+		// war, foreign nationals become unhappy more quickly than others";
+		// such citizens say
 		// "Stop the aggression against our mother country!" and "will remain
 		// unhappy until you peace with the civ concern"
 		// (https://forums.civfanatics.com/threads/why-are-the-citizens-of-my-newly-conquered-cities-so-unhappy.79817/),
