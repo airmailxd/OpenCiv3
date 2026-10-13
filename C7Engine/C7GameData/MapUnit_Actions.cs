@@ -270,7 +270,17 @@ public partial class MapUnit {
 	// terrain, so land units stay on their landmass and ships on their body
 	// of water. Failing that, a land unit goes home to its nearest city,
 	// wherever it is.
+	//
+	// A ship goes to the nearest free tile it can't sink in, as ships only
+	// end their turns in safe water, and only to water it could sink in when
+	// there is no safe one.
 	private Tile FindNearestFreeTile() {
+		if (IsWaterUnit()) {
+			Tile safe = FindNearestTile(location, CanCrossWhileWithdrawing, tile => IsFreeTileFor(tile) && !IsUnsafeWater(tile));
+			if (safe != null) {
+				return safe;
+			}
+		}
 		Tile reachable = FindNearestTile(location, CanCrossWhileWithdrawing, IsFreeTileFor);
 		if (reachable != null || !IsLandUnit()) {
 			return reachable;

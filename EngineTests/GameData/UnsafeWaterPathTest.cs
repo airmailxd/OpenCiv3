@@ -128,6 +128,19 @@ public class UnsafeWaterPathTest : IClassFixture<SaveGameFixture> {
 		return t != Tile.NONE && t.IsLand() && t.unitsOnTile.Count == 0 && !t.HasCity() && !t.hasBarbarianCamp && !t.IsImpassable();
 	}
 
+	// A ship withdrawing (as out of borders it agreed to leave) goes to the
+	// nearest water it can't sink in, past nearer water it could.
+	[Fact]
+	public void AWithdrawingShipMakesForSafeWater() {
+		Tile open = FindOpenWater();
+		MapUnit galley = gameData.SpawnUnit(ai, Prototype("Galley"), open);
+
+		Assert.True(galley.WithdrawToNearestFreeTile());
+
+		Assert.NotEqual(open, galley.location);
+		Assert.False(galley.IsInUnsafeWater());
+	}
+
 	// A unit put somewhere, as by withdrawing or retreating from combat,
 	// doesn't open a hut there.
 	[Fact]
