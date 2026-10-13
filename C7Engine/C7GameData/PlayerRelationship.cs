@@ -21,14 +21,19 @@ public class PlayerRelationship {
 	private static ILogger log = Log.ForContext<PlayerRelationship>();
 
 	// p1.playerRelationships[p2].warDeclarationCount is the number of times
-	// p2 declared war on p1.
-	// TODO: contribute towards reputation
+	// p2 declared war on p1. (Civ3's trading reputation is brokeTradeDeal,
+	// below; the right of passage one is rightOfPassageBetrayals.)
 	public int warDeclarationCount = 0;
 
 	// p1.playerRelationships[p2].warDeclarationWithRoPActiveCount is the number of times
 	// p2 declared war on p1 while having an active RoP.
-	// TODO: contribute towards reputation
 	public int warDeclarationWithRoPActiveCount = 0;
+
+	// p1.playerRelationships[p2].brokeTradeDeal is true if p2 broke a deal
+	// with p1 that counts against p2's trading reputation, after which p1
+	// and the civs that know p1 won't make such deals with p2 again (see
+	// TradingReputationBroken). False in saves made before it was recorded.
+	public bool brokeTradeDeal = false;
 
 	// p1.playerRelationships[p2].rightOfPassageBetrayals is the number of
 	// those times p2 had units inside p1's borders: a sneak attack, after
@@ -213,6 +218,12 @@ public class PlayerRelationship {
 			}
 		}
 
+		// Breaking a deal the aggressor keeps paying for, or a pact, ruins
+		// its trading reputation with the defender (see BreaksReputation).
+		if (aggressorRelationshipToDefender.multiTurnDeals.Any(BreaksReputation)) {
+			defenderRelationshipToAggressor.brokeTradeDeal = true;
+		}
+
 		// update whether the defender was sneak attacked
 		defenderRelationshipToAggressor.wasSneakAttacked = sneakAttack;
 
@@ -241,6 +252,62 @@ public class PlayerRelationship {
 						" ({Turns} turns)!",
 						aggressor, defender, sneakAttack ? " in a sneak attack" : "",
 						refuseContactUntilTurn, refuseContactUntilTurn - EngineStorage.gameData.turn);
+	}
+
+	// Civ3's trading reputation. A civ that breaks a deal with an AI is
+	// never again trusted with deals it pays for over time: "if you are the
+	// aggressor and break a 20-turn deal, ... the AIs will never again for
+	// the game accept per-turn payments or deals from you", which doesn't
+	// count when the AI declares war on you
+	// (https://civfanatics.com/civ3/faq/). Per
+	// https://civfanatics.com/civ3/strategy/game-mechanics/trading-reputation/:
+	// - The deals at risk are those in which "You pay per-turn (resources,
+	//   gpt, RoP) goods", "You export resources to the AI", or "MA/MPP is
+	//   involved" (see BreaksReputation). A right of passage "has its own
+	//   separate reputation system" (rightOfPassageBetrayals).
+	// - They are broken by declaring war on the AI, by no longer being able
+	//   to export a resource ("the resources are lost, depleted or
+	//   disconnected", "the trade route between you and the AI is cut"; see
+	//   CancelBrokenResourceDeals), or by breaking a military alliance or
+	//   mutual protection pact (see SignPeaceAfterWar).
+	// - "Each AI has a record of your reputation separately": an AI holds
+	//   it against you if "you had a gpt deal with this AI before which got
+	//   terminated prematurely" or "the AI knows or knew another AI with
+	//   whom you had a broken gpt deal, and those two AI are NOT currently
+	//   at war". (Civs that have met are taken to know each other; a
+	//   relationship is never forgotten here.)
+	// The AI then refuses such deals (Player.WouldAcceptDealFrom).
+	public static bool BreaksReputation(MultiTurnDeal deal) {
+		if (deal == null) {
+			return false;
+		}
+		return deal.dealSubType switch {
+			DealSubType.GoldPerTurn or DealSubType.ResourcePerTurn or DealSubType.LuxuryPerTurn
+				=> deal.dealDetails == DealDetails.Outbound,
+			DealSubType.MutualProtectionPact or DealSubType.MilitaryAlliance => true,
+			_ => false,
+		};
+	}
+
+	// Whether judge holds a broken deal against other (see BreaksReputation).
+	public static bool TradingReputationBroken(Player judge, Player other, IEnumerable<Player> players) {
+		if (judge == null || other == null || judge == other) {
+			return false;
+		}
+		if (judge.playerRelationships.TryGetValue(other.id, out PlayerRelationship own) && own.brokeTradeDeal) {
+			return true;
+		}
+		foreach (Player third in players) {
+			if (third == judge || third == other || third.isBarbarians
+				|| !judge.playerRelationships.ContainsKey(third.id)
+				|| !third.playerRelationships.TryGetValue(other.id, out PlayerRelationship view) || !view.brokeTradeDeal) {
+				continue;
+			}
+			if (third.defeated || !AtWar(judge, third)) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	public static void SignPeaceAfterWar(Player left, Player right, GameData gameData) {
@@ -364,6 +431,8 @@ public class PlayerRelationship {
 		foreach ((Player exporter, Player importer, MultiTurnDeal deal, Resource resource) in broken) {
 			log.Information("Cancelling the {Resource} deal from {Exporter} to {Importer}", resource.Name, exporter, importer);
 			UnRegisterMultiTurnDeal(exporter, importer, deal);
+			// The exporter broke the deal (see BreaksReputation).
+			importer.playerRelationships[exporter.id].brokeTradeDeal = true;
 			NotifyOfCancelledDeal(exporter, $"Our deal to send {resource.Name} to the {importer.civilization?.noun} has been cancelled.");
 			NotifyOfCancelledDeal(importer, $"Our deal to receive {resource.Name} from the {exporter.civilization?.noun} has been cancelled.");
 		}

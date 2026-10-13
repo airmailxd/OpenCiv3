@@ -744,8 +744,17 @@ namespace C7GameData {
 		// project owner we never give a city away except in a peace treaty.
 		// Peace is weighed up by PeaceAI.
 		public bool WouldAcceptDealFrom(GameData gameData, Player other, TradeOffer theirOffer, TradeOffer ourOffer) {
-			// TODO: consider any factors like trade reputations here and culture groups
+			// TODO: culture groups.
+			// UNVERIFIED: Civ3's AI prices deals by its attitude ("DiploEffect",
+			// per https://forums.civfanatics.com/threads/aggression-level-ai-attitude-and-trading.699178/,
+			// which shows prices changing with attitude but gives no
+			// formula), so attitude isn't counted here.
 			if (TradeOffer.ProblemWithDeal(gameData, other, this, theirOffer, ourOffer) != null) {
+				return false;
+			}
+			// A civ that broke a deal it paid for over time isn't trusted to
+			// pay over time again (see PlayerRelationship.TradingReputationBroken).
+			if (theirOffer.GivesOverTime() && TradingReputationBroken(this, other, gameData.players)) {
 				return false;
 			}
 			// We don't deal with a civ we refuse to talk to, as for a while

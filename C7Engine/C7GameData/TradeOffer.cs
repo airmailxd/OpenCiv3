@@ -20,13 +20,29 @@ namespace C7GameData {
 		public int? gold = null;
 		public List<Tech> techs = new();
 
+		// Gold paid each turn for as long as the deal lasts (the rules'
+		// DefaultDealDuration, 20 turns in Civ3).
+		public int goldPerTurn = 0;
+
+		// The luxuries and strategic resources (by Resource.Key) sent each
+		// turn for as long as the deal lasts.
+		public List<string> resources = new();
+
+		// Whether this side gives anything over time, which an AI won't take
+		// from a civ that broke such a deal (see
+		// PlayerRelationship.TradingReputationBroken).
+		public bool GivesOverTime() {
+			return goldPerTurn > 0 || (resources?.Count ?? 0) > 0;
+		}
+
 		// Cities change hands peacefully, without resistance (see
 		// CityInteractions.TransferCity with viaDeal).
 		public List<City> cities = new();
 
 		// Whether this side of a deal gives nothing at all.
 		public bool IsEmpty() {
-			return !partOfPeaceTreaty && !rightOfPassage && (gold ?? 0) == 0 && techs.Count == 0 && cities.Count == 0;
+			return !partOfPeaceTreaty && !rightOfPassage && (gold ?? 0) == 0 && techs.Count == 0 && cities.Count == 0
+				&& !GivesOverTime();
 		}
 
 		// The cities a player may give away in a deal: any but its capital,
@@ -186,6 +202,8 @@ namespace C7GameData {
 			gold = null;
 			techs.Clear();
 			cities.Clear();
+			goldPerTurn = 0;
+			resources.Clear();
 		}
 
 		public override string ToString() {
@@ -198,6 +216,12 @@ namespace C7GameData {
 			}
 			if (gold != null) {
 				pieces.Add($"{gold.Value} gold");
+			}
+			if (goldPerTurn > 0) {
+				pieces.Add($"{goldPerTurn} gold per turn");
+			}
+			foreach (string r in resources) {
+				pieces.Add(r);
 			}
 			foreach (Tech t in techs) {
 				pieces.Add(t.Name);
