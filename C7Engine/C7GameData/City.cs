@@ -1290,6 +1290,13 @@ namespace C7GameData {
 				// Civ3 charges nothing for a building one of the owner's
 				// wonders also provides (a granary alongside the Pyramids),
 				// and Smith's Trading Company pays for commercial buildings.
+				// The Conquests Civilopedia (BLDG_Trading_Company): "Pays
+				// maintenance costs for all trade-based city improvements
+				// (Harbors, Marketplaces, Banks, Airports, Commerical Dock and
+				// Stock Exchanges)", the buildings with the Commercial trait.
+				// Older lists of just Harbors, Marketplaces, Banks and Airports
+				// (https://civfanatics.com/civ3/civilopedia/wonders/) predate
+				// the Commercial Dock.
 				if (cache.providedByWonders.Contains(b)
 					|| (commercialUpkeepPaid && b.traits.Contains(Civilization.Trait.Commercial))) {
 					continue;
