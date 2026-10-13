@@ -98,7 +98,6 @@ public partial class MainMenu : Node {
 		ButtonContainer.JoinLan.Pressed += JoinLanGame;
 		ButtonContainer.BrowseOnline.Pressed += BrowseOnlineGames;
 		ButtonContainer.HallOfFame.Pressed += HallOfFame;
-		ButtonContainer.HallOfFame.Visible = false;
 		ButtonContainer.Settings.Pressed += ShowSettings;
 		ButtonContainer.Preferences.Pressed += Preferences;
 		ButtonContainer.Preferences.Visible = false;
@@ -238,8 +237,14 @@ public partial class MainMenu : Node {
 		GetTree().ChangeSceneToFile("res://Credits.tscn");
 	}
 
+	// Civ3's Hall of Fame, over the menu until it's closed.
 	public void HallOfFame() {
 		PlayButtonPressedSound();
+		CanvasLayer layer = new() { Layer = 10 };
+		HallOfFameScreen screen = new();
+		screen.Closed += () => layer.QueueFree();
+		layer.AddChild(screen);
+		AddChild(layer);
 	}
 
 	public void ShowSettings() {
