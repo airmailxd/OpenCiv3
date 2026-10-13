@@ -27,8 +27,10 @@ public partial class TechBox : TextureButton {
 	private bool isTechEraBeyondPlayerEra;
 
 	private static readonly Dictionary<string, string> TruncatedToFullTechTextMap = new();
-	// Building icons crossed out, keyed by icon row, for the buildings a tech makes obsolete.
-	private static readonly Dictionary<int, ImageTexture> CachedObsoleteBuildingTextures = new();
+	// Building icons crossed out, keyed by the icon, for the buildings a tech
+	// makes obsolete. (Not by icon row: in standalone mode buildings that
+	// share a row have icons of their own.)
+	private static readonly Dictionary<ImageTexture, ImageTexture> CachedObsoleteBuildingTextures = new();
 
 	// Lets go of the crossed out icons, which another game's art may draw
 	// differently.
@@ -286,12 +288,18 @@ public partial class TechBox : TextureButton {
 
 		// Obsolete buildings, crossed out
 		foreach (Building building in ObsoleteBuildings) {
-			if (!CachedObsoleteBuildingTextures.TryGetValue(building.iconRowIndex, out ImageTexture texture)) {
-				Image icon = TextureLoader.Load("building_icons.small", building, useCache: true).GetImage();
+			ImageTexture original = TextureLoader.Load("building_icons.small", building, useCache: true);
+			if (!CachedObsoleteBuildingTextures.TryGetValue(original, out ImageTexture texture)) {
+				Image icon = original.GetImage();
 				icon.Decompress();
 				icon.Convert(Image.Format.Rgba8);
-				texture = ImageTexture.CreateFromImage(DrawXOnImage(icon, new Color(1, 0, 0), 1));
-				CachedObsoleteBuildingTextures[building.iconRowIndex] = texture;
+				// The remade art of standalone mode has more pixels than it's
+				// shown with (owner's report, 2026-10-12), so the lines are
+				// as thick and the icon as big as for Civ3's art.
+				int scale = Math.Max(1, icon.GetWidth() / original.GetWidth());
+				texture = ImageTexture.CreateFromImage(DrawXOnImage(icon, new Color(1, 0, 0), scale));
+				texture.SetSizeOverride(new Vector2I(original.GetWidth(), original.GetHeight()));
+				CachedObsoleteBuildingTextures[original] = texture;
 			}
 			textures.Add(texture);
 		}
