@@ -21,6 +21,10 @@ Every icon is original art made from the project's own remade map art
   3D primitives and reliefs (kit3d.py, advances.py + adv_*.py,
   governments.py, civs.py).
 
+The advances' and buildings' icons are also what the game's screens show
+them with in standalone mode (the tech tree, production menus, the city
+screen): ui_icons.py makes those files from them, after the icons are made.
+
 Contact sheets of each section go to ArtGen/_previews/civilopedia/.
 """
 import multiprocessing as mp
@@ -196,6 +200,10 @@ def main(argv):
     print(f'done in {time.time() - t0:.0f}s, {len(results) - len(failed)} icons, {len(failed)} failed')
     if failed:
         sys.exit(1)
+    # The game's screens show advances and buildings with the same pictures.
+    if 'Advances' in wanted or 'Buildings' in wanted:
+        import ui_icons
+        ui_icons.main()
 
 
 if __name__ == '__main__':

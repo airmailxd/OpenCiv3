@@ -116,7 +116,7 @@ namespace C7Engine {
 				// at the same place in the order. Confirmed this is what Civ3 does.
 				UnitInteractions.ClearWaitQueue();
 
-				BarbarianInteractions.SpawnBarbarians(gameData);
+				BarbarianInteractions.DoTurn(gameData);
 
 				gameData.turn++;
 				gameData.DestroyDefeatedCivs();
@@ -153,6 +153,9 @@ namespace C7Engine {
 				// In the interturn, cities may flip to a civ whose culture
 				// outweighs their owner's.
 				CultureFlip.ProcessEndOfRound(gameData);
+
+				// Strategic resources in use may run out.
+				ResourceDepletion.ProcessEndOfRound(gameData);
 
 				// The United Nations votes once everyone has played the
 				// voting turn, and may elect a winner.

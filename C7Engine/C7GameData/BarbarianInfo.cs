@@ -19,5 +19,14 @@ namespace C7GameData {
 		public int maxHitpoints = 2;
 
 		public BarbarianActivity barbarianActivity = BarbarianActivity.Roaming;
+
+		// Whether the one-time barbarian uprisings, when the second civ
+		// reaches the Middle Ages and the Industrial Age, have happened (see
+		// BarbarianInteractions.MaybeStartUprisings). Null until first
+		// checked, as in games saved before uprisings existed: the first
+		// check then marks an era already reached by two civs as done, so
+		// loading such a game doesn't set off an uprising that's long past.
+		public bool? middleAgesUprisingHappened;
+		public bool? industrialAgeUprisingHappened;
 	}
 }

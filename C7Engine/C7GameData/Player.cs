@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using C7Engine.AI.StrategicAI;
 using C7Engine;
+using C7GameData.Save;
 using MoonSharp.Interpreter;
 using Serilog;
 using static C7GameData.EraUtils;
@@ -1033,7 +1034,11 @@ namespace C7GameData {
 		/// </summary>
 		public List<Tech> GetTechsTradableTo(Player recipient, List<Tech> allTechs) {
 			OrderedTechSet researchable = recipient.GetAvailableTechsToResearch(allTechs);
-			return allTechs.FindAll(t => knownTechs.Contains(t.id) && researchable.Contains(t));
+			// A tech with the BIQ's "Cannot be traded" flag is never offered
+			// (https://forums.civfanatics.com/threads/civ3-conquests-editor-features.67911/).
+			// The AI's trades, the deal screen and TradeOffer's validation all
+			// go through here.
+			return allTechs.FindAll(t => knownTechs.Contains(t.id) && researchable.Contains(t) && !t.CannotBeTraded);
 		}
 
 		// Placeholder ordering of techs. Duplicates are dropped, keeping the
@@ -1085,6 +1090,20 @@ namespace C7GameData {
 				}
 			}
 			return false;
+		}
+
+		// Whether the player knows a tech with the BIQ flag, e.g.
+		// HasTechEnabling(SaveTech.Flag.EnablesMapTrading).
+		[MoonSharpHidden]
+		public bool HasTechEnabling(SaveTech.Flag flag) {
+			return KnowsTechWhere(t => t.HasFlag(flag));
+		}
+
+		// Whether the player knows the tech needed for embassies, or the
+		// rules have none (see Tech.FindEmbassyTech).
+		public bool KnowsEmbassyTech(List<Tech> techs) {
+			Tech tech = Tech.FindEmbassyTech(techs);
+			return tech == null || knownTechs.Contains(tech.id);
 		}
 
 		public bool HasTech(ID techId) {
@@ -1464,6 +1483,25 @@ namespace C7GameData {
 			return learned;
 		}
 
+		// Shows the player every tile of the map, as learning Satellites does
+		// in Conquests ("Upon discovering this tech, the whole map is revealed
+		// to your civ", https://sullla.com/Civ3/CQ/CQ_techs.html). The tiles
+		// become known, as explored ones are, not watched: units on them stay
+		// hidden in the fog.
+		//
+		// UNVERIFIED: whether Civ3 shows the cities and improvements on the
+		// tiles revealed this way (we show them as they are now, as any newly
+		// known tile does, and as SpaceRace.RevealMapToAll does).
+		public void RevealWholeMap(GameData gameData) {
+			if (gameData?.map?.tiles == null) {
+				return;
+			}
+			foreach (Tile t in gameData.map.tiles) {
+				tileKnowledge.AddTileToKnown(t);
+			}
+			tileKnowledge.RecomputeActiveTiles();
+		}
+
 		// Learns a tech acquired outside research, such as one stolen by
 		// espionage, then carries on researching.
 		public void AcquireTech(GameData gameData, Tech tech) {
@@ -1532,6 +1570,9 @@ namespace C7GameData {
 			}
 
 			knownTechs.Add(tech.id);
+			if (tech.RevealsWorldMap) {
+				RevealWholeMap(gameData);
+			}
 			// trigger callback for techs that enable improvements to redraw map
 			TechImprovementCallback(this, tech);
 
