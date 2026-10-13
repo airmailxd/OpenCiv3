@@ -152,10 +152,10 @@ Korea.png (Wang Kon)
   License: Public domain
 
 Sumeria.png (Gilgamesh)
-  A typical Sumerian ruler, standing in for Gilgamesh, of whom no likeness survives: Gudea of Lagash, diorite statue, Louvre
-  Source:  https://commons.wikimedia.org/wiki/File:Gudea_of_Lagash_Girsu.jpg
-  Artist:  Jastrow
-  License: Public domain
+  A typical Sumerian ruler, standing in for Gilgamesh, of whom no likeness survives: Gudea of Lagash, diorite statue, Metropolitan Museum of Art
+  Source:  https://commons.wikimedia.org/wiki/File:Statue_of_Gudea_MET_DT861.jpg
+  Artist:  unknown
+  License: CC0
 
 Hittites.png (Mursilis)
   A typical Hittite king, standing in for Mursilis, of whom no likeness survives: basalt statue of a priest-king with bone eyes, about 1600 BC, Cleveland Museum of Art
