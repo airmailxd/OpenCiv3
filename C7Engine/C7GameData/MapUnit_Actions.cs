@@ -808,6 +808,9 @@ public partial class MapUnit {
 			bool wasElite = survivingMember.IsElite();
 			survivingMember.RollToPromote(dead, alive);
 			survivingMember.RollForLeader(dead, wasElite);
+			if (alive == attacker) {
+				survivingMember.RollToEnslave(defendingMember);
+			}
 
 			// Winning a battle with an army is what lets a civ build the
 			// Military Academy.

@@ -150,4 +150,18 @@ public class Civ3RuleImportTest {
 		Assert.Contains(SaveUnitPrototype.Flag.AllTerrainAsRoads, Unit("Explorer").flags);
 		Assert.DoesNotContain(SaveUnitPrototype.Flag.Wheeled, Unit("Warrior").flags);
 	}
+
+	// The Javelin Thrower enslaves its foes as Workers, the Privateer as
+	// Privateers
+	// (https://forums.civfanatics.com/threads/anyone-know-exactly-how-enslavement-works.107253/).
+	[SkippableFact]
+	public void EnslaveResultsAreImported() {
+		Skip.If(Civ3TestData.ShouldSkipCiv3DependentTests(), "No Civ3 install found.");
+
+		SaveGame game = ImportScenario("Scenarios", "No Civ Traits.biq");
+
+		Assert.Equal("Worker", game.UnitPrototypes.Single(p => p.name == "Javelin Thrower").enslavesTo);
+		Assert.Equal("Privateer", game.UnitPrototypes.Single(p => p.name == "Privateer").enslavesTo);
+		Assert.Null(game.UnitPrototypes.Single(p => p.name == "Warrior").enslavesTo);
+	}
 }

@@ -1827,6 +1827,10 @@ namespace C7GameData {
 
 				prototype.unproducible = IsUnproducible(prto);
 
+				if (prto.EnslaveResults >= 0 && prto.EnslaveResults < Prto.Length) {
+					prototype.enslavesTo = Prto[prto.EnslaveResults].Name;
+				}
+
 				if (prto.Required != -1) {
 					prototype.requiredTech = save.Techs[prto.Required].id;
 				}

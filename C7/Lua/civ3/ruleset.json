@@ -5678,6 +5678,7 @@
         "England"
       ],
       "unproducible": false,
+      "enslavesTo": "Man-O-War",
       "flags": [
         "rotateBeforeAttack",
         "startsGoldenAge"
@@ -5814,6 +5815,7 @@
         "Maya"
       ],
       "unproducible": false,
+      "enslavesTo": "Privateer",
       "flags": [
         "rotateBeforeAttack"
       ],
@@ -8121,6 +8123,7 @@
         "Longbowman"
       ],
       "unproducible": false,
+      "enslavesTo": "Worker",
       "flags": [
         "startsGoldenAge",
         "footSoldier"

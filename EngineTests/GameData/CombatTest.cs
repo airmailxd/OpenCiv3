@@ -309,6 +309,64 @@ public class CombatTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(0.5, city.GetDefenseBonuses(galley).Single(b => b.description == "Coastal Fortress").amount);
 	}
 
+	// Units like the Javelin Thrower have "a 33% chance" to make a unit
+	// (a Worker for it) of a foe they beat attacking
+	// (https://forums.civfanatics.com/threads/anyone-know-exactly-how-enslavement-works.107253/).
+	[Fact]
+	public async Task AJavelinThrowerCanEnslaveTheUnitItBeats() {
+		GoToWar();
+		(Tile from, TileDirection dir, Tile to) = FindAdjacentLand();
+		MapUnit javelin = Spawn(us, "Javelin Thrower", from);
+		MapUnit warrior = Spawn(them, "Warrior", to);
+		warrior.hitPointsRemaining = 1;
+
+		// Every roll is 0, under the 1 in 3 chance.
+		await WithZeroRandom(async () => Assert.True(await javelin.Move(dir)));
+
+		Assert.DoesNotContain(warrior, gameData.mapUnits);
+		MapUnit slave = Assert.Single(us.units, u => u.unitType.name == "Worker" && u.IsCaptive());
+		Assert.Equal(from, slave.location);
+		Assert.True(slave.IsCaptive());
+		Assert.Same(them.civilization, slave.nationality);
+	}
+
+	private class FixedRandom(double value) : System.Random {
+		protected override double Sample() => value;
+	}
+
+	[Fact]
+	public void EnslavementFailsTwoTimesInThree() {
+		(Tile from, _, Tile to) = FindAdjacentLand();
+		MapUnit javelin = Spawn(us, "Javelin Thrower", from);
+		MapUnit warrior = Spawn(them, "Warrior", to);
+		System.Random original = C7GameData.GameData.rng;
+		try {
+			C7GameData.GameData.rng = new FixedRandom(0.34);
+			Assert.Null(javelin.RollToEnslave(warrior));
+			C7GameData.GameData.rng = new FixedRandom(0.33);
+			Assert.NotNull(javelin.RollToEnslave(warrior));
+		} finally {
+			C7GameData.GameData.rng = original;
+		}
+	}
+
+	// "Barbarian units are not able to enslave other units"
+	// (https://forums.civfanatics.com/threads/allowing-barbarians-to-enslave-units.677365/).
+	[Fact]
+	public void BarbariansDontEnslave() {
+		Player barbarians = gameData.players.Single(p => p.isBarbarians);
+		(Tile from, _, Tile to) = FindAdjacentLand();
+		MapUnit javelin = Spawn(barbarians, "Javelin Thrower", from);
+		MapUnit warrior = Spawn(them, "Warrior", to);
+		System.Random original = C7GameData.GameData.rng;
+		try {
+			C7GameData.GameData.rng = new FixedRandom(0);
+			Assert.Null(javelin.RollToEnslave(warrior));
+		} finally {
+			C7GameData.GameData.rng = original;
+		}
+	}
+
 	[Fact]
 	public async Task WinningAttackerPaysOnlyForTheMove() {
 		GoToWar();

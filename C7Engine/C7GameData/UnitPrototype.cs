@@ -139,6 +139,9 @@ namespace C7GameData {
 			Interlocked.Increment(ref upgradeDataVersion);
 		}
 		public bool unproducible;
+		// The name of the unit this one may make of a foe it defeats, or
+		// null (see MapUnit.RollToEnslave).
+		public string enslavesTo;
 		public HashSet<SaveUnitPrototype.Flag> flags = [];
 
 		// Civ3's movement flags (https://forums.civfanatics.com/threads/is-there-a-guide-on-unit-abilities.57822/):
@@ -371,6 +374,7 @@ namespace C7GameData {
 			// Rulesets without the value leave every worker at plain speed.
 			workerStrength = proto.workerStrength > 0 ? proto.workerStrength : 1;
 			civilopediaEntry = proto.civilopediaEntry;
+			enslavesTo = proto.enslavesTo;
 
 			categories = new HashSet<string>(proto.categories);
 			actions = new HashSet<UnitAction>(proto.actions);

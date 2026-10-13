@@ -732,6 +732,40 @@ namespace C7GameData {
 			}
 		}
 
+		// The chance a unit that enslaves makes a slave of a foe it beats
+		// attacking: "a 33% chance", which "is hardcoded"
+		// (https://forums.civfanatics.com/threads/anyone-know-exactly-how-enslavement-works.107253/).
+		public const double EnslaveChance = 1.0 / 3;
+
+		// Rolls, after this unit beat the opponent attacking, for the unit
+		// its type enslaves to (the Javelin Thrower's Worker, the Privateer's
+		// Privateer), which joins its owner on this unit's tile with the
+		// loser's nationality, like a captured worker. "It's the unit that
+		// is doing the attacking" that enslaves (same thread). "Barbarian
+		// units are not able to enslave other units"
+		// (https://forums.civfanatics.com/threads/allowing-barbarians-to-enslave-units.677365/),
+		// but barbarian units can be enslaved (players note enslaving them
+		// early is valuable, first thread). UNVERIFIED: where the slave
+		// appears; here it's on the winner's tile, and none is made if it
+		// couldn't stand there (a land unit at sea).
+		public MapUnit RollToEnslave(MapUnit opponent) {
+			if (unitType.enslavesTo == null || owner.isBarbarians) {
+				return null;
+			}
+			GameData gameData = EngineStorage.gameData;
+			UnitPrototype slaveType = gameData.unitPrototypes.FirstOrDefault(p => p.name == unitType.enslavesTo);
+			if (slaveType == null || GameData.rng.NextDouble() >= EnslaveChance) {
+				return null;
+			}
+			if ((slaveType.IsLandUnit() && !location.IsLand()) || (slaveType.IsSeaUnit() && !location.IsWater() && !location.HasCity())) {
+				return null;
+			}
+			MapUnit slave = gameData.SpawnUnit(owner, slaveType, location);
+			slave.nationality = opponent.nationality ?? opponent.owner.civilization;
+			log.Information("{Unit} enslaved {Opponent} as {Slave}", this, opponent, slave);
+			return slave;
+		}
+
 		public void Promote() {
 			ExperienceLevel nextLevel = EngineStorage.gameData.GetExperienceLevelAfter(experienceLevel);
 			if (nextLevel != null) {

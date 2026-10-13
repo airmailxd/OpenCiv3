@@ -74,6 +74,11 @@ namespace C7GameData.Save {
 		public List<string> upgradesTo;
 		public bool unproducible;
 
+		// The unit this one may make of a foe it defeats (the BIQ's PRTO
+		// "enslave results"), like the Javelin Thrower's workers. Null if it
+		// doesn't enslave. See MapUnit.RollToEnslave.
+		public string enslavesTo;
+
 		// Assorted boolean flags for the unit prototype. They're stored in
 		// this set rather than as booleans to avoid bloating the json file.
 		public HashSet<Flag> flags = [];
@@ -98,6 +103,7 @@ namespace C7GameData.Save {
 			 proto.capacity, proto.hpBonus);
 			workerStrength = proto.workerStrength;
 			civilopediaEntry = proto.civilopediaEntry;
+			enslavesTo = proto.enslavesTo;
 
 			if (proto.requiredTech != null)
 				requiredTech = proto.requiredTech.id;
