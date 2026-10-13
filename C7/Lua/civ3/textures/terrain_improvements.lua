@@ -25,6 +25,22 @@ terrain_improvements = {
   mine = make_entry(2, 1),
   fortress = make_entry(0, 0),
   barricade = make_entry(3, 0),
+  -- The colony of the ancient era.
+  colony = make_entry(1, 0),
+}
+
+--[[
+"x_airfields and detect.pcx" (from Play the World) has the airfields in its
+top row of 128x64 cells, and below them the outposts (one per era, left to
+right) and then the radar tower, each reaching into the row above. An
+outpost's foot is at y = 147, so a 128x128 crop from y = 52 has it at the
+middle of the tile in the crop's bottom half (TileOverlayLayer draws a tall
+sprite with its bottom on the tile's).
+--]]
+terrain_improvements.outpost = {
+  path = TERRAIN .. "x_airfields and detect.pcx",
+  crop_region = { 0, 52, 128, 128 },
+  shadows = false,
 }
 
 terrain_improvements.irrigation = {

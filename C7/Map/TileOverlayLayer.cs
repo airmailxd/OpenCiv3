@@ -119,10 +119,21 @@ namespace C7.Map {
 						break;
 					default:
 						if (!plainImprovementTextures.TryGetValue(ti.key, out ImageTexture texture)) {
-							texture = TextureLoader.Load($"terrain_improvements.{ti.key}");
+							// Outposts and colonies may have no art (as in
+							// standalone mode without it), and are drawn
+							// instead.
+							texture = Tile.TileOverlays.IsOwnedHolding(ti)
+								? TextureLoader.TryLoad($"terrain_improvements.{ti.key}")
+								: TextureLoader.Load($"terrain_improvements.{ti.key}");
 							plainImprovementTextures[ti.key] = texture;
 						}
-						looseView.DrawTexture(texture, screenTarget.Position);
+						if (texture == null) {
+							DrawHoldingWithoutArt(looseView, ti.key, tileCenter);
+							break;
+						}
+						// A sprite taller than the tile (as an outpost's)
+						// stands on it, reaching up into the tile above.
+						looseView.DrawTexture(texture, screenTarget.Position + new Vector2(0, tileSize.Y - texture.GetHeight()));
 						break;
 				}
 			}
@@ -286,6 +297,31 @@ namespace C7.Map {
 				looseView.DrawTextureRectRegion(cratersTexture, screenTarget, GetCratersRect(cratersIndex));
 			} else {
 				looseView.DrawTextureRectRegion(cratersTexture, screenTarget, GetCratersRect(cratersIndex - 1, 2));
+			}
+		}
+
+		private static readonly Color holdingWood = new(0.55f, 0.38f, 0.2f);
+		private static readonly Color holdingRoof = new(0.35f, 0.2f, 0.1f);
+		private static readonly Color holdingOutline = new(0.15f, 0.1f, 0.05f);
+
+		// An outpost or colony with no art: a little watchtower, or a pair of
+		// huts, standing in the middle of the tile.
+		private static void DrawHoldingWithoutArt(LooseView looseView, string key, Vector2 tileCenter) {
+			if (key == OUTPOST) {
+				Rect2 tower = new(tileCenter + new Vector2(-6, -30), new Vector2(12, 34));
+				looseView.DrawRect(tower, holdingWood);
+				looseView.DrawRect(tower, holdingOutline, filled: false);
+				Vector2[] roof = [tileCenter + new Vector2(-10, -30), tileCenter + new Vector2(10, -30), tileCenter + new Vector2(0, -42)];
+				looseView.DrawColoredPolygon(roof, holdingRoof);
+				return;
+			}
+			foreach (Vector2 offset in new[] { new Vector2(-12, 2), new Vector2(8, -4) }) {
+				Vector2 hut = tileCenter + offset;
+				Rect2 walls = new(hut + new Vector2(-7, -8), new Vector2(14, 10));
+				looseView.DrawRect(walls, holdingWood);
+				looseView.DrawRect(walls, holdingOutline, filled: false);
+				Vector2[] roof = [hut + new Vector2(-9, -8), hut + new Vector2(9, -8), hut + new Vector2(0, -16)];
+				looseView.DrawColoredPolygon(roof, holdingRoof);
 			}
 		}
 
