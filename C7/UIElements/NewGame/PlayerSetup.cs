@@ -60,6 +60,9 @@ public partial class PlayerSetup : Control {
 	CheckBox spaceRaceVictory;
 	CheckBox diplomaticVictory;
 	CheckBox culturalVictory;
+	CheckBox elimination;
+	CheckBox regicide;
+	CheckBox massRegicide;
 	CheckBox cultureFlips;
 	CheckBox scientificLeaders;
 
@@ -178,6 +181,20 @@ public partial class PlayerSetup : Control {
 			$"Win when one of your cities has {victoryConditions.CultureOneCityWin:N0} culture, or your civilization has "
 			+ $"{victoryConditions.CultureAllCitiesWin:N0} culture (on a standard map; less on smaller worlds, more on larger) "
 			+ "and twice as much as any rival.");
+
+		// Civ3's instant elimination rules, named as on its setup screen.
+		elimination = AddVictoryCheckbox("Elimination", victoryConditions.CityElimination,
+			victoryConditions.CityEliminationCount == 1
+				? "A civilization that loses a city to an enemy is eliminated: its units and cities are destroyed."
+				: $"A civilization that loses {victoryConditions.CityEliminationCount} cities to enemies is eliminated: its units and cities are destroyed.");
+		// Only rules with King units can play Regicide.
+		bool hasKings = save.UnitPrototypes.Any(p => p.flags.Contains(SaveUnitPrototype.Flag.King));
+		regicide = AddVictoryCheckbox("Regicide", hasKings && victoryConditions.Regicide,
+			"Each civilization has a King. A civilization whose King is killed is eliminated: its units and cities are destroyed.");
+		massRegicide = AddVictoryCheckbox("Mass Regicide", hasKings && victoryConditions.MassRegicide,
+			$"Each civilization has {InstantElimination.MassRegicideKings} Kings. A civilization whose Kings are all killed is eliminated: its units and cities are destroyed.");
+		regicide.Visible = hasKings;
+		massRegicide.Visible = hasKings;
 
 		turnLimit = new Civ3Checkbox {
 			Text = $"Turn limit ({save.TimeOptions.turnLimit} turns)",
@@ -562,6 +579,9 @@ public partial class PlayerSetup : Control {
 		victoryConditions.AllowSpaceRaceVictory = spaceRaceVictory.ButtonPressed;
 		victoryConditions.AllowDiplomaticVictory = diplomaticVictory.ButtonPressed;
 		victoryConditions.AllowCulturalVictory = culturalVictory.ButtonPressed;
+		victoryConditions.CityElimination = elimination.ButtonPressed;
+		victoryConditions.Regicide = regicide.ButtonPressed;
+		victoryConditions.MassRegicide = massRegicide.ButtonPressed;
 
 		int guestSeats = humanToggles.Count(t => t.ButtonPressed);
 		if (hostingOnLan && guestSeats > 0) {

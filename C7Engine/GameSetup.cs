@@ -85,6 +85,59 @@ public class GameSetup {
 		if (save.Players.Count == 0) {
 			ids = new(save);
 			PopulatePlayers(save);
+		} else {
+			ids = new(save);
+			PlaceMissingKings(save);
+		}
+	}
+
+	// Gives the Kings of a scenario played as it is (see PlaceMissingKings).
+	public static void PlaceScenarioKings(SaveGame save) {
+		new GameSetup { ids = new(save) }.PlaceMissingKings(save);
+	}
+
+	// The King unit the civ is given under Regicide, or null if the rules
+	// have none.
+	private static SaveUnitPrototype KingUnit(SaveGame save, Civilization civ) {
+		return InstantElimination.KingUnitFor(civ, save.UnitPrototypes, p => p.name, p => p.flags.Contains(SaveUnitPrototype.Flag.King));
+	}
+
+	// Gives each civ of a scenario that has no King its Kings, in its
+	// capital, or with its units if it has no city, when the scenario has
+	// Regicide on and its kings placed automatically.
+	// UNVERIFIED (no Civ3 source found): where Civ3 puts a scenario civ's
+	// Kings; the Civilopedia only says each player has them.
+	private void PlaceMissingKings(SaveGame save) {
+		int kings = InstantElimination.KingsToPlace(save.VictoryConditions);
+		if (kings == 0) {
+			return;
+		}
+		foreach (SavePlayer player in save.Players.ToList()) {
+			Civilization civ = save.Civilizations.Find(c => c.name == player.civilization);
+			if (player.isBarbarian || civ == null || civ.isBarbarian || !player.isIncludedInGame) {
+				continue;
+			}
+			if (save.Units.Any(u => u.owner == player.id && save.UnitPrototypes.Any(p => p.name == u.prototype && p.flags.Contains(SaveUnitPrototype.Flag.King)))) {
+				continue;
+			}
+			List<SaveCity> cities = save.Cities.Where(c => c.owner == player.id).ToList();
+			SaveCity city = cities.FirstOrDefault(c => c.capital) ?? cities.FirstOrDefault();
+			SaveUnit unit = save.Units.FirstOrDefault(u => u.owner == player.id);
+			if (city != null || unit != null) {
+				TileLocation location = city != null ? city.location : unit.currentLocation;
+				AddKings(save, player, civ, location, kings);
+			}
+		}
+	}
+
+	private void AddKings(SaveGame save, SavePlayer player, Civilization civ, TileLocation location, int count) {
+		SaveUnitPrototype king = KingUnit(save, civ);
+		if (king == null) {
+			log.Warning($"The rules have no King unit for {civ?.name}");
+			return;
+		}
+		for (int i = 0; i < count; ++i) {
+			AddUnit(save, player, king.name, location);
 		}
 	}
 
@@ -386,6 +439,11 @@ public class GameSetup {
 		AddUnit(save, player, save.Rules.StartUnitType2, startingLocation);
 		if (civ.traits.Contains(Civilization.Trait.Expansionist)) {
 			AddUnit(save, player, save.Rules.ScoutUnitType, startingLocation);
+		}
+		// Under Regicide, each civ's King starts with its first units.
+		int kings = InstantElimination.KingsToPlace(save.VictoryConditions);
+		if (kings > 0) {
+			AddKings(save, player, civ, startingLocation, kings);
 		}
 		return player;
 	}

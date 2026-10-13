@@ -415,6 +415,19 @@ namespace C7GameData {
 			}
 		}
 
+		// A King, whose death can eliminate its civ under Regicide and Mass
+		// Regicide. See InstantElimination.
+		public bool isKing {
+			get => flags.Contains(SaveUnitPrototype.Flag.King);
+			set {
+				if (value) {
+					flags.Add(SaveUnitPrototype.Flag.King);
+				} else {
+					flags.Remove(SaveUnitPrototype.Flag.King);
+				}
+			}
+		}
+
 		// A city may draft the unit (the BIQ's PRTO "Draft" flag). See
 		// City.Draft.
 		public bool isDraftable {

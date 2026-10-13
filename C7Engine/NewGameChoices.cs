@@ -56,6 +56,9 @@ public class NewGameChoices {
 	public bool? DiplomaticVictory;
 	public bool? CulturalVictory;
 	public bool? TurnLimit;
+	public bool? Elimination;
+	public bool? Regicide;
+	public bool? MassRegicide;
 	public bool? ShowScoreboard;
 	public bool? CoreCitiesFreeOfCorruption;
 	public bool? AcceleratedProduction;
@@ -85,6 +88,9 @@ public class NewGameChoices {
 		public const string DiplomaticVictory = nameof(DiplomaticVictory);
 		public const string CulturalVictory = nameof(CulturalVictory);
 		public const string TurnLimit = nameof(TurnLimit);
+		public const string Elimination = nameof(Elimination);
+		public const string Regicide = nameof(Regicide);
+		public const string MassRegicide = nameof(MassRegicide);
 		public const string ShowScoreboard = nameof(ShowScoreboard);
 		public const string AcceleratedProduction = nameof(AcceleratedProduction);
 		public const string CultureFlips = nameof(CultureFlips);
@@ -145,6 +151,9 @@ public class NewGameChoices {
 		choices.DiplomaticVictory = ParseBool(get(Keys.DiplomaticVictory));
 		choices.CulturalVictory = ParseBool(get(Keys.CulturalVictory));
 		choices.TurnLimit = ParseBool(get(Keys.TurnLimit));
+		choices.Elimination = ParseBool(get(Keys.Elimination));
+		choices.Regicide = ParseBool(get(Keys.Regicide));
+		choices.MassRegicide = ParseBool(get(Keys.MassRegicide));
 		choices.ShowScoreboard = ParseBool(get(Keys.ShowScoreboard));
 		choices.CoreCitiesFreeOfCorruption = ParseBool(get(Keys.CoreCitiesFreeOfCorruption));
 		choices.AcceleratedProduction = ParseBool(get(Keys.AcceleratedProduction));
@@ -181,6 +190,9 @@ public class NewGameChoices {
 		set(Keys.DiplomaticVictory, FormatBool(DiplomaticVictory));
 		set(Keys.CulturalVictory, FormatBool(CulturalVictory));
 		set(Keys.TurnLimit, FormatBool(TurnLimit));
+		set(Keys.Elimination, FormatBool(Elimination));
+		set(Keys.Regicide, FormatBool(Regicide));
+		set(Keys.MassRegicide, FormatBool(MassRegicide));
 		set(Keys.ShowScoreboard, FormatBool(ShowScoreboard));
 		set(Keys.CoreCitiesFreeOfCorruption, FormatBool(CoreCitiesFreeOfCorruption));
 		set(Keys.AcceleratedProduction, FormatBool(AcceleratedProduction));
@@ -305,6 +317,9 @@ public class NewGameChoices {
 		conditions.AllowDiplomaticVictory = DiplomaticVictory ?? conditions.AllowDiplomaticVictory;
 		conditions.AllowCulturalVictory = CulturalVictory ?? conditions.AllowCulturalVictory;
 		conditions.UseTurnLimit = TurnLimit ?? conditions.UseTurnLimit;
+		conditions.CityElimination = Elimination ?? conditions.CityElimination;
+		conditions.Regicide = Regicide ?? conditions.Regicide;
+		conditions.MassRegicide = MassRegicide ?? conditions.MassRegicide;
 		return conditions;
 	}
 
@@ -316,6 +331,9 @@ public class NewGameChoices {
 		DiplomaticVictory = conditions.AllowDiplomaticVictory;
 		CulturalVictory = conditions.AllowCulturalVictory;
 		TurnLimit = conditions.UseTurnLimit;
+		Elimination = conditions.CityElimination;
+		Regicide = conditions.Regicide;
+		MassRegicide = conditions.MassRegicide;
 	}
 
 	// A human player's name: the one given, or "Player N" by their turn

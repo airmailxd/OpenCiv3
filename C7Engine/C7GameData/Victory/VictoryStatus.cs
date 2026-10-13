@@ -50,4 +50,9 @@ public class VictoryStatus {
 	public int Culture { get; set; }
 	public int TopCityCulture { get; set; }
 	public int TopRivalCulture { get; set; }
+
+	// Regicide and Elimination: the player's King units left, and the
+	// cities enemies have taken from them.
+	public int KingsLeft { get; set; }
+	public int CitiesLost { get; set; }
 }

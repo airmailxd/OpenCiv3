@@ -226,4 +226,39 @@ public class Civ3RuleImportTest {
 		Assert.DoesNotContain(SaveUnitPrototype.Flag.StealthAttack, Unit("Destroyer").flags);
 		Assert.Null(Unit("Destroyer").stealthTargets);
 	}
+
+	// Each civ's King is the unit its RACE section names ("for the
+	// Americans, the 'King' unit is Abraham Lincoln", Conquests Civilopedia,
+	// GCON_Short_Game_Modes), and conquests.biq places the kings itself.
+	[SkippableFact]
+	public void EachCivHasItsOwnKing() {
+		Skip.If(Civ3TestData.ShouldSkipCiv3DependentTests(), "No Civ3 install found.");
+
+		SaveGame game = ImportScenario("Scenarios", "No Civ Traits.biq");
+
+		Assert.Equal("Lincoln", game.Civilizations.Single(c => c.name == "America").kingUnit);
+		SaveUnitPrototype lincoln = game.UnitPrototypes.Single(p => p.name == "Lincoln");
+		Assert.Contains(SaveUnitPrototype.Flag.King, lincoln.flags);
+		Assert.True(lincoln.unproducible);
+		Assert.DoesNotContain(SaveUnitPrototype.Flag.King, game.UnitPrototypes.Single(p => p.name == "Warrior").flags);
+		Assert.True(game.VictoryConditions.AutoPlaceKings);
+		Assert.Equal(1, game.VictoryConditions.CityEliminationCount);
+	}
+
+	// Fall of Rome plays Elimination, with each civ able to lose 8 cities;
+	// the Middle Ages plays Mass Regicide with its kings on the map.
+	[SkippableFact]
+	public void ScenariosKeepTheirInstantEliminationRules() {
+		Skip.If(Civ3TestData.ShouldSkipCiv3DependentTests(), "No Civ3 install found.");
+
+		VictoryConditions fallOfRome = ImportScenario("Conquests", "3 Fall of Rome.biq").VictoryConditions;
+		Assert.True(fallOfRome.CityElimination);
+		Assert.Equal(8, fallOfRome.CityEliminationCount);
+		Assert.False(fallOfRome.Regicide);
+
+		VictoryConditions middleAges = ImportScenario("Conquests", "4 Middle Ages.biq").VictoryConditions;
+		Assert.True(middleAges.MassRegicide);
+		Assert.False(middleAges.AutoPlaceKings);
+		Assert.False(middleAges.CityElimination);
+	}
 }

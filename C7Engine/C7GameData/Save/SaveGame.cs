@@ -214,6 +214,15 @@ namespace C7GameData.Save {
 				data.victories.Add(new CulturalVictory(conditions.CultureOneCityWin, conditions.CultureAllCitiesWin));
 			}
 
+			// Regicide and Elimination win nothing themselves, but show how
+			// near each civ is to being eliminated.
+			if (conditions != null && (conditions.Regicide || conditions.MassRegicide)) {
+				data.victories.Add(new RegicideCondition(all: conditions.MassRegicide && !conditions.Regicide));
+			}
+			if (conditions?.CityElimination == true) {
+				data.victories.Add(new EliminationCondition(conditions.CityEliminationCount));
+			}
+
 			// The game ends at the turn limit only if that was chosen;
 			// otherwise it goes on until someone wins.
 			if (conditions?.UseTurnLimit == true) {

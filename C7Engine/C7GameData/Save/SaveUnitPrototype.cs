@@ -66,6 +66,10 @@ namespace C7GameData.Save {
 			// The unit picks which unit of a stack it attacks, from its
 			// stealth targets (the BIQ's "Stealth Attack").
 			StealthAttack,
+			// The unit is a King: its civ's leader under Regicide and Mass
+			// Regicide (the BIQ's PRTO "King" flag; see
+			// InstantElimination).
+			King,
 		}
 
 		public string name { get; set; }

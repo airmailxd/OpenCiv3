@@ -318,6 +318,12 @@ namespace C7GameData {
 		// settlers before founding a city is still destroyed.
 		public bool neverHadCityOrSettler = false;
 
+		// How many of the civ's King units have died, and how many of its
+		// cities enemies have taken, for Regicide and Elimination (see
+		// InstantElimination).
+		public int kingsLost = 0;
+		public int citiesLost = 0;
+
 		public bool InGoldenAge => goldenAgeTurnsRemaining > 0;
 
 		public int EraIndex() {

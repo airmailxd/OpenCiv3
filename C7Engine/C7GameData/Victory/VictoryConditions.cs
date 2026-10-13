@@ -17,6 +17,17 @@ public class VictoryConditions {
 	public bool CaptureTheFlag { get; set; }
 	public bool ReverseCaptureTheFlag { get; set; }
 
+	// Whether each civ is given its King units when a game starts with
+	// Regicide or Mass Regicide (the BIQ GAME section's "autoplace kings";
+	// see InstantElimination.PlaceKings). Scenarios that place their kings
+	// on the map leave it off.
+	public bool AutoPlaceKings { get; set; } = true;
+
+	// For Elimination, how many cities a civ may lose before it is
+	// eliminated (the BIQ GAME section's "city elimination count", labelled
+	// "Lose cities:" on Civ3's victory status screen). 1 in conquests.biq.
+	public int CityEliminationCount { get; set; } = 1;
+
 	// Whether the game ends once the time options' turn limit is reached.
 	// Off unless chosen: the game goes on until someone wins (the project
 	// owner's choice). Saves made before this was saved have no limit.
@@ -33,14 +44,17 @@ public class VictoryConditions {
 	public int CultureOneCityWin { get; set; } = CulturalVictory.DefaultOneCityWin;
 	public int CultureAllCitiesWin { get; set; } = CulturalVictory.DefaultAllCitiesWin;
 
-	// Takes the thresholds (domination, culture) a scenario or ruleset sets,
-	// keeping which victory types are allowed. Returns this.
+	// Takes the thresholds (domination, culture, elimination) and king
+	// placement a scenario or ruleset sets, keeping which victory types are
+	// allowed. Returns this.
 	public VictoryConditions CopyThresholdsFrom(VictoryConditions other) {
 		if (other != null) {
 			DominationTerritoryPercent = other.DominationTerritoryPercent;
 			DominationPopulationPercent = other.DominationPopulationPercent;
 			CultureOneCityWin = other.CultureOneCityWin;
 			CultureAllCitiesWin = other.CultureAllCitiesWin;
+			CityEliminationCount = other.CityEliminationCount;
+			AutoPlaceKings = other.AutoPlaceKings;
 		}
 		return this;
 	}
