@@ -16,8 +16,26 @@ public partial class GameViews : CenterContainer {
 	[Export] public SpaceRaceView spaceRaceView;
 	[Export] public DemographicsView demographicsView;
 
+	// Reached from the Victory Status screen rather than by a key of its own.
+	private HistographView histographView;
+
 	public override void _Ready() {
+		histographView = new HistographView { Name = "HistographView", Visible = false };
+		AddChild(histographView);
 		Hide();
+	}
+
+	// Switches between the Victory Status screen and the Histograph.
+	public void ShowHistograph() {
+		HideGameViews();
+		histographView.ShowView();
+		Show();
+	}
+
+	public void ShowVictoryStatus() {
+		HideGameViews();
+		victoryStatusView.ShowView();
+		Show();
 	}
 
 	private void OnShowSpecificAdvisor(string advisor) {
@@ -70,5 +88,6 @@ public partial class GameViews : CenterContainer {
 		palaceView.Hide();
 		spaceRaceView.Hide();
 		demographicsView.Hide();
+		histographView?.Hide();
 	}
 }

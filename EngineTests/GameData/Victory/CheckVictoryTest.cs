@@ -126,6 +126,28 @@ public class CheckVictoryTest : IClassFixture<SaveGameFixture> {
 		Assert.Same(rome, gd.winner);
 	}
 
+	// Winning before 2050 AD adds (2050 - year) * difficulty to the
+	// winner's score (ScoreVictory.EarlyWinBonus).
+	[Fact]
+	public void CheckVictory_AWinBefore2050AddsTheEarlyWinBonus() {
+		var rome = MakePlayer("player-2", "Rome");
+		var greece = MakePlayer("player-3", "Greece");
+		var gd = MakeGame(500, (rome, 10), (greece, 30));
+		gd.timeOptions = new TimeOptions();
+		gd.victories[1] = new TimeLimitVictory(500);
+
+		TurnHandling.CheckVictory(gd);
+
+		// Turn 500 of a standard game is 2010 AD.
+		Assert.Same(greece, gd.winner);
+		Assert.Equal(40, gd.victoryBonus);
+		Assert.Equal(70, new ScoreVictory().Evaluate(greece, gd).Score);
+		Assert.Equal(10, new ScoreVictory().Evaluate(rome, gd).Score);
+		MsgVictory msg = Assert.Single(VictoryMessages());
+		Assert.Equal(70, msg.finalScore);
+		Assert.Equal(40, msg.earlyWinBonus);
+	}
+
 	// ---------------------------------------------------------------- game-over state
 
 	[Fact]

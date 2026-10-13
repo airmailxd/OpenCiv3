@@ -367,8 +367,10 @@ namespace C7Engine {
 
 			gameData.winner = winner;
 			gameData.gameOver = true;
+			gameData.victoryBonus = ScoreVictory.EarlyWinBonus(gameData);
 
-			new MsgVictory(winner, victory).send();
+			int finalScore = (int)new ScoreVictory().Evaluate(winner, gameData).Score;
+			new MsgVictory(winner, victory, finalScore, gameData.victoryBonus).send();
 		}
 	}
 }

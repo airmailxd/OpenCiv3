@@ -122,6 +122,9 @@ namespace C7GameData {
 		public List<IVictory> victories = new();
 		public bool gameOver;
 		public Player winner;
+		// What the winner earned for winning before 2050 AD, added to their
+		// score (see ScoreVictory.EarlyWinBonus).
+		public int victoryBonus;
 		// TODO: Victory type serialization
 
 		// The United Nations elections (see C7Engine.UnitedNations).

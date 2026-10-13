@@ -97,6 +97,8 @@ public static class SnapshotFilter {
 					++dominationTiles;
 				}
 			}
+			List<Player> civs = gameData.players.Where(p => !p.isBarbarians).ToList();
+			Dictionary<Player, DemographicsReport.Territory> demographicsTerritory = DemographicsReport.TerritoriesOf(gameData, civs);
 			foreach (Player player in gameData.players) {
 				ownTerritory[player.id] = territories[player].places.ToArray();
 				if (player.isBarbarians) {
@@ -109,6 +111,7 @@ public static class SnapshotFilter {
 					topCityCulture = CulturalVictory.TopCityCulture(player),
 					dominationTiles = player.tileKnowledge.DominationTiles().Count,
 					turnScore = ScoreVictory.ComputeTurnScore(player, gameData),
+					demographics = DemographicsReport.Values(gameData, player, demographicsTerritory[player]),
 				};
 			}
 			foreach (City city in gameData.cities) {

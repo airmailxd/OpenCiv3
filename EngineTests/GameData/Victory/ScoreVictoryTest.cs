@@ -86,4 +86,49 @@ public class ScoreVictoryTest {
 
 		Assert.Equal(25, status.Score);
 	}
+
+	private static C7GameData.GameData GameAtTurn(int turn, int difficultyIndex = 0, TimeOptions time = null) {
+		var difficulties = new List<Difficulty> { new Difficulty(), new Difficulty(), new Difficulty() };
+		return new C7GameData.GameData {
+			turn = turn,
+			difficulties = difficulties,
+			gameDifficulty = difficulties[difficultyIndex],
+			timeOptions = time ?? new TimeOptions(),
+		};
+	}
+
+	// "(2050 - FinishYear) * Difficulty", with a year BC as a negative number
+	// (https://civfanatics.com/civ3/strategy/game-mechanics/maximizing-your-score/).
+	[Theory]
+	[InlineData(0, 0, 6050)] // 4000 BC on Chieftain
+	[InlineData(1, 0, 6000)] // 3950 BC
+	[InlineData(0, 2, 18150)] // 4000 BC on Regent, three times as much
+	[InlineData(540, 0, 0)] // 2050 AD, the end of a standard game
+	[InlineData(600, 0, 0)] // after 2050 AD
+	public void EarlyWinBonus_IsTheYearsLeftBefore2050TimesTheDifficulty(int turn, int difficultyIndex, int expected) {
+		Assert.Equal(expected, ScoreVictory.EarlyWinBonus(GameAtTurn(turn, difficultyIndex)));
+	}
+
+	[Fact]
+	public void EarlyWinBonus_NoneWhenTheGameIsNotCountedInYears() {
+		Assert.Equal(0, ScoreVictory.EarlyWinBonus(GameAtTurn(10, time: new TimeOptions { baseUnit = TimeUnit.Months })));
+	}
+
+	[Fact]
+	public void Evaluate_AddsTheBonusToTheWinnersScoreOnly() {
+		Player winner = new() { civilization = new Civilization("Rome"), id = ID.FromString("player-1") };
+		Player loser = new() { civilization = new Civilization("Greece"), id = ID.FromString("player-2") };
+		C7GameData.GameData gameData = GameAtTurn(100);
+		gameData.history = new Dictionary<string, List<HistTurnRecord>> {
+			[winner.HistoryKey] = new() { new HistTurnRecord { Score = 40 } },
+			[loser.HistoryKey] = new() { new HistTurnRecord { Score = 30 } },
+		};
+		gameData.winner = winner;
+		gameData.gameOver = true;
+		gameData.victoryBonus = 500;
+
+		var victory = new ScoreVictory();
+		Assert.Equal(540, victory.Evaluate(winner, gameData).Score);
+		Assert.Equal(30, victory.Evaluate(loser, gameData).Score);
+	}
 }

@@ -105,6 +105,7 @@ namespace C7GameData.Save {
 				SimultaneousTurns = data.simultaneousTurns,
 				UnitedNations = data.unitedNations,
 				Winner = data.winner != null ? new SavePlayer(data.winner, data.map) : null,
+				VictoryBonus = data.victoryBonus,
 				TerrainImprovements = data.terrainImprovements.ConvertAll(ti => ti.ToSaveTerrainImprovement()),
 				GameModeConfig = data.gameModeConfig,
 			};
@@ -160,6 +161,7 @@ namespace C7GameData.Save {
 			// TODO: Redo victory state recording
 			data.winner = data.players?.FirstOrDefault(p => p.civilization?.name == Winner?.civilization);
 			data.gameOver = GameOver;
+			data.victoryBonus = VictoryBonus;
 			data.simultaneousTurns = SimultaneousTurns;
 
 			BeginHistory(data);
@@ -667,6 +669,8 @@ namespace C7GameData.Save {
 		public VictoryConditions VictoryConditions = new();
 		public bool GameOver { get; set; }
 		public SavePlayer Winner { get; set; }
+		// See GameData.victoryBonus. Older saves, without it, have none.
+		public int VictoryBonus { get; set; }
 		// Older saves, without it, have the humans take turns one by one.
 		public bool SimultaneousTurns { get; set; }
 		public UnitedNationsState UnitedNations = new();

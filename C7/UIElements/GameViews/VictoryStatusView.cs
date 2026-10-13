@@ -31,12 +31,16 @@ public partial class VictoryStatusView : Control {
 
 	private void CreateUI() {
 		background.Texture = TextureLoader.Load("screens.standing.victory_status.background");
-		var histogramTexture = TextureLoader.Load("screens.standing.histogram.background");
 
 		_close = AdvisorUtils.CreateExitButton(background);
 		_close.Pressed += () => { this.GetParent<GameViews>().Hide(); };
 
 		AdvisorUtils.CreateAdvisorTitle(background, background.Texture.GetWidth(), "VICTORY STATUS");
+
+		Button histograph = new() { Text = "Histograph", Position = new Vector2(160, 660), Size = new Vector2(140, 32) };
+		histograph.AddThemeFontSizeOverride("font_size", 14);
+		histograph.Pressed += () => this.GetParent<GameViews>().ShowHistograph();
+		background.AddChild(histograph);
 	}
 
 	private void ConfigureGrid() {
