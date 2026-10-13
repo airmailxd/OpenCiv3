@@ -167,7 +167,7 @@ def backdrop(n, seed):
 
 def paint(img, seed=0, strength=1.0, oval=1.0, keep=0.4, broad=70, bg=0.92, color=0.75, erode=60, level=0.42,
           fixed=None, plain=None, contrast=1.0, texture=1.0, green=None, hand=None, soften=0,
-          hand_only=False, local=0, feather=0):
+          hand_only=False, local=0, feather=0, edge=0, shrink=0):
     """The painted finish on a PIL RGB picture (returns float RGB 0..1).
     Per picture: oval, how sure the center is the sitter (lower for a
     sitter before a bright wall, which would glow); keep, how much of the
@@ -208,6 +208,11 @@ def paint(img, seed=0, strength=1.0, oval=1.0, keep=0.4, broad=70, bg=0.92, colo
         body = (yy > cy + ry * 0.6) & (np.abs(xx - cx) < rx * 1.9 + (yy - cy - ry * 0.6) * 1.2)
         mask = np.clip(nd.gaussian_filter((head | body).astype(np.float32), n / 50), 0, 1)
         wall = np.zeros_like(mask)
+    if shrink:
+        # the sitter's edge pulled in (pixels of the final tile)
+        k = 2 * int(round(shrink * n / 230)) + 1
+        mask = nd.grey_erosion(mask, size=k)
+        wall = nd.grey_dilation(wall, size=k)
     if feather:
         # a softer sitter's edge, so it doesn't look cut out
         mask = nd.gaussian_filter(mask, feather * n / 230)
@@ -259,6 +264,35 @@ def paint(img, seed=0, strength=1.0, oval=1.0, keep=0.4, broad=70, bg=0.92, colo
     rimw = nd.gaussian_filter(rim.astype(np.float32), 1.5)[..., None]
     bg_share = np.maximum(bg_share, rimw * bg)
     p = p * (1 - bg_share) + bd * bg_share
+    if edge:
+        # halos: in the band just inside the sitter's edge (edge pixels of
+        # the final tile wide), anything lighter than both the sitter's
+        # inside nearby and the ground is the old background showing
+        # through: darkened to the ground
+        k = max(1, int(round(edge * n / 230)))
+        core = mask > 0.5
+        inner = nd.binary_erosion(core, iterations=k)
+        band = core & ~inner
+        lq = _luma(np.clip(p, 0, 1))
+        size = max(5, 3 * k)
+        num = nd.uniform_filter(lq * inner, size)
+        den = nd.uniform_filter(inner.astype(np.float32), size)
+        interior = np.where(den > 0.02, num / (den + 1e-6), 0)
+        lim = np.maximum(interior, _luma(bd))
+        amt = np.clip((lq - lim) / 0.08, 0, 1) * band
+        # also just outside the edge, where the soft edge still holds wall
+        outer = nd.binary_dilation(core, iterations=k) & ~core
+        amt = np.maximum(amt, np.clip((lq - _luma(bd) - 0.03) / 0.08, 0, 1) * outer)
+        amt = nd.gaussian_filter(amt, 1.0)[..., None]
+        # (toward the ground as it is just outside, not the bare backdrop,
+        # which is darker and would draw a dark line round the sitter)
+        out = (mask < 0.1).astype(np.float32)
+        gsize = max(9, 6 * k)
+        gnum = nd.uniform_filter(p * out[..., None], (gsize, gsize, 1))
+        gden = nd.uniform_filter(out, gsize)[..., None]
+        ground = np.where(gden > 0.02, gnum / (gden + 1e-6), bd)
+        target = np.minimum(ground, np.maximum(bd, ground))
+        p = p * (1 - amt) + target * amt
     if green is not None:
         # (a green field, like Abu Bakr's roundel: dimmed and turned toward
         # an aged verdigris in the umber key)
