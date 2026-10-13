@@ -116,6 +116,13 @@ jobs:
         GH_TOKEN: ${{ github.token }}
         GH_REPO: ${{ github.repository }}
       run: |
+        # The downloads are named for the platform and version, like
+        # openciv-windows-0.7.6.zip, so it's clear which version a file is.
+        # The download page finds them by the openciv-<platform>- prefix.
+        VERSION="${TAG#v}"
+        mv dist/windows.zip "dist/openciv-windows-${VERSION}.zip"
+        mv dist/mac.zip "dist/openciv-mac-${VERSION}.zip"
+        mv dist/linux.tar.gz "dist/openciv-linux-${VERSION}.tar.gz"
         ls -la dist
         if gh release view "$TAG" > /dev/null 2>&1; then
           gh release upload "$TAG" dist/* --clobber

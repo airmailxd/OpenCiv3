@@ -62,9 +62,10 @@
 <main>
 	<section class="downloads">
 		<p class="muted">Click the one for your computer. Most computers run Windows; Apple computers are Mac.</p>
-		<p><b>Windows:</b> <a href="https://github.com/airmailxd/OpenCiv3/releases/latest/download/windows.zip">windows.zip</a></p>
-		<p><b>Mac:</b> <a href="https://github.com/airmailxd/OpenCiv3/releases/latest/download/mac.zip">mac.zip</a></p>
-		<p><b>Linux:</b> <a href="https://github.com/airmailxd/OpenCiv3/releases/latest/download/linux.tar.gz">linux.tar.gz</a></p>
+		<p><b>Windows:</b> <a id="download-windows" href="https://github.com/airmailxd/OpenCiv3/releases/latest">Windows download</a></p>
+		<p><b>Mac:</b> <a id="download-mac" href="https://github.com/airmailxd/OpenCiv3/releases/latest">Mac download</a></p>
+		<p><b>Linux:</b> <a id="download-linux" href="https://github.com/airmailxd/OpenCiv3/releases/latest">Linux download</a></p>
+		<p class="muted" id="download-version"></p>
 	</section>
 
 	<section class="whats-new">
@@ -87,8 +88,8 @@
 	<h2>On Windows</h2>
 	<p>The game comes packed in a <b>zip file</b>: a bundle of files squeezed into one, a bit like a suitcase. You need to unpack it before playing.</p>
 	<ol>
-		<li>Click <b>windows.zip</b> above. It saves into your <b>Downloads</b> folder.</li>
-		<li>Open your <b>Downloads</b> folder. Right-click <b>windows.zip</b>, choose <kbd>Extract All…</kbd>, then click <kbd>Extract</kbd>. This unpacks it into a normal folder, which opens by itself.
+		<li>Click the <b>Windows</b> download above (a file named like <b>openciv-windows-0.7.6.zip</b>). It saves into your <b>Downloads</b> folder.</li>
+		<li>Open your <b>Downloads</b> folder. Right-click that file, choose <kbd>Extract All…</kbd>, then click <kbd>Extract</kbd>. This unpacks it into a normal folder, which opens by itself.
 			<br><span class="muted">Don't skip this step. The game won't start properly from inside the zip file.</span></li>
 		<li>You can move that folder anywhere you like, such as your Desktop. Always keep everything inside it together.</li>
 		<li>Inside the folder, double-click the file with the game's picture on it. The game starts.</li>
@@ -102,7 +103,7 @@
 
 	<h2>On a Mac</h2>
 	<ol>
-		<li>Click <b>mac.zip</b> above. Your Mac downloads it and unpacks it into a folder in <b>Downloads</b> by itself.</li>
+		<li>Click the <b>Mac</b> download above (a file named like <b>openciv-mac-0.7.6.zip</b>). Your Mac downloads it and unpacks it into a folder in <b>Downloads</b> by itself.</li>
 		<li>Keep everything in that folder together. You can move the <b>whole folder</b>, but don't drag only the game into Applications: it needs the other files next to it.</li>
 		<li>The first time, don't double-click. Instead <b>right-click</b> the game (or hold <kbd>Control</kbd> and click), choose <kbd>Open</kbd>, then click <kbd>Open</kbd> again. This tells your Mac you trust it.</li>
 		<li>If your Mac only offers <kbd>Done</kbd> or <kbd>Move to Trash</kbd>, click <kbd>Done</kbd>. Then open <b>System Settings</b>, click <b>Privacy &amp; Security</b>, scroll down, and click <kbd>Open Anyway</kbd> next to the message about the game.</li>
@@ -124,7 +125,7 @@
 
 	<h2>On Linux</h2>
 	<ol>
-		<li>Click <b>linux.tar.gz</b> above to download it.</li>
+		<li>Click the <b>Linux</b> download above (a file named like <b>openciv-linux-0.7.6.tar.gz</b>).</li>
 		<li>Right-click it in your file manager and choose <kbd>Extract Here</kbd>.</li>
 		<li>Open the new folder and double-click the file whose name ends in <b>.x86_64</b>. If nothing happens, right-click it, choose <kbd>Properties</kbd>, switch on <kbd>Allow executing file as program</kbd>, and try again.</li>
 	</ol>
@@ -215,6 +216,28 @@
 	</section>
 </main>
 <script>
+	// Points the download links at the latest release's files, which are
+	// named for the platform and version (openciv-windows-0.7.6.zip). If
+	// GitHub can't be asked, the links go to the latest release's page.
+	(function () {
+		var platforms = { windows: /^(openciv-windows-.*\.zip|windows\.zip)$/, mac: /^(openciv-mac-.*\.zip|mac\.zip)$/, linux: /^(openciv-linux-.*\.tar\.gz|linux\.tar\.gz)$/ };
+		fetch("https://api.github.com/repos/airmailxd/OpenCiv3/releases/latest")
+			.then(function (r) { return r.ok ? r.json() : null; })
+			.then(function (release) {
+				if (!release) return;
+				Object.keys(platforms).forEach(function (platform) {
+					var asset = (release.assets || []).find(function (a) { return platforms[platform].test(a.name); });
+					var link = document.getElementById("download-" + platform);
+					if (asset && link) {
+						link.href = asset.browser_download_url;
+						link.textContent = asset.name;
+					}
+				});
+				document.getElementById("download-version").textContent = "Version " + release.tag_name.replace(/^v/, "") + ", the latest.";
+			})
+			.catch(function () {});
+	})();
+
 	// Shows one tab at a time, chosen by the address's #install or #server.
 	(function () {
 		var tabs = ["install", "server"];
