@@ -87,6 +87,10 @@ namespace C7GameData.Save {
 		// base (the BIQ's PRTO operational range). 0 for units that don't
 		// fly, and in saves made before it was saved.
 		public int operationalRange { get; set; }
+		// The unit's anti-aircraft strength, as the BIQ's PRTO air defense
+		// (Flak 2, Mobile SAM 4, AEGIS Cruiser 3): see MapUnit_Air.cs. 0
+		// for units without, and in saves made before it was saved.
+		public int airDefense { get; set; }
 		// How much work a worker does each turn, relative to a Worker (the
 		// BIQ's PRTO worker strength). Saves made before it was saved have
 		// 1.
@@ -131,6 +135,7 @@ namespace C7GameData.Save {
 			 proto.capacity, proto.hpBonus);
 			workerStrength = proto.workerStrength;
 			operationalRange = proto.operationalRange;
+			airDefense = proto.airDefense;
 			civilopediaEntry = proto.civilopediaEntry;
 			enslavesTo = proto.enslavesTo;
 			stealthTargets = proto.stealthTargets.Count > 0 ? proto.stealthTargets.ToList() : null;

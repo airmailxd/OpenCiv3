@@ -1901,6 +1901,7 @@ namespace C7GameData {
 				prototype.bombardRange = prto.BombardRange;
 				prototype.rateOfFire = prto.RateOfFire;
 				prototype.operationalRange = prto.OperationalRange;
+				prototype.airDefense = prto.AirDefense;
 				// How much a worker does each turn, relative to a Worker.
 				prototype.workerStrength = prto.WorkerStrength > 0 ? prto.WorkerStrength : 1;
 

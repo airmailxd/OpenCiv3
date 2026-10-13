@@ -382,8 +382,8 @@ namespace C7GameData {
 		}
 
 		// Whether the bombing run at the target is intercepted, by an enemy
-		// fighter flying air superiority or a SAM battery in the target
-		// city (see TryToBeShotDown). "Only bombing and precision bombing
+		// fighter flying air superiority, a SAM battery in the target city
+		// or an anti-aircraft unit on the target tile (see TryToBeShotDown). "Only bombing and precision bombing
 		// can be intercepted. ... If an aircraft is intercepted it will
 		// always fail to bomb the target even if it wins the air battle"
 		// (Ozymandias,
@@ -436,7 +436,54 @@ namespace C7GameData {
 				shotDown = TryToBeShotDown(samPower, null, target);
 				return true;
 			}
+
+			// Last, the anti-aircraft units on the target tile, like Flak,
+			// Mobile SAMs and AEGIS Cruisers: "Each AA unit in the tile being
+			// bombarded takes a shot against the defense of the bombarding air
+			// unit", "The real strength of each AA unit is 1/10th of the value
+			// shown in the editor", and "The maximum number of AA units that
+			// are given a chance to shoot down the plane is 4" (alexman,
+			// https://forums.civfanatics.com/threads/aerial-combat-mechanics.90783/;
+			// T-hawk's order of fighters, SAM, then flak, which alexman
+			// agrees with). They "only protect against the one tile"
+			// (Ginger_Ale, https://forums.civfanatics.com/threads/how-dows-flak-work.103325/),
+			// and stealth makes no difference to them: "the chance to
+			// intercept an air unit with stealth and without stealth is the
+			// same" (https://civfanatics.com/civ3/faq/). A plane they miss
+			// goes on to bomb. UNVERIFIED (no Civ3 source found): with more
+			// than four, the four strongest shoot, and they need not be
+			// fortified.
+			foreach (MapUnit aa in AntiAircraftUnits(target)) {
+				if (TryToBeShotDown(aa.unitType.airDefense / (double)AirDefenseScale, aa, target, onlyIfHit: true)) {
+					shotDown = true;
+					return true;
+				}
+			}
 			return false;
+		}
+
+		// The editor's air defense is ten times the real strength (alexman,
+		// above).
+		public const int AirDefenseScale = 10;
+
+		// At most this many anti-aircraft units shoot at a plane.
+		public const int MaxAntiAircraftShots = 4;
+
+		// The enemy units on the tile that shoot at this aircraft as it
+		// bombs it, strongest first.
+		internal List<MapUnit> AntiAircraftUnits(Tile target) {
+			List<MapUnit> result = [];
+			foreach (MapUnit u in target.unitsOnTile) {
+				if (u.owner != owner && u.unitType.airDefense > 0 && u.hitPointsRemaining > 0 && !u.IsAirUnit()
+					&& !u.IsLoaded() && AtWar(owner, u.owner)) {
+					result.Add(u);
+				}
+			}
+			result.Sort((a, b) => b.unitType.airDefense.CompareTo(a.unitType.airDefense));
+			if (result.Count > MaxAntiAircraftShots) {
+				result.RemoveRange(MaxAntiAircraftShots, result.Count - MaxAntiAircraftShots);
+			}
+			return result;
 		}
 
 		// The strongest air power among the buildings of an enemy city on
@@ -463,11 +510,17 @@ namespace C7GameData {
 				&& Tile.IsTileValid(location) && location.DistanceTo(target) <= InterceptionRadius();
 		}
 
-		// The interceptor shoots at this aircraft, with an attack strength
-		// against its defence: A/(A+D) to shoot it down.
-		private bool TryToBeShotDown(int attack, MapUnit interceptor, Tile target) {
+		// The interceptor (a fighter, a SAM battery when null, or an
+		// anti-aircraft unit) shoots at this aircraft, with an attack
+		// strength against its defence: A/(A+D) to shoot it down.
+		// With onlyIfHit, as for an anti-aircraft unit, a miss isn't an
+		// interception and isn't reported.
+		private bool TryToBeShotDown(double attack, MapUnit interceptor, Tile target, bool onlyIfHit = false) {
 			int defence = unitType.defense;
-			bool shotDown = attack > 0 && GameData.rng.NextDouble() < (double)attack / (attack + defence);
+			bool shotDown = attack > 0 && GameData.rng.NextDouble() < attack / (attack + defence);
+			if (onlyIfHit && !shotDown) {
+				return false;
+			}
 			string what = interceptor != null ? $"{interceptor.owner.civilization.adjective} {interceptor.unitType.name}" : $"the air defences of {target.cityAtTile?.name}";
 			if (owner.isHuman) {
 				new MsgShowTemporaryPopup(shotDown ? $"Our {unitType.name} was shot down by {what}!" : $"Our {unitType.name} was intercepted by {what}.", target, owner).send();

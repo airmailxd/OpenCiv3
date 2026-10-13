@@ -97,6 +97,9 @@ namespace C7GameData {
 		// How far, in tiles, an aircraft flies on its missions from its base
 		// (the BIQ's PRTO operational range); see MapUnit_Air.cs.
 		public int operationalRange { get; set; }
+		// The anti-aircraft strength with which the unit shoots at aircraft
+		// bombing its tile (the BIQ's PRTO air defense); see MapUnit_Air.cs.
+		public int airDefense { get; set; }
 
 		// How much faster than a plain worker this unit does terrain jobs
 		// (the BIQ's worker strength: 1 for Workers, 2 for Engineers).
@@ -460,6 +463,7 @@ namespace C7GameData {
 			// Rulesets without the value leave every worker at plain speed.
 			workerStrength = proto.workerStrength > 0 ? proto.workerStrength : 1;
 			operationalRange = proto.operationalRange;
+			airDefense = proto.airDefense;
 			civilopediaEntry = proto.civilopediaEntry;
 			enslavesTo = proto.enslavesTo;
 			stealthTargets = proto.stealthTargets?.ToList() ?? [];
