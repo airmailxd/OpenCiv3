@@ -1,4 +1,4 @@
-"""Draws the leader heads for standalone mode (no Civ3 files): a head and
+"""Makes the leader heads for standalone mode (no Civ3 files): a head and
 shoulders portrait of each civilization's leader, shown in diplomacy, the
 new game screen and the LAN lobby:
 
@@ -6,274 +6,458 @@ new game screen and the LAN lobby:
 
     python ArtGen/leaderheads/build.py               # every civilization
     python ArtGen/leaderheads/build.py Rome Egypt    # just these
+    python ArtGen/leaderheads/build.py --sources     # also preview the whole
+                                                     # source pictures, gridded
 
-A portrait is the leader's own 3D model, the one the leader's unit (Civ3's
-"King" units, ArtGen/units/catalog/leaders.py) is drawn with on the map,
-seen up close at eye level and turned a little to the side, with a face
-detailed for the close-up (eyes, lids, brows, lips). The civ-colored parts
-are in the civilization's color (the standalone civ colors, by the ruleset's
-primaryColorIndex), and it stands before a soft backdrop tinted with that
-color. So it is original art in the same look as the units and the
-Civilopedia's icons.
+Each portrait is a real historical likeness of the leader: a painting,
+photograph, bust, relief or engraving from Wikimedia Commons that is in the
+public domain (or CC0). For leaders with no likeness from their own time it's
+a well-known later painting or statue of them (see SOURCES). The script
+downloads each source once into ArtGen/leaderheads/_cache (not committed),
+crops it to the head and shoulders, and gives every portrait the same gentle
+finish (levels, a little warmth, a soft vignette and a beveled edge) so the
+set looks of a piece. Nothing is painted or generated; the faces are the
+artworks' own.
 
-Like all of ModernArt it has twice the pixels it's shown with: 230x230 for
-Civ3's 115x115 leader heads. The standalone rules (C7/Lua/standalone/
-ruleset.lua) point each civilization's leaderArtFile at its portrait, and
-the standalone textures (C7/Lua/standalone/textures.lua) show it. There's
-one portrait per leader, not one per era and mood like Civ3's.
+It also writes C7/ModernArt/Art/Leaderheads/CREDITS.txt: each portrait's
+Commons page, artist and license, read from Commons.
+
+Like all of ModernArt the portraits have twice the pixels they're shown
+with: 230x230 for Civ3's 115x115 leader heads. The standalone rules
+(C7/Lua/standalone/ruleset.lua) point each civilization's leaderArtFile at
+its portrait, and the standalone textures (C7/Lua/standalone/textures.lua)
+show it. There's one portrait per leader, not one per era and mood like
+Civ3's.
 
 A contact sheet goes to ArtGen/_previews/leaderheads.png.
 """
-import multiprocessing as mp
+import io
+import json
 import os
+import re
 import sys
+import time
+import urllib.parse
+import urllib.request
 
-for _v in ('OMP_NUM_THREADS', 'OPENBLAS_NUM_THREADS', 'MKL_NUM_THREADS'):
-    os.environ.setdefault(_v, '1')
+import numpy as np
+from PIL import Image, ImageDraw, ImageEnhance, ImageFilter, ImageOps
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(os.path.dirname(HERE), 'civilopedia_icons'))
+REPO = os.path.dirname(os.path.dirname(HERE))
+RULESET = os.path.join(REPO, 'C7', 'Lua', 'civ3', 'ruleset.json')
+OUT = os.path.join(REPO, 'C7', 'ModernArt', 'Art', 'Leaderheads')
+CACHE = os.path.join(HERE, '_cache')
+PREVIEWS = os.path.join(REPO, 'ArtGen', '_previews')
 
-import numpy as np  # noqa: E402
-import common as C  # noqa: E402  (ArtGen/civilopedia_icons; puts units and common on the path)
-import civ3art  # noqa: E402
-import mesh as M  # noqa: E402
-import render as R  # noqa: E402
-import rig  # noqa: E402
-import models  # noqa: E402
-from models import humanoid as H  # noqa: E402
-import units as U  # noqa: E402  (the Civilopedia's unit renderer)
+SIZE = 230
+# Wikimedia asks for a User-Agent that says who's asking.
+USER_AGENT = 'OpenCiv3-ArtGen/1.0 (https://github.com/C7-Game/Prototype; ArtGen/leaderheads/build.py)'
+API = 'https://commons.wikimedia.org/w/api.php'
+# Sources are fetched at most this wide (Commons scales them down for us).
+MAX_WIDTH = 2400
 
-SIZE = 115 * civ3art.SCALE
-FOLDER = 'Art/Leaderheads'
-
-# Each civilization's leader unit art (its "King" unit's folder), by the
-# civilization's Civilopedia entry.
-LEADER_ART = {
-    'RACE_ROMANS': 'King Roman', 'RACE_EGYPTIANS': 'King Egyptian', 'RACE_GREEKS': 'King Greek',
-    'RACE_BABYLON': 'King Babylonian', 'RACE_GERMANS': 'King German', 'RACE_RUSSIAN': 'King Russian',
-    'RACE_CHINESE': 'King Chinese', 'RACE_AMERICAN': 'King American', 'RACE_JAPANESE': 'King Japanese',
-    'RACE_FRENCH': 'King French', 'RACE_INDIAN': 'King Indian', 'RACE_PERSIAN': 'King Persian',
-    'RACE_AZTECS': 'King Aztec', 'RACE_ZULU': 'King Zulu', 'RACE_IROQUOIS': 'King Iroquois',
-    'RACE_ENGLISH': 'King English', 'RACE_MONGOLS': 'King Mongol', 'RACE_SPANISH': 'King Spanish',
-    'RACE_VIKINGS': 'King Viking', 'RACE_OTTOMANS': 'King Ottoman', 'RACE_CELTS': 'King Celtic',
-    'RACE_ARABS': 'King Arab', 'RACE_CARTHAGINIANS': 'King Carthaginian', 'RACE_KOREANS': 'King Korean',
-    'RACE_SUMERIA': 'King Sumeria', 'RACE_HATTI': 'King Hatti', 'RACE_DUTCH': 'King Netherlands',
-    'RACE_PORTUGAL': 'King Portugal', 'RACE_BYZANTINES': 'King Byzantines', 'RACE_INCANS': 'King Incan',
-    'RACE_MAYANS': 'King Mayan',
+# Each civilization's portrait: the Commons file, and the square to crop from
+# it as (left, top, side), all fractions of the picture's width. The note
+# says what the picture is.
+SOURCES = {
+    'Rome': ('File:Bust of Julius Caesar.jpg', (0.13, 0.04, 0.66),
+             'Julius Caesar: Roman marble bust in the Greek Cross Hall of the Vatican Museums'),
+    'Egypt': ('File:Cleopatra-VII-Antikensammlung-Berlin.jpg', (0.12, 0.18, 0.86),
+              'Cleopatra VII: the "Berlin Cleopatra", a Roman marble portrait of about 40-30 BC'),
+    'Greece': ('File:Bust Alexander BM 1857.jpg',
+              (0.0, 0.1, 1.0), 'Alexander the Great: Hellenistic marble head in the British Museum'),
+    'Babylon': ('File:Tête royale dite tête de Hammurabi - Musée du Louvre Antiquités orientales SB 95.jpg',
+                (0.05, 0.05, 0.90), 'Hammurabi: the diorite royal head known as the "head of Hammurabi", Louvre'),
+    'Germany': ('File:Franz von Lenbach - Bildnis Otto Eduard Leopold von Bismarck (Indianapolis).jpg',
+                (0.18, 0.12, 0.66), 'Otto von Bismarck by Franz von Lenbach, 1879 (Indianapolis Museum of Art)'),
+    'Russia': ('File:Catherine II after Roslin, Rokotov (1780s, Kunsthistorisches Museum).jpg', (0.1, 0.0, 0.8),
+               'Catherine the Great by Fyodor Rokotov after Roslin, 1780s'),
+    'China': ('File:Mao Zedong 1950 Portrait (3x4 cropped).jpg',
+             (0.12, 0.08, 0.76), 'Mao Zedong, portrait photograph by Chen Zhengqing, 1950'),
+    'America': ('File:Abraham Lincoln O-77 matte collodion print.jpg', (0.1, 0.05, 0.8),
+                'Abraham Lincoln photographed by Alexander Gardner, 1863'),
+    'Japan': ('File:Tokugawa Ieyasu2.JPG', (0.29, 0.40, 0.28),
+              'Tokugawa Ieyasu by Kano Tan\'yu, 17th century'),
+    'France': ('File:Ingres coronation charles vii.jpg',
+              (0.33, 0.1, 0.32), 'Joan of Arc: detail of "Joan of Arc at the Coronation of Charles VII" by Ingres, 1854 (no likeness from her lifetime survives)'),
+    'India': ('File:Gandhi portrait, 1940.jpg',
+             (0.04, 0.0, 0.96), 'Mohandas K. Gandhi, photograph, 1940'),
+    'Persia': ('File:Rembrandt van Rijn and Workshop (Probably Govaert Flinck), Man in Oriental Costume, c. 1635, NGA 572.jpg',
+              (0.17, 0.08, 0.66), 'A typical Persian king, standing in for Xerxes, whose own reliefs are defaced: "Man in Oriental Costume" by Rembrandt and workshop (probably Govaert Flinck), about 1635'),
+    'Aztecs': ('File:Moctezuma Xocoyotzin.png',
+              (0.22, 0.03, 0.5), 'Moctezuma II, 17th-century painting attributed to Antonio Rodriguez'),
+    'Zululand': ('File:Shaka Zulu incisione ottocentesca.jpg',
+                (0.315, 0.3, 0.35), 'Shaka, 19th-century print after the drawing by James King'),
+    'Iroquois': ('File:Joseph Brant painting by George Romney 1776 (2).jpg',
+                (0.2, 0.06, 0.56), 'A Haudenosaunee leader, standing in for Hiawatha, of whom no likeness survives: the Mohawk leader Thayendanegea (Joseph Brant) by George Romney, 1776'),
+    'England': ('File:Darnley stage 3.jpg', (0.17, 0.0, 0.52),
+                'Elizabeth I: the "Darnley Portrait", about 1575'),
+    'Mongols': ('File:YuanEmperorAlbumGenghisPortrait.jpg',
+               (0.2, 0.3, 0.6), "Genghis Khan (Temujin): portrait from the Yuan emperors' album, National Palace Museum, Taipei"),
+    'Spain': ('File:Juan de Flandes - Isabel la Católica (Palacio Real, Madrid, 1500-04. Óleo sobre tabla, 63 x 55 cm).jpg',
+              (0.1, 0.05, 0.8), 'Isabella I of Castile by Juan de Flandes, about 1500'),
+    'Scandinavia': ('File:Leif Erikson Discovers America Hans Dahl.jpg',
+                   (0.295, 0.11, 0.14), 'A typical Viking chieftain, standing in for Ragnar Lodbrok, of whom no likeness survives: Leif Erikson in "Leif Erikson Discovers America" by Hans Dahl'),
+    'Ottomans': ('File:Paolo Veronese (Nachfolger) - Sultan Osman I. - 2242 - Bavarian State Painting Collections.jpg',
+                (0.17, 0.22, 0.7), 'Osman I, 16th-century Venetian portrait (follower of Paolo Veronese)'),
+    'Celts': ('File:Le Brenn et sa part de butin (Paul Jamin).jpg',
+             (0.07, 0.13, 0.2), 'Brennus: detail of "Le Brenn et sa part de butin" by Paul Jamin, 1893'),
+    'Arabia': ('File:Abu Bakr Caliph Calligraphy.png',
+              (0.006, 0.0, 0.988), 'Abu Bakr: his name in the roundel design by Kazasker Mustafa Izzet Efendi (Hagia Sophia, 19th century); no likeness of him exists, and Islamic tradition shows him by his name'),
+    'Carthage': ('File:Hannibal Barca bust from Capua photo.jpg', (0.1, 0.0, 0.8),
+                 'Hannibal: the marble bust found at Capua'),
+    'Korea': ('File:Taejo Wangkun.jpg',
+             (0.3, 0.06, 0.36), 'Wang Kon (Taejo of Goryeo): royal portrait at Sungeuijeon, a copy (before 1950) of a Joseon-era painting'),
+    'Sumeria': ('File:Gudea of Lagash Girsu.jpg',
+                (0.17, 0.03, 0.66), 'A typical Sumerian ruler, standing in for Gilgamesh, of whom no likeness survives: Gudea of Lagash, diorite statue, Louvre'),
+    'Hittites': ('File:Priest-King or Diety, about 1600 BC, Hittite, North Syria, basalt with bone eyes - Cleveland Museum of Art - DSC08114.JPG',
+                (0.36, 0.13, 0.27), 'A typical Hittite king, standing in for Mursilis, of whom no likeness survives: basalt statue of a priest-king with bone eyes, about 1600 BC, Cleveland Museum of Art'),
+    'Netherlands': ('File:William I, Prince of Orange by Adriaen Thomasz. Key Rijksmuseum Amsterdam SK-A-3148.jpg',
+                    (0.1, 0.05, 0.8), 'William the Silent by Adriaen Thomasz. Key, about 1579'),
+    'Portugal': ('File:Henry the Navigator1.jpg', (0.0, 0.0, 1.0),
+                 'Henry the Navigator: detail of the Saint Vincent Panels by Nuno Goncalves, 1470s'),
+    'Byzantines': ('File:Mosaic of empress Theodora, Ravenna, San Vitale, 547.jpg', (0.15, 0.10, 0.62),
+                   'Empress Theodora: mosaic in the Basilica of San Vitale, Ravenna, 547'),
+    'Inca': ('File:Brooklyn Museum - Pachacuti, Tenth Inca, 1 of 14 Portraits of Inca Kings (cropped).jpg',
+            (0.27, 0.21, 0.46), 'Pachacuti: Cuzco School painting, 18th century (Brooklyn Museum)'),
+    'Maya': ('File:Mayan - Stucco Portrait Head - Walters 20092026.jpg',
+            (0.1, 0.12, 0.84), 'A typical Maya noble, standing in for Smoke-Jaguar, of whom no likeness is in the public domain: Classic Maya stucco portrait head from Campeche, Walters Art Museum'),
 }
 
-# The view: the model turned a little to its right (toward the light), and
-# tipped toward the camera to undo the map camera's 30 degree tilt, so the
-# leader is seen at eye level.
-YAW = 162.0
-TILT = -R.ELEVATION
-# How the head sits in the picture: its center (fractions of the picture)
-# and the picture's height in meters at the usual zoom.
-HEAD_AT = (0.5, 0.41)
-VIEW_HEIGHT = 0.78
-# Tall headgear (feather bonnets, plumes, crowns) zooms out down to this
-# height, and lowers the head down to this far, to stay in the picture.
-MAX_VIEW_HEIGHT = 1.2
-LOWEST_HEAD = 0.55
-TOP_MARGIN = 0.04
-# The tallest headgear, in meters above the head center, that the picture
-# makes room for.
-HEADGEAR = 0.6
+# Artists Commons' metadata doesn't name, by civilization.
+ARTIST = {'Scandinavia': 'Hans Dahl'}
+
+# A little more for a few sources: contrast for a faded print; less
+# sharpening for small sources scaled up, so they don't get an artificial
+# texture; 'cover', boxes (left, top, right, bottom, in fractions of the
+# width) painted over with the color around them, for a painted inscription
+# beside the sitter; 'disc', the corners outside a round picture filled
+# with a dark warm tone.
+TOUCH = {
+    'Zululand': {'contrast': 1.15, 'sharpen': 20},
+    'Korea': {'sharpen': 20},
+    'Scandinavia': {'sharpen': 20},
+    'Celts': {'sharpen': 15},
+    'Arabia': {'color': 0.4, 'disc': True},
+    'Ottomans': {'cover': [(0.02, 0.57, 0.30, 0.76)]},
+}
+# The brightness every portrait's mid-tones are brought toward (0..1).
+TARGET_LEVEL = 0.42
 
 
-class PortraitStyle(R.Style):
-    ss = 4
-    contour_alpha = 0.45
-    inner_line = 0.22
+# ---------------------------------------------------------------- Commons
+
+def _get(url, tries=4):
+    req = urllib.request.Request(url, headers={'User-Agent': USER_AGENT})
+    for i in range(tries):
+        try:
+            with urllib.request.urlopen(req, timeout=120) as r:
+                return r.read()
+        except urllib.error.HTTPError as e:
+            if e.code not in (429, 500, 502, 503, 504) or i == tries - 1:
+                raise
+        except urllib.error.URLError:
+            if i == tries - 1:
+                raise
+        time.sleep(2 + 4 * i)
 
 
-def file_name(civ):
-    return C.file_stem(civ['name']) + '.png'
+def _strip(html):
+    # without hidden parts (Commons repeats some names in hidden spans)
+    text = re.sub(r'<(\w+)[^>]*display:\s*none[^>]*>.*?</\1>', '', html or '', flags=re.S)
+    text = re.sub(r'<[^>]+>', '', text)
+    return re.sub(r'\s+', ' ', text).strip()
 
 
-def art_path(civ):
-    """The media path of a civilization's portrait, as the game uses it."""
-    return f'{FOLDER}/{file_name(civ)}'
+def _cache_name(title):
+    return re.sub(r'[^A-Za-z0-9._-]+', '_', title[5:])[:120]
 
 
-def civ_color(civ):
-    return C.hex_rgb(C.CIV_COLORS[civ.get('primaryColorIndex', 0) % len(C.CIV_COLORS)])
+def file_info(title):
+    """A Commons file's page, size, download URL and license metadata (cached)."""
+    path = os.path.join(CACHE, _cache_name(title) + '.json')
+    if os.path.exists(path):
+        with open(path, encoding='utf-8') as f:
+            return json.load(f)
+    q = urllib.parse.urlencode({'action': 'query', 'format': 'json', 'titles': title, 'prop': 'imageinfo',
+                                'iiprop': 'url|size|extmetadata', 'iiurlwidth': MAX_WIDTH})
+    pages = json.loads(_get(f'{API}?{q}'))['query']['pages']
+    page = next(iter(pages.values()))
+    if 'imageinfo' not in page:
+        raise SystemExit(f'{title}: not on Commons')
+    ii = page['imageinfo'][0]
+    meta = ii.get('extmetadata', {})
+    info = {
+        'title': page['title'],
+        'page': ii['descriptionurl'],
+        'width': ii['width'],
+        'height': ii['height'],
+        # the original if it's small enough, else Commons' scaled copy
+        'url': ii['url'] if ii['width'] <= MAX_WIDTH or 'thumburl' not in ii else ii['thumburl'],
+        'license': _strip(meta.get('LicenseShortName', {}).get('value')),
+        'artist': _strip(meta.get('Artist', {}).get('value')) or 'unknown',
+        'credit': _strip(meta.get('Credit', {}).get('value')),
+        'date': _strip(meta.get('DateTimeOriginal', {}).get('value')),
+        'license_templates': license_templates(title),
+    }
+    os.makedirs(CACHE, exist_ok=True)
+    with open(path, 'w', encoding='utf-8') as f:
+        json.dump(info, f, indent=1, ensure_ascii=False)
+    return info
 
 
-# ---------------------------------------------------------------- the model
-
-def _face(model, female=False):
-    """Parts for the close-up face, in head space (before the humanoid's
-    head scale): eyes with whites, irises and upper lids, brows, nostrils
-    and lips. They replace the map model's dark dot eyes. Women get finer,
-    arched brows, lashes and rosier lips."""
-    mats = model.mats
-    skin = mats['skin']
-    hair = mats['hair']
-    skin_rgb = np.array(mats.color[skin], np.float32)
-    hair_rgb = np.array(mats.color[hair], np.float32)
-    white = mats.add('eye_white', tuple(int(v) for v in C.mix(np.array([236, 230, 218], np.float32), skin_rgb, 0.18)),
-                     spec=0.25, gloss=30)
-    iris = mats.add('iris', '#3a2618', spec=0.5, gloss=40)
-    lid = mats.add('lid', tuple(int(v) for v in skin_rgb * 0.86), spec=0.1, gloss=10)
-    # brows a little darker than the hair (bald or white-haired leaders keep
-    # light brows)
-    brow = mats.add('brow', tuple(int(v) for v in hair_rgb * 0.85), spec=0.05, gloss=8)
-    lips = mats.add('lip', tuple(int(v) for v in C.mix(skin_rgb, np.array([165, 62, 64] if female else [150, 70, 60],
-                                                                            np.float32), 0.55 if female else 0.45)),
-                    spec=0.2 if female else 0.15, gloss=16)
-    lash = mats.add('lash', '#2a1c16')
-    line = mats.add('mouth_line', tuple(int(v) for v in skin_rgb * 0.45))
-    parts = []
-    for sx in (1, -1):
-        parts.append(M.ellipsoid(0.0175, 0.0065, 0.0105, white, (sx * 0.037, 0.1125, 0.1215), seg=10))
-        parts.append(M.ellipsoid(0.0085, 0.0042, 0.0085, iris, (sx * 0.0355, 0.1168, 0.1205), seg=10))
-        parts.append(M.ellipsoid(0.0195, 0.0072, 0.0062, lid, (sx * 0.037, 0.1135, 0.1305), seg=10))
-        if female:
-            parts.append(M.capsule((sx * 0.018, 0.1205, 0.1425), (sx * 0.038, 0.1185, 0.1485), 0.0032, 0.0028, brow,
-                                   seg=6, rings=1))
-            parts.append(M.capsule((sx * 0.038, 0.1185, 0.1485), (sx * 0.058, 0.1095, 0.1435), 0.0028, 0.0018, brow,
-                                   seg=6, rings=1))
-            parts.append(M.capsule((sx * 0.022, 0.1175, 0.1255), (sx * 0.054, 0.1125, 0.1265), 0.0022, 0.0022, lash,
-                                   seg=5, rings=1))
-        else:
-            parts.append(M.capsule((sx * 0.016, 0.1205, 0.1415), (sx * 0.058, 0.1105, 0.1445), 0.0048, 0.0036, brow,
-                                   seg=6, rings=1))
-        parts.append(M.ellipsoid(0.011, 0.012, 0.009, skin, (sx * 0.013, 0.134, 0.087), seg=8))
-    parts.append(M.ellipsoid(0.026, 0.0085, 0.0068, lips, (0, 0.1125, 0.064), seg=10))
-    parts.append(M.capsule((-0.021, 0.1195, 0.0645), (0.021, 0.1195, 0.0645), 0.0021, 0.0021, line, seg=5, rings=1))
-    return M.Mesh.concat(parts).transformed(M.scale(H.HEAD))
+def license_templates(title):
+    """The license templates on a file's page. A photo of an old statue or
+    painting can be public domain as an artwork yet carry the photographer's
+    own CC BY-SA license, which the summary license name doesn't show."""
+    q = urllib.parse.urlencode({'action': 'query', 'format': 'json', 'titles': title, 'prop': 'revisions',
+                                'rvprop': 'content', 'rvslots': 'main'})
+    page = next(iter(json.loads(_get(f'{API}?{q}'))['query']['pages'].values()))
+    text = page['revisions'][0]['slots']['main']['*']
+    # {{self|cc-by-sa-4.0|...}} lists the uploader's licenses as parameters
+    names = [n for m in re.findall(r'\{\{\s*self\s*\|([^}]*)\}\}', text, re.I) for n in m.split('|')]
+    names += re.findall(r'\{\{\s*([^|}\n]+)', text)
+    return [n.strip() for n in names if re.match(r'\s*(pd|cc|gfdl|fal\b|attribution|licensed|public|not-pd)', n, re.I)]
 
 
-def portrait_model(folder, female=False):
-    """The posed leader model in world space (turned and tipped for the
-    portrait), its materials and the position of its head."""
-    name, entry = U.unit_entry(folder)
-    model = models.ARCHETYPES[entry['archetype']](name, entry)
-    eyes = model.mats['eyes']
-    model.parts = [(b, M.Mesh(m.V[m.M != eyes], m.N[m.M != eyes], m.M[m.M != eyes]) if b == 'head' else m, t)
-                   for b, m, t in model.parts]
-    model.parts.append(('head', _face(model, female), None))
-    act = model.action('DEFAULT', None)
-    t = rig.frame_times(15, act.loop)[0]
-    pose = act.fn(t)
-    pose.setdefault('t', t)
-    mesh = model.pose_full(pose, act, model.anim_name('DEFAULT'), t)
-    Wh = model.world(pose, act)['head']
-    head = Wh[:3, 3] + Wh[:3, :3] @ (np.array([0, 0.01, 0.11], np.float32) * H.HEAD)
-    T = M.rot_x(TILT) @ U._yaw(YAW)
-    return mesh.transformed(T), model.mats, T[:3, :3] @ head
+def is_free(info):
+    """Only public domain and CC0 pictures are used (no attribution or
+    share-alike terms on the game's art): the license is public domain or
+    CC0, no license on the page asks for attribution or share-alike, and
+    the page doesn't say it's still under copyright in the US
+    ({{Not-PD-US-...}})."""
+    if not re.match(r'(public domain|pd\b|pd-|cc0)', info['license'].strip(), re.I):
+        return False
+    return not any(re.match(r'(cc-by|gfdl|fal\b|attribution|not-pd)', t, re.I) for t in info['license_templates'])
 
 
-def frame(mesh, head):
-    """The camera: the head at HEAD_AT, zoomed out and lowered as far as
-    needed (and allowed) to keep tall headgear in the picture."""
-    unit = R.Camera(1.0, (0.0, 0.0))
-    hx, hy, _ = unit.project(head[None])[0]
-    S = unit.project(mesh.V).reshape(-1, 3)
-    # what's on the head: above it and no wider than a headdress (not a
-    # staff or standard held beside it, which may run out of the picture)
-    near = (np.abs(S[:, 0] - hx) < 0.2) & (hy - S[:, 1] < HEADGEAR)
-    above = hy - S[near, 1].min()    # meters above the head center
-    view = VIEW_HEIGHT
-    at = HEAD_AT[1]
-    need = above / (at - TOP_MARGIN)
-    if need > view:
-        # lower the head first, then zoom out
-        at = min(LOWEST_HEAD, TOP_MARGIN + above / view)
-        need = above / (at - TOP_MARGIN)
-        view = min(MAX_VIEW_HEIGHT, max(view, need))
-    ppm = SIZE / view
-    return R.Camera(ppm, (SIZE * HEAD_AT[0] - hx * ppm, SIZE * at - hy * ppm))
+def source_image(title):
+    info = file_info(title)
+    if not is_free(info):
+        raise SystemExit(f'{title} is {info["license"]} ({", ".join(info["license_templates"])}),'
+                         ' not just public domain or CC0')
+    ext = os.path.splitext(info['url'].split('?')[0])[1].lower() or '.jpg'
+    path = os.path.join(CACHE, _cache_name(title) + '.src' + ext)
+    if not os.path.exists(path):
+        data = _get(info['url'])
+        with open(path, 'wb') as f:
+            f.write(data)
+        time.sleep(1)  # be gentle with Commons
+    im = Image.open(path)
+    im = ImageOps.exif_transpose(im)
+    if im.mode in ('RGBA', 'LA', 'P'):
+        im = im.convert('RGBA')
+        bg = Image.new('RGBA', im.size, (236, 230, 216, 255))
+        im = Image.alpha_composite(bg, im)
+    return im.convert('RGB'), info
 
 
 # ---------------------------------------------------------------- the picture
 
-def backdrop(color, seed):
-    """A soft, lit-from-the-upper-left backdrop: a pale light behind the head
-    fading into a deeper shade of the civ's color."""
+def crop(im, box):
+    """The square (left, top, side), in fractions of the width, scaled to
+    SIZE. Parts outside the picture are filled with its edge colors."""
+    w, h = im.size
+    left, top, side = (v * w for v in box)
+    x0, y0, s = int(round(left)), int(round(top)), max(1, int(round(side)))
+    if x0 < 0 or y0 < 0 or x0 + s > w or y0 + s > h:
+        pad = max(-x0, -y0, x0 + s - w, y0 + s - h, 0)
+        im = ImageOps.expand(im, border=pad, fill=tuple(int(v) for v in np.asarray(im).reshape(-1, 3).mean(0)))
+        x0, y0 = x0 + pad, y0 + pad
+    sq = im.crop((x0, y0, x0 + s, y0 + s))
+    # downscale in steps for a clean result from big sources
+    while sq.width > SIZE * 3:
+        sq = sq.resize((sq.width // 2, sq.height // 2), Image.LANCZOS)
+    return sq.resize((SIZE, SIZE), Image.LANCZOS)
+
+
+def _luma(a):
+    return a @ np.array([0.299, 0.587, 0.114], np.float32)
+
+
+def finish(im, sharpen=45):
+    """The same grade for every portrait, so the set looks of a piece:
+    levels, mid-tones brought to a common brightness, black and white
+    pictures toned warm like old prints, slightly muted and warmed color,
+    a little sharpening, a soft vignette and a beveled edge."""
+    im = ImageOps.autocontrast(im, cutoff=(0.4, 0.4), preserve_tone=True)
+    a = np.asarray(im, np.float32) / 255
+    # even out brightness: a gamma that brings the middle of the picture's
+    # tones (weighted to its center, where the face is) toward one level
     n = SIZE
-    base = C.mute(color, 0.45, 1.0)
-    light = C.mix(C.hex_rgb('e6dcc6'), base, 0.25)
-    deep = C.mix(C.hex_rgb('3c3630'), base, 0.42)
-    d = C.radial(n, n * 0.40, n * 0.34, n * 0.78)
-    t = np.clip(d, 0, 1)[..., None] ** 1.1
-    rgb = C.mix(light, deep, t)
-    nz = C.noise(n, n / 4, seed, 3)[..., None]
-    rgb = rgb * (0.96 + 0.07 * nz)
-    rgb = C.vignette(rgb, 0.22)
-    return np.concatenate([rgb, np.ones((n, n, 1), np.float32)], -1)
+    y, x = np.mgrid[0:n, 0:n].astype(np.float32)
+    wgt = np.exp(-(((x - n / 2) / (n * 0.3)) ** 2 + ((y - n * 0.45) / (n * 0.3)) ** 2))
+    mean = float((_luma(a) * wgt).sum() / wgt.sum())
+    g = np.clip(np.log(TARGET_LEVEL) / np.log(max(1e-3, min(mean, 0.97))), 0.7, 1.45)
+    a = np.clip(a, 0, 1) ** g
+    # black and white (and near it): toned like a warm old print
+    sat = float((a.max(-1) - a.min(-1)).mean())
+    if sat < 0.1:
+        lum = _luma(a)[..., None]
+        sepia = np.clip(lum * np.array([1.08, 0.98, 0.82], np.float32) + np.array([0.02, 0.01, 0.0], np.float32), 0, 1)
+        k = 0.75 * (1 - sat / 0.1)
+        a = a * (1 - k) + sepia * k
+    im = Image.fromarray((np.clip(a, 0, 1) * 255 + 0.5).astype(np.uint8), 'RGB')
+    im = ImageEnhance.Color(im).enhance(0.88)
+    im = im.filter(ImageFilter.UnsharpMask(radius=1.2, percent=sharpen, threshold=2))
+    a = np.asarray(im, np.float32) / 255
+    # warm: a touch of old varnish over everything
+    a = a * np.array([1.03, 1.0, 0.92], np.float32) + np.array([0.012, 0.006, 0.0], np.float32)
+    d =np.hypot((x - n / 2) / (n * 0.62), (y - n * 0.45) / (n * 0.66))
+    a *= (1 - 0.30 * np.clip(d - 0.35, 0, 1) ** 1.6)[..., None]
+    # beveled edge: a dark rim, light inner line top and left, dark bottom and right
+    w = 3
+    a[:w, :] = a[:w, :] * 0.86 + 0.14
+    a[:, :w] = a[:, :w] * 0.86 + 0.14
+    a[-w:, :] *= 0.72
+    a[:, -w:] *= 0.72
+    a[[0, -1], :] *= 0.35
+    a[:, [0, -1]] *= 0.35
+    return Image.fromarray((np.clip(a, 0, 1) * 255 + 0.5).astype(np.uint8), 'RGB')
 
 
-def make(civ):
-    """A civilization's portrait (float RGBA, SIZE x SIZE, opaque)."""
-    folder = LEADER_ART[civ['civilopediaEntry']]
-    mesh, mats, head = portrait_model(folder, civ.get('leaderGender') == 'female')
-    cam = frame(mesh, head)
-    b, t = R.render_cell(mesh, mats.arrays(), cam, SIZE, SIZE, style=PortraitStyle, shadow=False)
-    color = civ_color(civ)
-    figure = U.tinted(b, t, C.mute(color, 0.8, 0.95))
-    seed = sum(map(ord, civ['civilopediaEntry']))
-    bg = backdrop(color, seed)
-    img = C.over(figure, C.over(_drop_shadow(figure), bg))
-    img[..., :3] = C.frame_edges(img[..., :3])
-    return img
+def _cover(im, boxes):
+    """Paints the boxes over with the median color of a band around them."""
+    a = np.asarray(im).copy()
+    w = im.width
+    for l, t, r, b in boxes:
+        x0, y0, x1, y1 = (int(v * w) for v in (l, t, r, b))
+        m = max(4, (x1 - x0) // 8)
+        ring = np.concatenate([a[max(0, y0 - m):y0, x0:x1].reshape(-1, 3), a[y1:y1 + m, x0:x1].reshape(-1, 3),
+                               a[y0:y1, max(0, x0 - m):x0].reshape(-1, 3), a[y0:y1, x1:x1 + m].reshape(-1, 3)])
+        a[y0:y1, x0:x1] = np.median(ring, 0)
+    out = Image.fromarray(a)
+    # soften the patch's edges into the painting
+    mask = Image.new('L', im.size, 0)
+    dr = ImageDraw.Draw(mask)
+    for l, t, r, b in boxes:
+        dr.rectangle([v * w for v in (l, t, r, b)], fill=255)
+    mask = mask.filter(ImageFilter.GaussianBlur(max(2, w // 200)))
+    return Image.composite(out.filter(ImageFilter.GaussianBlur(max(2, w // 300))), im, mask)
 
 
-def _drop_shadow(obj, dx=6, dy=5, r=5, alpha=0.30):
-    a = C.blur(obj[..., 3], r)
-    a = np.roll(np.roll(a, dy, 0), dx, 1)
-    sh = np.zeros_like(obj)
-    sh[..., 3] = a * alpha
-    return sh
+def _disc(im):
+    """The corners outside the round picture, filled dark and warm."""
+    n = im.width
+    y, x = np.mgrid[0:n, 0:n].astype(np.float32)
+    r = np.hypot(x - (n - 1) / 2, y - (n - 1) / 2) / (n / 2)
+    k = np.clip((r - 0.985) / 0.02, 0, 1)[..., None]
+    a = np.asarray(im, np.float32) * (1 - k) + np.array([42, 32, 24], np.float32) * k
+    return Image.fromarray(a.astype(np.uint8))
 
+
+def make(civ_name):
+    title, box, _ = SOURCES[civ_name]
+    im, info = source_image(title)
+    extra = TOUCH.get(civ_name, {})
+    if 'cover' in extra:
+        im = _cover(im, extra['cover'])
+    # how much the crop is enlarged: sharpening only for sources with pixels to spare
+    upscale = SIZE / max(1.0, box[2] * im.width)
+    im = crop(im, box)
+    if extra.get('disc'):
+        im = _disc(im)
+    if 'contrast' in extra:
+        im = ImageEnhance.Contrast(im).enhance(extra['contrast'])
+    if 'color' in extra:
+        im = ImageEnhance.Color(im).enhance(extra['color'])
+    sharpen = extra.get('sharpen', 45 if upscale < 0.8 else 25)
+    return finish(im, sharpen=sharpen), info
+
+
+# ---------------------------------------------------------------- previews
+
+def source_preview(civ_name, im):
+    """The whole source, with a grid every tenth of its width, and the crop."""
+    title, box, _ = SOURCES[civ_name]
+    pv = im.copy()
+    pv.thumbnail((900, 900))
+    s = pv.width
+    dr = ImageDraw.Draw(pv)
+    for i in range(1, int(10 * pv.height / s) + 1):
+        dr.line([(0, i * s / 10), (pv.width, i * s / 10)], fill=(0, 255, 255), width=1)
+        dr.text((2, i * s / 10 + 1), f'{i / 10:.1f}', fill=(255, 255, 0))
+    for i in range(1, 10):
+        dr.line([(i * s / 10, 0), (i * s / 10, pv.height)], fill=(0, 255, 255), width=1)
+        dr.text((i * s / 10 + 2, 2), f'{i / 10:.1f}', fill=(255, 255, 0))
+    l, t, side = (v * s for v in box)
+    dr.rectangle([l, t, l + side, t + side], outline=(255, 0, 0), width=3)
+    os.makedirs(os.path.join(PREVIEWS, 'leaderheads_sources'), exist_ok=True)
+    pv.save(os.path.join(PREVIEWS, 'leaderheads_sources', f'{civ_name}.jpg'), quality=85)
+
+
+def contact_sheet(done):
+    cols, pad = 8, 6
+    rows = (len(done) + cols - 1) // cols
+    sheet = Image.new('RGB', (cols * (SIZE + pad) + pad, rows * (SIZE + pad + 14) + pad), (210, 210, 210))
+    dr = ImageDraw.Draw(sheet)
+    for i, (name, img) in enumerate(done):
+        r, c = divmod(i, cols)
+        x, y = pad + c * (SIZE + pad), pad + r * (SIZE + pad + 14)
+        sheet.paste(img, (x, y))
+        dr.text((x + 2, y + SIZE + 1), name, fill=(0, 0, 0))
+    os.makedirs(PREVIEWS, exist_ok=True)
+    path = os.path.join(PREVIEWS, 'leaderheads.png')
+    sheet.save(path)
+    return path
+
+
+# ---------------------------------------------------------------- credits
+
+def write_credits(civs):
+    lines = [
+        'Leader portraits (standalone mode)',
+        '==================================',
+        '',
+        'Made by ArtGen/leaderheads/build.py from public domain and CC0 pictures',
+        'on Wikimedia Commons: cropped to the head and shoulders, scaled, and given',
+        'a light color grade, vignette and edge.',
+        '',
+    ]
+    for civ in civs:
+        name, leader = civ['name'], civ.get('leader', '')
+        title, _, note = SOURCES[name]
+        info = file_info(title)
+        lines += [
+            f'{name}.png ({leader})',
+            f'  {note}',
+            f'  Source:  {info["page"]}',
+            f'  Artist:  {ARTIST.get(name, info["artist"])}',
+            f'  License: {info["license"]}',
+            '',
+        ]
+    with open(os.path.join(OUT, 'CREDITS.txt'), 'w', encoding='utf-8', newline='\n') as f:
+        f.write('\n'.join(lines))
+
+
+# ---------------------------------------------------------------- main
 
 def civilizations():
-    return [c for c in C.load_ruleset()['civilizations'] if not c.get('isBarbarian')]
-
-
-def _job(civ):
-    try:
-        img = make(civ)
-        C.save_png(img, os.path.join(civ3art.MODERN_ART, *art_path(civ).split('/')))
-        return civ['name'], img, None
-    except Exception:
-        import traceback
-        return civ['name'], None, traceback.format_exc()
+    with open(RULESET, encoding='utf-8') as f:
+        return [c for c in json.load(f)['civilizations'] if not c.get('isBarbarian')]
 
 
 def main(argv):
-    opts = dict(a[2:].split('=', 1) if '=' in a else (a[2:], '1') for a in argv if a.startswith('--'))
+    opts = {a[2:] for a in argv if a.startswith('--')}
     names = [a.lower() for a in argv if not a.startswith('--')]
-    civs = [c for c in civilizations() if not names or c['name'].lower() in names]
-    missing = [c['name'] for c in civs if c['civilopediaEntry'] not in LEADER_ART]
+    all_civs = civilizations()
+    missing = [c['name'] for c in all_civs if c['name'] not in SOURCES]
     if missing:
-        sys.exit(f'No leader art for {", ".join(missing)}: add them to LEADER_ART')
-    n = int(opts.get('jobs', os.cpu_count() or 4))
-    done, failed = [], []
-    with mp.Pool(min(n, len(civs))) as pool:
-        for name, img, err in pool.imap(_job, civs):
-            if err:
-                print(f'  FAILED {name}:\n{err}', flush=True)
-                failed.append(name)
-            else:
-                done.append((name, img))
-    cols = 8
-    rows = (len(done) + cols - 1) // cols
-    pad = 6
-    sheet = np.zeros((rows * (SIZE + pad) + pad, cols * (SIZE + pad) + pad, 4), np.float32)
-    sheet[..., :3] = 0.82
-    sheet[..., 3] = 1
-    for i, (_, img) in enumerate(done):
-        r, c = divmod(i, cols)
-        y, x = pad + r * (SIZE + pad), pad + c * (SIZE + pad)
-        sheet[y:y + SIZE, x:x + SIZE] = img
-    preview = os.path.join(civ3art.PREVIEWS, 'leaderheads.png')
-    C.save_png(sheet, preview)
-    print(f'{len(done)} leader heads, {len(failed)} failed; preview: {preview}')
-    if failed:
-        sys.exit(1)
+        sys.exit(f'No portrait source for {", ".join(missing)}: add them to SOURCES')
+    civs = [c for c in all_civs if not names or c['name'].lower() in names]
+    done = []
+    for civ in civs:
+        name = civ['name']
+        img, info = make(name)
+        img.save(os.path.join(OUT, f'{name}.png'), optimize=True)
+        if 'sources' in opts:
+            source_preview(name, source_image(SOURCES[name][0])[0])
+        print(f'  {name:12} {info["license"]:14} {info["title"]}', flush=True)
+        done.append((name, img))
+    if not names:
+        write_credits(all_civs)
+    print(f'{len(done)} leader heads; preview: {contact_sheet(done)}')
 
 
 if __name__ == '__main__':
