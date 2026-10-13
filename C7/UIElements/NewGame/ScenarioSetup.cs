@@ -170,6 +170,8 @@ public partial class ScenarioSetup : Control {
 			sp.human = sp.civilization == this.civilization.name;
 		}
 		save.GameDifficulty = difficulty;
+		// Under Regicide, civs the scenario gives no King get theirs.
+		GameSetup.PlaceScenarioKings(save);
 
 		log.Information("saving updated scenario");
 		global.SaveGame = save;

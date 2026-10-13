@@ -584,6 +584,11 @@ namespace C7GameData {
 		}
 
 		public void CheckForCivDestructionAndNotifyUi(Player player) {
+			// A civ being destroyed loses its cities and units, each of
+			// which checks again.
+			if (player.defeated) {
+				return;
+			}
 			if (this.CheckForCivDestruction(player)) {
 				this.CivDestructionCallback(player);
 				// Let the UI know about the civ destruction.
@@ -628,6 +633,10 @@ namespace C7GameData {
 			if (player.isBarbarians) {
 				return false;
 			}
+			// Regicide, Mass Regicide and Elimination.
+			if (InstantElimination.IsEliminated(player, victoryConditions)) {
+				return true;
+			}
 			if (player.RemainingCities() > 0) {
 				return false;
 			}
@@ -655,6 +664,19 @@ namespace C7GameData {
 			// always remove whatever unit is currently last.
 			while (player.units.Count > 0) {
 				RemoveUnit(player.units[^1]);
+			}
+
+			// A civ eliminated by Regicide or Elimination still has cities,
+			// which "are destroyed, becoming ruins", as are its colonies and
+			// airbases (see InstantElimination).
+			// The capital goes last, so the palace isn't moved on the way.
+			while (player.cities.Count > 0) {
+				CityInteractions.DestroyCity(player.cities.FirstOrDefault(c => !c.capital) ?? player.cities[0]);
+			}
+			foreach (Tile tile in map.tiles) {
+				if (tile.holdingOwner == player && tile.OwnedHolding() is TerrainImprovement holding) {
+					tile.overlays.Remove(holding);
+				}
 			}
 
 			// Remove this civ from all other player's relationships, and
@@ -720,6 +742,7 @@ namespace C7GameData {
 
 			Player owner = unit.owner;
 			owner.units.Remove(unit);
+			InstantElimination.OnUnitLost(unit, owner);
 
 			log.Debug("Player {Player} removed unit: {Unit}", owner, unit);
 
@@ -761,6 +784,7 @@ namespace C7GameData {
 			unit.movementPoints.reset(unit.MaxMovementPoints());
 
 			previousOwner.units.Remove(unit);
+			InstantElimination.OnUnitLost(unit, previousOwner);
 			unit.owner = captor;
 			captor.AddUnit(unit);
 			TileChangeJournal.Record(unit.location);

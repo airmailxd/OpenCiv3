@@ -487,6 +487,10 @@ namespace C7GameData {
 				if (civ3Tile.GoodyHut) {
 					tile.features.Add(GOODY_HUT);
 				}
+				// "0: VPL, -1: Not a VPL"
+				if (civ3Tile.VictoryPointLocation == 0) {
+					tile.features.Add(SaveTile.VictoryLocationFeature);
+				}
 				if (civ3Tile.Ruin > 0) {
 					tile.overlays.Add(RUINS);
 				}
@@ -673,6 +677,9 @@ namespace C7GameData {
 				save.VictoryConditions = VictoryConditions.NewGameDefaults();
 				// A scenario that turns on its time limit keeps it.
 				save.VictoryConditions.UseTurnLimit = games != null && games.Length > 0 && games[0].UseTimeLimit != 0;
+				if (games != null && games.Length > 0) {
+					ImportInstantElimination(save.VictoryConditions, games[0]);
+				}
 				return;
 			}
 			QueryCiv3.Biq.GAME game = games[0];
@@ -702,6 +709,34 @@ namespace C7GameData {
 				save.VictoryConditions.DominationPopulationPercent = game.DominationPopulation;
 			}
 			ImportCultureWin(save.VictoryConditions, game.OneCityCultureWin, game.AllCitiesCultureWin);
+			ImportInstantElimination(save.VictoryConditions, game);
+		}
+
+		// The GAME section's "autoplace kings" (Regicide) and "city
+		// elimination count" (Elimination). Keep the default count if the
+		// game doesn't set one.
+		private static void ImportInstantElimination(VictoryConditions conditions, QueryCiv3.Biq.GAME game) {
+			conditions.AutoPlaceKings = game.AutoPlaceKings != 0;
+			conditions.AutoPlaceVictoryLocations = game.AutoPlaceVictoryLocations != 0;
+			conditions.VictoryLocationPoints = Math.Max(0, game.VictoryPointScoring);
+			if (game.CityEliminationCount > 0) {
+				conditions.CityEliminationCount = game.CityEliminationCount;
+			}
+			ImportVictoryPoints(conditions, game.VictoryPointLimit, game.WonderCost, game.DefeatingOpposingUnitCost,
+				game.AdvancementCost, game.CityConquestPopulation);
+		}
+
+		// The GAME section's victory point limit and multiples (see
+		// VictoryPoints). A multiple of 0 scores nothing, as in the
+		// Napoleonic Europe conquest, which has none for wonders.
+		private static void ImportVictoryPoints(VictoryConditions conditions, int limit, int wonder, int defeat, int advance, int cityConquest) {
+			if (limit > 0) {
+				conditions.VictoryPointLimit = limit;
+			}
+			conditions.WonderVictoryPoints = Math.Max(0, wonder);
+			conditions.DefeatVictoryPoints = Math.Max(0, defeat);
+			conditions.AdvanceVictoryPoints = Math.Max(0, advance);
+			conditions.CityConquestVictoryPoints = Math.Max(0, cityConquest);
 		}
 
 		// The culture a cultural victory needs (see CulturalVictory), from
@@ -735,7 +770,17 @@ namespace C7GameData {
 				CaptureTheFlag = game.CaptureTheFlag, // 'Capture the Unit', 'Capture the Princess'
 				ReverseCaptureTheFlag = game.ReverseCaptureTheFlag,
 
+				// A game under way already has its kings and victory
+				// locations.
+				AutoPlaceKings = false,
+				AutoPlaceVictoryLocations = false,
+				VictoryLocationPoints = Math.Max(0, game.VictoryPointScoring),
 			};
+			if (game.CityEliminationCount > 0) {
+				save.VictoryConditions.CityEliminationCount = game.CityEliminationCount;
+			}
+			ImportVictoryPoints(save.VictoryConditions, game.VPLimit, game.WonderCost, game.DefeatingOpposingUnitCost,
+				game.AdvancementCost, game.CityConquestPopulation);
 			// Keep the defaults if the game doesn't set the thresholds.
 			if (game.DominationTerrain > 0) {
 				save.VictoryConditions.DominationTerritoryPercent = game.DominationTerrain;
@@ -824,6 +869,7 @@ namespace C7GameData {
 				civ.favoriteGovernment = GovernmentName(race.FavoriteGovernment);
 				civ.shunnedGovernment = GovernmentName(race.ShunnedGovernment);
 				civ.civilopediaEntry = race.CivilopediaEntry?.Trim();
+				civ.kingUnit = KingUnitName(race.UnitTypeForKing);
 
 				// Look up the image for non-barbarian civs.
 				string artName = pediaIcons.GetLeaderArtName(race.CivilopediaEntry);
@@ -834,6 +880,13 @@ namespace C7GameData {
 				save.Civilizations.Add(civ);
 				i++;
 			}
+		}
+
+		// The name of the BIQ's unit with this index, which a civ's King is
+		// (the RACE section's "unit type for king"), or null for none.
+		private string KingUnitName(int index) {
+			PRTO[] prtos = biq.Prto ?? defaultBiq.Prto;
+			return index >= 0 && index < prtos.Length ? prtos[index].Name : null;
 		}
 
 		// The name of the BIQ's government with this index, or null for none.
@@ -1935,6 +1988,7 @@ namespace C7GameData {
 				if (prto.HiddenNationality) prototype.flags.Add(SaveUnitPrototype.Flag.HiddenNationality);
 				if (prto.StealthAttack) prototype.flags.Add(SaveUnitPrototype.Flag.StealthAttack);
 				if (prto.CruiseMissile) prototype.flags.Add(SaveUnitPrototype.Flag.CruiseMissile);
+				if (prto.King) prototype.flags.Add(SaveUnitPrototype.Flag.King);
 				int[] targets = stealthTargets != null && prtoIndex < stealthTargets.Length ? stealthTargets[prtoIndex] : null;
 				if (targets != null && targets.Length > 0) {
 					prototype.stealthTargets = targets.Where(t => t >= 0 && t < Prto.Length).Select(t => Prto[t].Name).Distinct().ToList();

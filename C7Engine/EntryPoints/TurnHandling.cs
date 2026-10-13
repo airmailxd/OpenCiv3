@@ -118,6 +118,9 @@ namespace C7Engine {
 
 				BarbarianInteractions.DoTurn(gameData);
 
+				// With every player's turn over, Victory Locations score.
+				VictoryPoints.ScoreVictoryLocations(gameData);
+
 				gameData.turn++;
 				gameData.DestroyDefeatedCivs();
 				foreach (Player player in gameData.players) {
@@ -340,8 +343,17 @@ namespace C7Engine {
 			if (winners.Count == 1) {
 				DeclareVictory(winners[0].Item1, winners[0].Item2, gameData);
 			} else if (winners.Count > 1) {
+				// Under Victory Point Scoring, "If the game ends and no one
+				// has reached [the limit], then the winner is given to the
+				// civilization that has amassed the most victory points"
+				// (the Middle Ages conquest's Civilopedia); otherwise the
+				// highest score wins.
+				bool byVictoryPoints = gameData.victoryConditions?.VictoryLocations == true;
 				var topScoring = winners.OrderByDescending(pv => {
 					var player = pv.Item1;
+					if (byVictoryPoints) {
+						return player.victoryPoints;
+					}
 					HistTurnRecord lastTurn = gameData.history[player.id.ToString()].LastOrDefault();
 					return lastTurn?.Score ?? 0;
 				}).First();

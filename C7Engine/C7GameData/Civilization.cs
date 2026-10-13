@@ -67,6 +67,11 @@ namespace C7GameData {
 		// null if the rules don't say.
 		public string civilopediaEntry;
 
+		// The name of the civ's King unit (Abraham Lincoln for the
+		// Americans), given to it under Regicide and Mass Regicide, or null
+		// if it has none. See InstantElimination.
+		public string kingUnit;
+
 		public List<string> cityNames = new List<string>();
 
 		// The IDs of all the techs that this civ starts with.

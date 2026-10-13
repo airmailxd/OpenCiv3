@@ -763,6 +763,27 @@ namespace C7Engine {
 			return unit.IsLandUnit() && unit.unitType.bombard > 0 && unit.unitType.attack == 0;
 		}
 
+		// A King (Regicide) goes to the capital and stays there: "AI civs
+		// keep their leader units in the capital city"
+		// (https://forums.civfanatics.com/threads/regicide.436212/). Without
+		// a capital it stays where it is.
+		private static UnitAI MakeKingAI(MapUnit unit, Player player) {
+			City capital = player.cities.FirstOrDefault(c => c.capital);
+			TilePath path = null;
+			if (capital != null && capital.location != unit.location) {
+				path = PathingAlgorithmChooser.GetAlgorithm(unit).PathFrom(unit.location, capital.location, unit);
+				if (path == null || path.PathLength() == 0) {
+					capital = null;
+				}
+			}
+			return new DefenderAI(new DefenderAIData {
+				goal = DefenderAIData.DefenderGoal.DEFEND_CITY,
+				destination = capital?.location ?? unit.location,
+				defender = unit,
+				pathToDestination = path,
+			});
+		}
+
 		public static UnitAI GetAIForUnit(MapUnit unit, Player player) {
 			//figure out an AI behavior
 			if (unit.IsArmy() && ArmyAI.IsEnabled(player)) {
@@ -770,6 +791,9 @@ namespace C7Engine {
 			}
 			if (RestAI.ShouldRest(unit, player) && RestAI.Make(unit, player) is RestAI rest) {
 				return rest;
+			}
+			if (unit.unitType.isKing) {
+				return MakeKingAI(unit, player);
 			}
 			if (unit.IsLeader()) {
 				return MakeLeaderAI(unit, player);

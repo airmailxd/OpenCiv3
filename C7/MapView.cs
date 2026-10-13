@@ -658,13 +658,20 @@ public partial class GridLayer : LooseLayer {
 public partial class BuildingLayer : LooseLayer {
 	private ImageTexture barbCamp;
 	private ImageTexture goodyHut;
+	// Null when the art has none, as standalone mode's may not.
+	private ImageTexture victoryLocation;
 
 	public BuildingLayer() {
 		barbCamp = TextureLoader.Load("terrain.barbarian_camp");
 		goodyHut = TextureLoader.Load("terrain.goody_hut");
+		victoryLocation = TextureLoader.TryLoad("terrain.victory_location");
 	}
 
 	public override void drawObject(LooseView looseView, GameData gameData, Tile tile, Vector2 tileCenter) {
+		if (tile.isVictoryLocation && victoryLocation != null) {
+			Rect2 screenRect = new(tileCenter - 0.5f * victoryLocation.GetSize(), victoryLocation.GetSize());
+			looseView.DrawTextureRect(victoryLocation, screenRect, tile: false);
+		}
 		if (tile.hasBarbarianCamp) {
 			Rect2 screenRect = new(tileCenter - 0.5f * barbCamp.GetSize(), barbCamp.GetSize());
 			looseView.DrawTextureRect(barbCamp, screenRect, tile: false);
@@ -1647,7 +1654,8 @@ public partial class MapView : Node2D {
 					radar |= unit.unitType.hasRadar;
 				}
 			}
-			signature = Mix(signature, (tile.hasGoodyHut ? 1 : 0) | (tile.hasBarbarianCamp ? 2 : 0) | (ours ? 4 : 0) | (radar ? 8 : 0));
+			signature = Mix(signature, (tile.hasGoodyHut ? 1 : 0) | (tile.hasBarbarianCamp ? 2 : 0) | (ours ? 4 : 0) | (radar ? 8 : 0)
+				| (tile.isVictoryLocation ? 16 : 0));
 			return signature == 0 ? 1 : signature;
 		}
 

@@ -226,4 +226,76 @@ public class Civ3RuleImportTest {
 		Assert.DoesNotContain(SaveUnitPrototype.Flag.StealthAttack, Unit("Destroyer").flags);
 		Assert.Null(Unit("Destroyer").stealthTargets);
 	}
+
+	// Each civ's King is the unit its RACE section names ("for the
+	// Americans, the 'King' unit is Abraham Lincoln", Conquests Civilopedia,
+	// GCON_Short_Game_Modes), and conquests.biq places the kings itself.
+	[SkippableFact]
+	public void EachCivHasItsOwnKing() {
+		Skip.If(Civ3TestData.ShouldSkipCiv3DependentTests(), "No Civ3 install found.");
+
+		SaveGame game = ImportScenario("Scenarios", "No Civ Traits.biq");
+
+		Assert.Equal("Lincoln", game.Civilizations.Single(c => c.name == "America").kingUnit);
+		SaveUnitPrototype lincoln = game.UnitPrototypes.Single(p => p.name == "Lincoln");
+		Assert.Contains(SaveUnitPrototype.Flag.King, lincoln.flags);
+		Assert.True(lincoln.unproducible);
+		Assert.DoesNotContain(SaveUnitPrototype.Flag.King, game.UnitPrototypes.Single(p => p.name == "Warrior").flags);
+		Assert.True(game.VictoryConditions.AutoPlaceKings);
+		Assert.Equal(1, game.VictoryConditions.CityEliminationCount);
+	}
+
+	// Fall of Rome plays Elimination, with each civ able to lose 8 cities;
+	// the Middle Ages plays Mass Regicide with its kings on the map.
+	[SkippableFact]
+	public void ScenariosKeepTheirInstantEliminationRules() {
+		Skip.If(Civ3TestData.ShouldSkipCiv3DependentTests(), "No Civ3 install found.");
+
+		VictoryConditions fallOfRome = ImportScenario("Conquests", "3 Fall of Rome.biq").VictoryConditions;
+		Assert.True(fallOfRome.CityElimination);
+		Assert.Equal(8, fallOfRome.CityEliminationCount);
+		Assert.False(fallOfRome.Regicide);
+
+		VictoryConditions middleAges = ImportScenario("Conquests", "4 Middle Ages.biq").VictoryConditions;
+		Assert.True(middleAges.MassRegicide);
+		Assert.False(middleAges.AutoPlaceKings);
+		Assert.False(middleAges.CityElimination);
+	}
+
+	// Mesopotamia "ends immediately as soon as all seven Great Wonders of
+	// the World have been constructed, [or] as soon as a civilzation has
+	// accumulated 5500 victory points", scoring "Wonder Cost (2.5 VP * build
+	// cost)", "Defeating an enemy unit (5 VP * unit cost)", "Advancement Cost
+	// (5 VP * tech cost)" and "City Conquest (100 VP * city population)"
+	// (its Civilopedia's GCON_Victory).
+	[SkippableFact]
+	public void MesopotamiaScoresVictoryPoints() {
+		Skip.If(Civ3TestData.ShouldSkipCiv3DependentTests(), "No Civ3 install found.");
+
+		VictoryConditions conditions = ImportScenario("Conquests", "1 Mesopotamia.biq").VictoryConditions;
+
+		Assert.True(conditions.AllowWonderVictory);
+		Assert.True(conditions.VictoryLocations);
+		Assert.Equal(5500, conditions.VictoryPointLimit);
+		Assert.Equal(25, conditions.WonderVictoryPoints);
+		Assert.Equal(5, conditions.DefeatVictoryPoints);
+		Assert.Equal(5, conditions.AdvanceVictoryPoints);
+		Assert.Equal(100, conditions.CityConquestVictoryPoints);
+	}
+
+	// The Middle Ages scores Victory Locations its map places, 25 points a
+	// turn each, and places none itself.
+	[SkippableFact]
+	public void TheMiddleAgesHasVictoryLocations() {
+		Skip.If(Civ3TestData.ShouldSkipCiv3DependentTests(), "No Civ3 install found.");
+
+		SaveGame game = ImportScenario("Conquests", "4 Middle Ages.biq");
+
+		Assert.True(game.VictoryConditions.VictoryLocations);
+		Assert.Equal(25, game.VictoryConditions.VictoryLocationPoints);
+		Assert.False(game.VictoryConditions.AutoPlaceVictoryLocations);
+		Assert.Contains(game.Map.tiles, t => t.features.Contains(SaveTile.VictoryLocationFeature));
+		// Not every tile.
+		Assert.True(game.Map.tiles.Count(t => t.features.Contains(SaveTile.VictoryLocationFeature)) < 100);
+	}
 }

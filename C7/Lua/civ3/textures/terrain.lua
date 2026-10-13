@@ -73,6 +73,12 @@ terrain.barbarian_camp = {
 
 -- goodyhuts.pcx holds eight variations of a village in a 3x3 grid of 128x64
 -- cells (the last cell is empty).
+-- Conquests' Victory Location marker, one 128x64 tile.
+terrain.victory_location = {
+  path = TERRAIN .. "x_victory.pcx",
+  shadows = false,
+}
+
 terrain.goody_hut = {
   path = TERRAIN .. "goodyhuts.pcx",
   crop_region = { 0, 0, 128, 64 },

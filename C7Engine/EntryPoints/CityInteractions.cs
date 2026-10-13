@@ -242,6 +242,8 @@ namespace C7Engine {
 			if (city.capital) {
 				SpaceRace.DestroySpaceship(oldOwner, captor);
 			}
+			InstantElimination.OnCityLost(oldOwner, captor);
+			VictoryPoints.OnCityConquered(captor, city, gameData.victoryConditions);
 
 			if (!SurvivesCapture(city)) {
 				DestroyCity(city);

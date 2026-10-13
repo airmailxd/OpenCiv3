@@ -69,6 +69,10 @@ namespace C7GameData.Save {
 			// The unit is a cruise missile, used up by its attack (the BIQ's
 			// "Cruise Missile").
 			CruiseMissile,
+			// The unit is a King: its civ's leader under Regicide and Mass
+			// Regicide (the BIQ's PRTO "King" flag; see
+			// InstantElimination).
+			King,
 		}
 
 		public string name { get; set; }

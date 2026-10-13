@@ -7162,6 +7162,9 @@
       "airDefense": 0,
       "workerStrength": 1,
       "unproducible": true,
+      "flags": [
+        "king"
+      ],
       "categories": [
         "Land"
       ],
@@ -7204,6 +7207,9 @@
       "airDefense": 0,
       "workerStrength": 1,
       "unproducible": true,
+      "flags": [
+        "king"
+      ],
       "categories": [
         "Land"
       ],
@@ -7246,6 +7252,9 @@
       "airDefense": 0,
       "workerStrength": 1,
       "unproducible": true,
+      "flags": [
+        "king"
+      ],
       "categories": [
         "Land"
       ],
@@ -7288,6 +7297,9 @@
       "airDefense": 0,
       "workerStrength": 1,
       "unproducible": true,
+      "flags": [
+        "king"
+      ],
       "categories": [
         "Land"
       ],
@@ -7330,6 +7342,9 @@
       "airDefense": 0,
       "workerStrength": 1,
       "unproducible": true,
+      "flags": [
+        "king"
+      ],
       "categories": [
         "Land"
       ],
@@ -7372,6 +7387,9 @@
       "airDefense": 0,
       "workerStrength": 1,
       "unproducible": true,
+      "flags": [
+        "king"
+      ],
       "categories": [
         "Land"
       ],
@@ -7414,6 +7432,9 @@
       "airDefense": 0,
       "workerStrength": 1,
       "unproducible": true,
+      "flags": [
+        "king"
+      ],
       "categories": [
         "Land"
       ],
@@ -7456,6 +7477,9 @@
       "airDefense": 0,
       "workerStrength": 1,
       "unproducible": true,
+      "flags": [
+        "king"
+      ],
       "categories": [
         "Land"
       ],
@@ -7498,6 +7522,9 @@
       "airDefense": 0,
       "workerStrength": 1,
       "unproducible": true,
+      "flags": [
+        "king"
+      ],
       "categories": [
         "Land"
       ],
@@ -7540,6 +7567,9 @@
       "airDefense": 0,
       "workerStrength": 1,
       "unproducible": true,
+      "flags": [
+        "king"
+      ],
       "categories": [
         "Land"
       ],
@@ -7582,6 +7612,9 @@
       "airDefense": 0,
       "workerStrength": 1,
       "unproducible": true,
+      "flags": [
+        "king"
+      ],
       "categories": [
         "Land"
       ],
@@ -7624,6 +7657,9 @@
       "airDefense": 0,
       "workerStrength": 1,
       "unproducible": true,
+      "flags": [
+        "king"
+      ],
       "categories": [
         "Land"
       ],
@@ -7666,6 +7702,9 @@
       "airDefense": 0,
       "workerStrength": 1,
       "unproducible": true,
+      "flags": [
+        "king"
+      ],
       "categories": [
         "Land"
       ],
@@ -7708,6 +7747,9 @@
       "airDefense": 0,
       "workerStrength": 1,
       "unproducible": true,
+      "flags": [
+        "king"
+      ],
       "categories": [
         "Land"
       ],
@@ -7750,6 +7792,9 @@
       "airDefense": 0,
       "workerStrength": 1,
       "unproducible": true,
+      "flags": [
+        "king"
+      ],
       "categories": [
         "Land"
       ],
@@ -7792,6 +7837,9 @@
       "airDefense": 0,
       "workerStrength": 1,
       "unproducible": true,
+      "flags": [
+        "king"
+      ],
       "categories": [
         "Land"
       ],
@@ -7834,6 +7882,9 @@
       "airDefense": 0,
       "workerStrength": 1,
       "unproducible": true,
+      "flags": [
+        "king"
+      ],
       "categories": [
         "Land"
       ],
@@ -7876,6 +7927,9 @@
       "airDefense": 0,
       "workerStrength": 1,
       "unproducible": true,
+      "flags": [
+        "king"
+      ],
       "categories": [
         "Land"
       ],
@@ -7918,6 +7972,9 @@
       "airDefense": 0,
       "workerStrength": 1,
       "unproducible": true,
+      "flags": [
+        "king"
+      ],
       "categories": [
         "Land"
       ],
@@ -7960,6 +8017,9 @@
       "airDefense": 0,
       "workerStrength": 1,
       "unproducible": true,
+      "flags": [
+        "king"
+      ],
       "categories": [
         "Land"
       ],
@@ -8002,6 +8062,9 @@
       "airDefense": 0,
       "workerStrength": 1,
       "unproducible": true,
+      "flags": [
+        "king"
+      ],
       "categories": [
         "Land"
       ],
@@ -8044,6 +8107,9 @@
       "airDefense": 0,
       "workerStrength": 1,
       "unproducible": true,
+      "flags": [
+        "king"
+      ],
       "categories": [
         "Land"
       ],
@@ -8086,6 +8152,9 @@
       "airDefense": 0,
       "workerStrength": 1,
       "unproducible": true,
+      "flags": [
+        "king"
+      ],
       "categories": [
         "Land"
       ],
@@ -8128,6 +8197,9 @@
       "airDefense": 0,
       "workerStrength": 1,
       "unproducible": true,
+      "flags": [
+        "king"
+      ],
       "categories": [
         "Land"
       ],
@@ -8286,6 +8358,9 @@
       "airDefense": 0,
       "workerStrength": 1,
       "unproducible": true,
+      "flags": [
+        "king"
+      ],
       "categories": [
         "Land"
       ],
@@ -8328,6 +8403,9 @@
       "airDefense": 0,
       "workerStrength": 1,
       "unproducible": true,
+      "flags": [
+        "king"
+      ],
       "categories": [
         "Land"
       ],
@@ -8370,6 +8448,9 @@
       "airDefense": 0,
       "workerStrength": 1,
       "unproducible": true,
+      "flags": [
+        "king"
+      ],
       "categories": [
         "Land"
       ],
@@ -8528,6 +8609,9 @@
       "airDefense": 0,
       "workerStrength": 1,
       "unproducible": true,
+      "flags": [
+        "king"
+      ],
       "categories": [
         "Land"
       ],
@@ -8655,6 +8739,9 @@
       "airDefense": 0,
       "workerStrength": 1,
       "unproducible": true,
+      "flags": [
+        "king"
+      ],
       "categories": [
         "Land"
       ],
@@ -8697,6 +8784,9 @@
       "airDefense": 0,
       "workerStrength": 1,
       "unproducible": true,
+      "flags": [
+        "king"
+      ],
       "categories": [
         "Land"
       ],
@@ -8739,6 +8829,9 @@
       "airDefense": 0,
       "workerStrength": 1,
       "unproducible": true,
+      "flags": [
+        "king"
+      ],
       "categories": [
         "Land"
       ],
@@ -12173,6 +12266,7 @@
       "cultureGroupKey": "Mediterranean",
       "leaderArtFile": "art\\advisors\\CE_all.pcx",
       "civilopediaEntry": "RACE_ROMANS",
+      "kingUnit": "Caesar",
       "cityNames": [
         "Rome",
         "Veii",
@@ -12243,6 +12337,7 @@
       "cultureGroupKey": "Mediterranean",
       "leaderArtFile": "art\\advisors\\CL_all.pcx",
       "civilopediaEntry": "RACE_EGYPTIANS",
+      "kingUnit": "Cleopatra",
       "cityNames": [
         "Thebes",
         "Memphis",
@@ -12298,6 +12393,7 @@
       "cultureGroupKey": "Mediterranean",
       "leaderArtFile": "art\\advisors\\AL_all.pcx",
       "civilopediaEntry": "RACE_GREEKS",
+      "kingUnit": "Alexander",
       "cityNames": [
         "Athens",
         "Sparta",
@@ -12353,6 +12449,7 @@
       "cultureGroupKey": "Mid East",
       "leaderArtFile": "art\\advisors\\HA_all.pcx",
       "civilopediaEntry": "RACE_BABYLON",
+      "kingUnit": "Hammurabi",
       "cityNames": [
         "Babylon",
         "Nineveh",
@@ -12406,6 +12503,7 @@
       "cultureGroupKey": "European",
       "leaderArtFile": "art\\advisors\\BS_all.pcx",
       "civilopediaEntry": "RACE_GERMANS",
+      "kingUnit": "Bismarck",
       "cityNames": [
         "Berlin",
         "Leipzig",
@@ -12448,6 +12546,7 @@
       "cultureGroupKey": "European",
       "leaderArtFile": "art\\advisors\\CA_all.pcx",
       "civilopediaEntry": "RACE_RUSSIAN",
+      "kingUnit": "Catherine",
       "cityNames": [
         "Moscow",
         "St. Petersburg",
@@ -12513,6 +12612,7 @@
       "cultureGroupKey": "Asian",
       "leaderArtFile": "art\\advisors\\MO_all.pcx",
       "civilopediaEntry": "RACE_CHINESE",
+      "kingUnit": "Mao",
       "cityNames": [
         "Beijing",
         "Shanghai",
@@ -12557,6 +12657,7 @@
       "cultureGroupKey": "American",
       "leaderArtFile": "art\\advisors\\AB_all.pcx",
       "civilopediaEntry": "RACE_AMERICAN",
+      "kingUnit": "Lincoln",
       "cityNames": [
         "Washington",
         "New York",
@@ -12623,6 +12724,7 @@
       "cultureGroupKey": "Asian",
       "leaderArtFile": "art\\advisors\\TO_all.pcx",
       "civilopediaEntry": "RACE_JAPANESE",
+      "kingUnit": "Tokugawa",
       "cityNames": [
         "Kyoto",
         "Osaka",
@@ -12675,6 +12777,7 @@
       "cultureGroupKey": "European",
       "leaderArtFile": "art\\advisors\\JO_all.pcx",
       "civilopediaEntry": "RACE_FRENCH",
+      "kingUnit": "Joan d'Arc",
       "cityNames": [
         "Paris",
         "Orleans",
@@ -12722,6 +12825,7 @@
       "cultureGroupKey": "Asian",
       "leaderArtFile": "art\\advisors\\GH_all.pcx",
       "civilopediaEntry": "RACE_INDIAN",
+      "kingUnit": "Gandhi",
       "cityNames": [
         "Delhi",
         "Bombay",
@@ -12765,6 +12869,7 @@
       "cultureGroupKey": "Mid East",
       "leaderArtFile": "art\\advisors\\XE_all.pcx",
       "civilopediaEntry": "RACE_PERSIAN",
+      "kingUnit": "Xerxes",
       "cityNames": [
         "Persepolis",
         "Pasargadae",
@@ -12820,6 +12925,7 @@
       "cultureGroupKey": "American",
       "leaderArtFile": "art\\advisors\\MN_all.pcx",
       "civilopediaEntry": "RACE_AZTECS",
+      "kingUnit": "Montezuma",
       "cityNames": [
         "Tenochtitlan",
         "Teotihuacan",
@@ -12882,6 +12988,7 @@
       "cultureGroupKey": "Mid East",
       "leaderArtFile": "art\\advisors\\ZU_all.pcx",
       "civilopediaEntry": "RACE_ZULU",
+      "kingUnit": "Shaka",
       "cityNames": [
         "Zimbabwe",
         "Ulundi",
@@ -12924,6 +13031,7 @@
       "cultureGroupKey": "American",
       "leaderArtFile": "art\\advisors\\HI_all.pcx",
       "civilopediaEntry": "RACE_IROQUOIS",
+      "kingUnit": "Hiawatha",
       "cityNames": [
         "Salamanca",
         "Niagara Falls",
@@ -12979,6 +13087,7 @@
       "cultureGroupKey": "European",
       "leaderArtFile": "art\\advisors\\LZ_all.pcx",
       "civilopediaEntry": "RACE_ENGLISH",
+      "kingUnit": "Elizabeth",
       "cityNames": [
         "London",
         "York",
@@ -13034,6 +13143,7 @@
       "cultureGroupKey": "Asian",
       "leaderArtFile": "art\\advisors\\x_temujin advisor.pcx",
       "civilopediaEntry": "RACE_MONGOLS",
+      "kingUnit": "Temujin",
       "cityNames": [
         "Karakorum",
         "Ta-Tu",
@@ -13090,6 +13200,7 @@
       "cultureGroupKey": "European",
       "leaderArtFile": "art\\advisors\\x_isabell advisor.pcx",
       "civilopediaEntry": "RACE_SPANISH",
+      "kingUnit": "Isabella",
       "cityNames": [
         "Madrid",
         "Barcelona",
@@ -13147,6 +13258,7 @@
       "cultureGroupKey": "European",
       "leaderArtFile": "art\\advisors\\x_ragnar advisor.pcx",
       "civilopediaEntry": "RACE_VIKINGS",
+      "kingUnit": "Ragnar",
       "cityNames": [
         "Trondheim",
         "Bergen",
@@ -13206,6 +13318,7 @@
       "cultureGroupKey": "Mid East",
       "leaderArtFile": "art\\advisors\\x_osman advisor.pcx",
       "civilopediaEntry": "RACE_OTTOMANS",
+      "kingUnit": "Osman",
       "cityNames": [
         "Istanbul",
         "Edrine",
@@ -13261,6 +13374,7 @@
       "cultureGroupKey": "European",
       "leaderArtFile": "art\\advisors\\x_brennus advisor.pcx",
       "civilopediaEntry": "RACE_CELTS",
+      "kingUnit": "Brennus",
       "cityNames": [
         "Entremont",
         "Alesia",
@@ -13317,6 +13431,7 @@
       "cultureGroupKey": "Mid East",
       "leaderArtFile": "art\\advisors\\x_abu bakr advisor.pcx",
       "civilopediaEntry": "RACE_ARABS",
+      "kingUnit": "Abu",
       "cityNames": [
         "Mecca",
         "Medina",
@@ -13371,6 +13486,7 @@
       "cultureGroupKey": "Mediterranean",
       "leaderArtFile": "art\\advisors\\x_Hannibal advisor.pcx",
       "civilopediaEntry": "RACE_CARTHAGINIANS",
+      "kingUnit": "Hannibal",
       "cityNames": [
         "Carthage",
         "Utica",
@@ -13427,6 +13543,7 @@
       "cultureGroupKey": "Asian",
       "leaderArtFile": "art\\advisors\\x_Wang Kon advisor.pcx",
       "civilopediaEntry": "RACE_KOREANS",
+      "kingUnit": "Wang Kon",
       "cityNames": [
         "Seoul",
         "P'yongyang",
@@ -13483,6 +13600,7 @@
       "cultureGroupKey": "Mid East",
       "leaderArtFile": "art\\advisors\\x2_Gilgamesh advisor.pcx",
       "civilopediaEntry": "RACE_SUMERIA",
+      "kingUnit": "Gilgamesh",
       "cityNames": [
         "Ur",
         "Sumer",
@@ -13534,6 +13652,7 @@
       "cultureGroupKey": "Mid East",
       "leaderArtFile": "art\\advisors\\x2_Mursilis advisor.pcx",
       "civilopediaEntry": "RACE_HATTI",
+      "kingUnit": "Mursilis",
       "cityNames": [
         "Hattusas",
         "Tarsus",
@@ -13585,6 +13704,7 @@
       "cultureGroupKey": "European",
       "leaderArtFile": "art\\advisors\\x2_William advisor.pcx",
       "civilopediaEntry": "RACE_DUTCH",
+      "kingUnit": "William of Orange",
       "cityNames": [
         "Amsterdam",
         "Rotterdam",
@@ -13636,6 +13756,7 @@
       "cultureGroupKey": "European",
       "leaderArtFile": "art\\advisors\\x2_Henry advisor.pcx",
       "civilopediaEntry": "RACE_PORTUGAL",
+      "kingUnit": "Henry",
       "cityNames": [
         "Lisbon",
         "Oporto",
@@ -13698,6 +13819,7 @@
       "cultureGroupKey": "Mediterranean",
       "leaderArtFile": "art\\advisors\\x2_Theodora advisor.pcx",
       "civilopediaEntry": "RACE_BYZANTINES",
+      "kingUnit": "Theodora",
       "cityNames": [
         "Constantinople",
         "Adrianople",
@@ -13749,6 +13871,7 @@
       "cultureGroupKey": "American",
       "leaderArtFile": "art\\advisors\\x2_Pachacuti advisor.pcx",
       "civilopediaEntry": "RACE_INCANS",
+      "kingUnit": "Pachacuti",
       "cityNames": [
         "Cuzco",
         "Tiwanaku",
@@ -13800,6 +13923,7 @@
       "cultureGroupKey": "American",
       "leaderArtFile": "art\\advisors\\x2_Smoke-Jaguar_advisor.pcx",
       "civilopediaEntry": "RACE_MAYANS",
+      "kingUnit": "Smoke-Jaguar",
       "cityNames": [
         "Chichén Itza",
         "Copán",
@@ -15895,6 +16019,8 @@
     "victoryLocations": false,
     "captureTheFlag": false,
     "reverseCaptureTheFlag": false,
+    "autoPlaceKings": true,
+    "cityEliminationCount": 1,
     "useTurnLimit": false,
     "dominationTerritoryPercent": 66,
     "dominationPopulationPercent": 66
