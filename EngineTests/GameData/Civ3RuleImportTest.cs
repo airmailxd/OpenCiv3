@@ -282,4 +282,20 @@ public class Civ3RuleImportTest {
 		Assert.Equal(5, conditions.AdvanceVictoryPoints);
 		Assert.Equal(100, conditions.CityConquestVictoryPoints);
 	}
+
+	// The Middle Ages scores Victory Locations its map places, 25 points a
+	// turn each, and places none itself.
+	[SkippableFact]
+	public void TheMiddleAgesHasVictoryLocations() {
+		Skip.If(Civ3TestData.ShouldSkipCiv3DependentTests(), "No Civ3 install found.");
+
+		SaveGame game = ImportScenario("Conquests", "4 Middle Ages.biq");
+
+		Assert.True(game.VictoryConditions.VictoryLocations);
+		Assert.Equal(25, game.VictoryConditions.VictoryLocationPoints);
+		Assert.False(game.VictoryConditions.AutoPlaceVictoryLocations);
+		Assert.Contains(game.Map.tiles, t => t.features.Contains(SaveTile.VictoryLocationFeature));
+		// Not every tile.
+		Assert.True(game.Map.tiles.Count(t => t.features.Contains(SaveTile.VictoryLocationFeature)) < 100);
+	}
 }

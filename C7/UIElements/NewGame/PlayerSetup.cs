@@ -188,7 +188,8 @@ public partial class PlayerSetup : Control {
 			"The game ends as soon as every great wonder has been built, and the civilization with the most victory points wins.");
 		victoryPointScoring = AddVictoryCheckbox("Victory Point Scoring", victoryConditions.VictoryLocations,
 			$"Win by being the first to {victoryConditions.VictoryPointLimit:N0} victory points, earned by building wonders, "
-			+ "defeating enemy units, discovering advances and conquering cities. At the turn limit, the most victory points wins.");
+			+ "defeating enemy units, discovering advances, conquering cities and holding Victory Locations (each civilization's "
+			+ "starting location) with a defending unit. At the turn limit, the most victory points wins.");
 
 		// Civ3's instant elimination rules, named as on its setup screen.
 		elimination = AddVictoryCheckbox("Elimination", victoryConditions.CityElimination,

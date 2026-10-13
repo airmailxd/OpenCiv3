@@ -440,6 +440,17 @@ public class GameSetup {
 		if (civ.traits.Contains(Civilization.Trait.Expansionist)) {
 			AddUnit(save, player, save.Rules.ScoutUnitType, startingLocation);
 		}
+		// "In single player mode, the starting location of each player is
+		// designated a Victory Location" (Conquests Civilopedia,
+		// DESC_GCON_Short_Game_Modes). UNVERIFIED: hotseat and LAN games
+		// get them too.
+		if (save.VictoryConditions?.VictoryLocations == true && save.VictoryConditions.AutoPlaceVictoryLocations) {
+			// The starting locations are copies of the map's tiles.
+			SaveTile mapTile = save.Map.tiles.Find(t => t.X == startingTile.X && t.Y == startingTile.Y);
+			if (mapTile != null && !mapTile.features.Contains(SaveTile.VictoryLocationFeature)) {
+				mapTile.features.Add(SaveTile.VictoryLocationFeature);
+			}
+		}
 		// Under Regicide, each civ's King starts with its first units.
 		int kings = InstantElimination.KingsToPlace(save.VictoryConditions);
 		if (kings > 0) {

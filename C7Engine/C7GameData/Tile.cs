@@ -88,6 +88,11 @@ namespace C7GameData {
 		// to enter it. See GoodyHuts.
 		public bool hasGoodyHut = false;
 
+		// A Victory Location, which scores victory points for the civ
+		// holding it under Victory Point Scoring (see
+		// VictoryPoints.ScoreVictoryLocations).
+		public bool isVictoryLocation = false;
+
 		//See discussion on page 4 of the "Babylon" thread (https://forums.civfanatics.com/threads/0-1-babylon-progress-thread.673959) about sub-terrain type and Civ3 properties.
 		//We may well move these properties somewhere, whether that's Civ3ExtraInfo, a Civ3Tile child class, a Dictionary property, or something else, in the future.
 		public bool isBonusShield;

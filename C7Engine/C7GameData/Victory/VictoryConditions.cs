@@ -39,6 +39,13 @@ public class VictoryConditions {
 	public int AdvanceVictoryPoints { get; set; } = VictoryPoints.DefaultAdvanceMultiple;
 	public int CityConquestVictoryPoints { get; set; } = VictoryPoints.DefaultCityConquestMultiple;
 
+	// Victory Locations: whether each civ's starting location is made one
+	// when a game starts with Victory Point Scoring (the BIQ GAME section's
+	// "autoplace victory locations"), and the victory points holding one
+	// scores each turn (its "victory point scoring", 25 in conquests.biq).
+	public bool AutoPlaceVictoryLocations { get; set; } = true;
+	public int VictoryLocationPoints { get; set; } = VictoryPoints.DefaultLocationPoints;
+
 	// Whether the game ends once the time options' turn limit is reached.
 	// Off unless chosen: the game goes on until someone wins (the project
 	// owner's choice). Saves made before this was saved have no limit.
@@ -72,6 +79,8 @@ public class VictoryConditions {
 			DefeatVictoryPoints = other.DefeatVictoryPoints;
 			AdvanceVictoryPoints = other.AdvanceVictoryPoints;
 			CityConquestVictoryPoints = other.CityConquestVictoryPoints;
+			AutoPlaceVictoryLocations = other.AutoPlaceVictoryLocations;
+			VictoryLocationPoints = other.VictoryLocationPoints;
 		}
 		return this;
 	}

@@ -118,6 +118,9 @@ namespace C7Engine {
 
 				BarbarianInteractions.DoTurn(gameData);
 
+				// With every player's turn over, Victory Locations score.
+				VictoryPoints.ScoreVictoryLocations(gameData);
+
 				gameData.turn++;
 				gameData.DestroyDefeatedCivs();
 				foreach (Player player in gameData.players) {

@@ -164,6 +164,81 @@ public class VictoryPointsTest : IClassFixture<SaveGameFixture>, System.IDisposa
 		Assert.Equal(defender, gameData.winner);
 	}
 
+	// "To score these points a unit with a defensive military stat must be
+	// in that tile at the end of all players' turns ... the controlling
+	// player gets 25 victory points."
+	[Fact]
+	public void HoldingAVictoryLocationWithADefenderScores() {
+		gameData.victoryConditions.VictoryLocations = true;
+		Tile location = gameData.map.tiles.First(t => t.IsLand() && t.unitsOnTile.Count == 0 && !t.HasCity());
+		location.isVictoryLocation = true;
+		MapUnit worker = gameData.SpawnUnit(attacker, gameData.unitPrototypes.First(p => p.isWorker && p.defense == 0), location);
+
+		VictoryPoints.ScoreVictoryLocations(gameData);
+		Assert.Equal(0, attacker.victoryPoints);
+
+		gameData.SpawnUnit(attacker, gameData.unitPrototypes.First(p => p.name == "Warrior"), location);
+		VictoryPoints.ScoreVictoryLocations(gameData);
+		Assert.Equal(25, attacker.victoryPoints);
+
+		// Without Victory Point Scoring, nothing.
+		gameData.victoryConditions.VictoryLocations = false;
+		VictoryPoints.ScoreVictoryLocations(gameData);
+		Assert.Equal(25, attacker.victoryPoints);
+		Assert.NotNull(worker);
+	}
+
+	// "In single player mode, the starting location of each player is
+	// designated a Victory Location."
+	[Fact]
+	public void ANewGameWithVictoryPointScoringMakesEachStartAVictoryLocation() {
+		SaveGame save = SaveGameFixture.LoadGameMode(new C7Engine.Lua.GameMode.Config("civ3")).GetSave();
+		WorldCharacteristics world = new(save) {
+			landform = WorldCharacteristics.Landform.Pangaea,
+			oceanCoverage = WorldCharacteristics.OceanCoverage.Percent_60,
+			age = WorldCharacteristics.Age.Billion_4,
+			climate = WorldCharacteristics.Climate.Normal,
+			temperature = WorldCharacteristics.Temperature.Temperate,
+			barbarianActivity = BarbarianActivity.None,
+			worldSize = new WorldSize() {
+				width = 40,
+				height = 40,
+				numberOfCivs = 2,
+				distanceBetweenCivs = 6,
+				techRate = 240,
+				optimalNumberOfCities = 10,
+			},
+			mapSeed = 78,
+		};
+		new GameSetup {
+			playerCivilization = save.Civilizations.Single(c => c.name == "America"),
+			difficulty = save.Difficulties.First(),
+			worldCharacteristics = world,
+			opponents = [new SelectedOpponent { Name = "Rome" }],
+			victoryConditions = new VictoryConditions { VictoryLocations = true },
+		}.Populate(save);
+
+		List<SaveTile> locations = save.Map.tiles.Where(t => t.features.Contains(SaveTile.VictoryLocationFeature)).ToList();
+		Assert.Equal(2, locations.Count);
+		foreach (SavePlayer player in save.Players.Where(p => p.civilization is "America" or "Rome")) {
+			TileLocation start = save.Units.First(u => u.owner == player.id).currentLocation;
+			Assert.Contains(locations, t => t.X == start.X && t.Y == start.Y);
+		}
+	}
+
+	[Fact]
+	public void VictoryLocationsAreSaved() {
+		Tile location = gameData.map.tiles.First(t => t.IsLand());
+		location.isVictoryLocation = true;
+
+		SaveGame loaded = SaveGame.FromJSON(SaveGame.FromGameData(gameData).ToCompactJSON());
+		C7GameData.GameData reloaded = loaded.ToGameData(fixture.behaviors);
+
+		Assert.True(reloaded.map.tileAt(location.XCoordinate, location.YCoordinate).isVictoryLocation);
+		Assert.Single(reloaded.map.tiles, t => t.isVictoryLocation);
+		Assert.True(new SaveTile(location).Describes(location));
+	}
+
 	[Fact]
 	public void VictoryPointsAreSaved() {
 		attacker.victoryPoints = 1234;

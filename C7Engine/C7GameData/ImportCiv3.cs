@@ -487,6 +487,10 @@ namespace C7GameData {
 				if (civ3Tile.GoodyHut) {
 					tile.features.Add(GOODY_HUT);
 				}
+				// "0: VPL, -1: Not a VPL"
+				if (civ3Tile.VictoryPointLocation == 0) {
+					tile.features.Add(SaveTile.VictoryLocationFeature);
+				}
 				if (civ3Tile.Ruin > 0) {
 					tile.overlays.Add(RUINS);
 				}
@@ -713,6 +717,8 @@ namespace C7GameData {
 		// game doesn't set one.
 		private static void ImportInstantElimination(VictoryConditions conditions, QueryCiv3.Biq.GAME game) {
 			conditions.AutoPlaceKings = game.AutoPlaceKings != 0;
+			conditions.AutoPlaceVictoryLocations = game.AutoPlaceVictoryLocations != 0;
+			conditions.VictoryLocationPoints = Math.Max(0, game.VictoryPointScoring);
 			if (game.CityEliminationCount > 0) {
 				conditions.CityEliminationCount = game.CityEliminationCount;
 			}
@@ -764,8 +770,11 @@ namespace C7GameData {
 				CaptureTheFlag = game.CaptureTheFlag, // 'Capture the Unit', 'Capture the Princess'
 				ReverseCaptureTheFlag = game.ReverseCaptureTheFlag,
 
-				// A game under way already has its kings.
+				// A game under way already has its kings and victory
+				// locations.
 				AutoPlaceKings = false,
+				AutoPlaceVictoryLocations = false,
+				VictoryLocationPoints = Math.Max(0, game.VictoryPointScoring),
 			};
 			if (game.CityEliminationCount > 0) {
 				save.VictoryConditions.CityEliminationCount = game.CityEliminationCount;

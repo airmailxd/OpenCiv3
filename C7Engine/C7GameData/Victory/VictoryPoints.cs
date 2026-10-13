@@ -20,6 +20,8 @@ namespace C7Engine;
 // its barbarians no build cost "to prevent the player from accruing large
 // amounts of victory points by concentrating on killing barbarians").
 //
+// Holding a Victory Location scores too (see ScoreVictoryLocations).
+//
 // The points are always kept; they win a game only with Victory Point
 // Scoring (the first to the limit wins, as in "If you can amass 30,000
 // victory points, you win immediately", Middle Ages) or a Wonder Victory,
@@ -34,6 +36,7 @@ public static class VictoryPoints {
 	public const int DefaultDefeatMultiple = 5;
 	public const int DefaultAdvanceMultiple = 5;
 	public const int DefaultCityConquestMultiple = 100;
+	public const int DefaultLocationPoints = 25;
 
 	private static void Add(Player player, long points) {
 		if (player == null || player.isBarbarians || points <= 0) {
@@ -68,6 +71,29 @@ public static class VictoryPoints {
 	public static void OnCityConquered(Player captor, City city, VictoryConditions conditions) {
 		if (conditions != null && captor != city.owner) {
 			Add(captor, (long)conditions.CityConquestVictoryPoints * city.residents.Count);
+		}
+	}
+
+	// Victory Locations, from the Conquests Civilopedia
+	// (DESC_GCON_Short_Game_Modes): "Players score points by capturing and
+	// holding Victory Location tiles. To score these points a unit with a
+	// defensive military stat must be in that tile at the end of all
+	// players' turns for that turn. Each turn a Victory Location is
+	// controlled, the controlling player gets 25 victory points."
+	// UNVERIFIED: barbarians hold a location without scoring for it.
+	public static void ScoreVictoryLocations(GameData gameData) {
+		VictoryConditions conditions = gameData.victoryConditions;
+		if (conditions == null || !conditions.VictoryLocations || conditions.VictoryLocationPoints <= 0) {
+			return;
+		}
+		foreach (Tile tile in gameData.map.tiles) {
+			if (!tile.isVictoryLocation) {
+				continue;
+			}
+			MapUnit holder = tile.unitsOnTile.FirstOrDefault(u => u.unitType.defense > 0 && u.hitPointsRemaining > 0);
+			if (holder != null) {
+				Add(holder.owner, conditions.VictoryLocationPoints);
+			}
 		}
 	}
 
