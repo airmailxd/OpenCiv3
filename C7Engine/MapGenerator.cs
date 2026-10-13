@@ -2231,6 +2231,20 @@ namespace C7Engine {
 		}
 
 		private static bool IsValidForBarbarianCamp(WorldCharacteristics wc, GameMap m, Tile t, Dictionary<int, int> continentSizes) {
+			if (!IsCampSiteSuitable(t, continent => continentSizes[continent], wc.maxRankOfBarbarianCampTiles)) {
+				return false;
+			}
+
+			// No barbarian camps less than 6 tiles away from a player
+			if (m.startingLocations.Any(x => t.DistanceTo(x) < 6)) return false;
+
+			return true;
+		}
+
+		// The terrain and spacing rules for a barbarian camp, shared by the
+		// camps placed with the map and those that appear during the game
+		// (see BarbarianInteractions.MaybeAddCamp).
+		public static bool IsCampSiteSuitable(Tile t, Func<int, int> continentSize, int maxRankOfCampTiles) {
 			// No barbarian camps on water, volcanos, or mountains.
 			if (!t.IsLand() || t == Tile.NONE || t.overlayTerrainType.Key == "volcano" || t.overlayTerrainType.Key == "mountains") {
 				return false;
@@ -2244,19 +2258,16 @@ namespace C7Engine {
 			}
 
 			// No barbarian camps on super tiny islands.
-			if (continentSizes[t.continent] < 15) {
+			if (continentSize(t.continent) < 15) {
 				return false;
 			}
 
 			// No barbarian camps within the big fat cross of another camp.
-			foreach (Tile n in t.GetTilesWithinRankDistance(wc.maxRankOfBarbarianCampTiles)) {
+			foreach (Tile n in t.GetTilesWithinRankDistance(maxRankOfCampTiles)) {
 				if (n.hasBarbarianCamp) {
 					return false;
 				}
 			}
-
-			// No barbarian camps less than 6 tiles away from a player
-			if (m.startingLocations.Any(x => t.DistanceTo(x) < 6)) return false;
 
 			return true;
 		}
