@@ -100,9 +100,19 @@ jobs:
       with:
         ref: ${{ env.TAG }}
         lfs: true
+        # Assets is a submodule; without it the art package went out
+        # without the Assets folder (v0.7.6).
+        submodules: true
     - name: Package
       run: |
         mkdir -v -p build
+        # Fail rather than publish art without either folder.
+        for d in Assets ModernArt; do
+          if [ -z "$(ls -A ${PROJECT_DIR}/$d 2>/dev/null)" ]; then
+            echo "::error::${PROJECT_DIR}/$d is missing or empty"
+            exit 1
+          fi
+        done
         cd ${PROJECT_DIR} && zip -q -r ../build/art.zip Assets ModernArt
     - uses: actions/upload-artifact@v4
       with:
