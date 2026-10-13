@@ -131,8 +131,11 @@ namespace C7GameData {
 
 		// Re-basing: "The unit can be moved to another city or a carrier"
 		// within range (GCON_Air_Missions).
+		// An aircraft that somehow isn't on a base (as one a scenario puts in
+		// the field) may still re-base, to get back to one.
 		public bool CanRebaseTo(Tile tile) {
-			if (!CanFlyMission(UnitAction.Rebase) || !Tile.IsTileValid(tile) || tile == location) {
+			if (!HasAirMission(UnitAction.Rebase) || !movementPoints.canMove || IsLockedInArmy()
+				|| !Tile.IsTileValid(tile) || tile == location) {
 				return false;
 			}
 			if (location.DistanceTo(tile) > RebaseRange()) {
@@ -325,7 +328,13 @@ namespace C7GameData {
 			if (CanAirdropFrom()) {
 				actions.Add(UnitAction.Airdrop);
 			}
-			if (!IsAirUnit() || !movementPoints.canMove || !IsAtAirBase() || IsLockedInArmy()) {
+			if (!IsAirUnit() || !movementPoints.canMove || IsLockedInArmy()) {
+				return;
+			}
+			if (!IsAtAirBase()) {
+				if (HasAirMission(UnitAction.Rebase)) {
+					actions.Add(UnitAction.Rebase);
+				}
 				return;
 			}
 			bool canAttack = CanAttackAgainThisTurn();

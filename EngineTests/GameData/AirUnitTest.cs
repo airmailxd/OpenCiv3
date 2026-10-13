@@ -145,6 +145,9 @@ public class AirUnitTest : IClassFixture<SaveGameFixture>, System.IDisposable {
 
 		Assert.False(bomber.IsAtAirBase());
 		Assert.False(bomber.CanAirBombTile(target));
+		// It can still fly home.
+		Assert.Equal([UnitAction.Rebase], bomber.GetAvailableActions().Where(a => a == UnitAction.Rebase || a == UnitAction.Bombing));
+		Assert.True(bomber.CanRebaseTo(home.location));
 	}
 
 	[Fact]
