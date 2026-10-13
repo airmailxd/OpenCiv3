@@ -69,6 +69,7 @@ public sealed class SettlerDestinationBlockedTest : MapBase {
 	private MapUnit MakeSettlerOnStart() {
 		MapUnit settler = MakeLandUnit(1);
 		settler.unitType.name = "Settler";
+		settler.unitType.actions.Add(UnitAction.BuildCity);
 		settler.owner = aiPlayer;
 		settler.nationality = aiPlayer.civilization;
 		settler.location = start;

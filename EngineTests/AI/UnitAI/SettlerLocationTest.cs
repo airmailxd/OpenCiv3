@@ -25,6 +25,52 @@ namespace EngineTests.AI.UnitAI {
 			return tile;
 		}
 
+		// Two plains sites alike but for `spoil`, which is given the one in
+		// the east, and their scores.
+		private (float spoiled, float plain) ScoreSitesAlikeBut(Action<Tile> spoil) {
+			Tile MakeSite() {
+				Tile tile = MakePlainsTile();
+				tile.overlayTerrainType.baseFoodProduction = 2;
+				return tile;
+			}
+			InitilizeStartTile(MakeSite(), new TileLocation(56, 50));
+			Tile spoiled = startTile;
+			List<Tile> map = SurroundTile(spoiled, MakeDesertTile);
+			spoil(spoiled);
+
+			InitilizeStartTile(MakeSite(), new TileLocation(44, 50));
+			Tile plain = startTile;
+			map.AddRange(SurroundTile(plain, MakeDesertTile));
+
+			InitilizeStartTile(MakeDesertTile(), new TileLocation(50, 50));
+			Tile start = startTile;
+			startTile.map = gameMap;
+
+			Player player = MakeTestPlayer(map);
+			Dictionary<Tile, float> scores = SettlerLocationAI.GetScoredSettlerCandidates(start, player);
+			return (scores[spoiled], scores[plain]);
+		}
+
+		[Fact]
+		private void SitesNextToAVolcanoAreWorseThanOthers() {
+			(float spoiled, float plain) = ScoreSitesAlikeBut(site => {
+				Tile north = site.neighbors[TileDirection.NORTH];
+				north.baseTerrainType = new() { Key = "volcano" };
+				north.overlayTerrainType = new() { Key = "volcano", movementCost = 3 };
+			});
+			Assert.True(spoiled < plain, $"{spoiled} >= {plain}");
+		}
+
+		[Fact]
+		private void SitesOnUnhealthyTerrainAreWorseThanOthers() {
+			(float spoiled, float plain) = ScoreSitesAlikeBut(site => {
+				site.overlayTerrainType.causesDisease = true;
+				site.overlayTerrainType.diseaseStrength = 50;
+				site.overlayTerrainType.diseaseCanBeCured = true;
+			});
+			Assert.True(spoiled < plain, $"{spoiled} >= {plain}");
+		}
+
 		[Fact]
 		private void HillsOverPlains() {
 			// a single hill tile surrounded by desert
@@ -193,6 +239,7 @@ namespace EngineTests.AI.UnitAI {
 
 			MapUnit joiner = MakeLandUnit();
 			joiner.unitType.name = "Settler";
+			joiner.unitType.actions.Add(UnitAction.BuildCity);
 			joiner.currentAI = new SettlerAI(new SettlerAIData() { goal = SettlerAIData.SettlerGoal.JOIN_CITY, destination = null });
 			player.units.Add(joiner);
 
@@ -216,6 +263,7 @@ namespace EngineTests.AI.UnitAI {
 			// add a settler whose destination is the one known tile
 			MapUnit settler = MakeLandUnit();
 			settler.unitType.name = "Settler";
+			settler.unitType.actions.Add(UnitAction.BuildCity);
 			SettlerAIData data = new();
 			data.destination = startTile;
 			settler.currentAI = new SettlerAI(data);

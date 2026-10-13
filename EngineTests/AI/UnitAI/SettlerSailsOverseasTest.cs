@@ -94,7 +94,11 @@ public class SettlerSailsOverseasTest : IClassFixture<SaveGameFixture> {
 			Task firstTurn = TurnHandling.AdvanceTurn();
 			EngineWaits.WaitForStartTurnMessage(_ => { });
 			await firstTurn;
-			for (int turn = 0; turn < 150; ++turn) {
+			// When the first civ sails depends on how fast the islands
+			// fill, which small changes to where cities go move by tens of
+			// turns (turn 147, then 182 once flood plain sites were scored
+			// down), so the game runs to 200 turns.
+			for (int turn = 0; turn < 200; ++turn) {
 				new MsgEndTurn { turn = gameData.turn }.send();
 				EngineWaits.WaitForStartTurnMessage(_ => { });
 

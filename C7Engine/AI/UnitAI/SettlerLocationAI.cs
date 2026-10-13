@@ -139,6 +139,12 @@ namespace C7Engine {
 				// Let defensibility play a role
 				score += (float)t.baseTerrainType.defenseBonus.amount * 20.0f;
 
+				// Lava from a volcano next to the site would destroy the city
+				// (see Volcano), and a city on unhealthy terrain (flood
+				// plains before Sanitation) loses citizens to disease (see
+				// Disease).
+				score += SitePenalty(t, player);
+
 				// Rival cities nearby will compete for the tiles, and their
 				// borders will grow over them. (The penalty is added once
 				// per city, as a sum of the same float, in any order.)
@@ -179,6 +185,28 @@ namespace C7Engine {
 				scores[t] = score;
 			}
 			return scores;
+		}
+
+		// HEURISTIC: small penalties for a site next to a volcano and for one
+		// on terrain that gives its city disease until a tech cures it (flood
+		// plains until Sanitation). Jungle and marsh, whose disease workers
+		// end by clearing them, aren't counted.
+		internal const float VolcanoPenalty = -20;
+		internal const float DiseasePenalty = -10;
+
+		// The (negative) score adjustment for the site's own hazards.
+		internal static float SitePenalty(Tile t, Player player) {
+			float penalty = 0;
+			foreach (Tile n in t.neighbors.Values) {
+				if (n != null && n != Tile.NONE && n.overlayTerrainType.IsVolcano) {
+					penalty += VolcanoPenalty;
+					break;
+				}
+			}
+			if (t.overlayTerrainType.diseaseCanBeCured && Disease.IsUnhealthy(t.overlayTerrainType, player)) {
+				penalty += DiseasePenalty;
+			}
+			return penalty;
 		}
 
 		// How far the tile is from our nearest city, or from `start` if we
