@@ -181,6 +181,28 @@ public static class TextureLoader {
 		return texture;
 	}
 
+	// The config keys whose art was found missing, each logged once.
+	private static readonly HashSet<string> missingArtKeys = [];
+
+	/// The texture for a config key, or null if its art isn't there, for art
+	/// a screen can do without or draw itself. In standalone mode the art
+	/// comes from the bundled assets, which may not have everything the
+	/// texture config names (owner's report, 2026-10-12: the advisor faces of
+	/// the advisors' sidebar were missing from a release, and every advisor
+	/// screen but the Domestic advisor's failed to open).
+	public static ImageTexture TryLoad(string configKey) {
+		try {
+			return Load(configKey);
+		} catch (ApplicationException e) {
+			// Util.Civ3MediaPath throws an ApplicationException for media
+			// that can't be found.
+			if (missingArtKeys.Add(configKey)) {
+				Serilog.Log.ForContext(typeof(TextureLoader)).Warning("Couldn't load the art for {Key}: {Reason}", configKey, e.Message);
+			}
+			return null;
+		}
+	}
+
 	/// Returns a texture based on the config key and a C# object.
 	/// This overload uses the "map_object_to_sprite" function in the
 	/// config entry to dynamically determine which texture to load

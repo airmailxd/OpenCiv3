@@ -44,11 +44,25 @@ public partial class Advisors : CenterContainer {
 	}
 
 	private void OnShowSpecificAdvisor(string advisorType) {
+		log.Information("Showing {Advisor}", advisorType);
 		if (advisorType != latest) {
 			latest = advisorType;
 			HideAdvisors();
 		}
 
+		// An advisor that fails to fill itself in is still shown, and the
+		// failure logged to the game's log. Before, it reached only Godot's
+		// own log and the advisor never appeared (owner's report, 2026-10-12).
+		try {
+			ShowAdvisorScreen(advisorType);
+		} catch (System.Exception e) {
+			log.Error(e, "Couldn't fill in {Advisor}", advisorType);
+		}
+
+		Show();
+	}
+
+	private void ShowAdvisorScreen(string advisorType) {
 		switch (advisorType) {
 			case C7Action.ShowDomesticAdvisor:
 				domesticAdvisor.ShowAdvisor();
@@ -72,8 +86,6 @@ public partial class Advisors : CenterContainer {
 				log.Warning("Unknown advisor type: " + advisorType);
 				break;
 		}
-
-		Show();
 	}
 
 	/// <summary>
