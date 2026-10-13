@@ -77,6 +77,8 @@ namespace C7Engine {
 			await ObsoleteUnits.DisbandOverSupport(player);
 			// On trial: march on enemy cities in force (see WarCampaign).
 			await WarCampaign.PlayTurn(player, gameData);
+			// Draft defenders in cities about to be attacked (see DraftAI).
+			DraftAI.PlayTurn(player, gameData);
 			await EngineStorage.YieldIfFrameBudgetSpent();
 			// Airlift defenders to threatened cities (see AirliftAI).
 			AirliftAI.PlayTurn(player);
@@ -755,9 +757,14 @@ namespace C7Engine {
 			return new DefenderAI(data);
 		}
 
+		// Land units that bombard but can't attack: catapults, cannons,
+		// artillery and the like.
+		internal static bool IsArtillery(MapUnit unit) {
+			return unit.IsLandUnit() && unit.unitType.bombard > 0 && unit.unitType.attack == 0;
+		}
+
 		public static UnitAI GetAIForUnit(MapUnit unit, Player player) {
 			//figure out an AI behavior
-			//TODO: Use strategies, not names
 			if (unit.IsArmy() && ArmyAI.IsEnabled(player)) {
 				return new ArmyAI();
 			}
@@ -766,9 +773,9 @@ namespace C7Engine {
 			}
 			if (unit.IsLeader()) {
 				return MakeLeaderAI(unit, player);
-			} else if (unit.unitType.name == "Settler") {
+			} else if (unit.unitType.isSettler) {
 				return new SettlerAI(SettlerAI.MakeAiData(unit, player));
-			} else if (unit.unitType.name == "Worker") {
+			} else if (unit.unitType.isWorker) {
 				return new WorkerAI(WorkerAI.MakeAiData(unit, player));
 			} else if (FerryAI.MaybeMakeAiData(unit, player) is FerryAIData ferryData) {
 				return new FerryAI(ferryData);
@@ -776,8 +783,8 @@ namespace C7Engine {
 				return new DefenderAI(DefenderAI.MakeAiDataForDefendInPlace(unit, player));
 			} else if (GetCombatAIIfUnitCanAttackNearbyBarbCamp(unit, player) is UnitAI unitAI && unitAI != null) {
 				return unitAI;
-			} else if (unit.unitType.name == "Catapult") {
-				//For now tell catapults to sit tight.  It's getting really annoying watching them pointlessly bombard barb camps forever
+			} else if (IsArtillery(unit)) {
+				//For now tell artillery to sit tight.  It's getting really annoying watching them pointlessly bombard barb camps forever
 				return new DefenderAI(DefenderAI.MakeAiDataForDefendInPlace(unit, player));
 			}
 
@@ -918,7 +925,7 @@ namespace C7Engine {
 		internal static bool WouldExplore(MapUnit unit, Player player, bool hypothetical = false) {
 			// Mirror the checks GetAIForUnit makes before considering
 			// exploration.
-			if (unit.IsLeader() || unit.unitType.name == "Settler" || unit.unitType.name == "Worker") {
+			if (unit.IsLeader() || unit.unitType.isSettler || unit.unitType.isWorker) {
 				return false;
 			}
 			// A transport would ferry a settler waiting for one.
@@ -931,7 +938,7 @@ namespace C7Engine {
 			if (unit.unitType.attack > 0 && FindNearbyBarbCamp(unit, player, out _) != Tile.NONE) {
 				return false;
 			}
-			if (unit.unitType.name == "Catapult") {
+			if (IsArtillery(unit)) {
 				return false;
 			}
 			if (IsInAnyWar(player, EngineStorage.gameData.players)) {
@@ -1091,11 +1098,15 @@ namespace C7Engine {
 					continue;
 				}
 
-				// A tech trade if there is one to make, otherwise a resource
-				// deal, otherwise a pact (see DealProposalAI).
-				(TradeOffer weGive, TradeOffer weWant)? deal = TechDeal(gD, us, them)
+				// At war, now and then, a military alliance against the enemy;
+				// otherwise a tech trade if there is one to make, otherwise a
+				// resource deal, otherwise a pact or embargo (see
+				// DealProposalAI).
+				(TradeOffer weGive, TradeOffer weWant)? deal = DealProposalAI.AllianceDeal(gD, us, them)
+					?? TechDeal(gD, us, them)
 					?? DealProposalAI.ResourceDeal(gD, us, them)
-					?? DealProposalAI.PactDeal(gD, us, them);
+					?? DealProposalAI.PactDeal(gD, us, them)
+					?? DealProposalAI.EmbargoDeal(gD, us, them);
 				if (deal is not (TradeOffer weGive, TradeOffer weWant)) {
 					continue;
 				}
@@ -1119,7 +1130,7 @@ namespace C7Engine {
 				}
 				EngineStorage.diplomacyPlayerID = them.id;
 				EngineStorage.diplomacyAIPlayerID = us.id;
-				new MsgShowTradeOffer(us, them, weWant, weGive).send();
+				new MsgShowTradeOffer(us, them, weWant, weGive, DealProposalAI.Greeting(gD, weGive, weWant)).send();
 				await EngineStorage.WaitForDiplomacyCompleted(them.id);
 				EngineStorage.diplomacyPlayerID = null;
 				EngineStorage.diplomacyAIPlayerID = null;

@@ -50,11 +50,16 @@ public partial class DealScreen : TextureRect {
 	TradeOffer opponentOffer = new();
 	TradeOffer humanOffer = new();
 
-	public DealScreen(ID humanPlayer, ID opponentPlayer, TradeOffer humanGives, TradeOffer humanWants) {
+	// What the opponent says first, if it made the offer with words of its
+	// own (see DealProposalAI.Greeting), or null.
+	private readonly string greeting;
+
+	public DealScreen(ID humanPlayer, ID opponentPlayer, TradeOffer humanGives, TradeOffer humanWants, string greeting = null) {
 		this.humanPlayerId = humanPlayer;
 		this.opponentPlayerId = opponentPlayer;
 		this.humanOffer = humanGives;
 		this.opponentOffer = humanWants;
+		this.greeting = greeting;
 	}
 
 	public override void _Ready() {
@@ -212,7 +217,7 @@ public partial class DealScreen : TextureRect {
 
 			// And the text from the opponent, if they reject a deal.
 			opponentResponse = new();
-			opponentResponse.Text = "\"Let's get down to business...\"";
+			opponentResponse.Text = greeting != null ? $"\"{greeting}\"" : "\"Let's get down to business...\"";
 			opponentResponse.SetPosition(new Vector2(512 - 205, 345));
 			opponentResponse.Theme = fontTheme;
 			AddChild(opponentResponse);

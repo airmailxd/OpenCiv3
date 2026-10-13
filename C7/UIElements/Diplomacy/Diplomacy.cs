@@ -75,10 +75,10 @@ public partial class Diplomacy : CenterContainer {
 		ShowDealScreenForPlayer(humanPlayer, opponentPlayer, new TradeOffer(), new TradeOffer());
 	}
 
-	public void ShowDealScreenForPlayer(ID humanPlayer, ID opponentPlayer, TradeOffer humanGives, TradeOffer humanWants) {
+	public void ShowDealScreenForPlayer(ID humanPlayer, ID opponentPlayer, TradeOffer humanGives, TradeOffer humanWants, string greeting = null) {
 		RemoveOtherScreens();
 
-		dealScreen = new DealScreen(humanPlayer, opponentPlayer, humanGives, humanWants);
+		dealScreen = new DealScreen(humanPlayer, opponentPlayer, humanGives, humanWants, greeting);
 		AddChild(dealScreen);
 		this.Show();
 	}

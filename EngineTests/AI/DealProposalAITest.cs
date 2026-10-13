@@ -138,6 +138,80 @@ public class DealProposalAITest : System.IDisposable {
 		}
 	}
 
+	private void GiveEmbassies() {
+		foreach (Player a in gameData.players) {
+			foreach (PlayerRelationship r in a.playerRelationships.Values) {
+				r.hasEmbassy = true;
+			}
+		}
+	}
+
+	// Calls propose until it makes a deal (it only does some of the time).
+	private static (TradeOffer weGive, TradeOffer weWant)? Eventually(System.Func<(TradeOffer, TradeOffer)?> propose) {
+		for (int i = 0; i < 200; ++i) {
+			if (propose() is (TradeOffer, TradeOffer) deal) {
+				return deal;
+			}
+		}
+		return null;
+	}
+
+	[Fact]
+	public void AtWarTheAIPaysACivAnnoyedWithTheEnemyToJoin() {
+		GiveEmbassies();
+		us.gold = 500;
+		// Third declared war on them once, which they remember.
+		them.playerRelationships[third.id].warDeclarationCount = 1;
+		Assert.True(Attitudes.Level(gameData, them, third) is AttitudeLevel.Annoyed or AttitudeLevel.Furious);
+		// Not at war, no alliance.
+		Assert.Null(Eventually(() => DealProposalAI.AllianceDeal(gameData, us, them)));
+
+		us.DeclareWarOn(third, gameData.turn);
+		(TradeOffer weGive, TradeOffer weWant)? deal = Eventually(() => DealProposalAI.AllianceDeal(gameData, us, them));
+		Assert.NotNull(deal);
+		Assert.Equal(third.id, TradeOffer.AllianceTarget(deal.Value.weGive, deal.Value.weWant));
+		Assert.Equal(PactAI.JoinWarGold + PactAI.JoinWarGoldPerCity * third.cities.Count, deal.Value.weGive.gold);
+		Assert.Contains("Join our crusade", DealProposalAI.Greeting(gameData, deal.Value.weGive, deal.Value.weWant));
+		Assert.True(them.WouldAcceptDealFrom(gameData, us, deal.Value.weGive, deal.Value.weWant));
+		// The same civ isn't asked again soon.
+		Assert.Null(Eventually(() => DealProposalAI.AllianceDeal(gameData, us, them)));
+
+		Assert.True(us.ExecuteDeal(gameData, them, deal.Value.weWant, deal.Value.weGive));
+		Assert.True(PlayerRelationship.AtWar(them, third));
+	}
+
+	[Fact]
+	public void NoAllianceFromACivThatBrokeADeal() {
+		GiveEmbassies();
+		us.gold = 500;
+		them.playerRelationships[third.id].warDeclarationCount = 1;
+		us.DeclareWarOn(third, gameData.turn);
+		us.playerRelationships[them.id].brokeTradeDeal = true;
+		Assert.Null(Eventually(() => DealProposalAI.AllianceDeal(gameData, us, them)));
+	}
+
+	[Fact]
+	public void TheAIAsksForAnEmbargoAgainstACivItIsFuriousWith() {
+		GiveEmbassies();
+		// We have reason to be furious with third, and they to be annoyed.
+		us.playerRelationships[third.id].warDeclarationCount = 3;
+		them.playerRelationships[third.id].warDeclarationCount = 1;
+		Assert.Equal(AttitudeLevel.Furious, Attitudes.Level(gameData, us, third));
+
+		(TradeOffer weGive, TradeOffer weWant)? deal = Eventually(() => DealProposalAI.EmbargoDeal(gameData, us, them));
+		Assert.NotNull(deal);
+		Assert.Equal(third.id, TradeOffer.EmbargoTarget(deal.Value.weGive, deal.Value.weWant));
+		Assert.Contains("trade embargo", DealProposalAI.Greeting(gameData, deal.Value.weGive, deal.Value.weWant));
+		Assert.True(them.WouldAcceptDealFrom(gameData, us, deal.Value.weGive, deal.Value.weWant));
+	}
+
+	[Fact]
+	public void NoEmbargoAgainstACivWeDontMind() {
+		GiveEmbassies();
+		them.playerRelationships[third.id].warDeclarationCount = 1;
+		Assert.Null(Eventually(() => DealProposalAI.EmbargoDeal(gameData, us, them)));
+	}
+
 	// They send us wines for a gold a turn, from turn 0.
 	private void BuyWines() {
 		Assert.True(them.ExecuteDeal(gameData, us, new TradeOffer { goldPerTurn = 1 }, new TradeOffer { resources = { wines.Key } }));

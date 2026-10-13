@@ -41,7 +41,7 @@ public class PerfAiStrategyTests : IClassFixture<SaveGameFixture>, IDisposable {
 
 	// The settler site scoring as it was before caching was added.
 	private static Dictionary<Tile, float> ScoreFromScratch(Tile start, Player player, HashSet<Tile> excludedTiles = null) {
-		List<MapUnit> playerSettlers = player.units.FindAll(u => u.unitType.name == "Settler");
+		List<MapUnit> playerSettlers = player.units.FindAll(u => u.unitType.isSettler);
 		IEnumerable<Tile> candidates = player.tileKnowledge.AllKnownTiles().Where(t => !IsInvalidCityLocation(t) && t.continent == start.continent);
 		candidates = candidates.Where(t => !SettlerAlreadyMovingTowardsTile(t, playerSettlers) && t.IsAllowCities() && (excludedTiles == null || !excludedTiles.Contains(t)));
 		candidates = candidates.Where(t => !SettlerLocationAI.IsOwnedByRival(t, player));
@@ -71,6 +71,7 @@ public class PerfAiStrategyTests : IClassFixture<SaveGameFixture>, IDisposable {
 				score += player.civilization.Adjustments.WaterBonus;
 			}
 			score += (float)t.baseTerrainType.defenseBonus.amount * 20.0f;
+			score += SettlerLocationAI.SitePenalty(t, player);
 			score += player.civilization.Adjustments.RivalCityPenalty
 				* rivalCities.Count(c => t.DistanceTo(c) <= player.civilization.Adjustments.RivalCityRadius);
 			float preDistanceScore = score;
