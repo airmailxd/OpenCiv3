@@ -71,6 +71,27 @@ public partial class DomesticAdvisor : Control {
 		ImageTexture DomesticBackground = TextureLoader.Load("advisors.domestic.background");
 		background.Texture = DomesticBackground;
 
+		// Each part is built on its own, so art missing for one doesn't leave
+		// the others unbuilt. When the advisor faces' art was missing from a
+		// standalone release, nothing after the sidebar was built: the
+		// sliders had Godot's own look, moving them didn't change the rates,
+		// and they were back where they were when the advisor was opened
+		// again (owner's report, 2026-10-12).
+		AdvisorUtils.CreateUI(this, CreateSliders);
+		AdvisorUtils.CreateUI(this, CreateFrame);
+		AdvisorUtils.CreateUI(this, CreateColumnHeaders);
+	}
+
+	// The buttons, the title, the advisors' sidebar, and the advisor's head
+	// and advice.
+	private void CreateFrame() {
+		close.Pressed += () => {
+			GetParent<Advisors>().Hide();
+		};
+		changeGovernment.Pressed += ChangeGovernments;
+		TextureLoader.SetButtonTextures(close, "ui.exit");
+		TextureLoader.SetButtonTextures(changeGovernment, "advisors.domestic.button");
+
 		AdvisorUtils.CreateAdvisorTitle(background, background.Texture.GetWidth(), "DOMESTIC ADVISOR");
 		AdvisorUtils.CreateAdvisorSidebar(background, AdvisorHead.Advisor.Domestic);
 
@@ -88,91 +109,112 @@ public partial class DomesticAdvisor : Control {
 		DialogBoxAdvise.Text = DefaultAdvice;
 		DialogBoxAdvise.SetPosition(new Vector2(815, 119));
 		background.AddChild(DialogBoxAdvise);
+	}
 
-		TextureLoader.SetButtonTextures(close, "ui.exit");
-		close.Pressed += () => {
-			GetParent<Advisors>().Hide();
+	// The science and luxury sliders, their rates and their plus and minus
+	// buttons. They work whatever art is missing: art that isn't there is
+	// drawn instead.
+	private void CreateSliders() {
+		// ShowAdvisor shows the player's rates.
+		scienceSlider.ValueChanged += value => {
+			UpdateScienceSlider((int)value);
+		};
+		luxurySlider.ValueChanged += value => {
+			UpdateLuxurySlider((int)value);
 		};
 
-		TextureLoader.SetButtonTextures(changeGovernment, "advisors.domestic.button");
-		changeGovernment.Pressed += ChangeGovernments;
+		scienceSliderLabel.SetPosition(new Vector2(760, scienceSliderY + 5));
+		background.AddChild(scienceSliderLabel);
 
-		ImageTexture scienceSliderTexture = TextureLoader.Load("icons.science");
-		ImageTexture luxurySliderTexture = TextureLoader.Load("icons.luxury");
+		luxurySliderLabel.SetPosition(new Vector2(760, luxurySliderY + 4));
+		background.AddChild(luxurySliderLabel);
 
-		// Placeholder values
-		int scienceRate = 5;
-		int luxuryRate = 5;
-
-		scienceSlider.Value = scienceRate;
+		ImageTexture scienceSliderTexture = TextureLoader.TryLoad("icons.science") ?? DrawGrabber(Color.Color8(70, 110, 200));
+		ImageTexture luxurySliderTexture = TextureLoader.TryLoad("icons.luxury") ?? DrawGrabber(Color.Color8(230, 190, 50));
 
 		scienceSlider.rangeTheme
 			.AddGrabber(scienceSliderTexture)
 			.AddGrabberHighlight(scienceSliderTexture)
 			.AddSliderStyleBox(new StyleBoxEmpty());
 
-		scienceSlider.ValueChanged += value => {
-			UpdateScienceSlider((int)value);
-		};
-
-		luxurySlider.Value = luxuryRate;
-
 		luxurySlider.rangeTheme
 			.AddGrabber(luxurySliderTexture)
 			.AddGrabberHighlight(luxurySliderTexture)
 			.AddSliderStyleBox(new StyleBoxEmpty());
 
-		luxurySlider.ValueChanged += value => {
-			UpdateLuxurySlider((int)value);
-		};
-
-		scienceSliderLabel.Text = $"{scienceRate * 10}%";
-		scienceSliderLabel.SetPosition(new Vector2(760, scienceSliderY + 5));
-		background.AddChild(scienceSliderLabel);
-
-		luxurySliderLabel.Text = $"{luxuryRate * 10}%";
-		luxurySliderLabel.SetPosition(new Vector2(760, luxurySliderY + 4));
-		background.AddChild(luxurySliderLabel);
-
 		var plusConfigKey = "advisors.domestic.plus";
 		var minusConfigKey = "advisors.domestic.minus";
 
 		TextureButton moreScience = new();
-		TextureLoader.SetButtonTextures(moreScience, plusConfigKey);
+		SetPlusMinusTextures(moreScience, plusConfigKey, plus: true);
 		moreScience.SetPosition(new Vector2(732, scienceSliderY + 27));
 		moreScience.Pressed += MoreScience;
 		background.AddChild(moreScience);
 
 		TextureButton lessScience = new();
-		TextureLoader.SetButtonTextures(lessScience, minusConfigKey);
+		SetPlusMinusTextures(lessScience, minusConfigKey, plus: false);
 		lessScience.SetPosition(new Vector2(562, scienceSliderY + 29));
 		lessScience.Pressed += LessScience;
 		background.AddChild(lessScience);
 
 		TextureButton moreLuxury = new();
-		TextureLoader.SetButtonTextures(moreLuxury, plusConfigKey);
+		SetPlusMinusTextures(moreLuxury, plusConfigKey, plus: true);
 		moreLuxury.SetPosition(new Vector2(732, luxurySliderY - 5));
 		moreLuxury.Pressed += MoreLuxury;
 		background.AddChild(moreLuxury);
 
 		TextureButton lessLuxury = new();
-		TextureLoader.SetButtonTextures(lessLuxury, minusConfigKey);
+		SetPlusMinusTextures(lessLuxury, minusConfigKey, plus: false);
 		lessLuxury.SetPosition(new Vector2(562, luxurySliderY - 3));
 		lessLuxury.Pressed += LessLuxury;
 		background.AddChild(lessLuxury);
+	}
 
-		// Column header icons.
-		eatenFood.TextureNormal = TextureLoader.Load("icons.eaten_food");
-		fullFood.TextureNormal = TextureLoader.Load("icons.full_food");
-		wastedShield.TextureNormal = TextureLoader.Load("icons.wasted_shield");
-		goodShield.TextureNormal = TextureLoader.Load("icons.good_shield");
-		wastedGold.TextureNormal = TextureLoader.Load("icons.wasted_gold");
-		goodGold.TextureNormal = TextureLoader.Load("icons.good_gold");
-		happyFace.TextureNormal = TextureLoader.Load("icons.happy_face");
-		contentFace.TextureNormal = TextureLoader.Load("icons.content_face");
-		beaker.TextureNormal = TextureLoader.Load("icons.beaker");
-		treasuryIcon.TextureNormal = TextureLoader.Load("icons.treasury");
+	// A slider's grabber drawn when its icon's art is missing: a disc of the
+	// given color with a dark rim, as big as the icons.
+	private static ImageTexture DrawGrabber(Color color) {
+		const int size = 22;
+		Color rim = Color.Color8(60, 45, 30);
+		Image image = Image.CreateEmpty(size, size, false, Image.Format.Rgba8);
+		Vector2 center = new Vector2(size, size) / 2;
+		float outer = size / 2f - 1;
+		for (int y = 0; y < size; y++) {
+			for (int x = 0; x < size; x++) {
+				float distance = new Vector2(x + 0.5f, y + 0.5f).DistanceTo(center);
+				if (distance <= outer) {
+					image.SetPixel(x, y, distance > outer - 2 ? rim : color);
+				}
+			}
+		}
+		return ImageTexture.CreateFromImage(image);
+	}
 
+	// Sets a plus or minus button's art, or draws it if the art is missing,
+	// as big as Civ3's and in the colors of its states.
+	private static void SetPlusMinusTextures(TextureButton button, string configKey, bool plus) {
+		if (TextureLoader.TryLoad(configKey + ".normal") != null) {
+			TextureLoader.SetButtonTextures(button, configKey);
+			return;
+		}
+		button.TextureNormal = DrawPlusMinus(plus, Color.Color8(95, 70, 45));
+		button.TextureHover = DrawPlusMinus(plus, Color.Color8(220, 110, 20));
+		button.TexturePressed = DrawPlusMinus(plus, Color.Color8(40, 190, 230));
+	}
+
+	private static ImageTexture DrawPlusMinus(bool plus, Color color) {
+		int width = 13;
+		int height = plus ? 14 : 9;
+		Image image = Image.CreateEmpty(width, height, false, Image.Format.Rgba8);
+		int middleY = height / 2;
+		image.FillRect(new Rect2I(1, middleY - 1, width - 2, 2), color);
+		if (plus) {
+			image.FillRect(new Rect2I(width / 2 - 1, 1, 2, height - 2), color);
+		}
+		return ImageTexture.CreateFromImage(image);
+	}
+
+	// The icons over the columns of the city list.
+	private void CreateColumnHeaders() {
 		// Clicking a column header sorts the city list by that column.
 		eatenFood.Pressed += () => SortBy(SortColumn.Food);
 		fullFood.Pressed += () => SortBy(SortColumn.Food);
@@ -186,6 +228,18 @@ public partial class DomesticAdvisor : Control {
 		treasuryIcon.Pressed += () => SortBy(SortColumn.Taxes);
 		MakeClickableHeader(citiesHeader, SortColumn.Name);
 		MakeClickableHeader(populationHeader, SortColumn.Population);
+
+		// Column header icons. One whose art is missing is left blank.
+		eatenFood.TextureNormal = TextureLoader.TryLoad("icons.eaten_food");
+		fullFood.TextureNormal = TextureLoader.TryLoad("icons.full_food");
+		wastedShield.TextureNormal = TextureLoader.TryLoad("icons.wasted_shield");
+		goodShield.TextureNormal = TextureLoader.TryLoad("icons.good_shield");
+		wastedGold.TextureNormal = TextureLoader.TryLoad("icons.wasted_gold");
+		goodGold.TextureNormal = TextureLoader.TryLoad("icons.good_gold");
+		happyFace.TextureNormal = TextureLoader.TryLoad("icons.happy_face");
+		contentFace.TextureNormal = TextureLoader.TryLoad("icons.content_face");
+		beaker.TextureNormal = TextureLoader.TryLoad("icons.beaker");
+		treasuryIcon.TextureNormal = TextureLoader.TryLoad("icons.treasury");
 	}
 
 	private void MakeClickableHeader(Label header, SortColumn column) {
