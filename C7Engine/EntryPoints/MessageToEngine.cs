@@ -850,6 +850,23 @@ namespace C7Engine {
 		}
 	}
 
+	// Sells an improvement in the sender's city (see City.SellBuilding).
+	public class MsgSellBuilding : MessageToEngine {
+		public City city;
+		public Building building;
+		public MsgSellBuilding(City city, Building building) {
+			this.city = city;
+			this.building = building;
+		}
+
+		protected override void ProcessAllowed() {
+			if (!IsSendersCity(city) || building == null) return;
+
+			CityInteractions.SellBuilding(city, building);
+			new MsgCityChanged(city).send();
+		}
+	}
+
 	// Drafts a citizen of the sender's city (see City.Draft).
 	public class MsgDoDraft : MessageToEngine {
 		public City city;

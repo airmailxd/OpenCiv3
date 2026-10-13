@@ -565,6 +565,19 @@ public partial class CityScreen : Control {
 					if (e is InputEventMouseButton { ButtonIndex: MouseButton.Right, Pressed: true }
 						&& labelIndex < shownBuildings.Count && Civilopedia.OpenFor(shownBuildings[labelIndex])) {
 						newLabel.AcceptEvent();
+					} else if (e is InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: true }
+						&& labelIndex < shownBuildings.Count && !foreignView) {
+						// Clicking one of our buildings offers to sell it.
+						newLabel.AcceptEvent();
+						Building toSell = shownBuildings[labelIndex];
+						EngineStorage.ReadGameData((GameData gameData) => {
+							City shown = tileAssignmentLayer.city;
+							if (shown == null) {
+								return;
+							}
+							string why = shown.WhyCannotSell(toSell);
+							new MsgDisplaySellBuildingPopup(shown, toSell, why, why == null ? shown.SalePrice(toSell) : 0).send();
+						});
 					}
 				};
 				existingBuildings.AddChild(newLabel);

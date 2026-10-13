@@ -121,6 +121,9 @@ namespace C7GameData {
 		public int turnsOfUnhappinessDueToDrafting = 0;
 		public int unitsDraftedThisTurn = 0;
 
+		// Whether a building was sold here this turn (see SellBuilding).
+		public bool soldBuildingThisTurn = false;
+
 		public bool isInCivilDisorder = false;
 
 		// Resistance in a conquered city: the number of citizens still
@@ -781,6 +784,7 @@ namespace C7GameData {
 			// city may draft again.
 			hurriedThisTurn = false;
 			unitsDraftedThisTurn = 0;
+			soldBuildingThisTurn = false;
 			IProducible producedItem = ComputeTurnProduction();
 			if (producedItem == null) {
 				return;
@@ -1908,6 +1912,69 @@ namespace C7GameData {
 			}
 			owner?.OnBuildingsChanged();
 		}
+		// Selling a building, from the city screen's list of improvements
+		// as in Civ3 ("The top of the 3 options will be Sell",
+		// https://forums.civfanatics.com/threads/can-you-sell-city-improvements.9238/).
+		// "You can only sell one building in a given city per turn"; "Wonders
+		// of the World also cannot be sold"; "Your palace cannot be sold";
+		// "If a building exists in a city solely because of a Wonder, then
+		// you can't sell the building", even a temple the city built itself
+		// under the Temple of Artemis; and "the aqueduct falls into this
+		// category, and I think the hospital does as well"
+		// (https://www.gog.com/forum/sid_meiers_civilization_series/civilization_3_cant_sell_city_improvements).
+		// Civ3 asks "Are you sure you want to sell this improvement for $NUM0
+		// gold and $NUM1 shields?" (Script.txt, IMPROVEMENT_SCRAP); the
+		// shields are Recycling's "Returns 25% of the shield cost when
+		// selling improvements in addition to the gold received" (Conquests
+		// Civilopedia, TECH_Recycling), which no BIQ flag we read gives, so
+		// it isn't modelled.
+		//
+		// UNVERIFIED (simplest consistent behaviour): the gold. No source
+		// found gives it; we pay the building's shield cost in gold. Small
+		// wonders count as wonders, and the buildings that lift the city's
+		// size limit (aqueducts, hospitals) as the ones that can't be sold.
+		public string WhyCannotSell(Building building) {
+			CityBuilding cb = constructed_buildings.Find(c => c.building == building);
+			if (cb == null) {
+				return "The city has no such improvement.";
+			}
+			if (building.isCenterOfEmpire) {
+				return "The palace cannot be sold.";
+			}
+			if (building.IsGreatWonder() || building.isSmallWonder) {
+				return "Wonders cannot be sold.";
+			}
+			if (IsProvidedByWonders(building)) {
+				return $"The {building.name} comes from a wonder and cannot be sold.";
+			}
+			if (building.allowsCitySize2 || building.allowsCitySize3) {
+				return $"The {building.name} cannot be sold.";
+			}
+			if (soldBuildingThisTurn) {
+				return "The city has already sold an improvement this turn.";
+			}
+			return null;
+		}
+
+		public int SalePrice(Building building) {
+			return Math.Max(0, owner.ShieldCost(building));
+		}
+
+		// Sells the building, returning the gold it brought, or -1 if it
+		// can't be sold (see WhyCannotSell).
+		public int SellBuilding(Building building) {
+			string why = WhyCannotSell(building);
+			if (why != null) {
+				log.Warning("Not selling {Building} in {City}: {Error}", building, this, why);
+				return -1;
+			}
+			int gold = SalePrice(building);
+			RemoveBuilding(constructed_buildings.Find(c => c.building == building));
+			owner.gold += gold;
+			soldBuildingThisTurn = true;
+			return gold;
+		}
+
 		public void RemoveBuilding(CityBuilding building) {
 			constructed_buildings.Remove(building);
 			owner?.OnBuildingsChanged();

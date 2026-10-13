@@ -74,6 +74,8 @@ namespace C7GameData.Save {
 		// this turn (see City.Draft). Older saves have 0.
 		public int turnsOfUnhappinessDueToDrafting;
 		public int unitsDraftedThisTurn;
+		// A building was sold here this turn (see City.SellBuilding).
+		public bool soldBuildingThisTurn;
 		public bool celebrating;
 		public bool isInCivilDisorder;
 		// Resistance in a conquered city: the citizens resisting and the
@@ -115,6 +117,7 @@ namespace C7GameData.Save {
 			turnsOfUnhappinessDueToPopRushing = city.turnsOfUnhappinessDueToPopRushing;
 			turnsOfUnhappinessDueToDrafting = city.turnsOfUnhappinessDueToDrafting;
 			unitsDraftedThisTurn = city.unitsDraftedThisTurn;
+			soldBuildingThisTurn = city.soldBuildingThisTurn;
 			celebrating = city.celebrating;
 			isInCivilDisorder = city.isInCivilDisorder;
 			resisters = city.resisters;
@@ -238,6 +241,7 @@ namespace C7GameData.Save {
 				turnsOfUnhappinessDueToPopRushing = turnsOfUnhappinessDueToPopRushing,
 				turnsOfUnhappinessDueToDrafting = turnsOfUnhappinessDueToDrafting,
 				unitsDraftedThisTurn = unitsDraftedThisTurn,
+				soldBuildingThisTurn = soldBuildingThisTurn,
 				celebrating = celebrating,
 				isInCivilDisorder = isInCivilDisorder,
 				resisters = resisters,

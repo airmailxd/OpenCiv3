@@ -1313,6 +1313,23 @@ public partial class Game : Node {
 						PopupOverlay.PopupCategory.Advisor);
 				}
 				break;
+			case MsgDisplaySellBuildingPopup mDSBP:
+				if (mDSBP.errorMessage != null) {
+					popupOverlay.ShowPopup(
+						new InformationalPopup(mDSBP.errorMessage),
+						PopupOverlay.PopupCategory.Advisor);
+				} else {
+					// Civ3's Script.txt, IMPROVEMENT_SCRAP.
+					popupOverlay.ShowPopup(
+						new ConfirmationPopup(message: $"Are you sure you want to sell this improvement for {mDSBP.gold} gold?",
+												yesText: "Sure I'm sure!",
+												noText: "No I've had second thoughts!",
+												yesAction: () => {
+													new MsgSellBuilding(mDSBP.city, mDSBP.building).send();
+												}),
+						PopupOverlay.PopupCategory.Advisor);
+				}
+				break;
 			case MsgDisplayDraftPopup mDDP:
 				if (mDDP.errorMessage != null) {
 					popupOverlay.ShowPopup(

@@ -9,6 +9,16 @@ namespace C7Engine {
 	public class CityInteractions {
 		private static Serilog.ILogger log = Serilog.Log.ForContext<CityInteractions>();
 
+		// Sells one of the city's improvements (see City.SellBuilding),
+		// returning the gold it brought, or -1 if it couldn't be sold.
+		public static int SellBuilding(City city, Building building) {
+			int gold = city.SellBuilding(building);
+			if (gold >= 0) {
+				log.Information("{Player} sold the {Building} in {City} for {Gold} gold", city.owner, building.name, city, gold);
+			}
+			return gold;
+		}
+
 		public static City BuildCity(Tile tileWithNewCity, Player owner, string name) {
 			GameData gameData = EngineStorage.gameData;
 

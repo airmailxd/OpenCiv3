@@ -320,6 +320,7 @@ public static class SnapshotFilter {
 				hidden.turnsOfUnhappinessDueToPopRushing = 0;
 				hidden.turnsOfUnhappinessDueToDrafting = 0;
 				hidden.unitsDraftedThisTurn = 0;
+				hidden.soldBuildingThisTurn = false;
 				hidden.hurriedThisTurn = false;
 				hidden.productionQueue = [];
 				bool shown = city.producibleType == ProducibleType.INFLOW
