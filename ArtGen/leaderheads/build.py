@@ -83,24 +83,24 @@ SOURCES = {
               (0.33, 0.1, 0.32), 'Joan of Arc: detail of "Joan of Arc at the Coronation of Charles VII" by Ingres, 1854 (no likeness from her lifetime survives)'),
     'India': ('File:Gandhi portrait, 1940.jpg',
              (0.04, 0.0, 0.96), 'Mohandas K. Gandhi, photograph, 1940'),
-    'Persia': ('File:Ahasuerus by Ernest Normand.jpg',
-              (0.22, 0.17, 0.55), 'Xerxes I as Ahasuerus: detail of a painting by Ernest Normand, 19th century (his own reliefs at Persepolis are defaced)'),
+    'Persia': ('File:Rembrandt van Rijn and Workshop (Probably Govaert Flinck), Man in Oriental Costume, c. 1635, NGA 572.jpg',
+              (0.17, 0.08, 0.66), 'A typical Persian king, standing in for Xerxes, whose own reliefs are defaced: "Man in Oriental Costume" by Rembrandt and workshop (probably Govaert Flinck), about 1635'),
     'Aztecs': ('File:Moctezuma Xocoyotzin.png',
               (0.22, 0.03, 0.5), 'Moctezuma II, 17th-century painting attributed to Antonio Rodriguez'),
     'Zululand': ('File:Shaka Zulu incisione ottocentesca.jpg',
                 (0.315, 0.3, 0.35), 'Shaka, 19th-century print after the drawing by James King'),
-    'Iroquois': ('File:Hiawatha MET DP371840.jpg', (0.08, 0.10, 0.84),
-                 'Hiawatha: marble bust by Edmonia Lewis, 1868 (Metropolitan Museum of Art)'),
+    'Iroquois': ('File:Joseph Brant painting by George Romney 1776 (2).jpg',
+                (0.2, 0.06, 0.56), 'A Haudenosaunee leader, standing in for Hiawatha, of whom no likeness survives: the Mohawk leader Thayendanegea (Joseph Brant) by George Romney, 1776'),
     'England': ('File:Darnley stage 3.jpg', (0.17, 0.0, 0.52),
                 'Elizabeth I: the "Darnley Portrait", about 1575'),
     'Mongols': ('File:YuanEmperorAlbumGenghisPortrait.jpg',
                (0.2, 0.3, 0.6), "Genghis Khan (Temujin): portrait from the Yuan emperors' album, National Palace Museum, Taipei"),
     'Spain': ('File:Juan de Flandes - Isabel la Católica (Palacio Real, Madrid, 1500-04. Óleo sobre tabla, 63 x 55 cm).jpg',
               (0.1, 0.05, 0.8), 'Isabella I of Castile by Juan de Flandes, about 1500'),
-    'Scandinavia': ('File:Rayner Lothbroc & Kraka by August Malmström c 1880.jpg',
-                   (0.245, 0.34, 0.19), 'Ragnar Lodbrok: detail of "Ragnar Lodbrok and Kraka", engraving after August Malmstrom, about 1880'),
+    'Scandinavia': ('File:Christian Krohg - Leiv Eirikson discovering America - Google Art Project.jpg',
+                   (0.155, 0.31, 0.16), 'A typical Viking, standing in for Ragnar Lodbrok, of whom no likeness survives: an old sailor in "Leiv Eirikson discovering America" by Christian Krohg, 1893'),
     'Ottomans': ('File:Paolo Veronese (Nachfolger) - Sultan Osman I. - 2242 - Bavarian State Painting Collections.jpg',
-                (0.255, 0.25, 0.60), 'Osman I, 16th-century Venetian portrait (follower of Paolo Veronese)'),
+                (0.17, 0.22, 0.7), 'Osman I, 16th-century Venetian portrait (follower of Paolo Veronese)'),
     'Celts': ('File:Le Brenn et sa part de butin (Paul Jamin).jpg',
              (0.07, 0.13, 0.2), 'Brennus: detail of "Le Brenn et sa part de butin" by Paul Jamin, 1893'),
     'Arabia': ('File:Abu Bakr Caliph Calligraphy.png',
@@ -109,10 +109,10 @@ SOURCES = {
                  'Hannibal: the marble bust found at Capua'),
     'Korea': ('File:Taejo Wangkun.jpg',
              (0.3, 0.06, 0.36), 'Wang Kon (Taejo of Goryeo): royal portrait at Sungeuijeon, a copy (before 1950) of a Joseon-era painting'),
-    'Sumeria': ('File:Hero lion Dur-Sharrukin Louvre AO19862.jpg',
-               (0.31, 0.06, 0.44), 'Gilgamesh: the "hero mastering a lion" relief from Dur-Sharrukin, Louvre'),
-    'Hittites': ('File:Priest-King or Diety, about 1600 BC, Hittite, North Syria, basalt with bone eyes - Cleveland Museum of Art - DSC08114.JPG',
-                 (0.33, 0.10, 0.36), 'A Hittite priest-king, basalt statue of about 1600 BC, Cleveland Museum of Art (no likeness of Mursili survives)'),
+    'Sumeria': ('File:Sir Peter Paul Rubens and Studio, Head of One of the Three Kings - Melchior, The Assyrian King, c. 1618, NGA 12207.jpg',
+               (0.1, 0.15, 0.68), 'A typical Mesopotamian king, standing in for Gilgamesh, of whom no likeness survives: "Head of One of the Three Kings: Melchior, the Assyrian King" by Rubens and studio, about 1618'),
+    'Hittites': ('File:Man in Oriental Garment, by Rembrandt van Rijn.jpg',
+                (0.2, 0.2, 0.62), 'A typical ancient Near Eastern king, standing in for Mursilis, of whom no likeness survives: "Man in Oriental Garment" by Rembrandt, about 1635'),
     'Netherlands': ('File:William I, Prince of Orange by Adriaen Thomasz. Key Rijksmuseum Amsterdam SK-A-3148.jpg',
                     (0.1, 0.05, 0.8), 'William the Silent by Adriaen Thomasz. Key, about 1579'),
     'Portugal': ('File:Henry the Navigator1.jpg', (0.0, 0.0, 1.0),
@@ -121,18 +121,22 @@ SOURCES = {
                    'Empress Theodora: mosaic in the Basilica of San Vitale, Ravenna, 547'),
     'Inca': ('File:Brooklyn Museum - Pachacuti, Tenth Inca, 1 of 14 Portraits of Inca Kings (cropped).jpg',
             (0.27, 0.21, 0.46), 'Pachacuti: Cuzco School painting, 18th century (Brooklyn Museum)'),
-    'Maya': ('File:Copán Stela A 01.jpg',
-            (0.41, 0.35, 0.22), "Stela A at Copan, showing 18 Rabbit, Smoke-Jaguar's successor (no public domain likeness of Smoke-Jaguar (Chan Imix K'awiil) himself was found)"),
+    'Maya': ('File:Mayan - Stucco Portrait Head - Walters 20092026.jpg',
+            (0.1, 0.12, 0.84), 'A typical Maya noble, standing in for Smoke-Jaguar, of whom no likeness is in the public domain: Classic Maya stucco portrait head from Campeche, Walters Art Museum'),
 }
 
-# A little more for a few sources: contrast for a faded print, sharpening
-# for a soft scan.
+# A little more for a few sources: contrast for a faded print; less
+# sharpening for small sources scaled up, so they don't get an artificial
+# texture; 'cover', boxes (left, top, right, bottom, in fractions of the
+# width) painted over with the color around them, for a painted inscription
+# beside the sitter; 'disc', the corners outside a round picture filled
+# with a dark warm tone.
 TOUCH = {
-    'Zululand': {'contrast': 1.25},
-    'Persia': {'sharpen': 90},
-    'Korea': {'sharpen': 90, 'contrast': 1.2},
-    'Arabia': {'color': 0.5},
-    'Celts': {'sharpen': 70},
+    'Zululand': {'contrast': 1.15, 'sharpen': 20},
+    'Korea': {'sharpen': 20},
+    'Celts': {'sharpen': 15},
+    'Arabia': {'color': 0.4, 'disc': True},
+    'Ottomans': {'cover': [(0.02, 0.57, 0.30, 0.76)]},
 }
 # The brightness every portrait's mid-tones are brought toward (0..1).
 TARGET_LEVEL = 0.42
@@ -309,16 +313,53 @@ def finish(im, sharpen=45):
     return Image.fromarray((np.clip(a, 0, 1) * 255 + 0.5).astype(np.uint8), 'RGB')
 
 
+def _cover(im, boxes):
+    """Paints the boxes over with the median color of a band around them."""
+    a = np.asarray(im).copy()
+    w = im.width
+    for l, t, r, b in boxes:
+        x0, y0, x1, y1 = (int(v * w) for v in (l, t, r, b))
+        m = max(4, (x1 - x0) // 8)
+        ring = np.concatenate([a[max(0, y0 - m):y0, x0:x1].reshape(-1, 3), a[y1:y1 + m, x0:x1].reshape(-1, 3),
+                               a[y0:y1, max(0, x0 - m):x0].reshape(-1, 3), a[y0:y1, x1:x1 + m].reshape(-1, 3)])
+        a[y0:y1, x0:x1] = np.median(ring, 0)
+    out = Image.fromarray(a)
+    # soften the patch's edges into the painting
+    mask = Image.new('L', im.size, 0)
+    dr = ImageDraw.Draw(mask)
+    for l, t, r, b in boxes:
+        dr.rectangle([v * w for v in (l, t, r, b)], fill=255)
+    mask = mask.filter(ImageFilter.GaussianBlur(max(2, w // 200)))
+    return Image.composite(out.filter(ImageFilter.GaussianBlur(max(2, w // 300))), im, mask)
+
+
+def _disc(im):
+    """The corners outside the round picture, filled dark and warm."""
+    n = im.width
+    y, x = np.mgrid[0:n, 0:n].astype(np.float32)
+    r = np.hypot(x - (n - 1) / 2, y - (n - 1) / 2) / (n / 2)
+    k = np.clip((r - 0.985) / 0.02, 0, 1)[..., None]
+    a = np.asarray(im, np.float32) * (1 - k) + np.array([42, 32, 24], np.float32) * k
+    return Image.fromarray(a.astype(np.uint8))
+
+
 def make(civ_name):
     title, box, _ = SOURCES[civ_name]
     im, info = source_image(title)
-    im = crop(im, box)
     extra = TOUCH.get(civ_name, {})
+    if 'cover' in extra:
+        im = _cover(im, extra['cover'])
+    # how much the crop is enlarged: sharpening only for sources with pixels to spare
+    upscale = SIZE / max(1.0, box[2] * im.width)
+    im = crop(im, box)
+    if extra.get('disc'):
+        im = _disc(im)
     if 'contrast' in extra:
         im = ImageEnhance.Contrast(im).enhance(extra['contrast'])
     if 'color' in extra:
         im = ImageEnhance.Color(im).enhance(extra['color'])
-    return finish(im, sharpen=extra.get('sharpen', 45)), info
+    sharpen = extra.get('sharpen', 45 if upscale < 0.8 else 25)
+    return finish(im, sharpen=sharpen), info
 
 
 # ---------------------------------------------------------------- previews

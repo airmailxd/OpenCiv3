@@ -72,10 +72,10 @@ India.png (Gandhi)
   License: Public domain
 
 Persia.png (Xerxes)
-  Xerxes I as Ahasuerus: detail of a painting by Ernest Normand, 19th century (his own reliefs at Persepolis are defaced)
-  Source:  https://commons.wikimedia.org/wiki/File:Ahasuerus_by_Ernest_Normand.jpg
-  Artist:  Ernest Normand
-  License: Public domain
+  A typical Persian king, standing in for Xerxes, whose own reliefs are defaced: "Man in Oriental Costume" by Rembrandt and workshop (probably Govaert Flinck), about 1635
+  Source:  https://commons.wikimedia.org/wiki/File:Rembrandt_van_Rijn_and_Workshop_(Probably_Govaert_Flinck),_Man_in_Oriental_Costume,_c._1635,_NGA_572.jpg
+  Artist:  Rembrandt van Rijn and Workshop (Probably Govaert Flinck)
+  License: CC0
 
 Aztecs.png (Montezuma)
   Moctezuma II, 17th-century painting attributed to Antonio Rodriguez
@@ -90,10 +90,10 @@ Zululand.png (Shaka)
   License: Public domain
 
 Iroquois.png (Hiawatha)
-  Hiawatha: marble bust by Edmonia Lewis, 1868 (Metropolitan Museum of Art)
-  Source:  https://commons.wikimedia.org/wiki/File:Hiawatha_MET_DP371840.jpg
-  Artist:  Edmonia Lewis
-  License: CC0
+  A Haudenosaunee leader, standing in for Hiawatha, of whom no likeness survives: the Mohawk leader Thayendanegea (Joseph Brant) by George Romney, 1776
+  Source:  https://commons.wikimedia.org/wiki/File:Joseph_Brant_painting_by_George_Romney_1776_(2).jpg
+  Artist:  George Romney
+  License: Public domain
 
 England.png (Elizabeth)
   Elizabeth I: the "Darnley Portrait", about 1575
@@ -114,9 +114,9 @@ Spain.png (Isabella)
   License: Public domain
 
 Scandinavia.png (Ragnar Lodbrok)
-  Ragnar Lodbrok: detail of "Ragnar Lodbrok and Kraka", engraving after August Malmstrom, about 1880
-  Source:  https://commons.wikimedia.org/wiki/File:Rayner_Lothbroc_%26_Kraka_by_August_Malmstr%C3%B6m_c_1880.jpg
-  Artist:  August Malmström
+  A typical Viking, standing in for Ragnar Lodbrok, of whom no likeness survives: an old sailor in "Leiv Eirikson discovering America" by Christian Krohg, 1893
+  Source:  https://commons.wikimedia.org/wiki/File:Christian_Krohg_-_Leiv_Eirikson_discovering_America_-_Google_Art_Project.jpg
+  Artist:  Christian Krohg
   License: Public domain
 
 Ottomans.png (Osman)
@@ -150,16 +150,16 @@ Korea.png (Wang Kon)
   License: Public domain
 
 Sumeria.png (Gilgamesh)
-  Gilgamesh: the "hero mastering a lion" relief from Dur-Sharrukin, Louvre
-  Source:  https://commons.wikimedia.org/wiki/File:Hero_lion_Dur-Sharrukin_Louvre_AO19862.jpg
-  Artist:  Unknown artist
-  License: Public domain
+  A typical Mesopotamian king, standing in for Gilgamesh, of whom no likeness survives: "Head of One of the Three Kings: Melchior, the Assyrian King" by Rubens and studio, about 1618
+  Source:  https://commons.wikimedia.org/wiki/File:Sir_Peter_Paul_Rubens_and_Studio,_Head_of_One_of_the_Three_Kings_-_Melchior,_The_Assyrian_King,_c._1618,_NGA_12207.jpg
+  Artist:  anonymous
+  License: CC0
 
 Hittites.png (Mursilis)
-  A Hittite priest-king, basalt statue of about 1600 BC, Cleveland Museum of Art (no likeness of Mursili survives)
-  Source:  https://commons.wikimedia.org/wiki/File:Priest-King_or_Diety,_about_1600_BC,_Hittite,_North_Syria,_basalt_with_bone_eyes_-_Cleveland_Museum_of_Art_-_DSC08114.JPG
-  Artist:  Daderot
-  License: CC0
+  A typical ancient Near Eastern king, standing in for Mursilis, of whom no likeness survives: "Man in Oriental Garment" by Rembrandt, about 1635
+  Source:  https://commons.wikimedia.org/wiki/File:Man_in_Oriental_Garment,_by_Rembrandt_van_Rijn.jpg
+  Artist:  Rembrandt
+  License: Public domain
 
 Netherlands.png (William)
   William the Silent by Adriaen Thomasz. Key, about 1579
@@ -186,7 +186,7 @@ Inca.png (Pachacuti)
   License: Public domain
 
 Maya.png (Smoke-Jaguar)
-  Stela A at Copan, showing 18 Rabbit, Smoke-Jaguar's successor (no public domain likeness of Smoke-Jaguar (Chan Imix K'awiil) himself was found)
-  Source:  https://commons.wikimedia.org/wiki/File:Cop%C3%A1n_Stela_A_01.jpg
-  Artist:  Nosferattus
-  License: CC0
+  A typical Maya noble, standing in for Smoke-Jaguar, of whom no likeness is in the public domain: Classic Maya stucco portrait head from Campeche, Walters Art Museum
+  Source:  https://commons.wikimedia.org/wiki/File:Mayan_-_Stucco_Portrait_Head_-_Walters_20092026.jpg
+  Artist:  Anonymous (Mayan)
+  License: Public domain
