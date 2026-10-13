@@ -339,6 +339,14 @@ namespace C7Engine {
 					continue;
 				}
 
+				// Aircraft don't move like other units; they fly missions from
+				// their bases (see AirAI). Those aboard a carrier are
+				// fortified, so this comes first.
+				if (unit.IsAirUnit()) {
+					await AirAI.PlayTurn(player, unit);
+					continue;
+				}
+
 				// Don't waste time recalculating behaviors for fortified units.
 				// This means we'll have to unfortify all our units after
 				// interesting events like war declarations, but this seems like

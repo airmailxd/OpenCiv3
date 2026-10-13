@@ -298,6 +298,38 @@ public class AirUnitTest : IClassFixture<SaveGameFixture>, System.IDisposable {
 	}
 
 	[Fact]
+	public void TheAIBombsEnemiesNearItsCitiesOnlyAtWar() {
+		City theirs = FoundCity(them);
+		MapUnit bomber = Spawn(them, "Bomber", theirs.location);
+		Tile near = EmptyLandAt(theirs.location, 2);
+		MapUnit intruder = Spawn(us, "Warrior", near);
+
+		// At peace nothing is bombed.
+		us.EnsureRelationshipExists(them);
+		AirAI.PlayTurn(them, bomber).Wait();
+		Assert.True(bomber.movementPoints.canMove);
+
+		GoToWar();
+		Assert.Same(near, AirAI.ChooseBombingTarget(them, bomber));
+		WithRandom(0, 0.0, () => { AirAI.PlayTurn(them, bomber).Wait(); return 0; });
+
+		Assert.False(bomber.movementPoints.canMove);
+		Assert.True(intruder.hitPointsRemaining <= 0 || !near.unitsOnTile.Contains(intruder));
+	}
+
+	[Fact]
+	public void TheAIFliesAirSuperiorityOverThreatenedCities() {
+		City theirs = FoundCity(them);
+		MapUnit fighter = Spawn(them, "Fighter", theirs.location);
+		Spawn(us, "Warrior", EmptyLandAt(theirs.location, 2));
+		GoToWar();
+
+		AirAI.PlayTurn(them, fighter).Wait();
+
+		Assert.True(fighter.isOnAirSuperiority);
+	}
+
+	[Fact]
 	public void AirSuperiorityIsSaved() {
 		City home = FoundCity(us);
 		MapUnit fighter = Spawn(us, "Fighter", home.location);
