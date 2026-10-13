@@ -161,7 +161,12 @@ public class SaveTests : IClassFixture<SaveGameFixture> {
 					// This is a settler not in a city - make sure it has an escort.
 					if (u.currentAI is SettlerAI settlerAi) {
 						if (settlerAi.data.escort != null) {
-							Assert.Equal(settlerAi.data.escort.location, u.location);
+							// A settler may take a soldier up to three tiles away as
+							// its escort, which catches up with it on the way (see
+							// SettlerAI.TryToTakeEscort), so it need not be on the
+							// settler's tile yet, only close by.
+							MapUnit escort = settlerAi.data.escort;
+							Assert.True(escort.location.DistanceTo(u.location) <= 4, $"{u} at {u.location} is far from its escort {escort} at {escort.location}");
 						} else {
 							// This assertion is tempting, but will sometimes fire
 							// if the escort is disbanded due to unit support costs.
