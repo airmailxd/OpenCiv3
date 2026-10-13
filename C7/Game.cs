@@ -1505,6 +1505,8 @@ public partial class Game : Node {
 			case MsgVictory mV:
 				var endMsg =
 					$"The {mV.winner.civilization.noun} have won a {mV.victory.Header()} victory!\n"
+					+ $"Final score: {mV.finalScore}"
+					+ (mV.earlyWinBonus > 0 ? $" ({mV.earlyWinBonus} for winning early)" : "") + "\n"
 					+ "This game is over: No further score will be entered.\n\n";
 
 				popupOverlay.ShowPopup(

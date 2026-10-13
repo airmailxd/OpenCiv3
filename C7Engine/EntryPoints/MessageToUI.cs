@@ -689,10 +689,16 @@ namespace C7Engine {
 	public class MsgVictory : MessageToUI {
 		public Player winner;
 		public IVictory victory;
+		// The winner's final score, with what winning before 2050 AD added
+		// to it (see ScoreVictory.EarlyWinBonus).
+		public int finalScore;
+		public int earlyWinBonus;
 
-		public MsgVictory(Player winner, IVictory victory) {
+		public MsgVictory(Player winner, IVictory victory, int finalScore = 0, int earlyWinBonus = 0) {
 			this.winner = winner;
 			this.victory = victory;
+			this.finalScore = finalScore;
+			this.earlyWinBonus = earlyWinBonus;
 		}
 
 		public override bool IsForEveryone => true;

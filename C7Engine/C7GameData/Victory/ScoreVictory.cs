@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using C7GameData;
@@ -12,6 +13,9 @@ public class ScoreVictory : IVictory {
 		var history = gameData.history[player.HistoryKey];
 		var lastTurn = history.LastOrDefault();
 		var totalAccumulatedScore = lastTurn?.Score ?? 0;
+		if (gameData.gameOver && player == gameData.winner) {
+			totalAccumulatedScore += gameData.victoryBonus;
+		}
 
 		VictoryStatus status = new VictoryStatus {
 			Player = player,
@@ -88,7 +92,13 @@ public class ScoreVictory : IVictory {
 			}
 		}
 
-		int futureTechs = 0; // TODO: future techs
+		// Each future tech counts as much as a content citizen: "1 FUTURE
+		// TECH IS WORTH 1 CONTENT CITIZEN OR SPECIALIST", found by giving a
+		// civ a future tech with a save editor, which scored (1/21) * 6 = 0.3
+		// on Deity after 21 turns
+		// (https://forums.civfanatics.com/threads/scoring-of-future-tech.31261/).
+		// TODO: the game has no future techs yet, so there are none to count.
+		int futureTechs = 0;
 
 		// TODO: gameData.gameDifficulty.ScoreMultiplier
 		float difficultyFactor = GetDifficultyScoreFactor(gameData);
@@ -97,6 +107,24 @@ public class ScoreVictory : IVictory {
 		turnScore *= difficultyFactor;
 
 		return turnScore;
+	}
+
+	// What winning before 2050 AD adds to the winner's score: "For
+	// finishing before 2050 AD, the bonus is (2050 - FinishYear) *
+	// Difficulty ... If you finish before 10AD, use the year as a negative
+	// number in the calculation"
+	// (https://civfanatics.com/civ3/strategy/game-mechanics/maximizing-your-score/),
+	// with the same difficulty factor as the turn score. The finish year is
+	// that of the turn the game was won. UNVERIFIED: a game counted in
+	// months, weeks or days rather than years has no year to finish in, so
+	// it gets no bonus.
+	public static int EarlyWinBonus(GameData gameData) {
+		TimeOptions time = gameData.timeOptions;
+		if (time == null || time.baseUnit != TimeUnit.Years) {
+			return 0;
+		}
+		int year = time.GetRawNumber(gameData.turn);
+		return (int)(Math.Max(0, 2050 - year) * GetDifficultyScoreFactor(gameData));
 	}
 
 	// 1 for Chieftain, 2 for Warlord, 3 for Regent, etc.
