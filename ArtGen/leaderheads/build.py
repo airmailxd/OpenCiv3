@@ -135,7 +135,7 @@ ARTIST = {'Scandinavia': 'Hans Dahl'}
 # beside the sitter; 'disc', the corners outside a round picture filled
 # with a dark warm tone.
 TOUCH = {
-    'Zululand': {'contrast': 1.15, 'sharpen': 20},
+    'Zululand': {'sharpen': 20},
     'Scandinavia': {'sharpen': 20},
     'Celts': {'sharpen': 15},
     'Arabia': {'color': 0.4, 'disc': True},
@@ -143,18 +143,29 @@ TOUCH = {
 }
 # The painted finish (paint.py) adjusted for a few pictures: see paint.paint.
 PAINT = {
-    'Rome': {'broad': 140, 'keep': 0.5, 'color': 0.45},
+    # Hand-drawn outlines (polygons, in fractions of the tile) where the
+    # mask can't find the sitter's edge: outside them is all painted ground.
+    'Rome': {'broad': 140, 'keep': 0.5, 'color': 0.45, 'hand_only': True,
+             'hand': [[(0.29, 0.3), (0.34, 0.1), (0.45, 0.04), (0.6, 0.03), (0.72, 0.06), (0.78, 0.15), (0.78, 0.38),
+                       (0.74, 0.62), (0.8, 0.74), (0.97, 0.8), (0.97, 1), (0.17, 1), (0.2, 0.8), (0.25, 0.66),
+                       (0.29, 0.5)]]},
     # statues before a light wall: the sitter's outline pulled in further,
     # so no light rim of the wall glows round the head
     'Babylon': {'erode': 15, 'plain': 1.0},
     'Hittites': {'oval': 0.6, 'erode': 15},
     'Sumeria': {'erode': 15},
-    'Greece': {'erode': 30},
-    # a print: all in the shared key, like the black and white photographs
-    'Zululand': {'erode': 30, 'color': 0.0},
+    'Greece': {'hand_only': True,
+               'hand': [[(0.13, 0.3), (0.17, 0.14), (0.3, 0.07), (0.55, 0.06), (0.75, 0.11), (0.85, 0.22), (0.89, 0.5),
+                         (0.86, 1), (0.17, 1), (0.12, 0.65)]]},
+    # a print: all in the shared key, like the black and white photographs,
+    # its hatching softened into tone
+    'Zululand': {'color': 0.0, 'soften': 1.1, 'texture': 0, 'contrast': 0.85, 'level': 0.36, 'hand_only': True,
+                 'hand': [[(0.29, 0.35), (0.31, 0.18), (0.42, 0.12), (0.56, 0.1), (0.67, 0.14), (0.71, 0.22),
+                           (0.7, 0.45), (0.62, 0.62), (0.64, 0.76), (1, 0.86), (1, 1), (0, 1), (0, 0.88),
+                           (0.34, 0.77), (0.37, 0.62), (0.3, 0.5)]]},
     # a pale face on pale silk the mask can't tell apart: a hand-drawn
     # outline (hat, face, shoulders, in fractions of the tile)
-    'Korea': {'keep': 0.9, 'color': 0.6, 'contrast': 1.3, 'level': 0.36,
+    'Korea': {'keep': 0.9, 'color': 0.6, 'contrast': 1.3, 'level': 0.36, 'hand_only': True,
               'hand': [[(0.385, 0.05), (0.635, 0.05), (0.69, 0.21), (0.68, 0.36), (0.665, 0.5), (0.63, 0.7),
                         (1, 0.8), (1, 1), (0, 1), (0, 0.8), (0.34, 0.7), (0.315, 0.5), (0.31, 0.36),
                         (0.32, 0.21)]]},
@@ -163,10 +174,17 @@ PAINT = {
     'America': {'keep': 0.65},
     'China': {'keep': 0.65},
     'India': {'keep': 0.65},
-    'Mongols': {'color': 0.35, 'level': 0.30},
+    'Mongols': {'color': 0.35, 'level': 0.30,
+                'hand': [[(0.22, 0.6), (0.24, 0.25), (0.33, 0.1), (0.5, 0.05), (0.67, 0.1), (0.78, 0.25), (0.84, 0.6),
+                          (1, 0.7), (1, 1), (0, 1), (0, 0.7)]]},
+    'Japan': {'hand': [[(0.42, 0.36), (0.5, 0.24), (0.58, 0.21), (0.58, 0.02), (0.65, 0.02), (0.66, 0.21),
+                        (0.74, 0.27), (0.78, 0.4), (0.8, 0.6), (1, 0.6), (1, 1), (0, 1), (0, 0.72), (0.2, 0.65),
+                        (0.4, 0.6), (0.4, 0.45)]]},
     'Byzantines': {'keep': 0.75, 'broad': 150},
-    # a busy painted cape and headdress the mask mistakes for background
-    'Aztecs': {'oval': 1.3, 'erode': 120, 'bg': 0.6, 'broad': 140},
+    'Aztecs': {'broad': 140,
+               'hand': [[(0.38, 0.25), (0.42, 0.1), (0.5, 0.05), (0.62, 0.02), (0.75, 0.02), (0.8, 0.1), (0.78, 0.3),
+                         (0.85, 0.45), (0.9, 0.62), (1, 0.68), (1, 1), (0, 1), (0, 0.6), (0.15, 0.55),
+                         (0.38, 0.5)]]},
     'Portugal': {'level': 0.50},
     'Inca': {'level': 0.48},
     # Abu Bakr's roundel: its green dimmed toward an aged verdigris

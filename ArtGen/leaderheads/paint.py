@@ -166,7 +166,8 @@ def backdrop(n, seed):
 
 
 def paint(img, seed=0, strength=1.0, oval=1.0, keep=0.4, broad=70, bg=0.92, color=0.75, erode=60, level=0.42,
-          fixed=None, plain=None, contrast=1.0, texture=1.0, green=None, hand=None):
+          fixed=None, plain=None, contrast=1.0, texture=1.0, green=None, hand=None, soften=0,
+          hand_only=False):
     """The painted finish on a PIL RGB picture (returns float RGB 0..1).
     Per picture: oval, how sure the center is the sitter (lower for a
     sitter before a bright wall, which would glow); keep, how much of the
@@ -175,6 +176,9 @@ def paint(img, seed=0, strength=1.0, oval=1.0, keep=0.4, broad=70, bg=0.92, colo
     bg, how much of the old background the painted ground replaces."""
     a = np.asarray(img, np.float32) / 255
     n = a.shape[0]
+    if soften:
+        # (a print: its hatching softened into tone first)
+        a = nd.gaussian_filter(a, (soften, soften, 0))
     if contrast != 1.0:
         a = np.clip((a - a.mean()) * contrast + a.mean(), 0, 1)
     mask, wall = subject_mask(a, oval, erode, plain)
@@ -186,8 +190,10 @@ def paint(img, seed=0, strength=1.0, oval=1.0, keep=0.4, broad=70, bg=0.92, colo
         for poly in hand:
             _D.Draw(im).polygon([(x * n, y * n) for x, y in poly], fill=255)
         hm = nd.gaussian_filter(np.asarray(im, np.float32) / 255, n / 120)
-        mask = hm
-        wall = 1 - hm
+        # inside the outline the wall the mask found is still ground, unless
+        # the outline is all there is to go by (hand_only)
+        mask = hm if hand_only else hm * (1 - wall)
+        wall = 1 - hm if hand_only else np.maximum(wall, 1 - hm)
     if fixed:
         # a sitter the mask can't find (pale on pale paper): a fixed soft
         # silhouette, an oval head over wide shoulders, (cx, cy, rx, ry)
