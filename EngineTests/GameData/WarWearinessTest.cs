@@ -195,4 +195,40 @@ public class WarWearinessTest {
 		}
 		Assert.Equal(0, city.owner.warWeariness);
 	}
+
+	// Democracy at war weariness level 3: "Revolt"
+	// (https://civfanatics.com/civ3/strategy/game-mechanics/how-does-war-weariness-work/).
+	private static (C7GameData.GameData, Player) WearyPlayer(int warWearinessLevel, int weariness) {
+		City city = MakeCity(warWearinessLevel, weariness);
+		C7GameData.GameData gameData = new() { turn = 10 };
+		gameData.governments.Add(city.owner.government);
+		gameData.governments.Add(new Government { name = "Anarchy", transitionType = true });
+		// Religious, for a fixed two turns of anarchy.
+		city.owner.civilization.traits.Add(Civilization.Trait.Religious);
+		return (gameData, city.owner);
+	}
+
+	[Fact]
+	public void ADemocracyFallsIntoAnarchyAtLevelThree() {
+		(C7GameData.GameData gameData, Player player) = WearyPlayer(warWearinessLevel: 2, weariness: 100);
+		player.UpdateWarWeariness(gameData);
+		Assert.True(player.government.transitionType);
+		Assert.Equal(12, player.inAnarchyUntilTurn);
+	}
+
+	[Fact]
+	public void ADemocracyHoldsBelowLevelThree() {
+		(C7GameData.GameData gameData, Player player) = WearyPlayer(warWearinessLevel: 2, weariness: 90);
+		Government democracy = player.government;
+		player.UpdateWarWeariness(gameData);
+		Assert.Same(democracy, player.government);
+	}
+
+	[Fact]
+	public void LowWarWearinessGovernmentsDontRevolt() {
+		(C7GameData.GameData gameData, Player player) = WearyPlayer(warWearinessLevel: 1, weariness: 200);
+		Government republic = player.government;
+		player.UpdateWarWeariness(gameData);
+		Assert.Same(republic, player.government);
+	}
 }
