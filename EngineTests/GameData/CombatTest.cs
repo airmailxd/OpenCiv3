@@ -309,6 +309,22 @@ public class CombatTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(0.5, city.GetDefenseBonuses(galley).Single(b => b.description == "Coastal Fortress").amount);
 	}
 
+	// "There is no defensive bonus for fortified ships"
+	// (https://forums.civfanatics.com/threads/do-ships-get-a-defense-bonus-when-fortified.95400/).
+	[Fact]
+	public void FortifiedShipsGetNoFortificationBonus() {
+		(Tile land, Tile sea) = FindCoast();
+		MapUnit galley = Spawn(us, "Galley", sea);
+		MapUnit warrior = Spawn(us, "Warrior", land);
+		MapUnit attacker = Spawn(them, "Warrior", land);
+		galley.isFortified = true;
+		warrior.isFortified = true;
+
+		string fortified = gameData.fortificationBonus.description;
+		Assert.DoesNotContain(galley.ListStrengthBonusesVersus(attacker, CombatRole.Defense, null), b => b.description == fortified);
+		Assert.Contains(warrior.ListStrengthBonusesVersus(attacker, CombatRole.Defense, null), b => b.description == fortified);
+	}
+
 	// Units like the Javelin Thrower have "a 33% chance" to make a unit
 	// (a Worker for it) of a foe they beat attacking
 	// (https://forums.civfanatics.com/threads/anyone-know-exactly-how-enslavement-works.107253/).

@@ -486,7 +486,9 @@ namespace C7GameData {
 			GameData gD = EngineStorage.gameData;
 
 			if (role.Defending()) {
-				if (isFortified)
+				// "There is no defensive bonus for fortified ships"
+				// (https://forums.civfanatics.com/threads/do-ships-get-a-defense-bonus-when-fortified.95400/).
+				if (isFortified && !IsWaterUnit())
 					yield return gD.fortificationBonus;
 
 				yield return location.overlayTerrainType.defenseBonus;
