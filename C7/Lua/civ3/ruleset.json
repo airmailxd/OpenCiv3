@@ -9550,6 +9550,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "flags": [
         "isCenterOfEmpire"
@@ -9574,6 +9575,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "flags": [
         "veteranGroundUnits"
@@ -9605,6 +9607,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "flags": [
         "doublesCityGrowthRate"
@@ -9630,6 +9633,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "traits": [
         "religious"
@@ -9655,6 +9659,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "flags": [
         "increasesLuxuryTrade",
@@ -9684,6 +9689,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "flags": [
         "plus50PercentResearch"
@@ -9712,6 +9718,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "flags": [
         "reducesCorruption"
@@ -9737,6 +9744,7 @@
       "pollution": 0,
       "bombardDefense": 8,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "flags": [
         "providesWalls",
@@ -9769,6 +9777,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "flags": [
         "allowsCitySize2"
@@ -9801,6 +9810,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "flags": [
         "plus50PercentCommerce"
@@ -9830,6 +9840,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "traits": [
         "religious"
@@ -9856,6 +9867,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "flags": [
         "plus50PercentResearch"
@@ -9884,6 +9896,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0
     },
     {
@@ -9906,6 +9919,7 @@
       "pollution": 2,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "requiredResources": [
         "Iron"
@@ -9932,6 +9946,7 @@
       "pollution": 2,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0
     },
     {
@@ -9954,6 +9969,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "flags": [
         "reducesBuildingPollution"
@@ -9983,6 +9999,7 @@
       "pollution": 2,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "flags": [
         "replacesOtherBuildings"
@@ -10012,6 +10029,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "flags": [
         "mustBeNearRiver",
@@ -10042,6 +10060,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "flags": [
         "replacesOtherBuildings"
@@ -10070,6 +10089,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "flags": [
         "allowsCitySize3"
@@ -10099,6 +10119,7 @@
       "pollution": 1,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "flags": [
         "plus50PercentResearch"
@@ -10127,6 +10148,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "flags": [
         "removesPopulationPollution"
@@ -10155,6 +10177,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 8,
+      "navalPower": 0,
       "unitFrequency": 0,
       "traits": [
         "militaristic"
@@ -10183,6 +10206,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 8,
       "unitFrequency": 0,
       "flags": [
         "mustBeCoastal"
@@ -10220,6 +10244,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "flags": [
         "replacesOtherBuildings"
@@ -10248,6 +10273,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "flags": [
         "mustBeCoastal",
@@ -10290,6 +10316,7 @@
       "pollution": 2,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "flags": [
         "mustBeCoastal",
@@ -10325,6 +10352,7 @@
       "pollution": 1,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "flags": [
         "veteranAirUnits",
@@ -10358,6 +10386,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "flags": [
         "reducesCorruption",
@@ -10387,6 +10416,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "flags": [
         "touristAttraction"
@@ -10419,6 +10449,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "flags": [
         "touristAttraction"
@@ -10450,6 +10481,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "flags": [
         "mustBeCoastal",
@@ -10490,6 +10522,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "flags": [
         "mustBeCoastal",
@@ -10528,6 +10561,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "flags": [
         "gainAnyTechKnownByTwoCivs",
@@ -10560,6 +10594,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "flags": [
         "touristAttraction"
@@ -10592,6 +10627,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "flags": [
         "doubleCombatVsBarbarians",
@@ -10625,6 +10661,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "traits": [
         "militaristic"
@@ -10652,6 +10689,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "flags": [
         "touristAttraction"
@@ -10681,6 +10719,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "flags": [
         "mustBeCoastal",
@@ -10716,6 +10755,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "flags": [
         "doublesResearchOutput",
@@ -10746,6 +10786,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "flags": [
         "allowsCitySize3",
@@ -10776,6 +10817,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "flags": [
         "cheaperUpgrades",
@@ -10806,6 +10848,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "flags": [
         "continentalMoodEffects",
@@ -10836,6 +10879,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "flags": [
         "doublesResearchOutput",
@@ -10866,6 +10910,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "flags": [
         "paysTradeMaintenance"
@@ -10896,6 +10941,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "flags": [
         "reducesWarWearinessEverywhere"
@@ -10927,6 +10973,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "flags": [
         "mustBeNearRiver",
@@ -10961,6 +11008,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "flags": [
         "twoFreeAdvances"
@@ -10990,6 +11038,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "flags": [
         "allowDiplomaticVictory",
@@ -11020,6 +11069,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "flags": [
         "allowsNuclearWeapons"
@@ -11053,6 +11103,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "traits": [
         "scientific",
@@ -11080,6 +11131,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "flags": [
         "doublesCityGrowthEverywhere"
@@ -11109,6 +11161,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "flags": [
         "doublesResearchOutput"
@@ -11136,6 +11189,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "flags": [
         "requiresVictoriousArmy",
@@ -11165,6 +11219,7 @@
       "pollution": 4,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "requiredResources": [
         "Iron",
@@ -11190,6 +11245,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "flags": [
         "forbiddenPalace"
@@ -11218,6 +11274,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "flags": [
         "allowsBuildArmy",
@@ -11247,6 +11304,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "flags": [
         "allowsLargerArmies"
@@ -11275,6 +11333,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "flags": [
         "treasuryEarnsInterest"
@@ -11300,6 +11359,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "flags": [
         "buildSpaceshipParts"
@@ -11332,6 +11392,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "flags": [
         "decreasesMissileSuccess"
@@ -11360,6 +11421,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "flags": [
         "allowsSpyMissions"
@@ -11389,6 +11451,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "flags": [
         "allowsEnemyTerritoryHealing"
@@ -11417,6 +11480,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "spaceshipPart": 0,
       "unitFrequency": 0,
       "requiredResources": [
@@ -11443,6 +11507,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "spaceshipPart": 1,
       "unitFrequency": 0,
       "requiredResources": [
@@ -11469,6 +11534,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "spaceshipPart": 2,
       "unitFrequency": 0,
       "requiredResources": [
@@ -11495,6 +11561,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "spaceshipPart": 3,
       "unitFrequency": 0,
       "requiredResources": [
@@ -11521,6 +11588,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "spaceshipPart": 4,
       "unitFrequency": 0,
       "requiredResources": [
@@ -11547,6 +11615,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "spaceshipPart": 5,
       "unitFrequency": 0,
       "requiredResources": [
@@ -11573,6 +11642,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "spaceshipPart": 6,
       "unitFrequency": 0,
       "requiredResources": [
@@ -11600,6 +11670,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "spaceshipPart": 7,
       "unitFrequency": 0,
       "requiredResources": [
@@ -11626,6 +11697,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "spaceshipPart": 8,
       "unitFrequency": 0,
       "requiredResources": [
@@ -11652,6 +11724,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "spaceshipPart": 9,
       "unitFrequency": 0,
       "requiredResources": [
@@ -11682,6 +11755,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "traits": [
         "militaristic",
@@ -11715,6 +11789,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "traits": [
         "militaristic"
@@ -11741,6 +11816,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "flags": [
         "plus50PercentCommerce"
@@ -11770,6 +11846,7 @@
       "pollution": 1,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "flags": [
         "increasesTradeInWater"
@@ -11806,6 +11883,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "flags": [
         "touristAttraction"
@@ -11836,6 +11914,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitProduced": "Ancient Cavalry",
       "unitFrequency": 5,
       "flags": [
@@ -11870,6 +11949,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "flags": [
         "touristAttraction"
@@ -11901,6 +11981,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitProduced": "Crusader",
       "unitFrequency": 5,
       "traits": [
@@ -11929,6 +12010,7 @@
       "pollution": 0,
       "bombardDefense": 0,
       "airPower": 0,
+      "navalPower": 0,
       "unitFrequency": 0,
       "flags": [
         "forbiddenPalace"

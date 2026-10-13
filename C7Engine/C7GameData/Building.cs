@@ -124,6 +124,10 @@ namespace C7GameData {
 		// attempt to attack the SAM site's city" (Civilopedia,
 		// BLDG_SAM_Missile_Battery). See MapUnit.TryToIntercept.
 		public int airPower;
+		// The strength with which the building bombards enemy ships passing
+		// the city (the BIQ's naval power: 8 for the Coastal Fortress in
+		// conquests.biq). See MapUnit.FindCoastalFortressesAlong.
+		public int navalPower;
 		// Resolved by name against GameData.unitPrototypes when needed.
 		public string? unitProducedName;
 		public int unitFrequency;
@@ -237,6 +241,7 @@ namespace C7GameData {
 			bombardDefense = building.bombardDefense > 0 ? building.bombardDefense
 				: providesWalls ? DefaultWallBombardDefense : 0;
 			airPower = building.airPower;
+			navalPower = building.navalPower;
 			unitProducedName = building.unitProduced;
 			unitFrequency = building.unitFrequency;
 

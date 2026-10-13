@@ -560,6 +560,7 @@ public partial class MapUnit {
 		facingDirection = dir;
 		float movementCost = TilePath.GetMovementCost(this.owner, location, dir, newLoc, unitType.allTerrainAsRoads);
 		List<MapUnit> zoneOfControlAttackers = FindZoneOfControlAttackers(location, newLoc);
+		List<City> coastalFortresses = FindCoastalFortressesAlong(location, newLoc);
 
 		RelocateTo(newLoc, movedThere: true);
 		WakeNearbySentries(newLoc);
@@ -573,6 +574,11 @@ public partial class MapUnit {
 
 		foreach (MapUnit zocUnit in zoneOfControlAttackers) {
 			await zocUnit.ZoneOfControlAttack(this);
+		}
+		// Coastal fortresses bombard enemy ships sailing past (see
+		// MapUnit_CoastalFortress.cs).
+		foreach (City fortress in coastalFortresses) {
+			await TakeCoastalFortressShot(fortress);
 		}
 
 		return true;

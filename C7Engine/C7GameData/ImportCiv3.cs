@@ -2155,6 +2155,7 @@ namespace C7GameData {
 				building.pollution = bldg.Pollution;
 				building.bombardDefense = bldg.BombardDefense;
 				building.airPower = bldg.AirPower;
+				building.navalPower = bldg.NavalPower;
 				if (bldg.SpaceshipPart >= 0) {
 					building.spaceshipPart = bldg.SpaceshipPart;
 				}
