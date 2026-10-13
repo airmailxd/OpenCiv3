@@ -109,6 +109,10 @@ public class SaveTests : IClassFixture<SaveGameFixture> {
 			case MsgVictory:
 			case MsgCityChanged:
 			case MsgCityProductionCompleted:
+			// The AIs that play before the human player may already hit the
+			// human's units, as AI bombers do in the WWII scenarios, before
+			// the human is made an AI too.
+			case MsgUnitMoved:
 				return;
 			default:
 				throw new Exception($"Unexpected message to the UI: {msg}");

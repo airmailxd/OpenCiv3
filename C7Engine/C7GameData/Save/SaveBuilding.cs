@@ -147,6 +147,10 @@ namespace C7GameData.Save {
 		// not given; see Building.bombardDefense.
 		public int bombardDefense;
 
+		// The BIQ's air power: the strength a SAM battery fires at aircraft
+		// bombing its city with. Zero if not given; see Building.airPower.
+		public int airPower;
+
 		// For a spaceship part, its index in Rules.SpaceshipPartsRequired
 		// (Civ3's BLDG "spaceship part" field). Null for ordinary buildings.
 		public int? spaceshipPart;

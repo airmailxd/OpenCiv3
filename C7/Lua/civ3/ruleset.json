@@ -861,6 +861,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Rome",
@@ -945,6 +946,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Rome",
@@ -1033,6 +1035,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Russia",
@@ -1089,6 +1092,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Rome",
@@ -1167,6 +1171,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Rome",
@@ -1250,6 +1255,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 8,
       "workerStrength": 1,
       "producibleBy": [
         "Rome",
@@ -1301,7 +1307,8 @@
         "explore",
         "load",
         "pillage",
-        "sentry"
+        "sentry",
+        "airdrop"
       ],
       "requiredResources": [
         "Oil",
@@ -1333,6 +1340,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "A Barbarian Chiefdom",
@@ -1419,6 +1427,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Rome",
@@ -1501,6 +1510,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Rome",
@@ -1582,6 +1592,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Egypt",
@@ -1665,6 +1676,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Rome",
@@ -1750,6 +1762,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "A Barbarian Chiefdom",
@@ -1839,6 +1852,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Rome",
@@ -1924,6 +1938,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Rome",
@@ -2006,6 +2021,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Rome",
@@ -2093,6 +2109,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Rome",
@@ -2174,6 +2191,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Rome",
@@ -2258,6 +2276,7 @@
       "movement": 3,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Rome",
@@ -2340,6 +2359,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Rome",
@@ -2427,6 +2447,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Rome",
@@ -2514,6 +2535,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Rome",
@@ -2598,6 +2620,7 @@
       "movement": 3,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Rome",
@@ -2682,6 +2705,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Rome",
@@ -2765,6 +2789,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Rome",
@@ -2853,6 +2878,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Rome",
@@ -2933,6 +2959,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Rome",
@@ -3017,6 +3044,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Rome",
@@ -3099,6 +3127,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Rome",
@@ -3183,6 +3212,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Rome",
@@ -3266,6 +3296,7 @@
       "movement": 3,
       "capacity": 2,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Rome",
@@ -3350,6 +3381,7 @@
       "movement": 4,
       "capacity": 3,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Rome",
@@ -3432,6 +3464,7 @@
       "movement": 5,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Rome",
@@ -3513,6 +3546,7 @@
       "movement": 4,
       "capacity": 4,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Rome",
@@ -3595,6 +3629,7 @@
       "movement": 3,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Rome",
@@ -3678,6 +3713,7 @@
       "movement": 6,
       "capacity": 6,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Rome",
@@ -3756,6 +3792,7 @@
       "movement": 7,
       "capacity": 4,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Rome",
@@ -3838,6 +3875,7 @@
       "movement": 4,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Rome",
@@ -3915,6 +3953,7 @@
       "movement": 8,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Rome",
@@ -3993,6 +4032,7 @@
       "movement": 5,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Rome",
@@ -4074,6 +4114,7 @@
       "movement": 7,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Rome",
@@ -4157,6 +4198,7 @@
       "movement": 5,
       "capacity": 1,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Rome",
@@ -4238,6 +4280,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 6,
       "workerStrength": 1,
       "producibleBy": [
         "Rome",
@@ -4291,7 +4334,11 @@
         "disband",
         "load",
         "upgrade",
-        "sentry"
+        "sentry",
+        "bombing",
+        "recon",
+        "intercept",
+        "rebase"
       ],
       "requiredResources": [
         "Oil"
@@ -4323,6 +4370,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 10,
       "workerStrength": 1,
       "producibleBy": [
         "Rome",
@@ -4372,7 +4420,9 @@
         "fortify",
         "disband",
         "load",
-        "sentry"
+        "sentry",
+        "bombing",
+        "rebase"
       ],
       "requiredResources": [
         "Oil"
@@ -4404,6 +4454,7 @@
       "movement": 1,
       "capacity": 3,
       "hpBonus": 0,
+      "operationalRange": 6,
       "workerStrength": 1,
       "producibleBy": [
         "Rome",
@@ -4452,7 +4503,10 @@
         "fortify",
         "disband",
         "unload",
-        "sentry"
+        "sentry",
+        "airdrop",
+        "recon",
+        "rebase"
       ],
       "requiredResources": [
         "Oil",
@@ -4485,6 +4539,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 9,
       "workerStrength": 1,
       "producibleBy": [
         "Rome",
@@ -4533,7 +4588,11 @@
         "disband",
         "load",
         "upgrade",
-        "sentry"
+        "sentry",
+        "bombing",
+        "recon",
+        "intercept",
+        "rebase"
       ],
       "requiredResources": [
         "Oil",
@@ -4566,6 +4625,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 12,
       "workerStrength": 1,
       "producibleBy": [
         "Rome",
@@ -4604,7 +4664,8 @@
       "flags": [
         "lethalLandBombardment",
         "lethalSeaBombardment",
-        "immobile"
+        "immobile",
+        "stealth"
       ],
       "categories": [
         "Air"
@@ -4615,7 +4676,11 @@
         "fortify",
         "disband",
         "load",
-        "sentry"
+        "sentry",
+        "bombing",
+        "recon",
+        "rebase",
+        "precisionBombing"
       ],
       "requiredResources": [
         "Oil",
@@ -4648,6 +4713,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 16,
       "workerStrength": 1,
       "producibleBy": [
         "Rome",
@@ -4686,7 +4752,8 @@
       "flags": [
         "lethalLandBombardment",
         "lethalSeaBombardment",
-        "immobile"
+        "immobile",
+        "stealth"
       ],
       "categories": [
         "Air"
@@ -4697,7 +4764,10 @@
         "fortify",
         "disband",
         "load",
-        "sentry"
+        "sentry",
+        "bombing",
+        "rebase",
+        "precisionBombing"
       ],
       "requiredResources": [
         "Oil",
@@ -4742,6 +4812,7 @@
       "movement": 3,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Rome",
@@ -4830,6 +4901,7 @@
       "movement": 1,
       "capacity": 3,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Rome",
@@ -4912,6 +4984,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Aztecs"
@@ -4966,6 +5039,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Babylon"
@@ -5020,6 +5094,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Greece"
@@ -5074,6 +5149,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Zululand"
@@ -5128,6 +5204,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Rome"
@@ -5185,6 +5262,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Persia"
@@ -5242,6 +5320,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Egypt"
@@ -5299,6 +5378,7 @@
       "movement": 3,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "China"
@@ -5356,6 +5436,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Iroquois"
@@ -5412,6 +5493,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "France"
@@ -5469,6 +5551,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Japan"
@@ -5526,6 +5609,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 1,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "India"
@@ -5579,6 +5663,7 @@
       "movement": 3,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Russia"
@@ -5634,6 +5719,7 @@
       "movement": 3,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Germany"
@@ -5693,6 +5779,7 @@
       "movement": 5,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "England"
@@ -5747,6 +5834,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 9,
       "workerStrength": 1,
       "producibleBy": [
         "America"
@@ -5767,7 +5855,12 @@
         "fortify",
         "disband",
         "load",
-        "sentry"
+        "sentry",
+        "bombing",
+        "recon",
+        "intercept",
+        "rebase",
+        "precisionBombing"
       ],
       "requiredResources": [
         "Oil",
@@ -5800,6 +5893,7 @@
       "movement": 5,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Rome",
@@ -5882,6 +5976,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Mongols"
@@ -5939,6 +6034,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Spain"
@@ -5994,6 +6090,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Scandinavia"
@@ -6049,6 +6146,7 @@
       "movement": 3,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Ottomans"
@@ -6104,6 +6202,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Celts"
@@ -6161,6 +6260,7 @@
       "movement": 3,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Arabia"
@@ -6218,6 +6318,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Carthage"
@@ -6273,6 +6374,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Korea"
@@ -6332,6 +6434,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Rome",
@@ -6418,6 +6521,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Rome",
@@ -6501,6 +6605,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "unproducible": true,
       "flags": [
@@ -6541,6 +6646,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "unproducible": true,
       "categories": [
@@ -6581,6 +6687,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "unproducible": true,
       "categories": [
@@ -6621,6 +6728,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "unproducible": true,
       "categories": [
@@ -6661,6 +6769,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "unproducible": true,
       "categories": [
@@ -6701,6 +6810,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "unproducible": true,
       "categories": [
@@ -6741,6 +6851,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "unproducible": true,
       "categories": [
@@ -6781,6 +6892,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "unproducible": true,
       "categories": [
@@ -6821,6 +6933,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "unproducible": true,
       "categories": [
@@ -6861,6 +6974,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "unproducible": true,
       "categories": [
@@ -6901,6 +7015,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "unproducible": true,
       "categories": [
@@ -6941,6 +7056,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "unproducible": true,
       "categories": [
@@ -6981,6 +7097,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "unproducible": true,
       "categories": [
@@ -7021,6 +7138,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "unproducible": true,
       "categories": [
@@ -7061,6 +7179,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "unproducible": true,
       "categories": [
@@ -7101,6 +7220,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "unproducible": true,
       "categories": [
@@ -7141,6 +7261,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "unproducible": true,
       "categories": [
@@ -7181,6 +7302,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "unproducible": true,
       "categories": [
@@ -7221,6 +7343,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "unproducible": true,
       "categories": [
@@ -7261,6 +7384,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "unproducible": true,
       "categories": [
@@ -7301,6 +7425,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "unproducible": true,
       "categories": [
@@ -7341,6 +7466,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "unproducible": true,
       "categories": [
@@ -7381,6 +7507,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "unproducible": true,
       "categories": [
@@ -7421,6 +7548,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "unproducible": true,
       "categories": [
@@ -7461,6 +7589,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "unproducible": true,
       "categories": [
@@ -7501,6 +7630,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Sumeria"
@@ -7555,6 +7685,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Hittites"
@@ -7611,6 +7742,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "unproducible": true,
       "categories": [
@@ -7651,6 +7783,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "unproducible": true,
       "categories": [
@@ -7691,6 +7824,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "unproducible": true,
       "categories": [
@@ -7732,6 +7866,7 @@
       "movement": 4,
       "capacity": 3,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Portugal"
@@ -7785,6 +7920,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Netherlands"
@@ -7842,6 +7978,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "unproducible": true,
       "categories": [
@@ -7883,6 +8020,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Rome",
@@ -7965,6 +8103,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "unproducible": true,
       "categories": [
@@ -8005,6 +8144,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "unproducible": true,
       "categories": [
@@ -8045,6 +8185,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "unproducible": true,
       "categories": [
@@ -8085,6 +8226,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Inca"
@@ -8139,6 +8281,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Maya"
@@ -8194,6 +8337,7 @@
       "movement": 3,
       "capacity": 2,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Byzantines"
@@ -8250,6 +8394,7 @@
       "movement": 6,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Rome",
@@ -8334,6 +8479,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "unproducible": true,
       "flags": [
@@ -8382,6 +8528,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 1,
+      "operationalRange": 0,
       "workerStrength": 1,
       "unproducible": true,
       "categories": [
@@ -8425,6 +8572,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Rome",
@@ -8509,6 +8657,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 6,
       "workerStrength": 1,
       "producibleBy": [
         "Rome",
@@ -8564,7 +8713,8 @@
         "load",
         "upgrade",
         "pillage",
-        "sentry"
+        "sentry",
+        "airdrop"
       ],
       "requiredResources": [
         "Oil",
@@ -8597,6 +8747,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Rome",
@@ -8677,6 +8828,7 @@
       "movement": 1,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Rome",
@@ -8756,6 +8908,7 @@
       "movement": 2,
       "capacity": 0,
       "hpBonus": 0,
+      "operationalRange": 0,
       "workerStrength": 1,
       "producibleBy": [
         "Rome",
@@ -8826,6 +8979,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "isCenterOfEmpire"
@@ -8849,6 +9003,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "veteranGroundUnits"
@@ -8879,6 +9034,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "doublesCityGrowthRate"
@@ -8903,6 +9059,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "traits": [
         "religious"
@@ -8927,6 +9084,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "increasesLuxuryTrade",
@@ -8955,6 +9113,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "plus50PercentResearch"
@@ -8982,6 +9141,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "reducesCorruption"
@@ -9006,6 +9166,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 8,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "providesWalls",
@@ -9037,6 +9198,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "allowsCitySize2"
@@ -9068,6 +9230,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "plus50PercentCommerce"
@@ -9096,6 +9259,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "traits": [
         "religious"
@@ -9121,6 +9285,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "plus50PercentResearch"
@@ -9148,6 +9313,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0
     },
     {
@@ -9169,6 +9335,7 @@
       "contentFacesAllCities": 0,
       "pollution": 2,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "requiredResources": [
         "Iron"
@@ -9194,6 +9361,7 @@
       "contentFacesAllCities": 0,
       "pollution": 2,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0
     },
     {
@@ -9215,6 +9383,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "reducesBuildingPollution"
@@ -9243,6 +9412,7 @@
       "contentFacesAllCities": 0,
       "pollution": 2,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "replacesOtherBuildings"
@@ -9271,6 +9441,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "mustBeNearRiver",
@@ -9300,6 +9471,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "replacesOtherBuildings"
@@ -9327,6 +9499,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "allowsCitySize3"
@@ -9355,6 +9528,7 @@
       "contentFacesAllCities": 0,
       "pollution": 1,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "plus50PercentResearch"
@@ -9382,6 +9556,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "removesPopulationPollution"
@@ -9409,6 +9584,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 8,
       "unitFrequency": 0,
       "traits": [
         "militaristic"
@@ -9436,6 +9612,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "mustBeCoastal"
@@ -9472,6 +9649,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "replacesOtherBuildings"
@@ -9499,6 +9677,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "mustBeCoastal",
@@ -9540,6 +9719,7 @@
       "contentFacesAllCities": 0,
       "pollution": 2,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "mustBeCoastal",
@@ -9574,6 +9754,7 @@
       "contentFacesAllCities": 0,
       "pollution": 1,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "veteranAirUnits",
@@ -9606,6 +9787,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "reducesCorruption",
@@ -9634,6 +9816,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "touristAttraction"
@@ -9665,6 +9848,7 @@
       "contentFacesAllCities": 1,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "touristAttraction"
@@ -9695,6 +9879,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "mustBeCoastal",
@@ -9734,6 +9919,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "mustBeCoastal",
@@ -9771,6 +9957,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "gainAnyTechKnownByTwoCivs",
@@ -9802,6 +9989,7 @@
       "doublesHappinessOf": "Temple",
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "touristAttraction"
@@ -9833,6 +10021,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "doubleCombatVsBarbarians",
@@ -9865,6 +10054,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "traits": [
         "militaristic"
@@ -9891,6 +10081,7 @@
       "doublesHappinessOf": "Cathedral",
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "touristAttraction"
@@ -9919,6 +10110,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "mustBeCoastal",
@@ -9953,6 +10145,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "doublesResearchOutput",
@@ -9982,6 +10175,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "allowsCitySize3",
@@ -10011,6 +10205,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "cheaperUpgrades",
@@ -10040,6 +10235,7 @@
       "contentFacesAllCities": 2,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "continentalMoodEffects",
@@ -10069,6 +10265,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "doublesResearchOutput",
@@ -10098,6 +10295,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "paysTradeMaintenance"
@@ -10127,6 +10325,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "reducesWarWearinessEverywhere"
@@ -10157,6 +10356,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "mustBeNearRiver",
@@ -10190,6 +10390,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "twoFreeAdvances"
@@ -10218,6 +10419,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "allowDiplomaticVictory",
@@ -10247,6 +10449,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "allowsNuclearWeapons"
@@ -10279,6 +10482,7 @@
       "contentFacesAllCities": 1,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "traits": [
         "scientific",
@@ -10305,6 +10509,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "doublesCityGrowthEverywhere"
@@ -10333,6 +10538,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "doublesResearchOutput"
@@ -10359,6 +10565,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "requiresVictoriousArmy",
@@ -10387,6 +10594,7 @@
       "contentFacesAllCities": 0,
       "pollution": 4,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "requiredResources": [
         "Iron",
@@ -10411,6 +10619,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "forbiddenPalace"
@@ -10438,6 +10647,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "allowsBuildArmy",
@@ -10466,6 +10676,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "allowsLargerArmies"
@@ -10493,6 +10704,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "treasuryEarnsInterest"
@@ -10517,6 +10729,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "buildSpaceshipParts"
@@ -10548,6 +10761,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "decreasesMissileSuccess"
@@ -10575,6 +10789,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "allowsSpyMissions"
@@ -10603,6 +10818,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "allowsEnemyTerritoryHealing"
@@ -10630,6 +10846,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "spaceshipPart": 0,
       "unitFrequency": 0,
       "requiredResources": [
@@ -10655,6 +10872,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "spaceshipPart": 1,
       "unitFrequency": 0,
       "requiredResources": [
@@ -10680,6 +10898,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "spaceshipPart": 2,
       "unitFrequency": 0,
       "requiredResources": [
@@ -10705,6 +10924,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "spaceshipPart": 3,
       "unitFrequency": 0,
       "requiredResources": [
@@ -10730,6 +10950,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "spaceshipPart": 4,
       "unitFrequency": 0,
       "requiredResources": [
@@ -10755,6 +10976,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "spaceshipPart": 5,
       "unitFrequency": 0,
       "requiredResources": [
@@ -10780,6 +11002,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "spaceshipPart": 6,
       "unitFrequency": 0,
       "requiredResources": [
@@ -10806,6 +11029,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "spaceshipPart": 7,
       "unitFrequency": 0,
       "requiredResources": [
@@ -10831,6 +11055,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "spaceshipPart": 8,
       "unitFrequency": 0,
       "requiredResources": [
@@ -10856,6 +11081,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "spaceshipPart": 9,
       "unitFrequency": 0,
       "requiredResources": [
@@ -10885,6 +11111,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "traits": [
         "militaristic",
@@ -10917,6 +11144,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "traits": [
         "militaristic"
@@ -10942,6 +11170,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "plus50PercentCommerce"
@@ -10970,6 +11199,7 @@
       "contentFacesAllCities": 0,
       "pollution": 1,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "increasesTradeInWater"
@@ -11005,6 +11235,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "touristAttraction"
@@ -11034,6 +11265,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitProduced": "Ancient Cavalry",
       "unitFrequency": 5,
       "flags": [
@@ -11067,6 +11299,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "touristAttraction"
@@ -11097,6 +11330,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitProduced": "Crusader",
       "unitFrequency": 5,
       "traits": [
@@ -11124,6 +11358,7 @@
       "contentFacesAllCities": 0,
       "pollution": 0,
       "bombardDefense": 0,
+      "airPower": 0,
       "unitFrequency": 0,
       "flags": [
         "forbiddenPalace"
@@ -13058,6 +13293,8 @@
     "foodConsumptionPerCitizen": 2,
     "movementAlongRoads": 3,
     "fortressDefensiveBonus": 50,
+    "chanceToInterceptAirMissions": 50,
+    "chanceToInterceptStealthMissions": 5,
     "borderExpansionMultiplier": 1000,
     "borderFactor": 10,
     "futureTechCost": 400,

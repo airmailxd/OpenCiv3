@@ -41,6 +41,12 @@ namespace C7GameData.Save {
 		// its tile. Saves made before it was saved give a fresh unit's one.
 		public int defensiveBombardsRemaining = 1;
 
+		// Whether the aircraft is flying air superiority, and whether it has
+		// intercepted a bombing run, since its owner's turn began (see
+		// MapUnit_Air.cs).
+		public bool isOnAirSuperiority;
+		public bool hasInterceptedThisTurn;
+
 		public SaveUnit() { }
 
 		// A copy sharing everything with this one, for a LAN host to change
@@ -74,6 +80,8 @@ namespace C7GameData.Save {
 			hasProducedLeader = unit.hasProducedLeader;
 			isScientificLeader = unit.isScientificLeader;
 			defensiveBombardsRemaining = unit.defensiveBombardsRemaining;
+			isOnAirSuperiority = unit.isOnAirSuperiority;
+			hasInterceptedThisTurn = unit.hasInterceptedThisTurn;
 			facingDirection = unit.facingDirection;
 			experience = unit.experienceLevelKey;
 			movePointsRemaining = unit.movementPoints.remaining;
@@ -157,6 +165,8 @@ namespace C7GameData.Save {
 				hasProducedLeader = hasProducedLeader,
 				isScientificLeader = isScientificLeader,
 				defensiveBombardsRemaining = defensiveBombardsRemaining,
+				isOnAirSuperiority = isOnAirSuperiority,
+				hasInterceptedThisTurn = hasInterceptedThisTurn,
 				facingDirection = facingDirection,
 				WorkerProgressTowardsJob = WorkerProgressTowardsJob,
 				WorkerJob = workerJob,

@@ -164,4 +164,35 @@ public class Civ3RuleImportTest {
 		Assert.Equal("Privateer", game.UnitPrototypes.Single(p => p.name == "Privateer").enslavesTo);
 		Assert.Null(game.UnitPrototypes.Single(p => p.name == "Warrior").enslavesTo);
 	}
+
+	// Aircraft fly their missions within their operational range: the
+	// Bomber's is "a larger operational range" than the Fighter's; the
+	// Fighter "may execute all air missions except precision strikes"; and
+	// stealth aircraft "can execute all air missions, except air
+	// superiority" (Conquests Civilopedia, PRTO_Fighter, PRTO_Bomber,
+	// PRTO_Stealth_Fighter). Paratroopers "execute airdrops"
+	// (PRTO_Paratrooper). The chances to intercept are 50% and 5% for stealth
+	// aircraft (https://forums.civfanatics.com/threads/aerial-combat-mechanics.90783/).
+	[SkippableFact]
+	public void AirUnitsAndInterceptionChancesAreImported() {
+		Skip.If(Civ3TestData.ShouldSkipCiv3DependentTests(), "No Civ3 install found.");
+
+		SaveGame game = ImportScenario("Scenarios", "No Civ Traits.biq");
+		SaveUnitPrototype Unit(string name) => game.UnitPrototypes.Single(p => p.name == name);
+
+		Assert.True(Unit("Bomber").operationalRange > Unit("Fighter").operationalRange);
+		Assert.True(Unit("Fighter").operationalRange > 0);
+		Assert.Equal(0, Unit("Warrior").operationalRange);
+		Assert.Superset(new[] { UnitAction.Bombing, UnitAction.Recon, UnitAction.Intercept, UnitAction.Rebase }.ToHashSet(), Unit("Fighter").actions);
+		Assert.DoesNotContain(UnitAction.PrecisionBombing, Unit("Fighter").actions);
+		Assert.Contains(UnitAction.PrecisionBombing, Unit("Stealth Fighter").actions);
+		Assert.DoesNotContain(UnitAction.Intercept, Unit("Stealth Fighter").actions);
+		Assert.Contains(SaveUnitPrototype.Flag.Stealth, Unit("Stealth Bomber").flags);
+		Assert.DoesNotContain(SaveUnitPrototype.Flag.Stealth, Unit("Bomber").flags);
+		Assert.Contains(UnitAction.Airdrop, Unit("Paratrooper").actions);
+		Assert.Equal(50, game.Rules.ChanceToInterceptAirMissions);
+		Assert.Equal(5, game.Rules.ChanceToInterceptStealthMissions);
+		// "A=8 for the SAM" (alexman, same thread).
+		Assert.Equal(8, game.Buildings.Single(b => b.name == "SAM Missile Battery").airPower);
+	}
 }

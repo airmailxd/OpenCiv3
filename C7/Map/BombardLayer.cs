@@ -68,8 +68,14 @@ public partial class BombardLayer : LooseLayer {
 		var unit = bombardInfo.bombardingUnit;
 		// ICBMs can strike anywhere, so instead of a grid of every tile in range
 		// only the tile under the mouse is checked.
-		bool unlimitedRange = unit.IsNuclearWeapon() && unit.unitType.isICBM;
-		var range = unlimitedRange ? 0 : unit.unitType.bombardRange;
+		bool unlimitedRange = unit.IsNuclearWeapon() && unit.unitType.isICBM && bombardInfo.airMission == null;
+		// An air mission reaches its operational range (re-basing farther),
+		// and only the tiles it can be flown at are drawn, as the range can
+		// be large.
+		bool airMission = bombardInfo.airMission != null;
+		var range = unlimitedRange ? 0
+			: airMission ? unit.MissionRange(bombardInfo.airMission.Value)
+			: unit.unitType.bombardRange;
 		var reachableTiles = GetTileSquare(tile, range);
 
 		var key = (bombardInfo, tile, range, looseView.mapView.contentVersion);
@@ -77,7 +83,7 @@ public partial class BombardLayer : LooseLayer {
 			bombardTilesKey = key;
 			bombardTiles.Clear();
 			foreach (Tile t in reachableTiles) {
-				if (unit.CanBombardTile(t)) {
+				if (bombardInfo.CanTarget(t)) {
 					bombardTiles.Add(t);
 				}
 			}
@@ -85,7 +91,7 @@ public partial class BombardLayer : LooseLayer {
 
 		// Choose one of two cursors depending on mouse tile hover
 		if (bombardInfo.mouseTile != null) {
-			var bombardable = unlimitedRange ? unit.CanBombardTile(bombardInfo.mouseTile) : bombardTiles.Contains(bombardInfo.mouseTile);
+			var bombardable = unlimitedRange ? bombardInfo.CanTarget(bombardInfo.mouseTile) : bombardTiles.Contains(bombardInfo.mouseTile);
 			if (bombardable) {
 				SetCursor(bombardInfo, bombardCursorTexture);
 				drawTargetBombardTile(looseView, mapView.NearestTileCenter(bombardInfo.mouseTile, tileCenter));
@@ -94,7 +100,7 @@ public partial class BombardLayer : LooseLayer {
 		}
 
 		// Draw bombard grid. The map may wrap around, so each tile is drawn at its copy nearest the copy of the unit's tile being drawn.
-		foreach (var bt in reachableTiles) {
+		foreach (Tile bt in airMission ? bombardTiles : (IEnumerable<Tile>)reachableTiles) {
 			drawBombardTile(looseView, mapView.NearestTileCenter(bt, tileCenter));
 		}
 	}

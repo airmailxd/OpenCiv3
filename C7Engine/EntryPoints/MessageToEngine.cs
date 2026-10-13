@@ -248,6 +248,48 @@ namespace C7Engine {
 		}
 	}
 
+	// An aircraft's mission (see MapUnit_Air.cs), or a paratrooper's
+	// airdrop, at the tile. Air superiority needs no tile.
+	public class MsgAirMission : MessageToEngine {
+		public ID unitID;
+		public UnitAction mission;
+		public Tile tile;
+
+		public MsgAirMission(ID unitID, UnitAction mission, Tile tile) {
+			this.unitID = unitID;
+			this.mission = mission;
+			this.tile = tile;
+		}
+
+		protected override async Task ProcessAllowedAsync() {
+			MapUnit unit = SendersUnit(unitID);
+			if (unit == null) return;
+			if (mission == UnitAction.Intercept) {
+				unit.FlyAirSuperiority();
+				return;
+			}
+			if (tile == null || tile == Tile.NONE) return;
+
+			switch (mission) {
+				case UnitAction.Bombing:
+					await unit.AirBomb(tile);
+					break;
+				case UnitAction.PrecisionBombing:
+					await unit.PrecisionBomb(tile);
+					break;
+				case UnitAction.Recon:
+					unit.Recon(tile);
+					break;
+				case UnitAction.Rebase:
+					unit.Rebase(tile);
+					break;
+				case UnitAction.Airdrop:
+					unit.Airdrop(tile);
+					break;
+			}
+		}
+	}
+
 	public class MsgLoadToTransport : MessageToEngine {
 		public ID unitID;
 		public ID transportUnitId;

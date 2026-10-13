@@ -118,6 +118,12 @@ namespace C7GameData {
 		// bombardment defense of 8").
 		public int bombardDefense;
 		internal const int DefaultWallBombardDefense = 8;
+		// The strength the building fires at enemy aircraft bombing its city
+		// with (BIQ "air power", 8 for the SAM Missile Battery in
+		// conquests.biq): "SAM Missile Batteries attack enemy air units that
+		// attempt to attack the SAM site's city" (Civilopedia,
+		// BLDG_SAM_Missile_Battery). See MapUnit.TryToIntercept.
+		public int airPower;
 		// Resolved by name against GameData.unitPrototypes when needed.
 		public string? unitProducedName;
 		public int unitFrequency;
@@ -230,6 +236,7 @@ namespace C7GameData {
 			pollution = building.pollution;
 			bombardDefense = building.bombardDefense > 0 ? building.bombardDefense
 				: providesWalls ? DefaultWallBombardDefense : 0;
+			airPower = building.airPower;
 			unitProducedName = building.unitProduced;
 			unitFrequency = building.unitFrequency;
 

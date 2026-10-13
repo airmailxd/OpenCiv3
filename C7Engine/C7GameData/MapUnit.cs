@@ -1299,6 +1299,7 @@ namespace C7GameData {
 			if (CanOfferHurryProduction()) {
 				result.Add(UnitAction.HurryBuilding);
 			}
+			AddAvailableAirMissions(result);
 
 			// Eventually we will have advanced actions too, whose availability will rely on their base actions' availability.
 			// unit.availableActions.Add("rename");

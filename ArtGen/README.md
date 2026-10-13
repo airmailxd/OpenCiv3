@@ -19,9 +19,10 @@ the advance and building icons of the tech tree, production menus and city
 screen in standalone mode from the same pictures (in `C7/ModernArt`, listed
 in `C7/Lua/standalone/icon_files.lua`).
 
-`ui_buttons/` draws the unit order buttons standalone mode's asset pack lacks
-(Build Outpost and Build Colony), each a file of its own in
-`C7/ModernArt/Art/interface/`, which `C7/Lua/standalone/textures.lua` uses.
+`ui_buttons/` draws the unit order buttons standalone mode's asset pack lacks,
+into `C7/ModernArt/Art/interface/`, which `C7/Lua/standalone/textures.lua`
+uses: Build Outpost and Build Colony, each a file of its own, and the air
+missions and the airdrop, together in `AirMissionButtons.png`.
 
 ## The contract with the game
 

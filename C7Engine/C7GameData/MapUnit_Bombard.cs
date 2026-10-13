@@ -51,7 +51,16 @@ namespace C7GameData {
 			if (IsNuclearWeapon())
 				return CanNukeTile(tile, out bombardTarget);
 
-			if (this.location.DistanceTo(tile) > this.unitType.bombardRange)
+			return CanBombardTileWithin(tile, this.unitType.bombardRange, out bombardTarget);
+		}
+
+		// CanBombardTile for a bombardment that reaches `range` tiles: the
+		// unit's bombard range, or an aircraft's operational range for a
+		// bombing mission (see MapUnit_Air.cs).
+		private bool CanBombardTileWithin(Tile tile, int range, out BombardTarget bombardTarget) {
+			bombardTarget = BombardTarget.None;
+
+			if (this.location.DistanceTo(tile) > range)
 				return false;
 
 			if (this.unitType.bombard == 0)
@@ -277,7 +286,9 @@ namespace C7GameData {
 		// Rules.BuildingDefensiveBonus).
 		private const float BuildingOrPopulationOdds = 0.5f;
 
-		private async Task BombardCity(Tile tile) {
+		// A precision strike (see MapUnit_Air.cs) hits only the city's
+		// buildings, or its citizens if it has none to hit.
+		private async Task BombardCity(Tile tile, bool precision = false) {
 			City city = tile.cityAtTile;
 
 			// Only buildings actually built in the city can be destroyed, and
@@ -298,8 +309,8 @@ namespace C7GameData {
 				TriggerPopUp(0, tile, string.Empty);
 				return;
 			}
-			bool targetBuildings = canHitBuildings && canHitCitizens
-				? GameData.rng.NextDouble() < BuildingOrPopulationOdds
+			bool targetBuildings = canHitBuildings && canHitCitizens && !precision
+				?GameData.rng.NextDouble() < BuildingOrPopulationOdds
 				: canHitBuildings;
 
 			Rules rules = EngineStorage.gameData.rules;

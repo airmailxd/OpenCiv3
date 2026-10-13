@@ -97,6 +97,13 @@ public static class C7Action {
 	public const string UnitPillage = "unit_pillage";
 	public const string UnitBuildArmy = "unit_build_army";
 	public const string UnitHurryBuilding = "unit_hurry_building";
+	// Air missions and the airdrop (see MapUnit_Air.cs).
+	public const string UnitBombing = "unit_bombing";
+	public const string UnitPrecisionBombing = "unit_precision_bombing";
+	public const string UnitRecon = "unit_recon";
+	public const string UnitAirSuperiority = "unit_air_superiority";
+	public const string UnitRebase = "unit_rebase";
+	public const string UnitAirdrop = "unit_airdrop";
 
 	private static readonly Dictionary<string, UnitAction> toUnitAction = new() {
 		[UnitBuildCity] = UnitAction.BuildCity,
@@ -116,7 +123,13 @@ public static class C7Action {
 		[UnitDisband] = UnitAction.Disband,
 		[UnitGoto] = UnitAction.Goto,
 		[UnitExplore] = UnitAction.Explore,
-		[UnitAutomate] = UnitAction.Automate
+		[UnitAutomate] = UnitAction.Automate,
+		[UnitBombing] = UnitAction.Bombing,
+		[UnitPrecisionBombing] = UnitAction.PrecisionBombing,
+		[UnitRecon] = UnitAction.Recon,
+		[UnitAirSuperiority] = UnitAction.Intercept,
+		[UnitRebase] = UnitAction.Rebase,
+		[UnitAirdrop] = UnitAction.Airdrop,
 	};
 
 	private static readonly Dictionary<string, string> toTooltip = new() {
@@ -150,8 +163,21 @@ public static class C7Action {
 		[UnitUpgrade] = "Upgrade",
 		[UnitPillage] = "Pillage",
 		[UnitBuildArmy] = "Build Army",
-		[UnitHurryBuilding] = "Hurry Improvement"
+		[UnitHurryBuilding] = "Hurry Improvement",
+		// Civ3's names for the air missions (GCON_Air_Missions).
+		[UnitBombing] = "Bombing Mission",
+		[UnitPrecisionBombing] = "Precision Strike",
+		[UnitRecon] = "Recon Mission",
+		[UnitAirSuperiority] = "Air Superiority",
+		[UnitRebase] = "Re-Base",
+		[UnitAirdrop] = "Airdrop",
 	};
+
+	// The unit actions that are aimed at a tile on the map.
+	public static bool IsTargetedAirMission(UnitAction action) {
+		return action is UnitAction.Bombing or UnitAction.PrecisionBombing or UnitAction.Recon
+			or UnitAction.Rebase or UnitAction.Airdrop;
+	}
 
 	public static UnitAction? ToUnitAction(string action) {
 		return toUnitAction.TryGetValue(action, out var result) ? result : null;

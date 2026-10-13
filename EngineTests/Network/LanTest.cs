@@ -69,6 +69,10 @@ public class LanTest : IClassFixture<SaveGameFixture>, IDisposable {
 		Assert.Equal([neighbor], path.path.path);
 
 		Assert.Same(neighbor, RoundTrip(new MsgBombard(unit.id, neighbor)).tile);
+		MsgAirMission mission = RoundTrip(new MsgAirMission(unit.id, UnitAction.Rebase, neighbor));
+		Assert.Equal(UnitAction.Rebase, mission.mission);
+		Assert.Same(neighbor, mission.tile);
+		Assert.Null(RoundTrip(new MsgAirMission(unit.id, UnitAction.Intercept, null)).tile);
 		Assert.Same(unit, RoundTrip(new MsgBuildCity(unit, "Rome")).unit);
 		Assert.Equal("Rome", RoundTrip(new MsgBuildCity(unit, "Rome")).name);
 		Assert.Same(gameData.Terraforms[0], RoundTrip(new MsgStartWorkerJob(unit.id, gameData.Terraforms[0])).action);

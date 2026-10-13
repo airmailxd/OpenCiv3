@@ -7,6 +7,9 @@ and pressed buttons side by side, each 64x64 (twice Civ3's 32x32 button, as
 all the remade art is). C7/Lua/standalone/textures.lua points the two orders'
 buttons at them.
 
+It also draws the air missions' and the airdrop's buttons (see
+air_missions.py), which are blank in the asset pack too.
+
 The buttons copy the asset pack's look: a golden ball with the order drawn on
 it in dark brown.
 """
@@ -18,6 +21,9 @@ from PIL import Image, ImageDraw, ImageFilter
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'common'))
 import civ3art  # noqa: E402
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import air_missions  # noqa: E402
 
 CELL = 64          # one button at 2x
 SS = 4             # supersampling
@@ -102,3 +108,4 @@ def build(name, glyph):
 if __name__ == '__main__':
     build('unit_build_outpost', outpost_glyph)
     build('unit_build_colony', colony_glyph)
+    air_missions.main()
