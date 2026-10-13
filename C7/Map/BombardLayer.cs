@@ -68,7 +68,9 @@ public partial class BombardLayer : LooseLayer {
 		var unit = bombardInfo.bombardingUnit;
 		// ICBMs can strike anywhere, so instead of a grid of every tile in range
 		// only the tile under the mouse is checked.
-		bool unlimitedRange = unit.IsNuclearWeapon() && unit.unitType.isICBM && bombardInfo.airMission == null;
+		// So can an airlift, to any of the owner's airports and airfields.
+		bool unlimitedRange = (unit.IsNuclearWeapon() && unit.unitType.isICBM && bombardInfo.airMission == null)
+			|| bombardInfo.airMission == UnitAction.Airlift;
 		// An air mission reaches its operational range (re-basing farther),
 		// and only the tiles it can be flown at are drawn, as the range can
 		// be large.

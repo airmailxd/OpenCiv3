@@ -264,10 +264,28 @@ namespace C7GameData {
 		// is the unit's operational range. UNVERIFIED (no Civ3 source
 		// found): the target must be land the paratrooper could walk onto
 		// with no other civ's units, city or a barbarian camp on it, and the
-		// drop takes the unit's turn. Only land units drop here; the
-		// Helicopter, which has the BIQ's airdrop too, doesn't carry troops
-		// yet.
+		// drop takes the unit's turn.
+		//
+		// An aircraft with the BIQ's airdrop that carries units (the
+		// Helicopter) drops its passengers instead: "[Helicopters] are
+		// essentially air transports that can transport units to any square
+		// within their operational range, regardless of enemy units.
+		// Helicopters may carry foot soldiers only" (PRTO_Helicopter); "To
+		// board a helicopter a ground unit must start its turn in a city
+		// with the chopper and use the Load command button"
+		// (GCON_Transport). It "can pick up units at airfields and in towns
+		// and drop them so far, BUT they can't pick them out of trouble and
+		// bring them back home", and "airdrop uses up all it's moves in one
+		// go" (https://forums.civfanatics.com/threads/helicopter-thread.464662/):
+		// the helicopter stays at its base, with its turn used. UNVERIFIED
+		// (no Civ3 source found; sources differ): the passengers all drop
+		// together, onto a tile a paratrooper could drop onto, and their
+		// turn is used up as a paratrooper's is.
 		public bool CanAirdropFrom() {
+			if (IsAirUnit()) {
+				return IsAirdroppingTransport() && movementPoints.canMove && !IsLockedInArmy() && IsAtAirBase()
+					&& FirstPassenger() != null;
+			}
 			if (!IsLandUnit() || !unitType.actions.Contains(UnitAction.Airdrop) || unitType.operationalRange <= 0) {
 				return false;
 			}
@@ -291,7 +309,16 @@ namespace C7GameData {
 			if (location.DistanceTo(tile) > OperationalRange() || !tile.IsLand() || tile.IsImpassable() || tile.hasBarbarianCamp) {
 				return false;
 			}
-			if (!unitType.CanEnterTerrainOf(tile) || (tile.HasCity() && tile.cityAtTile.owner != owner)) {
+			if (tile.HasCity() && tile.cityAtTile.owner != owner) {
+				return false;
+			}
+			if (IsAirUnit()) {
+				foreach (MapUnit passenger in Passengers()) {
+					if (!passenger.unitType.CanEnterTerrainOf(tile)) {
+						return false;
+					}
+				}
+			} else if (!unitType.CanEnterTerrainOf(tile)) {
 				return false;
 			}
 			foreach (MapUnit u in tile.unitsOnTile) {
@@ -302,11 +329,26 @@ namespace C7GameData {
 			return true;
 		}
 
+		// Whether the unit is an aircraft that airdrops the units it
+		// carries (the Helicopter).
+		public bool IsAirdroppingTransport() {
+			return IsAirUnit() && unitType.actions.Contains(UnitAction.Airdrop) && unitType.operationalRange > 0 && CanCarryUnits();
+		}
+
 		public void Airdrop(Tile tile) {
 			if (!CanAirdropTo(tile)) {
 				return;
 			}
-			MoveStraightTo(tile);
+			if (IsAirUnit()) {
+				foreach (MapUnit passenger in Passengers()) {
+					// Moving the passenger onto land takes it off the
+					// helicopter (see RelocateTo).
+					passenger.MoveStraightTo(tile);
+					passenger.EndMission();
+				}
+			} else {
+				MoveStraightTo(tile);
+			}
 			EndMission();
 		}
 
@@ -320,6 +362,7 @@ namespace C7GameData {
 				UnitAction.Recon => CanReconTile(tile),
 				UnitAction.Rebase => CanRebaseTo(tile),
 				UnitAction.Airdrop => CanAirdropTo(tile),
+				UnitAction.Airlift => CanAirliftTo(tile),
 				_ => false,
 			};
 		}
@@ -338,6 +381,9 @@ namespace C7GameData {
 		private void AddAvailableAirMissions(List<UnitAction> actions) {
 			if (CanAirdropFrom()) {
 				actions.Add(UnitAction.Airdrop);
+			}
+			if (CanAirliftFrom()) {
+				actions.Add(UnitAction.Airlift);
 			}
 			if (!IsAirUnit() || !movementPoints.canMove || IsLockedInArmy()) {
 				return;
@@ -378,8 +424,8 @@ namespace C7GameData {
 		}
 
 		// Whether the bombing run at the target is intercepted, by an enemy
-		// fighter flying air superiority or a SAM battery in the target
-		// city (see TryToBeShotDown). "Only bombing and precision bombing
+		// fighter flying air superiority, a SAM battery in the target city
+		// or an anti-aircraft unit on the target tile (see TryToBeShotDown). "Only bombing and precision bombing
 		// can be intercepted. ... If an aircraft is intercepted it will
 		// always fail to bomb the target even if it wins the air battle"
 		// (Ozymandias,
@@ -432,7 +478,54 @@ namespace C7GameData {
 				shotDown = TryToBeShotDown(samPower, null, target);
 				return true;
 			}
+
+			// Last, the anti-aircraft units on the target tile, like Flak,
+			// Mobile SAMs and AEGIS Cruisers: "Each AA unit in the tile being
+			// bombarded takes a shot against the defense of the bombarding air
+			// unit", "The real strength of each AA unit is 1/10th of the value
+			// shown in the editor", and "The maximum number of AA units that
+			// are given a chance to shoot down the plane is 4" (alexman,
+			// https://forums.civfanatics.com/threads/aerial-combat-mechanics.90783/;
+			// T-hawk's order of fighters, SAM, then flak, which alexman
+			// agrees with). They "only protect against the one tile"
+			// (Ginger_Ale, https://forums.civfanatics.com/threads/how-dows-flak-work.103325/),
+			// and stealth makes no difference to them: "the chance to
+			// intercept an air unit with stealth and without stealth is the
+			// same" (https://civfanatics.com/civ3/faq/). A plane they miss
+			// goes on to bomb. UNVERIFIED (no Civ3 source found): with more
+			// than four, the four strongest shoot, and they need not be
+			// fortified.
+			foreach (MapUnit aa in AntiAircraftUnits(target)) {
+				if (TryToBeShotDown(aa.unitType.airDefense / (double)AirDefenseScale, aa, target, onlyIfHit: true)) {
+					shotDown = true;
+					return true;
+				}
+			}
 			return false;
+		}
+
+		// The editor's air defense is ten times the real strength (alexman,
+		// above).
+		public const int AirDefenseScale = 10;
+
+		// At most this many anti-aircraft units shoot at a plane.
+		public const int MaxAntiAircraftShots = 4;
+
+		// The enemy units on the tile that shoot at this aircraft as it
+		// bombs it, strongest first.
+		internal List<MapUnit> AntiAircraftUnits(Tile target) {
+			List<MapUnit> result = [];
+			foreach (MapUnit u in target.unitsOnTile) {
+				if (u.owner != owner && u.unitType.airDefense > 0 && u.hitPointsRemaining > 0 && !u.IsAirUnit()
+					&& !u.IsLoaded() && AtWar(owner, u.owner)) {
+					result.Add(u);
+				}
+			}
+			result.Sort((a, b) => b.unitType.airDefense.CompareTo(a.unitType.airDefense));
+			if (result.Count > MaxAntiAircraftShots) {
+				result.RemoveRange(MaxAntiAircraftShots, result.Count - MaxAntiAircraftShots);
+			}
+			return result;
 		}
 
 		// The strongest air power among the buildings of an enemy city on
@@ -459,11 +552,17 @@ namespace C7GameData {
 				&& Tile.IsTileValid(location) && location.DistanceTo(target) <= InterceptionRadius();
 		}
 
-		// The interceptor shoots at this aircraft, with an attack strength
-		// against its defence: A/(A+D) to shoot it down.
-		private bool TryToBeShotDown(int attack, MapUnit interceptor, Tile target) {
+		// The interceptor (a fighter, a SAM battery when null, or an
+		// anti-aircraft unit) shoots at this aircraft, with an attack
+		// strength against its defence: A/(A+D) to shoot it down.
+		// With onlyIfHit, as for an anti-aircraft unit, a miss isn't an
+		// interception and isn't reported.
+		private bool TryToBeShotDown(double attack, MapUnit interceptor, Tile target, bool onlyIfHit = false) {
 			int defence = unitType.defense;
-			bool shotDown = attack > 0 && GameData.rng.NextDouble() < (double)attack / (attack + defence);
+			bool shotDown = attack > 0 && GameData.rng.NextDouble() < attack / (attack + defence);
+			if (onlyIfHit && !shotDown) {
+				return false;
+			}
 			string what = interceptor != null ? $"{interceptor.owner.civilization.adjective} {interceptor.unitType.name}" : $"the air defences of {target.cityAtTile?.name}";
 			if (owner.isHuman) {
 				new MsgShowTemporaryPopup(shotDown ? $"Our {unitType.name} was shot down by {what}!" : $"Our {unitType.name} was intercepted by {what}.", target, owner).send();

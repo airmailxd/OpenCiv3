@@ -104,6 +104,7 @@ public static class C7Action {
 	public const string UnitAirSuperiority = "unit_air_superiority";
 	public const string UnitRebase = "unit_rebase";
 	public const string UnitAirdrop = "unit_airdrop";
+	public const string UnitAirlift = "unit_airlift";
 
 	private static readonly Dictionary<string, UnitAction> toUnitAction = new() {
 		[UnitBuildCity] = UnitAction.BuildCity,
@@ -130,6 +131,7 @@ public static class C7Action {
 		[UnitAirSuperiority] = UnitAction.Intercept,
 		[UnitRebase] = UnitAction.Rebase,
 		[UnitAirdrop] = UnitAction.Airdrop,
+		[UnitAirlift] = UnitAction.Airlift,
 	};
 
 	private static readonly Dictionary<string, string> toTooltip = new() {
@@ -171,12 +173,14 @@ public static class C7Action {
 		[UnitAirSuperiority] = "Air Superiority",
 		[UnitRebase] = "Re-Base",
 		[UnitAirdrop] = "Airdrop",
+		// labels.txt's "Airlif(T): Choose new airbase".
+		[UnitAirlift] = "Airlift",
 	};
 
 	// The unit actions that are aimed at a tile on the map.
 	public static bool IsTargetedAirMission(UnitAction action) {
 		return action is UnitAction.Bombing or UnitAction.PrecisionBombing or UnitAction.Recon
-			or UnitAction.Rebase or UnitAction.Airdrop;
+			or UnitAction.Rebase or UnitAction.Airdrop or UnitAction.Airlift;
 	}
 
 	public static UnitAction? ToUnitAction(string action) {

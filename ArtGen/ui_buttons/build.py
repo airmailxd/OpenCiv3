@@ -1,8 +1,8 @@
 """Unit order buttons for standalone mode that the asset pack lacks.
 
 The standalone asset pack's Art/interface/NormButtons.png has blank buttons
-where Civ3's has Build Outpost, Build Colony, Build Airfield and Build Radar
-Tower. Each of these is drawn as a
+where Civ3's has Build Outpost, Build Colony, Build Airfield, Build Radar
+Tower and Airlift. Each of these is drawn as a
 file of its own, Art/interface/<order>.png in C7/ModernArt: the normal, hover
 and pressed buttons side by side, each 64x64 (twice Civ3's 32x32 button, as
 all the remade art is). C7/Lua/standalone/textures.lua points the orders'
@@ -115,6 +115,22 @@ def radar_tower_glyph(draw):
     draw.ellipse([38 * u, 8 * u, 45 * u, 15 * u], fill=GLYPH)
 
 
+def airlift_glyph(draw):
+    """A cargo plane flying along a dashed arc from one runway to another."""
+    u = S / 64
+    # the two runways, at either end of the flight
+    draw.polygon([(6 * u, 54 * u), (22 * u, 54 * u), (25 * u, 50 * u), (9 * u, 50 * u)], fill=GLYPH)
+    draw.polygon([(40 * u, 54 * u), (56 * u, 54 * u), (59 * u, 50 * u), (43 * u, 50 * u)], fill=GLYPH)
+    # the flight path, a dashed arc between them
+    for a0 in range(200, 340, 24):
+        draw.arc([12 * u, 24 * u, 52 * u, 76 * u], a0, a0 + 12, fill=GLYPH, width=int(2 * u))
+    # the plane: a fat fuselage, broad straight wings and a tall tail
+    draw.polygon([(16 * u, 26 * u), (46 * u, 20 * u), (52 * u, 22 * u), (47 * u, 26 * u), (18 * u, 31 * u)], fill=GLYPH)
+    draw.polygon([(28 * u, 24 * u), (36 * u, 23 * u), (30 * u, 8 * u), (25 * u, 9 * u)], fill=GLYPH)
+    draw.polygon([(29 * u, 28 * u), (37 * u, 26 * u), (34 * u, 40 * u), (29 * u, 40 * u)], fill=GLYPH)
+    draw.polygon([(16 * u, 26 * u), (20 * u, 26 * u), (18 * u, 15 * u), (14 * u, 15 * u)], fill=GLYPH)
+
+
 def button(glyph, brightness, offset):
     img = ball(brightness)
     layer = Image.new('RGBA', (S, S), (0, 0, 0, 0))
@@ -145,4 +161,5 @@ if __name__ == '__main__':
     build('unit_build_colony', colony_glyph)
     build('unit_build_airfield', airfield_glyph)
     build('unit_build_radar_tower', radar_tower_glyph)
+    build('unit_airlift', airlift_glyph)
     air_missions.main()

@@ -1827,6 +1827,7 @@ namespace C7GameData {
 			if (prto.Rebase) yield return UnitAction.Rebase;
 			if (prto.PrecisionBombing) yield return UnitAction.PrecisionBombing;
 			if (prto.BuildColony) yield return UnitAction.BuildColony;
+			if (prto.Airlift) yield return UnitAction.Airlift;
 		}
 
 		private static IEnumerable<TerraformKey> GetUnitTerraforms(PRTO prto) {
@@ -1900,6 +1901,7 @@ namespace C7GameData {
 				prototype.bombardRange = prto.BombardRange;
 				prototype.rateOfFire = prto.RateOfFire;
 				prototype.operationalRange = prto.OperationalRange;
+				prototype.airDefense = prto.AirDefense;
 				// How much a worker does each turn, relative to a Worker.
 				prototype.workerStrength = prto.WorkerStrength > 0 ? prto.WorkerStrength : 1;
 
@@ -1932,6 +1934,7 @@ namespace C7GameData {
 				if (prto.CanSeeSubmarines) prototype.flags.Add(SaveUnitPrototype.Flag.DetectInvisible);
 				if (prto.HiddenNationality) prototype.flags.Add(SaveUnitPrototype.Flag.HiddenNationality);
 				if (prto.StealthAttack) prototype.flags.Add(SaveUnitPrototype.Flag.StealthAttack);
+				if (prto.CruiseMissile) prototype.flags.Add(SaveUnitPrototype.Flag.CruiseMissile);
 				int[] targets = stealthTargets != null && prtoIndex < stealthTargets.Length ? stealthTargets[prtoIndex] : null;
 				if (targets != null && targets.Length > 0) {
 					prototype.stealthTargets = targets.Where(t => t >= 0 && t < Prto.Length).Select(t => Prto[t].Name).Distinct().ToList();
@@ -2152,6 +2155,7 @@ namespace C7GameData {
 				building.pollution = bldg.Pollution;
 				building.bombardDefense = bldg.BombardDefense;
 				building.airPower = bldg.AirPower;
+				building.navalPower = bldg.NavalPower;
 				if (bldg.SpaceshipPart >= 0) {
 					building.spaceshipPart = bldg.SpaceshipPart;
 				}

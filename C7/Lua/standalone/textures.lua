@@ -125,7 +125,8 @@ local c7_texture_list = {
   "Art/interface/unit_build_outpost.png",
   "Art/interface/unit_build_colony.png",
   "Art/interface/unit_build_airfield.png",
-  "Art/interface/unit_build_radar_tower.png"
+  "Art/interface/unit_build_radar_tower.png",
+  "Art/interface/unit_airlift.png"
 }
 
 --- For ease of editing, we define the civ colors as hex codes, not 1x1 px images
@@ -306,8 +307,8 @@ return function(civ3_textures)
     c7_textures.ui.unit_control[action] = { normal = cell(0), hover = cell(1), pressed = cell(2) }
   end
   -- The asset pack's NormButtons.png has blank buttons where Civ3's has
-  -- Build Outpost, Build Colony, Build Airfield and Build Radar Tower, so
-  -- those have buttons of their own
+  -- Build Outpost, Build Colony, Build Airfield, Build Radar Tower and
+  -- Airlift, so those have buttons of their own
   -- (C7/ModernArt/Art/interface/<order>.png, made by
   -- ArtGen/ui_buttons/build.py): the normal, hover and pressed buttons side
   -- by side.
@@ -323,6 +324,7 @@ return function(civ3_textures)
   c7_textures.ui.unit_control.unit_build_colony = own_button("unit_build_colony")
   c7_textures.ui.unit_control.unit_build_airfield = own_button("unit_build_airfield")
   c7_textures.ui.unit_control.unit_build_radar_tower = own_button("unit_build_radar_tower")
+  c7_textures.ui.unit_control.unit_airlift = own_button("unit_airlift")
 
   -- The asset pack's TerrainBuildings.png only has a placeholder where the
   -- colonies go. Named by Civ3's file, which the pack doesn't have, a colony

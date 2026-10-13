@@ -159,6 +159,10 @@ namespace C7GameData.Save {
 		// bombing its city with. Zero if not given; see Building.airPower.
 		public int airPower;
 
+		// The BIQ's naval power: the strength a coastal fortress bombards
+		// passing enemy ships with. Zero if not given; see Building.navalPower.
+		public int navalPower;
+
 		// For a spaceship part, its index in Rules.SpaceshipPartsRequired
 		// (Civ3's BLDG "spaceship part" field). Null for ordinary buildings.
 		public int? spaceshipPart;

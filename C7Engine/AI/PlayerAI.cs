@@ -78,6 +78,8 @@ namespace C7Engine {
 			// On trial: march on enemy cities in force (see WarCampaign).
 			await WarCampaign.PlayTurn(player, gameData);
 			await EngineStorage.YieldIfFrameBudgetSpent();
+			// Airlift defenders to threatened cities (see AirliftAI).
+			AirliftAI.PlayTurn(player);
 			await DoUnitActions(player);
 			DevelopmentAI.HurryProduction(player);
 
