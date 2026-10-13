@@ -770,6 +770,8 @@ namespace C7Engine {
 				return new WorkerAI(WorkerAI.MakeAiData(unit, player));
 			} else if (FerryAI.MaybeMakeAiData(unit, player) is FerryAIData ferryData) {
 				return new FerryAI(ferryData);
+			} else if (NavalAI.MaybeMake(unit, player) is NavalAI naval) {
+				return naval;
 			} else if (unit.location.cityAtTile != null && unit.CanDefendOnLand() && unit.location.unitsOnTile.Count(u => u.CanDefendOnLand() && u != unit) == 0) {
 				return new DefenderAI(DefenderAI.MakeAiDataForDefendInPlace(unit, player));
 			} else if (GetCombatAIIfUnitCanAttackNearbyBarbCamp(unit, player) is UnitAI unitAI && unitAI != null) {

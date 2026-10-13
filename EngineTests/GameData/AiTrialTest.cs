@@ -91,6 +91,9 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			// Rights of passage the civ signed when it asked for one (see
 			// RightOfPassageAI), as either side.
 			"rops",
+			// Warships (see NavalAI) at the end, and ships the civ sank in
+			// battle.
+			"warships", "shipKills",
 		];
 		public readonly double[] values = new double[Names.Length];
 	}
@@ -332,6 +335,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 		Dictionary<Player, int> attackWins = civs.ToDictionary(p => p, _ => 0);
 		Dictionary<Player, int> kills = civs.ToDictionary(p => p, _ => 0);
 		Dictionary<Player, int> unitsLost = civs.ToDictionary(p => p, _ => 0);
+		Dictionary<Player, int> shipKills = civs.ToDictionary(p => p, _ => 0);
 		void Add(Dictionary<Player, int> counts, Player p) {
 			if (p != null && counts.ContainsKey(p)) {
 				++counts[p];
@@ -359,9 +363,15 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			if (result == CombatResult.DefenderKilled) {
 				Add(kills, attacker.owner);
 				Add(unitsLost, defender.owner);
+				if (defender.IsWaterUnit()) {
+					Add(shipKills, attacker.owner);
+				}
 			} else if (result == CombatResult.AttackerKilled) {
 				Add(kills, defender.owner);
 				Add(unitsLost, attacker.owner);
+				if (attacker.IsWaterUnit()) {
+					Add(shipKills, defender.owner);
+				}
 			}
 		};
 		Dictionary<Player, HashSet<ID>> leaders = civs.ToDictionary(p => p, _ => new HashSet<ID>());
@@ -497,6 +507,8 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			m.values[i++] = rushes[p];
 			m.values[i++] = rushGold[p];
 			m.values[i++] = rops[p];
+			m.values[i++] = p.units.Count(C7Engine.AI.UnitAI.NavalAI.IsWarship);
+			m.values[i++] = shipKills[p];
 			return m;
 		}
 

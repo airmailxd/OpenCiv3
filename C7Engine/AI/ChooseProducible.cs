@@ -4,6 +4,7 @@ using System.Linq;
 using Serilog;
 using Serilog.Events;
 using C7Engine.AI;
+using C7Engine.AI.UnitAI;
 using C7GameData;
 using static C7GameData.PlayerRelationship;
 
@@ -241,10 +242,14 @@ namespace C7Engine {
 					return int.MinValue;
 				}
 
-				// Don't built a naval unit if we wouldn't explore with it. We
-				// don't yet handle using ships as transports or naval warfare.
+				// Don't built a naval unit if we wouldn't explore with it, or
+				// fight with it (see NavalAI). Transports are built
+				// for settlers waiting for one, above.
 				if (!stats.WouldExplore(unit)) {
-					return int.MinValue;
+					if (!NavalAI.IsWarship(unit) || !NavalAI.WantsWarships(player, city)) {
+						return int.MinValue;
+					}
+					score += NavalAI.WarshipBonus;
 				}
 			}
 
