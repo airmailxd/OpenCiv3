@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using C7Engine;
 using C7Engine.AI;
 using C7GameData;
@@ -9,7 +11,7 @@ namespace EngineTests.AI;
 // The resource deals and pacts the AI proposes (see DealProposalAI), on a
 // map like GoldPerTurnAndResourceDealsTest's: our capital in the west,
 // theirs in the east, joined by a road, with two wines by theirs.
-public class DealProposalAITest {
+public class DealProposalAITest : System.IDisposable {
 	private static readonly TerrainImprovement road = new("road", TerrainImprovement.Layer.Roads, movementCost: 1.0f / 3);
 
 	private readonly Resource wines = new() { Key = "Wines", Name = "Wines", Category = ResourceCategory.LUXURY };
@@ -52,6 +54,11 @@ public class DealProposalAITest {
 		us.gold = 500;
 		them.gold = 500;
 		gameData.InvalidateCachedTradeNetwork();
+	}
+
+	public void Dispose() {
+		EngineStorage.pendingMessages.Clear();
+		EngineStorage.messagesToUI.Clear();
 	}
 
 	private Player MakeCiv(string id, string name) {
@@ -129,5 +136,63 @@ public class DealProposalAITest {
 		for (int i = 0; i < 50; ++i) {
 			Assert.Null(DealProposalAI.PactDeal(gameData, us, them));
 		}
+	}
+
+	// They send us wines for a gold a turn, from turn 0.
+	private void BuyWines() {
+		Assert.True(them.ExecuteDeal(gameData, us, new TradeOffer { goldPerTurn = 1 }, new TradeOffer { resources = { wines.Key } }));
+	}
+
+	private bool HasWinesDeal(Player a, Player b) =>
+		a.playerRelationships[b.id].multiTurnDeals.Any(d => d.dealSubType == DealSubType.LuxuryPerTurn);
+
+	[Fact]
+	public void AnExpiredDealIsRenewedBetweenAIsThatStillWantIt() {
+		BuyWines();
+		gameData.turn = 20;
+		PlayerRelationship.CheckForObsoleteDeals(us, gameData.players, gameData.turn);
+		Assert.False(HasWinesDeal(us, them));
+
+		PlayerAI.RenewExpiredDeals(us, gameData).GetAwaiter().GetResult();
+
+		Assert.True(HasWinesDeal(us, them));
+		MultiTurnDeal renewed = us.playerRelationships[them.id].multiTurnDeals.Single(d => d.dealSubType == DealSubType.LuxuryPerTurn);
+		Assert.Equal(20, renewed.TurnsRemaining(gameData.turn));
+		Assert.Contains(us.playerRelationships[them.id].multiTurnDeals, d => d.dealSubType == DealSubType.GoldPerTurn && d.goldPerTurn == 1);
+		// Only once.
+		Assert.Empty(DealRenewal.TakeFor(gameData, them));
+	}
+
+	[Fact]
+	public void AHumanIsToldAndOfferedTheOldTerms() {
+		us.isHuman = true;
+		BuyWines();
+		gameData.turn = 20;
+		PlayerRelationship.CheckForObsoleteDeals(us, gameData.players, gameData.turn);
+
+		Assert.Contains(EngineStorage.messagesToUI,
+			m => m is MsgShowTemporaryPopup p && p.recipient == us && p.message.Contains("expired"));
+		// On their turn, the AI offers the same terms.
+		var renewal = Assert.Single(DealRenewal.TakeFor(gameData, them));
+		Assert.Equal(us, renewal.other);
+		Assert.Equal([wines.Key], renewal.aiGives.resources);
+		Assert.Equal(1, renewal.otherGives.goldPerTurn);
+		Assert.True(them.WouldAcceptDealFrom(gameData, us, renewal.otherGives, renewal.aiGives));
+	}
+
+	[Fact]
+	public void AnAIThatNoLongerWantsTheDealDoesNotRenewIt() {
+		BuyWines();
+		gameData.turn = 20;
+		// We have wines of our own now, so don't want theirs.
+		Tile ours = map.tileAt(2, 0);
+		ours.Resource = wines;
+		ours.owningCity = us.cities[0];
+		gameData.InvalidateCachedTradeNetwork();
+		PlayerRelationship.CheckForObsoleteDeals(us, gameData.players, gameData.turn);
+
+		PlayerAI.RenewExpiredDeals(us, gameData).GetAwaiter().GetResult();
+
+		Assert.False(HasWinesDeal(us, them));
 	}
 }

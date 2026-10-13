@@ -34,6 +34,8 @@ namespace C7Engine {
 			// For example unless we have a good reason, as a human, receiving luxuries, gpt,
 			// or having an active RoP, doesn't hurt us.
 			PlayerRelationship.CheckForObsoleteDeals(player, EngineStorage.gameData.players, EngineStorage.gameData.turn);
+			// Offer to renew the deals that ran out, if we still want them.
+			await RenewExpiredDeals(player, gameData);
 
 			// Tell anyone wandering around our territory to leave. Any war that
 			// starts gets planned for in the priorities and unit moves below.
@@ -1088,25 +1090,52 @@ namespace C7Engine {
 					continue;
 				}
 
-				if (them.isHuman) {
-					// A LAN guest who has left can't answer, so isn't asked.
-					if (!EngineStorage.IsPlayerReachable(them.id)) {
-						continue;
-					}
-					// The human receiving the offer takes the UI to respond.
-					// In a hotseat game they may not be the player at the screen.
-					if (EngineStorage.uiFollowsActivePlayer) {
-						EngineStorage.uiControllerID = them.id;
-					}
-					EngineStorage.diplomacyPlayerID = them.id;
-					EngineStorage.diplomacyAIPlayerID = us.id;
-					new MsgShowTradeOffer(us, them, weWant, weGive).send();
-					await EngineStorage.WaitForDiplomacyCompleted(them.id);
-					EngineStorage.diplomacyPlayerID = null;
-					EngineStorage.diplomacyAIPlayerID = null;
-				} else if (them.WouldAcceptDealFrom(gD, us, weGive, weWant)) {
-					us.ExecuteDeal(gD, them, weWant, weGive);
+				await Propose(gD, us, them, weGive, weWant);
+			}
+		}
+
+		// Offers them a deal in which we give weGive for weWant: a human is
+		// shown it to accept or change, another AI takes it if it would.
+		private static async Task Propose(GameData gD, Player us, Player them, TradeOffer weGive, TradeOffer weWant) {
+			if (them.isHuman) {
+				// A LAN guest who has left can't answer, so isn't asked.
+				if (!EngineStorage.IsPlayerReachable(them.id)) {
+					return;
 				}
+				// The human receiving the offer takes the UI to respond.
+				// In a hotseat game they may not be the player at the screen.
+				if (EngineStorage.uiFollowsActivePlayer) {
+					EngineStorage.uiControllerID = them.id;
+				}
+				EngineStorage.diplomacyPlayerID = them.id;
+				EngineStorage.diplomacyAIPlayerID = us.id;
+				new MsgShowTradeOffer(us, them, weWant, weGive).send();
+				await EngineStorage.WaitForDiplomacyCompleted(them.id);
+				EngineStorage.diplomacyPlayerID = null;
+				EngineStorage.diplomacyAIPlayerID = null;
+			} else if (them.WouldAcceptDealFrom(gD, us, weGive, weWant)) {
+				us.ExecuteDeal(gD, them, weWant, weGive);
+			}
+		}
+
+		// The deals with us that ran out (see DealRenewal): we offer each
+		// again, on the same terms, if we would still accept it; otherwise a
+		// human is told we don't wish to extend it.
+		internal static async Task RenewExpiredDeals(Player us, GameData gD) {
+			foreach ((TradeOffer weGave, Player them, TradeOffer theyGave) in DealRenewal.TakeFor(gD, us)) {
+				if (them.defeated || (weGave.IsEmpty() && theyGave.IsEmpty())) {
+					continue;
+				}
+				bool wanted = TradeOffer.ProblemWithDeal(gD, us, them, weGave, theyGave) == null
+					&& us.WouldAcceptDealFrom(gD, them, theyGave, weGave);
+				if (!wanted) {
+					if (them.isHuman) {
+						DealRenewal.Tell(them, $"The {us.civilization?.noun} do not wish to extend their deal with us.");
+					}
+					continue;
+				}
+				log.Information("{Us} offers to renew a deal with {Them}", us, them);
+				await Propose(gD, us, them, weGave, theyGave);
 			}
 		}
 
