@@ -10,6 +10,7 @@
       "movementCost": 1,
       "allowCities": true,
       "impassable": false,
+      "impassableByWheeled": false,
       "defenseBonus": {
         "description": "Desert",
         "amount": 0.1
@@ -32,6 +33,7 @@
       "movementCost": 1,
       "allowCities": true,
       "impassable": false,
+      "impassableByWheeled": false,
       "defenseBonus": {
         "description": "Plains",
         "amount": 0.1
@@ -56,6 +58,7 @@
       "movementCost": 1,
       "allowCities": true,
       "impassable": false,
+      "impassableByWheeled": false,
       "defenseBonus": {
         "description": "Grassland",
         "amount": 0.1
@@ -79,6 +82,7 @@
       "movementCost": 1,
       "allowCities": true,
       "impassable": false,
+      "impassableByWheeled": false,
       "defenseBonus": {
         "description": "Tundra",
         "amount": 0.1
@@ -101,6 +105,7 @@
       "movementCost": 1,
       "allowCities": true,
       "impassable": false,
+      "impassableByWheeled": false,
       "defenseBonus": {
         "description": "Flood Plain",
         "amount": 0.1
@@ -120,6 +125,7 @@
       "movementCost": 2,
       "allowCities": true,
       "impassable": false,
+      "impassableByWheeled": false,
       "defenseBonus": {
         "description": "Hills",
         "amount": 0.5
@@ -148,6 +154,7 @@
       "movementCost": 3,
       "allowCities": false,
       "impassable": false,
+      "impassableByWheeled": true,
       "defenseBonus": {
         "description": "Mountains",
         "amount": 1
@@ -172,6 +179,7 @@
       "movementCost": 2,
       "allowCities": true,
       "impassable": false,
+      "impassableByWheeled": false,
       "defenseBonus": {
         "description": "Forest",
         "amount": 0.25
@@ -198,6 +206,7 @@
       "movementCost": 3,
       "allowCities": true,
       "impassable": false,
+      "impassableByWheeled": true,
       "defenseBonus": {
         "description": "Jungle",
         "amount": 0.25
@@ -223,6 +232,7 @@
       "movementCost": 2,
       "allowCities": false,
       "impassable": false,
+      "impassableByWheeled": true,
       "defenseBonus": {
         "description": "Marsh",
         "amount": 0.2
@@ -245,6 +255,7 @@
       "movementCost": 3,
       "allowCities": false,
       "impassable": false,
+      "impassableByWheeled": true,
       "defenseBonus": {
         "description": "Volcano",
         "amount": 0.8
@@ -261,6 +272,7 @@
       "movementCost": 1,
       "allowCities": false,
       "impassable": false,
+      "impassableByWheeled": false,
       "defenseBonus": {
         "description": "Coast",
         "amount": 0.1
@@ -280,6 +292,7 @@
       "movementCost": 1,
       "allowCities": false,
       "impassable": false,
+      "impassableByWheeled": false,
       "defenseBonus": {
         "description": "Sea",
         "amount": 0.1
@@ -300,6 +313,7 @@
       "movementCost": 1,
       "allowCities": false,
       "impassable": false,
+      "impassableByWheeled": false,
       "defenseBonus": {
         "description": "Ocean",
         "amount": 0.1
@@ -1095,6 +1109,9 @@
         "Maya"
       ],
       "unproducible": false,
+      "flags": [
+        "allTerrainAsRoads"
+      ],
       "categories": [
         "Land"
       ],
@@ -1172,7 +1189,8 @@
       ],
       "unproducible": false,
       "flags": [
-        "amphibious"
+        "amphibious",
+        "footSoldier"
       ],
       "categories": [
         "Land"
@@ -1254,7 +1272,8 @@
       ],
       "unproducible": false,
       "flags": [
-        "zoneOfControl"
+        "zoneOfControl",
+        "footSoldier"
       ],
       "categories": [
         "Land"
@@ -1341,6 +1360,9 @@
         "Swordsman"
       ],
       "unproducible": false,
+      "flags": [
+        "footSoldier"
+      ],
       "categories": [
         "Land"
       ],
@@ -1420,6 +1442,9 @@
         "Longbowman"
       ],
       "unproducible": false,
+      "flags": [
+        "footSoldier"
+      ],
       "categories": [
         "Land"
       ],
@@ -1497,6 +1522,9 @@
         "Pikeman"
       ],
       "unproducible": false,
+      "flags": [
+        "footSoldier"
+      ],
       "categories": [
         "Land"
       ],
@@ -1574,6 +1602,9 @@
         "Medieval Infantry"
       ],
       "unproducible": false,
+      "flags": [
+        "footSoldier"
+      ],
       "categories": [
         "Land"
       ],
@@ -1656,6 +1687,9 @@
         "Mounted Warrior"
       ],
       "unproducible": false,
+      "flags": [
+        "wheeled"
+      ],
       "categories": [
         "Land"
       ],
@@ -1826,6 +1860,9 @@
         "Musketman"
       ],
       "unproducible": false,
+      "flags": [
+        "footSoldier"
+      ],
       "categories": [
         "Land"
       ],
@@ -1908,6 +1945,9 @@
         "Guerilla"
       ],
       "unproducible": false,
+      "flags": [
+        "footSoldier"
+      ],
       "categories": [
         "Land"
       ],
@@ -1988,6 +2028,9 @@
         "Swiss Mercenary"
       ],
       "unproducible": false,
+      "flags": [
+        "footSoldier"
+      ],
       "categories": [
         "Land"
       ],
@@ -2152,6 +2195,9 @@
         "Infantry"
       ],
       "unproducible": false,
+      "flags": [
+        "footSoldier"
+      ],
       "categories": [
         "Land"
       ],
@@ -2314,6 +2360,9 @@
         "Mech Infantry"
       ],
       "unproducible": false,
+      "flags": [
+        "footSoldier"
+      ],
       "categories": [
         "Land"
       ],
@@ -2651,6 +2700,9 @@
         "Trebuchet"
       ],
       "unproducible": false,
+      "flags": [
+        "wheeled"
+      ],
       "categories": [
         "Land"
       ],
@@ -2732,6 +2784,9 @@
         "Hwach'a"
       ],
       "unproducible": false,
+      "flags": [
+        "wheeled"
+      ],
       "categories": [
         "Land"
       ],
@@ -3145,7 +3200,8 @@
       "unproducible": false,
       "flags": [
         "nuclearWeapon",
-        "icbm"
+        "icbm",
+        "immobile"
       ],
       "categories": [
         "Land"
@@ -4202,7 +4258,8 @@
       ],
       "unproducible": false,
       "flags": [
-        "lethalSeaBombardment"
+        "lethalSeaBombardment",
+        "immobile"
       ],
       "categories": [
         "Air"
@@ -4283,7 +4340,8 @@
       "unproducible": false,
       "flags": [
         "lethalLandBombardment",
-        "lethalSeaBombardment"
+        "lethalSeaBombardment",
+        "immobile"
       ],
       "categories": [
         "Air"
@@ -4362,7 +4420,8 @@
       ],
       "unproducible": false,
       "flags": [
-        "canCarryFootUnitsOnly"
+        "canCarryFootUnitsOnly",
+        "immobile"
       ],
       "categories": [
         "Air"
@@ -4441,7 +4500,8 @@
       ],
       "unproducible": false,
       "flags": [
-        "lethalSeaBombardment"
+        "lethalSeaBombardment",
+        "immobile"
       ],
       "categories": [
         "Air"
@@ -4523,7 +4583,8 @@
       "unproducible": false,
       "flags": [
         "lethalLandBombardment",
-        "lethalSeaBombardment"
+        "lethalSeaBombardment",
+        "immobile"
       ],
       "categories": [
         "Air"
@@ -4604,7 +4665,8 @@
       "unproducible": false,
       "flags": [
         "lethalLandBombardment",
-        "lethalSeaBombardment"
+        "lethalSeaBombardment",
+        "immobile"
       ],
       "categories": [
         "Air"
@@ -4839,7 +4901,8 @@
       ],
       "unproducible": false,
       "flags": [
-        "startsGoldenAge"
+        "startsGoldenAge",
+        "footSoldier"
       ],
       "categories": [
         "Land"
@@ -4892,7 +4955,8 @@
       ],
       "unproducible": false,
       "flags": [
-        "startsGoldenAge"
+        "startsGoldenAge",
+        "footSoldier"
       ],
       "categories": [
         "Land"
@@ -4945,7 +5009,8 @@
       ],
       "unproducible": false,
       "flags": [
-        "startsGoldenAge"
+        "startsGoldenAge",
+        "footSoldier"
       ],
       "categories": [
         "Land"
@@ -4998,7 +5063,8 @@
       ],
       "unproducible": false,
       "flags": [
-        "startsGoldenAge"
+        "startsGoldenAge",
+        "footSoldier"
       ],
       "categories": [
         "Land"
@@ -5051,7 +5117,8 @@
       ],
       "unproducible": false,
       "flags": [
-        "startsGoldenAge"
+        "startsGoldenAge",
+        "footSoldier"
       ],
       "categories": [
         "Land"
@@ -5107,7 +5174,8 @@
       ],
       "unproducible": false,
       "flags": [
-        "startsGoldenAge"
+        "startsGoldenAge",
+        "footSoldier"
       ],
       "categories": [
         "Land"
@@ -5163,7 +5231,8 @@
       ],
       "unproducible": false,
       "flags": [
-        "startsGoldenAge"
+        "startsGoldenAge",
+        "wheeled"
       ],
       "categories": [
         "Land"
@@ -5332,7 +5401,8 @@
       ],
       "unproducible": false,
       "flags": [
-        "startsGoldenAge"
+        "startsGoldenAge",
+        "footSoldier"
       ],
       "categories": [
         "Land"
@@ -5388,7 +5458,8 @@
       ],
       "unproducible": false,
       "flags": [
-        "startsGoldenAge"
+        "startsGoldenAge",
+        "footSoldier"
       ],
       "categories": [
         "Land"
@@ -5607,6 +5678,7 @@
         "England"
       ],
       "unproducible": false,
+      "enslavesTo": "Man-O-War",
       "flags": [
         "rotateBeforeAttack",
         "startsGoldenAge"
@@ -5663,7 +5735,8 @@
       "flags": [
         "lethalLandBombardment",
         "lethalSeaBombardment",
-        "startsGoldenAge"
+        "startsGoldenAge",
+        "immobile"
       ],
       "categories": [
         "Air"
@@ -5742,6 +5815,7 @@
         "Maya"
       ],
       "unproducible": false,
+      "enslavesTo": "Privateer",
       "flags": [
         "rotateBeforeAttack"
       ],
@@ -5852,7 +5926,8 @@
       "unproducible": false,
       "flags": [
         "zoneOfControl",
-        "startsGoldenAge"
+        "startsGoldenAge",
+        "allTerrainAsRoads"
       ],
       "categories": [
         "Land"
@@ -5909,7 +5984,8 @@
       "unproducible": false,
       "flags": [
         "amphibious",
-        "startsGoldenAge"
+        "startsGoldenAge",
+        "footSoldier"
       ],
       "categories": [
         "Land"
@@ -6017,7 +6093,8 @@
       ],
       "unproducible": false,
       "flags": [
-        "startsGoldenAge"
+        "startsGoldenAge",
+        "footSoldier"
       ],
       "categories": [
         "Land"
@@ -6130,7 +6207,8 @@
       ],
       "unproducible": false,
       "flags": [
-        "startsGoldenAge"
+        "startsGoldenAge",
+        "footSoldier"
       ],
       "categories": [
         "Land"
@@ -6185,7 +6263,8 @@
       "flags": [
         "lethalLandBombardment",
         "lethalSeaBombardment",
-        "startsGoldenAge"
+        "startsGoldenAge",
+        "wheeled"
       ],
       "categories": [
         "Land"
@@ -6269,6 +6348,9 @@
         "Guerilla"
       ],
       "unproducible": false,
+      "flags": [
+        "footSoldier"
+      ],
       "categories": [
         "Land"
       ],
@@ -6352,6 +6434,9 @@
         "TOW Infantry"
       ],
       "unproducible": false,
+      "flags": [
+        "footSoldier"
+      ],
       "categories": [
         "Land"
       ],
@@ -6395,6 +6480,9 @@
       "hpBonus": 0,
       "workerStrength": 1,
       "unproducible": true,
+      "flags": [
+        "immobile"
+      ],
       "categories": [
         "Land"
       ],
@@ -7399,7 +7487,8 @@
       ],
       "unproducible": false,
       "flags": [
-        "startsGoldenAge"
+        "startsGoldenAge",
+        "footSoldier"
       ],
       "categories": [
         "Land"
@@ -7452,7 +7541,8 @@
       ],
       "unproducible": false,
       "flags": [
-        "startsGoldenAge"
+        "startsGoldenAge",
+        "wheeled"
       ],
       "categories": [
         "Land"
@@ -7681,7 +7771,8 @@
       ],
       "unproducible": false,
       "flags": [
-        "startsGoldenAge"
+        "startsGoldenAge",
+        "footSoldier"
       ],
       "categories": [
         "Land"
@@ -7806,6 +7897,9 @@
         "Cannon"
       ],
       "unproducible": false,
+      "flags": [
+        "wheeled"
+      ],
       "categories": [
         "Land"
       ],
@@ -7976,7 +8070,8 @@
       ],
       "unproducible": false,
       "flags": [
-        "startsGoldenAge"
+        "startsGoldenAge",
+        "footSoldier"
       ],
       "categories": [
         "Land"
@@ -8028,8 +8123,10 @@
         "Longbowman"
       ],
       "unproducible": false,
+      "enslavesTo": "Worker",
       "flags": [
-        "startsGoldenAge"
+        "startsGoldenAge",
+        "footSoldier"
       ],
       "categories": [
         "Land"
@@ -8215,6 +8312,9 @@
       "hpBonus": 0,
       "workerStrength": 1,
       "unproducible": true,
+      "flags": [
+        "footSoldier"
+      ],
       "categories": [
         "Land"
       ],
@@ -8424,7 +8524,8 @@
       ],
       "unproducible": false,
       "flags": [
-        "zoneOfControl"
+        "zoneOfControl",
+        "footSoldier"
       ],
       "categories": [
         "Land"
@@ -8507,6 +8608,9 @@
         "Maya"
       ],
       "unproducible": false,
+      "flags": [
+        "footSoldier"
+      ],
       "categories": [
         "Land"
       ],
@@ -8688,6 +8792,7 @@
       "culturePerTurn": 1,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 0,
       "productionBonusPercent": 0,
       "iconRowIndex": 0,
@@ -8710,6 +8815,7 @@
       "culturePerTurn": 0,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 1,
       "productionBonusPercent": 0,
       "iconRowIndex": 1,
@@ -8739,6 +8845,7 @@
       "culturePerTurn": 0,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 1,
       "productionBonusPercent": 0,
       "iconRowIndex": 2,
@@ -8762,6 +8869,7 @@
       "culturePerTurn": 2,
       "contentFacesInCity": 1,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 1,
       "productionBonusPercent": 0,
       "iconRowIndex": 3,
@@ -8785,6 +8893,7 @@
       "culturePerTurn": 0,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 1,
       "productionBonusPercent": 0,
       "iconRowIndex": 4,
@@ -8812,6 +8921,7 @@
       "culturePerTurn": 3,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 1,
       "productionBonusPercent": 0,
       "iconRowIndex": 5,
@@ -8838,6 +8948,7 @@
       "culturePerTurn": 0,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 1,
       "productionBonusPercent": 0,
       "iconRowIndex": 6,
@@ -8861,6 +8972,7 @@
       "culturePerTurn": 0,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0.5,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 0,
       "productionBonusPercent": 0,
       "iconRowIndex": 7,
@@ -8891,6 +9003,7 @@
       "culturePerTurn": 0,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 1,
       "productionBonusPercent": 0,
       "iconRowIndex": 8,
@@ -8921,6 +9034,7 @@
       "culturePerTurn": 0,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 1,
       "productionBonusPercent": 0,
       "iconRowIndex": 9,
@@ -8948,6 +9062,7 @@
       "culturePerTurn": 3,
       "contentFacesInCity": 3,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 2,
       "productionBonusPercent": 0,
       "iconRowIndex": 10,
@@ -8972,6 +9087,7 @@
       "culturePerTurn": 4,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 2,
       "productionBonusPercent": 0,
       "iconRowIndex": 11,
@@ -8998,6 +9114,7 @@
       "culturePerTurn": 2,
       "contentFacesInCity": 2,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 2,
       "productionBonusPercent": 0,
       "iconRowIndex": 12,
@@ -9018,6 +9135,7 @@
       "culturePerTurn": 0,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 3,
       "productionBonusPercent": 50,
       "iconRowIndex": 13,
@@ -9042,6 +9160,7 @@
       "culturePerTurn": 0,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 3,
       "productionBonusPercent": 50,
       "iconRowIndex": 14,
@@ -9062,6 +9181,7 @@
       "culturePerTurn": 0,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 2,
       "productionBonusPercent": 0,
       "iconRowIndex": 15,
@@ -9086,6 +9206,7 @@
       "culturePerTurn": 0,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 3,
       "productionBonusPercent": 50,
       "iconRowIndex": 16,
@@ -9113,6 +9234,7 @@
       "culturePerTurn": 0,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 3,
       "productionBonusPercent": 50,
       "iconRowIndex": 17,
@@ -9141,6 +9263,7 @@
       "culturePerTurn": 0,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 3,
       "productionBonusPercent": 100,
       "iconRowIndex": 18,
@@ -9167,6 +9290,7 @@
       "culturePerTurn": 0,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 2,
       "productionBonusPercent": 0,
       "iconRowIndex": 19,
@@ -9194,6 +9318,7 @@
       "culturePerTurn": 2,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 2,
       "productionBonusPercent": 0,
       "iconRowIndex": 20,
@@ -9220,6 +9345,7 @@
       "culturePerTurn": 0,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 2,
       "productionBonusPercent": 0,
       "iconRowIndex": 21,
@@ -9243,6 +9369,7 @@
       "culturePerTurn": 0,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 2,
       "productionBonusPercent": 0,
       "iconRowIndex": 22,
@@ -9269,6 +9396,7 @@
       "culturePerTurn": 0,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0.5,
       "maintenanceCost": 0,
       "productionBonusPercent": 0,
       "iconRowIndex": 23,
@@ -9304,6 +9432,7 @@
       "culturePerTurn": 0,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 3,
       "productionBonusPercent": 50,
       "iconRowIndex": 24,
@@ -9330,6 +9459,7 @@
       "culturePerTurn": 0,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 1,
       "productionBonusPercent": 0,
       "iconRowIndex": 25,
@@ -9369,6 +9499,7 @@
       "culturePerTurn": 0,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 3,
       "productionBonusPercent": 0,
       "iconRowIndex": 26,
@@ -9402,6 +9533,7 @@
       "culturePerTurn": 0,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 2,
       "productionBonusPercent": 0,
       "iconRowIndex": 27,
@@ -9432,6 +9564,7 @@
       "culturePerTurn": 0,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 2,
       "productionBonusPercent": 0,
       "iconRowIndex": 28,
@@ -9459,6 +9592,7 @@
       "culturePerTurn": 4,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 0,
       "productionBonusPercent": 0,
       "iconRowIndex": 30,
@@ -9488,6 +9622,7 @@
       "culturePerTurn": 4,
       "contentFacesInCity": 3,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 0,
       "productionBonusPercent": 0,
       "iconRowIndex": 31,
@@ -9517,6 +9652,7 @@
       "culturePerTurn": 3,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 0,
       "productionBonusPercent": 0,
       "iconRowIndex": 32,
@@ -9555,6 +9691,7 @@
       "culturePerTurn": 2,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 0,
       "productionBonusPercent": 0,
       "iconRowIndex": 33,
@@ -9591,6 +9728,7 @@
       "culturePerTurn": 6,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 0,
       "productionBonusPercent": 0,
       "iconRowIndex": 34,
@@ -9620,6 +9758,7 @@
       "culturePerTurn": 4,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 0,
       "productionBonusPercent": 0,
       "iconRowIndex": 35,
@@ -9651,6 +9790,7 @@
       "culturePerTurn": 2,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 0,
       "productionBonusPercent": 0,
       "iconRowIndex": 36,
@@ -9683,6 +9823,7 @@
       "culturePerTurn": 2,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 0,
       "productionBonusPercent": 0,
       "iconRowIndex": 37,
@@ -9707,6 +9848,7 @@
       "culturePerTurn": 6,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 0,
       "productionBonusPercent": 0,
       "iconRowIndex": 38,
@@ -9735,6 +9877,7 @@
       "culturePerTurn": 3,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 0,
       "productionBonusPercent": 0,
       "iconRowIndex": 39,
@@ -9768,6 +9911,7 @@
       "culturePerTurn": 4,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 0,
       "productionBonusPercent": 0,
       "iconRowIndex": 40,
@@ -9796,6 +9940,7 @@
       "culturePerTurn": 8,
       "contentFacesInCity": 8,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 0,
       "productionBonusPercent": 0,
       "iconRowIndex": 41,
@@ -9824,6 +9969,7 @@
       "culturePerTurn": 2,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 0,
       "productionBonusPercent": 0,
       "iconRowIndex": 42,
@@ -9852,6 +9998,7 @@
       "culturePerTurn": 6,
       "contentFacesInCity": 2,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 0,
       "productionBonusPercent": 0,
       "iconRowIndex": 43,
@@ -9880,6 +10027,7 @@
       "culturePerTurn": 6,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 0,
       "productionBonusPercent": 0,
       "iconRowIndex": 44,
@@ -9908,6 +10056,7 @@
       "culturePerTurn": 3,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 0,
       "productionBonusPercent": 0,
       "iconRowIndex": 45,
@@ -9936,6 +10085,7 @@
       "culturePerTurn": 4,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 0,
       "productionBonusPercent": 0,
       "iconRowIndex": 46,
@@ -9965,6 +10115,7 @@
       "culturePerTurn": 2,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 0,
       "productionBonusPercent": 0,
       "iconRowIndex": 47,
@@ -9997,6 +10148,7 @@
       "culturePerTurn": 3,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 0,
       "productionBonusPercent": 0,
       "iconRowIndex": 48,
@@ -10024,6 +10176,7 @@
       "culturePerTurn": 4,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 0,
       "productionBonusPercent": 0,
       "iconRowIndex": 49,
@@ -10052,6 +10205,7 @@
       "culturePerTurn": 2,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 0,
       "productionBonusPercent": 0,
       "iconRowIndex": 50,
@@ -10083,6 +10237,7 @@
       "culturePerTurn": 3,
       "contentFacesInCity": 1,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 0,
       "productionBonusPercent": 0,
       "iconRowIndex": 51,
@@ -10108,6 +10263,7 @@
       "culturePerTurn": 3,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 0,
       "productionBonusPercent": 0,
       "iconRowIndex": 52,
@@ -10135,6 +10291,7 @@
       "culturePerTurn": 3,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 0,
       "productionBonusPercent": 0,
       "iconRowIndex": 53,
@@ -10160,6 +10317,7 @@
       "culturePerTurn": 4,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 0,
       "productionBonusPercent": 0,
       "iconRowIndex": 54,
@@ -10187,6 +10345,7 @@
       "culturePerTurn": 2,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 0,
       "productionBonusPercent": 100,
       "iconRowIndex": 55,
@@ -10210,6 +10369,7 @@
       "culturePerTurn": 2,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 0,
       "productionBonusPercent": 0,
       "iconRowIndex": 56,
@@ -10236,6 +10396,7 @@
       "culturePerTurn": 1,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 0,
       "productionBonusPercent": 0,
       "iconRowIndex": 57,
@@ -10263,6 +10424,7 @@
       "culturePerTurn": 1,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 0,
       "productionBonusPercent": 0,
       "iconRowIndex": 58,
@@ -10289,6 +10451,7 @@
       "culturePerTurn": 2,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 0,
       "productionBonusPercent": 0,
       "iconRowIndex": 59,
@@ -10312,6 +10475,7 @@
       "culturePerTurn": 2,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 0,
       "productionBonusPercent": 0,
       "iconRowIndex": 60,
@@ -10342,6 +10506,7 @@
       "culturePerTurn": 1,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 0,
       "productionBonusPercent": 0,
       "iconRowIndex": 61,
@@ -10368,6 +10533,7 @@
       "culturePerTurn": 1,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 0,
       "productionBonusPercent": 0,
       "iconRowIndex": 62,
@@ -10395,6 +10561,7 @@
       "culturePerTurn": 1,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 0,
       "productionBonusPercent": 0,
       "iconRowIndex": 63,
@@ -10421,6 +10588,7 @@
       "culturePerTurn": 0,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 0,
       "productionBonusPercent": 0,
       "iconRowIndex": 64,
@@ -10445,6 +10613,7 @@
       "culturePerTurn": 0,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 0,
       "productionBonusPercent": 0,
       "iconRowIndex": 65,
@@ -10469,6 +10638,7 @@
       "culturePerTurn": 0,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 0,
       "productionBonusPercent": 0,
       "iconRowIndex": 66,
@@ -10493,6 +10663,7 @@
       "culturePerTurn": 0,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 0,
       "productionBonusPercent": 0,
       "iconRowIndex": 67,
@@ -10517,6 +10688,7 @@
       "culturePerTurn": 0,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 0,
       "productionBonusPercent": 0,
       "iconRowIndex": 68,
@@ -10541,6 +10713,7 @@
       "culturePerTurn": 0,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 0,
       "productionBonusPercent": 0,
       "iconRowIndex": 69,
@@ -10565,6 +10738,7 @@
       "culturePerTurn": 0,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 0,
       "productionBonusPercent": 0,
       "iconRowIndex": 70,
@@ -10590,6 +10764,7 @@
       "culturePerTurn": 0,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 0,
       "productionBonusPercent": 0,
       "iconRowIndex": 71,
@@ -10614,6 +10789,7 @@
       "culturePerTurn": 0,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 0,
       "productionBonusPercent": 0,
       "iconRowIndex": 72,
@@ -10638,6 +10814,7 @@
       "culturePerTurn": 0,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 0,
       "productionBonusPercent": 0,
       "iconRowIndex": 73,
@@ -10666,6 +10843,7 @@
       "culturePerTurn": 4,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 0,
       "productionBonusPercent": 0,
       "iconRowIndex": 74,
@@ -10697,6 +10875,7 @@
       "culturePerTurn": 0,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0.5,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 1,
       "productionBonusPercent": 0,
       "iconRowIndex": 75,
@@ -10721,6 +10900,7 @@
       "culturePerTurn": 0,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 3,
       "productionBonusPercent": 0,
       "iconRowIndex": 76,
@@ -10748,6 +10928,7 @@
       "culturePerTurn": 0,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 2,
       "productionBonusPercent": 0,
       "iconRowIndex": 77,
@@ -10781,6 +10962,7 @@
       "culturePerTurn": 4,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 0,
       "productionBonusPercent": 0,
       "iconRowIndex": 78,
@@ -10809,6 +10991,7 @@
       "culturePerTurn": 4,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 0,
       "productionBonusPercent": 0,
       "iconRowIndex": 79,
@@ -10842,6 +11025,7 @@
       "culturePerTurn": 2,
       "contentFacesInCity": 3,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 0,
       "productionBonusPercent": 0,
       "iconRowIndex": 80,
@@ -10870,6 +11054,7 @@
       "culturePerTurn": 2,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 0,
       "productionBonusPercent": 0,
       "iconRowIndex": 81,
@@ -10896,6 +11081,7 @@
       "culturePerTurn": 0,
       "contentFacesInCity": 0,
       "combatDefenseBonus": 0,
+      "navalDefenseBonus": 0,
       "maintenanceCost": 0,
       "productionBonusPercent": 0,
       "iconRowIndex": 56,

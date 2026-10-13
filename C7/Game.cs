@@ -3060,7 +3060,7 @@ public partial class Game : Node {
 			} else if (unit != null && unit.location != tile) {
 				result.path = PathingAlgorithmChooser.GetAlgorithm(unit).PathFrom(unit.location, tile, unit);
 				result.moveCost =
-					result.path.PathCost(unit.owner, unit.location, unit.MaxMovementPoints(), unit.movementPoints.remaining);
+					result.path.PathCost(unit.owner, unit.location, unit.MaxMovementPoints(), unit.movementPoints.remaining, unit.unitType.allTerrainAsRoads);
 				result.pathCoords = result.path.GetPathCoords();
 
 				// If we couldn't path onto the tile, but the tile is next to us and
@@ -3070,13 +3070,13 @@ public partial class Game : Node {
 				var canEnterForcefully = unit.CanEnterForcefully(tile, out Intent intent);
 				result.intent = intent;
 
-				if (distanceToTile == 1 && canEnterForcefully) {
+				if (distanceToTile == 1 && canEnterForcefully && unit.unitType.CanMoveBetween(unit.location, tile)) {
 					Queue<Tile> pathQueue = new();
 					pathQueue.Enqueue(tile);
 
 					result.path = new TilePath(tile, pathQueue);
 					result.moveCost = result.path.PathCost(unit.owner, unit.location, unit.MaxMovementPoints(),
-						unit.movementPoints.remaining);
+						unit.movementPoints.remaining, unit.unitType.allTerrainAsRoads);
 					result.pathCoords = result.path.GetPathCoords();
 
 					// If we couldn't enter this tile without a war declaration,

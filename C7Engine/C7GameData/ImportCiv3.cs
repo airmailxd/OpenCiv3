@@ -1817,11 +1817,19 @@ namespace C7GameData {
 				if (prto.SinkInSea) prototype.flags.Add(SaveUnitPrototype.Flag.SinksInSea);
 				if (prto.SinkInOcean) prototype.flags.Add(SaveUnitPrototype.Flag.SinksInOcean);
 				if (prto.Leader) prototype.flags.Add(SaveUnitPrototype.Flag.Leader);
+				if (prto.Wheeled) prototype.flags.Add(SaveUnitPrototype.Flag.Wheeled);
+				if (prto.FootSoldier) prototype.flags.Add(SaveUnitPrototype.Flag.FootSoldier);
+				if (prto.AllTerrainAsRoads) prototype.flags.Add(SaveUnitPrototype.Flag.AllTerrainAsRoads);
+				if (prto.Immobile) prototype.flags.Add(SaveUnitPrototype.Flag.Immobile);
 
 				prototype.actions.UnionWith(GetUnitActions(prto));
 				prototype.terraformActions.UnionWith(GetUnitTerraforms(prto).Select(tfKey => terraformIdByCiv3Key[tfKey]));
 
 				prototype.unproducible = IsUnproducible(prto);
+
+				if (prto.EnslaveResults >= 0 && prto.EnslaveResults < Prto.Length) {
+					prototype.enslavesTo = Prto[prto.EnslaveResults].Name;
+				}
 
 				if (prto.Required != -1) {
 					prototype.requiredTech = save.Techs[prto.Required].id;
@@ -2003,6 +2011,7 @@ namespace C7GameData {
 					contentFacesInCity=bldg.ContentFaces - bldg.UnhappyFaces,
 					iconRowIndex=pediaIcons.buildingToRowNumberMapping[bldg.CivilopediaEntry],
 					combatDefenseBonus=bldg.DefenseBonus / 100.0,
+					navalDefenseBonus=bldg.NavalDefenseBonus / 100.0,
 					maintenanceCost=bldg.MaintenanceCost,
 					numberOfArmiesRequired=bldg.NumberOfArmiesRequired,
 					// Production is stored in 25% steps.

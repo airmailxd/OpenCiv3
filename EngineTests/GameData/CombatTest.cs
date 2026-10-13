@@ -248,6 +248,141 @@ public class CombatTest : IClassFixture<SaveGameFixture> {
 		});
 	}
 
+	// Civ3 captures an undefended zero-defence unit if the captor could
+	// build it, and destroys it otherwise.
+	// https://forums.civfanatics.com/threads/capturing-units-with-zero-defense.631539/
+	[Fact]
+	public async Task ACatapultIsCapturedByACivThatCanBuildIt() {
+		GoToWar();
+		(Tile from, TileDirection dir, Tile to) = FindAdjacentLand();
+		MapUnit warrior = Spawn(us, "Warrior", from);
+		MapUnit catapult = Spawn(them, "Catapult", to);
+		us.knownTechs.Add(catapult.unitType.requiredTech.id);
+
+		Assert.True(await warrior.Move(dir));
+
+		Assert.Equal(to, warrior.location);
+		Assert.Equal(us, catapult.owner);
+		Assert.Contains(catapult, us.units);
+		Assert.DoesNotContain(catapult, them.units);
+		Assert.Contains(catapult, to.unitsOnTile);
+	}
+
+	[Fact]
+	public async Task ACatapultIsDestroyedByACivThatCantBuildIt() {
+		GoToWar();
+		(Tile from, TileDirection dir, Tile to) = FindAdjacentLand();
+		MapUnit warrior = Spawn(us, "Warrior", from);
+		MapUnit catapult = Spawn(them, "Catapult", to);
+		us.knownTechs.Remove(catapult.unitType.requiredTech.id);
+
+		Assert.True(await warrior.Move(dir));
+
+		Assert.Equal(to, warrior.location);
+		Assert.DoesNotContain(catapult, gameData.mapUnits);
+		Assert.DoesNotContain(catapult, us.units);
+		Assert.DoesNotContain(catapult, to.unitsOnTile);
+	}
+
+	// City Walls give "+50% to defensive bonus against land attacks", a
+	// Coastal Fortress "+50% against naval attacks"
+	// (https://civfanatics.com/civ3/civilopedia/improvements/).
+	[Fact]
+	public void WallsDefendAgainstLandAttacksAndCoastalFortressesAgainstShips() {
+		(Tile land, Tile sea) = FindCoast();
+		City city = CityInteractions.BuildCity(land, them, them.GetNextCityName());
+		Building walls = gameData.Buildings.Single(b => b.name == "Walls");
+		Building fortress = gameData.Buildings.Single(b => b.name == "Coastal Fortress");
+		city.AddBuilding(walls);
+		city.AddBuilding(fortress);
+		MapUnit galley = Spawn(us, "Galley", sea);
+		(Tile from, _, _) = FindAdjacentLand();
+		MapUnit warrior = Spawn(us, "Warrior", from);
+
+		List<string> versusShip = city.GetDefenseBonuses(galley).Select(b => b.description).ToList();
+		List<string> versusLand = city.GetDefenseBonuses(warrior).Select(b => b.description).ToList();
+
+		Assert.Contains("Coastal Fortress", versusShip);
+		Assert.DoesNotContain("Walls", versusShip);
+		Assert.Contains("Walls", versusLand);
+		Assert.DoesNotContain("Coastal Fortress", versusLand);
+		Assert.Equal(0.5, city.GetDefenseBonuses(galley).Single(b => b.description == "Coastal Fortress").amount);
+	}
+
+	// "There is no defensive bonus for fortified ships"
+	// (https://forums.civfanatics.com/threads/do-ships-get-a-defense-bonus-when-fortified.95400/).
+	[Fact]
+	public void FortifiedShipsGetNoFortificationBonus() {
+		(Tile land, Tile sea) = FindCoast();
+		MapUnit galley = Spawn(us, "Galley", sea);
+		MapUnit warrior = Spawn(us, "Warrior", land);
+		MapUnit attacker = Spawn(them, "Warrior", land);
+		galley.isFortified = true;
+		warrior.isFortified = true;
+
+		string fortified = gameData.fortificationBonus.description;
+		Assert.DoesNotContain(galley.ListStrengthBonusesVersus(attacker, CombatRole.Defense, null), b => b.description == fortified);
+		Assert.Contains(warrior.ListStrengthBonusesVersus(attacker, CombatRole.Defense, null), b => b.description == fortified);
+	}
+
+	// Units like the Javelin Thrower have "a 33% chance" to make a unit
+	// (a Worker for it) of a foe they beat attacking
+	// (https://forums.civfanatics.com/threads/anyone-know-exactly-how-enslavement-works.107253/).
+	[Fact]
+	public async Task AJavelinThrowerCanEnslaveTheUnitItBeats() {
+		GoToWar();
+		(Tile from, TileDirection dir, Tile to) = FindAdjacentLand();
+		MapUnit javelin = Spawn(us, "Javelin Thrower", from);
+		MapUnit warrior = Spawn(them, "Warrior", to);
+		warrior.hitPointsRemaining = 1;
+
+		// Every roll is 0, under the 1 in 3 chance.
+		await WithZeroRandom(async () => Assert.True(await javelin.Move(dir)));
+
+		Assert.DoesNotContain(warrior, gameData.mapUnits);
+		MapUnit slave = Assert.Single(us.units, u => u.unitType.name == "Worker" && u.IsCaptive());
+		Assert.Equal(from, slave.location);
+		Assert.True(slave.IsCaptive());
+		Assert.Same(them.civilization, slave.nationality);
+	}
+
+	private class FixedRandom(double value) : System.Random {
+		protected override double Sample() => value;
+	}
+
+	[Fact]
+	public void EnslavementFailsTwoTimesInThree() {
+		(Tile from, _, Tile to) = FindAdjacentLand();
+		MapUnit javelin = Spawn(us, "Javelin Thrower", from);
+		MapUnit warrior = Spawn(them, "Warrior", to);
+		System.Random original = C7GameData.GameData.rng;
+		try {
+			C7GameData.GameData.rng = new FixedRandom(0.34);
+			Assert.Null(javelin.RollToEnslave(warrior));
+			C7GameData.GameData.rng = new FixedRandom(0.33);
+			Assert.NotNull(javelin.RollToEnslave(warrior));
+		} finally {
+			C7GameData.GameData.rng = original;
+		}
+	}
+
+	// "Barbarian units are not able to enslave other units"
+	// (https://forums.civfanatics.com/threads/allowing-barbarians-to-enslave-units.677365/).
+	[Fact]
+	public void BarbariansDontEnslave() {
+		Player barbarians = gameData.players.Single(p => p.isBarbarians);
+		(Tile from, _, Tile to) = FindAdjacentLand();
+		MapUnit javelin = Spawn(barbarians, "Javelin Thrower", from);
+		MapUnit warrior = Spawn(them, "Warrior", to);
+		System.Random original = C7GameData.GameData.rng;
+		try {
+			C7GameData.GameData.rng = new FixedRandom(0);
+			Assert.Null(javelin.RollToEnslave(warrior));
+		} finally {
+			C7GameData.GameData.rng = original;
+		}
+	}
+
 	[Fact]
 	public async Task WinningAttackerPaysOnlyForTheMove() {
 		GoToWar();

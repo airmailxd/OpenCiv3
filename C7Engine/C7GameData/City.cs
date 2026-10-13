@@ -947,7 +947,9 @@ namespace C7GameData {
 			return null;
 		}
 
-		public IEnumerable<StrengthBonus> GetDefenseBonuses() {
+		// The bonuses units in the city get defending against the attacker
+		// (null if unknown, treated as a land unit).
+		public IEnumerable<StrengthBonus> GetDefenseBonuses(MapUnit attacker = null) {
 			GameData gD = EngineStorage.gameData;
 
 			// Cities give defense bonuses based on their size.
@@ -961,9 +963,17 @@ namespace C7GameData {
 
 			bool isTown = residents.Count <= gD.rules.MaximumLevel1CitySize;
 
-			// Buildings, such as walls, can also give bonuses.
+			// Buildings, such as walls, can also give bonuses. The BIQ gives a
+			// building one bonus against land attacks and another against
+			// naval ones: City Walls give "+50% to defensive bonus against
+			// land attacks", a Coastal Fortress "+50% against naval attacks"
+			// (https://civfanatics.com/civ3/civilopedia/improvements/).
+			// UNVERIFIED: which applies against air units, which only
+			// bombard in Civ3; the land one does, as before.
+			bool navalAttack = attacker != null && attacker.IsWaterUnit();
 			foreach (CityBuilding cb in EffectiveBuildings()) {
-				if (cb.building.combatDefenseBonus is not StrengthBonus defenseBonus) {
+				StrengthBonus? bonus = navalAttack ? cb.building.navalDefenseBonus : cb.building.combatDefenseBonus;
+				if (bonus is not StrengthBonus defenseBonus) {
 					continue;
 				}
 

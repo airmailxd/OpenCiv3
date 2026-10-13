@@ -32,7 +32,7 @@ public partial class MapUnit {
 		if (IsLandUnit() ? !tile.IsLand() : !tile.IsWater() && !tile.HasCity()) {
 			return false;
 		}
-		if (!CanEnterPeacefully(tile, out Intent intent) || intent != Intent.MoveFreely) {
+		if (!CanEnterPeacefully(tile, out Intent intent) || intent != Intent.MoveFreely || !unitType.CanMoveBetween(location, tile)) {
 			return false;
 		}
 		// Enemies next to both tiles may take a free shot.
@@ -64,7 +64,7 @@ public partial class MapUnit {
 	// tiles it hasn't seen, and the host's snapshot shows them.
 	internal void PredictStepTo(Tile tile) {
 		TileDirection dir = location.DirectionTo(tile);
-		float movementCost = TilePath.GetMovementCost(owner, location, dir, tile);
+		float movementCost = TilePath.GetMovementCost(owner, location, dir, tile, unitType.allTerrainAsRoads);
 		facingDirection = dir;
 		Wake();
 		location.unitsOnTile.Remove(this);

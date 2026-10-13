@@ -212,6 +212,7 @@ namespace C7Engine.Pathing {
 			if (!CanWalkOnto(c, owner, owner.PathsByExploredMap, unit.IsLandUnit(), unit.IsWaterUnit())) {
 				return false;
 			}
+			bool checkStep = unit.unitType.isWheeled && !(owner.PathsByExploredMap && !owner.HasExploredTile(c));
 
 			bool applyLandStrip = pathUnit.IsWaterUnit() && (pathUnit.owner.HasExploredTile(c) || !pathUnit.owner.PathsByExploredMap);
 			bool adjacentToExpanded = false;
@@ -224,6 +225,9 @@ namespace C7Engine.Pathing {
 					continue;
 				}
 				if (applyLandStrip && GameMap.IsLandStrip(n, c)) {
+					continue;
+				}
+				if (checkStep && !unit.unitType.CanMoveBetween(n, c)) {
 					continue;
 				}
 				adjacentToExpanded = true;
@@ -260,6 +264,12 @@ namespace C7Engine.Pathing {
 			bool isLandUnit = unit.IsLandUnit();
 			bool isWaterUnit = unit.IsWaterUnit();
 			float movementPoints = unit.MaxMovementPoints();
+			UnitPrototype type = unit.unitType;
+			// Wheeled units can only take some steps along roads (see
+			// UnitPrototype.CanMoveBetween), which depends on the tile they
+			// come from, so it's checked per step rather than per tile.
+			bool isWheeled = type.isWheeled;
+			bool allTerrainAsRoads = type.allTerrainAsRoads;
 
 			// The heuristic is DistanceTo times the cheapest possible step,
 			// which never overestimates (see MovementCostFloor), scaled down a
@@ -309,13 +319,16 @@ namespace C7Engine.Pathing {
 					if (applyLandStrip && GameMap.IsLandStrip(currentTile, neighbor)) {
 						continue;
 					}
+					if (isWheeled && !(byExploredMap && !owner.HasExploredTile(neighbor)) && !type.CanMoveBetween(currentTile, neighbor)) {
+						continue;
+					}
 
 					int id = ctx.Id(neighbor);
 					if ((ctx.flags[id] & PathSearchContext.CLOSED) != 0) {
 						continue;
 					}
 
-					float edgeCost = UnitWalker.EdgeCost(owner, currentTile, pair.Key, neighbor, movementPoints);
+					float edgeCost = UnitWalker.EdgeCost(owner, currentTile, pair.Key, neighbor, movementPoints, allTerrainAsRoads);
 					if (OutsideTerritoryCost > 0 && neighbor.OwningPlayer() != owner) {
 						edgeCost += OutsideTerritoryCost;
 					}
