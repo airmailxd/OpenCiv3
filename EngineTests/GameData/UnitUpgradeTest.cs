@@ -75,4 +75,40 @@ public class UnitUpgradeTest {
 		Assert.False(unit.Upgrade());
 		Assert.Equal(spearman, unit.unitType);
 	}
+
+	// Conquests charges 3 gold a shield of difference ("the costs have gone
+	// from 2 * shield_difference to 3 * shield_difference",
+	// https://forums.civfanatics.com/threads/civ3-conquests-additions-changes-list.104294/),
+	// which is what its BIQ's RULE says and so what the bundled rules have.
+	[Fact]
+	public void ConquestsChargesThreeGoldAShield() {
+		Assert.Equal(3, new Rules().UpgradeCostPerShield);
+		using System.Text.Json.JsonDocument ruleset = EngineTests.Utils.JsonUtils.LoadBaseRuleset();
+		Assert.Equal(3, ruleset.RootElement.GetProperty("rules").GetProperty("upgradeCostPerShield").GetInt32());
+	}
+
+	// "A city with an [Airport] can be used to upgrade air units"
+	// (Conquests Civilopedia, BLDG_Airport); barracks don't do.
+	[Fact]
+	public void AircraftUpgradeAtAnAirport() {
+		UnitPrototype biplane = new() { name = "Biplane", shieldCost = 40 };
+		UnitPrototype fighter = new() { name = "Fighter", shieldCost = 50 };
+		foreach (UnitPrototype p in new[] { biplane, fighter }) {
+			p.categories.Add("Air");
+			p.actions.Add(UnitAction.Upgrade);
+			p.producibleBy.Add(player.civilization);
+			gameData.unitPrototypes.Add(p);
+		}
+		biplane.upgradesTo.Add(fighter);
+		MapUnit plane = biplane.GetInstance(ID.None("plane"), biplane, player, location: city.location);
+
+		AddBarracks();
+		Assert.Null(plane.GetAvailableUpgrade());
+
+		SaveBuilding airport = new() { name = "Airport" };
+		airport.flags.Add(SaveBuilding.Flag.VeteranAirUnits);
+		city.AddBuilding(new Building(airport, new C7GameData.GameData()));
+		Assert.Equal(fighter, plane.GetAvailableUpgrade());
+		Assert.Equal(30, plane.UpgradeCost(fighter));
+	}
 }

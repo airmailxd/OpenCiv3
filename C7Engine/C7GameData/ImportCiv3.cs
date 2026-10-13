@@ -260,41 +260,54 @@ namespace C7GameData {
 			return save;
 		}
 
-		// The tile improvements Civ3 has that C7 doesn't yet, with how many
-		// tiles had each, logged once the map is imported.
+		// The tile improvements left out because their tile already had a
+		// holding (see ImportHoldings), with how many tiles had each, logged
+		// once the map is imported.
 		private readonly Dictionary<string, int> unsupportedHoldings = new();
 
-		// Where a Civ3 map's colonies and outposts are, by their (X, Y), with
-		// the ID of each one's owner (null if it has none we know of).
+		// Where a Civ3 map's colonies, outposts, airfields and radar towers
+		// are, by their (X, Y), with the ID of each one's owner (null if it
+		// has none we know of).
 		private sealed class MapHoldings {
 			public readonly Dictionary<(int, int), ID> colonies = new();
 			public readonly Dictionary<(int, int), ID> outposts = new();
+			public readonly Dictionary<(int, int), ID> airfields = new();
+			public readonly Dictionary<(int, int), ID> radarTowers = new();
 		}
 
 		// Imports the holdings layer (fortresses and the like) of a tile. A
 		// barricade is an upgraded fortress. A colony is wherever the map's
 		// list of colonies has one (see SavHoldings and BiqHoldings); an
-		// outpost is marked on the tile. A colony can share its tile with a
-		// fortress, but C7 has a tile hold only one civ's outpost or colony.
-		// C7 has no airfields or radar towers yet, so those are left out, as
-		// is anything more than that on a tile.
+		// outpost, airfield or radar tower is marked on the tile, and its
+		// owner comes from the map's lists. A colony can share its tile with
+		// a fortress, but C7 has a tile hold only one civ's holding, and one
+		// of a fortress, outpost, airfield or radar tower; anything more is
+		// left out.
 		private void ImportHoldings(SaveTile tile, bool fortress, bool barricade, bool airfield, bool radarTower, bool outpost, MapHoldings holdings) {
 			bool colony = holdings.colonies.TryGetValue((tile.X, tile.Y), out ID colonyOwner);
-			string holding = barricade ? BARRICADE : fortress ? FORTRESS : outpost && !colony ? OUTPOST : null;
+			string holding = barricade ? BARRICADE : fortress ? FORTRESS
+				: colony ? null
+				: airfield ? AIRFIELD : radarTower ? RADAR_TOWER : outpost ? OUTPOST : null;
 			if (holding != null) {
 				tile.overlays.Add(holding);
 			}
 			if (colony) {
 				tile.overlays.Add(COLONY);
 			}
-			if (colony || holding == OUTPOST) {
-				tile.holdingOwner = colony ? colonyOwner : holdings.outposts.GetValueOrDefault((tile.X, tile.Y));
+			string owned = colony ? COLONY : holding is OUTPOST or AIRFIELD or RADAR_TOWER ? holding : null;
+			if (owned != null) {
+				tile.holdingOwner = owned switch {
+					COLONY => colonyOwner,
+					AIRFIELD => holdings.airfields.GetValueOrDefault((tile.X, tile.Y)),
+					RADAR_TOWER => holdings.radarTowers.GetValueOrDefault((tile.X, tile.Y)),
+					_ => holdings.outposts.GetValueOrDefault((tile.X, tile.Y)),
+				};
 				if (tile.holdingOwner == null) {
-					log.Information("The {Holding} at ({X}, {Y}) belongs to no one", colony ? COLONY : OUTPOST, tile.X, tile.Y);
+					log.Information("The {Holding} at ({X}, {Y}) belongs to no one", owned, tile.X, tile.Y);
 				}
 			}
 			foreach ((bool has, string name) in new[] {
-				(airfield, "airfield"), (radarTower, "radar tower"),
+				(airfield && holding != AIRFIELD, "airfield"), (radarTower && holding != RADAR_TOWER, "radar tower"),
 				(outpost && holding != OUTPOST, "outpost") }) {
 				if (has) {
 					unsupportedHoldings[name] = unsupportedHoldings.GetValueOrDefault(name) + 1;
@@ -302,11 +315,12 @@ namespace C7GameData {
 			}
 		}
 
-		// A SAV's colonies and outposts. The CLNY and OUTP sections give each
-		// one's place and its player's index into LEAD. (A tile's ColonyID is
-		// set for both, and airfields and radar towers too, so it doesn't
-		// tell them apart: in the SAVs looked at, the tiles with an outpost
-		// had the ColonyID of an OUTP entry, those with a colony a CLNY one.)
+		// A SAV's colonies, outposts, airfields and radar towers. The CLNY,
+		// OUTP, AIBS and RADT sections give each one's place and its player's
+		// index into LEAD. (A tile's ColonyID is set for all of them, so it
+		// doesn't tell them apart: in the SAVs looked at, the tiles with an
+		// outpost had the ColonyID of an OUTP entry, those with a colony a
+		// CLNY one.)
 		private MapHoldings SavHoldings() {
 			MapHoldings holdings = new();
 			ID Owner(int lead) {
@@ -318,11 +332,18 @@ namespace C7GameData {
 			foreach (QueryCiv3.Sav.OUTP outpost in savData.Outp ?? []) {
 				holdings.outposts.TryAdd((outpost.XCoordinate, outpost.YCoordinate), Owner(outpost.PlayerID));
 			}
+			foreach (QueryCiv3.Sav.AIBS airfield in savData.Aibs ?? []) {
+				holdings.airfields.TryAdd((airfield.XCoordinate, airfield.YCoordinate), Owner(airfield.PlayerID));
+			}
+			foreach (QueryCiv3.Sav.RADT radarTower in savData.Radt ?? []) {
+				holdings.radarTowers.TryAdd((radarTower.XCoordinate, radarTower.YCoordinate), Owner(radarTower.PlayerID));
+			}
 			return holdings;
 		}
 
-		// A BIQ map's colonies and the owners of its outposts, from its CLNY
-		// section, whose entries have an improvement type. The scenarios
+		// A BIQ map's colonies and the owners of its outposts, airfields and
+		// radar towers, from its CLNY section, whose entries have an
+		// improvement type. The scenarios
 		// that come with Conquests show 0 is a colony (Fall of Rome's one
 		// entry is on a tile without an airfield, radar tower or outpost),
 		// and 1 and 2 airfields and radar towers (WWII in the Pacific has two
@@ -335,18 +356,21 @@ namespace C7GameData {
 		private MapHoldings BiqHoldings() {
 			MapHoldings holdings = new();
 			foreach (QueryCiv3.Biq.CLNY entry in biq.Clny ?? []) {
-				if (entry.ImprovementType is 1 or 2) {
-					continue;
-				}
-				ID owner = BiqOwner(entry.OwnerType, entry.Owner, $"{(entry.ImprovementType == 0 ? "colony" : "outpost")} at ({entry.X}, {entry.Y})")?.id;
-				(entry.ImprovementType == 0 ? holdings.colonies : holdings.outposts).TryAdd((entry.X, entry.Y), owner);
+				(string name, Dictionary<(int, int), ID> list) = entry.ImprovementType switch {
+					0 => ("colony", holdings.colonies),
+					1 => ("airfield", holdings.airfields),
+					2 => ("radar tower", holdings.radarTowers),
+					_ => ("outpost", holdings.outposts),
+				};
+				ID owner = BiqOwner(entry.OwnerType, entry.Owner, $"{name} at ({entry.X}, {entry.Y})")?.id;
+				list.TryAdd((entry.X, entry.Y), owner);
 			}
 			return holdings;
 		}
 
 		private void LogUnsupportedHoldings() {
 			foreach (KeyValuePair<string, int> holding in unsupportedHoldings) {
-				log.Warning("The map has {Count} tiles with a {Improvement}, which C7 doesn't have yet; they are left out", holding.Value, holding.Key);
+				log.Warning("The map has {Count} tiles with a {Improvement} on a tile that already has a holding; they are left out", holding.Value, holding.Key);
 			}
 		}
 
@@ -1816,6 +1840,8 @@ namespace C7GameData {
 			if (prto.BuildBarricade) yield return TerraformKey.BuildBarricade;
 			if (prto.BuildFortress) yield return TerraformKey.BuildFortress;
 			if (prto.BuildOutpost) yield return TerraformKey.BuildOutpost;
+			if (prto.BuildAirfield) yield return TerraformKey.BuildAirfield;
+			if (prto.BuildRadarTower) yield return TerraformKey.BuildRadarTower;
 		}
 
 		private static bool IsUnproducible(PRTO prto) {

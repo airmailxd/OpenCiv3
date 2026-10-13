@@ -21,8 +21,9 @@ in `C7/Lua/standalone/icon_files.lua`).
 
 `ui_buttons/` draws the unit order buttons standalone mode's asset pack lacks,
 into `C7/ModernArt/Art/interface/`, which `C7/Lua/standalone/textures.lua`
-uses: Build Outpost and Build Colony, each a file of its own, and the air
-missions and the airdrop, together in `AirMissionButtons.png`.
+uses: Build Outpost, Build Colony, Build Airfield and Build Radar Tower, each
+a file of its own, and the air missions and the airdrop, together in
+`AirMissionButtons.png`.
 
 ## The contract with the game
 

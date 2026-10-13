@@ -695,8 +695,10 @@ public partial class MapUnit {
 		double attackMultiplier  = StrengthBonus.ListToMultiplier(attackBonuses),
 			   defenseMultiplier = StrengthBonus.ListToMultiplier(defenseBonuses);
 
-		double attackerStrength = attackingMember.unitType.attack  * attackMultiplier,
-			   defenderStrength = defendingMember.unitType.defense * defenseMultiplier;
+		// An army's member also gets its share of the army's strength (see
+		// ArmyStrengthBonus).
+		double attackerStrength = (attackingMember.unitType.attack  + attacker.ArmyStrengthBonus(CombatRole.Attack )) * attackMultiplier,
+			   defenderStrength = (defendingMember.unitType.defense + defender.ArmyStrengthBonus(CombatRole.Defense)) * defenseMultiplier;
 
 		if (log.IsEnabled(Serilog.Events.LogEventLevel.Information)) {
 			log.Information("Combat log: {Attacker} ({AttackerStrength}) attacking {Defender} ({DefenderStrength})", attacker, attackerStrength, defender, defenderStrength);
@@ -716,8 +718,8 @@ public partial class MapUnit {
 
 		// When an army rotates in another member, the odds change with it.
 		void UpdateOdds() {
-			attackerStrength = attackingMember.unitType.attack * attackMultiplier;
-			defenderStrength = defendingMember.unitType.defense * defenseMultiplier;
+			attackerStrength = (attackingMember.unitType.attack + attacker.ArmyStrengthBonus(CombatRole.Attack)) * attackMultiplier;
+			defenderStrength = (defendingMember.unitType.defense + defender.ArmyStrengthBonus(CombatRole.Defense)) * defenseMultiplier;
 			attackerOdds = attackerStrength / (attackerStrength + defenderStrength);
 			if (Double.IsNaN(attackerOdds))
 				attackerOdds = 0.5;

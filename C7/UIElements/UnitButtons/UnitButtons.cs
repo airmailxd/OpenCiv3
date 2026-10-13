@@ -42,6 +42,8 @@ public partial class UnitButtons : VBoxContainer {
 		C7Action.UnitBuildBarricade,
 		C7Action.UnitPlantForest,
 		C7Action.UnitClearDamage,
+		C7Action.UnitBuildAirfield,
+		C7Action.UnitBuildRadarTower,
 		C7Action.UnitBuildOutpost,
 	];
 

@@ -43,6 +43,24 @@ terrain_improvements.outpost = {
   shadows = false,
 }
 
+-- The first of the two airfields, a tile's worth.
+-- UNVERIFIED: which of the two Civ3 shows when (perhaps by era); the
+-- first is always used.
+terrain_improvements.airfield = {
+  path = TERRAIN .. "x_airfields and detect.pcx",
+  crop_region = { 0, 0, 128, 64 },
+  shadows = false,
+}
+
+-- The radar tower, at the start of the sheet's last row, standing like an
+-- outpost: its foot is at y = 274, so a 128x128 crop from y = 180 puts it
+-- where the outpost's is.
+terrain_improvements.radarTower = {
+  path = TERRAIN .. "x_airfields and detect.pcx",
+  crop_region = { 0, 180, 128, 128 },
+  shadows = false,
+}
+
 terrain_improvements.irrigation = {
   grass = TERRAIN .. "irrigation.pcx",
   desert = TERRAIN .. "irrigation DESETT.pcx",

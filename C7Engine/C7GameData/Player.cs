@@ -595,6 +595,13 @@ namespace C7GameData {
 			return GetBuildingSnapshot().hasLargerArmies;
 		}
 
+		// Whether this player's armies get the bigger share of their members'
+		// strength (see MapUnit.ArmyStrengthBonus), thanks to a building like
+		// the Military Academy (the BIQ's "increased army value").
+		public bool HasIncreasedArmyValue() {
+			return GetBuildingSnapshot().hasIncreasedArmyValue;
+		}
+
 		public int RemainingCities() {
 			int result = 0;
 			foreach (City city in cities) {
@@ -2283,6 +2290,7 @@ namespace C7GameData {
 			// Do not modify; GetActiveWonders hands out copies.
 			internal List<Tuple<City, CityBuilding>> activeWonders;
 			internal bool hasLargerArmies;
+			internal bool hasIncreasedArmyValue;
 			internal bool reducesWarWearinessEverywhere;
 			internal bool paysTradeMaintenance;
 			internal int shipMovementBonus;
@@ -2331,6 +2339,9 @@ namespace C7GameData {
 				foreach (CityBuilding cb in c.constructed_buildings) {
 					if (cb.building.allowsLargerArmies) {
 						snapshot.hasLargerArmies = true;
+					}
+					if (cb.building.increasedArmyValue) {
+						snapshot.hasIncreasedArmyValue = true;
 					}
 					bool isGreatWonder = cb.building.greatWonderProperties != null;
 					if (isGreatWonder && cb.building.isGreatWonderObsolete(this)) {

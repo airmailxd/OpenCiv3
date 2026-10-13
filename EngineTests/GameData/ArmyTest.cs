@@ -355,8 +355,11 @@ public class ArmyTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(3, army.movementPoints.remaining);
 	}
 
+	// In Conquests armies "can pillage without expending a movement point"
+	// (https://forums.civfanatics.com/threads/civ3-conquests-additions-changes-list.104294/),
+	// and more than once a turn.
 	[Fact]
-	public void ArmiesPillageForOneMovementPointAtATime() {
+	public void ArmiesPillageWithoutSpendingMovementPoints() {
 		Tile tile = FindEmptyLand();
 		TerrainImprovement railroad = gameData.terrainImprovements.First(i => i.layer == TerrainImprovement.Layer.Roads && i.upgradesFrom != null);
 		tile.overlays.Add(railroad.upgradesFrom);
@@ -366,12 +369,19 @@ public class ArmyTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(4, army.movementPoints.remaining);
 
 		Assert.True(army.Pillage());
-		Assert.Equal(3, army.movementPoints.remaining);
+		Assert.Equal(4, army.movementPoints.remaining);
 		Assert.True(tile.overlays.HasImprovement(railroad.upgradesFrom));
 
 		Assert.True(army.Pillage());
-		Assert.Equal(2, army.movementPoints.remaining);
+		Assert.Equal(4, army.movementPoints.remaining);
 		Assert.False(tile.overlays.HasBeenImproved());
+
+		// A unit on its own still pays a move.
+		tile.overlays.Add(railroad.upgradesFrom);
+		MapUnit lone = Spawn(us, "Cavalry", tile);
+		lone.OnBeginTurn();
+		Assert.True(lone.Pillage());
+		Assert.Equal(lone.MaxMovementPoints() - 1, lone.movementPoints.remaining);
 	}
 
 	[Fact]
@@ -397,9 +407,13 @@ public class ArmyTest : IClassFixture<SaveGameFixture> {
 		Assert.All(army.Passengers(), m => Assert.True(m.isFortified));
 		Assert.False(army.isFortified);
 
-		// The army defends with one spearman's strength, not all three.
-		Assert.Equal(lone.StrengthVersus(attacker, CombatRole.Defense, null), army.StrengthVersus(attacker, CombatRole.Defense, null));
-		Assert.Equal(Prototype("Spearman").defense, army.CombatBaseStrength(CombatRole.Defense));
+		// The army defends with one spearman's strength, not all three,
+		// plus its share of theirs (see ArmyGetsAShareOfItsMembersStrength).
+		int defense = Prototype("Spearman").defense;
+		int share = 3 * defense / 6;
+		Assert.Equal(defense + share, army.CombatBaseStrength(CombatRole.Defense));
+		Assert.Equal(lone.StrengthVersus(attacker, CombatRole.Defense, null) * (defense + share) / defense,
+			army.StrengthVersus(attacker, CombatRole.Defense, null), 6);
 		Assert.Equal(0, army.unitType.defense);
 
 		// Members don't defend the tile by themselves; the army does.
@@ -714,5 +728,63 @@ public class ArmyTest : IClassFixture<SaveGameFixture> {
 		Assert.Contains(army, gameData.mapUnits);
 		Assert.True(them.hasVictoriousArmy);
 		Assert.False(us.hasVictoriousArmy);
+	}
+
+	// In Conquests the member fighting for an army adds the sum of the
+	// members' attack (or defense) divided by 6, rounded down, or by 4 with
+	// the Military Academy
+	// (https://forums.civfanatics.com/threads/civ3-conquests-additions-changes-list.104294/).
+	[Fact]
+	public void ArmyGetsAShareOfItsMembersStrength() {
+		Tile tile = FindEmptyLand();
+		MapUnit army = SpawnArmy(us, tile, "Swordsman", "Swordsman", "Swordsman");
+		int attack = Prototype("Swordsman").attack, defense = Prototype("Swordsman").defense;
+		Assert.Equal(3, attack);
+		Assert.Equal(2, defense);
+
+		// 9 / 6 = 1 and 6 / 6 = 1.
+		Assert.Equal(attack + 1, army.CombatBaseStrength(CombatRole.Attack));
+		Assert.Equal(defense + 1, army.CombatBaseStrength(CombatRole.Defense));
+		// Bombarding isn't fighting.
+		Assert.Equal(0, army.ArmyStrengthBonus(CombatRole.Bombard));
+
+		// 9 / 4 = 2 and 6 / 4 = 1.
+		BuildCity(us).AddBuilding(BuildingNamed("Military Academy"));
+		Assert.Equal(attack + 2, army.CombatBaseStrength(CombatRole.Attack));
+		Assert.Equal(defense + 1, army.CombatBaseStrength(CombatRole.Defense));
+
+		// A lone unit gets nothing of the sort.
+		MapUnit lone = Spawn(us, "Swordsman", tile);
+		Assert.Equal(attack, lone.CombatBaseStrength(CombatRole.Attack));
+	}
+
+	// "Armies now have blitz"
+	// (https://forums.civfanatics.com/threads/civ3-conquests-additions-changes-list.104294/):
+	// the Conquests BIQ gives the Army unit it.
+	[Fact]
+	public void ArmiesHaveBlitz() {
+		MapUnit army = SpawnArmy(us, FindEmptyLand(), "Warrior");
+		Assert.True(army.unitType.hasBlitz);
+		army.hasAttackedThisTurn = true;
+		Assert.True(army.CanAttackAgainThisTurn());
+	}
+
+	// "Armies also heal in enemy territory (one hp/unit pre-Battlefield
+	// Medicine and two hp/unit after)"
+	// (https://forums.civfanatics.com/threads/civ3-conquests-additions-changes-list.104294/).
+	[Fact]
+	public void ArmyMembersHealInEnemyTerritory() {
+		City theirs = BuildCity(them);
+		us.DeclareWarOn(them, gameData.turn);
+		Tile enemyLand = theirs.location.neighbors.Values.First(t => IsEmptyLand(t) && t.OwningPlayer() == them);
+		MapUnit army = SpawnArmy(us, enemyLand, "Warrior");
+		MapUnit member = army.Passengers()[0];
+		MapUnit lone = Spawn(us, "Warrior", enemyLand);
+
+		Assert.Equal(0, lone.HealRateAt(enemyLand));
+		Assert.Equal(1, member.HealRateAt(enemyLand));
+
+		BuildCity(us).AddBuilding(gameData.Buildings.First(b => b.allowsEnemyTerritoryHealing));
+		Assert.Equal(2, member.HealRateAt(enemyLand));
 	}
 }

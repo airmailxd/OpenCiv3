@@ -28,6 +28,16 @@ terraforms.validators = {
   outpost = function(context)
     return context.tile:CanTakeOutpost(context.player)
   end,
+  -- A land tile in neutral or owned territory, empty but for roads (see
+  -- Tile.CanTakeAirfield).
+  airfield = function(context)
+    return context.tile:CanTakeAirfield(context.player)
+  end,
+  -- A land tile in the player's territory, empty but for mines, irrigation
+  -- and roads (see Tile.CanTakeRadarTower).
+  radar_tower = function(context)
+    return context.tile:CanTakeRadarTower(context.player)
+  end,
 }
 
 terraforms.effects = {

@@ -510,6 +510,9 @@ namespace C7GameData {
 			if (HasGreatWallBonusAgainst(opponent, role))
 				yield return GreatWallBonus;
 
+			if (HasRadarBonus(role))
+				yield return RadarTowerBonus;
+
 			if (DifficultyBonusAgainst(opponent, role) is StrengthBonus difficultyBonus)
 				yield return difficultyBonus;
 		}
@@ -555,6 +558,20 @@ namespace C7GameData {
 			return owner.HasDoubleCombatVsBarbarians();
 		}
 
+		// "Friendly units within the Radar Towers range get a +25% attack and
+		// defense bonus. This bonus can only be applied once, even if multiple
+		// towers overlap. Radar Towers can only be used by the player who
+		// created them" (Conquests Civilopedia, GCON_Radar_Towers). Like the
+		// other combat modifiers it adds to the rest. UNVERIFIED: whether it
+		// counts in bombardments; here, as with the Great Wall, it doesn't.
+		private static readonly StrengthBonus RadarTowerBonus = new("Radar tower", 0.25);
+
+		private bool HasRadarBonus(CombatRole role) {
+			if (role != CombatRole.Attack && role != CombatRole.Defense)
+				return false;
+			return owner != null && Tile.IsTileValid(location) && location.IsCoveredByRadarOf(owner);
+		}
+
 		public double StrengthVersus(MapUnit opponent, CombatRole role, TileDirection? attackDirection) {
 			return CombatBaseStrength(role) * StrengthBonus.ListToMultiplier(ListStrengthBonusesVersus(opponent, role, attackDirection));
 		}
@@ -564,7 +581,32 @@ namespace C7GameData {
 		// from the army itself (its tile, whether it's fortified), so its
 		// members' own fortification adds nothing.
 		public double CombatBaseStrength(CombatRole role) {
-			return Combatant(role).unitType.BaseStrength(role);
+			return Combatant(role).unitType.BaseStrength(role) + ArmyStrengthBonus(role);
+		}
+
+		// In Conquests an army's fighting member gets a share of the whole
+		// army's strength on top of its own: "The bonus to A is equal to the
+		// sum of the A values of all units in the army divided by 6 and
+		// rounded down ... The Defense bonus follows similar calculation ...
+		// Building the Military Academy makes the denominator 4 instead of 6"
+		// (https://forums.civfanatics.com/threads/civ3-conquests-additions-changes-list.104294/),
+		// and the Civ3 FAQ's "Attack Value = A+(TA/N)", TA being the total
+		// of the army's units' attacks and N 6, or 4 with the Military
+		// Academy, the same going for defense
+		// (https://forums.civfanatics.com/threads/frequently-asked-questions-civ3-play-the-world-conquests.170282/).
+		// The Military Academy is the building with the BIQ's "increased army
+		// value" flag. UNVERIFIED: whether the defense bonus counts against
+		// bombardment; here it does, as the defense is what's used.
+		public int ArmyStrengthBonus(CombatRole role) {
+			if (!IsArmy() || role.Bombarding() || !Tile.IsTileValid(location))
+				return 0;
+			int total = 0;
+			foreach (MapUnit m in location.unitsOnTile) {
+				if (IsPassenger(m))
+					total += (int)m.unitType.BaseStrength(role);
+			}
+			int divisor = (owner?.HasIncreasedArmyValue() ?? false) ? 4 : 6;
+			return total / divisor;
 		}
 
 		// The unit that actually fights when this one is in combat. For most
@@ -812,8 +854,15 @@ namespace C7GameData {
 			Player territoryOwner = location.OwningPlayer();
 			if (territoryOwner == owner)
 				return gD.healRateInFriendlyField;
-			if (territoryOwner != null && AtWar(owner, territoryOwner) && !CanHealInEnemyTerritory())
-				return gD.healRateInHostileField;
+			if (territoryOwner != null && AtWar(owner, territoryOwner)) {
+				// Except in an army: "Armies also heal in enemy territory
+				// (one hp/unit pre-Battlefield Medicine and two hp/unit
+				// after)" (https://forums.civfanatics.com/threads/civ3-conquests-additions-changes-list.104294/).
+				if (IsInArmy())
+					return CanHealInEnemyTerritory() ? 2 : 1;
+				if (!CanHealInEnemyTerritory())
+					return gD.healRateInHostileField;
+			}
 			return gD.healRateInNeutralField;
 		}
 

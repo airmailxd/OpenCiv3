@@ -57,9 +57,10 @@ namespace C7GameData.Save {
 			holdingOwner = HoldingOwnerOf(tile);
 		}
 
-		// The ID of the civ whose outpost or colony is on the tile, or null.
+		// The ID of the civ whose outpost, colony, airfield or radar tower is
+		// on the tile, or null.
 		private static ID HoldingOwnerOf(Tile tile) {
-			return tile.holdingOwner != null && (tile.HasOutpost() || tile.HasColony()) ? tile.holdingOwner.id : null;
+			return tile.holdingOwner != null && tile.OwnedHolding() != null ? tile.holdingOwner.id : null;
 		}
 
 		// Whether new SaveTile(tile) would be the same as this, field for
@@ -208,7 +209,8 @@ namespace C7GameData.Save {
 		public string resource;
 		public List<string> features = new List<string>();
 		public List<string> overlays = new List<string>();
-		// The civ whose outpost or colony is on the tile, if any. Players
+		// The civ whose outpost, colony, airfield or radar tower is on the
+		// tile, if any. Players
 		// are made after the map, so SaveGame fills in Tile.holdingOwner.
 		public ID holdingOwner;
 	}

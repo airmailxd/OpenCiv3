@@ -84,4 +84,53 @@ public class Civ3HoldingsImportTest {
 		Assert.Equal(sav.Outp.Length, save.Map.tiles.Count(t => t.overlays.Contains(OUTPOST)));
 		Assert.Equal(sav.Clny.Length, save.Map.tiles.Count(t => t.overlays.Contains(COLONY)));
 	}
+
+	// WWII in the Pacific has two airfields and seven radar towers, each
+	// with a CLNY entry (of type 1 and 2) naming its owner.
+	[SkippableFact]
+	public void AScenariosAirfieldsAndRadarTowersComeWithTheirOwners() {
+		Skip.If(Civ3TestData.ShouldSkipCiv3DependentTests(), Civ3TestData.SkipReason);
+
+		SaveGame pacific = ImportScenario("9 WWII in the Pacific.biq");
+		SaveTile[] airfields = pacific.Map.tiles.Where(t => t.overlays.Contains(AIRFIELD)).ToArray();
+		SaveTile[] radarTowers = pacific.Map.tiles.Where(t => t.overlays.Contains(RADAR_TOWER)).ToArray();
+		Assert.Equal(2, airfields.Length);
+		Assert.Equal(7, radarTowers.Length);
+		Assert.All(airfields.Concat(radarTowers), t => Assert.NotNull(t.holdingOwner));
+	}
+
+	// A Conquests save's airfields and radar towers are imported with their
+	// owners, from its AIBS and RADT sections.
+	[SkippableFact]
+	public void ASavesAirfieldsAndRadarTowersAreImportedWithTheirOwners() {
+		Skip.If(Civ3TestData.ShouldSkipCiv3DependentTests(), Civ3TestData.SkipReason);
+		byte[] defaultBiq = Util.ReadFile(PathUtils.defaultBicPath);
+		string path = null;
+		SavData sav = null;
+		foreach (string candidate in Civ3TestData.EnumerateFiles(Path.Join(Conquests, "Saves"), "*.sav")) {
+			try {
+				SavData data = new(Util.ReadFile(candidate), defaultBiq);
+				if ((data.Aibs?.Length ?? 0) > 0 || (data.Radt?.Length ?? 0) > 0) {
+					(path, sav) = (candidate, data);
+					break;
+				}
+			} catch (System.Exception) {
+				// Saves from before Conquests can't be read.
+			}
+		}
+		Skip.If(path == null, "No Conquests save with airfields or radar towers");
+
+		SaveGame save = ImportCiv3.ImportSav(path, PathUtils.defaultBicPath, _ => PathUtils.defaultPediaIconsPath);
+
+		foreach (QueryCiv3.Sav.AIBS airfield in sav.Aibs ?? []) {
+			SaveTile tile = TileAt(save, airfield.XCoordinate, airfield.YCoordinate);
+			Assert.Contains(AIRFIELD, tile.overlays);
+			Assert.NotNull(tile.holdingOwner);
+		}
+		foreach (QueryCiv3.Sav.RADT radarTower in sav.Radt ?? []) {
+			SaveTile tile = TileAt(save, radarTower.XCoordinate, radarTower.YCoordinate);
+			Assert.Contains(RADAR_TOWER, tile.overlays);
+			Assert.NotNull(tile.holdingOwner);
+		}
+	}
 }

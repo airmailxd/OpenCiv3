@@ -7,8 +7,10 @@ namespace C7GameData;
 
 public partial class MapUnit {
 	// The unit type this unit can upgrade to right now, or null. Units upgrade
-	// in their owner's cities: land units need barracks and ships need a
-	// harbor. The new type must be one the city could build.
+	// in their owner's cities: land units need barracks, ships a harbor and
+	// aircraft an airport ("A city with an [Airport] can be used to upgrade
+	// air units", Conquests Civilopedia, BLDG_Airport). The new type must be
+	// one the city could build.
 	public UnitPrototype GetAvailableUpgrade() {
 		if (!unitType.actions.Contains(UnitAction.Upgrade)) {
 			return null;
@@ -28,13 +30,16 @@ public partial class MapUnit {
 	}
 
 	// Whether the city has (built, or granted by a wonder) the building that
-	// trains this kind of unit: barracks for land units, a harbor for ships.
+	// trains this kind of unit: barracks for land units, a harbor for ships,
+	// an airport for aircraft.
 	private bool HasVeteranBuildingFor(City city) {
 		bool land = IsLandUnit();
 		bool water = IsWaterUnit();
+		bool air = IsAirUnit();
 		foreach (CityBuilding cb in city.EffectiveBuildings()) {
 			if ((land && cb.building.providesVeteranGroundUnits)
-				|| (water && cb.building.providesVeteranSeaUnits)) {
+				|| (water && cb.building.providesVeteranSeaUnits)
+				|| (air && cb.building.providesVeteranAirUnits)) {
 				return true;
 			}
 		}
@@ -44,6 +49,14 @@ public partial class MapUnit {
 	// The gold needed to upgrade to the given type: a fixed amount per shield
 	// of difference in production cost, halved (rounding down) while the owner
 	// has an active wonder with cheaper upgrades (Leonardo's Workshop).
+	// The amount is the BIQ's (RULE's upgrade cost), 3 in Conquests: "To
+	// upgrade a unit, the costs have gone from 2 * shield_difference to 3 *
+	// shield_difference" and "Leonardo's Workshop still halves the upgrade
+	// cost (to 1.5 * shield_difference)"
+	// (https://forums.civfanatics.com/threads/civ3-conquests-additions-changes-list.104294/);
+	// "Obsolete military units can be upgraded at half price" (Conquests
+	// Civilopedia, BLDG_Inventor's_Workshop, Leonardo's Workshop).
+	// UNVERIFIED: that half of an odd cost rounds down.
 	public int UpgradeCost(UnitPrototype upgrade) {
 		int shieldDifference = owner.ShieldCost(upgrade) - owner.ShieldCost(unitType);
 		int cost = Math.Max(0, shieldDifference) * EngineStorage.gameData.rules.UpgradeCostPerShield;

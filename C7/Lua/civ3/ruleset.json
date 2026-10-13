@@ -523,6 +523,18 @@
       "movementCost": -1
     },
     {
+      "key": "airfield",
+      "layer": "holdings",
+      "zIndex": 6,
+      "movementCost": -1
+    },
+    {
+      "key": "radarTower",
+      "layer": "holdings",
+      "zIndex": 6,
+      "movementCost": -1
+    },
+    {
       "key": "ruins",
       "layer": "ruins",
       "zIndex": 2,
@@ -1049,7 +1061,9 @@
         "Terraform-9",
         "Terraform-13",
         "Terraform-3",
-        "Terraform-12"
+        "Terraform-12",
+        "Terraform-10",
+        "Terraform-11"
       ]
     },
     {
@@ -14824,9 +14838,14 @@
       "civilopediaEntry": "TFRM_Airfield",
       "turnsToComplete": 1,
       "requiredTech": "tech-59",
+      "improvement": "airfield",
+      "validators": [
+        "terraforms.validators.airfield"
+      ],
       "aiScore": "terraforms.ai_score.default",
       "uiAction": "unit_build_airfield",
-      "buttonTexture": "ui.unit_control.unit_build_airfield"
+      "buttonTexture": "ui.unit_control.unit_build_airfield",
+      "consumesWorker": true
     },
     {
       "id": "Terraform-11",
@@ -14834,9 +14853,14 @@
       "civilopediaEntry": "TFRM_Radar_Tower",
       "turnsToComplete": 1,
       "requiredTech": "tech-64",
+      "improvement": "radarTower",
+      "validators": [
+        "terraforms.validators.radar_tower"
+      ],
       "aiScore": "terraforms.ai_score.default",
       "uiAction": "unit_build_radar_tower",
-      "buttonTexture": "ui.unit_control.unit_build_radar_tower"
+      "buttonTexture": "ui.unit_control.unit_build_radar_tower",
+      "consumesWorker": true
     },
     {
       "id": "Terraform-12",
