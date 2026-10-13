@@ -300,7 +300,10 @@ public partial class RightClickTileMenu : RightClickMenu {
 					new MsgDisplayDraftPopup(city, city.WhyCannotDraft(gameData), city.DraftableUnit(gameData)?.name).send();
 				});
 			});
-			// TODO: Contact Governor
+			AddItem("Contact Governor", () => {
+				this.CloseAndDelete();
+				EngineStorage.ReadGameData((GameData gameData) => game.ShowGovernor(tile.cityAtTile));
+			});
 			// TODO: Set Rally Point
 			// TODO: Set Continental Rally Point
 			// TODO: Clear Continental Rally Point

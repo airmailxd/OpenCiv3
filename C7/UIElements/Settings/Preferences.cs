@@ -10,6 +10,7 @@ public static class Preferences {
 
 	public enum Option {
 		AutoSave,
+		CapitalGovernorIsDefaultForNewCities,
 		AlwaysWaitAtEndOfTurn,
 		AskForBuildOrdersAfterUnitConstruction,
 		ShowOurManualMoves,
@@ -32,6 +33,7 @@ public static class Preferences {
 	// (hold Shift to see the animations).
 	private static readonly Dictionary<Option, bool> defaults = new() {
 		[Option.AutoSave] = false,
+		[Option.CapitalGovernorIsDefaultForNewCities] = false,
 		[Option.AlwaysWaitAtEndOfTurn] = true,
 		[Option.AskForBuildOrdersAfterUnitConstruction] = true,
 		[Option.ShowOurManualMoves] = false,
@@ -78,6 +80,7 @@ public static class Preferences {
 	}
 
 	public static bool AutoSave => Get(Option.AutoSave);
+	public static bool CapitalGovernorIsDefaultForNewCities => Get(Option.CapitalGovernorIsDefaultForNewCities);
 	public static bool AlwaysWaitAtEndOfTurn => Get(Option.AlwaysWaitAtEndOfTurn);
 	public static bool AskForBuildOrdersAfterUnitConstruction => Get(Option.AskForBuildOrdersAfterUnitConstruction);
 	public static bool AnimateBattles => Get(Option.AnimateBattles);

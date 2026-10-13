@@ -53,6 +53,7 @@ public partial class CityScreen : Control {
 	[Export] private TextureButton close;
 	[Export] private TextureButton previousCity;
 	[Export] private TextureButton nextCity;
+	private Button governorButton;
 
 	[Export] private ProductionMenu productionMenu;
 
@@ -190,6 +191,18 @@ public partial class CityScreen : Control {
 		TextureLoader.SetButtonTextures(productionButton, "city_screen.buttons.production");
 		productionButton.Pressed += () => { this.productionMenu.Visible = !this.productionMenu.Visible; };
 
+		// Civ3's governor (G on its city window). A plain button for now,
+		// on the empty parchment left of the close button.
+		governorButton = new Button() {
+			Text = "Governor",
+			TooltipText = "Contact Governor (G)",
+			Position = new Vector2(842, 58),
+			Size = new Vector2(100, 26),
+			FocusMode = FocusModeEnum.None,
+		};
+		governorButton.Pressed += ShowGovernor;
+		background.AddChild(governorButton);
+
 		shieldTexture = TextureLoader.Load("icons.good_shield");
 		emptyShieldTexture = TextureLoader.Load("icons.empty_shield");
 		corruptShieldTexture = TextureLoader.Load("icons.wasted_shield");
@@ -302,6 +315,13 @@ public partial class CityScreen : Control {
 			return;
 		}
 
+		if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.G } key
+				&& !key.CtrlPressed && !key.ShiftPressed && !key.AltPressed && !foreignView) {
+			GetViewport().SetInputAsHandled();
+			ShowGovernor();
+			return;
+		}
+
 		// If we left clicked on a tile, handle reassigning a citizen accordingly.
 		if (@event is InputEventMouseButton eventMouseButton) {
 			if (eventMouseButton.ButtonIndex == MouseButton.Left) {
@@ -316,12 +336,45 @@ public partial class CityScreen : Control {
 						// when it hears the city changed.
 						Tile tile = mapView.tileOnScreenAt(gameData.map, eventMouseButton.Position);
 						if (Tile.IsTileValid(tile)) {
-							new MsgReassignCitizen(tileAssignmentLayer.city, tile).send();
+							City city = tileAssignmentLayer.city;
+							ConfirmStoppingGovernor(city, () => new MsgReassignCitizen(city, tile).send());
 						}
 					});
 				}
 			}
 		}
+	}
+
+	private PopupOverlay Overlay => GetParent()?.GetNodeOrNull<PopupOverlay>("PopupOverlay");
+
+	private void ShowGovernor() {
+		City city = tileAssignmentLayer.city;
+		PopupOverlay overlay = Overlay;
+		if (city == null || foreignView || overlay == null || overlay.ShowingPopup) {
+			return;
+		}
+		productionMenu.Hide();
+		EngineStorage.ReadGameData((GameData gameData) => overlay.ShowPopup(new GovernorPopup(city), PopupOverlay.PopupCategory.Info));
+	}
+
+	// As in Civ3, moving the citizens of a city whose governor manages them
+	// first asks whether the governor should stop (Script.txt,
+	// #CANCELGOVCITIZENS); if so it stops managing moods, and the move
+	// goes ahead.
+	private void ConfirmStoppingGovernor(City city, Action move) {
+		PopupOverlay overlay = Overlay;
+		if (city == null || !city.governor.manageMoods || overlay == null) {
+			move();
+			return;
+		}
+		overlay.ShowPopup(new ConfirmationPopup(
+			"Are you sure you want to stop the governor from managing this city's citizens?", "Yes.", "No.",
+			() => {
+				CityGovernor stopped = city.governor.Copy();
+				stopped.manageMoods = false;
+				new MsgSetCityGovernor(city, stopped).send();
+				move();
+			}), PopupOverlay.PopupCategory.Advisor);
 	}
 
 	private void OnShowCityScreen(ParameterWrapper<City> city) {
@@ -363,6 +416,7 @@ public partial class CityScreen : Control {
 		productionButton.MouseFilter = visible ? MouseFilterEnum.Stop : MouseFilterEnum.Ignore;
 		previousCity.Visible = visible;
 		nextCity.Visible = visible;
+		governorButton.Visible = visible;
 	}
 
 	private void OnShowCityScreenLocked(GameData gameData, ParameterWrapper<City> city) {
@@ -1098,7 +1152,8 @@ public partial class CityScreen : Control {
 			// Pressing a specialist cycles it to the next kind.
 			head.Pressed += () => {
 				if (!foreignView && specialistOfHead.TryGetValue(head, out var specialist)) {
-					new MsgCycleSpecialist(specialist.city, specialist.residentIndex).send();
+					ConfirmStoppingGovernor(specialist.city,
+						() => new MsgCycleSpecialist(specialist.city, specialist.residentIndex).send());
 				}
 			};
 			popHeadLayer.AddChild(head);

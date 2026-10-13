@@ -548,6 +548,30 @@ namespace C7Engine {
 		}
 	}
 
+	// The player set their city governor's options ("Contact Governor"),
+	// for this city or, as Civ3 offers, for all their cities or all those
+	// on its continent.
+	public class MsgSetCityGovernor : MessageToEngine {
+		public City city;
+		public CityGovernor governor;
+		public GovernorScope scope;
+
+		public MsgSetCityGovernor(City city, CityGovernor governor, GovernorScope scope = GovernorScope.ThisCity) {
+			this.city = city;
+			this.governor = governor;
+			this.scope = scope;
+		}
+
+		protected override void ProcessAllowed() {
+			if (!IsSendersCity(city) || governor == null) return;
+
+			foreach (City c in CityInteractions.CitiesInGovernorScope(Sender, city, scope)) {
+				CityInteractions.SetGovernor(EngineStorage.gameData, c, governor);
+				new MsgCityChanged(c).send();
+			}
+		}
+	}
+
 	public class MsgAbandonCity : MessageToEngine {
 		public City city;
 
@@ -931,6 +955,9 @@ namespace C7Engine {
 	public class MsgBuildCity : MessageToEngine {
 		public MapUnit unit;
 		public string name;
+		// The founder's "Capital Governor is Default for New Cities"
+		// preference: the new city's governor starts as the capital's.
+		public bool capitalGovernorIsDefault;
 
 		public MsgBuildCity(MapUnit unit, string name) {
 			this.unit = unit;
@@ -940,8 +967,13 @@ namespace C7Engine {
 		protected override async Task ProcessAllowedAsync() {
 			if (unit == null || unit.owner != Sender || string.IsNullOrWhiteSpace(name)) return;
 
+			Player founder = unit.owner;
 			City? city = await unit.BuildCity(name);
 			if (city != null) {
+				City capital = founder.cities.Find(c => c.IsCapital());
+				if (capitalGovernorIsDefault && capital != null && capital != city && city.owner == founder) {
+					CityInteractions.SetGovernor(EngineStorage.gameData, city, capital.governor);
+				}
 				new MsgCityCreated(city).send();
 			}
 		}

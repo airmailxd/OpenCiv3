@@ -174,6 +174,33 @@ namespace C7Engine {
 			city.resistanceFrom = resistanceFrom;
 		}
 
+		// The cities of the player a governor setting for the given city
+		// applies to.
+		public static List<City> CitiesInGovernorScope(Player player, City city, GovernorScope scope) {
+			return scope switch {
+				GovernorScope.AllCities => player.cities.ToList(),
+				GovernorScope.ContinentalCities => player.cities.Where(c => c.location.continent == city.location.continent).ToList(),
+				_ => [city],
+			};
+		}
+
+		// Gives the city's governor these options and has it act on them at
+		// once: a new emphasis places the citizens again, and a governor
+		// managing moods sees to them now rather than when the turn ends.
+		public static void SetGovernor(GameData gameData, City city, CityGovernor governor) {
+			CityGovernor old = city.governor;
+			city.governor = governor.Copy();
+			bool emphasisChanged = old.emphasizeFood != governor.emphasizeFood
+				|| old.emphasizeProduction != governor.emphasizeProduction
+				|| old.emphasizeCommerce != governor.emphasizeCommerce;
+			if (emphasisChanged && city.residents.Count > 0) {
+				// This manages moods with entertainers whatever the setting.
+				ReassignAllCitizens(gameData, city);
+			}
+			CityTileAssignmentAI.GovernMoods(gameData, city);
+			city.RecalculateCitizenMoods(gameData);
+		}
+
 		// Changes a specialist to the next kind of specialist its owner knows.
 		public static void CycleSpecialist(GameData gameData, City city, int residentIndex) {
 			if (residentIndex < 0 || residentIndex >= city.residents.Count) {
