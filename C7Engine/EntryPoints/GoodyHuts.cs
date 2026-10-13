@@ -126,16 +126,39 @@ public static class GoodyHuts {
 		if (!tile.hasGoodyHut || unit.owner.isBarbarians || !unit.IsLandUnit()) {
 			return null;
 		}
+		log.Information("{Player}'s {Unit} entered a goody hut at {Tile}", unit.owner, unit, tile);
+		return Open(gameData, unit.owner, unit, tile);
+	}
+
+	// Opens the huts next to a city just founded, for the city's owner.
+	// Barbarians never come out of them, as a hut next to a city never
+	// holds barbarians (see CanReleaseBarbarians). Not documented for
+	// Civ3: owner's decision, 2026-10-12, "Planting a city next to a
+	// goody hut should pop it for a reward, with no chance of barbarians".
+	public static void OpenNextToNewCity(GameData gameData, City city) {
+		if (city.owner.isBarbarians) {
+			return;
+		}
+		foreach (Tile tile in city.location.neighbors.Values) {
+			if (tile != Tile.NONE && tile.hasGoodyHut) {
+				log.Information("{Player}'s new city {City} is next to a goody hut at {Tile}", city.owner, city, tile);
+				Open(gameData, city.owner, null, tile);
+			}
+		}
+	}
+
+	// Opens the hut for the player, whose unit entered it, or with no unit
+	// for a city founded next to it.
+	private static Outcome Open(GameData gameData, Player player, MapUnit unit, Tile tile) {
 		tile.hasGoodyHut = false;
 		TileChangeJournal.Record(tile);
 
-		Player player = unit.owner;
 		int level = Level(gameData, player);
-		Dictionary<Outcome, double> weights = Weigh(gameData, unit, tile, level);
+		Dictionary<Outcome, double> weights = Weigh(gameData, player, unit, tile, level);
 		Outcome outcome = Pick(weights);
-		log.Information("{Player}'s {Unit} entered a goody hut at {Tile} and found {Outcome}", player, unit, tile, outcome);
+		log.Information("{Player} found {Outcome} in the goody hut at {Tile}", player, outcome, tile);
 
-		string message = Apply(gameData, unit, tile, ref outcome, Hardness(level));
+		string message = Apply(gameData, player, tile, ref outcome, Hardness(level));
 		if (player.IsToldNews) {
 			new MsgShowMilitaryAdvisorPopup(player, message, happy: outcome is not (Outcome.Barbarians or Outcome.Nothing)).send();
 		}
@@ -159,7 +182,12 @@ public static class GoodyHuts {
 	// nothing left to learn, have none, and the rest are weighed against
 	// each other.
 	internal static Dictionary<Outcome, double> Weigh(GameData gameData, MapUnit unit, Tile tile, int level) {
-		Player player = unit.owner;
+		return Weigh(gameData, unit.owner, unit, tile, level);
+	}
+
+	// As above, for the player; unit is null for a hut opened by a city
+	// founded next to it.
+	internal static Dictionary<Outcome, double> Weigh(GameData gameData, Player player, MapUnit unit, Tile tile, int level) {
 		level = Math.Clamp(level, 0, LevelCount - 1);
 		bool expansionist = player.civilization?.traits.Contains(Civilization.Trait.Expansionist) == true;
 		IReadOnlyDictionary<Outcome, double[]> odds = expansionist ? ExpansionistOdds : BaseOdds;
@@ -175,7 +203,7 @@ public static class GoodyHuts {
 			[Outcome.Tech] = player.EraIndex() == 0 && TechsToLearn(gameData, player).Count > 0,
 			[Outcome.Settler] = behindOnCities && SettlerFor(gameData, player) != null && !HasSettler(player),
 			[Outcome.City] = behindOnCities && CanFoundCity(player, tile),
-			[Outcome.Barbarians] = CanReleaseBarbarians(gameData, unit, tile),
+			[Outcome.Barbarians] = unit != null && CanReleaseBarbarians(gameData, unit, tile),
 			[Outcome.Map] = true,
 			[Outcome.Nothing] = true,
 		};
@@ -215,8 +243,7 @@ public static class GoodyHuts {
 	// sends nothing to the UI, so the news can go first (see Enter). If
 	// what was picked can't happen after all (barbarians with nowhere to
 	// stand), the hut holds gold instead, and the outcome says so.
-	private static string Apply(GameData gameData, MapUnit unit, Tile tile, ref Outcome outcome, double hardness) {
-		Player player = unit.owner;
+	private static string Apply(GameData gameData, Player player, Tile tile, ref Outcome outcome, double hardness) {
 		switch (outcome) {
 			case Outcome.Tech: {
 					List<Tech> techs = TechsToLearn(gameData, player);

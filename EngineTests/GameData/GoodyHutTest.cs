@@ -70,6 +70,36 @@ public class GoodyHutTest : IClassFixture<SaveGameFixture> {
 		}
 	}
 
+	// A city founded next to a hut opens it for the city's owner, and no
+	// barbarians come out (owner's decision, 2026-10-12).
+	[Fact]
+	public void FoundingACityNextToAHutOpensItWithoutBarbarians() {
+		(Tile from, TileDirection _, Tile hut) = FindHutSite();
+		Assert.Equal(0, GoodyHuts.Weigh(gameData, human, null, hut, GoodyHuts.Level(gameData, human))[GoodyHuts.Outcome.Barbarians]);
+
+		int barbarianUnits = barbarians.units.Count;
+		foreach (double sample in new[] { 0.0, 0.3, 0.6, 0.99 }) {
+			hut.hasGoodyHut = true;
+			System.Random original = C7GameData.GameData.rng;
+			C7GameData.GameData.rng = new FixedRandom(sample);
+			try {
+				GoodyHuts.OpenNextToNewCity(gameData, new City(from, human, "Test", ID.None("")));
+			} finally {
+				C7GameData.GameData.rng = original;
+			}
+			Assert.False(hut.hasGoodyHut);
+		}
+		Assert.Equal(barbarianUnits, barbarians.units.Count);
+	}
+
+	[Fact]
+	public void BuildingACityOpensTheHutsNextToIt() {
+		(Tile from, TileDirection _, Tile hut) = FindHutSite();
+		hut.hasGoodyHut = true;
+		CityInteractions.BuildCity(from, human, "Hutton");
+		Assert.False(hut.hasGoodyHut);
+	}
+
 	[Fact]
 	public async Task EnteringAHutOpensIt() {
 		(Tile from, TileDirection dir, Tile hut) = FindHutSite();

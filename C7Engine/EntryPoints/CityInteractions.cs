@@ -40,6 +40,9 @@ namespace C7Engine {
 			// cities with zero residents are considered destroyed.
 			gameData.UpdateTileOwners();
 
+			// Goody huts next to the new city are opened for its owner.
+			GoodyHuts.OpenNextToNewCity(gameData, newCity);
+
 			// Barbarian camps inside the new city's borders are dispersed.
 			int campsDispersed = 0;
 			foreach (Tile camp in gameData.map.barbarianCamps.ToList()) {
