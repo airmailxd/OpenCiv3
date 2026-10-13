@@ -1868,7 +1868,9 @@ namespace C7GameData {
 
 		private void ImportUnitPrototypes() {
 			PRTO[] Prto = biq.Prto ?? defaultBiq.Prto;
-			foreach (PRTO prto in Prto) {
+			int[][] stealthTargets = biq.Prto != null ? biq.PrtoPrto : defaultBiq.PrtoPrto;
+			for (int prtoIndex = 0; prtoIndex < Prto.Length; prtoIndex++) {
+				PRTO prto = Prto[prtoIndex];
 				SaveUnitPrototype prototype = new();
 				if (prto.Type == PRTO.TYPE_SEA) {
 					prototype.categories.Add("Sea");
@@ -1926,6 +1928,14 @@ namespace C7GameData {
 				if (prto.Immobile) prototype.flags.Add(SaveUnitPrototype.Flag.Immobile);
 				if (prto.Stealth) prototype.flags.Add(SaveUnitPrototype.Flag.Stealth);
 				if (prto.Draft) prototype.flags.Add(SaveUnitPrototype.Flag.Draftable);
+				if (prto.Submarine) prototype.flags.Add(SaveUnitPrototype.Flag.Invisible);
+				if (prto.CanSeeSubmarines) prototype.flags.Add(SaveUnitPrototype.Flag.DetectInvisible);
+				if (prto.HiddenNationality) prototype.flags.Add(SaveUnitPrototype.Flag.HiddenNationality);
+				if (prto.StealthAttack) prototype.flags.Add(SaveUnitPrototype.Flag.StealthAttack);
+				int[] targets = stealthTargets != null && prtoIndex < stealthTargets.Length ? stealthTargets[prtoIndex] : null;
+				if (targets != null && targets.Length > 0) {
+					prototype.stealthTargets = targets.Where(t => t >= 0 && t < Prto.Length).Select(t => Prto[t].Name).Distinct().ToList();
+				}
 
 				prototype.actions.UnionWith(GetUnitActions(prto));
 				// A job the BIQ has no TFRM for (such as an outpost in a BIQ

@@ -234,8 +234,10 @@ public partial class RightClickTileMenu : RightClickMenu {
 		});
 
 		int fortifiedCount = 0;
-		List<MapUnit> playerUnits = tile.unitsOnTile.FindAll(unit => unit.owner.id == game.controller.id || observerMode);
-		List<MapUnit> nonPlayerUnits = tile.unitsOnTile.FindAll(unit => unit.owner.id != game.controller.id && !observerMode);
+		// Invisible units the player doesn't detect aren't listed.
+		List<MapUnit> shownUnits = observerMode ? tile.unitsOnTile : tile.UnitsSeenBy(game.controller);
+		List<MapUnit> playerUnits = shownUnits.FindAll(unit => unit.owner.id == game.controller.id || observerMode);
+		List<MapUnit> nonPlayerUnits = shownUnits.FindAll(unit => unit.owner.id != game.controller.id && !observerMode);
 
 		// Sort by transport group
 		playerUnits = playerUnits

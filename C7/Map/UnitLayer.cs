@@ -590,16 +590,16 @@ public partial class UnitLayer : LooseLayer {
 	}
 
 	// Returns the unit to draw on a tile with units, and its hit points.
-	private DisplayedUnit getDisplayedUnit(LooseView looseView, Tile tile) {
+	private DisplayedUnit getDisplayedUnit(LooseView looseView, Tile tile, List<MapUnit> units) {
 		Game game = looseView.mapView.game;
 		MapUnit currentlySelectedUnit = game.CurrentlySelectedUnit;
-		long? stamp = displayedUnitStamp(game.animationController.animTracker, tile, tile.unitsOnTile, currentlySelectedUnit);
+		long? stamp = displayedUnitStamp(game.animationController.animTracker, tile, units, currentlySelectedUnit);
 
 		if (stamp is long s && displayedUnits.TryGetValue(tile, out DisplayedUnit cached) && cached.stamp == s) {
 			return cached;
 		}
 
-		MapUnit unit = computeUnitToDisplay(looseView, tile, tile.unitsOnTile);
+		MapUnit unit = computeUnitToDisplay(looseView, tile, units);
 		DisplayedUnit displayed = new DisplayedUnit {
 			unit = unit,
 			// An army shows the combined hit points of its members.
@@ -616,7 +616,7 @@ public partial class UnitLayer : LooseLayer {
 	// Returns which unit should be drawn from among a list of units. The list is assumed to be non-empty.
 	public MapUnit selectUnitToDisplay(LooseView looseView, Tile tile, List<MapUnit> units) {
 		if (units == tile.unitsOnTile) {
-			return getDisplayedUnit(looseView, tile).unit;
+			return getDisplayedUnit(looseView, tile, tile.unitsOnTile).unit;
 		}
 		return computeUnitToDisplay(looseView, tile, units);
 	}
@@ -686,13 +686,15 @@ public partial class UnitLayer : LooseLayer {
 			}
 		}
 
-		if (tile.unitsOnTile.Count == 0) {
+		// Invisible units the player doesn't detect aren't drawn.
+		List<MapUnit> units = ShownUnits(gameData, looseView.mapView.game.controller, tile);
+		if (units.Count == 0) {
 			return;
 		}
 
 		var white = Color.Color8(255, 255, 255);
 
-		DisplayedUnit displayed = getDisplayedUnit(looseView, tile);
+		DisplayedUnit displayed = getDisplayedUnit(looseView, tile, units);
 		MapUnit unit = displayed.unit;
 		MapUnit.Appearance appearance = animTracker.getUnitAppearance(unit);
 		Vector2 animOffset = new Vector2(appearance.offsetX, appearance.offsetY) * MapView.cellSize;
@@ -780,8 +782,8 @@ public partial class UnitLayer : LooseLayer {
 		float lineMarginFromBar = 3 / cameraZoom;
 
 		// Draw lines to show that there are more units on this tile
-		if (tile.unitsOnTile.Count > 1) {
-			int lineCount = tile.unitsOnTile.Count;
+		if (units.Count > 1) {
+			int lineCount = units.Count;
 			// TODO: Make configurable to taste, with cap of 8?
 			if (lineCount > 8)
 				lineCount = 8;
@@ -808,6 +810,12 @@ public partial class UnitLayer : LooseLayer {
 		if (h <= 12)
 			return 2;
 		return 1;
+	}
+
+	// The units on the tile the player sees: all of them in observer mode,
+	// otherwise all but invisible units it doesn't detect.
+	public static List<MapUnit> ShownUnits(GameData gameData, Player player, Tile t) {
+		return gameData.observerMode ? t.unitsOnTile : t.UnitsSeenBy(player);
 	}
 
 	private bool UnitsVisible(GameData gameData, Player player, Tile t) {

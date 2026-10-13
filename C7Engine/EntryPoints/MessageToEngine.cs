@@ -194,6 +194,9 @@ namespace C7Engine {
 	public class MsgMoveUnit : MessageToEngine {
 		public ID unitID;
 		public TileDirection dir;
+		// The unit a stealth attack singles out, or null (see
+		// MapUnit_StealthAttack.cs).
+		public ID stealthTarget;
 
 		public MsgMoveUnit(ID unitID, TileDirection dir) {
 			this.unitID = unitID;
@@ -204,7 +207,7 @@ namespace C7Engine {
 			MapUnit unit = SendersUnit(unitID);
 			if (unit == null) return;
 
-			await unit.Move(dir, true);
+			await unit.Move(dir, true, stealthTarget);
 		}
 	}
 

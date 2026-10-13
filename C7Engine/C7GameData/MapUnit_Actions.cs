@@ -480,9 +480,10 @@ public partial class MapUnit {
 	/// <param name="unit"></param>
 	/// <param name="dir">Which direction to move, e.g. northeast, west, etc.</param>
 	/// <param name="wait">Whether the method should wait to return until animations complete</param>
+	/// <param name="stealthTarget">The unit a stealth attack singles out, if its owner chose one (see MapUnit_StealthAttack.cs)</param>
 	/// <returns>True if the unit is alive after the movement, false otherwise</returns>
 	/// <exception cref="Exception"></exception>
-	public async Task<bool> Move(TileDirection dir, bool wait = false) {
+	public async Task<bool> Move(TileDirection dir, bool wait = false, ID stealthTarget = null) {
 		(int dx, int dy) = dir.ToCoordDiff();
 
 		Tile newLoc = EngineStorage.gameData.map.tileAt(dx + location.XCoordinate, dy + location.YCoordinate);
@@ -493,9 +494,19 @@ public partial class MapUnit {
 		facingDirection = dir;
 		Wake();
 
+		// An invisible unit we couldn't see, of a civ we aren't at war with,
+		// is in the way: the move stops there (see MapUnit_Invisible.cs).
+		if (newLoc.unitsOnTile.Any(u => u.owner != owner && owner.IsAtPeaceWith(u.owner) && !u.IsSeenBy(owner))) {
+			this.path = TilePath.NONE;
+			return true;
+		}
+
 		// Trigger combat if the tile we're moving into has an enemy  Or if this unit can't fight, do nothing.
-		MapUnit defender = newLoc.FindTopDefender(this);
-		bool enemyOnTile = defender != MapUnit.NONE && !owner.IsAtPeaceWith(defender.owner);
+		MapUnit defender = DefenderAgainstAttackOn(newLoc, stealthTarget);
+		bool enemyOnTile = defender != MapUnit.NONE && MayAttack(defender);
+		// A hidden nationality unit attacking a civ it is at peace with (see
+		// MapUnit_HiddenNationality.cs).
+		bool hiddenAttack = MakesHiddenAttackOn(defender);
 		bool armedEnemyOnTile = enemyOnTile && HasArmedEnemyDefender(newLoc);
 		// Units that can't attack, including empty armies, don't start fights
 		// or take captives, and without Blitz a unit only attacks once per
@@ -504,7 +515,10 @@ public partial class MapUnit {
 			return true;
 		}
 
-		if (enemyOnTile && !armedEnemyOnTile) {
+		if (hiddenAttack && !armedEnemyOnTile) {
+			// Nothing to fight, and nobody at peace is captured.
+			return true;
+		} else if (enemyOnTile && !armedEnemyOnTile) {
 			// Units that can't defend themselves, like workers and settlers,
 			// are captured rather than fought. Fighting them would always win,
 			// and could be farmed for promotions.
@@ -526,7 +540,9 @@ public partial class MapUnit {
 			// complete the move but still pay one movement point for the combat. Otherwise we capture whatever is
 			// left, like workers, and move in below, paying only for the move. That includes taking the city.
 			if (combatResult == CombatResult.DefenderKilled || combatResult == CombatResult.DefenderRetreated) {
-				if (HasArmedEnemyDefender(newLoc)) {
+				// After a hidden nationality attack, the attacker doesn't
+				// join the units left there.
+				if (HasArmedEnemyDefender(newLoc) || (hiddenAttack && newLoc.unitsOnTile.Any(u => u.owner != owner))) {
 					this.movementPoints.onUnitMove(1);
 					this.facingDirection = this.facingDirection.Reversed();
 					return true;
@@ -602,7 +618,7 @@ public partial class MapUnit {
 	// this unit, as opposed to only workers, settlers, empty armies and the
 	// like. Units in an army fight through the army.
 	private bool HasArmedEnemyDefender(Tile tile) {
-		return tile.unitsOnTile.Any(u => !owner.IsAtPeaceWith(u.owner)
+		return tile.unitsOnTile.Any(u => MayAttack(u)
 			&& !u.IsInArmy()
 			&& u.CanDefendAgainst(this)
 			&& u.CombatBaseStrength(CombatRole.Defense) > 0);
