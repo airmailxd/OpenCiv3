@@ -411,10 +411,11 @@ public class PlayerRelationship {
 					.ToList();
 
 				foreach (MultiTurnDeal deadDeal in deadDeals) {
-					// TODO: Add a popup to notify if an AI/Human deal expires
-					// TODO: Add renegotiate logic (plus preferences option Always Renegotiate Deals)
 					log.Information("Cancelling multi turn deal: {Player} -- {Other}", player, other);
 					UnRegisterMultiTurnDeal(player, other, deadDeal);
+					// Tell the humans, and let an AI offer it again (see
+					// DealRenewal).
+					DealRenewal.OnExpired(EngineStorage.gameData, player, other, deadDeal);
 				}
 			}
 		}

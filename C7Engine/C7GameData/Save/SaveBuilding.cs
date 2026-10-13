@@ -78,6 +78,12 @@ namespace C7GameData.Save {
 			// Civilopedia). See City.PollutionIcons.
 			RemovesPopulationPollution,
 			ReducesBuildingPollution,
+			// The city is a link in the trade network over water to other
+			// cities with such a building (the Harbor), and through the air
+			// to other cities with an air-trade building (the Airport). See
+			// TradeNetwork.
+			AllowsWaterTrade,
+			AllowsAirTrade,
 		}
 
 		public class GreatWonderProperties {

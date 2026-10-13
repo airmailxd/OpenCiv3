@@ -28,6 +28,12 @@ public partial class TradingTree : Tree {
 	TreeItem cityHeader;
 	// The city each city item stands for.
 	Dictionary<TreeItem, City> cityItems = new();
+	TreeItem mapHeader;
+	TreeItem worldMap;
+	TreeItem territoryMap;
+	TreeItem communicationsHeader;
+	// The civ each communications item introduces.
+	Dictionary<TreeItem, ID> contactItems = new();
 
 	List<Tech> tradeableTechs;
 	TradeOffer currentOffer;
@@ -43,12 +49,17 @@ public partial class TradingTree : Tree {
 		public bool Any => mutualProtectionPact || allianceTargets.Count > 0 || embargoTargets.Count > 0;
 	}
 
+	// Whether this side may give its maps (see TradeOffer.ProblemTradingMaps),
+	// and the civs it may introduce the other side to (TradeOffer.TradableContacts).
+	public record MapChoices(bool maps, List<Player> contacts);
+
 	public TradingTree(Theme fontTheme,
 						int playerGold,
 						List<Tech> tradeableTechs, List<City> tradeableCities,
 						TradeOffer currentOffer, bool requiresPeaceTreaty,
 						bool canSignRightOfPassage = false,
-						int maxGoldPerTurn = 0, List<Resource> tradeableResources = null, PactChoices pacts = null) {
+						int maxGoldPerTurn = 0, List<Resource> tradeableResources = null, PactChoices pacts = null,
+						MapChoices maps = null) {
 		this.tradeableTechs = tradeableTechs;
 		this.currentOffer = currentOffer;
 		this.playerGold = playerGold;
@@ -131,6 +142,29 @@ public partial class TradingTree : Tree {
 			}
 		}
 
+		// Civ3's "Maps" and "Communications" headings (Conquests'
+		// Text/diplomacy.txt). Not in a peace treaty (see
+		// TradeOffer.ProblemWithDeal).
+		if (!requiresPeaceTreaty && (maps?.maps ?? false)) {
+			mapHeader = this.CreateItem(root);
+			mapHeader.SetText(0, "Maps");
+			mapHeader.Collapsed = true;
+			worldMap = this.CreateItem(mapHeader);
+			worldMap.SetText(0, "World Map");
+			territoryMap = this.CreateItem(mapHeader);
+			territoryMap.SetText(0, "Territory Map");
+		}
+		if (!requiresPeaceTreaty && (maps?.contacts?.Count ?? 0) > 0) {
+			communicationsHeader = this.CreateItem(root);
+			communicationsHeader.SetText(0, "Communications");
+			communicationsHeader.Collapsed = true;
+			foreach (Player third in maps.contacts) {
+				TreeItem child = this.CreateItem(communicationsHeader);
+				child.SetText(0, $"with the {third.civilization?.noun}");
+				contactItems[child] = third.id;
+			}
+		}
+
 		if (tradeableTechs.Count > 0) {
 			techHeader = this.CreateItem(root);
 			techHeader.SetText(0, "Technology");
@@ -184,6 +218,26 @@ public partial class TradingTree : Tree {
 			}
 			if (ti == resourceHeader && other.resourceHeader != null) {
 				other.resourceHeader.Collapsed = resourceHeader.Collapsed;
+			}
+			if (ti == mapHeader && other.mapHeader != null) {
+				other.mapHeader.Collapsed = mapHeader.Collapsed;
+			}
+			if (ti == communicationsHeader && other.communicationsHeader != null) {
+				other.communicationsHeader.Collapsed = communicationsHeader.Collapsed;
+			}
+
+			// The world map shows all the territory map does, so one or
+			// the other.
+			if (ti != null && ti == worldMap) {
+				currentOffer.worldMap = true;
+				currentOffer.territoryMap = false;
+			}
+			if (ti != null && ti == territoryMap) {
+				currentOffer.territoryMap = true;
+				currentOffer.worldMap = false;
+			}
+			if (ti != null && contactItems.TryGetValue(ti, out ID contact) && !currentOffer.contacts.Contains(contact)) {
+				currentOffer.contacts.Add(contact);
 			}
 
 			if (resourceItems.TryGetValue(ti, out string resourceKey) && !currentOffer.resources.Contains(resourceKey)) {
@@ -300,6 +354,13 @@ public partial class TradingTree : Tree {
 				cityHeader.Visible = false;
 			}
 		} else {
+			if (worldMap != null) {
+				worldMap.Visible = !currentOffer.worldMap;
+				territoryMap.Visible = !currentOffer.worldMap && !currentOffer.territoryMap;
+			}
+			foreach (var (ti, contact) in contactItems) {
+				ti.Visible = !currentOffer.contacts.Contains(contact);
+			}
 			goldHeader.Visible = true;
 			lumpSum.Visible = !currentOffer.gold.HasValue;
 			if (perTurn != null) {

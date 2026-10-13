@@ -2212,6 +2212,8 @@ namespace C7GameData {
 				(bldg.DecreasesMissileSuccess, SaveBuilding.Flag.DecreasesMissileSuccess),
 				(bldg.AllowsSpyMissions, SaveBuilding.Flag.AllowsSpyMissions),
 				(bldg.BuildSpaceshipParts, SaveBuilding.Flag.BuildSpaceshipParts),
+				(bldg.AllowsWaterTrade, SaveBuilding.Flag.AllowsWaterTrade),
+				(bldg.AllowsAirTrade, SaveBuilding.Flag.AllowsAirTrade),
 				(bldg.GoodsMustBeInCityRadius, SaveBuilding.Flag.GoodsMustBeInCityRadius),
 			}
 			.Where(t => t.Item1)

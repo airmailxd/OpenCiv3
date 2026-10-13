@@ -64,6 +64,9 @@ namespace C7GameData {
 		public bool providesVeteranGroundUnits;
 		public bool providesVeteranSeaUnits;
 		public bool providesVeteranAirUnits;
+		// Trade network links (see SaveBuilding.Flag.AllowsWaterTrade).
+		public bool allowsWaterTrade;
+		public bool allowsAirTrade;
 		public bool allowsEnemyTerritoryHealing;
 		public bool reducesWarWeariness;
 		// See City.PollutionIcons.
@@ -183,6 +186,8 @@ namespace C7GameData {
 			providesVeteranGroundUnits = building.flags.Contains(SaveBuilding.Flag.VeteranGroundUnits);
 			providesVeteranSeaUnits = building.flags.Contains(SaveBuilding.Flag.VeteranSeaUnits);
 			providesVeteranAirUnits = building.flags.Contains(SaveBuilding.Flag.VeteranAirUnits);
+			allowsWaterTrade = building.flags.Contains(SaveBuilding.Flag.AllowsWaterTrade);
+			allowsAirTrade = building.flags.Contains(SaveBuilding.Flag.AllowsAirTrade);
 			allowsEnemyTerritoryHealing = building.flags.Contains(SaveBuilding.Flag.AllowsEnemyTerritoryHealing);
 			reducesWarWeariness = building.flags.Contains(SaveBuilding.Flag.ReducesWarWeariness);
 			removesPopulationPollution = building.flags.Contains(SaveBuilding.Flag.RemovesPopulationPollution);

@@ -9503,7 +9503,8 @@
       "flags": [
         "mustBeCoastal",
         "veteranSeaUnits",
-        "increasesFoodInWater"
+        "increasesFoodInWater",
+        "allowsWaterTrade"
       ],
       "traits": [
         "militaristic",
@@ -9575,7 +9576,8 @@
       "bombardDefense": 0,
       "unitFrequency": 0,
       "flags": [
-        "veteranAirUnits"
+        "veteranAirUnits",
+        "allowsAirTrade"
       ],
       "traits": [
         "militaristic",

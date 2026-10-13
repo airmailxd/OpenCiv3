@@ -36,10 +36,35 @@ namespace C7Engine.Pathing {
 	// Each player's network is only computed the first time it is queried.
 	// Changes to cities and borders invalidate the whole TradeNetwork; a
 	// road built or removed only drops the networks it can change (see
-	// OnRoadChanged).
+	// OnRoadChanged); a building built or lost recomputes its owner's
+	// network (see PlayerNetwork.IsValidFor).
 	//
-	// TODO: Handle harbors and airports
+	// Harbors and airports join road segments together. The Civilopedia
+	// (Conquests, GCON_Trade, "Trade Route Connections"): "Two cities are
+	// connected if any one of the following are true: there is a road or
+	// railroad running between them, there are harbors in both cities and a
+	// visible water route between them, or both cities contain an airport."
+	// "In order to use a water trade route, your civilization must be able
+	// to safely traverse every square of the route." Which water: the
+	// Civilopedia's Astronomy ("Harbors can be connected by sea squares"),
+	// Navigation and Magnetism ("... by ocean squares"), which are the BIQ's
+	// EnablesTradeOverSea and EnablesTradeOverOcean tech flags. Coast needs
+	// no flag: the Harbor itself needs Map Making, which the Civilopedia
+	// names for coastal routes. The Great Lighthouse also opens sea squares
+	// ("You can trade over sea tiles before Astronomy by owning the Great
+	// Lighthouse",
+	// https://forums.civfanatics.com/threads/my-town-on-another-island-has-a-harbor-why-isnt-it-connecting-to-the-trade-network.113835/),
+	// in line with the Civilopedia's "safely traverse". Which buildings link
+	// comes from the BIQ's AllowsWaterTrade and AllowsAirTrade flags.
+	//
+	// The water links depend on the player's techs and on which tiles they
+	// have seen, which change without telling the network, so a network
+	// with harbors or airports is also recomputed when the player learns a
+	// tech, and once a turn.
+	//
 	// TODO: Account for passing through the borders of civs we're at war with
+	// TODO: A harbor blockaded by enemy ships doesn't link (Civilopedia,
+	// GCON_Trade); blockades aren't modelled.
 	// TODO: Invalidate the trade network when war status changes.
 	public class TradeNetwork {
 		private sealed class PlayerNetwork {
@@ -47,17 +72,41 @@ namespace C7Engine.Pathing {
 			// Segments never share tiles, so each tile maps to at most one.
 			public readonly Dictionary<Tile, TradeNetworkSegment> tileToSegment = new();
 			public City cachedCapital;
+
+			// The water tiles the player's harbors can trade over, labelled by
+			// which body of reachable water they're in, and the labels each
+			// segment's harbors touch. Empty without harbors.
+			public readonly Dictionary<Tile, int> waterLabel = new();
+			public readonly Dictionary<TradeNetworkSegment, HashSet<int>> segmentWaterLabels = new();
+			// The segments with an airport city.
+			public readonly HashSet<TradeNetworkSegment> airportSegments = new();
+
+			// What the network was computed from (see IsValidFor).
+			public long buildingsVersion;
+			public bool hasLinks;
+			public int techCount;
+			public int turn;
+
+			public bool IsValidFor(Player player, int turn) {
+				if (buildingsVersion != player.BuildingsVersion) {
+					return false;
+				}
+				return !hasLinks || (techCount == (player.knownTechs?.Count ?? 0) && this.turn == turn);
+			}
 		}
 
 		private readonly Dictionary<Player, PlayerNetwork> networks = new();
+		private readonly GameData gameData;
 
 		public TradeNetwork(GameData gameData) {
+			this.gameData = gameData;
 		}
 
 		private PlayerNetwork GetNetwork(Player player) {
+			int turn = gameData?.turn ?? 0;
 			lock (networks) {
-				if (!networks.TryGetValue(player, out PlayerNetwork network)) {
-					network = ComputeTradeNetwork(player);
+				if (!networks.TryGetValue(player, out PlayerNetwork network) || !network.IsValidFor(player, turn)) {
+					network = ComputeTradeNetwork(player, turn);
 					networks[player] = network;
 				}
 				return network;
@@ -97,8 +146,12 @@ namespace C7Engine.Pathing {
 			return false;
 		}
 
-		private static PlayerNetwork ComputeTradeNetwork(Player player) {
-			PlayerNetwork network = new();
+		private static PlayerNetwork ComputeTradeNetwork(Player player, int turn) {
+			PlayerNetwork network = new() {
+				buildingsVersion = player.BuildingsVersion,
+				techCount = player.knownTechs?.Count ?? 0,
+				turn = turn,
+			};
 			Dictionary<City, TradeNetworkSegment> segments = network.cityToSegment;
 			Dictionary<Tile, TradeNetworkSegment> seen = network.tileToSegment;
 
@@ -132,7 +185,164 @@ namespace C7Engine.Pathing {
 					}
 				}
 			}
+			JoinByHarborsAndAirports(player, network);
 			return network;
+		}
+
+		// Whether the city has a building that links it by water (a Harbor)
+		// or by air (an Airport), built or granted by a wonder.
+		private static bool HasWaterTrade(City c) => c.EffectiveBuildings().Exists(cb => cb.building.allowsWaterTrade);
+		private static bool HasAirTrade(City c) => c.EffectiveBuildings().Exists(cb => cb.building.allowsAirTrade);
+
+		// Whether the player's harbors can trade over the tile: coast always,
+		// sea and ocean once allowed (see the class comment).
+		private static bool CanTradeOver(Tile t, bool overSea, bool overOcean) {
+			TerrainType terrain = t.baseTerrainType;
+			if (terrain == null || !terrain.IsWater) {
+				return false;
+			}
+			if (terrain.IsOcean) {
+				return overOcean;
+			}
+			if (terrain.IsSea) {
+				return overSea;
+			}
+			return true;
+		}
+
+		// Merges the road segments that harbors and airports link, and
+		// records which water the harbors reach (for CapitalsConnected).
+		private static void JoinByHarborsAndAirports(Player player, PlayerNetwork network) {
+			List<City> harbors = null;
+			List<City> airports = null;
+			foreach (City c in player.cities) {
+				if (!network.cityToSegment.ContainsKey(c)) {
+					continue;
+				}
+				if (HasWaterTrade(c)) {
+					(harbors ??= new()).Add(c);
+				}
+				if (HasAirTrade(c)) {
+					(airports ??= new()).Add(c);
+				}
+			}
+			if (harbors == null && airports == null) {
+				return;
+			}
+			network.hasLinks = true;
+
+			// Union-find over the road segments.
+			Dictionary<TradeNetworkSegment, TradeNetworkSegment> parent = new();
+			TradeNetworkSegment Find(TradeNetworkSegment s) {
+				while (parent.TryGetValue(s, out TradeNetworkSegment p)) {
+					s = p;
+				}
+				return s;
+			}
+			bool merged = false;
+			void Union(TradeNetworkSegment a, TradeNetworkSegment b) {
+				a = Find(a);
+				b = Find(b);
+				if (a != b) {
+					parent[b] = a;
+					merged = true;
+				}
+			}
+
+			if (airports != null) {
+				TradeNetworkSegment first = network.cityToSegment[airports[0]];
+				foreach (City c in airports) {
+					Union(first, network.cityToSegment[c]);
+				}
+			}
+
+			Dictionary<City, HashSet<int>> harborLabels = new();
+			if (harbors != null) {
+				bool overSea = player.HasTechEnabling(C7GameData.Save.SaveTech.Flag.EnablesTradeOverSea) || player.HasSafeSeaTravel();
+				bool overOcean = player.HasTechEnabling(C7GameData.Save.SaveTech.Flag.EnablesTradeOverOcean);
+				TileKnowledge knowledge = player.tileKnowledge;
+				Dictionary<Tile, int> label = network.waterLabel;
+				Dictionary<int, TradeNetworkSegment> labelSegment = new();
+				int nextLabel = 0;
+				Queue<Tile> toCheck = new();
+				foreach (City c in harbors) {
+					HashSet<int> touched = new();
+					foreach (Tile start in c.location.neighbors.Values) {
+						if (label.TryGetValue(start, out int existing)) {
+							touched.Add(existing);
+							continue;
+						}
+						// "A visible water route": only water the player has
+						// seen.
+						if (knowledge == null || !knowledge.isTileKnown(start) || !CanTradeOver(start, overSea, overOcean)) {
+							continue;
+						}
+						int id = nextLabel++;
+						label[start] = id;
+						touched.Add(id);
+						toCheck.Enqueue(start);
+						while (toCheck.Count > 0) {
+							Tile x = toCheck.Dequeue();
+							foreach (Tile n in x.neighbors.Values) {
+								if (!label.ContainsKey(n) && knowledge.isTileKnown(n) && CanTradeOver(n, overSea, overOcean)) {
+									label[n] = id;
+									toCheck.Enqueue(n);
+								}
+							}
+						}
+					}
+					harborLabels[c] = touched;
+					TradeNetworkSegment segment = network.cityToSegment[c];
+					foreach (int id in touched) {
+						if (labelSegment.TryGetValue(id, out TradeNetworkSegment other)) {
+							Union(other, segment);
+						} else {
+							labelSegment[id] = segment;
+						}
+					}
+				}
+			}
+
+			if (merged) {
+				// Replace each group of segments by its root, which gets all
+				// their resources.
+				Dictionary<TradeNetworkSegment, TradeNetworkSegment> replacement = new();
+				foreach (City c in player.cities) {
+					if (!network.cityToSegment.TryGetValue(c, out TradeNetworkSegment s) || replacement.ContainsKey(s)) {
+						continue;
+					}
+					TradeNetworkSegment root = Find(s);
+					replacement[s] = root;
+					if (root != s) {
+						foreach ((Resource r, int count) in s.resourceCounts) {
+							root.resourceCounts[r] = root.resourceCounts.GetValueOrDefault(r) + count;
+						}
+					}
+				}
+				foreach (City c in network.cityToSegment.Keys.ToList()) {
+					network.cityToSegment[c] = replacement[network.cityToSegment[c]];
+				}
+				foreach (Tile t in network.tileToSegment.Keys.ToList()) {
+					TradeNetworkSegment s = network.tileToSegment[t];
+					if (replacement.TryGetValue(s, out TradeNetworkSegment root) && root != s) {
+						network.tileToSegment[t] = root;
+					}
+				}
+			}
+
+			foreach ((City c, HashSet<int> labels) in harborLabels) {
+				TradeNetworkSegment segment = network.cityToSegment[c];
+				if (!network.segmentWaterLabels.TryGetValue(segment, out HashSet<int> all)) {
+					all = new();
+					network.segmentWaterLabels[segment] = all;
+				}
+				all.UnionWith(labels);
+			}
+			if (airports != null) {
+				foreach (City c in airports) {
+					network.airportSegments.Add(network.cityToSegment[c]);
+				}
+			}
 		}
 
 		// Returns the resources and their counts that are available to the given
@@ -203,23 +413,54 @@ namespace C7Engine.Pathing {
 			return segment.resourceCounts.GetValueOrDefault(r);
 		}
 
-		// Whether a road runs between the two players' capitals. Only roads
-		// are modelled, so capitals on different landmasses, which Civ3 can
-		// connect by sea, count as connected.
-		// TODO: Use harbors and airports once the trade network has them.
+		// Whether the two players' capitals are connected, which foreign
+		// trade needs (Civilopedia, GCON_Trade): by a road from one capital's
+		// network to the other's capital, by airports on both capitals'
+		// networks, or by harbors on both capitals' networks with a water
+		// route between them. UNVERIFIED: whose techs and map a water route
+		// between two civs needs; here both civs must be able to trade over
+		// it, as each one's "civilization must be able to safely traverse
+		// every square of the route".
 		public bool CapitalsConnected(Player a, Player b) {
 			PlayerNetwork network = GetNetwork(a);
+			PlayerNetwork otherNetwork = GetNetwork(b);
 			City capitalA = GetCapital(a, network);
-			City capitalB = GetCapital(b, GetNetwork(b));
-			if (capitalA == null || capitalB == null) {
+			City capitalB = GetCapital(b, otherNetwork);
+			if (capitalA == null || capitalB == null
+				|| !network.cityToSegment.TryGetValue(capitalA, out TradeNetworkSegment segment)
+				|| !otherNetwork.cityToSegment.TryGetValue(capitalB, out TradeNetworkSegment otherSegment)) {
 				return false;
 			}
-			if (capitalA.location.continent != capitalB.location.continent) {
+			if (network.tileToSegment.TryGetValue(capitalB.location, out TradeNetworkSegment reached) && reached == segment) {
 				return true;
 			}
-			return network.cityToSegment.TryGetValue(capitalA, out TradeNetworkSegment segment)
-				&& network.tileToSegment.TryGetValue(capitalB.location, out TradeNetworkSegment other)
-				&& segment == other;
+			if (otherNetwork.tileToSegment.TryGetValue(capitalA.location, out reached) && reached == otherSegment) {
+				return true;
+			}
+			if (network.airportSegments.Contains(segment) && otherNetwork.airportSegments.Contains(otherSegment)) {
+				return true;
+			}
+			return network.segmentWaterLabels.TryGetValue(segment, out HashSet<int> labels)
+				&& otherNetwork.segmentWaterLabels.TryGetValue(otherSegment, out HashSet<int> otherLabels)
+				&& HarborReaches(network, labels, b, otherNetwork, otherSegment)
+				&& HarborReaches(otherNetwork, otherLabels, a, network, segment);
+		}
+
+		// Whether one of the other player's harbor cities on otherSegment is
+		// next to water that the network's harbors with the given labels
+		// reach.
+		private static bool HarborReaches(PlayerNetwork network, HashSet<int> labels, Player other, PlayerNetwork otherNetwork, TradeNetworkSegment otherSegment) {
+			foreach (City c in other.cities) {
+				if (!otherNetwork.cityToSegment.TryGetValue(c, out TradeNetworkSegment s) || s != otherSegment || !HasWaterTrade(c)) {
+					continue;
+				}
+				foreach (Tile n in c.location.neighbors.Values) {
+					if (network.waterLabel.TryGetValue(n, out int label) && labels.Contains(label)) {
+						return true;
+					}
+				}
+			}
+			return false;
 		}
 
 		// The player's cities grouped by the network segment they're on, in the
