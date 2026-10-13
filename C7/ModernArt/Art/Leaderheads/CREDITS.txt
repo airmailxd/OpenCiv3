@@ -146,9 +146,9 @@ Carthage.png (Hannibal)
   License: Public domain
 
 Korea.png (Wang Kon)
-  A typical Korean king, standing in for Wang Kon, whose own portraits on Commons are too small or not public domain: Taejo of Joseon (Yi Seong-gye), detail of his royal portrait (eojin)
-  Source:  https://commons.wikimedia.org/wiki/File:King_Taejo_Yi_01.jpg
-  Artist:  Unknown author
+  A typical Korean official, standing in for Wang Kon, whose own portraits on Commons are too small or not public domain: "Portrait of Scholar-Official An in his Fiftieth Year" by Yi Jae-gwan, 19th century
+  Source:  https://commons.wikimedia.org/wiki/File:Yi_Jaegwan_-_Portrait_of_Scholar-Official_An_in_his_Fiftieth_Year_-_Google_Art_Project.jpg
+  Artist:  Yi Jae-gwan (1783-1837)
   License: Public domain
 
 Sumeria.png (Gilgamesh)

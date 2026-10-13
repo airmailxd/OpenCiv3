@@ -107,8 +107,8 @@ SOURCES = {
               (0.006, 0.0, 0.988), 'Abu Bakr: his name in the roundel design by Kazasker Mustafa Izzet Efendi (Hagia Sophia, 19th century); no likeness of him exists, and Islamic tradition shows him by his name'),
     'Carthage': ('File:Hannibal Barca bust from Capua photo.jpg', (0.1, 0.0, 0.8),
                  'Hannibal: the marble bust found at Capua'),
-    'Korea': ('File:King Taejo Yi 01.jpg',
-             (0.18, 0.08, 0.64), 'A typical Korean king, standing in for Wang Kon, whose own portraits on Commons are too small or not public domain: Taejo of Joseon (Yi Seong-gye), detail of his royal portrait (eojin)'),
+    'Korea': ('File:Yi Jaegwan - Portrait of Scholar-Official An in his Fiftieth Year - Google Art Project.jpg',
+              (0.1, 0.25, 0.8), 'A typical Korean official, standing in for Wang Kon, whose own portraits on Commons are too small or not public domain: "Portrait of Scholar-Official An in his Fiftieth Year" by Yi Jae-gwan, 19th century'),
     'Sumeria': ('File:Gudea of Lagash Girsu.jpg',
                 (0.17, 0.03, 0.66), 'A typical Sumerian ruler, standing in for Gilgamesh, of whom no likeness survives: Gudea of Lagash, diorite statue, Louvre'),
     'Hittites': ('File:Priest-King or Diety, about 1600 BC, Hittite, North Syria, basalt with bone eyes - Cleveland Museum of Art - DSC08114.JPG',
@@ -127,7 +127,7 @@ SOURCES = {
 }
 
 # Artists Commons' metadata doesn't name, by civilization.
-ARTIST = {'Scandinavia': 'Hans Dahl'}
+ARTIST = {'Scandinavia': 'Hans Dahl', 'Korea': 'Yi Jae-gwan (1783-1837)'}
 
 # A little more for a few sources: contrast for a faded print; less
 # sharpening for small sources scaled up, so they don't get an artificial
@@ -147,18 +147,18 @@ PAINT = {
     # Hand-drawn outlines (polygons, in fractions of the tile) where the
     # mask can't find the sitter's edge: outside them is all painted ground
     # (with hand_only, inside them is all sitter).
-    'Rome': {'broad': 140, 'keep': 0.5, 'color': 0.45, 'hand_only': True, 'edge': 3,
+    'Rome': {'broad': 140, 'keep': 0.5, 'color': 0.45, 'hand_only': True, 'edge': 6, 'shrink': 1,
              'hand': [[(0.29, 0.3), (0.34, 0.1), (0.45, 0.04), (0.6, 0.03), (0.72, 0.06), (0.78, 0.15), (0.78, 0.38),
-                       (0.74, 0.62), (0.8, 0.74), (0.88, 0.82), (0.9, 1), (0.27, 1), (0.28, 0.8), (0.3, 0.66),
+                       (0.71, 0.6), (0.77, 0.74), (0.88, 0.82), (0.9, 1), (0.27, 1), (0.28, 0.8), (0.3, 0.66),
                        (0.29, 0.5)]]},
     # statues before a light wall: the sitter's outline pulled in further,
     # so no light rim of the wall glows round the head
     'Babylon': {'erode': 15, 'plain': 1.0, 'edge': 7, 'shrink': 2},
-    'Hittites': {'erode': 8, 'hand_only': True, 'level': 0.36, 'local': 1.5, 'feather': 4, 'edge': 7, 'shrink': 4, 'bg': 1.0,
+    'Hittites': {'erode': 8, 'hand_only': True, 'level': 0.36, 'local': 1.5, 'feather': 4, 'edge': 9, 'shrink': 5, 'bg': 1.0,
                  'hand': [[(0.24, 0.42), (0.3, 0.25), (0.42, 0.06), (0.5, 0.0), (0.58, 0.04), (0.72, 0.25), (0.8, 0.45),
                            (0.86, 0.6), (0.82, 0.68), (0.8, 0.8), (0.75, 0.9), (0.72, 1), (0.3, 1), (0.26, 0.85),
                            (0.24, 0.7), (0.22, 0.55)]]},
-    'Sumeria': {'erode': 15, 'edge': 6, 'shrink': 2},
+    'Sumeria': {'erode': 12, 'edge': 8, 'shrink': 3},
     'Greece': {'hand_only': True,
                'hand': [[(0.16, 0.3), (0.19, 0.15), (0.3, 0.09), (0.55, 0.08), (0.75, 0.13), (0.85, 0.22), (0.89, 0.5),
                          (0.86, 1), (0.22, 1), (0.16, 0.65)]]},
@@ -171,15 +171,17 @@ PAINT = {
     # a pale face on pale silk the mask can't tell apart
     # a pale face on pale silk: the whole picture darkened first, and an
     # outline for the hat, face and shoulders, which the mask can't find
-    'Korea': {'bg': 0.0, 'surround': 1.0, 'wallgrade': 0.0, 'around': (0.51, 0.42, 0.2, 0.36), 'deep': 0.8,
-              'gamma': 1.6, 'color': 0.6, 'local': 2.0, 'keep': 0.9, 'level': 0.30, 'collar': (0.66, 0.84),
-              'post': 0.75},
+    # the white collar and beard match the paper: a hand outline
+    'Korea': {'edge': 3, 'hand_only': True, 'feather': 3,
+              'hand': [[(0.39, 0.08), (0.61, 0.08), (0.62, 0.27), (0.8, 0.27), (0.84, 0.32), (0.82, 0.4), (0.64, 0.42),
+                        (0.63, 0.55), (0.68, 0.61), (0.9, 0.75), (1, 0.82), (1, 1), (0, 1), (0, 0.85), (0.15, 0.72),
+                        (0.32, 0.61), (0.36, 0.55), (0.35, 0.42), (0.18, 0.4), (0.16, 0.32), (0.2, 0.27), (0.38, 0.27)]]},
     # photographs: more of the real picture kept on the face, so the
     # strokes don't break skin into patches
     'America': {'keep': 0.55, 'erode': 30, 'feather': 3},
     'China': {'keep': 0.65},
     'India': {'keep': 0.65},
-    'Mongols': {'color': 0.35, 'level': 0.30, 'keep': 0.8, 'feather': 3, 'edge': 5, 'shrink': 3, 'bg': 1.0,
+    'Mongols': {'color': 0.35, 'level': 0.30, 'keep': 0.8, 'feather': 3, 'edge': 8, 'shrink': 4, 'bg': 1.0,
                 'hand': [[(0.22, 0.6), (0.24, 0.25), (0.33, 0.1), (0.5, 0.05), (0.67, 0.1), (0.78, 0.25), (0.84, 0.6),
                           (1, 0.7), (1, 1), (0, 1), (0, 0.7)]]},
     'Japan': {'edge': 6, 'shrink': 2, 'feather': 5, 'texture': 0.3, 'broad': 140,
