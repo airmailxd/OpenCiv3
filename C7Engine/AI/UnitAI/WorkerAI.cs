@@ -114,9 +114,13 @@ namespace C7Engine {
 			// Don't send several workers to the same tile: skip tiles another
 			// of our workers is already heading to or working on.
 			HashSet<Tile> reservedTiles = new();
+			bool colonyTrip = false;
+			bool outpostTrip = false;
 			registry.ForEachActive(player, otherWorker => {
 				if (otherWorker.data.worker != unit && otherWorker.data.destination != null) {
 					reservedTiles.Add(otherWorker.data.destination);
+					colonyTrip |= otherWorker.data.buildColony;
+					outpostTrip |= otherWorker.data.workerMove?.Improvement?.key == Tile.TileOverlays.OUTPOST;
 				}
 			});
 
@@ -124,6 +128,29 @@ namespace C7Engine {
 			// every tile it can reach, which is kept for the next question
 			// rather than done again for each distance and list.
 			using ReachableTiles reachable = new();
+
+			// Now and then a worker founds a colony or builds an outpost
+			// (see WorkerHoldingsAI).
+			PathingAlgorithm algorithm = null;
+			List<Tile> colonySites = WorkerHoldingsAI.ColonySites(unit, player, colonyTrip);
+			if (colonySites.Count > 0) {
+				algorithm = PathingAlgorithmChooser.GetAlgorithm(unit);
+				int index = algorithm.FindFirstReachable(unit.location, colonySites, unit, reachable, out TilePath path);
+				if (index >= 0) {
+					WorkerAIData colony = MakePlan(unit, colonySites[index], null, path);
+					colony.buildColony = true;
+					return colony;
+				}
+			}
+			List<Tile> outpostSites = WorkerHoldingsAI.OutpostSites(unit, player, outpostTrip);
+			if (outpostSites.Count > 0) {
+				algorithm ??= PathingAlgorithmChooser.GetAlgorithm(unit);
+				int index = algorithm.FindFirstReachable(unit.location, outpostSites, unit, reachable, out TilePath path);
+				if (index >= 0) {
+					return MakePlan(unit, outpostSites[index], WorkerHoldingsAI.OutpostTerraform(unit), path);
+				}
+			}
+
 			WorkerAIData? result = GetPlanToImproveNearestUnimproved(unit, player, highPriorityTiles, reservedTiles, reachable);
 			if (result != null) {
 				return result;
@@ -188,7 +215,20 @@ namespace C7Engine {
 
 			// If we're at the destination, do our planned move.
 			if (unit.location == data.destination) {
+				if (data.buildColony) {
+					return FoundColony(unit);
+				}
 				return PerformWorkerMove(unit, data.workerMove);
+			}
+
+			// On the way to a colony, the worker only builds roads, which
+			// link the colony to our cities.
+			if (data.buildColony) {
+				Terraform? road = unit.location.HasRoad() ? null : RoadTerraform(unit, unit.location);
+				if (road != null) {
+					return PerformWorkerMove(unit, road);
+				}
+				return this.TryToMoveAlongPath(unit, ref data.pathToDestination);
 			}
 
 			// Otherwise we're moving towards our actual goal. To avoid wasting
@@ -212,12 +252,37 @@ namespace C7Engine {
 			return ComputeTileImprovement(t, unit);
 		}
 
-		// TODO: Colonies. A worker could found a colony (MapUnit.BuildColony)
-		// on a strategic or luxury resource the civ lacks just outside its
-		// borders, and road it to a city. That needs choosing which worker to
-		// give up and sending it beyond the borders, which this AI doesn't
-		// plan for yet; outposts (scored 0, see terraforms.ai_score.default)
-		// are never built by it either.
+		// The terraform that builds a road on the tile, if the unit can.
+		private static Terraform? RoadTerraform(MapUnit unit, Tile t) {
+			foreach (Terraform terraform in EngineStorage.gameData.Terraforms) {
+				if (terraform.ProvidesRoad() && unit.CanPerformTerraformAction(terraform, t)) {
+					return terraform;
+				}
+			}
+			return null;
+		}
+
+		// At the colony's site, the worker roads the tile, so the trade
+		// network reaches the resource, and then founds the colony, which
+		// uses it up.
+		private static UnitAI.Result FoundColony(MapUnit unit) {
+			if (!unit.location.CanTakeColony(unit.owner)) {
+				return UnitAI.Result.Done;
+			}
+			if (!unit.location.HasRoad() && RoadTerraform(unit, unit.location) is Terraform road) {
+				unit.PerformTerraformAction(road);
+				return UnitAI.Result.InProgress;
+			}
+			if (!unit.CanBuildColony()) {
+				return UnitAI.Result.InProgress;
+			}
+			unit.BuildColony();
+			return UnitAI.Result.Done;
+		}
+
+		// Colonies and outposts (whose terraform scores 0, see
+		// terraforms.ai_score.default) are planned in WorkerHoldingsAI, not
+		// here.
 		private static Terraform? ComputeTileImprovement(Tile t, MapUnit unit) {
 			if (!t.IsLand()) {
 				return null;
