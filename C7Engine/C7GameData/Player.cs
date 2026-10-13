@@ -1296,6 +1296,11 @@ namespace C7GameData {
 				c.UpdateResistance(gameData);
 				c.HandleCityGrowth(gameData);
 				c.HandleCityProduction(gameData);
+				Tile polluted = c.MaybePollute(gameData);
+				if (polluted != null && IsToldNews) {
+					// Civ3's Script.txt, POLLUTION.
+					new MsgShowDomesticAdvisorPopup(this, $"Pollution strikes {c.name}.").send();
+				}
 			}
 		}
 

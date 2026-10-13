@@ -43,6 +43,17 @@ public partial class Tile {
 			tile.overlays.Add(craters);
 	}
 
+	// Pollution, as from a city (see City.MaybePollute). Returns whether it
+	// was added.
+	public static bool TryAddPollution(Tile tile) {
+		var pollution = FindTerrainImprovement(POLLUTION);
+		if (pollution == null)
+			return false;
+		tile.overlays.Add(pollution);
+		TileChangeJournal.Record(tile);
+		return true;
+	}
+
 	// Nuclear fallout, left by nuclear detonations. Returns whether it was added.
 	public static bool TryAddFallout(Tile tile) {
 		var fallout = FindTerrainImprovement(FALLOUT);

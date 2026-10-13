@@ -2113,6 +2113,8 @@ namespace C7GameData {
 				(bldg.PaysTradeMaintenance, SaveBuilding.Flag.PaysTradeMaintenance),
 				(bldg.AllowsEnemyTerritoryHealing, SaveBuilding.Flag.AllowsEnemyTerritoryHealing),
 				(bldg.ReducesWarWeariness, SaveBuilding.Flag.ReducesWarWeariness),
+				(bldg.RemovesPopulationPollution, SaveBuilding.Flag.RemovesPopulationPollution),
+				(bldg.ReducesBuildingPollution, SaveBuilding.Flag.ReducesBuildingPollution),
 				(bldg.ReducedWarWeariness, SaveBuilding.Flag.ReducesWarWearinessEverywhere),
 				(bldg.ContinentalMoodEffects, SaveBuilding.Flag.ContinentalMoodEffects),
 				(bldg.SafeSeaTravel, SaveBuilding.Flag.SafeSeaTravel),

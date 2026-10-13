@@ -1230,17 +1230,90 @@ namespace C7GameData {
 
 		// The pollution the city's buildings add to it, from the BIQ's
 		// per-building pollution value (e.g. the Iron Works' 4).
-		//
-		// TODO: nothing consumes this yet. Civ3's city pollution (from
-		// population and production, reduced by the Mass Transit System and
-		// Recycling Center) and the chance of polluting tiles it drives aren't
-		// implemented.
 		public int BuildingPollution() {
 			int result = 0;
 			foreach (CityBuilding cb in EffectiveBuildings()) {
 				result += cb.building.pollution;
 			}
 			return result;
+		}
+
+		// The city's pollution icons ("triangles"), each a 1% chance a turn
+		// that pollution strikes the city (see MaybePollute). From
+		// https://alt.games.civ3.narkive.com/xmuzDw5z/civ-3-pollution-reduction:
+		// "Each population point above 12 will produce 1 pollution icon in
+		// the city display"; "Certain buildings produce pollution icons. For
+		// example... a factory will always produce 2 pollution icons"; mass
+		// transit "eliminates all but 1 pollution icons due to population";
+		// a recycling center "removes all but 1 icon due to improvements";
+		// "each icon represents a 1% chance of pollution hitting that city
+		// each turn". The same "one pollution point for each citizen over
+		// 12 in a city, plus those from buildings" is in
+		// https://steamcommunity.com/sharedfiles/filedetails/?id=1265159547,
+		// "it will only cut it down to 1 for pop and 1 for buildings" and
+		// population pollution "linked to city size level 3, i.e. ... only
+		// ... in a metropolis" in
+		// https://forums.civfanatics.com/threads/pollution-from-population.299975/,
+		// so the 12 is the BIQ's largest size-2 city. The Conquests
+		// Civilopedia: "The Mass Transit System reduces pollution caused by
+		// population", "The Recycling Center decreases pollution caused by
+		// city improvements" (the BIQ's two pollution flags).
+		public int PollutionIcons(Rules rules) {
+			int population = Math.Max(0, residents.Count - rules.MaximumLevel2CitySize);
+			int buildingPollution = 0;
+			bool removesPopulation = false;
+			bool reducesBuildings = false;
+			foreach (CityBuilding cb in EffectiveBuildings()) {
+				buildingPollution += cb.building.pollution;
+				removesPopulation |= cb.building.removesPopulationPollution;
+				reducesBuildings |= cb.building.reducesBuildingPollution;
+			}
+			if (removesPopulation) {
+				population = Math.Min(population, 1);
+			}
+			if (reducesBuildings) {
+				buildingPollution = Math.Min(buildingPollution, 1);
+			}
+			return population + Math.Max(0, buildingPollution);
+		}
+
+		// Called once a turn: with a chance of 1% per pollution icon,
+		// pollution strikes one of the city's tiles, which is returned.
+		//
+		// UNVERIFIED (simplest consistent behaviour): which tile. A random
+		// land tile in the city's work radius, other than the city's own
+		// ("a tile outside your city",
+		// https://apolyton.net/forum/miscellaneous/archives/civ3-strategy-archive-aa/54340-pollution),
+		// that isn't already polluted; none, no pollution.
+		//
+		// Global warming isn't modelled. The Conquests Civilopedia
+		// (GCON_Pollution) says only that "If world pollution reaches
+		// sufficiently critical levels, there is a chance that global warming
+		// will occur. It can cause forests and jungles to disappear, and
+		// grasslands to become plains, and plains to become desert. World
+		// pollution is the sum of all city pollution, nuclear explosions, and
+		// meltdowns"; no source found gives the level or the chance.
+		public Tile MaybePollute(GameData gameData) {
+			int icons = PollutionIcons(gameData.rules);
+			// No draw without icons, so cities that can't pollute leave the
+			// random numbers alone.
+			if (icons <= 0 || GameData.rng.Next(100) >= icons) {
+				return null;
+			}
+			List<Tile> candidates = new();
+			foreach (Tile t in GetTilesOfRank(gameData.rules.MaxRankOfWorkableTiles)) {
+				if (t != location && t != Tile.NONE && !t.IsWater() && !t.HasPollution()) {
+					candidates.Add(t);
+				}
+			}
+			if (candidates.Count == 0) {
+				return null;
+			}
+			Tile tile = candidates[GameData.rng.Next(candidates.Count)];
+			if (!Tile.TryAddPollution(tile)) {
+				return null;
+			}
+			return tile;
 		}
 
 		public CommerceBreakdown CurrentCommerceYieldRaw(bool respectCivilDisorder = true) {

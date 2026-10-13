@@ -63,6 +63,9 @@ namespace C7GameData {
 		public bool providesVeteranAirUnits;
 		public bool allowsEnemyTerritoryHealing;
 		public bool reducesWarWeariness;
+		// See City.PollutionIcons.
+		public bool removesPopulationPollution;
+		public bool reducesBuildingPollution;
 		public bool reducesWarWearinessEverywhere;
 		public bool treasuryEarnsInterest;
 		public bool paysTradeMaintenance;
@@ -176,6 +179,8 @@ namespace C7GameData {
 			providesVeteranAirUnits = building.flags.Contains(SaveBuilding.Flag.VeteranAirUnits);
 			allowsEnemyTerritoryHealing = building.flags.Contains(SaveBuilding.Flag.AllowsEnemyTerritoryHealing);
 			reducesWarWeariness = building.flags.Contains(SaveBuilding.Flag.ReducesWarWeariness);
+			removesPopulationPollution = building.flags.Contains(SaveBuilding.Flag.RemovesPopulationPollution);
+			reducesBuildingPollution = building.flags.Contains(SaveBuilding.Flag.ReducesBuildingPollution);
 			reducesWarWearinessEverywhere = building.flags.Contains(SaveBuilding.Flag.ReducesWarWearinessEverywhere);
 			treasuryEarnsInterest = building.flags.Contains(SaveBuilding.Flag.TreasuryEarnsInterest);
 			paysTradeMaintenance = building.flags.Contains(SaveBuilding.Flag.PaysTradeMaintenance);

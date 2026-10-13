@@ -9098,6 +9098,9 @@
       "pollution": 0,
       "bombardDefense": 0,
       "unitFrequency": 0,
+      "flags": [
+        "reducesBuildingPollution"
+      ],
       "traits": [
         "agricultural"
       ]
@@ -9256,6 +9259,9 @@
       "pollution": 0,
       "bombardDefense": 0,
       "unitFrequency": 0,
+      "flags": [
+        "removesPopulationPollution"
+      ],
       "requiredResources": [
         "Rubber"
       ]
