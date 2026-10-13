@@ -114,9 +114,9 @@ Spain.png (Isabella)
   License: Public domain
 
 Scandinavia.png (Ragnar Lodbrok)
-  A typical Viking, standing in for Ragnar Lodbrok, of whom no likeness survives: an old sailor in "Leiv Eirikson discovering America" by Christian Krohg, 1893
-  Source:  https://commons.wikimedia.org/wiki/File:Christian_Krohg_-_Leiv_Eirikson_discovering_America_-_Google_Art_Project.jpg
-  Artist:  Christian Krohg
+  A typical Viking chieftain, standing in for Ragnar Lodbrok, of whom no likeness survives: Leif Erikson in "Leif Erikson Discovers America" by Hans Dahl
+  Source:  https://commons.wikimedia.org/wiki/File:Leif_Erikson_Discovers_America_Hans_Dahl.jpg
+  Artist:  unknown
   License: Public domain
 
 Ottomans.png (Osman)
@@ -156,10 +156,10 @@ Sumeria.png (Gilgamesh)
   License: CC0
 
 Hittites.png (Mursilis)
-  A typical ancient Near Eastern king, standing in for Mursilis, of whom no likeness survives: "Man in Oriental Garment" by Rembrandt, about 1635
-  Source:  https://commons.wikimedia.org/wiki/File:Man_in_Oriental_Garment,_by_Rembrandt_van_Rijn.jpg
-  Artist:  Rembrandt
-  License: Public domain
+  A typical Hittite king, standing in for Mursilis, of whom no likeness survives: basalt statue of a priest-king with bone eyes, about 1600 BC, Cleveland Museum of Art
+  Source:  https://commons.wikimedia.org/wiki/File:Priest-King_or_Diety,_about_1600_BC,_Hittite,_North_Syria,_basalt_with_bone_eyes_-_Cleveland_Museum_of_Art_-_DSC08114.JPG
+  Artist:  Daderot
+  License: CC0
 
 Netherlands.png (William)
   William the Silent by Adriaen Thomasz. Key, about 1579
