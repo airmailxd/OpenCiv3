@@ -123,12 +123,12 @@ def _orientation(lum, n):
     return np.cos(theta), np.sin(theta)
 
 
-def brush_texture(lum, n, seed, length=None, direction=None):
+def brush_texture(lum, n, seed, length=None, direction=None, blur=0.7):
     """Noise smeared along the contours (or one direction): short strokes
     that follow forms."""
     rng = np.random.default_rng(seed)
     noise = rng.random((n, n)).astype(np.float32)
-    noise = nd.gaussian_filter(noise, 0.7)
+    noise = nd.gaussian_filter(noise, blur)
     if direction is None:
         cx, cy = _orientation(lum, n)
     else:
@@ -166,7 +166,7 @@ def backdrop(n, seed):
 
 
 def paint(img, seed=0, strength=1.0, oval=1.0, keep=0.4, broad=70, bg=0.92, color=0.75, erode=60, level=0.42,
-          fixed=None, plain=None):
+          fixed=None, plain=None, contrast=1.0, texture=1.0, green=None, hand=None):
     """The painted finish on a PIL RGB picture (returns float RGB 0..1).
     Per picture: oval, how sure the center is the sitter (lower for a
     sitter before a bright wall, which would glow); keep, how much of the
@@ -175,7 +175,19 @@ def paint(img, seed=0, strength=1.0, oval=1.0, keep=0.4, broad=70, bg=0.92, colo
     bg, how much of the old background the painted ground replaces."""
     a = np.asarray(img, np.float32) / 255
     n = a.shape[0]
+    if contrast != 1.0:
+        a = np.clip((a - a.mean()) * contrast + a.mean(), 0, 1)
     mask, wall = subject_mask(a, oval, erode, plain)
+    if hand:
+        # a hand-placed outline: polygons (in fractions of the side) of the
+        # sitter; outside them is background whatever the mask thought
+        from PIL import Image as _I, ImageDraw as _D
+        im = _I.new('L', (n, n), 0)
+        for poly in hand:
+            _D.Draw(im).polygon([(x * n, y * n) for x, y in poly], fill=255)
+        hm = nd.gaussian_filter(np.asarray(im, np.float32) / 255, n / 120)
+        mask = hm
+        wall = 1 - hm
     if fixed:
         # a sitter the mask can't find (pale on pale paper): a fixed soft
         # silhouette, an oval head over wide shoulders, (cx, cy, rx, ry)
@@ -202,7 +214,7 @@ def paint(img, seed=0, strength=1.0, oval=1.0, keep=0.4, broad=70, bg=0.92, colo
         # the shared key, with the picture's own (somewhat calmer) color
         # (strong colors limited, so no face goes neon)
         c = np.linalg.norm(chroma, axis=-1, keepdims=True)
-        chroma = chroma * np.minimum(1, 0.3 / (c + 1e-6))
+        chroma = chroma * np.minimum(1, 0.18 / (c + 1e-6))
         p = (mapped * 0.55 + lum[..., None] * 0.45) + chroma * color
     else:                                        # black and white: all gradient map
         p = mapped
@@ -219,13 +231,36 @@ def paint(img, seed=0, strength=1.0, oval=1.0, keep=0.4, broad=70, bg=0.92, colo
     # (the ground takes over quickly past the sitter's edge, so no rim of the
     # old wall shows in the soft band between)
     bg_share = np.maximum(1 - mask, wall * 0.9)[..., None] * bg * strength
+    # light rims: in the soft band at the sitter's edge, anything lighter
+    # than both the sitter nearby and the ground is old wall: ground it
+    core = mask > 0.7
+    ring = nd.binary_dilation(core, iterations=max(2, n // 40)) & ~core
+    band = ring & (mask < 0.6)
+    lp0 = _luma(np.clip(p, 0, 1))
+    inner = nd.grey_erosion(np.where(mask > 0.7, lp0, 0), size=3)
+    local = nd.maximum_filter(np.where(mask > 0.7, lp0, 0), size=max(5, n // 25))
+    lim = np.maximum(np.maximum(local, inner) * 0.95, _luma(bd))
+    rim = band & (lp0 > lim)
+    rimw = nd.gaussian_filter(rim.astype(np.float32), 1.5)[..., None]
+    bg_share = np.maximum(bg_share, rimw * bg)
     p = p * (1 - bg_share) + bd * bg_share
+    if green is not None:
+        # (a green field, like Abu Bakr's roundel: dimmed and turned toward
+        # an aged verdigris in the umber key)
+        lg = _luma(np.clip(p, 0, 1))[..., None]
+        isg = np.clip((p[..., 1] - np.maximum(p[..., 0], p[..., 2])) * 20, 0, 1)[..., None]
+        verd = lg * np.array([1.0, 0.9, 0.62], np.float32) * 0.7
+        p = p * (1 - isg) + (p * green + verd * (1 - green)) * isg
     # brush texture: faint strokes along the forms on the subject, a
     # crisscrossed brushed ground behind
     lp = _luma(np.clip(p, 0, 1))
     tex_fig = brush_texture(lp, n, seed)
-    tex_bg = brush_texture(lp, n, seed + 1, length=max(6, n // 25), direction=0.9)
-    p = p * (1 + (tex_fig * 0.022 * mask + tex_bg * 0.035 * (1 - mask)) * strength)[..., None]
+    tex_bg = brush_texture(lp, n, seed + 1, length=max(10, n // 14), direction=0.9, blur=1.5)
+    # (strokes on the sitter only where the source has detail: smooth skin
+    # gets none, so no streaks across cheeks)
+    det = nd.gaussian_filter(np.hypot(nd.sobel(_luma(a), 0), nd.sobel(_luma(a), 1)), 3)
+    det = np.clip(det / (np.percentile(det, 75) + 1e-6), 0, 1)
+    p = p * (1 + (tex_fig * 0.010 * texture * det * mask + tex_bg * 0.018 * (1 - mask)) * strength)[..., None]
     # impasto: the strokes catch the light from the upper left a little
     height = nd.gaussian_filter(tex_fig * mask + tex_bg * (1 - mask), 0.8)
     shade = nd.sobel(height, 1) * -0.7 + nd.sobel(height, 0) * -0.7
@@ -233,5 +268,5 @@ def paint(img, seed=0, strength=1.0, oval=1.0, keep=0.4, broad=70, bg=0.92, colo
     # canvas weave
     y, x = np.mgrid[0:n, 0:n].astype(np.float32)
     weave = np.sin(x * 2.1) * np.sin(y * 2.1)
-    p = p * (1 + 0.012 * strength * weave)[..., None]
+    p = p * (1 + 0.005 * strength * weave)[..., None]
     return np.clip(p, 0, 1)

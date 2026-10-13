@@ -66,7 +66,7 @@ SOURCES = {
     'Egypt': ('File:Cleopatra-VII-Antikensammlung-Berlin.jpg', (0.12, 0.18, 0.86),
               'Cleopatra VII: the "Berlin Cleopatra", a Roman marble portrait of about 40-30 BC'),
     'Greece': ('File:Bust Alexander BM 1857.jpg',
-              (0.0, 0.1, 1.0), 'Alexander the Great: Hellenistic marble head in the British Museum'),
+              (0.0, 0.06, 1.0), 'Alexander the Great: Hellenistic marble head in the British Museum'),
     'Babylon': ('File:Tête royale dite tête de Hammurabi - Musée du Louvre Antiquités orientales SB 95.jpg',
                 (0.05, 0.05, 0.90), 'Hammurabi: the diorite royal head known as the "head of Hammurabi", Louvre'),
     'Germany': ('File:Franz von Lenbach - Bildnis Otto Eduard Leopold von Bismarck (Indianapolis).jpg',
@@ -94,33 +94,33 @@ SOURCES = {
     'England': ('File:Darnley stage 3.jpg', (0.17, 0.0, 0.52),
                 'Elizabeth I: the "Darnley Portrait", about 1575'),
     'Mongols': ('File:YuanEmperorAlbumGenghisPortrait.jpg',
-               (0.2, 0.3, 0.6), "Genghis Khan (Temujin): portrait from the Yuan emperors' album, National Palace Museum, Taipei"),
+               (0.125, 0.24, 0.75), "Genghis Khan (Temujin): portrait from the Yuan emperors' album, National Palace Museum, Taipei"),
     'Spain': ('File:Juan de Flandes - Isabel la Católica (Palacio Real, Madrid, 1500-04. Óleo sobre tabla, 63 x 55 cm).jpg',
               (0.1, 0.05, 0.8), 'Isabella I of Castile by Juan de Flandes, about 1500'),
     'Scandinavia': ('File:Leif Erikson Discovers America Hans Dahl.jpg',
                    (0.295, 0.11, 0.14), 'A typical Viking chieftain, standing in for Ragnar Lodbrok, of whom no likeness survives: Leif Erikson in "Leif Erikson Discovers America" by Hans Dahl'),
     'Ottomans': ('File:Paolo Veronese (Nachfolger) - Sultan Osman I. - 2242 - Bavarian State Painting Collections.jpg',
-                (0.17, 0.22, 0.7), 'Osman I, 16th-century Venetian portrait (follower of Paolo Veronese)'),
+                (0.135, 0.19, 0.77), 'Osman I, 16th-century Venetian portrait (follower of Paolo Veronese)'),
     'Celts': ('File:Le Brenn et sa part de butin (Paul Jamin).jpg',
-             (0.07, 0.13, 0.2), 'Brennus: detail of "Le Brenn et sa part de butin" by Paul Jamin, 1893'),
+             (0.09, 0.13, 0.2), 'Brennus: detail of "Le Brenn et sa part de butin" by Paul Jamin, 1893'),
     'Arabia': ('File:Abu Bakr Caliph Calligraphy.png',
               (0.006, 0.0, 0.988), 'Abu Bakr: his name in the roundel design by Kazasker Mustafa Izzet Efendi (Hagia Sophia, 19th century); no likeness of him exists, and Islamic tradition shows him by his name'),
     'Carthage': ('File:Hannibal Barca bust from Capua photo.jpg', (0.1, 0.0, 0.8),
                  'Hannibal: the marble bust found at Capua'),
-    'Korea': ('File:Taejo Wangkun.jpg',
-             (0.3, 0.06, 0.36), 'Wang Kon (Taejo of Goryeo): royal portrait at Sungeuijeon, a copy (before 1950) of a Joseon-era painting'),
+    'Korea': ('File:King Taejo Yi 01.jpg',
+             (0.18, 0.08, 0.64), 'A typical Korean king, standing in for Wang Kon, whose own portraits on Commons are too small or not public domain: Taejo of Joseon (Yi Seong-gye), detail of his royal portrait (eojin)'),
     'Sumeria': ('File:Gudea of Lagash Girsu.jpg',
                 (0.17, 0.03, 0.66), 'A typical Sumerian ruler, standing in for Gilgamesh, of whom no likeness survives: Gudea of Lagash, diorite statue, Louvre'),
     'Hittites': ('File:Priest-King or Diety, about 1600 BC, Hittite, North Syria, basalt with bone eyes - Cleveland Museum of Art - DSC08114.JPG',
-                (0.36, 0.13, 0.27), 'A typical Hittite king, standing in for Mursilis, of whom no likeness survives: basalt statue of a priest-king with bone eyes, about 1600 BC, Cleveland Museum of Art'),
+                (0.345, 0.115, 0.3), 'A typical Hittite king, standing in for Mursilis, of whom no likeness survives: basalt statue of a priest-king with bone eyes, about 1600 BC, Cleveland Museum of Art'),
     'Netherlands': ('File:William I, Prince of Orange by Adriaen Thomasz. Key Rijksmuseum Amsterdam SK-A-3148.jpg',
                     (0.1, 0.05, 0.8), 'William the Silent by Adriaen Thomasz. Key, about 1579'),
-    'Portugal': ('File:Henry the Navigator1.jpg', (0.0, 0.0, 1.0),
+    'Portugal': ('File:Henry the Navigator1.jpg', (0.06, 0.0, 0.94),
                  'Henry the Navigator: detail of the Saint Vincent Panels by Nuno Goncalves, 1470s'),
     'Byzantines': ('File:Mosaic of empress Theodora, Ravenna, San Vitale, 547.jpg', (0.15, 0.10, 0.62),
                    'Empress Theodora: mosaic in the Basilica of San Vitale, Ravenna, 547'),
     'Inca': ('File:Brooklyn Museum - Pachacuti, Tenth Inca, 1 of 14 Portraits of Inca Kings (cropped).jpg',
-            (0.27, 0.21, 0.46), 'Pachacuti: Cuzco School painting, 18th century (Brooklyn Museum)'),
+            (0.25, 0.16, 0.5), 'Pachacuti: Cuzco School painting, 18th century (Brooklyn Museum)'),
     'Maya': ('File:Mayan - Stucco Portrait Head - Walters 20092026.jpg',
             (0.1, 0.12, 0.84), 'A typical Maya noble, standing in for Smoke-Jaguar, of whom no likeness is in the public domain: Classic Maya stucco portrait head from Campeche, Walters Art Museum'),
 }
@@ -136,7 +136,6 @@ ARTIST = {'Scandinavia': 'Hans Dahl'}
 # with a dark warm tone.
 TOUCH = {
     'Zululand': {'contrast': 1.15, 'sharpen': 20},
-    'Korea': {'sharpen': 20},
     'Scandinavia': {'sharpen': 20},
     'Celts': {'sharpen': 15},
     'Arabia': {'color': 0.4, 'disc': True},
@@ -144,23 +143,34 @@ TOUCH = {
 }
 # The painted finish (paint.py) adjusted for a few pictures: see paint.paint.
 PAINT = {
-    'Rome': {'broad': 140, 'keep': 0.5},
+    'Rome': {'broad': 140, 'keep': 0.5, 'color': 0.45},
     # statues before a light wall: the sitter's outline pulled in further,
     # so no light rim of the wall glows round the head
-    'Babylon': {'erode': 22, 'plain': 1.0},
-    'Hittites': {'oval': 0.6, 'erode': 25},
+    'Babylon': {'erode': 15, 'plain': 1.0},
+    'Hittites': {'oval': 0.6, 'erode': 15},
+    'Sumeria': {'erode': 15},
     'Greece': {'erode': 30},
-    'Zululand': {'erode': 30},
-    # a small, pale old painting on pale paper, where the mask finds nothing:
-    # a fixed silhouette, and its own strokes kept
-    'Korea': {'bg': 0.9, 'keep': 1.0, 'fixed': (0.55, 0.36, 0.27, 0.36), 'level': 0.3},
+    # a print: all in the shared key, like the black and white photographs
+    'Zululand': {'erode': 30, 'color': 0.0},
+    # a pale face on pale silk the mask can't tell apart: a hand-drawn
+    # outline (hat, face, shoulders, in fractions of the tile)
+    'Korea': {'keep': 0.9, 'color': 0.6, 'contrast': 1.3, 'level': 0.36,
+              'hand': [[(0.385, 0.05), (0.635, 0.05), (0.69, 0.21), (0.68, 0.36), (0.665, 0.5), (0.63, 0.7),
+                        (1, 0.8), (1, 1), (0, 1), (0, 0.8), (0.34, 0.7), (0.315, 0.5), (0.31, 0.36),
+                        (0.32, 0.21)]]},
     # photographs: more of the real picture kept on the face, so the
     # strokes don't break skin into patches
     'America': {'keep': 0.65},
     'China': {'keep': 0.65},
     'India': {'keep': 0.65},
-    'Mongols': {'color': 0.6, 'level': 0.34},
+    'Mongols': {'color': 0.35, 'level': 0.30},
     'Byzantines': {'keep': 0.75, 'broad': 150},
+    # a busy painted cape and headdress the mask mistakes for background
+    'Aztecs': {'oval': 1.3, 'erode': 120, 'bg': 0.6, 'broad': 140},
+    'Portugal': {'level': 0.50},
+    'Inca': {'level': 0.48},
+    # Abu Bakr's roundel: its green dimmed toward an aged verdigris
+    'Arabia': {'green': 0.2, 'level': 0},
 }
 
 # The brightness every portrait's mid-tones are brought toward (0..1).
@@ -391,7 +401,7 @@ def make(civ_name, painted=False):
         import paint
         a = paint.paint(im, seed=sum(map(ord, civ_name)), **{'level': TARGET_LEVEL, **PAINT.get(civ_name, {})})
         im = Image.fromarray((a * 255 + 0.5).astype(np.uint8), 'RGB').resize((SIZE, SIZE), Image.LANCZOS)
-        sharpen = min(sharpen, 30)
+        sharpen = 0   # (sharpening brightens the ground's edge into rims)
     return finish(im, sharpen=sharpen, level=not painted), info
 
 

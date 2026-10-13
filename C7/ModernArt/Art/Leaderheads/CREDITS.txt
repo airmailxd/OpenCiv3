@@ -146,9 +146,9 @@ Carthage.png (Hannibal)
   License: Public domain
 
 Korea.png (Wang Kon)
-  Wang Kon (Taejo of Goryeo): royal portrait at Sungeuijeon, a copy (before 1950) of a Joseon-era painting
-  Source:  https://commons.wikimedia.org/wiki/File:Taejo_Wangkun.jpg
-  Artist:  User:Dikinodon
+  A typical Korean king, standing in for Wang Kon, whose own portraits on Commons are too small or not public domain: Taejo of Joseon (Yi Seong-gye), detail of his royal portrait (eojin)
+  Source:  https://commons.wikimedia.org/wiki/File:King_Taejo_Yi_01.jpg
+  Artist:  Unknown author
   License: Public domain
 
 Sumeria.png (Gilgamesh)
