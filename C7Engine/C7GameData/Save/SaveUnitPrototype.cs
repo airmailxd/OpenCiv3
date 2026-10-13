@@ -53,6 +53,19 @@ namespace C7GameData.Save {
 			Stealth,
 			// A city may draft the unit (the BIQ's PRTO "Draft" flag).
 			Draftable,
+			// The unit is invisible (the BIQ's PRTO "Invisible" flag, which
+			// QueryCiv3 calls Submarine): other players see it only with a
+			// unit that detects invisible units nearby.
+			Invisible,
+			// The unit sees invisible units (the BIQ's "Detect Invisible",
+			// QueryCiv3's CanSeeSubmarines).
+			DetectInvisible,
+			// The unit flies no flag: it attacks, and is attacked, without
+			// war (the BIQ's "Hidden Nationality"; the Privateer).
+			HiddenNationality,
+			// The unit picks which unit of a stack it attacks, from its
+			// stealth targets (the BIQ's "Stealth Attack").
+			StealthAttack,
 		}
 
 		public string name { get; set; }
@@ -89,6 +102,11 @@ namespace C7GameData.Save {
 		// doesn't enslave. See MapUnit.RollToEnslave.
 		public string enslavesTo;
 
+		// The units a stealth attack by this one may single out of a stack
+		// (the BIQ's PRTO stealth targets), by name. Null if there are
+		// none.
+		public List<string> stealthTargets;
+
 		// Assorted boolean flags for the unit prototype. They're stored in
 		// this set rather than as booleans to avoid bloating the json file.
 		public HashSet<Flag> flags = [];
@@ -115,6 +133,7 @@ namespace C7GameData.Save {
 			operationalRange = proto.operationalRange;
 			civilopediaEntry = proto.civilopediaEntry;
 			enslavesTo = proto.enslavesTo;
+			stealthTargets = proto.stealthTargets.Count > 0 ? proto.stealthTargets.ToList() : null;
 
 			if (proto.requiredTech != null)
 				requiredTech = proto.requiredTech.id;

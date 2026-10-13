@@ -156,6 +156,9 @@ namespace C7GameData {
 		// The name of the unit this one may make of a foe it defeats, or
 		// null (see MapUnit.RollToEnslave).
 		public string enslavesTo;
+		// The units a stealth attack by this one may single out of a stack,
+		// by name, in the BIQ's order (see MapUnit.StealthAttackTargets).
+		public List<string> stealthTargets = [];
 		public HashSet<SaveUnitPrototype.Flag> flags = [];
 
 		// Civ3's movement flags (https://forums.civfanatics.com/threads/is-there-a-guide-on-unit-abilities.57822/):
@@ -310,6 +313,58 @@ namespace C7GameData {
 		public bool canCarryAircraft => flags.Contains(SaveUnitPrototype.Flag.CanCarryAircraft);
 		public bool isStealth => flags.Contains(SaveUnitPrototype.Flag.Stealth);
 
+		// "[Submarines] can operate invisibly to enemy units ... However,
+		// other submarines and AEGIS Cruisers and Destroyers can see them
+		// plainly" (Civilopedia, PRTO_Submarine).
+		public bool isInvisible {
+			get => flags.Contains(SaveUnitPrototype.Flag.Invisible);
+			set {
+				if (value) {
+					flags.Add(SaveUnitPrototype.Flag.Invisible);
+				} else {
+					flags.Remove(SaveUnitPrototype.Flag.Invisible);
+				}
+			}
+		}
+
+		public bool detectsInvisible {
+			get => flags.Contains(SaveUnitPrototype.Flag.DetectInvisible);
+			set {
+				if (value) {
+					flags.Add(SaveUnitPrototype.Flag.DetectInvisible);
+				} else {
+					flags.Remove(SaveUnitPrototype.Flag.DetectInvisible);
+				}
+			}
+		}
+
+		// "Privateers are small frigates that carry no nationality
+		// markings ... Thus, you can attack another civilization's shipping
+		// without precipitating war" (Civilopedia, PRTO_Privateer).
+		public bool hasHiddenNationality {
+			get => flags.Contains(SaveUnitPrototype.Flag.HiddenNationality);
+			set {
+				if (value) {
+					flags.Add(SaveUnitPrototype.Flag.HiddenNationality);
+				} else {
+					flags.Remove(SaveUnitPrototype.Flag.HiddenNationality);
+				}
+			}
+		}
+
+		// "Stealth attack allows a unit to specify which enemy unit -- in a
+		// stack -- it will attack" (Civilopedia, GCON_Stealth_Attack).
+		public bool hasStealthAttack {
+			get => flags.Contains(SaveUnitPrototype.Flag.StealthAttack);
+			set {
+				if (value) {
+					flags.Add(SaveUnitPrototype.Flag.StealthAttack);
+				} else {
+					flags.Remove(SaveUnitPrototype.Flag.StealthAttack);
+				}
+			}
+		}
+
 		// An army is a container that carries other units into battle as a
 		// single stack, rather than fighting with strength of its own.
 		public bool isArmy {
@@ -404,6 +459,7 @@ namespace C7GameData {
 			operationalRange = proto.operationalRange;
 			civilopediaEntry = proto.civilopediaEntry;
 			enslavesTo = proto.enslavesTo;
+			stealthTargets = proto.stealthTargets?.ToList() ?? [];
 
 			categories = new HashSet<string>(proto.categories);
 			actions = new HashSet<UnitAction>(proto.actions);

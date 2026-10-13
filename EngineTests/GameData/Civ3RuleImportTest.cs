@@ -195,4 +195,35 @@ public class Civ3RuleImportTest {
 		// "A=8 for the SAM" (alexman, same thread).
 		Assert.Equal(8, game.Buildings.Single(b => b.name == "SAM Missile Battery").airPower);
 	}
+
+	// "[Submarines] can operate invisibly to enemy units ... However, other
+	// submarines and AEGIS Cruisers and Destroyers can see them plainly. In
+	// addition, Submarines have Stealth Attack" (Conquests Civilopedia,
+	// PRTO_Submarine); Privateers "carry no nationality markings"
+	// (PRTO_Privateer); F-15's have Stealth Attack (PRTO_F-15).
+	[SkippableFact]
+	public void InvisibilityStealthAttackAndHiddenNationalityAreImported() {
+		Skip.If(Civ3TestData.ShouldSkipCiv3DependentTests(), "No Civ3 install found.");
+
+		SaveGame game = ImportScenario("Scenarios", "No Civ Traits.biq");
+		SaveUnitPrototype Unit(string name) => game.UnitPrototypes.Single(p => p.name == name);
+
+		Assert.Contains(SaveUnitPrototype.Flag.Invisible, Unit("Submarine").flags);
+		Assert.Contains(SaveUnitPrototype.Flag.Invisible, Unit("Nuclear Submarine").flags);
+		Assert.DoesNotContain(SaveUnitPrototype.Flag.Invisible, Unit("Destroyer").flags);
+		foreach (string seer in new[] { "Submarine", "Nuclear Submarine", "Destroyer", "AEGIS Cruiser" }) {
+			Assert.Contains(SaveUnitPrototype.Flag.DetectInvisible, Unit(seer).flags);
+		}
+		Assert.DoesNotContain(SaveUnitPrototype.Flag.DetectInvisible, Unit("Battleship").flags);
+
+		Assert.Contains(SaveUnitPrototype.Flag.HiddenNationality, Unit("Privateer").flags);
+		Assert.DoesNotContain(SaveUnitPrototype.Flag.HiddenNationality, Unit("Frigate").flags);
+
+		Assert.Contains(SaveUnitPrototype.Flag.StealthAttack, Unit("Submarine").flags);
+		Assert.Contains(SaveUnitPrototype.Flag.StealthAttack, Unit("F-15").flags);
+		Assert.Contains("Transport", Unit("Submarine").stealthTargets);
+		Assert.DoesNotContain("Warrior", Unit("Submarine").stealthTargets);
+		Assert.DoesNotContain(SaveUnitPrototype.Flag.StealthAttack, Unit("Destroyer").flags);
+		Assert.Null(Unit("Destroyer").stealthTargets);
+	}
 }
