@@ -62,16 +62,6 @@ namespace EngineTests.AI.UnitAI {
 		}
 
 		[Fact]
-		private void SitesOnUnhealthyTerrainAreWorseThanOthers() {
-			(float spoiled, float plain) = ScoreSitesAlikeBut(site => {
-				site.overlayTerrainType.causesDisease = true;
-				site.overlayTerrainType.diseaseStrength = 50;
-				site.overlayTerrainType.diseaseCanBeCured = true;
-			});
-			Assert.True(spoiled < plain, $"{spoiled} >= {plain}");
-		}
-
-		[Fact]
 		private void HillsOverPlains() {
 			// a single hill tile surrounded by desert
 			InitilizeStartTile(MakeHillTile(), new TileLocation(56, 50));

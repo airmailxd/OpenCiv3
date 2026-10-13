@@ -140,9 +140,7 @@ namespace C7Engine {
 				score += (float)t.baseTerrainType.defenseBonus.amount * 20.0f;
 
 				// Lava from a volcano next to the site would destroy the city
-				// (see Volcano), and a city on unhealthy terrain (flood
-				// plains before Sanitation) loses citizens to disease (see
-				// Disease).
+				// (see Volcano).
 				score += SitePenalty(t, player);
 
 				// Rival cities nearby will compete for the tiles, and their
@@ -187,12 +185,11 @@ namespace C7Engine {
 			return scores;
 		}
 
-		// HEURISTIC: small penalties for a site next to a volcano and for one
-		// on terrain that gives its city disease until a tech cures it (flood
-		// plains until Sanitation). Jungle and marsh, whose disease workers
-		// end by clearing them, aren't counted.
+		// HEURISTIC: a small penalty for a site next to a volcano. Flood
+		// plain sites aren't marked down for their disease: doing so slowed
+		// expansion (the first overseas city in SettlerSailsOverseasTest came
+		// 35 turns later), and fast expansion matters more.
 		internal const float VolcanoPenalty = -20;
-		internal const float DiseasePenalty = -10;
 
 		// The (negative) score adjustment for the site's own hazards.
 		internal static float SitePenalty(Tile t, Player player) {
@@ -202,9 +199,6 @@ namespace C7Engine {
 					penalty += VolcanoPenalty;
 					break;
 				}
-			}
-			if (t.overlayTerrainType.diseaseCanBeCured && Disease.IsUnhealthy(t.overlayTerrainType, player)) {
-				penalty += DiseasePenalty;
 			}
 			return penalty;
 		}
