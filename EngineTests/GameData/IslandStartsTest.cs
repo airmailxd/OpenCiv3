@@ -145,6 +145,20 @@ public class IslandStartsTest {
 		Assert.True(shared >= 3, $"{shared} islands shared by two or more civs");
 	}
 
+	// On an archipelago, starts that needn't be coastal are as likely as
+	// not to be (owner's decision, 2026-10-12): left to the scores, almost
+	// none were.
+	[Fact]
+	public void OtherStartsOnAnArchipelagoAreOftenCoastal() {
+		int coastal = 0, starts = 0;
+		foreach (int seed in new[] { 1426963693, 1, 2, 3 }) {
+			GameMap map = Generate("Huge", WorldCharacteristics.OceanCoverage.Percent_70, seed);
+			coastal += map.startingLocations.Count(s => s.NeighborsOcean());
+			starts += map.startingLocations.Count;
+		}
+		Assert.InRange(coastal / (double)starts, .3, .75);
+	}
+
 	[Fact]
 	public void SameSeedMakesTheSameIslandsAndStarts() {
 		GameMap a = Generate("Huge", WorldCharacteristics.OceanCoverage.Percent_70, 405802261);

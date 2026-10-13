@@ -237,22 +237,28 @@ namespace C7Engine {
 		// small ones left to settle (owner's report, 2026-10-12). An island
 		// may be any size, as long as the land and water add up (owner's
 		// decision, 2026-10-12: "A long winding island with 5 civs is
-		// fine... There is no arbitrary limit"), so the islands come in
-		// three kinds, each of a random size within its range:
-		// - big islands, taking about two civs per five, each with room for
-		//   two civs or more (MapIsAcceptable counts a civ's room as half a
-		//   share), the most room drawn from those left;
-		// - middling islands, one for each civ left, and one per ten civs
-		//   more that are left empty;
+		// fine... There is no arbitrary limit"), and the owner wants
+		// "clearly large islands, several holding 2-3 civs, alongside
+		// medium and small ones, including some empty ones worth settling"
+		// (owner's report on seed 1426963693, 2026-10-12, where every
+		// island but one was 100 to 235 tiles). So the islands come in four
+		// kinds, each of a random size within its range:
+		// - big islands, one per five civs, each for two or three civs
+		//   (now and then four), with more land per civ than a home island;
+		// - home islands, one for each civ left;
+		// - islands worth settling, about two per five civs, left empty;
 		// - small islands, from the rest of the land.
-		private const double ARCHIPELAGO_BIG_ISLAND_CIVS_SHARE = .4;
-		private const double ARCHIPELAGO_BIG_ISLAND_MIN = 1.1;
-		private const double ARCHIPELAGO_BIG_ISLAND_MAX = 1.35;
-		private const double ARCHIPELAGO_SPARE_MIDDLING_ISLANDS_PER_CIV = .1;
-		private const double ARCHIPELAGO_MIDDLING_ISLAND_MIN = .5;
-		private const double ARCHIPELAGO_MIDDLING_ISLAND_MAX = .75;
-		private const double ARCHIPELAGO_SMALL_ISLAND_MIN = .12;
-		private const double ARCHIPELAGO_SMALL_ISLAND_MAX = .4;
+		private const double ARCHIPELAGO_BIG_ISLANDS_PER_CIV = .2;
+		private const double ARCHIPELAGO_MOST_BIG_ISLAND_CIVS = .6;
+		private const double ARCHIPELAGO_BIG_ISLAND_MIN = .75;
+		private const double ARCHIPELAGO_BIG_ISLAND_MAX = .95;
+		private const double ARCHIPELAGO_HOME_ISLAND_MIN = .35;
+		private const double ARCHIPELAGO_HOME_ISLAND_MAX = .5;
+		private const double ARCHIPELAGO_SETTLING_ISLANDS_PER_CIV = .4;
+		private const double ARCHIPELAGO_SETTLING_ISLAND_MIN = .25;
+		private const double ARCHIPELAGO_SETTLING_ISLAND_MAX = .45;
+		private const double ARCHIPELAGO_SMALL_ISLAND_MIN = .05;
+		private const double ARCHIPELAGO_SMALL_ISLAND_MAX = .15;
 
 		// How much the islands' domes, rather than the noise, decide the
 		// height of an archipelago (see HeightMap.RaiseDomes). The noise
@@ -287,32 +293,45 @@ namespace C7Engine {
 		}
 
 		// The sizes, in tiles, of an archipelago's planned islands, biggest
-		// kind first (see ARCHIPELAGO_BIG_ISLAND_CIVS_SHARE).
+		// kind first (see ARCHIPELAGO_BIG_ISLANDS_PER_CIV).
 		private static List<double> ArchipelagoIslandSizes(int civs, double landTiles, Random random) {
 			double share = landTiles / civs;
 			List<double> sizes = new();
 			double Draw(double min, double max) => share * (min + (max - min) * random.NextDouble());
 
-			// A map of fewer than four civs has no island for two. A big
-			// island has room for two civs or more, up to all the civs left
-			// for the big islands: a big island's size is its civs' share
-			// and a bit (a civ's room being half a share).
-			int bigCivs = civs < 4 ? 0 : Math.Max(2, (int)Math.Round(civs * ARCHIPELAGO_BIG_ISLAND_CIVS_SHARE));
-			int civsLeft = bigCivs;
-			while (civsLeft >= 2) {
-				int islandCivs = civsLeft == 2 ? 2 : 2 + random.Next(civsLeft - 1);
-				// Not leaving one civ over, which would have no big island.
-				if (civsLeft - islandCivs == 1) {
-					++islandCivs;
-				}
-				sizes.Add(islandCivs / 2.0 * Draw(ARCHIPELAGO_BIG_ISLAND_MIN, ARCHIPELAGO_BIG_ISLAND_MAX));
+			// A map of fewer than four civs has no island for two. Each big
+			// island is for two or three civs, and one in ten for four, so
+			// long as the big islands take at most
+			// ARCHIPELAGO_MOST_BIG_ISLAND_CIVS of the civs, leaving the rest
+			// home islands.
+			int big = civs < 4 ? 0 : Math.Max(1, (int)Math.Round(civs * ARCHIPELAGO_BIG_ISLANDS_PER_CIV));
+			int bigCivsLeft = (int)(civs * ARCHIPELAGO_MOST_BIG_ISLAND_CIVS);
+			int civsLeft = civs;
+			for (int i = 0; i < big && bigCivsLeft >= 2; ++i) {
+				double roll = random.NextDouble();
+				int islandCivs = Math.Min(bigCivsLeft, roll < .1 ? 4 : roll < .55 ? 3 : 2);
+				sizes.Add(islandCivs * Draw(ARCHIPELAGO_BIG_ISLAND_MIN, ARCHIPELAGO_BIG_ISLAND_MAX));
 				civsLeft -= islandCivs;
+				bigCivsLeft -= islandCivs;
 			}
-			int middling = civs - bigCivs + (int)Math.Round(civs * ARCHIPELAGO_SPARE_MIDDLING_ISLANDS_PER_CIV);
-			for (int i = 0; i < middling; ++i) {
-				sizes.Add(Draw(ARCHIPELAGO_MIDDLING_ISLAND_MIN, ARCHIPELAGO_MIDDLING_ISLAND_MAX));
+			for (int i = 0; i < civsLeft; ++i) {
+				sizes.Add(Draw(ARCHIPELAGO_HOME_ISLAND_MIN, ARCHIPELAGO_HOME_ISLAND_MAX));
 			}
-			double left = landTiles * ARCHIPELAGO_ISLAND_LAND_SHARE - sizes.Sum();
+			int settling = (int)Math.Round(civs * ARCHIPELAGO_SETTLING_ISLANDS_PER_CIV);
+			for (int i = 0; i < settling; ++i) {
+				sizes.Add(Draw(ARCHIPELAGO_SETTLING_ISLAND_MIN, ARCHIPELAGO_SETTLING_ISLAND_MAX));
+			}
+			// If the islands so far need more land than there is, they are
+			// all made smaller to fit: planning more makes the sea rise
+			// over the smaller islands' domes, so they come out as nothing.
+			double planned = landTiles * ARCHIPELAGO_ISLAND_LAND_SHARE;
+			if (sizes.Sum() > planned) {
+				double scale = planned / sizes.Sum();
+				for (int i = 0; i < sizes.Count; ++i) {
+					sizes[i] *= scale;
+				}
+			}
+			double left = planned - sizes.Sum();
 			while (left >= share * ARCHIPELAGO_SMALL_ISLAND_MIN) {
 				double size = Math.Min(left, Draw(ARCHIPELAGO_SMALL_ISLAND_MIN, ARCHIPELAGO_SMALL_ISLAND_MAX));
 				sizes.Add(size);
@@ -2276,7 +2295,13 @@ namespace C7Engine {
 			Dictionary<int, int> continentSizes = ComputeContinentSizes(m);
 
 			int spacing = StartSpacing(wc, continentSizes);
-			int tilesPerPlayer = ArchipelagoTilesPerPlayer(landContinents.Sum(c => c.Count), wc.worldSize.numberOfCivs);
+			// The land a civ is given on an island it shares (see
+			// IslandCapacity): more than the least a civ needs
+			// (ArchipelagoTilesPerPlayer), so that a big island holds the
+			// two or three civs it was planned for (see
+			// ArchipelagoIslandSizes) and the home islands aren't left
+			// empty while a big one fills up.
+			int tilesPerPlayer = (int)(landContinents.Sum(c => c.Count) * SHARED_ISLAND_ROOM_PER_CIV / Math.Max(1, wc.worldSize.numberOfCivs));
 			bool archipelago = wc.landform == WorldCharacteristics.Landform.Archipelago;
 			double qualityFloor = orderedTiles.Count > 0 ? scoredTiles[orderedTiles[0]] * START_QUALITY_FLOOR : 0;
 
@@ -2330,71 +2355,88 @@ namespace C7Engine {
 					// islands left empty are the smallest.
 					int coastalStarts = startingLocations.Count(s => s.NeighborsOcean());
 					bool mustBeCoastal = wc.worldSize.numberOfCivs - startingLocations.Count <= wc.coastalStartsNeeded - coastalStarts;
+					// On an archipelago any other start is as likely as not
+					// to be on the coast, if there's a coastal site to take
+					// (owner's decision, 2026-10-12: only seafaring civs are
+					// guaranteed the coast, the others "may also start on
+					// the coast, but that should be random"). Left to the
+					// scores, almost none were: a coastal site has less land
+					// around it.
+					bool coastalOnly = mustBeCoastal || (archipelago && rand.NextDouble() < ARCHIPELAGO_COASTAL_START_CHANCE);
 
 					Tile t = null;
 					double bestValue = 0;
 					int bestIsland = 0;
-					foreach (Tile candidate in orderedTiles) {
-						// The tiles are in score order, so none after this
-						// one is good enough.
-						if (attempt < START_QUALITY_FLOOR_PASSES && scoredTiles[candidate] < qualityFloor) {
-							break;
-						}
+					for (bool searched = false; !searched; ) {
+						searched = true;
+						foreach (Tile candidate in orderedTiles) {
+							// The tiles are in score order, so none after this
+							// one is good enough.
+							if (attempt < START_QUALITY_FLOOR_PASSES && scoredTiles[candidate] < qualityFloor) {
+								break;
+							}
 
-						if (!IsContinentLargeEnough(continentSizes, candidate.continent, attempt)) {
-							continue;
-						}
+							if (!IsContinentLargeEnough(continentSizes, candidate.continent, attempt)) {
+								continue;
+							}
 
-						int startsOnContinent = continentStartingLocationCount.GetValueOrDefault(candidate.continent);
-						if (islandEach && startsOnContinent >= IslandCapacity(continentSizes[candidate.continent], tilesPerPlayer)) {
-							continue;
-						}
+							int startsOnContinent = continentStartingLocationCount.GetValueOrDefault(candidate.continent);
+							if (islandEach && startsOnContinent >= IslandCapacity(continentSizes[candidate.continent], tilesPerPlayer)) {
+								continue;
+							}
 
-						// A civ joins another on an island only if its share
-						// of the island is comparable to the biggest empty
-						// island, even if that one has no start this pass may
-						// take (say, for want of luxuries): it waits for a
-						// later pass instead.
-						if (islandEach && startsOnContinent > 0
-							&& continentSizes[candidate.continent] / (double)(startsOnContinent + 1) < largestEmptyIsland * ISLAND_JOIN_SHARE) {
-							continue;
-						}
+							// A civ joins another on an island only if its share
+							// of the island is comparable to the biggest empty
+							// island, even if that one has no start this pass may
+							// take (say, for want of luxuries): it waits for a
+							// later pass instead.
+							if (islandEach && startsOnContinent > 0
+								&& continentSizes[candidate.continent] / (double)(startsOnContinent + 1) < largestEmptyIsland * ISLAND_JOIN_SHARE) {
+								continue;
+							}
 
-						// The first civ on an island with room for two
-						// starts where it leaves room for the second, rather
-						// than in the middle.
-						if (islandEach && startsOnContinent == 0 && islandsWithRoom.Contains(candidate.continent) && !leavesRoom.Contains(candidate)) {
-							continue;
-						}
+							// The first civ on an island with room for two
+							// starts where it leaves room for the second, rather
+							// than in the middle.
+							if (islandEach && startsOnContinent == 0 && islandsWithRoom.Contains(candidate.continent) && !leavesRoom.Contains(candidate)) {
+								continue;
+							}
 
-						// Only seafaring civs must start on the coast; the
-						// others may start anywhere (owner's decision,
-						// 2026-10-12). When the starts left are only enough
-						// for the coastal ones still needed, they must be
-						// coastal. GameSetup.AssignStartingLocations gives
-						// the seafaring civs those starts.
-						if (mustBeCoastal && !candidate.NeighborsOcean()) {
-							continue;
-						}
+							// Only seafaring civs must start on the coast; the
+							// others may start anywhere (owner's decision,
+							// 2026-10-12). When the starts left are only enough
+							// for the coastal ones still needed, they must be
+							// coastal. GameSetup.AssignStartingLocations gives
+							// the seafaring civs those starts.
+							if (coastalOnly && !candidate.NeighborsOcean()) {
+								continue;
+							}
 
-						// Not when each civ gets an island of its own: an
-						// island's size comes first there, or a civ would
-						// start on a small island with a luxury while a big
-						// one without is left empty.
-						if (!islandEach && !ContinentHasEnoughLuxuries(candidate, continentLuxuryCount, continentStartingLocationCount, attempt)) {
-							continue;
-						}
+							// Not when each civ gets an island of its own: an
+							// island's size comes first there, or a civ would
+							// start on a small island with a luxury while a big
+							// one without is left empty.
+							if (!islandEach && !ContinentHasEnoughLuxuries(candidate, continentLuxuryCount, continentStartingLocationCount, attempt)) {
+								continue;
+							}
 
-						if (TileIsTooCloseToOtherStarts(candidate, startingLocations, wc.worldSize.distanceBetweenCivs)) {
-							continue;
-						}
+							if (TileIsTooCloseToOtherStarts(candidate, startingLocations, wc.worldSize.distanceBetweenCivs)) {
+								continue;
+							}
 
-						double value = scoredTiles[candidate] * SpreadFactor(candidate, startingLocations, spacing);
-						int island = islandEach ? continentSizes[candidate.continent] : 0;
-						if (island > bestIsland || (island == bestIsland && value > bestValue)) {
-							t = candidate;
-							bestValue = value;
-							bestIsland = island;
+							double value = scoredTiles[candidate] * SpreadFactor(candidate, startingLocations, spacing);
+							int island = islandEach ? continentSizes[candidate.continent] : 0;
+							if (island > bestIsland || (island == bestIsland && value > bestValue)) {
+								t = candidate;
+								bestValue = value;
+								bestIsland = island;
+							}
+						}
+						// With no coastal site to take, a start that only
+						// leaned to the coast goes anywhere.
+						if (t == null && coastalOnly && !mustBeCoastal) {
+							coastalOnly = false;
+							searched = false;
 						}
 					}
 					if (t == null) {
@@ -2540,6 +2582,14 @@ namespace C7Engine {
 		// must be islands for, for each civ to get one of its own (owner's
 		// "or close to it").
 		private const double ISLAND_EACH_SHARE = 0.75;
+
+		// A civ's room on an island it shares, as a share of the land per
+		// civ (see DetermineStartingLocations).
+		private const double SHARED_ISLAND_ROOM_PER_CIV = 0.6;
+
+		// The chance that a start on an archipelago that needn't be coastal
+		// is put on the coast (see DetermineStartingLocations).
+		private const double ARCHIPELAGO_COASTAL_START_CHANCE = 0.5;
 
 		// A civ joins a civ on an island only if its share of the island is
 		// at least this share of the biggest empty island's land: "no two

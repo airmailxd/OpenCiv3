@@ -33,6 +33,9 @@ namespace EngineTests.GameData;
 // seafaring civs' starts having to be coastal.
 // And again when an archipelago's islands could be any size, with no
 // most civs on one island.
+// And again when the islands came as big ones for two or three civs,
+// home islands, and empty ones to settle, and other starts on an
+// archipelago got an even chance of the coast.
 //
 // Re-baselining: when a map generator change is MEANT to change the maps,
 // run only this test
@@ -97,7 +100,7 @@ public class PerfAiStrategyMapDeterminismTest {
 	[Theory]
 	[InlineData(WorldCharacteristics.Landform.Pangaea, 123456, "B2B656D1D8F7032667757FB7CAABA7A2B797EF233A359B18C2FF0AB4481DB5BF")]
 	[InlineData(WorldCharacteristics.Landform.Continents, 4242, "CB09E66C312CCD8B7FAD5EF15021E75E152B15C650DBCACBECA82B3451302205")]
-	[InlineData(WorldCharacteristics.Landform.Archipelago, 777, "382C7B65F51A168C4A7DAAE5CA44C7B2F08005551025F248B55376DCF262E187")]
+	[InlineData(WorldCharacteristics.Landform.Archipelago, 777, "249F87472AF142DAF60BAA3543B4F5BA2893C55EC0103EFB24D5858E0F57576E")]
 	public void SameSeedProducesSameMap(WorldCharacteristics.Landform landform, int seed, string expectedHash) {
 		string hash = HashMap(Generate(landform, seed));
 		output.WriteLine($"{landform} {seed}: {hash}");
