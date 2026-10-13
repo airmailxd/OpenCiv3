@@ -250,7 +250,7 @@ public partial class MapUnit {
 			if (steps <= 0) {
 				continue;
 			}
-			int turns = p.PathCost(owner, location, maxMovementPoints, maxMovementPoints);
+			int turns = p.PathCost(owner, location, maxMovementPoints, maxMovementPoints, unitType.allTerrainAsRoads);
 			if (turns < nearestTurns || (turns == nearestTurns && steps < nearestSteps)) {
 				nearest = city;
 				nearestTurns = turns;
@@ -476,7 +476,7 @@ public partial class MapUnit {
 
 		Tile newLoc = EngineStorage.gameData.map.tileAt(dx + location.XCoordinate, dy + location.YCoordinate);
 
-		var canMove = (newLoc != Tile.NONE) && this.CanEnter(newLoc) && (movementPoints.canMove);
+		var canMove = (newLoc != Tile.NONE) && this.CanEnter(newLoc) && unitType.CanMoveBetween(location, newLoc) && (movementPoints.canMove);
 		if (!canMove) return false;
 
 		facingDirection = dir;
@@ -531,7 +531,7 @@ public partial class MapUnit {
 		}
 
 		facingDirection = dir;
-		float movementCost = TilePath.GetMovementCost(this.owner, location, dir, newLoc);
+		float movementCost = TilePath.GetMovementCost(this.owner, location, dir, newLoc, unitType.allTerrainAsRoads);
 		List<MapUnit> zoneOfControlAttackers = FindZoneOfControlAttackers(location, newLoc);
 
 		RelocateTo(newLoc, movedThere: true);

@@ -20,6 +20,8 @@ namespace C7Engine.Pathing {
 			bool isLandUnit = unit.IsLandUnit();
 			bool isWaterUnit = unit.IsWaterUnit();
 			float unitMovementPoints = unit.MaxMovementPoints();
+			UnitPrototype type = unit.unitType;
+			bool allTerrainAsRoads = type.allTerrainAsRoads;
 			foreach (KeyValuePair<TileDirection, Tile> pair in node.neighbors) {
 				TileDirection direction = pair.Key;
 				Tile neighbor = pair.Value;
@@ -35,7 +37,7 @@ namespace C7Engine.Pathing {
 					isPassable = true;
 				} else {
 					if (isLandUnit)
-						isPassable = neighbor.IsLand();
+						isPassable = neighbor.IsLand() && type.CanMoveBetween(node, neighbor);
 					else if (isWaterUnit)
 						isPassable = (neighbor.IsWater() && !unit.PathAvoids(neighbor, null))
 							|| (neighbor.cityAtTile != null && neighbor.cityAtTile.owner == owner);
@@ -45,7 +47,7 @@ namespace C7Engine.Pathing {
 					continue;
 				}
 
-				result.Add(new Edge<Tile>(node, neighbor, EdgeCost(owner, node, direction, neighbor, unitMovementPoints)));
+				result.Add(new Edge<Tile>(node, neighbor, EdgeCost(owner, node, direction, neighbor, unitMovementPoints, allTerrainAsRoads)));
 			}
 			return result;
 		}
@@ -66,8 +68,9 @@ namespace C7Engine.Pathing {
 		//  - Cavalry (3mp) moving onto Hills (cost 2) => 2/3
 		//  - Cavalry (3mp) moving onto Jungle (cost 3) => 3/3
 		//
-		internal static float EdgeCost(Player owner, Tile node, TileDirection direction, Tile neighbor, float unitMovementPoints) {
-			float tileMovementCost = TilePath.GetMovementCost(owner, node, direction, neighbor);
+		internal static float EdgeCost(Player owner, Tile node, TileDirection direction, Tile neighbor, float unitMovementPoints,
+				bool allTerrainAsRoads = false) {
+			float tileMovementCost = TilePath.GetMovementCost(owner, node, direction, neighbor, allTerrainAsRoads);
 			return tileMovementCost >= unitMovementPoints ? 1 : tileMovementCost / unitMovementPoints;
 		}
 	}

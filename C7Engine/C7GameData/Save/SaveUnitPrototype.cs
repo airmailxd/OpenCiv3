@@ -37,6 +37,16 @@ namespace C7GameData.Save {
 			SinksInOcean,
 			// The unit is a military great leader, created by elite victories.
 			Leader,
+			// The unit can't enter terrain that is impassable to wheeled
+			// units (mountains, jungle...) except along a road.
+			Wheeled,
+			// The unit can be carried by transports that carry only foot
+			// units (CanCarryFootUnitsOnly).
+			FootSoldier,
+			// Every tile costs the unit only as much as a road would.
+			AllTerrainAsRoads,
+			// The unit can't move.
+			Immobile,
 		}
 
 		public string name { get; set; }

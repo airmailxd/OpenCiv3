@@ -33,7 +33,7 @@ namespace C7GameData {
 			return path != null ? path.Count : -1;
 		}
 
-		public int PathCost(Player player, Tile from, float perTurnMovePoints, float remainingMovementPoints) {
+		public int PathCost(Player player, Tile from, float perTurnMovePoints, float remainingMovementPoints, bool allTerrainAsRoads = false) {
 			// If we have no path (such as if we are a land unit trying to move to the water)
 			// return -1 so we don't display a goto cursor.
 			if (path == null || path.Count == 0) { return -1; }
@@ -46,7 +46,7 @@ namespace C7GameData {
 
 			foreach (Tile tile in path) {
 				// Subtract the cost of the next move.
-				float cost = GetMovementCost(player, from, from.DirectionTo(tile), tile);
+				float cost = GetMovementCost(player, from, from.DirectionTo(tile), tile, allTerrainAsRoads);
 				movementPoints.onUnitMove(cost);
 
 				// If we can't do any more moves, bump up the turn cost and reset
@@ -86,6 +86,38 @@ namespace C7GameData {
 		// A valid path of length 0
 		public static TilePath EmptyPath(Tile destination) {
 			return new TilePath(destination, new Queue<Tile>());
+		}
+
+		// The cost for a unit that treats all terrain as roads (the BIQ's
+		// "All Terrain As Roads", like the Explorer): "whether improved w/
+		// road or not, will lose only as much movement as improved terrain"
+		// (https://forums.civfanatics.com/threads/is-there-a-guide-on-unit-abilities.57822/),
+		// so a step never costs it more than one along a road. UNVERIFIED:
+		// whether a river crossing without bridges still costs it the
+		// terrain's cost; it doesn't.
+		public static float GetMovementCost(Player player, Tile from, TileDirection dir, Tile newLocation, bool allTerrainAsRoads) {
+			float cost = GetMovementCost(player, from, dir, newLocation);
+			if (allTerrainAsRoads) {
+				float road = RoadMovementCost();
+				if (road >= 0 && road < cost) {
+					cost = road;
+				}
+			}
+			return cost;
+		}
+
+		// The movement cost of a step along a road, or -1 if the rules have
+		// no roads.
+		public static float RoadMovementCost() {
+			List<TerrainImprovement> improvements = C7Engine.EngineStorage.gameData?.terrainImprovements;
+			if (improvements != null) {
+				foreach (TerrainImprovement improvement in improvements) {
+					if (improvement.key == Tile.TileOverlays.ROAD) {
+						return improvement.movementCost;
+					}
+				}
+			}
+			return -1;
 		}
 
 		public static float GetMovementCost(Player player, Tile from, TileDirection dir, Tile newLocation) {

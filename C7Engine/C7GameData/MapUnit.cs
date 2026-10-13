@@ -822,6 +822,11 @@ namespace C7GameData {
 			if (IsLockedInArmy())
 				return Intent.Disabled;
 
+			// "Immobile: Can't move"
+			// (https://forums.civfanatics.com/threads/is-there-a-guide-on-unit-abilities.57822/).
+			if (unitType.isImmobile)
+				return Intent.Disabled;
+
 			// Impassable terrain (e.g. some mods' deserts) cannot be entered
 			// by any unit, but a barbarian camp tile stays enterable (like a
 			// city) so the camp's garrison can move out and back in.
@@ -839,6 +844,13 @@ namespace C7GameData {
 				return Intent.MoveFreely;
 
 			var hasOwnCity = HasOwnCity(tile, unitOwner);
+
+			// Wheeled units stay off mountains, jungle and the like without a
+			// road. Whether the tile they come from has one too is checked by
+			// the move itself (see UnitPrototype.CanMoveBetween), since this
+			// is also asked about tiles further away.
+			if (!unitType.CanEnterTerrainOf(tile))
+				return Intent.Disabled;
 
 			// Keep land units on land and sea units on water
 			if (this.IsWaterUnit() && tile.IsLand()) {
@@ -1029,10 +1041,16 @@ namespace C7GameData {
 
 			// Armies only take land combat units. Units that carry tactical
 			// missiles (Nuclear Submarines) take only those, and carriers take
-			// only aircraft. Other transports take any land unit for now.
+			// only aircraft. Transports that "can only transport units w/
+			// Foot unit Flag" (the Helicopter;
+			// https://forums.civfanatics.com/threads/is-there-a-guide-on-unit-abilities.57822/)
+			// take only foot soldiers. Other transports take any land unit
+			// for now.
 			bool suitableUnit;
 			if (IsArmy())
 				suitableUnit = mapUnit.unitType.CanJoinArmy();
+			else if (unitType.canCarryFootUnitsOnly)
+				suitableUnit = mapUnit.IsLandUnit() && mapUnit.unitType.isFootSoldier;
 			else if (unitType.canCarryTacticalMissiles)
 				suitableUnit = mapUnit.unitType.isTacticalMissile;
 			else if (unitType.canCarryAircraft)

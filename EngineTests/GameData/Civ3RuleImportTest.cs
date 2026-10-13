@@ -129,4 +129,25 @@ public class Civ3RuleImportTest {
 		Assert.Equal(0.5, game.Buildings.Single(b => b.name == "Coastal Fortress").navalDefenseBonus);
 		Assert.Equal(0, game.Buildings.Single(b => b.name == "Walls").navalDefenseBonus);
 	}
+
+	// Wheeled units "cannot cross mountains or jungle tiles without a road"
+	// (https://sullla.com/Civ3/CQ/CQ_units.html); the Helicopter carries
+	// only foot soldiers, and the Explorer treats all terrain as roads
+	// (https://forums.civfanatics.com/threads/is-there-a-guide-on-unit-abilities.57822/).
+	[SkippableFact]
+	public void MovementFlagsAreImported() {
+		Skip.If(Civ3TestData.ShouldSkipCiv3DependentTests(), "No Civ3 install found.");
+
+		SaveGame game = ImportScenario("Scenarios", "No Civ Traits.biq");
+
+		Assert.True(game.TerrainTypes.Single(t => t.Key == "mountains").impassableByWheeled);
+		Assert.True(game.TerrainTypes.Single(t => t.Key == "jungle").impassableByWheeled);
+		Assert.False(game.TerrainTypes.Single(t => t.Key == "grassland").impassableByWheeled);
+		SaveUnitPrototype Unit(string name) => game.UnitPrototypes.Single(p => p.name == name);
+		Assert.Contains(SaveUnitPrototype.Flag.Wheeled, Unit("Catapult").flags);
+		Assert.Contains(SaveUnitPrototype.Flag.FootSoldier, Unit("Warrior").flags);
+		Assert.Contains(SaveUnitPrototype.Flag.CanCarryFootUnitsOnly, Unit("Helicopter").flags);
+		Assert.Contains(SaveUnitPrototype.Flag.AllTerrainAsRoads, Unit("Explorer").flags);
+		Assert.DoesNotContain(SaveUnitPrototype.Flag.Wheeled, Unit("Warrior").flags);
+	}
 }
