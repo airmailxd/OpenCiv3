@@ -9417,6 +9417,9 @@
       "traits": [
         "militaristic",
         "commercial"
+      ],
+      "onFinishedUnitProduction": [
+        "buildings.unit_production_effects.veteran_air_units"
       ]
     },
     {
@@ -13024,6 +13027,10 @@
       "y": 332,
       "prerequisites": [
         "tech-3"
+      ],
+      "flags": [
+        "enablesDiplomats",
+        "enablesMilitaryAlliances"
       ]
     },
     {
@@ -13298,6 +13305,9 @@
       "y": 180,
       "prerequisites": [
         "tech-25"
+      ],
+      "flags": [
+        "enablesCommunicationTrading"
       ]
     },
     {
@@ -13368,6 +13378,9 @@
       "y": 429,
       "prerequisites": [
         "tech-30"
+      ],
+      "flags": [
+        "enablesTradeOverSea"
       ]
     },
     {
@@ -13428,6 +13441,10 @@
       "y": 361,
       "prerequisites": [
         "tech-33"
+      ],
+      "flags": [
+        "enablesTradeOverOcean",
+        "enablesMapTrading"
       ]
     },
     {
@@ -13499,6 +13516,9 @@
       "y": 533,
       "prerequisites": [
         "tech-38"
+      ],
+      "flags": [
+        "enablesTradeOverOcean"
       ]
     },
     {
@@ -13524,7 +13544,13 @@
       "requiredForEraAdvancement": false,
       "smallIconPath": "Art\\tech chooser\\Icons\\51-Nationalism-small.pcx",
       "x": 75,
-      "y": 116
+      "y": 116,
+      "flags": [
+        "enablesConscription",
+        "enablesMobilization",
+        "enablesMutualProtection",
+        "enablesTradeEmbargoes"
+      ]
     },
     {
       "name": "Steam Power",
@@ -13620,6 +13646,9 @@
       "y": 632,
       "prerequisites": [
         "tech-46"
+      ],
+      "flags": [
+        "disablesDiseases"
       ]
     },
     {
@@ -13857,6 +13886,9 @@
       "y": 153,
       "prerequisites": [
         "tech-73"
+      ],
+      "flags": [
+        "enablesRecycling"
       ]
     },
     {
@@ -13953,6 +13985,9 @@
       "y": 382,
       "prerequisites": [
         "tech-69"
+      ],
+      "flags": [
+        "revealsWorldMap"
       ]
     },
     {
@@ -14011,6 +14046,9 @@
       "prerequisites": [
         "tech-75",
         "tech-76"
+      ],
+      "flags": [
+        "enablesPrecisionBombing"
       ]
     },
     {

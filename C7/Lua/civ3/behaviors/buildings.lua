@@ -45,6 +45,14 @@ buildings.unit_production_effects = {
       unit:Promote()
     end
   end,
+
+  -- The Airport "Produces veteran air units"
+  -- (https://civfanatics.com/civ3/civilopedia/improvements/).
+  veteran_air_units = function(unit)
+    if unit.unitType:IsAirUnit() then
+      unit:Promote()
+    end
+  end,
 }
 
 -- NATIVE_DEFAULT marks a function that the game runs as C# instead, since

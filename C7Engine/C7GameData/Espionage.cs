@@ -45,8 +45,8 @@ namespace C7Engine {
 	public static class Espionage {
 		private static readonly ILogger log = Log.ForContext(typeof(Espionage));
 
-		// The tech Civ3 needs for embassies ("enables diplomats"), if the
-		// game has a tech of that name.
+		// The name of the tech Civ3 needs for embassies. The rule itself
+		// follows the BIQ's "enables diplomats" flag (Tech.FindEmbassyTech).
 		public const string EmbassyTechName = "Writing";
 
 		// The distance used when either civ has no cities to measure from.
@@ -247,9 +247,9 @@ namespace C7Engine {
 					if (pr.hasEmbassy) return "We already have an embassy with them.";
 					if (pr.AtWar()) return "They won't receive an ambassador while we are at war.";
 					if (CityCount(target) == 0) return "They have no capital to send an ambassador to.";
-					Tech embassyTech = gameData.techs.Find(t => t.Name == EmbassyTechName);
+					Tech embassyTech = Tech.FindEmbassyTech(gameData.techs);
 					if (embassyTech != null && !actor.knownTechs.Contains(embassyTech.id)) {
-						return $"We need {EmbassyTechName} to establish embassies.";
+						return $"We need {embassyTech.Name} to establish embassies.";
 					}
 					break;
 				case EspionageMission.PlantSpy:

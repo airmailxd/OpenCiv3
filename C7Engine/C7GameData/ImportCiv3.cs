@@ -2163,6 +2163,9 @@ namespace C7GameData {
 			{
 				{ SaveBuilding.Flag.VeteranGroundUnits, "veteran_ground_units" },
 				{ SaveBuilding.Flag.VeteranSeaUnits, "veteran_sea_units" },
+				// The Airport "Produces veteran air units"
+				// (https://civfanatics.com/civ3/civilopedia/improvements/).
+				{ SaveBuilding.Flag.VeteranAirUnits, "veteran_air_units" },
 			};
 
 			var flagToTileModifier = new Dictionary<SaveBuilding.Flag, string>
@@ -2360,6 +2363,22 @@ namespace C7GameData {
 				(t.EnablesIrrigationEverywhere, SaveTech.Flag.EnablesIrrigationEverywhere),
 				(t.DoublesWorkerRate, SaveTech.Flag.DoublesWorkerRate),
 				(t.EnablesRightOfPassage, SaveTech.Flag.EnablesRightOfPassage),
+				(t.EnablesDiplomats, SaveTech.Flag.EnablesDiplomats),
+				(t.DisablesDiseases, SaveTech.Flag.DisablesDiseases),
+				(t.EnablesConscription, SaveTech.Flag.EnablesConscription),
+				(t.EnablesMobilization, SaveTech.Flag.EnablesMobilization),
+				(t.EnablesRecycling, SaveTech.Flag.EnablesRecycling),
+				(t.EnablesPrecisionBombing, SaveTech.Flag.EnablesPrecisionBombing),
+				(t.EnablesMutualProtection, SaveTech.Flag.EnablesMutualProtection),
+				(t.EnablesMilitaryAlliances, SaveTech.Flag.EnablesMilitaryAlliances),
+				(t.EnablesTradeEmbargoes, SaveTech.Flag.EnablesTradeEmbargoes),
+				(t.EnablesTradeOverSea, SaveTech.Flag.EnablesTradeOverSea),
+				(t.EnablesTradeOverOcean, SaveTech.Flag.EnablesTradeOverOcean),
+				(t.EnablesMapTrading, SaveTech.Flag.EnablesMapTrading),
+				(t.EnablesCommunicationTrading, SaveTech.Flag.EnablesCommunicationTrading),
+				(t.CannotBeTraded, SaveTech.Flag.CannotBeTraded),
+				(t.PermitsSacrifice, SaveTech.Flag.PermitsSacrifice),
+				(t.RevealsWorldMap, SaveTech.Flag.RevealsWorldMap),
 			}
 			.Where(t => t.Item1)
 			.Select(t => t.Item2);
