@@ -1277,6 +1277,11 @@ namespace C7GameData {
 		}
 
 		public int MaintenanceCostsRaw() {
+			// Anarchy: "No maintenance costs or unit upkeep needed"
+			// (https://civfanatics.com/civ3/civilopedia/governments/).
+			if (owner?.government != null && !owner.government.RequiresMaintenance()) {
+				return 0;
+			}
 			EffectiveBuildingsCache cache = GetEffectiveBuildingsCache();
 			bool commercialUpkeepPaid = cache.wonders.paysTradeMaintenance;
 			int result = 0;
@@ -1301,6 +1306,9 @@ namespace C7GameData {
 
 		[MoonSharpHidden]
 		public int MaintenanceCosts() {
+			if (owner?.government != null && !owner.government.RequiresMaintenance()) {
+				return 0;
+			}
 			int result = 0;
 			result += MaintenanceCostsRaw();
 			// maintenance lua infow

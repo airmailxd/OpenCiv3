@@ -2482,6 +2482,7 @@ namespace C7GameData {
 				}
 				g.defaultType = govt.DefaultType == 1;
 				g.transitionType = govt.TransitionType == 1;
+				g.requiresMaintenance = govt.RequiresMaintenance == 1;
 				g.hasTilePenalty = govt.TilePenalty == 1;
 				g.hasTradeBonus = govt.TradeBonus == 1;
 				g.corruptionType = (Government.CorruptionType)govt.Corruption;
