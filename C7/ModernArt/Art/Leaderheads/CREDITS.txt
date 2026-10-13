@@ -3,7 +3,9 @@ Leader portraits (standalone mode)
 
 Made by ArtGen/leaderheads/build.py from public domain and CC0 pictures
 on Wikimedia Commons: cropped to the head and shoulders, scaled, and given
-a light color grade, vignette and edge.
+a shared painted finish (ArtGen/leaderheads/paint.py: edge-preserving stroke
+smoothing, one palette, one painted backdrop, brush texture; image processing
+only, nothing generated), a color grade, vignette and edge.
 
 Rome.png (Caesar)
   Julius Caesar: Roman marble bust in the Greek Cross Hall of the Vatican Museums
@@ -144,16 +146,16 @@ Carthage.png (Hannibal)
   License: Public domain
 
 Korea.png (Wang Kon)
-  Wang Kon (Taejo of Goryeo): royal portrait at Sungeuijeon, a copy (before 1950) of a Joseon-era painting
-  Source:  https://commons.wikimedia.org/wiki/File:Taejo_Wangkun.jpg
-  Artist:  User:Dikinodon
+  A typical Korean official, standing in for Wang Kon, whose own portraits on Commons are too small or not public domain: "Portrait of Scholar-Official An in his Fiftieth Year" by Yi Jae-gwan, 19th century
+  Source:  https://commons.wikimedia.org/wiki/File:Yi_Jaegwan_-_Portrait_of_Scholar-Official_An_in_his_Fiftieth_Year_-_Google_Art_Project.jpg
+  Artist:  Yi Jae-gwan (1783-1837)
   License: Public domain
 
 Sumeria.png (Gilgamesh)
-  A typical Sumerian ruler, standing in for Gilgamesh, of whom no likeness survives: Gudea of Lagash, diorite statue, Louvre
-  Source:  https://commons.wikimedia.org/wiki/File:Gudea_of_Lagash_Girsu.jpg
-  Artist:  Jastrow
-  License: Public domain
+  A typical Sumerian ruler, standing in for Gilgamesh, of whom no likeness survives: Gudea of Lagash, diorite statue, Metropolitan Museum of Art
+  Source:  https://commons.wikimedia.org/wiki/File:Statue_of_Gudea_MET_DT861.jpg
+  Artist:  unknown
+  License: CC0
 
 Hittites.png (Mursilis)
   A typical Hittite king, standing in for Mursilis, of whom no likeness survives: basalt statue of a priest-king with bone eyes, about 1600 BC, Cleveland Museum of Art
@@ -168,8 +170,8 @@ Netherlands.png (William)
   License: Public domain
 
 Portugal.png (Henry)
-  Henry the Navigator: detail of the Saint Vincent Panels by Nuno Goncalves, 1470s
-  Source:  https://commons.wikimedia.org/wiki/File:Henry_the_Navigator1.jpg
+  Henry the Navigator: detail of the Panel of the Infante, Saint Vincent Panels, by Nuno Goncalves, 1470s
+  Source:  https://commons.wikimedia.org/wiki/File:Pain%C3%A9is_de_S%C3%A3o_Vicente_de_Fora_-_Painel_do_Infante_(MNAA,_inv._1361_Pint).png
   Artist:  Nuno Gonçalves
   License: Public domain
 
