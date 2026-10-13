@@ -1,0 +1,192 @@
+Leader portraits (standalone mode)
+==================================
+
+Made by ArtGen/leaderheads/build.py from public domain and CC0 pictures
+on Wikimedia Commons: cropped to the head and shoulders, scaled, and given
+a light color grade, vignette and edge.
+
+Rome.png (Caesar)
+  Julius Caesar: Roman marble bust in the Greek Cross Hall of the Vatican Museums
+  Source:  https://commons.wikimedia.org/wiki/File:Bust_of_Julius_Caesar.jpg
+  Artist:  Wilfredor
+  License: CC0
+
+Egypt.png (Cleopatra)
+  Cleopatra VII: the "Berlin Cleopatra", a Roman marble portrait of about 40-30 BC
+  Source:  https://commons.wikimedia.org/wiki/File:Cleopatra-VII-Antikensammlung-Berlin.jpg
+  Artist:  Marco21274
+  License: Public domain
+
+Greece.png (Alexander)
+  Alexander the Great: Hellenistic marble head in the British Museum
+  Source:  https://commons.wikimedia.org/wiki/File:Alejandro_Magno,_Alexander_The_Great_Bust_Alexander_BM_1857_(cropped).jpg
+  Artist:  Unknown artist
+  License: Public domain
+
+Babylon.png (Hammurabi)
+  Hammurabi: the diorite royal head known as the "head of Hammurabi", Louvre
+  Source:  https://commons.wikimedia.org/wiki/File:T%C3%AAte_royale_dite_t%C3%AAte_de_Hammurabi_-_Mus%C3%A9e_du_Louvre_Antiquit%C3%A9s_orientales_SB_95.jpg
+  Artist:  Shonagon
+  License: CC0
+
+Germany.png (Bismarck)
+  Otto von Bismarck by Franz von Lenbach, 1879 (Indianapolis Museum of Art)
+  Source:  https://commons.wikimedia.org/wiki/File:Franz_von_Lenbach_-_Bildnis_Otto_Eduard_Leopold_von_Bismarck_(Indianapolis).jpg
+  Artist:  Franz von Lenbach
+  License: Public domain
+
+Russia.png (Catherine)
+  Catherine the Great by Fyodor Rokotov after Roslin, 1780s
+  Source:  https://commons.wikimedia.org/wiki/File:Catherine_II_after_Roslin,_Rokotov_(1780s,_Kunsthistorisches_Museum).jpg
+  Artist:  After Alexander Roslin
+  License: Public domain
+
+China.png (Mao)
+  Mao Zedong, official portrait photograph
+  Source:  https://commons.wikimedia.org/wiki/File:Mao_Zedong_sitting_(3x4_cropped)(2).jpg
+  Artist:  The People's Republic of China Printing Office
+  License: Public domain
+
+America.png (Lincoln)
+  Abraham Lincoln photographed by Alexander Gardner, 1863
+  Source:  https://commons.wikimedia.org/wiki/File:Abraham_Lincoln_O-77_matte_collodion_print.jpg
+  Artist:  Alexander Gardner
+  License: Public domain
+
+Japan.png (Tokugawa)
+  Tokugawa Ieyasu by Kano Tan'yu, 17th century
+  Source:  https://commons.wikimedia.org/wiki/File:Tokugawa_Ieyasu2.JPG
+  Artist:  Kanō Tan'yū
+  License: Public domain
+
+France.png (Joan d'Arc)
+  Joan of Arc by Dante Gabriel Rossetti, 1882 (no likeness from her lifetime survives)
+  Source:  https://commons.wikimedia.org/wiki/File:Dante_Gabriel_Rossetti_-_Joan_of_Arc_(1882).jpg
+  Artist:  Dante Gabriel Rossetti
+  License: Public domain
+
+India.png (Gandhi)
+  Mohandas K. Gandhi, studio photograph
+  Source:  https://commons.wikimedia.org/wiki/File:Mohandas_K._Gandhi,_portrait.jpg
+  Artist:  Fox Photos / Getty (see Getty for date, author and context)
+  License: Public domain
+
+Persia.png (Xerxes)
+  Xerxes I as Ahasuerus: detail of a painting by Ernest Normand, 19th century (his own reliefs at Persepolis are defaced)
+  Source:  https://commons.wikimedia.org/wiki/File:Ahasuerus_by_Ernest_Normand.jpg
+  Artist:  Ernest Normand
+  License: Public domain
+
+Aztecs.png (Montezuma)
+  Moctezuma II, 17th-century painting by Antonio Rodriguez
+  Source:  https://commons.wikimedia.org/wiki/File:Moctezuma_Xocoyotzin.png
+  Artist:  attributed to Antonio Rodriguez (1636-1691)
+  License: Public domain
+
+Zululand.png (Shaka)
+  Shaka, 19th-century engraving after the drawing by James King
+  Source:  https://commons.wikimedia.org/wiki/File:Shaka_Zulu_incisione_ottocentesca.jpg
+  Artist:  Anonymous
+  License: Public domain
+
+Iroquois.png (Hiawatha)
+  Hiawatha: marble bust by Edmonia Lewis, 1868 (Metropolitan Museum of Art)
+  Source:  https://commons.wikimedia.org/wiki/File:Hiawatha_MET_DP371840.jpg
+  Artist:  Edmonia Lewis
+  License: CC0
+
+England.png (Elizabeth)
+  Elizabeth I: the "Darnley Portrait", about 1575
+  Source:  https://commons.wikimedia.org/wiki/File:Darnley_stage_3.jpg
+  Artist:  Unidentified painter
+  License: Public domain
+
+Mongols.png (Temujin)
+  Genghis Khan (Temujin): portrait from the Yuan emperors' album, National Palace Museum, Taipei
+  Source:  https://commons.wikimedia.org/wiki/File:YuanEmperorAlbumGenghisPortrait.jpg
+  Artist:  Unknown author
+  License: Public domain
+
+Spain.png (Isabella)
+  Isabella I of Castile by Juan de Flandes, about 1500
+  Source:  https://commons.wikimedia.org/wiki/File:Juan_de_Flandes_-_Isabel_la_Cat%C3%B3lica_(Palacio_Real,_Madrid,_1500-04._%C3%93leo_sobre_tabla,_63_x_55_cm).jpg
+  Artist:  Juan de Flandes
+  License: Public domain
+
+Scandinavia.png (Ragnar Lodbrok)
+  Ragnar Lodbrok meeting Kraka: wood engraving after August Malmstrom, about 1880
+  Source:  https://commons.wikimedia.org/wiki/File:Rayner_Lothbroc_%26_Kraka_by_August_Malmstr%C3%B6m_c_1880.jpg
+  Artist:  August Malmström
+  License: Public domain
+
+Ottomans.png (Osman)
+  Osman I, 16th-century Venetian portrait (follower of Paolo Veronese)
+  Source:  https://commons.wikimedia.org/wiki/File:Paolo_Veronese_(Nachfolger)_-_Sultan_Osman_I._-_2242_-_Bavarian_State_Painting_Collections.jpg
+  Artist:  Paolo Veronese
+  License: Public domain
+
+Celts.png (Brennus)
+  Brennus: wood engraving by Therond of the statue by Ferdinand Taluet, 19th century
+  Source:  https://commons.wikimedia.org/wiki/File:Brennus.jpg
+  Artist:  Ferdinand Taluet / Émile Théodore Therond / Joseph Ettlin
+  License: Public domain
+
+Arabia.png (Abu Bakr)
+  Abu Bakr: calligraphic roundel of his name, as he is shown in Islamic tradition (no likeness exists)
+  Source:  https://commons.wikimedia.org/wiki/File:The_first_caliph_Abu_Bakr.png
+  Artist:  عبدالعزيز علي
+  License: Public domain
+
+Carthage.png (Hannibal)
+  Hannibal: the marble bust found at Capua
+  Source:  https://commons.wikimedia.org/wiki/File:Hannibal_Barca_bust_from_Capua_photo.jpg
+  Artist:  Fratelli Alinari
+  License: Public domain
+
+Korea.png (Wang Kon)
+  Wang Kon (Taejo of Goryeo): illustration from a 1908 Korean history textbook
+  Source:  https://commons.wikimedia.org/wiki/File:%EC%B4%88%EB%93%B1%EB%8C%80%ED%95%9C%EC%97%AD%EC%82%AC_%EC%A0%9C3%ED%8E%B8_1.jpg
+  Artist:  Original: Jeong Inho Transcription: History Net, National Institute of Korean History
+  License: Public domain
+
+Sumeria.png (Gilgamesh)
+  Gilgamesh: the "hero mastering a lion" relief from Dur-Sharrukin, Louvre
+  Source:  https://commons.wikimedia.org/wiki/File:Hero_lion_Dur-Sharrukin_Louvre_AO19862.jpg
+  Artist:  Unknown artist
+  License: Public domain
+
+Hittites.png (Mursilis)
+  A Hittite priest-king, basalt statue of about 1600 BC, Cleveland Museum of Art (no likeness of Mursili survives)
+  Source:  https://commons.wikimedia.org/wiki/File:Priest-King_or_Diety,_about_1600_BC,_Hittite,_North_Syria,_basalt_with_bone_eyes_-_Cleveland_Museum_of_Art_-_DSC08114.JPG
+  Artist:  Daderot
+  License: CC0
+
+Netherlands.png (William)
+  William the Silent by Adriaen Thomasz. Key, about 1579
+  Source:  https://commons.wikimedia.org/wiki/File:William_I,_Prince_of_Orange_by_Adriaen_Thomasz._Key_Rijksmuseum_Amsterdam_SK-A-3148.jpg
+  Artist:  Adriaen Thomasz. Key
+  License: Public domain
+
+Portugal.png (Henry)
+  Henry the Navigator: detail of the Saint Vincent Panels by Nuno Goncalves, 1470s
+  Source:  https://commons.wikimedia.org/wiki/File:Henry_the_Navigator1.jpg
+  Artist:  Nuno Gonçalves
+  License: Public domain
+
+Byzantines.png (Theodora)
+  Empress Theodora: mosaic in the Basilica of San Vitale, Ravenna, 547
+  Source:  https://commons.wikimedia.org/wiki/File:Mosaic_of_empress_Theodora,_Ravenna,_San_Vitale,_547.jpg
+  Artist:  Meister von San Vitale in Ravenna
+  License: Public domain
+
+Inca.png (Pachacuti)
+  Pachacuti: Cuzco School painting, 18th century (Brooklyn Museum)
+  Source:  https://commons.wikimedia.org/wiki/File:Brooklyn_Museum_-_Pachacuti,_Tenth_Inca,_1_of_14_Portraits_of_Inca_Kings_(cropped).jpg
+  Artist:  unknown
+  License: Public domain
+
+Maya.png (Smoke-Jaguar)
+  Stela A at Copan, showing 18 Rabbit, Smoke-Jaguar's successor (no public domain likeness of Smoke-Jaguar (Chan Imix K'awiil) himself was found)
+  Source:  https://commons.wikimedia.org/wiki/File:Cop%C3%A1n_Stela_A_01.jpg
+  Artist:  Nosferattus
+  License: CC0

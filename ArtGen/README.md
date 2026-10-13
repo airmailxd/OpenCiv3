@@ -124,12 +124,18 @@ at the top of the script.
 
 ## The leader heads
 
-`python ArtGen/leaderheads/build.py` draws a leader head for every
+`python ArtGen/leaderheads/build.py` makes a leader head for every
 civilization of the bundled rules, for standalone mode, into
 `C7/ModernArt/Art/Leaderheads/<civ name>.png` (230x230: twice Civ3's 115x115).
-Each is the leader's own 3D model (their "King" unit, `units/catalog/leaders.py`)
-seen up close at eye level, with a face detailed for the close-up, the
-civ-colored parts in the civilization's color and a soft backdrop tinted with
-it. `C7/Lua/standalone/textures.lua` lists the civilizations that have one;
-there's one per leader, not one per era and mood. A contact sheet goes to
-`ArtGen/_previews/leaderheads.png`.
+Unlike the rest of ArtGen these aren't drawn: each is a real historical
+likeness of the leader (a painting, photograph, bust, relief or engraving)
+from Wikimedia Commons, public domain or CC0 only. The script's `SOURCES`
+table names each Commons file and the square to crop; it downloads the files
+into `ArtGen/leaderheads/_cache/` (not committed), checks their licenses,
+crops them to the head and shoulders and gives them all the same light grade,
+vignette and edge. It writes each picture's source, artist and license to
+`C7/ModernArt/Art/Leaderheads/CREDITS.txt`. `--sources` also writes each
+whole source with a grid and the crop to `ArtGen/_previews/leaderheads_sources/`,
+for choosing crops. `C7/Lua/standalone/textures.lua` lists the civilizations
+that have one; there's one per leader, not one per era and mood. A contact
+sheet goes to `ArtGen/_previews/leaderheads.png`.
