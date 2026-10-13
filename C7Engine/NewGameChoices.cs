@@ -56,6 +56,8 @@ public class NewGameChoices {
 	public bool? DiplomaticVictory;
 	public bool? CulturalVictory;
 	public bool? TurnLimit;
+	public bool? WonderVictory;
+	public bool? VictoryPointScoring;
 	public bool? Elimination;
 	public bool? Regicide;
 	public bool? MassRegicide;
@@ -88,6 +90,8 @@ public class NewGameChoices {
 		public const string DiplomaticVictory = nameof(DiplomaticVictory);
 		public const string CulturalVictory = nameof(CulturalVictory);
 		public const string TurnLimit = nameof(TurnLimit);
+		public const string WonderVictory = nameof(WonderVictory);
+		public const string VictoryPointScoring = nameof(VictoryPointScoring);
 		public const string Elimination = nameof(Elimination);
 		public const string Regicide = nameof(Regicide);
 		public const string MassRegicide = nameof(MassRegicide);
@@ -151,6 +155,8 @@ public class NewGameChoices {
 		choices.DiplomaticVictory = ParseBool(get(Keys.DiplomaticVictory));
 		choices.CulturalVictory = ParseBool(get(Keys.CulturalVictory));
 		choices.TurnLimit = ParseBool(get(Keys.TurnLimit));
+		choices.WonderVictory = ParseBool(get(Keys.WonderVictory));
+		choices.VictoryPointScoring = ParseBool(get(Keys.VictoryPointScoring));
 		choices.Elimination = ParseBool(get(Keys.Elimination));
 		choices.Regicide = ParseBool(get(Keys.Regicide));
 		choices.MassRegicide = ParseBool(get(Keys.MassRegicide));
@@ -190,6 +196,8 @@ public class NewGameChoices {
 		set(Keys.DiplomaticVictory, FormatBool(DiplomaticVictory));
 		set(Keys.CulturalVictory, FormatBool(CulturalVictory));
 		set(Keys.TurnLimit, FormatBool(TurnLimit));
+		set(Keys.WonderVictory, FormatBool(WonderVictory));
+		set(Keys.VictoryPointScoring, FormatBool(VictoryPointScoring));
 		set(Keys.Elimination, FormatBool(Elimination));
 		set(Keys.Regicide, FormatBool(Regicide));
 		set(Keys.MassRegicide, FormatBool(MassRegicide));
@@ -317,6 +325,8 @@ public class NewGameChoices {
 		conditions.AllowDiplomaticVictory = DiplomaticVictory ?? conditions.AllowDiplomaticVictory;
 		conditions.AllowCulturalVictory = CulturalVictory ?? conditions.AllowCulturalVictory;
 		conditions.UseTurnLimit = TurnLimit ?? conditions.UseTurnLimit;
+		conditions.AllowWonderVictory = WonderVictory ?? conditions.AllowWonderVictory;
+		conditions.VictoryLocations = VictoryPointScoring ?? conditions.VictoryLocations;
 		conditions.CityElimination = Elimination ?? conditions.CityElimination;
 		conditions.Regicide = Regicide ?? conditions.Regicide;
 		conditions.MassRegicide = MassRegicide ?? conditions.MassRegicide;
@@ -331,6 +341,8 @@ public class NewGameChoices {
 		DiplomaticVictory = conditions.AllowDiplomaticVictory;
 		CulturalVictory = conditions.AllowCulturalVictory;
 		TurnLimit = conditions.UseTurnLimit;
+		WonderVictory = conditions.AllowWonderVictory;
+		VictoryPointScoring = conditions.VictoryLocations;
 		Elimination = conditions.CityElimination;
 		Regicide = conditions.Regicide;
 		MassRegicide = conditions.MassRegicide;

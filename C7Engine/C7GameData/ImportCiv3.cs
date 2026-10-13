@@ -716,6 +716,21 @@ namespace C7GameData {
 			if (game.CityEliminationCount > 0) {
 				conditions.CityEliminationCount = game.CityEliminationCount;
 			}
+			ImportVictoryPoints(conditions, game.VictoryPointLimit, game.WonderCost, game.DefeatingOpposingUnitCost,
+				game.AdvancementCost, game.CityConquestPopulation);
+		}
+
+		// The GAME section's victory point limit and multiples (see
+		// VictoryPoints). A multiple of 0 scores nothing, as in the
+		// Napoleonic Europe conquest, which has none for wonders.
+		private static void ImportVictoryPoints(VictoryConditions conditions, int limit, int wonder, int defeat, int advance, int cityConquest) {
+			if (limit > 0) {
+				conditions.VictoryPointLimit = limit;
+			}
+			conditions.WonderVictoryPoints = Math.Max(0, wonder);
+			conditions.DefeatVictoryPoints = Math.Max(0, defeat);
+			conditions.AdvanceVictoryPoints = Math.Max(0, advance);
+			conditions.CityConquestVictoryPoints = Math.Max(0, cityConquest);
 		}
 
 		// The culture a cultural victory needs (see CulturalVictory), from
@@ -755,6 +770,8 @@ namespace C7GameData {
 			if (game.CityEliminationCount > 0) {
 				save.VictoryConditions.CityEliminationCount = game.CityEliminationCount;
 			}
+			ImportVictoryPoints(save.VictoryConditions, game.VPLimit, game.WonderCost, game.DefeatingOpposingUnitCost,
+				game.AdvancementCost, game.CityConquestPopulation);
 			// Keep the defaults if the game doesn't set the thresholds.
 			if (game.DominationTerrain > 0) {
 				save.VictoryConditions.DominationTerritoryPercent = game.DominationTerrain;

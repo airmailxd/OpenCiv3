@@ -324,6 +324,9 @@ namespace C7GameData {
 		public int kingsLost = 0;
 		public int citiesLost = 0;
 
+		// The civ's victory points (see VictoryPoints).
+		public int victoryPoints = 0;
+
 		public bool InGoldenAge => goldenAgeTurnsRemaining > 0;
 
 		public int EraIndex() {
@@ -1621,6 +1624,7 @@ namespace C7GameData {
 			}
 
 			knownTechs.Add(tech.id);
+			VictoryPoints.OnAdvance(this, tech, gameData.victoryConditions);
 			if (tech.RevealsWorldMap) {
 				RevealWholeMap(gameData);
 			}

@@ -60,6 +60,8 @@ public partial class PlayerSetup : Control {
 	CheckBox spaceRaceVictory;
 	CheckBox diplomaticVictory;
 	CheckBox culturalVictory;
+	CheckBox wonderVictory;
+	CheckBox victoryPointScoring;
 	CheckBox elimination;
 	CheckBox regicide;
 	CheckBox massRegicide;
@@ -181,6 +183,12 @@ public partial class PlayerSetup : Control {
 			$"Win when one of your cities has {victoryConditions.CultureOneCityWin:N0} culture, or your civilization has "
 			+ $"{victoryConditions.CultureAllCitiesWin:N0} culture (on a standard map; less on smaller worlds, more on larger) "
 			+ "and twice as much as any rival.");
+
+		wonderVictory = AddVictoryCheckbox("Wonder victory", victoryConditions.AllowWonderVictory,
+			"The game ends as soon as every great wonder has been built, and the civilization with the most victory points wins.");
+		victoryPointScoring = AddVictoryCheckbox("Victory Point Scoring", victoryConditions.VictoryLocations,
+			$"Win by being the first to {victoryConditions.VictoryPointLimit:N0} victory points, earned by building wonders, "
+			+ "defeating enemy units, discovering advances and conquering cities. At the turn limit, the most victory points wins.");
 
 		// Civ3's instant elimination rules, named as on its setup screen.
 		elimination = AddVictoryCheckbox("Elimination", victoryConditions.CityElimination,
@@ -579,6 +587,8 @@ public partial class PlayerSetup : Control {
 		victoryConditions.AllowSpaceRaceVictory = spaceRaceVictory.ButtonPressed;
 		victoryConditions.AllowDiplomaticVictory = diplomaticVictory.ButtonPressed;
 		victoryConditions.AllowCulturalVictory = culturalVictory.ButtonPressed;
+		victoryConditions.AllowWonderVictory = wonderVictory.ButtonPressed;
+		victoryConditions.VictoryLocations = victoryPointScoring.ButtonPressed;
 		victoryConditions.CityElimination = elimination.ButtonPressed;
 		victoryConditions.Regicide = regicide.ButtonPressed;
 		victoryConditions.MassRegicide = massRegicide.ButtonPressed;

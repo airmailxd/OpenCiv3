@@ -55,4 +55,15 @@ public class VictoryStatus {
 	// cities enemies have taken from them.
 	public int KingsLeft { get; set; }
 	public int CitiesLost { get; set; }
+
+	// Victory points: the player's, and the most any rival has.
+	public int VictoryPoints { get; set; }
+	public int TopRivalVictoryPoints { get; set; }
+
+	// Wonder victory: the great wonders there are, how many the player and
+	// their rivals have built, and whether every one has been built.
+	public int WondersToBuild { get; set; }
+	public int WondersBuilt { get; set; }
+	public int WondersBuiltByRivals { get; set; }
+	public bool AllWondersBuilt { get; set; }
 }

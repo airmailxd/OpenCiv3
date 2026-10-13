@@ -214,6 +214,14 @@ namespace C7GameData.Save {
 				data.victories.Add(new CulturalVictory(conditions.CultureOneCityWin, conditions.CultureAllCitiesWin));
 			}
 
+			if (conditions?.AllowWonderVictory == true) {
+				data.victories.Add(new WonderVictory());
+			}
+			// Victory Point Scoring (the BIQ's VictoryLocations flag).
+			if (conditions?.VictoryLocations == true && conditions.VictoryPointLimit > 0) {
+				data.victories.Add(new VictoryPointVictory(conditions.VictoryPointLimit));
+			}
+
 			// Regicide and Elimination win nothing themselves, but show how
 			// near each civ is to being eliminated.
 			if (conditions != null && (conditions.Regicide || conditions.MassRegicide)) {

@@ -261,4 +261,25 @@ public class Civ3RuleImportTest {
 		Assert.False(middleAges.AutoPlaceKings);
 		Assert.False(middleAges.CityElimination);
 	}
+
+	// Mesopotamia "ends immediately as soon as all seven Great Wonders of
+	// the World have been constructed, [or] as soon as a civilzation has
+	// accumulated 5500 victory points", scoring "Wonder Cost (2.5 VP * build
+	// cost)", "Defeating an enemy unit (5 VP * unit cost)", "Advancement Cost
+	// (5 VP * tech cost)" and "City Conquest (100 VP * city population)"
+	// (its Civilopedia's GCON_Victory).
+	[SkippableFact]
+	public void MesopotamiaScoresVictoryPoints() {
+		Skip.If(Civ3TestData.ShouldSkipCiv3DependentTests(), "No Civ3 install found.");
+
+		VictoryConditions conditions = ImportScenario("Conquests", "1 Mesopotamia.biq").VictoryConditions;
+
+		Assert.True(conditions.AllowWonderVictory);
+		Assert.True(conditions.VictoryLocations);
+		Assert.Equal(5500, conditions.VictoryPointLimit);
+		Assert.Equal(25, conditions.WonderVictoryPoints);
+		Assert.Equal(5, conditions.DefeatVictoryPoints);
+		Assert.Equal(5, conditions.AdvanceVictoryPoints);
+		Assert.Equal(100, conditions.CityConquestVictoryPoints);
+	}
 }

@@ -28,6 +28,17 @@ public class VictoryConditions {
 	// "Lose cities:" on Civ3's victory status screen). 1 in conquests.biq.
 	public int CityEliminationCount { get; set; } = 1;
 
+	// Victory points (see VictoryPoints): the limit that wins under Victory
+	// Point Scoring (the BIQ's VictoryLocations flag, "Victory Point
+	// Scoring" in Civ3's editor and setup screen), and the BIQ GAME
+	// section's multiples for wonders (in tenths), defeated units, advances
+	// and conquered cities' population.
+	public int VictoryPointLimit { get; set; } = VictoryPoints.DefaultLimit;
+	public int WonderVictoryPoints { get; set; } = VictoryPoints.DefaultWonderMultiple;
+	public int DefeatVictoryPoints { get; set; } = VictoryPoints.DefaultDefeatMultiple;
+	public int AdvanceVictoryPoints { get; set; } = VictoryPoints.DefaultAdvanceMultiple;
+	public int CityConquestVictoryPoints { get; set; } = VictoryPoints.DefaultCityConquestMultiple;
+
 	// Whether the game ends once the time options' turn limit is reached.
 	// Off unless chosen: the game goes on until someone wins (the project
 	// owner's choice). Saves made before this was saved have no limit.
@@ -44,7 +55,8 @@ public class VictoryConditions {
 	public int CultureOneCityWin { get; set; } = CulturalVictory.DefaultOneCityWin;
 	public int CultureAllCitiesWin { get; set; } = CulturalVictory.DefaultAllCitiesWin;
 
-	// Takes the thresholds (domination, culture, elimination) and king
+	// Takes the thresholds (domination, culture, elimination, victory
+	// points) and king
 	// placement a scenario or ruleset sets, keeping which victory types are
 	// allowed. Returns this.
 	public VictoryConditions CopyThresholdsFrom(VictoryConditions other) {
@@ -55,6 +67,11 @@ public class VictoryConditions {
 			CultureAllCitiesWin = other.CultureAllCitiesWin;
 			CityEliminationCount = other.CityEliminationCount;
 			AutoPlaceKings = other.AutoPlaceKings;
+			VictoryPointLimit = other.VictoryPointLimit;
+			WonderVictoryPoints = other.WonderVictoryPoints;
+			DefeatVictoryPoints = other.DefeatVictoryPoints;
+			AdvanceVictoryPoints = other.AdvanceVictoryPoints;
+			CityConquestVictoryPoints = other.CityConquestVictoryPoints;
 		}
 		return this;
 	}

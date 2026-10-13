@@ -85,6 +85,8 @@ namespace C7GameData.Save {
 		// and the cities enemies have taken from it.
 		public int kingsLost;
 		public int citiesLost;
+		// The civ's victory points.
+		public int victoryPoints;
 
 		// The number of "beakers" (gold) spent on the currently researched
 		// tech.
@@ -148,6 +150,7 @@ namespace C7GameData.Save {
 				neverHadCityOrSettler = neverHadCityOrSettler,
 				kingsLost = kingsLost,
 				citiesLost = citiesLost,
+				victoryPoints = victoryPoints,
 				// The AI's strategic priorities aren't saved; PlayerAI works
 				// them out again quietly on the AI's first turn after a load.
 				turnsUntilPriorityReevaluation = turnsUntilPriorityReevaluation,
@@ -270,6 +273,7 @@ namespace C7GameData.Save {
 			neverHadCityOrSettler = player.neverHadCityOrSettler;
 			kingsLost = player.kingsLost;
 			citiesLost = player.citiesLost;
+			victoryPoints = player.victoryPoints;
 			beakers = player.beakers;
 			turnsResearched = player.turnsResearched;
 			inAnarchyUntilTurn = player.inAnarchyUntilTurn;
