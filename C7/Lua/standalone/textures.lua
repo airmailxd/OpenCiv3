@@ -127,6 +127,14 @@ local c7_texture_list = {
   "Art/interface/unit_build_airfield.png",
   "Art/interface/unit_build_radar_tower.png",
   "Art/interface/unit_airlift.png",
+  "Art/interface/unit_sentry.png",
+  "Art/interface/unit_sentry_enemy_only.png",
+  "Art/interface/unit_load.png",
+  "Art/interface/unit_unload.png",
+  "Art/interface/unit_build_army.png",
+  "Art/interface/unit_hurry_building.png",
+  "Art/interface/unit_upgrade.png",
+  "Art/interface/unit_build_barricade.png",
   "Art/Cities/CityBuildingIcons.png"
 }
 
@@ -312,8 +320,9 @@ return function(civ3_textures)
     c7_textures.ui.unit_control[action] = { normal = cell(0), hover = cell(1), pressed = cell(2) }
   end
   -- The asset pack's NormButtons.png has blank buttons where Civ3's has
-  -- Build Outpost, Build Colony, Build Airfield, Build Radar Tower and
-  -- Airlift, so those have buttons of their own
+  -- Build Outpost, Build Colony, Build Airfield, Build Radar Tower,
+  -- Airlift, Sentry, Sentry (enemy only), Load, Unload, Build Army, Hurry
+  -- Building, Upgrade and Build Barricade, so those have buttons of their own
   -- (C7/ModernArt/Art/interface/<order>.png, made by
   -- ArtGen/ui_buttons/build.py): the normal, hover and pressed buttons side
   -- by side.
@@ -330,6 +339,14 @@ return function(civ3_textures)
   c7_textures.ui.unit_control.unit_build_airfield = own_button("unit_build_airfield")
   c7_textures.ui.unit_control.unit_build_radar_tower = own_button("unit_build_radar_tower")
   c7_textures.ui.unit_control.unit_airlift = own_button("unit_airlift")
+  c7_textures.ui.unit_control.unit_sentry = own_button("unit_sentry")
+  c7_textures.ui.unit_control.unit_sentry_enemy_only = own_button("unit_sentry_enemy_only")
+  c7_textures.ui.unit_control.unit_load = own_button("unit_load")
+  c7_textures.ui.unit_control.unit_unload = own_button("unit_unload")
+  c7_textures.ui.unit_control.unit_build_army = own_button("unit_build_army")
+  c7_textures.ui.unit_control.unit_hurry_building = own_button("unit_hurry_building")
+  c7_textures.ui.unit_control.unit_upgrade = own_button("unit_upgrade")
+  c7_textures.ui.unit_control.unit_build_barricade = own_button("unit_build_barricade")
 
   -- The asset pack's TerrainBuildings.png only has a placeholder where the
   -- colonies go. Named by Civ3's file, which the pack doesn't have, a colony

@@ -2,14 +2,16 @@
 
 The standalone asset pack's Art/interface/NormButtons.png has blank buttons
 where Civ3's has Build Outpost, Build Colony, Build Airfield, Build Radar
-Tower and Airlift. Each of these is drawn as a
+Tower, Airlift, Sentry, Sentry (enemy only), Load, Unload, Build Army, Hurry
+Building, Upgrade and Build Barricade. Each of these is drawn as a
 file of its own, Art/interface/<order>.png in C7/ModernArt: the normal, hover
 and pressed buttons side by side, each 64x64 (twice Civ3's 32x32 button, as
 all the remade art is). C7/Lua/standalone/textures.lua points the orders'
 buttons at them.
 
 It also draws the air missions' and the airdrop's buttons (see
-air_missions.py), which are blank in the asset pack too.
+air_missions.py), which are blank in the asset pack too, and the icons by a
+city for its barracks, airport and harbor (see city_icons.py).
 
 The buttons copy the asset pack's look: a golden ball with the order drawn on
 it in dark brown.
@@ -25,6 +27,7 @@ import civ3art  # noqa: E402
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import air_missions  # noqa: E402
+import city_icons  # noqa: E402
 
 CELL = 64          # one button at 2x
 SS = 4             # supersampling
@@ -131,6 +134,93 @@ def airlift_glyph(draw):
     draw.polygon([(16 * u, 26 * u), (20 * u, 26 * u), (18 * u, 15 * u), (14 * u, 15 * u)], fill=GLYPH)
 
 
+def upright_sword(draw, u, x=32):
+    """A sword standing on its point, as on Civ3's Sentry button."""
+    draw.polygon([((x - 3) * u, 22 * u), ((x + 3) * u, 22 * u), ((x + 3) * u, 48 * u), (x * u, 55 * u), ((x - 3) * u, 48 * u)], fill=GLYPH)
+    draw.rectangle([(x - 10) * u, 18 * u, (x + 10) * u, 22 * u], fill=GLYPH)   # the guard
+    draw.rectangle([(x - 2) * u, 9 * u, (x + 2) * u, 18 * u], fill=GLYPH)      # the grip
+    draw.ellipse([(x - 4) * u, 5 * u, (x + 4) * u, 12 * u], fill=GLYPH)        # the pommel
+
+
+def sentry_glyph(draw):
+    """A sword standing guard."""
+    upright_sword(draw, S / 64)
+
+
+def sentry_enemy_only_glyph(draw):
+    """A sword standing guard, with enemies closing in from either side."""
+    u = S / 64
+    upright_sword(draw, u)
+    for sign in (-1, 1):
+        tip = 32 + sign * 8
+        tail = 32 + sign * 26
+        draw.line([(tail * u, 38 * u), ((tip + sign * 6) * u, 38 * u)], fill=GLYPH, width=int(4 * u))
+        draw.polygon([(tip * u, 38 * u), ((tip + sign * 8) * u, 31 * u), ((tip + sign * 8) * u, 45 * u)], fill=GLYPH)
+
+
+def crate(draw, u):
+    """An open-topped hold at the bottom of the button."""
+    draw.polygon([(14 * u, 34 * u), (50 * u, 34 * u), (46 * u, 52 * u), (18 * u, 52 * u)], fill=GLYPH)
+    draw.rectangle([18 * u, 34 * u, 46 * u, 38 * u], fill=(0, 0, 0, 0))
+
+
+def load_glyph(draw):
+    """An arrow curving down into a ship's hold."""
+    u = S / 64
+    crate(draw, u)
+    draw.arc([10 * u, 8 * u, 40 * u, 44 * u], 200, 340, fill=GLYPH, width=int(5 * u))
+    draw.line([(36 * u, 16 * u), (36 * u, 26 * u)], fill=GLYPH, width=int(5 * u))
+    draw.polygon([(28 * u, 24 * u), (44 * u, 24 * u), (36 * u, 34 * u)], fill=GLYPH)
+
+
+def unload_glyph(draw):
+    """An arrow curving up out of a ship's hold."""
+    u = S / 64
+    crate(draw, u)
+    draw.line([(28 * u, 40 * u), (28 * u, 22 * u)], fill=GLYPH, width=int(5 * u))
+    draw.arc([28 * u, 8 * u, 56 * u, 40 * u], 200, 330, fill=GLYPH, width=int(5 * u))
+    draw.polygon([(44 * u, 18 * u), (56 * u, 12 * u), (54 * u, 26 * u)], fill=GLYPH)
+
+
+def build_army_glyph(draw):
+    """Three soldiers in a rank, with a standard over them."""
+    u = S / 64
+    for x in (18, 32, 46):
+        draw.ellipse([(x - 4) * u, 24 * u, (x + 4) * u, 32 * u], fill=GLYPH)
+        draw.polygon([((x - 6) * u, 34 * u), ((x + 6) * u, 34 * u), ((x + 5) * u, 52 * u), ((x - 5) * u, 52 * u)], fill=GLYPH)
+    draw.line([(32 * u, 24 * u), (32 * u, 8 * u)], fill=GLYPH, width=int(3 * u))
+    draw.polygon([(33 * u, 8 * u), (46 * u, 12 * u), (33 * u, 17 * u)], fill=GLYPH)
+
+
+def hurry_building_glyph(draw):
+    """A brick wall going up, with a hammer over it."""
+    u = S / 64
+    for row, y in enumerate(range(36, 54, 6)):
+        for x in range(10 + (row % 2) * 6, 52, 12):
+            draw.rectangle([x * u, y * u, min(x + 10, 52) * u, (y + 4) * u], fill=GLYPH)
+    # the hammer, its head up and to the right
+    draw.line([(18 * u, 32 * u), (38 * u, 14 * u)], fill=GLYPH, width=int(4 * u))
+    draw.polygon([(32 * u, 10 * u), (40 * u, 4 * u), (50 * u, 15 * u), (42 * u, 21 * u)], fill=GLYPH)
+
+
+def upgrade_glyph(draw):
+    """A bolt of lightning, as on Civ3's Upgrade button."""
+    u = S / 64
+    draw.polygon([(36 * u, 6 * u), (18 * u, 34 * u), (30 * u, 34 * u), (24 * u, 58 * u),
+                  (46 * u, 26 * u), (34 * u, 26 * u), (42 * u, 6 * u)], fill=GLYPH)
+
+
+def barricade_glyph(draw):
+    """A barricade of sharpened stakes crossed over a log."""
+    u = S / 64
+    draw.polygon([(8 * u, 50 * u), (56 * u, 50 * u), (50 * u, 46 * u), (14 * u, 46 * u)], fill=GLYPH)
+    for x in (16, 32, 48):
+        for sign in (-1, 1):
+            draw.line([((x - sign * 9) * u, 48 * u), ((x + sign * 7) * u, 18 * u)], fill=GLYPH, width=int(4 * u))
+            draw.polygon([((x + sign * 5) * u, 20 * u), ((x + sign * 10) * u, 12 * u), ((x + sign * 9) * u, 22 * u)], fill=GLYPH)
+    draw.rectangle([8 * u, 32 * u, 56 * u, 37 * u], fill=GLYPH)
+
+
 def button(glyph, brightness, offset):
     img = ball(brightness)
     layer = Image.new('RGBA', (S, S), (0, 0, 0, 0))
@@ -162,4 +252,13 @@ if __name__ == '__main__':
     build('unit_build_airfield', airfield_glyph)
     build('unit_build_radar_tower', radar_tower_glyph)
     build('unit_airlift', airlift_glyph)
+    build('unit_sentry', sentry_glyph)
+    build('unit_sentry_enemy_only', sentry_enemy_only_glyph)
+    build('unit_load', load_glyph)
+    build('unit_unload', unload_glyph)
+    build('unit_build_army', build_army_glyph)
+    build('unit_hurry_building', hurry_building_glyph)
+    build('unit_upgrade', upgrade_glyph)
+    build('unit_build_barricade', barricade_glyph)
     air_missions.main()
+    city_icons.main()

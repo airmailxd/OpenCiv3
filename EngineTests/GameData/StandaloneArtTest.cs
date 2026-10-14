@@ -142,6 +142,54 @@ public class StandaloneArtTest {
 		}
 	}
 
+	// The cells of the asset pack's Art/interface/NormButtons.png with a
+	// picture, by column and row; the rest are blank golden balls.
+	private static readonly HashSet<(int, int)> drawnNormButtons = [
+		(0, 0), (1, 0), (2, 0), (3, 0), (4, 0), (5, 0),
+		(2, 1), (3, 1),
+		(5, 2), (6, 2), (7, 2),
+		(0, 3), (1, 3), (2, 3), (3, 3), (4, 3), (5, 3), (6, 3), (7, 3),
+	];
+
+	// Every unit order's button has a picture: one of the asset pack's that
+	// has one, or one of our own in ModernArt. Sentry, Load, Upgrade, Build
+	// Barricade and others were blank golden balls in the unit bar and the
+	// tech tree.
+	[Fact]
+	public void EveryUnitOrderButtonHasAPicture() {
+		(Script lua, Table textures) = standalone.Value.textures;
+		Table buttons = (Table)((Table)textures["ui"])["unit_control"];
+		string modernArt = PathUtils.getBasePath("../C7/ModernArt");
+		List<string> orders = typeof(C7Engine.C7Action).GetFields()
+			.Where(f => f.IsLiteral && f.FieldType == typeof(string))
+			.Select(f => (string)f.GetRawConstantValue())
+			.Where(v => v.StartsWith("unit_"))
+			.ToList();
+		Assert.True(orders.Count > 30, $"only {orders.Count} unit orders");
+		List<string> problems = [];
+		foreach (string order in orders) {
+			if (buttons[order] is not Table button) {
+				problems.Add($"{order}: no button");
+				continue;
+			}
+			Table normal = (Table)button["normal"];
+			string path = normal.Get("path").String;
+			Table crop = normal.Get("crop_region").Table;
+			if (FindIgnoringCase(modernArt, path) != null) {
+				continue;
+			}
+			if (path.Contains("NormButtons", StringComparison.OrdinalIgnoreCase) && crop != null) {
+				(int, int) cell = ((int)crop.Get(1).Number / 32, (int)crop.Get(2).Number / 32);
+				if (!drawnNormButtons.Contains(cell)) {
+					problems.Add($"{order}: the asset pack's button at {cell} is blank");
+				}
+				continue;
+			}
+			problems.Add($"{order}: {path} isn't in ModernArt");
+		}
+		Assert.True(problems.Count == 0, string.Join("\n", problems));
+	}
+
 	// An advance or a building the bundled rules don't have, as from an
 	// addon, shows the placeholders.
 	[Fact]
