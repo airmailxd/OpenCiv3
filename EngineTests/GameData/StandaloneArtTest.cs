@@ -96,6 +96,52 @@ public class StandaloneArtTest {
 		Assert.True(problems.Count == 0, string.Join("\n", problems));
 	}
 
+	// Every building of the standalone rules shows an icon wherever buildings
+	// are drawn: the production menus and the tech tree (checked above), the
+	// Civilopedia, which reads our own C7/Civilopedia, and for barracks,
+	// harbors and airports the icons by a city on the map. Barracks and
+	// harbors were reported missing (owner's report, 2026-10-13): the map
+	// showed their pictures shrunk to 25x17, which couldn't be made out.
+	[Fact]
+	public void EveryBuildingOfTheStandaloneRulesHasACivilopediaIcon() {
+		SaveGame rules = standalone.Value.GetSave();
+		string civilopedia = PathUtils.getBasePath("../C7/Civilopedia");
+		PediaIcons icons = new(Path.Combine(civilopedia, "Text", "PediaIcons.txt"));
+		List<string> problems = [];
+		foreach (SaveBuilding b in rules.Buildings) {
+			foreach (bool large in new[] { true, false }) {
+				string path = icons.GetCivilopediaIcon(b.civilopediaEntry, large);
+				if (path == null) {
+					problems.Add($"{b.name}: no {(large ? "large" : "small")} icon in PediaIcons.txt");
+				} else if (!ExistsIgnoringCase(civilopedia, path.Replace('\\', '/'))) {
+					problems.Add($"{b.name}: no {path} in C7/Civilopedia");
+				}
+			}
+		}
+		Assert.True(problems.Count == 0, string.Join("\n", problems));
+	}
+
+	[Fact]
+	public void BarracksHarborsAndAirportsHaveTheirOwnIconsByTheCity() {
+		SaveGame rules = standalone.Value.GetSave();
+		string modernArt = PathUtils.getBasePath("../C7/ModernArt");
+		HashSet<string> shown = [];
+		foreach ((string key, string buildingName) in new[] { ("barracks", "Barracks"), ("harbor", "Harbor"), ("airport", "Airport") }) {
+			SaveBuilding save = rules.Buildings.Single(b => b.name == buildingName);
+			Building building = NewBuilding(save.name, save.civilopediaEntry, save.iconRowIndex);
+			(string path, Table crop) = Sprite("city_building_icons." + key, building);
+			string file = FindIgnoringCase(modernArt, path);
+			Assert.True(file != null, $"{buildingName}: no {path} in ModernArt");
+			Assert.NotNull(crop);
+			int x = (int)crop.Get(1).Number, y = (int)crop.Get(2).Number, w = (int)crop.Get(3).Number, h = (int)crop.Get(4).Number;
+			// Shown as Civ3's are, 25x17, from art with twice the pixels.
+			Assert.Equal((25, 17), (w, h));
+			(int width, int height) = PngSize(file);
+			Assert.True((x + w) * 2 <= width && (y + h) * 2 <= height, $"{buildingName}: {path} is too small for its icon");
+			Assert.True(shown.Add($"{path} {x},{y}"), $"{buildingName}: shares its icon with another building");
+		}
+	}
+
 	// An advance or a building the bundled rules don't have, as from an
 	// addon, shows the placeholders.
 	[Fact]

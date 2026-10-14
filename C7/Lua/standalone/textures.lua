@@ -126,7 +126,8 @@ local c7_texture_list = {
   "Art/interface/unit_build_colony.png",
   "Art/interface/unit_build_airfield.png",
   "Art/interface/unit_build_radar_tower.png",
-  "Art/interface/unit_airlift.png"
+  "Art/interface/unit_airlift.png",
+  "Art/Cities/CityBuildingIcons.png"
 }
 
 --- For ease of editing, we define the civ colors as hex codes, not 1x1 px images
@@ -280,13 +281,17 @@ return function(civ3_textures)
     }
   end
 
-  -- There's no replacement for Civ3's barracks, harbor and airport icons, so the building's own icon is shown.
-  local function building_icon(_, building)
-    return c7_textures.building_icons.small:map_object_to_sprite(building)
+  -- The icons by a city for its barracks, airport and harbor, which the
+  -- asset pack lacks: a sheet of our own (C7/ModernArt/Art/Cities/
+  -- CityBuildingIcons.png, made by ArtGen/ui_buttons/city_icons.py), drawn
+  -- like Civ3's. Before, the buildings' own pictures were shown there,
+  -- shrunk until they couldn't be made out.
+  for column, name in ipairs({ "barracks", "airport", "harbor" }) do
+    local sprite = { path = "Art/Cities/CityBuildingIcons.png", crop_region = { (column - 1) * 25, 0, 25, 17 } }
+    c7_textures.city_building_icons[name].map_object_to_sprite = function(_, _)
+      return sprite
+    end
   end
-  c7_textures.city_building_icons.barracks.map_object_to_sprite = building_icon
-  c7_textures.city_building_icons.harbor.map_object_to_sprite = building_icon
-  c7_textures.city_building_icons.airport.map_object_to_sprite = building_icon
 
   -- The asset pack's button sheet is blank where Civ3's has the air
   -- missions and the airdrop, so they have buttons of our own
