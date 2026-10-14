@@ -145,29 +145,34 @@ public partial class DomesticAdvisor : Control {
 		var plusConfigKey = "advisors.domestic.plus";
 		var minusConfigKey = "advisors.domestic.minus";
 
-		TextureButton moreScience = new();
-		SetPlusMinusTextures(moreScience, plusConfigKey, plus: true);
-		moreScience.SetPosition(new Vector2(732, scienceSliderY + 27));
-		moreScience.Pressed += MoreScience;
-		background.AddChild(moreScience);
+		// The minus under the left end of a slider's track and the plus
+		// under its right end, both centered on one line between the two
+		// tracks: the science slider's just under its track, the luxury
+		// slider's just over its own, clear of the grabbers. The ends are
+		// where the background's tracks start and stop (x 566 and 756 in
+		// Civ3's domestic.pcx and the asset pack's domestic.png). Before,
+		// the minus stuck out past the track's start and the plus stopped
+		// well short of its end.
+		// UNVERIFIED: Civ3's exact placement; its art only has the tracks.
+		AddPlusMinus(minusConfigKey, plus: false, TrackStart, scienceSliderY + 34, LessScience);
+		AddPlusMinus(plusConfigKey, plus: true, TrackEnd, scienceSliderY + 34, MoreScience);
+		AddPlusMinus(minusConfigKey, plus: false, TrackStart, luxurySliderY + 2, LessLuxury);
+		AddPlusMinus(plusConfigKey, plus: true, TrackEnd, luxurySliderY + 2, MoreLuxury);
+	}
 
-		TextureButton lessScience = new();
-		SetPlusMinusTextures(lessScience, minusConfigKey, plus: false);
-		lessScience.SetPosition(new Vector2(562, scienceSliderY + 29));
-		lessScience.Pressed += LessScience;
-		background.AddChild(lessScience);
+	// Where the sliders' tracks start and end on the background.
+	private const float TrackStart = 566;
+	private const float TrackEnd = 756;
 
-		TextureButton moreLuxury = new();
-		SetPlusMinusTextures(moreLuxury, plusConfigKey, plus: true);
-		moreLuxury.SetPosition(new Vector2(732, luxurySliderY - 5));
-		moreLuxury.Pressed += MoreLuxury;
-		background.AddChild(moreLuxury);
-
-		TextureButton lessLuxury = new();
-		SetPlusMinusTextures(lessLuxury, minusConfigKey, plus: false);
-		lessLuxury.SetPosition(new Vector2(562, luxurySliderY - 3));
-		lessLuxury.Pressed += LessLuxury;
-		background.AddChild(lessLuxury);
+	// A plus or minus button, its left edge (a minus) or right edge (a
+	// plus) at x and centered on the line at y.
+	private void AddPlusMinus(string configKey, bool plus, float x, float y, System.Action pressed) {
+		TextureButton button = new();
+		SetPlusMinusTextures(button, configKey, plus);
+		Vector2 size = button.TextureNormal.GetSize();
+		button.SetPosition(new Vector2(plus ? x - size.X : x, Mathf.Round(y - size.Y / 2)));
+		button.Pressed += pressed;
+		background.AddChild(button);
 	}
 
 	// A slider's grabber drawn when its icon's art is missing: a disc of the
