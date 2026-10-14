@@ -1101,7 +1101,9 @@ namespace C7GameData {
 			// (https://civfanatics.com/civ3/civilopedia/improvements/).
 			// UNVERIFIED: which applies against air units, which only
 			// bombard in Civ3; the land one does, as before.
-			bool navalAttack = attacker != null && attacker.IsWaterUnit();
+			// MapUnit.NONE, the map's opponent when no unit is selected, has
+			// no unit type.
+			bool navalAttack = attacker?.unitType?.IsSeaUnit() ?? false;
 			foreach (CityBuilding cb in EffectiveBuildings()) {
 				StrengthBonus? bonus = navalAttack ? cb.building.navalDefenseBonus : cb.building.combatDefenseBonus;
 				if (bonus is not StrengthBonus defenseBonus) {

@@ -309,6 +309,19 @@ public class CombatTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(0.5, city.GetDefenseBonuses(galley).Single(b => b.description == "Coastal Fortress").amount);
 	}
 
+	// The map asks which unit of a stack would defend against the selected
+	// unit, and with none selected that's MapUnit.NONE, which has no unit
+	// type. Asking whether it was a ship threw, so the map's units stopped
+	// being drawn on any city with two or more units.
+	[Fact]
+	public void ACityDefendsAgainstNoUnitAsAgainstALandAttack() {
+		(Tile land, _) = FindCoast();
+		City city = CityInteractions.BuildCity(land, them, them.GetNextCityName());
+		city.AddBuilding(gameData.Buildings.Single(b => b.name == "Walls"));
+		List<string> bonuses = city.GetDefenseBonuses(MapUnit.NONE).Select(b => b.description).ToList();
+		Assert.Contains("Walls", bonuses);
+	}
+
 	// "There is no defensive bonus for fortified ships"
 	// (https://forums.civfanatics.com/threads/do-ships-get-a-defense-bonus-when-fortified.95400/).
 	[Fact]
