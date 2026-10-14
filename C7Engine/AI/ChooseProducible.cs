@@ -4,6 +4,7 @@ using System.Linq;
 using Serilog;
 using Serilog.Events;
 using C7Engine.AI;
+using C7Engine.AI.UnitAI;
 using C7GameData;
 using static C7GameData.PlayerRelationship;
 
@@ -97,6 +98,16 @@ namespace C7Engine {
 			// For the lean-military trial (see DevelopmentAI).
 			private (int have, int want)? militaryNeed;
 			public (int have, int want) MilitaryNeed => militaryNeed ??= DevelopmentAI.MilitaryNeed(player);
+
+			// For valuing improvements by their effect (see BuildingEffects).
+			private CommerceBreakdown? commerce;
+			public CommerceBreakdown Commerce => commerce ??= city.CurrentCommerceYieldRaw();
+
+			private int? goldPerTurn;
+			public int GoldPerTurn => goldPerTurn ??= player.CalculateGoldPerTurn();
+
+			internal bool? enemyAircraftNear;
+			internal bool? enemyWarshipsNear;
 
 			private int? turnsUntilGrowth;
 			public int TurnsUntilGrowth => turnsUntilGrowth ??= city.TurnsUntilGrowth();
@@ -231,10 +242,14 @@ namespace C7Engine {
 					return int.MinValue;
 				}
 
-				// Don't built a naval unit if we wouldn't explore with it. We
-				// don't yet handle using ships as transports or naval warfare.
+				// Don't built a naval unit if we wouldn't explore with it, or
+				// fight with it (see NavalAI). Transports are built
+				// for settlers waiting for one, above.
 				if (!stats.WouldExplore(unit)) {
-					return int.MinValue;
+					if (!NavalAI.IsWarship(unit) || !NavalAI.WantsWarships(player, city)) {
+						return int.MinValue;
+					}
+					score += NavalAI.WarshipBonus;
 				}
 			}
 
@@ -443,6 +458,14 @@ namespace C7Engine {
 			if (AiExperiments.Has(player, DevelopmentAI.LeanMilitary)) {
 				score += DevelopmentAI.LeanMilitaryAdjustment(stats, building);
 			}
+
+			// What the improvement's effect is worth here (see
+			// BuildingEffects).
+			float? effect = BuildingEffects.Score(stats, city, player, building);
+			if (effect == null) {
+				return -1000f;
+			}
+			score += effect.Value;
 
 			// Penalize more expensive buildings.
 			score -= city.TurnsToProduce(building) / (stats.InExpansionPhase ? 1 : 2);
