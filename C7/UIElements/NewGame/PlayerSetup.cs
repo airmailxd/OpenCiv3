@@ -221,14 +221,33 @@ public partial class PlayerSetup : Control {
 		};
 		rulesContainer.AddChild(showScoreboard);
 
+		// The corruption rules, custom ones, have the box on the right to
+		// themselves: with the victory conditions Civ3's rules box had
+		// grown to seven rows, which ran out of it over the difficulty
+		// levels below.
+		VBoxContainer corruptionBox = new() {
+			Position = new Vector2(782, 506),
+			Size = new Vector2(170, 122),
+		};
+		corruptionBox.AddThemeConstantOverride("separation", 4);
+		background.AddChild(corruptionBox);
+		Label corruptionHeader = new() {
+			Text = "CORRUPTION",
+			Position = new Vector2(784, 468),
+			Size = new Vector2(150, 29),
+			VerticalAlignment = VerticalAlignment.Center,
+		};
+		corruptionHeader.AddThemeFontSizeOverride("font_size", 15);
+		background.AddChild(corruptionHeader);
+
 		coreCitiesFreeOfCorruption = new Civ3Checkbox {
 			Text = "No corruption near capital",
-			FontSize = 14,
+			FontSize = 12,
 			// Off unless it was chosen for the last game, like the rule itself.
 			ButtonPressed = choices.CoreCitiesFreeOfCorruption ?? false,
 			TooltipText = "Custom rule: the capital and the 5 cities nearest it have no corruption or waste.",
 		};
-		rulesContainer.AddChild(coreCitiesFreeOfCorruption);
+		corruptionBox.AddChild(coreCitiesFreeOfCorruption);
 
 		acceleratedProduction = new Civ3Checkbox {
 			Text = "Accelerated production",
@@ -260,7 +279,7 @@ public partial class PlayerSetup : Control {
 		};
 		rulesContainer.AddChild(scientificLeaders);
 
-		AddCorruptionRate();
+		AddCorruptionRate(corruptionBox);
 	}
 
 	private CheckBox AddVictoryCheckbox(string text, bool allowed, string tooltip) {
@@ -277,13 +296,14 @@ public partial class PlayerSetup : Control {
 	// A slider for the rate corruption and waste are scaled by
 	// (Rules.CorruptionRate), starting at the rate chosen last time or the
 	// one the ruleset gives.
-	private void AddCorruptionRate() {
+	private void AddCorruptionRate(Container box) {
 		const string tooltip = "Scales every city's corruption and waste. 1.00 is Civ3's rate; "
 			+ "the default, 0.90, goes slightly easier on everyone.";
-		HBoxContainer row = new() { TooltipText = tooltip };
-		row.AddThemeConstantOverride("separation", 8);
+		// The label above the slider, to fit the box.
+		VBoxContainer row = new() { TooltipText = tooltip };
+		row.AddThemeConstantOverride("separation", 2);
 		Label label = new() { TooltipText = tooltip, MouseFilter = MouseFilterEnum.Pass };
-		label.AddThemeFontSizeOverride("font_size", 14);
+		label.AddThemeFontSizeOverride("font_size", 13);
 		corruptionRate = new Civ3HSlider {
 			MinValue = Rules.MinCorruptionRate,
 			MaxValue = Rules.MaxCorruptionRate,
@@ -300,7 +320,7 @@ public partial class PlayerSetup : Control {
 		corruptionRate.ValueChanged += ShowRate;
 		row.AddChild(label);
 		row.AddChild(corruptionRate);
-		rulesContainer.AddChild(row);
+		box.AddChild(row);
 	}
 
 	private void BackToMainMenu() {
