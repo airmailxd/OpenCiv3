@@ -526,6 +526,13 @@ public partial class Util {
 				return;
 			}
 		}
+		// Standalone mode has no Civ3 sounds, and only some of its own: a
+		// sound it lacks is expected, not worth a warning and a stack trace
+		// in the log each time a new one is asked for.
+		if (C7Settings.UseStandaloneMode() && !HasCiv3Media(path)) {
+			log.Debug("No {Kind} {Path} in standalone mode", kind, path);
+			return;
+		}
 		log.Warning(e, "Couldn't load {Kind} {Path}", kind, path);
 	}
 
