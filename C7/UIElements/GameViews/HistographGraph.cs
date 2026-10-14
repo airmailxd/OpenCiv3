@@ -59,7 +59,11 @@ public partial class HistographGraph : Control {
 		foreach (int x in new[] { minX, (minX + maxX) / 2, maxX }) {
 			float px = plot.Position.X + plot.Size.X * (x - minX) / (maxX - minX);
 			string text = byYears && dateText != null ? dateText(x) : $"Turn {x + 1}";
-			DrawString(font, new Vector2(px - 60, plot.End.Y + 18), text, HorizontalAlignment.Center, 120, fontSize, ink);
+			// Centered under its point, but kept inside the graph: the last
+			// date ran past the paper's edge.
+			float width = font.GetStringSize(text, HorizontalAlignment.Left, -1, fontSize).X;
+			float left = Mathf.Clamp(px - width / 2, 0, Mathf.Max(0, Size.X - width));
+			DrawString(font, new Vector2(left, plot.End.Y + 18), text, HorizontalAlignment.Left, -1, fontSize, ink);
 		}
 
 		foreach ((Color color, List<HistographPoint> points) in lines) {
