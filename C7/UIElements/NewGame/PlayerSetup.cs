@@ -202,6 +202,14 @@ public partial class PlayerSetup : Control {
 			"Each civilization has a King. A civilization whose King is killed is eliminated: its units and cities are destroyed.");
 		massRegicide = AddVictoryCheckbox("Mass Regicide", hasKings && victoryConditions.MassRegicide,
 			$"Each civilization has {InstantElimination.MassRegicideKings} Kings. A civilization whose Kings are all killed is eliminated: its units and cities are destroyed.");
+		// Regicide and Mass Regicide aren't exclusive: Civ3's setup screen
+		// has a checkbox for each (Conquests' labels.txt), and with both a
+		// civ starts with Mass Regicide's Kings but is eliminated when any
+		// one of them dies; "For an epic game, check the option of 'Mass
+		// Regicide' (but do NOT check 'Regicide' as well!)"
+		// (https://forums.civfanatics.com/threads/mass-regicide.76473/).
+		// The game plays them that way (see InstantElimination and
+		// RegicideCondition).
 		regicide.Visible = hasKings;
 		massRegicide.Visible = hasKings;
 
