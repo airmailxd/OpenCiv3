@@ -13,11 +13,11 @@ public partial class PalaceView : Control {
 	public override void _Ready() {
 		base._Ready();
 
-		if (C7Settings.UseStandaloneMode()) {
-			return;
-		}
-
-		background.Texture = TextureLoader.Load("screens.palace.background");
+		// Standalone mode has the palace's background but not the pieces
+		// it's built from (PalaceBuildingsLayer), so it shows the grounds
+		// with a way out. Before, it showed nothing at all, and F9 or the
+		// Palace View button seemed to do nothing.
+		background.Texture = TextureLoader.TryLoad("screens.palace.background");
 
 		MouseFilter = MouseFilterEnum.Stop;
 
