@@ -142,6 +142,30 @@ public class StandaloneArtTest {
 		}
 	}
 
+	// The markers the map draws on a tile are in the asset pack or remade in
+	// ModernArt (which standalone mode uses for art the pack lacks). The
+	// Victory Location marker was in neither, so Victory Point Scoring's
+	// locations weren't shown.
+	[Fact]
+	public void TheMapsTileMarkersAreThere() {
+		string c7 = PathUtils.getBasePath("../C7");
+		string assets = Path.Combine(c7, "Assets");
+		if (!Directory.Exists(Path.Combine(assets, "Art"))) {
+			return;
+		}
+		(_, Table textures) = standalone.Value.textures;
+		Table terrain = (Table)textures["terrain"];
+		List<string> missing = [];
+		foreach (string key in new[] { "victory_location", "goody_hut", "barbarian_camp" }) {
+			string path = ((Table)terrain[key]).Get("path").String;
+			string remade = Path.ChangeExtension(path, ".png");
+			if (!ExistsIgnoringCase(assets, path) && !ExistsIgnoringCase(Path.Combine(c7, "ModernArt"), remade)) {
+				missing.Add($"terrain.{key}: {path}");
+			}
+		}
+		Assert.Empty(missing);
+	}
+
 	// The cells of the asset pack's Art/interface/NormButtons.png with a
 	// picture, by column and row; the rest are blank golden balls.
 	private static readonly HashSet<(int, int)> drawnNormButtons = [
