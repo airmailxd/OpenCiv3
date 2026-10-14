@@ -22,7 +22,11 @@ public partial class TradingTree : Tree {
 	TreeItem peaceTreaty;
 	TreeItem rightOfPassage;
 	TreeItem mutualProtectionPact;
-	// The civ each military alliance or trade embargo item is against.
+	// The civ each military alliance or trade embargo item is against,
+	// under a heading of each: "Military Alliance against the Portuguese"
+	// in one line didn't fit, and lost the civ's name to an ellipsis.
+	TreeItem allianceHeader;
+	TreeItem embargoHeader;
 	Dictionary<TreeItem, ID> allianceItems = new();
 	Dictionary<TreeItem, ID> embargoItems = new();
 	TreeItem cityHeader;
@@ -93,15 +97,23 @@ public partial class TradingTree : Tree {
 				mutualProtectionPact = this.CreateItem(diplomacyHeader);
 				mutualProtectionPact.SetText(0, "Mutual Protection Pact");
 			}
-			foreach (Player target in pacts?.allianceTargets ?? new()) {
-				TreeItem child = this.CreateItem(diplomacyHeader);
-				child.SetText(0, $"Military Alliance against the {target.civilization?.noun}");
-				allianceItems[child] = target.id;
+			if ((pacts?.allianceTargets.Count ?? 0) > 0) {
+				allianceHeader = this.CreateItem(diplomacyHeader);
+				allianceHeader.SetText(0, "Military Alliance");
+				foreach (Player target in pacts.allianceTargets) {
+					TreeItem child = this.CreateItem(allianceHeader);
+					child.SetText(0, $"against the {target.civilization?.noun}");
+					allianceItems[child] = target.id;
+				}
 			}
-			foreach (Player target in pacts?.embargoTargets ?? new()) {
-				TreeItem child = this.CreateItem(diplomacyHeader);
-				child.SetText(0, $"Trade Embargo against the {target.civilization?.noun}");
-				embargoItems[child] = target.id;
+			if ((pacts?.embargoTargets.Count ?? 0) > 0) {
+				embargoHeader = this.CreateItem(diplomacyHeader);
+				embargoHeader.SetText(0, "Trade Embargo");
+				foreach (Player target in pacts.embargoTargets) {
+					TreeItem child = this.CreateItem(embargoHeader);
+					child.SetText(0, $"against the {target.civilization?.noun}");
+					embargoItems[child] = target.id;
+				}
 			}
 		}
 
@@ -209,6 +221,12 @@ public partial class TradingTree : Tree {
 			}
 			if (ti == diplomacyHeader && other.diplomacyHeader != null) {
 				other.diplomacyHeader.Collapsed = diplomacyHeader.Collapsed;
+			}
+			if (ti == allianceHeader && other.allianceHeader != null) {
+				other.allianceHeader.Collapsed = allianceHeader.Collapsed;
+			}
+			if (ti == embargoHeader && other.embargoHeader != null) {
+				other.embargoHeader.Collapsed = embargoHeader.Collapsed;
 			}
 			if (ti == cityHeader && other.cityHeader != null) {
 				other.cityHeader.Collapsed = cityHeader.Collapsed;
@@ -393,11 +411,11 @@ public partial class TradingTree : Tree {
 				mutualProtectionPact.Visible = !currentOffer.mutualProtectionPact;
 			}
 			// One alliance and one embargo a deal.
-			foreach (TreeItem ti in allianceItems.Keys) {
-				ti.Visible = currentOffer.militaryAllianceAgainst == null;
+			if (allianceHeader != null) {
+				allianceHeader.Visible = currentOffer.militaryAllianceAgainst == null;
 			}
-			foreach (TreeItem ti in embargoItems.Keys) {
-				ti.Visible = currentOffer.tradeEmbargoAgainst == null;
+			if (embargoHeader != null) {
+				embargoHeader.Visible = currentOffer.tradeEmbargoAgainst == null;
 			}
 			if (rightOfPassage != null) {
 				rightOfPassage.Visible = !currentOffer.rightOfPassage;

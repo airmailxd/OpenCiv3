@@ -63,12 +63,14 @@ public partial class TradeOfferUi : Tree {
 			TreeItem child = this.CreateItem(root);
 			child.SetTextAlignment(0, alignment);
 			child.SetText(0, $"Military Alliance against the {target.civilization?.noun}");
+			Wrap(child);
 			alliances[child] = target.id;
 		}
 		foreach (Player target in pacts?.embargoTargets ?? new()) {
 			TreeItem child = this.CreateItem(root);
 			child.SetTextAlignment(0, alignment);
 			child.SetText(0, $"Trade Embargo against the {target.civilization?.noun}");
+			Wrap(child);
 			embargoes[child] = target.id;
 		}
 
@@ -112,10 +114,18 @@ public partial class TradeOfferUi : Tree {
 			TreeItem child = this.CreateItem(root);
 			child.SetTextAlignment(0, alignment);
 			child.SetText(0, $"Communications with the {third.civilization?.noun}");
+			Wrap(child);
 			contacts[child] = third.id;
 		}
 
 		RefreshUiForOffer();
+	}
+
+	// Wraps an item too long for half of the table, like "Military
+	// Alliance against the Portuguese", which otherwise lost the civ's name
+	// to an ellipsis.
+	private static void Wrap(TreeItem item) {
+		item.SetAutowrapMode(0, TextServer.AutowrapMode.WordSmart);
 	}
 
 	public void HandleClicks(TradeOfferUi other, Action offerUpdated) {
