@@ -334,7 +334,9 @@ public partial class ForeignWeb : Control {
 
 		// The viewer at the bottom, the others round the circle from there.
 		// The more civs, the smaller their heads, so they fit.
-		Vector2 center = Size / 2 - new Vector2(0, 14);
+		// A little above the middle, to leave room for the names under the
+		// heads at the bottom.
+		Vector2 center = Size / 2 - new Vector2(0, 22);
 		int count = civs.Count;
 		float radius = count <= 1 ? 0 : Mathf.Min(Size.X, Size.Y) / 2 - 80;
 		float spacing = count <= 1 ? float.MaxValue : Mathf.Tau * radius / count;
@@ -395,7 +397,9 @@ public partial class ForeignWeb : Control {
 				11, labelWidth, HorizontalAlignment.Center);
 			name.ClipText = false;
 			name.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
-			name.Position = position + new Vector2(-labelWidth / 2, _headSize / 2 + 2);
+			// Clear of the rings drawn round the head (see _Draw: ours is
+			// ringed twice, out to RingRadius + 4), which the names touched.
+			name.Position = position + new Vector2(-labelWidth / 2, RingRadius(_headSize) + 8);
 			name.Size = new Vector2(labelWidth, 30);
 			name.MouseFilter = MouseFilterEnum.Ignore;
 			// Outlined in the parchment's color, to read over the lines.
@@ -405,6 +409,9 @@ public partial class ForeignWeb : Control {
 		}
 		QueueRedraw();
 	}
+
+	// The radius of the ring round a head of the given size.
+	private static float RingRadius(float headSize) => headSize / 2 + 4;
 
 	// A circle of the parchment's color, filling a square of the given side.
 	private static StyleBoxFlat CircleStyle(float side) {
@@ -444,7 +451,7 @@ public partial class ForeignWeb : Control {
 			}
 		}
 
-		float radius = _headSize / 2 + 4;
+		float radius = RingRadius(_headSize);
 		foreach ((Player civ, Vector2 center) in _leaders) {
 			Color ring = civ == _selected ? SelectedRing : _atWarWithViewer.Contains(civ) ? WarRing : PlainRing;
 			DrawCircle(center, radius, ring);
