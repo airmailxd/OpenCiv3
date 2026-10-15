@@ -41,6 +41,8 @@ def body(gender=1.0, age=0.5, muscle=0.75, weight=0.55, height=0.55, proportions
     TargetService.bake_targets(basemesh)
     arm = HumanService.add_builtin_rig(basemesh, 'game_engine', import_weights=True)
     HumanService.set_character_skin(_asset('skins', skin, 'mhmat'), basemesh, skin_type='ENHANCED_SSS')
+    import garments
+    garments.fit_to(basemesh)
     if skin_tone:
         tone_skin(basemesh, skin_tone)
     if hair_tone and hair:
@@ -56,6 +58,73 @@ def body(gender=1.0, age=0.5, muscle=0.75, weight=0.55, height=0.55, proportions
         mod = basemesh.modifiers.new('Subdiv', 'SUBSURF')
         mod.levels = mod.render_levels = subdiv
     return basemesh, arm
+
+
+def grime(basemesh, amount=0.35, paint=None):
+    """Weathers the skin: dirt in blotches (a noise darkening the diffuse
+    color), a sweaty sheen, and optional war paint, dark bands across the
+    face and chest (`paint` = sRGB color)."""
+    import bscene as B
+    done = set()
+
+    def visit(tree):
+        if tree is None or tree.name in done:
+            return
+        done.add(tree.name)
+        for node in list(tree.nodes):
+            if node.type == 'GROUP':
+                visit(node.node_tree)
+        bsdf = next((n for n in tree.nodes if n.type == 'BSDF_PRINCIPLED'), None)
+        if bsdf is None or not bsdf.inputs['Base Color'].is_linked:
+            return
+        src = bsdf.inputs['Base Color'].links[0].from_socket
+        n = tree.nodes
+        coord = n.new('ShaderNodeTexCoord')
+        noise = n.new('ShaderNodeTexNoise')
+        noise.inputs['Scale'].default_value = 7.0
+        noise.inputs['Detail'].default_value = 8.0
+        noise.inputs['Roughness'].default_value = 0.7
+        tree.links.new(coord.outputs['Object'], noise.inputs['Vector'])
+        ramp = n.new('ShaderNodeValToRGB')
+        ramp.color_ramp.elements[0].position = 0.45
+        ramp.color_ramp.elements[0].color = (0.32, 0.25, 0.18, 1)
+        ramp.color_ramp.elements[1].position = 0.7
+        ramp.color_ramp.elements[1].color = (1, 1, 1, 1)
+        tree.links.new(noise.outputs['Fac'], ramp.inputs['Fac'])
+        dirt = n.new('ShaderNodeMix')
+        dirt.data_type = 'RGBA'
+        dirt.blend_type = 'MULTIPLY'
+        dirt.inputs['Factor'].default_value = amount
+        tree.links.new(src, dirt.inputs['A'])
+        tree.links.new(ramp.outputs['Color'], dirt.inputs['B'])
+        out = dirt.outputs['Result']
+        if paint:
+            wave = n.new('ShaderNodeTexWave')
+            wave.wave_type = 'BANDS'
+            wave.bands_direction = 'Z'
+            wave.inputs['Scale'].default_value = 3.2
+            wave.inputs['Distortion'].default_value = 2.0
+            tree.links.new(coord.outputs['Object'], wave.inputs['Vector'])
+            band = n.new('ShaderNodeValToRGB')
+            band.color_ramp.elements[0].position = 0.88
+            band.color_ramp.elements[0].color = (0, 0, 0, 1)
+            band.color_ramp.elements[1].position = 0.93
+            band.color_ramp.elements[1].color = (1, 1, 1, 1)
+            tree.links.new(wave.outputs['Fac'], band.inputs['Fac'])
+            pm = n.new('ShaderNodeMix')
+            pm.data_type = 'RGBA'
+            pm.inputs['B'].default_value = (*B.srgb_to_linear(paint), 1)
+            tree.links.new(band.outputs['Color'], pm.inputs['Factor'])
+            tree.links.new(out, pm.inputs['A'])
+            out = pm.outputs['Result']
+        tree.links.new(out, bsdf.inputs['Base Color'])
+        # a sweaty sheen
+        if not bsdf.inputs['Roughness'].is_linked:
+            bsdf.inputs['Roughness'].default_value = 0.42
+
+    for slot in basemesh.material_slots:
+        if slot.material and slot.material.use_nodes:
+            visit(slot.material.node_tree)
 
 
 def tone_skin(basemesh, color, strength=1.0, texture='diffuse'):
@@ -140,6 +209,19 @@ def attach(obj, arm, bone, offset=Matrix.Identity(4)):
     # parented to a bone, the child sits at the bone's tail
     obj.matrix_parent_inverse = Matrix.Identity(4)
     obj.matrix_basis = Matrix.Translation((0, -pb.length, 0)) @ offset
+    _update()
+
+
+def plant(root, basemesh):
+    """Moves the root so the posed body's lowest point (its feet) is on the ground."""
+    _update()
+    dg = bpy.context.evaluated_depsgraph_get()
+    ev = basemesh.evaluated_get(dg)
+    me = ev.to_mesh()
+    mw = ev.matrix_world
+    zmin = min((mw @ v.co).z for v in me.vertices)
+    ev.to_mesh_clear()
+    root.location.z -= zmin
     _update()
 
 
