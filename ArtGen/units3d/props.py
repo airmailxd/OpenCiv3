@@ -565,6 +565,65 @@ def cav_spear(p, length=2.7, grip=1.15, butt=True, scale=1.0):
     spear(p, length=length, grip=grip, butt=butt, scale=scale, shaft=0.05, head=2.3)
 
 
+def javelin(p, length=1.6, grip=0.6, scale=1.0):
+    """A light throwing spear: a slim shaft and a long, narrow iron head."""
+    spear(p, length=length, grip=grip, butt=False, scale=scale, shaft=0.024, head=1.1)
+
+
+def lance(p, length=3.4, grip=1.0, scale=1.0):
+    """A knight's or conquistador's lance: a long shaft swelling to a vamplate
+    (the round hand guard) in front of the grip, and a slim steel point."""
+    z0, z1 = -grip, length - grip
+    prof = [(z0, 0.03), (-0.15, 0.034), (0.0, 0.03), (0.14, 0.05), (0.5, 0.036), (z1 - 0.3, 0.022), (z1 - 0.22, 0.02)]
+    p.add(tube([(0, 0, z) for z, _ in prof], [r for _, r in prof], seg=12), 'wood', smooth=True)
+    p.add(lathe([(0.0, 0.03), (0.05, 0.12), (0.075, 0.125), (0.09, 0.04)], seg=20), 'steel', T(0, 0, 0.12),
+          smooth=True)                                                         # vamplate
+    p.add(lathe([(0.0, 0.022), (0.08, 0.02), (0.26, 0.0)], seg=8), 'steel', T(0, 0, z1 - 0.26), smooth=True)
+    p.add(tube([(0, 0, -0.12), (0, 0, 0.1)], 0.034, seg=12), 'leather', smooth=True)
+
+
+def sabre(p, length=0.84, width=0.034, curve=0.07, scale=1.0):
+    """A curved cavalry sabre: a single-edged blade bowing back from the edge
+    (+Y), a stirrup hilt guard, a wrapped grip and a steel pommel cap."""
+    L = length * scale
+    rings = []
+    n = 16
+    for i in range(n + 1):
+        t = i / n
+        z = 0.07 + L * t
+        bow = -curve * scale * (t ** 1.6)
+        hw = width / 2 * scale * (1.0 - 0.25 * t if t < 0.85 else (1 - t) / 0.15 * 0.79)
+        back = 0.004 * scale * (1 - 0.5 * t)
+        rings.append([(0.0, bow - hw, z), (back, bow + hw * 0.7, z), (0.0, bow + hw, z), (-back, bow + hw * 0.7, z)])
+    p.add(loft(rings), 'steel', bevel=0.0006, angle=50.0)
+    p.add(tube([(0, -0.03, 0.06), (0, 0.05, 0.03), (0, 0.065, -0.05), (0, 0.03, -0.1)], 0.006, seg=6), 'steel',
+          smooth=True)                                                         # stirrup guard
+    p.add(tube([(0, 0, -0.1), (0, 0, 0.06)], [0.016, 0.018], seg=10), 'leather', smooth=True)
+    _wrap(p, -0.095, 0.055, 0.0185, 'leather_dark', turns=10)
+    p.add(ellipsoid(0.02, 0.024, 0.018), 'steel', T(0, 0.004, -0.11), smooth=True)
+
+
+def long_sword(p, length=0.95, width=0.055, guard=0.24, scale=1.0):
+    """A knight's arming sword: a long straight double-edged blade, a wide
+    crossguard and a two-hand grip."""
+    sword(p, length=length, width=width, guard=guard, blade='steel', scale=scale)
+    p.add(tube([(0, 0, -0.2), (0, 0, -0.07)], 0.018, seg=10), 'leather', smooth=True)
+    p.add(ellipsoid(0.032, 0.026, 0.03), 'steel', T(0, 0, -0.22), smooth=True)
+
+
+def rifle(p, length=1.25, scale=1.0):
+    """A cavalry carbine or rifle held at the wrist of the stock (origin), the
+    muzzle toward +Z: a wooden stock and fore-end, a steel barrel and lock."""
+    s = scale
+    stock = slab([(-0.05, -0.36), (0.035, -0.36), (0.04, -0.12), (0.02, 0.0), (0.02, 0.62), (-0.012, 0.62),
+                  (-0.016, 0.02), (-0.04, -0.1)], 0.042, 'X')
+    p.add(stock, 'wood', S(s), bevel=0.006)
+    p.add(tube([(0, 0.012, 0.0), (0, 0.012, (length - 0.36) * s)], 0.011 * s, seg=10), 'steel', smooth=True)
+    p.add(box(0.03, 0.03, 0.09), 'steel', T(0, 0.006, 0.04 * s), bevel=0.004)   # lock
+    for z in (0.3, 0.55):
+        p.add(lathe([(0.0, 0.026), (0.015, 0.026)], seg=12), 'steel', T(0, 0.004, z * s), smooth=True)
+
+
 def sword(p, length=0.82, width=0.085, guard=0.2, blade='steel', scale=1.0):
     """A straight short sword: a waisted, long-pointed blade along +Z (flat to
     X, edges toward +-Y) with a central ridge, a bar guard, a wrapped leather
@@ -798,6 +857,11 @@ BUILDERS = {
     'stone_axe': stone_axe,
     'spear': spear,
     'cav_spear': cav_spear,
+    'javelin': javelin,
+    'lance': lance,
+    'sabre': sabre,
+    'long_sword': long_sword,
+    'rifle': rifle,
     'sword': sword,
     'bow': bow,
     'bold_bow': bow,

@@ -15,7 +15,7 @@ import math
 
 import bmesh
 import bpy
-from mathutils import Vector
+from mathutils import Matrix, Vector
 
 import props
 import vkit
@@ -218,6 +218,9 @@ def _lin(hexcol):
     return (*bscene.srgb_to_linear(bscene.hex_color(hexcol)), 1.0)
 
 
+# The default specular reflects the sky on up-facing surfaces and greys dark colors;
+# bscene.material uses this level on dielectrics, and so do the horse's own materials.
+SPECULAR = 0.18
 COAT_LUM = 0.42   # the asset texture's typical linear luminance (its median is ~0.45)
 
 
@@ -233,6 +236,7 @@ def _coat_material(h):
     N, L = nt.nodes, nt.links
     p = N['Principled BSDF']
     p.inputs['Roughness'].default_value = 0.55
+    p.inputs['Specular IOR Level'].default_value = SPECULAR   # as bscene.material's dielectrics
     tex = N.new('ShaderNodeTexImage')
     tex.image = _image('HorseMain4k00.png')
     tex.image.colorspace_settings.name = 'sRGB'   # the file marks its color maps Non-Color, which washes them out
@@ -284,6 +288,22 @@ def _coat_material(h):
     for ch in ('Red', 'Green', 'Blue'):
         L.new(clamp.outputs['Result'], gray.inputs[ch])
     coat = mix(_lin(h.get('coat', '#7a4526')), gray.outputs['Color'], 1.0, 'MULTIPLY')
+    tc = N.new('ShaderNodeTexCoord')
+    if h.get('dapple'):
+        # dapples: soft round spots of the lighter/darker dapple color over the body
+        vor = N.new('ShaderNodeTexVoronoi')
+        vor.inputs['Scale'].default_value = 9.0
+        L.new(tc.outputs['Object'], vor.inputs['Vector'])
+        dcol = mix(_lin(h['dapple']), gray.outputs['Color'], 1.0, 'MULTIPLY')
+        coat = mix(coat, dcol, maprange(vor.outputs['Distance'], 0.18, 0.32, 0.0, 0.85))
+    if h.get('coat2'):
+        # pinto patches: large irregular areas of the second coat color
+        nz = N.new('ShaderNodeTexNoise')
+        nz.inputs['Scale'].default_value = 1.6
+        nz.inputs['Detail'].default_value = 3.0
+        L.new(tc.outputs['Object'], nz.inputs['Vector'])
+        c2 = mix(_lin(h['coat2']), gray.outputs['Color'], 1.0, 'MULTIPLY')
+        coat = mix(coat, c2, maprange(nz.outputs['Fac'], 0.5, 0.54, 0.0, 1.0))
     coat = mix(coat, ao.outputs['Color'], 0.4, 'MULTIPLY')
     # points: legs darken toward the hooves (world height; the horse stands on z = 0)
     geo = N.new('ShaderNodeNewGeometry')
@@ -311,6 +331,7 @@ def _hair_material(h):
     N, L = nt.nodes, nt.links
     p = N['Principled BSDF']
     p.inputs['Roughness'].default_value = 0.7
+    p.inputs['Specular IOR Level'].default_value = SPECULAR
     tex = N.new('ShaderNodeTexImage')
     tex.image = _image('Hair12Main2k.png')
     tex.image.colorspace_settings.name = 'sRGB'
@@ -587,39 +608,116 @@ def drape(vs, y0, y1, hem, n=24, k=24, gap=0.035, flare=0.06, folds=0.018):
     return props.loft(rings, False, False), rings
 
 
-def asset_tack(root, body, colors):
-    """Civ3's tack on the asset horse: a civ-colored saddle cloth draped over
-    the back (shrink-wrapped to it), a leather saddle with pommel and cantle,
-    a civ-colored bridle (noseband and crownpiece) and reins. Returns the seat
-    point for the rider empty."""
-    p = vkit.part(root, 'tack', colors, {'leather': {'grime': 0.6, 'soot': 0.2}, 'tint': {'grime': 0.6, 'soot': 0.3}})
+def _dots(rx, period=0.11, r=0.028):
+    """A face-key function for a spotted caparison (Sipahi): a staggered grid of round dots."""
+    def keys(f):
+        c = f.calc_center_median()
+        u, v = c.y / period, c.z / period
+        if int(math.floor(v)) % 2:
+            u += 0.5
+        du, dv = (u - math.floor(u) - 0.5) * period, (v - math.floor(v) - 0.5) * period
+        return ('blanket2', False) if du * du + dv * dv < r * r else None
+    return keys
+
+
+def asset_tack(root, body, colors, h=None):
+    """Civ3's tack on the asset horse, from the catalog's 'horse' entry `h`:
+    the blanket ('saddle_cloth' civ-colored or in 'blanket_color'; 'pelt';
+    'barding': mail to the knees under a civ caparison; 'dots': a long civ
+    caparison with light dots; None: bareback), a leather saddle with pommel
+    and cantle, a bridle (civ-colored unless 'bridle_tint' is False) and
+    reins, and optionally a steel chanfron, a crinet over the neck and a
+    plume. Returns the seat point for the rider empty."""
+    h = h or {}
+    wear = {'leather': {'grime': 0.6, 'soot': 0.2}, 'tint': {'grime': 0.6, 'soot': 0.3},
+            'blanket': {'grime': 0.55, 'soot': 0.2}, 'pelt': {'grime': 0.5}, 'barding_mail': {'grime': 0.5, 'rust': 0.2}}
+    c = dict(colors)
+    for k_src, k_dst in (('blanket_color', 'blanket'), ('blanket2', 'blanket2'), ('barding_steel', 'barding_mail'),
+                         ('trim', 'trim'), ('saddle', 'leather'), ('bridle', 'bridle'), ('tack', 'leather'),
+                         ('plume_color', 'plume')):
+        if h.get(k_src):
+            c[k_dst] = h[k_src]
+    for key, (col, rough, metal, kind) in {'blanket': ('#7e6650', 0.85, 0.0, 'cloth'), 'blanket2': ('#eeece6', 0.85, 0.0, 'cloth'),
+                                           'barding_mail': ('#9a9ea6', 0.45, 1.0, 'metal'), 'trim': ('#2e2014', 0.6, 0.0, 'leather'),
+                                           'bridle': ('#4a3424', 0.6, 0.0, 'leather'), 'plume': ('#eeece6', 0.9, 0.0, 'cloth'),
+                                           'pelt': ('#3a2e26', 0.95, 0.0, 'rope')}.items():
+        props.DEFAULTS.setdefault(key, (col, rough, metal, kind))
+    p = vkit.part(root, 'tack', c, wear)
     vs = _world_verts(body)
     feet = [v for v in vs if v.z < 0.15]
     yf = max(v.y for v in feet)                  # the front hooves
     yh = min(v.y for v in feet)                  # the hind hooves
     ys = yh + 0.6 * (yf - yh)                    # the saddle sits just behind the withers
     top = max(v.z for v in vs if abs(v.y - ys) < 0.08 and abs(v.x) < 0.1)
-    # the saddle cloth hangs over the back and down the flanks to below the barrel's middle
     sec = _sections(vs, [ys])[0]
-    hem = sec[2] + 0.75 * (sec[3] - sec[2])
-    cloth, rings = drape(vs, ys - 0.3, ys + 0.26, hem)
-    p.add(cloth, 'tint', smooth=True, tint=True)
-    # a dark hem: along both bottom edges and the front and back edges
-    for edge in ([r[0] for r in rings], [r[-1] for r in rings], rings[0], rings[-1]):
-        p.add(props.tube(edge, 0.014, seg=6), 'leather_dark', smooth=True)
-    pad = _shrink_patch('saddle', body, [-0.24 + 0.48 * i / 12 for i in range(13)],
-                        [ys - 0.22 + 0.42 * j / 10 for j in range(11)], top, 0.05)
-    p.add(pad, 'leather', smooth=True)
-    p.add(props.ellipsoid(0.13, 0.05, 0.09, seg=12), 'leather', T(0, ys + 0.2, top + 0.11), smooth=True)   # pommel
-    p.add(props.ellipsoid(0.16, 0.05, 0.08, seg=12), 'leather', T(0, ys - 0.2, top + 0.1), smooth=True)    # cantle
+    blanket = h.get('blanket', 'saddle_cloth')
+    tinted = h.get('blanket_tint', True)
+    trim = 'trim' if h.get('trim') else 'leather_dark'
+
+    def hem_line(rings, key):
+        for edge in ([r[0] for r in rings], [r[-1] for r in rings], rings[0], rings[-1]):
+            p.add(props.tube(edge, 0.014, seg=6), key, smooth=True)
+
+    if blanket in ('saddle_cloth', 'pelt'):
+        # deeper for a larger catalog cloth_drop (the old default was 0.24)
+        frac = max(0.3, min(1.15, 0.75 * h.get('cloth_drop', 0.24) / 0.24))
+        hem = sec[3] - frac * (sec[3] - sec[2])
+        cloth, rings = drape(vs, ys - 0.3, ys + 0.26, hem, folds=0.006 if blanket == 'pelt' else 0.018)
+        key = 'pelt' if blanket == 'pelt' else ('tint' if tinted else 'blanket')
+        p.add(cloth, key, smooth=True, tint=key == 'tint')
+        hem_line(rings, trim)
+    elif blanket in ('barding', 'dots'):
+        # a long caparison to the knees over the whole body; for barding, mail beneath
+        knee = 0.62
+        if blanket == 'barding':
+            mail, _ = drape(vs, yh + 0.05 * (yf - yh), yf - 0.12 * (yf - yh), knee - 0.06, gap=0.02, folds=0.005)
+            p.add(mail, 'barding_mail', smooth=True)
+            span = h.get('over_span', [-0.62, 0.36])
+            y0, y1 = ys + span[0] * (yf - yh) * 0.6, ys + span[1] * (yf - yh) * 0.6
+            cap, rings = drape(vs, y0, y1, knee + h.get('over_gap', 0.06) + 0.08, gap=0.05, folds=0.02)
+            p.add(cap, 'tint', smooth=True, tint=True)
+        else:
+            y0, y1 = yh + 0.05 * (yf - yh), yf - 0.15 * (yf - yh)
+            cap, rings = drape(vs, y0, y1, knee, gap=0.04, folds=0.018)
+            p.add(cap, 'tint', smooth=True, tint=True, keys=_dots(0.0))
+        hem_line(rings, trim)
+    if blanket is not None and h.get('saddle_visible', True):
+        pad = _shrink_patch('saddle', body, [-0.24 + 0.48 * i / 12 for i in range(13)],
+                            [ys - 0.22 + 0.42 * j / 10 for j in range(11)], top, 0.05 if blanket not in ('barding', 'dots') else 0.09)
+        p.add(pad, 'leather', smooth=True)
+        p.add(props.ellipsoid(0.13, 0.05, 0.09, seg=12), 'leather', T(0, ys + 0.2, top + 0.11), smooth=True)   # pommel
+        p.add(props.ellipsoid(0.16, 0.05, 0.08, seg=12), 'leather', T(0, ys - 0.2, top + 0.1), smooth=True)    # cantle
     # bridle from the head bone
     arm = next(o for o in root.children_recursive if o.type == 'ARMATURE')
     hb = arm.pose.bones['Bone.002']
     a, b = arm.matrix_world @ hb.head, arm.matrix_world @ hb.tail
+    btint = h.get('bridle_tint', True) and not h.get('bridle')
     for t in (0.12, 0.66):   # crownpiece behind the ears, noseband above the nostrils
         ring = _head_ring(vs, a, b, t, grow=0.004)
         if ring:
-            p.add(props.tube(ring, 0.02, seg=8), 'tint', smooth=True, tint=True)
+            p.add(props.tube(ring, 0.02, seg=8), 'tint' if btint else 'bridle', smooth=True, tint=btint)
+    if h.get('chanfron'):
+        # a steel face plate down the front of the head
+        mid = a.lerp(b, 0.45)
+        axis = (b - a).normalized()
+        front = axis.cross(Vector((1, 0, 0))).normalized()
+        if front.z < 0:
+            front = -front
+        plate = props.ellipsoid(0.075, 0.03, 0.26, seg=14)
+        rot = axis.to_track_quat('Z', 'Y').to_matrix().to_4x4()
+        p.add(plate, 'barding_mail', Matrix.Translation(mid + front * 0.1) @ rot, smooth=True)
+    if h.get('neck_cover'):
+        # a crinet: a mail cover over the crest of the neck, withers to poll
+        nb = arm.pose.bones['Bone.001']
+        n0, n1 = arm.matrix_world @ nb.head, arm.matrix_world @ nb.tail
+        path = [n0.lerp(n1, t) + Vector((0, 0, 0.12 - 0.04 * t)) for t in (0.0, 0.25, 0.5, 0.75, 0.95)]
+        p.add(props.tube(path, [0.17, 0.15, 0.13, 0.11, 0.09], seg=12, scale_xy=(1.0, 0.8)), 'barding_mail', smooth=True)
+    if h.get('plume'):
+        ctr = a.lerp(b, 0.08) + Vector((0, 0, 0.12))
+        for dx in (-0.025, 0.0, 0.025):
+            p.add(props.tube([ctr + Vector((dx, 0, 0)), ctr + Vector((dx, -0.06, 0.16)), ctr + Vector((dx * 2, -0.16, 0.22))],
+                             [0.03, 0.025, 0.008], seg=6), 'tint' if h.get('plume_tint', True) else 'plume',
+                  smooth=True, tint=h.get('plume_tint', True))
     nose = _head_ring(vs, a, b, 0.66, grow=0.004)
     if nose:
         for side in (6, 18):   # reins from the bit rings at the noseband's sides to the pommel
@@ -628,7 +726,7 @@ def asset_tack(root, body, colors):
                               Vector((0.06 if side == 6 else -0.06, ys + 0.25, top + 0.12))], 0.014, seg=6),
                   'leather', smooth=True)
     p.finish()
-    return (0.0, ys, top + 0.03)   # sitting down into the saddle
+    return (0.0, ys, top + (0.03 if blanket not in ('barding', 'dots') else 0.07))   # sitting down into the saddle
 
 
 def seat_rider(root, unit, entry):
@@ -642,7 +740,13 @@ def seat_rider(root, unit, entry):
     import units
     import human as H
     seat = next(o for o in root.children_recursive if o.name.startswith('rider'))
-    r_entry = remaster.apply(unit, dict(entry['rider'], archetype='footman'))
+    import riders
+    base = dict(riders.translate(entry['rider']), archetype='footman')
+    for k, v in RIDER_DEFAULTS.items():   # every rider sits tall, covered to the neck (as the Horseman)
+        if k == 'neck' and base.get('top') in (None, 'bare', 'strap'):
+            continue
+        base.setdefault(k, v)
+    r_entry = remaster.apply(unit, base)
     rroot = units.build_footman(r_entry, seated=True)
     rroot.parent = seat
     rroot.matrix_parent_inverse.identity()
@@ -651,6 +755,7 @@ def seat_rider(root, unit, entry):
     bpy.context.view_layer.update()
     # aim the weapon as Civ3's riders carry it (the riding stance holds it low across)
     arm = next(o for o in rroot.children_recursive if o.type == 'ARMATURE')
+    riders.headgear(r_entry, arm)
     weapon = r_entry.get('weapon')
     up = RIDER_WEAPON_UP.get(weapon)
     if up:
@@ -666,8 +771,41 @@ RIDER_SCALE = 1.26
 # How each rider weapon is carried (the weapon's +Z in the rider's space: +y forward, +z up).
 RIDER_WEAPON_UP = {
     'cav_spear': (0.0, 0.62, 1.0),   # couched forward and up at a diagonal, as Civ3's Horseman
+    'javelin': (0.0, 0.5, 1.0),      # raised, ready to throw
+    'lance': (0.0, 1.0, 0.45),       # couched low and forward
+    'sabre': (0.15, 0.35, 1.0),      # drawn and held up
+    'long_sword': (0.15, 0.3, 1.0),
+    'rifle': (0.0, 0.25, 1.0),       # held upright at the hip, as Civ3's Cossack and Cavalry
+}
+RIDER_DEFAULTS = {
+    'neck': 'high',
+    'pose_extra': [('spine_01', (0, 0.12, 1)), ('spine_02', (0, 0.16, 1)), ('spine_03', (0, 0.14, 1)),
+                   ('neck_01', (0, 0.04, 1)), ('head', (0, -0.04, 1))],
+    'grime': 0.55,
 }
 
+
+HORSE_RIDERS = ['Horseman', 'Mounted Warrior', 'Ancient Cavalry', 'Rider', 'Knight', 'Keshik', 'Sipahi',
+                'Conquistador', 'Cossack', 'Hussar', 'Cavalry', 'Ansar Warrior']
+
+
+def mount(unit, h):
+    """A horse_rider unit's mount from its catalog 'horse' entry `h`."""
+    c = dict(HORSE_COLORS)
+    for k in ('coat', 'mane', 'points', 'muzzle'):
+        if h.get(k):
+            c[k] = h[k]
+    c.update(HORSE_COAT_OVERRIDES.get(unit, {}))
+    root = vkit.root(unit)
+    body = horse_asset(root, dict(h, **c))
+    seat = asset_tack(root, body, c, h)
+    e = vkit.crew(root, 0, seat, yaw=0.0)
+    e.name = 'rider'
+    return root
+
+
+# The Horseman's coat as reviewed (a warm bay); the other catalog coats are used as they are.
+HORSE_COAT_OVERRIDES = {'Horseman': {'coat': '#8a5430', 'mane': '#140e0a', 'points': '#1e1610'}}
 
 BUILDERS = {'Horseman': horseman}
 
@@ -675,7 +813,10 @@ BUILDERS = {'Horseman': horseman}
 def build(unit, colors=None, entry=None, rider=False, **params):
     """The unit's mount (and, with rider=True and its catalog entry, the
     seated rider)."""
-    root = BUILDERS[unit](colors or {}, **params)
+    if entry and entry.get('archetype') == 'horse_rider':
+        root = mount(unit, entry.get('horse', {}))
+    else:
+        root = BUILDERS[unit](colors or {}, **params)
     if rider and entry and entry.get('rider'):
         seat_rider(root, unit, entry)
     return root
