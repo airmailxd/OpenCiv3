@@ -1,0 +1,208 @@
+{
+  "unit": "The King",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    120.53,
+    121.0
+  ],
+  "anchor_override": null,
+  "standing_height": 45.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        124.29,
+        125
+      ],
+      "top": 80,
+      "height": 46,
+      "bbox": [
+        104,
+        80,
+        130,
+        125
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        124.7,
+        122
+      ],
+      "top": 81,
+      "height": 42,
+      "bbox": [
+        102,
+        81,
+        136,
+        122
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        114.38,
+        123
+      ],
+      "top": 81,
+      "height": 43,
+      "bbox": [
+        110,
+        81,
+        136,
+        123
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        118.63,
+        124
+      ],
+      "top": 80,
+      "height": 45,
+      "bbox": [
+        113,
+        80,
+        128,
+        124
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        122.47,
+        122
+      ],
+      "top": 78,
+      "height": 45,
+      "bbox": [
+        109,
+        78,
+        135,
+        122
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        122.43,
+        121
+      ],
+      "top": 77,
+      "height": 45,
+      "bbox": [
+        103,
+        77,
+        137,
+        121
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        111.62,
+        122
+      ],
+      "top": 77,
+      "height": 46,
+      "bbox": [
+        103,
+        77,
+        129,
+        122
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        116.79,
+        125
+      ],
+      "top": 78,
+      "height": 48,
+      "bbox": [
+        111,
+        78,
+        126,
+        125
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 50.1794,
+    "fit": 0.965,
+    "archetype": "royal"
+  },
+  "default_flic": "x_The King default.flc",
+  "flics": {
+    "x_The King death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 98,
+      "height": 67,
+      "offset_left": 71,
+      "offset_top": 79,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "x_The King default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 53,
+      "height": 53,
+      "offset_left": 88,
+      "offset_top": 76,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "x_The King fidget.flc": {
+      "actions": [
+        "FIDGET",
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 65,
+      "height": 57,
+      "offset_left": 82,
+      "offset_top": 76,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "x_The King run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 49,
+      "height": 55,
+      "offset_left": 91,
+      "offset_top": 75,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    }
+  }
+}

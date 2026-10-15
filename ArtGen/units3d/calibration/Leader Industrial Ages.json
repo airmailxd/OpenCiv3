@@ -1,0 +1,208 @@
+{
+  "unit": "Leader Industrial Ages",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.08,
+    120.5
+  ],
+  "anchor_override": null,
+  "standing_height": 44.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        122.15,
+        124
+      ],
+      "top": 78,
+      "height": 47,
+      "bbox": [
+        111,
+        78,
+        127,
+        124
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        122.5,
+        122
+      ],
+      "top": 78,
+      "height": 45,
+      "bbox": [
+        109,
+        78,
+        129,
+        122
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        118.36,
+        122
+      ],
+      "top": 79,
+      "height": 44,
+      "bbox": [
+        111,
+        79,
+        129,
+        122
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        119.17,
+        122
+      ],
+      "top": 79,
+      "height": 44,
+      "bbox": [
+        113,
+        79,
+        126,
+        122
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        121.58,
+        121
+      ],
+      "top": 79,
+      "height": 43,
+      "bbox": [
+        112,
+        79,
+        128,
+        121
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        119.0,
+        120
+      ],
+      "top": 79,
+      "height": 42,
+      "bbox": [
+        110,
+        79,
+        130,
+        120
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        115.36,
+        121
+      ],
+      "top": 78,
+      "height": 44,
+      "bbox": [
+        110,
+        78,
+        128,
+        121
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        116.83,
+        123
+      ],
+      "top": 78,
+      "height": 46,
+      "bbox": [
+        113,
+        78,
+        126,
+        123
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 50.4971,
+    "fit": 0.9711,
+    "archetype": "royal"
+  },
+  "default_flic": "LeaderIndustrialDefault.flc",
+  "flics": {
+    "LeaderIndustrialDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 114,
+      "height": 73,
+      "offset_left": 63,
+      "offset_top": 74,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "LeaderIndustrialDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 22,
+      "height": 47,
+      "offset_left": 109,
+      "offset_top": 78,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "LeaderIndustrialFidget.flc": {
+      "actions": [
+        "FIDGET",
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 40,
+      "height": 59,
+      "offset_left": 100,
+      "offset_top": 66,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "LeaderIndustrialRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 30,
+      "height": 49,
+      "offset_left": 105,
+      "offset_top": 75,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    }
+  }
+}

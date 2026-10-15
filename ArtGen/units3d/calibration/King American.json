@@ -1,0 +1,208 @@
+{
+  "unit": "King American",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.83,
+    119.5
+  ],
+  "anchor_override": null,
+  "standing_height": 50.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        121.75,
+        123
+      ],
+      "top": 72,
+      "height": 52,
+      "bbox": [
+        113,
+        72,
+        126,
+        123
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        121.29,
+        121
+      ],
+      "top": 73,
+      "height": 49,
+      "bbox": [
+        111,
+        73,
+        127,
+        121
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        117.74,
+        121
+      ],
+      "top": 73,
+      "height": 49,
+      "bbox": [
+        110,
+        73,
+        128,
+        121
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        118.94,
+        122
+      ],
+      "top": 73,
+      "height": 50,
+      "bbox": [
+        113,
+        73,
+        125,
+        122
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        121.5,
+        121
+      ],
+      "top": 72,
+      "height": 50,
+      "bbox": [
+        113,
+        72,
+        126,
+        121
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        120.71,
+        120
+      ],
+      "top": 71,
+      "height": 50,
+      "bbox": [
+        111,
+        71,
+        128,
+        120
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        115.78,
+        120
+      ],
+      "top": 71,
+      "height": 50,
+      "bbox": [
+        110,
+        71,
+        129,
+        120
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        116.82,
+        123
+      ],
+      "top": 72,
+      "height": 52,
+      "bbox": [
+        114,
+        72,
+        126,
+        123
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 50.6258,
+    "fit": 0.9736,
+    "archetype": "royal"
+  },
+  "default_flic": "x_Abe default.flc",
+  "flics": {
+    "x_Abe death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 85,
+      "height": 74,
+      "offset_left": 77,
+      "offset_top": 68,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "x_Abe default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 36,
+      "height": 55,
+      "offset_left": 95,
+      "offset_top": 71,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "x_Abe fidget.flc": {
+      "actions": [
+        "FIDGET",
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 59,
+      "height": 55,
+      "offset_left": 84,
+      "offset_top": 71,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "x_Abe run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 46,
+      "height": 60,
+      "offset_left": 94,
+      "offset_top": 70,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    }
+  }
+}

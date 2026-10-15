@@ -1,0 +1,208 @@
+{
+  "unit": "Leader Ancient Times",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    120.08,
+    121.5
+  ],
+  "anchor_override": null,
+  "standing_height": 49.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        124.16,
+        122
+      ],
+      "top": 75,
+      "height": 48,
+      "bbox": [
+        100,
+        75,
+        129,
+        122
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        111.37,
+        123
+      ],
+      "top": 78,
+      "height": 46,
+      "bbox": [
+        104,
+        78,
+        131,
+        123
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        116.43,
+        127
+      ],
+      "top": 78,
+      "height": 50,
+      "bbox": [
+        112,
+        78,
+        129,
+        127
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        122.3,
+        125
+      ],
+      "top": 78,
+      "height": 48,
+      "bbox": [
+        114,
+        78,
+        132,
+        125
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        123.72,
+        122
+      ],
+      "top": 77,
+      "height": 46,
+      "bbox": [
+        110,
+        77,
+        139,
+        122
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        119.73,
+        121
+      ],
+      "top": 71,
+      "height": 51,
+      "bbox": [
+        108,
+        71,
+        135,
+        121
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        116.22,
+        123
+      ],
+      "top": 68,
+      "height": 56,
+      "bbox": [
+        109,
+        68,
+        127,
+        123
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        120.44,
+        123
+      ],
+      "top": 70,
+      "height": 54,
+      "bbox": [
+        107,
+        70,
+        125,
+        123
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 56.431,
+    "fit": 1.0852,
+    "archetype": "royal"
+  },
+  "default_flic": "LeaderAncientDefault.flc",
+  "flics": {
+    "LeaderAncientDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 108,
+      "height": 79,
+      "offset_left": 66,
+      "offset_top": 68,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "LeaderAncientDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 40,
+      "height": 60,
+      "offset_left": 100,
+      "offset_top": 68,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "LeaderAncientFidget.flc": {
+      "actions": [
+        "FIDGET",
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 60,
+      "height": 68,
+      "offset_left": 90,
+      "offset_top": 60,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "LeaderAncientRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 58,
+      "height": 67,
+      "offset_left": 86,
+      "offset_top": 62,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    }
+  }
+}

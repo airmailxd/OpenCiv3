@@ -1,0 +1,208 @@
+{
+  "unit": "King Chinese",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.28,
+    120.5
+  ],
+  "anchor_override": null,
+  "standing_height": 43.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        120.42,
+        122
+      ],
+      "top": 80,
+      "height": 43,
+      "bbox": [
+        111,
+        80,
+        125,
+        122
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        118.33,
+        122
+      ],
+      "top": 81,
+      "height": 42,
+      "bbox": [
+        113,
+        81,
+        127,
+        122
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        117.33,
+        123
+      ],
+      "top": 80,
+      "height": 44,
+      "bbox": [
+        114,
+        80,
+        127,
+        123
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        121.43,
+        123
+      ],
+      "top": 80,
+      "height": 44,
+      "bbox": [
+        115,
+        80,
+        128,
+        123
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        122.9,
+        121
+      ],
+      "top": 79,
+      "height": 43,
+      "bbox": [
+        114,
+        79,
+        128,
+        121
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        119.68,
+        120
+      ],
+      "top": 79,
+      "height": 42,
+      "bbox": [
+        112,
+        79,
+        126,
+        120
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        117.04,
+        121
+      ],
+      "top": 79,
+      "height": 43,
+      "bbox": [
+        112,
+        79,
+        125,
+        121
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        118.88,
+        122
+      ],
+      "top": 80,
+      "height": 43,
+      "bbox": [
+        111,
+        80,
+        124,
+        122
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 49.3019,
+    "fit": 0.9481,
+    "archetype": "royal"
+  },
+  "default_flic": "x_Mao default.flc",
+  "flics": {
+    "x_Mao death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 86,
+      "height": 62,
+      "offset_left": 77,
+      "offset_top": 81,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "x_Mao default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 34,
+      "height": 48,
+      "offset_left": 97,
+      "offset_top": 79,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "x_Mao fidget.flc": {
+      "actions": [
+        "FIDGET",
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 59,
+      "height": 53,
+      "offset_left": 84,
+      "offset_top": 74,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "x_Mao run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 45,
+      "height": 51,
+      "offset_left": 94,
+      "offset_top": 79,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    }
+  }
+}

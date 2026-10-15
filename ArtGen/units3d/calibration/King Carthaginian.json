@@ -1,0 +1,208 @@
+{
+  "unit": "King Carthaginian",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.12,
+    120.5
+  ],
+  "anchor_override": null,
+  "standing_height": 43.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        121.47,
+        122
+      ],
+      "top": 80,
+      "height": 43,
+      "bbox": [
+        109,
+        80,
+        129,
+        122
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        120.54,
+        121
+      ],
+      "top": 80,
+      "height": 42,
+      "bbox": [
+        110,
+        80,
+        130,
+        121
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        117.47,
+        122
+      ],
+      "top": 80,
+      "height": 43,
+      "bbox": [
+        111,
+        80,
+        126,
+        122
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        118.73,
+        122
+      ],
+      "top": 80,
+      "height": 43,
+      "bbox": [
+        112,
+        80,
+        128,
+        122
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        121.04,
+        122
+      ],
+      "top": 80,
+      "height": 43,
+      "bbox": [
+        110,
+        80,
+        130,
+        122
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        119.1,
+        121
+      ],
+      "top": 80,
+      "height": 42,
+      "bbox": [
+        109,
+        80,
+        129,
+        121
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        117.75,
+        122
+      ],
+      "top": 80,
+      "height": 43,
+      "bbox": [
+        113,
+        80,
+        128,
+        122
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        119.14,
+        122
+      ],
+      "top": 80,
+      "height": 43,
+      "bbox": [
+        111,
+        80,
+        128,
+        122
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 50.2215,
+    "fit": 0.9658,
+    "archetype": "royal"
+  },
+  "default_flic": "x_Hannibal default.flc",
+  "flics": {
+    "x_Hannibal death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 117,
+      "height": 71,
+      "offset_left": 60,
+      "offset_top": 79,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "x_Hannibal default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 36,
+      "height": 46,
+      "offset_left": 96,
+      "offset_top": 80,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "x_Hannibal fidget.flc": {
+      "actions": [
+        "FIDGET",
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 55,
+      "height": 50,
+      "offset_left": 86,
+      "offset_top": 76,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "x_Hannibal run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 46,
+      "height": 52,
+      "offset_left": 94,
+      "offset_top": 79,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    }
+  }
+}

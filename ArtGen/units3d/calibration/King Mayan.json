@@ -1,0 +1,208 @@
+{
+  "unit": "King Mayan",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    118.31,
+    122.0
+  ],
+  "anchor_override": null,
+  "standing_height": 54.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        122.33,
+        124
+      ],
+      "top": 70,
+      "height": 55,
+      "bbox": [
+        107,
+        70,
+        129,
+        124
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        116.83,
+        124
+      ],
+      "top": 70,
+      "height": 55,
+      "bbox": [
+        109,
+        70,
+        128,
+        124
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        119.08,
+        126
+      ],
+      "top": 69,
+      "height": 58,
+      "bbox": [
+        112,
+        69,
+        132,
+        126
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        125.7,
+        124
+      ],
+      "top": 69,
+      "height": 56,
+      "bbox": [
+        112,
+        69,
+        132,
+        124
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        128.04,
+        121
+      ],
+      "top": 69,
+      "height": 53,
+      "bbox": [
+        110,
+        69,
+        132,
+        121
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        115.71,
+        120
+      ],
+      "top": 68,
+      "height": 53,
+      "bbox": [
+        111,
+        68,
+        130,
+        120
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        113.65,
+        122
+      ],
+      "top": 70,
+      "height": 53,
+      "bbox": [
+        107,
+        70,
+        127,
+        122
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        117.55,
+        123
+      ],
+      "top": 70,
+      "height": 54,
+      "bbox": [
+        107,
+        70,
+        127,
+        123
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 49.3468,
+    "fit": 0.949,
+    "archetype": "royal"
+  },
+  "default_flic": "X2_Smoke-Jaguar_default.flc",
+  "flics": {
+    "X2_Smoke-Jaguar_death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 102,
+      "height": 79,
+      "offset_left": 68,
+      "offset_top": 68,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "X2_Smoke-Jaguar_default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 47,
+      "height": 60,
+      "offset_left": 87,
+      "offset_top": 68,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "X2_Smoke-Jaguar_fidget.flc": {
+      "actions": [
+        "FIDGET",
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 72,
+      "height": 63,
+      "offset_left": 77,
+      "offset_top": 66,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "X2_Smoke-Jaguar_run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 80,
+      "height": 75,
+      "offset_left": 70,
+      "offset_top": 56,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    }
+  }
+}

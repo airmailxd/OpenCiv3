@@ -1,0 +1,208 @@
+{
+  "unit": "King Zulu",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.59,
+    120.5
+  ],
+  "anchor_override": null,
+  "standing_height": 47.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        123.0,
+        122
+      ],
+      "top": 75,
+      "height": 48,
+      "bbox": [
+        98,
+        75,
+        126,
+        122
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        119.75,
+        121
+      ],
+      "top": 75,
+      "height": 47,
+      "bbox": [
+        106,
+        75,
+        132,
+        121
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        116.5,
+        122
+      ],
+      "top": 75,
+      "height": 48,
+      "bbox": [
+        109,
+        75,
+        133,
+        122
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        119.68,
+        122
+      ],
+      "top": 75,
+      "height": 48,
+      "bbox": [
+        113,
+        75,
+        137,
+        122
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        121.76,
+        121
+      ],
+      "top": 75,
+      "height": 47,
+      "bbox": [
+        113,
+        75,
+        141,
+        121
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        119.16,
+        120
+      ],
+      "top": 77,
+      "height": 44,
+      "bbox": [
+        107,
+        77,
+        133,
+        120
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        115.88,
+        122
+      ],
+      "top": 76,
+      "height": 47,
+      "bbox": [
+        106,
+        76,
+        130,
+        122
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        119.5,
+        122
+      ],
+      "top": 75,
+      "height": 48,
+      "bbox": [
+        102,
+        75,
+        125,
+        122
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 47.4588,
+    "fit": 0.9127,
+    "archetype": "royal"
+  },
+  "default_flic": "x_Shaka default.flc",
+  "flics": {
+    "x_Shaka death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 147,
+      "height": 86,
+      "offset_left": 47,
+      "offset_top": 72,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "x_Shaka default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 54,
+      "height": 56,
+      "offset_left": 89,
+      "offset_top": 74,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "x_Shaka fidget.flc": {
+      "actions": [
+        "FIDGET",
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 86,
+      "height": 69,
+      "offset_left": 69,
+      "offset_top": 63,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "x_Shaka run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 64,
+      "height": 59,
+      "offset_left": 80,
+      "offset_top": 71,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    }
+  }
+}

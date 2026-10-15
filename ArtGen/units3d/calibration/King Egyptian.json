@@ -1,0 +1,208 @@
+{
+  "unit": "King Egyptian",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    118.95,
+    119.5
+  ],
+  "anchor_override": null,
+  "standing_height": 46.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        125.15,
+        123
+      ],
+      "top": 78,
+      "height": 46,
+      "bbox": [
+        102,
+        78,
+        131,
+        123
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        123.94,
+        121
+      ],
+      "top": 78,
+      "height": 44,
+      "bbox": [
+        111,
+        78,
+        130,
+        121
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        118.47,
+        120
+      ],
+      "top": 78,
+      "height": 43,
+      "bbox": [
+        111,
+        78,
+        137,
+        120
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        117.24,
+        121
+      ],
+      "top": 76,
+      "height": 46,
+      "bbox": [
+        114,
+        76,
+        144,
+        121
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        119.43,
+        121
+      ],
+      "top": 75,
+      "height": 47,
+      "bbox": [
+        108,
+        75,
+        137,
+        121
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        117.81,
+        121
+      ],
+      "top": 74,
+      "height": 48,
+      "bbox": [
+        109,
+        74,
+        128,
+        121
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        116.6,
+        122
+      ],
+      "top": 75,
+      "height": 48,
+      "bbox": [
+        101,
+        75,
+        128,
+        122
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        119.64,
+        124
+      ],
+      "top": 76,
+      "height": 49,
+      "bbox": [
+        94,
+        76,
+        125,
+        124
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 52.4833,
+    "fit": 1.0093,
+    "archetype": "royal"
+  },
+  "default_flic": "x_Cleopatra default.flc",
+  "flics": {
+    "x_Cleopatra death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 88,
+      "height": 67,
+      "offset_left": 75,
+      "offset_top": 75,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "x_Cleopatra default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 65,
+      "height": 56,
+      "offset_left": 82,
+      "offset_top": 74,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "x_Cleopatra fidget.flc": {
+      "actions": [
+        "FIDGET",
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 93,
+      "height": 76,
+      "offset_left": 65,
+      "offset_top": 56,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "x_Cleopatra run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 55,
+      "height": 56,
+      "offset_left": 86,
+      "offset_top": 73,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    }
+  }
+}

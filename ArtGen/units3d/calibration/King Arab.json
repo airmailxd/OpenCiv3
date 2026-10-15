@@ -1,0 +1,208 @@
+{
+  "unit": "King Arab",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.45,
+    120.5
+  ],
+  "anchor_override": null,
+  "standing_height": 47.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        121.74,
+        122
+      ],
+      "top": 76,
+      "height": 47,
+      "bbox": [
+        111,
+        76,
+        127,
+        122
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        119.55,
+        120
+      ],
+      "top": 76,
+      "height": 45,
+      "bbox": [
+        112,
+        76,
+        129,
+        120
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        116.82,
+        122
+      ],
+      "top": 76,
+      "height": 47,
+      "bbox": [
+        113,
+        76,
+        129,
+        122
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        118.21,
+        122
+      ],
+      "top": 75,
+      "height": 48,
+      "bbox": [
+        114,
+        75,
+        130,
+        122
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        120.0,
+        122
+      ],
+      "top": 75,
+      "height": 48,
+      "bbox": [
+        112,
+        75,
+        128,
+        122
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        119.34,
+        121
+      ],
+      "top": 75,
+      "height": 47,
+      "bbox": [
+        110,
+        75,
+        127,
+        121
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        118.62,
+        122
+      ],
+      "top": 75,
+      "height": 48,
+      "bbox": [
+        110,
+        75,
+        126,
+        122
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        120.5,
+        122
+      ],
+      "top": 75,
+      "height": 48,
+      "bbox": [
+        109,
+        75,
+        125,
+        122
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 53.1875,
+    "fit": 1.0228,
+    "archetype": "royal"
+  },
+  "default_flic": "x_Abu Bakr default.flc",
+  "flics": {
+    "x_Abu Bakr death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 122,
+      "height": 77,
+      "offset_left": 58,
+      "offset_top": 74,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "x_Abu Bakr default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 37,
+      "height": 52,
+      "offset_left": 95,
+      "offset_top": 74,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "x_Abu Bakr fidget.flc": {
+      "actions": [
+        "FIDGET",
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 57,
+      "height": 51,
+      "offset_left": 85,
+      "offset_top": 75,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "x_Abu Bakr run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 51,
+      "height": 57,
+      "offset_left": 90,
+      "offset_top": 73,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    }
+  }
+}

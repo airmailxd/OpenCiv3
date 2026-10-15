@@ -1,0 +1,208 @@
+{
+  "unit": "King Incan",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    120.33,
+    121.5
+  ],
+  "anchor_override": null,
+  "standing_height": 58.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        126.0,
+        128
+      ],
+      "top": 72,
+      "height": 57,
+      "bbox": [
+        112,
+        72,
+        138,
+        128
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        125.13,
+        123
+      ],
+      "top": 66,
+      "height": 58,
+      "bbox": [
+        112,
+        66,
+        148,
+        123
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        117.67,
+        123
+      ],
+      "top": 59,
+      "height": 65,
+      "bbox": [
+        114,
+        59,
+        146,
+        123
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        120.48,
+        122
+      ],
+      "top": 55,
+      "height": 68,
+      "bbox": [
+        114,
+        55,
+        135,
+        122
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        122.48,
+        121
+      ],
+      "top": 56,
+      "height": 66,
+      "bbox": [
+        101,
+        56,
+        127,
+        121
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        120.17,
+        120
+      ],
+      "top": 62,
+      "height": 59,
+      "bbox": [
+        91,
+        62,
+        127,
+        120
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        110.31,
+        123
+      ],
+      "top": 67,
+      "height": 57,
+      "bbox": [
+        93,
+        67,
+        125,
+        123
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        113.0,
+        127
+      ],
+      "top": 72,
+      "height": 56,
+      "bbox": [
+        103,
+        72,
+        124,
+        127
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 44.8754,
+    "fit": 0.863,
+    "archetype": "royal"
+  },
+  "default_flic": "x2_Pachacuti_default.flc",
+  "flics": {
+    "x2_Pachacuti_death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 176,
+      "height": 122,
+      "offset_left": 30,
+      "offset_top": 49,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "x2_Pachacuti_default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 80,
+      "height": 75,
+      "offset_left": 70,
+      "offset_top": 55,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "x2_Pachacuti_fidget.flc": {
+      "actions": [
+        "FIDGET",
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 82,
+      "height": 79,
+      "offset_left": 68,
+      "offset_top": 51,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "x2_Pachacuti_run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 92,
+      "height": 76,
+      "offset_left": 68,
+      "offset_top": 61,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    }
+  }
+}

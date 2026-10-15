@@ -1,0 +1,207 @@
+{
+  "unit": "Army Ancient Times",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.95,
+    120.5
+  ],
+  "anchor_override": null,
+  "standing_height": 60.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        120.4,
+        124
+      ],
+      "top": 64,
+      "height": 61,
+      "bbox": [
+        109,
+        64,
+        127,
+        124
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        122.05,
+        123
+      ],
+      "top": 67,
+      "height": 57,
+      "bbox": [
+        111,
+        67,
+        136,
+        123
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        119.5,
+        122
+      ],
+      "top": 63,
+      "height": 60,
+      "bbox": [
+        112,
+        63,
+        137,
+        122
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        118.93,
+        122
+      ],
+      "top": 55,
+      "height": 68,
+      "bbox": [
+        114,
+        55,
+        137,
+        122
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        121.88,
+        122
+      ],
+      "top": 60,
+      "height": 63,
+      "bbox": [
+        110,
+        60,
+        128,
+        122
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        121.57,
+        121
+      ],
+      "top": 62,
+      "height": 60,
+      "bbox": [
+        103,
+        62,
+        128,
+        121
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        116.12,
+        121
+      ],
+      "top": 60,
+      "height": 62,
+      "bbox": [
+        105,
+        60,
+        127,
+        121
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        115.41,
+        123
+      ],
+      "top": 67,
+      "height": 57,
+      "bbox": [
+        101,
+        67,
+        125,
+        123
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 46.0883,
+    "fit": 0.8863,
+    "archetype": "royal"
+  },
+  "default_flic": "ArmyAncientDefault.flc",
+  "flics": {
+    "ArmyAncientAttackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 60,
+      "height": 73,
+      "offset_left": 84,
+      "offset_top": 55,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "ArmyAncientDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 63,
+      "height": 128,
+      "offset_left": 85,
+      "offset_top": 7,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 100
+    },
+    "ArmyAncientDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 50,
+      "height": 122,
+      "offset_left": 89,
+      "offset_top": 46,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 100
+    },
+    "ArmyAncientRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 63,
+      "height": 78,
+      "offset_left": 82,
+      "offset_top": 52,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    }
+  }
+}

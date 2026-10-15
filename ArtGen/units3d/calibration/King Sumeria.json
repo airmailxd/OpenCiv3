@@ -1,0 +1,208 @@
+{
+  "unit": "King Sumeria",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.64,
+    121.0
+  ],
+  "anchor_override": null,
+  "standing_height": 52.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        122.15,
+        123
+      ],
+      "top": 71,
+      "height": 53,
+      "bbox": [
+        111,
+        71,
+        136,
+        123
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        119.6,
+        122
+      ],
+      "top": 70,
+      "height": 53,
+      "bbox": [
+        111,
+        70,
+        129,
+        122
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        116.5,
+        123
+      ],
+      "top": 71,
+      "height": 53,
+      "bbox": [
+        110,
+        71,
+        132,
+        123
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        120.75,
+        123
+      ],
+      "top": 72,
+      "height": 52,
+      "bbox": [
+        101,
+        72,
+        132,
+        123
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        122.76,
+        121
+      ],
+      "top": 73,
+      "height": 49,
+      "bbox": [
+        102,
+        73,
+        128,
+        121
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        119.68,
+        120
+      ],
+      "top": 74,
+      "height": 47,
+      "bbox": [
+        110,
+        74,
+        128,
+        120
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        116.28,
+        121
+      ],
+      "top": 73,
+      "height": 49,
+      "bbox": [
+        107,
+        73,
+        129,
+        121
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        118.15,
+        123
+      ],
+      "top": 72,
+      "height": 52,
+      "bbox": [
+        107,
+        72,
+        138,
+        123
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 54.5149,
+    "fit": 1.0484,
+    "archetype": "royal"
+  },
+  "default_flic": "X2_Gilgamesh default.flc",
+  "flics": {
+    "X2_Gilgamesh death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 142,
+      "height": 99,
+      "offset_left": 48,
+      "offset_top": 57,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 16,
+      "frameMs": 83
+    },
+    "X2_Gilgamesh default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 52,
+      "height": 57,
+      "offset_left": 88,
+      "offset_top": 70,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "X2_Gilgamesh fidget.flc": {
+      "actions": [
+        "FIDGET",
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 68,
+      "height": 62,
+      "offset_left": 78,
+      "offset_top": 66,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 100
+    },
+    "X2_Gilgamesh run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 54,
+      "height": 61,
+      "offset_left": 86,
+      "offset_top": 68,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    }
+  }
+}

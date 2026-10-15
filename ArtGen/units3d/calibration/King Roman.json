@@ -1,0 +1,208 @@
+{
+  "unit": "King Roman",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.58,
+    119.5
+  ],
+  "anchor_override": null,
+  "standing_height": 45.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        123.24,
+        122
+      ],
+      "top": 74,
+      "height": 49,
+      "bbox": [
+        109,
+        74,
+        126,
+        122
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        120.14,
+        120
+      ],
+      "top": 77,
+      "height": 44,
+      "bbox": [
+        109,
+        77,
+        131,
+        120
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        116.81,
+        121
+      ],
+      "top": 77,
+      "height": 45,
+      "bbox": [
+        113,
+        77,
+        132,
+        121
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        119.29,
+        121
+      ],
+      "top": 77,
+      "height": 45,
+      "bbox": [
+        114,
+        77,
+        127,
+        121
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        121.56,
+        121
+      ],
+      "top": 76,
+      "height": 46,
+      "bbox": [
+        113,
+        76,
+        130,
+        121
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        119.0,
+        120
+      ],
+      "top": 76,
+      "height": 45,
+      "bbox": [
+        108,
+        76,
+        130,
+        120
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        116.78,
+        121
+      ],
+      "top": 73,
+      "height": 49,
+      "bbox": [
+        107,
+        73,
+        126,
+        121
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        119.88,
+        122
+      ],
+      "top": 72,
+      "height": 51,
+      "bbox": [
+        112,
+        72,
+        125,
+        122
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 51.241,
+    "fit": 0.9854,
+    "archetype": "royal"
+  },
+  "default_flic": "x_Caesar default.flc",
+  "flics": {
+    "x_Caesar death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 130,
+      "height": 87,
+      "offset_left": 54,
+      "offset_top": 66,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "x_Caesar default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 45,
+      "height": 55,
+      "offset_left": 90,
+      "offset_top": 72,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "x_Caesar fidget.flc": {
+      "actions": [
+        "FIDGET",
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 93,
+      "height": 76,
+      "offset_left": 65,
+      "offset_top": 57,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "x_Caesar run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 72,
+      "height": 67,
+      "offset_left": 79,
+      "offset_top": 67,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    }
+  }
+}

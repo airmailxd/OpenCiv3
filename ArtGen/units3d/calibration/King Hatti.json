@@ -1,0 +1,208 @@
+{
+  "unit": "King Hatti",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.65,
+    121.0
+  ],
+  "anchor_override": null,
+  "standing_height": 48.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        122.15,
+        123
+      ],
+      "top": 75,
+      "height": 49,
+      "bbox": [
+        111,
+        75,
+        131,
+        123
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        119.62,
+        122
+      ],
+      "top": 75,
+      "height": 48,
+      "bbox": [
+        111,
+        75,
+        127,
+        122
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        116.5,
+        123
+      ],
+      "top": 75,
+      "height": 49,
+      "bbox": [
+        113,
+        75,
+        130,
+        123
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        120.75,
+        123
+      ],
+      "top": 75,
+      "height": 49,
+      "bbox": [
+        109,
+        75,
+        128,
+        123
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        122.76,
+        121
+      ],
+      "top": 75,
+      "height": 47,
+      "bbox": [
+        108,
+        75,
+        128,
+        121
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        119.68,
+        120
+      ],
+      "top": 75,
+      "height": 46,
+      "bbox": [
+        112,
+        75,
+        128,
+        120
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        116.18,
+        121
+      ],
+      "top": 75,
+      "height": 47,
+      "bbox": [
+        109,
+        75,
+        126,
+        121
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        118.21,
+        123
+      ],
+      "top": 75,
+      "height": 49,
+      "bbox": [
+        111,
+        75,
+        129,
+        123
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 55.3409,
+    "fit": 1.0642,
+    "archetype": "royal"
+  },
+  "default_flic": "x2 Mursilis default.flc",
+  "flics": {
+    "x2 Mursilis death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 163,
+      "height": 93,
+      "offset_left": 37,
+      "offset_top": 68,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "x2 Mursilis default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 37,
+      "height": 52,
+      "offset_left": 96,
+      "offset_top": 75,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "x2 Mursilis fidget.flc": {
+      "actions": [
+        "FIDGET",
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 52,
+      "height": 54,
+      "offset_left": 87,
+      "offset_top": 73,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "x2 Mursilis run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 47,
+      "height": 58,
+      "offset_left": 90,
+      "offset_top": 71,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 83
+    }
+  }
+}

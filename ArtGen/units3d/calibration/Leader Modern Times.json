@@ -1,0 +1,208 @@
+{
+  "unit": "Leader Modern Times",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.46,
+    120.5
+  ],
+  "anchor_override": null,
+  "standing_height": 45.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        123.93,
+        122
+      ],
+      "top": 77,
+      "height": 46,
+      "bbox": [
+        105,
+        77,
+        127,
+        122
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        119.79,
+        120
+      ],
+      "top": 77,
+      "height": 44,
+      "bbox": [
+        111,
+        77,
+        132,
+        120
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        115.67,
+        122
+      ],
+      "top": 78,
+      "height": 45,
+      "bbox": [
+        112,
+        78,
+        132,
+        122
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        118.33,
+        122
+      ],
+      "top": 78,
+      "height": 45,
+      "bbox": [
+        113,
+        78,
+        132,
+        122
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        122.0,
+        122
+      ],
+      "top": 78,
+      "height": 45,
+      "bbox": [
+        112,
+        78,
+        134,
+        122
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        119.14,
+        121
+      ],
+      "top": 78,
+      "height": 44,
+      "bbox": [
+        107,
+        78,
+        128,
+        121
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        117.53,
+        122
+      ],
+      "top": 78,
+      "height": 45,
+      "bbox": [
+        107,
+        78,
+        127,
+        122
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        120.5,
+        122
+      ],
+      "top": 77,
+      "height": 46,
+      "bbox": [
+        107,
+        77,
+        125,
+        122
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 49.1558,
+    "fit": 0.9453,
+    "archetype": "royal"
+  },
+  "default_flic": "LeaderModernDefault.flc",
+  "flics": {
+    "LeaderModernDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 109,
+      "height": 76,
+      "offset_left": 66,
+      "offset_top": 69,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "LeaderModernDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 30,
+      "height": 46,
+      "offset_left": 105,
+      "offset_top": 77,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "LeaderModernFidget.flc": {
+      "actions": [
+        "FIDGET",
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 72,
+      "height": 63,
+      "offset_left": 84,
+      "offset_top": 60,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 100
+    },
+    "LeaderModernRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 46,
+      "height": 61,
+      "offset_left": 94,
+      "offset_top": 69,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    }
+  }
+}

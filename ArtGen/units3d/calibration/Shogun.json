@@ -1,0 +1,267 @@
+{
+  "unit": "Shogun",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.44,
+    120.5
+  ],
+  "anchor_override": null,
+  "standing_height": 47.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        123.29,
+        125
+      ],
+      "top": 74,
+      "height": 52,
+      "bbox": [
+        100,
+        74,
+        131,
+        125
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        124.42,
+        122
+      ],
+      "top": 75,
+      "height": 48,
+      "bbox": [
+        108,
+        75,
+        133,
+        122
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        115.71,
+        122
+      ],
+      "top": 74,
+      "height": 49,
+      "bbox": [
+        106,
+        74,
+        132,
+        122
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        118.23,
+        122
+      ],
+      "top": 76,
+      "height": 47,
+      "bbox": [
+        101,
+        76,
+        138,
+        122
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        121.62,
+        122
+      ],
+      "top": 77,
+      "height": 46,
+      "bbox": [
+        106,
+        77,
+        139,
+        122
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        120.65,
+        121
+      ],
+      "top": 78,
+      "height": 44,
+      "bbox": [
+        106,
+        78,
+        131,
+        121
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        112.8,
+        122
+      ],
+      "top": 78,
+      "height": 45,
+      "bbox": [
+        107,
+        78,
+        132,
+        122
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        115.9,
+        125
+      ],
+      "top": 77,
+      "height": 49,
+      "bbox": [
+        101,
+        77,
+        139,
+        125
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 48.9082,
+    "fit": 0.9405,
+    "archetype": "royal"
+  },
+  "default_flic": "shogun_default.flc",
+  "flics": {
+    "shogun_attackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 120,
+      "height": 77,
+      "offset_left": 0,
+      "offset_top": 0,
+      "orig_width": 0,
+      "orig_height": 0,
+      "directions": 1,
+      "frames": 120,
+      "frameMs": 66
+    },
+    "shogun_attackB.flc": {
+      "actions": [
+        "ATTACK2"
+      ],
+      "kind": "animation",
+      "width": 97,
+      "height": 98,
+      "offset_left": 63,
+      "offset_top": 44,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "shogun_death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 136,
+      "height": 91,
+      "offset_left": 52,
+      "offset_top": 64,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "shogun_default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 58,
+      "height": 56,
+      "offset_left": 84,
+      "offset_top": 73,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "shogun_fidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 60,
+      "height": 58,
+      "offset_left": 83,
+      "offset_top": 71,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "shogun_fortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 93,
+      "height": 73,
+      "offset_left": 68,
+      "offset_top": 63,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 100
+    },
+    "shogun_run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 76,
+      "height": 65,
+      "offset_left": 80,
+      "offset_top": 74,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "shogun_victory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 96,
+      "height": 90,
+      "offset_left": 67,
+      "offset_top": 50,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    }
+  }
+}

@@ -1,0 +1,207 @@
+{
+  "unit": "Army Middle Ages",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.6,
+    120.5
+  ],
+  "anchor_override": null,
+  "standing_height": 59.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        119.8,
+        124
+      ],
+      "top": 66,
+      "height": 59,
+      "bbox": [
+        109,
+        66,
+        129,
+        124
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        121.14,
+        123
+      ],
+      "top": 69,
+      "height": 55,
+      "bbox": [
+        110,
+        69,
+        133,
+        123
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        119.33,
+        123
+      ],
+      "top": 65,
+      "height": 59,
+      "bbox": [
+        110,
+        65,
+        135,
+        123
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        119.5,
+        122
+      ],
+      "top": 64,
+      "height": 59,
+      "bbox": [
+        110,
+        64,
+        135,
+        122
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        119.76,
+        122
+      ],
+      "top": 61,
+      "height": 62,
+      "bbox": [
+        110,
+        61,
+        129,
+        122
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        119.7,
+        121
+      ],
+      "top": 63,
+      "height": 59,
+      "bbox": [
+        106,
+        63,
+        129,
+        121
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        118.71,
+        121
+      ],
+      "top": 61,
+      "height": 61,
+      "bbox": [
+        106,
+        61,
+        128,
+        121
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        118.36,
+        122
+      ],
+      "top": 68,
+      "height": 55,
+      "bbox": [
+        104,
+        68,
+        129,
+        122
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 43.695,
+    "fit": 0.8403,
+    "archetype": "royal"
+  },
+  "default_flic": "ArmyMiddleDefault.flc",
+  "flics": {
+    "ArmyMiddleAttackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 55,
+      "height": 73,
+      "offset_left": 87,
+      "offset_top": 56,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "ArmyMiddleDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 59,
+      "height": 77,
+      "offset_left": 88,
+      "offset_top": 58,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 100
+    },
+    "ArmyMiddleDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 45,
+      "height": 66,
+      "offset_left": 92,
+      "offset_top": 61,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 100
+    },
+    "ArmyMiddleRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 58,
+      "height": 76,
+      "offset_left": 88,
+      "offset_top": 57,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    }
+  }
+}

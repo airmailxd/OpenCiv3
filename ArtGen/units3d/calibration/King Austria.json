@@ -1,0 +1,208 @@
+{
+  "unit": "King Austria",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    120.55,
+    123.5
+  ],
+  "anchor_override": null,
+  "standing_height": 48.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        127.09,
+        126
+      ],
+      "top": 77,
+      "height": 50,
+      "bbox": [
+        108,
+        77,
+        139,
+        126
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        122.03,
+        123
+      ],
+      "top": 76,
+      "height": 48,
+      "bbox": [
+        110,
+        76,
+        136,
+        123
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        119.08,
+        125
+      ],
+      "top": 76,
+      "height": 50,
+      "bbox": [
+        111,
+        76,
+        138,
+        125
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        124.41,
+        123
+      ],
+      "top": 77,
+      "height": 47,
+      "bbox": [
+        101,
+        77,
+        134,
+        123
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        118.27,
+        120
+      ],
+      "top": 78,
+      "height": 43,
+      "bbox": [
+        100,
+        78,
+        131,
+        120
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        107.76,
+        125
+      ],
+      "top": 78,
+      "height": 48,
+      "bbox": [
+        103,
+        78,
+        129,
+        125
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        118.25,
+        128
+      ],
+      "top": 78,
+      "height": 51,
+      "bbox": [
+        101,
+        78,
+        128,
+        128
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        122.78,
+        127
+      ],
+      "top": 79,
+      "height": 49,
+      "bbox": [
+        105,
+        79,
+        138,
+        127
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 48.5551,
+    "fit": 0.9338,
+    "archetype": "royal"
+  },
+  "default_flic": "X2_Charles_default.flc",
+  "flics": {
+    "X2_Charles_death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 154,
+      "height": 92,
+      "offset_left": 41,
+      "offset_top": 66,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "X2_Charles_default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 62,
+      "height": 56,
+      "offset_left": 85,
+      "offset_top": 76,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "X2_Charles_fidget.flc": {
+      "actions": [
+        "FIDGET",
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 62,
+      "height": 56,
+      "offset_left": 84,
+      "offset_top": 76,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "X2_Charles_run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 60,
+      "height": 61,
+      "offset_left": 87,
+      "offset_top": 73,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    }
+  }
+}

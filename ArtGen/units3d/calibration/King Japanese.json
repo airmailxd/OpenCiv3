@@ -1,0 +1,208 @@
+{
+  "unit": "King Japanese",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.43,
+    120.5
+  ],
+  "anchor_override": null,
+  "standing_height": 46.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        122.06,
+        122
+      ],
+      "top": 75,
+      "height": 48,
+      "bbox": [
+        111,
+        75,
+        130,
+        122
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        118.68,
+        121
+      ],
+      "top": 75,
+      "height": 47,
+      "bbox": [
+        107,
+        75,
+        132,
+        121
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        116.44,
+        122
+      ],
+      "top": 75,
+      "height": 48,
+      "bbox": [
+        109,
+        75,
+        127,
+        122
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        119.5,
+        122
+      ],
+      "top": 77,
+      "height": 46,
+      "bbox": [
+        114,
+        77,
+        126,
+        122
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        121.73,
+        122
+      ],
+      "top": 77,
+      "height": 46,
+      "bbox": [
+        109,
+        77,
+        128,
+        122
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        119.35,
+        121
+      ],
+      "top": 78,
+      "height": 44,
+      "bbox": [
+        107,
+        78,
+        132,
+        121
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        118.08,
+        122
+      ],
+      "top": 77,
+      "height": 46,
+      "bbox": [
+        112,
+        77,
+        130,
+        122
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        120.54,
+        122
+      ],
+      "top": 77,
+      "height": 46,
+      "bbox": [
+        113,
+        77,
+        125,
+        122
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 48.9051,
+    "fit": 0.9405,
+    "archetype": "royal"
+  },
+  "default_flic": "x_Tokugawa default.flc",
+  "flics": {
+    "x_Tokugawa death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 105,
+      "height": 71,
+      "offset_left": 66,
+      "offset_top": 76,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "x_Tokugawa default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 42,
+      "height": 52,
+      "offset_left": 93,
+      "offset_top": 74,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "x_Tokugawa fidget.flc": {
+      "actions": [
+        "FIDGET",
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 56,
+      "height": 52,
+      "offset_left": 86,
+      "offset_top": 74,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "x_Tokugawa run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 48,
+      "height": 56,
+      "offset_left": 93,
+      "offset_top": 74,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    }
+  }
+}

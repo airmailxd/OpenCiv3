@@ -1,0 +1,208 @@
+{
+  "unit": "King Spanish",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.38,
+    125.5
+  ],
+  "anchor_override": null,
+  "standing_height": 51.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        126.32,
+        124
+      ],
+      "top": 76,
+      "height": 49,
+      "bbox": [
+        107,
+        76,
+        137,
+        124
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        118.68,
+        122
+      ],
+      "top": 76,
+      "height": 47,
+      "bbox": [
+        104,
+        76,
+        134,
+        122
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        113.06,
+        125
+      ],
+      "top": 76,
+      "height": 50,
+      "bbox": [
+        102,
+        76,
+        129,
+        125
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        114.38,
+        127
+      ],
+      "top": 77,
+      "height": 51,
+      "bbox": [
+        98,
+        77,
+        129,
+        127
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        116.33,
+        128
+      ],
+      "top": 77,
+      "height": 52,
+      "bbox": [
+        102,
+        77,
+        132,
+        128
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        120.08,
+        130
+      ],
+      "top": 76,
+      "height": 55,
+      "bbox": [
+        105,
+        76,
+        135,
+        130
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        124.03,
+        128
+      ],
+      "top": 76,
+      "height": 53,
+      "bbox": [
+        110,
+        76,
+        137,
+        128
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        124.94,
+        127
+      ],
+      "top": 76,
+      "height": 52,
+      "bbox": [
+        110,
+        76,
+        141,
+        127
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 54.6553,
+    "fit": 1.0511,
+    "archetype": "royal"
+  },
+  "default_flic": "x_isabella default.flc",
+  "flics": {
+    "x_isabella death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 142,
+      "height": 84,
+      "offset_left": 49,
+      "offset_top": 73,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "x_isabella default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 48,
+      "height": 56,
+      "offset_left": 95,
+      "offset_top": 76,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "x_isabella fidget.flc": {
+      "actions": [
+        "FIDGET",
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 73,
+      "height": 64,
+      "offset_left": 76,
+      "offset_top": 68,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "x_isabella run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 55,
+      "height": 60,
+      "offset_left": 90,
+      "offset_top": 74,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    }
+  }
+}

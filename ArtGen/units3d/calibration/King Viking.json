@@ -1,0 +1,208 @@
+{
+  "unit": "King Viking",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.26,
+    121.5
+  ],
+  "anchor_override": null,
+  "standing_height": 47.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        122.13,
+        122
+      ],
+      "top": 77,
+      "height": 46,
+      "bbox": [
+        112,
+        77,
+        138,
+        122
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        118.83,
+        121
+      ],
+      "top": 77,
+      "height": 45,
+      "bbox": [
+        109,
+        77,
+        135,
+        121
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        116.39,
+        123
+      ],
+      "top": 77,
+      "height": 47,
+      "bbox": [
+        109,
+        77,
+        133,
+        123
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        118.73,
+        123
+      ],
+      "top": 77,
+      "height": 47,
+      "bbox": [
+        109,
+        77,
+        131,
+        123
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        120.4,
+        124
+      ],
+      "top": 77,
+      "height": 48,
+      "bbox": [
+        101,
+        77,
+        127,
+        124
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        119.69,
+        122
+      ],
+      "top": 77,
+      "height": 46,
+      "bbox": [
+        103,
+        77,
+        130,
+        122
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        118.45,
+        124
+      ],
+      "top": 77,
+      "height": 48,
+      "bbox": [
+        106,
+        77,
+        130,
+        124
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        120.86,
+        123
+      ],
+      "top": 77,
+      "height": 47,
+      "bbox": [
+        109,
+        77,
+        130,
+        123
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 53.3405,
+    "fit": 1.0258,
+    "archetype": "royal"
+  },
+  "default_flic": "x_Ragnar default.flc",
+  "flics": {
+    "x_Ragnar death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 136,
+      "height": 81,
+      "offset_left": 52,
+      "offset_top": 74,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "x_Ragnar default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 47,
+      "height": 53,
+      "offset_left": 94,
+      "offset_top": 77,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "x_Ragnar fidget.flc": {
+      "actions": [
+        "FIDGET",
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 55,
+      "height": 55,
+      "offset_left": 86,
+      "offset_top": 75,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "x_Ragnar run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 64,
+      "height": 56,
+      "offset_left": 83,
+      "offset_top": 75,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    }
+  }
+}

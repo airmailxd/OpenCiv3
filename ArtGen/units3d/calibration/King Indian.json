@@ -1,0 +1,208 @@
+{
+  "unit": "King Indian",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.93,
+    121.5
+  ],
+  "anchor_override": null,
+  "standing_height": 45.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        120.0,
+        125
+      ],
+      "top": 78,
+      "height": 48,
+      "bbox": [
+        112,
+        78,
+        126,
+        125
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        119.87,
+        123
+      ],
+      "top": 78,
+      "height": 46,
+      "bbox": [
+        110,
+        78,
+        130,
+        123
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        116.5,
+        123
+      ],
+      "top": 78,
+      "height": 46,
+      "bbox": [
+        111,
+        78,
+        133,
+        123
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        120.19,
+        123
+      ],
+      "top": 79,
+      "height": 45,
+      "bbox": [
+        112,
+        79,
+        130,
+        123
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        121.1,
+        122
+      ],
+      "top": 77,
+      "height": 46,
+      "bbox": [
+        113,
+        77,
+        127,
+        122
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        117.92,
+        122
+      ],
+      "top": 78,
+      "height": 45,
+      "bbox": [
+        109,
+        78,
+        129,
+        122
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        118.4,
+        123
+      ],
+      "top": 79,
+      "height": 45,
+      "bbox": [
+        106,
+        79,
+        128,
+        123
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        120.21,
+        123
+      ],
+      "top": 79,
+      "height": 45,
+      "bbox": [
+        109,
+        79,
+        126,
+        123
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 53.1757,
+    "fit": 1.0226,
+    "archetype": "royal"
+  },
+  "default_flic": "x_Gandhi default.flc",
+  "flics": {
+    "x_Gandhi death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 136,
+      "height": 82,
+      "offset_left": 51,
+      "offset_top": 73,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "x_Gandhi default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 45,
+      "height": 51,
+      "offset_left": 90,
+      "offset_top": 77,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "x_Gandhi fidget.flc": {
+      "actions": [
+        "FIDGET",
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 56,
+      "height": 54,
+      "offset_left": 85,
+      "offset_top": 74,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "x_Gandhi run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 49,
+      "height": 57,
+      "offset_left": 92,
+      "offset_top": 73,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    }
+  }
+}

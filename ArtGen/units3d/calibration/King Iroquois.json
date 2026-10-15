@@ -1,0 +1,208 @@
+{
+  "unit": "King Iroquois",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.84,
+    120.5
+  ],
+  "anchor_override": null,
+  "standing_height": 59.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        119.26,
+        122
+      ],
+      "top": 64,
+      "height": 59,
+      "bbox": [
+        100,
+        64,
+        135,
+        122
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        110.5,
+        125
+      ],
+      "top": 63,
+      "height": 63,
+      "bbox": [
+        105,
+        63,
+        131,
+        125
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        120.5,
+        127
+      ],
+      "top": 64,
+      "height": 64,
+      "bbox": [
+        104,
+        64,
+        127,
+        127
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        123.61,
+        124
+      ],
+      "top": 68,
+      "height": 57,
+      "bbox": [
+        106,
+        68,
+        134,
+        124
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        122.4,
+        122
+      ],
+      "top": 71,
+      "height": 52,
+      "bbox": [
+        104,
+        71,
+        139,
+        122
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        120.0,
+        121
+      ],
+      "top": 64,
+      "height": 58,
+      "bbox": [
+        108,
+        64,
+        134,
+        121
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        118.6,
+        121
+      ],
+      "top": 62,
+      "height": 60,
+      "bbox": [
+        112,
+        62,
+        135,
+        121
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        119.68,
+        122
+      ],
+      "top": 63,
+      "height": 60,
+      "bbox": [
+        105,
+        63,
+        133,
+        122
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 55.6897,
+    "fit": 1.071,
+    "archetype": "royal"
+  },
+  "default_flic": "x_Hiawatha default.flc",
+  "flics": {
+    "x_Hiawatha death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 164,
+      "height": 111,
+      "offset_left": 37,
+      "offset_top": 55,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "x_Hiawatha default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 65,
+      "height": 69,
+      "offset_left": 78,
+      "offset_top": 61,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "x_Hiawatha fidget.flc": {
+      "actions": [
+        "FIDGET",
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 62,
+      "height": 68,
+      "offset_left": 80,
+      "offset_top": 62,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "x_Hiawatha run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 71,
+      "height": 79,
+      "offset_left": 80,
+      "offset_top": 56,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    }
+  }
+}

@@ -1,0 +1,208 @@
+{
+  "unit": "Leader Middle Ages",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    120.27,
+    120.5
+  ],
+  "anchor_override": null,
+  "standing_height": 46.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        123.65,
+        122
+      ],
+      "top": 77,
+      "height": 46,
+      "bbox": [
+        91,
+        77,
+        130,
+        122
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        116.71,
+        122
+      ],
+      "top": 78,
+      "height": 45,
+      "bbox": [
+        102,
+        78,
+        132,
+        122
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        121.6,
+        127
+      ],
+      "top": 78,
+      "height": 50,
+      "bbox": [
+        109,
+        78,
+        131,
+        127
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        124.1,
+        122
+      ],
+      "top": 78,
+      "height": 45,
+      "bbox": [
+        109,
+        78,
+        142,
+        122
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        119.89,
+        122
+      ],
+      "top": 77,
+      "height": 46,
+      "bbox": [
+        109,
+        77,
+        149,
+        122
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        119.11,
+        121
+      ],
+      "top": 77,
+      "height": 45,
+      "bbox": [
+        107,
+        77,
+        137,
+        121
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        118.95,
+        122
+      ],
+      "top": 77,
+      "height": 46,
+      "bbox": [
+        109,
+        77,
+        130,
+        122
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        120.65,
+        123
+      ],
+      "top": 77,
+      "height": 47,
+      "bbox": [
+        97,
+        77,
+        130,
+        123
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 48.1683,
+    "fit": 0.9263,
+    "archetype": "royal"
+  },
+  "default_flic": "LeaderMiddleAgesDefault.flc",
+  "flics": {
+    "LeaderMiddleAgesDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 94,
+      "height": 68,
+      "offset_left": 72,
+      "offset_top": 76,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "LeaderMiddleAgesDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 60,
+      "height": 51,
+      "offset_left": 90,
+      "offset_top": 77,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "LeaderMiddleAgesFidget.flc": {
+      "actions": [
+        "FIDGET",
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 76,
+      "height": 81,
+      "offset_left": 82,
+      "offset_top": 47,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "LeaderMiddleAgesRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 46,
+      "height": 65,
+      "offset_left": 97,
+      "offset_top": 61,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    }
+  }
+}

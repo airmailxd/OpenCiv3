@@ -1,0 +1,208 @@
+{
+  "unit": "SciLeader",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    120.05,
+    121.5
+  ],
+  "anchor_override": null,
+  "standing_height": 46.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        120.38,
+        124
+      ],
+      "top": 78,
+      "height": 47,
+      "bbox": [
+        107,
+        78,
+        131,
+        124
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        120.33,
+        123
+      ],
+      "top": 78,
+      "height": 46,
+      "bbox": [
+        107,
+        78,
+        129,
+        123
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        117.5,
+        125
+      ],
+      "top": 78,
+      "height": 48,
+      "bbox": [
+        111,
+        78,
+        130,
+        125
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        119.77,
+        123
+      ],
+      "top": 79,
+      "height": 45,
+      "bbox": [
+        112,
+        79,
+        126,
+        123
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        120.88,
+        123
+      ],
+      "top": 78,
+      "height": 46,
+      "bbox": [
+        108,
+        78,
+        132,
+        123
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        120.64,
+        122
+      ],
+      "top": 78,
+      "height": 45,
+      "bbox": [
+        109,
+        78,
+        132,
+        122
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        117.98,
+        121
+      ],
+      "top": 78,
+      "height": 44,
+      "bbox": [
+        109,
+        78,
+        128,
+        121
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        116.64,
+        123
+      ],
+      "top": 78,
+      "height": 46,
+      "bbox": [
+        113,
+        78,
+        127,
+        123
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 51.0232,
+    "fit": 0.9812,
+    "archetype": "royal"
+  },
+  "default_flic": "AlbertEinstein_Default_f15_fps8.flc",
+  "flics": {
+    "AlbertEinstein_Death_f15_fps15.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 113,
+      "height": 76,
+      "offset_left": 64,
+      "offset_top": 74,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "AlbertEinstein_Default_f15_fps8.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 28,
+      "height": 49,
+      "offset_left": 106,
+      "offset_top": 78,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "AlbertEinstein_Fidget_f15_fps12flc.flc": {
+      "actions": [
+        "FIDGET",
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 45,
+      "height": 53,
+      "offset_left": 98,
+      "offset_top": 77,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "AlbertEinstein_Run_f15_fps15.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 47,
+      "height": 57,
+      "offset_left": 97,
+      "offset_top": 74,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    }
+  }
+}
