@@ -93,9 +93,10 @@ def fur(name, color, dark=None, tint=False):
         wave = n.new('ShaderNodeTexWave')
         wave.wave_type = 'BANDS'
         wave.bands_direction = 'Z'
-        wave.inputs['Scale'].default_value = 6.0
-        wave.inputs['Distortion'].default_value = 3.0
-        wave.inputs['Detail'].default_value = 4.0
+        wave.inputs['Scale'].default_value = 5.0
+        wave.inputs['Distortion'].default_value = 9.0
+        wave.inputs['Detail'].default_value = 8.0
+        wave.inputs['Detail Roughness'].default_value = 0.8
         tree.links.new(coord.outputs['Object'], wave.inputs['Vector'])
         ramp = n.new('ShaderNodeValToRGB')
         ramp.color_ramp.elements[0].color = (*B.srgb_to_linear(dark), 1)
@@ -402,3 +403,76 @@ def roughen_hair(basemesh, color, length=0.022, density=4000):
         st.clump_factor = 0.4
         st.hair_length = length
     return hair
+
+
+def flap(name, mat, width=0.26, length=0.34, folds=4, depth=0.018, ragged=0.04, curve=0.12, seed=1):
+    """A hanging cloth or hide flap (a loincloth panel, a tabard): a grid
+    hanging down from its top edge at the origin, in the X-Z plane, facing
+    -Y; with vertical folds deepening toward the hem, a ragged, uneven hem,
+    and curved around the body by `curve` (meters of bow at the edges).
+    Place it with human.attach on the pelvis."""
+    import random
+    rnd = random.Random(seed)
+    nx, nz = 18, 14
+    bm = bmesh.new()
+    rows = []
+    hem = [length * (1.0 - ragged / length * rnd.random()) for _ in range(nx + 1)]
+    for j in range(nz + 1):
+        row = []
+        for i in range(nx + 1):
+            u = i / nx - 0.5
+            t = j / nz
+            zz = -t * hem[i]
+            fold = depth * t * math.sin((u + 0.5) * math.pi * 2 * folds + rnd.random() * 0.4)
+            yy = -curve * (1 - (2 * u) ** 2) * 0.5 + fold + 0.02 * t   # bowed around the body, swinging out
+            row.append(bm.verts.new((u * width * (1 + 0.15 * t), yy - curve * 0.5, zz)))
+        rows.append(row)
+    for j in range(nz):
+        for i in range(nx):
+            bm.faces.new((rows[j][i], rows[j][i + 1], rows[j + 1][i + 1], rows[j + 1][i]))
+    me = bpy.data.meshes.new(name)
+    bm.to_mesh(me)
+    bm.free()
+    obj = bpy.data.objects.new(name, me)
+    bpy.context.scene.collection.objects.link(obj)
+    obj.data.materials.append(mat)
+    for p in obj.data.polygons:
+        p.use_smooth = True
+    sol = obj.modifiers.new('Solidify', 'SOLIDIFY')
+    sol.thickness = 0.006
+    sub = obj.modifiers.new('Subdiv', 'SUBSURF')
+    sub.levels = sub.render_levels = 1
+    return obj
+
+
+def loincloth(basemesh, arm, mat, back_mat=None, width=0.27, length=0.36, back_length=0.3, seed=3):
+    """Front and back flaps hanging from the belt, parented to the pelvis."""
+    import human as H
+    from mathutils import Matrix
+    H._update()
+    pb = arm.pose.bones['pelvis']
+    zb = (arm.matrix_world @ pb.head).z + 0.05 * _scale
+    dg = bpy.context.evaluated_depsgraph_get()
+    ev = basemesh.evaluated_get(dg)
+    me = ev.to_mesh()
+    mw = ev.matrix_world
+    ph = arm.matrix_world @ pb.head
+    # the hips at belt height (not the hands, which hang at the same height)
+    ring = [p for p in (mw @ v.co for v in me.vertices)
+            if abs(p.z - zb) < 0.025 * _scale and math.hypot(p.x - ph.x, p.y - ph.y) < 0.2 * _scale]
+    ev.to_mesh_clear()
+    cx = sum(p.x for p in ring) / len(ring)
+    front = min(p.y for p in ring)
+    back = max(p.y for p in ring)
+    made = []
+    for side, y, rot, ln, m in (('F', front - 0.012, 0.0, length, mat), ('B', back + 0.012, math.pi, back_length, back_mat or mat)):
+        f = flap('Loin' + side, m, width=width * _scale, length=ln * _scale, curve=0.06 * _scale, seed=seed + (side == 'B'))
+        f.matrix_world = Matrix.Translation((cx, y, zb)) @ Matrix.Rotation(rot, 4, 'Z')
+        world = f.matrix_world.copy()
+        f.parent = arm
+        f.parent_type = 'BONE'
+        f.parent_bone = 'pelvis'
+        f.matrix_world = world
+        made.append(f)
+    H._update()
+    return made

@@ -29,7 +29,7 @@ from render import Style, _blur, _blur_rgb, _maxfilter, _u8  # noqa: E402
 
 CANVAS = 240          # the game's unit canvas (1x)
 SCALE = 2             # the sheets have twice the pixels
-SHADOW_GAIN = 0.5     # shadow catcher darkness -> shadow alpha (full shadow ~ 0.4)
+SHADOW_GAIN = 0.38    # shadow catcher darkness -> shadow alpha (full shadow ~ 0.4)
 
 
 def _load(path):

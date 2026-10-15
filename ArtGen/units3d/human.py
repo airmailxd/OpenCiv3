@@ -120,7 +120,7 @@ def grime(basemesh, amount=0.35, paint=None):
         tree.links.new(out, bsdf.inputs['Base Color'])
         # a sweaty sheen
         if not bsdf.inputs['Roughness'].is_linked:
-            bsdf.inputs['Roughness'].default_value = 0.42
+            bsdf.inputs['Roughness'].default_value = 0.6
 
     for slot in basemesh.material_slots:
         if slot.material and slot.material.use_nodes:

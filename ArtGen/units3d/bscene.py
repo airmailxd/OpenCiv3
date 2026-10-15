@@ -32,7 +32,7 @@ ELEVATION = 30.0
 SIN_E, COS_E = math.sin(math.radians(ELEVATION)), math.cos(math.radians(ELEVATION))
 
 # The same light directions as ArtGen/units/render.py (unit vectors toward the light).
-_KEY_EL = math.radians(62)
+_KEY_EL = math.radians(66)
 KEY = Vector((-math.cos(_KEY_EL) * 0.7071, math.cos(_KEY_EL) * 0.7071, math.sin(_KEY_EL)))
 FILL = Vector((0.55, -0.65, 0.35)).normalized()
 RIM = Vector((0.35, 0.85, 0.25)).normalized()
@@ -47,7 +47,7 @@ def facing_deg(row):
 
 class Look:
     """The lighting shared by every unit (one look for the whole set)."""
-    key = 4.6           # sun strengths (W/m^2): a strong NW key and deep
+    key = 5.6           # sun strengths (W/m^2): a strong NW key and deep
     fill = 0.30         # shading on the southeast side, like Civ3's units
     rim = 0.7
     sky = (0.60, 0.64, 0.70)
