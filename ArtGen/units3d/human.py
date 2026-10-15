@@ -142,6 +142,12 @@ def grime(basemesh, amount=0.35, paint=None):
     for slot in basemesh.material_slots:
         if slot.material and slot.material.use_nodes:
             visit(slot.material.node_tree)
+            # MPFB's skin group takes its roughness and coat from group inputs
+            for node in slot.material.node_tree.nodes:
+                if node.type == 'GROUP':
+                    for name, value in (('Roughness', 0.66), ('Clearcoat', 0.0), ('Clearcoat Roughness', 0.8)):
+                        if name in node.inputs:
+                            node.inputs[name].default_value = value
 
 
 def tone_skin(basemesh, color, strength=1.0, texture='diffuse'):

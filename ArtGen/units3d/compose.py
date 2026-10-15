@@ -70,7 +70,8 @@ def compose(folder, row, desat=1.0, style=Style):
     ring_c = near * style.contour_dark
 
     # ground shadow, from the shadow catcher, only where the unit isn't
-    sh = np.clip((1.0 - s) * SHADOW_GAIN, 0, style.shadow_alpha + 0.05)
+    # (the shadow catcher pass is noisy: soften it, as the old renderer blurred its shadow)
+    sh = np.clip(_blur((1.0 - s) * SHADOW_GAIN, 1.6), 0, style.shadow_alpha + 0.05)
 
     rest = np.clip(1 - a_all, 0, 1)
     under_a = 1 - (1 - ring_a) * (1 - sh)
