@@ -88,6 +88,12 @@ def dress(entry, mesh, arm):
         G.shell(mesh, arm, 'Bottom', ['pelvis', 'thigh_l', 'thigh_r', 'calf_l', 'calf_r'], _mat(entry, 'bottom', G.cloth),
                 zmin=0.1, zmax=1.0, offset=0.008, thickness=0.004)
     # belt
+    for g in entry.get('gear', []):
+        name = g[0] if isinstance(g, (list, tuple)) else g
+        if name == 'chest_strap':
+            col = (g[1] or {}).get('color', c['belt']) if isinstance(g, (list, tuple)) and len(g) > 1 else c['belt']
+            G.shell(mesh, arm, 'ChestStrap', torso, G.leather('chest_strap', B.hex_color(col)), zmin=1.0, zmax=1.5,
+                    offset=0.012, thickness=0.006, keep=lambda co: abs((co.z - 1.22) + 0.95 * co.x) < 0.035)
     if bottom:
         G.shell(mesh, arm, 'Belt', ['pelvis', 'spine_01'], _mat(entry, 'belt', G.leather), zmin=0.98, zmax=1.04,
                 offset=0.013, thickness=0.01)
@@ -111,6 +117,10 @@ def dress(entry, mesh, arm):
         if entry.get('sandals') and wraps not in ('boots',):
             G.shell(mesh, arm, 'Sandal_' + side, ['foot_' + side, 'ball_' + side], _mat(entry, 'sandal', G.leather),
                     zmax=0.025, offset=0.004, thickness=0.008)
+            # straps laced up the ankle
+            G.shell(mesh, arm, 'SandalStrap_' + side, ['foot_' + side, 'calf_' + side], _mat(entry, 'sandal', G.leather),
+                    zmin=0.04, zmax=0.17, offset=0.006, thickness=0.004,
+                    keep=lambda co: (co.z * 60.0) % 2.0 < 0.75)
         if entry.get('bracers'):
             G.shell(mesh, arm, 'Bracer_' + side, ['lowerarm_' + side], _mat(entry, 'bracers', G.cloth),
                     offset=0.008, thickness=0.006)
@@ -120,11 +130,11 @@ def dress(entry, mesh, arm):
     if entry.get('pelt_cape'):
         G.pelt(mesh, arm, B.hex_color(entry['pelt_cape'][0]), B.hex_color(entry['pelt_cape'][1]), length=0.03)
     if entry.get('mane'):
+        # over a full hair mesh (no scalp shows from above): long falling
+        # strands, locks forward over the shoulders, a rough strand coat
         G.falling_hair(mesh, B.hex_color(c['hair']), length=entry['mane'])
-        G.crown_hair(mesh, B.hex_color(c['hair']))
         G.front_locks(mesh, B.hex_color(c['hair']), length=entry['mane'] * 1.1)
-    else:
-        G.roughen_hair(mesh, B.hex_color(c['hair']))
+    G.roughen_hair(mesh, B.hex_color(c['hair']), length=0.03, density=6000)
 
 
 def dress_posed(entry, mesh, arm):
@@ -156,7 +166,7 @@ def helmet(entry, mesh, arm):
         else:
             tint = 'helmet' in entry.get('tint', [])
             mat = B.material('helmet', (1, 1, 1) if tint else B.hex_color(_colors(entry)['helmet']),
-                             roughness=0.35, metallic=0.9, tint=tint)
+                             roughness=0.55, metallic=0.85, tint=tint)
         G.shell(mesh, arm, 'Helmet', ['head', 'neck_01'], mat, zmin=(top - depth) / G._scale, offset=0.02 if kind != 'hood' else 0.012,
                 thickness=0.008, min_weight=0.2)
         if kind == 'crested':
@@ -187,18 +197,26 @@ STANCES = {
              ('thigh_r', (-0.3, -0.02, -1)), ('calf_r', (-0.24, 0.04, -1)), ('foot_r', (-0.5, -1, -0.3)),
              ('upperarm_l', (0.42, -0.08, -1)), ('lowerarm_l', (0.3, -0.25, -1)),
              ('upperarm_r', (-0.55, -0.15, -1)), ('lowerarm_r', (-0.35, -1.0, -0.35))],
-    'upright': [('spine_02', (0, -0.08, 1)), ('neck_01', (0, -0.04, 1)), ('head', (0, 0.05, 1)),
+    'upright': [('spine_02', (0, -0.04, 1)), ('neck_01', (0, 0.02, 1)), ('head', (0, 0.12, 1)),
                 ('clavicle_l', (1, -0.25, 0.05)), ('clavicle_r', (-1, -0.25, 0.05)),
-                ('thigh_l', (0.2, -0.05, -1)), ('calf_l', (0.15, 0.02, -1)), ('foot_l', (0.4, -1, -0.3)),
-                ('thigh_r', (-0.2, 0.0, -1)), ('calf_r', (-0.15, 0.04, -1)), ('foot_r', (-0.4, -1, -0.3)),
-                ('upperarm_l', (0.25, -0.35, -1)), ('lowerarm_l', (-0.25, -1.0, 0.15)),
-                ('upperarm_r', (-0.3, -0.1, -1)), ('lowerarm_r', (-0.15, -1.0, 0.55))],
+                ('thigh_l', (0.14, -0.08, -1)), ('calf_l', (0.1, 0.02, -1)), ('foot_l', (0.35, -1, -0.3)),
+                ('thigh_r', (-0.14, 0.04, -1)), ('calf_r', (-0.1, 0.06, -1)), ('foot_r', (-0.35, -1, -0.3)),
+                ('upperarm_l', (0.2, -0.45, -1)), ('lowerarm_l', (-0.55, -1.0, 0.25)),
+                ('upperarm_r', (-0.3, -0.1, -1)), ('lowerarm_r', (-0.12, -1.0, 0.55))],
     'low_across': [('neck_01', (0, -0.03, 1)),
                    ('thigh_l', (0.12, 0.0, -1)), ('calf_l', (0.07, 0.04, -1)),
                    ('thigh_r', (-0.12, 0.0, -1)), ('calf_r', (-0.07, 0.04, -1)),
                    ('upperarm_l', (0.25, -0.3, -1)), ('lowerarm_l', (-0.4, -0.9, -0.2)),
                    ('upperarm_r', (-0.25, -0.25, -1)), ('lowerarm_r', (0.3, -0.9, -0.3))],
 }
+
+# Seated on a horse: thighs forward and apart around the barrel, shins
+# down, hands forward at the reins (the weapon hand set by `equip`).
+STANCES['ride'] = [('spine_02', (0, -0.05, 1)), ('neck_01', (0, -0.04, 1)), ('head', (0, 0.06, 1)),
+                   ('thigh_l', (0.42, -0.85, -0.35)), ('calf_l', (0.22, 0.12, -1)), ('foot_l', (0.25, -1, -0.2)),
+                   ('thigh_r', (-0.42, -0.85, -0.35)), ('calf_r', (-0.22, 0.12, -1)), ('foot_r', (-0.25, -1, -0.2)),
+                   ('upperarm_l', (0.25, -0.5, -1)), ('lowerarm_l', (0.05, -1.0, -0.1)),
+                   ('upperarm_r', (-0.3, -0.35, -1)), ('lowerarm_r', (-0.15, -1.0, 0.35))]
 
 WEAPON_STANCE = {
     'stone_axe': 'hang', 'club': 'hang', 'sword': 'hang', 'axe': 'hang',
@@ -244,9 +262,13 @@ def equip(entry, arm):
         obj = P.make(name, c, **params)
         if offhand.startswith('shield'):
             # on the left forearm, held forward and upright, face to the front
+            # strapped on the left forearm, which crosses the body: the shield
+            # covers the torso from chest to hip, facing the front
             pb = arm.pose.bones['lowerarm_l']
-            mid = (arm.matrix_world @ pb.head).lerp(arm.matrix_world @ pb.tail, 0.55)
-            H.hold(obj, arm, 'lowerarm_l', mid + Vector((0.0, -0.06, 0.0)), up=(0, 0, 1), forward=(0, 1, 0))
+            mid = (arm.matrix_world @ pb.head).lerp(arm.matrix_world @ pb.tail, 0.5)
+            chest = arm.matrix_world @ arm.pose.bones['spine_02'].head
+            at = Vector((0.5 * (mid.x + chest.x) + 0.04, min(mid.y, chest.y) - 0.1, 0.5 * (mid.z + chest.z)))
+            H.hold(obj, arm, 'lowerarm_l', at, up=(0, -0.12, 1), forward=(0, 1, 0))
         else:
             at = H.grip_point(arm, 'hand_l')
             H.hold(obj, arm, 'hand_l', at, up=(1.0, -0.15, 0.1))
@@ -261,8 +283,12 @@ def equip(entry, arm):
     return made
 
 
-def build_footman(entry):
-    """The posed, dressed and equipped human of a catalog entry; returns the root."""
+def build_footman(entry, seated=False):
+    """The posed, dressed and equipped human of a catalog entry; returns the
+    root. `seated`: in the riding pose, not planted on the ground; the root's
+    origin is then at the pelvis (put it on the saddle's 'rider' empty)."""
+    if seated:
+        entry = dict(entry, stance_name='ride')
     c = _colors(entry)
     build = entry.get('build', 'normal')
     if isinstance(build, dict):
@@ -287,5 +313,12 @@ def build_footman(entry):
     equip(entry, arm)
     dress_posed(entry, mesh, arm)
     root = H.rooted(arm)
-    H.plant(root, mesh)
+    if seated:
+        # the pelvis on the root's origin
+        H._update()
+        pelvis = arm.matrix_world @ arm.pose.bones['pelvis'].head
+        root.location -= pelvis
+        H._update()
+    else:
+        H.plant(root, mesh)
     return root

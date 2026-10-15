@@ -67,6 +67,16 @@ def cloth(name, color, tint=False, rough=0.85, weave=0.25):
         tree.links.new(add.outputs['Value'], bump.inputs['Height'])
         tree.links.new(bump.outputs['Normal'], bsdf.inputs['Normal'])
         bsdf.inputs['Sheen Weight'].default_value = 0.4
+        # darker in the folds and where the cloth meets the body
+        ao = n.new('ShaderNodeAmbientOcclusion')
+        ao.inputs['Distance'].default_value = 0.05
+        mul = n.new('ShaderNodeMix')
+        mul.data_type = 'RGBA'
+        mul.blend_type = 'MULTIPLY'
+        mul.inputs['Factor'].default_value = 0.75
+        mul.inputs['A'].default_value = bsdf.inputs['Base Color'].default_value
+        tree.links.new(ao.outputs['AO'], mul.inputs['B'])
+        tree.links.new(mul.outputs['Result'], bsdf.inputs['Base Color'])
     return B.material(name, color, roughness=rough, tint=tint, nodes=nodes)
 
 
@@ -191,6 +201,11 @@ def shell(basemesh, arm, name, bones, mat, *, zmin=None, zmax=None, offset=0.006
     bmesh.ops.delete(bm, geom=drop, context='FACES')
     loose = [v for v in bm.verts if not v.link_faces]
     bmesh.ops.delete(bm, geom=loose, context='VERTS')
+    # a clean hem: relax the cut edge (the faces' stair-step outline) along the surface
+    edge = [v for v in bm.verts if v.is_boundary]
+    for _ in range(6):
+        bmesh.ops.smooth_vert(bm, verts=edge, factor=0.5, use_axis_x=True, use_axis_y=True, use_axis_z=True)
+    bm.normal_update()
     for v in bm.verts:
         v.co += v.normal * offset
     bm.to_mesh(new.data)
@@ -429,10 +444,20 @@ def flap(name, mat, width=0.26, length=0.34, folds=5, depth=0.04, ragged=0.05, c
     nx, nz = 18, 14
     bm = bmesh.new()
     rows = []
-    # torn into strips of uneven length: each strip (3 columns) its own hem
-    strip_len = [length * (1.0 - rnd.uniform(0.0, 0.32)) for _ in range(nx // 3 + 2)]
-    hem = [strip_len[i // 3] * (1.0 - ragged / length * rnd.random() * 0.3) for i in range(nx + 1)]
-    slits = {i for i in range(3, nx, 3)}
+    # torn into strips of uneven width (2-4 columns) and length, each cut at
+    # its own angle with frayed tips
+    edges, i = [0], 0
+    while i < nx:
+        i = min(nx, i + rnd.choice((2, 3, 3, 4)))
+        edges.append(i)
+    slits = set(edges[1:-1])
+    hem = [0.0] * (nx + 1)
+    for a, b in zip(edges, edges[1:]):
+        base = length * (1.0 - rnd.uniform(0.0, 0.35))
+        tilt = rnd.uniform(-0.08, 0.08) * length
+        for c in range(a, b + 1):
+            u = (c - a) / max(1, b - a)
+            hem[c] = max(hem[c], base + tilt * (u - 0.5) * 2 + rnd.uniform(-0.012, 0.012))
     for j in range(nz + 1):
         row = []
         for i in range(nx + 1):
@@ -600,7 +625,7 @@ def crown_hair(basemesh, color, length=0.13, density=5000):
     return mod
 
 
-def crest(basemesh, arm, mat, height=0.085, length=0.26, width=0.03, lift=0.03):
+def crest(basemesh, arm, mat, height=0.12, length=0.3, width=0.045, lift=0.03):
     """A horsehair crest along the top of a helmet, front to back, arched and
     fuller at the back; parented to the head bone (call before posing)."""
     import human as H
