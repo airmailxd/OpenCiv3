@@ -221,6 +221,7 @@ def _lin(hexcol):
 # The default specular reflects the sky on up-facing surfaces and greys dark colors;
 # bscene.material uses this level on dielectrics, and so do the horse's own materials.
 SPECULAR = 0.18
+LEGGY = 1.07   # the asset is a stocky draft horse: a little taller and slimmer reads as a warhorse
 COAT_LUM = 0.42   # the asset texture's typical linear luminance (its median is ~0.45)
 
 
@@ -299,7 +300,7 @@ def _coat_material(h):
     if h.get('coat2'):
         # pinto patches: large irregular areas of the second coat color
         nz = N.new('ShaderNodeTexNoise')
-        nz.inputs['Scale'].default_value = 1.6
+        nz.inputs['Scale'].default_value = 0.9   # a few large pinto patches
         nz.inputs['Detail'].default_value = 3.0
         L.new(tc.outputs['Object'], nz.inputs['Vector'])
         c2 = mix(_lin(h['coat2']), gray.outputs['Color'], 1.0, 'MULTIPLY')
@@ -410,8 +411,8 @@ def horse_asset(root, colors, neck_raise=-38.0):
     # head toward +Y: turn 180 degrees about Z, scale to size, feet centered on the origin
     holder.matrix_parent_inverse.identity()
     holder.rotation_euler = (0, 0, math.pi)
-    holder.scale = (s, s, s)
-    holder.location = (xc * s, yc * s, -zmin * s)
+    holder.scale = (s * 0.95, s * 0.95, s * LEGGY)
+    holder.location = (xc * s * 0.95, yc * s * 0.95, -zmin * s * LEGGY)
     _raise_head(objs, neck_raise)
     coat = _coat_material(colors)
     hair = _hair_material(colors)
@@ -797,7 +798,7 @@ def mount(unit, h):
             c[k] = h[k]
     over = HORSE_COAT_OVERRIDES.get(unit, {})
     c.update({k: v for k, v in over.items() if k in c})
-    h = dict(h, **{k: v for k, v in over.items() if k in ('dapple', 'coat2')})
+    h = dict(h, **{k: v for k, v in over.items() if k in ('dapple', 'coat2', 'blanket_tint')})
     root = vkit.root(unit)
     body = horse_asset(root, dict(h, **c))
     seat = asset_tack(root, body, c, h)
@@ -815,11 +816,11 @@ HORSE_COAT_OVERRIDES = {
     'Rider': {'coat': '#c8c8c4', 'dapple': '#9a9a98', 'mane': '#e0ded8', 'points': '#8a8a88'},
     'Knight': {'coat': '#9a9a98', 'mane': '#3a3836', 'points': '#4a4846'},
     'Keshik': {'coat': '#7a4826', 'mane': '#1a120c', 'points': '#20160e'},
-    'Sipahi': {'coat': '#6a4428', 'mane': '#e8e4dc', 'points': '#2a1c12'},
+    'Sipahi': {'coat': '#6a4428', 'mane': '#2a1c12', 'points': '#2a1c12'},
     'Conquistador': {'coat': '#a0a0a2', 'dapple': '#5c5c60', 'mane': '#2a2826', 'points': '#3a3836'},
     'Cossack': {'coat': '#4a4a4e', 'mane': '#141416', 'points': '#1a1a1c'},
-    'Hussar': {'coat': '#8a6038', 'mane': '#1a120c', 'points': '#20160e'},
-    'Cavalry': {'coat': '#c8a060', 'mane': '#e8dcb8', 'points': '#a88850'},
+    'Hussar': {'coat': '#4e3220', 'mane': '#120c08', 'points': '#160e08'},
+    'Cavalry': {'coat': '#b8843c', 'mane': '#cdb488', 'points': '#8a6a3a', 'blanket_tint': True},
     'Ansar Warrior': {'coat': '#2e2e32', 'mane': '#121214', 'points': '#1c1c1e'},
 }
 

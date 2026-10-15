@@ -68,7 +68,7 @@ REMASTER = {
     'Ancient Cavalry': {'top': 'sleeved', 'tint': ['top', 'crest', 'shield_face', 'shield_emblem']},
     'Knight': {'top': 'sleeved', 'cuirass': True, 'metal': ['helmet', 'cuirass'],
                'colors': {'cuirass': '#9a9ca2', 'mail': '#7a7c80'}},
-    'Cossack': {'tint': ['top', 'hat', 'belt'], 'headgear_scale': [0.95, 0.95, 0.9]},
+    # Civ3's Cossack: a tan coat; only the papakha and belt are civ-colored\n    'Cossack': {'tint': ['hat', 'belt'], 'headgear_scale': [0.95, 0.95, 0.9]},
     'Keshik': {'tint': ['top', 'hat']},
     'Conquistador': {'tint': ['top'], 'metal': ['cuirass'], 'colors': {'cuirass': '#a8aab0'}},
     'Horseman': {

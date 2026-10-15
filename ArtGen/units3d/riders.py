@@ -80,7 +80,7 @@ def headgear(entry, arm):
     k = 1.2   # a little larger than life, so the headgear keeps its silhouette at 1x
     sx, sy, sz = sx * k, sy * k, sz * k
     # the head bone points up the head; its tail is near the crown. Hat +Z -> bone +Y
-    H.attach(obj, arm, 'head', Matrix.Translation((0, -0.04, 0.012)) @ R('X', -90) @ S(sx, sy, sz))
+    H.attach(obj, arm, 'head', Matrix.Translation((0, -0.015, 0.012)) @ R('X', -90) @ S(sx, sy, sz))
     return obj
 
 
