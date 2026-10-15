@@ -100,8 +100,10 @@ def hair_material(name, color):
     out = tree.nodes.new('ShaderNodeOutputMaterial')
     hair = tree.nodes.new('ShaderNodeBsdfHairPrincipled')
     hair.parametrization = 'COLOR'
-    hair.inputs['Color'].default_value = (*B.srgb_to_linear(color), 1)
-    hair.inputs['Roughness'].default_value = 0.45
+    # hair looks much lighter than its fiber color: darken toward the swatch
+    hair.inputs['Color'].default_value = (*(c * 0.5 for c in B.srgb_to_linear(color)), 1)
+    hair.inputs['Roughness'].default_value = 0.6
+    hair.inputs['Coat'].default_value = 0.0
     tree.links.new(hair.outputs[0], out.inputs['Surface'])
     aov = tree.nodes.new('ShaderNodeOutputAOV')
     aov.aov_name = 'tint'

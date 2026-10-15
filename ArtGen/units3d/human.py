@@ -27,7 +27,7 @@ def _asset(kind, name, ext):
 
 def body(gender=1.0, age=0.5, muscle=0.75, weight=0.55, height=0.55, proportions=0.6,
          race=None, skin='middleage_caucasian_male', hair='short02', eyebrows='eyebrow001',
-         eyes='brown', subdiv=1, skin_tone=None):
+         eyes='brown', subdiv=1, skin_tone=None, hair_tone=None):
     """A human (basemesh, armature). Macro values are MakeHuman's 0..1 sliders.
     `skin_tone` (an sRGB color) multiplies the skin texture: the catalog's
     'skin' color, so a unit keeps its original's skin color."""
@@ -43,6 +43,8 @@ def body(gender=1.0, age=0.5, muscle=0.75, weight=0.55, height=0.55, proportions
     HumanService.set_character_skin(_asset('skins', skin, 'mhmat'), basemesh, skin_type='ENHANCED_SSS')
     if skin_tone:
         tone_skin(basemesh, skin_tone)
+    if hair_tone and hair:
+        hair_color(basemesh, hair_tone)
     for kind, name in (('eyebrows', eyebrows), ('eyelashes', 'eyelashes01'), ('eyes', 'high-poly'), ('hair', hair)):
         if name:
             try:
@@ -56,7 +58,7 @@ def body(gender=1.0, age=0.5, muscle=0.75, weight=0.55, height=0.55, proportions
     return basemesh, arm
 
 
-def tone_skin(basemesh, color, strength=1.0):
+def tone_skin(basemesh, color, strength=1.0, texture='diffuse'):
     """Multiplies the skin's diffuse texture (in MPFB's skin node group, which
     every body material shares) by `color` (sRGB), normalized so the
     texture's average lands on `color`."""
@@ -71,7 +73,7 @@ def tone_skin(basemesh, color, strength=1.0):
         for node in list(tree.nodes):
             if node.type == 'GROUP':
                 visit(node.node_tree)
-            if node.type != 'TEX_IMAGE' or not node.image or 'diffuse' not in node.image.name.lower():
+            if node.type != 'TEX_IMAGE' or not node.image or texture not in node.image.name.lower():
                 continue
             links = [l for l in tree.links if l.from_node == node and l.from_socket.name == 'Color']
             mul = tree.nodes.new('ShaderNodeMix')
@@ -87,6 +89,13 @@ def tone_skin(basemesh, color, strength=1.0):
     for slot in basemesh.material_slots:
         if slot.material and slot.material.use_nodes:
             visit(slot.material.node_tree)
+
+
+def hair_color(basemesh, color):
+    """Tones the hair asset (a child of the body) toward `color` (sRGB)."""
+    for child in basemesh.children:
+        if 'hair' in child.name.lower() or any('hair' in (s.material.name.lower() if s.material else '') for s in child.material_slots):
+            tone_skin(child, color, texture='')
 
 
 # ------------------------------------------------------------ posing

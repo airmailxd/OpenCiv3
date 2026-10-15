@@ -120,8 +120,8 @@ def write_unit(unit, folder, calibration, out_dir, desat=1.0, margin=2):
         T = min(t, y0 // SCALE)
         R = max(r, -(-x1 // SCALE))
         Bm = max(b, -(-y1 // SCALE))
-        L, T = max(0, L), max(0, T)
-        R, Bm = min(CANVAS, R), min(CANVAS, Bm)
+        L, T = int(max(0, L)), int(max(0, T))
+        R, Bm = int(min(CANVAS, R)), int(min(CANVAS, Bm))
         if (L, T, R, Bm) != (l, t, r, b):
             grown.append(name)
         w, h = R - L, Bm - T

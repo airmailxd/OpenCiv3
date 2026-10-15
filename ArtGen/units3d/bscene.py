@@ -47,11 +47,11 @@ def facing_deg(row):
 
 class Look:
     """The lighting shared by every unit (one look for the whole set)."""
-    key = 3.2           # sun strengths (W/m^2)
-    fill = 0.55
-    rim = 0.9
+    key = 4.6           # sun strengths (W/m^2): a strong NW key and deep
+    fill = 0.30         # shading on the southeast side, like Civ3's units
+    rim = 0.7
     sky = (0.60, 0.64, 0.70)
-    sky_strength = 0.55
+    sky_strength = 0.32
     samples = 96
     exposure = 0.0
 
