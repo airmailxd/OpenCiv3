@@ -344,8 +344,8 @@ def _castle(p, hull, y0, y1, h):
     return max(zs)
 
 
-CARAVEL_COLORS = {'wood': '#74502e', 'wood_alt': '#5e4024', 'wood_dark': '#2a1e14', 'wood_light': '#8e7050',
-                  'deck': '#7a5e3c', 'rail': '#2e2014', 'sail': '#d8ccae', 'cordage': '#2b2118'}
+CARAVEL_COLORS = {'wood': '#5a3c22', 'wood_alt': '#4a301c', 'wood_dark': '#2a1e14', 'wood_light': '#a07c48',
+                  'deck': '#7a5e3c', 'rail': '#2e2014', 'sail': '#d2c3a0', 'cordage': '#2b2118'}
 
 
 def caravel(colors, rig_h=1.45, rig_w=1.75):
@@ -357,11 +357,13 @@ def caravel(colors, rig_h=1.45, rig_w=1.75):
     c.update(colors)
     root = vkit.root('Caravel')
     p = vkit.part(root, 'hull', c, SHIP_WEAR)
-    hull = Hull(L=2.5, B=0.66, D=0.2, draft=0.14, sheer_stern=0.3, sheer_bow=0.3, bow_p=1.3, stern_p=2.0,
-                transom=0.4, rake_bow=0.3, fullness=1.0, tumblehome=0.2)
-    add_hull(p, hull, stripes=[(-0.03, 0.03, 'hull_grime'), (0.03, 0.05, 'wood_light'), (0.12, 0.145, 'wood_light'),
-                               (0.22, 0.25, 'wood_dark')])
-    _castle(p, hull, -1.25, -0.68, 0.2)
+    hull = Hull(L=2.5, B=0.66, D=0.2, draft=0.14, sheer_stern=0.3, sheer_bow=0.3, bow_p=1.3, stern_p=1.7,
+                transom=0.25, rake_bow=0.3, fullness=1.0, tumblehome=0.2)
+    # waterline grime and light wales give the hull its lines at 1x
+    add_hull(p, hull, stripes=[(-0.03, 0.035, 'hull_grime'), (0.06, 0.08, 'wood_light'), (0.15, 0.17, 'wood_light'),
+                               (0.3, 0.32, 'wood_light')])
+    _castle(p, hull, -1.25, -0.6, 0.16)
+    _castle(p, hull, -1.25, -0.92, 0.3)      # stepped: a poop deck above the sterncastle
     _castle(p, hull, 0.78, 1.08, 0.08)       # a low forecastle
     vkit.rod(p, (0, 1.12, 0.36), (0, 1.62, 0.52), 0.022, 'wood_dark', seg=8)          # bowsprit
 
@@ -375,14 +377,14 @@ def caravel(colors, rig_h=1.45, rig_w=1.75):
     z = deck(0.52) + (0.5 - deck(0.52)) * rig_h
     h, w = 0.4 * rig_h, 0.72 * rig_w
     mast(0.52, z + h + 0.12, 0.026)
-    sail(p, 0.54, z + h, w * 0.92, w, h, 'disc_cross', billow=0.14, seed=4)
+    sail(p, 0.54, z + h, w * 0.92, w, h, 'disc_cross', billow=0.22, seed=4)
     # mainmast: a course with the cross and a topsail, a pennant at the top
     z = deck(0.0) + (0.48 - deck(0.0)) * rig_h
     h1, w1 = 0.6 * rig_h, 1.15 * rig_w
     h2, w2 = 0.3 * rig_h, 0.66 * rig_w
     top = z + h1 + 0.025 * rig_h + h2 + 0.16
     mast(0.0, top, 0.032)
-    sail(p, 0.02, z + h1, w1 * 0.92, w1, h1, 'disc_cross', billow=0.15, seed=2)
+    sail(p, 0.02, z + h1, w1 * 0.92, w1, h1, 'disc_cross', billow=0.24, seed=2)
     sail(p, 0.02, z + h1 + 0.025 * rig_h + h2, w2 * 0.92, w2, h2, None, billow=0.09, seed=3, patches=2)
     pennant(p, (0, 0.0, top), 0.42, 0.1)
     # mizzen: a lateen sail with the cross
