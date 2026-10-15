@@ -80,6 +80,11 @@ def dress(entry, mesh, arm):
             zmax = max(zmax, 1.56)
         G.shell(mesh, arm, 'Top', bones, _mat(entry, 'top', G.cloth, weave=0.6), zmin=0.9, zmax=zmax, offset=0.008,
                 thickness=0.004, keep=keep)
+        if top == 'sleeved' and (entry.get('puffy') or entry.get('wide_sleeves')):
+            # puffed (Renaissance) or wide (kimono, robe) sleeves over the arms
+            G.shell(mesh, arm, 'Sleeves', ['upperarm_l', 'upperarm_r'] + (['lowerarm_l', 'lowerarm_r'] if entry.get('wide_sleeves') else []),
+                    _mat(entry, 'sleeves' if 'sleeves' in entry.get('tint', []) or 'sleeves' in c else 'top', G.cloth, weave=0.6),
+                    zmin=0.85, zmax=zmax, offset=0.035 if entry.get('wide_sleeves') else 0.026, thickness=0.004)
         if entry.get('collar') == 'mail':
             # a mail collar (coif's lower part) around the neck and over the shoulders
             G.shell(mesh, arm, 'Collar', ['neck_01', 'clavicle_l', 'clavicle_r', 'spine_03'],
@@ -94,9 +99,12 @@ def dress(entry, mesh, arm):
                 flare=1.12 + 0.3 * entry.get('robe', 0.0), folds=0.08, drop=entry.get('robe', 0.0))
     elif bottom == 'loincloth':
         pass    # flaps from the belt, after posing (dress_posed)
-    elif bottom == 'long':
-        G.shell(mesh, arm, 'Bottom', ['pelvis', 'thigh_l', 'thigh_r', 'calf_l', 'calf_r'], _mat(entry, 'bottom', G.cloth),
-                zmin=0.1, zmax=1.0, offset=0.008, thickness=0.004)
+    elif bottom in ('long', 'breeches'):
+        # trousers to the ankle, or breeches to below the knee (puffed with 'puffy')
+        puff = 0.022 if entry.get('puffy') else 0.008
+        G.shell(mesh, arm, 'Bottom', ['pelvis', 'thigh_l', 'thigh_r', 'calf_l', 'calf_r'],
+                _mat(entry, 'bottom', G.cloth, weave=0.6), zmin=0.1 if bottom == 'long' else 0.42, zmax=1.0,
+                offset=puff, thickness=0.004)
     # belt
     for g in entry.get('gear', []):
         name = g[0] if isinstance(g, (list, tuple)) else g
