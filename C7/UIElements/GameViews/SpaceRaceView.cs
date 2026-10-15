@@ -33,8 +33,14 @@ public partial class SpaceRaceView : Control {
 		sheet.AddThemeStyleboxOverride("panel", new StyleBoxFlat {
 			BgColor = new Color(0.96f, 0.93f, 0.84f, 0.93f),
 			BorderColor = new Color(0.35f, 0.27f, 0.18f),
-			BorderWidthLeft = 1, BorderWidthTop = 1, BorderWidthRight = 1, BorderWidthBottom = 1,
-			ContentMarginLeft = 14, ContentMarginTop = 10, ContentMarginRight = 14, ContentMarginBottom = 10,
+			BorderWidthLeft = 1,
+			BorderWidthTop = 1,
+			BorderWidthRight = 1,
+			BorderWidthBottom = 1,
+			ContentMarginLeft = 14,
+			ContentMarginTop = 10,
+			ContentMarginRight = 14,
+			ContentMarginBottom = 10,
 		});
 		_status = new Label {
 			CustomMinimumSize = new Vector2(480, 0),

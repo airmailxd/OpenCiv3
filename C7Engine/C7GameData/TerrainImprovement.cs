@@ -15,6 +15,7 @@ namespace C7GameData {
 			Pollution,
 			Craters,
 			Fallout, // nuclear fallout
+
 			// A colony, which can share its tile with a fortress: a Civ3 save
 			// (Conquests) has a tile with both.
 			Colonies,

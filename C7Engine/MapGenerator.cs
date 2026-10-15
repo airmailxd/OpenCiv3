@@ -2378,7 +2378,7 @@ namespace C7Engine {
 					Tile t = null;
 					double bestValue = 0;
 					int bestIsland = 0;
-					for (bool searched = false; !searched; ) {
+					for (bool searched = false; !searched;) {
 						searched = true;
 						foreach (Tile candidate in orderedTiles) {
 							// The tiles are in score order, so none after this
