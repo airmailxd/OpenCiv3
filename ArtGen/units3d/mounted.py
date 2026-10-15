@@ -235,7 +235,7 @@ def _coat_material(h):
     nt = m.node_tree
     N, L = nt.nodes, nt.links
     p = N['Principled BSDF']
-    p.inputs['Roughness'].default_value = 0.55
+    p.inputs['Roughness'].default_value = 0.42   # a short, glossy coat
     p.inputs['Specular IOR Level'].default_value = SPECULAR   # as bscene.material's dielectrics
     tex = N.new('ShaderNodeTexImage')
     tex.image = _image('HorseMain4k00.png')
@@ -247,7 +247,7 @@ def _coat_material(h):
     nrm.image = _image('HorseMain4k00Norm00')
     nrm.image.colorspace_settings.name = 'Non-Color'
     nm = N.new('ShaderNodeNormalMap')
-    nm.inputs['Strength'].default_value = 1.3
+    nm.inputs['Strength'].default_value = 0.7
     L.new(nrm.outputs['Color'], nm.inputs['Color'])
     L.new(nm.outputs['Normal'], p.inputs['Normal'])
 
@@ -279,7 +279,7 @@ def _coat_material(h):
     bw = N.new('ShaderNodeRGBToBW')
     L.new(tex.outputs['Color'], bw.inputs['Color'])
     # (a little extra contrast in the painted muscle shading: from 0.6x..1.4x the typical luminance to 0.4..1.6)
-    detail = maprange(bw.outputs['Val'], 0.6 * COAT_LUM, 1.4 * COAT_LUM, 0.4, 1.6)
+    detail = maprange(bw.outputs['Val'], 0.4 * COAT_LUM, 1.6 * COAT_LUM, 0.7, 1.3)
     clamp = N.new('ShaderNodeClamp')
     clamp.inputs['Min'].default_value = 0.2
     clamp.inputs['Max'].default_value = 1.8
@@ -795,7 +795,9 @@ def mount(unit, h):
     for k in ('coat', 'mane', 'points', 'muzzle'):
         if h.get(k):
             c[k] = h[k]
-    c.update(HORSE_COAT_OVERRIDES.get(unit, {}))
+    over = HORSE_COAT_OVERRIDES.get(unit, {})
+    c.update({k: v for k, v in over.items() if k in c})
+    h = dict(h, **{k: v for k, v in over.items() if k in ('dapple', 'coat2')})
     root = vkit.root(unit)
     body = horse_asset(root, dict(h, **c))
     seat = asset_tack(root, body, c, h)
@@ -805,7 +807,21 @@ def mount(unit, h):
 
 
 # The Horseman's coat as reviewed (a warm bay); the other catalog coats are used as they are.
-HORSE_COAT_OVERRIDES = {'Horseman': {'coat': '#8a5430', 'mane': '#140e0a', 'points': '#1e1610'}}
+HORSE_COAT_OVERRIDES = {
+    # coats read from the Civ3 originals (the old catalog's were tuned for the old renderer)
+    'Horseman': {'coat': '#8a5430', 'mane': '#140e0a', 'points': '#1e1610'},
+    'Mounted Warrior': {'coat': '#b08a58', 'coat2': '#ddd5c4', 'mane': '#3a2e22', 'points': '#c8bca8'},
+    'Ancient Cavalry': {'coat': '#a88a5e', 'mane': '#2a2018', 'points': '#2e2418'},
+    'Rider': {'coat': '#c8c8c4', 'dapple': '#9a9a98', 'mane': '#e0ded8', 'points': '#8a8a88'},
+    'Knight': {'coat': '#9a9a98', 'mane': '#3a3836', 'points': '#4a4846'},
+    'Keshik': {'coat': '#7a4826', 'mane': '#1a120c', 'points': '#20160e'},
+    'Sipahi': {'coat': '#6a4428', 'mane': '#e8e4dc', 'points': '#2a1c12'},
+    'Conquistador': {'coat': '#a0a0a2', 'dapple': '#5c5c60', 'mane': '#2a2826', 'points': '#3a3836'},
+    'Cossack': {'coat': '#4a4a4e', 'mane': '#141416', 'points': '#1a1a1c'},
+    'Hussar': {'coat': '#8a6038', 'mane': '#1a120c', 'points': '#20160e'},
+    'Cavalry': {'coat': '#c8a060', 'mane': '#e8dcb8', 'points': '#a88850'},
+    'Ansar Warrior': {'coat': '#2e2e32', 'mane': '#121214', 'points': '#1c1c1e'},
+}
 
 BUILDERS = {'Horseman': horseman}
 

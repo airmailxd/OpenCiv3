@@ -65,6 +65,12 @@ REMASTER = {
         'grime': 0.7, 'upper_bulk': 1.25,
     },
     # ---- riders (the PC session's units: mounted.py seats them on their horses)
+    'Ancient Cavalry': {'top': 'sleeved', 'tint': ['top', 'crest', 'shield_face', 'shield_emblem']},
+    'Knight': {'top': 'sleeved', 'cuirass': True, 'metal': ['helmet', 'cuirass'],
+               'colors': {'cuirass': '#9a9ca2', 'mail': '#7a7c80'}},
+    'Cossack': {'tint': ['top', 'hat', 'belt'], 'headgear_scale': [0.95, 0.95, 0.9]},
+    'Keshik': {'tint': ['top', 'hat']},
+    'Conquistador': {'tint': ['top'], 'metal': ['cuirass'], 'colors': {'cuirass': '#a8aab0'}},
     'Horseman': {
         # Civ3's Horseman: civ-colored tunic, covered arms and legs, boots, an iron cap
         'top': 'sleeved',

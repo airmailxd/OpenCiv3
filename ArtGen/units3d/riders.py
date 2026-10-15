@@ -19,6 +19,16 @@ from props import R, T, S
 HEADGEAR = {}
 
 
+def _calm(hexcol, sat):
+    """A hex color with its saturation scaled by `sat`."""
+    import colorsys
+    h = hexcol.lstrip('#')
+    r, g, b = (int(h[i:i + 2], 16) / 255 for i in (0, 2, 4))
+    hh, ll, ss = colorsys.rgb_to_hls(r, g, b)
+    r, g, b = colorsys.hls_to_rgb(hh, ll, ss * sat)
+    return '#%02x%02x%02x' % (round(r * 255), round(g * 255), round(b * 255))
+
+
 def hat(name):
     def deco(fn):
         HEADGEAR[name] = fn
@@ -44,6 +54,8 @@ def translate(r):
     if e.get('sleeves') == 'mail':
         e['collar'] = 'mail'
         c.setdefault('mail', '#6e7074')
+    if c.get('skin'):
+        c['skin'] = _calm(c['skin'], 0.7)   # bare skin read orange in the renders
     e['colors'] = c
     e['tint'] = tint
     e['_headgear'] = e.pop('headgear', None)
@@ -65,6 +77,8 @@ def headgear(entry, arm):
     obj = p.finish()
     s = entry.get('headgear_scale', 1.0)
     sx, sy, sz = (s, s, s) if isinstance(s, (int, float)) else s
+    k = 1.2   # a little larger than life, so the headgear keeps its silhouette at 1x
+    sx, sy, sz = sx * k, sy * k, sz * k
     # the head bone points up the head; its tail is near the crown. Hat +Z -> bone +Y
     H.attach(obj, arm, 'head', Matrix.Translation((0, -0.04, 0.012)) @ R('X', -90) @ S(sx, sy, sz))
     return obj
