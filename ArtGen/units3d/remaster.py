@@ -60,6 +60,21 @@ REMASTER = {
         'tint': ['top', 'shield_emblem'],
         'grime': 0.7, 'upper_bulk': 1.25,
     },
+    # ---- riders (the PC session's units: mounted.py seats them on their horses)
+    'Horseman': {
+        # Civ3's Horseman: civ-colored tunic, covered arms and legs, boots, an iron cap
+        'top': 'sleeved',
+        'bottom': 'long',
+        'wraps': 'boots',
+        'neck': 'high', 'collar': 'mail',   # covered to the neck, a ring-mail collar as Civ3's grey shoulders
+        'colors': {'skin': '#8e6448', 'bottom': '#4e4a44', 'boots': '#3a2a1c', 'belt': '#3a2818', 'helmet': '#8a8c90',
+                   'steel': '#c8ccd0', 'mail': '#6e7074'},
+        # sitting tall in the saddle, chest out (the riding stance leans a little forward)
+        'pose_extra': [('spine_02', (0, 0.06, 1)), ('spine_03', (0, 0.05, 1)), ('neck_01', (0, 0.0, 1))],
+        'macro': {'muscle': 1.0, 'weight': 0.85, 'proportions': 0.7},
+        'upper_bulk': 1.2,
+        'grime': 0.6,
+    },
 }
 
 

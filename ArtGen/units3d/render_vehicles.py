@@ -39,7 +39,8 @@ def build(unit):
     if unit in SHIPS:
         return ships.build(unit)
     if unit in mounted.BUILDERS:
-        return mounted.build(unit)
+        catalog = json.load(open(os.path.join(HERE, '..', '_previews', 'units3d', 'catalog.json'), encoding='utf-8'))
+        return mounted.build(unit, entry=catalog.get(unit), rider=True)
     return siege.build(unit)
 
 

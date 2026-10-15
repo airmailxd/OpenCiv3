@@ -441,7 +441,8 @@ class Prop:
         self.mats = []
 
     def mat(self, key, tint=False):
-        return material(key, self.colors, tint, None if tint else self.weather.get(key))
+        # a model's wear for its civ-colored parts is under the key 'tint'
+        return material(key, self.colors, tint, self.weather.get('tint') if tint else self.weather.get(key))
 
     def _index(self, key, tint):
         m = self.mat(key, tint)
@@ -535,17 +536,18 @@ def stone_axe(p, length=0.52, scale=1.0):
         p.add(tube(strap, 0.006, seg=6), 'rope', smooth=True)
 
 
-def spear(p, length=2.3, grip=0.95, butt=True, scale=1.0):
+def spear(p, length=2.3, grip=0.95, butt=True, scale=1.0, shaft=None, head=1.0):
     """A long ash spear held `grip` m from its butt: a leaf-shaped iron head on
     a socket, a leather grip binding and an optional butt spike."""
     z0, z1 = -grip, length - grip
     # the shaft is kept at least SHAFT_R thick so it stays ~1 px wide at 1x
-    p.add(tube([(0, 0, z0 + 0.06), (0, 0, z1 - 0.2)], [SHAFT_R + 0.002, SHAFT_R], seg=10), 'wood', bevel=0.002,
+    r = shaft or SHAFT_R
+    p.add(tube([(0, 0, z0 + 0.06), (0, 0, z1 - 0.2)], [r + 0.002, r], seg=10), 'wood', bevel=0.002,
           smooth=True)
     # leaf head: a lathe flattened across Y with a raised midrib (diamond section)
     prof = [(0.0, 0.022), (0.06, 0.026), (0.12, 0.048), (0.2, 0.043), (0.27, 0.02), (0.33, 0.0)]
-    head = lathe(prof, seg=4, scale_xy=(1.0, 0.3))
-    p.add(head, 'steel', T(0, 0, z1 - 0.33) @ R('Z', 90), bevel=0.0015)
+    head_m = lathe(prof, seg=4, scale_xy=(1.0, 0.3))
+    p.add(head_m, 'steel', T(0, 0, z1 - 0.33 * head) @ R('Z', 90) @ S(head), bevel=0.0015)
     # socket with a collar ring
     p.add(lathe([(0.0, 0.025), (0.1, 0.023), (0.11, 0.022)], seg=12), 'steel', T(0, 0, z1 - 0.33), smooth=True)
     p.add(lathe([(0.0, 0.027), (0.012, 0.027)], seg=12), 'steel', T(0, 0, z1 - 0.34), bevel=0.002, smooth=True)
@@ -555,6 +557,12 @@ def spear(p, length=2.3, grip=0.95, butt=True, scale=1.0):
     if butt:
         p.add(lathe([(0.0, 0.0005), (0.07, 0.022), (0.1, 0.024)], seg=10), 'steel', T(0, 0, z0 - 0.04),
               smooth=True)
+
+
+def cav_spear(p, length=2.7, grip=1.15, butt=True, scale=1.0):
+    """A horseman's long spear, held further back than a footman's: a stout
+    shaft and a broad head so it reads from the saddle at 1x."""
+    spear(p, length=length, grip=grip, butt=butt, scale=scale, shaft=0.032, head=1.5)
 
 
 def sword(p, length=0.82, width=0.085, guard=0.2, blade='steel', scale=1.0):
@@ -789,6 +797,7 @@ def backpack(p, size=1.0):
 BUILDERS = {
     'stone_axe': stone_axe,
     'spear': spear,
+    'cav_spear': cav_spear,
     'sword': sword,
     'bow': bow,
     'bold_bow': bow,

@@ -188,7 +188,7 @@ def _skin_body(name):
 HORSE_URL = 'https://opengameart.org/sites/default/files/riggedHorse.blend'
 HORSE_SHA256 = '9cca670b93a74d50e89263e50d55ab035a6c46aa7d2b21e354bdac6987037f4a'
 HORSE_OBJECTS = ['Plane', 'Armature', 'BezierCurve', 'BezierCurve.005', 'Sphere', 'Sphere.002']
-HORSE_HEIGHT = 2.05      # ground to ear tips, meters (a heavy war horse, about 16.2 hands at the withers)
+HORSE_HEIGHT = 2.08      # ground to ear tips, meters (a big war horse, about 16.3 hands at the withers)
 
 
 def _horse_blend():
@@ -213,10 +213,20 @@ def _image(name):
     return None
 
 
-def _coat_material(colors):
-    """The horse's own painted texture (color, AO, normal map), turned into a
-    bay: the coat's value and warmth from the catalog, legs below the knee and
-    hock darkened to black points, muzzle darker, plus the shared weathering."""
+def _lin(hexcol):
+    import bscene
+    return (*bscene.srgb_to_linear(bscene.hex_color(hexcol)), 1.0)
+
+
+COAT_LUM = 0.42   # the asset texture's typical linear luminance (its median is ~0.45)
+
+
+def _coat_material(h):
+    """The horse's own painted texture (AO, normal map, and its brightness as
+    detail) recolored to the catalog's coat: coat color x (texture luminance /
+    COAT_LUM), so the painted muscle shading, hair direction and wear stay
+    while the color is the unit's. Legs below the knee and hock go to the
+    'points' color, the muzzle darker, and road dirt darkens toward the ground."""
     m = bpy.data.materials.new('horse_coat')
     m.use_nodes = True
     nt = m.node_tree
@@ -233,46 +243,68 @@ def _coat_material(colors):
     nrm.image = _image('HorseMain4k00Norm00')
     nrm.image.colorspace_settings.name = 'Non-Color'
     nm = N.new('ShaderNodeNormalMap')
-    nm.inputs['Strength'].default_value = 0.8
+    nm.inputs['Strength'].default_value = 1.3
     L.new(nrm.outputs['Color'], nm.inputs['Color'])
     L.new(nm.outputs['Normal'], p.inputs['Normal'])
-    # chestnut -> bay: a little darker and less red
-    hsv = N.new('ShaderNodeHueSaturation')
-    hsv.inputs['Hue'].default_value = 0.505        # a touch warmer
-    hsv.inputs['Saturation'].default_value = 1.25   # keeps reading as a bay when small
-    hsv.inputs['Value'].default_value = 0.95
-    L.new(tex.outputs['Color'], hsv.inputs['Color'])
-    mul = N.new('ShaderNodeMix')
-    mul.data_type = 'RGBA'
-    mul.blend_type = 'MULTIPLY'
-    mul.inputs['Factor'].default_value = 0.8
-    L.new(hsv.outputs['Color'], mul.inputs['A'])
-    L.new(ao.outputs['Color'], mul.inputs['B'])
-    # black points: legs darken toward the hooves (object-space height, set by horse_asset)
+
+    def mix(a, b, fac, blend='MIX'):
+        n = N.new('ShaderNodeMix')
+        n.data_type = 'RGBA'
+        n.blend_type = blend
+        for sock, v in (('A', a), ('B', b)):
+            if isinstance(v, tuple):
+                n.inputs[sock].default_value = v
+            else:
+                L.new(v, n.inputs[sock])
+        if isinstance(fac, (int, float)):
+            n.inputs['Factor'].default_value = fac
+        else:
+            L.new(fac, n.inputs['Factor'])
+        return n.outputs['Result']
+
+    def maprange(src_, f0, f1, t0, t1):
+        r = N.new('ShaderNodeMapRange')
+        r.inputs['From Min'].default_value = f0
+        r.inputs['From Max'].default_value = f1
+        r.inputs['To Min'].default_value = t0
+        r.inputs['To Max'].default_value = t1
+        L.new(src_, r.inputs['Value'])
+        return r.outputs['Result']
+
+    # detail: the texture's luminance relative to its typical value, as a gray
+    bw = N.new('ShaderNodeRGBToBW')
+    L.new(tex.outputs['Color'], bw.inputs['Color'])
+    # (a little extra contrast in the painted muscle shading: from 0.6x..1.4x the typical luminance to 0.4..1.6)
+    detail = maprange(bw.outputs['Val'], 0.6 * COAT_LUM, 1.4 * COAT_LUM, 0.4, 1.6)
+    clamp = N.new('ShaderNodeClamp')
+    clamp.inputs['Min'].default_value = 0.2
+    clamp.inputs['Max'].default_value = 1.8
+    L.new(detail, clamp.inputs['Value'])
+    gray = N.new('ShaderNodeCombineColor')
+    for ch in ('Red', 'Green', 'Blue'):
+        L.new(clamp.outputs['Result'], gray.inputs[ch])
+    coat = mix(_lin(h.get('coat', '#7a4526')), gray.outputs['Color'], 1.0, 'MULTIPLY')
+    coat = mix(coat, ao.outputs['Color'], 0.4, 'MULTIPLY')
+    # points: legs darken toward the hooves (world height; the horse stands on z = 0)
     geo = N.new('ShaderNodeNewGeometry')
     sep = N.new('ShaderNodeSeparateXYZ')
     L.new(geo.outputs['Position'], sep.inputs['Vector'])
-    ramp = N.new('ShaderNodeMapRange')
-    ramp.inputs['From Min'].default_value = 0.42
-    ramp.inputs['From Max'].default_value = 0.62
-    ramp.inputs['To Min'].default_value = 1.0
-    ramp.inputs['To Max'].default_value = 0.0
-    L.new(sep.outputs['Z'], ramp.inputs['Value'])
-    pts = N.new('ShaderNodeMix')
-    pts.data_type = 'RGBA'
-    pts.blend_type = 'MIX'
-    pts.inputs['B'].default_value = (0.03, 0.022, 0.016, 1.0)
-    L.new(ramp.outputs['Result'], pts.inputs['Factor'])
-    L.new(mul.outputs['Result'], pts.inputs['A'])
-    L.new(pts.outputs['Result'], p.inputs['Base Color'])
+    pts_col = mix(_lin(h.get('points', '#1e1610')), gray.outputs['Color'], 0.35, 'MULTIPLY')
+    coat = mix(coat, pts_col, maprange(sep.outputs['Z'], 0.5, 0.58, 1.0, 0.0))   # a hard boundary at the knee/hock
+    # road dirt: darker toward the ground, on the legs and the belly
+    dark = N.new('ShaderNodeHueSaturation')
+    L.new(coat, dark.inputs['Color'])
+    L.new(maprange(sep.outputs['Z'], 0.2, 1.15, 0.8, 1.05), dark.inputs['Value'])
+    L.new(dark.outputs['Color'], p.inputs['Base Color'])
     aov = N.new('ShaderNodeOutputAOV')
     aov.aov_name = 'tint'
     aov.inputs['Value'].default_value = 0.0
     return m
 
 
-def _hair_material():
-    """Mane and tail cards: the asset's hair texture with its alpha, darkened to a bay's black mane."""
+def _hair_material(h):
+    """Mane and tail cards: the catalog's mane color carrying the asset hair
+    texture's strand detail (its brightness) and its alpha."""
     m = bpy.data.materials.new('horse_hair')
     m.use_nodes = True
     nt = m.node_tree
@@ -282,8 +314,6 @@ def _hair_material():
     tex = N.new('ShaderNodeTexImage')
     tex.image = _image('Hair12Main2k.png')
     tex.image.colorspace_settings.name = 'sRGB'
-    # a bay's black mane and tail: a near-black color carrying only the
-    # texture's strand detail (its brightness) and its alpha
     bw = N.new('ShaderNodeRGBToBW')
     L.new(tex.outputs['Color'], bw.inputs['Color'])
     k = N.new('ShaderNodeMapRange')
@@ -294,7 +324,7 @@ def _hair_material():
     tone.data_type = 'RGBA'
     tone.blend_type = 'MULTIPLY'
     tone.inputs['Factor'].default_value = 1.0
-    tone.inputs['A'].default_value = (0.022, 0.015, 0.01, 1.0)
+    tone.inputs['A'].default_value = _lin(h.get('mane', '#140e0a'))
     comb = N.new('ShaderNodeCombineColor')
     for ch in ('Red', 'Green', 'Blue'):
         L.new(k.outputs['Result'], comb.inputs[ch])
@@ -330,7 +360,7 @@ def _raise_head(objs, degrees):
     bpy.context.view_layer.update()
 
 
-def horse_asset(root, colors, neck_raise=-28.0):
+def horse_asset(root, colors, neck_raise=-38.0):
     """Append the CC0 horse under `root`, facing +Y, standing on z = 0,
     HORSE_HEIGHT tall, with rebuilt materials. Returns the body object."""
     path = _horse_blend()
@@ -363,7 +393,7 @@ def horse_asset(root, colors, neck_raise=-28.0):
     holder.location = (xc * s, yc * s, -zmin * s)
     _raise_head(objs, neck_raise)
     coat = _coat_material(colors)
-    hair = _hair_material()
+    hair = _hair_material(colors)
     eye = bpy.data.materials.new('horse_eye')
     eye.use_nodes = True
     eye.node_tree.nodes['Principled BSDF'].inputs['Base Color'].default_value = (0.01, 0.008, 0.006, 1)
@@ -442,7 +472,7 @@ def tack(root, colors):
     return seat
 
 
-HORSE_COLORS = {'coat': '#6a3e1e', 'mane': '#1a120c', 'points': '#221810', 'muzzle': '#30221a', 'leather': '#3e2a1a'}
+HORSE_COLORS = {'coat': '#9c5a30', 'mane': '#140e0a', 'points': '#1e1610', 'muzzle': '#30221a', 'leather': '#3e2a1a'}
 
 
 def horseman(colors, procedural=False, with_tack=True):
@@ -513,21 +543,67 @@ def _head_ring(verts, a, b, t, grow=0.012):
     return pts + [pts[0]]
 
 
+def _sections(vs, ys, zmin=0.85, window=0.1):
+    """Body cross-sections at each y: (half-width, top z, belly z, center z) of
+    the horse's barrel (vertices above zmin, so the legs don't count)."""
+    out = []
+    for y in ys:
+        # the widest the barrel gets near this station, so the cloth clears it between stations
+        sl = [v for v in vs if abs(v.y - y) < window and v.z > zmin]
+        if not sl:
+            out.append(None)
+            continue
+        w = max(abs(v.x) for v in sl)
+        top = max(v.z for v in sl)
+        mid = [v for v in sl if abs(v.x) < 0.12]
+        belly = min(v.z for v in mid) if mid else zmin
+        out.append((w, top, belly, 0.5 * (top + belly)))
+    return out
+
+
+def drape(vs, y0, y1, hem, n=14, k=24, gap=0.035, flare=0.06):
+    """A cloth hanging over the horse's back from y0 to y1: each section an
+    arc over the body (its measured half-width and top, `gap` off it) down to
+    the widest point, then falling straight to the hem height (a number or a
+    function of y), flaring out a little. Returns a bmesh."""
+    ys = [y0 + (y1 - y0) * j / n for j in range(n + 1)]
+    secs = _sections(vs, ys)
+    rings = []
+    for y, sec in zip(ys, secs):
+        if sec is None:
+            continue
+        w, top, belly, zc = sec
+        zh = hem(y) if callable(hem) else hem
+        hh = top - zc
+        ring = [(-(w + gap + flare), y, zh)]
+        for i in range(k + 1):
+            a = math.pi * (1 - i / k)          # from the left side over the top to the right
+            ring.append(((w + gap) * math.cos(a), y, zc + (hh + gap) * math.sin(a)))
+        ring.append(((w + gap + flare), y, zh))
+        rings.append(ring)
+    return props.loft(rings, False, False), rings
+
+
 def asset_tack(root, body, colors):
     """Civ3's tack on the asset horse: a civ-colored saddle cloth draped over
     the back (shrink-wrapped to it), a leather saddle with pommel and cantle,
     a civ-colored bridle (noseband and crownpiece) and reins. Returns the seat
     point for the rider empty."""
-    p = vkit.part(root, 'tack', colors, {'leather': {'grime': 0.5}})
+    p = vkit.part(root, 'tack', colors, {'leather': {'grime': 0.6, 'soot': 0.2}, 'tint': {'grime': 0.6, 'soot': 0.3}})
     vs = _world_verts(body)
     feet = [v for v in vs if v.z < 0.15]
     yf = max(v.y for v in feet)                  # the front hooves
     yh = min(v.y for v in feet)                  # the hind hooves
     ys = yh + 0.6 * (yf - yh)                    # the saddle sits just behind the withers
     top = max(v.z for v in vs if abs(v.y - ys) < 0.08 and abs(v.x) < 0.1)
-    xs = [-0.78 + 1.56 * i / 26 for i in range(27)]   # well down the flanks, as Civ3's cloth hangs
-    cloth = _shrink_patch('cloth', body, xs, [ys - 0.4 + 0.74 * j / 14 for j in range(15)], top, 0.012)
+    # the saddle cloth hangs over the back and down the flanks to below the barrel's middle
+    sec = _sections(vs, [ys])[0]
+    hem = sec[2] + 0.55 * (sec[3] - sec[2])
+    cloth, rings = drape(vs, ys - 0.36, ys + 0.3, hem)
     p.add(cloth, 'tint', smooth=True, tint=True)
+    # a dark hem: along both bottom edges and the front and back edges
+    for edge in ([r[0] for r in rings], [r[-1] for r in rings], rings[0], rings[-1]):
+        p.add(props.tube(edge, 0.014, seg=6), 'leather_dark', smooth=True)
     pad = _shrink_patch('saddle', body, [-0.24 + 0.48 * i / 12 for i in range(13)],
                         [ys - 0.22 + 0.42 * j / 10 for j in range(11)], top, 0.05)
     p.add(pad, 'leather', smooth=True)
@@ -537,11 +613,11 @@ def asset_tack(root, body, colors):
     arm = next(o for o in root.children_recursive if o.type == 'ARMATURE')
     hb = arm.pose.bones['Bone.002']
     a, b = arm.matrix_world @ hb.head, arm.matrix_world @ hb.tail
-    for t in (0.12, 0.72):   # crownpiece behind the ears, noseband above the nostrils
-        ring = _head_ring(vs, a, b, t)
+    for t in (0.12, 0.66):   # crownpiece behind the ears, noseband above the nostrils
+        ring = _head_ring(vs, a, b, t, grow=0.004)
         if ring:
-            p.add(props.tube(ring, 0.024, seg=8), 'tint', smooth=True, tint=True)   # ~1-2 px at 1x
-    nose = _head_ring(vs, a, b, 0.72)
+            p.add(props.tube(ring, 0.02, seg=8), 'tint', smooth=True, tint=True)
+    nose = _head_ring(vs, a, b, 0.66, grow=0.004)
     if nose:
         for side in (6, 18):   # reins from the bit rings at the noseband's sides to the pommel
             q = nose[side]
@@ -549,11 +625,54 @@ def asset_tack(root, body, colors):
                               Vector((0.06 if side == 6 else -0.06, ys + 0.25, top + 0.12))], 0.014, seg=6),
                   'leather', smooth=True)
     p.finish()
-    return (0.0, ys, top + 0.08)
+    return (0.0, ys, top + 0.03)   # sitting down into the saddle
+
+
+def seat_rider(root, unit, entry):
+    """Seat the unit's rider (the catalog entry's 'rider', with remaster.py's
+    changes) on the 'rider' empty: units.build_footman(seated=True) puts the
+    pelvis on its root's origin, so the root is parented to the empty, scaled
+    by the entry's rider_scale. Needs MPFB (see README.md)."""
+    import addon_utils
+    addon_utils.enable('bl_ext.user_default.mpfb', default_set=True)
+    import remaster
+    import units
+    import human as H
+    seat = next(o for o in root.children_recursive if o.name.startswith('rider'))
+    r_entry = remaster.apply(unit, dict(entry['rider'], archetype='footman'))
+    rroot = units.build_footman(r_entry, seated=True)
+    rroot.parent = seat
+    rroot.matrix_parent_inverse.identity()
+    k = entry.get('rider_scale', 1.0) * RIDER_SCALE
+    rroot.scale = (k, k, k)
+    bpy.context.view_layer.update()
+    # aim the weapon as Civ3's riders carry it (the riding stance holds it low across)
+    arm = next(o for o in rroot.children_recursive if o.type == 'ARMATURE')
+    weapon = r_entry.get('weapon')
+    up = RIDER_WEAPON_UP.get(weapon)
+    if up:
+        obj = next((o for o in bpy.data.objects if o.name.split('.')[0] == weapon and o.parent is not None), None)
+        if obj is not None:
+            H.hold(obj, arm, 'hand_r', H.grip_point(arm, 'hand_r'), up=up)
+            bpy.context.view_layer.update()
+    return rroot
+
+
+# The old catalog's rider_scale was tuned for the old, smaller horse.
+RIDER_SCALE = 1.22
+# How each rider weapon is carried (the weapon's +Z in the rider's space: +y forward, +z up).
+RIDER_WEAPON_UP = {
+    'cav_spear': (0.0, 0.18, 1.0),   # upright, tipped slightly forward, as Civ3's Horseman
+}
 
 
 BUILDERS = {'Horseman': horseman}
 
 
-def build(unit, colors=None, **params):
-    return BUILDERS[unit](colors or {}, **params)
+def build(unit, colors=None, entry=None, rider=False, **params):
+    """The unit's mount (and, with rider=True and its catalog entry, the
+    seated rider)."""
+    root = BUILDERS[unit](colors or {}, **params)
+    if rider and entry and entry.get('rider'):
+        seat_rider(root, unit, entry)
+    return root
