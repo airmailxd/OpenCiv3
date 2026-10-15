@@ -53,35 +53,11 @@ DEFAULTS = {
 }
 
 
-def _linear(hex_color):
-    """sRGB hex -> linear RGBA (what node color inputs expect)."""
-    h = hex_color.lstrip('#')
-    out = []
-    for i in (0, 2, 4):
-        c = int(h[i:i + 2], 16) / 255
-        out.append(c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4)
-    return (*out, 1.0)
-
-
 def _base_material(name, color, roughness, metallic, tint):
-    """bscene.material when the Mac's scene module is importable, else a plain
-    Principled material with a 'tint' AOV (only for testing props alone)."""
-    try:
-        import bscene
-        return bscene.material(name, color, roughness, metallic, tint=tint)
-    except ImportError:
-        pass
-    m = bpy.data.materials.new(name)
-    m.use_nodes = True
-    p = m.node_tree.nodes.get('Principled BSDF')
-    p.inputs['Base Color'].default_value = _linear(color)
-    p.inputs['Roughness'].default_value = roughness
-    p.inputs['Metallic'].default_value = metallic
-    if tint:
-        aov = m.node_tree.nodes.new('ShaderNodeOutputAOV')
-        aov.aov_name = 'tint'
-        aov.inputs['Value'].default_value = 1.0
-    return m
+    """bscene.material (sRGB hex color; a tinted material is rendered light
+    gray and marked in the `tint` AOV)."""
+    import bscene
+    return bscene.material(name, color, roughness, metallic, tint=tint)
 
 
 def material(key, colors, tint=False):
@@ -211,6 +187,9 @@ def _detail(m, kind, rough, tint):
 
 
 # ------------------------------------------------------------ geometry
+
+# Minimum radius of long shafts (spear, staff, shovel): about 1 px wide at 1x.
+SHAFT_R = 0.022
 
 def _frames(path):
     """Parallel-transport frames (tangent, normal, binormal) along a polyline."""
@@ -437,7 +416,7 @@ def stone_axe(p, length=0.52, scale=1.0):
     for v in head.verts:  # taper the thickness toward the edge (+Y)
         v.co.x *= max(0.12, 1.0 - 0.85 * max(0.0, v.co.y + 0.04) / 0.198)
     jitter(head, 0.0035, seed=7, cuts=1)
-    p.add(head, 'stone', T(0, 0, L - 0.07) @ S(scale), bevel=0.004)
+    p.add(head, 'stone', T(0, 0, L - 0.07) @ S(1.25 * scale), bevel=0.004)
     # lashing: crossed rawhide straps over the head and wraps on the haft
     _wrap(p, L - 0.14, L - 0.1, 0.024, 'rope')
     _wrap(p, L - 0.03, L - 0.005, 0.024, 'rope')
@@ -450,19 +429,22 @@ def spear(p, length=2.3, grip=0.95, butt=True, scale=1.0):
     """A long ash spear held `grip` m from its butt: a leaf-shaped iron head on
     a socket, a leather grip binding and an optional butt spike."""
     z0, z1 = -grip, length - grip
-    p.add(tube([(0, 0, z0 + 0.06), (0, 0, z1 - 0.2)], [0.017, 0.015], seg=10), 'wood', bevel=0.002, smooth=True)
+    # the shaft is kept at least SHAFT_R thick so it stays ~1 px wide at 1x
+    p.add(tube([(0, 0, z0 + 0.06), (0, 0, z1 - 0.2)], [SHAFT_R + 0.002, SHAFT_R], seg=10), 'wood', bevel=0.002,
+          smooth=True)
     # leaf head: a lathe flattened across Y with a raised midrib (diamond section)
-    prof = [(0.0, 0.016), (0.06, 0.02), (0.12, 0.042), (0.2, 0.038), (0.27, 0.018), (0.32, 0.0)]
-    head = lathe(prof, seg=4, scale_xy=(1.0, 0.28))
-    p.add(head, 'steel', T(0, 0, z1 - 0.32) @ R('Z', 90), bevel=0.0015)
+    prof = [(0.0, 0.022), (0.06, 0.026), (0.12, 0.048), (0.2, 0.043), (0.27, 0.02), (0.33, 0.0)]
+    head = lathe(prof, seg=4, scale_xy=(1.0, 0.3))
+    p.add(head, 'steel', T(0, 0, z1 - 0.33) @ R('Z', 90), bevel=0.0015)
     # socket with a collar ring
-    p.add(lathe([(0.0, 0.019), (0.1, 0.016), (0.11, 0.0155)], seg=12), 'steel', T(0, 0, z1 - 0.32), smooth=True)
-    p.add(lathe([(0.0, 0.021), (0.012, 0.021)], seg=12), 'steel', T(0, 0, z1 - 0.33), bevel=0.002, smooth=True)
+    p.add(lathe([(0.0, 0.025), (0.1, 0.023), (0.11, 0.022)], seg=12), 'steel', T(0, 0, z1 - 0.33), smooth=True)
+    p.add(lathe([(0.0, 0.027), (0.012, 0.027)], seg=12), 'steel', T(0, 0, z1 - 0.34), bevel=0.002, smooth=True)
     # leather binding where the hand holds it
-    p.add(tube([(0, 0, -0.1), (0, 0, 0.12)], 0.0185, seg=12), 'leather', smooth=True)
-    _wrap(p, -0.1, 0.12, 0.0188, 'leather_dark', turns=14)
+    p.add(tube([(0, 0, -0.1), (0, 0, 0.12)], SHAFT_R + 0.0025, seg=12), 'leather', smooth=True)
+    _wrap(p, -0.1, 0.12, SHAFT_R + 0.0028, 'leather_dark', turns=14)
     if butt:
-        p.add(lathe([(0.0, 0.0005), (0.07, 0.016), (0.1, 0.017)], seg=10), 'steel', T(0, 0, z0 - 0.04), smooth=True)
+        p.add(lathe([(0.0, 0.0005), (0.07, 0.022), (0.1, 0.024)], seg=10), 'steel', T(0, 0, z0 - 0.04),
+              smooth=True)
 
 
 def sword(p, length=0.82, width=0.085, guard=0.2, blade='steel', scale=1.0):
@@ -603,25 +585,26 @@ def staff(p, length=1.95, grip=1.05, scale=1.0):
         t = i / n
         path.append((0.012 * math.sin(2.2 * t + 0.4) + rnd.uniform(-0.004, 0.004),
                      0.01 * math.sin(3.1 * t) + rnd.uniform(-0.004, 0.004), -grip + L * t))
-        radii.append(0.021 - 0.004 * t + (0.004 if i in (3, 6) else 0.0))
+        radii.append(SHAFT_R + 0.003 * (1 - t) + (0.004 if i in (3, 6) else 0.0))
     p.add(tube(path, radii, seg=10), 'wood', bevel=0.002, smooth=True)
-    p.add(ellipsoid(0.024, 0.024, 0.03), 'wood', T(*path[-1]), smooth=True)
-    p.add(tube([(0, 0, -0.08), (0, 0, 0.1)], 0.0215, seg=12), 'leather', smooth=True)
+    p.add(ellipsoid(0.027, 0.027, 0.033), 'wood', T(*path[-1]), smooth=True)
+    p.add(tube([(0, 0, -0.08), (0, 0, 0.1)], SHAFT_R + 0.0035, seg=12), 'leather', smooth=True)
 
 
 def shovel(p, length=1.15, grip=0.0, d_grip=False, scale=1.0):
     """A shovel: a wooden haft along +Z from the grip, an iron spade at the far
     end (+Z), its face toward +Y, with a socket and rivets; optional D-grip."""
     L = length * scale
-    p.add(tube([(0, 0, -0.18), (0, 0, L - 0.28)], [0.018, 0.017], seg=10), 'wood', bevel=0.002, smooth=True)
+    p.add(tube([(0, 0, -0.18), (0, 0, L - 0.28)], [SHAFT_R + 0.001, SHAFT_R], seg=10), 'wood', bevel=0.002,
+          smooth=True)
     outline = [(-0.11, 0.0), (0.11, 0.0), (0.12, 0.17), (0.07, 0.26), (0.0, 0.29), (-0.07, 0.26), (-0.12, 0.17)]
     blade = slab(outline, 0.006, 'Y')
     for v in blade.verts:  # a slight dish across the blade
         v.co.y += 0.025 * (v.co.x / 0.12) ** 2
     p.add(blade, 'steel', T(0, 0, L - 0.28), bevel=0.0015)
-    p.add(lathe([(0.0, 0.024), (0.1, 0.019)], seg=12), 'steel', T(0, 0, L - 0.36), smooth=True)
+    p.add(lathe([(0.0, SHAFT_R + 0.006), (0.1, SHAFT_R + 0.002)], seg=12), 'steel', T(0, 0, L - 0.36), smooth=True)
     for z in (L - 0.33, L - 0.3):
-        p.add(ellipsoid(0.005, 0.006, 0.005, seg=8), 'steel', T(0, 0.022, z), smooth=True)
+        p.add(ellipsoid(0.005, 0.006, 0.005, seg=8), 'steel', T(0, SHAFT_R + 0.004, z), smooth=True)
     if d_grip:  # a D-shaped loop below the haft end
         dg = [(0.065 * math.sin(math.pi * t), 0.0, -0.18 - 0.12 * math.sin(math.pi * t / 2))
               for t in [i / 12 for i in range(13)]]
