@@ -472,7 +472,7 @@ def tack(root, colors):
     return seat
 
 
-HORSE_COLORS = {'coat': '#9c5a30', 'mane': '#140e0a', 'points': '#1e1610', 'muzzle': '#30221a', 'leather': '#3e2a1a'}
+HORSE_COLORS = {'coat': '#8a5430', 'mane': '#140e0a', 'points': '#1e1610', 'muzzle': '#30221a', 'leather': '#3e2a1a'}
 
 
 def horseman(colors, procedural=False, with_tack=True):
@@ -561,7 +561,7 @@ def _sections(vs, ys, zmin=0.85, window=0.1):
     return out
 
 
-def drape(vs, y0, y1, hem, n=14, k=24, gap=0.035, flare=0.06):
+def drape(vs, y0, y1, hem, n=24, k=24, gap=0.035, flare=0.06, folds=0.018):
     """A cloth hanging over the horse's back from y0 to y1: each section an
     arc over the body (its measured half-width and top, `gap` off it) down to
     the widest point, then falling straight to the hem height (a number or a
@@ -580,6 +580,9 @@ def drape(vs, y0, y1, hem, n=14, k=24, gap=0.035, flare=0.06):
             a = math.pi * (1 - i / k)          # from the left side over the top to the right
             ring.append(((w + gap) * math.cos(a), y, zc + (hh + gap) * math.sin(a)))
         ring.append(((w + gap + flare), y, zh))
+        # folds: the hanging cloth ripples in and out along its length (more toward the hem)
+        fold = folds * math.sin(2 * math.pi * (y - y0) / 0.16)
+        ring = [(x + math.copysign(fold * max(0.0, (zc - z) / max(zc - zh, 1e-3)), x), yy, z) for x, yy, z in ring]
         rings.append(ring)
     return props.loft(rings, False, False), rings
 
@@ -598,8 +601,8 @@ def asset_tack(root, body, colors):
     top = max(v.z for v in vs if abs(v.y - ys) < 0.08 and abs(v.x) < 0.1)
     # the saddle cloth hangs over the back and down the flanks to below the barrel's middle
     sec = _sections(vs, [ys])[0]
-    hem = sec[2] + 0.55 * (sec[3] - sec[2])
-    cloth, rings = drape(vs, ys - 0.36, ys + 0.3, hem)
+    hem = sec[2] + 0.75 * (sec[3] - sec[2])
+    cloth, rings = drape(vs, ys - 0.3, ys + 0.26, hem)
     p.add(cloth, 'tint', smooth=True, tint=True)
     # a dark hem: along both bottom edges and the front and back edges
     for edge in ([r[0] for r in rings], [r[-1] for r in rings], rings[0], rings[-1]):
@@ -659,10 +662,10 @@ def seat_rider(root, unit, entry):
 
 
 # The old catalog's rider_scale was tuned for the old, smaller horse.
-RIDER_SCALE = 1.22
+RIDER_SCALE = 1.26
 # How each rider weapon is carried (the weapon's +Z in the rider's space: +y forward, +z up).
 RIDER_WEAPON_UP = {
-    'cav_spear': (0.0, 0.18, 1.0),   # upright, tipped slightly forward, as Civ3's Horseman
+    'cav_spear': (0.0, 0.62, 1.0),   # couched forward and up at a diagonal, as Civ3's Horseman
 }
 
 

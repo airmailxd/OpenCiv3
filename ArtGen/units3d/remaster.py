@@ -68,11 +68,12 @@ REMASTER = {
         'wraps': 'boots',
         'neck': 'high', 'collar': 'mail',   # covered to the neck, a ring-mail collar as Civ3's grey shoulders
         'colors': {'skin': '#8e6448', 'bottom': '#4e4a44', 'boots': '#3a2a1c', 'belt': '#3a2818', 'helmet': '#8a8c90',
-                   'steel': '#c8ccd0', 'mail': '#6e7074'},
+                   'steel': '#c8ccd0', 'mail': '#6e7074', 'wood': '#4a3020'},
         # sitting tall in the saddle, chest out (the riding stance leans a little forward)
-        'pose_extra': [('spine_02', (0, 0.06, 1)), ('spine_03', (0, 0.05, 1)), ('neck_01', (0, 0.0, 1))],
+        'pose_extra': [('spine_01', (0, 0.12, 1)), ('spine_02', (0, 0.16, 1)), ('spine_03', (0, 0.14, 1)),
+                       ('neck_01', (0, 0.04, 1)), ('head', (0, -0.04, 1))],
+        'upper_bulk': 1.35,
         'macro': {'muscle': 1.0, 'weight': 0.85, 'proportions': 0.7},
-        'upper_bulk': 1.2,
         'grime': 0.6,
     },
 }

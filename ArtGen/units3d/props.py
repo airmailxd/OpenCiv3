@@ -562,7 +562,7 @@ def spear(p, length=2.3, grip=0.95, butt=True, scale=1.0, shaft=None, head=1.0):
 def cav_spear(p, length=2.7, grip=1.15, butt=True, scale=1.0):
     """A horseman's long spear, held further back than a footman's: a stout
     shaft and a broad head so it reads from the saddle at 1x."""
-    spear(p, length=length, grip=grip, butt=butt, scale=scale, shaft=0.032, head=1.5)
+    spear(p, length=length, grip=grip, butt=butt, scale=scale, shaft=0.05, head=2.3)
 
 
 def sword(p, length=0.82, width=0.085, guard=0.2, blade='steel', scale=1.0):
