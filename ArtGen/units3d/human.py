@@ -121,6 +121,9 @@ def grime(basemesh, amount=0.35, paint=None):
         # a sweaty sheen
         if not bsdf.inputs['Roughness'].is_linked:
             bsdf.inputs['Roughness'].default_value = 0.6
+        # weathered skin: little specular, no plastic sheen on the shoulders
+        bsdf.inputs['Specular IOR Level'].default_value = 0.25
+        bsdf.inputs['Coat Weight'].default_value = 0.0
 
     for slot in basemesh.material_slots:
         if slot.material and slot.material.use_nodes:
@@ -239,3 +242,20 @@ def rooted(arm):
 def everything(basemesh, arm):
     """Every object of the human (mesh, rig, assets)."""
     return [arm, basemesh] + [c for c in basemesh.children] + [c for c in arm.children if c is not basemesh]
+
+
+def fists(arm, curl=75, thumb=30, sides='lr'):
+    """Clenches the hands: every finger curled toward the palm."""
+    for side in sides:
+        for f in ('index', 'middle', 'ring', 'pinky'):
+            for k in (1, 2, 3):
+                pb = arm.pose.bones.get(f'{f}_0{k}_{side}')
+                if pb:
+                    pb.rotation_mode = 'XYZ'
+                    pb.rotation_euler.x = math.radians(curl)
+        for k in (1, 2):
+            pb = arm.pose.bones.get(f'thumb_0{k}_{side}')
+            if pb:
+                pb.rotation_mode = 'XYZ'
+                pb.rotation_euler.x = math.radians(thumb)
+    _update()

@@ -42,7 +42,7 @@ def _colors(entry):
     return c
 
 
-def _mat(entry, part, maker, *args, **kw):
+def _mat(entry, part, maker, *args, **kw):  # noqa: D401
     """A garment material for catalog part `part`: tinted if the catalog says so."""
     c = _colors(entry)
     tint = part in entry.get('tint', [])
@@ -80,10 +80,10 @@ def dress(entry, mesh, arm):
         G.shell(mesh, arm, 'Top', torso, _mat(entry, 'top', G.cloth), zmin=0.95, zmax=1.45, offset=0.009,
                 thickness=0.004, keep=lambda co: abs((co.z - 1.2) - 0.9 * co.x) < 0.07)
     if bottom in ('skirt', 'kilt'):
-        G.skirt(mesh, arm, 'Bottom', _mat(entry, 'bottom', G.cloth), length=0.55 if bottom == 'skirt' else 0.7,
-                flare=1.1)
+        G.skirt(mesh, arm, 'Bottom', _mat(entry, 'bottom', G.cloth, weave=0.6), length=0.55 if bottom == 'skirt' else 0.7,
+                flare=1.12, folds=0.08)
     elif bottom == 'loincloth':
-        G.skirt(mesh, arm, 'Bottom', _mat(entry, 'bottom', G.cloth), length=0.42, flare=1.12, panels=(0.75, 0.75))
+        pass    # flaps from the belt, after posing (dress_posed)
     elif bottom == 'long':
         G.shell(mesh, arm, 'Bottom', ['pelvis', 'thigh_l', 'thigh_r', 'calf_l', 'calf_r'], _mat(entry, 'bottom', G.cloth),
                 zmin=0.1, zmax=1.0, offset=0.008, thickness=0.004)
@@ -116,7 +116,20 @@ def dress(entry, mesh, arm):
                     offset=0.008, thickness=0.006)
     helmet(entry, mesh, arm)
     if entry.get('beard'):
-        G.beard(mesh, B.hex_color(c['hair']))
+        G.beard(mesh, B.hex_color(c['hair']), length=0.018, density=700)
+    if entry.get('pelt_cape'):
+        G.pelt(mesh, arm, B.hex_color(entry['pelt_cape'][0]), B.hex_color(entry['pelt_cape'][1]), length=0.03)
+    if entry.get('mane'):
+        G.falling_hair(mesh, B.hex_color(c['hair']), length=entry['mane'])
+        G.wild_hair(mesh, B.hex_color(c['hair']), length=0.035, density=4000)
+    else:
+        G.roughen_hair(mesh, B.hex_color(c['hair']))
+
+
+def dress_posed(entry, mesh, arm):
+    """Garments placed after posing (rigid parts hung on bones)."""
+    if entry.get('bottom') == 'loincloth':
+        G.loincloth(mesh, arm, _mat(entry, 'bottom', G.cloth, weave=0.6))
 
 
 def helmet(entry, mesh, arm):
@@ -156,11 +169,13 @@ def _rot(x=0, y=0, z=0):
 # right side is -x). Each: bone aims, then the right/left hand prop offsets
 # (in the hand bone's space: +y along the fingers).
 STANCES = {
-    'hang': [('spine_02', (0, -0.12, 1)), ('neck_01', (0, -0.05, 1)),
-             ('thigh_l', (0.17, 0.02, -1)), ('calf_l', (0.1, 0.06, -1)),
-             ('thigh_r', (-0.17, -0.04, -1)), ('calf_r', (-0.1, 0.04, -1)),
-             ('upperarm_l', (0.32, 0.02, -1)), ('lowerarm_l', (0.3, -0.3, -1)),
-             ('upperarm_r', (-0.34, -0.04, -1)), ('lowerarm_r', (-0.42, -0.25, -1))],
+    'hang': [('spine_01', (0, -0.08, 1)), ('spine_02', (0, -0.22, 1)), ('spine_03', (0, -0.15, 1)),
+             ('clavicle_l', (1, -0.45, 0.05)), ('clavicle_r', (-1, -0.45, 0.05)),
+             ('neck_01', (0, -0.12, 1)), ('head', (0, 0.1, 1)),
+             ('thigh_l', (0.3, -0.05, -1)), ('calf_l', (0.24, 0.02, -1)), ('foot_l', (0.5, -1, -0.3)),
+             ('thigh_r', (-0.3, -0.02, -1)), ('calf_r', (-0.24, 0.04, -1)), ('foot_r', (-0.5, -1, -0.3)),
+             ('upperarm_l', (0.55, -0.25, -1)), ('lowerarm_l', (0.2, -1.0, -0.15)),
+             ('upperarm_r', (-0.55, -0.15, -1)), ('lowerarm_r', (-0.35, -1.0, -0.35))],
     'upright': [('neck_01', (0, -0.02, 1)),
                 ('thigh_l', (0.1, 0.0, -1)), ('calf_l', (0.06, 0.04, -1)),
                 ('thigh_r', (-0.1, 0.0, -1)), ('calf_r', (-0.06, 0.04, -1)),
@@ -185,17 +200,22 @@ def equip(entry, arm):
     weapon = entry.get('weapon')
     offhand = entry.get('offhand')
     props = entry.get('props', {})
-    stance = WEAPON_STANCE.get(weapon or ('bow' if offhand == 'bow' else None), 'hang')
-    H.pose(arm, STANCES[stance])
+    stance = entry.get('stance_name') or WEAPON_STANCE.get(weapon or ('bow' if offhand == 'bow' else None), 'hang')
+    H.pose(arm, STANCES[stance] + [tuple(a) for a in entry.get('pose_extra', [])])
+    H.fists(arm, sides='r' if offhand == 'bow' else 'lr')
     made = []
     if weapon:
         name, params = props.get(weapon, (weapon, {}))
         params = dict(params)
         if 'weapon_scale' in entry and isinstance(entry['weapon_scale'], (int, float)):
             params.setdefault('scale', entry['weapon_scale'] * 0.87)
-        obj = P.make(name, c, **params)
+        if name == 'war_club':
+            import clubs
+            obj = clubs.war_club(c, **params)
+        else:
+            obj = P.make(name, c, **params)
         if stance == 'hang':
-            off = Matrix.Translation((0.0, 0.05, 0.0)) @ _rot(x=-90, y=20)
+            off = Matrix.Translation((0.0, 0.05, 0.0)) @ _rot(x=-90, z=-25)
         elif stance == 'upright':
             off = Matrix.Translation((0.0, 0.05, 0.0)) @ _rot(x=180)
         else:
@@ -231,10 +251,21 @@ def build_footman(entry):
         macro['weight'] = min(1.0, macro['weight'] * build.get('bulk', 1.0))
     else:
         macro = dict(BUILDS.get(build, BUILDS['normal']))
-    hair = HAIR.get(entry.get('hair'), 'short02')
-    mesh, arm = H.body(gender=1.0, age=0.45, height=0.6, proportions=0.75, **macro,
-                       skin=_skin_base(c['skin']), hair=hair if entry.get('helmet') not in ('hood', 'wolf', 'crested', 'horned', 'cap') or entry.get('hair') == 'long' else None,
+    macro.update(entry.get('macro', {}))
+    macro.setdefault('height', 0.65)
+    macro.setdefault('proportions', 0.8)
+    helmeted = entry.get('helmet') in ('hood', 'wolf', 'crested', 'horned', 'cap')
+    hair = entry.get('hair_asset', HAIR.get(entry.get('hair'), 'short02'))
+    if helmeted and entry.get('hair') != 'long':
+        hair = None
+    mesh, arm = H.body(gender=1.0, age=entry.get('age', 0.5), **macro,
+                       race=entry.get('race', {'caucasian': 0.4, 'african': 0.3, 'asian': 0.3}),
+                       skin=_skin_base(c['skin']), hair=hair,
                        skin_tone=B.hex_color(c['skin']), hair_tone=B.hex_color(c['hair']))
+    H.grime(mesh, amount=entry.get('grime', 0.4))
     dress(entry, mesh, arm)
     equip(entry, arm)
-    return H.rooted(arm)
+    dress_posed(entry, mesh, arm)
+    root = H.rooted(arm)
+    H.plant(root, mesh)
+    return root

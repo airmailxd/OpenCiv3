@@ -476,3 +476,23 @@ def loincloth(basemesh, arm, mat, back_mat=None, width=0.27, length=0.36, back_l
         made.append(f)
     H._update()
     return made
+
+
+def falling_hair(basemesh, color, length=0.24, density=6000):
+    """Long, shaggy hair falling from the scalp past the shoulders, in
+    separate clumps (hair particles grown down; set the length last, as
+    setting the growth velocities rescales it)."""
+    mod = wild_hair(basemesh, color, length=length, density=density, clump=0.8, rough=0.03)
+    st = mod.particle_system.settings
+    # growth velocities are in meters: a little out from the scalp, then
+    # `length` down and a little back (+y is behind the unposed body)
+    # (measured: a strand grows about 4x its velocity's length)
+    st.normal_factor = 0.012
+    st.object_align_factor[0] = 0.0
+    st.object_align_factor[1] = 0.16 * length
+    st.object_align_factor[2] = -0.22 * length
+    st.kink = 'NO'
+    st.clump_factor = 0.85
+    st.clump_shape = 0.3
+    st.child_radius = 0.035
+    return mod
