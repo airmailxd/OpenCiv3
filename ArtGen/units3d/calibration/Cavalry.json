@@ -1,0 +1,255 @@
+{
+  "unit": "Cavalry",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.5,
+    123.5
+  ],
+  "anchor_override": [
+    119.5,
+    120.0
+  ],
+  "standing_height": 60.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        114.33,
+        125
+      ],
+      "top": 65,
+      "height": 61,
+      "bbox": [
+        99,
+        65,
+        139,
+        125
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        119.5,
+        125
+      ],
+      "top": 65,
+      "height": 61,
+      "bbox": [
+        104,
+        65,
+        140,
+        125
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        124.67,
+        125
+      ],
+      "top": 65,
+      "height": 61,
+      "bbox": [
+        100,
+        65,
+        140,
+        125
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        116.75,
+        122
+      ],
+      "top": 66,
+      "height": 57,
+      "bbox": [
+        92,
+        66,
+        148,
+        122
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        109.43,
+        126
+      ],
+      "top": 67,
+      "height": 60,
+      "bbox": [
+        100,
+        67,
+        140,
+        126
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        119.5,
+        128
+      ],
+      "top": 67,
+      "height": 62,
+      "bbox": [
+        99,
+        67,
+        135,
+        128
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        129.57,
+        126
+      ],
+      "top": 67,
+      "height": 60,
+      "bbox": [
+        99,
+        67,
+        139,
+        126
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        122.25,
+        122
+      ],
+      "top": 66,
+      "height": 57,
+      "bbox": [
+        91,
+        66,
+        147,
+        122
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 47.3312,
+    "fit": 0.9102,
+    "archetype": "horse_rider"
+  },
+  "default_flic": "CavalryDefault.flc",
+  "flics": {
+    "CavalryAttackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 65,
+      "height": 75,
+      "offset_left": 83,
+      "offset_top": 58,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "CavalryDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 109,
+      "height": 91,
+      "offset_left": 66,
+      "offset_top": 58,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "CavalryDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 66,
+      "height": 69,
+      "offset_left": 84,
+      "offset_top": 65,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "CavalryFidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 66,
+      "height": 71,
+      "offset_left": 84,
+      "offset_top": 64,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "CavalryFortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 67,
+      "height": 78,
+      "offset_left": 83,
+      "offset_top": 56,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "CavalryRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 73,
+      "height": 73,
+      "offset_left": 82,
+      "offset_top": 64,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "CavalryVictory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 69,
+      "height": 87,
+      "offset_left": 83,
+      "offset_top": 49,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    }
+  }
+}

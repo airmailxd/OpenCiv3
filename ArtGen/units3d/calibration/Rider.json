@@ -1,0 +1,255 @@
+{
+  "unit": "Rider",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.41,
+    123.5
+  ],
+  "anchor_override": [
+    119.25,
+    119.5
+  ],
+  "standing_height": 54.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        114.1,
+        125
+      ],
+      "top": 71,
+      "height": 55,
+      "bbox": [
+        98,
+        71,
+        137,
+        125
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        120.12,
+        125
+      ],
+      "top": 72,
+      "height": 54,
+      "bbox": [
+        109,
+        72,
+        131,
+        125
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        126.35,
+        124
+      ],
+      "top": 71,
+      "height": 54,
+      "bbox": [
+        103,
+        71,
+        143,
+        124
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        118.65,
+        121
+      ],
+      "top": 71,
+      "height": 51,
+      "bbox": [
+        96,
+        71,
+        151,
+        121
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        112.05,
+        125
+      ],
+      "top": 69,
+      "height": 57,
+      "bbox": [
+        102,
+        69,
+        141,
+        125
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        119.0,
+        126
+      ],
+      "top": 68,
+      "height": 59,
+      "bbox": [
+        108,
+        68,
+        130,
+        126
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        126.35,
+        126
+      ],
+      "top": 68,
+      "height": 59,
+      "bbox": [
+        96,
+        68,
+        136,
+        126
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        119.81,
+        122
+      ],
+      "top": 70,
+      "height": 53,
+      "bbox": [
+        88,
+        70,
+        143,
+        122
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 40.4567,
+    "fit": 0.778,
+    "archetype": "horse_rider"
+  },
+  "default_flic": "RiderDefault.flc",
+  "flics": {
+    "RiderAttackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 78,
+      "height": 82,
+      "offset_left": 78,
+      "offset_top": 55,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "RiderDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 118,
+      "height": 90,
+      "offset_left": 61,
+      "offset_top": 60,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "RiderDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 73,
+      "height": 67,
+      "offset_left": 80,
+      "offset_top": 67,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "RiderFidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 73,
+      "height": 82,
+      "offset_left": 80,
+      "offset_top": 52,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "RiderFortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 71,
+      "height": 73,
+      "offset_left": 81,
+      "offset_top": 61,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "RiderRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 76,
+      "height": 75,
+      "offset_left": 80,
+      "offset_top": 63,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "RiderVictory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 73,
+      "height": 84,
+      "offset_left": 80,
+      "offset_top": 50,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    }
+  }
+}

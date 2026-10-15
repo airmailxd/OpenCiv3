@@ -1,0 +1,267 @@
+{
+  "unit": "Samurai",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.61,
+    121.0
+  ],
+  "anchor_override": null,
+  "standing_height": 41.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        122.3,
+        121
+      ],
+      "top": 81,
+      "height": 41,
+      "bbox": [
+        110,
+        81,
+        133,
+        121
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        115.4,
+        121
+      ],
+      "top": 81,
+      "height": 41,
+      "bbox": [
+        110,
+        81,
+        130,
+        121
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        116.0,
+        124
+      ],
+      "top": 81,
+      "height": 44,
+      "bbox": [
+        113,
+        81,
+        127,
+        124
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        121.21,
+        124
+      ],
+      "top": 82,
+      "height": 43,
+      "bbox": [
+        106,
+        82,
+        126,
+        124
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        123.79,
+        122
+      ],
+      "top": 82,
+      "height": 41,
+      "bbox": [
+        106,
+        82,
+        129,
+        122
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        116.79,
+        122
+      ],
+      "top": 82,
+      "height": 41,
+      "bbox": [
+        109,
+        82,
+        129,
+        122
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        118.0,
+        123
+      ],
+      "top": 82,
+      "height": 42,
+      "bbox": [
+        112,
+        82,
+        126,
+        123
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        123.09,
+        123
+      ],
+      "top": 82,
+      "height": 42,
+      "bbox": [
+        113,
+        82,
+        133,
+        123
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 47.4309,
+    "fit": 0.9121,
+    "archetype": "footman"
+  },
+  "default_flic": "SamuraiDefault.flc",
+  "flics": {
+    "SamuraiAttackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 142,
+      "height": 91,
+      "offset_left": 47,
+      "offset_top": 62,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "SamuraiAttackB.flc": {
+      "actions": [
+        "ATTACK2"
+      ],
+      "kind": "animation",
+      "width": 139,
+      "height": 104,
+      "offset_left": 48,
+      "offset_top": 48,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "SamuraiDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 141,
+      "height": 90,
+      "offset_left": 50,
+      "offset_top": 66,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "SamuraiDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 33,
+      "height": 47,
+      "offset_left": 103,
+      "offset_top": 81,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "SamuraiFidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 37,
+      "height": 51,
+      "offset_left": 98,
+      "offset_top": 77,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 100
+    },
+    "SamuraiFortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 94,
+      "height": 84,
+      "offset_left": 70,
+      "offset_top": 56,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "SamuraiRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 39,
+      "height": 51,
+      "offset_left": 100,
+      "offset_top": 79,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "SamuraiVictory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 92,
+      "height": 71,
+      "offset_left": 71,
+      "offset_top": 69,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    }
+  }
+}

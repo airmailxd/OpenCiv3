@@ -1,0 +1,255 @@
+{
+  "unit": "Cossack",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.5,
+    122.0
+  ],
+  "anchor_override": [
+    119.5,
+    119.0
+  ],
+  "standing_height": 57.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        114.6,
+        123
+      ],
+      "top": 67,
+      "height": 57,
+      "bbox": [
+        99,
+        67,
+        139,
+        123
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        119.5,
+        124
+      ],
+      "top": 67,
+      "height": 58,
+      "bbox": [
+        103,
+        67,
+        139,
+        124
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        124.4,
+        123
+      ],
+      "top": 67,
+      "height": 57,
+      "bbox": [
+        100,
+        67,
+        140,
+        123
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        116.38,
+        121
+      ],
+      "top": 68,
+      "height": 54,
+      "bbox": [
+        92,
+        68,
+        148,
+        121
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        109.53,
+        126
+      ],
+      "top": 69,
+      "height": 58,
+      "bbox": [
+        100,
+        69,
+        140,
+        126
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        119.5,
+        128
+      ],
+      "top": 69,
+      "height": 60,
+      "bbox": [
+        100,
+        69,
+        135,
+        128
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        129.47,
+        126
+      ],
+      "top": 69,
+      "height": 58,
+      "bbox": [
+        99,
+        69,
+        139,
+        126
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        122.62,
+        121
+      ],
+      "top": 68,
+      "height": 54,
+      "bbox": [
+        91,
+        68,
+        147,
+        121
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 42.6316,
+    "fit": 0.8198,
+    "archetype": "horse_rider"
+  },
+  "default_flic": "CossackDefault.flc",
+  "flics": {
+    "CossackAttackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 65,
+      "height": 74,
+      "offset_left": 84,
+      "offset_top": 59,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "CossackDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 113,
+      "height": 87,
+      "offset_left": 64,
+      "offset_top": 62,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "CossackDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 66,
+      "height": 68,
+      "offset_left": 84,
+      "offset_top": 67,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "CossackFidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 66,
+      "height": 69,
+      "offset_left": 84,
+      "offset_top": 66,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "CossackFortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 66,
+      "height": 76,
+      "offset_left": 84,
+      "offset_top": 58,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "CossackRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 73,
+      "height": 70,
+      "offset_left": 82,
+      "offset_top": 67,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 7,
+      "frameMs": 66
+    },
+    "CossackVictory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 69,
+      "height": 87,
+      "offset_left": 83,
+      "offset_top": 49,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    }
+  }
+}

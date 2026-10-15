@@ -1,0 +1,252 @@
+{
+  "unit": "Inquisitor",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.41,
+    119.5
+  ],
+  "anchor_override": null,
+  "standing_height": 42.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        118.87,
+        123
+      ],
+      "top": 81,
+      "height": 43,
+      "bbox": [
+        104,
+        81,
+        125,
+        123
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        120.94,
+        123
+      ],
+      "top": 81,
+      "height": 43,
+      "bbox": [
+        111,
+        81,
+        128,
+        123
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        120.07,
+        121
+      ],
+      "top": 81,
+      "height": 41,
+      "bbox": [
+        112,
+        81,
+        136,
+        121
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        118.88,
+        121
+      ],
+      "top": 81,
+      "height": 41,
+      "bbox": [
+        113,
+        81,
+        137,
+        121
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        119.88,
+        121
+      ],
+      "top": 79,
+      "height": 43,
+      "bbox": [
+        114,
+        79,
+        135,
+        121
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        120.85,
+        121
+      ],
+      "top": 78,
+      "height": 44,
+      "bbox": [
+        111,
+        78,
+        128,
+        121
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        118.93,
+        120
+      ],
+      "top": 81,
+      "height": 40,
+      "bbox": [
+        103,
+        81,
+        127,
+        120
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        116.67,
+        121
+      ],
+      "top": 81,
+      "height": 41,
+      "bbox": [
+        102,
+        81,
+        125,
+        121
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 45.0214,
+    "fit": 0.8658,
+    "archetype": "footman"
+  },
+  "default_flic": "inquisitor_default.flc",
+  "flics": {
+    "inquisitor_attack.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 114,
+      "height": 72,
+      "offset_left": 58,
+      "offset_top": 69,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "inquisitor_death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 126,
+      "height": 74,
+      "offset_left": 56,
+      "offset_top": 77,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "inquisitor_default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 55,
+      "height": 48,
+      "offset_left": 86,
+      "offset_top": 78,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "inquisitor_fidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 51,
+      "height": 49,
+      "offset_left": 88,
+      "offset_top": 78,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "inquisitor_fortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 54,
+      "height": 53,
+      "offset_left": 87,
+      "offset_top": 78,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 83
+    },
+    "inquisitor_run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 53,
+      "height": 52,
+      "offset_left": 85,
+      "offset_top": 77,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "inquisitor_victory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 57,
+      "height": 58,
+      "offset_left": 85,
+      "offset_top": 73,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    }
+  }
+}

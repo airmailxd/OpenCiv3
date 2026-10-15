@@ -1,0 +1,267 @@
+{
+  "unit": "Berserk",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    118.82,
+    121.0
+  ],
+  "anchor_override": null,
+  "standing_height": 40.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        119.81,
+        124
+      ],
+      "top": 84,
+      "height": 41,
+      "bbox": [
+        104,
+        84,
+        125,
+        124
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        124.6,
+        123
+      ],
+      "top": 85,
+      "height": 39,
+      "bbox": [
+        97,
+        85,
+        131,
+        123
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        116.12,
+        122
+      ],
+      "top": 85,
+      "height": 38,
+      "bbox": [
+        101,
+        85,
+        136,
+        122
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        117.76,
+        124
+      ],
+      "top": 84,
+      "height": 41,
+      "bbox": [
+        114,
+        84,
+        131,
+        124
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        122.29,
+        123
+      ],
+      "top": 83,
+      "height": 41,
+      "bbox": [
+        114,
+        83,
+        135,
+        123
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        126.07,
+        122
+      ],
+      "top": 82,
+      "height": 41,
+      "bbox": [
+        108,
+        82,
+        142,
+        122
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        117.83,
+        120
+      ],
+      "top": 82,
+      "height": 39,
+      "bbox": [
+        103,
+        82,
+        139,
+        120
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        115.57,
+        122
+      ],
+      "top": 83,
+      "height": 40,
+      "bbox": [
+        108,
+        83,
+        125,
+        122
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 45.5313,
+    "fit": 0.8756,
+    "archetype": "footman"
+  },
+  "default_flic": "x_berserk default.flc",
+  "flics": {
+    "x_berserk attack_a.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 92,
+      "height": 76,
+      "offset_left": 68,
+      "offset_top": 61,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "x_berserk attack_b.flc": {
+      "actions": [
+        "ATTACK2"
+      ],
+      "kind": "animation",
+      "width": 104,
+      "height": 96,
+      "offset_left": 64,
+      "offset_top": 46,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "x_berserk death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 92,
+      "height": 67,
+      "offset_left": 71,
+      "offset_top": 75,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "x_berserk default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 54,
+      "height": 50,
+      "offset_left": 90,
+      "offset_top": 82,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "x_berserk fidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 61,
+      "height": 53,
+      "offset_left": 85,
+      "offset_top": 80,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 14,
+      "frameMs": 83
+    },
+    "x_berserk fortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 63,
+      "height": 55,
+      "offset_left": 86,
+      "offset_top": 80,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 11,
+      "frameMs": 83
+    },
+    "x_berserk run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 74,
+      "height": 71,
+      "offset_left": 75,
+      "offset_top": 60,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "x_berserk victory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 79,
+      "height": 62,
+      "offset_left": 76,
+      "offset_top": 74,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    }
+  }
+}

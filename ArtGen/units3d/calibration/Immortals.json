@@ -1,0 +1,267 @@
+{
+  "unit": "Immortals",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.62,
+    120.5
+  ],
+  "anchor_override": null,
+  "standing_height": 40.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        122.0,
+        123
+      ],
+      "top": 82,
+      "height": 42,
+      "bbox": [
+        99,
+        82,
+        126,
+        123
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        120.48,
+        121
+      ],
+      "top": 83,
+      "height": 39,
+      "bbox": [
+        106,
+        83,
+        128,
+        121
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        117.38,
+        122
+      ],
+      "top": 83,
+      "height": 40,
+      "bbox": [
+        112,
+        83,
+        128,
+        122
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        118.76,
+        122
+      ],
+      "top": 83,
+      "height": 40,
+      "bbox": [
+        114,
+        83,
+        135,
+        122
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        122.43,
+        122
+      ],
+      "top": 82,
+      "height": 41,
+      "bbox": [
+        113,
+        82,
+        140,
+        122
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        120.48,
+        121
+      ],
+      "top": 82,
+      "height": 40,
+      "bbox": [
+        111,
+        82,
+        133,
+        121
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        116.14,
+        121
+      ],
+      "top": 80,
+      "height": 42,
+      "bbox": [
+        111,
+        80,
+        127,
+        121
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        117.47,
+        123
+      ],
+      "top": 82,
+      "height": 42,
+      "bbox": [
+        104,
+        82,
+        125,
+        123
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 45.0435,
+    "fit": 0.8662,
+    "archetype": "footman"
+  },
+  "default_flic": "ImmortalDefault.flc",
+  "flics": {
+    "ImmortalAttackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 76,
+      "height": 65,
+      "offset_left": 79,
+      "offset_top": 72,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "ImmortalAttackB.flc": {
+      "actions": [
+        "ATTACK2"
+      ],
+      "kind": "animation",
+      "width": 80,
+      "height": 68,
+      "offset_left": 79,
+      "offset_top": 70,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "ImmortalDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 90,
+      "height": 79,
+      "offset_left": 75,
+      "offset_top": 64,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "ImmortalDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 42,
+      "height": 45,
+      "offset_left": 99,
+      "offset_top": 79,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "ImmortalFidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 52,
+      "height": 53,
+      "offset_left": 94,
+      "offset_top": 71,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "ImmortalFortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 42,
+      "height": 53,
+      "offset_left": 99,
+      "offset_top": 72,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "ImmortalRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 50,
+      "height": 57,
+      "offset_left": 95,
+      "offset_top": 69,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "ImmortalVictory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 48,
+      "height": 56,
+      "offset_left": 96,
+      "offset_top": 69,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    }
+  }
+}

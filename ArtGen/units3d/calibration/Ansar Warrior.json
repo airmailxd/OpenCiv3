@@ -1,0 +1,270 @@
+{
+  "unit": "Ansar Warrior",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.44,
+    125.0
+  ],
+  "anchor_override": [
+    120.0,
+    123.0
+  ],
+  "standing_height": 51.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        115.8,
+        128
+      ],
+      "top": 77,
+      "height": 52,
+      "bbox": [
+        98,
+        77,
+        136,
+        128
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        119.0,
+        128
+      ],
+      "top": 78,
+      "height": 51,
+      "bbox": [
+        105,
+        78,
+        133,
+        128
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        123.36,
+        128
+      ],
+      "top": 78,
+      "height": 51,
+      "bbox": [
+        104,
+        78,
+        143,
+        128
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        119.75,
+        125
+      ],
+      "top": 78,
+      "height": 48,
+      "bbox": [
+        98,
+        78,
+        149,
+        125
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        115.88,
+        126
+      ],
+      "top": 73,
+      "height": 54,
+      "bbox": [
+        103,
+        73,
+        141,
+        126
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        119.13,
+        126
+      ],
+      "top": 70,
+      "height": 57,
+      "bbox": [
+        106,
+        70,
+        133,
+        126
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        121.83,
+        127
+      ],
+      "top": 74,
+      "height": 54,
+      "bbox": [
+        95,
+        74,
+        135,
+        127
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        120.57,
+        125
+      ],
+      "top": 76,
+      "height": 50,
+      "bbox": [
+        90,
+        76,
+        141,
+        125
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 38.4532,
+    "fit": 0.7395,
+    "archetype": "horse_rider"
+  },
+  "default_flic": "x_Ansar Warrior default.flc",
+  "flics": {
+    "x_Ansar Warrior attack_a.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 125,
+      "height": 85,
+      "offset_left": 52,
+      "offset_top": 62,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "x_Ansar Warrior attack_b.flc": {
+      "actions": [
+        "ATTACK2"
+      ],
+      "kind": "animation",
+      "width": 83,
+      "height": 72,
+      "offset_left": 72,
+      "offset_top": 66,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "x_Ansar Warrior death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 106,
+      "height": 81,
+      "offset_left": 65,
+      "offset_top": 69,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "x_Ansar Warrior default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 80,
+      "height": 67,
+      "offset_left": 73,
+      "offset_top": 70,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "x_Ansar Warrior fidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 87,
+      "height": 70,
+      "offset_left": 70,
+      "offset_top": 70,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 14,
+      "frameMs": 83
+    },
+    "x_Ansar Warrior fortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 84,
+      "height": 71,
+      "offset_left": 72,
+      "offset_top": 67,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 83
+    },
+    "x_Ansar Warrior run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 84,
+      "height": 72,
+      "offset_left": 72,
+      "offset_top": 66,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "x_Ansar Warrior victory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 80,
+      "height": 69,
+      "offset_left": 73,
+      "offset_top": 68,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 14,
+      "frameMs": 83
+    }
+  }
+}

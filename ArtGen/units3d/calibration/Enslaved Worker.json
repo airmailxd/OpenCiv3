@@ -1,0 +1,358 @@
+{
+  "unit": "Enslaved Worker",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.94,
+    122.5
+  ],
+  "anchor_override": null,
+  "standing_height": 46.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        124.38,
+        124
+      ],
+      "top": 79,
+      "height": 46,
+      "bbox": [
+        105,
+        79,
+        128,
+        124
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        112.08,
+        125
+      ],
+      "top": 79,
+      "height": 47,
+      "bbox": [
+        109,
+        79,
+        129,
+        125
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        120.1,
+        127
+      ],
+      "top": 79,
+      "height": 49,
+      "bbox": [
+        112,
+        79,
+        127,
+        127
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        126.09,
+        124
+      ],
+      "top": 79,
+      "height": 46,
+      "bbox": [
+        114,
+        79,
+        131,
+        124
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        124.08,
+        121
+      ],
+      "top": 78,
+      "height": 44,
+      "bbox": [
+        111,
+        78,
+        134,
+        121
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        116.5,
+        122
+      ],
+      "top": 79,
+      "height": 44,
+      "bbox": [
+        110,
+        79,
+        130,
+        122
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        115.92,
+        123
+      ],
+      "top": 78,
+      "height": 46,
+      "bbox": [
+        112,
+        78,
+        127,
+        123
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        119.78,
+        124
+      ],
+      "top": 79,
+      "height": 46,
+      "bbox": [
+        108,
+        79,
+        125,
+        124
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 50.1838,
+    "fit": 0.9651,
+    "archetype": "footman"
+  },
+  "default_flic": "EnslavedWorker_Default.flc",
+  "flics": {
+    "EnslavedWorker_Attack.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 71,
+      "height": 65,
+      "offset_left": 85,
+      "offset_top": 67,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "EnslavedWorker_Build.flc": {
+      "actions": [
+        "FORTRESS",
+        "MINE"
+      ],
+      "kind": "loop",
+      "width": 43,
+      "height": 60,
+      "offset_left": 99,
+      "offset_top": 69,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "EnslavedWorker_Captured.flc": {
+      "actions": [
+        "CAPTURE"
+      ],
+      "kind": "animation",
+      "width": 35,
+      "height": 52,
+      "offset_left": 103,
+      "offset_top": 77,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "EnslavedWorker_ClearForest.flc": {
+      "actions": [
+        "FOREST"
+      ],
+      "kind": "loop",
+      "width": 64,
+      "height": 59,
+      "offset_left": 88,
+      "offset_top": 71,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "EnslavedWorker_ClearJungle.flc": {
+      "actions": [
+        "JUNGLE"
+      ],
+      "kind": "loop",
+      "width": 79,
+      "height": 67,
+      "offset_left": 81,
+      "offset_top": 67,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "EnslavedWorker_Death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 99,
+      "height": 69,
+      "offset_left": 71,
+      "offset_top": 76,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "EnslavedWorker_Default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 33,
+      "height": 51,
+      "offset_left": 104,
+      "offset_top": 78,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "EnslavedWorker_Fidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 32,
+      "height": 52,
+      "offset_left": 105,
+      "offset_top": 77,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "EnslavedWorker_Fortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 51,
+      "height": 56,
+      "offset_left": 95,
+      "offset_top": 75,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 83
+    },
+    "EnslavedWorker_Irrigate.flc": {
+      "actions": [
+        "IRRIGATE"
+      ],
+      "kind": "loop",
+      "width": 83,
+      "height": 55,
+      "offset_left": 79,
+      "offset_top": 87,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 100
+    },
+    "EnslavedWorker_Plant.flc": {
+      "actions": [
+        "PLANT"
+      ],
+      "kind": "loop",
+      "width": 57,
+      "height": 57,
+      "offset_left": 93,
+      "offset_top": 78,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 100
+    },
+    "EnslavedWorker_Run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 57,
+      "height": 55,
+      "offset_left": 92,
+      "offset_top": 76,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "EnslavedWorker_Shovel.flc": {
+      "actions": [
+        "ROAD"
+      ],
+      "kind": "loop",
+      "width": 83,
+      "height": 63,
+      "offset_left": 80,
+      "offset_top": 79,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "EnslavedWorker_Victory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 53,
+      "height": 66,
+      "offset_left": 94,
+      "offset_top": 65,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    }
+  }
+}

@@ -1,0 +1,252 @@
+{
+  "unit": "Longbowman",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.41,
+    120.5
+  ],
+  "anchor_override": null,
+  "standing_height": 49.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        122.0,
+        122
+      ],
+      "top": 76,
+      "height": 47,
+      "bbox": [
+        111,
+        76,
+        126,
+        122
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        124.45,
+        122
+      ],
+      "top": 76,
+      "height": 47,
+      "bbox": [
+        113,
+        76,
+        126,
+        122
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        120.0,
+        119
+      ],
+      "top": 74,
+      "height": 46,
+      "bbox": [
+        107,
+        74,
+        133,
+        119
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        114.62,
+        121
+      ],
+      "top": 71,
+      "height": 51,
+      "bbox": [
+        106,
+        71,
+        134,
+        121
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        117.24,
+        122
+      ],
+      "top": 70,
+      "height": 53,
+      "bbox": [
+        113,
+        70,
+        128,
+        122
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        120.65,
+        122
+      ],
+      "top": 70,
+      "height": 53,
+      "bbox": [
+        112,
+        70,
+        126,
+        122
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        118.83,
+        121
+      ],
+      "top": 72,
+      "height": 50,
+      "bbox": [
+        106,
+        72,
+        132,
+        121
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        118.46,
+        122
+      ],
+      "top": 74,
+      "height": 49,
+      "bbox": [
+        105,
+        74,
+        133,
+        122
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 54.8627,
+    "fit": 1.0551,
+    "archetype": "footman"
+  },
+  "default_flic": "LongbowmanDefault.flc",
+  "flics": {
+    "LongbowmanAttackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 124,
+      "height": 92,
+      "offset_left": 53,
+      "offset_top": 55,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "LongbowmanDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 120,
+      "height": 82,
+      "offset_left": 60,
+      "offset_top": 66,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "LongbowmanDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 38,
+      "height": 57,
+      "offset_left": 97,
+      "offset_top": 70,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "LongbowmanFidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 34,
+      "height": 54,
+      "offset_left": 103,
+      "offset_top": 70,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "LongbowmanFortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 74,
+      "height": 77,
+      "offset_left": 79,
+      "offset_top": 57,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "LongbowmanRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 48,
+      "height": 57,
+      "offset_left": 96,
+      "offset_top": 69,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "LongbowmanVictory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 54,
+      "height": 63,
+      "offset_left": 93,
+      "offset_top": 63,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    }
+  }
+}

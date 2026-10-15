@@ -1,0 +1,222 @@
+{
+  "unit": "Scout",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.31,
+    120.5
+  ],
+  "anchor_override": null,
+  "standing_height": 41.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        122.27,
+        123
+      ],
+      "top": 83,
+      "height": 41,
+      "bbox": [
+        111,
+        83,
+        125,
+        123
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        123.75,
+        122
+      ],
+      "top": 83,
+      "height": 40,
+      "bbox": [
+        109,
+        83,
+        130,
+        122
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        119.26,
+        121
+      ],
+      "top": 83,
+      "height": 39,
+      "bbox": [
+        109,
+        83,
+        130,
+        121
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        116.89,
+        122
+      ],
+      "top": 82,
+      "height": 41,
+      "bbox": [
+        113,
+        82,
+        126,
+        122
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        119.36,
+        122
+      ],
+      "top": 82,
+      "height": 41,
+      "bbox": [
+        114,
+        82,
+        129,
+        122
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        120.26,
+        122
+      ],
+      "top": 81,
+      "height": 42,
+      "bbox": [
+        109,
+        81,
+        130,
+        122
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        117.84,
+        121
+      ],
+      "top": 82,
+      "height": 40,
+      "bbox": [
+        109,
+        82,
+        130,
+        121
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        117.95,
+        123
+      ],
+      "top": 82,
+      "height": 42,
+      "bbox": [
+        113,
+        82,
+        126,
+        123
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 47.5824,
+    "fit": 0.915,
+    "archetype": "footman"
+  },
+  "default_flic": "ScoutDefault.flc",
+  "flics": {
+    "ScoutCaptured.flc": {
+      "actions": [
+        "CAPTURE"
+      ],
+      "kind": "animation",
+      "width": 41,
+      "height": 47,
+      "offset_left": 97,
+      "offset_top": 81,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 83
+    },
+    "ScoutDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 62,
+      "height": 54,
+      "offset_left": 89,
+      "offset_top": 83,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "ScoutDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 28,
+      "height": 45,
+      "offset_left": 104,
+      "offset_top": 81,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "ScoutFidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 50,
+      "height": 56,
+      "offset_left": 92,
+      "offset_top": 74,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 100
+    },
+    "ScoutRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 44,
+      "height": 51,
+      "offset_left": 97,
+      "offset_top": 80,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    }
+  }
+}

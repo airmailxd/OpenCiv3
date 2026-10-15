@@ -1,0 +1,255 @@
+{
+  "unit": "Ancient Cavalry",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.35,
+    122.5
+  ],
+  "anchor_override": [
+    119.75,
+    119.0
+  ],
+  "standing_height": 52.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        115.31,
+        124
+      ],
+      "top": 73,
+      "height": 52,
+      "bbox": [
+        98,
+        73,
+        138,
+        124
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        119.6,
+        124
+      ],
+      "top": 73,
+      "height": 52,
+      "bbox": [
+        108,
+        73,
+        129,
+        124
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        124.24,
+        123
+      ],
+      "top": 73,
+      "height": 51,
+      "bbox": [
+        101,
+        73,
+        141,
+        123
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        118.18,
+        121
+      ],
+      "top": 71,
+      "height": 51,
+      "bbox": [
+        94,
+        71,
+        149,
+        121
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        112.89,
+        125
+      ],
+      "top": 65,
+      "height": 61,
+      "bbox": [
+        101,
+        65,
+        141,
+        125
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        119.09,
+        125
+      ],
+      "top": 64,
+      "height": 62,
+      "bbox": [
+        109,
+        64,
+        131,
+        125
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        126.16,
+        125
+      ],
+      "top": 69,
+      "height": 57,
+      "bbox": [
+        98,
+        69,
+        138,
+        125
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        120.51,
+        121
+      ],
+      "top": 72,
+      "height": 50,
+      "bbox": [
+        90,
+        72,
+        145,
+        121
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 41.6814,
+    "fit": 0.8016,
+    "archetype": "horse_rider"
+  },
+  "default_flic": "AncientCavalry_Default.flc",
+  "flics": {
+    "AncientCavalry_Attack.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 80,
+      "height": 70,
+      "offset_left": 75,
+      "offset_top": 65,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "AncientCavalry_death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 182,
+      "height": 114,
+      "offset_left": 29,
+      "offset_top": 52,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 16,
+      "frameMs": 66
+    },
+    "AncientCavalry_Default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 73,
+      "height": 67,
+      "offset_left": 78,
+      "offset_top": 64,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "AncientCavalry_Fidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 75,
+      "height": 70,
+      "offset_left": 76,
+      "offset_top": 61,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 100
+    },
+    "AncientCavalry_fortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 79,
+      "height": 68,
+      "offset_left": 74,
+      "offset_top": 64,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 83
+    },
+    "AncientCavalry_run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 93,
+      "height": 78,
+      "offset_left": 67,
+      "offset_top": 57,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 11,
+      "frameMs": 66
+    },
+    "AncientCavalry_victory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 82,
+      "height": 88,
+      "offset_left": 70,
+      "offset_top": 45,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 100
+    }
+  }
+}

@@ -1,0 +1,297 @@
+{
+  "unit": "Legionary",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.67,
+    120.5
+  ],
+  "anchor_override": null,
+  "standing_height": 44.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        120.69,
+        123
+      ],
+      "top": 79,
+      "height": 45,
+      "bbox": [
+        106,
+        79,
+        128,
+        123
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        120.42,
+        122
+      ],
+      "top": 79,
+      "height": 44,
+      "bbox": [
+        110,
+        79,
+        131,
+        122
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        118.91,
+        122
+      ],
+      "top": 79,
+      "height": 44,
+      "bbox": [
+        112,
+        79,
+        132,
+        122
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        118.82,
+        122
+      ],
+      "top": 79,
+      "height": 44,
+      "bbox": [
+        113,
+        79,
+        136,
+        122
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        121.61,
+        122
+      ],
+      "top": 78,
+      "height": 45,
+      "bbox": [
+        111,
+        78,
+        133,
+        122
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        121.21,
+        121
+      ],
+      "top": 78,
+      "height": 44,
+      "bbox": [
+        108,
+        78,
+        129,
+        121
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        117.5,
+        121
+      ],
+      "top": 78,
+      "height": 44,
+      "bbox": [
+        107,
+        78,
+        127,
+        121
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        117.35,
+        122
+      ],
+      "top": 79,
+      "height": 44,
+      "bbox": [
+        103,
+        79,
+        126,
+        122
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 48.6091,
+    "fit": 0.9348,
+    "archetype": "footman"
+  },
+  "default_flic": "LegionaryDefault.flc",
+  "flics": {
+    "Legionary_build_fort.flc": {
+      "actions": [
+        "FORTRESS"
+      ],
+      "kind": "loop",
+      "width": 54,
+      "height": 62,
+      "offset_left": 85,
+      "offset_top": 67,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "Legionary_build_road.flc": {
+      "actions": [
+        "ROAD"
+      ],
+      "kind": "loop",
+      "width": 68,
+      "height": 61,
+      "offset_left": 85,
+      "offset_top": 78,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 100
+    },
+    "LegionaryAttack2.flc": {
+      "actions": [
+        "ATTACK2"
+      ],
+      "kind": "animation",
+      "width": 65,
+      "height": 66,
+      "offset_left": 85,
+      "offset_top": 67,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "LegionaryAttackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 69,
+      "height": 64,
+      "offset_left": 85,
+      "offset_top": 72,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "LegionaryDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 129,
+      "height": 104,
+      "offset_left": 55,
+      "offset_top": 50,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "LegionaryDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 40,
+      "height": 51,
+      "offset_left": 98,
+      "offset_top": 77,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "LegionaryFidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 149,
+      "height": 139,
+      "offset_left": 82,
+      "offset_top": 70,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "LegionaryFortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 48,
+      "height": 55,
+      "offset_left": 93,
+      "offset_top": 74,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "LegionaryRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 40,
+      "height": 54,
+      "offset_left": 98,
+      "offset_top": 75,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "LegionaryVictory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 51,
+      "height": 62,
+      "offset_left": 91,
+      "offset_top": 69,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    }
+  }
+}

@@ -1,0 +1,267 @@
+{
+  "unit": "Jaguar Warrior",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    120.2,
+    120.5
+  ],
+  "anchor_override": null,
+  "standing_height": 47.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        121.81,
+        124
+      ],
+      "top": 74,
+      "height": 51,
+      "bbox": [
+        95,
+        74,
+        128,
+        124
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        123.89,
+        122
+      ],
+      "top": 73,
+      "height": 50,
+      "bbox": [
+        97,
+        73,
+        131,
+        122
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        119.52,
+        121
+      ],
+      "top": 74,
+      "height": 48,
+      "bbox": [
+        110,
+        74,
+        134,
+        121
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        117.0,
+        122
+      ],
+      "top": 76,
+      "height": 47,
+      "bbox": [
+        108,
+        76,
+        131,
+        122
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        120.89,
+        122
+      ],
+      "top": 77,
+      "height": 46,
+      "bbox": [
+        111,
+        77,
+        144,
+        122
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        121.67,
+        122
+      ],
+      "top": 77,
+      "height": 46,
+      "bbox": [
+        108,
+        77,
+        142,
+        122
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        115.56,
+        122
+      ],
+      "top": 77,
+      "height": 46,
+      "bbox": [
+        105,
+        77,
+        129,
+        122
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        117.0,
+        123
+      ],
+      "top": 75,
+      "height": 49,
+      "bbox": [
+        108,
+        75,
+        130,
+        123
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 47.1799,
+    "fit": 0.9073,
+    "archetype": "footman"
+  },
+  "default_flic": "JaguarWarriorDefault.flc",
+  "flics": {
+    "JaguarWarriorAttackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 89,
+      "height": 80,
+      "offset_left": 73,
+      "offset_top": 60,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "JaguarWarriorAttackB.flc": {
+      "actions": [
+        "ATTACK2"
+      ],
+      "kind": "animation",
+      "width": 70,
+      "height": 65,
+      "offset_left": 82,
+      "offset_top": 69,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "JaguarWarriorDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 122,
+      "height": 81,
+      "offset_left": 59,
+      "offset_top": 71,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "JaguarWarriorDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 56,
+      "height": 59,
+      "offset_left": 90,
+      "offset_top": 73,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "JaguarWarriorFidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 61,
+      "height": 76,
+      "offset_left": 87,
+      "offset_top": 56,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "JaguarWarriorFortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 55,
+      "height": 60,
+      "offset_left": 90,
+      "offset_top": 71,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "JaguarWarriorRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 50,
+      "height": 61,
+      "offset_left": 92,
+      "offset_top": 69,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "JaguarWarriorVictory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 58,
+      "height": 62,
+      "offset_left": 88,
+      "offset_top": 70,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    }
+  }
+}

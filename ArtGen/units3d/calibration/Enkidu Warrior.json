@@ -1,0 +1,252 @@
+{
+  "unit": "Enkidu Warrior",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.59,
+    120.0
+  ],
+  "anchor_override": null,
+  "standing_height": 50.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        119.21,
+        124
+      ],
+      "top": 71,
+      "height": 54,
+      "bbox": [
+        107,
+        71,
+        129,
+        124
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        122.64,
+        123
+      ],
+      "top": 73,
+      "height": 51,
+      "bbox": [
+        105,
+        73,
+        130,
+        123
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        121.35,
+        121
+      ],
+      "top": 74,
+      "height": 48,
+      "bbox": [
+        108,
+        74,
+        131,
+        121
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        117.18,
+        122
+      ],
+      "top": 72,
+      "height": 51,
+      "bbox": [
+        108,
+        72,
+        128,
+        122
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        119.96,
+        121
+      ],
+      "top": 72,
+      "height": 50,
+      "bbox": [
+        110,
+        72,
+        132,
+        121
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        120.56,
+        121
+      ],
+      "top": 74,
+      "height": 48,
+      "bbox": [
+        109,
+        74,
+        134,
+        121
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        117.88,
+        120
+      ],
+      "top": 75,
+      "height": 46,
+      "bbox": [
+        108,
+        75,
+        131,
+        120
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        115.57,
+        122
+      ],
+      "top": 73,
+      "height": 50,
+      "bbox": [
+        111,
+        73,
+        131,
+        122
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 42.4008,
+    "fit": 0.8154,
+    "archetype": "footman"
+  },
+  "default_flic": "EnkiduWarrior_default.flc",
+  "flics": {
+    "EnkiduWarrior_attack.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 240,
+      "height": 240,
+      "offset_left": 0,
+      "offset_top": 0,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "EnkiduWarrior_death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 153,
+      "height": 96,
+      "offset_left": 44,
+      "offset_top": 65,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "EnkiduWarrior_default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 45,
+      "height": 55,
+      "offset_left": 91,
+      "offset_top": 71,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "EnkiduWarrior_fidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 66,
+      "height": 61,
+      "offset_left": 79,
+      "offset_top": 66,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 100
+    },
+    "EnkiduWarrior_fortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 64,
+      "height": 66,
+      "offset_left": 82,
+      "offset_top": 64,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 83
+    },
+    "EnkiduWarrior_run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 74,
+      "height": 69,
+      "offset_left": 75,
+      "offset_top": 60,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "EnkiduWarrior_victory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 83,
+      "height": 80,
+      "offset_left": 71,
+      "offset_top": 51,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    }
+  }
+}

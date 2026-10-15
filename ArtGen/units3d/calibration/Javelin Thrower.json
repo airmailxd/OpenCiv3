@@ -1,0 +1,252 @@
+{
+  "unit": "Javelin Thrower",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.59,
+    122.5
+  ],
+  "anchor_override": null,
+  "standing_height": 56.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        125.67,
+        130
+      ],
+      "top": 76,
+      "height": 55,
+      "bbox": [
+        104,
+        76,
+        135,
+        130
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        133.67,
+        125
+      ],
+      "top": 73,
+      "height": 53,
+      "bbox": [
+        107,
+        73,
+        147,
+        125
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        117.56,
+        123
+      ],
+      "top": 67,
+      "height": 57,
+      "bbox": [
+        106,
+        67,
+        146,
+        123
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        117.0,
+        124
+      ],
+      "top": 61,
+      "height": 64,
+      "bbox": [
+        111,
+        61,
+        136,
+        124
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        121.62,
+        124
+      ],
+      "top": 61,
+      "height": 64,
+      "bbox": [
+        104,
+        61,
+        135,
+        124
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        123.41,
+        123
+      ],
+      "top": 67,
+      "height": 57,
+      "bbox": [
+        92,
+        67,
+        131,
+        123
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        106.26,
+        124
+      ],
+      "top": 75,
+      "height": 50,
+      "bbox": [
+        93,
+        75,
+        133,
+        124
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        111.46,
+        129
+      ],
+      "top": 76,
+      "height": 54,
+      "bbox": [
+        103,
+        76,
+        128,
+        129
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 55.9134,
+    "fit": 1.0753,
+    "archetype": "footman"
+  },
+  "default_flic": "Javelin_Thrower_Default.flc",
+  "flics": {
+    "Javelin_Thrower_AttackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 240,
+      "height": 240,
+      "offset_left": 0,
+      "offset_top": 0,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "Javelin_Thrower_Death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 106,
+      "height": 86,
+      "offset_left": 66,
+      "offset_top": 61,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "Javelin_Thrower_Default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 77,
+      "height": 73,
+      "offset_left": 72,
+      "offset_top": 61,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "Javelin_Thrower_Fidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 77,
+      "height": 73,
+      "offset_left": 72,
+      "offset_top": 61,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "Javelin_Thrower_Fortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 83,
+      "height": 74,
+      "offset_left": 70,
+      "offset_top": 60,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 83
+    },
+    "Javelin_Thrower_Run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 65,
+      "height": 55,
+      "offset_left": 88,
+      "offset_top": 75,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "Javelin_Thrower_Victory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 77,
+      "height": 73,
+      "offset_left": 72,
+      "offset_top": 61,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    }
+  }
+}

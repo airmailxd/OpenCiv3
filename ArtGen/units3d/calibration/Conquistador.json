@@ -1,0 +1,270 @@
+{
+  "unit": "Conquistador",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    120.81,
+    124.5
+  ],
+  "anchor_override": [
+    119.0,
+    124.0
+  ],
+  "standing_height": 61.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        112.48,
+        124
+      ],
+      "top": 61,
+      "height": 64,
+      "bbox": [
+        83,
+        61,
+        138,
+        124
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        101.0,
+        132
+      ],
+      "top": 60,
+      "height": 73,
+      "bbox": [
+        97,
+        60,
+        132,
+        132
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        122.62,
+        136
+      ],
+      "top": 62,
+      "height": 75,
+      "bbox": [
+        103,
+        62,
+        138,
+        136
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        135.31,
+        130
+      ],
+      "top": 66,
+      "height": 65,
+      "bbox": [
+        95,
+        66,
+        153,
+        130
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        118.0,
+        126
+      ],
+      "top": 70,
+      "height": 57,
+      "bbox": [
+        101,
+        70,
+        156,
+        126
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        119.0,
+        126
+      ],
+      "top": 71,
+      "height": 56,
+      "bbox": [
+        107,
+        71,
+        142,
+        126
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        125.69,
+        126
+      ],
+      "top": 69,
+      "height": 58,
+      "bbox": [
+        101,
+        69,
+        136,
+        126
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        122.77,
+        122
+      ],
+      "top": 65,
+      "height": 58,
+      "bbox": [
+        86,
+        65,
+        144,
+        122
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 35.8388,
+    "fit": 0.6892,
+    "archetype": "horse_rider"
+  },
+  "default_flic": "x_conquist default.flc",
+  "flics": {
+    "x_conquist attack_a.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 88,
+      "height": 82,
+      "offset_left": 74,
+      "offset_top": 59,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 20,
+      "frameMs": 66
+    },
+    "x_conquist attack_b.flc": {
+      "actions": [
+        "ATTACK2"
+      ],
+      "kind": "animation",
+      "width": 91,
+      "height": 83,
+      "offset_left": 72,
+      "offset_top": 59,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 20,
+      "frameMs": 66
+    },
+    "x_conquist death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 104,
+      "height": 96,
+      "offset_left": 66,
+      "offset_top": 50,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "x_conquist default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 80,
+      "height": 79,
+      "offset_left": 78,
+      "offset_top": 60,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "x_conquist fidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 86,
+      "height": 83,
+      "offset_left": 76,
+      "offset_top": 59,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 100
+    },
+    "x_conquist fortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 85,
+      "height": 86,
+      "offset_left": 76,
+      "offset_top": 55,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "x_conquist run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 84,
+      "height": 85,
+      "offset_left": 77,
+      "offset_top": 57,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 14,
+      "frameMs": 50
+    },
+    "x_conquist victory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 86,
+      "height": 101,
+      "offset_left": 76,
+      "offset_top": 41,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    }
+  }
+}

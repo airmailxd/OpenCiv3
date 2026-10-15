@@ -1,0 +1,267 @@
+{
+  "unit": "Gallic Swordsman",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.73,
+    121.5
+  ],
+  "anchor_override": null,
+  "standing_height": 43.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        123.58,
+        123
+      ],
+      "top": 79,
+      "height": 45,
+      "bbox": [
+        92,
+        79,
+        134,
+        123
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        119.95,
+        121
+      ],
+      "top": 79,
+      "height": 43,
+      "bbox": [
+        99,
+        79,
+        136,
+        121
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        113.37,
+        122
+      ],
+      "top": 79,
+      "height": 44,
+      "bbox": [
+        107,
+        79,
+        132,
+        122
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        116.81,
+        124
+      ],
+      "top": 80,
+      "height": 45,
+      "bbox": [
+        112,
+        80,
+        137,
+        124
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        121.69,
+        123
+      ],
+      "top": 81,
+      "height": 43,
+      "bbox": [
+        105,
+        81,
+        147,
+        123
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        121.68,
+        122
+      ],
+      "top": 81,
+      "height": 42,
+      "bbox": [
+        103,
+        81,
+        140,
+        122
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        116.0,
+        123
+      ],
+      "top": 81,
+      "height": 43,
+      "bbox": [
+        107,
+        81,
+        132,
+        123
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        119.5,
+        123
+      ],
+      "top": 80,
+      "height": 44,
+      "bbox": [
+        101,
+        80,
+        127,
+        123
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 45.9075,
+    "fit": 0.8828,
+    "archetype": "footman"
+  },
+  "default_flic": "x_gallic swordsman Default.flc",
+  "flics": {
+    "x_gallic swordsman Attack_A.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 103,
+      "height": 85,
+      "offset_left": 67,
+      "offset_top": 60,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 20,
+      "frameMs": 66
+    },
+    "x_gallic swordsman Attack_B.flc": {
+      "actions": [
+        "ATTACK2"
+      ],
+      "kind": "animation",
+      "width": 77,
+      "height": 67,
+      "offset_left": 79,
+      "offset_top": 69,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 20,
+      "frameMs": 66
+    },
+    "x_gallic swordsman Death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 171,
+      "height": 102,
+      "offset_left": 35,
+      "offset_top": 62,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "x_gallic swordsman Default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 61,
+      "height": 55,
+      "offset_left": 89,
+      "offset_top": 79,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "x_gallic swordsman Fidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 69,
+      "height": 73,
+      "offset_left": 85,
+      "offset_top": 65,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 100
+    },
+    "x_gallic swordsman Fortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 77,
+      "height": 63,
+      "offset_left": 79,
+      "offset_top": 73,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 83
+    },
+    "x_gallic swordsman Run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 61,
+      "height": 64,
+      "offset_left": 86,
+      "offset_top": 67,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "x_gallic swordsman Victory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 77,
+      "height": 80,
+      "offset_left": 79,
+      "offset_top": 56,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 20,
+      "frameMs": 100
+    }
+  }
+}

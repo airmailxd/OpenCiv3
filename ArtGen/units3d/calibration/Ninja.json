@@ -1,0 +1,267 @@
+{
+  "unit": "Ninja",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.67,
+    120.5
+  ],
+  "anchor_override": null,
+  "standing_height": 42.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        119.33,
+        123
+      ],
+      "top": 82,
+      "height": 42,
+      "bbox": [
+        100,
+        82,
+        131,
+        123
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        121.43,
+        122
+      ],
+      "top": 82,
+      "height": 41,
+      "bbox": [
+        106,
+        82,
+        136,
+        122
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        120.48,
+        121
+      ],
+      "top": 82,
+      "height": 40,
+      "bbox": [
+        114,
+        82,
+        134,
+        121
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        117.31,
+        122
+      ],
+      "top": 81,
+      "height": 42,
+      "bbox": [
+        114,
+        81,
+        135,
+        122
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        120.0,
+        122
+      ],
+      "top": 81,
+      "height": 42,
+      "bbox": [
+        108,
+        81,
+        139,
+        122
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        120.88,
+        121
+      ],
+      "top": 80,
+      "height": 42,
+      "bbox": [
+        103,
+        80,
+        133,
+        121
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        118.38,
+        120
+      ],
+      "top": 81,
+      "height": 40,
+      "bbox": [
+        105,
+        81,
+        125,
+        120
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        116.2,
+        122
+      ],
+      "top": 81,
+      "height": 42,
+      "bbox": [
+        104,
+        81,
+        125,
+        122
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 48.595,
+    "fit": 0.9345,
+    "archetype": "footman"
+  },
+  "default_flic": "x_Ninja default.flc",
+  "flics": {
+    "x_Ninja attack_a.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 79,
+      "height": 69,
+      "offset_left": 75,
+      "offset_top": 65,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "x_Ninja attack_b.flc": {
+      "actions": [
+        "ATTACK2"
+      ],
+      "kind": "animation",
+      "width": 86,
+      "height": 66,
+      "offset_left": 70,
+      "offset_top": 67,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "x_Ninja death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 120,
+      "height": 75,
+      "offset_left": 59,
+      "offset_top": 76,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "x_Ninja default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 49,
+      "height": 49,
+      "offset_left": 92,
+      "offset_top": 80,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "x_Ninja fidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 71,
+      "height": 72,
+      "offset_left": 75,
+      "offset_top": 57,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 14,
+      "frameMs": 83
+    },
+    "x_Ninja fortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 59,
+      "height": 51,
+      "offset_left": 86,
+      "offset_top": 80,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 11,
+      "frameMs": 83
+    },
+    "x_Ninja run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 58,
+      "height": 54,
+      "offset_left": 86,
+      "offset_top": 77,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "x_Ninja victory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 62,
+      "height": 55,
+      "offset_left": 85,
+      "offset_top": 77,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    }
+  }
+}

@@ -1,0 +1,252 @@
+{
+  "unit": "Bowman",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.3,
+    120.5
+  ],
+  "anchor_override": null,
+  "standing_height": 44.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        119.0,
+        123
+      ],
+      "top": 78,
+      "height": 46,
+      "bbox": [
+        107,
+        78,
+        131,
+        123
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        123.25,
+        123
+      ],
+      "top": 80,
+      "height": 44,
+      "bbox": [
+        111,
+        80,
+        135,
+        123
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        120.24,
+        121
+      ],
+      "top": 80,
+      "height": 42,
+      "bbox": [
+        111,
+        80,
+        143,
+        121
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        116.2,
+        122
+      ],
+      "top": 79,
+      "height": 44,
+      "bbox": [
+        112,
+        79,
+        140,
+        122
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        119.59,
+        122
+      ],
+      "top": 79,
+      "height": 44,
+      "bbox": [
+        108,
+        79,
+        131,
+        122
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        122.5,
+        122
+      ],
+      "top": 79,
+      "height": 44,
+      "bbox": [
+        104,
+        79,
+        128,
+        122
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        118.52,
+        120
+      ],
+      "top": 79,
+      "height": 42,
+      "bbox": [
+        96,
+        79,
+        128,
+        120
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        115.3,
+        122
+      ],
+      "top": 78,
+      "height": 45,
+      "bbox": [
+        99,
+        78,
+        127,
+        122
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 49.6992,
+    "fit": 0.9558,
+    "archetype": "footman"
+  },
+  "default_flic": "bowmanDefault.flc",
+  "flics": {
+    "bowmanAttackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 122,
+      "height": 91,
+      "offset_left": 56,
+      "offset_top": 56,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "bowmanDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 93,
+      "height": 69,
+      "offset_left": 74,
+      "offset_top": 76,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "bowmanDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 52,
+      "height": 55,
+      "offset_left": 93,
+      "offset_top": 78,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "bowmanFidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 65,
+      "height": 58,
+      "offset_left": 86,
+      "offset_top": 77,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "bowmanFortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 74,
+      "height": 60,
+      "offset_left": 81,
+      "offset_top": 76,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "bowmanRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 64,
+      "height": 57,
+      "offset_left": 86,
+      "offset_top": 77,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "bowmanVictory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 77,
+      "height": 72,
+      "offset_left": 79,
+      "offset_top": 65,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    }
+  }
+}

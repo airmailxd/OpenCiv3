@@ -1,0 +1,255 @@
+{
+  "unit": "Mounted Warrior",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.5,
+    121.5
+  ],
+  "anchor_override": [
+    119.5,
+    119.0
+  ],
+  "standing_height": 58.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        116.0,
+        123
+      ],
+      "top": 63,
+      "height": 61,
+      "bbox": [
+        101,
+        63,
+        139,
+        123
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        119.5,
+        123
+      ],
+      "top": 62,
+      "height": 62,
+      "bbox": [
+        109,
+        62,
+        130,
+        123
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        123.0,
+        123
+      ],
+      "top": 63,
+      "height": 61,
+      "bbox": [
+        100,
+        63,
+        139,
+        123
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        115.63,
+        121
+      ],
+      "top": 67,
+      "height": 55,
+      "bbox": [
+        94,
+        67,
+        146,
+        121
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        111.06,
+        126
+      ],
+      "top": 70,
+      "height": 57,
+      "bbox": [
+        100,
+        70,
+        138,
+        126
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        119.5,
+        127
+      ],
+      "top": 69,
+      "height": 59,
+      "bbox": [
+        109,
+        69,
+        130,
+        127
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        127.72,
+        126
+      ],
+      "top": 70,
+      "height": 57,
+      "bbox": [
+        100,
+        70,
+        139,
+        126
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        123.37,
+        121
+      ],
+      "top": 67,
+      "height": 55,
+      "bbox": [
+        93,
+        67,
+        145,
+        121
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 41.1099,
+    "fit": 0.7906,
+    "archetype": "horse_rider"
+  },
+  "default_flic": "MountedWarriorDefault.flc",
+  "flics": {
+    "MountedWarriorAttackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 114,
+      "height": 84,
+      "offset_left": 60,
+      "offset_top": 60,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "MountedWarriorDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 119,
+      "height": 95,
+      "offset_left": 60,
+      "offset_top": 56,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "MountedWarriorDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 63,
+      "height": 72,
+      "offset_left": 85,
+      "offset_top": 62,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "MountedWarriorFidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 63,
+      "height": 70,
+      "offset_left": 85,
+      "offset_top": 64,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 100
+    },
+    "MountedWarriorFortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 63,
+      "height": 71,
+      "offset_left": 85,
+      "offset_top": 63,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "MountedWarriorRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 72,
+      "height": 73,
+      "offset_left": 82,
+      "offset_top": 63,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "MountedWarriorVictory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 84,
+      "height": 82,
+      "offset_left": 76,
+      "offset_top": 58,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    }
+  }
+}

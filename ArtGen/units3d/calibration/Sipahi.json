@@ -1,0 +1,270 @@
+{
+  "unit": "Sipahi",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    120.37,
+    122.5
+  ],
+  "anchor_override": [
+    119.25,
+    120.5
+  ],
+  "standing_height": 55.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        114.6,
+        124
+      ],
+      "top": 70,
+      "height": 55,
+      "bbox": [
+        101,
+        70,
+        139,
+        124
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        120.11,
+        124
+      ],
+      "top": 70,
+      "height": 55,
+      "bbox": [
+        108,
+        70,
+        131,
+        124
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        124.4,
+        124
+      ],
+      "top": 70,
+      "height": 55,
+      "bbox": [
+        101,
+        70,
+        143,
+        124
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        114.65,
+        123
+      ],
+      "top": 71,
+      "height": 53,
+      "bbox": [
+        94,
+        71,
+        149,
+        123
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        115.93,
+        126
+      ],
+      "top": 71,
+      "height": 56,
+      "bbox": [
+        100,
+        71,
+        138,
+        126
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        120.64,
+        125
+      ],
+      "top": 71,
+      "height": 55,
+      "bbox": [
+        108,
+        71,
+        131,
+        125
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        125.2,
+        125
+      ],
+      "top": 71,
+      "height": 55,
+      "bbox": [
+        96,
+        71,
+        138,
+        125
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        121.88,
+        122
+      ],
+      "top": 71,
+      "height": 52,
+      "bbox": [
+        90,
+        71,
+        145,
+        122
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 39.387,
+    "fit": 0.7574,
+    "archetype": "horse_rider"
+  },
+  "default_flic": "x_sipahi default.flc",
+  "flics": {
+    "x_sipahi attack_a.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 84,
+      "height": 84,
+      "offset_left": 74,
+      "offset_top": 48,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "x_sipahi attack_b.flc": {
+      "actions": [
+        "ATTACK2"
+      ],
+      "kind": "animation",
+      "width": 84,
+      "height": 84,
+      "offset_left": 74,
+      "offset_top": 48,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "x_sipahi death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 138,
+      "height": 106,
+      "offset_left": 49,
+      "offset_top": 49,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 16,
+      "frameMs": 66
+    },
+    "x_sipahi default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 76,
+      "height": 62,
+      "offset_left": 75,
+      "offset_top": 70,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "x_sipahi fidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 77,
+      "height": 63,
+      "offset_left": 74,
+      "offset_top": 69,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 14,
+      "frameMs": 100
+    },
+    "x_sipahi fortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 80,
+      "height": 76,
+      "offset_left": 74,
+      "offset_top": 57,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 12,
+      "frameMs": 83
+    },
+    "x_sipahi run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 80,
+      "height": 69,
+      "offset_left": 74,
+      "offset_top": 66,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "x_sipahi victory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 86,
+      "height": 98,
+      "offset_left": 70,
+      "offset_top": 38,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    }
+  }
+}

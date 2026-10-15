@@ -1,0 +1,252 @@
+{
+  "unit": "Pikeman",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.26,
+    119.5
+  ],
+  "anchor_override": null,
+  "standing_height": 55.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        119.0,
+        121
+      ],
+      "top": 66,
+      "height": 56,
+      "bbox": [
+        106,
+        66,
+        127,
+        121
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        116.23,
+        122
+      ],
+      "top": 70,
+      "height": 53,
+      "bbox": [
+        107,
+        70,
+        129,
+        122
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        117.43,
+        125
+      ],
+      "top": 73,
+      "height": 53,
+      "bbox": [
+        109,
+        73,
+        130,
+        125
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        123.38,
+        124
+      ],
+      "top": 72,
+      "height": 53,
+      "bbox": [
+        113,
+        72,
+        129,
+        124
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        121.97,
+        121
+      ],
+      "top": 68,
+      "height": 54,
+      "bbox": [
+        112,
+        68,
+        133,
+        121
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        119.5,
+        120
+      ],
+      "top": 64,
+      "height": 57,
+      "bbox": [
+        110,
+        64,
+        132,
+        120
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        119.17,
+        121
+      ],
+      "top": 62,
+      "height": 60,
+      "bbox": [
+        110,
+        62,
+        129,
+        121
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        119.36,
+        121
+      ],
+      "top": 63,
+      "height": 59,
+      "bbox": [
+        110,
+        63,
+        126,
+        121
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 41.643,
+    "fit": 0.8008,
+    "archetype": "footman"
+  },
+  "default_flic": "PikemanDefault.flc",
+  "flics": {
+    "PikemanAttackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 122,
+      "height": 85,
+      "offset_left": 56,
+      "offset_top": 62,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "PikemanDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 160,
+      "height": 106,
+      "offset_left": 40,
+      "offset_top": 55,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "PikemanDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 39,
+      "height": 66,
+      "offset_left": 96,
+      "offset_top": 62,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "PikemanFidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 39,
+      "height": 67,
+      "offset_left": 96,
+      "offset_top": 61,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "PikemanFortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 84,
+      "height": 73,
+      "offset_left": 74,
+      "offset_top": 63,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "PikemanRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 43,
+      "height": 69,
+      "offset_left": 98,
+      "offset_top": 63,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "PikemanVictory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 76,
+      "height": 72,
+      "offset_left": 78,
+      "offset_top": 62,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    }
+  }
+}

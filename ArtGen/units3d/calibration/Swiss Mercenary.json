@@ -1,0 +1,252 @@
+{
+  "unit": "Swiss Mercenary",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    118.79,
+    121.0
+  ],
+  "anchor_override": null,
+  "standing_height": 66.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        121.21,
+        123
+      ],
+      "top": 55,
+      "height": 69,
+      "bbox": [
+        106,
+        55,
+        127,
+        123
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        115.5,
+        123
+      ],
+      "top": 59,
+      "height": 65,
+      "bbox": [
+        107,
+        59,
+        128,
+        123
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        117.9,
+        126
+      ],
+      "top": 62,
+      "height": 65,
+      "bbox": [
+        110,
+        62,
+        127,
+        126
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        124.93,
+        125
+      ],
+      "top": 61,
+      "height": 65,
+      "bbox": [
+        114,
+        61,
+        128,
+        125
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        125.78,
+        121
+      ],
+      "top": 58,
+      "height": 64,
+      "bbox": [
+        112,
+        58,
+        133,
+        121
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        119.68,
+        120
+      ],
+      "top": 54,
+      "height": 67,
+      "bbox": [
+        111,
+        54,
+        132,
+        120
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        116.28,
+        121
+      ],
+      "top": 53,
+      "height": 69,
+      "bbox": [
+        112,
+        53,
+        129,
+        121
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        117.75,
+        122
+      ],
+      "top": 53,
+      "height": 70,
+      "bbox": [
+        111,
+        53,
+        125,
+        122
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 50.0481,
+    "fit": 0.9625,
+    "archetype": "footman"
+  },
+  "default_flic": "SwissMercenary_default.flc",
+  "flics": {
+    "SwissMercenary_attackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 160,
+      "height": 93,
+      "offset_left": 36,
+      "offset_top": 61,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "SwissMercenary_death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 154,
+      "height": 118,
+      "offset_left": 43,
+      "offset_top": 41,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "SwissMercenary_default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 52,
+      "height": 76,
+      "offset_left": 83,
+      "offset_top": 52,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "SwissMercenary_fidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 54,
+      "height": 78,
+      "offset_left": 82,
+      "offset_top": 51,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 100
+    },
+    "SwissMercenary_fortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 117,
+      "height": 93,
+      "offset_left": 54,
+      "offset_top": 49,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 83
+    },
+    "SwissMercenary_run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 84,
+      "height": 81,
+      "offset_left": 69,
+      "offset_top": 53,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 11,
+      "frameMs": 66
+    },
+    "SwissMercenary_victory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 107,
+      "height": 101,
+      "offset_left": 61,
+      "offset_top": 41,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    }
+  }
+}

@@ -1,0 +1,267 @@
+{
+  "unit": "Medieval Infantry",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.65,
+    120.5
+  ],
+  "anchor_override": null,
+  "standing_height": 42.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        121.64,
+        123
+      ],
+      "top": 81,
+      "height": 43,
+      "bbox": [
+        104,
+        81,
+        132,
+        123
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        119.41,
+        122
+      ],
+      "top": 81,
+      "height": 42,
+      "bbox": [
+        106,
+        81,
+        132,
+        122
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        118.28,
+        122
+      ],
+      "top": 81,
+      "height": 42,
+      "bbox": [
+        108,
+        81,
+        131,
+        122
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        118.29,
+        122
+      ],
+      "top": 81,
+      "height": 42,
+      "bbox": [
+        110,
+        81,
+        132,
+        122
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        120.45,
+        123
+      ],
+      "top": 81,
+      "height": 43,
+      "bbox": [
+        107,
+        81,
+        135,
+        123
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        120.15,
+        122
+      ],
+      "top": 80,
+      "height": 43,
+      "bbox": [
+        107,
+        80,
+        132,
+        122
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        118.9,
+        122
+      ],
+      "top": 80,
+      "height": 43,
+      "bbox": [
+        108,
+        80,
+        131,
+        122
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        119.9,
+        122
+      ],
+      "top": 81,
+      "height": 42,
+      "bbox": [
+        107,
+        81,
+        129,
+        122
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 47.7468,
+    "fit": 0.9182,
+    "archetype": "footman"
+  },
+  "default_flic": "x_Medieval infantry default.flc",
+  "flics": {
+    "x_Medieval infantry attack_a.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 99,
+      "height": 83,
+      "offset_left": 64,
+      "offset_top": 54,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "x_Medieval infantry attack_b.flc": {
+      "actions": [
+        "ATTACK2"
+      ],
+      "kind": "animation",
+      "width": 101,
+      "height": 73,
+      "offset_left": 63,
+      "offset_top": 65,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "x_Medieval infantry death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 93,
+      "height": 65,
+      "offset_left": 73,
+      "offset_top": 79,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "x_Medieval infantry default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 41,
+      "height": 49,
+      "offset_left": 96,
+      "offset_top": 80,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "x_Medieval infantry fidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 45,
+      "height": 49,
+      "offset_left": 94,
+      "offset_top": 80,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "x_Medieval infantry fortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 81,
+      "height": 57,
+      "offset_left": 75,
+      "offset_top": 78,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 83
+    },
+    "x_Medieval infantry run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 60,
+      "height": 54,
+      "offset_left": 87,
+      "offset_top": 79,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "x_Medieval infantry victory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 82,
+      "height": 66,
+      "offset_left": 72,
+      "offset_top": 68,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    }
+  }
+}

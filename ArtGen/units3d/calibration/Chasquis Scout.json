@@ -1,0 +1,252 @@
+{
+  "unit": "Chasquis Scout",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    120.19,
+    121.5
+  ],
+  "anchor_override": null,
+  "standing_height": 49.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        121.61,
+        123
+      ],
+      "top": 76,
+      "height": 48,
+      "bbox": [
+        108,
+        76,
+        133,
+        123
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        119.8,
+        123
+      ],
+      "top": 75,
+      "height": 49,
+      "bbox": [
+        110,
+        75,
+        135,
+        123
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        120.58,
+        123
+      ],
+      "top": 74,
+      "height": 50,
+      "bbox": [
+        109,
+        74,
+        135,
+        123
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        122.9,
+        122
+      ],
+      "top": 73,
+      "height": 50,
+      "bbox": [
+        115,
+        73,
+        137,
+        122
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        119.18,
+        120
+      ],
+      "top": 73,
+      "height": 48,
+      "bbox": [
+        105,
+        73,
+        131,
+        120
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        114.09,
+        122
+      ],
+      "top": 74,
+      "height": 49,
+      "bbox": [
+        103,
+        74,
+        129,
+        122
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        115.86,
+        124
+      ],
+      "top": 75,
+      "height": 50,
+      "bbox": [
+        104,
+        75,
+        130,
+        124
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        121.32,
+        124
+      ],
+      "top": 76,
+      "height": 49,
+      "bbox": [
+        102,
+        76,
+        124,
+        124
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 51.4802,
+    "fit": 0.99,
+    "archetype": "footman"
+  },
+  "default_flic": "Chasquis_Scout_Default.flc",
+  "flics": {
+    "Chasquis_Scout_Attack.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 86,
+      "height": 77,
+      "offset_left": 72,
+      "offset_top": 62,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "Chasquis_Scout_Death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 90,
+      "height": 72,
+      "offset_left": 74,
+      "offset_top": 72,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "Chasquis_Scout_Default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 51,
+      "height": 56,
+      "offset_left": 88,
+      "offset_top": 72,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "Chasquis_Scout_Fidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 53,
+      "height": 53,
+      "offset_left": 88,
+      "offset_top": 73,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "Chasquis_Scout_Fortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 51,
+      "height": 56,
+      "offset_left": 91,
+      "offset_top": 73,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 83
+    },
+    "Chasquis_Scout_Run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 57,
+      "height": 58,
+      "offset_left": 84,
+      "offset_top": 73,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "Chasquis_Scout_Victory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 69,
+      "height": 69,
+      "offset_left": 76,
+      "offset_top": 60,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    }
+  }
+}

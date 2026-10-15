@@ -1,0 +1,267 @@
+{
+  "unit": "Hoplite",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.66,
+    120.5
+  ],
+  "anchor_override": null,
+  "standing_height": 49.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        120.89,
+        122
+      ],
+      "top": 74,
+      "height": 49,
+      "bbox": [
+        102,
+        74,
+        133,
+        122
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        116.3,
+        122
+      ],
+      "top": 77,
+      "height": 46,
+      "bbox": [
+        105,
+        77,
+        132,
+        122
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        116.36,
+        125
+      ],
+      "top": 77,
+      "height": 49,
+      "bbox": [
+        112,
+        77,
+        129,
+        125
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        122.64,
+        125
+      ],
+      "top": 77,
+      "height": 49,
+      "bbox": [
+        113,
+        77,
+        131,
+        125
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        123.79,
+        122
+      ],
+      "top": 76,
+      "height": 47,
+      "bbox": [
+        106,
+        76,
+        137,
+        122
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        120.06,
+        120
+      ],
+      "top": 71,
+      "height": 50,
+      "bbox": [
+        107,
+        71,
+        134,
+        120
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        117.5,
+        121
+      ],
+      "top": 67,
+      "height": 55,
+      "bbox": [
+        110,
+        67,
+        127,
+        121
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        119.26,
+        122
+      ],
+      "top": 69,
+      "height": 54,
+      "bbox": [
+        108,
+        69,
+        126,
+        122
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 41.5538,
+    "fit": 0.7991,
+    "archetype": "footman"
+  },
+  "default_flic": "hopliteDefault.flc",
+  "flics": {
+    "hopliteAttackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 108,
+      "height": 73,
+      "offset_left": 64,
+      "offset_top": 72,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "hopliteAttackB.flc": {
+      "actions": [
+        "ATTACK2"
+      ],
+      "kind": "animation",
+      "width": 101,
+      "height": 74,
+      "offset_left": 67,
+      "offset_top": 68,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "hopliteDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 106,
+      "height": 79,
+      "offset_left": 67,
+      "offset_top": 68,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "hopliteDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 47,
+      "height": 60,
+      "offset_left": 92,
+      "offset_top": 67,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "hopliteFidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 47,
+      "height": 63,
+      "offset_left": 92,
+      "offset_top": 67,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "hopliteFortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 56,
+      "height": 66,
+      "offset_left": 89,
+      "offset_top": 67,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "hopliteRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 72,
+      "height": 62,
+      "offset_left": 81,
+      "offset_top": 72,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "hopliteVictory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 56,
+      "height": 67,
+      "offset_left": 91,
+      "offset_top": 67,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    }
+  }
+}

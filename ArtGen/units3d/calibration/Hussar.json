@@ -1,0 +1,255 @@
+{
+  "unit": "Hussar",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.61,
+    125.5
+  ],
+  "anchor_override": [
+    119.5,
+    122.0
+  ],
+  "standing_height": 59.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        113.71,
+        128
+      ],
+      "top": 70,
+      "height": 59,
+      "bbox": [
+        97,
+        70,
+        135,
+        128
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        119.5,
+        128
+      ],
+      "top": 71,
+      "height": 58,
+      "bbox": [
+        109,
+        71,
+        130,
+        128
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        125.07,
+        128
+      ],
+      "top": 70,
+      "height": 59,
+      "bbox": [
+        104,
+        70,
+        142,
+        128
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        121.63,
+        124
+      ],
+      "top": 68,
+      "height": 57,
+      "bbox": [
+        99,
+        68,
+        150,
+        124
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        114.88,
+        127
+      ],
+      "top": 65,
+      "height": 63,
+      "bbox": [
+        104,
+        65,
+        142,
+        127
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        119.71,
+        127
+      ],
+      "top": 64,
+      "height": 64,
+      "bbox": [
+        109,
+        64,
+        130,
+        127
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        124.38,
+        127
+      ],
+      "top": 65,
+      "height": 63,
+      "bbox": [
+        97,
+        65,
+        135,
+        127
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        117.16,
+        124
+      ],
+      "top": 68,
+      "height": 57,
+      "bbox": [
+        89,
+        68,
+        140,
+        124
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 43.6237,
+    "fit": 0.8389,
+    "archetype": "horse_rider"
+  },
+  "default_flic": "Hussar_default.flc",
+  "flics": {
+    "Hussar_attackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 84,
+      "height": 82,
+      "offset_left": 68,
+      "offset_top": 52,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "Hussar_death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 116,
+      "height": 92,
+      "offset_left": 61,
+      "offset_top": 57,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "Hussar_default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 76,
+      "height": 70,
+      "offset_left": 76,
+      "offset_top": 64,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "Hussar_fidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 76,
+      "height": 70,
+      "offset_left": 76,
+      "offset_top": 64,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "Hussar_fortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 76,
+      "height": 73,
+      "offset_left": 76,
+      "offset_top": 61,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 83
+    },
+    "Hussar_run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 84,
+      "height": 73,
+      "offset_left": 74,
+      "offset_top": 62,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "Hussar_victory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 85,
+      "height": 87,
+      "offset_left": 69,
+      "offset_top": 48,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    }
+  }
+}
