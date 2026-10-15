@@ -1,0 +1,255 @@
+{
+  "unit": "Horseman",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.46,
+    122.5
+  ],
+  "anchor_override": [
+    119.0,
+    119.5
+  ],
+  "standing_height": 57.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        116.05,
+        124
+      ],
+      "top": 71,
+      "height": 54,
+      "bbox": [
+        98,
+        71,
+        138,
+        124
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        120.0,
+        124
+      ],
+      "top": 74,
+      "height": 51,
+      "bbox": [
+        109,
+        74,
+        128,
+        124
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        124.21,
+        123
+      ],
+      "top": 74,
+      "height": 50,
+      "bbox": [
+        103,
+        74,
+        142,
+        123
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        117.52,
+        121
+      ],
+      "top": 72,
+      "height": 50,
+      "bbox": [
+        95,
+        72,
+        147,
+        121
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        111.08,
+        125
+      ],
+      "top": 63,
+      "height": 63,
+      "bbox": [
+        101,
+        63,
+        141,
+        125
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        118.92,
+        126
+      ],
+      "top": 57,
+      "height": 70,
+      "bbox": [
+        111,
+        57,
+        130,
+        126
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        126.75,
+        126
+      ],
+      "top": 56,
+      "height": 71,
+      "bbox": [
+        97,
+        56,
+        136,
+        126
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        122.38,
+        122
+      ],
+      "top": 62,
+      "height": 61,
+      "bbox": [
+        92,
+        62,
+        144,
+        122
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 44.2872,
+    "fit": 0.8517,
+    "archetype": "horse_rider"
+  },
+  "default_flic": "HorsemanDefault.flc",
+  "flics": {
+    "HorsemanAttackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 88,
+      "height": 72,
+      "offset_left": 73,
+      "offset_top": 67,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "HorsemanDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 119,
+      "height": 107,
+      "offset_left": 61,
+      "offset_top": 44,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "HorsemanDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 64,
+      "height": 78,
+      "offset_left": 85,
+      "offset_top": 56,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "HorsemanFidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 67,
+      "height": 81,
+      "offset_left": 85,
+      "offset_top": 55,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "HorsemanFortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 71,
+      "height": 78,
+      "offset_left": 80,
+      "offset_top": 57,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "HorsemanRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 71,
+      "height": 80,
+      "offset_left": 83,
+      "offset_top": 57,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "HorsemanVictory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 83,
+      "height": 97,
+      "offset_left": 74,
+      "offset_top": 42,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    }
+  }
+}

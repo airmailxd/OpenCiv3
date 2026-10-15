@@ -27,6 +27,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
 import bscene as B  # noqa: E402
+import mounted  # noqa: E402
 import ships  # noqa: E402
 import siege  # noqa: E402
 
@@ -37,6 +38,8 @@ SHIPS = set(ships.BUILDERS)
 def build(unit):
     if unit in SHIPS:
         return ships.build(unit)
+    if unit in mounted.BUILDERS:
+        return mounted.build(unit)
     return siege.build(unit)
 
 
@@ -58,6 +61,12 @@ def screen_points(root, waterline):
             for dx in (-0.25, 0.25):
                 for dy in (-0.18, 0.18):
                     for z in (0.0, 1.75):
+                        pts.append(Vector((c.x + dx, c.y + dy, z)))
+        elif o.type == 'EMPTY' and o.name.startswith('rider'):
+            c = o.matrix_world.translation   # a seated rider: hips at the seat, head ~0.95 m above
+            for dx in (-0.25, 0.25):
+                for dy in (-0.2, 0.2):
+                    for z in (c.z - 0.3, c.z + 0.95):
                         pts.append(Vector((c.x + dx, c.y + dy, z)))
     return pts
 
