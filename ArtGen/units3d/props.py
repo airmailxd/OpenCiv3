@@ -88,6 +88,11 @@ def material(key, colors, tint=False, weather=None):
     if name in bpy.data.materials:
         return bpy.data.materials[name]
     m = _base_material(name, color, rough, metal, tint)
+    if kind == 'flame':   # a small, self-lit flame (no weathering)
+        pr = _principled(m)
+        pr.inputs['Emission Color'].default_value = pr.inputs['Base Color'].default_value
+        pr.inputs['Emission Strength'].default_value = 6.0
+        return m
     _detail(m, kind, rough, tint)
     _weather(m, w)
     return m
@@ -284,6 +289,21 @@ def _detail(m, kind, rough, tint):
             value_mod(noise(16.0, 4.0, 0.5), 0.86, 1.05)
         bump(wave(260.0, 'X', distortion=0.5), 0.06, 0.001)
 
+
+DEFAULTS.update({
+    'obsidian': ('#1a181c', 0.2, 0.0, 'stone'),
+    'hide': ('#e8e0d0', 0.85, 0.0, 'leather'),
+    'hide_dark': ('#3a2a1e', 0.85, 0.0, 'leather'),
+    'feather': ('#e0d8c4', 0.9, 0.0, 'cloth'),
+    'parchment': ('#d8c89c', 0.85, 0.0, 'cloth'),
+    'book_cover': ('#4a2a1a', 0.7, 0.0, 'leather'),
+    'gold': ('#b08a40', 0.38, 1.0, 'metal'),
+    'gourd': ('#b8945a', 0.6, 0.0, 'wood'),
+    'flame': ('#ffa040', 0.5, 0.0, 'flame'),
+    'iron': ('#4a4a4c', 0.5, 1.0, 'metal'),
+    'cloth_wrap': ('#3a2e26', 0.85, 0.0, 'cloth'),
+    'lacquer': ('#1e1614', 0.35, 0.0, 'leather'),
+})
 
 # ------------------------------------------------------------ geometry
 
@@ -732,20 +752,25 @@ def shield_oval(p, w=0.66, h=0.66, dome=0.06, emblem_angle=45.0, band=0.1, scale
     _strap_back(p)
 
 
-def shield_round(p, r=0.24, dome=0.045, boss=True, scale=1.0):
+def shield_round(p, r=0.24, dome=0.045, boss=True, scale=1.0, tint='both'):
     """The Swordsman's small round shield: a dark plank board, a rim and boss
-    in the civ color (tint, as in the original); arm strap at the origin."""
+    in the civ color (tint, as in the original); arm strap at the origin.
+    tint: 'both', 'rim', 'boss' or 'none' (which parts take the civ color;
+    untinted ones are 'shield_rim' and bronze)."""
     rr = r * scale
     thick, gap = 0.02, -0.045
     p.add(domed_disc(rr, rr, thick, dome, rings=6, seg=40), 'shield_face', T(0, gap, 0), smooth=True)
     k = 56
     ring = [(rr * math.cos(2 * math.pi * i / k), gap - thick * 0.6, rr * math.sin(2 * math.pi * i / k))
             for i in range(k + 1)]
-    p.add(tube(ring, 0.016, seg=8, scale_xy=(1.0, 1.3)), 'shield_emblem', smooth=True, tint=True)
+    rim_t, boss_t = tint in ('both', 'rim'), tint in ('both', 'boss')
+    p.add(tube(ring, 0.016, seg=8, scale_xy=(1.0, 1.3)), 'shield_emblem' if rim_t else 'shield_rim', smooth=True,
+          tint=rim_t)
     if boss:
         prof = [(0.0, 0.075), (0.012, 0.072), (0.02, 0.05), (0.045, 0.035), (0.06, 0.0)]
         b = lathe(prof, seg=24)
-        p.add(b, 'shield_emblem', T(0, gap - thick - dome + 0.01, 0) @ R('X', 90), smooth=True, tint=True)
+        p.add(b, 'shield_emblem' if boss_t else 'bronze', T(0, gap - thick - dome + 0.01, 0) @ R('X', 90), smooth=True,
+              tint=boss_t)
     _strap_back(p, half=0.08)
 
 
@@ -851,6 +876,300 @@ def backpack(p, size=1.0):
         p.add(tube(path, 0.016 * s, seg=6, scale_xy=(1.0, 0.35)), 'leather', smooth=True)
 
 
+
+# ------------------------------------------------------------ more weapons (the footmen)
+
+def battle_axe(p, length=1.1, scale=1.0):
+    """A two-handed bearded axe: a long ash haft, an iron head whose blade
+    hangs down (the beard) to an edge facing +Y."""
+    L = length * scale
+    p.add(tube([(0, 0, -0.35), (0, 0, L - 0.35)], [SHAFT_R, SHAFT_R * 0.9], seg=10), 'wood', bevel=0.002, smooth=True)
+    head = slab([(-0.03, -0.04), (0.05, -0.035), (0.17, -0.16), (0.21, -0.12), (0.2, 0.05), (0.16, 0.08),
+                 (0.05, 0.04), (-0.03, 0.04)], 0.016, 'X')
+    for v in head.verts:   # thin toward the edge
+        v.co.x *= max(0.25, 1.0 - 0.75 * max(0.0, v.co.y) / 0.21)
+    p.add(head, 'steel', T(0, 0, L - 0.42), bevel=0.002)
+    p.add(lathe([(0.0, 0.03), (0.09, 0.03)], seg=10), 'iron', T(0, 0, L - 0.47), smooth=True)
+    _wrap(p, -0.33, -0.12, SHAFT_R + 0.002, 'leather_dark', turns=12)
+
+
+def star_mace(p, length=0.6, scale=1.0):
+    """A stone star mace: a short haft with a knapped six-pointed stone head."""
+    L = length * scale
+    p.add(tube([(0, 0, -0.1), (0, 0, L)], [0.02, 0.022], seg=10), 'wood', smooth=True)
+    for i in range(6):
+        a = 2 * math.pi * i / 6
+        pt = ellipsoid(0.03, 0.03, 0.03, seg=8)
+        for v in pt.verts:
+            v.co += Vector((math.cos(a), math.sin(a), 0)) * 0.035 * (1 + v.co.dot(Vector((math.cos(a), math.sin(a), 0))) / 0.03)
+        p.add(pt, 'stone', T(0, 0, L - 0.03), bevel=0.003)
+    p.add(ellipsoid(0.045, 0.045, 0.04, seg=10), 'stone', T(0, 0, L - 0.03), smooth=False)
+    _wrap(p, L - 0.1, L - 0.06, 0.026, 'rope')
+
+
+def macuahuitl(p, length=0.85, scale=1.0):
+    """The Aztec obsidian-edged club: a flat wooden paddle with rows of black
+    glass blades set in both edges."""
+    L = length * scale
+    p.add(tube([(0, 0, -0.12), (0, 0, 0.08)], 0.02, seg=10), 'wood', smooth=True)
+    paddle = slab([(-0.03, 0.06), (0.03, 0.06), (0.045, L - 0.06), (0.0, L), (-0.045, L - 0.06)], 0.02, 'X')
+    p.add(paddle, 'wood', bevel=0.004)
+    n = 7
+    for i in range(n):
+        z = 0.14 + (L - 0.24) * i / (n - 1)
+        for sy in (-1, 1):
+            blade = slab([(0.0, -0.022), (0.035, -0.01), (0.04, 0.0), (0.035, 0.012), (0.0, 0.022)], 0.006, 'X')
+            p.add(blade, 'obsidian', T(0, sy * 0.044, z) @ (R('Z', 180) if sy < 0 else Matrix.Identity(4)), bevel=0.001)
+
+
+def flail(p, length=0.55, chain=0.32, scale=1.0):
+    """A flail: a wooden haft, an iron chain of links hanging forward, a
+    spiked iron ball (hanging down and out, as carried)."""
+    L = length * scale
+    p.add(tube([(0, 0, -0.12), (0, 0, L)], 0.02, seg=10), 'wood', smooth=True)
+    p.add(lathe([(0.0, 0.026), (0.03, 0.026)], seg=10), 'iron', T(0, 0, L - 0.02), smooth=True)
+    top = Vector((0, 0, L + 0.01))
+    end = top + Vector((0, 0.18, -chain))
+    n = 6
+    for i in range(n):
+        a, b = top.lerp(end, i / n), top.lerp(end, (i + 1) / n)
+        mid = a.lerp(b, 0.5)
+        link = tube([(0, 0, -0.025), (0, 0, 0.025)], 0.009, seg=6)
+        rot = (b - a).normalized().to_track_quat('Z', 'Y').to_matrix().to_4x4()
+        p.add(link, 'iron', Matrix.Translation(mid) @ rot @ (R('Z', 90) if i % 2 else Matrix.Identity(4)), smooth=True)
+    p.add(ellipsoid(0.055, 0.055, 0.055, seg=14), 'iron', Matrix.Translation(end + Vector((0, 0.02, -0.05))), smooth=True)
+    for i in range(10):
+        d = Vector((math.sin(i * 2.4) * math.cos(i * 1.3), math.cos(i * 2.4) * math.cos(i * 1.3), math.sin(i * 1.3))).normalized()
+        spike = lathe([(0.0, 0.012), (0.04, 0.0)], seg=5)
+        rot = d.to_track_quat('Z', 'Y').to_matrix().to_4x4()
+        p.add(spike, 'iron', Matrix.Translation(end + Vector((0, 0.02, -0.05)) + d * 0.045) @ rot)
+
+
+def scimitar(p, length=0.8, scale=1.0):
+    """A broad curved scimitar widening toward the point."""
+    sabre(p, length=length, width=0.05, curve=0.11, scale=scale)
+
+
+def kama(p, length=0.42, scale=1.0):
+    """A kama: a short wooden handle with a curved sickle blade at the top, at right angles."""
+    L = length * scale
+    p.add(tube([(0, 0, -0.1), (0, 0, L - 0.1)], 0.018, seg=10), 'wood', smooth=True)
+    pts = [(0.0, 0.0, L - 0.1), (0.0, 0.08, L - 0.09), (0.0, 0.15, L - 0.12), (0.0, 0.19, L - 0.18)]
+    p.add(tube(pts, [0.012, 0.011, 0.008, 0.002], seg=4, scale_xy=(0.25, 1.0)), 'steel', smooth=True)
+
+
+def katana(p, length=0.72, scale=1.0, sheathed=False):
+    """A katana: a long gently curved single-edged blade, a round tsuba
+    guard and a two-hand wrapped grip. sheathed: in a black lacquered
+    scabbard instead (the scabbard's mouth at the tsuba, the hilt below at -Z)."""
+    L = length * scale
+    if not sheathed:
+        sabre(p, length=L, width=0.03, curve=0.045, scale=1.0)
+    else:
+        sc = [(0.0, -0.004 * (i / 8) ** 2 * 10, 0.07 + L * i / 8) for i in range(9)]
+        p.add(tube(sc, [0.02 - 0.004 * i / 8 for i in range(9)], seg=10, scale_xy=(0.6, 1.0)), 'lacquer', smooth=True)
+    p.add(lathe([(0.0, 0.04), (0.008, 0.04)], seg=20), 'iron', T(0, 0, 0.062), bevel=0.002)      # tsuba
+    p.add(tube([(0, 0, -0.22), (0, 0, 0.06)], [0.015, 0.016], seg=10, scale_xy=(0.8, 1.0)), 'cloth_wrap', smooth=True)
+    _wrap(p, -0.21, 0.05, 0.0165, 'leather_dark', turns=12)
+
+
+def katana_sheathed(p, length=0.72, scale=1.0):
+    katana(p, length=length, scale=scale, sheathed=True)
+
+
+def sheathed_sword(p, length=0.82, width=0.07, rapier=False, scale=1.0):
+    """A sword in its scabbard, worn at the hip (attach point at the scabbard
+    mouth, the origin; hilt toward -Z, blade toward +Z as it hangs): a
+    leather scabbard with a metal chape, the hilt showing (a cup-hilt rapier
+    or a gladius pommel)."""
+    L = length * scale
+    sc = [(0, 0, 0.0), (0, 0, L)]
+    p.add(tube(sc, [width * 0.5 * scale, width * 0.35 * scale], seg=10, scale_xy=(0.35, 1.0)), 'leather', smooth=True)
+    p.add(lathe([(0.0, width * 0.36 * scale), (0.06, width * 0.3 * scale), (0.08, 0.004)], seg=10,
+                scale_xy=(0.4, 1.0)), 'bronze', T(0, 0, L - 0.02), smooth=True)                # chape
+    if rapier:
+        p.add(ellipsoid(0.045, 0.045, 0.03, seg=14), 'steel', T(0, 0, -0.03), smooth=True)     # cup hilt
+        p.add(tube([(0, 0, -0.04), (0, 0, -0.16)], 0.014, seg=8), 'leather_dark', smooth=True)
+        p.add(ellipsoid(0.018, 0.018, 0.018, seg=10), 'steel', T(0, 0, -0.17), smooth=True)
+    else:
+        p.add(box(0.03, 0.1, 0.025), 'bronze', T(0, 0, -0.015), bevel=0.006)
+        p.add(tube([(0, 0, -0.03), (0, 0, -0.12)], 0.017, seg=8), 'wood', smooth=True)
+        p.add(ellipsoid(0.03, 0.025, 0.022, seg=12), 'bronze', T(0, 0, -0.135), smooth=True)
+
+
+def javelin_bundle(p, n=5, length=1.9, scale=1.0):
+    """4-5 javelins bound together near the middle, carried upright (the grip,
+    where they're bound, at the origin)."""
+    for i in range(n):
+        a = 2 * math.pi * i / n
+        off = Vector((0.03 * math.cos(a), 0.03 * math.sin(a), 0.0))
+        tilt = R('X', 3 * math.sin(a)) @ R('Y', 3 * math.cos(a))
+        p.add(tube([(0, 0, -0.85), (0, 0, length - 0.95)], 0.013, seg=8), 'wood', Matrix.Translation(off) @ tilt,
+              smooth=True)
+        head = lathe([(0.0, 0.014), (0.05, 0.022), (0.13, 0.0)], seg=4, scale_xy=(1.0, 0.3))
+        p.add(head, 'steel', Matrix.Translation(off) @ tilt @ T(0, 0, length - 0.95), bevel=0.001)
+    for z in (-0.06, 0.08):
+        p.add(lathe([(0.0, 0.05), (0.025, 0.05)], seg=14), 'leather_dark', T(0, 0, z), smooth=True)
+
+
+def partisan(p, length=2.4, grip=1.0, scale=1.0):
+    """A partisan: a long pike with a broad spear head and two curved side lugs."""
+    spear(p, length=length, grip=grip, butt=True, scale=scale, shaft=SHAFT_R, head=1.4)
+    z1 = length - grip
+    for sy in (-1, 1):
+        lug = tube([(0, 0, z1 - 0.42), (0, sy * 0.07, z1 - 0.4), (0, sy * 0.1, z1 - 0.34)], [0.012, 0.009, 0.003],
+                   seg=4, scale_xy=(0.3, 1.0))
+        p.add(lug, 'steel', smooth=True)
+
+
+def torch(p, length=0.55, scale=1.0):
+    """A wooden torch: a haft, rags bound at the head, a small flame."""
+    L = length * scale
+    p.add(tube([(0, 0, -0.12), (0, 0, L)], [0.018, 0.024], seg=10), 'wood', smooth=True)
+    p.add(tube([(0, 0, L - 0.08), (0, 0, L + 0.02)], 0.038, seg=12), 'cloth_wrap', smooth=True)
+    flame = lathe([(0.0, 0.035), (0.05, 0.045), (0.12, 0.025), (0.19, 0.0)], seg=10)
+    jitter(flame, 0.006, seed=9)
+    p.add(flame, 'flame', T(0, 0, L + 0.01), smooth=True)
+
+
+# ------------------------------------------------------------ more shields
+
+def scutum(p, w=0.62, h=1.05, curve=0.16, scale=1.0):
+    """A legionary's scutum: a tall curved rectangular board (face grey,
+    'shield_face'), a bronze boss, and a winged-thunderbolt emblem in the civ
+    color ('shield_emblem'); arm strap at the origin, face -Y."""
+    W, H = w * scale, h * scale
+    gap = -0.06
+    rings = []
+    for j in range(13):
+        z = -H / 2 + H * j / 12
+        ring = []
+        for i in range(17):
+            x = -W / 2 + W * i / 16
+            y = gap - curve * (1 - (2 * x / W) ** 2) * 0.5
+            ring.append((x, y, z))
+        rings.append(ring)
+    face = bmesh.new()
+    vs = [[face.verts.new(c) for c in r] for r in rings]
+    for a, b in zip(vs[:-1], vs[1:]):
+        for i in range(16):
+            face.faces.new((a[i], a[i + 1], b[i + 1], b[i]))
+    bmesh.ops.solidify(face, geom=face.faces[:], thickness=0.02)
+
+    def emblem(f):
+        c = f.calc_center_median()
+        if f.normal.y > -0.3:
+            return None
+        x, z = c.x / W, c.z / H
+        bolt = abs(x - 0.06 * math.sin(z * 18)) < 0.035 and abs(z) < 0.42
+        wings = abs(z) < 0.07 and 0.08 < abs(x) < 0.4 and abs(z - 0.12 * (abs(x) - 0.08)) < 0.05
+        return ('shield_emblem', True) if (bolt or wings) and math.hypot(x, z * 1.4) > 0.1 else None
+
+    p.add(face, 'shield_face', smooth=True, keys=emblem)
+    edge = [rings[0][0], rings[0][-1], rings[-1][-1], rings[-1][0]]
+    for a, b in zip(edge, edge[1:] + edge[:1]):
+        p.add(tube([a, b], 0.012, seg=6), 'bronze', smooth=True)
+    p.add(ellipsoid(0.08, 0.05, 0.08, seg=16), 'bronze', T(0, gap - curve * 0.5 - 0.015, 0), smooth=True)
+    _strap_back(p, half=0.1)
+
+
+def cowhide_shield(p, w=0.55, h=1.15, scale=1.0):
+    """A Zulu isihlangu: a tall oval of black-and-white cowhide with a
+    vertical stick laced through behind; no tint."""
+    W, H = w * scale, h * scale
+    board = domed_disc(W / 2, H / 2, 0.012, 0.03, rings=6, seg=40)
+    rnd = random.Random(5)
+    spots = [(rnd.uniform(-0.6, 0.6) * W / 2, rnd.uniform(-0.7, 0.7) * H / 2, rnd.uniform(0.06, 0.13)) for _ in range(5)]
+
+    def patches(f):
+        c = f.calc_center_median()
+        return ('hide_dark', False) if any(math.hypot(c.x - x, (c.z - z) * 0.8) < r for x, z, r in spots) else None
+
+    p.add(board, 'hide', T(0, -0.05, 0), smooth=True, keys=patches)
+    p.add(tube([(0, 0.0, -H / 2 - 0.08), (0, 0.0, H / 2 + 0.12)], 0.013, seg=8), 'wood', smooth=True)
+    for z in (-0.3, -0.1, 0.1, 0.3):
+        p.add(box(0.07, 0.03, 0.025), 'hide_dark', T(0, -0.03, z * H), bevel=0.005)
+    _strap_back(p, half=0.06)
+
+
+def chimalli(p, r=0.3, emblem=False, scale=1.0):
+    """An Aztec chimalli: a round shield with a fringe of feathers hanging
+    from the bottom; optionally a civ-colored central emblem."""
+    rr = r * scale
+    p.add(domed_disc(rr, rr, 0.014, 0.02, rings=6, seg=40), 'shield_face', T(0, -0.05, 0), smooth=True,
+          keys=(lambda f: ('shield_emblem', True) if emblem and f.normal.y < -0.3 and
+                math.hypot(f.calc_center_median().x, f.calc_center_median().z) < rr * 0.4 else None))
+    for i in range(13):
+        a = math.radians(200 + 140 * i / 12)
+        base = (rr * math.cos(a), -0.06, rr * math.sin(a))
+        tip = (base[0] * 1.05, -0.07, base[2] - 0.17)
+        p.add(tube([base, tip], [0.022, 0.006], seg=5, scale_xy=(1.0, 0.3)), 'feather', smooth=True)
+    _strap_back(p, half=0.08)
+
+
+def plain_round(p, r=0.26, dome=0.04, scale=1.0):
+    """A round wooden shield with a wooden rim and a bronze boss; no tint."""
+    shield_round(p, r=r, dome=dome, boss=True, scale=scale, tint='none')
+
+
+# ------------------------------------------------------------ held items
+
+def book(p, scale=1.0):
+    """A closed tome, held by its spine (origin at its lower spine edge):
+    leather boards with metal corners, pages showing at the edges."""
+    s = scale
+    p.add(box(0.05 * s, 0.17 * s, 0.24 * s), 'parchment', T(0, 0.085 * s, 0.12 * s), bevel=0.004)
+    for x in (-0.028, 0.028):
+        p.add(box(0.006 * s, 0.18 * s, 0.25 * s), 'book_cover', T(x * s, 0.087 * s, 0.12 * s), bevel=0.002)
+    p.add(tube([(0, 0, 0), (0, 0, 0.25 * s)], 0.03 * s, seg=12, scale_xy=(1.0, 0.45)), 'book_cover',
+          T(0, -0.004 * s, -0.005 * s), smooth=True)
+    for y, z in ((0.17, 0.0), (0.17, 0.24)):
+        for x in (-0.03, 0.03):
+            p.add(box(0.008, 0.03, 0.03), 'gold', T(x * s, y * s, z * s), bevel=0.003)
+
+
+def map(p, w=0.36, h=0.26, scale=1.0):
+    """An unrolled parchment map held at its bottom edge (origin), curling
+    a little at the top; faintly drawn."""
+    W, H = w * scale, h * scale
+    rows = []
+    bm = bmesh.new()
+    for j in range(9):
+        z = H * j / 8
+        curl = 0.03 * (j / 8) ** 3
+        rows.append([bm.verts.new((-W / 2 + W * i / 10, -curl - 0.01 * math.sin(i * 0.9), z)) for i in range(11)])
+    for a, b in zip(rows[:-1], rows[1:]):
+        for i in range(10):
+            bm.faces.new((a[i], a[i + 1], b[i + 1], b[i]))
+    bmesh.ops.solidify(bm, geom=bm.faces[:], thickness=0.002)
+    p.add(bm, 'parchment', smooth=True)
+
+
+def gourd(p, scale=1.0):
+    """A water gourd hanging from a cord (the cord's top, the origin)."""
+    s = scale
+    p.add(tube([(0, 0, 0), (0, 0, -0.12 * s)], 0.004, seg=5), 'rope', smooth=True)
+    g = lathe([(-0.12, 0.01), (-0.14, 0.03), (-0.17, 0.035), (-0.2, 0.06), (-0.27, 0.075), (-0.33, 0.06), (-0.36, 0.0)],
+              seg=16)
+    p.add(g, 'gourd', S(s), smooth=True)
+    p.add(lathe([(0.0, 0.014), (0.02, 0.014)], seg=10), 'wood', T(0, 0, -0.125 * s), smooth=True)
+
+
+def shackles(p, span=0.3, scale=1.0):
+    """Two iron wrist cuffs joined by a short sagging chain (the origin
+    between the wrists, cuffs at +-X)."""
+    half = span / 2 * scale
+    for sx in (-1, 1):
+        cuff = lathe([(0.0, 0.05), (0.05, 0.05)], seg=16)
+        p.add(cuff, 'iron', T(sx * half, 0, -0.025) , bevel=0.004, smooth=True)
+    n = 7
+    for i in range(n):
+        t = (i + 0.5) / n
+        x = -half + 2 * half * t
+        z = -0.03 - 0.08 * math.sin(math.pi * t)
+        link = tube([(0, 0, -0.022), (0, 0, 0.022)], 0.008, seg=6)
+        p.add(link, 'iron', T(x, 0, z) @ R('Y', 90) @ (R('Z', 90) if i % 2 else Matrix.Identity(4)), smooth=True)
+
 # ------------------------------------------------------------ registry
 
 BUILDERS = {
@@ -862,6 +1181,26 @@ BUILDERS = {
     'sabre': sabre,
     'long_sword': long_sword,
     'rifle': rifle,
+    'battle_axe': battle_axe,
+    'star_mace': star_mace,
+    'macuahuitl': macuahuitl,
+    'flail': flail,
+    'scimitar': scimitar,
+    'kama': kama,
+    'katana': katana,
+    'katana_sheathed': katana_sheathed,
+    'sheathed_sword': sheathed_sword,
+    'javelin_bundle': javelin_bundle,
+    'partisan': partisan,
+    'torch': torch,
+    'scutum': scutum,
+    'cowhide_shield': cowhide_shield,
+    'chimalli': chimalli,
+    'plain_round': plain_round,
+    'book': book,
+    'map': map,
+    'gourd': gourd,
+    'shackles': shackles,
     'sword': sword,
     'bow': bow,
     'bold_bow': bow,
