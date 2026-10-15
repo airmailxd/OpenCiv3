@@ -9,7 +9,7 @@ stance, and returns the root to render.
 import math
 
 import bpy
-from mathutils import Matrix
+from mathutils import Matrix, Vector
 
 import bscene as B
 import garments as G
@@ -121,15 +121,20 @@ def dress(entry, mesh, arm):
         G.pelt(mesh, arm, B.hex_color(entry['pelt_cape'][0]), B.hex_color(entry['pelt_cape'][1]), length=0.03)
     if entry.get('mane'):
         G.falling_hair(mesh, B.hex_color(c['hair']), length=entry['mane'])
-        G.wild_hair(mesh, B.hex_color(c['hair']), length=0.035, density=4000)
+        G.crown_hair(mesh, B.hex_color(c['hair']))
     else:
         G.roughen_hair(mesh, B.hex_color(c['hair']))
 
 
 def dress_posed(entry, mesh, arm):
-    """Garments placed after posing (rigid parts hung on bones)."""
+    """Garments placed after posing (rigid parts hung on bones), then the
+    hanging cloth draped by simulation onto the posed body."""
+    hanging = [o for o in bpy.data.objects if o.name in ('Bottom',)] if entry.get('bottom') in ('skirt', 'kilt') else []
     if entry.get('bottom') == 'loincloth':
-        G.loincloth(mesh, arm, _mat(entry, 'bottom', G.cloth, weave=0.6))
+        hanging += G.loincloth(mesh, arm, _mat(entry, 'bottom', G.cloth, weave=0.6))
+    hanging = [o for o in hanging if not o.get('no_drape')]
+    if hanging and entry.get('drape', True):
+        G.drape(hanging, mesh)
 
 
 def helmet(entry, mesh, arm):
@@ -151,10 +156,10 @@ def helmet(entry, mesh, arm):
             tint = 'helmet' in entry.get('tint', [])
             mat = B.material('helmet', (1, 1, 1) if tint else B.hex_color(_colors(entry)['helmet']),
                              roughness=0.35, metallic=0.9, tint=tint)
-        G.shell(mesh, arm, 'Helmet', ['head', 'neck_01'], mat, zmin=top - depth, offset=0.02 if kind != 'hood' else 0.012,
+        G.shell(mesh, arm, 'Helmet', ['head', 'neck_01'], mat, zmin=(top - depth) / G._scale, offset=0.02 if kind != 'hood' else 0.012,
                 thickness=0.008, min_weight=0.2)
     elif kind == 'headband':
-        G.shell(mesh, arm, 'Helmet', ['head'], _mat(entry, 'helmet', G.cloth), zmin=top - 0.085, zmax=top - 0.05,
+        G.shell(mesh, arm, 'Helmet', ['head'], _mat(entry, 'helmet', G.cloth), zmin=(top - 0.085) / G._scale, zmax=(top - 0.05) / G._scale,
                 offset=0.014, thickness=0.01, min_weight=0.2)
 
 
@@ -176,11 +181,12 @@ STANCES = {
              ('thigh_r', (-0.3, -0.02, -1)), ('calf_r', (-0.24, 0.04, -1)), ('foot_r', (-0.5, -1, -0.3)),
              ('upperarm_l', (0.55, -0.25, -1)), ('lowerarm_l', (0.2, -1.0, -0.15)),
              ('upperarm_r', (-0.55, -0.15, -1)), ('lowerarm_r', (-0.35, -1.0, -0.35))],
-    'upright': [('neck_01', (0, -0.02, 1)),
-                ('thigh_l', (0.1, 0.0, -1)), ('calf_l', (0.06, 0.04, -1)),
-                ('thigh_r', (-0.1, 0.0, -1)), ('calf_r', (-0.06, 0.04, -1)),
-                ('upperarm_l', (0.3, -0.35, -1)), ('lowerarm_l', (0.15, -1.0, 0.1)),
-                ('upperarm_r', (-0.32, -0.15, -1)), ('lowerarm_r', (-0.05, -1.0, 0.9))],
+    'upright': [('spine_02', (0, -0.08, 1)), ('neck_01', (0, -0.04, 1)), ('head', (0, 0.05, 1)),
+                ('clavicle_l', (1, -0.25, 0.05)), ('clavicle_r', (-1, -0.25, 0.05)),
+                ('thigh_l', (0.2, -0.05, -1)), ('calf_l', (0.15, 0.02, -1)), ('foot_l', (0.4, -1, -0.3)),
+                ('thigh_r', (-0.2, 0.0, -1)), ('calf_r', (-0.15, 0.04, -1)), ('foot_r', (-0.4, -1, -0.3)),
+                ('upperarm_l', (0.25, -0.35, -1)), ('lowerarm_l', (-0.25, -1.0, 0.15)),
+                ('upperarm_r', (-0.3, -0.1, -1)), ('lowerarm_r', (-0.15, -1.0, 0.55))],
     'low_across': [('neck_01', (0, -0.03, 1)),
                    ('thigh_l', (0.12, 0.0, -1)), ('calf_l', (0.07, 0.04, -1)),
                    ('thigh_r', (-0.12, 0.0, -1)), ('calf_r', (-0.07, 0.04, -1)),
@@ -203,6 +209,9 @@ def equip(entry, arm):
     stance = entry.get('stance_name') or WEAPON_STANCE.get(weapon or ('bow' if offhand == 'bow' else None), 'hang')
     H.pose(arm, STANCES[stance] + [tuple(a) for a in entry.get('pose_extra', [])])
     H.fists(arm, sides='r' if offhand == 'bow' else 'lr')
+    bulk = entry.get('upper_bulk')
+    if bulk:
+        H.bulk(arm, bulk)
     made = []
     if weapon:
         name, params = props.get(weapon, (weapon, {}))
@@ -214,22 +223,27 @@ def equip(entry, arm):
             obj = clubs.war_club(c, **params)
         else:
             obj = P.make(name, c, **params)
+        at = H.grip_point(arm, 'hand_r')
         if stance == 'hang':
-            off = Matrix.Translation((0.0, 0.05, 0.0)) @ _rot(x=-90, z=-25)
+            # hanging from the fist, down and out to the side, head low
+            H.hold(obj, arm, 'hand_r', at, up=(-0.6, -0.45, -0.7))
         elif stance == 'upright':
-            off = Matrix.Translation((0.0, 0.05, 0.0)) @ _rot(x=180)
+            # upright through the fist, butt near the ground
+            H.hold(obj, arm, 'hand_r', at, up=(0.0, -0.08, 1.0))
         else:
-            off = Matrix.Translation((0.0, 0.05, 0.0)) @ _rot(x=-90, z=0)
-        H.attach(obj, arm, 'hand_r', off)
+            H.hold(obj, arm, 'hand_r', at, up=(0.9, -0.2, -0.45))
         made.append(obj)
     if offhand:
         name, params = (entry['offhand_mesh'] if entry.get('offhand_mesh') else (offhand, {}))
         obj = P.make(name, c, **params)
         if offhand.startswith('shield'):
-            off = Matrix.Translation((0.06, -0.08, 0.0)) @ _rot(z=90, x=90)
+            # on the left forearm, held forward and upright, face to the front
+            pb = arm.pose.bones['lowerarm_l']
+            mid = (arm.matrix_world @ pb.head).lerp(arm.matrix_world @ pb.tail, 0.55)
+            H.hold(obj, arm, 'lowerarm_l', mid + Vector((0.0, -0.06, 0.0)), up=(0, 0, 1), forward=(0, 1, 0))
         else:
-            off = Matrix.Translation((0.0, 0.05, 0.0)) @ _rot(y=90, x=-90)
-        H.attach(obj, arm, 'lowerarm_l' if offhand.startswith('shield') else 'hand_l', off)
+            at = H.grip_point(arm, 'hand_l')
+            H.hold(obj, arm, 'hand_l', at, up=(1.0, -0.15, 0.1))
         made.append(obj)
     back = entry.get('back')
     if back in ('quiver', 'backpack'):

@@ -259,3 +259,57 @@ def fists(arm, curl=75, thumb=30, sides='lr'):
                 pb.rotation_mode = 'XYZ'
                 pb.rotation_euler.x = math.radians(thumb)
     _update()
+
+
+def grip_point(arm, bone='hand_r', along=0.55):
+    """A point inside the closed hand: `along` of the way from the wrist (the
+    hand bone's head) to the knuckles (its tail), in world space."""
+    _update()
+    pb = arm.pose.bones[bone]
+    head = arm.matrix_world @ pb.head
+    tail = arm.matrix_world @ pb.tail
+    return head.lerp(tail, along)
+
+
+def hold(obj, arm, bone, at, up, forward=(0, -1, 0)):
+    """Places a prop (long axis +Z, front +Y) in world space with its origin
+    at `at`, its +Z along `up` and its +Y as close to `forward` as possible,
+    then parents it to `bone` keeping that placement (it follows the bone)."""
+    from mathutils import Vector
+    z = Vector(up).normalized()
+    f = Vector(forward)
+    x = f.cross(z)
+    if x.length < 1e-6:
+        x = Vector((1, 0, 0))
+    x.normalize()
+    y = z.cross(x).normalized()
+    m = Matrix((x, y, z)).transposed().to_4x4()
+    m.translation = Vector(at)
+    obj.matrix_world = m
+    _update()
+    world = obj.matrix_world.copy()
+    obj.parent = arm
+    obj.parent_type = 'BONE'
+    obj.parent_bone = bone
+    obj.matrix_world = world
+    _update()
+
+
+def bulk(arm, k=1.18):
+    """Thickens the upper body: the upper arms, forearms and the chest and
+    back (lats, traps) scaled across their bones, lengths unchanged; each
+    hand grows a little with its arm (Civ3's big hands)."""
+    across = {'upperarm_l': k, 'upperarm_r': k, 'lowerarm_l': k * 0.95, 'lowerarm_r': k * 0.95,
+              'spine_03': 1 + (k - 1) * 0.7, 'clavicle_l': 1 + (k - 1) * 0.5, 'clavicle_r': 1 + (k - 1) * 0.5}
+    for name, f in across.items():
+        pb = arm.pose.bones.get(name)
+        if pb is None:
+            continue
+        pb.scale = (f, 1.0, f)
+    # forearms and hands inherit the upper arms' scale (Civ3's figures have
+    # big hands); counter part of it on the forearms
+    for side in 'lr':
+        pb = arm.pose.bones.get('lowerarm_' + side)
+        if pb:
+            pb.scale = (k * 0.95 / k, 1.0, k * 0.95 / k)
+    _update()

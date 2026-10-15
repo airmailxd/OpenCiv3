@@ -49,9 +49,22 @@ def cloth(name, color, tint=False, rough=0.85, weave=0.25):
         tex = n.new('ShaderNodeTexNoise')
         tex.inputs['Scale'].default_value = 220.0
         tex.inputs['Detail'].default_value = 2.0
+        # creases: soft vertical ridges, wandering
+        coord = n.new('ShaderNodeTexCoord')
+        crease = n.new('ShaderNodeTexWave')
+        crease.bands_direction = 'X'
+        crease.inputs['Scale'].default_value = 14.0
+        crease.inputs['Distortion'].default_value = 6.0
+        crease.inputs['Detail'].default_value = 3.0
+        tree.links.new(coord.outputs['Object'], crease.inputs['Vector'])
+        add = n.new('ShaderNodeMath')
+        add.operation = 'MULTIPLY_ADD'
+        add.inputs[1].default_value = 0.15
+        tree.links.new(tex.outputs['Fac'], add.inputs[0])
+        tree.links.new(crease.outputs['Fac'], add.inputs[2])
         bump = n.new('ShaderNodeBump')
         bump.inputs['Strength'].default_value = weave
-        tree.links.new(tex.outputs['Fac'], bump.inputs['Height'])
+        tree.links.new(add.outputs['Value'], bump.inputs['Height'])
         tree.links.new(bump.outputs['Normal'], bsdf.inputs['Normal'])
         bsdf.inputs['Sheen Weight'].default_value = 0.4
     return B.material(name, color, roughness=rough, tint=tint, nodes=nodes)
@@ -405,7 +418,7 @@ def roughen_hair(basemesh, color, length=0.022, density=4000):
     return hair
 
 
-def flap(name, mat, width=0.26, length=0.34, folds=4, depth=0.018, ragged=0.04, curve=0.12, seed=1):
+def flap(name, mat, width=0.26, length=0.34, folds=5, depth=0.04, ragged=0.05, curve=0.12, seed=1):
     """A hanging cloth or hide flap (a loincloth panel, a tabard): a grid
     hanging down from its top edge at the origin, in the X-Z plane, facing
     -Y; with vertical folds deepening toward the hem, a ragged, uneven hem,
@@ -423,7 +436,8 @@ def flap(name, mat, width=0.26, length=0.34, folds=4, depth=0.018, ragged=0.04, 
             u = i / nx - 0.5
             t = j / nz
             zz = -t * hem[i]
-            fold = depth * t * math.sin((u + 0.5) * math.pi * 2 * folds + rnd.random() * 0.4)
+            ph = (u + 0.5) * math.pi * 2 * folds
+            fold = depth * (0.25 + 0.75 * t) * (0.7 * math.sin(ph) + 0.3 * math.sin(ph * 2.3 + 1.1))
             yy = -curve * (1 - (2 * u) ** 2) * 0.5 + fold + 0.02 * t   # bowed around the body, swinging out
             row.append(bm.verts.new((u * width * (1 + 0.15 * t), yy - curve * 0.5, zz)))
         rows.append(row)
@@ -445,7 +459,7 @@ def flap(name, mat, width=0.26, length=0.34, folds=4, depth=0.018, ragged=0.04, 
     return obj
 
 
-def loincloth(basemesh, arm, mat, back_mat=None, width=0.27, length=0.36, back_length=0.3, seed=3):
+def loincloth(basemesh, arm, mat, back_mat=None, width=0.34, length=0.42, back_length=0.36, seed=3):
     """Front and back flaps hanging from the belt, parented to the pelvis."""
     import human as H
     from mathutils import Matrix
@@ -467,6 +481,7 @@ def loincloth(basemesh, arm, mat, back_mat=None, width=0.27, length=0.36, back_l
     made = []
     for side, y, rot, ln, m in (('F', front - 0.012, 0.0, length, mat), ('B', back + 0.012, math.pi, back_length, back_mat or mat)):
         f = flap('Loin' + side, m, width=width * _scale, length=ln * _scale, curve=0.06 * _scale, seed=seed + (side == 'B'))
+        f['no_drape'] = True
         f.matrix_world = Matrix.Translation((cx, y, zb)) @ Matrix.Rotation(rot, 4, 'Z')
         world = f.matrix_world.copy()
         f.parent = arm
@@ -495,4 +510,85 @@ def falling_hair(basemesh, color, length=0.24, density=6000):
     st.clump_factor = 0.85
     st.clump_shape = 0.3
     st.child_radius = 0.035
+    return mod
+
+
+def drape(objs, body, frames=60, pin_height=0.03, stiffness=2.0):
+    """Cloth simulation: hangs each garment in `objs` under gravity onto the
+    posed `body` (a collider), pinned along its top edge (the vertices within
+    `pin_height` of its highest point, in its own space), then bakes the
+    result into the mesh. Call after posing; the pose must not change after."""
+    import human as H
+    scene = bpy.context.scene
+    col = body.modifiers.new('Collision', 'COLLISION')
+    body.collision.thickness_outer = 0.006
+    body.collision.cloth_friction = 8.0
+    for obj in objs:
+        zs = [v.co.z for v in obj.data.vertices]
+        top = max(zs)
+        pin = obj.vertex_groups.new(name='pin')
+        topv = [v for v in obj.data.vertices if v.co.z > top - pin_height]
+        if obj.get('tie_points'):
+            # tied at a few points along the belt: the cloth between sags into swags
+            xs = sorted(v.co.x for v in topv)
+            lo, hi = xs[0], xs[-1]
+            n = obj['tie_points']
+            ties = [lo + (hi - lo) * k / (n - 1) for k in range(n)]
+            tol = (hi - lo) / (n * 4.0)
+            topv = [v for v in topv if any(abs(v.co.x - t) < tol for t in ties)]
+        pin.add([v.index for v in topv], 1.0, 'REPLACE')
+        cloth = obj.modifiers.new('Cloth', 'CLOTH')
+        # right after the armature (cloth acts on the posed shape), before solidify/subdiv
+        idx = next((i for i, m in enumerate(obj.modifiers) if m.type == 'ARMATURE'), -1) + 1
+        with bpy.context.temp_override(object=obj, active_object=obj):
+            bpy.ops.object.modifier_move_to_index(modifier='Cloth', index=idx)
+        st = cloth.settings
+        st.vertex_group_mass = 'pin'
+        st.quality = 8
+        st.mass = 0.25
+        st.tension_stiffness = st.compression_stiffness = stiffness
+        st.bending_stiffness = 0.05
+        st.air_damping = 2.0
+        cloth.collision_settings.use_self_collision = False
+        cloth.collision_settings.distance_min = 0.004
+        cloth.point_cache.frame_start = 1
+        cloth.point_cache.frame_end = frames
+    scene.frame_start, scene.frame_end = 1, frames
+    for f in range(1, frames + 1):
+        scene.frame_set(f)
+    # bake: convert each garment to a plain mesh at the last frame
+    for obj in objs:
+        bpy.ops.object.select_all(action='DESELECT')
+        obj.select_set(True)
+        bpy.context.view_layer.objects.active = obj
+        parent, bone, ptype = obj.parent, obj.parent_bone, obj.parent_type
+        world = obj.matrix_world.copy()
+        bpy.ops.object.convert(target='MESH')
+        new = bpy.context.active_object
+        # the armature is applied: the baked mesh is in posed space
+        new.parent = parent
+        new.parent_type = ptype
+        new.parent_bone = bone
+        new.matrix_world = world
+    body.modifiers.remove(col)
+    scene.frame_set(0)
+    H._update()
+
+
+def crown_hair(basemesh, color, length=0.13, density=5000):
+    """Hair lying back over the crown (parted, flat), not a fuzzy dome: strands
+    from the top of the head brushed back and slightly down."""
+    top, yc, on_body = _head(basemesh)
+    grp = basemesh.vertex_groups.new(name='crown')
+    for v in basemesh.data.vertices:
+        if on_body(v) and top - v.co.z < 0.07 and v.co.y - yc > -0.075:
+            grp.add([v.index], 1.0, 'REPLACE')
+    mod = _hair_system(basemesh, 'Crown', 'crown', color, length, density)
+    st = mod.particle_system.settings
+    st.normal_factor = 0.004
+    st.object_align_factor[1] = 0.22 * length     # back
+    st.object_align_factor[2] = -0.06 * length    # a little down
+    st.clump_factor = 0.7
+    st.roughness_1 = 0.01
+    st.child_radius = 0.02
     return mod

@@ -11,13 +11,21 @@ entry (dicts merged one level deep).
 REMASTER = {
     'Warrior': {
         'macro': {'muscle': 1.0, 'weight': 0.9, 'height': 0.7, 'proportions': 0.6},
-        'colors': {'skin': '#b07a4c', 'hair': '#5a3e26', 'wraps': '#5a3e28', 'wraps_band': '#2a1a10',
-                   'wood': '#5a3e28', 'stone': '#9a8a74', 'leather': '#4a3020', 'belt': '#3a2618'},
+        'colors': {'skin': '#b07a4c', 'hair': '#3a2616', 'wraps': '#4a3020', 'wraps_band': '#22160c',
+                   'wood': '#6a4a2e', 'stone': '#b8a888', 'leather': '#4a3020', 'belt': '#3a2618'},
+        'upper_bulk': 1.2,
         'hair_asset': None,
         'mane': 0.26,
-        'pelt_cape': ('#7a6448', '#4a3a28'),
+        'pelt_cape': ('#8a7050', '#5a4430'),
         'grime': 0.45,
-        'props': {'stone_axe': ('war_club', {'length': 0.62, 'knob': 0.075})},
+        'props': {'stone_axe': ('war_club', {'length': 0.62, 'knob': 0.075, 'scale': 1.35})},
+    },
+    'Spearman': {
+        'macro': {'muscle': 0.95, 'weight': 0.7, 'height': 0.75, 'proportions': 0.7},
+        'colors': {'skin': '#b07a4c', 'helmet': '#8a6a3a', 'crest': '#3a2a1c', 'bottom': '#4e3a26',
+                   'shield_face': '#a8926a', 'shield_rim': '#4a3020'},
+        'grime': 0.4,
+        'beard': True,
     },
 }
 
