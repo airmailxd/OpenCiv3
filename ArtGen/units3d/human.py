@@ -86,9 +86,9 @@ def grime(basemesh, amount=0.35, paint=None):
         noise.inputs['Roughness'].default_value = 0.7
         tree.links.new(coord.outputs['Object'], noise.inputs['Vector'])
         ramp = n.new('ShaderNodeValToRGB')
-        ramp.color_ramp.elements[0].position = 0.45
-        ramp.color_ramp.elements[0].color = (0.32, 0.25, 0.18, 1)
-        ramp.color_ramp.elements[1].position = 0.7
+        ramp.color_ramp.elements[0].position = 0.4
+        ramp.color_ramp.elements[0].color = (0.2, 0.15, 0.1, 1)
+        ramp.color_ramp.elements[1].position = 0.72
         ramp.color_ramp.elements[1].color = (1, 1, 1, 1)
         tree.links.new(noise.outputs['Fac'], ramp.inputs['Fac'])
         dirt = n.new('ShaderNodeMix')
@@ -136,7 +136,7 @@ def grime(basemesh, amount=0.35, paint=None):
         if not bsdf.inputs['Roughness'].is_linked:
             bsdf.inputs['Roughness'].default_value = 0.6
         # weathered skin: little specular, no plastic sheen on the shoulders
-        bsdf.inputs['Specular IOR Level'].default_value = 0.12
+        bsdf.inputs['Specular IOR Level'].default_value = 0.05
         bsdf.inputs['Coat Weight'].default_value = 0.0
 
     for slot in basemesh.material_slots:
@@ -178,10 +178,34 @@ def tone_skin(basemesh, color, strength=1.0, texture='diffuse'):
 
 
 def hair_color(basemesh, color):
-    """Tones the hair asset (a child of the body) toward `color` (sRGB)."""
+    """Tones the hair asset (a child of the body) toward `color` (sRGB) and
+    makes it matte (matted hair, not a shiny shell)."""
     for child in basemesh.children:
         if 'hair' in child.name.lower() or any('hair' in (s.material.name.lower() if s.material else '') for s in child.material_slots):
             tone_skin(child, color, texture='')
+            matte(child)
+
+
+def matte(obj, roughness=0.85, specular=0.08):
+    """Kills the sheen of every Principled BSDF in obj's materials (and groups)."""
+    done = set()
+
+    def visit(tree):
+        if tree is None or tree.name in done:
+            return
+        done.add(tree.name)
+        for node in tree.nodes:
+            if node.type == 'GROUP':
+                visit(node.node_tree)
+            if node.type == 'BSDF_PRINCIPLED':
+                if not node.inputs['Roughness'].is_linked:
+                    node.inputs['Roughness'].default_value = roughness
+                node.inputs['Specular IOR Level'].default_value = specular
+                node.inputs['Coat Weight'].default_value = 0.0
+                node.inputs['Sheen Weight'].default_value = 0.2
+    for slot in obj.material_slots:
+        if slot.material and slot.material.use_nodes:
+            visit(slot.material.node_tree)
 
 
 # ------------------------------------------------------------ posing

@@ -11,13 +11,13 @@ entry (dicts merged one level deep).
 REMASTER = {
     'Warrior': {
         'macro': {'muscle': 1.0, 'weight': 0.9, 'height': 0.7, 'proportions': 0.6},
-        'colors': {'skin': '#b07a4c', 'hair': '#3a2616', 'wraps': '#4a3020', 'wraps_band': '#22160c',
+        'colors': {'skin': '#a07450', 'hair': '#3a2616', 'wraps': '#4a3020', 'wraps_band': '#22160c',
                    'wood': '#6a4a2e', 'stone': '#b8a888', 'leather': '#4a3020', 'belt': '#3a2618'},
         'upper_bulk': 1.2,
         'hair_asset': 'long01',
         'mane': 0.26,
         'pelt_cape': ('#8a7050', '#5a4430'),
-        'grime': 0.6,
+        'grime': 0.8,
         'props': {'stone_axe': ('war_club', {'length': 0.62, 'knob': 0.075, 'scale': 1.35})},
     },
     'Spearman': {
@@ -25,8 +25,8 @@ REMASTER = {
         'colors': {'skin': '#a8784e', 'helmet': '#6e5430', 'crest': '#3a2a1c', 'bottom': '#4e3a26',
                    'shield_face': '#8a7250', 'shield_rim': '#3a3634', 'belt': '#3a2818'},
         'props': {'spear': ('spear', {'grip': 1.2, 'length': 2.6}),
-                  'shield_oval': ('shield_oval', {'emblem_angle': 0.0, 'band': 0.13})},
-        'offhand_mesh': ('shield_oval', {'emblem_angle': 0.0, 'band': 0.13}),
+                  'shield_oval': ('shield_oval', {'band': 0.13})},
+        'offhand_mesh': ('shield_oval', {'band': 0.13}),
         'grime': 0.4,
         'beard': True,
         'tint': ['top', 'shield_emblem', 'crest'],

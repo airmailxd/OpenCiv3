@@ -197,7 +197,7 @@ STANCES = {
              ('thigh_r', (-0.3, -0.02, -1)), ('calf_r', (-0.24, 0.04, -1)), ('foot_r', (-0.5, -1, -0.3)),
              ('upperarm_l', (0.42, -0.08, -1)), ('lowerarm_l', (0.3, -0.25, -1)),
              ('upperarm_r', (-0.55, -0.15, -1)), ('lowerarm_r', (-0.35, -1.0, -0.35))],
-    'upright': [('spine_02', (0, -0.04, 1)), ('neck_01', (0, 0.02, 1)), ('head', (0, 0.12, 1)),
+    'upright': [('spine_02', (0, -0.02, 1)), ('neck_01', (0, 0.06, 1)), ('head', (0, 0.3, 1)),
                 ('clavicle_l', (1, -0.25, 0.05)), ('clavicle_r', (-1, -0.25, 0.05)),
                 ('thigh_l', (0.14, -0.08, -1)), ('calf_l', (0.1, 0.02, -1)), ('foot_l', (0.35, -1, -0.3)),
                 ('thigh_r', (-0.14, 0.04, -1)), ('calf_r', (-0.1, 0.06, -1)), ('foot_r', (-0.35, -1, -0.3)),
@@ -267,8 +267,9 @@ def equip(entry, arm):
             pb = arm.pose.bones['lowerarm_l']
             mid = (arm.matrix_world @ pb.head).lerp(arm.matrix_world @ pb.tail, 0.5)
             chest = arm.matrix_world @ arm.pose.bones['spine_02'].head
-            at = Vector((0.5 * (mid.x + chest.x) + 0.04, min(mid.y, chest.y) - 0.1, 0.5 * (mid.z + chest.z)))
-            H.hold(obj, arm, 'lowerarm_l', at, up=(0, -0.12, 1), forward=(0, 1, 0))
+            at = Vector((0.5 * (mid.x + chest.x) + 0.04, min(mid.y, chest.y) - 0.1, 0.35 * mid.z + 0.65 * chest.z))
+            # turned 45 degrees in its plane: the X of its emblem bands reads as a + cross
+            H.hold(obj, arm, 'lowerarm_l', at, up=(0.7, -0.1, 0.7), forward=(0, 1, 0))
         else:
             at = H.grip_point(arm, 'hand_l')
             H.hold(obj, arm, 'hand_l', at, up=(1.0, -0.15, 0.1))
