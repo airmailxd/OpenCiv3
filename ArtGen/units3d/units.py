@@ -145,6 +145,8 @@ def dress(entry, mesh, arm):
         G.beard(mesh, B.hex_color(c['hair']), length=0.018, density=700)
     if entry.get('pelt_cape'):
         G.pelt(mesh, arm, B.hex_color(entry['pelt_cape'][0]), B.hex_color(entry['pelt_cape'][1]), length=0.03)
+    if entry.get('crown_hair'):
+        G.crown_hair(mesh, B.hex_color(c['hair']), length=0.06, density=7000)
     if entry.get('mane'):
         # over a full hair mesh (no scalp shows from above): long falling
         # strands, locks forward over the shoulders, a rough strand coat
@@ -187,6 +189,12 @@ def helmet(entry, mesh, arm):
             mat = B.material('helmet', (1, 1, 1) if tint else B.hex_color(_colors(entry)['helmet']),
                              roughness=0.62, metallic=0.75, tint=tint)
         keep = None
+        if kind == 'hood':
+            _, yc, _ = G._head(mesh)
+
+            def keep(co, top=top / G._scale, yc=yc / G._scale):
+                d = top - co.z
+                return not (co.y - yc < -0.03 and 0.045 < d < 0.24 and abs(co.x) < 0.075)
         if kind == 'crested':
             # a Corinthian war helm: down to the jaw, with cheek guards and a
             # T-shaped opening for the eyes and mouth
@@ -199,8 +207,9 @@ def helmet(entry, mesh, arm):
                 eyes = 0.075 < d < 0.11 and abs(co.x) < 0.06
                 mouth = d >= 0.11 and abs(co.x) < 0.028
                 return not (face and (eyes or mouth))
-        G.shell(mesh, arm, 'Helmet', ['head', 'neck_01'], mat, zmin=(top - depth) / G._scale,
-                offset={'hood': 0.012, 'cap': 0.01}.get(kind, 0.02),
+        G.shell(mesh, arm, 'Helmet', ['head', 'neck_01'] + (['clavicle_l', 'clavicle_r', 'spine_03'] if kind == 'hood' else []),
+                mat, zmin=(top - depth) / G._scale if kind != 'hood' else 1.36,
+                offset={'hood': 0.03, 'cap': 0.01}.get(kind, 0.02),
                 thickness=0.008, min_weight=0.2, keep=keep)
         if kind == 'horned':
             G.horns(mesh, arm, B.material('horn', B.hex_color(_colors(entry).get('horn', '#c8b898')), roughness=0.5),
@@ -265,7 +274,7 @@ STANCES['guard'] = [('spine_02', (0, -0.04, 1)), ('neck_01', (0, 0.1, 1)), ('hea
                     ('clavicle_l', (1, -0.2, 0.05)), ('clavicle_r', (-1, -0.2, 0.05)),
                     ('thigh_l', (0.24, -0.12, -1)), ('calf_l', (0.16, 0.04, -1)), ('foot_l', (0.45, -1, -0.3)),
                     ('thigh_r', (-0.24, 0.06, -1)), ('calf_r', (-0.16, 0.06, -1)), ('foot_r', (-0.45, -1, -0.3)),
-                    ('upperarm_l', (0.38, -0.35, -1)), ('lowerarm_l', (0.05, -1.0, 0.1)),
+                    ('upperarm_l', (0.3, -0.2, -1)), ('lowerarm_l', (-0.65, -0.75, 0.1)),
                     ('upperarm_r', (-0.35, -0.15, -1)), ('lowerarm_r', (-0.3, -0.9, -0.45))]
 
 WEAPON_STANCE = {
@@ -312,25 +321,28 @@ def equip(entry, arm):
             # lower right of the picture (the figure's left), the left hand low
             # on the haft and the right hand further up it
             low = H.grip_point(arm, 'hand_l')
-            up_dir = Vector((-0.5, -0.3, 0.8)).normalized()     # toward the haft's top end
+            up_dir = Vector((-0.45, -0.5, 0.75)).normalized()    # toward the haft's top end
             H.hold(obj, arm, 'hand_l', low, up=tuple(-up_dir))
         made.append(obj)
     if offhand:
         name, params = (entry['offhand_mesh'] if entry.get('offhand_mesh') else (offhand, {}))
         obj = P.make(name, c, **params)
-        if offhand.startswith('shield') and entry.get('two_hand_tool'):
-            pass
         if offhand.startswith('shield'):
             # strapped on the left forearm, which crosses the body: the board's
-            # center a hand in front of the torso at the belly, upright, facing
-            # the front; turned 45 degrees in its plane so the X of its emblem
-            # bands reads as a + cross. Placed by its geometry's center (the
-            # prop's origin is the arm strap, behind the board).
+            # center just in front of the forearm (so the arm is behind it, in
+            # the straps), upright, facing the front, turned 45 degrees in its
+            # plane so the X of its emblem bands reads as a + cross. Placed by
+            # its geometry's center (the prop's origin is the strap).
             pb = arm.pose.bones['lowerarm_l']
-            mid = (arm.matrix_world @ pb.head).lerp(arm.matrix_world @ pb.tail, 0.5)
-            chest = arm.matrix_world @ arm.pose.bones['spine_02'].head
-            shoulder = arm.matrix_world @ arm.pose.bones['clavicle_l'].head
-            at = Vector((0.5 * (mid.x + chest.x) + 0.08, chest.y - 0.2 * G._scale, shoulder.z - 0.4 * G._scale))
+            fa = (arm.matrix_world @ pb.head).lerp(arm.matrix_world @ pb.tail, 0.6)
+            at = fa + Vector((0.0, -0.09 * G._scale, 0.03 * G._scale))
+            if entry.get('shield_at') == 'left_hip':
+                # a big shield low at the left hip, close to the body: from
+                # behind it then stays beside the body, below the shoulders
+                chest = arm.matrix_world @ arm.pose.bones['spine_02'].head
+                shoulder = arm.matrix_world @ arm.pose.bones['clavicle_l'].head
+                at = Vector((0.5 * (fa.x + chest.x) + 0.08, min(chest.y - 0.2 * G._scale, fa.y - 0.07 * G._scale),
+                             shoulder.z - 0.4 * G._scale))
             H.hold(obj, arm, 'lowerarm_l', at, up=(0.7, 0.0, 0.7), forward=(0, 1, 0), center=True)
         else:
             at = H.grip_point(arm, 'hand_l')
@@ -346,7 +358,7 @@ def equip(entry, arm):
         made.append(obj)
     back = entry.get('back')
     if back in ('quiver', 'backpack'):
-        obj = P.make(back, c)
+        obj = P.make(back, c, **entry.get('back_params', {}))
         # on the upper back (+y behind the unposed body), strap point at the
         # shoulder blades; a quiver slung diagonally, arrows up over the right shoulder
         sp = arm.matrix_world @ arm.pose.bones['spine_03'].head

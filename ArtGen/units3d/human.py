@@ -81,8 +81,8 @@ def grime(basemesh, amount=0.35, paint=None):
         n = tree.nodes
         coord = n.new('ShaderNodeTexCoord')
         noise = n.new('ShaderNodeTexNoise')
-        noise.inputs['Scale'].default_value = 7.0
-        noise.inputs['Detail'].default_value = 8.0
+        noise.inputs['Scale'].default_value = 2.4      # broad patches, not speckle
+        noise.inputs['Detail'].default_value = 4.0
         noise.inputs['Roughness'].default_value = 0.7
         tree.links.new(coord.outputs['Object'], noise.inputs['Vector'])
         ramp = n.new('ShaderNodeValToRGB')
@@ -322,6 +322,7 @@ def hold(obj, arm, bone, at, up, forward=(0, -1, 0), center=False):
     (or with `center`, its geometry's center) at `at`, its +Z along `up` and its +Y as close to `forward` as possible,
     then parents it to `bone` keeping that placement (it follows the bone)."""
     from mathutils import Vector
+    scale = obj.matrix_world.to_scale()        # keep the prop's own scale
     z = Vector(up).normalized()
     f = Vector(forward)
     x = f.cross(z)
@@ -329,7 +330,7 @@ def hold(obj, arm, bone, at, up, forward=(0, -1, 0), center=False):
         x = Vector((1, 0, 0))
     x.normalize()
     y = z.cross(x).normalized()
-    m = Matrix((x, y, z)).transposed().to_4x4()
+    m = Matrix((x, y, z)).transposed().to_4x4() @ Matrix.Diagonal((*scale, 1.0))
     m.translation = Vector(at)
     obj.matrix_world = m
     _update()

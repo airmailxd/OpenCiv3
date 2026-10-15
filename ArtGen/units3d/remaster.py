@@ -25,9 +25,9 @@ REMASTER = {
         'colors': {'skin': '#94704f', 'helmet': '#5a4c2c', 'crest': '#3a2a1c', 'bottom': '#4e3a26',
                    'shield_face': '#8a7250', 'shield_rim': '#3a3634', 'belt': '#3a2818'},
         'props': {'spear': ('spear', {'grip': 1.2, 'length': 2.6}),
-                  'shield_oval': ('shield_oval', {'band': 0.13, 'w': 0.74, 'h': 0.74})},
-        'offhand_mesh': ('shield_oval', {'band': 0.13, 'w': 0.74, 'h': 0.74}),
-        'gear': [],
+                  'shield_oval': ('shield_oval', {'band': 0.13, 'w': 0.8, 'h': 0.8})},
+        'offhand_mesh': ('shield_oval', {'band': 0.13, 'w': 0.8, 'h': 0.8}),
+        'gear': [], 'shield_at': 'left_hip',
         'grime': 0.7,
         'beard': True,
         'tint': ['top', 'shield_emblem', 'crest'],
@@ -43,10 +43,10 @@ REMASTER = {
         'top': 'strap', 'bottom': 'loincloth', 'loin_length': (0.6, 0.42), 'torn': False,
         'tint': ['top', 'bottom'],
         'hair': 'topknot', 'hair_asset': 'ponytail01', 'helmet': 'headband',
-        'wraps': 'boots', 'beard': False, 'upper_bulk': 1.2, 'gear': [],
+        'wraps': 'boots', 'beard': False, 'upper_bulk': 1.25, 'gear': [], 'crown_hair': True,
         'stance_name': 'bow_low',
         'offhand_mesh': ('bold_bow', {'height': 1.45, 'bend': 0.2, 'recurve': 0.12}),
-        'grime': 0.9,
+        'grime': 0.6,
     },
     'Swordsman': {
         # the original: an iron helmet with a brow ridge (reads horned), brown
@@ -90,8 +90,9 @@ REMASTER = {
         # the original: a traveller with a big bundle and a pot on his back, a
         # tall staff, civ color on the tunic and the cap, a cream kilt
         'macro': {'muscle': 0.85, 'weight': 0.65, 'height': 0.72, 'proportions': 0.7}, 'age': 0.6,
-        'colors': {'skin': '#94704f', 'bottom': '#cfc6b0', 'hair': '#3a2a1c', 'pack': '#6a5a3a', 'sandal': '#3a2818'},
-        'tint': ['top', 'helmet'], 'beard': True, 'helmet': 'hood', 'pack_scale': 1.5,
+        'colors': {'skin': '#94704f', 'bottom': '#cfc6b0', 'hair': '#3a2a1c', 'pack': '#6a4e30', 'sandal': '#3a2818',
+                   'pot': '#8a5a34', 'bedroll': '#9a8a66'},
+        'tint': ['top', 'helmet'], 'beard': True, 'helmet': 'hood', 'pack_scale': 2.1, 'top': 'vest',
         'props': {'staff': ('staff', {'length': 2.05, 'grip': 1.2})},
         'grime': 0.7, 'upper_bulk': 1.1,
     },
@@ -100,7 +101,7 @@ REMASTER = {
         # over one shoulder and an apron, a shovel held diagonally, blade down
         'macro': {'muscle': 0.85, 'weight': 0.5, 'height': 0.7, 'proportions': 0.7},
         'colors': {'skin': '#8e6a48', 'helmet': '#c8b688', 'hair': '#241a10', 'wraps': '#3e2a1c',
-                   'wraps_band': '#22160c', 'wood': '#6a4a2e', 'steel': '#6e6c68'},
+                   'wraps_band': '#22160c', 'wood': '#6a4a2e', 'steel': '#a8a69e'},
         'helmet': 'cap',
         'top': 'strap', 'bottom': 'loincloth', 'loin_length': (0.45, 0.4), 'torn': False,
         'tint': ['top', 'bottom'], 'wraps': 'wraps', 'sandals': False,
