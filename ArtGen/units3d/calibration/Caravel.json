@@ -1,0 +1,225 @@
+{
+  "unit": "Caravel",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.39,
+    124.5
+  ],
+  "anchor_override": [
+    120.0,
+    119.81466455486557
+  ],
+  "standing_height": 55.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        108.81,
+        125
+      ],
+      "top": 72,
+      "height": 54,
+      "bbox": [
+        92,
+        72,
+        149,
+        125
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        119.74,
+        127
+      ],
+      "top": 70,
+      "height": 58,
+      "bbox": [
+        100,
+        70,
+        139,
+        127
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        130.64,
+        125
+      ],
+      "top": 72,
+      "height": 54,
+      "bbox": [
+        95,
+        72,
+        147,
+        125
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        112.88,
+        122
+      ],
+      "top": 73,
+      "height": 50,
+      "bbox": [
+        85,
+        73,
+        154,
+        122
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        105.73,
+        129
+      ],
+      "top": 73,
+      "height": 57,
+      "bbox": [
+        90,
+        73,
+        147,
+        129
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        119.03,
+        132
+      ],
+      "top": 73,
+      "height": 60,
+      "bbox": [
+        100,
+        73,
+        139,
+        132
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        132.93,
+        129
+      ],
+      "top": 74,
+      "height": 56,
+      "bbox": [
+        91,
+        74,
+        144,
+        129
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        125.62,
+        122
+      ],
+      "top": 74,
+      "height": 49,
+      "bbox": [
+        85,
+        74,
+        154,
+        122
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 43.0688,
+    "fit": 0.8282,
+    "archetype": "ship"
+  },
+  "default_flic": "CaravelDefault.flc",
+  "flics": {
+    "CaravelAttackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 83,
+      "height": 69,
+      "offset_left": 79,
+      "offset_top": 69,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 20,
+      "frameMs": 66
+    },
+    "CaravelDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 104,
+      "height": 82,
+      "offset_left": 69,
+      "offset_top": 64,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 20,
+      "frameMs": 83
+    },
+    "CaravelDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 77,
+      "height": 68,
+      "offset_left": 79,
+      "offset_top": 70,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 166
+    },
+    "CaravelFidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 77,
+      "height": 68,
+      "offset_left": 79,
+      "offset_top": 70,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 5,
+      "frameMs": 125
+    },
+    "CaravelRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 79,
+      "height": 68,
+      "offset_left": 77,
+      "offset_top": 70,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 125
+    }
+  }
+}

@@ -1,0 +1,225 @@
+{
+  "unit": "Galley",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.48,
+    127.0
+  ],
+  "anchor_override": [
+    120.0,
+    120.45150132213281
+  ],
+  "standing_height": 43.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        105.06,
+        130
+      ],
+      "top": 87,
+      "height": 44,
+      "bbox": [
+        97,
+        87,
+        139,
+        130
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        119.46,
+        133
+      ],
+      "top": 87,
+      "height": 47,
+      "bbox": [
+        101,
+        87,
+        138,
+        133
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        135.27,
+        130
+      ],
+      "top": 87,
+      "height": 44,
+      "bbox": [
+        100,
+        87,
+        142,
+        130
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        119.52,
+        127
+      ],
+      "top": 85,
+      "height": 43,
+      "bbox": [
+        92,
+        85,
+        151,
+        127
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        113.6,
+        128
+      ],
+      "top": 88,
+      "height": 41,
+      "bbox": [
+        100,
+        88,
+        142,
+        128
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        119.5,
+        129
+      ],
+      "top": 87,
+      "height": 43,
+      "bbox": [
+        101,
+        87,
+        138,
+        129
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        127.27,
+        128
+      ],
+      "top": 87,
+      "height": 42,
+      "bbox": [
+        97,
+        87,
+        139,
+        128
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        118.5,
+        126
+      ],
+      "top": 85,
+      "height": 42,
+      "bbox": [
+        88,
+        85,
+        147,
+        126
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 46.162,
+    "fit": 0.8877,
+    "archetype": "ship"
+  },
+  "default_flic": "GalleyDefault.flc",
+  "flics": {
+    "GalleyAttackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 115,
+      "height": 68,
+      "offset_left": 62,
+      "offset_top": 81,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 20,
+      "frameMs": 66
+    },
+    "GalleyDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 75,
+      "height": 54,
+      "offset_left": 83,
+      "offset_top": 85,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 20,
+      "frameMs": 83
+    },
+    "GalleyDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 66,
+      "height": 53,
+      "offset_left": 87,
+      "offset_top": 85,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 166
+    },
+    "GalleyFidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 66,
+      "height": 52,
+      "offset_left": 87,
+      "offset_top": 85,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 5,
+      "frameMs": 125
+    },
+    "GalleyRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 66,
+      "height": 52,
+      "offset_left": 87,
+      "offset_top": 85,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 83
+    }
+  }
+}

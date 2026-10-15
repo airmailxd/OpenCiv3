@@ -343,11 +343,17 @@ class Prop:
     def mat(self, key, tint=False):
         return material(key, self.colors, tint)
 
-    def add(self, part, key, matrix=None, bevel=0.0, smooth=False, tint=False, angle=35.0):
+    def _index(self, key, tint):
         m = self.mat(key, tint)
         if m not in self.mats:
             self.mats.append(m)
-        idx = self.mats.index(m)
+        return self.mats.index(m)
+
+    def add(self, part, key, matrix=None, bevel=0.0, smooth=False, tint=False, angle=35.0, keys=None):
+        """Add a part. keys, if given, picks each face's material: a function
+        of the face returning (key, tint), or None for `key`/`tint` (used for
+        hull stripes and sail emblems)."""
+        idx = self._index(key, tint)
         if bevel > 0:
             edges = [e for e in part.edges
                      if len(e.link_faces) == 2 and math.degrees(e.calc_face_angle(0.0)) > angle]
@@ -358,6 +364,10 @@ class Prop:
             bmesh.ops.transform(part, matrix=matrix, verts=part.verts)
         for f in part.faces:
             f.material_index = idx
+            if keys is not None:
+                k = keys(f)
+                if k is not None:
+                    f.material_index = self._index(*k)
             f.smooth = smooth
         tmp = bpy.data.meshes.new('_prop_part')
         part.to_mesh(tmp)

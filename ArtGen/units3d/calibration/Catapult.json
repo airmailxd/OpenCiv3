@@ -1,0 +1,255 @@
+{
+  "unit": "Catapult",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.31,
+    129.0
+  ],
+  "anchor_override": [
+    120.0,
+    126.61982917785645
+  ],
+  "standing_height": 48.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        111.21,
+        131
+      ],
+      "top": 84,
+      "height": 48,
+      "bbox": [
+        93,
+        84,
+        149,
+        131
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        119.19,
+        130
+      ],
+      "top": 81,
+      "height": 50,
+      "bbox": [
+        100,
+        81,
+        141,
+        130
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        127.2,
+        131
+      ],
+      "top": 83,
+      "height": 49,
+      "bbox": [
+        88,
+        83,
+        146,
+        131
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        117.65,
+        126
+      ],
+      "top": 89,
+      "height": 38,
+      "bbox": [
+        83,
+        89,
+        148,
+        126
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        100.81,
+        135
+      ],
+      "top": 87,
+      "height": 49,
+      "bbox": [
+        90,
+        87,
+        146,
+        135
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        127.67,
+        137
+      ],
+      "top": 89,
+      "height": 49,
+      "bbox": [
+        98,
+        89,
+        139,
+        137
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        132.42,
+        130
+      ],
+      "top": 87,
+      "height": 44,
+      "bbox": [
+        93,
+        87,
+        151,
+        130
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        119.42,
+        126
+      ],
+      "top": 90,
+      "height": 37,
+      "bbox": [
+        91,
+        90,
+        156,
+        126
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0733112715600186,
+    "ppm_2x": 39.5157,
+    "fit": 0.708,
+    "archetype": "catapult"
+  },
+  "default_flic": "x_CatapultDefault.flc",
+  "flics": {
+    "x_CatapultAttack.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 113,
+      "height": 86,
+      "offset_left": 60,
+      "offset_top": 59,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 20,
+      "frameMs": 66
+    },
+    "x_CatapultDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 106,
+      "height": 110,
+      "offset_left": 67,
+      "offset_top": 36,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 19,
+      "frameMs": 66
+    },
+    "x_CatapultDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 77,
+      "height": 60,
+      "offset_left": 81,
+      "offset_top": 81,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "x_CatapultFidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 78,
+      "height": 61,
+      "offset_left": 81,
+      "offset_top": 80,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 14,
+      "frameMs": 83
+    },
+    "x_CatapultFortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 81,
+      "height": 60,
+      "offset_left": 79,
+      "offset_top": 81,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 83
+    },
+    "x_CatapultRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 99,
+      "height": 68,
+      "offset_left": 69,
+      "offset_top": 78,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "x_CatapultVictory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 95,
+      "height": 73,
+      "offset_left": 72,
+      "offset_top": 69,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    }
+  }
+}

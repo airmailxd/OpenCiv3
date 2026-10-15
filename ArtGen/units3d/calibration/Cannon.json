@@ -1,0 +1,255 @@
+{
+  "unit": "Cannon",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    120.34,
+    123.5
+  ],
+  "anchor_override": [
+    120.0,
+    119.15953183174133
+  ],
+  "standing_height": 38.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        123.26,
+        125
+      ],
+      "top": 87,
+      "height": 39,
+      "bbox": [
+        101,
+        87,
+        139,
+        125
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        120.19,
+        122
+      ],
+      "top": 84,
+      "height": 39,
+      "bbox": [
+        106,
+        84,
+        133,
+        122
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        115.69,
+        125
+      ],
+      "top": 86,
+      "height": 40,
+      "bbox": [
+        96,
+        86,
+        138,
+        125
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        120.49,
+        125
+      ],
+      "top": 91,
+      "height": 35,
+      "bbox": [
+        91,
+        91,
+        143,
+        125
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        103.83,
+        130
+      ],
+      "top": 94,
+      "height": 37,
+      "bbox": [
+        100,
+        94,
+        138,
+        130
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        121.83,
+        133
+      ],
+      "top": 91,
+      "height": 43,
+      "bbox": [
+        106,
+        91,
+        133,
+        133
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        135.59,
+        129
+      ],
+      "top": 94,
+      "height": 36,
+      "bbox": [
+        101,
+        94,
+        143,
+        129
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        118.18,
+        125
+      ],
+      "top": 93,
+      "height": 33,
+      "bbox": [
+        96,
+        93,
+        148,
+        125
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 0.9650344623472369,
+    "ppm_2x": 28.0134,
+    "fit": 0.5582,
+    "archetype": "cannon"
+  },
+  "default_flic": "x_CannonDefault.flc",
+  "flics": {
+    "x_CannonAttack.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 154,
+      "height": 102,
+      "offset_left": 43,
+      "offset_top": 46,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "x_CannonDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 150,
+      "height": 126,
+      "offset_left": 45,
+      "offset_top": 16,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 19,
+      "frameMs": 66
+    },
+    "x_CannonDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 60,
+      "height": 53,
+      "offset_left": 90,
+      "offset_top": 84,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "x_CannonFidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 60,
+      "height": 61,
+      "offset_left": 90,
+      "offset_top": 76,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "x_CannonFortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 67,
+      "height": 57,
+      "offset_left": 85,
+      "offset_top": 80,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 83
+    },
+    "x_CannonRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 96,
+      "height": 60,
+      "offset_left": 69,
+      "offset_top": 84,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "x_CannonVictory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 75,
+      "height": 61,
+      "offset_left": 80,
+      "offset_top": 76,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    }
+  }
+}
