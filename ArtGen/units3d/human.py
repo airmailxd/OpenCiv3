@@ -183,19 +183,30 @@ def tone_skin(basemesh, color, strength=1.0, texture='diffuse'):
             visit(slot.material.node_tree)
 
 
+def assets(basemesh):
+    """The body's MPFB assets (hair, brows, lashes, eyes): MPFB parents them to
+    the rig, not to the body, and names them '<body>.<asset>'."""
+    owner = basemesh.parent
+    prefix = basemesh.name + '.'
+    return [o for o in bpy.data.objects
+            if o is not basemesh and o.type == 'MESH' and o.name.startswith(prefix) and o.parent in (owner, basemesh)]
+
+
 def hair_color(basemesh, color, asset=None):
     """Tones the hair asset (a child of the body, named after the asset, e.g.
     'Human.ponytail01') toward `color` (sRGB) and makes it matte (matted
     hair, not a shiny shell)."""
-    for child in basemesh.children:
+    for child in assets(basemesh):
         named = asset and child.name.lower().endswith(asset.lower())
         if named or 'hair' in child.name.lower() or any('hair' in (s.material.name.lower() if s.material else '') for s in child.material_slots):
-            tone_skin(child, color, texture='')
-            matte(child)
+            matte(child, base=color)
 
 
-def matte(obj, roughness=0.85, specular=0.08):
-    """Kills the sheen of every Principled BSDF in obj's materials (and groups)."""
+def matte(obj, roughness=0.85, specular=0.08, base=None):
+    """Kills the sheen of every Principled BSDF in obj's materials (and
+    groups); with `base` (sRGB), also sets its color: multiplied into a
+    linked Base Color (keeping the texture's variation), or set."""
+    import bscene as B
     done = set()
 
     def visit(tree):
@@ -206,11 +217,26 @@ def matte(obj, roughness=0.85, specular=0.08):
             if node.type == 'GROUP':
                 visit(node.node_tree)
             if node.type == 'BSDF_PRINCIPLED':
+                if base is not None:
+                    lin = B.srgb_to_linear(base)
+                    bc = node.inputs['Base Color']
+                    if bc.is_linked:
+                        src = bc.links[0].from_socket
+                        mul = tree.nodes.new('ShaderNodeMix')
+                        mul.data_type = 'RGBA'
+                        mul.blend_type = 'MULTIPLY'
+                        mul.inputs['Factor'].default_value = 1.0
+                        # hair textures are light: scale so their average lands near `base`
+                        mul.inputs['B'].default_value = tuple(min(4.0, c / 0.55) for c in lin) + (1.0,)
+                        tree.links.new(src, mul.inputs['A'])
+                        tree.links.new(mul.outputs['Result'], bc)
+                    else:
+                        bc.default_value = (*lin, 1.0)
                 if not node.inputs['Roughness'].is_linked:
                     node.inputs['Roughness'].default_value = roughness
                 node.inputs['Specular IOR Level'].default_value = specular
                 node.inputs['Coat Weight'].default_value = 0.0
-                node.inputs['Sheen Weight'].default_value = 0.2
+                node.inputs['Sheen Weight'].default_value = 0.0
     for slot in obj.material_slots:
         if slot.material and slot.material.use_nodes:
             visit(slot.material.node_tree)

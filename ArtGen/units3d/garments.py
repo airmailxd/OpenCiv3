@@ -149,10 +149,10 @@ def hair_material(name, color):
     r, g, b = color
     lum = 0.3 * r + 0.59 * g + 0.11 * b
     hair.parametrization = 'MELANIN'
-    hair.inputs['Melanin'].default_value = min(1.0, max(0.0, 1.0 - lum * 1.6))
+    hair.inputs['Melanin'].default_value = min(1.0, max(0.0, 1.05 - lum * 1.3))
     hair.inputs['Melanin Redness'].default_value = min(1.0, max(0.0, (r - b) * 2.5))
-    hair.inputs['Roughness'].default_value = 0.8
-    hair.inputs['Radial Roughness'].default_value = 0.95
+    hair.inputs['Roughness'].default_value = 0.5
+    hair.inputs['Radial Roughness'].default_value = 0.35
     tree.links.new(hair.outputs[0], out.inputs['Surface'])
     aov = tree.nodes.new('ShaderNodeOutputAOV')
     aov.aov_name = 'tint'
@@ -226,7 +226,7 @@ def shell(basemesh, arm, name, bones, mat, *, zmin=None, zmax=None, offset=0.006
     return new
 
 
-def skirt(basemesh, arm, name, mat, *, length=0.5, flare=1.08, front_only=False, panels=None, folds=0.06):
+def skirt(basemesh, arm, name, mat, *, length=0.5, flare=1.08, front_only=False, panels=None, folds=0.06, drop=0.0):
     """Hanging cloth from MakeHuman's skirt helper (waist to knee): cut to
     `length` of the helper's height, widened by `flare` toward the hem.
     `panels` = (front, back) half-widths (radians) keeps only flaps in front
@@ -266,6 +266,8 @@ def skirt(basemesh, arm, name, mat, *, length=0.5, flare=1.08, front_only=False,
         k += folds * t * (0.6 * math.sin(a * 9.0) + 0.4 * math.sin(a * 23.0 + 1.3))
         v.co.x = cx + (v.co.x - cx) * k
         v.co.y = cy + (v.co.y - cy) * k
+        # a robe or surcoat: stretched down toward the ankles
+        v.co.z -= drop * t
     bm.to_mesh(new.data)
     bm.free()
     for m in list(new.modifiers):
@@ -419,7 +421,8 @@ def wild_hair(basemesh, color, length=0.1, density=5000, clump=0.55, rough=0.05)
 def roughen_hair(basemesh, color, length=0.022, density=4000):
     """Breaks up a hair mesh's smooth surface (MPFB's hair assets) with a coat
     of short, rough strands, so it reads as unkempt hair, not a shell."""
-    hair = [c for c in basemesh.children if c.type == 'MESH' and (any(
+    import human as H
+    hair = [c for c in H.assets(basemesh) if c.type == 'MESH' and (any(
         (s.material and 'hair' in s.material.name.lower()) for s in c.material_slots) or any(
         k in c.name.lower() for k in ('long', 'short', 'ponytail', 'braid', 'bob', 'afro')))]
     for obj in hair:
@@ -746,3 +749,114 @@ def mail_nodes(tree, bsdf):
     bump.inputs['Strength'].default_value = 0.6
     tree.links.new(vor.outputs['Distance'], bump.inputs['Height'])
     tree.links.new(bump.outputs['Normal'], bsdf.inputs['Normal'])
+
+
+def band(basemesh, arm, name, bones, mat, z, width=0.04, offset=0.012):
+    """A narrow band around a limb or the body at height `z` (for a 1.75 m man)."""
+    return shell(basemesh, arm, name, bones, mat, zmin=z - width / 2, zmax=z + width / 2, offset=offset,
+                 thickness=0.006, min_weight=0.3)
+
+
+# where bands go: bones and height (1.75 m man)
+BANDS = {
+    'upperarm': (['upperarm_l', 'upperarm_r'], 1.28),
+    'wrist': (['lowerarm_l', 'lowerarm_r', 'hand_l', 'hand_r'], 0.86),
+    'knee': (['calf_l', 'calf_r', 'thigh_l', 'thigh_r'], 0.5),
+    'ankle': (['calf_l', 'calf_r', 'foot_l', 'foot_r'], 0.11),
+    'waist': (['pelvis', 'spine_01'], 1.0),
+    'neck': (['neck_01', 'spine_03', 'clavicle_l', 'clavicle_r'], 1.5),
+}
+
+
+def cape(basemesh, arm, mat, length=0.75, width=0.5):
+    """A cape hanging from the shoulders down the back: a flap pinned along
+    the shoulder line, behind the body, falling to `length`."""
+    import human as H
+    from mathutils import Matrix
+    H._update()
+    nk = arm.matrix_world @ arm.pose.bones['neck_01'].head
+    f = flap('Cape', mat, width=width * _scale, length=length * _scale, curve=0.14 * _scale, folds=6, depth=0.03,
+             torn=False, ragged=0.01)
+    f.matrix_world = Matrix.Translation((nk.x, nk.y + 0.1 * _scale, nk.z - 0.02 * _scale)) @ Matrix.Rotation(math.pi, 4, 'Z')
+    world = f.matrix_world.copy()
+    f.parent = arm
+    f.parent_type = 'BONE'
+    f.parent_bone = 'spine_03'
+    f.matrix_world = world
+    H._update()
+    return f
+
+
+def plume(basemesh, arm, mat, height=0.22, lean=0.05):
+    """A tall feather plume standing up from the top of a helmet (a crest that
+    rises rather than runs front to back)."""
+    import human as H
+    top, yc, _ = _head(basemesh)
+    bm = bmesh.new()
+    n, seg = 12, 8
+    prev = None
+    for i in range(n + 1):
+        t = i / n
+        c = Vector((0.0, yc + 0.02 + lean * t * t, top + 0.04 + height * t))
+        r = 0.035 * math.sin(math.pi * min(1.0, 0.15 + t)) + 0.006
+        ring = [bm.verts.new(c + Vector((math.cos(2 * math.pi * k / seg) * r, math.sin(2 * math.pi * k / seg) * r * 0.6, 0)))
+                for k in range(seg)]
+        if prev:
+            for k in range(seg):
+                bm.faces.new((prev[k], prev[(k + 1) % seg], ring[(k + 1) % seg], ring[k]))
+        prev = ring
+    me = bpy.data.meshes.new('Plume')
+    bm.to_mesh(me)
+    bm.free()
+    obj = bpy.data.objects.new('Plume', me)
+    bpy.context.scene.collection.objects.link(obj)
+    obj.data.materials.append(mat)
+    for p in obj.data.polygons:
+        p.use_smooth = True
+    world = obj.matrix_world.copy()
+    obj.parent = arm
+    obj.parent_type = 'BONE'
+    obj.parent_bone = 'head'
+    obj.matrix_world = world
+    H._update()
+    return obj
+
+
+def brim(basemesh, arm, mat, radius=0.17, lift=0.075, curl=0.03, comb=0.05):
+    """A morion's brim and comb: a curled-up brim around the helmet at the
+    brow line and a raised comb front to back. Parented to the head."""
+    import human as H
+    top, yc, _ = _head(basemesh)
+    made = []
+    bm = bmesh.new()
+    k = 40
+    inner, outer = [], []
+    for i in range(k):
+        a = 2 * math.pi * i / k
+        # boat-shaped: longer front to back, tips curling up at front and back
+        rx, ry = radius * 0.85, radius * 1.15
+        up = curl * (math.cos(a) ** 2)
+        inner.append(bm.verts.new((math.sin(a) * 0.09, yc + math.cos(a) * 0.11, top - lift)))
+        outer.append(bm.verts.new((math.sin(a) * rx, yc + math.cos(a) * ry, top - lift + up)))
+    for i in range(k):
+        bm.faces.new((inner[i], inner[(i + 1) % k], outer[(i + 1) % k], outer[i]))
+    me = bpy.data.meshes.new('Brim')
+    bm.to_mesh(me)
+    bm.free()
+    obj = bpy.data.objects.new('Brim', me)
+    bpy.context.scene.collection.objects.link(obj)
+    obj.data.materials.append(mat)
+    sol = obj.modifiers.new('Solidify', 'SOLIDIFY')
+    sol.thickness = 0.005
+    made.append(obj)
+    if comb:
+        c = crest(basemesh, arm, mat, height=comb, length=0.24, width=0.008, lift=0.0)
+        made.append(c)
+    for o in made[:1]:
+        world = o.matrix_world.copy()
+        o.parent = arm
+        o.parent_type = 'BONE'
+        o.parent_bone = 'head'
+        o.matrix_world = world
+    H._update()
+    return made

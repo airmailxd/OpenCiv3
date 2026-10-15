@@ -91,7 +91,7 @@ def dress(entry, mesh, arm):
                 thickness=0.004, keep=lambda co: abs((co.z - 1.2) - 0.9 * co.x) < 0.07)
     if bottom in ('skirt', 'kilt'):
         G.skirt(mesh, arm, 'Bottom', _mat(entry, 'bottom', G.cloth, weave=0.6), length=0.55 if bottom == 'skirt' else 0.7,
-                flare=1.12, folds=0.08)
+                flare=1.12 + 0.3 * entry.get('robe', 0.0), folds=0.08, drop=entry.get('robe', 0.0))
     elif bottom == 'loincloth':
         pass    # flaps from the belt, after posing (dress_posed)
     elif bottom == 'long':
@@ -102,7 +102,9 @@ def dress(entry, mesh, arm):
         name = g[0] if isinstance(g, (list, tuple)) else g
         if name == 'chest_strap':
             col = (g[1] or {}).get('color', c['belt']) if isinstance(g, (list, tuple)) and len(g) > 1 else c['belt']
-            G.shell(mesh, arm, 'ChestStrap', torso, G.leather('chest_strap', B.hex_color(col)), zmin=1.0, zmax=1.5,
+            tint = 'strap' in entry.get('tint', [])
+            G.shell(mesh, arm, 'ChestStrap', torso, G.cloth('chest_strap', (1, 1, 1), tint=True) if tint else
+                    G.leather('chest_strap', B.hex_color(col)), zmin=1.0, zmax=1.5,
                     offset=0.02, thickness=0.006, keep=lambda co: abs((co.z - 1.22) + 0.95 * co.x) < 0.035)
     if bottom:
         G.shell(mesh, arm, 'Belt', ['pelvis', 'spine_01'], _mat(entry, 'belt', G.leather), zmin=0.98, zmax=1.04,
@@ -141,6 +143,13 @@ def dress(entry, mesh, arm):
             G.shell(mesh, arm, 'Bracer_' + side, ['lowerarm_' + side], _mat(entry, 'bracers', G.cloth),
                     offset=0.008, thickness=0.006)
     helmet(entry, mesh, arm)
+    for b in entry.get('bands', []):
+        where, part = (b, b) if isinstance(b, str) else (b[0], b[1])
+        bones, z = G.BANDS[where]
+        tint = part in entry.get('tint', []) or part == 'tint'
+        G.band(mesh, arm, 'Band_' + where, bones, (G.cloth('band_' + where, (1, 1, 1), tint=True) if tint else
+               G.leather('band_' + where, B.hex_color(c.get(part, c['belt'])))), z,
+               width=0.05 if where in ('waist', 'neck') else 0.035)
     if entry.get('beard'):
         G.beard(mesh, B.hex_color(c['hair']), length=0.018, density=700)
     if entry.get('pelt_cape'):
@@ -152,7 +161,7 @@ def dress(entry, mesh, arm):
         # strands, locks forward over the shoulders, a rough strand coat
         G.falling_hair(mesh, B.hex_color(c['hair']), length=entry['mane'])
         G.front_locks(mesh, B.hex_color(c['hair']), length=entry['mane'] * 1.1)
-    G.roughen_hair(mesh, B.hex_color(c['hair']), length=0.03, density=6000)
+    G.roughen_hair(mesh, B.hex_color(c['hair']), length=0.012, density=2500)
 
 
 def dress_posed(entry, mesh, arm):
@@ -164,6 +173,9 @@ def dress_posed(entry, mesh, arm):
         maker = G.leather if entry.get('bottom_material') == 'leather' else (lambda n, col, tint=False: G.cloth(n, col, tint=tint, weave=0.6))
         hanging += G.loincloth(mesh, arm, _mat(entry, 'bottom', maker), length=lengths[0], back_length=lengths[1],
                                torn=entry.get('torn', True))
+    if entry.get('cape'):
+        G.cape(mesh, arm, _mat(entry, 'cape', lambda n, col, tint=False: G.cloth(n, col, tint=tint, weave=0.6)),
+               length=entry.get('cape_length', 0.75))
     hanging = [o for o in hanging if not o.get('no_drape')]
     if hanging and entry.get('drape', True):
         G.drape(hanging, mesh)
@@ -178,6 +190,22 @@ def helmet(entry, mesh, arm):
     body = mesh.vertex_groups.get('body')
     top = max(v.co.z for v in me.vertices if any(g.group == body.index and g.weight > 0.5 for g in v.groups))
     metal = kind in entry.get('metal', ['helmet']) or 'helmet' in entry.get('metal', ['helmet'])
+    if kind in ('galea', 'morion'):
+        metalmat = B.material('helmet', B.hex_color(_colors(entry)['helmet']), roughness=0.5, metallic=0.85)
+        G.shell(mesh, arm, 'Helmet', ['head', 'neck_01'], metalmat, zmin=(top - 0.09) / G._scale, offset=0.018,
+                thickness=0.008, min_weight=0.2)
+        if kind == 'galea':
+            tint = 'crest' in entry.get('tint', [])
+            c2 = _colors(entry)
+            G.crest(mesh, arm, G.hide('crest', (1, 1, 1) if tint else B.hex_color(c2['crest']),
+                                      (0.8, 0.8, 0.8) if tint else tuple(v * 0.6 for v in B.hex_color(c2['crest'])),
+                                      tint=tint), height=0.07, length=0.2, width=0.035)
+        else:
+            G.brim(mesh, arm, metalmat)
+    if entry.get('plume'):
+        tint = 'plume' in entry.get('tint', [])
+        col = (1, 1, 1) if tint else B.hex_color(_colors(entry).get('plume', '#e8e0d0'))
+        G.plume(mesh, arm, G.hide('plume', col, tuple(v * 0.75 for v in col), tint=tint))
     if kind in ('crested', 'horned', 'cap', 'wolf', 'hood'):
         depth = {'cap': 0.07, 'crested': 0.082, 'horned': 0.09, 'wolf': 0.12, 'hood': 0.19}[kind]
         if kind == 'wolf':
