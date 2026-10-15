@@ -25,8 +25,9 @@ REMASTER = {
         'colors': {'skin': '#94704f', 'helmet': '#5a4c2c', 'crest': '#3a2a1c', 'bottom': '#4e3a26',
                    'shield_face': '#8a7250', 'shield_rim': '#3a3634', 'belt': '#3a2818'},
         'props': {'spear': ('spear', {'grip': 1.2, 'length': 2.6}),
-                  'shield_oval': ('shield_oval', {'band': 0.13, 'w': 0.82, 'h': 0.82})},
-        'offhand_mesh': ('shield_oval', {'band': 0.13, 'w': 0.82, 'h': 0.82}),
+                  'shield_oval': ('shield_oval', {'band': 0.13, 'w': 0.74, 'h': 0.74})},
+        'offhand_mesh': ('shield_oval', {'band': 0.13, 'w': 0.74, 'h': 0.74}),
+        'gear': [],
         'grime': 0.7,
         'beard': True,
         'tint': ['top', 'shield_emblem', 'crest'],
@@ -38,13 +39,13 @@ REMASTER = {
         # long apron (both civ color), the bow held low across the hips
         'macro': {'muscle': 0.9, 'weight': 0.6, 'height': 0.75, 'proportions': 0.75},
         'colors': {'skin': '#94704f', 'hair': '#1e1610', 'helmet': '#2a2018', 'boots': '#3a2616',
-                   'leather': '#4e3826', 'wood': '#3e2a1a'},
+                   'leather': '#4e3826', 'wood': '#3e2a1a', 'string': '#8a7a5a'},
         'top': 'strap', 'bottom': 'loincloth', 'loin_length': (0.6, 0.42), 'torn': False,
         'tint': ['top', 'bottom'],
         'hair': 'topknot', 'hair_asset': 'ponytail01', 'helmet': 'headband',
-        'wraps': 'boots', 'beard': False,
+        'wraps': 'boots', 'beard': False, 'upper_bulk': 1.2,
         'offhand_mesh': ('bold_bow', {'height': 1.45, 'bend': 0.2, 'recurve': 0.12}),
-        'grime': 0.7, 'upper_bulk': 1.12,
+        'grime': 0.7,
     },
     'Swordsman': {
         # the original: an iron helmet with a brow ridge (reads horned), brown
@@ -53,10 +54,11 @@ REMASTER = {
         'macro': {'muscle': 1.0, 'weight': 0.8, 'height': 0.75, 'proportions': 0.7},
         'colors': {'skin': '#94704f', 'helmet': '#5c5c60', 'cuirass': '#5e4028', 'bottom': '#4e3622',
                    'greaves': '#6a6a6e', 'horn': '#b8a888', 'belt': '#2e2016', 'shield_face': '#5e4430'},
-        'helmet': 'horned', 'metal': ['helmet'], 'cuirass': True, 'top': 'tunic',
+        'helmet': 'horned', 'metal': ['helmet'], 'cuirass': True, 'top': None, 'pauldrons': True,
+        'neck': 'high', 'boots': True, 'stance_name': 'guard',
         'props': {'sword': ('sword', {'guard': 0.18, 'length': 0.62, 'width': 0.09})},
         'bottom': 'loincloth', 'bottom_material': 'leather', 'loin_length': (0.36, 0.34),
-        'back': None, 'wraps': 'greaves', 'beard': True,
+        'back': None, 'wraps': 'greaves', 'beard': True, 'colors_extra': None,
         'tint': ['top', 'shield_emblem'],
         'grime': 0.7, 'upper_bulk': 1.25,
     },
@@ -75,6 +77,25 @@ REMASTER = {
         'upper_bulk': 1.35,
         'macro': {'muscle': 1.0, 'weight': 0.85, 'proportions': 0.7},
         'grime': 0.6,
+    },
+    'Settler': {
+        # the original: a traveller with a big bundle and a pot on his back, a
+        # tall staff, civ color on the tunic and the cap, a cream kilt
+        'macro': {'muscle': 0.85, 'weight': 0.65, 'height': 0.72, 'proportions': 0.7}, 'age': 0.6,
+        'colors': {'skin': '#94704f', 'bottom': '#cfc6b0', 'hair': '#3a2a1c', 'pack': '#6a5a3a', 'sandal': '#3a2818'},
+        'tint': ['top', 'helmet'], 'beard': True,
+        'props': {'staff': ('staff', {'length': 2.05, 'grip': 1.2})},
+        'grime': 0.7, 'upper_bulk': 1.1,
+    },
+    'Worker': {
+        # the original: slim and wiry, a straw headband, civ color on a sash
+        # over one shoulder and an apron, a shovel held diagonally, blade down
+        'macro': {'muscle': 0.85, 'weight': 0.5, 'height': 0.7, 'proportions': 0.7},
+        'colors': {'skin': '#8e6a48', 'helmet': '#c8b688', 'hair': '#241a10', 'wraps': '#3e2a1c',
+                   'wraps_band': '#22160c', 'wood': '#6a4a2e'},
+        'top': 'strap', 'bottom': 'loincloth', 'loin_length': (0.45, 0.4), 'torn': False,
+        'tint': ['top', 'bottom'], 'wraps': 'wraps', 'sandals': False,
+        'grime': 0.85, 'upper_bulk': 1.1,
     },
 }
 

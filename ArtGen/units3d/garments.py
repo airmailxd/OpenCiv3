@@ -66,7 +66,7 @@ def cloth(name, color, tint=False, rough=0.85, weave=0.25):
         bump.inputs['Strength'].default_value = weave
         tree.links.new(add.outputs['Value'], bump.inputs['Height'])
         tree.links.new(bump.outputs['Normal'], bsdf.inputs['Normal'])
-        bsdf.inputs['Sheen Weight'].default_value = 0.4
+        bsdf.inputs['Sheen Weight'].default_value = 0.12
         # darker in the folds and where the cloth meets the body
         ao = n.new('ShaderNodeAmbientOcclusion')
         ao.inputs['Distance'].default_value = 0.05

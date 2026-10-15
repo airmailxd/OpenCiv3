@@ -78,7 +78,7 @@ def dress(entry, mesh, arm):
             # covered to the base of the neck, as most of Civ3's soldiers and riders are
             bones = bones + ['neck_01']
             zmax = max(zmax, 1.56)
-        G.shell(mesh, arm, 'Top', bones, _mat(entry, 'top', G.cloth), zmin=0.9, zmax=zmax, offset=0.008,
+        G.shell(mesh, arm, 'Top', bones, _mat(entry, 'top', G.cloth, weave=0.6), zmin=0.9, zmax=zmax, offset=0.008,
                 thickness=0.004, keep=keep)
         if entry.get('collar') == 'mail':
             # a mail collar (coif's lower part) around the neck and over the shoulders
@@ -107,23 +107,29 @@ def dress(entry, mesh, arm):
     if bottom:
         G.shell(mesh, arm, 'Belt', ['pelvis', 'spine_01'], _mat(entry, 'belt', G.leather), zmin=0.98, zmax=1.04,
                 offset=0.013, thickness=0.01)
+    if entry.get('pauldrons'):
+        # shoulder pieces: the top of the upper arms and shoulders
+        G.shell(mesh, arm, 'Pauldrons', ['upperarm_l', 'upperarm_r', 'clavicle_l', 'clavicle_r'],
+                _mat(entry, 'top', G.leather), zmin=1.33, offset=0.012, thickness=0.008, min_weight=0.35,
+                keep=lambda co: abs(co.x) > 0.13)
     if entry.get('cuirass'):
         metal = 'cuirass' in entry.get('metal', ['cuirass'])
         maker = (lambda n, col, tint=False: B.material(n, col, roughness=0.35, metallic=0.9, tint=tint)) if metal else G.leather
-        G.shell(mesh, arm, 'Cuirass', torso, _mat(entry, 'cuirass', maker), zmin=0.98, zmax=1.42, offset=0.016,
-                thickness=0.008, keep=lambda co: abs(co.x) < 0.17)
+        G.shell(mesh, arm, 'Cuirass', torso + (['neck_01'] if entry.get('neck') == 'high' else []),
+                _mat(entry, 'cuirass', maker), zmin=0.98, zmax=1.55 if entry.get('neck') == 'high' else 1.42,
+                offset=0.016, thickness=0.008, keep=lambda co: abs(co.x) < 0.17)
     wraps = entry.get('wraps')
     for side in 'lr':
         if wraps == 'wraps':
             G.shell(mesh, arm, 'Wrap_' + side, ['calf_' + side], G.fur('wraps_' + side, B.hex_color(c['wraps']),
                     B.hex_color(c['wraps_band'])), zmin=0.08, offset=0.012, thickness=0.012)
-        elif wraps == 'boots':
+        if wraps == 'boots' or entry.get('boots'):
             G.shell(mesh, arm, 'Boot_' + side, ['calf_' + side, 'foot_' + side, 'ball_' + side],
                     _mat(entry, 'boots', G.leather), zmax=0.36, offset=0.008, thickness=0.006)
         elif wraps == 'greaves':
             G.shell(mesh, arm, 'Greave_' + side, ['calf_' + side], (lambda n, col, tint=False: B.material(
                 n, col, roughness=0.4, metallic=0.85, tint=tint))('greaves', B.hex_color(c['greaves'])),
-                zmin=0.1, zmax=0.48, offset=0.012, thickness=0.006, keep=lambda co: co.y < 0.02)
+                zmin=0.1, zmax=0.48, offset=0.016, thickness=0.006)
         if entry.get('sandals') and wraps not in ('boots',):
             G.shell(mesh, arm, 'Sandal_' + side, ['foot_' + side, 'ball_' + side], _mat(entry, 'sandal', G.leather),
                     zmax=0.025, offset=0.004, thickness=0.008)
@@ -232,11 +238,11 @@ STANCES = {
                 ('thigh_r', (-0.14, 0.04, -1)), ('calf_r', (-0.1, 0.06, -1)), ('foot_r', (-0.35, -1, -0.3)),
                 ('upperarm_l', (0.2, -0.45, -1)), ('lowerarm_l', (-0.55, -1.0, 0.25)),
                 ('upperarm_r', (-0.62, -0.1, -1)), ('lowerarm_r', (-0.45, -1.0, 0.5))],
-    'low_across': [('neck_01', (0, -0.03, 1)),
-                   ('thigh_l', (0.12, 0.0, -1)), ('calf_l', (0.07, 0.04, -1)),
-                   ('thigh_r', (-0.12, 0.0, -1)), ('calf_r', (-0.07, 0.04, -1)),
-                   ('upperarm_l', (0.25, -0.3, -1)), ('lowerarm_l', (-0.4, -0.9, -0.2)),
-                   ('upperarm_r', (-0.25, -0.25, -1)), ('lowerarm_r', (0.3, -0.9, -0.3))],
+    'low_across': [('spine_02', (0, -0.1, 1)), ('neck_01', (0, 0.0, 1)), ('head', (0, 0.25, 1)),
+                   ('thigh_l', (0.18, -0.1, -1)), ('calf_l', (0.12, 0.04, -1)), ('foot_l', (0.4, -1, -0.3)),
+                   ('thigh_r', (-0.18, 0.04, -1)), ('calf_r', (-0.12, 0.06, -1)), ('foot_r', (-0.4, -1, -0.3)),
+                   ('upperarm_l', (0.15, -0.45, -1)), ('lowerarm_l', (-0.45, -1.0, 0.15)),
+                   ('upperarm_r', (-0.32, -0.15, -1)), ('lowerarm_r', (-0.2, -0.8, -0.6))],
 }
 
 # Seated on a horse: thighs forward and apart around the barrel, shins
@@ -254,6 +260,13 @@ STANCES['bow_low'] = [('spine_02', (0, 0.0, 1)), ('neck_01', (0, 0.12, 1)), ('he
                       ('upperarm_l', (0.32, -0.15, -1)), ('lowerarm_l', (0.25, -1.0, -0.45)),
                       ('upperarm_r', (-0.32, -0.15, -1)), ('lowerarm_r', (-0.05, -1.0, -0.4))]
 
+STANCES['guard'] = [('spine_02', (0, -0.04, 1)), ('neck_01', (0, 0.1, 1)), ('head', (0, 0.35, 1)),
+                    ('clavicle_l', (1, -0.2, 0.05)), ('clavicle_r', (-1, -0.2, 0.05)),
+                    ('thigh_l', (0.24, -0.12, -1)), ('calf_l', (0.16, 0.04, -1)), ('foot_l', (0.45, -1, -0.3)),
+                    ('thigh_r', (-0.24, 0.06, -1)), ('calf_r', (-0.16, 0.06, -1)), ('foot_r', (-0.45, -1, -0.3)),
+                    ('upperarm_l', (0.38, -0.35, -1)), ('lowerarm_l', (0.05, -1.0, 0.1)),
+                    ('upperarm_r', (-0.35, -0.15, -1)), ('lowerarm_r', (-0.3, -0.9, -0.45))]
+
 WEAPON_STANCE = {
     'stone_axe': 'hang', 'club': 'hang', 'sword': 'hang', 'axe': 'hang',
     'spear': 'upright', 'staff': 'upright', 'pike': 'upright',
@@ -268,7 +281,7 @@ def equip(entry, arm):
     props = entry.get('props', {})
     stance = entry.get('stance_name') or WEAPON_STANCE.get(weapon or ('bow' if offhand == 'bow' else None), 'hang')
     H.pose(arm, STANCES[stance] + [tuple(a) for a in entry.get('pose_extra', [])])
-    H.fists(arm, sides='r' if offhand == 'bow' else 'lr')
+    H.fists(arm, sides='lr')
     bulk = entry.get('upper_bulk')
     if bulk:
         H.bulk(arm, bulk)
@@ -284,14 +297,15 @@ def equip(entry, arm):
         else:
             obj = P.make(name, c, **params)
         at = H.grip_point(arm, 'hand_r')
-        if stance == 'hang':
+        if stance in ('hang', 'guard'):
             # hanging from the fist, down and out to the side, head low
             H.hold(obj, arm, 'hand_r', at, up=(-0.7, -0.45, -0.5))
         elif stance == 'upright':
             # upright through the fist, butt near the ground
             H.hold(obj, arm, 'hand_r', at, up=(-0.22, 0.04, 1.0))
         else:
-            H.hold(obj, arm, 'hand_r', at, up=(0.9, -0.2, -0.45))
+            # a tool held diagonally across the body, working end down at the right
+            H.hold(obj, arm, 'hand_r', at, up=(-0.55, -0.25, -0.8))
         made.append(obj)
     if offhand:
         name, params = (entry['offhand_mesh'] if entry.get('offhand_mesh') else (offhand, {}))

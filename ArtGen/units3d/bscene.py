@@ -226,6 +226,10 @@ def material(name, color, roughness=0.6, metallic=0.0, tint=False, nodes=None):
     bsdf.inputs['Base Color'].default_value = (*srgb_to_linear(color), 1.0)
     bsdf.inputs['Roughness'].default_value = roughness
     bsdf.inputs['Metallic'].default_value = metallic
+    if metallic < 0.5:
+        # dielectrics: little specular, or the sky's reflection (the camera
+        # looks down on many up-facing surfaces) lifts dark colors to grey
+        bsdf.inputs['Specular IOR Level'].default_value = 0.18
     if nodes:
         nodes(tree, bsdf)
     aov = tree.nodes.new('ShaderNodeOutputAOV')
