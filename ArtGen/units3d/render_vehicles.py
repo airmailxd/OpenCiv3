@@ -91,8 +91,11 @@ def fit(unit, root, waterline):
                            'calibration_ppm_2x': cal['fit']['ppm_2x']}
 
 
-def render(unit):
-    out = os.path.abspath(os.path.join(HERE, '..', '_previews', 'units3d', unit))
+def render(unit, use_calibration=False, tag=''):
+    """use_calibration: render at the old remake's ppm and anchor from
+    calibration/<Unit>.json instead of the fitted ones (for comparing which
+    matches the original's size on the map); tag names the output folder."""
+    out = os.path.abspath(os.path.join(HERE, '..', '_previews', 'units3d', unit + tag))
     os.makedirs(out, exist_ok=True)
     scene = B.reset_scene()
     device = B.use_gpu(scene)
@@ -102,6 +105,12 @@ def render(unit):
     root = build(unit)
     waterline = unit in SHIPS
     ppm, anchor, info = fit(unit, root, waterline)
+    if use_calibration:
+        cal = json.load(open(os.path.join(HERE, 'calibration', f'{unit}.json'), encoding='utf-8'))
+        ppm = cal['fit']['ppm_2x']
+        a = cal['anchor_override'] or cal['anchor']
+        anchor = (2 * a[0], 2 * a[1])
+        info['source'] = 'calibration'
     B.camera(CANVAS, CANVAS, ppm, anchor)
     B.outputs(out)
     B.render_directions(root, range(8))
@@ -111,9 +120,12 @@ def render(unit):
 
 
 def main():
+    """Units to render; 'Unit:cal' renders at the calibration's ppm/anchor
+    instead, into the folder '<Unit>_cal'."""
     argv = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []
-    for unit in argv:
-        render(unit)
+    for arg in argv:
+        unit, _, mode = arg.partition(':')
+        render(unit, use_calibration=mode == 'cal', tag='_cal' if mode == 'cal' else '')
 
 
 if __name__ == '__main__':

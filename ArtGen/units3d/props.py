@@ -60,16 +60,113 @@ def _base_material(name, color, roughness, metallic, tint):
     return bscene.material(name, color, roughness, metallic, tint=tint)
 
 
-def material(key, colors, tint=False):
-    """The material of a color key, created once per (key, color, tint)."""
+# Weathering per detail kind (see _weather): grime (crevice dirt and blotches),
+# soot (dark scorch patches), rust (iron), stain (cloth). A model can raise
+# them per key, e.g. {'wood': {'soot': 0.6}} for a battle-scarred engine.
+WEATHER = {
+    'wood': {'grime': 0.45},
+    'stone': {'grime': 0.4},
+    'metal': {'grime': 0.35},
+    'leather': {'grime': 0.4},
+    'rope': {'grime': 0.5},
+    'cloth': {'grime': 0.35, 'stain': 0.35},
+    None: {'grime': 0.25},
+}
+
+
+def material(key, colors, tint=False, weather=None):
+    """The material of a color key, created once per (key, color, tint,
+    weathering). `weather` overrides WEATHER for this key."""
     color, rough, metal, kind = DEFAULTS[key]
     color = colors.get(key, color)
-    name = f'prop_{key}_{color.lstrip("#")}' + ('_tint' if tint else '')
+    w = dict(WEATHER.get(kind, WEATHER[None]))
+    if tint:
+        w = {'grime': 0.2}   # the civ color stays readable, just a little worn
+    w.update(weather or {})
+    tag = '_'.join(f'{k[0]}{round(v * 100)}' for k, v in sorted(w.items()) if v)
+    name = f'prop_{key}_{color.lstrip("#")}_{tag}' + ('_tint' if tint else '')
     if name in bpy.data.materials:
         return bpy.data.materials[name]
     m = _base_material(name, color, rough, metal, tint)
     _detail(m, kind, rough, tint)
+    _weather(m, w)
     return m
+
+
+def _weather(m, w):
+    """Battle wear on top of the surface detail, darkening only the value
+    (never the saturation) except for rust and stains, which pull slightly
+    toward brown: dirt in crevices (ambient occlusion), blotchy grime, soot
+    patches; rust patches on iron; stains on sailcloth."""
+    p = _principled(m)
+    if p is None or not any(w.values()):
+        return
+    nt = m.node_tree
+    N, L = nt.nodes, nt.links
+    bc = p.inputs['Base Color']
+    if bc.is_linked:
+        src = bc.links[0].from_socket
+    else:
+        rgb = N.new('ShaderNodeRGB')
+        rgb.outputs[0].default_value = bc.default_value
+        src = rgb.outputs[0]
+    tc = N.new('ShaderNodeTexCoord')
+
+    def noise(scale, detail=6.0, rough=0.62):
+        t = N.new('ShaderNodeTexNoise')
+        t.inputs['Scale'].default_value = scale
+        t.inputs['Detail'].default_value = detail
+        t.inputs['Roughness'].default_value = rough
+        L.new(tc.outputs['Object'], t.inputs['Vector'])
+        return t.outputs['Fac']
+
+    def remap(src_, f0, f1, t0, t1):
+        r = N.new('ShaderNodeMapRange')
+        r.inputs['From Min'].default_value = f0
+        r.inputs['From Max'].default_value = f1
+        r.inputs['To Min'].default_value = t0
+        r.inputs['To Max'].default_value = t1
+        L.new(src_, r.inputs['Value'])
+        return r.outputs['Result']
+
+    def mul(a, b):
+        n = N.new('ShaderNodeMath')
+        n.operation = 'MULTIPLY'
+        L.new(a, n.inputs[0])
+        L.new(b, n.inputs[1])
+        return n.outputs[0]
+
+    g, soot = w.get('grime', 0.0), w.get('soot', 0.0)
+    ao = N.new('ShaderNodeAmbientOcclusion')
+    ao.samples = 8
+    ao.inputs['Distance'].default_value = 0.08
+    fac = remap(ao.outputs['AO'], 0.0, 1.0, 1.0 - 0.55 * g, 1.0)                 # dirt in the crevices
+    fac = mul(fac, remap(noise(2.6), 0.42, 0.72, 1.0, 1.0 - 0.4 * g))           # grime blotches
+    if w.get('edges', 0.25):
+        # worn, lighter edges where the surface is convex (Cycles pointiness),
+        # so beams and plates keep their shape when the unit is small
+        geo = N.new('ShaderNodeNewGeometry')
+        fac = mul(fac, remap(geo.outputs['Pointiness'], 0.5, 0.58, 1.0, 1.0 + w.get('edges', 0.25)))
+    if soot:
+        fac = mul(fac, remap(noise(1.3, 4.0, 0.5), 0.48, 0.7, 1.0, 1.0 - 0.75 * soot))
+    hsv = N.new('ShaderNodeHueSaturation')
+    hsv.inputs['Hue'].default_value = 0.5
+    hsv.inputs['Saturation'].default_value = 1.0
+    L.new(src, hsv.inputs['Color'])
+    L.new(fac, hsv.inputs['Value'])
+    out = hsv.outputs['Color']
+    for amount, color, scale, lo in ((w.get('rust', 0.0), (0.16, 0.06, 0.025, 1.0), 5.0, 0.55),
+                                     (w.get('stain', 0.0), (0.26, 0.19, 0.1, 1.0), 2.2, 0.5)):
+        if not amount:
+            continue
+        mix = N.new('ShaderNodeMix')
+        mix.data_type = 'RGBA'
+        mix.blend_type = 'MIX'
+        L.new(remap(noise(scale), lo, lo + 0.18, 0.0, amount), mix.inputs['Factor'])
+        L.new(out, mix.inputs['A'])
+        mix.inputs['B'].default_value = color
+        out = mix.outputs['Result']
+    L.new(out, bc)
 
 
 def _principled(m):
@@ -156,8 +253,10 @@ def _detail(m, kind, rough, tint):
         mp.inputs['Scale'].default_value = (1.0, 1.0, 0.12)
         g = wave(6.0, 'X', distortion=7.0)
         if not tint:
-            value_mod(g, 0.9, 1.04)
+            value_mod(g, 0.8, 1.06)
             rough_mod(noise(30.0), 0.06)
+        else:  # civ-colored timbers keep their grain, so the color reads as paint on wood
+            value_mod(g, 0.84, 1.03)
         bump(g, 0.18, 0.002)
     elif kind == 'stone':
         n = noise(22.0, 6.0, 0.6)
@@ -334,14 +433,15 @@ class Prop:
     """Collects parts (each its own bmesh, material, bevel and shading) into
     one mesh object."""
 
-    def __init__(self, name, colors):
+    def __init__(self, name, colors, weather=None):
         self.name = name
         self.colors = colors
+        self.weather = weather or {}   # {key: {'grime': .., 'soot': .., 'rust': .., 'stain': ..}}
         self.bm = bmesh.new()
         self.mats = []
 
     def mat(self, key, tint=False):
-        return material(key, self.colors, tint)
+        return material(key, self.colors, tint, None if tint else self.weather.get(key))
 
     def _index(self, key, tint):
         m = self.mat(key, tint)
@@ -702,9 +802,10 @@ BUILDERS = {
 }
 
 
-def make(name, mats_colors=None, **params):
+def make(name, mats_colors=None, weather=None, **params):
     """Build prop `name` with the catalog colors and params; returns one
-    joined mesh object (see the module docstring for its space)."""
-    p = Prop(name, mats_colors or {})
+    joined mesh object (see the module docstring for its space). `weather`
+    raises the wear per color key (see WEATHER)."""
+    p = Prop(name, mats_colors or {}, weather)
     BUILDERS[name](p, **params)
     return p.finish()

@@ -49,8 +49,8 @@ def root(name):
 class Part(props.Prop):
     """A props.Prop whose finished object is parented to the model root."""
 
-    def __init__(self, root_obj, name, colors):
-        super().__init__(f'{root_obj.name}_{name}', colors)
+    def __init__(self, root_obj, name, colors, weather=None):
+        super().__init__(f'{root_obj.name}_{name}', colors, weather)
         self.root = root_obj
 
     def finish(self):
@@ -59,8 +59,8 @@ class Part(props.Prop):
         return obj
 
 
-def part(root_obj, name, colors):
-    return Part(root_obj, name, colors)
+def part(root_obj, name, colors, weather=None):
+    return Part(root_obj, name, colors, weather)
 
 
 def crew(root_obj, n, pos, yaw=0.0):
@@ -119,9 +119,9 @@ def ring_x(p, r_out, r_in, width, key, center=(0, 0, 0), seg=32, tint=False, bev
 
 
 def spoked_wheel(p, r, width, rim_key, spoke_key, hub_key, n_spokes=8, center=(0, 0, 0), tire_key=None,
-                 tint_spokes=False, tint_rim=False):
+                 tint_spokes=False, tint_rim=False, spoke_scale=1.0):
     """A cart / gun wheel around the X axis: felloe rim, optional iron tire,
-    spokes and a hub."""
+    spokes (spoke_scale thickens them so they read at 1x) and a hub."""
     cx, cy, cz = center
     ring_x(p, r * 0.97, r * 0.84, width, rim_key, center, tint=tint_rim)
     if tire_key:
@@ -130,5 +130,5 @@ def spoked_wheel(p, r, width, rim_key, spoke_key, hub_key, n_spokes=8, center=(0
     for i in range(n_spokes):
         a = 2 * math.pi * i / n_spokes
         tip = (cx, cy + math.cos(a) * r * 0.86, cz + math.sin(a) * r * 0.86)
-        beam(p, (cx, cy + math.cos(a) * r * 0.12, cz + math.sin(a) * r * 0.12), tip, width * 0.42, width * 0.32,
-             spoke_key, bevel=0.004, tint=tint_spokes)
+        beam(p, (cx, cy + math.cos(a) * r * 0.12, cz + math.sin(a) * r * 0.12), tip, width * 0.42 * spoke_scale,
+             width * 0.32 * spoke_scale, spoke_key, bevel=0.004, tint=tint_spokes)
