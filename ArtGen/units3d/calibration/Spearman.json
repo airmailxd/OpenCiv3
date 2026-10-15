@@ -1,0 +1,267 @@
+{
+  "unit": "Spearman",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.25,
+    120.5
+  ],
+  "anchor_override": null,
+  "standing_height": 44.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        119.67,
+        123
+      ],
+      "top": 80,
+      "height": 44,
+      "bbox": [
+        104,
+        80,
+        132,
+        123
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        122.0,
+        122
+      ],
+      "top": 80,
+      "height": 43,
+      "bbox": [
+        105,
+        80,
+        132,
+        122
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        118.61,
+        121
+      ],
+      "top": 80,
+      "height": 42,
+      "bbox": [
+        111,
+        80,
+        131,
+        121
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        117.0,
+        124
+      ],
+      "top": 80,
+      "height": 45,
+      "bbox": [
+        114,
+        80,
+        131,
+        124
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        121.47,
+        124
+      ],
+      "top": 79,
+      "height": 46,
+      "bbox": [
+        107,
+        79,
+        135,
+        124
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        122.38,
+        121
+      ],
+      "top": 79,
+      "height": 43,
+      "bbox": [
+        107,
+        79,
+        134,
+        121
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        118.84,
+        121
+      ],
+      "top": 75,
+      "height": 47,
+      "bbox": [
+        108,
+        75,
+        128,
+        121
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        117.05,
+        122
+      ],
+      "top": 75,
+      "height": 48,
+      "bbox": [
+        108,
+        75,
+        125,
+        122
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 44.2488,
+    "fit": 0.8509,
+    "archetype": "footman"
+  },
+  "default_flic": "SpearmanDefault.flc",
+  "flics": {
+    "SpearmanAttackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 129,
+      "height": 78,
+      "offset_left": 54,
+      "offset_top": 72,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "SpearmanAttackB.flc": {
+      "actions": [
+        "ATTACK2"
+      ],
+      "kind": "animation",
+      "width": 119,
+      "height": 80,
+      "offset_left": 58,
+      "offset_top": 68,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "SpearmanDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 153,
+      "height": 97,
+      "offset_left": 43,
+      "offset_top": 62,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "SpearmanDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 41,
+      "height": 52,
+      "offset_left": 96,
+      "offset_top": 75,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "SpearmanFidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 42,
+      "height": 56,
+      "offset_left": 95,
+      "offset_top": 72,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 100
+    },
+    "SpearmanFortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 62,
+      "height": 70,
+      "offset_left": 86,
+      "offset_top": 62,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "SpearmanRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 53,
+      "height": 68,
+      "offset_left": 90,
+      "offset_top": 62,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "SpearmanVictory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 73,
+      "height": 75,
+      "offset_left": 80,
+      "offset_top": 59,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    }
+  }
+}

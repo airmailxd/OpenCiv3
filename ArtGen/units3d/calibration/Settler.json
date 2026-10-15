@@ -1,0 +1,237 @@
+{
+  "unit": "Settler",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    118.9,
+    120.5
+  ],
+  "anchor_override": null,
+  "standing_height": 45.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        119.93,
+        123
+      ],
+      "top": 75,
+      "height": 49,
+      "bbox": [
+        106,
+        75,
+        131,
+        123
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        117.86,
+        122
+      ],
+      "top": 81,
+      "height": 42,
+      "bbox": [
+        105,
+        81,
+        129,
+        122
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        114.57,
+        125
+      ],
+      "top": 82,
+      "height": 44,
+      "bbox": [
+        107,
+        82,
+        130,
+        125
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        123.57,
+        125
+      ],
+      "top": 83,
+      "height": 43,
+      "bbox": [
+        107,
+        83,
+        126,
+        125
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        123.82,
+        122
+      ],
+      "top": 81,
+      "height": 42,
+      "bbox": [
+        108,
+        81,
+        133,
+        122
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        121.0,
+        121
+      ],
+      "top": 76,
+      "height": 46,
+      "bbox": [
+        111,
+        76,
+        134,
+        121
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        117.34,
+        120
+      ],
+      "top": 71,
+      "height": 50,
+      "bbox": [
+        109,
+        71,
+        132,
+        120
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        116.0,
+        122
+      ],
+      "top": 71,
+      "height": 52,
+      "bbox": [
+        113,
+        71,
+        132,
+        122
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 49.3036,
+    "fit": 0.9481,
+    "archetype": "footman"
+  },
+  "default_flic": "settDefault.flc",
+  "flics": {
+    "settBuild.flc": {
+      "actions": [
+        "BUILD"
+      ],
+      "kind": "animation",
+      "width": 40,
+      "height": 67,
+      "offset_left": 100,
+      "offset_top": 61,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "settDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 104,
+      "height": 77,
+      "offset_left": 68,
+      "offset_top": 70,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "settDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 30,
+      "height": 55,
+      "offset_left": 105,
+      "offset_top": 71,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "settFidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 32,
+      "height": 55,
+      "offset_left": 104,
+      "offset_top": 71,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "SettlerCaptured.flc": {
+      "actions": [
+        "CAPTURE"
+      ],
+      "kind": "animation",
+      "width": 48,
+      "height": 59,
+      "offset_left": 92,
+      "offset_top": 70,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 83
+    },
+    "settRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 40,
+      "height": 63,
+      "offset_left": 100,
+      "offset_top": 62,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    }
+  }
+}

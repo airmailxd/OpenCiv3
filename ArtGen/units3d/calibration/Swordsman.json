@@ -1,0 +1,267 @@
+{
+  "unit": "Swordsman",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.38,
+    121.0
+  ],
+  "anchor_override": null,
+  "standing_height": 44.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        123.7,
+        122
+      ],
+      "top": 79,
+      "height": 44,
+      "bbox": [
+        101,
+        79,
+        130,
+        122
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        118.62,
+        120
+      ],
+      "top": 80,
+      "height": 41,
+      "bbox": [
+        108,
+        80,
+        131,
+        120
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        113.62,
+        122
+      ],
+      "top": 79,
+      "height": 44,
+      "bbox": [
+        107,
+        79,
+        131,
+        122
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        118.22,
+        123
+      ],
+      "top": 78,
+      "height": 46,
+      "bbox": [
+        112,
+        78,
+        137,
+        123
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        123.48,
+        123
+      ],
+      "top": 79,
+      "height": 45,
+      "bbox": [
+        109,
+        79,
+        138,
+        123
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        120.13,
+        121
+      ],
+      "top": 79,
+      "height": 43,
+      "bbox": [
+        108,
+        79,
+        131,
+        121
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        116.27,
+        123
+      ],
+      "top": 79,
+      "height": 45,
+      "bbox": [
+        108,
+        79,
+        132,
+        123
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        120.41,
+        123
+      ],
+      "top": 78,
+      "height": 46,
+      "bbox": [
+        102,
+        78,
+        127,
+        123
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 47.7707,
+    "fit": 0.9187,
+    "archetype": "footman"
+  },
+  "default_flic": "SwordsmanDefault.flc",
+  "flics": {
+    "SwordsmanAttackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 92,
+      "height": 76,
+      "offset_left": 73,
+      "offset_top": 67,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "SwordsmanAttackB.flc": {
+      "actions": [
+        "ATTACK2"
+      ],
+      "kind": "animation",
+      "width": 126,
+      "height": 78,
+      "offset_left": 55,
+      "offset_top": 72,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "SwordsmanDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 137,
+      "height": 92,
+      "offset_left": 52,
+      "offset_top": 63,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "SwordsmanDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 48,
+      "height": 52,
+      "offset_left": 95,
+      "offset_top": 78,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "SwordsmanFidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 68,
+      "height": 76,
+      "offset_left": 83,
+      "offset_top": 57,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 100
+    },
+    "SwordsmanFortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 75,
+      "height": 59,
+      "offset_left": 80,
+      "offset_top": 76,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "SwordsmanRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 64,
+      "height": 70,
+      "offset_left": 85,
+      "offset_top": 63,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "SwordsmanVictory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 70,
+      "height": 75,
+      "offset_left": 80,
+      "offset_top": 58,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    }
+  }
+}

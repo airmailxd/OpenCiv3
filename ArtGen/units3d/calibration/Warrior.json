@@ -1,0 +1,267 @@
+{
+  "unit": "Warrior",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    120.36,
+    120.5
+  ],
+  "anchor_override": null,
+  "standing_height": 40.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        120.77,
+        124
+      ],
+      "top": 83,
+      "height": 42,
+      "bbox": [
+        100,
+        83,
+        128,
+        124
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        124.68,
+        123
+      ],
+      "top": 84,
+      "height": 40,
+      "bbox": [
+        107,
+        84,
+        130,
+        123
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        120.68,
+        121
+      ],
+      "top": 84,
+      "height": 38,
+      "bbox": [
+        110,
+        84,
+        131,
+        121
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        116.96,
+        122
+      ],
+      "top": 84,
+      "height": 39,
+      "bbox": [
+        114,
+        84,
+        141,
+        122
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        120.04,
+        122
+      ],
+      "top": 83,
+      "height": 40,
+      "bbox": [
+        111,
+        83,
+        139,
+        122
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        122.17,
+        122
+      ],
+      "top": 83,
+      "height": 40,
+      "bbox": [
+        109,
+        83,
+        132,
+        122
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        116.32,
+        121
+      ],
+      "top": 82,
+      "height": 40,
+      "bbox": [
+        108,
+        82,
+        128,
+        121
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        115.46,
+        123
+      ],
+      "top": 83,
+      "height": 41,
+      "bbox": [
+        98,
+        83,
+        125,
+        123
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 45.5809,
+    "fit": 0.8766,
+    "archetype": "footman"
+  },
+  "default_flic": "WarriorDefault.flc",
+  "flics": {
+    "WarriorAttackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 91,
+      "height": 71,
+      "offset_left": 73,
+      "offset_top": 71,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "WarriorAttackB.flc": {
+      "actions": [
+        "ATTACK2"
+      ],
+      "kind": "animation",
+      "width": 94,
+      "height": 70,
+      "offset_left": 71,
+      "offset_top": 72,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "WarriorDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 168,
+      "height": 90,
+      "offset_left": 36,
+      "offset_top": 73,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "WarriorDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 51,
+      "height": 49,
+      "offset_left": 93,
+      "offset_top": 82,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "WarriorFidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 52,
+      "height": 50,
+      "offset_left": 92,
+      "offset_top": 81,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "WarriorFortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 47,
+      "height": 49,
+      "offset_left": 95,
+      "offset_top": 81,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "WarriorRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 51,
+      "height": 52,
+      "offset_left": 92,
+      "offset_top": 79,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "WarriorVictory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 62,
+      "height": 72,
+      "offset_left": 86,
+      "offset_top": 60,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 100
+    }
+  }
+}

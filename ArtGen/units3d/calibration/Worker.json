@@ -1,0 +1,312 @@
+{
+  "unit": "Worker",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.99,
+    121.5
+  ],
+  "anchor_override": null,
+  "standing_height": 42.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        120.5,
+        124
+      ],
+      "top": 82,
+      "height": 43,
+      "bbox": [
+        108,
+        82,
+        129,
+        124
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        125.5,
+        123
+      ],
+      "top": 82,
+      "height": 42,
+      "bbox": [
+        108,
+        82,
+        140,
+        123
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        121.11,
+        121
+      ],
+      "top": 82,
+      "height": 40,
+      "bbox": [
+        112,
+        82,
+        141,
+        121
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        115.38,
+        123
+      ],
+      "top": 82,
+      "height": 42,
+      "bbox": [
+        113,
+        82,
+        132,
+        123
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        119.48,
+        123
+      ],
+      "top": 81,
+      "height": 43,
+      "bbox": [
+        110,
+        81,
+        130,
+        123
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        123.42,
+        122
+      ],
+      "top": 80,
+      "height": 43,
+      "bbox": [
+        99,
+        80,
+        130,
+        122
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        117.52,
+        121
+      ],
+      "top": 81,
+      "height": 41,
+      "bbox": [
+        98,
+        81,
+        127,
+        121
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        115.18,
+        123
+      ],
+      "top": 81,
+      "height": 43,
+      "bbox": [
+        107,
+        81,
+        126,
+        123
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 50.452,
+    "fit": 0.9702,
+    "archetype": "footman"
+  },
+  "default_flic": "WorkerDefault.flc",
+  "flics": {
+    "workerCaptured.flc": {
+      "actions": [
+        "CAPTURE"
+      ],
+      "kind": "animation",
+      "width": 52,
+      "height": 54,
+      "offset_left": 94,
+      "offset_top": 78,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "workerDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 80,
+      "height": 60,
+      "offset_left": 80,
+      "offset_top": 81,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "WorkerDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 50,
+      "height": 51,
+      "offset_left": 93,
+      "offset_top": 80,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "workerForest.flc": {
+      "actions": [
+        "FOREST"
+      ],
+      "kind": "loop",
+      "width": 46,
+      "height": 54,
+      "offset_left": 97,
+      "offset_top": 71,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 83
+    },
+    "workerFortress.flc": {
+      "actions": [
+        "FORTRESS"
+      ],
+      "kind": "loop",
+      "width": 40,
+      "height": 48,
+      "offset_left": 100,
+      "offset_top": 80,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 83
+    },
+    "workerIrrigate.flc": {
+      "actions": [
+        "IRRIGATE"
+      ],
+      "kind": "loop",
+      "width": 74,
+      "height": 57,
+      "offset_left": 83,
+      "offset_top": 76,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 100
+    },
+    "workerJungle.flc": {
+      "actions": [
+        "JUNGLE"
+      ],
+      "kind": "loop",
+      "width": 50,
+      "height": 53,
+      "offset_left": 95,
+      "offset_top": 72,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 83
+    },
+    "workerMine.flc": {
+      "actions": [
+        "MINE"
+      ],
+      "kind": "loop",
+      "width": 60,
+      "height": 66,
+      "offset_left": 90,
+      "offset_top": 65,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 100
+    },
+    "WorkerPlant.flc": {
+      "actions": [
+        "PLANT"
+      ],
+      "kind": "loop",
+      "width": 67,
+      "height": 50,
+      "offset_left": 88,
+      "offset_top": 80,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 100
+    },
+    "workerRoad.flc": {
+      "actions": [
+        "ROAD"
+      ],
+      "kind": "loop",
+      "width": 64,
+      "height": 54,
+      "offset_left": 88,
+      "offset_top": 78,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 100
+    },
+    "workerRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 48,
+      "height": 48,
+      "offset_left": 96,
+      "offset_top": 77,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    }
+  }
+}

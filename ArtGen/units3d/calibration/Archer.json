@@ -1,0 +1,252 @@
+{
+  "unit": "Archer",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.6,
+    121.0
+  ],
+  "anchor_override": null,
+  "standing_height": 42.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        124.81,
+        122
+      ],
+      "top": 81,
+      "height": 42,
+      "bbox": [
+        112,
+        81,
+        133,
+        122
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        119.0,
+        120
+      ],
+      "top": 81,
+      "height": 40,
+      "bbox": [
+        109,
+        81,
+        135,
+        120
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        113.12,
+        122
+      ],
+      "top": 81,
+      "height": 42,
+      "bbox": [
+        109,
+        81,
+        139,
+        122
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        117.08,
+        123
+      ],
+      "top": 82,
+      "height": 42,
+      "bbox": [
+        112,
+        82,
+        137,
+        123
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        122.54,
+        123
+      ],
+      "top": 82,
+      "height": 42,
+      "bbox": [
+        106,
+        82,
+        127,
+        123
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        120.2,
+        122
+      ],
+      "top": 82,
+      "height": 41,
+      "bbox": [
+        104,
+        82,
+        130,
+        122
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        117.14,
+        123
+      ],
+      "top": 82,
+      "height": 42,
+      "bbox": [
+        100,
+        82,
+        130,
+        123
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        121.72,
+        123
+      ],
+      "top": 82,
+      "height": 42,
+      "bbox": [
+        101,
+        82,
+        127,
+        123
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 48.0595,
+    "fit": 0.9242,
+    "archetype": "footman"
+  },
+  "default_flic": "ArcherDefault.flc",
+  "flics": {
+    "ArcherAttackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 104,
+      "height": 64,
+      "offset_left": 68,
+      "offset_top": 62,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "ArcherDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 92,
+      "height": 72,
+      "offset_left": 74,
+      "offset_top": 70,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "ArcherDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 46,
+      "height": 50,
+      "offset_left": 96,
+      "offset_top": 81,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "ArcherFidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 44,
+      "height": 44,
+      "offset_left": 98,
+      "offset_top": 80,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "ArcherFortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 60,
+      "height": 57,
+      "offset_left": 90,
+      "offset_top": 69,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 83
+    },
+    "ArcherRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 46,
+      "height": 48,
+      "offset_left": 97,
+      "offset_top": 79,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 12,
+      "frameMs": 66
+    },
+    "ArcherVictory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 62,
+      "height": 56,
+      "offset_left": 89,
+      "offset_top": 70,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    }
+  }
+}
