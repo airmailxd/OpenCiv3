@@ -1,0 +1,267 @@
+{
+  "unit": "Crusader",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    120.21,
+    120.5
+  ],
+  "anchor_override": null,
+  "standing_height": 45.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        122.4,
+        126
+      ],
+      "top": 78,
+      "height": 49,
+      "bbox": [
+        113,
+        78,
+        133,
+        126
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        129.14,
+        123
+      ],
+      "top": 78,
+      "height": 46,
+      "bbox": [
+        110,
+        78,
+        133,
+        123
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        121.88,
+        120
+      ],
+      "top": 78,
+      "height": 43,
+      "bbox": [
+        111,
+        78,
+        134,
+        120
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        115.75,
+        122
+      ],
+      "top": 78,
+      "height": 45,
+      "bbox": [
+        110,
+        78,
+        131,
+        122
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        118.53,
+        122
+      ],
+      "top": 78,
+      "height": 45,
+      "bbox": [
+        106,
+        78,
+        126,
+        122
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        122.74,
+        122
+      ],
+      "top": 78,
+      "height": 45,
+      "bbox": [
+        106,
+        78,
+        129,
+        122
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        114.49,
+        121
+      ],
+      "top": 78,
+      "height": 44,
+      "bbox": [
+        105,
+        78,
+        128,
+        121
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        113.82,
+        125
+      ],
+      "top": 78,
+      "height": 48,
+      "bbox": [
+        108,
+        78,
+        129,
+        125
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 51.7512,
+    "fit": 0.9952,
+    "archetype": "foot_knight"
+  },
+  "default_flic": "Crusader_default.flc",
+  "flics": {
+    "Crusader_attack.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 83,
+      "height": 68,
+      "offset_left": 75,
+      "offset_top": 69,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "Crusader_build.flc": {
+      "actions": [
+        "FORTRESS"
+      ],
+      "kind": "loop",
+      "width": 57,
+      "height": 62,
+      "offset_left": 86,
+      "offset_top": 69,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "Crusader_death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 210,
+      "height": 110,
+      "offset_left": 15,
+      "offset_top": 63,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "Crusader_default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 44,
+      "height": 51,
+      "offset_left": 92,
+      "offset_top": 78,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "Crusader_fidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 55,
+      "height": 54,
+      "offset_left": 86,
+      "offset_top": 75,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "Crusader_fortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 75,
+      "height": 67,
+      "offset_left": 78,
+      "offset_top": 66,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 100
+    },
+    "Crusader_run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 52,
+      "height": 55,
+      "offset_left": 88,
+      "offset_top": 75,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "Crusader_victory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 75,
+      "height": 71,
+      "offset_left": 78,
+      "offset_top": 62,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    }
+  }
+}

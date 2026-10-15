@@ -1,0 +1,252 @@
+{
+  "unit": "Infantry",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.57,
+    120.5
+  ],
+  "anchor_override": null,
+  "standing_height": 41.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        123.09,
+        123
+      ],
+      "top": 82,
+      "height": 42,
+      "bbox": [
+        105,
+        82,
+        129,
+        123
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        119.78,
+        121
+      ],
+      "top": 82,
+      "height": 40,
+      "bbox": [
+        105,
+        82,
+        139,
+        121
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        115.62,
+        122
+      ],
+      "top": 82,
+      "height": 41,
+      "bbox": [
+        111,
+        82,
+        139,
+        122
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        119.0,
+        123
+      ],
+      "top": 82,
+      "height": 42,
+      "bbox": [
+        110,
+        82,
+        127,
+        123
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        121.22,
+        122
+      ],
+      "top": 82,
+      "height": 41,
+      "bbox": [
+        110,
+        82,
+        134,
+        122
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        119.5,
+        121
+      ],
+      "top": 82,
+      "height": 40,
+      "bbox": [
+        100,
+        82,
+        134,
+        121
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        117.14,
+        122
+      ],
+      "top": 82,
+      "height": 41,
+      "bbox": [
+        100,
+        82,
+        128,
+        122
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        119.65,
+        123
+      ],
+      "top": 82,
+      "height": 42,
+      "bbox": [
+        112,
+        82,
+        129,
+        123
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 46.3213,
+    "fit": 0.8908,
+    "archetype": "soldier"
+  },
+  "default_flic": "InfantryDefault.flc",
+  "flics": {
+    "InfantryAttackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 84,
+      "height": 70,
+      "offset_left": 79,
+      "offset_top": 64,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "InfantryDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 94,
+      "height": 81,
+      "offset_left": 73,
+      "offset_top": 63,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "InfantryDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 49,
+      "height": 47,
+      "offset_left": 93,
+      "offset_top": 82,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "InfantryFidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 60,
+      "height": 63,
+      "offset_left": 86,
+      "offset_top": 67,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "InfantryFortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 72,
+      "height": 67,
+      "offset_left": 80,
+      "offset_top": 67,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "InfantryRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 57,
+      "height": 53,
+      "offset_left": 89,
+      "offset_top": 78,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "InfantryVictory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 64,
+      "height": 68,
+      "offset_left": 85,
+      "offset_top": 64,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    }
+  }
+}

@@ -1,0 +1,252 @@
+{
+  "unit": "Marine",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    120.36,
+    120.5
+  ],
+  "anchor_override": null,
+  "standing_height": 41.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        121.36,
+        124
+      ],
+      "top": 81,
+      "height": 44,
+      "bbox": [
+        108,
+        81,
+        126,
+        124
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        122.42,
+        122
+      ],
+      "top": 81,
+      "height": 42,
+      "bbox": [
+        108,
+        81,
+        138,
+        122
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        120.4,
+        121
+      ],
+      "top": 81,
+      "height": 41,
+      "bbox": [
+        112,
+        81,
+        140,
+        121
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        117.9,
+        122
+      ],
+      "top": 82,
+      "height": 41,
+      "bbox": [
+        114,
+        82,
+        130,
+        122
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        120.84,
+        122
+      ],
+      "top": 82,
+      "height": 41,
+      "bbox": [
+        113,
+        82,
+        131,
+        122
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        120.32,
+        121
+      ],
+      "top": 81,
+      "height": 41,
+      "bbox": [
+        101,
+        81,
+        131,
+        121
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        116.39,
+        121
+      ],
+      "top": 81,
+      "height": 41,
+      "bbox": [
+        99,
+        81,
+        127,
+        121
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        116.64,
+        123
+      ],
+      "top": 81,
+      "height": 43,
+      "bbox": [
+        109,
+        81,
+        125,
+        123
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 46.2044,
+    "fit": 0.8885,
+    "archetype": "soldier"
+  },
+  "default_flic": "MarineDefault.flc",
+  "flics": {
+    "MarineAttackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 129,
+      "height": 72,
+      "offset_left": 54,
+      "offset_top": 60,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "MarineDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 116,
+      "height": 83,
+      "offset_left": 62,
+      "offset_top": 66,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "MarineDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 42,
+      "height": 44,
+      "offset_left": 99,
+      "offset_top": 81,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "MarineFidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 44,
+      "height": 45,
+      "offset_left": 98,
+      "offset_top": 80,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 100
+    },
+    "MarineFortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 54,
+      "height": 47,
+      "offset_left": 93,
+      "offset_top": 79,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "MarineRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 54,
+      "height": 47,
+      "offset_left": 93,
+      "offset_top": 77,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "MarineVictory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 54,
+      "height": 50,
+      "offset_left": 93,
+      "offset_top": 77,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    }
+  }
+}

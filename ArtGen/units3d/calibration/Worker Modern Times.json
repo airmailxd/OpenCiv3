@@ -1,0 +1,312 @@
+{
+  "unit": "Worker Modern Times",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    120.02,
+    121.5
+  ],
+  "anchor_override": null,
+  "standing_height": 41.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        119.88,
+        124
+      ],
+      "top": 83,
+      "height": 42,
+      "bbox": [
+        107,
+        83,
+        128,
+        124
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        125.25,
+        123
+      ],
+      "top": 83,
+      "height": 41,
+      "bbox": [
+        108,
+        83,
+        141,
+        123
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        120.71,
+        121
+      ],
+      "top": 83,
+      "height": 39,
+      "bbox": [
+        111,
+        83,
+        142,
+        121
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        116.0,
+        123
+      ],
+      "top": 83,
+      "height": 41,
+      "bbox": [
+        113,
+        83,
+        132,
+        123
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        120.16,
+        123
+      ],
+      "top": 82,
+      "height": 42,
+      "bbox": [
+        111,
+        82,
+        132,
+        123
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        123.71,
+        122
+      ],
+      "top": 81,
+      "height": 42,
+      "bbox": [
+        98,
+        81,
+        131,
+        122
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        117.0,
+        120
+      ],
+      "top": 81,
+      "height": 40,
+      "bbox": [
+        97,
+        81,
+        128,
+        120
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        114.71,
+        123
+      ],
+      "top": 82,
+      "height": 42,
+      "bbox": [
+        107,
+        82,
+        126,
+        123
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 48.3706,
+    "fit": 0.9302,
+    "archetype": "soldier"
+  },
+  "default_flic": "WorkerModernDefault.flc",
+  "flics": {
+    "workerModernCaptured.flc": {
+      "actions": [
+        "CAPTURE"
+      ],
+      "kind": "animation",
+      "width": 57,
+      "height": 56,
+      "offset_left": 91,
+      "offset_top": 78,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "workerModernDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 81,
+      "height": 60,
+      "offset_left": 80,
+      "offset_top": 82,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "WorkerModernDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 51,
+      "height": 50,
+      "offset_left": 93,
+      "offset_top": 81,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "workerModernForest.flc": {
+      "actions": [
+        "FOREST"
+      ],
+      "kind": "loop",
+      "width": 58,
+      "height": 63,
+      "offset_left": 88,
+      "offset_top": 70,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 100
+    },
+    "workerModernFortress.flc": {
+      "actions": [
+        "FORTRESS"
+      ],
+      "kind": "loop",
+      "width": 45,
+      "height": 46,
+      "offset_left": 96,
+      "offset_top": 85,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 100
+    },
+    "workerModernIrrigate.flc": {
+      "actions": [
+        "IRRIGATE"
+      ],
+      "kind": "loop",
+      "width": 84,
+      "height": 66,
+      "offset_left": 76,
+      "offset_top": 74,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 100
+    },
+    "workerModernJungle.flc": {
+      "actions": [
+        "JUNGLE"
+      ],
+      "kind": "loop",
+      "width": 58,
+      "height": 59,
+      "offset_left": 89,
+      "offset_top": 73,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 100
+    },
+    "workerModernMine.flc": {
+      "actions": [
+        "MINE"
+      ],
+      "kind": "loop",
+      "width": 69,
+      "height": 71,
+      "offset_left": 83,
+      "offset_top": 65,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 100
+    },
+    "workerModernPlant.flc": {
+      "actions": [
+        "PLANT"
+      ],
+      "kind": "loop",
+      "width": 81,
+      "height": 58,
+      "offset_left": 80,
+      "offset_top": 81,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 100
+    },
+    "workerModernRoad.flc": {
+      "actions": [
+        "ROAD"
+      ],
+      "kind": "loop",
+      "width": 71,
+      "height": 58,
+      "offset_left": 83,
+      "offset_top": 78,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 100
+    },
+    "WorkerModernRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 57,
+      "height": 54,
+      "offset_left": 89,
+      "offset_top": 78,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    }
+  }
+}

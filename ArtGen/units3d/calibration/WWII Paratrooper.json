@@ -1,0 +1,267 @@
+{
+  "unit": "WWII Paratrooper",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.0,
+    120.5
+  ],
+  "anchor_override": null,
+  "standing_height": 44.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        122.77,
+        124
+      ],
+      "top": 80,
+      "height": 45,
+      "bbox": [
+        109,
+        80,
+        129,
+        124
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        121.84,
+        122
+      ],
+      "top": 80,
+      "height": 43,
+      "bbox": [
+        109,
+        80,
+        128,
+        122
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        117.71,
+        122
+      ],
+      "top": 81,
+      "height": 42,
+      "bbox": [
+        111,
+        81,
+        131,
+        122
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        117.86,
+        122
+      ],
+      "top": 80,
+      "height": 43,
+      "bbox": [
+        110,
+        80,
+        128,
+        122
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        120.91,
+        122
+      ],
+      "top": 79,
+      "height": 44,
+      "bbox": [
+        110,
+        79,
+        130,
+        122
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        119.9,
+        122
+      ],
+      "top": 79,
+      "height": 44,
+      "bbox": [
+        111,
+        79,
+        130,
+        122
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        116.7,
+        122
+      ],
+      "top": 79,
+      "height": 44,
+      "bbox": [
+        108,
+        79,
+        128,
+        122
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        118.11,
+        124
+      ],
+      "top": 80,
+      "height": 45,
+      "bbox": [
+        111,
+        80,
+        129,
+        124
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 48.9276,
+    "fit": 0.9409,
+    "archetype": "soldier"
+  },
+  "default_flic": "WWIIParatrooper_Default.flc",
+  "flics": {
+    "WWIIParatrooper_AirDrop.flc": {
+      "actions": [
+        "BUILD"
+      ],
+      "kind": "animation",
+      "width": 235,
+      "height": 179,
+      "offset_left": 0,
+      "offset_top": 1,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 1,
+      "frames": 23,
+      "frameMs": 76
+    },
+    "WWIIParatrooper_Attack.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 57,
+      "height": 48,
+      "offset_left": 92,
+      "offset_top": 80,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "WWIIParatrooper_Death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 144,
+      "height": 82,
+      "offset_left": 48,
+      "offset_top": 75,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "WWIIParatrooper_Default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 36,
+      "height": 47,
+      "offset_left": 97,
+      "offset_top": 79,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "WWIIParatrooper_Fidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 37,
+      "height": 47,
+      "offset_left": 97,
+      "offset_top": 79,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "WWIIParatrooper_Fortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 43,
+      "height": 51,
+      "offset_left": 94,
+      "offset_top": 77,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 83
+    },
+    "WWIIParatrooper_Run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 45,
+      "height": 52,
+      "offset_left": 93,
+      "offset_top": 77,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "WWIIParatrooper_Victory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 53,
+      "height": 56,
+      "offset_left": 90,
+      "offset_top": 74,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    }
+  }
+}

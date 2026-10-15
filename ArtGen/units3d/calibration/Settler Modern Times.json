@@ -1,0 +1,237 @@
+{
+  "unit": "Settler Modern Times",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    118.93,
+    120.5
+  ],
+  "anchor_override": null,
+  "standing_height": 43.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        120.0,
+        123
+      ],
+      "top": 80,
+      "height": 44,
+      "bbox": [
+        106,
+        80,
+        129,
+        123
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        117.86,
+        122
+      ],
+      "top": 80,
+      "height": 43,
+      "bbox": [
+        105,
+        80,
+        129,
+        122
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        114.57,
+        125
+      ],
+      "top": 81,
+      "height": 45,
+      "bbox": [
+        108,
+        81,
+        130,
+        125
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        123.57,
+        125
+      ],
+      "top": 80,
+      "height": 46,
+      "bbox": [
+        107,
+        80,
+        127,
+        125
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        123.82,
+        122
+      ],
+      "top": 80,
+      "height": 43,
+      "bbox": [
+        110,
+        80,
+        133,
+        122
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        120.56,
+        121
+      ],
+      "top": 79,
+      "height": 43,
+      "bbox": [
+        111,
+        79,
+        134,
+        121
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        117.42,
+        120
+      ],
+      "top": 79,
+      "height": 42,
+      "bbox": [
+        109,
+        79,
+        130,
+        120
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        116.0,
+        122
+      ],
+      "top": 79,
+      "height": 44,
+      "bbox": [
+        111,
+        79,
+        132,
+        122
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 45.2904,
+    "fit": 0.871,
+    "archetype": "soldier"
+  },
+  "default_flic": "SettlerModernDefault.flc",
+  "flics": {
+    "SettlerModernBuild.flc": {
+      "actions": [
+        "BUILD"
+      ],
+      "kind": "animation",
+      "width": 47,
+      "height": 59,
+      "offset_left": 94,
+      "offset_top": 73,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "SettlerModernCaptured.flc": {
+      "actions": [
+        "CAPTURE"
+      ],
+      "kind": "animation",
+      "width": 45,
+      "height": 52,
+      "offset_left": 95,
+      "offset_top": 77,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 83
+    },
+    "SettlerModernDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 83,
+      "height": 67,
+      "offset_left": 78,
+      "offset_top": 75,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "SettlerModernDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 37,
+      "height": 50,
+      "offset_left": 99,
+      "offset_top": 78,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "SettlerModernFidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 38,
+      "height": 50,
+      "offset_left": 98,
+      "offset_top": 78,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "SettlerModernRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 42,
+      "height": 53,
+      "offset_left": 96,
+      "offset_top": 75,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    }
+  }
+}

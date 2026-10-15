@@ -1,0 +1,252 @@
+{
+  "unit": "Rifleman",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.69,
+    120.5
+  ],
+  "anchor_override": null,
+  "standing_height": 45.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        122.71,
+        122
+      ],
+      "top": 81,
+      "height": 42,
+      "bbox": [
+        109,
+        81,
+        127,
+        122
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        120.0,
+        121
+      ],
+      "top": 80,
+      "height": 42,
+      "bbox": [
+        110,
+        80,
+        136,
+        121
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        116.29,
+        122
+      ],
+      "top": 73,
+      "height": 50,
+      "bbox": [
+        113,
+        73,
+        136,
+        122
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        118.71,
+        122
+      ],
+      "top": 69,
+      "height": 54,
+      "bbox": [
+        114,
+        69,
+        128,
+        122
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        121.26,
+        122
+      ],
+      "top": 69,
+      "height": 54,
+      "bbox": [
+        112,
+        69,
+        130,
+        122
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        119.5,
+        121
+      ],
+      "top": 74,
+      "height": 48,
+      "bbox": [
+        103,
+        74,
+        129,
+        121
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        117.71,
+        122
+      ],
+      "top": 81,
+      "height": 42,
+      "bbox": [
+        104,
+        81,
+        126,
+        122
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        119.88,
+        122
+      ],
+      "top": 81,
+      "height": 42,
+      "bbox": [
+        111,
+        81,
+        125,
+        122
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 48.1236,
+    "fit": 0.9255,
+    "archetype": "soldier"
+  },
+  "default_flic": "RiflemanDefault.flc",
+  "flics": {
+    "RiflemanAttackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 171,
+      "height": 123,
+      "offset_left": 35,
+      "offset_top": 26,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "RiflemanDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 87,
+      "height": 61,
+      "offset_left": 77,
+      "offset_top": 82,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "RiflemanDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 46,
+      "height": 57,
+      "offset_left": 93,
+      "offset_top": 69,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "RiflemanFidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 48,
+      "height": 59,
+      "offset_left": 92,
+      "offset_top": 68,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "RiflemanFortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 58,
+      "height": 63,
+      "offset_left": 87,
+      "offset_top": 67,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "RiflemanRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 54,
+      "height": 66,
+      "offset_left": 89,
+      "offset_top": 64,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "RiflemanVictory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 56,
+      "height": 63,
+      "offset_left": 89,
+      "offset_top": 68,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    }
+  }
+}

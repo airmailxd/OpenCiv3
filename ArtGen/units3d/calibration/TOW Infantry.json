@@ -1,0 +1,252 @@
+{
+  "unit": "TOW Infantry",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    117.7,
+    128.0
+  ],
+  "anchor_override": null,
+  "standing_height": 52.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        110.57,
+        135
+      ],
+      "top": 81,
+      "height": 55,
+      "bbox": [
+        95,
+        81,
+        141,
+        135
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        129.81,
+        134
+      ],
+      "top": 76,
+      "height": 59,
+      "bbox": [
+        97,
+        76,
+        140,
+        134
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        121.0,
+        131
+      ],
+      "top": 73,
+      "height": 59,
+      "bbox": [
+        97,
+        73,
+        148,
+        131
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        117.58,
+        128
+      ],
+      "top": 75,
+      "height": 54,
+      "bbox": [
+        100,
+        75,
+        152,
+        128
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        117.82,
+        130
+      ],
+      "top": 80,
+      "height": 51,
+      "bbox": [
+        98,
+        80,
+        144,
+        130
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        126.0,
+        128
+      ],
+      "top": 80,
+      "height": 49,
+      "bbox": [
+        99,
+        80,
+        142,
+        128
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        116.07,
+        129
+      ],
+      "top": 84,
+      "height": 46,
+      "bbox": [
+        91,
+        84,
+        142,
+        129
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        110.61,
+        129
+      ],
+      "top": 82,
+      "height": 48,
+      "bbox": [
+        87,
+        82,
+        139,
+        129
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 0.82,
+    "ppm_2x": 41.6373,
+    "fit": 0.9765,
+    "archetype": "tow_team"
+  },
+  "default_flic": "TOW_Infantry_Default.flc",
+  "flics": {
+    "TOW_Infantry_Attack.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 231,
+      "height": 122,
+      "offset_left": 5,
+      "offset_top": 22,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "TOW_Infantry_Death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 134,
+      "height": 87,
+      "offset_left": 53,
+      "offset_top": 67,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "TOW_Infantry_Default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 78,
+      "height": 64,
+      "offset_left": 76,
+      "offset_top": 73,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "TOW_Infantry_Fidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 78,
+      "height": 64,
+      "offset_left": 76,
+      "offset_top": 73,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "TOW_Infantry_Fortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 78,
+      "height": 62,
+      "offset_left": 76,
+      "offset_top": 75,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 83
+    },
+    "TOW_Infantry_Run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 78,
+      "height": 78,
+      "offset_left": 72,
+      "offset_top": 61,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "TOW_Infantry_Victory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 79,
+      "height": 67,
+      "offset_left": 76,
+      "offset_top": 70,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    }
+  }
+}

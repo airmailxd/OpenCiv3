@@ -77,6 +77,7 @@ props.DEFAULTS.setdefault('fur', ('#3a2e26', 0.95, 0.0, 'rope'))
 props.DEFAULTS.setdefault('helmet', ('#9a9ca2', 0.45, 1.0, 'metal'))
 props.DEFAULTS.setdefault('brass', ('#a88a4a', 0.4, 1.0, 'metal'))
 props.DEFAULTS.setdefault('plume', ('#e8e4da', 0.9, 0.0, 'cloth'))
+props.DEFAULTS.setdefault('mail', ('#6e7074', 0.5, 1.0, 'metal'))
 props.DEFAULTS.setdefault('crest', ('#e8e4da', 0.9, 0.0, 'rope'))
 
 

@@ -1,0 +1,267 @@
+{
+  "unit": "Guerilla",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.25,
+    120.5
+  ],
+  "anchor_override": null,
+  "standing_height": 50.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        121.92,
+        124
+      ],
+      "top": 69,
+      "height": 56,
+      "bbox": [
+        110,
+        69,
+        128,
+        124
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        123.69,
+        122
+      ],
+      "top": 72,
+      "height": 51,
+      "bbox": [
+        112,
+        72,
+        129,
+        122
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        119.33,
+        121
+      ],
+      "top": 75,
+      "height": 47,
+      "bbox": [
+        113,
+        75,
+        128,
+        121
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        116.89,
+        121
+      ],
+      "top": 76,
+      "height": 46,
+      "bbox": [
+        111,
+        76,
+        126,
+        121
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        119.16,
+        122
+      ],
+      "top": 76,
+      "height": 47,
+      "bbox": [
+        111,
+        76,
+        129,
+        122
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        120.93,
+        122
+      ],
+      "top": 74,
+      "height": 49,
+      "bbox": [
+        110,
+        74,
+        127,
+        122
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        117.26,
+        121
+      ],
+      "top": 70,
+      "height": 52,
+      "bbox": [
+        111,
+        70,
+        126,
+        121
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        117.25,
+        123
+      ],
+      "top": 69,
+      "height": 55,
+      "bbox": [
+        113,
+        69,
+        128,
+        123
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 56.4448,
+    "fit": 1.0855,
+    "archetype": "soldier"
+  },
+  "default_flic": "x_Guerilla default.flc",
+  "flics": {
+    "x_Guerilla attack_a.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 73,
+      "height": 52,
+      "offset_left": 85,
+      "offset_top": 78,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "x_Guerilla attack_b.flc": {
+      "actions": [
+        "ATTACK2"
+      ],
+      "kind": "animation",
+      "width": 81,
+      "height": 58,
+      "offset_left": 76,
+      "offset_top": 77,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "x_Guerilla death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 118,
+      "height": 80,
+      "offset_left": 61,
+      "offset_top": 71,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "x_Guerilla default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 43,
+      "height": 59,
+      "offset_left": 89,
+      "offset_top": 68,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "x_Guerilla fidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 65,
+      "height": 61,
+      "offset_left": 78,
+      "offset_top": 66,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 100
+    },
+    "x_Guerilla fortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 67,
+      "height": 64,
+      "offset_left": 82,
+      "offset_top": 67,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 83
+    },
+    "x_Guerilla run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 48,
+      "height": 61,
+      "offset_left": 91,
+      "offset_top": 69,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "x_Guerilla victory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 63,
+      "height": 84,
+      "offset_left": 80,
+      "offset_top": 44,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    }
+  }
+}

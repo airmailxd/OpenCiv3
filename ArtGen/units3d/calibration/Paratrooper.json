@@ -1,0 +1,267 @@
+{
+  "unit": "Paratrooper",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    118.83,
+    120.5
+  ],
+  "anchor_override": null,
+  "standing_height": 40.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        122.79,
+        123
+      ],
+      "top": 82,
+      "height": 42,
+      "bbox": [
+        109,
+        82,
+        128,
+        123
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        121.09,
+        121
+      ],
+      "top": 83,
+      "height": 39,
+      "bbox": [
+        109,
+        83,
+        128,
+        121
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        118.4,
+        121
+      ],
+      "top": 83,
+      "height": 39,
+      "bbox": [
+        111,
+        83,
+        131,
+        121
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        117.8,
+        122
+      ],
+      "top": 83,
+      "height": 40,
+      "bbox": [
+        110,
+        83,
+        128,
+        122
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        121.05,
+        122
+      ],
+      "top": 82,
+      "height": 41,
+      "bbox": [
+        111,
+        82,
+        130,
+        122
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        119.04,
+        121
+      ],
+      "top": 82,
+      "height": 40,
+      "bbox": [
+        111,
+        82,
+        130,
+        121
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        116.75,
+        122
+      ],
+      "top": 82,
+      "height": 41,
+      "bbox": [
+        108,
+        82,
+        128,
+        122
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        118.61,
+        123
+      ],
+      "top": 82,
+      "height": 42,
+      "bbox": [
+        111,
+        82,
+        129,
+        123
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 45.7862,
+    "fit": 0.8805,
+    "archetype": "soldier"
+  },
+  "default_flic": "ParatrooperDefault.flc",
+  "flics": {
+    "ParatrooperAttackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 35,
+      "height": 45,
+      "offset_left": 100,
+      "offset_top": 83,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "ParatrooperDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 146,
+      "height": 82,
+      "offset_left": 47,
+      "offset_top": 76,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "ParatrooperDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 67,
+      "height": 83,
+      "offset_left": 66,
+      "offset_top": 43,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "ParatrooperDrop.flc": {
+      "actions": [
+        "BUILD"
+      ],
+      "kind": "animation",
+      "width": 88,
+      "height": 135,
+      "offset_left": 65,
+      "offset_top": 3,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 1,
+      "frames": 23,
+      "frameMs": 76
+    },
+    "ParatrooperFidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 32,
+      "height": 44,
+      "offset_left": 102,
+      "offset_top": 82,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "ParatrooperFortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 37,
+      "height": 48,
+      "offset_left": 99,
+      "offset_top": 80,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "ParatrooperRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 40,
+      "height": 50,
+      "offset_left": 98,
+      "offset_top": 80,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "ParatrooperVictory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 47,
+      "height": 58,
+      "offset_left": 96,
+      "offset_top": 74,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    }
+  }
+}

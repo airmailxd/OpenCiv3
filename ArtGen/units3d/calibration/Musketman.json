@@ -1,0 +1,252 @@
+{
+  "unit": "Musketman",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.12,
+    120.5
+  ],
+  "anchor_override": null,
+  "standing_height": 48.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        118.75,
+        122
+      ],
+      "top": 73,
+      "height": 50,
+      "bbox": [
+        110,
+        73,
+        130,
+        122
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        119.3,
+        122
+      ],
+      "top": 71,
+      "height": 52,
+      "bbox": [
+        113,
+        71,
+        127,
+        122
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        118.67,
+        124
+      ],
+      "top": 72,
+      "height": 53,
+      "bbox": [
+        113,
+        72,
+        132,
+        124
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        123.33,
+        123
+      ],
+      "top": 74,
+      "height": 50,
+      "bbox": [
+        107,
+        74,
+        133,
+        123
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        121.42,
+        120
+      ],
+      "top": 76,
+      "height": 45,
+      "bbox": [
+        109,
+        76,
+        129,
+        120
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        117.38,
+        121
+      ],
+      "top": 78,
+      "height": 44,
+      "bbox": [
+        112,
+        78,
+        126,
+        121
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        118.95,
+        122
+      ],
+      "top": 78,
+      "height": 45,
+      "bbox": [
+        107,
+        78,
+        126,
+        122
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        120.16,
+        122
+      ],
+      "top": 76,
+      "height": 47,
+      "bbox": [
+        106,
+        76,
+        132,
+        122
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 48.5365,
+    "fit": 0.9334,
+    "archetype": "soldier"
+  },
+  "default_flic": "MusketmanDefault.flc",
+  "flics": {
+    "MusketmanAttackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 183,
+      "height": 117,
+      "offset_left": 29,
+      "offset_top": 32,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "MusketmanDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 99,
+      "height": 76,
+      "offset_left": 71,
+      "offset_top": 68,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "MusketmanDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 31,
+      "height": 56,
+      "offset_left": 105,
+      "offset_top": 71,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "MusketmanFidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 34,
+      "height": 60,
+      "offset_left": 104,
+      "offset_top": 69,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "MusketmanFortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 77,
+      "height": 66,
+      "offset_left": 82,
+      "offset_top": 70,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "MusketmanRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 42,
+      "height": 58,
+      "offset_left": 99,
+      "offset_top": 73,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "MusketmanVictory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 69,
+      "height": 65,
+      "offset_left": 86,
+      "offset_top": 68,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    }
+  }
+}
