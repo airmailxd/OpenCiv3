@@ -73,8 +73,18 @@ def dress(entry, mesh, arm):
         if top in ('tunic', 'mantle'):
             # short sleeves: the upper half of the upper arm
             keep = lambda co: abs(co.x) < 0.27
-        G.shell(mesh, arm, 'Top', bones, _mat(entry, 'top', G.cloth), zmin=0.9, zmax=1.47, offset=0.008,
+        zmax = entry.get('top_zmax', 1.47)
+        if entry.get('neck') == 'high':
+            # covered to the base of the neck, as most of Civ3's soldiers and riders are
+            bones = bones + ['neck_01']
+            zmax = max(zmax, 1.56)
+        G.shell(mesh, arm, 'Top', bones, _mat(entry, 'top', G.cloth), zmin=0.9, zmax=zmax, offset=0.008,
                 thickness=0.004, keep=keep)
+        if entry.get('collar') == 'mail':
+            # a mail collar (coif's lower part) around the neck and over the shoulders
+            G.shell(mesh, arm, 'Collar', ['neck_01', 'clavicle_l', 'clavicle_r', 'spine_03'],
+                    B.material('mail', B.hex_color(c.get('mail', '#6a6a6e')), roughness=0.55, metallic=0.85,
+                               nodes=G.mail_nodes), zmin=1.42, zmax=1.62, offset=0.014, thickness=0.006)
     elif top == 'strap':
         # a sash over the left shoulder, across the chest
         G.shell(mesh, arm, 'Top', torso, _mat(entry, 'top', G.cloth), zmin=0.95, zmax=1.45, offset=0.009,
@@ -142,7 +152,9 @@ def dress_posed(entry, mesh, arm):
     hanging cloth draped by simulation onto the posed body."""
     hanging = [o for o in bpy.data.objects if o.name in ('Bottom',)] if entry.get('bottom') in ('skirt', 'kilt') else []
     if entry.get('bottom') == 'loincloth':
-        hanging += G.loincloth(mesh, arm, _mat(entry, 'bottom', G.cloth, weave=0.6))
+        lengths = entry.get('loin_length', (0.42, 0.36))
+        maker = G.leather if entry.get('bottom_material') == 'leather' else (lambda n, col, tint=False: G.cloth(n, col, tint=tint, weave=0.6))
+        hanging += G.loincloth(mesh, arm, _mat(entry, 'bottom', maker), length=lengths[0], back_length=lengths[1])
     hanging = [o for o in hanging if not o.get('no_drape')]
     if hanging and entry.get('drape', True):
         G.drape(hanging, mesh)
@@ -167,8 +179,23 @@ def helmet(entry, mesh, arm):
             tint = 'helmet' in entry.get('tint', [])
             mat = B.material('helmet', (1, 1, 1) if tint else B.hex_color(_colors(entry)['helmet']),
                              roughness=0.62, metallic=0.75, tint=tint)
+        keep = None
+        if kind == 'crested':
+            # a Corinthian war helm: down to the jaw, with cheek guards and a
+            # T-shaped opening for the eyes and mouth
+            depth = 0.2
+            _, yc, _ = G._head(mesh)
+
+            def keep(co, top=top / G._scale, yc=yc / G._scale):
+                d = top - co.z
+                face = co.y - yc < -0.045
+                eyes = 0.075 < d < 0.11 and abs(co.x) < 0.06
+                mouth = d >= 0.11 and abs(co.x) < 0.028
+                return not (face and (eyes or mouth))
         G.shell(mesh, arm, 'Helmet', ['head', 'neck_01'], mat, zmin=(top - depth) / G._scale, offset=0.02 if kind != 'hood' else 0.012,
-                thickness=0.008, min_weight=0.2)
+                thickness=0.008, min_weight=0.2, keep=keep)
+        if kind == 'horned':
+            G.horns(mesh, arm, B.material('horn', B.hex_color(_colors(entry).get('horn', '#c8b898')), roughness=0.5))
         if kind == 'crested':
             c = _colors(entry)
             tint = 'crest' in entry.get('tint', [])
@@ -202,7 +229,7 @@ STANCES = {
                 ('thigh_l', (0.14, -0.08, -1)), ('calf_l', (0.1, 0.02, -1)), ('foot_l', (0.35, -1, -0.3)),
                 ('thigh_r', (-0.14, 0.04, -1)), ('calf_r', (-0.1, 0.06, -1)), ('foot_r', (-0.35, -1, -0.3)),
                 ('upperarm_l', (0.2, -0.45, -1)), ('lowerarm_l', (-0.55, -1.0, 0.25)),
-                ('upperarm_r', (-0.5, -0.1, -1)), ('lowerarm_r', (-0.35, -1.0, 0.55))],
+                ('upperarm_r', (-0.62, -0.1, -1)), ('lowerarm_r', (-0.45, -1.0, 0.5))],
     'low_across': [('neck_01', (0, -0.03, 1)),
                    ('thigh_l', (0.12, 0.0, -1)), ('calf_l', (0.07, 0.04, -1)),
                    ('thigh_r', (-0.12, 0.0, -1)), ('calf_r', (-0.07, 0.04, -1)),
@@ -253,7 +280,7 @@ def equip(entry, arm):
             H.hold(obj, arm, 'hand_r', at, up=(-0.7, -0.45, -0.5))
         elif stance == 'upright':
             # upright through the fist, butt near the ground
-            H.hold(obj, arm, 'hand_r', at, up=(0.0, -0.08, 1.0))
+            H.hold(obj, arm, 'hand_r', at, up=(-0.1, -0.06, 1.0))
         else:
             H.hold(obj, arm, 'hand_r', at, up=(0.9, -0.2, -0.45))
         made.append(obj)
@@ -268,10 +295,10 @@ def equip(entry, arm):
             mid = (arm.matrix_world @ pb.head).lerp(arm.matrix_world @ pb.tail, 0.5)
             chest = arm.matrix_world @ arm.pose.bones['spine_02'].head
             shoulder = arm.matrix_world @ arm.pose.bones['clavicle_l'].head
-            at = Vector((0.5 * (mid.x + chest.x) + 0.04, min(mid.y, chest.y) - 0.12, shoulder.z - 0.2 * G._scale))
+            at = Vector((0.5 * (mid.x + chest.x) + 0.04, min(mid.y, chest.y) - 0.07, shoulder.z - 0.22 * G._scale))
             # turned 45 degrees in its plane: the X of its emblem bands reads as a + cross
             # tilted back a little, so its face turns up toward the camera
-            H.hold(obj, arm, 'lowerarm_l', at, up=(0.7, 0.3, 0.7), forward=(0, 1, 0))
+            H.hold(obj, arm, 'lowerarm_l', at, up=(0.7, 0.12, 0.7), forward=(0, 1, 0))
         else:
             at = H.grip_point(arm, 'hand_l')
             H.hold(obj, arm, 'hand_l', at, up=(1.0, -0.15, 0.1))
@@ -279,7 +306,15 @@ def equip(entry, arm):
     back = entry.get('back')
     if back in ('quiver', 'backpack'):
         obj = P.make(back, c)
-        H.attach(obj, arm, 'spine_03', Matrix.Translation((0.0, -0.12, 0.13)) @ _rot(x=-90, z=180))
+        # on the upper back (+y behind the unposed body), strap point at the
+        # shoulder blades; a quiver slung diagonally, arrows up over the right shoulder
+        sp = arm.matrix_world @ arm.pose.bones['spine_03'].head
+        if back == 'quiver':
+            at = sp + Vector((-0.04, 0.16 * G._scale, 0.12 * G._scale))
+            H.hold(obj, arm, 'spine_03', at, up=(-0.35, 0.12, 1), forward=(0, -1, 0))
+        else:
+            at = sp + Vector((0.0, 0.14 * G._scale, 0.05 * G._scale))
+            H.hold(obj, arm, 'spine_03', at, up=(0, 0.05, 1), forward=(0, -1, 0))
         made.append(obj)
     elif back == 'pelt':
         pass  # TODO: a pelt over the shoulders

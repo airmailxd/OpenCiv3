@@ -33,6 +33,31 @@ REMASTER = {
         'metal': ['helmet'],
         'upper_bulk': 1.25,
     },
+    'Archer': {
+        # the original: lean and bare-chested, a sash over one shoulder and a
+        # long apron (both civ color), the bow held low across the hips
+        'macro': {'muscle': 0.9, 'weight': 0.6, 'height': 0.75, 'proportions': 0.75},
+        'colors': {'skin': '#94704f', 'hair': '#2a1e16', 'helmet': '#2e2620', 'wraps': '#4a3424',
+                   'wraps_band': '#241a10', 'leather': '#4e3826', 'wood': '#5a4028'},
+        'top': 'strap', 'bottom': 'loincloth', 'loin_length': (0.6, 0.42),
+        'tint': ['top', 'bottom'],
+        'hair': 'topknot', 'hair_asset': 'ponytail01', 'helmet': 'headband',
+        'wraps': 'wraps', 'beard': True,
+        'grime': 0.7, 'upper_bulk': 1.12,
+    },
+    'Swordsman': {
+        # the original: an iron helmet with a brow ridge (reads horned), brown
+        # leather armour over a skirt of leather strips, grey greaves; civ
+        # color on the upper arms and the small round shield's rim and boss
+        'macro': {'muscle': 1.0, 'weight': 0.8, 'height': 0.75, 'proportions': 0.7},
+        'colors': {'skin': '#94704f', 'helmet': '#5c5c60', 'cuirass': '#5e4028', 'bottom': '#4e3622',
+                   'greaves': '#6a6a6e', 'horn': '#b8a888', 'belt': '#2e2016', 'shield_face': '#5e4430'},
+        'helmet': 'horned', 'metal': ['helmet'], 'cuirass': True, 'top': 'sleeved',
+        'bottom': 'loincloth', 'bottom_material': 'leather', 'loin_length': (0.36, 0.34),
+        'back': None, 'wraps': 'greaves', 'beard': True,
+        'tint': ['top', 'shield_emblem'],
+        'grime': 0.7, 'upper_bulk': 1.25,
+    },
 }
 
 

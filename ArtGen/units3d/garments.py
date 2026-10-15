@@ -220,6 +220,7 @@ def shell(basemesh, arm, name, bones, mat, *, zmin=None, zmax=None, offset=0.006
     sol = new.modifiers.new('Solidify', 'SOLIDIFY')
     sol.thickness = thickness
     sol.offset = 1.0
+    sol.use_rim = False          # an open edge: the rim caught the light as a pale piping
     sub = new.modifiers.new('Subdiv', 'SUBSURF')
     sub.levels = sub.render_levels = 1
     return new
@@ -485,6 +486,7 @@ def flap(name, mat, width=0.26, length=0.34, folds=5, depth=0.04, ragged=0.05, c
         p.use_smooth = True
     sol = obj.modifiers.new('Solidify', 'SOLIDIFY')
     sol.thickness = 0.006
+    sol.use_rim = False
     sub = obj.modifiers.new('Subdiv', 'SUBSURF')
     sub.levels = sub.render_levels = 1
     return obj
@@ -625,7 +627,7 @@ def crown_hair(basemesh, color, length=0.13, density=5000):
     return mod
 
 
-def crest(basemesh, arm, mat, height=0.12, length=0.3, width=0.045, lift=0.03):
+def crest(basemesh, arm, mat, height=0.15, length=0.32, width=0.06, lift=0.035):
     """A horsehair crest along the top of a helmet, front to back, arched and
     fuller at the back; parented to the head bone (call before posing)."""
     import human as H
@@ -691,3 +693,55 @@ def front_locks(basemesh, color, length=0.3, density=1800):
     st.child_radius = 0.03
     st.roughness_1 = 0.02
     return mod
+
+
+def horns(basemesh, arm, mat, length=0.11, radius=0.018):
+    """Two short curved horns on the sides of a helmet, parented to the head."""
+    import human as H
+    top, yc, _ = _head(basemesh)
+    made = []
+    for sx in (-1, 1):
+        bm = bmesh.new()
+        n, seg = 10, 8
+        prev = None
+        for i in range(n + 1):
+            t = i / n
+            # out from the temple, curving up and forward
+            c = Vector((sx * (0.075 + 0.6 * length * t), yc + 0.01 - 0.25 * length * t * t, top - 0.07 + 0.9 * length * t * t))
+            r = radius * (1 - 0.92 * t)
+            ring = [bm.verts.new(c + Vector((0, math.cos(2 * math.pi * k / seg) * r, math.sin(2 * math.pi * k / seg) * r)))
+                    for k in range(seg)]
+            if prev:
+                for k in range(seg):
+                    bm.faces.new((prev[k], prev[(k + 1) % seg], ring[(k + 1) % seg], ring[k]))
+            prev = ring
+        me = bpy.data.meshes.new('Horn')
+        bm.to_mesh(me)
+        bm.free()
+        obj = bpy.data.objects.new('Horn', me)
+        bpy.context.scene.collection.objects.link(obj)
+        obj.data.materials.append(mat)
+        for p in obj.data.polygons:
+            p.use_smooth = True
+        world = obj.matrix_world.copy()
+        obj.parent = arm
+        obj.parent_type = 'BONE'
+        obj.parent_bone = 'head'
+        obj.matrix_world = world
+        made.append(obj)
+    H._update()
+    return made
+
+
+def mail_nodes(tree, bsdf):
+    """Ring mail: a fine voronoi bump (rings) for a metal material."""
+    n = tree.nodes
+    coord = n.new('ShaderNodeTexCoord')
+    vor = n.new('ShaderNodeTexVoronoi')
+    vor.inputs['Scale'].default_value = 260.0
+    vor.feature = 'DISTANCE_TO_EDGE'
+    tree.links.new(coord.outputs['Object'], vor.inputs['Vector'])
+    bump = n.new('ShaderNodeBump')
+    bump.inputs['Strength'].default_value = 0.6
+    tree.links.new(vor.outputs['Distance'], bump.inputs['Height'])
+    tree.links.new(bump.outputs['Normal'], bsdf.inputs['Normal'])
