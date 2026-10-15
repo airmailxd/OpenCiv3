@@ -108,6 +108,9 @@ Theodora: mosaic, San Vitale, Ravenna
 Pachacuti: Cuzco School, Brooklyn Museum
 Smoke-Jaguar (stand-in): Maya stucco head, Walters Art Museum
 
+[b]Unit Models[/b]
+Horse model: Lyndon Daniels (CC0), rig: ChadM
+
 [b]Co-conspirators[/b]
 
 Blue Monkey
