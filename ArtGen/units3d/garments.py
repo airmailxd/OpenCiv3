@@ -151,8 +151,8 @@ def hair_material(name, color):
     hair.parametrization = 'MELANIN'
     hair.inputs['Melanin'].default_value = min(1.0, max(0.0, 1.0 - lum * 1.6))
     hair.inputs['Melanin Redness'].default_value = min(1.0, max(0.0, (r - b) * 2.5))
-    hair.inputs['Roughness'].default_value = 0.55
-    hair.inputs['Radial Roughness'].default_value = 0.7
+    hair.inputs['Roughness'].default_value = 0.8
+    hair.inputs['Radial Roughness'].default_value = 0.95
     tree.links.new(hair.outputs[0], out.inputs['Surface'])
     aov = tree.nodes.new('ShaderNodeOutputAOV')
     aov.aov_name = 'tint'
@@ -293,7 +293,7 @@ def beard(basemesh, color, length=0.018, density=900):
         d = head_z - c.z
         y = c.y - yc
         # chin and jaw (the face half of the head, below the mouth) and the upper lip
-        jaw = 0.165 < d < 0.235 and y < -0.01
+        jaw = 0.17 < d < 0.235 and y < -0.02
         lip = 0.148 < d < 0.162 and y < -0.07 and abs(c.x) < 0.03
         if jaw or lip:
             grp.add([v.index], 1.0, 'REPLACE')
@@ -434,7 +434,7 @@ def roughen_hair(basemesh, color, length=0.022, density=4000):
     return hair
 
 
-def flap(name, mat, width=0.26, length=0.34, folds=5, depth=0.04, ragged=0.05, curve=0.12, seed=1):
+def flap(name, mat, width=0.26, length=0.34, folds=5, depth=0.04, ragged=0.05, curve=0.12, seed=1, torn=True):
     """A hanging cloth or hide flap (a loincloth panel, a tabard): a grid
     hanging down from its top edge at the origin, in the X-Z plane, facing
     -Y; with vertical folds deepening toward the hem, a ragged, uneven hem,
@@ -449,13 +449,13 @@ def flap(name, mat, width=0.26, length=0.34, folds=5, depth=0.04, ragged=0.05, c
     # its own angle with frayed tips
     edges, i = [0], 0
     while i < nx:
-        i = min(nx, i + rnd.choice((2, 3, 3, 4)))
+        i = min(nx, i + (rnd.choice((2, 3, 3, 4)) if torn else nx))
         edges.append(i)
     slits = set(edges[1:-1])
     hem = [0.0] * (nx + 1)
     for a, b in zip(edges, edges[1:]):
-        base = length * (1.0 - rnd.uniform(0.0, 0.35))
-        tilt = rnd.uniform(-0.08, 0.08) * length
+        base = length * (1.0 - (rnd.uniform(0.0, 0.35) if torn else 0.0))
+        tilt = rnd.uniform(-0.08, 0.08) * length if torn else 0.0
         for c in range(a, b + 1):
             u = (c - a) / max(1, b - a)
             hem[c] = max(hem[c], base + tilt * (u - 0.5) * 2 + rnd.uniform(-0.012, 0.012))
@@ -492,7 +492,7 @@ def flap(name, mat, width=0.26, length=0.34, folds=5, depth=0.04, ragged=0.05, c
     return obj
 
 
-def loincloth(basemesh, arm, mat, back_mat=None, width=0.34, length=0.42, back_length=0.36, seed=3):
+def loincloth(basemesh, arm, mat, back_mat=None, width=0.34, length=0.42, back_length=0.36, seed=3, torn=True):
     """Front and back flaps hanging from the belt, parented to the pelvis."""
     import human as H
     from mathutils import Matrix
@@ -513,7 +513,8 @@ def loincloth(basemesh, arm, mat, back_mat=None, width=0.34, length=0.42, back_l
     back = max(p.y for p in ring)
     made = []
     for side, y, rot, ln, m in (('F', front - 0.012, 0.0, length, mat), ('B', back + 0.012, math.pi, back_length, back_mat or mat)):
-        f = flap('Loin' + side, m, width=width * _scale, length=ln * _scale, curve=0.06 * _scale, seed=seed + (side == 'B'))
+        f = flap('Loin' + side, m, width=width * _scale, length=ln * _scale, curve=0.06 * _scale, seed=seed + (side == 'B'),
+                 torn=torn, ragged=0.05 if torn else 0.015)
         f['no_drape'] = True
         f.matrix_world = Matrix.Translation((cx, y, zb)) @ Matrix.Rotation(rot, 4, 'Z')
         world = f.matrix_world.copy()

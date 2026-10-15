@@ -154,7 +154,8 @@ def dress_posed(entry, mesh, arm):
     if entry.get('bottom') == 'loincloth':
         lengths = entry.get('loin_length', (0.42, 0.36))
         maker = G.leather if entry.get('bottom_material') == 'leather' else (lambda n, col, tint=False: G.cloth(n, col, tint=tint, weave=0.6))
-        hanging += G.loincloth(mesh, arm, _mat(entry, 'bottom', maker), length=lengths[0], back_length=lengths[1])
+        hanging += G.loincloth(mesh, arm, _mat(entry, 'bottom', maker), length=lengths[0], back_length=lengths[1],
+                               torn=entry.get('torn', True))
     hanging = [o for o in hanging if not o.get('no_drape')]
     if hanging and entry.get('drape', True):
         G.drape(hanging, mesh)
@@ -195,7 +196,8 @@ def helmet(entry, mesh, arm):
         G.shell(mesh, arm, 'Helmet', ['head', 'neck_01'], mat, zmin=(top - depth) / G._scale, offset=0.02 if kind != 'hood' else 0.012,
                 thickness=0.008, min_weight=0.2, keep=keep)
         if kind == 'horned':
-            G.horns(mesh, arm, B.material('horn', B.hex_color(_colors(entry).get('horn', '#c8b898')), roughness=0.5))
+            G.horns(mesh, arm, B.material('horn', B.hex_color(_colors(entry).get('horn', '#c8b898')), roughness=0.5),
+                    length=0.17, radius=0.026)
         if kind == 'crested':
             c = _colors(entry)
             tint = 'crest' in entry.get('tint', [])
@@ -245,10 +247,17 @@ STANCES['ride'] = [('spine_02', (0, -0.05, 1)), ('neck_01', (0, -0.04, 1)), ('he
                    ('upperarm_l', (0.25, -0.5, -1)), ('lowerarm_l', (0.05, -1.0, -0.1)),
                    ('upperarm_r', (-0.3, -0.35, -1)), ('lowerarm_r', (-0.15, -1.0, 0.35))]
 
+STANCES['bow_low'] = [('spine_02', (0, 0.0, 1)), ('neck_01', (0, 0.12, 1)), ('head', (0, 0.4, 1)),
+                      ('clavicle_l', (1, -0.15, 0.1)), ('clavicle_r', (-1, -0.15, 0.1)),
+                      ('thigh_l', (0.2, -0.1, -1)), ('calf_l', (0.12, 0.04, -1)), ('foot_l', (0.4, -1, -0.3)),
+                      ('thigh_r', (-0.16, 0.06, -1)), ('calf_r', (-0.1, 0.06, -1)), ('foot_r', (-0.4, -1, -0.3)),
+                      ('upperarm_l', (0.32, -0.15, -1)), ('lowerarm_l', (0.25, -1.0, -0.45)),
+                      ('upperarm_r', (-0.32, -0.15, -1)), ('lowerarm_r', (-0.05, -1.0, -0.4))]
+
 WEAPON_STANCE = {
     'stone_axe': 'hang', 'club': 'hang', 'sword': 'hang', 'axe': 'hang',
     'spear': 'upright', 'staff': 'upright', 'pike': 'upright',
-    'shovel': 'low_across', 'bow': 'low_across',
+    'shovel': 'low_across', 'bow': 'bow_low',
 }
 
 
@@ -280,7 +289,7 @@ def equip(entry, arm):
             H.hold(obj, arm, 'hand_r', at, up=(-0.7, -0.45, -0.5))
         elif stance == 'upright':
             # upright through the fist, butt near the ground
-            H.hold(obj, arm, 'hand_r', at, up=(-0.1, -0.06, 1.0))
+            H.hold(obj, arm, 'hand_r', at, up=(-0.22, 0.04, 1.0))
         else:
             H.hold(obj, arm, 'hand_r', at, up=(0.9, -0.2, -0.45))
         made.append(obj)
@@ -301,7 +310,15 @@ def equip(entry, arm):
             H.hold(obj, arm, 'lowerarm_l', at, up=(0.7, 0.12, 0.7), forward=(0, 1, 0))
         else:
             at = H.grip_point(arm, 'hand_l')
-            H.hold(obj, arm, 'hand_l', at, up=(1.0, -0.15, 0.1))
+            if offhand == 'bow':
+                # thicker limbs, so the bow reads at 1x
+                obj.scale = (1.8, 1.8, 1.0)
+                bpy.context.view_layer.update()
+                obj.select_set(True)
+                bpy.context.view_layer.objects.active = obj
+                bpy.ops.object.transform_apply(scale=True)
+            # held low and level across the front of the hips, pointing forward-left
+            H.hold(obj, arm, 'hand_l', at, up=(1.0, -0.35, 0.05))
         made.append(obj)
     back = entry.get('back')
     if back in ('quiver', 'backpack'):
@@ -310,8 +327,10 @@ def equip(entry, arm):
         # shoulder blades; a quiver slung diagonally, arrows up over the right shoulder
         sp = arm.matrix_world @ arm.pose.bones['spine_03'].head
         if back == 'quiver':
-            at = sp + Vector((-0.04, 0.16 * G._scale, 0.12 * G._scale))
-            H.hold(obj, arm, 'spine_03', at, up=(-0.35, 0.12, 1), forward=(0, -1, 0))
+            at = sp + Vector((-0.06, 0.17 * G._scale, 0.3 * G._scale))
+            obj.scale = (1.3, 1.3, 1.3)
+            bpy.context.view_layer.update()
+            H.hold(obj, arm, 'spine_03', at, up=(-0.4, 0.1, 1), forward=(0, -1, 0))
         else:
             at = sp + Vector((0.0, 0.14 * G._scale, 0.05 * G._scale))
             H.hold(obj, arm, 'spine_03', at, up=(0, 0.05, 1), forward=(0, -1, 0))
