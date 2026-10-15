@@ -98,6 +98,20 @@ def grime(basemesh, amount=0.35, paint=None):
         tree.links.new(src, dirt.inputs['A'])
         tree.links.new(ramp.outputs['Color'], dirt.inputs['B'])
         out = dirt.outputs['Result']
+        # darker creases (armpits, under the pecs, abs, knees): ambient occlusion
+        ao = n.new('ShaderNodeAmbientOcclusion')
+        ao.inputs['Distance'].default_value = 0.06
+        crease = n.new('ShaderNodeMix')
+        crease.data_type = 'RGBA'
+        crease.blend_type = 'MULTIPLY'
+        crease.inputs['Factor'].default_value = 1.0
+        aoramp = n.new('ShaderNodeValToRGB')
+        aoramp.color_ramp.elements[0].color = (0.35, 0.24, 0.17, 1)
+        aoramp.color_ramp.elements[1].position = 0.85
+        tree.links.new(ao.outputs['AO'], aoramp.inputs['Fac'])
+        tree.links.new(out, crease.inputs['A'])
+        tree.links.new(aoramp.outputs['Color'], crease.inputs['B'])
+        out = crease.outputs['Result']
         if paint:
             wave = n.new('ShaderNodeTexWave')
             wave.wave_type = 'BANDS'
@@ -122,7 +136,7 @@ def grime(basemesh, amount=0.35, paint=None):
         if not bsdf.inputs['Roughness'].is_linked:
             bsdf.inputs['Roughness'].default_value = 0.6
         # weathered skin: little specular, no plastic sheen on the shoulders
-        bsdf.inputs['Specular IOR Level'].default_value = 0.25
+        bsdf.inputs['Specular IOR Level'].default_value = 0.12
         bsdf.inputs['Coat Weight'].default_value = 0.0
 
     for slot in basemesh.material_slots:

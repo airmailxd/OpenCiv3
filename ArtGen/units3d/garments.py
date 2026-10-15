@@ -429,7 +429,10 @@ def flap(name, mat, width=0.26, length=0.34, folds=5, depth=0.04, ragged=0.05, c
     nx, nz = 18, 14
     bm = bmesh.new()
     rows = []
-    hem = [length * (1.0 - ragged / length * rnd.random()) for _ in range(nx + 1)]
+    # torn into strips of uneven length: each strip (3 columns) its own hem
+    strip_len = [length * (1.0 - rnd.uniform(0.0, 0.32)) for _ in range(nx // 3 + 2)]
+    hem = [strip_len[i // 3] * (1.0 - ragged / length * rnd.random() * 0.3) for i in range(nx + 1)]
+    slits = {i for i in range(3, nx, 3)}
     for j in range(nz + 1):
         row = []
         for i in range(nx + 1):
@@ -443,6 +446,9 @@ def flap(name, mat, width=0.26, length=0.34, folds=5, depth=0.04, ragged=0.05, c
         rows.append(row)
     for j in range(nz):
         for i in range(nx):
+            # slits between the strips, from 45% down
+            if j / nz > 0.45 and (i + 1) in slits:
+                continue
             bm.faces.new((rows[j][i], rows[j][i + 1], rows[j + 1][i + 1], rows[j + 1][i]))
     me = bpy.data.meshes.new(name)
     bm.to_mesh(me)
@@ -591,4 +597,72 @@ def crown_hair(basemesh, color, length=0.13, density=5000):
     st.clump_factor = 0.7
     st.roughness_1 = 0.01
     st.child_radius = 0.02
+    return mod
+
+
+def crest(basemesh, arm, mat, height=0.085, length=0.26, width=0.03, lift=0.03):
+    """A horsehair crest along the top of a helmet, front to back, arched and
+    fuller at the back; parented to the head bone (call before posing)."""
+    import human as H
+    top, yc, _ = _head(basemesh)
+    bm = bmesh.new()
+    n = 16
+    rows = []
+    for i in range(n + 1):
+        t = i / n
+        y = yc - 0.11 + t * length           # front (-y) to back
+        h = height * math.sin(math.pi * (0.15 + 0.8 * t)) * (0.7 + 0.5 * t)
+        z0 = top + lift - 0.035 * (2 * t - 1) ** 2
+        w = width * (0.6 + 0.6 * t)
+        rows.append([bm.verts.new((sx * w, y + 0.02 * t * (h / height) * (1 if k else 0), z0 + (h if k else 0.0)))
+                     for k in (0, 1) for sx in (-1, 1)])
+    for a, b in zip(rows, rows[1:]):
+        # each row: bottom-left, bottom-right, top-left, top-right
+        for (i, j, k, l) in ((0, 2, 2, 0), (1, 3, 3, 1)):
+            pass
+        bm.faces.new((a[0], b[0], b[2], a[2]))     # left side
+        bm.faces.new((a[3], b[3], b[1], a[1]))     # right side
+        bm.faces.new((a[2], b[2], b[3], a[3]))     # top
+    me = bpy.data.meshes.new('Crest')
+    bm.to_mesh(me)
+    bm.free()
+    obj = bpy.data.objects.new('Crest', me)
+    bpy.context.scene.collection.objects.link(obj)
+    obj.data.materials.append(mat)
+    for p in obj.data.polygons:
+        p.use_smooth = True
+    sub = obj.modifiers.new('Subdiv', 'SUBSURF')
+    sub.levels = sub.render_levels = 2
+    world = obj.matrix_world.copy()
+    obj.parent = arm
+    obj.parent_type = 'BONE'
+    obj.parent_bone = 'head'
+    obj.matrix_world = world
+    H._update()
+    return obj
+
+
+def front_locks(basemesh, color, length=0.3, density=1800):
+    """Thick locks from the temples and sides falling forward over the
+    shoulders, framing the face (with falling_hair behind)."""
+    top, yc, on_body = _head(basemesh)
+    grp = basemesh.vertex_groups.new(name='locks')
+    for v in basemesh.data.vertices:
+        if not on_body(v):
+            continue
+        d = top - v.co.z
+        y = v.co.y - yc
+        if 0.03 < d < 0.12 and abs(v.co.x) > 0.05 and -0.06 < y < 0.03:
+            grp.add([v.index], 1.0, 'REPLACE')
+    mod = _hair_system(basemesh, 'Locks', 'locks', color, length, density)
+    st = mod.particle_system.settings
+    st.normal_factor = 0.02
+    st.object_align_factor[0] = 0.0
+    st.object_align_factor[1] = -0.06 * length    # forward
+    st.object_align_factor[2] = -0.22 * length
+    st.kink = 'NO'
+    st.clump_factor = 0.9
+    st.clump_shape = 0.4
+    st.child_radius = 0.03
+    st.roughness_1 = 0.02
     return mod

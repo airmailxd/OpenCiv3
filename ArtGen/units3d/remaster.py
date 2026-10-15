@@ -26,6 +26,9 @@ REMASTER = {
                    'shield_face': '#a8926a', 'shield_rim': '#4a3020'},
         'grime': 0.4,
         'beard': True,
+        'tint': ['top', 'shield_emblem', 'crest'],
+        'metal': ['helmet'],
+        'upper_bulk': 1.15,
     },
 }
 

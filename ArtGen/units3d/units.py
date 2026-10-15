@@ -122,6 +122,7 @@ def dress(entry, mesh, arm):
     if entry.get('mane'):
         G.falling_hair(mesh, B.hex_color(c['hair']), length=entry['mane'])
         G.crown_hair(mesh, B.hex_color(c['hair']))
+        G.front_locks(mesh, B.hex_color(c['hair']), length=entry['mane'] * 1.1)
     else:
         G.roughen_hair(mesh, B.hex_color(c['hair']))
 
@@ -158,6 +159,11 @@ def helmet(entry, mesh, arm):
                              roughness=0.35, metallic=0.9, tint=tint)
         G.shell(mesh, arm, 'Helmet', ['head', 'neck_01'], mat, zmin=(top - depth) / G._scale, offset=0.02 if kind != 'hood' else 0.012,
                 thickness=0.008, min_weight=0.2)
+        if kind == 'crested':
+            c = _colors(entry)
+            tint = 'crest' in entry.get('tint', [])
+            G.crest(mesh, arm, G.hide('crest', (1, 1, 1) if tint else B.hex_color(c['crest']),
+                                      (0.8, 0.8, 0.8) if tint else tuple(v * 0.6 for v in B.hex_color(c['crest'])), tint=tint))
     elif kind == 'headband':
         G.shell(mesh, arm, 'Helmet', ['head'], _mat(entry, 'helmet', G.cloth), zmin=(top - 0.085) / G._scale, zmax=(top - 0.05) / G._scale,
                 offset=0.014, thickness=0.01, min_weight=0.2)
@@ -179,7 +185,7 @@ STANCES = {
              ('neck_01', (0, -0.12, 1)), ('head', (0, 0.1, 1)),
              ('thigh_l', (0.3, -0.05, -1)), ('calf_l', (0.24, 0.02, -1)), ('foot_l', (0.5, -1, -0.3)),
              ('thigh_r', (-0.3, -0.02, -1)), ('calf_r', (-0.24, 0.04, -1)), ('foot_r', (-0.5, -1, -0.3)),
-             ('upperarm_l', (0.55, -0.25, -1)), ('lowerarm_l', (0.2, -1.0, -0.15)),
+             ('upperarm_l', (0.42, -0.08, -1)), ('lowerarm_l', (0.3, -0.25, -1)),
              ('upperarm_r', (-0.55, -0.15, -1)), ('lowerarm_r', (-0.35, -1.0, -0.35))],
     'upright': [('spine_02', (0, -0.08, 1)), ('neck_01', (0, -0.04, 1)), ('head', (0, 0.05, 1)),
                 ('clavicle_l', (1, -0.25, 0.05)), ('clavicle_r', (-1, -0.25, 0.05)),
@@ -226,7 +232,7 @@ def equip(entry, arm):
         at = H.grip_point(arm, 'hand_r')
         if stance == 'hang':
             # hanging from the fist, down and out to the side, head low
-            H.hold(obj, arm, 'hand_r', at, up=(-0.6, -0.45, -0.7))
+            H.hold(obj, arm, 'hand_r', at, up=(-0.7, -0.45, -0.5))
         elif stance == 'upright':
             # upright through the fist, butt near the ground
             H.hold(obj, arm, 'hand_r', at, up=(0.0, -0.08, 1.0))
