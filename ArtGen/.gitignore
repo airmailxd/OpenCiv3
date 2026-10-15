@@ -1,3 +1,5 @@
 _previews/
 __pycache__/
 leaderheads/_cache/
+.venv/
+leaderheads/_candidates/

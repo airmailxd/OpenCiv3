@@ -136,7 +136,19 @@ at the top of the script.
 
 ## The leader heads
 
-`python ArtGen/leaderheads/build.py` makes a leader head for every
+The leader heads are lifelike portraits: a realistic photograph of each
+leader, generated with FLUX.2 [klein] 4B (Apache-2.0) from a historical
+picture of them and a description of how they looked, by
+`ArtGen/leaderheads/lifelike.py` (see its docstring; it needs `mflux`, so an
+Apple Silicon Mac, or the same model in diffusers elsewhere). The pictures
+picked for the game are committed in `ArtGen/leaderheads/lifelike/`, and
+`python ArtGen/leaderheads/lifelike.py --install` turns them into
+`C7/ModernArt/Art/Leaderheads/<civ name>.png` (230x230) and writes their
+credits to `CREDITS.txt` there.
+
+Before them they were the historical pictures themselves, with a shared
+painted finish: `python ArtGen/leaderheads/build.py --painted-set` still makes
+that set, over the lifelike one. It made a leader head for every
 civilization of the bundled rules, for standalone mode, into
 `C7/ModernArt/Art/Leaderheads/<civ name>.png` (230x230: twice Civ3's 115x115).
 Unlike the rest of ArtGen these aren't drawn: each is a real historical

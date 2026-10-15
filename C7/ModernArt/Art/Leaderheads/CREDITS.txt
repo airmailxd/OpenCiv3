@@ -1,194 +1,193 @@
 Leader portraits (standalone mode)
 ==================================
 
-Made by ArtGen/leaderheads/build.py from public domain and CC0 pictures
-on Wikimedia Commons: cropped to the head and shoulders, scaled, and given
-a shared painted finish (ArtGen/leaderheads/paint.py: edge-preserving stroke
-smoothing, one palette, one painted backdrop, brush texture; image processing
-only, nothing generated), a color grade, vignette and edge.
+Made by ArtGen/leaderheads/lifelike.py: realistic photographs of the leaders
+generated with FLUX.2 [klein] 4B (Black Forest Labs, Apache-2.0), each from a
+historical picture of the leader (or of a stand-in where no likeness survives)
+and a written description of how they looked, then scaled with a vignette
+and edge. They are imagined likenesses, not photographs. The pictures they
+were made from:
 
 Rome.png (Caesar)
-  Julius Caesar: Roman marble bust in the Greek Cross Hall of the Vatican Museums
+  After:   Julius Caesar: Roman marble bust in the Greek Cross Hall of the Vatican Museums
   Source:  https://commons.wikimedia.org/wiki/File:Bust_of_Julius_Caesar.jpg
   Artist:  Wilfredor
   License: CC0
 
 Egypt.png (Cleopatra)
-  Cleopatra VII: the "Berlin Cleopatra", a Roman marble portrait of about 40-30 BC
+  Note: its crown changed to a gold circlet with a uraeus by a second edit
+  After:   Cleopatra VII: the "Berlin Cleopatra", a Roman marble portrait of about 40-30 BC
   Source:  https://commons.wikimedia.org/wiki/File:Cleopatra-VII-Antikensammlung-Berlin.jpg
   Artist:  Marco21274
   License: Public domain
 
 Greece.png (Alexander)
-  Alexander the Great: Hellenistic marble head in the British Museum
+  After:   Alexander the Great: Hellenistic marble head in the British Museum
   Source:  https://commons.wikimedia.org/wiki/File:Bust_Alexander_BM_1857.jpg
   Artist:  Unknown artist
   License: Public domain
 
 Babylon.png (Hammurabi)
-  Hammurabi: the diorite royal head known as the "head of Hammurabi", Louvre
+  After:   Hammurabi: the diorite royal head known as the "head of Hammurabi", Louvre
   Source:  https://commons.wikimedia.org/wiki/File:T%C3%AAte_royale_dite_t%C3%AAte_de_Hammurabi_-_Mus%C3%A9e_du_Louvre_Antiquit%C3%A9s_orientales_SB_95.jpg
-  Artist:  Shonagon
+  Artist:  unknown
   License: CC0
 
 Germany.png (Bismarck)
-  Otto von Bismarck by Franz von Lenbach, 1879 (Indianapolis Museum of Art)
+  After:   Otto von Bismarck by Franz von Lenbach, 1879 (Indianapolis Museum of Art)
   Source:  https://commons.wikimedia.org/wiki/File:Franz_von_Lenbach_-_Bildnis_Otto_Eduard_Leopold_von_Bismarck_(Indianapolis).jpg
   Artist:  Franz von Lenbach
   License: Public domain
 
 Russia.png (Catherine)
-  Catherine the Great by Fyodor Rokotov after Roslin, 1780s
-  Source:  https://commons.wikimedia.org/wiki/File:Catherine_II_after_Roslin,_Rokotov_(1780s,_Kunsthistorisches_Museum).jpg
-  Artist:  After Alexander Roslin
+  After:   Catherine the Great: coronation portrait by Vigilius Eriksen, 1766-67 (Statens Museum for Kunst)
+  Source:  https://commons.wikimedia.org/wiki/File:Catherine_II_by_V.Eriksen_(1766-7,_Statens_Museum_for_Kunst,_Denmark).jpg
+  Artist:  Vigilius Eriksen
   License: Public domain
 
 China.png (Mao)
-  Mao Zedong, portrait photograph by Chen Zhengqing, 1950
+  After:   Mao Zedong, portrait photograph by Chen Zhengqing, 1950
   Source:  https://commons.wikimedia.org/wiki/File:Mao_Zedong_1950_Portrait_(3x4_cropped).jpg
   Artist:  Chen Zhengqing (1917–1966)
   License: Public domain
 
 America.png (Lincoln)
-  Abraham Lincoln photographed by Alexander Gardner, 1863
+  After:   Abraham Lincoln photographed by Alexander Gardner, 1863
   Source:  https://commons.wikimedia.org/wiki/File:Abraham_Lincoln_O-77_matte_collodion_print.jpg
   Artist:  Alexander Gardner
   License: Public domain
 
 Japan.png (Tokugawa)
-  Tokugawa Ieyasu by Kano Tan'yu, 17th century
+  After:   Tokugawa Ieyasu by Kano Tan'yu, 17th century
   Source:  https://commons.wikimedia.org/wiki/File:Tokugawa_Ieyasu2.JPG
   Artist:  Kanō Tan'yū
   License: Public domain
 
 France.png (Joan d'Arc)
-  Joan of Arc: detail of "Joan of Arc at the Coronation of Charles VII" by Ingres, 1854 (no likeness from her lifetime survives)
+  After:   Joan of Arc: detail of "Joan of Arc at the Coronation of Charles VII" by Ingres, 1854 (no likeness from her lifetime survives)
   Source:  https://commons.wikimedia.org/wiki/File:Ingres_coronation_charles_vii.jpg
   Artist:  Jean-Auguste-Dominique Ingres
   License: Public domain
 
 India.png (Gandhi)
-  Mohandas K. Gandhi, photograph, 1940
+  After:   Mohandas K. Gandhi, photograph, 1940
   Source:  https://commons.wikimedia.org/wiki/File:Gandhi_portrait,_1940.jpg
   Artist:  Unknown author
   License: Public domain
 
 Persia.png (Xerxes)
-  A typical Persian king, standing in for Xerxes, whose own reliefs are defaced: "Man in Oriental Costume" by Rembrandt and workshop (probably Govaert Flinck), about 1635
+  After:   A typical Persian king, standing in for Xerxes, whose own reliefs are defaced: "Man in Oriental Costume" by Rembrandt and workshop (probably Govaert Flinck), about 1635
   Source:  https://commons.wikimedia.org/wiki/File:Rembrandt_van_Rijn_and_Workshop_(Probably_Govaert_Flinck),_Man_in_Oriental_Costume,_c._1635,_NGA_572.jpg
   Artist:  Rembrandt van Rijn and Workshop (Probably Govaert Flinck)
   License: CC0
 
 Aztecs.png (Montezuma)
-  Moctezuma II, 17th-century painting attributed to Antonio Rodriguez
+  After:   Moctezuma II, 17th-century painting attributed to Antonio Rodriguez
   Source:  https://commons.wikimedia.org/wiki/File:Moctezuma_Xocoyotzin.png
   Artist:  attributed to Antonio Rodriguez (1636-1691)
   License: Public domain
 
 Zululand.png (Shaka)
-  Shaka, 19th-century print after the drawing by James King
+  After:   Shaka, 19th-century print after the drawing by James King
   Source:  https://commons.wikimedia.org/wiki/File:Shaka_Zulu_incisione_ottocentesca.jpg
   Artist:  Anonymous
   License: Public domain
 
 Iroquois.png (Hiawatha)
-  A Haudenosaunee leader, standing in for Hiawatha, of whom no likeness survives: the Mohawk leader Thayendanegea (Joseph Brant) by George Romney, 1776
-  Source:  https://commons.wikimedia.org/wiki/File:Joseph_Brant_painting_by_George_Romney_1776_(2).jpg
-  Artist:  George Romney
+  After:   A Haudenosaunee leader, standing in for Hiawatha, of whom no likeness survives: the Mohawk leader Sa Ga Yeath Qua Pieth Tow by John Verelst, 1710 (Library and Archives Canada)
+  Source:  https://commons.wikimedia.org/wiki/File:345Chief_Sa_Ga_Yeath_Qua_Pieth_Tow_by_John_Verelst,_1710._Archives_of_Canada..jpg
+  Artist:  John Verelst
   License: Public domain
 
 England.png (Elizabeth)
-  Elizabeth I: the "Darnley Portrait", about 1575
+  After:   Elizabeth I: the "Darnley Portrait", about 1575
   Source:  https://commons.wikimedia.org/wiki/File:Darnley_stage_3.jpg
   Artist:  Unidentified painter
   License: Public domain
 
 Mongols.png (Temujin)
-  Genghis Khan (Temujin): portrait from the Yuan emperors' album, National Palace Museum, Taipei
+  After:   Genghis Khan (Temujin): portrait from the Yuan emperors' album, National Palace Museum, Taipei
   Source:  https://commons.wikimedia.org/wiki/File:YuanEmperorAlbumGenghisPortrait.jpg
   Artist:  Unknown author
   License: Public domain
 
 Spain.png (Isabella)
-  Isabella I of Castile by Juan de Flandes, about 1500
+  After:   Isabella I of Castile by Juan de Flandes, about 1500
   Source:  https://commons.wikimedia.org/wiki/File:Juan_de_Flandes_-_Isabel_la_Cat%C3%B3lica_(Palacio_Real,_Madrid,_1500-04._%C3%93leo_sobre_tabla,_63_x_55_cm).jpg
   Artist:  Juan de Flandes
   License: Public domain
 
 Scandinavia.png (Ragnar Lodbrok)
-  A typical Viking chieftain, standing in for Ragnar Lodbrok, of whom no likeness survives: Leif Erikson in "Leif Erikson Discovers America" by Hans Dahl
+  After:   A typical Viking chieftain, standing in for Ragnar Lodbrok, of whom no likeness survives: Leif Erikson in "Leif Erikson Discovers America" by Hans Dahl
   Source:  https://commons.wikimedia.org/wiki/File:Leif_Erikson_Discovers_America_Hans_Dahl.jpg
   Artist:  Hans Dahl
   License: Public domain
 
 Ottomans.png (Osman)
-  Osman I, 16th-century Venetian portrait (follower of Paolo Veronese)
+  After:   Osman I, 16th-century Venetian portrait (follower of Paolo Veronese)
   Source:  https://commons.wikimedia.org/wiki/File:Paolo_Veronese_(Nachfolger)_-_Sultan_Osman_I._-_2242_-_Bavarian_State_Painting_Collections.jpg
   Artist:  Paolo Veronese
   License: Public domain
 
 Celts.png (Brennus)
-  Brennus: detail of "Le Brenn et sa part de butin" by Paul Jamin, 1893
-  Source:  https://commons.wikimedia.org/wiki/File:Le_Brenn_et_sa_part_de_butin_(Paul_Jamin).jpg
-  Artist:  Paul Joseph Jamin
+  After:   A Gallic war chief, standing in for Brennus, of whom no likeness survives: Vercingetorix in "Vercingetorix Throws Down His Arms at the Feet of Julius Caesar" by Lionel Royer, 1899
+  Source:  https://commons.wikimedia.org/wiki/File:Lionel_Royer_-_Vercingetorix_Throwing_down_His_Weapons_at_the_feet_of_Julius_Caesar.jpg
+  Artist:  Lionel Royer
   License: Public domain
 
 Arabia.png (Abu Bakr)
-  Abu Bakr: his name in the roundel design by Kazasker Mustafa Izzet Efendi (Hagia Sophia, 19th century); no likeness of him exists, and Islamic tradition shows him by his name
-  Source:  https://commons.wikimedia.org/wiki/File:Abu_Bakr_Caliph_Calligraphy.png
-  Artist:  M. Izzet Efendi
-  License: Public domain
+  After:   A typical early Muslim scholar, standing in for Abu Bakr, of whom no likeness exists: an imagined portrait of the physician al-Razi, Wellcome Collection
+  Source:  https://commons.wikimedia.org/wiki/File:Portrait_of_Rhazes_(al-Razi)_(AD_865_-_925)_Wellcome_L0005053.jpg
+  Artist:  Wellcome Collection (CC BY 4.0)
+  License: CC BY 4.0
 
 Carthage.png (Hannibal)
-  Hannibal: the marble bust found at Capua
+  After:   Hannibal: the marble bust found at Capua
   Source:  https://commons.wikimedia.org/wiki/File:Hannibal_Barca_bust_from_Capua_photo.jpg
   Artist:  Fratelli Alinari
   License: Public domain
 
 Korea.png (Wang Kon)
-  A typical Korean official, standing in for Wang Kon, whose own portraits on Commons are too small or not public domain: "Portrait of Scholar-Official An in his Fiftieth Year" by Yi Jae-gwan, 19th century
+  After:   A typical Korean official, standing in for Wang Kon, whose own portraits on Commons are too small or not public domain: "Portrait of Scholar-Official An in his Fiftieth Year" by Yi Jae-gwan, 19th century
   Source:  https://commons.wikimedia.org/wiki/File:Yi_Jaegwan_-_Portrait_of_Scholar-Official_An_in_his_Fiftieth_Year_-_Google_Art_Project.jpg
   Artist:  Yi Jae-gwan (1783-1837)
   License: Public domain
 
 Sumeria.png (Gilgamesh)
-  A typical Sumerian ruler, standing in for Gilgamesh, of whom no likeness survives: Gudea of Lagash, diorite statue, Metropolitan Museum of Art
+  After:   A typical Sumerian ruler, standing in for Gilgamesh, of whom no likeness survives: Gudea of Lagash, diorite statue, Metropolitan Museum of Art
   Source:  https://commons.wikimedia.org/wiki/File:Statue_of_Gudea_MET_DT861.jpg
   Artist:  unknown
   License: CC0
 
 Hittites.png (Mursilis)
-  A typical Hittite king, standing in for Mursilis, of whom no likeness survives: basalt statue of a priest-king with bone eyes, about 1600 BC, Cleveland Museum of Art
-  Source:  https://commons.wikimedia.org/wiki/File:Priest-King_or_Diety,_about_1600_BC,_Hittite,_North_Syria,_basalt_with_bone_eyes_-_Cleveland_Museum_of_Art_-_DSC08114.JPG
-  Artist:  Daderot
-  License: CC0
+  Note: made from the description alone (no likeness of Mursili II survives), then its cap changed by a second edit; the description follows the Hittite royal reliefs
 
 Netherlands.png (William)
-  William the Silent by Adriaen Thomasz. Key, about 1579
+  After:   William the Silent by Adriaen Thomasz. Key, about 1579
   Source:  https://commons.wikimedia.org/wiki/File:William_I,_Prince_of_Orange_by_Adriaen_Thomasz._Key_Rijksmuseum_Amsterdam_SK-A-3148.jpg
   Artist:  Adriaen Thomasz. Key
   License: Public domain
 
 Portugal.png (Henry)
-  Henry the Navigator: detail of the Panel of the Infante, Saint Vincent Panels, by Nuno Goncalves, 1470s
+  After:   Henry the Navigator: detail of the Panel of the Infante, Saint Vincent Panels, by Nuno Goncalves, 1470s
   Source:  https://commons.wikimedia.org/wiki/File:Pain%C3%A9is_de_S%C3%A3o_Vicente_de_Fora_-_Painel_do_Infante_(MNAA,_inv._1361_Pint).png
   Artist:  Nuno Gonçalves
   License: Public domain
 
 Byzantines.png (Theodora)
-  Empress Theodora: mosaic in the Basilica of San Vitale, Ravenna, 547
+  After:   Empress Theodora: mosaic in the Basilica of San Vitale, Ravenna, 547
   Source:  https://commons.wikimedia.org/wiki/File:Mosaic_of_empress_Theodora,_Ravenna,_San_Vitale,_547.jpg
   Artist:  Meister von San Vitale in Ravenna
   License: Public domain
 
 Inca.png (Pachacuti)
-  Pachacuti: Cuzco School painting, 18th century (Brooklyn Museum)
+  After:   Pachacuti: Cuzco School painting, 18th century (Brooklyn Museum)
   Source:  https://commons.wikimedia.org/wiki/File:Brooklyn_Museum_-_Pachacuti,_Tenth_Inca,_1_of_14_Portraits_of_Inca_Kings_(cropped).jpg
   Artist:  unknown
   License: Public domain
 
 Maya.png (Smoke-Jaguar)
-  A typical Maya noble, standing in for Smoke-Jaguar, of whom no likeness is in the public domain: Classic Maya stucco portrait head from Campeche, Walters Art Museum
+  After:   A typical Maya noble, standing in for Smoke-Jaguar, of whom no likeness is in the public domain: Classic Maya stucco portrait head from Campeche, Walters Art Museum
   Source:  https://commons.wikimedia.org/wiki/File:Mayan_-_Stucco_Portrait_Head_-_Walters_20092026.jpg
   Artist:  Anonymous (Mayan)
   License: Public domain

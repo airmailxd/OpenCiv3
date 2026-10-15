@@ -1,4 +1,9 @@
-"""Makes the leader heads for standalone mode (no Civ3 files): a head and
+"""The game's leader heads are now lifelike portraits made by lifelike.py
+(python ArtGen/leaderheads/lifelike.py --install); this script's SOURCES and
+helpers are what it builds on. Running this script still makes the earlier
+painted portraits, over the lifelike ones, so it asks for --painted-set.
+
+Makes the leader heads for standalone mode (no Civ3 files): a head and
 shoulders portrait of each civilization's leader, shown in diplomacy, the
 new game screen and the LAN lobby:
 
@@ -588,6 +593,9 @@ def unified_samples():
 
 def main(argv):
     opts = {a[2:] for a in argv if a.startswith('--')}
+    if not opts & {'painted-set', 'unified-samples'}:
+        sys.exit('The game uses the lifelike portraits (lifelike.py --install); '
+                 'pass --painted-set to overwrite them with the painted ones')
     if 'unified-samples' in opts:
         print(f'samples: {unified_samples()}')
         return
