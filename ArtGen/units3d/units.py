@@ -137,7 +137,7 @@ def dress(entry, mesh, arm):
             G.shell(mesh, arm, 'SandalStrap_' + side, ['foot_' + side, 'calf_' + side], _mat(entry, 'sandal', G.leather),
                     zmin=0.04, zmax=0.17, offset=0.006, thickness=0.004,
                     keep=lambda co: (co.z * 60.0) % 2.0 < 0.75)
-        if entry.get('bracers'):
+        if entry.get('bracers') or entry.get('leather_bracers'):
             G.shell(mesh, arm, 'Bracer_' + side, ['lowerarm_' + side], _mat(entry, 'bracers', G.cloth),
                     offset=0.008, thickness=0.006)
     helmet(entry, mesh, arm)
@@ -177,7 +177,7 @@ def helmet(entry, mesh, arm):
     top = max(v.co.z for v in me.vertices if any(g.group == body.index and g.weight > 0.5 for g in v.groups))
     metal = kind in entry.get('metal', ['helmet']) or 'helmet' in entry.get('metal', ['helmet'])
     if kind in ('crested', 'horned', 'cap', 'wolf', 'hood'):
-        depth = {'cap': 0.085, 'crested': 0.082, 'horned': 0.09, 'wolf': 0.12, 'hood': 0.19}[kind]
+        depth = {'cap': 0.07, 'crested': 0.082, 'horned': 0.09, 'wolf': 0.12, 'hood': 0.19}[kind]
         if kind == 'wolf':
             mat = G.fur('helmet', B.hex_color(_colors(entry)['pelt']), B.hex_color(_colors(entry)['pelt_dark']))
         elif kind == 'hood' or not metal:
@@ -199,7 +199,8 @@ def helmet(entry, mesh, arm):
                 eyes = 0.075 < d < 0.11 and abs(co.x) < 0.06
                 mouth = d >= 0.11 and abs(co.x) < 0.028
                 return not (face and (eyes or mouth))
-        G.shell(mesh, arm, 'Helmet', ['head', 'neck_01'], mat, zmin=(top - depth) / G._scale, offset=0.02 if kind != 'hood' else 0.012,
+        G.shell(mesh, arm, 'Helmet', ['head', 'neck_01'], mat, zmin=(top - depth) / G._scale,
+                offset={'hood': 0.012, 'cap': 0.01}.get(kind, 0.02),
                 thickness=0.008, min_weight=0.2, keep=keep)
         if kind == 'horned':
             G.horns(mesh, arm, B.material('horn', B.hex_color(_colors(entry).get('horn', '#c8b898')), roughness=0.5),
@@ -238,11 +239,11 @@ STANCES = {
                 ('thigh_r', (-0.14, 0.04, -1)), ('calf_r', (-0.1, 0.06, -1)), ('foot_r', (-0.35, -1, -0.3)),
                 ('upperarm_l', (0.2, -0.45, -1)), ('lowerarm_l', (-0.55, -1.0, 0.25)),
                 ('upperarm_r', (-0.62, -0.1, -1)), ('lowerarm_r', (-0.45, -1.0, 0.5))],
-    'low_across': [('spine_02', (0, -0.1, 1)), ('neck_01', (0, 0.0, 1)), ('head', (0, 0.25, 1)),
+    'low_across': [('spine_02', (0, -0.08, 1)), ('neck_01', (0, 0.05, 1)), ('head', (0, 0.3, 1)),
                    ('thigh_l', (0.18, -0.1, -1)), ('calf_l', (0.12, 0.04, -1)), ('foot_l', (0.4, -1, -0.3)),
                    ('thigh_r', (-0.18, 0.04, -1)), ('calf_r', (-0.12, 0.06, -1)), ('foot_r', (-0.4, -1, -0.3)),
-                   ('upperarm_l', (0.15, -0.45, -1)), ('lowerarm_l', (-0.45, -1.0, 0.15)),
-                   ('upperarm_r', (-0.32, -0.15, -1)), ('lowerarm_r', (-0.2, -0.8, -0.6))],
+                   ('upperarm_l', (0.25, -0.2, -1)), ('lowerarm_l', (0.2, -0.85, -0.6)),
+                   ('upperarm_r', (-0.22, -0.1, -1)), ('lowerarm_r', (0.15, -0.6, -0.8))],
 }
 
 # Seated on a horse: thighs forward and apart around the barrel, shins
@@ -257,8 +258,8 @@ STANCES['bow_low'] = [('spine_02', (0, 0.0, 1)), ('neck_01', (0, 0.12, 1)), ('he
                       ('clavicle_l', (1, -0.15, 0.1)), ('clavicle_r', (-1, -0.15, 0.1)),
                       ('thigh_l', (0.2, -0.1, -1)), ('calf_l', (0.12, 0.04, -1)), ('foot_l', (0.4, -1, -0.3)),
                       ('thigh_r', (-0.16, 0.06, -1)), ('calf_r', (-0.1, 0.06, -1)), ('foot_r', (-0.4, -1, -0.3)),
-                      ('upperarm_l', (0.32, -0.15, -1)), ('lowerarm_l', (0.25, -1.0, -0.45)),
-                      ('upperarm_r', (-0.32, -0.15, -1)), ('lowerarm_r', (-0.05, -1.0, -0.4))]
+                      ('upperarm_l', (0.2, -0.12, -1)), ('lowerarm_l', (0.18, -1.0, -0.5)),
+                      ('upperarm_r', (-0.18, -0.06, -1)), ('lowerarm_r', (-0.1, -0.45, -1))]
 
 STANCES['guard'] = [('spine_02', (0, -0.04, 1)), ('neck_01', (0, 0.1, 1)), ('head', (0, 0.35, 1)),
                     ('clavicle_l', (1, -0.2, 0.05)), ('clavicle_r', (-1, -0.2, 0.05)),
@@ -300,28 +301,37 @@ def equip(entry, arm):
         if stance in ('hang', 'guard'):
             # hanging from the fist, down and out to the side, head low
             H.hold(obj, arm, 'hand_r', at, up=(-0.7, -0.45, -0.5))
+        elif stance == 'upright' and name == 'staff':
+            # a walking staff, upright beside the body
+            H.hold(obj, arm, 'hand_r', at, up=(-0.04, 0.0, 1.0))
         elif stance == 'upright':
             # upright through the fist, butt near the ground
             H.hold(obj, arm, 'hand_r', at, up=(-0.22, 0.04, 1.0))
         else:
-            # a tool held diagonally across the body, working end down at the right
-            H.hold(obj, arm, 'hand_r', at, up=(-0.55, -0.25, -0.8))
+            # a tool held diagonally across the body, working end down at the
+            # lower right of the picture (the figure's left), the left hand low
+            # on the haft and the right hand further up it
+            low = H.grip_point(arm, 'hand_l')
+            up_dir = Vector((-0.5, -0.3, 0.8)).normalized()     # toward the haft's top end
+            H.hold(obj, arm, 'hand_l', low, up=tuple(-up_dir))
         made.append(obj)
     if offhand:
         name, params = (entry['offhand_mesh'] if entry.get('offhand_mesh') else (offhand, {}))
         obj = P.make(name, c, **params)
+        if offhand.startswith('shield') and entry.get('two_hand_tool'):
+            pass
         if offhand.startswith('shield'):
-            # on the left forearm, held forward and upright, face to the front
-            # strapped on the left forearm, which crosses the body: the shield
-            # covers the torso from chest to hip, facing the front
+            # strapped on the left forearm, which crosses the body: the board's
+            # center a hand in front of the torso at the belly, upright, facing
+            # the front; turned 45 degrees in its plane so the X of its emblem
+            # bands reads as a + cross. Placed by its geometry's center (the
+            # prop's origin is the arm strap, behind the board).
             pb = arm.pose.bones['lowerarm_l']
             mid = (arm.matrix_world @ pb.head).lerp(arm.matrix_world @ pb.tail, 0.5)
             chest = arm.matrix_world @ arm.pose.bones['spine_02'].head
             shoulder = arm.matrix_world @ arm.pose.bones['clavicle_l'].head
-            at = Vector((0.5 * (mid.x + chest.x) + 0.04, min(mid.y, chest.y) - 0.07, shoulder.z - 0.22 * G._scale))
-            # turned 45 degrees in its plane: the X of its emblem bands reads as a + cross
-            # tilted back a little, so its face turns up toward the camera
-            H.hold(obj, arm, 'lowerarm_l', at, up=(0.7, 0.12, 0.7), forward=(0, 1, 0))
+            at = Vector((0.5 * (mid.x + chest.x) + 0.08, chest.y - 0.2 * G._scale, shoulder.z - 0.4 * G._scale))
+            H.hold(obj, arm, 'lowerarm_l', at, up=(0.7, 0.0, 0.7), forward=(0, 1, 0), center=True)
         else:
             at = H.grip_point(arm, 'hand_l')
             if offhand == 'bow':
@@ -346,7 +356,13 @@ def equip(entry, arm):
             bpy.context.view_layer.update()
             H.hold(obj, arm, 'spine_03', at, up=(-0.4, 0.1, 1), forward=(0, -1, 0))
         else:
-            at = sp + Vector((0.0, 0.14 * G._scale, 0.05 * G._scale))
+            k = entry.get('pack_scale', 1.0)
+            if k != 1.0:
+                obj.scale = (k, k, k)
+                bpy.context.view_layer.update()
+            # a big load high on the back: the prop's origin is its straps'
+            # top at the shoulders, the load behind it (its -Y, turned to +y)
+            at = sp + Vector((0.0, 0.04 * G._scale, 0.2 * G._scale))
             H.hold(obj, arm, 'spine_03', at, up=(0, 0.05, 1), forward=(0, -1, 0))
         made.append(obj)
     elif back == 'pelt':

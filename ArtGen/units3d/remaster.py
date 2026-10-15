@@ -38,26 +38,28 @@ REMASTER = {
         # the original: lean and bare-chested, a sash over one shoulder and a
         # long apron (both civ color), the bow held low across the hips
         'macro': {'muscle': 0.9, 'weight': 0.6, 'height': 0.75, 'proportions': 0.75},
-        'colors': {'skin': '#94704f', 'hair': '#1e1610', 'helmet': '#2a2018', 'boots': '#3a2616',
+        'colors': {'skin': '#8a684a', 'hair': '#140e0a', 'helmet': '#24180e', 'boots': '#3a2616',
                    'leather': '#4e3826', 'wood': '#3e2a1a', 'string': '#8a7a5a'},
         'top': 'strap', 'bottom': 'loincloth', 'loin_length': (0.6, 0.42), 'torn': False,
         'tint': ['top', 'bottom'],
         'hair': 'topknot', 'hair_asset': 'ponytail01', 'helmet': 'headband',
-        'wraps': 'boots', 'beard': False, 'upper_bulk': 1.2,
+        'wraps': 'boots', 'beard': False, 'upper_bulk': 1.2, 'gear': [],
+        'stance_name': 'bow_low',
         'offhand_mesh': ('bold_bow', {'height': 1.45, 'bend': 0.2, 'recurve': 0.12}),
-        'grime': 0.7,
+        'grime': 0.9,
     },
     'Swordsman': {
         # the original: an iron helmet with a brow ridge (reads horned), brown
         # leather armour over a skirt of leather strips, grey greaves; civ
         # color on the upper arms and the small round shield's rim and boss
         'macro': {'muscle': 1.0, 'weight': 0.8, 'height': 0.75, 'proportions': 0.7},
-        'colors': {'skin': '#94704f', 'helmet': '#5c5c60', 'cuirass': '#5e4028', 'bottom': '#4e3622',
+        'colors': {'skin': '#8a684a', 'helmet': '#5c5c60', 'cuirass': '#5e4028', 'bottom': '#4e3622',
+                   'steel': '#8a8c90', 'bracers': '#4e3622',
                    'greaves': '#6a6a6e', 'horn': '#b8a888', 'belt': '#2e2016', 'shield_face': '#5e4430'},
         'helmet': 'horned', 'metal': ['helmet'], 'cuirass': True, 'top': None, 'pauldrons': True,
         'neck': 'high', 'boots': True, 'stance_name': 'guard',
         'props': {'sword': ('sword', {'guard': 0.18, 'length': 0.62, 'width': 0.09})},
-        'bottom': 'loincloth', 'bottom_material': 'leather', 'loin_length': (0.36, 0.34),
+        'bottom': 'loincloth', 'bottom_material': 'leather', 'loin_length': (0.5, 0.46), 'leather_bracers': True,
         'back': None, 'wraps': 'greaves', 'beard': True, 'colors_extra': None,
         'tint': ['top', 'shield_emblem'],
         'grime': 0.7, 'upper_bulk': 1.25,
@@ -83,7 +85,7 @@ REMASTER = {
         # tall staff, civ color on the tunic and the cap, a cream kilt
         'macro': {'muscle': 0.85, 'weight': 0.65, 'height': 0.72, 'proportions': 0.7}, 'age': 0.6,
         'colors': {'skin': '#94704f', 'bottom': '#cfc6b0', 'hair': '#3a2a1c', 'pack': '#6a5a3a', 'sandal': '#3a2818'},
-        'tint': ['top', 'helmet'], 'beard': True,
+        'tint': ['top', 'helmet'], 'beard': True, 'helmet': 'hood', 'pack_scale': 1.5,
         'props': {'staff': ('staff', {'length': 2.05, 'grip': 1.2})},
         'grime': 0.7, 'upper_bulk': 1.1,
     },
@@ -92,7 +94,8 @@ REMASTER = {
         # over one shoulder and an apron, a shovel held diagonally, blade down
         'macro': {'muscle': 0.85, 'weight': 0.5, 'height': 0.7, 'proportions': 0.7},
         'colors': {'skin': '#8e6a48', 'helmet': '#c8b688', 'hair': '#241a10', 'wraps': '#3e2a1c',
-                   'wraps_band': '#22160c', 'wood': '#6a4a2e'},
+                   'wraps_band': '#22160c', 'wood': '#6a4a2e', 'steel': '#6e6c68'},
+        'helmet': 'cap',
         'top': 'strap', 'bottom': 'loincloth', 'loin_length': (0.45, 0.4), 'torn': False,
         'tint': ['top', 'bottom'], 'wraps': 'wraps', 'sandals': False,
         'grime': 0.85, 'upper_bulk': 1.1,

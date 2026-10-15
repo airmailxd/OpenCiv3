@@ -419,9 +419,9 @@ def wild_hair(basemesh, color, length=0.1, density=5000, clump=0.55, rough=0.05)
 def roughen_hair(basemesh, color, length=0.022, density=4000):
     """Breaks up a hair mesh's smooth surface (MPFB's hair assets) with a coat
     of short, rough strands, so it reads as unkempt hair, not a shell."""
-    hair = [c for c in basemesh.children if c.type == 'MESH' and any(
-        (s.material and 'hair' in s.material.name.lower()) for s in c.material_slots) or 'long' in c.name.lower()
-        or 'short' in c.name.lower() or 'ponytail' in c.name.lower()]
+    hair = [c for c in basemesh.children if c.type == 'MESH' and (any(
+        (s.material and 'hair' in s.material.name.lower()) for s in c.material_slots) or any(
+        k in c.name.lower() for k in ('long', 'short', 'ponytail', 'braid', 'bob', 'afro')))]
     for obj in hair:
         grp = obj.vertex_groups.new(name='fuzz')
         grp.add([v.index for v in obj.data.vertices], 1.0, 'REPLACE')

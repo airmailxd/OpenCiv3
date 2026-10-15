@@ -46,7 +46,7 @@ def body(gender=1.0, age=0.5, muscle=0.75, weight=0.55, height=0.55, proportions
     if skin_tone:
         tone_skin(basemesh, skin_tone)
     if hair_tone and hair:
-        hair_color(basemesh, hair_tone)
+        hair_color(basemesh, hair_tone, asset=hair)
     for kind, name in (('eyebrows', eyebrows), ('eyelashes', 'eyelashes01'), ('eyes', 'high-poly'), ('hair', hair)):
         if name:
             try:
@@ -183,11 +183,13 @@ def tone_skin(basemesh, color, strength=1.0, texture='diffuse'):
             visit(slot.material.node_tree)
 
 
-def hair_color(basemesh, color):
-    """Tones the hair asset (a child of the body) toward `color` (sRGB) and
-    makes it matte (matted hair, not a shiny shell)."""
+def hair_color(basemesh, color, asset=None):
+    """Tones the hair asset (a child of the body, named after the asset, e.g.
+    'Human.ponytail01') toward `color` (sRGB) and makes it matte (matted
+    hair, not a shiny shell)."""
     for child in basemesh.children:
-        if 'hair' in child.name.lower() or any('hair' in (s.material.name.lower() if s.material else '') for s in child.material_slots):
+        named = asset and child.name.lower().endswith(asset.lower())
+        if named or 'hair' in child.name.lower() or any('hair' in (s.material.name.lower() if s.material else '') for s in child.material_slots):
             tone_skin(child, color, texture='')
             matte(child)
 
@@ -315,9 +317,9 @@ def grip_point(arm, bone='hand_r', along=0.55):
     return head.lerp(tail, along)
 
 
-def hold(obj, arm, bone, at, up, forward=(0, -1, 0)):
+def hold(obj, arm, bone, at, up, forward=(0, -1, 0), center=False):
     """Places a prop (long axis +Z, front +Y) in world space with its origin
-    at `at`, its +Z along `up` and its +Y as close to `forward` as possible,
+    (or with `center`, its geometry's center) at `at`, its +Z along `up` and its +Y as close to `forward` as possible,
     then parents it to `bone` keeping that placement (it follows the bone)."""
     from mathutils import Vector
     z = Vector(up).normalized()
@@ -331,6 +333,12 @@ def hold(obj, arm, bone, at, up, forward=(0, -1, 0)):
     m.translation = Vector(at)
     obj.matrix_world = m
     _update()
+    if center:
+        # place the geometry's center (not the object's origin) at `at`
+        pts = [obj.matrix_world @ Vector(c) for c in obj.bound_box]
+        mid = sum(pts, Vector()) / len(pts)
+        obj.matrix_world.translation += Vector(at) - mid
+        _update()
     world = obj.matrix_world.copy()
     obj.parent = arm
     obj.parent_type = 'BONE'
@@ -357,3 +365,25 @@ def bulk(arm, k=1.18):
         if pb:
             pb.scale = (k * 0.95 / k, 1.0, k * 0.95 / k)
     _update()
+
+
+def reach(arm, side, target, elbow_out=0.35):
+    """Bends arm `side` ('l'/'r') so its hand comes to world point `target`:
+    the upper arm aims between the target and an outward-down elbow pole,
+    the forearm at the target (a two-bone approximation)."""
+    from mathutils import Vector
+    _update()
+    up = arm.pose.bones['upperarm_' + side]
+    sh = arm.matrix_world @ up.head
+    t = Vector(target)
+    out = Vector((1.0 if side == 'l' else -1.0, 0.0, 0.0))
+    reach_len = up.length + arm.pose.bones['lowerarm_' + side].length
+    d = (t - sh)
+    dist = min(d.length, reach_len * 0.98)
+    # elbow: off the line to the target, outward and down, by the bend needed
+    bend = max(0.0, (reach_len ** 2 - dist ** 2)) ** 0.5 * 0.5
+    elbow = sh + d.normalized() * up.length * 0.6 + (out * elbow_out + Vector((0, 0, -1)) * (1 - elbow_out)).normalized() * bend
+    inv = arm.matrix_world.inverted().to_3x3()
+    aim(arm, 'upperarm_' + side, inv @ (elbow - sh))
+    eb = arm.matrix_world @ arm.pose.bones['lowerarm_' + side].head
+    aim(arm, 'lowerarm_' + side, inv @ (t - eb))
