@@ -406,7 +406,9 @@ def stealth_fighter(p):
     across the back."""
     keys = paint_keys([])
     for sx in (-1, 1):   # the bold civ chevron: a solid strip lying on each top facet (face keys stair-stepped)
-        vkit.beam(p, (sx * 0.9, 1.6, 1.12), (sx * 3.9, -2.2, 0.66), 0.75, 0.12, 'tint', bevel=0.02, tint=True)
+        a, k, b = (sx * 1.0, 1.8, 1.09), (sx * 3.4, -0.4, 0.68), (sx * 1.4, -2.6, 0.83)   # a '<' / '>' bent outward
+        vkit.beam(p, a, k, 0.7, 0.12, 'tint', bevel=0.02, tint=True)
+        vkit.beam(p, k, b, 0.7, 0.12, 'tint', bevel=0.02, tint=True)
     body(p, [(10.0, 0.3, 0.02, 0.02, 1.0), (5.0, 0.35, 2.1, 0.75, 1.0), (0.0, 0.4, 4.2, 1.0, 1.0),
              (-2.6, 0.4, 6.6, 0.5, 1.0), (-3.4, 0.4, 3.0, 0.6, 1.0), (-7.5, 0.4, 1.7, 0.42, 1.0),
              (-9.8, 0.4, 0.8, 0.12, 1.0)], keys=keys, step=0.25, seg=32, smooth=False)

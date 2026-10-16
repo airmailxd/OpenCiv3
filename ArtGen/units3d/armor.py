@@ -775,9 +775,9 @@ ARMOR = {
     'Panzer': dict(L=1.68, W=1.06, H=0.3, tw=0.2, rw=0.075, wheels=8, rollers=4, holes=6,
                    front_wheel=(0.76, 0.21, 0.085), rear_wheel=(-0.78, 0.16, 0.08),
                    upper=dict(front=0.04, rear=0.08), nose=0.55,
-                   paint='#b2ae88', camo=[('armor_camo2', 9.0, 0.18, 2.0), ('armor_camo3', 12.0, 0.3, 7.0),
+                   paint='#b4aa82', camo=[('armor_camo2', 9.0, 0.18, 2.0), ('armor_camo3', 12.0, 0.3, 7.0),
                                           ('armor_camo4', 14.0, 0.42, 11.0)],
-                   camo2='#8a9072', camo3='#c8c2a0', camo4='#767a60', builder=_panzer),
+                   camo2='#8a8c6c', camo3='#c8bf98', camo4='#767660', builder=_panzer),
     # an M1 Abrams in desert camo, side skirts
     'Modern Armor': dict(L=2.1, W=0.96, H=0.24, tw=0.2, rw=0.085, wheels=7, rollers=0, skirt=True, holes=6,
                          sprocket='rear', front_wheel=(0.96, 0.17, 0.08), rear_wheel=(-0.96, 0.16, 0.085),

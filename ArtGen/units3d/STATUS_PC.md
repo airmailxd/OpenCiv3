@@ -24,9 +24,9 @@ The per-unit lists are in [DETAIL_AUDIT_PC.md](DETAIL_AUDIT_PC.md).
 | TOW Infantry | siege.tow_team + crews.py | PASS (a team: launcher, crates, a gunner seated at the sight, a spotter) |
 | Footmen batch B (11, handed over 2026-10-16) | remaster_footmen.py (only these blocks) | all 11 PASS |
 | All 16 remaining ships (Curragh to Aegis Cruiser) | ships.py (sailing_ship, steel_ship, curragh, dromon) | all PASS (6 axes) |
-| Royals half 2 (22, handed over 2026-10-16) | remaster_royals.py (only these blocks) | 11/22 pass (Korean, Persian, Roman, Sumeria, Zulu, Leader Industrial, The King, Viking, Japanese, Mongol, Ottoman); round 8 data in; the rest wait on builder features asked of the Mac |
+| Royals half 2 (22, handed over 2026-10-16) | remaster_royals.py (only these blocks) | 17/22 pass; left: Netherlands, Portugal, Leader Modern, SciLeader (round 11 rendering), Spanish (waits on a crown over the hood) |
 | Armor (6) | armor.py | all 6 PASS (v4: link-plate tracks, shaped turrets, painted camo via props.CAMO, bold civ marks) |
-| Aircraft (7) | aircraft.py | first pass rendering |
+| Aircraft (7), ICBM, Tactical Nuke, Cruise Missile, Holy Relic | aircraft.py, siege.py + crews.py (relic) | 8/11 pass; Bomber, Stealth Fighter, Stealth Bomber in re-review |
 | Mounted Warrior, Ancient Cavalry, Knight, Keshik, Sipahi, Conquistador, Cossack, Hussar, Cavalry | mounted.py, riders.py, remaster.py | frozen for stzur's judgment (borderline 6-7 on 5 axes); detail 2-5/10, see below |
 | chariot, War Chariot, Three Man Chariot | chariots.py | frozen for stzur's judgment; detail 4-5/10, see below |
 | Props (pilots + riders + footmen) | props.py, props_preview.py | pilots' props reviewed; footman props delivered, not yet seen on bodies |

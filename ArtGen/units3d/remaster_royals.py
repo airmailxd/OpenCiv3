@@ -713,7 +713,7 @@ REMASTER = {
         'bottom': 'breeches', 'puffy': True, 'trouser_offset': 0.04, 'wraps': 'wraps', 'shoes': True, 'sandals': False,   # short puffed civ breeches over white hose
         # the enormous robe: a wide bell flaring onto the ground, the gold hem pooling behind
         'cape': True, 'cape_length': 1.5, 'cape_flare': 1.9, 'cape_train': 0.9, 'cape_width': 0.7,   # a wide bell with a train
-        'hem_bands': [('cape', 'gold', 0.14), ('cape', 'ermine', 0.12, 0.14)],   # the gold hem, ermine above it
+        'hem_bands': [('cape', 'gold', 0.14), ('cape', 'ermine', 0.08, 0.3)],   # the ermine higher, clear of the curling front corners   # the gold hem, ermine above it
         'cape_lining': '#3a2040',   # the dark purple lining
         'cuirass': False, 'bracers': False, 'gear': [],
         # the gold-topped cane in the free left fist ('fist_hip_r' puts the item there), the rod down to the
@@ -1058,14 +1058,14 @@ REMASTER = {
         'hair': 'short', 'hair_asset': None,
         'beard': True, 'beard_style': 'goatee',
         'top': 'sleeved', 'neck': 'high', 'bottom': 'breeches', 'wraps': 'boots',
-        'gear': [('chest_strap', {'width': 0.16, 'edge': 'gold'})],   # the broad civ sash, gold edged
+        'gear': [('chest_strap', {'width': 0.22, 'edge': 'gold'})],   # the broad civ sash, gold edged
         'shoulder_patch': ('l', 'tint'), 'patch_size': 0.1, 'patch_out': 0.04,
         'bands': [('wrist', 'tint')],
         'cape': False, 'cuirass': False, 'sandals': False, 'bracers': False,
         'weapon': 'stick', 'props': {'stick': ('swagger_stick', {'length': 0.6})}, 'offhand': None,   # level, forward
         'stance_name': 'port_arms', 'gun_dir': (0.95, -0.15, 0.1), 'fore_end': 0.28,   # the stick level across the chest
-        'pose_extra': [('upperarm_r', (-0.3, -0.25, -1)), ('lowerarm_r', (0.3, -1.0, 0.35)),
-                       ('upperarm_l', (0.3, -0.25, -1)), ('lowerarm_l', (-0.3, -1.0, 0.35))],   # the hands up at the chest
+        'pose_extra': [('upperarm_r', (-0.3, -0.25, -1)), ('lowerarm_r', (0.3, -1.0, 0.12)),
+                       ('upperarm_l', (0.3, -0.25, -1)), ('lowerarm_l', (-0.3, -1.0, 0.12))],   # the stick at the sternum, in front
         'tint': ['strap'],
         'grime': 0.4, 'upper_bulk': 1.15,
     },
@@ -1104,10 +1104,10 @@ REMASTER = {
         # slightly stooped
         'macro': {'muscle': 0.55, 'weight': 0.6, 'height': 0.72, 'proportions': 0.72}, 'age': 0.85,
         'race': {'caucasian': 1.0, 'african': 0.0, 'asian': 0.0},
-        'colors': {'skin': '#d8ae8e', 'hair': '#ecebe6', 'beard': '#f4f2ee', 'top': '#5a5a5e', 'bottom': '#3a3a3e',
+        'colors': {'skin': '#d8ae8e', 'hair': '#ecebe6', 'hair_shock': '#ecebe6', 'beard': '#f4f2ee', 'top': '#5a5a5e', 'bottom': '#3a3a3e',
                    'shoes': '#2a2420', 'belt': '#2a2a2e', 'wood': '#18181a', 'leather': '#18181a',
                    'lacquer': '#18181a', 'gold': '#3a3a3e'},
-        'helmet': None, 'hair': 'short', 'hair_asset': 'afro01', 'mane': 0.0,   # the big white shock (a mesh asset; 'mane' and wild_hair are particles: a ball over the face)
+        'helmet': None, 'headgear': 'wild_shock', 'hair': 'short', 'hair_asset': None, 'mane': 0.0,   # the big white shock, tufts as meshes (particle hair made a ball over the face)
         'beard': True, 'beard_style': 'mustache',   # the big white mustache
         'top': 'sleeved', 'neck': 'high', 'bottom': 'long', 'wraps': 'shoes',   # MISSING: suit_jacket (open, lapels)
         # the tinted tie: a narrow non-metal 'cuirass' strip (it also runs down the back: MISSING tie, front only)

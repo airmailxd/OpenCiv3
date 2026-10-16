@@ -11,7 +11,7 @@ is about 0.1 m in radius.
 """
 import math
 
-from mathutils import Matrix
+from mathutils import Matrix, Vector
 
 import props
 from props import R, T, S
@@ -139,6 +139,27 @@ def hat_cone(p, c, tinted, _):
     key, t = _k(tinted, 'hat')
     p.add(props.lathe([(0.03, 0.11), (0.28, 0.0)], seg=24), key, smooth=True, tint=t)
     p.add(props.lathe([(-0.01, 0.12), (0.01, 0.138), (0.05, 0.14), (0.07, 0.122)], seg=24), 'plume', smooth=True)
+
+
+@hat('wild_shock')
+def wild_shock(p, c, tinted, _, tufts=70, reach=0.1):
+    """Einstein's hair (SciLeader) as meshes, not particles (those read as
+    a ball over the face): a cap over the back of the scalp and a shock of
+    curled tufts standing out from the sides, back and crown, none in front
+    of the face (a receding hairline)."""
+    props.DEFAULTS.setdefault('hair_shock', ('#ecebe6', 0.85, 0.0, 'cloth'))
+    p.add(props.ellipsoid(0.106, 0.112, 0.1, seg=20), 'hair_shock', T(0, -0.02, 0.025), smooth=True)
+    rnd = props.random.Random(5)
+    for i in range(tufts):
+        az = math.radians(rnd.uniform(62, 298))            # from the front (+Y), round the sides and back
+        el = math.radians(rnd.uniform(-15, 72))
+        d = Vector((math.sin(az) * math.cos(el), math.cos(az) * math.cos(el), math.sin(el)))
+        base = Vector((0, -0.015, 0.02)) + Vector((d.x * 0.098, d.y * 0.105, d.z * 0.095))
+        out = (d + Vector((rnd.uniform(-0.3, 0.3), rnd.uniform(-0.3, 0.3), rnd.uniform(0.0, 0.45)))).normalized()
+        L = reach * rnd.uniform(0.6, 1.25)
+        mid = base + out * L * 0.55 + Vector((rnd.uniform(-0.02, 0.02), rnd.uniform(-0.02, 0.02), 0.015))
+        tip = base + out * L + Vector((rnd.uniform(-0.03, 0.03), rnd.uniform(-0.03, 0.03), rnd.uniform(-0.01, 0.03)))
+        p.add(props.tube([tuple(base), tuple(mid), tuple(tip)], [0.026, 0.024, 0.008], seg=6), 'hair_shock', smooth=True)
 
 
 @hat('fur_hat')
