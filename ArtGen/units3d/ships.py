@@ -152,7 +152,7 @@ def sail(p, y, z_top, w_top, w_bot, h, emblem=None, billow=0.12, x=0.0, nu=40, n
         c = f.calc_center_median()
         u = (c.x - x) / (w_top / 2)
         pz = c.z - (z_top - h / 2)
-        if tint_borders and abs(u) > 0.88:
+        if tint_borders and abs(u) > 0.7:
             return ('tint', True)
         if mask and mask(c.x - x, pz, h):
             return ('tint', True)
@@ -233,9 +233,9 @@ def _pisces(x, z, h):
     ex, ez = x / s, z / s
     for cx in (-1.6, 1.6):
         d = math.hypot(ex - cx, ez)
-        if abs(d - 1.15) < 0.16 and abs(ex) < 0.95:
+        if abs(d - 1.15) < 0.26 and abs(ex) < 0.95:
             return True
-    return abs(ez) < 0.1 and abs(ex) < 0.75
+    return abs(ez) < 0.15 and abs(ex) < 0.75
 
 
 def _pattee(x, z, h):
@@ -260,8 +260,8 @@ EMBLEMS = {'pisces': _pisces, 'pattee': _pattee, 'disc_cross': _disc_cross}
 
 # ------------------------------------------------------------ galley
 
-GALLEY_COLORS = {'wood': '#7c5530', 'wood_alt': '#664424', 'wood_dark': '#2a1e14', 'wood_light': '#9c7a3c',
-                 'deck': '#74583a', 'rail': '#3a2816', 'sail': '#cdbf9e', 'gold': '#8e6c32', 'oar': '#4a3420'}
+GALLEY_COLORS = {'wood': '#b08a52', 'wood_alt': '#9a7644', 'wood_dark': '#3a2a18', 'wood_light': '#d4b06a',
+                 'deck': '#a08058', 'rail': '#5a4020', 'sail': '#e0d2ac', 'gold': '#c8a048', 'oar': '#7a5a34'}
 
 
 def galley(colors):
@@ -274,13 +274,13 @@ def galley(colors):
     p = vkit.part(root, 'hull', c, SHIP_WEAR)
     hull = Hull(L=2.2, B=0.48, D=0.22, draft=0.1, sheer_stern=0.2, sheer_bow=0.1, bow_p=1.5, stern_p=1.6,
                 fullness=0.8)
-    add_hull(p, hull, stripes=[(-0.03, 0.015, 'hull_grime'), (0.015, 0.04, 'wood_light'),
-                               (0.1, 0.125, 'wood_dark'), (0.19, 0.21, 'wood_light')], plank=0.04)
+    add_hull(p, hull, stripes=[(-0.03, 0.015, 'hull_grime'), (0.015, 0.04, 'gold'),
+                               (0.1, 0.125, 'wood_dark'), (0.17, 0.205, 'gold')], plank=0.04)
     # a curled stern post and a short stem
     curl = [(0, -1.06, 0.36), (0, -1.17, 0.5), (0, -1.22, 0.66), (0, -1.19, 0.8), (0, -1.1, 0.87), (0, -1.02, 0.84),
             (0, -1.02, 0.76)]
-    p.add(props.tube(curl, [0.045 - 0.004 * i for i in range(len(curl))], seg=10), 'wood', smooth=True)
-    p.add(props.tube([(0, 1.06, 0.28), (0, 1.14, 0.38), (0, 1.12, 0.47)], [0.035, 0.026, 0.018], seg=10), 'wood',
+    p.add(props.tube(curl, [0.05 - 0.004 * i for i in range(len(curl))], seg=10), 'gold', smooth=True)
+    p.add(props.tube([(0, 1.06, 0.28), (0, 1.14, 0.38), (0, 1.12, 0.47)], [0.035, 0.026, 0.018], seg=10), 'gold',
           smooth=True)
     # the bronze ram at the waterline: a heavy beak with three cutting fins
     p.add(props.lathe([(0.0, 0.06), (0.12, 0.055), (0.3, 0.04), (0.42, 0.006)], seg=12, scale_xy=(0.75, 1.0)), 'gold',
@@ -295,7 +295,8 @@ def galley(colors):
         z0 = hull.deck_z(hull.s_of(yy)) + 0.13
         arch.append([(0.15 * math.cos(math.pi * k / 10), yy, z0 + 0.07 * math.sin(math.pi * k / 10)) for k in range(11)])
     canopy = props.loft(arch, False, False)
-    p.add(canopy, 'tint', smooth=True, tint=True)
+    p.add(canopy, 'tint', smooth=True, tint=True,
+          keys=lambda f: ('sail', False) if int((f.calc_center_median().x + 0.15) / 0.06) % 2 else None)
     for sx in (-1, 1):
         for yy in (-0.68, -0.94):
             z0 = hull.deck_z(hull.s_of(yy))
@@ -312,9 +313,25 @@ def galley(colors):
             e = (sx * (hull.half_beam(s) + 0.42), y - 0.04, -0.06)
             vkit.rod(p, a, e, 0.011, 'oar', seg=6)
             p.add(props.box(0.014, 0.045, 0.12), 'oar', T(*e) @ R('Y', -sx * 55), bevel=0.002)
+    # a civ-colored eye on each side of the bow, dark oar ports, a girdling rope (hypozomata)
+    for sx in (-1, 1):
+        y = 0.86
+        s = hull.s_of(y)
+        x = sx * (hull.deck_half(s) + 0.004)
+        p.add(props.ellipsoid(0.006, 0.05, 0.03, seg=12), 'tint', T(x, y, 0.13), smooth=True, tint=True)
+        p.add(props.ellipsoid(0.007, 0.018, 0.018, seg=10), 'wood_dark', T(x * 1.01, y + 0.005, 0.13), smooth=True)
+        for i in range(10):
+            yy = -0.62 + 1.28 * i / 9
+            ss = hull.s_of(yy)
+            p.add(props.box(0.01, 0.035, 0.03), 'wood_dark', T(sx * hull.deck_half(ss) * 0.99, yy, hull.deck_z(ss) - 0.05),
+                  bevel=0.004)
+    path = [(hull.deck_half(hull.s_of(y)) * 1.01, y, hull.deck_z(hull.s_of(y)) - 0.02) for y in [-0.95 + 0.1 * i for i in range(20)]]
+    for sx in (-1, 1):
+        p.add(props.tube([(sx * x, y, z) for x, y, z in path], 0.009, seg=5), 'rope', smooth=True)
     # the mast with a gilded finial, the square sail with the emblem and banded edges
     vkit.rod(p, (0, 0.05, 0.2), (0, 0.05, 1.48), 0.036, 'wood_dark', seg=10)
-    p.add(props.ellipsoid(0.045, 0.045, 0.055, seg=12), 'gold', T(0, 0.05, 1.51), smooth=True)
+    p.add(props.lathe([(0.0, 0.03), (0.03, 0.07), (0.1, 0.075), (0.14, 0.045), (0.18, 0.0)], seg=16), 'gold',
+          T(0, 0.05, 1.47), smooth=True)
     sail(p, 0.08, 1.4, 1.6, 1.6, 0.8, 'pisces', billow=0.14, tint_borders=True)
     vkit.rod(p, (0, 0.05, 1.46), (0, 1.12, 0.47), 0.006, 'cordage', seg=4)      # forestay
     vkit.rod(p, (0, 0.05, 1.46), (0, -1.1, 0.72), 0.006, 'cordage', seg=4)      # backstay
