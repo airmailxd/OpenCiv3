@@ -405,6 +405,11 @@ def dress_posed(entry, mesh, arm):
         maker = G.leather if entry.get('bottom_material') == 'leather' else (lambda n, col, tint=False: G.cloth(n, col, tint=tint, weave=0.6))
         hanging += G.loincloth(mesh, arm, _mat(entry, 'bottom', maker), length=lengths[0], back_length=lengths[1],
                                torn=entry.get('torn', True))
+    if entry.get('head_veil'):
+        # a soft veil from the crown of the head: 'tint' | color, 'veil_length'
+        G.head_veil(mesh, arm, _mat(entry, 'veil', G.cloth, weave=0.4) if entry['head_veil'] is True else
+                    _hem_mat(entry, _colors(entry), entry['head_veil'], 'head_veil'),
+                    length=entry.get('veil_length', 0.55), width=entry.get('veil_width', 0.36))
     if entry.get('cape'):
         G.cape(mesh, arm, _mat(entry, 'cape', G.cloth, weave=0.6),     # (the plain maker: patterns reach capes)
                length=entry.get('cape_length', 0.75), width=entry.get('cape_width', 0.5),

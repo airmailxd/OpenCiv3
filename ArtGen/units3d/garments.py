@@ -198,6 +198,43 @@ def _pattern(tree, coord, base, pattern, tinted=False):
             tree.links.new(fr.outputs['Value'], both.inputs[1])
             mask = both.outputs['Value']
         return _pattern_mix(tree, base, dark, mask, civ, tinted)
+    if kind == 'zigzag':
+        # a zig-zag band round the garment: ('zigzag', color, height_m, amplitude_m, period_m, width_m)
+        # at a height in the garment's own rest coordinates (a cape's top is at 0, its hem at -length)
+        z0 = nums[0] if nums else -0.9
+        amp = nums[1] if len(nums) > 1 else 0.04
+        per = nums[2] if len(nums) > 2 else 0.1
+        wd = nums[3] if len(nums) > 3 else 0.035
+        sepz = n.new('ShaderNodeSeparateXYZ')
+        tree.links.new(coord.outputs['Object'], sepz.inputs['Vector'])
+        div = n.new('ShaderNodeMath')
+        div.operation = 'DIVIDE'
+        div.inputs[1].default_value = per * _scale
+        tree.links.new(sepz.outputs['X'], div.inputs[0])
+        fr = n.new('ShaderNodeMath')
+        fr.operation = 'FRACT'
+        tree.links.new(div.outputs['Value'], fr.inputs[0])
+        tri = n.new('ShaderNodeMath')
+        tri.operation = 'PINGPONG'                    # 0..0.5..0: a triangle wave
+        tri.inputs[1].default_value = 0.5
+        tree.links.new(fr.outputs['Value'], tri.inputs[0])
+        off = n.new('ShaderNodeMath')
+        off.operation = 'MULTIPLY_ADD'
+        off.inputs[1].default_value = 2 * amp * _scale
+        off.inputs[2].default_value = z0 * _scale
+        tree.links.new(tri.outputs['Value'], off.inputs[0])
+        d = n.new('ShaderNodeMath')
+        d.operation = 'SUBTRACT'
+        tree.links.new(sepz.outputs['Z'], d.inputs[0])
+        tree.links.new(off.outputs['Value'], d.inputs[1])
+        ab = n.new('ShaderNodeMath')
+        ab.operation = 'ABSOLUTE'
+        tree.links.new(d.outputs['Value'], ab.inputs[0])
+        lt = n.new('ShaderNodeMath')
+        lt.operation = 'LESS_THAN'
+        lt.inputs[1].default_value = wd * _scale / 2
+        tree.links.new(ab.outputs['Value'], lt.inputs[0])
+        return _pattern_mix(tree, base, dark, lt.outputs['Value'], civ, tinted)
     if kind == 'side_stripe':
         # one stripe down the outer seam of each leg (or sleeve): where the
         # surface faces outward, away from the body's middle
@@ -1222,6 +1259,27 @@ def cape(basemesh, arm, mat, length=0.75, width=0.5, flare=0.15, wrap=0.0, train
     f.parent = arm
     f.parent_type = 'BONE'
     f.parent_bone = 'spine_03'
+    f.matrix_world = world
+    H._update()
+    return f
+
+
+def head_veil(basemesh, arm, mat, length=0.55, width=0.36):
+    """A soft veil hanging from the crown of the head down over the back and
+    shoulders (a queen's), bowed round the head, its sides falling forward
+    over the shoulders; on the head bone (it turns with the head)."""
+    import human as H
+    from mathutils import Matrix
+    H._update()
+    hb = arm.pose.bones['head']
+    tip = arm.matrix_world @ hb.tail
+    f = flap('HeadVeil', mat, width=width * _scale, length=length * _scale, curve=0.2 * _scale, folds=5, depth=0.02,
+             torn=False, ragged=0.005, flare=0.9, wrap=0.12 * _scale, train=0.0)
+    f.matrix_world = Matrix.Translation((tip.x, tip.y + 0.03 * _scale, tip.z + 0.01 * _scale)) @ Matrix.Rotation(math.pi, 4, 'Z')
+    world = f.matrix_world.copy()
+    f.parent = arm
+    f.parent_type = 'BONE'
+    f.parent_bone = 'head'
     f.matrix_world = world
     H._update()
     return f
