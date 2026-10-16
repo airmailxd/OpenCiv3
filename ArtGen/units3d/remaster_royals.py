@@ -218,7 +218,7 @@ REMASTER = {
         'top': 'sleeved', 'puffy': True, 'neck': 'high', 'shoulder_rolls': 'tint', 'roll_size': 0.09,   # the doublet to the neck, the big civ puffed sleeves
         'cuirass': True, 'metal': [], 'cuirass_trim': 'gold',   # the quilted brown-gold vest front
         'patterns': {'cuirass': ('check', '#4e3418', 14.0), 'sleeves': ('camo', '#f0d060', 18.0, 'cover', 0.14),
-                     'cape': ('stripes', '#a8885a', 16.0)},   # quilting, gold dots, the brocade's vertical pattern
+                     'cape': ('stripes', '#7e5e30', 9.0)},   # quilting, gold dots, the brocade's bold vertical columns
         'bottom': 'breeches', 'wraps': 'wraps', 'shoes': True, 'sandals': False,   # white hose, low shoes; MISSING: gold buckles
         'cape': True, 'cape_length': 1.0,       # the light tan brocade (as the original; the note's dark brown was wrong)
         'hem_bands': [('cape', 'tint', 0.07)],  # the tinted cape edge (wider: 0.05 didn't read)
@@ -542,11 +542,11 @@ REMASTER = {
         'helmet': 'crown', 'crown': 'tall', 'crown_height': 0.1, 'crown_gems': '#d8b040',   # a taller gold crown, gold studs at the front
         'hair': 'short', 'hair_asset': None, 'beard': False,
         'top': 'tunic', 'bottom': 'kilt', 'robe_drop': 0.0,
-        'patterns': {'top': ('check', '#4a3218', 12.0), 'cape': ('zigzag', '#ece8e0', -0.86, 0.045, 0.1, 0.035)},   # the bold checkerboard tunic; the white stepped zig-zag on the cape
+        'patterns': {'top': ('check', '#4a3218', 12.0), 'cape': ('zigzag', '#f4f2ec', -0.74, 0.05, 0.12, 0.06)},   # the bold checkerboard tunic; the white stepped zig-zag on the cape
         'bands': [('knee', 'gold', 0.1), ('neck', 'gold'), ('wrist', 'gold')],
         'cape': True, 'cape_length': 1.05,      # MISSING: zigzag_border (white, stepped)
         # the gold band, and a white band standing in for the zig-zag
-        'hem_bands': [('cape', 'gold', 0.09, 0.15)],   # the gold band above the zig-zag
+        'hem_bands': [('cape', 'gold', 0.08, 0.06)],   # the gold band below the zig-zag
         'cuirass': False, 'wraps': None, 'sandals': True, 'bracers': False, 'gear': [],
         # MISSING: feather_standard (staff topped with a fan of tinted/red/teal feathers), left_hand_hold
         'weapon': 'staff', 'props': {'staff': ('feather_standard', {'length': 2.35, 'grip': 1.2, 'fan': 1.6})},   # the feather standard, its big fan above his head
@@ -716,7 +716,7 @@ REMASTER = {
         'beard': False,
         'top': 'sleeved', 'neck': 'high',
         'patterns': {'top': ('stripes', '#a8242a', 10.0),   # the doublet's red slashes (stripes stand in for dashes)
-                     },   # MISSING: ermine dots on the cape (patterns don't reach capes)
+                     'cape': ('camo', '#f4f2ec', 14.0, 'cover', 0.06)},   # white ermine dots on the robe
         # white breeches and hose in one: full-length puffy legs, black low shoes
         'bottom': 'breeches', 'puffy': True, 'trouser_offset': 0.04, 'wraps': 'wraps', 'shoes': True, 'sandals': False,   # short puffed civ breeches over white hose
         # the enormous robe: a wide bell flaring onto the ground, the gold hem pooling behind
