@@ -1,15 +1,15 @@
 {
   "actions": {
-    "DEFAULT": "x_Hannibal default",
-    "RUN": "x_Hannibal run",
     "DEATH": "x_Hannibal death",
+    "DEFAULT": "x_Hannibal default",
+    "FIDGET": "x_Hannibal fidget",
     "FORTIFY": "x_Hannibal fidget",
-    "FIDGET": "x_Hannibal fidget"
+    "RUN": "x_Hannibal run"
   },
   "flics": {
-    "x_Hannibal death": {"size": [117, 71], "directions": 8, "frames": 15, "frameMs": 66, "offset": [60, 79], "canvas": [240, 240]},
-    "x_Hannibal default": {"size": [36, 46], "directions": 8, "frames": 15, "frameMs": 125, "offset": [96, 80], "canvas": [240, 240]},
-    "x_Hannibal fidget": {"size": [55, 50], "directions": 8, "frames": 15, "frameMs": 83, "offset": [86, 76], "canvas": [240, 240]},
-    "x_Hannibal run": {"size": [46, 52], "directions": 8, "frames": 10, "frameMs": 66, "offset": [94, 79], "canvas": [240, 240]}
+    "x_Hannibal death": {"size": [117, 73], "directions": 8, "frames": 15, "frameMs": 66, "offset": [60, 77], "canvas": [240, 240]},
+    "x_Hannibal default": {"size": [46, 57], "directions": 8, "frames": 15, "frameMs": 125, "offset": [96, 77], "canvas": [240, 240]},
+    "x_Hannibal fidget": {"size": [56, 58], "directions": 8, "frames": 15, "frameMs": 83, "offset": [86, 76], "canvas": [240, 240]},
+    "x_Hannibal run": {"size": [48, 57], "directions": 8, "frames": 10, "frameMs": 66, "offset": [94, 77], "canvas": [240, 240]}
   }
 }

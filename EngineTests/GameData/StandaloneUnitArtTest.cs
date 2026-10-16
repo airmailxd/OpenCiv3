@@ -120,6 +120,9 @@ public class StandaloneUnitArtTest {
 				UnitArtMetadata.Flic flic = metadata.GetFlic(flicName);
 				int cellWidth = flic.Width * 2, cellHeight = flic.Height * 2;
 				int[] columns = still ? [1] : loop || whole ? [flic.Frames] : [(flic.Frames + 1) / 2, flic.Frames];
+				// The remastered units (ArtGen/units3d) are stills: one pose, one column,
+				// shown for every action (UnitArtMetadata.SheetColumn).
+				columns = [1, .. columns];
 				foreach (string suffix in new[] { "", "_tint" }) {
 					string sheet = FindIgnoringCase(folder, flicName + suffix + ".png");
 					if (sheet == null) {

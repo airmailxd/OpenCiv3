@@ -1,15 +1,15 @@
 {
   "actions": {
-    "DEFAULT": "x_Joan default",
-    "RUN": "x_Joan run",
     "DEATH": "x_Joan death",
+    "DEFAULT": "x_Joan default",
+    "FIDGET": "x_Joan fidget",
     "FORTIFY": "x_Joan fidget",
-    "FIDGET": "x_Joan fidget"
+    "RUN": "x_Joan run"
   },
   "flics": {
     "x_Joan death": {"size": [110, 72], "directions": 8, "frames": 15, "frameMs": 66, "offset": [64, 76], "canvas": [240, 240]},
-    "x_Joan default": {"size": [43, 49], "directions": 8, "frames": 15, "frameMs": 125, "offset": [95, 78], "canvas": [240, 240]},
-    "x_Joan fidget": {"size": [55, 54], "directions": 8, "frames": 15, "frameMs": 83, "offset": [86, 74], "canvas": [240, 240]},
-    "x_Joan run": {"size": [52, 56], "directions": 8, "frames": 10, "frameMs": 66, "offset": [91, 77], "canvas": [240, 240]}
+    "x_Joan default": {"size": [49, 61], "directions": 8, "frames": 15, "frameMs": 125, "offset": [95, 76], "canvas": [240, 240]},
+    "x_Joan fidget": {"size": [58, 63], "directions": 8, "frames": 15, "frameMs": 83, "offset": [86, 74], "canvas": [240, 240]},
+    "x_Joan run": {"size": [53, 61], "directions": 8, "frames": 10, "frameMs": 66, "offset": [91, 76], "canvas": [240, 240]}
   }
 }

@@ -1,22 +1,22 @@
 {
   "actions": {
-    "DEFAULT": "x_gallic swordsman Default",
-    "RUN": "x_gallic swordsman Run",
     "ATTACK1": "x_gallic swordsman Attack_A",
     "ATTACK2": "x_gallic swordsman Attack_B",
     "DEATH": "x_gallic swordsman Death",
-    "FORTIFY": "x_gallic swordsman Fortify",
+    "DEFAULT": "x_gallic swordsman Default",
     "FIDGET": "x_gallic swordsman Fidget",
+    "FORTIFY": "x_gallic swordsman Fortify",
+    "RUN": "x_gallic swordsman Run",
     "VICTORY": "x_gallic swordsman Victory"
   },
   "flics": {
-    "x_gallic swordsman Attack_A": {"size": [103, 85], "directions": 8, "frames": 20, "frameMs": 66, "offset": [67, 60], "canvas": [240, 240]},
-    "x_gallic swordsman Attack_B": {"size": [77, 67], "directions": 8, "frames": 20, "frameMs": 66, "offset": [79, 69], "canvas": [240, 240]},
+    "x_gallic swordsman Attack_A": {"size": [103, 88], "directions": 8, "frames": 20, "frameMs": 66, "offset": [67, 60], "canvas": [240, 240]},
+    "x_gallic swordsman Attack_B": {"size": [92, 79], "directions": 8, "frames": 20, "frameMs": 66, "offset": [76, 69], "canvas": [240, 240]},
     "x_gallic swordsman Death": {"size": [171, 102], "directions": 8, "frames": 15, "frameMs": 83, "offset": [35, 62], "canvas": [240, 240]},
-    "x_gallic swordsman Default": {"size": [61, 55], "directions": 8, "frames": 15, "frameMs": 125, "offset": [89, 79], "canvas": [240, 240]},
-    "x_gallic swordsman Fidget": {"size": [69, 73], "directions": 8, "frames": 15, "frameMs": 100, "offset": [85, 65], "canvas": [240, 240]},
-    "x_gallic swordsman Fortify": {"size": [77, 63], "directions": 8, "frames": 10, "frameMs": 83, "offset": [79, 73], "canvas": [240, 240]},
-    "x_gallic swordsman Run": {"size": [61, 64], "directions": 8, "frames": 10, "frameMs": 66, "offset": [86, 67], "canvas": [240, 240]},
-    "x_gallic swordsman Victory": {"size": [77, 80], "directions": 8, "frames": 20, "frameMs": 100, "offset": [79, 56], "canvas": [240, 240]}
+    "x_gallic swordsman Default": {"size": [92, 74], "directions": 8, "frames": 15, "frameMs": 125, "offset": [76, 74], "canvas": [240, 240]},
+    "x_gallic swordsman Fidget": {"size": [92, 83], "directions": 8, "frames": 15, "frameMs": 100, "offset": [76, 65], "canvas": [240, 240]},
+    "x_gallic swordsman Fortify": {"size": [92, 75], "directions": 8, "frames": 10, "frameMs": 83, "offset": [76, 73], "canvas": [240, 240]},
+    "x_gallic swordsman Run": {"size": [92, 81], "directions": 8, "frames": 10, "frameMs": 66, "offset": [76, 67], "canvas": [240, 240]},
+    "x_gallic swordsman Victory": {"size": [92, 92], "directions": 8, "frames": 20, "frameMs": 100, "offset": [76, 56], "canvas": [240, 240]}
   }
 }

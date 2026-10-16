@@ -1,15 +1,15 @@
 {
   "actions": {
-    "DEFAULT": "x2 Mursilis default",
-    "RUN": "x2 Mursilis run",
     "DEATH": "x2 Mursilis death",
+    "DEFAULT": "x2 Mursilis default",
+    "FIDGET": "x2 Mursilis fidget",
     "FORTIFY": "x2 Mursilis fidget",
-    "FIDGET": "x2 Mursilis fidget"
+    "RUN": "x2 Mursilis run"
   },
   "flics": {
     "x2 Mursilis death": {"size": [163, 93], "directions": 8, "frames": 15, "frameMs": 66, "offset": [37, 68], "canvas": [240, 240]},
-    "x2 Mursilis default": {"size": [37, 52], "directions": 8, "frames": 15, "frameMs": 125, "offset": [96, 75], "canvas": [240, 240]},
-    "x2 Mursilis fidget": {"size": [52, 54], "directions": 8, "frames": 15, "frameMs": 83, "offset": [87, 73], "canvas": [240, 240]},
-    "x2 Mursilis run": {"size": [47, 58], "directions": 8, "frames": 10, "frameMs": 83, "offset": [90, 71], "canvas": [240, 240]}
+    "x2 Mursilis default": {"size": [58, 66], "directions": 8, "frames": 15, "frameMs": 125, "offset": [96, 73], "canvas": [240, 240]},
+    "x2 Mursilis fidget": {"size": [67, 66], "directions": 8, "frames": 15, "frameMs": 83, "offset": [87, 73], "canvas": [240, 240]},
+    "x2 Mursilis run": {"size": [64, 68], "directions": 8, "frames": 10, "frameMs": 83, "offset": [90, 71], "canvas": [240, 240]}
   }
 }

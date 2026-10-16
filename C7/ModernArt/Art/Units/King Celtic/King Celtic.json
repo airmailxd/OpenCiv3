@@ -1,15 +1,15 @@
 {
   "actions": {
-    "DEFAULT": "x_Brennus default",
-    "RUN": "x_Brennus run",
     "DEATH": "x_Brennus death",
+    "DEFAULT": "x_Brennus default",
+    "FIDGET": "x_Brennus fidget",
     "FORTIFY": "x_Brennus fidget",
-    "FIDGET": "x_Brennus fidget"
+    "RUN": "x_Brennus run"
   },
   "flics": {
     "x_Brennus death": {"size": [143, 84], "directions": 8, "frames": 15, "frameMs": 66, "offset": [47, 73], "canvas": [240, 240]},
-    "x_Brennus default": {"size": [44, 51], "directions": 8, "frames": 15, "frameMs": 125, "offset": [91, 75], "canvas": [240, 240]},
-    "x_Brennus fidget": {"size": [57, 53], "directions": 8, "frames": 15, "frameMs": 83, "offset": [85, 73], "canvas": [240, 240]},
-    "x_Brennus run": {"size": [52, 59], "directions": 8, "frames": 10, "frameMs": 66, "offset": [90, 72], "canvas": [240, 240]}
+    "x_Brennus default": {"size": [54, 60], "directions": 8, "frames": 15, "frameMs": 125, "offset": [91, 75], "canvas": [240, 240]},
+    "x_Brennus fidget": {"size": [60, 62], "directions": 8, "frames": 15, "frameMs": 83, "offset": [85, 73], "canvas": [240, 240]},
+    "x_Brennus run": {"size": [55, 63], "directions": 8, "frames": 10, "frameMs": 66, "offset": [90, 72], "canvas": [240, 240]}
   }
 }
