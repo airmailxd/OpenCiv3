@@ -13,6 +13,20 @@ All the other units were remastered and passed review on the PC, but they are **
 
 The PC session only installs what stzur approves, directly in that session: its riders, chariots and the War Elephant were frozen for stzur's judgment. **To ship them, tell the PC session to run `ArtGen/units3d/install_pc.py --apply`** (add `--with-frozen` for the riders and chariots), commit, then release again. It first has to re-run build_pc for the 6 siege units, whose sheets weren't composed, and add the ships and footmen batch B to its list.
 
+## State when the Mac shut down (October 16, 2026, mid-morning)
+
+- **v0.8.1 is not released yet.** The Mac's local re-render of the PC's units was stopped: it would take hours.
+- The PC session ("Civ3 Question Taker") was asked to:
+  1. pull units-remaster at 669d4ff3 or later;
+  2. run `install_pc.py --apply` WITHOUT `--with-frozen` (the list now has ships and footmen batch B);
+  3. commit the C7/ModernArt/Art/Units changes and push them to units-remaster.
+- **Next session (either machine), once that push is in:**
+  1. Fast-forward Development to units-remaster.
+  2. Run the unit art tests and `dotnet format --verify-no-changes`.
+  3. Write the "Say what's new in version 0.8.1" entry (site/index.html, site/whats-new.html). It covers the remaining remastered units: soldiers, footmen batch B, Impi, 28 royals, siege with crews, ships, armor, aircraft and the Relic.
+  4. Tag v0.8.1 and push.
+- Still out until stzur approves: the riders, chariots and War Elephant. The last 4 royals are out too (Iroquois, Chinese, Indian, Byzantines).
+
 ## The work itself
 
 - Blender-rendered stills for all of the standalone set's human, vehicle and ship units: one pose in 8 directions, shown for every action, using one-column sheets read by UnitArtMetadata.SheetColumn.
