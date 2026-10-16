@@ -90,6 +90,13 @@ SHOWN = [
     ('pipe', {}, (0, 0, 60)),
     ('glasses', {}, (0, 0, 0)),
     ('sunglasses', {}, (0, 0, 0)),
+    ('chute_pack', {}, (0, 0, 180)),
+    ('para_pack', {}, (0, 0, 180)),
+    ('ak', {}, (0, 0, 70)),
+    ('musket_rest', {}, (0, 0, 0)),
+    ('cartridge_box', {}, (180, 0, 0)),
+    ('haversack', {}, (180, 0, 0)),
+    ('bandolier_bottles', {}, (0, 0, 180)),
 ]
 
 COLORS = {  # catalog colors from the pilot units

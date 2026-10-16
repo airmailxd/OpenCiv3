@@ -1419,6 +1419,125 @@ def mil_backpack(p, size=1.0):
         p.add(tube(path, 0.015 * s, seg=6, scale_xy=(1.0, 0.35)), 'olive_dark', smooth=True)
 
 
+DEFAULTS.setdefault('chute_grey', ('#6c6e68', 0.85, 0.0, 'cloth'))   # a modern parachute container
+DEFAULTS.setdefault('chute_tan', ('#8a8466', 0.9, 0.0, 'cloth'))     # a WWII parachute pack
+DEFAULTS.setdefault('webbing', ('#4e4c3a', 0.85, 0.0, 'cloth'))
+DEFAULTS.setdefault('canvas', ('#b4a684', 0.9, 0.0, 'cloth'))
+DEFAULTS.setdefault('brass', ('#a88a4a', 0.4, 1.0, 'metal'))
+DEFAULTS.setdefault('ak_wood', ('#7e4424', 0.55, 0.0, 'wood'))
+
+
+def chute_pack(p, size=1.0):
+    """A paratrooper's parachute container for the back (as backpack: the
+    straps' top at the origin, the load toward -Y): a big squared grey pack,
+    its closing flaps and pins, harness straps forward over the shoulders and
+    a red ripcord handle."""
+    s = size
+    p.add(box(0.4 * s, 0.2 * s, 0.52 * s), 'chute_grey', T(0, -0.15 * s, -0.16 * s), bevel=0.05 * s)
+    for z in (0.02, -0.34):   # the flaps' seams across the pack
+        p.add(box(0.41 * s, 0.012 * s, 0.03 * s), 'webbing', T(0, -0.255 * s, z * s), bevel=0.006)
+    p.add(box(0.03 * s, 0.012 * s, 0.4 * s), 'webbing', T(0, -0.255 * s, -0.16 * s), bevel=0.004)   # the pin flap
+    for x in (-0.12 * s, 0.12 * s):
+        path = [(x, -0.06 * s, 0.08 * s), (x, 0.02 * s, 0.13 * s), (x, 0.12 * s, 0.06 * s), (x * 1.1, 0.13 * s, -0.25 * s)]
+        p.add(tube(path, 0.022 * s, seg=6, scale_xy=(1.0, 0.3)), 'webbing', smooth=True)
+    p.add(box(0.05 * s, 0.03 * s, 0.03 * s), 'shield_accent', T(-0.15 * s, 0.14 * s, -0.08 * s), bevel=0.006)   # ripcord
+
+
+def para_pack(p, size=1.0):
+    """A WWII paratrooper's parachute for the back (as backpack): a rounded,
+    stuffed olive-tan pack with a static-line bag on top and harness straps;
+    a reserve chute belongs on the chest."""
+    s = size
+    pack = ellipsoid(0.2 * s, 0.11 * s, 0.27 * s, seg=18)
+    for v in pack.verts:   # flat against the back
+        if v.co.y > 0:
+            v.co.y *= 0.4
+    jitter(pack, 0.01 * s, seed=21)
+    p.add(pack, 'chute_tan', T(0, -0.14 * s, -0.17 * s), smooth=True)
+    p.add(box(0.26 * s, 0.08 * s, 0.07 * s), 'chute_tan', T(0, -0.15 * s, 0.1 * s), bevel=0.025 * s)   # static line bag
+    p.add(tube([(0.0, -0.19 * s, 0.1 * s), (0.08 * s, -0.2 * s, 0.0), (0.05 * s, -0.24 * s, -0.25 * s)], 0.008 * s,
+               seg=5), 'webbing', smooth=True)   # the static line
+    for x in (-0.11 * s, 0.11 * s):
+        path = [(x, -0.06 * s, 0.08 * s), (x, 0.02 * s, 0.13 * s), (x, 0.12 * s, 0.06 * s), (x * 1.1, 0.13 * s, -0.25 * s)]
+        p.add(tube(path, 0.02 * s, seg=6, scale_xy=(1.0, 0.3)), 'webbing', smooth=True)
+
+
+def ak(p, scale=1.0):
+    """A Kalashnikov held at the pistol grip (origin), muzzle +Z: a stamped
+    receiver, red-brown wooden stock, pistol grip and handguard, a gas tube
+    over the barrel, the curved banana magazine."""
+    s = scale
+    p.add(box(0.042, 0.07, 0.3), 'gunmetal', T(0, 0.01, 0.12 * s), bevel=0.005)                   # receiver
+    p.add(box(0.044, 0.062, 0.17), 'ak_wood', T(0, 0.005, 0.35 * s), bevel=0.012)                 # handguard
+    p.add(tube([(0, 0.035, 0.27 * s), (0, 0.035, 0.46 * s)], 0.011 * s, seg=8), 'ak_wood', smooth=True)   # upper guard
+    p.add(tube([(0, 0.01, 0.43 * s), (0, 0.01, 0.63 * s)], 0.009 * s, seg=8), 'gunmetal', smooth=True)    # barrel
+    p.add(tube([(0, 0.032, 0.46 * s), (0, 0.032, 0.52 * s)], 0.008 * s, seg=8), 'gunmetal', smooth=True)  # gas block
+    p.add(box(0.012, 0.04, 0.03), 'gunmetal', T(0, 0.035, 0.61 * s), bevel=0.003)                 # front sight
+    mag = [(0, -0.03, 0.2 * s), (0, -0.1, 0.22 * s), (0, -0.17, 0.27 * s), (0, -0.22, 0.34 * s)]  # the banana curve
+    p.add(tube(mag, 0.022 * s, seg=4, scale_xy=(0.5, 1.25)), 'gunmetal', bevel=0.003)
+    p.add(box(0.034, 0.05, 0.1), 'ak_wood', T(0, -0.04, 0.0) @ R('X', -15), bevel=0.008)          # pistol grip
+    p.add(slab([(-0.08, -0.36), (0.035, -0.36), (0.03, -0.04), (-0.025, -0.04)], 0.04, 'X'), 'ak_wood', S(s),
+          bevel=0.008)                                                                             # stock
+
+
+def musket_rest(p, length=1.3, grip=0.75, scale=1.0):
+    """A musket rest held like a staff `grip` m from its iron-shod foot: a
+    straight ash pole ending in an iron fork that cradles the barrel."""
+    L = length * scale
+    p.add(tube([(0, 0, -grip), (0, 0, L - grip - 0.06)], [SHAFT_R + 0.002, SHAFT_R], seg=10), 'wood', bevel=0.002,
+          smooth=True)
+    zt = L - grip
+    p.add(lathe([(-0.07, 0.02), (0.0, 0.02)], seg=10), 'steel', T(0, 0, zt - 0.06), smooth=True)   # ferrule
+    for sx in (-1, 1):   # the fork's two curving horns
+        p.add(tube([(0, 0, zt - 0.02), (sx * 0.045, 0, zt + 0.04), (sx * 0.06, 0, zt + 0.1)], [0.012, 0.01, 0.006],
+                   seg=6), 'steel', smooth=True)
+    p.add(lathe([(0.0, 0.0005), (0.08, 0.018)], seg=8), 'steel', T(0, 0, -grip - 0.08), smooth=True)   # spike foot
+    p.add(tube([(0, 0, -0.08), (0, 0, 0.1)], SHAFT_R + 0.0035, seg=12), 'leather', smooth=True)
+
+
+def cartridge_box(p, scale=1.0):
+    """A cartridge box hung at the hip (origin at the belt, hanging toward +Z
+    down-back like the scabbard): a stiff leather box with a closed flap and a
+    brass plate on it."""
+    s = scale
+    p.add(tube([(0, 0, 0), (0, 0, 0.06 * s)], 0.012 * s, seg=6, scale_xy=(1.4, 0.4)), 'leather_dark', smooth=True)
+    p.add(box(0.18 * s, 0.07 * s, 0.12 * s), 'leather_dark', T(0, 0, 0.12 * s), bevel=0.012 * s)
+    p.add(box(0.185 * s, 0.075 * s, 0.07 * s), 'leather', T(0, -0.002, 0.095 * s), bevel=0.01 * s)   # the flap
+    p.add(ellipsoid(0.03 * s, 0.006 * s, 0.022 * s, seg=12), 'brass', T(0, -0.04 * s, 0.1 * s), smooth=True)
+
+
+def haversack(p, scale=1.0):
+    """A canvas haversack hung at the hip (origin at the belt, hanging toward
+    +Z down-back): a soft bag with a rounded flap and a buckle strap."""
+    s = scale
+    p.add(tube([(0, 0, 0), (0, 0, 0.07 * s)], 0.014 * s, seg=6, scale_xy=(1.4, 0.4)), 'leather', smooth=True)
+    bag = box(0.26 * s, 0.08 * s, 0.24 * s)
+    jitter(bag, 0.004 * s, seed=31)
+    p.add(bag, 'canvas', T(0, 0, 0.19 * s), bevel=0.03 * s)
+    flap = ellipsoid(0.135 * s, 0.01 * s, 0.11 * s, seg=16)
+    p.add(flap, 'canvas', T(0, -0.045 * s, 0.13 * s), smooth=True)
+    p.add(box(0.02 * s, 0.006 * s, 0.1 * s), 'leather', T(0, -0.056 * s, 0.17 * s), bevel=0.002)
+    p.add(box(0.026 * s, 0.006 * s, 0.02 * s), 'brass', T(0, -0.06 * s, 0.2 * s), bevel=0.002)
+
+
+def bandolier_bottles(p, n=10, scale=1.0):
+    """A musketeer's bandolier ('the twelve apostles'), worn over the left
+    shoulder to the right hip: origin at the middle of the chest, +Y forward
+    (in front of the body), +Z up; a leather strap with wooden powder flasks
+    hanging from it on cords, each with a cap."""
+    s = scale
+    a, b = Vector((-0.17 * s, 0.0, 0.24 * s)), Vector((0.17 * s, 0.0, -0.28 * s))
+    p.add(tube([a, (a + b) / 2 + Vector((0, 0.02 * s, 0)), b], 0.024 * s, seg=6, scale_xy=(1.0, 0.3)), 'leather',
+          smooth=True)
+    for i in range(n):
+        q = a.lerp(b, (i + 0.5) / n) + Vector((0, 0.03 * s, 0))
+        p.add(tube([q, q + Vector((0, 0, -0.04 * s))], 0.003 * s, seg=4), 'rope', smooth=True)
+        p.add(lathe([(0.0, 0.016 * s), (0.02 * s, 0.018 * s), (0.08 * s, 0.017 * s), (0.09 * s, 0.0)], seg=10), 'wood',
+              T(*(q + Vector((0, 0, -0.13 * s)))), smooth=True)
+        p.add(lathe([(0.0, 0.012 * s), (0.02 * s, 0.012 * s)], seg=8), 'leather_dark',
+              T(*(q + Vector((0, 0, -0.045 * s)))), smooth=True)
+
+
 # ------------------------------------------------------------ royal regalia and personal items
 
 def _gold_head(p, kind, z, s=1.0):
@@ -1641,6 +1760,13 @@ BUILDERS = {
     'plain_round': plain_round,
     'jaguar_shield': jaguar_shield,
     'pike': pike,
+    'chute_pack': chute_pack,
+    'para_pack': para_pack,
+    'ak': ak,
+    'musket_rest': musket_rest,
+    'cartridge_box': cartridge_box,
+    'haversack': haversack,
+    'bandolier_bottles': bandolier_bottles,
     'book': book,
     'map': map,
     'gourd': gourd,
