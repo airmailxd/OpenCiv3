@@ -18,6 +18,7 @@ The per-unit lists are in [DETAIL_AUDIT_PC.md](DETAIL_AUDIT_PC.md).
 |---|---|---|
 | Catapult, Cannon, Galley, Caravel | siege.py, ships.py, vkit.py | 6 axes PASS (detail 7-8) |
 | Horseman, Rider, Ansar Warrior | mounted.py, riders.py, remaster.py | 6 axes PASS (detail 7-8) |
+| Trebuchet, Hwacha, Artillery, Flak | siege.py | 6 axes PASS (detail 7-8) |
 | Mounted Warrior, Ancient Cavalry, Knight, Keshik, Sipahi, Conquistador, Cossack, Hussar, Cavalry | mounted.py, riders.py, remaster.py | frozen for stzur's judgment (borderline 6-7 on 5 axes); detail 2-5/10, see below |
 | chariot, War Chariot, Three Man Chariot | chariots.py | frozen for stzur's judgment; detail 4-5/10, see below |
 | Props (pilots + riders + footmen) | props.py, props_preview.py | pilots' props reviewed; footman props delivered, not yet seen on bodies |
@@ -49,8 +50,8 @@ These are what a fifth round would add; waiting on stzur before touching them.
 ## Known gaps / next steps
 
 1. Riders: one shared seated pose for all.
-2. Not started (PC's list): War Elephant, Trebuchet, Hwacha,
-   Artillery, Flak, armor (6), aircraft (7), rockets (2), Cruise Missile,
+2. Not started (PC's list): War Elephant (old remake kept; a CC-BY model
+   is stzur's call), armor (6), aircraft (7), rockets (2), Cruise Missile,
    Holy Relic, the other 14 ships.
 3. Nothing is composed into game sheets yet (compose.write_unit) and nothing
    is in C7/ModernArt; pushes go to units-remaster only.

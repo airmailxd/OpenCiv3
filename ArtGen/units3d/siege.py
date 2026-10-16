@@ -468,7 +468,7 @@ props.DEFAULTS.setdefault('camo2', ('#6a5034', 0.7, 0.3, 'metal'))     # brown b
 props.DEFAULTS.setdefault('camo3', ('#3a4030', 0.7, 0.3, 'metal'))     # dark green blotches
 props.DEFAULTS.setdefault('tyre', ('#1e1e1e', 0.85, 0.0, 'leather'))
 props.DEFAULTS.setdefault('rim_steel', ('#a8aaa8', 0.4, 1.0, 'metal'))
-ARTILLERY_COLORS = {}
+ARTILLERY_COLORS = {'rim_steel': '#7a7c76'}
 ARTILLERY_WEAR = {'camo': {'grime': 0.5, 'soot': 0.3, 'edges': 0.5}, 'camo2': {'grime': 0.5}, 'camo3': {'grime': 0.5},
                   'tyre': {'grime': 0.6}, 'rim_steel': {'grime': 0.4, 'rust': 0.2}, 'iron': {'grime': 0.5, 'soot': 0.5}}
 
@@ -478,8 +478,14 @@ def _camo(scale=0.35):
     def keys(f):
         c = f.calc_center_median()
         n = math.sin(c.x / scale * 1.7 + 1.3) + math.sin(c.y / scale * 1.3 - 0.7) + math.sin(c.z / scale * 2.1 + c.x)
-        return ('camo2', False) if n > 1.1 else (('camo3', False) if n < -1.2 else None)
+        return ('camo2', False) if n > 0.5 else (('camo3', False) if n < -0.8 else None)
     return keys
+
+
+def _sub(bm, cuts=6):
+    """Subdivide a mesh's faces so per-face patterns (camo) have room to show."""
+    props.bmesh.ops.subdivide_edges(bm, edges=bm.edges[:], cuts=cuts, use_grid_fill=True)
+    return bm
 
 
 def _pneumatic_wheel(p, r, width, center, side):
@@ -496,7 +502,7 @@ def _pneumatic_wheel(p, r, width, center, side):
     p.add(disc, 'rim_steel', T(cx, cy, cz) @ R('Y', 90), smooth=True)
     for i in range(6):   # the disc's lightening holes, dark
         a = 2 * math.pi * i / 6
-        p.add(props.ellipsoid(0.05, 0.05, 0.035, seg=10), 'tyre',
+        p.add(props.ellipsoid(0.075, 0.075, 0.035, seg=10), 'tyre',
               T(cx + side * 0.008, cy + 0.2 * r * math.cos(a) * 2.2, cz + 0.2 * r * math.sin(a) * 2.2) @ R('Y', 90), smooth=True)
     p.add(props.lathe([(0.0, 0.08), (0.06, 0.06), (0.09, 0.0)], seg=16), 'iron', T(cx + side * 0.02, cy, cz) @ R('Y', side * 90),
           smooth=True)
@@ -511,8 +517,8 @@ def artillery(colors, k=1.0, elev=8.0, spread=11.0):
     root = vkit.root('Artillery')
     za = 0.56
     f = vkit.part(root, 'carriage', c, ARTILLERY_WEAR)
-    camo = _camo()
-    f.add(props.box(0.7, 0.6, 0.32), 'camo', T(0, 0.0, za + 0.12), bevel=0.03, keys=camo)            # the saddle
+    camo = _camo(0.25)
+    f.add(_sub(props.box(0.7, 0.6, 0.32)), 'camo', T(0, 0.0, za + 0.12), bevel=0.03, keys=camo)            # the saddle
     vkit.rod(f, (-0.88, 0, za), (0.88, 0, za), 0.05, 'iron', seg=10)                                   # axle
     for sx in (-1, 1):
         # the trail legs, opened in a V behind the gun, each ending in a spade
@@ -523,10 +529,12 @@ def artillery(colors, k=1.0, elev=8.0, spread=11.0):
               tint=True)
         vkit.rod(f, (end[0] * 0.92, end[1] * 0.92, 0.25), (end[0] * 0.92, end[1] * 0.92 - 0.1, 0.33), 0.018, 'iron', seg=6)
         # the gun shield: a sloped plate each side of the barrel, its top edge civ-colored
-        sh = props.box(0.72, 0.04, 0.95)
+        sh = _sub(props.box(0.72, 0.04, 0.95), 8)
         f.add(sh, 'camo', T(sx * 0.42, 0.28, za + 0.5) @ R('X', -12) @ R('Z', -sx * 10), bevel=0.01, keys=camo)
         f.add(props.box(0.74, 0.06, 0.1), 'beam', T(sx * 0.42, 0.24, za + 0.98) @ R('X', -12) @ R('Z', -sx * 10),
               bevel=0.01, tint=True)
+        # a big civ-colored panel on the shield's face, as the original
+        f.add(props.box(0.42, 0.02, 0.4), 'beam', T(sx * 0.42, 0.24, za + 0.62) @ R('X', -12) @ R('Z', -sx * 10), bevel=0.006, tint=True)
     f.add(props.box(0.12, 0.035, 0.45), 'camo', T(0, 0.3, za + 0.12), bevel=0.01, keys=camo)          # lower shield
     f.finish()
     w = vkit.part(root, 'wheels', c, ARTILLERY_WEAR)
@@ -534,12 +542,15 @@ def artillery(colors, k=1.0, elev=8.0, spread=11.0):
         _pneumatic_wheel(w, za, 0.2, (sx * 0.86, 0.0, za), sx)
     w.finish()
     b = vkit.part(root, 'barrel', c, ARTILLERY_WEAR)
-    b.add(props.lathe([(-0.55, 0.11), (0.25, 0.1), (0.3, 0.07), (1.7, 0.055)], seg=20), 'camo', smooth=True, keys=camo)
-    b.add(props.lathe([(0.0, 0.085), (0.22, 0.085), (0.24, 0.0)], seg=16), 'iron', T(0, 0, 1.7), smooth=True)  # muzzle brake
-    b.add(props.box(0.2, 0.025, 0.12), 'iron', T(0, 0, 1.82), bevel=0.005)                          # its side ports
-    for sx in (-1, 1):   # recoil cylinders over the barrel
-        b.add(props.lathe([(-0.5, 0.045), (0.6, 0.045)], seg=12), 'camo', T(sx * 0.05, 0.11, 0), smooth=True, keys=camo)
-    b.add(props.box(0.22, 0.3, 0.45), 'camo', T(0, 0.0, -0.45), bevel=0.02, keys=camo)               # the breech
+    b.add(props.lathe([(-0.6, 0.15), (0.3, 0.14), (0.36, 0.095), (1.7, 0.078)], seg=24), 'camo3', smooth=True)   # olive tube
+    # a heavy dark double-baffle muzzle brake with its side ports
+    b.add(props.lathe([(0.0, 0.1), (0.04, 0.135), (0.14, 0.135), (0.16, 0.11), (0.18, 0.135), (0.3, 0.135), (0.33, 0.07)], seg=16), 'gun_dark', T(0, 0, 1.68), smooth=True)
+    for z in (1.77, 1.9):
+        b.add(props.box(0.29, 0.06, 0.05), 'tyre', T(0, 0, z), bevel=0.004)
+    for sx in (-1, 1):   # recoil and recuperator cylinders over the barrel
+        b.add(props.lathe([(-0.6, 0.07), (0.75, 0.065), (0.8, 0.0)], seg=14), 'camo', T(sx * 0.07, 0.19, 0), smooth=True, keys=camo)
+    b.add(_sub(props.box(0.36, 0.42, 0.95), 5), 'camo', T(0, 0.04, -0.15), bevel=0.025, keys=camo)   # the cradle
+    b.add(_sub(props.box(0.3, 0.34, 0.4), 4), 'camo', T(0, 0.0, -0.75), bevel=0.02, keys=camo)       # the breech
     bo = b.finish()
     bo.matrix_parent_inverse = Matrix.Identity(4)
     bo.location = (0, 0.05, za + 0.36)
@@ -560,7 +571,8 @@ def flak(colors, k=1.0, elev=48.0):
     hubs, a triangular lattice drawbar, a turning pedestal carrying four
     barrels in a 2x2 block raised high, their tall box magazines, the
     gunner's curved shield (civ-colored edges) and seat."""
-    c = dict(colors)
+    # Civ3's Flak: dark olive drab with soft camouflage shading
+    c = dict({'camo': '#4c5238', 'camo2': '#5a5236', 'camo3': '#3a4030', 'rim_steel': '#6a6c66'}, **colors)
     root = vkit.root('Flak')
     zp = 0.42
     f = vkit.part(root, 'trailer', c, ARTILLERY_WEAR)
@@ -576,8 +588,19 @@ def flak(colors, k=1.0, elev=48.0):
         f.add(props.ellipsoid(0.08, 0.08, 0.025, seg=12), 'iron', T(tip[0], tip[1], 0.03), smooth=True)
     for sx in (-1, 1):   # the travelling wheels, raised, with civ hubs
         f.add(props.box(0.08, 0.5, 0.08), 'camo', T(sx * 0.82, -0.1, zp), bevel=0.01)
-        _pneumatic_wheel(f, 0.36, 0.17, (sx * 0.95, -0.1, 0.38), sx)
-        f.add(props.ellipsoid(0.18, 0.18, 0.04, seg=18), 'beam', T(sx * 1.05, -0.1, 0.38) @ R('Y', 90), smooth=True, tint=True)
+        _pneumatic_wheel(f, 0.44, 0.2, (sx * 0.98, -0.1, 0.44), sx)
+        f.add(props.ellipsoid(0.18, 0.18, 0.04, seg=18), 'beam', T(sx * 1.1, -0.1, 0.44) @ R('Y', 90), smooth=True, tint=True)
+        # an arched mudguard over the wheel, a civ-colored patch on its crown
+        arc = [(sx * 0.98, -0.1 + 0.56 * math.cos(math.radians(a)), 0.44 + 0.56 * math.sin(math.radians(a)))
+               for a in range(20, 165, 12)]
+        guard = props.loft([[(x - 0.14, y, z) for x, y, z in arc], [(x + 0.14, y, z) for x, y, z in arc]], False, False)
+        props.bmesh.ops.solidify(guard, geom=guard.faces[:], thickness=0.02)
+        f.add(guard, 'camo', smooth=True, keys=camo)
+        f.add(props.box(0.24, 0.3, 0.03), 'beam', T(sx * 0.98, -0.1, 1.01), bevel=0.008, tint=True)
+        # a bank of spare box magazines racked upright beside the mount
+        for i in range(5):
+            f.add(props.box(0.06, 0.2, 0.36), 'rim_steel', T(sx * 0.42 + sx * 0.07 * i * 0.0, 0.42 + 0.075 * i - 0.15,
+                                                              zp + 0.24) @ R('Z', sx * 90), bevel=0.008)
     # the lattice drawbar behind: two rails converging to a towing eye, with cross bracing
     eye = (0.0, -2.0, 0.35)
     for sx in (-1, 1):
@@ -600,14 +623,17 @@ def flak(colors, k=1.0, elev=48.0):
 
     # the gun cradle, raised: four barrels in a 2x2 block, box magazines standing on top, the shield in front
     g = vkit.part(root, 'guns', c, ARTILLERY_WEAR)
-    g.add(props.box(0.62, 0.5, 0.36), 'camo', T(0, 0, 0), bevel=0.03, keys=camo)                      # receivers
+    g.add(_sub(props.box(0.66, 0.6, 0.42), 4), 'camo', T(0, -0.05, 0), bevel=0.03, keys=camo)         # the cradle
     for sx in (-1, 1):
         for sz in (-1, 1):
             x, z = sx * 0.17, sz * 0.1
-            g.add(props.lathe([(0.0, 0.035), (1.25, 0.024)], seg=10), 'gun_dark', T(x, 0.2, z) @ R('X', -90), smooth=True)
-            g.add(props.lathe([(0.0, 0.04), (0.14, 0.04), (0.16, 0.025)], seg=10), 'gun_dark', T(x, 1.4, z) @ R('X', -90),
-                  smooth=True)                                                                        # flash hiders
+            g.add(props.box(0.1, 0.5, 0.1), 'gun_dark', T(x, 0.0, z), bevel=0.012)                    # receivers
+            g.add(props.lathe([(0.0, 0.05), (0.35, 0.048)], seg=12), 'camo', T(x, 0.25, z) @ R('X', -90), smooth=True)   # jackets
+            g.add(props.lathe([(0.0, 0.032), (1.25, 0.03)], seg=10), 'gun_dark', T(x, 0.2, z) @ R('X', -90), smooth=True)
+            g.add(props.lathe([(0.0, 0.035), (0.06, 0.04), (0.2, 0.065)], seg=12), 'rim_steel', T(x, 1.42, z) @ R('X', -90),
+                  smooth=True)                                                                        # pale flared flash hiders
             g.add(props.box(0.05, 0.16, 0.32), 'gun_dark', T(x + sx * 0.08, -0.02, z + sz * 0.3), bevel=0.008)  # magazines
+    g.add(props.box(0.3, 0.06, 0.12), 'brass', T(0, -0.36, 0.1), bevel=0.01)                          # brass sight box
     for sx in (-1, 1):   # trunnion arms down to the pedestal, and handwheels
         vkit.beam(g, (sx * 0.36, 0, 0), (sx * 0.36, -0.12, -0.42), 0.06, 0.12, 'camo', bevel=0.008)
         vkit.ring_x(g, 0.12, 0.02, 0.02, 'iron', center=(sx * 0.45, -0.3, -0.25), seg=16)
