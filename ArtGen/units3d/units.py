@@ -352,6 +352,9 @@ def dress(entry, mesh, arm):
         bones = ['lowerarm_l', 'lowerarm_r', 'hand_l', 'hand_r'] + (['upperarm_l', 'upperarm_r'] if lg[0] == 'arm' else [])
         G.shell(mesh, arm, 'Gloves', bones, _hem_mat(entry, c, lg[1], 'gloves'), offset=0.006, thickness=0.004,
                 min_weight=0.4)
+    if entry.get('ruff'):
+        # a pleated lace ruff round the neck (Elizabethan)
+        G.ruff(mesh, arm, _hem_mat(entry, c, entry['ruff'], 'ruff'), size=entry.get('ruff_size', 0.11))
     sr = entry.get('shoulder_rolls')
     if sr:
         # puffed rolls over the shoulder seams (Renaissance doublets): 'gold'|'tint'|hex
@@ -939,4 +942,16 @@ def build_footman(entry, seated=False):
         H._update()
     else:
         H.plant(root, mesh)
+        # props standing on the ground by the unit (a hound, a crate, a launcher):
+        # [(prop, params, (x, y) meters in the unit's frame, yaw degrees)]; the
+        # unit faces +y, x is its left; they turn with the unit
+        for gp in entry.get('ground_props', []):
+            name, params = gp[0], (gp[1] if len(gp) > 1 else {})
+            x, y = gp[2] if len(gp) > 2 else (0.5, 0.0)
+            yaw = gp[3] if len(gp) > 3 else 0.0
+            obj = P.make(name, c, **params)
+            obj.parent = root
+            obj.location = (x * G._scale, y * G._scale, 0.0)
+            obj.rotation_euler = (0.0, 0.0, math.radians(yaw))
+        H._update()
     return root

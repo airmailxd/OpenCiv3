@@ -307,8 +307,11 @@ def cloth(name, color, tint=False, rough=0.85, weave=0.25, pattern=None, dirt=0.
         tree.links.new(add2.outputs['Value'], bump.inputs['Height'])
         tree.links.new(bump.outputs['Normal'], bsdf.inputs['Normal'])
         # a soft sheen on the folds (velvet, wool): cloth reads as cloth, not paint
-        bsdf.inputs['Sheen Weight'].default_value = 0.35
-        bsdf.inputs['Sheen Roughness'].default_value = 0.45
+        # (stronger on dark cloth, where a faint sheen doesn't show at all)
+        cl = bsdf.inputs['Base Color'].default_value
+        dark_k = 1.0 - min(1.0, (0.3 * cl[0] + 0.59 * cl[1] + 0.11 * cl[2]) * 3.0)
+        bsdf.inputs['Sheen Weight'].default_value = 0.35 + 0.5 * dark_k
+        bsdf.inputs['Sheen Roughness'].default_value = 0.45 - 0.1 * dark_k
         # dirt: broad, soft darker patches (no cloth stays factory-clean)
         dn = n.new('ShaderNodeTexNoise')
         dn.inputs['Scale'].default_value = 3.0
@@ -1961,3 +1964,39 @@ def shoulder_rolls(basemesh, arm, mat, size=0.09):
         made.append(o)
     H._update()
     return made
+
+
+def ruff(basemesh, arm, mat, size=0.11, pleats=28):
+    """A pleated ruff round the neck: a flat ring, wavy at its outer edge
+    (the pleats), tilted a little forward; on the neck bone."""
+    import human as H
+    top, yc, on_body = _head(basemesh)
+    s = _scale
+    z = top - 0.255 * s
+    r0, r1 = 0.07 * s, (0.07 + size) * s
+    bm = bmesh.new()
+    k = pleats * 4
+    inner, outer = [], []
+    for i in range(k):
+        a = 2 * math.pi * i / k
+        wav = 0.018 * s * math.sin(a * pleats)
+        inner.append(bm.verts.new((math.sin(a) * r0, yc + math.cos(a) * r0, z)))
+        outer.append(bm.verts.new((math.sin(a) * r1, yc + math.cos(a) * r1, z + wav)))
+    for i in range(k):
+        j = (i + 1) % k
+        bm.faces.new((inner[i], inner[j], outer[j], outer[i]))
+    me = bpy.data.meshes.new('Ruff')
+    bm.to_mesh(me)
+    bm.free()
+    o = bpy.data.objects.new('Ruff', me)
+    bpy.context.scene.collection.objects.link(o)
+    sol = o.modifiers.new('Thick', 'SOLIDIFY')
+    sol.thickness = 0.02 * s
+    o.data.materials.append(mat)
+    world = o.matrix_world.copy()
+    o.parent = arm
+    o.parent_type = 'BONE'
+    o.parent_bone = 'neck_01'
+    o.matrix_world = world
+    H._update()
+    return o
