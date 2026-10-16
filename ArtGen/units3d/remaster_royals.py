@@ -701,9 +701,9 @@ REMASTER = {
         # white breeches and hose in one: full-length puffy legs, black low shoes
         'bottom': 'breeches', 'puffy': True, 'trouser_offset': 0.04, 'wraps': 'wraps', 'shoes': True, 'sandals': False,   # short puffed civ breeches over white hose
         # the enormous robe: a wide bell flaring onto the ground, the gold hem pooling behind
-        # MISSING: ermine_trim (dots on the cape), cape_lining (dark purple)
         'cape': True, 'cape_length': 1.5, 'cape_flare': 1.6, 'cape_train': 0.5, 'cape_width': 0.7,   # a wide bell with a train
-        'hem_bands': [('cape', 'gold', 0.11)],   # a continuous gold band
+        'hem_bands': [('cape', 'gold', 0.11), ('cape', 'ermine', 0.07, 0.11)],   # the gold hem, ermine above it
+        'cape_lining': '#3a2040',   # the dark purple lining
         'cuirass': False, 'bracers': False, 'gear': [],
         # the gold-topped cane in the free left fist ('fist_hip_r' puts the item there), the rod down to the
         # ground ('tool_dir' is the way it runs from the fist); check the tip meets the ground
@@ -731,7 +731,7 @@ REMASTER = {
         'bottom': 'kilt', 'robe_drop': 0.5,
         'hem_bands': [('bottom', 'tint', 0.12)],
         'bands': [('waist', 'gold', 0.07)],   # the gold belt
-        'cuirass': True,    # the tinted waist-length vest; MISSING: vest (sleeveless over-garment, gold edges)
+        'cuirass': True, 'cuirass_trim': 'gold', 'trim_width': 0.03,   # the tinted waist-length vest, gold edges
         'cape': False, 'wraps': 'shoes', 'sandals': False, 'bracers': False, 'gear': [],   # the gold shoes
         'weapon': None, 'offhand': None,
         'stance_name': 'hands_clasped',
@@ -838,8 +838,9 @@ REMASTER = {
         'hem_bands': [('bottom', '#f2efe8', 0.07)],   # the white lace frill
         'cape': False, 'cuirass': False, 'wraps': None, 'sandals': False, 'bracers': False,
         'gear': [],
-        # the short gold scepter raised by the shoulder; MISSING: left_hand_hold (props.orb at the lap)
-        'weapon': 'scepter', 'props': {'scepter': ('scepter', {'length': 0.6, 'head': 'fleur'})}, 'offhand': 'orb',
+        # the short gold scepter raised by the shoulder, the orb in the raised left hand
+        'weapon': 'scepter', 'props': {'scepter': ('scepter', {'length': 0.6, 'head': 'fleur'})}, 'offhand': 'orb', 'offhand_dir': (0, 0, 1),
+        'pose_extra': [('lowerarm_l', (0.1, -1.0, 0.35))],
         'stance_name': 'royal',
         'tint': [],
         'grime': 0.3, 'upper_bulk': 1.0,
@@ -1022,9 +1023,10 @@ REMASTER = {
         'cuirass': True, 'metal': [], 'neck': 'high',   # the civ surcoat over the chest, as the original
         'top': 'sleeved', 'pauldrons': True, 'collar': 'mail',   # MISSING: plate_arms, plate_legs
         'bottom': 'kilt', 'robe_drop': 0.0, 'wraps': 'greaves', 'boots': True,
-        # MISSING: cape_emblem (the gold field and lion on the back), ermine_trim (collar)
+        # MISSING: the lion on the gold field, ermine_trim (collar)
         'cape': True, 'cape_length': 1.38, 'cape_flare': 0.9,   # a bell
-        'hem_bands': [('cape', '#f0ece4', 0.15), ('cape', '#b09a6a', 0.05, 0.3), ('cape', '#b09a6a', 0.05, 0.55)],   # fur hem, tan bands
+        'cape_emblem': ('disc', 'gold', 0.7),   # the large gold field inside the civ border
+        'hem_bands': [('cape', 'ermine', 0.15), ('cape', '#b09a6a', 0.05, 0.3), ('cape', '#b09a6a', 0.05, 0.55)],   # fur hem, tan bands
         'sandals': False, 'bracers': False, 'gear': [],
         'weapon': 'sword', 'props': {'sword': ('long_sword', {'length': 0.95})},
         'stance_name': 'stand',
@@ -1071,13 +1073,13 @@ REMASTER = {
         # the gold front stripe (it also runs down the back, which the original hasn't: MISSING front_only)
         'patterns': {'bottom': ('panel', '#c8a038', 0.035, 'front')},   # the gold front stripe
         'hem_bands': [('bottom', 'tint', 0.07), ('bottom', 'tint', 0.05, 0.12)],   # the civ hem and a band of civ above it
-        'bracers': True,                        # the long tinted gloves; MISSING: long_gloves (full arm, over the hands)
+        'bracers': False, 'long_gloves': ('arm', 'tint'),   # the long tinted gloves, over the hands
         
         'cape': False, 'cuirass': False, 'wraps': None, 'sandals': False, 'gear': [],
         # the short gold scepter raised; MISSING: left_hand_hold
         'weapon': 'scepter', 'props': {'scepter': ('scepter', {'length': 0.5, 'head': 'orb'})},
         'stance_name': 'royal',
-        'tint': ['bracers', 'top'],   # the civ bodice, as the original
+        'tint': ['top'],   # the civ bodice, as the original
         'grime': 0.3, 'upper_bulk': 0.9,
     },
     'SciLeader': {
@@ -1090,7 +1092,7 @@ REMASTER = {
         'colors': {'skin': '#d8ae8e', 'hair': '#ffffff', 'top': '#5a5a5e', 'bottom': '#3a3a3e',
                    'shoes': '#2a2420', 'belt': '#2a2a2e', 'wood': '#18181a', 'leather': '#18181a',
                    'lacquer': '#18181a', 'gold': '#3a3a3e'},
-        'helmet': None, 'hair': 'long', 'hair_asset': 'short04', 'mane': 0.0,   # MISSING: wild_hair
+        'helmet': None, 'hair': 'long', 'hair_asset': None, 'mane': 0.0, 'wild_hair': 0.07,   # the wild white hair
         'beard': True, 'beard_style': 'mustache',   # the big white mustache
         'top': 'sleeved', 'neck': 'high', 'bottom': 'long', 'wraps': 'shoes',   # MISSING: suit_jacket (open, lapels)
         # the tinted tie: a narrow non-metal 'cuirass' strip (it also runs down the back: MISSING tie, front only)
@@ -1098,9 +1100,10 @@ REMASTER = {
         'patterns': {'top': ('panel', 'tint', 0.035, 'front')},   # the civ tie, front only
         'cape': False, 'sandals': False, 'bracers': False, 'gear': [],
         # the thin black cane planted from the fist; MISSING: left_hand_hold (props.briefcase, brown,
-        # tinted straps), mouth_prop (props.pipe)
+        # tinted straps)
+        'face_prop': 'pipe',
         'weapon': 'cane', 'props': {'cane': ('cane', {'length': 0.9})},
-        'offhand': 'briefcase', 'offhand_mesh': ('briefcase', {}),   # the doctor's bag
+        'offhand': 'briefcase', 'offhand_mesh': ('briefcase', {}), 'offhand_dir': (0, 0, 1),   # the doctor's bag, hanging
         'stance_name': 'stand_staff',           # MISSING: walking_stoop
         'tint': [],
         'grime': 0.35, 'upper_bulk': 0.95,
@@ -1143,10 +1146,12 @@ REMASTER = {
         'race': {'caucasian': 1.0, 'african': 0.0, 'asian': 0.0},
         'colors': {'skin': '#e0b89a', 'hair': '#141418', 'top': '#f2f0ec', 'bottom': '#f2f0ec',
                    'belt': '#c8a038', 'boots': '#e8e4dc', 'gold': '#c8a038'},
-        'helmet': None, 'hair': 'short', 'hair_asset': 'short04', 'beard': False,   # MISSING: pompadour, face_prop (props.sunglasses)
+        'helmet': None, 'hair': 'short', 'hair_asset': 'short04', 'beard': False,   # MISSING: pompadour
+        'face_prop': 'sunglasses',
         'top': 'sleeved', 'neck': 'high',
         'cuirass': True, 'metal': [], 'cuirass_width': 0.14,   # the wide civ V; MISSING: deep_v
-        'bottom': 'long', 'wraps': 'boots',     # MISSING: bell_bottoms (tinted flare inserts)
+        'bottom': 'long', 'wraps': 'boots', 'trouser_flare': 0.8,   # bell-bottoms
+        'patterns': {'bottom': ('stripes', 'tint', 3.0)},   # the tinted flare inserts
         'bands': [('wrist', 'tint', 0.07), ('waist', 'gold', 0.08)],   # civ cuffs, the wide gold belt
         'cape': True, 'cape_length': 0.75, 'cape_flare': 0.9,   # flaring wide
         'sandals': False, 'bracers': False, 'gear': [],
