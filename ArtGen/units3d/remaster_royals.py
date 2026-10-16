@@ -338,14 +338,14 @@ REMASTER = {
         'beard': True, 'beard_style': 'mustache', 'beard_length_short': 0.01, 'beard_density': 450,   # lighter, smaller, thinner: not a blot
         'top': 'tunic', 'neck': 'high', 'coat_length': 0.2,   # the tunic to the hip
         # a bolder, larger tartan (it didn't read at 1x), on the tinted tunic and kilt
-        'patterns': {'top': ('tartan', '#1e3a24', 14.0), 'bottom': ('tartan', '#1e3a24', 14.0)},   # bigger checks
+        'patterns': {'top': ('tartan', '#14301c', 9.0), 'bottom': ('tartan', '#14301c', 9.0)},   # bigger checks
         'bottom': 'kilt', 'robe_drop': 0.0,     # the tinted kilt; MISSING: trousers under a skirt (dark green)
         'gear': [('chest_strap', {'color': '#5a3a22'})],
         'wraps': 'boots', 'cape': False, 'cuirass': False, 'sandals': False, 'bracers': True,
         'weapon': None, 'offhand': None,        # MISSING: shoulder_clasp
         # MISSING: back_angle (no key: the scabbard hangs vertically; the review wants it tilted so the hilt rises over the right shoulder)
         'back_tilt': 35.0, 'back': 'sheathed_sword', 'back_params': {'length': 0.9},
-        'shoulder_patch': ('r', 'gold'), 'patch_size': 0.05,   # the gold shoulder clasp
+        'shoulder_patch': ('l', 'gold'), 'patch_size': 0.075,   # the gold shoulder clasp
         'stance_name': 'stand',
         'tint': ['top', 'bottom'],
         'grime': 0.6, 'upper_bulk': 1.3,
@@ -359,14 +359,14 @@ REMASTER = {
                    'shoes': '#3a2418', 'belt': '#4e5664'},
         'helmet': None, 'hair': 'short', 'hair_asset': 'short02', 'beard': False,   # MISSING: balding_hair
         'top': 'sleeved', 'neck': 'high', 'bottom': 'long', 'wraps': 'shoes',   # MISSING: jacket pockets
-        'coat_length': 0.45,                    # the jacket below the hip (0.2 still read waist-length)
+        'coat_length': 0.3,                    # the jacket below the hip (0.2 still read waist-length)
         'bands': [('upperarm', 'tint', 0.06)],
         'cape': False, 'cuirass': False, 'sandals': False, 'bracers': False, 'gear': [],
         'weapon': None, 'offhand': None,
-        'pockets': '#4a5664', 'upper_bulk': 1.1,
+        'pockets': '#2e3640', 'pocket_size': 0.11,
         'stance_name': 'hands_clasped',
         'tint': [],
-        'grime': 0.3, 'upper_bulk': 1.05,
+        'grime': 0.3, 'upper_bulk': 1.1,
         'cloth_rough': 0.95,                    # the suit cloth read flat
     },
     'King Egyptian': {
@@ -568,6 +568,7 @@ REMASTER = {
         # MISSING: tinted_tip (the stick's top; no key on 'staff')
         'weapon': 'staff', 'props': {'staff': ('staff', {'length': 1.55, 'grip': 0.95})},
         'pose_extra': [('spine_02', (0, -0.3, 1)), ('neck_01', (0, -0.12, 1)), ('head', (0, 0.25, 1))],   # the walking stoop (-y forward)
+        'weapon_tip': 'tint',   # the tinted band at the stick's top
         'stance_name': 'stand_staff',           # MISSING: walking_stoop
         'tint': ['strap'],
         'grime': 0.4, 'upper_bulk': 0.95,
@@ -591,7 +592,7 @@ REMASTER = {
         'cape': False, 'cuirass': False, 'bracers': False,
         # MISSING: feathered_spear (fur/feather wrap below the head)
         # upright from the low right fist; check the butt meets the ground
-        'weapon': 'spear', 'props': {'spear': ('spear', {'length': 2.0, 'grip': 0.8})}, 'hang_dir': (-0.05, 0.0, 1.0),
+        'weapon': 'spear', 'props': {'spear': ('spear', {'length': 1.9, 'grip': 0.8})}, 'hang_dir': (-0.05, 0.0, 1.0),
         'offhand': 'shield_round', 'offhand_mesh': ('shield_round', {'r': 0.25, 'boss': False, 'tint': 'none'}),
         'shield_at': 'back',                # BUG: it sits on the front of the thigh, not at the hip side
         'stance_name': 'fist_hip_l',            # left fist on the hip

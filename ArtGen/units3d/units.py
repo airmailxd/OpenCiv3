@@ -358,7 +358,8 @@ def dress(entry, mesh, arm):
                style=entry.get('ruff_style', 'flat'))
     if entry.get('pockets'):
         # two patch pockets on the jacket front: a color (a shade darker than the jacket reads)
-        G.pockets(mesh, arm, _hem_mat(entry, c, entry['pockets'], 'pockets'), z_at=entry.get('pocket_z', 1.02))
+        G.pockets(mesh, arm, _hem_mat(entry, c, entry['pockets'], 'pockets'), z_at=entry.get('pocket_z', 1.02),
+                  size=entry.get('pocket_size', 0.075))
     sr = entry.get('shoulder_rolls')
     if sr:
         # puffed rolls over the shoulder seams (Renaissance doublets): 'gold'|'tint'|hex
@@ -798,6 +799,18 @@ def equip(entry, arm):
                 H.reach(arm, 'r', target, elbow_out=0.6)
                 H.fists(arm, sides='r')
         made.append(obj)
+        wt = entry.get('weapon_tip')
+        if wt:
+            # a colored band at the top end of the held pole (a tinted stick tip)
+            zmax = max(cn[2] for cn in obj.bound_box)
+            bpy.ops.mesh.primitive_cylinder_add(radius=0.026, depth=0.07, vertices=12, location=(0, 0, 0))
+            tip = bpy.context.active_object
+            tip.data.materials.append(_hem_mat(entry, c, wt, 'tip'))
+            tip.parent = obj
+            tip.matrix_parent_inverse.identity()
+            tip.location = (0.0, 0.0, zmax - 0.05)
+            sc = obj.matrix_world.to_scale()
+            tip.scale = (1.0 / sc[0], 1.0 / sc[1], 1.0 / sc[2]) if min(sc) > 0 else (1, 1, 1)
     if offhand:
         name, params = (entry['offhand_mesh'] if entry.get('offhand_mesh') else (offhand, {}))
         obj = P.make(name, c, **params)
