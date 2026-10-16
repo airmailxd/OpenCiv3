@@ -787,7 +787,7 @@ REMASTER = {
         'pauldrons': 'metal',                   # the gold puffed shoulders; MISSING: shoulder_rolls (bigger, puffed)
         'bottom': 'breeches',                   # the tinted trunk hose; MISSING: hose_slashes (dark, vertical)
         'hem_bands': [('bottom', 'gold', 0.03)],
-        'patterns': {'top': [('panel', '#c8a038', 0.12, 'front'), ('panel', '#ece8e0', 0.07, 'front')]},   # the white shirt front, gold edged
+        'patterns': {'top': [('stripes', '#c8a038', 14.0), ('panel', '#c8a038', 0.12, 'front'), ('panel', '#ece8e0', 0.07, 'front')]},   # gold slashes, the white shirt front   # the white shirt front, gold edged
         'wraps': 'wraps', 'shoes': True,        # the plain grey hose (band color = hose color: no stripes), black shoes
         'bands': [('wrist', 'gold', 0.06), ('knee', 'gold', 0.06)],   # gold cuffs and garters
         'cape': False, 'cuirass': False, 'sandals': False, 'bracers': False, 'gear': [],
@@ -836,7 +836,7 @@ REMASTER = {
         'top': 'sleeved', 'puffy': True, 'neck': 'high',
         # the vast bell skirt in vertical stripes of civ color and silver; MISSING: lace_hem
         'bottom': 'gown', 'gown_flare': 4.0, 'robe_drop': 0.62,
-        'patterns': {'bottom': ('stripes', '#c0c4cc', 7.0), 'top': ('panel', '#c8a038', 0.1, 'front')},   # silver brocade stripes on the civ bell, a gold bodice front
+        'patterns': {'bottom': ('camo', '#c0c4cc', 16.0, 'cover', 0.35), 'top': ('panel', '#c8a038', 0.1, 'front')},   # silver brocade stripes on the civ bell, a gold bodice front
         'hem_bands': [('bottom', '#f2efe8', 0.07)],   # the white lace frill
         'cape': False, 'cuirass': False, 'wraps': None, 'sandals': False, 'bracers': False,
         'gear': [],
@@ -1027,7 +1027,7 @@ REMASTER = {
         'bottom': 'kilt', 'robe_drop': 0.0, 'wraps': 'greaves', 'boots': True,
         # MISSING: the lion on the gold field, ermine_trim (collar)
         'cape': True, 'cape_length': 1.38, 'cape_flare': 0.9,   # a bell
-        'cape_emblem': ('disc', '#a88a44', 0.62),   # a muted gold field   # the large gold field inside the civ border
+        # (no back field: a flat panel read worse than none; MISSING: the gold lion emblem)
         'hem_bands': [('cape', '#f0ece4', 0.15), ('cape', '#b09a6a', 0.07, 0.3), ('cape', '#b09a6a', 0.07, 0.55)],   # fur hem, tan bands
         'sandals': False, 'bracers': False, 'gear': [],
         'weapon': 'sword', 'props': {'sword': ('long_sword', {'length': 0.95})},
@@ -1073,13 +1073,13 @@ REMASTER = {
         'bands': [('neck', 'tint'), ('upperarm', 'tint'), ('waist', 'gold', 0.05)],   # choker, glove tops, the gold waistband
         'bottom': 'gown', 'robe_drop': 0.6, 'gown_flare': 1.8,   # a fuller column
         # the gold front stripe (it also runs down the back, which the original hasn't: MISSING front_only)
-        'patterns': {'bottom': [('camo', 'tint', 14.0, 'cover', 0.12), ('panel', '#c8a038', 0.035, 'front')]},   # the civ spots, the gold stripe   # the gold front stripe
+        'patterns': {'bottom': [('camo', 'tint', 8.0, 'cover', 0.14), ('panel', '#c8a038', 0.035, 'front')]},   # the civ spots, the gold stripe   # the gold front stripe
         'hem_bands': [('bottom', 'tint', 0.07), ('bottom', 'tint', 0.05, 0.12)],   # the civ hem and a band of civ above it
         'bracers': False, 'long_gloves': ('arm', 'tint'),   # the long tinted gloves, over the hands
         
         'cape': False, 'cuirass': False, 'wraps': None, 'sandals': False, 'gear': [],
         # the short gold scepter raised; MISSING: left_hand_hold
-        'weapon': 'scepter', 'props': {'scepter': ('scepter', {'length': 0.5, 'head': 'orb'})},
+        'weapon': 'scepter', 'props': {'scepter': ('scepter', {'length': 0.5, 'head': 'orb', 'shaft': 'tint'})},
         'stance_name': 'royal',
         'tint': ['top'],   # the civ bodice, as the original
         'grime': 0.3, 'upper_bulk': 0.9,
@@ -1094,7 +1094,7 @@ REMASTER = {
         'colors': {'skin': '#d8ae8e', 'hair': '#cfcac0', 'beard': '#e0dcd4', 'top': '#5a5a5e', 'bottom': '#3a3a3e',
                    'shoes': '#2a2420', 'belt': '#2a2a2e', 'wood': '#18181a', 'leather': '#18181a',
                    'lacquer': '#18181a', 'gold': '#3a3a3e'},
-        'helmet': None, 'hair': 'long', 'hair_asset': None, 'mane': 0.0, 'wild_hair': 0.03, 'hair_receding': True, 'hair_clump': 0.8, 'hair_frizz': 0.4,   # the wild white hair
+        'helmet': None, 'hair': 'short', 'hair_asset': 'short02', 'mane': 0.04,   # grey-white hair with flyaway tufts at the back and sides (particle hair hid the face)
         'beard': True, 'beard_style': 'mustache',   # the big white mustache
         'top': 'sleeved', 'neck': 'high', 'bottom': 'long', 'wraps': 'shoes',   # MISSING: suit_jacket (open, lapels)
         # the tinted tie: a narrow non-metal 'cuirass' strip (it also runs down the back: MISSING tie, front only)
@@ -1134,8 +1134,8 @@ REMASTER = {
         'chest_emblem': ('v', '#e0dcd4', 0.24),   # the white V collar
         'bands': [('neck', 'collar_w'), ('wrist', 'gold')],
         'cape': False, 'wraps': 'boots', 'sandals': False, 'bracers': False, 'gear': [],   # the white tabi
-        'weapon': 'sword', 'props': {'sword': ('katana', {'length': 0.75})},
-        'stance_name': 'port_arms', 'gun_dir': (0.4, -0.5, 0.78), 'fore_end': 0.16,   # raised over the right shoulder, up and back   # the katana raised two-handed by the right shoulder
+        'weapon': 'sword', 'props': {'sword': ('katana', {'length': 0.95})},
+        'stance_name': 'shoulder_arms',   # the hilt at the right shoulder, the blade up and back
         'tint': ['top', 'bottom', 'sleeves', 'helmet'],   # the civ kabuto bowl, as the original
         'grime': 0.45, 'upper_bulk': 1.3,
     },

@@ -27,6 +27,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
 import bscene as B  # noqa: E402
+import aircraft  # noqa: E402
 import armor  # noqa: E402
 import chariots  # noqa: E402
 import elephant  # noqa: E402
@@ -43,6 +44,8 @@ def build(unit):
         return ships.build(unit)
     if unit in armor.UNITS:
         return armor.build(unit)
+    if unit in aircraft.UNITS:
+        return aircraft.build(unit)
     if unit in elephant.UNITS:
         catalog = json.load(open(os.path.join(HERE, '..', '_previews', 'units3d', 'catalog.json'), encoding='utf-8'))
         return elephant.build(unit, catalog[unit])
@@ -126,8 +129,11 @@ def render(unit, use_calibration=False, tag=''):
     os.makedirs(out, exist_ok=True)
     scene = B.reset_scene()
     device = B.use_gpu(scene)
-    B.lights()
-    B.ground()
+    key = B.lights()
+    gp = B.ground()
+    if unit in aircraft.UNITS:   # a big ground for the high shadow, softened like the originals' blurred ones
+        gp.scale = (6.0, 6.0, 1.0)
+        key.data.angle = math.radians(12.0)
     B.tint_aov()
     if os.environ.get('CRISP') == '1':   # crisper: no denoiser smoothing, more samples, a sharper pixel filter
         scene.cycles.use_denoising = False

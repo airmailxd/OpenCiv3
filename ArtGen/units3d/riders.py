@@ -291,8 +291,9 @@ def feather_headdress(p, c, tinted, _, style=None, cascade=None, front=None, cre
     if cascade == 'back':
         for i in range(9):
             x = -0.09 + 0.18 * i / 8
-            pts = [(x, -0.1, 0.12), (x * 1.3, -0.2, 0.02), (x * 1.5, -0.24, -0.3), (x * 1.6, -0.22, -0.68)]
-            p.add(props.tube(pts, [0.03, 0.04, 0.04, 0.025], seg=6, scale_xy=(1.0, 0.35)), 'feather', smooth=True)
+            pts = [(x, -0.1, 0.12), (x * 1.3, -0.2, 0.02), (x * 1.5, -0.25, -0.35), (x * 1.6, -0.26, -0.75),
+                   (x * 1.7, -0.24, -1.05)]   # down to the waist
+            p.add(props.tube(pts, [0.03, 0.045, 0.045, 0.04, 0.025], seg=6, scale_xy=(1.0, 0.35)), 'feather', smooth=True)
     if style == 'crown':
         p.add(props.lathe([(0.0, 0.118), (0.05, 0.12)], seg=24), 'fur', smooth=True)
         for row, (n, lift, spread, h) in enumerate(((22, 0.02, 0.22, 0.13), (16, 0.05, 0.17, 0.17))):

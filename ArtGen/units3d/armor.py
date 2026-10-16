@@ -32,7 +32,7 @@ for _k, _v in {'armor_paint': ('#7a6e4a', 0.7, 0.3, 'metal'), 'armor_camo2': ('#
                'canvas': ('#7a7254', 0.9, 0.0, 'leather'), 'mark_red': ('#8a3424', 0.6, 0.1, 'metal'),
                'mark_white': ('#e4e2da', 0.6, 0.1, 'metal'), 'lens': ('#e8e4c8', 0.2, 0.3, 'polished'),
                'missile_white': ('#ecebe6', 0.45, 0.2, 'metal'), 'missile_red': ('#b0302a', 0.45, 0.2, 'metal'),
-               'port': ('#0e0c0a', 0.9, 0.0, 'polished')}.items():
+               'port': ('#0e0c0a', 0.9, 0.0, 'polished'), 'tow_tan': ('#c09454', 0.65, 0.3, 'metal')}.items():
     props.DEFAULTS.setdefault(_k, _v)
 WEAR = {'armor_paint': {'grime': 0.5, 'soot': 0.25, 'edges': 0.5, 'rust': 0.06}, 'armor_camo2': {'grime': 0.5},
         'armor_camo3': {'grime': 0.45}, 'armor_camo4': {'grime': 0.5}, 'armor_shade': {'grime': 0.6, 'soot': 0.4},
@@ -126,12 +126,18 @@ def _shape(kind, s):
         for i in range(17):
             a = math.radians(40 + 280 * i / 16)
             out.append((s * math.cos(a), s * math.sin(a)))
-            inn.append((s * 0.6 * math.cos(a), s * 0.6 * math.sin(a)))
+            inn.append((s * 0.4 * math.cos(a), s * 0.4 * math.sin(a)))   # a thick, bold arc
         # two halves keep each n-gon simple
         return [out[:9] + inn[:9][::-1], out[8:] + inn[8:][::-1]]
+    if kind == 'bracket':   # a bold open bracket (the Panzer's civ mark)
+        w = s * 0.4
+        return [[(-0.6 * s, -s), (0.6 * s, -s), (0.6 * s, -s + w), (-0.6 * s + w, -s + w), (-0.6 * s + w, s - w),
+                 (0.6 * s, s - w), (0.6 * s, s), (-0.6 * s, s)]]
+    if kind == 'tri':   # a filled triangle pointing up
+        return [[(0, 0.75 * s), (s, -0.55 * s), (-s, -0.55 * s)]]
     if kind == 'chevron':
-        return [[(0, 0.6 * s), (s, -0.45 * s), (0.58 * s, -0.45 * s), (0, 0.1 * s)],
-                [(0, 0.6 * s), (0, 0.1 * s), (-0.58 * s, -0.45 * s), (-s, -0.45 * s)]]
+        return [[(0, 0.6 * s), (s, -0.45 * s), (0.4 * s, -0.45 * s), (0, -0.05 * s)],
+                [(0, 0.6 * s), (0, -0.05 * s), (-0.4 * s, -0.45 * s), (-s, -0.45 * s)]]
     if kind == 'rect':
         w, h = s
         return [[(-w / 2, -h / 2), (w / 2, -h / 2), (w / 2, h / 2), (-w / 2, h / 2)]]
@@ -465,8 +471,8 @@ def _tank(p, cfg, d, camo):
     p.add(props.box(W * 0.6, 0.03, 0.12), 'armor_shade', T(0, hy - Lh / 2 - 0.02, d['z_f'] - 0.02) @ R('X', -20), bevel=0.006)
     # civ stars: big on both hull sides and the glacis corners
     for sx in (-1, 1):
-        mark(p, 'star', 0.13, (sx * (W / 2 + 0.005), hy - Lh * 0.02, d['z_f'] + H * 0.5), (sx, 0, 0))
-        mark(p, 'star', 0.08, (sx * W * 0.34, gy + (hy + Lh / 2 - gy) * 0.45 + 0.005, d['z_f'] + H * 0.55 + 0.005), gn)
+        mark(p, 'star', 0.17, (sx * (W / 2 + 0.005), hy - Lh * 0.02, d['z_f'] + H * 0.5), (sx, 0, 0))
+        mark(p, 'star', 0.12, (sx * W * 0.3, gy + (hy + Lh / 2 - gy) * 0.45 + 0.005, d['z_f'] + H * 0.55 + 0.005), gn)
 
 
 def _panzer(p, cfg, d, camo):
@@ -487,7 +493,7 @@ def _panzer(p, cfg, d, camo):
           bevel=0.01, keys=camo)
     # mantlet, gun, coax
     p.add(plate(0.24, 0.1, 0.15, cell=0.04), 'armor_paint', T(0, ty + tl / 2 * 0.82 + 0.03, deck + 0.13), bevel=0.02, keys=camo)
-    gun(p, (0, ty + tl / 2 * 0.82 + 0.08, deck + 0.13), 0.62, 0.044, muzzle='brake')
+    gun(p, (0, ty + tl / 2 * 0.82 + 0.08, deck + 0.13), 0.4, 0.05, muzzle='brake')   # the short 75 mm
     vkit.rod(p, (-0.08, ty + tl / 2 * 0.82 + 0.06, deck + 0.13), (-0.08, ty + tl / 2 * 0.82 + 0.13, deck + 0.13), 0.009, 'gunmetal', seg=6)
     # the cupola at the rear, side hatches, vision ports
     p.add(props.lathe([(0, 0.1), (0.07, 0.095), (0.08, 0.07)], seg=20), 'armor_paint', T(0, ty - tl * 0.3, roof), smooth=True)
@@ -522,9 +528,9 @@ def _panzer(p, cfg, d, camo):
     for sx in (-1, 1):
         cross_mark(p, 0.075, (sx * (W / 2 + 0.005), hy + Lh * 0.08, z_f + H * 0.5), (sx, 0, 0))
         cross_mark(p, 0.05, (sx * tw_ * 0.47, ty - 0.12, deck + 0.13), (sx, 0, 0.18))
-        mark(p, 'E', 0.11, (sx * W * 0.34, fy + 0.008, z_f + H * 0.55), (0, 1, 0), rot=0)
-        mark(p, 'E', 0.1, (sx * W * 0.3, hy - Lh / 2 - 0.006, z_f + H * 0.55), (0, -1, 0))
-        mark(p, 'E', 0.1, (sx * (W / 2 + 0.005), hy - Lh * 0.36, z_f + H * 0.5), (sx, 0, 0))
+        mark(p, 'bracket', 0.14, (sx * W * 0.33, fy + 0.008, z_f + H * 0.5), (0, 1, 0), rot=0 if sx < 0 else 180)
+        mark(p, 'bracket', 0.13, (sx * W * 0.3, hy - Lh / 2 - 0.006, z_f + H * 0.5), (0, -1, 0), rot=0 if sx > 0 else 180)
+        mark(p, 'bracket', 0.13, (sx * (W / 2 + 0.005), hy - Lh * 0.36, z_f + H * 0.5), (sx, 0, 0))
         cross_mark(p, 0.05, (sx * W * 0.12, fy + 0.008, z_f + H * 0.5), (0, 1, 0))
 
 
@@ -578,10 +584,11 @@ def _abrams(p, cfg, d, camo):
     # civ C arcs: turret sides and cheeks; a civ panel on each skirt's rear
     for sx in (-1, 1):
         sxn = Vector((sx, 0.0, 0.12)).normalized()
-        mark(p, 'C', 0.11, (sx * tw_ * 0.47, ty - 0.08, deck + 0.015 + th_ * 0.5), sxn, rot=0)
+        mark(p, 'C', 0.16, (sx * tw_ * 0.47, ty - 0.08, deck + 0.015 + th_ * 0.5), sxn, rot=0)
         ch = Vector((sx * 0.9, 1.0, 0.4)).normalized()
-        mark(p, 'C', 0.075, (sx * tw_ * 0.3, ty + tl * 0.38, deck + 0.015 + th_ * 0.45), ch)
-        mark(p, 'rect', (0.16, 0.07), (sx * (W / 2 + 0.03), -d['L'] * 0.38, d['z_f'] - 0.05), (sx, 0, 0))
+        mark(p, 'C', 0.12, (sx * tw_ * 0.3, ty + tl * 0.38, deck + 0.015 + th_ * 0.45), ch)
+        mark(p, 'rect', (0.22, 0.1), (sx * (W / 2 + 0.03), -d['L'] * 0.38, d['z_f'] - 0.05), (sx, 0, 0))
+        mark(p, 'C', 0.12, (sx * W * 0.3, d['glacis_y'] + 0.25, deck - 0.06), d['gn'])   # on the glacis
 
 
 def _bradley(p, cfg, d, camo):
@@ -604,7 +611,7 @@ def _bradley(p, cfg, d, camo):
     p.add(props.lathe([(0, 0.022), (0.05, 0.022)], seg=10), 'gunmetal', T(tx, fy + 0.85, deck + 0.13) @ R('X', -89), smooth=True)
     vkit.rod(p, (tx + 0.08, fy + 0.06, deck + 0.1), (tx + 0.08, fy + 0.2, deck + 0.1), 0.008, 'gunmetal', seg=6)
     # the TOW launcher box on the turret's left
-    p.add(props.box(0.14, 0.42, 0.13), 'turret_paint', T(tx - tw_ * 0.5 - 0.06, ty - 0.02, roof - 0.07), bevel=0.012)
+    p.add(props.box(0.14, 0.42, 0.13), 'tow_tan', T(tx - tw_ * 0.5 - 0.06, ty - 0.02, roof - 0.07), bevel=0.012)
     for z in (roof - 0.04, roof - 0.1):
         p.add(props.lathe([(0, 0.032), (0.006, 0.032)], seg=12), 'port', T(tx - tw_ * 0.5 - 0.06, ty + 0.19, z) @ R('X', -90), smooth=True)
     # hatches, periscopes, sight, smoke banks
@@ -637,11 +644,12 @@ def _bradley(p, cfg, d, camo):
     p.add(props.box(0.12, 0.016, 0.16), 'armor_shade', rq @ T(-W * 0.12, 0, 0))   # its door
     stowage(p, (W * 0.38, hy - Lh * 0.38, deck), (0.14, 0.28, 0.07), key='armor_camo2', straps=2)
     # civ patches: the turret top and the four hull corners
-    mark(p, 'rect', (0.2, 0.14), (tx - 0.02, ty - 0.2, roof + 0.004), (0, 0, 1))
+    mark(p, 'rect', (0.32, 0.24), (tx - 0.02, ty - 0.12, roof + 0.004), (0, 0, 1))
     for sx in (-1, 1):
-        mark(p, 'rect', (0.16, 0.1), (sx * W * 0.38, gy - 0.18, deck + 0.004), (0, 0, 1))
-        mark(p, 'rect', (0.16, 0.1), (sx * W * 0.38, hy - Lh * 0.44, deck + 0.004), (0, 0, 1))
-        mark(p, 'rect', (0.18, 0.09), (sx * (W / 2 + 0.03), d['L'] * 0.38, z_f - 0.05), (sx, 0, 0))
+        mark(p, 'rect', (0.22, 0.2), (sx * W * 0.36, gy - 0.16, deck + 0.004), (0, 0, 1))
+        mark(p, 'rect', (0.22, 0.2), (sx * W * 0.36, hy - Lh * 0.42, deck + 0.004), (0, 0, 1))
+        mark(p, 'rect', (0.28, 0.13), (sx * (W / 2 + 0.03), d['L'] * 0.36, z_f - 0.06), (sx, 0, 0))
+        mark(p, 'rect', (0.2, 0.14), (sx * (W / 2 + 0.005), hy - Lh * 0.4, z_f + H * 0.55), (sx, 0, 0))
 
 
 def _sam(p, cfg, d, camo):
@@ -708,8 +716,16 @@ def _mlrs(p, cfg, d, camo):
         p.add(props.box(W * 0.18, 0.016, ch * 0.24), 'port', T(x, win_y + 0.004, deck + ch * 0.62) @ _q(wn) @ R('X', 90))
     for sx in (-1, 1):
         p.add(props.box(0.016, cl * 0.4, ch * 0.24), 'port', T(sx * (W / 2 * 0.95), cy, deck + ch * 0.62))
-    for k in range(6):   # louvres across the cab front below the windows
-        p.add(props.box(W * 0.6, 0.02, 0.012), 'armor_shade', T(0, fyh + 0.004, z_f + H * 0.2 + 0.035 * k) @ R('X', 20))
+    p.add(props.box(W * 0.62, 0.02, H * 0.85), 'gunmetal', T(0, fyh + 0.002, z_f + H * 0.45))   # the grille frame
+    for k in range(7):   # louvres across the cab nose
+        p.add(props.box(W * 0.58, 0.022, 0.014), 'armor_shade', T(0, fyh + 0.012, z_f + H * 0.12 + 0.03 * k) @ R('X', 25))
+    for sx in (-1, 1):   # headlight panels and tow eyes
+        p.add(props.box(0.14, 0.03, 0.09), 'armor_paint', T(sx * W * 0.4, fyh + 0.012, z_f + H * 0.55), bevel=0.008)
+        for dx in (-0.035, 0.035):
+            p.add(props.lathe([(0, 0.02), (0.01, 0.02)], seg=10), 'lens',
+                  T(sx * W * 0.4 + dx, fyh + 0.028, z_f + H * 0.58) @ R('X', -90), smooth=True)
+        p.add(props.lathe([(0, 0.025), (0.03, 0.02)], seg=8), 'gunmetal',
+              T(sx * W * 0.25, fyh + 0.01, z_f + H * 0.05) @ R('X', -90), smooth=True)
     for sx in (-1, 1):
         light(p, sx * W * 0.42, fyh - 0.02, z_f + H * 0.6, r=0.022, guard=True)
     hatch(p, -W * 0.25, cy - cl * 0.1, deck + ch, 0.07)
@@ -743,8 +759,8 @@ def _mlrs(p, cfg, d, camo):
                       T(sx * W * 0.25 + (i - 1) * W * 0.14, fz - 0.003, bz - bh * 0.2 + j * bh * 0.4) @ R('X', -90), smooth=True)
     # civ chevrons: big on the box sides and the top
     for sx in (-1, 1):
-        mark(p, 'chevron', 0.21, (sx * (W * 0.49 + 0.012), by - bl * 0.05, bz), (sx, 0, 0))
-    mark(p, 'chevron', 0.24, (0, by - bl * 0.05, bz + bh / 2 + 0.01), (0, 0, 1))
+        mark(p, 'tri', 0.2, (sx * (W * 0.49 + 0.012), by - bl * 0.05, bz), (sx, 0, 0))
+    mark(p, 'tri', 0.26, (0, by - bl * 0.05, bz + bh / 2 + 0.01), (0, 0, 1))
     mark(p, 'rect', (0.1, 0.06), (W * 0.3, cy - cl * 0.25, deck + ch + 0.004), (0, 0, 1))
 
 
@@ -759,9 +775,9 @@ ARMOR = {
     'Panzer': dict(L=1.68, W=1.06, H=0.3, tw=0.2, rw=0.075, wheels=8, rollers=4, holes=6,
                    front_wheel=(0.76, 0.21, 0.085), rear_wheel=(-0.78, 0.16, 0.08),
                    upper=dict(front=0.04, rear=0.08), nose=0.55,
-                   paint='#a4aa80', camo=[('armor_camo2', 9.0, 0.18, 2.0), ('armor_camo3', 12.0, 0.3, 7.0),
+                   paint='#b2ae88', camo=[('armor_camo2', 9.0, 0.18, 2.0), ('armor_camo3', 12.0, 0.3, 7.0),
                                           ('armor_camo4', 14.0, 0.42, 11.0)],
-                   camo2='#7a8a5c', camo3='#c8c8a6', camo4='#5a6446', builder=_panzer),
+                   camo2='#8a9072', camo3='#c8c2a0', camo4='#767a60', builder=_panzer),
     # an M1 Abrams in desert camo, side skirts
     'Modern Armor': dict(L=2.1, W=0.96, H=0.24, tw=0.2, rw=0.085, wheels=7, rollers=0, skirt=True, holes=6,
                          sprocket='rear', front_wheel=(0.96, 0.17, 0.08), rear_wheel=(-0.96, 0.16, 0.085),
@@ -785,8 +801,8 @@ ARMOR = {
     'Radar Artillery': dict(L=1.8, W=1.0, H=0.22, tw=0.2, rw=0.08, wheels=6, rollers=0, holes=6,
                             front_wheel=(0.82, 0.18, 0.085), rear_wheel=(-0.84, 0.16, 0.08),
                             upper=dict(front=0.1, rear=0.04), nose=0.3,
-                            paint='#c8a670', camo=[('armor_camo2', 6.0, 0.3, 4.0)],
-                            camo2='#a08458', camo3='#9a968a', builder=_mlrs),
+                            paint='#c8a670', camo=[('armor_camo2', 5.0, 0.15, 4.0), ('armor_camo4', 7.0, 0.35, 8.0)],
+                            camo2='#9a7a4e', camo3='#9a968a', camo4='#7a6040', builder=_mlrs),
 }
 
 

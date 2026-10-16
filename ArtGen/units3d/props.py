@@ -1734,12 +1734,14 @@ def _cross(p, z, s=1.0):
     p.add(box(0.045 * s, 0.012 * s, 0.012 * s), 'gold', T(0, 0, z + 0.05 * s), bevel=0.002)
 
 
-def scepter(p, length=0.7, head='orb', scale=1.0):
+def scepter(p, length=0.7, head='orb', scale=1.0, shaft='gold'):
     """A gold scepter held at its grip (origin), +Z up: a slender rod with
-    rings and an ornate head ('orb', 'cross', 'eagle' or 'fleur')."""
+    rings and an ornate head ('orb', 'cross', 'eagle' or 'fleur');
+    shaft='tint' paints the rod civ-colored (the Princess's)."""
     L = length * scale
-    p.add(tube([(0, 0, -0.18 * scale), (0, 0, L - 0.18 * scale)], [0.012 * scale, 0.014 * scale], seg=10), 'gold',
-          smooth=True)
+    r = 1.6 if shaft == 'tint' else 1.0   # a civ rod a little thicker, so the color reads at 1x
+    p.add(tube([(0, 0, -0.18 * scale), (0, 0, L - 0.18 * scale)], [0.012 * scale * r, 0.014 * scale * r], seg=10), shaft,
+          smooth=True, tint=shaft == 'tint')
     for z in (0.15, 0.3):
         p.add(lathe([(0.0, 0.02), (0.012, 0.02)], seg=12), 'gold', T(0, 0, z * L), smooth=True)
     _gold_head(p, head, L - 0.18 * scale, scale)
