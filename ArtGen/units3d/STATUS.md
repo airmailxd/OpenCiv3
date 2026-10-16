@@ -11,8 +11,7 @@ original shows are blockers, not polish. Earlier PASSes need a re-check on this 
 
 | Unit | State | Open notes |
 |------|-------|-----------|
-| Warrior, Spearman, Archer, Swordsman, Settler | PASS on all 6 axes (re-checked with the detail axis) | polish only |
-| Worker | 6/6/8/7/7/7, round 8 | second hand fixed (tool slides through the left fist): rebuilding |
+| Warrior, Spearman, Archer, Swordsman, Settler, Worker | **all PASS** on all 6 axes (detail included) | polish only |
 | Footmen batch A (11, Mac) | round 3: none pass; Bowman, Chasquis, Explorer, Hoplite one axis off | round-3 fixes applied, round 4 queued |
 | Footmen batch B (11, **PC**) | Legionary, Medieval Infantry PASS | handed over with reviews/footmen_round3.md |
 | 12 soldiers (**PC**) | round 2: Musketeer, Rifleman, Crusader close | handed over 2026-10-15 |
