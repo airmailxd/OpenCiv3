@@ -115,9 +115,10 @@ REMASTER = {
         'grime': 0.85, 'upper_bulk': 1.35,
     },
     'Enslaved Worker': {
-        # a gaunt labourer: long hair and beard, a sleeveless olive tunic,
+        # a sturdy, broad labourer at rest: long hair and beard, a sleeveless olive tunic,
         # one civ-color strap across the chest, iron shackles, a spade
-        'shackles': True, 'macro': {'muscle': 0.8, 'weight': 0.4, 'height': 0.7, 'proportions': 0.72}, 'age': 0.7,
+        'shackles': True, 'macro': {'muscle': 0.95, 'weight': 0.65, 'height': 0.7, 'proportions': 0.72}, 'age': 0.7,
+        'physique': 0.5,
         'colors': {'skin': '#a07a58', 'hair': '#3a2616', 'top': '#a8ae88', 'bottom': '#a8ae88',
                    'belt': '#2e2418', 'sandal': '#2e2016', 'wood': '#4e3622', 'steel': '#5a5a5a',
                    'iron': '#2e2e30'},
@@ -131,13 +132,9 @@ REMASTER = {
         'props': {'shovel': ('shovel', {'length': 1.45})},
         'stance_name': 'hang',            # MISSING: spade_upright (blade on the ground at his right side)
         'hang_dir': (-0.1, -0.15, -1.0),         # the spade angled out, blade just above the ground by the right foot
-        # bowed and weary (-y is forward). The 'hang' stance already sets spine_02
-        # -0.22 / neck_01 -0.12 / head 0.1, so the old values here were a no-op;
-        # these lean further than the stance so the bow actually shows
-        'pose_extra': [('spine_02', (0, -0.3, 1)), ('spine_03', (0, -0.3, 1)), ('neck_01', (0, -0.3, 1)),
-                       ('head', (0, 0.0, 1))],
+        # (no bowed pose_extra: the original stands at rest, not slumped)
         'tint': ['strap'],
-        'grime': 1.0, 'upper_bulk': 1.05,   # grime only dirties skin
+        'grime': 1.0, 'upper_bulk': 1.2,    # grime only dirties skin
         'cloth_dirt': 0.8,                  # heavy brown stains on the tunic; MISSING: frayed (a ragged hem)
     },
     'Explorer': {
@@ -247,7 +244,7 @@ REMASTER = {
         # wrist bands, and cow-tail tufts on the calves
         'macro': {'muscle': 1.0, 'weight': 0.7, 'height': 0.78, 'proportions': 0.7},
         'race': {'caucasian': 0.0, 'african': 1.0, 'asian': 0.0},
-        'colors': {'skin': '#6a5040', 'hair': '#0e0a08',   # browner, less red (the builder pulls dark skin hue toward neutral brown)
+        'colors': {'skin': '#5e4232', 'hair': '#0e0a08',   # hue toward ~20 deg, as the original; browner, less red (the builder pulls dark skin hue toward neutral brown)
                    'helmet': '#2a1e14', 'bottom': '#4a3424',
                    'belt': '#2e2016', 'wraps': '#d8d0c0', 'wraps_band': '#2a2420', 'gold': '#b08a2a',
                    'hide': '#d4ccbc', 'hide_dark': '#1e1612', 'wood': '#3e2a1a', 'steel': '#a8aaae'},
