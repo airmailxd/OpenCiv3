@@ -36,6 +36,7 @@ _KEY_EL = math.radians(66)
 KEY = Vector((-math.cos(_KEY_EL) * 0.7071, math.cos(_KEY_EL) * 0.7071, math.sin(_KEY_EL)))
 FILL = Vector((0.55, -0.65, 0.35)).normalized()
 RIM = Vector((0.35, 0.85, 0.25)).normalized()
+FACE = Vector((0.0, -1.0, 0.12)).normalized()      # low, from the camera's side: faces under brims
 
 DIR_VECTORS = [(-1, -1), (0, -1), (1, -1), (1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0)]
 
@@ -50,6 +51,7 @@ class Look:
     key = 5.6           # sun strengths (W/m^2): a strong NW key and deep
     fill = 0.30         # shading on the southeast side, like Civ3's units
     rim = 0.7
+    face = 0.5          # a weak, shadowless front fill (faces read as dark blobs under helmets)
     sky = (0.60, 0.64, 0.70)
     sky_strength = 0.32
     samples = 96
@@ -109,6 +111,8 @@ def lights():
     key = _sun('Key', KEY, Look.key, angle_deg=2.5)   # crisp shadow edges
     _sun('Fill', FILL, Look.fill, shadow=False, angle_deg=20.0)
     _sun('Rim', RIM, Look.rim, shadow=False, angle_deg=10.0)
+    if Look.face:
+        _sun('Face', FACE, Look.face, shadow=False, angle_deg=30.0)
     world = bpy.data.worlds.new('Sky')
     world.use_nodes = True
     bg = world.node_tree.nodes['Background']
