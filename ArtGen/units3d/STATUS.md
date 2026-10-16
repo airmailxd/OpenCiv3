@@ -12,10 +12,10 @@ original shows are blockers, not polish. Earlier PASSes need a re-check on this 
 | Unit | State | Open notes |
 |------|-------|-----------|
 | Warrior, Spearman, Archer, Swordsman, Settler, Worker | **all PASS** on all 6 axes (detail included) | polish only |
-| Footmen | 21/22 PASS | Impi: waits on the PC's tapered feather cards |
-| 12 soldiers, siege crews, ships, armor, aircraft (PC) | all PASS (PC reports) | see STATUS_PC.md |
-| Royals half 1 (Mac) | 12 PASS | PC took the 7 prop-blocked ones (TODO_PC.md); Mac still on Byzantines, Chinese, Indian, Iroquois |
-| Royals half 2 (PC) | 17+ PASS (PC's last report) | |
+| Pilots (6) | **all PASS** | |
+| Footmen (22) | **all PASS** | |
+| Soldiers (12), siege with crews, ships (18), armor (6), aircraft/rockets/relic (11) | **all PASS** (PC) | see STATUS_PC.md |
+| Royals (44) | **40 PASS** | the last 4 (Iroquois, Chinese, Indian, Byzantines) handed to the PC (TODO_PC.md round 2) |
 
 ## Owner decisions waiting (stzur)
 1. **Look approval**: then `build.py --install` into C7/ModernArt, thumbnails, PR/merge (nothing installed yet).
