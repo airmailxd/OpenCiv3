@@ -293,11 +293,13 @@ def feather_headdress(p, c, tinted, _, style=None, cascade=None):
         return
     p.add(props.lathe([(0.0, 0.114), (0.04, 0.114)], seg=24), 'tint', smooth=True, tint=True)
     if style == 'bushy':
+        rnd = props.random.Random(17)   # a little irregular, not a brush
         for row, (n, lift, spread, h) in enumerate(((18, 0.02, 0.2, 0.15), (13, 0.06, 0.14, 0.17))):
             for i in range(n):
-                a = 2 * math.pi * (i + 0.5 * row) / n
+                a = 2 * math.pi * (i + 0.5 * row + rnd.uniform(-0.25, 0.25)) / n
                 base = (0.11 * math.sin(a), 0.11 * math.cos(a), lift)
-                tip = (spread * math.sin(a), spread * math.cos(a), lift + h)
+                sp, hh = spread * rnd.uniform(0.85, 1.15), h * rnd.uniform(0.75, 1.2)
+                tip = (sp * math.sin(a), sp * math.cos(a), lift + hh)
                 mid = tuple(0.5 * (b + t) for b, t in zip(base, tip))
                 mid = (mid[0] * 1.08, mid[1] * 1.08, mid[2] + 0.02)   # curving outward
                 p.add(props.tube([base, mid, tip], [0.03, 0.05, 0.028], seg=6, scale_xy=(1.0, 0.5)), 'tint',
@@ -554,8 +556,12 @@ def beret_feather(p, c, tinted, plume_tinted):
 def conical_helmet(p, c, tinted, _):
     """A Norse conical helmet with a nasal guard."""
     p.add(props.lathe([(-0.005, 0.118), (0.06, 0.11), (0.15, 0.04), (0.2, 0.0)], seg=24), 'helmet', smooth=True)
-    p.add(props.box(0.022, 0.012, 0.09), 'helmet', T(0, 0.118, -0.04), bevel=0.004)
-    p.add(props.lathe([(-0.005, 0.12), (0.012, 0.12)], seg=24), 'bronze', smooth=True)
+    p.add(props.box(0.03, 0.016, 0.11), 'helmet', T(0, 0.12, -0.05), bevel=0.005)   # the nasal bar
+    p.add(props.lathe([(-0.005, 0.12), (0.016, 0.12)], seg=24), 'bronze', smooth=True)
+    for i in range(14):   # rivets round the brow band
+        a = 2 * math.pi * i / 14
+        p.add(props.ellipsoid(0.008, 0.008, 0.008, seg=6), 'helmet', T(0.124 * math.sin(a), 0.124 * math.cos(a), 0.005),
+              smooth=True)
 
 
 @hat('morion_big')

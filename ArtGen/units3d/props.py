@@ -816,7 +816,7 @@ def _round_device(rr, emblem):
 
 
 def shield_round(p, r=0.24, dome=0.045, boss=True, scale=1.0, tint='both', face_tint=False, emblem=None,
-                 boss_key=None):
+                 boss_key=None, face_metal=False):
     """The Swordsman's small round shield: a dark plank board, a rim and boss
     in the civ color (tint, as in the original); arm strap at the origin.
     tint: 'both', 'rim', 'boss' or 'none' (which parts take the civ color;
@@ -826,7 +826,8 @@ def shield_round(p, r=0.24, dome=0.045, boss=True, scale=1.0, tint='both', face_
     paints a device on the face; boss_key overrides the boss's material."""
     rr = r * scale
     thick, gap = 0.02, -0.045
-    face_key = 'shield_emblem' if face_tint else 'shield_face'
+    # face_metal: a bronze-faced shield (the Hoplite's aspis), not a wooden board
+    face_key = 'shield_emblem' if face_tint else ('bronze' if face_metal else 'shield_face')
     p.add(domed_disc(rr, rr, thick, dome, rings=10 if emblem else 6, seg=64 if emblem else 40), face_key,
           T(0, gap, 0), smooth=True, tint=face_tint, keys=_round_device(rr, emblem) if emblem else None)
     k = 56
@@ -909,10 +910,10 @@ def quiver(p, arrows=7, scale=1.0):
         a = 2 * math.pi * i / arrows
         x, y = 0.035 * s * math.cos(a), 0.024 * s * math.sin(a)
         tilt = R('X', rnd.uniform(-5, 5)) @ R('Y', rnd.uniform(-5, 5))
-        p.add(tube([(0, 0, -0.1), (0, 0, 0.1)], 0.0055, seg=5), 'wood', T(x, y, 0.0) @ tilt, smooth=True)
-        for f in (0, 120, 240):
-            fl = slab([(0.0, 0.0), (0.02, 0.012), (0.022, 0.1), (0.0, 0.09)], 0.002, 'X')
-            p.add(fl, 'fletch', T(x, y, 0.0) @ tilt @ R('Z', f + rnd.uniform(-20, 20)))
+        p.add(tube([(0, 0, -0.1), (0, 0, 0.16)], 0.0055, seg=5), 'wood', T(x, y, 0.0) @ tilt, smooth=True)
+        for f in (0, 120, 240):   # pale fletching standing out of the mouth, big enough to read at 2x
+            fl = slab([(0.0, 0.0), (0.034, 0.02), (0.036, 0.13), (0.0, 0.12)], 0.003, 'X')
+            p.add(fl, 'fletch', T(x, y, 0.03) @ tilt @ R('Z', f + rnd.uniform(-20, 20)))
 
 
 def backpack(p, size=1.0):
@@ -957,17 +958,17 @@ def backpack(p, size=1.0):
 
 # ------------------------------------------------------------ more weapons (the footmen)
 
-def battle_axe(p, length=1.1, scale=1.0):
+def battle_axe(p, length=1.1, scale=1.0, head=1.0):
     """A two-handed bearded axe: a long ash haft, an iron head whose blade
-    hangs down (the beard) to an edge facing +Y."""
+    hangs down (the beard) to an edge facing +Y; head scales the head alone."""
     L = length * scale
     p.add(tube([(0, 0, -0.35), (0, 0, L - 0.35)], [SHAFT_R, SHAFT_R * 0.9], seg=10), 'wood', bevel=0.002, smooth=True)
-    head = slab([(-0.03, -0.04), (0.05, -0.035), (0.17, -0.16), (0.21, -0.12), (0.2, 0.05), (0.16, 0.08),
-                 (0.05, 0.04), (-0.03, 0.04)], 0.016, 'X')
-    for v in head.verts:   # thin toward the edge
+    blade = slab([(-0.03, -0.04), (0.05, -0.035), (0.17, -0.16), (0.21, -0.12), (0.2, 0.05), (0.16, 0.08),
+                  (0.05, 0.04), (-0.03, 0.04)], 0.016, 'X')
+    for v in blade.verts:   # thin toward the edge
         v.co.x *= max(0.25, 1.0 - 0.75 * max(0.0, v.co.y) / 0.21)
-    p.add(head, 'steel', T(0, 0, L - 0.42), bevel=0.002)
-    p.add(lathe([(0.0, 0.03), (0.09, 0.03)], seg=10), 'iron', T(0, 0, L - 0.47), smooth=True)
+    p.add(blade, 'steel', T(0, 0, L - 0.42) @ S(head), bevel=0.002)
+    p.add(lathe([(0.0, 0.03), (0.09, 0.03)], seg=10), 'iron', T(0, 0, L - 0.47) @ S(head), smooth=True)
     _wrap(p, -0.33, -0.12, SHAFT_R + 0.002, 'leather_dark', turns=12)
 
 
@@ -1066,11 +1067,12 @@ def sheathed_sword(p, length=0.82, width=0.07, rapier=False, scale=1.0):
     p.add(lathe([(0.0, width * 0.36 * scale), (0.06, width * 0.3 * scale), (0.08, 0.004)], seg=10,
                 scale_xy=(0.4, 1.0)), 'bronze', T(0, 0, L - 0.02), smooth=True)                # chape
     if rapier:
-        p.add(ellipsoid(0.045, 0.045, 0.03, seg=14), 'steel', T(0, 0, -0.03), smooth=True)     # cup hilt
+        p.add(ellipsoid(0.06, 0.06, 0.035, seg=16), 'steel', T(0, 0, -0.03), smooth=True)     # cup hilt
+        p.add(box(0.2, 0.014, 0.014), 'steel', T(0, 0, -0.045), bevel=0.004)                   # the quillons
         p.add(tube([(0, 0, -0.04), (0, 0, -0.16)], 0.014, seg=8), 'leather_dark', smooth=True)
         p.add(ellipsoid(0.018, 0.018, 0.018, seg=10), 'steel', T(0, 0, -0.17), smooth=True)
     else:
-        p.add(box(0.03, 0.1, 0.025), 'bronze', T(0, 0, -0.015), bevel=0.006)
+        p.add(box(0.035, 0.16, 0.03), 'bronze', T(0, 0, -0.015), bevel=0.006)   # a cross guard that reads at the hip
         p.add(tube([(0, 0, -0.03), (0, 0, -0.12)], 0.017, seg=8), 'wood', smooth=True)
         p.add(ellipsoid(0.03, 0.025, 0.022, seg=12), 'bronze', T(0, 0, -0.135), smooth=True)
 
@@ -1219,15 +1221,17 @@ def plain_round(p, r=0.26, dome=0.04, scale=1.0, face_tint=False, emblem=None):
 
 # ------------------------------------------------------------ held items
 
-def book(p, scale=1.0):
+def book(p, scale=1.0, tint=False):
     """A closed tome, held by its spine (origin at its lower spine edge):
-    leather boards with metal corners, pages showing at the edges."""
+    leather boards with metal corners, pages showing at the edges; tint: a
+    civ-colored cover (Inquisitor)."""
     s = scale
+    cover = 'tint' if tint else 'book_cover'
     p.add(box(0.05 * s, 0.17 * s, 0.24 * s), 'parchment', T(0, 0.085 * s, 0.12 * s), bevel=0.004)
     for x in (-0.028, 0.028):
-        p.add(box(0.006 * s, 0.18 * s, 0.25 * s), 'book_cover', T(x * s, 0.087 * s, 0.12 * s), bevel=0.002)
-    p.add(tube([(0, 0, 0), (0, 0, 0.25 * s)], 0.03 * s, seg=12, scale_xy=(1.0, 0.45)), 'book_cover',
-          T(0, -0.004 * s, -0.005 * s), smooth=True)
+        p.add(box(0.006 * s, 0.18 * s, 0.25 * s), cover, T(x * s, 0.087 * s, 0.12 * s), bevel=0.002, tint=tint)
+    p.add(tube([(0, 0, 0), (0, 0, 0.25 * s)], 0.03 * s, seg=12, scale_xy=(1.0, 0.45)), cover,
+          T(0, -0.004 * s, -0.005 * s), smooth=True, tint=tint)
     for y, z in ((0.17, 0.0), (0.17, 0.24)):
         for x in (-0.03, 0.03):
             p.add(box(0.008, 0.03, 0.03), 'gold', T(x * s, y * s, z * s), bevel=0.003)
