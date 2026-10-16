@@ -72,7 +72,7 @@ REMASTER = {
         # MISSING: lapel_trim (tinted robe front edges; the panel edges stand in)
         'cape': False, 'cuirass': False, 'wraps': None, 'sandals': True, 'bracers': False, 'gear': [],
         # the crossbar-hung vexillum, tinted field; MISSING: flag_device (three vertical bars, red/green/cyan)
-        'weapon': 'standard', 'props': {'standard': ('war_standard', {'era': 'ancient', 'length': 2.33, 'grip': 1.2})},   # lower again: the flag top touched the cell top (dirs 6, 7)
+        'weapon': 'standard', 'props': {'standard': ('war_standard', {'era': 'ancient', 'length': 2.30, 'grip': 1.2})},   # lower again: the flag top touched the cell top (dirs 6, 7), then 1 px in dir 6
         'stance_name': 'stand_staff', 'two_hands': True,
         'tint': ['banner'],
         'grime': 0.55, 'upper_bulk': 1.1,
@@ -159,7 +159,7 @@ REMASTER = {
         'colors': {'skin': '#d8a888', 'hair': '#241c16', 'helmet': '#141416', 'top': '#1e1c1c',
                    'cuirass': '#2a2826', 'bottom': '#2a2622', 'shoes': '#3a2418', 'belt': '#1a1818',
                    'shirt': '#e8e4dc', 'beard': '#3e3228'},   # trousers a little lighter than the coat; the beard lighter than the hair
-        'helmet': None, 'headgear': 'top_hat', 'brow_drop': 0.06,   # the hat lifted off the eyes; its band is always tinted (MISSING: hat_band_width, it's thin)
+        'helmet': None, 'headgear': 'top_hat', 'brow_drop': 0.06,   # the hat lifted off the eyes; its band is always tinted (MISSING: hat_band_width, it's thin; the review wants it 0.05 wide)
         'hair': 'short', 'hair_asset': None,
         'beard': True, 'beard_style': 'chin',   # the chin beard, no mustache
         'top': 'sleeved', 'neck': 'high',
@@ -314,7 +314,7 @@ REMASTER = {
         'top': 'tunic', 'coat_length': 0.25,    # the dark brown tunic below the chest piece
         'pauldrons': 'metal',                   # steel pauldrons (the cuirass's metal)
         'bottom': 'long', 'puffy': True, 'wraps': 'boots',
-        'patterns': {'bottom': ('stripes', 'tint', 4.0)},   # the tinted trouser stripes
+        'patterns': {'bottom': ('side_stripe', 'tint', 0.88)},   # one tinted stripe down each outer seam ('stripes' repeated round the leg: pyjamas)
         'bands': [('wrist', 'tint', 0.12)],     # the wide tinted bracers, wrist to mid-forearm
         'cape': False, 'sandals': False, 'bracers': False, 'gear': [],
         'weapon': None, 'offhand': None,
@@ -342,7 +342,7 @@ REMASTER = {
         'gear': [('chest_strap', {'color': '#5a3a22'})],
         'wraps': 'boots', 'cape': False, 'cuirass': False, 'sandals': False, 'bracers': True,
         'weapon': None, 'offhand': None,        # MISSING: shoulder_clasp
-        # MISSING: back_angle (no key: the scabbard hangs vertically; the hilt should rise over the right shoulder)
+        # MISSING: back_angle (no key: the scabbard hangs vertically; the review wants it tilted so the hilt rises over the right shoulder)
         'back': 'sheathed_sword', 'back_params': {'length': 0.9},
         'stance_name': 'stand',
         'tint': ['top', 'bottom'],
@@ -411,7 +411,7 @@ REMASTER = {
         # the farthingale: gold-tan with civ-color stripes, as the original
         'patterns': {'bottom': ('pleats', 'tint', 16.0)},   # stripes running round the skirt ('stripes' made rings)
         'hem_bands': [('bottom', 'gold', 0.05)],
-        'ruff': '#f2efe6', 'ruff_size': 0.11,   # the lace ruff
+        'ruff': '#f2efe6', 'ruff_size': 0.12, 'ruff_style': 'fan',   # the tall lace fan standing behind the head (about the head's height)
         'cape': False, 'cuirass': False, 'wraps': 'boots', 'sandals': False, 'bracers': False, 'gear': [],
         # the gold scepter (plain knob head), tilted across the chest
         'weapon': 'scepter', 'props': {'scepter': ('scepter', {'length': 0.7, 'head': 'fleur'})},
@@ -425,7 +425,8 @@ REMASTER = {
         # fleur-de-lis; a brown-hilted sword low and forward
         'macro': {'muscle': 0.9, 'weight': 0.75, 'height': 0.8, 'proportions': 0.72}, 'age': 0.5,
         'race': {'caucasian': 1.0, 'african': 0.0, 'asian': 0.0},
-        'colors': {'skin': '#e0b494', 'hair': '#8a3a1c', 'cuirass': '#6a6e76', 'top': '#6a6e76',
+        'colors': {'skin': '#e0b494', 'hair': '#8a3a1c', 'cuirass': '#9aa0aa',   # brighter: the armor read as a grey mass at 1x
+                   'top': '#6a6e76',
                    'bottom': '#666a72', 'greaves': '#6a6e76', 'belt': '#3a2a1c', 'boots': '#6e727a',
                    'steel': '#7a7e86', 'leather': '#4a3020', 'mail': '#5e626a'},
         'helmet': None, 'hair': 'short', 'hair_asset': 'short02', 'beard': False,
@@ -438,6 +439,8 @@ REMASTER = {
         # held low by 'stand', hanging down and a little forward; MISSING: held_low_forward (point up)
         'weapon': 'sword', 'props': {'sword': ('long_sword', {'length': 0.9, 'guard': 0.2})},
         'stance_name': 'stand', 'hang_dir': (-0.3, -0.45, -0.85),
+        # head and chest lifted (-y is forward): the shoulders and head hunched under the cape
+        'pose_extra': [('head', (0, 0.4, 1)), ('spine_03', (0, 0.08, 1))],
         'tint': ['cape'],
         'grime': 0.45, 'upper_bulk': 1.25,
     },
@@ -481,7 +484,7 @@ REMASTER = {
         'top': 'vest', 'bottom': 'kilt', 'robe_drop': 0.45,
         # MISSING: himation (draped over the left shoulder, wrapping the hips to below the knee)
         'gear': [('chest_strap', {'width': 0.10})], 'cape': False,
-        'bands': [('neck', 'gold', 0.012)],     # the gold collar, narrower (0.02 read as a shoulder yoke)
+        # no gold neck band: even at 0.012 it read as a shoulder yoke
         'cuirass': False, 'wraps': None, 'sandals': True, 'bracers': False,
         'weapon': None, 'offhand': None,
         'stance_name': 'hands_clasped',
@@ -499,7 +502,7 @@ REMASTER = {
         'colors': {'skin': '#a88262', 'hair': '#3e2c20', 'beard': '#5e4a38', 'helmet': '#b08a2e', 'top': '#d8ccaa',
                    'bottom': '#d8ccaa', 'belt': '#b08a2e', 'sandal': '#4a3622', 'gold': '#b08a2e',
                    'wood': '#a8842a', 'steel': '#b08a2e', 'iron': '#b08a2e'},
-        'helmet': 'crown', 'crown': 'circlet', 'crown_height': 0.05,
+        'helmet': 'crown', 'crown': 'circlet', 'crown_height': 0.07,   # taller: at 0.05 the circlet was lost in the hair
         # the long beard lighter than the hair and kept below the cheeks, so it doesn't merge with the face
         'hair': 'short', 'hair_asset': 'short02', 'beard': True, 'beard_style': 'long',
         'beard_length_short': 0.012, 'beard_density': 500,
@@ -559,7 +562,7 @@ REMASTER = {
         'cape': False,
         'gear': [('chest_strap', {'width': 0.12})],   # the sash, the original's main civ mark
         'cuirass': False, 'wraps': None, 'sandals': True, 'bracers': False,
-        # MISSING: tinted_tip (the stick's top)
+        # MISSING: tinted_tip (the stick's top; no key on 'staff')
         'weapon': 'staff', 'props': {'staff': ('staff', {'length': 1.55, 'grip': 0.95})},
         'stance_name': 'stand_staff',           # MISSING: walking_stoop
         'tint': ['strap'],
@@ -575,7 +578,7 @@ REMASTER = {
         'colors': {'skin': '#9a7458', 'hair': '#141010', 'plume': '#e8e4da', 'wraps': '#5e4632',
                    'wraps_band': '#3e2e20', 'belt': '#5a3a22', 'sandal': '#5a3a22', 'wood': '#4a3222',
                    'steel': '#8a8c90', 'shield_face': '#d8ccb0', 'shield_rim': '#8a6a48', 'feather': '#e8e4da'},
-        'helmet': None, 'headgear': 'war_bonnet', 'headgear_scale': 0.7,   # white feathers, tinted tips and headband, the trailer (smaller: it was clipped at the cell top)
+        'helmet': None, 'headgear': 'war_bonnet', 'headgear_scale': 0.65,   # white feathers, tinted tips and headband, the trailer (smaller again: 2-5 px clip at the cell top, dirs 5-7)
         'hair': 'long', 'hair_asset': 'long01', 'beard': False,
         'top': None, 'bottom': 'loincloth', 'loin_length': (0.5, 0.45), 'torn': False,
         'wraps': 'wraps', 'sandals': False,     # MISSING: leggings (brown cloth), moccasins
@@ -584,9 +587,9 @@ REMASTER = {
         'cape': False, 'cuirass': False, 'bracers': False,
         # MISSING: feathered_spear (fur/feather wrap below the head)
         # upright from the low right fist; check the butt meets the ground
-        'weapon': 'spear', 'props': {'spear': ('spear', {'length': 2.1, 'grip': 0.8})}, 'hang_dir': (-0.05, 0.0, 1.0),
+        'weapon': 'spear', 'props': {'spear': ('spear', {'length': 2.0, 'grip': 0.8})}, 'hang_dir': (-0.05, 0.0, 1.0),
         'offhand': 'shield_round', 'offhand_mesh': ('shield_round', {'r': 0.25, 'boss': False, 'tint': 'none'}),
-        'shield_at': 'left_hip',                # BUG: it sits on the front of the thigh, not at the hip side
+        'shield_at': 'back',                # BUG: it sits on the front of the thigh, not at the hip side
         'stance_name': 'fist_hip_l',            # left fist on the hip
         'tint': ['helmet', 'bottom', 'strap'],
         'grime': 0.5, 'upper_bulk': 1.25,

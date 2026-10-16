@@ -796,7 +796,11 @@ def equip(entry, arm):
             pb = arm.pose.bones['lowerarm_l']
             fa = (arm.matrix_world @ pb.head).lerp(arm.matrix_world @ pb.tail, 0.6)
             at = fa + Vector((0.0, -entry.get('shield_out', 0.09) * G._scale, 0.03 * G._scale))
-            if entry.get('shield_at') == 'left_hip':
+            if entry.get('shield_at') == 'back':
+                # slung on the back, face out, below the shoulder blades
+                sp3 = arm.matrix_world @ arm.pose.bones['spine_03'].head
+                at = sp3 + Vector((0.0, 0.16 * G._scale, -0.08 * G._scale))
+            elif entry.get('shield_at') == 'left_hip':
                 # a big shield low at the left hip, close to the body: from
                 # behind it then stays beside the body, below the shoulders
                 chest = arm.matrix_world @ arm.pose.bones['spine_02'].head
@@ -811,7 +815,11 @@ def equip(entry, arm):
             roll = math.radians(entry.get('shield_roll', 45.0 if any(k in name for k in ('round', 'aspis', 'buckler', 'oval'))
                                           else 0.0))
             sr, cr = math.sin(roll), math.cos(roll)
-            H.hold(obj, arm, 'lowerarm_l', at, up=(sr * cy, -sr * sy, cr), forward=(sy, cy, 0.0), center=True)
+            if entry.get('shield_at') == 'back':
+                # on the back: facing out behind (+y), held by the chest
+                H.hold(obj, arm, 'spine_03', at, up=(sr, 0.0, cr), forward=(0, 1, 0), center=True)
+            else:
+                H.hold(obj, arm, 'lowerarm_l', at, up=(sr * cy, -sr * sy, cr), forward=(sy, cy, 0.0), center=True)
         else:
             at = H.grip_point(arm, 'hand_l')
             if offhand == 'bow':
@@ -836,7 +844,8 @@ def equip(entry, arm):
             # a sword slung on the back: the mouth (origin) behind the right
             # shoulder, the hilt up over it, the blade (+Z) down across the back
             at = sp + Vector((-0.1 * G._scale, 0.12 * G._scale, 0.12 * G._scale))
-            H.hold(obj, arm, 'spine_03', at, up=(0.35, 0.05, -0.94), forward=(0, 1, 0))
+            t = math.radians(entry.get('back_tilt', 20.0))     # degrees off vertical, hilt over the right shoulder
+            H.hold(obj, arm, 'spine_03', at, up=(math.sin(t), 0.05, -math.cos(t)), forward=(0, 1, 0))
         else:
             at = sp + Vector((0.0, 0.04 * G._scale, entry.get('pack_up', 0.1) * G._scale))
             H.hold(obj, arm, 'spine_03', at, up=(0, 0.05, 1), forward=(0, -1, 0))
