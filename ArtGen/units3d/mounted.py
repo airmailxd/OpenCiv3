@@ -624,7 +624,7 @@ def _dots(rx, period=0.11, r=0.028):
     return keys
 
 
-def _scales(period=0.07):
+def _scales(period=0.09):
     """A face-key function giving mail/lamellar barding rows of lighter and darker plates."""
     def keys(f):
         c = f.calc_center_median()
@@ -653,7 +653,7 @@ def asset_tack(root, body, colors, h=None):
                                            'barding_mail': ('#9a9ea6', 0.45, 1.0, 'metal'), 'trim': ('#2e2014', 0.6, 0.0, 'leather'),
                                            'bridle': ('#4a3424', 0.6, 0.0, 'leather'), 'plume': ('#eeece6', 0.9, 0.0, 'cloth'),
                                            'pelt': ('#3a2e26', 0.95, 0.0, 'rope'),
-                                           'barding_dark': ('#6a6e74', 0.5, 1.0, 'metal')}.items():
+                                           'barding_dark': ('#3a3c40', 0.5, 1.0, 'metal')}.items():
         props.DEFAULTS.setdefault(key, (col, rough, metal, kind))
     p = vkit.part(root, 'tack', c, wear)
     vs = _world_verts(body)
@@ -668,8 +668,10 @@ def asset_tack(root, body, colors, h=None):
     trim = 'trim' if h.get('trim') else 'leather_dark'
 
     def hem_line(rings, key):
+        wide = key == 'tint'   # a civ-colored trim reads as a band, not a thread
         for edge in ([r[0] for r in rings], [r[-1] for r in rings], rings[0], rings[-1]):
-            p.add(props.tube(edge, 0.014, seg=6), key, smooth=True)
+            p.add(props.tube(edge, 0.035 if wide else 0.014, seg=6, scale_xy=(1.0, 0.4) if wide else (1.0, 1.0)), key,
+                  smooth=True, tint=wide)
 
     if blanket in ('saddle_cloth', 'pelt'):
         # deeper for a larger catalog cloth_drop (the old default was 0.24)

@@ -60,7 +60,7 @@ def _car(root, entry, y_axle, xs):
     car = dict(entry.get('car', {}))
     heavy = car.get('kind') == 'heavy'
     gold = CAR_GOLD.get(entry.get('_unit'), False)
-    c = {'car_wood': car.get('wood', '#7a5638'), 'car_body': car.get('body', '#8a6a48'),
+    c = {'car_wood': '#4e3420' if heavy else car.get('wood', '#7a5638'), 'car_body': car.get('body', '#8a6a48'),
          'trim': car.get('trim', '#c4a462'), 'wheel': car.get('trim', '#c4a462') if gold else car.get('spoke', '#6a4a2e'),
          'felloe': car.get('trim', '#c4a462') if gold else car.get('rim', '#5a4028'), 'rim': '#3a3430', 'hub': '#3a3430'}
     p = vkit.part(root, 'car', c, {'car_wood': {'grime': 0.55, 'soot': 0.2}, 'car_body': {'grime': 0.5},
@@ -76,7 +76,7 @@ def _car(root, entry, y_axle, xs):
     vkit.rod(p, (-track - 0.06, y_axle, r), (track + 0.06, y_axle, r), 0.035, 'car_wood', seg=10)
     p.add(props.box(width, depth, 0.05), 'car_wood', T(0, y_axle + 0.06, zf), bevel=0.01)
     # breastwork: a U of boards round the front and sides, its top edge trimmed
-    tinted = car.get('body_tint', not heavy)   # Civ3's heavy car is plain wood with gold
+    tinted = True   # all three of Civ3's chariot cars carry civ-colored panels
     wall_h = car.get('wall_h', 0.5) * CAR_K
     key = 'tint' if tinted else 'car_body'
     pts = []
@@ -122,13 +122,13 @@ def _crew(root, entry, y_axle, z_floor):
         H._update()
 
 
-CREW_SCALE = 1.12
-CAR_K = 1.45   # Civ3's cars are big next to the horses
+CREW_SCALE = 1.22
+CAR_K = 1.3   # Civ3's cars are big next to the horses
 HORSE_K = 0.92
 # per unit, over the catalog's horse tack (as the originals show them)
 TACK = {'War Chariot': {'blanket': None, 'neck_cover': 'cloth', 'plume': 'fan', 'plume_tint': True},
         'Three Man Chariot': {'caparison_over': False, 'trim_tint': True, 'plume': True, 'plume_tint': True}}
-CAR_GOLD = {'War Chariot': True, 'Three Man Chariot': True}
+CAR_GOLD = {'chariot': True, 'War Chariot': True, 'Three Man Chariot': True}
 # Civ3's 'chariot' is drawn with a pair of horses
 TEAM = {'chariot': 2}
 # coats read from the Civ3 originals
