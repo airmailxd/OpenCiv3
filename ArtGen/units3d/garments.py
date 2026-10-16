@@ -49,16 +49,31 @@ def _pattern_mix(tree, base, col, mask, civ):
     n = tree.nodes
     mix = n.new('ShaderNodeMix')
     mix.data_type = 'RGBA'
-    mix.inputs['A'].default_value = base
+    if isinstance(base, tuple):
+        mix.inputs['A'].default_value = base
+    else:
+        tree.links.new(base, mix.inputs['A'])          # layered over an earlier pattern
     mix.inputs['B'].default_value = col
     tree.links.new(mask, mix.inputs['Factor'])
     if civ:
-        m = n.new('ShaderNodeMath')
-        m.name = 'tint_mask'
-        m.operation = 'MAXIMUM'
-        m.inputs[1].default_value = 0.0
-        tree.links.new(mask, m.inputs[0])
+        _tint_mask(tree, mask)
     return mix.outputs['Result']
+
+
+def _tint_mask(tree, mask):
+    """Marks `mask` for the civ color: the node named 'tint_mask' (linked to
+    the material's tint AOV) is the maximum of every civ mask so far."""
+    n = tree.nodes
+    old = n.get('tint_mask')
+    m = n.new('ShaderNodeMath')
+    m.operation = 'MAXIMUM'
+    tree.links.new(mask, m.inputs[0])
+    if old is not None:
+        old.name = 'tint_mask_prev'
+        tree.links.new(old.outputs[0], m.inputs[1])
+    else:
+        m.inputs[1].default_value = 0.0
+    m.name = 'tint_mask'
 
 
 def _pattern(tree, coord, base, pattern):
@@ -85,10 +100,27 @@ def _pattern(tree, coord, base, pattern):
         els = ramp.color_ramp.elements
         while len(els) < len(cols):
             els.new(0.5)
+        # one blotch color: flecks (a smaller share of the cloth); more: camo
+        first = 0.56 if len(cols) == 2 else 0.36
         for i, (e, col) in enumerate(zip(els, cols)):
-            e.position = 0.0 if i == 0 else 0.36 + 0.3 * (i - 1) / max(1, len(cols) - 2)
+            e.position = 0.0 if i == 0 else first + 0.3 * (i - 1) / max(1, len(cols) - 2)
             e.color = col
         tree.links.new(noise.outputs['Fac'], ramp.inputs['Fac'])
+        if civ:
+            # the first blotch color is the civ color: mark those blotches
+            gt = n.new('ShaderNodeMath')
+            gt.operation = 'GREATER_THAN'
+            gt.inputs[1].default_value = first
+            lt = n.new('ShaderNodeMath')
+            lt.operation = 'LESS_THAN'
+            lt.inputs[1].default_value = first + (0.3 if len(cols) > 2 else 1.0)
+            tree.links.new(noise.outputs['Fac'], gt.inputs[0])
+            tree.links.new(noise.outputs['Fac'], lt.inputs[0])
+            both = n.new('ShaderNodeMath')
+            both.operation = 'MULTIPLY'
+            tree.links.new(gt.outputs['Value'], both.inputs[0])
+            tree.links.new(lt.outputs['Value'], both.inputs[1])
+            _tint_mask(tree, both.outputs['Value'])
         return ramp.outputs['Color']
     dark = lin[0] if lin else (0.02, 0.02, 0.02, 1.0)
     scale = nums[0] if nums else (28.0 if kind == 'check' else 18.0)
@@ -205,8 +237,13 @@ def cloth(name, color, tint=False, rough=0.85, weave=0.25, pattern=None):
         mul.inputs['Factor'].default_value = 0.75
         mul.inputs['A'].default_value = bsdf.inputs['Base Color'].default_value
         if pattern:
-            tree.links.new(_pattern(tree, coord, tuple(bsdf.inputs['Base Color'].default_value), pattern),
-                           mul.inputs['A'])
+            # one pattern, or several layered in order (later ones must be
+            # 'panel' or 'stripes', which lay over the earlier result)
+            pats = pattern if isinstance(pattern[0], (list, tuple)) else (pattern,)
+            sock = tuple(bsdf.inputs['Base Color'].default_value)
+            for pat in pats:
+                sock = _pattern(tree, coord, sock, pat)
+            tree.links.new(sock, mul.inputs['A'])
         tree.links.new(ao.outputs['AO'], mul.inputs['B'])
         dirt = n.new('ShaderNodeMix')
         dirt.data_type = 'RGBA'
