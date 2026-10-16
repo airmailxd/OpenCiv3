@@ -359,15 +359,15 @@ def _hair_material(h):
     return m
 
 
-def _raise_head(objs, degrees):
+def _raise_head(objs, degrees, by_name=None):
     """Carry the head higher, like Civ3's horse (the asset rests grazing-low):
     turn the neck bone up. The mane and eyes aren't bound to the rig, so they
     are parented to the neck and head bones first and move with them."""
     arm = next(o for o in objs if o.type == 'ARMATURE')
     bpy.context.view_layer.update()
-    for o in objs:
-        bone = 'Bone.001' if o.name.startswith('BezierCurve') and o.name != 'BezierCurve.005' else \
-            'Bone.002' if o.name.startswith('Sphere') else None
+    names = by_name or {o.name: o for o in objs}
+    for src_name, o in names.items():
+        bone = 'Bone.001' if src_name == 'BezierCurve' else 'Bone.002' if src_name.startswith('Sphere') else None
         if bone is None:
             continue
         mw = o.matrix_world.copy()
@@ -387,11 +387,14 @@ def horse_asset(root, colors, neck_raise=-38.0):
     HORSE_HEIGHT tall, with rebuilt materials. Returns the body object."""
     path = _horse_blend()
     with bpy.data.libraries.load(path, link=False) as (src, dst):
-        dst.objects = [n for n in HORSE_OBJECTS if n in src.objects]
+        wanted = [n for n in HORSE_OBJECTS if n in src.objects]
+        dst.objects = list(wanted)
         # the old Blender Internal materials no longer reference the packed
         # textures, so the images are appended by name
         dst.images = [n for n in src.images if n.startswith(('HorseMain', 'Hair12'))]
     objs = [o for o in dst.objects if o is not None]
+    # several horses in one scene get renamed copies (Plane.001, ...): keep the source names
+    by_name = {n: o for n, o in zip(wanted, dst.objects) if o is not None}
     holder = bpy.data.objects.new('horse_asset', None)
     bpy.context.collection.objects.link(holder)
     holder.parent = root
@@ -399,7 +402,7 @@ def horse_asset(root, colors, neck_raise=-38.0):
         bpy.context.collection.objects.link(o)
         if o.parent is None:
             o.parent = holder
-    body = bpy.data.objects['Plane']
+    body = by_name['Plane']
     bpy.context.view_layer.update()
     vs = [body.matrix_world @ v.co for v in body.data.vertices]
     zmin = min(v.z for v in vs)
@@ -413,18 +416,18 @@ def horse_asset(root, colors, neck_raise=-38.0):
     holder.rotation_euler = (0, 0, math.pi)
     holder.scale = (s * 0.95, s * 0.95, s * LEGGY)
     holder.location = (xc * s * 0.95, yc * s * 0.95, -zmin * s * LEGGY)
-    _raise_head(objs, neck_raise)
+    _raise_head(objs, neck_raise, by_name)
     coat = _coat_material(colors)
     hair = _hair_material(colors)
     eye = bpy.data.materials.new('horse_eye')
     eye.use_nodes = True
     eye.node_tree.nodes['Principled BSDF'].inputs['Base Color'].default_value = (0.01, 0.008, 0.006, 1)
     eye.node_tree.nodes['Principled BSDF'].inputs['Roughness'].default_value = 0.15
-    for o in objs:
+    for n, o in by_name.items():
         if o.type != 'MESH':
             continue
         o.data.materials.clear()
-        o.data.materials.append(coat if o.name == 'Plane' else hair if o.name.startswith('Bezier') else eye)
+        o.data.materials.append(coat if n == 'Plane' else hair if n.startswith('Bezier') else eye)
         for poly in o.data.polygons:
             poly.use_smooth = True
     return body

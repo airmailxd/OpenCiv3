@@ -1,0 +1,255 @@
+{
+  "unit": "War Elephant",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    120.21,
+    127.5
+  ],
+  "anchor_override": [
+    119.75,
+    122.0
+  ],
+  "standing_height": 68.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        101.39,
+        129
+      ],
+      "top": 62,
+      "height": 68,
+      "bbox": [
+        84,
+        62,
+        142,
+        129
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        119.43,
+        134
+      ],
+      "top": 63,
+      "height": 72,
+      "bbox": [
+        106,
+        63,
+        133,
+        134
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        133.32,
+        129
+      ],
+      "top": 62,
+      "height": 68,
+      "bbox": [
+        96,
+        62,
+        155,
+        129
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        117.54,
+        124
+      ],
+      "top": 60,
+      "height": 65,
+      "bbox": [
+        90,
+        60,
+        163,
+        124
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        110.63,
+        130
+      ],
+      "top": 59,
+      "height": 72,
+      "bbox": [
+        97,
+        59,
+        155,
+        130
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        126.79,
+        130
+      ],
+      "top": 58,
+      "height": 73,
+      "bbox": [
+        106,
+        58,
+        133,
+        130
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        128.73,
+        126
+      ],
+      "top": 59,
+      "height": 68,
+      "bbox": [
+        84,
+        59,
+        143,
+        126
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        120.98,
+        124
+      ],
+      "top": 60,
+      "height": 65,
+      "bbox": [
+        76,
+        60,
+        149,
+        124
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 36.7427,
+    "fit": 0.7066,
+    "archetype": "elephant"
+  },
+  "default_flic": "WarElephantDefault.flc",
+  "flics": {
+    "WarElephantAttackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 119,
+      "height": 91,
+      "offset_left": 58,
+      "offset_top": 56,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "WarElephantDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 125,
+      "height": 96,
+      "offset_left": 56,
+      "offset_top": 55,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "WarElephantDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 92,
+      "height": 86,
+      "offset_left": 73,
+      "offset_top": 57,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "WarElephantFidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 102,
+      "height": 87,
+      "offset_left": 68,
+      "offset_top": 58,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "WarElephantFortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 102,
+      "height": 88,
+      "offset_left": 68,
+      "offset_top": 57,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "WarElephantRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 102,
+      "height": 89,
+      "offset_left": 68,
+      "offset_top": 56,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "WarElephantVictory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 116,
+      "height": 93,
+      "offset_left": 59,
+      "offset_top": 55,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    }
+  }
+}

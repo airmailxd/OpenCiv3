@@ -997,6 +997,18 @@ def sheathed_sword(p, length=0.82, width=0.07, rapier=False, scale=1.0):
         p.add(ellipsoid(0.03, 0.025, 0.022, seg=12), 'bronze', T(0, 0, -0.135), smooth=True)
 
 
+def glaive(p, length=2.0, grip=0.8, scale=1.0):
+    """A glaive: a pole with a long single-edged knife blade on top, edge toward +Y."""
+    L = length * scale
+    z1 = L - grip
+    p.add(tube([(0, 0, -grip), (0, 0, z1 - 0.4)], [SHAFT_R + 0.002, SHAFT_R], seg=10), 'wood', smooth=True)
+    blade = slab([(0.0, -0.02), (0.0, 0.02), (0.18, 0.05), (0.42, 0.0), (0.3, -0.02)], 0.01, 'X')
+    for v in blade.verts:
+        v.co.x *= max(0.2, 1.0 - max(0.0, v.co.y) / 0.06)
+    p.add(blade, 'steel', T(0, 0, z1 - 0.42) @ R('X', 90) @ R('X', -90) @ R('Y', -90) @ R('Y', 90), bevel=0.001)
+    p.add(lathe([(0.0, 0.026), (0.06, 0.024)], seg=10), 'iron', T(0, 0, z1 - 0.46), smooth=True)
+
+
 def javelin_bundle(p, n=5, length=1.9, scale=1.0):
     """4-5 javelins bound together near the middle, carried upright (the grip,
     where they're bound, at the origin)."""
@@ -1191,6 +1203,7 @@ BUILDERS = {
     'katana_sheathed': katana_sheathed,
     'sheathed_sword': sheathed_sword,
     'javelin_bundle': javelin_bundle,
+    'glaive': glaive,
     'partisan': partisan,
     'torch': torch,
     'scutum': scutum,

@@ -1,0 +1,255 @@
+{
+  "unit": "chariot",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.1,
+    128.0
+  ],
+  "anchor_override": [
+    119.5,
+    123.0
+  ],
+  "standing_height": 74.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        104.33,
+        129
+      ],
+      "top": 53,
+      "height": 77,
+      "bbox": [
+        95,
+        53,
+        147,
+        129
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        119.5,
+        131
+      ],
+      "top": 54,
+      "height": 78,
+      "bbox": [
+        106,
+        54,
+        133,
+        131
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        134.29,
+        129
+      ],
+      "top": 56,
+      "height": 74,
+      "bbox": [
+        92,
+        56,
+        146,
+        129
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        100.84,
+        125
+      ],
+      "top": 58,
+      "height": 68,
+      "bbox": [
+        92,
+        58,
+        155,
+        125
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        112.52,
+        130
+      ],
+      "top": 58,
+      "height": 73,
+      "bbox": [
+        92,
+        58,
+        143,
+        130
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        118.69,
+        130
+      ],
+      "top": 56,
+      "height": 75,
+      "bbox": [
+        106,
+        56,
+        133,
+        130
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        126.59,
+        130
+      ],
+      "top": 54,
+      "height": 77,
+      "bbox": [
+        93,
+        54,
+        147,
+        130
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        138.16,
+        125
+      ],
+      "top": 53,
+      "height": 73,
+      "bbox": [
+        84,
+        53,
+        147,
+        125
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 49.1084,
+    "fit": 0.9444,
+    "archetype": "chariot"
+  },
+  "default_flic": "ChariotDefault.flc",
+  "flics": {
+    "ChariotAttackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 112,
+      "height": 83,
+      "offset_left": 61,
+      "offset_top": 62,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "ChariotDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 107,
+      "height": 98,
+      "offset_left": 66,
+      "offset_top": 51,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "ChariotDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 80,
+      "height": 84,
+      "offset_left": 77,
+      "offset_top": 53,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "ChariotFidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 80,
+      "height": 84,
+      "offset_left": 77,
+      "offset_top": 53,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "ChariotFortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 84,
+      "height": 87,
+      "offset_left": 76,
+      "offset_top": 53,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "ChariotRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 90,
+      "height": 89,
+      "offset_left": 74,
+      "offset_top": 53,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "ChariotVictory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 80,
+      "height": 101,
+      "offset_left": 77,
+      "offset_top": 36,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    }
+  }
+}

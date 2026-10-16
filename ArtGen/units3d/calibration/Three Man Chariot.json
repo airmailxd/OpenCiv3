@@ -1,0 +1,255 @@
+{
+  "unit": "Three Man Chariot",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    117.55,
+    127.5
+  ],
+  "anchor_override": [
+    117.75,
+    121.0
+  ],
+  "standing_height": 76.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        103.46,
+        129
+      ],
+      "top": 41,
+      "height": 89,
+      "bbox": [
+        79,
+        41,
+        152,
+        129
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        117.1,
+        130
+      ],
+      "top": 42,
+      "height": 89,
+      "bbox": [
+        97,
+        42,
+        138,
+        130
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        132.17,
+        129
+      ],
+      "top": 53,
+      "height": 77,
+      "bbox": [
+        84,
+        53,
+        157,
+        129
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        106.69,
+        123
+      ],
+      "top": 67,
+      "height": 57,
+      "bbox": [
+        81,
+        67,
+        163,
+        123
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        113.0,
+        129
+      ],
+      "top": 55,
+      "height": 75,
+      "bbox": [
+        84,
+        55,
+        157,
+        129
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        118.0,
+        126
+      ],
+      "top": 51,
+      "height": 76,
+      "bbox": [
+        97,
+        51,
+        139,
+        126
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        122.82,
+        129
+      ],
+      "top": 55,
+      "height": 75,
+      "bbox": [
+        79,
+        55,
+        152,
+        129
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        129.98,
+        123
+      ],
+      "top": 47,
+      "height": 77,
+      "bbox": [
+        73,
+        47,
+        155,
+        123
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 48.3422,
+    "fit": 0.9297,
+    "archetype": "chariot"
+  },
+  "default_flic": "Three_Man_Chariot_default.flc",
+  "flics": {
+    "Three_Man_Chariot_attackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 131,
+      "height": 98,
+      "offset_left": 44,
+      "offset_top": 45,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "Three_Man_Chariot_death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 240,
+      "height": 167,
+      "offset_left": 0,
+      "offset_top": 26,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "Three_Man_Chariot_default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 132,
+      "height": 111,
+      "offset_left": 44,
+      "offset_top": 31,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "Three_Man_Chariot_fidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 132,
+      "height": 112,
+      "offset_left": 44,
+      "offset_top": 30,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 100
+    },
+    "Three_Man_Chariot_fortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 131,
+      "height": 111,
+      "offset_left": 44,
+      "offset_top": 31,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 83
+    },
+    "Three_Man_Chariot_run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 136,
+      "height": 101,
+      "offset_left": 43,
+      "offset_top": 41,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "Three_Man_Chariot_victory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 131,
+      "height": 112,
+      "offset_left": 44,
+      "offset_top": 31,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    }
+  }
+}

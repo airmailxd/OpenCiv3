@@ -27,6 +27,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
 import bscene as B  # noqa: E402
+import chariots  # noqa: E402
 import mounted  # noqa: E402
 import ships  # noqa: E402
 import siege  # noqa: E402
@@ -38,6 +39,9 @@ SHIPS = set(ships.BUILDERS)
 def build(unit):
     if unit in SHIPS:
         return ships.build(unit)
+    if unit in chariots.UNITS:
+        catalog = json.load(open(os.path.join(HERE, '..', '_previews', 'units3d', 'catalog.json'), encoding='utf-8'))
+        return chariots.build(unit, catalog[unit], crew=os.environ.get('NO_CREW') != '1')
     if unit in mounted.BUILDERS or unit in mounted.HORSE_RIDERS:
         catalog = json.load(open(os.path.join(HERE, '..', '_previews', 'units3d', 'catalog.json'), encoding='utf-8'))
         return mounted.build(unit, entry=catalog.get(unit), rider=True)

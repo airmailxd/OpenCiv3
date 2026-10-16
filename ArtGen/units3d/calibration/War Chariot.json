@@ -1,0 +1,255 @@
+{
+  "unit": "War Chariot",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.5,
+    128.5
+  ],
+  "anchor_override": [
+    119.5,
+    124.5
+  ],
+  "standing_height": 69.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        109.56,
+        134
+      ],
+      "top": 67,
+      "height": 68,
+      "bbox": [
+        85,
+        67,
+        146,
+        134
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        119.5,
+        133
+      ],
+      "top": 64,
+      "height": 70,
+      "bbox": [
+        102,
+        64,
+        137,
+        133
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        130.67,
+        134
+      ],
+      "top": 67,
+      "height": 68,
+      "bbox": [
+        93,
+        67,
+        156,
+        134
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        121.63,
+        126
+      ],
+      "top": 70,
+      "height": 57,
+      "bbox": [
+        88,
+        70,
+        158,
+        126
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        112.23,
+        130
+      ],
+      "top": 59,
+      "height": 72,
+      "bbox": [
+        93,
+        59,
+        153,
+        130
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        119.5,
+        129
+      ],
+      "top": 58,
+      "height": 72,
+      "bbox": [
+        102,
+        58,
+        137,
+        129
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        126.84,
+        130
+      ],
+      "top": 59,
+      "height": 72,
+      "bbox": [
+        83,
+        59,
+        146,
+        130
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        111.29,
+        127
+      ],
+      "top": 69,
+      "height": 59,
+      "bbox": [
+        81,
+        69,
+        152,
+        127
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 47.7177,
+    "fit": 0.9176,
+    "archetype": "chariot"
+  },
+  "default_flic": "WarChariotDefault.flc",
+  "flics": {
+    "WarChariotAttackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 140,
+      "height": 98,
+      "offset_left": 47,
+      "offset_top": 53,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "WarChariotDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 121,
+      "height": 97,
+      "offset_left": 60,
+      "offset_top": 54,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "WarChariotDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 92,
+      "height": 80,
+      "offset_left": 70,
+      "offset_top": 58,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "WarChariotFidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 102,
+      "height": 83,
+      "offset_left": 66,
+      "offset_top": 58,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "WarChariotFortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 103,
+      "height": 84,
+      "offset_left": 65,
+      "offset_top": 57,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "WarChariotRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 89,
+      "height": 82,
+      "offset_left": 72,
+      "offset_top": 58,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "WarChariotVictory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 102,
+      "height": 87,
+      "offset_left": 65,
+      "offset_top": 54,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    }
+  }
+}

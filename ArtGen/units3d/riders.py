@@ -205,3 +205,12 @@ def feather_bonnet(p, c, tinted, _):
         tip = (0.2 * math.sin(a), 0.16 * math.cos(a) - 0.05, 0.24)
         key, t = (('tint', True) if i % 2 else ('plume', False))
         p.add(props.tube([base, tip], [0.016, 0.006], seg=5, scale_xy=(1.0, 0.35)), key, smooth=True, tint=t)
+
+
+@hat('khepresh')
+def khepresh(p, c, tinted, _):
+    """The Egyptian blue war crown: a tall bulbous cap swelling to the back."""
+    key, t = _k(tinted, 'hat')
+    crown = props.ellipsoid(0.11, 0.15, 0.17, seg=20)
+    p.add(crown, key, T(0, -0.04, 0.09), smooth=True, tint=t)
+    p.add(props.lathe([(0.0, 0.112), (0.025, 0.112)], seg=24), 'gold', smooth=True)
