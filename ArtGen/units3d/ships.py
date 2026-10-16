@@ -65,6 +65,15 @@ class Hull:
     def deck_z(self, s):
         return self.D + (self.sheer_bow if s > 0 else self.sheer_stern) * s * s
 
+    def side_x(self, s, z):
+        """The starboard hull surface's x at height z in section s."""
+        pts = self.section(s, m=28)[:15]   # deck edge down to the keel, starboard
+        for a, b in zip(pts, pts[1:]):
+            if (a[2] - z) * (b[2] - z) <= 0 and a[2] != b[2]:
+                t = (z - a[2]) / (b[2] - a[2])
+                return a[0] + (b[0] - a[0]) * t
+        return pts[0][0]
+
     def s_of(self, y):
         return max(-1.0, min(1.0, 2 * y / self.L))
 
@@ -304,7 +313,7 @@ def _skull(x, z, h):
 def _lion(x, z, h):
     """The man-o-war's emblem: a heraldic beast rampant (a stout body rearing,
     a maned head, raised forepaws, a curling tail), as a bold silhouette."""
-    s = 0.62 * h
+    s = 0.82 * h   # the beast fills the sail, as the original's splash
     ex, ez = x / s, z / s
     body = math.hypot((ex + 0.05) / 0.38, (ez + 0.05) / 0.62) < 1.0
     head = math.hypot((ex - 0.25) / 0.32, (ez - 0.62) / 0.3) < 1.0
@@ -534,8 +543,12 @@ def jib(p, a, b, foot, emblem=None, stripes=False):
             bm.faces.new((grid[j][i], grid[j][i + 1], grid[j + 1][i]))
             if i < n - j - 1:
                 bm.faces.new((grid[j][i + 1], grid[j + 1][i + 1], grid[j + 1][i]))
-    keys = (lambda f: ('tint', True) if int(math.floor(f.calc_center_median().z / 0.07)) % 2 == 0 else None) if stripes else None
+    def keys(f):   # (always a key function: a jib added without one didn't render)
+        if stripes and int(math.floor(f.calc_center_median().z / 0.07)) % 2 == 0:
+            return ('tint', True)
+        return ('sail_seam', False) if abs((f.calc_center_median().z / 0.05) % 1.0 - 0.5) > 0.46 else None
     p.add(bm, 'sail', smooth=True, keys=keys)
+    vkit.rod(p, a, b, 0.005, 'cordage', seg=4)   # the stay it's hanked to
 
 
 def _gunports(p, hull, rows, sides=(-1, 1)):
@@ -546,8 +559,7 @@ def _gunports(p, hull, rows, sides=(-1, 1)):
             y = y0 + (y1 - y0) * i / max(1, n - 1)
             s = hull.s_of(y)
             for sx in sides:
-                # the hull's half width at this height
-                x = sx * hull.deck_half(s) * (0.98 + 0.02 * (z < hull.deck_z(s) - 0.05))
+                x = sx * (hull.side_x(s, z) + 0.004)   # on the hull's surface at this height
                 p.add(props.box(0.012, 0.045, 0.04), 'port', T(x, y, z), bevel=0.003)
                 p.add(props.lathe([(0.0, 0.009), (0.035, 0.008)], seg=8), 'gun_black', T(x, y, z) @ R('Y', sx * 90),
                       smooth=True)
@@ -581,9 +593,26 @@ def _flag(p, top, w, h, emblem=None):
     for j in range(n):
         bm.faces.new((rows[j][0], rows[j + 1][0], rows[j + 1][1], rows[j][1]))
     mask = EMBLEMS.get(emblem)
-    keys = (lambda f: None if mask(f.calc_center_median().y - (top[1] - w / 2), f.calc_center_median().z - (top[2] - h / 2),
-                                   h * 1.6) else ('tint', True)) if mask else None
+    # the emblem's mask in civ color on white cloth, sized to the flag
+    keys = (lambda f: ('tint', True) if mask(f.calc_center_median().y - (top[1] - w / 2),
+                                             f.calc_center_median().z - (top[2] - h / 2), h * 1.15) else None) if mask else None
     p.add(bm, 'sail', smooth=True, keys=keys) if mask else p.add(bm, 'tint', smooth=True, tint=True)
+
+
+def _wales(p, hull, stripes, n=40):
+    """Continuous wales (strakes) along both sides, following the hull's surface:
+    stripes = [(z0, z1, key)], each a flat band from z0 to z1."""
+    for z0, z1, key in stripes:
+        zc, hz = (z0 + z1) / 2, (z1 - z0) / 2
+        for sx in (-1, 1):
+            path = []
+            for i in range(1, n):
+                s = -0.97 + 1.94 * i / n
+                if zc > hull.deck_z(s):
+                    continue
+                path.append((sx * (hull.side_x(s, zc) + 0.006), hull.y(s), zc))
+            if len(path) > 2:
+                p.add(props.tube(path, max(hz, 0.008), seg=6, scale_xy=(0.35, 1.0)), key, smooth=True)
 
 
 def _deck_guns(p, hull, n, y0, y1, z_off=0.0):
@@ -596,7 +625,7 @@ def _deck_guns(p, hull, n, y0, y1, z_off=0.0):
         for sx in (-1, 1):
             xr = sx * hull.deck_half(s) * 0.92
             p.add(props.box(0.05, 0.07, 0.03), 'wood_dark', T(xr - sx * 0.05, y, zd + 0.02), bevel=0.005)   # carriage
-            p.add(props.lathe([(0.0, 0.016), (0.11, 0.011), (0.12, 0.013)], seg=10), 'gun_black',
+            p.add(props.lathe([(0.0, 0.024), (0.17, 0.016), (0.19, 0.02)], seg=10), 'gun_black',
                   T(xr - sx * 0.07, y, zd + 0.045) @ R('Y', sx * 90), smooth=True)
 
 
@@ -610,7 +639,7 @@ def _rich_castle(p, hull, y0, y1, h, windows=3):
             s = hull.s_of(y)
             x = sx * hull.deck_half(s) * 0.99
             zc = hull.deck_z(s) + h * 0.55
-            p.add(props.box(0.008, 0.05, 0.05), 'glass', T(x, y, zc), bevel=0.002)
+            p.add(props.box(0.008, 0.05, 0.05), 'port', T(x, y, zc), bevel=0.002)   # dark carved windows
             p.add(props.box(0.006, 0.065, 0.065), 'gold', T(x * 0.998, y, zc), bevel=0.002)
         n = max(4, int(abs(y1 - y0) / 0.07))
         for k in range(n + 1):
@@ -645,7 +674,8 @@ def sailing_ship(name, cfg, colors):
     root = vkit.root(name)
     p = vkit.part(root, 'hull', c, SHIP_WEAR)
     hull = Hull(**cfg['hull'])
-    add_hull(p, hull, stripes=cfg.get('stripes', []))
+    add_hull(p, hull, stripes=[s for s in cfg.get('stripes', []) if s[2] == 'hull_grime'])
+    _wales(p, hull, [s for s in cfg.get('stripes', []) if s[2] != 'hull_grime'])
     for y0, y1, h in cfg.get('castles', []):
         _castle(p, hull, y0, y1, h)
     for y0, y1, h, nw in cfg.get('rich_castles', []):
@@ -676,8 +706,12 @@ def sailing_ship(name, cfg, colors):
             sail(p, y + 0.02, zt, w * 0.9, w, h, emblem, billow=billow, seed=10 * k + j, patches=1)
             zt -= h + 0.03
             if j == len(tiers) - 2:   # a fighting top (a drum with a rail) below the topsail
-                p.add(props.lathe([(0.0, 0.1), (0.07, 0.12)], seg=16), 'wood_dark', T(0, y, zt - 0.02), smooth=True)
-                p.add(props.lathe([(0.0, 0.124), (0.012, 0.124)], seg=16), 'gold', T(0, y, zt + 0.05), smooth=True)
+                p.add(props.lathe([(0.0, 0.06), (0.03, 0.12), (0.07, 0.125)], seg=16), 'wood_dark', T(0, y, zt - 0.03),
+                      smooth=True)   # the top's dark drum
+                for q in range(10):   # its rail stanchions (not k: that's the mast's index)
+                    a = 2 * math.pi * q / 10
+                    vkit.rod(p, (0.12 * math.cos(a), y + 0.12 * math.sin(a), zt + 0.04),
+                             (0.12 * math.cos(a), y + 0.12 * math.sin(a), zt + 0.09), 0.005, 'wood_dark', seg=4)
             if m.get('yard_pennants') and j == len(tiers) - 1:   # small civ pennants at the course yard's tips
                 for sx in (-1, 1):
                     pennant(p, (sx * (w / 2 + 0.03), y + 0.02, zt + h + 0.04), 0.16, 0.06, phase=sx)
@@ -786,7 +820,7 @@ SAILING = {
         hull=dict(L=3.3, B=0.84, D=0.36, draft=0.17, sheer_stern=0.16, sheer_bow=0.12, bow_p=1.35, stern_p=2.0,
                   transom=0.4, rake_bow=0.3, fullness=1.0, tumblehome=0.2),
         # the Nelson chequer: buff bands along the gundecks, the ports dark in the black between them
-        stripes=[(-0.03, 0.035, 'hull_grime'), (0.08, 0.1, 'gold'), (0.16, 0.18, 'gold'), (0.28, 0.3, 'gold')],
+        stripes=[(-0.03, 0.035, 'hull_grime'), (0.065, 0.105, 'gold'), (0.165, 0.205, 'gold'), (0.28, 0.3, 'gold')],
         rich_castles=[(-1.65, -0.95, 0.1, 3)],
         stern_windows=(0.12, 6, 2),
         bowsprit=((0, 1.5, 0.48), (0, 2.3, 0.72)),
@@ -802,11 +836,116 @@ SAILING = {
 }
 
 
+def _fleur(x, z, h):
+    """The dromon's emblem: a bold fleur (a tall central petal, two curling
+    side petals and a band), filling much of the sail."""
+    s = 0.5 * h
+    ex, ez = x / s, z / s
+    centre = abs(ex) < 0.22 * (1 - max(0.0, ez - 0.1) / 0.85) and -0.2 < ez < 0.95
+    sides = any(abs(math.hypot(ex - sx * 0.55, ez - 0.25) - 0.38) < 0.13 and ez > 0.05 and sx * ex > 0.15
+                for sx in (-1, 1))
+    band = abs(ez + 0.1) < 0.09 and abs(ex) < 0.6
+    foot = abs(ex) < 0.14 and -0.7 < ez < -0.1
+    return centre or sides or band or foot
+
+
+EMBLEMS['fleur'] = _fleur
+
+
+def curragh(colors):
+    """An Irish curragh: a light, deep hide boat on a wicker frame, two short
+    masts each with a square sail bearing the civ cross, a few oars and a
+    steering oar."""
+    c = dict(SHIP_COLORS, **{'wood': '#8a6a46', 'wood_alt': '#7a5c3c', 'wood_dark': '#3a2a1a', 'deck': '#6a5236',
+                             'rail': '#3a2a18', 'sail': '#d8caa6', 'cordage': '#2b2118'})
+    c.update(colors)
+    root = vkit.root('Curragh')
+    p = vkit.part(root, 'hull', c, SHIP_WEAR)
+    hull = Hull(L=1.7, B=0.5, D=0.2, draft=0.1, sheer_stern=0.16, sheer_bow=0.2, bow_p=1.6, stern_p=1.7, fullness=0.9)
+    add_hull(p, hull, stripes=[(-0.03, 0.02, 'hull_grime'), (0.15, 0.17, 'wood_dark')], plank=0.035)
+    for i in range(7):   # the frame's ribs showing over the gunwale
+        y = -0.6 + 1.2 * i / 6
+        s = hull.s_of(y)
+        for sx in (-1, 1):
+            p.add(props.box(0.02, 0.025, 0.05), 'wood_dark', T(sx * hull.deck_half(s), y, hull.deck_z(s) + 0.01), bevel=0.004)
+    for y, h, w, top in ((0.32, 0.36, 0.62, 0.98), (-0.28, 0.42, 0.72, 1.06)):
+        vkit.rod(p, (0, y, 0.12), (0, y, top + 0.08), 0.022, 'wood_dark', seg=8)
+        sail(p, y + 0.02, top, w * 0.92, w, h, 'pattee', billow=0.16, seed=int(10 * h), patches=1)
+        pennant(p, (0, y, top + 0.1), 0.3, 0.1)
+    for i in range(3):   # three oars a side
+        y = -0.2 + 0.25 * i
+        s = hull.s_of(y)
+        for sx in (-1, 1):
+            a = (sx * hull.half_beam(s), y, hull.deck_z(s))
+            e = (sx * (hull.half_beam(s) + 0.38), y - 0.05, -0.05)
+            vkit.rod(p, a, e, 0.01, 'oar', seg=6)
+            p.add(props.box(0.012, 0.04, 0.1), 'oar', T(*e) @ R('Y', -sx * 55), bevel=0.002)
+    vkit.rod(p, (0.18, -0.78, 0.28), (0.26, -0.98, -0.04), 0.013, 'wood', seg=8)    # the steering oar
+    vkit.rod(p, (0, 0.32, 1.02), (0, 0.88, 0.32), 0.005, 'cordage', seg=4)
+    vkit.rod(p, (0, -0.28, 1.1), (0, -0.86, 0.34), 0.005, 'cordage', seg=4)
+    p.finish()
+    return root
+
+
+def dromon(colors):
+    """A Byzantine dromon: a long two-banked war galley, a fighting tower of
+    civ and gilt stripes at bow and stern, a bronze ram and siphon, two
+    banks of oars, a big square sail with the civ fleur and banded edges."""
+    c = dict(SHIP_COLORS, **GALLEY_COLORS)
+    c.update(colors)
+    root = vkit.root('Dromon')
+    p = vkit.part(root, 'hull', c, SHIP_WEAR)
+    hull = Hull(L=2.8, B=0.56, D=0.26, draft=0.11, sheer_stern=0.24, sheer_bow=0.14, bow_p=1.5, stern_p=1.6,
+                fullness=0.8)
+    add_hull(p, hull, stripes=[(-0.03, 0.015, 'hull_grime'), (0.015, 0.045, 'gold'), (0.12, 0.14, 'wood_dark'),
+                               (0.2, 0.235, 'gold')], plank=0.04)
+    # fighting towers (castles) at bow and stern, in civ and gilt stripes
+    for y0, y1 in ((-1.25, -0.82), (0.85, 1.2)):
+        yc = (y0 + y1) / 2
+        s = hull.s_of(yc)
+        z0 = hull.deck_z(s)
+        bw = hull.deck_half(s) * 1.7
+        for k in range(5):
+            key, tint = ('tint', True) if k % 2 == 0 else ('gold', False)
+            p.add(props.box(bw, y1 - y0, 0.055), key, T(0, yc, z0 + 0.03 + 0.056 * k), bevel=0.006, tint=tint)
+        for sx in (-1, 1):
+            for sy in (-1, 1):
+                vkit.rod(p, (sx * bw / 2, yc + sy * (y1 - y0) / 2, z0), (sx * bw / 2, yc + sy * (y1 - y0) / 2, z0 + 0.34),
+                         0.012, 'wood_dark', seg=6)
+    # the ram and the fire siphon at the bow
+    p.add(props.lathe([(0.0, 0.065), (0.14, 0.055), (0.34, 0.04), (0.46, 0.006)], seg=12, scale_xy=(0.75, 1.0)), 'gold',
+          T(0, 1.24, 0.04) @ R('X', -90), smooth=True)
+    p.add(props.lathe([(0.0, 0.025), (0.18, 0.02), (0.22, 0.035)], seg=10), 'gold', T(0, 1.22, 0.5) @ R('X', -70),
+          smooth=True)
+    curl = [(0, -1.32, 0.42), (0, -1.42, 0.58), (0, -1.45, 0.74), (0, -1.38, 0.86), (0, -1.3, 0.84)]
+    p.add(props.tube(curl, [0.045, 0.04, 0.035, 0.03, 0.02], seg=10), 'gold', smooth=True)
+    # two banks of oars
+    for bank, (zo, reach) in enumerate(((0.06, 0.48), (-0.03, 0.4))):
+        for i in range(12):
+            y = -0.72 + 1.5 * i / 11
+            s = hull.s_of(y)
+            for sx in (-1, 1):
+                a = (sx * hull.half_beam(s) * 0.97, y, hull.deck_z(s) + zo - 0.08 * bank)
+                e = (sx * (hull.half_beam(s) + reach), y - 0.04, -0.07)
+                vkit.rod(p, a, e, 0.009, 'oar', seg=6)
+                p.add(props.box(0.012, 0.04, 0.1), 'oar', T(*e) @ R('Y', -sx * 55), bevel=0.002)
+    vkit.rod(p, (0, 0.0, 0.22), (0, 0.0, 1.75), 0.04, 'wood_dark', seg=10)
+    p.add(props.lathe([(0.0, 0.03), (0.03, 0.07), (0.1, 0.075), (0.14, 0.045), (0.18, 0.0)], seg=16), 'gold',
+          T(0, 0.0, 1.74), smooth=True)
+    sail(p, 0.03, 1.66, 1.75, 1.75, 0.95, 'fleur', billow=0.15, tint_borders=True)
+    pennant(p, (0, 0.0, 1.9), 0.6, 0.16)
+    vkit.rod(p, (0, 0.0, 1.72), (0, 1.3, 0.5), 0.006, 'cordage', seg=4)
+    vkit.rod(p, (0, 0.0, 1.72), (0, -1.35, 0.8), 0.006, 'cordage', seg=4)
+    p.finish()
+    return root
+
+
 def _sailing_builder(name):
     return lambda colors, **kw: sailing_ship(name, SAILING[name], colors)
 
 
-BUILDERS = {'Galley': galley, 'Caravel': caravel, **{n: _sailing_builder(n) for n in SAILING}}
+BUILDERS = {'Galley': galley, 'Caravel': caravel, 'Curragh': curragh, 'Dromon': dromon,
+            **{n: _sailing_builder(n) for n in SAILING}}
 
 
 def build(unit, colors=None, **params):
