@@ -54,7 +54,8 @@ def body(gender=1.0, age=0.5, muscle=0.75, weight=0.55, height=0.55, proportions
     import garments
     garments.fit_to(basemesh)
     if skin_tone:
-        tone_skin(basemesh, skin_tone)
+        lum = 0.3 * skin_tone[0] + 0.59 * skin_tone[1] + 0.11 * skin_tone[2]
+        tone_skin(basemesh, skin_tone, desat=0.45 if lum < 0.42 else 1.0)
     for kind, name in (('eyebrows', eyebrows), ('eyelashes', 'eyelashes01'), ('eyes', 'high-poly'), ('hair', hair)):
         if name:
             try:
@@ -161,7 +162,7 @@ def grime(basemesh, amount=0.35, paint=None):
                             node.inputs[name].default_value = value
 
 
-def tone_skin(basemesh, color, strength=1.0, texture='diffuse'):
+def tone_skin(basemesh, color, strength=1.0, texture='diffuse', desat=1.0):
     """Multiplies the skin's diffuse texture (in MPFB's skin node group, which
     every body material shares) by `color` (sRGB), normalized so the
     texture's average lands on `color`."""
@@ -176,6 +177,11 @@ def tone_skin(basemesh, color, strength=1.0, texture='diffuse'):
         for node in list(tree.nodes):
             if node.type == 'GROUP':
                 visit(node.node_tree)
+            if desat < 1.0 and node.type == 'BSDF_PRINCIPLED' and 'Subsurface Weight' in node.inputs:
+                # less red subsurface scattering on dark skin (it read maroon)
+                sw = node.inputs['Subsurface Weight']
+                if not sw.is_linked:
+                    sw.default_value *= 0.35
             if node.type != 'TEX_IMAGE' or not node.image or texture not in node.image.name.lower():
                 continue
             links = [l for l in tree.links if l.from_node == node and l.from_socket.name == 'Color']
@@ -185,7 +191,15 @@ def tone_skin(basemesh, color, strength=1.0, texture='diffuse'):
             mul.inputs['Factor'].default_value = strength
             # the skin textures average about 0.45 linear: scale so they land on `color`
             mul.inputs['B'].default_value = tuple(min(4.0, c / 0.45) for c in lin) + (1.0,)
-            tree.links.new(node.outputs['Color'], mul.inputs['A'])
+            src = node.outputs['Color']
+            if desat < 1.0:
+                # the dark skin textures are reddish: take their color out, so
+                # the tone (a neutral brown) sets the hue
+                hs = tree.nodes.new('ShaderNodeHueSaturation')
+                hs.inputs['Saturation'].default_value = desat
+                tree.links.new(src, hs.inputs['Color'])
+                src = hs.outputs['Color']
+            tree.links.new(src, mul.inputs['A'])
             for l in links:
                 tree.links.new(mul.outputs['Result'], l.to_socket)
 

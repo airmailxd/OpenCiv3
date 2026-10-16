@@ -282,11 +282,26 @@ def cloth(name, color, tint=False, rough=0.85, weave=0.25, pattern=None, dirt=0.
         add.inputs[1].default_value = 0.15
         tree.links.new(tex.outputs['Fac'], add.inputs[0])
         tree.links.new(crease.outputs['Fac'], add.inputs[2])
+        # a coarser twill that reads at 2x (the fine weave averages away):
+        # diagonal bands, a light bump on top of the fine weave and creases
+        twill = n.new('ShaderNodeTexWave')
+        twill.wave_type = 'BANDS'
+        twill.bands_direction = 'DIAGONAL'
+        twill.inputs['Scale'].default_value = 70.0
+        twill.inputs['Detail'].default_value = 0.0
+        tree.links.new(coord.outputs['Object'], twill.inputs['Vector'])
+        add2 = n.new('ShaderNodeMath')
+        add2.operation = 'MULTIPLY_ADD'
+        add2.inputs[1].default_value = 0.35
+        tree.links.new(twill.outputs['Fac'], add2.inputs[0])
+        tree.links.new(add.outputs['Value'], add2.inputs[2])
         bump = n.new('ShaderNodeBump')
         bump.inputs['Strength'].default_value = weave
-        tree.links.new(add.outputs['Value'], bump.inputs['Height'])
+        tree.links.new(add2.outputs['Value'], bump.inputs['Height'])
         tree.links.new(bump.outputs['Normal'], bsdf.inputs['Normal'])
-        bsdf.inputs['Sheen Weight'].default_value = 0.12
+        # a soft sheen on the folds (velvet, wool): cloth reads as cloth, not paint
+        bsdf.inputs['Sheen Weight'].default_value = 0.35
+        bsdf.inputs['Sheen Roughness'].default_value = 0.45
         # dirt: broad, soft darker patches (no cloth stays factory-clean)
         dn = n.new('ShaderNodeTexNoise')
         dn.inputs['Scale'].default_value = 3.0
@@ -320,7 +335,25 @@ def cloth(name, color, tint=False, rough=0.85, weave=0.25, pattern=None, dirt=0.
         dirt.data_type = 'RGBA'
         dirt.blend_type = 'MULTIPLY'
         dirt.inputs['Factor'].default_value = 0.8
-        tree.links.new(mul.outputs['Result'], dirt.inputs['A'])
+        # a mid-scale mottle (~4 cm patches, about +-7% value): the hand-painted
+        # richness of the originals (smooth gradients read as CG)
+        mot = n.new('ShaderNodeTexNoise')
+        mot.inputs['Scale'].default_value = 24.0
+        mot.inputs['Detail'].default_value = 1.0
+        tree.links.new(coord.outputs['Object'], mot.inputs['Vector'])
+        mramp = n.new('ShaderNodeValToRGB')
+        mramp.color_ramp.elements[0].color = (0.9, 0.9, 0.9, 1)
+        mramp.color_ramp.elements[1].color = (1.05, 1.05, 1.05, 1)
+        mramp.color_ramp.elements[0].position = 0.3
+        mramp.color_ramp.elements[1].position = 0.7
+        tree.links.new(mot.outputs['Fac'], mramp.inputs['Fac'])
+        mmul = n.new('ShaderNodeMix')
+        mmul.data_type = 'RGBA'
+        mmul.blend_type = 'MULTIPLY'
+        mmul.inputs['Factor'].default_value = 1.0
+        tree.links.new(mul.outputs['Result'], mmul.inputs['A'])
+        tree.links.new(mramp.outputs['Color'], mmul.inputs['B'])
+        tree.links.new(mmul.outputs['Result'], dirt.inputs['A'])
         tree.links.new(dr.outputs['Color'], dirt.inputs['B'])
         tree.links.new(dirt.outputs['Result'], bsdf.inputs['Base Color'])
     return B.material(name, color, roughness=rough, tint=tint, nodes=nodes)
