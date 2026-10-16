@@ -72,7 +72,7 @@ REMASTER = {
         # MISSING: lapel_trim (tinted robe front edges; the panel edges stand in)
         'cape': False, 'cuirass': False, 'wraps': None, 'sandals': True, 'bracers': False, 'gear': [],
         # the crossbar-hung vexillum, tinted field; MISSING: flag_device (three vertical bars, red/green/cyan)
-        'weapon': 'standard', 'props': {'standard': ('war_standard', {'era': 'ancient', 'length': 2.30, 'grip': 1.2, 'device': 'bars'})},   # lower again: the flag top touched the cell top (dirs 6, 7), then 1 px in dir 6
+        'weapon': 'standard', 'props': {'standard': ('war_standard', {'era': 'ancient', 'length': 2.30, 'grip': 1.2, 'device': 'bars', 'flag_scale': 1.6})},   # lower again: the flag top touched the cell top (dirs 6, 7), then 1 px in dir 6
         'stance_name': 'stand_staff', 'two_hands': True,
         'tint': ['banner'],
         'grime': 0.55, 'upper_bulk': 1.1,
@@ -95,7 +95,7 @@ REMASTER = {
         'bands': [('wrist', 'gold')],           # gold cuffs
         'cape': False, 'sandals': False, 'bracers': False, 'gear': [],
         # the flag flying from the pole top, tinted field; MISSING: flag_device (blob emblems)
-        'weapon': 'standard', 'props': {'standard': ('war_standard', {'era': 'industrial', 'length': 2.4, 'grip': 1.2, 'device': 'blobs'})},   # 0.05 lower again: it touched the cell top in dir 6
+        'weapon': 'standard', 'props': {'standard': ('war_standard', {'era': 'industrial', 'length': 2.4, 'grip': 1.2, 'device': 'blobs', 'flag_scale': 1.45})},   # 0.05 lower again: it touched the cell top in dir 6
         'stance_name': 'stand_staff', 'two_hands': True,
         'tint': ['top', 'banner'],
         'grime': 0.45, 'upper_bulk': 1.15,
@@ -142,7 +142,7 @@ REMASTER = {
         'gear': [('chest_strap', {'width': 0.2, 'edge': 'gold', 'edge_width': 0.035})],   # the broad tinted sash, gold-edged
         'cape': False, 'cuirass': False, 'sandals': False, 'bracers': False,
         # the big flag, tinted field; MISSING: flag_device (diagonal cross; the PC is making it)
-        'weapon': 'standard', 'props': {'standard': ('war_standard', {'era': 'modern', 'length': 2.43, 'grip': 1.2, 'device': 'saltire'})},   # lower: the flag top touched the cell top (dirs 6, 7)
+        'weapon': 'standard', 'props': {'standard': ('war_standard', {'era': 'modern', 'length': 2.43, 'grip': 1.2, 'device': 'saltire', 'flag_scale': 1.45})},   # lower: the flag top touched the cell top (dirs 6, 7)
         'stance_name': 'stand_staff', 'two_hands': True,
         'tint': ['strap', 'banner'],
         'grime': 0.55, 'upper_bulk': 1.15,
@@ -223,7 +223,7 @@ REMASTER = {
         # MISSING: companion_dog (grey wolfhound, tinted collar; the PC is making the prop). Once it exists, place it
         # with 'ground_props': [(name, params, (x, y), yaw)] at his side (x is his left, +y forward)
         'weapon': None, 'offhand': None,
-        'ground_props': [('wolfhound', {}, (0.5, 0.1), 15)],   # the grey wolfhound at his left, civ collar
+        'ground_props': [('wolfhound', {'scale': 1.3}, (0.55, 0.15), 10)],   # the grey wolfhound at his left, civ collar
         'stance_name': 'stand',
         'tint': ['sleeves'],
         'grime': 0.4, 'upper_bulk': 1.15,
@@ -710,12 +710,13 @@ REMASTER = {
         'helmet': None, 'hair': 'long', 'hair_asset': 'long01',   # MISSING: periwig (curly, to the shoulders)
         'beard': False,
         'top': 'sleeved', 'neck': 'high',
-        'patterns': {'top': ('stripes', '#a8242a', 10.0)},   # the doublet's red slashes (stripes stand in for dashes)
+        'patterns': {'top': ('stripes', '#a8242a', 10.0),   # the doublet's red slashes (stripes stand in for dashes)
+                     'cape': ('camo', '#f4f2ec', 34.0, 'cover', 0.035)},   # white ermine dots scattered on the robe
         # white breeches and hose in one: full-length puffy legs, black low shoes
         'bottom': 'breeches', 'puffy': True, 'trouser_offset': 0.04, 'wraps': 'wraps', 'shoes': True, 'sandals': False,   # short puffed civ breeches over white hose
         # the enormous robe: a wide bell flaring onto the ground, the gold hem pooling behind
         'cape': True, 'cape_length': 1.5, 'cape_flare': 1.55, 'cape_train': 0.8, 'cape_width': 0.7,   # a wide bell with a train
-        'hem_bands': [('cape', 'gold', 0.14), ('cape', 'ermine', 0.1, 0.14)],   # the gold hem, the ermine just above it   # the gold hem, ermine above it
+        'hem_bands': [('cape', 'gold', 0.17)],   # the wide gold hem (an ermine band showed as white flecks where the front corners turn)   # the gold hem, ermine above it
         'cape_lining': '#3a2040',   # the dark purple lining
         'cuirass': False, 'bracers': False, 'gear': [],
         # the gold-topped cane in the free left fist ('fist_hip_r' puts the item there), the rod down to the
@@ -875,10 +876,10 @@ REMASTER = {
         'top': 'sleeved', 'neck': 'high',
         # the white front panel between civ-color sides; MISSING: fleur_pattern (gold)
         'bottom': 'gown', 'gown_flare': 2.4, 'robe_drop': 0.62,
-        'patterns': {'bottom': [('camo', '#c8a038', 24.0, 'cover', 0.08), ('panel', '#ece8e4', 0.13)]},   # gold fleurs scattered on the civ gown
+        'patterns': {'bottom': ('camo', '#e2c454', 15.0, 'cover', 0.1)},   # gold fleurs scattered on the civ gown (the white at her front sides is the veil)
         'hem_bands': [('bottom', '#f2efe8', 0.13, 0.0), ('bottom', 'gold', 0.06, 0.13)],   # the wide white lace spill   # gold and white lace at the hem
         # the white veil to the hips, narrow and close to the back; MISSING: head_veil (from the head, over the crown)
-        'cape': True, 'cape_length': 0.9, 'cape_width': 0.4, 'cape_flare': 0.45, 'cape_wrap': 0.65,   # close to the back
+        'cape': True, 'cape_length': 1.45, 'cape_width': 0.75, 'cape_flare': 0.25, 'cape_wrap': 0.55,   # the veil falls to the ground behind   # close to the back
         'cuirass': False, 'wraps': None, 'sandals': False, 'bracers': False, 'gear': [],
         # the gold fleur-headed scepter low in the right fist, head up and forward
         'weapon': 'scepter', 'props': {'scepter': ('scepter', {'length': 0.7, 'head': 'fleur'})},

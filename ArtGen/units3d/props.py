@@ -1811,17 +1811,18 @@ def _device(kind, top, w, h, flag):
         u = c.y / w if flag else (c.x + w / 2) / w
         v = (top - c.z) / h
         if kind == 'bars':
-            for u0, key in ((0.25, 'device_red'), (0.5, 'device_green'), (0.75, 'device_cyan')):
-                if abs(u - u0) < 0.07 and 0.12 < v < 0.88:
-                    return (key, False)
+            for u0, edge in ((0.25, 'device_cyan'), (0.5, 'device_green'), (0.75, 'device_cyan')):   # red bars, light edges
+                if 0.12 < v < 0.88 and abs(u - u0) < 0.1:
+                    return ('device_red' if abs(u - u0) < 0.06 else edge, False)
         elif kind == 'blobs':
             for (u0, v0, r), key in (((0.3, 0.32, 0.15), 'device_red'), ((0.68, 0.38, 0.14), 'device_green'),
                                      ((0.48, 0.7, 0.14), 'device_cyan')):
                 if ((u - u0) / r) ** 2 + ((v - v0) / (r * w / h)) ** 2 < 1:
                     return (key, False)
         elif kind == 'saltire':
-            if min(abs(u - v), abs(u - (1 - v))) < 0.09:
-                return ('device_white', False)
+            dd = min(abs(u - v), abs(u - (1 - v)))   # a red diagonal cross edged in green
+            if dd < 0.14:
+                return ('device_red' if dd < 0.08 else 'device_green', False)
         elif kind == 'quarters':
             if (u < 0.5) == (v < 0.5):
                 return ('device_red' if u < 0.5 else 'device_green', False)
@@ -1853,7 +1854,7 @@ def _banner(p, top, w, h, swallowtail=False, flag=False, device=None):
     p.add(bm, 'banner', smooth=True, tint=True, keys=_device(device, top, w, h, flag) if device else None)
 
 
-def war_standard(p, era='ancient', length=2.6, grip=1.0, scale=1.0, device=None):
+def war_standard(p, era='ancient', length=2.6, grip=1.0, scale=1.0, device=None, flag_scale=1.0):
     """An army's standard held at the grip (origin), +Z up, the cloth in the
     civ color. era: 'ancient' (vexillum: crossbar, square cloth with fringe,
     an eagle on top), 'medieval' (a long swallowtailed pennon banner),
@@ -1862,19 +1863,21 @@ def war_standard(p, era='ancient', length=2.6, grip=1.0, scale=1.0, device=None)
     z1 = L - grip
     p.add(tube([(0, 0, -grip), (0, 0, z1)], [SHAFT_R + 0.002, SHAFT_R], seg=10), 'wood', smooth=True)
     if era == 'ancient':
-        vkit_bar = tube([(-0.28, 0, z1 - 0.12), (0.28, 0, z1 - 0.12)], 0.012, seg=8)
+        fs = flag_scale
+        vkit_bar = tube([(-0.28 * fs, 0, z1 - 0.12), (0.28 * fs, 0, z1 - 0.12)], 0.012, seg=8)
         p.add(vkit_bar, 'wood', smooth=True)
-        _banner(p, z1 - 0.13, 0.5, 0.55, device=device)
+        _banner(p, z1 - 0.13, 0.5 * fs, 0.55 * fs, device=device)
         for i in range(9):
-            x = -0.24 + 0.06 * i
-            p.add(tube([(x, 0, z1 - 0.68), (x, 0, z1 - 0.76)], 0.006, seg=4), 'gold', smooth=True)
+            x = (-0.24 + 0.06 * i) * fs
+            zf = z1 - 0.13 - 0.55 * fs
+            p.add(tube([(x, 0, zf), (x, 0, zf - 0.08)], 0.006, seg=4), 'gold', smooth=True)
         _gold_head(p, 'eagle', z1, 1.6)
     elif era == 'medieval':
         p.add(tube([(-0.3, 0, z1 - 0.1), (0.3, 0, z1 - 0.1)], 0.012, seg=8), 'wood', smooth=True)
-        _banner(p, z1 - 0.11, 0.55, 0.9, swallowtail=True, device=device)
+        _banner(p, z1 - 0.11, 0.55 * flag_scale, 0.9 * flag_scale, swallowtail=True, device=device)
         _gold_head(p, 'cross', z1, 1.2)
     else:
-        _banner(p, z1 - 0.05, 0.75, 0.5, flag=True, device=device)
+        _banner(p, z1 - 0.05, 0.75 * flag_scale, 0.5 * flag_scale, flag=True, device=device)
         p.add(ellipsoid(0.035, 0.035, 0.05, seg=12), 'gold', T(0, 0, z1 + 0.04), smooth=True)
         if era == 'modern':
             p.add(lathe([(0.0, 0.025), (0.03, 0.02)], seg=10), 'gold', T(0, 0, z1 - 0.06), smooth=True)
@@ -1891,6 +1894,8 @@ def eagle_standard(p, length=2.2, grip=0.9, scale=1.0):
 
 
 DEFAULTS.setdefault('feather_teal', ('#2e8a86', 0.7, 0.0, 'cloth'))
+DEFAULTS.setdefault('feather_red', ('#a8302a', 0.9, 0.0, 'cloth'))
+DEFAULTS.setdefault('feather_green', ('#2e7a4a', 0.9, 0.0, 'cloth'))
 DEFAULTS.setdefault('dog_fur', ('#8a8884', 0.9, 0.0, 'cloth'))
 DEFAULTS.setdefault('dog_dark', ('#1e1c1a', 0.6, 0.0, 'leather'))
 
@@ -1913,7 +1918,7 @@ def feather_card(p, base, tip, normal, width, key, tint=False, curl=0.15, n=6):
     for i in range(n):
         bm.faces.new((left[i], left[i + 1], right[i + 1], right[i]))
     bmesh.ops.solidify(bm, geom=bm.faces[:], thickness=0.004)
-    p.add(bm, key, smooth=True, tint=tint)
+    p.add(bm, key, smooth=False, tint=tint)   # flat: smoothing across the thin edges turned the cards black
 
 
 def feather_standard(p, length=2.1, grip=1.2, scale=1.0):
