@@ -106,6 +106,21 @@ def dress(entry, mesh, arm):
                 _mat(entry, 'bottom', G.cloth, weave=0.6), zmin=0.1 if bottom == 'long' else 0.42, zmax=1.0,
                 offset=puff, thickness=0.004)
     # belt
+    if entry.get('harness'):
+        # two straps crossing on the chest and back
+        tint = 'harness' in entry.get('tint', [])
+        hmat = G.cloth('harness', (1, 1, 1), tint=True) if tint else G.leather('harness', B.hex_color(c['belt']))
+        for sgn in (1, -1):
+            G.shell(mesh, arm, 'Harness', torso, hmat, zmin=1.0, zmax=1.5, offset=0.02, thickness=0.006,
+                    keep=lambda co, sgn=sgn: abs((co.z - 1.22) + sgn * 0.95 * co.x) < 0.03)
+    if entry.get('veil'):
+        # a cloth veil or mask over the lower face (below the eyes)
+        _, yc, _ = G._head(mesh)
+        topz = max(v.co.z for v in mesh.data.vertices) / G._scale
+        tint = 'veil' in entry.get('tint', [])
+        vmat = G.cloth('veil', (1, 1, 1), tint=True) if tint else G.cloth('veil', B.hex_color(c.get('veil', '#2a2622')))
+        G.shell(mesh, arm, 'Veil', ['head', 'neck_01'], vmat, zmin=(topz - 0.26), zmax=(topz - 0.115), offset=0.012,
+                thickness=0.004, min_weight=0.2, keep=lambda co, yc=yc / G._scale: co.y - yc < 0.02)
     for g in entry.get('gear', []):
         name = g[0] if isinstance(g, (list, tuple)) else g
         if name == 'chest_strap':
@@ -198,6 +213,18 @@ def helmet(entry, mesh, arm):
     body = mesh.vertex_groups.get('body')
     top = max(v.co.z for v in me.vertices if any(g.group == body.index and g.weight > 0.5 for g in v.groups))
     metal = kind in entry.get('metal', ['helmet']) or 'helmet' in entry.get('metal', ['helmet'])
+    if kind == 'great_helm':
+        # a closed flat-topped helm down to the neck, with an eye slit
+        tint = 'helmet' in entry.get('tint', [])
+        gm = B.material('helmet', (1, 1, 1) if tint else B.hex_color(_colors(entry)['helmet']),
+                        roughness=0.5, metallic=0 if tint else 0.85, tint=tint)
+        _, yc, _ = G._head(mesh)
+
+        def keep(co, top=top / G._scale, yc=yc / G._scale):
+            d = top - co.z
+            return not (co.y - yc < -0.05 and 0.085 < d < 0.105 and abs(co.x) < 0.065)   # the eye slit
+        G.shell(mesh, arm, 'Helmet', ['head', 'neck_01'], gm, zmin=(top - 0.27) / G._scale, offset=0.035,
+                thickness=0.01, min_weight=0.15, keep=keep)
     if kind in ('galea', 'morion'):
         metalmat = B.material('helmet', B.hex_color(_colors(entry)['helmet']), roughness=0.5, metallic=0.85)
         G.shell(mesh, arm, 'Helmet', ['head', 'neck_01'], metalmat, zmin=(top - 0.09) / G._scale, offset=0.018,
@@ -313,6 +340,13 @@ STANCES['guard'] = [('spine_02', (0, -0.04, 1)), ('neck_01', (0, 0.1, 1)), ('hea
                     ('upperarm_l', (0.3, -0.2, -1)), ('lowerarm_l', (-0.65, -0.75, 0.1)),
                     ('upperarm_r', (-0.35, -0.15, -1)), ('lowerarm_r', (-0.3, -0.9, -0.45))]
 
+STANCES['arms_folded'] = [('spine_02', (0, -0.02, 1)), ('neck_01', (0, 0.1, 1)), ('head', (0, 0.35, 1)),
+                          ('clavicle_l', (1, -0.15, 0.05)), ('clavicle_r', (-1, -0.15, 0.05)),
+                          ('thigh_l', (0.2, -0.06, -1)), ('calf_l', (0.14, 0.04, -1)), ('foot_l', (0.45, -1, -0.3)),
+                          ('thigh_r', (-0.2, 0.0, -1)), ('calf_r', (-0.14, 0.04, -1)), ('foot_r', (-0.45, -1, -0.3)),
+                          ('upperarm_l', (0.2, -0.5, -1)), ('lowerarm_l', (-1.0, -0.25, 0.25)),
+                          ('upperarm_r', (-0.2, -0.55, -1)), ('lowerarm_r', (1.0, -0.35, 0.3))]
+
 WEAPON_STANCE = {
     'stone_axe': 'hang', 'club': 'hang', 'sword': 'hang', 'axe': 'hang',
     'spear': 'upright', 'staff': 'upright', 'pike': 'upright',
@@ -415,6 +449,16 @@ def equip(entry, arm):
         made.append(obj)
     elif back == 'pelt':
         pass  # TODO: a pelt over the shoulders
+    hip = entry.get('hip')
+    if hip:
+        # a sheathed sword at the left hip: the scabbard's mouth at the belt,
+        # hanging back and down at an angle
+        name, params = hip
+        obj = P.make(name, c, **params)
+        pv = arm.matrix_world @ arm.pose.bones['pelvis'].head
+        at = pv + Vector((0.17 * G._scale, -0.04 * G._scale, 0.05 * G._scale))
+        H.hold(obj, arm, 'pelvis', at, up=(0.15, 0.85, 0.5), forward=(1, 0, 0))
+        made.append(obj)
     return made
 
 

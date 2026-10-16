@@ -134,8 +134,7 @@ REMASTER = {
         'cuirass': True, 'top': 'sleeved', 'puffy': True,   # puffed civ-color sleeves, baggy breeches
         'bottom': 'breeches', 'wraps': 'boots',  # pale high boots below the breeches
         'gear': [],
-        # MISSING: hip_slot -- props.sheathed_sword(rapier=True) exists, but
-        # equip has no place at the left hip for it
+        'hip': ('sheathed_sword', {'rapier': True}),   # the rapier sheathed at the left hip
         'weapon': None,
         'offhand': 'map', 'offhand_mesh': ('map', {'w': 0.34, 'h': 0.26}),
         'stance_name': 'upright',
@@ -197,8 +196,8 @@ REMASTER = {
         'race': {'caucasian': 0.6, 'african': 0.1, 'asian': 0.3},
         'colors': {'skin': '#8e6a4a', 'hair': '#140e0a', 'helmet': '#cfc9b8', 'top': '#9a8058',
                    'bottom': '#5e4a34', 'belt': '#3a2a1c', 'boots': '#a08434', 'steel': '#a8aaae',
-                   'gold': '#a8842e'},
-        'helmet': 'hood',                       # MISSING: face_veil (cloth over the chin and mouth)
+                   'gold': '#a8842e', 'veil': '#cfc9b8'},
+        'helmet': 'hood', 'veil': True,         # white headcloth and a veil over the chin and mouth
         'beard': True,
         # a tan sleeved tunic; 'puffy' adds the sleeve layer over the upper
         # arms (tinted: the civ-color short sleeves) and makes the trousers baggy
@@ -298,8 +297,9 @@ REMASTER = {
         'macro': {'muscle': 0.95, 'weight': 0.6, 'height': 0.74, 'proportions': 0.72},
         'race': {'caucasian': 0.1, 'african': 0.3, 'asian': 0.6},
         'colors': {'skin': '#7e5236', 'hair': '#0e0a08', 'belt': '#3a2a1c', 'wood': '#4e3420',
-                   'steel': '#8a8a88', 'gold': '#c09a34'},
-        'helmet': 'hood',                       # MISSING: feather_tufts (yellow) and face_mask (dark red)
+                   'steel': '#8a8a88', 'gold': '#c09a34', 'veil': '#5a1e18'},
+        'helmet': 'hood',                       # MISSING: feather_tufts (yellow)
+        'veil': True,                           # the dark red face mask
         'top': 'vest', 'bottom': 'loincloth', 'loin_length': (0.36, 0.32), 'torn': False,
         'bands': [('upperarm', 'tint'), ('knee', 'tint'), ('ankle', 'tint'), ('wrist', 'gold')],
         'bracers': False, 'wraps': None, 'sandals': False, 'gear': [],
@@ -393,7 +393,7 @@ REMASTER = {
         'colors': {'skin': '#94704f', 'helmet': '#6a6c70', 'mail': '#5a5a5e', 'belt': '#3a2818',
                    'bracers': '#5a5a5e', 'greaves': '#6e7074', 'steel': '#8a8c90', 'iron': '#4a4a4e',
                    'wood': '#4a3222', 'shield_face': '#8a7048', 'shield_rim': '#3a3a3e', 'bronze': '#6e7074'},
-        'helmet': 'cap', 'metal': ['helmet'], 'hair_asset': None, 'beard': False,   # MISSING: great_helm (closed, eye slit)
+        'helmet': 'great_helm', 'metal': ['helmet'], 'hair_asset': None, 'beard': False,
         # the surcoat: a tinted sleeveless top and a tinted kilt dropped to the ankles
         'top': 'vest', 'neck': 'high', 'collar': 'mail',   # MISSING: mail_sleeves and mail_chausses (arms and legs)
         'bottom': 'kilt', 'robe': 0.35,         # MISSING: hem_band (gold, at the surcoat's hem)
@@ -415,18 +415,16 @@ REMASTER = {
         'race': {'caucasian': 0.0, 'african': 0.0, 'asian': 1.0},
         'colors': {'skin': '#987452', 'helmet': '#1c2016', 'top': '#20261a', 'bottom': '#1c2016',
                    'boots': '#121410', 'belt': '#2a2a20', 'steel': '#9a9ca0', 'wood': '#6a5034',
-                   'leather': '#2a2418'},
-        'helmet': 'hood', 'hair_asset': None,   # MISSING: face_mask (dark cloth over the nose and mouth)
+                   'leather': '#2a2418', 'veil': '#1a1e14'},
+        'helmet': 'hood', 'hair_asset': None, 'veil': True,   # hood and dark face mask
         'top': 'sleeved', 'neck': 'high',       # MISSING: long_jacket (to mid-thigh, split panels)
         'bottom': 'long', 'wraps': 'boots',
-        # one tinted diagonal strap; MISSING: harness (straps over both
-        # shoulders, a V/Y on chest and back)
-        'gear': [('chest_strap', {'color': '#2a2a20'})],
+        'harness': True, 'gear': [],            # two civ-color straps crossing on chest and back
         'weapon': 'sword',
         'props': {'sword': ('kama', {'length': 0.42})},
         'offhand': 'kama',                      # held low across the hips, not out at the side
         'stance_name': 'hang',
-        'tint': ['belt', 'strap'],
+        'tint': ['belt', 'harness'],
         'grime': 0.6, 'upper_bulk': 1.1,
     },
     'Pikeman': {
@@ -464,11 +462,10 @@ REMASTER = {
         'top': 'sleeved', 'wide_sleeves': True,   # MISSING: long_coat (to the knee), white under-robe
         'bottom': 'long',                       # MISSING: hakama (wide pleated trousers)
         'sandals': True, 'wraps': None, 'gear': [],
-        'weapon': None,
-        # held low in the left hand for now; MISSING: hip_slot -- it belongs
-        # thrust through the sash at the left hip, curving back past the knee
-        'offhand': 'katana_sheathed', 'offhand_mesh': ('katana_sheathed', {'length': 0.72}),
-        'stance_name': 'upright',               # MISSING: arms_folded stance
+        # arms folded on the chest, hands empty, the katana sheathed at the left hip
+        'weapon': None, 'offhand': None,
+        'hip': ('katana_sheathed', {'length': 0.72}),
+        'stance_name': 'arms_folded',
         'tint': ['top'],
         'grime': 0.55, 'upper_bulk': 1.2,
     },
@@ -553,11 +550,8 @@ REMASTER = {
 # long_pelt_cloak    Berserk (to the thighs), Enkidu Warrior (to the calves): pelt_cape with a length.
 # segmentata         Legionary: banded segmented plate in place of a smooth cuirass, pale shoulder plates.
 # tassets            Pikeman: steel plates over the hips below the breastplate.
-# harness            Ninja: straps over both shoulders forming a V/Y on chest and back, joined to the belt
-#                    (one tinted diagonal strap stands in).
 #
 # -- headgear and faces
-# great_helm         Medieval Infantry: a closed flat-topped steel helm with an eye slit.
 # conical_helmet     Berserk: a pointed iron cap with a nasal.
 # cap_knob           Bowman: a gold knob on the crown of the cap.
 # plume_curl         Longbowman: a plume curling at the back of the cap (the 'plume' stands upright).
@@ -565,14 +559,10 @@ REMASTER = {
 # fan_headdress      Chasquis Scout: a broad rounded fan framing the whole head (tinted, white/gold rim).
 # feather_headdress  Impi (bushy crown, tinted), Javelin Thrower (small yellow tufts on the hood).
 # streamers          Enkidu Warrior: tinted ribbons flicking up off the headband.
-# face_veil / face_mask  Immortals (white cloth over chin and mouth), Ninja (dark mask), Javelin Thrower
-#                    (dark red face paint/mask).
 # braids / long_beard  Berserk (two yellow braids down the chest), Enkidu Warrior (black beard to mid-chest).
 # spiked_hair        Gallic Swordsman: limed ginger hair spiked straight up.
 #
 # -- props and where they go
-# hip_slot           Explorer (props.sheathed_sword rapier=True), Samurai (props.katana_sheathed, now held in
-#                    the left hand): a worn-at-the-left-hip attachment (on the belt, hilt forward).
 # shackles placement Enslaved Worker: props.shackles on both wrists (and a chain between the ankles).
 # book_raised        Inquisitor: the book held open at chest-to-head height (offhand sits low at the hips).
 # planted_bundle     Javelin Thrower: the bundle planted upright at his left, gripped high (offhand is level).
@@ -586,7 +576,6 @@ REMASTER = {
 #
 # -- stances
 # two_hand_low       Berserk: haft level across the hips in both hands, the head out to the right at knee height.
-# arms_folded        Samurai: arms crossed on the chest, no weapon in hand.
 # spade_upright      Enslaved Worker: a spade upright at the right side, blade on the ground (low_across stands in).
 # javelin_level      Javelin Thrower: a javelin held low and horizontal, point forward.
 # bow_upright_nocked Longbowman: the longbow vertical in front, an arrow nocked, the right hand at the string.
