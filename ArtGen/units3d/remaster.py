@@ -11,7 +11,7 @@ entry (dicts merged one level deep).
 REMASTER = {
     'Warrior': {
         'macro': {'muscle': 1.0, 'weight': 0.9, 'height': 0.7, 'proportions': 0.6},
-        'colors': {'skin': '#a07450', 'hair': '#3a2616', 'wraps': '#4a3020', 'wraps_band': '#22160c',
+        'colors': {'skin': '#a07450', 'hair': '#4a3020', 'wraps': '#4a3020', 'wraps_band': '#22160c',
                    'wood': '#6a4a2e', 'stone': '#b8a888', 'leather': '#4a3020', 'belt': '#3a2618'},
         'upper_bulk': 1.2,
         'hair_asset': 'long01',
@@ -23,11 +23,11 @@ REMASTER = {
     'Spearman': {
         'macro': {'muscle': 1.0, 'weight': 0.8, 'height': 0.75, 'proportions': 0.7},
         'colors': {'skin': '#94704f', 'helmet': '#5a4c2c', 'crest': '#3a2a1c', 'bottom': '#4e3a26',
-                   'shield_face': '#8a7250', 'shield_rim': '#3a3634', 'belt': '#3a2818'},
+                   'shield_face': '#b09060', 'shield_rim': '#3a3634', 'belt': '#3a2818'},
         'props': {'spear': ('spear', {'grip': 1.2, 'length': 2.6}),
                   'shield_oval': ('shield_oval', {'band': 0.13, 'w': 0.8, 'h': 0.8})},
         'offhand_mesh': ('shield_oval', {'band': 0.13, 'w': 0.8, 'h': 0.8}),
-        'gear': [], 'shield_at': 'left_hip',
+        'gear': [('chest_strap', {'color': '#2a1c12', 'width': 0.05})], 'shield_at': 'left_hip',
         'grime': 0.7,
         'beard': True,
         'tint': ['top', 'shield_emblem', 'crest'],
@@ -38,13 +38,14 @@ REMASTER = {
         # the original: lean and bare-chested, a sash over one shoulder and a
         # long apron (both civ color), the bow held low across the hips
         'macro': {'muscle': 0.9, 'weight': 0.6, 'height': 0.75, 'proportions': 0.75},
-        'colors': {'skin': '#8a684a', 'hair': '#140e0a', 'helmet': '#24180e', 'boots': '#3a2616',
+        'colors': {'skin': '#8a684a', 'hair': '#140e0a', 'helmet': '#7a5434', 'boots': '#3a2616',
                    'leather': '#4e3826', 'wood': '#3e2a1a', 'string': '#8a7a5a'},
         'top': 'strap', 'bottom': 'loincloth', 'loin_length': (0.6, 0.42), 'torn': False,
         'tint': ['top', 'bottom'],
         'hair': 'topknot', 'hair_asset': 'ponytail01', 'helmet': 'headband',
         'wraps': 'boots', 'beard': False, 'upper_bulk': 1.25, 'gear': [],
         'stance_name': 'bow_low',
+        'weapon': 'arrow', 'props': {'arrow': ('arrow', {'length': 0.85})},   # an arrow ready in the right hand
         'offhand_mesh': ('bold_bow', {'height': 1.45, 'bend': 0.2, 'recurve': 0.12}),
         'grime': 0.6,
     },
@@ -55,7 +56,7 @@ REMASTER = {
         'macro': {'muscle': 1.0, 'weight': 0.8, 'height': 0.75, 'proportions': 0.7},
         'colors': {'skin': '#8a684a', 'helmet': '#5c5c60', 'cuirass': '#5e4028', 'bottom': '#4e3622',
                    'steel': '#8a8c90', 'bracers': '#4e3622',
-                   'greaves': '#6a6a6e', 'horn': '#b8a888', 'belt': '#2e2016', 'shield_face': '#5e4430'},
+                   'greaves': '#6a6a6e', 'horn': '#b8a888', 'belt': '#2e2016', 'shield_face': '#5e4430', 'steel': '#6e7074'},
         'helmet': 'horned', 'metal': ['helmet'], 'cuirass': True, 'top': None, 'pauldrons': True,
         'neck': 'high', 'boots': True, 'stance_name': 'guard', 'shield_at': 'left_hip',
         'shield_yaw': -48.0, 'shield_drop': 0.38,
@@ -121,7 +122,7 @@ REMASTER = {
         'macro': {'muscle': 0.85, 'weight': 0.5, 'height': 0.7, 'proportions': 0.7},
         'colors': {'skin': '#8e6a48', 'helmet': '#c8b688', 'hair': '#241a10', 'wraps': '#3e2a1c',
                    'wraps_band': '#22160c', 'wood': '#6a4a2e', 'steel': '#7a7872'},
-        'helmet': 'cap', 'cap_brim': True, 'two_hands': True, 'tool_dir': (-0.45, -0.8, 0.4),
+        'helmet': 'cap', 'cap_brim': True, 'two_hands': True, 'tool_dir': (-0.4, -0.62, 0.68), 'tool_face': (0.75, -0.65, 0.0),
         'pose_extra': [('spine_02', (0, -0.14, 1)), ('head', (0, 0.2, 1))],
         'top': 'strap', 'bottom': 'loincloth', 'loin_length': (0.45, 0.4), 'torn': False,
         'tint': ['top', 'bottom'], 'wraps': 'wraps', 'sandals': False,

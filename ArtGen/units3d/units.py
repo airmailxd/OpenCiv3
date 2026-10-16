@@ -176,9 +176,12 @@ def dress(entry, mesh, arm):
         G.shell(mesh, arm, 'Belt', ['pelvis', 'spine_01'], _mat(entry, 'belt', G.leather), zmin=0.98, zmax=1.04,
                 offset=0.013, thickness=0.01)
         if entry.get('belt_gear', True):
-            G.belt_gear(mesh, arm, B.material('buckle', B.hex_color(c.get('buckle', '#8a7a52')), roughness=0.4,
+            # a pale brass buckle and a lighter leather pouch than the belt, so both read at 2x
+            belt_rgb = B.hex_color(c['belt'])
+            G.belt_gear(mesh, arm, B.material('buckle', B.hex_color(c.get('buckle', '#c8b27a')), roughness=0.35,
                                               metallic=1.0),
-                        G.leather('pouch', B.hex_color(c.get('pouch', c['belt']))), pouch=entry.get('pouch', True))
+                        G.leather('pouch', B.hex_color(c['pouch']) if 'pouch' in c else
+                                  tuple(min(1.0, v * 1.6 + 0.06) for v in belt_rgb)), pouch=entry.get('pouch', True))
     if entry.get('pauldrons'):
         # shoulder pieces: the top of the upper arms and shoulders
         pmat = (_mat(entry, 'cuirass', lambda n, col, tint=False: B.material(n, col, roughness=0.35, metallic=0.9,
@@ -595,7 +598,8 @@ def equip(entry, arm):
             # on the haft and the right hand further up it
             low = H.grip_point(arm, 'hand_l')
             up_dir = Vector(entry.get('tool_dir', (-0.7, -0.25, 0.65))).normalized()    # toward the haft's top end
-            H.hold(obj, arm, 'hand_l', low, up=tuple(-up_dir))
+            # 'tool_face': where the tool's flat side (its +Y) faces, so a blade shows broad
+            H.hold(obj, arm, 'hand_l', low, up=tuple(-up_dir), forward=tuple(entry.get('tool_face', (0, -1, 0))))
             if entry.get('two_hands'):
                 # the right hand further up the haft: the forearm reaches for it
                 target = low + up_dir * 0.4 * G._scale

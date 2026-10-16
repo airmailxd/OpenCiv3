@@ -1099,7 +1099,7 @@ def belt_gear(basemesh, arm, metal, leather, pouch=True):
         side = min(ring, key=lambda co: co.x)                  # the right side is -x
         bpy.ops.mesh.primitive_cube_add(size=1, location=(side.x - 0.02, side.y + 0.02, zc - 0.06 * _scale))
         pc = bpy.context.active_object
-        pc.scale = (0.04, 0.1 * _scale, 0.11 * _scale)
+        pc.scale = (0.055, 0.14 * _scale, 0.15 * _scale)
         bpy.ops.object.transform_apply(scale=True)
         sub = pc.modifiers.new('Subdiv', 'SUBSURF')
         sub.levels = 2
