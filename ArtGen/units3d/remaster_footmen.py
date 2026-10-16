@@ -54,7 +54,7 @@ REMASTER = {
         'cuirass': True, 'top': 'tunic', 'bottom': 'skirt',   # the cuirass leaves the tunic's sleeves showing
         'wraps': 'wraps', 'sandals': True,
         'gear': [('chest_strap', {'color': '#2e2016'})],
-        'weapon': 'arrow', 'props': {'arrow': ('arrow', {'length': 0.45})},   # a short loose arrow in the right hand
+        'weapon': 'arrow', 'props': {'arrow': ('arrow', {'length': 0.4})},   # a short loose arrow in the right hand
         'hang_dir': (-0.15, -0.8, -0.55),         # the arrow angled forward, not down to the ankle
         'offhand': 'bow', 'offhand_mesh': ('bold_bow', {'height': 1.35, 'bend': 0.18, 'recurve': 0.1}),
         'back': 'quiver', 'stance_name': 'bow_low',   # MISSING: quiver fletching (arrow ends at the quiver mouth)
@@ -117,7 +117,7 @@ REMASTER = {
     'Enslaved Worker': {
         # a gaunt labourer: long hair and beard, a sleeveless olive tunic,
         # one civ-color strap across the chest, iron shackles, a spade
-        'macro': {'muscle': 0.8, 'weight': 0.4, 'height': 0.7, 'proportions': 0.72}, 'age': 0.7,
+        'shackles': True, 'macro': {'muscle': 0.8, 'weight': 0.4, 'height': 0.7, 'proportions': 0.72}, 'age': 0.7,
         'colors': {'skin': '#a07a58', 'hair': '#3a2616', 'top': '#a8ae88', 'bottom': '#a8ae88',
                    'belt': '#2e2418', 'sandal': '#2e2016', 'wood': '#4e3622', 'steel': '#5a5a5a',
                    'iron': '#2e2e30'},
@@ -131,9 +131,13 @@ REMASTER = {
         'props': {'shovel': ('shovel', {'length': 1.45})},
         'stance_name': 'hang',            # MISSING: spade_upright (blade on the ground at his right side)
         'hang_dir': (-0.05, -0.1, -1.0),           # the spade upright at his right foot (one hand)
-        'pose_extra': [('spine_02', (0, -0.22, 1)), ('neck_01', (0, -0.1, 1)), ('head', (0, 0.1, 1))],   # bowed and weary (-y is forward)
+        # bowed and weary (-y is forward). The 'hang' stance already sets spine_02
+        # -0.22 / neck_01 -0.12 / head 0.1, so the old values here were a no-op;
+        # these lean further than the stance so the bow actually shows
+        'pose_extra': [('spine_02', (0, -0.3, 1)), ('spine_03', (0, -0.3, 1)), ('neck_01', (0, -0.3, 1)),
+                       ('head', (0, 0.0, 1))],
         'tint': ['strap'],
-        'grime': 1.0, 'upper_bulk': 1.05,
+        'grime': 1.0, 'upper_bulk': 1.05,   # grime only dirties skin; MISSING: cloth_dirt (hem dirt gradient on the tunic)
     },
     'Explorer': {
         # a conquistador-era explorer: steel comb morion with a civ-color
@@ -160,12 +164,12 @@ REMASTER = {
         # shirtless and brawny, ginger hair spiked up, check-patterned civ-
         # color trousers, a civ-color band on the sword forearm, a long sword
         # low and a small round shield (brown face, silver boss and rim)
-        'macro': {'muscle': 1.0, 'weight': 0.85, 'height': 0.75, 'proportions': 0.65},
+        'spiked_hair': True, 'macro': {'muscle': 1.0, 'weight': 0.85, 'height': 0.75, 'proportions': 0.65},
         'race': {'caucasian': 1.0, 'african': 0.0, 'asian': 0.0},
         'colors': {'skin': '#c8946c', 'hair': '#a8481a', 'bottom': '#3a3a40', 'belt': '#2e2016',
                    'boots': '#3e2a1a', 'bracers': '#3a2a1c', 'steel': '#a8aaae', 'bronze': '#9a9ca2',
                    'shield_face': '#7a4a24', 'shield_rim': '#8a8c90', 'leather': '#3e2a1a',
-                   'pouch': '#c8a030'},           # the small yellow belt pouch
+                   'pouch': '#d8b030'},           # the small yellow belt pouch; MISSING: boot buckles/lacing
         'helmet': None,
         'hair': 'short', 'hair_asset': 'short04', 'beard': False,   # MISSING: spiked_hair (limed, straight up)
         'top': None, 'bottom': 'long', 'patterns': {'bottom': ('check', '#141414', 13.0)},   # checked trousers
@@ -217,14 +221,14 @@ REMASTER = {
                    'bottom': '#5e4a34', 'belt': '#3a2a1c', 'boots': '#a08434', 'steel': '#a8aaae',
                    'gold': '#a8842e', 'veil': '#cfc9b8'},
         'helmet': 'hood', 'hood_neck': True,   # white headcloth, stopping at the neck
-        'veil': True, 'veil_drop': 0.215,       # a veil over the chin and mouth
+        'veil': True, 'veil_drop': 0.215,       # a veil over the chin and mouth; MISSING: mouth_chin_veil (reads as a skull mask; brow cloth separate, eyes and nose open)
         'beard': True,
         # a tan sleeved tunic; 'puffy' adds the sleeve layer over the upper
         # arms (tinted: the civ-color short sleeves) and makes the trousers baggy
         'top': 'sleeved', 'puffy': True, 'cuirass': False,
         'bands': [('wrist', 'gold'), ('waist', 'tint')],   # gold bracelets, the civ-color sash
         # brown trousers (colors.bottom, untinted) with civ-color stripes
-        'bottom': 'long', 'patterns': {'bottom': ('stripes', 'tint', 6.0)},
+        'bottom': 'long', 'patterns': {'bottom': ('stripes', 'tint', 4.0)},
         'wraps': 'boots',
         'gear': [('chest_strap', {'color': '#3a2818'})],
         'weapon': 'sword',
@@ -242,7 +246,8 @@ REMASTER = {
         # wrist bands, and cow-tail tufts on the calves
         'macro': {'muscle': 1.0, 'weight': 0.7, 'height': 0.78, 'proportions': 0.7},
         'race': {'caucasian': 0.0, 'african': 1.0, 'asian': 0.0},
-        'colors': {'skin': '#6e4a34', 'hair': '#0e0a08', 'helmet': '#2a1e14', 'bottom': '#4a3424',
+        'colors': {'skin': '#6a5040', 'hair': '#0e0a08',   # browner, less red (the builder desaturates skin to 70%)
+                   'helmet': '#2a1e14', 'bottom': '#4a3424',
                    'belt': '#2e2016', 'wraps': '#d8d0c0', 'wraps_band': '#2a2420', 'gold': '#b08a2a',
                    'hide': '#d4ccbc', 'hide_dark': '#1e1612', 'wood': '#3e2a1a', 'steel': '#a8aaae'},
         'helmet': None, 'headgear': 'feather_headdress',
@@ -262,7 +267,7 @@ REMASTER = {
         # a wider stance: these override the stance's leg bones
         'pose_extra': [('thigh_l', (0.3, -0.1, -1)), ('thigh_r', (-0.3, -0.1, -1)),
                        ('calf_l', (0.1, 0.15, -1)), ('calf_r', (-0.1, 0.15, -1))],
-        'headgear_params': {'style': 'bushy'},  # many short civ-color feathers in a round bushy crown; MISSING: feather length/tilt variation
+        'headgear_params': {'style': 'bushy'},  # many short civ-color feathers in a round bushy crown; MISSING: tapered_feathers (thin, tapered, varied length/tilt/droop, darker civ shading inside)
         'tint': ['helmet', 'wraps'],
         'grime': 0.75, 'upper_bulk': 1.25,
     },
