@@ -29,7 +29,7 @@ REMASTER = {
                    'iron': '#3e3e40', 'wood': '#5a4028', 'leather': '#3e2a1a'},
         'helmet': None, 'headgear': 'conical_helmet',          # MISSING: conical_helmet rivets / nasal bar
         'hair': 'long', 'hair_asset': 'braid01', 'mane': 0.22, 'beard': True,   # MISSING: braids (two braids down the chest)
-        'beard_length_short': 0.011, 'beard_density': 380,   # a shorter, thinner yellow beard: the face shows
+        'beard_length_short': 0.011, 'beard_density': 450,   # a shorter, thinner yellow beard: the face shows
         'top': 'sleeved', 'bottom': 'long', 'wraps': 'wraps', 'bracers': True,
         'pelt_cape': ('#6a4a30', '#3a2818'), 'pelt_kind': 'cloak',
         'fur_vest': ('#5e4430', '#33241a'),     # the brown fur over the torso front (only sleeves/trousers civ color)
@@ -45,7 +45,7 @@ REMASTER = {
         # bow low in the left hand, a loose arrow in the right; a civ-color
         # cap with a gold knob, leather vest over a civ-color knee tunic,
         # quiver on the back, leg wraps and sandals
-        'physique': 0.85, 'macro': {'muscle': 1.0, 'weight': 0.8, 'height': 0.75, 'proportions': 0.72},
+        'physique': 1.0, 'macro': {'muscle': 1.0, 'weight': 0.8, 'height': 0.75, 'proportions': 0.72},
         'colors': {'skin': '#8e6a4a', 'hair': '#1a120c', 'cuirass': '#6a4a28', 'leather': '#3e2a1a',
                    'belt': '#2a1c12', 'wraps': '#7a6448', 'wraps_band': '#3a2a1a', 'sandal': '#2e2016',
                    'wood': '#5a3e24', 'string': '#8a7a5a'},
@@ -54,9 +54,12 @@ REMASTER = {
         'cuirass': True, 'top': 'tunic', 'bottom': 'skirt',   # the cuirass leaves the tunic's sleeves showing
         'wraps': 'wraps', 'sandals': True,
         'gear': [('chest_strap', {'color': '#2e2016'})],
-        'weapon': 'arrow', 'props': {'arrow': ('arrow', {'length': 0.55})},   # a loose arrow in the right hand
+        'weapon': 'arrow', 'props': {'arrow': ('arrow', {'length': 0.45})},   # a short loose arrow in the right hand
+        'hang_dir': (-0.15, -0.8, -0.55),         # the arrow angled forward, not down to the ankle
         'offhand': 'bow', 'offhand_mesh': ('bold_bow', {'height': 1.35, 'bend': 0.18, 'recurve': 0.1}),
         'back': 'quiver', 'stance_name': 'bow_low',   # MISSING: quiver fletching (arrow ends at the quiver mouth)
+        # a prouder stance: chest up, feet wider
+        'pose_extra': [('spine_02', (0, -0.1, 1)), ('thigh_l', (0.22, -0.05, -1)), ('thigh_r', (-0.22, 0, -1))],
         'tint': ['helmet', 'top', 'bottom'],
         'grime': 0.75, 'upper_bulk': 1.35,
     },
@@ -64,20 +67,21 @@ REMASTER = {
         # an Inca runner: a broad civ-color fan headdress framing the face,
         # long black hair, bare chest, civ-color wrap skirt with a gold belt,
         # civ-color bands at wrist, knee and ankle; a star mace held low
-        'physique': 0.85, 'macro': {'muscle': 1.0, 'weight': 0.8, 'height': 0.68, 'proportions': 0.72},
+        'physique': 1.0, 'macro': {'muscle': 1.0, 'weight': 0.8, 'height': 0.68, 'proportions': 0.72},
         'race': {'caucasian': 0.1, 'african': 0.2, 'asian': 0.7},
         'colors': {'skin': '#a86c44', 'hair': '#120c08', 'belt': '#b08a2a', 'bottom': '#5a4030',
                    'wood': '#4e3420', 'stone': '#3e3c3a', 'helmet': '#5a4030'},
         'helmet': None, 'headgear': 'fan_headdress',
         'hair': 'long', 'hair_asset': 'long01', 'beard': False,
         'top': None, 'bottom': 'loincloth', 'loin_length': (0.38, 0.34), 'torn': False,
-        'hem_bands': [('bottom', 'gold', 0.04)],   # the gold skirt hem
+        'hem_bands': [('bottom', 'gold', 0.05)],   # the gold skirt hem
         'bracers': False,
         'bands': [('wrist', 'tint'), ('knee', 'tint'), ('ankle', 'tint')],
         'wraps': None, 'sandals': False, 'gear': [],
         'weapon': 'club',
         'props': {'club': ('star_mace', {'length': 0.55})},
         'stance_name': 'hang',
+        'pose_extra': [('thigh_l', (0.25, -0.05, -1)), ('thigh_r', (-0.25, -0.05, -1))],   # wide and planted
         'tint': ['helmet', 'bottom'],
         'grime': 0.7, 'upper_bulk': 1.35,
     },
@@ -89,18 +93,21 @@ REMASTER = {
         'macro': {'muscle': 1.0, 'weight': 0.9, 'height': 0.75, 'proportions': 0.62},
         'race': {'caucasian': 0.6, 'african': 0.2, 'asian': 0.2},
         'colors': {'skin': '#9a6e4c', 'hair': '#140e0a', 'top': '#9a8462', 'bottom': '#8a7656',
-                   'wraps': '#b8a888', 'wraps_band': '#7a6a50', 'helmet': '#3a2a1c', 'belt': '#3a2a1c',
+                   'wraps': '#d8ccb0', 'wraps_band': '#7a6a50', 'helmet': '#3a2a1c', 'belt': '#3a2a1c',
                    'wood': '#5a3420', 'steel': '#7e7a72'},
         'helmet': 'headband',                   # MISSING: streamers (ribbons flicking up off the headband)
         'hair': 'long', 'hair_asset': 'long01', 'mane': 0.3,
         'beard': True, 'beard_style': 'long',   # black, square to the chest (colors.hair)
         'top': None, 'bottom': None,
         'fur_vest': ('#b09a70', '#7a6848'),
-        'fur_kilt': ('#b09a70', '#7a6848'),     # the fur kilt, waist to knee (no cloth skirt)
+        'fur_kilt': ('#b09a70', '#7a6848'),     # the fur kilt, waist to above the knee (no cloth skirt)
+        'fur_kilt_length': 0.38,
         'pelt_cape': ('#b09a70', '#7a6848'), 'pelt_kind': 'cloak',
         'bracers': False,
-        'bands': [('upperarm', 'tint'), ('wrist', 'tint'), ('waist', 'tint'), ('knee', 'tint')],
-        'wraps': 'wraps', 'sandals': False, 'back': None, 'gear': [],
+        # bare shins, pale ankle wraps (colors.wraps)
+        'bands': [('upperarm', 'tint'), ('wrist', 'tint'), ('waist', 'tint', 0.07), ('knee', 'tint', 0.06),
+                  ('ankle', 'wraps')],
+        'wraps': None, 'sandals': False, 'back': None, 'gear': [],
         'weapon': 'spear',
         'props': {'spear': ('spear', {'length': 2.7, 'grip': 1.1, 'head': 1.2})},
         'stance_name': 'upright',
@@ -124,6 +131,7 @@ REMASTER = {
         'props': {'shovel': ('shovel', {'length': 1.45})},
         'stance_name': 'hang',            # MISSING: spade_upright (blade on the ground at his right side)
         'hang_dir': (-0.05, -0.1, -1.0),           # the spade upright at his right foot (one hand)
+        'pose_extra': [('spine_02', (0, -0.22, 1)), ('neck_01', (0, -0.1, 1)), ('head', (0, 0.1, 1))]   # bowed (-y is forward),   # bowed and weary
         'tint': ['strap'],
         'grime': 1.0, 'upper_bulk': 1.05,
     },
@@ -133,7 +141,7 @@ REMASTER = {
         # breeches, pale high boots; a map in hand, rapier sheathed at the hip
         'macro': {'muscle': 0.85, 'weight': 0.6, 'height': 0.75, 'proportions': 0.75}, 'age': 0.6,
         'race': {'caucasian': 0.8, 'african': 0.1, 'asian': 0.1},
-        'colors': {'skin': '#9a7254', 'hair': '#4a3624', 'helmet': '#8e9096', 'cuirass': '#8a8c92',
+        'colors': {'skin': '#9a7254', 'hair': '#5a4430', 'helmet': '#8e9096', 'cuirass': '#8a8c92',
                    'bottom': '#3e3c4e', 'boots': '#8a8680', 'belt': '#2a1e14', 'steel': '#a8aaae',
                    'parchment': '#cfc4a2'},
         'helmet': None, 'headgear': 'morion_big', 'headgear_scale': 1.1, 'metal': ['cuirass'],
@@ -154,9 +162,9 @@ REMASTER = {
         # low and a small round shield (brown face, silver boss and rim)
         'macro': {'muscle': 1.0, 'weight': 0.85, 'height': 0.75, 'proportions': 0.65},
         'race': {'caucasian': 1.0, 'african': 0.0, 'asian': 0.0},
-        'colors': {'skin': '#c8946c', 'hair': '#d07a30', 'bottom': '#3a3a40', 'belt': '#2e2016',
+        'colors': {'skin': '#c8946c', 'hair': '#a8481a', 'bottom': '#3a3a40', 'belt': '#2e2016',
                    'boots': '#3e2a1a', 'bracers': '#3a2a1c', 'steel': '#a8aaae', 'bronze': '#9a9ca2',
-                   'shield_face': '#6a4a2e', 'shield_rim': '#8a8c90', 'leather': '#3e2a1a',
+                   'shield_face': '#7a4a24', 'shield_rim': '#8a8c90', 'leather': '#3e2a1a',
                    'pouch': '#c8a030'},           # the small yellow belt pouch
         'helmet': None,
         'hair': 'short', 'hair_asset': 'short04', 'beard': False,   # MISSING: spiked_hair (limed, straight up)
@@ -203,7 +211,7 @@ REMASTER = {
         # Persian guard: white headcloth with a face veil, tan tunic with civ-
         # color short sleeves, a brown baldric, a civ-color waist sash, baggy
         # trousers with civ-color stripes, yellow shoes; scimitar low
-        'physique': 0.85, 'macro': {'muscle': 0.95, 'weight': 0.75, 'height': 0.78, 'proportions': 0.72},
+        'physique': 0.85, 'macro': {'muscle': 0.95, 'weight': 0.85, 'height': 0.78, 'proportions': 0.72},
         'race': {'caucasian': 0.6, 'african': 0.1, 'asian': 0.3},
         'colors': {'skin': '#8e6a4a', 'hair': '#140e0a', 'helmet': '#cfc9b8', 'top': '#9a8058',
                    'bottom': '#5e4a34', 'belt': '#3a2a1c', 'boots': '#a08434', 'steel': '#a8aaae',
@@ -215,19 +223,17 @@ REMASTER = {
         # arms (tinted: the civ-color short sleeves) and makes the trousers baggy
         'top': 'sleeved', 'puffy': True, 'cuirass': False,
         'bands': [('wrist', 'gold'), ('waist', 'tint')],   # gold bracelets, the civ-color sash
-        # civ-color trousers with dark brown stripes: a pattern stays within one
-        # material, so the original's civ stripes on brown can't be had; this
-        # keeps the civ color and the vertical striping
-        'bottom': 'long', 'patterns': {'bottom': ('stripes', '#4a3828', 6.0)},
+        # brown trousers (colors.bottom, untinted) with civ-color stripes
+        'bottom': 'long', 'patterns': {'bottom': ('stripes', 'tint', 6.0)},
         'wraps': 'boots',
         'gear': [('chest_strap', {'color': '#3a2818'})],
         'weapon': 'sword',
         'props': {'sword': ('sabre', {'length': 0.95, 'width': 0.05, 'curve': 0.16})},   # props.scimitar has no curve param: its sabre, curved more
         'stance_name': 'hang',
-        # a slight forward lean, the free left hand brought in front
-        'pose_extra': [('spine_02', (0, -0.1, 1)), ('head', (0, 0.1, 1)),
+        # an aggressive forward lean, the free left hand brought in front
+        'pose_extra': [('spine_02', (0, -0.1, 1)), ('head', (0, 0.25, 1)),   # leaning in (-y is forward)
                        ('upperarm_l', (0.06, -0.2, -1)), ('lowerarm_l', (-0.2, -0.5, -1))],
-        'tint': ['belt', 'sleeves', 'bottom'],
+        'tint': ['belt', 'sleeves'],
         'grime': 0.65, 'upper_bulk': 1.2,
     },
     'Impi': {
@@ -236,7 +242,7 @@ REMASTER = {
         # wrist bands, and cow-tail tufts on the calves
         'macro': {'muscle': 1.0, 'weight': 0.7, 'height': 0.78, 'proportions': 0.7},
         'race': {'caucasian': 0.0, 'african': 1.0, 'asian': 0.0},
-        'colors': {'skin': '#6e4630', 'hair': '#0e0a08', 'helmet': '#2a1e14', 'bottom': '#4a3424',
+        'colors': {'skin': '#6e4a34', 'hair': '#0e0a08', 'helmet': '#2a1e14', 'bottom': '#4a3424',
                    'belt': '#2e2016', 'wraps': '#d8d0c0', 'wraps_band': '#2a2420', 'gold': '#b08a2a',
                    'hide': '#d4ccbc', 'hide_dark': '#1e1612', 'wood': '#3e2a1a', 'steel': '#a8aaae'},
         'helmet': None, 'headgear': 'feather_headdress',
@@ -246,7 +252,7 @@ REMASTER = {
         'bands': [('upperarm', 'tint'), ('wrist', 'tint'), ('knee', 'gold')],   # yellow bands above the tufts
         'wraps': 'wraps',                       # the cow-tail tufts, tinted
         'sandals': False,
-        'gear': [('chest_strap', {'color': '#3a2818'})],
+        'gear': [('chest_strap', {'color': '#6a4a30'})],   # a lighter hide strap, so it reads
         'weapon': 'spear',
         # the iklwa: short with a broad blade
         'props': {'spear': ('spear', {'length': 1.25, 'grip': 0.45, 'head': 1.7, 'butt': False})},
@@ -264,7 +270,7 @@ REMASTER = {
         # solemn: a floor-length charcoal hooded robe, gold cross and sash,
         # civ-color book cover, shoulder band and sleeve cuffs; book raised
         # in the left hand, a torch low in the right
-        'physique': 0.85, 'macro': {'muscle': 0.6, 'weight': 0.55, 'height': 0.72, 'proportions': 0.75}, 'age': 0.75,
+        'physique': 0.85, 'macro': {'muscle': 0.6, 'weight': 0.55, 'height': 0.8, 'proportions': 0.75}, 'age': 0.75,
         'colors': {'skin': '#9a7656', 'top': '#2e2e32', 'bottom': '#2e2e32', 'helmet': '#2a2a2e',
                    'belt': '#9a7e2c', 'gold': '#9a7e2c', 'sandal': '#2a2018', 'wood': '#4a3222',
                    'book_cover': '#3a2418', 'parchment': '#d0c49e', 'cloth_wrap': '#3a2e26'},
@@ -280,6 +286,7 @@ REMASTER = {
         # at the hips)
         'offhand': 'book', 'offhand_mesh': ('book', {'tint': True}),   # a civ-color cover
         'stance_name': 'upright',               # the torch upright beside the head
+        'pose_extra': [('spine_02', (0, -0.1, 1)), ('head', (0, 0.6, 1))],   # solemn and upright
         'tint': [],
         'grime': 0.55, 'upper_bulk': 1.05,
     },
