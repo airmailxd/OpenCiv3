@@ -163,6 +163,8 @@ def _pattern(tree, coord, base, pattern):
         # vertical stripes (trouser stripes, slashing): dark bands across X
         wave = n.new('ShaderNodeTexWave')
         wave.wave_type = 'BANDS'
+        wave.inputs['Detail'].default_value = 0.0      # clean, hard-edged bands
+        wave.inputs['Distortion'].default_value = 0.0
         wave.bands_direction = 'X'
         wave.inputs['Scale'].default_value = nums[0] if nums else 6.0
         tree.links.new(coord.outputs['Object'], wave.inputs['Vector'])
@@ -183,6 +185,8 @@ def _pattern(tree, coord, base, pattern):
     for axis in ('X', 'Z'):
         wave = n.new('ShaderNodeTexWave')
         wave.wave_type = 'BANDS'
+        wave.inputs['Detail'].default_value = 0.0      # clean, hard-edged bands
+        wave.inputs['Distortion'].default_value = 0.0
         wave.bands_direction = axis
         wave.inputs['Scale'].default_value = scale
         tree.links.new(coord.outputs['Object'], wave.inputs['Vector'])

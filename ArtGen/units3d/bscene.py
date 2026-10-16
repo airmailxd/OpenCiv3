@@ -246,6 +246,8 @@ def material(name, color, roughness=0.6, metallic=0.0, tint=False, nodes=None):
         bsdf.inputs['Specular IOR Level'].default_value = 0.18
     if nodes:
         nodes(tree, bsdf)
+    if metallic >= 0.5 and not os.environ.get('NO_METAL_FORM'):
+        _metal_form(tree, bsdf)
     aov = tree.nodes.new('ShaderNodeOutputAOV')
     aov.aov_name = 'tint'
     aov.inputs['Value'].default_value = 1.0 if tint else 0.0
@@ -253,6 +255,41 @@ def material(name, color, roughness=0.6, metallic=0.0, tint=False, nodes=None):
         # a pattern whose stripes/panel take the civ color: the mask drives the AOV
         tree.links.new(tree.nodes['tint_mask'].outputs[0], aov.inputs['Value'])
     return mat
+
+
+def _metal_form(tree, bsdf):
+    """Metal under a plain sky reflects one flat color and reads as paint:
+    multiply its color by a fake sky (bright where the surface faces up,
+    dark where it faces down, a hot band near the horizon) so gold and steel
+    show form and highlights."""
+    n = tree.nodes
+    geo = n.new('ShaderNodeNewGeometry')
+    sep = n.new('ShaderNodeSeparateXYZ')
+    tree.links.new(geo.outputs['Normal'], sep.inputs['Vector'])
+    ramp = n.new('ShaderNodeValToRGB')
+    els = ramp.color_ramp.elements
+    els[0].position, els[0].color = 0.0, (0.08, 0.08, 0.08, 1)
+    els[1].position, els[1].color = 1.0, (1.1, 1.1, 1.1, 1)
+    band = els.new(0.55)
+    band.color = (1.6, 1.6, 1.6, 1)
+    mid = els.new(0.42)
+    mid.color = (0.35, 0.35, 0.35, 1)
+    remap = n.new('ShaderNodeMapRange')
+    remap.inputs['From Min'].default_value = -1.0
+    remap.inputs['From Max'].default_value = 1.0
+    tree.links.new(sep.outputs['Z'], remap.inputs['Value'])
+    tree.links.new(remap.outputs['Result'], ramp.inputs['Fac'])
+    mul = n.new('ShaderNodeMix')
+    mul.data_type = 'RGBA'
+    mul.blend_type = 'MULTIPLY'
+    mul.inputs['Factor'].default_value = 1.0
+    bc = bsdf.inputs['Base Color']
+    if bc.is_linked:
+        tree.links.new(bc.links[0].from_socket, mul.inputs['A'])
+    else:
+        mul.inputs['A'].default_value = bc.default_value
+    tree.links.new(ramp.outputs['Color'], mul.inputs['B'])
+    tree.links.new(mul.outputs['Result'], bc)
 
 
 def srgb_to_linear(c):

@@ -92,7 +92,8 @@ def dress(entry, mesh, arm):
         if top in ('tunic', 'mantle'):
             # short sleeves: the upper half of the upper arm
             keep = lambda co: abs(co.x) < 0.27
-        zmax = entry.get('top_zmax', 1.47)
+        # (a 'physique' body's shoulders sit higher and wider: the top rises with them)
+        zmax = entry.get('top_zmax', 1.47 + 0.07 * entry.get('physique', 0.0))
         if entry.get('neck') == 'high':
             # covered to the base of the neck, as most of Civ3's soldiers and riders are
             bones = bones + ['neck_01']
@@ -204,10 +205,17 @@ def dress(entry, mesh, arm):
         maker = (lambda n, col, tint=False: B.material(n, col, roughness=0.35, metallic=0.9, tint=tint,
                                                        nodes=G.plate_bands(bands) if bands else None)) \
             if metal else (G.cloth if 'cuirass' in entry.get('patterns', {}) else G.leather)   # a camo vest is cloth
-        G.shell(mesh, arm, 'Cuirass', torso + (['neck_01'] if entry.get('neck') == 'high' else []),
-                _mat(entry, 'cuirass', maker), zmin=0.98, zmax=1.55 if entry.get('neck') == 'high' else 1.42,
+        cu = G.shell(mesh, arm, 'Cuirass', torso + (['neck_01'] if entry.get('neck') == 'high' else []),
+                _mat(entry, 'cuirass', maker), zmin=0.98,
+                zmax=(1.55 if entry.get('neck') == 'high' else 1.42) + 0.06 * entry.get('physique', 0.0),
                 offset=entry.get('cuirass_offset', 0.03 if entry.get('puffy') else 0.016), thickness=0.008,
                 keep=lambda co, w=entry.get('cuirass_width', 0.17): abs(co.x) < w)
+        if metal and cu is not None and entry.get('plate_smooth', True):
+            # plate is hammered smooth: no muscles (a 'muscle cuirass' sets plate_smooth False)
+            sm = cu.modifiers.new('PlateSmooth', 'SMOOTH')
+            sm.factor = 1.0
+            sm.iterations = entry.get('plate_smooth_iterations', 12)
+            cu.modifiers.move(len(cu.modifiers) - 1, 0)
     wraps = entry.get('wraps')
     for side in 'lr':
         if wraps == 'wraps':
