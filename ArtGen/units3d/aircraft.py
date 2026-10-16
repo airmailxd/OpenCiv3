@@ -404,8 +404,9 @@ def stealth_fighter(p):
     a flat facet), the faceted canopy, gridded intakes on the shoulders, the
     slot exhausts and the two V tails, no tailplanes; a bold civ chevron
     across the back."""
-    regions = [('tint', True, lambda c, n: n.z > 0.2 and abs(c.y - (2.6 - abs(c.x) * 1.25)) < 0.55 and 0.6 < abs(c.x) < 4.4)]
-    keys = paint_keys(regions)
+    keys = paint_keys([])
+    for sx in (-1, 1):   # the bold civ chevron: a solid strip lying on each top facet (face keys stair-stepped)
+        vkit.beam(p, (sx * 0.9, 1.6, 1.12), (sx * 3.9, -2.2, 0.66), 0.75, 0.12, 'tint', bevel=0.02, tint=True)
     body(p, [(10.0, 0.3, 0.02, 0.02, 1.0), (5.0, 0.35, 2.1, 0.75, 1.0), (0.0, 0.4, 4.2, 1.0, 1.0),
              (-2.6, 0.4, 6.6, 0.5, 1.0), (-3.4, 0.4, 3.0, 0.6, 1.0), (-7.5, 0.4, 1.7, 0.42, 1.0),
              (-9.8, 0.4, 0.8, 0.12, 1.0)], keys=keys, step=0.25, seg=32, smooth=False)
@@ -518,7 +519,7 @@ def cruise_missile(p):
 AIRCRAFT = {
     'Fighter': dict(build=fighter, alt=6.4, paint='#6c7068', under='#a6aaa2',
                     camo=[('#4a5838', 2.2, 0.5, 1.0)]),
-    'Bomber': dict(build=bomber, alt=10.0, paint='#5e6440', under='#8a8c84',
+    'Bomber': dict(build=bomber, alt=14.5, paint='#5e6440', under='#8a8c84',
                    camo=[('#4a5232', 0.4, 0.54, 2.0), ('#727a4c', 0.55, 0.58, 5.0)]),
     'Helicopter': dict(build=helicopter, alt=12.0, paint='#acb0b4', under='#6e7278',
                        camo=[('#cfd2d4', 0.5, 0.53, 3.0)]),
@@ -528,7 +529,7 @@ AIRCRAFT = {
                  camo=[('#7a828c', 0.6, 0.54, 6.0)]),
     'Stealth Fighter': dict(build=stealth_fighter, alt=9.5, paint='#2c2e32', under='#26282c',
                             camo=[('#383a3e', 0.3, 0.6, 7.0)]),
-    'Stealth Bomber': dict(build=stealth_bomber, alt=15.0, paint='#34373b', under='#2e3034',
+    'Stealth Bomber': dict(build=stealth_bomber, alt=21.0, paint='#34373b', under='#2e3034',
                            camo=[]),
 }
 AIRCRAFT.update({

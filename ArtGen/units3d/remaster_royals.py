@@ -792,7 +792,7 @@ REMASTER = {
         'helmet': None, 'headgear': 'round_hat',   # flat, even brim with a gold edge, no plume
         'hair': 'long', 'hair_asset': 'long01', 'beard': True,   # the grey beard under dark hair
         'top': 'sleeved', 'puffy': True, 'neck': 'high',   # MISSING: doublet_trim (gold buttons and edges)
-        'pauldrons': 'metal',                   # the gold puffed shoulders; MISSING: shoulder_rolls (bigger, puffed)
+        'pauldrons': False, 'shoulder_rolls': 'gold', 'roll_size': 0.1,   # the big gold puffed shoulders
         'bottom': 'breeches',                   # the tinted trunk hose; MISSING: hose_slashes (dark, vertical)
         'hem_bands': [('bottom', 'gold', 0.03)],
         'patterns': {'top': [('panel', '#c8a038', 0.12, 'front'), ('panel', '#ece8e0', 0.07, 'front')]},   # the white shirt front, gold edged (gold slashes greyed the civ)   # the white shirt front, gold edged
@@ -844,7 +844,7 @@ REMASTER = {
         'top': 'sleeved', 'puffy': True, 'neck': 'high',
         # the vast bell skirt in vertical stripes of civ color and silver; MISSING: lace_hem
         'bottom': 'gown', 'gown_flare': 4.0, 'robe_drop': 0.62,
-        'patterns': {'bottom': ('camo', '#a0a4ac', 7.0, 'cover', 0.33), 'top': ('panel', '#c8a038', 0.1, 'front')},   # silver brocade stripes on the civ bell, a gold bodice front
+        'patterns': {'bottom': ('camo', 'tint', 7.0, 'cover', 0.65), 'top': ('panel', '#c8a038', 0.1, 'front')},   # silver brocade stripes on the civ bell, a gold bodice front
         'hem_bands': [('bottom', '#f2efe8', 0.07)],   # the white lace frill
         'cape': False, 'cuirass': False, 'wraps': None, 'sandals': False, 'bracers': False,
         'gear': [],
@@ -852,7 +852,7 @@ REMASTER = {
         'weapon': 'scepter', 'props': {'scepter': ('scepter', {'length': 0.6, 'head': 'fleur'})}, 'offhand': 'orb', 'offhand_dir': (0, 0, 1),
         'pose_extra': [('lowerarm_l', (0.1, -1.0, 0.35))],
         'stance_name': 'royal',
-        'tint': ['bottom', 'top'],   # the civ bodice and gown
+        'tint': ['top'],   # the civ bodice; the gown is silver under civ blotches (a hex camo on a civ part got tinted dark)
         'grime': 0.12, 'upper_bulk': 1.0,
     },
     'King Spanish': {
@@ -1056,12 +1056,14 @@ REMASTER = {
         'hair': 'short', 'hair_asset': None,
         'beard': True, 'beard_style': 'goatee',
         'top': 'sleeved', 'neck': 'high', 'bottom': 'breeches', 'wraps': 'boots',
-        'gear': [('chest_strap', {'width': 0.2, 'color': '#c8a038'}), ('chest_strap', {'width': 0.15})],   # the broad civ sash over a wider gold one (its edges)
+        'gear': [('chest_strap', {'width': 0.16, 'edge': 'gold'})],   # the broad civ sash, gold edged
         'shoulder_patch': ('l', 'tint'), 'patch_size': 0.1, 'patch_out': 0.04,
         'bands': [('wrist', 'tint')],
         'cape': False, 'cuirass': False, 'sandals': False, 'bracers': False,
         'weapon': 'stick', 'props': {'stick': ('swagger_stick', {'length': 0.6})}, 'offhand': None,   # level, forward
         'stance_name': 'port_arms', 'gun_dir': (0.95, -0.15, 0.1), 'fore_end': 0.28,   # the stick level across the chest
+        'pose_extra': [('upperarm_r', (-0.3, -0.25, -1)), ('lowerarm_r', (0.3, -1.0, 0.35)),
+                       ('upperarm_l', (0.3, -0.25, -1)), ('lowerarm_l', (-0.3, -1.0, 0.35))],   # the hands up at the chest
         'tint': ['strap'],
         'grime': 0.4, 'upper_bulk': 1.15,
     },
@@ -1100,15 +1102,16 @@ REMASTER = {
         # slightly stooped
         'macro': {'muscle': 0.55, 'weight': 0.6, 'height': 0.72, 'proportions': 0.72}, 'age': 0.85,
         'race': {'caucasian': 1.0, 'african': 0.0, 'asian': 0.0},
-        'colors': {'skin': '#d8ae8e', 'hair': '#cfcac0', 'beard': '#e0dcd4', 'top': '#5a5a5e', 'bottom': '#3a3a3e',
+        'colors': {'skin': '#d8ae8e', 'hair': '#ecebe6', 'beard': '#f4f2ee', 'top': '#5a5a5e', 'bottom': '#3a3a3e',
                    'shoes': '#2a2420', 'belt': '#2a2a2e', 'wood': '#18181a', 'leather': '#18181a',
                    'lacquer': '#18181a', 'gold': '#3a3a3e'},
-        'helmet': None, 'hair': 'short', 'hair_asset': 'short02', 'mane': 0.0,   # grey-white hair, no particles ('mane' is particle hair too: it made a ball over the face)
+        'helmet': None, 'hair': 'short', 'hair_asset': 'afro01', 'mane': 0.0,   # the big white shock (a mesh asset; 'mane' and wild_hair are particles: a ball over the face)
         'beard': True, 'beard_style': 'mustache',   # the big white mustache
         'top': 'sleeved', 'neck': 'high', 'bottom': 'long', 'wraps': 'shoes',   # MISSING: suit_jacket (open, lapels)
         # the tinted tie: a narrow non-metal 'cuirass' strip (it also runs down the back: MISSING tie, front only)
         'cuirass': False,
         'patterns': {'top': ('panel', 'tint', 0.035, 'front')},   # the civ tie, front only
+        'chest_emblem': ('v', '#a8302a', 0.14),   # the red at the throat (a neck band hid under the collar)
         'cape': False, 'sandals': False, 'bracers': False, 'gear': [],
         # the thin black cane planted from the fist; MISSING: left_hand_hold (props.briefcase, brown,
         # tinted straps)
