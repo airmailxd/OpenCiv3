@@ -1,0 +1,255 @@
+{
+  "unit": "Mobile SAM",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.56,
+    126.5
+  ],
+  "anchor_override": [
+    120.0,
+    117.3524899482727
+  ],
+  "standing_height": 45.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        119.04,
+        128
+      ],
+      "top": 81,
+      "height": 48,
+      "bbox": [
+        96,
+        81,
+        152,
+        128
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        119.87,
+        125
+      ],
+      "top": 77,
+      "height": 49,
+      "bbox": [
+        106,
+        77,
+        133,
+        125
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        120.44,
+        128
+      ],
+      "top": 81,
+      "height": 48,
+      "bbox": [
+        87,
+        81,
+        144,
+        128
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        115.09,
+        126
+      ],
+      "top": 89,
+      "height": 38,
+      "bbox": [
+        84,
+        89,
+        143,
+        126
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        113.46,
+        131
+      ],
+      "top": 87,
+      "height": 45,
+      "bbox": [
+        87,
+        87,
+        143,
+        131
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        119.25,
+        129
+      ],
+      "top": 87,
+      "height": 43,
+      "bbox": [
+        106,
+        87,
+        133,
+        129
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        125.05,
+        131
+      ],
+      "top": 87,
+      "height": 45,
+      "bbox": [
+        95,
+        87,
+        152,
+        131
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        123.29,
+        126
+      ],
+      "top": 89,
+      "height": 38,
+      "bbox": [
+        96,
+        89,
+        155,
+        126
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 0.9216928578941215,
+    "ppm_2x": 19.7656,
+    "fit": 0.4124,
+    "archetype": "armor"
+  },
+  "default_flic": "Mobile_SAM_Default.flc",
+  "flics": {
+    "Mobile_SAM_Attack.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 209,
+      "height": 143,
+      "offset_left": 16,
+      "offset_top": 0,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "Mobile_SAM_Death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 89,
+      "height": 64,
+      "offset_left": 71,
+      "offset_top": 73,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "Mobile_SAM_Default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 83,
+      "height": 59,
+      "offset_left": 74,
+      "offset_top": 77,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "Mobile_SAM_Fidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 88,
+      "height": 61,
+      "offset_left": 72,
+      "offset_top": 77,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "Mobile_SAM_Fortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 90,
+      "height": 61,
+      "offset_left": 72,
+      "offset_top": 77,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 83
+    },
+    "Mobile_SAM_Run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 83,
+      "height": 59,
+      "offset_left": 74,
+      "offset_top": 77,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 100
+    },
+    "Mobile_SAM_Victory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 92,
+      "height": 63,
+      "offset_left": 71,
+      "offset_top": 76,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    }
+  }
+}

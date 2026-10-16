@@ -1021,6 +1021,13 @@ def battle_axe(p, length=1.1, scale=1.0, head=1.0):
     _wrap(p, -0.33, -0.12, SHAFT_R + 0.002, 'leather_dark', turns=12)
 
 
+def knobkerrie(p, length=0.75, scale=1.0):
+    """A Zulu knobkerrie: a pale wooden throwing club, a slim shaft swelling to a round knob."""
+    L = length * scale
+    p.add(tube([(0, 0, -0.12), (0, 0, L - 0.08)], [0.016, 0.022], seg=10), 'wood', smooth=True)
+    p.add(ellipsoid(0.055, 0.055, 0.06, seg=14), 'wood', T(0, 0, L - 0.02), smooth=True)
+
+
 def star_mace(p, length=0.6, scale=1.0):
     """A stone star mace: a short haft with a knapped six-pointed stone head."""
     L = length * scale
@@ -1228,7 +1235,7 @@ def scutum(p, w=0.62, h=1.05, curve=0.16, scale=1.0, face_tint=False):
     _strap_back(p, half=0.1)
 
 
-def cowhide_shield(p, w=0.55, h=1.15, scale=1.0):
+def cowhide_shield(p, w=0.55, h=1.15, scale=1.0, bars=False):
     """A Zulu isihlangu: a tall oval of black-and-white cowhide with a
     vertical stick laced through behind; no tint."""
     W, H = w * scale, h * scale
@@ -1240,6 +1247,12 @@ def cowhide_shield(p, w=0.55, h=1.15, scale=1.0):
         c = f.calc_center_median()
         return ('hide_dark', False) if any(math.hypot(c.x - x, (c.z - z) * 0.8) < r for x, z, r in spots) else None
 
+    if bars:   # King Zulu's: horizontal civ-colored bars across the hide
+        def patches(f, _p=patches):
+            c = f.calc_center_median()
+            if f.normal.y < -0.3 and int(math.floor(c.z / (0.13 * H) + 0.5)) % 2 == 0 and abs(c.z) < 0.4 * H:
+                return ('shield_emblem', True)
+            return _p(f)
     p.add(board, 'hide', T(0, -0.05, 0), smooth=True, keys=patches)
     p.add(tube([(0, 0.0, -H / 2 - 0.08), (0, 0.0, H / 2 + 0.12)], 0.013, seg=8), 'wood', smooth=True)
     for z in (-0.3, -0.1, 0.1, 0.3):
@@ -1863,6 +1876,7 @@ BUILDERS = {
     'chimalli': chimalli,
     'plain_round': plain_round,
     'jaguar_shield': jaguar_shield,
+    'knobkerrie': knobkerrie,
     'shield_heater': shield_heater,
     'pike': pike,
     'chute_pack': chute_pack,

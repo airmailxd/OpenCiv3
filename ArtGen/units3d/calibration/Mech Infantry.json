@@ -1,0 +1,226 @@
+{
+  "unit": "Mech Infantry",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.5,
+    129.0
+  ],
+  "anchor_override": [
+    120.0,
+    117.15798807144165
+  ],
+  "standing_height": 48.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        112.91,
+        131
+      ],
+      "top": 82,
+      "height": 50,
+      "bbox": [
+        86,
+        82,
+        152,
+        131
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        119.33,
+        129
+      ],
+      "top": 85,
+      "height": 45,
+      "bbox": [
+        104,
+        85,
+        134,
+        129
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        125.18,
+        132
+      ],
+      "top": 86,
+      "height": 47,
+      "bbox": [
+        86,
+        86,
+        153,
+        132
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        119.37,
+        126
+      ],
+      "top": 86,
+      "height": 41,
+      "bbox": [
+        85,
+        86,
+        161,
+        126
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        114.0,
+        132
+      ],
+      "top": 82,
+      "height": 51,
+      "bbox": [
+        87,
+        82,
+        153,
+        132
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        119.8,
+        130
+      ],
+      "top": 76,
+      "height": 55,
+      "bbox": [
+        105,
+        76,
+        135,
+        130
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        126.0,
+        132
+      ],
+      "top": 81,
+      "height": 52,
+      "bbox": [
+        86,
+        81,
+        153,
+        132
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        119.62,
+        126
+      ],
+      "top": 86,
+      "height": 41,
+      "bbox": [
+        78,
+        86,
+        154,
+        126
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 0.9791674149674842,
+    "ppm_2x": 21.3193,
+    "fit": 0.4187,
+    "archetype": "armor"
+  },
+  "default_flic": "MechInfantryDefault.flc",
+  "flics": {
+    "MechInfantryAttackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 117,
+      "height": 86,
+      "offset_left": 62,
+      "offset_top": 56,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 20,
+      "frameMs": 90
+    },
+    "MechInfantryDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 90,
+      "height": 105,
+      "offset_left": 74,
+      "offset_top": 38,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 90
+    },
+    "MechInfantryDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 90,
+      "height": 65,
+      "offset_left": 73,
+      "offset_top": 75,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 5,
+      "frameMs": 83
+    },
+    "MechInfantryFidget.flc": {
+      "actions": [
+        "FIDGET",
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 91,
+      "height": 65,
+      "offset_left": 73,
+      "offset_top": 76,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 111
+    },
+    "MechInfantryRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 91,
+      "height": 69,
+      "offset_left": 72,
+      "offset_top": 72,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    }
+  }
+}

@@ -102,7 +102,7 @@ class Hull:
         return pts
 
 
-def add_hull(p, hull, stripes=(), n=36, plank=0.045):
+def add_hull(p, hull, stripes=(), n=36, plank=0.045, civ_ranges=()):
     """The hull shell with a flat deck closing it (deck faces get 'deck'),
     colored strakes: stripes = [(z0, z1, key), ...] on the sides, and planks
     `plank` high alternating 'wood' / 'wood_alt' so the sides read as
@@ -114,6 +114,8 @@ def add_hull(p, hull, stripes=(), n=36, plank=0.045):
     def keys(f):
         c = f.calc_center_median()
         if f.normal.z > 0.85:
+            if any(y0 <= c.y <= y1 for y0, y1 in civ_ranges):   # civ-painted deck at bow and stern
+                return ('tint', True)
             return ('deck', False)
         for z0, z1, key in stripes:
             if z0 <= c.z <= z1:
@@ -1061,14 +1063,24 @@ def steel_ship(name, cfg, colors):
     def deck(y):
         return hull.deck_z(hull.s_of(y))
 
+    panels = cfg.get('civ_panels', [(L * 0.32, L * 0.44), (-L * 0.46, -L * 0.36)])
     add_hull(p, hull, stripes=[(-0.03, 0.03, 'boot')], plank=1.0)
     if cfg.get('hull_civ'):   # a civ band along the hull sides
         _wales(p, hull, [cfg['hull_civ']])
     # civ-colored deck panels at bow and stern
-    for y0, y1 in cfg.get('civ_panels', [(L * 0.32, L * 0.44), (-L * 0.46, -L * 0.36)]):
-        yc = (y0 + y1) / 2
-        w = hull.deck_half(hull.s_of(yc)) * 1.6
-        p.add(props.box(w, y1 - y0, 0.006), 'tint', T(0, yc, deck(yc) + 0.004), bevel=0.002, tint=True)
+    for y0, y1 in panels:
+        # a solid civ patch filling the deck's outline: adjacent strips, each as wide as the deck there. The
+        # deck is one long n-gon, triangulated at render time, so its surface near the cambered ends rides
+        # above the local deck height: each patch is a slab topped at the highest deck level in its range.
+        z_top = max(deck(y0 + (y1 - y0) * k / 8) for k in range(9)) + 0.008
+        n = 14
+        for i in range(n):
+            ya, yb = y0 + (y1 - y0) * i / n, y0 + (y1 - y0) * (i + 1) / n
+            yc = (ya + yb) / 2
+            w = hull.deck_half(hull.s_of(yc)) * 1.9
+            if w > 0.02:
+                dz = z_top - deck(yc) + 0.02
+                p.add(props.box(w, (yb - ya) * 1.02, dz), 'tint', T(0, yc, z_top - dz / 2), tint=True)
     for (x, y, zr, sx_, sy_, sz_, key) in cfg.get('blocks', []):   # superstructure: (x, y, z above deck, size x/y/z, key)
         p.add(props.box(sx_, sy_, sz_), key, T(x, y, deck(y) + zr + sz_ / 2), bevel=min(0.012, sz_ * 0.2))
         # a row of dark windows (scuttles) along the block's sides
@@ -1205,8 +1217,18 @@ def _carrier_extras(p, hull, deck):
     # an angled flight deck flaring out to port, its lines, civ-colored aircraft parked along the edges, the island
     L = hull.L
     zd = deck(0) + 0.08
-    p.add(props.box(0.82, L * 0.98, 0.03), 'flight_deck', T(0.04, 0.0, zd), bevel=0.01)
-    p.add(props.box(0.5, L * 0.55, 0.03), 'flight_deck', T(-0.3, -0.25, zd) @ R('Z', -9), bevel=0.01)   # the angled deck, joined to the main
+    # the flight deck as ONE extruded outline: the straight deck with the angled deck flaring out to port
+    h2 = L * 0.49
+    outline = [(0.45, h2), (0.45, -h2), (-0.37, -h2), (-0.66, -0.95), (-0.66, 0.15), (-0.37, 0.85), (-0.37, h2)]
+    bm = props.bmesh.new()
+    top = [bm.verts.new((x, y, zd + 0.015)) for x, y in outline]
+    bot = [bm.verts.new((x, y, zd - 0.035)) for x, y in outline]
+    bm.faces.new(top)
+    bm.faces.new(list(reversed(bot)))
+    for i in range(len(outline)):
+        j = (i + 1) % len(outline)
+        bm.faces.new((bot[i], bot[j], top[j], top[i]))
+    p.add(bm, 'flight_deck', bevel=0.004)
     p.add(props.box(0.012, L * 0.9, 0.004), 'deck_line', T(0.0, 0.0, zd + 0.017))
     p.add(props.box(0.012, L * 0.6, 0.004), 'deck_line', T(-0.3, -0.25, zd + 0.017) @ R('Z', -9))
     for sx in (-1, 1):
@@ -1219,8 +1241,8 @@ def _carrier_extras(p, hull, deck):
         p.add(props.box(0.06 * k, 0.03 * k, 0.006 * k), 'tint', T(x, y - 0.15, zd + 0.04), bevel=0.002, tint=True)
     p.add(props.box(0.24, 0.3, 0.004), 'tint', T(0.25, 0.95, zd + 0.017), tint=True)   # the civ elevator patch
     for y in (-0.9, -0.3, 0.4, 1.1):   # centreline circles and the yellow dashes
-        p.add(props.lathe([(0.0, 0.06), (0.004, 0.06)], seg=16), 'gold', T(0, y, zd + 0.016), smooth=True)
-        p.add(props.lathe([(0.0, 0.05), (0.005, 0.05)], seg=16), 'flight_deck', T(0, y, zd + 0.017), smooth=True)
+        p.add(props.lathe([(0.0, 0.1), (0.004, 0.1)], seg=20), 'gold', T(0, y, zd + 0.016), smooth=True)
+        p.add(props.lathe([(0.0, 0.08), (0.005, 0.08)], seg=20), 'flight_deck', T(0, y, zd + 0.017), smooth=True)
     for k in range(12):
         p.add(props.box(0.012, 0.08, 0.004), 'gold', T(-0.12, -1.4 + 0.24 * k, zd + 0.017))
     p.add(props.box(0.12, 0.42, 0.22), 'steel_light', T(0.34, -0.1, zd + 0.12), bevel=0.012)   # the island
@@ -1286,7 +1308,7 @@ STEEL = {
     'Battleship': dict(
         hull=dict(L=3.5, B=0.64, D=0.22, draft=0.14, sheer_stern=0.02, sheer_bow=0.14, bow_p=1.3, stern_p=2.3,
                   transom=0.55, rake_bow=0.4, fullness=0.65),
-        civ_panels=[(1.3, 1.62), (-1.66, -1.4)],   # big civ patches clear of the turrets
+        civ_panels=[(1.02, 1.74), (-1.74, -1.2)],   # the big civ deck patches at both ends, as the original
         blocks=[(0, 0.15, 0.0, 0.42, 0.85, 0.2, 'steel_light'), (0, 0.22, 0.2, 0.32, 0.5, 0.18, 'steel_light'),
                 (0, 0.28, 0.38, 0.22, 0.26, 0.2, 'steel_light'), (0, 0.3, 0.58, 0.16, 0.14, 0.22, 'steel_light'),
                 (0, 0.3, 0.8, 0.12, 0.1, 0.1, 'steel_light'),   # the tall civ-faced tower

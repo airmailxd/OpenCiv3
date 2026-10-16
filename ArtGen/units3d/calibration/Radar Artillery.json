@@ -1,0 +1,240 @@
+{
+  "unit": "Radar Artillery",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.6,
+    128.0
+  ],
+  "anchor_override": [
+    120.0,
+    118.45453262329102
+  ],
+  "standing_height": 43.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        116.0,
+        131
+      ],
+      "top": 86,
+      "height": 46,
+      "bbox": [
+        92,
+        86,
+        148,
+        131
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        120.46,
+        129
+      ],
+      "top": 87,
+      "height": 43,
+      "bbox": [
+        105,
+        87,
+        135,
+        129
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        123.5,
+        131
+      ],
+      "top": 86,
+      "height": 46,
+      "bbox": [
+        91,
+        86,
+        148,
+        131
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        120.5,
+        126
+      ],
+      "top": 89,
+      "height": 38,
+      "bbox": [
+        93,
+        89,
+        145,
+        126
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        115.45,
+        130
+      ],
+      "top": 87,
+      "height": 44,
+      "bbox": [
+        91,
+        87,
+        147,
+        130
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        118.73,
+        129
+      ],
+      "top": 89,
+      "height": 41,
+      "bbox": [
+        104,
+        89,
+        134,
+        129
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        123.0,
+        130
+      ],
+      "top": 87,
+      "height": 44,
+      "bbox": [
+        91,
+        87,
+        148,
+        130
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        118.5,
+        126
+      ],
+      "top": 89,
+      "height": 38,
+      "bbox": [
+        94,
+        89,
+        146,
+        126
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 0.981915136964857,
+    "ppm_2x": 17.9764,
+    "fit": 0.3521,
+    "archetype": "armor"
+  },
+  "default_flic": "RadarArtilleryDefault.flc",
+  "flics": {
+    "RadarArtilleryAttackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 139,
+      "height": 91,
+      "offset_left": 45,
+      "offset_top": 62,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 20,
+      "frameMs": 40
+    },
+    "RadarArtilleryDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 80,
+      "height": 73,
+      "offset_left": 81,
+      "offset_top": 65,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "RadarArtilleryDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 64,
+      "height": 50,
+      "offset_left": 86,
+      "offset_top": 86,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 1,
+      "frameMs": 1000
+    },
+    "RadarArtilleryFidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 66,
+      "height": 51,
+      "offset_left": 85,
+      "offset_top": 85,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 12,
+      "frameMs": 125
+    },
+    "RadarArtilleryFortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 74,
+      "height": 59,
+      "offset_left": 81,
+      "offset_top": 78,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 100
+    },
+    "RadarArtilleryRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 64,
+      "height": 51,
+      "offset_left": 86,
+      "offset_top": 85,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 100
+    }
+  }
+}

@@ -1,0 +1,226 @@
+{
+  "unit": "Tank",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.72,
+    128.5
+  ],
+  "anchor_override": [
+    120.0,
+    119.34363555908203
+  ],
+  "standing_height": 46.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        118.43,
+        132
+      ],
+      "top": 86,
+      "height": 47,
+      "bbox": [
+        87,
+        86,
+        153,
+        132
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        119.59,
+        128
+      ],
+      "top": 86,
+      "height": 43,
+      "bbox": [
+        100,
+        86,
+        140,
+        128
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        120.92,
+        131
+      ],
+      "top": 86,
+      "height": 46,
+      "bbox": [
+        86,
+        86,
+        152,
+        131
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        118.88,
+        128
+      ],
+      "top": 86,
+      "height": 43,
+      "bbox": [
+        91,
+        86,
+        151,
+        128
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        117.0,
+        132
+      ],
+      "top": 83,
+      "height": 50,
+      "bbox": [
+        86,
+        83,
+        152,
+        132
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        119.84,
+        129
+      ],
+      "top": 78,
+      "height": 52,
+      "bbox": [
+        99,
+        78,
+        139,
+        129
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        121.33,
+        132
+      ],
+      "top": 83,
+      "height": 50,
+      "bbox": [
+        87,
+        83,
+        153,
+        132
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        120.15,
+        129
+      ],
+      "top": 86,
+      "height": 44,
+      "bbox": [
+        88,
+        86,
+        148,
+        129
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 0.9617651490416096,
+    "ppm_2x": 24.3029,
+    "fit": 0.4859,
+    "archetype": "armor"
+  },
+  "default_flic": "TankDefault.flc",
+  "flics": {
+    "TankAttackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 240,
+      "height": 240,
+      "offset_left": 0,
+      "offset_top": 0,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 20,
+      "frameMs": 90
+    },
+    "TankDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 74,
+      "height": 87,
+      "offset_left": 82,
+      "offset_top": 51,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "TankDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 73,
+      "height": 60,
+      "offset_left": 82,
+      "offset_top": 78,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 5,
+      "frameMs": 66
+    },
+    "TankFidget.flc": {
+      "actions": [
+        "FIDGET",
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 73,
+      "height": 60,
+      "offset_left": 82,
+      "offset_top": 78,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 100
+    },
+    "TankRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 73,
+      "height": 60,
+      "offset_left": 82,
+      "offset_top": 78,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 14,
+      "frameMs": 66
+    }
+  }
+}

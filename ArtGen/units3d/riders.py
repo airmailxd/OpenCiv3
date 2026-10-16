@@ -520,6 +520,27 @@ def attic_helm(p, c, tinted, crest_tinted):
     p.add(props.tube(path, [0.025, 0.035, 0.035, 0.028, 0.01], seg=8, scale_xy=(0.55, 1.0)), ck, smooth=True, tint=ct)
 
 
+@hat('eboshi')
+def eboshi(p, c, tinted, _):
+    """King Japanese: a tall court cap (kanmuri), its crown civ-colored, an
+    upright stiff tail rising behind, a dark band."""
+    key, t = ('tint', True) if tinted else ('lacquer', False)
+    p.add(props.lathe([(0.0, 0.11), (0.06, 0.1), (0.12, 0.085), (0.14, 0.0)], seg=24), key, smooth=True, tint=t)
+    p.add(props.box(0.05, 0.03, 0.22), key, T(0, -0.07, 0.2) @ R('X', 12), bevel=0.012, tint=t)   # the upright tail
+    p.add(props.lathe([(0.0, 0.113), (0.03, 0.113)], seg=24), 'lacquer', smooth=True)
+
+
+@hat('round_hat')
+def round_hat(p, c, tinted, _):
+    """King Portugal: a dark round hat, a low crown and a wide, flat, even
+    brim edged in gold."""
+    p.add(props.lathe([(0.0, 0.114), (0.07, 0.11), (0.09, 0.0)], seg=28), 'hat', smooth=True)
+    _brim(p, 0.11, 0.21, 0.0, 'hat')
+    ring = [(0.21 * math.sin(2 * math.pi * k / 40), 0.21 * math.cos(2 * math.pi * k / 40), 0.004) for k in range(41)]
+    p.add(props.tube(ring, 0.008, seg=6), 'gold', smooth=True)
+    p.add(props.lathe([(0.005, 0.112), (0.025, 0.112)], seg=28), 'gold', smooth=True)
+
+
 @hat('peaked_cap')
 def peaked_cap(p, c, tinted, _):
     """A military peaked (visor) cap: a stiff crown flaring to a wide flat top,
@@ -641,8 +662,9 @@ def beret_feather(p, c, tinted, plume_tinted):
 
 @hat('conical_helmet')
 def conical_helmet(p, c, tinted, _):
-    """A Norse conical helmet with a nasal guard."""
-    p.add(props.lathe([(-0.005, 0.118), (0.06, 0.11), (0.15, 0.04), (0.2, 0.0)], seg=24), 'helmet', smooth=True)
+    """A Norse conical helmet with a nasal guard (the bowl civ-colored when the entry tints 'helmet')."""
+    key, t = ('tint', True) if tinted else ('helmet', False)
+    p.add(props.lathe([(-0.005, 0.118), (0.06, 0.11), (0.15, 0.04), (0.2, 0.0)], seg=24), key, smooth=True, tint=t)
     p.add(props.box(0.03, 0.016, 0.11), 'helmet', T(0, 0.12, -0.05), bevel=0.005)   # the nasal bar
     p.add(props.lathe([(-0.005, 0.12), (0.016, 0.12)], seg=24), 'bronze', smooth=True)
     for i in range(14):   # rivets round the brow band

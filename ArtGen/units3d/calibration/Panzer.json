@@ -1,0 +1,226 @@
+{
+  "unit": "Panzer",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.32,
+    129.0
+  ],
+  "anchor_override": [
+    120.0,
+    118.59146785736084
+  ],
+  "standing_height": 47.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        118.28,
+        132
+      ],
+      "top": 86,
+      "height": 47,
+      "bbox": [
+        84,
+        86,
+        155,
+        132
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        119.64,
+        129
+      ],
+      "top": 85,
+      "height": 45,
+      "bbox": [
+        99,
+        85,
+        140,
+        129
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        121.15,
+        132
+      ],
+      "top": 86,
+      "height": 47,
+      "bbox": [
+        83,
+        86,
+        156,
+        132
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        118.73,
+        129
+      ],
+      "top": 88,
+      "height": 42,
+      "bbox": [
+        86,
+        88,
+        152,
+        129
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        117.0,
+        132
+      ],
+      "top": 83,
+      "height": 50,
+      "bbox": [
+        82,
+        83,
+        154,
+        132
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        119.0,
+        129
+      ],
+      "top": 79,
+      "height": 51,
+      "bbox": [
+        99,
+        79,
+        140,
+        129
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        121.47,
+        133
+      ],
+      "top": 84,
+      "height": 50,
+      "bbox": [
+        85,
+        84,
+        156,
+        133
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        120.26,
+        129
+      ],
+      "top": 88,
+      "height": 42,
+      "bbox": [
+        87,
+        88,
+        152,
+        129
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 0.9635636534434477,
+    "ppm_2x": 21.5947,
+    "fit": 0.431,
+    "archetype": "armor"
+  },
+  "default_flic": "PanzerDefault.flc",
+  "flics": {
+    "PanzerAttackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 156,
+      "height": 110,
+      "offset_left": 43,
+      "offset_top": 31,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 20,
+      "frameMs": 90
+    },
+    "PanzerDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 88,
+      "height": 83,
+      "offset_left": 74,
+      "offset_top": 59,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 90
+    },
+    "PanzerDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 80,
+      "height": 62,
+      "offset_left": 79,
+      "offset_top": 78,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 5,
+      "frameMs": 100
+    },
+    "PanzerFidget.flc": {
+      "actions": [
+        "FIDGET",
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 78,
+      "height": 60,
+      "offset_left": 79,
+      "offset_top": 79,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 111
+    },
+    "PanzerRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 78,
+      "height": 61,
+      "offset_left": 79,
+      "offset_top": 78,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 14,
+      "frameMs": 58
+    }
+  }
+}
