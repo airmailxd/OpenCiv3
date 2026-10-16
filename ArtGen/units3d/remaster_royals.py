@@ -217,7 +217,7 @@ REMASTER = {
         # the civ-color puffed sleeves (check they cover the shoulder tops); MISSING: quilting, gold dots
         'top': 'sleeved', 'puffy': True, 'neck': 'high', 'shoulder_rolls': 'tint', 'roll_size': 0.09,   # the doublet to the neck, the big civ puffed sleeves
         'cuirass': True, 'metal': [], 'cuirass_trim': 'gold',   # the quilted brown-gold vest front
-        'patterns': {'cuirass': ('check', '#4e3418', 14.0), 'sleeves': ('camo', '#e0c050', 30.0, 'cover', 0.08),
+        'patterns': {'cuirass': ('check', '#4e3418', 14.0), 'sleeves': ('camo', '#f0d060', 18.0, 'cover', 0.14),
                      'cape': ('stripes', '#a8885a', 16.0)},   # quilting, gold dots, the brocade's vertical pattern
         'bottom': 'breeches', 'wraps': 'wraps', 'shoes': True, 'sandals': False,   # white hose, low shoes; MISSING: gold buckles
         'cape': True, 'cape_length': 1.0,       # the light tan brocade (as the original; the note's dark brown was wrong)
@@ -542,11 +542,11 @@ REMASTER = {
         'helmet': 'crown', 'crown': 'tall', 'crown_height': 0.1, 'crown_gems': '#d8b040',   # a taller gold crown, gold studs at the front
         'hair': 'short', 'hair_asset': None, 'beard': False,
         'top': 'tunic', 'bottom': 'kilt', 'robe_drop': 0.0,
-        'patterns': {'top': ('check', '#4a3218', 12.0)},   # the gold and brown checkerboard tunic, bold
+        'patterns': {'top': ('check', '#4a3218', 12.0), 'cape': ('zigzag', '#ece8e0', -0.86, 0.045, 0.1, 0.035)},   # the bold checkerboard tunic; the white stepped zig-zag on the cape
         'bands': [('knee', 'gold', 0.1), ('neck', 'gold'), ('wrist', 'gold')],
         'cape': True, 'cape_length': 1.05,      # MISSING: zigzag_border (white, stepped)
         # the gold band, and a white band standing in for the zig-zag
-        'hem_bands': [('cape', 'gold', 0.09, 0.15), ('cape', '#ece8e0', 0.06, 0.06)],   # bolder: the gold band and the white zig-zag stand-in
+        'hem_bands': [('cape', 'gold', 0.09, 0.15)],   # the gold band above the zig-zag
         'cuirass': False, 'wraps': None, 'sandals': True, 'bracers': False, 'gear': [],
         # MISSING: feather_standard (staff topped with a fan of tinted/red/teal feathers), left_hand_hold
         'weapon': 'staff', 'props': {'staff': ('feather_standard', {'length': 2.35, 'grip': 1.2, 'fan': 1.6})},   # the feather standard, its big fan above his head
@@ -884,7 +884,7 @@ REMASTER = {
         'patterns': {'bottom': ('camo', '#e2c454', 9.0, 'cover', 0.07)},   # gold fleurs scattered on the civ gown (the white at her front sides is the veil)
         'hem_bands': [('bottom', 'tint', 0.04, 0.0), ('bottom', '#f2efe8', 0.18, 0.04), ('bottom', 'gold', 0.06, 0.22)],   # the spill: a civ edge, wide white lace, gold above   # gold and white lace at the hem
         # the white veil to the hips, narrow and close to the back; MISSING: head_veil (from the head, over the crown)
-        'cape': True, 'cape_length': 1.45, 'cape_width': 0.6, 'cape_flare': 0.15, 'cape_wrap': 0.6,   # one soft drape to the floor behind; MISSING: head_veil (from the head)   # the veil falls to the ground behind   # close to the back
+        'cape': False, 'head_veil': '#ece8e0', 'veil_length': 1.25, 'veil_width': 0.42,   # the soft white veil from the crown, down her back   # the veil falls to the ground behind   # close to the back
         'cuirass': False, 'wraps': None, 'sandals': False, 'bracers': False, 'gear': [],
         # the gold fleur-headed scepter low in the right fist, head up and forward
         'weapon': 'scepter', 'props': {'scepter': ('scepter', {'length': 0.7, 'head': 'fleur'})},
