@@ -406,7 +406,7 @@ def dress_posed(entry, mesh, arm):
         hanging += G.loincloth(mesh, arm, _mat(entry, 'bottom', maker), length=lengths[0], back_length=lengths[1],
                                torn=entry.get('torn', True))
     if entry.get('cape'):
-        G.cape(mesh, arm, _mat(entry, 'cape', lambda n, col, tint=False: G.cloth(n, col, tint=tint, weave=0.6)),
+        G.cape(mesh, arm, _mat(entry, 'cape', G.cloth, weave=0.6),     # (the plain maker: patterns reach capes)
                length=entry.get('cape_length', 0.75), width=entry.get('cape_width', 0.5),
                flare=entry.get('cape_flare', 0.15), wrap=entry.get('cape_wrap', 0.0),
                train=entry.get('cape_train', 0.0))
