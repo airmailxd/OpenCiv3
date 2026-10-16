@@ -624,6 +624,14 @@ def _dots(rx, period=0.11, r=0.028):
     return keys
 
 
+def _scales(period=0.07):
+    """A face-key function giving mail/lamellar barding rows of lighter and darker plates."""
+    def keys(f):
+        c = f.calc_center_median()
+        return ('barding_dark', False) if int(math.floor(c.z / period + 0.5 * (int(c.y / period) % 2))) % 2 else None
+    return keys
+
+
 def asset_tack(root, body, colors, h=None):
     """Civ3's tack on the asset horse, from the catalog's 'horse' entry `h`:
     the blanket ('saddle_cloth' civ-colored or in 'blanket_color'; 'pelt';
@@ -644,7 +652,8 @@ def asset_tack(root, body, colors, h=None):
     for key, (col, rough, metal, kind) in {'blanket': ('#7e6650', 0.85, 0.0, 'cloth'), 'blanket2': ('#eeece6', 0.85, 0.0, 'cloth'),
                                            'barding_mail': ('#9a9ea6', 0.45, 1.0, 'metal'), 'trim': ('#2e2014', 0.6, 0.0, 'leather'),
                                            'bridle': ('#4a3424', 0.6, 0.0, 'leather'), 'plume': ('#eeece6', 0.9, 0.0, 'cloth'),
-                                           'pelt': ('#3a2e26', 0.95, 0.0, 'rope')}.items():
+                                           'pelt': ('#3a2e26', 0.95, 0.0, 'rope'),
+                                           'barding_dark': ('#6a6e74', 0.5, 1.0, 'metal')}.items():
         props.DEFAULTS.setdefault(key, (col, rough, metal, kind))
     p = vkit.part(root, 'tack', c, wear)
     vs = _world_verts(body)
@@ -674,17 +683,22 @@ def asset_tack(root, body, colors, h=None):
         # a long caparison to the knees over the whole body; for barding, mail beneath
         knee = 0.62
         if blanket == 'barding':
-            mail, _ = drape(vs, yh + 0.05 * (yf - yh), yf - 0.12 * (yf - yh), knee - 0.06, gap=0.02, folds=0.005)
-            p.add(mail, 'barding_mail', smooth=True)
+            mail, mrings = drape(vs, yh + 0.05 * (yf - yh), yf - 0.12 * (yf - yh), knee - 0.06, gap=0.02, folds=0.005)
+            p.add(mail, 'barding_mail', smooth=True, keys=_scales())
+            if not h.get('caparison_over'):
+                hem_line(mrings, 'tint' if h.get('trim_tint') else trim)
+                rings = None
             span = h.get('over_span', [-0.62, 0.36])
             y0, y1 = ys + span[0] * (yf - yh) * 0.6, ys + span[1] * (yf - yh) * 0.6
-            cap, rings = drape(vs, y0, y1, knee + h.get('over_gap', 0.06) + 0.08, gap=0.05, folds=0.02)
-            p.add(cap, 'tint', smooth=True, tint=True)
+            if h.get('caparison_over'):
+                cap, rings = drape(vs, y0, y1, knee + h.get('over_gap', 0.06) + 0.08, gap=0.05, folds=0.02)
+                p.add(cap, 'tint', smooth=True, tint=True)
         else:
             y0, y1 = yh + 0.05 * (yf - yh), yf - 0.15 * (yf - yh)
             cap, rings = drape(vs, y0, y1, knee, gap=0.04, folds=0.018)
             p.add(cap, 'tint', smooth=True, tint=True, keys=_dots(0.0))
-        hem_line(rings, trim)
+        if rings:
+            hem_line(rings, trim)
     if blanket is not None and h.get('saddle_visible', True):
         pad = _shrink_patch('saddle', body, [-0.24 + 0.48 * i / 12 for i in range(13)],
                             [ys - 0.22 + 0.42 * j / 10 for j in range(11)], top, 0.05 if blanket not in ('barding', 'dots') else 0.09)
@@ -710,17 +724,27 @@ def asset_tack(root, body, colors, h=None):
         plate = props.ellipsoid(0.075, 0.03, 0.26, seg=14)
         rot = axis.to_track_quat('Z', 'Y').to_matrix().to_4x4()
         p.add(plate, 'barding_mail', Matrix.Translation(mid + front * 0.1) @ rot, smooth=True)
-    if h.get('neck_cover'):
-        # a crinet: a mail cover over the crest of the neck, withers to poll
+    if h.get('neck_cover') == 'cloth':
+        # a civ-colored cloth over the chest and the base of the neck (Egyptian chariot horses)
+        front, frings = drape(vs, ys + 0.22, yf + 0.12, 0.95, gap=0.03, folds=0.012)
+        p.add(front, 'tint', smooth=True, tint=True)
+        hem_line(frings, trim)
+    elif h.get('neck_cover'):
+        # a crinet: a sleeve over the neck, fitted to its measured cross-sections
         nb = arm.pose.bones['Bone.001']
         n0, n1 = arm.matrix_world @ nb.head, arm.matrix_world @ nb.tail
-        path = [n0.lerp(n1, t) + Vector((0, 0, 0.12 - 0.04 * t)) for t in (0.0, 0.25, 0.5, 0.75, 0.95)]
-        p.add(props.tube(path, [0.17, 0.15, 0.13, 0.11, 0.09], seg=12, scale_xy=(1.0, 0.8)), 'barding_mail', smooth=True)
+        rings = [r for r in (_head_ring(vs, n0, n1, t, grow=0.02) for t in (0.12, 0.3, 0.48, 0.66, 0.84)) if r]
+        if len(rings) >= 2:
+            sleeve = props.loft(rings, False, False)
+            cloth_cover = h.get('neck_cover') == 'cloth'
+            p.add(sleeve, 'tint' if cloth_cover else 'barding_mail', smooth=True, tint=cloth_cover,
+                  keys=None if cloth_cover else _scales())
     if h.get('plume'):
         ctr = a.lerp(b, 0.08) + Vector((0, 0, 0.12))
-        for dx in (-0.025, 0.0, 0.025):
-            p.add(props.tube([ctr + Vector((dx, 0, 0)), ctr + Vector((dx, -0.06, 0.16)), ctr + Vector((dx * 2, -0.16, 0.22))],
-                             [0.03, 0.025, 0.008], seg=6), 'tint' if h.get('plume_tint', True) else 'plume',
+        big = 2.2 if h.get('plume') == 'fan' else 1.3   # a tall fan of plumes (Egyptian chariot horses)
+        for dx in ((-0.05, -0.025, 0.0, 0.025, 0.05) if big > 1 else (-0.025, 0.0, 0.025)):
+            p.add(props.tube([ctr + Vector((dx, 0, 0)), ctr + Vector((dx * 1.5, -0.04, 0.16 * big)),
+                              ctr + Vector((dx * 2.5, -0.1, 0.24 * big))], [0.045, 0.05, 0.02], seg=8), 'tint' if h.get('plume_tint', True) else 'plume',
                   smooth=True, tint=h.get('plume_tint', True))
     nose = _head_ring(vs, a, b, 0.66, grow=0.004)
     if nose:

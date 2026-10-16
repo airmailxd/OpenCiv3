@@ -66,6 +66,8 @@ REMASTER = {
         'grime': 0.7, 'upper_bulk': 1.25,
     },
     # ---- riders (the PC session's units: mounted.py seats them on their horses)
+    # chariot crews (chariots.py): keys '<unit>:crew<i>'
+    'chariot:crew0': {'weapon': 'spear', 'props': {'spear': ('spear', {'length': 2.8, 'grip': 1.0})}},
     'Ancient Cavalry': {'top': 'sleeved', 'tint': ['top', 'crest', 'shield_face', 'shield_emblem']},
     'Knight': {'top': 'sleeved', 'cuirass': True, 'metal': ['helmet', 'cuirass'],
                'colors': {'cuirass': '#9a9ca2', 'mail': '#7a7c80'}},
