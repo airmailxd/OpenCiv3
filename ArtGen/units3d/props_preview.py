@@ -74,6 +74,19 @@ SHOWN = [
     ('modern_helmet', {}, (0, 0, 0)),
     ('canteen', {}, (0, 0, 0)),
     ('mil_backpack', {}, (0, 0, 180)),
+    ('scepter', {'head': 'orb'}, (0, 0, 0)),
+    ('orb', {}, (0, 0, 0)),
+    ('crook', {}, (0, 0, 60)),
+    ('royal_flail', {}, (0, 0, 60)),
+    ('cane', {}, (0, 0, 0)),
+    ('swagger_stick', {}, (0, 0, 0)),
+    ('eagle_standard', {}, (0, 0, 0)),
+    ('war_standard', {'era': 'ancient'}, (0, 0, 0)),
+    ('briefcase', {}, (0, 0, 60)),
+    ('microphone', {}, (0, 0, 0)),
+    ('pipe', {}, (0, 0, 60)),
+    ('glasses', {}, (0, 0, 0)),
+    ('sunglasses', {}, (0, 0, 0)),
 ]
 
 COLORS = {  # catalog colors from the pilot units

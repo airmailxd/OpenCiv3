@@ -307,6 +307,11 @@ DEFAULTS.update({
     'polymer': ('#26282a', 0.55, 0.0, None),
     'olive': ('#4e5034', 0.7, 0.0, 'cloth'),
     'olive_dark': ('#3a3c28', 0.8, 0.0, 'cloth'),
+    'gem': ('#8a1c22', 0.2, 0.0, None),
+    'lapis': ('#1e3a8a', 0.4, 0.0, None),
+    'banner': ('#ffffff', 0.85, 0.0, 'cloth'),
+    'lens': ('#c8d4dc', 0.05, 0.0, None),
+    'lens_dark': ('#0e0e10', 0.08, 0.0, None),
 })
 
 # ------------------------------------------------------------ geometry
@@ -1310,6 +1315,199 @@ def mil_backpack(p, size=1.0):
         path = [(x, -0.06 * s, 0.1 * s), (x, 0.0, 0.14 * s), (x, 0.1 * s, 0.1 * s), (x * 1.05, 0.12 * s, -0.1 * s)]
         p.add(tube(path, 0.015 * s, seg=6, scale_xy=(1.0, 0.35)), 'olive_dark', smooth=True)
 
+
+# ------------------------------------------------------------ royal regalia and personal items
+
+def _gold_head(p, kind, z, s=1.0):
+    if kind == 'orb':
+        p.add(ellipsoid(0.04 * s, 0.04 * s, 0.04 * s, seg=16), 'gold', T(0, 0, z + 0.035 * s), smooth=True)
+        _cross(p, z + 0.075 * s, 0.6 * s)
+    elif kind == 'cross':
+        _cross(p, z, 1.0 * s)
+    elif kind == 'eagle':
+        p.add(ellipsoid(0.025 * s, 0.03 * s, 0.035 * s, seg=12), 'gold', T(0, 0, z + 0.03 * s), smooth=True)
+        for sx in (-1, 1):
+            wing = slab([(0.0, 0.0), (0.09, 0.05), (0.1, 0.09), (0.02, 0.06)], 0.006, 'Y')
+            p.add(wing, 'gold', T(0, 0, z + 0.03 * s) @ S(sx * s, s, s), bevel=0.002)
+    else:   # fleur / knob
+        p.add(lathe([(0.0, 0.02), (0.02, 0.035), (0.05, 0.03), (0.07, 0.0)], seg=12), 'gold', T(0, 0, z) @ S(s),
+              smooth=True)
+
+
+def _cross(p, z, s=1.0):
+    p.add(box(0.012 * s, 0.012 * s, 0.07 * s), 'gold', T(0, 0, z + 0.035 * s), bevel=0.002)
+    p.add(box(0.045 * s, 0.012 * s, 0.012 * s), 'gold', T(0, 0, z + 0.05 * s), bevel=0.002)
+
+
+def scepter(p, length=0.7, head='orb', scale=1.0):
+    """A gold scepter held at its grip (origin), +Z up: a slender rod with
+    rings and an ornate head ('orb', 'cross', 'eagle' or 'fleur')."""
+    L = length * scale
+    p.add(tube([(0, 0, -0.18 * scale), (0, 0, L - 0.18 * scale)], [0.012 * scale, 0.014 * scale], seg=10), 'gold',
+          smooth=True)
+    for z in (0.15, 0.3):
+        p.add(lathe([(0.0, 0.02), (0.012, 0.02)], seg=12), 'gold', T(0, 0, z * L), smooth=True)
+    _gold_head(p, head, L - 0.18 * scale, scale)
+
+
+def orb(p, scale=1.0):
+    """A globus cruciger held in the palm (its bottom at the origin)."""
+    s = scale
+    p.add(ellipsoid(0.06 * s, 0.06 * s, 0.06 * s, seg=20), 'gold', T(0, 0, 0.06 * s), smooth=True)
+    p.add(lathe([(0.0, 0.062), (0.012, 0.062)], seg=24), 'gem', T(0, 0, 0.054 * s) @ S(s), smooth=True)
+    _cross(p, 0.12 * s, 1.0 * s)
+
+
+def crook(p, length=0.9, scale=1.0):
+    """The Egyptian heqa crook: a gold-and-blue banded staff curling over at the top."""
+    L = length * scale
+    path = [(0, 0, -0.2 * scale), (0, 0, L - 0.25)] + [
+        (0, 0.06 * (1 - math.cos(a)), L - 0.25 + 0.06 * math.sin(a)) for a in [math.pi * i / 8 for i in range(1, 9)]]
+    bm = tube(path, 0.014 * scale, seg=8)
+
+    def bands(f):
+        return ('lapis', False) if int(f.calc_center_median().z / 0.05) % 2 else None
+
+    p.add(bm, 'gold', smooth=True, keys=bands)
+
+
+def royal_flail(p, length=0.4, scale=1.0):
+    """The Egyptian nekhakha flail: a short banded handle and three beaded strands."""
+    L = length * scale
+    p.add(tube([(0, 0, -0.1), (0, 0, L)], 0.013 * scale, seg=8), 'gold', smooth=True,
+          keys=lambda f: ('lapis', False) if int(f.calc_center_median().z / 0.04) % 2 else None)
+    for i, dx in enumerate((-0.025, 0.0, 0.025)):
+        for k in range(6):
+            p.add(ellipsoid(0.012, 0.012, 0.014, seg=8), 'gold' if k % 2 else 'lapis',
+                  T(dx, 0.03 + 0.012 * k, L - 0.03 * k), smooth=True)
+
+
+def cane(p, length=0.9, scale=1.0):
+    """A walking cane: a dark rod with a round knob at the top (the grip, origin)."""
+    L = length * scale
+    p.add(tube([(0, 0, 0.02), (0, 0, -L)], [0.013, 0.01], seg=8), 'lacquer', smooth=True)
+    p.add(ellipsoid(0.022, 0.022, 0.02, seg=12), 'gold', T(0, 0, 0.03), smooth=True)
+    p.add(lathe([(-L, 0.011), (-L + 0.03, 0.011)], seg=8), 'gold', smooth=True)
+
+
+def swagger_stick(p, length=0.6, scale=1.0):
+    """A short officer's swagger stick held at its middle (origin), along Z."""
+    L = length * scale
+    p.add(tube([(0, 0, -L / 2), (0, 0, L / 2)], 0.009, seg=8), 'book_cover', smooth=True)
+    for z in (-L / 2, L / 2):
+        p.add(ellipsoid(0.012, 0.012, 0.014, seg=10), 'gold', T(0, 0, z), smooth=True)
+
+
+def _banner(p, top, w, h, swallowtail=False, flag=False):
+    """A civ-colored hanging cloth ('banner', tint) from a crossbar or along
+    a staff; a little rippled."""
+    bm = bmesh.new()
+    rows = []
+    nx, nz = 10, 8
+    for j in range(nz + 1):
+        v = j / nz
+        row = []
+        for i in range(nx + 1):
+            u = i / nx
+            if flag:   # hangs from the staff to +Y
+                co = (0.02 * math.sin(u * 5 + v), u * w, top - v * h)
+            else:      # hangs below the crossbar
+                co = (-w / 2 + u * w, 0.02 * math.sin(u * 6), top - v * h * (1 - (0.3 if swallowtail and abs(u - 0.5) < 0.15 else 0) * v))
+            row.append(bm.verts.new(co))
+        rows.append(row)
+    for a, b in zip(rows[:-1], rows[1:]):
+        for i in range(nx):
+            bm.faces.new((a[i], a[i + 1], b[i + 1], b[i]))
+    bmesh.ops.solidify(bm, geom=bm.faces[:], thickness=0.006)
+    p.add(bm, 'banner', smooth=True, tint=True)
+
+
+def war_standard(p, era='ancient', length=2.6, grip=1.0, scale=1.0):
+    """An army's standard held at the grip (origin), +Z up, the cloth in the
+    civ color. era: 'ancient' (vexillum: crossbar, square cloth with fringe,
+    an eagle on top), 'medieval' (a long swallowtailed pennon banner),
+    'industrial' or 'modern' (a rectangular flag on a staff, finial)."""
+    L = length * scale
+    z1 = L - grip
+    p.add(tube([(0, 0, -grip), (0, 0, z1)], [SHAFT_R + 0.002, SHAFT_R], seg=10), 'wood', smooth=True)
+    if era == 'ancient':
+        vkit_bar = tube([(-0.28, 0, z1 - 0.12), (0.28, 0, z1 - 0.12)], 0.012, seg=8)
+        p.add(vkit_bar, 'wood', smooth=True)
+        _banner(p, z1 - 0.13, 0.5, 0.55)
+        for i in range(9):
+            x = -0.24 + 0.06 * i
+            p.add(tube([(x, 0, z1 - 0.68), (x, 0, z1 - 0.76)], 0.006, seg=4), 'gold', smooth=True)
+        _gold_head(p, 'eagle', z1, 1.6)
+    elif era == 'medieval':
+        p.add(tube([(-0.3, 0, z1 - 0.1), (0.3, 0, z1 - 0.1)], 0.012, seg=8), 'wood', smooth=True)
+        _banner(p, z1 - 0.11, 0.55, 0.9, swallowtail=True)
+        _gold_head(p, 'cross', z1, 1.2)
+    else:
+        _banner(p, z1 - 0.05, 0.75, 0.5, flag=True)
+        p.add(ellipsoid(0.035, 0.035, 0.05, seg=12), 'gold', T(0, 0, z1 + 0.04), smooth=True)
+        if era == 'modern':
+            p.add(lathe([(0.0, 0.025), (0.03, 0.02)], seg=10), 'gold', T(0, 0, z1 - 0.06), smooth=True)
+
+
+def eagle_standard(p, length=2.2, grip=0.9, scale=1.0):
+    """A Roman aquila: a pole topped by a gold eagle with spread wings on a wreathed plinth."""
+    L = length * scale
+    z1 = L - grip
+    p.add(tube([(0, 0, -grip), (0, 0, z1)], [SHAFT_R + 0.002, SHAFT_R], seg=10), 'wood', smooth=True)
+    p.add(lathe([(0.0, 0.05), (0.03, 0.06), (0.06, 0.045)], seg=16), 'gold', T(0, 0, z1), smooth=True)
+    p.add(lathe([(0.0, 0.07), (0.015, 0.07)], seg=24), 'gold', T(0, 0, z1 + 0.06), smooth=True)
+    _gold_head(p, 'eagle', z1 + 0.08, 2.4)
+
+
+def briefcase(p, scale=1.0):
+    """A leather briefcase held by its handle (origin), hanging -Z."""
+    s = scale
+    p.add(box(0.1 * s, 0.4 * s, 0.3 * s), 'book_cover', T(0, 0, -0.17 * s), bevel=0.02)
+    p.add(tube([(0, -0.06 * s, -0.02 * s), (0, -0.04 * s, 0.02 * s), (0, 0.04 * s, 0.02 * s), (0, 0.06 * s, -0.02 * s)],
+               0.009 * s, seg=6), 'book_cover', smooth=True)
+    for y in (-0.12, 0.12):
+        p.add(box(0.105 * s, 0.03 * s, 0.03 * s), 'gold', T(0, y * s, -0.04 * s), bevel=0.004)
+
+
+def microphone(p, cord=0.6, scale=1.0):
+    """A handheld microphone held at its handle (origin), the head toward +Z,
+    a short cord hanging from the butt."""
+    s = scale
+    p.add(tube([(0, 0, -0.08 * s), (0, 0, 0.08 * s)], [0.013 * s, 0.018 * s], seg=12), 'gunmetal', smooth=True)
+    p.add(ellipsoid(0.026 * s, 0.026 * s, 0.03 * s, seg=14), 'steel', T(0, 0, 0.1 * s), smooth=True)
+    path = [(0, 0, -0.08 * s), (0, 0.04, -0.2 * s), (0, 0.02, -0.35 * s), (0, -0.04, -cord * s)]
+    p.add(tube(path, 0.004, seg=5), 'polymer', smooth=True)
+
+
+def pipe(p, scale=1.0):
+    """A tobacco pipe, the mouthpiece at the origin, the stem toward +Y and the bowl up."""
+    s = scale
+    p.add(tube([(0, 0, 0), (0, 0.1 * s, -0.01 * s), (0, 0.13 * s, -0.03 * s)], [0.005 * s, 0.006 * s, 0.008 * s], seg=8),
+          'lacquer', smooth=True)
+    p.add(lathe([(-0.06, 0.018), (-0.01, 0.022), (0.0, 0.02)], seg=12), 'wood', T(0, 0.14 * s, 0.0) @ S(s), smooth=True)
+
+
+def glasses(p, kind='round', scale=1.0):
+    """Spectacles on the face: the origin at the bridge of the nose, +Y
+    forward, the arms running back (-Y) to the ears. kind: 'round' (wire
+    rims, clear) or 'sunglasses' (dark lenses)."""
+    s = scale
+    r = 0.022 * s
+    for sx in (-1, 1):
+        cx = sx * 0.032 * s
+        ring = [(cx + r * math.cos(2 * math.pi * k / 20), 0.0, r * math.sin(2 * math.pi * k / 20)) for k in range(21)]
+        p.add(tube(ring, 0.0016 * s, seg=4), 'gold' if kind == 'round' else 'gunmetal', smooth=True)
+        lens = ellipsoid(r * 0.95, 0.002, r * (0.95 if kind == 'round' else 0.85), seg=16)
+        p.add(lens, 'lens_dark' if kind == 'sunglasses' else 'lens', T(cx, 0.0, 0.0), smooth=True)
+        p.add(tube([(sx * (0.032 * s + r), 0.0, 0.004), (sx * 0.072 * s, -0.1 * s, 0.006)], 0.0016 * s, seg=4),
+              'gold' if kind == 'round' else 'gunmetal', smooth=True)
+    p.add(tube([(-0.012 * s, 0.0, 0.004), (0.012 * s, 0.0, 0.004)], 0.0016 * s, seg=4),
+          'gold' if kind == 'round' else 'gunmetal', smooth=True)
+
+
+def sunglasses(p, scale=1.0):
+    glasses(p, kind='sunglasses', scale=scale)
+
 # ------------------------------------------------------------ registry
 
 BUILDERS = {
@@ -1352,6 +1550,19 @@ BUILDERS = {
     'modern_helmet': modern_helmet,
     'canteen': canteen,
     'mil_backpack': mil_backpack,
+    'scepter': scepter,
+    'orb': orb,
+    'crook': crook,
+    'royal_flail': royal_flail,
+    'cane': cane,
+    'swagger_stick': swagger_stick,
+    'war_standard': war_standard,
+    'eagle_standard': eagle_standard,
+    'briefcase': briefcase,
+    'microphone': microphone,
+    'pipe': pipe,
+    'glasses': glasses,
+    'sunglasses': sunglasses,
     'sword': sword,
     'bow': bow,
     'bold_bow': bow,
