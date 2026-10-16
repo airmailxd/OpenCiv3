@@ -24,17 +24,18 @@ REMASTER = {
         # the whole back; civ-color tunic, sleeves, wristbands and trousers
         'macro': {'muscle': 1.0, 'weight': 0.95, 'height': 0.78, 'proportions': 0.6},
         'race': {'caucasian': 0.9, 'african': 0.0, 'asian': 0.1},
-        'colors': {'skin': '#a87a5a', 'hair': '#d8c020', 'helmet': '#5e5e62', 'belt': '#2e2016',
+        'colors': {'skin': '#a87a5a', 'hair': '#c8a830', 'helmet': '#5e5e62', 'belt': '#2e2016',
                    'wraps': '#6a4a30', 'wraps_band': '#241810', 'bracers': '#4e3a26', 'steel': '#a8aaae',
                    'iron': '#3e3e40', 'wood': '#5a4028', 'leather': '#3e2a1a'},
-        'helmet': None, 'headgear': 'conical_helmet',
+        'helmet': None, 'headgear': 'conical_helmet',          # MISSING: conical_helmet rivets / nasal bar
         'hair': 'long', 'hair_asset': 'braid01', 'mane': 0.22, 'beard': True,   # MISSING: braids (two braids down the chest)
+        'beard_length_short': 0.011, 'beard_density': 380,   # a shorter, thinner yellow beard: the face shows
         'top': 'sleeved', 'bottom': 'long', 'wraps': 'wraps', 'bracers': True,
         'pelt_cape': ('#6a4a30', '#3a2818'), 'pelt_kind': 'cloak',
         'fur_vest': ('#5e4430', '#33241a'),     # the brown fur over the torso front (only sleeves/trousers civ color)
         'gear': [],
         'weapon': 'axe',
-        'props': {'axe': ('battle_axe', {'length': 0.75, 'scale': 1.6})},
+        'props': {'axe': ('battle_axe', {'length': 0.6, 'scale': 2.0})},   # MISSING: battle_axe head scale (head without the haft)
         'stance_name': 'low_across',            # MISSING: two_hand_low (haft level across the hips, head out right)
         'two_hands': True, 'tool_dir': (-0.8, -0.2, 0.25),
         'tint': ['top', 'bottom', 'bracers'],
@@ -44,7 +45,7 @@ REMASTER = {
         # bow low in the left hand, a loose arrow in the right; a civ-color
         # cap with a gold knob, leather vest over a civ-color knee tunic,
         # quiver on the back, leg wraps and sandals
-        'macro': {'muscle': 1.0, 'weight': 0.7, 'height': 0.75, 'proportions': 0.72},
+        'macro': {'muscle': 1.0, 'weight': 0.8, 'height': 0.75, 'proportions': 0.72},
         'colors': {'skin': '#8e6a4a', 'hair': '#1a120c', 'cuirass': '#6a4a28', 'leather': '#3e2a1a',
                    'belt': '#2a1c12', 'wraps': '#7a6448', 'wraps_band': '#3a2a1a', 'sandal': '#2e2016',
                    'wood': '#5a3e24', 'string': '#8a7a5a'},
@@ -53,23 +54,24 @@ REMASTER = {
         'cuirass': True, 'top': 'tunic', 'bottom': 'skirt',   # the cuirass leaves the tunic's sleeves showing
         'wraps': 'wraps', 'sandals': True,
         'gear': [('chest_strap', {'color': '#2e2016'})],
-        'weapon': 'arrow', 'props': {'arrow': ('arrow', {'length': 0.85})},   # a loose arrow in the right hand
+        'weapon': 'arrow', 'props': {'arrow': ('arrow', {'length': 0.55})},   # a loose arrow in the right hand
         'offhand': 'bow', 'offhand_mesh': ('bold_bow', {'height': 1.35, 'bend': 0.18, 'recurve': 0.1}),
-        'back': 'quiver', 'stance_name': 'bow_low',
+        'back': 'quiver', 'stance_name': 'bow_low',   # MISSING: quiver fletching (arrow ends at the quiver mouth)
         'tint': ['helmet', 'top', 'bottom'],
-        'grime': 0.75, 'upper_bulk': 1.25,
+        'grime': 0.75, 'upper_bulk': 1.35,
     },
     'Chasquis Scout': {
         # an Inca runner: a broad civ-color fan headdress framing the face,
         # long black hair, bare chest, civ-color wrap skirt with a gold belt,
         # civ-color bands at wrist, knee and ankle; a star mace held low
-        'macro': {'muscle': 1.0, 'weight': 0.65, 'height': 0.68, 'proportions': 0.72},
+        'macro': {'muscle': 1.0, 'weight': 0.8, 'height': 0.68, 'proportions': 0.72},
         'race': {'caucasian': 0.1, 'african': 0.2, 'asian': 0.7},
         'colors': {'skin': '#a86c44', 'hair': '#120c08', 'belt': '#b08a2a', 'bottom': '#5a4030',
                    'wood': '#4e3420', 'stone': '#3e3c3a', 'helmet': '#5a4030'},
         'helmet': None, 'headgear': 'fan_headdress',
         'hair': 'long', 'hair_asset': 'long01', 'beard': False,
         'top': None, 'bottom': 'loincloth', 'loin_length': (0.38, 0.34), 'torn': False,
+        'hem_bands': [('bottom', 'gold', 0.04)],   # the gold skirt hem
         'bracers': False,
         'bands': [('wrist', 'tint'), ('knee', 'tint'), ('ankle', 'tint')],
         'wraps': None, 'sandals': False, 'gear': [],
@@ -77,7 +79,7 @@ REMASTER = {
         'props': {'club': ('star_mace', {'length': 0.55})},
         'stance_name': 'hang',
         'tint': ['helmet', 'bottom'],
-        'grime': 0.7, 'upper_bulk': 1.25,
+        'grime': 0.7, 'upper_bulk': 1.35,
     },
     'Enkidu Warrior': {
         # long spear upright, butt on the ground; wild black hair and a chest-
@@ -91,9 +93,10 @@ REMASTER = {
                    'wood': '#5a3420', 'steel': '#7e7a72'},
         'helmet': 'headband',                   # MISSING: streamers (ribbons flicking up off the headband)
         'hair': 'long', 'hair_asset': 'long01', 'mane': 0.3,
-        'beard': True,                          # MISSING: long_beard (black, to mid-chest)
-        'top': None, 'bottom': 'skirt',         # MISSING: fur kilt (the skirt is cloth under the vest)
+        'beard': True, 'beard_style': 'long',   # black, square to the chest (colors.hair)
+        'top': None, 'bottom': None,
         'fur_vest': ('#b09a70', '#7a6848'),
+        'fur_kilt': ('#b09a70', '#7a6848'),     # the fur kilt, waist to knee (no cloth skirt)
         'pelt_cape': ('#b09a70', '#7a6848'), 'pelt_kind': 'cloak',
         'bracers': False,
         'bands': [('upperarm', 'tint'), ('wrist', 'tint'), ('waist', 'tint'), ('knee', 'tint')],
@@ -102,12 +105,12 @@ REMASTER = {
         'props': {'spear': ('spear', {'length': 2.7, 'grip': 1.1, 'head': 1.2})},
         'stance_name': 'upright',
         'tint': ['helmet', 'belt'],
-        'grime': 0.85, 'upper_bulk': 1.25,
+        'grime': 0.85, 'upper_bulk': 1.35,
     },
     'Enslaved Worker': {
         # a gaunt labourer: long hair and beard, a sleeveless olive tunic,
         # one civ-color strap across the chest, iron shackles, a spade
-        'macro': {'muscle': 0.8, 'weight': 0.4, 'height': 0.7, 'proportions': 0.72}, 'age': 0.6,
+        'macro': {'muscle': 0.8, 'weight': 0.4, 'height': 0.7, 'proportions': 0.72}, 'age': 0.7,
         'colors': {'skin': '#a07a58', 'hair': '#3a2616', 'top': '#a8ae88', 'bottom': '#a8ae88',
                    'belt': '#2e2418', 'sandal': '#2e2016', 'wood': '#4e3622', 'steel': '#5a5a5a',
                    'iron': '#2e2e30'},
@@ -120,9 +123,9 @@ REMASTER = {
         'weapon': 'shovel',
         'props': {'shovel': ('shovel', {'length': 1.45})},
         'stance_name': 'hang',            # MISSING: spade_upright (blade on the ground at his right side)
-        'hang_dir': (-0.55, -0.3, -0.78),          # the spade upright at his side (one hand)
+        'hang_dir': (-0.05, -0.1, -1.0),           # the spade upright at his right foot (one hand)
         'tint': ['strap'],
-        'grime': 0.9, 'upper_bulk': 1.05,
+        'grime': 1.0, 'upper_bulk': 1.05,
     },
     'Explorer': {
         # a conquistador-era explorer: steel comb morion with a civ-color
@@ -133,12 +136,12 @@ REMASTER = {
         'colors': {'skin': '#9a7254', 'hair': '#4a3624', 'helmet': '#8e9096', 'cuirass': '#8a8c92',
                    'bottom': '#3e3c4e', 'boots': '#8a8680', 'belt': '#2a1e14', 'steel': '#a8aaae',
                    'parchment': '#cfc4a2'},
-        'helmet': None, 'headgear': 'morion_big', 'metal': ['cuirass'],
+        'helmet': None, 'headgear': 'morion_big', 'headgear_scale': 1.1, 'metal': ['cuirass'],
         'hair': 'short', 'beard': True,
         'cuirass': True, 'top': 'sleeved', 'puffy': True,   # puffed civ-color sleeves, baggy breeches
         'bottom': 'breeches', 'wraps': 'boots',  # pale high boots below the breeches
         'gear': [],
-        'hip': ('sheathed_sword', {'rapier': True}),   # the rapier sheathed at the left hip
+        'hip': ('sheathed_sword', {'rapier': True}),   # the rapier sheathed at the left hip; MISSING: hip sword guard
         'weapon': None,
         'offhand': 'map', 'offhand_mesh': ('map', {'w': 0.34, 'h': 0.26}),
         'stance_name': 'upright',
@@ -153,7 +156,8 @@ REMASTER = {
         'race': {'caucasian': 1.0, 'african': 0.0, 'asian': 0.0},
         'colors': {'skin': '#c8946c', 'hair': '#d07a30', 'bottom': '#3a3a40', 'belt': '#2e2016',
                    'boots': '#3e2a1a', 'bracers': '#3a2a1c', 'steel': '#a8aaae', 'bronze': '#9a9ca2',
-                   'shield_face': '#6a4a2e', 'shield_rim': '#8a8c90', 'leather': '#3e2a1a'},
+                   'shield_face': '#6a4a2e', 'shield_rim': '#8a8c90', 'leather': '#3e2a1a',
+                   'pouch': '#c8a030'},           # the small yellow belt pouch
         'helmet': None,
         'hair': 'short', 'hair_asset': 'short04', 'beard': False,   # MISSING: spiked_hair (limed, straight up)
         'top': None, 'bottom': 'long', 'patterns': {'bottom': ('check', '#141414', 13.0)},   # checked trousers
@@ -188,7 +192,7 @@ REMASTER = {
         # the aspis: a big round bronze board, only its rim in civ color, a
         # black painted device with a red accent on the face; upright (no
         # 45-degree roll), so the device's chevron points up
-        'offhand': 'shield_round',
+        'offhand': 'shield_round',             # MISSING: aspis bronze face (face_metal on shield_round)
         'offhand_mesh': ('shield_round', {'r': 0.52, 'dome': 0.07, 'boss': False, 'tint': 'rim', 'emblem': 'aspis'}),
         'shield_roll': 0.0,
         'stance_name': 'upright',
@@ -204,19 +208,26 @@ REMASTER = {
         'colors': {'skin': '#8e6a4a', 'hair': '#140e0a', 'helmet': '#cfc9b8', 'top': '#9a8058',
                    'bottom': '#5e4a34', 'belt': '#3a2a1c', 'boots': '#a08434', 'steel': '#a8aaae',
                    'gold': '#a8842e', 'veil': '#cfc9b8'},
-        'helmet': 'hood', 'veil': True, 'veil_drop': 0.215,         # white headcloth and a veil over the chin and mouth
+        'helmet': 'hood', 'hood_neck': True,   # white headcloth, stopping at the neck
+        'veil': True, 'veil_drop': 0.215,       # a veil over the chin and mouth
         'beard': True,
         # a tan sleeved tunic; 'puffy' adds the sleeve layer over the upper
         # arms (tinted: the civ-color short sleeves) and makes the trousers baggy
         'top': 'sleeved', 'puffy': True, 'cuirass': False,
         'bands': [('wrist', 'gold'), ('waist', 'tint')],   # gold bracelets, the civ-color sash
-        'bottom': 'long',                       # MISSING: trouser_stripes (tinted vertical stripes)
+        # civ-color trousers with dark brown stripes: a pattern stays within one
+        # material, so the original's civ stripes on brown can't be had; this
+        # keeps the civ color and the vertical striping
+        'bottom': 'long', 'patterns': {'bottom': ('stripes', '#4a3828', 6.0)},
         'wraps': 'boots',
         'gear': [('chest_strap', {'color': '#3a2818'})],
         'weapon': 'sword',
         'props': {'sword': ('sabre', {'length': 0.95, 'width': 0.05, 'curve': 0.16})},   # props.scimitar has no curve param: its sabre, curved more
         'stance_name': 'hang',
-        'tint': ['belt', 'sleeves'],
+        # a slight forward lean, the free left hand brought in front
+        'pose_extra': [('spine_02', (0, -0.1, 1)), ('head', (0, 0.1, 1)),
+                       ('upperarm_l', (0.06, -0.2, -1)), ('lowerarm_l', (-0.2, -0.5, -1))],
+        'tint': ['belt', 'sleeves', 'bottom'],
         'grime': 0.65, 'upper_bulk': 1.2,
     },
     'Impi': {
@@ -225,7 +236,7 @@ REMASTER = {
         # wrist bands, and cow-tail tufts on the calves
         'macro': {'muscle': 1.0, 'weight': 0.7, 'height': 0.78, 'proportions': 0.7},
         'race': {'caucasian': 0.0, 'african': 1.0, 'asian': 0.0},
-        'colors': {'skin': '#5e3c26', 'hair': '#0e0a08', 'helmet': '#2a1e14', 'bottom': '#4a3424',
+        'colors': {'skin': '#6e4630', 'hair': '#0e0a08', 'helmet': '#2a1e14', 'bottom': '#4a3424',
                    'belt': '#2e2016', 'wraps': '#d8d0c0', 'wraps_band': '#2a2420', 'gold': '#b08a2a',
                    'hide': '#d4ccbc', 'hide_dark': '#1e1612', 'wood': '#3e2a1a', 'steel': '#a8aaae'},
         'helmet': None, 'headgear': 'feather_headdress',
@@ -233,9 +244,7 @@ REMASTER = {
         'top': None, 'bottom': 'loincloth', 'bottom_material': 'leather', 'loin_length': (0.4, 0.38), 'torn': True,
         'bracers': False,
         'bands': [('upperarm', 'tint'), ('wrist', 'tint'), ('knee', 'gold')],   # yellow bands above the tufts
-        # the cow-tail tufts; 'wraps' is listed as tinted per the note, but
-        # G.fur wraps don't take the tint yet
-        'wraps': 'wraps',                       # MISSING: tinted_fur_tufts
+        'wraps': 'wraps',                       # the cow-tail tufts, tinted
         'sandals': False,
         'gear': [('chest_strap', {'color': '#3a2818'})],
         'weapon': 'spear',
@@ -247,7 +256,7 @@ REMASTER = {
         # a wider stance: these override the stance's leg bones
         'pose_extra': [('thigh_l', (0.3, -0.1, -1)), ('thigh_r', (-0.3, -0.1, -1)),
                        ('calf_l', (0.1, 0.15, -1)), ('calf_r', (-0.1, 0.15, -1))],
-        'headgear_params': {'style': 'bushy'},  # many short civ-color feathers in a round bushy crown
+        'headgear_params': {'style': 'bushy'},  # many short civ-color feathers in a round bushy crown; MISSING: feather length/tilt variation
         'tint': ['helmet', 'wraps'],
         'grime': 0.75, 'upper_bulk': 1.25,
     },
@@ -259,11 +268,11 @@ REMASTER = {
         'colors': {'skin': '#9a7656', 'top': '#2e2e32', 'bottom': '#2e2e32', 'helmet': '#2a2a2e',
                    'belt': '#9a7e2c', 'gold': '#9a7e2c', 'sandal': '#2a2018', 'wood': '#4a3222',
                    'book_cover': '#3a2418', 'parchment': '#d0c49e', 'cloth_wrap': '#3a2e26'},
-        'helmet': 'hood', 'hair_asset': None, 'beard': False,
+        'helmet': 'hood', 'hair_asset': None, 'beard': False,   # MISSING: face shadow (a deeper hood)
         'top': 'sleeved', 'wide_sleeves': True, 'neck': 'high',
-        'chest_emblem': ('cross', 'gold', 0.2), 'hem_bands': [('sleeves', 'tint', 0.06)],   # gold cross, civ cuffs
+        'chest_emblem': ('cross', 'gold', 0.2), 'hem_bands': [('sleeves', 'tint', 0.09)],   # gold cross, civ cuffs
         'bottom': 'kilt', 'robe_drop': 0.4,          # the floor-length robe
-        'bands': [('neck', 'tint'), ('wrist', 'tint'), ('waist', 'gold')],   # shoulder band, cuffs, gold sash
+        'bands': [('neck', 'tint', 0.08), ('wrist', 'tint'), ('waist', 'gold')],   # shoulder band, cuffs, gold sash
         'bracers': False, 'sandals': True, 'wraps': None, 'gear': [],
         'weapon': 'club',
         'props': {'club': ('torch', {'length': 0.5})},
