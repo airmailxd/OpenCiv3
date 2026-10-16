@@ -148,9 +148,14 @@ def dress(entry, mesh, arm):
             col = gp.get('color', c['belt'])
             tint = 'strap' in entry.get('tint', []) or gp.get('tint')
             half = gp.get('width', 0.07) / 2           # a sash: 'width' 0.15-0.2
-            G.shell(mesh, arm, 'ChestStrap', torso, G.cloth('chest_strap', (1, 1, 1), tint=True) if tint else
-                    G.leather('chest_strap', B.hex_color(col)), zmin=1.0, zmax=1.5,
-                    offset=0.02, thickness=0.006, keep=lambda co, h=half: abs((co.z - 1.22) + 0.95 * co.x) < h)
+            smat = G.cloth('chest_strap', (1, 1, 1), tint=True) if tint else G.leather('chest_strap', B.hex_color(col))
+            off = gp.get('offset', 0.02)            # raise it over thick tops
+            G.shell(mesh, arm, 'ChestStrap', torso, smat, zmin=1.0, zmax=1.5,
+                    offset=off, thickness=0.006, keep=lambda co, h=half: abs((co.z - 1.22) + 0.95 * co.x) < h)
+            if gp.get('cross'):
+                # a second strap over the other shoulder: crossed bandoliers
+                G.shell(mesh, arm, 'ChestStrap2', torso, smat, zmin=1.0, zmax=1.5,
+                        offset=off + 0.004, thickness=0.006, keep=lambda co, h=half: abs((co.z - 1.22) - 0.95 * co.x) < h)
     # mail limbs: 'mail': ['arms', 'legs'] (ring mail sleeves to the wrist,
     # chausses from the thigh to the foot), under the other clothes
     mail = entry.get('mail_parts', [])
@@ -543,7 +548,7 @@ STANCES['hip_hold'] = [('spine_02', (0, 0.0, 1)), ('neck_01', (0, 0.1, 1)), ('he
                        ('thigh_l', (0.2, -0.12, -1)), ('calf_l', (0.12, 0.04, -1)), ('foot_l', (0.5, -1, -0.3)),
                        ('thigh_r', (-0.2, 0.08, -1)), ('calf_r', (-0.12, 0.05, -1)), ('foot_r', (-0.5, -1, -0.3)),
                        ('upperarm_l', (0.25, -0.2, -1)), ('lowerarm_l', (-0.25, -1.0, -0.15)),
-                       ('upperarm_r', (-0.3, 0.15, -1)), ('lowerarm_r', (0.0, -1.0, -0.25))]
+                       ('upperarm_r', (-0.22, 0.45, -1)), ('lowerarm_r', (0.08, -0.8, -0.5))]
 GUNS = ('musket', 'rifle', 'rifle_bolt', 'assault_rifle', 'smg')
 
 WEAPON_STANCE = {
@@ -585,9 +590,9 @@ def equip(entry, arm):
             H.hold(obj, arm, 'hand_r', base, up=tuple((at - base).normalized()), forward=(0, -1, 0))
         elif stance == 'hip_hold':
             # level at the hip, muzzle forward and a little across
-            d = Vector(entry.get('gun_dir', (0.15, -1.0, 0.08))).normalized()
+            d = Vector(entry.get('gun_dir', (0.12, -1.0, 0.16))).normalized()
             H.hold(obj, arm, 'hand_r', at, up=tuple(d), forward=(0, 0, 1))
-            H.reach(arm, 'l', at + d * entry.get('fore_end', 0.3) * G._scale, elbow_out=0.6)
+            H.reach(arm, 'l', at + d * entry.get('fore_end', 0.24) * G._scale, elbow_out=0.75)
             H.fists(arm, sides='l')
         elif stance == 'port_arms':
             # diagonal across the chest, muzzle up at the left shoulder, sights out
@@ -625,9 +630,8 @@ def equip(entry, arm):
             H.hold(obj, arm, 'hand_l', low, up=tuple(-up_dir), forward=tuple(entry.get('tool_face', (0, -1, 0))))
             if entry.get('two_hands'):
                 # the right hand further up the haft: the forearm reaches for it
-                target = low + up_dir * 0.4 * G._scale
-                eb = arm.matrix_world @ arm.pose.bones['lowerarm_r'].head
-                H.aim(arm, 'lowerarm_r', arm.matrix_world.inverted().to_3x3() @ (target - eb))
+                target = low + up_dir * entry.get('second_grip', 0.4) * G._scale
+                H.reach(arm, 'r', target, elbow_out=0.6)
                 H.fists(arm, sides='r')
         made.append(obj)
     if offhand:
