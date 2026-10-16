@@ -1986,13 +1986,13 @@ def wolfhound(p, scale=1.0):
         p.add(ellipsoid(0.035 * s, 0.05 * s, 0.03 * s, seg=10), fur, T(x * s, (y + 0.02) * s, 0.03 * s), smooth=True)
     p.add(tube([(0, -0.52 * s, 0.68 * s), (0, -0.6 * s, 0.52 * s), (0, -0.62 * s, 0.34 * s), (0, -0.6 * s, 0.22 * s)],
                [0.035 * s, 0.03 * s, 0.022 * s, 0.012 * s], seg=8), fur, smooth=True)   # the low curved tail
-    for i in range(110):   # the rough coat: shaggy tufts along the back, flanks and neck
+    for i in range(45):   # the rough coat: a few flat tufts (dense ones self-shadowed into dark blotches)
         y = rnd.uniform(-0.5, 0.6)
         sx = rnd.choice((-1, 1))
         z = rnd.uniform(0.5, 0.8)
         a = (sx * rnd.uniform(0.04, 0.12) * s, y * s, z * s)
         b = (a[0] + sx * 0.025 * s, a[1] - 0.05 * s, a[2] - 0.045 * s)   # lying flat, back and down (upright ones read as spikes)
-        p.add(tube([a, b], [0.024 * s, 0.008 * s], seg=5), fur, smooth=True)
+        p.add(tube([a, b], [0.016 * s, 0.006 * s], seg=5), fur, smooth=True)
     p.add(lathe([(0.0, 0.085), (0.035, 0.08)], seg=16, scale_xy=(1.0, 1.1)), 'tint',
           T(0, 0.52 * s, 0.73 * s) @ R('X', -60) @ S(s), smooth=True, tint=True)   # the civ collar
 

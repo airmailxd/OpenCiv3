@@ -24,7 +24,7 @@ The per-unit lists are in [DETAIL_AUDIT_PC.md](DETAIL_AUDIT_PC.md).
 | TOW Infantry | siege.tow_team + crews.py | PASS (a team: launcher, crates, a gunner seated at the sight, a spotter) |
 | Footmen batch B (11, handed over 2026-10-16) | remaster_footmen.py (only these blocks) | all 11 PASS |
 | All 16 remaining ships (Curragh to Aegis Cruiser) | ships.py (sailing_ship, steel_ship, curragh, dromon) | all PASS (6 axes) |
-| Royals half 2 (22, handed over 2026-10-16) | remaster_royals.py (only these blocks) | 17/22 pass; left: Netherlands, Portugal, Leader Modern, SciLeader (round 11 rendering), Spanish (waits on a crown over the hood) |
+| Royals half 2 (22, handed over 2026-10-16) | remaster_royals.py (only these blocks) | 20/22 pass; Netherlands (ermine dots) and Spanish (veil) wait on Mac cape features |
 | Armor (6) | armor.py | all 6 PASS (v4: link-plate tracks, shaped turrets, painted camo via props.CAMO, bold civ marks) |
 | Aircraft (7), ICBM, Tactical Nuke, Cruise Missile, Holy Relic | aircraft.py, siege.py + crews.py (relic) | 8/11 pass; Bomber, Stealth Fighter, Stealth Bomber in re-review |
 | Mounted Warrior, Ancient Cavalry, Knight, Keshik, Sipahi, Conquistador, Cossack, Hussar, Cavalry | mounted.py, riders.py, remaster.py | frozen for stzur's judgment (borderline 6-7 on 5 axes); detail 2-5/10, see below |
@@ -71,3 +71,8 @@ These are what a fifth round would add; waiting on stzur before touching them.
     blender -b --factory-startup --python-exit-code 1 --python ArtGen/units3d/render_vehicles.py -- <Unit> [...]
     python ArtGen/units3d/vehicles_sheet.py <Unit> [...]     # original / current / Blender, local only
     python ArtGen/units3d/size_check.py <Unit>               # on-map box vs the original
+
+
+## Taken over from the Mac (TODO_PC, 2026-10-16)
+
+Impi, Army Ancient, Army Industrial, Army Modern, King Aztec: PASS. King Austria (cape brocade) and King Incan (zig-zag hem) wait on Mac cape features.
