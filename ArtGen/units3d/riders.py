@@ -142,24 +142,27 @@ def hat_cone(p, c, tinted, _):
 
 
 @hat('wild_shock')
-def wild_shock(p, c, tinted, _, tufts=70, reach=0.1):
+def wild_shock(p, c, tinted, _, tufts=46, reach=0.085):
     """Einstein's hair (SciLeader) as meshes, not particles (those read as
     a ball over the face): a cap over the back of the scalp and a shock of
     curled tufts standing out from the sides, back and crown, none in front
     of the face (a receding hairline)."""
     props.DEFAULTS.setdefault('hair_shock', ('#ecebe6', 0.85, 0.0, 'cloth'))
-    p.add(props.ellipsoid(0.106, 0.112, 0.1, seg=20), 'hair_shock', T(0, -0.02, 0.025), smooth=True)
+    p.add(props.ellipsoid(0.106, 0.112, 0.1, seg=20), 'hair_shock', T(0, -0.025, 0.025), smooth=True)
+    for sx in (-1, 1):   # soft puffs over the ears, swept back
+        p.add(props.ellipsoid(0.06, 0.085, 0.07, seg=16), 'hair_shock', T(sx * 0.105, -0.045, 0.02), smooth=True)
+    p.add(props.ellipsoid(0.1, 0.07, 0.075, seg=16), 'hair_shock', T(0, -0.1, 0.03), smooth=True)   # and at the back
     rnd = props.random.Random(5)
     for i in range(tufts):
-        az = math.radians(rnd.uniform(62, 298))            # from the front (+Y), round the sides and back
-        el = math.radians(rnd.uniform(-15, 72))
+        az = math.radians(rnd.uniform(80, 280))            # from the front (+Y): the sides and back, clear of the brow
+        el = math.radians(rnd.uniform(-10, 62))
         d = Vector((math.sin(az) * math.cos(el), math.cos(az) * math.cos(el), math.sin(el)))
         base = Vector((0, -0.015, 0.02)) + Vector((d.x * 0.098, d.y * 0.105, d.z * 0.095))
-        out = (d + Vector((rnd.uniform(-0.3, 0.3), rnd.uniform(-0.3, 0.3), rnd.uniform(0.0, 0.45)))).normalized()
+        out = (d + Vector((rnd.uniform(-0.2, 0.2), rnd.uniform(-0.45, -0.05), rnd.uniform(0.05, 0.35)))).normalized()   # swept back and up
         L = reach * rnd.uniform(0.6, 1.25)
         mid = base + out * L * 0.55 + Vector((rnd.uniform(-0.02, 0.02), rnd.uniform(-0.02, 0.02), 0.015))
         tip = base + out * L + Vector((rnd.uniform(-0.03, 0.03), rnd.uniform(-0.03, 0.03), rnd.uniform(-0.01, 0.03)))
-        p.add(props.tube([tuple(base), tuple(mid), tuple(tip)], [0.026, 0.024, 0.008], seg=6), 'hair_shock', smooth=True)
+        p.add(props.tube([tuple(base), tuple(mid), tuple(tip)], [0.036, 0.034, 0.016], seg=10), 'hair_shock', smooth=True)   # round, soft curls
 
 
 @hat('fur_hat')
@@ -333,10 +336,20 @@ def feather_headdress(p, c, tinted, _, style=None, cascade=None, front=None, cre
                 base = (0.11 * math.sin(a), 0.11 * math.cos(a), lift)
                 sp, hh = spread * rnd.uniform(0.85, 1.15), h * rnd.uniform(0.75, 1.2)
                 tip = (sp * math.sin(a), sp * math.cos(a), lift + hh)
-                mid = tuple(0.5 * (b + t) for b, t in zip(base, tip))
-                mid = (mid[0] * 1.08, mid[1] * 1.08, mid[2] + 0.02)   # curving outward
-                p.add(props.tube([base, mid, tip], [0.03, 0.05, 0.028], seg=6, scale_xy=(1.0, 0.5)), 'tint',
-                      smooth=True, tint=True)
+                # a flat tapered card curling outward (tubes read as red sausages)
+                props.feather_card(p, base, tip, (math.sin(a), math.cos(a), 0.0), 0.075, 'tint', tint=True, curl=-0.18)
+        return
+    if style == 'fan':   # King Aztec: a dense upright fan behind the head, gold, civ, red and teal in turn
+        props.DEFAULTS.setdefault('feather_teal', ('#2e8a86', 0.7, 0.0, 'cloth'))
+        p.add(props.lathe([(0.0, 0.116), (0.06, 0.118)], seg=24), 'gold', smooth=True)   # the gold band
+        cycle = (('gold', False), ('tint', True), ('feather_red', False), ('feather_teal', False))
+        for row, (n, h, r0, lift) in enumerate(((17, 0.44, 0.11, 0.03), (13, 0.32, 0.105, 0.06))):
+            for i in range(n):
+                a = math.radians(-100 + 200 * i / (n - 1)) + math.pi   # round the sides and back
+                base = (0.1 * math.sin(a), 0.1 * math.cos(a) - 0.02, lift)
+                tip = ((r0 + 0.2) * math.sin(a), (r0 + 0.12) * math.cos(a) - 0.06, lift + h * (1 - 0.25 * abs(math.cos(a - math.pi))))
+                key, t = cycle[(i + row * 2) % 4]
+                props.feather_card(p, base, tip, (math.sin(a), math.cos(a), 0.0), 0.08, key, tint=t, curl=-0.12)
         return
     n = 11
     for i in range(n):

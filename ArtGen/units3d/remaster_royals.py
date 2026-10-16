@@ -72,7 +72,7 @@ REMASTER = {
         # MISSING: lapel_trim (tinted robe front edges; the panel edges stand in)
         'cape': False, 'cuirass': False, 'wraps': None, 'sandals': True, 'bracers': False, 'gear': [],
         # the crossbar-hung vexillum, tinted field; MISSING: flag_device (three vertical bars, red/green/cyan)
-        'weapon': 'standard', 'props': {'standard': ('war_standard', {'era': 'ancient', 'length': 2.30, 'grip': 1.2})},   # lower again: the flag top touched the cell top (dirs 6, 7), then 1 px in dir 6
+        'weapon': 'standard', 'props': {'standard': ('war_standard', {'era': 'ancient', 'length': 2.30, 'grip': 1.2, 'device': 'bars'})},   # lower again: the flag top touched the cell top (dirs 6, 7), then 1 px in dir 6
         'stance_name': 'stand_staff', 'two_hands': True,
         'tint': ['banner'],
         'grime': 0.55, 'upper_bulk': 1.1,
@@ -95,7 +95,7 @@ REMASTER = {
         'bands': [('wrist', 'gold')],           # gold cuffs
         'cape': False, 'sandals': False, 'bracers': False, 'gear': [],
         # the flag flying from the pole top, tinted field; MISSING: flag_device (blob emblems)
-        'weapon': 'standard', 'props': {'standard': ('war_standard', {'era': 'industrial', 'length': 2.4, 'grip': 1.2})},   # 0.05 lower again: it touched the cell top in dir 6
+        'weapon': 'standard', 'props': {'standard': ('war_standard', {'era': 'industrial', 'length': 2.4, 'grip': 1.2, 'device': 'blobs'})},   # 0.05 lower again: it touched the cell top in dir 6
         'stance_name': 'stand_staff', 'two_hands': True,
         'tint': ['top', 'banner'],
         'grime': 0.45, 'upper_bulk': 1.15,
@@ -142,7 +142,7 @@ REMASTER = {
         'gear': [('chest_strap', {'width': 0.2, 'edge': 'gold', 'edge_width': 0.035})],   # the broad tinted sash, gold-edged
         'cape': False, 'cuirass': False, 'sandals': False, 'bracers': False,
         # the big flag, tinted field; MISSING: flag_device (diagonal cross; the PC is making it)
-        'weapon': 'standard', 'props': {'standard': ('war_standard', {'era': 'modern', 'length': 2.43, 'grip': 1.2})},   # lower: the flag top touched the cell top (dirs 6, 7)
+        'weapon': 'standard', 'props': {'standard': ('war_standard', {'era': 'modern', 'length': 2.43, 'grip': 1.2, 'device': 'saltire'})},   # lower: the flag top touched the cell top (dirs 6, 7)
         'stance_name': 'stand_staff', 'two_hands': True,
         'tint': ['strap', 'banner'],
         'grime': 0.55, 'upper_bulk': 1.15,
@@ -223,6 +223,7 @@ REMASTER = {
         # MISSING: companion_dog (grey wolfhound, tinted collar; the PC is making the prop). Once it exists, place it
         # with 'ground_props': [(name, params, (x, y), yaw)] at his side (x is his left, +y forward)
         'weapon': None, 'offhand': None,
+        'ground_props': [('wolfhound', {}, (0.5, 0.1), 15)],   # the grey wolfhound at his left, civ collar
         'stance_name': 'stand',
         'tint': ['sleeves'],
         'grime': 0.4, 'upper_bulk': 1.15,
@@ -236,7 +237,7 @@ REMASTER = {
         'colors': {'skin': '#b88c66', 'hair': '#140e0a', 'helmet': '#b08a2e', 'bottom': '#3e7a6a',
                    'belt': '#b08a2e', 'sandal': '#4a3020', 'gold': '#b08a2e', 'cape': '#9a3a2a'},
         # MISSING: dense feather fan (~17 feathers, gold/tint/red/teal cycle; the PC is making it)
-        'helmet': None, 'headgear': 'feather_headdress', 'brow_drop': 0.03,   # the band higher above the brow (0.085 is the default; lifted another 0.02): the face was dark under it
+        'helmet': None, 'headgear': 'feather_headdress', 'headgear_params': {'style': 'fan'}, 'brow_drop': 0.03,   # the band higher above the brow (0.085 is the default; lifted another 0.02): the face was dark under it
         'hair': 'long', 'hair_asset': 'bob01', 'beard': False,
         'top': None,
         'bottom': 'loincloth', 'loin_length': (0.5, 0.42), 'torn': False,
@@ -543,7 +544,7 @@ REMASTER = {
         'hem_bands': [('cape', 'gold', 0.05, 0.12), ('cape', '#ece8e0', 0.03, 0.06)],
         'cuirass': False, 'wraps': None, 'sandals': True, 'bracers': False, 'gear': [],
         # MISSING: feather_standard (staff topped with a fan of tinted/red/teal feathers), left_hand_hold
-        'weapon': 'staff', 'props': {'staff': ('staff', {'length': 2.1, 'grip': 1.2})},
+        'weapon': 'staff', 'props': {'staff': ('feather_standard', {'length': 2.1, 'grip': 1.2})},   # the feather standard
         'stance_name': 'stand_staff',
         'tint': ['cape'],
         'grime': 0.45, 'upper_bulk': 1.15,
@@ -712,8 +713,8 @@ REMASTER = {
         # white breeches and hose in one: full-length puffy legs, black low shoes
         'bottom': 'breeches', 'puffy': True, 'trouser_offset': 0.04, 'wraps': 'wraps', 'shoes': True, 'sandals': False,   # short puffed civ breeches over white hose
         # the enormous robe: a wide bell flaring onto the ground, the gold hem pooling behind
-        'cape': True, 'cape_length': 1.5, 'cape_flare': 1.9, 'cape_train': 0.9, 'cape_width': 0.7,   # a wide bell with a train
-        'hem_bands': [('cape', 'gold', 0.14), ('cape', 'ermine', 0.08, 0.3)],   # the ermine higher, clear of the curling front corners   # the gold hem, ermine above it
+        'cape': True, 'cape_length': 1.5, 'cape_flare': 1.55, 'cape_train': 0.8, 'cape_width': 0.7,   # a wide bell with a train
+        'hem_bands': [('cape', 'gold', 0.14), ('cape', 'ermine', 0.1, 0.14)],   # the gold hem, the ermine just above it   # the gold hem, ermine above it
         'cape_lining': '#3a2040',   # the dark purple lining
         'cuirass': False, 'bracers': False, 'gear': [],
         # the gold-topped cane in the free left fist ('fist_hip_r' puts the item there), the rod down to the
@@ -868,20 +869,20 @@ REMASTER = {
         'race': {'caucasian': 1.0, 'african': 0.0, 'asian': 0.0},
         'colors': {'skin': '#e4c8b4', 'hair': '#8a5a2a', 'cape': '#e8e8e8', 'belt': '#c8a038',
                    'gold': '#c8a038', 'wood': '#b8902e', 'leather': '#b8902e'},
-        'gender': 0.0, 'helmet': 'crown', 'crown': 'spiked', 'crown_gems': '#a8242a', 'crown_height': 0.15,   # the tall open crown with points
+        'gender': 0.0, 'helmet': 'hood', 'crown_over': 'spiked', 'crown_gems': '#a8242a', 'crown_height': 0.15,   # the civ hood framing the face, the tall spiked crown over it
         'hair': 'short', 'hair_asset': 'bob01', 'beard': False,
         'top': 'sleeved', 'neck': 'high',
         # the white front panel between civ-color sides; MISSING: fleur_pattern (gold)
         'bottom': 'gown', 'gown_flare': 2.4, 'robe_drop': 0.62,
-        'patterns': {'bottom': ('panel', '#ece8e4', 0.13)},
-        'hem_bands': [('bottom', '#f2efe8', 0.08, 0.0), ('bottom', 'gold', 0.06, 0.08)],   # gold and white lace at the hem
+        'patterns': {'bottom': [('camo', '#c8a038', 24.0, 'cover', 0.08), ('panel', '#ece8e4', 0.13)]},   # gold fleurs scattered on the civ gown
+        'hem_bands': [('bottom', '#f2efe8', 0.13, 0.0), ('bottom', 'gold', 0.06, 0.13)],   # the wide white lace spill   # gold and white lace at the hem
         # the white veil to the hips, narrow and close to the back; MISSING: head_veil (from the head, over the crown)
-        'cape': True, 'cape_length': 0.9, 'cape_width': 0.4, 'cape_flare': 0.25, 'cape_wrap': 0.45,   # close to the back
+        'cape': True, 'cape_length': 0.9, 'cape_width': 0.4, 'cape_flare': 0.45, 'cape_wrap': 0.65,   # close to the back
         'cuirass': False, 'wraps': None, 'sandals': False, 'bracers': False, 'gear': [],
         # the gold fleur-headed scepter low in the right fist, head up and forward
         'weapon': 'scepter', 'props': {'scepter': ('scepter', {'length': 0.7, 'head': 'fleur'})},
         'stance_name': 'fist_hip_l', 'hang_dir': (-0.25, -0.65, 0.7),   # left fist on the hip
-        'tint': ['top', 'bottom'],
+        'tint': ['top', 'bottom', 'helmet'],
         'grime': 0.3, 'upper_bulk': 1.0,
     },
     'King Sumeria': {
@@ -1104,7 +1105,7 @@ REMASTER = {
         # slightly stooped
         'macro': {'muscle': 0.55, 'weight': 0.6, 'height': 0.72, 'proportions': 0.72}, 'age': 0.85,
         'race': {'caucasian': 1.0, 'african': 0.0, 'asian': 0.0},
-        'colors': {'skin': '#d8ae8e', 'hair': '#ecebe6', 'hair_shock': '#ecebe6', 'beard': '#f4f2ee', 'top': '#5a5a5e', 'bottom': '#3a3a3e',
+        'colors': {'skin': '#d8ae8e', 'hair': '#ecebe6', 'hair_shock': '#dddad3', 'beard': '#f4f2ee', 'top': '#5a5a5e', 'bottom': '#3a3a3e',
                    'shoes': '#2a2420', 'belt': '#2a2a2e', 'wood': '#18181a', 'leather': '#18181a',
                    'lacquer': '#18181a', 'gold': '#3a3a3e'},
         'helmet': None, 'headgear': 'wild_shock', 'hair': 'short', 'hair_asset': None, 'mane': 0.0,   # the big white shock, tufts as meshes (particle hair made a ball over the face)

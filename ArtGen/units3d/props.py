@@ -1795,12 +1795,46 @@ def swagger_stick(p, length=0.6, scale=1.0):
         p.add(ellipsoid(0.012, 0.012, 0.014, seg=10), 'gold', T(0, 0, z), smooth=True)
 
 
-def _banner(p, top, w, h, swallowtail=False, flag=False):
+for _k, _v in {'device_red': ('#a8302a', 0.8, 0.0, 'cloth'), 'device_green': ('#3a7a3a', 0.8, 0.0, 'cloth'),
+               'device_cyan': ('#3aa0b8', 0.8, 0.0, 'cloth'), 'device_white': ('#ece8e0', 0.8, 0.0, 'cloth'),
+               'device_gold': ('#c8a038', 0.6, 0.3, 'cloth')}.items():
+    DEFAULTS.setdefault(_k, _v)
+
+
+def _device(kind, top, w, h, flag):
+    """Face keys painting a device on the banner's civ field, in the cloth's
+    own (u, v): 'bars' (three upright bars, red/green/cyan), 'blobs' (red,
+    green and cyan roundels), 'saltire' (a white diagonal cross), 'quarters'
+    (red and green quarters)."""
+    def keys(f):
+        c = f.calc_center_median()
+        u = c.y / w if flag else (c.x + w / 2) / w
+        v = (top - c.z) / h
+        if kind == 'bars':
+            for u0, key in ((0.25, 'device_red'), (0.5, 'device_green'), (0.75, 'device_cyan')):
+                if abs(u - u0) < 0.07 and 0.12 < v < 0.88:
+                    return (key, False)
+        elif kind == 'blobs':
+            for (u0, v0, r), key in (((0.3, 0.32, 0.15), 'device_red'), ((0.68, 0.38, 0.14), 'device_green'),
+                                     ((0.48, 0.7, 0.14), 'device_cyan')):
+                if ((u - u0) / r) ** 2 + ((v - v0) / (r * w / h)) ** 2 < 1:
+                    return (key, False)
+        elif kind == 'saltire':
+            if min(abs(u - v), abs(u - (1 - v))) < 0.09:
+                return ('device_white', False)
+        elif kind == 'quarters':
+            if (u < 0.5) == (v < 0.5):
+                return ('device_red' if u < 0.5 else 'device_green', False)
+        return None
+    return keys
+
+
+def _banner(p, top, w, h, swallowtail=False, flag=False, device=None):
     """A civ-colored hanging cloth ('banner', tint) from a crossbar or along
-    a staff; a little rippled."""
+    a staff; a little rippled; device paints a charge on it (_device)."""
     bm = bmesh.new()
     rows = []
-    nx, nz = 10, 8
+    nx, nz = (24, 20) if device else (10, 8)
     for j in range(nz + 1):
         v = j / nz
         row = []
@@ -1816,10 +1850,10 @@ def _banner(p, top, w, h, swallowtail=False, flag=False):
         for i in range(nx):
             bm.faces.new((a[i], a[i + 1], b[i + 1], b[i]))
     bmesh.ops.solidify(bm, geom=bm.faces[:], thickness=0.006)
-    p.add(bm, 'banner', smooth=True, tint=True)
+    p.add(bm, 'banner', smooth=True, tint=True, keys=_device(device, top, w, h, flag) if device else None)
 
 
-def war_standard(p, era='ancient', length=2.6, grip=1.0, scale=1.0):
+def war_standard(p, era='ancient', length=2.6, grip=1.0, scale=1.0, device=None):
     """An army's standard held at the grip (origin), +Z up, the cloth in the
     civ color. era: 'ancient' (vexillum: crossbar, square cloth with fringe,
     an eagle on top), 'medieval' (a long swallowtailed pennon banner),
@@ -1830,17 +1864,17 @@ def war_standard(p, era='ancient', length=2.6, grip=1.0, scale=1.0):
     if era == 'ancient':
         vkit_bar = tube([(-0.28, 0, z1 - 0.12), (0.28, 0, z1 - 0.12)], 0.012, seg=8)
         p.add(vkit_bar, 'wood', smooth=True)
-        _banner(p, z1 - 0.13, 0.5, 0.55)
+        _banner(p, z1 - 0.13, 0.5, 0.55, device=device)
         for i in range(9):
             x = -0.24 + 0.06 * i
             p.add(tube([(x, 0, z1 - 0.68), (x, 0, z1 - 0.76)], 0.006, seg=4), 'gold', smooth=True)
         _gold_head(p, 'eagle', z1, 1.6)
     elif era == 'medieval':
         p.add(tube([(-0.3, 0, z1 - 0.1), (0.3, 0, z1 - 0.1)], 0.012, seg=8), 'wood', smooth=True)
-        _banner(p, z1 - 0.11, 0.55, 0.9, swallowtail=True)
+        _banner(p, z1 - 0.11, 0.55, 0.9, swallowtail=True, device=device)
         _gold_head(p, 'cross', z1, 1.2)
     else:
-        _banner(p, z1 - 0.05, 0.75, 0.5, flag=True)
+        _banner(p, z1 - 0.05, 0.75, 0.5, flag=True, device=device)
         p.add(ellipsoid(0.035, 0.035, 0.05, seg=12), 'gold', T(0, 0, z1 + 0.04), smooth=True)
         if era == 'modern':
             p.add(lathe([(0.0, 0.025), (0.03, 0.02)], seg=10), 'gold', T(0, 0, z1 - 0.06), smooth=True)
@@ -1854,6 +1888,93 @@ def eagle_standard(p, length=2.2, grip=0.9, scale=1.0):
     p.add(lathe([(0.0, 0.05), (0.03, 0.06), (0.06, 0.045)], seg=16), 'gold', T(0, 0, z1), smooth=True)
     p.add(lathe([(0.0, 0.07), (0.015, 0.07)], seg=24), 'gold', T(0, 0, z1 + 0.06), smooth=True)
     _gold_head(p, 'eagle', z1 + 0.08, 2.4)
+
+
+DEFAULTS.setdefault('feather_teal', ('#2e8a86', 0.7, 0.0, 'cloth'))
+DEFAULTS.setdefault('dog_fur', ('#8a8884', 0.9, 0.0, 'cloth'))
+DEFAULTS.setdefault('dog_dark', ('#1e1c1a', 0.6, 0.0, 'leather'))
+
+
+def feather_card(p, base, tip, normal, width, key, tint=False, curl=0.15, n=6):
+    """A flat tapered feather (a card, not a tube: tubes read as sausages):
+    a vane widening from the quill to two thirds up and tapering to a point,
+    curling a little back along `normal`, with a darker quill down it."""
+    base, tip, normal = Vector(base), Vector(tip), Vector(normal).normalized()
+    d = tip - base
+    side = d.cross(normal).normalized()
+    bm = bmesh.new()
+    left, right = [], []
+    for i in range(n + 1):
+        t = i / n
+        c = base + d * t - normal * (curl * d.length * t * t)
+        w = width * (math.sin(math.pi * min(1.0, t * 1.35) ** 0.8) if t < 0.74 else (1 - t) / 0.26) * (0.35 + 0.65 * min(1, t * 3))
+        left.append(bm.verts.new(c + side * w / 2))
+        right.append(bm.verts.new(c - side * w / 2))
+    for i in range(n):
+        bm.faces.new((left[i], left[i + 1], right[i + 1], right[i]))
+    bmesh.ops.solidify(bm, geom=bm.faces[:], thickness=0.004)
+    p.add(bm, key, smooth=True, tint=tint)
+
+
+def feather_standard(p, length=2.1, grip=1.2, scale=1.0):
+    """The Inca's feather standard held at the grip (origin), +Z up: a staff
+    with a gold collar, topped by a fan of civ, red and teal feathers, a
+    gold boss at its heart."""
+    L = length * scale
+    z1 = L - grip
+    p.add(tube([(0, 0, -grip), (0, 0, z1)], [SHAFT_R + 0.002, SHAFT_R], seg=10), 'wood', smooth=True)
+    p.add(lathe([(z1 - 0.12, 0.022), (z1, 0.03)], seg=12), 'gold', smooth=True)
+    cycle = (('tint', True), ('feather_red', False), ('feather_teal', False))
+    for i in range(13):
+        a = math.radians(-78 + 156 * i / 12)
+        tip = (0.42 * math.sin(a), 0.0, z1 + 0.05 + 0.42 * math.cos(a))
+        key, t = cycle[i % 3]
+        feather_card(p, (0, 0, z1 + 0.03), tip, (0, 1, 0), 0.085, key, tint=t, curl=0.08)
+    p.add(ellipsoid(0.045, 0.03, 0.045, seg=14), 'gold', T(0, 0.01, z1 + 0.04), smooth=True)
+
+
+def wolfhound(p, scale=1.0):
+    """A grey Irish wolfhound standing, facing +Y, paws on the ground (z = 0):
+    the deep chest and tucked loin, long legs, a long head with a shaggy
+    beard, folded ears, the low curved tail, rough coat tufts and a civ
+    collar."""
+    s = scale
+    fur = 'dog_fur'
+    for (x, y, z), (rx, ry, rz) in (((0, 0.24, 0.6), (0.14, 0.27, 0.2)), ((0, -0.12, 0.65), (0.11, 0.26, 0.13)),
+                                    ((0, -0.4, 0.65), (0.125, 0.15, 0.15))):
+        p.add(ellipsoid(rx * s, ry * s, rz * s, seg=18), fur, T(x * s, y * s, z * s), smooth=True)
+    p.add(tube([(0, 0.4 * s, 0.68 * s), (0, 0.55 * s, 0.86 * s), (0, 0.62 * s, 0.94 * s)], [0.09 * s, 0.075 * s, 0.065 * s], seg=12),
+          fur, smooth=True)
+    p.add(ellipsoid(0.07 * s, 0.12 * s, 0.075 * s, seg=16), fur, T(0, 0.67 * s, 0.97 * s) @ R('X', -10), smooth=True)
+    p.add(tube([(0, 0.74 * s, 0.96 * s), (0, 0.9 * s, 0.92 * s)], [0.05 * s, 0.035 * s], seg=12), fur, smooth=True)   # the muzzle
+    p.add(ellipsoid(0.022 * s, 0.02 * s, 0.018 * s, seg=10), 'dog_dark', T(0, 0.915 * s, 0.925 * s), smooth=True)   # the nose
+    for sx in (-1, 1):
+        p.add(ellipsoid(0.012 * s, 0.012 * s, 0.01 * s, seg=8), 'dog_dark', T(sx * 0.04 * s, 0.76 * s, 0.99 * s), smooth=True)   # eyes
+        p.add(ellipsoid(0.02 * s, 0.05 * s, 0.035 * s, seg=10), fur, T(sx * 0.05 * s, 0.6 * s, 1.01 * s) @ R('X', 30), smooth=True)   # ears
+    rnd = random.Random(11)
+    for i in range(10):   # the shaggy beard and brows
+        x = rnd.uniform(-0.035, 0.035)
+        a = (x * s, (0.82 + rnd.uniform(-0.06, 0.06)) * s, 0.9 * s)
+        p.add(tube([a, (a[0] * 1.3, a[1] + 0.02 * s, a[2] - 0.06 * s)], [0.012 * s, 0.004 * s], seg=5), fur, smooth=True)
+    legs = [((0.075, 0.32), [(0.32, 0.52), (0.31, 0.3), (0.33, 0.04)]), ((-0.075, 0.3), [(0.3, 0.52), (0.33, 0.3), (0.31, 0.04)]),
+            ((0.085, -0.42), [(-0.42, 0.6), (-0.34, 0.36), (-0.46, 0.15), (-0.43, 0.04)]),
+            ((-0.085, -0.4), [(-0.4, 0.6), (-0.3, 0.38), (-0.42, 0.16), (-0.38, 0.04)])]
+    for (x, _), pts in legs:
+        path = [(x * s, y * s, z * s) for y, z in pts]
+        p.add(tube(path, [0.05 * s] + [0.033 * s] * (len(path) - 1), seg=10), fur, smooth=True)
+        y, z = pts[-1]
+        p.add(ellipsoid(0.035 * s, 0.05 * s, 0.03 * s, seg=10), fur, T(x * s, (y + 0.02) * s, 0.03 * s), smooth=True)
+    p.add(tube([(0, -0.52 * s, 0.7 * s), (0, -0.66 * s, 0.55 * s), (0, -0.7 * s, 0.36 * s), (0, -0.64 * s, 0.24 * s)],
+               [0.035 * s, 0.03 * s, 0.022 * s, 0.012 * s], seg=8), fur, smooth=True)   # the low curved tail
+    for i in range(40):   # rough coat tufts along the back and flanks
+        y = rnd.uniform(-0.5, 0.45)
+        sx = rnd.choice((-1, 1))
+        z = rnd.uniform(0.58, 0.78)
+        a = (sx * rnd.uniform(0.04, 0.12) * s, y * s, z * s)
+        b = (a[0] + sx * 0.03 * s, a[1] - 0.03 * s, a[2] - 0.04 * s)
+        p.add(tube([a, b], [0.022 * s, 0.006 * s], seg=5), fur, smooth=True)
+    p.add(lathe([(0.0, 0.085), (0.035, 0.08)], seg=16, scale_xy=(1.0, 1.1)), 'tint',
+          T(0, 0.5 * s, 0.8 * s) @ R('X', -40) @ S(s), smooth=True, tint=True)   # the civ collar
 
 
 def briefcase(p, scale=1.0, straps=None):
@@ -1974,6 +2095,8 @@ BUILDERS = {
     'war_standard': war_standard,
     'eagle_standard': eagle_standard,
     'briefcase': briefcase,
+    'feather_standard': feather_standard,
+    'wolfhound': wolfhound,
     'microphone': microphone,
     'pipe': pipe,
     'glasses': glasses,
