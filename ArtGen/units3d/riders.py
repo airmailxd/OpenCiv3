@@ -312,6 +312,18 @@ def bicorne(p, c, tinted, plume_tinted):
     p.add(props.lathe([(0.0, 0.03), (0.01, 0.03)], seg=16), ck, T(0.1, 0.03, 0.1) @ R('X', 90), smooth=True, tint=ct)
 
 
+@hat('gat')
+def gat(p, c, tinted, _):
+    """A Joseon gat: a tall flat-topped crown and a very wide flat brim of
+    lacquered horsehair or split bamboo, tied under the chin."""
+    p.add(props.lathe([(0.0, 0.085), (0.13, 0.08), (0.14, 0.0)], seg=24), 'hat', smooth=True)
+    p.add(props.lathe([(0.0, 0.08), (0.01, 0.27), (0.016, 0.27), (0.008, 0.08)], seg=32), 'hat', smooth=True)
+    p.add(props.lathe([(0.012, 0.087), (0.035, 0.085)], seg=24), 'leather_dark', smooth=True)   # the band
+    for sx in (-1, 1):   # the chin cords
+        p.add(props.tube([(sx * 0.085, 0.0, 0.0), (sx * 0.07, 0.03, -0.12), (0.0, 0.06, -0.2)], 0.005, seg=4),
+              'leather_dark', smooth=True)
+
+
 @hat('cavalier')
 def cavalier(p, c, tinted, plume_tinted):
     """A cavalier's hat (Musketeer): a low crown, a wide soft brim pinned up
@@ -394,6 +406,6 @@ def morion_big(p, c, tinted, plume_tinted):
     back, with a big plume."""
     morion(p, c, tinted, plume_tinted)
     pk, pt = _k(plume_tinted, 'plume')
-    # a big ostrich plume, twice the old one, sweeping low back over the helmet and curling down behind
-    p.add(props.tube([(0, 0.0, 0.14), (0, -0.12, 0.22), (0, -0.3, 0.26), (0, -0.48, 0.2), (0, -0.56, 0.06)],
-                     [0.05, 0.07, 0.065, 0.045, 0.012], seg=10, scale_xy=(0.7, 1.0)), pk, smooth=True, tint=pt)
+    # a full ostrich plume sweeping back over the crown, ending at the helmet's rear brim
+    p.add(props.tube([(0, 0.02, 0.14), (0, -0.08, 0.21), (0, -0.18, 0.2), (0, -0.24, 0.13), (0, -0.25, 0.08)],
+                     [0.05, 0.07, 0.06, 0.04, 0.012], seg=10, scale_xy=(0.75, 1.0)), pk, smooth=True, tint=pt)

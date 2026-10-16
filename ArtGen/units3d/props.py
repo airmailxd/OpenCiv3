@@ -1448,14 +1448,15 @@ def para_pack(p, size=1.0):
     stuffed olive-tan pack with a static-line bag on top and harness straps;
     a reserve chute belongs on the chest."""
     s = size
-    pack = ellipsoid(0.2 * s, 0.11 * s, 0.27 * s, seg=18)
+    # a huge, deep bundle (~0.3 m off the back), dark olive as the original
+    pack = ellipsoid(0.23 * s, 0.16 * s, 0.3 * s, seg=18)
     for v in pack.verts:   # flat against the back
         if v.co.y > 0:
             v.co.y *= 0.4
-    jitter(pack, 0.01 * s, seed=21)
-    p.add(pack, 'chute_tan', T(0, -0.14 * s, -0.17 * s), smooth=True)
-    p.add(box(0.26 * s, 0.08 * s, 0.07 * s), 'chute_tan', T(0, -0.15 * s, 0.1 * s), bevel=0.025 * s)   # static line bag
-    p.add(tube([(0.0, -0.19 * s, 0.1 * s), (0.08 * s, -0.2 * s, 0.0), (0.05 * s, -0.24 * s, -0.25 * s)], 0.008 * s,
+    jitter(pack, 0.012 * s, seed=21)
+    p.add(pack, 'olive_dark', T(0, -0.17 * s, -0.18 * s), smooth=True)
+    p.add(box(0.28 * s, 0.12 * s, 0.08 * s), 'olive', T(0, -0.16 * s, 0.11 * s), bevel=0.03 * s)   # static line bag
+    p.add(tube([(0.0, -0.22 * s, 0.1 * s), (0.08 * s, -0.3 * s, 0.0), (0.05 * s, -0.31 * s, -0.25 * s)], 0.008 * s,
                seg=5), 'webbing', smooth=True)   # the static line
     for x in (-0.11 * s, 0.11 * s):
         path = [(x, -0.06 * s, 0.08 * s), (x, 0.02 * s, 0.13 * s), (x, 0.12 * s, 0.06 * s), (x * 1.1, 0.13 * s, -0.25 * s)]
