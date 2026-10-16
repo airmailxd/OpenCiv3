@@ -330,7 +330,7 @@ def cloth(name, color, tint=False, rough=0.85, weave=0.25, pattern=None, dirt=0.
         # (stronger on dark cloth, where a faint sheen doesn't show at all)
         cl = bsdf.inputs['Base Color'].default_value
         dark_k = 1.0 - min(1.0, (0.3 * cl[0] + 0.59 * cl[1] + 0.11 * cl[2]) * 3.0)
-        bsdf.inputs['Sheen Weight'].default_value = 0.35 + 0.5 * dark_k
+        bsdf.inputs['Sheen Weight'].default_value = 0.35 + 0.15 * dark_k     # (more drew a pale rim on black cloth)
         bsdf.inputs['Sheen Roughness'].default_value = 0.45 - 0.1 * dark_k
         # (dark cloth made glossier read as latex, a hard white edge: roughness unchanged)
         # dirt: broad, soft darker patches (no cloth stays factory-clean)
@@ -2035,3 +2035,34 @@ def ruff(basemesh, arm, mat, size=0.11, pleats=28, style='flat'):
     o.matrix_world = world
     H._update()
     return o
+
+
+def pockets(basemesh, arm, mat, z_at=1.02, size=0.075, lift=0.025):
+    """Two patch pockets on the jacket front, either side, at the hips; on the
+    pelvis bone."""
+    import human as H
+    top, yc, on_body = _head(basemesh)
+    zc = z_at * _scale
+    made = []
+    for side in (1, -1):
+        pts = [v.co for v in basemesh.data.vertices if on_body(v) and abs(v.co.z - zc) < 0.03 * _scale
+               and 0.06 * _scale < v.co.x * side < 0.12 * _scale]
+        if not pts:
+            continue
+        y = min(co.y for co in pts) - lift * _scale
+        x = side * 0.09 * _scale
+        bpy.ops.mesh.primitive_cube_add(size=1, location=(x, y, zc))
+        o = bpy.context.active_object
+        o.scale = (size * _scale, 0.006, size * 0.85 * _scale)
+        bpy.ops.object.transform_apply(scale=True)
+        bv = o.modifiers.new('Bevel', 'BEVEL')
+        bv.width = 0.004
+        o.data.materials.append(mat)
+        world = o.matrix_world.copy()
+        o.parent = arm
+        o.parent_type = 'BONE'
+        o.parent_bone = 'pelvis'
+        o.matrix_world = world
+        made.append(o)
+    H._update()
+    return made

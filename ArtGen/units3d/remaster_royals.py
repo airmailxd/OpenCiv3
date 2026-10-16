@@ -337,13 +337,14 @@ REMASTER = {
         'beard': True, 'beard_style': 'mustache', 'beard_length_short': 0.01, 'beard_density': 450,   # lighter, smaller, thinner: not a blot
         'top': 'tunic', 'neck': 'high', 'coat_length': 0.2,   # the tunic to the hip
         # a bolder, larger tartan (it didn't read at 1x), on the tinted tunic and kilt
-        'patterns': {'top': ('tartan', '#1e3a24', 7.0), 'bottom': ('tartan', '#1e3a24', 7.0)},   # bigger checks
+        'patterns': {'top': ('tartan', '#1e3a24', 14.0), 'bottom': ('tartan', '#1e3a24', 14.0)},   # bigger checks
         'bottom': 'kilt', 'robe_drop': 0.0,     # the tinted kilt; MISSING: trousers under a skirt (dark green)
         'gear': [('chest_strap', {'color': '#5a3a22'})],
         'wraps': 'boots', 'cape': False, 'cuirass': False, 'sandals': False, 'bracers': True,
         'weapon': None, 'offhand': None,        # MISSING: shoulder_clasp
         # MISSING: back_angle (no key: the scabbard hangs vertically; the review wants it tilted so the hilt rises over the right shoulder)
         'back_tilt': 35.0, 'back': 'sheathed_sword', 'back_params': {'length': 0.9},
+        'shoulder_patch': ('r', 'gold'), 'patch_size': 0.05,   # the gold shoulder clasp
         'stance_name': 'stand',
         'tint': ['top', 'bottom'],
         'grime': 0.6, 'upper_bulk': 1.3,
@@ -351,16 +352,17 @@ REMASTER = {
     'King Chinese': {
         # Mao: thinning dark hair, a grey-blue high-collared suit, darker
         # trousers, brown shoes, civ-color armbands; hands clasped low in front
-        'macro': {'muscle': 0.65, 'weight': 0.95, 'height': 0.76, 'proportions': 0.7}, 'age': 0.75,
+        'macro': {'muscle': 0.65, 'weight': 1.0, 'height': 0.76, 'proportions': 0.7}, 'age': 0.75,
         'race': {'caucasian': 0.0, 'african': 0.0, 'asian': 1.0},
         'colors': {'skin': '#c89c76', 'hair': '#141414', 'top': '#66788a', 'bottom': '#505a68',
                    'shoes': '#3a2418', 'belt': '#4e5664'},
         'helmet': None, 'hair': 'short', 'hair_asset': 'short02', 'beard': False,   # MISSING: balding_hair
         'top': 'sleeved', 'neck': 'high', 'bottom': 'long', 'wraps': 'shoes',   # MISSING: jacket pockets
-        'coat_length': 0.28,                    # the jacket below the hip (0.2 still read waist-length)
+        'coat_length': 0.45,                    # the jacket below the hip (0.2 still read waist-length)
         'bands': [('upperarm', 'tint', 0.06)],
         'cape': False, 'cuirass': False, 'sandals': False, 'bracers': False, 'gear': [],
         'weapon': None, 'offhand': None,
+        'pockets': '#4a5664', 'upper_bulk': 1.1,
         'stance_name': 'hands_clasped',
         'tint': [],
         'grime': 0.3, 'upper_bulk': 1.05,
@@ -564,7 +566,7 @@ REMASTER = {
         'cuirass': False, 'wraps': None, 'sandals': True, 'bracers': False,
         # MISSING: tinted_tip (the stick's top; no key on 'staff')
         'weapon': 'staff', 'props': {'staff': ('staff', {'length': 1.55, 'grip': 0.95})},
-        'pose_extra': [('spine_02', (0, -0.18, 1)), ('neck_01', (0, -0.12, 1)), ('head', (0, 0.25, 1))],   # the walking stoop (-y forward)
+        'pose_extra': [('spine_02', (0, -0.3, 1)), ('neck_01', (0, -0.12, 1)), ('head', (0, 0.25, 1))],   # the walking stoop (-y forward)
         'stance_name': 'stand_staff',           # MISSING: walking_stoop
         'tint': ['strap'],
         'grime': 0.4, 'upper_bulk': 0.95,
@@ -579,7 +581,7 @@ REMASTER = {
         'colors': {'skin': '#9a7458', 'hair': '#141010', 'plume': '#e8e4da', 'wraps': '#5e4632',
                    'wraps_band': '#3e2e20', 'belt': '#5a3a22', 'sandal': '#5a3a22', 'wood': '#4a3222',
                    'steel': '#8a8c90', 'shield_face': '#d8ccb0', 'shield_rim': '#8a6a48', 'feather': '#e8e4da'},
-        'helmet': None, 'headgear': 'war_bonnet', 'headgear_scale': 0.62,   # white feathers, tinted tips and headband, the trailer (smaller again: 2-5 px clip at the cell top, dirs 5-7)
+        'helmet': None, 'headgear': 'war_bonnet', 'headgear_scale': 0.6,   # white feathers, tinted tips and headband, the trailer (smaller again: 2-5 px clip at the cell top, dirs 5-7)
         'hair': 'long', 'hair_asset': 'long01', 'beard': False,
         'top': None, 'bottom': 'loincloth', 'loin_length': (0.5, 0.45), 'torn': False,
         'wraps': 'wraps', 'sandals': False,     # MISSING: leggings (brown cloth), moccasins
