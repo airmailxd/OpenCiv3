@@ -313,7 +313,7 @@ REMASTER = {
         # the left forearm stays across the body, in the shield's straps
         'offhand': 'shield_oval',
         'offhand_mesh': ('shield_oval', {'w': 0.75, 'h': 0.95, 'band': 0.12, 'dome': 0.04}),
-        'shield_out': 0.14,
+        'shield_out': 0.14, 'shield_roll': 0.0,
         'stance_name': 'guard',
         'tint': ['shield_emblem'],
         'grime': 0.65, 'upper_bulk': 1.3,

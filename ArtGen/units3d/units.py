@@ -616,7 +616,12 @@ def equip(entry, arm):
             yaw = entry.get('shield_yaw', 0.0)       # turned toward the front-left, so it's never edge-on
             # both the board's facing and its in-plane 45 degree axis turn about world Z
             sy, cy = math.sin(math.radians(yaw)), math.cos(math.radians(yaw))
-            H.hold(obj, arm, 'lowerarm_l', at, up=(0.7 * cy, -0.7 * sy, 0.7), forward=(sy, cy, 0.0), center=True)
+            # round shields turn 45 degrees in their plane (the emblem's X reads
+            # as a +); tall ones (scutum, oval, heater) stand upright
+            roll = math.radians(entry.get('shield_roll', 45.0 if any(k in name for k in ('round', 'aspis', 'buckler', 'oval'))
+                                          else 0.0))
+            sr, cr = math.sin(roll), math.cos(roll)
+            H.hold(obj, arm, 'lowerarm_l', at, up=(sr * cy, -sr * sy, cr), forward=(sy, cy, 0.0), center=True)
         else:
             at = H.grip_point(arm, 'hand_l')
             if offhand == 'bow':

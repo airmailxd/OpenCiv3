@@ -332,9 +332,9 @@ REMASTER = {
                    'greaves': '#4a4a4e', 'sandal': '#2e2016', 'steel': '#a8aaae', 'bronze': '#8a6a36',
                    'shield_face': '#5e5e62', 'shield_emblem': '#d8d4c8'},
         'helmet': 'galea', 'metal': ['helmet', 'cuirass'],
-        'cuirass': True, 'top': 'tunic',        # MISSING: segmentata (banded plate, pale shoulder plates)
+        'cuirass': True, 'top': 'tunic', 'cuirass_bands': 6,   # lorica segmentata; MISSING: pale shoulder plates
         'cape': True, 'cape_length': 0.55,      # shoulders to the waist
-        'bottom': 'skirt',                      # MISSING: hem_band (tinted band at the skirt's hem)
+        'bottom': 'skirt', 'hem_bands': [('bottom', 'tint', 0.05)],
         'wraps': 'greaves', 'sandals': True, 'beard': False,
         'gear': [],
         'weapon': 'sword',
@@ -455,7 +455,10 @@ REMASTER = {
                    'wood': '#4a3222', 'steel': '#8a8c90'},
         'helmet': 'morion', 'metal': ['helmet', 'cuirass'],
         'beard': True,
-        'cuirass': True, 'top': 'sleeved', 'puffy': True,   # MISSING: breastplate_cross (tinted emblem); tassets
+        'cuirass': True, 'top': 'sleeved', 'puffy': True,
+        'chest_emblem': ('cross', 'tint', 0.22),            # the tinted cross on the breastplate
+        'coat_length': 0.3, 'coat_metal': True,             # steel tassets over the hips
+        'tint_shade': {'bottom': 0.55},                     # dark civ-color breeches
         # tinted puffed breeches to below the knee, cream stocking wraps over the calves
         'bottom': 'breeches', 'wraps': 'wraps', 'sandals': True,
         'gear': [],
@@ -477,8 +480,10 @@ REMASTER = {
                    'wraps': '#e8e4da', 'wraps_band': '#e8e4da'},
         'helmet': None, 'hair': 'topknot', 'hair_asset': 'ponytail01', 'beard': False,
         # the civ-color coat with wide untinted grey-lavender sleeves over it
-        'top': 'sleeved', 'wide_sleeves': True,   # MISSING: long_coat (to the knee), white under-robe
-        'bottom': 'long',                       # MISSING: hakama (wide pleated trousers)
+        'top': 'sleeved', 'wide_sleeves': True,   # MISSING: white under-robe
+        'coat_length': 0.5, 'coat_flare': 1.2,  # the knee-length coat, a darker spot pattern on the civ color
+        'patterns': {'top': ('camo', '#7a7a7a', 16.0)},
+        'bottom': 'long', 'puffy': True,        # wide hakama (puffed trousers stand in for the pleats)
         'sandals': True, 'wraps': 'wraps', 'gear': [],   # white tabi
         # arms folded on the chest, hands empty, the katana sheathed at the left hip
         'weapon': None, 'offhand': None,
