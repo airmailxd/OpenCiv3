@@ -94,6 +94,11 @@ props.DEFAULTS.setdefault('brass', ('#a88a4a', 0.4, 1.0, 'metal'))
 props.DEFAULTS.setdefault('plume', ('#e8e4da', 0.9, 0.0, 'cloth'))
 props.DEFAULTS.setdefault('mail', ('#6e7074', 0.5, 1.0, 'metal'))
 props.DEFAULTS.setdefault('crest', ('#e8e4da', 0.9, 0.0, 'rope'))
+props.DEFAULTS.setdefault('turban_white', ('#ece8de', 0.85, 0.0, 'cloth'))
+props.DEFAULTS.setdefault('jewel', ('#b0202a', 0.15, 0.0, 'metal'))
+props.DEFAULTS.setdefault('lacquer', ('#1a1816', 0.3, 0.0, 'leather'))
+props.DEFAULTS.setdefault('feather', ('#e8e4da', 0.9, 0.0, 'cloth'))
+props.DEFAULTS.setdefault('gold', ('#c8a048', 0.35, 1.0, 'metal'))
 
 
 def _k(tinted, key):
@@ -265,11 +270,27 @@ def fan_headdress(p, c, tinted, _):
 
 
 @hat('feather_headdress')
-def feather_headdress(p, c, tinted, _, style=None):
+def feather_headdress(p, c, tinted, _, style=None, cascade=None):
     """Tall upright feathers in a crown (Impi, Aztec, Mayan, Iroquois):
     alternately civ-colored and natural, on a headband. style='bushy' (Impi):
     many short feathers, all civ-colored, in two rows splaying into a round
-    bushy crown."""
+    bushy crown; style='crown' (King Zulu): a dense untinted fan of cream
+    feathers and fur round the head. cascade='back' (King Mayan): a long
+    fall of white feathers down the back to the waist."""
+    if cascade == 'back':
+        for i in range(9):
+            x = -0.09 + 0.18 * i / 8
+            pts = [(x, -0.1, 0.12), (x * 1.3, -0.2, 0.02), (x * 1.5, -0.24, -0.3), (x * 1.6, -0.22, -0.68)]
+            p.add(props.tube(pts, [0.03, 0.04, 0.04, 0.025], seg=6, scale_xy=(1.0, 0.35)), 'feather', smooth=True)
+    if style == 'crown':
+        p.add(props.lathe([(0.0, 0.118), (0.05, 0.12)], seg=24), 'fur', smooth=True)
+        for row, (n, lift, spread, h) in enumerate(((22, 0.02, 0.22, 0.13), (16, 0.05, 0.17, 0.17))):
+            for i in range(n):
+                a = 2 * math.pi * (i + 0.5 * row) / n
+                base = (0.115 * math.sin(a), 0.115 * math.cos(a), lift)
+                tip = (spread * math.sin(a), spread * math.cos(a), lift + h)
+                p.add(props.tube([base, tip], [0.03, 0.022], seg=6, scale_xy=(1.0, 0.45)), 'feather', smooth=True)
+        return
     p.add(props.lathe([(0.0, 0.114), (0.04, 0.114)], seg=24), 'tint', smooth=True, tint=True)
     if style == 'bushy':
         for row, (n, lift, spread, h) in enumerate(((18, 0.02, 0.2, 0.15), (13, 0.06, 0.14, 0.17))):
@@ -390,6 +411,141 @@ def turban(p, c, tinted, _):
         p.add(props.lathe([(0.0, r), (0.034, r)], seg=24), key, T(0, -0.005 * i, 0.01 + 0.03 * i) @ R('X', 7 * (-1) ** i),
               smooth=True, tint=t)
     p.add(props.ellipsoid(0.12, 0.12, 0.08, seg=18), key, T(0, -0.01, 0.17), smooth=True, tint=t)
+
+
+@hat('turban_aigrette')
+def turban_aigrette(p, c, tinted, plume_tinted):
+    """King Ottoman: a large round white turban, a jeweled aigrette at its
+    front holding a tall plume (part civ-colored)."""
+    for i in range(6):
+        r = 0.15 - 0.006 * i
+        p.add(props.lathe([(0.0, r), (0.04, r)], seg=28), 'turban_white', T(0, -0.005 * i, 0.01 + 0.035 * i) @ R('X', 7 * (-1) ** i),
+              smooth=True)
+    p.add(props.ellipsoid(0.135, 0.135, 0.09, seg=20), 'turban_white', T(0, -0.01, 0.2), smooth=True)
+    p.add(props.ellipsoid(0.03, 0.015, 0.04, seg=12), 'gold', T(0, 0.15, 0.13), smooth=True)          # the jewel's setting
+    p.add(props.ellipsoid(0.017, 0.012, 0.022, seg=10), 'jewel', T(0, 0.162, 0.13), smooth=True)
+    pk, pt = _k(plume_tinted, 'plume')
+    p.add(props.tube([(0, 0.15, 0.16), (0, 0.15, 0.28), (0, 0.11, 0.38), (0, 0.05, 0.42)], [0.022, 0.03, 0.024, 0.006],
+                     seg=8, scale_xy=(0.6, 1.0)), pk, smooth=True, tint=pt)
+
+
+@hat('peaked_cap')
+def peaked_cap(p, c, tinted, _):
+    """A military peaked (visor) cap: a stiff crown flaring to a wide flat top,
+    a civ-colored band, a black leather peak and chinstrap, a gold badge."""
+    p.add(props.lathe([(0.0, 0.113), (0.05, 0.118), (0.085, 0.14), (0.1, 0.14), (0.105, 0.0)], seg=28), 'hat', smooth=True)
+    p.add(props.lathe([(0.0, 0.116), (0.04, 0.118)], seg=28), 'tint', smooth=True, tint=True)
+    visor = props.slab([(-0.1, 0.0), (0.1, 0.0), (0.075, 0.07), (-0.075, 0.07)], 0.008, 'X')
+    p.add(visor, 'leather_dark', T(0, 0.1, 0.0) @ R('Z', 90) @ R('X', -15), bevel=0.002)
+    p.add(props.lathe([(0.0, 0.119), (0.008, 0.119)], seg=28), 'leather_dark', T(0, 0.005, 0.0), smooth=True)
+    p.add(props.ellipsoid(0.02, 0.008, 0.02, seg=10), 'gold', T(0, 0.125, 0.07), smooth=True)
+
+
+@hat('pickelhaube')
+def pickelhaube(p, c, tinted, _):
+    """King German: a silver pickelhaube, a tall fluted spike on a cross base,
+    a gold eagle front plate, front and rear peaks."""
+    p.add(props.lathe([(-0.01, 0.12), (0.06, 0.118), (0.13, 0.08), (0.16, 0.0)], seg=24), 'helmet', smooth=True)
+    p.add(props.lathe([(0.0, 0.03), (0.02, 0.022), (0.1, 0.008), (0.13, 0.0)], seg=12), 'gold', T(0, 0, 0.15), smooth=True)
+    for a in (0, 90):
+        p.add(props.box(0.09, 0.015, 0.015), 'gold', T(0, 0, 0.152) @ R('Z', a), bevel=0.004)
+    plate = props.slab([(-0.05, 0.0), (0.05, 0.0), (0.04, 0.07), (0.0, 0.09), (-0.04, 0.07)], 0.006, 'Y')
+    p.add(plate, 'gold', T(0, 0.118, 0.02) @ R('X', -12), bevel=0.002)
+    for sy, ang in ((1, -18), (-1, 22)):
+        peak = props.slab([(-0.09, 0.0), (0.09, 0.0), (0.06, 0.05), (-0.06, 0.05)], 0.006, 'X')
+        p.add(peak, 'helmet', T(0, sy * 0.11, -0.01) @ R('Z', 90 * sy) @ R('X', ang), bevel=0.002)
+
+
+@hat('kabuto')
+def kabuto(p, c, tinted, _):
+    """The Shogun's kabuto: a civ-colored lacquered bowl, gold kuwagata horns
+    rising from a gold front plate, a flared multi-lame neck guard, side
+    turnbacks."""
+    key, t = ('tint', True) if tinted else ('lacquer', False)
+    p.add(props.lathe([(-0.01, 0.122), (0.07, 0.118), (0.13, 0.07), (0.15, 0.0)], seg=24), key, smooth=True, tint=t)
+    for i in range(4):   # the shikoro: lames flaring down and out behind
+        r0 = 0.125 + 0.02 * i
+        ring = []
+        for k in range(17):
+            a = math.radians(70 + 220 * k / 16)
+            ring.append((r0 * math.sin(a), r0 * math.cos(a), -0.02 - 0.035 * i))
+        rings = [ring, [(x * 1.12, y * 1.12, z - 0.035) for x, y, z in ring]]
+        bm = props.loft(rings, False, False)
+        props.bmesh.ops.solidify(bm, geom=bm.faces[:], thickness=0.008)
+        p.add(bm, key if i % 2 == 0 else 'lacquer', smooth=True, tint=t and i % 2 == 0)
+    p.add(props.box(0.06, 0.012, 0.05), 'gold', T(0, 0.125, 0.05), bevel=0.003)                       # maedate plate
+    for sx in (-1, 1):
+        # the kuwagata: broad flat gold blades sweeping up and out in a V
+        p.add(props.tube([(sx * 0.02, 0.13, 0.06), (sx * 0.08, 0.145, 0.13), (sx * 0.13, 0.14, 0.2), (sx * 0.14, 0.13, 0.25)],
+                         [0.022, 0.03, 0.026, 0.008], seg=6, scale_xy=(1.0, 0.22)), 'gold', smooth=True)
+        p.add(props.box(0.012, 0.06, 0.07), key, T(sx * 0.14, 0.07, -0.03) @ R('Z', sx * 30), bevel=0.003, tint=t)  # fukigaeshi
+
+
+@hat('nemes')
+def nemes(p, c, tinted, _):
+    """King Egyptian: the nemes, a striped headcloth (gold and civ-colored
+    stripes) over the crown, flaring behind the ears into lappets down the
+    chest, a gold uraeus at the brow, a tail behind."""
+    def stripes(f):
+        cz = f.calc_center_median().z
+        return ('tint', True) if int(math.floor(cz / 0.025)) % 2 else None
+    p.add(props.lathe([(-0.02, 0.122), (0.06, 0.12), (0.12, 0.08), (0.15, 0.0)], seg=24), 'gold', smooth=True, keys=stripes)
+    for sx in (-1, 1):   # the lappets: wide flaps falling forward over the chest
+        rings = []
+        for j in range(8):
+            z = 0.0 - 0.06 * j
+            w = 0.05 + 0.012 * min(j, 4)
+            x = sx * (0.13 + 0.012 * min(j, 3))
+            y = 0.02 + 0.012 * j
+            rings.append([(x - w * 0.5 * sx * 0 , y - w, z), (x, y, z), (x, y + w, z)])
+        bm = props.loft(rings, False, False)
+        props.bmesh.ops.solidify(bm, geom=bm.faces[:], thickness=0.012)
+        p.add(bm, 'gold', smooth=True, keys=stripes)
+    p.add(props.tube([(0, -0.1, -0.02), (0, -0.13, -0.1), (0, -0.12, -0.2)], [0.04, 0.03, 0.02], seg=8), 'gold',
+          smooth=True, keys=stripes)                                                                  # the queue behind
+    p.add(props.lathe([(-0.015, 0.124), (0.01, 0.124)], seg=24), 'gold', smooth=True)                 # the brow band
+    p.add(props.tube([(0, 0.124, 0.0), (0, 0.135, 0.04), (0, 0.128, 0.07)], [0.012, 0.014, 0.008], seg=6), 'gold',
+          smooth=True)                                                                                # the uraeus
+
+
+@hat('sumer_crown')
+def sumer_crown(p, c, tinted, _):
+    """King Sumeria: a tall white conical crown on a gold band, a gold knob on top."""
+    p.add(props.lathe([(0.0, 0.118), (0.12, 0.1), (0.3, 0.05), (0.36, 0.0)], seg=24), 'turban_white', smooth=True)
+    p.add(props.lathe([(-0.005, 0.12), (0.04, 0.12)], seg=24), 'gold', smooth=True)
+    p.add(props.ellipsoid(0.025, 0.025, 0.025, seg=12), 'gold', T(0, 0, 0.36), smooth=True)
+
+
+@hat('war_bonnet')
+def war_bonnet(p, c, tinted, _):
+    """King Iroquois: a big war bonnet, a fan of white feathers with
+    civ-colored tips standing round the head, a civ headband, and a long
+    trailer of feathers down the back."""
+    p.add(props.lathe([(0.0, 0.115), (0.04, 0.115)], seg=24), 'tint', smooth=True, tint=True)
+    n = 19
+    for i in range(n):
+        a = math.radians(-160 + 320 * i / (n - 1))
+        base = (0.115 * math.sin(a), 0.115 * math.cos(a), 0.03)
+        tip = (0.26 * math.sin(a), 0.2 * math.cos(a) - 0.07, 0.3)
+        mid = tuple(b + 0.8 * (t - b) for b, t in zip(base, tip))
+        p.add(props.tube([base, mid], [0.018, 0.03], seg=5, scale_xy=(1.0, 0.3)), 'feather', smooth=True)
+        p.add(props.tube([mid, tip], [0.03, 0.012], seg=5, scale_xy=(1.0, 0.3)), 'tint', smooth=True, tint=True)
+    for j in range(10):   # the trailer: pairs of feathers down the back
+        z = 0.0 - 0.09 * j
+        for sx in (-1, 1):
+            pts = [(sx * 0.03, -0.12 - 0.01 * j, z), (sx * 0.1, -0.16 - 0.01 * j, z - 0.03)]
+            p.add(props.tube(pts, [0.016, 0.022], seg=5, scale_xy=(1.0, 0.3)), 'feather' if j % 3 else 'tint',
+                  smooth=True, tint=j % 3 == 0)
+
+
+@hat('beret_feather')
+def beret_feather(p, c, tinted, plume_tinted):
+    """King Austria: a dark low beret with a white feather laid along its side."""
+    p.add(props.ellipsoid(0.14, 0.13, 0.045, seg=22), 'hat', T(0.02, 0, 0.06) @ R('Y', -10), smooth=True)
+    p.add(props.lathe([(0.0, 0.112), (0.025, 0.112)], seg=24), 'hat', smooth=True)
+    pk, pt = _k(plume_tinted, 'plume')
+    p.add(props.tube([(0.1, 0.08, 0.07), (0.15, -0.02, 0.1), (0.14, -0.16, 0.08), (0.1, -0.26, 0.03)],
+                     [0.012, 0.035, 0.03, 0.006], seg=8, scale_xy=(0.4, 1.0)), pk, smooth=True, tint=pt)
 
 
 @hat('conical_helmet')
