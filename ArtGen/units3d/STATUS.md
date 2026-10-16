@@ -13,13 +13,13 @@ original shows are blockers, not polish. Earlier PASSes need a re-check on this 
 |------|-------|-----------|
 | Warrior | PASS (7/7/7/8/7) | |
 | Spearman | PASS (7/7/7/8/7) | |
-| Archer | PASS (7/7/7/7/7), round 7 | polish: bow clear of the body in NE, matte apron, stronger key |
-| Swordsman | 6/7/6/5/7, round 6 | shield yaw now turns about world Z (it pitched back), rim+boss tinted, raised: rebuild |
-| Settler | 6/6/7/7/6, round 5 | pack deeper/lumpier, bedroll seated, lean doubled: rebuild |
-| Worker | 6/6/8/6/7, round 5 | tool angled out (tool_dir), slight lean: rebuild |
-| 22 footmen | batch A (11) reviewed: none pass yet (Bowman, Gallic closest); batch B (11) in review | data fixes applied; see MISSING list |
-| 12 soldiers | entries in remaster_soldiers.py; first full build queued | camo, hip hold, any-prop back slot ... |
-| 44 royals | entries in remaster_royals.py with crowns, gowns, female bodies, royal stances and props | not rendered yet |
+| Archer | PASS (7/7/7/7/7), round 7 | re-check with the detail axis (queued, pil2) |
+| Swordsman | 6/7/7/6/7/6, round 7 | greaves over boots, cuirass binding, wider shield yaw: rebuilding (pil2) |
+| Settler | PASS (7/7/8/7/7/7), round 6 | pot on the bundle, taller staff: rebuilding (pil2) |
+| Worker | 6/7/8/6/7/7, round 6 | shovel hidden facing E: tool swung forward; rebuilding (pil2) |
+| 22 footmen | A round 2: none pass (Explorer, Hoplite fail on detail only); B round 2 rendering | fixes applied; prop requests to the PC |
+| 12 soldiers | round 1: none pass (2-5s) | hats fixed (sat low), hip_hold, camo, packs; data fixes being applied |
+| 44 royals | first full render running (queue3) | |
 
 PC (Windows, "Civ3 Question Taker"): Catapult, Cannon, Galley, Caravel PASS; 12 horse riders and the
 3 chariots rolled out and frozen for the owner's judgment (Horseman, Rider, Ansar PASS). Delivered
@@ -36,6 +36,13 @@ credit.** Next for the PC: Trebuchet, Hwacha, Artillery, Flak, then ships, armor
   hand), order_arms (butt by the foot), port_arms (diagonal, left hand at 'fore_end').
 - Pelt kinds: `'pelt_kind': 'cloak'` (to the thighs), `'fur_vest': (color, dark)`.
 - Wider bands over the clothes; hip sword hangs down; 'upright' poles vertical ('upright_dir').
+
+## Today's features (entry keys)
+headgear (any riders.HEADGEAR kind, placed from the head mesh), hem_bands, mail_parts, coat_length /
+coat_flare / coat_metal, chest_emblem, patterns (camo / check / tartan), fur_vest, pelt_kind 'cloak',
+chest_strap width/tint, cap_knob, tint_shade, cuirass_bands, back: any prop, hip_hold, order_arms,
+port_arms, royal, fists_on_hips, hands_clasped, hands_behind, gender, gown, crown, veil_drop, hang_dir,
+upright_dir, shield_out, brow_drop. Global: AO cavity + unsharp mask, harder key, belt buckle and pouch.
 
 ## Next steps (Mac)
 1. Queue running (scratchpad queue2.sh): Swordsman/Settler/Worker, batch A again, the 12 soldiers.

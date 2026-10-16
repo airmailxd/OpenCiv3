@@ -221,11 +221,12 @@ def dress(entry, mesh, arm):
         headgear(entry, gear_hat, mesh, arm)
     for b in entry.get('bands', []):
         where, part = (b, b) if isinstance(b, str) else (b[0], b[1])
+        bw = b[2] if not isinstance(b, str) and len(b) > 2 else None     # optional width (m)
         bones, z = G.BANDS[where]
         tint = part in entry.get('tint', []) or part == 'tint'
         G.band(mesh, arm, 'Band_' + where, bones, (G.cloth('band_' + where, (1, 1, 1), tint=True) if tint else
                G.leather('band_' + where, B.hex_color(c.get(part, c['belt'])))), z,
-               width=0.05 if where in ('waist', 'neck') else 0.035)
+               width=bw or (0.05 if where in ('waist', 'neck') else 0.045))
     if entry.get('beard'):
         G.beard(mesh, B.hex_color(c['hair']), length=0.018, density=700)
     if entry.get('pelt_cape'):
