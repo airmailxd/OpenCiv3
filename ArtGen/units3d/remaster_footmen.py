@@ -201,7 +201,7 @@ REMASTER = {
         'colors': {'skin': '#8e6a4a', 'hair': '#140e0a', 'helmet': '#cfc9b8', 'top': '#9a8058',
                    'bottom': '#5e4a34', 'belt': '#3a2a1c', 'boots': '#a08434', 'steel': '#a8aaae',
                    'gold': '#a8842e', 'veil': '#cfc9b8'},
-        'helmet': 'hood', 'veil': True,         # white headcloth and a veil over the chin and mouth
+        'helmet': 'hood', 'veil': True, 'veil_drop': 0.215,         # white headcloth and a veil over the chin and mouth
         'beard': True,
         # a tan sleeved tunic; 'puffy' adds the sleeve layer over the upper
         # arms (tinted: the civ-color short sleeves) and makes the trousers baggy

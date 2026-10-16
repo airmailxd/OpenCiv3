@@ -137,7 +137,7 @@ def dress(entry, mesh, arm):
         topz = max(v.co.z for v in mesh.data.vertices) / G._scale
         tint = 'veil' in entry.get('tint', [])
         vmat = G.cloth('veil', (1, 1, 1), tint=True) if tint else G.cloth('veil', B.hex_color(c.get('veil', '#2a2622')))
-        G.shell(mesh, arm, 'Veil', ['head', 'neck_01'], vmat, zmin=(topz - 0.26), zmax=(topz - 0.115), offset=0.012,
+        G.shell(mesh, arm, 'Veil', ['head', 'neck_01'], vmat, zmin=(topz - entry.get('veil_drop', 0.26)), zmax=(topz - 0.115), offset=0.012,
                 thickness=0.004, min_weight=0.2, keep=lambda co, yc=yc / G._scale: co.y - yc < 0.02)
     for g in entry.get('gear', []):
         name = g[0] if isinstance(g, (list, tuple)) else g
@@ -206,6 +206,9 @@ def dress(entry, mesh, arm):
             G.shell(mesh, arm, 'Bracer_' + side, ['lowerarm_' + side], _mat(entry, 'bracers', G.cloth),
                     offset=0.008, thickness=0.006)
     helmet(entry, mesh, arm)
+    gear_hat = entry.get('headgear') if isinstance(entry.get('headgear'), str) else None
+    if gear_hat:
+        headgear(entry, gear_hat, mesh, arm)
     for b in entry.get('bands', []):
         where, part = (b, b) if isinstance(b, str) else (b[0], b[1])
         bones, z = G.BANDS[where]
@@ -272,6 +275,39 @@ def dress_posed(entry, mesh, arm):
     hanging = [o for o in hanging if not o.get('no_drape')]
     if hanging and entry.get('drape', True):
         G.drape(hanging, mesh)
+
+
+def headgear(entry, kind, mesh, arm):
+    """One of the riders' headgear kinds (riders.HEADGEAR: hats, shakos,
+    modern helmets, headdresses ...) on a foot unit: placed on the unposed
+    head from the mesh (its brow line below the top of the head) and fixed to
+    the head bone, so it follows the pose and fits any build."""
+    import riders
+    from mathutils import Matrix
+    if kind not in riders.HEADGEAR:
+        print('unknown headgear', kind)
+        return None
+    c = dict(_colors(entry))
+    tl = entry.get('tint', [])
+    p = P.Prop(f'headgear_{kind}', c, {'hat': {'grime': 0.5}, 'helmet': {'grime': 0.4, 'rust': 0.15},
+                                      'tint': {'grime': 0.45}})
+    riders.HEADGEAR[kind](p, c, 'hat' in tl or 'helmet' in tl, 'crest' in tl or 'plume' in tl)
+    obj = p.finish()
+    top, yc, _ = G._head(mesh)
+    k = entry.get('headgear_scale', 1.0)
+    sx, sy, sz = (k, k, k) if isinstance(k, (int, float)) else k
+    s = 1.12 * G._scale             # a little larger than life, so it keeps its silhouette at 1x
+    brow = top - entry.get('brow_drop', 0.085) * G._scale
+    # the hat's +Y is its front; the unposed body faces -y
+    obj.matrix_world = (Matrix.Translation((0, yc + 0.004 * G._scale, brow)) @ Matrix.Rotation(math.pi, 4, 'Z')
+                        @ Matrix.Diagonal((sx * s, sy * s, sz * s, 1.0)))
+    world = obj.matrix_world.copy()
+    obj.parent = arm
+    obj.parent_type = 'BONE'
+    obj.parent_bone = 'head'
+    obj.matrix_world = world
+    H._update()
+    return obj
 
 
 def helmet(entry, mesh, arm):
@@ -459,6 +495,14 @@ STANCES['port_arms'] = [('spine_02', (0, -0.05, 1)), ('neck_01', (0, 0.08, 1)), 
                         ('thigh_r', (-0.2, 0.06, -1)), ('calf_r', (-0.12, 0.05, -1)), ('foot_r', (-0.5, -1, -0.3)),
                         ('upperarm_l', (0.2, -0.3, -1)), ('lowerarm_l', (-0.3, -1.0, 0.3)),
                         ('upperarm_r', (-0.3, -0.12, -1)), ('lowerarm_r', (0.25, -0.9, -0.35))]
+# a rifle at the hip, muzzle forward: upright and alert, the right hand on
+# the grip at the right hip, the left forearm under the fore-end
+STANCES['hip_hold'] = [('spine_02', (0, 0.0, 1)), ('neck_01', (0, 0.1, 1)), ('head', (0, 0.32, 1)),
+                       ('clavicle_l', (1, 0.0, 0.08)), ('clavicle_r', (-1, 0.0, 0.08)),
+                       ('thigh_l', (0.2, -0.12, -1)), ('calf_l', (0.12, 0.04, -1)), ('foot_l', (0.5, -1, -0.3)),
+                       ('thigh_r', (-0.2, 0.08, -1)), ('calf_r', (-0.12, 0.05, -1)), ('foot_r', (-0.5, -1, -0.3)),
+                       ('upperarm_l', (0.25, -0.2, -1)), ('lowerarm_l', (-0.25, -1.0, -0.15)),
+                       ('upperarm_r', (-0.3, 0.15, -1)), ('lowerarm_r', (0.0, -1.0, -0.25))]
 GUNS = ('musket', 'rifle', 'rifle_bolt', 'assault_rifle', 'smg')
 
 WEAPON_STANCE = {
@@ -498,6 +542,12 @@ def equip(entry, arm):
             butt = entry.get('butt', 0.38) * params.get('scale', 1.0)
             base = Vector((at.x - 0.02, at.y, foot.z - 0.07 * G._scale + butt))
             H.hold(obj, arm, 'hand_r', base, up=tuple((at - base).normalized()), forward=(0, -1, 0))
+        elif stance == 'hip_hold':
+            # level at the hip, muzzle forward and a little across
+            d = Vector(entry.get('gun_dir', (0.15, -1.0, 0.08))).normalized()
+            H.hold(obj, arm, 'hand_r', at, up=tuple(d), forward=(0, 0, 1))
+            H.reach(arm, 'l', at + d * entry.get('fore_end', 0.3) * G._scale, elbow_out=0.6)
+            H.fists(arm, sides='l')
         elif stance == 'port_arms':
             # diagonal across the chest, muzzle up at the left shoulder, sights out
             d = Vector(entry.get('gun_dir', (0.6, -0.3, 0.75))).normalized()
@@ -544,7 +594,7 @@ def equip(entry, arm):
             # its geometry's center (the prop's origin is the strap).
             pb = arm.pose.bones['lowerarm_l']
             fa = (arm.matrix_world @ pb.head).lerp(arm.matrix_world @ pb.tail, 0.6)
-            at = fa + Vector((0.0, -0.09 * G._scale, 0.03 * G._scale))
+            at = fa + Vector((0.0, -entry.get('shield_out', 0.09) * G._scale, 0.03 * G._scale))
             if entry.get('shield_at') == 'left_hip':
                 # a big shield low at the left hip, close to the body: from
                 # behind it then stays beside the body, below the shoulders
@@ -571,7 +621,15 @@ def equip(entry, arm):
             H.hold(obj, arm, 'hand_l', at, up=(1.0, -0.35, 0.05))
         made.append(obj)
     back = entry.get('back')
-    if back in ('quiver', 'backpack'):
+    if back and back not in ('quiver', 'backpack', 'pelt') and back in P.BUILDERS:
+        # any other prop worn on the back (mil_backpack, a parachute pack ...),
+        # in the backpack's convention: straps' top at the origin, the load behind (-Y)
+        obj = P.make(back, c, **entry.get('back_params', {}))
+        sp = arm.matrix_world @ arm.pose.bones['spine_03'].head
+        at = sp + Vector((0.0, 0.04 * G._scale, entry.get('pack_up', 0.1) * G._scale))
+        H.hold(obj, arm, 'spine_03', at, up=(0, 0.05, 1), forward=(0, -1, 0))
+        made.append(obj)
+    elif back in ('quiver', 'backpack'):
         obj = P.make(back, c, **entry.get('back_params', {}))
         # on the upper back (+y behind the unposed body), strap point at the
         # shoulder blades; a quiver slung diagonally, arrows up over the right shoulder
@@ -638,10 +696,6 @@ def build_footman(entry, seated=False):
     dress(entry, mesh, arm)
     equip(entry, arm)
     dress_posed(entry, mesh, arm)
-    if gear_hat:
-        # the riders' headgear kinds (hats, shakos, modern helmets ...), on the head bone
-        import riders
-        riders.headgear(dict(entry, _headgear=gear_hat), arm)
     root = H.rooted(arm)
     if seated:
         # the pelvis on the root's origin

@@ -120,7 +120,7 @@ REMASTER = {
         'back': 'backpack', 'pack_scale': 1.15,
         'weapon': 'rifle',
         'props': {'rifle': ('rifle_bolt', {'length': 1.1, 'bayonet': True})},
-        'stance_name': 'port_arms', 'gun_dir': (0.08, -1.0, -0.1), 'fore_end': 0.42,
+        'stance_name': 'hip_hold',
         # level, muzzle forward (a touch down, which keeps the sights up): right
         # hand on the wrist, left on the fore-end; MISSING: hip_hold (a stance
         # with the hands low at the right hip; port_arms' arms stand in)
@@ -147,7 +147,7 @@ REMASTER = {
         # canteen on the back belt is left out
         'weapon': 'rifle',
         'props': {'rifle': ('assault_rifle', {})},
-        'stance_name': 'port_arms', 'gun_dir': (0.08, -1.0, -0.1), 'fore_end': 0.32,
+        'stance_name': 'hip_hold',
         # level, muzzle forward; MISSING: hip_hold
         'tint': ['top'],
         'grime': 0.75, 'upper_bulk': 1.3,
@@ -172,7 +172,7 @@ REMASTER = {
         'back': 'backpack', 'pack_scale': 1.2,  # MISSING: chute_pack (a big grey parachute pack, not the settler's sack)
         'weapon': 'rifle',
         'props': {'rifle': ('assault_rifle', {'scale': 0.85})},
-        'stance_name': 'port_arms', 'gun_dir': (0.4, -0.9, -0.1), 'fore_end': 0.28,   # across the waist, muzzle front-left
+        'stance_name': 'hip_hold',   # across the waist, muzzle front-left
         # MISSING: hip_hold
         'tint': ['cuirass'],
         'grime': 0.6, 'upper_bulk': 1.25,
@@ -198,7 +198,7 @@ REMASTER = {
         'back': 'backpack', 'pack_scale': 1.3,  # MISSING: chute_pack (a huge camo-wrapped bundle)
         'weapon': 'smg',
         'props': {'smg': ('smg', {})},
-        'stance_name': 'port_arms', 'gun_dir': (0.08, -1.0, -0.1), 'fore_end': 0.26,
+        'stance_name': 'hip_hold',
         # level, muzzle forward; MISSING: hip_hold
         'tint': ['cuirass', 'belt'],
         'grime': 0.8, 'upper_bulk': 1.25,
