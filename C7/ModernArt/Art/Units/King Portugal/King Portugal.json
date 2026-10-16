@@ -1,15 +1,15 @@
 {
   "actions": {
-    "DEFAULT": "x2_Henry_default",
-    "RUN": "x2_Henry_run",
     "DEATH": "x2_Henry_death",
+    "DEFAULT": "x2_Henry_default",
+    "FIDGET": "x2_Henry_fidget",
     "FORTIFY": "x2_Henry_fidget",
-    "FIDGET": "x2_Henry_fidget"
+    "RUN": "x2_Henry_run"
   },
   "flics": {
     "x2_Henry_death": {"size": [92, 69], "directions": 8, "frames": 15, "frameMs": 83, "offset": [74, 75], "canvas": [240, 240]},
-    "x2_Henry_default": {"size": [40, 54], "directions": 8, "frames": 15, "frameMs": 125, "offset": [94, 74], "canvas": [240, 240]},
-    "x2_Henry_fidget": {"size": [59, 57], "directions": 8, "frames": 15, "frameMs": 100, "offset": [83, 71], "canvas": [240, 240]},
-    "x2_Henry_run": {"size": [48, 57], "directions": 8, "frames": 10, "frameMs": 66, "offset": [91, 73], "canvas": [240, 240]}
+    "x2_Henry_default": {"size": [50, 61], "directions": 8, "frames": 15, "frameMs": 125, "offset": [94, 74], "canvas": [240, 240]},
+    "x2_Henry_fidget": {"size": [61, 64], "directions": 8, "frames": 15, "frameMs": 100, "offset": [83, 71], "canvas": [240, 240]},
+    "x2_Henry_run": {"size": [53, 62], "directions": 8, "frames": 10, "frameMs": 66, "offset": [91, 73], "canvas": [240, 240]}
   }
 }

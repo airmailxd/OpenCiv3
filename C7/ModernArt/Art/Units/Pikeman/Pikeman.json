@@ -1,20 +1,20 @@
 {
   "actions": {
-    "DEFAULT": "PikemanDefault",
-    "RUN": "PikemanRun",
     "ATTACK1": "PikemanAttackA",
     "DEATH": "PikemanDeath",
-    "FORTIFY": "PikemanFortify",
+    "DEFAULT": "PikemanDefault",
     "FIDGET": "PikemanFidget",
+    "FORTIFY": "PikemanFortify",
+    "RUN": "PikemanRun",
     "VICTORY": "PikemanVictory"
   },
   "flics": {
-    "PikemanAttackA": {"size": [122, 85], "directions": 8, "frames": 15, "frameMs": 66, "offset": [56, 62], "canvas": [240, 240]},
+    "PikemanAttackA": {"size": [122, 87], "directions": 8, "frames": 15, "frameMs": 66, "offset": [56, 60], "canvas": [240, 240]},
     "PikemanDeath": {"size": [160, 106], "directions": 8, "frames": 15, "frameMs": 83, "offset": [40, 55], "canvas": [240, 240]},
-    "PikemanDefault": {"size": [39, 66], "directions": 8, "frames": 15, "frameMs": 125, "offset": [96, 62], "canvas": [240, 240]},
-    "PikemanFidget": {"size": [39, 67], "directions": 8, "frames": 15, "frameMs": 83, "offset": [96, 61], "canvas": [240, 240]},
-    "PikemanFortify": {"size": [84, 73], "directions": 8, "frames": 10, "frameMs": 66, "offset": [74, 63], "canvas": [240, 240]},
-    "PikemanRun": {"size": [43, 69], "directions": 8, "frames": 10, "frameMs": 66, "offset": [98, 63], "canvas": [240, 240]},
-    "PikemanVictory": {"size": [76, 72], "directions": 8, "frames": 15, "frameMs": 83, "offset": [78, 62], "canvas": [240, 240]}
+    "PikemanDefault": {"size": [62, 81], "directions": 8, "frames": 15, "frameMs": 125, "offset": [96, 60], "canvas": [240, 240]},
+    "PikemanFidget": {"size": [62, 81], "directions": 8, "frames": 15, "frameMs": 83, "offset": [96, 60], "canvas": [240, 240]},
+    "PikemanFortify": {"size": [84, 81], "directions": 8, "frames": 10, "frameMs": 66, "offset": [74, 60], "canvas": [240, 240]},
+    "PikemanRun": {"size": [61, 81], "directions": 8, "frames": 10, "frameMs": 66, "offset": [97, 60], "canvas": [240, 240]},
+    "PikemanVictory": {"size": [80, 81], "directions": 8, "frames": 15, "frameMs": 83, "offset": [78, 60], "canvas": [240, 240]}
   }
 }

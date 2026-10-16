@@ -1,16 +1,16 @@
 {
   "actions": {
-    "DEFAULT": "PrivateerDefault",
-    "RUN": "PrivateerRun",
     "ATTACK1": "PrivateerAttackA",
     "DEATH": "PrivateerDeath",
-    "FIDGET": "PrivateerFidget"
+    "DEFAULT": "PrivateerDefault",
+    "FIDGET": "PrivateerFidget",
+    "RUN": "PrivateerRun"
   },
   "flics": {
-    "PrivateerAttackA": {"size": [172, 103], "directions": 8, "frames": 20, "frameMs": 100, "offset": [34, 58], "canvas": [240, 240]},
-    "PrivateerDeath": {"size": [118, 109], "directions": 8, "frames": 20, "frameMs": 90, "offset": [61, 42], "canvas": [240, 240]},
-    "PrivateerDefault": {"size": [88, 81], "directions": 8, "frames": 10, "frameMs": 166, "offset": [77, 61], "canvas": [240, 240]},
-    "PrivateerFidget": {"size": [88, 81], "directions": 8, "frames": 5, "frameMs": 142, "offset": [77, 61], "canvas": [240, 240]},
-    "PrivateerRun": {"size": [90, 82], "directions": 8, "frames": 14, "frameMs": 125, "offset": [74, 60], "canvas": [240, 240]}
+    "PrivateerAttackA": {"size": [172, 108], "directions": 8, "frames": 20, "frameMs": 100, "offset": [34, 53], "canvas": [240, 240]},
+    "PrivateerDeath": {"size": [119, 109], "directions": 8, "frames": 20, "frameMs": 90, "offset": [61, 42], "canvas": [240, 240]},
+    "PrivateerDefault": {"size": [114, 94], "directions": 8, "frames": 10, "frameMs": 166, "offset": [66, 53], "canvas": [240, 240]},
+    "PrivateerFidget": {"size": [114, 94], "directions": 8, "frames": 5, "frameMs": 142, "offset": [66, 53], "canvas": [240, 240]},
+    "PrivateerRun": {"size": [114, 94], "directions": 8, "frames": 14, "frameMs": 125, "offset": [66, 53], "canvas": [240, 240]}
   }
 }

@@ -1,16 +1,16 @@
 {
   "actions": {
-    "DEFAULT": "StealthBomberDefault",
-    "RUN": "StealthBomberRun",
     "ATTACK1": "StealthBomberAttackA",
+    "VICTORY": "StealthBomberBomb",
     "DEATH": "StealthBomberDeath",
-    "VICTORY": "StealthBomberBomb"
+    "DEFAULT": "StealthBomberDefault",
+    "RUN": "StealthBomberRun"
   },
   "flics": {
     "StealthBomberAttackA": {"size": [210, 133], "directions": 8, "frames": 10, "frameMs": 66, "offset": [16, 37], "canvas": [240, 240]},
     "StealthBomberBomb": {"size": [240, 240], "directions": 8, "frames": 20, "frameMs": 66, "offset": [0, 0], "canvas": [240, 240]},
     "StealthBomberDeath": {"size": [240, 240], "directions": 8, "frames": 15, "frameMs": 66, "offset": [0, 0], "canvas": [240, 240]},
-    "StealthBomberDefault": {"size": [107, 92], "directions": 8, "frames": 1, "frameMs": 1000, "offset": [67, 61], "canvas": [240, 240]},
+    "StealthBomberDefault": {"size": [130, 105], "directions": 8, "frames": 1, "frameMs": 1000, "offset": [64, 58], "canvas": [240, 240]},
     "StealthBomberRun": {"size": [240, 240], "directions": 8, "frames": 5, "frameMs": 66, "offset": [0, 0], "canvas": [240, 240]}
   }
 }

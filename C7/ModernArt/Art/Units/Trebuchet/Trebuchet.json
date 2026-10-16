@@ -1,20 +1,20 @@
 {
   "actions": {
-    "DEFAULT": "Trebuchet Default",
-    "RUN": "Trebuchet Run",
     "ATTACK1": "Trebuchet AttackA",
     "DEATH": "Trebuchet Death",
-    "FORTIFY": "Trebuchet Fortify",
+    "DEFAULT": "Trebuchet Default",
     "FIDGET": "Trebuchet Fidget",
+    "FORTIFY": "Trebuchet Fortify",
+    "RUN": "Trebuchet Run",
     "VICTORY": "Trebuchet Victory"
   },
   "flics": {
     "Trebuchet AttackA": {"size": [208, 215], "directions": 8, "frames": 20, "frameMs": 66, "offset": [16, 12], "canvas": [240, 240]},
     "Trebuchet Death": {"size": [171, 161], "directions": 8, "frames": 20, "frameMs": 66, "offset": [29, 0], "canvas": [240, 240]},
-    "Trebuchet Default": {"size": [112, 82], "directions": 8, "frames": 15, "frameMs": 125, "offset": [61, 66], "canvas": [240, 240]},
-    "Trebuchet Fidget": {"size": [112, 84], "directions": 8, "frames": 15, "frameMs": 100, "offset": [61, 64], "canvas": [240, 240]},
-    "Trebuchet Fortify": {"size": [113, 83], "directions": 8, "frames": 10, "frameMs": 83, "offset": [60, 65], "canvas": [240, 240]},
-    "Trebuchet Run": {"size": [143, 90], "directions": 8, "frames": 10, "frameMs": 66, "offset": [47, 66], "canvas": [240, 240]},
-    "Trebuchet Victory": {"size": [112, 82], "directions": 8, "frames": 16, "frameMs": 66, "offset": [61, 66], "canvas": [240, 240]}
+    "Trebuchet Default": {"size": [132, 90], "directions": 8, "frames": 15, "frameMs": 125, "offset": [56, 65], "canvas": [240, 240]},
+    "Trebuchet Fidget": {"size": [132, 91], "directions": 8, "frames": 15, "frameMs": 100, "offset": [56, 64], "canvas": [240, 240]},
+    "Trebuchet Fortify": {"size": [132, 90], "directions": 8, "frames": 10, "frameMs": 83, "offset": [56, 65], "canvas": [240, 240]},
+    "Trebuchet Run": {"size": [143, 91], "directions": 8, "frames": 10, "frameMs": 66, "offset": [47, 65], "canvas": [240, 240]},
+    "Trebuchet Victory": {"size": [132, 90], "directions": 8, "frames": 16, "frameMs": 66, "offset": [56, 65], "canvas": [240, 240]}
   }
 }

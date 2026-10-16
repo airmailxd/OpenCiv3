@@ -1,15 +1,15 @@
 {
   "actions": {
-    "DEFAULT": "x_Osman default",
-    "RUN": "x_Osman run",
     "DEATH": "x_Osman death",
+    "DEFAULT": "x_Osman default",
+    "FIDGET": "x_Osman fidget",
     "FORTIFY": "x_Osman fidget",
-    "FIDGET": "x_Osman fidget"
+    "RUN": "x_Osman run"
   },
   "flics": {
     "x_Osman death": {"size": [148, 88], "directions": 8, "frames": 15, "frameMs": 66, "offset": [46, 70], "canvas": [240, 240]},
-    "x_Osman default": {"size": [38, 53], "directions": 8, "frames": 15, "frameMs": 125, "offset": [95, 73], "canvas": [240, 240]},
-    "x_Osman fidget": {"size": [57, 53], "directions": 8, "frames": 15, "frameMs": 83, "offset": [85, 73], "canvas": [240, 240]},
-    "x_Osman run": {"size": [53, 59], "directions": 8, "frames": 10, "frameMs": 66, "offset": [89, 72], "canvas": [240, 240]}
+    "x_Osman default": {"size": [49, 64], "directions": 8, "frames": 15, "frameMs": 125, "offset": [95, 70], "canvas": [240, 240]},
+    "x_Osman fidget": {"size": [59, 64], "directions": 8, "frames": 15, "frameMs": 83, "offset": [85, 70], "canvas": [240, 240]},
+    "x_Osman run": {"size": [55, 64], "directions": 8, "frames": 10, "frameMs": 66, "offset": [89, 70], "canvas": [240, 240]}
   }
 }

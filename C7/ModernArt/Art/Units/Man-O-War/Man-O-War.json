@@ -1,16 +1,16 @@
 {
   "actions": {
-    "DEFAULT": "Man-O-WarDefault",
-    "RUN": "Man-O-WarRun",
     "ATTACK1": "Man-O-WarAttackA",
     "DEATH": "Man-O-WarDeath",
-    "FIDGET": "Man-O-WarFidget"
+    "DEFAULT": "Man-O-WarDefault",
+    "FIDGET": "Man-O-WarFidget",
+    "RUN": "Man-O-WarRun"
   },
   "flics": {
-    "Man-O-WarAttackA": {"size": [122, 92], "directions": 8, "frames": 20, "frameMs": 66, "offset": [59, 54], "canvas": [240, 240]},
-    "Man-O-WarDeath": {"size": [129, 114], "directions": 8, "frames": 20, "frameMs": 83, "offset": [56, 39], "canvas": [240, 240]},
-    "Man-O-WarDefault": {"size": [116, 92], "directions": 8, "frames": 10, "frameMs": 125, "offset": [59, 54], "canvas": [240, 240]},
-    "Man-O-WarFidget": {"size": [115, 92], "directions": 8, "frames": 5, "frameMs": 125, "offset": [59, 54], "canvas": [240, 240]},
-    "Man-O-WarRun": {"size": [116, 93], "directions": 8, "frames": 10, "frameMs": 125, "offset": [59, 54], "canvas": [240, 240]}
+    "Man-O-WarAttackA": {"size": [142, 107], "directions": 8, "frames": 20, "frameMs": 66, "offset": [52, 50], "canvas": [240, 240]},
+    "Man-O-WarDeath": {"size": [142, 118], "directions": 8, "frames": 20, "frameMs": 83, "offset": [52, 39], "canvas": [240, 240]},
+    "Man-O-WarDefault": {"size": [142, 107], "directions": 8, "frames": 10, "frameMs": 125, "offset": [52, 50], "canvas": [240, 240]},
+    "Man-O-WarFidget": {"size": [142, 107], "directions": 8, "frames": 5, "frameMs": 125, "offset": [52, 50], "canvas": [240, 240]},
+    "Man-O-WarRun": {"size": [142, 107], "directions": 8, "frames": 10, "frameMs": 125, "offset": [52, 50], "canvas": [240, 240]}
   }
 }

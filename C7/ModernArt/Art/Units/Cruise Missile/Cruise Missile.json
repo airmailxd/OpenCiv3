@@ -1,14 +1,14 @@
 {
   "actions": {
-    "DEFAULT": "CruiseMissileDefault",
-    "RUN": "CruiseMissileRun",
     "ATTACK1": "CruiseMissileAttackA",
-    "DEATH": "CruiseMissileDeath"
+    "DEATH": "CruiseMissileDeath",
+    "DEFAULT": "CruiseMissileDefault",
+    "RUN": "CruiseMissileRun"
   },
   "flics": {
-    "CruiseMissileAttackA": {"size": [137, 94], "directions": 8, "frames": 4, "frameMs": 50, "offset": [52, 59], "canvas": [240, 240]},
+    "CruiseMissileAttackA": {"size": [137, 97], "directions": 8, "frames": 4, "frameMs": 50, "offset": [52, 56], "canvas": [240, 240]},
     "CruiseMissileDeath": {"size": [149, 82], "directions": 1, "frames": 29, "frameMs": 50, "offset": [50, 45], "canvas": [240, 240]},
-    "CruiseMissileDefault": {"size": [49, 70], "directions": 8, "frames": 10, "frameMs": 83, "offset": [96, 59], "canvas": [240, 240]},
+    "CruiseMissileDefault": {"size": [69, 73], "directions": 8, "frames": 10, "frameMs": 83, "offset": [93, 56], "canvas": [240, 240]},
     "CruiseMissileRun": {"size": [154, 100], "directions": 8, "frames": 5, "frameMs": 66, "offset": [44, 43], "canvas": [240, 240]}
   }
 }

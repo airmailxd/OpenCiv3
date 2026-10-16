@@ -1,15 +1,15 @@
 {
   "actions": {
-    "DEFAULT": "x_Catherine default",
-    "RUN": "x_Catherine run",
     "DEATH": "x_Catherine death",
+    "DEFAULT": "x_Catherine default",
+    "FIDGET": "x_Catherine fidget",
     "FORTIFY": "x_Catherine fidget",
-    "FIDGET": "x_Catherine fidget"
+    "RUN": "x_Catherine run"
   },
   "flics": {
     "x_Catherine death": {"size": [110, 73], "directions": 8, "frames": 15, "frameMs": 83, "offset": [64, 75], "canvas": [240, 240]},
-    "x_Catherine default": {"size": [47, 55], "directions": 8, "frames": 15, "frameMs": 125, "offset": [89, 74], "canvas": [240, 240]},
-    "x_Catherine fidget": {"size": [55, 56], "directions": 8, "frames": 15, "frameMs": 83, "offset": [86, 74], "canvas": [240, 240]},
-    "x_Catherine run": {"size": [55, 62], "directions": 8, "frames": 10, "frameMs": 66, "offset": [87, 70], "canvas": [240, 240]}
+    "x_Catherine default": {"size": [57, 63], "directions": 8, "frames": 15, "frameMs": 125, "offset": [89, 74], "canvas": [240, 240]},
+    "x_Catherine fidget": {"size": [60, 63], "directions": 8, "frames": 15, "frameMs": 83, "offset": [86, 74], "canvas": [240, 240]},
+    "x_Catherine run": {"size": [59, 67], "directions": 8, "frames": 10, "frameMs": 66, "offset": [87, 70], "canvas": [240, 240]}
   }
 }

@@ -1,20 +1,20 @@
 {
   "actions": {
-    "DEFAULT": "Mobile_SAM_Default",
-    "RUN": "Mobile_SAM_Run",
     "ATTACK1": "Mobile_SAM_Attack",
     "DEATH": "Mobile_SAM_Death",
-    "FORTIFY": "Mobile_SAM_Fortify",
+    "DEFAULT": "Mobile_SAM_Default",
     "FIDGET": "Mobile_SAM_Fidget",
+    "FORTIFY": "Mobile_SAM_Fortify",
+    "RUN": "Mobile_SAM_Run",
     "VICTORY": "Mobile_SAM_Victory"
   },
   "flics": {
     "Mobile_SAM_Attack": {"size": [209, 143], "directions": 8, "frames": 15, "frameMs": 66, "offset": [16, 0], "canvas": [240, 240]},
-    "Mobile_SAM_Death": {"size": [89, 64], "directions": 8, "frames": 15, "frameMs": 66, "offset": [71, 73], "canvas": [240, 240]},
-    "Mobile_SAM_Default": {"size": [83, 59], "directions": 8, "frames": 15, "frameMs": 125, "offset": [74, 77], "canvas": [240, 240]},
-    "Mobile_SAM_Fidget": {"size": [88, 61], "directions": 8, "frames": 15, "frameMs": 83, "offset": [72, 77], "canvas": [240, 240]},
-    "Mobile_SAM_Fortify": {"size": [90, 61], "directions": 8, "frames": 10, "frameMs": 83, "offset": [72, 77], "canvas": [240, 240]},
-    "Mobile_SAM_Run": {"size": [83, 59], "directions": 8, "frames": 10, "frameMs": 100, "offset": [74, 77], "canvas": [240, 240]},
-    "Mobile_SAM_Victory": {"size": [92, 63], "directions": 8, "frames": 15, "frameMs": 66, "offset": [71, 76], "canvas": [240, 240]}
+    "Mobile_SAM_Death": {"size": [89, 70], "directions": 8, "frames": 15, "frameMs": 66, "offset": [71, 73], "canvas": [240, 240]},
+    "Mobile_SAM_Default": {"size": [83, 66], "directions": 8, "frames": 15, "frameMs": 125, "offset": [74, 77], "canvas": [240, 240]},
+    "Mobile_SAM_Fidget": {"size": [88, 66], "directions": 8, "frames": 15, "frameMs": 83, "offset": [72, 77], "canvas": [240, 240]},
+    "Mobile_SAM_Fortify": {"size": [90, 66], "directions": 8, "frames": 10, "frameMs": 83, "offset": [72, 77], "canvas": [240, 240]},
+    "Mobile_SAM_Run": {"size": [83, 66], "directions": 8, "frames": 10, "frameMs": 100, "offset": [74, 77], "canvas": [240, 240]},
+    "Mobile_SAM_Victory": {"size": [92, 67], "directions": 8, "frames": 15, "frameMs": 66, "offset": [71, 76], "canvas": [240, 240]}
   }
 }

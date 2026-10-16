@@ -1,15 +1,15 @@
 {
   "actions": {
-    "DEFAULT": "x2_Pachacuti_default",
-    "RUN": "x2_Pachacuti_run",
     "DEATH": "x2_Pachacuti_death",
+    "DEFAULT": "x2_Pachacuti_default",
+    "FIDGET": "x2_Pachacuti_fidget",
     "FORTIFY": "x2_Pachacuti_fidget",
-    "FIDGET": "x2_Pachacuti_fidget"
+    "RUN": "x2_Pachacuti_run"
   },
   "flics": {
     "x2_Pachacuti_death": {"size": [176, 122], "directions": 8, "frames": 15, "frameMs": 66, "offset": [30, 49], "canvas": [240, 240]},
-    "x2_Pachacuti_default": {"size": [80, 75], "directions": 8, "frames": 15, "frameMs": 125, "offset": [70, 55], "canvas": [240, 240]},
-    "x2_Pachacuti_fidget": {"size": [82, 79], "directions": 8, "frames": 15, "frameMs": 83, "offset": [68, 51], "canvas": [240, 240]},
-    "x2_Pachacuti_run": {"size": [92, 76], "directions": 8, "frames": 10, "frameMs": 66, "offset": [68, 61], "canvas": [240, 240]}
+    "x2_Pachacuti_default": {"size": [88, 87], "directions": 8, "frames": 15, "frameMs": 125, "offset": [70, 55], "canvas": [240, 240]},
+    "x2_Pachacuti_fidget": {"size": [90, 91], "directions": 8, "frames": 15, "frameMs": 83, "offset": [68, 51], "canvas": [240, 240]},
+    "x2_Pachacuti_run": {"size": [92, 81], "directions": 8, "frames": 10, "frameMs": 66, "offset": [68, 61], "canvas": [240, 240]}
   }
 }

@@ -1,15 +1,15 @@
 {
   "actions": {
-    "DEFAULT": "x_Wang default",
-    "RUN": "x_Wang run",
     "DEATH": "x_Wang death",
+    "DEFAULT": "x_Wang default",
+    "FIDGET": "x_Wang fidget",
     "FORTIFY": "x_Wang fidget",
-    "FIDGET": "x_Wang fidget"
+    "RUN": "x_Wang run"
   },
   "flics": {
     "x_Wang death": {"size": [109, 76], "directions": 8, "frames": 15, "frameMs": 66, "offset": [65, 73], "canvas": [240, 240]},
-    "x_Wang default": {"size": [37, 48], "directions": 8, "frames": 15, "frameMs": 125, "offset": [95, 78], "canvas": [240, 240]},
-    "x_Wang fidget": {"size": [58, 53], "directions": 8, "frames": 15, "frameMs": 83, "offset": [85, 74], "canvas": [240, 240]},
-    "x_Wang run": {"size": [48, 54], "directions": 8, "frames": 10, "frameMs": 66, "offset": [93, 77], "canvas": [240, 240]}
+    "x_Wang default": {"size": [46, 55], "directions": 8, "frames": 15, "frameMs": 125, "offset": [95, 78], "canvas": [240, 240]},
+    "x_Wang fidget": {"size": [58, 59], "directions": 8, "frames": 15, "frameMs": 83, "offset": [85, 74], "canvas": [240, 240]},
+    "x_Wang run": {"size": [48, 56], "directions": 8, "frames": 10, "frameMs": 66, "offset": [93, 77], "canvas": [240, 240]}
   }
 }

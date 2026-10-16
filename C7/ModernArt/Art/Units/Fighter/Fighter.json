@@ -1,16 +1,16 @@
 {
   "actions": {
-    "DEFAULT": "FighterDefault",
-    "RUN": "FighterRun",
     "ATTACK1": "FighterAttackA",
+    "VICTORY": "FighterBomb",
     "DEATH": "FighterDeath",
-    "VICTORY": "FighterBomb"
+    "DEFAULT": "FighterDefault",
+    "RUN": "FighterRun"
   },
   "flics": {
-    "FighterAttackA": {"size": [111, 82], "directions": 8, "frames": 10, "frameMs": 62, "offset": [66, 60], "canvas": [240, 240]},
-    "FighterBomb": {"size": [91, 71], "directions": 8, "frames": 14, "frameMs": 83, "offset": [76, 72], "canvas": [240, 240]},
-    "FighterDeath": {"size": [83, 102], "directions": 8, "frames": 14, "frameMs": 76, "offset": [80, 43], "canvas": [240, 240]},
-    "FighterDefault": {"size": [60, 67], "directions": 8, "frames": 1, "frameMs": 1000, "offset": [90, 71], "canvas": [240, 240]},
-    "FighterRun": {"size": [109, 77], "directions": 8, "frames": 5, "frameMs": 62, "offset": [66, 61], "canvas": [240, 240]}
+    "FighterAttackA": {"size": [111, 84], "directions": 8, "frames": 10, "frameMs": 62, "offset": [66, 60], "canvas": [240, 240]},
+    "FighterBomb": {"size": [92, 76], "directions": 8, "frames": 14, "frameMs": 83, "offset": [76, 68], "canvas": [240, 240]},
+    "FighterDeath": {"size": [88, 102], "directions": 8, "frames": 14, "frameMs": 76, "offset": [80, 43], "canvas": [240, 240]},
+    "FighterDefault": {"size": [81, 76], "directions": 8, "frames": 1, "frameMs": 1000, "offset": [87, 68], "canvas": [240, 240]},
+    "FighterRun": {"size": [109, 83], "directions": 8, "frames": 5, "frameMs": 62, "offset": [66, 61], "canvas": [240, 240]}
   }
 }

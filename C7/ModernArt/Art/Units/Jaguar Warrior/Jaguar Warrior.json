@@ -1,22 +1,22 @@
 {
   "actions": {
-    "DEFAULT": "JaguarWarriorDefault",
-    "RUN": "JaguarWarriorRun",
     "ATTACK1": "JaguarWarriorAttackA",
     "ATTACK2": "JaguarWarriorAttackB",
     "DEATH": "JaguarWarriorDeath",
-    "FORTIFY": "JaguarWarriorFortify",
+    "DEFAULT": "JaguarWarriorDefault",
     "FIDGET": "JaguarWarriorFidget",
+    "FORTIFY": "JaguarWarriorFortify",
+    "RUN": "JaguarWarriorRun",
     "VICTORY": "JaguarWarriorVictory"
   },
   "flics": {
-    "JaguarWarriorAttackA": {"size": [89, 80], "directions": 8, "frames": 15, "frameMs": 83, "offset": [73, 60], "canvas": [240, 240]},
-    "JaguarWarriorAttackB": {"size": [70, 65], "directions": 8, "frames": 15, "frameMs": 66, "offset": [82, 69], "canvas": [240, 240]},
-    "JaguarWarriorDeath": {"size": [122, 81], "directions": 8, "frames": 15, "frameMs": 66, "offset": [59, 71], "canvas": [240, 240]},
-    "JaguarWarriorDefault": {"size": [56, 59], "directions": 8, "frames": 15, "frameMs": 125, "offset": [90, 73], "canvas": [240, 240]},
-    "JaguarWarriorFidget": {"size": [61, 76], "directions": 8, "frames": 15, "frameMs": 83, "offset": [87, 56], "canvas": [240, 240]},
-    "JaguarWarriorFortify": {"size": [55, 60], "directions": 8, "frames": 10, "frameMs": 66, "offset": [90, 71], "canvas": [240, 240]},
-    "JaguarWarriorRun": {"size": [50, 61], "directions": 8, "frames": 10, "frameMs": 66, "offset": [92, 69], "canvas": [240, 240]},
-    "JaguarWarriorVictory": {"size": [58, 62], "directions": 8, "frames": 15, "frameMs": 83, "offset": [88, 70], "canvas": [240, 240]}
+    "JaguarWarriorAttackA": {"size": [92, 85], "directions": 8, "frames": 15, "frameMs": 83, "offset": [73, 60], "canvas": [240, 240]},
+    "JaguarWarriorAttackB": {"size": [84, 79], "directions": 8, "frames": 15, "frameMs": 66, "offset": [81, 66], "canvas": [240, 240]},
+    "JaguarWarriorDeath": {"size": [122, 86], "directions": 8, "frames": 15, "frameMs": 66, "offset": [59, 66], "canvas": [240, 240]},
+    "JaguarWarriorDefault": {"size": [84, 79], "directions": 8, "frames": 15, "frameMs": 125, "offset": [81, 66], "canvas": [240, 240]},
+    "JaguarWarriorFidget": {"size": [84, 89], "directions": 8, "frames": 15, "frameMs": 83, "offset": [81, 56], "canvas": [240, 240]},
+    "JaguarWarriorFortify": {"size": [84, 79], "directions": 8, "frames": 10, "frameMs": 66, "offset": [81, 66], "canvas": [240, 240]},
+    "JaguarWarriorRun": {"size": [84, 79], "directions": 8, "frames": 10, "frameMs": 66, "offset": [81, 66], "canvas": [240, 240]},
+    "JaguarWarriorVictory": {"size": [84, 79], "directions": 8, "frames": 15, "frameMs": 83, "offset": [81, 66], "canvas": [240, 240]}
   }
 }

@@ -1,22 +1,22 @@
 {
   "actions": {
-    "DEFAULT": "x_Ninja default",
-    "RUN": "x_Ninja run",
     "ATTACK1": "x_Ninja attack_a",
     "ATTACK2": "x_Ninja attack_b",
     "DEATH": "x_Ninja death",
-    "FORTIFY": "x_Ninja fortify",
+    "DEFAULT": "x_Ninja default",
     "FIDGET": "x_Ninja fidget",
+    "FORTIFY": "x_Ninja fortify",
+    "RUN": "x_Ninja run",
     "VICTORY": "x_Ninja victory"
   },
   "flics": {
-    "x_Ninja attack_a": {"size": [79, 69], "directions": 8, "frames": 15, "frameMs": 83, "offset": [75, 65], "canvas": [240, 240]},
-    "x_Ninja attack_b": {"size": [86, 66], "directions": 8, "frames": 15, "frameMs": 83, "offset": [70, 67], "canvas": [240, 240]},
-    "x_Ninja death": {"size": [120, 75], "directions": 8, "frames": 15, "frameMs": 83, "offset": [59, 76], "canvas": [240, 240]},
-    "x_Ninja default": {"size": [49, 49], "directions": 8, "frames": 15, "frameMs": 125, "offset": [92, 80], "canvas": [240, 240]},
-    "x_Ninja fidget": {"size": [71, 72], "directions": 8, "frames": 14, "frameMs": 83, "offset": [75, 57], "canvas": [240, 240]},
-    "x_Ninja fortify": {"size": [59, 51], "directions": 8, "frames": 11, "frameMs": 83, "offset": [86, 80], "canvas": [240, 240]},
-    "x_Ninja run": {"size": [58, 54], "directions": 8, "frames": 10, "frameMs": 66, "offset": [86, 77], "canvas": [240, 240]},
-    "x_Ninja victory": {"size": [62, 55], "directions": 8, "frames": 15, "frameMs": 83, "offset": [85, 77], "canvas": [240, 240]}
+    "x_Ninja attack_a": {"size": [86, 77], "directions": 8, "frames": 15, "frameMs": 83, "offset": [75, 65], "canvas": [240, 240]},
+    "x_Ninja attack_b": {"size": [91, 75], "directions": 8, "frames": 15, "frameMs": 83, "offset": [70, 67], "canvas": [240, 240]},
+    "x_Ninja death": {"size": [120, 77], "directions": 8, "frames": 15, "frameMs": 83, "offset": [59, 74], "canvas": [240, 240]},
+    "x_Ninja default": {"size": [75, 68], "directions": 8, "frames": 15, "frameMs": 125, "offset": [86, 74], "canvas": [240, 240]},
+    "x_Ninja fidget": {"size": [86, 85], "directions": 8, "frames": 14, "frameMs": 83, "offset": [75, 57], "canvas": [240, 240]},
+    "x_Ninja fortify": {"size": [75, 68], "directions": 8, "frames": 11, "frameMs": 83, "offset": [86, 74], "canvas": [240, 240]},
+    "x_Ninja run": {"size": [75, 68], "directions": 8, "frames": 10, "frameMs": 66, "offset": [86, 74], "canvas": [240, 240]},
+    "x_Ninja victory": {"size": [76, 68], "directions": 8, "frames": 15, "frameMs": 83, "offset": [85, 74], "canvas": [240, 240]}
   }
 }

@@ -1,17 +1,17 @@
 {
   "actions": {
-    "DEFAULT": "DestroyerDefault",
-    "RUN": "DestroyerRun",
     "ATTACK1": "DestroyerAttackA",
     "DEATH": "DestroyerDeath",
+    "DEFAULT": "DestroyerDefault",
+    "FIDGET": "DestroyerFidget",
     "FORTIFY": "DestroyerFidget",
-    "FIDGET": "DestroyerFidget"
+    "RUN": "DestroyerRun"
   },
   "flics": {
     "DestroyerAttackA": {"size": [240, 240], "directions": 8, "frames": 20, "frameMs": 100, "offset": [0, 0], "canvas": [240, 240]},
     "DestroyerDeath": {"size": [240, 240], "directions": 8, "frames": 20, "frameMs": 90, "offset": [0, 0], "canvas": [240, 240]},
-    "DestroyerDefault": {"size": [120, 69], "directions": 8, "frames": 10, "frameMs": 166, "offset": [60, 81], "canvas": [240, 240]},
-    "DestroyerFidget": {"size": [120, 69], "directions": 8, "frames": 10, "frameMs": 100, "offset": [60, 81], "canvas": [240, 240]},
+    "DestroyerDefault": {"size": [120, 71], "directions": 8, "frames": 10, "frameMs": 166, "offset": [60, 81], "canvas": [240, 240]},
+    "DestroyerFidget": {"size": [120, 71], "directions": 8, "frames": 10, "frameMs": 100, "offset": [60, 81], "canvas": [240, 240]},
     "DestroyerRun": {"size": [148, 75], "directions": 8, "frames": 14, "frameMs": 125, "offset": [46, 82], "canvas": [240, 240]}
   }
 }

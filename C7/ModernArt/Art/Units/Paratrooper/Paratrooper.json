@@ -1,22 +1,22 @@
 {
   "actions": {
-    "DEFAULT": "ParatrooperDefault",
-    "RUN": "ParatrooperRun",
     "ATTACK1": "ParatrooperAttackA",
     "DEATH": "ParatrooperDeath",
-    "FORTIFY": "ParatrooperFortify",
+    "DEFAULT": "ParatrooperDefault",
+    "BUILD": "ParatrooperDrop",
     "FIDGET": "ParatrooperFidget",
-    "VICTORY": "ParatrooperVictory",
-    "BUILD": "ParatrooperDrop"
+    "FORTIFY": "ParatrooperFortify",
+    "RUN": "ParatrooperRun",
+    "VICTORY": "ParatrooperVictory"
   },
   "flics": {
-    "ParatrooperAttackA": {"size": [35, 45], "directions": 8, "frames": 15, "frameMs": 66, "offset": [100, 83], "canvas": [240, 240]},
-    "ParatrooperDeath": {"size": [146, 82], "directions": 8, "frames": 15, "frameMs": 66, "offset": [47, 76], "canvas": [240, 240]},
-    "ParatrooperDefault": {"size": [67, 83], "directions": 8, "frames": 15, "frameMs": 125, "offset": [66, 43], "canvas": [240, 240]},
-    "ParatrooperDrop": {"size": [88, 135], "directions": 1, "frames": 23, "frameMs": 76, "offset": [65, 3], "canvas": [240, 240]},
-    "ParatrooperFidget": {"size": [32, 44], "directions": 8, "frames": 15, "frameMs": 83, "offset": [102, 82], "canvas": [240, 240]},
-    "ParatrooperFortify": {"size": [37, 48], "directions": 8, "frames": 10, "frameMs": 66, "offset": [99, 80], "canvas": [240, 240]},
-    "ParatrooperRun": {"size": [40, 50], "directions": 8, "frames": 10, "frameMs": 66, "offset": [98, 80], "canvas": [240, 240]},
-    "ParatrooperVictory": {"size": [47, 58], "directions": 8, "frames": 15, "frameMs": 83, "offset": [96, 74], "canvas": [240, 240]}
+    "ParatrooperAttackA": {"size": [68, 68], "directions": 8, "frames": 15, "frameMs": 66, "offset": [89, 73], "canvas": [240, 240]},
+    "ParatrooperDeath": {"size": [146, 85], "directions": 8, "frames": 15, "frameMs": 66, "offset": [47, 73], "canvas": [240, 240]},
+    "ParatrooperDefault": {"size": [91, 98], "directions": 8, "frames": 15, "frameMs": 125, "offset": [66, 43], "canvas": [240, 240]},
+    "ParatrooperDrop": {"size": [92, 138], "directions": 1, "frames": 23, "frameMs": 76, "offset": [65, 3], "canvas": [240, 240]},
+    "ParatrooperFidget": {"size": [68, 68], "directions": 8, "frames": 15, "frameMs": 83, "offset": [89, 73], "canvas": [240, 240]},
+    "ParatrooperFortify": {"size": [68, 68], "directions": 8, "frames": 10, "frameMs": 66, "offset": [89, 73], "canvas": [240, 240]},
+    "ParatrooperRun": {"size": [68, 68], "directions": 8, "frames": 10, "frameMs": 66, "offset": [89, 73], "canvas": [240, 240]},
+    "ParatrooperVictory": {"size": [68, 68], "directions": 8, "frames": 15, "frameMs": 83, "offset": [89, 73], "canvas": [240, 240]}
   }
 }

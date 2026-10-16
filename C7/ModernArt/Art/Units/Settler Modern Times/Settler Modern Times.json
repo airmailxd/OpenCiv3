@@ -1,18 +1,18 @@
 {
   "actions": {
-    "DEFAULT": "SettlerModernDefault",
-    "RUN": "SettlerModernRun",
-    "DEATH": "SettlerModernDeath",
-    "FIDGET": "SettlerModernFidget",
     "BUILD": "SettlerModernBuild",
-    "CAPTURE": "SettlerModernCaptured"
+    "CAPTURE": "SettlerModernCaptured",
+    "DEATH": "SettlerModernDeath",
+    "DEFAULT": "SettlerModernDefault",
+    "FIDGET": "SettlerModernFidget",
+    "RUN": "SettlerModernRun"
   },
   "flics": {
-    "SettlerModernBuild": {"size": [47, 59], "directions": 8, "frames": 15, "frameMs": 83, "offset": [94, 73], "canvas": [240, 240]},
-    "SettlerModernCaptured": {"size": [45, 52], "directions": 8, "frames": 10, "frameMs": 83, "offset": [95, 77], "canvas": [240, 240]},
-    "SettlerModernDeath": {"size": [83, 67], "directions": 8, "frames": 15, "frameMs": 66, "offset": [78, 75], "canvas": [240, 240]},
-    "SettlerModernDefault": {"size": [37, 50], "directions": 8, "frames": 15, "frameMs": 125, "offset": [99, 78], "canvas": [240, 240]},
-    "SettlerModernFidget": {"size": [38, 50], "directions": 8, "frames": 15, "frameMs": 83, "offset": [98, 78], "canvas": [240, 240]},
-    "SettlerModernRun": {"size": [42, 53], "directions": 8, "frames": 10, "frameMs": 66, "offset": [96, 75], "canvas": [240, 240]}
+    "SettlerModernBuild": {"size": [63, 78], "directions": 8, "frames": 15, "frameMs": 83, "offset": [94, 63], "canvas": [240, 240]},
+    "SettlerModernCaptured": {"size": [62, 78], "directions": 8, "frames": 10, "frameMs": 83, "offset": [95, 63], "canvas": [240, 240]},
+    "SettlerModernDeath": {"size": [83, 79], "directions": 8, "frames": 15, "frameMs": 66, "offset": [78, 63], "canvas": [240, 240]},
+    "SettlerModernDefault": {"size": [61, 78], "directions": 8, "frames": 15, "frameMs": 125, "offset": [96, 63], "canvas": [240, 240]},
+    "SettlerModernFidget": {"size": [61, 78], "directions": 8, "frames": 15, "frameMs": 83, "offset": [96, 63], "canvas": [240, 240]},
+    "SettlerModernRun": {"size": [61, 78], "directions": 8, "frames": 10, "frameMs": 66, "offset": [96, 63], "canvas": [240, 240]}
   }
 }

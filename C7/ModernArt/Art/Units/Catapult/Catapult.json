@@ -1,20 +1,20 @@
 {
   "actions": {
-    "DEFAULT": "x_CatapultDefault",
-    "RUN": "x_CatapultRun",
     "ATTACK1": "x_CatapultAttack",
     "DEATH": "x_CatapultDeath",
-    "FORTIFY": "x_CatapultFortify",
+    "DEFAULT": "x_CatapultDefault",
     "FIDGET": "x_CatapultFidget",
+    "FORTIFY": "x_CatapultFortify",
+    "RUN": "x_CatapultRun",
     "VICTORY": "x_CatapultVictory"
   },
   "flics": {
-    "x_CatapultAttack": {"size": [113, 86], "directions": 8, "frames": 20, "frameMs": 66, "offset": [60, 59], "canvas": [240, 240]},
-    "x_CatapultDeath": {"size": [106, 110], "directions": 8, "frames": 19, "frameMs": 66, "offset": [67, 36], "canvas": [240, 240]},
-    "x_CatapultDefault": {"size": [77, 60], "directions": 8, "frames": 15, "frameMs": 125, "offset": [81, 81], "canvas": [240, 240]},
-    "x_CatapultFidget": {"size": [78, 61], "directions": 8, "frames": 14, "frameMs": 83, "offset": [81, 80], "canvas": [240, 240]},
-    "x_CatapultFortify": {"size": [81, 60], "directions": 8, "frames": 10, "frameMs": 83, "offset": [79, 81], "canvas": [240, 240]},
-    "x_CatapultRun": {"size": [99, 68], "directions": 8, "frames": 10, "frameMs": 66, "offset": [69, 78], "canvas": [240, 240]},
-    "x_CatapultVictory": {"size": [95, 73], "directions": 8, "frames": 15, "frameMs": 83, "offset": [72, 69], "canvas": [240, 240]}
+    "x_CatapultAttack": {"size": [113, 89], "directions": 8, "frames": 20, "frameMs": 66, "offset": [60, 59], "canvas": [240, 240]},
+    "x_CatapultDeath": {"size": [106, 112], "directions": 8, "frames": 19, "frameMs": 66, "offset": [67, 36], "canvas": [240, 240]},
+    "x_CatapultDefault": {"size": [82, 76], "directions": 8, "frames": 15, "frameMs": 125, "offset": [81, 72], "canvas": [240, 240]},
+    "x_CatapultFidget": {"size": [82, 76], "directions": 8, "frames": 14, "frameMs": 83, "offset": [81, 72], "canvas": [240, 240]},
+    "x_CatapultFortify": {"size": [84, 76], "directions": 8, "frames": 10, "frameMs": 83, "offset": [79, 72], "canvas": [240, 240]},
+    "x_CatapultRun": {"size": [99, 76], "directions": 8, "frames": 10, "frameMs": 66, "offset": [69, 72], "canvas": [240, 240]},
+    "x_CatapultVictory": {"size": [95, 79], "directions": 8, "frames": 15, "frameMs": 83, "offset": [72, 69], "canvas": [240, 240]}
   }
 }

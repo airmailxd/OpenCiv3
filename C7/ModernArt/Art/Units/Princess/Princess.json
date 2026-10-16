@@ -1,15 +1,15 @@
 {
   "actions": {
-    "DEFAULT": "x_PrincessDefault",
-    "RUN": "x_PrincessRun",
     "DEATH": "x_PrincessDeath",
+    "DEFAULT": "x_PrincessDefault",
+    "FIDGET": "x_PrincessFidget",
     "FORTIFY": "x_PrincessFidget",
-    "FIDGET": "x_PrincessFidget"
+    "RUN": "x_PrincessRun"
   },
   "flics": {
     "x_PrincessDeath": {"size": [106, 70], "directions": 8, "frames": 15, "frameMs": 66, "offset": [66, 77], "canvas": [240, 240]},
-    "x_PrincessDefault": {"size": [33, 50], "directions": 8, "frames": 15, "frameMs": 125, "offset": [100, 77], "canvas": [240, 240]},
-    "x_PrincessFidget": {"size": [45, 61], "directions": 8, "frames": 15, "frameMs": 83, "offset": [93, 66], "canvas": [240, 240]},
-    "x_PrincessRun": {"size": [40, 55], "directions": 8, "frames": 10, "frameMs": 66, "offset": [98, 75], "canvas": [240, 240]}
+    "x_PrincessDefault": {"size": [44, 59], "directions": 8, "frames": 15, "frameMs": 125, "offset": [100, 77], "canvas": [240, 240]},
+    "x_PrincessFidget": {"size": [51, 70], "directions": 8, "frames": 15, "frameMs": 83, "offset": [93, 66], "canvas": [240, 240]},
+    "x_PrincessRun": {"size": [46, 61], "directions": 8, "frames": 10, "frameMs": 66, "offset": [98, 75], "canvas": [240, 240]}
   }
 }

@@ -1,18 +1,18 @@
 {
   "actions": {
-    "DEFAULT": "RadarArtilleryDefault",
-    "RUN": "RadarArtilleryRun",
     "ATTACK1": "RadarArtilleryAttackA",
     "DEATH": "RadarArtilleryDeath",
+    "DEFAULT": "RadarArtilleryDefault",
+    "FIDGET": "RadarArtilleryFidget",
     "FORTIFY": "RadarArtilleryFortify",
-    "FIDGET": "RadarArtilleryFidget"
+    "RUN": "RadarArtilleryRun"
   },
   "flics": {
     "RadarArtilleryAttackA": {"size": [139, 91], "directions": 8, "frames": 20, "frameMs": 40, "offset": [45, 62], "canvas": [240, 240]},
-    "RadarArtilleryDeath": {"size": [80, 73], "directions": 8, "frames": 15, "frameMs": 83, "offset": [81, 65], "canvas": [240, 240]},
-    "RadarArtilleryDefault": {"size": [64, 50], "directions": 8, "frames": 1, "frameMs": 1000, "offset": [86, 86], "canvas": [240, 240]},
-    "RadarArtilleryFidget": {"size": [66, 51], "directions": 8, "frames": 12, "frameMs": 125, "offset": [85, 85], "canvas": [240, 240]},
-    "RadarArtilleryFortify": {"size": [74, 59], "directions": 8, "frames": 10, "frameMs": 100, "offset": [81, 78], "canvas": [240, 240]},
-    "RadarArtilleryRun": {"size": [64, 51], "directions": 8, "frames": 15, "frameMs": 100, "offset": [86, 85], "canvas": [240, 240]}
+    "RadarArtilleryDeath": {"size": [80, 77], "directions": 8, "frames": 15, "frameMs": 83, "offset": [81, 65], "canvas": [240, 240]},
+    "RadarArtilleryDefault": {"size": [69, 62], "directions": 8, "frames": 1, "frameMs": 1000, "offset": [86, 80], "canvas": [240, 240]},
+    "RadarArtilleryFidget": {"size": [70, 62], "directions": 8, "frames": 12, "frameMs": 125, "offset": [85, 80], "canvas": [240, 240]},
+    "RadarArtilleryFortify": {"size": [74, 64], "directions": 8, "frames": 10, "frameMs": 100, "offset": [81, 78], "canvas": [240, 240]},
+    "RadarArtilleryRun": {"size": [69, 62], "directions": 8, "frames": 15, "frameMs": 100, "offset": [86, 80], "canvas": [240, 240]}
   }
 }

@@ -1,15 +1,15 @@
 {
   "actions": {
-    "DEFAULT": "holy relic default",
-    "RUN": "holy relic run",
     "DEATH": "holy relic death",
+    "DEFAULT": "holy relic default",
+    "FIDGET": "holy relic fidget",
     "FORTIFY": "holy relic fidget",
-    "FIDGET": "holy relic fidget"
+    "RUN": "holy relic run"
   },
   "flics": {
-    "holy relic death": {"size": [188, 106], "directions": 8, "frames": 15, "frameMs": 66, "offset": [25, 61], "canvas": [240, 240]},
-    "holy relic default": {"size": [104, 82], "directions": 8, "frames": 13, "frameMs": 125, "offset": [62, 62], "canvas": [240, 240]},
-    "holy relic fidget": {"size": [106, 81], "directions": 8, "frames": 15, "frameMs": 100, "offset": [61, 62], "canvas": [240, 240]},
-    "holy relic run": {"size": [115, 85], "directions": 8, "frames": 10, "frameMs": 66, "offset": [60, 62], "canvas": [240, 240]}
+    "holy relic death": {"size": [188, 108], "directions": 8, "frames": 15, "frameMs": 66, "offset": [25, 59], "canvas": [240, 240]},
+    "holy relic default": {"size": [114, 92], "directions": 8, "frames": 13, "frameMs": 125, "offset": [62, 59], "canvas": [240, 240]},
+    "holy relic fidget": {"size": [115, 92], "directions": 8, "frames": 15, "frameMs": 100, "offset": [61, 59], "canvas": [240, 240]},
+    "holy relic run": {"size": [116, 92], "directions": 8, "frames": 10, "frameMs": 66, "offset": [60, 59], "canvas": [240, 240]}
   }
 }

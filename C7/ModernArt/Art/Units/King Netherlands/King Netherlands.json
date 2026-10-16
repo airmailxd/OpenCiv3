@@ -1,15 +1,15 @@
 {
   "actions": {
-    "DEFAULT": "X2_William_default",
-    "RUN": "X2_William_run",
     "DEATH": "X2_William_death",
+    "DEFAULT": "X2_William_default",
+    "FIDGET": "X2_William_fidget",
     "FORTIFY": "X2_William_fidget",
-    "FIDGET": "X2_William_fidget"
+    "RUN": "X2_William_run"
   },
   "flics": {
-    "X2_William_death": {"size": [86, 58], "directions": 8, "frames": 15, "frameMs": 66, "offset": [76, 83], "canvas": [240, 240]},
-    "X2_William_default": {"size": [65, 59], "directions": 8, "frames": 15, "frameMs": 125, "offset": [88, 77], "canvas": [240, 240]},
-    "X2_William_fidget": {"size": [71, 61], "directions": 8, "frames": 15, "frameMs": 83, "offset": [82, 75], "canvas": [240, 240]},
-    "X2_William_run": {"size": [75, 67], "directions": 8, "frames": 10, "frameMs": 66, "offset": [83, 72], "canvas": [240, 240]}
+    "X2_William_death": {"size": [86, 66], "directions": 8, "frames": 15, "frameMs": 66, "offset": [76, 80], "canvas": [240, 240]},
+    "X2_William_default": {"size": [68, 69], "directions": 8, "frames": 15, "frameMs": 125, "offset": [85, 77], "canvas": [240, 240]},
+    "X2_William_fidget": {"size": [71, 71], "directions": 8, "frames": 15, "frameMs": 83, "offset": [82, 75], "canvas": [240, 240]},
+    "X2_William_run": {"size": [75, 74], "directions": 8, "frames": 10, "frameMs": 66, "offset": [83, 72], "canvas": [240, 240]}
   }
 }

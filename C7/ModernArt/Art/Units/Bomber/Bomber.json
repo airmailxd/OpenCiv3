@@ -1,16 +1,16 @@
 {
   "actions": {
-    "DEFAULT": "BomberDefault",
-    "RUN": "BomberRun",
     "ATTACK1": "BomberAttackA",
+    "VICTORY": "BomberBomb",
     "DEATH": "BomberDeath",
-    "VICTORY": "BomberBomb"
+    "DEFAULT": "BomberDefault",
+    "RUN": "BomberRun"
   },
   "flics": {
     "BomberAttackA": {"size": [240, 240], "directions": 8, "frames": 10, "frameMs": 66, "offset": [0, 0], "canvas": [240, 240]},
     "BomberBomb": {"size": [166, 115], "directions": 8, "frames": 20, "frameMs": 83, "offset": [38, 51], "canvas": [240, 240]},
-    "BomberDeath": {"size": [116, 132], "directions": 8, "frames": 15, "frameMs": 66, "offset": [64, 24], "canvas": [240, 240]},
-    "BomberDefault": {"size": [90, 101], "directions": 8, "frames": 1, "frameMs": 1000, "offset": [76, 53], "canvas": [240, 240]},
-    "BomberRun": {"size": [90, 101], "directions": 8, "frames": 5, "frameMs": 66, "offset": [76, 53], "canvas": [240, 240]}
+    "BomberDeath": {"size": [131, 141], "directions": 8, "frames": 15, "frameMs": 66, "offset": [64, 24], "canvas": [240, 240]},
+    "BomberDefault": {"size": [128, 113], "directions": 8, "frames": 1, "frameMs": 1000, "offset": [67, 52], "canvas": [240, 240]},
+    "BomberRun": {"size": [128, 113], "directions": 8, "frames": 5, "frameMs": 66, "offset": [67, 52], "canvas": [240, 240]}
   }
 }

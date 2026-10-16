@@ -1,20 +1,20 @@
 {
   "actions": {
-    "DEFAULT": "TOW_Infantry_Default",
-    "RUN": "TOW_Infantry_Run",
     "ATTACK1": "TOW_Infantry_Attack",
     "DEATH": "TOW_Infantry_Death",
-    "FORTIFY": "TOW_Infantry_Fortify",
+    "DEFAULT": "TOW_Infantry_Default",
     "FIDGET": "TOW_Infantry_Fidget",
+    "FORTIFY": "TOW_Infantry_Fortify",
+    "RUN": "TOW_Infantry_Run",
     "VICTORY": "TOW_Infantry_Victory"
   },
   "flics": {
     "TOW_Infantry_Attack": {"size": [231, 122], "directions": 8, "frames": 15, "frameMs": 66, "offset": [5, 22], "canvas": [240, 240]},
     "TOW_Infantry_Death": {"size": [134, 87], "directions": 8, "frames": 15, "frameMs": 66, "offset": [53, 67], "canvas": [240, 240]},
-    "TOW_Infantry_Default": {"size": [78, 64], "directions": 8, "frames": 15, "frameMs": 125, "offset": [76, 73], "canvas": [240, 240]},
-    "TOW_Infantry_Fidget": {"size": [78, 64], "directions": 8, "frames": 15, "frameMs": 83, "offset": [76, 73], "canvas": [240, 240]},
-    "TOW_Infantry_Fortify": {"size": [78, 62], "directions": 8, "frames": 10, "frameMs": 83, "offset": [76, 75], "canvas": [240, 240]},
-    "TOW_Infantry_Run": {"size": [78, 78], "directions": 8, "frames": 10, "frameMs": 66, "offset": [72, 61], "canvas": [240, 240]},
-    "TOW_Infantry_Victory": {"size": [79, 67], "directions": 8, "frames": 15, "frameMs": 66, "offset": [76, 70], "canvas": [240, 240]}
+    "TOW_Infantry_Default": {"size": [78, 71], "directions": 8, "frames": 15, "frameMs": 125, "offset": [76, 73], "canvas": [240, 240]},
+    "TOW_Infantry_Fidget": {"size": [78, 71], "directions": 8, "frames": 15, "frameMs": 83, "offset": [76, 73], "canvas": [240, 240]},
+    "TOW_Infantry_Fortify": {"size": [78, 69], "directions": 8, "frames": 10, "frameMs": 83, "offset": [76, 75], "canvas": [240, 240]},
+    "TOW_Infantry_Run": {"size": [78, 83], "directions": 8, "frames": 10, "frameMs": 66, "offset": [72, 61], "canvas": [240, 240]},
+    "TOW_Infantry_Victory": {"size": [79, 74], "directions": 8, "frames": 15, "frameMs": 66, "offset": [76, 70], "canvas": [240, 240]}
   }
 }

@@ -1,15 +1,15 @@
 {
   "actions": {
-    "DEFAULT": "X2_Smoke-Jaguar_default",
-    "RUN": "X2_Smoke-Jaguar_run",
     "DEATH": "X2_Smoke-Jaguar_death",
+    "DEFAULT": "X2_Smoke-Jaguar_default",
+    "FIDGET": "X2_Smoke-Jaguar_fidget",
     "FORTIFY": "X2_Smoke-Jaguar_fidget",
-    "FIDGET": "X2_Smoke-Jaguar_fidget"
+    "RUN": "X2_Smoke-Jaguar_run"
   },
   "flics": {
     "X2_Smoke-Jaguar_death": {"size": [102, 79], "directions": 8, "frames": 15, "frameMs": 83, "offset": [68, 68], "canvas": [240, 240]},
-    "X2_Smoke-Jaguar_default": {"size": [47, 60], "directions": 8, "frames": 15, "frameMs": 125, "offset": [87, 68], "canvas": [240, 240]},
-    "X2_Smoke-Jaguar_fidget": {"size": [72, 63], "directions": 8, "frames": 15, "frameMs": 83, "offset": [77, 66], "canvas": [240, 240]},
-    "X2_Smoke-Jaguar_run": {"size": [80, 75], "directions": 8, "frames": 10, "frameMs": 66, "offset": [70, 56], "canvas": [240, 240]}
+    "X2_Smoke-Jaguar_default": {"size": [56, 68], "directions": 8, "frames": 15, "frameMs": 125, "offset": [87, 68], "canvas": [240, 240]},
+    "X2_Smoke-Jaguar_fidget": {"size": [72, 70], "directions": 8, "frames": 15, "frameMs": 83, "offset": [77, 66], "canvas": [240, 240]},
+    "X2_Smoke-Jaguar_run": {"size": [80, 80], "directions": 8, "frames": 10, "frameMs": 66, "offset": [70, 56], "canvas": [240, 240]}
   }
 }

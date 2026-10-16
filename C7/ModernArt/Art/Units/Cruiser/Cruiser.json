@@ -1,17 +1,17 @@
 {
   "actions": {
-    "DEFAULT": "HeavyCruiser_default",
-    "RUN": "HeavyCruiser_run",
     "ATTACK1": "HeavyCruiser_attack",
     "DEATH": "HeavyCruiser_death",
+    "DEFAULT": "HeavyCruiser_default",
+    "FIDGET": "HeavyCruiser_fidget",
     "FORTIFY": "HeavyCruiser_fidget",
-    "FIDGET": "HeavyCruiser_fidget"
+    "RUN": "HeavyCruiser_run"
   },
   "flics": {
     "HeavyCruiser_attack": {"size": [151, 108], "directions": 8, "frames": 10, "frameMs": 66, "offset": [40, 49], "canvas": [240, 240]},
     "HeavyCruiser_death": {"size": [144, 132], "directions": 8, "frames": 17, "frameMs": 66, "offset": [48, 24], "canvas": [240, 240]},
-    "HeavyCruiser_default": {"size": [140, 77], "directions": 8, "frames": 10, "frameMs": 125, "offset": [48, 76], "canvas": [240, 240]},
-    "HeavyCruiser_fidget": {"size": [140, 77], "directions": 8, "frames": 10, "frameMs": 100, "offset": [48, 76], "canvas": [240, 240]},
+    "HeavyCruiser_default": {"size": [140, 80], "directions": 8, "frames": 10, "frameMs": 125, "offset": [48, 76], "canvas": [240, 240]},
+    "HeavyCruiser_fidget": {"size": [140, 80], "directions": 8, "frames": 10, "frameMs": 100, "offset": [48, 76], "canvas": [240, 240]},
     "HeavyCruiser_run": {"size": [151, 81], "directions": 8, "frames": 10, "frameMs": 66, "offset": [40, 76], "canvas": [240, 240]}
   }
 }

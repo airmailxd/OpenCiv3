@@ -1,15 +1,15 @@
 {
   "actions": {
-    "DEFAULT": "x_Ragnar default",
-    "RUN": "x_Ragnar run",
     "DEATH": "x_Ragnar death",
+    "DEFAULT": "x_Ragnar default",
+    "FIDGET": "x_Ragnar fidget",
     "FORTIFY": "x_Ragnar fidget",
-    "FIDGET": "x_Ragnar fidget"
+    "RUN": "x_Ragnar run"
   },
   "flics": {
-    "x_Ragnar death": {"size": [136, 81], "directions": 8, "frames": 15, "frameMs": 66, "offset": [52, 74], "canvas": [240, 240]},
-    "x_Ragnar default": {"size": [47, 53], "directions": 8, "frames": 15, "frameMs": 125, "offset": [94, 77], "canvas": [240, 240]},
-    "x_Ragnar fidget": {"size": [55, 55], "directions": 8, "frames": 15, "frameMs": 83, "offset": [86, 75], "canvas": [240, 240]},
-    "x_Ragnar run": {"size": [64, 56], "directions": 8, "frames": 10, "frameMs": 66, "offset": [83, 75], "canvas": [240, 240]}
+    "x_Ragnar death": {"size": [136, 82], "directions": 8, "frames": 15, "frameMs": 66, "offset": [52, 73], "canvas": [240, 240]},
+    "x_Ragnar default": {"size": [50, 63], "directions": 8, "frames": 15, "frameMs": 125, "offset": [94, 73], "canvas": [240, 240]},
+    "x_Ragnar fidget": {"size": [58, 63], "directions": 8, "frames": 15, "frameMs": 83, "offset": [86, 73], "canvas": [240, 240]},
+    "x_Ragnar run": {"size": [64, 63], "directions": 8, "frames": 10, "frameMs": 66, "offset": [83, 73], "canvas": [240, 240]}
   }
 }

@@ -1,20 +1,20 @@
 {
   "actions": {
-    "DEFAULT": "MarineDefault",
-    "RUN": "MarineRun",
     "ATTACK1": "MarineAttackA",
     "DEATH": "MarineDeath",
-    "FORTIFY": "MarineFortify",
+    "DEFAULT": "MarineDefault",
     "FIDGET": "MarineFidget",
+    "FORTIFY": "MarineFortify",
+    "RUN": "MarineRun",
     "VICTORY": "MarineVictory"
   },
   "flics": {
-    "MarineAttackA": {"size": [129, 72], "directions": 8, "frames": 15, "frameMs": 66, "offset": [54, 60], "canvas": [240, 240]},
+    "MarineAttackA": {"size": [129, 83], "directions": 8, "frames": 15, "frameMs": 66, "offset": [54, 60], "canvas": [240, 240]},
     "MarineDeath": {"size": [116, 83], "directions": 8, "frames": 15, "frameMs": 66, "offset": [62, 66], "canvas": [240, 240]},
-    "MarineDefault": {"size": [42, 44], "directions": 8, "frames": 15, "frameMs": 125, "offset": [99, 81], "canvas": [240, 240]},
-    "MarineFidget": {"size": [44, 45], "directions": 8, "frames": 15, "frameMs": 100, "offset": [98, 80], "canvas": [240, 240]},
-    "MarineFortify": {"size": [54, 47], "directions": 8, "frames": 10, "frameMs": 66, "offset": [93, 79], "canvas": [240, 240]},
-    "MarineRun": {"size": [54, 47], "directions": 8, "frames": 10, "frameMs": 66, "offset": [93, 77], "canvas": [240, 240]},
-    "MarineVictory": {"size": [54, 50], "directions": 8, "frames": 15, "frameMs": 83, "offset": [93, 77], "canvas": [240, 240]}
+    "MarineDefault": {"size": [75, 71], "directions": 8, "frames": 15, "frameMs": 125, "offset": [87, 72], "canvas": [240, 240]},
+    "MarineFidget": {"size": [75, 71], "directions": 8, "frames": 15, "frameMs": 100, "offset": [87, 72], "canvas": [240, 240]},
+    "MarineFortify": {"size": [75, 71], "directions": 8, "frames": 10, "frameMs": 66, "offset": [87, 72], "canvas": [240, 240]},
+    "MarineRun": {"size": [75, 71], "directions": 8, "frames": 10, "frameMs": 66, "offset": [87, 72], "canvas": [240, 240]},
+    "MarineVictory": {"size": [75, 71], "directions": 8, "frames": 15, "frameMs": 83, "offset": [87, 72], "canvas": [240, 240]}
   }
 }

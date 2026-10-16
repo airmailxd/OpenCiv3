@@ -1,17 +1,17 @@
 {
   "actions": {
-    "DEFAULT": "IroncladDefault",
-    "RUN": "IroncladRun",
     "ATTACK1": "IroncladAttackA",
     "DEATH": "IroncladDeath",
+    "DEFAULT": "IroncladDefault",
+    "FIDGET": "IroncladFidget",
     "FORTIFY": "IroncladFidget",
-    "FIDGET": "IroncladFidget"
+    "RUN": "IroncladRun"
   },
   "flics": {
     "IroncladAttackA": {"size": [240, 240], "directions": 8, "frames": 20, "frameMs": 66, "offset": [0, 0], "canvas": [240, 240]},
     "IroncladDeath": {"size": [240, 240], "directions": 8, "frames": 20, "frameMs": 83, "offset": [0, 0], "canvas": [240, 240]},
-    "IroncladDefault": {"size": [90, 50], "directions": 8, "frames": 10, "frameMs": 166, "offset": [75, 90], "canvas": [240, 240]},
-    "IroncladFidget": {"size": [90, 49], "directions": 8, "frames": 10, "frameMs": 100, "offset": [75, 90], "canvas": [240, 240]},
-    "IroncladRun": {"size": [98, 89], "directions": 8, "frames": 10, "frameMs": 125, "offset": [71, 54], "canvas": [240, 240]}
+    "IroncladDefault": {"size": [90, 58], "directions": 8, "frames": 10, "frameMs": 166, "offset": [75, 90], "canvas": [240, 240]},
+    "IroncladFidget": {"size": [90, 58], "directions": 8, "frames": 10, "frameMs": 100, "offset": [75, 90], "canvas": [240, 240]},
+    "IroncladRun": {"size": [98, 94], "directions": 8, "frames": 10, "frameMs": 125, "offset": [71, 54], "canvas": [240, 240]}
   }
 }

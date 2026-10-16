@@ -1,15 +1,15 @@
 {
   "actions": {
-    "DEFAULT": "X2_Gilgamesh default",
-    "RUN": "X2_Gilgamesh run",
     "DEATH": "X2_Gilgamesh death",
+    "DEFAULT": "X2_Gilgamesh default",
+    "FIDGET": "X2_Gilgamesh fidget",
     "FORTIFY": "X2_Gilgamesh fidget",
-    "FIDGET": "X2_Gilgamesh fidget"
+    "RUN": "X2_Gilgamesh run"
   },
   "flics": {
     "X2_Gilgamesh death": {"size": [142, 99], "directions": 8, "frames": 16, "frameMs": 83, "offset": [48, 57], "canvas": [240, 240]},
-    "X2_Gilgamesh default": {"size": [52, 57], "directions": 8, "frames": 15, "frameMs": 125, "offset": [88, 70], "canvas": [240, 240]},
-    "X2_Gilgamesh fidget": {"size": [68, 62], "directions": 8, "frames": 15, "frameMs": 100, "offset": [78, 66], "canvas": [240, 240]},
-    "X2_Gilgamesh run": {"size": [54, 61], "directions": 8, "frames": 10, "frameMs": 66, "offset": [86, 68], "canvas": [240, 240]}
+    "X2_Gilgamesh default": {"size": [83, 79], "directions": 8, "frames": 15, "frameMs": 125, "offset": [83, 67], "canvas": [240, 240]},
+    "X2_Gilgamesh fidget": {"size": [88, 80], "directions": 8, "frames": 15, "frameMs": 100, "offset": [78, 66], "canvas": [240, 240]},
+    "X2_Gilgamesh run": {"size": [83, 79], "directions": 8, "frames": 10, "frameMs": 66, "offset": [83, 67], "canvas": [240, 240]}
   }
 }

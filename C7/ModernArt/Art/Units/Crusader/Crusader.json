@@ -1,22 +1,22 @@
 {
   "actions": {
-    "DEFAULT": "Crusader_default",
-    "RUN": "Crusader_run",
     "ATTACK1": "Crusader_attack",
+    "FORTRESS": "Crusader_build",
     "DEATH": "Crusader_death",
-    "FORTIFY": "Crusader_fortify",
+    "DEFAULT": "Crusader_default",
     "FIDGET": "Crusader_fidget",
-    "VICTORY": "Crusader_victory",
-    "FORTRESS": "Crusader_build"
+    "FORTIFY": "Crusader_fortify",
+    "RUN": "Crusader_run",
+    "VICTORY": "Crusader_victory"
   },
   "flics": {
-    "Crusader_attack": {"size": [83, 68], "directions": 8, "frames": 15, "frameMs": 66, "offset": [75, 69], "canvas": [240, 240]},
-    "Crusader_build": {"size": [57, 62], "directions": 8, "frames": 15, "frameMs": 66, "offset": [86, 69], "canvas": [240, 240]},
+    "Crusader_attack": {"size": [87, 79], "directions": 8, "frames": 15, "frameMs": 66, "offset": [75, 64], "canvas": [240, 240]},
+    "Crusader_build": {"size": [79, 79], "directions": 8, "frames": 15, "frameMs": 66, "offset": [83, 64], "canvas": [240, 240]},
     "Crusader_death": {"size": [210, 110], "directions": 8, "frames": 15, "frameMs": 66, "offset": [15, 63], "canvas": [240, 240]},
-    "Crusader_default": {"size": [44, 51], "directions": 8, "frames": 15, "frameMs": 125, "offset": [92, 78], "canvas": [240, 240]},
-    "Crusader_fidget": {"size": [55, 54], "directions": 8, "frames": 15, "frameMs": 66, "offset": [86, 75], "canvas": [240, 240]},
-    "Crusader_fortify": {"size": [75, 67], "directions": 8, "frames": 10, "frameMs": 100, "offset": [78, 66], "canvas": [240, 240]},
-    "Crusader_run": {"size": [52, 55], "directions": 8, "frames": 10, "frameMs": 66, "offset": [88, 75], "canvas": [240, 240]},
-    "Crusader_victory": {"size": [75, 71], "directions": 8, "frames": 15, "frameMs": 83, "offset": [78, 62], "canvas": [240, 240]}
+    "Crusader_default": {"size": [79, 79], "directions": 8, "frames": 15, "frameMs": 125, "offset": [83, 64], "canvas": [240, 240]},
+    "Crusader_fidget": {"size": [79, 79], "directions": 8, "frames": 15, "frameMs": 66, "offset": [83, 64], "canvas": [240, 240]},
+    "Crusader_fortify": {"size": [84, 79], "directions": 8, "frames": 10, "frameMs": 100, "offset": [78, 64], "canvas": [240, 240]},
+    "Crusader_run": {"size": [79, 79], "directions": 8, "frames": 10, "frameMs": 66, "offset": [83, 64], "canvas": [240, 240]},
+    "Crusader_victory": {"size": [84, 81], "directions": 8, "frames": 15, "frameMs": 83, "offset": [78, 62], "canvas": [240, 240]}
   }
 }

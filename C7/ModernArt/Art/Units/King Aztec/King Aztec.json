@@ -1,15 +1,15 @@
 {
   "actions": {
-    "DEFAULT": "x_Montezuma default",
-    "RUN": "x_Montezuma run",
     "DEATH": "x_Montezuma death",
+    "DEFAULT": "x_Montezuma default",
+    "FIDGET": "x_Montezuma fidget",
     "FORTIFY": "x_Montezuma fidget",
-    "FIDGET": "x_Montezuma fidget"
+    "RUN": "x_Montezuma run"
   },
   "flics": {
-    "x_Montezuma death": {"size": [92, 71], "directions": 8, "frames": 15, "frameMs": 66, "offset": [73, 72], "canvas": [240, 240]},
-    "x_Montezuma default": {"size": [35, 54], "directions": 8, "frames": 15, "frameMs": 125, "offset": [96, 72], "canvas": [240, 240]},
-    "x_Montezuma fidget": {"size": [58, 54], "directions": 8, "frames": 15, "frameMs": 83, "offset": [84, 72], "canvas": [240, 240]},
-    "x_Montezuma run": {"size": [51, 61], "directions": 8, "frames": 10, "frameMs": 66, "offset": [91, 69], "canvas": [240, 240]}
+    "x_Montezuma death": {"size": [92, 76], "directions": 8, "frames": 15, "frameMs": 66, "offset": [73, 67], "canvas": [240, 240]},
+    "x_Montezuma default": {"size": [52, 70], "directions": 8, "frames": 15, "frameMs": 125, "offset": [96, 67], "canvas": [240, 240]},
+    "x_Montezuma fidget": {"size": [64, 70], "directions": 8, "frames": 15, "frameMs": 83, "offset": [84, 67], "canvas": [240, 240]},
+    "x_Montezuma run": {"size": [57, 70], "directions": 8, "frames": 10, "frameMs": 66, "offset": [91, 67], "canvas": [240, 240]}
   }
 }
