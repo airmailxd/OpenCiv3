@@ -45,7 +45,8 @@ class Hull:
     (s = -1 stern .. +1 bow), U-shaped sections down to the keel."""
 
     def __init__(self, L, B, D, draft, sheer_stern=0.1, sheer_bow=0.06, bow_p=1.5, stern_p=1.6, transom=0.0,
-                 rake_bow=0.0, fullness=0.55, tumblehome=0.0):
+                 rake_bow=0.0, fullness=0.55, tumblehome=0.0, bow_transom=0.0):
+        self.bow_transom = bow_transom   # a flat-ended (LST) bow: the beam doesn't close to a point
         self.L, self.B, self.D, self.draft = L, B, D, draft
         self.fullness = fullness       # section shape: lower is boxier, 1 is a round bilge
         self.tumblehome = tumblehome   # how much the sides lean in above the waterline
@@ -60,6 +61,8 @@ class Hull:
         b = (max(0.0, 1.0 - abs(s) ** p)) ** 0.5
         if s < -0.5 and self.transom:  # a flat stern: the beam doesn't close to a point
             b = max(b, self.transom * min(1.0, (-s - 0.5) / 0.5) ** 0.5)
+        if s > 0.5 and self.bow_transom:
+            b = max(b, self.bow_transom * min(1.0, (s - 0.5) / 0.5) ** 0.5)
         return self.B / 2 * b
 
     def deck_z(self, s):
@@ -614,7 +617,8 @@ def _wales(p, hull, stripes, n=40):
                     continue
                 path.append((sx * (hull.side_x(s, zc) + 0.006), hull.y(s), zc))
             if len(path) > 2:
-                p.add(props.tube(path, max(hz, 0.008), seg=6, scale_xy=(1.0, 0.3)), key, smooth=True)   # tall, flat on the hull
+                p.add(props.tube(path, max(hz, 0.008), seg=6, scale_xy=(1.0, 0.3)), key, smooth=True,
+                      tint=key == 'tint')   # tall, flat on the hull
 
 
 def _deck_guns(p, hull, n, y0, y1, z_off=0.0):
@@ -1058,6 +1062,8 @@ def steel_ship(name, cfg, colors):
         return hull.deck_z(hull.s_of(y))
 
     add_hull(p, hull, stripes=[(-0.03, 0.03, 'boot')], plank=1.0)
+    if cfg.get('hull_civ'):   # a civ band along the hull sides
+        _wales(p, hull, [cfg['hull_civ']])
     # civ-colored deck panels at bow and stern
     for y0, y1 in cfg.get('civ_panels', [(L * 0.32, L * 0.44), (-L * 0.46, -L * 0.36)]):
         yc = (y0 + y1) / 2
@@ -1121,22 +1127,23 @@ def _lattice_mast(p, at, h, w=0.07):
     vkit.rod(p, (x, y, z + h), (x, y, z + h + 0.14), 0.004, 'steel_dark', seg=4)
 
 
-def _hull_number(p, hull, digits='110'):
+def _hull_number(p, hull, digits='110', size=1.0):
     """The hull number painted on both bows, digit by digit (bars as a seven-segment figure)."""
     segs = {'0': 'abcdef', '1': 'bc', '2': 'abged', '3': 'abgcd', '4': 'fgbc', '5': 'afgcd', '6': 'afgedc', '7': 'abc',
             '8': 'abcdefg', '9': 'abcfgd'}
     y0 = hull.L * 0.38
     s = hull.s_of(y0)
     z0 = hull.deck_z(s) * 0.55
-    w, hh = 0.03, 0.05
+    w, hh = 0.03 * size, 0.05 * size
     for sx in (-1, 1):
         x = sx * (hull.side_x(s, z0) + 0.005)
         for i, d in enumerate(digits):
-            yc = y0 - sx * (i - (len(digits) - 1) / 2) * 0.045
+            yc = y0 - sx * (i - (len(digits) - 1) / 2) * 0.045 * size
             for sg in segs[d]:
-                dy, dz, ly, lz = {'a': (0, hh, w, 0.006), 'g': (0, 0, w, 0.006), 'd': (0, -hh, w, 0.006),
-                                  'f': (-w / 2, hh / 2, 0.006, hh), 'b': (w / 2, hh / 2, 0.006, hh),
-                                  'e': (-w / 2, -hh / 2, 0.006, hh), 'c': (w / 2, -hh / 2, 0.006, hh)}[sg]
+                k = 0.008 * size
+                dy, dz, ly, lz = {'a': (0, hh, w, k), 'g': (0, 0, w, k), 'd': (0, -hh, w, k),
+                                  'f': (-w / 2, hh / 2, k, hh), 'b': (w / 2, hh / 2, k, hh),
+                                  'e': (-w / 2, -hh / 2, k, hh), 'c': (w / 2, -hh / 2, k, hh)}[sg]
                 p.add(props.box(0.004, ly, lz), 'deck_line', T(x, yc - sx * dy, z0 + dz / 2))
 
 
@@ -1184,8 +1191,14 @@ def _aegis_extras(p, hull, deck):
     for sx in (-1, 1):
         for y in (0.3, -0.12):
             p.add(props.box(0.006, 0.11, 0.11), 'tint', T(sx * 0.133, y, deck(y) + 0.26) @ R('Z', sx * 0), tint=True)
-    for y, z in ((0.16, 0.5), (-0.3, 0.36)):
-        p.add(props.ellipsoid(0.045, 0.045, 0.045, seg=14), 'radome', T(0, y, deck(y) + z), smooth=True)
+    for x, y, z in ((-0.06, 0.18, 0.56), (0.06, 0.1, 0.56)):   # two prominent white radomes
+        p.add(props.ellipsoid(0.07, 0.07, 0.07, seg=16), 'radome', T(x, y, deck(y) + z), smooth=True)
+    p.add(props.box(0.28, 0.36, 0.2), 'tint', T(0, -0.85, deck(-0.85) + 0.1), bevel=0.015, tint=True)   # the civ hangar aft
+    for sx in (-1, 1):   # civ strips along the bow
+        p.add(props.box(0.006, 0.5, 0.04), 'tint', T(sx * 0.19, 0.95, deck(0.95) - 0.05), tint=True)
+    p.add(props.box(0.14, 0.18, 0.06), 'steel_light', T(0, 1.0, deck(1.0) + 0.03), bevel=0.01)   # the raised gun's mount
+    for sx in (-1, 1):   # canister launchers amidships
+        p.add(props.box(0.05, 0.22, 0.05), 'steel_dark', T(sx * 0.12, -0.1, deck(-0.1) + 0.04) @ R('X', 15), bevel=0.006)
 
 
 def _carrier_extras(p, hull, deck):
@@ -1193,16 +1206,23 @@ def _carrier_extras(p, hull, deck):
     L = hull.L
     zd = deck(0) + 0.08
     p.add(props.box(0.82, L * 0.98, 0.03), 'flight_deck', T(0.04, 0.0, zd), bevel=0.01)
-    p.add(props.box(0.38, L * 0.55, 0.03), 'flight_deck', T(-0.42, -0.25, zd) @ R('Z', -9), bevel=0.01)   # the angled deck
+    p.add(props.box(0.5, L * 0.55, 0.03), 'flight_deck', T(-0.3, -0.25, zd) @ R('Z', -9), bevel=0.01)   # the angled deck, joined to the main
     p.add(props.box(0.012, L * 0.9, 0.004), 'deck_line', T(0.0, 0.0, zd + 0.017))
     p.add(props.box(0.012, L * 0.6, 0.004), 'deck_line', T(-0.3, -0.25, zd + 0.017) @ R('Z', -9))
     for sx in (-1, 1):
         p.add(props.box(0.008, L * 0.95, 0.004), 'deck_line', T(sx * 0.38, 0.0, zd + 0.017))
-    for i in range(7):   # jets parked along the starboard edge and the bow, in the civ color
-        x, y = (0.3, -0.9 + 0.26 * i) if i < 5 else (-0.15 + 0.2 * (i - 5), L * 0.4)
-        p.add(props.box(0.04, 0.2, 0.025), 'tint', T(x, y, zd + 0.03), bevel=0.008, tint=True)
-        p.add(props.box(0.17, 0.06, 0.008), 'tint', T(x, y - 0.02, zd + 0.03), bevel=0.003, tint=True)
-        p.add(props.box(0.06, 0.03, 0.006), 'tint', T(x, y - 0.1, zd + 0.035), bevel=0.002, tint=True)
+    jets = [(0.29, -1.2 + 0.3 * i) for i in range(6)] + [(-0.28, 0.4 + 0.3 * i) for i in range(4)]
+    for x, y in jets:   # big civ-colored jets parked along both deck edges
+        k = 1.6
+        p.add(props.box(0.04 * k, 0.2 * k, 0.025 * k), 'tint', T(x, y, zd + 0.035), bevel=0.008, tint=True)
+        p.add(props.box(0.17 * k, 0.06 * k, 0.008 * k), 'tint', T(x, y - 0.02, zd + 0.035), bevel=0.003, tint=True)
+        p.add(props.box(0.06 * k, 0.03 * k, 0.006 * k), 'tint', T(x, y - 0.15, zd + 0.04), bevel=0.002, tint=True)
+    p.add(props.box(0.24, 0.3, 0.004), 'tint', T(0.25, 0.95, zd + 0.017), tint=True)   # the civ elevator patch
+    for y in (-0.9, -0.3, 0.4, 1.1):   # centreline circles and the yellow dashes
+        p.add(props.lathe([(0.0, 0.06), (0.004, 0.06)], seg=16), 'gold', T(0, y, zd + 0.016), smooth=True)
+        p.add(props.lathe([(0.0, 0.05), (0.005, 0.05)], seg=16), 'flight_deck', T(0, y, zd + 0.017), smooth=True)
+    for k in range(12):
+        p.add(props.box(0.012, 0.08, 0.004), 'gold', T(-0.12, -1.4 + 0.24 * k, zd + 0.017))
     p.add(props.box(0.12, 0.42, 0.22), 'steel_light', T(0.34, -0.1, zd + 0.12), bevel=0.012)   # the island
     p.add(props.box(0.1, 0.24, 0.1), 'steel_light', T(0.34, -0.06, zd + 0.28), bevel=0.01)
     p.add(props.box(0.125, 0.008, 0.06), 'tint', T(0.34, 0.11, zd + 0.2), tint=True)
@@ -1234,7 +1254,7 @@ STEEL = {
     ),
     'Transport': dict(
         hull=dict(L=2.2, B=0.62, D=0.2, draft=0.12, sheer_stern=0.02, sheer_bow=0.05, bow_p=3.2, stern_p=3.2,
-                  transom=0.8, fullness=0.35),
+                  transom=0.8, bow_transom=0.85, fullness=0.25),   # a flat-sided, square-ended LST
         hull_color='#5e6266', deck='#6e7276',
         blocks=[(0, -0.88, 0.0, 0.52, 0.34, 0.24, 'radome'), (0, -0.9, 0.24, 0.38, 0.22, 0.12, 'radome')],
         stacks=[(-0.98, 0.16, 0.05, 0.36)], masts=[(-0.9, 0.22, 0.36)],
@@ -1248,32 +1268,35 @@ STEEL = {
                 (0, 0.38, 0.3, 0.12, 0.12, 0.08, 'steel_light'), (0, -0.28, 0.0, 0.22, 0.55, 0.14, 'steel_light')],
         turrets=[(0.72, 0, 1, 0.65, 0.0), (0.58, 0, 1, 0.65, 0.07), (-0.78, 180, 1, 0.65, 0.0)],
         stacks=[(0.04, 0.2, 0.055, 0.12), (-0.2, 0.18, 0.055, 0.12)],
-        extras=[lambda p, h, d: (_lattice_mast(p, (0, 0.3, d(0.3) + 0.38), 0.4), _hull_number(p, h, '110'))],
-        number=False, barrel=0.35,
+        extras=[lambda p, h, d: (_lattice_mast(p, (0, 0.3, d(0.3) + 0.38), 0.4), _lattice_mast(p, (0, -0.12, d(-0.12) + 0.14), 0.3, w=0.05),
+                                 _hull_number(p, h, '110', size=1.7))],
+        hull_civ=(0.1, 0.13, 'tint'), number=False, barrel=0.35,
     ),
     'Cruiser': dict(
-        hull=dict(L=2.9, B=0.42, D=0.18, draft=0.11, sheer_stern=0.02, sheer_bow=0.12, bow_p=1.4, stern_p=2.4,
+        hull=dict(L=3.3, B=0.44, D=0.18, draft=0.11, sheer_stern=0.02, sheer_bow=0.12, bow_p=1.4, stern_p=2.4,
                   transom=0.5, rake_bow=0.35, fullness=0.55),
+        deck='#a08a64',   # the long wood deck
         blocks=[(0, 0.3, 0.0, 0.3, 0.56, 0.2, 'steel_light'), (0, 0.34, 0.2, 0.22, 0.3, 0.14, 'steel_light'),
                 (0, 0.36, 0.34, 0.14, 0.14, 0.1, 'steel_light'), (0, -0.38, 0.0, 0.26, 0.6, 0.14, 'steel_light')],
         turrets=[(0.98, 0, 3, 0.85, 0.0), (0.74, 0, 3, 0.85, 0.08), (-0.98, 180, 3, 0.85, 0.0)],
-        stacks=[(0.0, 0.24, 0.07, 0.14), (-0.24, 0.22, 0.07, 0.14)],
-        extras=[lambda p, h, d: (_lattice_mast(p, (0, 0.32, d(0.32) + 0.44), 0.42), _hull_number(p, h, '27'))],
+        stacks=[(-0.02, 0.36, 0.1, 0.14), (-0.3, 0.34, 0.1, 0.14)],   # two big civ-banded funnels
+        extras=[lambda p, h, d: (_lattice_mast(p, (0, 0.32, d(0.32) + 0.44), 0.42), _hull_number(p, h, '27', size=1.6))],
         number=False, barrel=0.42,
     ),
     'Battleship': dict(
         hull=dict(L=3.5, B=0.64, D=0.22, draft=0.14, sheer_stern=0.02, sheer_bow=0.14, bow_p=1.3, stern_p=2.3,
                   transom=0.55, rake_bow=0.4, fullness=0.65),
-        civ_panels=[(1.25, 1.55), (-1.6, -1.3)],
+        civ_panels=[(1.3, 1.62), (-1.66, -1.4)],   # big civ patches clear of the turrets
         blocks=[(0, 0.15, 0.0, 0.42, 0.85, 0.2, 'steel_light'), (0, 0.22, 0.2, 0.32, 0.5, 0.18, 'steel_light'),
-                (0, 0.28, 0.38, 0.22, 0.26, 0.16, 'steel_light'), (0, 0.3, 0.54, 0.14, 0.12, 0.12, 'steel_light'),
+                (0, 0.28, 0.38, 0.22, 0.26, 0.2, 'steel_light'), (0, 0.3, 0.58, 0.16, 0.14, 0.22, 'steel_light'),
+                (0, 0.3, 0.8, 0.12, 0.1, 0.1, 'steel_light'),   # the tall civ-faced tower
                 (0, -0.6, 0.0, 0.36, 0.55, 0.14, 'steel_light')],
-        civ_blocks=4,
+        civ_blocks=6,
         turrets=[(1.12, 0, 3, 1.3, 0.0), (0.84, 0, 3, 1.3, 0.1), (-0.95, 180, 3, 1.3, 0.1), (-1.22, 180, 3, 1.3, 0.0),
                  # secondary batteries along the superstructure's sides
                  (0.35, 90, 2, 0.55, 0.02), (0.0, 90, 2, 0.55, 0.02), (0.35, -90, 2, 0.55, 0.02), (0.0, -90, 2, 0.55, 0.02)],
         stacks=[(-0.15, 0.3, 0.09, 0.2)],
-        extras=[lambda p, h, d: (_lattice_mast(p, (0, 0.3, d(0.3) + 0.66), 0.4), _lattice_mast(p, (0, -0.6, d(-0.6) + 0.14), 0.36))],
+        extras=[lambda p, h, d: (_lattice_mast(p, (0, 0.3, d(0.3) + 0.9), 0.4), _lattice_mast(p, (0, -0.6, d(-0.6) + 0.14), 0.36))],
         number=False, barrel=0.6,
     ),
     'Aegis Cruiser': dict(
