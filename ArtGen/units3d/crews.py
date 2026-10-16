@@ -24,6 +24,9 @@ HAT_KINDS = {'steel': ('_headgear', 'modern_helmet'), 'shako': ('_headgear', 'sh
 # a crewman at work: a handspike (lever) held low across the body in both hands
 WORK = {'weapon': 'staff', 'stance_name': 'low_across', 'two_hands': True, 'tool_dir': (-0.7, 0.35, 0.6),
         'props': {'staff': ('staff', {'length': 1.5, 'grip': 0.5})}}
+# a WWII gun crew: the Infantry's body and M1, in olive drab (not its civ field shirt), civ accents only
+OLIVE = {'_base': 'Infantry', 'tint': ['belt'], '_colors': {'top': '#5a6050', 'bottom': '#4e5444', 'belt': '#2a2a24'},
+         'wraps': 'boots', 'gear': [], 'patterns': {}, 'bands': [('upperarm', 'tint', 0.05)]}
 # kneeling on the right knee, the left foot planted forward (build_footman plants the lowest point)
 KNEEL = {'pose_extra': [('thigh_l', (0.15, -0.95, -0.25)), ('calf_l', (0.08, 0.05, -1)), ('foot_l', (0.3, -1, -0.2)),
                         ('thigh_r', (-0.1, 0.3, -1)), ('calf_r', (-0.04, 1.0, -0.3)), ('foot_r', (0.0, 0.5, -1))]}   # shin on the ground
@@ -63,7 +66,7 @@ CREW = {
     ],
     # WWII gun crews: the Mac's Infantry (M1 helmet, olive), read live at render time, unarmed, no pack
     'Artillery': [
-        {'_base': 'Infantry', 'stance_name': 'stand'},
+        dict(OLIVE, stance_name='stand'),
     ],
     # TOW Infantry: both crewmen are the soldiers' TOW Infantry entry (remaster_soldiers.py)
     'TOW Infantry': [
@@ -75,8 +78,8 @@ CREW = {
         {'_base': 'TOW Infantry'},   # the spotter, as the entry poses him (hand raised to his face)
     ],
     'Flak': [
-        {'_base': 'Infantry', 'seated': True},        # the gunner in his seat
-        {'_base': 'Infantry', 'stance_name': 'stand'},  # the loader beside the mount
+        dict(OLIVE, seated=True),          # the gunner in his seat
+        dict(OLIVE, stance_name='stand'),  # the loader beside the mount
     ],
 }
 BASE_OVERRIDES = {'weapon': None, 'back': None, 'offhand': None, 'offhand_mesh': None, 'hip': None,
@@ -137,8 +140,10 @@ def populate(root, unit, entry, catalog=None):
         world = e_obj.matrix_world
         loc, rot, _ = world.decompose()
         yaw = rot.to_euler().z
+        # keep the root's own offset from build_footman (feet planted; pelvis at the origin when seated)
+        own = croot.matrix_world.copy()
         croot.parent = e_obj
-        croot.matrix_world = Matrix.Translation(loc) @ Matrix.Rotation(yaw, 4, 'Z') @ Matrix.Scale(CREW_SCALE, 4)
+        croot.matrix_world = Matrix.Translation(loc) @ Matrix.Rotation(yaw, 4, 'Z') @ Matrix.Scale(CREW_SCALE, 4) @ own
         H._update()
         made.append(croot)
     return made

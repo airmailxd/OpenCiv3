@@ -512,7 +512,7 @@ REMASTER = {
         'top': 'sleeved', 'wide_sleeves': True, 'neck': 'high',   # MISSING: squared sleeve folds; topknot/bald
         'chest_emblem': ('v', '#f2efe6', 0.32),  # the bold white under-robe V at the chest
         'coat_length': 0.6, 'coat_flare': 1.3,  # the knee-length coat, a darker spot pattern on the civ color
-        'patterns': {'top': [('camo', 'tint', 3.5), ('panel', '#f2efe6', 0.06, 'front')],   # civ flecks, the white under-robe
+        'patterns': {'top': [('camo', 'tint', 13.0, 'cover', 0.75), ('panel', '#f2efe6', 0.06, 'front')],   # mostly civ, white flecks, the under-robe
                      'bottom': ('stripes', '#1c1a28', 10.0)},   # the hakama's pleats   # a white pattern on the civ coat; the hakama's pleats   # a white pattern on the civ coat; the hakama's pleats
         'bottom': 'long', 'puffy': True, 'trouser_offset': 0.05,   # the wide hakama
         'sandals': True, 'wraps': 'shoes', 'gear': [],   # white tabi under the sandal straps
