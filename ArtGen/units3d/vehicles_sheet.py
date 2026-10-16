@@ -36,6 +36,8 @@ def unit_rows(unit):
     W, H = fl.width * 2, fl.height * 2
     x0, y0 = fl.offset_left * 2, fl.offset_top * 2
     folder = os.path.join(HERE, '..', '_previews', 'units3d', unit)
+    if not os.path.exists(os.path.join(folder, 'unit_0000.png')):   # a foot unit: build.py's passes
+        folder = os.path.join(HERE, '..', '_previews', 'units3d', 'passes', unit)
     orig, old, new = [], [], []
     for d in range(8):
         orig.append(P.on_bg(civ3art.upscale_nearest(P.original_frame(fl, d, 0))))

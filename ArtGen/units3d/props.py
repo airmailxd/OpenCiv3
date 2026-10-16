@@ -756,10 +756,11 @@ def _emblem_band(rx, rz, thick, dome, half_len, half_w, n=16):
     return loft(rings)
 
 
-def shield_oval(p, w=0.66, h=0.66, dome=0.06, emblem_angle=45.0, band=0.1, scale=1.0):
+def shield_oval(p, w=0.66, h=0.66, dome=0.06, emblem_angle=45.0, band=0.1, scale=1.0, rim_tint=False):
     """The Spearman's big wooden shield (round by default, oval if w != h):
     a tan board face, a leather-bound rim, a quartered cross emblem in the civ
-    color (tint) and a small bronze boss; arm strap at the origin."""
+    color (tint) and a small bronze boss; arm strap at the origin. rim_tint
+    paints the rim in the civ color (Crusader)."""
     rx, rz = w / 2 * scale, h / 2 * scale
     thick, gap = 0.022, -0.05  # board thickness; the board sits in front of the forearm
     face = domed_disc(rx, rz, thick, dome, rings=8, seg=48)
@@ -768,7 +769,8 @@ def shield_oval(p, w=0.66, h=0.66, dome=0.06, emblem_angle=45.0, band=0.1, scale
     k = 64
     ring = [(rx * math.cos(2 * math.pi * i / k), gap - thick * 0.6, rz * math.sin(2 * math.pi * i / k))
             for i in range(k + 1)]
-    p.add(tube(ring, 0.014, seg=8, scale_xy=(1.0, 1.3)), 'shield_rim', smooth=True)
+    p.add(tube(ring, 0.022 if rim_tint else 0.014, seg=8, scale_xy=(1.0, 1.3)),
+          'shield_emblem' if rim_tint else 'shield_rim', smooth=True, tint=rim_tint)
     # emblem: two crossing bands following the dome (the original's quartered cross)
     for ang in (emblem_angle, -emblem_angle):
         a = math.radians(ang)
@@ -1283,10 +1285,11 @@ def _bayonet(p, z, s=1.0):
     p.add(blade, 'steel', T(0, 0.022, z + 0.02 * s), bevel=0.0005)
 
 
-def musket(p, length=1.5, bayonet=False, scale=1.0):
+def musket(p, length=1.5, bayonet=False, scale=1.0, flared=False):
     """A flintlock musket held at the wrist of the stock (origin), muzzle +Z:
     a long wooden stock to near the muzzle, a steel barrel, a lock, brass
-    bands; optional bayonet."""
+    bands; optional bayonet; flared: a bright steel bell at the muzzle
+    (the Musketeer's blunderbuss-mouthed piece)."""
     s = scale
     L = length * s
     stock = slab([(-0.055, -0.38), (0.04, -0.38), (0.045, -0.12), (0.02, 0.0), (0.016, L - 0.5), (-0.01, L - 0.5),
@@ -1296,6 +1299,9 @@ def musket(p, length=1.5, bayonet=False, scale=1.0):
     p.add(box(0.03, 0.035, 0.1), 'steel', T(0, 0.004, 0.06), bevel=0.004)
     for z in (0.35, 0.65, L - 0.55):
         p.add(lathe([(0.0, 0.028), (0.014, 0.028)], seg=12), 'bronze', T(0, 0.004, z), smooth=True)
+    if flared:
+        p.add(lathe([(0.0, 0.012 * s), (0.08, 0.018 * s), (0.13, 0.034 * s), (0.15, 0.036 * s)], seg=14), 'steel',
+              T(0, 0.01, L - 0.53), smooth=True)
     if bayonet:
         _bayonet(p, L - 0.38, s)
 
@@ -1372,14 +1378,15 @@ def tow_launcher(p, scale=1.0):
 DEFAULTS.setdefault('helmet_net', ('#2a2a1e', 0.9, 0.0, 'rope'))
 
 
-def modern_helmet(p, scale=1.0, band=False, net=False):
+def modern_helmet(p, scale=1.0, band=False, net=False, camo=False):
     """A steel combat helmet (M1-style): a dome with a slight brim and a
     canvas cover; the origin at the brow line, +Y forward (as headgear).
     band: a civ-colored band round it (Marine); net: a dark camouflage net
-    over the dome with a few cords hanging free (WWII Para)."""
+    over the dome with a few cords hanging free (WWII Para); camo: a woodland
+    cover, green and brown blotches over the 'olive' (Marine, TOW Infantry)."""
     s = scale
     dome = lathe([(-0.005, 0.135), (0.0, 0.132), (0.06, 0.125), (0.12, 0.09), (0.16, 0.0)], seg=24)
-    p.add(dome, 'olive', S(s), smooth=True)
+    p.add(dome, 'olive', S(s), smooth=True, keys=_woodland(0.05) if camo else None)
     p.add(lathe([(-0.01, 0.142), (0.002, 0.142)], seg=24), 'olive', S(s), smooth=True)
     if band:
         p.add(lathe([(0.02, 0.134), (0.055, 0.128)], seg=24), 'tint', S(s), smooth=True, tint=True)
@@ -1399,6 +1406,19 @@ def modern_helmet(p, scale=1.0, band=False, net=False):
             p.add(tube([(x, y, 0.0), (x * 1.05, y * 1.05, -0.06)], 0.005, seg=4), 'helmet_net', S(s), smooth=True)
 
 
+DEFAULTS.setdefault('camo_green', ('#4a5a3c', 0.85, 0.0, 'cloth'))
+DEFAULTS.setdefault('camo_brown', ('#55402d', 0.85, 0.0, 'cloth'))
+
+
+def _woodland(cell):
+    """A face-key function: woodland blotches (green and brown) on a cover."""
+    def keys(f):
+        c = f.calc_center_median()
+        n = math.sin(c.x / cell * 1.7 + 0.4) + math.sin(c.y / cell * 1.3 + 1.9) + math.sin(c.z / cell * 2.3 + c.x * 9)
+        return ('camo_green', False) if n > 0.7 else (('camo_brown', False) if n < -0.9 else None)
+    return keys
+
+
 def canteen(p, scale=1.0):
     """A canteen in its belt cover hanging at the hip (attach point at the origin)."""
     s = scale
@@ -1406,12 +1426,13 @@ def canteen(p, scale=1.0):
     p.add(lathe([(0.0, 0.012), (0.025, 0.012)], seg=10), 'gunmetal', T(0, 0, -0.01 * s), smooth=True)
 
 
-def mil_backpack(p, size=1.0):
+def mil_backpack(p, size=1.0, tint=False):
     """A soldier's pack (rucksack) for the back, chest-bone space like
-    backpack(): a canvas pack with a rolled blanket on top and straps."""
+    backpack(): a canvas pack with a rolled blanket on top and straps; tint:
+    the bag in the civ color (Infantry)."""
     s = size
     bag = box(0.32 * s, 0.16 * s, 0.38 * s)
-    p.add(bag, 'olive_dark', T(0, -0.14 * s, -0.08 * s), bevel=0.04)
+    p.add(bag, 'tint' if tint else 'olive_dark', T(0, -0.14 * s, -0.08 * s), bevel=0.04, tint=tint)
     p.add(tube([(-0.17 * s, 0, 0), (0.17 * s, 0, 0)], 0.05 * s, seg=14), 'olive', T(0, -0.13 * s, 0.15 * s),
           smooth=True)
     for x in (-0.1 * s, 0.1 * s):
@@ -1521,7 +1542,10 @@ def haversack(p, scale=1.0):
     p.add(box(0.026 * s, 0.006 * s, 0.02 * s), 'brass', T(0, -0.06 * s, 0.2 * s), bevel=0.002)
 
 
-def bandolier_bottles(p, n=10, scale=1.0):
+DEFAULTS.setdefault('apostle', ('#e2ddd0', 0.7, 0.0, 'wood'))   # white-painted powder flasks
+
+
+def bandolier_bottles(p, n=10, scale=1.0, bottle='wood'):
     """A musketeer's bandolier ('the twelve apostles'), worn over the left
     shoulder to the right hip: origin at the middle of the chest, +Y forward
     (in front of the body), +Z up; a leather strap with wooden powder flasks
@@ -1533,7 +1557,7 @@ def bandolier_bottles(p, n=10, scale=1.0):
     for i in range(n):
         q = a.lerp(b, (i + 0.5) / n) + Vector((0, 0.03 * s, 0))
         p.add(tube([q, q + Vector((0, 0, -0.04 * s))], 0.003 * s, seg=4), 'rope', smooth=True)
-        p.add(lathe([(0.0, 0.016 * s), (0.02 * s, 0.018 * s), (0.08 * s, 0.017 * s), (0.09 * s, 0.0)], seg=10), 'wood',
+        p.add(lathe([(0.0, 0.016 * s), (0.02 * s, 0.018 * s), (0.08 * s, 0.017 * s), (0.09 * s, 0.0)], seg=10), bottle,
               T(*(q + Vector((0, 0, -0.13 * s)))), smooth=True)
         p.add(lathe([(0.0, 0.012 * s), (0.02 * s, 0.012 * s)], seg=8), 'leather_dark',
               T(*(q + Vector((0, 0, -0.045 * s)))), smooth=True)

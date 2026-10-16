@@ -50,7 +50,8 @@ def build(unit):
         catalog = json.load(open(os.path.join(HERE, '..', '_previews', 'units3d', 'catalog.json'), encoding='utf-8'))
         return mounted.build(unit, entry=catalog.get(unit), rider=True)
     root = siege.build(unit)
-    if os.environ.get('CREWS') == '1':   # opt-in until the crews pass review (crews.py)
+    # crews are opt-in until they pass review (crews.py); a team unit (TOW Infantry) always has its own
+    if os.environ.get('CREWS') == '1' or unit == 'TOW Infantry':
         import crews
         catalog = json.load(open(os.path.join(HERE, '..', '_previews', 'units3d', 'catalog.json'), encoding='utf-8'))
         crews.populate(root, unit, catalog.get(unit, {}), catalog)

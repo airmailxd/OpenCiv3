@@ -106,8 +106,8 @@ def _k(tinted, key):
 
 
 @hat('modern_helmet')
-def _modern_helmet(p, c, tinted, crest, band=False, net=False):
-    props.modern_helmet(p, band=band, net=net)
+def _modern_helmet(p, c, tinted, crest, band=False, net=False, camo=False):
+    props.modern_helmet(p, band=band, net=net, camo=camo)
 
 
 @hat('papakha')
@@ -334,11 +334,11 @@ def bicorne(p, c, tinted, plume_tinted):
 
 
 @hat('gat')
-def gat(p, c, tinted, _):
+def gat(p, c, tinted, _, brim=0.27):
     """A Joseon gat: a tall flat-topped crown and a very wide flat brim of
     lacquered horsehair or split bamboo, tied under the chin."""
     p.add(props.lathe([(0.0, 0.085), (0.13, 0.08), (0.14, 0.0)], seg=24), 'hat', smooth=True)
-    p.add(props.lathe([(0.0, 0.08), (0.01, 0.27), (0.016, 0.27), (0.008, 0.08)], seg=32), 'hat', smooth=True)
+    p.add(props.lathe([(0.0, 0.08), (0.01, brim), (0.016, brim), (0.008, 0.08)], seg=32), 'hat', smooth=True)
     p.add(props.lathe([(0.012, 0.087), (0.035, 0.085)], seg=24), 'leather_dark', smooth=True)   # the band
     for sx in (-1, 1):   # the chin cords
         p.add(props.tube([(sx * 0.085, 0.0, 0.0), (sx * 0.07, 0.03, -0.12), (0.0, 0.06, -0.2)], 0.005, seg=4),
@@ -346,7 +346,7 @@ def gat(p, c, tinted, _):
 
 
 @hat('cavalier')
-def cavalier(p, c, tinted, plume_tinted):
+def cavalier(p, c, tinted, plume_tinted, plume=1.0):
     """A cavalier's hat (Musketeer): a low crown, a wide soft brim pinned up
     on the left side, and a big plume sweeping back over the pinned side."""
     key, t = _k(tinted, 'felt')
@@ -356,8 +356,10 @@ def cavalier(p, c, tinted, plume_tinted):
           tint=t)
     p.add(props.ellipsoid(0.03, 0.03, 0.03, seg=10), 'brass', T(-0.13, 0.0, 0.08), smooth=True)   # the pin
     pk, pt = _k(plume_tinted, 'plume')
-    p.add(props.tube([(-0.12, 0.03, 0.1), (-0.16, -0.06, 0.22), (-0.14, -0.22, 0.24), (-0.1, -0.34, 0.14)],
-                     [0.04, 0.06, 0.05, 0.01], seg=10, scale_xy=(1.0, 0.7)), pk, smooth=True, tint=pt)
+    k = plume   # the plume's size (Musketeer: bigger)
+    p.add(props.tube([(-0.12, 0.03, 0.1), (-0.12 - 0.04 * k, -0.06 * k, 0.1 + 0.12 * k), (-0.12 - 0.02 * k, -0.22 * k, 0.1 + 0.14 * k),
+                      (-0.1, -0.34 * k, 0.1 + 0.04 * k)], [0.04 * k, 0.06 * k, 0.05 * k, 0.01], seg=10, scale_xy=(1.0, 0.7)),
+          pk, smooth=True, tint=pt)
 
 
 @hat('top_hat')

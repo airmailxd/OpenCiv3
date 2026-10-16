@@ -48,8 +48,7 @@ REMASTER = {
         'cuirass': True, 'top': 'sleeved', 'puffy': True,   # the jerkin over civ-color puffed sleeves
         'bottom': 'breeches',
         'wraps': 'wraps', 'sandals': False, 'boots': True,  # grey stockings, dark low boots
-        # MISSING: bottle_color (the apostles share 'wood' with the dark rest; the original's are white)
-        'chest_gear': ('bandolier_bottles', {'scale': 1.4}), 'hip_gear': [('haversack', {}, 'back')],   # the apostles, a tan pouch
+        'chest_gear': ('bandolier_bottles', {'scale': 1.4, 'bottle': 'apostle'}),   # the white apostles 'hip_gear': [('haversack', {}, 'back')],   # the apostles, a tan pouch
         'gear': [('chest_strap', {'color': '#2a2220', 'width': 0.08})],
         'weapon': 'musket',
         'props': {'musket': ('musket', {'length': 1.78})},
@@ -71,8 +70,7 @@ REMASTER = {
                    'bottom': '#262220', 'belt': '#221e1a', 'boots': '#141110', 'wood': '#5a3a24',
                    'steel': '#a8a6a2', 'felt': '#4a2a2b'},
         # wide brim pinned up one side, the plume tinted ('plume' in tint);
-        # MISSING: plume_size (cavalier takes no params; the original's feather is bigger)
-        'headgear': 'cavalier', 'helmet': None,
+        'headgear': 'cavalier', 'helmet': None, 'headgear_params': {'plume': 1.6},   # the original's big feather
         'hair': 'long', 'hair_asset': 'long01', 'beard': True,
         'top': 'sleeved', 'neck': 'high',
         'coat_length': 0.62, 'coat_flare': 1.1,  # the knee-length coat
@@ -80,8 +78,8 @@ REMASTER = {
         'bottom': 'long', 'wraps': 'boots',     # dark trousers into the boots: no gap at the knee
         'gear': [('chest_strap', {'color': '#3a2a20', 'width': 0.11})],   # the baldric, over the left shoulder
         'bands': [('waist', 'tint', 0.2), ('knee', 'tint')],   # the wide civ-color sash round the middle
-        'weapon': 'musket',        # MISSING: flared_muzzle (a bright steel bell at the muzzle)
-        'props': {'musket': ('musket', {'length': 1.72})},
+        'weapon': 'musket',
+        'props': {'musket': ('musket', {'length': 1.72, 'flared': True})},   # the bright steel bell at the muzzle
         'offhand': None,
         # present arms: near-vertical in front of the chest, both hands on it
         'stance_name': 'port_arms', 'gun_dir': (0.05, -0.25, 1.0), 'fore_end': 0.35,
@@ -129,8 +127,7 @@ REMASTER = {
         'boots': True, 'wraps': 'wraps',        # the off-white gaiters (G.fur wraps)
         'gear': [('chest_strap', {'color': '#b8a47c', 'width': 0.08, 'cross': True, 'offset': 0.03})],   # light tan webbing
         # the big blocky pack (mil_backpack's bag is 'olive_dark', its roll 'olive');
-        # MISSING: tinted_pack (the original's pack is solid civ color; mil_backpack takes no tint)
-        'back': 'mil_backpack', 'back_params': {'size': 1.4}, 'pack_up': 0.18,
+        'back': 'mil_backpack', 'back_params': {'size': 1.4, 'tint': True},   # solid civ color, as the original 'pack_up': 0.18,
         'weapon': 'rifle',
         'props': {'rifle': ('rifle_bolt', {'length': 1.2, 'bayonet': True})},
         'stance_name': 'hip_hold',              # butt at the right hip, elbows bent (the stance's defaults)
@@ -145,8 +142,8 @@ REMASTER = {
         'macro': {'muscle': 1.0, 'weight': 0.8, 'height': 0.78, 'proportions': 0.72},
         'colors': {'skin': '#9a7456', 'hair': '#2a2018', 'olive': '#454c3c', 'olive_dark': '#c8c4b4',
                    'cuirass': '#4a4c36', 'bottom': '#353e35', 'belt': '#26261f', 'boots': '#121212'},
-        # the band takes the civ color by itself (props.modern_helmet); MISSING: helmet_camo (on the cover)
-        'headgear': 'modern_helmet', 'helmet': None, 'headgear_params': {'band': True},
+        # the band takes the civ color by itself (props.modern_helmet); a woodland cover
+        'headgear': 'modern_helmet', 'helmet': None, 'headgear_params': {'band': True, 'camo': True},
         'hair': 'short', 'beard': False,
         'top': 'sleeved', 'neck': 'high',
         'cuirass': True, 'metal': [],           # the flak vest, woodland green; MISSING: vest_camo (patterns only reach cloth)
@@ -321,8 +318,7 @@ REMASTER = {
         # the left forearm stays across the body, in the shield's straps
         'offhand': 'shield_oval',
         # the oval's default 45 degree roll turns its X bands into a + cross;
-        # MISSING: tinted_rim (shield_oval's rim is 'shield_rim', never tinted)
-        'offhand_mesh': ('shield_oval', {'w': 0.7, 'h': 1.05, 'band': 0.12, 'dome': 0.04}),
+        'offhand_mesh': ('shield_oval', {'w': 0.7, 'h': 1.05, 'band': 0.12, 'dome': 0.04, 'rim_tint': True}),
         'shield_out': 0.2,
         'stance_name': 'guard',
         'tint': ['shield_emblem'],
@@ -338,7 +334,7 @@ REMASTER = {
         'macro': {'muscle': 1.0, 'weight': 0.75, 'height': 0.76, 'proportions': 0.72},
         'colors': {'skin': '#9a7254', 'hair': '#2a2018', 'olive': '#4e5240', 'top': '#3e4232',
                    'bottom': '#3e4232', 'belt': '#2e2e26', 'boots': '#4a3420'},
-        'headgear': 'modern_helmet', 'helmet': None,
+        'headgear': 'modern_helmet', 'helmet': None, 'headgear_params': {'camo': True},   # camo covers
         'hair': 'short', 'beard': False,
         'top': 'sleeved', 'neck': 'high',
         'bottom': 'long',
@@ -368,12 +364,8 @@ REMASTER = {
 #
 # plume_size (PC)    2  Musketman: morion_big's plume about half as big and standing up (it hangs down the
 #                       back and clips the frame); its tint is the owner's call (reference white-grey).
-#                       Musketeer: a bigger cavalier plume (cavalier takes no params).
 # para_pack_shape (PC) 1  WWII Paratrooper: a huge bulky camo bundle (renders as a thin plate; now dark olive).
 # shoulder_arms      1  Musketman: musket on the right shoulder, angled up-forward (order_arms stands in).
-# bottle_color       1  Musketman: white apostles (bandolier_bottles share 'wood' with the dark rest and stock).
-# flared_muzzle      1  Musketeer: a bright steel bell at the muzzle.
-# helmet_camo        1  Marine: a woodland camo cover on modern_helmet (the tinted band is done).
 # vest_camo          1  Marine: camo on the cuirass ('patterns' only reach cloth; the vest is leather).
 # gloves             1  Paratrooper: tinted hands (wrist bands stand in).
 # rifle_shoulder     1  Guerilla: rifle vertical against the right shoulder ('upright' holds it out in the fist).
@@ -386,9 +378,7 @@ REMASTER = {
 # tall_boots         1  Settler Modern Times: knee-high boots.
 # y_braces           1  Worker Modern Times: straight Y braces (crossed chest straps stand in).
 # tool_belt          1  Worker Modern Times: a belt with pouches at the hip (the default belt pouch stands in).
-# tinted_rim         1  Crusader: a civ-color border on shield_oval (its rim is 'shield_rim', never tinted).
 # back_emblem        1  Crusader: chest_emblem on the back of the surcoat as well.
 # y_harness          1  TOW Infantry: a tinted Y harness (crossed tinted chest straps stand in).
 # ground_props       1  TOW Infantry: tow_launcher on its tripod and missile crates on the ground (no crate prop).
 # team               1  TOW Infantry: a second, kneeling figure at the sight.
-# tinted_pack        1  Infantry: the pack in civ color (mil_backpack takes no tint).

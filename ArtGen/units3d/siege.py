@@ -556,7 +556,7 @@ def artillery(colors, k=1.0, elev=8.0, spread=11.0):
     bo.location = (0, 0.05, za + 0.36)
     bo.rotation_euler = (math.radians(-90 + elev), 0, 0)
     root.scale = (k, k, k)
-    vkit.crew(root, 0, (-0.75, -0.9, 0.0), yaw=0.0)
+    vkit.crew(root, 0, (-0.42, -0.5, 0.0), yaw=10.0)   # tucked in behind the shield at the breech
     return root
 
 
@@ -660,8 +660,50 @@ def flak(colors, k=1.0, elev=48.0):
     return root
 
 
+# ------------------------------------------------------------ TOW Infantry (a two-man team at a launcher)
+
+def tow_team(colors, k=1.0):
+    """TOW Infantry, as Civ3 composes it: a TOW launcher (a long olive tube on
+    a traversing unit with its sight and night-sight boxes) on a low tripod,
+    two olive missile crates on the ground; a gunner kneeling behind it at the
+    sight (crew 0) and a spotter standing beside it (crew 1)."""
+    c = dict({'olive': '#5c6046', 'olive_dark': '#3e4232', 'gunmetal': '#3a3c3c'}, **colors)
+    root = vkit.root('TOW Infantry')
+    f = vkit.part(root, 'launcher', c, ARTILLERY_WEAR)
+    zt = 0.62
+    for a in (0, 125, 235):   # the tripod's splayed legs with feet
+        d = Vector((math.sin(math.radians(a)), math.cos(math.radians(a)), 0))
+        foot = d * 0.62
+        vkit.rod(f, (0, 0, zt - 0.08), tuple(foot), 0.022, 'gunmetal', seg=8)
+        f.add(props.box(0.08, 0.08, 0.02), 'gunmetal', T(foot.x, foot.y, 0.01), bevel=0.004)
+    f.add(props.lathe([(0.0, 0.07), (0.12, 0.06)], seg=14), 'gunmetal', T(0, 0, zt - 0.1), smooth=True)   # pedestal
+    f.add(props.box(0.2, 0.26, 0.16), 'olive', T(0, 0, zt + 0.08), bevel=0.015)                         # traversing unit
+    # the launch tube, long and level, with its flared muzzle and breech ring
+    f.add(props.lathe([(-0.85, 0.085), (0.95, 0.08)], seg=20), 'olive', T(0, 0.05, zt + 0.25) @ R('X', -90), smooth=True)
+    f.add(props.lathe([(0.0, 0.09), (0.08, 0.1)], seg=20), 'olive_dark', T(0, 1.0, zt + 0.25) @ R('X', -90), smooth=True)
+    f.add(props.lathe([(0.0, 0.095), (0.06, 0.095)], seg=20), 'olive_dark', T(0, -0.85, zt + 0.25) @ R('X', -90),
+          smooth=True)
+    f.add(props.box(0.14, 0.24, 0.13), 'olive_dark', T(0.17, -0.2, zt + 0.22), bevel=0.012)            # the sight
+    f.add(props.box(0.12, 0.2, 0.12), 'olive', T(-0.16, -0.18, zt + 0.2), bevel=0.012)                 # night sight
+    f.add(props.lathe([(0.0, 0.035), (0.04, 0.035)], seg=12), 'gunmetal', T(0.17, -0.34, zt + 0.24) @ R('X', 90),
+          smooth=True)                                                                                    # eyepiece
+    for x in (-0.06, 0.06):   # handgrips under the traversing unit
+        vkit.rod(f, (x, -0.15, zt + 0.05), (x * 1.6, -0.3, zt - 0.05), 0.016, 'gunmetal', seg=6)
+    # two missile crates on the ground beside the launcher, one on the other's corner
+    for (x, y, z, yaw) in ((0.75, 0.3, 0.0, 15), (0.6, -0.25, 0.0, -30)):
+        f.add(props.box(0.34, 0.52, 0.28), 'olive_dark', T(x, y, z + 0.14) @ R('Z', yaw), bevel=0.02)
+        f.add(props.box(0.36, 0.54, 0.05), 'gunmetal', T(x, y, z + 0.26) @ R('Z', yaw), bevel=0.01)   # the lid
+        for dy in (-0.2, 0.2):   # the crates' end bands and handles
+            f.add(props.box(0.36, 0.04, 0.3), 'olive', T(x, y, z + 0.14) @ R('Z', yaw) @ T(0, dy, 0), bevel=0.006)
+    f.finish()
+    root.scale = (k, k, k)
+    vkit.crew(root, 0, (0.05, -1.05, 0.0), yaw=0.0)      # the gunner, kneeling at the sight
+    vkit.crew(root, 1, (-0.85, -0.4, 0.0), yaw=-25.0)    # the spotter, standing beside it
+    return root
+
+
 BUILDERS = {'Catapult': catapult, 'Cannon': cannon, 'Trebuchet': trebuchet, 'Hwacha': hwacha, 'Artillery': artillery,
-            'Flak': flak}
+            'Flak': flak, 'TOW Infantry': tow_team}
 
 
 def build(unit, colors=None, **params):
