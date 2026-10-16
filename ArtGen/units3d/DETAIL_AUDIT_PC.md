@@ -4,6 +4,8 @@ Rule: a remake needs at least as much detail as the original. Every item under *
 Sources: `_previews/units3d/vehicles4_sheet.png`, `riders_a.png`, `riders_b.png`, `chariots_sheet.png` (zoomed crops of the original and Blender rows, all 8 directions).
 Crews on the Catapult and Cannon are left out on purpose and are not counted.
 
+**Update 2026-10-16:** the Catapult, Cannon, Galley and Caravel items below were added (commits af9548e1, dc479548, 60cffdf8, 06db7417). All four PASS the 6-axis review with detail 7-8.
+
 ---
 
 ## 1. Catapult
