@@ -85,9 +85,16 @@ def _pattern(tree, coord, base, pattern):
     # 'tint' as the pattern color: those stripes/panels take the civ color
     civ = 'tint' in pattern[1:2]
     lin = [(0.67, 0.67, 0.67, 1.0) if h == 'tint' else (*B.srgb_to_linear(B.hex_color(h)), 1.0)
-           for h in pattern[1:] if isinstance(h, str) and h not in ('front',)]
+           for h in pattern[1:] if isinstance(h, str) and h not in ('front', 'cover')]
     front = 'front' in pattern[1:]          # panels: the front only (not down the back)
-    nums = [v for v in pattern[1:] if isinstance(v, (int, float))]
+    items = list(pattern[1:])
+    cover = None
+    if 'cover' in items:
+        # ('camo', ..., 'cover', 0.75): the first blotch color takes ~75% of the cloth
+        k = items.index('cover')
+        cover = float(items[k + 1])
+        del items[k:k + 2]
+    nums = [v for v in items if isinstance(v, (int, float))]
     if kind == 'camo':
         noise = n.new('ShaderNodeTexNoise')
         noise.inputs['Scale'].default_value = nums[0] if nums else 9.0
@@ -102,6 +109,10 @@ def _pattern(tree, coord, base, pattern):
             els.new(0.5)
         # one blotch color: flecks (a smaller share of the cloth); more: camo
         first = 0.56 if len(cols) == 2 else 0.36
+        if cover is not None:
+            # the noise is roughly normal round 0.5 (sd ~0.11): the threshold for that share
+            from statistics import NormalDist
+            first = 0.5 + 0.11 * NormalDist().inv_cdf(min(0.99, max(0.01, 1.0 - cover)))
         for i, (e, col) in enumerate(zip(els, cols)):
             e.position = 0.0 if i == 0 else first + 0.3 * (i - 1) / max(1, len(cols) - 2)
             e.color = col
