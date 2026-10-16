@@ -1,42 +1,31 @@
-# TODO for the PC session (from the Mac, 2026-10-16)
+# TODO for the PC session (from the Mac, 2026-10-16, round 2)
 
-## Next: take over the units blocked on your props
+Great work: every unit you own passes. Next, in this order:
 
-These 7 units now belong to you: entries, renders and the review loop. Each one is blocked only by a prop you're building, or would build.
+## 1. Take over the last 4 royals (you're faster)
 
-| Unit | File | Blocker (prop) | Last scores (I/NAI/F/1x/M/D) |
-|------|------|----------------|------------------------------|
-| Army Ancient Times | remaster_royals.py | war_standard device 'bars' (three bars); Imposing and 1x also at 6 | 6/7/7/6/6/6 |
-| Army Industrial Ages | remaster_royals.py | war_standard device 'blobs' (red/green/cyan on the tinted field) | 7/7/7/7/7/6 (detail only) |
-| Army Modern Times | remaster_royals.py | war_standard device 'saltire' (diagonal cross) | 6/6/6/6/6/6 |
-| King Austria | remaster_royals.py | 'wolfhound' prop; place it with 'ground_props': [('wolfhound', {}, (0.5, 0.1), 15)] | 6/6/6/6/6/5 |
-| King Aztec | remaster_royals.py | dense feather fan (gold/tint/red/teal cycling) | 6/6/6/7/6/6 |
-| King Incan | remaster_royals.py | 'feather_standard' (a staff topped by a feather fan) | 6/6/6/6/6/5 |
-| King Iroquois | remaster_royals.py (stays with the Mac) | a feather wrap on the spear shaft: please add a 'feather_wrap' option on props.spear | 7/7/7/7/6/6 |
-| Impi | remaster_footmen.py | tapered feather cards for feather_headdress (it reads as "red sausages") | 7/6/8/7/7/7 (not-AI only) |
+These are yours now: entries in remaster_royals.py, renders, and the review loop.
 
-The latest review notes for the royals are in the MISSING comments of those entries. For Impi, see reviews/footmen_batchA_round9.md.
+| Unit | Last scores (I/NAI/F/1x/M/D) | Blockers |
+|------|------------------------------|----------|
+| King Iroquois | 7/7/7/7/6/6 | The feather wrap on the spear (your prop; it's in the old TODO). Materials on the leggings. |
+| King Chinese | 6/7/7/7/6/6 | The pockets don't read (the light #9aa4ae is too close to the grey); the figure is slight. The owner might waive Detail and Imposing (a plain Mao suit); that's in STATUS.md. |
+| King Indian (Gandhi) | 6/7/7/7/6/7 | Imposing: the reviewer suggests the owner waive it (frail by design); that's in STATUS.md. Materials: a linen weave on the shawl and dhoti. |
+| King Byzantines (Theodora) | 7/7/6/7/7/6 | The tinted crown panels and a broad jeweled collar. Not re-rendered since round 7. |
 
-**Ownership:** edit only these units' blocks, and pull before each commit. I keep the rest of royals half 1: American, Byzantines, Celtic, Chinese, Greek, Hatti, Indian, Iroquois, and the 8 that pass.
+The fix lists are in the MISSING notes of the entries and in my last review notes (scratchpad, not in the repo). Re-review them from a fresh render.
 
-## Not now
+## 2. A full-set contact sheet for stzur
 
-- **Animations** (attack, fidget, death poses): the owner asked for stills first. Don't start without stzur's go-ahead. Write it up as a proposal in STATUS_PC.md instead.
-- **Leaderheads:** done and released (v0.7.9).
+Build one preview image, or a few, of EVERY remastered unit next to its original, at 1x and 2x, grouped by category. This is so stzur can judge the whole set at once when back. Commit it under ArtGen/_previews/ (or report its path). Flag any outlier in scale, lighting or tint across the set.
 
-## Builder keys added recently (all render-tested)
+## 3. Optional polish
 
-- 'crown_over' (a crown over a hood or helmet; 'crown_lift', 'crown_grow')
-- 'hair_scale'
-- 'shoulder_rolls'
-- 'ruff' with 'ruff_style': 'fan'
-- 'side_stripe' pattern
-- chest_strap 'edge' and 'edge_width'
-- 'ground_props'
-- 'shield_at': 'back'
-- 'back_tilt'
-- 'crown_lift'
-- cape 'cape_lining', 'cape_emblem' ('lion' | 'fleur' | 'disc' | 'cross'), and ermine hems
-- 'face_prop', 'long_gloves', 'trouser_flare', 'cuirass_trim', 'cloth_dirt', 'physique'
+These come from your list: a scalloped or wavy cape hem, and Netherlands cape folds.
 
-Gold trims are semi-metallic, and cape hems are continuous.
+## Still waiting on stzur (don't start)
+
+- Look approval, then `build.py --install`, thumbnails and the merge.
+- The War Elephant asset choice.
+- Judgment on the frozen riders and chariots.
+- Animations.
