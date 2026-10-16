@@ -876,3 +876,79 @@ def brim(basemesh, arm, mat, radius=0.17, lift=0.075, curl=0.03, comb=0.05):
         o.matrix_world = world
     H._update()
     return made
+
+
+def crown(basemesh, arm, mat, kind='spiked', height=0.07, gems=None):
+    """A crown on the head (parented to the head bone): a band around the
+    head at the brow, plus points ('spiked'), arches meeting over the top
+    ('arched', a closed royal crown), or a tall cylinder ('tall', the
+    Mesopotamian kind). 'circlet' is the band alone."""
+    import human as H
+    top, yc, _ = _head(basemesh)
+    zb = top - 0.07
+    rx, ry = 0.088, 0.105
+    made = []
+    bm = bmesh.new()
+    k = 36
+    lo, hi = [], []
+    tall = height * 2.2 if kind == 'tall' else 0.035
+    for i in range(k):
+        a = 2 * math.pi * i / k
+        x, y = math.sin(a) * rx, yc + math.cos(a) * ry
+        lo.append(bm.verts.new((x, y, zb)))
+        h = tall
+        if kind == 'spiked':
+            h += height * max(0.0, math.cos(a * 8)) ** 3
+        hi.append(bm.verts.new((x * (1.04 if kind == 'tall' else 1.0), (y - yc) * (1.04 if kind == 'tall' else 1.0) + yc, zb + h)))
+    for i in range(k):
+        bm.faces.new((lo[i], lo[(i + 1) % k], hi[(i + 1) % k], hi[i]))
+    if kind == 'tall':
+        cap = bm.verts.new((0, yc, zb + tall))
+        for i in range(k):
+            bm.faces.new((hi[i], hi[(i + 1) % k], cap))
+    if kind == 'arched':
+        # two arches crossing over the top, and a small orb on the cross point
+        for ax in (0, 1):
+            prev = None
+            for j in range(17):
+                t = math.pi * j / 16
+                if ax == 0:
+                    p = (math.cos(t) * rx, yc, zb + 0.035 + math.sin(t) * 0.085)
+                else:
+                    p = (0.0, yc + math.cos(t) * ry, zb + 0.035 + math.sin(t) * 0.085)
+                v1 = bm.verts.new((p[0] - (0.006 if ax else 0), p[1] - (0.006 if not ax else 0), p[2]))
+                v2 = bm.verts.new((p[0] + (0.006 if ax else 0), p[1] + (0.006 if not ax else 0), p[2]))
+                if prev:
+                    bm.faces.new((prev[0], prev[1], v2, v1))
+                prev = (v1, v2)
+    me = bpy.data.meshes.new('Crown')
+    bm.to_mesh(me)
+    bm.free()
+    obj = bpy.data.objects.new('Crown', me)
+    bpy.context.scene.collection.objects.link(obj)
+    obj.data.materials.append(mat)
+    sol = obj.modifiers.new('Solidify', 'SOLIDIFY')
+    sol.thickness = 0.006
+    made.append(obj)
+    if kind == 'arched':
+        bpy.ops.mesh.primitive_uv_sphere_add(radius=0.016, location=(0, yc, zb + 0.13))
+        orb = bpy.context.active_object
+        orb.data.materials.append(mat)
+        made.append(orb)
+    if gems:
+        gm = B.material('gem', gems, roughness=0.15)
+        for i in range(6):
+            a = 2 * math.pi * i / 6
+            bpy.ops.mesh.primitive_ico_sphere_add(radius=0.008, subdivisions=1,
+                                                  location=(math.sin(a) * rx * 1.04, yc + math.cos(a) * ry * 1.04, zb + 0.017))
+            g = bpy.context.active_object
+            g.data.materials.append(gm)
+            made.append(g)
+    for o in made:
+        world = o.matrix_world.copy()
+        o.parent = arm
+        o.parent_type = 'BONE'
+        o.parent_bone = 'head'
+        o.matrix_world = world
+    H._update()
+    return made

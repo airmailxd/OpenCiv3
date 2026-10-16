@@ -203,14 +203,14 @@ REMASTER = {
         'race': {'caucasian': 0.7, 'african': 0.2, 'asian': 0.1},
         'colors': {'skin': '#a87e5c', 'hair': '#140e0a', 'helmet': '#c8b070', 'top': '#d4c48c',
                    'bottom': '#d4c48c', 'belt': '#a8862e', 'sandal': '#4a3622', 'gold': '#c8a038'},
-        'helmet': 'cap', 'metal': ['helmet'],   # MISSING: tall_crown (flat-topped cylinder, tinted band)
+        'helmet': 'crown', 'crown': 'tall', 'crown_height': 0.07,
         'hair': 'long', 'hair_asset': 'bob01',
         'beard': True,                          # MISSING: long_beard (square, to the chest)
         'top': 'sleeved', 'neck': 'high', 'bottom': 'kilt', 'robe_drop': 0.48,   # MISSING: hem_band (small tinted accents)
         'cape': True, 'cape_length': 1.38,      # MISSING: cape_edge (gold)
         'cuirass': False, 'wraps': None, 'sandals': True, 'bracers': False, 'gear': [],
         'weapon': None, 'offhand': None,
-        'stance_name': 'hang',                  # MISSING: fists_on_hips
+        'stance_name': 'fists_on_hips',
         'tint': ['cape'],
         'grime': 0.45, 'upper_bulk': 1.2,
     },
@@ -223,15 +223,15 @@ REMASTER = {
         'race': {'caucasian': 0.8, 'african': 0.1, 'asian': 0.1},
         'colors': {'skin': '#d0aa8c', 'hair': '#2a1a10', 'helmet': '#c8a038', 'top': '#e8e2cc',
                    'bottom': '#e8e2cc', 'belt': '#c8a038', 'sandal': '#c8a040', 'gold': '#c8a038'},
-        'helmet': 'cap', 'metal': ['helmet'],   # MISSING: crown (domed, jeweled, tinted panels), gender (female)
+        'gender': 0.0, 'helmet': 'crown', 'crown': 'arched', 'crown_gems': '#3a6ac8',
         'hair': 'long', 'hair_asset': 'long01', 'beard': False,
         'top': 'sleeved', 'wide_sleeves': True, 'neck': 'high',
-        'bottom': 'kilt', 'robe_drop': 0.55,    # MISSING: gown (floor-length, tinted front panel)
+        'bottom': 'gown', 'robe_drop': 0.55,
         'bands': [('neck', 'gold')],            # MISSING: broad_collar (gold jeweled)
         'cape': True, 'cape_length': 1.38,      # MISSING: cape_hem_band (broad gold)
         'cuirass': False, 'wraps': None, 'sandals': True, 'bracers': False, 'gear': [],
         'weapon': None, 'offhand': None,        # MISSING: small_object (white, held at the chest)
-        'stance_name': 'arms_folded',           # MISSING: hands_at_chest
+        'stance_name': 'hands_clasped',
         'tint': ['cape', 'sleeves'],
         'grime': 0.3, 'upper_bulk': 1.0,
     },

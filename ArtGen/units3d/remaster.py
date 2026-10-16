@@ -115,12 +115,13 @@ REMASTER = {
 
 
 # Entries for further units live in their own modules, merged here.
-try:
-    from remaster_footmen import REMASTER as _FOOTMEN
-except ImportError:
-    _FOOTMEN = {}
-for _k, _v in _FOOTMEN.items():
-    REMASTER.setdefault(_k, _v)
+for _module in ('remaster_footmen', 'remaster_royals'):
+    try:
+        _more = __import__(_module).REMASTER
+    except ImportError:
+        _more = {}
+    for _k, _v in _more.items():
+        REMASTER.setdefault(_k, _v)
 
 
 def apply(name, entry):

@@ -50,11 +50,12 @@ def _mat(entry, part, maker, *args, **kw):  # noqa: D401
     return maker(f'{part}', color, *args, tint=tint, **kw)
 
 
-def _skin_base(hexcolor):
+def _skin_base(hexcolor, female=False):
     """The MPFB skin texture closest in lightness to the catalog's skin color."""
     r, g, b = B.hex_color(hexcolor)
     lum = 0.3 * r + 0.59 * g + 0.11 * b
-    return 'middleage_african_male' if lum < 0.42 else 'middleage_asian_male'
+    sex = 'female' if female else 'male'
+    return f'middleage_african_{sex}' if lum < 0.42 else f'middleage_asian_{sex}'
 
 
 # ------------------------------------------------------------ clothes
@@ -94,6 +95,9 @@ def dress(entry, mesh, arm):
         # a sash over the left shoulder, across the chest
         G.shell(mesh, arm, 'Top', torso, _mat(entry, 'top', G.cloth), zmin=0.95, zmax=1.45, offset=0.009,
                 thickness=0.004, keep=lambda co: abs((co.z - 1.2) - 0.9 * co.x) < 0.07)
+    if bottom == 'gown':
+        G.skirt(mesh, arm, 'Bottom', _mat(entry, 'bottom', G.cloth, weave=0.6), length=0.7,
+                flare=entry.get('gown_flare', 1.55), folds=0.1, drop=entry.get('robe_drop', 0.5))
     if bottom in ('skirt', 'kilt'):
         G.skirt(mesh, arm, 'Bottom', _mat(entry, 'bottom', G.cloth, weave=0.6), length=0.55 if bottom == 'skirt' else 0.7,
                 flare=1.12 + 0.3 * entry.get('robe_drop', 0.0), folds=0.08, drop=entry.get('robe_drop', 0.0))
@@ -213,6 +217,12 @@ def helmet(entry, mesh, arm):
     body = mesh.vertex_groups.get('body')
     top = max(v.co.z for v in me.vertices if any(g.group == body.index and g.weight > 0.5 for g in v.groups))
     metal = kind in entry.get('metal', ['helmet']) or 'helmet' in entry.get('metal', ['helmet'])
+    if kind == 'crown':
+        gold = B.material('crown', B.hex_color(_colors(entry).get('gold', '#c8a040')), roughness=0.3, metallic=1.0)
+        gem = entry.get('crown_gems')
+        G.crown(mesh, arm, gold, kind=entry.get('crown', 'spiked'), height=entry.get('crown_height', 0.07),
+                gems=B.hex_color(gem) if gem else None)
+        return
     if kind == 'great_helm':
         # a closed flat-topped helm down to the neck, with an eye slit
         tint = 'helmet' in entry.get('tint', [])
@@ -350,6 +360,19 @@ STANCES['arms_folded'] = [('spine_02', (0, -0.02, 1)), ('neck_01', (0, 0.1, 1)),
                           ('thigh_r', (-0.2, 0.0, -1)), ('calf_r', (-0.14, 0.04, -1)), ('foot_r', (-0.45, -1, -0.3)),
                           ('upperarm_l', (0.2, -0.5, -1)), ('lowerarm_l', (-1.0, -0.25, 0.25)),
                           ('upperarm_r', (-0.2, -0.55, -1)), ('lowerarm_r', (1.0, -0.35, 0.3))]
+
+_ROYAL_BASE = [('spine_02', (0, 0.04, 1)), ('neck_01', (0, 0.06, 1)), ('head', (0, 0.16, 1)),
+               ('clavicle_l', (1, 0.05, 0.08)), ('clavicle_r', (-1, 0.05, 0.08)),
+               ('thigh_l', (0.16, -0.06, -1)), ('calf_l', (0.1, 0.04, -1)), ('foot_l', (0.45, -1, -0.3)),
+               ('thigh_r', (-0.16, 0.02, -1)), ('calf_r', (-0.1, 0.04, -1)), ('foot_r', (-0.45, -1, -0.3))]
+STANCES['fists_on_hips'] = _ROYAL_BASE + [('upperarm_l', (1.0, 0.15, -0.8)), ('lowerarm_l', (-0.66, 0.1, -0.75)),
+                                          ('upperarm_r', (-1.0, 0.15, -0.8)), ('lowerarm_r', (0.66, 0.1, -0.75))]
+STANCES['hands_clasped'] = _ROYAL_BASE + [('upperarm_l', (0.18, -0.25, -1)), ('lowerarm_l', (-0.55, -0.75, -0.35)),
+                                          ('upperarm_r', (-0.18, -0.25, -1)), ('lowerarm_r', (0.55, -0.75, -0.35))]
+STANCES['hands_behind'] = _ROYAL_BASE + [('upperarm_l', (0.2, 0.35, -1)), ('lowerarm_l', (-0.5, 0.7, -0.4)),
+                                         ('upperarm_r', (-0.2, 0.35, -1)), ('lowerarm_r', (0.5, 0.7, -0.4))]
+STANCES['royal'] = _ROYAL_BASE + [('upperarm_l', (0.25, -0.1, -1)), ('lowerarm_l', (0.15, -0.6, -0.9)),
+                                  ('upperarm_r', (-0.3, -0.2, -1)), ('lowerarm_r', (-0.1, -1.0, 0.45))]
 
 WEAPON_STANCE = {
     'stone_axe': 'hang', 'club': 'hang', 'sword': 'hang', 'axe': 'hang',
@@ -497,9 +520,10 @@ def build_footman(entry, seated=False):
     hair = entry.get('hair_asset', HAIR.get(entry.get('hair'), 'short02'))
     if helmeted and entry.get('hair') != 'long':
         hair = None
-    mesh, arm = H.body(gender=1.0, age=entry.get('age', 0.5), **macro,
+    gender = entry.get('gender', 1.0)
+    mesh, arm = H.body(gender=gender, age=entry.get('age', 0.5), **macro,
                        race=entry.get('race', {'caucasian': 0.4, 'african': 0.3, 'asian': 0.3}),
-                       skin=_skin_base(c['skin']), hair=hair,
+                       skin=_skin_base(c['skin'], female=gender < 0.5), hair=hair,
                        skin_tone=B.hex_color(c['skin']), hair_tone=B.hex_color(c['hair']))
     H.grime(mesh, amount=entry.get('grime', 0.4))
     dress(entry, mesh, arm)
