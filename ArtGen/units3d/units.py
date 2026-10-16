@@ -273,6 +273,12 @@ def dress(entry, mesh, arm):
     if entry.get('fur_kilt'):
         G.pelt(mesh, arm, B.hex_color(entry['fur_kilt'][0]), B.hex_color(entry['fur_kilt'][1]), length=0.03,
                density=4000, kind='kilt', bottom=1.0 - entry.get('fur_kilt_length', 0.5))   # meters below the waist
+    if entry.get('spiked_hair'):
+        G.spiked_hair(mesh, arm, G.hide('spikes', B.hex_color(c['hair']), tuple(v * 0.7 for v in B.hex_color(c['hair']))),
+                      length=entry.get('spike_length', 0.07))
+    if entry.get('shackles'):
+        G.shackles(mesh, arm, B.material('iron', B.hex_color(c.get('iron', '#3e3e40')), roughness=0.5, metallic=0.85),
+                   ankles=entry['shackles'] != 'wrists')
     if entry.get('topknot'):
         # 'topknot' or 'ponytail' on a shaven head (set 'hair_asset': None)
         G.topknot(mesh, arm, G.hide('knot', B.hex_color(c['hair']), tuple(v * 0.6 for v in B.hex_color(c['hair']))),

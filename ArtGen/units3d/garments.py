@@ -1584,3 +1584,71 @@ def arm_patch(basemesh, arm, mat, side='l', t=0.3, size=0.06, out_by=0.035):
     o.matrix_world = world
     H._update()
     return o
+
+
+def spiked_hair(basemesh, arm, mat, n=26, length=0.07, seed=3):
+    """Hair limed and pulled up into spikes (the Gaul's): cones standing out
+    of the scalp, longest on the crown; on the head bone."""
+    import random
+    import human as H
+    from mathutils import Vector
+    rnd = random.Random(seed)
+    top, yc, on_body = _head(basemesh)
+    scalp = [v.co.copy() for v in basemesh.data.vertices
+             if on_body(v) and top - v.co.z < 0.07 * _scale and v.co.y - yc > -0.06 * _scale]
+    if not scalp:
+        return []
+    made = []
+    centre = Vector((0, yc, top - 0.09 * _scale))
+    for i in range(n):
+        p = rnd.choice(scalp)
+        out = (p - centre).normalized()
+        out = (out + Vector((0, 0, 0.8))).normalized()
+        ln = length * _scale * rnd.uniform(0.6, 1.2) * (1.2 if p.z > top - 0.02 * _scale else 0.85)
+        bpy.ops.mesh.primitive_cone_add(vertices=6, radius1=0.014 * _scale, radius2=0.0, depth=ln,
+                                        location=tuple(p + out * ln * 0.45))
+        c = bpy.context.active_object
+        c.rotation_mode = 'QUATERNION'
+        c.rotation_quaternion = out.to_track_quat('Z', 'Y')
+        c.data.materials.append(mat)
+        made.append(c)
+    for o in made:
+        world = o.matrix_world.copy()
+        o.parent = arm
+        o.parent_type = 'BONE'
+        o.parent_bone = 'head'
+        o.matrix_world = world
+    H._update()
+    return made
+
+
+def shackles(basemesh, arm, mat, ankles=True):
+    """Iron cuffs round both wrists (and ankles), each on its bone, 90% along
+    the forearm (and the shin)."""
+    import human as H
+    inv = basemesh.matrix_world.inverted() @ arm.matrix_world
+    made = []
+    spots = [('lowerarm_l', 0.88, 0.045), ('lowerarm_r', 0.88, 0.045)]
+    if ankles:
+        spots += [('calf_l', 0.9, 0.062), ('calf_r', 0.9, 0.062)]
+    for bone, t, r in spots:
+        b = arm.data.bones[bone]
+        h, tl = inv @ b.head_local, inv @ b.tail_local
+        p = h.lerp(tl, t)
+        d = (tl - h).normalized()
+        bpy.ops.mesh.primitive_torus_add(major_radius=r * _scale, minor_radius=0.011 * _scale,
+                                         major_segments=20, minor_segments=8, location=tuple(p))
+        o = bpy.context.active_object
+        o.rotation_mode = 'QUATERNION'
+        o.rotation_quaternion = d.to_track_quat('Z', 'Y')
+        bpy.context.view_layer.update()
+        o.scale = (1.0, 1.0, 2.2)          # a band, not a wire
+        o.data.materials.append(mat)
+        world = o.matrix_world.copy()
+        o.parent = arm
+        o.parent_type = 'BONE'
+        o.parent_bone = bone
+        o.matrix_world = world
+        made.append(o)
+    H._update()
+    return made
