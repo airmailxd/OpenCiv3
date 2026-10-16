@@ -226,6 +226,18 @@ def dress(entry, mesh, arm):
         G.falling_hair(mesh, B.hex_color(c['hair']), length=entry['mane'])
         G.front_locks(mesh, B.hex_color(c['hair']), length=entry['mane'] * 1.1)
     G.roughen_hair(mesh, B.hex_color(c['hair']), length=0.012, density=2500)
+    # a chest emblem: ('cross' | 'disc', 'tint' | 'gold' | hex[, size])
+    em = entry.get('chest_emblem')
+    if em:
+        col = em[1]
+        if col == 'tint':
+            emat = G.cloth('emblem', (1, 1, 1), tint=True)
+        elif col == 'gold':
+            emat = B.material('emblem_gold', B.hex_color(c.get('gold', '#c8a040')), roughness=0.3, metallic=1.0)
+        else:
+            emat = G.cloth('emblem', B.hex_color(c.get(col, col)))
+        G.chest_emblem(mesh, arm, emat, kind=em[0], size=em[2] if len(em) > 2 else 0.16,
+                       lift=0.045 if entry.get('cuirass') else 0.03)
     # hem bands: [(garment, color), ...]; garment 'bottom' or 'top', color
     # 'tint', 'gold' or a hex; optional width (m) and inset from the edge
     for h in entry.get('hem_bands', []):

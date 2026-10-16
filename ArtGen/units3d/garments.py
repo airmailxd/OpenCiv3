@@ -1133,3 +1133,45 @@ def hem(name, mat, width=0.05, lift=0.004, inset=0.0):
     obj.data.materials.clear()
     obj.data.materials.append(mat)
     return obj
+
+
+def chest_emblem(basemesh, arm, mat, kind='cross', size=0.16, z_at=1.3, lift=0.03):
+    """A flat emblem on the chest front (a 'cross', or a 'disc'), standing
+    `lift` off the skin so it sits on the garments; on the chest bone."""
+    import human as H
+    me = basemesh.data
+    body = basemesh.vertex_groups.get('body')
+    zc = z_at * _scale
+    pts = [v.co for v in me.vertices if abs(v.co.z - zc) < 0.03 and abs(v.co.x) < 0.04 and
+           (body is None or any(g.group == body.index and g.weight > 0.5 for g in v.groups))]
+    if not pts:
+        return []
+    y = min(co.y for co in pts) - lift            # the unposed body faces -y
+    s = size * _scale
+    made = []
+    if kind == 'disc':
+        bpy.ops.mesh.primitive_cylinder_add(radius=s / 2, depth=0.008, location=(0, y, zc),
+                                            rotation=(math.pi / 2, 0, 0), vertices=24)
+        made.append(bpy.context.active_object)
+    else:
+        # (width, height, raise) of the upright and the cross-bar, in emblem sizes
+        for w, h, dz in ((0.2, 1.0, 0.0), (0.66, 0.2, 0.18)):
+            bpy.ops.mesh.primitive_cube_add(size=1, location=(0, y, zc + dz * s))
+            o = bpy.context.active_object
+            o.scale = (w * s, 0.008, h * s)
+            made.append(o)
+    for o in made:
+        bpy.ops.object.select_all(action='DESELECT')
+        o.select_set(True)
+        bpy.context.view_layer.objects.active = o
+        bpy.ops.object.transform_apply(scale=True)
+        bv = o.modifiers.new('Bevel', 'BEVEL')
+        bv.width = 0.002
+        o.data.materials.append(mat)
+        world = o.matrix_world.copy()
+        o.parent = arm
+        o.parent_type = 'BONE'
+        o.parent_bone = 'spine_03'
+        o.matrix_world = world
+    H._update()
+    return made

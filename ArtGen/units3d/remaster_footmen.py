@@ -256,7 +256,8 @@ REMASTER = {
                    'belt': '#9a7e2c', 'gold': '#9a7e2c', 'sandal': '#2a2018', 'wood': '#4a3222',
                    'book_cover': '#3a2418', 'parchment': '#d0c49e', 'cloth_wrap': '#3a2e26'},
         'helmet': 'hood', 'hair_asset': None, 'beard': False,
-        'top': 'sleeved', 'wide_sleeves': True, 'neck': 'high',   # MISSING: chest_cross (gold)
+        'top': 'sleeved', 'wide_sleeves': True, 'neck': 'high',
+        'chest_emblem': ('cross', 'gold', 0.2), 'hem_bands': [('sleeves', 'tint', 0.06)],   # gold cross, civ cuffs
         'bottom': 'kilt', 'robe_drop': 0.4,          # the floor-length robe
         'bands': [('neck', 'tint'), ('wrist', 'tint'), ('waist', 'gold')],   # shoulder band, cuffs, gold sash
         'bracers': False, 'sandals': True, 'wraps': None, 'gear': [],
