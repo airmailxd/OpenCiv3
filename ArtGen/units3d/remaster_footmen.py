@@ -532,7 +532,7 @@ REMASTER = {
         'helmet': 'morion', 'plume': True, 'metal': ['helmet'],
         'beard': True,
         # the original's torso is a civ-color doublet (no breastplate shows), puffed pale sleeves
-        'cuirass': False, 'top': 'sleeved', 'puffy': True,   # MISSING: puffy_sleeves_to_wrist, slashing_stripes
+        'cuirass': False, 'top': 'sleeved', 'puffy': True, 'wide_sleeves': True,   # white sleeves to the wrist, slashing_stripes
         'bottom': 'breeches',                   # MISSING: slashing_stripes (black on the breeches)
         'wraps': 'boots',
         'gear': [('chest_strap', {'tint': True, 'width': 0.15})],   # the civ-color diagonal sash over the doublet
