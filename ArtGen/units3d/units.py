@@ -643,7 +643,7 @@ def equip(entry, arm):
             # held low and level across the front of the hips, pointing forward-left,
             # its grip deep in the fist
             at = H.grip_point(arm, 'hand_l', along=0.35)
-            H.hold(obj, arm, 'hand_l', at, up=(1.0, -0.35, 0.05))
+            H.hold(obj, arm, 'hand_l', at, up=tuple(entry.get('offhand_dir', (1.0, -0.35, 0.05))))
         made.append(obj)
     back = entry.get('back')
     if back and back not in ('quiver', 'backpack', 'pelt') and back in P.BUILDERS:
@@ -676,6 +676,28 @@ def equip(entry, arm):
         made.append(obj)
     elif back == 'pelt':
         pass  # TODO: a pelt over the shoulders
+    # more gear at the belt: [(prop, params, side), ...]; side 'r' (right
+    # hip), 'back' or 'l'; hung like the scabbard (+Z down and back)
+    for item in entry.get('hip_gear', []):
+        name, params = item[0], (item[1] if len(item) > 1 else {})
+        side = item[2] if len(item) > 2 else 'r'
+        obj = P.make(name, c, **params)
+        pv = arm.matrix_world @ arm.pose.bones['pelvis'].head
+        x = {'r': -0.17, 'l': 0.17, 'back': 0.06}[side] * G._scale
+        y = (0.12 if side == 'back' else 0.02) * G._scale
+        at = pv + Vector((x, y, 0.05 * G._scale))
+        H.hold(obj, arm, 'pelvis', at, up=(0.0, 0.25, -0.97), forward=(-1 if side == 'r' else 1, 0, 0) if side != 'back'
+               else (0, 1, 0))
+        made.append(obj)
+    # gear worn on the chest (a bandolier of flasks ...): origin mid-chest, +Y out
+    chest = entry.get('chest_gear')
+    if chest:
+        name, params = chest[0], (chest[1] if len(chest) > 1 else {})
+        obj = P.make(name, c, **params)
+        sp = arm.matrix_world @ arm.pose.bones['spine_03'].head
+        at = sp + Vector((0.0, -entry.get('chest_out', 0.17) * G._scale, -0.02 * G._scale))
+        H.hold(obj, arm, 'spine_03', at, up=(0, 0, 1), forward=(0, -1, 0))
+        made.append(obj)
     hip = entry.get('hip')
     if hip:
         # a sheathed sword at the left hip: the scabbard's mouth at the belt,

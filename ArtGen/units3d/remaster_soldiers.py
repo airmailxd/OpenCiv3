@@ -48,11 +48,11 @@ REMASTER = {
         'cuirass': True, 'top': 'sleeved', 'puffy': True,   # the jerkin over civ-color puffed sleeves
         'bottom': 'breeches',
         'wraps': 'wraps', 'sandals': False, 'boots': True,  # grey stockings, dark low boots
-        # the bandolier; MISSING: haversack/cartridge_box (the apostles on the strap, a tan hip pouch)
+        'chest_gear': ('bandolier_bottles', {}), 'hip_gear': [('haversack', {}, 'back')],   # the apostles, a tan pouch
         'gear': [('chest_strap', {'color': '#2a2220', 'width': 0.08})],
         'weapon': 'musket',
         'props': {'musket': ('musket', {'length': 1.78})},
-        'offhand': None,                        # MISSING: musket_rest (a tall forked rest planted in the left hand)
+        'offhand': 'musket_rest', 'offhand_mesh': ('musket_rest', {}), 'offhand_dir': (0.05, -0.05, 1.0),
         'stance_name': 'order_arms',            # MISSING: shoulder_arms (musket on the right shoulder, angled up-forward)
         'tint': ['top', 'bottom', 'plume'],
         'grime': 0.7, 'upper_bulk': 1.2,
@@ -97,7 +97,7 @@ REMASTER = {
         'coat_length': 0.35,                    # the frock's skirts to mid-thigh
         'bottom': 'long', 'wraps': 'boots',
         'harness': True,                        # the brown crossbelts
-        'gear': [],                             # MISSING: haversack/cartridge_box (a tan bag at the left hip, a box on the belt)
+        'gear': [], 'hip_gear': [('haversack', {}, 'l'), ('cartridge_box', {}, 'r')],
         'weapon': 'rifle',
         'props': {'rifle': ('rifle_bolt', {'length': 1.25, 'bayonet': True})},
         # right hand on the wrist at the right hip, left on the fore-end,
@@ -177,8 +177,7 @@ REMASTER = {
         'boots': True, 'wraps': 'boots',
         'bands': [('knee', 'kneepad'), ('wrist', 'tint')],   # MISSING: gloves (tinted hands; wrist bands stand in)
         'gear': [],
-        # grey pack (bag 'olive_dark'); MISSING: chute_pack (a big parachute pack, not a rucksack)
-        'back': 'mil_backpack', 'back_params': {'size': 1.25},
+        'back': 'chute_pack',                   # the big grey parachute pack
         'weapon': 'rifle',
         'props': {'rifle': ('assault_rifle', {'scale': 1.25})},
         'stance_name': 'hip_hold',              # across the waist, muzzle front-left
@@ -205,7 +204,7 @@ REMASTER = {
         'harness': True,
         'bands': [('knee', 'tint')],
         'gear': [],
-        'back': 'backpack', 'pack_scale': 1.3,  # MISSING: chute_pack (a huge camo-wrapped bundle)
+        'back': 'para_pack',
         'weapon': 'smg',
         'props': {'smg': ('smg', {'scale': 1.25})},
         'stance_name': 'hip_hold',              # level, muzzle forward
@@ -233,7 +232,7 @@ REMASTER = {
         'gear': [],
         'back': 'mil_backpack', 'back_params': {'size': 0.7},   # the small brown pack
         'weapon': 'rifle',
-        'props': {'rifle': ('assault_rifle', {'scale': 1.25})},   # MISSING: ak (wooden furniture, curved mag)
+        'props': {'rifle': ('ak', {'scale': 1.25})},
         # muzzle up in the fist; MISSING: rifle_shoulder (vertical against the right shoulder)
         'stance_name': 'upright', 'upright_dir': (-0.05, 0.05, 1.0),
         'pose_extra': ARM_DOWN_L,
