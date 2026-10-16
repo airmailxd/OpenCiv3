@@ -214,3 +214,148 @@ def khepresh(p, c, tinted, _):
     crown = props.ellipsoid(0.11, 0.15, 0.17, seg=20)
     p.add(crown, key, T(0, -0.04, 0.09), smooth=True, tint=t)
     p.add(props.lathe([(0.0, 0.112), (0.025, 0.112)], seg=24), 'gold', smooth=True)
+
+
+# ------------------------------------------------------------ hats for the foot units (Mac session)
+
+props.DEFAULTS.setdefault('tint', ('#ffffff', 0.7, 0.0, 'cloth'))
+props.DEFAULTS.setdefault('felt', ('#1e1a18', 0.85, 0.0, 'cloth'))
+props.DEFAULTS.setdefault('khaki', ('#8a7a56', 0.85, 0.0, 'cloth'))
+props.DEFAULTS.setdefault('hardhat', ('#d8a630', 0.45, 0.0, None))
+
+
+def _brim(p, r_in, r_out, z, key, up=None, tint=False, seg=40, tilt=0.0):
+    """A hat brim: a flat ring from r_in to r_out at height z; up(a) lifts the
+    outer edge at angle a (0 = front, +Y)."""
+    rings = [[], []]
+    for k in range(seg):
+        a = 2 * math.pi * k / seg
+        lift = up(a) if up else 0.0
+        rings[0].append((r_in * math.sin(a), r_in * math.cos(a), z))
+        rings[1].append((r_out * math.sin(a), r_out * math.cos(a), z + lift + tilt * math.cos(a)))
+    rings = [r + [r[0]] for r in rings]
+    bm = props.loft(rings, False, False)
+    props.bmesh.ops.solidify(bm, geom=bm.faces[:], thickness=0.008)
+    p.add(bm, key, smooth=True, tint=tint)
+
+
+@hat('fan_headdress')
+def fan_headdress(p, c, tinted, _):
+    """Chasquis Scout: a broad upright fan behind the head, its field in the
+    civ color, a white-and-gold rim; a band round the brow."""
+    p.add(props.lathe([(0.0, 0.112), (0.035, 0.112)], seg=24), 'gold', smooth=True)
+    n = 17
+    for i in range(n):
+        a = math.radians(-80 + 160 * i / (n - 1))
+        base = (0.0, -0.06, 0.06)
+        tip = (0.26 * math.sin(a), -0.08, 0.06 + 0.26 * math.cos(a))
+        p.add(props.tube([base, tip], [0.02, 0.03], seg=5, scale_xy=(1.0, 0.25)), 'tint', smooth=True, tint=True)
+    rim = [(0.29 * math.sin(math.radians(a)), -0.082, 0.06 + 0.29 * math.cos(math.radians(a))) for a in range(-82, 83, 6)]
+    p.add(props.tube(rim, 0.014, seg=6), 'feather', smooth=True)
+    p.add(props.tube([(x * 1.04, y, z) for x, y, z in rim], 0.008, seg=6), 'gold', smooth=True)
+
+
+@hat('feather_headdress')
+def feather_headdress(p, c, tinted, _):
+    """Tall upright feathers in a crown (Impi, Aztec, Mayan, Iroquois):
+    alternately civ-colored and natural, on a headband."""
+    p.add(props.lathe([(0.0, 0.114), (0.04, 0.114)], seg=24), 'tint', smooth=True, tint=True)
+    n = 11
+    for i in range(n):
+        a = math.radians(-140 + 280 * i / (n - 1))
+        base = (0.11 * math.sin(a), 0.11 * math.cos(a) - 0.01, 0.03)
+        h = 0.3 - 0.06 * abs(i - n // 2) / (n // 2)
+        tip = (0.16 * math.sin(a), 0.14 * math.cos(a) - 0.06, 0.03 + h)
+        key, t = (('tint', True) if i % 2 else ('feather', False))
+        p.add(props.tube([base, tip], [0.024, 0.04], seg=5, scale_xy=(1.0, 0.3)), key, smooth=True, tint=t)
+
+
+@hat('tricorne')
+def tricorne(p, c, tinted, _):
+    """A tricorne: a low crown and a brim turned up into three points."""
+    key, t = _k(tinted, 'felt')
+    p.add(props.lathe([(0.0, 0.112), (0.08, 0.105), (0.1, 0.0)], seg=24), key, smooth=True, tint=t)
+    _brim(p, 0.11, 0.2, 0.01, key, up=lambda a: 0.09 * (0.5 + 0.5 * math.cos(3 * a)), tint=t)
+
+
+@hat('bicorne')
+def bicorne(p, c, tinted, plume_tinted):
+    """A Napoleonic bicorne worn sideways: a tall crescent of felt, a cockade."""
+    key, t = _k(tinted, 'felt')
+    p.add(props.lathe([(0.0, 0.11), (0.05, 0.105), (0.07, 0.0)], seg=24), key, smooth=True, tint=t)
+    shape = props.slab([(-0.24, 0.0), (0.24, 0.0), (0.18, 0.06), (0.08, 0.16), (0.0, 0.18), (-0.08, 0.16), (-0.18, 0.06)],
+                       0.05, 'Y')
+    p.add(shape, key, T(0, 0, 0.02), bevel=0.01, tint=t)
+    ck, ct = _k(plume_tinted, 'plume')
+    p.add(props.lathe([(0.0, 0.03), (0.01, 0.03)], seg=16), ck, T(0.1, 0.03, 0.1) @ R('X', 90), smooth=True, tint=ct)
+
+
+@hat('top_hat')
+def top_hat(p, c, tinted, _):
+    """A top hat: a tall cylinder, a narrow curled brim and a civ-colored band."""
+    p.add(props.lathe([(0.0, 0.11), (0.2, 0.115), (0.21, 0.0)], seg=24), 'felt', smooth=True)
+    _brim(p, 0.11, 0.16, 0.0, 'felt', up=lambda a: 0.02 * abs(math.sin(a)))
+    p.add(props.lathe([(0.01, 0.113), (0.045, 0.113)], seg=24), 'tint', smooth=True, tint=True)
+
+
+@hat('kepi')
+def kepi(p, c, tinted, _):
+    """A kepi: a flat-topped cap sloping forward, with a short leather peak."""
+    key, t = _k(tinted, 'hat')
+    crown = props.lathe([(0.0, 0.11), (0.1, 0.1), (0.11, 0.0)], seg=24)
+    p.add(crown, key, R('X', 8), smooth=True, tint=t)
+    visor = props.slab([(-0.08, 0.0), (0.08, 0.0), (0.06, 0.05), (-0.06, 0.05)], 0.008, 'X')
+    p.add(visor, 'leather_dark', T(0, 0.1, 0.0) @ R('Z', 90) @ R('X', -15), bevel=0.002)
+
+
+@hat('beret')
+def beret(p, c, tinted, _):
+    """A beret: a soft flat disc tipped to one side."""
+    key, t = _k(tinted, 'hat')
+    p.add(props.ellipsoid(0.13, 0.12, 0.04, seg=20), key, T(0.02, 0, 0.06) @ R('Y', -12), smooth=True, tint=t)
+    p.add(props.lathe([(0.0, 0.11), (0.02, 0.11)], seg=24), 'leather_dark', smooth=True)
+
+
+@hat('boonie')
+def boonie(p, c, tinted, _):
+    """A slouch hat with one side of the brim pinned up (Aussie style)."""
+    key, t = _k(tinted, 'khaki')
+    p.add(props.lathe([(0.0, 0.112), (0.09, 0.105), (0.11, 0.0)], seg=24), key, smooth=True, tint=t)
+    _brim(p, 0.11, 0.2, 0.0, key, up=lambda a: 0.1 if math.sin(a) > 0.6 else -0.015, tint=t)
+
+
+@hat('hard_hat')
+def hard_hat(p, c, tinted, _):
+    """A worker's hard hat: a ribbed shell with a short peak."""
+    key, t = _k(tinted, 'hardhat')
+    p.add(props.lathe([(0.0, 0.122), (0.06, 0.115), (0.12, 0.07), (0.15, 0.0)], seg=24), key, smooth=True, tint=t)
+    _brim(p, 0.12, 0.15, 0.0, key, up=lambda a: 0.0, tint=t, tilt=0.01)
+
+
+@hat('turban')
+def turban(p, c, tinted, _):
+    """A large round wound turban."""
+    key, t = _k(tinted, 'hat')
+    for i in range(6):
+        r = 0.135 - 0.006 * i
+        p.add(props.lathe([(0.0, r), (0.034, r)], seg=24), key, T(0, -0.005 * i, 0.01 + 0.03 * i) @ R('X', 7 * (-1) ** i),
+              smooth=True, tint=t)
+    p.add(props.ellipsoid(0.12, 0.12, 0.08, seg=18), key, T(0, -0.01, 0.17), smooth=True, tint=t)
+
+
+@hat('conical_helmet')
+def conical_helmet(p, c, tinted, _):
+    """A Norse conical helmet with a nasal guard."""
+    p.add(props.lathe([(-0.005, 0.118), (0.06, 0.11), (0.15, 0.04), (0.2, 0.0)], seg=24), 'helmet', smooth=True)
+    p.add(props.box(0.022, 0.012, 0.09), 'helmet', T(0, 0.118, -0.04), bevel=0.004)
+    p.add(props.lathe([(-0.005, 0.12), (0.012, 0.12)], seg=24), 'bronze', smooth=True)
+
+
+@hat('morion_big')
+def morion_big(p, c, tinted, plume_tinted):
+    """The Explorer's morion: a high comb and a wide brim swept up front and
+    back, with a big plume."""
+    morion(p, c, tinted, plume_tinted)
+    pk, pt = _k(plume_tinted, 'plume')
+    p.add(props.tube([(0, -0.05, 0.14), (0, -0.14, 0.24), (0, -0.3, 0.22)], [0.03, 0.035, 0.008], seg=8), pk,
+          smooth=True, tint=pt)
