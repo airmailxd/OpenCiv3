@@ -21,7 +21,7 @@ import vkit
 from props import R, T
 
 for _k, _v in {'air_paint': ('#7c8078', 0.55, 0.35, 'metal'), 'air_under': ('#a8aca4', 0.55, 0.35, 'metal'),
-               'air_dark': ('#3a3e42', 0.5, 0.5, 'metal'), 'glass': ('#2a3644', 0.08, 0.6, 'polished'),
+               'air_dark': ('#3a3e42', 0.5, 0.5, 'metal'), 'glass': ('#2a3644', 0.08, 0.6, 'polished'), 'glass_bright': ('#b8ccd8', 0.1, 0.3, 'polished'),
                'glass_frame': ('#4a4e52', 0.5, 0.6, 'metal'), 'prop_black': ('#1a1a1c', 0.5, 0.3, 'metal'),
                'prop_tip': ('#d8b020', 0.5, 0.2, 'metal'), 'mark_white': ('#e6e4dc', 0.55, 0.1, 'metal'),
                'mark_red': ('#a8302a', 0.55, 0.1, 'metal'), 'gunmetal': ('#3a3c3e', 0.45, 1.0, 'metal'),
@@ -51,7 +51,7 @@ def resample(stations, step):
     return out
 
 
-def body(p, stations, key='air_paint', keys=None, seg=28, step=0.25, power=2.0):
+def body(p, stations, key='air_paint', keys=None, seg=28, step=0.25, power=2.0, smooth=True):
     """A lofted fuselage through superellipse stations (y, z, half_w,
     half_h[, power]) running nose to tail; zero-size stations close it."""
     rings = []
@@ -64,7 +64,7 @@ def body(p, stations, key='air_paint', keys=None, seg=28, step=0.25, power=2.0):
             c, s = math.cos(a), math.sin(a)
             ring.append((hw * math.copysign(abs(c) ** (2 / pw), c), y, z + hh * math.copysign(abs(s) ** (2 / pw), s)))
         rings.append(ring)
-    p.add(props.loft(rings), key, smooth=True, keys=keys)
+    p.add(props.loft(rings), key, smooth=smooth, keys=keys)
 
 
 def wing(p, stations, key='air_paint', keys=None, seg=12, side=1, vertical=False, matrix=None, step=None):
@@ -169,7 +169,7 @@ def prop(p, at, r, blades=3, key='prop_black', tips=False, hub=0.2, spin=15.0, a
     for k in range(blades):
         a = spin + 360.0 * k / blades
         bm = m @ R('Y', a) @ T(0, hub * 0.4, 0)
-        p.add(props.box(r * 0.1, 0.04, r), key, bm @ T(0, 0, r / 2 + hub * 0.5) @ R('Z', 18), bevel=0.01)
+        p.add(props.box(r * 0.17, 0.05, r * 0.92), key, bm @ T(0, 0, r / 2 + hub * 0.5) @ R('Z', 18), bevel=0.01)
         if tips:
             p.add(props.box(r * 0.102, 0.042, r * 0.1), 'prop_tip', bm @ T(0, 0, r + hub * 0.5 - r * 0.05) @ R('Z', 18))
 
@@ -193,7 +193,7 @@ def fighter(p):
     big civ ovals on the wings and fuselage, the white tail band."""
     regions = [('tint', True, oval(3.0, 0.65, 1.15, 0.8)), ('tint', True, oval(-3.0, 0.65, 1.15, 0.8)),
                ('tint', True, side_oval(-1.3, 0.25, 0.55, 0.45)),
-               ('mark_white', False, band(-2.75, -2.4))]
+               ('mark_white', False, band(-2.75, -2.4)), ('tint', True, blotches(0.5, 0.34, 5.0, zmin=0.0))]   # civ patchwork
     keys = paint_keys(regions)
     body(p, [(4.45, 0.02, 0.34, 0.4), (3.6, 0.02, 0.43, 0.52), (2.4, 0.04, 0.47, 0.6), (1.0, 0.04, 0.48, 0.62),
              (-0.6, 0.08, 0.42, 0.56), (-2.4, 0.18, 0.3, 0.42), (-3.9, 0.28, 0.14, 0.24), (-4.55, 0.32, 0.02, 0.06)],
@@ -233,7 +233,7 @@ def bomber(p):
     nacelles with three-blade props; the big fin with its dorsal fillet;
     olive drab with darker mottling, a grey underside; civ tailplanes, wing
     roundels, nose cheek stripes, white code letters."""
-    regions = [('glass', False, lambda c, n: c.y > 10.0),
+    regions = [('glass_bright', False, lambda c, n: c.y > 10.0),
                ('tint', True, lambda c, n: abs(c.x) > 0.8 and -12.5 < c.y < -7.9 and abs(c.z - 0.75) < 0.4),
                ('tint', True, oval(11.0, 1.4, 1.2, 1.0, top=True)), ('tint', True, oval(-11.0, 1.4, 1.2, 1.0, top=True)),
                ('tint', True, lambda c, n: abs(n.x) > 0.5 and 8.4 < c.y < 9.9 and -0.25 < c.z < 0.05),
@@ -266,8 +266,8 @@ def bomber(p):
             le, wz = _lerp(4.5, 2.1, f), -0.25 + f * span * math.tan(math.radians(4.5))
             body(p, [(le + 2.0, wz - 0.05, 0.62, 0.62), (le + 1.1, wz - 0.05, 0.75, 0.75), (le - 1.5, wz - 0.1, 0.7, 0.66),
                      (le - 3.4, wz - 0.05, 0.3, 0.28)], keys=keys, seg=20, step=0.3,)
-            p.add(props.lathe([(0.0, 0.76), (0.5, 0.78)], seg=20), 'air_dark', T(side * x, le + 1.6, wz - 0.05) @ R('X', -90), smooth=True)
-            p.add(props.lathe([(0.0, 0.5), (0.05, 0.5)], seg=16), 'port', T(side * x, le + 2.06, wz - 0.05) @ R('X', -90), smooth=True)
+            p.add(props.lathe([(0.0, 0.76), (0.5, 0.78)], seg=20), 'air_paint', T(side * x, le + 1.6, wz - 0.05) @ R('X', -90), smooth=True)
+            p.add(props.lathe([(0.0, 0.34), (0.05, 0.34)], seg=16), 'air_dark', T(side * x, le + 2.06, wz - 0.05) @ R('X', -90), smooth=True)
             prop(p, (side * x, le + 2.1, wz - 0.05), 1.75, blades=3, tips=True, hub=0.28, spin=30 * side)
             p.add(props.box(0.25, 0.9, 0.2), 'nozzle', T(side * x, le - 1.8, wz - 0.7), bevel=0.05)   # the turbo
     # tailplane and the fin with its dorsal fillet
@@ -286,7 +286,7 @@ def helicopter(p):
     the landing gear; pale grey with a darker belly, the civ spine stripe,
     rotor hubs, door panels and sponson stripes."""
     regions = [('glass', False, lambda c, n: c.y > 6.3 and c.z > 0.15 and n.y > -0.2),
-               ('tint', True, lambda c, n: n.z > 0.7 and abs(c.x) < 0.55 and -4.8 < c.y < 5.3),
+               ('tint', True, lambda c, n: n.z > 0.6 and abs(c.x) < 0.8 and -4.8 < c.y < 5.3),
                ('tint', True, lambda c, n: abs(n.x) > 0.6 and (2.6 < c.y < 3.6 or -3.0 < c.y < -2.0) and -0.6 < c.z < 0.75),
                ('tint', True, lambda c, n: abs(c.x) > 1.3 and n.z > 0.3 and c.z < -0.2)]
     keys = paint_keys(regions)
@@ -376,7 +376,7 @@ def jet_fighter(p):
                tail=[(1.3, -5.0, 2.6, 0.05, 0.05), (3.9, -6.6, 1.2, 0.05, 0.05)],
                fin=[(0.0, -3.6, 3.0, 0.0, 0.06), (3.1, -5.8, 1.2, 0.0, 0.05)], fin_x=1.35, fin_z=0.4, fin_cant=8,
                missiles=[(3.2, 0.4, 3.0), (4.4, -0.4, 2.6)])
-    regions = [('tint', True, blotches(0.55, 0.32, 3.0, zmin=0.0))]
+    regions = [('tint', True, blotches(0.3, 0.24, 3.0, zmin=0.0))]
     _jet_common(p, paint_keys(regions), cfg)
 
 
@@ -400,28 +400,36 @@ def f15(p):
 
 
 def stealth_fighter(p):
-    """A faceted delta stealth fighter with twin canted V tails, dark grey,
-    a civ chevron across the top, civ fin tips."""
-    regions = [('tint', True, lambda c, n: n.z > 0.3 and abs(abs(c.x) * 0.9 - (c.y + 1.2)) < 0.45 and c.y > -2.0 and abs(c.x) < 4.0),
-               ('tint', True, lambda c, n: c.z > 2.4)]
+    """An F-117: the flat black faceted arrowhead (a diamond loft, every side
+    a flat facet), the faceted canopy, gridded intakes on the shoulders, the
+    slot exhausts and the two V tails, no tailplanes; a bold civ chevron
+    across the back."""
+    regions = [('tint', True, lambda c, n: n.z > 0.2 and abs(c.y - (2.6 - abs(c.x) * 1.25)) < 0.55 and 0.6 < abs(c.x) < 4.4)]
     keys = paint_keys(regions)
-    # the faceted body: a flat diamond loft with power < 2 (hard chines)
-    body(p, [(9.0, 0.2, 0.05, 0.03, 1.2), (6.0, 0.25, 0.9, 0.45, 1.3), (2.0, 0.3, 1.6, 0.65, 1.3),
-             (-3.0, 0.3, 1.5, 0.5, 1.3), (-6.0, 0.25, 0.8, 0.3, 1.3), (-7.2, 0.25, 0.3, 0.12, 1.3)], 'air_paint', keys=keys, step=0.25, seg=16)
-    canopy(p, (0, 3.6, 0.85), 0.5, 1.4, 0.38, frames=2)
+    body(p, [(10.0, 0.3, 0.02, 0.02, 1.0), (5.0, 0.35, 2.1, 0.75, 1.0), (0.0, 0.4, 4.2, 1.0, 1.0),
+             (-2.6, 0.4, 6.6, 0.5, 1.0), (-3.4, 0.4, 3.0, 0.6, 1.0), (-7.5, 0.4, 1.7, 0.42, 1.0),
+             (-9.8, 0.4, 0.8, 0.12, 1.0)], keys=keys, step=0.25, seg=32, smooth=False)
+    body(p, [(5.8, 0.95, 0.02, 0.02, 1.0), (4.2, 1.15, 0.55, 0.36, 1.0), (2.2, 1.12, 0.52, 0.32, 1.0),
+             (1.0, 0.95, 0.05, 0.05, 1.0)], 'glass', seg=8, step=0.4, smooth=False)
     for side in (-1, 1):
-        wing(p, [(1.2, 4.0, 9.0, 0.2, 0.05), (6.6, -3.2, 2.2, 0.1, 0.04)], keys=keys, side=side, step=0.4)
-        wing(p, [(0.0, -3.4, 3.2, 0.0, 0.05), (2.8, -5.6, 1.4, 0.0, 0.05)], keys=keys, vertical=True,
-             matrix=T(side * 1.2, 0, 0.45) @ R('Y', side * 40))
-        p.add(props.box(1.1, 0.06, 0.4), 'port', T(side * 1.25, 4.5, 0.2) @ R('Z', side * 25))   # the gridded intakes
-        p.add(props.box(1.4, 0.4, 0.14), 'nozzle', T(side * 0.8, -6.8, 0.25))                   # the slot exhausts
+        wing(p, [(0.0, -6.0, 3.4, 0.0, 0.04), (3.0, -8.4, 1.6, 0.0, 0.04)], keys=keys, vertical=True,
+             matrix=T(side * 1.0, 0, 0.75) @ R('Y', side * 42))
+        p.add(props.box(0.9, 1.2, 0.05), 'port', T(side * 1.55, 2.2, 0.95) @ R('Y', side * 28))   # the gridded intakes
+        for k in range(5):
+            p.add(props.box(0.92, 0.03, 0.06), 'air_dark', T(side * 1.55, 1.7 + 0.25 * k, 0.97) @ R('Y', side * 28))
+    p.add(props.box(2.6, 0.5, 0.08), 'nozzle', T(0, -8.9, 0.62))   # the slot exhaust
 
 
 def stealth_bomber(p):
     """A B-2: the flying wing with its sawtooth trailing edge, the raised
     centre body with the cockpit windows and engine humps, dark grey; civ
     panels near the wing tips."""
-    regions = [('tint', True, lambda c, n: n.z > 0.2 and 16.0 < abs(c.x) < 21.0 and abs(c.y - (2.0 - (abs(c.x) - 1.0) * 0.62 - 1.6)) < 1.0),
+    def outer_aft(c, n):   # civ panels on the outer wings' trailing halves
+        s = abs(c.x)
+        le = 9.0 - (s - 1.0) * math.tan(math.radians(33))
+        tey = _lerp(-7.2, -8.8, (s - 13.0) / 13.0)
+        return n.z > 0.2 and 14.5 < s < 20.5 and c.y < (le + tey) / 2
+    regions = [('tint', True, outer_aft),
                ('port', False, lambda c, n: c.y > 6.6 and c.z > 0.9 and n.y > 0.2)]
     keys = paint_keys(regions)
     # the centre body
@@ -429,7 +437,7 @@ def stealth_bomber(p):
              (-6.4, 0.15, 1.0, 0.15)], keys=keys, step=0.3, seg=24)
     # the wing: leading edge swept 33 degrees to the tips, a sawtooth trailing edge (W in plan)
     span = 26.0
-    te = [(0.0, -6.4), (6.0, -2.3), (11.0, -6.0), (17.0, -2.0), (span, -11.2)]
+    te = [(0.0, -7.5), (7.0, -2.8), (13.0, -7.2), (span, -8.8)]
     st = []
     for i in range(27):
         s = 1.0 + (span - 1.0) * i / 26
@@ -441,27 +449,93 @@ def stealth_bomber(p):
     for side in (-1, 1):
         wing(p, st, keys=keys, side=side)
         for dx in (2.0, 3.2):   # the engine humps and their intakes
-            p.add(props.ellipsoid(0.75, 3.0, 0.45, seg=16), 'air_paint', T(side * dx, 2.0, 0.9), smooth=True, keys=keys)
+            p.add(props.ellipsoid(0.95, 3.6, 0.7, seg=16), 'air_paint', T(side * dx, 2.0, 0.95), smooth=True, keys=keys)
             p.add(props.box(0.9, 0.08, 0.2), 'port', T(side * dx, 4.6, 1.15) @ R('X', -15))
             p.add(props.box(1.0, 0.6, 0.06), 'nozzle', T(side * dx, -2.8, 0.75))
+
+
+def _rocket(p, r, stages, nose, base_band, patches=True, skirt=None):
+    """A standing missile (+Z up): engine bells under the first stage, the
+    stages with dark interstage rings and a raceway, a hatch, the white
+    shroud with a civ band, the nose cone and the civ-tipped antenna."""
+    regions = [('tint', True, lambda c, n: base_band[0] < c.z < base_band[1])]
+    if patches:   # the civ panels scattered on the stages (as the original)
+        regions.append(('tint', True, lambda c, n: base_band[1] < c.z < stages[-1][1] and
+                        noise.noise(Vector((c.x * 1.2, c.y * 1.2, c.z * 0.5)) + Vector((3.0, 1.0, 7.0))) > 0.16))
+    keys = paint_keys(regions, under=False)
+    for k in range(4):   # the engine bells
+        a = math.radians(45 + 90 * k)
+        p.add(props.lathe([(0.0, r * 0.18), (stages[0][0], r * 0.32)], seg=12), 'nozzle',
+              T(r * 0.45 * math.cos(a), r * 0.45 * math.sin(a), 0.0), smooth=True)
+    if skirt:
+        p.add(props.lathe([(skirt[0], r * 1.18), (skirt[1], r * 1.04)], seg=28), 'tint', smooth=True, tint=True)
+    for i, (z0, z1, rr) in enumerate(stages):
+        n = max(2, int((z1 - z0) / 0.2))   # fine rings, so the painted panels land on the skin
+        p.add(props.lathe([(z0 + (z1 - z0) * i / n, r * rr) for i in range(n + 1)], seg=40), 'air_paint', smooth=True, keys=keys)
+        for z in [z0 + 1.4 * (j + 1) for j in range(int((z1 - z0) / 1.4) - 0)][:-1]:   # the panel seams
+            p.add(props.lathe([(z - 0.03, r * rr * 1.006), (z + 0.03, r * rr * 1.006)], seg=40), 'air_dark', smooth=True)
+        if i:
+            p.add(props.lathe([(z0 - 0.15, r * rr * 1.03), (z0 + 0.25, r * rr * 1.03)], seg=32), 'air_dark', smooth=True)
+    zt = stages[-1][1]
+    p.add(props.box(0.08 * r, 0.16 * r, zt - stages[0][0] - 0.4), 'air_dark', T(r * 1.0, 0, (zt + stages[0][0]) / 2))   # the raceway
+    p.add(props.box(0.05, r * 0.35, r * 0.6), 'mark_red', T(-r * 0.99, 0.0, stages[0][1] * 0.62))                       # the hatch
+    z0, band, cone, tip = nose
+    p.add(props.lathe([(zt, r * 0.98), (zt + band, r * 0.98)], seg=32), 'tint', smooth=True, tint=True)
+    prof = [(zt + band, r * 0.98)] + [(zt + band + cone * t, r * 0.98 * math.cos(t * math.pi / 2) ** 0.7) for t in (0.3, 0.55, 0.75, 0.9, 1.0)]
+    p.add(props.lathe(prof, seg=32), 'mark_white', smooth=True)
+    vkit.rod(p, (0, 0, zt + band + cone - 0.05), (0, 0, zt + band + cone + tip), r * 0.07, 'tint', seg=8, tint=True)
+
+
+def icbm(p):
+    """An ICBM on its pad: two grey stages with civ panels, white nose."""
+    _rocket(p, 0.95, [(0.8, 8.0, 1.0), (8.4, 13.0, 0.95)], (None, 0.9, 2.4, 1.2), (0.8, 2.2))
+
+
+def tactical_nuke(p):
+    """A slim tactical missile on its tail: a civ skirt, two stages."""
+    _rocket(p, 0.5, [(0.6, 6.0, 1.0), (6.3, 9.6, 0.96)], (None, 0.55, 1.5, 0.8), (0.6, 1.6), skirt=(0.6, 1.7))
+
+
+def cruise_missile(p):
+    """A Tomahawk in flight: the dark radome, white body with grey
+    sections and two wide civ bands, the pop-out wings, cruciform tail
+    fins and the exhaust."""
+    regions = [('tint', True, band(0.2, 1.0)), ('tint', True, band(-1.7, -1.0)),
+               ('air_paint', False, lambda c, n: 1.6 < c.y < 2.2 or -2.6 < c.y < -2.1)]
+    keys = paint_keys(regions, under=False)
+    prof = [(-3.0, 0.2)] + [(-2.8 + 0.1 * i, 0.26) for i in range(53)] + [(2.9, 0.2), (3.1, 0.1), (3.18, 0.0)]
+    p.add(props.lathe(prof, seg=28),
+          'mark_white', R('X', -90), smooth=True, keys=keys)
+    p.add(props.lathe([(2.75, 0.215), (2.9, 0.2), (3.1, 0.1), (3.18, 0.0)], seg=28), 'radome', R('X', -90) @ T(0, 0, 0.003), smooth=True)
+    p.add(props.lathe([(-3.15, 0.14), (-3.0, 0.2)], seg=20), 'nozzle', R('X', -90), smooth=True)
+    for side in (-1, 1):   # the wings
+        wing(p, [(0.15, 0.6, 0.55, 0.05, 0.08), (1.35, 0.25, 0.4, 0.05, 0.06)], 'air_dark', side=side)
+    for a in (45, 135, 225, 315):   # the tail fins
+        p.add(props.box(0.03, 0.5, 0.42), 'air_paint', R('Y', a) @ T(0, -2.7, 0.42), bevel=0.01)
+    p.add(props.box(0.12, 0.3, 0.06), 'air_dark', T(0, -0.6, -0.27))   # the air scoop
 
 
 AIRCRAFT = {
     'Fighter': dict(build=fighter, alt=6.4, paint='#6c7068', under='#a6aaa2',
                     camo=[('#4a5838', 2.2, 0.5, 1.0)]),
-    'Bomber': dict(build=bomber, alt=9.3, paint='#5e6440', under='#8a8c84',
-                   camo=[('#4a5232', 1.1, 0.54, 2.0), ('#727a4c', 1.5, 0.58, 5.0)]),
-    'Helicopter': dict(build=helicopter, alt=9.9, paint='#c6cacd', under='#7a7e84',
-                       camo=[('#e2e4e6', 0.9, 0.53, 3.0)]),
-    'Jet Fighter': dict(build=jet_fighter, alt=6.1, paint='#a6b2be', under='#c4ccd4',
-                        camo=[('#7e8c9c', 1.2, 0.52, 4.0), ('#cad2da', 1.6, 0.58, 9.0)]),
-    'F-15': dict(build=f15, alt=6.4, paint='#a0a6ae', under='#b8bec4',
-                 camo=[('#8a929c', 1.0, 0.54, 6.0)]),
-    'Stealth Fighter': dict(build=stealth_fighter, alt=5.8, paint='#3e4246', under='#4a4e52',
-                            camo=[('#565a5e', 1.4, 0.56, 7.0)]),
-    'Stealth Bomber': dict(build=stealth_bomber, alt=9.3, paint='#3e4246', under='#4a4e52',
-                           camo=[('#565a5e', 0.8, 0.56, 8.0)]),
+    'Bomber': dict(build=bomber, alt=10.0, paint='#5e6440', under='#8a8c84',
+                   camo=[('#4a5232', 0.4, 0.54, 2.0), ('#727a4c', 0.55, 0.58, 5.0)]),
+    'Helicopter': dict(build=helicopter, alt=12.0, paint='#acb0b4', under='#6e7278',
+                       camo=[('#cfd2d4', 0.5, 0.53, 3.0)]),
+    'Jet Fighter': dict(build=jet_fighter, alt=10.0, paint='#8494a4', under='#a4b0bc',
+                        camo=[('#6c7c8e', 0.5, 0.52, 4.0), ('#a2b0be', 0.7, 0.58, 9.0)]),
+    'F-15': dict(build=f15, alt=10.5, paint='#8e959e', under='#a8aeb4',
+                 camo=[('#7a828c', 0.6, 0.54, 6.0)]),
+    'Stealth Fighter': dict(build=stealth_fighter, alt=9.5, paint='#2c2e32', under='#26282c',
+                            camo=[('#383a3e', 0.3, 0.6, 7.0)]),
+    'Stealth Bomber': dict(build=stealth_bomber, alt=15.0, paint='#34373b', under='#2e3034',
+                           camo=[]),
 }
+AIRCRAFT.update({
+    'ICBM': dict(build=icbm, alt=0.0, paint='#8e9298', under='#8e9298', camo=[('#b4b8bc', 0.6, 0.52, 2.0)]),
+    'Tactical Nuke': dict(build=tactical_nuke, alt=0.0, paint='#9a9ea4', under='#9a9ea4', camo=[('#c4c8cc', 0.9, 0.52, 4.0)]),
+    'Cruise Missile': dict(build=cruise_missile, alt=4.6, paint='#9a9ea2', under='#9a9ea2', camo=[]),
+})
 UNITS = list(AIRCRAFT)
 
 

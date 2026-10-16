@@ -1856,14 +1856,19 @@ def eagle_standard(p, length=2.2, grip=0.9, scale=1.0):
     _gold_head(p, 'eagle', z1 + 0.08, 2.4)
 
 
-def briefcase(p, scale=1.0):
-    """A leather briefcase held by its handle (origin), hanging -Z."""
+def briefcase(p, scale=1.0, straps=None):
+    """A leather briefcase held by its handle (origin), hanging -Z.
+    straps='tint': a doctor's bag's civ straps round it, brass buckles."""
     s = scale
     p.add(box(0.1 * s, 0.4 * s, 0.3 * s), 'book_cover', T(0, 0, -0.17 * s), bevel=0.02)
     p.add(tube([(0, -0.06 * s, -0.02 * s), (0, -0.04 * s, 0.02 * s), (0, 0.04 * s, 0.02 * s), (0, 0.06 * s, -0.02 * s)],
-               0.009 * s, seg=6), 'book_cover', smooth=True)
+               0.009 * s, seg=6), 'tint' if straps == 'tint' else 'book_cover', smooth=True, tint=straps == 'tint')
     for y in (-0.12, 0.12):
-        p.add(box(0.105 * s, 0.03 * s, 0.03 * s), 'gold', T(0, y * s, -0.04 * s), bevel=0.004)
+        if straps == 'tint':
+            p.add(box(0.11 * s, 0.045 * s, 0.31 * s), 'tint', T(0, y * s, -0.17 * s), tint=True)   # the strap round it
+            p.add(box(0.118 * s, 0.05 * s, 0.05 * s), 'brass', T(0, y * s, -0.08 * s), bevel=0.004)
+        else:
+            p.add(box(0.105 * s, 0.03 * s, 0.03 * s), 'gold', T(0, y * s, -0.04 * s), bevel=0.004)
 
 
 def microphone(p, cord=0.6, scale=1.0):

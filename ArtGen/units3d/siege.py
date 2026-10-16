@@ -707,8 +707,75 @@ def tow_team(colors, k=1.0):
     return root
 
 
+# ------------------------------------------------------------ Holy Relic (the Ark, carried on its poles)
+
+def holy_relic(colors, k=1.0):
+    """The Holy Relic as Civ3 shows it: a gold ark (a framed chest with
+    dark recessed panels between gold pilasters, a moulded rim, feet) under
+    the mercy seat with two kneeling cherubim whose wings arch forward over
+    it; four gold rings and two long carrying poles; a bearer at each end
+    (crew 0 in front, crew 1 behind), both walking forward, poles in hand."""
+    c = dict({'gold': '#d0a038', 'ark_panel': '#7a4818', 'pole': '#7a6248'}, **colors)
+    props.DEFAULTS.setdefault('ark_panel', ('#7a4818', 0.45, 0.6, 'metal'))
+    props.DEFAULTS.setdefault('pole', ('#7a6248', 0.7, 0.0, 'wood'))
+    props.DEFAULTS.setdefault('gold', ('#d0a038', 0.3, 1.0, 'metal'))
+    root = vkit.root('Holy Relic')
+    p = vkit.part(root, 'ark', c)
+    L, W, H, z0 = 1.5, 0.82, 0.78, 0.42   # the chest: length along the poles, width, height, its floor
+    zc = z0 + H / 2
+    p.add(props.box(L, W, H), 'ark_panel', T(0, 0, zc) @ R('Z', 90), bevel=0.01)
+    # pilasters and rails: gold frames round recessed panels on every face
+    for sx in (-1, 1):
+        for i in range(6):
+            y = -L / 2 + L * i / 5
+            p.add(props.box(0.035, 0.05, H * 0.98), 'gold', T(sx * (W / 2 + 0.012), y, zc), bevel=0.008)
+        for z in (z0 + 0.04, z0 + H * 0.52, z0 + H - 0.05):
+            p.add(props.box(0.03, L * 1.0, 0.045), 'gold', T(sx * (W / 2 + 0.015), 0, z), bevel=0.008)
+    for sy in (-1, 1):
+        for i in range(4):
+            x = -W / 2 + W * i / 3
+            p.add(props.box(0.05, 0.035, H * 0.98), 'gold', T(x, sy * (L / 2 + 0.012), zc), bevel=0.008)
+        for z in (z0 + 0.04, z0 + H * 0.52, z0 + H - 0.05):
+            p.add(props.box(W, 0.03, 0.045), 'gold', T(0, sy * (L / 2 + 0.015), z), bevel=0.008)
+    for sx in (-1, 1):   # the feet
+        for sy in (-1, 1):
+            p.add(props.box(0.09, 0.09, 0.08), 'gold', T(sx * (W / 2 - 0.02), sy * (L / 2 - 0.02), z0 - 0.04), bevel=0.015)
+    # the moulded crown rim and the mercy seat lid
+    p.add(props.box(W + 0.07, L + 0.07, 0.05), 'gold', T(0, 0, z0 + H + 0.01), bevel=0.015)
+    p.add(props.box(W + 0.02, L + 0.02, 0.06), 'gold', T(0, 0, z0 + H + 0.06), bevel=0.012)
+    zl = z0 + H + 0.09
+    # the two cherubim, kneeling at the ends, facing each other, wings arched over the seat
+    for sy in (-1, 1):
+        y = sy * (L / 2 - 0.22)
+        face = R('Z', 180 if sy > 0 else 0)
+        m = T(0, y, zl) @ face @ Matrix.Scale(1.35, 4)
+        p.add(props.ellipsoid(0.1, 0.09, 0.08, seg=14), 'gold', m @ T(0, 0, 0.07), smooth=True)          # the knees
+        p.add(props.ellipsoid(0.09, 0.08, 0.15, seg=14), 'gold', m @ T(0, -0.02, 0.2) @ R('X', 15), smooth=True)  # the body
+        p.add(props.ellipsoid(0.06, 0.06, 0.07, seg=12), 'gold', m @ T(0, 0.04, 0.37), smooth=True)      # the head, bowed
+        for sx in (-1, 1):
+            wing = [(sx * 0.08, -0.02, 0.28), (sx * 0.2, 0.08, 0.42), (sx * 0.24, 0.24, 0.46), (sx * 0.16, 0.38, 0.38)]
+            p.add(props.tube(wing, [0.03, 0.06, 0.06, 0.03], seg=8, scale_xy=(1.0, 0.3)), 'gold', m, smooth=True)
+            for j in range(3):   # the long flight feathers under the arch
+                a, b = Vector(wing[1 + j % 2]), Vector(wing[2 + j % 2]) + Vector((0, 0.02 * j, -0.12 - 0.04 * j))
+                p.add(props.tube([tuple(a), tuple(b)], [0.025, 0.01], seg=6, scale_xy=(1.0, 0.4)), 'gold', m, smooth=True)
+    # four rings low on the long sides and the two carrying poles through them
+    zp = z0 + 0.3   # at the bearers' hands
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            p.add(props.lathe([(-0.015, 0.05), (0.015, 0.05)], seg=14), 'gold', T(sx * (W / 2 + 0.06), sy * L * 0.32, zp) @ R('X', 90),
+                  smooth=True)
+        vkit.rod(p, (sx * (W / 2 + 0.06), -1.85, zp), (sx * (W / 2 + 0.06), 1.85, zp), 0.028, 'pole', seg=10)
+        for y in (-1.85, 1.85):   # gold caps on the pole ends
+            p.add(props.lathe([(-0.03, 0.032), (0.03, 0.032)], seg=10), 'gold', T(sx * (W / 2 + 0.06), y, zp) @ R('X', 90), smooth=True)
+    p.finish()
+    root.scale = (k, k, k)
+    vkit.crew(root, 0, (0.0, 1.5, 0.0), yaw=0.0)    # the front bearer, the poles behind his hands
+    vkit.crew(root, 1, (0.0, -1.5, 0.0), yaw=0.0)   # the rear bearer, the poles ahead of him
+    return root
+
+
 BUILDERS = {'Catapult': catapult, 'Cannon': cannon, 'Trebuchet': trebuchet, 'Hwacha': hwacha, 'Artillery': artillery,
-            'Flak': flak, 'TOW Infantry': tow_team}
+            'Flak': flak, 'TOW Infantry': tow_team, 'Holy Relic': holy_relic}
 
 
 def build(unit, colors=None, **params):

@@ -34,6 +34,15 @@ KNEEL = {'pose_extra': [('thigh_l', (0.15, -0.95, -0.25)), ('calf_l', (0.08, 0.0
 ROBE = {'coat_skirt': 'robe', 'coat_length': 0.85, 'sash': 'belt', 'hem_bands': [('robe', '#5a6070', 0.04)],
         '_headgear': 'straw_hat'}   # a shallow conical straw hat (reads tan from every side)
 
+# a bearer of the Ark (Civ3: blue tunics, bare heads, boots): walking, arms out and down to the poles at his sides
+BEARER = {'_base': 'Settler', 'helmet': None, '_headgear': None, 'hair': 'short', 'beard': True,
+          'top': 'sleeved', 'neck': 'high', 'bottom': 'kilt', 'robe_drop': 0.08, 'wraps': 'boots', 'cape': False,
+          'cuirass': False, 'gear': [], 'bands': [('waist', 'belt', 0.05)], 'tint': ['top', 'bottom', 'sleeves'],
+          'stance_name': 'stand',
+          'pose_extra': [('upperarm_l', (0.52, 0.05, -1)), ('lowerarm_l', (0.32, 0.15, -1)),
+                         ('upperarm_r', (-0.52, 0.05, -1)), ('lowerarm_r', (-0.32, 0.15, -1)),
+                         ('thigh_l', (0.0, 0.3, -1)), ('thigh_r', (0.0, -0.2, -1))]}   # mid-stride
+
 # per unit: a list of per-crewman changes (index = the crew empty's number)
 CREW = {
     # ancient and medieval crews are the Mac's reviewed soldiers of the era, disarmed and set to work
@@ -76,6 +85,11 @@ CREW = {
                         ('upperarm_l', (0.15, -0.8, -0.45)), ('lowerarm_l', (-0.2, -1, 0.1)),
                         ('upperarm_r', (-0.15, -0.8, -0.45)), ('lowerarm_r', (0.2, -1, 0.1))]},
         {'_base': 'TOW Infantry'},   # the spotter, as the entry poses him (hand raised to his face)
+    ],
+    # the Ark's bearers: knee-length civ tunics, bareheaded, brown boots; the poles at their spread hands
+    'Holy Relic': [
+        dict(BEARER, _colors={'belt': '#4a3220'}),
+        dict(BEARER, cuirass=True, metal=[], _colors={'cuirass': '#8a8c90', 'belt': '#4a3220'}),   # the grey vest
     ],
     'Flak': [
         dict(OLIVE, seated=True),          # the gunner in his seat

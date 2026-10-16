@@ -133,7 +133,7 @@ def render(unit, use_calibration=False, tag=''):
     gp = B.ground()
     if unit in aircraft.UNITS:   # a big ground for the high shadow, softened like the originals' blurred ones
         gp.scale = (6.0, 6.0, 1.0)
-        key.data.angle = math.radians(12.0)
+        key.data.angle = math.radians(20.0)
     B.tint_aov()
     if os.environ.get('CRISP') == '1':   # crisper: no denoiser smoothing, more samples, a sharper pixel filter
         scene.cycles.use_denoising = False

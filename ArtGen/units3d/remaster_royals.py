@@ -787,7 +787,7 @@ REMASTER = {
         'pauldrons': 'metal',                   # the gold puffed shoulders; MISSING: shoulder_rolls (bigger, puffed)
         'bottom': 'breeches',                   # the tinted trunk hose; MISSING: hose_slashes (dark, vertical)
         'hem_bands': [('bottom', 'gold', 0.03)],
-        'patterns': {'top': [('stripes', '#c8a038', 14.0), ('panel', '#c8a038', 0.12, 'front'), ('panel', '#ece8e0', 0.07, 'front')]},   # gold slashes, the white shirt front   # the white shirt front, gold edged
+        'patterns': {'top': [('panel', '#c8a038', 0.12, 'front'), ('panel', '#ece8e0', 0.07, 'front')]},   # the white shirt front, gold edged (gold slashes greyed the civ)   # the white shirt front, gold edged
         'wraps': 'wraps', 'shoes': True,        # the plain grey hose (band color = hose color: no stripes), black shoes
         'bands': [('wrist', 'gold', 0.06), ('knee', 'gold', 0.06)],   # gold cuffs and garters
         'cape': False, 'cuirass': False, 'sandals': False, 'bracers': False, 'gear': [],
@@ -836,7 +836,7 @@ REMASTER = {
         'top': 'sleeved', 'puffy': True, 'neck': 'high',
         # the vast bell skirt in vertical stripes of civ color and silver; MISSING: lace_hem
         'bottom': 'gown', 'gown_flare': 4.0, 'robe_drop': 0.62,
-        'patterns': {'bottom': ('camo', '#c0c4cc', 16.0, 'cover', 0.35), 'top': ('panel', '#c8a038', 0.1, 'front')},   # silver brocade stripes on the civ bell, a gold bodice front
+        'patterns': {'bottom': ('camo', '#a0a4ac', 7.0, 'cover', 0.33), 'top': ('panel', '#c8a038', 0.1, 'front')},   # silver brocade stripes on the civ bell, a gold bodice front
         'hem_bands': [('bottom', '#f2efe8', 0.07)],   # the white lace frill
         'cape': False, 'cuirass': False, 'wraps': None, 'sandals': False, 'bracers': False,
         'gear': [],
@@ -972,7 +972,8 @@ REMASTER = {
         'top': 'sleeved', 'wide_sleeves': True, 'neck': 'high',
         'bottom': 'kilt', 'robe_drop': 0.46,
         # the white gown down the open front, its edges in civ color
-        'patterns': {'top': ('panel', '#ece8e0', 0.12, 'front'), 'bottom': ('panel', '#ece8e0', 0.12, 'front')},
+        'patterns': {'top': [('panel', 'tint', 0.155, 'front'), ('panel', '#ece8e0', 0.11, 'front')],
+                     'bottom': [('panel', 'tint', 0.155, 'front'), ('panel', '#ece8e0', 0.11, 'front')]},   # the white gown, civ edges
         'hem_bands': [('bottom', 'tint', 0.07, 0.02), ('bottom', 'tint', 0.06, 0.12)],
         'bands': [('wrist', 'tint'), ('neck', 'tint')],
         'hem_bands': [('bottom', 'tint', 0.07, 0.02), ('bottom', 'tint', 0.06, 0.12), ('sleeves', 'tint', 0.08)],   # the cuffs too
@@ -1027,7 +1028,7 @@ REMASTER = {
         'bottom': 'kilt', 'robe_drop': 0.0, 'wraps': 'greaves', 'boots': True,
         # MISSING: the lion on the gold field, ermine_trim (collar)
         'cape': True, 'cape_length': 1.38, 'cape_flare': 0.9,   # a bell
-        # (no back field: a flat panel read worse than none; MISSING: the gold lion emblem)
+        'cape_emblem': ('lion', 'gold', 0.5),   # the gold rampant lion on the back
         'hem_bands': [('cape', '#f0ece4', 0.15), ('cape', '#b09a6a', 0.07, 0.3), ('cape', '#b09a6a', 0.07, 0.55)],   # fur hem, tan bands
         'sandals': False, 'bracers': False, 'gear': [],
         'weapon': 'sword', 'props': {'sword': ('long_sword', {'length': 0.95})},
@@ -1047,7 +1048,7 @@ REMASTER = {
         'hair': 'short', 'hair_asset': None,
         'beard': True, 'beard_style': 'goatee',
         'top': 'sleeved', 'neck': 'high', 'bottom': 'breeches', 'wraps': 'boots',
-        'gear': [('chest_strap', {'width': 0.16})],   # the broad sash; MISSING: sash_edges (gold)
+        'gear': [('chest_strap', {'width': 0.2, 'color': '#c8a038'}), ('chest_strap', {'width': 0.15})],   # the broad civ sash over a wider gold one (its edges)
         'shoulder_patch': ('l', 'tint'), 'patch_size': 0.1, 'patch_out': 0.04,
         'bands': [('wrist', 'tint')],
         'cape': False, 'cuirass': False, 'sandals': False, 'bracers': False,
@@ -1094,7 +1095,7 @@ REMASTER = {
         'colors': {'skin': '#d8ae8e', 'hair': '#cfcac0', 'beard': '#e0dcd4', 'top': '#5a5a5e', 'bottom': '#3a3a3e',
                    'shoes': '#2a2420', 'belt': '#2a2a2e', 'wood': '#18181a', 'leather': '#18181a',
                    'lacquer': '#18181a', 'gold': '#3a3a3e'},
-        'helmet': None, 'hair': 'short', 'hair_asset': 'short02', 'mane': 0.04,   # grey-white hair with flyaway tufts at the back and sides (particle hair hid the face)
+        'helmet': None, 'hair': 'short', 'hair_asset': 'short02', 'mane': 0.0,   # grey-white hair, no particles ('mane' is particle hair too: it made a ball over the face)
         'beard': True, 'beard_style': 'mustache',   # the big white mustache
         'top': 'sleeved', 'neck': 'high', 'bottom': 'long', 'wraps': 'shoes',   # MISSING: suit_jacket (open, lapels)
         # the tinted tie: a narrow non-metal 'cuirass' strip (it also runs down the back: MISSING tie, front only)
@@ -1105,7 +1106,7 @@ REMASTER = {
         # tinted straps)
         'face_prop': 'pipe',
         'weapon': 'cane', 'props': {'cane': ('cane', {'length': 0.9})},
-        'offhand': 'briefcase', 'offhand_mesh': ('briefcase', {}), 'offhand_dir': (0, 0, 1),   # the doctor's bag, hanging
+        'offhand': 'briefcase', 'offhand_mesh': ('briefcase', {'straps': 'tint'}), 'offhand_dir': (0, 0, 1),   # the doctor's bag, civ straps
         'stance_name': 'stand_staff',           # MISSING: walking_stoop
         'tint': [],
         'grime': 0.35, 'upper_bulk': 0.95,
