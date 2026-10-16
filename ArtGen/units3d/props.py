@@ -303,6 +303,10 @@ DEFAULTS.update({
     'iron': ('#4a4a4c', 0.5, 1.0, 'metal'),
     'cloth_wrap': ('#3a2e26', 0.85, 0.0, 'cloth'),
     'lacquer': ('#1e1614', 0.35, 0.0, 'leather'),
+    'gunmetal': ('#2e3032', 0.4, 1.0, 'metal'),
+    'polymer': ('#26282a', 0.55, 0.0, None),
+    'olive': ('#4e5034', 0.7, 0.0, 'cloth'),
+    'olive_dark': ('#3a3c28', 0.8, 0.0, 'cloth'),
 })
 
 # ------------------------------------------------------------ geometry
@@ -1182,6 +1186,130 @@ def shackles(p, span=0.3, scale=1.0):
         link = tube([(0, 0, -0.022), (0, 0, 0.022)], 0.008, seg=6)
         p.add(link, 'iron', T(x, 0, z) @ R('Y', 90) @ (R('Z', 90) if i % 2 else Matrix.Identity(4)), smooth=True)
 
+
+# ------------------------------------------------------------ firearms and soldier gear
+
+def _bayonet(p, z, s=1.0):
+    """A socket bayonet: a slim spike blade above the muzzle at z."""
+    p.add(lathe([(0.0, 0.014 * s), (0.04 * s, 0.012 * s)], seg=8), 'steel', T(0, 0.008, z), smooth=True)
+    blade = lathe([(0.0, 0.009 * s), (0.25 * s, 0.006 * s), (0.4 * s, 0.0)], seg=3)
+    p.add(blade, 'steel', T(0, 0.022, z + 0.02 * s), bevel=0.0005)
+
+
+def musket(p, length=1.5, bayonet=False, scale=1.0):
+    """A flintlock musket held at the wrist of the stock (origin), muzzle +Z:
+    a long wooden stock to near the muzzle, a steel barrel, a lock, brass
+    bands; optional bayonet."""
+    s = scale
+    L = length * s
+    stock = slab([(-0.055, -0.38), (0.04, -0.38), (0.045, -0.12), (0.02, 0.0), (0.016, L - 0.5), (-0.01, L - 0.5),
+                  (-0.016, 0.02), (-0.045, -0.1)], 0.045, 'X')
+    p.add(stock, 'wood', S(1.0), bevel=0.006)
+    p.add(tube([(0, 0.01, 0.0), (0, 0.01, L - 0.38)], [0.013 * s, 0.011 * s], seg=10), 'steel', smooth=True)
+    p.add(box(0.03, 0.035, 0.1), 'steel', T(0, 0.004, 0.06), bevel=0.004)
+    for z in (0.35, 0.65, L - 0.55):
+        p.add(lathe([(0.0, 0.028), (0.014, 0.028)], seg=12), 'bronze', T(0, 0.004, z), smooth=True)
+    if bayonet:
+        _bayonet(p, L - 0.38, s)
+
+
+def rifle_bolt(p, length=1.2, bayonet=False, scale=1.0):
+    """A bolt-action service rifle (Rifleman, WWII): rifle() plus an optional bayonet."""
+    rifle(p, length=length, scale=scale)
+    if bayonet:
+        _bayonet(p, (length - 0.36) * scale, scale)
+
+
+def assault_rifle(p, scale=1.0):
+    """A modern assault rifle held at the pistol grip (origin), muzzle +Z:
+    receiver, curved magazine, handguard, barrel, stock; dark parkerized."""
+    s = scale
+    p.add(box(0.045, 0.07, 0.36), 'gunmetal', T(0, 0.01, 0.12 * s), bevel=0.006)                  # receiver
+    p.add(box(0.04, 0.06, 0.2), 'polymer', T(0, 0.01, 0.38 * s), bevel=0.008)                    # handguard
+    p.add(tube([(0, 0.02, 0.48 * s), (0, 0.02, 0.62 * s)], 0.009 * s, seg=8), 'gunmetal', smooth=True)
+    mag = tube([(0, -0.03, 0.1 * s), (0, -0.12, 0.13 * s), (0, -0.2, 0.18 * s)], 0.022 * s, seg=4, scale_xy=(0.5, 1.3))
+    p.add(mag, 'gunmetal', bevel=0.003)
+    p.add(box(0.035, 0.05, 0.1), 'polymer', T(0, -0.04, 0.0), bevel=0.006)                       # pistol grip
+    p.add(slab([(-0.06, -0.3), (0.05, -0.3), (0.04, -0.08), (-0.02, -0.08)], 0.04, 'X'), 'polymer', S(s), bevel=0.006)
+    p.add(box(0.012, 0.03, 0.06), 'gunmetal', T(0, 0.06, 0.2 * s), bevel=0.003)                   # rear sight / handle
+
+
+def smg(p, scale=1.0):
+    """A submachine gun (Thompson-style): short barrel with a finned jacket,
+    a drum or stick magazine, a wooden stock and foregrip."""
+    s = scale
+    p.add(box(0.045, 0.06, 0.26), 'gunmetal', T(0, 0.01, 0.1 * s), bevel=0.006)
+    p.add(tube([(0, 0.02, 0.23 * s), (0, 0.02, 0.4 * s)], 0.016 * s, seg=10), 'gunmetal', smooth=True)
+    p.add(tube([(0, -0.04, 0.12 * s), (0, -0.2, 0.12 * s)], 0.018 * s, seg=4, scale_xy=(0.5, 1.4)), 'gunmetal')
+    p.add(box(0.035, 0.05, 0.1), 'wood', T(0, -0.04, 0.0), bevel=0.006)
+    p.add(box(0.035, 0.05, 0.08), 'wood', T(0, -0.04, 0.22 * s), bevel=0.006)
+    p.add(slab([(-0.06, -0.28), (0.04, -0.28), (0.035, -0.04), (-0.02, -0.04)], 0.04, 'X'), 'wood', S(s), bevel=0.006)
+
+
+def pistol_holster(p, scale=1.0):
+    """A pistol in a leather flap holster, worn at the hip: the attach point
+    (belt loop) at the origin, the holster hanging along -Z."""
+    s = scale
+    p.add(box(0.05, 0.09, 0.2), 'leather', T(0, 0, -0.12 * s), bevel=0.012)
+    p.add(box(0.055, 0.095, 0.05), 'leather_dark', T(0, 0, -0.02 * s), bevel=0.01)                # flap
+    p.add(box(0.03, 0.035, 0.06), 'gunmetal', T(0, -0.04, 0.02 * s), bevel=0.005)                 # grip showing
+    p.add(box(0.06, 0.02, 0.04), 'leather_dark', T(0, 0.04, 0.0), bevel=0.004)                    # belt loop
+
+
+def bazooka(p, length=1.4, scale=1.0):
+    """A shoulder-fired rocket launcher (bazooka): a long steel tube with a
+    flared rear, a grip and trigger under the middle (the origin), a sight."""
+    s = scale
+    L = length * s
+    p.add(lathe([(-L * 0.55, 0.05), (-L * 0.5, 0.042), (L * 0.45, 0.042), (L * 0.45 + 0.02, 0.045)], seg=16),
+          'olive', smooth=True)
+    p.add(lathe([(-L * 0.55 - 0.06, 0.07), (-L * 0.55, 0.05)], seg=16), 'olive', smooth=True)
+    p.add(box(0.03, 0.06, 0.12), 'wood', T(0, -0.06, 0.0), bevel=0.006)
+    p.add(box(0.02, 0.02, 0.08), 'gunmetal', T(0, 0.05, 0.15 * s), bevel=0.004)
+    for z in (-0.3, 0.3):
+        p.add(lathe([(0.0, 0.046), (0.03, 0.046)], seg=16), 'gunmetal', T(0, 0, z * s), smooth=True)
+
+
+def tow_launcher(p, scale=1.0):
+    """A TOW anti-tank launcher on its tripod (the tripod's center on the
+    ground at the origin): a long tube, a sight box, a traversing unit."""
+    s = scale
+    for a in (0, 120, 240):
+        d = Vector((math.sin(math.radians(a)), math.cos(math.radians(a)), 0))
+        p.add(tube([(0, 0, 0.55 * s), tuple(d * 0.55 * s)], 0.015 * s, seg=6), 'gunmetal', smooth=True)
+    p.add(box(0.14, 0.18, 0.14), 'olive', T(0, 0, 0.62 * s), bevel=0.01)
+    p.add(lathe([(-0.7, 0.075), (0.75, 0.075)], seg=16), 'olive', T(0, 0.05, 0.78 * s) @ R('X', -90), smooth=True)
+    p.add(box(0.1, 0.16, 0.1), 'gunmetal', T(0.13, 0.0, 0.8 * s), bevel=0.01)
+
+
+def modern_helmet(p, scale=1.0):
+    """A steel combat helmet (M1-style): a dome with a slight brim and a
+    canvas cover; the origin at the brow line, +Y forward (as headgear)."""
+    s = scale
+    dome = lathe([(-0.005, 0.135), (0.0, 0.132), (0.06, 0.125), (0.12, 0.09), (0.16, 0.0)], seg=24)
+    p.add(dome, 'olive', S(s), smooth=True)
+    p.add(lathe([(-0.01, 0.142), (0.002, 0.142)], seg=24), 'olive', S(s), smooth=True)
+
+
+def canteen(p, scale=1.0):
+    """A canteen in its belt cover hanging at the hip (attach point at the origin)."""
+    s = scale
+    p.add(ellipsoid(0.06, 0.035, 0.09, seg=14), 'olive_dark', T(0, 0, -0.1 * s) @ S(s), smooth=True)
+    p.add(lathe([(0.0, 0.012), (0.025, 0.012)], seg=10), 'gunmetal', T(0, 0, -0.01 * s), smooth=True)
+
+
+def mil_backpack(p, size=1.0):
+    """A soldier's pack (rucksack) for the back, chest-bone space like
+    backpack(): a canvas pack with a rolled blanket on top and straps."""
+    s = size
+    bag = box(0.32 * s, 0.16 * s, 0.38 * s)
+    p.add(bag, 'olive_dark', T(0, -0.14 * s, -0.08 * s), bevel=0.04)
+    p.add(tube([(-0.17 * s, 0, 0), (0.17 * s, 0, 0)], 0.05 * s, seg=14), 'olive', T(0, -0.13 * s, 0.15 * s),
+          smooth=True)
+    for x in (-0.1 * s, 0.1 * s):
+        path = [(x, -0.06 * s, 0.1 * s), (x, 0.0, 0.14 * s), (x, 0.1 * s, 0.1 * s), (x * 1.05, 0.12 * s, -0.1 * s)]
+        p.add(tube(path, 0.015 * s, seg=6, scale_xy=(1.0, 0.35)), 'olive_dark', smooth=True)
+
 # ------------------------------------------------------------ registry
 
 BUILDERS = {
@@ -1214,6 +1342,16 @@ BUILDERS = {
     'map': map,
     'gourd': gourd,
     'shackles': shackles,
+    'musket': musket,
+    'rifle_bolt': rifle_bolt,
+    'assault_rifle': assault_rifle,
+    'smg': smg,
+    'pistol_holster': pistol_holster,
+    'bazooka': bazooka,
+    'tow_launcher': tow_launcher,
+    'modern_helmet': modern_helmet,
+    'canteen': canteen,
+    'mil_backpack': mil_backpack,
     'sword': sword,
     'bow': bow,
     'bold_bow': bow,

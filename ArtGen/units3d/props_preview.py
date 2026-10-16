@@ -64,6 +64,16 @@ SHOWN = [
     ('map', {}, (0, 0, 0)),
     ('gourd', {}, (0, 0, 0)),
     ('shackles', {}, (0, 0, 0)),
+    ('musket', {'bayonet': True}, (0, 0, 70)),
+    ('rifle_bolt', {'bayonet': True}, (0, 0, 70)),
+    ('assault_rifle', {}, (0, 0, 70)),
+    ('smg', {}, (0, 0, 70)),
+    ('pistol_holster', {}, (0, 0, 70)),
+    ('bazooka', {}, (0, 0, 70)),
+    ('tow_launcher', {}, (0, 0, 30)),
+    ('modern_helmet', {}, (0, 0, 0)),
+    ('canteen', {}, (0, 0, 0)),
+    ('mil_backpack', {}, (0, 0, 180)),
 ]
 
 COLORS = {  # catalog colors from the pilot units
