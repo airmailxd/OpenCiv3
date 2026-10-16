@@ -67,6 +67,16 @@ def cloth(name, color, tint=False, rough=0.85, weave=0.25):
         tree.links.new(add.outputs['Value'], bump.inputs['Height'])
         tree.links.new(bump.outputs['Normal'], bsdf.inputs['Normal'])
         bsdf.inputs['Sheen Weight'].default_value = 0.12
+        # dirt: broad, soft darker patches (no cloth stays factory-clean)
+        dn = n.new('ShaderNodeTexNoise')
+        dn.inputs['Scale'].default_value = 3.0
+        dn.inputs['Detail'].default_value = 3.0
+        tree.links.new(coord.outputs['Object'], dn.inputs['Vector'])
+        dr = n.new('ShaderNodeValToRGB')
+        dr.color_ramp.elements[0].position = 0.4
+        dr.color_ramp.elements[0].color = (0.55, 0.5, 0.44, 1)
+        dr.color_ramp.elements[1].position = 0.7
+        tree.links.new(dn.outputs['Fac'], dr.inputs['Fac'])
         # darker in the folds and where the cloth meets the body
         ao = n.new('ShaderNodeAmbientOcclusion')
         ao.inputs['Distance'].default_value = 0.05
@@ -76,7 +86,13 @@ def cloth(name, color, tint=False, rough=0.85, weave=0.25):
         mul.inputs['Factor'].default_value = 0.75
         mul.inputs['A'].default_value = bsdf.inputs['Base Color'].default_value
         tree.links.new(ao.outputs['AO'], mul.inputs['B'])
-        tree.links.new(mul.outputs['Result'], bsdf.inputs['Base Color'])
+        dirt = n.new('ShaderNodeMix')
+        dirt.data_type = 'RGBA'
+        dirt.blend_type = 'MULTIPLY'
+        dirt.inputs['Factor'].default_value = 0.8
+        tree.links.new(mul.outputs['Result'], dirt.inputs['A'])
+        tree.links.new(dr.outputs['Color'], dirt.inputs['B'])
+        tree.links.new(dirt.outputs['Result'], bsdf.inputs['Base Color'])
     return B.material(name, color, roughness=rough, tint=tint, nodes=nodes)
 
 

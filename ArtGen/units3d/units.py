@@ -237,6 +237,10 @@ def helmet(entry, mesh, arm):
                                       tint=tint), height=0.07, length=0.2, width=0.035)
         else:
             G.brim(mesh, arm, metalmat)
+    if kind == 'cap' and entry.get('cap_brim'):
+        tint = 'helmet' in entry.get('tint', [])
+        bm_ = G.cloth('brim', (1, 1, 1), tint=True) if tint else G.leather('brim', B.hex_color(_colors(entry)['helmet']))
+        G.brim(mesh, arm, bm_, radius=0.15, lift=0.06, curl=0.0, comb=0)
     if entry.get('plume'):
         tint = 'plume' in entry.get('tint', [])
         col = (1, 1, 1) if tint else B.hex_color(_colors(entry).get('plume', '#e8e0d0'))
@@ -283,7 +287,7 @@ def helmet(entry, mesh, arm):
             G.crest(mesh, arm, G.hide('crest', (1, 1, 1) if tint else B.hex_color(c['crest']),
                                       (0.8, 0.8, 0.8) if tint else tuple(v * 0.6 for v in B.hex_color(c['crest'])), tint=tint))
     elif kind == 'headband':
-        G.shell(mesh, arm, 'Helmet', ['head'], _mat(entry, 'helmet', G.cloth), zmin=(top - 0.085) / G._scale, zmax=(top - 0.05) / G._scale,
+        G.shell(mesh, arm, 'Helmet', ['head'], _mat(entry, 'helmet', G.leather), zmin=(top - 0.09) / G._scale, zmax=(top - 0.055) / G._scale,
                 offset=0.014, thickness=0.01, min_weight=0.2)
 
 
@@ -326,12 +330,12 @@ STANCES['ride'] = [('spine_02', (0, -0.05, 1)), ('neck_01', (0, -0.04, 1)), ('he
                    ('upperarm_l', (0.25, -0.5, -1)), ('lowerarm_l', (0.05, -1.0, -0.1)),
                    ('upperarm_r', (-0.3, -0.35, -1)), ('lowerarm_r', (-0.15, -1.0, 0.35))]
 
-STANCES['bow_low'] = [('spine_02', (0, 0.0, 1)), ('neck_01', (0, 0.12, 1)), ('head', (0, 0.4, 1)),
-                      ('clavicle_l', (1, -0.15, 0.1)), ('clavicle_r', (-1, -0.15, 0.1)),
-                      ('thigh_l', (0.2, -0.1, -1)), ('calf_l', (0.12, 0.04, -1)), ('foot_l', (0.4, -1, -0.3)),
-                      ('thigh_r', (-0.16, 0.06, -1)), ('calf_r', (-0.1, 0.06, -1)), ('foot_r', (-0.4, -1, -0.3)),
+STANCES['bow_low'] = [('spine_01', (0, 0.06, 1)), ('spine_02', (0, 0.08, 1)), ('neck_01', (0, 0.15, 1)), ('head', (0, 0.45, 1)),
+                      ('clavicle_l', (1, 0.05, 0.12)), ('clavicle_r', (-1, 0.05, 0.12)),
+                      ('thigh_l', (0.3, -0.18, -1)), ('calf_l', (0.2, 0.05, -1)), ('foot_l', (0.5, -1, -0.3)),
+                      ('thigh_r', (-0.22, 0.12, -1)), ('calf_r', (-0.12, 0.05, -1)), ('foot_r', (-0.5, -1, -0.3)),
                       ('upperarm_l', (0.2, -0.12, -1)), ('lowerarm_l', (0.18, -1.0, -0.5)),
-                      ('upperarm_r', (-0.18, -0.06, -1)), ('lowerarm_r', (-0.1, -0.45, -1))]
+                      ('upperarm_r', (-0.2, -0.04, -1)), ('lowerarm_r', (-0.12, -0.45, -1))]
 
 STANCES['guard'] = [('spine_02', (0, -0.04, 1)), ('neck_01', (0, 0.1, 1)), ('head', (0, 0.35, 1)),
                     ('clavicle_l', (1, -0.2, 0.05)), ('clavicle_r', (-1, -0.2, 0.05)),
@@ -391,8 +395,14 @@ def equip(entry, arm):
             # lower right of the picture (the figure's left), the left hand low
             # on the haft and the right hand further up it
             low = H.grip_point(arm, 'hand_l')
-            up_dir = Vector((-0.45, -0.5, 0.75)).normalized()    # toward the haft's top end
+            up_dir = Vector(entry.get('tool_dir', (-0.7, -0.25, 0.65))).normalized()    # toward the haft's top end
             H.hold(obj, arm, 'hand_l', low, up=tuple(-up_dir))
+            if entry.get('two_hands'):
+                # the right hand further up the haft: the forearm reaches for it
+                target = low + up_dir * 0.4 * G._scale
+                eb = arm.matrix_world @ arm.pose.bones['lowerarm_r'].head
+                H.aim(arm, 'lowerarm_r', arm.matrix_world.inverted().to_3x3() @ (target - eb))
+                H.fists(arm, sides='r')
         made.append(obj)
     if offhand:
         name, params = (entry['offhand_mesh'] if entry.get('offhand_mesh') else (offhand, {}))
@@ -412,8 +422,10 @@ def equip(entry, arm):
                 chest = arm.matrix_world @ arm.pose.bones['spine_02'].head
                 shoulder = arm.matrix_world @ arm.pose.bones['clavicle_l'].head
                 at = Vector((0.5 * (fa.x + chest.x) + 0.08, min(chest.y - 0.2 * G._scale, fa.y - 0.07 * G._scale),
-                             shoulder.z - 0.4 * G._scale))
-            H.hold(obj, arm, 'lowerarm_l', at, up=(0.7, 0.0, 0.7), forward=(0, 1, 0), center=True)
+                             shoulder.z - entry.get('shield_drop', 0.4) * G._scale))
+            yaw = entry.get('shield_yaw', 0.0)       # turned toward the front-left, so it's never edge-on
+            fwd = (math.sin(math.radians(yaw)), math.cos(math.radians(yaw)), 0.0)
+            H.hold(obj, arm, 'lowerarm_l', at, up=(0.7, 0.0, 0.7), forward=fwd, center=True)
         else:
             at = H.grip_point(arm, 'hand_l')
             if offhand == 'bow':
@@ -423,7 +435,9 @@ def equip(entry, arm):
                 obj.select_set(True)
                 bpy.context.view_layer.objects.active = obj
                 bpy.ops.object.transform_apply(scale=True)
-            # held low and level across the front of the hips, pointing forward-left
+            # held low and level across the front of the hips, pointing forward-left,
+            # its grip deep in the fist
+            at = H.grip_point(arm, 'hand_l', along=0.35)
             H.hold(obj, arm, 'hand_l', at, up=(1.0, -0.35, 0.05))
         made.append(obj)
     back = entry.get('back')
