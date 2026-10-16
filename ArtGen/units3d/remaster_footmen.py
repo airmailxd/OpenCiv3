@@ -408,8 +408,9 @@ REMASTER = {
         'helmet': 'great_helm', 'metal': ['helmet'], 'hair_asset': None, 'beard': False,
         # the surcoat: a tinted sleeveless top and a tinted kilt dropped to the ankles
         'top': 'vest', 'neck': 'high', 'collar': 'mail',   # MISSING: mail_sleeves and mail_chausses (arms and legs)
-        'bottom': 'kilt', 'robe_drop': 0.35,         # MISSING: hem_band (gold, at the surcoat's hem)
-        'leather_bracers': True, 'wraps': 'greaves', 'boots': True,   # grey boots stand in for mail feet
+        # the civ-color surcoat to mid-thigh with a gold hem, ring mail on the arms and legs
+        'bottom': None, 'coat_length': 0.42, 'coat_flare': 1.15, 'hem_bands': [('coat', 'gold', 0.035)],
+        'mail_parts': ['arms', 'legs'], 'leather_bracers': True, 'wraps': None, 'boots': False,
         'gear': [],
         'weapon': 'club',
         'props': {'club': ('flail', {'length': 0.55, 'chain': 0.32})},
@@ -521,7 +522,7 @@ REMASTER = {
         'cuirass': False, 'top': 'sleeved', 'puffy': True,   # MISSING: slashing (on the sleeves)
         'bottom': 'breeches',                   # MISSING: slashing (black stripes on the breeches)
         'wraps': 'boots',
-        'gear': [('chest_strap', {'color': '#3a2a20'})],   # the dark diagonal strap over the doublet (dark in the original)
+        'gear': [('chest_strap', {'color': '#3a2a20', 'width': 0.12})],   # the dark diagonal sash over the doublet (dark in the original)
         'weapon': 'spear',
         # MISSING: tinted_shaft (the pike's wood in civ color, steel head and butt plain)
         'props': {'spear': ('spear', {'length': 3.0, 'grip': 1.1, 'head': 1.2})},

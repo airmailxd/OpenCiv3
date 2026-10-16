@@ -128,11 +128,29 @@ def dress(entry, mesh, arm):
     for g in entry.get('gear', []):
         name = g[0] if isinstance(g, (list, tuple)) else g
         if name == 'chest_strap':
-            col = (g[1] or {}).get('color', c['belt']) if isinstance(g, (list, tuple)) and len(g) > 1 else c['belt']
-            tint = 'strap' in entry.get('tint', [])
+            gp = (g[1] or {}) if isinstance(g, (list, tuple)) and len(g) > 1 else {}
+            col = gp.get('color', c['belt'])
+            tint = 'strap' in entry.get('tint', []) or gp.get('tint')
+            half = gp.get('width', 0.07) / 2           # a sash: 'width' 0.15-0.2
             G.shell(mesh, arm, 'ChestStrap', torso, G.cloth('chest_strap', (1, 1, 1), tint=True) if tint else
                     G.leather('chest_strap', B.hex_color(col)), zmin=1.0, zmax=1.5,
-                    offset=0.02, thickness=0.006, keep=lambda co: abs((co.z - 1.22) + 0.95 * co.x) < 0.035)
+                    offset=0.02, thickness=0.006, keep=lambda co, h=half: abs((co.z - 1.22) + 0.95 * co.x) < h)
+    # mail limbs: 'mail': ['arms', 'legs'] (ring mail sleeves to the wrist,
+    # chausses from the thigh to the foot), under the other clothes
+    mail = entry.get('mail_parts', [])
+    if mail:
+        mm = B.material('mail', B.hex_color(c.get('mail', '#6a6a6e')), roughness=0.55, metallic=0.85,
+                        nodes=G.mail_nodes)
+        if 'arms' in mail:
+            G.shell(mesh, arm, 'MailArms', ['upperarm_l', 'upperarm_r', 'lowerarm_l', 'lowerarm_r'], mm,
+                    zmin=0.82, offset=0.007, thickness=0.004, min_weight=0.3)
+        if 'legs' in mail:
+            G.shell(mesh, arm, 'MailLegs', ['thigh_l', 'thigh_r', 'calf_l', 'calf_r', 'foot_l', 'foot_r'], mm,
+                    zmax=0.95, offset=0.006, thickness=0.004, min_weight=0.3)
+    # a coat's skirts: from the waist to `coat_length` (0.62 ~ the knee), in the top's cloth
+    if entry.get('coat_length'):
+        G.skirt(mesh, arm, 'Coat', _mat(entry, 'top', G.cloth, weave=0.6), length=entry['coat_length'],
+                flare=entry.get('coat_flare', 1.25), folds=0.08)
     # hem bands: [(garment, color), ...]; garment 'bottom' or 'top', color
     # 'tint', 'gold' or a hex; optional width (m) and inset from the edge
     for h in entry.get('hem_bands', []):
