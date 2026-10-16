@@ -349,8 +349,8 @@ REMASTER = {
         'boots': True, 'wraps': 'boots',
         # the civ-color harness, crossed over the shirt; MISSING: y_harness
         'gear': [('chest_strap', {'tint': True, 'width': 0.1, 'cross': True, 'offset': 0.035})],
-        'bands': [('upperarm', 'tint', 0.12), ('knee', 'tint', 0.08)],   # the civ-color shoulders and bands below the knee
-        'shoulder_patch': ('l', 'flag'), 'patch_out': 0.06,   # the flag patch, clear of the civ shoulder band
+        'bands': [('upperarm', 'tint', 0.07), ('knee', 'tint', 0.08)],   # the civ-color shoulders and bands below the knee
+        'shoulder_patch': ('l', 'flag'), 'patch_out': 0.05, 'patch_size': 0.1, 'patch_t': 0.55,   # a big flag patch below the civ band
         # MISSING: ground_props (props.tow_launcher on its tripod and two missile
         # crates set on the ground beside him; equip only puts props in hands)
         # MISSING: team (a second, kneeling soldier at the launcher's sight)

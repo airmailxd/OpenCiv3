@@ -479,7 +479,7 @@ REMASTER = {
         'macro': {'muscle': 1.0, 'weight': 0.8, 'height': 0.76, 'proportions': 0.72},
         'race': {'caucasian': 0.9, 'african': 0.05, 'asian': 0.05},
         'colors': {'skin': '#94704f', 'hair': '#6a5034', 'helmet': '#6e7074', 'cuirass': '#74767a',
-                   'belt': '#2e2016', 'wraps': '#a89c80', 'wraps_band': '#7a7058', 'sandal': '#3a2818',
+                   'belt': '#2e2016', 'wraps': '#8a8c90', 'wraps_band': '#5e6064', 'sandal': '#3a2818',
                    'wood': '#4a3222', 'steel': '#8a8c90'},
         'helmet': 'morion', 'metal': ['helmet', 'cuirass'],
         'beard': True,
@@ -492,7 +492,8 @@ REMASTER = {
         'gear': [],
         'weapon': 'spear',
         'props': {'spear': ('partisan', {'length': 2.4, 'grip': 1.0})},   # about 1.3x his height
-        'stance_name': 'upright',
+        'stance_name': 'stand_staff',           # the partisan upright at his side, arms down (not a T)
+        'mail_parts': ['legs'],                 # the original's grey armoured legs
         'tint': ['top', 'bottom'],
         'grime': 0.65, 'upper_bulk': 1.3,
     },
@@ -508,17 +509,18 @@ REMASTER = {
                    'wraps': '#e8e4da', 'wraps_band': '#e8e4da', 'shoes': '#e8e4da'},
         'helmet': None, 'hair': 'topknot', 'hair_asset': None, 'topknot': 'topknot', 'beard': False,
         # the civ-color coat with wide untinted grey-lavender sleeves over it
-        'top': 'sleeved', 'wide_sleeves': True,   # MISSING: squared sleeve folds; topknot/bald
+        'top': 'sleeved', 'wide_sleeves': True, 'neck': 'high',   # MISSING: squared sleeve folds; topknot/bald
         'chest_emblem': ('v', '#e8e4da', 0.24),  # the white under-robe V at the chest
         'coat_length': 0.6, 'coat_flare': 1.3,  # the knee-length coat, a darker spot pattern on the civ color
-        'patterns': {'top': ('camo', '#dcdcdc', 6.0), 'bottom': ('stripes', '#1c1a28', 10.0)},   # a white pattern on the civ coat; the hakama's pleats
+        'patterns': {'top': ('camo', '#dcdcdc', 6.0), 'coat': ('camo', '#dcdcdc', 6.0),
+                     'bottom': ('stripes', '#1c1a28', 10.0)},   # a white pattern on the civ coat; the hakama's pleats   # a white pattern on the civ coat; the hakama's pleats
         'bottom': 'long', 'puffy': True, 'trouser_offset': 0.05,   # the wide hakama
         'sandals': True, 'wraps': 'shoes', 'gear': [],   # white tabi under the sandal straps
         # arms folded on the chest, hands empty, the katana sheathed at the left hip
         'weapon': None, 'offhand': None,
         'hip': ('katana_sheathed', {'length': 0.72}),
         'stance_name': 'arms_folded',
-        'tint': ['top'],
+        'tint': ['top', 'coat'],                # the coat's skirt takes the civ color too
         'grime': 0.55, 'upper_bulk': 1.2,
     },
     'Scout': {

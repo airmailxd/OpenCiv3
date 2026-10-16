@@ -62,6 +62,7 @@ SHOWN = [
     ('plain_round', {}, (0, 0, 0)),
     ('shield_round', {'r': 0.3, 'tint': 'rim', 'emblem': 'aspis'}, (0, 0, 0)),
     ('jaguar_shield', {}, (0, 0, 0)),
+    ('shield_round', {'r': 0.52, 'dome': 0.07, 'boss': False, 'tint': 'rim', 'emblem': 'aspis', 'face_metal': True}, (0, 0, 0)),
     ('pike', {'shaft_tint': True}, (0, 0, 60)),
     ('book', {}, (0, 0, 30)),
     ('map', {}, (0, 0, 0)),

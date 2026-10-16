@@ -19,7 +19,7 @@ The per-unit lists are in [DETAIL_AUDIT_PC.md](DETAIL_AUDIT_PC.md).
 | Catapult, Cannon, Galley, Caravel | siege.py, ships.py, vkit.py | 6 axes PASS (detail 7-8) |
 | Horseman, Rider, Ansar Warrior | mounted.py, riders.py, remaster.py | 6 axes PASS (detail 7-8) |
 | Trebuchet, Hwacha, Artillery, Flak | siege.py | 6 axes PASS (detail 7-8) |
-| Siege crews (all 6 engines) | crews.py | Cannon, Trebuchet, Artillery, Flak PASS; Catapult, Hwacha in progress; opt-in with CREWS=1 |
+| Siege crews (all 6 engines) | crews.py | all 6 PASS; on by default (NO_CREW=1 skips) |
 | 12 soldiers (handed over by the Mac, 2026-10-16) | remaster_soldiers.py, props.py, riders.py | Rifleman, Infantry, Paratrooper, Settler MT, Worker MT, Crusader PASS; the rest in review |
 | TOW Infantry | siege.tow_team + crews.py | a team: launcher, crates, kneeling gunner, spotter; in review |
 | Footmen batch B (11, handed over 2026-10-16) | remaster_footmen.py (only these blocks) | Legionary, Medieval Infantry PASS (Mac round 3); round 4 in review |

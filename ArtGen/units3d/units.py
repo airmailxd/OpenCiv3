@@ -303,7 +303,8 @@ def dress(entry, mesh, arm):
             pm = G.cloth('patch', (0.9, 0.9, 0.88), pattern=('stripes', '#b02020', 22.0))
         else:
             pm = G.cloth('patch', B.hex_color(c.get(col, col)))
-        G.arm_patch(mesh, arm, pm, side=side, out_by=entry.get('patch_out', 0.045 if entry.get('puffy') else 0.02))
+        G.arm_patch(mesh, arm, pm, side=side, out_by=entry.get('patch_out', 0.045 if entry.get('puffy') else 0.02),
+                    size=entry.get('patch_size', 0.06), t=entry.get('patch_t', 0.3))   # (PC) size and place along the arm
     # hem bands: [(garment, color), ...]; garment 'bottom' or 'top', color
     # 'tint', 'gold' or a hex; optional width (m) and inset from the edge
     _hems(entry, c, lambda part: part != 'cape')

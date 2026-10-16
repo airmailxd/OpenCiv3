@@ -71,6 +71,7 @@ WEATHER = {
     'wood': {'grime': 0.45},
     'stone': {'grime': 0.4},
     'metal': {'grime': 0.35},
+    'polished': {},   # a clean polished metal face: no weathering, no mottle
     'leather': {'grime': 0.4},
     'rope': {'grime': 0.5},
     'cloth': {'grime': 0.35, 'stain': 0.35},
@@ -191,7 +192,7 @@ def _detail(m, kind, rough, tint):
     """Calm procedural surface detail: brightness variation (value only, so
     never more saturated than the catalog color), roughness variation and a
     small bump. Tinted parts only get the bump."""
-    if kind is None or not m.use_nodes:
+    if kind in (None, 'polished') or not m.use_nodes:   # polished metal stays clean and smooth
         return
     p = _principled(m)
     if p is None:
@@ -779,8 +780,17 @@ def shield_oval(p, w=0.66, h=0.66, dome=0.06, emblem_angle=45.0, band=0.1, scale
     paints the rim in the civ color (Crusader)."""
     rx, rz = w / 2 * scale, h / 2 * scale
     thick, gap = 0.022, -0.05  # board thickness; the board sits in front of the forearm
-    face = domed_disc(rx, rz, thick, dome, rings=8, seg=48)
-    p.add(face, 'shield_face', T(0, gap, 0), smooth=True)
+    star = emblem == 'star'
+    face = domed_disc(rx, rz, thick, dome, rings=16 if star else 8, seg=96 if star else 48)
+
+    def sunburst(f):   # a solid civ-colored star of 12 points filling most of the face
+        if f.normal.y > -0.3:
+            return None
+        c = f.calc_center_median()
+        x, z = c.x / rx, c.z / rz
+        r, a = math.hypot(x, z), math.atan2(z, x)
+        return ('shield_emblem', True) if r < 0.42 + 0.42 * abs(math.cos(6 * a)) ** 0.8 and r < 0.84 else None
+    p.add(face, 'shield_face', T(0, gap, 0), smooth=True, keys=sunburst if star else None)
     # rim: a rawhide-bound ring around the edge
     k = 64
     ring = [(rx * math.cos(2 * math.pi * i / k), gap - thick * 0.6, rz * math.sin(2 * math.pi * i / k))
@@ -788,8 +798,6 @@ def shield_oval(p, w=0.66, h=0.66, dome=0.06, emblem_angle=45.0, band=0.1, scale
     p.add(tube(ring, 0.022 if rim_tint else 0.014, seg=8, scale_xy=(1.0, 1.3)),
           'shield_emblem' if rim_tint else 'shield_rim', smooth=True, tint=rim_tint)
     # emblem: two crossing bands following the dome (the original's quartered cross), or a sunburst
-    if emblem == 'star':
-        _star_emblem(p, rx, rz, thick, dome, gap)
     for ang in ((emblem_angle, -emblem_angle) if emblem == 'cross' else ()):
         a = math.radians(ang)
         half_len = 0.93 * rx * rz / math.hypot(rz * math.cos(a), rx * math.sin(a))
@@ -799,6 +807,7 @@ def shield_oval(p, w=0.66, h=0.66, dome=0.06, emblem_angle=45.0, band=0.1, scale
     _strap_back(p)
 
 
+DEFAULTS.setdefault('bronze_face', ('#b8904a', 0.24, 1.0, 'polished'))   # a polished bronze shield face (low roughness: it shines)
 DEFAULTS.setdefault('shield_pale', ('#ddd4bc', 0.75, 0.0, 'wood'))     # a pale painted device on a civ face
 DEFAULTS.setdefault('shield_device', ('#1e1a18', 0.7, 0.0, 'wood'))   # a hoplite's black painted device
 DEFAULTS.setdefault('shield_accent', ('#8a2a1e', 0.7, 0.0, 'wood'))   # its red accent
@@ -845,7 +854,7 @@ def shield_round(p, r=0.24, dome=0.045, boss=True, scale=1.0, tint='both', face_
     rr = r * scale
     thick, gap = 0.02, -0.045
     # face_metal: a bronze-faced shield (the Hoplite's aspis), not a wooden board
-    face_key = 'shield_emblem' if face_tint else ('bronze' if face_metal else 'shield_face')
+    face_key = 'shield_emblem' if face_tint else ('bronze_face' if face_metal else 'shield_face')
     p.add(domed_disc(rr, rr, thick, dome, rings=10 if emblem else 6, seg=64 if emblem else 40), face_key,
           T(0, gap, 0), smooth=True, tint=face_tint, keys=_round_device(rr, emblem) if emblem else None)
     k = 56
