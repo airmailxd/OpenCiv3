@@ -586,13 +586,13 @@ def _sections(vs, ys, zmin=0.85, window=0.1):
     return out
 
 
-def drape(vs, y0, y1, hem, n=24, k=24, gap=0.035, flare=0.06, folds=0.018):
+def drape(vs, y0, y1, hem, n=24, k=24, gap=0.035, flare=0.06, folds=0.018, zmin=0.85):
     """A cloth hanging over the horse's back from y0 to y1: each section an
     arc over the body (its measured half-width and top, `gap` off it) down to
     the widest point, then falling straight to the hem height (a number or a
     function of y), flaring out a little. Returns a bmesh."""
     ys = [y0 + (y1 - y0) * j / n for j in range(n + 1)]
-    secs = _sections(vs, ys)
+    secs = _sections(vs, ys, zmin)
     rings = []
     for y, sec in zip(ys, secs):
         if sec is None:
