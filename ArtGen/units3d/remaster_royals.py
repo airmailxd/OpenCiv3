@@ -114,9 +114,11 @@ REMASTER = {
         # trousers, brown boots and a broad gold-edged civ-color sash
         'macro': {'muscle': 0.85, 'weight': 0.7, 'height': 0.78, 'proportions': 0.72}, 'age': 0.45,
         'colors': {'skin': '#c89a74', 'hair': '#2a1e14', 'helmet': '#3e4430', 'top': '#545a3c',
-                   'bottom': '#9a8c6c', 'boots': '#4e3424', 'belt': '#3a2a1c', 'wood': '#4a3222'},
-        # the original wears a peaked cap with a visor (the note's round helmet contradicts it)
-        'helmet': None, 'headgear': 'kepi', 'metal': [],   # MISSING: peaked_cap (the kepi stands in)
+                   'bottom': '#9a8c6c', 'boots': '#4e3424', 'belt': '#3a2a1c', 'wood': '#4a3222',
+                   'gold': '#c8a038'},
+        # the original wears an olive peaked cap with a black visor (the note's round helmet contradicts it);
+        # the cap's crown takes the helmet color, its band the civ color
+        'helmet': None, 'headgear': 'peaked_cap', 'metal': [],
         'hair': 'short', 'hair_asset': 'short02', 'beard': False,
         'top': 'sleeved', 'neck': 'high', 'bottom': 'long', 'wraps': 'boots',
         'gear': [('chest_strap', {'width': 0.17})],   # the broad tinted sash; MISSING: sash_edges (gold)
@@ -186,7 +188,7 @@ REMASTER = {
         'colors': {'skin': '#d0a07a', 'hair': '#3a2616', 'helmet': '#1c1a1a', 'plume': '#ece8e0',
                    'top': '#5a3e28', 'bottom': '#5a3e28', 'cape': '#4e3626', 'belt': '#2a2018',
                    'wraps': '#e4e0d4', 'wraps_band': '#c8c2b4', 'sandal': '#2a2018', 'gold': '#c8a038'},
-        'helmet': None, 'headgear': 'beret',             # MISSING: feather laid sideways on the beret
+        'helmet': None, 'headgear': 'beret_feather',     # the dark beret (helmet color), the white plume laid along it
         'hair': 'short', 'hair_asset': None, 'beard': True,
         # the civ-color puffed sleeves (check they cover the shoulder tops); MISSING: quilting, gold dots
         'top': 'sleeved', 'puffy': True,
@@ -341,7 +343,7 @@ REMASTER = {
         'colors': {'skin': '#9a6a44', 'hair': '#141010', 'helmet': '#e4dcc4', 'top': '#f0ece0',
                    'bottom': '#f0ece0', 'belt': '#c8a038', 'sandal': '#c8a040', 'gold': '#c8a038',
                    'wood': '#b8902e', 'leather': '#b8902e'},
-        'helmet': 'hood',                       # MISSING: nemes (striped headcloth, lappets, gold uraeus)
+        'helmet': None, 'headgear': 'nemes',    # gold and civ-color stripes, lappets, the gold uraeus
         'hair': 'bald', 'hair_asset': None, 'beard': False,
         'top': 'vest',
         'bottom': 'kilt', 'robe_drop': 0.42,    # MISSING: pleats, front_apron (tinted hanging panel)
@@ -407,7 +409,7 @@ REMASTER = {
         'race': {'caucasian': 1.0, 'african': 0.0, 'asian': 0.0},
         'colors': {'skin': '#d8ac8c', 'hair': '#c8c0b0', 'helmet': '#a8acb4', 'top': '#8a9cb0',
                    'bottom': '#18181a', 'boots': '#121214', 'belt': '#e8e4dc', 'gold': '#c8a038'},
-        'helmet': 'cap', 'metal': ['helmet'],   # MISSING: pickelhaube (tall spike)
+        'helmet': None, 'headgear': 'pickelhaube', 'metal': [],   # silver (the helmet color), gold spike and plate
         'hair': 'short', 'hair_asset': None,
         'beard': True, 'beard_style': 'mustache',   # the big walrus mustache, no beard
         'top': 'sleeved', 'neck': 'high',       # MISSING: epaulettes (gold)
@@ -520,8 +522,8 @@ REMASTER = {
         'race': {'caucasian': 0.1, 'african': 0.1, 'asian': 0.8},
         'colors': {'skin': '#9a7458', 'hair': '#141010', 'plume': '#e8e4da', 'wraps': '#5e4632',
                    'wraps_band': '#3e2e20', 'belt': '#5a3a22', 'sandal': '#5a3a22', 'wood': '#4a3222',
-                   'steel': '#8a8c90', 'shield_face': '#d8ccb0', 'shield_rim': '#8a6a48'},
-        'helmet': None, 'headgear': 'feather_bonnet',      # MISSING: war_bonnet trailer down the back
+                   'steel': '#8a8c90', 'shield_face': '#d8ccb0', 'shield_rim': '#8a6a48', 'feather': '#e8e4da'},
+        'helmet': None, 'headgear': 'war_bonnet',          # white feathers, tinted tips and headband, the trailer
         'hair': 'long', 'hair_asset': 'long01', 'beard': False,
         'top': None, 'bottom': 'loincloth', 'loin_length': (0.5, 0.45), 'torn': False,
         'wraps': 'wraps', 'sandals': False,     # MISSING: leggings (brown cloth), moccasins
@@ -585,8 +587,10 @@ REMASTER = {
         'macro': {'muscle': 0.85, 'weight': 0.7, 'height': 0.74, 'proportions': 0.7}, 'age': 0.5,
         'race': {'caucasian': 0.0, 'african': 0.15, 'asian': 0.85},
         'colors': {'skin': '#8e6a4e', 'hair': '#141010', 'helmet': '#c8a038', 'bottom': '#c8a040',
-                   'belt': '#c8a038', 'sandal': '#5a3a22', 'gold': '#c8a038', 'plume': '#2e7a4a'},
-        'helmet': None, 'headgear': 'feather_headdress',   # MISSING: white feather cascade to the waist
+                   'belt': '#c8a038', 'sandal': '#5a3a22', 'gold': '#c8a038', 'plume': '#2e7a4a',
+                   'feather': '#ece8e0'},
+        # the tinted crest and the long white feather cascade down the back
+        'helmet': None, 'headgear': 'feather_headdress', 'headgear_params': {'cascade': 'back'},
         'hair': 'short', 'hair_asset': 'bob01', 'beard': False,   # MISSING: face_ornaments (gold)
         'top': None, 'bottom': 'kilt', 'robe_drop': 0.0,   # MISSING: jaguar_spots
         'bands': [('neck', 'gold'), ('upperarm', 'gold'), ('wrist', 'gold')],   # MISSING: broad_collar
@@ -657,9 +661,10 @@ REMASTER = {
         'macro': {'muscle': 0.8, 'weight': 0.85, 'height': 0.78, 'proportions': 0.7}, 'age': 0.6,
         'race': {'caucasian': 0.8, 'african': 0.1, 'asian': 0.1},
         'colors': {'skin': '#c89a74', 'hair': '#241a12', 'helmet': '#f0ece2', 'top': '#ece8de',
-                   'bottom': '#ece8de', 'belt': '#c8a038', 'shoes': '#c8a038', 'gold': '#c8a038'},
-        # the white turban (hats take the helmet color: verify it renders white); MISSING: aigrette (jewel)
-        'helmet': None, 'headgear': 'turban',
+                   'bottom': '#ece8de', 'belt': '#c8a038', 'shoes': '#c8a038', 'gold': '#c8a038',
+                   'turban_white': '#f0ece2', 'jewel': '#a8242a'},
+        # the white turban, a gold-set jewel and a plume ('plume' in tint: civ-colored)
+        'helmet': None, 'headgear': 'turban_aigrette',
         'hair': 'short', 'hair_asset': None, 'beard': True,
         'top': 'sleeved', 'neck': 'high',
         # MISSING: side slits, skirt_panels (tinted triangles at the front, a large arc at the back)
@@ -810,8 +815,10 @@ REMASTER = {
         'race': {'caucasian': 0.7, 'african': 0.2, 'asian': 0.1},
         'colors': {'skin': '#9a7456', 'hair': '#141010', 'helmet': '#ece6da', 'plume': '#ece6da',
                    'top': '#6a4430', 'bottom': '#6a4430', 'belt': '#8a3226', 'redband': '#8a3226',
-                   'cuff': '#ece8e0', 'sandal': '#4a3622', 'wood': '#ece8e0'},
-        'helmet': None, 'headgear': 'hat_cone',   # MISSING: tall_crown (a white flat-topped cylinder; hat_cone stands in)
+                   'cuff': '#ece8e0', 'sandal': '#4a3622', 'wood': '#ece8e0',
+                   'turban_white': '#ece6da', 'gold': '#c8a038'},
+        # the tall white crown on a gold band (it tapers to a gold knob; the original's is flat-topped)
+        'helmet': None, 'headgear': 'sumer_crown',
         'hair': 'long', 'hair_asset': 'long01', 'mane': 0.15,
         'beard': True, 'beard_style': 'long',   # the long square black beard
         'top': 'mantle', 'neck': 'high',        # the brown wrap
@@ -859,8 +866,8 @@ REMASTER = {
                    'feather': '#ece4cc', 'bottom': '#c4ac78', 'cape': '#b89c68', 'belt': '#6a5032',
                    'wood': '#b89a6a', 'stone': '#b89a6a', 'leather': '#6a5032', 'hide': '#ece8e0',
                    'hide_dark': '#2a1e16'},
-        # MISSING: untinted feather crown (feather_headdress always tints half its feathers; 'bushy' tints all)
-        'helmet': None, 'headgear': 'feather_headdress',
+        # the dense untinted crown of cream feathers on a fur band (fur takes the helmet color)
+        'helmet': None, 'headgear': 'feather_headdress', 'headgear_params': {'style': 'crown'},
         'hair': 'short', 'hair_asset': 'afro01', 'beard': False,
         'top': None,
         'bottom': 'kilt', 'robe_drop': 0.0,     # MISSING: apron_kilt
@@ -952,9 +959,9 @@ REMASTER = {
         # khaki breeches, tall brown boots; a swagger stick level at the chest
         'macro': {'muscle': 0.8, 'weight': 0.75, 'height': 0.78, 'proportions': 0.72}, 'age': 0.6,
         'colors': {'skin': '#c8a48a', 'hair': '#2a1e14', 'helmet': '#4a5038', 'top': '#545a40',
-                   'bottom': '#9a907a', 'boots': '#4e3828', 'belt': '#3a2a1c'},
-        # the kepi (hats take the helmet color: verify it renders green); MISSING: peaked_cap (kepi stands in)
-        'helmet': None, 'headgear': 'kepi',
+                   'bottom': '#9a907a', 'boots': '#4e3828', 'belt': '#3a2a1c', 'gold': '#c8a038'},
+        # the green peaked cap (its crown takes the helmet color), civ band, black peak, gold badge
+        'helmet': None, 'headgear': 'peaked_cap',
         'hair': 'short', 'hair_asset': None,
         'beard': True, 'beard_style': 'goatee',
         'top': 'sleeved', 'neck': 'high', 'bottom': 'breeches', 'wraps': 'boots',
@@ -1025,7 +1032,8 @@ REMASTER = {
                    'belt': '#2a2830', 'boots': '#e8e4dc', 'sandal': '#d8d4cc', 'collar_w': '#e0dcd4',
                    'gold': '#c8a038', 'lacquer': '#1a1412', 'iron': '#3a3a3c', 'cloth_wrap': '#2a2630',
                    'steel': '#b8bcc2'},
-        'helmet': 'cap', 'metal': ['helmet'],   # MISSING: kabuto (flared neck guard, gold kuwagata crest)
+        # the kabuto: a civ-color bowl ('helmet' in tint, per the note), lacquer neck-guard lames, gold kuwagata
+        'helmet': None, 'headgear': 'kabuto', 'metal': [],
         'hair': 'short', 'hair_asset': None, 'beard': False,
         'top': 'sleeved', 'wide_sleeves': True, 'neck': 'high',
         'cuirass': True,    # the dark kataginu panel; MISSING: kataginu (winged shoulders)
@@ -1035,7 +1043,7 @@ REMASTER = {
         'cape': False, 'wraps': 'boots', 'sandals': False, 'bracers': False, 'gear': [],   # the white tabi
         'weapon': 'sword', 'props': {'sword': ('katana', {'length': 0.75})},
         'stance_name': 'guard',                 # MISSING: two_hand_raised (katana over the right shoulder)
-        'tint': ['top', 'bottom', 'sleeves'],
+        'tint': ['top', 'bottom', 'sleeves', 'helmet'],
         'grime': 0.45, 'upper_bulk': 1.3,
     },
     'The King': {
@@ -1066,13 +1074,10 @@ REMASTER = {
 # express. Each entry above approximates it and marks the spot with
 # "MISSING:". Ranked by how many units need it (the count in brackets).
 #
-# headgear kinds     [12] peaked_cap (Army Modern, Leader Modern; the kepi stands in), pickelhaube (German),
-#                    kabuto (Shogun: neck guard, gold kuwagata), nemes (Egyptian: striped, lappets, uraeus),
-#                    tall_crown (Sumeria: white flat-topped cylinder; hat_cone stands in), wide_brim_hat (Portugal:
-#                    gold edge; cavalier stands in), an untinted feather crown (Zulu: feather_headdress always
-#                    tints), a dense feather fan with cycling colors (Aztec), a white feather cascade to the waist
-#                    (Mayan), a war-bonnet trailer (Iroquois), a feather laid on the beret (Austria), an aigrette
-#                    (Ottoman).
+# headgear kinds     [2] wide_brim_hat (Portugal: gold edge; cavalier stands in), a dense feather fan with
+#                    cycling colors (Aztec: feather_headdress has 11 sparse feathers). (peaked_cap, pickelhaube,
+#                    kabuto, nemes, sumer_crown, war_bonnet, beret_feather, turban_aigrette and feather_headdress's
+#                    'crown' and 'cascade' params now cover the rest.)
 # vertical stripes / front panels  [9] gold or tinted stripes and panels down a robe or gown: Byzantines (gold
 #                    front stripe), Princess (gold front stripe), Spanish (white front panel), English (farthingale
 #                    gold stripes, jewel dots), Russian (civ color/silver skirt stripes), Japanese (gold hakama
