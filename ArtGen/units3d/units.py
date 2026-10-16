@@ -150,12 +150,13 @@ def dress(entry, mesh, arm):
             half = gp.get('width', 0.07) / 2           # a sash: 'width' 0.15-0.2
             smat = G.cloth('chest_strap', (1, 1, 1), tint=True) if tint else G.leather('chest_strap', B.hex_color(col))
             off = gp.get('offset', 0.02)            # raise it over thick tops
-            G.shell(mesh, arm, 'ChestStrap', torso, smat, zmin=1.0, zmax=1.5,
-                    offset=off, thickness=0.006, keep=lambda co, h=half: abs((co.z - 1.22) + 0.95 * co.x) < h)
-            if gp.get('cross'):
-                # a second strap over the other shoulder: crossed bandoliers
-                G.shell(mesh, arm, 'ChestStrap2', torso, smat, zmin=1.0, zmax=1.5,
-                        offset=off + 0.004, thickness=0.006, keep=lambda co, h=half: abs((co.z - 1.22) - 0.95 * co.x) < h)
+            # cut from a wider strip of the body, then trimmed to the strap's width
+            # (the body's faces are wider than a strap: it came out as flecks)
+            for k, sgn in enumerate((1.0, -1.0) if gp.get('cross') else (1.0,)):
+                o = G.shell(mesh, arm, 'ChestStrap' + ('2' if k else ''), torso, smat, zmin=0.95, zmax=1.55,
+                            offset=off + 0.004 * k, thickness=0.006,
+                            keep=lambda co, h=half, sg=sgn: abs((co.z - 1.22) + sg * 0.95 * co.x) < h + 0.06)
+                G.trim(o, lambda co, h=half, sg=sgn: abs((co.z - 1.22) + sg * 0.95 * co.x) < h)
     # mail limbs: 'mail': ['arms', 'legs'] (ring mail sleeves to the wrist,
     # chausses from the thigh to the foot), under the other clothes
     mail = entry.get('mail_parts', [])
@@ -207,8 +208,10 @@ def dress(entry, mesh, arm):
     wraps = entry.get('wraps')
     for side in 'lr':
         if wraps == 'wraps':
-            G.shell(mesh, arm, 'Wrap_' + side, ['calf_' + side], G.fur('wraps_' + side, B.hex_color(c['wraps']),
-                    B.hex_color(c['wraps_band'])), zmin=0.08, zmax=entry.get('wraps_height'), offset=0.012,
+            wtint = 'wraps' in entry.get('tint', [])
+            wmat = (G.fur('wraps_' + side, (1, 1, 1), (0.55, 0.55, 0.55), tint=True) if wtint else
+                    G.fur('wraps_' + side, B.hex_color(c['wraps']), B.hex_color(c['wraps_band'])))
+            G.shell(mesh, arm, 'Wrap_' + side, ['calf_' + side], wmat, zmin=0.08, zmax=entry.get('wraps_height'), offset=0.012,
                     thickness=0.012)
         if wraps == 'shoes' or entry.get('shoes'):     # 'shoes': True also goes over hose (wraps)
             # low shoes: the foot only, a little above the ankle
@@ -641,10 +644,15 @@ def equip(entry, arm):
             low = H.grip_point(arm, 'hand_l')
             up_dir = Vector(entry.get('tool_dir', (-0.7, -0.25, 0.65))).normalized()    # toward the haft's top end
             # 'tool_face': where the tool's flat side (its +Y) faces, so a blade shows broad
-            H.hold(obj, arm, 'hand_l', low, up=tuple(-up_dir), forward=tuple(entry.get('tool_face', (0, -1, 0))))
+            # with two hands, the tool slides up through the left fist (low on
+            # the haft) so its top grip sits by the right hand
+            shift = entry.get('grip_shift', 0.42) * G._scale if entry.get('two_hands') else 0.0
+            H.hold(obj, arm, 'hand_l', low + up_dir * shift, up=tuple(-up_dir),
+                   forward=tuple(entry.get('tool_face', (0, -1, 0))))
             if entry.get('two_hands'):
                 # the right hand further up the haft: the forearm reaches for it
-                target = low + up_dir * entry.get('second_grip', 0.4) * G._scale
+                # the right hand near the top grip, up the haft from the left fist
+                target = low + up_dir * (shift - entry.get('second_grip', 0.06) * G._scale)
                 H.reach(arm, 'r', target, elbow_out=0.6)
                 H.fists(arm, sides='r')
         made.append(obj)

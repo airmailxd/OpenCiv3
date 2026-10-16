@@ -1390,3 +1390,21 @@ def topknot(basemesh, arm, mat, kind='topknot', length=0.3):
         o.matrix_world = world
     H._update()
     return made
+
+
+def trim(obj, inside, levels=3):
+    """Subdivides `obj`'s mesh `levels` times and keeps only the faces whose
+    vertices all pass `inside(co)` (rest coordinates, scaled to a 1.75 m
+    man): narrow strips cut cleanly from a coarse garment."""
+    if obj is None or not obj.data.polygons:
+        return obj
+    bm = bmesh.new()
+    bm.from_mesh(obj.data)
+    for _ in range(levels):
+        bmesh.ops.subdivide_edges(bm, edges=bm.edges[:], cuts=1, use_grid_fill=True)
+    kill = [f for f in bm.faces if not all(inside(v.co / _scale) for v in f.verts)]
+    bmesh.ops.delete(bm, geom=kill, context='FACES')
+    bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context='VERTS')
+    bm.to_mesh(obj.data)
+    bm.free()
+    return obj
