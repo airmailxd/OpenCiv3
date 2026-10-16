@@ -198,6 +198,26 @@ def _pattern(tree, coord, base, pattern, tinted=False):
             tree.links.new(fr.outputs['Value'], both.inputs[1])
             mask = both.outputs['Value']
         return _pattern_mix(tree, base, dark, mask, civ, tinted)
+    if kind == 'side_stripe':
+        # one stripe down the outer seam of each leg (or sleeve): where the
+        # surface faces outward, away from the body's middle
+        geo = n.new('ShaderNodeNewGeometry')
+        sepn = n.new('ShaderNodeSeparateXYZ')
+        tree.links.new(geo.outputs['Normal'], sepn.inputs['Vector'])
+        sepp = n.new('ShaderNodeSeparateXYZ')
+        tree.links.new(geo.outputs['Position'], sepp.inputs['Vector'])
+        sgn = n.new('ShaderNodeMath')
+        sgn.operation = 'SIGN'
+        tree.links.new(sepp.outputs['X'], sgn.inputs[0])
+        outn = n.new('ShaderNodeMath')
+        outn.operation = 'MULTIPLY'
+        tree.links.new(sepn.outputs['X'], outn.inputs[0])
+        tree.links.new(sgn.outputs['Value'], outn.inputs[1])
+        hard = n.new('ShaderNodeMath')
+        hard.operation = 'GREATER_THAN'
+        hard.inputs[1].default_value = nums[0] if nums else 0.9     # higher: a narrower stripe
+        tree.links.new(outn.outputs['Value'], hard.inputs[0])
+        return _pattern_mix(tree, base, dark, hard.outputs['Value'], civ, tinted)
     if kind == 'pleats':
         # stripes running round the body (a skirt's pleats or panels): bands
         # of the angle about the vertical axis, `scale` stripes in all
@@ -312,6 +332,8 @@ def cloth(name, color, tint=False, rough=0.85, weave=0.25, pattern=None, dirt=0.
         dark_k = 1.0 - min(1.0, (0.3 * cl[0] + 0.59 * cl[1] + 0.11 * cl[2]) * 3.0)
         bsdf.inputs['Sheen Weight'].default_value = 0.35 + 0.5 * dark_k
         bsdf.inputs['Sheen Roughness'].default_value = 0.45 - 0.1 * dark_k
+        # dark cloth: a little glossier, so a soft sheen spreads across it (not only at the outline)
+        bsdf.inputs['Roughness'].default_value = rough - 0.22 * dark_k
         # dirt: broad, soft darker patches (no cloth stays factory-clean)
         dn = n.new('ShaderNodeTexNoise')
         dn.inputs['Scale'].default_value = 3.0
@@ -1966,7 +1988,7 @@ def shoulder_rolls(basemesh, arm, mat, size=0.09):
     return made
 
 
-def ruff(basemesh, arm, mat, size=0.11, pleats=28):
+def ruff(basemesh, arm, mat, size=0.11, pleats=28, style='flat'):
     """A pleated ruff round the neck: a flat ring, wavy at its outer edge
     (the pleats), tilted a little forward; on the neck bone."""
     import human as H
@@ -1977,14 +1999,28 @@ def ruff(basemesh, arm, mat, size=0.11, pleats=28):
     bm = bmesh.new()
     k = pleats * 4
     inner, outer = [], []
-    for i in range(k):
-        a = 2 * math.pi * i / k
-        wav = 0.018 * s * math.sin(a * pleats)
-        inner.append(bm.verts.new((math.sin(a) * r0, yc + math.cos(a) * r0, z)))
-        outer.append(bm.verts.new((math.sin(a) * r1, yc + math.cos(a) * r1, z + wav)))
-    for i in range(k):
-        j = (i + 1) % k
-        bm.faces.new((inner[i], inner[j], outer[j], outer[i]))
+    if style == 'fan':
+        # a standing lace fan behind the head (Elizabeth's): a half ring rising
+        # from the back of the neck, flaring out to about the head's height
+        n = pleats * 2
+        for i in range(n + 1):
+            a = math.pi * i / n                   # from one shoulder round the back to the other
+            wav = 0.015 * s * math.sin(i * math.pi * 2 * pleats / n)
+            bx, by = math.cos(a), math.sin(a)     # +y is behind the unposed body
+            inner.append(bm.verts.new((bx * r0, yc + by * r0 * 0.9, z)))
+            outer.append(bm.verts.new((bx * (r0 + size * 0.9 * s), yc + by * (r0 + 0.3 * size * s) + wav,
+                                       z + size * 1.9 * s)))
+        for i in range(n):
+            bm.faces.new((inner[i], inner[i + 1], outer[i + 1], outer[i]))
+    else:
+        for i in range(k):
+            a = 2 * math.pi * i / k
+            wav = 0.018 * s * math.sin(a * pleats)
+            inner.append(bm.verts.new((math.sin(a) * r0, yc + math.cos(a) * r0, z)))
+            outer.append(bm.verts.new((math.sin(a) * r1, yc + math.cos(a) * r1, z + wav)))
+        for i in range(k):
+            j = (i + 1) % k
+            bm.faces.new((inner[i], inner[j], outer[j], outer[i]))
     me = bpy.data.meshes.new('Ruff')
     bm.to_mesh(me)
     bm.free()

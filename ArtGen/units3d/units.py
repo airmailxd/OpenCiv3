@@ -354,7 +354,8 @@ def dress(entry, mesh, arm):
                 min_weight=0.4)
     if entry.get('ruff'):
         # a pleated lace ruff round the neck (Elizabethan)
-        G.ruff(mesh, arm, _hem_mat(entry, c, entry['ruff'], 'ruff'), size=entry.get('ruff_size', 0.11))
+        G.ruff(mesh, arm, _hem_mat(entry, c, entry['ruff'], 'ruff'), size=entry.get('ruff_size', 0.11),
+               style=entry.get('ruff_style', 'flat'))
     sr = entry.get('shoulder_rolls')
     if sr:
         # puffed rolls over the shoulder seams (Renaissance doublets): 'gold'|'tint'|hex
