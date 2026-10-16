@@ -86,7 +86,7 @@ def material(key, colors, tint=False, weather=None):
     color = colors.get(key, color)
     w = dict(WEATHER.get(kind, WEATHER[None]))
     if tint:
-        w = {'grime': 0.2}   # the civ color stays readable, just a little worn
+        w = {} if kind == 'polished' else {'grime': 0.2}   # the civ color stays readable, just a little worn (flags: clean)
     w.update(weather or {})
     tag = '_'.join(f'{k[0]}{round(v * 100)}' for k, v in sorted(w.items()) if v)
     camo = None if tint else CAMO.get(key)
@@ -1806,7 +1806,7 @@ def _device(kind, top, w, h, flag):
     own (u, v): 'bars' (three upright bars, red/green/cyan), 'blobs' (red,
     green and cyan roundels), 'saltire' (a white diagonal cross), 'quarters'
     (red and green quarters)."""
-    unrot = Matrix.Rotation(math.radians(-20), 3, 'Z')   # the cloth is yawed off the pole plane (_banner)
+    unrot = Matrix.Rotation(math.radians(-50), 3, 'Z')   # the cloth is yawed off the pole plane (_banner)
 
     def keys(f):
         c = unrot @ f.calc_center_median()
@@ -1860,7 +1860,7 @@ def _banner(p, top, w, h, swallowtail=False, flag=False, device=None):
         for i in range(nx):
             bm.faces.new((a[i], a[i + 1], b[i + 1], b[i]))
     bmesh.ops.solidify(bm, geom=bm.faces[:], thickness=0.006)
-    bmesh.ops.rotate(bm, verts=bm.verts, cent=(0, 0, 0), matrix=Matrix.Rotation(math.radians(20), 3, 'Z'))   # a little off the pole plane
+    bmesh.ops.rotate(bm, verts=bm.verts, cent=(0, 0, 0), matrix=Matrix.Rotation(math.radians(50), 3, 'Z'))   # well off the pole plane
     p.add(bm, 'banner', smooth=True, tint=True, keys=_device(device, top, w, h, flag) if device else None)
 
 
@@ -1907,7 +1907,7 @@ def eagle_standard(p, length=2.2, grip=0.9, scale=1.0):
 DEFAULTS['feather_teal'] = ('#3a9a94', 0.6, 0.0, 'polished')
 DEFAULTS['feather_red'] = ('#b8382e', 0.6, 0.0, 'polished')
 DEFAULTS['feather_green'] = ('#3a8a52', 0.6, 0.0, 'polished')
-DEFAULTS['dog_fur'] = ('#6a665e', 0.95, 0.0, 'cloth')   # grey-brown, rough (it lit pale)
+DEFAULTS['dog_fur'] = ('#6a665e', 0.95, 0.0, 'leather')   # leather-kind detail: an even coat (cloth stains read mangy)   # grey-brown, rough (it lit pale)
 DEFAULTS.setdefault('dog_dark', ('#1e1c1a', 0.6, 0.0, 'leather'))
 
 

@@ -249,8 +249,7 @@ REMASTER = {
         'chest_emblem': ('disc', 'gold', 0.3),   # the broad gold pectoral
         'patterns': {'bottom': ('stripes', '#c89040', 12.0)},   # the orange-gold patterning in the teal
         'cape': True, 'cape_length': 1.1,       # MISSING: fringed teal/civ panels
-        'hem_bands': [('cape', 'gold', 0.05), ('cape', 'gold', 0.14, 0.9)],   # the gold-edged cloak, its broad gold top
-        'cape_emblem': ('disc', '#b8382e', 0.42),   # the big red block on the back
+        'hem_bands': [('cape', 'gold', 0.05), ('cape', '#b02020', 0.22, 0.05), ('cape', 'gold', 0.3, 0.68)],   # gold edge, the big red block low, the gold upper back
         'cuirass': False, 'wraps': None, 'sandals': True, 'bracers': False, 'gear': [],
         'weapon': None, 'offhand': None,
         'stance_name': 'arms_folded',
@@ -544,10 +543,10 @@ REMASTER = {
         'hair': 'short', 'hair_asset': None, 'beard': False,
         'top': 'tunic', 'bottom': 'kilt', 'robe_drop': 0.0,
         'patterns': {'top': ('check', '#4a3218', 12.0)},   # the gold and brown checkerboard tunic, bold
-        'bands': [('knee', 'gold'), ('neck', 'gold')],
+        'bands': [('knee', 'gold', 0.06), ('neck', 'gold'), ('wrist', 'gold')],
         'cape': True, 'cape_length': 1.05,      # MISSING: zigzag_border (white, stepped)
         # the gold band, and a white band standing in for the zig-zag
-        'hem_bands': [('cape', 'gold', 0.05, 0.12), ('cape', '#ece8e0', 0.03, 0.06)],
+        'hem_bands': [('cape', 'gold', 0.09, 0.15), ('cape', '#ece8e0', 0.06, 0.06)],   # bolder: the gold band and the white zig-zag stand-in
         'cuirass': False, 'wraps': None, 'sandals': True, 'bracers': False, 'gear': [],
         # MISSING: feather_standard (staff topped with a fan of tinted/red/teal feathers), left_hand_hold
         'weapon': 'staff', 'props': {'staff': ('feather_standard', {'length': 2.35, 'grip': 1.2, 'fan': 1.6})},   # the feather standard, its big fan above his head
