@@ -45,8 +45,6 @@ def body(gender=1.0, age=0.5, muscle=0.75, weight=0.55, height=0.55, proportions
     garments.fit_to(basemesh)
     if skin_tone:
         tone_skin(basemesh, skin_tone)
-    if hair_tone and hair:
-        hair_color(basemesh, hair_tone, asset=hair)
     for kind, name in (('eyebrows', eyebrows), ('eyelashes', 'eyelashes01'), ('eyes', 'high-poly'), ('hair', hair)):
         if name:
             try:
@@ -54,6 +52,9 @@ def body(gender=1.0, age=0.5, muscle=0.75, weight=0.55, height=0.55, proportions
                                              subdiv_levels=subdiv, material_type='MAKESKIN')
             except FileNotFoundError as e:
                 print('missing asset', e)
+    if hair_tone and hair:
+        # (after the assets: before, the hair didn't exist yet and kept its texture's color)
+        hair_color(basemesh, hair_tone, asset=hair)
     if subdiv:
         mod = basemesh.modifiers.new('Subdiv', 'SUBSURF')
         mod.levels = mod.render_levels = subdiv
@@ -202,6 +203,30 @@ def hair_color(basemesh, color, asset=None):
             matte(child, base=color)
 
 
+def _texture_mean(node, depth=0):
+    """The mean linear color of the image texture feeding `node` (searching
+    a few nodes upstream), or None."""
+    if node is None or depth > 3:
+        return None
+    if node.type == 'TEX_IMAGE' and node.image and node.image.size[0]:
+        import numpy as np
+        img = node.image
+        px = np.empty(img.size[0] * img.size[1] * img.channels, dtype=np.float32)
+        img.pixels.foreach_get(px)
+        px = px.reshape(-1, img.channels)
+        if img.channels == 4:
+            keep = px[:, 3] > 0.5                  # the strands, not the transparent gaps
+            px = px[keep] if keep.any() else px
+        rgb = px[:, :3].mean(axis=0)
+        return tuple(float(c) for c in rgb)
+    for inp in node.inputs:
+        for link in inp.links:
+            found = _texture_mean(link.from_node, depth + 1)
+            if found:
+                return found
+    return None
+
+
 def matte(obj, roughness=0.85, specular=0.08, base=None):
     """Kills the sheen of every Principled BSDF in obj's materials (and
     groups); with `base` (sRGB), also sets its color: multiplied into a
@@ -226,8 +251,9 @@ def matte(obj, roughness=0.85, specular=0.08, base=None):
                         mul.data_type = 'RGBA'
                         mul.blend_type = 'MULTIPLY'
                         mul.inputs['Factor'].default_value = 1.0
-                        # hair textures are light: scale so their average lands near `base`
-                        mul.inputs['B'].default_value = tuple(min(4.0, c / 0.55) for c in lin) + (1.0,)
+                        # scale so the texture's average color lands on `base`
+                        avg = _texture_mean(src.node) or (0.55, 0.55, 0.55)
+                        mul.inputs['B'].default_value = tuple(min(8.0, c / max(a, 0.02)) for c, a in zip(lin, avg)) + (1.0,)
                         tree.links.new(src, mul.inputs['A'])
                         tree.links.new(mul.outputs['Result'], bc)
                     else:

@@ -42,8 +42,68 @@ def z(v):
 
 # ------------------------------------------------------------ materials
 
-def cloth(name, color, tint=False, rough=0.85, weave=0.25):
-    """Woven cloth: a fine weave bump and a little color variation."""
+def _pattern(tree, coord, base, pattern):
+    """A color socket: the cloth's `base` color (linear RGBA) under a
+    printed or woven pattern: ('camo', c2, c3[, c4]) blotches, ('check',
+    dark[, scale]) squares, ('tartan', dark[, scale]) crossing bands."""
+    n = tree.nodes
+    kind = pattern[0]
+    lin = [(*B.srgb_to_linear(B.hex_color(h)), 1.0) for h in pattern[1:] if isinstance(h, str)]
+    nums = [v for v in pattern[1:] if isinstance(v, (int, float))]
+    if kind == 'camo':
+        noise = n.new('ShaderNodeTexNoise')
+        noise.inputs['Scale'].default_value = nums[0] if nums else 9.0
+        noise.inputs['Detail'].default_value = 1.5
+        noise.inputs['Roughness'].default_value = 0.45
+        tree.links.new(coord.outputs['Object'], noise.inputs['Vector'])
+        ramp = n.new('ShaderNodeValToRGB')
+        ramp.color_ramp.interpolation = 'CONSTANT'
+        cols = [base] + lin
+        els = ramp.color_ramp.elements
+        while len(els) < len(cols):
+            els.new(0.5)
+        for i, (e, col) in enumerate(zip(els, cols)):
+            e.position = 0.0 if i == 0 else 0.36 + 0.3 * (i - 1) / max(1, len(cols) - 2)
+            e.color = col
+        tree.links.new(noise.outputs['Fac'], ramp.inputs['Fac'])
+        return ramp.outputs['Color']
+    dark = lin[0] if lin else (0.02, 0.02, 0.02, 1.0)
+    scale = nums[0] if nums else (28.0 if kind == 'check' else 18.0)
+    if kind == 'check':
+        chk = n.new('ShaderNodeTexChecker')
+        chk.inputs['Scale'].default_value = scale
+        chk.inputs['Color1'].default_value = base
+        chk.inputs['Color2'].default_value = tuple(0.35 * b + 0.65 * d for b, d in zip(base, dark))
+        tree.links.new(coord.outputs['Object'], chk.inputs['Vector'])
+        return chk.outputs['Color']
+    # tartan: dark bands both ways, darkest where they cross
+    out = None
+    for axis in ('X', 'Z'):
+        wave = n.new('ShaderNodeTexWave')
+        wave.wave_type = 'BANDS'
+        wave.bands_direction = axis
+        wave.inputs['Scale'].default_value = scale
+        tree.links.new(coord.outputs['Object'], wave.inputs['Vector'])
+        mix = n.new('ShaderNodeMix')
+        mix.data_type = 'RGBA'
+        mix.blend_type = 'MULTIPLY'
+        hard = n.new('ShaderNodeMath')                 # sharp-edged stripes
+        hard.operation = 'GREATER_THAN'
+        hard.inputs[1].default_value = 0.62
+        tree.links.new(wave.outputs['Fac'], hard.inputs[0])
+        tree.links.new(hard.outputs['Value'], mix.inputs['Factor'])
+        if out is None:
+            mix.inputs['A'].default_value = base
+        else:
+            tree.links.new(out, mix.inputs['A'])
+        mix.inputs['B'].default_value = tuple(0.5 + 0.5 * d for d in dark[:3]) + (1.0,)
+        out = mix.outputs['Result']
+    return out
+
+
+def cloth(name, color, tint=False, rough=0.85, weave=0.25, pattern=None):
+    """Woven cloth: a fine weave bump and a little color variation; with
+    `pattern` (see _pattern), printed or woven with it."""
     def nodes(tree, bsdf):
         n = tree.nodes
         tex = n.new('ShaderNodeTexNoise')
@@ -85,6 +145,9 @@ def cloth(name, color, tint=False, rough=0.85, weave=0.25):
         mul.blend_type = 'MULTIPLY'
         mul.inputs['Factor'].default_value = 0.75
         mul.inputs['A'].default_value = bsdf.inputs['Base Color'].default_value
+        if pattern:
+            tree.links.new(_pattern(tree, coord, tuple(bsdf.inputs['Base Color'].default_value), pattern),
+                           mul.inputs['A'])
         tree.links.new(ao.outputs['AO'], mul.inputs['B'])
         dirt = n.new('ShaderNodeMix')
         dirt.data_type = 'RGBA'
@@ -163,7 +226,8 @@ def hair_material(name, color):
     # the swatch's color directly (the melanin model, from the swatch's
     # lightness, turned mid gingers and browns into pale blonds)
     hair.parametrization = 'COLOR'
-    hair.inputs['Color'].default_value = (*B.srgb_to_linear(color), 1.0)
+    # (the strands scatter light and read much paler than the swatch: darken)
+    hair.inputs['Color'].default_value = tuple(0.45 * c * c ** 0.3 for c in B.srgb_to_linear(color)) + (1.0,)
     hair.inputs['Roughness'].default_value = 0.5
     hair.inputs['Radial Roughness'].default_value = 0.35
     tree.links.new(hair.outputs[0], out.inputs['Surface'])

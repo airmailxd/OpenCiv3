@@ -47,6 +47,9 @@ def _mat(entry, part, maker, *args, **kw):  # noqa: D401
     c = _colors(entry)
     tint = part in entry.get('tint', [])
     color = (1, 1, 1) if tint else B.hex_color(c.get(part, '#808080'))
+    pattern = entry.get('patterns', {}).get(part)
+    if pattern and maker is G.cloth:
+        kw = dict(kw, pattern=tuple(pattern))
     return maker(f'{part}', color, *args, tint=tint, **kw)
 
 
@@ -225,7 +228,8 @@ def dress(entry, mesh, arm):
         # strands, locks forward over the shoulders, a rough strand coat
         G.falling_hair(mesh, B.hex_color(c['hair']), length=entry['mane'])
         G.front_locks(mesh, B.hex_color(c['hair']), length=entry['mane'] * 1.1)
-    G.roughen_hair(mesh, B.hex_color(c['hair']), length=0.012, density=2500)
+    if entry.get('roughen_hair', True):
+        G.roughen_hair(mesh, B.hex_color(c['hair']), length=0.012, density=2500)
     # a chest emblem: ('cross' | 'disc', 'tint' | 'gold' | hex[, size])
     em = entry.get('chest_emblem')
     if em:

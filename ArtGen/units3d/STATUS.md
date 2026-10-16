@@ -46,6 +46,10 @@ credit.** Next for the PC: Trebuchet, Hwacha, Artillery, Flak, then ships, armor
 4. When the owner approves the look: `build.py --install` into C7/ModernArt, thumbnails, PR/merge.
 
 ## Lessons
+- Hair color never applied before 2026-10-15 evening (hair_color ran before the hair asset was
+  added; the strand coat's melanin model paled every color). Fixed: toned after the assets,
+  normalized by the texture's mean color; strands colored directly, darkened.
+- Bands and hems are cut from subdivided copies: the body's faces are larger than a band.
 - Edit code with asserted replacements: unchecked string replaces silently failed and wasted rounds.
 - MPFB parents assets (hair, brows, eyes) to the rig, not the body (human.assets).
 - Props are placed in world terms (human.hold, center=True for shields; keeps the prop's scale).

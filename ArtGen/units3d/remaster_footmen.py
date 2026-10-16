@@ -156,7 +156,7 @@ REMASTER = {
                    'shield_face': '#6a4a2e', 'shield_rim': '#8a8c90', 'leather': '#3e2a1a'},
         'helmet': None,
         'hair': 'short', 'hair_asset': 'short04', 'beard': False,   # MISSING: spiked_hair (limed, straight up)
-        'top': None, 'bottom': 'long',          # MISSING: check_pattern on the trousers
+        'top': None, 'bottom': 'long', 'patterns': {'bottom': ('check', '#141414', 34.0)},   # checked trousers
         'boots': True, 'wraps': 'boots',
         'bracers': True,                        # MISSING: one_bracer (the sword arm only)
         'gear': [],
