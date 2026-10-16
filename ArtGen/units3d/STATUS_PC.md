@@ -17,8 +17,7 @@ The per-unit lists are in [DETAIL_AUDIT_PC.md](DETAIL_AUDIT_PC.md).
 | Units | Files | Review |
 |---|---|---|
 | Catapult, Cannon, Galley, Caravel | siege.py, ships.py, vkit.py | 6 axes PASS (detail 7-8) |
-| Horseman (frozen at the middle rider scale) | mounted.py, riders.py | 5 axes PASS; detail 6/10, being redone |
-| Rider, Ansar Warrior | mounted.py, riders.py | 5 axes PASS; detail 3 and 4/10, being redone |
+| Horseman, Rider, Ansar Warrior | mounted.py, riders.py, remaster.py | 6 axes PASS (detail 7-8) |
 | Mounted Warrior, Ancient Cavalry, Knight, Keshik, Sipahi, Conquistador, Cossack, Hussar, Cavalry | mounted.py, riders.py, remaster.py | frozen for stzur's judgment (borderline 6-7 on 5 axes); detail 2-5/10, see below |
 | chariot, War Chariot, Three Man Chariot | chariots.py | frozen for stzur's judgment; detail 4-5/10, see below |
 | Props (pilots + riders + footmen) | props.py, props_preview.py | pilots' props reviewed; footman props delivered, not yet seen on bodies |
