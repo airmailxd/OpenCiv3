@@ -35,7 +35,7 @@ REMASTER = {
         'fur_vest': ('#5e4430', '#33241a'),     # the brown fur over the torso front (only sleeves/trousers civ color)
         'gear': [],
         'weapon': 'axe',
-        'props': {'axe': ('battle_axe', {'length': 0.6, 'scale': 2.0})},   # MISSING: battle_axe head scale (head without the haft)
+        'props': {'axe': ('battle_axe', {'length': 1.1, 'scale': 1.15, 'head': 1.6})},   # a big head on a long haft
         'stance_name': 'low_across',            # MISSING: two_hand_low (haft level across the hips, head out right)
         'two_hands': True, 'tool_dir': (-0.8, -0.2, 0.25),
         'tint': ['top', 'bottom', 'bracers'],
@@ -141,7 +141,7 @@ REMASTER = {
         'cuirass': True, 'top': 'sleeved', 'puffy': True,   # puffed civ-color sleeves, baggy breeches
         'bottom': 'breeches', 'wraps': 'boots',  # pale high boots below the breeches
         'gear': [],
-        'hip': ('sheathed_sword', {'rapier': True}),   # the rapier sheathed at the left hip; MISSING: hip sword guard
+        'hip': ('sheathed_sword', {'rapier': True, 'length': 1.0}),   # the rapier sheathed at the left hip
         'weapon': None,
         'offhand': 'map', 'offhand_mesh': ('map', {'w': 0.34, 'h': 0.26}),
         'stance_name': 'upright',
@@ -192,8 +192,8 @@ REMASTER = {
         # the aspis: a big round bronze board, only its rim in civ color, a
         # black painted device with a red accent on the face; upright (no
         # 45-degree roll), so the device's chevron points up
-        'offhand': 'shield_round',             # MISSING: aspis bronze face (face_metal on shield_round)
-        'offhand_mesh': ('shield_round', {'r': 0.52, 'dome': 0.07, 'boss': False, 'tint': 'rim', 'emblem': 'aspis'}),
+        'offhand': 'shield_round',             # a bronze-faced aspis
+        'offhand_mesh': ('shield_round', {'r': 0.52, 'dome': 0.07, 'boss': False, 'tint': 'rim', 'emblem': 'aspis', 'face_metal': True}),
         'shield_roll': 0.0,
         'stance_name': 'upright',
         'tint': ['crest', 'shield_emblem', 'bracers'],
@@ -277,8 +277,8 @@ REMASTER = {
         'weapon': 'club',
         'props': {'club': ('torch', {'length': 0.5})},
         # MISSING: book_raised (held at chest-to-head height; offhand sits low
-        # at the hips) and tinted_book_cover (props.book's cover doesn't tint)
-        'offhand': 'book',
+        # at the hips)
+        'offhand': 'book', 'offhand_mesh': ('book', {'tint': True}),   # a civ-color cover
         'stance_name': 'upright',               # the torch upright beside the head
         'tint': [],
         'grime': 0.55, 'upper_bulk': 1.05,
