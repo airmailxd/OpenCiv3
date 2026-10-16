@@ -1907,7 +1907,7 @@ def eagle_standard(p, length=2.2, grip=0.9, scale=1.0):
 DEFAULTS['feather_teal'] = ('#3a9a94', 0.6, 0.0, 'polished')
 DEFAULTS['feather_red'] = ('#b8382e', 0.6, 0.0, 'polished')
 DEFAULTS['feather_green'] = ('#3a8a52', 0.6, 0.0, 'polished')
-DEFAULTS.setdefault('dog_fur', ('#7e7a72', 0.95, 0.0, 'cloth'))   # grey-brown, rough
+DEFAULTS['dog_fur'] = ('#6a665e', 0.95, 0.0, 'cloth')   # grey-brown, rough (it lit pale)
 DEFAULTS.setdefault('dog_dark', ('#1e1c1a', 0.6, 0.0, 'leather'))
 
 
@@ -1941,11 +1941,14 @@ def feather_standard(p, length=2.1, grip=1.2, scale=1.0, fan=1.0):
     p.add(tube([(0, 0, -grip), (0, 0, z1)], [SHAFT_R + 0.002, SHAFT_R], seg=10), 'wood', smooth=True)
     p.add(lathe([(z1 - 0.12, 0.022), (z1, 0.03)], seg=12), 'gold', smooth=True)
     cycle = (('tint', True), ('feather_red', False), ('feather_teal', False))
-    for i in range(13):
-        a = math.radians(-78 + 156 * i / 12)
-        tip = (0.42 * fan * math.sin(a), 0.0, z1 + 0.05 + 0.42 * fan * math.cos(a))
+    rnd = random.Random(3)
+    for i in range(16):   # a loose starburst in two crossed planes (never edge-on)
+        a = math.radians(-95 + 190 * (i // 2) / 7 + rnd.uniform(-8, 8))
+        plane = (1.0, 0.0) if i % 2 == 0 else (0.0, 1.0)
+        L = 0.42 * fan * rnd.uniform(0.75, 1.15)
+        tip = (L * math.sin(a) * plane[0], L * math.sin(a) * plane[1], z1 + 0.05 + L * math.cos(a))
         key, t = cycle[i % 3]
-        feather_card(p, (0, 0, z1 + 0.03), tip, (0, 1, 0), 0.085 * fan, key, tint=t, curl=0.08)
+        feather_card(p, (0, 0, z1 + 0.03), tip, (plane[1], plane[0], 0), 0.075 * fan, key, tint=t, curl=0.1)
     p.add(ellipsoid(0.045, 0.03, 0.045, seg=14), 'gold', T(0, 0.01, z1 + 0.04), smooth=True)
 
 
@@ -1988,8 +1991,8 @@ def wolfhound(p, scale=1.0):
         sx = rnd.choice((-1, 1))
         z = rnd.uniform(0.5, 0.8)
         a = (sx * rnd.uniform(0.04, 0.12) * s, y * s, z * s)
-        b = (a[0] + sx * 0.04 * s, a[1] - 0.04 * s, a[2] - 0.06 * s)
-        p.add(tube([a, b], [0.026 * s, 0.006 * s], seg=5), fur, smooth=True)
+        b = (a[0] + sx * 0.025 * s, a[1] - 0.05 * s, a[2] - 0.045 * s)   # lying flat, back and down (upright ones read as spikes)
+        p.add(tube([a, b], [0.024 * s, 0.008 * s], seg=5), fur, smooth=True)
     p.add(lathe([(0.0, 0.085), (0.035, 0.08)], seg=16, scale_xy=(1.0, 1.1)), 'tint',
           T(0, 0.52 * s, 0.73 * s) @ R('X', -60) @ S(s), smooth=True, tint=True)   # the civ collar
 

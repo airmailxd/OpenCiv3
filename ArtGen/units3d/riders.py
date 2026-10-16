@@ -342,13 +342,14 @@ def feather_headdress(p, c, tinted, _, style=None, cascade=None, front=None, cre
     if style == 'fan':   # King Aztec: a dense upright fan behind the head, gold, civ, red and teal in turn
         props.DEFAULTS.setdefault('feather_teal', ('#2e8a86', 0.7, 0.0, 'cloth'))
         p.add(props.lathe([(0.0, 0.116), (0.06, 0.118)], seg=24), 'gold', smooth=True)   # the gold band
-        cycle = (('gold', False), ('tint', True), ('feather_red', False), ('feather_teal', False))
+        cycle = (('gold', False), ('tint', True), ('gold', False), ('feather_red', False), ('tint', True), ('gold', False))
         for row, (n, h, r0, lift) in enumerate(((17, 0.44, 0.11, 0.03), (13, 0.32, 0.105, 0.06))):
             for i in range(n):
                 a = math.radians(-100 + 200 * i / (n - 1)) + math.pi   # round the sides and back
                 base = (0.1 * math.sin(a), 0.1 * math.cos(a) - 0.02, lift)
-                tip = ((r0 + 0.2) * math.sin(a), (r0 + 0.12) * math.cos(a) - 0.06, lift + h * (1 - 0.25 * abs(math.cos(a - math.pi))))
-                key, t = cycle[(i + row * 2) % 4]
+                spread = 0.05 + 0.17 * abs(math.sin(a - math.pi))   # the back feathers stand upright (outward ones foreshortened to a gap)
+                tip = ((r0 + spread) * math.sin(a), (r0 + spread * 0.6) * math.cos(a) - 0.06, lift + h * (1 - 0.3 * abs(math.sin(a - math.pi))))   # tallest at the back: one fan
+                key, t = cycle[(i + row * 3) % 6]
                 props.feather_card(p, base, tip, (math.sin(a), math.cos(a), 0.0), 0.08, key, tint=t, curl=-0.12)
         return
     n = 11

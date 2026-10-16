@@ -72,7 +72,7 @@ REMASTER = {
         # MISSING: lapel_trim (tinted robe front edges; the panel edges stand in)
         'cape': False, 'cuirass': False, 'wraps': None, 'sandals': True, 'bracers': False, 'gear': [],
         # the crossbar-hung vexillum, tinted field; MISSING: flag_device (three vertical bars, red/green/cyan)
-        'weapon': 'standard', 'props': {'standard': ('war_standard', {'era': 'ancient', 'length': 2.30, 'grip': 0.95, 'device': 'bars', 'flag_scale': 1.6})},   # lower again: the flag top touched the cell top (dirs 6, 7), then 1 px in dir 6
+        'weapon': 'standard', 'props': {'standard': ('war_standard', {'era': 'ancient', 'length': 2.30, 'grip': 0.7, 'device': 'bars', 'flag_scale': 1.6})}, 'unit_scale': 0.88,   # smaller, the vexillum above his head   # lower again: the flag top touched the cell top (dirs 6, 7), then 1 px in dir 6
         'stance_name': 'stand_staff', 'two_hands': True,
         'tint': ['banner'],
         'grime': 0.55, 'upper_bulk': 1.1,
@@ -142,7 +142,7 @@ REMASTER = {
         'gear': [('chest_strap', {'width': 0.2, 'edge': 'gold', 'edge_width': 0.035})],   # the broad tinted sash, gold-edged
         'cape': False, 'cuirass': False, 'sandals': False, 'bracers': False,
         # the big flag, tinted field; MISSING: flag_device (diagonal cross; the PC is making it)
-        'weapon': 'standard', 'props': {'standard': ('war_standard', {'era': 'modern', 'length': 2.43, 'grip': 0.95, 'device': 'saltire', 'flag_scale': 1.45})},   # lower: the flag top touched the cell top (dirs 6, 7)
+        'weapon': 'standard', 'props': {'standard': ('war_standard', {'era': 'modern', 'length': 2.43, 'grip': 0.7, 'device': 'saltire', 'flag_scale': 1.45})}, 'unit_scale': 0.88,   # smaller, the flag above his head   # lower: the flag top touched the cell top (dirs 6, 7)
         'stance_name': 'stand_staff', 'two_hands': True,
         'tint': ['strap', 'banner'],
         'grime': 0.55, 'upper_bulk': 1.15,
@@ -217,7 +217,7 @@ REMASTER = {
         # the civ-color puffed sleeves (check they cover the shoulder tops); MISSING: quilting, gold dots
         'top': 'sleeved', 'puffy': True, 'shoulder_rolls': 'tint', 'roll_size': 0.09,   # the big civ puffed sleeves
         'cuirass': True, 'metal': [], 'cuirass_trim': 'gold',   # the quilted brown-gold vest front
-        'patterns': {'cuirass': ('check', '#a8823e', 26.0), 'sleeves': ('camo', '#e0c050', 30.0, 'cover', 0.08),
+        'patterns': {'cuirass': ('check', '#4e3418', 14.0), 'sleeves': ('camo', '#e0c050', 30.0, 'cover', 0.08),
                      'cape': ('stripes', '#a8885a', 16.0)},   # quilting, gold dots, the brocade's vertical pattern
         'bottom': 'breeches', 'wraps': 'wraps', 'shoes': True, 'sandals': False,   # white hose, low shoes; MISSING: gold buckles
         'cape': True, 'cape_length': 1.0,       # the light tan brocade (as the original; the note's dark brown was wrong)
@@ -245,9 +245,12 @@ REMASTER = {
         'top': None,
         'bottom': 'loincloth', 'loin_length': (0.5, 0.42), 'torn': False,
         # a wide gold collar; MISSING: broad_collar (gold pectoral)
-        'bands': [('neck', 'gold', 0.08), ('upperarm', 'gold'), ('wrist', 'gold')],
-        'cape': True, 'cape_length': 1.1,       # MISSING: cape_panels (gold top, fringed teal/tinted panels, red block)
-        'hem_bands': [('cape', 'gold', 0.05)],  # the gold-edged cloak
+        'bands': [('neck', 'gold', 0.12), ('upperarm', 'gold'), ('wrist', 'gold')],
+        'chest_emblem': ('disc', 'gold', 0.3),   # the broad gold pectoral
+        'patterns': {'bottom': ('stripes', '#c89040', 12.0)},   # the orange-gold patterning in the teal
+        'cape': True, 'cape_length': 1.1,       # MISSING: fringed teal/civ panels
+        'hem_bands': [('cape', 'gold', 0.05), ('cape', 'gold', 0.14, 0.9)],   # the gold-edged cloak, its broad gold top
+        'cape_emblem': ('disc', '#b8382e', 0.42),   # the big red block on the back
         'cuirass': False, 'wraps': None, 'sandals': True, 'bracers': False, 'gear': [],
         'weapon': None, 'offhand': None,
         'stance_name': 'arms_folded',
@@ -540,7 +543,7 @@ REMASTER = {
         'helmet': 'crown', 'crown': 'tall', 'crown_height': 0.07,   # a gold cylinder (the circlet read thin)
         'hair': 'short', 'hair_asset': None, 'beard': False,
         'top': 'tunic', 'bottom': 'kilt', 'robe_drop': 0.0,
-        'patterns': {'top': ('check', '#6a4e2a', 20.0)},   # the gold and brown checkerboard tunic
+        'patterns': {'top': ('check', '#4a3218', 12.0)},   # the gold and brown checkerboard tunic, bold
         'bands': [('knee', 'gold'), ('neck', 'gold')],
         'cape': True, 'cape_length': 1.05,      # MISSING: zigzag_border (white, stepped)
         # the gold band, and a white band standing in for the zig-zag
@@ -878,11 +881,11 @@ REMASTER = {
         'hair': 'short', 'hair_asset': 'bob01', 'beard': False,
         'top': 'sleeved', 'neck': 'high',
         # the white front panel between civ-color sides; MISSING: fleur_pattern (gold)
-        'bottom': 'gown', 'gown_flare': 2.4, 'robe_drop': 0.62,
+        'bottom': 'gown', 'gown_flare': 3.4, 'robe_drop': 0.7,   # pooling wide on the ground
         'patterns': {'bottom': ('camo', '#e2c454', 9.0, 'cover', 0.07)},   # gold fleurs scattered on the civ gown (the white at her front sides is the veil)
-        'hem_bands': [('bottom', '#f2efe8', 0.2, 0.0), ('bottom', 'gold', 0.07, 0.2)],   # the wide white lace spill, gold above it   # gold and white lace at the hem
+        'hem_bands': [('bottom', 'tint', 0.04, 0.0), ('bottom', '#f2efe8', 0.18, 0.04), ('bottom', 'gold', 0.06, 0.22)],   # the spill: a civ edge, wide white lace, gold above   # gold and white lace at the hem
         # the white veil to the hips, narrow and close to the back; MISSING: head_veil (from the head, over the crown)
-        'cape': True, 'cape_length': 1.45, 'cape_width': 0.55, 'cape_flare': 0.4, 'cape_wrap': 0.85,   # side panels: the gown shows down the back, as the original   # the veil falls to the ground behind   # close to the back
+        'cape': True, 'cape_length': 1.45, 'cape_width': 0.6, 'cape_flare': 0.15, 'cape_wrap': 0.6,   # one soft drape to the floor behind; MISSING: head_veil (from the head)   # the veil falls to the ground behind   # close to the back
         'cuirass': False, 'wraps': None, 'sandals': False, 'bracers': False, 'gear': [],
         # the gold fleur-headed scepter low in the right fist, head up and forward
         'weapon': 'scepter', 'props': {'scepter': ('scepter', {'length': 0.7, 'head': 'fleur'})},
