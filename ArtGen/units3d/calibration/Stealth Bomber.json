@@ -1,0 +1,225 @@
+{
+  "unit": "Stealth Bomber",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    120.0,
+    104.0
+  ],
+  "anchor_override": [
+    120.61140298843384,
+    125.88282012939453
+  ],
+  "standing_height": 38.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        148.69,
+        100
+      ],
+      "top": 63,
+      "height": 38,
+      "bbox": [
+        94,
+        63,
+        168,
+        100
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        120.0,
+        98
+      ],
+      "top": 77,
+      "height": 22,
+      "bbox": [
+        68,
+        77,
+        172,
+        98
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        91.62,
+        100
+      ],
+      "top": 63,
+      "height": 38,
+      "bbox": [
+        72,
+        63,
+        147,
+        100
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        104.9,
+        113
+      ],
+      "top": 61,
+      "height": 53,
+      "bbox": [
+        100,
+        61,
+        142,
+        113
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        142.14,
+        111
+      ],
+      "top": 74,
+      "height": 38,
+      "bbox": [
+        72,
+        74,
+        147,
+        111
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        120.0,
+        97
+      ],
+      "top": 75,
+      "height": 23,
+      "bbox": [
+        67,
+        75,
+        173,
+        97
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        98.0,
+        111
+      ],
+      "top": 74,
+      "height": 38,
+      "bbox": [
+        93,
+        74,
+        168,
+        111
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        135.1,
+        113
+      ],
+      "top": 61,
+      "height": 53,
+      "bbox": [
+        98,
+        61,
+        140,
+        113
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0106813348821169,
+    "ppm_2x": 6.4856,
+    "fit": 0.1234,
+    "archetype": "aircraft"
+  },
+  "default_flic": "StealthBomberDefault.flc",
+  "flics": {
+    "StealthBomberAttackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 210,
+      "height": 133,
+      "offset_left": 16,
+      "offset_top": 37,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "StealthBomberBomb.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 240,
+      "height": 240,
+      "offset_left": 0,
+      "offset_top": 0,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 20,
+      "frameMs": 66
+    },
+    "StealthBomberDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 240,
+      "height": 240,
+      "offset_left": 0,
+      "offset_top": 0,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "StealthBomberDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 107,
+      "height": 92,
+      "offset_left": 67,
+      "offset_top": 61,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 1,
+      "frameMs": 1000
+    },
+    "StealthBomberRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 240,
+      "height": 240,
+      "offset_left": 0,
+      "offset_top": 0,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 5,
+      "frameMs": 66
+    }
+  }
+}

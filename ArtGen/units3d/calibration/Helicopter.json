@@ -1,0 +1,225 @@
+{
+  "unit": "Helicopter",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.41,
+    77.5
+  ],
+  "anchor_override": [
+    120.0,
+    113.4171371459961
+  ],
+  "standing_height": 43.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        100.48,
+        82
+      ],
+      "top": 30,
+      "height": 53,
+      "bbox": [
+        76,
+        30,
+        157,
+        82
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        119.32,
+        86
+      ],
+      "top": 22,
+      "height": 65,
+      "bbox": [
+        96,
+        22,
+        141,
+        86
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        137.08,
+        82
+      ],
+      "top": 28,
+      "height": 55,
+      "bbox": [
+        86,
+        28,
+        165,
+        82
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        112.48,
+        76
+      ],
+      "top": 41,
+      "height": 36,
+      "bbox": [
+        69,
+        41,
+        163,
+        76
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        114.5,
+        79
+      ],
+      "top": 37,
+      "height": 43,
+      "bbox": [
+        81,
+        37,
+        163,
+        79
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        119.5,
+        78
+      ],
+      "top": 37,
+      "height": 42,
+      "bbox": [
+        98,
+        37,
+        143,
+        78
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        124.5,
+        79
+      ],
+      "top": 37,
+      "height": 43,
+      "bbox": [
+        75,
+        37,
+        154,
+        79
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        126.52,
+        76
+      ],
+      "top": 39,
+      "height": 38,
+      "bbox": [
+        76,
+        39,
+        170,
+        76
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.1047681201199069,
+    "ppm_2x": 9.4097,
+    "fit": 0.1638,
+    "archetype": "aircraft"
+  },
+  "default_flic": "HelicopterDefault.flc",
+  "flics": {
+    "HelicopterAttackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 123,
+      "height": 118,
+      "offset_left": 59,
+      "offset_top": 19,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "HelicopterDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 139,
+      "height": 150,
+      "offset_left": 53,
+      "offset_top": 10,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 14,
+      "frameMs": 71
+    },
+    "HelicopterDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 103,
+      "height": 113,
+      "offset_left": 69,
+      "offset_top": 22,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 1,
+      "frameMs": 1000
+    },
+    "HelicopterFidget.flc": {
+      "actions": [
+        "BUILD"
+      ],
+      "kind": "animation",
+      "width": 115,
+      "height": 118,
+      "offset_left": 63,
+      "offset_top": 22,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "HelicopterRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 113,
+      "height": 118,
+      "offset_left": 64,
+      "offset_top": 19,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 5,
+      "frameMs": 66
+    }
+  }
+}

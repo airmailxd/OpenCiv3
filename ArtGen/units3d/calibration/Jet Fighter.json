@@ -1,0 +1,225 @@
+{
+  "unit": "Jet Fighter",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    120.11,
+    102.5
+  ],
+  "anchor_override": [
+    120.63656330108643,
+    126.57371520996094
+  ],
+  "standing_height": 37.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        97.75,
+        101
+      ],
+      "top": 63,
+      "height": 39,
+      "bbox": [
+        94,
+        63,
+        158,
+        101
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        120.18,
+        106
+      ],
+      "top": 68,
+      "height": 39,
+      "bbox": [
+        94,
+        68,
+        147,
+        106
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        142.65,
+        101
+      ],
+      "top": 63,
+      "height": 39,
+      "bbox": [
+        82,
+        63,
+        146,
+        101
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        106.93,
+        102
+      ],
+      "top": 72,
+      "height": 31,
+      "bbox": [
+        83,
+        72,
+        157,
+        102
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        106.76,
+        108
+      ],
+      "top": 74,
+      "height": 35,
+      "bbox": [
+        82,
+        74,
+        146,
+        108
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        120.04,
+        107
+      ],
+      "top": 69,
+      "height": 39,
+      "bbox": [
+        93,
+        69,
+        147,
+        107
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        132.9,
+        108
+      ],
+      "top": 74,
+      "height": 35,
+      "bbox": [
+        94,
+        74,
+        158,
+        108
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        132.98,
+        102
+      ],
+      "top": 73,
+      "height": 30,
+      "bbox": [
+        83,
+        73,
+        157,
+        102
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0261203563914802,
+    "ppm_2x": 13.904,
+    "fit": 0.2606,
+    "archetype": "aircraft"
+  },
+  "default_flic": "JetFighterDefault.flc",
+  "flics": {
+    "JetFighterAttackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 240,
+      "height": 240,
+      "offset_left": 0,
+      "offset_top": 0,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 62
+    },
+    "JetFighterBomb.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 240,
+      "height": 240,
+      "offset_left": 0,
+      "offset_top": 0,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 14,
+      "frameMs": 90
+    },
+    "JetFighterDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 240,
+      "height": 240,
+      "offset_left": 0,
+      "offset_top": 0,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 90
+    },
+    "JetFighterDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 77,
+      "height": 85,
+      "offset_left": 82,
+      "offset_top": 63,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 1,
+      "frameMs": 66
+    },
+    "JetFighterRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 240,
+      "height": 240,
+      "offset_left": 0,
+      "offset_top": 0,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 5,
+      "frameMs": 90
+    }
+  }
+}

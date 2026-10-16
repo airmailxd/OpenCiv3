@@ -1,0 +1,120 @@
+{
+  "unit": "ICBM",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.16,
+    118.5
+  ],
+  "anchor_override": [
+    119.5,
+    108.00456047058105
+  ],
+  "standing_height": 64.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        119.16,
+        120
+      ],
+      "top": 57,
+      "height": 64,
+      "bbox": [
+        115,
+        57,
+        123,
+        120
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 0.6998756175846298,
+    "ppm_2x": 11.97,
+    "fit": 0.3289,
+    "archetype": "rocket"
+  },
+  "default_flic": "ICBMDefault.flc",
+  "flics": {
+    "ICBM launch.flc": {
+      "actions": [
+        "CAPTURE"
+      ],
+      "kind": "animation",
+      "width": 69,
+      "height": 234,
+      "offset_left": 189,
+      "offset_top": 11,
+      "orig_width": 450,
+      "orig_height": 450,
+      "directions": 1,
+      "frames": 38,
+      "frameMs": 66
+    },
+    "ICBM trail.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 30,
+      "height": 259,
+      "offset_left": 209,
+      "offset_top": 1,
+      "orig_width": 450,
+      "orig_height": 450,
+      "directions": 2,
+      "frames": 21,
+      "frameMs": 66
+    },
+    "ICBMBomb.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 142,
+      "height": 156,
+      "offset_left": 62,
+      "offset_top": 3,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 1,
+      "frames": 29,
+      "frameMs": 71
+    },
+    "ICBMDeath.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 103,
+      "height": 113,
+      "offset_left": 75,
+      "offset_top": 42,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 1,
+      "frames": 29,
+      "frameMs": 76
+    },
+    "ICBMDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 22,
+      "height": 67,
+      "offset_left": 103,
+      "offset_top": 57,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 1,
+      "frames": 10,
+      "frameMs": 125
+    }
+  }
+}

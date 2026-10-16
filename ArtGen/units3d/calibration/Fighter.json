@@ -1,0 +1,225 @@
+{
+  "unit": "Fighter",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.77,
+    102.5
+  ],
+  "anchor_override": [
+    120.5,
+    120.45750427246094
+  ],
+  "standing_height": 29.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        127.63,
+        104
+      ],
+      "top": 74,
+      "height": 31,
+      "bbox": [
+        93,
+        74,
+        141,
+        104
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        119.55,
+        104
+      ],
+      "top": 71,
+      "height": 34,
+      "bbox": [
+        92,
+        71,
+        148,
+        104
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        112.88,
+        104
+      ],
+      "top": 74,
+      "height": 31,
+      "bbox": [
+        99,
+        74,
+        147,
+        104
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        128.83,
+        105
+      ],
+      "top": 77,
+      "height": 29,
+      "bbox": [
+        96,
+        77,
+        144,
+        105
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        129.61,
+        98
+      ],
+      "top": 74,
+      "height": 25,
+      "bbox": [
+        99,
+        74,
+        147,
+        98
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        120.0,
+        100
+      ],
+      "top": 72,
+      "height": 29,
+      "bbox": [
+        92,
+        72,
+        148,
+        100
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        110.78,
+        98
+      ],
+      "top": 75,
+      "height": 24,
+      "bbox": [
+        93,
+        75,
+        141,
+        98
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        110.96,
+        105
+      ],
+      "top": 77,
+      "height": 29,
+      "bbox": [
+        96,
+        77,
+        144,
+        105
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 0.8688955051820305,
+    "ppm_2x": 9.2102,
+    "fit": 0.2038,
+    "archetype": "aircraft"
+  },
+  "default_flic": "FighterDefault.flc",
+  "flics": {
+    "FighterAttackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 111,
+      "height": 82,
+      "offset_left": 66,
+      "offset_top": 60,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 62
+    },
+    "FighterBomb.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 91,
+      "height": 71,
+      "offset_left": 76,
+      "offset_top": 72,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 14,
+      "frameMs": 83
+    },
+    "FighterDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 83,
+      "height": 102,
+      "offset_left": 80,
+      "offset_top": 43,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 14,
+      "frameMs": 76
+    },
+    "FighterDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 60,
+      "height": 67,
+      "offset_left": 90,
+      "offset_top": 71,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 1,
+      "frameMs": 1000
+    },
+    "FighterRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 109,
+      "height": 77,
+      "offset_left": 66,
+      "offset_top": 61,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 5,
+      "frameMs": 62
+    }
+  }
+}

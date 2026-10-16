@@ -1,0 +1,225 @@
+{
+  "unit": "F-15",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.94,
+    98.5
+  ],
+  "anchor_override": [
+    120.5,
+    122.38356018066406
+  ],
+  "standing_height": 35.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        110.81,
+        97
+      ],
+      "top": 63,
+      "height": 35,
+      "bbox": [
+        96,
+        63,
+        155,
+        97
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        119.88,
+        102
+      ],
+      "top": 63,
+      "height": 40,
+      "bbox": [
+        84,
+        63,
+        156,
+        102
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        130.0,
+        98
+      ],
+      "top": 64,
+      "height": 35,
+      "bbox": [
+        85,
+        64,
+        144,
+        98
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        107.23,
+        101
+      ],
+      "top": 65,
+      "height": 37,
+      "bbox": [
+        94,
+        65,
+        153,
+        101
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        124.67,
+        100
+      ],
+      "top": 70,
+      "height": 31,
+      "bbox": [
+        85,
+        70,
+        144,
+        100
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        120.0,
+        97
+      ],
+      "top": 66,
+      "height": 32,
+      "bbox": [
+        84,
+        66,
+        156,
+        97
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        115.33,
+        100
+      ],
+      "top": 70,
+      "height": 31,
+      "bbox": [
+        96,
+        70,
+        155,
+        100
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        132.77,
+        101
+      ],
+      "top": 65,
+      "height": 37,
+      "bbox": [
+        86,
+        65,
+        146,
+        101
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0534907460143006,
+    "ppm_2x": 12.5244,
+    "fit": 0.2286,
+    "archetype": "aircraft"
+  },
+  "default_flic": "F15Default.flc",
+  "flics": {
+    "F15AttackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 239,
+      "height": 152,
+      "offset_left": 1,
+      "offset_top": 24,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 76
+    },
+    "F15Bomb.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 117,
+      "height": 90,
+      "offset_left": 65,
+      "offset_top": 65,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 14,
+      "frameMs": 90
+    },
+    "F15Death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 120,
+      "height": 141,
+      "offset_left": 61,
+      "offset_top": 14,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 14,
+      "frameMs": 76
+    },
+    "F15Default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 74,
+      "height": 82,
+      "offset_left": 84,
+      "offset_top": 63,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 1,
+      "frameMs": 1000
+    },
+    "F15Run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 112,
+      "height": 89,
+      "offset_left": 65,
+      "offset_top": 56,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 5,
+      "frameMs": 83
+    }
+  }
+}

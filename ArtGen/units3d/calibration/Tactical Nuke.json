@@ -1,0 +1,120 @@
+{
+  "unit": "Tactical Nuke",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    118.81,
+    118.5
+  ],
+  "anchor_override": [
+    119.0,
+    110.3468542098999
+  ],
+  "standing_height": 48.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        118.81,
+        120
+      ],
+      "top": 73,
+      "height": 48,
+      "bbox": [
+        116,
+        73,
+        121,
+        120
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 0.6611835883079149,
+    "ppm_2x": 9.6416,
+    "fit": 0.2804,
+    "archetype": "rocket"
+  },
+  "default_flic": "TacticalICBMDefault.flc",
+  "flics": {
+    "tact launch.flc": {
+      "actions": [
+        "CAPTURE"
+      ],
+      "kind": "animation",
+      "width": 52,
+      "height": 175,
+      "offset_left": 144,
+      "offset_top": 8,
+      "orig_width": 340,
+      "orig_height": 340,
+      "directions": 1,
+      "frames": 38,
+      "frameMs": 66
+    },
+    "Tact trail.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 23,
+      "height": 188,
+      "offset_left": 158,
+      "offset_top": 8,
+      "orig_width": 340,
+      "orig_height": 340,
+      "directions": 2,
+      "frames": 21,
+      "frameMs": 66
+    },
+    "TacticalICBMBomb.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 106,
+      "height": 115,
+      "offset_left": 77,
+      "offset_top": 34,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 1,
+      "frames": 29,
+      "frameMs": 66
+    },
+    "TacticalICBMDeath.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 116,
+      "height": 112,
+      "offset_left": 46,
+      "offset_top": 41,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 1,
+      "frames": 27,
+      "frameMs": 66
+    },
+    "TacticalICBMDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 16,
+      "height": 50,
+      "offset_left": 107,
+      "offset_top": 73,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 1,
+      "frames": 1,
+      "frameMs": 1000
+    }
+  }
+}

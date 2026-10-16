@@ -1,0 +1,225 @@
+{
+  "unit": "Bomber",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    120.12,
+    105.5
+  ],
+  "anchor_override": [
+    120.58323386311531,
+    130.61956787109375
+  ],
+  "standing_height": 45.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        104.2,
+        107
+      ],
+      "top": 58,
+      "height": 50,
+      "bbox": [
+        83,
+        58,
+        159,
+        107
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        120.0,
+        113
+      ],
+      "top": 53,
+      "height": 61,
+      "bbox": [
+        77,
+        53,
+        164,
+        113
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        136.89,
+        107
+      ],
+      "top": 58,
+      "height": 50,
+      "bbox": [
+        81,
+        58,
+        157,
+        107
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        127.06,
+        107
+      ],
+      "top": 64,
+      "height": 44,
+      "bbox": [
+        78,
+        64,
+        162,
+        107
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        108.88,
+        105
+      ],
+      "top": 68,
+      "height": 38,
+      "bbox": [
+        81,
+        68,
+        157,
+        105
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        120.25,
+        108
+      ],
+      "top": 63,
+      "height": 46,
+      "bbox": [
+        76,
+        63,
+        164,
+        108
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        131.91,
+        105
+      ],
+      "top": 68,
+      "height": 38,
+      "bbox": [
+        83,
+        68,
+        159,
+        105
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        113.33,
+        107
+      ],
+      "top": 64,
+      "height": 44,
+      "bbox": [
+        78,
+        64,
+        162,
+        107
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 0.9875134257368602,
+    "ppm_2x": 7.3986,
+    "fit": 0.1441,
+    "archetype": "aircraft"
+  },
+  "default_flic": "BomberDefault.flc",
+  "flics": {
+    "BomberAttackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 240,
+      "height": 240,
+      "offset_left": 0,
+      "offset_top": 0,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "BomberBomb.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 166,
+      "height": 115,
+      "offset_left": 38,
+      "offset_top": 51,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 20,
+      "frameMs": 83
+    },
+    "BomberDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 116,
+      "height": 132,
+      "offset_left": 64,
+      "offset_top": 24,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "BomberDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 90,
+      "height": 101,
+      "offset_left": 76,
+      "offset_top": 53,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 1,
+      "frameMs": 1000
+    },
+    "BomberRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 90,
+      "height": 101,
+      "offset_left": 76,
+      "offset_top": 53,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 5,
+      "frameMs": 66
+    }
+  }
+}

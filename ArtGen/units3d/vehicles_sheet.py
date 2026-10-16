@@ -59,7 +59,7 @@ def unit_rows(unit):
         return cell
     orig, old, new = [], [], []
     for d in range(8):
-        orig.append(P.on_bg(placed(civ3art.upscale_nearest(P.original_frame(fl, d, 0)))))
+        orig.append(P.on_bg(placed(civ3art.upscale_nearest(P.original_frame(fl, min(d, fl.n_anims - 1), 0)))))   # some flics have one direction
         old.append(P.on_bg(placed(P.tinted(base[d * H:(d + 1) * H, 0:W], tint[d * H:(d + 1) * H, 0:W]))))
         if not rendered:   # not rendered yet: a blank cell
             new.append(Image.new('RGBA', (GW, GH), (60, 60, 60, 255)))

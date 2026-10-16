@@ -1,0 +1,211 @@
+{
+  "unit": "Holy Relic",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    120.41,
+    134.0
+  ],
+  "anchor_override": [
+    120.0,
+    126.0
+  ],
+  "standing_height": 68.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        94.42,
+        137
+      ],
+      "top": 68,
+      "height": 70,
+      "bbox": [
+        82,
+        68,
+        156,
+        137
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        125.0,
+        142
+      ],
+      "top": 63,
+      "height": 80,
+      "bbox": [
+        103,
+        63,
+        133,
+        142
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        143.5,
+        135
+      ],
+      "top": 69,
+      "height": 67,
+      "bbox": [
+        80,
+        69,
+        156,
+        135
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        124.32,
+        124
+      ],
+      "top": 81,
+      "height": 44,
+      "bbox": [
+        78,
+        81,
+        164,
+        124
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        96.83,
+        133
+      ],
+      "top": 68,
+      "height": 66,
+      "bbox": [
+        83,
+        68,
+        157,
+        133
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        115.22,
+        140
+      ],
+      "top": 63,
+      "height": 78,
+      "bbox": [
+        106,
+        63,
+        136,
+        140
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        143.68,
+        136
+      ],
+      "top": 67,
+      "height": 70,
+      "bbox": [
+        83,
+        67,
+        159,
+        136
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        116.5,
+        123
+      ],
+      "top": 79,
+      "height": 45,
+      "bbox": [
+        75,
+        79,
+        161,
+        123
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 0.92,
+    "ppm_2x": 48.3999,
+    "fit": 1.0117,
+    "archetype": "relic"
+  },
+  "default_flic": "holy relic default.flc",
+  "flics": {
+    "holy relic death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 188,
+      "height": 106,
+      "offset_left": 25,
+      "offset_top": 61,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "holy relic default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 104,
+      "height": 82,
+      "offset_left": 62,
+      "offset_top": 62,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 13,
+      "frameMs": 125
+    },
+    "holy relic fidget.flc": {
+      "actions": [
+        "FIDGET",
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 106,
+      "height": 81,
+      "offset_left": 61,
+      "offset_top": 62,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 100
+    },
+    "holy relic run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 115,
+      "height": 85,
+      "offset_left": 60,
+      "offset_top": 62,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    }
+  }
+}

@@ -97,7 +97,7 @@ def main(units):
         data = calibrate(unit)
         path = os.path.join(HERE, f'{unit}.json')
         with open(path, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=2)
+            json.dump(data, f, indent=2, default=float)   # numpy scalars (float32 for some flics)
             f.write('\n')
         print(path, 'anchor', data['anchor'], 'height', data['standing_height'], 'flics', len(data['flics']))
 
