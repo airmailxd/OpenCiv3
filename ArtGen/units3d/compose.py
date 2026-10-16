@@ -53,11 +53,24 @@ def compose(folder, row, desat=1.0, style=Style):
     s = _linear(_gray(_load(os.path.join(folder, f'shadow_{row:04d}.png'))))
     a_t = np.clip(np.minimum(t, a), 0, 1)
     a_b = np.clip(a - a_t, 0, 1)
+    # tinted parts render white: where a pixel is only partly tinted (the
+    # anti-aliased edge of a civ-color part), its color still holds some of
+    # that white, which showed as a white piping round every tinted part.
+    # Those pixels take the color of their untinted neighbors instead.
+    rgb0 = rgb
+    f = a_t / np.maximum(a, 1e-6)
+    edge = (f > 0.02) & (a > 0.02)
+    if edge.any():
+        pure = ((f <= 0.02) & (a > 0.5)).astype(np.float32)
+        w = _blur(pure, 2.0)
+        near_b = _blur_rgb(rgb * pure[..., None], 2.0) / np.maximum(w, 1e-6)[..., None]
+        fill = np.where((w > 0.02)[..., None], near_b, rgb * 0.35)
+        rgb = np.where(edge[..., None], fill, rgb)
     if desat != 1.0:
         lum = rgb.mean(-1, keepdims=True)
         rgb = np.clip(lum + (rgb - lum) * desat, 0, 1)
     c_b = rgb * a_b[..., None]                       # premultiplied
-    tgray = rgb.mean(-1)                             # the tint layer is gray shading
+    tgray = rgb0.mean(-1)                            # the tint layer is gray shading
     c_t = tgray * a_t
 
     # outer contour: a soft dark ring just outside the silhouette

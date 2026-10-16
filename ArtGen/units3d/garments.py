@@ -767,7 +767,7 @@ def mail_nodes(tree, bsdf):
     tree.links.new(bump.outputs['Normal'], bsdf.inputs['Normal'])
 
 
-def band(basemesh, arm, name, bones, mat, z, width=0.04, offset=0.012):
+def band(basemesh, arm, name, bones, mat, z, width=0.06, offset=0.022):
     """A narrow band around a limb or the body at height `z` (for a 1.75 m man)."""
     return shell(basemesh, arm, name, bones, mat, zmin=z - width / 2, zmax=z + width / 2, offset=offset,
                  thickness=0.006, min_weight=0.3)

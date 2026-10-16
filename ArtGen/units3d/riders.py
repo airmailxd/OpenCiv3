@@ -99,6 +99,11 @@ def _k(tinted, key):
     return ('tint', True) if tinted else (key, False)
 
 
+@hat('modern_helmet')
+def _modern_helmet(p, c, tinted, crest):
+    props.modern_helmet(p)
+
+
 @hat('papakha')
 def papakha(p, c, tinted, _):
     """A Cossack's tall fur hat."""

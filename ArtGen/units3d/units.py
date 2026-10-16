@@ -317,8 +317,8 @@ STANCES = {
              ('neck_01', (0, -0.12, 1)), ('head', (0, 0.1, 1)),
              ('thigh_l', (0.3, -0.05, -1)), ('calf_l', (0.24, 0.02, -1)), ('foot_l', (0.5, -1, -0.3)),
              ('thigh_r', (-0.3, -0.02, -1)), ('calf_r', (-0.24, 0.04, -1)), ('foot_r', (-0.5, -1, -0.3)),
-             ('upperarm_l', (0.42, -0.08, -1)), ('lowerarm_l', (0.3, -0.25, -1)),
-             ('upperarm_r', (-0.55, -0.15, -1)), ('lowerarm_r', (-0.35, -1.0, -0.35))],
+             ('upperarm_l', (0.3, -0.06, -1)), ('lowerarm_l', (0.18, -0.25, -1)),
+             ('upperarm_r', (-0.42, -0.12, -1)), ('lowerarm_r', (-0.25, -1.0, -0.4))],
     'upright': [('spine_02', (0, -0.02, 1)), ('neck_01', (0, 0.22, 1)), ('head', (0, 0.5, 1)),
                 ('clavicle_l', (1, -0.25, 0.05)), ('clavicle_r', (-1, -0.25, 0.05)),
                 ('thigh_l', (0.14, -0.08, -1)), ('calf_l', (0.1, 0.02, -1)), ('foot_l', (0.35, -1, -0.3)),
@@ -374,6 +374,23 @@ STANCES['hands_behind'] = _ROYAL_BASE + [('upperarm_l', (0.2, 0.35, -1)), ('lowe
 STANCES['royal'] = _ROYAL_BASE + [('upperarm_l', (0.25, -0.1, -1)), ('lowerarm_l', (0.15, -0.6, -0.9)),
                                   ('upperarm_r', (-0.3, -0.2, -1)), ('lowerarm_r', (-0.1, -1.0, 0.45))]
 
+# long guns: at the order (butt on the ground by the right foot, the right
+# hand round the barrel) and at the port (diagonal across the chest, the
+# right hand on the wrist of the stock, the left on the fore-end)
+STANCES['order_arms'] = [('spine_02', (0, -0.02, 1)), ('neck_01', (0, 0.1, 1)), ('head', (0, 0.3, 1)),
+                         ('clavicle_l', (1, 0.05, 0.08)), ('clavicle_r', (-1, 0.05, 0.08)),
+                         ('thigh_l', (0.14, -0.04, -1)), ('calf_l', (0.08, 0.03, -1)), ('foot_l', (0.4, -1, -0.3)),
+                         ('thigh_r', (-0.14, 0.0, -1)), ('calf_r', (-0.08, 0.03, -1)), ('foot_r', (-0.4, -1, -0.3)),
+                         ('upperarm_l', (0.2, -0.05, -1)), ('lowerarm_l', (0.1, -0.15, -1)),
+                         ('upperarm_r', (-0.32, -0.08, -1)), ('lowerarm_r', (-0.12, -0.45, -1))]
+STANCES['port_arms'] = [('spine_02', (0, -0.05, 1)), ('neck_01', (0, 0.08, 1)), ('head', (0, 0.3, 1)),
+                        ('clavicle_l', (1, 0.0, 0.08)), ('clavicle_r', (-1, 0.0, 0.08)),
+                        ('thigh_l', (0.2, -0.1, -1)), ('calf_l', (0.12, 0.05, -1)), ('foot_l', (0.5, -1, -0.3)),
+                        ('thigh_r', (-0.2, 0.06, -1)), ('calf_r', (-0.12, 0.05, -1)), ('foot_r', (-0.5, -1, -0.3)),
+                        ('upperarm_l', (0.2, -0.3, -1)), ('lowerarm_l', (-0.3, -1.0, 0.3)),
+                        ('upperarm_r', (-0.3, -0.12, -1)), ('lowerarm_r', (0.25, -0.9, -0.35))]
+GUNS = ('musket', 'rifle', 'rifle_bolt', 'assault_rifle', 'smg')
+
 WEAPON_STANCE = {
     'stone_axe': 'hang', 'club': 'hang', 'sword': 'hang', 'axe': 'hang',
     'spear': 'upright', 'staff': 'upright', 'pike': 'upright',
@@ -404,15 +421,29 @@ def equip(entry, arm):
         else:
             obj = P.make(name, c, **params)
         at = H.grip_point(arm, 'hand_r')
-        if stance in ('hang', 'guard'):
+        if stance == 'order_arms':
+            # standing upright through the fist, the butt by the right foot
+            foot = arm.matrix_world @ arm.pose.bones['foot_r'].head
+            base = Vector((at.x - 0.02, at.y, foot.z - 0.07 * G._scale))
+            H.hold(obj, arm, 'hand_r', base, up=tuple((at - base).normalized()), forward=(0, -1, 0))
+        elif stance == 'port_arms':
+            # diagonal across the chest, muzzle up at the left shoulder, sights out
+            d = Vector(entry.get('gun_dir', (0.6, -0.3, 0.75))).normalized()
+            H.hold(obj, arm, 'hand_r', at, up=tuple(d), forward=(0, -1, 0.2))
+            H.reach(arm, 'l', at + d * entry.get('fore_end', 0.42) * G._scale + Vector((0, -0.03, 0)))
+            H.fists(arm, sides='l')
+        elif stance in ('hang', 'guard'):
             # hanging from the fist, down and out to the side, head low
             H.hold(obj, arm, 'hand_r', at, up=(-0.7, -0.45, -0.5))
         elif stance == 'upright' and name == 'staff':
             # a walking staff, upright beside the body
             H.hold(obj, arm, 'hand_r', at, up=(-0.04, 0.0, 1.0))
         elif stance == 'upright':
-            # upright through the fist, butt near the ground
-            H.hold(obj, arm, 'hand_r', at, up=(-0.22, 0.04, 1.0))
+            # upright through the fist, butt on the ground by the right foot
+            H.hold(obj, arm, 'hand_r', at, up=tuple(entry.get('upright_dir', (-0.05, 0.0, 1.0))))
+        elif stance == 'royal':
+            # a scepter, cane or standard upright in the raised right fist
+            H.hold(obj, arm, 'hand_r', at, up=tuple(entry.get('upright_dir', (0.0, -0.15, 1.0))))
         else:
             # a tool held diagonally across the body, working end down at the
             # lower right of the picture (the figure's left), the left hand low
@@ -494,7 +525,7 @@ def equip(entry, arm):
         obj = P.make(name, c, **params)
         pv = arm.matrix_world @ arm.pose.bones['pelvis'].head
         at = pv + Vector((0.17 * G._scale, -0.04 * G._scale, 0.05 * G._scale))
-        H.hold(obj, arm, 'pelvis', at, up=(0.15, 0.85, 0.5), forward=(1, 0, 0))
+        H.hold(obj, arm, 'pelvis', at, up=(0.15, 0.45, -0.88), forward=(1, 0, 0))
         made.append(obj)
     return made
 
@@ -516,7 +547,7 @@ def build_footman(entry, seated=False):
     macro.update(entry.get('macro', {}))
     macro.setdefault('height', 0.65)
     macro.setdefault('proportions', 0.8)
-    helmeted = entry.get('helmet') in ('hood', 'wolf', 'crested', 'horned', 'cap')
+    helmeted = entry.get('helmet') in ('hood', 'wolf', 'crested', 'horned', 'cap') or entry.get('headgear')
     hair = entry.get('hair_asset', HAIR.get(entry.get('hair'), 'short02'))
     if helmeted and entry.get('hair') != 'long':
         hair = None
@@ -529,6 +560,10 @@ def build_footman(entry, seated=False):
     dress(entry, mesh, arm)
     equip(entry, arm)
     dress_posed(entry, mesh, arm)
+    if entry.get('headgear'):
+        # the riders' headgear kinds (hats, shakos, modern helmets ...), on the head bone
+        import riders
+        riders.headgear(dict(entry, _headgear=entry['headgear']), arm)
     root = H.rooted(arm)
     if seated:
         # the pelvis on the root's origin
