@@ -332,8 +332,7 @@ def cloth(name, color, tint=False, rough=0.85, weave=0.25, pattern=None, dirt=0.
         dark_k = 1.0 - min(1.0, (0.3 * cl[0] + 0.59 * cl[1] + 0.11 * cl[2]) * 3.0)
         bsdf.inputs['Sheen Weight'].default_value = 0.35 + 0.5 * dark_k
         bsdf.inputs['Sheen Roughness'].default_value = 0.45 - 0.1 * dark_k
-        # dark cloth: a little glossier, so a soft sheen spreads across it (not only at the outline)
-        bsdf.inputs['Roughness'].default_value = rough - 0.22 * dark_k
+        # (dark cloth made glossier read as latex, a hard white edge: roughness unchanged)
         # dirt: broad, soft darker patches (no cloth stays factory-clean)
         dn = n.new('ShaderNodeTexNoise')
         dn.inputs['Scale'].default_value = 3.0
