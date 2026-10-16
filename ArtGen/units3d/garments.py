@@ -42,7 +42,7 @@ def z(v):
 
 # ------------------------------------------------------------ materials
 
-def _pattern_mix(tree, base, col, mask, civ):
+def _pattern_mix(tree, base, col, mask, civ, tinted=False):
     """`col` over `base` where `mask` is 1; with `civ`, those parts are
     marked for the civ color (a node named 'tint_mask' that the material
     links to its tint AOV)."""
@@ -57,7 +57,31 @@ def _pattern_mix(tree, base, col, mask, civ):
     tree.links.new(mask, mix.inputs['Factor'])
     if civ:
         _tint_mask(tree, mask)
+    elif tinted:
+        # a plain-colored panel or stripe on a civ-colored part: there the
+        # cloth shows its own color, not the civ color
+        _untint_mask(tree, mask)
     return mix.outputs['Result']
+
+
+def _untint_mask(tree, mask):
+    """Clears the civ color where `mask` is 1 (the tint AOV becomes the
+    minimum of 1 - each such mask)."""
+    n = tree.nodes
+    inv = n.new('ShaderNodeMath')
+    inv.operation = 'SUBTRACT'
+    inv.inputs[0].default_value = 1.0
+    tree.links.new(mask, inv.inputs[1])
+    old = n.get('tint_mask')
+    m = n.new('ShaderNodeMath')
+    m.operation = 'MINIMUM'
+    tree.links.new(inv.outputs['Value'], m.inputs[0])
+    if old is not None:
+        old.name = 'tint_mask_prev'
+        tree.links.new(old.outputs[0], m.inputs[1])
+    else:
+        m.inputs[1].default_value = 1.0
+    m.name = 'tint_mask'
 
 
 def _tint_mask(tree, mask):
@@ -76,12 +100,20 @@ def _tint_mask(tree, mask):
     m.name = 'tint_mask'
 
 
-def _pattern(tree, coord, base, pattern):
+def _pattern(tree, coord, base, pattern, tinted=False):
     """A color socket: the cloth's `base` color (linear RGBA) under a
     printed or woven pattern: ('camo', c2, c3[, c4]) blotches, ('check',
     dark[, scale]) squares, ('tartan', dark[, scale]) crossing bands."""
     n = tree.nodes
     kind = pattern[0]
+    # patterns follow the cloth in its rest pose ('rest_co', stored before
+    # posing), not the posed mesh: stripes stay straight on bent legs
+    rest = n.get('rest_co_attr')
+    if rest is None:
+        rest = n.new('ShaderNodeAttribute')
+        rest.name = 'rest_co_attr'
+        rest.attribute_name = 'rest_co'
+    coord = type('C', (), {'outputs': {'Object': rest.outputs['Vector']}})()
     # 'tint' as the pattern color: those stripes/panels take the civ color
     civ = 'tint' in pattern[1:2]
     lin = [(0.67, 0.67, 0.67, 1.0) if h == 'tint' else (*B.srgb_to_linear(B.hex_color(h)), 1.0)
@@ -158,7 +190,28 @@ def _pattern(tree, coord, base, pattern):
             tree.links.new(mask, both.inputs[0])
             tree.links.new(fr.outputs['Value'], both.inputs[1])
             mask = both.outputs['Value']
-        return _pattern_mix(tree, base, dark, mask, civ)
+        return _pattern_mix(tree, base, dark, mask, civ, tinted)
+    if kind == 'pleats':
+        # stripes running round the body (a skirt's pleats or panels): bands
+        # of the angle about the vertical axis, `scale` stripes in all
+        sep2 = n.new('ShaderNodeSeparateXYZ')
+        tree.links.new(coord.outputs['Object'], sep2.inputs['Vector'])
+        ang = n.new('ShaderNodeMath')
+        ang.operation = 'ARCTAN2'
+        tree.links.new(sep2.outputs['X'], ang.inputs[0])
+        tree.links.new(sep2.outputs['Y'], ang.inputs[1])
+        k = n.new('ShaderNodeMath')
+        k.operation = 'MULTIPLY'
+        k.inputs[1].default_value = (nums[0] if nums else 16.0) / (2 * math.pi)
+        tree.links.new(ang.outputs['Value'], k.inputs[0])
+        fr = n.new('ShaderNodeMath')
+        fr.operation = 'FRACT'
+        tree.links.new(k.outputs['Value'], fr.inputs[0])
+        hard = n.new('ShaderNodeMath')
+        hard.operation = 'GREATER_THAN'
+        hard.inputs[1].default_value = 0.6
+        tree.links.new(fr.outputs['Value'], hard.inputs[0])
+        return _pattern_mix(tree, base, dark, hard.outputs['Value'], civ, tinted)
     if kind == 'stripes':
         # vertical stripes (trouser stripes, slashing): dark bands across X
         wave = n.new('ShaderNodeTexWave')
@@ -172,7 +225,7 @@ def _pattern(tree, coord, base, pattern):
         hard.operation = 'GREATER_THAN'
         hard.inputs[1].default_value = 0.8
         tree.links.new(wave.outputs['Fac'], hard.inputs[0])
-        return _pattern_mix(tree, base, dark, hard.outputs['Value'], civ)
+        return _pattern_mix(tree, base, dark, hard.outputs['Value'], civ, tinted)
     if kind == 'check':
         chk = n.new('ShaderNodeTexChecker')
         chk.inputs['Scale'].default_value = scale
@@ -257,7 +310,7 @@ def cloth(name, color, tint=False, rough=0.85, weave=0.25, pattern=None):
             pats = pattern if isinstance(pattern[0], (list, tuple)) else (pattern,)
             sock = tuple(bsdf.inputs['Base Color'].default_value)
             for pat in pats:
-                sock = _pattern(tree, coord, sock, pat)
+                sock = _pattern(tree, coord, sock, pat, tinted=tint)
             tree.links.new(sock, mul.inputs['A'])
         tree.links.new(ao.outputs['AO'], mul.inputs['B'])
         dirt = n.new('ShaderNodeMix')
@@ -353,7 +406,10 @@ def hair_material(name, color):
     # lightness, turned mid gingers and browns into pale blonds)
     hair.parametrization = 'COLOR'
     # (the strands scatter light and read much paler than the swatch: darken)
-    hair.inputs['Color'].default_value = tuple(0.45 * c * c ** 0.3 for c in B.srgb_to_linear(color)) + (1.0,)
+    lin = B.srgb_to_linear(color)
+    lum = 0.3 * lin[0] + 0.59 * lin[1] + 0.11 * lin[2]
+    k = 0.45 + 0.45 * min(1.0, lum * 1.6)          # pale hair (white wigs) darkened far less
+    hair.inputs['Color'].default_value = tuple(k * c * c ** 0.3 for c in lin) + (1.0,)
     hair.inputs['Roughness'].default_value = 0.5
     hair.inputs['Radial Roughness'].default_value = 0.35
     tree.links.new(hair.outputs[0], out.inputs['Surface'])
@@ -1312,7 +1368,7 @@ def belt_gear(basemesh, arm, metal, leather, pouch=True):
     return made
 
 
-def hem(name, mat, width=0.05, lift=0.004, inset=0.0):
+def hem(name, mat, width=0.05, lift=0.004, inset=0.0, edges='bottom'):
     """A band along the bottom edge of garment `name` (a tinted or gold hem
     stripe): a copy of the garment trimmed to the faces within `width`
     (measured along the surface) of its lower open edge, or between `inset`
@@ -1345,7 +1401,8 @@ def hem(name, mat, width=0.05, lift=0.004, inset=0.0):
     # the lower open edge: boundary vertices below the garment's middle; a
     # closed (solidified) garment has none: then the lowest vertices of each
     # sector round the garment's axis (hems drop and fold unevenly)
-    start = [v for v in bm.verts if v.is_boundary and v.co.z < mid]
+    # edges='all': every open edge (a vest's or doublet's trim: front, armholes, neck, hem)
+    start = [v for v in bm.verts if v.is_boundary and (edges == 'all' or v.co.z < mid)]
     if not start:
         cx = sum(v.co.x for v in bm.verts) / len(bm.verts)
         cy = sum(v.co.y for v in bm.verts) / len(bm.verts)
@@ -1652,3 +1709,103 @@ def shackles(basemesh, arm, mat, ankles=True):
         made.append(o)
     H._update()
     return made
+
+
+def store_rest(objs=None):
+    """Stores each mesh's current (rest) vertex positions as the attribute
+    'rest_co', which the patterns read: called before posing, so a pattern
+    stays put on the cloth however the body bends."""
+    for o in (objs if objs is not None else bpy.data.objects):
+        if o.type != 'MESH' or 'rest_co' in o.data.attributes:
+            continue
+        a = o.data.attributes.new('rest_co', 'FLOAT_VECTOR', 'POINT')
+        a.data.foreach_set('vector', [c for v in o.data.vertices for c in v.co])
+
+
+def face_prop(basemesh, arm, obj, kind='glasses'):
+    """A prop on the face (props' glasses or sunglasses: the origin at the
+    bridge of the nose, +Y forward; a pipe: the mouthpiece at the origin):
+    placed on the unposed head and fixed to the head bone."""
+    import human as H
+    from mathutils import Matrix
+    top, yc, on_body = _head(basemesh)
+    s = _scale
+    face_y = min(v.co.y for v in basemesh.data.vertices if on_body(v) and top - v.co.z < 0.2 * s)
+    if kind == 'pipe':
+        at = (0.0, face_y + 0.012 * s, top - 0.175 * s)
+    else:
+        at = (0.0, face_y - 0.006 * s, top - 0.112 * s)
+    obj.matrix_world = Matrix.Translation(at) @ Matrix.Rotation(math.pi, 4, 'Z') @ Matrix.Diagonal((s, s, s, 1.0))
+    world = obj.matrix_world.copy()
+    obj.parent = arm
+    obj.parent_type = 'BONE'
+    obj.parent_bone = 'head'
+    obj.matrix_world = world
+    H._update()
+    return obj
+
+
+def cape_emblem(arm, mat, kind='disc', size=0.22, at=0.35):
+    """An emblem on the back of the cape (a lion field, a fleur, a cross):
+    a flat shape on the cape's outer side, `at` of the way down; it follows
+    the cape (same bone)."""
+    import human as H
+    from mathutils import Vector
+    cape = bpy.data.objects.get('Cape')
+    if cape is None:
+        return None
+    H._update()
+    vs = [cape.matrix_world @ v.co for v in cape.data.vertices]
+    ztop, zbot = max(v.z for v in vs), min(v.z for v in vs)
+    z = ztop - at * (ztop - zbot)
+    band = [v for v in vs if abs(v.z - z) < 0.05 * _scale] or vs
+    cx = sum(v.x for v in band) / len(band)
+    back = max(band, key=lambda v: (v - Vector((cx, 0, z))).y if True else 0)
+    # the cape hangs behind: its outer side faces away from the body (+y after rooting? use the farthest point)
+    ys = [v.y for v in band]
+    ymid = sum(ys) / len(ys)
+    outer = max(band, key=lambda v: abs(v.y - ymid) if abs(v.x - cx) < 0.06 * _scale else -1)
+    s = size * _scale
+    if kind == 'cross':
+        parts = [((0.2 * s, 0.006, s), 0.0), ((0.66 * s, 0.006, 0.2 * s), 0.18 * s)]
+    else:
+        parts = [((s * 0.8, 0.006, s), 0.0)]
+    made = []
+    sign = 1.0 if outer.y >= ymid else -1.0
+    for (dx, dy, dz), up in parts:
+        bpy.ops.mesh.primitive_cube_add(size=1, location=(cx, outer.y + sign * 0.012 * _scale, z + up))
+        o = bpy.context.active_object
+        o.scale = (dx, dy, dz)
+        bpy.ops.object.transform_apply(scale=True)
+        o.data.materials.append(mat)
+        world = o.matrix_world.copy()
+        o.parent = cape.parent
+        o.parent_type = cape.parent_type
+        o.parent_bone = cape.parent_bone
+        o.matrix_world = world
+        made.append(o)
+    H._update()
+    return made
+
+
+def flare_legs(name, knee_z=0.5, amount=0.6):
+    """Bell-bottoms: widens the trousers `name` below the knee, more toward
+    the hem (`amount`: extra radius at the ankle as a share of the leg's)."""
+    obj = bpy.data.objects.get(name)
+    if obj is None:
+        return
+    kz = knee_z * _scale
+    vs = obj.data.vertices
+    for side in (1, -1):
+        legs = [v for v in vs if v.co.x * side > 0 and v.co.z < kz]
+        if not legs:
+            continue
+        zs = sorted({round(v.co.z, 2) for v in legs})
+        for z in zs:
+            ring = [v for v in legs if round(v.co.z, 2) == z]
+            cx = sum(v.co.x for v in ring) / len(ring)
+            cy = sum(v.co.y for v in ring) / len(ring)
+            t = (kz - z) / kz
+            for v in ring:
+                v.co.x = cx + (v.co.x - cx) * (1 + amount * t)
+                v.co.y = cy + (v.co.y - cy) * (1 + amount * t)

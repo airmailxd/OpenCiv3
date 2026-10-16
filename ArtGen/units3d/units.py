@@ -64,6 +64,10 @@ def _calm_skin(hexcol, sat=0.7):
     h = hexcol.lstrip('#')
     r, g, b = (int(h[i:i + 2], 16) / 255 for i in (0, 2, 4))
     hh, ll, ss = colorsys.rgb_to_hls(r, g, b)
+    if ll < 0.35:
+        # dark skin rendered maroon: pull its hue toward a neutral brown
+        hh = 0.075 + (hh - 0.075) * 0.3 if hh < 0.5 else 0.075
+        ss = min(ss, 0.32)
     r, g, b = colorsys.hls_to_rgb(hh, ll, ss * sat)
     return '#%02x%02x%02x' % (round(r * 255), round(g * 255), round(b * 255))
 
@@ -322,6 +326,35 @@ def dress(entry, mesh, arm):
     # hem bands: [(garment, color), ...]; garment 'bottom' or 'top', color
     # 'tint', 'gold' or a hex; optional width (m) and inset from the edge
     _hems(entry, c, lambda part: part != 'cape')
+    # a trim along every open edge of the cuirass/vest (front, armholes, neck, hem)
+    if entry.get('cuirass_trim'):
+        G.hem('Cuirass', _hem_mat(entry, c, entry['cuirass_trim'], 'cuirass'), width=entry.get('trim_width', 0.025),
+              edges='all')
+    if entry.get('wild_hair'):
+        G.wild_hair(mesh, B.hex_color(c['hair']), length=entry['wild_hair'] if entry['wild_hair'] is not True else 0.1)
+    # gloves to the elbow ('elbow') or the whole arm ('arm'): ('arm'|'elbow', 'tint'|hex)
+    lg = entry.get('long_gloves')
+    if lg:
+        bones = ['lowerarm_l', 'lowerarm_r', 'hand_l', 'hand_r'] + (['upperarm_l', 'upperarm_r'] if lg[0] == 'arm' else [])
+        G.shell(mesh, arm, 'Gloves', bones, _hem_mat(entry, c, lg[1], 'gloves'), offset=0.006, thickness=0.004,
+                min_weight=0.4)
+    if entry.get('trouser_flare'):
+        G.flare_legs('Bottom', amount=entry['trouser_flare'])
+    fp = entry.get('face_prop')
+    if fp:
+        name, params = (fp, {}) if isinstance(fp, str) else (fp[0], fp[1] if len(fp) > 1 else {})
+        G.face_prop(mesh, arm, P.make(name, c, **params), kind='pipe' if 'pipe' in name else 'glasses')
+
+
+def _hem_mat(entry, c, col, part):
+    """A trim material: 'tint', 'gold', 'ermine' (white with black tails) or a color."""
+    if col == 'tint':
+        return G.cloth(part + '_trim', (1, 1, 1), tint=True)
+    if col == 'gold':
+        return B.material(part + '_gold', B.hex_color(c.get('gold', '#c8a040')), roughness=0.35, metallic=0.9)
+    if col == 'ermine':
+        return G.cloth(part + '_ermine', (0.95, 0.94, 0.9), pattern=('camo', '#141414', 40.0, 'cover', 0.12))
+    return G.cloth(part + '_trim', B.hex_color(c.get(col, col)))
 
 
 def _hems(entry, c, which):
@@ -332,13 +365,7 @@ def _hems(entry, c, which):
             continue
         width = h[2] if len(h) > 2 else 0.05
         inset = h[3] if len(h) > 3 else 0.0
-        if col == 'tint':
-            hm = G.cloth('hem_' + part, (1, 1, 1), tint=True)
-        elif col == 'gold':
-            hm = B.material('hem_gold', B.hex_color(c.get('gold', '#c8a040')), roughness=0.35, metallic=0.9)
-        else:
-            hm = G.cloth('hem_' + part, B.hex_color(c.get(col, col)))
-        G.hem(part.capitalize(), hm, width=width, inset=inset)
+        G.hem(part.capitalize(), _hem_mat(entry, c, col, 'hem_' + part), width=width, inset=inset)
 
 
 def dress_posed(entry, mesh, arm):
@@ -356,6 +383,21 @@ def dress_posed(entry, mesh, arm):
                flare=entry.get('cape_flare', 0.15), wrap=entry.get('cape_wrap', 0.0),
                train=entry.get('cape_train', 0.0))
         _hems(entry, _colors(entry), lambda part: part == 'cape')
+        cape = bpy.data.objects.get('Cape')
+        if cape is not None and entry.get('cape_lining'):
+            # the inner side in its own color (a dark lining under a red cape)
+            sol = next((m for m in cape.modifiers if m.type == 'SOLIDIFY'), None) or cape.modifiers.new('Lining', 'SOLIDIFY')
+            sol.thickness = sol.thickness or 0.006
+            # the solidify's new shell is the cape's OUTER side: it takes the cape's
+            # material (slot 1), the original faces (inner side) the lining (slot 0)
+            outer = cape.data.materials[0]
+            cape.data.materials[0] = _hem_mat(entry, _colors(entry), entry['cape_lining'], 'lining')
+            cape.data.materials.append(outer)
+            sol.material_offset = 1
+        ce = entry.get('cape_emblem')
+        if ce:
+            G.cape_emblem(arm, _hem_mat(entry, _colors(entry), ce[1], 'cape_emblem'), kind=ce[0],
+                          size=ce[2] if len(ce) > 2 else 0.22)
     hanging = [o for o in hanging if not o.get('no_drape')]
     if hanging and entry.get('drape', True):
         G.drape(hanging, mesh)
@@ -855,8 +897,10 @@ def build_footman(entry, seated=False):
                        physique=entry.get('physique', 0.0))
     H.grime(mesh, amount=entry.get('grime', 0.4))
     dress(entry, mesh, arm)
+    G.store_rest()                 # the garments' rest positions, for patterns
     equip(entry, arm)
     dress_posed(entry, mesh, arm)
+    G.store_rest()                 # garments made after posing (capes, flaps): as they are
     root = H.rooted(arm)
     if seated:
         # the pelvis on the root's origin
