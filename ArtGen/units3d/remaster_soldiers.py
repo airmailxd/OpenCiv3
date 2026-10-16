@@ -84,7 +84,7 @@ REMASTER = {
         'macro': {'muscle': 0.9, 'weight': 0.6, 'height': 0.76, 'proportions': 0.74},
         'colors': {'skin': '#9a7254', 'hair': '#2a1e16', 'bottom': '#5e6c7a', 'belt': '#2a1e14',
                    'sandal': '#141210', 'boots': '#141210', 'wood': '#7a5030', 'steel': '#b8bcc2'},
-        'headgear': 'shako',                    # MISSING: hat kepi (lower, slanted crown, no plume; the shako stands in)
+        'headgear': 'kepi',
         'hair': 'short', 'beard': False,
         'top': 'sleeved', 'neck': 'high',       # MISSING: long_coat (the frock's skirts to mid-thigh)
         'bottom': 'long', 'wraps': 'boots',     # MISSING: shoes (low boots stand in)
@@ -235,7 +235,7 @@ REMASTER = {
         'colors': {'skin': '#9a7254', 'hair': '#413025', 'top': '#cfc8b8', 'bottom': '#958a70',
                    'belt': '#3a2a1e', 'boots': '#221a14', 'pack': '#6a4a2e', 'bedroll': '#4a3a2a',
                    'pot': '#7a5a3a', 'wood': '#4e3420', 'leather': '#3a2a1c'},
-        'helmet': 'cap', 'cap_brim': True, 'metal': [],   # MISSING: hat boonie (soft crown, all-round floppy brim)
+        'helmet': None, 'headgear': 'boonie', 'metal': [],
         'hair': 'short', 'beard': True,
         'top': 'sleeved',
         'cuirass': True,                        # the civ-color vest ('metal' leaves it out: leather)

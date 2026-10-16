@@ -27,7 +27,7 @@ REMASTER = {
         'colors': {'skin': '#a87a5a', 'hair': '#d8c020', 'helmet': '#5e5e62', 'belt': '#2e2016',
                    'wraps': '#6a4a30', 'wraps_band': '#241810', 'bracers': '#4e3a26', 'steel': '#a8aaae',
                    'iron': '#3e3e40', 'wood': '#5a4028', 'leather': '#3e2a1a'},
-        'helmet': 'cap', 'metal': ['helmet'],   # MISSING: conical_helmet (a pointed nasal cap)
+        'helmet': None, 'headgear': 'conical_helmet',
         'hair': 'long', 'hair_asset': 'braid01', 'mane': 0.22, 'beard': True,   # MISSING: braids (two braids down the chest)
         'top': 'sleeved', 'bottom': 'long', 'wraps': 'wraps', 'bracers': True,
         'pelt_cape': ('#6a4a30', '#3a2818'),    # MISSING: long_pelt_cloak (to the thighs, not the shoulders)
@@ -66,7 +66,7 @@ REMASTER = {
         'race': {'caucasian': 0.1, 'african': 0.2, 'asian': 0.7},
         'colors': {'skin': '#a86c44', 'hair': '#120c08', 'belt': '#b08a2a', 'bottom': '#5a4030',
                    'wood': '#4e3420', 'stone': '#3e3c3a', 'helmet': '#5a4030'},
-        'helmet': 'headband',                   # MISSING: fan_headdress (a broad rounded fan round the head)
+        'helmet': None, 'headgear': 'fan_headdress',
         'hair': 'long', 'hair_asset': 'long01', 'beard': False,
         'top': None, 'bottom': 'loincloth', 'loin_length': (0.38, 0.34), 'torn': False,
         'bracers': False,
@@ -131,7 +131,7 @@ REMASTER = {
         'colors': {'skin': '#9a7254', 'hair': '#4a3624', 'helmet': '#8e9096', 'cuirass': '#8a8c92',
                    'bottom': '#3e3c4e', 'boots': '#8a8680', 'belt': '#2a1e14', 'steel': '#a8aaae',
                    'parchment': '#cfc4a2'},
-        'helmet': 'morion', 'plume': True, 'metal': ['helmet', 'cuirass'],
+        'helmet': None, 'headgear': 'morion_big', 'metal': ['cuirass'],
         'hair': 'short', 'beard': True,
         'cuirass': True, 'top': 'sleeved', 'puffy': True,   # puffed civ-color sleeves, baggy breeches
         'bottom': 'breeches', 'wraps': 'boots',  # pale high boots below the breeches
@@ -223,7 +223,7 @@ REMASTER = {
         'colors': {'skin': '#5e3c26', 'hair': '#0e0a08', 'helmet': '#2a1e14', 'bottom': '#4a3424',
                    'belt': '#2e2016', 'wraps': '#d8d0c0', 'wraps_band': '#2a2420', 'gold': '#b08a2a',
                    'hide': '#d4ccbc', 'hide_dark': '#1e1612', 'wood': '#3e2a1a', 'steel': '#a8aaae'},
-        'helmet': 'headband',                   # MISSING: feather_headdress (a bushy crown of feathers)
+        'helmet': None, 'headgear': 'feather_headdress',
         'hair': 'short', 'hair_asset': 'afro01', 'beard': False,
         'top': None, 'bottom': 'loincloth', 'bottom_material': 'leather', 'loin_length': (0.4, 0.38), 'torn': True,
         'bracers': False,
