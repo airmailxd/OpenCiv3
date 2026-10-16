@@ -30,6 +30,8 @@ from render import Style, _blur, _blur_rgb, _maxfilter, _u8  # noqa: E402
 CANVAS = 240          # the game's unit canvas (1x)
 SCALE = 2             # the sheets have twice the pixels
 SHADOW_GAIN = 0.38    # shadow catcher darkness -> shadow alpha (full shadow ~ 0.4)
+CAVITY = 0.55         # how much the short-distance AO darkens crevices
+SHARPEN = 0.6         # unsharp mask (local contrast) amount, radius ~1 px at 2x
 
 
 def _load(path):
@@ -49,6 +51,15 @@ def compose(folder, row, desat=1.0, style=Style):
     """The base and tint layers (uint8 RGBA, canvas size) of one direction."""
     u = _load(os.path.join(folder, f'unit_{row:04d}.png'))
     rgb, a = u[..., :3], u[..., 3]
+    # the originals' local contrast: dark crevices between parts and crisp
+    # small-scale shading (smooth mid-tone gradients read as CG)
+    ao_path = os.path.join(folder, f'ao_{row:04d}.png')
+    if os.path.exists(ao_path):
+        ao = np.clip(_linear(_gray(_load(ao_path))), 0, 1)
+        rgb = rgb * (1 - CAVITY + CAVITY * ao)[..., None]
+    if SHARPEN:
+        soft = _blur_rgb(rgb * a[..., None], 1.0) / np.maximum(_blur(a, 1.0), 1e-6)[..., None]
+        rgb = np.clip(rgb + SHARPEN * (rgb - soft) * (a > 0.5)[..., None], 0, 1)
     t = _linear(_gray(_load(os.path.join(folder, f'tint_{row:04d}.png'))))
     s = _linear(_gray(_load(os.path.join(folder, f'shadow_{row:04d}.png'))))
     a_t = np.clip(np.minimum(t, a), 0, 1)

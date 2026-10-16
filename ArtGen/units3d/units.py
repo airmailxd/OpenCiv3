@@ -136,6 +136,10 @@ def dress(entry, mesh, arm):
     if bottom:
         G.shell(mesh, arm, 'Belt', ['pelvis', 'spine_01'], _mat(entry, 'belt', G.leather), zmin=0.98, zmax=1.04,
                 offset=0.013, thickness=0.01)
+        if entry.get('belt_gear', True):
+            G.belt_gear(mesh, arm, B.material('buckle', B.hex_color(c.get('buckle', '#8a7a52')), roughness=0.4,
+                                              metallic=1.0),
+                        G.leather('pouch', B.hex_color(c.get('pouch', c['belt']))), pouch=entry.get('pouch', True))
     if entry.get('pauldrons'):
         # shoulder pieces: the top of the upper arms and shoulders
         G.shell(mesh, arm, 'Pauldrons', ['upperarm_l', 'upperarm_r', 'clavicle_l', 'clavicle_r'],

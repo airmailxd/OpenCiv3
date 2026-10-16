@@ -106,7 +106,7 @@ def lights():
     """Key, fill and rim suns and the sky. The key is a little steeper
     than the old renderer's (62 degrees, between its key and shadow lights),
     so the ground shadow stays compact on the map."""
-    key = _sun('Key', KEY, Look.key, angle_deg=6.0)
+    key = _sun('Key', KEY, Look.key, angle_deg=2.5)   # crisp shadow edges
     _sun('Fill', FILL, Look.fill, shadow=False, angle_deg=20.0)
     _sun('Rim', RIM, Look.rim, shadow=False, angle_deg=10.0)
     world = bpy.data.worlds.new('Sky')
@@ -163,6 +163,11 @@ def tint_aov():
         aov.name = 'tint'
         aov.type = 'VALUE'
     layer.cycles.use_pass_shadow_catcher = True
+    # ambient occlusion over a short distance: the crevices between parts
+    # (compose.py darkens them, for the original sprites' local contrast)
+    layer.use_pass_ambient_occlusion = True
+    if bpy.context.scene.world:
+        bpy.context.scene.world.light_settings.distance = 0.12
 
 
 def outputs(folder):
@@ -184,7 +189,8 @@ def outputs(folder):
     out.file_slots.new('unit_')
     out.file_slots.new('tint_')
     out.file_slots.new('shadow_')
-    for slot in ('tint_', 'shadow_'):
+    out.file_slots.new('ao_')
+    for slot in ('tint_', 'shadow_', 'ao_'):
         fs = out.file_slots[slot]
         fs.use_node_format = False
         fs.format.file_format = 'PNG'
@@ -193,6 +199,8 @@ def outputs(folder):
     tree.links.new(rl.outputs['Image'], out.inputs['unit_'])
     tree.links.new(rl.outputs['tint'], out.inputs['tint_'])
     tree.links.new(rl.outputs['Shadow Catcher'], out.inputs['shadow_'])
+    if 'AO' in rl.outputs:
+        tree.links.new(rl.outputs['AO'], out.inputs['ao_'])
     # PNG output from the compositor is display-referred: keep the masks linear
     scene.view_settings.view_transform = 'Standard'
 

@@ -966,3 +966,64 @@ def crown(basemesh, arm, mat, kind='spiked', height=0.07, gems=None):
         o.matrix_world = world
     H._update()
     return made
+
+
+def belt_gear(basemesh, arm, metal, leather, pouch=True):
+    """Detail on the belt: a metal buckle at the front and (pouch) a small
+    leather pouch hanging at the right hip; on the pelvis bone."""
+    import human as H
+    me = basemesh.data
+    body = basemesh.vertex_groups.get('body')
+    z0, z1 = z(0.98), z(1.04)
+    # the waist only: in the rest pose the hands hang at this height too
+    ring = [v.co for v in me.vertices if z0 <= v.co.z <= z1 and abs(v.co.x) < 0.2 * _scale and
+            (body is None or any(g.group == body.index and g.weight > 0.5 for g in v.groups))]
+    if not ring:
+        return []
+    zc = (z0 + z1) / 2
+    front = min((co for co in ring if abs(co.x) < 0.03), key=lambda co: co.y, default=None)
+    made = []
+    if front is not None:
+        # a square frame with a tongue, standing proud of the belt
+        bpy.ops.mesh.primitive_cube_add(size=1, location=(0, front.y - 0.026, zc))
+        b = bpy.context.active_object
+        b.scale = (0.05 * _scale, 0.01, 0.05 * _scale)
+        bpy.ops.object.transform_apply(scale=True)
+        sol = b.modifiers.new('Bevel', 'BEVEL')
+        sol.width = 0.003
+        b.data.materials.append(metal)
+        made.append(b)
+        bpy.ops.mesh.primitive_cube_add(size=1, location=(0, front.y - 0.031, zc))
+        t = bpy.context.active_object
+        t.scale = (0.03 * _scale, 0.004, 0.03 * _scale)
+        bpy.ops.object.transform_apply(scale=True)
+        t.data.materials.append(leather)
+        made.append(t)
+    if pouch:
+        side = min(ring, key=lambda co: co.x)                  # the right side is -x
+        bpy.ops.mesh.primitive_cube_add(size=1, location=(side.x - 0.02, side.y + 0.02, zc - 0.06 * _scale))
+        pc = bpy.context.active_object
+        pc.scale = (0.04, 0.1 * _scale, 0.11 * _scale)
+        bpy.ops.object.transform_apply(scale=True)
+        sub = pc.modifiers.new('Subdiv', 'SUBSURF')
+        sub.levels = 2
+        sub.render_levels = 2
+        pc.data.materials.append(leather)
+        made.append(pc)
+        # the flap: a darker slab over the top half
+        bpy.ops.mesh.primitive_cube_add(size=1, location=(side.x - 0.043, side.y + 0.02, zc - 0.035 * _scale))
+        fl = bpy.context.active_object
+        fl.scale = (0.008, 0.105 * _scale, 0.06 * _scale)
+        bpy.ops.object.transform_apply(scale=True)
+        bv = fl.modifiers.new('Bevel', 'BEVEL')
+        bv.width = 0.004
+        fl.data.materials.append(leather)
+        made.append(fl)
+    for o in made:
+        world = o.matrix_world.copy()
+        o.parent = arm
+        o.parent_type = 'BONE'
+        o.parent_bone = 'pelvis'
+        o.matrix_world = world
+    H._update()
+    return made
