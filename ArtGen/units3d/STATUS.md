@@ -12,10 +12,12 @@ original shows are blockers, not polish. Earlier PASSes need a re-check on this 
 | Unit | State | Open notes |
 |------|-------|-----------|
 | Warrior, Spearman, Archer, Swordsman, Settler, Worker | **all PASS** on all 6 axes (detail included) | polish only |
-| Footmen batch A (11, Mac) | round 3: none pass; Bowman, Chasquis, Explorer, Hoplite one axis off | round-3 fixes applied, round 4 queued |
-| Footmen batch B (11, **PC**) | Legionary, Medieval Infantry PASS | handed over with reviews/footmen_round3.md |
-| 12 soldiers (**PC**) | round 2: Musketeer, Rifleman, Crusader close | handed over 2026-10-15 |
-| 44 royals (Mac) | round 1: none pass (shared bugs fixed since) | round 2 rendering: relaxed stances, hats, beards, shoes, unit_scale 0.85 |
+| Footmen batch A (11, Mac) | Berserk, Explorer PASS; round 5 rendering | 5 more one axis off at round 4 |
+| Footmen batch B (11, PC) | **all PASS** | |
+| 12 soldiers (PC) | **all PASS** (TOW as a 2-man team with launcher) | |
+| Siege crews (PC) | all 6 PASS | |
+| Royals half 1 (22, Mac: Armies, King American..Iroquois) | round 3 rendering | round-2: none pass, many 5 of 6 |
+| Royals half 2 (22, **PC**) | handed over 2026-10-15 night | reviews/royals_half2_round2.md |
 
 Split since 2026-10-15 evening: the owner noted the PC is faster, so the PC also owns the soldiers and
 footmen batch B (entries, renders, review loop). The Mac owns the builder code (units.py, garments.py,
