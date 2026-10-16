@@ -133,6 +133,19 @@ def dress(entry, mesh, arm):
             G.shell(mesh, arm, 'ChestStrap', torso, G.cloth('chest_strap', (1, 1, 1), tint=True) if tint else
                     G.leather('chest_strap', B.hex_color(col)), zmin=1.0, zmax=1.5,
                     offset=0.02, thickness=0.006, keep=lambda co: abs((co.z - 1.22) + 0.95 * co.x) < 0.035)
+    # hem bands: [(garment, color), ...]; garment 'bottom' or 'top', color
+    # 'tint', 'gold' or a hex; optional width (m) and inset from the edge
+    for h in entry.get('hem_bands', []):
+        part, col = h[0], h[1]
+        width = h[2] if len(h) > 2 else 0.05
+        inset = h[3] if len(h) > 3 else 0.0
+        if col == 'tint':
+            hm = G.cloth('hem_' + part, (1, 1, 1), tint=True)
+        elif col == 'gold':
+            hm = B.material('hem_gold', B.hex_color(c.get('gold', '#c8a040')), roughness=0.35, metallic=0.9)
+        else:
+            hm = G.cloth('hem_' + part, B.hex_color(c.get(col, col)))
+        G.hem(part.capitalize(), hm, width=width, inset=inset)
     if bottom:
         G.shell(mesh, arm, 'Belt', ['pelvis', 'spine_01'], _mat(entry, 'belt', G.leather), zmin=0.98, zmax=1.04,
                 offset=0.013, thickness=0.01)
@@ -558,7 +571,9 @@ def build_footman(entry, seated=False):
     macro.update(entry.get('macro', {}))
     macro.setdefault('height', 0.65)
     macro.setdefault('proportions', 0.8)
-    helmeted = entry.get('helmet') in ('hood', 'wolf', 'crested', 'horned', 'cap') or entry.get('headgear')
+    # 'headgear' names a riders.HEADGEAR kind (the old catalog's own headgear lists are not read)
+    gear_hat = entry.get('headgear') if isinstance(entry.get('headgear'), str) else None
+    helmeted = entry.get('helmet') in ('hood', 'wolf', 'crested', 'horned', 'cap') or gear_hat
     hair = entry.get('hair_asset', HAIR.get(entry.get('hair'), 'short02'))
     if helmeted and entry.get('hair') != 'long':
         hair = None
@@ -571,10 +586,10 @@ def build_footman(entry, seated=False):
     dress(entry, mesh, arm)
     equip(entry, arm)
     dress_posed(entry, mesh, arm)
-    if entry.get('headgear'):
+    if gear_hat:
         # the riders' headgear kinds (hats, shakos, modern helmets ...), on the head bone
         import riders
-        riders.headgear(dict(entry, _headgear=entry['headgear']), arm)
+        riders.headgear(dict(entry, _headgear=gear_hat), arm)
     root = H.rooted(arm)
     if seated:
         # the pelvis on the root's origin

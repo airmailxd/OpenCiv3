@@ -1027,3 +1027,77 @@ def belt_gear(basemesh, arm, metal, leather, pouch=True):
         o.matrix_world = world
     H._update()
     return made
+
+
+def hem(name, mat, width=0.05, lift=0.004, inset=0.0):
+    """A band along the bottom edge of garment `name` (a tinted or gold hem
+    stripe): a copy of the garment trimmed to the faces within `width`
+    (measured along the surface) of its lower open edge, or between `inset`
+    and inset + width, lifted off the cloth by `lift`. Keeps the garment's
+    rigging, so it follows the pose."""
+    import heapq
+    src = bpy.data.objects.get(name)
+    if src is None or src.type != 'MESH':
+        return None
+    obj = src.copy()
+    obj.data = src.data.copy()
+    obj.name = 'Hem_' + name
+    for col in src.users_collection:
+        col.objects.link(obj)
+    for m in list(obj.modifiers):
+        if m.type in ('CLOTH', 'COLLISION'):
+            obj.modifiers.remove(m)
+    bm = bmesh.new()
+    bm.from_mesh(obj.data)
+    # a coarse garment (its rows further apart than the band) is subdivided
+    # first (linearly: same surface), so the band can be cut from whole faces
+    for _ in range(4):
+        mean = sum(e.calc_length() for e in bm.edges) / max(1, len(bm.edges))
+        if mean < width * _scale / 3:
+            break
+        bmesh.ops.subdivide_edges(bm, edges=bm.edges[:], cuts=1, use_grid_fill=True)
+    bm.verts.ensure_lookup_table()
+    zs = [v.co.z for v in bm.verts]
+    mid = (min(zs) + max(zs)) / 2
+    # the lower open edge: boundary vertices below the garment's middle; a
+    # closed (solidified) garment has none: then the lowest vertices of each
+    # sector round the garment's axis (hems drop and fold unevenly)
+    start = [v for v in bm.verts if v.is_boundary and v.co.z < mid]
+    if not start:
+        cx = sum(v.co.x for v in bm.verts) / len(bm.verts)
+        cy = sum(v.co.y for v in bm.verts) / len(bm.verts)
+        sector = {}
+        for v in bm.verts:
+            k = int((math.atan2(v.co.y - cy, v.co.x - cx) + math.pi) / (2 * math.pi) * 36) % 36
+            sector.setdefault(k, []).append(v)
+        for vs in sector.values():
+            low = min(v.co.z for v in vs)
+            start += [v for v in vs if v.co.z < low + 0.015]
+    dist = {v.index: 0.0 for v in start}
+    heap = [(0.0, v.index) for v in start]
+    w0, w1 = inset * _scale, (inset + width) * _scale
+    while heap:
+        d, i = heapq.heappop(heap)
+        if d > dist.get(i, 1e9) or d > w1:
+            continue
+        v = bm.verts[i]
+        for e in v.link_edges:
+            o = e.other_vert(v)
+            nd = d + e.calc_length()
+            if nd < dist.get(o.index, 1e9):
+                dist[o.index] = nd
+                heapq.heappush(heap, (nd, o.index))
+    kill = [f for f in bm.faces if not all(w0 - 1e-6 <= dist.get(v.index, 1e9) <= w1 + 1e-6 for v in f.verts)]
+    bmesh.ops.delete(bm, geom=kill, context='FACES')
+    bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context='VERTS')
+    bm.normal_update()
+    for v in bm.verts:
+        v.co += v.normal * lift
+    bm.to_mesh(obj.data)
+    bm.free()
+    if not obj.data.polygons:
+        bpy.data.objects.remove(obj)
+        return None
+    obj.data.materials.clear()
+    obj.data.materials.append(mat)
+    return obj

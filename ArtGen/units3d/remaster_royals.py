@@ -210,7 +210,8 @@ REMASTER = {
         'helmet': 'crown', 'crown': 'tall', 'crown_height': 0.07,
         'hair': 'long', 'hair_asset': 'bob01',
         'beard': True,                          # MISSING: long_beard (square, to the chest)
-        'top': 'sleeved', 'neck': 'high', 'bottom': 'kilt', 'robe_drop': 0.48,   # MISSING: hem_band (small tinted accents)
+        'top': 'sleeved', 'neck': 'high', 'bottom': 'kilt', 'robe_drop': 0.48,
+        'hem_bands': [('bottom', 'gold', 0.035), ('bottom', 'tint', 0.03, 0.05)],
         'cape': True, 'cape_length': 1.38,      # MISSING: cape_edge (gold)
         'cuirass': False, 'wraps': None, 'sandals': True, 'bracers': False, 'gear': [],
         'weapon': None, 'offhand': None,
