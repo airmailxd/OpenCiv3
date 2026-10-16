@@ -218,7 +218,7 @@ REMASTER = {
         'top': 'sleeved', 'puffy': True, 'neck': 'high', 'shoulder_rolls': 'tint', 'roll_size': 0.09,   # the doublet to the neck, the big civ puffed sleeves
         'cuirass': True, 'metal': [], 'cuirass_trim': 'gold',   # the quilted brown-gold vest front
         'patterns': {'cuirass': ('check', '#4e3418', 14.0), 'sleeves': ('camo', '#f0d060', 18.0, 'cover', 0.14),
-                     'cape': ('stripes', '#7e5e30', 9.0)},   # quilting, gold dots, the brocade's bold vertical columns
+                     'cape': ('stripes', '#8a6a34', 3.2)},   # quilting, gold dots, the brocade's bold vertical columns
         'bottom': 'breeches', 'wraps': 'wraps', 'shoes': True, 'sandals': False,   # white hose, low shoes; MISSING: gold buckles
         'cape': True, 'cape_length': 1.0,       # the light tan brocade (as the original; the note's dark brown was wrong)
         'hem_bands': [('cape', 'tint', 0.07)],  # the tinted cape edge (wider: 0.05 didn't read)
@@ -720,7 +720,7 @@ REMASTER = {
         # white breeches and hose in one: full-length puffy legs, black low shoes
         'bottom': 'breeches', 'puffy': True, 'trouser_offset': 0.04, 'wraps': 'wraps', 'shoes': True, 'sandals': False,   # short puffed civ breeches over white hose
         # the enormous robe: a wide bell flaring onto the ground, the gold hem pooling behind
-        'cape': True, 'cape_length': 1.5, 'cape_flare': 1.55, 'cape_train': 0.8, 'cape_width': 0.7,   # a wide bell with a train
+        'cape': True, 'cape_length': 1.5, 'cape_flare': 1.2, 'cape_train': 0.7, 'cape_width': 0.7,   # a wide bell with a train
         'hem_bands': [('cape', 'gold', 0.17)],   # the wide gold hem (an ermine band showed as white flecks where the front corners turn)   # the gold hem, ermine above it
         'cape_lining': '#3a2040',   # the dark purple lining
         'cuirass': False, 'bracers': False, 'gear': [],
@@ -729,7 +729,7 @@ REMASTER = {
         'weapon': 'cane', 'props': {'cane': ('cane', {'length': 1.0})},
         'stance_name': 'stand_staff',           # the cane planted at his side (no hand raised to the head)
         'tint': ['cape', 'bottom'],   # the civ robe and breeches, as the original
-        'grime': 0.35, 'upper_bulk': 1.1,
+        'grime': 0.08, 'upper_bulk': 1.1,
     },
     'King Ottoman': {
         # Suleiman: a large round white turban with a tinted aigrette and

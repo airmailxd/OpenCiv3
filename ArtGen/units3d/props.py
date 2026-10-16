@@ -1907,7 +1907,7 @@ def eagle_standard(p, length=2.2, grip=0.9, scale=1.0):
 DEFAULTS['feather_teal'] = ('#3a9a94', 0.6, 0.0, 'polished')
 DEFAULTS['feather_red'] = ('#b8382e', 0.6, 0.0, 'polished')
 DEFAULTS['feather_green'] = ('#3a8a52', 0.6, 0.0, 'polished')
-DEFAULTS['dog_fur'] = ('#7e7a72', 0.95, 0.0, 'polished')   # leather-kind detail: an even coat (cloth stains read mangy)   # grey-brown, rough (it lit pale)
+DEFAULTS['dog_fur'] = ('#625e58', 0.95, 0.0, 'polished')   # mid grey-brown (it lights pale)   # leather-kind detail: an even coat (cloth stains read mangy)   # grey-brown, rough (it lit pale)
 DEFAULTS.setdefault('dog_dark', ('#1e1c1a', 0.6, 0.0, 'leather'))
 
 
