@@ -559,7 +559,7 @@ def hide(name, color, dark, tint=False):
     return B.material(name, color, roughness=0.95, tint=tint, nodes=nodes)
 
 
-def pelt(basemesh, arm, color, dark, length=0.045, density=3000, kind='shoulders'):
+def pelt(basemesh, arm, color, dark, length=0.045, density=3000, kind='shoulders', bottom=None):
     """A heavy animal pelt: a thick hide shell with fur particles, so the
     figure reads broader and rougher. `kind`: 'shoulders' (over the
     shoulders and down the back, not the chest), 'cloak' (from the shoulders
@@ -575,7 +575,7 @@ def pelt(basemesh, arm, color, dark, length=0.045, density=3000, kind='shoulders
         # a fur kilt from the waist to the knee, round the hips and thighs
         keep = None
         bones = ['pelvis', 'thigh_l', 'thigh_r']
-        zmin, offset = 0.5, 0.045
+        zmin, offset = bottom or 0.5, 0.045
     elif kind == 'vest':
         keep = None
         bones = ['clavicle_l', 'clavicle_r', 'spine_01', 'spine_02', 'spine_03', 'pelvis']

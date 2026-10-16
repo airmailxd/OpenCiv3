@@ -264,7 +264,7 @@ def dress(entry, mesh, arm):
                density=4000, kind='vest')
     if entry.get('fur_kilt'):
         G.pelt(mesh, arm, B.hex_color(entry['fur_kilt'][0]), B.hex_color(entry['fur_kilt'][1]), length=0.03,
-               density=4000, kind='kilt')
+               density=4000, kind='kilt', bottom=1.0 - entry.get('fur_kilt_length', 0.5))   # meters below the waist
     if entry.get('topknot'):
         # 'topknot' or 'ponytail' on a shaven head (set 'hair_asset': None)
         G.topknot(mesh, arm, G.hide('knot', B.hex_color(c['hair']), tuple(v * 0.6 for v in B.hex_color(c['hair']))),
