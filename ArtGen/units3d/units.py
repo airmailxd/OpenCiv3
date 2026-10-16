@@ -240,7 +240,11 @@ def dress(entry, mesh, arm):
                G.leather('band_' + where, B.hex_color(c.get(part, c['belt'])))), z,
                width=bw or (0.05 if where in ('waist', 'neck') else 0.045))
     if entry.get('beard'):
-        G.beard(mesh, B.hex_color(c['hair']), length=0.018, density=700)
+        style = entry.get('beard_style', 'full')       # full, mustache, goatee, chin, long
+        G.beard(mesh, B.hex_color(c.get('beard', c['hair'])), length=0.018, density=700,
+                style='full' if style == 'long' else style)
+        if style == 'long':
+            G.long_beard(mesh, arm, B.hex_color(c.get('beard', c['hair'])), length=entry.get('beard_length', 0.16))
     if entry.get('pelt_cape'):
         G.pelt(mesh, arm, B.hex_color(entry['pelt_cape'][0]), B.hex_color(entry['pelt_cape'][1]), length=0.03,
                kind=entry.get('pelt_kind', 'shoulders'))
@@ -682,8 +686,14 @@ def equip(entry, arm):
         # in the backpack's convention: straps' top at the origin, the load behind (-Y)
         obj = P.make(back, c, **entry.get('back_params', {}))
         sp = arm.matrix_world @ arm.pose.bones['spine_03'].head
-        at = sp + Vector((0.0, 0.04 * G._scale, entry.get('pack_up', 0.1) * G._scale))
-        H.hold(obj, arm, 'spine_03', at, up=(0, 0.05, 1), forward=(0, -1, 0))
+        if 'sheath' in back or 'scabbard' in back:
+            # a sword slung on the back: the mouth (origin) behind the right
+            # shoulder, the hilt up over it, the blade (+Z) down across the back
+            at = sp + Vector((-0.1 * G._scale, 0.12 * G._scale, 0.12 * G._scale))
+            H.hold(obj, arm, 'spine_03', at, up=(0.35, 0.05, -0.94), forward=(0, 1, 0))
+        else:
+            at = sp + Vector((0.0, 0.04 * G._scale, entry.get('pack_up', 0.1) * G._scale))
+            H.hold(obj, arm, 'spine_03', at, up=(0, 0.05, 1), forward=(0, -1, 0))
         made.append(obj)
     elif back in ('quiver', 'backpack'):
         obj = P.make(back, c, **entry.get('back_params', {}))

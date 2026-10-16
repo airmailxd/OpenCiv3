@@ -359,9 +359,11 @@ def skirt(basemesh, arm, name, mat, *, length=0.5, flare=1.08, front_only=False,
     return new
 
 
-def beard(basemesh, color, length=0.018, density=900):
-    """A short full beard: hair particles on the jaw, chin and upper lip of
-    the unposed body (MakeHuman's head: top at head_z, chin about 0.22 below)."""
+def beard(basemesh, color, length=0.018, density=900, style='full'):
+    """A beard of hair particles on the unposed body (MakeHuman's head: top at
+    head_z, chin about 0.22 below): 'full' (jaw, chin and upper lip),
+    'mustache' (the upper lip only, drooping a little wider), 'goatee' (lip
+    and the middle of the chin), 'chin' (along the jaw, no mustache)."""
     me = basemesh.data
     head_z, yc, on_body = _head(basemesh)
     grp = basemesh.vertex_groups.new(name='beard')
@@ -371,12 +373,62 @@ def beard(basemesh, color, length=0.018, density=900):
         c = v.co
         d = head_z - c.z
         y = c.y - yc
-        # chin and jaw (the face half of the head, below the mouth) and the upper lip
         jaw = 0.17 < d < 0.235 and y < -0.02
         lip = 0.148 < d < 0.162 and y < -0.07 and abs(c.x) < 0.03
-        if jaw or lip:
+        if style == 'mustache':
+            keep = 0.146 < d < 0.168 and y < -0.065 and abs(c.x) < 0.045
+        elif style == 'goatee':
+            keep = lip or (jaw and abs(c.x) < 0.03)
+        elif style == 'chin':
+            keep = jaw
+        else:
+            keep = jaw or lip
+        if keep:
             grp.add([v.index], 1.0, 'REPLACE')
     return _hair_system(basemesh, 'Beard', 'beard', color, length, density)
+
+
+def long_beard(basemesh, arm, color, length=0.16, width=0.11, square=True):
+    """A long beard falling from the chin down the chest: a tapered (or, with
+    `square`, square-cut) mass of hair under a strand coat; on the head bone."""
+    import human as H
+    head_z, yc, _ = _head(basemesh)
+    s = _scale
+    top = head_z - 0.19 * s
+    bm = bmesh.new()
+    rows = 6
+    for i in range(rows + 1):
+        t = i / rows
+        w = width * s * (1.0 - (0.15 if square else 0.6) * t) / 2
+        dpt = 0.05 * s * (1.0 - 0.4 * t)
+        z = top - length * s * t
+        yfront = yc - 0.085 * s - 0.02 * s * t
+        for x, y in ((-w, yfront), (w, yfront), (w, yfront + dpt), (-w, yfront + dpt)):
+            bm.verts.new((x, y, z))
+    bm.verts.ensure_lookup_table()
+    for i in range(rows):
+        for k in range(4):
+            a, b = i * 4 + k, i * 4 + (k + 1) % 4
+            bm.faces.new((bm.verts[a], bm.verts[b], bm.verts[b + 4], bm.verts[a + 4]))
+    bm.faces.new([bm.verts[rows * 4 + k] for k in range(4)])
+    me = bpy.data.meshes.new('LongBeard')
+    bm.to_mesh(me)
+    bm.free()
+    obj = bpy.data.objects.new('LongBeard', me)
+    bpy.context.scene.collection.objects.link(obj)
+    sub = obj.modifiers.new('Subdiv', 'SUBSURF')
+    sub.levels = sub.render_levels = 2
+    obj.data.materials.append(hide('beard', color, tuple(v * 0.55 for v in color)))
+    grp = obj.vertex_groups.new(name='strands')
+    grp.add([v.index for v in obj.data.vertices], 1.0, 'REPLACE')
+    _hair_system(obj, 'BeardStrands', 'strands', color, 0.02, 1500)
+    world = obj.matrix_world.copy()
+    obj.parent = arm
+    obj.parent_type = 'BONE'
+    obj.parent_bone = 'head'
+    obj.matrix_world = world
+    H._update()
+    return obj
 
 
 def _hair_system(obj, name, group, color, length, density):

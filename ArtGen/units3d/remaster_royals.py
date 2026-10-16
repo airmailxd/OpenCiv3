@@ -226,7 +226,7 @@ REMASTER = {
                    'bottom': '#c4ae72', 'belt': '#a8862e', 'sandal': '#4a3622', 'gold': '#c8a038'},
         'helmet': 'crown', 'crown': 'tall', 'crown_height': 0.06,   # MISSING: crown_band (tinted)
         'hair': 'long', 'hair_asset': 'short02',
-        'beard': True,                          # MISSING: long_beard (square, to the chest)
+        'beard': True, 'beard_style': 'long',  # the long square beard to the chest
         'top': 'sleeved', 'neck': 'high', 'bottom': 'kilt', 'robe_drop': 0.48,
         'hem_bands': [('bottom', 'gold', 0.035), ('bottom', 'tint', 0.03, 0.05), ('cape', 'gold', 0.035)],
         'cape': True, 'cape_length': 1.38,
@@ -295,7 +295,7 @@ REMASTER = {
         'colors': {'skin': '#c09a78', 'hair': '#3a2414', 'belt': '#4a3020', 'boots': '#3a2a1c',
                    'leather': '#5a3a22', 'gold': '#c8a038', 'bottom': '#5a4630', 'bracers': '#5a3a22'},
         'helmet': None, 'hair': 'long', 'hair_asset': 'long01', 'mane': 0.18,
-        'beard': True,                          # MISSING: mustache (big, drooping, no beard)
+        'beard': True, 'beard_style': 'mustache',
         'top': 'tunic', 'neck': 'high', 'coat_length': 0.2,   # the tunic to the hip
         'patterns': {'top': ('tartan', '#1e3a24')},
         'bottom': 'kilt', 'robe_drop': 0.0,     # the brown skirt; MISSING: trousers under a skirt (dark green)
