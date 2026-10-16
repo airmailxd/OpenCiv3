@@ -31,22 +31,22 @@ PASSED = {
                'Leader Modern Times', 'Princess', 'SciLeader', 'Shogun', 'The King',
                'Army Ancient Times', 'Army Industrial Ages', 'Army Modern Times', 'King Austria', 'King Aztec',
                'King Incan'],
-    'footmen': ['Impi'],
+    'footmen': ['Impi', 'Jaguar Warrior', 'Javelin Thrower', 'Legionary', 'Libyan Mercenary', 'Longbowman',
+                'Medieval Infantry', 'Ninja', 'Pikeman', 'Samurai', 'Scout', 'Swiss Mercenary'],
+    # ships.BUILDERS needs bpy, so the names are listed here
+    'ships': ['Galley', 'Caravel', 'Curragh', 'Dromon', 'Carrack', 'Galleon', 'Frigate', 'Privateer', 'Man-O-War',
+              'Ironclad', 'Transport', 'Destroyer', 'Cruiser', 'Battleship', 'Aegis Cruiser', 'Carrier', 'Submarine',
+              'Nuclear Submarine'],
 }
 
 
 def _from_modules():
-    """Ships, soldiers and footmen batch B straight from their modules (all passed)."""
+    """The soldiers straight from their module (all passed; TOW Infantry is under siege)."""
     out = {}
-    try:
-        import ships
-        out['ships'] = sorted(ships.BUILDERS)
-    except Exception:   # bpy-only module outside Blender
-        pass
     for mod, key in (('remaster_soldiers', 'soldiers'),):
         try:
             m = __import__(mod)
-            out[key] = sorted(getattr(m, 'REMASTER', {}))
+            out[key] = sorted(u for u in getattr(m, 'REMASTER', {}) if u != 'TOW Infantry')
         except Exception:
             pass
     return out
