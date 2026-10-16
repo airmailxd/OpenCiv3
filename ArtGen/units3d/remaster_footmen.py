@@ -122,22 +122,23 @@ REMASTER = {
                    'belt': '#2e2418', 'sandal': '#2e2016', 'wood': '#4e3622', 'steel': '#5a5a5a',
                    'iron': '#2e2e30'},
         'hair': 'long', 'hair_asset': 'long01', 'beard': True,
+        'beard_density': 450, 'mane': 0.15,     # a sparser, unkempt beard and straggly hair
         'top': 'vest', 'bottom': 'skirt',       # the sleeveless knee-length tunic
         'gear': [('chest_strap', {'color': '#3a2818'})],
         'sandals': True, 'wraps': None,
-        # MISSING: shackles placement -- props.shackles exists, but equip has
-        # no slot that puts it on both wrists (and the ankle chain)
+        # 'shackles' puts irons on wrists and ankles; MISSING: ankle_chain (a short sagging chain between the ankles)
         'weapon': 'shovel',
         'props': {'shovel': ('shovel', {'length': 1.45})},
         'stance_name': 'hang',            # MISSING: spade_upright (blade on the ground at his right side)
-        'hang_dir': (-0.05, -0.1, -1.0),           # the spade upright at his right foot (one hand)
+        'hang_dir': (-0.55, -0.35, -0.75),         # the spade angled out, blade just above the ground by the right foot
         # bowed and weary (-y is forward). The 'hang' stance already sets spine_02
         # -0.22 / neck_01 -0.12 / head 0.1, so the old values here were a no-op;
         # these lean further than the stance so the bow actually shows
         'pose_extra': [('spine_02', (0, -0.3, 1)), ('spine_03', (0, -0.3, 1)), ('neck_01', (0, -0.3, 1)),
                        ('head', (0, 0.0, 1))],
         'tint': ['strap'],
-        'grime': 1.0, 'upper_bulk': 1.05,   # grime only dirties skin; MISSING: cloth_dirt (hem dirt gradient on the tunic)
+        'grime': 1.0, 'upper_bulk': 1.05,   # grime only dirties skin
+        'cloth_dirt': 0.8,                  # heavy brown stains on the tunic; MISSING: frayed (a ragged hem)
     },
     'Explorer': {
         # a conquistador-era explorer: steel comb morion with a civ-color
@@ -219,16 +220,16 @@ REMASTER = {
         'race': {'caucasian': 0.6, 'african': 0.1, 'asian': 0.3},
         'colors': {'skin': '#8e6a4a', 'hair': '#140e0a', 'helmet': '#cfc9b8', 'top': '#9a8058',
                    'bottom': '#5e4a34', 'belt': '#3a2a1c', 'boots': '#a08434', 'steel': '#a8aaae',
-                   'gold': '#a8842e', 'veil': '#cfc9b8'},
+                   'gold': '#a8842e', 'veil': '#d2c294'},   # a cream veil, not the hood's white
         'helmet': 'hood', 'hood_neck': True,   # white headcloth, stopping at the neck
-        'veil': True, 'veil_drop': 0.215,       # a veil over the chin and mouth; MISSING: mouth_chin_veil (reads as a skull mask; brow cloth separate, eyes and nose open)
+        'veil': True, 'veil_drop': 0.2, 'veil_top': 0.15,         # a veil over the mouth and chin only; MISSING: mouth_chin_veil (veil top is fixed in code; brow cloth separate, eyes and nose open)
         'beard': True,
         # a tan sleeved tunic; 'puffy' adds the sleeve layer over the upper
         # arms (tinted: the civ-color short sleeves) and makes the trousers baggy
         'top': 'sleeved', 'puffy': True, 'cuirass': False,
         'bands': [('wrist', 'gold'), ('waist', 'tint')],   # gold bracelets, the civ-color sash
         # brown trousers (colors.bottom, untinted) with civ-color stripes
-        'bottom': 'long', 'patterns': {'bottom': ('stripes', 'tint', 4.0)},
+        'bottom': 'long', 'patterns': {'bottom': ('stripes', 'tint', 4.0)},   # projected from the rest pose: straight
         'wraps': 'boots',
         'gear': [('chest_strap', {'color': '#3a2818'})],
         'weapon': 'sword',
@@ -246,7 +247,7 @@ REMASTER = {
         # wrist bands, and cow-tail tufts on the calves
         'macro': {'muscle': 1.0, 'weight': 0.7, 'height': 0.78, 'proportions': 0.7},
         'race': {'caucasian': 0.0, 'african': 1.0, 'asian': 0.0},
-        'colors': {'skin': '#6a5040', 'hair': '#0e0a08',   # browner, less red (the builder desaturates skin to 70%)
+        'colors': {'skin': '#6a5040', 'hair': '#0e0a08',   # browner, less red (the builder pulls dark skin hue toward neutral brown)
                    'helmet': '#2a1e14', 'bottom': '#4a3424',
                    'belt': '#2e2016', 'wraps': '#d8d0c0', 'wraps_band': '#2a2420', 'gold': '#b08a2a',
                    'hide': '#d4ccbc', 'hide_dark': '#1e1612', 'wood': '#3e2a1a', 'steel': '#a8aaae'},

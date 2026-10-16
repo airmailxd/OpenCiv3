@@ -148,7 +148,7 @@ def dress(entry, mesh, arm):
         topz = max(v.co.z for v in mesh.data.vertices) / G._scale
         tint = 'veil' in entry.get('tint', [])
         vmat = G.cloth('veil', (1, 1, 1), tint=True) if tint else G.cloth('veil', B.hex_color(c.get('veil', '#2a2622')))
-        G.shell(mesh, arm, 'Veil', ['head', 'neck_01'], vmat, zmin=(topz - entry.get('veil_drop', 0.26)), zmax=(topz - 0.115), offset=0.012,
+        G.shell(mesh, arm, 'Veil', ['head', 'neck_01'], vmat, zmin=(topz - entry.get('veil_drop', 0.26)), zmax=(topz - entry.get('veil_top', 0.115)), offset=0.012,
                 thickness=0.004, min_weight=0.2, keep=lambda co, yc=yc / G._scale: co.y - yc < 0.02)
     for g in entry.get('gear', []):
         name = g[0] if isinstance(g, (list, tuple)) else g
