@@ -272,19 +272,22 @@ def fan_headdress(p, c, tinted, _):
 
 
 @hat('feather_headdress')
-def feather_headdress(p, c, tinted, _, style=None, cascade=None, front=None):
+def feather_headdress(p, c, tinted, _, style=None, cascade=None, front=None, crest=None):
     """Tall upright feathers in a crown (Impi, Aztec, Mayan, Iroquois):
     alternately civ-colored and natural, on a headband. style='bushy' (Impi):
     many short feathers, all civ-colored, in two rows splaying into a round
     bushy crown; style='crown' (King Zulu): a dense untinted fan of cream
     feathers and fur round the head. cascade='back' (King Mayan): a long
-    fall of white feathers down the back to the waist."""
+    fall of white feathers down the back to the waist. crest='tint': the whole
+    upright fan civ-colored (King Mayan's solid crest)."""
     if front:   # small red and green feathers at the front (King Mayan)
-        for i, key in enumerate(('feather_red', 'feather_green', 'feather_red', 'feather_green', 'feather_red')):
-            a = math.radians(-40 + 20 * i)
-            base = (0.11 * math.sin(a), 0.11 * math.cos(a), 0.04)
-            tip = (0.15 * math.sin(a), 0.16 * math.cos(a), 0.17)
-            p.add(props.tube([base, tip], [0.018, 0.026], seg=5, scale_xy=(1.0, 0.4)), key, smooth=True)
+        for i, key in enumerate(('feather_green', 'feather_red', 'feather_green', 'feather_red', 'feather_green',
+                                 'feather_red', 'feather_green')):
+            a = math.radians(-54 + 18 * i)   # tufts big enough to read at 1x
+            base = (0.11 * math.sin(a), 0.11 * math.cos(a), 0.03)
+            mid = (0.15 * math.sin(a), 0.17 * math.cos(a), 0.13)
+            tip = (0.19 * math.sin(a), 0.2 * math.cos(a), 0.25)
+            p.add(props.tube([base, mid, tip], [0.03, 0.05, 0.03], seg=6, scale_xy=(1.0, 0.45)), key, smooth=True)
     if cascade == 'back':
         for i in range(9):
             x = -0.09 + 0.18 * i / 8
@@ -319,7 +322,7 @@ def feather_headdress(p, c, tinted, _, style=None, cascade=None, front=None):
         base = (0.11 * math.sin(a), 0.11 * math.cos(a) - 0.01, 0.03)
         h = 0.3 - 0.06 * abs(i - n // 2) / (n // 2)
         tip = (0.16 * math.sin(a), 0.14 * math.cos(a) - 0.06, 0.03 + h)
-        key, t = (('tint', True) if i % 2 else ('feather', False))
+        key, t = (('tint', True) if i % 2 or crest == 'tint' else ('feather', False))   # crest='tint': all civ
         p.add(props.tube([base, tip], [0.024, 0.04], seg=5, scale_xy=(1.0, 0.3)), key, smooth=True, tint=t)
 
 

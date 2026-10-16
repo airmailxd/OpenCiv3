@@ -89,10 +89,15 @@ def material(key, colors, tint=False, weather=None):
         w = {'grime': 0.2}   # the civ color stays readable, just a little worn
     w.update(weather or {})
     tag = '_'.join(f'{k[0]}{round(v * 100)}' for k, v in sorted(w.items()) if v)
+    camo = None if tint else CAMO.get(key)
+    if camo:
+        tag += '_c' + format(abs(hash(tuple(camo))) % 0xFFFFFF, 'x')
     name = f'prop_{key}_{color.lstrip("#")}_{tag}' + ('_tint' if tint else '')
     if name in bpy.data.materials:
         return bpy.data.materials[name]
     m = _base_material(name, color, rough, metal, tint)
+    if camo:
+        _camo(m, camo)
     if kind == 'flame':   # a small, self-lit flame (no weathering)
         pr = _principled(m)
         pr.inputs['Emission Color'].default_value = pr.inputs['Base Color'].default_value
@@ -101,6 +106,51 @@ def material(key, colors, tint=False, weather=None):
     _detail(m, kind, rough, tint)
     _weather(m, w)
     return m
+
+
+# Painted camouflage per color key: {key: [(hex, scale, threshold, seed), ...]},
+# each layer a hard-edged blob of Perlin noise (object space, so the blobs run
+# continuously across a vehicle's plates) painted over the base color in order.
+# A model sets it before building and clears it after (armor.py).
+CAMO = {}
+
+
+def _camo(m, layers):
+    p = _principled(m)
+    if p is None:
+        return
+    nt = m.node_tree
+    N, L = nt.nodes, nt.links
+    bc = p.inputs['Base Color']
+    rgb = N.new('ShaderNodeRGB')
+    rgb.outputs[0].default_value = bc.default_value
+    out = rgb.outputs[0]
+    tc = N.new('ShaderNodeTexCoord')
+    for color, scale, th, seed in layers:
+        mp = N.new('ShaderNodeMapping')
+        mp.inputs['Location'].default_value = (seed * 3.1, seed * 1.7, seed * 0.9)
+        L.new(tc.outputs['Object'], mp.inputs['Vector'])
+        t = N.new('ShaderNodeTexNoise')
+        t.inputs['Scale'].default_value = scale
+        t.inputs['Detail'].default_value = 2.5
+        t.inputs['Roughness'].default_value = 0.5
+        L.new(mp.outputs['Vector'], t.inputs['Vector'])
+        r = N.new('ShaderNodeMapRange')
+        r.inputs['From Min'].default_value = th
+        r.inputs['From Max'].default_value = th + 0.015
+        L.new(t.outputs['Fac'], r.inputs['Value'])
+        mix = N.new('ShaderNodeMix')
+        mix.data_type = 'RGBA'
+        L.new(r.outputs['Result'], mix.inputs['Factor'])
+        L.new(out, mix.inputs['A'])
+        c = color.lstrip('#')
+        mix.inputs['B'].default_value = tuple(_srgb_to_linear(int(c[i:i + 2], 16) / 255) for i in (0, 2, 4)) + (1.0,)
+        out = mix.outputs['Result']
+    L.new(out, bc)
+
+
+def _srgb_to_linear(c):
+    return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
 
 
 def _weather(m, w):
