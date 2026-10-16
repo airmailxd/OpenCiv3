@@ -606,7 +606,12 @@ def equip(entry, arm):
             H.hold(obj, arm, 'hand_r', at, up=(-0.04, 0.0, 1.0))
         elif stance in ('upright', 'stand_staff'):
             # upright through the fist, butt on the ground by the right foot
-            H.hold(obj, arm, 'hand_r', at, up=tuple(entry.get('upright_dir', (-0.05, 0.0, 1.0))))
+            up = Vector(entry.get('upright_dir', (-0.05, 0.0, 1.0))).normalized()
+            H.hold(obj, arm, 'hand_r', at, up=tuple(up))
+            if stance == 'stand_staff' and entry.get('two_hands'):
+                # the left hand higher up the pole (a standard held in both hands)
+                H.reach(arm, 'l', at + up * 0.28 * G._scale + Vector((0.02, 0, 0)), elbow_out=0.5)
+                H.fists(arm, sides='l')
         elif stance == 'royal':
             # a scepter, cane or standard upright in the raised right fist
             H.hold(obj, arm, 'hand_r', at, up=tuple(entry.get('upright_dir', (0.0, -0.15, 1.0))))
