@@ -185,9 +185,12 @@ REMASTER = {
         'gear': [],
         'weapon': 'spear',
         'props': {'spear': ('spear', {'length': 2.55, 'grip': 1.15, 'head': 1.1})},
-        # the aspis: a big round board, only its rim in civ color
-        'offhand': 'shield_round',              # MISSING: shield_emblem_paint (a dark painted device on the face)
-        'offhand_mesh': ('shield_round', {'r': 0.52, 'dome': 0.07, 'boss': False, 'tint': 'rim'}),
+        # the aspis: a big round bronze board, only its rim in civ color, a
+        # black painted device with a red accent on the face; upright (no
+        # 45-degree roll), so the device's chevron points up
+        'offhand': 'shield_round',
+        'offhand_mesh': ('shield_round', {'r': 0.52, 'dome': 0.07, 'boss': False, 'tint': 'rim', 'emblem': 'aspis'}),
+        'shield_roll': 0.0,
         'stance_name': 'upright',
         'tint': ['crest', 'shield_emblem', 'bracers'],
         'grime': 0.7, 'upper_bulk': 1.25,
@@ -244,6 +247,7 @@ REMASTER = {
         # a wider stance: these override the stance's leg bones
         'pose_extra': [('thigh_l', (0.3, -0.1, -1)), ('thigh_r', (-0.3, -0.1, -1)),
                        ('calf_l', (0.1, 0.15, -1)), ('calf_r', (-0.1, 0.15, -1))],
+        'headgear_params': {'style': 'bushy'},  # many short civ-color feathers in a round bushy crown
         'tint': ['helmet', 'wraps'],
         'grime': 0.75, 'upper_bulk': 1.25,
     },
@@ -291,9 +295,8 @@ REMASTER = {
         'bracers': False, 'wraps': 'wraps', 'sandals': False, 'gear': [],
         'weapon': 'club',
         'props': {'club': ('macuahuitl', {'length': 0.8})},
-        # chimalli with a civ-color center; MISSING: shield_tint (the
-        # original's whole face is civ color, with a gold boss)
-        'offhand': 'shield_round', 'offhand_mesh': ('chimalli', {'r': 0.3, 'emblem': True}),
+        # a civ-color face with dark rosettes and a gold boss
+        'offhand': 'shield_round', 'offhand_mesh': ('jaguar_shield', {'r': 0.3}),
         'stance_name': 'guard',
         'tint': ['belt', 'bottom', 'plume', 'shield_emblem'],
         'grime': 0.75, 'upper_bulk': 1.25,
@@ -315,9 +318,11 @@ REMASTER = {
         'bracers': False, 'wraps': None, 'sandals': False, 'gear': [],
         'weapon': 'spear',
         'props': {'spear': ('javelin', {'length': 1.6, 'grip': 0.7})},
-        # MISSING: planted_bundle -- the offhand is held low and level across
-        # the hips, not planted upright; and shaft_tints (wraps on the bundle)
-        'offhand': 'javelin_bundle', 'offhand_mesh': ('javelin_bundle', {'n': 4, 'length': 1.95}),
+        # civ-color shafts, a yellow tassel under each head; MISSING:
+        # planted_bundle -- the offhand is held low and level across the hips,
+        # not planted upright
+        'offhand': 'javelin_bundle',
+        'offhand_mesh': ('javelin_bundle', {'n': 4, 'length': 1.95, 'shaft_tint': True, 'tassels': True}),
         'stance_name': 'guard',                 # MISSING: javelin_level (held low and horizontal, point forward)
         'tint': ['helmet', 'top', 'bottom'],
         'grime': 0.7, 'upper_bulk': 1.15,
@@ -341,12 +346,11 @@ REMASTER = {
         'gear': [],
         'weapon': 'sword',
         'props': {'sword': ('sword', {'length': 0.52, 'width': 0.065, 'guard': 0.12})},
-        # the original: a civ-color face with a pale (white) thunderbolt emblem;
-        # MISSING: shield_tint (props.scutum hard-codes the emblem as the tinted part)
-        'offhand': 'shield_oval', 'offhand_mesh': ('scutum', {'w': 0.62, 'h': 1.05, 'curve': 0.16}),
+        # the original: a civ-color face with a pale (white) thunderbolt emblem
+        'offhand': 'shield_oval', 'offhand_mesh': ('scutum', {'w': 0.62, 'h': 1.05, 'curve': 0.16, 'face_tint': True}),
         'shield_at': 'left_hip',
         'stance_name': 'guard',
-        'tint': ['crest', 'cape', 'shield_face'],
+        'tint': ['crest', 'cape'],
         'grime': 0.7, 'upper_bulk': 1.25,
     },
     'Libyan Mercenary': {
@@ -537,8 +541,8 @@ REMASTER = {
         'wraps': 'boots',
         'gear': [('chest_strap', {'tint': True, 'width': 0.15})],   # the civ-color diagonal sash over the doublet
         'weapon': 'spear',
-        # MISSING: shaft_tints (the pike's wood in civ color, steel head and butt plain)
-        'props': {'spear': ('spear', {'length': 3.0, 'grip': 1.1, 'head': 1.2})},
+        # the pike: its shaft in civ color, steel head, langets and butt plain
+        'props': {'spear': ('pike', {'length': 3.0, 'grip': 1.1, 'shaft_tint': True})},
         'stance_name': 'upright',
         'tint': ['plume', 'top'],
         'grime': 0.65, 'upper_bulk': 1.25,
@@ -555,13 +559,8 @@ REMASTER = {
 #                    hiding the tunic body today).
 # one_bracer         Gallic Swordsman: a bracer (or band) on the sword (right) forearm only, e.g. ('wrist_r', part).
 # armhole_trim       Hoplite: tinted edging round the cuirass's armholes (neck and waist are done with bands).
-# shield_tint        Shields honoring 'shield_face' in tint: Jaguar Warrior's chimalli (whole face tinted, gold
-#                    boss; today only a center emblem tints), Legionary's scutum (tinted face, pale emblem;
-#                    props.scutum hard-codes the emblem as the tinted part).
 # tinted_fur_tufts   Impi: 'wraps' fur (G.fur) never tints; the cow-tail tufts must. Make wraps honor tint.
 # trouser_stripes    Immortals: tinted vertical stripes on the trousers.
-# shaft_tints        Swiss Mercenary: a spear/pike param that makes the wooden shaft tint=True; Javelin Thrower:
-#                    tinted wraps on each javelin of the bundle (javelin_bundle(tint=True)).
 # tinted_book_cover  Inquisitor: props.book's cover with tint=True (a book(tint=True) param).
 #
 # -- garments
@@ -595,8 +594,7 @@ REMASTER = {
 # shackles placement Enslaved Worker: props.shackles on both wrists (and a chain between the ankles).
 # book_raised        Inquisitor: the book held open at chest-to-head height (offhand sits low at the hips).
 # planted_bundle     Javelin Thrower: the bundle planted upright at his left, gripped high (offhand is level).
-# sunburst_emblem    Libyan Mercenary: a star emblem (tinted) in place of the cross bands; Hoplite: a dark
-#                    painted device on the aspis (shield_emblem_paint).
+# sunburst_emblem    Libyan Mercenary: a star emblem (tinted) in place of the cross bands.
 # arrow_bag          Longbowman: a large tan arrow bag low at the right hip (not a back quiver).
 # chest_pack         Scout: a small pack on the chest strap.
 # iklwa              Impi: a short spear with a very broad, long blade (a spear with head=1.7 stands in).

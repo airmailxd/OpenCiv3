@@ -66,8 +66,8 @@ REMASTER = {
         'race': {'caucasian': 0.9, 'african': 0.05, 'asian': 0.05},
         'colors': {'skin': '#9a7052', 'hair': '#2a1e16', 'helmet': '#4a2a2b', 'top': '#5e2226',
                    'bottom': '#262220', 'belt': '#221e1a', 'boots': '#141110', 'wood': '#5a3a24',
-                   'steel': '#a8a6a2'},
-        'helmet': 'cap', 'cap_brim': True, 'plume': True, 'metal': [],   # MISSING: hat cavalier (wide brim pinned up one side)
+                   'steel': '#a8a6a2', 'felt': '#4a2a2b'},
+        'headgear': 'cavalier', 'helmet': None,   # wide brim pinned up one side, the plume tinted ('plume' in tint)
         'hair': 'long', 'hair_asset': 'long01', 'beard': True,
         'top': 'sleeved', 'neck': 'high',
         'coat_length': 0.62, 'coat_flare': 1.1,  # the knee-length coat
@@ -141,7 +141,8 @@ REMASTER = {
         'macro': {'muscle': 1.0, 'weight': 0.8, 'height': 0.78, 'proportions': 0.72},
         'colors': {'skin': '#9a7456', 'hair': '#2a2018', 'olive': '#454c3c', 'olive_dark': '#c8c4b4',
                    'cuirass': '#5a4632', 'bottom': '#353e35', 'belt': '#26261f', 'boots': '#121212'},
-        'headgear': 'modern_helmet', 'helmet': None,   # MISSING: helmet_band (tinted) and camo on the cover
+        # the band takes the civ color by itself (props.modern_helmet); MISSING: camo on the cover
+        'headgear': 'modern_helmet', 'helmet': None, 'headgear_params': {'band': True},
         'hair': 'short', 'beard': False,
         'top': 'sleeved', 'neck': 'high',
         'cuirass': True, 'metal': [],           # the flak vest, a woodland brown apart from the green trousers
@@ -193,7 +194,7 @@ REMASTER = {
         'colors': {'skin': '#9a7254', 'hair': '#2a2018', 'olive': '#4e4d3c', 'top': '#7a7450',
                    'bottom': '#7a7450', 'belt': '#34322a', 'boots': '#5a3a22', 'pack': '#4e4d3c',
                    'bedroll': '#5e5c44', 'pot': '#3e3e32', 'wood': '#6e5030'},
-        'headgear': 'modern_helmet', 'helmet': None,   # MISSING: helmet_net
+        'headgear': 'modern_helmet', 'helmet': None, 'headgear_params': {'net': True},   # the netted M1
         'hair': 'short', 'beard': False,
         'top': 'sleeved', 'neck': 'high',
         'cuirass': True, 'metal': [],           # the civ-color chest front
@@ -357,13 +358,11 @@ REMASTER = {
 #
 # musket_rest        1  Musketman: a tall forked rest planted upright in the left hand.
 # shoulder_arms      1  Musketman: musket on the right shoulder, angled up-forward (order_arms stands in).
-# hat cavalier       1  Musketeer: a plumed wide brim pinned up one side (a brimmed cap stands in).
 # haversack / cartridge_box  2  Rifleman, Musketman: small bags and boxes on belts and straps (a tan haversack
 #                       at the left hip, a cartridge box behind; the musketman's apostles and hip pouch).
 # chute_pack         2  Paratrooper, WWII Paratrooper: a big parachute pack / camo-wrapped bundle on the back
 #                       (mil_backpack and the settler's sack stand in).
-# helmet_band        1  Marine: a tinted band round the helmet (and a camo cover on modern_helmet).
-# helmet_net         1  WWII Paratrooper: a net over the M1.
+# helmet_camo        1  Marine: a woodland camo cover on modern_helmet (the tinted band is done).
 # gloves             1  Paratrooper: tinted hands (wrist bands stand in).
 # rifle_shoulder     1  Guerilla: rifle vertical against the right shoulder ('upright' holds it low in the fist).
 # ak                 1  Guerilla: an AK (wooden furniture, curved magazine); assault_rifle stands in.
