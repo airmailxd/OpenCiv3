@@ -466,6 +466,17 @@ def headgear(entry, kind, mesh, arm):
 
 def helmet(entry, mesh, arm):
     """Headgear fitted to the head: a shell of the scalp above the brow."""
+    _helmet(entry, mesh, arm)
+    co = entry.get('crown_over')
+    if co:
+        # a crown worn over the hood or helmet (Isabella's over her hood): wider and higher
+        gold = B.material('crown', B.hex_color(_colors(entry).get('gold', '#c8a040')), roughness=0.3, metallic=1.0)
+        gem = entry.get('crown_gems')
+        G.crown(mesh, arm, gold, kind=co, height=entry.get('crown_height', 0.07), gems=B.hex_color(gem) if gem else None,
+                lift=entry.get('crown_lift', 0.02), grow=entry.get('crown_grow', 0.03))
+
+
+def _helmet(entry, mesh, arm):
     kind = entry.get('helmet')
     if not kind:
         return
@@ -938,6 +949,16 @@ def build_footman(entry, seated=False):
                        # 'physique' 0..1: broad shoulders, a V torso, big chest and shoulder muscles
                        physique=entry.get('physique', 0.0))
     H.grime(mesh, amount=entry.get('grime', 0.4))
+    hs = entry.get('hair_scale')
+    if hs and hair:
+        # a bigger head of hair (Einstein's mop): the hair asset scaled about the head's centre
+        top, yc, _ = G._head(mesh)
+        from mathutils import Vector
+        centre = Vector((0.0, yc, top - 0.1 * G._scale))
+        for o in H.assets(mesh):
+            if o.name.lower().endswith(hair.lower()):
+                for v in o.data.vertices:
+                    v.co = centre + (v.co - centre) * hs
     dress(entry, mesh, arm)
     G.store_rest()                 # the garments' rest positions, for patterns
     equip(entry, arm)
