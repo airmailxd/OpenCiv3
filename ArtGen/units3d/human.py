@@ -178,10 +178,19 @@ def tone_skin(basemesh, color, strength=1.0, texture='diffuse', desat=1.0):
             if node.type == 'GROUP':
                 visit(node.node_tree)
             if desat < 1.0 and node.type == 'BSDF_PRINCIPLED' and 'Subsurface Weight' in node.inputs:
-                # less red subsurface scattering on dark skin (it read maroon)
+                # less, and less red, subsurface scattering on dark skin (MPFB's
+                # radius (1, 0.2, 0.1) glows red through it: it read maroon)
                 sw = node.inputs['Subsurface Weight']
-                if not sw.is_linked:
+                if sw.is_linked:
+                    src = sw.links[0].from_socket
+                    k = tree.nodes.new('ShaderNodeMath')
+                    k.operation = 'MULTIPLY'
+                    k.inputs[1].default_value = 0.35
+                    tree.links.new(src, k.inputs[0])
+                    tree.links.new(k.outputs['Value'], sw)
+                else:
                     sw.default_value *= 0.35
+                node.inputs['Subsurface Radius'].default_value = (0.6, 0.4, 0.3)
             if node.type != 'TEX_IMAGE' or not node.image or texture not in node.image.name.lower():
                 continue
             links = [l for l in tree.links if l.from_node == node and l.from_socket.name == 'Color']
