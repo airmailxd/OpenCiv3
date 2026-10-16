@@ -69,20 +69,33 @@ REMASTER = {
     # ---- riders (the PC session's units: mounted.py seats them on their horses)
     # chariot crews (chariots.py): keys '<unit>:crew<i>'
     'chariot:crew0': {'weapon': 'spear', 'props': {'spear': ('spear', {'length': 2.8, 'grip': 1.0})}},
+    # Civ3's Rider: the civ-colored coat with gold belt fittings and gold hems
+    'Rider': {'colors': {'belt': '#c4a462'}, 'hem_bands': [('top', 'gold', 0.03)]},
+    # Civ3's Ansar: a gilded lance, a big round shield with a gold rim and boss, a sword at the hip
+    'Ansar Warrior': {'props': {'cav_spear': ('cav_spear', {'length': 2.3})},
+                      'colors': {'wood': '#8a7048', 'shield_rim': '#d0a840', 'bronze': '#d0a840', 'shield_face': '#b89448'},
+                      'tint': ['hat', 'belt'],
+                      'offhand_mesh': ('shield_round', {'r': 0.32, 'tint': 'none'}),
+                      'hip': ('sheathed_sword', {'length': 0.78})},
     'Ancient Cavalry': {'top': 'sleeved', 'tint': ['top', 'crest', 'shield_face', 'shield_emblem']},
     'Knight': {'top': 'sleeved', 'cuirass': True, 'metal': ['helmet', 'cuirass'],
                'colors': {'cuirass': '#9a9ca2', 'mail': '#7a7c80'}},
-    # Civ3's Cossack: a tan coat; only the papakha and belt are civ-colored\n    'Cossack': {'tint': ['hat', 'belt'], 'headgear_scale': [0.95, 0.95, 0.9]},
+    # Civ3's Cossack: a tan coat; only the papakha and belt are civ-colored
+    'Cossack': {'tint': ['hat', 'belt'], 'headgear_scale': [0.95, 0.95, 0.9]},
     'Keshik': {'tint': ['top', 'hat']},
     'Conquistador': {'tint': ['top'], 'metal': ['cuirass'], 'colors': {'cuirass': '#a8aab0'}},
     'Horseman': {
         # Civ3's Horseman: civ-colored tunic, covered arms and legs, boots, an iron cap
-        'top': 'sleeved',
+        'top': 'tunic',      # short sleeves, so the grey mail sleeves show (as the original)
         'bottom': 'long',
         'wraps': 'boots',
+        # as the original: a long slim pale shaft and a dark leaf head that stays broad from any side
+        'props': {'cav_spear': ('cav_spear', {'length': 2.3, 'grip': 0.9, 'head': 2.0, 'shaft': 0.03, 'flat': 0.6})},
         'neck': 'high', 'collar': 'mail',   # covered to the neck, a ring-mail collar as Civ3's grey shoulders
+        # grey mail down the legs and a pale ash spear shaft, as the original
+        'mail_parts': ['arms', 'legs'],
         'colors': {'skin': '#8e6448', 'bottom': '#4e4a44', 'boots': '#3a2a1c', 'belt': '#3a2818', 'helmet': '#8a8c90',
-                   'steel': '#c8ccd0', 'mail': '#6e7074', 'wood': '#4a3020'},
+                   'steel': '#5c5e62', 'mail': '#8a8c90', 'wood': '#c4a46a'},
         # sitting tall in the saddle, chest out (the riding stance leans a little forward)
         'pose_extra': [('spine_01', (0, 0.12, 1)), ('spine_02', (0, 0.16, 1)), ('spine_03', (0, 0.14, 1)),
                        ('neck_01', (0, 0.04, 1)), ('head', (0, -0.04, 1))],

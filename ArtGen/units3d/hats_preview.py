@@ -39,8 +39,12 @@ def main():
         head.data.materials.append(props.material('hide', {'hide': '#b08a68'}))
         bpy.context.collection.objects.link(head)
         head.location = (0, 0, 0.3)
-        p = props.Prop(kind, {})
-        riders.HEADGEAR[kind](p, {}, True, True)
+        # 'kind:key=val,key=val' passes options to hats that take them
+        name, _, opts = kind.partition(':')
+        params = {k: (v if v not in ('True', 'False') else v == 'True')
+                  for k, v in (o.split('=') for o in opts.split(',') if o)}
+        p = props.Prop(name, {})
+        riders.HEADGEAR[name](p, {}, True, True, **params)
         hat = p.finish()
         hat.location = (0, 0, 0.36)
         for m in hat.data.materials:
@@ -49,7 +53,7 @@ def main():
         for o in [o for o in bpy.data.objects if o.type == 'CAMERA']:
             bpy.data.objects.remove(o, do_unlink=True)
         bscene.camera(CELL, CELL, 380.0, (CELL / 2, CELL / 2 + 0.42 * 380.0 * math.cos(math.radians(30))))
-        sc.render.filepath = os.path.join(tmp, f'{kind}.png')
+        sc.render.filepath = os.path.join(tmp, f"{kind.replace(':', '_').replace('=', '-').replace(',', '_')}.png")
         bpy.ops.render.render(write_still=True)
         paths.append(sc.render.filepath)
         bpy.data.objects.remove(hat, do_unlink=True)

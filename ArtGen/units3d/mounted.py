@@ -19,7 +19,7 @@ from mathutils import Matrix, Vector
 
 import props
 import vkit
-from props import T
+from props import R, T
 
 props.DEFAULTS.setdefault('coat', ('#7a5032', 0.55, 0.0, 'leather'))
 props.DEFAULTS.setdefault('points', ('#2e2218', 0.6, 0.0, 'leather'))
@@ -632,6 +632,93 @@ def _scales(period=0.09):
     return keys
 
 
+props.DEFAULTS.setdefault('tassel', ('#1a1614', 0.9, 0.0, 'rope'))
+
+
+def _girth_arc(vs, z, front, sec, ys):
+    """Points round the horse's chest (front) or rump (not front) at height z,
+    just off the body, from one side of the saddle to the other."""
+    w = sec[0]
+    band = [v for v in vs if abs(v.z - z) < 0.05 and ((v.y > ys + 0.1) if front else (v.y < ys - 0.2))]
+    pts = []
+    for i in range(13):
+        x = -w + 2 * w * i / 12
+        col = [v.y for v in band if abs(v.x - x) < 0.05]
+        if col:
+            pts.append(Vector((x * 1.06, (max(col) + 0.025) if front else (min(col) - 0.025), z)))
+    if len(pts) < 3:
+        return []
+    y_side = ys + 0.18 if front else ys - 0.26
+    zs = sec[1] - 0.12   # up to the saddle's skirt
+    return [Vector((-(w + 0.04), y_side, zs))] + pts + [Vector((w + 0.04, y_side, zs))]
+
+
+def _extra_tack(p, h, vs, arm, a, b, ys, top, sec):
+    """The originals' smaller tack, each from the horse entry `h`:
+    'breast_strap' / 'crupper' (the strap's color key) round the chest / rump,
+    'tassels' (a key) hanging from them; 'nose_wrap' a civ-colored band over
+    the muzzle; 'throat_tassels' (a key) under the jaw; 'bedroll' behind the
+    cantle; 'bow_case' a gilded bow case at the left of the saddle;
+    'cloth_emblem' (a key) a roundel on each flank of the saddle cloth."""
+    tint = lambda key: key == 'tint'   # noqa: E731
+    for opt, front, z in (('breast_strap', True, sec[3] + 0.06), ('crupper', False, sec[1] - 0.1)):
+        key = h.get(opt)
+        if not key:
+            continue
+        arc = _girth_arc(vs, z, front, sec, ys)
+        if not arc:
+            continue
+        sag = h.get('strap_sag', 0.0)   # a strap hanging in a loose loop, lowest at the middle
+        if sag:
+            n = len(arc) - 1
+            arc = [q + Vector((0, 0.3 * sag * math.sin(math.pi * i / n) if front else 0, -sag * math.sin(math.pi * i / n)))
+                   for i, q in enumerate(arc)]
+        p.add(props.tube(arc, 0.026, seg=6, scale_xy=(1.0, 0.45)), key, smooth=True, tint=tint(key))
+        tk = h.get('tassels')
+        if tk:
+            for q in arc[2:-2:2]:
+                p.add(props.tube([q + Vector((0, 0.01 if front else -0.01, -0.01)), q + Vector((0, 0.03 if front else -0.03, -0.15))],
+                                 [0.028, 0.012], seg=6), tk, smooth=True, tint=tint(tk))
+                p.add(props.ellipsoid(0.03, 0.03, 0.03, seg=8), 'trim', T(*q), smooth=True)   # a brass stud
+    if h.get('nose_wrap'):
+        rings = [r for r in (_head_ring(vs, a, b, t, grow=0.02) for t in (0.48, 0.56, 0.64, 0.72, 0.8)) if r]
+        if len(rings) >= 2:
+            p.add(props.loft(rings, False, False), 'tint', smooth=True, tint=True)
+    tk = h.get('throat_tassels')
+    if tk:
+        ring = _head_ring(vs, a, b, 0.3, grow=0.01)
+        if ring:
+            low = min(ring, key=lambda v: v.z)
+            for dx in (-0.04, 0.0, 0.04):
+                q = low + Vector((dx, 0, 0))
+                p.add(props.tube([q, q + Vector((0, -0.03, -0.12)), q + Vector((0, -0.05, -0.24))], [0.022, 0.03, 0.012],
+                                 seg=6), tk, smooth=True, tint=tint(tk))
+    if h.get('bedroll'):
+        p.add(props.tube([(-0.26, ys - 0.34, top + 0.05), (0.26, ys - 0.34, top + 0.05)], 0.075, seg=12), 'bedroll',
+              smooth=True)
+        for x in (-0.14, 0.14):
+            p.add(props.lathe([(0.0, 0.082), (0.03, 0.082)], seg=12), 'leather_dark',
+                  T(x, ys - 0.34, top + 0.05) @ R('Y', 90), smooth=True)
+    if h.get('bow_case'):
+        w = sec[0]
+        m = T(-(w + 0.09), ys - 0.12, top - 0.22) @ R('X', -35)
+        p.add(props.ellipsoid(0.035, 0.13, 0.3, seg=12), 'trim', m, smooth=True)          # the gilded case
+        p.add(props.tube([(0, 0.02, 0.2), (0, 0.06, 0.42)], 0.012, seg=6), 'wood', m, smooth=True)   # the bow's tip
+        p.add(props.tube([(0, -0.1, 0.1), (0, -0.12, 0.3)], [0.05, 0.05], seg=8), 'leather', m, smooth=True)  # quiver
+    ek = h.get('cloth_emblem')
+    if ek:
+        for y in h.get('emblem_ys', [0.0]):
+            s = _sections(vs, [ys + y])[0] or sec
+            for sx in (-1, 1):
+                _roundel(p, ek, T(sx * (s[0] + 0.075), ys + y, s[3] - 0.08) @ R('Y', sx * 90), tint)
+
+
+def _roundel(p, ek, m, tint):
+    """A white disc with a civ-colored hexagon on it, facing the matrix's +Z."""
+    p.add(props.ellipsoid(0.13, 0.13, 0.014, seg=24), ek, m, smooth=True, tint=tint(ek))
+    p.add(props.ellipsoid(0.07, 0.07, 0.022, seg=6), 'tint', m @ R('Z', 30), tint=True)
+
+
 def asset_tack(root, body, colors, h=None):
     """Civ3's tack on the asset horse, from the catalog's 'horse' entry `h`:
     the blanket ('saddle_cloth' civ-colored or in 'blanket_color'; 'pelt';
@@ -677,7 +764,8 @@ def asset_tack(root, body, colors, h=None):
         # deeper for a larger catalog cloth_drop (the old default was 0.24)
         frac = max(0.3, min(1.15, 0.75 * h.get('cloth_drop', 0.24) / 0.24))
         hem = sec[3] - frac * (sec[3] - sec[2])
-        cloth, rings = drape(vs, ys - 0.3, ys + 0.26, hem, folds=0.006 if blanket == 'pelt' else 0.018)
+        # 'cloth_back' reaches it back over the rump (Civ3's Rider)
+        cloth, rings = drape(vs, ys - h.get('cloth_back', 0.3), ys + 0.26, hem, folds=0.006 if blanket == 'pelt' else 0.018)
         key = 'pelt' if blanket == 'pelt' else ('tint' if tinted else 'blanket')
         p.add(cloth, key, smooth=True, tint=key == 'tint')
         hem_line(rings, trim)
@@ -715,7 +803,8 @@ def asset_tack(root, body, colors, h=None):
     for t in (0.12, 0.66):   # crownpiece behind the ears, noseband above the nostrils
         ring = _head_ring(vs, a, b, t, grow=0.004)
         if ring:
-            p.add(props.tube(ring, 0.02, seg=8), 'tint' if btint else 'bridle', smooth=True, tint=btint)
+            p.add(props.tube(ring, 0.034 if h.get('reins_bold') else 0.02, seg=8), 'tint' if btint else 'bridle',
+                  smooth=True, tint=btint)
     if h.get('chanfron'):
         # a steel face plate down the front of the head
         mid = a.lerp(b, 0.45)
@@ -725,7 +814,8 @@ def asset_tack(root, body, colors, h=None):
             front = -front
         plate = props.ellipsoid(0.075, 0.03, 0.26, seg=14)
         rot = axis.to_track_quat('Z', 'Y').to_matrix().to_4x4()
-        p.add(plate, 'barding_mail', Matrix.Translation(mid + front * 0.1) @ rot, smooth=True)
+        ck = 'tint' if h.get('chanfron') == 'tint' else 'barding_mail'   # a civ-colored cloth face piece
+        p.add(plate, ck, Matrix.Translation(mid + front * 0.1) @ rot, smooth=True, tint=ck == 'tint')
     if h.get('neck_cover') == 'cloth':
         # a civ-colored cloth over the chest and the base of the neck (Egyptian chariot horses)
         front, frings = drape(vs, ys + 0.22, yf + 0.12, 0.95, gap=0.03, folds=0.012)
@@ -750,11 +840,13 @@ def asset_tack(root, body, colors, h=None):
                   smooth=True, tint=h.get('plume_tint', True))
     nose = _head_ring(vs, a, b, 0.66, grow=0.004)
     if nose:
+        bold = h.get('reins_bold')   # Civ3 draws some reins as thick civ-colored loops
         for side in (6, 18):   # reins from the bit rings at the noseband's sides to the pommel
             q = nose[side]
-            p.add(props.tube([q, q.lerp(Vector((0, ys + 0.25, top + 0.15)), 0.5) + Vector((0, 0, -0.08)),
-                              Vector((0.06 if side == 6 else -0.06, ys + 0.25, top + 0.12))], 0.014, seg=6),
-                  'leather', smooth=True)
+            p.add(props.tube([q, q.lerp(Vector((0, ys + 0.25, top + 0.15)), 0.5) + Vector((0, 0, -h.get('rein_drop', 0.14) if bold else -0.08)),
+                              Vector((0.06 if side == 6 else -0.06, ys + 0.25, top + 0.12))], 0.024 if bold else 0.014,
+                             seg=6), 'tint' if bold else 'leather', smooth=True, tint=bool(bold))
+    _extra_tack(p, h, vs, arm, a, b, ys, top, sec)
     p.finish()
     return (0.0, ys, top + (0.03 if blanket not in ('barding', 'dots') else 0.07))   # sitting down into the saddle
 
@@ -828,6 +920,7 @@ def mount(unit, h):
     over = HORSE_COAT_OVERRIDES.get(unit, {})
     c.update({k: v for k, v in over.items() if k in c})
     h = dict(h, **{k: v for k, v in over.items() if k in ('dapple', 'coat2', 'blanket_tint')})
+    h.update(TACK_OVERRIDES.get(unit, {}))
     root = vkit.root(unit)
     body = horse_asset(root, dict(h, **c))
     seat = asset_tack(root, body, c, h)
@@ -851,6 +944,17 @@ HORSE_COAT_OVERRIDES = {
     'Hussar': {'coat': '#4e3220', 'mane': '#120c08', 'points': '#160e08'},
     'Cavalry': {'coat': '#b8843c', 'mane': '#cdb488', 'points': '#8a6a3a', 'blanket_tint': True},
     'Ansar Warrior': {'coat': '#2e2e32', 'mane': '#121214', 'points': '#1c1c1e'},
+}
+
+# The originals' tack the catalog doesn't describe (see DETAIL_AUDIT_PC.md)
+TACK_OVERRIDES = {
+    'Horseman': {'nose_wrap': True, 'breast_strap': 'leather_dark'},
+    'Rider': {'breast_strap': 'trim', 'crupper': 'trim', 'tassels': 'trim', 'plume': True, 'plume_tint': False,
+              'bedroll': True, 'bow_case': True, 'cloth_emblem': 'blanket2', 'emblem_ys': [0.0, -0.5],
+              'cloth_back': 0.85, 'cloth_drop': 0.36, 'chanfron': 'tint', 'reins_bold': True},
+    # the original's heavy blue reins and breast straps hang in big loops with tassels
+    'Ansar Warrior': {'throat_tassels': 'tassel', 'reins_bold': True, 'rein_drop': 0.38, 'breast_strap': 'tint',
+                      'crupper': 'tint', 'strap_sag': 0.22, 'tassels': 'tint'},
 }
 
 BUILDERS = {'Horseman': horseman}

@@ -572,17 +572,18 @@ def stone_axe(p, length=0.52, scale=1.0):
         p.add(tube(strap, 0.006, seg=6), 'rope', smooth=True)
 
 
-def spear(p, length=2.3, grip=0.95, butt=True, scale=1.0, shaft=None, head=1.0):
+def spear(p, length=2.3, grip=0.95, butt=True, scale=1.0, shaft=None, head=1.0, shaft_tint=False, flat=0.3):
     """A long ash spear held `grip` m from its butt: a leaf-shaped iron head on
-    a socket, a leather grip binding and an optional butt spike."""
+    a socket, a leather grip binding and an optional butt spike. shaft_tint
+    paints the shaft in the civ color."""
     z0, z1 = -grip, length - grip
     # the shaft is kept at least SHAFT_R thick so it stays ~1 px wide at 1x
     r = shaft or SHAFT_R
-    p.add(tube([(0, 0, z0 + 0.06), (0, 0, z1 - 0.2)], [r + 0.002, r], seg=10), 'wood', bevel=0.002,
-          smooth=True)
+    p.add(tube([(0, 0, z0 + 0.06), (0, 0, z1 - 0.2)], [r + 0.002, r], seg=10), 'tint' if shaft_tint else 'wood',
+          bevel=0.002, smooth=True, tint=shaft_tint)
     # leaf head: a lathe flattened across Y with a raised midrib (diamond section)
     prof = [(0.0, 0.022), (0.06, 0.026), (0.12, 0.048), (0.2, 0.043), (0.27, 0.02), (0.33, 0.0)]
-    head_m = lathe(prof, seg=4, scale_xy=(1.0, 0.3))
+    head_m = lathe(prof, seg=4, scale_xy=(1.0, flat))   # flat: the head's thickness across its width
     p.add(head_m, 'steel', T(0, 0, z1 - 0.33 * head) @ R('Z', 90) @ S(head), bevel=0.0015)
     # socket with a collar ring
     p.add(lathe([(0.0, 0.025), (0.1, 0.023), (0.11, 0.022)], seg=12), 'steel', T(0, 0, z1 - 0.33), smooth=True)
@@ -595,10 +596,20 @@ def spear(p, length=2.3, grip=0.95, butt=True, scale=1.0, shaft=None, head=1.0):
               smooth=True)
 
 
-def cav_spear(p, length=2.7, grip=1.15, butt=True, scale=1.0):
+def pike(p, length=4.2, grip=1.4, scale=1.0, shaft_tint=False):
+    """A Swiss pike: a very long shaft with a small, narrow steel head, iron
+    langets down the shaft below it; held upright."""
+    spear(p, length=length, grip=grip, butt=True, scale=scale, shaft=SHAFT_R, head=0.8, shaft_tint=shaft_tint)
+    z1 = length - grip
+    for sx in (-1, 1):   # langets: iron strips nailed down the shaft under the head
+        p.add(box(0.008, 0.012, 0.4), 'steel', T(sx * (SHAFT_R + 0.003), 0, z1 - 0.55), bevel=0.002)
+
+
+def cav_spear(p, length=2.7, grip=1.15, butt=True, scale=1.0, head=2.3, shaft=0.05, flat=0.3):
     """A horseman's long spear, held further back than a footman's: a stout
-    shaft and a broad head so it reads from the saddle at 1x."""
-    spear(p, length=length, grip=grip, butt=butt, scale=scale, shaft=0.05, head=2.3)
+    shaft and a broad head so it reads from the saddle at 1x (a fuller `flat`
+    keeps the head broad when it's seen edge-on)."""
+    spear(p, length=length, grip=grip, butt=butt, scale=scale, shaft=shaft, head=head, flat=flat)
 
 
 def javelin(p, length=1.6, grip=0.6, scale=1.0):
@@ -768,14 +779,54 @@ def shield_oval(p, w=0.66, h=0.66, dome=0.06, emblem_angle=45.0, band=0.1, scale
     _strap_back(p)
 
 
-def shield_round(p, r=0.24, dome=0.045, boss=True, scale=1.0, tint='both'):
+DEFAULTS.setdefault('shield_pale', ('#ddd4bc', 0.75, 0.0, 'wood'))     # a pale painted device on a civ face
+DEFAULTS.setdefault('shield_device', ('#1e1a18', 0.7, 0.0, 'wood'))   # a hoplite's black painted device
+DEFAULTS.setdefault('shield_accent', ('#8a2a1e', 0.7, 0.0, 'wood'))   # its red accent
+DEFAULTS.setdefault('gold', ('#c8a048', 0.35, 1.0, 'metal'))
+
+
+def _round_device(rr, emblem):
+    """Face-key functions for painted round shields (face toward -Y)."""
+    def keys(f):
+        if f.normal.y > -0.3:
+            return None
+        c = f.calc_center_median()
+        x, z = c.x / rr, c.z / rr
+        d = math.hypot(x, z)
+        if emblem == 'aspis':
+            # a black device: a ring band and a lambda-like chevron, a red eye at its apex
+            if 0.86 < d < 0.94:
+                return ('shield_device', False)
+            if math.hypot(x, z - 0.32) < 0.1:
+                return ('shield_accent', False)
+            if z < 0.3 and abs(abs(x) - (0.3 - z) * 0.45) < 0.07 and z > -0.6:
+                return ('shield_device', False)
+        elif emblem == 'jaguar':
+            # dark spots scattered over the civ-colored face (solid, so they read at 1x)
+            u, v = x * 3.2, z * 3.2
+            if int(math.floor(v)) % 2:
+                u += 0.5
+            du, dv = u - math.floor(u) - 0.5, v - math.floor(v) - 0.5
+            if math.hypot(du, dv) < 0.24 and 0.3 < d < 0.9:
+                return ('shield_device', False)
+        return None
+    return keys
+
+
+def shield_round(p, r=0.24, dome=0.045, boss=True, scale=1.0, tint='both', face_tint=False, emblem=None,
+                 boss_key=None):
     """The Swordsman's small round shield: a dark plank board, a rim and boss
     in the civ color (tint, as in the original); arm strap at the origin.
     tint: 'both', 'rim', 'boss' or 'none' (which parts take the civ color;
-    untinted ones are 'shield_rim' and bronze)."""
+    untinted ones are 'shield_rim' and bronze). face_tint paints the face in
+    the civ color (otherwise it's 'shield_face', whatever tint says); emblem
+    'aspis' (a black device with a red accent) or 'jaguar' (dark rosettes)
+    paints a device on the face; boss_key overrides the boss's material."""
     rr = r * scale
     thick, gap = 0.02, -0.045
-    p.add(domed_disc(rr, rr, thick, dome, rings=6, seg=40), 'shield_face', T(0, gap, 0), smooth=True)
+    face_key = 'shield_emblem' if face_tint else 'shield_face'
+    p.add(domed_disc(rr, rr, thick, dome, rings=10 if emblem else 6, seg=64 if emblem else 40), face_key,
+          T(0, gap, 0), smooth=True, tint=face_tint, keys=_round_device(rr, emblem) if emblem else None)
     k = 56
     ring = [(rr * math.cos(2 * math.pi * i / k), gap - thick * 0.6, rr * math.sin(2 * math.pi * i / k))
             for i in range(k + 1)]
@@ -785,9 +836,16 @@ def shield_round(p, r=0.24, dome=0.045, boss=True, scale=1.0, tint='both'):
     if boss:
         prof = [(0.0, 0.075), (0.012, 0.072), (0.02, 0.05), (0.045, 0.035), (0.06, 0.0)]
         b = lathe(prof, seg=24)
-        p.add(b, 'shield_emblem' if boss_t else 'bronze', T(0, gap - thick - dome + 0.01, 0) @ R('X', 90), smooth=True,
-              tint=boss_t)
+        bk = boss_key or ('shield_emblem' if boss_t else 'bronze')
+        p.add(b, bk, T(0, gap - thick - dome + 0.01, 0) @ R('X', 90), smooth=True, tint=bk == 'shield_emblem')
     _strap_back(p, half=0.08)
+
+
+def jaguar_shield(p, r=0.3, scale=1.0):
+    """A Jaguar Warrior's round shield: a civ-colored face with dark rosettes,
+    a pale rim and a gold boss."""
+    shield_round(p, r=r, dome=0.03, boss=True, scale=scale, tint='none', face_tint=True, emblem='jaguar',
+                 boss_key='gold')
 
 
 # ------------------------------------------------------------ tools
@@ -1027,17 +1085,28 @@ def glaive(p, length=2.0, grip=0.8, scale=1.0):
     p.add(lathe([(0.0, 0.026), (0.06, 0.024)], seg=10), 'iron', T(0, 0, z1 - 0.46), smooth=True)
 
 
-def javelin_bundle(p, n=5, length=1.9, scale=1.0):
+DEFAULTS.setdefault('tint', ('#3a6ad0', 0.7, 0.0, 'cloth'))   # civ-colored parts (the tint layer recolors them)
+DEFAULTS.setdefault('tassel_yellow', ('#d8b040', 0.85, 0.0, 'rope'))
+
+
+def javelin_bundle(p, n=5, length=1.9, scale=1.0, shaft_tint=False, tassels=False):
     """4-5 javelins bound together near the middle, carried upright (the grip,
-    where they're bound, at the origin)."""
+    where they're bound, at the origin). shaft_tint paints the shafts in the
+    civ color; tassels hangs a yellow tassel under each head."""
     for i in range(n):
         a = 2 * math.pi * i / n
         off = Vector((0.03 * math.cos(a), 0.03 * math.sin(a), 0.0))
         tilt = R('X', 3 * math.sin(a)) @ R('Y', 3 * math.cos(a))
-        p.add(tube([(0, 0, -0.85), (0, 0, length - 0.95)], 0.013, seg=8), 'wood', Matrix.Translation(off) @ tilt,
-              smooth=True)
+        m = Matrix.Translation(off) @ tilt
+        p.add(tube([(0, 0, -0.85), (0, 0, length - 0.95)], 0.013, seg=8), 'tint' if shaft_tint else 'wood', m,
+              smooth=True, tint=shaft_tint)
         head = lathe([(0.0, 0.014), (0.05, 0.022), (0.13, 0.0)], seg=4, scale_xy=(1.0, 0.3))
-        p.add(head, 'steel', Matrix.Translation(off) @ tilt @ T(0, 0, length - 0.95), bevel=0.001)
+        p.add(head, 'steel', m @ T(0, 0, length - 0.95), bevel=0.001)
+        if tassels:
+            zt = length - 0.97
+            sx, sy = math.cos(a), math.sin(a)
+            p.add(tube([(0, 0, zt), (0.03 * sx, 0.03 * sy, zt - 0.07), (0.04 * sx, 0.04 * sy, zt - 0.15)],
+                       [0.02, 0.022, 0.008], seg=6), 'tassel_yellow', m, smooth=True)
     for z in (-0.06, 0.08):
         p.add(lathe([(0.0, 0.05), (0.025, 0.05)], seg=14), 'leather_dark', T(0, 0, z), smooth=True)
 
@@ -1064,10 +1133,11 @@ def torch(p, length=0.55, scale=1.0):
 
 # ------------------------------------------------------------ more shields
 
-def scutum(p, w=0.62, h=1.05, curve=0.16, scale=1.0):
+def scutum(p, w=0.62, h=1.05, curve=0.16, scale=1.0, face_tint=False):
     """A legionary's scutum: a tall curved rectangular board (face grey,
     'shield_face'), a bronze boss, and a winged-thunderbolt emblem in the civ
-    color ('shield_emblem'); arm strap at the origin, face -Y."""
+    color ('shield_emblem'); arm strap at the origin, face -Y. face_tint
+    swaps them: a civ-colored face with a pale emblem ('shield_pale')."""
     W, H = w * scale, h * scale
     gap = -0.06
     rings = []
@@ -1093,9 +1163,11 @@ def scutum(p, w=0.62, h=1.05, curve=0.16, scale=1.0):
         x, z = c.x / W, c.z / H
         bolt = abs(x - 0.06 * math.sin(z * 18)) < 0.035 and abs(z) < 0.42
         wings = abs(z) < 0.07 and 0.08 < abs(x) < 0.4 and abs(z - 0.12 * (abs(x) - 0.08)) < 0.05
-        return ('shield_emblem', True) if (bolt or wings) and math.hypot(x, z * 1.4) > 0.1 else None
+        if (bolt or wings) and math.hypot(x, z * 1.4) > 0.1:
+            return ('shield_pale', False) if face_tint else ('shield_emblem', True)
+        return None
 
-    p.add(face, 'shield_face', smooth=True, keys=emblem)
+    p.add(face, 'shield_emblem' if face_tint else 'shield_face', smooth=True, tint=face_tint, keys=emblem)
     edge = [rings[0][0], rings[0][-1], rings[-1][-1], rings[-1][0]]
     for a, b in zip(edge, edge[1:] + edge[:1]):
         p.add(tube([a, b], 0.012, seg=6), 'bronze', smooth=True)
@@ -1137,9 +1209,10 @@ def chimalli(p, r=0.3, emblem=False, scale=1.0):
     _strap_back(p, half=0.08)
 
 
-def plain_round(p, r=0.26, dome=0.04, scale=1.0):
-    """A round wooden shield with a wooden rim and a bronze boss; no tint."""
-    shield_round(p, r=r, dome=dome, boss=True, scale=scale, tint='none')
+def plain_round(p, r=0.26, dome=0.04, scale=1.0, face_tint=False, emblem=None):
+    """A round wooden shield with a wooden rim and a bronze boss; the face is
+    'shield_face' (or the civ color with face_tint)."""
+    shield_round(p, r=r, dome=dome, boss=True, scale=scale, tint='none', face_tint=face_tint, emblem=emblem)
 
 
 # ------------------------------------------------------------ held items
@@ -1296,13 +1369,34 @@ def tow_launcher(p, scale=1.0):
     p.add(box(0.1, 0.16, 0.1), 'gunmetal', T(0.13, 0.0, 0.8 * s), bevel=0.01)
 
 
-def modern_helmet(p, scale=1.0):
+DEFAULTS.setdefault('helmet_net', ('#2a2a1e', 0.9, 0.0, 'rope'))
+
+
+def modern_helmet(p, scale=1.0, band=False, net=False):
     """A steel combat helmet (M1-style): a dome with a slight brim and a
-    canvas cover; the origin at the brow line, +Y forward (as headgear)."""
+    canvas cover; the origin at the brow line, +Y forward (as headgear).
+    band: a civ-colored band round it (Marine); net: a dark camouflage net
+    over the dome with a few cords hanging free (WWII Para)."""
     s = scale
     dome = lathe([(-0.005, 0.135), (0.0, 0.132), (0.06, 0.125), (0.12, 0.09), (0.16, 0.0)], seg=24)
     p.add(dome, 'olive', S(s), smooth=True)
     p.add(lathe([(-0.01, 0.142), (0.002, 0.142)], seg=24), 'olive', S(s), smooth=True)
+    if band:
+        p.add(lathe([(0.02, 0.134), (0.055, 0.128)], seg=24), 'tint', S(s), smooth=True, tint=True)
+    if net:
+        # a coarse mesh: meridian and parallel cords standing just off the dome
+        prof = [(0.0, 0.135), (0.06, 0.128), (0.12, 0.093), (0.155, 0.03)]
+        for i in range(12):
+            a = 2 * math.pi * i / 12
+            pts = [((r + 0.004) * math.cos(a), (r + 0.004) * math.sin(a), z) for z, r in prof]
+            p.add(tube(pts, 0.004, seg=4), 'helmet_net', S(s), smooth=True)
+        for z, r in prof[1:3]:
+            ring = [((r + 0.004) * math.cos(2 * math.pi * i / 24), (r + 0.004) * math.sin(2 * math.pi * i / 24), z)
+                    for i in range(25)]
+            p.add(tube(ring, 0.004, seg=4), 'helmet_net', S(s), smooth=True)
+        for a in (2.2, 3.6, 4.4):   # loose ends hanging at the back and sides
+            x, y = 0.14 * math.cos(a), 0.14 * math.sin(a)
+            p.add(tube([(x, y, 0.0), (x * 1.05, y * 1.05, -0.06)], 0.005, seg=4), 'helmet_net', S(s), smooth=True)
 
 
 def canteen(p, scale=1.0):
@@ -1545,6 +1639,8 @@ BUILDERS = {
     'cowhide_shield': cowhide_shield,
     'chimalli': chimalli,
     'plain_round': plain_round,
+    'jaguar_shield': jaguar_shield,
+    'pike': pike,
     'book': book,
     'map': map,
     'gourd': gourd,

@@ -72,7 +72,9 @@ def headgear(entry, arm):
     tinted = 'hat' in entry.get('tint', []) or 'helmet' in entry.get('tint', [])
     p = props.Prop(f'headgear_{kind}', c, {'hat': {'grime': 0.5}, 'helmet': {'grime': 0.4, 'rust': 0.15},
                                           'tint': {'grime': 0.45}})
-    HEADGEAR[kind](p, c, tinted, 'crest' in entry.get('tint', []) or 'plume' in entry.get('tint', []))
+    # 'headgear_params': keyword options for hats that take them (feather_headdress, modern_helmet)
+    HEADGEAR[kind](p, c, tinted, 'crest' in entry.get('tint', []) or 'plume' in entry.get('tint', []),
+                   **entry.get('headgear_params', {}))
     obj = p.finish()
     s = entry.get('headgear_scale', 1.0)
     sx, sy, sz = (s, s, s) if isinstance(s, (int, float)) else s
@@ -99,8 +101,8 @@ def _k(tinted, key):
 
 
 @hat('modern_helmet')
-def _modern_helmet(p, c, tinted, crest):
-    props.modern_helmet(p)
+def _modern_helmet(p, c, tinted, crest, band=False, net=False):
+    props.modern_helmet(p, band=band, net=net)
 
 
 @hat('papakha')
@@ -126,10 +128,10 @@ def shako(p, c, tinted, plume_tinted):
 
 @hat('hat_cone')
 def hat_cone(p, c, tinted, _):
-    """A tall conical felt cap with a fur brim."""
+    """A tall conical felt cap with a thick white fleece brim (Civ3's Rider)."""
     key, t = _k(tinted, 'hat')
     p.add(props.lathe([(0.03, 0.11), (0.28, 0.0)], seg=24), key, smooth=True, tint=t)
-    p.add(props.lathe([(0.0, 0.125), (0.05, 0.128)], seg=24), 'fur', smooth=True)
+    p.add(props.lathe([(-0.01, 0.12), (0.01, 0.138), (0.05, 0.14), (0.07, 0.122)], seg=24), 'plume', smooth=True)
 
 
 @hat('fur_hat')
@@ -195,7 +197,10 @@ def head_wrap(p, c, tinted, _):
         r = 0.12 - 0.008 * i
         p.add(props.lathe([(0.0, r), (0.028, r)], seg=24), key, T(0, 0, z) @ R('X', 6 * (-1) ** i),
               smooth=True, tint=t)
-    p.add(props.ellipsoid(0.095, 0.095, 0.07, seg=18), key, T(0, 0, 0.13), smooth=True, tint=t)
+    # a white crown and a small white plume above the wound civ-colored cloth (Civ3's Ansar)
+    p.add(props.ellipsoid(0.095, 0.095, 0.075, seg=18), 'plume', T(0, 0, 0.13), smooth=True)
+    p.add(props.tube([(0, 0.01, 0.19), (0, -0.01, 0.27), (0, -0.05, 0.31)], [0.026, 0.022, 0.006], seg=8), 'plume',
+          smooth=True)
 
 
 @hat('feather_bonnet')
@@ -260,10 +265,23 @@ def fan_headdress(p, c, tinted, _):
 
 
 @hat('feather_headdress')
-def feather_headdress(p, c, tinted, _):
+def feather_headdress(p, c, tinted, _, style=None):
     """Tall upright feathers in a crown (Impi, Aztec, Mayan, Iroquois):
-    alternately civ-colored and natural, on a headband."""
+    alternately civ-colored and natural, on a headband. style='bushy' (Impi):
+    many short feathers, all civ-colored, in two rows splaying into a round
+    bushy crown."""
     p.add(props.lathe([(0.0, 0.114), (0.04, 0.114)], seg=24), 'tint', smooth=True, tint=True)
+    if style == 'bushy':
+        for row, (n, lift, spread, h) in enumerate(((18, 0.02, 0.2, 0.15), (13, 0.06, 0.14, 0.17))):
+            for i in range(n):
+                a = 2 * math.pi * (i + 0.5 * row) / n
+                base = (0.11 * math.sin(a), 0.11 * math.cos(a), lift)
+                tip = (spread * math.sin(a), spread * math.cos(a), lift + h)
+                mid = tuple(0.5 * (b + t) for b, t in zip(base, tip))
+                mid = (mid[0] * 1.08, mid[1] * 1.08, mid[2] + 0.02)   # curving outward
+                p.add(props.tube([base, mid, tip], [0.03, 0.05, 0.028], seg=6, scale_xy=(1.0, 0.5)), 'tint',
+                      smooth=True, tint=True)
+        return
     n = 11
     for i in range(n):
         a = math.radians(-140 + 280 * i / (n - 1))
@@ -292,6 +310,21 @@ def bicorne(p, c, tinted, plume_tinted):
     p.add(shape, key, T(0, 0, 0.02), bevel=0.01, tint=t)
     ck, ct = _k(plume_tinted, 'plume')
     p.add(props.lathe([(0.0, 0.03), (0.01, 0.03)], seg=16), ck, T(0.1, 0.03, 0.1) @ R('X', 90), smooth=True, tint=ct)
+
+
+@hat('cavalier')
+def cavalier(p, c, tinted, plume_tinted):
+    """A cavalier's hat (Musketeer): a low crown, a wide soft brim pinned up
+    on the left side, and a big plume sweeping back over the pinned side."""
+    key, t = _k(tinted, 'felt')
+    p.add(props.lathe([(0.0, 0.112), (0.09, 0.108), (0.12, 0.09), (0.13, 0.0)], seg=24), key, smooth=True, tint=t)
+    # the brim: wide and drooping a little, but swept up against the crown on the left (-X)
+    _brim(p, 0.11, 0.25, 0.0, key, up=lambda a: (0.16 * max(0.0, -math.cos(a)) ** 3) - 0.02 * max(0.0, math.cos(a)),
+          tint=t)
+    p.add(props.ellipsoid(0.03, 0.03, 0.03, seg=10), 'brass', T(-0.13, 0.0, 0.08), smooth=True)   # the pin
+    pk, pt = _k(plume_tinted, 'plume')
+    p.add(props.tube([(-0.12, 0.03, 0.1), (-0.16, -0.06, 0.22), (-0.14, -0.22, 0.24), (-0.1, -0.34, 0.14)],
+                     [0.04, 0.06, 0.05, 0.01], seg=10, scale_xy=(1.0, 0.7)), pk, smooth=True, tint=pt)
 
 
 @hat('top_hat')
@@ -361,5 +394,6 @@ def morion_big(p, c, tinted, plume_tinted):
     back, with a big plume."""
     morion(p, c, tinted, plume_tinted)
     pk, pt = _k(plume_tinted, 'plume')
-    p.add(props.tube([(0, -0.05, 0.14), (0, -0.14, 0.24), (0, -0.3, 0.22)], [0.03, 0.035, 0.008], seg=8), pk,
-          smooth=True, tint=pt)
+    # a big ostrich plume, twice the old one, rising from the comb and curling back and down
+    p.add(props.tube([(0, -0.04, 0.14), (0, -0.14, 0.32), (0, -0.34, 0.4), (0, -0.52, 0.32), (0, -0.6, 0.18)],
+                     [0.05, 0.07, 0.07, 0.05, 0.012], seg=10, scale_xy=(0.7, 1.0)), pk, smooth=True, tint=pt)
