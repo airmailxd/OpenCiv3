@@ -1,0 +1,225 @@
+{
+  "unit": "Carrack",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.5,
+    128.0
+  ],
+  "anchor_override": [
+    120.0,
+    119.90471645424788
+  ],
+  "standing_height": 81.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        108.08,
+        128
+      ],
+      "top": 49,
+      "height": 80,
+      "bbox": [
+        87,
+        49,
+        153,
+        128
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        120.0,
+        131
+      ],
+      "top": 48,
+      "height": 84,
+      "bbox": [
+        102,
+        48,
+        138,
+        131
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        130.54,
+        127
+      ],
+      "top": 49,
+      "height": 79,
+      "bbox": [
+        86,
+        49,
+        153,
+        127
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        115.21,
+        123
+      ],
+      "top": 50,
+      "height": 74,
+      "bbox": [
+        72,
+        50,
+        166,
+        123
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        101.67,
+        131
+      ],
+      "top": 49,
+      "height": 83,
+      "bbox": [
+        86,
+        49,
+        152,
+        131
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        119.0,
+        134
+      ],
+      "top": 48,
+      "height": 87,
+      "bbox": [
+        100,
+        48,
+        138,
+        134
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        137.02,
+        131
+      ],
+      "top": 50,
+      "height": 82,
+      "bbox": [
+        86,
+        50,
+        153,
+        131
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        123.59,
+        124
+      ],
+      "top": 50,
+      "height": 75,
+      "bbox": [
+        73,
+        50,
+        167,
+        124
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 51.0108,
+    "fit": 0.981,
+    "archetype": "ship"
+  },
+  "default_flic": "Carrack_default.flc",
+  "flics": {
+    "Carrack_attackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 148,
+      "height": 103,
+      "offset_left": 46,
+      "offset_top": 43,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "Carrack_death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 178,
+      "height": 124,
+      "offset_left": 28,
+      "offset_top": 41,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 20,
+      "frameMs": 83
+    },
+    "Carrack_default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 108,
+      "height": 95,
+      "offset_left": 61,
+      "offset_top": 48,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "Carrack_fidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 108,
+      "height": 95,
+      "offset_left": 61,
+      "offset_top": 48,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "Carrack_run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 109,
+      "height": 96,
+      "offset_left": 60,
+      "offset_top": 47,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 83
+    }
+  }
+}

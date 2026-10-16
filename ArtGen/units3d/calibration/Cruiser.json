@@ -1,0 +1,226 @@
+{
+  "unit": "Cruiser",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.36,
+    136.5
+  ],
+  "anchor_override": [
+    120.0,
+    119.3157353343172
+  ],
+  "standing_height": 51.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        84.14,
+        140
+      ],
+      "top": 89,
+      "height": 52,
+      "bbox": [
+        73,
+        89,
+        156,
+        140
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        119.64,
+        148
+      ],
+      "top": 83,
+      "height": 66,
+      "bbox": [
+        109,
+        83,
+        130,
+        148
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        155.19,
+        140
+      ],
+      "top": 89,
+      "height": 52,
+      "bbox": [
+        83,
+        89,
+        167,
+        140
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        126.4,
+        123
+      ],
+      "top": 92,
+      "height": 32,
+      "bbox": [
+        69,
+        92,
+        186,
+        123
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        90.4,
+        136
+      ],
+      "top": 86,
+      "height": 51,
+      "bbox": [
+        83,
+        86,
+        166,
+        136
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        119.08,
+        143
+      ],
+      "top": 77,
+      "height": 67,
+      "bbox": [
+        109,
+        77,
+        130,
+        143
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        148.58,
+        136
+      ],
+      "top": 87,
+      "height": 50,
+      "bbox": [
+        73,
+        87,
+        157,
+        136
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        112.56,
+        123
+      ],
+      "top": 94,
+      "height": 30,
+      "bbox": [
+        53,
+        94,
+        170,
+        123
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 43.7157,
+    "fit": 0.8407,
+    "archetype": "ship"
+  },
+  "default_flic": "HeavyCruiser_default.flc",
+  "flics": {
+    "HeavyCruiser_attack.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 151,
+      "height": 108,
+      "offset_left": 40,
+      "offset_top": 49,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "HeavyCruiser_death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 144,
+      "height": 132,
+      "offset_left": 48,
+      "offset_top": 24,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 17,
+      "frameMs": 66
+    },
+    "HeavyCruiser_default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 140,
+      "height": 77,
+      "offset_left": 48,
+      "offset_top": 76,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 125
+    },
+    "HeavyCruiser_fidget.flc": {
+      "actions": [
+        "FIDGET",
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 140,
+      "height": 77,
+      "offset_left": 48,
+      "offset_top": 76,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 100
+    },
+    "HeavyCruiser_run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 151,
+      "height": 81,
+      "offset_left": 40,
+      "offset_top": 76,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    }
+  }
+}

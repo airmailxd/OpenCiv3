@@ -697,8 +697,13 @@ def tow_team(colors, k=1.0):
             f.add(props.box(0.36, 0.04, 0.3), 'olive_dark', T(x, y, z + 0.14) @ R('Z', yaw) @ T(0, dy, 0), bevel=0.006)
     f.finish()
     root.scale = (k, k, k)
-    vkit.crew(root, 0, (0.05, -1.05, 0.0), yaw=0.0)      # the gunner, kneeling at the sight
-    vkit.crew(root, 1, (-0.85, -0.4, 0.0), yaw=-25.0)    # the spotter, standing beside it
+    # the gunner sits on an ammo crate behind the launcher, at the sight
+    f2 = vkit.part(root, 'seat', c, ARTILLERY_WEAR)
+    f2.add(props.box(0.36, 0.5, 0.3), 'olive', T(0.05, -1.1, 0.15), bevel=0.02)
+    f2.add(props.box(0.38, 0.52, 0.04), 'olive_dark', T(0.05, -1.1, 0.31), bevel=0.01)
+    f2.finish()
+    vkit.crew(root, 0, (0.05, -1.08, 0.42), yaw=0.0)     # his hips on the crate
+    vkit.crew(root, 1, (-1.35, 0.25, 0.0), yaw=-25.0)    # the spotter, standing well clear
     return root
 
 

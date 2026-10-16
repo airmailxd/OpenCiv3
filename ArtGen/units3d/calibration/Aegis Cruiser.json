@@ -1,0 +1,226 @@
+{
+  "unit": "Aegis Cruiser",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.68,
+    134.0
+  ],
+  "anchor_override": [
+    120.0,
+    119.52754910887013
+  ],
+  "standing_height": 60.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        94.83,
+        134
+      ],
+      "top": 74,
+      "height": 61,
+      "bbox": [
+        82,
+        74,
+        161,
+        134
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        120.5,
+        140
+      ],
+      "top": 73,
+      "height": 68,
+      "bbox": [
+        110,
+        73,
+        130,
+        140
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        145.5,
+        134
+      ],
+      "top": 73,
+      "height": 62,
+      "bbox": [
+        79,
+        73,
+        158,
+        134
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        113.65,
+        123
+      ],
+      "top": 75,
+      "height": 49,
+      "bbox": [
+        69,
+        75,
+        172,
+        123
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        90.0,
+        137
+      ],
+      "top": 78,
+      "height": 60,
+      "bbox": [
+        78,
+        78,
+        156,
+        137
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        118.85,
+        144
+      ],
+      "top": 79,
+      "height": 66,
+      "bbox": [
+        109,
+        79,
+        129,
+        144
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        148.49,
+        138
+      ],
+      "top": 79,
+      "height": 60,
+      "bbox": [
+        81,
+        79,
+        160,
+        138
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        125.29,
+        124
+      ],
+      "top": 77,
+      "height": 48,
+      "bbox": [
+        67,
+        77,
+        170,
+        124
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 49.9749,
+    "fit": 0.9611,
+    "archetype": "ship"
+  },
+  "default_flic": "AegisCruiserDefault.flc",
+  "flics": {
+    "AegisCruiserAttackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 240,
+      "height": 240,
+      "offset_left": 0,
+      "offset_top": 0,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 20,
+      "frameMs": 100
+    },
+    "AegisCruiserDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 240,
+      "height": 240,
+      "offset_left": 0,
+      "offset_top": 0,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 20,
+      "frameMs": 83
+    },
+    "AegisCruiserDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 106,
+      "height": 72,
+      "offset_left": 67,
+      "offset_top": 73,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 142
+    },
+    "AegisCruiserFidget.flc": {
+      "actions": [
+        "FIDGET",
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 106,
+      "height": 72,
+      "offset_left": 67,
+      "offset_top": 73,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 100
+    },
+    "AegisCruiserRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 116,
+      "height": 76,
+      "offset_left": 62,
+      "offset_top": 73,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 14,
+      "frameMs": 125
+    }
+  }
+}

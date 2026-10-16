@@ -1,0 +1,225 @@
+{
+  "unit": "Dromon",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.48,
+    127.0
+  ],
+  "anchor_override": [
+    120.0,
+    121.63438993611427
+  ],
+  "standing_height": 51.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        107.28,
+        130
+      ],
+      "top": 78,
+      "height": 53,
+      "bbox": [
+        95,
+        78,
+        139,
+        130
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        119.46,
+        133
+      ],
+      "top": 78,
+      "height": 56,
+      "bbox": [
+        101,
+        78,
+        138,
+        133
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        131.65,
+        130
+      ],
+      "top": 78,
+      "height": 53,
+      "bbox": [
+        99,
+        78,
+        144,
+        130
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        120.85,
+        128
+      ],
+      "top": 78,
+      "height": 51,
+      "bbox": [
+        91,
+        78,
+        154,
+        128
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        113.61,
+        128
+      ],
+      "top": 78,
+      "height": 51,
+      "bbox": [
+        100,
+        78,
+        144,
+        128
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        119.5,
+        128
+      ],
+      "top": 78,
+      "height": 51,
+      "bbox": [
+        101,
+        78,
+        138,
+        128
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        125.24,
+        129
+      ],
+      "top": 78,
+      "height": 52,
+      "bbox": [
+        96,
+        78,
+        140,
+        129
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        117.75,
+        127
+      ],
+      "top": 78,
+      "height": 50,
+      "bbox": [
+        85,
+        78,
+        148,
+        127
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 42.0209,
+    "fit": 0.8081,
+    "archetype": "ship"
+  },
+  "default_flic": "Dromon_Default.flc",
+  "flics": {
+    "Dromon_Attack.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 240,
+      "height": 188,
+      "offset_left": 0,
+      "offset_top": 0,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 20,
+      "frameMs": 66
+    },
+    "Dromon_Death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 83,
+      "height": 65,
+      "offset_left": 78,
+      "offset_top": 76,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 20,
+      "frameMs": 66
+    },
+    "Dromon_Default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 78,
+      "height": 61,
+      "offset_left": 78,
+      "offset_top": 77,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 125
+    },
+    "Dromon_Fidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 79,
+      "height": 61,
+      "offset_left": 78,
+      "offset_top": 77,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 5,
+      "frameMs": 125
+    },
+    "Dromon_Run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 79,
+      "height": 61,
+      "offset_left": 77,
+      "offset_top": 77,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 100
+    }
+  }
+}

@@ -1,0 +1,226 @@
+{
+  "unit": "Ironclad",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.25,
+    131.5
+  ],
+  "anchor_override": [
+    120.0,
+    120.1362915054108
+  ],
+  "standing_height": 34.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        98.55,
+        133
+      ],
+      "top": 96,
+      "height": 38,
+      "bbox": [
+        92,
+        96,
+        150,
+        133
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        119.1,
+        139
+      ],
+      "top": 90,
+      "height": 50,
+      "bbox": [
+        111,
+        90,
+        128,
+        139
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        139.06,
+        133
+      ],
+      "top": 96,
+      "height": 38,
+      "bbox": [
+        88,
+        96,
+        146,
+        133
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        119.4,
+        124
+      ],
+      "top": 109,
+      "height": 16,
+      "bbox": [
+        75,
+        109,
+        158,
+        124
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        100.16,
+        133
+      ],
+      "top": 104,
+      "height": 30,
+      "bbox": [
+        89,
+        104,
+        147,
+        133
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        120.0,
+        138
+      ],
+      "top": 98,
+      "height": 41,
+      "bbox": [
+        111,
+        98,
+        128,
+        138
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        138.52,
+        132
+      ],
+      "top": 104,
+      "height": 29,
+      "bbox": [
+        93,
+        104,
+        151,
+        132
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        119.04,
+        124
+      ],
+      "top": 109,
+      "height": 16,
+      "bbox": [
+        81,
+        109,
+        164,
+        124
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 51.6479,
+    "fit": 0.9932,
+    "archetype": "ship"
+  },
+  "default_flic": "IroncladDefault.flc",
+  "flics": {
+    "IroncladAttackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 240,
+      "height": 240,
+      "offset_left": 0,
+      "offset_top": 0,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 20,
+      "frameMs": 66
+    },
+    "IroncladDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 240,
+      "height": 240,
+      "offset_left": 0,
+      "offset_top": 0,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 20,
+      "frameMs": 83
+    },
+    "IroncladDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 90,
+      "height": 50,
+      "offset_left": 75,
+      "offset_top": 90,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 166
+    },
+    "IroncladFidget.flc": {
+      "actions": [
+        "FIDGET",
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 90,
+      "height": 49,
+      "offset_left": 75,
+      "offset_top": 90,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 100
+    },
+    "IroncladRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 98,
+      "height": 89,
+      "offset_left": 71,
+      "offset_top": 54,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 125
+    }
+  }
+}

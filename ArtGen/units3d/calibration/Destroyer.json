@@ -1,0 +1,226 @@
+{
+  "unit": "Destroyer",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.55,
+    133.0
+  ],
+  "anchor_override": [
+    120.0,
+    119.17511254337931
+  ],
+  "standing_height": 44.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        93.48,
+        133
+      ],
+      "top": 94,
+      "height": 40,
+      "bbox": [
+        86,
+        94,
+        158,
+        133
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        119.85,
+        139
+      ],
+      "top": 90,
+      "height": 50,
+      "bbox": [
+        111,
+        90,
+        128,
+        139
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        145.35,
+        132
+      ],
+      "top": 94,
+      "height": 39,
+      "bbox": [
+        82,
+        94,
+        153,
+        132
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        111.15,
+        122
+      ],
+      "top": 92,
+      "height": 31,
+      "bbox": [
+        72,
+        92,
+        166,
+        122
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        90.73,
+        136
+      ],
+      "top": 89,
+      "height": 48,
+      "bbox": [
+        81,
+        89,
+        153,
+        136
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        119.25,
+        142
+      ],
+      "top": 88,
+      "height": 55,
+      "bbox": [
+        111,
+        88,
+        128,
+        142
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        147.97,
+        137
+      ],
+      "top": 89,
+      "height": 49,
+      "bbox": [
+        86,
+        89,
+        157,
+        137
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        128.23,
+        123
+      ],
+      "top": 93,
+      "height": 31,
+      "bbox": [
+        73,
+        93,
+        167,
+        123
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 41.3751,
+    "fit": 0.7957,
+    "archetype": "ship"
+  },
+  "default_flic": "DestroyerDefault.flc",
+  "flics": {
+    "DestroyerAttackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 240,
+      "height": 240,
+      "offset_left": 0,
+      "offset_top": 0,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 20,
+      "frameMs": 100
+    },
+    "DestroyerDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 240,
+      "height": 240,
+      "offset_left": 0,
+      "offset_top": 0,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 20,
+      "frameMs": 90
+    },
+    "DestroyerDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 120,
+      "height": 69,
+      "offset_left": 60,
+      "offset_top": 81,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 166
+    },
+    "DestroyerFidget.flc": {
+      "actions": [
+        "FIDGET",
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 120,
+      "height": 69,
+      "offset_left": 60,
+      "offset_top": 81,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 100
+    },
+    "DestroyerRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 148,
+      "height": 75,
+      "offset_left": 46,
+      "offset_top": 82,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 14,
+      "frameMs": 125
+    }
+  }
+}

@@ -26,7 +26,7 @@ WORK = {'weapon': 'staff', 'stance_name': 'low_across', 'two_hands': True, 'tool
         'props': {'staff': ('staff', {'length': 1.5, 'grip': 0.5})}}
 # kneeling on the right knee, the left foot planted forward (build_footman plants the lowest point)
 KNEEL = {'pose_extra': [('thigh_l', (0.15, -0.95, -0.25)), ('calf_l', (0.08, 0.05, -1)), ('foot_l', (0.3, -1, -0.2)),
-                        ('thigh_r', (-0.12, 0.15, -1)), ('calf_r', (-0.05, 1.0, -0.08)), ('foot_r', (0.0, 0.35, -1))]}
+                        ('thigh_r', (-0.1, 0.3, -1)), ('calf_r', (-0.04, 1.0, -0.3)), ('foot_r', (0.0, 0.5, -1))]}   # shin on the ground
 # the Hwacha crew's layered robes (Civ3: blue-grey robes over trousers, a white sash)
 ROBE = {'coat_skirt': 'robe', 'coat_length': 0.85, 'sash': 'belt', 'hem_bands': [('robe', '#5a6070', 0.04)],
         '_headgear': 'straw_hat'}   # a shallow conical straw hat (reads tan from every side)
@@ -67,10 +67,11 @@ CREW = {
     ],
     # TOW Infantry: both crewmen are the soldiers' TOW Infantry entry (remaster_soldiers.py)
     'TOW Infantry': [
-        dict(KNEEL, _base='TOW Infantry', stance_name='stand',
-             pose_extra=KNEEL['pose_extra'] + [('spine_02', (0, -0.25, 1)), ('head', (0, 0.3, 1)),
-                                               ('upperarm_l', (0.15, -0.8, -0.45)), ('lowerarm_l', (-0.2, -1, 0.1)),
-                                               ('upperarm_r', (-0.15, -0.8, -0.45)), ('lowerarm_r', (0.2, -1, 0.1))]),
+        # the gunner seated on a crate at the sight, leaning in, both hands on the grips
+        {'_base': 'TOW Infantry', 'seated': True,
+         'pose_extra': [('spine_02', (0, -0.3, 1)), ('head', (0, 0.3, 1)),
+                        ('upperarm_l', (0.15, -0.8, -0.45)), ('lowerarm_l', (-0.2, -1, 0.1)),
+                        ('upperarm_r', (-0.15, -0.8, -0.45)), ('lowerarm_r', (0.2, -1, 0.1))]},
         {'_base': 'TOW Infantry'},   # the spotter, as the entry poses him (hand raised to his face)
     ],
     'Flak': [

@@ -1,0 +1,226 @@
+{
+  "unit": "Submarine",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.85,
+    139.0
+  ],
+  "anchor_override": [
+    120.25,
+    127.7333332441667
+  ],
+  "standing_height": 38.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        99.21,
+        139
+      ],
+      "top": 105,
+      "height": 35,
+      "bbox": [
+        89,
+        105,
+        151,
+        139
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        119.75,
+        144
+      ],
+      "top": 99,
+      "height": 46,
+      "bbox": [
+        112,
+        99,
+        127,
+        144
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        140.5,
+        139
+      ],
+      "top": 105,
+      "height": 35,
+      "bbox": [
+        88,
+        105,
+        150,
+        139
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        123.15,
+        131
+      ],
+      "top": 104,
+      "height": 28,
+      "bbox": [
+        75,
+        104,
+        163,
+        131
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        91.79,
+        142
+      ],
+      "top": 101,
+      "height": 42,
+      "bbox": [
+        88,
+        101,
+        150,
+        142
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        119.95,
+        147
+      ],
+      "top": 99,
+      "height": 49,
+      "bbox": [
+        112,
+        99,
+        127,
+        147
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        147.55,
+        142
+      ],
+      "top": 101,
+      "height": 42,
+      "bbox": [
+        89,
+        101,
+        152,
+        142
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        119.54,
+        130
+      ],
+      "top": 104,
+      "height": 27,
+      "bbox": [
+        77,
+        104,
+        164,
+        130
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 56.401,
+    "fit": 1.0846,
+    "archetype": "ship"
+  },
+  "default_flic": "SubmarineDefault.flc",
+  "flics": {
+    "SubmarineAttackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 180,
+      "height": 91,
+      "offset_left": 31,
+      "offset_top": 80,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 20,
+      "frameMs": 66
+    },
+    "SubmarineDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 106,
+      "height": 75,
+      "offset_left": 68,
+      "offset_top": 98,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 20,
+      "frameMs": 83
+    },
+    "SubmarineDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 91,
+      "height": 51,
+      "offset_left": 75,
+      "offset_top": 99,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "SubmarineFidget.flc": {
+      "actions": [
+        "FIDGET",
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 91,
+      "height": 53,
+      "offset_left": 75,
+      "offset_top": 99,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 100
+    },
+    "SubmarineRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 127,
+      "height": 66,
+      "offset_left": 58,
+      "offset_top": 89,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    }
+  }
+}

@@ -1,0 +1,226 @@
+{
+  "unit": "Frigate",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.48,
+    129.0
+  ],
+  "anchor_override": [
+    120.0,
+    120.53241456150971
+  ],
+  "standing_height": 69.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        105.49,
+        129
+      ],
+      "top": 62,
+      "height": 68,
+      "bbox": [
+        83,
+        62,
+        151,
+        129
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        120.14,
+        133
+      ],
+      "top": 60,
+      "height": 74,
+      "bbox": [
+        102,
+        60,
+        137,
+        133
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        133.98,
+        129
+      ],
+      "top": 61,
+      "height": 69,
+      "bbox": [
+        83,
+        61,
+        157,
+        129
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        116.1,
+        123
+      ],
+      "top": 64,
+      "height": 60,
+      "bbox": [
+        73,
+        64,
+        164,
+        123
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        100.07,
+        132
+      ],
+      "top": 63,
+      "height": 70,
+      "bbox": [
+        88,
+        63,
+        156,
+        132
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        118.83,
+        137
+      ],
+      "top": 60,
+      "height": 78,
+      "bbox": [
+        101,
+        60,
+        137,
+        137
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        138.08,
+        132
+      ],
+      "top": 64,
+      "height": 69,
+      "bbox": [
+        82,
+        64,
+        157,
+        132
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        123.11,
+        124
+      ],
+      "top": 64,
+      "height": 61,
+      "bbox": [
+        75,
+        64,
+        166,
+        124
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 50.6895,
+    "fit": 0.9748,
+    "archetype": "ship"
+  },
+  "default_flic": "FrigateDefault.flc",
+  "flics": {
+    "FrigateAttackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 113,
+      "height": 88,
+      "offset_left": 63,
+      "offset_top": 58,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 20,
+      "frameMs": 100
+    },
+    "FrigateDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 131,
+      "height": 120,
+      "offset_left": 55,
+      "offset_top": 34,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 20,
+      "frameMs": 100
+    },
+    "FrigateDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 97,
+      "height": 83,
+      "offset_left": 71,
+      "offset_top": 60,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 166
+    },
+    "FrigateFidget.flc": {
+      "actions": [
+        "FIDGET",
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 97,
+      "height": 83,
+      "offset_left": 71,
+      "offset_top": 60,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 5,
+      "frameMs": 125
+    },
+    "FrigateRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 97,
+      "height": 84,
+      "offset_left": 71,
+      "offset_top": 60,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 14,
+      "frameMs": 125
+    }
+  }
+}

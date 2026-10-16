@@ -1,0 +1,225 @@
+{
+  "unit": "Galleon",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.54,
+    128.0
+  ],
+  "anchor_override": [
+    119.77638147822493,
+    119.81691898135792
+  ],
+  "standing_height": 68.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        106.34,
+        128
+      ],
+      "top": 61,
+      "height": 68,
+      "bbox": [
+        86,
+        61,
+        150,
+        128
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        120.0,
+        131
+      ],
+      "top": 59,
+      "height": 73,
+      "bbox": [
+        103,
+        59,
+        136,
+        131
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        132.47,
+        127
+      ],
+      "top": 61,
+      "height": 67,
+      "bbox": [
+        89,
+        61,
+        154,
+        127
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        114.3,
+        123
+      ],
+      "top": 63,
+      "height": 61,
+      "bbox": [
+        76,
+        63,
+        163,
+        123
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        98.69,
+        131
+      ],
+      "top": 62,
+      "height": 70,
+      "bbox": [
+        88,
+        62,
+        153,
+        131
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        119.08,
+        135
+      ],
+      "top": 60,
+      "height": 76,
+      "bbox": [
+        102,
+        60,
+        136,
+        135
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        139.2,
+        131
+      ],
+      "top": 63,
+      "height": 69,
+      "bbox": [
+        85,
+        63,
+        150,
+        131
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        124.46,
+        123
+      ],
+      "top": 63,
+      "height": 61,
+      "bbox": [
+        75,
+        63,
+        163,
+        123
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 48.1138,
+    "fit": 0.9253,
+    "archetype": "ship"
+  },
+  "default_flic": "GalleonDefault.flc",
+  "flics": {
+    "GalleonAttackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 113,
+      "height": 92,
+      "offset_left": 64,
+      "offset_top": 54,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 20,
+      "frameMs": 66
+    },
+    "GalleonDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 134,
+      "height": 102,
+      "offset_left": 53,
+      "offset_top": 53,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 20,
+      "frameMs": 83
+    },
+    "GalleonDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 96,
+      "height": 83,
+      "offset_left": 69,
+      "offset_top": 59,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 166
+    },
+    "GalleonFidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 95,
+      "height": 83,
+      "offset_left": 70,
+      "offset_top": 59,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 5,
+      "frameMs": 125
+    },
+    "GalleonRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 97,
+      "height": 83,
+      "offset_left": 69,
+      "offset_top": 59,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 125
+    }
+  }
+}

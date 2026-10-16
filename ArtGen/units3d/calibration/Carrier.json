@@ -1,0 +1,210 @@
+{
+  "unit": "Carrier",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    120.17,
+    142.0
+  ],
+  "anchor_override": [
+    120.0,
+    119.58358498470511
+  ],
+  "standing_height": 64.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        79.03,
+        142
+      ],
+      "top": 73,
+      "height": 70,
+      "bbox": [
+        65,
+        73,
+        175,
+        142
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        120.0,
+        151
+      ],
+      "top": 74,
+      "height": 78,
+      "bbox": [
+        93,
+        74,
+        146,
+        151
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        160.38,
+        141
+      ],
+      "top": 82,
+      "height": 60,
+      "bbox": [
+        57,
+        82,
+        175,
+        141
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        105.05,
+        125
+      ],
+      "top": 95,
+      "height": 31,
+      "bbox": [
+        48,
+        95,
+        191,
+        125
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        76.98,
+        145
+      ],
+      "top": 82,
+      "height": 64,
+      "bbox": [
+        64,
+        82,
+        174,
+        145
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        120.33,
+        153
+      ],
+      "top": 75,
+      "height": 79,
+      "bbox": [
+        93,
+        75,
+        146,
+        153
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        162.0,
+        145
+      ],
+      "top": 82,
+      "height": 64,
+      "bbox": [
+        64,
+        82,
+        182,
+        145
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        130.76,
+        125
+      ],
+      "top": 76,
+      "height": 50,
+      "bbox": [
+        48,
+        76,
+        191,
+        125
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 53.4308,
+    "fit": 1.0275,
+    "archetype": "ship"
+  },
+  "default_flic": "CarrierDefault.flc",
+  "flics": {
+    "CarrierAttackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 148,
+      "height": 84,
+      "offset_left": 45,
+      "offset_top": 73,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "CarrierDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 240,
+      "height": 240,
+      "offset_left": 0,
+      "offset_top": 0,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 20,
+      "frameMs": 100
+    },
+    "CarrierDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 144,
+      "height": 81,
+      "offset_left": 48,
+      "offset_top": 73,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 200
+    },
+    "CarrierRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 170,
+      "height": 90,
+      "offset_left": 34,
+      "offset_top": 73,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 142
+    }
+  }
+}

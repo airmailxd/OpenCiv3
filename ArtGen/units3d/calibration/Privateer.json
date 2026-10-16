@@ -1,0 +1,225 @@
+{
+  "unit": "Privateer",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    120.12,
+    128.5
+  ],
+  "anchor_override": [
+    120.27806100895546,
+    120.75225372004408
+  ],
+  "standing_height": 64.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        104.77,
+        129
+      ],
+      "top": 63,
+      "height": 67,
+      "bbox": [
+        88,
+        63,
+        153,
+        129
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        120.24,
+        133
+      ],
+      "top": 61,
+      "height": 73,
+      "bbox": [
+        105,
+        61,
+        134,
+        133
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        135.39,
+        129
+      ],
+      "top": 63,
+      "height": 67,
+      "bbox": [
+        91,
+        63,
+        152,
+        129
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        116.21,
+        123
+      ],
+      "top": 66,
+      "height": 58,
+      "bbox": [
+        83,
+        66,
+        162,
+        123
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        101.98,
+        131
+      ],
+      "top": 70,
+      "height": 62,
+      "bbox": [
+        87,
+        70,
+        152,
+        131
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        120.0,
+        136
+      ],
+      "top": 68,
+      "height": 69,
+      "bbox": [
+        106,
+        68,
+        135,
+        136
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        137.43,
+        131
+      ],
+      "top": 70,
+      "height": 62,
+      "bbox": [
+        88,
+        70,
+        149,
+        131
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        124.35,
+        123
+      ],
+      "top": 66,
+      "height": 58,
+      "bbox": [
+        77,
+        66,
+        157,
+        123
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 46.2785,
+    "fit": 0.89,
+    "archetype": "ship"
+  },
+  "default_flic": "PrivateerDefault.flc",
+  "flics": {
+    "PrivateerAttackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 172,
+      "height": 103,
+      "offset_left": 34,
+      "offset_top": 58,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 20,
+      "frameMs": 100
+    },
+    "PrivateerDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 118,
+      "height": 109,
+      "offset_left": 61,
+      "offset_top": 42,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 20,
+      "frameMs": 90
+    },
+    "PrivateerDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 88,
+      "height": 81,
+      "offset_left": 77,
+      "offset_top": 61,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 166
+    },
+    "PrivateerFidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 88,
+      "height": 81,
+      "offset_left": 77,
+      "offset_top": 61,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 5,
+      "frameMs": 142
+    },
+    "PrivateerRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 90,
+      "height": 82,
+      "offset_left": 74,
+      "offset_top": 60,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 14,
+      "frameMs": 125
+    }
+  }
+}

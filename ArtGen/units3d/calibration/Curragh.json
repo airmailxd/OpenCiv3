@@ -1,0 +1,225 @@
+{
+  "unit": "Curragh",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.54,
+    123.0
+  ],
+  "anchor_override": [
+    120.0,
+    118.45376077016763
+  ],
+  "standing_height": 36.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        112.75,
+        124
+      ],
+      "top": 89,
+      "height": 36,
+      "bbox": [
+        105,
+        89,
+        135,
+        124
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        119.5,
+        125
+      ],
+      "top": 88,
+      "height": 38,
+      "bbox": [
+        106,
+        88,
+        133,
+        125
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        126.25,
+        124
+      ],
+      "top": 89,
+      "height": 36,
+      "bbox": [
+        104,
+        89,
+        134,
+        124
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        117.52,
+        120
+      ],
+      "top": 90,
+      "height": 31,
+      "bbox": [
+        98,
+        90,
+        141,
+        120
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        106.92,
+        127
+      ],
+      "top": 92,
+      "height": 36,
+      "bbox": [
+        104,
+        92,
+        134,
+        127
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        119.58,
+        128
+      ],
+      "top": 92,
+      "height": 37,
+      "bbox": [
+        106,
+        92,
+        133,
+        128
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        132.08,
+        127
+      ],
+      "top": 92,
+      "height": 36,
+      "bbox": [
+        105,
+        92,
+        135,
+        127
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        121.58,
+        120
+      ],
+      "top": 90,
+      "height": 31,
+      "bbox": [
+        98,
+        90,
+        141,
+        120
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 41.0698,
+    "fit": 0.7898,
+    "archetype": "ship"
+  },
+  "default_flic": "Curragh_default.flc",
+  "flics": {
+    "Curragh_attackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 172,
+      "height": 90,
+      "offset_left": 34,
+      "offset_top": 74,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "Curragh_death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 74,
+      "height": 53,
+      "offset_left": 84,
+      "offset_top": 87,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "Curragh_default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 49,
+      "height": 45,
+      "offset_left": 95,
+      "offset_top": 88,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "Curragh_fidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 49,
+      "height": 45,
+      "offset_left": 95,
+      "offset_top": 88,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "Curragh_run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 54,
+      "height": 46,
+      "offset_left": 93,
+      "offset_top": 88,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    }
+  }
+}

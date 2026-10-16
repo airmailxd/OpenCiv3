@@ -1,0 +1,225 @@
+{
+  "unit": "Man-O-War",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.7,
+    131.0
+  ],
+  "anchor_override": [
+    119.71166041804618,
+    121.43636303314722
+  ],
+  "standing_height": 74.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        104.84,
+        131
+      ],
+      "top": 59,
+      "height": 73,
+      "bbox": [
+        78,
+        59,
+        161,
+        131
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        120.0,
+        135
+      ],
+      "top": 54,
+      "height": 82,
+      "bbox": [
+        101,
+        54,
+        141,
+        135
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        134.06,
+        130
+      ],
+      "top": 59,
+      "height": 72,
+      "bbox": [
+        82,
+        59,
+        162,
+        130
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        114.4,
+        125
+      ],
+      "top": 60,
+      "height": 66,
+      "bbox": [
+        66,
+        60,
+        170,
+        125
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        97.56,
+        134
+      ],
+      "top": 60,
+      "height": 75,
+      "bbox": [
+        77,
+        60,
+        161,
+        134
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        119.4,
+        141
+      ],
+      "top": 57,
+      "height": 85,
+      "bbox": [
+        98,
+        57,
+        138,
+        141
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        141.56,
+        135
+      ],
+      "top": 60,
+      "height": 76,
+      "bbox": [
+        78,
+        60,
+        157,
+        135
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        124.0,
+        125
+      ],
+      "top": 61,
+      "height": 65,
+      "bbox": [
+        69,
+        61,
+        172,
+        125
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 50.6138,
+    "fit": 0.9733,
+    "archetype": "ship"
+  },
+  "default_flic": "Man-O-WarDefault.flc",
+  "flics": {
+    "Man-O-WarAttackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 122,
+      "height": 92,
+      "offset_left": 59,
+      "offset_top": 54,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 20,
+      "frameMs": 66
+    },
+    "Man-O-WarDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 129,
+      "height": 114,
+      "offset_left": 56,
+      "offset_top": 39,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 20,
+      "frameMs": 83
+    },
+    "Man-O-WarDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 116,
+      "height": 92,
+      "offset_left": 59,
+      "offset_top": 54,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 125
+    },
+    "Man-O-WarFidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 115,
+      "height": 92,
+      "offset_left": 59,
+      "offset_top": 54,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 5,
+      "frameMs": 125
+    },
+    "Man-O-WarRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 116,
+      "height": 93,
+      "offset_left": 59,
+      "offset_top": 54,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 125
+    }
+  }
+}

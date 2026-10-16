@@ -260,7 +260,62 @@ def _disc_cross(x, z, h):
     return not cross
 
 
-EMBLEMS = {'pisces': _pisces, 'pattee': _pattee, 'disc_cross': _disc_cross}
+def _stripes(x, z, h):
+    """The galleon's sails: two bold vertical civ stripes."""
+    return 0.14 * h < abs(x) < 0.4 * h and abs(z) < 0.5 * h
+
+
+def _quartered(x, z, h):
+    """The carrack's emblem: a big civ square quartered by a white cross."""
+    s = 0.46 * h
+    return abs(x) < s and abs(z) < s and abs(x) > 0.07 * h and abs(z) > 0.07 * h
+
+
+def _roundel(x, z, h):
+    """The frigate's emblem: a filled civ roundel with a white cross pattee in it."""
+    s = 0.44 * h
+    ex, ez = x / s, z / s
+    if math.hypot(ex, ez) > 1.0:
+        return False
+    ax, az = abs(ex), abs(ez)
+    return not ((ax <= 0.62 and az <= 0.1 + 0.25 * ax) or (az <= 0.62 and ax <= 0.1 + 0.25 * az))
+
+
+def _ring_cross(x, z, h):
+    """The frigate's emblem: a ring with a cross inside it."""
+    s = 0.42 * h
+    ex, ez = x / s, z / s
+    d = math.hypot(ex, ez)
+    return 0.78 < d < 1.0 or (d < 0.8 and (abs(ex) < 0.12 or abs(ez) < 0.12))
+
+
+def _skull(x, z, h):
+    """The privateer's emblem: a skull over crossed bones."""
+    s = 0.58 * h   # bold, filling most of the sail
+    ex, ez = x / s, z / s
+    skull = math.hypot(ex / 0.75, (ez - 0.35) / 0.65) < 1.0 and not (
+        math.hypot(ex - 0.28, ez - 0.42) < 0.17 or math.hypot(ex + 0.28, ez - 0.42) < 0.17)   # the eye sockets
+    jaw = abs(ex) < 0.4 and -0.15 < ez < 0.1
+    bones = any(abs(ez + 0.55 - k * ex) < 0.11 and abs(ex) < 1.05 for k in (0.55, -0.55))
+    knobs = any(math.hypot(ex - sx * 1.0, ez + 0.55 - k * sx * 1.0) < 0.16 for sx in (-1, 1) for k in (0.55, -0.55))
+    return skull or jaw or bones or knobs
+
+
+def _lion(x, z, h):
+    """The man-o-war's emblem: a heraldic beast rampant (a stout body rearing,
+    a maned head, raised forepaws, a curling tail), as a bold silhouette."""
+    s = 0.62 * h
+    ex, ez = x / s, z / s
+    body = math.hypot((ex + 0.05) / 0.38, (ez + 0.05) / 0.62) < 1.0
+    head = math.hypot((ex - 0.25) / 0.32, (ez - 0.62) / 0.3) < 1.0
+    paws = math.hypot((ex - 0.55) / 0.16, (ez - 0.25) / 0.32) < 1.0 or math.hypot((ex - 0.5) / 0.14, (ez + 0.1) / 0.24) < 1.0
+    legs = math.hypot((ex + 0.05) / 0.36, (ez + 0.78) / 0.22) < 1.0
+    tail = abs(math.hypot(ex + 0.55, ez - 0.1) - 0.3) < 0.07 and ex < -0.5
+    return body or head or paws or legs or tail
+
+
+EMBLEMS = {'pisces': _pisces, 'pattee': _pattee, 'disc_cross': _disc_cross, 'stripes': _stripes,
+           'ring_cross': _ring_cross, 'skull': _skull, 'lion': _lion, 'quartered': _quartered, 'roundel': _roundel}
 
 
 # ------------------------------------------------------------ galley
@@ -451,7 +506,307 @@ def caravel(colors, rig_h=1.45, rig_w=1.75):
     return root
 
 
-BUILDERS = {'Galley': galley, 'Caravel': caravel}
+# ------------------------------------------------------------ the ships of sail (carrack to man-o-war)
+
+props.DEFAULTS.setdefault('port', ('#0e0c0a', 0.9, 0.0, 'polished'))  # open gunports: flat dark, no edge wear (it lit small boxes up)
+props.DEFAULTS.setdefault('gun_black', ('#1e1e20', 0.45, 1.0, 'metal'))
+props.DEFAULTS.setdefault('glass', ('#c8b46a', 0.25, 0.3, 'metal'))   # lit stern windows
+
+
+def jib(p, a, b, foot, emblem=None, stripes=False):
+    """A triangular headsail between the stay points a (high) and b (low, on
+    the bowsprit) and its clew `foot`; optionally striped in the civ color."""
+    n = 14
+    bm = props.bmesh.new()
+    grid = []
+    for j in range(n + 1):
+        v = j / n
+        row = []
+        for i in range(n - j + 1):
+            u = i / n
+            w0 = 1 - u - v
+            px = [a[k] * w0 + b[k] * u + foot[k] * v for k in range(3)]
+            px[0] += 0.05 * math.sin(math.pi * u) * (1 - v)
+            row.append(bm.verts.new(px))
+        grid.append(row)
+    for j in range(n):
+        for i in range(n - j):
+            bm.faces.new((grid[j][i], grid[j][i + 1], grid[j + 1][i]))
+            if i < n - j - 1:
+                bm.faces.new((grid[j][i + 1], grid[j + 1][i + 1], grid[j + 1][i]))
+    keys = (lambda f: ('tint', True) if int(math.floor(f.calc_center_median().z / 0.07)) % 2 == 0 else None) if stripes else None
+    p.add(bm, 'sail', smooth=True, keys=keys)
+
+
+def _gunports(p, hull, rows, sides=(-1, 1)):
+    """Rows of open gunports along the sides, each with a gun muzzle and a
+    raised lid: rows = [(z, n, y0, y1)]."""
+    for z, n, y0, y1 in rows:
+        for i in range(n):
+            y = y0 + (y1 - y0) * i / max(1, n - 1)
+            s = hull.s_of(y)
+            for sx in sides:
+                # the hull's half width at this height
+                x = sx * hull.deck_half(s) * (0.98 + 0.02 * (z < hull.deck_z(s) - 0.05))
+                p.add(props.box(0.012, 0.045, 0.04), 'port', T(x, y, z), bevel=0.003)
+                p.add(props.lathe([(0.0, 0.009), (0.035, 0.008)], seg=8), 'gun_black', T(x, y, z) @ R('Y', sx * 90),
+                      smooth=True)
+                p.add(props.box(0.006, 0.05, 0.035), 'wood_dark', T(x * 1.02, y, z + 0.035) @ R('Y', sx * 50),
+                      bevel=0.002)
+
+
+def _shrouds(p, hull, y, z_top, z_deck, rungs=9, spread=1.04):
+    """Shroud ladders down both sides from a masthead to the channels."""
+    for sx in (-1, 1):
+        xb = sx * hull.deck_half(hull.s_of(y)) * spread
+        legs = [((0.0, y + dy, z_top), (xb, y + dy * 1.6, z_deck)) for dy in (-0.1, -0.035, 0.035, 0.1)]
+        for a, b in legs:
+            vkit.rod(p, a, b, 0.005, 'cordage', seg=4)
+        for k in range(1, rungs):
+            t = k / rungs
+            pa = Vector(legs[0][0]).lerp(Vector(legs[0][1]), t)
+            pb = Vector(legs[-1][0]).lerp(Vector(legs[-1][1]), t)
+            vkit.rod(p, pa, pb, 0.0035, 'cordage', seg=4)
+        p.add(props.box(0.035, 0.36, 0.022), 'wood_dark', T(xb, y, z_deck - 0.02), bevel=0.005)
+
+
+def _flag(p, top, w, h, emblem=None):
+    """A big rectangular civ flag flying aft from a masthead staff."""
+    n = 8
+    bm = props.bmesh.new()
+    rows = []
+    for j in range(n + 1):
+        t = j / n
+        rows.append([bm.verts.new((0.05 * t * math.sin(4 * t), top[1] - w * t, top[2] - h * k)) for k in (0.0, 1.0)])
+    for j in range(n):
+        bm.faces.new((rows[j][0], rows[j + 1][0], rows[j + 1][1], rows[j][1]))
+    mask = EMBLEMS.get(emblem)
+    keys = (lambda f: None if mask(f.calc_center_median().y - (top[1] - w / 2), f.calc_center_median().z - (top[2] - h / 2),
+                                   h * 1.6) else ('tint', True)) if mask else None
+    p.add(bm, 'sail', smooth=True, keys=keys) if mask else p.add(bm, 'tint', smooth=True, tint=True)
+
+
+def _deck_guns(p, hull, n, y0, y1, z_off=0.0):
+    """Cannon on their carriages along both rails of the weather deck,
+    muzzles out through the bulwark."""
+    for i in range(n):
+        y = y0 + (y1 - y0) * i / max(1, n - 1)
+        s = hull.s_of(y)
+        zd = hull.deck_z(s) + z_off
+        for sx in (-1, 1):
+            xr = sx * hull.deck_half(s) * 0.92
+            p.add(props.box(0.05, 0.07, 0.03), 'wood_dark', T(xr - sx * 0.05, y, zd + 0.02), bevel=0.005)   # carriage
+            p.add(props.lathe([(0.0, 0.016), (0.11, 0.011), (0.12, 0.013)], seg=10), 'gun_black',
+                  T(xr - sx * 0.07, y, zd + 0.045) @ R('Y', sx * 90), smooth=True)
+
+
+def _rich_castle(p, hull, y0, y1, h, windows=3):
+    """A tall castle (as _castle) with lit gilt-framed windows along its sides
+    and a balustrade of turned posts round its top."""
+    z_top = _castle(p, hull, y0, y1, h)
+    for sx in (-1, 1):
+        for k in range(windows):
+            y = y0 + (y1 - y0) * (k + 0.5) / windows
+            s = hull.s_of(y)
+            x = sx * hull.deck_half(s) * 0.99
+            zc = hull.deck_z(s) + h * 0.55
+            p.add(props.box(0.008, 0.05, 0.05), 'glass', T(x, y, zc), bevel=0.002)
+            p.add(props.box(0.006, 0.065, 0.065), 'gold', T(x * 0.998, y, zc), bevel=0.002)
+        n = max(4, int(abs(y1 - y0) / 0.07))
+        for k in range(n + 1):
+            y = y0 + (y1 - y0) * k / n
+            s = hull.s_of(y)
+            x = sx * hull.deck_half(s) * 0.96
+            zb = hull.deck_z(s) - 0.02 + h
+            vkit.rod(p, (x, y, zb), (x, y, zb + 0.06), 0.006, 'gold', seg=5)
+    return z_top
+
+
+def _stern_windows(p, hull, z, n=4, rows=1):
+    """Gilt-framed, lit windows across the stern."""
+    y = -hull.L / 2 * 0.985
+    w = hull.half_beam(-0.97) * 1.6
+    for r in range(rows):
+        for i in range(n):
+            x = -w / 2 + w * (i + 0.5) / n
+            p.add(props.box(w / n * 0.62, 0.012, 0.05), 'glass', T(x, y - 0.01, z + 0.08 * r), bevel=0.003)
+            p.add(props.box(w / n * 0.75, 0.008, 0.065), 'gold', T(x, y - 0.004, z + 0.08 * r), bevel=0.002)
+    p.add(props.box(w * 1.05, 0.02, 0.02), 'gold', T(0, y - 0.005, z + 0.08 * rows - 0.01), bevel=0.004)
+
+
+def sailing_ship(name, cfg, colors):
+    """A full-rigged ship from a config: the hull (Hull's arguments, strakes),
+    castles, a bowsprit with jibs, rows of gunports, stern windows, and masts
+    each carrying tiers of square sails (each with an optional civ emblem),
+    an optional lateen or gaff, shroud ladders, fighting tops and civ
+    pennants or flags."""
+    c = dict(SHIP_COLORS, **cfg.get('colors', {}))
+    c.update(colors)
+    root = vkit.root(name)
+    p = vkit.part(root, 'hull', c, SHIP_WEAR)
+    hull = Hull(**cfg['hull'])
+    add_hull(p, hull, stripes=cfg.get('stripes', []))
+    for y0, y1, h in cfg.get('castles', []):
+        _castle(p, hull, y0, y1, h)
+    for y0, y1, h, nw in cfg.get('rich_castles', []):
+        _rich_castle(p, hull, y0, y1, h, nw)
+
+    def deck(y):
+        return hull.deck_z(hull.s_of(y))
+
+    _gunports(p, hull, cfg.get('ports', []))
+    if cfg.get('deck_guns'):
+        _deck_guns(p, hull, *cfg['deck_guns'])
+    if cfg.get('stern_windows'):
+        _stern_windows(p, hull, deck(-hull.L / 2 * 0.95) + cfg['stern_windows'][0], *cfg['stern_windows'][1:])
+    bs = cfg.get('bowsprit')
+    if bs:
+        vkit.rod(p, bs[0], bs[1], 0.022, 'wood_dark', seg=8)
+    fore_top = None
+    for k, m in enumerate(cfg['masts']):
+        y, r = m['y'], m.get('r', 0.03)
+        z = deck(y) + m.get('z0', 0.25)
+        tiers = m.get('tiers', [])
+        z_cur = z + sum(t[0] for t in tiers) + 0.03 * len(tiers)
+        top = z_cur + m.get('topmast', 0.18)
+        vkit.rod(p, (0, y, deck(y) - 0.05), (0, y, top), r, 'wood_dark', seg=10)
+        # the sails, from the course up: (height, width, emblem, billow)
+        zt = z + sum(t[0] for t in tiers) + 0.03 * len(tiers)
+        for j, (h, w, emblem, billow) in enumerate(reversed(tiers)):
+            sail(p, y + 0.02, zt, w * 0.9, w, h, emblem, billow=billow, seed=10 * k + j, patches=1)
+            zt -= h + 0.03
+            if j == len(tiers) - 2:   # a fighting top (a drum with a rail) below the topsail
+                p.add(props.lathe([(0.0, 0.1), (0.07, 0.12)], seg=16), 'wood_dark', T(0, y, zt - 0.02), smooth=True)
+                p.add(props.lathe([(0.0, 0.124), (0.012, 0.124)], seg=16), 'gold', T(0, y, zt + 0.05), smooth=True)
+            if m.get('yard_pennants') and j == len(tiers) - 1:   # small civ pennants at the course yard's tips
+                for sx in (-1, 1):
+                    pennant(p, (sx * (w / 2 + 0.03), y + 0.02, zt + h + 0.04), 0.16, 0.06, phase=sx)
+        if m.get('lateen'):
+            ln, ang, drop, em = m['lateen']
+            lateen(p, y, deck(y) + drop + 0.25, ln, ang, drop, em)
+        if m.get('shrouds', True) and tiers:
+            _shrouds(p, hull, y, z + tiers[-1][0] + 0.03, deck(y) + 0.02)
+        if m.get('flag'):
+            _flag(p, (0, y, top + 0.02), *m['flag'])
+        elif m.get('pennant', True):
+            pennant(p, (0, y, top + 0.02), *m.get('pennant_size', (0.75, 0.16)), phase=k)
+        if k == 0:
+            fore_top = (0, y, top - 0.05)
+    if bs and fore_top:
+        vkit.rod(p, fore_top, bs[1], 0.006, 'cordage', seg=4)   # the forestay
+        for j, (st, cl, em) in enumerate(cfg.get('jibs', [])):
+            jib(p, st, bs[1] if j == 0 else Vector(bs[0]).lerp(Vector(bs[1]), 0.6), cl, stripes=em == 'stripes')
+    for extra in cfg.get('extras', []):
+        extra(p, hull, deck)
+    p.finish()
+    return root
+
+
+def _carrack_extras(p, hull, deck):
+    # gilt rails on the high castles and a big stern lantern
+    p.add(props.lathe([(0.0, 0.03), (0.06, 0.04), (0.12, 0.0)], seg=12), 'gold', T(0, -1.32, deck(-1.3) + 0.62),
+          smooth=True)
+
+
+SAILING = {
+    'Carrack': dict(
+        colors={'wood': '#5a3c22', 'wood_alt': '#4a301c', 'wood_dark': '#2a1e14', 'deck': '#7a5e3c', 'rail': '#2e2014',
+                'sail': '#cfc09a', 'cordage': '#2b2118'},
+        hull=dict(L=2.7, B=0.78, D=0.22, draft=0.16, sheer_stern=0.38, sheer_bow=0.34, bow_p=1.25, stern_p=1.8,
+                  transom=0.3, rake_bow=0.3, fullness=1.0, tumblehome=0.25),
+        stripes=[(-0.03, 0.035, 'hull_grime'), (0.06, 0.09, 'gold'), (0.16, 0.19, 'gold'), (0.29, 0.32, 'gold')],
+        # the tall aftcastle (two decks, windows, balustrade) and a raised forecastle
+        rich_castles=[(-1.35, -0.5, 0.26, 4), (-1.35, -0.92, 0.46, 2), (0.7, 1.22, 0.3, 3)],
+        stern_windows=(0.24, 4, 2),
+        bowsprit=((0, 1.2, 0.5), (0, 1.85, 0.68)),
+        ports=[(0.11, 5, -0.4, 0.5)],
+        masts=[dict(y=0.62, tiers=[(0.42, 0.95, 'quartered', 0.2), (0.24, 0.6, None, 0.1)], yard_pennants=True),
+               dict(y=0.0, r=0.034, tiers=[(0.62, 1.35, 'quartered', 0.24), (0.34, 0.85, None, 0.1)],
+                    flag=(0.4, 0.26, 'quartered'), pennant=False, yard_pennants=True),
+               dict(y=-0.78, tiers=[], lateen=(1.5, 30.0, 0.72, None), pennant_size=(0.5, 0.14))],
+        jibs=[],
+        extras=[_carrack_extras],
+    ),
+    'Galleon': dict(
+        colors={'wood': '#4a301c', 'wood_alt': '#3e2816', 'wood_dark': '#24180e', 'deck': '#6e5434', 'rail': '#2a1c10',
+                'sail': '#dccfac', 'cordage': '#2b2118', 'gold': '#d0aa52'},
+        hull=dict(L=2.9, B=0.74, D=0.22, draft=0.16, sheer_stern=0.34, sheer_bow=0.26, bow_p=1.3, stern_p=1.8,
+                  transom=0.3, rake_bow=0.4, fullness=1.0, tumblehome=0.25),
+        stripes=[(-0.03, 0.035, 'hull_grime'), (0.06, 0.095, 'gold'), (0.15, 0.185, 'gold'), (0.26, 0.295, 'gold')],
+        rich_castles=[(-1.45, -0.7, 0.22, 4), (-1.45, -1.05, 0.38, 2), (0.85, 1.2, 0.16, 2)],
+        stern_windows=(0.22, 4, 2),
+        bowsprit=((0, 1.25, 0.42), (0, 1.95, 0.6)),
+        ports=[(0.115, 7, -0.6, 0.7)],
+        deck_guns=(4, -0.4, 0.5),
+        masts=[dict(y=0.75, tiers=[(0.4, 0.95, 'stripes', 0.2), (0.3, 0.7, 'stripes', 0.12), (0.2, 0.45, None, 0.06)],
+                    pennant_size=(0.75, 0.18)),
+               dict(y=0.0, r=0.034, tiers=[(0.5, 1.2, 'stripes', 0.22), (0.38, 0.9, 'stripes', 0.14), (0.24, 0.55, None, 0.07)],
+                    pennant_size=(0.95, 0.22)),
+               dict(y=-0.75, tiers=[(0.34, 0.8, 'stripes', 0.15), (0.24, 0.55, None, 0.08)], pennant_size=(0.7, 0.16))],
+        jibs=[((0, 0.77, 1.55), (0, 1.3, 0.7), None)],
+    ),
+    'Frigate': dict(
+        colors={'wood': '#5a3e24', 'wood_alt': '#4a321c', 'wood_dark': '#241a10', 'deck': '#8a6e48', 'rail': '#2a1c10',
+                'sail': '#e0d4b2', 'cordage': '#2b2118'},
+        hull=dict(L=3.0, B=0.7, D=0.24, draft=0.15, sheer_stern=0.14, sheer_bow=0.12, bow_p=1.4, stern_p=1.9,
+                  transom=0.35, rake_bow=0.35, fullness=1.0, tumblehome=0.15),
+        stripes=[(-0.03, 0.035, 'hull_grime'), (0.09, 0.17, 'wood_dark'), (0.2, 0.225, 'gold')],
+        rich_castles=[(-1.5, -0.85, 0.1, 3)],
+        stern_windows=(0.12, 5, 1),
+        bowsprit=((0, 1.35, 0.32), (0, 2.1, 0.55)),
+        ports=[(0.13, 9, -0.95, 0.95)],
+        deck_guns=(6, -0.8, 0.8),
+        masts=[dict(y=0.85, tiers=[(0.38, 1.0, 'roundel', 0.2), (0.32, 0.78, None, 0.14), (0.2, 0.5, None, 0.06)],
+                    pennant_size=(1.0, 0.16)),
+               dict(y=0.05, r=0.036, tiers=[(0.46, 1.25, 'roundel', 0.22), (0.38, 0.95, 'roundel', 0.16),
+                                            (0.24, 0.6, None, 0.07)], pennant_size=(0.9, 0.2)),
+               dict(y=-0.85, tiers=[(0.34, 0.85, 'roundel', 0.15), (0.24, 0.55, None, 0.08)], pennant_size=(0.6, 0.15))],
+        jibs=[((0, 0.88, 1.75), (0, 1.5, 0.72), None), ((0, 0.88, 1.45), (0, 1.25, 0.62), None)],
+    ),
+    'Privateer': dict(
+        colors={'wood': '#2e2a26', 'wood_alt': '#262320', 'wood_dark': '#151311', 'deck': '#5e4a32', 'rail': '#1a1612',
+                'sail': '#d0c2a0', 'cordage': '#221c16', 'gold': '#8a8a86'},   # a grey wale on the black hull
+        hull=dict(L=2.6, B=0.6, D=0.22, draft=0.13, sheer_stern=0.16, sheer_bow=0.14, bow_p=1.35, stern_p=1.8,
+                  transom=0.3, rake_bow=0.35, fullness=0.95, tumblehome=0.12),
+        stripes=[(-0.03, 0.035, 'hull_grime'), (0.15, 0.18, 'gold')],
+        rich_castles=[(-1.3, -0.8, 0.1, 2)],
+        stern_windows=(0.14, 3, 1),
+        bowsprit=((0, 1.2, 0.32), (0, 1.85, 0.52)),
+        ports=[(0.11, 6, -0.75, 0.7)],
+        deck_guns=(3, -0.5, 0.4),
+        masts=[dict(y=0.55, tiers=[(0.42, 0.95, 'skull', 0.2), (0.3, 0.65, None, 0.1)]),
+               dict(y=-0.25, r=0.034, tiers=[(0.5, 1.15, 'skull', 0.22), (0.34, 0.8, None, 0.12)],
+                    pennant_size=(0.8, 0.18)),
+               dict(y=-0.95, tiers=[], lateen=(1.25, 30.0, 0.62, 'skull'), pennant_size=(0.5, 0.14))],
+        jibs=[((0, 0.57, 1.35), (0, 1.2, 0.62), None)],
+    ),
+    'Man-O-War': dict(
+        colors={'wood': '#2a2622', 'wood_alt': '#24211e', 'wood_dark': '#141210', 'deck': '#7a6244', 'rail': '#1a1612',
+                'sail': '#e2d8ba', 'cordage': '#221c16', 'gold': '#c8a848'},
+        hull=dict(L=3.3, B=0.84, D=0.36, draft=0.17, sheer_stern=0.16, sheer_bow=0.12, bow_p=1.35, stern_p=2.0,
+                  transom=0.4, rake_bow=0.3, fullness=1.0, tumblehome=0.2),
+        # the Nelson chequer: buff bands along the gundecks, the ports dark in the black between them
+        stripes=[(-0.03, 0.035, 'hull_grime'), (0.08, 0.1, 'gold'), (0.16, 0.18, 'gold'), (0.28, 0.3, 'gold')],
+        rich_castles=[(-1.65, -0.95, 0.1, 3)],
+        stern_windows=(0.12, 6, 2),
+        bowsprit=((0, 1.5, 0.48), (0, 2.3, 0.72)),
+        ports=[(0.13, 12, -1.2, 1.15), (0.23, 12, -1.2, 1.15)],
+        deck_guns=(7, -1.0, 0.9),
+        masts=[dict(y=0.95, tiers=[(0.42, 1.1, 'lion', 0.2), (0.36, 0.86, 'lion', 0.14), (0.22, 0.55, None, 0.06)],
+                    pennant_size=(1.0, 0.18)),
+               dict(y=0.05, r=0.04, tiers=[(0.5, 1.4, 'lion', 0.22), (0.42, 1.05, 'lion', 0.16), (0.26, 0.66, None, 0.07)],
+                    pennant_size=(1.1, 0.22)),
+               dict(y=-0.95, tiers=[(0.36, 0.95, 'lion', 0.15), (0.26, 0.6, None, 0.08)], pennant_size=(0.75, 0.16))],
+        jibs=[((0, 0.98, 1.95), (0, 1.7, 0.85), None), ((0, 0.98, 1.6), (0, 1.42, 0.75), None)],
+    ),
+}
+
+
+def _sailing_builder(name):
+    return lambda colors, **kw: sailing_ship(name, SAILING[name], colors)
+
+
+BUILDERS = {'Galley': galley, 'Caravel': caravel, **{n: _sailing_builder(n) for n in SAILING}}
 
 
 def build(unit, colors=None, **params):

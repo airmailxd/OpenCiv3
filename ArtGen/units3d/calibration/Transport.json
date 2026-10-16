@@ -1,0 +1,226 @@
+{
+  "unit": "Transport",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.34,
+    127.0
+  ],
+  "anchor_override": [
+    120.0,
+    119.52702394754962
+  ],
+  "standing_height": 37.5,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        113.08,
+        128
+      ],
+      "top": 92,
+      "height": 37,
+      "bbox": [
+        95,
+        92,
+        146,
+        128
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        119.61,
+        129
+      ],
+      "top": 90,
+      "height": 40,
+      "bbox": [
+        109,
+        90,
+        130,
+        129
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        126.5,
+        128
+      ],
+      "top": 95,
+      "height": 34,
+      "bbox": [
+        93,
+        95,
+        145,
+        128
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        116.29,
+        124
+      ],
+      "top": 103,
+      "height": 22,
+      "bbox": [
+        91,
+        103,
+        147,
+        124
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        106.62,
+        132
+      ],
+      "top": 94,
+      "height": 39,
+      "bbox": [
+        93,
+        94,
+        144,
+        132
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        119.08,
+        133
+      ],
+      "top": 93,
+      "height": 41,
+      "bbox": [
+        109,
+        93,
+        130,
+        133
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        131.5,
+        132
+      ],
+      "top": 95,
+      "height": 38,
+      "bbox": [
+        94,
+        95,
+        146,
+        132
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        123.6,
+        124
+      ],
+      "top": 100,
+      "height": 25,
+      "bbox": [
+        92,
+        100,
+        148,
+        124
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0,
+    "ppm_2x": 49.9592,
+    "fit": 0.9608,
+    "archetype": "ship"
+  },
+  "default_flic": "TransportDefault.flc",
+  "flics": {
+    "TransportAttackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 62,
+      "height": 46,
+      "offset_left": 88,
+      "offset_top": 90,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "TransportDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 102,
+      "height": 84,
+      "offset_left": 70,
+      "offset_top": 57,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 20,
+      "frameMs": 90
+    },
+    "TransportDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 58,
+      "height": 44,
+      "offset_left": 91,
+      "offset_top": 90,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 166
+    },
+    "TransportFidget.flc": {
+      "actions": [
+        "FIDGET",
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 58,
+      "height": 45,
+      "offset_left": 91,
+      "offset_top": 89,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 125
+    },
+    "TransportRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 70,
+      "height": 47,
+      "offset_left": 85,
+      "offset_top": 90,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 125
+    }
+  }
+}
