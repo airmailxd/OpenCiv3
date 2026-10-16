@@ -34,6 +34,9 @@ def main(argv):
     catalog = json.load(open(os.path.join(HERE, '..', '_previews', 'units3d', 'catalog.json')))
     entry = remaster.apply(unit, catalog[unit])
     root = units.build_footman(entry)
+    k = entry.get('unit_scale', 1.0)           # about the feet (the root's origin is on the ground)
+    if k != 1.0:
+        root.scale = tuple(v * k for v in root.scale)
     cal = json.load(open(os.path.join(HERE, 'calibration', f'{unit}.json')))
     ppm = cal['fit']['ppm_2x']
     if '--zoom' in opts:

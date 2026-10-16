@@ -175,7 +175,7 @@ def dress(entry, mesh, arm):
     if bottom:
         G.shell(mesh, arm, 'Belt', ['pelvis', 'spine_01'], _mat(entry, 'belt', G.leather), zmin=0.98, zmax=1.04,
                 offset=0.013, thickness=0.01)
-        if entry.get('belt_gear', True):
+        if entry.get('belt_gear', bottom != 'gown'):
             # a pale brass buckle and a lighter leather pouch than the belt, so both read at 2x
             belt_rgb = B.hex_color(c['belt'])
             G.belt_gear(mesh, arm, B.material('buckle', B.hex_color(c.get('buckle', '#c8b27a')), roughness=0.35,
@@ -269,8 +269,15 @@ def dress(entry, mesh, arm):
                        lift=0.045 if entry.get('cuirass') else 0.03)
     # hem bands: [(garment, color), ...]; garment 'bottom' or 'top', color
     # 'tint', 'gold' or a hex; optional width (m) and inset from the edge
+    _hems(entry, c, lambda part: part != 'cape')
+
+
+def _hems(entry, c, which):
+    """The entry's hem bands on the garments `which(part)` accepts."""
     for h in entry.get('hem_bands', []):
         part, col = h[0], h[1]
+        if not which(part):
+            continue
         width = h[2] if len(h) > 2 else 0.05
         inset = h[3] if len(h) > 3 else 0.0
         if col == 'tint':
@@ -294,6 +301,7 @@ def dress_posed(entry, mesh, arm):
     if entry.get('cape'):
         G.cape(mesh, arm, _mat(entry, 'cape', lambda n, col, tint=False: G.cloth(n, col, tint=tint, weave=0.6)),
                length=entry.get('cape_length', 0.75))
+        _hems(entry, _colors(entry), lambda part: part == 'cape')
     hanging = [o for o in hanging if not o.get('no_drape')]
     if hanging and entry.get('drape', True):
         G.drape(hanging, mesh)
@@ -310,6 +318,9 @@ def headgear(entry, kind, mesh, arm):
         print('unknown headgear', kind)
         return None
     c = dict(_colors(entry))
+    for key in ('hat', 'felt', 'fur'):           # the hats' cloth keys default to the entry's helmet color
+        if key not in entry.get('colors', {}) and 'helmet' in entry.get('colors', {}):
+            c[key] = entry['colors']['helmet']
     tl = entry.get('tint', [])
     p = P.Prop(f'headgear_{kind}', c, {'hat': {'grime': 0.5}, 'helmet': {'grime': 0.4, 'rust': 0.15},
                                       'tint': {'grime': 0.45}})
@@ -500,6 +511,13 @@ STANCES['hands_clasped'] = _ROYAL_BASE + [('upperarm_l', (0.18, -0.25, -1)), ('l
                                           ('upperarm_r', (-0.18, -0.25, -1)), ('lowerarm_r', (0.55, -0.75, -0.35))]
 STANCES['hands_behind'] = _ROYAL_BASE + [('upperarm_l', (0.2, 0.35, -1)), ('lowerarm_l', (-0.5, 0.7, -0.4)),
                                          ('upperarm_r', (-0.2, 0.35, -1)), ('lowerarm_r', (0.5, 0.7, -0.4))]
+# standing tall, feet close, the free arm relaxed at the side: 'stand' with
+# the right hand low (an item hanging from it), 'stand_staff' with a staff,
+# cane or standard upright in the right fist
+STANCES['stand'] = _ROYAL_BASE + [('upperarm_l', (0.16, 0.0, -1)), ('lowerarm_l', (0.08, -0.12, -1)),
+                                  ('upperarm_r', (-0.18, -0.05, -1)), ('lowerarm_r', (-0.1, -0.35, -1))]
+STANCES['stand_staff'] = _ROYAL_BASE + [('upperarm_l', (0.16, 0.0, -1)), ('lowerarm_l', (0.08, -0.12, -1)),
+                                        ('upperarm_r', (-0.3, -0.12, -1)), ('lowerarm_r', (-0.12, -0.9, -0.55))]
 STANCES['royal'] = _ROYAL_BASE + [('upperarm_l', (0.25, -0.1, -1)), ('lowerarm_l', (0.15, -0.6, -0.9)),
                                   ('upperarm_r', (-0.3, -0.2, -1)), ('lowerarm_r', (-0.1, -1.0, 0.45))]
 
@@ -580,13 +598,13 @@ def equip(entry, arm):
         elif stance == 'bow_low':
             # a loose arrow in the right hand, point down and forward
             H.hold(obj, arm, 'hand_r', at, up=tuple(entry.get('hang_dir', (-0.15, -0.55, -0.8))))
-        elif stance in ('hang', 'guard'):
+        elif stance in ('hang', 'guard', 'stand'):
             # hanging from the fist, down and out to the side, head low
             H.hold(obj, arm, 'hand_r', at, up=tuple(entry.get('hang_dir', (-0.7, -0.45, -0.5))))
         elif stance == 'upright' and name == 'staff':
             # a walking staff, upright beside the body
             H.hold(obj, arm, 'hand_r', at, up=(-0.04, 0.0, 1.0))
-        elif stance == 'upright':
+        elif stance in ('upright', 'stand_staff'):
             # upright through the fist, butt on the ground by the right foot
             H.hold(obj, arm, 'hand_r', at, up=tuple(entry.get('upright_dir', (-0.05, 0.0, 1.0))))
         elif stance == 'royal':
