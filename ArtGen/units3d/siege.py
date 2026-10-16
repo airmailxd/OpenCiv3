@@ -25,7 +25,7 @@ from props import R, T
 # Darker, battle-scarred timbers (stzur: imposing, not toy-like): oiled
 # brown wood with soot and scorch marks, blackened rusty iron, grimy rope.
 CATAPULT_COLORS = {'wood': '#b08e5a', 'wood_dark': '#6a4c2e', 'side_rail': '#9a7a4c', 'rope': '#a08a60',
-                   'iron': '#5a5854', 'stone': '#8a8680', 'wheel': '#5e4430', 'felloe': '#4e3824'}
+                   'coil': '#ddd2b4', 'iron': '#4a4846', 'stone': '#9a8a74', 'wheel': '#5e4430', 'felloe': '#4e3824'}
 CATAPULT_WEAR = {'wood': {'grime': 0.55, 'soot': 0.55}, 'side_rail': {'grime': 0.6, 'soot': 0.5},
                  'wood_dark': {'grime': 0.6, 'soot': 0.4}, 'wheel': {'grime': 0.6, 'soot': 0.3},
                  'felloe': {'grime': 0.7}, 'iron': {'grime': 0.5, 'rust': 0.35}, 'rope': {'grime': 0.65},
@@ -56,6 +56,12 @@ def catapult(colors, k=0.82, arm=ARM_SHOW):
         # iron straps at the joints
         for y, z in ((0.75, zr + 0.12), (-0.25, zr + 0.12), (1.3, zr + 0.12), (0.38, 1.5)):
             f.add(props.box(0.15, 0.06, 0.16), 'iron', T(x, y, z), bevel=0.01)
+        # iron corner plates wrapping the rail ends, and bands along the rails, each riveted
+        for y in (-L / 2 + 0.1, L / 2 - 0.1, -0.85, 0.15, 1.0):
+            f.add(props.box(0.27, 0.12 if abs(y) > 1.3 else 0.06, 0.3), 'iron', T(x, y, zr + 0.05), bevel=0.008)
+            for dz in (-0.07, 0.07):
+                f.add(props.ellipsoid(0.016, 0.016, 0.016, seg=6), 'iron', T(x + sx * 0.14, y, zr + 0.05 + dz),
+                      smooth=True)
     for y in (-1.35, -0.45, 0.7):
         vkit.beam(f, (-W / 2, y, zr), (W / 2, y, zr), 0.14 * TH, 0.14 * TH, 'wood')
     # the front bar and the crossbar are civ-colored in the original
@@ -71,11 +77,14 @@ def catapult(colors, k=0.82, arm=ARM_SHOW):
         f.add(props.tube(pts, 0.035, seg=6), 'rope', smooth=True)
     # the winch at the rear with its iron ratchet wheels and handles
     vkit.rod(f, (-W / 2 - 0.15, -1.3, zr + 0.28), (W / 2 + 0.15, -1.3, zr + 0.28), 0.12, 'wood_dark', seg=12)
-    # a fat winch drum wound with rope
-    vkit.rod(f, (-0.3, -1.3, zr + 0.28), (0.3, -1.3, zr + 0.28), 0.17, 'wood_dark', seg=16)
-    coil = [(-0.28 + 0.56 * i / 120, -1.3 + 0.185 * math.cos(i * 0.6), zr + 0.28 + 0.185 * math.sin(i * 0.6))
-            for i in range(121)]
-    f.add(props.tube(coil, 0.016, seg=5), 'rope', smooth=True)
+    # a fat winch drum thickly wound with pale rope (the white roll at the rear in Civ3)
+    vkit.rod(f, (-0.42, -1.3, zr + 0.28), (0.42, -1.3, zr + 0.28), 0.17, 'wood_dark', seg=16)
+    for layer, rr in enumerate((0.19, 0.225)):
+        coil = [(-0.4 + 0.8 * i / 160, -1.3 + rr * math.cos(i * 0.62 + layer), zr + 0.28 + rr * math.sin(i * 0.62 + layer))
+                for i in range(161)]
+        f.add(props.tube(coil, 0.022, seg=5), 'coil', smooth=True)
+    for sx in (-1, 1):   # the drum's flanges
+        vkit.ring_x(f, 0.26, 0.02, 0.03, 'wood_dark', center=(sx * 0.43, -1.3, zr + 0.28), seg=20)
     for sx in (-1, 1):
         vkit.ring_x(f, 0.2, 0.05, 0.05, 'iron', center=(sx * (W / 2 + 0.12), -1.3, zr + 0.28), seg=24)
         vkit.beam(f, (sx * (W / 2 + 0.17), -1.3, zr + 0.28), (sx * (W / 2 + 0.17), -1.3, zr + 0.62), 0.05, 0.05, 'iron',
@@ -126,9 +135,9 @@ def catapult(colors, k=0.82, arm=ARM_SHOW):
     a.add(props.lathe([(0.0, 0.2), (0.1, 0.3), (0.17, 0.34)], seg=24), 'beam', T(0, -2.1, 0.09), smooth=True,
           tint=True)                                                                                         # civ lining
     # a rough-hewn boulder: few big facets, knocked about
-    stone = props.ellipsoid(0.22, 0.2, 0.19, seg=8)
-    props.jitter(stone, 0.045, seed=3)
-    a.add(stone, 'stone', T(0, -2.1, 0.22), bevel=0.01)
+    stone = props.ellipsoid(0.3, 0.28, 0.26, seg=8)
+    props.jitter(stone, 0.06, seed=3)
+    a.add(stone, 'stone', T(0, -2.1, 0.32), bevel=0.01)   # a big boulder sitting proud of the cup
     arm_obj = a.finish()
     arm_obj.matrix_parent_inverse = Matrix.Identity(4)
     arm_obj.location = (0, -0.5, zr + 0.22)
@@ -145,13 +154,16 @@ def catapult(colors, k=0.82, arm=ARM_SHOW):
 # ------------------------------------------------------------ cannon
 
 # A blackened iron barrel with powder burns on a worn carriage.
-CANNON_COLORS = {'gun_iron': '#8a8c8e', 'iron': '#34363a', 'carriage': '#5a4430', 'carriage_dark': '#3e2e20', 'wheel': '#e8e8e8',
+BARREL_K = 1.25
+CANNON_COLORS = {'gun_iron': '#707478', 'band': '#2a2c2e', 'iron': '#34363a', 'carriage': '#5a4430', 'carriage_dark': '#3e2e20', 'wheel': '#e8e8e8',
                  'felloe': '#6a4a2c', 'rim': '#9a9c9e', 'hub': '#5a5c5e'}
-CANNON_WEAR = {'gun_iron': {'grime': 0.3, 'soot': 0.3, 'edges': 0.6}, 'iron': {'grime': 0.5, 'soot': 0.6, 'rust': 0.2}, 'carriage': {'grime': 0.6, 'soot': 0.3},
+CANNON_WEAR = {'gun_iron': {'grime': 0.45, 'soot': 0.45, 'edges': 0.5}, 'band': {'grime': 0.5, 'soot': 0.5, 'edges': 0.7}, 'iron': {'grime': 0.5, 'soot': 0.6, 'rust': 0.2}, 'carriage': {'grime': 0.6, 'soot': 0.3},
                'carriage_dark': {'grime': 0.6}, 'felloe': {'grime': 0.65}, 'rim': {'grime': 0.5, 'rust': 0.3},
                'hub': {'grime': 0.5, 'rust': 0.25}}
 props.DEFAULTS.setdefault('rim', ('#4a3a30', 0.55, 1.0, 'metal'))   # the wheels' iron tires
 props.DEFAULTS.setdefault('gun_iron', ('#3b3e40', 0.5, 1.0, 'metal'))   # the barrel: dark, matte cast iron
+props.DEFAULTS.setdefault('coil', ('#ddd2b4', 0.85, 0.0, 'rope'))      # the catapult's wound winch rope
+props.DEFAULTS.setdefault('band', ('#2a2c2e', 0.45, 1.0, 'metal'))      # its blackened reinforce rings
 
 
 def cannon(colors, elev=4.0):
@@ -170,6 +182,12 @@ def cannon(colors, elev=4.0):
             f.add(props.box(0.13, 0.05, 0.2), 'hub', T(sx * 0.3, y, z), bevel=0.008)
             for dz in (-0.06, 0.06):
                 f.add(props.ellipsoid(0.012, 0.012, 0.012, seg=8), 'hub', T(sx * 0.37, y, z + dz), smooth=True)   # rivets
+        # long iron straps along the trail's top edge, bolted down
+        for (y0, z0), (y1, z1) in zip(side[1:4], side[2:5]):
+            vkit.beam(f, (sx * 0.3, y0, z0 + 0.015), (sx * 0.3, y1, z1 + 0.015), 0.135, 0.035, 'hub', bevel=0.006)
+            for t in (0.25, 0.75):
+                f.add(props.ellipsoid(0.018, 0.018, 0.018, seg=8), 'hub',
+                      T(sx * 0.3, y0 + (y1 - y0) * t, z0 + (z1 - z0) * t + 0.04), smooth=True)
     vkit.beam(f, (-0.3, -1.28, 0.12), (0.3, -1.28, 0.12), 0.25, 0.2, 'carriage_dark', bevel=0.02)   # trail transom
     f.add(props.box(0.4, 0.05, 0.22), 'hub', T(0, -1.4, 0.04) @ R('X', -20), bevel=0.01)          # trail spade
     vkit.beam(f, (-0.3, -0.4, 0.68), (0.3, -0.4, 0.68), 0.14, 0.14, 'carriage_dark')               # transom
@@ -195,8 +213,12 @@ def cannon(colors, elev=4.0):
     prof = [(0.0, 0.19), (0.05, 0.25), (0.12, 0.25), (0.14, 0.22), (0.32, 0.22), (0.34, 0.25), (0.4, 0.25),
             (0.42, 0.21), (1.0, 0.185), (1.02, 0.215), (1.08, 0.215), (1.1, 0.18), (1.95, 0.135),
             (2.05, 0.15), (2.14, 0.19), (2.24, 0.19), (2.24, 0.075), (2.0, 0.075)]
+    prof = [(z * BARREL_K, r) for z, r in prof]   # Civ3's gun is long and slender, well past the wheels
     b.add(props.lathe(prof, seg=24), 'gun_iron', T(0, 0, -0.75), bevel=0.0, smooth=True)
     b.add(props.ellipsoid(0.11, 0.11, 0.11, seg=16), 'gun_iron', T(0, 0, -0.82), smooth=True)   # cascabel
+    # the base ring, reinforce rings, chase ring and muzzle swell stand proud in blackened iron
+    for z0, r in ((0.02, 0.265), (0.34, 0.262), (1.0, 0.228), (1.55, 0.18), (2.12, 0.205)):
+        b.add(props.lathe([(0.0, r), (0.07, r)], seg=24), 'band', T(0, 0, -0.75 + z0 * BARREL_K), smooth=True)
     vkit.rod(b, (-0.3, 0, 0.0), (0.3, 0, 0.0), 0.06, 'iron', seg=12)                       # trunnions
     for sx in (-1, 1):                                                                     # lifting dolphins
         b.add(props.tube([(sx * 0.08, -0.17, -0.12), (sx * 0.1, -0.24, 0.0), (sx * 0.08, -0.17, 0.12)], 0.025, seg=8),

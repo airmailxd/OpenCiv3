@@ -220,7 +220,8 @@ def pennant(p, top, w, h, phase=0.0):
     for j in range(n + 1):
         t = j / n
         hh = h * (1 - t)
-        rows.append([bm.verts.new((0.02 * math.sin(3 * t + phase), top[1] - w * t, top[2] - hh * k))
+        # it waves enough to read even end-on (bow and stern views)
+        rows.append([bm.verts.new((0.09 * t * math.sin(5 * t + phase), top[1] - w * t, top[2] - hh * k))
                      for k in (0.0, 1.0)])
     for j in range(n):
         bm.faces.new((rows[j][0], rows[j + 1][0], rows[j + 1][1], rows[j][1]))
@@ -407,11 +408,11 @@ def caravel(colors, rig_h=1.45, rig_w=1.75):
     mast(0.0, top, 0.032)
     sail(p, 0.02, z + h1, w1 * 0.92, w1, h1, 'disc_cross', billow=0.24, seed=2)
     sail(p, 0.02, z + h1 + 0.025 * rig_h + h2, w2 * 0.92, w2, h2, None, billow=0.09, seed=3, patches=2)
-    pennant(p, (0, 0.0, top), 0.42, 0.1)
+    pennant(p, (0, 0.0, top), 0.62, 0.26)   # Civ3's big blue masthead pennant
     # mizzen: a lateen sail with the cross
     mast(-0.7, deck(-0.7) + 1.1, 0.022)
     lateen(p, -0.7, deck(-0.7) + 1.0, 1.5, 30.0, 0.72, 'disc_cross')
-    pennant(p, (0, -0.7, deck(-0.7) + 1.1), 0.14, 0.08, phase=1.0)
+    pennant(p, (0, -0.7, deck(-0.7) + 1.1), 0.3, 0.14, phase=1.0)
     # the forestay, and shroud ladders (shrouds with ratlines) down both sides to deadeyes on the channels
     vkit.rod(p, (0, 0.0, top - 0.1), (0, 1.6, 0.52), 0.007, 'cordage', seg=4)
     ztop = z + h1 + 0.02
