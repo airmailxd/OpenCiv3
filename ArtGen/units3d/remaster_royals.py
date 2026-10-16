@@ -343,7 +343,7 @@ REMASTER = {
         'wraps': 'boots', 'cape': False, 'cuirass': False, 'sandals': False, 'bracers': True,
         'weapon': None, 'offhand': None,        # MISSING: shoulder_clasp
         # MISSING: back_angle (no key: the scabbard hangs vertically; the review wants it tilted so the hilt rises over the right shoulder)
-        'back': 'sheathed_sword', 'back_params': {'length': 0.9},
+        'back_tilt': 35.0, 'back': 'sheathed_sword', 'back_params': {'length': 0.9},
         'stance_name': 'stand',
         'tint': ['top', 'bottom'],
         'grime': 0.6, 'upper_bulk': 1.3,
@@ -483,7 +483,7 @@ REMASTER = {
         'wild_hair': 0.04,                      # short tousled curls over the cap; MISSING: curly_hair (true curls)
         'top': 'vest', 'bottom': 'kilt', 'robe_drop': 0.45,
         # MISSING: himation (draped over the left shoulder, wrapping the hips to below the knee)
-        'gear': [('chest_strap', {'width': 0.10})], 'cape': False,
+        'gear': [('chest_strap', {'color': '#e8e4da', 'width': 0.3, 'offset': 0.03})], 'cape': False,
         # no gold neck band: even at 0.012 it read as a shoulder yoke
         'cuirass': False, 'wraps': None, 'sandals': True, 'bracers': False,
         'weapon': None, 'offhand': None,
@@ -502,7 +502,7 @@ REMASTER = {
         'colors': {'skin': '#a88262', 'hair': '#3e2c20', 'beard': '#5e4a38', 'helmet': '#b08a2e', 'top': '#d8ccaa',
                    'bottom': '#d8ccaa', 'belt': '#b08a2e', 'sandal': '#4a3622', 'gold': '#b08a2e',
                    'wood': '#a8842a', 'steel': '#b08a2e', 'iron': '#b08a2e'},
-        'helmet': 'crown', 'crown': 'circlet', 'crown_height': 0.07,   # taller: at 0.05 the circlet was lost in the hair
+        'helmet': 'crown', 'crown_lift': 0.03, 'crown': 'circlet', 'crown_height': 0.07,   # taller: at 0.05 the circlet was lost in the hair
         # the long beard lighter than the hair and kept below the cheeks, so it doesn't merge with the face
         'hair': 'short', 'hair_asset': 'short02', 'beard': True, 'beard_style': 'long',
         'beard_length_short': 0.012, 'beard_density': 500,
@@ -564,6 +564,7 @@ REMASTER = {
         'cuirass': False, 'wraps': None, 'sandals': True, 'bracers': False,
         # MISSING: tinted_tip (the stick's top; no key on 'staff')
         'weapon': 'staff', 'props': {'staff': ('staff', {'length': 1.55, 'grip': 0.95})},
+        'pose_extra': [('spine_02', (0, -0.18, 1)), ('neck_01', (0, -0.12, 1)), ('head', (0, 0.25, 1))],   # the walking stoop (-y forward)
         'stance_name': 'stand_staff',           # MISSING: walking_stoop
         'tint': ['strap'],
         'grime': 0.4, 'upper_bulk': 0.95,
@@ -578,7 +579,7 @@ REMASTER = {
         'colors': {'skin': '#9a7458', 'hair': '#141010', 'plume': '#e8e4da', 'wraps': '#5e4632',
                    'wraps_band': '#3e2e20', 'belt': '#5a3a22', 'sandal': '#5a3a22', 'wood': '#4a3222',
                    'steel': '#8a8c90', 'shield_face': '#d8ccb0', 'shield_rim': '#8a6a48', 'feather': '#e8e4da'},
-        'helmet': None, 'headgear': 'war_bonnet', 'headgear_scale': 0.65,   # white feathers, tinted tips and headband, the trailer (smaller again: 2-5 px clip at the cell top, dirs 5-7)
+        'helmet': None, 'headgear': 'war_bonnet', 'headgear_scale': 0.62,   # white feathers, tinted tips and headband, the trailer (smaller again: 2-5 px clip at the cell top, dirs 5-7)
         'hair': 'long', 'hair_asset': 'long01', 'beard': False,
         'top': None, 'bottom': 'loincloth', 'loin_length': (0.5, 0.45), 'torn': False,
         'wraps': 'wraps', 'sandals': False,     # MISSING: leggings (brown cloth), moccasins

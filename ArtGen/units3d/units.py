@@ -477,7 +477,7 @@ def helmet(entry, mesh, arm):
         gold = B.material('crown', B.hex_color(_colors(entry).get('gold', '#c8a040')), roughness=0.3, metallic=1.0)
         gem = entry.get('crown_gems')
         G.crown(mesh, arm, gold, kind=entry.get('crown', 'spiked'), height=entry.get('crown_height', 0.07),
-                gems=B.hex_color(gem) if gem else None)
+                gems=B.hex_color(gem) if gem else None, lift=entry.get('crown_lift', 0.0))
         return
     if kind == 'great_helm':
         # a closed flat-topped helm down to the neck, with an eye slit

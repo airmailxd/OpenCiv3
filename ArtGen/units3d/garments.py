@@ -1302,14 +1302,14 @@ def brim(basemesh, arm, mat, radius=0.17, lift=0.075, curl=0.03, comb=0.05):
     return made
 
 
-def crown(basemesh, arm, mat, kind='spiked', height=0.07, gems=None):
+def crown(basemesh, arm, mat, kind='spiked', height=0.07, gems=None, lift=0.0):
     """A crown on the head (parented to the head bone): a band around the
     head at the brow, plus points ('spiked'), arches meeting over the top
     ('arched', a closed royal crown), or a tall cylinder ('tall', the
     Mesopotamian kind). 'circlet' is the band alone."""
     import human as H
     top, yc, _ = _head(basemesh)
-    zb = top - 0.07
+    zb = top - 0.07 + lift                 # `lift`: higher, clear of thick hair
     rx, ry = 0.088, 0.105
     made = []
     bm = bmesh.new()
