@@ -160,13 +160,10 @@ def hair_material(name, color):
     tree.nodes.clear()
     out = tree.nodes.new('ShaderNodeOutputMaterial')
     hair = tree.nodes.new('ShaderNodeBsdfHairPrincipled')
-    # pigment, like real hair: dark swatches are mostly eumelanin, reddish
-    # ones get some pheomelanin
-    r, g, b = color
-    lum = 0.3 * r + 0.59 * g + 0.11 * b
-    hair.parametrization = 'MELANIN'
-    hair.inputs['Melanin'].default_value = min(1.0, max(0.0, 1.05 - lum * 1.3))
-    hair.inputs['Melanin Redness'].default_value = min(1.0, max(0.0, (r - b) * 2.5))
+    # the swatch's color directly (the melanin model, from the swatch's
+    # lightness, turned mid gingers and browns into pale blonds)
+    hair.parametrization = 'COLOR'
+    hair.inputs['Color'].default_value = (*B.srgb_to_linear(color), 1.0)
     hair.inputs['Roughness'].default_value = 0.5
     hair.inputs['Radial Roughness'].default_value = 0.35
     tree.links.new(hair.outputs[0], out.inputs['Surface'])
@@ -782,15 +779,50 @@ def mail_nodes(tree, bsdf):
 
 
 def band(basemesh, arm, name, bones, mat, z, width=0.06, offset=0.022):
-    """A narrow band around a limb or the body at height `z` (for a 1.75 m man)."""
-    return shell(basemesh, arm, name, bones, mat, zmin=z - width / 2, zmax=z + width / 2, offset=offset,
-                 thickness=0.006, min_weight=0.3)
+    """A band around a limb or the body: at height `z` (for a 1.75 m man), or
+    with `z` = (bone, t), at fraction t along both sides' `bone`_l/_r in the
+    rest pose (the arms don't hang in it). Cut from a wider shell and
+    subdivided, so it is a whole ring of the exact width (the body's faces
+    are larger than a band)."""
+    along = isinstance(z, (tuple, list))
+    obj = shell(basemesh, arm, name, bones, mat, zmin=None if along else z - width / 2 - 0.06,
+                zmax=None if along else z + width / 2 + 0.06, offset=offset, thickness=0.006, min_weight=0.3)
+    if obj is None or not obj.data.polygons:
+        return obj
+    if along:
+        inv = basemesh.matrix_world.inverted() @ arm.matrix_world
+        axes = {}
+        for sd in ('l', 'r'):
+            b = arm.data.bones[z[0] + '_' + sd]
+            h, t = inv @ b.head_local, inv @ b.tail_local
+            axes[sd] = (h, t - h)
+
+        def inside(co):
+            h, d = axes['l' if co.x > 0 else 'r']
+            u = (co - h).dot(d) / d.length_squared
+            half = width * _scale / 2 / d.length
+            return z[1] - half <= u <= z[1] + half
+    else:
+        lo, hi = (z - width / 2) * _scale, (z + width / 2) * _scale
+
+        def inside(co):
+            return lo <= co.z <= hi
+    bm = bmesh.new()
+    bm.from_mesh(obj.data)
+    for _ in range(3):
+        bmesh.ops.subdivide_edges(bm, edges=bm.edges[:], cuts=1, use_grid_fill=True)
+    kill = [f for f in bm.faces if not all(inside(v.co) for v in f.verts)]
+    bmesh.ops.delete(bm, geom=kill, context='FACES')
+    bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context='VERTS')
+    bm.to_mesh(obj.data)
+    bm.free()
+    return obj
 
 
 # where bands go: bones and height (1.75 m man)
 BANDS = {
-    'upperarm': (['upperarm_l', 'upperarm_r'], 1.28),
-    'wrist': (['lowerarm_l', 'lowerarm_r', 'hand_l', 'hand_r'], 0.86),
+    'upperarm': (['upperarm_l', 'upperarm_r'], ('upperarm', 0.45)),
+    'wrist': (['lowerarm_l', 'lowerarm_r', 'hand_l', 'hand_r'], ('lowerarm', 0.88)),
     'knee': (['calf_l', 'calf_r', 'thigh_l', 'thigh_r'], 0.5),
     'ankle': (['calf_l', 'calf_r', 'foot_l', 'foot_r'], 0.11),
     'waist': (['pelvis', 'spine_01'], 1.0),

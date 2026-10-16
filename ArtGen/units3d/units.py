@@ -50,6 +50,17 @@ def _mat(entry, part, maker, *args, **kw):  # noqa: D401
     return maker(f'{part}', color, *args, tint=tint, **kw)
 
 
+def _calm_skin(hexcol, sat=0.7):
+    """Bare skin with its saturation scaled: the skin shader pushes saturated
+    swatches orange, and dark ones maroon."""
+    import colorsys
+    h = hexcol.lstrip('#')
+    r, g, b = (int(h[i:i + 2], 16) / 255 for i in (0, 2, 4))
+    hh, ll, ss = colorsys.rgb_to_hls(r, g, b)
+    r, g, b = colorsys.hls_to_rgb(hh, ll, ss * sat)
+    return '#%02x%02x%02x' % (round(r * 255), round(g * 255), round(b * 255))
+
+
 def _skin_base(hexcolor, female=False):
     """The MPFB skin texture closest in lightness to the catalog's skin color."""
     r, g, b = B.hex_color(hexcolor)
@@ -475,7 +486,7 @@ def equip(entry, arm):
             H.fists(arm, sides='l')
         elif stance in ('hang', 'guard'):
             # hanging from the fist, down and out to the side, head low
-            H.hold(obj, arm, 'hand_r', at, up=(-0.7, -0.45, -0.5))
+            H.hold(obj, arm, 'hand_r', at, up=tuple(entry.get('hang_dir', (-0.7, -0.45, -0.5))))
         elif stance == 'upright' and name == 'staff':
             # a walking staff, upright beside the body
             H.hold(obj, arm, 'hand_r', at, up=(-0.04, 0.0, 1.0))
@@ -599,7 +610,7 @@ def build_footman(entry, seated=False):
     mesh, arm = H.body(gender=gender, age=entry.get('age', 0.5), **macro,
                        race=entry.get('race', {'caucasian': 0.4, 'african': 0.3, 'asian': 0.3}),
                        skin=_skin_base(c['skin'], female=gender < 0.5), hair=hair,
-                       skin_tone=B.hex_color(c['skin']), hair_tone=B.hex_color(c['hair']))
+                       skin_tone=B.hex_color(_calm_skin(c['skin'])), hair_tone=B.hex_color(c['hair']))
     H.grime(mesh, amount=entry.get('grime', 0.4))
     dress(entry, mesh, arm)
     equip(entry, arm)

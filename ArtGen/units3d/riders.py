@@ -54,8 +54,7 @@ def translate(r):
     if e.get('sleeves') == 'mail':
         e['collar'] = 'mail'
         c.setdefault('mail', '#6e7074')
-    if c.get('skin'):
-        c['skin'] = _calm(c['skin'], 0.7)   # bare skin read orange in the renders
+    # (bare skin is calmed in units.build_footman, for every unit)
     e['colors'] = c
     e['tint'] = tint
     e['_headgear'] = e.pop('headgear', None)

@@ -30,12 +30,13 @@ REMASTER = {
         'helmet': None, 'headgear': 'conical_helmet',
         'hair': 'long', 'hair_asset': 'braid01', 'mane': 0.22, 'beard': True,   # MISSING: braids (two braids down the chest)
         'top': 'sleeved', 'bottom': 'long', 'wraps': 'wraps', 'bracers': True,
-        'pelt_cape': ('#6a4a30', '#3a2818'),    # MISSING: long_pelt_cloak (to the thighs, not the shoulders)
+        'pelt_cape': ('#6a4a30', '#3a2818'), 'pelt_kind': 'cloak',
+        'fur_vest': ('#5e4430', '#33241a'),     # the brown fur over the torso front (only sleeves/trousers civ color)
         'gear': [],
         'weapon': 'axe',
-        'props': {'axe': ('battle_axe', {'length': 1.35, 'scale': 1.5})},
+        'props': {'axe': ('battle_axe', {'length': 0.75, 'scale': 1.6})},
         'stance_name': 'low_across',            # MISSING: two_hand_low (haft level across the hips, head out right)
-        'two_hands': True, 'tool_dir': (-1.0, -0.1, 0.1),
+        'two_hands': True, 'tool_dir': (-0.8, -0.2, 0.25),
         'tint': ['top', 'bottom', 'bracers'],
         'grime': 0.85, 'upper_bulk': 1.3,
     },
@@ -91,8 +92,9 @@ REMASTER = {
         'helmet': 'headband',                   # MISSING: streamers (ribbons flicking up off the headband)
         'hair': 'long', 'hair_asset': 'long01', 'mane': 0.3,
         'beard': True,                          # MISSING: long_beard (black, to mid-chest)
-        'top': 'vest', 'bottom': 'skirt',       # MISSING: fur_garment (a vest and kilt of shaggy fur, not cloth)
-        'pelt_cape': ('#b09a70', '#7a6848'),    # MISSING: long_pelt_cloak (down to the calves)
+        'top': None, 'bottom': 'skirt',         # MISSING: fur kilt (the skirt is cloth under the vest)
+        'fur_vest': ('#b09a70', '#7a6848'),
+        'pelt_cape': ('#b09a70', '#7a6848'), 'pelt_kind': 'cloak',
         'bracers': False,
         'bands': [('upperarm', 'tint'), ('wrist', 'tint'), ('waist', 'tint'), ('knee', 'tint')],
         'wraps': 'wraps', 'sandals': False, 'back': None, 'gear': [],
@@ -117,8 +119,8 @@ REMASTER = {
         # no slot that puts it on both wrists (and the ankle chain)
         'weapon': 'shovel',
         'props': {'shovel': ('shovel', {'length': 1.45})},
-        'stance_name': 'low_across',            # MISSING: spade_upright (blade on the ground at his right side)
-        'tool_dir': (0.05, -0.1, 1.0),          # the spade upright at his side (one hand)
+        'stance_name': 'hang',            # MISSING: spade_upright (blade on the ground at his right side)
+        'hang_dir': (-0.55, -0.3, -0.78),          # the spade upright at his side (one hand)
         'tint': ['strap'],
         'grime': 0.9, 'upper_bulk': 1.05,
     },
