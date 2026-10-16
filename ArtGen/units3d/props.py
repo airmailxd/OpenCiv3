@@ -844,6 +844,28 @@ def shield_round(p, r=0.24, dome=0.045, boss=True, scale=1.0, tint='both', face_
     _strap_back(p, half=0.08)
 
 
+def shield_heater(p, w=0.62, h=0.82, scale=1.0, cross=True):
+    """A knight's heater shield: flat-topped, its sides curving to a point,
+    slightly curved across; the face in the civ color with a pale cross
+    ('shield_pale'), a dark leather-bound rim; arm strap at the origin, face -Y."""
+    W, H = w * scale, h * scale
+    pts = [(-W / 2, H * 0.45), (W / 2, H * 0.45)]
+    for i in range(1, 12):   # the right side curving down to the point, then back up the left
+        t = i / 12
+        pts.append((W / 2 * math.cos(t * math.pi / 2) ** 0.8, H * 0.45 - H * t ** 1.6))
+    pts += [(-x, z) for x, z in reversed(pts[2:])]
+    board = slab(pts, 0.022, 'Y')
+    for v in board.verts:   # curved across, the edges swept back
+        v.co.y += 0.06 * (2 * v.co.x / W) ** 2
+    p.add(board, 'shield_emblem', T(0, -0.05, 0), bevel=0.004, tint=True)
+    ring = [(x * 1.0, -0.062 + 0.06 * (2 * x / W) ** 2, z) for x, z in pts] + [(pts[0][0], -0.062 + 0.06, pts[0][1])]
+    p.add(tube(ring, 0.012, seg=6), 'shield_rim', smooth=True)
+    if cross:
+        p.add(box(0.09 * scale, 0.012, H * 0.78), 'shield_pale', T(0, -0.067, H * 0.04), bevel=0.003)
+        p.add(box(W * 0.8, 0.012, 0.09 * scale), 'shield_pale', T(0, -0.064, H * 0.2), bevel=0.003)
+    _strap_back(p, half=0.08)
+
+
 def jaguar_shield(p, r=0.3, scale=1.0):
     """A Jaguar Warrior's round shield: a civ-colored face with dark rosettes,
     a pale rim and a gold boss."""
@@ -1788,6 +1810,7 @@ BUILDERS = {
     'chimalli': chimalli,
     'plain_round': plain_round,
     'jaguar_shield': jaguar_shield,
+    'shield_heater': shield_heater,
     'pike': pike,
     'chute_pack': chute_pack,
     'para_pack': para_pack,

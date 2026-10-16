@@ -38,16 +38,35 @@ def unit_rows(unit):
     folder = os.path.join(HERE, '..', '_previews', 'units3d', unit)
     if not os.path.exists(os.path.join(folder, 'unit_0000.png')):   # a foot unit: build.py's passes
         folder = os.path.join(HERE, '..', '_previews', 'units3d', 'passes', unit)
+    rendered = os.path.exists(os.path.join(folder, 'unit_0000.png'))
+    layers = [compose.compose(folder, d) for d in range(8)] if rendered else []
+    # grow the cell (in whole 1x pixels) to hold the new render, as compose.write_unit grows the
+    # game's sheets, so nothing is cut that the game would show; the old rows sit in it at their place
+    gx0, gy0, gx1, gy1 = x0, y0, x0 + W, y0 + H
+    for b, t in layers:
+        import numpy as np
+        ys, xs = np.nonzero(np.maximum(b[..., 3], t[..., 3]) > 4)
+        if len(xs):
+            gx0, gy0 = min(gx0, xs.min() // 4 * 4), min(gy0, ys.min() // 4 * 4)
+            gx1, gy1 = max(gx1, -(-(xs.max() + 1) // 4) * 4), max(gy1, -(-(ys.max() + 1) // 4) * 4)
+    GW, GH = gx1 - gx0, gy1 - gy0
+
+    def placed(img):
+        import numpy as np
+        a = np.asarray(img)
+        cell = np.zeros((GH, GW, 4), a.dtype)
+        cell[y0 - gy0:y0 - gy0 + a.shape[0], x0 - gx0:x0 - gx0 + a.shape[1]] = a
+        return cell
     orig, old, new = [], [], []
     for d in range(8):
-        orig.append(P.on_bg(civ3art.upscale_nearest(P.original_frame(fl, d, 0))))
-        old.append(P.on_bg(P.tinted(base[d * H:(d + 1) * H, 0:W], tint[d * H:(d + 1) * H, 0:W])))
-        if not os.path.exists(os.path.join(folder, 'unit_0000.png')):   # not rendered yet: a blank cell
-            new.append(Image.new('RGBA', (W, H), (60, 60, 60, 255)))
+        orig.append(P.on_bg(placed(civ3art.upscale_nearest(P.original_frame(fl, d, 0)))))
+        old.append(P.on_bg(placed(P.tinted(base[d * H:(d + 1) * H, 0:W], tint[d * H:(d + 1) * H, 0:W]))))
+        if not rendered:   # not rendered yet: a blank cell
+            new.append(Image.new('RGBA', (GW, GH), (60, 60, 60, 255)))
             continue
-        b, t = compose.compose(folder, d)
-        new.append(P.on_bg(P.tinted(b[y0:y0 + H, x0:x0 + W], t[y0:y0 + H, x0:x0 + W])))
-    return W, H, [('original', orig), ('current', old), ('Blender', new)]
+        b, t = layers[d]
+        new.append(P.on_bg(P.tinted(b[gy0:gy1, gx0:gx1], t[gy0:gy1, gx0:gx1])))
+    return GW, GH, [('original', orig), ('current', old), ('Blender', new)]
 
 
 def main(units):

@@ -667,7 +667,7 @@ def tow_team(colors, k=1.0):
     a traversing unit with its sight and night-sight boxes) on a low tripod,
     two olive missile crates on the ground; a gunner kneeling behind it at the
     sight (crew 0) and a spotter standing beside it (crew 1)."""
-    c = dict({'olive': '#5c6046', 'olive_dark': '#3e4232', 'gunmetal': '#3a3c3c'}, **colors)
+    c = dict({'olive': '#767a58', 'olive_dark': '#4a4e3a', 'gunmetal': '#3a3c3c'}, **colors)   # lit olive, as the original reads
     root = vkit.root('TOW Infantry')
     f = vkit.part(root, 'launcher', c, ARTILLERY_WEAR)
     zt = 0.62
@@ -691,10 +691,10 @@ def tow_team(colors, k=1.0):
         vkit.rod(f, (x, -0.15, zt + 0.05), (x * 1.6, -0.3, zt - 0.05), 0.016, 'gunmetal', seg=6)
     # two missile crates on the ground beside the launcher, one on the other's corner
     for (x, y, z, yaw) in ((0.75, 0.3, 0.0, 15), (0.6, -0.25, 0.0, -30)):
-        f.add(props.box(0.34, 0.52, 0.28), 'olive_dark', T(x, y, z + 0.14) @ R('Z', yaw), bevel=0.02)
+        f.add(props.box(0.34, 0.52, 0.28), 'olive', T(x, y, z + 0.14) @ R('Z', yaw), bevel=0.02)
         f.add(props.box(0.36, 0.54, 0.05), 'gunmetal', T(x, y, z + 0.26) @ R('Z', yaw), bevel=0.01)   # the lid
         for dy in (-0.2, 0.2):   # the crates' end bands and handles
-            f.add(props.box(0.36, 0.04, 0.3), 'olive', T(x, y, z + 0.14) @ R('Z', yaw) @ T(0, dy, 0), bevel=0.006)
+            f.add(props.box(0.36, 0.04, 0.3), 'olive_dark', T(x, y, z + 0.14) @ R('Z', yaw) @ T(0, dy, 0), bevel=0.006)
     f.finish()
     root.scale = (k, k, k)
     vkit.crew(root, 0, (0.05, -1.05, 0.0), yaw=0.0)      # the gunner, kneeling at the sight
