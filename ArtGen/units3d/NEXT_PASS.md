@@ -2,7 +2,18 @@
 
 This is written at the release that first ships the remastered units (October 2026). STATUS.md has the per-group state. STATUS_PC.md has the Windows PC's side.
 
-## What shipped
+## What shipped in v0.8.0 (October 16, 2026)
+
+**Only the Mac's 28 units are installed in the game**:
+- the 6 pilots;
+- footmen batch A except Impi;
+- 12 royals: Egyptian, German, Army Middle, Arab, Babylonian, Carthaginian, English, French, Greek, Hatti, American and Celtic.
+
+All the other units were remastered and passed review on the PC, but they are **not installed yet**. That covers the soldiers, footmen batch B and Impi, the other royals, the siege units with crews, ships, armor, aircraft, rockets and the Relic.
+
+The PC session only installs what stzur approves, directly in that session: its riders, chariots and the War Elephant were frozen for stzur's judgment. **To ship them, tell the PC session to run `ArtGen/units3d/install_pc.py --apply`** (add `--with-frozen` for the riders and chariots), commit, then release again. It first has to re-run build_pc for the 6 siege units, whose sheets weren't composed, and add the ships and footmen batch B to its list.
+
+## The work itself
 
 - Blender-rendered stills for all of the standalone set's human, vehicle and ship units: one pose in 8 directions, shown for every action, using one-column sheets read by UnitArtMetadata.SheetColumn.
 - Two machines built them: this Mac and the Windows PC.
