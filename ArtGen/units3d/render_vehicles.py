@@ -120,6 +120,10 @@ def render(unit, use_calibration=False, tag=''):
     B.lights()
     B.ground()
     B.tint_aov()
+    if os.environ.get('CRISP') == '1':   # crisper: no denoiser smoothing, more samples, a sharper pixel filter
+        scene.cycles.use_denoising = False
+        scene.cycles.samples = 768
+        scene.render.filter_size = 0.7
     root = build(unit)
     waterline = unit in SHIPS
     ppm, anchor, info = fit(unit, root, waterline)

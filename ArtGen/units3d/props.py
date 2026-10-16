@@ -33,6 +33,10 @@ from mathutils import Matrix, Vector
 
 # ------------------------------------------------------------ materials
 
+import os as _os
+# Surface detail strength (value variation and bump), 1 = the calm default.
+DETAIL = float(_os.environ.get('PROP_DETAIL', '1.0'))
+
 DEFAULTS = {
     # key: (color, roughness, metallic, detail kind)
     'wood': ('#7a5434', 0.62, 0.0, 'wood'),
@@ -145,7 +149,9 @@ def _weather(m, w):
     ao = N.new('ShaderNodeAmbientOcclusion')
     ao.samples = 8
     ao.inputs['Distance'].default_value = 0.08
-    fac = remap(ao.outputs['AO'], 0.0, 1.0, 1.0 - 0.55 * g, 1.0)                 # dirt in the crevices
+    ao.inputs['Distance'].default_value = 0.12
+    fac = remap(ao.outputs['AO'], 0.35, 1.0, 1.0 - 0.85 * g, 1.0)                # dark crevices and seams
+    fac = mul(fac, remap(noise(28.0, 3.0, 0.5), 0.3, 0.7, 0.8, 1.14))            # mottling a few cm across (2-4 px)
     fac = mul(fac, remap(noise(2.6), 0.42, 0.72, 1.0, 1.0 - 0.4 * g))           # grime blotches
     if w.get('edges', 0.25):
         # worn, lighter edges where the surface is convex (Cycles pointiness),
@@ -230,6 +236,7 @@ def _detail(m, kind, rough, tint):
 
     def value_mod(src, lo, hi):
         """Multiply the base color's value (HSV V) by a factor in [lo, hi]."""
+        lo, hi = 1.0 - (1.0 - lo) * DETAIL, 1.0 + (hi - 1.0) * DETAIL
         bc = p.inputs['Base Color']
         if bc.is_linked:
             return
@@ -247,7 +254,7 @@ def _detail(m, kind, rough, tint):
 
     def bump(src, strength, distance):
         b = N.new('ShaderNodeBump')
-        b.inputs['Strength'].default_value = strength
+        b.inputs['Strength'].default_value = min(1.0, strength * DETAIL)
         b.inputs['Distance'].default_value = distance
         L.new(src, b.inputs['Height'])
         if not p.inputs['Normal'].is_linked:
