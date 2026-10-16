@@ -12,6 +12,7 @@ These 7 units now belong to you: entries, renders and the review loop. Each one 
 | King Austria | remaster_royals.py | 'wolfhound' prop; place it with 'ground_props': [('wolfhound', {}, (0.5, 0.1), 15)] | 6/6/6/6/6/5 |
 | King Aztec | remaster_royals.py | dense feather fan (gold/tint/red/teal cycling) | 6/6/6/7/6/6 |
 | King Incan | remaster_royals.py | 'feather_standard' (a staff topped by a feather fan) | 6/6/6/6/6/5 |
+| King Iroquois | remaster_royals.py (stays with the Mac) | a feather wrap on the spear shaft: please add a 'feather_wrap' option on props.spear | 7/7/7/7/6/6 |
 | Impi | remaster_footmen.py | tapered feather cards for feather_headdress (it reads as "red sausages") | 7/6/8/7/7/7 (not-AI only) |
 
 The latest review notes for the royals are in the MISSING comments of those entries. For Impi, see reviews/footmen_batchA_round9.md.

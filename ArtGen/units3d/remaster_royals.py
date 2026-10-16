@@ -334,7 +334,7 @@ REMASTER = {
         'race': {'caucasian': 1.0, 'african': 0.0, 'asian': 0.0},
         'colors': {'skin': '#c09a78', 'hair': '#7a5a3a', 'beard': '#8a6a48', 'belt': '#4a3020', 'boots': '#3a2a1c',
                    'leather': '#5a3a22', 'gold': '#b08a2e', 'bottom': '#5a4630', 'bracers': '#5a3a22'},
-        'helmet': None, 'hair': 'long', 'hair_asset': 'long01', 'mane': 0.06,   # shorter: clear of the cheeks
+        'helmet': None, 'hair': 'long', 'hair_asset': 'long01', 'mane': 0.12,   # shorter: clear of the cheeks
         'beard': True, 'beard_style': 'mustache', 'beard_length_short': 0.01, 'beard_density': 450,   # lighter, smaller, thinner: not a blot
         'top': 'tunic', 'neck': 'high', 'coat_length': 0.2,   # the tunic to the hip
         # a bolder, larger tartan (it didn't read at 1x), on the tinted tunic and kilt
@@ -345,7 +345,7 @@ REMASTER = {
         'weapon': None, 'offhand': None,        # MISSING: shoulder_clasp
         # MISSING: back_angle (no key: the scabbard hangs vertically; the review wants it tilted so the hilt rises over the right shoulder)
         'back_tilt': 35.0, 'back': 'sheathed_sword', 'back_params': {'length': 0.9},
-        'shoulder_patch': ('l', 'gold'), 'patch_size': 0.075,   # the gold shoulder clasp
+        'shoulder_patch': ('l', 'gold'), 'patch_size': 0.075, 'patch_out': 0.06, 'patch_t': 0.12,   # the gold shoulder clasp
         'stance_name': 'stand',
         'tint': ['top', 'bottom'],
         'grime': 0.6, 'upper_bulk': 1.3,
@@ -353,7 +353,7 @@ REMASTER = {
     'King Chinese': {
         # Mao: thinning dark hair, a grey-blue high-collared suit, darker
         # trousers, brown shoes, civ-color armbands; hands clasped low in front
-        'macro': {'muscle': 0.65, 'weight': 1.0, 'height': 0.76, 'proportions': 0.7}, 'age': 0.75,
+        'macro': {'muscle': 0.75, 'weight': 1.0, 'height': 0.76, 'proportions': 0.7}, 'age': 0.75,
         'race': {'caucasian': 0.0, 'african': 0.0, 'asian': 1.0},
         'colors': {'skin': '#c89c76', 'hair': '#141414', 'top': '#66788a', 'bottom': '#505a68',
                    'shoes': '#3a2418', 'belt': '#4e5664'},
@@ -363,7 +363,7 @@ REMASTER = {
         'bands': [('upperarm', 'tint', 0.06)],
         'cape': False, 'cuirass': False, 'sandals': False, 'bracers': False, 'gear': [],
         'weapon': None, 'offhand': None,
-        'pockets': '#2e3640', 'pocket_size': 0.11,
+        'pockets': '#9aa4ae', 'pocket_size': 0.11,
         'stance_name': 'hands_clasped',
         'tint': [],
         'grime': 0.3, 'upper_bulk': 1.1,
