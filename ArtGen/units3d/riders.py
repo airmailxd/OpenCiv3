@@ -359,9 +359,13 @@ def cavalier(p, c, tinted, plume_tinted, plume=1.0):
     p.add(props.ellipsoid(0.03, 0.03, 0.03, seg=10), 'brass', T(-0.13, 0.0, 0.08), smooth=True)   # the pin
     pk, pt = _k(plume_tinted, 'plume')
     k = plume   # the plume's size (Musketeer: bigger)
-    p.add(props.tube([(-0.12, 0.03, 0.1), (-0.12 - 0.04 * k, -0.06 * k, 0.1 + 0.12 * k), (-0.12 - 0.02 * k, -0.22 * k, 0.1 + 0.14 * k),
-                      (-0.1, -0.34 * k, 0.1 + 0.04 * k)], [0.04 * k, 0.06 * k, 0.05 * k, 0.01], seg=10, scale_xy=(1.0, 0.7)),
-          pk, smooth=True, tint=pt)
+    # an ostrich plume: several soft fronds fanning from the pin, each a little different, so it reads as feathers
+    rnd = props.random.Random(23)
+    for j in range(5):
+        dx, dz = rnd.uniform(-0.03, 0.03), rnd.uniform(-0.02, 0.03)
+        p.add(props.tube([(-0.12, 0.03, 0.1), (-0.12 - 0.04 * k + dx, -0.06 * k, 0.1 + (0.12 + dz) * k),
+                          (-0.12 - 0.02 * k + dx * 1.5, -0.22 * k, 0.1 + (0.14 + dz) * k), (-0.1 + dx * 2, -0.34 * k, 0.1 + (0.04 + dz) * k)],
+                         [0.025 * k, 0.04 * k, 0.034 * k, 0.008], seg=8, scale_xy=(1.0, 0.8)), pk, smooth=True, tint=pt)
 
 
 @hat('top_hat')
@@ -431,6 +435,73 @@ def turban_aigrette(p, c, tinted, plume_tinted):
     pk, pt = _k(plume_tinted, 'plume')
     p.add(props.tube([(0, 0.15, 0.16), (0, 0.15, 0.28), (0, 0.11, 0.38), (0, 0.05, 0.42)], [0.022, 0.03, 0.024, 0.006],
                      seg=8, scale_xy=(0.6, 1.0)), pk, smooth=True, tint=pt)
+
+
+props.DEFAULTS.setdefault('pelt', ('#c87436', 0.9, 0.0, 'rope'))
+props.DEFAULTS.setdefault('pelt_dark', ('#2a1810', 0.9, 0.0, 'rope'))
+
+
+def _rosettes(cell=0.06):
+    """A face-key function: a jaguar pelt's dark rosettes."""
+    def keys(f):
+        c = f.calc_center_median()
+        u, v = c.x / cell + 0.37 * c.z / cell, c.z / cell + 0.21 * c.y / cell
+        du, dv = u - math.floor(u) - 0.5, v - math.floor(v) - 0.5
+        return ('pelt_dark', False) if math.hypot(du, dv) < 0.24 else None   # solid spots: rings break up at this mesh size
+    return keys
+
+
+@hat('jaguar_head')
+def jaguar_head(p, c, tinted, _):
+    """The Jaguar Warrior's headdress: a jaguar's head worn over his own, its
+    spotted hide over the crown, the cat's face over the brow (muzzle,
+    nose, a fang row, round ears) and the pelt hanging behind; a spray of
+    civ-colored feathers rising from the top."""
+    spots = _rosettes()
+    p.add(props.ellipsoid(0.135, 0.15, 0.13, seg=22), 'pelt', T(0, -0.01, 0.06), smooth=True, keys=spots)
+    p.add(props.ellipsoid(0.085, 0.07, 0.06, seg=16), 'pelt', T(0, 0.12, 0.04), smooth=True, keys=spots)   # the muzzle
+    p.add(props.ellipsoid(0.03, 0.02, 0.02, seg=10), 'pelt_dark', T(0, 0.185, 0.06), smooth=True)          # the nose
+    for sx in (-1, 1):
+        p.add(props.ellipsoid(0.022, 0.012, 0.016, seg=10), 'turban_white', T(sx * 0.045, 0.17, 0.01), smooth=True)  # fangs
+        p.add(props.ellipsoid(0.02, 0.012, 0.014, seg=10), 'gold', T(sx * 0.055, 0.14, 0.085), smooth=True)        # eyes
+        p.add(props.ellipsoid(0.04, 0.02, 0.04, seg=12), 'pelt', T(sx * 0.1, 0.0, 0.17), smooth=True)              # ears
+    # the hide hanging down the back of the neck
+    p.add(props.tube([(0, -0.1, 0.02), (0, -0.15, -0.1), (0, -0.14, -0.24)], [0.11, 0.1, 0.07], seg=12,
+                     scale_xy=(1.0, 0.35)), 'pelt', smooth=True, keys=spots)
+    rnd = props.random.Random(9)
+    for i in range(9):   # the civ-colored feather spray on top
+        a = math.radians(-60 + 120 * i / 8)
+        base = (0.03 * math.sin(a), -0.03, 0.17)
+        h = rnd.uniform(0.2, 0.28)
+        tip = (0.16 * math.sin(a), -0.08 - 0.05 * math.cos(a), 0.17 + h)
+        p.add(props.tube([base, tip], [0.022, 0.03], seg=5, scale_xy=(1.0, 0.35)), 'tint', smooth=True, tint=True)
+
+
+@hat('cap_plume')
+def cap_plume(p, c, tinted, plume_tinted):
+    """The Longbowman's cap: a big pale rounded steel cap, a narrow brim,
+    a civ-colored plume curling back from its side."""
+    p.add(props.lathe([(-0.01, 0.13), (0.04, 0.132), (0.1, 0.11), (0.15, 0.06), (0.17, 0.0)], seg=26), 'helmet',
+          smooth=True)
+    _brim(p, 0.125, 0.16, -0.005, 'helmet', up=lambda a: 0.01)
+    pk, pt = _k(True if plume_tinted is None else plume_tinted, 'plume')
+    p.add(props.tube([(0.1, 0.02, 0.1), (0.13, -0.04, 0.22), (0.08, -0.16, 0.27), (0.0, -0.24, 0.2), (-0.02, -0.25, 0.12)],
+                     [0.025, 0.04, 0.04, 0.03, 0.01], seg=8, scale_xy=(0.7, 1.0)), 'tint', smooth=True, tint=True)
+
+
+@hat('attic_helm')
+def attic_helm(p, c, tinted, crest_tinted):
+    """The Libyan Mercenary's Attic helmet: a bronze bowl with a brow ridge,
+    hinged cheek guards, a neck flare and a tall dark horsehair crest."""
+    p.add(props.lathe([(-0.03, 0.125), (0.05, 0.123), (0.12, 0.085), (0.155, 0.0)], seg=24), 'bronze', smooth=True)
+    p.add(props.lathe([(-0.005, 0.13), (0.015, 0.13)], seg=24), 'bronze', smooth=True)              # the brow ridge
+    for sx in (-1, 1):   # cheek guards hanging along the jaw
+        guard = props.slab([(0.0, 0.0), (0.07, 0.0), (0.06, -0.1), (0.02, -0.12), (-0.01, -0.06)], 0.008, 'X')
+        p.add(guard, 'bronze', T(sx * 0.118, 0.02, -0.01) @ R('Z', sx * 12), bevel=0.002)
+    p.add(props.lathe([(-0.09, 0.15), (-0.03, 0.127)], seg=24), 'bronze', T(0, -0.02, 0), smooth=True)   # neck flare
+    ck, ct = _k(crest_tinted, 'crest')
+    path = [(0, 0.11, 0.12), (0, 0.03, 0.19), (0, -0.07, 0.17), (0, -0.15, 0.06), (0, -0.17, -0.06)]
+    p.add(props.tube(path, [0.025, 0.035, 0.035, 0.028, 0.01], seg=8, scale_xy=(0.55, 1.0)), ck, smooth=True, tint=ct)
 
 
 @hat('peaked_cap')

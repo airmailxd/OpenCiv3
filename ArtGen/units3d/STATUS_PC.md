@@ -19,6 +19,10 @@ The per-unit lists are in [DETAIL_AUDIT_PC.md](DETAIL_AUDIT_PC.md).
 | Catapult, Cannon, Galley, Caravel | siege.py, ships.py, vkit.py | 6 axes PASS (detail 7-8) |
 | Horseman, Rider, Ansar Warrior | mounted.py, riders.py, remaster.py | 6 axes PASS (detail 7-8) |
 | Trebuchet, Hwacha, Artillery, Flak | siege.py | 6 axes PASS (detail 7-8) |
+| Siege crews (all 6 engines) | crews.py | Cannon, Trebuchet, Artillery, Flak PASS; Catapult, Hwacha in progress; opt-in with CREWS=1 |
+| 12 soldiers (handed over by the Mac, 2026-10-16) | remaster_soldiers.py, props.py, riders.py | Rifleman, Infantry, Paratrooper, Settler MT, Worker MT, Crusader PASS; the rest in review |
+| TOW Infantry | siege.tow_team + crews.py | a team: launcher, crates, kneeling gunner, spotter; in review |
+| Footmen batch B (11, handed over 2026-10-16) | remaster_footmen.py (only these blocks) | Legionary, Medieval Infantry PASS (Mac round 3); round 4 in review |
 | Mounted Warrior, Ancient Cavalry, Knight, Keshik, Sipahi, Conquistador, Cossack, Hussar, Cavalry | mounted.py, riders.py, remaster.py | frozen for stzur's judgment (borderline 6-7 on 5 axes); detail 2-5/10, see below |
 | chariot, War Chariot, Three Man Chariot | chariots.py | frozen for stzur's judgment; detail 4-5/10, see below |
 | Props (pilots + riders + footmen) | props.py, props_preview.py | pilots' props reviewed; footman props delivered, not yet seen on bodies |
@@ -58,6 +62,8 @@ These are what a fifth round would add; waiting on stzur before touching them.
 
 ## How to render
 
+    python ArtGen/units3d/build_pc.py <Unit> [...] [--install]   # vehicles, ships, riders, chariots, TOW: render + game sheets
+    python ArtGen/units3d/build.py <Unit> [...]                  # foot units (soldiers, footmen): the Mac's builder
     blender -b --factory-startup --python-exit-code 1 --python ArtGen/units3d/render_vehicles.py -- <Unit> [...]
     python ArtGen/units3d/vehicles_sheet.py <Unit> [...]     # original / current / Blender, local only
     python ArtGen/units3d/size_check.py <Unit>               # on-map box vs the original

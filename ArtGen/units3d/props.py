@@ -756,7 +756,23 @@ def _emblem_band(rx, rz, thick, dome, half_len, half_w, n=16):
     return loft(rings)
 
 
-def shield_oval(p, w=0.66, h=0.66, dome=0.06, emblem_angle=45.0, band=0.1, scale=1.0, rim_tint=False):
+def _star_emblem(p, rx, rz, thick, dome, gap, rays=12):
+    """A civ-colored sunburst on a domed board: a disc and long tapering rays."""
+    for i in range(rays):
+        a = 2 * math.pi * i / rays
+        pts = []
+        for t in (0.0, 0.5, 1.0):
+            r = 0.18 + 0.7 * t
+            x, z = r * rx * math.cos(a), r * rz * math.sin(a)
+            d = 1 - (x / rx) ** 2 - (z / rz) ** 2
+            pts.append((x, gap - thick - dome * max(d, 0) - 0.004, z))
+        p.add(tube(pts, [0.03 * rx, 0.02 * rx, 0.003], seg=4, scale_xy=(1.0, 0.25)), 'shield_emblem', smooth=True,
+              tint=True)
+    p.add(ellipsoid(0.22 * rx, 0.012, 0.22 * rz, seg=20), 'shield_emblem', T(0, gap - thick - dome - 0.002, 0),
+          smooth=True, tint=True)
+
+
+def shield_oval(p, w=0.66, h=0.66, dome=0.06, emblem_angle=45.0, band=0.1, scale=1.0, rim_tint=False, emblem='cross'):
     """The Spearman's big wooden shield (round by default, oval if w != h):
     a tan board face, a leather-bound rim, a quartered cross emblem in the civ
     color (tint) and a small bronze boss; arm strap at the origin. rim_tint
@@ -771,8 +787,10 @@ def shield_oval(p, w=0.66, h=0.66, dome=0.06, emblem_angle=45.0, band=0.1, scale
             for i in range(k + 1)]
     p.add(tube(ring, 0.022 if rim_tint else 0.014, seg=8, scale_xy=(1.0, 1.3)),
           'shield_emblem' if rim_tint else 'shield_rim', smooth=True, tint=rim_tint)
-    # emblem: two crossing bands following the dome (the original's quartered cross)
-    for ang in (emblem_angle, -emblem_angle):
+    # emblem: two crossing bands following the dome (the original's quartered cross), or a sunburst
+    if emblem == 'star':
+        _star_emblem(p, rx, rz, thick, dome, gap)
+    for ang in ((emblem_angle, -emblem_angle) if emblem == 'cross' else ()):
         a = math.radians(ang)
         half_len = 0.93 * rx * rz / math.hypot(rz * math.cos(a), rx * math.sin(a))
         b = _emblem_band(rx, rz, thick, dome, half_len, band / 2 * scale)
@@ -1326,7 +1344,7 @@ def musket(p, length=1.5, bayonet=False, scale=1.0, flared=False):
     for z in (0.35, 0.65, L - 0.55):
         p.add(lathe([(0.0, 0.028), (0.014, 0.028)], seg=12), 'bronze', T(0, 0.004, z), smooth=True)
     if flared:
-        p.add(lathe([(0.0, 0.012 * s), (0.08, 0.018 * s), (0.13, 0.034 * s), (0.15, 0.036 * s)], seg=14), 'steel',
+        p.add(lathe([(0.0, 0.012 * s), (0.08, 0.02 * s), (0.15, 0.05 * s), (0.18, 0.054 * s)], seg=16), 'steel',
               T(0, 0.01, L - 0.53), smooth=True)
     if bayonet:
         _bayonet(p, L - 0.38, s)
@@ -1474,6 +1492,31 @@ DEFAULTS.setdefault('brass', ('#a88a4a', 0.4, 1.0, 'metal'))
 DEFAULTS.setdefault('ak_wood', ('#7e4424', 0.55, 0.0, 'wood'))
 
 
+def arrow_bag(p, scale=1.0):
+    """A big tan arrow bag hung at the hip (origin at the belt, hanging toward
+    +Z down-back like the scabbard), its arrows' fletching at the mouth."""
+    s = scale
+    p.add(tube([(0, 0, 0), (0, 0, 0.08 * s)], 0.014 * s, seg=6, scale_xy=(1.4, 0.4)), 'leather', smooth=True)
+    bag = lathe([(0.06 * s, 0.07 * s), (0.2 * s, 0.11 * s), (0.42 * s, 0.1 * s), (0.5 * s, 0.05 * s), (0.52 * s, 0.0)],
+                seg=14, scale_xy=(1.0, 0.7))
+    p.add(bag, 'canvas', smooth=True)
+    p.add(lathe([(0.06 * s, 0.075 * s), (0.09 * s, 0.075 * s)], seg=14, scale_xy=(1.0, 0.7)), 'leather', smooth=True)
+    for i in range(7):   # fletching standing out of the mouth (toward -Z, up)
+        a = 2 * math.pi * i / 7
+        x, y = 0.045 * s * math.cos(a), 0.03 * s * math.sin(a)
+        p.add(tube([(x, y, 0.06 * s), (x * 1.2, y * 1.2, -0.06 * s)], 0.005, seg=4), 'wood', smooth=True)
+        p.add(box(0.004, 0.03, 0.08), 'fletch', T(x * 1.2, y * 1.2, -0.04 * s) @ R('Z', math.degrees(a)), bevel=0.0)
+
+
+def chest_pack(p, scale=1.0):
+    """A small leather pack worn on the chest strap (chest_gear: origin mid-
+    chest, +Y out from the body, +Z up): a flapped pouch with a buckle."""
+    s = scale
+    p.add(box(0.16 * s, 0.07 * s, 0.13 * s), 'leather', T(0.05 * s, 0.04 * s, -0.04 * s), bevel=0.02 * s)
+    p.add(box(0.165 * s, 0.075 * s, 0.05 * s), 'leather_dark', T(0.05 * s, 0.043 * s, 0.01 * s), bevel=0.01 * s)
+    p.add(box(0.02 * s, 0.01 * s, 0.025 * s), 'brass', T(0.05 * s, 0.082 * s, -0.01 * s), bevel=0.002)
+
+
 def chute_pack(p, size=1.0):
     """A paratrooper's parachute container for the back (as backpack: the
     straps' top at the origin, the load toward -Y): a big squared grey pack,
@@ -1490,7 +1533,7 @@ def chute_pack(p, size=1.0):
     p.add(box(0.05 * s, 0.03 * s, 0.03 * s), 'shield_accent', T(-0.15 * s, 0.14 * s, -0.08 * s), bevel=0.006)   # ripcord
 
 
-def para_pack(p, size=1.0):
+def para_pack(p, size=1.0, bag='olive_dark', camo=False):
     """A WWII paratrooper's parachute for the back (as backpack): a rounded,
     stuffed olive-tan pack with a static-line bag on top and harness straps;
     a reserve chute belongs on the chest."""
@@ -1501,7 +1544,8 @@ def para_pack(p, size=1.0):
         if v.co.y > 0:
             v.co.y *= 0.4
     jitter(pack, 0.012 * s, seed=21)
-    p.add(pack, 'olive_dark', T(0, -0.17 * s, -0.18 * s), smooth=True)
+    # bag: the bundle's color key; camo: woodland blotches over it
+    p.add(pack, bag, T(0, -0.17 * s, -0.18 * s), smooth=True, keys=_woodland(0.06 * s) if camo else None)
     p.add(box(0.28 * s, 0.12 * s, 0.08 * s), 'olive', T(0, -0.16 * s, 0.11 * s), bevel=0.03 * s)   # static line bag
     p.add(tube([(0.0, -0.22 * s, 0.1 * s), (0.08 * s, -0.3 * s, 0.0), (0.05 * s, -0.31 * s, -0.25 * s)], 0.008 * s,
                seg=5), 'webbing', smooth=True)   # the static line
@@ -1813,6 +1857,8 @@ BUILDERS = {
     'shield_heater': shield_heater,
     'pike': pike,
     'chute_pack': chute_pack,
+    'arrow_bag': arrow_bag,
+    'chest_pack': chest_pack,
     'para_pack': para_pack,
     'ak': ak,
     'musket_rest': musket_rest,

@@ -53,7 +53,8 @@ REMASTER = {
         'weapon': 'musket',
         'props': {'musket': ('musket', {'length': 1.78})},
         'offhand': 'musket_rest', 'offhand_mesh': ('musket_rest', {'length': 1.45, 'grip': 0.8}), 'offhand_dir': (0.05, -0.05, 1.0),
-        'stance_name': 'order_arms',            # MISSING: shoulder_arms (musket on the right shoulder, angled up-forward)
+        'stance_name': 'shoulder_arms',         # the matchlock on the right shoulder, sloping back
+        'trouser_offset': 0.045,                # puffed breeches
         # MISSING: plume_size (PC: morion_big's plume half as big and standing up); the
         # reference shows it white-grey, not tinted: the owner's call, so 'plume' stays tinted
         'tint': ['top', 'bottom', 'plume'],
@@ -146,11 +147,13 @@ REMASTER = {
         'headgear': 'modern_helmet', 'helmet': None, 'headgear_params': {'band': True, 'camo': True},
         'hair': 'short', 'beard': False,
         'top': 'sleeved', 'neck': 'high',
-        'cuirass': True, 'metal': [],           # the flak vest, woodland green; MISSING: vest_camo (patterns only reach cloth)
+        'cuirass': True, 'metal': [],           # the flak vest, in woodland camo (a patterned vest becomes cloth)
+        'cloth_rough': 0.95, 'wide_sleeves': True,   # matte cloth, looser sleeves (not sculpted tubes)
         'bottom': 'long',
         # woodland: on the trousers, and as a darker mottle on the civ-color sleeves
         # base dark green; mid green and brown dominate, khaki in small spots
-        'patterns': {'bottom': ('camo', '#4a5a3c', '#55352d', '#909369'),
+        'patterns': {'cuirass': ('camo', '#4a5a3c', '#55352d', '#909369'),
+                     'bottom': ('camo', '#4a5a3c', '#55352d', '#909369'),
                      'top': ('camo', '#8a8a8a', '#5a5a5a')},
         'boots': True, 'wraps': 'boots',
         'gear': [],
@@ -196,7 +199,7 @@ REMASTER = {
         'colors': {'skin': '#9a7254', 'hair': '#2a2018', 'olive': '#4e4d3c', 'top': '#7a7450',
                    'bottom': '#7a7450', 'belt': '#34322a', 'boots': '#5a3a22', 'pack': '#4e4d3c',
                    'bedroll': '#5e5c44', 'pot': '#3e3e32', 'wood': '#6e5030',
-                   'chute_tan': '#4e4d3c', 'olive_dark': '#5e3e22', 'flag': '#a8322c'},   # dark olive chute; the smg's stock is 'olive_dark': brown wood
+                   'chute_tan': '#8a8462', 'olive_dark': '#5e3e22', 'flag': '#a8322c'},   # dark olive chute; the smg's stock is 'olive_dark': brown wood
         'headgear': 'modern_helmet', 'helmet': None, 'headgear_params': {'net': True},   # the netted M1
         'hair': 'short', 'beard': False,
         'top': 'sleeved', 'neck': 'high',
@@ -206,9 +209,10 @@ REMASTER = {
                      'bottom': ('camo', '#9e9562', '#49432f', '#2e2a20')},
         'boots': True, 'wraps': 'boots',
         'harness': True,
-        'bands': [('knee', 'tint', 0.08), ('upperarm', 'flag', 0.07)],   # MISSING: flag_patch (a red band stands in for the flag)
+        'bands': [('knee', 'tint', 0.08)],
+        'shoulder_patch': ('l', 'flag'),        # the flag on the left shoulder
         'gear': [],
-        'back': 'para_pack', 'back_params': {'size': 1.45},   # the huge chute bundle
+        'back': 'para_pack', 'back_params': {'size': 1.45, 'bag': 'chute_tan', 'camo': True},   # the huge camo chute bundle
         'weapon': 'smg',
         'props': {'smg': ('smg', {'scale': 1.4})},
         'stance_name': 'hip_hold',              # butt at the right hip, muzzle forward
@@ -230,8 +234,8 @@ REMASTER = {
         'top': 'tunic',                         # short sleeves, forearms bare
         'bottom': 'long', 'puffy': True,        # MISSING: loose_trousers (puffy still reads skin-tight)
         # lighter woodland; MISSING: cloth_roughness (the dark camo reads wet)
-        'patterns': {'bottom': ('camo', '#3e5a1a', '#7a6a3a'),
-                     'top': ('camo', '#3e5a1a', '#7a6a3a')},
+        'patterns': {'bottom': ('camo', '#25340a', '#5a4a24'),   # dark green and brown woodland mottling
+                     'top': ('camo', '#25340a', '#5a4a24')},
         'boots': True, 'wraps': 'boots',
         # the crossed civ-color bandoliers, over the tunic; MISSING: cartridge loops on them
         'gear': [('chest_strap', {'tint': True, 'width': 0.07, 'cross': True, 'offset': 0.035})],
@@ -309,7 +313,7 @@ REMASTER = {
         'top': 'vest', 'neck': 'high', 'collar': 'mail',
         'mail_parts': ['arms', 'legs'],         # mail sleeves and chausses
         'bottom': 'skirt',                      # the surcoat's skirt to the knee
-        'chest_emblem': ('cross', '#ece8dc', 0.32),   # a white cross on the civ surcoat; MISSING: back_emblem
+        'chest_emblem': ('cross', '#ece8dc', 0.32), 'back_emblem': 'both',   # a white cross front and back
         'hem_bands': [('bottom', 'tint', 0.05)],
         'bands': [('neck', 'tint'), ('upperarm', 'tint'), ('ankle', 'gold')],   # civ-color shoulders, gold spurs
         'wraps': 'greaves', 'leather_bracers': False,
@@ -345,6 +349,7 @@ REMASTER = {
         # the civ-color harness, crossed over the shirt; MISSING: y_harness
         'gear': [('chest_strap', {'tint': True, 'width': 0.1, 'cross': True, 'offset': 0.035})],
         'bands': [('upperarm', 'tint', 0.12), ('knee', 'tint', 0.08)],   # the civ-color shoulders and bands below the knee
+        'shoulder_patch': ('l', 'flag'),        # the flag patch
         # MISSING: ground_props (props.tow_launcher on its tripod and two missile
         # crates set on the ground beside him; equip only puts props in hands)
         # MISSING: team (a second, kneeling soldier at the launcher's sight)
