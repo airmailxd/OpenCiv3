@@ -69,6 +69,23 @@ def _pattern(tree, coord, base, pattern):
         return ramp.outputs['Color']
     dark = lin[0] if lin else (0.02, 0.02, 0.02, 1.0)
     scale = nums[0] if nums else (28.0 if kind == 'check' else 18.0)
+    if kind == 'stripes':
+        # vertical stripes (trouser stripes, slashing): dark bands across X
+        wave = n.new('ShaderNodeTexWave')
+        wave.wave_type = 'BANDS'
+        wave.bands_direction = 'X'
+        wave.inputs['Scale'].default_value = nums[0] if nums else 6.0
+        tree.links.new(coord.outputs['Object'], wave.inputs['Vector'])
+        hard = n.new('ShaderNodeMath')
+        hard.operation = 'GREATER_THAN'
+        hard.inputs[1].default_value = 0.8
+        tree.links.new(wave.outputs['Fac'], hard.inputs[0])
+        mix = n.new('ShaderNodeMix')
+        mix.data_type = 'RGBA'
+        mix.inputs['A'].default_value = base
+        mix.inputs['B'].default_value = dark
+        tree.links.new(hard.outputs['Value'], mix.inputs['Factor'])
+        return mix.outputs['Result']
     if kind == 'check':
         chk = n.new('ShaderNodeTexChecker')
         chk.inputs['Scale'].default_value = scale
@@ -497,6 +514,11 @@ def pelt(basemesh, arm, color, dark, length=0.045, density=3000, kind='shoulders
         bones = ['clavicle_l', 'clavicle_r', 'spine_01', 'spine_02', 'spine_03', 'pelvis',
                  'upperarm_l', 'upperarm_r', 'thigh_l', 'thigh_r']
         zmin, offset = 0.62, 0.045
+    elif kind == 'kilt':
+        # a fur kilt from the waist to the knee, round the hips and thighs
+        keep = None
+        bones = ['pelvis', 'thigh_l', 'thigh_r']
+        zmin, offset = 0.5, 0.045
     elif kind == 'vest':
         keep = None
         bones = ['clavicle_l', 'clavicle_r', 'spine_01', 'spine_02', 'spine_03', 'pelvis']
@@ -506,7 +528,8 @@ def pelt(basemesh, arm, color, dark, length=0.045, density=3000, kind='shoulders
             return (co.z > 1.4) or (co.y > 0.0 and co.z > 1.12)
         bones = ['clavicle_l', 'clavicle_r', 'spine_02', 'spine_03', 'upperarm_l', 'upperarm_r']
         zmin, offset = 1.12, 0.035
-    obj = shell(basemesh, arm, 'Pelt_' + kind, bones, hide('pelt', color, dark), zmin=zmin, zmax=1.47,
+    obj = shell(basemesh, arm, 'Pelt_' + kind, bones, hide('pelt', color, dark), zmin=zmin,
+                zmax=1.0 if kind == 'kilt' else 1.47,
                 offset=offset, thickness=0.025, min_weight=0.3, keep=keep)
     grp = obj.vertex_groups.new(name='furzone')
     grp.add([v.index for v in obj.data.vertices], 1.0, 'REPLACE')

@@ -248,7 +248,8 @@ def dress(entry, mesh, arm):
                width=bw or (0.05 if where in ('waist', 'neck') else 0.045))
     if entry.get('beard'):
         style = entry.get('beard_style', 'full')       # full, mustache, goatee, chin, long
-        G.beard(mesh, B.hex_color(c.get('beard', c['hair'])), length=0.018, density=700,
+        G.beard(mesh, B.hex_color(c.get('beard', c['hair'])), length=entry.get('beard_length_short', 0.018),
+                density=entry.get('beard_density', 700),
                 style='full' if style == 'long' else style)
         if style == 'long':
             G.long_beard(mesh, arm, B.hex_color(c.get('beard', c['hair'])), length=entry.get('beard_length', 0.16))
@@ -258,6 +259,9 @@ def dress(entry, mesh, arm):
     if entry.get('fur_vest'):
         G.pelt(mesh, arm, B.hex_color(entry['fur_vest'][0]), B.hex_color(entry['fur_vest'][1]), length=0.025,
                density=4000, kind='vest')
+    if entry.get('fur_kilt'):
+        G.pelt(mesh, arm, B.hex_color(entry['fur_kilt'][0]), B.hex_color(entry['fur_kilt'][1]), length=0.03,
+               density=4000, kind='kilt')
     if entry.get('topknot'):
         # 'topknot' or 'ponytail' on a shaven head (set 'hair_asset': None)
         G.topknot(mesh, arm, G.hide('knot', B.hex_color(c['hair']), tuple(v * 0.6 for v in B.hex_color(c['hair']))),
@@ -440,8 +444,9 @@ def helmet(entry, mesh, arm):
                 eyes = 0.075 < d < 0.11 and abs(co.x) < 0.06
                 mouth = d >= 0.11 and abs(co.x) < 0.028
                 return not (face and (eyes or mouth))
-        G.shell(mesh, arm, 'Helmet', ['head', 'neck_01'] + (['clavicle_l', 'clavicle_r', 'spine_03'] if kind == 'hood' else []),
-                mat, zmin=(top - depth) / G._scale if kind != 'hood' else 1.36,
+        shoulders = kind == 'hood' and not entry.get('hood_neck')     # 'hood_neck': stops at the neck
+        G.shell(mesh, arm, 'Helmet', ['head', 'neck_01'] + (['clavicle_l', 'clavicle_r', 'spine_03'] if shoulders else []),
+                mat, zmin=(top - depth) / G._scale if kind != 'hood' else (1.36 if shoulders else 1.47),
                 offset={'hood': 0.03, 'cap': 0.01}.get(kind, 0.02),
                 thickness=0.008, min_weight=0.2, keep=keep)
         if kind == 'horned':
