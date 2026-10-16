@@ -1286,3 +1286,55 @@ def plate_bands(n, gap=0.18):
         tree.links.new(wave.outputs['Fac'], bump.inputs['Height'])
         tree.links.new(bump.outputs['Normal'], bsdf.inputs['Normal'])
     return nodes
+
+
+def topknot(basemesh, arm, mat, kind='topknot', length=0.3):
+    """Hair on a shaven head: a 'topknot' (a bound knot on the crown, folded
+    forward) or a 'ponytail' (a long tail from the back of the crown); on
+    the head bone."""
+    import human as H
+    from mathutils import Vector
+    top, yc, _ = _head(basemesh)
+    s = _scale
+    made = []
+    if kind == 'topknot':
+        bpy.ops.mesh.primitive_cylinder_add(radius=0.016 * s, depth=0.05 * s, vertices=12,
+                                            location=(0, yc + 0.02 * s, top + 0.012 * s), rotation=(0.9, 0, 0))
+        made.append(bpy.context.active_object)
+        bpy.ops.mesh.primitive_uv_sphere_add(radius=0.022 * s, location=(0, yc - 0.01 * s, top + 0.03 * s))
+        made.append(bpy.context.active_object)
+    else:
+        # a tapering tail: from the back of the crown down the back (+y behind)
+        pts = [Vector((0, yc + 0.07 * s, top - 0.03 * s)), Vector((0, yc + 0.12 * s, top - 0.1 * s)),
+               Vector((0, yc + 0.13 * s, top - 0.1 * s - length * 0.5 * s)),
+               Vector((0, yc + 0.12 * s, top - 0.1 * s - length * s))]
+        curve = bpy.data.curves.new('Ponytail', 'CURVE')
+        curve.dimensions = '3D'
+        sp = curve.splines.new('BEZIER')
+        sp.bezier_points.add(len(pts) - 1)
+        for bp, p in zip(sp.bezier_points, pts):
+            bp.co = p
+            bp.handle_left_type = bp.handle_right_type = 'AUTO'
+        for i, bp in enumerate(sp.bezier_points):
+            bp.radius = 1.0 - 0.6 * i / (len(pts) - 1)
+        curve.bevel_depth = 0.022 * s
+        curve.bevel_resolution = 3
+        obj = bpy.data.objects.new('Ponytail', curve)
+        bpy.context.scene.collection.objects.link(obj)
+        bpy.context.view_layer.objects.active = obj
+        obj.select_set(True)
+        bpy.ops.object.convert(target='MESH')
+        obj = bpy.context.active_object
+        made.append(obj)
+        bpy.ops.mesh.primitive_uv_sphere_add(radius=0.026 * s, location=tuple(pts[0]))
+        made.append(bpy.context.active_object)
+    for o in made:
+        o.data.materials.clear()
+        o.data.materials.append(mat)
+        world = o.matrix_world.copy()
+        o.parent = arm
+        o.parent_type = 'BONE'
+        o.parent_bone = 'head'
+        o.matrix_world = world
+    H._update()
+    return made

@@ -239,6 +239,10 @@ def dress(entry, mesh, arm):
     if entry.get('fur_vest'):
         G.pelt(mesh, arm, B.hex_color(entry['fur_vest'][0]), B.hex_color(entry['fur_vest'][1]), length=0.025,
                density=4000, kind='vest')
+    if entry.get('topknot'):
+        # 'topknot' or 'ponytail' on a shaven head (set 'hair_asset': None)
+        G.topknot(mesh, arm, G.hide('knot', B.hex_color(c['hair']), tuple(v * 0.6 for v in B.hex_color(c['hair']))),
+                  kind=entry['topknot'], length=entry.get('tail_length', 0.3))
     if entry.get('crown_hair'):
         G.crown_hair(mesh, B.hex_color(c['hair']), length=0.06, density=7000)
     if entry.get('mane'):
