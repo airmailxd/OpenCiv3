@@ -367,7 +367,7 @@ DEFAULTS.update({
     'olive_dark': ('#3a3c28', 0.8, 0.0, 'cloth'),
     'gem': ('#8a1c22', 0.2, 0.0, None),
     'lapis': ('#1e3a8a', 0.4, 0.0, None),
-    'banner': ('#ffffff', 0.85, 0.0, 'cloth'),
+    'banner': ('#ffffff', 0.8, 0.0, 'polished'),   # flag cloth: plain (the cloth noise read as sparkle on a waving flag)
     'lens': ('#c8d4dc', 0.05, 0.0, None),
     'lens_dark': ('#0e0e10', 0.08, 0.0, None),
 })
@@ -1795,10 +1795,10 @@ def swagger_stick(p, length=0.6, scale=1.0):
         p.add(ellipsoid(0.012, 0.012, 0.014, seg=10), 'gold', T(0, 0, z), smooth=True)
 
 
-for _k, _v in {'device_red': ('#a8302a', 0.8, 0.0, 'cloth'), 'device_green': ('#3a7a3a', 0.8, 0.0, 'cloth'),
-               'device_cyan': ('#3aa0b8', 0.8, 0.0, 'cloth'), 'device_white': ('#ece8e0', 0.8, 0.0, 'cloth'),
-               'device_gold': ('#c8a038', 0.6, 0.3, 'cloth')}.items():
-    DEFAULTS.setdefault(_k, _v)
+for _k, _v in {'device_red': ('#cc3a2e', 0.8, 0.0, 'polished'), 'device_green': ('#3cb050', 0.8, 0.0, 'polished'),
+               'device_cyan': ('#44c4dc', 0.8, 0.0, 'polished'), 'device_white': ('#f0ece4', 0.8, 0.0, 'polished'),
+               'device_gold': ('#d8b040', 0.6, 0.3, 'polished')}.items():   # bright and clean, as the originals
+    DEFAULTS[_k] = _v
 
 
 def _device(kind, top, w, h, flag):
@@ -1806,23 +1806,32 @@ def _device(kind, top, w, h, flag):
     own (u, v): 'bars' (three upright bars, red/green/cyan), 'blobs' (red,
     green and cyan roundels), 'saltire' (a white diagonal cross), 'quarters'
     (red and green quarters)."""
+    unrot = Matrix.Rotation(math.radians(-20), 3, 'Z')   # the cloth is yawed off the pole plane (_banner)
+
     def keys(f):
-        c = f.calc_center_median()
+        c = unrot @ f.calc_center_median()
         u = c.y / w if flag else (c.x + w / 2) / w
         v = (top - c.z) / h
         if kind == 'bars':
-            for u0, edge in ((0.25, 'device_cyan'), (0.5, 'device_green'), (0.75, 'device_cyan')):   # red bars, light edges
-                if 0.12 < v < 0.88 and abs(u - u0) < 0.1:
-                    return ('device_red' if abs(u - u0) < 0.06 else edge, False)
+            for u0, key in ((0.24, 'device_green'), (0.5, 'device_red'), (0.76, 'device_cyan')):   # three bars, one color each
+                if 0.12 < v < 0.88 and abs(u - u0) < 0.085:
+                    return (key, False)
         elif kind == 'blobs':
             for (u0, v0, r), key in (((0.3, 0.32, 0.15), 'device_red'), ((0.68, 0.38, 0.14), 'device_green'),
                                      ((0.48, 0.7, 0.14), 'device_cyan')):
                 if ((u - u0) / r) ** 2 + ((v - v0) / (r * w / h)) ** 2 < 1:
                     return (key, False)
         elif kind == 'saltire':
-            dd = min(abs(u - v), abs(u - (1 - v)))   # a red diagonal cross edged in green
-            if dd < 0.14:
-                return ('device_red' if dd < 0.08 else 'device_green', False)
+            dd = min(abs(u - v), abs(u - (1 - v)))   # Union-like: a red diagonal cross edged cyan, a red upright cross edged green
+            du = min(abs(u - 0.5), abs(v - 0.5) * h / w)
+            if du < 0.05:
+                return ('device_red', False)
+            if du < 0.1:
+                return ('device_green', False)
+            if dd < 0.06:
+                return ('device_red', False)
+            if dd < 0.11:
+                return ('device_cyan', False)
         elif kind == 'quarters':
             if (u < 0.5) == (v < 0.5):
                 return ('device_red' if u < 0.5 else 'device_green', False)
@@ -1841,16 +1850,17 @@ def _banner(p, top, w, h, swallowtail=False, flag=False, device=None):
         row = []
         for i in range(nx + 1):
             u = i / nx
-            if flag:   # hangs from the staff to +Y
-                co = (0.02 * math.sin(u * 5 + v), u * w, top - v * h)
+            if flag:   # flies from the staff to +Y in an S-wave (a flat cloth goes edge-on in some direction)
+                co = (0.14 * w * math.sin(u * math.pi * 1.6 + v * 0.6) * min(1.0, u * 4), u * w, top - v * h)
             else:      # hangs below the crossbar
-                co = (-w / 2 + u * w, 0.02 * math.sin(u * 6), top - v * h * (1 - (0.3 if swallowtail and abs(u - 0.5) < 0.15 else 0) * v))
+                co = (-w / 2 + u * w, 0.12 * w * math.sin(u * math.pi * 1.6 + 0.4), top - v * h * (1 - (0.3 if swallowtail and abs(u - 0.5) < 0.15 else 0) * v))
             row.append(bm.verts.new(co))
         rows.append(row)
     for a, b in zip(rows[:-1], rows[1:]):
         for i in range(nx):
             bm.faces.new((a[i], a[i + 1], b[i + 1], b[i]))
     bmesh.ops.solidify(bm, geom=bm.faces[:], thickness=0.006)
+    bmesh.ops.rotate(bm, verts=bm.verts, cent=(0, 0, 0), matrix=Matrix.Rotation(math.radians(20), 3, 'Z'))   # a little off the pole plane
     p.add(bm, 'banner', smooth=True, tint=True, keys=_device(device, top, w, h, flag) if device else None)
 
 
@@ -1866,10 +1876,10 @@ def war_standard(p, era='ancient', length=2.6, grip=1.0, scale=1.0, device=None,
         fs = flag_scale
         vkit_bar = tube([(-0.28 * fs, 0, z1 - 0.12), (0.28 * fs, 0, z1 - 0.12)], 0.012, seg=8)
         p.add(vkit_bar, 'wood', smooth=True)
-        _banner(p, z1 - 0.13, 0.5 * fs, 0.55 * fs, device=device)
+        _banner(p, z1 - 0.13, 0.5 * fs, 0.55 * min(fs, 1.15), device=device)   # wide, but a short drop: it clears the head
         for i in range(9):
             x = (-0.24 + 0.06 * i) * fs
-            zf = z1 - 0.13 - 0.55 * fs
+            zf = z1 - 0.13 - 0.55 * min(fs, 1.15)
             p.add(tube([(x, 0, zf), (x, 0, zf - 0.08)], 0.006, seg=4), 'gold', smooth=True)
         _gold_head(p, 'eagle', z1, 1.6)
     elif era == 'medieval':
@@ -1893,10 +1903,11 @@ def eagle_standard(p, length=2.2, grip=0.9, scale=1.0):
     _gold_head(p, 'eagle', z1 + 0.08, 2.4)
 
 
-DEFAULTS.setdefault('feather_teal', ('#2e8a86', 0.7, 0.0, 'cloth'))
-DEFAULTS.setdefault('feather_red', ('#a8302a', 0.9, 0.0, 'cloth'))
-DEFAULTS.setdefault('feather_green', ('#2e7a4a', 0.9, 0.0, 'cloth'))
-DEFAULTS.setdefault('dog_fur', ('#8a8884', 0.9, 0.0, 'cloth'))
+# feathers: clean (no crevice dirt, which turned the packed cards of a fan nearly black)
+DEFAULTS['feather_teal'] = ('#3a9a94', 0.6, 0.0, 'polished')
+DEFAULTS['feather_red'] = ('#b8382e', 0.6, 0.0, 'polished')
+DEFAULTS['feather_green'] = ('#3a8a52', 0.6, 0.0, 'polished')
+DEFAULTS.setdefault('dog_fur', ('#7e7a72', 0.95, 0.0, 'cloth'))   # grey-brown, rough
 DEFAULTS.setdefault('dog_dark', ('#1e1c1a', 0.6, 0.0, 'leather'))
 
 
@@ -1921,7 +1932,7 @@ def feather_card(p, base, tip, normal, width, key, tint=False, curl=0.15, n=6):
     p.add(bm, key, smooth=False, tint=tint)   # flat: smoothing across the thin edges turned the cards black
 
 
-def feather_standard(p, length=2.1, grip=1.2, scale=1.0):
+def feather_standard(p, length=2.1, grip=1.2, scale=1.0, fan=1.0):
     """The Inca's feather standard held at the grip (origin), +Z up: a staff
     with a gold collar, topped by a fan of civ, red and teal feathers, a
     gold boss at its heart."""
@@ -1932,9 +1943,9 @@ def feather_standard(p, length=2.1, grip=1.2, scale=1.0):
     cycle = (('tint', True), ('feather_red', False), ('feather_teal', False))
     for i in range(13):
         a = math.radians(-78 + 156 * i / 12)
-        tip = (0.42 * math.sin(a), 0.0, z1 + 0.05 + 0.42 * math.cos(a))
+        tip = (0.42 * fan * math.sin(a), 0.0, z1 + 0.05 + 0.42 * fan * math.cos(a))
         key, t = cycle[i % 3]
-        feather_card(p, (0, 0, z1 + 0.03), tip, (0, 1, 0), 0.085, key, tint=t, curl=0.08)
+        feather_card(p, (0, 0, z1 + 0.03), tip, (0, 1, 0), 0.085 * fan, key, tint=t, curl=0.08)
     p.add(ellipsoid(0.045, 0.03, 0.045, seg=14), 'gold', T(0, 0.01, z1 + 0.04), smooth=True)
 
 
@@ -1948,18 +1959,19 @@ def wolfhound(p, scale=1.0):
     for (x, y, z), (rx, ry, rz) in (((0, 0.24, 0.6), (0.14, 0.27, 0.2)), ((0, -0.12, 0.65), (0.11, 0.26, 0.13)),
                                     ((0, -0.4, 0.65), (0.125, 0.15, 0.15))):
         p.add(ellipsoid(rx * s, ry * s, rz * s, seg=18), fur, T(x * s, y * s, z * s), smooth=True)
-    p.add(tube([(0, 0.4 * s, 0.68 * s), (0, 0.55 * s, 0.86 * s), (0, 0.62 * s, 0.94 * s)], [0.09 * s, 0.075 * s, 0.065 * s], seg=12),
+    # the neck carried low and forward: the head about level with the back (it read as a llama held high)
+    p.add(tube([(0, 0.4 * s, 0.68 * s), (0, 0.55 * s, 0.76 * s), (0, 0.64 * s, 0.8 * s)], [0.095 * s, 0.08 * s, 0.07 * s], seg=12),
           fur, smooth=True)
-    p.add(ellipsoid(0.07 * s, 0.12 * s, 0.075 * s, seg=16), fur, T(0, 0.67 * s, 0.97 * s) @ R('X', -10), smooth=True)
-    p.add(tube([(0, 0.74 * s, 0.96 * s), (0, 0.9 * s, 0.92 * s)], [0.05 * s, 0.035 * s], seg=12), fur, smooth=True)   # the muzzle
-    p.add(ellipsoid(0.022 * s, 0.02 * s, 0.018 * s, seg=10), 'dog_dark', T(0, 0.915 * s, 0.925 * s), smooth=True)   # the nose
+    p.add(ellipsoid(0.07 * s, 0.12 * s, 0.075 * s, seg=16), fur, T(0, 0.7 * s, 0.82 * s) @ R('X', -10), smooth=True)
+    p.add(tube([(0, 0.77 * s, 0.81 * s), (0, 0.93 * s, 0.77 * s)], [0.05 * s, 0.035 * s], seg=12), fur, smooth=True)   # the muzzle
+    p.add(ellipsoid(0.022 * s, 0.02 * s, 0.018 * s, seg=10), 'dog_dark', T(0, 0.945 * s, 0.775 * s), smooth=True)   # the nose
     for sx in (-1, 1):
-        p.add(ellipsoid(0.012 * s, 0.012 * s, 0.01 * s, seg=8), 'dog_dark', T(sx * 0.04 * s, 0.76 * s, 0.99 * s), smooth=True)   # eyes
-        p.add(ellipsoid(0.02 * s, 0.05 * s, 0.035 * s, seg=10), fur, T(sx * 0.05 * s, 0.6 * s, 1.01 * s) @ R('X', 30), smooth=True)   # ears
+        p.add(ellipsoid(0.012 * s, 0.012 * s, 0.01 * s, seg=8), 'dog_dark', T(sx * 0.04 * s, 0.79 * s, 0.84 * s), smooth=True)   # eyes
+        p.add(ellipsoid(0.02 * s, 0.05 * s, 0.035 * s, seg=10), fur, T(sx * 0.05 * s, 0.63 * s, 0.86 * s) @ R('X', 30), smooth=True)   # ears
     rnd = random.Random(11)
     for i in range(10):   # the shaggy beard and brows
         x = rnd.uniform(-0.035, 0.035)
-        a = (x * s, (0.82 + rnd.uniform(-0.06, 0.06)) * s, 0.9 * s)
+        a = (x * s, (0.86 + rnd.uniform(-0.06, 0.06)) * s, 0.76 * s)
         p.add(tube([a, (a[0] * 1.3, a[1] + 0.02 * s, a[2] - 0.06 * s)], [0.012 * s, 0.004 * s], seg=5), fur, smooth=True)
     legs = [((0.075, 0.32), [(0.32, 0.52), (0.31, 0.3), (0.33, 0.04)]), ((-0.075, 0.3), [(0.3, 0.52), (0.33, 0.3), (0.31, 0.04)]),
             ((0.085, -0.42), [(-0.42, 0.6), (-0.34, 0.36), (-0.46, 0.15), (-0.43, 0.04)]),
@@ -1969,17 +1981,17 @@ def wolfhound(p, scale=1.0):
         p.add(tube(path, [0.05 * s] + [0.033 * s] * (len(path) - 1), seg=10), fur, smooth=True)
         y, z = pts[-1]
         p.add(ellipsoid(0.035 * s, 0.05 * s, 0.03 * s, seg=10), fur, T(x * s, (y + 0.02) * s, 0.03 * s), smooth=True)
-    p.add(tube([(0, -0.52 * s, 0.7 * s), (0, -0.66 * s, 0.55 * s), (0, -0.7 * s, 0.36 * s), (0, -0.64 * s, 0.24 * s)],
+    p.add(tube([(0, -0.52 * s, 0.68 * s), (0, -0.6 * s, 0.52 * s), (0, -0.62 * s, 0.34 * s), (0, -0.6 * s, 0.22 * s)],
                [0.035 * s, 0.03 * s, 0.022 * s, 0.012 * s], seg=8), fur, smooth=True)   # the low curved tail
-    for i in range(40):   # rough coat tufts along the back and flanks
-        y = rnd.uniform(-0.5, 0.45)
+    for i in range(110):   # the rough coat: shaggy tufts along the back, flanks and neck
+        y = rnd.uniform(-0.5, 0.6)
         sx = rnd.choice((-1, 1))
-        z = rnd.uniform(0.58, 0.78)
+        z = rnd.uniform(0.5, 0.8)
         a = (sx * rnd.uniform(0.04, 0.12) * s, y * s, z * s)
-        b = (a[0] + sx * 0.03 * s, a[1] - 0.03 * s, a[2] - 0.04 * s)
-        p.add(tube([a, b], [0.022 * s, 0.006 * s], seg=5), fur, smooth=True)
+        b = (a[0] + sx * 0.04 * s, a[1] - 0.04 * s, a[2] - 0.06 * s)
+        p.add(tube([a, b], [0.026 * s, 0.006 * s], seg=5), fur, smooth=True)
     p.add(lathe([(0.0, 0.085), (0.035, 0.08)], seg=16, scale_xy=(1.0, 1.1)), 'tint',
-          T(0, 0.5 * s, 0.8 * s) @ R('X', -40) @ S(s), smooth=True, tint=True)   # the civ collar
+          T(0, 0.52 * s, 0.73 * s) @ R('X', -60) @ S(s), smooth=True, tint=True)   # the civ collar
 
 
 def briefcase(p, scale=1.0, straps=None):

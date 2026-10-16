@@ -72,7 +72,7 @@ REMASTER = {
         # MISSING: lapel_trim (tinted robe front edges; the panel edges stand in)
         'cape': False, 'cuirass': False, 'wraps': None, 'sandals': True, 'bracers': False, 'gear': [],
         # the crossbar-hung vexillum, tinted field; MISSING: flag_device (three vertical bars, red/green/cyan)
-        'weapon': 'standard', 'props': {'standard': ('war_standard', {'era': 'ancient', 'length': 2.30, 'grip': 1.2, 'device': 'bars', 'flag_scale': 1.6})},   # lower again: the flag top touched the cell top (dirs 6, 7), then 1 px in dir 6
+        'weapon': 'standard', 'props': {'standard': ('war_standard', {'era': 'ancient', 'length': 2.30, 'grip': 0.95, 'device': 'bars', 'flag_scale': 1.6})},   # lower again: the flag top touched the cell top (dirs 6, 7), then 1 px in dir 6
         'stance_name': 'stand_staff', 'two_hands': True,
         'tint': ['banner'],
         'grime': 0.55, 'upper_bulk': 1.1,
@@ -142,7 +142,7 @@ REMASTER = {
         'gear': [('chest_strap', {'width': 0.2, 'edge': 'gold', 'edge_width': 0.035})],   # the broad tinted sash, gold-edged
         'cape': False, 'cuirass': False, 'sandals': False, 'bracers': False,
         # the big flag, tinted field; MISSING: flag_device (diagonal cross; the PC is making it)
-        'weapon': 'standard', 'props': {'standard': ('war_standard', {'era': 'modern', 'length': 2.43, 'grip': 1.2, 'device': 'saltire', 'flag_scale': 1.45})},   # lower: the flag top touched the cell top (dirs 6, 7)
+        'weapon': 'standard', 'props': {'standard': ('war_standard', {'era': 'modern', 'length': 2.43, 'grip': 0.95, 'device': 'saltire', 'flag_scale': 1.45})},   # lower: the flag top touched the cell top (dirs 6, 7)
         'stance_name': 'stand_staff', 'two_hands': True,
         'tint': ['strap', 'banner'],
         'grime': 0.55, 'upper_bulk': 1.15,
@@ -210,17 +210,20 @@ REMASTER = {
         'macro': {'muscle': 0.8, 'weight': 0.78, 'height': 0.78, 'proportions': 0.7}, 'age': 0.6,
         'race': {'caucasian': 1.0, 'african': 0.0, 'asian': 0.0},
         'colors': {'skin': '#d0a07a', 'hair': '#3a2616', 'beard': '#5a4230', 'helmet': '#1c1a1a', 'plume': '#ece8e0',
-                   'top': '#5a3e28', 'bottom': '#5a3e28', 'cape': '#4e3626', 'belt': '#2a2018',
-                   'wraps': '#e4e0d4', 'wraps_band': '#c8c2b4', 'sandal': '#2a2018', 'gold': '#b08a2e'},
+                   'top': '#5a3e28', 'bottom': '#5a3e28', 'cape': '#c8a870', 'belt': '#2a2018', 'cuirass': '#7a5a30',
+                   'wraps': '#e4e0d4', 'wraps_band': '#e4e0d4', 'sandal': '#2a2018', 'gold': '#b08a2e'},   # plain white hose; the light tan brocade cape
         'helmet': None, 'headgear': 'beret_feather', 'brow_drop': 0.07,     # the dark beret (helmet color), the white plume laid along it
         'hair': 'short', 'hair_asset': None, 'beard': True,
         # the civ-color puffed sleeves (check they cover the shoulder tops); MISSING: quilting, gold dots
-        'top': 'sleeved', 'puffy': True,
+        'top': 'sleeved', 'puffy': True, 'shoulder_rolls': 'tint', 'roll_size': 0.09,   # the big civ puffed sleeves
+        'cuirass': True, 'metal': [], 'cuirass_trim': 'gold',   # the quilted brown-gold vest front
+        'patterns': {'cuirass': ('check', '#a8823e', 26.0), 'sleeves': ('camo', '#e0c050', 30.0, 'cover', 0.08),
+                     'cape': ('stripes', '#a8885a', 16.0)},   # quilting, gold dots, the brocade's vertical pattern
         'bottom': 'breeches', 'wraps': 'wraps', 'shoes': True, 'sandals': False,   # white hose, low shoes; MISSING: gold buckles
-        'cape': True, 'cape_length': 1.0,       # dark brown as the original; MISSING: brocade
+        'cape': True, 'cape_length': 1.0,       # the light tan brocade (as the original; the note's dark brown was wrong)
         'hem_bands': [('cape', 'tint', 0.07)],  # the tinted cape edge (wider: 0.05 didn't read)
-        'cuirass': False, 'bracers': False, 'gear': [],
-        # MISSING: companion_dog (grey wolfhound, tinted collar; the PC is making the prop). Once it exists, place it
+        'bracers': False, 'gear': [],
+        # (was MISSING: companion_dog (grey wolfhound, tinted collar; the PC is making the prop). Once it exists, place it
         # with 'ground_props': [(name, params, (x, y), yaw)] at his side (x is his left, +y forward)
         'weapon': None, 'offhand': None,
         'ground_props': [('wolfhound', {'scale': 1.3}, (0.55, 0.15), 10)],   # the grey wolfhound at his left, civ collar
@@ -544,7 +547,7 @@ REMASTER = {
         'hem_bands': [('cape', 'gold', 0.05, 0.12), ('cape', '#ece8e0', 0.03, 0.06)],
         'cuirass': False, 'wraps': None, 'sandals': True, 'bracers': False, 'gear': [],
         # MISSING: feather_standard (staff topped with a fan of tinted/red/teal feathers), left_hand_hold
-        'weapon': 'staff', 'props': {'staff': ('feather_standard', {'length': 2.1, 'grip': 1.2})},   # the feather standard
+        'weapon': 'staff', 'props': {'staff': ('feather_standard', {'length': 2.35, 'grip': 1.2, 'fan': 1.6})},   # the feather standard, its big fan above his head
         'stance_name': 'stand_staff',
         'tint': ['cape'],
         'grime': 0.45, 'upper_bulk': 1.15,
@@ -711,7 +714,7 @@ REMASTER = {
         'beard': False,
         'top': 'sleeved', 'neck': 'high',
         'patterns': {'top': ('stripes', '#a8242a', 10.0),   # the doublet's red slashes (stripes stand in for dashes)
-                     'cape': ('camo', '#f4f2ec', 34.0, 'cover', 0.035)},   # white ermine dots scattered on the robe
+                     },   # MISSING: ermine dots on the cape (patterns don't reach capes)
         # white breeches and hose in one: full-length puffy legs, black low shoes
         'bottom': 'breeches', 'puffy': True, 'trouser_offset': 0.04, 'wraps': 'wraps', 'shoes': True, 'sandals': False,   # short puffed civ breeches over white hose
         # the enormous robe: a wide bell flaring onto the ground, the gold hem pooling behind
@@ -723,7 +726,7 @@ REMASTER = {
         # ground ('tool_dir' is the way it runs from the fist); check the tip meets the ground
         'weapon': 'cane', 'props': {'cane': ('cane', {'length': 1.0})},
         'stance_name': 'stand_staff',           # the cane planted at his side (no hand raised to the head)
-        'tint': ['cape', 'bottom'],   # the civ breeches, as the original
+        'tint': ['cape', 'bottom'],   # the civ robe and breeches, as the original
         'grime': 0.35, 'upper_bulk': 1.1,
     },
     'King Ottoman': {
@@ -876,10 +879,10 @@ REMASTER = {
         'top': 'sleeved', 'neck': 'high',
         # the white front panel between civ-color sides; MISSING: fleur_pattern (gold)
         'bottom': 'gown', 'gown_flare': 2.4, 'robe_drop': 0.62,
-        'patterns': {'bottom': ('camo', '#e2c454', 15.0, 'cover', 0.1)},   # gold fleurs scattered on the civ gown (the white at her front sides is the veil)
-        'hem_bands': [('bottom', '#f2efe8', 0.13, 0.0), ('bottom', 'gold', 0.06, 0.13)],   # the wide white lace spill   # gold and white lace at the hem
+        'patterns': {'bottom': ('camo', '#e2c454', 9.0, 'cover', 0.07)},   # gold fleurs scattered on the civ gown (the white at her front sides is the veil)
+        'hem_bands': [('bottom', '#f2efe8', 0.2, 0.0), ('bottom', 'gold', 0.07, 0.2)],   # the wide white lace spill, gold above it   # gold and white lace at the hem
         # the white veil to the hips, narrow and close to the back; MISSING: head_veil (from the head, over the crown)
-        'cape': True, 'cape_length': 1.45, 'cape_width': 0.75, 'cape_flare': 0.25, 'cape_wrap': 0.55,   # the veil falls to the ground behind   # close to the back
+        'cape': True, 'cape_length': 1.45, 'cape_width': 0.55, 'cape_flare': 0.4, 'cape_wrap': 0.85,   # side panels: the gown shows down the back, as the original   # the veil falls to the ground behind   # close to the back
         'cuirass': False, 'wraps': None, 'sandals': False, 'bracers': False, 'gear': [],
         # the gold fleur-headed scepter low in the right fist, head up and forward
         'weapon': 'scepter', 'props': {'scepter': ('scepter', {'length': 0.7, 'head': 'fleur'})},
