@@ -27,7 +27,7 @@ def _asset(kind, name, ext):
 
 def body(gender=1.0, age=0.5, muscle=0.75, weight=0.55, height=0.55, proportions=0.6,
          race=None, skin='middleage_caucasian_male', hair='short02', eyebrows='eyebrow001',
-         eyes='brown', subdiv=1, skin_tone=None, hair_tone=None):
+         eyes='brown', subdiv=1, skin_tone=None, hair_tone=None, physique=0.0):
     """A human (basemesh, armature). Macro values are MakeHuman's 0..1 sliders.
     `skin_tone` (an sRGB color) multiplies the skin texture: the catalog's
     'skin' color, so a unit keeps its original's skin color."""
@@ -36,6 +36,16 @@ def body(gender=1.0, age=0.5, muscle=0.75, weight=0.55, height=0.55, proportions
     if race:
         macro['race'] = dict(race)
     basemesh = HumanService.create_human(scale=0.1, macro_detail_dict=macro, feet_on_ground=True)
+    # a heroic upper body (`physique` 0..1): broad shoulders, a V torso, big
+    # pectorals and shoulder muscles (MakeHuman's own targets, as shape keys)
+    if physique:
+        tdir = LocationService.get_mpfb_data('targets')
+        for rel, w in (('torso/measure-shoulder-dist-incr', 0.8), ('torso/torso-vshape-incr', 1.0),
+                       ('torso/torso-muscle-pectoral-incr', 0.8), ('arms/l-upperarm-shoulder-muscle-incr', 0.9),
+                       ('arms/r-upperarm-shoulder-muscle-incr', 0.9)):
+            path = os.path.join(tdir, rel + '.target.gz')
+            if os.path.exists(path):
+                TargetService.load_target(basemesh, path, weight=min(1.0, w * physique), name=rel.split('/')[-1])
     # the build is shape keys on a neutral mesh: bake it, so garments made
     # from the body's surface fit the final body
     TargetService.bake_targets(basemesh)

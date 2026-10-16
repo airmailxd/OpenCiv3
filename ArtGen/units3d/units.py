@@ -835,7 +835,9 @@ def build_footman(entry, seated=False):
     mesh, arm = H.body(gender=gender, age=entry.get('age', 0.5), **macro,
                        race=entry.get('race', {'caucasian': 0.4, 'african': 0.3, 'asian': 0.3}),
                        skin=_skin_base(c['skin'], female=gender < 0.5), hair=hair,
-                       skin_tone=B.hex_color(_calm_skin(c['skin'])), hair_tone=B.hex_color(c['hair']))
+                       skin_tone=B.hex_color(_calm_skin(c['skin'])), hair_tone=B.hex_color(c['hair']),
+                       # 'physique' 0..1: broad shoulders, a V torso, big chest and shoulder muscles
+                       physique=entry.get('physique', 0.0))
     H.grime(mesh, amount=entry.get('grime', 0.4))
     dress(entry, mesh, arm)
     equip(entry, arm)

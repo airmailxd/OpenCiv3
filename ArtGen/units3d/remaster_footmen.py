@@ -45,7 +45,7 @@ REMASTER = {
         # bow low in the left hand, a loose arrow in the right; a civ-color
         # cap with a gold knob, leather vest over a civ-color knee tunic,
         # quiver on the back, leg wraps and sandals
-        'macro': {'muscle': 1.0, 'weight': 0.8, 'height': 0.75, 'proportions': 0.72},
+        'physique': 0.85, 'macro': {'muscle': 1.0, 'weight': 0.8, 'height': 0.75, 'proportions': 0.72},
         'colors': {'skin': '#8e6a4a', 'hair': '#1a120c', 'cuirass': '#6a4a28', 'leather': '#3e2a1a',
                    'belt': '#2a1c12', 'wraps': '#7a6448', 'wraps_band': '#3a2a1a', 'sandal': '#2e2016',
                    'wood': '#5a3e24', 'string': '#8a7a5a'},
@@ -64,7 +64,7 @@ REMASTER = {
         # an Inca runner: a broad civ-color fan headdress framing the face,
         # long black hair, bare chest, civ-color wrap skirt with a gold belt,
         # civ-color bands at wrist, knee and ankle; a star mace held low
-        'macro': {'muscle': 1.0, 'weight': 0.8, 'height': 0.68, 'proportions': 0.72},
+        'physique': 0.85, 'macro': {'muscle': 1.0, 'weight': 0.8, 'height': 0.68, 'proportions': 0.72},
         'race': {'caucasian': 0.1, 'african': 0.2, 'asian': 0.7},
         'colors': {'skin': '#a86c44', 'hair': '#120c08', 'belt': '#b08a2a', 'bottom': '#5a4030',
                    'wood': '#4e3420', 'stone': '#3e3c3a', 'helmet': '#5a4030'},
@@ -203,7 +203,7 @@ REMASTER = {
         # Persian guard: white headcloth with a face veil, tan tunic with civ-
         # color short sleeves, a brown baldric, a civ-color waist sash, baggy
         # trousers with civ-color stripes, yellow shoes; scimitar low
-        'macro': {'muscle': 0.95, 'weight': 0.75, 'height': 0.78, 'proportions': 0.72},
+        'physique': 0.85, 'macro': {'muscle': 0.95, 'weight': 0.75, 'height': 0.78, 'proportions': 0.72},
         'race': {'caucasian': 0.6, 'african': 0.1, 'asian': 0.3},
         'colors': {'skin': '#8e6a4a', 'hair': '#140e0a', 'helmet': '#cfc9b8', 'top': '#9a8058',
                    'bottom': '#5e4a34', 'belt': '#3a2a1c', 'boots': '#a08434', 'steel': '#a8aaae',
@@ -264,7 +264,7 @@ REMASTER = {
         # solemn: a floor-length charcoal hooded robe, gold cross and sash,
         # civ-color book cover, shoulder band and sleeve cuffs; book raised
         # in the left hand, a torch low in the right
-        'macro': {'muscle': 0.6, 'weight': 0.55, 'height': 0.72, 'proportions': 0.75}, 'age': 0.75,
+        'physique': 0.85, 'macro': {'muscle': 0.6, 'weight': 0.55, 'height': 0.72, 'proportions': 0.75}, 'age': 0.75,
         'colors': {'skin': '#9a7656', 'top': '#2e2e32', 'bottom': '#2e2e32', 'helmet': '#2a2a2e',
                    'belt': '#9a7e2c', 'gold': '#9a7e2c', 'sandal': '#2a2018', 'wood': '#4a3222',
                    'book_cover': '#3a2418', 'parchment': '#d0c49e', 'cloth_wrap': '#3a2e26'},
