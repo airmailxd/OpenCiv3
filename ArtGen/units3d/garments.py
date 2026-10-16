@@ -255,8 +255,8 @@ def skirt(basemesh, arm, name, mat, *, length=0.5, flare=1.08, front_only=False,
             front, back = panels
             return abs(a) <= front or abs(abs(a) - math.pi) <= back
         return True
-    drop = [f for f in bm.faces if not all(keep(v) for v in f.verts)]
-    bmesh.ops.delete(bm, geom=drop, context='FACES')
+    cut = [f for f in bm.faces if not all(keep(v) for v in f.verts)]
+    bmesh.ops.delete(bm, geom=cut, context='FACES')
     bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context='VERTS')
     for v in bm.verts:
         t = (ztop - v.co.z) / max(1e-6, ztop - zbot)

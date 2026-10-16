@@ -250,7 +250,7 @@ REMASTER = {
                    'book_cover': '#3a2418', 'parchment': '#d0c49e', 'cloth_wrap': '#3a2e26'},
         'helmet': 'hood', 'hair_asset': None, 'beard': False,
         'top': 'sleeved', 'wide_sleeves': True, 'neck': 'high',   # MISSING: chest_cross (gold)
-        'bottom': 'kilt', 'robe': 0.4,          # the floor-length robe
+        'bottom': 'kilt', 'robe_drop': 0.4,          # the floor-length robe
         'bands': [('neck', 'tint'), ('wrist', 'tint'), ('waist', 'gold')],   # shoulder band, cuffs, gold sash
         'bracers': False, 'sandals': True, 'wraps': None, 'gear': [],
         'weapon': 'club',
@@ -396,7 +396,7 @@ REMASTER = {
         'helmet': 'great_helm', 'metal': ['helmet'], 'hair_asset': None, 'beard': False,
         # the surcoat: a tinted sleeveless top and a tinted kilt dropped to the ankles
         'top': 'vest', 'neck': 'high', 'collar': 'mail',   # MISSING: mail_sleeves and mail_chausses (arms and legs)
-        'bottom': 'kilt', 'robe': 0.35,         # MISSING: hem_band (gold, at the surcoat's hem)
+        'bottom': 'kilt', 'robe_drop': 0.35,         # MISSING: hem_band (gold, at the surcoat's hem)
         'leather_bracers': True, 'wraps': 'greaves', 'gear': [],
         'weapon': 'club',
         'props': {'club': ('flail', {'length': 0.55, 'chain': 0.32})},

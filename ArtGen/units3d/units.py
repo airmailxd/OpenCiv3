@@ -96,7 +96,7 @@ def dress(entry, mesh, arm):
                 thickness=0.004, keep=lambda co: abs((co.z - 1.2) - 0.9 * co.x) < 0.07)
     if bottom in ('skirt', 'kilt'):
         G.skirt(mesh, arm, 'Bottom', _mat(entry, 'bottom', G.cloth, weave=0.6), length=0.55 if bottom == 'skirt' else 0.7,
-                flare=1.12 + 0.3 * entry.get('robe', 0.0), folds=0.08, drop=entry.get('robe', 0.0))
+                flare=1.12 + 0.3 * entry.get('robe_drop', 0.0), folds=0.08, drop=entry.get('robe_drop', 0.0))
     elif bottom == 'loincloth':
         pass    # flaps from the belt, after posing (dress_posed)
     elif bottom in ('long', 'breeches'):
