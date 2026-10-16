@@ -40,6 +40,9 @@ def unit_rows(unit):
     for d in range(8):
         orig.append(P.on_bg(civ3art.upscale_nearest(P.original_frame(fl, d, 0))))
         old.append(P.on_bg(P.tinted(base[d * H:(d + 1) * H, 0:W], tint[d * H:(d + 1) * H, 0:W])))
+        if not os.path.exists(os.path.join(folder, 'unit_0000.png')):   # not rendered yet: a blank cell
+            new.append(Image.new('RGBA', (W, H), (60, 60, 60, 255)))
+            continue
         b, t = compose.compose(folder, d)
         new.append(P.on_bg(P.tinted(b[y0:y0 + H, x0:x0 + W], t[y0:y0 + H, x0:x0 + W])))
     return W, H, [('original', orig), ('current', old), ('Blender', new)]

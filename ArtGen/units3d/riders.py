@@ -394,6 +394,6 @@ def morion_big(p, c, tinted, plume_tinted):
     back, with a big plume."""
     morion(p, c, tinted, plume_tinted)
     pk, pt = _k(plume_tinted, 'plume')
-    # a big ostrich plume, twice the old one, rising from the comb and curling back and down
-    p.add(props.tube([(0, -0.04, 0.14), (0, -0.14, 0.32), (0, -0.34, 0.4), (0, -0.52, 0.32), (0, -0.6, 0.18)],
-                     [0.05, 0.07, 0.07, 0.05, 0.012], seg=10, scale_xy=(0.7, 1.0)), pk, smooth=True, tint=pt)
+    # a big ostrich plume, twice the old one, sweeping low back over the helmet and curling down behind
+    p.add(props.tube([(0, 0.0, 0.14), (0, -0.12, 0.22), (0, -0.3, 0.26), (0, -0.48, 0.2), (0, -0.56, 0.06)],
+                     [0.05, 0.07, 0.065, 0.045, 0.012], seg=10, scale_xy=(0.7, 1.0)), pk, smooth=True, tint=pt)
