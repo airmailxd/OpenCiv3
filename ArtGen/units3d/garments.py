@@ -57,7 +57,7 @@ def _pattern_mix(tree, base, col, mask, civ, tinted=False):
     tree.links.new(mask, mix.inputs['Factor'])
     if civ:
         _tint_mask(tree, mask)
-    elif tinted:
+    elif tinted or tree.nodes.get('tint_mask') is not None:
         # a plain-colored panel or stripe on a civ-colored part: there the
         # cloth shows its own color, not the civ color
         _untint_mask(tree, mask)
@@ -1442,7 +1442,23 @@ def hem(name, mat, width=0.05, lift=0.004, inset=0.0, edges='bottom'):
     # closed (solidified) garment has none: then the lowest vertices of each
     # sector round the garment's axis (hems drop and fold unevenly)
     # edges='all': every open edge (a vest's or doublet's trim: front, armholes, neck, hem)
-    start = [v for v in bm.verts if v.is_boundary and (edges == 'all' or v.co.z < mid)]
+    if edges == 'all':
+        start = [v for v in bm.verts if v.is_boundary]
+    else:
+        # the bottom edge: in each sector round the garment's axis, the open
+        # edge's lowest points (an open flap, a cape, also has side edges: those
+        # made bands climb the sides as tabs; a dropped hem varies in height)
+        cx0 = sum(v.co.x for v in bm.verts) / len(bm.verts)
+        cy0 = sum(v.co.y for v in bm.verts) / len(bm.verts)
+        sect = {}
+        for v in bm.verts:
+            if v.is_boundary and v.co.z < mid:
+                k = int((math.atan2(v.co.y - cy0, v.co.x - cx0) + math.pi) / (2 * math.pi) * 48) % 48
+                sect.setdefault(k, []).append(v)
+        start = []
+        for vs in sect.values():
+            low = min(v.co.z for v in vs)
+            start += [v for v in vs if v.co.z < low + 0.02 * _scale]
     if not start:
         cx = sum(v.co.x for v in bm.verts) / len(bm.verts)
         cy = sum(v.co.y for v in bm.verts) / len(bm.verts)
@@ -1480,6 +1496,21 @@ def hem(name, mat, width=0.05, lift=0.004, inset=0.0, edges='bottom'):
         return None
     obj.data.materials.clear()
     obj.data.materials.append(mat)
+    if name == 'Cape':
+        # a narrow strip under the cape's subdivision collapses into blobs
+        # (the band showed as dashes): no subdivision on the band
+        for m in list(obj.modifiers):
+            if m.type == 'SUBSURF':
+                obj.modifiers.remove(m)
+        # a cape is an open sheet seen from both sides (its normals face the
+        # body): the band wraps both faces, a little thicker than the cape
+        sol = next((m for m in obj.modifiers if m.type == 'SOLIDIFY'), None)
+        if sol is None:
+            sol = obj.modifiers.new('HemWrap', 'SOLIDIFY')
+            sol.thickness = 0.0
+        sol.thickness = abs(sol.thickness) + 0.03     # clears the smoothed cape's folds
+        sol.offset = 0.0
+        sol.material_offset = 0
     return obj
 
 
@@ -1785,6 +1816,20 @@ def face_prop(basemesh, arm, obj, kind='glasses'):
     return obj
 
 
+EMBLEMS = {
+    # a lion rampant, facing left (heraldic), in a unit box
+    'lion': [(-0.08, 0.5), (0.06, 0.47), (0.13, 0.39), (0.1, 0.3), (0.26, 0.33), (0.36, 0.25), (0.22, 0.18),
+             (0.13, 0.14), (0.19, 0.02), (0.31, -0.05), (0.26, -0.13), (0.1, -0.05), (0.08, -0.2), (0.21, -0.4),
+             (0.12, -0.49), (0.0, -0.3), (-0.1, -0.49), (-0.23, -0.45), (-0.12, -0.25), (-0.18, -0.05),
+             (-0.36, 0.05), (-0.46, 0.25), (-0.38, 0.31), (-0.25, 0.12), (-0.15, 0.22), (-0.2, 0.38)],
+    # a fleur-de-lis
+    'fleur': [(0.0, 0.5), (0.09, 0.3), (0.06, 0.1), (0.18, 0.18), (0.35, 0.22), (0.4, 0.05), (0.26, -0.05),
+              (0.12, -0.02), (0.2, -0.1), (0.2, -0.18), (0.07, -0.18), (0.1, -0.5), (-0.1, -0.5), (-0.07, -0.18),
+              (-0.2, -0.18), (-0.2, -0.1), (-0.12, -0.02), (-0.26, -0.05), (-0.4, 0.05), (-0.35, 0.22),
+              (-0.18, 0.18), (-0.06, 0.1), (-0.09, 0.3)],
+}
+
+
 def cape_emblem(arm, mat, kind='disc', size=0.22, at=0.35):
     """An emblem on the back of the cape (a lion field, a fleur, a cross):
     a flat shape on the cape's outer side, `at` of the way down; it follows
@@ -1806,12 +1851,33 @@ def cape_emblem(arm, mat, kind='disc', size=0.22, at=0.35):
     ymid = sum(ys) / len(ys)
     outer = max(band, key=lambda v: abs(v.y - ymid) if abs(v.x - cx) < 0.06 * _scale else -1)
     s = size * _scale
+    made = []
+    sign = 1.0 if outer.y >= ymid else -1.0
+    if kind in EMBLEMS:
+        # a flat outline (lion, fleur) standing just off the cape's outer side
+        y = outer.y + sign * 0.012 * _scale
+        bm = bmesh.new()
+        vs2 = [bm.verts.new((cx + px * s, y, z + pz * s)) for px, pz in EMBLEMS[kind]]
+        bm.faces.new(vs2)
+        me = bpy.data.meshes.new('CapeEmblem')
+        bm.to_mesh(me)
+        bm.free()
+        o = bpy.data.objects.new('CapeEmblem', me)
+        bpy.context.scene.collection.objects.link(o)
+        so = o.modifiers.new('Thick', 'SOLIDIFY')
+        so.thickness = 0.008
+        o.data.materials.append(mat)
+        world = o.matrix_world.copy()
+        o.parent = cape.parent
+        o.parent_type = cape.parent_type
+        o.parent_bone = cape.parent_bone
+        o.matrix_world = world
+        H._update()
+        return [o]
     if kind == 'cross':
         parts = [((0.2 * s, 0.006, s), 0.0), ((0.66 * s, 0.006, 0.2 * s), 0.18 * s)]
     else:
         parts = [((s * 0.8, 0.006, s), 0.0)]
-    made = []
-    sign = 1.0 if outer.y >= ymid else -1.0
     for (dx, dy, dz), up in parts:
         bpy.ops.mesh.primitive_cube_add(size=1, location=(cx, outer.y + sign * 0.012 * _scale, z + up))
         o = bpy.context.active_object

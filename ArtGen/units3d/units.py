@@ -166,6 +166,16 @@ def dress(entry, mesh, arm):
                             offset=off + 0.004 * k, thickness=0.006,
                             keep=lambda co, h=half, sg=sgn: abs((co.z - 1.22) + sg * 0.95 * co.x) < h + 0.06)
                 G.trim(o, lambda co, h=half, sg=sgn: abs((co.z - 1.22) + sg * 0.95 * co.x) < h)
+                if gp.get('edge'):
+                    # edges along both sides of the sash (gold-edged)
+                    ew = gp.get('edge_width', 0.014)
+                    emat = _hem_mat(entry, c, gp['edge'], 'strap_edge')
+                    for side in (-1, 1):
+                        eo = G.shell(mesh, arm, 'StrapEdge', torso, emat, zmin=0.95, zmax=1.55,
+                                     offset=off + 0.004 * k + 0.009, thickness=0.004,   # over the sash's thickness
+                                     keep=lambda co, h=half, sg=sgn: abs((co.z - 1.22) + sg * 0.95 * co.x) < h + 0.06)
+                        G.trim(eo, lambda co, h=half, sg=sgn, sd=side, w=ew:
+                               abs((co.z - 1.22) + sg * 0.95 * co.x - sd * (h - w / 2)) < w / 2)
     # mail limbs: 'mail': ['arms', 'legs'] (ring mail sleeves to the wrist,
     # chausses from the thigh to the foot), under the other clothes
     mail = entry.get('mail_parts', [])
