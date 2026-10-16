@@ -722,6 +722,15 @@ def equip(entry, arm):
             # hanging from the fist, down and out to the side, head low
             hd = (-0.45, -0.25, -0.86) if stance in ('stand', 'fist_hip_l') else (-0.7, -0.45, -0.5)
             H.hold(obj, arm, 'hand_r', at, up=tuple(entry.get('hang_dir', hd)))
+            # never into the ground: a long tool hanging from the fist slides up
+            # through it until its lowest point clears the ground (a spade's blade)
+            H._update()
+            foot = arm.matrix_world @ arm.pose.bones['foot_r'].head
+            ground = foot.z - 0.075 * G._scale
+            low = min((obj.matrix_world @ Vector(cn)).z for cn in obj.bound_box)
+            if low < ground:
+                obj.matrix_world.translation.z += ground - low + 0.01
+                H._update()
         elif stance == 'upright' and name == 'staff':
             # a walking staff, upright beside the body
             H.hold(obj, arm, 'hand_r', at, up=(-0.04, 0.0, 1.0))

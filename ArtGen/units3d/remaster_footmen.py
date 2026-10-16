@@ -130,7 +130,7 @@ REMASTER = {
         'weapon': 'shovel',
         'props': {'shovel': ('shovel', {'length': 1.45})},
         'stance_name': 'hang',            # MISSING: spade_upright (blade on the ground at his right side)
-        'hang_dir': (-0.55, -0.35, -0.75),         # the spade angled out, blade just above the ground by the right foot
+        'hang_dir': (-0.1, -0.15, -1.0),         # the spade angled out, blade just above the ground by the right foot
         # bowed and weary (-y is forward). The 'hang' stance already sets spine_02
         # -0.22 / neck_01 -0.12 / head 0.1, so the old values here were a no-op;
         # these lean further than the stance so the bow actually shows
