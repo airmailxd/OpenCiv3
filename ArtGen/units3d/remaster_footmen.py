@@ -131,7 +131,7 @@ REMASTER = {
         'props': {'shovel': ('shovel', {'length': 1.45})},
         'stance_name': 'hang',            # MISSING: spade_upright (blade on the ground at his right side)
         'hang_dir': (-0.05, -0.1, -1.0),           # the spade upright at his right foot (one hand)
-        'pose_extra': [('spine_02', (0, -0.22, 1)), ('neck_01', (0, -0.1, 1)), ('head', (0, 0.1, 1))]   # bowed (-y is forward),   # bowed and weary
+        'pose_extra': [('spine_02', (0, -0.22, 1)), ('neck_01', (0, -0.1, 1)), ('head', (0, 0.1, 1))],   # bowed and weary (-y is forward)
         'tint': ['strap'],
         'grime': 1.0, 'upper_bulk': 1.05,
     },
