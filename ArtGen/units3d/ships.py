@@ -15,6 +15,8 @@ pennants.
 """
 import math
 
+from mathutils import Vector
+
 import props
 import vkit
 from props import R, T
@@ -248,11 +250,13 @@ def _pattee(x, z, h):
 def _disc_cross(x, z, h):
     """The caravel's emblem as in Civ3: a round disc with a cross on it (the
     cross left in sailcloth, the disc in the civ color)."""
-    s = 0.4 * h
+    s = 0.5 * h
     ex, ez = x / s, z / s
     if math.hypot(ex, ez) > 1.0:
         return False
-    return not (abs(ex) < 0.16 or abs(ez) < 0.16)
+    ax, az = abs(ex), abs(ez)
+    cross = (az <= 0.05 + 0.12 * ax) or (ax <= 0.05 + 0.12 * az)   # slim flared arms; the disc reads first
+    return not cross
 
 
 EMBLEMS = {'pisces': _pisces, 'pattee': _pattee, 'disc_cross': _disc_cross}
@@ -377,8 +381,8 @@ def caravel(colors, rig_h=1.45, rig_w=1.75):
     hull = Hull(L=2.5, B=0.66, D=0.2, draft=0.14, sheer_stern=0.3, sheer_bow=0.3, bow_p=1.3, stern_p=1.7,
                 transom=0.25, rake_bow=0.3, fullness=1.0, tumblehome=0.2)
     # waterline grime and light wales give the hull its lines at 1x
-    add_hull(p, hull, stripes=[(-0.03, 0.035, 'hull_grime'), (0.06, 0.08, 'wood_light'), (0.15, 0.17, 'wood_light'),
-                               (0.3, 0.32, 'wood_light')])
+    add_hull(p, hull, stripes=[(-0.03, 0.035, 'hull_grime'), (0.06, 0.085, 'gold'), (0.15, 0.175, 'gold'),
+                               (0.3, 0.325, 'gold')])
     _castle(p, hull, -1.25, -0.6, 0.16)
     _castle(p, hull, -1.25, -0.92, 0.3)      # stepped: a poop deck above the sterncastle
     _castle(p, hull, 0.78, 1.08, 0.08)       # a low forecastle
@@ -408,11 +412,40 @@ def caravel(colors, rig_h=1.45, rig_w=1.75):
     mast(-0.7, deck(-0.7) + 1.1, 0.022)
     lateen(p, -0.7, deck(-0.7) + 1.0, 1.5, 30.0, 0.72, 'disc_cross')
     pennant(p, (0, -0.7, deck(-0.7) + 1.1), 0.14, 0.08, phase=1.0)
-    # stays and shrouds
-    vkit.rod(p, (0, 0.0, top - 0.1), (0, 1.6, 0.52), 0.006, 'cordage', seg=4)
+    # the forestay, and shroud ladders (shrouds with ratlines) down both sides to deadeyes on the channels
+    vkit.rod(p, (0, 0.0, top - 0.1), (0, 1.6, 0.52), 0.007, 'cordage', seg=4)
+    ztop = z + h1 + 0.02
     for sx in (-1, 1):
-        for dy in (-0.08, 0.08):
-            vkit.rod(p, (0, dy, top - 0.25), (sx * 0.33, dy - 0.05, deck(0.0) + 0.02), 0.005, 'cordage', seg=4)
+        xb = sx * hull.deck_half(hull.s_of(0.0)) * 1.04
+        zb = deck(0.0) + 0.02
+        legs = [((0.0, dy, ztop), (xb, dy * 1.6, zb)) for dy in (-0.12, -0.04, 0.04, 0.12)]
+        for a, b in legs:
+            vkit.rod(p, a, b, 0.006, 'cordage', seg=4)
+            p.add(props.ellipsoid(0.02, 0.02, 0.02, seg=8), 'wood_dark', T(*b), smooth=True)
+        for k in range(1, 9):
+            t = k / 9
+            pa = Vector(legs[0][0]).lerp(Vector(legs[0][1]), t)
+            pb = Vector(legs[-1][0]).lerp(Vector(legs[-1][1]), t)
+            vkit.rod(p, pa, pb, 0.004, 'cordage', seg=4)
+        p.add(props.box(0.04, 0.5, 0.025), 'wood_dark', T(xb, 0.0, zb - 0.02), bevel=0.006)   # channel
+    # the fighting top (crow's nest) on the mainmast
+    p.add(props.lathe([(0.0, 0.1), (0.1, 0.11)], seg=16), 'wood_dark', T(0, 0.0, ztop + 0.05), smooth=True)
+    p.add(props.lathe([(0.1, 0.112), (0.105, 0.0)], seg=16), 'wood_dark', T(0, 0.0, ztop + 0.05), smooth=True)
+    # a balustrade on the sterncastle, a spritsail under the bowsprit, an anchor at the cathead
+    zs = deck(-0.9) + 0.3
+    for sx in (-1, 1):
+        for k in range(7):
+            yy = -1.2 + 0.08 * k
+            xx = sx * hull.deck_half(hull.s_of(yy)) * 0.95
+            vkit.rod(p, (xx, yy, zs), (xx, yy, zs + 0.08), 0.008, 'gold', seg=6)
+        vkit.rod(p, (sx * hull.deck_half(hull.s_of(-1.2)) * 0.95, -1.2, zs + 0.08),
+                 (sx * hull.deck_half(hull.s_of(-0.72)) * 0.95, -0.72, zs + 0.08), 0.01, 'gold', seg=6)
+    sail(p, 1.42, 0.5, 0.36, 0.4, 0.22, None, billow=0.06, seed=7, patches=0)
+    for sx in (1,):
+        ax, ay = sx * hull.deck_half(hull.s_of(0.95)) * 1.05, 0.95
+        vkit.rod(p, (ax, ay, deck(0.95) - 0.02), (ax, ay + 0.02, deck(0.95) - 0.22), 0.012, 'iron', seg=6)
+        p.add(props.tube([(ax - 0.06, ay, deck(0.95) - 0.2), (ax, ay + 0.02, deck(0.95) - 0.25),
+                          (ax + 0.06, ay, deck(0.95) - 0.2)], 0.01, seg=6), 'iron', smooth=True)
     p.finish()
     return root
 
