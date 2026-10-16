@@ -58,7 +58,7 @@ REMASTER = {
                    'greaves': '#6a6a6e', 'horn': '#b8a888', 'belt': '#2e2016', 'shield_face': '#5e4430'},
         'helmet': 'horned', 'metal': ['helmet'], 'cuirass': True, 'top': None, 'pauldrons': True,
         'neck': 'high', 'boots': True, 'stance_name': 'guard', 'shield_at': 'left_hip',
-        'shield_yaw': -30.0, 'shield_drop': 0.5, 'offhand_mesh': ('shield_round', {'tint': 'rim'}),
+        'shield_yaw': -30.0, 'shield_drop': 0.38, 'offhand_mesh': ('shield_round', {'tint': 'both'}),
         'props': {'sword': ('sword', {'guard': 0.18, 'length': 0.62, 'width': 0.09})},
         'bottom': 'loincloth', 'bottom_material': 'leather', 'loin_length': (0.5, 0.46), 'leather_bracers': True,
         'back': None, 'wraps': 'greaves', 'beard': True, 'colors_extra': None,
@@ -96,7 +96,8 @@ REMASTER = {
         'colors': {'skin': '#94704f', 'bottom': '#cfc6b0', 'hair': '#3a2a1c', 'pack': '#6a4e30', 'sandal': '#3a2818',
                    'pot': '#8a5a34', 'bedroll': '#9a8a66'},
         'tint': ['top', 'helmet'], 'beard': True, 'helmet': 'hood', 'pack_scale': 1.6, 'top': 'vest',
-        'pose_extra': [('spine_02', (0, -0.16, 1)), ('upperarm_l', (0.16, -0.12, -1)), ('lowerarm_l', (0.08, -0.4, -1))],
+        'pose_extra': [('spine_01', (0, -0.12, 1)), ('spine_02', (0, -0.3, 1)), ('head', (0, 0.25, 1)),
+                       ('upperarm_l', (0.16, -0.12, -1)), ('lowerarm_l', (0.08, -0.4, -1))],
         'props': {'staff': ('staff', {'length': 2.05, 'grip': 1.2})},
         'grime': 0.7, 'upper_bulk': 1.1,
     },
@@ -106,7 +107,8 @@ REMASTER = {
         'macro': {'muscle': 0.85, 'weight': 0.5, 'height': 0.7, 'proportions': 0.7},
         'colors': {'skin': '#8e6a48', 'helmet': '#c8b688', 'hair': '#241a10', 'wraps': '#3e2a1c',
                    'wraps_band': '#22160c', 'wood': '#6a4a2e', 'steel': '#7a7872'},
-        'helmet': 'cap', 'cap_brim': True, 'two_hands': True,
+        'helmet': 'cap', 'cap_brim': True, 'two_hands': True, 'tool_dir': (-0.75, -0.5, 0.45),
+        'pose_extra': [('spine_02', (0, -0.14, 1)), ('head', (0, 0.2, 1))],
         'top': 'strap', 'bottom': 'loincloth', 'loin_length': (0.45, 0.4), 'torn': False,
         'tint': ['top', 'bottom'], 'wraps': 'wraps', 'sandals': False,
         'grime': 0.85, 'upper_bulk': 1.1,
@@ -115,7 +117,7 @@ REMASTER = {
 
 
 # Entries for further units live in their own modules, merged here.
-for _module in ('remaster_footmen', 'remaster_royals'):
+for _module in ('remaster_footmen', 'remaster_royals', 'remaster_soldiers'):
     try:
         _more = __import__(_module).REMASTER
     except ImportError:

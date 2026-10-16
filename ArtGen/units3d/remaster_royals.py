@@ -21,13 +21,17 @@ weapon/offhand, stance_name, tint. Ankle-length robes are a 'kilt' with
 Conventions where no key exists yet:
 - a tinted waistcoat, vest, chest panel or surcoat is a non-metal 'cuirass'
   (the front-and-back torso panel) with 'cuirass' in tint;
-- a crown or circlet is a gold 'headband' (or a gold metal 'cap' for the
-  tall closed ones); a turban or soft hat is a cloth/leather 'cap';
-- a banner pole, crook, scepter or cane is props.staff at the right length,
-  held 'upright';
-- fists on hips / hands clasped behind the back fall back to 'hang';
-  hands clasped in front of the waist to 'low_across'; hands together at
-  the chest to 'arms_folded'.
+- crowns are 'helmet': 'crown' ('crown': spiked/arched/tall/circlet, in
+  colors['gold']); a turban or soft hat is a cloth/leather 'cap';
+- held regalia are the real props in the right hand: war_standard /
+  eagle_standard held 'upright' (the butt toward the ground), scepter, crook,
+  swagger_stick and microphone held up in the 'royal' stance (tilted with
+  'upright_dir'), a cane held 'upright' (its rod runs down from the knob in
+  the fist to the ground); left-hand items stay MISSING;
+- women are 'gender': 0.0 with a 'gown' bottom ('gown_flare', 'robe_drop');
+- royal poses are the stances 'fists_on_hips', 'hands_clasped' (also for
+  hands together at the chest), 'hands_behind' and 'royal' (a scepter held
+  up in the right hand); one fist on the hip still falls back to 'hang'.
 Each gap is marked "MISSING: <feature>" and listed under MISSING FEATURES at
 the bottom.
 """
@@ -47,10 +51,10 @@ REMASTER = {
         'bands': [('wrist', 'tint')],           # the civ-color sleeve cuffs
         # MISSING: lapel_trim (tinted robe front edges), hem_band x2 (tinted, near the hem)
         'cape': False, 'cuirass': False, 'wraps': None, 'sandals': True, 'bracers': False, 'gear': [],
-        # MISSING: war_standard (crossbar-hung square vexillum, tinted field), two_hand_pole stance
-        'weapon': 'staff', 'props': {'staff': ('staff', {'length': 2.6, 'grip': 1.3})},
+        # the crossbar-hung vexillum, tinted field; MISSING: two_hand_pole stance
+        'weapon': 'standard', 'props': {'standard': ('war_standard', {'era': 'ancient', 'length': 2.6, 'grip': 1.2})},
         'stance_name': 'upright',
-        'tint': [],
+        'tint': ['banner'],
         'grime': 0.55, 'upper_bulk': 1.1,
     },
     'Army Industrial Ages': {
@@ -66,10 +70,10 @@ REMASTER = {
         'bottom': 'long', 'wraps': 'boots',
         'bands': [('wrist', 'gold')],           # gold cuffs
         'cape': False, 'cuirass': False, 'sandals': False, 'bracers': False, 'gear': [],
-        # MISSING: war_standard (flag flying from the pole top, tinted field)
-        'weapon': 'staff', 'props': {'staff': ('staff', {'length': 2.6, 'grip': 1.3})},
+        # the flag flying from the pole top, tinted field; MISSING: two_hand_pole stance
+        'weapon': 'standard', 'props': {'standard': ('war_standard', {'era': 'industrial', 'length': 2.6, 'grip': 1.2})},
         'stance_name': 'upright',
-        'tint': ['top'],
+        'tint': ['top', 'banner'],
         'grime': 0.45, 'upper_bulk': 1.15,
     },
     'Army Middle Ages': {
@@ -81,16 +85,16 @@ REMASTER = {
         'colors': {'skin': '#c49a7e', 'hair': '#3a2a1c', 'helmet': '#3a3836', 'top': '#9a9ea6',
                    'cuirass': '#a8acb4', 'greaves': '#9a9ea6', 'bottom': '#4a4238', 'belt': '#2e2418',
                    'mail': '#6a6c70', 'wood': '#4a3222', 'gold': '#c8a038'},
-        'helmet': 'hood',                       # the dark coif; MISSING: crown (small gold, over the coif)
-        'hair': 'short', 'hair_asset': None, 'beard': True,
+        'helmet': 'crown', 'crown': 'spiked',   # MISSING: coif (dark, under the crown)
+        'hair': 'short', 'hair_asset': 'short02', 'beard': True,
         'cuirass': True, 'metal': ['cuirass'], 'top': 'sleeved', 'pauldrons': True, 'collar': 'mail',
         'bottom': 'kilt', 'robe_drop': 0.0, 'wraps': 'greaves',   # MISSING: plate_legs (cuisses over the thighs)
         'cape': True, 'cape_length': 1.35,      # MISSING: ermine_trim (white fur hem), cape_emblem (gold lion), cape gold bands
         'sandals': False, 'bracers': False, 'gear': [],
-        # MISSING: war_standard (swallow-tailed, crossbar-hung, tinted field)
-        'weapon': 'staff', 'props': {'staff': ('staff', {'length': 2.6, 'grip': 1.3})},
+        # the swallow-tailed, crossbar-hung banner, tinted field; MISSING: two_hand_pole stance
+        'weapon': 'standard', 'props': {'standard': ('war_standard', {'era': 'medieval', 'length': 2.6, 'grip': 1.2})},
         'stance_name': 'upright',
-        'tint': ['cape'],
+        'tint': ['cape', 'banner'],
         'grime': 0.5, 'upper_bulk': 1.25,
     },
     'Army Modern Times': {
@@ -104,10 +108,10 @@ REMASTER = {
         'top': 'sleeved', 'neck': 'high', 'bottom': 'long', 'wraps': 'boots',
         'gear': [('chest_strap', {})],          # the tinted sash; MISSING: broad_sash (wide, gold-edged)
         'cape': False, 'cuirass': False, 'sandals': False, 'bracers': False,
-        # MISSING: war_standard (big flag, tinted field with a diagonal cross)
-        'weapon': 'staff', 'props': {'staff': ('staff', {'length': 2.6, 'grip': 1.3})},
+        # the big flag, tinted field; MISSING: flag_device (diagonal cross), two_hand_pole stance
+        'weapon': 'standard', 'props': {'standard': ('war_standard', {'era': 'modern', 'length': 2.6, 'grip': 1.2})},
         'stance_name': 'upright',
-        'tint': ['strap'],
+        'tint': ['strap', 'banner'],
         'grime': 0.55, 'upper_bulk': 1.15,
     },
 
@@ -130,7 +134,7 @@ REMASTER = {
         'bottom': 'long', 'wraps': 'boots',     # MISSING: low_shoes
         'cape': False, 'sandals': False, 'bracers': False, 'gear': [],
         'weapon': None, 'offhand': None,
-        'stance_name': 'hang',                  # MISSING: hands_behind_back
+        'stance_name': 'hands_behind',
         'tint': ['cuirass'],
         'grime': 0.35, 'upper_bulk': 1.0,
     },
@@ -286,7 +290,7 @@ REMASTER = {
         'bands': [('upperarm', 'tint')],
         'cape': False, 'cuirass': False, 'sandals': False, 'bracers': False, 'gear': [],
         'weapon': None, 'offhand': None,
-        'stance_name': 'low_across',            # MISSING: hands_clasped_front
+        'stance_name': 'hands_clasped',
         'tint': [],
         'grime': 0.3, 'upper_bulk': 1.05,
     },
@@ -305,9 +309,9 @@ REMASTER = {
         'bottom': 'kilt', 'robe_drop': 0.42,    # MISSING: pleats, front_apron (tinted hanging panel)
         'bands': [('neck', 'gold'), ('upperarm', 'gold'), ('wrist', 'gold')],   # MISSING: broad_collar
         'cape': False, 'cuirass': False, 'wraps': None, 'sandals': True, 'bracers': False, 'gear': [],
-        # MISSING: crook (gold, curled hook, tinted bands)
-        'weapon': 'staff', 'props': {'staff': ('staff', {'length': 1.35, 'grip': 0.5})},
-        'stance_name': 'hang',                  # MISSING: fist_on_hip (left), walking stance
+        # the gold crook, held up; MISSING: crook extras (tinted bands; they're lapis)
+        'weapon': 'crook', 'props': {'crook': ('crook', {'length': 1.1})},
+        'stance_name': 'royal',                 # MISSING: held_low_forward, fist_on_hip (left), walking stance
         'tint': ['helmet'],
         'grime': 0.4, 'upper_bulk': 1.2,
     },
@@ -320,15 +324,15 @@ REMASTER = {
         'race': {'caucasian': 1.0, 'african': 0.0, 'asian': 0.0},
         'colors': {'skin': '#e4c8b4', 'hair': '#9a4a26', 'helmet': '#c8a038', 'belt': '#c8a038',
                    'gold': '#c8a038', 'ruff': '#f0eee8', 'wood': '#b8902e', 'leather': '#b8902e'},
-        'helmet': 'headband',                   # MISSING: crown (small, six points), gender (female)
+        'gender': 0.0, 'helmet': 'crown', 'crown': 'spiked', 'crown_height': 0.05,
         'hair': 'short', 'hair_asset': 'bob01', 'beard': False,   # MISSING: updo
         'top': 'sleeved', 'puffy': True, 'neck': 'high',
-        'bottom': 'kilt', 'robe_drop': 0.55,    # MISSING: farthingale (bell skirt, gold stripes and jewel dots)
+        'bottom': 'gown', 'gown_flare': 1.9, 'robe_drop': 0.55,   # MISSING: farthingale stripes (gold) and jewel dots
         'bands': [('neck', 'ruff')],            # MISSING: ruff (tall lace fan behind the head)
         'cape': False, 'cuirass': False, 'wraps': None, 'sandals': False, 'bracers': False, 'gear': [],
-        # MISSING: scepter (gold, plain head; held diagonally across the chest)
-        'weapon': 'staff', 'props': {'staff': ('staff', {'length': 0.7, 'grip': 0.25})},
-        'stance_name': 'upright',
+        # the gold scepter (plain knob head), tilted across the chest
+        'weapon': 'scepter', 'props': {'scepter': ('scepter', {'length': 0.7, 'head': 'fleur'})},
+        'stance_name': 'royal', 'upright_dir': (0.5, -0.15, 1.0),
         'tint': ['top', 'bottom', 'sleeves'],
         'grime': 0.3, 'upper_bulk': 1.0,
     },
@@ -388,7 +392,7 @@ REMASTER = {
         'bands': [('neck', 'gold')],
         'cuirass': False, 'wraps': None, 'sandals': True, 'bracers': False,
         'weapon': None, 'offhand': None,
-        'stance_name': 'low_across',            # MISSING: hands_clasped_front
+        'stance_name': 'hands_clasped',
         'tint': ['helmet', 'strap', 'cape'],
         'grime': 0.35, 'upper_bulk': 1.2,
     },
@@ -400,15 +404,15 @@ REMASTER = {
         'race': {'caucasian': 0.8, 'african': 0.1, 'asian': 0.1},
         'colors': {'skin': '#a88262', 'hair': '#241a12', 'helmet': '#c8a038', 'top': '#d8ccaa',
                    'bottom': '#d8ccaa', 'belt': '#c8a038', 'sandal': '#4a3622', 'gold': '#c8a038',
-                   'wood': '#b8902e', 'stone': '#c8a038', 'rope': '#8a6a2a'},
-        'helmet': 'headband', 'hair': 'short', 'hair_asset': 'short02', 'beard': True,   # MISSING: circlet (gold metal)
+                   'wood': '#b8902e'},
+        'helmet': 'crown', 'crown': 'circlet', 'hair': 'short', 'hair_asset': 'short02', 'beard': True,
         'top': 'mantle', 'neck': 'high',        # the tinted shoulder mantle (over cream sleeves: MISSING: shoulder_mantle layer)
         'bottom': 'kilt', 'robe_drop': 0.48,    # MISSING: hem_band (tinted), front_apron (maroon), seam line
         'bands': [('waist', 'tint')],
         'cape': False, 'cuirass': False, 'wraps': None, 'sandals': True, 'bracers': False, 'gear': [],
-        # MISSING: scepter (short, gold, knobbed; held level, pointing forward)
-        'weapon': 'club', 'props': {'club': ('star_mace', {'length': 0.5})},
-        'stance_name': 'hang',
+        # the short gold knobbed scepter, tipped forward toward level
+        'weapon': 'scepter', 'props': {'scepter': ('scepter', {'length': 0.5, 'head': 'fleur'})},
+        'stance_name': 'royal', 'upright_dir': (0.0, -1.0, 0.35),
         'tint': ['top'],
         'grime': 0.45, 'upper_bulk': 1.2,
     },
@@ -422,7 +426,7 @@ REMASTER = {
         'colors': {'skin': '#8a6448', 'hair': '#141010', 'helmet': '#c8a038', 'top': '#b0904a',
                    'bottom': '#6a4e2a', 'belt': '#c8a038', 'sandal': '#b89a50', 'gold': '#c8a038',
                    'wood': '#3e2a1a'},
-        'helmet': 'cap', 'metal': ['helmet'],   # MISSING: crown (gold, front disc)
+        'helmet': 'crown', 'crown': 'circlet',  # MISSING: crown_disc (gold, at the front)
         'hair': 'short', 'hair_asset': None, 'beard': False,
         'top': 'tunic', 'bottom': 'kilt', 'robe_drop': 0.0,   # MISSING: checkerboard (gold/brown tunic)
         'bands': [('knee', 'gold'), ('neck', 'gold')],
@@ -442,7 +446,7 @@ REMASTER = {
         'race': {'caucasian': 0.4, 'african': 0.3, 'asian': 0.3},
         'colors': {'skin': '#8a6448', 'hair': '#c8c4bc', 'top': '#e4e2dc', 'bottom': '#e4e2dc',
                    'cape': '#e4e2dc', 'belt': '#c8c2b4', 'sandal': '#5a3a22', 'wood': '#5a3a22'},
-        'helmet': None, 'hair': 'bald', 'hair_asset': None, 'beard': False,   # MISSING: glasses
+        'helmet': None, 'hair': 'bald', 'hair_asset': None, 'beard': False,   # MISSING: face_prop (props.glasses 'round')
         'top': 'mantle', 'bottom': 'kilt', 'robe_drop': 0.0,   # MISSING: dhoti (wrapped between the legs)
         'cape': True, 'cape_length': 1.1,       # the long shawl down the back
         'gear': [('chest_strap', {})],
@@ -494,7 +498,7 @@ REMASTER = {
         'bands': [('neck', 'collar_w'), ('wrist', 'gold')],
         'cape': False, 'wraps': 'boots', 'sandals': False, 'bracers': False, 'gear': [],   # MISSING: low_shoes
         'weapon': None, 'offhand': None,
-        'stance_name': 'hang',                  # MISSING: fists_on_hips (both)
+        'stance_name': 'fists_on_hips',
         'tint': ['helmet', 'top', 'bottom', 'sleeves'],
         'grime': 0.3, 'upper_bulk': 1.15,
     },
@@ -512,7 +516,7 @@ REMASTER = {
         'bands': [('neck', 'tint'), ('wrist', 'tint')],   # collar and sleeve edges
         'cape': False, 'cuirass': False, 'wraps': 'boots', 'sandals': False, 'bracers': False, 'gear': [],
         'weapon': None, 'offhand': None,        # MISSING: tablet (held in both hands at the chest)
-        'stance_name': 'arms_folded',           # MISSING: hands_at_chest
+        'stance_name': 'hands_clasped',
         'tint': [],
         'grime': 0.3, 'upper_bulk': 1.05,
     },
@@ -566,7 +570,7 @@ REMASTER = {
         'race': {'caucasian': 1.0, 'african': 0.0, 'asian': 0.0},
         'colors': {'skin': '#e0b89a', 'hair': '#5a3a20', 'top': '#e4e0d8', 'belt': '#c8a038',
                    'wraps': '#ece8e0', 'wraps_band': '#d0ccc4', 'sandal': '#1e1a18', 'wood': '#2a1e16',
-                   'gold': '#c8a038'},
+                   'lacquer': '#2a1e16', 'gold': '#c8a038'},
         'helmet': None, 'hair': 'long', 'hair_asset': 'long01',   # MISSING: periwig (curly, to the shoulders)
         'beard': False,
         'top': 'sleeved', 'neck': 'high',
@@ -574,8 +578,8 @@ REMASTER = {
         # MISSING: ermine_trim (dots on the cape), cape_train (spread on the ground), cape_lining (dark purple)
         'cape': True, 'cape_length': 1.45,
         'cuirass': False, 'bracers': False, 'gear': [],
-        # MISSING: cane (gold-topped), left_hand_hold
-        'weapon': 'staff', 'props': {'staff': ('staff', {'length': 1.0, 'grip': 0.9})},
+        # the gold-topped cane planted from the fist; MISSING: left_hand_hold (the note has it in the left)
+        'weapon': 'cane', 'props': {'cane': ('cane', {'length': 0.95})},
         'stance_name': 'upright',               # MISSING: fist_on_hip (right)
         'tint': ['cape', 'bottom'],
         'grime': 0.35, 'upper_bulk': 1.1,
@@ -595,7 +599,7 @@ REMASTER = {
         'cuirass': True,    # the tinted waist-length vest; MISSING: vest (sleeveless over-garment, gold edges)
         'cape': False, 'wraps': 'boots', 'sandals': False, 'bracers': False, 'gear': [],   # MISSING: low_shoes
         'weapon': None, 'offhand': None,
-        'stance_name': 'low_across',            # MISSING: hands_clasped_front
+        'stance_name': 'hands_clasped',
         'tint': ['cuirass', 'plume'],
         'grime': 0.3, 'upper_bulk': 1.15,
     },
@@ -608,7 +612,7 @@ REMASTER = {
         'colors': {'skin': '#b08664', 'hair': '#4a3424', 'helmet': '#c8a038', 'top': '#e8e4da',
                    'bottom': '#e8e4da', 'belt': '#c8a038', 'boots': '#5a3a22', 'bracers': '#c8a038',
                    'gold': '#c8a038'},
-        'helmet': 'headband',                   # MISSING: crown (spiked gold)
+        'helmet': 'crown', 'crown': 'spiked',
         'hair': 'long', 'hair_asset': 'long01', 'beard': True,   # MISSING: long_beard (wavy, square-cut)
         'top': 'tunic', 'bottom': 'skirt', 'robe_drop': 0.0,   # MISSING: hem_band (tinted pattern)
         'gear': [('chest_strap', {})],          # the tinted diagonal chest band; MISSING: pattern
@@ -659,8 +663,8 @@ REMASTER = {
         'wraps': 'boots',
         'cape': True, 'cape_length': 1.05,      # MISSING: cape_drape (over the left shoulder, wrapping the arm)
         'sandals': False, 'bracers': False, 'gear': [],
-        # MISSING: eagle_standard (tall gold staff with an eagle head)
-        'weapon': 'staff', 'props': {'staff': ('staff', {'length': 2.0, 'grip': 1.1})},
+        # the gold eagle-topped staff
+        'weapon': 'standard', 'props': {'standard': ('eagle_standard', {'length': 2.2, 'grip': 1.1})},
         'stance_name': 'upright',
         'tint': ['cape'],
         'grime': 0.45, 'upper_bulk': 1.25,
@@ -674,14 +678,14 @@ REMASTER = {
         'race': {'caucasian': 1.0, 'african': 0.0, 'asian': 0.0},
         'colors': {'skin': '#e4c8b4', 'hair': '#6a4a2c', 'helmet': '#b8bcc4', 'sleeves': '#c8ccd4',
                    'belt': '#c8a038', 'gold': '#c8a038', 'wood': '#b8902e', 'leather': '#b8902e'},
-        'helmet': 'cap', 'metal': ['helmet'],   # MISSING: crown (imperial, arched, silver and gold), gender (female)
+        'gender': 0.0, 'helmet': 'crown', 'crown': 'arched',   # MISSING: crown_silver (silver-and-gold)
         'hair': 'short', 'hair_asset': 'bob01', 'beard': False,   # MISSING: updo (bun)
         'top': 'sleeved', 'puffy': True, 'neck': 'high',
-        'bottom': 'kilt', 'robe_drop': 0.58,    # MISSING: hoop_skirt (very wide), brocade (silver), lace_hem
+        'bottom': 'gown', 'gown_flare': 2.0, 'robe_drop': 0.58,   # MISSING: brocade (silver), lace_hem
         'cape': False, 'cuirass': False, 'wraps': None, 'sandals': False, 'bracers': False, 'gear': [],
-        # MISSING: scepter (short, gold, fleur head), orb (gold, in the left hand at the lap)
-        'weapon': 'staff', 'props': {'staff': ('staff', {'length': 0.7, 'grip': 0.25})},
-        'stance_name': 'upright',
+        # the short gold scepter raised by the shoulder; MISSING: left_hand_hold (props.orb at the lap)
+        'weapon': 'scepter', 'props': {'scepter': ('scepter', {'length': 0.6, 'head': 'fleur'})},
+        'stance_name': 'royal',
         'tint': ['top', 'bottom'],
         'grime': 0.3, 'upper_bulk': 1.0,
     },
@@ -694,15 +698,15 @@ REMASTER = {
         'race': {'caucasian': 1.0, 'african': 0.0, 'asian': 0.0},
         'colors': {'skin': '#e4c8b4', 'hair': '#8a5a2a', 'cape': '#e8e8e8', 'belt': '#c8a038',
                    'gold': '#c8a038', 'wood': '#b8902e', 'leather': '#b8902e'},
-        'helmet': 'hood',                       # the tinted wimple; MISSING: crown (tall gold, open) over it, gender (female)
+        'gender': 0.0, 'helmet': 'hood',        # the tinted wimple; MISSING: crown (tall gold, open) over it
         'hair': 'short', 'hair_asset': None, 'beard': False,
         'top': 'sleeved', 'neck': 'high',
-        'bottom': 'kilt', 'robe_drop': 0.6,     # MISSING: gown (floor-spilling hem, tinted edge), fleur_pattern (gold)
+        'bottom': 'gown', 'robe_drop': 0.6,     # MISSING: gown_hem (floor-spilling, tinted edge), fleur_pattern (gold)
         'cape': True, 'cape_length': 1.42,      # the white veil-cape, open at the front
         'cuirass': False, 'wraps': None, 'sandals': False, 'bracers': False, 'gear': [],
-        # MISSING: scepter (gold, fleur head)
-        'weapon': 'staff', 'props': {'staff': ('staff', {'length': 0.7, 'grip': 0.25})},
-        'stance_name': 'hang',                  # MISSING: fist_on_hip (left)
+        # the gold fleur-headed scepter, tipped forward
+        'weapon': 'scepter', 'props': {'scepter': ('scepter', {'length': 0.7, 'head': 'fleur'})},
+        'stance_name': 'royal', 'upright_dir': (0.0, -0.7, 0.7),   # MISSING: held_low_forward, fist_on_hip (left)
         'tint': ['helmet', 'top', 'bottom'],
         'grime': 0.3, 'upper_bulk': 1.0,
     },
@@ -782,14 +786,16 @@ REMASTER = {
         # shepherd's crook planted at his right
         'macro': {'muscle': 0.7, 'weight': 0.7, 'height': 0.76, 'proportions': 0.7}, 'age': 0.88,
         'colors': {'skin': '#b88a64', 'hair': '#e8e4dc', 'top': '#9a8262', 'bottom': '#9a8262',
-                   'belt': '#6a4a2e', 'sandal': '#4a3020', 'wood': '#7a5a3a', 'leather': '#5a3e24'},
+                   'belt': '#6a4a2e', 'sandal': '#4a3020', 'wood': '#7a5a3a', 'leather': '#5a3e24',
+                   'gold': '#7a5a3a', 'lapis': '#7a5a3a'},
         'helmet': None, 'hair': 'bald', 'hair_asset': None, 'beard': True,   # MISSING: long_beard (white, to the chest)
         'top': 'sleeved', 'wide_sleeves': True, 'neck': 'high',
         'bottom': 'kilt', 'robe_drop': 0.46,    # MISSING: undergown (white), lapel_trim (tinted), hem_band x2 (tinted)
         'bands': [('wrist', 'tint')],
         'cape': False, 'cuirass': False, 'wraps': None, 'sandals': True, 'bracers': False, 'gear': [],
-        # MISSING: crook (hook above head height)
-        'weapon': 'staff', 'props': {'staff': ('staff', {'length': 2.1, 'grip': 1.2})},
+        # the shepherd's crook, wooden (gold/lapis recolored); MISSING: crook extras (a grip: the rod reaches only
+        # 0.2 below the fist, so it can't be planted on the ground)
+        'weapon': 'crook', 'props': {'crook': ('crook', {'length': 1.4})},
         'stance_name': 'upright',
         'tint': [],
         'grime': 0.5, 'upper_bulk': 1.05,
@@ -823,7 +829,7 @@ REMASTER = {
         'colors': {'skin': '#d4aa8a', 'hair': '#4a2e18', 'helmet': '#c8a038', 'top': '#a8acb4',
                    'bottom': '#b09a6a', 'greaves': '#a8acb4', 'belt': '#3a2a1c', 'steel': '#b8bcc2',
                    'mail': '#7a7c80', 'leather': '#3a2a1c', 'gold': '#c8a038'},
-        'helmet': 'headband',                   # MISSING: crown (gold, points)
+        'helmet': 'crown', 'crown': 'spiked',
         'hair': 'short', 'hair_asset': 'short02', 'beard': True,
         'cuirass': True, 'metal': [], 'neck': 'high',   # the tinted surcoat over the plate
         'top': 'sleeved', 'pauldrons': True, 'collar': 'mail',   # MISSING: plate_arms, plate_legs
@@ -849,8 +855,8 @@ REMASTER = {
         'gear': [('chest_strap', {})],          # MISSING: broad_sash (gold-edged), shoulder_patch (tinted)
         'bands': [('wrist', 'tint')],
         'cape': False, 'cuirass': False, 'sandals': False, 'bracers': False,
-        'weapon': None, 'offhand': None,        # MISSING: swagger_stick (held level at the chest, pointing forward)
-        'stance_name': 'hang',
+        'weapon': 'stick', 'props': {'stick': ('swagger_stick', {'length': 0.6})}, 'offhand': None,   # level, forward
+        'stance_name': 'royal', 'upright_dir': (0.0, -1.0, 0.1),
         'tint': ['strap'],
         'grime': 0.4, 'upper_bulk': 1.15,
     },
@@ -863,15 +869,15 @@ REMASTER = {
         'race': {'caucasian': 0.8, 'african': 0.1, 'asian': 0.1},
         'colors': {'skin': '#e8c4ac', 'hair': '#6a4224', 'bottom': '#f2f0ea', 'belt': '#c8a038',
                    'gold': '#c8a038', 'wood': '#b8902e', 'leather': '#b8902e'},
-        'helmet': None, 'hair': 'short', 'hair_asset': 'bob01', 'beard': False,   # MISSING: updo, gender (female)
+        'gender': 0.0, 'helmet': None, 'hair': 'short', 'hair_asset': 'bob01', 'beard': False,   # MISSING: updo
         'top': 'vest', 'top_zmax': 1.4,         # the tinted bodice, shoulders bare
-        'bottom': 'kilt', 'robe_drop': 0.56,    # MISSING: gown (gold stripes, tinted hem band and spots)
+        'bottom': 'gown', 'robe_drop': 0.56,    # MISSING: gown_pattern (gold stripes, tinted hem band and spots)
         'bracers': True,                        # the long tinted gloves; MISSING: long_gloves (to the elbow, over the hands)
         'bands': [('neck', 'tint')],            # the choker
         'cape': False, 'cuirass': False, 'wraps': None, 'sandals': False, 'gear': [],
-        # MISSING: scepter (short, tinted), left_hand_hold (raised to the shoulder)
-        'weapon': 'staff', 'props': {'staff': ('staff', {'length': 0.5, 'grip': 0.15})},
-        'stance_name': 'upright',
+        # the short scepter raised; MISSING: scepter_tint (props.scepter is gold only), left_hand_hold
+        'weapon': 'scepter', 'props': {'scepter': ('scepter', {'length': 0.5, 'head': 'orb'})},
+        'stance_name': 'royal',
         'tint': ['top', 'bracers'],
         'grime': 0.3, 'upper_bulk': 0.9,
     },
@@ -883,14 +889,16 @@ REMASTER = {
         'macro': {'muscle': 0.55, 'weight': 0.6, 'height': 0.72, 'proportions': 0.72}, 'age': 0.85,
         'race': {'caucasian': 1.0, 'african': 0.0, 'asian': 0.0},
         'colors': {'skin': '#d8ae8e', 'hair': '#e4e4e4', 'top': '#5a5a5e', 'bottom': '#3a3a3e',
-                   'boots': '#2a2420', 'belt': '#2a2a2e', 'wood': '#18181a', 'leather': '#18181a'},
+                   'boots': '#2a2420', 'belt': '#2a2a2e', 'wood': '#18181a', 'leather': '#18181a',
+                   'lacquer': '#18181a', 'gold': '#3a3a3e'},
         'helmet': None, 'hair': 'long', 'hair_asset': 'short04', 'mane': 0.08,   # MISSING: wild_hair
         'beard': False,                         # MISSING: mustache (big, white)
         'top': 'sleeved', 'neck': 'high', 'bottom': 'long', 'wraps': 'boots',   # MISSING: suit_jacket (open, lapels), tie (tinted), low_shoes
         'bands': [('neck', 'tint')],            # a tinted collar stands in for the tie
         'cape': False, 'cuirass': False, 'sandals': False, 'bracers': False, 'gear': [],
-        # MISSING: cane (thin, black), briefcase (brown, tinted straps, left hand), pipe
-        'weapon': 'staff', 'props': {'staff': ('staff', {'length': 0.95, 'grip': 0.88})},
+        # the thin black cane planted from the fist; MISSING: left_hand_hold (props.briefcase, brown,
+        # tinted straps), mouth_prop (props.pipe)
+        'weapon': 'cane', 'props': {'cane': ('cane', {'length': 0.9})},
         'stance_name': 'upright',               # MISSING: walking_stoop
         'tint': [],
         'grime': 0.35, 'upper_bulk': 0.95,
@@ -926,15 +934,15 @@ REMASTER = {
         'race': {'caucasian': 1.0, 'african': 0.0, 'asian': 0.0},
         'colors': {'skin': '#e0b89a', 'hair': '#141418', 'top': '#f2f0ec', 'bottom': '#f2f0ec',
                    'belt': '#c8a038', 'boots': '#e8e4dc', 'gold': '#c8a038'},
-        'helmet': None, 'hair': 'short', 'hair_asset': 'short04', 'beard': False,   # MISSING: pompadour, sunglasses
+        'helmet': None, 'hair': 'short', 'hair_asset': 'short04', 'beard': False,   # MISSING: pompadour, face_prop (props.sunglasses)
         'top': 'sleeved', 'neck': 'high',
         'cuirass': True,    # the tinted chest V; MISSING: deep_v (tinted V panels, not a block)
         'bottom': 'long', 'wraps': 'boots',     # MISSING: bell_bottoms (tinted flare inserts)
         'bands': [('wrist', 'gold')],
         'cape': True, 'cape_length': 0.85,
         'sandals': False, 'bracers': False, 'gear': [],
-        'weapon': None, 'offhand': None,        # MISSING: microphone
-        'stance_name': 'hang',                  # MISSING: rock_stance (wide, knees bent, arms out holding the cape)
+        'weapon': 'microphone', 'props': {'microphone': ('microphone', {})}, 'offhand': None,
+        'stance_name': 'royal',                 # MISSING: rock_stance (wide, knees bent, arms out holding the cape)
         'tint': ['cuirass', 'cape'],
         'grime': 0.3, 'upper_bulk': 1.1,
     },
@@ -946,22 +954,21 @@ REMASTER = {
 # many units need it.
 #
 # -- body
-# gender             Byzantines, English, Russian, Spanish, Princess: build_footman always passes gender=1.0;
-#                    an entry key 'gender' (0.0 female) passed to H.body, plus female hair assets (updo/bun).
+# female hair        English, Russian, Princess: female hair assets (updo/bun).
 #
 # -- stances and gestures
-# fist_on_hip        German, Egyptian, Iroquois, Spanish, Netherlands, Leader Industrial (one hand; the other
-#                    free or holding), Babylonian, Japanese (both: 'fists_on_hips'): hand on the iliac crest,
-#                    elbow out ~60 deg. Today they fall back to 'hang'.
-# hands_clasped_front  Chinese, Greek, Ottoman: both hands meeting low in front of the waist, elbows soft
-#                    ('low_across' stands in, which angles the forearms across).
-# hands_at_chest     Byzantines, Korean: both hands together at the sternum holding a small object
-#                    ('arms_folded' stands in).
-# two_hand_pole      all four Armies: both fists on a vertical pole in front of the chest, one above the other.
-# left_hand_hold     Incan, Netherlands, Princess: the planted staff/cane/scepter in the LEFT hand (equip always
-#                    puts the weapon in the right).
-# hands_behind_back  American (Lincoln): both arms back, hands clasped at the small of the back.
+# fist_on_hip        German, Egyptian, Iroquois, Spanish, Netherlands, Leader Industrial: ONE hand on the hip,
+#                    the other free or holding ('fists_on_hips' does both). Today they fall back to 'hang'.
+# hands_at_chest     Byzantines, Korean: hands together at the sternum, not the waist ('hands_clasped' stands in).
+# two_hand_pole      all four Armies: both fists on the war_standard's pole in front of the chest, one above the
+#                    other ('upright' holds it in the right fist only).
+# left_hand_hold     a left-hand held-item slot ('offhand' is shields and bows only): Russian (props.orb at the
+#                    lap), SciLeader (props.briefcase, low), Netherlands (the cane), Princess (the scepter, raised
+#                    to the shoulder), Incan (the feather standard); a pharaoh's royal_flail beside the crook.
+#                    Today the item goes in the right hand or is left out.
 # walking_stoop      Indian, SciLeader: slight forward stoop with a stride, a cane planted ahead.
+# held_low_forward   Spanish (scepter), Egyptian (crook): an item held low and out with its head up; 'royal'
+#                    raises the forearm, 'hang' points the head down.
 # rod_level          Sumeria: a long rod held horizontally across the chest, tip out to the side.
 # hand_to_chest      Portugal: the left forearm raised to the chest.
 # sword_point_down_back  Viking: a long sword point-down, angled back behind the leg.
@@ -970,13 +977,11 @@ REMASTER = {
 # (pointing          no unit needs it: every catalog 'point' gesture is wrong per the notes.)
 #
 # -- regalia and headgear
-# crown              Army Middle Ages (small gold, over a coif), English (small, 6 points), Leader Middle Ages,
-#                    Persian (spiked), Byzantines (domed, jeweled, tinted panels), Russian (imperial, arched),
-#                    Spanish (tall open, over a wimple), Incan (gold, front disc): a metal circlet with N points
-#                    (points, spike, arches, jewel colors, tint=panels) sitting on hair or another headgear.
-# tall_crown         Babylonian (flat-topped cylinder, tinted band), Sumeria (white cone, gold band): a tall
-#                    headgear with a profile (flat/cone) and a band part.
-# circlet            Hatti (gold metal; 'headband' is cloth).
+# crown extras       Spanish (tall open crown OVER the tinted wimple: a crown on top of a hood), Army Middle Ages
+#                    (the dark coif under the crown), Incan (gold front disc), Russian (silver-and-gold),
+#                    Byzantines (tinted panels), Babylonian (tinted band).
+# tall_crown         Sumeria (white cone, gold band): a cone profile and a non-gold color ('tall' is a gold
+#                    flat-topped cylinder).
 # feather_headdress  Aztec (tall upright fan, tinted/gold/red), Mayan (tinted crest + white cascade to the waist),
 #                    Iroquois (war bonnet: fan with tinted tips and a trailer), Zulu (fanned round the head),
 #                    Incan feather_standard: a fan/ring of N feathers with cycling colors and a tint list.
@@ -987,16 +992,11 @@ REMASTER = {
 # military helmets   pickelhaube (German, spike), brodie_helmet (Army Modern), kabuto (Shogun: neck guard, gold
 #                    kuwagata), helmet_trim (Viking: gold rim and nasal).
 # nemes              Egyptian: a striped tinted headcloth with lappets and a gold uraeus (the 'hood' stands in).
-# scepter            English (gold, plain head), Russian (gold, fleur), Spanish (gold, fleur), Princess (short,
-#                    tinted), Hatti (short gold knobbed): a short rod with a head type and tint.
-# orb                Russian: a gold orb with a cross, held at the lap in the left hand.
-# crook              Leader Ancient (tall wooden shepherd's crook), Egyptian (gold, curled, tinted bands); a
-#                    crook-and-flail pair for any later pharaoh variant.
-# war_standard       Army Ancient (crossbar vexillum), Army Middle (swallow-tailed, crossbar-hung), Army
-#                    Industrial and Army Modern (flag flying from the pole top): a pole with a cloth whose field
-#                    tints, plus device paint (bars, quarters, diagonal cross).
-# eagle_standard     Roman: a tall gold staff topped with an eagle.
-# cane               Netherlands (gold-topped), SciLeader (thin black); swagger_stick (Leader Modern, level).
+# scepter_tint       Princess: props.scepter is gold only (the note has a tinted scepter).
+# crook extras       Leader Ancient: a grip param so a tall crook can be planted (the rod stops 0.2 below the
+#                    fist); Egyptian: tinted bands (they're 'lapis').
+# flag_device        Army Modern (diagonal cross), any army: device paint (bars, quarters) on the war_standard's
+#                    tinted field.
 #
 # -- garments and fabrics
 # ermine_trim        Army Middle Ages, Leader Middle Ages (white fur collar and hem), Netherlands (ermine dots
@@ -1006,9 +1006,8 @@ REMASTER = {
 #                    Netherlands (dark lining, train on the ground), Roman (over the left shoulder, wrapping the
 #                    arm), French (tinted shoulder mantle), Aztec (gold top, fringed panels, red block), Incan
 #                    (white zig-zag border, gold band).
-# gown               Byzantines, English (farthingale), Russian (hoop skirt), Spanish (floor-spilling hem),
-#                    Princess: a floor-length skirt with a bell/hoop flare param and a hem that pools on the ground
-#                    (kilt + robe_drop stands in), with a front panel part.
+# gown extras        Spanish (a hem that pools on the ground, tinted edge), English (farthingale gold stripes and
+#                    jewel dots), Princess (gold stripes, tinted hem band), a front panel part.
 # hem_band           Army Ancient, Arab, Babylonian, Hatti, Japanese, Ottoman, Persian, Sumeria, Shogun, Leader
 #                    Ancient: a band (tinted or gold) at the robe/skirt hem, following the hem.
 # frock_coat         Army Industrial, American, German, Leader Industrial: a coat with knee-length skirts over
@@ -1035,12 +1034,14 @@ REMASTER = {
 #                    (chin); Mongol, Leader Modern (goatee); Celtic, German, SciLeader (mustache only).
 # updo / periwig / powdered_wig / pompadour / wild_hair / curly_hair  English, Russian, Princess; Netherlands;
 #                    Leader Industrial; The King; SciLeader; Greek.
-# glasses / sunglasses / pipe  Indian; The King; SciLeader.
+# face_prop          Indian (props.glasses 'round'), The King (props.sunglasses): a slot placing a prop on the
+#                    face at the bridge of the nose.
+# mouth_prop         SciLeader: props.pipe in the mouth.
 #
 # -- props and companions
 # small_object       Byzantines (white), Mayan (gold), Korean (dark tablet): a small item held at the chest.
 # back_scabbard      Celtic: a long sword sheathed on the back, gold hilt over the shoulder.
-# briefcase          SciLeader (brown, tinted straps, left hand low); microphone (The King).
+# briefcase_tint     SciLeader: tinted straps on props.briefcase (and it needs left_hand_hold).
 # tinted_shield_stripes  Zulu: cowhide_shield with tinted horizontal stripes and a feather tuft on the stick.
 # feathered_spear    Iroquois: fur/feather wrap below the spear head.
 # knobkerrie         Zulu: a plain wooden knob club (war_club with studs=0 stands in).

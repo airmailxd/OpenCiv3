@@ -180,7 +180,11 @@ def dress(entry, mesh, arm):
     if entry.get('beard'):
         G.beard(mesh, B.hex_color(c['hair']), length=0.018, density=700)
     if entry.get('pelt_cape'):
-        G.pelt(mesh, arm, B.hex_color(entry['pelt_cape'][0]), B.hex_color(entry['pelt_cape'][1]), length=0.03)
+        G.pelt(mesh, arm, B.hex_color(entry['pelt_cape'][0]), B.hex_color(entry['pelt_cape'][1]), length=0.03,
+               kind=entry.get('pelt_kind', 'shoulders'))
+    if entry.get('fur_vest'):
+        G.pelt(mesh, arm, B.hex_color(entry['fur_vest'][0]), B.hex_color(entry['fur_vest'][1]), length=0.025,
+               density=4000, kind='vest')
     if entry.get('crown_hair'):
         G.crown_hair(mesh, B.hex_color(c['hair']), length=0.06, density=7000)
     if entry.get('mane'):
@@ -424,7 +428,9 @@ def equip(entry, arm):
         if stance == 'order_arms':
             # standing upright through the fist, the butt by the right foot
             foot = arm.matrix_world @ arm.pose.bones['foot_r'].head
-            base = Vector((at.x - 0.02, at.y, foot.z - 0.07 * G._scale))
+            # the gun's origin is the wrist of the stock, `butt` above its butt
+            butt = entry.get('butt', 0.38) * params.get('scale', 1.0)
+            base = Vector((at.x - 0.02, at.y, foot.z - 0.07 * G._scale + butt))
             H.hold(obj, arm, 'hand_r', base, up=tuple((at - base).normalized()), forward=(0, -1, 0))
         elif stance == 'port_arms':
             # diagonal across the chest, muzzle up at the left shoulder, sights out
@@ -478,8 +484,9 @@ def equip(entry, arm):
                 at = Vector((0.5 * (fa.x + chest.x) + 0.08, min(chest.y - 0.2 * G._scale, fa.y - 0.07 * G._scale),
                              shoulder.z - entry.get('shield_drop', 0.4) * G._scale))
             yaw = entry.get('shield_yaw', 0.0)       # turned toward the front-left, so it's never edge-on
-            fwd = (math.sin(math.radians(yaw)), math.cos(math.radians(yaw)), 0.0)
-            H.hold(obj, arm, 'lowerarm_l', at, up=(0.7, 0.0, 0.7), forward=fwd, center=True)
+            # both the board's facing and its in-plane 45 degree axis turn about world Z
+            sy, cy = math.sin(math.radians(yaw)), math.cos(math.radians(yaw))
+            H.hold(obj, arm, 'lowerarm_l', at, up=(0.7 * cy, -0.7 * sy, 0.7), forward=(sy, cy, 0.0), center=True)
         else:
             at = H.grip_point(arm, 'hand_l')
             if offhand == 'bow':
@@ -512,7 +519,7 @@ def equip(entry, arm):
                 bpy.context.view_layer.update()
             # a big load high on the back: the prop's origin is its straps'
             # top at the shoulders, the load behind it (its -Y, turned to +y)
-            at = sp + Vector((0.0, 0.04 * G._scale, 0.2 * G._scale))
+            at = sp + Vector((0.0, 0.04 * G._scale, entry.get('pack_up', 0.1) * G._scale))
             H.hold(obj, arm, 'spine_03', at, up=(0, 0.05, 1), forward=(0, -1, 0))
         made.append(obj)
     elif back == 'pelt':

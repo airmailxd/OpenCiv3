@@ -372,15 +372,29 @@ def hide(name, color, dark, tint=False):
     return B.material(name, color, roughness=0.95, tint=tint, nodes=nodes)
 
 
-def pelt(basemesh, arm, color, dark, length=0.045, density=3000):
-    """A heavy animal pelt over the shoulders and down the back (not the
-    chest): a thick hide shell with fur particles, so the figure reads
-    broader and rougher."""
-    def keep(co):
-        back = co.y > 0.0                       # the unposed MakeHuman faces -y
-        return (co.z > 1.4) or (back and co.z > 1.12)
-    obj = shell(basemesh, arm, 'Pelt', ['clavicle_l', 'clavicle_r', 'spine_02', 'spine_03', 'upperarm_l', 'upperarm_r'],
-                hide('pelt', color, dark), zmin=1.12, zmax=1.47, offset=0.035, thickness=0.025, min_weight=0.3, keep=keep)
+def pelt(basemesh, arm, color, dark, length=0.045, density=3000, kind='shoulders'):
+    """A heavy animal pelt: a thick hide shell with fur particles, so the
+    figure reads broader and rougher. `kind`: 'shoulders' (over the
+    shoulders and down the back, not the chest), 'cloak' (from the shoulders
+    down the whole back to the thighs) or 'vest' (round the torso, front and
+    back, to the hips)."""
+    if kind == 'cloak':
+        def keep(co):
+            return co.z > 1.4 or co.y > 0.02          # the unposed MakeHuman faces -y
+        bones = ['clavicle_l', 'clavicle_r', 'spine_01', 'spine_02', 'spine_03', 'pelvis',
+                 'upperarm_l', 'upperarm_r', 'thigh_l', 'thigh_r']
+        zmin, offset = 0.62, 0.045
+    elif kind == 'vest':
+        keep = None
+        bones = ['clavicle_l', 'clavicle_r', 'spine_01', 'spine_02', 'spine_03', 'pelvis']
+        zmin, offset = 0.9, 0.04
+    else:
+        def keep(co):
+            return (co.z > 1.4) or (co.y > 0.0 and co.z > 1.12)
+        bones = ['clavicle_l', 'clavicle_r', 'spine_02', 'spine_03', 'upperarm_l', 'upperarm_r']
+        zmin, offset = 1.12, 0.035
+    obj = shell(basemesh, arm, 'Pelt_' + kind, bones, hide('pelt', color, dark), zmin=zmin, zmax=1.47,
+                offset=offset, thickness=0.025, min_weight=0.3, keep=keep)
     grp = obj.vertex_groups.new(name='furzone')
     grp.add([v.index for v in obj.data.vertices], 1.0, 'REPLACE')
     _hair_system(obj, 'PeltFur', 'furzone', dark, length, density)

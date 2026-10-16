@@ -853,25 +853,26 @@ def backpack(p, size=1.0):
     bedroll strapped across the top, a copper pot lashed to the side and
     shoulder straps running forward (+Y) from the attach point at the origin."""
     s = size
-    sack = ellipsoid(0.17 * s, 0.12 * s, 0.24 * s, seg=20)
+    sack = ellipsoid(0.18 * s, 0.19 * s, 0.24 * s, seg=20)
     for v in sack.verts:  # flatter against the back, fuller at the bottom
         if v.co.y > 0:
-            v.co.y *= 0.55
+            v.co.y *= 0.75
         if v.co.z < 0:
             v.co.x *= 1.08
             v.co.y *= 1.06
     jitter(sack, 0.006 * s, seed=5)
-    p.add(sack, 'pack', T(0, -0.15 * s, -0.12 * s), smooth=True)
+    jitter(sack, 0.02 * s, seed=9)     # lumpy, stuffed
+    p.add(sack, 'pack', T(0, -0.2 * s, -0.12 * s), smooth=True)
     # tied neck of the sack
     p.add(lathe([(0.0, 0.05 * s), (0.04 * s, 0.035 * s), (0.07 * s, 0.05 * s)], seg=12), 'pack',
           T(0, -0.16 * s, 0.1 * s), smooth=True)
     p.add(lathe([(0.0, 0.04 * s), (0.015 * s, 0.04 * s)], seg=12), 'rope', T(0, -0.16 * s, 0.135 * s), smooth=True)
     # bedroll across the top, with two straps
-    p.add(tube([(-0.2 * s, 0, 0), (0.2 * s, 0, 0)], 0.065 * s, seg=16), 'bedroll',
-          T(0, -0.14 * s, 0.17 * s), bevel=0.01, smooth=True)
-    for x in (-0.12 * s, 0.12 * s):
+    p.add(tube([(-0.15 * s, 0, 0), (0.15 * s, 0, 0)], 0.065 * s, seg=16), 'bedroll',
+          T(0, -0.18 * s, 0.15 * s), bevel=0.01, smooth=True)
+    for x in (-0.09 * s, 0.09 * s):
         p.add(lathe([(0.0, 0.069 * s), (0.02 * s, 0.069 * s)], seg=16), 'leather',
-              T(x, -0.14 * s, 0.17 * s) @ R('Y', 90), smooth=True)
+              T(x, -0.18 * s, 0.15 * s) @ R('Y', 90), smooth=True)
     # copper pot lashed to the side
     pot = lathe([(0.0, 0.0005), (0.005, 0.05 * s), (0.06 * s, 0.075 * s), (0.11 * s, 0.065 * s),
                  (0.12 * s, 0.07 * s), (0.125 * s, 0.07 * s)], seg=18)
