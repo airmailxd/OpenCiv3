@@ -29,7 +29,7 @@ KNEEL = {'pose_extra': [('thigh_l', (0.15, -0.95, -0.25)), ('calf_l', (0.08, 0.0
                         ('thigh_r', (-0.12, 0.15, -1)), ('calf_r', (-0.05, 1.0, -0.08)), ('foot_r', (0.0, 0.35, -1))]}
 # the Hwacha crew's layered robes (Civ3: blue-grey robes over trousers, a white sash)
 ROBE = {'coat_skirt': 'robe', 'coat_length': 0.85, 'sash': 'belt', 'hem_bands': [('robe', '#5a6070', 0.04)],
-        '_colors': {'hat': '#dcc48e'}, 'headgear_params': {'brim': 0.2}}   # a light straw gat, its brim clear of the face
+        '_headgear': 'straw_hat'}   # a shallow conical straw hat (reads tan from every side)
 
 # per unit: a list of per-crewman changes (index = the crew empty's number)
 CREW = {
@@ -39,8 +39,10 @@ CREW = {
         # (the catalog's blue tunic and steel cap, as the original, with a belt strap and hem band)
         # hauling: bent forward at the waist over the handspike, head up
         dict(WORK, chest_strap='offset', hem_bands=[('top', '#3a2818', 0.03)], _skin='#a07a5c',
-             pose_extra=[('spine_01', (0, -0.35, 1)), ('spine_02', (0, -0.45, 1)), ('neck_01', (0, 0.1, 1)),
-                         ('head', (0, 0.4, 1))]),
+             pose_extra=[('spine_01', (0, -0.9, 1)), ('spine_02', (0, -1.1, 1)), ('neck_01', (0, -0.2, 1)),
+                         ('head', (0, 0.5, 1)),   # bent near 50 degrees at the hips, head up
+                         ('thigh_l', (0.2, -0.45, -1)), ('calf_l', (0.15, 0.35, -1)),   # knees flexed, braced
+                         ('thigh_r', (-0.2, -0.2, -1)), ('calf_r', (-0.15, 0.45, -1))]),
         {'stance_name': 'fist_hip_l', 'chest_strap': 'offset', 'hem_bands': [('top', '#3a2818', 0.03)],
          '_skin': '#a07a5c'},
     ],

@@ -148,7 +148,7 @@ REMASTER = {
         'hair': 'short', 'beard': False,
         'top': 'sleeved', 'neck': 'high',
         'cuirass': True, 'metal': [],           # the flak vest, in woodland camo (a patterned vest becomes cloth)
-        'cloth_rough': 0.95, 'wide_sleeves': True,   # matte cloth, looser sleeves (not sculpted tubes)
+        'cloth_rough': 0.95, 'tint_shade': {'top': 0.72},   # matte cloth; the civ sleeves a shade darker, less glare
         'bottom': 'long',
         # woodland: on the trousers, and as a darker mottle on the civ-color sleeves
         # base dark green; mid green and brown dominate, khaki in small spots
@@ -226,7 +226,7 @@ REMASTER = {
         # baggy camo trousers, dark boots, a small brown pack
         'macro': {'muscle': 0.95, 'weight': 0.55, 'height': 0.74, 'proportions': 0.74},
         'race': {'caucasian': 0.3, 'african': 0.35, 'asian': 0.35},
-        'colors': {'skin': '#8e6646', 'hair': '#1a140e', 'top': '#5a7a28', 'bottom': '#56722a',
+        'colors': {'skin': '#8e6646', 'hair': '#1a140e', 'top': '#7a9a32', 'bottom': '#76922e',
                    'belt': '#2a2014', 'boots': '#2e2216', 'olive_dark': '#5a4430', 'olive': '#4a3a28',
                    'wood': '#5e3e16'},
         'helmet': 'headband',                   # the tied bandana; MISSING: headband_height (it sits low, over the eyes)
@@ -234,8 +234,9 @@ REMASTER = {
         'top': 'tunic',                         # short sleeves, forearms bare
         'bottom': 'long', 'puffy': True,        # MISSING: loose_trousers (puffy still reads skin-tight)
         # lighter woodland; MISSING: cloth_roughness (the dark camo reads wet)
-        'patterns': {'bottom': ('camo', '#25340a', '#5a4a24'),   # dark green and brown woodland mottling
-                     'top': ('camo', '#25340a', '#5a4a24')},
+        # busy woodland over a lime base: dark green, brown and near-black blotches
+        'patterns': {'bottom': ('camo', '#25340a', '#5a4a24', '#141a08'),
+                     'top': ('camo', '#25340a', '#5a4a24', '#141a08')},
         'boots': True, 'wraps': 'boots',
         # the crossed civ-color bandoliers, over the tunic; MISSING: cartridge loops on them
         'gear': [('chest_strap', {'tint': True, 'width': 0.07, 'cross': True, 'offset': 0.035})],
@@ -349,7 +350,7 @@ REMASTER = {
         # the civ-color harness, crossed over the shirt; MISSING: y_harness
         'gear': [('chest_strap', {'tint': True, 'width': 0.1, 'cross': True, 'offset': 0.035})],
         'bands': [('upperarm', 'tint', 0.12), ('knee', 'tint', 0.08)],   # the civ-color shoulders and bands below the knee
-        'shoulder_patch': ('l', 'flag'),        # the flag patch
+        'shoulder_patch': ('l', 'flag'), 'patch_out': 0.06,   # the flag patch, clear of the civ shoulder band
         # MISSING: ground_props (props.tow_launcher on its tripod and two missile
         # crates set on the ground beside him; equip only puts props in hands)
         # MISSING: team (a second, kneeling soldier at the launcher's sight)

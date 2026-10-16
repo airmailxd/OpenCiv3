@@ -335,6 +335,22 @@ def bicorne(p, c, tinted, plume_tinted):
     p.add(props.lathe([(0.0, 0.03), (0.01, 0.03)], seg=16), ck, T(0.1, 0.03, 0.1) @ R('X', 90), smooth=True, tint=ct)
 
 
+props.DEFAULTS.setdefault('straw', ('#d8c08a', 0.9, 0.0, 'rope'))
+
+
+@hat('straw_hat')
+def straw_hat(p, c, tinted, _):
+    """A wide, shallow conical straw hat (the Hwacha crew's): its slopes catch
+    the light from every side, so it reads tan from behind too; a dark band
+    and chin cord."""
+    p.add(props.lathe([(0.0, 0.25), (0.02, 0.22), (0.09, 0.12), (0.15, 0.03), (0.16, 0.0)], seg=32), 'straw', smooth=True)
+    p.add(props.lathe([(0.0, 0.25), (0.006, 0.252)], seg=32), 'straw', smooth=True)
+    p.add(props.lathe([(0.01, 0.105), (0.03, 0.1)], seg=24), 'leather_dark', smooth=True)
+    for sx in (-1, 1):
+        p.add(props.tube([(sx * 0.09, 0.0, 0.0), (sx * 0.07, 0.03, -0.12), (0.0, 0.06, -0.2)], 0.005, seg=4),
+              'leather_dark', smooth=True)
+
+
 @hat('gat')
 def gat(p, c, tinted, _, brim=0.27):
     """A Joseon gat: a tall flat-topped crown and a very wide flat brim of
@@ -361,11 +377,11 @@ def cavalier(p, c, tinted, plume_tinted, plume=1.0):
     k = plume   # the plume's size (Musketeer: bigger)
     # an ostrich plume: several soft fronds fanning from the pin, each a little different, so it reads as feathers
     rnd = props.random.Random(23)
-    for j in range(5):
-        dx, dz = rnd.uniform(-0.03, 0.03), rnd.uniform(-0.02, 0.03)
+    for j in range(9):   # many thin fronds spread wide, so they separate at 1x
+        dx, dz = rnd.uniform(-0.07, 0.07), rnd.uniform(-0.04, 0.05)
         p.add(props.tube([(-0.12, 0.03, 0.1), (-0.12 - 0.04 * k + dx, -0.06 * k, 0.1 + (0.12 + dz) * k),
                           (-0.12 - 0.02 * k + dx * 1.5, -0.22 * k, 0.1 + (0.14 + dz) * k), (-0.1 + dx * 2, -0.34 * k, 0.1 + (0.04 + dz) * k)],
-                         [0.025 * k, 0.04 * k, 0.034 * k, 0.008], seg=8, scale_xy=(1.0, 0.8)), pk, smooth=True, tint=pt)
+                         [0.016 * k, 0.026 * k, 0.022 * k, 0.005], seg=6, scale_xy=(1.0, 0.6)), pk, smooth=True, tint=pt)
 
 
 @hat('top_hat')

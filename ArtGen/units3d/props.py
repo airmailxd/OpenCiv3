@@ -766,9 +766,9 @@ def _star_emblem(p, rx, rz, thick, dome, gap, rays=12):
             x, z = r * rx * math.cos(a), r * rz * math.sin(a)
             d = 1 - (x / rx) ** 2 - (z / rz) ** 2
             pts.append((x, gap - thick - dome * max(d, 0) - 0.004, z))
-        p.add(tube(pts, [0.03 * rx, 0.02 * rx, 0.003], seg=4, scale_xy=(1.0, 0.25)), 'shield_emblem', smooth=True,
+        p.add(tube(pts, [0.075 * rx, 0.05 * rx, 0.006], seg=4, scale_xy=(1.0, 0.25)), 'shield_emblem', smooth=True,
               tint=True)
-    p.add(ellipsoid(0.22 * rx, 0.012, 0.22 * rz, seg=20), 'shield_emblem', T(0, gap - thick - dome - 0.002, 0),
+    p.add(ellipsoid(0.32 * rx, 0.014, 0.32 * rz, seg=20), 'shield_emblem', T(0, gap - thick - dome - 0.002, 0),
           smooth=True, tint=True)
 
 

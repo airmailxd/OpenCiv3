@@ -667,7 +667,7 @@ def tow_team(colors, k=1.0):
     a traversing unit with its sight and night-sight boxes) on a low tripod,
     two olive missile crates on the ground; a gunner kneeling behind it at the
     sight (crew 0) and a spotter standing beside it (crew 1)."""
-    c = dict({'olive': '#6e7a3e', 'olive_dark': '#454c2c', 'gunmetal': '#3a3c3c'}, **colors)   # lit olive, as the original reads
+    c = dict({'olive': '#666c48', 'olive_dark': '#43472f', 'gunmetal': '#3a3c3c'}, **colors)   # lit olive, as the original reads
     root = vkit.root('TOW Infantry')
     f = vkit.part(root, 'launcher', c, ARTILLERY_WEAR)
     zt = 0.62

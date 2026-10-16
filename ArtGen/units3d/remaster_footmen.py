@@ -348,7 +348,7 @@ REMASTER = {
                    'greaves': '#4a4a4e', 'sandal': '#2e2016', 'steel': '#a8aaae', 'bronze': '#8a6a36',
                    'shield_face': '#5e5e62', 'shield_emblem': '#d8d4c8'},
         'helmet': 'galea', 'metal': ['helmet', 'cuirass'],
-        'cuirass': True, 'top': 'tunic', 'cuirass_bands': 5,   # lorica segmentata
+        'cuirass': True, 'top': 'tunic', 'cuirass_bands': 5, 'neck': 'high',   # lorica segmentata, up to the neck
         'pauldrons': 'metal',                   # shoulder plates in the cuirass color
         'cape': True, 'cape_length': 0.55,      # shoulders to the waist
         'bottom': 'skirt', 'hem_bands': [('bottom', 'tint', 0.05)],
@@ -379,7 +379,7 @@ REMASTER = {
         'helmet': None, 'headgear': 'attic_helm', 'metal': ['cuirass'],   # bronze, crested, with cheek guards
         'beard': True,
         # the cuirass covers the tunic's body, so tinting 'top' shows on the sleeves
-        'cuirass': True, 'top': 'tunic',          # MISSING: cuirass_scale (a scale pattern on the cuirass)
+        'cuirass': True, 'top': 'tunic', 'neck': 'high',   # MISSING: cuirass_scale (a scale pattern on the cuirass)
         'bottom': 'skirt', 'hem_bands': [('bottom', 'tint', 0.04)],
         'wraps': 'greaves', 'gear': [],
         'weapon': 'spear',
@@ -410,7 +410,8 @@ REMASTER = {
         'gear': [('chest_strap', {'color': '#4a3420'})],
         'weapon': None,
         'offhand': 'bow', 'offhand_mesh': ('bold_bow', {'height': 1.85, 'bend': 0.1, 'recurve': 0.0}),
-        'back': 'quiver', 'hip_gear': [('arrow_bag', {}, 'r')],   # the big tan arrow bag at the right hip
+        'back': 'quiver', 'hip_gear': [('arrow_bag', {'scale': 1.5}, 'r')],   # the big tan arrow bag at the right hip
+        'offhand_dir': (0.0, -0.08, 1.0),       # the longbow held upright before him (MISSING: nocked arrow)
         'stance_name': 'bow_low',               # MISSING: bow_upright_nocked (longbow vertical, arrow nocked)
         'tint': ['top', 'plume'],
         'grime': 0.75, 'upper_bulk': 1.25,
@@ -444,15 +445,15 @@ REMASTER = {
         # all in near-black olive: hood and mask, a long jacket with split
         # panels, baggy trousers, tabi; a civ-color harness of straps and
         # belt; a kama low in each hand
-        'macro': {'muscle': 1.0, 'weight': 0.6, 'height': 0.7, 'proportions': 0.75},
+        'macro': {'muscle': 1.0, 'weight': 0.75, 'height': 0.72, 'proportions': 0.72},
         'race': {'caucasian': 0.0, 'african': 0.0, 'asian': 1.0},
         'colors': {'skin': '#987452', 'helmet': '#1c2016', 'top': '#343c28', 'bottom': '#262c1e',
                    'boots': '#121410', 'belt': '#2a2a20', 'steel': '#9a9ca0', 'wood': '#6a5034',
-                   'leather': '#2a2418', 'veil': '#1a1e14', 'wraps': '#1c2016', 'wraps_band': '#343c28'},
+                   'leather': '#2a2418', 'veil': '#1a1e14', 'wraps': '#1c2016', 'wraps_band': '#343c28', 'shoes': '#121410'},
         'helmet': 'hood', 'hair_asset': None, 'veil': True,   # hood and dark face mask
         'top': 'sleeved', 'neck': 'high',       # MISSING: split side panels on the jacket
         'coat_length': 0.4, 'coat_flare': 1.35,  # the jacket skirt to mid-thigh, flaring
-        'bottom': 'long', 'wraps': 'wraps',     # dark leg wraps
+        'bottom': 'long', 'wraps': 'shoes',     # dark split-toe tabi boots
         'bands': [('waist', 'tint', 0.06)],     # the civ-color belt
         'harness': True,                        # two civ-color straps crossing on chest and back
         'gear': [('chest_strap', {'tint': True, 'width': 0.08, 'cross': True, 'offset': 0.04})],   # the straps in a V
@@ -462,7 +463,7 @@ REMASTER = {
         'offhand': 'kama',                      # held low across the hips, not out at the side
         'stance_name': 'hang',
         'tint': ['belt', 'harness'],
-        'grime': 0.6, 'upper_bulk': 1.25,
+        'grime': 0.6, 'upper_bulk': 1.35,
     },
     'Pikeman': {
         # steel morion, breastplate and tassets, civ-color puffy sleeves and
@@ -475,7 +476,7 @@ REMASTER = {
                    'wood': '#4a3222', 'steel': '#8a8c90'},
         'helmet': 'morion', 'metal': ['helmet', 'cuirass'],
         'beard': True,
-        'cuirass': True, 'cuirass_width': 0.22, 'top': 'sleeved', 'puffy': True,
+        'cuirass': True, 'cuirass_width': 0.22, 'top': 'sleeved', 'puffy': True, 'neck': 'high',
         'chest_emblem': ('cross', 'tint', 0.22),            # the tinted cross on the breastplate
         'coat_length': 0.36, 'coat_metal': True,             # steel tassets over the hips
         'tint_shade': {'bottom': 0.45},                     # dark civ-color breeches
@@ -497,15 +498,15 @@ REMASTER = {
         'race': {'caucasian': 0.0, 'african': 0.0, 'asian': 1.0},
         'colors': {'skin': '#c8986c', 'hair': '#0e0c0c', 'bottom': '#2e2c40', 'sleeves': '#3e3c54', 'belt': '#1a1824',
                    'sandal': '#2a2018', 'lacquer': '#1a1412', 'iron': '#3a3a3c', 'cloth_wrap': '#2a2630',
-                   'wraps': '#e8e4da', 'wraps_band': '#e8e4da'},
+                   'wraps': '#e8e4da', 'wraps_band': '#e8e4da', 'shoes': '#e8e4da'},
         'helmet': None, 'hair': 'topknot', 'hair_asset': None, 'topknot': 'topknot', 'beard': False,
         # the civ-color coat with wide untinted grey-lavender sleeves over it
         'top': 'sleeved', 'wide_sleeves': True,   # MISSING: squared sleeve folds; topknot/bald
-        'chest_emblem': ('v', '#e8e4da', 0.2),  # the white under-robe V at the chest
+        'chest_emblem': ('v', '#e8e4da', 0.24),  # the white under-robe V at the chest
         'coat_length': 0.6, 'coat_flare': 1.3,  # the knee-length coat, a darker spot pattern on the civ color
-        'patterns': {'top': ('camo', '#5a5a5a', 6.0), 'bottom': ('stripes', '#1c1a28', 10.0)},   # calm coat; the hakama's pleats
+        'patterns': {'top': ('camo', '#dcdcdc', 6.0), 'bottom': ('stripes', '#1c1a28', 10.0)},   # a white pattern on the civ coat; the hakama's pleats
         'bottom': 'long', 'puffy': True, 'trouser_offset': 0.05,   # the wide hakama
-        'sandals': True, 'wraps': 'wraps', 'wraps_height': 0.16, 'gear': [],   # ankle-high white tabi
+        'sandals': True, 'wraps': 'shoes', 'gear': [],   # white tabi under the sandal straps
         # arms folded on the chest, hands empty, the katana sheathed at the left hip
         'weapon': None, 'offhand': None,
         'hip': ('katana_sheathed', {'length': 0.72}),
@@ -526,7 +527,7 @@ REMASTER = {
         'bands': [('upperarm', 'tint')],
         'wraps': 'wraps', 'boots': True,        # MISSING: baggy_leggings (tan, under the loincloth)
         'gear': [('chest_strap', {'color': '#4a3220', 'width': 0.07})],
-        'chest_gear': ('chest_pack', {}),       # the small pack on the strap
+        'chest_gear': ('chest_pack', {'scale': 1.7}),   # the small brown pack on the strap
         # the gourd hangs from the right fist ('upright' keeps its +Z, the
         # cord's top, up, so it hangs below the hand)
         'weapon': 'gourd',
@@ -550,16 +551,16 @@ REMASTER = {
         'helmet': 'morion', 'plume': True, 'metal': ['helmet'], 'plume_scale': 1.6,   # a bigger plume (if the builder reads it)
         'beard': True,
         # the original's torso is a civ-color doublet (no breastplate shows), puffed pale sleeves
-        'cuirass': False, 'top': 'sleeved', 'puffy': True, 'wide_sleeves': True,   # white sleeves to the wrist, slashing_stripes
+        'cuirass': False, 'top': 'sleeved', 'puffy': True, 'wide_sleeves': True, 'neck': 'high',   # white sleeves to the wrist, slashing_stripes
         'bottom': 'breeches',
         'patterns': {'bottom': ('stripes', '#141414', 8.0), 'sleeves': ('stripes', '#141414', 8.0)},   # black slashes
         'wraps': 'boots',
-        'gear': [('chest_strap', {'tint': True, 'width': 0.15})],   # the civ-color diagonal sash over the doublet
+        'gear': [('chest_strap', {'tint': True, 'width': 0.22})],   # the bold civ-color sash over the pale doublet
         'weapon': 'spear',
         # the pike: its shaft in civ color, steel head, langets and butt plain
         'props': {'spear': ('pike', {'length': 3.0, 'grip': 1.1, 'shaft_tint': True})},
         'stance_name': 'upright',
-        'tint': ['plume', 'top'],
+        'tint': ['plume', 'strap'],               # the doublet stays pale, as the original; the sash is civ
         'grime': 0.65, 'upper_bulk': 1.25,
     },
 }
