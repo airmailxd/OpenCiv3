@@ -249,6 +249,9 @@ def material(name, color, roughness=0.6, metallic=0.0, tint=False, nodes=None):
     aov = tree.nodes.new('ShaderNodeOutputAOV')
     aov.aov_name = 'tint'
     aov.inputs['Value'].default_value = 1.0 if tint else 0.0
+    if 'tint_mask' in tree.nodes:
+        # a pattern whose stripes/panel take the civ color: the mask drives the AOV
+        tree.links.new(tree.nodes['tint_mask'].outputs[0], aov.inputs['Value'])
     return mat
 
 

@@ -42,13 +42,36 @@ def z(v):
 
 # ------------------------------------------------------------ materials
 
+def _pattern_mix(tree, base, col, mask, civ):
+    """`col` over `base` where `mask` is 1; with `civ`, those parts are
+    marked for the civ color (a node named 'tint_mask' that the material
+    links to its tint AOV)."""
+    n = tree.nodes
+    mix = n.new('ShaderNodeMix')
+    mix.data_type = 'RGBA'
+    mix.inputs['A'].default_value = base
+    mix.inputs['B'].default_value = col
+    tree.links.new(mask, mix.inputs['Factor'])
+    if civ:
+        m = n.new('ShaderNodeMath')
+        m.name = 'tint_mask'
+        m.operation = 'MAXIMUM'
+        m.inputs[1].default_value = 0.0
+        tree.links.new(mask, m.inputs[0])
+    return mix.outputs['Result']
+
+
 def _pattern(tree, coord, base, pattern):
     """A color socket: the cloth's `base` color (linear RGBA) under a
     printed or woven pattern: ('camo', c2, c3[, c4]) blotches, ('check',
     dark[, scale]) squares, ('tartan', dark[, scale]) crossing bands."""
     n = tree.nodes
     kind = pattern[0]
-    lin = [(*B.srgb_to_linear(B.hex_color(h)), 1.0) for h in pattern[1:] if isinstance(h, str)]
+    # 'tint' as the pattern color: those stripes/panels take the civ color
+    civ = 'tint' in pattern[1:2]
+    lin = [(0.67, 0.67, 0.67, 1.0) if h == 'tint' else (*B.srgb_to_linear(B.hex_color(h)), 1.0)
+           for h in pattern[1:] if isinstance(h, str) and h not in ('front',)]
+    front = 'front' in pattern[1:]          # panels: the front only (not down the back)
     nums = [v for v in pattern[1:] if isinstance(v, (int, float))]
     if kind == 'camo':
         noise = n.new('ShaderNodeTexNoise')
@@ -81,12 +104,18 @@ def _pattern(tree, coord, base, pattern):
         lt.operation = 'LESS_THAN'
         lt.inputs[1].default_value = (nums[0] if nums else 0.05) * _scale
         tree.links.new(ab.outputs['Value'], lt.inputs[0])
-        mix = n.new('ShaderNodeMix')
-        mix.data_type = 'RGBA'
-        mix.inputs['A'].default_value = base
-        mix.inputs['B'].default_value = dark
-        tree.links.new(lt.outputs['Value'], mix.inputs['Factor'])
-        return mix.outputs['Result']
+        mask = lt.outputs['Value']
+        if front:
+            fr = n.new('ShaderNodeMath')
+            fr.operation = 'LESS_THAN'               # the unposed body faces -y
+            fr.inputs[1].default_value = 0.0
+            tree.links.new(sep.outputs['Y'], fr.inputs[0])
+            both = n.new('ShaderNodeMath')
+            both.operation = 'MULTIPLY'
+            tree.links.new(mask, both.inputs[0])
+            tree.links.new(fr.outputs['Value'], both.inputs[1])
+            mask = both.outputs['Value']
+        return _pattern_mix(tree, base, dark, mask, civ)
     if kind == 'stripes':
         # vertical stripes (trouser stripes, slashing): dark bands across X
         wave = n.new('ShaderNodeTexWave')
@@ -98,12 +127,7 @@ def _pattern(tree, coord, base, pattern):
         hard.operation = 'GREATER_THAN'
         hard.inputs[1].default_value = 0.8
         tree.links.new(wave.outputs['Fac'], hard.inputs[0])
-        mix = n.new('ShaderNodeMix')
-        mix.data_type = 'RGBA'
-        mix.inputs['A'].default_value = base
-        mix.inputs['B'].default_value = dark
-        tree.links.new(hard.outputs['Value'], mix.inputs['Factor'])
-        return mix.outputs['Result']
+        return _pattern_mix(tree, base, dark, hard.outputs['Value'], civ)
     if kind == 'check':
         chk = n.new('ShaderNodeTexChecker')
         chk.inputs['Scale'].default_value = scale
