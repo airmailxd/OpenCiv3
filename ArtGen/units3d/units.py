@@ -52,6 +52,8 @@ def _mat(entry, part, maker, *args, **kw):  # noqa: D401
     pattern = entry.get('patterns', {}).get(part)
     if pattern and maker is G.cloth:
         kw = dict(kw, pattern=tuple(pattern))
+    if maker is G.cloth and 'cloth_rough' in entry:       # a duller, less glossy cloth
+        kw = dict(kw, rough=entry['cloth_rough'])
     return maker(f'{part}', color, *args, tint=tint, **kw)
 
 
@@ -121,7 +123,7 @@ def dress(entry, mesh, arm):
         pass    # flaps from the belt, after posing (dress_posed)
     elif bottom in ('long', 'breeches'):
         # trousers to the ankle, or breeches to below the knee (puffed with 'puffy')
-        puff = 0.022 if entry.get('puffy') else 0.008
+        puff = entry.get('trouser_offset', 0.022 if entry.get('puffy') else 0.008)    # hakama: ~0.05
         G.shell(mesh, arm, 'Bottom', ['pelvis', 'thigh_l', 'thigh_r', 'calf_l', 'calf_r'],
                 _mat(entry, 'bottom', G.cloth, weave=0.6), zmin=0.1 if bottom == 'long' else 0.42, zmax=1.0,
                 offset=puff, thickness=0.004)
@@ -201,10 +203,11 @@ def dress(entry, mesh, arm):
         bands = entry.get('cuirass_bands')       # lorica segmentata: N horizontal plates
         maker = (lambda n, col, tint=False: B.material(n, col, roughness=0.35, metallic=0.9, tint=tint,
                                                        nodes=G.plate_bands(bands) if bands else None)) \
-            if metal else G.leather
+            if metal else (G.cloth if 'cuirass' in entry.get('patterns', {}) else G.leather)   # a camo vest is cloth
         G.shell(mesh, arm, 'Cuirass', torso + (['neck_01'] if entry.get('neck') == 'high' else []),
                 _mat(entry, 'cuirass', maker), zmin=0.98, zmax=1.55 if entry.get('neck') == 'high' else 1.42,
-                offset=0.016, thickness=0.008, keep=lambda co, w=entry.get('cuirass_width', 0.17): abs(co.x) < w)
+                offset=entry.get('cuirass_offset', 0.03 if entry.get('puffy') else 0.016), thickness=0.008,
+                keep=lambda co, w=entry.get('cuirass_width', 0.17): abs(co.x) < w)
     wraps = entry.get('wraps')
     for side in 'lr':
         if wraps == 'wraps':
@@ -286,7 +289,21 @@ def dress(entry, mesh, arm):
         else:
             emat = G.cloth('emblem', B.hex_color(c.get(col, col)))
         G.chest_emblem(mesh, arm, emat, kind=em[0], size=em[2] if len(em) > 2 else 0.16,
-                       lift=0.045 if entry.get('cuirass') else 0.03)
+                       lift=0.045 if entry.get('cuirass') else 0.03, back=bool(entry.get('back_emblem')))
+        if entry.get('back_emblem') == 'both':
+            G.chest_emblem(mesh, arm, emat, kind=em[0], size=em[2] if len(em) > 2 else 0.16,
+                           lift=0.045 if entry.get('cuirass') else 0.03)
+    # a patch on the upper arm: ('l' | 'r', 'tint' | 'flag' | hex)
+    sp = entry.get('shoulder_patch')
+    if sp:
+        side, col = sp[0], sp[1]
+        if col == 'tint':
+            pm = G.cloth('patch', (1, 1, 1), tint=True)
+        elif col == 'flag':
+            pm = G.cloth('patch', (0.9, 0.9, 0.88), pattern=('stripes', '#b02020', 22.0))
+        else:
+            pm = G.cloth('patch', B.hex_color(c.get(col, col)))
+        G.arm_patch(mesh, arm, pm, side=side, out_by=entry.get('patch_out', 0.045 if entry.get('puffy') else 0.02))
     # hem bands: [(garment, color), ...]; garment 'bottom' or 'top', color
     # 'tint', 'gold' or a hex; optional width (m) and inset from the edge
     _hems(entry, c, lambda part: part != 'cape')
@@ -414,7 +431,8 @@ def helmet(entry, mesh, arm):
     if entry.get('plume'):
         tint = 'plume' in entry.get('tint', [])
         col = (1, 1, 1) if tint else B.hex_color(_colors(entry).get('plume', '#e8e0d0'))
-        G.plume(mesh, arm, G.hide('plume', col, tuple(v * 0.75 for v in col), tint=tint))
+        G.plume(mesh, arm, G.hide('plume', col, tuple(v * 0.75 for v in col), tint=tint),
+                height=0.22 * entry.get('plume_scale', 1.0))
     if kind in ('crested', 'horned', 'cap', 'wolf', 'hood'):
         depth = {'cap': 0.07, 'crested': 0.082, 'horned': 0.09, 'wolf': 0.12, 'hood': 0.19}[kind]
         if kind == 'wolf':
@@ -571,6 +589,14 @@ STANCES['hip_hold'] = [('spine_02', (0, 0.0, 1)), ('neck_01', (0, 0.1, 1)), ('he
                        ('thigh_r', (-0.2, 0.08, -1)), ('calf_r', (-0.12, 0.05, -1)), ('foot_r', (-0.5, -1, -0.3)),
                        ('upperarm_l', (0.25, -0.2, -1)), ('lowerarm_l', (-0.25, -1.0, -0.15)),
                        ('upperarm_r', (-0.22, 0.45, -1)), ('lowerarm_r', (0.08, -0.8, -0.5))]
+# a musket on the right shoulder: the right fist at the shoulder's front
+# holding the butt, the barrel sloping back over the shoulder
+STANCES['shoulder_arms'] = [('spine_02', (0, -0.02, 1)), ('neck_01', (0, 0.1, 1)), ('head', (0, 0.3, 1)),
+                            ('clavicle_l', (1, 0.05, 0.08)), ('clavicle_r', (-1, 0.05, 0.08)),
+                            ('thigh_l', (0.14, -0.04, -1)), ('calf_l', (0.08, 0.03, -1)), ('foot_l', (0.4, -1, -0.3)),
+                            ('thigh_r', (-0.14, 0.0, -1)), ('calf_r', (-0.08, 0.03, -1)), ('foot_r', (-0.4, -1, -0.3)),
+                            ('upperarm_l', (0.18, -0.02, -1)), ('lowerarm_l', (0.1, -0.15, -1)),
+                            ('upperarm_r', (-0.22, -0.35, -1)), ('lowerarm_r', (0.05, -0.45, 1.0))]
 GUNS = ('musket', 'rifle', 'rifle_bolt', 'assault_rifle', 'smg')
 
 WEAPON_STANCE = {
@@ -610,6 +636,10 @@ def equip(entry, arm):
             butt = entry.get('butt', 0.38) * params.get('scale', 1.0)
             base = Vector((at.x - 0.02, at.y, foot.z - 0.07 * G._scale + butt))
             H.hold(obj, arm, 'hand_r', base, up=tuple((at - base).normalized()), forward=(0, -1, 0))
+        elif stance == 'shoulder_arms':
+            # the barrel back over the right shoulder, sights up
+            d = Vector(entry.get('gun_dir', (-0.12, 0.55, 0.83))).normalized()
+            H.hold(obj, arm, 'hand_r', at, up=tuple(d), forward=(0, 0, 1))
         elif stance == 'hip_hold':
             # level at the hip, muzzle forward and a little across
             d = Vector(entry.get('gun_dir', (0.12, -1.0, 0.16))).normalized()

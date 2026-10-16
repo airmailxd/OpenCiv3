@@ -33,6 +33,9 @@ def main(argv):
     B.tint_aov()
     catalog = json.load(open(os.path.join(HERE, '..', '_previews', 'units3d', 'catalog.json')))
     entry = remaster.apply(unit, catalog[unit])
+    if os.environ.get('UNIT_OVERRIDE'):
+        # for tests: keys merged over the entry (JSON; lists stand for tuples)
+        entry.update(json.loads(os.environ['UNIT_OVERRIDE']))
     root = units.build_footman(entry)
     k = entry.get('unit_scale', 1.0)           # about the feet (the root's origin is on the ground)
     if k != 1.0:

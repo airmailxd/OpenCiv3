@@ -1274,7 +1274,7 @@ def hem(name, mat, width=0.05, lift=0.004, inset=0.0):
     return obj
 
 
-def chest_emblem(basemesh, arm, mat, kind='cross', size=0.16, z_at=1.3, lift=0.03):
+def chest_emblem(basemesh, arm, mat, kind='cross', size=0.16, z_at=1.3, lift=0.03, back=False):
     """A flat emblem on the chest front (a 'cross', or a 'disc'), standing
     `lift` off the skin so it sits on the garments; on the chest bone."""
     import human as H
@@ -1285,10 +1285,19 @@ def chest_emblem(basemesh, arm, mat, kind='cross', size=0.16, z_at=1.3, lift=0.0
            (body is None or any(g.group == body.index and g.weight > 0.5 for g in v.groups))]
     if not pts:
         return []
-    y = min(co.y for co in pts) - lift            # the unposed body faces -y
+    # the unposed body faces -y; `back` puts it on the back
+    y = (max(co.y for co in pts) + lift) if back else (min(co.y for co in pts) - lift)
     s = size * _scale
     made = []
-    if kind == 'disc':
+    if kind == 'v':
+        # a V at the throat (an under-robe's crossed collar)
+        for sx in (-1, 1):
+            bpy.ops.mesh.primitive_cube_add(size=1, location=(sx * 0.2 * s, y, zc + 0.25 * s),
+                                            rotation=(0, sx * 0.5, 0))
+            o = bpy.context.active_object
+            o.scale = (0.14 * s, 0.008, 0.6 * s)
+            made.append(o)
+    elif kind == 'disc':
         bpy.ops.mesh.primitive_cylinder_add(radius=s / 2, depth=0.008, location=(0, y, zc),
                                             rotation=(math.pi / 2, 0, 0), vertices=24)
         made.append(bpy.context.active_object)
@@ -1431,3 +1440,35 @@ def trim(obj, inside, levels=3):
     bm.to_mesh(obj.data)
     bm.free()
     return obj
+
+
+def arm_patch(basemesh, arm, mat, side='l', t=0.3, size=0.06, out_by=0.035):
+    """A small patch (a flag or unit patch) on the outside of the upper arm,
+    `t` along the bone from the shoulder; on the upper arm bone."""
+    import human as H
+    from mathutils import Vector
+    inv = basemesh.matrix_world.inverted() @ arm.matrix_world
+    b = arm.data.bones['upperarm_' + side]
+    h, tl = inv @ b.head_local, inv @ b.tail_local
+    p = h.lerp(tl, t)
+    out = 1.0 if side == 'l' else -1.0
+    grp = basemesh.vertex_groups.get('upperarm_' + side)
+    pts = [v.co for v in basemesh.data.vertices
+           if grp is not None and any(g.group == grp.index and g.weight > 0.5 for g in v.groups)
+           and (v.co - p).length < 0.07 * _scale]
+    if not pts:
+        return None
+    o_pt = max(pts, key=lambda co: co.x * out)
+    loc = o_pt + Vector((out * out_by * _scale, 0, 0))          # over sleeves (puffy ones ~0.026 out)
+    bpy.ops.mesh.primitive_cube_add(size=1, location=tuple(loc))
+    o = bpy.context.active_object
+    o.scale = (0.006, size * _scale, size * 0.75 * _scale)
+    bpy.ops.object.transform_apply(scale=True)
+    o.data.materials.append(mat)
+    world = o.matrix_world.copy()
+    o.parent = arm
+    o.parent_type = 'BONE'
+    o.parent_bone = 'upperarm_' + side
+    o.matrix_world = world
+    H._update()
+    return o
