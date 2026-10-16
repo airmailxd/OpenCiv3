@@ -54,6 +54,8 @@ def _mat(entry, part, maker, *args, **kw):  # noqa: D401
         kw = dict(kw, pattern=tuple(pattern))
     if maker is G.cloth and 'cloth_rough' in entry:       # a duller, less glossy cloth
         kw = dict(kw, rough=entry['cloth_rough'])
+    if maker is G.cloth and entry.get('cloth_dirt'):      # filthy cloth: 0..1
+        kw = dict(kw, dirt=entry['cloth_dirt'])
     return maker(f'{part}', color, *args, tint=tint, **kw)
 
 

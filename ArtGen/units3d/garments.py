@@ -260,7 +260,7 @@ def _pattern(tree, coord, base, pattern, tinted=False):
     return out
 
 
-def cloth(name, color, tint=False, rough=0.85, weave=0.25, pattern=None):
+def cloth(name, color, tint=False, rough=0.85, weave=0.25, pattern=None, dirt=0.0):
     """Woven cloth: a fine weave bump and a little color variation; with
     `pattern` (see _pattern), printed or woven with it."""
     def nodes(tree, bsdf):
@@ -293,7 +293,9 @@ def cloth(name, color, tint=False, rough=0.85, weave=0.25, pattern=None):
         tree.links.new(coord.outputs['Object'], dn.inputs['Vector'])
         dr = n.new('ShaderNodeValToRGB')
         dr.color_ramp.elements[0].position = 0.4
-        dr.color_ramp.elements[0].color = (0.55, 0.5, 0.44, 1)
+        # `dirt` 0..1: heavier, browner stains (a slave's or a labourer's rags)
+        dr.color_ramp.elements[0].color = (0.55 - 0.25 * dirt, 0.5 - 0.25 * dirt, 0.44 - 0.24 * dirt, 1)
+        dr.color_ramp.elements[0].position = 0.4 + 0.15 * dirt
         dr.color_ramp.elements[1].position = 0.7
         tree.links.new(dn.outputs['Fac'], dr.inputs['Fac'])
         # darker in the folds and where the cloth meets the body
