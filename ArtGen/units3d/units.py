@@ -210,7 +210,7 @@ def dress(entry, mesh, arm):
             G.shell(mesh, arm, 'Wrap_' + side, ['calf_' + side], G.fur('wraps_' + side, B.hex_color(c['wraps']),
                     B.hex_color(c['wraps_band'])), zmin=0.08, zmax=entry.get('wraps_height'), offset=0.012,
                     thickness=0.012)
-        if wraps == 'shoes':
+        if wraps == 'shoes' or entry.get('shoes'):     # 'shoes': True also goes over hose (wraps)
             # low shoes: the foot only, a little above the ankle
             G.shell(mesh, arm, 'Shoe_' + side, ['foot_' + side, 'ball_' + side, 'calf_' + side],
                     _mat(entry, 'shoes', G.leather), zmax=0.11, offset=0.007, thickness=0.006)

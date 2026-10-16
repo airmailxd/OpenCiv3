@@ -27,12 +27,17 @@ Conventions where no key exists yet:
   eagle_standard, staffs and canes held in 'stand_staff' (the butt toward
   the ground; the armies' standards with 'two_hands': True), scepter, crook,
   swagger_stick and microphone held up in the 'royal' stance (tilted with
-  'upright_dir'); left-hand items stay MISSING;
+  'upright_dir'); other left-hand items stay MISSING;
 - women are 'gender': 0.0 with a 'gown' bottom ('gown_flare', 'robe_drop');
 - royal poses are the stances 'fists_on_hips', 'hands_clasped' (also for
   hands together at the chest), 'hands_behind', 'royal' (a scepter held
   up in the right hand), 'stand' (arms relaxed, an item hanging from the
-  right hand) and 'stand_staff'; one fist on the hip still falls back to 'stand'.
+  right hand), 'stand_staff' and 'fist_hip_l' / 'fist_hip_r' (one fist on
+  the hip; with 'fist_hip_l' the right hand holds an item as 'stand' does,
+  aimed by 'hang_dir'; with 'fist_hip_r' the item goes in the left hand,
+  aimed by 'tool_dir');
+- beards are 'beard': True with 'beard_style' (full, mustache, goatee, chin,
+  long) and an optional colors['beard']; low shoes are 'wraps': 'shoes'.
 Each gap is marked "MISSING: <feature>" and listed under MISSING FEATURES at
 the bottom.
 """
@@ -131,17 +136,17 @@ REMASTER = {
         'macro': {'muscle': 0.7, 'weight': 0.5, 'height': 0.85, 'proportions': 0.78}, 'age': 0.7,
         'race': {'caucasian': 0.95, 'african': 0.05, 'asian': 0.0},
         'colors': {'skin': '#c89070', 'hair': '#241c16', 'helmet': '#141416', 'top': '#1e1c1c',
-                   'cuirass': '#2a2826', 'bottom': '#1a1818', 'boots': '#3a2418', 'belt': '#1a1818',
+                   'cuirass': '#2a2826', 'bottom': '#1a1818', 'shoes': '#3a2418', 'belt': '#1a1818',
                    'shirt': '#e8e4dc'},
         'helmet': None, 'headgear': 'top_hat',
         'hair': 'short', 'hair_asset': None,
-        'beard': True,                          # MISSING: chin_beard (no mustache)
+        'beard': True, 'beard_style': 'chin',   # the chin beard, no mustache
         'top': 'sleeved', 'neck': 'high',
         'coat_length': 0.55, 'coat_flare': 1.05,   # the frock coat's skirts
         # the tinted waistcoat, a narrow strip between the black coat fronts
         'cuirass': True, 'metal': [], 'cuirass_width': 0.07,
         'bands': [('neck', 'shirt', 0.03)],     # the white shirt collar
-        'bottom': 'long', 'wraps': 'boots',     # MISSING: low_shoes
+        'bottom': 'long', 'wraps': 'shoes',     # the brown shoes
         'cape': False, 'sandals': False, 'bracers': False, 'gear': [],
         'weapon': None, 'offhand': None,
         # MISSING: hand_to_chest (the original's right hand is raised to the lapel; the note says hands behind)
@@ -185,7 +190,7 @@ REMASTER = {
         'hair': 'short', 'hair_asset': None, 'beard': True,
         # the civ-color puffed sleeves (check they cover the shoulder tops); MISSING: quilting, gold dots
         'top': 'sleeved', 'puffy': True,
-        'bottom': 'breeches', 'wraps': 'wraps', 'sandals': True,   # white hose; MISSING: low_shoes (gold buckles)
+        'bottom': 'breeches', 'wraps': 'wraps', 'shoes': True, 'sandals': True,   # white hose; MISSING: low_shoes over hose ('wraps' takes one value), gold buckles
         'cape': True, 'cape_length': 1.0,
         'cuirass': False, 'bracers': False, 'gear': [],
         'weapon': None, 'offhand': None,        # MISSING: companion_dog (grey wolfhound, tinted collar)
@@ -314,9 +319,9 @@ REMASTER = {
         'macro': {'muscle': 0.65, 'weight': 0.95, 'height': 0.76, 'proportions': 0.7}, 'age': 0.75,
         'race': {'caucasian': 0.0, 'african': 0.0, 'asian': 1.0},
         'colors': {'skin': '#c89c76', 'hair': '#141414', 'top': '#66788a', 'bottom': '#505a68',
-                   'boots': '#3a2418', 'belt': '#4e5664'},
+                   'shoes': '#3a2418', 'belt': '#4e5664'},
         'helmet': None, 'hair': 'short', 'hair_asset': 'short02', 'beard': False,   # MISSING: balding_hair
-        'top': 'sleeved', 'neck': 'high', 'bottom': 'long', 'wraps': 'boots',   # MISSING: low_shoes, jacket pockets
+        'top': 'sleeved', 'neck': 'high', 'bottom': 'long', 'wraps': 'shoes',   # MISSING: jacket pockets
         'coat_length': 0.15,                    # the hip-length jacket
         'bands': [('upperarm', 'tint', 0.06)],
         'cape': False, 'cuirass': False, 'sandals': False, 'bracers': False, 'gear': [],
@@ -343,9 +348,10 @@ REMASTER = {
         'hem_bands': [('bottom', 'tint', 0.04, 0.12), ('bottom', 'tint', 0.04, 0.32)],
         'bands': [('neck', 'gold'), ('upperarm', 'gold'), ('wrist', 'gold')],   # MISSING: broad_collar
         'cape': False, 'cuirass': False, 'wraps': None, 'sandals': True, 'bracers': False, 'gear': [],
-        # the gold crook, held up; MISSING: crook extras (tinted bands; they're lapis)
+        # the gold crook; MISSING: crook extras (tinted bands; they're lapis)
         'weapon': 'crook', 'props': {'crook': ('crook', {'length': 1.1})},
-        'stance_name': 'royal',                 # MISSING: held_low_forward, fist_on_hip (left), walking stance
+        # the crook low in the right fist, rising up and out; check the hook clears the hat
+        'stance_name': 'fist_hip_l', 'hang_dir': (-0.6, -0.3, 0.75),   # MISSING: walking stance
         'tint': ['helmet'],
         'grime': 0.4, 'upper_bulk': 1.2,
     },
@@ -403,7 +409,7 @@ REMASTER = {
                    'bottom': '#18181a', 'boots': '#121214', 'belt': '#e8e4dc', 'gold': '#c8a038'},
         'helmet': 'cap', 'metal': ['helmet'],   # MISSING: pickelhaube (tall spike)
         'hair': 'short', 'hair_asset': None,
-        'beard': True,                          # MISSING: mustache (big walrus, no beard)
+        'beard': True, 'beard_style': 'mustache',   # the big walrus mustache, no beard
         'top': 'sleeved', 'neck': 'high',       # MISSING: epaulettes (gold)
         'coat_length': 0.55, 'coat_flare': 1.05,   # the frock coat's skirts
         'bottom': 'long', 'wraps': 'boots',
@@ -411,7 +417,7 @@ REMASTER = {
         'bands': [('wrist', 'gold')],
         'cape': False, 'cuirass': False, 'sandals': False, 'bracers': False,
         'weapon': None, 'offhand': None,
-        'stance_name': 'stand',                 # MISSING: fist_on_hip (left)
+        'stance_name': 'fist_hip_l',            # left fist on the hip, the right arm hanging
         'tint': ['strap'],
         'grime': 0.35, 'upper_bulk': 1.2,
     },
@@ -523,10 +529,11 @@ REMASTER = {
         'bands': [('upperarm', 'tint'), ('knee', 'tint')],
         'cape': False, 'cuirass': False, 'bracers': False,
         # MISSING: feathered_spear (fur/feather wrap below the head)
-        'weapon': 'spear', 'props': {'spear': ('spear', {'length': 2.3, 'grip': 1.15})},
+        # upright from the low right fist; check the butt meets the ground
+        'weapon': 'spear', 'props': {'spear': ('spear', {'length': 2.3, 'grip': 0.8})}, 'hang_dir': (-0.05, 0.0, 1.0),
         'offhand': 'shield_round', 'offhand_mesh': ('shield_round', {'r': 0.25, 'boss': False, 'tint': 'none'}),
         'shield_at': 'left_hip',                # MISSING: shield_at_hip (it floats in front of the groin)
-        'stance_name': 'stand_staff',           # MISSING: fist_on_hip (left)
+        'stance_name': 'fist_hip_l',            # left fist on the hip
         'tint': ['helmet', 'bottom', 'strap'],
         'grime': 0.5, 'upper_bulk': 1.25,
     },
@@ -538,7 +545,7 @@ REMASTER = {
         'macro': {'muscle': 0.8, 'weight': 0.8, 'height': 0.74, 'proportions': 0.68}, 'age': 0.6,
         'race': {'caucasian': 0.0, 'african': 0.0, 'asian': 1.0},
         'colors': {'skin': '#d0a882', 'hair': '#141010', 'cuirass': '#3a3a40', 'belt': '#ece8e0',
-                   'boots': '#e8e4dc', 'collar_w': '#ece8e0', 'gold': '#c8a038', 'bottom': '#6a6a72'},
+                   'shoes': '#e8e4dc', 'collar_w': '#ece8e0', 'gold': '#c8a038', 'bottom': '#6a6a72'},
         # the black topknot (check it reads on top of the head)
         'helmet': None, 'hair': 'topknot', 'hair_asset': 'ponytail01', 'beard': False,
         'top': 'sleeved', 'wide_sleeves': False, 'neck': 'high',
@@ -546,7 +553,7 @@ REMASTER = {
         'hem_bands': [('bottom', 'gold', 0.04)],
         'cuirass': False,
         'bands': [('neck', 'collar_w'), ('wrist', 'gold')],
-        'cape': False, 'wraps': 'boots', 'sandals': False, 'bracers': False, 'gear': [],   # MISSING: low_shoes
+        'cape': False, 'wraps': 'shoes', 'sandals': False, 'bracers': False, 'gear': [],   # the white tabi
         'weapon': None, 'offhand': None,
         'stance_name': 'fists_on_hips',
         'tint': ['top', 'sleeves'],
@@ -602,7 +609,7 @@ REMASTER = {
                    'leather': '#3a2a1c'},
         'helmet': None, 'headgear': 'fur_hat',
         'hair': 'short', 'hair_asset': None,
-        'beard': False,                         # MISSING: goatee (and long mustache); a full beard reads as a dark mask
+        'beard': True, 'beard_style': 'goatee',   # MISSING: long_mustache (drooping past the chin)
         'top': 'sleeved', 'neck': 'high', 'bottom': 'kilt', 'robe_drop': 0.22,
         'hem_bands': [('bottom', 'tint', 0.06)],
         'bands': [('wrist', 'tint')],
@@ -623,19 +630,21 @@ REMASTER = {
         'macro': {'muscle': 0.75, 'weight': 0.75, 'height': 0.78, 'proportions': 0.72}, 'age': 0.55,
         'race': {'caucasian': 1.0, 'african': 0.0, 'asian': 0.0},
         'colors': {'skin': '#e0b89a', 'hair': '#5a3a20', 'top': '#e4e0d8', 'bottom': '#e4e0d8', 'belt': '#c8a038',
-                   'wraps': '#ece8e0', 'wraps_band': '#d0ccc4', 'sandal': '#1e1a18', 'boots': '#1e1a18',
+                   'shoes': '#1e1a18',
                    'wood': '#2a1e16', 'lacquer': '#2a1e16', 'gold': '#c8a038'},
         'helmet': None, 'hair': 'long', 'hair_asset': 'long01',   # MISSING: periwig (curly, to the shoulders)
         'beard': False,
         'top': 'sleeved', 'neck': 'high',       # MISSING: doublet_slashes (red)
-        'bottom': 'breeches', 'puffy': True, 'wraps': 'boots', 'sandals': False,   # MISSING: low_shoes
+        # white breeches and hose in one: full-length puffy legs, black low shoes
+        'bottom': 'long', 'puffy': True, 'wraps': 'shoes', 'sandals': False,
         # MISSING: cape_train (wider, spread on the ground), ermine_trim (dots on the cape), cape_lining (dark purple)
         'cape': True, 'cape_length': 1.45,
         'hem_bands': [('cape', 'gold', 0.06)],
         'cuirass': False, 'bracers': False, 'gear': [],
-        # the gold-topped cane planted from the fist; MISSING: left_hand_hold (the note has it in the left)
-        'weapon': 'cane', 'props': {'cane': ('cane', {'length': 0.95})},
-        'stance_name': 'stand_staff',           # MISSING: fist_on_hip (right)
+        # the gold-topped cane in the free left fist ('fist_hip_r' puts the item there), the rod down to the
+        # ground ('tool_dir' is the way it runs from the fist); check the tip meets the ground
+        'weapon': 'cane', 'props': {'cane': ('cane', {'length': 0.85})}, 'tool_dir': (0.1, -0.2, -1.0),
+        'stance_name': 'fist_hip_r',            # right fist on the hip
         'tint': ['cape'],
         'grime': 0.35, 'upper_bulk': 1.1,
     },
@@ -648,7 +657,7 @@ REMASTER = {
         'macro': {'muscle': 0.8, 'weight': 0.85, 'height': 0.78, 'proportions': 0.7}, 'age': 0.6,
         'race': {'caucasian': 0.8, 'african': 0.1, 'asian': 0.1},
         'colors': {'skin': '#c89a74', 'hair': '#241a12', 'helmet': '#f0ece2', 'top': '#ece8de',
-                   'bottom': '#ece8de', 'belt': '#c8a038', 'boots': '#c8a038', 'gold': '#c8a038'},
+                   'bottom': '#ece8de', 'belt': '#c8a038', 'shoes': '#c8a038', 'gold': '#c8a038'},
         # the white turban (hats take the helmet color: verify it renders white); MISSING: aigrette (jewel)
         'helmet': None, 'headgear': 'turban',
         'hair': 'short', 'hair_asset': None, 'beard': True,
@@ -657,7 +666,7 @@ REMASTER = {
         'bottom': 'kilt', 'robe_drop': 0.5,
         'hem_bands': [('bottom', 'tint', 0.12)],
         'cuirass': True,    # the tinted waist-length vest; MISSING: vest (sleeveless over-garment, gold edges)
-        'cape': False, 'wraps': 'boots', 'sandals': False, 'bracers': False, 'gear': [],   # MISSING: low_shoes
+        'cape': False, 'wraps': 'shoes', 'sandals': False, 'bracers': False, 'gear': [],   # the gold shoes
         'weapon': None, 'offhand': None,
         'stance_name': 'hands_clasped',
         'tint': ['cuirass', 'plume'],
@@ -675,7 +684,8 @@ REMASTER = {
                    'bottom': '#e8e4da', 'belt': '#c8a038', 'boots': '#5a3a22', 'bracers': '#c8a038',
                    'gold': '#c8a038'},
         'helmet': 'crown', 'crown': 'spiked',
-        'hair': 'long', 'hair_asset': None, 'mane': 0, 'beard': True,   # MISSING: long_beard (wavy, square-cut)
+        'hair': 'long', 'hair_asset': None, 'mane': 0,
+        'beard': True, 'beard_style': 'long',   # the square-cut beard to the chest; MISSING: wavy beard
         'top': 'tunic', 'bottom': 'skirt', 'robe_drop': 0.0,
         'hem_bands': [('bottom', 'tint', 0.06)],
         'gear': [('chest_strap', {'width': 0.1, 'color': '#5a3e24'})],   # the brown leather sash
@@ -699,16 +709,16 @@ REMASTER = {
         'macro': {'muscle': 0.8, 'weight': 0.75, 'height': 0.76, 'proportions': 0.72}, 'age': 0.65,
         'race': {'caucasian': 1.0, 'african': 0.0, 'asian': 0.0},
         'colors': {'skin': '#d0aa8e', 'hair': '#3a2a1c', 'helmet': '#1e1a18', 'top': '#3a2a1e',
-                   'cuirass': '#c8a038', 'wraps': '#9a9aa2', 'wraps_band': '#7a7a82',
+                   'cuirass': '#c8a038', 'wraps': '#9a9aa2', 'wraps_band': '#7a7a82', 'beard': '#9a968e',
                    'boots': '#18161a', 'belt': '#c8a038', 'gold': '#c8a038', 'steel': '#b0b4b8',
                    'leather': '#2a1e16'},
         'helmet': None, 'headgear': 'cavalier',   # MISSING: wide_brim_hat (round brim, gold edge; cavalier stands in)
-        'hair': 'long', 'hair_asset': 'long01', 'beard': True,   # MISSING: grey beard with dark hair (one hair color)
+        'hair': 'long', 'hair_asset': 'long01', 'beard': True,   # the grey beard under dark hair
         'top': 'sleeved', 'puffy': True, 'neck': 'high',   # MISSING: doublet_trim (gold buttons and edges)
         'pauldrons': 'metal',                   # the gold puffed shoulders (in the cuirass's gold)
         'bottom': 'breeches',                   # the tinted trunk hose; MISSING: hose_slashes (dark, vertical)
         'hem_bands': [('bottom', 'gold', 0.03)],
-        'wraps': 'wraps',                       # the grey hose; MISSING: low_shoes (black)
+        'wraps': 'wraps', 'shoes': True,                       # the grey hose; MISSING: low_shoes over hose ('wraps' takes one value)
         'bands': [('wrist', 'gold'), ('knee', 'gold')],   # gold cuffs and garters
         'cape': False, 'cuirass': False, 'sandals': False, 'bracers': False, 'gear': [],
         'weapon': 'sword', 'props': {'sword': ('sword', {'length': 0.62, 'guard': 0.16})},
@@ -783,9 +793,9 @@ REMASTER = {
         # the white veil to the hips; MISSING: head_veil (from the head over the crown, not the shoulders), cape_flare
         'cape': True, 'cape_length': 0.9,
         'cuirass': False, 'wraps': None, 'sandals': False, 'bracers': False, 'gear': [],
-        # the gold fleur-headed scepter, tipped forward
+        # the gold fleur-headed scepter low in the right fist, head up and forward
         'weapon': 'scepter', 'props': {'scepter': ('scepter', {'length': 0.7, 'head': 'fleur'})},
-        'stance_name': 'royal', 'upright_dir': (0.0, -0.7, 0.7),   # MISSING: held_low_forward, fist_on_hip (left)
+        'stance_name': 'fist_hip_l', 'hang_dir': (-0.25, -0.65, 0.7),   # left fist on the hip
         'tint': ['top', 'bottom'],
         'grime': 0.3, 'upper_bulk': 1.0,
     },
@@ -803,7 +813,7 @@ REMASTER = {
                    'cuff': '#ece8e0', 'sandal': '#4a3622', 'wood': '#ece8e0'},
         'helmet': None, 'headgear': 'hat_cone',   # MISSING: tall_crown (a white flat-topped cylinder; hat_cone stands in)
         'hair': 'long', 'hair_asset': 'long01', 'mane': 0.15,
-        'beard': True,                          # MISSING: long_beard (square, black)
+        'beard': True, 'beard_style': 'long',   # the long square black beard
         'top': 'mantle', 'neck': 'high',        # the brown wrap
         'bottom': 'kilt', 'robe_drop': 0.46,    # MISSING: front_stripe (red, vertical)
         'hem_bands': [('bottom', 'tint', 0.05, 0.10), ('bottom', 'tint', 0.05, 0.25), ('bottom', '#ece8e0', 0.03, 0.0)],
@@ -875,7 +885,8 @@ REMASTER = {
         'colors': {'skin': '#b88a64', 'hair': '#e8e4dc', 'top': '#9a8262', 'bottom': '#9a8262',
                    'belt': '#6a4a2e', 'sandal': '#4a3020', 'wood': '#7a5a3a', 'leather': '#5a3e24',
                    'gold': '#7a5a3a', 'lapis': '#7a5a3a'},
-        'helmet': None, 'hair': 'bald', 'hair_asset': None, 'beard': True,   # MISSING: long_beard (white, to the chest)
+        'helmet': None, 'hair': 'bald', 'hair_asset': None,
+        'beard': True, 'beard_style': 'long',   # the white beard to the chest
         'top': 'sleeved', 'wide_sleeves': True, 'neck': 'high',
         'bottom': 'kilt', 'robe_drop': 0.46,    # MISSING: undergown (white), lapel_trim (tinted)
         'hem_bands': [('bottom', 'tint', 0.05, 0.02), ('bottom', 'tint', 0.04, 0.10)],
@@ -905,7 +916,7 @@ REMASTER = {
         'bands': [('neck', 'gold'), ('wrist', 'gold')],
         'cape': False, 'cuirass': False, 'sandals': False, 'bracers': False, 'gear': [],
         'weapon': None, 'offhand': None,        # MISSING: tricorne_in_hand (small dark object at the waist)
-        'stance_name': 'stand',                 # MISSING: fist_on_hip
+        'stance_name': 'fist_hip_l',            # left fist on the hip, the right hand free
         'tint': ['top'],
         'grime': 0.35, 'upper_bulk': 1.15,
     },
@@ -945,7 +956,7 @@ REMASTER = {
         # the kepi (hats take the helmet color: verify it renders green); MISSING: peaked_cap (kepi stands in)
         'helmet': None, 'headgear': 'kepi',
         'hair': 'short', 'hair_asset': None,
-        'beard': False,                         # MISSING: goatee (a full beard reads as a dark mask)
+        'beard': True, 'beard_style': 'goatee',
         'top': 'sleeved', 'neck': 'high', 'bottom': 'breeches', 'wraps': 'boots',
         'gear': [('chest_strap', {'width': 0.16})],   # the broad sash; MISSING: sash_edges (gold), shoulder_patch (tinted)
         'bands': [('wrist', 'tint')],
@@ -988,11 +999,11 @@ REMASTER = {
         'macro': {'muscle': 0.55, 'weight': 0.6, 'height': 0.72, 'proportions': 0.72}, 'age': 0.85,
         'race': {'caucasian': 1.0, 'african': 0.0, 'asian': 0.0},
         'colors': {'skin': '#d8ae8e', 'hair': '#f2f2f2', 'top': '#5a5a5e', 'bottom': '#3a3a3e',
-                   'boots': '#2a2420', 'belt': '#2a2a2e', 'wood': '#18181a', 'leather': '#18181a',
+                   'shoes': '#2a2420', 'belt': '#2a2a2e', 'wood': '#18181a', 'leather': '#18181a',
                    'lacquer': '#18181a', 'gold': '#3a3a3e'},
         'helmet': None, 'hair': 'long', 'hair_asset': 'short04', 'mane': 0,   # MISSING: wild_hair
-        'beard': False,                         # MISSING: mustache (big, white)
-        'top': 'sleeved', 'neck': 'high', 'bottom': 'long', 'wraps': 'boots',   # MISSING: suit_jacket (open, lapels), tie (tinted), low_shoes
+        'beard': True, 'beard_style': 'mustache',   # the big white mustache
+        'top': 'sleeved', 'neck': 'high', 'bottom': 'long', 'wraps': 'shoes',   # MISSING: suit_jacket (open, lapels), tie (tinted)
         'bands': [('neck', 'tint')],            # a tinted collar stands in for the tie
         'cape': False, 'cuirass': False, 'sandals': False, 'bracers': False, 'gear': [],
         # the thin black cane planted from the fist; MISSING: left_hand_hold (props.briefcase, brown,
@@ -1062,25 +1073,21 @@ REMASTER = {
 #                    tints), a dense feather fan with cycling colors (Aztec), a white feather cascade to the waist
 #                    (Mayan), a war-bonnet trailer (Iroquois), a feather laid on the beret (Austria), an aigrette
 #                    (Ottoman).
-# beard shapes       [10] long_beard (Babylonian, Persian, Sumeria, Leader Ancient), goatee (Mongol, Leader
-#                    Modern), mustache only (Celtic, German, SciLeader), chin_beard (American). The full beard
-#                    renders as a dark mask over the lower face, so Mongol and Leader Modern go beardless for now.
 # vertical stripes / front panels  [9] gold or tinted stripes and panels down a robe or gown: Byzantines (gold
 #                    front stripe), Princess (gold front stripe), Spanish (white front panel), English (farthingale
 #                    gold stripes, jewel dots), Russian (civ color/silver skirt stripes), Japanese (gold hakama
 #                    stripe), Korean (tinted robe stripes), Shogun (dark and gold), Sumeria (red front stripe).
 # hair styles        [9] updo (English, Russian, Princess), periwig (Netherlands), powdered_wig (Leader
 #                    Industrial), pompadour (The King), wild_hair (SciLeader), curly_hair (Greek), balding (Chinese).
-# low_shoes          [8] American, Austria, Chinese, Japanese, Netherlands, Ottoman, Portugal, SciLeader: shoes to
-#                    the ankle (boots reach mid-shin; sandals are strapped).
+# low_shoes over hose [2] Austria, Portugal: 'wraps' takes one value, so the hose ('wraps') and the low shoes
+#                    ('shoes') can't both be worn; sandals (Austria) or bare hose (Portugal) stand in.
 # cape shape         [7] cape_flare / cape_train (Netherlands, Spanish, The King, Mayan: narrow rigid slabs now),
 #                    cape_closed_back (Viking: splits open down the back), cape_drape (Roman: over the left
 #                    shoulder), head_veil (Spanish: from the head, over the crown).
-# fist_on_hip        [6] Egyptian, German, Iroquois, Netherlands, Spanish, Leader Industrial: ONE hand on the hip,
-#                    the other free or holding ('fists_on_hips' does both). Today they fall back to 'stand'.
-# left_hand_hold     [5] a left-hand item slot ('offhand' is shields and bows only): Incan (feather standard),
-#                    Netherlands (the cane), Russian (props.orb at the lap), Princess (the scepter), SciLeader
-#                    (props.briefcase). Today the item goes in the right hand or is left out.
+# left_hand_hold     [4] a left-hand item slot ('offhand' is shields and bows only): Incan (feather standard),
+#                    Russian (props.orb at the lap), Princess (the scepter), SciLeader (props.briefcase). Today the
+#                    item goes in the right hand or is left out. (Netherlands' cane goes in the left hand through
+#                    'fist_hip_r'.)
 # crown extras       [5] Army Middle Ages (dark coif under it), Incan (gold front disc, red top), Russian
 #                    (silver-and-gold), Byzantines (red/tinted panels), Babylonian (tinted band).
 # broad_collar       [4] Aztec, Byzantines, Egyptian, Mayan: a gold pectoral collar (a wide neck band stands in).
@@ -1090,7 +1097,8 @@ REMASTER = {
 #                    ermine collar), French (gold fleur-de-lis, tinted shoulder mantle), Netherlands (ermine dots,
 #                    dark lining). Hem bands stand in for the fur hems.
 # plate_arms / plate_legs  [3] French, Army Middle Ages, Leader Middle Ages: metal (not cloth) arm and leg plates.
-# held_low_forward   [3] Egyptian (crook), French (sword), Spanish (scepter): an item held low and out, head up.
+# held_low_forward   [1] French (sword): an item held low and out, head up. (Egyptian and Spanish do it with
+#                    'fist_hip_l' and a rising 'hang_dir'.)
 # small_object       [3] Byzantines (white), Korean (dark tablet), Mayan (gold): a small item held at the chest.
 # sash_edges         [3] Army Modern, Leader Modern (gold edges on the broad sash), Arab (gold stripe on the baldric).
 # undergown / lapel_trim  [2] Army Ancient, Leader Ancient: an open robe front showing a white gown, tinted lapels.
@@ -1114,8 +1122,8 @@ REMASTER = {
 #                    shoulder_clasp (Celtic), a back scabbard angle (Celtic), chest_patch (Persian), apron_kilt and
 #                    tinted_shield_stripes (Zulu), staff_ball (Sumeria), feathered_spear, leggings and the shield
 #                    at the hip (Iroquois), tinted_tip (Indian), shoulder_patch (Leader Modern), tricorne_in_hand
-#                    and waistcoat_front (Leader Industrial), front_trim (Arab), jacket pockets (Chinese), a grey
-#                    beard with dark hair (Portugal).
+#                    and waistcoat_front (Leader Industrial), front_trim (Arab), jacket pockets (Chinese), a wavy
+#                    beard (Persian), a long drooping mustache with the goatee (Mongol).
 #
 # Render bugs the reviewers saw (code, not data): the head bowed with hair over the face (Celtic, Hatti); bob01
 # covering the face (English); gown_flare 1.9 rendering a straight column (English); notches in the cape hem
