@@ -1145,6 +1145,7 @@ def glaive(p, length=2.0, grip=0.8, scale=1.0):
     p.add(lathe([(0.0, 0.026), (0.06, 0.024)], seg=10), 'iron', T(0, 0, z1 - 0.46), smooth=True)
 
 
+DEFAULTS.setdefault('feather', ('#ece8dc', 0.9, 0.0, 'cloth'))
 DEFAULTS.setdefault('tint', ('#3a6ad0', 0.7, 0.0, 'cloth'))   # civ-colored parts (the tint layer recolors them)
 DEFAULTS.setdefault('tassel_yellow', ('#d8b040', 0.85, 0.0, 'rope'))
 
@@ -1235,7 +1236,7 @@ def scutum(p, w=0.62, h=1.05, curve=0.16, scale=1.0, face_tint=False):
     _strap_back(p, half=0.1)
 
 
-def cowhide_shield(p, w=0.55, h=1.15, scale=1.0, bars=False):
+def cowhide_shield(p, w=0.55, h=1.15, scale=1.0, bars=False, tuft=False):
     """A Zulu isihlangu: a tall oval of black-and-white cowhide with a
     vertical stick laced through behind; no tint."""
     W, H = w * scale, h * scale
@@ -1247,14 +1248,19 @@ def cowhide_shield(p, w=0.55, h=1.15, scale=1.0, bars=False):
         c = f.calc_center_median()
         return ('hide_dark', False) if any(math.hypot(c.x - x, (c.z - z) * 0.8) < r for x, z, r in spots) else None
 
-    if bars:   # King Zulu's: horizontal civ-colored bars across the hide
-        def patches(f, _p=patches):
+    if bars:   # King Zulu's: horizontal civ-colored bars across a plain pale hide (no blotches between them)
+        def patches(f):
             c = f.calc_center_median()
             if f.normal.y < -0.3 and int(math.floor(c.z / (0.13 * H) + 0.5)) % 2 == 0 and abs(c.z) < 0.4 * H:
                 return ('shield_emblem', True)
-            return _p(f)
+            return None
     p.add(board, 'hide', T(0, -0.05, 0), smooth=True, keys=patches)
     p.add(tube([(0, 0.0, -H / 2 - 0.08), (0, 0.0, H / 2 + 0.12)], 0.013, seg=8), 'wood', smooth=True)
+    if tuft:   # a white feather tuft on top of the stick
+        for k in range(5):
+            a = 2 * math.pi * k / 5
+            p.add(tube([(0, 0, H / 2 + 0.1), (0.04 * math.cos(a), 0.04 * math.sin(a), H / 2 + 0.22)], [0.02, 0.012], seg=5),
+                  'feather', smooth=True)
     for z in (-0.3, -0.1, 0.1, 0.3):
         p.add(box(0.07, 0.03, 0.025), 'hide_dark', T(0, -0.03, z * H), bevel=0.005)
     _strap_back(p, half=0.06)

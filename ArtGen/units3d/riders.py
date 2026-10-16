@@ -98,6 +98,8 @@ props.DEFAULTS.setdefault('turban_white', ('#ece8de', 0.85, 0.0, 'cloth'))
 props.DEFAULTS.setdefault('jewel', ('#b0202a', 0.15, 0.0, 'metal'))
 props.DEFAULTS.setdefault('lacquer', ('#1a1816', 0.3, 0.0, 'leather'))
 props.DEFAULTS.setdefault('feather', ('#e8e4da', 0.9, 0.0, 'cloth'))
+props.DEFAULTS.setdefault('feather_red', ('#a8302a', 0.9, 0.0, 'cloth'))
+props.DEFAULTS.setdefault('feather_green', ('#2e7a4a', 0.9, 0.0, 'cloth'))
 props.DEFAULTS.setdefault('gold', ('#c8a048', 0.35, 1.0, 'metal'))
 
 
@@ -270,13 +272,19 @@ def fan_headdress(p, c, tinted, _):
 
 
 @hat('feather_headdress')
-def feather_headdress(p, c, tinted, _, style=None, cascade=None):
+def feather_headdress(p, c, tinted, _, style=None, cascade=None, front=None):
     """Tall upright feathers in a crown (Impi, Aztec, Mayan, Iroquois):
     alternately civ-colored and natural, on a headband. style='bushy' (Impi):
     many short feathers, all civ-colored, in two rows splaying into a round
     bushy crown; style='crown' (King Zulu): a dense untinted fan of cream
     feathers and fur round the head. cascade='back' (King Mayan): a long
     fall of white feathers down the back to the waist."""
+    if front:   # small red and green feathers at the front (King Mayan)
+        for i, key in enumerate(('feather_red', 'feather_green', 'feather_red', 'feather_green', 'feather_red')):
+            a = math.radians(-40 + 20 * i)
+            base = (0.11 * math.sin(a), 0.11 * math.cos(a), 0.04)
+            tip = (0.15 * math.sin(a), 0.16 * math.cos(a), 0.17)
+            p.add(props.tube([base, tip], [0.018, 0.026], seg=5, scale_xy=(1.0, 0.4)), key, smooth=True)
     if cascade == 'back':
         for i in range(9):
             x = -0.09 + 0.18 * i / 8
@@ -518,6 +526,18 @@ def attic_helm(p, c, tinted, crest_tinted):
     ck, ct = _k(crest_tinted, 'crest')
     path = [(0, 0.11, 0.12), (0, 0.03, 0.19), (0, -0.07, 0.17), (0, -0.15, 0.06), (0, -0.17, -0.06)]
     p.add(props.tube(path, [0.025, 0.035, 0.035, 0.028, 0.01], seg=8, scale_xy=(0.55, 1.0)), ck, smooth=True, tint=ct)
+
+
+@hat('viking_bowl')
+def viking_bowl(p, c, tinted, _):
+    """King Viking: a round bowl helmet, civ-colored when tinted, with a gold
+    brow rim, a gold crest strip over the top and a gold nasal."""
+    key, t = ('tint', True) if tinted else ('helmet', False)
+    p.add(props.lathe([(-0.005, 0.12), (0.06, 0.116), (0.12, 0.08), (0.155, 0.0)], seg=24), key, smooth=True, tint=t)
+    p.add(props.lathe([(-0.01, 0.124), (0.02, 0.124)], seg=24), 'gold', smooth=True)
+    arc = [(0, 0.124 * math.cos(a), 0.155 * math.sin(a)) for a in [math.pi * k / 12 for k in range(13)]]
+    p.add(props.tube(arc, 0.014, seg=6, scale_xy=(1.0, 0.5)), 'gold', smooth=True)
+    p.add(props.box(0.028, 0.016, 0.1), 'gold', T(0, 0.124, -0.045), bevel=0.004)
 
 
 @hat('eboshi')
