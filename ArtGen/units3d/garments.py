@@ -69,6 +69,24 @@ def _pattern(tree, coord, base, pattern):
         return ramp.outputs['Color']
     dark = lin[0] if lin else (0.02, 0.02, 0.02, 1.0)
     scale = nums[0] if nums else (28.0 if kind == 'check' else 18.0)
+    if kind == 'panel':
+        # a vertical panel or stripe down the front (and back) middle:
+        # ('panel', color, half_width_m); a gold front stripe, an apron
+        sep = n.new('ShaderNodeSeparateXYZ')
+        tree.links.new(coord.outputs['Object'], sep.inputs['Vector'])
+        ab = n.new('ShaderNodeMath')
+        ab.operation = 'ABSOLUTE'
+        tree.links.new(sep.outputs['X'], ab.inputs[0])
+        lt = n.new('ShaderNodeMath')
+        lt.operation = 'LESS_THAN'
+        lt.inputs[1].default_value = (nums[0] if nums else 0.05) * _scale
+        tree.links.new(ab.outputs['Value'], lt.inputs[0])
+        mix = n.new('ShaderNodeMix')
+        mix.data_type = 'RGBA'
+        mix.inputs['A'].default_value = base
+        mix.inputs['B'].default_value = dark
+        tree.links.new(lt.outputs['Value'], mix.inputs['Factor'])
+        return mix.outputs['Result']
     if kind == 'stripes':
         # vertical stripes (trouser stripes, slashing): dark bands across X
         wave = n.new('ShaderNodeTexWave')
