@@ -1239,3 +1239,20 @@ def chest_emblem(basemesh, arm, mat, kind='cross', size=0.16, z_at=1.3, lift=0.0
         o.matrix_world = world
     H._update()
     return made
+
+
+def knob(basemesh, arm, mat, radius=0.022):
+    """A knob on top of the head (a cap's finial); on the head bone."""
+    import human as H
+    top, yc, _ = _head(basemesh)
+    bpy.ops.mesh.primitive_uv_sphere_add(radius=radius * _scale, location=(0, yc, top + 0.012 * _scale))
+    o = bpy.context.active_object
+    o.data.materials.append(mat)
+    bpy.ops.object.shade_smooth()
+    world = o.matrix_world.copy()
+    o.parent = arm
+    o.parent_type = 'BONE'
+    o.parent_bone = 'head'
+    o.matrix_world = world
+    H._update()
+    return o

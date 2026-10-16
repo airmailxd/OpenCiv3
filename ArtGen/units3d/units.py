@@ -317,6 +317,10 @@ def helmet(entry, mesh, arm):
         tint = 'helmet' in entry.get('tint', [])
         bm_ = G.cloth('brim', (1, 1, 1), tint=True) if tint else G.leather('brim', B.hex_color(_colors(entry)['helmet']))
         G.brim(mesh, arm, bm_, radius=0.15, lift=0.06, curl=0.0, comb=0)
+    if entry.get('cap_knob'):
+        # a gold knob on the crown of the cap
+        G.knob(mesh, arm, B.material('knob', B.hex_color(_colors(entry).get('gold', '#c8a040')), roughness=0.3,
+                                     metallic=1.0))
     if entry.get('plume'):
         tint = 'plume' in entry.get('tint', [])
         col = (1, 1, 1) if tint else B.hex_color(_colors(entry).get('plume', '#e8e0d0'))
@@ -500,6 +504,9 @@ def equip(entry, arm):
             H.hold(obj, arm, 'hand_r', at, up=tuple(d), forward=(0, -1, 0.2))
             H.reach(arm, 'l', at + d * entry.get('fore_end', 0.42) * G._scale + Vector((0, -0.03, 0)))
             H.fists(arm, sides='l')
+        elif stance == 'bow_low':
+            # a loose arrow in the right hand, point down and forward
+            H.hold(obj, arm, 'hand_r', at, up=tuple(entry.get('hang_dir', (-0.15, -0.55, -0.8))))
         elif stance in ('hang', 'guard'):
             # hanging from the fist, down and out to the side, head low
             H.hold(obj, arm, 'hand_r', at, up=tuple(entry.get('hang_dir', (-0.7, -0.45, -0.5))))

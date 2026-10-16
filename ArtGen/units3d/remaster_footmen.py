@@ -48,12 +48,12 @@ REMASTER = {
         'colors': {'skin': '#8e6a4a', 'hair': '#1a120c', 'cuirass': '#6a4a28', 'leather': '#3e2a1a',
                    'belt': '#2a1c12', 'wraps': '#7a6448', 'wraps_band': '#3a2a1a', 'sandal': '#2e2016',
                    'wood': '#5a3e24', 'string': '#8a7a5a'},
-        'helmet': 'cap', 'metal': [],           # MISSING: cap_knob (gold knob on the cap's crown)
+        'helmet': 'cap', 'metal': [], 'cap_knob': True,
         'hair': 'short', 'beard': True,
         'cuirass': True, 'top': 'tunic', 'bottom': 'skirt',   # the cuirass leaves the tunic's sleeves showing
         'wraps': 'wraps', 'sandals': True,
         'gear': [('chest_strap', {'color': '#2e2016'})],
-        'weapon': None,                         # MISSING: loose_arrow (in the right hand, point down-forward)
+        'weapon': 'arrow', 'props': {'arrow': ('arrow', {'length': 0.85})},   # a loose arrow in the right hand
         'offhand': 'bow', 'offhand_mesh': ('bold_bow', {'height': 1.35, 'bend': 0.18, 'recurve': 0.1}),
         'back': 'quiver', 'stance_name': 'bow_low',
         'tint': ['helmet', 'top', 'bottom'],
