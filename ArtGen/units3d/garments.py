@@ -405,7 +405,7 @@ def beard(basemesh, color, length=0.018, density=900, style='full'):
         c = v.co
         d = head_z - c.z
         y = c.y - yc
-        jaw = 0.17 < d < 0.235 and y < -0.02
+        jaw = 0.185 < d < 0.235 and y < -0.02      # below the cheekbones: the face stays open
         lip = 0.148 < d < 0.162 and y < -0.07 and abs(c.x) < 0.03
         if style == 'mustache':
             keep = 0.146 < d < 0.168 and y < -0.065 and abs(c.x) < 0.045
@@ -618,7 +618,8 @@ def roughen_hair(basemesh, color, length=0.022, density=4000):
     return hair
 
 
-def flap(name, mat, width=0.26, length=0.34, folds=5, depth=0.04, ragged=0.05, curve=0.12, seed=1, torn=True):
+def flap(name, mat, width=0.26, length=0.34, folds=5, depth=0.04, ragged=0.05, curve=0.12, seed=1, torn=True,
+         flare=0.15, wrap=0.0, train=0.0):
     """A hanging cloth or hide flap (a loincloth panel, a tabard): a grid
     hanging down from its top edge at the origin, in the X-Z plane, facing
     -Y; with vertical folds deepening toward the hem, a ragged, uneven hem,
@@ -652,7 +653,9 @@ def flap(name, mat, width=0.26, length=0.34, folds=5, depth=0.04, ragged=0.05, c
             ph = (u + 0.5) * math.pi * 2 * folds
             fold = depth * (0.25 + 0.75 * t) * (0.7 * math.sin(ph) + 0.3 * math.sin(ph * 2.3 + 1.1))
             yy = -curve * (1 - (2 * u) ** 2) * 0.5 + fold + 0.02 * t   # bowed around the body, swinging out
-            row.append(bm.verts.new((u * width * (1 + 0.15 * t), yy - curve * 0.5, zz)))
+            # `wrap`: the sides come forward round the body toward the hem; `train`: the hem trails back
+            yy += wrap * (2 * u) ** 2 * (0.3 + 0.7 * t) - train * t ** 3
+            row.append(bm.verts.new((u * width * (1 + flare * t), yy - curve * 0.5, zz)))
         rows.append(row)
     for j in range(nz):
         for i in range(nx):
@@ -984,15 +987,15 @@ BANDS = {
 }
 
 
-def cape(basemesh, arm, mat, length=0.75, width=0.5):
+def cape(basemesh, arm, mat, length=0.75, width=0.5, flare=0.15, wrap=0.0, train=0.0, folds=6):
     """A cape hanging from the shoulders down the back: a flap pinned along
     the shoulder line, behind the body, falling to `length`."""
     import human as H
     from mathutils import Matrix
     H._update()
     nk = arm.matrix_world @ arm.pose.bones['neck_01'].head
-    f = flap('Cape', mat, width=width * _scale, length=length * _scale, curve=0.14 * _scale, folds=6, depth=0.03,
-             torn=False, ragged=0.01)
+    f = flap('Cape', mat, width=width * _scale, length=length * _scale, curve=0.14 * _scale, folds=folds, depth=0.03,
+             torn=False, ragged=0.01, flare=flare, wrap=wrap * _scale, train=train * _scale)
     f.matrix_world = Matrix.Translation((nk.x, nk.y + 0.1 * _scale, nk.z - 0.02 * _scale)) @ Matrix.Rotation(math.pi, 4, 'Z')
     world = f.matrix_world.copy()
     f.parent = arm

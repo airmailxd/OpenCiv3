@@ -337,7 +337,9 @@ def dress_posed(entry, mesh, arm):
                                torn=entry.get('torn', True))
     if entry.get('cape'):
         G.cape(mesh, arm, _mat(entry, 'cape', lambda n, col, tint=False: G.cloth(n, col, tint=tint, weave=0.6)),
-               length=entry.get('cape_length', 0.75))
+               length=entry.get('cape_length', 0.75), width=entry.get('cape_width', 0.5),
+               flare=entry.get('cape_flare', 0.15), wrap=entry.get('cape_wrap', 0.0),
+               train=entry.get('cape_train', 0.0))
         _hems(entry, _colors(entry), lambda part: part == 'cape')
     hanging = [o for o in hanging if not o.get('no_drape')]
     if hanging and entry.get('drape', True):
@@ -540,7 +542,7 @@ STANCES['arms_folded'] = [('spine_02', (0, -0.02, 1)), ('neck_01', (0, 0.1, 1)),
                           ('upperarm_l', (0.2, -0.5, -1)), ('lowerarm_l', (-1.0, -0.25, 0.25)),
                           ('upperarm_r', (-0.2, -0.55, -1)), ('lowerarm_r', (1.0, -0.35, 0.3))]
 
-_ROYAL_BASE = [('spine_02', (0, 0.04, 1)), ('neck_01', (0, 0.06, 1)), ('head', (0, 0.16, 1)),
+_ROYAL_BASE = [('spine_02', (0, 0.06, 1)), ('neck_01', (0, 0.14, 1)), ('head', (0, 0.36, 1)),
                ('clavicle_l', (1, 0.05, 0.08)), ('clavicle_r', (-1, 0.05, 0.08)),
                ('thigh_l', (0.16, -0.06, -1)), ('calf_l', (0.1, 0.04, -1)), ('foot_l', (0.45, -1, -0.3)),
                ('thigh_r', (-0.16, 0.02, -1)), ('calf_r', (-0.1, 0.04, -1)), ('foot_r', (-0.45, -1, -0.3))]
@@ -657,7 +659,8 @@ def equip(entry, arm):
             H.hold(obj, arm, 'hand_r', at, up=tuple(entry.get('hang_dir', (-0.15, -0.55, -0.8))))
         elif stance in ('hang', 'guard', 'stand', 'fist_hip_l'):
             # hanging from the fist, down and out to the side, head low
-            H.hold(obj, arm, 'hand_r', at, up=tuple(entry.get('hang_dir', (-0.7, -0.45, -0.5))))
+            hd = (-0.45, -0.25, -0.86) if stance in ('stand', 'fist_hip_l') else (-0.7, -0.45, -0.5)
+            H.hold(obj, arm, 'hand_r', at, up=tuple(entry.get('hang_dir', hd)))
         elif stance == 'upright' and name == 'staff':
             # a walking staff, upright beside the body
             H.hold(obj, arm, 'hand_r', at, up=(-0.04, 0.0, 1.0))

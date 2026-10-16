@@ -51,7 +51,7 @@ class Look:
     key = 5.6           # sun strengths (W/m^2): a strong NW key and deep
     fill = 0.30         # shading on the southeast side, like Civ3's units
     rim = 0.7
-    face = 0.5          # a weak, shadowless front fill (faces read as dark blobs under helmets)
+    face = 0.75         # a weak, shadowless front fill (faces read as dark blobs under helmets)
     sky = (0.60, 0.64, 0.70)
     sky_strength = 0.32
     samples = 96

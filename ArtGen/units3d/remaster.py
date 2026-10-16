@@ -141,8 +141,12 @@ for _module in ('remaster_footmen', 'remaster_royals', 'remaster_soldiers'):
         if _module == 'remaster_royals':
             # royals rendered ~25-30% taller than the originals (crowns and
             # standards ran out of the frame): a shade smaller by default
-            _v = dict({'unit_scale': 0.85, 'upper_bulk': min(_v.get('upper_bulk', 1.0), 1.1)}, **{
-                k: v for k, v in _v.items() if k != 'upper_bulk'})
+            # (women a little larger: they read weak at 0.85); full, wrapping
+            # capes; no belt pouch on robes
+            _v = dict({'unit_scale': 0.95 if _v.get('gender', 1.0) < 0.5 else 0.85,
+                       'upper_bulk': min(_v.get('upper_bulk', 1.0), 1.1),
+                       'cape_flare': 0.6, 'cape_wrap': 0.1, 'cape_width': 0.56, 'belt_gear': False},
+                      **{k: v for k, v in _v.items() if k != 'upper_bulk'})
         REMASTER.setdefault(_k, _v)
 
 
