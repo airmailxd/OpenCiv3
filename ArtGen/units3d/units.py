@@ -181,8 +181,11 @@ def dress(entry, mesh, arm):
                         G.leather('pouch', B.hex_color(c.get('pouch', c['belt']))), pouch=entry.get('pouch', True))
     if entry.get('pauldrons'):
         # shoulder pieces: the top of the upper arms and shoulders
+        pmat = (_mat(entry, 'cuirass', lambda n, col, tint=False: B.material(n, col, roughness=0.35, metallic=0.9,
+                                                                             tint=tint, nodes=G.plate_bands(3)))
+                if entry['pauldrons'] == 'metal' else _mat(entry, 'top', G.leather))
         G.shell(mesh, arm, 'Pauldrons', ['upperarm_l', 'upperarm_r', 'clavicle_l', 'clavicle_r'],
-                _mat(entry, 'top', G.leather), zmin=1.33, offset=0.012, thickness=0.008, min_weight=0.35,
+                pmat, zmin=1.33, offset=0.012, thickness=0.008, min_weight=0.35,
                 keep=lambda co: abs(co.x) > 0.13)
     if entry.get('cuirass'):
         metal = 'cuirass' in entry.get('metal', ['cuirass'])
@@ -192,12 +195,13 @@ def dress(entry, mesh, arm):
             if metal else G.leather
         G.shell(mesh, arm, 'Cuirass', torso + (['neck_01'] if entry.get('neck') == 'high' else []),
                 _mat(entry, 'cuirass', maker), zmin=0.98, zmax=1.55 if entry.get('neck') == 'high' else 1.42,
-                offset=0.016, thickness=0.008, keep=lambda co: abs(co.x) < 0.17)
+                offset=0.016, thickness=0.008, keep=lambda co, w=entry.get('cuirass_width', 0.17): abs(co.x) < w)
     wraps = entry.get('wraps')
     for side in 'lr':
         if wraps == 'wraps':
             G.shell(mesh, arm, 'Wrap_' + side, ['calf_' + side], G.fur('wraps_' + side, B.hex_color(c['wraps']),
-                    B.hex_color(c['wraps_band'])), zmin=0.08, offset=0.012, thickness=0.012)
+                    B.hex_color(c['wraps_band'])), zmin=0.08, zmax=entry.get('wraps_height'), offset=0.012,
+                    thickness=0.012)
         if wraps == 'boots' or entry.get('boots'):
             G.shell(mesh, arm, 'Boot_' + side, ['calf_' + side, 'foot_' + side, 'ball_' + side],
                     _mat(entry, 'boots', G.leather), zmax=0.36, offset=0.008, thickness=0.006)
