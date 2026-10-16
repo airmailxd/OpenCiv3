@@ -352,6 +352,12 @@ def feather_headdress(p, c, tinted, _, style=None, cascade=None, front=None, cre
                 tip = ((r0 + spread) * math.sin(a), (r0 + spread * 0.6) * math.cos(a) - 0.06, lift + h * (1 - 0.3 * abs(math.sin(a - math.pi))))   # tallest at the back: one fan
                 key, t = cycle[(i + row * 3) % 6]
                 props.feather_card(p, base, tip, (math.sin(a), math.cos(a), 0.0), 0.08, key, tint=t, curl=-0.12)
+        for i in range(7):   # the centre back column, filling the V between the two sides
+            a = math.pi + math.radians(-27 + 9 * i)
+            base = (0.1 * math.sin(a), 0.1 * math.cos(a) - 0.02, 0.05)
+            tip = (0.14 * math.sin(a), 0.16 * math.cos(a) - 0.04, 0.5)
+            key, t = cycle[i % 6]
+            props.feather_card(p, base, tip, (math.sin(a), math.cos(a), 0.0), 0.09, key, tint=t, curl=-0.08)
         return
     n = 11
     for i in range(n):

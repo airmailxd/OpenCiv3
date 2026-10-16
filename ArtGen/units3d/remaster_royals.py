@@ -215,7 +215,7 @@ REMASTER = {
         'helmet': None, 'headgear': 'beret_feather', 'brow_drop': 0.07,     # the dark beret (helmet color), the white plume laid along it
         'hair': 'short', 'hair_asset': None, 'beard': True,
         # the civ-color puffed sleeves (check they cover the shoulder tops); MISSING: quilting, gold dots
-        'top': 'sleeved', 'puffy': True, 'shoulder_rolls': 'tint', 'roll_size': 0.09,   # the big civ puffed sleeves
+        'top': 'sleeved', 'puffy': True, 'neck': 'high', 'shoulder_rolls': 'tint', 'roll_size': 0.09,   # the doublet to the neck, the big civ puffed sleeves
         'cuirass': True, 'metal': [], 'cuirass_trim': 'gold',   # the quilted brown-gold vest front
         'patterns': {'cuirass': ('check', '#4e3418', 14.0), 'sleeves': ('camo', '#e0c050', 30.0, 'cover', 0.08),
                      'cape': ('stripes', '#a8885a', 16.0)},   # quilting, gold dots, the brocade's vertical pattern
@@ -249,7 +249,7 @@ REMASTER = {
         'chest_emblem': ('disc', 'gold', 0.3),   # the broad gold pectoral
         'patterns': {'bottom': ('stripes', '#c89040', 12.0)},   # the orange-gold patterning in the teal
         'cape': True, 'cape_length': 1.1,       # MISSING: fringed teal/civ panels
-        'hem_bands': [('cape', 'gold', 0.05), ('cape', '#b02020', 0.22, 0.05), ('cape', 'gold', 0.3, 0.68)],   # gold edge, the big red block low, the gold upper back
+        'hem_bands': [('cape', 'gold', 0.05), ('cape', '#b02020', 0.16, 0.05), ('cape', 'gold', 0.3, 0.68)],   # gold edge, the big red block low, the gold upper back
         'cuirass': False, 'wraps': None, 'sandals': True, 'bracers': False, 'gear': [],
         'weapon': None, 'offhand': None,
         'stance_name': 'arms_folded',
@@ -539,11 +539,11 @@ REMASTER = {
                    'bottom': '#b0904a', 'belt': '#b08a2e', 'sandal': '#b89a50', 'gold': '#b08a2e',
                    'wood': '#3e2a1a'},
         # MISSING: crown_disc (gold, at the front), crown_top (the original's red/tinted top; the note says plain gold)
-        'helmet': 'crown', 'crown': 'tall', 'crown_height': 0.07,   # a gold cylinder (the circlet read thin)
+        'helmet': 'crown', 'crown': 'tall', 'crown_height': 0.1, 'crown_gems': '#d8b040',   # a taller gold crown, gold studs at the front
         'hair': 'short', 'hair_asset': None, 'beard': False,
         'top': 'tunic', 'bottom': 'kilt', 'robe_drop': 0.0,
         'patterns': {'top': ('check', '#4a3218', 12.0)},   # the gold and brown checkerboard tunic, bold
-        'bands': [('knee', 'gold', 0.06), ('neck', 'gold'), ('wrist', 'gold')],
+        'bands': [('knee', 'gold', 0.1), ('neck', 'gold'), ('wrist', 'gold')],
         'cape': True, 'cape_length': 1.05,      # MISSING: zigzag_border (white, stepped)
         # the gold band, and a white band standing in for the zig-zag
         'hem_bands': [('cape', 'gold', 0.09, 0.15), ('cape', '#ece8e0', 0.06, 0.06)],   # bolder: the gold band and the white zig-zag stand-in

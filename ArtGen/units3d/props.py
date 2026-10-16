@@ -1844,16 +1844,16 @@ def _banner(p, top, w, h, swallowtail=False, flag=False, device=None):
     a staff; a little rippled; device paints a charge on it (_device)."""
     bm = bmesh.new()
     rows = []
-    nx, nz = (24, 20) if device else (10, 8)
+    nx, nz = (44, 32) if device else (10, 8)   # fine: clean device edges
     for j in range(nz + 1):
         v = j / nz
         row = []
         for i in range(nx + 1):
             u = i / nx
             if flag:   # flies from the staff to +Y in an S-wave (a flat cloth goes edge-on in some direction)
-                co = (0.14 * w * math.sin(u * math.pi * 1.6 + v * 0.6) * min(1.0, u * 4), u * w, top - v * h)
+                co = (0.3 * w * math.sin(u * math.pi * 1.4 + v * 0.5) * min(1.0, u * 3), u * w, top - v * h)   # a deep wave: a face always toward the camera
             else:      # hangs below the crossbar
-                co = (-w / 2 + u * w, 0.12 * w * math.sin(u * math.pi * 1.6 + 0.4), top - v * h * (1 - (0.3 if swallowtail and abs(u - 0.5) < 0.15 else 0) * v))
+                co = (-w / 2 + u * w, 0.45 * w * abs(u - 0.5) - 0.1 * w, top - v * h * (1 - (0.3 if swallowtail and abs(u - 0.5) < 0.15 else 0) * v))   # folded in a V on the crossbar: never edge-on
             row.append(bm.verts.new(co))
         rows.append(row)
     for a, b in zip(rows[:-1], rows[1:]):
@@ -1907,7 +1907,7 @@ def eagle_standard(p, length=2.2, grip=0.9, scale=1.0):
 DEFAULTS['feather_teal'] = ('#3a9a94', 0.6, 0.0, 'polished')
 DEFAULTS['feather_red'] = ('#b8382e', 0.6, 0.0, 'polished')
 DEFAULTS['feather_green'] = ('#3a8a52', 0.6, 0.0, 'polished')
-DEFAULTS['dog_fur'] = ('#6a665e', 0.95, 0.0, 'leather')   # leather-kind detail: an even coat (cloth stains read mangy)   # grey-brown, rough (it lit pale)
+DEFAULTS['dog_fur'] = ('#7e7a72', 0.95, 0.0, 'polished')   # leather-kind detail: an even coat (cloth stains read mangy)   # grey-brown, rough (it lit pale)
 DEFAULTS.setdefault('dog_dark', ('#1e1c1a', 0.6, 0.0, 'leather'))
 
 
