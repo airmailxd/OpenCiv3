@@ -30,7 +30,7 @@ HAIR = {'short': 'short02', 'long': 'long01', 'topknot': 'ponytail01', 'ponytail
 
 DEFAULT_COLORS = {
     'skin': '#c09470', 'hair': '#3a2a1c', 'top': '#8a7a5a', 'bottom': '#6a5038', 'belt': '#44301e',
-    'wraps': '#6a4a30', 'wraps_band': '#3a2618', 'boots': '#4e3624', 'sandal': '#44301e',
+    'wraps': '#6a4a30', 'wraps_band': '#3a2618', 'boots': '#4e3624', 'sandal': '#44301e', 'shoes': '#1e1a16',
     'helmet': '#8e8a80', 'crest': '#4a3626', 'cuirass': '#a08452', 'pelt': '#8a8682', 'pelt_dark': '#4a4642',
     'greaves': '#8a8a8e', 'bracers': '#6a4a30', 'leather': '#5e4430',
 }
@@ -210,6 +210,10 @@ def dress(entry, mesh, arm):
             G.shell(mesh, arm, 'Wrap_' + side, ['calf_' + side], G.fur('wraps_' + side, B.hex_color(c['wraps']),
                     B.hex_color(c['wraps_band'])), zmin=0.08, zmax=entry.get('wraps_height'), offset=0.012,
                     thickness=0.012)
+        if wraps == 'shoes':
+            # low shoes: the foot only, a little above the ankle
+            G.shell(mesh, arm, 'Shoe_' + side, ['foot_' + side, 'ball_' + side, 'calf_' + side],
+                    _mat(entry, 'shoes', G.leather), zmax=0.11, offset=0.007, thickness=0.006)
         if wraps == 'boots' or entry.get('boots'):
             G.shell(mesh, arm, 'Boot_' + side, ['calf_' + side, 'foot_' + side, 'ball_' + side],
                     _mat(entry, 'boots', G.leather), zmax=0.36, offset=0.008, thickness=0.006)
@@ -527,6 +531,12 @@ STANCES['stand'] = _ROYAL_BASE + [('upperarm_l', (0.16, 0.0, -1)), ('lowerarm_l'
                                   ('upperarm_r', (-0.18, -0.05, -1)), ('lowerarm_r', (-0.1, -0.35, -1))]
 STANCES['stand_staff'] = _ROYAL_BASE + [('upperarm_l', (0.16, 0.0, -1)), ('lowerarm_l', (0.08, -0.12, -1)),
                                         ('upperarm_r', (-0.3, -0.12, -1)), ('lowerarm_r', (-0.12, -0.9, -0.55))]
+# one fist on the hip, the other arm free: left fist on hip (right hand free
+# for a cane or sword hanging), and the mirror
+STANCES['fist_hip_l'] = _ROYAL_BASE + [('upperarm_l', (1.0, 0.15, -0.8)), ('lowerarm_l', (-0.66, 0.1, -0.75)),
+                                       ('upperarm_r', (-0.18, -0.05, -1)), ('lowerarm_r', (-0.1, -0.35, -1))]
+STANCES['fist_hip_r'] = _ROYAL_BASE + [('upperarm_r', (-1.0, 0.15, -0.8)), ('lowerarm_r', (0.66, 0.1, -0.75)),
+                                       ('upperarm_l', (0.16, 0.0, -1)), ('lowerarm_l', (0.08, -0.12, -1))]
 STANCES['royal'] = _ROYAL_BASE + [('upperarm_l', (0.25, -0.1, -1)), ('lowerarm_l', (0.15, -0.6, -0.9)),
                                   ('upperarm_r', (-0.3, -0.2, -1)), ('lowerarm_r', (-0.1, -1.0, 0.45))]
 
@@ -607,7 +617,7 @@ def equip(entry, arm):
         elif stance == 'bow_low':
             # a loose arrow in the right hand, point down and forward
             H.hold(obj, arm, 'hand_r', at, up=tuple(entry.get('hang_dir', (-0.15, -0.55, -0.8))))
-        elif stance in ('hang', 'guard', 'stand'):
+        elif stance in ('hang', 'guard', 'stand', 'fist_hip_l'):
             # hanging from the fist, down and out to the side, head low
             H.hold(obj, arm, 'hand_r', at, up=tuple(entry.get('hang_dir', (-0.7, -0.45, -0.5))))
         elif stance == 'upright' and name == 'staff':
