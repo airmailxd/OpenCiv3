@@ -72,7 +72,7 @@ REMASTER = {
         # MISSING: lapel_trim (tinted robe front edges; the panel edges stand in)
         'cape': False, 'cuirass': False, 'wraps': None, 'sandals': True, 'bracers': False, 'gear': [],
         # the crossbar-hung vexillum, tinted field; MISSING: flag_device (three vertical bars, red/green/cyan)
-        'weapon': 'standard', 'props': {'standard': ('war_standard', {'era': 'ancient', 'length': 2.45, 'grip': 1.2})},   # lower: the flag top touched the cell top (dirs 5-6)
+        'weapon': 'standard', 'props': {'standard': ('war_standard', {'era': 'ancient', 'length': 2.4, 'grip': 1.2})},   # lower again: the flag top still touched the cell top (dir 6)
         'stance_name': 'stand_staff', 'two_hands': True,
         'tint': ['banner'],
         'grime': 0.55, 'upper_bulk': 1.1,
@@ -85,12 +85,12 @@ REMASTER = {
         'race': {'caucasian': 0.9, 'african': 0.05, 'asian': 0.05},
         'colors': {'skin': '#d4a888', 'hair': '#3a2a1c', 'helmet': '#1a1a1e', 'bottom': '#8a8c92',
                    'boots': '#141416', 'belt': '#1a1a1e', 'gold': '#b08a2e', 'wood': '#4a3222',
-                   'cuirass': '#e8e4dc'},
+                   'cuirass': '#b08a2e'},       # (gold: the epaulettes)
         'helmet': None, 'headgear': 'bicorne', 'brow_drop': 0.06,
         'hair': 'short', 'hair_asset': 'short02', 'beard': False,
-        'top': 'sleeved', 'neck': 'high',       # MISSING: epaulettes (gold; 'pauldrons': 'metal' takes the cuirass color, here the white waistcoat)
+        'top': 'sleeved', 'neck': 'high', 'pauldrons': 'metal',   # gold epaulettes
         'coat_length': 0.5, 'coat_flare': 1.1,   # the frock coat's skirts, to the knee
-        'cuirass': True, 'metal': [], 'cuirass_width': 0.06,   # the white waistcoat front, a narrow strip (untinted)
+        'cuirass': False, 'patterns': {'top': ('panel', '#e8e4dc', 0.06, 'front')},   # the white waistcoat front
         'bottom': 'long', 'wraps': 'boots',
         'bands': [('wrist', 'gold')],           # gold cuffs
         'cape': False, 'sandals': False, 'bracers': False, 'gear': [],
@@ -115,11 +115,11 @@ REMASTER = {
         'hair': 'short', 'hair_asset': 'short02', 'beard': True, 'beard_style': 'goatee',   # a short beard: the face reads
         'cuirass': True, 'metal': ['cuirass'], 'top': 'sleeved', 'pauldrons': True, 'collar': 'mail',
         'bottom': 'kilt', 'robe_drop': 0.0, 'wraps': 'greaves', 'boots': True,   # MISSING: plate_legs (cuisses over the thighs)
-        'cape': True, 'cape_length': 1.35,
+        'cape': True, 'cape_length': 1.3,       # off the floor, so the back hem isn't lost at the ground
         # the gold field on the cape's back; MISSING: cape_lion (the lion itself; the disc stands in)
-        'cape_emblem': ('disc', 'gold', 0.22),
-        # the ermine hem (white with black tails) and the two gold bands
-        'hem_bands': [('cape', 'ermine', 0.08), ('cape', 'gold', 0.03, 0.14), ('cape', 'gold', 0.03, 0.22)],
+        'cape_emblem': ('disc', 'gold', 0.62),   # the back is mostly a gold field: a big disc (0.22 read as a patch)
+        # the ermine hem (white with black tails), wider so it reads round the back, and the two gold bands above it
+        'hem_bands': [('cape', 'ermine', 0.12), ('cape', 'gold', 0.03, 0.17), ('cape', 'gold', 0.03, 0.25)],
         'sandals': False, 'bracers': False, 'gear': [],
         # the swallow-tailed, crossbar-hung banner, tinted field; MISSING: flag_device (green/teal quarters)
         'weapon': 'standard', 'props': {'standard': ('war_standard', {'era': 'medieval', 'length': 2.5, 'grip': 1.2})},
@@ -231,10 +231,10 @@ REMASTER = {
         # cloak edged in gold; a teal loincloth; arms crossed
         'macro': {'muscle': 0.9, 'weight': 0.75, 'height': 0.76, 'proportions': 0.7}, 'age': 0.55,
         'race': {'caucasian': 0.05, 'african': 0.15, 'asian': 0.8},
-        'colors': {'skin': '#a87c58', 'hair': '#140e0a', 'helmet': '#b08a2e', 'bottom': '#3e7a6a',
+        'colors': {'skin': '#b88c66', 'hair': '#140e0a', 'helmet': '#b08a2e', 'bottom': '#3e7a6a',
                    'belt': '#b08a2e', 'sandal': '#4a3020', 'gold': '#b08a2e', 'cape': '#9a3a2a'},
         # MISSING: dense feather fan (gold/tint/red/teal cycle; feather_headdress has 11 sparse feathers)
-        'helmet': None, 'headgear': 'feather_headdress', 'brow_drop': 0.085,   # lifted higher and the skin lighter: the face was black under the band
+        'helmet': None, 'headgear': 'feather_headdress', 'brow_drop': 0.05,   # the band above the brow (0.085 is the default) and the skin lighter: the face was black under it
         'hair': 'long', 'hair_asset': 'bob01', 'beard': False,
         'top': None,
         'bottom': 'loincloth', 'loin_length': (0.5, 0.42), 'torn': False,
@@ -327,7 +327,7 @@ REMASTER = {
         # the shoulder), boots; arms hanging
         'macro': {'muscle': 0.95, 'weight': 0.85, 'height': 0.8, 'proportions': 0.66}, 'age': 0.55,
         'race': {'caucasian': 1.0, 'african': 0.0, 'asian': 0.0},
-        'colors': {'skin': '#c09a78', 'hair': '#6a4a2e', 'beard': '#7a5a3e', 'belt': '#4a3020', 'boots': '#3a2a1c',
+        'colors': {'skin': '#c09a78', 'hair': '#7a5a3a', 'beard': '#8a6a48', 'belt': '#4a3020', 'boots': '#3a2a1c',
                    'leather': '#5a3a22', 'gold': '#b08a2e', 'bottom': '#5a4630', 'bracers': '#5a3a22'},
         'helmet': None, 'hair': 'long', 'hair_asset': 'long01', 'mane': 0.06,   # shorter: clear of the cheeks
         'beard': True, 'beard_style': 'mustache', 'beard_length_short': 0.01, 'beard_density': 450,   # lighter, smaller, thinner: not a blot
@@ -428,7 +428,7 @@ REMASTER = {
         'cuirass': True, 'metal': ['cuirass'], 'neck': 'high', 'top': 'sleeved', 'pauldrons': True,
         'bottom': 'long', 'wraps': 'greaves', 'boots': True,   # MISSING: plate_legs, plate_arms (metal, not cloth), sabatons
         'cape': True, 'cape_length': 1.38,      # MISSING: shoulder_mantle (tinted), cape_fleur (the disc stands in)
-        'cape_emblem': ('disc', 'gold', 0.12),  # a small gold device on the cape's back
+        'cape_emblem': ('disc', 'gold', 0.5),   # the gold device, ~40% of the cape width (0.12 read as a patch)
         'hem_bands': [('cape', 'gold', 0.03)],  # the gold edge trim
         'sandals': False, 'bracers': False, 'gear': [],
         # held low by 'stand', hanging down and a little forward; MISSING: held_low_forward (point up)
@@ -547,7 +547,8 @@ REMASTER = {
         'macro': {'muscle': 0.55, 'weight': 0.3, 'height': 0.72, 'proportions': 0.75}, 'age': 0.85,
         'race': {'caucasian': 0.4, 'african': 0.3, 'asian': 0.3},
         'colors': {'skin': '#8a6448', 'hair': '#c8c4bc', 'top': '#e4e2dc', 'bottom': '#e4e2dc',
-                   'cape': '#e4e2dc', 'belt': '#c8c2b4', 'sandal': '#5a3a22', 'wood': '#5a3a22'},
+                   'cape': '#e4e2dc', 'belt': '#c8c2b4', 'sandal': '#5a3a22', 'wood': '#5a3a22',
+                   'lens': '#7a5a42', 'gold': '#1e1a18'},   # clear-ish skin-toned lenses (white read as glowing eyes), dark wire rims
         'helmet': None, 'hair': 'bald', 'hair_asset': None, 'beard': False,
         'face_prop': ('glasses', {'kind': 'round'}),   # the round glasses
         'top': 'mantle', 'bottom': 'kilt', 'robe_drop': 0.0,   # MISSING: dhoti (wrapped between the legs)
@@ -570,7 +571,7 @@ REMASTER = {
         'colors': {'skin': '#9a7458', 'hair': '#141010', 'plume': '#e8e4da', 'wraps': '#5e4632',
                    'wraps_band': '#3e2e20', 'belt': '#5a3a22', 'sandal': '#5a3a22', 'wood': '#4a3222',
                    'steel': '#8a8c90', 'shield_face': '#d8ccb0', 'shield_rim': '#8a6a48', 'feather': '#e8e4da'},
-        'helmet': None, 'headgear': 'war_bonnet', 'headgear_scale': 0.75,   # white feathers, tinted tips and headband, the trailer (smaller: it was clipped at the cell top)
+        'helmet': None, 'headgear': 'war_bonnet', 'headgear_scale': 0.7,   # white feathers, tinted tips and headband, the trailer (smaller: it was clipped at the cell top)
         'hair': 'long', 'hair_asset': 'long01', 'beard': False,
         'top': None, 'bottom': 'loincloth', 'loin_length': (0.5, 0.45), 'torn': False,
         'wraps': 'wraps', 'sandals': False,     # MISSING: leggings (brown cloth), moccasins
