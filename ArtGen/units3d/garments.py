@@ -223,7 +223,22 @@ def fur(name, color, dark=None, tint=False):
         ramp.color_ramp.elements[0].position = 0.35
         ramp.color_ramp.elements[1].position = 0.65
         tree.links.new(wave.outputs['Fac'], ramp.inputs['Fac'])
-        tree.links.new(ramp.outputs['Color'], bsdf.inputs['Base Color'])
+        # darker in the creases, like the cloth (else the same swatch read much paler as fur)
+        ao = n.new('ShaderNodeAmbientOcclusion')
+        ao.inputs['Distance'].default_value = 0.05
+        mul = n.new('ShaderNodeMix')
+        mul.data_type = 'RGBA'
+        mul.blend_type = 'MULTIPLY'
+        mul.inputs['Factor'].default_value = 0.85
+        tree.links.new(ramp.outputs['Color'], mul.inputs['A'])
+        tree.links.new(ao.outputs['AO'], mul.inputs['B'])
+        dim = n.new('ShaderNodeMix')
+        dim.data_type = 'RGBA'
+        dim.blend_type = 'MULTIPLY'
+        dim.inputs['Factor'].default_value = 1.0
+        dim.inputs['B'].default_value = (0.72, 0.72, 0.72, 1.0)
+        tree.links.new(mul.outputs['Result'], dim.inputs['A'])
+        tree.links.new(dim.outputs['Result'], bsdf.inputs['Base Color'])
         noise = n.new('ShaderNodeTexNoise')
         noise.inputs['Scale'].default_value = 300.0
         bump = n.new('ShaderNodeBump')
