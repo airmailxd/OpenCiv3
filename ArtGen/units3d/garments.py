@@ -1256,3 +1256,33 @@ def knob(basemesh, arm, mat, radius=0.022):
     o.matrix_world = world
     H._update()
     return o
+
+
+def plate_bands(n, gap=0.18):
+    """Material nodes for overlapping metal plates: `n` bands per ~0.4 m of
+    height with dark seams between them (lorica segmentata, tassets)."""
+    def nodes(tree, bsdf):
+        t = tree.nodes
+        coord = t.new('ShaderNodeTexCoord')
+        wave = t.new('ShaderNodeTexWave')
+        wave.wave_type = 'BANDS'
+        wave.bands_direction = 'Z'
+        wave.wave_profile = 'SAW'
+        wave.inputs['Scale'].default_value = n * 0.9
+        tree.links.new(coord.outputs['Object'], wave.inputs['Vector'])
+        seam = t.new('ShaderNodeMath')
+        seam.operation = 'LESS_THAN'
+        seam.inputs[1].default_value = gap
+        tree.links.new(wave.outputs['Fac'], seam.inputs[0])
+        mix = t.new('ShaderNodeMix')
+        mix.data_type = 'RGBA'
+        mix.blend_type = 'MULTIPLY'
+        mix.inputs['A'].default_value = bsdf.inputs['Base Color'].default_value
+        mix.inputs['B'].default_value = (0.15, 0.15, 0.15, 1.0)
+        tree.links.new(seam.outputs['Value'], mix.inputs['Factor'])
+        tree.links.new(mix.outputs['Result'], bsdf.inputs['Base Color'])
+        bump = t.new('ShaderNodeBump')
+        bump.inputs['Strength'].default_value = 0.5
+        tree.links.new(wave.outputs['Fac'], bump.inputs['Height'])
+        tree.links.new(bump.outputs['Normal'], bsdf.inputs['Normal'])
+    return nodes

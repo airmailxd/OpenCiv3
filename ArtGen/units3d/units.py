@@ -46,7 +46,9 @@ def _mat(entry, part, maker, *args, **kw):  # noqa: D401
     """A garment material for catalog part `part`: tinted if the catalog says so."""
     c = _colors(entry)
     tint = part in entry.get('tint', [])
-    color = (1, 1, 1) if tint else B.hex_color(c.get(part, '#808080'))
+    # a tinted part renders white (the full civ color), or gray for a darker shade of it
+    shade = entry.get('tint_shade', {}).get(part, 1.0)
+    color = (shade, shade, shade) if tint else B.hex_color(c.get(part, '#808080'))
     pattern = entry.get('patterns', {}).get(part)
     if pattern and maker is G.cloth:
         kw = dict(kw, pattern=tuple(pattern))
@@ -163,7 +165,12 @@ def dress(entry, mesh, arm):
                     zmax=0.95, offset=0.006, thickness=0.004, min_weight=0.3)
     # a coat's skirts: from the waist to `coat_length` (0.62 ~ the knee), in the top's cloth
     if entry.get('coat_length'):
-        G.skirt(mesh, arm, 'Coat', _mat(entry, 'top', G.cloth, weave=0.6), length=entry['coat_length'],
+        if entry.get('coat_metal'):          # tassets: plate skirts in the cuirass's metal
+            cmat = _mat(entry, 'cuirass', lambda n, col, tint=False: B.material(
+                n, col, roughness=0.35, metallic=0.9, tint=tint, nodes=G.plate_bands(3)))
+        else:
+            cmat = _mat(entry, 'top', G.cloth, weave=0.6)
+        G.skirt(mesh, arm, 'Coat', cmat, length=entry['coat_length'],
                 flare=entry.get('coat_flare', 1.25), folds=0.08)
     if bottom:
         G.shell(mesh, arm, 'Belt', ['pelvis', 'spine_01'], _mat(entry, 'belt', G.leather), zmin=0.98, zmax=1.04,
@@ -179,7 +186,10 @@ def dress(entry, mesh, arm):
                 keep=lambda co: abs(co.x) > 0.13)
     if entry.get('cuirass'):
         metal = 'cuirass' in entry.get('metal', ['cuirass'])
-        maker = (lambda n, col, tint=False: B.material(n, col, roughness=0.35, metallic=0.9, tint=tint)) if metal else G.leather
+        bands = entry.get('cuirass_bands')       # lorica segmentata: N horizontal plates
+        maker = (lambda n, col, tint=False: B.material(n, col, roughness=0.35, metallic=0.9, tint=tint,
+                                                       nodes=G.plate_bands(bands) if bands else None)) \
+            if metal else G.leather
         G.shell(mesh, arm, 'Cuirass', torso + (['neck_01'] if entry.get('neck') == 'high' else []),
                 _mat(entry, 'cuirass', maker), zmin=0.98, zmax=1.55 if entry.get('neck') == 'high' else 1.42,
                 offset=0.016, thickness=0.008, keep=lambda co: abs(co.x) < 0.17)

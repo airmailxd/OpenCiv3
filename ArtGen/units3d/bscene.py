@@ -230,7 +230,9 @@ def material(name, color, roughness=0.6, metallic=0.0, tint=False, nodes=None):
     tree = mat.node_tree
     bsdf = tree.nodes['Principled BSDF']
     if tint:
-        color = (0.82, 0.82, 0.82)
+        # a gray `color` darkens the civ color's shade (white: the full civ color)
+        g = color[0] if (len(set(round(v, 4) for v in color[:3])) == 1) else 1.0
+        color = (0.82 * g,) * 3
     bsdf.inputs['Base Color'].default_value = (*srgb_to_linear(color), 1.0)
     bsdf.inputs['Roughness'].default_value = roughness
     bsdf.inputs['Metallic'].default_value = metallic
