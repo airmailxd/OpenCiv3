@@ -151,19 +151,6 @@ def dress(entry, mesh, arm):
     if entry.get('coat_length'):
         G.skirt(mesh, arm, 'Coat', _mat(entry, 'top', G.cloth, weave=0.6), length=entry['coat_length'],
                 flare=entry.get('coat_flare', 1.25), folds=0.08)
-    # hem bands: [(garment, color), ...]; garment 'bottom' or 'top', color
-    # 'tint', 'gold' or a hex; optional width (m) and inset from the edge
-    for h in entry.get('hem_bands', []):
-        part, col = h[0], h[1]
-        width = h[2] if len(h) > 2 else 0.05
-        inset = h[3] if len(h) > 3 else 0.0
-        if col == 'tint':
-            hm = G.cloth('hem_' + part, (1, 1, 1), tint=True)
-        elif col == 'gold':
-            hm = B.material('hem_gold', B.hex_color(c.get('gold', '#c8a040')), roughness=0.35, metallic=0.9)
-        else:
-            hm = G.cloth('hem_' + part, B.hex_color(c.get(col, col)))
-        G.hem(part.capitalize(), hm, width=width, inset=inset)
     if bottom:
         G.shell(mesh, arm, 'Belt', ['pelvis', 'spine_01'], _mat(entry, 'belt', G.leather), zmin=0.98, zmax=1.04,
                 offset=0.013, thickness=0.01)
@@ -190,7 +177,7 @@ def dress(entry, mesh, arm):
         if wraps == 'boots' or entry.get('boots'):
             G.shell(mesh, arm, 'Boot_' + side, ['calf_' + side, 'foot_' + side, 'ball_' + side],
                     _mat(entry, 'boots', G.leather), zmax=0.36, offset=0.008, thickness=0.006)
-        elif wraps == 'greaves':
+        if wraps == 'greaves':      # over boots, when both
             G.shell(mesh, arm, 'Greave_' + side, ['calf_' + side], (lambda n, col, tint=False: B.material(
                 n, col, roughness=0.4, metallic=0.85, tint=tint))('greaves', B.hex_color(c['greaves'])),
                 zmin=0.1, zmax=0.48, offset=0.016, thickness=0.006)
@@ -228,6 +215,19 @@ def dress(entry, mesh, arm):
         G.falling_hair(mesh, B.hex_color(c['hair']), length=entry['mane'])
         G.front_locks(mesh, B.hex_color(c['hair']), length=entry['mane'] * 1.1)
     G.roughen_hair(mesh, B.hex_color(c['hair']), length=0.012, density=2500)
+    # hem bands: [(garment, color), ...]; garment 'bottom' or 'top', color
+    # 'tint', 'gold' or a hex; optional width (m) and inset from the edge
+    for h in entry.get('hem_bands', []):
+        part, col = h[0], h[1]
+        width = h[2] if len(h) > 2 else 0.05
+        inset = h[3] if len(h) > 3 else 0.0
+        if col == 'tint':
+            hm = G.cloth('hem_' + part, (1, 1, 1), tint=True)
+        elif col == 'gold':
+            hm = B.material('hem_gold', B.hex_color(c.get('gold', '#c8a040')), roughness=0.35, metallic=0.9)
+        else:
+            hm = G.cloth('hem_' + part, B.hex_color(c.get(col, col)))
+        G.hem(part.capitalize(), hm, width=width, inset=inset)
 
 
 def dress_posed(entry, mesh, arm):

@@ -883,9 +883,10 @@ def backpack(p, size=1.0):
     # copper pot lashed to the side
     pot = lathe([(0.0, 0.0005), (0.005, 0.05 * s), (0.06 * s, 0.075 * s), (0.11 * s, 0.065 * s),
                  (0.12 * s, 0.07 * s), (0.125 * s, 0.07 * s)], seg=18)
-    p.add(pot, 'pot', T(0.17 * s, -0.2 * s, -0.08 * s) @ R('Y', -20), smooth=True)
+    # (on top of the bundle, behind the bedroll, as in the original)
+    p.add(pot, 'pot', T(0.04 * s, -0.27 * s, 0.17 * s) @ R('Y', -15), smooth=True)
     p.add(lathe([(0.0, 0.074 * s), (0.015 * s, 0.074 * s)], seg=18), 'rope',
-          T(0.17 * s, -0.2 * s, -0.08 * s) @ R('Y', -20) @ T(0, 0, 0.05 * s), smooth=True)
+          T(0.04 * s, -0.27 * s, 0.17 * s) @ R('Y', -15) @ T(0, 0, 0.05 * s), smooth=True)
     # shoulder straps: from the top of the pack over the shoulders and down the chest
     for x in (-0.1 * s, 0.1 * s):
         path = [(x, -0.08 * s, 0.08 * s), (x, 0.0, 0.12 * s), (x, 0.1 * s, 0.1 * s), (x * 1.05, 0.13 * s, -0.08 * s),

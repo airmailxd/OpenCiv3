@@ -64,7 +64,7 @@ REMASTER = {
         'race': {'caucasian': 0.9, 'african': 0.05, 'asian': 0.05},
         'colors': {'skin': '#d4a888', 'hair': '#3a2a1c', 'helmet': '#1a1a1e', 'bottom': '#8a8c92',
                    'boots': '#141416', 'belt': '#1a1a1e', 'gold': '#c8a038', 'wood': '#4a3222'},
-        'helmet': 'cap', 'metal': [],           # MISSING: bicorne
+        'helmet': None, 'headgear': 'bicorne',
         'hair': 'short', 'hair_asset': 'short02', 'beard': False,
         'top': 'sleeved', 'neck': 'high',       # MISSING: frock_coat (knee-length skirts), epaulettes (gold), white waistcoat front
         'bottom': 'long', 'wraps': 'boots',
@@ -125,7 +125,7 @@ REMASTER = {
         'colors': {'skin': '#c89070', 'hair': '#241c16', 'helmet': '#141416', 'top': '#1e1c1c',
                    'cuirass': '#2a2826', 'bottom': '#1a1818', 'boots': '#3a2418', 'belt': '#1a1818',
                    'shirt': '#e8e4dc'},
-        'helmet': 'cap', 'metal': [],           # MISSING: top_hat (tall stovepipe, tinted band)
+        'helmet': None, 'headgear': 'top_hat',
         'hair': 'short', 'hair_asset': None,
         'beard': True,                          # MISSING: chin_beard (no mustache)
         'top': 'sleeved', 'neck': 'high',       # MISSING: frock_coat (knee-length)
@@ -146,7 +146,7 @@ REMASTER = {
         'race': {'caucasian': 0.7, 'african': 0.2, 'asian': 0.1},
         'colors': {'skin': '#a87e5c', 'hair': '#1a1410', 'top': '#ddd4c0', 'bottom': '#ddd4c0',
                    'belt': '#8a6a3a', 'sandal': '#4a3622', 'helmet': '#ddd4c0'},
-        'helmet': 'cap', 'metal': [],           # MISSING: turban (large round wound cloth)
+        'helmet': None, 'headgear': 'turban',
         'hair': 'short', 'hair_asset': None, 'beard': True,
         'top': 'sleeved', 'wide_sleeves': True, 'neck': 'high',
         'bottom': 'kilt', 'robe_drop': 0.48,    # MISSING: hem_band, front_trim (tinted)
@@ -168,7 +168,7 @@ REMASTER = {
         'colors': {'skin': '#d0a07a', 'hair': '#3a2616', 'helmet': '#1c1a1a', 'plume': '#ece8e0',
                    'top': '#5a3e28', 'bottom': '#5a3e28', 'cape': '#c0a06a', 'belt': '#2a2018',
                    'wraps': '#e4e0d4', 'wraps_band': '#c8c2b4', 'sandal': '#2a2018', 'gold': '#c8a038'},
-        'helmet': 'cap', 'metal': [], 'plume': True,   # MISSING: beret (low, wide), feather laid sideways
+        'helmet': None, 'headgear': 'beret',             # MISSING: feather laid sideways on the beret
         'hair': 'short', 'hair_asset': None, 'beard': True,
         'top': 'sleeved', 'puffy': True,        # the civ-color puffed sleeves; MISSING: quilting, gold dots
         'bottom': 'breeches', 'wraps': 'wraps', 'sandals': True,   # white hose; MISSING: low_shoes (gold buckles)
@@ -187,7 +187,7 @@ REMASTER = {
         'race': {'caucasian': 0.05, 'african': 0.15, 'asian': 0.8},
         'colors': {'skin': '#946c4c', 'hair': '#140e0a', 'helmet': '#c8a038', 'bottom': '#3e7a6a',
                    'belt': '#c8a038', 'sandal': '#4a3020', 'gold': '#c8a038', 'cape': '#9a3a2a'},
-        'helmet': 'headband', 'plume': True,    # MISSING: feather_headdress (tall upright fan, tinted and red feathers)
+        'helmet': None, 'headgear': 'feather_headdress',
         'hair': 'long', 'hair_asset': 'bob01', 'beard': False,
         'top': None,
         'bottom': 'loincloth', 'loin_length': (0.5, 0.42), 'torn': False,
@@ -468,7 +468,7 @@ REMASTER = {
         'colors': {'skin': '#9a7458', 'hair': '#141010', 'plume': '#e8e4da', 'wraps': '#5e4632',
                    'wraps_band': '#3e2e20', 'belt': '#5a3a22', 'sandal': '#5a3a22', 'wood': '#4a3222',
                    'steel': '#8a8c90', 'shield_face': '#d8ccb0', 'shield_rim': '#8a6a48'},
-        'helmet': 'headband', 'plume': True,    # MISSING: war_bonnet (feather fan, tinted tips, trailer down the back)
+        'helmet': None, 'headgear': 'feather_headdress',   # MISSING: war_bonnet trailer down the back
         'hair': 'long', 'hair_asset': 'long01', 'beard': False,
         'top': None, 'bottom': 'loincloth', 'loin_length': (0.5, 0.45), 'torn': False,
         'wraps': 'wraps', 'sandals': False,     # MISSING: leggings (brown cloth), moccasins
@@ -530,7 +530,7 @@ REMASTER = {
         'race': {'caucasian': 0.0, 'african': 0.15, 'asian': 0.85},
         'colors': {'skin': '#8e6a4e', 'hair': '#141010', 'helmet': '#c8a038', 'bottom': '#b88a48',
                    'belt': '#c8a038', 'sandal': '#5a3a22', 'gold': '#c8a038'},
-        'helmet': 'headband', 'plume': True,    # MISSING: feather_headdress (tinted crest, white feather cascade to the waist)
+        'helmet': None, 'headgear': 'feather_headdress',   # MISSING: white feather cascade to the waist
         'hair': 'short', 'hair_asset': 'bob01', 'beard': False,   # MISSING: face_ornaments (gold)
         'top': None, 'bottom': 'kilt', 'robe_drop': 0.0,   # MISSING: jaguar_spots
         'bands': [('neck', 'gold'), ('upperarm', 'gold'), ('wrist', 'gold')],   # MISSING: broad_collar
@@ -550,7 +550,7 @@ REMASTER = {
         'colors': {'skin': '#b88a60', 'hair': '#241a12', 'top': '#b88838', 'bottom': '#b88838',
                    'belt': '#3a2a1c', 'boots': '#3a2a1e', 'steel': '#b0b4b8', 'gold': '#c8a038',
                    'leather': '#3a2a1c'},
-        'helmet': 'cap', 'metal': [],           # MISSING: fur_hat (grey fur brim, pointed tinted crown)
+        'helmet': None, 'headgear': 'fur_hat',
         'hair': 'short', 'hair_asset': None,
         'beard': True,                          # MISSING: goatee (and long mustache)
         'top': 'sleeved', 'neck': 'high', 'bottom': 'kilt', 'robe_drop': 0.22,
@@ -593,7 +593,7 @@ REMASTER = {
         'race': {'caucasian': 0.8, 'african': 0.1, 'asian': 0.1},
         'colors': {'skin': '#c89a74', 'hair': '#241a12', 'helmet': '#f0ece2', 'top': '#ece8de',
                    'bottom': '#ece8de', 'belt': '#c8a038', 'boots': '#6a4a2a', 'gold': '#c8a038'},
-        'helmet': 'cap', 'metal': [], 'plume': True,   # MISSING: turban (large, round), aigrette (jewel)
+        'helmet': None, 'headgear': 'turban',             # MISSING: aigrette (jewel)
         'hair': 'short', 'hair_asset': None, 'beard': True,
         'top': 'sleeved', 'neck': 'high',
         'bottom': 'kilt', 'robe_drop': 0.5,     # MISSING: hem_band (tinted), side slits
@@ -764,7 +764,7 @@ REMASTER = {
         'colors': {'skin': '#5a3e2a', 'hair': '#141010', 'helmet': '#c4ac78', 'plume': '#ece4cc',
                    'bottom': '#c4ac78', 'cape': '#b89c68', 'belt': '#6a5032', 'wood': '#b89a6a',
                    'stone': '#b89a6a', 'leather': '#6a5032', 'hide': '#ece8e0', 'hide_dark': '#2a1e16'},
-        'helmet': 'headband', 'plume': True,    # MISSING: feather_headdress (fanned round the head)
+        'helmet': None, 'headgear': 'feather_headdress',
         'hair': 'short', 'hair_asset': 'afro01', 'beard': False,
         'top': None,
         'bottom': 'kilt', 'robe_drop': 0.0,     # MISSING: fur_garment (kilt and cape of fur, tinted bands)
@@ -849,7 +849,7 @@ REMASTER = {
         'macro': {'muscle': 0.8, 'weight': 0.75, 'height': 0.78, 'proportions': 0.72}, 'age': 0.6,
         'colors': {'skin': '#c8a48a', 'hair': '#2a1e14', 'helmet': '#4a5038', 'top': '#545a40',
                    'bottom': '#9a907a', 'boots': '#4e3828', 'belt': '#3a2a1c'},
-        'helmet': 'cap', 'metal': [],           # MISSING: peaked_cap (visor)
+        'helmet': None, 'headgear': 'kepi',               # MISSING: peaked_cap (kepi stands in)
         'hair': 'short', 'hair_asset': None,
         'beard': True,                          # MISSING: goatee
         'top': 'sleeved', 'neck': 'high', 'bottom': 'breeches', 'wraps': 'boots',
