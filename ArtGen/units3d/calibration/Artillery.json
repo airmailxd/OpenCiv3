@@ -1,0 +1,240 @@
+{
+  "unit": "Artillery",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    119.6,
+    124.5
+  ],
+  "anchor_override": [
+    120.0,
+    119.35391330718994
+  ],
+  "standing_height": 32.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        127.5,
+        125
+      ],
+      "top": 96,
+      "height": 30,
+      "bbox": [
+        96,
+        96,
+        145,
+        125
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        119.34,
+        121
+      ],
+      "top": 98,
+      "height": 24,
+      "bbox": [
+        104,
+        98,
+        135,
+        121
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        111.75,
+        125
+      ],
+      "top": 96,
+      "height": 30,
+      "bbox": [
+        94,
+        96,
+        143,
+        125
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        121.28,
+        126
+      ],
+      "top": 95,
+      "height": 32,
+      "bbox": [
+        88,
+        95,
+        151,
+        126
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        100.13,
+        131
+      ],
+      "top": 91,
+      "height": 41,
+      "bbox": [
+        94,
+        91,
+        143,
+        131
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        119.85,
+        134
+      ],
+      "top": 87,
+      "height": 48,
+      "bbox": [
+        104,
+        87,
+        135,
+        134
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        139.14,
+        131
+      ],
+      "top": 91,
+      "height": 41,
+      "bbox": [
+        96,
+        91,
+        145,
+        131
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        117.81,
+        126
+      ],
+      "top": 95,
+      "height": 32,
+      "bbox": [
+        88,
+        95,
+        151,
+        126
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 0.9760877231517511,
+    "ppm_2x": 26.4322,
+    "fit": 0.5208,
+    "archetype": "fieldgun"
+  },
+  "default_flic": "ArtilleryDefault.flc",
+  "flics": {
+    "ArtilleryAttackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 166,
+      "height": 113,
+      "offset_left": 38,
+      "offset_top": 37,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "ArtilleryDeath.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 103,
+      "height": 75,
+      "offset_left": 68,
+      "offset_top": 72,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 12,
+      "frameMs": 83
+    },
+    "ArtilleryDefault.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 69,
+      "height": 51,
+      "offset_left": 84,
+      "offset_top": 87,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 1,
+      "frameMs": 1000
+    },
+    "ArtilleryFidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 73,
+      "height": 53,
+      "offset_left": 83,
+      "offset_top": 86,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 16,
+      "frameMs": 83
+    },
+    "ArtilleryFortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 71,
+      "height": 53,
+      "offset_left": 84,
+      "offset_top": 86,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "ArtilleryRun.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 70,
+      "height": 51,
+      "offset_left": 83,
+      "offset_top": 87,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    }
+  }
+}

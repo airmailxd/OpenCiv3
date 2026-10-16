@@ -1,0 +1,255 @@
+{
+  "unit": "Flak",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    121.79,
+    134.0
+  ],
+  "anchor_override": [
+    120.0,
+    119.62500476837158
+  ],
+  "standing_height": 61.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        106.5,
+        136
+      ],
+      "top": 80,
+      "height": 57,
+      "bbox": [
+        86,
+        80,
+        155,
+        136
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        120.08,
+        136
+      ],
+      "top": 79,
+      "height": 58,
+      "bbox": [
+        95,
+        79,
+        142,
+        136
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        132.89,
+        135
+      ],
+      "top": 81,
+      "height": 55,
+      "bbox": [
+        83,
+        81,
+        154,
+        135
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        112.07,
+        129
+      ],
+      "top": 69,
+      "height": 61,
+      "bbox": [
+        73,
+        69,
+        161,
+        129
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        94.24,
+        138
+      ],
+      "top": 58,
+      "height": 81,
+      "bbox": [
+        84,
+        58,
+        153,
+        138
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        123.5,
+        143
+      ],
+      "top": 55,
+      "height": 89,
+      "bbox": [
+        96,
+        55,
+        144,
+        143
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        139.56,
+        134
+      ],
+      "top": 58,
+      "height": 77,
+      "bbox": [
+        85,
+        58,
+        156,
+        134
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        124.69,
+        129
+      ],
+      "top": 69,
+      "height": 61,
+      "bbox": [
+        78,
+        69,
+        166,
+        129
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 1.0365405006940096,
+    "ppm_2x": 34.8934,
+    "fit": 0.6474,
+    "archetype": "flak"
+  },
+  "default_flic": "QuadFlak_Default.flc",
+  "flics": {
+    "QuadFlak_Attack.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 107,
+      "height": 112,
+      "offset_left": 62,
+      "offset_top": 33,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "QuadFlak_Death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 120,
+      "height": 95,
+      "offset_left": 53,
+      "offset_top": 50,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    },
+    "QuadFlak_Default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 109,
+      "height": 90,
+      "offset_left": 59,
+      "offset_top": 55,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "QuadFlak_Fidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 109,
+      "height": 91,
+      "offset_left": 59,
+      "offset_top": 54,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 83
+    },
+    "QuadFlak_Fortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 112,
+      "height": 93,
+      "offset_left": 56,
+      "offset_top": 52,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 83
+    },
+    "QuadFlak_Run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 109,
+      "height": 94,
+      "offset_left": 56,
+      "offset_top": 47,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "QuadFlak_Victory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 109,
+      "height": 92,
+      "offset_left": 59,
+      "offset_top": 53,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 66
+    }
+  }
+}

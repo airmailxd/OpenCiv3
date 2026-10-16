@@ -1,0 +1,255 @@
+{
+  "unit": "Trebuchet",
+  "source": "Civ3 Complete original art, DEFAULT flic frame 0 (numbers only)",
+  "unit_space": [
+    240,
+    240
+  ],
+  "scale": 2,
+  "anchor": [
+    116.93,
+    133.0
+  ],
+  "anchor_override": [
+    120.0,
+    122.09050273895264
+  ],
+  "standing_height": 64.0,
+  "per_direction": [
+    {
+      "direction": 0,
+      "foot": [
+        108.58,
+        133
+      ],
+      "top": 66,
+      "height": 68,
+      "bbox": [
+        87,
+        66,
+        151,
+        133
+      ]
+    },
+    {
+      "direction": 1,
+      "foot": [
+        117.95,
+        134
+      ],
+      "top": 72,
+      "height": 63,
+      "bbox": [
+        85,
+        72,
+        136,
+        134
+      ]
+    },
+    {
+      "direction": 2,
+      "foot": [
+        127.7,
+        135
+      ],
+      "top": 77,
+      "height": 59,
+      "bbox": [
+        69,
+        77,
+        149,
+        135
+      ]
+    },
+    {
+      "direction": 3,
+      "foot": [
+        89.72,
+        135
+      ],
+      "top": 73,
+      "height": 63,
+      "bbox": [
+        69,
+        73,
+        153,
+        135
+      ]
+    },
+    {
+      "direction": 4,
+      "foot": [
+        104.24,
+        144
+      ],
+      "top": 70,
+      "height": 75,
+      "bbox": [
+        88,
+        70,
+        152,
+        144
+      ]
+    },
+    {
+      "direction": 5,
+      "foot": [
+        136.45,
+        144
+      ],
+      "top": 67,
+      "height": 78,
+      "bbox": [
+        103,
+        67,
+        154,
+        144
+      ]
+    },
+    {
+      "direction": 6,
+      "foot": [
+        144.61,
+        132
+      ],
+      "top": 68,
+      "height": 65,
+      "bbox": [
+        90,
+        68,
+        170,
+        132
+      ]
+    },
+    {
+      "direction": 7,
+      "foot": [
+        115.91,
+        127
+      ],
+      "top": 70,
+      "height": 58,
+      "bbox": [
+        86,
+        70,
+        170,
+        127
+      ]
+    }
+  ],
+  "fit": {
+    "base_ppm": 26.0,
+    "catalog_scale": 0.9990175517983129,
+    "ppm_2x": 35.4795,
+    "fit": 0.683,
+    "archetype": "trebuchet"
+  },
+  "default_flic": "Trebuchet Default.flc",
+  "flics": {
+    "Trebuchet AttackA.flc": {
+      "actions": [
+        "ATTACK1"
+      ],
+      "kind": "combat",
+      "width": 208,
+      "height": 215,
+      "offset_left": 16,
+      "offset_top": 12,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 20,
+      "frameMs": 66
+    },
+    "Trebuchet Death.flc": {
+      "actions": [
+        "DEATH"
+      ],
+      "kind": "combat",
+      "width": 171,
+      "height": 161,
+      "offset_left": 29,
+      "offset_top": 0,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 20,
+      "frameMs": 66
+    },
+    "Trebuchet Default.flc": {
+      "actions": [
+        "DEFAULT"
+      ],
+      "kind": "still",
+      "width": 112,
+      "height": 82,
+      "offset_left": 61,
+      "offset_top": 66,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 125
+    },
+    "Trebuchet Fidget.flc": {
+      "actions": [
+        "FIDGET"
+      ],
+      "kind": "animation",
+      "width": 112,
+      "height": 84,
+      "offset_left": 61,
+      "offset_top": 64,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 15,
+      "frameMs": 100
+    },
+    "Trebuchet Fortify.flc": {
+      "actions": [
+        "FORTIFY"
+      ],
+      "kind": "still",
+      "width": 113,
+      "height": 83,
+      "offset_left": 60,
+      "offset_top": 65,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 83
+    },
+    "Trebuchet Run.flc": {
+      "actions": [
+        "RUN"
+      ],
+      "kind": "move",
+      "width": 143,
+      "height": 90,
+      "offset_left": 47,
+      "offset_top": 66,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 10,
+      "frameMs": 66
+    },
+    "Trebuchet Victory.flc": {
+      "actions": [
+        "VICTORY"
+      ],
+      "kind": "combat",
+      "width": 112,
+      "height": 82,
+      "offset_left": 61,
+      "offset_top": 66,
+      "orig_width": 240,
+      "orig_height": 240,
+      "directions": 8,
+      "frames": 16,
+      "frameMs": 66
+    }
+  }
+}
