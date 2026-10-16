@@ -11,15 +11,17 @@ original shows are blockers, not polish. Earlier PASSes need a re-check on this 
 
 | Unit | State | Open notes |
 |------|-------|-----------|
-| Warrior | PASS (7/7/7/8/7) | |
-| Spearman | PASS (7/7/7/8/7) | |
-| Archer | PASS (7/7/7/7/7), round 7 | re-check with the detail axis (queued, pil2) |
-| Swordsman | 6/7/7/6/7/6, round 7 | greaves over boots, cuirass binding, wider shield yaw: rebuilding (pil2) |
-| Settler | PASS (7/7/8/7/7/7), round 6 | pot on the bundle, taller staff: rebuilding (pil2) |
-| Worker | 6/7/8/6/7/7, round 6 | shovel hidden facing E: tool swung forward; rebuilding (pil2) |
-| 22 footmen | A round 2: none pass (Explorer, Hoplite fail on detail only); B round 2 rendering | fixes applied; prop requests to the PC |
-| 12 soldiers | round 1: none pass (2-5s) | hats fixed (sat low), hip_hold, camo, packs; data fixes being applied |
-| 44 royals | first full render running (queue3) | |
+| Warrior, Spearman, Archer, Swordsman, Settler | PASS on all 6 axes (re-checked with the detail axis) | polish only |
+| Worker | 6/6/8/7/7/7, round 8 | second hand fixed (tool slides through the left fist): rebuilding |
+| Footmen batch A (11, Mac) | round 3: none pass; Bowman, Chasquis, Explorer, Hoplite one axis off | round-3 fixes applied, round 4 queued |
+| Footmen batch B (11, **PC**) | Legionary, Medieval Infantry PASS | handed over with reviews/footmen_round3.md |
+| 12 soldiers (**PC**) | round 2: Musketeer, Rifleman, Crusader close | handed over 2026-10-15 |
+| 44 royals (Mac) | round 1: none pass (shared bugs fixed since) | round 2 rendering: relaxed stances, hats, beards, shoes, unit_scale 0.85 |
+
+Split since 2026-10-15 evening: the owner noted the PC is faster, so the PC also owns the soldiers and
+footmen batch B (entries, renders, review loop). The Mac owns the builder code (units.py, garments.py,
+human.py, compose.py, bscene.py), footmen batch A and the royals. Shared file remaster_footmen.py:
+each side edits only its own units' blocks.
 
 PC (Windows, "Civ3 Question Taker"): Catapult, Cannon, Galley, Caravel PASS; 12 horse riders and the
 3 chariots rolled out and frozen for the owner's judgment (Horseman, Rider, Ansar PASS). Delivered
