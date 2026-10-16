@@ -717,7 +717,7 @@ def _head(basemesh):
     return top, (min(head) + max(head)) / 2.0, on_body
 
 
-def wild_hair(basemesh, color, length=0.1, density=5000, clump=0.55, rough=0.05):
+def wild_hair(basemesh, color, length=0.1, density=5000, clump=0.55, rough=0.05, frizz=0.0, receding=False):
     """Long, unkempt hair from the scalp: hair particles on the crown, the
     back of the head and the sides above the ears (not the face), falling to
     the shoulders, clumped and rough."""
@@ -728,7 +728,7 @@ def wild_hair(basemesh, color, length=0.1, density=5000, clump=0.55, rough=0.05)
             continue
         d = top - v.co.z
         y = v.co.y - yc                          # < 0: toward the face
-        crown = d < 0.06 and y > -0.07
+        crown = d < 0.06 and y > (0.01 if receding else -0.07)   # receding: a bald front, hair behind
         back = d < 0.19 and y > -0.005
         sides = d < 0.115 and abs(v.co.x) > 0.055 and y > -0.05
         if crown or back or sides:
@@ -744,10 +744,14 @@ def wild_hair(basemesh, color, length=0.1, density=5000, clump=0.55, rough=0.05)
     st.use_hair_bspline = True
     # out from the scalp: a wild, shaggy mane (hair can't fall without a
     # simulation, and an unkempt mane suits these units)
-    st.roughness_2 = 0.08
+    st.roughness_2 = 0.08 + 0.25 * frizz
     st.kink = 'WAVE'
-    st.kink_amplitude = 0.012
-    st.kink_frequency = 3.0
+    st.kink_amplitude = 0.012 + 0.03 * frizz
+    st.kink_frequency = 3.0 + 4.0 * frizz
+    # `frizz` 0..1: a frizzy mop (strand tips flying apart, uneven lengths, tight kinks)
+    st.roughness_endpoint = 0.04 + 0.2 * frizz
+    st.child_length_threshold = 0.0
+    st.child_length = 1.0 - 0.35 * frizz
     st.hair_length = length      # last: setting velocities rescales the length
     return mod
 

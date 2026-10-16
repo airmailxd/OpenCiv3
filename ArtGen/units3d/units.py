@@ -333,7 +333,9 @@ def dress(entry, mesh, arm):
         G.hem('Cuirass', _hem_mat(entry, c, entry['cuirass_trim'], 'cuirass'), width=entry.get('trim_width', 0.025),
               edges='all')
     if entry.get('wild_hair'):
-        G.wild_hair(mesh, B.hex_color(c['hair']), length=entry['wild_hair'] if entry['wild_hair'] is not True else 0.1)
+        G.wild_hair(mesh, B.hex_color(c['hair']), length=entry['wild_hair'] if entry['wild_hair'] is not True else 0.1,
+                    clump=entry.get('hair_clump', 0.55), frizz=entry.get('hair_frizz', 0.0),
+                    receding=entry.get('hair_receding', False))
     # gloves to the elbow ('elbow') or the whole arm ('arm'): ('arm'|'elbow', 'tint'|hex)
     lg = entry.get('long_gloves')
     if lg:
