@@ -149,6 +149,13 @@ def _pattern(tree, coord, base, pattern, tinted=False):
             e.position = 0.0 if i == 0 else first + 0.3 * (i - 1) / max(1, len(cols) - 2)
             e.color = col
         tree.links.new(noise.outputs['Fac'], ramp.inputs['Fac'])
+        if tinted and not civ:
+            # plain-colored blotches on a civ-colored part: they show their own color
+            gtp = n.new('ShaderNodeMath')
+            gtp.operation = 'GREATER_THAN'
+            gtp.inputs[1].default_value = first
+            tree.links.new(noise.outputs['Fac'], gtp.inputs[0])
+            _untint_mask(tree, gtp.outputs['Value'])
         if civ:
             # the first blotch color is the civ color: mark those blotches
             gt = n.new('ShaderNodeMath')
@@ -1508,8 +1515,17 @@ def hem(name, mat, width=0.05, lift=0.004, inset=0.0, edges='bottom'):
         if sol is None:
             sol = obj.modifiers.new('HemWrap', 'SOLIDIFY')
             sol.thickness = 0.0
-        sol.thickness = abs(sol.thickness) + 0.03     # clears the smoothed cape's folds
-        sol.offset = 0.0
+        if inset > 0:
+            # an inset band (above the hem) shows on the OUTER face only: the
+            # lining stays plain. Lifted off the outside (the normals face the
+            # body), thickened outward
+            for v in obj.data.vertices:
+                v.co -= v.normal * 0.006
+            sol.thickness = 0.02
+            sol.offset = -1.0
+        else:
+            sol.thickness = abs(sol.thickness) + 0.03     # clears the smoothed cape's folds
+            sol.offset = 0.0
         sol.material_offset = 0
     return obj
 
@@ -1915,3 +1931,33 @@ def flare_legs(name, knee_z=0.5, amount=0.6):
             for v in ring:
                 v.co.x = cx + (v.co.x - cx) * (1 + amount * t)
                 v.co.y = cy + (v.co.y - cy) * (1 + amount * t)
+
+
+def shoulder_rolls(basemesh, arm, mat, size=0.09):
+    """Puffed rolls over the shoulder seams: a squashed, ribbed doughnut round
+    the top of each upper arm; on the upper arm bones."""
+    import human as H
+    inv = basemesh.matrix_world.inverted() @ arm.matrix_world
+    made = []
+    for side in 'lr':
+        b = arm.data.bones['upperarm_' + side]
+        h, tl = inv @ b.head_local, inv @ b.tail_local
+        d = (tl - h).normalized()
+        p = h.lerp(tl, 0.12)
+        bpy.ops.mesh.primitive_torus_add(major_radius=size * 0.85 * _scale, minor_radius=size * 0.45 * _scale,
+                                         major_segments=16, minor_segments=8, location=tuple(p))
+        o = bpy.context.active_object
+        o.rotation_mode = 'QUATERNION'
+        o.rotation_quaternion = d.to_track_quat('Z', 'Y')
+        bpy.context.view_layer.update()
+        o.scale = (1.0, 1.0, 0.8)
+        o.data.materials.append(mat)
+        bpy.ops.object.shade_smooth()
+        world = o.matrix_world.copy()
+        o.parent = arm
+        o.parent_type = 'BONE'
+        o.parent_bone = 'upperarm_' + side
+        o.matrix_world = world
+        made.append(o)
+    H._update()
+    return made

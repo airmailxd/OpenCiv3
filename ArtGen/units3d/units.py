@@ -168,7 +168,7 @@ def dress(entry, mesh, arm):
                 G.trim(o, lambda co, h=half, sg=sgn: abs((co.z - 1.22) + sg * 0.95 * co.x) < h)
                 if gp.get('edge'):
                     # edges along both sides of the sash (gold-edged)
-                    ew = gp.get('edge_width', 0.014)
+                    ew = gp.get('edge_width', 0.035)       # (thinner ones vanish at 2x)
                     emat = _hem_mat(entry, c, gp['edge'], 'strap_edge')
                     for side in (-1, 1):
                         eo = G.shell(mesh, arm, 'StrapEdge', torso, emat, zmin=0.95, zmax=1.55,
@@ -352,6 +352,10 @@ def dress(entry, mesh, arm):
         bones = ['lowerarm_l', 'lowerarm_r', 'hand_l', 'hand_r'] + (['upperarm_l', 'upperarm_r'] if lg[0] == 'arm' else [])
         G.shell(mesh, arm, 'Gloves', bones, _hem_mat(entry, c, lg[1], 'gloves'), offset=0.006, thickness=0.004,
                 min_weight=0.4)
+    sr = entry.get('shoulder_rolls')
+    if sr:
+        # puffed rolls over the shoulder seams (Renaissance doublets): 'gold'|'tint'|hex
+        G.shoulder_rolls(mesh, arm, _hem_mat(entry, c, sr, 'rolls'), size=entry.get('roll_size', 0.09))
     if entry.get('trouser_flare'):
         G.flare_legs('Bottom', amount=entry['trouser_flare'])
     fp = entry.get('face_prop')
@@ -365,7 +369,9 @@ def _hem_mat(entry, c, col, part):
     if col == 'tint':
         return G.cloth(part + '_trim', (1, 1, 1), tint=True)
     if col == 'gold':
-        return B.material(part + '_gold', B.hex_color(c.get('gold', '#c8a040')), roughness=0.35, metallic=0.9)
+        # gold braid or thread, not plate: semi-metallic, so the plate's fake-sky
+        # shading doesn't darken it on upright surfaces (it vanished on sashes)
+        return B.material(part + '_gold', B.hex_color(c.get('gold', '#c8a040')), roughness=0.38, metallic=0.45)
     if col == 'ermine':
         return G.cloth(part + '_ermine', (0.95, 0.94, 0.9), pattern=('camo', '#141414', 40.0, 'cover', 0.12))
     return G.cloth(part + '_trim', B.hex_color(c.get(col, col)))
