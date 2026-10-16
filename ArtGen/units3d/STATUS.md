@@ -12,12 +12,19 @@ original shows are blockers, not polish. Earlier PASSes need a re-check on this 
 | Unit | State | Open notes |
 |------|-------|-----------|
 | Warrior, Spearman, Archer, Swordsman, Settler, Worker | **all PASS** on all 6 axes (detail included) | polish only |
-| Footmen batch A (11, Mac) | 10/11 PASS | Impi: waits on the PC's tapered feather cards |
-| Footmen batch B (11, PC) | **all PASS** | |
-| 12 soldiers (PC) | **all PASS** | |
-| Siege crews, ships, armor, aircraft (PC) | PC reports all PASS | see STATUS_PC.md |
-| Royals half 1 (22, Mac) | 8/22 PASS (round 8) | 6 wait on PC props (flag devices, wolfhound, feather standard, Aztec fan) |
-| Royals half 2 (22, PC) | 16/22 PASS (PC's last report) | |
+| Footmen | 21/22 PASS | Impi: waits on the PC's tapered feather cards |
+| 12 soldiers, siege crews, ships, armor, aircraft (PC) | all PASS (PC reports) | see STATUS_PC.md |
+| Royals half 1 (Mac) | 12 PASS | PC took the 7 prop-blocked ones (TODO_PC.md); Mac still on Byzantines, Chinese, Indian, Iroquois |
+| Royals half 2 (PC) | 17+ PASS (PC's last report) | |
+
+## Owner decisions waiting (stzur)
+1. **Look approval**: then `build.py --install` into C7/ModernArt, thumbnails, PR/merge (nothing installed yet).
+2. **War Elephant**: keep the old remake's elephant, or a CC-BY model with credit (no realistic CC0 exists).
+3. **Frozen riders and chariots** (PC): re-rendered with the hair fix, waiting for your judgment.
+4. **Waivers the reviewers suggest** (the subject itself isn't "imposing" or detailed):
+   - King Indian (Gandhi): frail and stooped by design; waive Imposing.
+   - King Chinese (Mao suit): plain by design; waive Detail and Imposing to the original's level.
+5. **Animations**: not started (stills first, as asked); the PC can write a proposal.
 
 Split since 2026-10-15 evening: the owner noted the PC is faster, so the PC also owns the soldiers and
 footmen batch B (entries, renders, review loop). The Mac owns the builder code (units.py, garments.py,
