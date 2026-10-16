@@ -655,7 +655,7 @@ def flak(colors, k=1.0, elev=48.0):
         s.add(props.tube([rings[0][edge], rings[1][edge]], 0.03, seg=6), 'beam', smooth=True, tint=True)
     s.finish()
     root.scale = (k, k, k)
-    vkit.crew(root, 0, (0.0, -0.55, zp + 0.55), yaw=0.0)
+    vkit.crew(root, 0, (0.0, -0.6, zp + 0.2), yaw=0.0)   # the seated gunner's hips, down in his seat
     vkit.crew(root, 1, (0.9, 0.7, 0.0), yaw=-120.0)
     return root
 

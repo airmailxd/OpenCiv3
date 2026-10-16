@@ -49,7 +49,12 @@ def build(unit):
     if unit in mounted.BUILDERS or unit in mounted.HORSE_RIDERS:
         catalog = json.load(open(os.path.join(HERE, '..', '_previews', 'units3d', 'catalog.json'), encoding='utf-8'))
         return mounted.build(unit, entry=catalog.get(unit), rider=True)
-    return siege.build(unit)
+    root = siege.build(unit)
+    if os.environ.get('CREWS') == '1':   # opt-in until the crews pass review (crews.py)
+        import crews
+        catalog = json.load(open(os.path.join(HERE, '..', '_previews', 'units3d', 'catalog.json'), encoding='utf-8'))
+        crews.populate(root, unit, catalog.get(unit, {}), catalog)
+    return root
 
 
 def screen_points(root, waterline):
