@@ -124,7 +124,7 @@ def _crew(root, entry, y_axle, z_floor):
 
 CREW_SCALE = 1.22
 CAR_K = 1.3   # Civ3's cars are big next to the horses
-HORSE_K = 0.92
+HORSE_K = 1.05
 # per unit, over the catalog's horse tack (as the originals show them)
 TACK = {'War Chariot': {'blanket': None, 'neck_cover': 'cloth', 'plume': 'fan', 'plume_tint': True},
         'Three Man Chariot': {'caparison_over': False, 'trim_tint': True, 'plume': True, 'plume_tint': True}}
