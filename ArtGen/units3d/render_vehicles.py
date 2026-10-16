@@ -27,6 +27,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
 import bscene as B  # noqa: E402
+import armor  # noqa: E402
 import chariots  # noqa: E402
 import elephant  # noqa: E402
 import mounted  # noqa: E402
@@ -40,6 +41,8 @@ SHIPS = set(ships.BUILDERS)
 def build(unit):
     if unit in SHIPS:
         return ships.build(unit)
+    if unit in armor.UNITS:
+        return armor.build(unit)
     if unit in elephant.UNITS:
         catalog = json.load(open(os.path.join(HERE, '..', '_previews', 'units3d', 'catalog.json'), encoding='utf-8'))
         return elephant.build(unit, catalog[unit])
