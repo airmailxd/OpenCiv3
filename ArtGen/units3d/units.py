@@ -310,7 +310,8 @@ def headgear(entry, kind, mesh, arm):
     tl = entry.get('tint', [])
     p = P.Prop(f'headgear_{kind}', c, {'hat': {'grime': 0.5}, 'helmet': {'grime': 0.4, 'rust': 0.15},
                                       'tint': {'grime': 0.45}})
-    riders.HEADGEAR[kind](p, c, 'hat' in tl or 'helmet' in tl, 'crest' in tl or 'plume' in tl)
+    riders.HEADGEAR[kind](p, c, 'hat' in tl or 'helmet' in tl, 'crest' in tl or 'plume' in tl,
+                          **entry.get('headgear_params', {}))
     obj = p.finish()
     top, yc, _ = G._head(mesh)
     k = entry.get('headgear_scale', 1.0)
