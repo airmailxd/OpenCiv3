@@ -63,7 +63,7 @@ offset_bottom = 158.0
 theme_override_colors/default_color = Color(1, 0.25098, 0, 1)
 theme_override_fonts/normal_font = ExtResource("3_x68dx")
 theme_override_font_sizes/normal_font_size = 18
-text = "v0.3 Dutch 2"
+text = "Air"
 horizontal_alignment = 2
 deselect_on_focus_loss_enabled = false
 drag_and_drop_selection_enabled = false
@@ -201,7 +201,7 @@ anchor_bottom = 1.0
 offset_top = -48.0
 grow_horizontal = 2
 grow_vertical = 0
-text = "OpenCiv3 0.3 \"Dutch 2\" © OpenCiv3 contributors
+text = "OpenCiv3 Air © OpenCiv3 contributors
 OpenCiv3 is not affiliated with civfanatics.com, Firaxis Games, BreakAway Games,
 Hasbro Interactive, Infogrames Interactive, Atari Interactive, or Take-Two Interactive Software.
 All trademarks are property of their respective owners."

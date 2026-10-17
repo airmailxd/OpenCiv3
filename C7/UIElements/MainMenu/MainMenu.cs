@@ -30,6 +30,7 @@ public partial class MainMenu : Node {
 		DisplayServer.WindowSetTitle((string)ProjectSettings.GetSetting("application/config/name"));
 
 		try {
+			ShowVersion();
 			DisplayTitleScreen();
 
 			// A load given up on hosts nothing: otherwise the next game
@@ -50,6 +51,27 @@ public partial class MainMenu : Node {
 		} catch (Exception ex) {
 			log.Error(ex, "Could not set up the main menu");
 		}
+	}
+
+	// The title screen's version, "Air v0.8.2": the version the launcher
+	// installed (its installed.json beside the game), else the project's
+	// own ("Air dev" in the editor).
+	private void ShowVersion() {
+		string version = (string)ProjectSettings.GetSetting("application/config/version", "");
+		try {
+			string record = System.IO.Path.Combine(GamePaths.BaseDir, "installed.json");
+			if (System.IO.File.Exists(record)) {
+				using var json = System.Text.Json.JsonDocument.Parse(System.IO.File.ReadAllText(record));
+				if (json.RootElement.TryGetProperty("version", out var v) && v.ValueKind == System.Text.Json.JsonValueKind.String) {
+					version = v.GetString();
+				}
+			}
+		} catch (Exception ex) {
+			log.Warning(ex, "Could not read the installed version");
+		}
+		bool numbered = version.Length > 0 && char.IsDigit(version[0]);
+		GetNode<RichTextLabel>("Control/Background/RichTextLabel").Text =
+			numbered ? $"Air v{version}" : $"Air {version}".TrimEnd();
 	}
 
 	private void DisplayTitleScreen() {
