@@ -11,9 +11,10 @@ compose() turns them into the game's two layers, like the old software
 renderer (ArtGen/units/render.py) did: the base layer (the unit's own
 colors, a soft dark contour and the ground shadow) and the tint layer (gray
 shading where the civ color goes, drawn over the base). write_unit() then
-writes the stills: for every flic of the unit, a sheet of one column (the
-still stands for every frame, see UnitArtMetadata.SheetColumn) and eight
-rows, each the flic's cell cut from the canvas, and the unit's metadata.
+writes the sheets: for every flic of the unit, eight rows, each the flic's
+cell cut from the canvas, and the unit's metadata. A flic has one column (the
+still stands for every frame, see UnitArtMetadata.SheetColumn), or, when
+render_anim.py rendered it (anim/<flic>/f<frame>/), a column per frame.
 """
 import json
 import os
@@ -121,16 +122,26 @@ def _bbox(alpha, threshold=4):
     return xs.min(), ys.min(), xs.max() + 1, ys.max() + 1
 
 
-def write_unit(unit, folder, calibration, out_dir, desat=1.0, margin=2):
-    """Writes the unit's still sheets and metadata into out_dir/<unit>/.
-    `calibration` is the unit's calibration JSON (its flics, with headers)."""
-    layers = [compose(folder, row, desat) for row in range(8)]
-    # the sprite's extent over all directions (canvas pixels at 2x)
-    boxes = [b for b in (_bbox(np.maximum(base[..., 3], tint[..., 3])) for base, tint in layers) if b]
-    x0 = min(b[0] for b in boxes) - margin * SCALE
-    y0 = min(b[1] for b in boxes) - margin * SCALE
-    x1 = max(b[2] for b in boxes) + margin * SCALE
-    y1 = max(b[3] for b in boxes) + margin * SCALE
+def _extent(frames, margin):
+    """The sprite's extent over all frames and directions (canvas pixels at 2x)."""
+    boxes = [b for layers in frames for b in (_bbox(np.maximum(base[..., 3], tint[..., 3])) for base, tint in layers) if b]
+    return (min(b[0] for b in boxes) - margin * SCALE, min(b[1] for b in boxes) - margin * SCALE,
+            max(b[2] for b in boxes) + margin * SCALE, max(b[3] for b in boxes) + margin * SCALE)
+
+
+def anim_frames(anim_dir, name):
+    """The frame folders render_anim.py wrote for flic `name`, in order, or []."""
+    d = os.path.join(anim_dir, name) if anim_dir else None
+    if not d or not os.path.isdir(d):
+        return []
+    return [os.path.join(d, f) for f in sorted(os.listdir(d)) if f.startswith('f')]
+
+
+def write_unit(unit, folder, calibration, out_dir, desat=1.0, margin=2, anim_dir=None):
+    """Writes the unit's sheets and metadata into out_dir/<unit>/.
+    `calibration` is the unit's calibration JSON (its flics, with headers);
+    `anim_dir` holds render_anim.py's frames of the animated flics."""
+    still = [[compose(folder, row, desat) for row in range(8)]]
     os.makedirs(out_dir, exist_ok=True)
     meta = {'actions': {}, 'flics': {}}
     grown = []
@@ -138,6 +149,9 @@ def write_unit(unit, folder, calibration, out_dir, desat=1.0, margin=2):
         name = os.path.splitext(flic_file)[0]
         for action in f['actions']:
             meta['actions'][action] = name
+        dirs = anim_frames(anim_dir, name)
+        frames = [[compose(d, row, desat) for row in range(8)] for d in dirs] if dirs else still
+        x0, y0, x1, y1 = _extent(frames, margin)
         # the flic's cell, grown (in whole 1x pixels) to hold the still
         l, t = f['offset_left'], f['offset_top']
         r, b = l + f['width'], t + f['height']
@@ -152,10 +166,11 @@ def write_unit(unit, folder, calibration, out_dir, desat=1.0, margin=2):
         w, h = R - L, Bm - T
         box = (L * SCALE, T * SCALE, R * SCALE, Bm * SCALE)
         for kind, idx in (('', 0), ('_tint', 1)):
-            sheet = Image.new('RGBA', (w * SCALE, h * SCALE * 8))
-            for row in range(8):
-                cell = Image.fromarray(layers[row][idx], 'RGBA').crop(box)
-                sheet.paste(cell, (0, row * h * SCALE))
+            sheet = Image.new('RGBA', (w * SCALE * len(frames), h * SCALE * 8))
+            for col, layers in enumerate(frames):
+                for row in range(8):
+                    cell = Image.fromarray(layers[row][idx], 'RGBA').crop(box)
+                    sheet.paste(cell, (col * w * SCALE, row * h * SCALE))
             sheet.save(os.path.join(out_dir, f'{name}{kind}.png'), optimize=True)
         meta['flics'][name] = {
             'size': [w, h], 'directions': f['directions'], 'frames': f['frames'],
