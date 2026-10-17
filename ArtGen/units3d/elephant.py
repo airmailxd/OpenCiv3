@@ -27,7 +27,7 @@ import props
 import vkit
 from props import R, T
 
-props.DEFAULTS.setdefault('hide_skin', ('#8a7e6c', 0.75, 0.0, 'leather'))
+props.DEFAULTS['hide_skin'] = ('#8c7a60', 0.85, 0.0, None)   # no leather grain: it read as felt
 props.DEFAULTS.setdefault('ivory', ('#e6dcc4', 0.35, 0.0, None))
 props.DEFAULTS.setdefault('howdah', ('#4e3420', 0.62, 0.0, 'wood'))
 props.DEFAULTS.setdefault('nail', ('#b8ae98', 0.5, 0.0, None))
@@ -39,7 +39,7 @@ props.DEFAULTS.setdefault('strap', ('#3a2618', 0.7, 0.0, 'leather'))
 # the anatomy, meters (y forward)
 FRONT_Y, REAR_Y = 0.85, -1.2          # leg columns
 HEAD = Vector((0.0, 1.85, 2.55))      # head center
-DISC = Vector((0.0, 2.33, 2.72))      # forehead disc
+DISC = Vector((0.0, 2.5, 2.78))      # forehead disc
 
 
 def _loft(stations, seg=28):
@@ -75,43 +75,45 @@ def _resample(path, radii, n):
 def _flesh(p):
     """The fused body parts (before the remesh)."""
     # the barrel: rump to the neck, the back highest over the shoulders and hips (Asian), a deep belly
-    p.add(_loft([(-1.85, 2.2, 0.2, 0.3), (-1.72, 2.25, 0.55, 0.62), (-1.35, 2.32, 0.74, 0.76), (-0.8, 2.26, 0.8, 0.82),
-                 (-0.1, 2.22, 0.82, 0.86), (0.55, 2.3, 0.78, 0.8), (1.05, 2.42, 0.7, 0.72), (1.35, 2.5, 0.55, 0.6),
-                 (1.6, 2.55, 0.42, 0.5)]), 'hide_skin', smooth=True)
+    G, H = 1.22, 1.08   # girth: broad and massive, wider than the old asset
+    p.add(_loft([(y, z, hw * G, hh * H) for y, z, hw, hh in
+                 [(-1.85, 2.2, 0.2, 0.3), (-1.72, 2.25, 0.55, 0.62), (-1.35, 2.32, 0.74, 0.76), (-0.8, 2.26, 0.8, 0.82),
+                  (-0.1, 2.22, 0.82, 0.86), (0.55, 2.3, 0.78, 0.8), (1.05, 2.42, 0.7, 0.72), (1.35, 2.5, 0.6, 0.66),
+                  (1.6, 2.55, 0.5, 0.58)]]), 'hide_skin', smooth=True)
     # the head: a broad skull with the twin domes, the cheeks, the trunk root
-    p.add(props.ellipsoid(0.52, 0.55, 0.62, seg=24), 'hide_skin', T(*HEAD), smooth=True)
+    p.add(props.ellipsoid(0.66, 0.66, 0.76, seg=28), 'hide_skin', T(*HEAD), smooth=True)   # a huge head
     for sx in (-1, 1):
-        p.add(props.ellipsoid(0.26, 0.3, 0.26, seg=16), 'hide_skin', T(sx * 0.17, 1.82, 3.05), smooth=True)
-        p.add(props.ellipsoid(0.24, 0.26, 0.3, seg=16), 'hide_skin', T(sx * 0.3, 2.1, 2.3), smooth=True)
+        p.add(props.ellipsoid(0.32, 0.36, 0.3, seg=16), 'hide_skin', T(sx * 0.2, 1.85, 3.18), smooth=True)
+        p.add(props.ellipsoid(0.3, 0.3, 0.36, seg=16), 'hide_skin', T(sx * 0.36, 2.15, 2.3), smooth=True)
     # the trunk: long and hanging to the ground, flaring at the root, ring creases (radius modulated)
-    path, radii = _resample([(0, 2.25, 2.45), (0, 2.42, 2.0), (0, 2.42, 1.3), (0, 2.36, 0.65), (0, 2.45, 0.2), (0, 2.6, 0.08)],
-                            [0.3, 0.22, 0.16, 0.12, 0.09, 0.08], 90)
+    path, radii = _resample([(0, 2.35, 2.45), (0, 2.55, 2.0), (0, 2.55, 1.3), (0, 2.48, 0.65), (0, 2.57, 0.2), (0, 2.72, 0.08)],
+                            [0.36, 0.27, 0.19, 0.14, 0.1, 0.09], 90)
     radii = [r * (1.0 - 0.07 * (math.sin(i * 1.9) ** 2)) for i, r in enumerate(radii)]
     p.add(props.tube([tuple(v) for v in path], radii, seg=16), 'hide_skin', smooth=True)
     # the legs: columns with a knee and a flared round foot
     for y, front in ((FRONT_Y, True), (REAR_Y, False)):
         for sx in (-1, 1):
-            x = sx * 0.5
+            x = sx * 0.58
             if front:
-                pts, rr = [(x, y, 2.0), (x, y + 0.03, 1.2), (x, y, 0.55), (x, y + 0.02, 0.12)], [0.36, 0.27, 0.25, 0.3]
+                pts, rr = [(x, y, 2.0), (x, y + 0.03, 1.2), (x, y, 0.55), (x, y + 0.02, 0.12)], [0.46, 0.35, 0.32, 0.37]
             else:   # the hind leg's knee a little forward
-                pts, rr = [(x, y, 2.05), (x, y + 0.08, 1.25), (x, y - 0.03, 0.55), (x, y, 0.12)], [0.4, 0.28, 0.25, 0.3]
+                pts, rr = [(x, y, 2.05), (x, y + 0.08, 1.25), (x, y - 0.03, 0.55), (x, y, 0.12)], [0.5, 0.36, 0.32, 0.37]
             path, radii = _resample(pts, rr, 40)
             p.add(props.tube([tuple(v) for v in path], radii, seg=18), 'hide_skin', smooth=True)
-            p.add(props.lathe([(0.0, 0.31), (0.12, 0.3), (0.16, 0.24)], seg=20), 'hide_skin', T(x, y + 0.02, 0.0), smooth=True)
+            p.add(props.lathe([(0.0, 0.39), (0.12, 0.38), (0.17, 0.31)], seg=20), 'hide_skin', T(x, y + 0.02, 0.0), smooth=True)
     # the ears: big rounded flaps lying back along the neck (thick enough to survive the remesh)
     outline = [(0.0, 0.25), (-0.25, 0.32), (-0.55, 0.22), (-0.72, -0.05), (-0.68, -0.38), (-0.5, -0.62),
                (-0.25, -0.78), (-0.08, -0.62), (0.0, -0.3)]
     for sx in (-1, 1):
-        ear = props.slab(outline, 0.09, 'X')
+        ear = props.slab([(u * 1.45, v * 1.45) for u, v in outline], 0.1, 'X')
         for v in ear.verts:   # cup the ear: its rim curls outward
             r = (v.co.y ** 2 + v.co.z ** 2) ** 0.5
-            v.co.x += 0.18 * r * r
+            v.co.x += 0.14 * r * r
         if sx < 0:
             for v in ear.verts:
                 v.co.x = -v.co.x
             bmesh.ops.reverse_faces(ear, faces=ear.faces)
-        p.add(ear, 'hide_skin', T(sx * 0.5, 1.72, 2.72) @ R('Z', sx * 18), smooth=True)
+        p.add(ear, 'hide_skin', T(sx * 0.62, 1.7, 2.8) @ R('Z', sx * 22), smooth=True)
     # the tail
     p.add(props.tube([(0, -1.82, 2.45), (0, -1.95, 2.0), (0, -1.94, 1.35)], [0.07, 0.045, 0.03], seg=10), 'hide_skin', smooth=True)
 
@@ -135,11 +137,15 @@ def _remesh(obj, voxel=0.028):
     from mathutils import noise
     for v in me.vertices:
         co = v.co
-        leg = 1.0 if co.z < 1.6 and abs(co.y - 2.4) > 0.3 else 0.5
-        trunk = 1.0 if abs(co.y - 2.4) < 0.25 and co.z < 2.2 else 0.0
-        crease = noise.noise(Vector((co.x * 3.0, co.y * 3.0, co.z * 22.0))) * (0.024 * leg + 0.014 * trunk)
-        fold = noise.noise(Vector((co.x * 1.4, co.y * 1.4, co.z * 1.4)) + Vector((3.1, 7.2, 1.3))) * 0.02
-        v.co = co + v.normal * (crease + fold)
+        d = noise.noise(Vector((co.x * 0.9, co.y * 0.9, co.z * 0.9)) + Vector((3.1, 7.2, 1.3))) * 0.05   # big folds
+        n = noise.noise(Vector((co.x * 2.0, co.y * 2.0, co.z * 2.0)))
+        if co.z < 1.75 and co.y < 2.2:   # the legs: horizontal ring creases
+            d += 0.016 * math.sin(co.z * (17.0 + 6.0 * n) + n * 6.0) * (0.6 + 0.4 * n)   # irregular creases
+        if co.y > 2.25 and co.z < 2.1:   # the trunk
+            d += 0.012 * math.sin(co.z * 30.0 + n * 3.0)
+        if 1.15 < co.y < 1.75 and co.z > 1.8:   # the neck rolls
+            d += 0.03 * math.sin(co.y * 16.0 + n)
+        v.co = co + v.normal * d
     me.update()
     for poly in me.polygons:
         poly.use_smooth = True
@@ -159,19 +165,19 @@ def _hide_material(color):
     L.new(tc.outputs['Object'], mp.inputs['Vector'])
     vor = N.new('ShaderNodeTexVoronoi')
     vor.feature = 'DISTANCE_TO_EDGE'
-    vor.inputs['Scale'].default_value = 34.0
+    vor.inputs['Scale'].default_value = 9.0
     L.new(mp.outputs['Vector'], vor.inputs['Vector'])
     wav = N.new('ShaderNodeTexWave')
     wav.bands_direction = 'Z'
-    wav.inputs['Scale'].default_value = 30.0
-    wav.inputs['Distortion'].default_value = 9.0
+    wav.inputs['Scale'].default_value = 14.0
+    wav.inputs['Distortion'].default_value = 2.5
     L.new(mp.outputs['Vector'], wav.inputs['Vector'])
     mx = N.new('ShaderNodeMath')
     mx.operation = 'MINIMUM'
-    L.new(vor.outputs['Distance'], mx.inputs[0])
+    L.new(wav.outputs['Fac'], mx.inputs[0])   # broad wave creases only (voronoi cells read as sponge)
     L.new(wav.outputs['Fac'], mx.inputs[1])
     bump = N.new('ShaderNodeBump')
-    bump.inputs['Strength'].default_value = 0.9
+    bump.inputs['Strength'].default_value = 0.6
     bump.inputs['Distance'].default_value = 0.025
     L.new(mx.outputs['Value'], bump.inputs['Height'])
     L.new(bump.outputs['Normal'], p.inputs['Normal'])
@@ -182,19 +188,27 @@ def _tusks(p, colors):
     """The tusks, toenails, eyes and tail tuft (not fused): returns the tusk axes."""
     axes = []
     for sx in (-1, 1):
-        path, radii = _resample([(sx * 0.22, 2.12, 2.2), (sx * 0.27, 2.5, 1.78), (sx * 0.3, 2.78, 1.38), (sx * 0.31, 2.9, 1.08)],
+        path, radii = _resample([(sx * 0.27, 2.25, 2.15), (sx * 0.32, 2.62, 1.75), (sx * 0.35, 2.9, 1.36), (sx * 0.36, 3.02, 1.06)],
                                 [0.1, 0.085, 0.06, 0.02], 24)
         p.add(props.tube([tuple(v) for v in path], radii, seg=14), 'ivory', smooth=True)
         axes.append(path)
-        p.add(props.ellipsoid(0.04, 0.03, 0.03, seg=10), 'eye', T(sx * 0.42, 2.12, 2.72), smooth=True)
+        p.add(props.ellipsoid(0.04, 0.03, 0.03, seg=10), 'eye', T(sx * 0.52, 2.22, 2.72), smooth=True)
     for y in (FRONT_Y, REAR_Y):
         for sx in (-1, 1):
             for k in range(4 if y == FRONT_Y else 3):
                 a = math.radians(-50 + 100 * k / (3 if y == FRONT_Y else 2))
                 p.add(props.ellipsoid(0.07, 0.05, 0.06, seg=10), 'nail',
-                      T(sx * 0.5 + 0.3 * math.sin(a), y + 0.02 + 0.3 * math.cos(a), 0.06), smooth=True)
+                      T(sx * 0.58 + 0.38 * math.sin(a), y + 0.02 + 0.38 * math.cos(a), 0.06), smooth=True)
     p.add(props.ellipsoid(0.06, 0.06, 0.16, seg=10), 'tuft', T(0, -1.94, 1.25), smooth=True)
     return axes
+
+
+def _meander_unit(p, place, s):
+    """One Greek-key hook (a square spiral) in gold strips: place(u, v) maps
+    the unit's local (along, up) meters onto the surface; s is the step."""
+    pts = [(0, 0), (0, 3), (3, 3), (3, 1), (1.5, 1), (1.5, 2)]
+    q = [place(u * s, v * s) for u, v in pts]
+    p.add(props.tube([tuple(v) for v in q], s * 0.28, seg=5), 'gold', smooth=True)
 
 
 def war_gear(root, body, tusk_axes, colors):
@@ -219,6 +233,21 @@ def war_gear(root, body, tusk_axes, colors):
             m = a.lerp(b, 0.5) + Vector((0, 0, 0.13))
             out = Vector((m.x, 0, 0)).normalized() * 0.012
             p.add(props.box(0.012, (b - a).length * 0.42, 0.1 if j % 2 else 0.05), 'gold', T(*(m + out)))
+    # the Greek-key meander on each flank, in a band above the hem, projected onto the cloth
+    cap_vs = [Vector(v) for r in rings for v in r]
+    for sx in (-1, 1):
+        side = [v for v in cap_vs if v.x * sx > 0.3]
+        if not side:
+            continue
+        zb = min(v.z for v in side) + 0.2
+        def on_cloth(y, z, sx=sx, side=side):
+            near = min(side, key=lambda v: (v.y - y) ** 2 + (v.z - z) ** 2)
+            return Vector((near.x + sx * 0.02, y, z))
+        for y0 in [ymid - 0.85 + 0.16 * i for i in range(11)]:
+            _meander_unit(p, lambda u, v, y0=y0, zb=zb, on=on_cloth: on(y0 + u, zb + v), 0.035)
+        for z in (zb - 0.03, zb + 0.15):
+            pts = [on_cloth(ymid - 0.88 + 0.06 * i, z) for i in range(30)]
+            p.add(props.tube([tuple(q) for q in pts], 0.014, seg=5), 'gold', smooth=True)
     # girth and breast straps
     for y in (ymid - 0.2, ymid + 0.95):
         ring = [(math.sin(a) * 0.84, y, 2.22 + math.cos(a) * 0.86) for a in [math.pi * (i / 16.0 - 0.5) * 2 for i in range(17)]]
@@ -227,31 +256,54 @@ def war_gear(root, body, tusk_axes, colors):
     hz, hy = top + 0.06, ymid - 0.05
     p.add(props.box(1.05, 1.2, 0.12), 'howdah', T(0, hy, hz + 0.06), bevel=0.02)
     for sx in (-1, 1):
-        for k in range(5):
+        for k in range(3):
             p.add(props.box(0.07, 1.18, 0.11), 'howdah', T(sx * 0.5, hy, hz + 0.2 + 0.12 * k), bevel=0.012)
     for sy in (-1, 1):
-        for k in range(5):
+        for k in range(3):
             p.add(props.box(1.05, 0.07, 0.11), 'howdah', T(0, hy + sy * 0.57, hz + 0.2 + 0.12 * k), bevel=0.012)
     for sx in (-1, 1):
         for sy in (-1, 1):
-            vkit.rod(p, (sx * 0.5, hy + sy * 0.57, hz + 0.1), (sx * 0.5, hy + sy * 0.57, hz + 1.3), 0.035, 'howdah')
-    p.add(props.box(1.32, 1.45, 0.1), 'tint', T(0, hy, hz + 1.34), bevel=0.03, tint=True)
-    p.add(props.box(1.36, 1.49, 0.045), 'gold', T(0, hy, hz + 1.27), bevel=0.01)
-    for w, l in ((1.0, 1.1), (0.7, 0.8)):   # the key frame on the roof
-        for sx in (-1, 1):
-            p.add(props.box(0.035, l, 0.02), 'gold', T(sx * w / 2, hy, hz + 1.4))
+            vkit.rod(p, (sx * 0.5, hy + sy * 0.57, hz + 0.1), (sx * 0.5, hy + sy * 0.57, hz + 0.86), 0.04, 'howdah')
+    top_rail = hz + 0.5
+    for sx in (-1, 1):   # a railing of turned balusters along the sides, a rail on top
+        p.add(props.box(0.06, 1.18, 0.05), 'howdah', T(sx * 0.5, hy, top_rail + 0.2), bevel=0.01)
+        for k in range(7):
+            vkit.rod(p, (sx * 0.5, hy - 0.5 + k / 6.0, top_rail), (sx * 0.5, hy - 0.5 + k / 6.0, top_rail + 0.2), 0.018, 'howdah', seg=6)
+    for sy in (-1, 1):
+        p.add(props.box(1.05, 0.06, 0.05), 'howdah', T(0, hy + sy * 0.57, top_rail + 0.2), bevel=0.01)
+        for k in range(6):
+            vkit.rod(p, (-0.45 + 0.9 * k / 5.0, hy + sy * 0.57, top_rail), (-0.45 + 0.9 * k / 5.0, hy + sy * 0.57, top_rail + 0.2), 0.018, 'howdah', seg=6)
+    for sx in (-1, 1):   # gold finials on the corner posts
         for sy in (-1, 1):
-            p.add(props.box(w, 0.035, 0.02), 'gold', T(0, hy + sy * l / 2, hz + 1.4))
+            p.add(props.ellipsoid(0.05, 0.05, 0.06, seg=10), 'gold', T(sx * 0.5, hy + sy * 0.57, hz + 0.78), smooth=True)
+    rz = hz + 0.9   # the canopy, low over the howdah
+    for sx in (-1, 1):   # a gold fringe of tassels hanging from the canopy's edges
+        for k in range(12):
+            y = hy - 0.72 + 1.44 * k / 11.0
+            p.add(props.lathe([(0.0, 0.025), (0.09, 0.012)], seg=6), 'gold', T(sx * 0.71, y, rz - 0.15), smooth=True)
+    for sy in (-1, 1):
+        for k in range(11):
+            x = -0.65 + 1.3 * k / 10.0
+            p.add(props.lathe([(0.0, 0.025), (0.09, 0.012)], seg=6), 'gold', T(x, hy + sy * 0.78, rz - 0.15), smooth=True)
+    p.add(props.box(1.4, 1.55, 0.1), 'tint', T(0, hy, rz), bevel=0.03, tint=True)
+    p.add(props.box(1.44, 1.59, 0.045), 'gold', T(0, hy, rz - 0.07), bevel=0.01)
+    for sx in (-1, 1):   # the gold frame and meander on the roof
+        p.add(props.box(0.04, 1.35, 0.02), 'gold', T(sx * 0.6, hy, rz + 0.06))
+    for sy in (-1, 1):
+        p.add(props.box(1.24, 0.04, 0.02), 'gold', T(0, hy + sy * 0.67, rz + 0.06))
+    for sy in (-1, 1):
+        for y0 in [hy - 0.55 + 0.16 * i for i in range(8)]:
+            _meander_unit(p, lambda u, v, y0=y0, sy=sy: Vector((sy * (0.5 - v), y0 + u, rz + 0.06)), 0.035)
     # silver shields with gold rims, and gold-shafted spears forward
     for sx in (-1, 1):
-        sh = props.lathe([(0.0, 0.3), (0.03, 0.28), (0.07, 0.16), (0.09, 0.0)], seg=28)
-        p.add(sh, 'silver', T(sx * 0.58, hy, hz + 0.5) @ R('Y', sx * 90), smooth=True)
-        p.add(props.lathe([(0.0, 0.32), (0.035, 0.31)], seg=28), 'gold', T(sx * 0.57, hy, hz + 0.5) @ R('Y', sx * 90), smooth=True)
-        for k, dz in enumerate((0.45, 0.68, 0.9)):
-            a = (sx * 0.42, hy - 0.6 + 0.1 * k, hz + dz)
-            e = (sx * 0.8, hy + 1.35 + 0.1 * k, hz + dz + 0.3)
-            vkit.rod(p, a, e, 0.018, 'gold', seg=6)
-            p.add(props.lathe([(0.0, 0.03), (0.16, 0.0)], seg=4), 'steel',
+        sh = props.lathe([(0.0, 0.44), (0.04, 0.42), (0.1, 0.28), (0.13, 0.12), (0.2, 0.0)], seg=32)   # a big domed shield, its boss
+        p.add(sh, 'silver', T(sx * 0.6, hy, hz + 0.45) @ R('Y', sx * 90), smooth=True)
+        p.add(props.lathe([(0.0, 0.47), (0.05, 0.46)], seg=32), 'gold', T(sx * 0.59, hy, hz + 0.45) @ R('Y', sx * 90), smooth=True)
+        for k, dz in enumerate((0.55, 0.8)):
+            a = (sx * 0.45, hy - 0.5, hz + dz)
+            e = (sx * (0.75 + 0.15 * k), hy + 1.55, hz + dz + 0.35 - 0.2 * k)
+            vkit.rod(p, a, e, 0.03, 'gold', seg=8)
+            p.add(props.lathe([(0.0, 0.05), (0.24, 0.0)], seg=4), 'steel',
                   Matrix.Translation(e) @ (Vector(e) - Vector(a)).normalized().to_track_quat('Z', 'Y').to_matrix().to_4x4())
     # the forehead disc: silver in a gold ring
     m = T(*DISC) @ R('X', -72)
@@ -270,13 +322,13 @@ def war_gear(root, body, tusk_axes, colors):
     p.finish()
 
 
-ELEPHANT_COLORS = {'skin': '#a8936c', 'gold': '#c8a458', 'wood': '#5a3e28'}
+ELEPHANT_COLORS = {'skin': '#8c7a60', 'gold': '#c8a458', 'wood': '#5a3e28'}
 
 
 def build(unit, entry):
     e = dict(entry.get('elephant', {}))
     c = dict(ELEPHANT_COLORS)
-    for k in ('skin', 'gold', 'wood'):
+    for k in ('gold', 'wood'):   # (not the catalog's grey skin: the original reads warm tan)
         if e.get(k):
             c[k] = e[k]
     root = vkit.root(unit)
