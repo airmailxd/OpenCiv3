@@ -4,6 +4,7 @@
     python ArtGen/units3d/install_pc.py --apply      # do it (only with stzur's approval)
     python ArtGen/units3d/install_pc.py --apply --with-frozen   # also the riders and chariots
 
+Stage only the installed units by name when committing (never `git add -A` on Units/).
 For each unit: the folder C7/ModernArt/Art/Units/<Unit>/ loses its old .png
 and .json files except the <Unit>_32.png thumbnail, then gets the sheets from
 ArtGen/_previews/units3d/sheets/<Unit>/ (as build.py --install does). Units
@@ -61,7 +62,14 @@ def frozen():
         return []
 
 
+# compose still writes 8 rows for flics drawn in 1-2 directions; these units' installed sheets were
+# hand-cropped for v0.8.1, so they are never reinstalled from here (NEXT_PASS.md)
+NEVER = {'ICBM', 'Tactical Nuke', 'Cruise Missile', 'War Elephant', 'Samurai'}
+
+
 def install(unit, apply):
+    if unit in NEVER:
+        return f'SKIP {unit}: hand-cropped, or owned by the Mac (see NEVER)'
     src = os.path.join(SHEETS, unit)
     dst = os.path.join(UNITS_ART, unit)
     if not os.path.isdir(src) or not os.listdir(src):
