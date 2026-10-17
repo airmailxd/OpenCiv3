@@ -201,11 +201,25 @@ def morion(p, c, tinted, _):
 
 
 @hat('great_helm')
-def great_helm(p, c, tinted, _):
-    """A knight's great helm: a flat-topped steel pot over the whole head, a dark eye slit."""
+def great_helm(p, c, tinted, _, crest=None):
+    """A knight's great helm: a flat-topped steel pot over the whole head, a dark
+    eye slit, breaths and a riveted brow band; crest='horns' adds a pair of
+    curved horns (the Civ3 Knight's crest), 'plume' a tall civ plume."""
     p.add(props.lathe([(-0.2, 0.118), (0.06, 0.124), (0.08, 0.11), (0.09, 0.0)], seg=24), 'helmet',
           smooth=True)
     p.add(props.box(0.16, 0.02, 0.018), 'leather_dark', T(0, 0.118, -0.04), bevel=0.003)
+    p.add(props.box(0.012, 0.02, 0.2), 'leather_dark', T(0, 0.12, -0.08))   # the vertical reinforcing bar
+    p.add(props.lathe([(0.0, 0.127), (0.025, 0.127)], seg=24), 'gold', T(0, 0, 0.0), smooth=True)   # the gilt brow band
+    for sx in (-1, 1):
+        for k in range(3):   # breaths
+            p.add(props.box(0.012, 0.02, 0.006), 'leather_dark', T(sx * 0.05, 0.116, -0.1 - 0.025 * k))
+    if crest == 'horns':
+        for sx in (-1, 1):
+            p.add(props.tube([(sx * 0.07, 0, 0.07), (sx * 0.14, 0, 0.14), (sx * 0.15, 0.02, 0.24), (sx * 0.12, 0.04, 0.3)],
+                             [0.03, 0.025, 0.016, 0.004], seg=8), 'helmet', smooth=True)
+    elif crest == 'plume':
+        key, t_ = _k(True, 'plume')
+        p.add(props.tube([(0, 0, 0.08), (0, -0.04, 0.22), (0, -0.14, 0.26)], [0.03, 0.03, 0.006], seg=8), key, smooth=True, tint=t_)
 
 
 @hat('spiked_helm')

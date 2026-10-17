@@ -789,6 +789,32 @@ def asset_tack(root, body, colors, h=None):
             p.add(cap, 'tint', smooth=True, tint=True, keys=_dots(0.0))
         if rings:
             hem_line(rings, trim)
+    if h.get('full_caparison'):
+        knee = 0.66
+        y0, y1 = yh - 0.28, yf + 0.22   # from over the tail round the chest
+        per = h.get('stripe_period', 0.34)
+
+        def cap_keys(f, hem=knee):
+            c_ = f.calc_center_median()
+            if c_.z < hem + 0.16 and c_.z > hem + 0.08:          # the gold band above the hem
+                return ('trim', False)
+            if abs(c_.x) > 0.2 and ((c_.y - y0) % per) < 0.05:    # the vertical gold stripes on the flanks
+                return ('trim', False)
+            return None
+        cap, crings = drape(vs, y0, y1, knee, gap=0.07, folds=0.02, flare=0.1, zmin=0.7)
+        p.add(cap, 'tint', smooth=True, tint=True, keys=cap_keys)
+        hem_line(crings, 'trim')
+        # the chest piece: civ cloth over the breast, its gold band
+        chest, chrings = drape(vs, ys + 0.1, yf + 0.3, knee + 0.04, gap=0.07, folds=0.015, zmin=0.6)
+        p.add(chest, 'tint', smooth=True, tint=True, keys=lambda f: cap_keys(f, knee + 0.04))
+        hem_line(chrings, 'trim')
+    if h.get('peytral'):
+        # a steel breastplate showing above the chest cloth, riveted
+        arc = _girth_arc(vs, sec[3] + 0.18, True, sec, ys)
+        if arc:
+            p.add(props.tube(arc[1:-1], 0.075, seg=8, scale_xy=(1.0, 0.35)), 'barding_mail', smooth=True)
+            for q in arc[1:-1]:
+                p.add(props.ellipsoid(0.016, 0.016, 0.016, seg=6), 'trim', T(*(q + Vector((0, 0.03, 0.04)))), smooth=True)
     if blanket is not None and h.get('saddle_visible', True):
         pad = _shrink_patch('saddle', body, [-0.24 + 0.48 * i / 12 for i in range(13)],
                             [ys - 0.22 + 0.42 * j / 10 for j in range(11)], top, 0.05 if blanket not in ('barding', 'dots') else 0.09)
@@ -812,10 +838,20 @@ def asset_tack(root, body, colors, h=None):
         front = axis.cross(Vector((1, 0, 0))).normalized()
         if front.z < 0:
             front = -front
-        plate = props.ellipsoid(0.075, 0.03, 0.26, seg=14)
         rot = axis.to_track_quat('Z', 'Y').to_matrix().to_4x4()
         ck = 'tint' if h.get('chanfron') == 'tint' else 'barding_mail'   # a civ-colored cloth face piece
-        p.add(plate, ck, Matrix.Translation(mid + front * 0.1) @ rot, smooth=True, tint=ck == 'tint')
+        if h.get('chanfron') == 'steel':
+            m = Matrix.Translation(mid + front * 0.11) @ rot
+            p.add(props.ellipsoid(0.11, 0.045, 0.34, seg=18), ck, m, smooth=True)                      # the face plate
+            p.add(props.ellipsoid(0.02, 0.03, 0.3, seg=8), 'barding_dark', m @ T(0, 0.04, 0.02), smooth=True)   # the central ridge
+            p.add(props.lathe([(0.0, 0.03), (0.12, 0.0)], seg=8), 'trim', m @ T(0, 0.06, 0.12) @ R('X', -70), smooth=True)  # the spike
+            for sx in (-1, 1):   # ear guards and a row of rivets along the edges
+                p.add(props.lathe([(0.0, 0.045), (0.1, 0.02)], seg=10), ck, m @ T(sx * 0.07, -0.02, 0.3) @ R('Y', sx * 15), smooth=True)
+                for k in range(6):
+                    p.add(props.ellipsoid(0.012, 0.012, 0.012, seg=6), 'trim', m @ T(sx * 0.09, 0.03, -0.25 + 0.1 * k), smooth=True)
+        else:
+            plate = props.ellipsoid(0.075, 0.03, 0.26, seg=14)
+            p.add(plate, ck, Matrix.Translation(mid + front * 0.1) @ rot, smooth=True, tint=ck == 'tint')
     if h.get('neck_cover') == 'cloth':
         # a civ-colored cloth over the chest and the base of the neck (Egyptian chariot horses)
         front, frings = drape(vs, ys + 0.22, yf + 0.12, 0.95, gap=0.03, folds=0.012)
@@ -826,6 +862,21 @@ def asset_tack(root, body, colors, h=None):
         nb = arm.pose.bones['Bone.001']
         n0, n1 = arm.matrix_world @ nb.head, arm.matrix_world @ nb.tail
         rings = [r for r in (_head_ring(vs, n0, n1, t, grow=0.02) for t in (0.12, 0.3, 0.48, 0.66, 0.84)) if r]
+        if h.get('neck_cover') == 'lames':
+            # overlapping steel plates over the top of the neck, a dark seam and rivets on each
+            for i, t_ in enumerate([0.08 + 0.085 * k for k in range(10)]):
+                r = _head_ring(vs, n0, n1, t_, grow=0.03 + 0.004 * (i % 2))
+                if not r:
+                    continue
+                top_arc = [q for q in r if q.z > sum(v.z for v in r) / len(r)]
+                if len(top_arc) < 3:
+                    continue
+                top_arc.sort(key=lambda q: q.x)
+                p.add(props.tube(top_arc, 0.05, seg=6, scale_xy=(0.35, 1.0)), 'barding_mail', smooth=True)
+                p.add(props.tube(top_arc, 0.012, seg=5), 'barding_dark', T(0, 0, -0.03), smooth=True)
+                hi = max(top_arc, key=lambda q: q.z)
+                p.add(props.ellipsoid(0.014, 0.014, 0.014, seg=6), 'trim', T(*(hi + Vector((0, 0, 0.035)))), smooth=True)
+            rings = []
         if len(rings) >= 2:
             sleeve = props.loft(rings, False, False)
             cloth_cover = h.get('neck_cover') == 'cloth'
@@ -936,7 +987,7 @@ HORSE_COAT_OVERRIDES = {
     'Mounted Warrior': {'coat': '#b08a58', 'coat2': '#ddd5c4', 'mane': '#3a2e22', 'points': '#c8bca8'},
     'Ancient Cavalry': {'coat': '#a88a5e', 'mane': '#2a2018', 'points': '#2e2418'},
     'Rider': {'coat': '#c8c8c4', 'dapple': '#9a9a98', 'mane': '#e0ded8', 'points': '#8a8a88'},
-    'Knight': {'coat': '#9a9a98', 'mane': '#3a3836', 'points': '#4a4846'},
+    'Knight': {'coat': '#9a9a98', 'mane': '#3a3836', 'points': '#8a8c90'},   # the lower legs grey as mail
     'Keshik': {'coat': '#7a4826', 'mane': '#1a120c', 'points': '#20160e'},
     'Sipahi': {'coat': '#6a4428', 'mane': '#2a1c12', 'points': '#2a1c12'},
     'Conquistador': {'coat': '#a0a0a2', 'dapple': '#5c5c60', 'mane': '#2a2826', 'points': '#3a3836'},
@@ -948,6 +999,9 @@ HORSE_COAT_OVERRIDES = {
 
 # The originals' tack the catalog doesn't describe (see DETAIL_AUDIT_PC.md)
 TACK_OVERRIDES = {
+    # Civ3's Knight: fully barded, a civ caparison banded in gold from chest to rump, steel crinet, chanfron and peytral
+    'Knight': {'full_caparison': True, 'neck_cover': 'lames', 'chanfron': 'steel', 'peytral': True, 'caparison_over': False,
+               'blanket': 'barding'},
     'Horseman': {'nose_wrap': True, 'breast_strap': 'leather_dark'},
     'Rider': {'breast_strap': 'trim', 'crupper': 'trim', 'tassels': 'trim', 'plume': True, 'plume_tint': False,
               'bedroll': True, 'bow_case': True, 'cloth_emblem': 'blanket2', 'emblem_ys': [0.0, -0.5],
