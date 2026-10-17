@@ -4,7 +4,8 @@
         <Unit> <out folder> [--actions workerMine,workerRun] [--frames 0,5] [--rows 0,...] [--samples N]
 
 Builds the unit once (as render_unit.py, without its weapon) and, for each
-action of anim.ACTIONS[<Unit>] (all by default), poses every frame and renders
+action of anim.ACTIONS[<Unit>], or of the templates for its weapon class
+(anim.template_actions), all by default,, poses every frame and renders
 it in the 8 directions into <out>/<action>/f<frame:03d>/ (the passes
 compose.py reads).
 """
@@ -34,16 +35,19 @@ def main(argv):
     B.tint_aov()
     catalog = json.load(open(os.path.join(HERE, '..', '_previews', 'units3d', 'catalog.json')))
     entry = remaster.apply(unit, catalog[unit])
-    root, ctx = anim.setup(entry)
+    cal = json.load(open(os.path.join(HERE, 'calibration', f'{unit}.json')))
+    own = unit not in anim.ACTIONS
+    actions = anim.ACTIONS[unit] if not own else anim.template_actions(entry, cal)
+    if not actions:
+        raise SystemExit(f'{unit}: no animated actions (its weapon class has no templates)')
+    root, ctx = anim.setup(entry, own_gear=own)
     k = entry.get('unit_scale', 1.0)
     if k != 1.0:
         root.scale = tuple(v * k for v in root.scale)
-    cal = json.load(open(os.path.join(HERE, 'calibration', f'{unit}.json')))
     B.camera(480, 480, cal['fit']['ppm_2x'], tuple(c * 2 for c in cal['anchor']))
     B.outputs(out)
     node = next(n for n in scene.node_tree.nodes if n.bl_idname == 'CompositorNodeOutputFile')
     rows = [int(r) for r in opts.get('--rows', '0,1,2,3,4,5,6,7').split(',')]
-    actions = anim.ACTIONS[unit]
     names = opts['--actions'].split(',') if '--actions' in opts else list(actions)
     for name in names:
         action = actions[name]

@@ -734,6 +734,12 @@ WEAPON_STANCE = {
 }
 
 
+def stance_of(entry):
+    """The stance units.equip poses the entry in."""
+    weapon, offhand = entry.get('weapon'), entry.get('offhand')
+    return entry.get('stance_name') or WEAPON_STANCE.get(weapon or ('bow' if offhand == 'bow' else None), 'hang')
+
+
 def equip(entry, arm):
     c = _colors(entry)
     weapon = entry.get('weapon')

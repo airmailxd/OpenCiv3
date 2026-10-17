@@ -261,14 +261,124 @@ WORKER = {
 ACTIONS = {'Worker': WORKER}
 
 
+# ------------------------------------------------------------ templates
+# Generic actions for the foot units without their own (ACTIONS), by weapon
+# class. They keep the unit's own weapon and shield (built by units.equip),
+# start from its own stance (so its carry is kept) and override only the bones
+# they move; 'tool' re-holds the unit's own weapon in the right fist ('own').
+# Rendered with at most CAP columns (the game spreads them over the flic's frames).
+CAP = 8
+LUNGE = {'thigh_l': (0.2, -0.75, -0.75), 'calf_l': (0.1, 0.05, -1), 'foot_l': (0.4, -1, -0.3),
+         'thigh_r': (-0.2, 0.45, -1), 'calf_r': (-0.1, 0.65, -0.8), 'foot_r': (-0.3, -0.6, -1)}
+
+
+def _death():
+    """Struck, recoils, the knees go, falls on his back."""
+    return {'frames': CAP, 'loop': False, 'keys': [
+        (0, {}),
+        (1, K(bend(-0.3, head=0.6), upperarm_l=(0.7, 0.2, 0.3), lowerarm_l=(0.8, 0.2, 0.5),
+              upperarm_r=(-0.7, 0.2, 0.3), lowerarm_r=(-0.8, 0.2, 0.5))),
+        (3, K(SQUAT, bend(0.1, head=0.4), upperarm_l=(0.8, 0.0, 0.1), lowerarm_l=(0.9, 0.0, 0.3),
+              upperarm_r=(-0.8, 0.0, 0.1), lowerarm_r=(-0.9, 0.0, 0.3), tilt=25)),
+        (5, K(SQUAT, bend(-0.1, head=0.3), upperarm_l=(0.9, 0.1, 0.4), lowerarm_l=(0.8, 0.2, 0.6),
+              upperarm_r=(-0.9, 0.1, 0.4), lowerarm_r=(-0.8, 0.2, 0.6), tilt=70)),
+        (6, K(head=(0, 0.15, 1), upperarm_l=(1, 0.1, 0.1), lowerarm_l=(1, 0.0, 0.0), upperarm_r=(-1, 0.1, 0.1),
+              lowerarm_r=(-1, 0.0, 0.0), thigh_l=(0.22, -0.4, -1), calf_l=(0.14, 0.3, -1),
+              thigh_r=(-0.22, -0.3, -1), calf_r=(-0.14, 0.3, -1), tilt=90)),
+        (7, K(head=(0, 0.15, 1), upperarm_l=(0.6, 0.1, -0.8), lowerarm_l=(0.4, 0.0, -1), upperarm_r=(-0.6, 0.1, -0.8),
+              lowerarm_r=(-0.4, 0.0, -1), thigh_l=(0.22, -0.25, -1), calf_l=(0.14, 0.2, -1),
+              thigh_r=(-0.22, -0.2, -1), calf_r=(-0.14, 0.2, -1), tilt=90)),
+    ]}
+
+
+def _run():
+    """A trot in place, two steps a cycle, the arms keeping the unit's carry."""
+    keys = []
+    for f, legs in [
+            (0, {'thigh_r': (-0.12, -0.75, -0.8), 'calf_r': (-0.08, -0.15, -1), 'foot_r': (-0.3, -1, 0.0),
+                 'thigh_l': (0.12, 0.45, -1), 'calf_l': (0.08, 0.85, -0.7), 'foot_l': (0.3, -0.2, -1)}),
+            (2, {'thigh_r': (-0.12, -0.2, -1), 'calf_r': (-0.08, 0.1, -1), 'thigh_l': (0.12, -0.3, -1),
+                 'calf_l': (0.08, 0.7, -1)}),
+            (4, {'thigh_l': (0.12, -0.75, -0.8), 'calf_l': (0.08, -0.15, -1), 'foot_l': (0.3, -1, 0.0),
+                 'thigh_r': (-0.12, 0.45, -1), 'calf_r': (-0.08, 0.85, -0.7), 'foot_r': (-0.3, -0.2, -1)}),
+            (6, {'thigh_l': (0.12, -0.2, -1), 'calf_l': (0.08, 0.1, -1), 'thigh_r': (-0.12, -0.3, -1),
+                 'calf_r': (-0.08, 0.7, -1)})]:
+        keys.append((f, K(bend(0.12), legs)))
+    return {'frames': CAP, 'loop': True, 'keys': keys}
+
+
+def _melee_attack():
+    """A one-handed blow: the weapon raised behind the head, a lunging strike low in front, back."""
+    return {'frames': CAP, 'loop': False, 'keys': [
+        (0, {}),
+        (2, K(bend(-0.1, head=0.4), WIDE, R_((-0.45, 0.3, 0.85), (-0.1, 0.65, 0.75)))),
+        (4, K(bend(0.45), LUNGE, R_((-0.15, -0.9, -0.35), (0.15, -0.85, -0.5)))),
+        (5, K(bend(0.5), LUNGE, R_((-0.05, -0.75, -0.65), (0.45, -0.55, -0.7)))),
+        (7, {}),
+    ]}
+
+
+def _spear_attack():
+    """A thrust: the spear levelled and drawn back, driven forward in a lunge, back to the carry."""
+    level = ((0, -1, 0.06), (1, 0, 0))
+    return {'frames': CAP, 'loop': False, 'tool': 'own', 'keys': [
+        (0, {}),
+        (2, K(WIDE, bend(0.1), R_((-0.35, 0.45, -0.8), (-0.05, -0.6, 0.15)), tool=level)),
+        (4, K(LUNGE, bend(0.4), R_((-0.12, -0.95, 0.1), (0.0, -1, 0.05)), tool=level)),
+        (5, K(LUNGE, bend(0.4), R_((-0.12, -0.95, 0.1), (0.0, -1, 0.05)), tool=level)),
+        (7, {}),
+    ]}
+
+
+def _bow_attack():
+    """A shot: the bow raised at arm's length, the string drawn to the cheek, loosed, lowered."""
+    bow_arm = L_((0.15, -1, 0.1), (0.05, -1, 0.08))
+    return {'frames': CAP, 'loop': False, 'keys': [
+        (0, {}),
+        (2, K(WIDE, bow_arm, R_((-0.3, -0.7, 0.0), (0.4, -0.85, 0.1)))),
+        (4, K(WIDE, bow_arm, R_((-0.75, 0.45, 0.15), (0.75, -0.6, 0.15)))),
+        (5, K(WIDE, bow_arm, R_((-0.8, 0.5, 0.2), (-0.3, 0.4, 0.4)), hide_tool=True)),
+        (7, {}),
+    ]}
+
+
+ATTACKS = {'melee': _melee_attack, 'spear': _spear_attack, 'bow': _bow_attack}
+
+
+def weapon_class(entry):
+    """The template class of a foot unit: from the stance units.equip gives it."""
+    stance = units.stance_of(entry)
+    if stance == 'bow_low':
+        return 'bow'
+    if stance in ('upright', 'stand_staff') and entry.get('weapon') in ('spear', 'pike', 'cav_spear', 'partisan', 'glaive'):
+        return 'spear'
+    if stance in ('hang', 'guard'):
+        return 'melee'
+    return None
+
+
+def template_actions(entry, calibration):
+    """{flic name: action} for the unit's ATTACK1, DEATH and RUN flics, or {} if its class has no templates."""
+    cls = weapon_class(entry)
+    if cls is None:
+        return {}
+    made = {'ATTACK1': ATTACKS[cls], 'DEATH': _death, 'RUN': _run}
+    out = {}
+    for flic_file, f in calibration['flics'].items():
+        for act in f['actions']:
+            if act in made:
+                out[flic_file.rsplit('.', 1)[0]] = made[act]()
+    return out
+
+
 # ------------------------------------------------------------ playback
 
 def _ease(t):
     return t * t * (3 - 2 * t)
 
 
-def _merged(pose):
-    full = dict(BASE)
+def _merged(pose, base=None):
+    full = dict(base or BASE)
     full.update(pose)
     return full
 
@@ -277,9 +387,10 @@ def _mix(a, b, t):
     return Vector(a).normalized().lerp(Vector(b).normalized(), t).normalized()
 
 
-def pose_at(action, frame):
-    """The interpolated pose of `action` at `frame`: bone aims as Vectors, and the extras."""
-    keys = [(f, _merged(p)) for f, p in action['keys']]
+def pose_at(action, frame, base=None):
+    """The interpolated pose of `action` at `frame` (over `base`, BASE by
+    default): bone aims as Vectors, and the extras."""
+    keys = [(f, _merged(p, base)) for f, p in action['keys']]
     n = action['frames']
     if action.get('loop') and len(keys) > 1:
         keys = keys + [(keys[0][0] + n, keys[0][1])]
@@ -292,14 +403,18 @@ def pose_at(action, frame):
                 a, b, t = p0, p1, _ease((frame - f0) / (f1 - f0))
                 break
     pose = {bone: _mix(a[bone], b[bone], t) for bone in ORDER}
-    ta, tb = a.get('tool', b.get('tool')), b.get('tool', a.get('tool'))
-    if ta is not None:
+    ta, tb = a.get('tool'), b.get('tool')
+    if ta is not None and tb is not None:
         pose['tool'] = tuple(_mix(x, y, t) for x, y in zip(ta, tb))
+    elif (ta if t < 0.5 else tb) is not None:
+        # re-held at one key and not the other: switch halfway
+        pose['tool'] = tuple(Vector(v).normalized() for v in (ta if t < 0.5 else tb))
     pose['slide'] = a.get('slide', 0.0) * (1 - t) + b.get('slide', 0.0) * t
     pose['grip2'] = a.get('grip2') if t < 0.5 else b.get('grip2')
     ra, rb = a.get('reach_l'), b.get('reach_l')
     pose['reach_l'] = Vector(ra).lerp(Vector(rb), t) if ra and rb else (ra or rb)
     pose['tilt'] = a.get('tilt', 0.0) * (1 - t) + b.get('tilt', 0.0) * t
+    pose['hide_tool'] = a.get('hide_tool', False) if t < 0.5 else b.get('hide_tool', False)
     pose['drop'] = False
     for f, p in action['keys']:      # the last key at or before the frame that says
         if f <= frame and 'drop' in p:
@@ -311,16 +426,34 @@ class Context:
     def __init__(self, root, arm, mesh, colors):
         self.root, self.arm, self.mesh, self.colors = root, arm, mesh, colors
         self.made = {}
+        self.base = None          # the unit's own stance aims (templates), or BASE
+        self.weapon = None        # its own weapon in the right fist, and how it sits there
+        self.weapon_hold = None
+        # every pose bone's own transform as built, restored before each frame: aiming
+        # turns a bone by the least rotation from where it was, so without this the
+        # twist of the arms (and the weapon in the fist) would drift from frame to frame
+        self.built = {pb.name: pb.matrix_basis.copy() for pb in arm.pose.bones}
 
 
-def setup(entry):
-    """Builds the entry's human with no weapon of its own; the actions bring their tools."""
-    entry = dict(entry, weapon=None, offhand=None, props={})
+def setup(entry, own_gear=False):
+    """Builds the entry's human. Without own_gear it has no weapon of its own
+    (the actions bring their tools); with it, it keeps its weapon and shield and
+    its stance is the base the actions start from."""
+    if not own_gear:
+        entry = dict(entry, weapon=None, offhand=None, props={})
     root = units.build_footman(entry)
     arm = next(o for o in bpy.data.objects if o.type == 'ARMATURE')
     mesh = next(o for o in bpy.data.objects if o.type == 'MESH' and o.parent == arm
                 and any(m.type == 'ARMATURE' for m in o.modifiers) and len(o.data.vertices) > 10000)
-    return root, Context(root, arm, mesh, units._colors(entry))
+    ctx = Context(root, arm, mesh, units._colors(entry))
+    if own_gear:
+        # every bone as units.equip left it (its stance, and any reach to a second grip), armature space
+        ctx.base = {b: tuple((arm.pose.bones[b].tail - arm.pose.bones[b].head).normalized()) for b in ORDER}
+        ctx.weapon = next((o for o in bpy.data.objects if o.parent == arm and o.parent_bone == 'hand_r'
+                           and o.type == 'MESH'), None)
+        if ctx.weapon is not None:
+            ctx.weapon_hold = (ctx.weapon.matrix_basis.copy(), ctx.weapon.matrix_parent_inverse.copy())
+    return root, ctx
 
 
 def _prop(ctx, slot, spec):
@@ -350,17 +483,35 @@ def apply(ctx, action, frame):
     arm, root = ctx.arm, ctx.root
     for o in ctx.made.values():
         o.hide_render = True
-    pose = pose_at(action, frame)
+    pose = pose_at(action, frame, ctx.base)
     arm.rotation_euler.x = 0.0
+    for pb in arm.pose.bones:
+        pb.matrix_basis = ctx.built[pb.name]
+    H._update()
     H.pose(arm, [(b, tuple(pose[b])) for b in ORDER])
     H.fists(arm, sides='lr')
     H.plant(root, ctx.mesh)
     to_world = arm.matrix_world.to_3x3()
-    tool = _prop(ctx, 'r', action['tool']) if action.get('tool') else None
+    if ctx.weapon is not None:
+        # the unit's own weapon: back in the fist as it was built, unless the pose re-holds it
+        w = ctx.weapon
+        w.hide_render = bool(pose.get('hide_tool'))
+        if w.parent is not arm or w.parent_bone != 'hand_r':
+            w.parent, w.parent_type, w.parent_bone = arm, 'BONE', 'hand_r'
+        w.matrix_parent_inverse, w.matrix_basis = ctx.weapon_hold[1].copy(), ctx.weapon_hold[0].copy()
+        H._update()
+    if action.get('tool') == 'own':
+        tool = ctx.weapon
+    else:
+        tool = _prop(ctx, 'r', action['tool']) if action.get('tool') else None
     if tool is not None and not pose['drop'] and 'tool' in pose:
         up, face = (to_world @ v for v in pose['tool'])
         up.normalize()
         at = H.grip_point(arm, 'hand_r')
+        if tool is ctx.weapon:
+            mw = tool.matrix_world.copy()        # keep its world scale (the fist's scale would build up)
+            tool.parent = None
+            tool.matrix_world = mw
         H.hold(tool, arm, 'hand_r', at - up * pose['slide'], up=tuple(up), forward=tuple(face))
         if pose.get('grip2') is not None:
             H.reach(arm, 'l', at - up * pose['grip2'], elbow_out=0.6)
