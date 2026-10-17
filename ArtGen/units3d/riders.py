@@ -113,22 +113,45 @@ def _modern_helmet(p, c, tinted, crest, band=False, net=False, camo=False):
 
 
 @hat('papakha')
-def papakha(p, c, tinted, _):
-    """A Cossack's tall fur hat."""
+def papakha(p, c, tinted, _, low=False):
+    """A Cossack's tall fur hat; low=True: Civ3's Cossack's low tan fur drum
+    with a civ cloth top crossed by a gold braid."""
+    if low:
+        p.add(props.lathe([(0.0, 0.116), (0.015, 0.126), (0.1, 0.128), (0.115, 0.12)], seg=28), 'fur', smooth=True)
+        key, t = _k(tinted, 'hat')
+        p.add(props.lathe([(0.09, 0.112), (0.13, 0.095), (0.15, 0.0)], seg=28), key, smooth=True, tint=t)
+        for a in (0, 90):   # the braided cross over the top
+            p.add(props.tube([(-0.1, 0, 0.125), (0, 0, 0.152), (0.1, 0, 0.125)], 0.008, seg=6), 'gold',
+                  T(0, 0, 0) @ R('Z', a), smooth=True)
+        return
     key, t = _k(tinted, 'fur')
     p.add(props.lathe([(0.0, 0.112), (0.02, 0.118), (0.17, 0.12), (0.19, 0.11), (0.2, 0.0)], seg=24), key,
           smooth=True, tint=t)
 
 
 @hat('shako')
-def shako(p, c, tinted, plume_tinted):
-    """A hussar's shako: a flaring cylinder, a peak in front, a plume."""
+def shako(p, c, tinted, plume_tinted, cords=False):
+    """A hussar's shako: a flaring cylinder, a peak in front, a plume;
+    cords=True adds the gold top band, cockade and cords swagged across the front."""
     key, t = _k(tinted, 'hat')
+    if cords:
+        p.add(props.lathe([(0.17, 0.123), (0.2, 0.125)], seg=24), 'gold', smooth=True)   # the top band
+        p.add(props.ellipsoid(0.03, 0.012, 0.03, seg=12), 'gold', T(0, 0.12, 0.165), smooth=True)   # the cockade
+        for k in range(2):   # two cords swagged across the front, ending in flounders at the side
+            z = 0.06 - 0.035 * k
+            pts = [(-0.11, 0.05, z + 0.06), (-0.06, 0.11, z), (0.0, 0.125, z - 0.015), (0.06, 0.11, z), (0.11, 0.05, z + 0.06)]
+            p.add(props.tube(pts, 0.009, seg=6), 'gold', smooth=True)
+        p.add(props.tube([(0.115, 0.03, 0.12), (0.13, 0.0, 0.0), (0.12, -0.04, -0.12)], [0.009, 0.009, 0.006], seg=6),
+              'gold', smooth=True)   # the cord down to the shoulder
     p.add(props.lathe([(0.0, 0.105), (0.19, 0.12), (0.2, 0.0)], seg=24), key, smooth=True, tint=t)
     p.add(props.lathe([(0.0, 0.11), (0.02, 0.11)], seg=24), 'leather_dark', smooth=True)
     visor = props.slab([(-0.09, 0.0), (0.09, 0.0), (0.07, 0.05), (-0.07, 0.05)], 0.008, 'X')
     p.add(visor, 'leather_dark', T(0, 0.1, 0.01) @ R('Z', 90) @ R('X', -20), bevel=0.002)
     pk, pt = _k(plume_tinted, 'plume')
+    if cords:   # a taller plume, bushy at the top
+        p.add(props.tube([(0, 0.08, 0.18), (0, 0.085, 0.3), (0, 0.075, 0.4), (0, 0.06, 0.45)], [0.018, 0.034, 0.03, 0.006],
+                         seg=8), pk, smooth=True, tint=pt)
+        return
     p.add(props.tube([(0, 0.07, 0.19), (0, 0.075, 0.3), (0, 0.06, 0.36)], [0.022, 0.02, 0.005], seg=8), pk,
           smooth=True, tint=pt)
 
@@ -183,12 +206,20 @@ def fur_hat(p, c, tinted, _, spike=False):
 @hat('dragoon_helm')
 def dragoon_helm(p, c, tinted, crest_tinted):
     """A dragoon's brass helmet: a dome, a peak and a horsehair crest."""
-    p.add(props.ellipsoid(0.112, 0.118, 0.13, seg=20), 'brass', T(0, 0, 0.02), smooth=True)
-    visor = props.slab([(-0.09, 0.0), (0.09, 0.0), (0.06, 0.05), (-0.06, 0.05)], 0.008, 'X')
-    p.add(visor, 'leather_dark', T(0, 0.1, 0.0) @ R('Z', 90) @ R('X', -25), bevel=0.002)
+    props.DEFAULTS.setdefault('helm_brass', ('#a8843a', 0.55, 0.8, 'metal'))   # a duller brass than the trim
+    # the skull stops at the brow, so the face shows (Civ3's open dragoon helmet)
+    p.add(props.lathe([(0.0, 0.114), (0.06, 0.112), (0.12, 0.085), (0.16, 0.04), (0.175, 0.0)], seg=24),
+          'helm_brass', T(0, -0.01, 0.0), smooth=True)
+    p.add(props.lathe([(-0.005, 0.118), (0.02, 0.118)], seg=24), 'leather_dark', T(0, -0.01, 0.0), smooth=True)   # the band
+    neck = props.slab([(-0.1, 0.0), (0.1, 0.0), (0.085, -0.09), (-0.085, -0.09)], 0.008, 'X')
+    p.add(neck, 'helm_brass', T(0, -0.115, 0.01) @ R('Z', 90) @ R('X', 15), bevel=0.002)   # a neck guard
+    visor = props.slab([(-0.09, 0.0), (0.09, 0.0), (0.07, 0.06), (-0.07, 0.06)], 0.008, 'X')
+    p.add(visor, 'leather_dark', T(0, 0.1, 0.0) @ R('Z', 90) @ R('X', -20), bevel=0.002)   # the peak
+    comb = props.slab([(0.09, 0.1), (0.04, 0.2), (-0.06, 0.2), (-0.12, 0.1)], 0.02, 'X')
+    p.add(comb, 'helm_brass', bevel=0.004)
     ck, ct = _k(crest_tinted, 'crest')
-    path = [(0, 0.1, 0.12), (0, 0.02, 0.17), (0, -0.08, 0.14), (0, -0.16, 0.02), (0, -0.18, -0.12)]
-    p.add(props.tube(path, [0.025, 0.03, 0.03, 0.025, 0.01], seg=8, scale_xy=(0.6, 1.0)), ck, smooth=True, tint=ct)
+    path = [(0, 0.08, 0.2), (0, 0.0, 0.23), (0, -0.08, 0.22), (0, -0.15, 0.15), (0, -0.18, 0.06)]   # on the comb
+    p.add(props.tube(path, [0.022, 0.032, 0.034, 0.03, 0.012], seg=8, scale_xy=(0.6, 1.0)), ck, smooth=True, tint=ct)
 
 
 @hat('morion')
@@ -273,16 +304,34 @@ def head_wrap(p, c, tinted, _):
 
 
 @hat('feather_bonnet')
-def feather_bonnet(p, c, tinted, _):
-    """A plains-style war bonnet as Civ3's Mounted Warrior wears: a beaded band
-    and a crown of upright feathers, alternately civ-colored and white."""
-    p.add(props.lathe([(0.0, 0.112), (0.035, 0.112)], seg=24), 'tint', smooth=True, tint=True)
-    for i in range(15):
-        a = math.radians(-150 + 300 * i / 14)
-        base = (0.11 * math.sin(a), 0.11 * math.cos(a), 0.02)
-        tip = (0.2 * math.sin(a), 0.16 * math.cos(a) - 0.05, 0.24)
-        key, t = (('tint', True) if i % 2 else ('plume', False))
-        p.add(props.tube([base, tip], [0.016, 0.006], seg=5, scale_xy=(1.0, 0.35)), key, smooth=True, tint=t)
+def feather_bonnet(p, c, tinted, _, trailer=True):
+    """A plains-style war bonnet as Civ3's Mounted Warrior wears: a beaded band,
+    a halo of flat feathers swept back, white with civ-colored tips, and
+    (trailer) a long tail of feathers down the back to the saddle."""
+    p.add(props.lathe([(0.0, 0.114), (0.04, 0.114)], seg=24), 'tint', smooth=True, tint=True)
+    for k, a in enumerate((-90, 90)):   # beaded rosettes at the temples, with ermine drops
+        s = math.radians(a)
+        p.add(props.ellipsoid(0.03, 0.012, 0.03, seg=12), 'plume', T(0.118 * math.sin(s), 0.0, 0.02) @ R('Z', -a), smooth=True)
+        p.add(props.tube([(0.12 * math.sin(s), 0.0, 0.0), (0.13 * math.sin(s), 0.0, -0.14)], [0.014, 0.01], seg=6),
+              'plume', smooth=True)
+    n = 17
+    for i in range(n):
+        a = math.radians(-120 + 240 * i / (n - 1))
+        base = (0.11 * math.sin(a), 0.11 * math.cos(a), 0.03)
+        mid = (0.19 * math.sin(a), 0.15 * math.cos(a) - 0.08, 0.19)
+        tip = (0.25 * math.sin(a), 0.17 * math.cos(a) - 0.16, 0.3)   # swept back
+        props.feather_card(p, base, mid, (math.sin(a), math.cos(a), 0.0), 0.05, 'plume', curl=-0.08)
+        props.feather_card(p, mid, tip, (math.sin(a), math.cos(a), 0.0), 0.05, 'tint', tint=True, curl=-0.08)
+    if trailer:
+        for j in range(9):   # the trailer: pairs of feathers down a band behind the back
+            z = -0.05 - 0.13 * j
+            y = -0.15 - 0.05 * min(j, 3)
+            for sx in (-1, 1):
+                base = (sx * 0.02, y, z)
+                tip = (sx * 0.15, y - 0.06, z - 0.08)
+                key, t = (('tint', True) if j % 2 else ('plume', False))
+                props.feather_card(p, base, tip, (sx, -0.6, 0.0), 0.045, key, tint=t, curl=-0.05)
+        p.add(props.tube([(0, -0.12, 0.0), (0, -0.2, -0.3), (0, -0.25, -1.1)], 0.02, seg=6), 'tint', smooth=True, tint=True)
 
 
 @hat('khepresh')

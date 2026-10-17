@@ -721,12 +721,12 @@ def _extra_tack(p, h, vs, arm, a, b, ys, top, sec):
             p.add(props.loft(rings, False, False), 'tint', smooth=True, tint=True)
     tk = h.get('throat_tassels')
     if tk:
-        ring = _head_ring(vs, a, b, 0.3, grow=0.01)
+        ring = _head_ring(vs, a, b, 0.62, grow=0.01)
         if ring:
             low = min(ring, key=lambda v: v.z)
-            for dx in (-0.04, 0.0, 0.04):
-                q = low + Vector((dx, 0, 0))
-                p.add(props.tube([q, q + Vector((0, -0.03, -0.18)), q + Vector((0, -0.05, -0.36))], [0.04, 0.055, 0.02],
+            for dx in (-0.05, 0.0, 0.05):
+                q = low + Vector((dx, 0.02, 0))
+                p.add(props.tube([q, q + Vector((0, 0.02, -0.2)), q + Vector((0, 0.03, -0.42))], [0.05, 0.07, 0.03],
                                  seg=6), tk, smooth=True, tint=tint(tk))
     if h.get('bedroll'):
         p.add(props.tube([(-0.26, ys - 0.34, top + 0.05), (0.26, ys - 0.34, top + 0.05)], 0.075, seg=12), 'bedroll',
@@ -955,11 +955,20 @@ def asset_tack(root, body, colors, h=None):
     _extra_tack(p, h, vs, arm, a, b, ys, top, sec)
     if h.get('rump_spots'):
         rnd_ = __import__('random').Random(7)
-        hind = [v for v in vs if v.y < ys - 0.4 and 0.75 < v.z < 1.08 and abs(v.x) > 0.12]   # the haunches below the cloth
-        for q in rnd_.sample(hind, min(len(hind), 18)):
-            nrm = Vector((q.x, 0, (q.z - 1.25) * 0.6)).normalized()
-            p.add(props.ellipsoid(0.06, 0.06, 0.008, seg=10), 'tint',
-                  Matrix.Translation(q + nrm * 0.02) @ nrm.to_track_quat('Z', 'Y').to_matrix().to_4x4(), smooth=True, tint=True)
+        back_edge = ys - h.get('cloth_back', 0.3) - 0.03 if blanket in ('saddle_cloth', 'pelt') else 9.0
+        hem_z = (hem - 0.05) if blanket in ('saddle_cloth', 'pelt') else 9.0
+        hind = [v for v in vs if v.y < ys - 0.3 and 0.62 < v.z < 1.15 and abs(v.x) > 0.1
+                and (v.y < back_edge or v.z < hem_z)]   # only the haunch and thigh the cloth leaves bare
+        picked = []
+        for q in rnd_.sample(hind, len(hind)):   # spread out: no two spots closer than 0.11
+            if all((q - o).length > 0.08 for o in picked):
+                picked.append(q)
+            if len(picked) >= 40:
+                break
+        for q in picked:
+            nrm = Vector((q.x, 0, (q.z - 1.0) * 0.5)).normalized()
+            p.add(props.ellipsoid(0.045, 0.045, 0.01, seg=10), 'tint',
+                  Matrix.Translation(q + nrm * 0.03) @ nrm.to_track_quat('Z', 'Y').to_matrix().to_4x4(), smooth=True, tint=True)
     if h.get('back_lances'):
         # two lances crossed behind the rider's back, their butts at the cantle (Civ3's Keshik)
         for sx in (-1, 1):
@@ -1029,7 +1038,8 @@ RIDER_WEAPON_UP = {
     'long_sword': (0.15, 0.3, 1.0),
     'rifle': (0.0, 0.25, 1.0),       # held upright at the hip, as Civ3's Cossack and Cavalry
 }
-WEAPON_UP_BY_UNIT = {'Conquistador': (0.05, 0.12, 1.0)}   # the lance held upright (the original)
+WEAPON_UP_BY_UNIT = {'Conquistador': (0.05, 0.12, 1.0),   # the lance held upright (the original)
+                     'Cavalry': (-1.0, 0.25, 0.08)}       # the carbine level across the saddle
 RIDER_DEFAULTS = {
     'neck': 'high',
     'pose_extra': [('spine_01', (0, 0.12, 1)), ('spine_02', (0, 0.16, 1)), ('spine_03', (0, 0.14, 1)),
@@ -1073,7 +1083,7 @@ HORSE_COAT_OVERRIDES = {
     'Conquistador': {'coat': '#a0a0a2', 'dapple': '#5c5c60', 'mane': '#2a2826', 'points': '#3a3836', 'blanket_tint': False},
     'Cossack': {'coat': '#4a4a4e', 'mane': '#141416', 'points': '#1a1a1c'},
     'Hussar': {'coat': '#4e3220', 'mane': '#120c08', 'points': '#160e08'},
-    'Cavalry': {'coat': '#b8843c', 'mane': '#cdb488', 'points': '#8a6a3a', 'blanket_tint': True},
+    'Cavalry': {'coat': '#b8843c', 'mane': '#2e241a', 'points': '#3a2c1e', 'blanket_tint': True},
     'Ansar Warrior': {'coat': '#2e2e32', 'mane': '#121214', 'points': '#1c1c1e'},
 }
 

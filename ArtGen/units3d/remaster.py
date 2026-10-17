@@ -94,6 +94,8 @@ REMASTER = {
     'Cavalry': {'gear': [('chest_strap', {'color': '#ece8e0', 'width': 0.06})], 'pauldrons': 'metal',
                 'colors': {'cuirass': '#c8a038', 'gold': '#c8a038', 'helmet': '#b08a40', 'brass': '#c8a038'},
                 'metal': ['helmet'], 'hip': ('sheathed_sword', {'length': 0.85}),
+                'pauldron_zmin': 1.38, 'pauldron_x': 0.16, 'pauldron_offset': 0.006,   # flat boards, not balls
+                'headgear_scale': [1.05, 1.1, 1.1],
                 'bands': [('wrist', 'gold', 0.05)]},
     'Keshik': {'tint': ['top', 'hat', 'cuirass'], 'headgear_params': {'spike': True},
                'cuirass': True, 'metal': [], 'cuirass_trim': 'gold',

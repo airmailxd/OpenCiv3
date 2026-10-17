@@ -880,6 +880,9 @@ def _round_device(rr, emblem):
                 return ('shield_accent', False)
             if z < 0.3 and abs(abs(x) - (0.3 - z) * 0.45) < 0.07 and z > -0.6:
                 return ('shield_device', False)
+        elif emblem == 'cross':
+            if (abs(x) < 0.16 or abs(z) < 0.16) and d < 0.88:
+                return ('tint', True)
         elif emblem == 'jaguar':
             # dark spots scattered over the civ-colored face (solid, so they read at 1x)
             u, v = x * 3.2, z * 3.2
