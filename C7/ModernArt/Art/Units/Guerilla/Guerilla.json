@@ -15,7 +15,7 @@
     "x_Guerilla death": {"size": [171, 133], "directions": 8, "frames": 15, "frameMs": 83, "offset": [36, 33], "canvas": [240, 240]},
     "x_Guerilla default": {"size": [78, 98], "directions": 8, "frames": 15, "frameMs": 125, "offset": [89, 48], "canvas": [240, 240]},
     "x_Guerilla fidget": {"size": [89, 98], "directions": 8, "frames": 15, "frameMs": 100, "offset": [78, 48], "canvas": [240, 240]},
-    "x_Guerilla fortify": {"size": [85, 98], "directions": 8, "frames": 10, "frameMs": 83, "offset": [82, 48], "canvas": [240, 240]},
+    "x_Guerilla fortify": {"size": [99, 104], "directions": 8, "frames": 10, "frameMs": 83, "offset": [77, 47], "canvas": [240, 240]},
     "x_Guerilla run": {"size": [78, 99], "directions": 8, "frames": 10, "frameMs": 66, "offset": [90, 47], "canvas": [240, 240]},
     "x_Guerilla victory": {"size": [87, 102], "directions": 8, "frames": 15, "frameMs": 83, "offset": [80, 44], "canvas": [240, 240]}
   }

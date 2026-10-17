@@ -15,7 +15,7 @@
     "Crusader_death": {"size": [210, 125], "directions": 8, "frames": 15, "frameMs": 66, "offset": [15, 48], "canvas": [240, 240]},
     "Crusader_default": {"size": [77, 78], "directions": 8, "frames": 15, "frameMs": 125, "offset": [84, 64], "canvas": [240, 240]},
     "Crusader_fidget": {"size": [77, 78], "directions": 8, "frames": 15, "frameMs": 66, "offset": [84, 64], "canvas": [240, 240]},
-    "Crusader_fortify": {"size": [83, 78], "directions": 8, "frames": 10, "frameMs": 100, "offset": [78, 64], "canvas": [240, 240]},
+    "Crusader_fortify": {"size": [138, 116], "directions": 8, "frames": 10, "frameMs": 100, "offset": [52, 46], "canvas": [240, 240]},
     "Crusader_run": {"size": [81, 80], "directions": 8, "frames": 10, "frameMs": 66, "offset": [81, 64], "canvas": [240, 240]},
     "Crusader_victory": {"size": [83, 80], "directions": 8, "frames": 15, "frameMs": 83, "offset": [78, 62], "canvas": [240, 240]}
   }
