@@ -10,10 +10,10 @@
   },
   "flics": {
     "LongbowmanAttackA": {"size": [124, 101], "directions": 8, "frames": 15, "frameMs": 66, "offset": [53, 46], "canvas": [240, 240]},
-    "LongbowmanDeath": {"size": [142, 113], "directions": 8, "frames": 15, "frameMs": 66, "offset": [50, 46], "canvas": [240, 240]},
+    "LongbowmanDeath": {"size": [140, 113], "directions": 8, "frames": 15, "frameMs": 66, "offset": [51, 45], "canvas": [240, 240]},
     "LongbowmanDefault": {"size": [67, 87], "directions": 8, "frames": 15, "frameMs": 125, "offset": [93, 56], "canvas": [240, 240]},
     "LongbowmanFidget": {"size": [67, 87], "directions": 8, "frames": 15, "frameMs": 125, "offset": [93, 56], "canvas": [240, 240]},
-    "LongbowmanFortify": {"size": [81, 87], "directions": 8, "frames": 10, "frameMs": 66, "offset": [79, 56], "canvas": [240, 240]},
+    "LongbowmanFortify": {"size": [89, 96], "directions": 8, "frames": 10, "frameMs": 66, "offset": [79, 51], "canvas": [240, 240]},
     "LongbowmanRun": {"size": [70, 87], "directions": 8, "frames": 10, "frameMs": 66, "offset": [91, 56], "canvas": [240, 240]},
     "LongbowmanVictory": {"size": [67, 87], "directions": 8, "frames": 15, "frameMs": 66, "offset": [93, 56], "canvas": [240, 240]}
   }
