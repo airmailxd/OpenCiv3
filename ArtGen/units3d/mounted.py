@@ -612,10 +612,15 @@ def drape(vs, y0, y1, hem, n=24, k=24, gap=0.035, flare=0.06, folds=0.018, zmin=
     return props.loft(rings, False, False), rings
 
 
-def _dots(rx, period=0.11, r=0.028):
-    """A face-key function for a spotted caparison (Sipahi): a staggered grid of round dots."""
+def _dots(rx, period=0.11, r=0.028, scatter=False):
+    """A face-key function for a spotted caparison (Sipahi): a staggered grid of
+    round dots, or (scatter) an irregular scatter of white spots."""
+    from mathutils import noise as _n
+
     def keys(f):
         c = f.calc_center_median()
+        if scatter:
+            return ('blanket2', False) if _n.noise(c * 13.0 + Vector((5.0, 2.0, 9.0))) > 0.45 else None
         u, v = c.y / period, c.z / period
         if int(math.floor(v)) % 2:
             u += 0.5
@@ -792,9 +797,9 @@ def asset_tack(root, body, colors, h=None):
                 cap, rings = drape(vs, y0, y1, knee + h.get('over_gap', 0.06) + 0.08, gap=0.05, folds=0.02)
                 p.add(cap, 'tint', smooth=True, tint=True)
         else:
-            y0, y1 = yh + 0.05 * (yf - yh), yf - 0.15 * (yf - yh)
-            cap, rings = drape(vs, y0, y1, knee, gap=0.04, folds=0.018)
-            p.add(cap, 'tint', smooth=True, tint=True, keys=_dots(0.0))
+            y0, y1 = yh + 0.05 * (yf - yh), yf - h.get('dots_front', 0.15) * (yf - yh)
+            cap, rings = drape(vs, y0, y1, h.get('dots_hem', knee), gap=0.04, folds=0.018)
+            p.add(cap, 'tint', smooth=True, tint=True, keys=_dots(0.0, scatter=h.get('dot_scatter', False)))
         if rings:
             hem_line(rings, trim)
     if h.get('full_caparison'):
@@ -886,9 +891,9 @@ def asset_tack(root, body, colors, h=None):
             rings = []
         if len(rings) >= 2:
             sleeve = props.loft(rings, False, False)
-            cloth_cover = h.get('neck_cover') == 'cloth'
+            cloth_cover = h.get('neck_cover') in ('cloth', 'cloth_sleeve')
             p.add(sleeve, 'tint' if cloth_cover else 'barding_mail', smooth=True, tint=cloth_cover,
-                  keys=None if cloth_cover else _scales())
+                  keys=_dots(0.0, scatter=True) if cloth_cover else _scales())
     if h.get('plume'):
         ctr = a.lerp(b, 0.08) + Vector((0, 0, 0.12))
         big = 2.2 if h.get('plume') == 'fan' else 1.3   # a tall fan of plumes (Egyptian chariot horses)
@@ -1007,6 +1012,10 @@ HORSE_COAT_OVERRIDES = {
 
 # The originals' tack the catalog doesn't describe (see DETAIL_AUDIT_PC.md)
 TACK_OVERRIDES = {
+    # Civ3's Sipahi: a civ caparison scattered with white spots over the neck to the ears, chest and flanks nearly to
+    # the hocks, a civ cloth over the head with a white plume, a gold saddle on a red cloth, tassels
+    'Sipahi': {'neck_cover': 'cloth_sleeve', 'dot_scatter': True, 'dots_front': -0.05, 'dots_hem': 0.5, 'chanfron': 'tint',
+               'saddle': '#c4a462', 'breast_strap': 'trim', 'tassels': 'trim'},
     # Civ3's Conquistador: a padded cream trapper with a gold fringe, gold leather breast strap and crupper
     'Conquistador': {'blanket_color': '#d8c8a0', 'trim': '#c4a462', 'breast_strap': 'trim', 'crupper': 'trim', 'tassels': 'trim',
                      'cloth_back': 0.6, 'cloth_drop': 0.34},

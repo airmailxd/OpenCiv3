@@ -88,6 +88,9 @@ REMASTER = {
     # Civ3's Cossack: a tan coat; only the papakha and belt are civ-colored
     'Cossack': {'tint': ['hat', 'belt'], 'headgear_scale': [0.95, 0.95, 0.9]},
     'Keshik': {'tint': ['top', 'hat']},
+    # Civ3's Sipahi: a dark kalkan with a gold boss, a gilded helmet band, a mail aventail (spiked_helm has one)
+    'Sipahi': {'offhand': 'shield_round', 'offhand_mesh': ('shield_round', {'r': 0.3, 'face_tint': True, 'boss_key': 'gold'}),
+               'colors': {'shield_rim': '#c4a462', 'bronze': '#c4a462'}},
     # Civ3's Conquistador: a black morion and breastplate, a civ rodela with a gold boss and rim
     'Conquistador': {'tint': ['top'], 'metal': ['cuirass', 'helmet'],
                      'colors': {'cuirass': '#4a4c52', 'helmet': '#8a8e96', 'shield_rim': '#c4a462', 'bronze': '#c4a462'},   # a polished steel morion
