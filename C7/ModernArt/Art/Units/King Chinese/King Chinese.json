@@ -1,15 +1,15 @@
 {
   "actions": {
-    "DEFAULT": "x_Mao default",
-    "RUN": "x_Mao run",
     "DEATH": "x_Mao death",
+    "DEFAULT": "x_Mao default",
+    "FIDGET": "x_Mao fidget",
     "FORTIFY": "x_Mao fidget",
-    "FIDGET": "x_Mao fidget"
+    "RUN": "x_Mao run"
   },
   "flics": {
     "x_Mao death": {"size": [86, 62], "directions": 8, "frames": 15, "frameMs": 66, "offset": [77, 81], "canvas": [240, 240]},
-    "x_Mao default": {"size": [34, 48], "directions": 8, "frames": 15, "frameMs": 125, "offset": [97, 79], "canvas": [240, 240]},
-    "x_Mao fidget": {"size": [59, 53], "directions": 8, "frames": 15, "frameMs": 83, "offset": [84, 74], "canvas": [240, 240]},
-    "x_Mao run": {"size": [45, 51], "directions": 8, "frames": 10, "frameMs": 66, "offset": [94, 79], "canvas": [240, 240]}
+    "x_Mao default": {"size": [44, 54], "directions": 8, "frames": 15, "frameMs": 125, "offset": [97, 79], "canvas": [240, 240]},
+    "x_Mao fidget": {"size": [59, 59], "directions": 8, "frames": 15, "frameMs": 83, "offset": [84, 74], "canvas": [240, 240]},
+    "x_Mao run": {"size": [47, 54], "directions": 8, "frames": 10, "frameMs": 66, "offset": [94, 79], "canvas": [240, 240]}
   }
 }
