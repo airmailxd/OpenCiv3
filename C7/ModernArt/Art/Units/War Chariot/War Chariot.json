@@ -1,20 +1,20 @@
 {
   "actions": {
-    "DEFAULT": "WarChariotDefault",
-    "RUN": "WarChariotRun",
     "ATTACK1": "WarChariotAttackA",
     "DEATH": "WarChariotDeath",
-    "FORTIFY": "WarChariotFortify",
+    "DEFAULT": "WarChariotDefault",
     "FIDGET": "WarChariotFidget",
+    "FORTIFY": "WarChariotFortify",
+    "RUN": "WarChariotRun",
     "VICTORY": "WarChariotVictory"
   },
   "flics": {
     "WarChariotAttackA": {"size": [140, 98], "directions": 8, "frames": 15, "frameMs": 66, "offset": [47, 53], "canvas": [240, 240]},
     "WarChariotDeath": {"size": [121, 97], "directions": 8, "frames": 15, "frameMs": 66, "offset": [60, 54], "canvas": [240, 240]},
-    "WarChariotDefault": {"size": [92, 80], "directions": 8, "frames": 15, "frameMs": 125, "offset": [70, 58], "canvas": [240, 240]},
-    "WarChariotFidget": {"size": [102, 83], "directions": 8, "frames": 15, "frameMs": 83, "offset": [66, 58], "canvas": [240, 240]},
-    "WarChariotFortify": {"size": [103, 84], "directions": 8, "frames": 10, "frameMs": 66, "offset": [65, 57], "canvas": [240, 240]},
-    "WarChariotRun": {"size": [89, 82], "directions": 8, "frames": 10, "frameMs": 66, "offset": [72, 58], "canvas": [240, 240]},
-    "WarChariotVictory": {"size": [102, 87], "directions": 8, "frames": 15, "frameMs": 83, "offset": [65, 54], "canvas": [240, 240]}
+    "WarChariotDefault": {"size": [104, 94], "directions": 8, "frames": 15, "frameMs": 125, "offset": [70, 57], "canvas": [240, 240]},
+    "WarChariotFidget": {"size": [108, 94], "directions": 8, "frames": 15, "frameMs": 83, "offset": [66, 57], "canvas": [240, 240]},
+    "WarChariotFortify": {"size": [109, 94], "directions": 8, "frames": 10, "frameMs": 66, "offset": [65, 57], "canvas": [240, 240]},
+    "WarChariotRun": {"size": [102, 94], "directions": 8, "frames": 10, "frameMs": 66, "offset": [72, 57], "canvas": [240, 240]},
+    "WarChariotVictory": {"size": [109, 97], "directions": 8, "frames": 15, "frameMs": 83, "offset": [65, 54], "canvas": [240, 240]}
   }
 }

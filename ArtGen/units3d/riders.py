@@ -149,7 +149,7 @@ def shako(p, c, tinted, plume_tinted, cords=False):
     p.add(visor, 'leather_dark', T(0, 0.1, 0.01) @ R('Z', 90) @ R('X', -20), bevel=0.002)
     pk, pt = _k(plume_tinted, 'plume')
     if cords:   # a taller plume, bushy at the top
-        p.add(props.tube([(0, 0.08, 0.18), (0, 0.085, 0.3), (0, 0.075, 0.4), (0, 0.06, 0.45)], [0.018, 0.034, 0.03, 0.006],
+        p.add(props.tube([(0, 0.08, 0.18), (0, 0.085, 0.24), (0, 0.078, 0.29), (0, 0.068, 0.31)], [0.016, 0.03, 0.026, 0.006],
                          seg=8), pk, smooth=True, tint=pt)
         return
     p.add(props.tube([(0, 0.07, 0.19), (0, 0.075, 0.3), (0, 0.06, 0.36)], [0.022, 0.02, 0.005], seg=8), pk,

@@ -898,7 +898,12 @@ def asset_tack(root, body, colors, h=None):
         knee = 0.62
         if blanket == 'barding':
             mail_hem = (sec[2] - 0.02) if h.get('full_caparison') else knee - 0.06   # under a caparison: plate to the belly, legs bare
-            mail, mrings = drape(vs, yh + 0.05 * (yf - yh), yf - 0.12 * (yf - yh), mail_hem, gap=0.02, folds=0.005)
+            b0, b1 = yh + 0.05 * (yf - yh), yf - 0.12 * (yf - yh)
+            if h.get('barding_curve'):   # the hem rises toward the chest and the rump, so the trapper follows the body
+                lo, mid, half = h['barding_curve'], (b0 + b1) / 2, (b1 - b0) / 2
+                mail_hem = lambda y, lo=lo, mid=mid, half=half: lo + 0.45 * ((y - mid) / half) ** 2
+            mail, mrings = drape(vs, b0, b1, mail_hem, gap=0.02, folds=0.012 if h.get('barding_curve') else 0.005,
+                                 flare=0.02 if h.get('barding_curve') else 0.06)
             p.add(mail, 'barding_mail', smooth=True, keys=None if h.get('full_caparison') else _scales(h.get('scale_period', 0.09)))
             if h.get('full_caparison'):   # plate barding: a few riveted lame lines, not a checker
                 for zl in (sec[2] + 0.15, sec[2] + 0.35):
@@ -994,7 +999,7 @@ def asset_tack(root, body, colors, h=None):
         hem_line(frings, trim)
     if h.get('neck_cover') == 'cloth':
         # a civ-colored cloth over the chest and the base of the neck (Egyptian chariot horses)
-        front, frings = drape(vs, ys + 0.22, yf + 0.12, 0.95, gap=0.03, folds=0.012)
+        front, frings = drape(vs, ys + 0.22, yf + 0.12, h.get('neck_cloth_hem', 0.95), gap=0.03, folds=0.012)
         p.add(front, 'tint', smooth=True, tint=True)
         hem_line(frings, trim)
     elif h.get('neck_cover'):
@@ -1020,9 +1025,12 @@ def asset_tack(root, body, colors, h=None):
             rings = []
         if len(rings) >= 2:
             sleeve = props.loft(rings, False, False)
-            if h.get('neck_cover') == 'cloth_sleeve':
+            if h.get('neck_cover') == 'cloth_sleeve' and h.get('sleeve_spots', True):
                 props.bmesh.ops.subdivide_edges(sleeve, edges=sleeve.edges[:], cuts=4, use_grid_fill=True)
                 _spot_discs(p, sleeve, outward=True)
+            if h.get('sleeve_trim'):   # gold edges at both ends of the sleeve (Egyptian chariot horses)
+                for rg in (rings[0], rings[-1]):
+                    p.add(props.tube(rg + rg[:1], 0.022, seg=6), 'trim', smooth=True)
             cloth_cover = h.get('neck_cover') in ('cloth', 'cloth_sleeve')
             p.add(sleeve, 'tint' if cloth_cover else 'barding_mail', smooth=True, tint=cloth_cover,
                   keys=None if cloth_cover else _scales(h.get('scale_period', 0.09)))

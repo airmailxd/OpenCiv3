@@ -82,7 +82,7 @@ def _car(root, entry, y_axle, xs):
     r = car.get('wheel_r', 0.62 if heavy else 0.55) * CAR_K
     track = (car.get('track', 0.5 if not heavy else 0.7) + (0.08 if heavy else 0.0)) * CAR_K
     width = track * 2 - 0.12
-    depth = (0.75 if heavy else 0.6) * CAR_K
+    depth = (1.15 if heavy else 0.9) * CAR_K   # long side panels, as Civ3's cars
     zf = r + 0.04                                     # the floor sits just above the axle
     for sx in (-1, 1):
         vkit.spoked_wheel(p, r, 0.09, 'felloe', 'wheel', 'hub', n_spokes=car.get('spokes', 6),
@@ -91,27 +91,33 @@ def _car(root, entry, y_axle, xs):
     p.add(props.box(width, depth, 0.05), 'car_wood', T(0, y_axle + 0.06, zf), bevel=0.01)
     # breastwork: a U of boards round the front and sides, its top edge trimmed
     tinted = True   # all three of Civ3's chariot cars carry civ-colored panels
-    wall_h = car.get('wall_h', 0.5) * CAR_K
+    wall_h = max(car.get('wall_h', 0.5), 0.5) * CAR_K * WALL_K
     key = 'tint' if tinted else 'car_body'
-    pts = []
-    for i in range(17):
-        a = math.pi * i / 16
-        pts.append((width / 2 * math.cos(a), y_axle + 0.06 + depth / 2 * math.sin(a) ** 0.6 - 0.02, zf))
-    rings = [[(x, y, zf + 0.02) for x, y, _ in pts], [(x * 1.04, y + 0.01, zf + wall_h) for x, y, _ in pts]]
+    # a U of 17 points: down the right side from the back, round the front corners, back up the left
+    yb, yfr = y_axle + 0.06 - depth * 0.45, y_axle + 0.06 + depth / 2
+    hw, cr = width / 2, 0.12
+    pts = [(hw, yb + (yfr - cr - yb) * i / 5, zf) for i in range(6)]
+    pts += [(hw - cr + cr * math.cos(math.pi / 2 * i / 3), yfr - cr + cr * math.sin(math.pi / 2 * i / 3), zf) for i in range(1, 3)]
+    pts += [(hw * (1 - 2 * i / 2), yfr, zf) for i in range(3)][1:2]
+    pts += [(-x, y, z) for x, y, z in reversed(pts[:8])]
+    rings = [[(x, y, zf + 0.02) for x, y, _ in pts], [(x * 1.02, y + 0.01, zf + wall_h) for x, y, _ in pts]]
     wall = props.loft(rings, False, False)
     props.bmesh.ops.solidify(wall, geom=wall.faces[:], thickness=0.025)
     p.add(wall, key, smooth=True, tint=tinted)
     p.add(props.tube(rings[1], 0.02, seg=6), 'trim', smooth=True)
     unit = entry.get('_unit')
     # a gold lattice over the panels: posts and a mid rail (Civ3's chariot frames)
-    out = [(x * 1.06, y + 0.012, z) for x, y, z in pts]
+    # clear of the panel's thickness: out from the sides and the front
+    out = [(x + (math.copysign(0.06, x) if abs(x) > hw - cr - 0.01 else 0.0), y + (0.06 if y > yfr - cr - 0.01 else 0.0), z)
+           for x, y, z in pts]
     mid = [(x, y, zf + wall_h * 0.5) for x, y, _ in out]
     p.add(props.tube(mid, 0.014, seg=6), 'trim', smooth=True)
-    for i in range(0, 17, 2):
+    for i in range(0, len(out), 2):
         x, y, _ = out[i]
-        vkit.rod(p, (x, y, zf + 0.03), (x * 1.03, y, zf + wall_h), 0.014, 'trim', seg=6)
+        vkit.rod(p, (x, y, zf + 0.03), (x * 1.01, y, zf + wall_h), 0.016, 'trim', seg=6)
+    p.add(props.tube(out, 0.018, seg=6), 'trim', T(0, 0, 0.04), smooth=True)   # the bottom rail
     if LATTICE_X.get(unit):   # diagonal braces in each bay
-        for i in range(0, 16, 2):
+        for i in range(0, len(out) - 2, 2):
             (x0, y0, _), (x1, y1, _) = out[i], out[i + 2]
             vkit.rod(p, (x0, y0, zf + 0.04), (x1, y1, zf + wall_h * 0.5), 0.009, 'trim', seg=5)
             vkit.rod(p, (x0, y0, zf + wall_h * 0.5), (x1, y1, zf + wall_h - 0.02), 0.009, 'trim', seg=5)
@@ -119,7 +125,7 @@ def _car(root, entry, y_axle, xs):
     em = EMBLEM.get(unit)
     if em:
         for sx in (-1, 1):
-            m = T(sx * (width / 2 + 0.045), y_axle + 0.06 + depth * 0.2, zf + wall_h * 0.78) @ R('Y', sx * 90)   # above the wheel
+            m = T(sx * (width / 2 + 0.085), (yb + yfr) / 2 + 0.1, zf + wall_h * 0.68) @ R('Y', sx * 90)   # mid-panel, above the wheel
             if em == 'sun':   # a gold winged sun disc
                 p.add(props.ellipsoid(0.12, 0.12, 0.025, seg=16), 'trim', m, smooth=True)
                 for wx in (-1, 1):
@@ -134,7 +140,7 @@ def _car(root, entry, y_axle, xs):
         p.add(props.ellipsoid(0.035, 0.035, 0.05, seg=10), 'trim', T(sx * (track + 0.09), y_axle, r + 0.04), smooth=True)
     # a quiver / bow case slung diagonally on the side of the car
     if QUIVER.get(unit) == 'side':
-        m = T(width / 2 + 0.07, y_axle + 0.06 + depth * 0.25, zf + wall_h * 0.6) @ R('X', -40)
+        m = T(width / 2 + 0.12, y_axle + 0.06 + depth * 0.25, zf + wall_h * 0.6) @ R('X', -40)
         p.add(props.ellipsoid(0.07, 0.08, 0.4, seg=12), 'leather', m, smooth=True)
         p.add(props.lathe([(0.0, 0.055), (0.03, 0.06)], seg=12), 'trim', m @ T(0, 0, 0.28), smooth=True)
         for k in range(4):   # fletched arrows out of its mouth
@@ -197,13 +203,15 @@ def _crew(root, entry, y_axle, z_floor):
 
 
 CREW_SCALE = 1.22
+WALL_K = 1.7   # the breastwork waist-high on the (scaled) crew, as Civ3's cars
 CAR_K = 1.3   # Civ3's cars are big next to the horses
 HORSE_K = 1.05
 # per unit, over the catalog's horse tack (as the originals show them)
-TACK = {'War Chariot': {'blanket': None, 'neck_cover': 'cloth', 'plume': 'fan', 'plume_tint': True},
+TACK = {'War Chariot': {'blanket': None, 'neck_cover': 'cloth_sleeve', 'sleeve_spots': False, 'sleeve_trim': True,
+                        'plume': 'fan', 'plume_tint': True},   # a fitted civ neck cloth, gold-edged
         # fine silver scale trappers with a civ border
         'Three Man Chariot': {'caparison_over': False, 'trim_tint': True, 'plume': True, 'plume_tint': True,
-                              'barding_steel': '#c8ccd2', 'barding_dark': '#8e929a', 'scale_period': 0.045},
+                              'barding_steel': '#c8ccd2', 'barding_dark': '#8e929a', 'scale_period': 0.045, 'barding_curve': 0.62},
         # civ head plumes and a dark bridle; the yoke pads (chariots._car) instead of a big blanket
         'chariot': {'blanket': None, 'plume': True, 'plume_tint': True, 'bridle': '#3a2a1e'}}
 CAR_GOLD = {'chariot': False, 'War Chariot': True, 'Three Man Chariot': True}   # the chariot: grey iron tires, dark spokes

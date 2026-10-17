@@ -1,20 +1,20 @@
 {
   "actions": {
-    "DEFAULT": "ChariotDefault",
-    "RUN": "ChariotRun",
     "ATTACK1": "ChariotAttackA",
     "DEATH": "ChariotDeath",
-    "FORTIFY": "ChariotFortify",
+    "DEFAULT": "ChariotDefault",
     "FIDGET": "ChariotFidget",
+    "FORTIFY": "ChariotFortify",
+    "RUN": "ChariotRun",
     "VICTORY": "ChariotVictory"
   },
   "flics": {
-    "ChariotAttackA": {"size": [112, 83], "directions": 8, "frames": 15, "frameMs": 83, "offset": [61, 62], "canvas": [240, 240]},
-    "ChariotDeath": {"size": [107, 98], "directions": 8, "frames": 15, "frameMs": 83, "offset": [66, 51], "canvas": [240, 240]},
-    "ChariotDefault": {"size": [80, 84], "directions": 8, "frames": 15, "frameMs": 125, "offset": [77, 53], "canvas": [240, 240]},
-    "ChariotFidget": {"size": [80, 84], "directions": 8, "frames": 15, "frameMs": 83, "offset": [77, 53], "canvas": [240, 240]},
-    "ChariotFortify": {"size": [84, 87], "directions": 8, "frames": 10, "frameMs": 66, "offset": [76, 53], "canvas": [240, 240]},
-    "ChariotRun": {"size": [90, 89], "directions": 8, "frames": 10, "frameMs": 66, "offset": [74, 53], "canvas": [240, 240]},
-    "ChariotVictory": {"size": [80, 101], "directions": 8, "frames": 15, "frameMs": 83, "offset": [77, 36], "canvas": [240, 240]}
+    "ChariotAttackA": {"size": [112, 108], "directions": 8, "frames": 15, "frameMs": 83, "offset": [61, 40], "canvas": [240, 240]},
+    "ChariotDeath": {"size": [107, 109], "directions": 8, "frames": 15, "frameMs": 83, "offset": [66, 40], "canvas": [240, 240]},
+    "ChariotDefault": {"size": [95, 108], "directions": 8, "frames": 15, "frameMs": 125, "offset": [77, 40], "canvas": [240, 240]},
+    "ChariotFidget": {"size": [95, 108], "directions": 8, "frames": 15, "frameMs": 83, "offset": [77, 40], "canvas": [240, 240]},
+    "ChariotFortify": {"size": [96, 108], "directions": 8, "frames": 10, "frameMs": 66, "offset": [76, 40], "canvas": [240, 240]},
+    "ChariotRun": {"size": [98, 108], "directions": 8, "frames": 10, "frameMs": 66, "offset": [74, 40], "canvas": [240, 240]},
+    "ChariotVictory": {"size": [95, 112], "directions": 8, "frames": 15, "frameMs": 83, "offset": [77, 36], "canvas": [240, 240]}
   }
 }
