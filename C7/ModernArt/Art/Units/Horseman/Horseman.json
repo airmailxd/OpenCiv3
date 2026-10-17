@@ -1,20 +1,20 @@
 {
   "actions": {
-    "DEFAULT": "HorsemanDefault",
-    "RUN": "HorsemanRun",
     "ATTACK1": "HorsemanAttackA",
     "DEATH": "HorsemanDeath",
-    "FORTIFY": "HorsemanFortify",
+    "DEFAULT": "HorsemanDefault",
     "FIDGET": "HorsemanFidget",
+    "FORTIFY": "HorsemanFortify",
+    "RUN": "HorsemanRun",
     "VICTORY": "HorsemanVictory"
   },
   "flics": {
-    "HorsemanAttackA": {"size": [88, 72], "directions": 8, "frames": 15, "frameMs": 83, "offset": [73, 67], "canvas": [240, 240]},
+    "HorsemanAttackA": {"size": [105, 103], "directions": 8, "frames": 15, "frameMs": 83, "offset": [73, 47], "canvas": [240, 240]},
     "HorsemanDeath": {"size": [119, 107], "directions": 8, "frames": 15, "frameMs": 83, "offset": [61, 44], "canvas": [240, 240]},
-    "HorsemanDefault": {"size": [64, 78], "directions": 8, "frames": 15, "frameMs": 125, "offset": [85, 56], "canvas": [240, 240]},
-    "HorsemanFidget": {"size": [67, 81], "directions": 8, "frames": 15, "frameMs": 83, "offset": [85, 55], "canvas": [240, 240]},
-    "HorsemanFortify": {"size": [71, 78], "directions": 8, "frames": 10, "frameMs": 66, "offset": [80, 57], "canvas": [240, 240]},
-    "HorsemanRun": {"size": [71, 80], "directions": 8, "frames": 10, "frameMs": 66, "offset": [83, 57], "canvas": [240, 240]},
-    "HorsemanVictory": {"size": [83, 97], "directions": 8, "frames": 15, "frameMs": 83, "offset": [74, 42], "canvas": [240, 240]}
+    "HorsemanDefault": {"size": [98, 103], "directions": 8, "frames": 15, "frameMs": 125, "offset": [80, 47], "canvas": [240, 240]},
+    "HorsemanFidget": {"size": [98, 103], "directions": 8, "frames": 15, "frameMs": 83, "offset": [80, 47], "canvas": [240, 240]},
+    "HorsemanFortify": {"size": [98, 103], "directions": 8, "frames": 10, "frameMs": 66, "offset": [80, 47], "canvas": [240, 240]},
+    "HorsemanRun": {"size": [98, 103], "directions": 8, "frames": 10, "frameMs": 66, "offset": [80, 47], "canvas": [240, 240]},
+    "HorsemanVictory": {"size": [104, 108], "directions": 8, "frames": 15, "frameMs": 83, "offset": [74, 42], "canvas": [240, 240]}
   }
 }

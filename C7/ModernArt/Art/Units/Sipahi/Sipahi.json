@@ -1,22 +1,22 @@
 {
   "actions": {
-    "DEFAULT": "x_sipahi default",
-    "RUN": "x_sipahi run",
     "ATTACK1": "x_sipahi attack_a",
     "ATTACK2": "x_sipahi attack_b",
     "DEATH": "x_sipahi death",
-    "FORTIFY": "x_sipahi fortify",
+    "DEFAULT": "x_sipahi default",
     "FIDGET": "x_sipahi fidget",
+    "FORTIFY": "x_sipahi fortify",
+    "RUN": "x_sipahi run",
     "VICTORY": "x_sipahi victory"
   },
   "flics": {
-    "x_sipahi attack_a": {"size": [84, 84], "directions": 8, "frames": 15, "frameMs": 83, "offset": [74, 48], "canvas": [240, 240]},
-    "x_sipahi attack_b": {"size": [84, 84], "directions": 8, "frames": 15, "frameMs": 83, "offset": [74, 48], "canvas": [240, 240]},
+    "x_sipahi attack_a": {"size": [88, 98], "directions": 8, "frames": 15, "frameMs": 83, "offset": [74, 48], "canvas": [240, 240]},
+    "x_sipahi attack_b": {"size": [88, 98], "directions": 8, "frames": 15, "frameMs": 83, "offset": [74, 48], "canvas": [240, 240]},
     "x_sipahi death": {"size": [138, 106], "directions": 8, "frames": 16, "frameMs": 66, "offset": [49, 49], "canvas": [240, 240]},
-    "x_sipahi default": {"size": [76, 62], "directions": 8, "frames": 15, "frameMs": 125, "offset": [75, 70], "canvas": [240, 240]},
-    "x_sipahi fidget": {"size": [77, 63], "directions": 8, "frames": 14, "frameMs": 100, "offset": [74, 69], "canvas": [240, 240]},
-    "x_sipahi fortify": {"size": [80, 76], "directions": 8, "frames": 12, "frameMs": 83, "offset": [74, 57], "canvas": [240, 240]},
-    "x_sipahi run": {"size": [80, 69], "directions": 8, "frames": 10, "frameMs": 66, "offset": [74, 66], "canvas": [240, 240]},
-    "x_sipahi victory": {"size": [86, 98], "directions": 8, "frames": 15, "frameMs": 66, "offset": [70, 38], "canvas": [240, 240]}
+    "x_sipahi default": {"size": [87, 88], "directions": 8, "frames": 15, "frameMs": 125, "offset": [75, 58], "canvas": [240, 240]},
+    "x_sipahi fidget": {"size": [88, 88], "directions": 8, "frames": 14, "frameMs": 100, "offset": [74, 58], "canvas": [240, 240]},
+    "x_sipahi fortify": {"size": [88, 89], "directions": 8, "frames": 12, "frameMs": 83, "offset": [74, 57], "canvas": [240, 240]},
+    "x_sipahi run": {"size": [88, 88], "directions": 8, "frames": 10, "frameMs": 66, "offset": [74, 58], "canvas": [240, 240]},
+    "x_sipahi victory": {"size": [92, 108], "directions": 8, "frames": 15, "frameMs": 66, "offset": [70, 38], "canvas": [240, 240]}
   }
 }
