@@ -296,9 +296,8 @@ REMASTER = {
         'bottom': 'gown', 'robe_drop': 0.55,
         'patterns': {'bottom': ('panel', '#b08a2e', 0.04)},   # the gold front stripe, full length (the cape covers the back)
         'hem_bands': [('bottom', 'gold', 0.07), ('cape', 'gold', 0.18)],   # the broad gold hem at the cape's foot
-        'cape_emblem': ('collar', 'gold', 0.3, 0.05),   # the jeweled gold collar across the shoulders, at the cape's top
         'bands': [('neck', 'gold', 0.1)],       # a broad gold collar band (the jeweled collar prop sits under the high neck)
-        'chest_gear': ('broad_collar', {'scale': 1.05}), 'chest_out': 0.07,   # the small white casket at the hands
+        'chest_gear': ('byz_yoke', {'scale': 1.05}), 'chest_out': 0.07,   # the jeweled gold yoke round the shoulders, the white casket
         'cape': True, 'cape_length': 1.38,
         'cuirass': False, 'wraps': None, 'sandals': True, 'bracers': False, 'gear': [],
         'weapon': None, 'offhand': None,        # MISSING: small_object (white, held at the chest)
@@ -592,7 +591,7 @@ REMASTER = {
         'colors': {'skin': '#9a7458', 'hair': '#141010', 'plume': '#e8e4da', 'wraps': '#5e4632',
                    'wraps_band': '#3e2e20', 'belt': '#5a3a22', 'sandal': '#5a3a22', 'wood': '#4a3222',
                    'steel': '#8a8c90', 'shield_face': '#d8ccb0', 'shield_rim': '#8a6a48', 'feather': '#e8e4da'},
-        'helmet': None, 'headgear': 'war_bonnet', 'headgear_scale': [0.9, 0.9, 1.25],   # the halo round the back, the face open (fanned out, not tall)   # white feathers, tinted tips and headband, the trailer (smaller again: 2-5 px clip at the cell top, dirs 5-7)
+        'helmet': None, 'headgear': 'war_bonnet', 'headgear_scale': 0.95,   # the halo round the back, the face open (fanned out, not tall)   # white feathers, tinted tips and headband, the trailer (smaller again: 2-5 px clip at the cell top, dirs 5-7)
         'hair': 'long', 'hair_asset': 'long01', 'beard': False,
         'top': None, 'bottom': 'loincloth', 'loin_length': (0.5, 0.45), 'torn': False,
         'wraps': 'wraps', 'sandals': False,     # MISSING: leggings (brown cloth), moccasins

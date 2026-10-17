@@ -801,7 +801,7 @@ def war_bonnet(p, c, tinted, _):
         a = math.radians(-125 + 250 * i / (n - 1))   # from +Y (the front) round over the brow and the sides
         base = (0.115 * math.sin(a), 0.115 * math.cos(a), 0.03)
         # swept back and up, the side ones splaying out: one crown over the head
-        tip = (0.27 * math.sin(a), 0.1 * math.cos(a) - 0.16, 0.36 - 0.07 * abs(math.sin(a)))   # a tall crown
+        tip = (0.3 * math.sin(a), 0.06 * math.cos(a) - 0.3, 0.25 - 0.06 * abs(math.sin(a)))   # swept back and out from the brow
         nrm = (math.sin(a), math.cos(a) + 0.3, 0.2)
         b1 = tuple(b + 0.45 * (t - b) for b, t in zip(base, tip))
         b2 = tuple(b + 0.62 * (t - b) for b, t in zip(base, tip))
@@ -810,15 +810,14 @@ def war_bonnet(p, c, tinted, _):
         props.feather_card(p, b1, b2, nrm, 0.055, 'feather_band', curl=-0.05)
         props.feather_card(p, b2, b3, nrm, 0.055, 'feather', curl=-0.05)
         props.feather_card(p, b3, tip, nrm, 0.05, 'tint', tint=True, curl=-0.05)
-    p.add(props.tube([(0, -0.12, 0.02), (0, -0.24, -0.25), (0, -0.27, -0.95)], [0.03, 0.035, 0.03], seg=8,
-                     scale_xy=(1.0, 0.4)), 'tint', smooth=True, tint=True)   # the trailer's civ band, to the waist
-    for j in range(12):   # the trailer: pairs of feathers down the back, standing out from the band
-        z = -0.04 - 0.08 * j
-        y = -0.2 - 0.06 * min(j, 4) / 4
+    p.add(props.tube([(0, -0.2, 0.06), (0, -0.33, -0.25), (0, -0.36, -0.95)], [0.035, 0.04, 0.035], seg=8,
+                     scale_xy=(1.0, 0.4)), 'tint', smooth=True, tint=True)   # the trailer's civ band, out clear of the hair
+    for j in range(12):   # the trailer: wide white feathers down the back to the waist, red-banded every third
+        z = 0.0 - 0.08 * j
+        y = -0.3 - 0.06 * min(j, 4) / 4
         for sx in (-1, 1):
-            key = 'feather_band' if j % 3 == 1 else ('tint' if j % 3 == 2 else 'feather')
-            props.feather_card(p, (sx * 0.02, y, z), (sx * 0.17, y - 0.05, z - 0.07), (sx * 0.3, -1.0, 0.0), 0.05, key,
-                               tint=key == 'tint', curl=-0.04)
+            key = 'feather_band' if j % 3 == 1 else 'feather'
+            props.feather_card(p, (sx * 0.02, y, z), (sx * 0.2, y - 0.04, z - 0.06), (sx * 0.2, -1.0, 0.0), 0.07, key, curl=-0.03)
 
 
 props.DEFAULTS.setdefault('pearl', ('#f0ece0', 0.25, 0.0, 'polished'))

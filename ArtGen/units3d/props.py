@@ -1665,6 +1665,31 @@ def frogging(p, scale=1.0, rows=5):
         p.add(ellipsoid(0.011 * s, 0.011 * s, 0.011 * s, seg=10), 'braid_gold', T(0, 0.01 * s, z), smooth=True)
 
 
+def byz_yoke(p, scale=1.0):
+    """A broad jeweled gold yoke round the shoulders (chest_gear: origin mid-chest,
+    +Y out, +Z up), front and back, dipping in a curve down the upper back, a
+    jeweled lower edge: King Byzantines' collar over her cape."""
+    s = scale
+    rings = []
+    for k, (rx, ry, lift) in enumerate(((0.17, 0.15, 0.33), (0.25, 0.235, 0.27))):   # the neck edge, the outer edge
+        ring = []
+        for i in range(41):
+            a = 2 * math.pi * i / 40
+            back = max(0.0, -math.cos(a))   # dips down the upper back
+            side = abs(math.sin(a))          # drops over the shoulder slope
+            ring.append((rx * s * math.sin(a), -0.07 + ry * s * math.cos(a) * (1.0 + 0.3 * back),   # out over the cape at the back
+                         (lift + (0.02 if k else 0.0) * back - (0.06 if k else 0.02) * side) * s))
+        rings.append(ring)
+    p.add(loft(rings, False, False), 'gold', smooth=True)   # a solid yoke, not hoops
+    p.add(tube(rings[1], 0.02 * s, seg=6), 'gold', smooth=True)   # its rolled outer edge
+    for i in range(0, 40, 2):   # jewels along the lower edge
+        x, y, z = rings[1][i]
+        p.add(ellipsoid(0.016 * s, 0.016 * s, 0.016 * s, seg=8), 'jewel' if i % 4 else 'gold_gem', T(x * 1.04, -0.07 + (y + 0.07) * 1.04, z - 0.012 * s), smooth=True)
+    # the small white casket at the clasped hands, bigger so it reads
+    p.add(box(0.1 * s, 0.07 * s, 0.07 * s), 'pearl', T(0, 0.1 * s, -0.2 * s), bevel=0.01 * s)
+    p.add(box(0.104 * s, 0.074 * s, 0.016 * s), 'gold', T(0, 0.1 * s, -0.17 * s), bevel=0.003 * s)
+
+
 def broad_collar(p, scale=1.0, held=True):
     """A broad jeweled gold collar over the shoulders (chest_gear: origin mid-
     chest, +Y out, +Z up), and (held) a small white casket at the clasped hands."""
@@ -2246,6 +2271,7 @@ BUILDERS = {
     'war_dog': war_dog,
     'gazyri': gazyri,
     'broad_collar': broad_collar,
+    'byz_yoke': byz_yoke,
     'frogging': frogging,
     'microphone': microphone,
     'pipe': pipe,
