@@ -15,7 +15,7 @@
     "WWIIParatrooper_Death": {"size": [144, 105], "directions": 8, "frames": 15, "frameMs": 66, "offset": [48, 52], "canvas": [240, 240]},
     "WWIIParatrooper_Default": {"size": [61, 70], "directions": 8, "frames": 15, "frameMs": 66, "offset": [93, 70], "canvas": [240, 240]},
     "WWIIParatrooper_Fidget": {"size": [61, 70], "directions": 8, "frames": 15, "frameMs": 83, "offset": [93, 70], "canvas": [240, 240]},
-    "WWIIParatrooper_Fortify": {"size": [61, 70], "directions": 8, "frames": 10, "frameMs": 83, "offset": [93, 70], "canvas": [240, 240]},
+    "WWIIParatrooper_Fortify": {"size": [81, 78], "directions": 8, "frames": 10, "frameMs": 83, "offset": [85, 67], "canvas": [240, 240]},
     "WWIIParatrooper_Run": {"size": [63, 72], "directions": 8, "frames": 10, "frameMs": 66, "offset": [92, 68], "canvas": [240, 240]},
     "WWIIParatrooper_Victory": {"size": [64, 70], "directions": 8, "frames": 15, "frameMs": 66, "offset": [90, 70], "canvas": [240, 240]}
   }

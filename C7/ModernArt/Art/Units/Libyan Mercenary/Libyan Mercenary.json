@@ -15,7 +15,7 @@
     "x_Libyan Mercenary death": {"size": [190, 144], "directions": 8, "frames": 16, "frameMs": 83, "offset": [27, 28], "canvas": [240, 240]},
     "x_Libyan Mercenary default": {"size": [94, 108], "directions": 8, "frames": 15, "frameMs": 125, "offset": [77, 42], "canvas": [240, 240]},
     "x_Libyan Mercenary fidget": {"size": [106, 108], "directions": 8, "frames": 14, "frameMs": 100, "offset": [65, 42], "canvas": [240, 240]},
-    "x_Libyan Mercenary fortify": {"size": [111, 108], "directions": 8, "frames": 10, "frameMs": 83, "offset": [60, 42], "canvas": [240, 240]},
+    "x_Libyan Mercenary fortify": {"size": [121, 112], "directions": 8, "frames": 10, "frameMs": 83, "offset": [60, 42], "canvas": [240, 240]},
     "x_Libyan Mercenary run": {"size": [95, 108], "directions": 8, "frames": 10, "frameMs": 66, "offset": [76, 42], "canvas": [240, 240]},
     "x_Libyan Mercenary victory": {"size": [110, 108], "directions": 8, "frames": 16, "frameMs": 83, "offset": [61, 42], "canvas": [240, 240]}
   }
