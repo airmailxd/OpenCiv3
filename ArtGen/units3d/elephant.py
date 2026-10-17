@@ -27,13 +27,15 @@ import props
 import vkit
 from props import R, T
 
-props.DEFAULTS['hide_skin'] = ('#8c7a60', 0.85, 0.0, None)   # no leather grain: it read as felt
+props.DEFAULTS['hide_skin'] = ('#8c7a60', 0.85, 0.0, 'polished')   # no weathering mottle: it read as grain   # no leather grain: it read as felt
 props.DEFAULTS.setdefault('ivory', ('#e6dcc4', 0.35, 0.0, None))
 props.DEFAULTS.setdefault('howdah', ('#4e3420', 0.62, 0.0, 'wood'))
 props.DEFAULTS.setdefault('nail', ('#b8ae98', 0.5, 0.0, None))
 props.DEFAULTS.setdefault('eye', ('#141010', 0.2, 0.0, 'polished'))
 props.DEFAULTS.setdefault('tuft', ('#2a2420', 0.9, 0.0, None))
 props.DEFAULTS.setdefault('silver', ('#d8dade', 0.25, 1.0, 'polished'))
+props.DEFAULTS.setdefault('gunmetal', ('#3a3c3e', 0.45, 1.0, 'metal'))
+props.DEFAULTS.setdefault('shield_steel', ('#9a9ea4', 0.32, 1.0, 'polished'))
 props.DEFAULTS.setdefault('strap', ('#3a2618', 0.7, 0.0, 'leather'))
 
 # the anatomy, meters (y forward)
@@ -140,11 +142,13 @@ def _remesh(obj, voxel=0.028):
         d = noise.noise(Vector((co.x * 0.9, co.y * 0.9, co.z * 0.9)) + Vector((3.1, 7.2, 1.3))) * 0.05   # big folds
         n = noise.noise(Vector((co.x * 2.0, co.y * 2.0, co.z * 2.0)))
         if co.z < 1.75 and co.y < 2.2:   # the legs: horizontal ring creases
-            d += 0.016 * math.sin(co.z * (17.0 + 6.0 * n) + n * 6.0) * (0.6 + 0.4 * n)   # irregular creases
+            d += 0.022 * math.sin(co.z * (15.0 + 5.0 * n) + n * 6.0) * (0.6 + 0.4 * n)   # irregular creases, deep
         if co.y > 2.25 and co.z < 2.1:   # the trunk
             d += 0.012 * math.sin(co.z * 30.0 + n * 3.0)
-        if 1.15 < co.y < 1.75 and co.z > 1.8:   # the neck rolls
-            d += 0.03 * math.sin(co.y * 16.0 + n)
+        if 1.15 < co.y < 1.75 and co.z > 1.8 and abs(co.x) < 0.55:   # the neck rolls (not the thin ears)
+            d += 0.04 * math.sin(co.y * 14.0 + n)
+        if False:   # (ear folds removed: the thin ear folded through itself)
+            d += 0.007 * math.sin((co.z + co.y) * 13.0 + n * 3.0)   # gentle: the ear is thin
         v.co = co + v.normal * d
     me.update()
     for poly in me.polygons:
@@ -155,10 +159,23 @@ def _remesh(obj, voxel=0.028):
 def _hide_material(color):
     """Elephant hide: deep wrinkle creases (voronoi edges and stretched waves
     into the bump, darkening the creases) over a warm tan-grey."""
-    m = props.material('hide_skin', {'hide_skin': color}, weather={'grime': 0.4})
+    m = props.material('hide_skin', {'hide_skin': color})
     p = props._principled(m)
     nt = m.node_tree
     N, L = nt.nodes, nt.links
+    # dark folds: ambient occlusion darkening the creases (the deep folds read as lines at 1x)
+    ao = N.new('ShaderNodeAmbientOcclusion')
+    ao.samples = 12
+    ao.inputs['Distance'].default_value = 0.07
+    ao.inputs['Color'].default_value = p.inputs['Base Color'].default_value
+    rmp = N.new('ShaderNodeMapRange')
+    rmp.inputs['From Min'].default_value, rmp.inputs['From Max'].default_value = 0.3, 1.0
+    rmp.inputs['To Min'].default_value, rmp.inputs['To Max'].default_value = 0.62, 1.0
+    L.new(ao.outputs['AO'], rmp.inputs['Value'])
+    hsv = N.new('ShaderNodeHueSaturation')
+    hsv.inputs['Color'].default_value = p.inputs['Base Color'].default_value
+    L.new(rmp.outputs['Result'], hsv.inputs['Value'])
+    L.new(hsv.outputs['Color'], p.inputs['Base Color'])
     tc = N.new('ShaderNodeTexCoord')
     mp = N.new('ShaderNodeMapping')
     mp.inputs['Scale'].default_value = (1.0, 1.0, 2.2)   # creases mostly horizontal
@@ -177,7 +194,7 @@ def _hide_material(color):
     L.new(wav.outputs['Fac'], mx.inputs[0])   # broad wave creases only (voronoi cells read as sponge)
     L.new(wav.outputs['Fac'], mx.inputs[1])
     bump = N.new('ShaderNodeBump')
-    bump.inputs['Strength'].default_value = 0.6
+    bump.inputs['Strength'].default_value = 0.4
     bump.inputs['Distance'].default_value = 0.025
     L.new(mx.outputs['Value'], bump.inputs['Height'])
     L.new(bump.outputs['Normal'], p.inputs['Normal'])
@@ -208,7 +225,7 @@ def _meander_unit(p, place, s):
     the unit's local (along, up) meters onto the surface; s is the step."""
     pts = [(0, 0), (0, 3), (3, 3), (3, 1), (1.5, 1), (1.5, 2)]
     q = [place(u * s, v * s) for u, v in pts]
-    p.add(props.tube([tuple(v) for v in q], s * 0.28, seg=5), 'gold', smooth=True)
+    p.add(props.tube([tuple(v) for v in q], s * 0.38, seg=6, scale_xy=(1.0, 0.45)), 'gold', smooth=True)
 
 
 def war_gear(root, body, tusk_axes, colors):
@@ -243,11 +260,13 @@ def war_gear(root, body, tusk_axes, colors):
         def on_cloth(y, z, sx=sx, side=side):
             near = min(side, key=lambda v: (v.y - y) ** 2 + (v.z - z) ** 2)
             return Vector((near.x + sx * 0.02, y, z))
-        for y0 in [ymid - 0.85 + 0.16 * i for i in range(11)]:
-            _meander_unit(p, lambda u, v, y0=y0, zb=zb, on=on_cloth: on(y0 + u, zb + v), 0.035)
-        for z in (zb - 0.03, zb + 0.15):
+        for y0 in [ymid - 0.82 + 0.34 * i for i in range(5)]:
+            _meander_unit(p, lambda u, v, y0=y0, zb=zb, on=on_cloth: on(y0 + u, zb + v), 0.075)
+        for yc, zc in ((ymid - 0.7, zb + 0.75), (ymid + 0.45, zb + 0.75)):   # the corner key motifs, big
+            _meander_unit(p, lambda u, v, yc=yc, zc=zc, on=on_cloth: on(yc + u, zc + v), 0.08)
+        for z in (zb - 0.06, zb + 0.3):
             pts = [on_cloth(ymid - 0.88 + 0.06 * i, z) for i in range(30)]
-            p.add(props.tube([tuple(q) for q in pts], 0.014, seg=5), 'gold', smooth=True)
+            p.add(props.tube([tuple(q) for q in pts], 0.03, seg=6, scale_xy=(1.0, 0.45)), 'gold', smooth=True)
     # girth and breast straps
     for y in (ymid - 0.2, ymid + 0.95):
         ring = [(math.sin(a) * 0.84, y, 2.22 + math.cos(a) * 0.86) for a in [math.pi * (i / 16.0 - 0.5) * 2 for i in range(17)]]
@@ -292,13 +311,16 @@ def war_gear(root, body, tusk_axes, colors):
     for sy in (-1, 1):
         p.add(props.box(1.24, 0.04, 0.02), 'gold', T(0, hy + sy * 0.67, rz + 0.06))
     for sy in (-1, 1):
-        for y0 in [hy - 0.55 + 0.16 * i for i in range(8)]:
-            _meander_unit(p, lambda u, v, y0=y0, sy=sy: Vector((sy * (0.5 - v), y0 + u, rz + 0.06)), 0.035)
+        for y0 in [hy - 0.55 + 0.27 * i for i in range(5)]:
+            _meander_unit(p, lambda u, v, y0=y0, sy=sy: Vector((sy * (0.55 - v), y0 + u, rz + 0.06)), 0.055)
     # silver shields with gold rims, and gold-shafted spears forward
     for sx in (-1, 1):
-        sh = props.lathe([(0.0, 0.44), (0.04, 0.42), (0.1, 0.28), (0.13, 0.12), (0.2, 0.0)], seg=32)   # a big domed shield, its boss
-        p.add(sh, 'silver', T(sx * 0.6, hy, hz + 0.45) @ R('Y', sx * 90), smooth=True)
-        p.add(props.lathe([(0.0, 0.47), (0.05, 0.46)], seg=32), 'gold', T(sx * 0.59, hy, hz + 0.45) @ R('Y', sx * 90), smooth=True)
+        R0 = 0.57
+        dome = [(0.18 * (1 - math.cos(a)) / (1 - math.cos(1.2)), R0 * math.sin(a) / math.sin(1.2)) for a in [1.2 * (1 - i / 12) for i in range(13)]]
+        m = T(sx * 0.62, hy, hz + 0.45) @ R('Y', sx * 90)
+        p.add(props.lathe(dome, seg=40), 'shield_steel', m, smooth=True)   # a smooth sphere-cap dome
+        p.add(props.lathe([(0.0, R0 + 0.035), (0.05, R0 + 0.03)], seg=40), 'gold', m, smooth=True)   # the gold rim
+        p.add(props.ellipsoid(0.09, 0.09, 0.06, seg=16), 'gunmetal', m @ T(0, 0, 0.19), smooth=True)   # the dark boss
         for k, dz in enumerate((0.55, 0.8)):
             a = (sx * 0.45, hy - 0.5, hz + dz)
             e = (sx * (0.75 + 0.15 * k), hy + 1.55, hz + dz + 0.35 - 0.2 * k)
@@ -307,8 +329,8 @@ def war_gear(root, body, tusk_axes, colors):
                   Matrix.Translation(e) @ (Vector(e) - Vector(a)).normalized().to_track_quat('Z', 'Y').to_matrix().to_4x4())
     # the forehead disc: silver in a gold ring
     m = T(*DISC) @ R('X', -72)
-    p.add(props.lathe([(0.0, 0.2), (0.03, 0.19), (0.05, 0.0)], seg=28), 'gold', m, smooth=True)
-    p.add(props.lathe([(0.04, 0.14), (0.07, 0.05), (0.08, 0.0)], seg=28), 'silver', m, smooth=True)
+    p.add(props.lathe([(0.0, 0.3), (0.04, 0.29), (0.07, 0.0)], seg=32), 'gold', m, smooth=True)
+    p.add(props.lathe([(0.06, 0.21), (0.1, 0.08), (0.12, 0.0)], seg=32), 'shield_steel', m, smooth=True)
     # gold caps (long, over the lower half) and civ bands on the tusks
     for path in tusk_axes:
         n = len(path)
