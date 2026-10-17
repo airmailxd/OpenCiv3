@@ -83,3 +83,25 @@ All 7 PASS: Impi, Army Ancient, Army Industrial, Army Modern, King Aztec, King A
 - Posture: all 51 PC foot units and 6 siege crews re-rendered with UPRIGHT; reviewed with posture as a 7th blocking check: all pass (Sumeria rod, Leader Ancient crook, Army Ancient and Industrial flags fixed after the change). Riders checked: they sit upright (ride stance), not re-rendered.
 - Installed: 93 units + War Elephant (frozen riders and chariots still out).
 
+## Night of 2026-10-16/17 (released in v0.8.3-v0.8.6)
+
+- **Mounted detail pass, all 15 installed** (7-axis review, 7s): Keshik, Ansar Warrior, Cavalry, Rider, Ancient Cavalry, Cossack, Hussar, Mounted Warrior (bonnet orientation fixed after stzur's catch), plus the earlier Sipahi, Horseman, Knight, Conquistador; chariot, War Chariot, Three Man Chariot (box cars, gold lattice and emblems, yoke saddles, scale trappers).
+- **Last 4 royals installed**: King Chinese, King Indian, King Iroquois, King Byzantines.
+- **Animations installed** (anim.py templates; bbox +0 vs the still, eyeballed 2-3 directions):
+  - ATTACK1, DEATH and RUN: 14 melee/spear units, then 4 gun units + Crusader; DEATH and RUN for Berserk, Inquisitor, Samurai (sheets only), Settler Modern Times.
+  - FORTIFY (per-class _fortify, held guard f5-f7): all 30 template units with a weapon class. The Mac's 10 (Warrior, Spearman, Archer, Swordsman, Musketman, Rifleman, Infantry, Bowman, Longbowman, Musketeer) were fully re-rendered on the PC from the same templates.
+- **Code**:
+  - mounted.py coat_spots (painted civ spots, blobs, pale patches) and tail_tip;
+  - riders.py byz_crown, war_bonnet, feather_bonnet, papakha(low), shako(cords), dragoon_helm;
+  - props.py byz_yoke, broad_collar, gazyri, frogging, spear(wrap), glaive(curved);
+  - garments.py frogging/gazyri patterns, cape_emblem 'collar';
+  - units.py cap_hairline, crest_scale, pauldron sizes;
+  - anim.setup plants by the lowest skinned mesh;
+  - build.py --actions FORTIFY (renders only those flics, keeps the rest);
+  - anim notes for Warrior, Spearman, Archer, Swordsman, Legionary, Musketman.
+
+### Left open (optional, none blocking)
+- Cossack rifle sits near face height in dirs 3 and 4 (a seated-rider IK fix; accepted like the Cavalry's carry).
+- Reviewer polish: Theodora's back collar could dip lower with more jewels; Iroquois feather tips bolder; Mao's pockets and Gandhi's glasses faint at 1x; Hussar tail binding as a solid wrap; War Chariot cartouche bigger.
+- No FORTIFY for units of no weapon class (still pose, by design); Worker variants are the Mac's.
+- No .NET SDK on the PC: StandaloneUnitArtTest is run on the Mac.
