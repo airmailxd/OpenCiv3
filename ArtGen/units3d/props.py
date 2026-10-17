@@ -631,11 +631,13 @@ def spear(p, length=2.3, grip=0.95, butt=True, scale=1.0, shaft=None, head=1.0, 
     feathers hanging from it (King Iroquois)."""
     z0, z1 = -grip, length - grip
     if wrap:
-        zs = z1 - 0.32 * scale
-        p.add(ellipsoid(0.045 * scale, 0.045 * scale, 0.12 * scale, seg=12), 'fur', T(0, 0, zs), smooth=True)
-        for k, (dx, dy) in enumerate(((0.05, 0.0), (-0.04, 0.03), (0.0, -0.05))):
-            feather_card(p, (dx * scale, dy * scale, zs - 0.06 * scale), (dx * 2.2 * scale, dy * 2.2 * scale, zs - 0.3 * scale),
-                         (dx, dy + 0.01, 0.0), 0.04 * scale, 'tint' if k == 1 else 'feather', tint=k == 1, curl=0.05)
+        zs = z1 - 0.36 * scale
+        p.add(ellipsoid(0.075 * scale, 0.075 * scale, 0.17 * scale, seg=12), 'fur', T(0, 0, zs), smooth=True)   # a bold fur wrap
+        p.add(lathe([(-0.02 * scale, 0.08 * scale), (0.02 * scale, 0.08 * scale)], seg=12), 'tint', T(0, 0, zs + 0.12 * scale),
+              smooth=True, tint=True)
+        for k, (dx, dy) in enumerate(((0.07, 0.0), (-0.06, 0.04), (0.0, -0.07), (0.04, 0.06))):
+            feather_card(p, (dx * scale, dy * scale, zs - 0.1 * scale), (dx * 2.6 * scale, dy * 2.6 * scale, zs - 0.48 * scale),
+                         (dx, dy + 0.01, 0.0), 0.07 * scale, 'tint' if k % 2 else 'feather', tint=k % 2 == 1, curl=0.05)
     # the shaft is kept at least SHAFT_R thick so it stays ~1 px wide at 1x
     r = shaft or SHAFT_R
     p.add(tube([(0, 0, z0 + 0.06), (0, 0, z1 - 0.2)], [r + 0.002, r], seg=10), 'tint' if shaft_tint else 'wood',

@@ -430,7 +430,7 @@ def dress_posed(entry, mesh, arm):
         ce = entry.get('cape_emblem')
         if ce:
             G.cape_emblem(arm, _hem_mat(entry, _colors(entry), ce[1], 'cape_emblem'), kind=ce[0],
-                          size=ce[2] if len(ce) > 2 else 0.22)
+                          size=ce[2] if len(ce) > 2 else 0.22, at=ce[3] if len(ce) > 3 else 0.35)
     hanging = [o for o in hanging if not o.get('no_drape')]
     if hanging and entry.get('drape', True):
         G.drape(hanging, mesh)
@@ -553,6 +553,13 @@ def _helmet(entry, mesh, arm):
             def keep(co, top=top / G._scale, yc=yc / G._scale):
                 d = top - co.z
                 return not (co.y - yc < -0.03 and 0.045 < d < 0.24 and abs(co.x) < 0.075)
+        if kind == 'cap' and entry.get('cap_hairline'):
+            # short receding hair: the cap in the hair color, cut back from a high forehead (King Chinese)
+            _, yc, _ = G._head(mesh)
+            depth = 0.12
+
+            def keep(co, top=top / G._scale, yc=yc / G._scale, front=entry['cap_hairline']):
+                return co.y - yc > -front
         if kind == 'crested':
             # a Corinthian war helm: down to the jaw, with cheek guards and a
             # T-shaped opening for the eyes and mouth

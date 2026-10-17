@@ -2005,6 +2005,8 @@ def cape_emblem(arm, mat, kind='disc', size=0.22, at=0.35):
         return [o]
     if kind == 'cross':
         parts = [((0.2 * s, 0.006, s), 0.0), ((0.66 * s, 0.006, 0.2 * s), 0.18 * s)]
+    elif kind == 'collar':   # a broad gold collar across the shoulders (King Byzantines)
+        parts = [((1.7 * s, 0.006, 0.4 * s), 0.0)]
     else:
         parts = [((s * 0.8, 0.006, s), 0.0)]
     for (dx, dy, dz), up in parts:

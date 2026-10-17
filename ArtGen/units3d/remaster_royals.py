@@ -295,13 +295,15 @@ REMASTER = {
         'top': 'sleeved', 'wide_sleeves': True, 'neck': 'high',
         'bottom': 'gown', 'robe_drop': 0.55,
         'patterns': {'bottom': ('panel', '#b08a2e', 0.04)},   # the gold front stripe, full length (the cape covers the back)
-        'hem_bands': [('bottom', 'gold', 0.07), ('cape', 'gold', 0.08)],
-        'chest_gear': ('broad_collar', {'scale': 1.05}), 'chest_out': 0.0,   # the jeweled gold collar and the small white casket
+        'hem_bands': [('bottom', 'gold', 0.07), ('cape', 'gold', 0.18)],   # the broad gold hem at the cape's foot
+        'cape_emblem': ('collar', 'gold', 0.3, 0.05),   # the jeweled gold collar across the shoulders, at the cape's top
+        'bands': [('neck', 'gold', 0.1)],       # a broad gold collar band (the jeweled collar prop sits under the high neck)
+        'chest_gear': ('broad_collar', {'scale': 1.05}), 'chest_out': 0.07,   # the small white casket at the hands
         'cape': True, 'cape_length': 1.38,
         'cuirass': False, 'wraps': None, 'sandals': True, 'bracers': False, 'gear': [],
         'weapon': None, 'offhand': None,        # MISSING: small_object (white, held at the chest)
         'stance_name': 'hands_clasped',
-        'tint': ['cape'],
+        'tint': ['cape', 'top'],   # civ sleeves and bodice, as the original
         'grime': 0.3, 'upper_bulk': 1.0,
     },
     'King Carthaginian': {
@@ -361,14 +363,15 @@ REMASTER = {
         'macro': {'muscle': 0.75, 'weight': 1.0, 'height': 0.76, 'proportions': 0.7}, 'age': 0.75,
         'race': {'caucasian': 0.0, 'african': 0.0, 'asian': 1.0},
         'colors': {'skin': '#c89c76', 'hair': '#141414', 'top': '#66788a', 'bottom': '#505a68',
-                   'shoes': '#3a2418', 'belt': '#4e5664'},
-        'helmet': None, 'hair': 'short', 'hair_asset': 'short02', 'beard': False,   # MISSING: balding_hair
+                   'shoes': '#6a4428', 'belt': '#4e5664', 'helmet': '#141414'},
+        'hair': 'bald', 'hair_asset': None, 'beard': False,
+        'helmet': 'cap', 'metal': [], 'cap_hairline': 0.075,   # short receding hair: a dark close crop back from a high forehead
         'top': 'sleeved', 'neck': 'high', 'bottom': 'long', 'wraps': 'shoes',   # MISSING: jacket pockets
         'coat_length': 0.3,                    # the jacket below the hip (0.2 still read waist-length)
         'bands': [('upperarm', 'tint', 0.06)],
         'cape': False, 'cuirass': False, 'sandals': False, 'bracers': False, 'gear': [],
         'weapon': None, 'offhand': None,
-        'pockets': '#9aa4ae', 'pocket_size': 0.11,
+        'pockets': '#a8b2bc', 'pocket_size': 0.14,
         'stance_name': 'hands_clasped',
         'tint': [],
         'grime': 0.3, 'upper_bulk': 1.1,
@@ -565,9 +568,9 @@ REMASTER = {
                    'cape': '#e4e2dc', 'belt': '#c8c2b4', 'sandal': '#5a3a22', 'wood': '#5a3a22',
                    'lens': '#7a5a42', 'gold': '#1e1a18'},   # clear-ish skin-toned lenses (white read as glowing eyes), dark wire rims
         'helmet': None, 'hair': 'bald', 'hair_asset': None, 'beard': False,
-        'face_prop': ('glasses', {'kind': 'round'}),   # the round glasses
+        'face_prop': ('glasses', {'kind': 'round', 'scale': 1.4}),   # the round glasses, big enough to read at 1x
         'top': 'mantle', 'bottom': 'kilt', 'robe_drop': 0.0,   # MISSING: dhoti (wrapped between the legs)
-        'cape': False,
+        'cape': True, 'cape_length': 1.0, 'cape_width': 0.42,   # the long white shawl down the back
         'gear': [('chest_strap', {'width': 0.12})],   # the sash, the original's main civ mark
         'cuirass': False, 'wraps': None, 'sandals': True, 'bracers': False,
         # MISSING: tinted_tip (the stick's top; no key on 'staff')
@@ -589,7 +592,7 @@ REMASTER = {
         'colors': {'skin': '#9a7458', 'hair': '#141010', 'plume': '#e8e4da', 'wraps': '#5e4632',
                    'wraps_band': '#3e2e20', 'belt': '#5a3a22', 'sandal': '#5a3a22', 'wood': '#4a3222',
                    'steel': '#8a8c90', 'shield_face': '#d8ccb0', 'shield_rim': '#8a6a48', 'feather': '#e8e4da'},
-        'helmet': None, 'headgear': 'war_bonnet', 'headgear_scale': 0.85,   # the halo round the back, the face open (fanned out, not tall)   # white feathers, tinted tips and headband, the trailer (smaller again: 2-5 px clip at the cell top, dirs 5-7)
+        'helmet': None, 'headgear': 'war_bonnet', 'headgear_scale': [0.9, 0.9, 1.25],   # the halo round the back, the face open (fanned out, not tall)   # white feathers, tinted tips and headband, the trailer (smaller again: 2-5 px clip at the cell top, dirs 5-7)
         'hair': 'long', 'hair_asset': 'long01', 'beard': False,
         'top': None, 'bottom': 'loincloth', 'loin_length': (0.5, 0.45), 'torn': False,
         'wraps': 'wraps', 'sandals': False,     # MISSING: leggings (brown cloth), moccasins
