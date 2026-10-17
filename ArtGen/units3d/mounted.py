@@ -857,7 +857,7 @@ def asset_tack(root, body, colors, h=None):
     c = dict(colors)
     for k_src, k_dst in (('blanket_color', 'blanket'), ('blanket2', 'blanket2'), ('barding_steel', 'barding_mail'),
                          ('trim', 'trim'), ('saddle', 'leather'), ('bridle', 'bridle'), ('tack', 'leather'),
-                         ('plume_color', 'plume'), ('pelt_color', 'pelt')):
+                         ('plume_color', 'plume'), ('pelt_color', 'pelt'), ('barding_dark', 'barding_dark')):
         if h.get(k_src):
             c[k_dst] = h[k_src]
     for key, (col, rough, metal, kind) in {'blanket': ('#7e6650', 0.85, 0.0, 'cloth'), 'blanket2': ('#eeece6', 0.85, 0.0, 'cloth'),
@@ -899,7 +899,7 @@ def asset_tack(root, body, colors, h=None):
         if blanket == 'barding':
             mail_hem = (sec[2] - 0.02) if h.get('full_caparison') else knee - 0.06   # under a caparison: plate to the belly, legs bare
             mail, mrings = drape(vs, yh + 0.05 * (yf - yh), yf - 0.12 * (yf - yh), mail_hem, gap=0.02, folds=0.005)
-            p.add(mail, 'barding_mail', smooth=True, keys=None if h.get('full_caparison') else _scales())
+            p.add(mail, 'barding_mail', smooth=True, keys=None if h.get('full_caparison') else _scales(h.get('scale_period', 0.09)))
             if h.get('full_caparison'):   # plate barding: a few riveted lame lines, not a checker
                 for zl in (sec[2] + 0.15, sec[2] + 0.35):
                     for sx in (-1, 1):
@@ -1025,11 +1025,11 @@ def asset_tack(root, body, colors, h=None):
                 _spot_discs(p, sleeve, outward=True)
             cloth_cover = h.get('neck_cover') in ('cloth', 'cloth_sleeve')
             p.add(sleeve, 'tint' if cloth_cover else 'barding_mail', smooth=True, tint=cloth_cover,
-                  keys=None if cloth_cover else _scales())
+                  keys=None if cloth_cover else _scales(h.get('scale_period', 0.09)))
     if h.get('plume'):
         ctr = a.lerp(b, 0.08) + Vector((0, 0, 0.12))
         big = 2.2 if h.get('plume') == 'fan' else 1.3   # a tall fan of plumes (Egyptian chariot horses)
-        for dx in ((-0.05, -0.025, 0.0, 0.025, 0.05) if big > 1 else (-0.025, 0.0, 0.025)):
+        for dx in ((-0.09, -0.045, 0.0, 0.045, 0.09) if big > 1 else (-0.025, 0.0, 0.025)):   # a fan of separate feathers
             p.add(props.tube([ctr + Vector((dx, 0, 0)), ctr + Vector((dx * 1.5, -0.04, 0.16 * big)),
                               ctr + Vector((dx * 2.5, -0.1, 0.24 * big))], [0.045, 0.05, 0.02], seg=8), 'tint' if h.get('plume_tint', True) else 'plume',
                   smooth=True, tint=h.get('plume_tint', True))

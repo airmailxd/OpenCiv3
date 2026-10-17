@@ -36,8 +36,10 @@ def _horses(root, entry):
             c[k] = h[k]
     c.update(CHARIOT_COAT.get(entry.get('_unit'), {}))
     xs = [0.0] if n == 1 else [-0.42, 0.42]
-    allv = []
+    allv, heads = [], []
+    c0 = c
     for i, x in enumerate(xs):
+        c = dict(c0, **(TEAM_COATS.get(entry.get('_unit'), [{}] * len(xs))[i]))   # a mixed team (Three Man Chariot)
         sub = vkit.root(f'horse_{i}')
         sub.parent = root
         body = mounted.horse_asset(sub, dict(h, **c))
@@ -50,7 +52,17 @@ def _horses(root, entry):
         mounted.asset_tack(sub, body, c, hh)   # fitted to the horse at the origin, then moved into the team
         sub.location.x = x
         bpy.context.view_layer.update()
-        allv += mounted._world_verts(body)
+        wv = mounted._world_verts(body)
+        allv += wv
+        feet = [v for v in wv if v.z < 0.15]
+        yf_, yh_ = max(v.y for v in feet), min(v.y for v in feet)
+        yw = yh_ + 0.72 * (yf_ - yh_)
+        top = max(v.z for v in wv if abs(v.y - yw) < 0.08 and abs(v.x - x) < 0.12)
+        entry.setdefault('_withers', []).append((x, yw, top))
+        ytip = max(v.y for v in wv)
+        head = [v for v in wv if v.y > ytip - 0.3]
+        heads.append(sum(head, Vector()) / len(head))   # the head, where the reins start
+    entry['_heads'] = heads
     return allv, xs
 
 
@@ -58,6 +70,8 @@ def _car(root, entry, y_axle, xs):
     """The car: two spoked wheels on an axle, a floor, a curved breastwork
     open at the back, and a pole running forward between the horses to a yoke."""
     car = dict(entry.get('car', {}))
+    if entry.get('_unit') == 'chariot':   # Civ3's: light grey iron tires, dark spokes
+        car.update(rim='#8a8c90', spoke='#3a2a1e')
     heavy = car.get('kind') == 'heavy'
     gold = CAR_GOLD.get(entry.get('_unit'), False)
     c = {'car_wood': '#4e3420' if heavy else car.get('wood', '#7a5638'), 'car_body': car.get('body', '#8a6a48'),
@@ -88,11 +102,71 @@ def _car(root, entry, y_axle, xs):
     props.bmesh.ops.solidify(wall, geom=wall.faces[:], thickness=0.025)
     p.add(wall, key, smooth=True, tint=tinted)
     p.add(props.tube(rings[1], 0.02, seg=6), 'trim', smooth=True)
+    unit = entry.get('_unit')
+    # a gold lattice over the panels: posts and a mid rail (Civ3's chariot frames)
+    out = [(x * 1.06, y + 0.012, z) for x, y, z in pts]
+    mid = [(x, y, zf + wall_h * 0.5) for x, y, _ in out]
+    p.add(props.tube(mid, 0.014, seg=6), 'trim', smooth=True)
+    for i in range(0, 17, 2):
+        x, y, _ = out[i]
+        vkit.rod(p, (x, y, zf + 0.03), (x * 1.03, y, zf + wall_h), 0.014, 'trim', seg=6)
+    if LATTICE_X.get(unit):   # diagonal braces in each bay
+        for i in range(0, 16, 2):
+            (x0, y0, _), (x1, y1, _) = out[i], out[i + 2]
+            vkit.rod(p, (x0, y0, zf + 0.04), (x1, y1, zf + wall_h * 0.5), 0.009, 'trim', seg=5)
+            vkit.rod(p, (x0, y0, zf + wall_h * 0.5), (x1, y1, zf + wall_h - 0.02), 0.009, 'trim', seg=5)
+    # a side emblem on both flanks
+    em = EMBLEM.get(unit)
+    if em:
+        for sx in (-1, 1):
+            m = T(sx * (width / 2 + 0.045), y_axle + 0.06 + depth * 0.2, zf + wall_h * 0.78) @ R('Y', sx * 90)   # above the wheel
+            if em == 'sun':   # a gold winged sun disc
+                p.add(props.ellipsoid(0.12, 0.12, 0.025, seg=16), 'trim', m, smooth=True)
+                for wx in (-1, 1):
+                    wing = props.slab([(0.0, 0.03), (wx * 0.36, 0.08), (wx * 0.33, -0.01), (0.0, -0.05)], 0.014, 'Z')
+                    p.add(wing, 'trim', m @ T(wx * 0.07, 0, 0), bevel=0.003)
+            else:             # a gold cartouche outline
+                ring = [(0.09 * math.cos(2 * math.pi * k / 24), 0.2 * math.sin(2 * math.pi * k / 24), 0.0) for k in range(25)]
+                p.add(props.tube(ring, 0.02, seg=6), 'trim', m, smooth=True)
+                p.add(props.ellipsoid(0.04, 0.04, 0.012, seg=12), 'trim', m, smooth=True)   # a sun disc inside it
+    # bronze linchpins at the axle ends
+    for sx in (-1, 1):
+        p.add(props.ellipsoid(0.035, 0.035, 0.05, seg=10), 'trim', T(sx * (track + 0.09), y_axle, r + 0.04), smooth=True)
+    # a quiver / bow case slung diagonally on the side of the car
+    if QUIVER.get(unit) == 'side':
+        m = T(width / 2 + 0.07, y_axle + 0.06 + depth * 0.25, zf + wall_h * 0.6) @ R('X', -40)
+        p.add(props.ellipsoid(0.07, 0.08, 0.4, seg=12), 'leather', m, smooth=True)
+        p.add(props.lathe([(0.0, 0.055), (0.03, 0.06)], seg=12), 'trim', m @ T(0, 0, 0.28), smooth=True)
+        for k in range(4):   # fletched arrows out of its mouth
+            p.add(props.tube([(0.012 * (k - 1.5), 0.0, 0.25), (0.015 * (k - 1.5), 0.0, 0.46)], [0.006, 0.014], seg=4),
+                  'plume', m, smooth=True)
+    elif QUIVER.get(unit) == 'corners':
+        for sx in (-1, 1):
+            m = T(sx * width / 2, y_axle + 0.06 + depth / 2 - 0.08, zf + wall_h * 0.6) @ R('X', 20) @ R('Y', sx * -12)
+            p.add(props.ellipsoid(0.055, 0.06, 0.3, seg=12), 'tint', m, smooth=True, tint=True)
+            p.add(props.lathe([(0.0, 0.06), (0.03, 0.065)], seg=12), 'trim', m @ T(0, 0, 0.27), smooth=True)
+            for k in range(3):
+                p.add(props.tube([(0.015 * (k - 1), 0.0, 0.25), (0.018 * (k - 1), 0.0, 0.45)], 0.007, seg=4), 'car_wood', m, smooth=True)
     # the pole forward between the horses to a yoke at their withers
     y_yoke = 0.45
-    vkit.rod(p, (0, y_axle + depth / 2, zf - 0.02), (0, y_yoke, 1.18), 0.04, 'car_wood', seg=10)
+    vkit.rod(p, (0, y_axle + depth / 2, zf - 0.02), (0, y_yoke, 1.18), 0.055, 'car_wood', seg=10)   # a pole that reads at 1x
     if len(xs) > 1:
-        vkit.rod(p, (xs[0] - 0.18, y_yoke, 1.25), (xs[1] + 0.18, y_yoke, 1.25), 0.035, 'car_wood', seg=10)
+        vkit.rod(p, (xs[0] - 0.18, y_yoke, 1.25), (xs[1] + 0.18, y_yoke, 1.25), 0.045, 'car_wood', seg=10)
+    # yoke saddles: civ pads at each horse's withers, gold-finialed
+    for x, yw, yz in entry.get('_withers', []):
+        p.add(props.ellipsoid(0.2, 0.16, 0.09, seg=14), 'tint', T(x, yw, yz + 0.03), smooth=True, tint=True)
+        p.add(props.ellipsoid(0.21, 0.17, 0.025, seg=14), 'trim', T(x, yw, yz - 0.02), smooth=True)   # its gold edge
+        if FINIALS.get(unit):
+            for fx in (-0.14, 0.14):
+                vkit.rod(p, (x + fx, yw, yz + 0.05), (x + fx * 1.2, yw, yz + 0.3), 0.018, 'trim', seg=6)
+                p.add(props.ellipsoid(0.045, 0.045, 0.045, seg=10), 'trim', T(x + fx * 1.2, yw, yz + 0.33), smooth=True)
+    # reins from the bits back to the driver's hands at the front of the car
+    for hd in entry.get('_heads', []):
+        for sx in (-1, 1):
+            a = hd + Vector((sx * 0.08, -0.05, -0.1))
+            b = Vector((sx * 0.1, y_axle + depth / 2 - 0.1, zf + wall_h + 0.35))
+            m_ = a.lerp(b, 0.5) + Vector((0, 0, -0.12))
+            p.add(props.tube([a, m_, b], 0.012, seg=5), 'leather', smooth=True)
     else:   # one horse: shafts down both sides instead of a pole
         for sx in (-1, 1):
             vkit.rod(p, (sx * 0.28, y_axle + depth / 2, zf), (sx * 0.3, y_yoke + 0.1, 1.15), 0.03, 'car_wood', seg=8)
@@ -127,8 +201,20 @@ CAR_K = 1.3   # Civ3's cars are big next to the horses
 HORSE_K = 1.05
 # per unit, over the catalog's horse tack (as the originals show them)
 TACK = {'War Chariot': {'blanket': None, 'neck_cover': 'cloth', 'plume': 'fan', 'plume_tint': True},
-        'Three Man Chariot': {'caparison_over': False, 'trim_tint': True, 'plume': True, 'plume_tint': True}}
-CAR_GOLD = {'chariot': True, 'War Chariot': True, 'Three Man Chariot': True}
+        # fine silver scale trappers with a civ border
+        'Three Man Chariot': {'caparison_over': False, 'trim_tint': True, 'plume': True, 'plume_tint': True,
+                              'barding_steel': '#c8ccd2', 'barding_dark': '#8e929a', 'scale_period': 0.045},
+        # civ head plumes and a dark bridle; the yoke pads (chariots._car) instead of a big blanket
+        'chariot': {'blanket': None, 'plume': True, 'plume_tint': True, 'bridle': '#3a2a1e'}}
+CAR_GOLD = {'chariot': False, 'War Chariot': True, 'Three Man Chariot': True}   # the chariot: grey iron tires, dark spokes
+LATTICE_X = {'chariot': True}
+EMBLEM = {'War Chariot': 'cartouche', 'Three Man Chariot': 'sun'}
+QUIVER = {'chariot': 'side', 'War Chariot': 'side', 'Three Man Chariot': 'corners'}
+FINIALS = {'War Chariot': True, 'Three Man Chariot': True}
+YOKE_Z = {}
+# per-horse coats: Civ3's Three Man Chariot team is one grey and one dark
+TEAM_COATS = {'Three Man Chariot': [{'coat': '#c8c8c4', 'mane': '#9a9a98', 'points': '#a8a8a4'},
+                                    {'coat': '#4a3a2e', 'mane': '#1a1410', 'points': '#201812'}]}
 # Civ3's 'chariot' is drawn with a pair of horses
 TEAM = {'chariot': 2}
 # coats read from the Civ3 originals

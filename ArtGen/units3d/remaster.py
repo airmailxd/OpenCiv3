@@ -69,7 +69,18 @@ REMASTER = {
     },
     # ---- riders (the PC session's units: mounted.py seats them on their horses)
     # chariot crews (chariots.py): keys '<unit>:crew<i>'
-    'chariot:crew0': {'weapon': 'spear', 'props': {'spear': ('spear', {'length': 2.8, 'grip': 1.0})}},
+    'chariot:crew0': {'weapon': 'spear', 'props': {'spear': ('glaive', {'length': 2.8, 'grip': 1.0, 'curved': True})}},   # held as the spear
+    # the Egyptian archer: a gold usekh and armbands; his bow case rides on the car
+    'War Chariot:crew0': {'bands': [('neck', 'gold', 0.08), ('upperarm', 'gold', 0.04), ('wrist', 'gold', 0.04)], 'back': None},
+    # the Assyrian crew: grey scale shirts and conical helmets; a gold spear and a gold round shield
+    'Three Man Chariot:crew0': {'cuirass': True, 'metal': ['cuirass'], 'cuirass_bands': 7, 'colors': {'cuirass': '#9a9ca2', 'helmet': '#9a9ca2'},
+                                'helmet': None, '_headgear': 'spiked_helm'},
+    'Three Man Chariot:crew1': {'cuirass': True, 'metal': ['cuirass'], 'cuirass_bands': 7, 'colors': {'cuirass': '#9a9ca2', 'helmet': '#9a9ca2', 'wood': '#c8a048'},
+                                'helmet': None, '_headgear': 'spiked_helm'},
+    'Three Man Chariot:crew2': {'cuirass': True, 'metal': ['cuirass'], 'cuirass_bands': 7,
+                                'colors': {'cuirass': '#9a9ca2', 'helmet': '#9a9ca2', 'shield_face': '#c8a048', 'shield_rim': '#d8b458'},
+                                'helmet': None, '_headgear': 'spiked_helm',
+                                'offhand_mesh': ('shield_round', {'r': 0.3, 'tint': 'none', 'face_metal': False, 'boss_key': 'gold'})},
     # Civ3's Rider: the civ-colored coat with gold belt fittings and gold hems
     'Rider': {'colors': {'belt': '#c4a462', 'pants': '#6a4a30', 'bottom': '#6a4a30', 'boots': '#5a3c26'}, 'hem_bands': [('top', 'gold', 0.03)],
               'headgear_scale': [1.15, 1.15, 1.0]},   # mid-brown legs, a fuller hat

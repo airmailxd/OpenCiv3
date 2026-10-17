@@ -1196,10 +1196,21 @@ def sheathed_sword(p, length=0.82, width=0.07, rapier=False, scale=1.0):
         p.add(ellipsoid(0.03, 0.025, 0.022, seg=12), 'bronze', T(0, 0, -0.135), smooth=True)
 
 
-def glaive(p, length=2.0, grip=0.8, scale=1.0):
-    """A glaive: a pole with a long single-edged knife blade on top, edge toward +Y."""
+def glaive(p, length=2.0, grip=0.8, scale=1.0, curved=False):
+    """A glaive: a pole with a long single-edged knife blade on top, edge toward +Y;
+    curved=True: a big crescent scythe blade sweeping forward and up (Civ3's chariot)."""
     L = length * scale
     z1 = L - grip
+    if curved:
+        p.add(tube([(0, 0, -grip), (0, 0, z1 - 0.1)], [SHAFT_R + 0.004, SHAFT_R + 0.002], seg=10), 'wood', smooth=True)
+        arc = []
+        for i in range(9):   # from the socket, out forward and curling back up to a point
+            a = math.radians(-40 + 150 * i / 8)
+            arc.append((0.0, 0.2 * math.cos(a) - 0.02, z1 - 0.15 + 0.24 * math.sin(a) + 0.12 * i / 8))
+        p.add(tube(arc, [0.05, 0.06, 0.06, 0.055, 0.05, 0.04, 0.03, 0.018, 0.004], seg=8, scale_xy=(0.22, 1.0)),
+              'steel', smooth=True)
+        p.add(lathe([(0.0, 0.03), (0.1, 0.026)], seg=10), 'gold', T(0, 0, z1 - 0.2), smooth=True)   # the socket
+        return
     p.add(tube([(0, 0, -grip), (0, 0, z1 - 0.4)], [SHAFT_R + 0.002, SHAFT_R], seg=10), 'wood', smooth=True)
     blade = slab([(0.0, -0.02), (0.0, 0.02), (0.18, 0.05), (0.42, 0.0), (0.3, -0.02)], 0.01, 'X')
     for v in blade.verts:
