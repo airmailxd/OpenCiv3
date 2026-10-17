@@ -9,12 +9,12 @@
     "VICTORY": "PikemanVictory"
   },
   "flics": {
-    "PikemanAttackA": {"size": [122, 87], "directions": 8, "frames": 15, "frameMs": 66, "offset": [56, 60], "canvas": [240, 240]},
-    "PikemanDeath": {"size": [160, 106], "directions": 8, "frames": 15, "frameMs": 83, "offset": [40, 55], "canvas": [240, 240]},
+    "PikemanAttackA": {"size": [157, 103], "directions": 8, "frames": 15, "frameMs": 66, "offset": [43, 59], "canvas": [240, 240]},
+    "PikemanDeath": {"size": [160, 109], "directions": 8, "frames": 15, "frameMs": 83, "offset": [40, 52], "canvas": [240, 240]},
     "PikemanDefault": {"size": [61, 81], "directions": 8, "frames": 15, "frameMs": 125, "offset": [96, 60], "canvas": [240, 240]},
     "PikemanFidget": {"size": [61, 81], "directions": 8, "frames": 15, "frameMs": 83, "offset": [96, 60], "canvas": [240, 240]},
     "PikemanFortify": {"size": [84, 81], "directions": 8, "frames": 10, "frameMs": 66, "offset": [74, 60], "canvas": [240, 240]},
-    "PikemanRun": {"size": [60, 81], "directions": 8, "frames": 10, "frameMs": 66, "offset": [97, 60], "canvas": [240, 240]},
+    "PikemanRun": {"size": [60, 79], "directions": 8, "frames": 10, "frameMs": 66, "offset": [97, 61], "canvas": [240, 240]},
     "PikemanVictory": {"size": [79, 81], "directions": 8, "frames": 15, "frameMs": 83, "offset": [78, 60], "canvas": [240, 240]}
   }
 }
