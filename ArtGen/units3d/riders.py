@@ -316,10 +316,11 @@ def feather_bonnet(p, c, tinted, _, trailer=True):
               'plume', smooth=True)
     n = 17
     for i in range(n):
-        a = math.radians(-120 + 240 * i / (n - 1))
+        a = math.radians(60 + 240 * i / (n - 1))   # round the sides and back (from +Y, the front): the face stays open
         base = (0.11 * math.sin(a), 0.11 * math.cos(a), 0.03)
-        mid = (0.19 * math.sin(a), 0.15 * math.cos(a) - 0.08, 0.19)
-        tip = (0.25 * math.sin(a), 0.17 * math.cos(a) - 0.16, 0.3)   # swept back
+        up = 0.17 * max(0.0, -math.cos(a))   # tallest at the back, so the halo rises over the head seen from the front
+        mid = (0.19 * math.sin(a), 0.16 * math.cos(a) - 0.03, 0.2 + up * 0.5)
+        tip = (0.27 * math.sin(a), 0.21 * math.cos(a) - 0.06, 0.33 + up)   # fanned out round the head
         props.feather_card(p, base, mid, (math.sin(a), math.cos(a), 0.0), 0.05, 'plume', curl=-0.08)
         props.feather_card(p, mid, tip, (math.sin(a), math.cos(a), 0.0), 0.05, 'tint', tint=True, curl=-0.08)
     if trailer:
