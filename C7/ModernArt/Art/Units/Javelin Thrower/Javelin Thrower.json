@@ -10,11 +10,11 @@
   },
   "flics": {
     "Javelin_Thrower_AttackA": {"size": [240, 240], "directions": 8, "frames": 15, "frameMs": 66, "offset": [0, 0], "canvas": [240, 240]},
-    "Javelin_Thrower_Death": {"size": [106, 102], "directions": 8, "frames": 15, "frameMs": 66, "offset": [66, 47], "canvas": [240, 240]},
+    "Javelin_Thrower_Death": {"size": [160, 129], "directions": 8, "frames": 15, "frameMs": 66, "offset": [42, 36], "canvas": [240, 240]},
     "Javelin_Thrower_Default": {"size": [98, 102], "directions": 8, "frames": 15, "frameMs": 125, "offset": [72, 47], "canvas": [240, 240]},
     "Javelin_Thrower_Fidget": {"size": [98, 102], "directions": 8, "frames": 15, "frameMs": 83, "offset": [72, 47], "canvas": [240, 240]},
     "Javelin_Thrower_Fortify": {"size": [100, 102], "directions": 8, "frames": 10, "frameMs": 83, "offset": [70, 47], "canvas": [240, 240]},
-    "Javelin_Thrower_Run": {"size": [95, 102], "directions": 8, "frames": 10, "frameMs": 66, "offset": [75, 47], "canvas": [240, 240]},
+    "Javelin_Thrower_Run": {"size": [100, 104], "directions": 8, "frames": 10, "frameMs": 66, "offset": [73, 46], "canvas": [240, 240]},
     "Javelin_Thrower_Victory": {"size": [98, 102], "directions": 8, "frames": 15, "frameMs": 66, "offset": [72, 47], "canvas": [240, 240]}
   }
 }
