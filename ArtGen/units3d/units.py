@@ -213,8 +213,8 @@ def dress(entry, mesh, arm):
                                                                              tint=tint, nodes=G.plate_bands(3)))
                 if entry['pauldrons'] == 'metal' else _mat(entry, 'top', G.leather))
         G.shell(mesh, arm, 'Pauldrons', ['upperarm_l', 'upperarm_r', 'clavicle_l', 'clavicle_r'],
-                pmat, zmin=1.33, offset=0.012, thickness=0.008, min_weight=0.35,
-                keep=lambda co: abs(co.x) > 0.13)
+                pmat, zmin=entry.get('pauldron_zmin', 1.33), offset=entry.get('pauldron_offset', 0.012),
+                thickness=0.008, min_weight=0.35, keep=lambda co: abs(co.x) > entry.get('pauldron_x', 0.13))
     if entry.get('cuirass'):
         metal = 'cuirass' in entry.get('metal', ['cuirass'])
         bands = entry.get('cuirass_bands')       # lorica segmentata: N horizontal plates
