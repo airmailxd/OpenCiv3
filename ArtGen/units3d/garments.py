@@ -255,6 +255,37 @@ def _pattern(tree, coord, base, pattern, tinted=False):
         hard.inputs[1].default_value = nums[0] if nums else 0.9     # higher: a narrower stripe
         tree.links.new(outn.outputs['Value'], hard.inputs[0])
         return _pattern_mix(tree, base, dark, hard.outputs['Value'], civ, tinted)
+    if kind in ('frogging', 'gazyri'):
+        # chest decoration on the front (the unposed body faces -y), z in metres:
+        # 'frogging' (a hussar's dolman): ('frogging', color, rows) horizontal cords
+        #   across the chest between z 1.16 and 1.44, |x| < 0.12;
+        # 'gazyri' (a Cossack's cherkeska): ('gazyri', color) two banks of cartridge
+        #   pockets, vertical stripes at 0.04 < |x| < 0.13, z 1.26 to 1.4
+        sep3 = n.new('ShaderNodeSeparateXYZ')
+        tree.links.new(coord.outputs['Object'], sep3.inputs['Vector'])
+
+        def m(op, a, b):
+            node = n.new('ShaderNodeMath')
+            node.operation = op
+            for i, v in enumerate((a, b)):
+                if isinstance(v, (int, float)):
+                    node.inputs[i].default_value = v
+                else:
+                    tree.links.new(v, node.inputs[i])
+            return node.outputs['Value']
+        ax = m('ABSOLUTE', sep3.outputs['X'], 0.0)
+        z, sc = sep3.outputs['Z'], _scale
+        front = m('LESS_THAN', sep3.outputs['Y'], 0.0)
+        if kind == 'frogging':
+            rows = nums[0] if nums else 6.0
+            zone = m('MULTIPLY', m('LESS_THAN', ax, 0.12 * sc), m('MULTIPLY', m('GREATER_THAN', z, 1.16 * sc), m('LESS_THAN', z, 1.44 * sc)))
+            band = m('GREATER_THAN', m('FRACT', m('MULTIPLY', m('SUBTRACT', z, 1.16 * sc), rows / (0.28 * sc)), 0.0), 0.62)
+        else:
+            zone = m('MULTIPLY', m('MULTIPLY', m('GREATER_THAN', ax, 0.04 * sc), m('LESS_THAN', ax, 0.13 * sc)),
+                     m('MULTIPLY', m('GREATER_THAN', z, 1.26 * sc), m('LESS_THAN', z, 1.4 * sc)))
+            band = m('GREATER_THAN', m('FRACT', m('MULTIPLY', ax, 1.0 / (0.018 * sc)), 0.0), 0.45)
+        mask = m('MULTIPLY', m('MULTIPLY', zone, band), front)
+        return _pattern_mix(tree, base, dark, mask, civ, tinted)
     if kind == 'pleats':
         # stripes running round the body (a skirt's pleats or panels): bands
         # of the angle about the vertical axis, `scale` stripes in all

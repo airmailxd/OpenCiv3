@@ -119,7 +119,7 @@ def papakha(p, c, tinted, _, low=False):
     if low:
         p.add(props.lathe([(0.0, 0.116), (0.015, 0.126), (0.1, 0.128), (0.115, 0.12)], seg=28), 'fur', smooth=True)
         key, t = _k(tinted, 'hat')
-        p.add(props.lathe([(0.09, 0.112), (0.13, 0.095), (0.15, 0.0)], seg=28), key, smooth=True, tint=t)
+        p.add(props.ellipsoid(0.118, 0.118, 0.045, seg=24), key, T(0, 0, 0.11), smooth=True, tint=t)   # the civ crown
         for a in (0, 90):   # the braided cross over the top
             p.add(props.tube([(-0.1, 0, 0.125), (0, 0, 0.152), (0.1, 0, 0.125)], 0.008, seg=6), 'gold',
                   T(0, 0, 0) @ R('Z', a), smooth=True)

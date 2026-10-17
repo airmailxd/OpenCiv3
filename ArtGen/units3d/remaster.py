@@ -79,7 +79,11 @@ REMASTER = {
                       'tint': ['hat', 'belt', 'pants', 'bottom', 'boots'], 'bands': [('waist', 'tint', 0.1)],   # a broad civ sash, civ trousers
                       'offhand_mesh': ('shield_round', {'r': 0.32, 'tint': 'none'}),
                       'hip': ('sheathed_sword', {'length': 0.78})},
-    'Ancient Cavalry': {'top': 'sleeved', 'tint': ['top', 'crest', 'shield_face', 'shield_emblem']},
+    # Civ3's Ancient Cavalry: a big grey round shield quartered by a civ cross, a tall civ crest, a heavier javelin
+    'Ancient Cavalry': {'top': 'sleeved', 'tint': ['top', 'crest'], 'crest_scale': 1.6,
+                        'colors': {'shield_face': '#a4a6aa', 'shield_rim': '#cfcfcf'},
+                        'offhand_mesh': ('shield_round', {'r': 0.34, 'tint': 'none', 'emblem': 'cross', 'boss_key': 'bronze'}),
+                        'props': {'javelin': ('javelin', {'scale': 1.2})}},
     'Knight': {'top': 'sleeved', 'cuirass': True, 'metal': ['helmet', 'cuirass'],
                'colors': {'cuirass': '#9a9ca2', 'mail': '#7a7c80', 'shield_pale': '#f2f0ea', 'shield_rim': '#c4a462'},
                # the original: a civ heater shield with a white charge, a horned great helm, mail sleeves
@@ -87,7 +91,14 @@ REMASTER = {
                'weapon': 'lance', 'props': {'lance': ('lance', {'length': 2.1})},   # couched forward, charging (the original); short so the unit keeps its size
                'headgear_params': {'crest': 'horns'}, 'mail_parts': ['arms']},
     # Civ3's Cossack: a tan coat; only the papakha and belt are civ-colored
-    'Cossack': {'tint': ['hat', 'belt'], 'headgear_scale': [0.95, 0.95, 0.9]},
+    # Civ3's Cossack: a low tan papakha with a civ top, gazyri across the chest, crossed civ straps, a shashka
+    'Cossack': {'tint': ['hat', 'belt'], 'headgear_scale': [1.0, 1.0, 1.0], 'headgear_params': {'low': True},
+                'colors': {'fur': '#b4946a'}, 'patterns': {'top': ('gazyri', '#e8e0c8')}, 'hair': 'bald',   # no hair poking through the low hat
+                'gear': [('chest_strap', {'tint': True, 'width': 0.045, 'cross': True, 'offset': 0.03})],
+                'hip': ('sheathed_sword', {'length': 0.8})},
+    # Civ3's Hussar: gold frogging and buttons, a corded shako with a tall plume, a sabre scabbard
+    'Hussar': {'headgear_params': {'cords': True}, 'patterns': {'top': ('frogging', '#e0b040', 6.0)},
+               'hip': ('sheathed_sword', {'length': 0.85})},
     # Civ3's Keshik: a spiked bronze helm with a fur brim, maroon lamellar with civ rows and gold edges,
     # a bronze round shield on the back (the bow stays in hand)
     # Civ3's Cavalry: a white crossbelt, gold epaulettes, a sabre in a brass scabbard at the hip, a brass helmet

@@ -576,8 +576,10 @@ def _helmet(entry, mesh, arm):
         if kind == 'crested':
             c = _colors(entry)
             tint = 'crest' in entry.get('tint', [])
+            k = entry.get('crest_scale', 1.0)
             G.crest(mesh, arm, G.hide('crest', (1, 1, 1) if tint else B.hex_color(c['crest']),
-                                      (0.8, 0.8, 0.8) if tint else tuple(v * 0.6 for v in B.hex_color(c['crest'])), tint=tint))
+                                      (0.8, 0.8, 0.8) if tint else tuple(v * 0.6 for v in B.hex_color(c['crest'])), tint=tint),
+                    height=0.15 * k, width=0.06 * k)
     elif kind == 'headband':
         G.shell(mesh, arm, 'Helmet', ['head'], _mat(entry, 'helmet', G.leather), zmin=(top - 0.09) / G._scale, zmax=(top - 0.055) / G._scale,
                 offset=0.014, thickness=0.01, min_weight=0.2)

@@ -343,13 +343,20 @@ def _coat_material(h):
         size = cs.get('size', 0.2)
         spot = maprange(vor.outputs['Distance'], size - 0.03, size, 1.0, 0.0)
         region = None
-        for y0, y1, z0, z1 in cs['boxes']:
+        for y0, y1, z0, z1 in cs.get('boxes', []):
             box = math_('MULTIPLY', maprange(sepo.outputs['Y'], y0, y0 + 0.04, 0.0, 1.0),
                         maprange(sepo.outputs['Y'], y1 - 0.04, y1, 1.0, 0.0))
             box = math_('MULTIPLY', box, maprange(sepo.outputs['Z'], z0, z0 + 0.03, 0.0, 1.0))
             box = math_('MULTIPLY', box, maprange(sepo.outputs['Z'], z1 - 0.03, z1, 1.0, 0.0))
             region = box if region is None else math_('MAXIMUM', region, box)
-        mask = math_('MULTIPLY', spot, region)
+        mask = math_('MULTIPLY', spot, region) if region is not None else None
+        for by, bz, br in cs.get('blobs', []):
+            # a bold round mark on both flanks: distance from (by, bz) in the side plane
+            dy = math_('SUBTRACT', sepo.outputs['Y'], by)
+            dz = math_('SUBTRACT', sepo.outputs['Z'], bz)
+            d = math_('SQRT', math_('ADD', math_('MULTIPLY', dy, dy), math_('MULTIPLY', dz, dz)), 0.0)
+            blob = maprange(d, br - 0.015, br, 1.0, 0.0)
+            mask = blob if mask is None else math_('MAXIMUM', mask, blob)
         L.new(mask, aov.inputs['Value'])
         light = (0.82 ** 2.2,) * 3 + (1.0,)   # tinted parts render light gray, as bscene.material's
         L.new(mix(dark.outputs['Color'], light, mask), p.inputs['Base Color'])
@@ -672,6 +679,16 @@ def _dots(rx, period=0.11, r=0.028, scatter=False):
     return keys
 
 
+def _patchwork(period=0.13):
+    """A face-key function for a patchwork blanket: alternate squares in white
+    ('blanket2') over the civ cloth (Civ3's Mounted Warrior)."""
+    def keys(f):
+        c = f.calc_center_median()
+        i, j = math.floor((c.y + 3.0) / period), math.floor(c.z / period)
+        return ('blanket2', False) if (i + j) % 2 else None
+    return keys
+
+
 def _spot_discs(p, bm, per=0.12, r=0.03, outward=False):
     """Small round white discs (key 'blanket2') laid on a cloth bmesh, one per
     cell of a jittered grid over the whole cloth: Civ3's spotted caparison."""
@@ -839,7 +856,7 @@ def asset_tack(root, body, colors, h=None):
         # 'cloth_back' reaches it back over the rump (Civ3's Rider)
         cloth, rings = drape(vs, ys - h.get('cloth_back', 0.3), ys + 0.26, hem, folds=0.006 if blanket == 'pelt' else 0.018)
         key = 'pelt' if blanket == 'pelt' else ('tint' if tinted else 'blanket')
-        p.add(cloth, key, smooth=True, tint=key == 'tint')
+        p.add(cloth, key, smooth=True, tint=key == 'tint', keys=_patchwork() if h.get('cloth_keys') == 'patchwork' else None)
         hem_line(rings, trim)
     elif blanket in ('barding', 'dots'):
         # a long caparison to the knees over the whole body; for barding, mail beneath
@@ -1077,7 +1094,8 @@ RIDER_WEAPON_UP = {
     'rifle': (0.0, 0.25, 1.0),       # held upright at the hip, as Civ3's Cossack and Cavalry
 }
 WEAPON_UP_BY_UNIT = {'Conquistador': (0.05, 0.12, 1.0),   # the lance held upright (the original)
-                     'Cavalry': (-1.0, 0.25, 0.08)}       # the carbine level across the saddle
+                     'Cavalry': (-1.0, 0.25, 0.08),       # the carbine level across the saddle
+                     'Cossack': (-1.0, 0.25, 0.08)}
 RIDER_DEFAULTS = {
     'neck': 'high',
     'pose_extra': [('spine_01', (0, 0.12, 1)), ('spine_02', (0, 0.16, 1)), ('spine_03', (0, 0.14, 1)),
@@ -1112,7 +1130,10 @@ def mount(unit, h):
 HORSE_COAT_OVERRIDES = {
     # coats read from the Civ3 originals (the old catalog's were tuned for the old renderer)
     'Horseman': {'coat': '#8a5430', 'mane': '#140e0a', 'points': '#1e1610'},
-    'Mounted Warrior': {'coat': '#b08a58', 'coat2': '#ddd5c4', 'mane': '#3a2e22', 'points': '#c8bca8'},
+    # a dun (not a pinto), with civ war paint on the shoulder and the hindquarter
+    'Mounted Warrior': {'coat': '#b08a58', 'coat2': None, 'mane': '#2e241a', 'points': '#5a4632',
+                        'coat_spots': {'blobs': [(-0.64, 1.2, 0.13), (-0.48, 0.98, 0.055), (-0.82, 1.0, 0.05),
+                                                  (0.6, 1.15, 0.12), (0.76, 0.95, 0.05)]}},
     'Ancient Cavalry': {'coat': '#a88a5e', 'mane': '#2a2018', 'points': '#2e2418'},
     'Rider': {'coat': '#c8c8c4', 'dapple': '#9a9a98', 'mane': '#e0ded8', 'points': '#8a8a88',
               'coat_spots': {'scale': 6.0, 'size': 0.34, 'boxes': [(-1.15, -0.2, 0.55, 1.35)]}},   # civ specks on the haunch
@@ -1120,8 +1141,8 @@ HORSE_COAT_OVERRIDES = {
     'Keshik': {'coat': '#7a4826', 'mane': '#1a120c', 'points': '#20160e'},
     'Sipahi': {'coat': '#6a4428', 'mane': '#2a1c12', 'points': '#2a1c12'},
     'Conquistador': {'coat': '#a0a0a2', 'dapple': '#5c5c60', 'mane': '#2a2826', 'points': '#3a3836', 'blanket_tint': False},
-    'Cossack': {'coat': '#4a4a4e', 'mane': '#141416', 'points': '#1a1a1c'},
-    'Hussar': {'coat': '#4e3220', 'mane': '#120c08', 'points': '#160e08'},
+    'Cossack': {'coat': '#4a4a4e', 'dapple': '#7a7a80', 'mane': '#141416', 'points': '#1a1a1c'},   # a dapple grey
+    'Hussar': {'coat': '#a8865a', 'mane': '#1e1610', 'points': '#2a2018'},   # a dun with dark points, as the original
     'Cavalry': {'coat': '#b8843c', 'mane': '#2e241a', 'points': '#3a2c1e', 'blanket_tint': True},
     'Ansar Warrior': {'coat': '#2e2e32', 'mane': '#121214', 'points': '#1c1c1e'},
 }
@@ -1143,6 +1164,16 @@ TACK_OVERRIDES = {
     'Knight': {'full_caparison': True, 'neck_cover': 'lames', 'chanfron': 'steel', 'peytral': True, 'caparison_over': False,
                'blanket': 'barding', 'barding_steel': '#c8ccd2'},
     'Horseman': {'nose_wrap': True, 'breast_strap': 'leather_dark'},
+    # a civ-and-white patchwork blanket, civ tassels at the bridle and breast strap
+    'Mounted Warrior': {'blanket': 'saddle_cloth', 'blanket_tint': True, 'cloth_keys': 'patchwork', 'cloth_drop': 0.24,
+                        'cloth_back': 0.5, 'breast_strap': 'tint', 'tassels': 'tint', 'throat_tassels': 'tint'},
+    # long bold civ reins, a dark pelt saddle pad
+    'Ancient Cavalry': {'reins_bold': True, 'rein_drop': 0.3, 'blanket': 'pelt', 'pelt_color': '#3a2e26', 'cloth_drop': 0.26,
+                        'breast_strap': 'leather_dark'},
+    'Cossack': {'bedroll': True, 'breast_strap': 'leather_dark'},   # the burka rolled behind the saddle
+    # a civ shabraque with a gold edge, bold civ reins
+    'Hussar': {'blanket': 'saddle_cloth', 'blanket_tint': True, 'cloth_drop': 0.3, 'cloth_back': 0.45, 'trim': '#c4a462',
+               'reins_bold': True, 'rein_drop': 0.28, 'breast_strap': 'leather_dark'},
     'Rider': {'breast_strap': 'trim', 'crupper': 'trim', 'tassels': 'trim', 'plume': True, 'plume_tint': False,
               'bedroll': True, 'bow_case': True, 'cloth_emblem': 'blanket2', 'emblem_ys': [0.0, -0.5],
               'cloth_back': 0.85, 'cloth_drop': 0.36, 'chanfron': 'tint', 'reins_bold': True, 'emblem_ys': [-0.35],

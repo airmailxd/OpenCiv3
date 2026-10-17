@@ -1608,6 +1608,42 @@ def chest_pack(p, scale=1.0):
     p.add(box(0.02 * s, 0.01 * s, 0.025 * s), 'brass', T(0.05 * s, 0.082 * s, -0.01 * s), bevel=0.002)
 
 
+DEFAULTS.setdefault('cartridge_cap', ('#d8d2c0', 0.4, 0.6, 'metal'))
+
+
+def gazyri(p, scale=1.0, n=6):
+    """A Cossack's gazyri (chest_gear: origin mid-chest, +Y out, +Z up): two
+    sloping banks of cartridge tubes in sewn pockets, their pale bone and
+    silver caps in a row across each breast."""
+    s = scale
+    for sx in (-1, 1):
+        p.add(box(0.12 * s, 0.012 * s, 0.1 * s), 'leather_dark', T(sx * 0.075 * s, 0.0, 0.0), bevel=0.004 * s)
+        for i in range(n):
+            x = sx * (0.03 + 0.019 * i) * s
+            z = 0.03 * s - 0.006 * i * s
+            p.add(tube([(x, 0.012 * s, z - 0.065 * s), (x, 0.012 * s, z + 0.005 * s)], 0.008 * s, seg=8), 'leather', smooth=True)
+            p.add(ellipsoid(0.01 * s, 0.01 * s, 0.012 * s, seg=8), 'cartridge_cap', T(x, 0.014 * s, z + 0.012 * s), smooth=True)
+
+
+DEFAULTS.setdefault('braid_gold', ('#d0a848', 0.4, 1.0, 'metal'))
+
+
+def frogging(p, scale=1.0, rows=5):
+    """A hussar's dolman frogging (chest_gear: origin mid-chest, +Y out, +Z up):
+    rows of gold cord across the chest, each looped at the ends, with a row of
+    gold ball buttons down the middle and cords curving round the ribs."""
+    s = scale
+    for i in range(rows):
+        z = (0.09 - 0.045 * i) * s
+        w = (0.11 - 0.008 * i) * s
+        pts = [(-w, -0.03 * s, z + 0.01 * s), (-w * 0.5, 0.0, z), (0, 0.006 * s, z), (w * 0.5, 0.0, z), (w, -0.03 * s, z + 0.01 * s)]
+        p.add(tube(pts, 0.007 * s, seg=6), 'braid_gold', smooth=True)
+        for sx in (-1, 1):   # the trefoil loop at each end
+            p.add(lathe([(-0.006 * s, 0.0), (0.0, 0.016 * s), (0.006 * s, 0.0)], seg=10), 'braid_gold',
+                  T(sx * w, -0.03 * s, z + 0.01 * s) @ R('Y', 90), smooth=True)
+        p.add(ellipsoid(0.011 * s, 0.011 * s, 0.011 * s, seg=10), 'braid_gold', T(0, 0.01 * s, z), smooth=True)
+
+
 def chute_pack(p, size=1.0):
     """A paratrooper's parachute container for the back (as backpack: the
     straps' top at the origin, the load toward -Y): a big squared grey pack,
@@ -2164,6 +2200,8 @@ BUILDERS = {
     'feather_standard': feather_standard,
     'wolfhound': wolfhound,
     'war_dog': war_dog,
+    'gazyri': gazyri,
+    'frogging': frogging,
     'microphone': microphone,
     'pipe': pipe,
     'glasses': glasses,
