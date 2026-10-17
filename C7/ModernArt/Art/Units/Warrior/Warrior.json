@@ -10,13 +10,13 @@
     "VICTORY": "WarriorVictory"
   },
   "flics": {
-    "WarriorAttackA": {"size": [92, 74], "directions": 8, "frames": 15, "frameMs": 83, "offset": [73, 71], "canvas": [240, 240]},
-    "WarriorAttackB": {"size": [94, 73], "directions": 8, "frames": 15, "frameMs": 83, "offset": [71, 72], "canvas": [240, 240]},
+    "WarriorAttackA": {"size": [91, 73], "directions": 8, "frames": 15, "frameMs": 83, "offset": [73, 71], "canvas": [240, 240]},
+    "WarriorAttackB": {"size": [94, 72], "directions": 8, "frames": 15, "frameMs": 83, "offset": [71, 72], "canvas": [240, 240]},
     "WarriorDeath": {"size": [168, 90], "directions": 8, "frames": 15, "frameMs": 83, "offset": [36, 73], "canvas": [240, 240]},
-    "WarriorDefault": {"size": [82, 69], "directions": 8, "frames": 15, "frameMs": 125, "offset": [83, 76], "canvas": [240, 240]},
-    "WarriorFidget": {"size": [82, 69], "directions": 8, "frames": 15, "frameMs": 83, "offset": [83, 76], "canvas": [240, 240]},
-    "WarriorFortify": {"size": [82, 69], "directions": 8, "frames": 10, "frameMs": 66, "offset": [83, 76], "canvas": [240, 240]},
-    "WarriorRun": {"size": [82, 69], "directions": 8, "frames": 10, "frameMs": 66, "offset": [83, 76], "canvas": [240, 240]},
-    "WarriorVictory": {"size": [82, 85], "directions": 8, "frames": 15, "frameMs": 100, "offset": [83, 60], "canvas": [240, 240]}
+    "WarriorDefault": {"size": [80, 67], "directions": 8, "frames": 15, "frameMs": 125, "offset": [84, 77], "canvas": [240, 240]},
+    "WarriorFidget": {"size": [80, 67], "directions": 8, "frames": 15, "frameMs": 83, "offset": [84, 77], "canvas": [240, 240]},
+    "WarriorFortify": {"size": [80, 67], "directions": 8, "frames": 10, "frameMs": 66, "offset": [84, 77], "canvas": [240, 240]},
+    "WarriorRun": {"size": [80, 67], "directions": 8, "frames": 10, "frameMs": 66, "offset": [84, 77], "canvas": [240, 240]},
+    "WarriorVictory": {"size": [80, 84], "directions": 8, "frames": 15, "frameMs": 100, "offset": [84, 60], "canvas": [240, 240]}
   }
 }

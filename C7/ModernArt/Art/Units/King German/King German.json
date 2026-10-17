@@ -7,9 +7,9 @@
     "RUN": "x_Bismarck run"
   },
   "flics": {
-    "x_Bismarck death": {"size": [95, 73], "directions": 8, "frames": 15, "frameMs": 66, "offset": [71, 72], "canvas": [240, 240]},
-    "x_Bismarck default": {"size": [50, 64], "directions": 8, "frames": 15, "frameMs": 125, "offset": [95, 72], "canvas": [240, 240]},
-    "x_Bismarck fidget": {"size": [61, 64], "directions": 8, "frames": 15, "frameMs": 83, "offset": [84, 72], "canvas": [240, 240]},
-    "x_Bismarck run": {"size": [51, 64], "directions": 8, "frames": 10, "frameMs": 66, "offset": [94, 72], "canvas": [240, 240]}
+    "x_Bismarck death": {"size": [95, 74], "directions": 8, "frames": 15, "frameMs": 66, "offset": [71, 71], "canvas": [240, 240]},
+    "x_Bismarck default": {"size": [51, 65], "directions": 8, "frames": 15, "frameMs": 125, "offset": [95, 71], "canvas": [240, 240]},
+    "x_Bismarck fidget": {"size": [62, 65], "directions": 8, "frames": 15, "frameMs": 83, "offset": [84, 71], "canvas": [240, 240]},
+    "x_Bismarck run": {"size": [52, 65], "directions": 8, "frames": 10, "frameMs": 66, "offset": [94, 71], "canvas": [240, 240]}
   }
 }

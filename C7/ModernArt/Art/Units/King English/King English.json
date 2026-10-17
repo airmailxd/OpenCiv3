@@ -7,9 +7,9 @@
     "RUN": "x_Elizabeth run"
   },
   "flics": {
-    "x_Elizabeth death": {"size": [84, 67], "directions": 8, "frames": 15, "frameMs": 66, "offset": [77, 74], "canvas": [240, 240]},
-    "x_Elizabeth default": {"size": [53, 63], "directions": 8, "frames": 15, "frameMs": 125, "offset": [93, 74], "canvas": [240, 240]},
+    "x_Elizabeth death": {"size": [84, 68], "directions": 8, "frames": 15, "frameMs": 66, "offset": [77, 73], "canvas": [240, 240]},
+    "x_Elizabeth default": {"size": [54, 64], "directions": 8, "frames": 15, "frameMs": 125, "offset": [93, 73], "canvas": [240, 240]},
     "x_Elizabeth fidget": {"size": [74, 71], "directions": 8, "frames": 15, "frameMs": 83, "offset": [75, 66], "canvas": [240, 240]},
-    "x_Elizabeth run": {"size": [57, 63], "directions": 8, "frames": 10, "frameMs": 66, "offset": [89, 74], "canvas": [240, 240]}
+    "x_Elizabeth run": {"size": [58, 64], "directions": 8, "frames": 10, "frameMs": 66, "offset": [89, 73], "canvas": [240, 240]}
   }
 }
