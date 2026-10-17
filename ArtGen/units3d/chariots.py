@@ -24,6 +24,7 @@ props.DEFAULTS.setdefault('car_wood', ('#7a5638', 0.62, 0.0, 'wood'))
 props.DEFAULTS.setdefault('car_body', ('#8a6a48', 0.62, 0.0, 'wood'))
 props.DEFAULTS.setdefault('trim', ('#c4a462', 0.4, 1.0, 'metal'))
 props.DEFAULTS.setdefault('rim', ('#4a3a30', 0.55, 1.0, 'metal'))
+props.DEFAULTS.setdefault('sun_gold', ('#e8c050', 0.3, 1.0, 'metal'))   # a brighter gold for the panel emblems
 
 
 def _horses(root, entry):
@@ -125,16 +126,24 @@ def _car(root, entry, y_axle, xs):
     em = EMBLEM.get(unit)
     if em:
         for sx in (-1, 1):
-            m = T(sx * (width / 2 + 0.085), (yb + yfr) / 2 + 0.1, zf + wall_h * 0.68) @ R('Y', sx * 90)   # mid-panel, above the wheel
-            if em == 'sun':   # a gold winged sun disc
-                p.add(props.ellipsoid(0.12, 0.12, 0.025, seg=16), 'trim', m, smooth=True)
+            m = T(sx * (width / 2 + 0.085), (yb + yfr) / 2 + 0.05, zf + wall_h * 0.6) @ R('Y', sx * 90)   # mid-panel, above the wheel
+            if em == 'sun':   # a bold gold winged sun disc filling the panel (Civ3's Three Man Chariot)
+                L_ = yfr - yb
+                rd = wall_h * 0.2
+                p.add(props.ellipsoid(rd, rd, 0.04, seg=24), 'sun_gold', m, smooth=True)
+                p.add(props.tube([(rd * 1.1 * math.cos(2 * math.pi * k / 32), rd * 1.1 * math.sin(2 * math.pi * k / 32), 0.0)
+                                  for k in range(33)], 0.02, seg=6), 'sun_gold', m, smooth=True)
                 for wx in (-1, 1):
-                    wing = props.slab([(0.0, 0.03), (wx * 0.36, 0.08), (wx * 0.33, -0.01), (0.0, -0.05)], 0.014, 'Z')
-                    p.add(wing, 'trim', m @ T(wx * 0.07, 0, 0), bevel=0.003)
+                    for row, (dy, ln) in enumerate(((0.06, 0.5), (0.0, 0.44), (-0.06, 0.36))):   # three rows of feathers
+                        # in the panel's own plane: (y along the car, z up), thickness along X
+                        wing = props.slab([(0.0, dy + 0.035), (wx * L_ * ln * 0.7, dy + 0.06 - 0.02 * row),
+                                           (wx * L_ * ln * 0.66, dy - 0.02), (0.0, dy - 0.03)], 0.02, 'X')
+                        p.add(wing, 'sun_gold', T(sx * (width / 2 + 0.085 + 0.01 * row), (yb + yfr) / 2 + 0.05 + wx * rd * 0.9,
+                                                  zf + wall_h * 0.6), bevel=0.004)
             else:             # a gold cartouche outline
-                ring = [(0.09 * math.cos(2 * math.pi * k / 24), 0.2 * math.sin(2 * math.pi * k / 24), 0.0) for k in range(25)]
-                p.add(props.tube(ring, 0.02, seg=6), 'trim', m, smooth=True)
-                p.add(props.ellipsoid(0.04, 0.04, 0.012, seg=12), 'trim', m, smooth=True)   # a sun disc inside it
+                ring = [(0.135 * math.cos(2 * math.pi * k / 24), 0.3 * math.sin(2 * math.pi * k / 24), 0.0) for k in range(25)]
+                p.add(props.tube(ring, 0.03, seg=6), 'sun_gold', m, smooth=True)
+                p.add(props.ellipsoid(0.06, 0.06, 0.018, seg=12), 'sun_gold', m, smooth=True)   # a sun disc inside it
     # bronze linchpins at the axle ends
     for sx in (-1, 1):
         p.add(props.ellipsoid(0.035, 0.035, 0.05, seg=10), 'trim', T(sx * (track + 0.09), y_axle, r + 0.04), smooth=True)
