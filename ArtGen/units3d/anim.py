@@ -259,6 +259,9 @@ WORKER = {
 }
 
 ACTIONS = {'Worker': WORKER}
+# units drawn with the Worker's actions, matched to their own flics by action (their flics
+# are named differently; one flic may serve two actions, the first matching one is used)
+WORKER_LIKE = ('Worker Modern Times', 'Enslaved Worker')
 
 
 # ------------------------------------------------------------ templates
@@ -371,6 +374,29 @@ def weapon_class(entry):
     if stance in ('hang', 'guard'):
         return 'melee'
     return None
+
+
+def unit_actions(unit, entry, calibration, here):
+    """The unit's animated actions {flic name: action} and whether they use its own gear:
+    its own ACTIONS, the Worker's for WORKER_LIKE units, or the templates of its class."""
+    import json
+    import os
+    if unit in ACTIONS:
+        return ACTIONS[unit], False
+    if unit in WORKER_LIKE:
+        worker = json.load(open(os.path.join(here, 'calibration', 'Worker.json')))
+        by_action = {}
+        for flic_file, f in worker['flics'].items():
+            for act in f['actions']:
+                by_action.setdefault(act, WORKER[flic_file.rsplit('.', 1)[0]])
+        out = {}
+        for flic_file, f in calibration['flics'].items():
+            for act in (['MINE'] if 'MINE' in f['actions'] else []) + f['actions']:
+                if act in by_action:
+                    out[flic_file.rsplit('.', 1)[0]] = by_action[act]
+                    break
+        return out, False
+    return template_actions(entry, calibration), True
 
 
 def template_actions(entry, calibration):

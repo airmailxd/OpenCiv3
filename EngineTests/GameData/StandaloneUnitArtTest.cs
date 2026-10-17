@@ -123,7 +123,9 @@ public class StandaloneUnitArtTest {
 				// frame; an animated sheet may have fewer columns than the flic has
 				// frames (the remastered animations render at most 8), which
 				// UnitArtMetadata.SheetColumn spreads over the frames.
-				int[] columns = still ? [1] : Enumerable.Range(1, Math.Max(1, flic.Frames)).ToArray();
+				// FORTIFY is played once and then held at its last frame (AnimationTracker shows a
+				// fortified unit at progress 1), so it may be animated too; DEFAULT stays a still.
+				int[] columns = upper == "DEFAULT" ? [1] : Enumerable.Range(1, Math.Max(1, flic.Frames)).ToArray();
 				foreach (string suffix in new[] { "", "_tint" }) {
 					string sheet = FindIgnoringCase(folder, flicName + suffix + ".png");
 					if (sheet == null) {

@@ -36,8 +36,7 @@ def main(argv):
     catalog = json.load(open(os.path.join(HERE, '..', '_previews', 'units3d', 'catalog.json')))
     entry = remaster.apply(unit, catalog[unit])
     cal = json.load(open(os.path.join(HERE, 'calibration', f'{unit}.json')))
-    own = unit not in anim.ACTIONS
-    actions = anim.ACTIONS[unit] if not own else anim.template_actions(entry, cal)
+    actions, own = anim.unit_actions(unit, entry, cal, HERE)
     if not actions:
         raise SystemExit(f'{unit}: no animated actions (its weapon class has no templates)')
     root, ctx = anim.setup(entry, own_gear=own)
