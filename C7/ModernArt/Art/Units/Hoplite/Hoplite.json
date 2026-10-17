@@ -15,7 +15,7 @@
     "hopliteDeath": {"size": [166, 126], "directions": 8, "frames": 15, "frameMs": 83, "offset": [38, 39], "canvas": [240, 240]},
     "hopliteDefault": {"size": [73, 93], "directions": 8, "frames": 15, "frameMs": 125, "offset": [92, 52], "canvas": [240, 240]},
     "hopliteFidget": {"size": [73, 93], "directions": 8, "frames": 15, "frameMs": 83, "offset": [92, 52], "canvas": [240, 240]},
-    "hopliteFortify": {"size": [76, 93], "directions": 8, "frames": 10, "frameMs": 66, "offset": [89, 52], "canvas": [240, 240]},
+    "hopliteFortify": {"size": [98, 97], "directions": 8, "frames": 10, "frameMs": 66, "offset": [75, 52], "canvas": [240, 240]},
     "hopliteRun": {"size": [84, 93], "directions": 8, "frames": 10, "frameMs": 66, "offset": [81, 52], "canvas": [240, 240]},
     "hopliteVictory": {"size": [74, 93], "directions": 8, "frames": 15, "frameMs": 83, "offset": [91, 52], "canvas": [240, 240]}
   }

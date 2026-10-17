@@ -9,11 +9,11 @@
     "VICTORY": "ArcherVictory"
   },
   "flics": {
-    "ArcherAttackA": {"size": [105, 88], "directions": 8, "frames": 15, "frameMs": 83, "offset": [68, 61], "canvas": [240, 240]},
-    "ArcherDeath": {"size": [147, 112], "directions": 8, "frames": 15, "frameMs": 83, "offset": [46, 47], "canvas": [240, 240]},
+    "ArcherAttackA": {"size": [104, 88], "directions": 8, "frames": 15, "frameMs": 83, "offset": [68, 61], "canvas": [240, 240]},
+    "ArcherDeath": {"size": [141, 113], "directions": 8, "frames": 15, "frameMs": 83, "offset": [51, 46], "canvas": [240, 240]},
     "ArcherDefault": {"size": [78, 71], "directions": 8, "frames": 15, "frameMs": 125, "offset": [85, 73], "canvas": [240, 240]},
     "ArcherFidget": {"size": [78, 71], "directions": 8, "frames": 15, "frameMs": 125, "offset": [85, 73], "canvas": [240, 240]},
-    "ArcherFortify": {"size": [78, 75], "directions": 8, "frames": 10, "frameMs": 83, "offset": [85, 69], "canvas": [240, 240]},
+    "ArcherFortify": {"size": [95, 82], "directions": 8, "frames": 10, "frameMs": 83, "offset": [77, 67], "canvas": [240, 240]},
     "ArcherRun": {"size": [80, 73], "directions": 8, "frames": 12, "frameMs": 66, "offset": [84, 72], "canvas": [240, 240]},
     "ArcherVictory": {"size": [78, 74], "directions": 8, "frames": 15, "frameMs": 83, "offset": [85, 70], "canvas": [240, 240]}
   }
