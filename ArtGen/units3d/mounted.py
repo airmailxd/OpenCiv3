@@ -620,13 +620,42 @@ def _dots(rx, period=0.11, r=0.028, scatter=False):
     def keys(f):
         c = f.calc_center_median()
         if scatter:
-            return ('blanket2', False) if _n.noise(c * 26.0 + Vector((5.0, 2.0, 9.0))) > 0.22 else None
+            per, rr = 0.11, 0.03   # round spots on a jittered staggered grid
+            u, v = (c.y + c.x * 0.6) / per, c.z / per
+            iu, iv = math.floor(u), math.floor(v)
+            ju = _n.noise(Vector((iu * 1.7, iv * 2.3, 0.5))) * 0.35
+            jv = _n.noise(Vector((iu * 2.9, iv * 1.1, 1.5))) * 0.35
+            du, dv = (u - iu - 0.5 - ju) * per, (v - iv - 0.5 - jv) * per
+            return ('blanket2', False) if du * du + dv * dv < rr * rr else None
         u, v = c.y / period, c.z / period
         if int(math.floor(v)) % 2:
             u += 0.5
         du, dv = (u - math.floor(u) - 0.5) * period, (v - math.floor(v) - 0.5) * period
         return ('blanket2', False) if du * du + dv * dv < r * r else None
     return keys
+
+
+def _spot_discs(p, bm, per=0.12, r=0.03, outward=False):
+    """Small round white discs (key 'blanket2') laid on a cloth bmesh, one per
+    cell of a jittered grid over the whole cloth: Civ3's spotted caparison."""
+    from mathutils import noise as _n
+    bm.normal_update()
+    best = {}
+    for f in bm.faces:
+        c = f.calc_center_median()
+        nrm = f.normal.copy()
+        if nrm.dot(c - Vector((0, c.y, 1.2))) < 0:   # always out from the body's long axis
+            nrm = -nrm
+        u, v = (c.y + c.x * 0.7) / per, c.z / per
+        cell = (math.floor(u), math.floor(v), c.x > 0)
+        ju = 0.5 + _n.noise(Vector((cell[0] * 1.7, cell[1] * 2.3, 0.5))) * 0.4
+        jv = 0.5 + _n.noise(Vector((cell[0] * 2.9, cell[1] * 1.1, 1.5))) * 0.4
+        d = (u - cell[0] - ju) ** 2 + (v - cell[1] - jv) ** 2
+        if cell not in best or d < best[cell][0]:
+            best[cell] = (d, c, nrm)
+    for d, c, nrm in best.values():
+        m = Matrix.Translation(c + nrm * 0.014) @ nrm.to_track_quat('Z', 'Y').to_matrix().to_4x4()
+        p.add(props.ellipsoid(r, r, 0.004, seg=10), 'spot_white', m, smooth=True)
 
 
 def _scales(period=0.09):
@@ -638,6 +667,7 @@ def _scales(period=0.09):
 
 
 props.DEFAULTS.setdefault('tassel', ('#1a1614', 0.9, 0.0, 'rope'))
+props.DEFAULTS.setdefault('spot_white', ('#f2f0ea', 0.8, 0.0, 'polished'))
 
 
 def _girth_arc(vs, z, front, sec, ys):
@@ -797,11 +827,13 @@ def asset_tack(root, body, colors, h=None):
                 cap, rings = drape(vs, y0, y1, knee + h.get('over_gap', 0.06) + 0.08, gap=0.05, folds=0.02)
                 p.add(cap, 'tint', smooth=True, tint=True)
         else:
-            y0, y1 = yh + 0.05 * (yf - yh), yf - h.get('dots_front', 0.15) * (yf - yh)
+            y0, y1 = yh - h.get('dots_back', -0.05) * (yf - yh), yf - h.get('dots_front', 0.15) * (yf - yh)
             cap, rings = drape(vs, y0, y1, h.get('dots_hem', knee), gap=0.04, folds=0.018)
-            if h.get('dot_scatter'):   # fine faces, so the scatter makes spots, not streaks
-                props.bmesh.ops.subdivide_edges(cap, edges=cap.edges[:], cuts=3, use_grid_fill=True)
-            p.add(cap, 'tint', smooth=True, tint=True, keys=_dots(0.0, scatter=h.get('dot_scatter', False)))
+            if h.get('dot_scatter'):   # round white discs laid on the cloth (face-keyed spots streaked)
+                _spot_discs(p, cap)
+                p.add(cap, 'tint', smooth=True, tint=True)
+            else:
+                p.add(cap, 'tint', smooth=True, tint=True, keys=_dots(0.0))
         if rings:
             hem_line(rings, trim)
     if h.get('full_caparison'):
@@ -868,8 +900,8 @@ def asset_tack(root, body, colors, h=None):
             p.add(plate, ck, Matrix.Translation(mid + front * 0.1) @ rot, smooth=True, tint=ck == 'tint')
     if h.get('neck_cover_chest'):
         front, frings = drape(vs, ys + 0.15, yf + 0.25, 0.75, gap=0.05, folds=0.012, zmin=0.6)
-        props.bmesh.ops.subdivide_edges(front, edges=front.edges[:], cuts=3, use_grid_fill=True)
-        p.add(front, 'tint', smooth=True, tint=True, keys=_dots(0.0, scatter=True))
+        _spot_discs(p, front)
+        p.add(front, 'tint', smooth=True, tint=True)
         hem_line(frings, trim)
     if h.get('neck_cover') == 'cloth':
         # a civ-colored cloth over the chest and the base of the neck (Egyptian chariot horses)
@@ -900,10 +932,11 @@ def asset_tack(root, body, colors, h=None):
         if len(rings) >= 2:
             sleeve = props.loft(rings, False, False)
             if h.get('neck_cover') == 'cloth_sleeve':
-                props.bmesh.ops.subdivide_edges(sleeve, edges=sleeve.edges[:], cuts=3, use_grid_fill=True)
+                props.bmesh.ops.subdivide_edges(sleeve, edges=sleeve.edges[:], cuts=4, use_grid_fill=True)
+                _spot_discs(p, sleeve, outward=True)
             cloth_cover = h.get('neck_cover') in ('cloth', 'cloth_sleeve')
             p.add(sleeve, 'tint' if cloth_cover else 'barding_mail', smooth=True, tint=cloth_cover,
-                  keys=_dots(0.0, scatter=True) if cloth_cover else _scales())
+                  keys=None if cloth_cover else _scales())
     if h.get('plume'):
         ctr = a.lerp(b, 0.08) + Vector((0, 0, 0.12))
         big = 2.2 if h.get('plume') == 'fan' else 1.3   # a tall fan of plumes (Egyptian chariot horses)
@@ -920,7 +953,13 @@ def asset_tack(root, body, colors, h=None):
                               Vector((0.06 if side == 6 else -0.06, ys + 0.25, top + 0.12))], 0.024 if bold else 0.014,
                              seg=6), 'tint' if bold else 'leather', smooth=True, tint=bool(bold))
     _extra_tack(p, h, vs, arm, a, b, ys, top, sec)
-    p.finish()
+    obj = p.finish()
+    for m in obj.data.materials:   # painted spots stay white in the shade (as Civ3's)
+        if m and m.name.startswith('prop_spot_white'):
+            pr = props._principled(m)
+            if pr:
+                pr.inputs['Emission Color'].default_value = (0.9, 0.9, 0.88, 1.0)
+                pr.inputs['Emission Strength'].default_value = 0.55
     return (0.0, ys, top + (0.03 if blanket not in ('barding', 'dots') else 0.07))   # sitting down into the saddle
 
 
@@ -1024,7 +1063,7 @@ HORSE_COAT_OVERRIDES = {
 TACK_OVERRIDES = {
     # Civ3's Sipahi: a civ caparison scattered with white spots over the neck to the ears, chest and flanks nearly to
     # the hocks, a civ cloth over the head with a white plume, a gold saddle on a red cloth, tassels
-    'Sipahi': {'neck_cover': 'cloth_sleeve', 'dot_scatter': True, 'dots_front': -0.05, 'dots_hem': 0.7, 'chanfron': 'tint',
+    'Sipahi': {'neck_cover': 'cloth_sleeve', 'dot_scatter': True, 'dots_front': -0.05, 'dots_hem': 0.58, 'dots_back': 0.4, 'chanfron': 'tint',
                'saddle': '#c4a462', 'breast_strap': 'trim', 'tassels': 'trim', 'neck_cover_chest': True},
     # Civ3's Conquistador: a padded cream trapper with a gold fringe, gold leather breast strap and crupper
     'Conquistador': {'blanket_color': '#d8c8a0', 'trim': '#c4a462', 'breast_strap': 'trim', 'crupper': 'trim', 'tassels': 'trim',
