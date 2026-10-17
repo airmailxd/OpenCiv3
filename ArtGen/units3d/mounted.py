@@ -708,12 +708,12 @@ def _extra_tack(p, h, vs, arm, a, b, ys, top, sec):
             n = len(arc) - 1
             arc = [q + Vector((0, 0.3 * sag * math.sin(math.pi * i / n) if front else 0, -sag * math.sin(math.pi * i / n)))
                    for i, q in enumerate(arc)]
-        p.add(props.tube(arc, 0.026, seg=6, scale_xy=(1.0, 0.45)), key, smooth=True, tint=tint(key))
+        p.add(props.tube(arc, h.get('strap_w', 0.026), seg=6, scale_xy=(1.0, 0.45)), key, smooth=True, tint=tint(key))
         tk = h.get('tassels')
         if tk:
             for q in arc[2:-2:2]:
-                p.add(props.tube([q + Vector((0, 0.01 if front else -0.01, -0.01)), q + Vector((0, 0.03 if front else -0.03, -0.15))],
-                                 [0.028, 0.012], seg=6), tk, smooth=True, tint=tint(tk))
+                p.add(props.tube([q + Vector((0, 0.01 if front else -0.01, -0.01)), q + Vector((0, 0.03 if front else -0.03, -0.2))],
+                                 [0.04, 0.016], seg=6), h.get('tassel_key', tk), smooth=True, tint=tint(h.get('tassel_key', tk)))
                 p.add(props.ellipsoid(0.03, 0.03, 0.03, seg=8), 'trim', T(*q), smooth=True)   # a brass stud
     if h.get('nose_wrap'):
         rings = [r for r in (_head_ring(vs, a, b, t, grow=0.02) for t in (0.48, 0.56, 0.64, 0.72, 0.8)) if r]
@@ -749,9 +749,9 @@ def _extra_tack(p, h, vs, arm, a, b, ys, top, sec):
 
 
 def _roundel(p, ek, m, tint):
-    """A white disc with a civ-colored hexagon on it, facing the matrix's +Z."""
-    p.add(props.ellipsoid(0.13, 0.13, 0.014, seg=24), ek, m, smooth=True, tint=tint(ek))
-    p.add(props.ellipsoid(0.07, 0.07, 0.022, seg=6), 'tint', m @ R('Z', 30), tint=True)
+    """A bold solid white drop/triangle emblem (Civ3's Rider), facing the matrix's +Z."""
+    tri = props.slab([(0.0, 0.19), (0.13, -0.09), (0.0, -0.16), (-0.13, -0.09)], 0.02, 'Y')
+    p.add(tri, ek, m @ R('X', 90), tint=tint(ek), bevel=0.006)
 
 
 def asset_tack(root, body, colors, h=None):
@@ -768,7 +768,7 @@ def asset_tack(root, body, colors, h=None):
     c = dict(colors)
     for k_src, k_dst in (('blanket_color', 'blanket'), ('blanket2', 'blanket2'), ('barding_steel', 'barding_mail'),
                          ('trim', 'trim'), ('saddle', 'leather'), ('bridle', 'bridle'), ('tack', 'leather'),
-                         ('plume_color', 'plume')):
+                         ('plume_color', 'plume'), ('pelt_color', 'pelt')):
         if h.get(k_src):
             c[k_dst] = h[k_src]
     for key, (col, rough, metal, kind) in {'blanket': ('#7e6650', 0.85, 0.0, 'cloth'), 'blanket2': ('#eeece6', 0.85, 0.0, 'cloth'),
@@ -953,6 +953,24 @@ def asset_tack(root, body, colors, h=None):
                               Vector((0.06 if side == 6 else -0.06, ys + 0.25, top + 0.12))], 0.024 if bold else 0.014,
                              seg=6), 'tint' if bold else 'leather', smooth=True, tint=bool(bold))
     _extra_tack(p, h, vs, arm, a, b, ys, top, sec)
+    if h.get('rump_spots'):
+        rnd_ = __import__('random').Random(7)
+        hind = [v for v in vs if v.y < ys - 0.45 and v.z > 1.0 and abs(v.x) > 0.12]
+        for q in rnd_.sample(hind, min(len(hind), 22)):
+            nrm = Vector((q.x, 0, (q.z - 1.25) * 0.6)).normalized()
+            p.add(props.ellipsoid(0.04, 0.04, 0.006, seg=10), 'tint',
+                  Matrix.Translation(q + nrm * 0.012) @ nrm.to_track_quat('Z', 'Y').to_matrix().to_4x4(), smooth=True, tint=True)
+    if h.get('back_lances'):
+        # two lances crossed behind the rider's back, their butts at the cantle (Civ3's Keshik)
+        for sx in (-1, 1):
+            a_ = Vector((sx * 0.14, ys - 0.3, top + 0.05))
+            b_ = Vector((-sx * 0.32, ys - 0.62, top + 2.1))
+            vkit.rod(p, a_, b_, 0.022, 'wood', seg=8)
+            d_ = (b_ - a_).normalized()
+            p.add(props.lathe([(0.0, 0.05), (0.1, 0.045), (0.32, 0.0)], seg=6), 'gunmetal',
+                  Matrix.Translation(b_) @ d_.to_track_quat('Z', 'Y').to_matrix().to_4x4(), smooth=True)
+            p.add(props.tube([b_ - d_ * 0.02, b_ - d_ * 0.02 + Vector((0, -0.05, -0.15))], [0.03, 0.01], seg=6), 'tint',
+                  smooth=True, tint=True)   # a civ horsehair tassel under the head
     obj = p.finish()
     for m in obj.data.materials:   # painted spots stay white in the shade (as Civ3's)
         if m and m.name.startswith('prop_spot_white'):
@@ -1061,6 +1079,8 @@ HORSE_COAT_OVERRIDES = {
 
 # The originals' tack the catalog doesn't describe (see DETAIL_AUDIT_PC.md)
 TACK_OVERRIDES = {
+    # Civ3's Keshik: twin lances behind the back, a pale sheepskin saddle, a civ noseband
+    'Keshik': {'back_lances': True, 'blanket': 'pelt', 'nose_wrap': True, 'pelt_color': '#ddd2b8'},
     # Civ3's Sipahi: a civ caparison scattered with white spots over the neck to the ears, chest and flanks nearly to
     # the hocks, a civ cloth over the head with a white plume, a gold saddle on a red cloth, tassels
     'Sipahi': {'neck_cover': 'cloth_sleeve', 'dot_scatter': True, 'dots_front': -0.05, 'dots_hem': 0.58, 'dots_back': 0.4, 'chanfron': 'tint',
@@ -1074,10 +1094,11 @@ TACK_OVERRIDES = {
     'Horseman': {'nose_wrap': True, 'breast_strap': 'leather_dark'},
     'Rider': {'breast_strap': 'trim', 'crupper': 'trim', 'tassels': 'trim', 'plume': True, 'plume_tint': False,
               'bedroll': True, 'bow_case': True, 'cloth_emblem': 'blanket2', 'emblem_ys': [0.0, -0.5],
-              'cloth_back': 0.85, 'cloth_drop': 0.36, 'chanfron': 'tint', 'reins_bold': True},
+              'cloth_back': 0.85, 'cloth_drop': 0.36, 'chanfron': 'tint', 'reins_bold': True, 'emblem_ys': [-0.35],
+              'rump_spots': True, 'saddle': '#c4a462'},
     # the original's heavy blue reins and breast straps hang in big loops with tassels
-    'Ansar Warrior': {'throat_tassels': 'tassel', 'reins_bold': True, 'rein_drop': 0.38, 'breast_strap': 'tint',
-                      'crupper': 'tint', 'strap_sag': 0.22, 'tassels': 'tint'},
+    'Ansar Warrior': {'throat_tassels': 'tassel', 'reins_bold': True, 'rein_drop': 0.38, 'breast_strap': 'tint', 'strap_w': 0.05,
+                      'crupper': 'tint', 'strap_sag': 0.22, 'tassels': 'tint', 'tassel_key': 'tassel'},
 }
 
 BUILDERS = {'Horseman': horseman}

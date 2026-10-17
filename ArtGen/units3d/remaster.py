@@ -71,11 +71,12 @@ REMASTER = {
     # chariot crews (chariots.py): keys '<unit>:crew<i>'
     'chariot:crew0': {'weapon': 'spear', 'props': {'spear': ('spear', {'length': 2.8, 'grip': 1.0})}},
     # Civ3's Rider: the civ-colored coat with gold belt fittings and gold hems
-    'Rider': {'colors': {'belt': '#c4a462'}, 'hem_bands': [('top', 'gold', 0.03)]},
+    'Rider': {'colors': {'belt': '#c4a462', 'pants': '#6a4a30', 'boots': '#5a3c26'}, 'hem_bands': [('top', 'gold', 0.03)],
+              'headgear_scale': [1.15, 1.15, 1.0]},   # mid-brown legs, a fuller hat
     # Civ3's Ansar: a gilded lance, a big round shield with a gold rim and boss, a sword at the hip
     'Ansar Warrior': {'props': {'cav_spear': ('cav_spear', {'length': 2.3})},
                       'colors': {'wood': '#8a7048', 'shield_rim': '#d0a840', 'bronze': '#d0a840', 'shield_face': '#b89448'},
-                      'tint': ['hat', 'belt'],
+                      'tint': ['hat', 'belt', 'pants'], 'bands': [('waist', 'tint', 0.1)],   # a broad civ sash, civ trousers
                       'offhand_mesh': ('shield_round', {'r': 0.32, 'tint': 'none'}),
                       'hip': ('sheathed_sword', {'length': 0.78})},
     'Ancient Cavalry': {'top': 'sleeved', 'tint': ['top', 'crest', 'shield_face', 'shield_emblem']},
@@ -87,7 +88,14 @@ REMASTER = {
                'headgear_params': {'crest': 'horns'}, 'mail_parts': ['arms']},
     # Civ3's Cossack: a tan coat; only the papakha and belt are civ-colored
     'Cossack': {'tint': ['hat', 'belt'], 'headgear_scale': [0.95, 0.95, 0.9]},
-    'Keshik': {'tint': ['top', 'hat']},
+    # Civ3's Keshik: a spiked bronze helm with a fur brim, maroon lamellar with civ rows and gold edges,
+    # a bronze round shield on the back (the bow stays in hand)
+    'Keshik': {'tint': ['top', 'hat'], 'headgear_params': {'spike': True},
+               'cuirass': True, 'metal': [], 'cuirass_trim': 'gold',
+               'colors': {'cuirass': '#7a2a24', 'bronze': '#b8863e', 'shield_rim': '#b8863e', 'shield_face': '#a87a3a'},
+               'patterns': {'cuirass': ('pleats', 'tint', 16.0)},
+               'offhand': 'shield_round', 'offhand_mesh': ('shield_round', {'r': 0.28, 'tint': 'none', 'boss_key': 'bronze'}),
+               'shield_at': 'back', 'weapon': 'bow'},
     # Civ3's Sipahi: a dark kalkan with a gold boss, a gilded helmet band, a mail aventail (spiked_helm has one)
     'Sipahi': {'offhand': 'shield_round', 'offhand_mesh': ('shield_round', {'r': 0.3, 'tint': 'none', 'boss_key': 'gold'}),
                'colors': {'shield_rim': '#c4a462', 'bronze': '#c4a462', 'shield_face': '#3a3c42'}},   # a dark steel kalkan

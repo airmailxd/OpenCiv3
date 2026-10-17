@@ -166,11 +166,18 @@ def wild_shock(p, c, tinted, _, tufts=46, reach=0.085):
 
 
 @hat('fur_hat')
-def fur_hat(p, c, tinted, _):
-    """A Mongol hat: a thick fur brim and a rounded crown."""
+def fur_hat(p, c, tinted, _, spike=False):
+    """A Mongol hat: a thick fur brim and a rounded crown; spike=True makes it
+    the Keshik's helmet: a bronze crown with a spike and a plume tuft."""
     key, t = _k(tinted, 'hat')
-    p.add(props.ellipsoid(0.105, 0.105, 0.14, seg=20), key, T(0, 0, 0.04), smooth=True, tint=t)
-    p.add(props.lathe([(0.0, 0.13), (0.03, 0.14), (0.07, 0.13)], seg=24), 'fur', smooth=True)
+    if spike:
+        p.add(props.lathe([(0.0, 0.112), (0.08, 0.1), (0.15, 0.05), (0.2, 0.012)], seg=24), 'bronze', T(0, 0, 0.02), smooth=True)
+        vkit_spike = props.tube([(0, 0, 0.2), (0, 0, 0.3)], [0.012, 0.003], seg=6)
+        p.add(vkit_spike, 'bronze', smooth=True)
+        p.add(props.tube([(0, 0, 0.27), (0, -0.04, 0.33), (0, -0.1, 0.32)], [0.015, 0.02, 0.005], seg=6), key, smooth=True, tint=t)
+    else:
+        p.add(props.ellipsoid(0.105, 0.105, 0.14, seg=20), key, T(0, 0, 0.04), smooth=True, tint=t)
+    p.add(props.lathe([(0.0, 0.13), (0.03, 0.145), (0.07, 0.13)], seg=24), 'fur', smooth=True)
 
 
 @hat('dragoon_helm')
