@@ -188,14 +188,14 @@ def dragoon_helm(p, c, tinted, crest_tinted):
 def morion(p, c, tinted, _):
     """A conquistador's morion: a steel dome with a comb, the brim upswept fore and aft."""
     p.add(props.ellipsoid(0.11, 0.115, 0.12, seg=20), 'helmet', T(0, 0, 0.03), smooth=True)
-    comb = props.slab([(-0.1, 0.06), (-0.06, 0.15), (0.06, 0.15), (0.1, 0.06)], 0.012, 'X')
+    comb = props.slab([(-0.11, 0.05), (-0.07, 0.2), (0.0, 0.23), (0.07, 0.2), (0.11, 0.05)], 0.014, 'X')   # a tall comb
     p.add(comb, 'helmet', bevel=0.003)
     brim = []
     for i in range(41):
         a = 2 * math.pi * i / 40
-        up = 0.07 * abs(math.cos(a)) ** 2
+        up = 0.12 * abs(math.sin(a)) ** 4   # swept up into points front and back (+-Y)
         brim.append([(0.11 * math.cos(a) * 0.95, 0.115 * math.sin(a) * 0.95, 0.02),
-                     (0.17 * math.cos(a), 0.2 * math.sin(a), 0.02 + up)])
+                     (0.14 * math.cos(a), 0.21 * math.sin(a), 0.02 + up)])
     rings = [[r[0] for r in brim], [r[1] for r in brim]]
     p.add(props.loft(rings, False, False), 'helmet', smooth=True)
 

@@ -937,7 +937,7 @@ def seat_rider(root, unit, entry):
     arm = next(o for o in rroot.children_recursive if o.type == 'ARMATURE')
     riders.headgear(r_entry, arm)
     weapon = r_entry.get('weapon')
-    up = RIDER_WEAPON_UP.get(weapon)
+    up = WEAPON_UP_BY_UNIT.get(unit) or RIDER_WEAPON_UP.get(weapon)   # a unit's own carry overrides the weapon's
     if up:
         obj = next((o for o in bpy.data.objects if o.name.split('.')[0] == weapon and o.parent is not None), None)
         if obj is not None:
@@ -957,6 +957,7 @@ RIDER_WEAPON_UP = {
     'long_sword': (0.15, 0.3, 1.0),
     'rifle': (0.0, 0.25, 1.0),       # held upright at the hip, as Civ3's Cossack and Cavalry
 }
+WEAPON_UP_BY_UNIT = {'Conquistador': (0.05, 0.12, 1.0)}   # the lance held upright (the original)
 RIDER_DEFAULTS = {
     'neck': 'high',
     'pose_extra': [('spine_01', (0, 0.12, 1)), ('spine_02', (0, 0.16, 1)), ('spine_03', (0, 0.14, 1)),
@@ -1036,7 +1037,7 @@ def build(unit, colors=None, entry=None, rider=False, **params):
     if entry and entry.get('escort') == 'dog':
         # the war dog trotting beside the horse (Civ3's Conquistador): a black-and-tan mastiff, civ collar
         d = entry.get('dog', {})
-        dog = props.make('wolfhound', {'dog_fur': d.get('fur', '#5a4632')}, scale=d.get('scale', 1.5))   # a big mastiff, dark brown
+        dog = props.make('war_dog', {}, scale=d.get('scale', 1.6))   # a black-and-tan mastiff, civ collar
         dog.parent = root
         x, y, z = d.get('place', [0.95, 0.4, 0.0])
         dog.location = (x, y, z)

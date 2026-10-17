@@ -2008,6 +2008,38 @@ def wolfhound(p, scale=1.0):
           T(0, 0.52 * s, 0.73 * s) @ R('X', -60) @ S(s), smooth=True, tint=True)   # the civ collar
 
 
+DEFAULTS.setdefault('dog_black', ('#1e1a18', 0.7, 0.0, 'polished'))
+DEFAULTS.setdefault('dog_tan', ('#a8703a', 0.7, 0.0, 'polished'))
+
+
+def war_dog(p, scale=1.0):
+    """A black-and-tan war mastiff standing, facing +Y, paws on the ground: a
+    deep chest, thick neck, broad head with a blunt muzzle and pricked ears,
+    sturdy legs; a black saddle over the back and head, tan legs, chest and
+    muzzle; a broad studded civ collar."""
+    s = scale
+    for ((x, y, z), (rx, ry, rz)), key in ((((0, 0.2, 0.46), (0.15, 0.24, 0.18)), 'dog_black'), (((0, 0.24, 0.38), (0.13, 0.2, 0.13)), 'dog_tan'),
+                                           (((0, -0.12, 0.47), (0.13, 0.24, 0.15)), 'dog_black'), (((0, -0.3, 0.46), (0.13, 0.12, 0.14)), 'dog_black')):
+        p.add(ellipsoid(rx * s, ry * s, rz * s, seg=20), key, T(x * s, y * s, z * s), smooth=True)
+    p.add(tube([(0, 0.34 * s, 0.5 * s), (0, 0.45 * s, 0.62 * s)], [0.11 * s, 0.09 * s], seg=14), 'dog_black', smooth=True)   # the neck
+    p.add(ellipsoid(0.09 * s, 0.11 * s, 0.085 * s, seg=18), 'dog_black', T(0, 0.5 * s, 0.67 * s), smooth=True)              # the head
+    p.add(ellipsoid(0.06 * s, 0.08 * s, 0.05 * s, seg=14), 'dog_tan', T(0, 0.61 * s, 0.63 * s), smooth=True)                # the muzzle
+    p.add(ellipsoid(0.025 * s, 0.02 * s, 0.018 * s, seg=8), 'dog_black', T(0, 0.685 * s, 0.645 * s), smooth=True)          # the nose
+    for sx in (-1, 1):
+        p.add(lathe([(0.0, 0.03 * s), (0.08 * s, 0.0)], seg=6), 'dog_black', T(sx * 0.05 * s, 0.47 * s, 0.73 * s) @ R('Y', sx * 15), smooth=True)  # pricked ears
+        p.add(ellipsoid(0.014 * s, 0.012 * s, 0.012 * s, seg=8), 'dog_tan', T(sx * 0.045 * s, 0.57 * s, 0.7 * s), smooth=True)  # tan brows
+    for (x, y) in ((0.08, 0.26), (-0.08, 0.26), (0.08, -0.3), (-0.08, -0.3)):   # sturdy tan legs
+        top = 0.42 if y > 0 else 0.42
+        p.add(tube([(x * s, y * s, top * s), (x * s, (y + 0.01) * s, 0.2 * s), (x * s, (y + 0.03) * s, 0.03 * s)], [0.05 * s, 0.04 * s, 0.035 * s], seg=12), 'dog_tan', smooth=True)
+        p.add(ellipsoid(0.04 * s, 0.055 * s, 0.03 * s, seg=10), 'dog_tan', T(x * s, (y + 0.05) * s, 0.03 * s), smooth=True)
+    p.add(tube([(0, -0.4 * s, 0.5 * s), (0, -0.5 * s, 0.42 * s), (0, -0.55 * s, 0.3 * s)], [0.03 * s, 0.022 * s, 0.012 * s], seg=8), 'dog_black', smooth=True)  # the tail
+    m = T(0, 0.4 * s, 0.56 * s) @ R('X', -40)
+    p.add(lathe([(0.0, 0.11 * s), (0.06 * s, 0.105 * s)], seg=20), 'tint', m, smooth=True, tint=True)   # the broad civ collar
+    for k in range(8):
+        a = 2 * math.pi * k / 8
+        p.add(ellipsoid(0.012 * s, 0.012 * s, 0.012 * s, seg=6), 'gold', m @ T(0.112 * s * math.cos(a), 0.112 * s * math.sin(a), 0.03 * s), smooth=True)
+
+
 def briefcase(p, scale=1.0, straps=None):
     """A leather briefcase held by its handle (origin), hanging -Z.
     straps='tint': a doctor's bag's civ straps round it, brass buckles."""
@@ -2128,6 +2160,7 @@ BUILDERS = {
     'briefcase': briefcase,
     'feather_standard': feather_standard,
     'wolfhound': wolfhound,
+    'war_dog': war_dog,
     'microphone': microphone,
     'pipe': pipe,
     'glasses': glasses,
