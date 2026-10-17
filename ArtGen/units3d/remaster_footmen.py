@@ -508,7 +508,7 @@ REMASTER = {
         'macro': {'muscle': 0.95, 'weight': 0.75, 'height': 0.72, 'proportions': 0.7}, 'age': 0.55,
         'race': {'caucasian': 0.0, 'african': 0.0, 'asian': 1.0},
         'colors': {'skin': '#c8986c', 'hair': '#0e0c0c', 'bottom': '#2e2c40', 'top': '#ece8e0', 'belt': '#1a1824',
-                   'sandal': '#2a2018', 'lacquer': '#1a1412', 'iron': '#3a3a3c', 'cloth_wrap': '#2a2630',
+                   'sandal': '#2a2018', 'lacquer': '#5a1c16', 'iron': '#8a7a58', 'cloth_wrap': '#dcd2bc',
                    'wraps': '#e8e4da', 'wraps_band': '#e8e4da', 'shoes': '#e8e4da'},
         'helmet': None, 'hair': 'topknot', 'hair_asset': None, 'topknot': 'topknot', 'beard': False,
         # the civ-color coat with wide untinted grey-lavender sleeves over it
@@ -520,9 +520,12 @@ REMASTER = {
         'bottom': 'long', 'puffy': True, 'trouser_offset': 0.05,   # the wide hakama
         'sandals': True, 'wraps': 'shoes', 'gear': [],   # white tabi under the sandal straps
         # arms folded on the chest, hands empty, the katana sheathed at the left hip
+        # (the owner, 2026-10-16: "has no sword"): the right hand on the hilt, the left
+        # on the scabbard, a thicker katana with a light grip and a red-lacquered scabbard
         'weapon': None, 'offhand': None,
-        'hip': ('katana_sheathed', {'length': 0.72}),
-        'stance_name': 'arms_folded',
+        'hip': ('katana_sheathed', {'length': 0.78, 'thick': 1.5}),
+        'hand_on_hilt': True,
+        'stance_name': 'stand',
         'tint': [],                             # the kimono: white cloth flecked all over in the civ color (patterns)
         'grime': 0.55, 'upper_bulk': 1.2,
     },

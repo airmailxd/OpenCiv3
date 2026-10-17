@@ -1143,23 +1143,33 @@ def kama(p, length=0.42, scale=1.0):
     p.add(tube(pts, [0.012, 0.011, 0.008, 0.002], seg=4, scale_xy=(0.25, 1.0)), 'steel', smooth=True)
 
 
-def katana(p, length=0.72, scale=1.0, sheathed=False):
+def katana(p, length=0.72, scale=1.0, sheathed=False, thick=1.0):
     """A katana: a long gently curved single-edged blade, a round tsuba
     guard and a two-hand wrapped grip. sheathed: in a black lacquered
-    scabbard instead (the scabbard's mouth at the tsuba, the hilt below at -Z)."""
+    scabbard instead (the scabbard's mouth at the tsuba, the hilt below at -Z).
+    thick: the scabbard, guard and grip this much thicker (to read at 1x)."""
     L = length * scale
+    k = thick
     if not sheathed:
         sabre(p, length=L, width=0.03, curve=0.045, scale=1.0)
     else:
         sc = [(0.0, -0.004 * (i / 8) ** 2 * 10, 0.07 + L * i / 8) for i in range(9)]
-        p.add(tube(sc, [0.02 - 0.004 * i / 8 for i in range(9)], seg=10, scale_xy=(0.6, 1.0)), 'lacquer', smooth=True)
-    p.add(lathe([(0.0, 0.04), (0.008, 0.04)], seg=20), 'iron', T(0, 0, 0.062), bevel=0.002)      # tsuba
-    p.add(tube([(0, 0, -0.22), (0, 0, 0.06)], [0.015, 0.016], seg=10, scale_xy=(0.8, 1.0)), 'cloth_wrap', smooth=True)
-    _wrap(p, -0.21, 0.05, 0.0165, 'leather_dark', turns=12)
+        p.add(tube(sc, [(0.02 - 0.004 * i / 8) * k for i in range(9)], seg=10, scale_xy=(0.6, 1.0)), 'lacquer', smooth=True)
+        if k > 1.0:
+            # the kojiri cap at the tip and the koiguchi band at the mouth, in the guard's metal
+            tip = sc[-1]
+            p.add(lathe([(0.0, 0.017 * k), (0.035, 0.017 * k), (0.045, 0.004)], seg=10, scale_xy=(0.6, 1.0)),
+                  'iron', T(tip[0], tip[1], tip[2] - 0.03), smooth=True)
+            p.add(tube([(0, 0, 0.07), (0, 0, 0.1)], 0.021 * k, seg=10, scale_xy=(0.6, 1.0)), 'iron', smooth=True)
+    p.add(lathe([(0.0, 0.04 * k), (0.008 * k, 0.04 * k)], seg=20), 'iron', T(0, 0, 0.062), bevel=0.002)      # tsuba
+    p.add(tube([(0, 0, -0.22), (0, 0, 0.06)], [0.015 * k, 0.016 * k], seg=10, scale_xy=(0.8, 1.0)), 'cloth_wrap', smooth=True)
+    _wrap(p, -0.21, 0.05, 0.0165 * k, 'leather_dark', turns=12)
+    if k > 1.0:
+        p.add(ellipsoid(0.018 * k, 0.015 * k, 0.012 * k, seg=12), 'iron', T(0, 0, -0.225), smooth=True)   # kashira (pommel cap)
 
 
-def katana_sheathed(p, length=0.72, scale=1.0):
-    katana(p, length=length, scale=scale, sheathed=True)
+def katana_sheathed(p, length=0.72, scale=1.0, thick=1.0):
+    katana(p, length=length, scale=scale, sheathed=True, thick=thick)
 
 
 def sheathed_sword(p, length=0.82, width=0.07, rapier=False, scale=1.0):

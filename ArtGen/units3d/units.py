@@ -702,6 +702,29 @@ STANCES['shoulder_arms'] = [('spine_02', (0, -0.02, 1)), ('neck_01', (0, 0.1, 1)
                             ('upperarm_r', (-0.22, -0.35, -1)), ('lowerarm_r', (0.05, -0.45, 1.0))]
 GUNS = ('musket', 'rifle', 'rifle_bolt', 'assault_rifle', 'smg')
 
+# The torso of every standing stance (the owner, 2026-10-16: the units were
+# hunched too far forward): the spine upright with the chest a little up, the
+# shoulders back, the neck straight and the head level over the hips. The
+# stances' own torso aims are replaced; the arms keep theirs (armature space),
+# so weapons stay where they were. Riding and digging bend for real and keep
+# their torsos, as does an entry with 'stoop' (Gandhi's walk).
+UPRIGHT = [('spine_01', (0, 0.0, 1)), ('spine_02', (0, 0.03, 1)), ('spine_03', (0, 0.06, 1)),
+           ('clavicle_l', (1, 0.1, 0.07)), ('clavicle_r', (-1, 0.1, 0.07)),
+           ('neck_01', (0, 0.08, 1)), ('head', (0, 0.3, 1))]
+LEANING = ('ride', 'low_across')
+TORSO = {b for b, _ in UPRIGHT}
+MAX_LEAN = -0.06      # the most forward (-y) an entry's pose_extra may tip a torso bone
+
+
+def stance_aims(entry, stance):
+    """The bone aims of `stance` with the entry's pose_extra, the torso upright
+    (see UPRIGHT)."""
+    extra = [tuple(a) for a in entry.get('pose_extra', [])]
+    if stance in LEANING or entry.get('stoop'):
+        return STANCES[stance] + extra
+    extra = [(b, (d[0], max(d[1], MAX_LEAN), d[2])) if b in TORSO else (b, d) for b, d in extra]
+    return UPRIGHT + [a for a in STANCES[stance] if a[0] not in TORSO] + extra
+
 WEAPON_STANCE = {
     'stone_axe': 'hang', 'club': 'hang', 'sword': 'hang', 'axe': 'hang',
     'spear': 'upright', 'staff': 'upright', 'pike': 'upright',
@@ -715,7 +738,7 @@ def equip(entry, arm):
     offhand = entry.get('offhand')
     props = entry.get('props', {})
     stance = entry.get('stance_name') or WEAPON_STANCE.get(weapon or ('bow' if offhand == 'bow' else None), 'hang')
-    H.pose(arm, STANCES[stance] + [tuple(a) for a in entry.get('pose_extra', [])])
+    H.pose(arm, stance_aims(entry, stance))
     H.fists(arm, sides='lr')
     bulk = entry.get('upper_bulk')
     if bulk:
@@ -934,7 +957,19 @@ def equip(entry, arm):
         obj = P.make(name, c, **params)
         pv = arm.matrix_world @ arm.pose.bones['pelvis'].head
         at = pv + Vector((0.17 * G._scale, -0.04 * G._scale, 0.05 * G._scale))
-        H.hold(obj, arm, 'pelvis', at, up=(0.15, 0.45, -0.88), forward=(1, 0, 0))
+        if entry.get('hand_on_hilt'):
+            # ready to draw: the sword sloped lower (the hilt forward and up at
+            # the belt), the right hand across the body on the grip, the left
+            # on the scabbard by its mouth, thumb at the guard
+            H.hold(obj, arm, 'pelvis', at, up=tuple(entry.get('hip_dir', (0.18, 0.55, -0.82))), forward=(1, 0, 0))
+            s = params.get('scale', 1.0)
+            grip = obj.matrix_world @ Vector((0.0, 0.0, -0.12 * s))
+            mouth = obj.matrix_world @ Vector((0.0, 0.0, 0.11 * s))
+            H.reach(arm, 'r', grip, elbow_out=0.7)
+            H.reach(arm, 'l', mouth, elbow_out=0.8)
+            H.fists(arm, sides='lr')
+        else:
+            H.hold(obj, arm, 'pelvis', at, up=(0.15, 0.45, -0.88), forward=(1, 0, 0))
         made.append(obj)
     return made
 

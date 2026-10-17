@@ -573,6 +573,7 @@ REMASTER = {
         # MISSING: tinted_tip (the stick's top; no key on 'staff')
         'weapon': 'staff', 'props': {'staff': ('staff', {'length': 1.55, 'grip': 0.95})},
         'pose_extra': [('spine_02', (0, -0.3, 1)), ('neck_01', (0, -0.12, 1)), ('head', (0, 0.25, 1))],   # the walking stoop (-y forward)
+        'stoop': True,   # frail by design: keeps the stoop (units.UPRIGHT straightens everyone else)
         'weapon_tip': 'tint',   # the tinted band at the stick's top
         'stance_name': 'stand_staff',           # MISSING: walking_stoop
         'tint': ['strap'],
