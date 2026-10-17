@@ -364,7 +364,7 @@ def _coat_material(h):
             dy = math_('SUBTRACT', sepo.outputs['Y'], py)
             dz = math_('SUBTRACT', sepo.outputs['Z'], pz)
             d = math_('SQRT', math_('ADD', math_('MULTIPLY', dy, dy), math_('MULTIPLY', dz, dz)), 0.0)
-            under = mix(under, mix(_lin(pcol), gray.outputs['Color'], 1.0, 'MULTIPLY'), maprange(d, pr - 0.04, pr, 1.0, 0.0))
+            under = mix(under, mix(_lin(pcol), gray.outputs['Color'], 1.0, 'MULTIPLY'), maprange(d, pr - 0.12, pr, 1.0, 0.0))
         L.new(mix(under, light, mask), p.inputs['Base Color'])
     else:
         L.new(dark.outputs['Color'], p.inputs['Base Color'])
@@ -1177,11 +1177,11 @@ HORSE_COAT_OVERRIDES = {
     'Mounted Warrior': {'coat': '#b08a58', 'coat2': None, 'mane': '#2e241a', 'points': '#5a4632',
                         # (the asset horse stands ~1.9 m at the croup: the hip is near z 1.5)
                         'coat_spots': {'pale': [(-0.72, 1.5, 0.45, '#e2d8c2')],   # the cream croup and haunch
-                                       'blobs': [(-0.72, 1.5, 0.18), (-0.5, 1.25, 0.07), (-0.92, 1.2, 0.07),
-                                                 (0.65, 1.6, 0.15), (0.75, 1.3, 0.07)]}},
+                                       # civ handprints (a palm and five fingers) on the haunch and the shoulder
+                                       'blobs': [(-0.72, 1.4, 0.102), (-0.789, 1.512, 0.038), (-0.845, 1.544, 0.038), (-0.766, 1.559, 0.038), (-0.805, 1.631, 0.038), (-0.72, 1.571, 0.038), (-0.72, 1.652, 0.038), (-0.677, 1.561, 0.038), (-0.641, 1.634, 0.038), (-0.658, 1.521, 0.038), (-0.607, 1.561, 0.038), (0.65, 1.52, 0.085), (0.593, 1.613, 0.032), (0.546, 1.64, 0.032), (0.611, 1.653, 0.032), (0.58, 1.712, 0.032), (0.65, 1.663, 0.032), (0.65, 1.73, 0.032), (0.686, 1.654, 0.032), (0.716, 1.715, 0.032), (0.702, 1.621, 0.032), (0.745, 1.654, 0.032), (-0.5, 1.2, 0.06), (-0.95, 1.15, 0.06), (0.8, 1.3, 0.06)]}},
     'Ancient Cavalry': {'coat': '#a88a5e', 'mane': '#2a2018', 'points': '#2e2418'},
     'Rider': {'coat': '#c8c8c4', 'dapple': '#9a9a98', 'mane': '#e0ded8', 'points': '#8a8a88',
-              'coat_spots': {'scale': 6.0, 'size': 0.34, 'boxes': [(-1.15, -0.2, 0.55, 1.35)]}},   # civ specks on the haunch
+              'coat_spots': {'scale': 7.0, 'size': 0.4, 'boxes': [(-1.15, -0.2, 0.55, 1.35)]}},   # civ specks on the haunch
     'Knight': {'coat': '#c4c6ca', 'mane': '#3a3836', 'points': '#8a8c90'},   # pale: the silver barding reads   # the lower legs grey as mail
     'Keshik': {'coat': '#7a4826', 'mane': '#1a120c', 'points': '#20160e'},
     'Sipahi': {'coat': '#6a4428', 'mane': '#2a1c12', 'points': '#2a1c12'},
@@ -1213,7 +1213,7 @@ TACK_OVERRIDES = {
     'Mounted Warrior': {'blanket': 'saddle_cloth', 'blanket_tint': True, 'trim': '#c8a878', 'cloth_drop': 0.24,
                         'cloth_back': 0.5, 'breast_strap': 'tint', 'tassels': 'tint', 'throat_tassels': 'tint'},
     # long bold civ reins, a dark pelt saddle pad
-    'Ancient Cavalry': {'reins_bold': True, 'rein_drop': 0.3, 'blanket': 'pelt', 'pelt_color': '#3a2e26', 'cloth_drop': 0.26,
+    'Ancient Cavalry': {'reins_bold': True, 'rein_drop': 0.3, 'blanket': 'pelt', 'pelt_color': '#3a2e26', 'cloth_drop': 0.15,
                         'breast_strap': 'leather_dark'},
     'Cossack': {'bedroll': True, 'breast_strap': 'leather_dark'},   # the burka rolled behind the saddle
     # a civ shabraque with a gold edge, bold civ reins
