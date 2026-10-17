@@ -1111,23 +1111,23 @@ def flail(p, length=0.55, chain=0.32, scale=1.0):
     """A flail: a wooden haft, an iron chain of links hanging forward, a
     spiked iron ball (hanging down and out, as carried)."""
     L = length * scale
-    p.add(tube([(0, 0, -0.12), (0, 0, L)], 0.02, seg=10), 'wood', smooth=True)
-    p.add(lathe([(0.0, 0.026), (0.03, 0.026)], seg=10), 'iron', T(0, 0, L - 0.02), smooth=True)
+    p.add(tube([(0, 0, -0.12), (0, 0, L)], 0.03, seg=10), 'wood', smooth=True)
+    p.add(lathe([(0.0, 0.038), (0.05, 0.038)], seg=10), 'iron', T(0, 0, L - 0.03), smooth=True)
     top = Vector((0, 0, L + 0.01))
     end = top + Vector((0, 0.18, -chain))
     n = 6
     for i in range(n):
         a, b = top.lerp(end, i / n), top.lerp(end, (i + 1) / n)
         mid = a.lerp(b, 0.5)
-        link = tube([(0, 0, -0.025), (0, 0, 0.025)], 0.009, seg=6)
+        link = tube([(0, 0, -0.03), (0, 0, 0.03)], 0.016, seg=6)
         rot = (b - a).normalized().to_track_quat('Z', 'Y').to_matrix().to_4x4()
         p.add(link, 'iron', Matrix.Translation(mid) @ rot @ (R('Z', 90) if i % 2 else Matrix.Identity(4)), smooth=True)
-    p.add(ellipsoid(0.055, 0.055, 0.055, seg=14), 'iron', Matrix.Translation(end + Vector((0, 0.02, -0.05))), smooth=True)
-    for i in range(10):
+    p.add(ellipsoid(0.085, 0.085, 0.085, seg=16), 'iron', Matrix.Translation(end + Vector((0, 0.02, -0.05))), smooth=True)
+    for i in range(14):
         d = Vector((math.sin(i * 2.4) * math.cos(i * 1.3), math.cos(i * 2.4) * math.cos(i * 1.3), math.sin(i * 1.3))).normalized()
-        spike = lathe([(0.0, 0.012), (0.04, 0.0)], seg=5)
+        spike = lathe([(0.0, 0.018), (0.07, 0.0)], seg=5)
         rot = d.to_track_quat('Z', 'Y').to_matrix().to_4x4()
-        p.add(spike, 'iron', Matrix.Translation(end + Vector((0, 0.02, -0.05)) + d * 0.045) @ rot)
+        p.add(spike, 'iron', Matrix.Translation(end + Vector((0, 0.02, -0.05)) + d * 0.075) @ rot)
 
 
 def scimitar(p, length=0.8, scale=1.0):

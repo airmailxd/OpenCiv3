@@ -202,24 +202,41 @@ def morion(p, c, tinted, _):
 
 @hat('great_helm')
 def great_helm(p, c, tinted, _, crest=None):
-    """A knight's great helm: a flat-topped steel pot over the whole head, a dark
-    eye slit, breaths and a riveted brow band; crest='horns' adds a pair of
-    curved horns (the Civ3 Knight's crest), 'plume' a tall civ plume."""
-    p.add(props.lathe([(-0.2, 0.118), (0.06, 0.124), (0.08, 0.11), (0.09, 0.0)], seg=24), 'helmet',
-          smooth=True)
-    p.add(props.box(0.16, 0.02, 0.018), 'leather_dark', T(0, 0.118, -0.04), bevel=0.003)
-    p.add(props.box(0.012, 0.02, 0.2), 'leather_dark', T(0, 0.12, -0.08))   # the vertical reinforcing bar
-    p.add(props.lathe([(0.0, 0.127), (0.025, 0.127)], seg=24), 'gold', T(0, 0, 0.0), smooth=True)   # the gilt brow band
+    """A 13th-century great helm (heaume): a tall flat-sided barrel about 1.4x
+    taller than wide, a slightly domed flat top, the eye slits a third of the
+    way down either side of a vertical bar (a cross with the brow band),
+    breaths below; crest='horns' adds curved horns, 'plume' a civ plume."""
+    W, D = 0.115, 0.125               # half width and half depth
+    z0, z1 = -0.23, 0.09               # 0.32 tall against 0.23 wide
+    rings = []
+    for z in (z0, z0 + 0.02, -0.1, 0.0, z1 - 0.01, z1):
+        k = 1.0 if z < z1 - 0.005 else 0.92
+        ring = []
+        for i in range(32):
+            a = 2 * math.pi * i / 32
+            ca, sa = math.cos(a), math.sin(a)
+            ring.append((W * k * math.copysign(abs(ca) ** 0.45, ca), D * k * math.copysign(abs(sa) ** 0.45, sa), z))
+        rings.append(ring)
+    p.add(props.loft(rings, False, False), 'helmet', smooth=False)
+    p.add(props.ellipsoid(W * 0.95, D * 0.95, 0.03, seg=20), 'helmet', T(0, 0, z1), smooth=True)   # the domed top plate
+    ze = z1 - 0.35 / 3                 # the eye line
     for sx in (-1, 1):
-        for k in range(3):   # breaths
-            p.add(props.box(0.012, 0.02, 0.006), 'leather_dark', T(sx * 0.05, 0.116, -0.1 - 0.025 * k))
+        p.add(props.box(0.085, 0.02, 0.016), 'leather_dark', T(sx * 0.058, D + 0.002, ze))         # the eye slits
+        for k in range(4):                                                                        # breaths
+            p.add(props.box(0.01, 0.02, 0.006), 'leather_dark', T(sx * (0.035 + 0.02 * k), D + 0.002, ze - 0.075))
+            p.add(props.box(0.01, 0.02, 0.006), 'leather_dark', T(sx * (0.035 + 0.02 * k), D + 0.002, ze - 0.1))
+    p.add(props.box(0.026, 0.018, 0.27), 'gold', T(0, D + 0.006, z0 + 0.15), bevel=0.003)          # the cross: vertical bar
+    p.add(props.box(0.25, 0.018, 0.024), 'gold', T(0, D + 0.006, ze + 0.028), bevel=0.003)          # and the brow band over the slits
+    for sx in (-1, 1):                                                                            # rivets along the bar
+        for k in range(4):
+            p.add(props.ellipsoid(0.007, 0.007, 0.007, seg=6), 'helmet', T(sx * 0.02, D + 0.012, z0 + 0.04 + 0.06 * k), smooth=True)
     if crest == 'horns':
         for sx in (-1, 1):
-            p.add(props.tube([(sx * 0.07, 0, 0.07), (sx * 0.14, 0, 0.14), (sx * 0.15, 0.02, 0.24), (sx * 0.12, 0.04, 0.3)],
+            p.add(props.tube([(sx * 0.08, 0, z1), (sx * 0.15, 0, z1 + 0.07), (sx * 0.16, 0.02, z1 + 0.17), (sx * 0.13, 0.04, z1 + 0.23)],
                              [0.03, 0.025, 0.016, 0.004], seg=8), 'helmet', smooth=True)
     elif crest == 'plume':
         key, t_ = _k(True, 'plume')
-        p.add(props.tube([(0, 0, 0.08), (0, -0.04, 0.22), (0, -0.14, 0.26)], [0.03, 0.03, 0.006], seg=8), key, smooth=True, tint=t_)
+        p.add(props.tube([(0, 0, z1), (0, -0.04, z1 + 0.14), (0, -0.14, z1 + 0.18)], [0.03, 0.03, 0.006], seg=8), key, smooth=True, tint=t_)
 
 
 @hat('spiked_helm')
@@ -575,17 +592,24 @@ def cap_plume(p, c, tinted, plume_tinted):
 
 @hat('attic_helm')
 def attic_helm(p, c, tinted, crest_tinted):
-    """The Libyan Mercenary's Attic helmet: a bronze bowl with a brow ridge,
-    hinged cheek guards, a neck flare and a tall dark horsehair crest."""
-    p.add(props.lathe([(-0.03, 0.125), (0.05, 0.123), (0.12, 0.085), (0.155, 0.0)], seg=24), 'bronze', smooth=True)
-    p.add(props.lathe([(-0.005, 0.13), (0.015, 0.13)], seg=24), 'bronze', smooth=True)              # the brow ridge
-    for sx in (-1, 1):   # cheek guards hanging along the jaw
-        guard = props.slab([(0.0, 0.0), (0.07, 0.0), (0.06, -0.1), (0.02, -0.12), (-0.01, -0.06)], 0.008, 'X')
-        p.add(guard, 'bronze', T(sx * 0.118, 0.02, -0.01) @ R('Z', sx * 12), bevel=0.002)
-    p.add(props.lathe([(-0.09, 0.15), (-0.03, 0.127)], seg=24), 'bronze', T(0, -0.02, 0), smooth=True)   # neck flare
+    """The Libyan (Numidian) Mercenary's Hellenistic Attic helmet: a full rounded
+    bronze skull, a brow peak jutting forward over the face, large hinged
+    cheek guards shaped to the jaw, a flared neck guard, and a tall
+    horsehair crest standing on a stilt from brow to nape."""
+    p.add(props.lathe([(-0.04, 0.124), (0.04, 0.126), (0.11, 0.1), (0.16, 0.05), (0.18, 0.0)], seg=28), 'bronze', smooth=True)
+    peak = props.ellipsoid(0.13, 0.07, 0.022, seg=20)
+    p.add(peak, 'bronze', T(0, 0.075, 0.035) @ R('X', 12), smooth=True)                          # the brow peak
+    p.add(props.lathe([(0.0, 0.129), (0.018, 0.129)], seg=28), 'gold', T(0, 0.0, 0.0), smooth=True)   # a gilt rim band
+    for sx in (-1, 1):   # big hinged cheek guards down to the jaw, a hinge pin at the top
+        guard = props.slab([(0.0, 0.02), (0.09, 0.02), (0.085, -0.09), (0.04, -0.16), (0.0, -0.13), (-0.02, -0.04)], 0.012, 'X')
+        p.add(guard, 'bronze', T(sx * 0.122, 0.0, 0.0) @ R('Z', sx * 10), bevel=0.003)
+        p.add(props.ellipsoid(0.012, 0.012, 0.012, seg=8), 'gold', T(sx * 0.13, 0.04, 0.015), smooth=True)
+    p.add(props.lathe([(-0.1, 0.155), (-0.03, 0.128)], seg=28), 'bronze', T(0, -0.025, 0), smooth=True)   # the neck guard
+    vkit_stilt = props.tube([(0, 0.02, 0.17), (0, 0.0, 0.22)], 0.012, seg=6)
+    p.add(vkit_stilt, 'bronze', smooth=True)
     ck, ct = _k(crest_tinted, 'crest')
-    path = [(0, 0.11, 0.12), (0, 0.03, 0.19), (0, -0.07, 0.17), (0, -0.15, 0.06), (0, -0.17, -0.06)]
-    p.add(props.tube(path, [0.025, 0.035, 0.035, 0.028, 0.01], seg=8, scale_xy=(0.55, 1.0)), ck, smooth=True, tint=ct)
+    path = [(0, 0.15, 0.2), (0, 0.06, 0.26), (0, -0.05, 0.26), (0, -0.15, 0.18), (0, -0.2, 0.05), (0, -0.21, -0.05)]
+    p.add(props.tube(path, [0.02, 0.045, 0.05, 0.045, 0.03, 0.01], seg=8, scale_xy=(0.45, 1.0)), ck, smooth=True, tint=ct)
 
 
 @hat('viking_bowl')

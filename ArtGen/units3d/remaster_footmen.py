@@ -431,8 +431,8 @@ REMASTER = {
         # shoulders to the ankles with a gold hem and a brown belt, a small
         # round brown wooden shield (per the original), a flail at the knee
         'macro': {'muscle': 1.0, 'weight': 0.9, 'height': 0.78, 'proportions': 0.68},
-        'colors': {'skin': '#94704f', 'helmet': '#6a6c70', 'mail': '#5a5a5e', 'belt': '#3a2818',
-                   'bracers': '#5a5a5e', 'greaves': '#6e7074', 'steel': '#8a8c90', 'iron': '#4a4a4e',
+        'colors': {'iron': '#c8ccd4', 'skin': '#94704f', 'helmet': '#6a6c70', 'mail': '#5a5a5e', 'belt': '#3a2818',
+                   'bracers': '#5a5a5e', 'greaves': '#6e7074', 'steel': '#8a8c90',
                    'wood': '#4a3222', 'shield_face': '#7a5434', 'shield_rim': '#3a3a3e', 'bronze': '#6e7074',
                    'boots': '#8a8c90'},   # steel sabatons, not white
         'helmet': 'great_helm', 'metal': ['helmet'], 'hair_asset': None, 'beard': False,
@@ -443,7 +443,8 @@ REMASTER = {
         'mail_parts': ['arms', 'legs'], 'leather_bracers': True, 'wraps': None, 'boots': True,
         'gear': [],
         'weapon': 'club',
-        'props': {'club': ('flail', {'length': 0.55, 'chain': 0.32})},
+        'props': {'club': ('flail', {'length': 0.7, 'chain': 0.38})},   # big and bright: it read faint at 1x
+        'hang_dir': (0.55, 0.35, -0.75),   # held out from the body, the head swinging clear
         # the original: a small round brown wooden shield
         'offhand': 'shield_round', 'offhand_mesh': ('plain_round', {'r': 0.25}),
         'shield_at': 'left_hip',
