@@ -443,8 +443,10 @@ def setup(entry, own_gear=False):
         entry = dict(entry, weapon=None, offhand=None, props={})
     root = units.build_footman(entry)
     arm = next(o for o in bpy.data.objects if o.type == 'ARMATURE')
-    mesh = next(o for o in bpy.data.objects if o.type == 'MESH' and o.parent == arm
-                and any(m.type == 'ARMATURE' for m in o.modifiers) and len(o.data.vertices) > 10000)
+    # the body: the skinned mesh with the most vertices (not a garment or strap, whose
+    # lowest point would plant the feet below the ground)
+    mesh = max((o for o in bpy.data.objects if o.type == 'MESH' and o.parent == arm
+                and any(m.type == 'ARMATURE' for m in o.modifiers)), key=lambda o: len(o.data.vertices))
     ctx = Context(root, arm, mesh, units._colors(entry))
     if own_gear:
         # every bone as units.equip left it (its stance, and any reach to a second grip), armature space
