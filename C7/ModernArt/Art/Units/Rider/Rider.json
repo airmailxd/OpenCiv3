@@ -1,20 +1,20 @@
 {
   "actions": {
-    "DEFAULT": "RiderDefault",
-    "RUN": "RiderRun",
     "ATTACK1": "RiderAttackA",
     "DEATH": "RiderDeath",
-    "FORTIFY": "RiderFortify",
+    "DEFAULT": "RiderDefault",
     "FIDGET": "RiderFidget",
+    "FORTIFY": "RiderFortify",
+    "RUN": "RiderRun",
     "VICTORY": "RiderVictory"
   },
   "flics": {
-    "RiderAttackA": {"size": [78, 82], "directions": 8, "frames": 15, "frameMs": 83, "offset": [78, 55], "canvas": [240, 240]},
-    "RiderDeath": {"size": [118, 90], "directions": 8, "frames": 15, "frameMs": 83, "offset": [61, 60], "canvas": [240, 240]},
-    "RiderDefault": {"size": [73, 67], "directions": 8, "frames": 15, "frameMs": 125, "offset": [80, 67], "canvas": [240, 240]},
-    "RiderFidget": {"size": [73, 82], "directions": 8, "frames": 15, "frameMs": 83, "offset": [80, 52], "canvas": [240, 240]},
-    "RiderFortify": {"size": [71, 73], "directions": 8, "frames": 10, "frameMs": 66, "offset": [81, 61], "canvas": [240, 240]},
-    "RiderRun": {"size": [76, 75], "directions": 8, "frames": 10, "frameMs": 66, "offset": [80, 63], "canvas": [240, 240]},
-    "RiderVictory": {"size": [73, 84], "directions": 8, "frames": 15, "frameMs": 83, "offset": [80, 50], "canvas": [240, 240]}
+    "RiderAttackA": {"size": [86, 91], "directions": 8, "frames": 15, "frameMs": 83, "offset": [78, 55], "canvas": [240, 240]},
+    "RiderDeath": {"size": [118, 94], "directions": 8, "frames": 15, "frameMs": 83, "offset": [61, 56], "canvas": [240, 240]},
+    "RiderDefault": {"size": [84, 90], "directions": 8, "frames": 15, "frameMs": 125, "offset": [80, 56], "canvas": [240, 240]},
+    "RiderFidget": {"size": [84, 94], "directions": 8, "frames": 15, "frameMs": 83, "offset": [80, 52], "canvas": [240, 240]},
+    "RiderFortify": {"size": [83, 90], "directions": 8, "frames": 10, "frameMs": 66, "offset": [81, 56], "canvas": [240, 240]},
+    "RiderRun": {"size": [84, 90], "directions": 8, "frames": 10, "frameMs": 66, "offset": [80, 56], "canvas": [240, 240]},
+    "RiderVictory": {"size": [84, 96], "directions": 8, "frames": 15, "frameMs": 83, "offset": [80, 50], "canvas": [240, 240]}
   }
 }

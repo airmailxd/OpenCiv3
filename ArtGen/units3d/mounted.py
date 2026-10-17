@@ -316,10 +316,45 @@ def _coat_material(h):
     dark = N.new('ShaderNodeHueSaturation')
     L.new(coat, dark.inputs['Color'])
     L.new(maprange(sep.outputs['Z'], 0.2, 1.15, 0.8, 1.05), dark.inputs['Value'])
-    L.new(dark.outputs['Color'], p.inputs['Base Color'])
     aov = N.new('ShaderNodeOutputAOV')
     aov.aov_name = 'tint'
     aov.inputs['Value'].default_value = 0.0
+    cs = h.get('coat_spots')
+    if cs:
+        # civ-colored spots painted on the coat (Civ3's Rider's specks, the Mounted Warrior's war paint):
+        # a Voronoi of round spots, kept to boxes of the body (y0, y1, z0, z1), written to the tint AOV
+        def math_(op, a, b):
+            n = N.new('ShaderNodeMath')
+            n.operation = op
+            for i, v in enumerate((a, b)):
+                if isinstance(v, (int, float)):
+                    n.inputs[i].default_value = v
+                else:
+                    L.new(v, n.inputs[i])
+            return n.outputs[0]
+        stc = N.new('ShaderNodeTexCoord')
+        stc.name = 'spot_tc'   # horse_asset points it at the unit's root: metres, turning with the unit
+        sepo = N.new('ShaderNodeSeparateXYZ')
+        L.new(stc.outputs['Object'], sepo.inputs['Vector'])
+        vor = N.new('ShaderNodeTexVoronoi')
+        vor.inputs['Scale'].default_value = cs.get('scale', 14.0)
+        vor.inputs['Randomness'].default_value = 0.8
+        L.new(stc.outputs['Object'], vor.inputs['Vector'])
+        size = cs.get('size', 0.2)
+        spot = maprange(vor.outputs['Distance'], size - 0.03, size, 1.0, 0.0)
+        region = None
+        for y0, y1, z0, z1 in cs['boxes']:
+            box = math_('MULTIPLY', maprange(sepo.outputs['Y'], y0, y0 + 0.04, 0.0, 1.0),
+                        maprange(sepo.outputs['Y'], y1 - 0.04, y1, 1.0, 0.0))
+            box = math_('MULTIPLY', box, maprange(sepo.outputs['Z'], z0, z0 + 0.03, 0.0, 1.0))
+            box = math_('MULTIPLY', box, maprange(sepo.outputs['Z'], z1 - 0.03, z1, 1.0, 0.0))
+            region = box if region is None else math_('MAXIMUM', region, box)
+        mask = math_('MULTIPLY', spot, region)
+        L.new(mask, aov.inputs['Value'])
+        light = (0.82 ** 2.2,) * 3 + (1.0,)   # tinted parts render light gray, as bscene.material's
+        L.new(mix(dark.outputs['Color'], light, mask), p.inputs['Base Color'])
+    else:
+        L.new(dark.outputs['Color'], p.inputs['Base Color'])
     return m
 
 
@@ -418,6 +453,8 @@ def horse_asset(root, colors, neck_raise=-38.0):
     holder.location = (xc * s * 0.95, yc * s * 0.95, -zmin * s * LEGGY)
     _raise_head(objs, neck_raise, by_name)
     coat = _coat_material(colors)
+    if 'spot_tc' in coat.node_tree.nodes:
+        coat.node_tree.nodes['spot_tc'].object = root
     hair = _hair_material(colors)
     eye = bpy.data.materials.new('horse_eye')
     eye.use_nodes = True
@@ -957,8 +994,9 @@ def asset_tack(root, body, colors, h=None):
         rnd_ = __import__('random').Random(7)
         back_edge = ys - h.get('cloth_back', 0.3) - 0.03 if blanket in ('saddle_cloth', 'pelt') else 9.0
         hem_z = (hem - 0.05) if blanket in ('saddle_cloth', 'pelt') else 9.0
-        hind = [v for v in vs if v.y < ys - 0.3 and 0.62 < v.z < 1.15 and abs(v.x) > 0.1
-                and (v.y < back_edge or v.z < hem_z)]   # only the haunch and thigh the cloth leaves bare
+        # the outer haunch the cloth leaves bare, above the stifle (the posed hind leg moves away below it)
+        hind = [v for v in vs if v.y < ys - 0.3 and 0.8 < v.z < 1.2 and abs(v.x) > 0.16
+                and (v.y < back_edge or v.z < hem_z)]
         picked = []
         for q in rnd_.sample(hind, len(hind)):   # spread out: no two spots closer than 0.11
             if all((q - o).length > 0.08 for o in picked):
@@ -966,9 +1004,9 @@ def asset_tack(root, body, colors, h=None):
             if len(picked) >= 40:
                 break
         for q in picked:
-            nrm = Vector((q.x, 0, (q.z - 1.0) * 0.5)).normalized()
-            p.add(props.ellipsoid(0.045, 0.045, 0.01, seg=10), 'tint',
-                  Matrix.Translation(q + nrm * 0.03) @ nrm.to_track_quat('Z', 'Y').to_matrix().to_4x4(), smooth=True, tint=True)
+            nrm = Vector((q.x, 0, (q.z - 1.1) * 0.3)).normalized()
+            p.add(props.ellipsoid(0.045, 0.045, 0.006, seg=10), 'tint',
+                  Matrix.Translation(q + nrm * 0.012) @ nrm.to_track_quat('Z', 'Y').to_matrix().to_4x4(), smooth=True, tint=True)
     if h.get('back_lances'):
         # two lances crossed behind the rider's back, their butts at the cantle (Civ3's Keshik)
         for sx in (-1, 1):
@@ -1060,7 +1098,7 @@ def mount(unit, h):
             c[k] = h[k]
     over = HORSE_COAT_OVERRIDES.get(unit, {})
     c.update({k: v for k, v in over.items() if k in c})
-    h = dict(h, **{k: v for k, v in over.items() if k in ('dapple', 'coat2', 'blanket_tint')})
+    h = dict(h, **{k: v for k, v in over.items() if k in ('dapple', 'coat2', 'blanket_tint', 'coat_spots')})
     h.update(TACK_OVERRIDES.get(unit, {}))
     root = vkit.root(unit)
     body = horse_asset(root, dict(h, **c))
@@ -1076,7 +1114,8 @@ HORSE_COAT_OVERRIDES = {
     'Horseman': {'coat': '#8a5430', 'mane': '#140e0a', 'points': '#1e1610'},
     'Mounted Warrior': {'coat': '#b08a58', 'coat2': '#ddd5c4', 'mane': '#3a2e22', 'points': '#c8bca8'},
     'Ancient Cavalry': {'coat': '#a88a5e', 'mane': '#2a2018', 'points': '#2e2418'},
-    'Rider': {'coat': '#c8c8c4', 'dapple': '#9a9a98', 'mane': '#e0ded8', 'points': '#8a8a88'},
+    'Rider': {'coat': '#c8c8c4', 'dapple': '#9a9a98', 'mane': '#e0ded8', 'points': '#8a8a88',
+              'coat_spots': {'scale': 6.0, 'size': 0.34, 'boxes': [(-1.15, -0.2, 0.55, 1.35)]}},   # civ specks on the haunch
     'Knight': {'coat': '#c4c6ca', 'mane': '#3a3836', 'points': '#8a8c90'},   # pale: the silver barding reads   # the lower legs grey as mail
     'Keshik': {'coat': '#7a4826', 'mane': '#1a120c', 'points': '#20160e'},
     'Sipahi': {'coat': '#6a4428', 'mane': '#2a1c12', 'points': '#2a1c12'},
@@ -1107,7 +1146,7 @@ TACK_OVERRIDES = {
     'Rider': {'breast_strap': 'trim', 'crupper': 'trim', 'tassels': 'trim', 'plume': True, 'plume_tint': False,
               'bedroll': True, 'bow_case': True, 'cloth_emblem': 'blanket2', 'emblem_ys': [0.0, -0.5],
               'cloth_back': 0.85, 'cloth_drop': 0.36, 'chanfron': 'tint', 'reins_bold': True, 'emblem_ys': [-0.35],
-              'rump_spots': True, 'saddle': '#c4a462'},
+              'saddle': '#c4a462', 'cloth_drop': 0.26},
     # the original's heavy blue reins and breast straps hang in big loops with tassels
     'Ansar Warrior': {'throat_tassels': 'tassel', 'reins_bold': True, 'rein_drop': 0.38, 'breast_strap': 'tint', 'strap_w': 0.05,
                       'crupper': 'tint', 'strap_sag': 0.22, 'tassels': 'tint', 'tassel_key': 'tassel'},
