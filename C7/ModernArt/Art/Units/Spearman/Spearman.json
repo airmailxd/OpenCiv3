@@ -10,13 +10,13 @@
     "VICTORY": "SpearmanVictory"
   },
   "flics": {
-    "SpearmanAttackA": {"size": [129, 102], "directions": 8, "frames": 15, "frameMs": 66, "offset": [54, 48], "canvas": [240, 240]},
+    "SpearmanAttackA": {"size": [137, 122], "directions": 8, "frames": 15, "frameMs": 66, "offset": [54, 36], "canvas": [240, 240]},
     "SpearmanAttackB": {"size": [119, 100], "directions": 8, "frames": 15, "frameMs": 66, "offset": [58, 48], "canvas": [240, 240]},
-    "SpearmanDeath": {"size": [153, 111], "directions": 8, "frames": 15, "frameMs": 66, "offset": [43, 48], "canvas": [240, 240]},
+    "SpearmanDeath": {"size": [176, 133], "directions": 8, "frames": 15, "frameMs": 66, "offset": [33, 34], "canvas": [240, 240]},
     "SpearmanDefault": {"size": [75, 98], "directions": 8, "frames": 15, "frameMs": 125, "offset": [92, 48], "canvas": [240, 240]},
     "SpearmanFidget": {"size": [75, 98], "directions": 8, "frames": 15, "frameMs": 100, "offset": [92, 48], "canvas": [240, 240]},
     "SpearmanFortify": {"size": [81, 98], "directions": 8, "frames": 10, "frameMs": 66, "offset": [86, 48], "canvas": [240, 240]},
-    "SpearmanRun": {"size": [77, 98], "directions": 8, "frames": 10, "frameMs": 66, "offset": [90, 48], "canvas": [240, 240]},
+    "SpearmanRun": {"size": [77, 99], "directions": 8, "frames": 10, "frameMs": 66, "offset": [90, 48], "canvas": [240, 240]},
     "SpearmanVictory": {"size": [87, 98], "directions": 8, "frames": 15, "frameMs": 83, "offset": [80, 48], "canvas": [240, 240]}
   }
 }
