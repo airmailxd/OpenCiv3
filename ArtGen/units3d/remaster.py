@@ -82,7 +82,8 @@ REMASTER = {
     'Knight': {'top': 'sleeved', 'cuirass': True, 'metal': ['helmet', 'cuirass'],
                'colors': {'cuirass': '#9a9ca2', 'mail': '#7a7c80', 'shield_pale': '#f2f0ea', 'shield_rim': '#c4a462'},
                # the original: a civ heater shield with a white charge, a horned great helm, mail sleeves
-               'offhand': 'shield_heater', 'offhand_mesh': ('shield_heater', {'w': 0.5, 'h': 0.66}),
+               'offhand': 'shield_heater', 'offhand_mesh': ('shield_heater', {'w': 0.56, 'h': 0.86}),
+               'weapon': 'lance', 'props': {'lance': ('lance', {'length': 2.1})},   # couched forward, charging (the original); short so the unit keeps its size
                'headgear_params': {'crest': 'horns'}, 'mail_parts': ['arms']},
     # Civ3's Cossack: a tan coat; only the papakha and belt are civ-colored
     'Cossack': {'tint': ['hat', 'belt'], 'headgear_scale': [0.95, 0.95, 0.9]},

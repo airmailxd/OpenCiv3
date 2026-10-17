@@ -790,18 +790,19 @@ def asset_tack(root, body, colors, h=None):
         if rings:
             hem_line(rings, trim)
     if h.get('full_caparison'):
-        knee = 0.66
+        knee = 0.95   # to mid-thigh: the silver barding and the long legs show below
         y0, y1 = yh - 0.28, yf + 0.22   # from over the tail round the chest
-        per = h.get('stripe_period', 0.34)
+        per = h.get('stripe_period', 0.62)
 
         def cap_keys(f, hem=knee):
             c_ = f.calc_center_median()
-            if c_.z < hem + 0.16 and c_.z > hem + 0.08:          # the gold band above the hem
+            if c_.z < hem + 0.15 and c_.z > hem + 0.1:           # the gold band above the hem
                 return ('trim', False)
-            if abs(c_.x) > 0.2 and ((c_.y - y0) % per) < 0.05:    # the vertical gold stripes on the flanks
+            if abs(c_.x) > 0.2 and ((c_.y - y0) % per) < 0.035:   # the vertical gold stripes on the flanks, few and thin
                 return ('trim', False)
             return None
-        cap, crings = drape(vs, y0, y1, knee, gap=0.07, folds=0.02, flare=0.1, zmin=0.7)
+        wavy = lambda y: knee + 0.07 * math.sin((y - y0) * 11.0)   # a scalloped, dagged hem
+        cap, crings = drape(vs, y0, y1, wavy, gap=0.07, folds=0.035, flare=0.12, zmin=0.7)
         p.add(cap, 'tint', smooth=True, tint=True, keys=cap_keys)
         hem_line(crings, 'trim')
         # the chest piece: civ cloth over the breast, its gold band
@@ -987,7 +988,7 @@ HORSE_COAT_OVERRIDES = {
     'Mounted Warrior': {'coat': '#b08a58', 'coat2': '#ddd5c4', 'mane': '#3a2e22', 'points': '#c8bca8'},
     'Ancient Cavalry': {'coat': '#a88a5e', 'mane': '#2a2018', 'points': '#2e2418'},
     'Rider': {'coat': '#c8c8c4', 'dapple': '#9a9a98', 'mane': '#e0ded8', 'points': '#8a8a88'},
-    'Knight': {'coat': '#9a9a98', 'mane': '#3a3836', 'points': '#8a8c90'},   # the lower legs grey as mail
+    'Knight': {'coat': '#c4c6ca', 'mane': '#3a3836', 'points': '#8a8c90'},   # pale: the silver barding reads   # the lower legs grey as mail
     'Keshik': {'coat': '#7a4826', 'mane': '#1a120c', 'points': '#20160e'},
     'Sipahi': {'coat': '#6a4428', 'mane': '#2a1c12', 'points': '#2a1c12'},
     'Conquistador': {'coat': '#a0a0a2', 'dapple': '#5c5c60', 'mane': '#2a2826', 'points': '#3a3836'},
@@ -1001,7 +1002,7 @@ HORSE_COAT_OVERRIDES = {
 TACK_OVERRIDES = {
     # Civ3's Knight: fully barded, a civ caparison banded in gold from chest to rump, steel crinet, chanfron and peytral
     'Knight': {'full_caparison': True, 'neck_cover': 'lames', 'chanfron': 'steel', 'peytral': True, 'caparison_over': False,
-               'blanket': 'barding'},
+               'blanket': 'barding', 'barding_steel': '#c8ccd2'},
     'Horseman': {'nose_wrap': True, 'breast_strap': 'leather_dark'},
     'Rider': {'breast_strap': 'trim', 'crupper': 'trim', 'tassels': 'trim', 'plume': True, 'plume_tint': False,
               'bedroll': True, 'bow_case': True, 'cloth_emblem': 'blanket2', 'emblem_ys': [0.0, -0.5],
