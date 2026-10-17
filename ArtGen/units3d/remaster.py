@@ -88,7 +88,11 @@ REMASTER = {
     # Civ3's Cossack: a tan coat; only the papakha and belt are civ-colored
     'Cossack': {'tint': ['hat', 'belt'], 'headgear_scale': [0.95, 0.95, 0.9]},
     'Keshik': {'tint': ['top', 'hat']},
-    'Conquistador': {'tint': ['top'], 'metal': ['cuirass'], 'colors': {'cuirass': '#a8aab0'}},
+    # Civ3's Conquistador: a black morion and breastplate, a civ rodela with a gold boss and rim
+    'Conquistador': {'tint': ['top'], 'metal': ['cuirass', 'helmet'],
+                     'colors': {'cuirass': '#4a4c52', 'helmet': '#3a3c40', 'shield_rim': '#c4a462', 'bronze': '#c4a462'},
+                     'offhand': 'shield_round', 'offhand_mesh': ('shield_round', {'r': 0.3, 'face_tint': True, 'boss_key': 'gold'}),
+                     'props': {'lance': ('lance', {'length': 2.2})}},
     'Horseman': {
         # Civ3's Horseman: civ-colored tunic, covered arms and legs, boots, an iron cap
         'top': 'tunic',      # short sleeves, so the grey mail sleeves show (as the original)

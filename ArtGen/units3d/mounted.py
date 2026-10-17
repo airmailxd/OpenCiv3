@@ -773,10 +773,18 @@ def asset_tack(root, body, colors, h=None):
         # a long caparison to the knees over the whole body; for barding, mail beneath
         knee = 0.62
         if blanket == 'barding':
-            mail, mrings = drape(vs, yh + 0.05 * (yf - yh), yf - 0.12 * (yf - yh), knee - 0.06, gap=0.02, folds=0.005)
-            p.add(mail, 'barding_mail', smooth=True, keys=_scales())
+            mail_hem = (sec[2] - 0.02) if h.get('full_caparison') else knee - 0.06   # under a caparison: plate to the belly, legs bare
+            mail, mrings = drape(vs, yh + 0.05 * (yf - yh), yf - 0.12 * (yf - yh), mail_hem, gap=0.02, folds=0.005)
+            p.add(mail, 'barding_mail', smooth=True, keys=None if h.get('full_caparison') else _scales())
+            if h.get('full_caparison'):   # plate barding: a few riveted lame lines, not a checker
+                for zl in (sec[2] + 0.15, sec[2] + 0.35):
+                    for sx in (-1, 1):
+                        pts = [q for q in (Vector((sx * (s_[0] + 0.03), y_, zl)) for y_, s_ in
+                               ((yy, _sections(vs, [yy])[0]) for yy in [ys - 0.3 + 0.04 * i for i in range(11)]) if s_)]
+                        if len(pts) > 2:
+                            p.add(props.tube(pts, 0.012, seg=5), 'barding_dark', smooth=True)
             if not h.get('caparison_over'):
-                hem_line(mrings, 'tint' if h.get('trim_tint') else trim)
+                hem_line(mrings, 'tint' if h.get('trim_tint') else ('trim' if h.get('full_caparison') else trim))
                 rings = None
             span = h.get('over_span', [-0.62, 0.36])
             y0, y1 = ys + span[0] * (yf - yh) * 0.6, ys + span[1] * (yf - yh) * 0.6
@@ -790,7 +798,7 @@ def asset_tack(root, body, colors, h=None):
         if rings:
             hem_line(rings, trim)
     if h.get('full_caparison'):
-        knee = 0.95   # to mid-thigh: the silver barding and the long legs show below
+        knee = sec[2] + 0.06   # just below the belly line: the long legs show beneath
         y0, y1 = yh - 0.28, yf + 0.22   # from over the tail round the chest
         per = h.get('stripe_period', 0.62)
 
@@ -801,14 +809,12 @@ def asset_tack(root, body, colors, h=None):
             if abs(c_.x) > 0.2 and ((c_.y - y0) % per) < 0.035:   # the vertical gold stripes on the flanks, few and thin
                 return ('trim', False)
             return None
-        wavy = lambda y: knee + 0.07 * math.sin((y - y0) * 11.0)   # a scalloped, dagged hem
-        cap, crings = drape(vs, y0, y1, wavy, gap=0.07, folds=0.035, flare=0.12, zmin=0.7)
-        p.add(cap, 'tint', smooth=True, tint=True, keys=cap_keys)
-        hem_line(crings, 'trim')
-        # the chest piece: civ cloth over the breast, its gold band
-        chest, chrings = drape(vs, ys + 0.1, yf + 0.3, knee + 0.04, gap=0.07, folds=0.015, zmin=0.6)
-        p.add(chest, 'tint', smooth=True, tint=True, keys=lambda f: cap_keys(f, knee + 0.04))
-        hem_line(chrings, 'trim')
+        wavy = lambda y: knee + 0.06 * math.sin((y - y0) * 11.0)   # a scalloped, dagged hem
+        # two panels, rump and chest, the silver barding showing between them across the mid-flank
+        for a_, b_ in ((y0, ys - 0.32), (ys + 0.12, y1)):
+            cap, crings = drape(vs, a_, b_, wavy, gap=0.05, folds=0.03, flare=0.03, zmin=0.7)
+            p.add(cap, 'tint', smooth=True, tint=True, keys=cap_keys)
+            hem_line(crings, 'trim')
     if h.get('peytral'):
         # a steel breastplate showing above the chest cloth, riveted
         arc = _girth_arc(vs, sec[3] + 0.18, True, sec, ys)
@@ -946,7 +952,7 @@ RIDER_SCALE = 1.26
 RIDER_WEAPON_UP = {
     'cav_spear': (0.0, 0.62, 1.0),   # couched forward and up at a diagonal, as Civ3's Horseman
     'javelin': (0.0, 0.5, 1.0),      # raised, ready to throw
-    'lance': (0.0, 1.0, 0.45),       # couched low and forward
+    'lance': (0.0, 1.0, 0.18),       # couched level and forward
     'sabre': (0.15, 0.35, 1.0),      # drawn and held up
     'long_sword': (0.15, 0.3, 1.0),
     'rifle': (0.0, 0.25, 1.0),       # held upright at the hip, as Civ3's Cossack and Cavalry
@@ -991,7 +997,7 @@ HORSE_COAT_OVERRIDES = {
     'Knight': {'coat': '#c4c6ca', 'mane': '#3a3836', 'points': '#8a8c90'},   # pale: the silver barding reads   # the lower legs grey as mail
     'Keshik': {'coat': '#7a4826', 'mane': '#1a120c', 'points': '#20160e'},
     'Sipahi': {'coat': '#6a4428', 'mane': '#2a1c12', 'points': '#2a1c12'},
-    'Conquistador': {'coat': '#a0a0a2', 'dapple': '#5c5c60', 'mane': '#2a2826', 'points': '#3a3836'},
+    'Conquistador': {'coat': '#a0a0a2', 'dapple': '#5c5c60', 'mane': '#2a2826', 'points': '#3a3836', 'blanket_tint': False},
     'Cossack': {'coat': '#4a4a4e', 'mane': '#141416', 'points': '#1a1a1c'},
     'Hussar': {'coat': '#4e3220', 'mane': '#120c08', 'points': '#160e08'},
     'Cavalry': {'coat': '#b8843c', 'mane': '#cdb488', 'points': '#8a6a3a', 'blanket_tint': True},
@@ -1000,6 +1006,9 @@ HORSE_COAT_OVERRIDES = {
 
 # The originals' tack the catalog doesn't describe (see DETAIL_AUDIT_PC.md)
 TACK_OVERRIDES = {
+    # Civ3's Conquistador: a padded cream trapper with a gold fringe, gold leather breast strap and crupper
+    'Conquistador': {'blanket_color': '#d8c8a0', 'trim': '#c4a462', 'breast_strap': 'trim', 'crupper': 'trim', 'tassels': 'trim',
+                     'cloth_back': 0.6, 'cloth_drop': 0.34},
     # Civ3's Knight: fully barded, a civ caparison banded in gold from chest to rump, steel crinet, chanfron and peytral
     'Knight': {'full_caparison': True, 'neck_cover': 'lames', 'chanfron': 'steel', 'peytral': True, 'caparison_over': False,
                'blanket': 'barding', 'barding_steel': '#c8ccd2'},
@@ -1024,4 +1033,11 @@ def build(unit, colors=None, entry=None, rider=False, **params):
         root = BUILDERS[unit](colors or {}, **params)
     if rider and entry and entry.get('rider'):
         seat_rider(root, unit, entry)
+    if entry and entry.get('escort') == 'dog':
+        # the war dog trotting beside the horse (Civ3's Conquistador): a black-and-tan mastiff, civ collar
+        d = entry.get('dog', {})
+        dog = props.make('wolfhound', {'dog_fur': d.get('fur', '#5a4632')}, scale=d.get('scale', 1.5))   # a big mastiff, dark brown
+        dog.parent = root
+        x, y, z = d.get('place', [0.95, 0.4, 0.0])
+        dog.location = (x, y, z)
     return root
