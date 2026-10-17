@@ -1765,10 +1765,11 @@ def orb(p, scale=1.0):
     _cross(p, 0.12 * s, 1.0 * s)
 
 
-def crook(p, length=0.9, scale=1.0):
-    """The Egyptian heqa crook: a gold-and-blue banded staff curling over at the top."""
+def crook(p, length=0.9, scale=1.0, grip=0.2):
+    """The Egyptian heqa crook: a gold-and-blue banded staff curling over at the top.
+    grip: how far the shaft runs below the fist (a shepherd's crook planted on the ground)."""
     L = length * scale
-    path = [(0, 0, -0.2 * scale), (0, 0, L - 0.25)] + [
+    path = [(0, 0, -grip * scale), (0, 0, L - 0.25)] + [
         (0, 0.06 * (1 - math.cos(a)), L - 0.25 + 0.06 * math.sin(a)) for a in [math.pi * i / 8 for i in range(1, 9)]]
     bm = tube(path, 0.014 * scale, seg=8)
 
