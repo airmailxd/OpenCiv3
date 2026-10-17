@@ -10,11 +10,11 @@
   },
   "flics": {
     "ExplorerAttackA": {"size": [89, 70], "directions": 8, "frames": 15, "frameMs": 66, "offset": [73, 68], "canvas": [240, 240]},
-    "ExplorerDeath": {"size": [106, 77], "directions": 8, "frames": 15, "frameMs": 66, "offset": [67, 69], "canvas": [240, 240]},
+    "ExplorerDeath": {"size": [112, 87], "directions": 8, "frames": 15, "frameMs": 66, "offset": [64, 63], "canvas": [240, 240]},
     "ExplorerDefault": {"size": [54, 69], "directions": 8, "frames": 15, "frameMs": 125, "offset": [98, 69], "canvas": [240, 240]},
     "ExplorerFidget": {"size": [55, 71], "directions": 8, "frames": 15, "frameMs": 83, "offset": [97, 67], "canvas": [240, 240]},
     "ExplorerFortify": {"size": [77, 70], "directions": 8, "frames": 10, "frameMs": 66, "offset": [77, 68], "canvas": [240, 240]},
-    "ExplorerRun": {"size": [58, 69], "directions": 8, "frames": 10, "frameMs": 66, "offset": [94, 69], "canvas": [240, 240]},
+    "ExplorerRun": {"size": [60, 71], "directions": 8, "frames": 10, "frameMs": 66, "offset": [94, 68], "canvas": [240, 240]},
     "ExplorerVictory": {"size": [65, 69], "directions": 8, "frames": 15, "frameMs": 66, "offset": [87, 69], "canvas": [240, 240]}
   }
 }

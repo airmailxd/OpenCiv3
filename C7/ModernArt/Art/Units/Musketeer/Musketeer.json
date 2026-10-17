@@ -9,8 +9,8 @@
     "VICTORY": "MusketeerVictory"
   },
   "flics": {
-    "MusketeerAttackA": {"size": [148, 112], "directions": 8, "frames": 15, "frameMs": 83, "offset": [46, 33], "canvas": [240, 240]},
-    "MusketeerDeath": {"size": [89, 97], "directions": 8, "frames": 15, "frameMs": 83, "offset": [76, 48], "canvas": [240, 240]},
+    "MusketeerAttackA": {"size": [165, 134], "directions": 8, "frames": 15, "frameMs": 83, "offset": [44, 33], "canvas": [240, 240]},
+    "MusketeerDeath": {"size": [124, 108], "directions": 8, "frames": 15, "frameMs": 83, "offset": [59, 46], "canvas": [240, 240]},
     "MusketeerDefault": {"size": [72, 94], "directions": 8, "frames": 15, "frameMs": 125, "offset": [93, 51], "canvas": [240, 240]},
     "MusketeerFidget": {"size": [72, 94], "directions": 8, "frames": 15, "frameMs": 83, "offset": [93, 51], "canvas": [240, 240]},
     "MusketeerFortify": {"size": [75, 94], "directions": 8, "frames": 10, "frameMs": 66, "offset": [90, 51], "canvas": [240, 240]},
