@@ -72,7 +72,7 @@ REMASTER = {
         # MISSING: lapel_trim (tinted robe front edges; the panel edges stand in)
         'cape': False, 'cuirass': False, 'wraps': None, 'sandals': True, 'bracers': False, 'gear': [],
         # the crossbar-hung vexillum, tinted field; MISSING: flag_device (three vertical bars, red/green/cyan)
-        'weapon': 'standard', 'props': {'standard': ('war_standard', {'era': 'ancient', 'length': 2.30, 'grip': 0.45, 'device': 'bars', 'flag_scale': 1.6})}, 'unit_scale': 0.88,   # smaller, the vexillum above his head   # lower again: the flag top touched the cell top (dirs 6, 7), then 1 px in dir 6
+        'weapon': 'standard', 'props': {'standard': ('war_standard', {'era': 'ancient', 'length': 2.30, 'grip': 0.2, 'device': 'bars', 'flag_scale': 1.4})}, 'unit_scale': 0.88,   # smaller, the vexillum above his head   # lower again: the flag top touched the cell top (dirs 6, 7), then 1 px in dir 6
         'stance_name': 'stand_staff', 'two_hands': True,
         'tint': ['banner'],
         'grime': 0.55, 'upper_bulk': 1.1,
@@ -95,7 +95,7 @@ REMASTER = {
         'bands': [('wrist', 'gold')],           # gold cuffs
         'cape': False, 'sandals': False, 'bracers': False, 'gear': [],
         # the flag flying from the pole top, tinted field; MISSING: flag_device (blob emblems)
-        'weapon': 'standard', 'props': {'standard': ('war_standard', {'era': 'industrial', 'length': 2.4, 'grip': 0.7, 'device': 'blobs', 'flag_scale': 1.45})}, 'unit_scale': 0.88,   # the flag flies above his head   # 0.05 lower again: it touched the cell top in dir 6
+        'weapon': 'standard', 'props': {'standard': ('war_standard', {'era': 'industrial', 'length': 2.4, 'grip': 0.1, 'device': 'blobs', 'flag_scale': 1.3})}, 'unit_scale': 0.88,   # the flag flies above his head   # 0.05 lower again: it touched the cell top in dir 6
         'stance_name': 'stand_staff', 'two_hands': True,
         'tint': ['top', 'banner'],
         'grime': 0.45, 'upper_bulk': 1.15,
@@ -919,9 +919,9 @@ REMASTER = {
         'cape': False, 'cuirass': False, 'wraps': None, 'sandals': True, 'bracers': False, 'gear': [],
         # MISSING: staff_ball (a ball head on the staff)
         'weapon': 'staff', 'props': {'staff': ('staff', {'length': 1.3})},
-        'stance_name': 'port_arms', 'gun_dir': (0.95, -0.15, 0.05), 'fore_end': 0.35,   # the rod level across the chest
-        'pose_extra': [('upperarm_r', (-0.3, -0.25, -1)), ('lowerarm_r', (0.3, -1.0, 0.25)),
-                       ('upperarm_l', (0.3, -0.25, -1)), ('lowerarm_l', (-0.3, -1.0, 0.25))],
+        'stance_name': 'port_arms', 'gun_dir': (0.55, 0.83, 0.02), 'fore_end': 0.4,   # the rod level at the chest, pointing forward across the body (level in the side views, as the original)
+        'pose_extra': [('upperarm_r', (-0.3, -0.25, -1)), ('lowerarm_r', (0.3, -1.0, 1.05)),
+                       ('upperarm_l', (0.3, -0.25, -1)), ('lowerarm_l', (-0.3, -1.0, 1.05))],   # forearms up: the hands at the chest
         'tint': ['bottom'],   # the long skirt in civ color, front and back
         'grime': 0.5, 'upper_bulk': 1.3,
     },
