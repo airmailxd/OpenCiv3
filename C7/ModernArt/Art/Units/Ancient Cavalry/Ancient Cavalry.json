@@ -1,20 +1,20 @@
 {
   "actions": {
-    "DEFAULT": "AncientCavalry_Default",
-    "RUN": "AncientCavalry_run",
     "ATTACK1": "AncientCavalry_Attack",
+    "DEFAULT": "AncientCavalry_Default",
+    "FIDGET": "AncientCavalry_Fidget",
     "DEATH": "AncientCavalry_death",
     "FORTIFY": "AncientCavalry_fortify",
-    "FIDGET": "AncientCavalry_Fidget",
+    "RUN": "AncientCavalry_run",
     "VICTORY": "AncientCavalry_victory"
   },
   "flics": {
-    "AncientCavalry_Attack": {"size": [80, 70], "directions": 8, "frames": 15, "frameMs": 66, "offset": [75, 65], "canvas": [240, 240]},
+    "AncientCavalry_Attack": {"size": [87, 89], "directions": 8, "frames": 15, "frameMs": 66, "offset": [75, 56], "canvas": [240, 240]},
+    "AncientCavalry_Default": {"size": [84, 89], "directions": 8, "frames": 15, "frameMs": 125, "offset": [78, 56], "canvas": [240, 240]},
+    "AncientCavalry_Fidget": {"size": [86, 89], "directions": 8, "frames": 15, "frameMs": 100, "offset": [76, 56], "canvas": [240, 240]},
     "AncientCavalry_death": {"size": [182, 114], "directions": 8, "frames": 16, "frameMs": 66, "offset": [29, 52], "canvas": [240, 240]},
-    "AncientCavalry_Default": {"size": [73, 67], "directions": 8, "frames": 15, "frameMs": 125, "offset": [78, 64], "canvas": [240, 240]},
-    "AncientCavalry_Fidget": {"size": [75, 70], "directions": 8, "frames": 15, "frameMs": 100, "offset": [76, 61], "canvas": [240, 240]},
-    "AncientCavalry_fortify": {"size": [79, 68], "directions": 8, "frames": 10, "frameMs": 83, "offset": [74, 64], "canvas": [240, 240]},
-    "AncientCavalry_run": {"size": [93, 78], "directions": 8, "frames": 11, "frameMs": 66, "offset": [67, 57], "canvas": [240, 240]},
-    "AncientCavalry_victory": {"size": [82, 88], "directions": 8, "frames": 15, "frameMs": 100, "offset": [70, 45], "canvas": [240, 240]}
+    "AncientCavalry_fortify": {"size": [88, 89], "directions": 8, "frames": 10, "frameMs": 83, "offset": [74, 56], "canvas": [240, 240]},
+    "AncientCavalry_run": {"size": [95, 89], "directions": 8, "frames": 11, "frameMs": 66, "offset": [67, 56], "canvas": [240, 240]},
+    "AncientCavalry_victory": {"size": [92, 100], "directions": 8, "frames": 15, "frameMs": 100, "offset": [70, 45], "canvas": [240, 240]}
   }
 }
