@@ -13,7 +13,7 @@
     "RiflemanDeath": {"size": [128, 107], "directions": 8, "frames": 15, "frameMs": 83, "offset": [58, 48], "canvas": [240, 240]},
     "RiflemanDefault": {"size": [77, 97], "directions": 8, "frames": 15, "frameMs": 125, "offset": [90, 48], "canvas": [240, 240]},
     "RiflemanFidget": {"size": [77, 97], "directions": 8, "frames": 15, "frameMs": 66, "offset": [90, 48], "canvas": [240, 240]},
-    "RiflemanFortify": {"size": [80, 97], "directions": 8, "frames": 10, "frameMs": 66, "offset": [87, 48], "canvas": [240, 240]},
+    "RiflemanFortify": {"size": [140, 112], "directions": 8, "frames": 10, "frameMs": 66, "offset": [54, 48], "canvas": [240, 240]},
     "RiflemanRun": {"size": [77, 96], "directions": 8, "frames": 10, "frameMs": 66, "offset": [89, 49], "canvas": [240, 240]},
     "RiflemanVictory": {"size": [78, 97], "directions": 8, "frames": 15, "frameMs": 83, "offset": [89, 48], "canvas": [240, 240]}
   }
