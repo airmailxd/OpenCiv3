@@ -2,6 +2,25 @@
 
 This is written at the release that first ships the remastered units (October 2026). STATUS.md has the per-group state. STATUS_PC.md has the Windows PC's side.
 
+## Overnight, 2026-10-16/17 (v0.8.3 to v0.8.6)
+
+- **Released:**
+  - v0.8.3: the animated Worker, all 15 mounted units and chariots, Civ3 civ colors (ntp ramps in UnitTint.gdshader), the "Air" title.
+  - v0.8.4: 20 animated foot units (attack, death and run).
+  - v0.8.5: gun units firing, the Crusader, death and run for non-combat units, the last 4 royals.
+  - v0.8.6: animated FORTIFY for the 30 classed template units, and the Worker Modern Times and Enslaved Worker animations.
+- **How:**
+  - anim.py: Worker actions from notes/anim/Worker.md, plus templates by weapon class.
+  - render_anim.py, `build.py --anim`, and compose with one column per frame (at most 8 columns).
+  - StandaloneUnitArtTest allows 1 to Frames columns; DEFAULT stays a still.
+- **Open:**
+  - Not animated yet: mounted units, chariots, ships, vehicles, aircraft, royals, leaders, armies, TOW.
+  - Missing actions: VICTORY and ATTACK2.
+  - Per-unit motion fidelity: the templates are generic. Notes exist for 6 units (notes/anim/).
+  - The Cossack rifle carry needs seated-rider IK.
+  - The compose corner alpha speck on full-canvas flics (invisible).
+  - The flic pixel-exact civ tint for Civ3 mode (index channel) and borders on palette entries 64/65.
+
 ## What shipped in v0.8.0 (October 16, 2026)
 
 **Only the Mac's 28 units are installed in the game**:
