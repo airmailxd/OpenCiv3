@@ -10,11 +10,11 @@
   },
   "flics": {
     "inquisitor_attack": {"size": [114, 77], "directions": 8, "frames": 15, "frameMs": 66, "offset": [58, 64], "canvas": [240, 240]},
-    "inquisitor_death": {"size": [126, 87], "directions": 8, "frames": 15, "frameMs": 83, "offset": [56, 64], "canvas": [240, 240]},
+    "inquisitor_death": {"size": [129, 101], "directions": 8, "frames": 15, "frameMs": 83, "offset": [56, 53], "canvas": [240, 240]},
     "inquisitor_default": {"size": [70, 75], "directions": 8, "frames": 15, "frameMs": 125, "offset": [86, 64], "canvas": [240, 240]},
     "inquisitor_fidget": {"size": [68, 75], "directions": 8, "frames": 15, "frameMs": 83, "offset": [88, 64], "canvas": [240, 240]},
     "inquisitor_fortify": {"size": [69, 75], "directions": 8, "frames": 10, "frameMs": 83, "offset": [87, 64], "canvas": [240, 240]},
-    "inquisitor_run": {"size": [71, 75], "directions": 8, "frames": 10, "frameMs": 66, "offset": [85, 64], "canvas": [240, 240]},
+    "inquisitor_run": {"size": [71, 77], "directions": 8, "frames": 10, "frameMs": 66, "offset": [85, 63], "canvas": [240, 240]},
     "inquisitor_victory": {"size": [71, 75], "directions": 8, "frames": 15, "frameMs": 83, "offset": [85, 64], "canvas": [240, 240]}
   }
 }

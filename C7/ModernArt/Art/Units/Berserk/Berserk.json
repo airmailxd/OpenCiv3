@@ -12,11 +12,11 @@
   "flics": {
     "x_berserk attack_a": {"size": [92, 82], "directions": 8, "frames": 15, "frameMs": 66, "offset": [68, 61], "canvas": [240, 240]},
     "x_berserk attack_b": {"size": [104, 97], "directions": 8, "frames": 15, "frameMs": 66, "offset": [64, 46], "canvas": [240, 240]},
-    "x_berserk death": {"size": [92, 70], "directions": 8, "frames": 15, "frameMs": 66, "offset": [71, 73], "canvas": [240, 240]},
+    "x_berserk death": {"size": [121, 96], "directions": 8, "frames": 15, "frameMs": 66, "offset": [59, 57], "canvas": [240, 240]},
     "x_berserk default": {"size": [72, 70], "directions": 8, "frames": 15, "frameMs": 125, "offset": [87, 73], "canvas": [240, 240]},
     "x_berserk fidget": {"size": [74, 70], "directions": 8, "frames": 14, "frameMs": 83, "offset": [85, 73], "canvas": [240, 240]},
     "x_berserk fortify": {"size": [73, 70], "directions": 8, "frames": 11, "frameMs": 83, "offset": [86, 73], "canvas": [240, 240]},
-    "x_berserk run": {"size": [84, 83], "directions": 8, "frames": 10, "frameMs": 66, "offset": [75, 60], "canvas": [240, 240]},
+    "x_berserk run": {"size": [85, 83], "directions": 8, "frames": 10, "frameMs": 66, "offset": [75, 60], "canvas": [240, 240]},
     "x_berserk victory": {"size": [83, 70], "directions": 8, "frames": 15, "frameMs": 83, "offset": [76, 73], "canvas": [240, 240]}
   }
 }

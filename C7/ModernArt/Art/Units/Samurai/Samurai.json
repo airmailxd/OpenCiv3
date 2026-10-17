@@ -16,7 +16,7 @@
     "SamuraiDefault": {"size": [44, 58], "directions": 8, "frames": 15, "frameMs": 125, "offset": [101, 77], "canvas": [240, 240]},
     "SamuraiFidget": {"size": [47, 58], "directions": 8, "frames": 15, "frameMs": 100, "offset": [98, 77], "canvas": [240, 240]},
     "SamuraiFortify": {"size": [94, 84], "directions": 8, "frames": 10, "frameMs": 66, "offset": [70, 56], "canvas": [240, 240]},
-    "SamuraiRun": {"size": [45, 58], "directions": 8, "frames": 10, "frameMs": 66, "offset": [100, 77], "canvas": [240, 240]},
+    "SamuraiRun": {"size": [45, 59], "directions": 8, "frames": 10, "frameMs": 66, "offset": [100, 76], "canvas": [240, 240]},
     "SamuraiVictory": {"size": [92, 71], "directions": 8, "frames": 15, "frameMs": 83, "offset": [71, 69], "canvas": [240, 240]}
   }
 }
