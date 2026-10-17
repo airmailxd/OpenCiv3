@@ -8,7 +8,7 @@
   "flics": {
     "ArmyModernAttackA": {"size": [73, 83], "directions": 8, "frames": 15, "frameMs": 83, "offset": [87, 59], "canvas": [240, 240]},
     "ArmyModernDeath": {"size": [73, 83], "directions": 8, "frames": 15, "frameMs": 100, "offset": [87, 59], "canvas": [240, 240]},
-    "ArmyModernDefault": {"size": [63, 83], "directions": 8, "frames": 15, "frameMs": 100, "offset": [97, 59], "canvas": [240, 240]},
+    "ArmyModernDefault": {"size": [63, 82], "directions": 8, "frames": 15, "frameMs": 100, "offset": [97, 60], "canvas": [240, 240]},
     "ArmyModernRun": {"size": [73, 88], "directions": 8, "frames": 10, "frameMs": 66, "offset": [87, 54], "canvas": [240, 240]}
   }
 }

@@ -6,9 +6,9 @@
     "RUN": "ArmyIndustrialRun"
   },
   "flics": {
-    "ArmyIndustrialAttackA": {"size": [77, 87], "directions": 8, "frames": 15, "frameMs": 83, "offset": [88, 58], "canvas": [240, 240]},
-    "ArmyIndustrialDeath": {"size": [78, 86], "directions": 8, "frames": 15, "frameMs": 100, "offset": [87, 59], "canvas": [240, 240]},
-    "ArmyIndustrialDefault": {"size": [77, 83], "directions": 8, "frames": 15, "frameMs": 125, "offset": [88, 62], "canvas": [240, 240]},
-    "ArmyIndustrialRun": {"size": [78, 94], "directions": 8, "frames": 10, "frameMs": 66, "offset": [87, 51], "canvas": [240, 240]}
+    "ArmyIndustrialAttackA": {"size": [74, 94], "directions": 8, "frames": 15, "frameMs": 83, "offset": [89, 50], "canvas": [240, 240]},
+    "ArmyIndustrialDeath": {"size": [76, 94], "directions": 8, "frames": 15, "frameMs": 100, "offset": [87, 50], "canvas": [240, 240]},
+    "ArmyIndustrialDefault": {"size": [74, 94], "directions": 8, "frames": 15, "frameMs": 125, "offset": [89, 50], "canvas": [240, 240]},
+    "ArmyIndustrialRun": {"size": [76, 94], "directions": 8, "frames": 10, "frameMs": 66, "offset": [87, 50], "canvas": [240, 240]}
   }
 }

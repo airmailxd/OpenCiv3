@@ -8,8 +8,8 @@
   },
   "flics": {
     "LeaderModernDeath": {"size": [109, 76], "directions": 8, "frames": 15, "frameMs": 83, "offset": [66, 69], "canvas": [240, 240]},
-    "LeaderModernDefault": {"size": [51, 61], "directions": 8, "frames": 15, "frameMs": 125, "offset": [99, 76], "canvas": [240, 240]},
+    "LeaderModernDefault": {"size": [47, 61], "directions": 8, "frames": 15, "frameMs": 125, "offset": [101, 76], "canvas": [240, 240]},
     "LeaderModernFidget": {"size": [72, 77], "directions": 8, "frames": 15, "frameMs": 100, "offset": [84, 60], "canvas": [240, 240]},
-    "LeaderModernRun": {"size": [56, 68], "directions": 8, "frames": 10, "frameMs": 66, "offset": [94, 69], "canvas": [240, 240]}
+    "LeaderModernRun": {"size": [54, 68], "directions": 8, "frames": 10, "frameMs": 66, "offset": [94, 69], "canvas": [240, 240]}
   }
 }

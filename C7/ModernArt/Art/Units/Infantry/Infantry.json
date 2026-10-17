@@ -9,12 +9,12 @@
     "VICTORY": "InfantryVictory"
   },
   "flics": {
-    "InfantryAttackA": {"size": [88, 82], "directions": 8, "frames": 15, "frameMs": 66, "offset": [78, 64], "canvas": [240, 240]},
-    "InfantryDeath": {"size": [94, 83], "directions": 8, "frames": 15, "frameMs": 66, "offset": [73, 63], "canvas": [240, 240]},
-    "InfantryDefault": {"size": [88, 74], "directions": 8, "frames": 15, "frameMs": 125, "offset": [78, 72], "canvas": [240, 240]},
-    "InfantryFidget": {"size": [88, 79], "directions": 8, "frames": 15, "frameMs": 83, "offset": [78, 67], "canvas": [240, 240]},
-    "InfantryFortify": {"size": [88, 79], "directions": 8, "frames": 10, "frameMs": 66, "offset": [78, 67], "canvas": [240, 240]},
-    "InfantryRun": {"size": [88, 74], "directions": 8, "frames": 10, "frameMs": 66, "offset": [78, 72], "canvas": [240, 240]},
-    "InfantryVictory": {"size": [88, 82], "directions": 8, "frames": 15, "frameMs": 83, "offset": [78, 64], "canvas": [240, 240]}
+    "InfantryAttackA": {"size": [86, 81], "directions": 8, "frames": 15, "frameMs": 66, "offset": [79, 64], "canvas": [240, 240]},
+    "InfantryDeath": {"size": [94, 82], "directions": 8, "frames": 15, "frameMs": 66, "offset": [73, 63], "canvas": [240, 240]},
+    "InfantryDefault": {"size": [86, 72], "directions": 8, "frames": 15, "frameMs": 125, "offset": [79, 73], "canvas": [240, 240]},
+    "InfantryFidget": {"size": [86, 78], "directions": 8, "frames": 15, "frameMs": 83, "offset": [79, 67], "canvas": [240, 240]},
+    "InfantryFortify": {"size": [86, 78], "directions": 8, "frames": 10, "frameMs": 66, "offset": [79, 67], "canvas": [240, 240]},
+    "InfantryRun": {"size": [86, 72], "directions": 8, "frames": 10, "frameMs": 66, "offset": [79, 73], "canvas": [240, 240]},
+    "InfantryVictory": {"size": [86, 81], "directions": 8, "frames": 15, "frameMs": 83, "offset": [79, 64], "canvas": [240, 240]}
   }
 }

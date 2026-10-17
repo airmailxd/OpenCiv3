@@ -7,9 +7,9 @@
     "RUN": "x_isabella run"
   },
   "flics": {
-    "x_isabella death": {"size": [142, 85], "directions": 8, "frames": 15, "frameMs": 66, "offset": [49, 72], "canvas": [240, 240]},
-    "x_isabella default": {"size": [55, 71], "directions": 8, "frames": 15, "frameMs": 125, "offset": [95, 72], "canvas": [240, 240]},
+    "x_isabella death": {"size": [142, 84], "directions": 8, "frames": 15, "frameMs": 66, "offset": [49, 73], "canvas": [240, 240]},
+    "x_isabella default": {"size": [55, 70], "directions": 8, "frames": 15, "frameMs": 125, "offset": [95, 73], "canvas": [240, 240]},
     "x_isabella fidget": {"size": [74, 75], "directions": 8, "frames": 15, "frameMs": 83, "offset": [76, 68], "canvas": [240, 240]},
-    "x_isabella run": {"size": [60, 71], "directions": 8, "frames": 10, "frameMs": 66, "offset": [90, 72], "canvas": [240, 240]}
+    "x_isabella run": {"size": [60, 70], "directions": 8, "frames": 10, "frameMs": 66, "offset": [90, 73], "canvas": [240, 240]}
   }
 }

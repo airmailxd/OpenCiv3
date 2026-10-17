@@ -8,8 +8,8 @@
   },
   "flics": {
     "AlbertEinstein_Death_f15_fps15": {"size": [113, 76], "directions": 8, "frames": 15, "frameMs": 66, "offset": [64, 74], "canvas": [240, 240]},
-    "AlbertEinstein_Default_f15_fps8": {"size": [40, 58], "directions": 8, "frames": 15, "frameMs": 125, "offset": [105, 77], "canvas": [240, 240]},
-    "AlbertEinstein_Fidget_f15_fps12flc": {"size": [47, 58], "directions": 8, "frames": 15, "frameMs": 83, "offset": [98, 77], "canvas": [240, 240]},
-    "AlbertEinstein_Run_f15_fps15": {"size": [48, 61], "directions": 8, "frames": 10, "frameMs": 66, "offset": [97, 74], "canvas": [240, 240]}
+    "AlbertEinstein_Default_f15_fps8": {"size": [38, 59], "directions": 8, "frames": 15, "frameMs": 125, "offset": [106, 76], "canvas": [240, 240]},
+    "AlbertEinstein_Fidget_f15_fps12flc": {"size": [46, 59], "directions": 8, "frames": 15, "frameMs": 83, "offset": [98, 76], "canvas": [240, 240]},
+    "AlbertEinstein_Run_f15_fps15": {"size": [47, 61], "directions": 8, "frames": 10, "frameMs": 66, "offset": [97, 74], "canvas": [240, 240]}
   }
 }

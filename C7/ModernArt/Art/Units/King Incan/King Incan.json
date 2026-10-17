@@ -8,8 +8,8 @@
   },
   "flics": {
     "x2_Pachacuti_death": {"size": [176, 122], "directions": 8, "frames": 15, "frameMs": 66, "offset": [30, 49], "canvas": [240, 240]},
-    "x2_Pachacuti_default": {"size": [88, 87], "directions": 8, "frames": 15, "frameMs": 125, "offset": [70, 55], "canvas": [240, 240]},
-    "x2_Pachacuti_fidget": {"size": [90, 91], "directions": 8, "frames": 15, "frameMs": 83, "offset": [68, 51], "canvas": [240, 240]},
+    "x2_Pachacuti_default": {"size": [87, 87], "directions": 8, "frames": 15, "frameMs": 125, "offset": [70, 55], "canvas": [240, 240]},
+    "x2_Pachacuti_fidget": {"size": [89, 91], "directions": 8, "frames": 15, "frameMs": 83, "offset": [68, 51], "canvas": [240, 240]},
     "x2_Pachacuti_run": {"size": [92, 81], "directions": 8, "frames": 10, "frameMs": 66, "offset": [68, 61], "canvas": [240, 240]}
   }
 }

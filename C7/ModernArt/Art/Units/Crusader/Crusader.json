@@ -10,13 +10,13 @@
     "VICTORY": "Crusader_victory"
   },
   "flics": {
-    "Crusader_attack": {"size": [87, 79], "directions": 8, "frames": 15, "frameMs": 66, "offset": [75, 64], "canvas": [240, 240]},
-    "Crusader_build": {"size": [79, 79], "directions": 8, "frames": 15, "frameMs": 66, "offset": [83, 64], "canvas": [240, 240]},
+    "Crusader_attack": {"size": [86, 78], "directions": 8, "frames": 15, "frameMs": 66, "offset": [75, 64], "canvas": [240, 240]},
+    "Crusader_build": {"size": [77, 78], "directions": 8, "frames": 15, "frameMs": 66, "offset": [84, 64], "canvas": [240, 240]},
     "Crusader_death": {"size": [210, 110], "directions": 8, "frames": 15, "frameMs": 66, "offset": [15, 63], "canvas": [240, 240]},
-    "Crusader_default": {"size": [79, 79], "directions": 8, "frames": 15, "frameMs": 125, "offset": [83, 64], "canvas": [240, 240]},
-    "Crusader_fidget": {"size": [79, 79], "directions": 8, "frames": 15, "frameMs": 66, "offset": [83, 64], "canvas": [240, 240]},
-    "Crusader_fortify": {"size": [84, 79], "directions": 8, "frames": 10, "frameMs": 100, "offset": [78, 64], "canvas": [240, 240]},
-    "Crusader_run": {"size": [79, 79], "directions": 8, "frames": 10, "frameMs": 66, "offset": [83, 64], "canvas": [240, 240]},
-    "Crusader_victory": {"size": [84, 81], "directions": 8, "frames": 15, "frameMs": 83, "offset": [78, 62], "canvas": [240, 240]}
+    "Crusader_default": {"size": [77, 78], "directions": 8, "frames": 15, "frameMs": 125, "offset": [84, 64], "canvas": [240, 240]},
+    "Crusader_fidget": {"size": [77, 78], "directions": 8, "frames": 15, "frameMs": 66, "offset": [84, 64], "canvas": [240, 240]},
+    "Crusader_fortify": {"size": [83, 78], "directions": 8, "frames": 10, "frameMs": 100, "offset": [78, 64], "canvas": [240, 240]},
+    "Crusader_run": {"size": [77, 78], "directions": 8, "frames": 10, "frameMs": 66, "offset": [84, 64], "canvas": [240, 240]},
+    "Crusader_victory": {"size": [83, 80], "directions": 8, "frames": 15, "frameMs": 83, "offset": [78, 62], "canvas": [240, 240]}
   }
 }

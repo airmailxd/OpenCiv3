@@ -7,10 +7,10 @@
     "RUN": "ScoutRun"
   },
   "flics": {
-    "ScoutCaptured": {"size": [57, 67], "directions": 8, "frames": 10, "frameMs": 83, "offset": [97, 73], "canvas": [240, 240]},
-    "ScoutDeath": {"size": [65, 67], "directions": 8, "frames": 15, "frameMs": 83, "offset": [89, 73], "canvas": [240, 240]},
-    "ScoutDefault": {"size": [57, 67], "directions": 8, "frames": 15, "frameMs": 125, "offset": [97, 73], "canvas": [240, 240]},
-    "ScoutFidget": {"size": [62, 67], "directions": 8, "frames": 15, "frameMs": 100, "offset": [92, 73], "canvas": [240, 240]},
-    "ScoutRun": {"size": [57, 67], "directions": 8, "frames": 10, "frameMs": 66, "offset": [97, 73], "canvas": [240, 240]}
+    "ScoutCaptured": {"size": [56, 65], "directions": 8, "frames": 10, "frameMs": 83, "offset": [97, 74], "canvas": [240, 240]},
+    "ScoutDeath": {"size": [64, 65], "directions": 8, "frames": 15, "frameMs": 83, "offset": [89, 74], "canvas": [240, 240]},
+    "ScoutDefault": {"size": [55, 65], "directions": 8, "frames": 15, "frameMs": 125, "offset": [98, 74], "canvas": [240, 240]},
+    "ScoutFidget": {"size": [61, 65], "directions": 8, "frames": 15, "frameMs": 100, "offset": [92, 74], "canvas": [240, 240]},
+    "ScoutRun": {"size": [56, 65], "directions": 8, "frames": 10, "frameMs": 66, "offset": [97, 74], "canvas": [240, 240]}
   }
 }

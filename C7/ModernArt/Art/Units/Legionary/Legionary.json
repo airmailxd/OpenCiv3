@@ -12,15 +12,15 @@
     "ROAD": "Legionary_build_road"
   },
   "flics": {
-    "LegionaryAttack2": {"size": [79, 77], "directions": 8, "frames": 15, "frameMs": 83, "offset": [83, 67], "canvas": [240, 240]},
-    "LegionaryAttackA": {"size": [79, 72], "directions": 8, "frames": 15, "frameMs": 83, "offset": [83, 72], "canvas": [240, 240]},
+    "LegionaryAttack2": {"size": [77, 76], "directions": 8, "frames": 15, "frameMs": 83, "offset": [85, 67], "canvas": [240, 240]},
+    "LegionaryAttackA": {"size": [77, 71], "directions": 8, "frames": 15, "frameMs": 83, "offset": [85, 72], "canvas": [240, 240]},
     "LegionaryDeath": {"size": [129, 104], "directions": 8, "frames": 15, "frameMs": 83, "offset": [55, 50], "canvas": [240, 240]},
-    "LegionaryDefault": {"size": [79, 72], "directions": 8, "frames": 15, "frameMs": 125, "offset": [83, 72], "canvas": [240, 240]},
+    "LegionaryDefault": {"size": [77, 71], "directions": 8, "frames": 15, "frameMs": 125, "offset": [85, 72], "canvas": [240, 240]},
     "LegionaryFidget": {"size": [149, 139], "directions": 8, "frames": 15, "frameMs": 83, "offset": [82, 70], "canvas": [240, 240]},
-    "LegionaryFortify": {"size": [79, 72], "directions": 8, "frames": 10, "frameMs": 66, "offset": [83, 72], "canvas": [240, 240]},
-    "LegionaryRun": {"size": [79, 72], "directions": 8, "frames": 10, "frameMs": 66, "offset": [83, 72], "canvas": [240, 240]},
-    "LegionaryVictory": {"size": [79, 75], "directions": 8, "frames": 15, "frameMs": 83, "offset": [83, 69], "canvas": [240, 240]},
-    "Legionary_build_fort": {"size": [79, 77], "directions": 8, "frames": 15, "frameMs": 66, "offset": [83, 67], "canvas": [240, 240]},
-    "Legionary_build_road": {"size": [79, 72], "directions": 8, "frames": 10, "frameMs": 100, "offset": [83, 72], "canvas": [240, 240]}
+    "LegionaryFortify": {"size": [77, 71], "directions": 8, "frames": 10, "frameMs": 66, "offset": [85, 72], "canvas": [240, 240]},
+    "LegionaryRun": {"size": [77, 71], "directions": 8, "frames": 10, "frameMs": 66, "offset": [85, 72], "canvas": [240, 240]},
+    "LegionaryVictory": {"size": [77, 74], "directions": 8, "frames": 15, "frameMs": 83, "offset": [85, 69], "canvas": [240, 240]},
+    "Legionary_build_fort": {"size": [77, 76], "directions": 8, "frames": 15, "frameMs": 66, "offset": [85, 67], "canvas": [240, 240]},
+    "Legionary_build_road": {"size": [77, 71], "directions": 8, "frames": 10, "frameMs": 100, "offset": [85, 72], "canvas": [240, 240]}
   }
 }

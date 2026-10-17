@@ -10,13 +10,13 @@
     "VICTORY": "x_Guerilla victory"
   },
   "flics": {
-    "x_Guerilla attack_a": {"size": [83, 99], "directions": 8, "frames": 15, "frameMs": 66, "offset": [85, 47], "canvas": [240, 240]},
-    "x_Guerilla attack_b": {"size": [92, 99], "directions": 8, "frames": 15, "frameMs": 66, "offset": [76, 47], "canvas": [240, 240]},
-    "x_Guerilla death": {"size": [118, 104], "directions": 8, "frames": 15, "frameMs": 83, "offset": [61, 47], "canvas": [240, 240]},
-    "x_Guerilla default": {"size": [79, 99], "directions": 8, "frames": 15, "frameMs": 125, "offset": [89, 47], "canvas": [240, 240]},
-    "x_Guerilla fidget": {"size": [90, 99], "directions": 8, "frames": 15, "frameMs": 100, "offset": [78, 47], "canvas": [240, 240]},
-    "x_Guerilla fortify": {"size": [86, 99], "directions": 8, "frames": 10, "frameMs": 83, "offset": [82, 47], "canvas": [240, 240]},
-    "x_Guerilla run": {"size": [78, 99], "directions": 8, "frames": 10, "frameMs": 66, "offset": [90, 47], "canvas": [240, 240]},
-    "x_Guerilla victory": {"size": [88, 102], "directions": 8, "frames": 15, "frameMs": 83, "offset": [80, 44], "canvas": [240, 240]}
+    "x_Guerilla attack_a": {"size": [82, 98], "directions": 8, "frames": 15, "frameMs": 66, "offset": [85, 48], "canvas": [240, 240]},
+    "x_Guerilla attack_b": {"size": [91, 98], "directions": 8, "frames": 15, "frameMs": 66, "offset": [76, 48], "canvas": [240, 240]},
+    "x_Guerilla death": {"size": [118, 103], "directions": 8, "frames": 15, "frameMs": 83, "offset": [61, 48], "canvas": [240, 240]},
+    "x_Guerilla default": {"size": [78, 98], "directions": 8, "frames": 15, "frameMs": 125, "offset": [89, 48], "canvas": [240, 240]},
+    "x_Guerilla fidget": {"size": [89, 98], "directions": 8, "frames": 15, "frameMs": 100, "offset": [78, 48], "canvas": [240, 240]},
+    "x_Guerilla fortify": {"size": [85, 98], "directions": 8, "frames": 10, "frameMs": 83, "offset": [82, 48], "canvas": [240, 240]},
+    "x_Guerilla run": {"size": [76, 98], "directions": 8, "frames": 10, "frameMs": 66, "offset": [91, 48], "canvas": [240, 240]},
+    "x_Guerilla victory": {"size": [87, 102], "directions": 8, "frames": 15, "frameMs": 83, "offset": [80, 44], "canvas": [240, 240]}
   }
 }

@@ -10,13 +10,13 @@
     "VICTORY": "ParatrooperVictory"
   },
   "flics": {
-    "ParatrooperAttackA": {"size": [68, 68], "directions": 8, "frames": 15, "frameMs": 66, "offset": [89, 73], "canvas": [240, 240]},
+    "ParatrooperAttackA": {"size": [67, 68], "directions": 8, "frames": 15, "frameMs": 66, "offset": [89, 73], "canvas": [240, 240]},
     "ParatrooperDeath": {"size": [146, 85], "directions": 8, "frames": 15, "frameMs": 66, "offset": [47, 73], "canvas": [240, 240]},
-    "ParatrooperDefault": {"size": [91, 98], "directions": 8, "frames": 15, "frameMs": 125, "offset": [66, 43], "canvas": [240, 240]},
-    "ParatrooperDrop": {"size": [92, 138], "directions": 1, "frames": 23, "frameMs": 76, "offset": [65, 3], "canvas": [240, 240]},
-    "ParatrooperFidget": {"size": [68, 68], "directions": 8, "frames": 15, "frameMs": 83, "offset": [89, 73], "canvas": [240, 240]},
-    "ParatrooperFortify": {"size": [68, 68], "directions": 8, "frames": 10, "frameMs": 66, "offset": [89, 73], "canvas": [240, 240]},
-    "ParatrooperRun": {"size": [68, 68], "directions": 8, "frames": 10, "frameMs": 66, "offset": [89, 73], "canvas": [240, 240]},
-    "ParatrooperVictory": {"size": [68, 68], "directions": 8, "frames": 15, "frameMs": 83, "offset": [89, 73], "canvas": [240, 240]}
+    "ParatrooperDefault": {"size": [90, 98], "directions": 8, "frames": 15, "frameMs": 125, "offset": [66, 43], "canvas": [240, 240]},
+    "ParatrooperDrop": {"size": [91, 138], "directions": 1, "frames": 23, "frameMs": 76, "offset": [65, 3], "canvas": [240, 240]},
+    "ParatrooperFidget": {"size": [67, 68], "directions": 8, "frames": 15, "frameMs": 83, "offset": [89, 73], "canvas": [240, 240]},
+    "ParatrooperFortify": {"size": [67, 68], "directions": 8, "frames": 10, "frameMs": 66, "offset": [89, 73], "canvas": [240, 240]},
+    "ParatrooperRun": {"size": [67, 68], "directions": 8, "frames": 10, "frameMs": 66, "offset": [89, 73], "canvas": [240, 240]},
+    "ParatrooperVictory": {"size": [67, 68], "directions": 8, "frames": 15, "frameMs": 83, "offset": [89, 73], "canvas": [240, 240]}
   }
 }

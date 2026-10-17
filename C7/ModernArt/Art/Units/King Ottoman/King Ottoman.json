@@ -8,8 +8,8 @@
   },
   "flics": {
     "x_Osman death": {"size": [148, 88], "directions": 8, "frames": 15, "frameMs": 66, "offset": [46, 70], "canvas": [240, 240]},
-    "x_Osman default": {"size": [49, 64], "directions": 8, "frames": 15, "frameMs": 125, "offset": [95, 70], "canvas": [240, 240]},
-    "x_Osman fidget": {"size": [59, 64], "directions": 8, "frames": 15, "frameMs": 83, "offset": [85, 70], "canvas": [240, 240]},
-    "x_Osman run": {"size": [55, 64], "directions": 8, "frames": 10, "frameMs": 66, "offset": [89, 70], "canvas": [240, 240]}
+    "x_Osman default": {"size": [48, 64], "directions": 8, "frames": 15, "frameMs": 125, "offset": [95, 70], "canvas": [240, 240]},
+    "x_Osman fidget": {"size": [58, 64], "directions": 8, "frames": 15, "frameMs": 83, "offset": [85, 70], "canvas": [240, 240]},
+    "x_Osman run": {"size": [54, 64], "directions": 8, "frames": 10, "frameMs": 66, "offset": [89, 70], "canvas": [240, 240]}
   }
 }

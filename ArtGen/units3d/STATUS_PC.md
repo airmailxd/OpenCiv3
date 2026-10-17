@@ -76,3 +76,10 @@ These are what a fifth round would add; waiting on stzur before touching them.
 ## Taken over from the Mac (TODO_PC, 2026-10-16)
 
 All 7 PASS: Impi, Army Ancient, Army Industrial, Army Modern, King Aztec, King Austria, King Incan.
+
+## Round 3 (2026-10-16)
+
+- War Elephant: reworked as a sculpted elephant (stzur chose procedural over a login-only Sketchfab model; no credit needed). 6-axis PASS, installed.
+- Posture: all 51 PC foot units and 6 siege crews re-rendered with UPRIGHT; reviewed with posture as a 7th blocking check: all pass (Sumeria rod, Leader Ancient crook, Army Ancient and Industrial flags fixed after the change). Riders checked: they sit upright (ride stance), not re-rendered.
+- Installed: 93 units + War Elephant (frozen riders and chariots still out).
+

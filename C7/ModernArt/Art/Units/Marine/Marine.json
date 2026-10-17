@@ -9,12 +9,12 @@
     "VICTORY": "MarineVictory"
   },
   "flics": {
-    "MarineAttackA": {"size": [129, 83], "directions": 8, "frames": 15, "frameMs": 66, "offset": [54, 60], "canvas": [240, 240]},
+    "MarineAttackA": {"size": [129, 82], "directions": 8, "frames": 15, "frameMs": 66, "offset": [54, 60], "canvas": [240, 240]},
     "MarineDeath": {"size": [116, 83], "directions": 8, "frames": 15, "frameMs": 66, "offset": [62, 66], "canvas": [240, 240]},
-    "MarineDefault": {"size": [75, 71], "directions": 8, "frames": 15, "frameMs": 125, "offset": [87, 72], "canvas": [240, 240]},
-    "MarineFidget": {"size": [75, 71], "directions": 8, "frames": 15, "frameMs": 100, "offset": [87, 72], "canvas": [240, 240]},
-    "MarineFortify": {"size": [75, 71], "directions": 8, "frames": 10, "frameMs": 66, "offset": [87, 72], "canvas": [240, 240]},
-    "MarineRun": {"size": [75, 71], "directions": 8, "frames": 10, "frameMs": 66, "offset": [87, 72], "canvas": [240, 240]},
-    "MarineVictory": {"size": [75, 71], "directions": 8, "frames": 15, "frameMs": 83, "offset": [87, 72], "canvas": [240, 240]}
+    "MarineDefault": {"size": [73, 70], "directions": 8, "frames": 15, "frameMs": 125, "offset": [88, 72], "canvas": [240, 240]},
+    "MarineFidget": {"size": [73, 70], "directions": 8, "frames": 15, "frameMs": 100, "offset": [88, 72], "canvas": [240, 240]},
+    "MarineFortify": {"size": [73, 70], "directions": 8, "frames": 10, "frameMs": 66, "offset": [88, 72], "canvas": [240, 240]},
+    "MarineRun": {"size": [73, 70], "directions": 8, "frames": 10, "frameMs": 66, "offset": [88, 72], "canvas": [240, 240]},
+    "MarineVictory": {"size": [73, 70], "directions": 8, "frames": 15, "frameMs": 83, "offset": [88, 72], "canvas": [240, 240]}
   }
 }
