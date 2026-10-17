@@ -713,7 +713,7 @@ def _extra_tack(p, h, vs, arm, a, b, ys, top, sec):
         if tk:
             for q in arc[2:-2:2]:
                 p.add(props.tube([q + Vector((0, 0.01 if front else -0.01, -0.01)), q + Vector((0, 0.03 if front else -0.03, -0.2))],
-                                 [0.04, 0.016], seg=6), h.get('tassel_key', tk), smooth=True, tint=tint(h.get('tassel_key', tk)))
+                                 [0.07, 0.025], seg=8), h.get('tassel_key', tk), smooth=True, tint=tint(h.get('tassel_key', tk)))
                 p.add(props.ellipsoid(0.03, 0.03, 0.03, seg=8), 'trim', T(*q), smooth=True)   # a brass stud
     if h.get('nose_wrap'):
         rings = [r for r in (_head_ring(vs, a, b, t, grow=0.02) for t in (0.48, 0.56, 0.64, 0.72, 0.8)) if r]
@@ -726,7 +726,7 @@ def _extra_tack(p, h, vs, arm, a, b, ys, top, sec):
             low = min(ring, key=lambda v: v.z)
             for dx in (-0.04, 0.0, 0.04):
                 q = low + Vector((dx, 0, 0))
-                p.add(props.tube([q, q + Vector((0, -0.03, -0.12)), q + Vector((0, -0.05, -0.24))], [0.022, 0.03, 0.012],
+                p.add(props.tube([q, q + Vector((0, -0.03, -0.18)), q + Vector((0, -0.05, -0.36))], [0.04, 0.055, 0.02],
                                  seg=6), tk, smooth=True, tint=tint(tk))
     if h.get('bedroll'):
         p.add(props.tube([(-0.26, ys - 0.34, top + 0.05), (0.26, ys - 0.34, top + 0.05)], 0.075, seg=12), 'bedroll',
@@ -750,7 +750,7 @@ def _extra_tack(p, h, vs, arm, a, b, ys, top, sec):
 
 def _roundel(p, ek, m, tint):
     """A bold solid white drop/triangle emblem (Civ3's Rider), facing the matrix's +Z."""
-    tri = props.slab([(0.0, 0.19), (0.13, -0.09), (0.0, -0.16), (-0.13, -0.09)], 0.02, 'Y')
+    tri = props.slab([(0.0, 0.3), (0.22, -0.15), (0.0, -0.26), (-0.22, -0.15)], 0.02, 'Y')   # big: about 40% of the panel
     p.add(tri, ek, m @ R('X', 90), tint=tint(ek), bevel=0.006)
 
 
@@ -955,21 +955,21 @@ def asset_tack(root, body, colors, h=None):
     _extra_tack(p, h, vs, arm, a, b, ys, top, sec)
     if h.get('rump_spots'):
         rnd_ = __import__('random').Random(7)
-        hind = [v for v in vs if v.y < ys - 0.45 and v.z > 1.0 and abs(v.x) > 0.12]
-        for q in rnd_.sample(hind, min(len(hind), 22)):
+        hind = [v for v in vs if v.y < ys - 0.4 and 0.75 < v.z < 1.08 and abs(v.x) > 0.12]   # the haunches below the cloth
+        for q in rnd_.sample(hind, min(len(hind), 18)):
             nrm = Vector((q.x, 0, (q.z - 1.25) * 0.6)).normalized()
-            p.add(props.ellipsoid(0.04, 0.04, 0.006, seg=10), 'tint',
-                  Matrix.Translation(q + nrm * 0.012) @ nrm.to_track_quat('Z', 'Y').to_matrix().to_4x4(), smooth=True, tint=True)
+            p.add(props.ellipsoid(0.06, 0.06, 0.008, seg=10), 'tint',
+                  Matrix.Translation(q + nrm * 0.02) @ nrm.to_track_quat('Z', 'Y').to_matrix().to_4x4(), smooth=True, tint=True)
     if h.get('back_lances'):
         # two lances crossed behind the rider's back, their butts at the cantle (Civ3's Keshik)
         for sx in (-1, 1):
-            a_ = Vector((sx * 0.14, ys - 0.3, top + 0.05))
-            b_ = Vector((-sx * 0.32, ys - 0.62, top + 2.1))
+            a_ = Vector((-sx * 0.05, ys - 0.25, top + 0.15))
+            b_ = Vector((sx * 0.45, ys - 0.5, top + 1.45))   # a tight V behind the head
             vkit.rod(p, a_, b_, 0.022, 'wood', seg=8)
             d_ = (b_ - a_).normalized()
-            p.add(props.lathe([(0.0, 0.05), (0.1, 0.045), (0.32, 0.0)], seg=6), 'gunmetal',
+            p.add(props.lathe([(0.0, 0.08), (0.12, 0.075), (0.4, 0.0)], seg=6), 'gunmetal',
                   Matrix.Translation(b_) @ d_.to_track_quat('Z', 'Y').to_matrix().to_4x4(), smooth=True)
-            p.add(props.tube([b_ - d_ * 0.02, b_ - d_ * 0.02 + Vector((0, -0.05, -0.15))], [0.03, 0.01], seg=6), 'tint',
+            p.add(props.tube([b_ - d_ * 0.02, b_ - d_ * 0.02 + Vector((0, -0.06, -0.22))], [0.06, 0.02], seg=8), 'tint',
                   smooth=True, tint=True)   # a civ horsehair tassel under the head
     obj = p.finish()
     for m in obj.data.materials:   # painted spots stay white in the shade (as Civ3's)
@@ -1079,6 +1079,8 @@ HORSE_COAT_OVERRIDES = {
 
 # The originals' tack the catalog doesn't describe (see DETAIL_AUDIT_PC.md)
 TACK_OVERRIDES = {
+    # Civ3's Cavalry: a dark bridle and reins with a pale noseband, a rolled cloak behind the cantle
+    'Cavalry': {'bridle': '#1e1a18', 'bridle_tint': False, 'bedroll': True},
     # Civ3's Keshik: twin lances behind the back, a pale sheepskin saddle, a civ noseband
     'Keshik': {'back_lances': True, 'blanket': 'pelt', 'nose_wrap': True, 'pelt_color': '#ddd2b8'},
     # Civ3's Sipahi: a civ caparison scattered with white spots over the neck to the ears, chest and flanks nearly to
