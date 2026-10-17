@@ -1167,9 +1167,10 @@ HORSE_COAT_OVERRIDES = {
     'Horseman': {'coat': '#8a5430', 'mane': '#140e0a', 'points': '#1e1610'},
     # a dun (not a pinto), with civ war paint on the shoulder and the hindquarter
     'Mounted Warrior': {'coat': '#b08a58', 'coat2': None, 'mane': '#2e241a', 'points': '#5a4632',
-                        'coat_spots': {'pale': [(-0.66, 1.08, 0.3, '#e2d8c2')],   # the cream haunch
-                                       'blobs': [(-0.66, 1.1, 0.16), (-0.42, 0.95, 0.06), (-0.88, 0.92, 0.06),
-                                                 (0.62, 1.1, 0.14), (0.8, 0.92, 0.06)]}},
+                        # (the asset horse stands ~1.9 m at the croup: the hip is near z 1.5)
+                        'coat_spots': {'pale': [(-0.72, 1.5, 0.45, '#e2d8c2')],   # the cream croup and haunch
+                                       'blobs': [(-0.72, 1.5, 0.18), (-0.5, 1.25, 0.07), (-0.92, 1.2, 0.07),
+                                                 (0.65, 1.6, 0.15), (0.75, 1.3, 0.07)]}},
     'Ancient Cavalry': {'coat': '#a88a5e', 'mane': '#2a2018', 'points': '#2e2418'},
     'Rider': {'coat': '#c8c8c4', 'dapple': '#9a9a98', 'mane': '#e0ded8', 'points': '#8a8a88',
               'coat_spots': {'scale': 6.0, 'size': 0.34, 'boxes': [(-1.15, -0.2, 0.55, 1.35)]}},   # civ specks on the haunch
