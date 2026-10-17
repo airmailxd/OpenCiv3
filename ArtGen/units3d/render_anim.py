@@ -48,6 +48,10 @@ def main(argv):
     node = next(n for n in scene.node_tree.nodes if n.bl_idname == 'CompositorNodeOutputFile')
     rows = [int(r) for r in opts.get('--rows', '0,1,2,3,4,5,6,7').split(',')]
     names = opts['--actions'].split(',') if '--actions' in opts else list(actions)
+    if '--only' in opts:   # game actions (FORTIFY,...): just the flics that play them
+        names = [n for n in anim.flics_for(cal, opts['--only'].split(',')) if n in actions]
+        if not names:
+            raise SystemExit(f"{unit}: no animated flic plays {opts['--only']}")
     for name in names:
         action = actions[name]
         frames = [int(f) for f in opts['--frames'].split(',')] if '--frames' in opts else range(action['frames'])

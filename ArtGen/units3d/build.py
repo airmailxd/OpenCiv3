@@ -48,12 +48,16 @@ def render(unit, out, samples, tries=3):
     raise SystemExit(f'{unit}: rendering failed {tries} times')
 
 
-def render_anim(unit, out, samples, tries=3):
-    """render_anim.py's frames of every animated action of the unit (anim.ACTIONS), retried."""
+def render_anim(unit, out, samples, tries=3, only=None):
+    """render_anim.py's frames of every animated action of the unit (anim.ACTIONS), retried;
+    `only` (game actions, e.g. 'FORTIFY'): just those flics, keeping the others' frames."""
     for attempt in range(1, tries + 1):
-        shutil.rmtree(out, ignore_errors=True)
+        if not only:
+            shutil.rmtree(out, ignore_errors=True)
         cmd = [blender(), '-b', '--factory-startup', '--python-exit-code', '1', '--python',
                os.path.join(HERE, 'render_anim.py'), '--', unit, out, '--samples', str(samples)]
+        if only:
+            cmd += ['--only', only]
         log = subprocess.run(cmd, capture_output=True, text=True)
         if log.returncode == 0 and os.path.isdir(out):
             return
@@ -61,13 +65,14 @@ def render_anim(unit, out, samples, tries=3):
     raise SystemExit(f'{unit}: rendering the animations failed {tries} times')
 
 
-def build(unit, samples=128, install=False, anim=False):
+def build(unit, samples=128, install=False, anim=False, only=None):
     out = os.path.join(PREVIEWS, 'passes', unit)
-    render(unit, out, samples)
+    if not (only and os.path.exists(os.path.join(out, 'unit_0007.png'))):   # --actions: keep the still as rendered
+        render(unit, out, samples)
     anim_dir = None
     if anim:
         anim_dir = os.path.join(PREVIEWS, 'passes', unit + '_anim')
-        render_anim(unit, anim_dir, samples)
+        render_anim(unit, anim_dir, samples, only=only)
     cal = json.load(open(os.path.join(HERE, 'calibration', f'{unit}.json')))
     entry = remaster.REMASTER.get(unit, {})
     sheets = os.path.join(PREVIEWS, 'sheets', unit)
@@ -92,10 +97,11 @@ def main(argv):
     samples = 128
     if '--samples' in argv:
         samples = int(argv[argv.index('--samples') + 1])
-    units = [a for a in argv if not a.startswith('--') and not a.isdigit()]
+    only = argv[argv.index('--actions') + 1] if '--actions' in argv else None   # e.g. --actions FORTIFY
+    units = [a for a in argv if not a.startswith('--') and not a.isdigit() and a != only]
     subprocess.run([sys.executable, os.path.join(HERE, 'catalog_json.py')], check=True)
     for unit in units:
-        build(unit, samples, install, anim)
+        build(unit, samples, install, anim, only)
 
 
 if __name__ == '__main__':

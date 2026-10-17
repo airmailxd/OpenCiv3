@@ -361,6 +361,51 @@ def _gun_attack():
 
 ATTACKS = {'melee': _melee_attack, 'spear': _spear_attack, 'bow': _bow_attack, 'gun': _gun_attack}
 
+# FORTIFY: from the stance into a held guard (notes/anim/*.md). Played once when the unit
+# fortifies; the game then holds the last column, so f7 is the final guard.
+GUARD_LEGS = {'thigh_l': (0.24, -0.5, -0.85), 'calf_l': (0.14, 0.15, -1), 'foot_l': (0.4, -1, -0.3),
+              'thigh_r': (-0.24, 0.25, -1), 'calf_r': (-0.14, 0.5, -0.9), 'foot_r': (-0.4, -0.8, -0.6)}
+SHIELD_FORWARD = L_((0.3, -0.55, -0.75), (0.02, -0.95, 0.3))   # the shield arm brought across the front
+
+
+def _held(guard, mid=None, **extra):
+    """A non-looping 8-column action easing from the stance into `guard`, held from f5."""
+    keys = [(0, {})]
+    if mid is not None:
+        keys.append((3, mid))
+    keys += [(5, guard), (7, guard)]
+    return dict({'frames': CAP, 'loop': False, 'keys': keys}, **extra)
+
+
+def _spear_fortify():
+    """The spear lowered level at hip height, a crouch, the shield forward (Spearman, Hoplite)."""
+    level = ((0, -1, 0.04), (1, 0, 0))
+    guard = K(GUARD_LEGS, bend(0.15, head=0.35), SHIELD_FORWARD, R_((-0.3, 0.25, -0.92), (-0.02, -0.75, 0.1)), tool=level)
+    return _held(guard, mid=K(bend(0.05), R_((-0.3, 0.1, -0.95), (-0.05, -0.5, 0.4))), tool='own')
+
+
+def _melee_fortify():
+    """A crouched guard, the shield forward, the weapon raised ready at the shoulder."""
+    guard = K(GUARD_LEGS, bend(0.18, head=0.35), SHIELD_FORWARD, R_((-0.4, -0.35, -0.85), (-0.05, -0.55, 0.85)))
+    return _held(guard, mid=K(bend(0.08), R_((-0.35, -0.15, -0.92), (-0.05, -0.4, 0.9))))
+
+
+def _bow_fortify():
+    """An arrow nocked and the bow held low and forward, a crouch."""
+    guard = K(GUARD_LEGS, bend(0.15, head=0.35), L_((0.2, -0.85, -0.5), (0.05, -1, -0.15)),
+              R_((-0.25, -0.55, -0.8), (0.35, -0.9, -0.1)))
+    return _held(guard)
+
+
+def _gun_fortify():
+    """The braced aim: the gun level at the shoulder in a wide stance, held."""
+    aim = K(GUARD_LEGS, bend(0.1, head=0.0), R_((-0.85, -0.3, -0.25), (0.55, -0.8, 0.12)),
+            tool=((0, -1, 0.03), (0, 0, 1)), grip2=-0.36)
+    return _held(aim, tool='own')
+
+
+FORTIFIES = {'melee': _melee_fortify, 'spear': _spear_fortify, 'bow': _bow_fortify, 'gun': _gun_fortify}
+
 
 def weapon_class(entry):
     """The template class of a foot unit: from the stance units.equip gives it."""
@@ -406,12 +451,21 @@ def template_actions(entry, calibration):
     made = {'DEATH': _death, 'RUN': _run}
     if cls is not None:
         made['ATTACK1'] = ATTACKS[cls]
+        made['FORTIFY'] = FORTIFIES[cls]
     out = {}
     for flic_file, f in calibration['flics'].items():
-        for act in f['actions']:
+        acts = list(f['actions'])
+        if 'FORTIFY' in acts and 'DEFAULT' in acts:
+            acts.remove('FORTIFY')   # a flic shared with DEFAULT stays a still
+        for act in acts:
             if act in made:
                 out[flic_file.rsplit('.', 1)[0]] = made[act]()
     return out
+
+
+def flics_for(calibration, wanted):
+    """The flic names (without .flc) whose actions include any of `wanted` (e.g. ['FORTIFY'])."""
+    return [ff.rsplit('.', 1)[0] for ff, f in calibration['flics'].items() if set(f['actions']) & set(wanted)]
 
 
 # ------------------------------------------------------------ playback
