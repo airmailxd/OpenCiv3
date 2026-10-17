@@ -138,40 +138,43 @@ local c7_texture_list = {
   "Art/Cities/CityBuildingIcons.png"
 }
 
---- For ease of editing, we define the civ colors as hex codes, not 1x1 px images
+--- The civ colors of Civ3 (Art/Units/Palettes/ntp00-31.pcx, read by
+--- ArtGen/notes/civ_colors.md): per color index its flat color (palette
+--- entry 64: borders, the map and the UI) and the 16-shade ramp, light to
+--- dark (entries 0-15), that the civ-colored parts of units are shaded with.
 local civ_colors = {
-  "F0F8FF", -- Alice Blue (whiteish)
-  "E6194B", -- Red
-  "F58231", -- Orange
-  "FFE119", -- Yellow
-  "3CB44B", -- Green
-  "4363D8", -- Blue
-  "000075", -- Navy
-  "FABED4", -- Pink
-  "911EB4", -- Purple
-  "9A6324", -- Brown
-  "AAFFC3", -- Mint
-  "42D4F4", -- Cyan
-  "F032E6", -- Magenta
-  "808000", -- Olive
-  "DCBEFF", -- Lavender
-  "A9A9A9", -- Grey
-  "008080", -- Teal
-  "FFD700", -- Gold
-  "800000", -- Maroon
-  "00FF00", -- Lime
-  "FFC0CB", -- Hot Pink
-  "4682B4", -- Steel Blue
-  "D2B48C", -- Tan
-  "FF7F50", -- Coral
-  "6A5ACD", -- Slate Blue
-  "2E8B57", -- Sea Green
-  "DAA520", -- Goldenrod
-  "C71585", -- Medium Violet Red
-  "556B2F", -- Dark Olive Green
-  "8B4513", -- Saddle Brown
-  "B0C4DE", -- Light Steel Blue
-  "696969"  -- Dim Gray
+  { flat = "E6E6E6", ramp = { "FBFBFB", "F8F8F8", "F5F5F5", "F2F2F2", "EFEFEF", "ECECEC", "E9E9E9", "E6E6E6", "D7D7D7", "C8C8C8", "B9B9B9", "AAAAAA", "9B9B9B", "8C8C8C", "7D7D7D", "7D7D7D" } }, -- 0
+  { flat = "E30A0A", ramp = { "FF9C8A", "FB8475", "F76C60", "F3544B", "EF3C36", "EB2421", "E70C0C", "E30A0A", "D40A0A", "C50A0A", "B60A0A", "A70A0A", "980A0A", "890A0A", "7A0A0A", "740A0A" } }, -- 1
+  { flat = "FF8C00", ramp = { "FFC471", "FFBB5F", "FFB24D", "FFA93B", "FFA029", "FF9717", "FF8E05", "FF8C00", "EA7F01", "D57202", "C06503", "AB5804", "964B05", "813E06", "6C3107", "6A3107" } }, -- 2
+  { flat = "E6E600", ramp = { "FDFDA7", "FAFA8C", "F7F771", "F4F456", "F1F13B", "EEEE20", "EBEB05", "E6E600", "D6D301", "C6C002", "B6AD03", "A69A04", "968705", "867406", "766107", "715D0D" } }, -- 3
+  { flat = "077607", ramp = { "35CC34", "2EBE2D", "27B026", "20A21F", "199418", "128611", "0B780A", "077607", "076E07", "076607", "075E07", "075607", "074E07", "074607", "073E07", "033903" } }, -- 4
+  { flat = "1DD8DA", ramp = { "C7FFFF", "ABF9F9", "8FF3F3", "73EDED", "57E7E7", "3BE1E1", "1FDBDB", "1DD8DA", "1AC9CB", "17BABC", "14ABAD", "119C9E", "0E8D8F", "0B7E80", "086F71", "076C6C" } }, -- 5
+  { flat = "3463FF", ramp = { "99DCF6", "89C8F7", "79B4F8", "69A0F9", "598CFA", "4978FB", "3964FC", "3463FF", "2D5BF0", "2653E1", "1F4BD2", "1843C3", "113BB4", "0A33A5", "032B96", "002792" } }, -- 6
+  { flat = "FF4EED", ramp = { "FFAFF8", "FF9FF7", "FF8FF6", "FF7FF5", "FF6FF4", "FF5FF3", "FF4FF2", "FF4EED", "EE49DE", "DD44CF", "CC3FC0", "BB3AB1", "AA35A2", "993093", "882B84", "88277E" } }, -- 7
+  { flat = "79009C", ramp = { "BF19EA", "B415DD", "A911D0", "9E0DC3", "9309B6", "8805A9", "7D019C", "79009C", "700090", "670084", "5E0078", "55006C", "4C0060", "430054", "3A0048", "350048" } }, -- 8
+  { flat = "906A06", ramp = { "CCA747", "C29D3D", "B89333", "AE8929", "A47F1F", "9A7515", "906B0B", "906A06", "856206", "7A5A06", "6F5206", "644A06", "594206", "4E3A06", "433206", "3D2D04" } }, -- 9
+  { flat = "78DD00", ramp = { "CDFF7B", "BFFA67", "B1F553", "A3F03F", "95EB2B", "87E617", "79E103", "78DD00", "70CE00", "68BF00", "60B000", "58A100", "509200", "488300", "407400", "3C7200" } }, -- 10
+  { flat = "940808", ramp = { "DA5F52", "CF5146", "C4433A", "B9352E", "AE2722", "A31916", "980B0A", "940808", "8B0A0A", "820C0C", "790E0E", "701010", "671212", "5E1414", "551616", "521616" } }, -- 11
+  { flat = "939393", ramp = { "C7C7C7", "BFBFBF", "B7B7B7", "AFAFAF", "A7A7A7", "9F9F9F", "979797", "939393", "898989", "7F7F7F", "757575", "6B6B6B", "616161", "575757", "4D4D4D", "4A4A4A" } }, -- 12
+  { flat = "002792", ramp = { "637DD6", "536FCB", "4361C0", "3353B5", "2345AA", "13379F", "032994", "002792", "002484", "002176", "001E68", "001B5A", "00184C", "00153E", "001230", "000D30" } }, -- 13
+  { flat = "0E8797", ramp = { "5AD7E8", "4ECADB", "42BDCE", "36B0C1", "2AA3B4", "1E96A7", "12899A", "0E8797", "0E808F", "0E7987", "0E727F", "0E6B77", "0E646F", "0E5D67", "0E565F", "0E515B" } }, -- 14
+  { flat = "F3C2FC", ramp = { "FEEFFF", "FDE8FF", "FCE1FF", "FBDAFF", "FAD3FF", "F9CCFF", "F8C5FF", "F3C2FC", "EBB2F5", "E3A2EE", "DB92E7", "D382E0", "CB72D9", "C362D2", "BB52CB", "B84FCB" } }, -- 15
+  { flat = "3C3C3C", ramp = { "888888", "7C7C7C", "707070", "646464", "585858", "4C4C4C", "404040", "3C3C3C", "383838", "343434", "303030", "2C2C2C", "282828", "242424", "202020", "202020" } }, -- 16
+  { flat = "C000FF", ramp = { "DB63FF", "D753FF", "D343FF", "CF33FF", "CB23FF", "C713FF", "C303FF", "C000FF", "B600F2", "AC00E5", "A200D8", "9800CB", "8E00BE", "8400B1", "7A00A4", "76009E" } }, -- 17
+  { flat = "CDB700", ramp = { "F6E766", "F0DF55", "EAD744", "E4CF33", "DEC722", "D8BF11", "D2B700", "CDB700", "C2AC00", "B7A100", "AC9600", "A18B00", "968000", "8B7500", "806A00", "7F6900" } }, -- 18
+  { flat = "7E00FF", ramp = { "BF66FF", "B555FF", "AB44FF", "A133FF", "9722FF", "8D11FF", "8300FF", "7E00FF", "7300F4", "6800E9", "5D00DE", "5200D3", "4700C8", "3C00BD", "3100B2", "3000B1" } }, -- 19
+  { flat = "ACD9EA", ramp = { "DFFFFF", "D7F9FC", "CFF3F9", "C7EDF6", "BFE7F3", "B7E1F0", "AFDBED", "ACD9EA", "A1CEDF", "96C3D4", "8BB8C9", "80ADBE", "75A2B3", "6A97A8", "5F8C9D", "5E8B9C" } }, -- 20
+  { flat = "728637", ramp = { "B8C58D", "ADBB7F", "A2B171", "97A763", "8C9D55", "819347", "768939", "728637", "697D30", "607429", "576B22", "4E621B", "455914", "3C500D", "334706", "314300" } }, -- 21
+  { flat = "FFC000", ramp = { "FFED66", "FFE655", "FFDF44", "FFD833", "FFD122", "FFCA11", "FFC300", "FFC000", "F4B500", "E9AA00", "DE9F00", "D39400", "C88900", "BD7E00", "B27300", "B17200" } }, -- 22
+  { flat = "FF6C00", ramp = { "FFB266", "FFA755", "FF9C44", "FF9133", "FF8622", "FF7B11", "FF7000", "FF6C00", "F46100", "E95600", "DE4B00", "D34000", "C83500", "BD2A00", "B21F00", "B11E00" } }, -- 23
+  { flat = "C4D495", ramp = { "F0FBCF", "E9F5C6", "E2EFBD", "DBE9B4", "D4E3AB", "CDDDA2", "C6D799", "C4D495", "B9C98A", "AEBE7F", "A3B374", "98A869", "8D9D5E", "829253", "778748", "768647" } }, -- 24
+  { flat = "75FFAD", ramp = { "B9FFE0", "AEFFD8", "A3FFD0", "98FFC8", "8DFFC0", "82FFB8", "77FFB0", "75FFAD", "6AF4A2", "5FE997", "54DE8C", "49D381", "3EC876", "33BD6B", "28B260", "27B15F" } }, -- 25
+  { flat = "BDC844", ramp = { "FEFFA8", "F4F698", "EAED88", "E0E478", "D6DB68", "CCD258", "C2C948", "BDC844", "AEBB41", "9FAE3E", "90A13B", "819438", "728735", "637A32", "546D2F", "506829" } }, -- 26
+  { flat = "AF8652", ramp = { "E8CBA6", "DFC098", "D6B58A", "CDAA7C", "C49F6E", "BB9460", "B28952", "AF8652", "A47B47", "99703C", "8E6531", "835A26", "784F1B", "6D4410", "623905", "613804" } }, -- 27
+  { flat = "6F530A", ramp = { "B7A470", "AB975F", "9F8A4E", "937D3D", "87702C", "7B631B", "6F560A", "6F530A", "664A0A", "5D410A", "54380A", "4B2F0A", "42260A", "391D0A", "30140A", "301407" } }, -- 28
+  { flat = "485B2C", ramp = { "919F7E", "859471", "798964", "6D7E57", "61734A", "55683D", "495D30", "485B2C", "425227", "3C4922", "36401D", "303718", "2A2E13", "24250E", "1E1C09", "1A1C07" } }, -- 29
+  { flat = "FBC7FF", ramp = { "FFF2FF", "FFEBFF", "FFE4FF", "FFDDFF", "FFD6FF", "FFCFFF", "FFC8FF", "FBC7FF", "F0BCF4", "E5B1E9", "DAA6DE", "CF9BD3", "C490C8", "B985BD", "AE7AB2", "AD79B1" } }, -- 30
+  { flat = "C6A7ED", ramp = { "F1DCFF", "EAD4FC", "E3CCF9", "DCC4F6", "D5BCF3", "CEB4F0", "C7ACED", "C6A7ED", "BB9CE2", "B091D7", "A586CC", "9A7BC1", "8F70B6", "8465AB", "795AA0", "78599F" } }, -- 31
 }
 
 -- The icon files of the advances and buildings of the bundled rules
@@ -222,8 +225,8 @@ return function(civ3_textures)
   c7_textures.icons.map_food.crop_region = { 470, 7, 21, 21 }
 
   c7_textures.civ_colors = {}
-  for i, hex_color in ipairs(civ_colors) do
-    c7_textures.civ_colors["color_" .. (i-1)] = { path = "", hex_color = hex_color }
+  for i, color in ipairs(civ_colors) do
+    c7_textures.civ_colors["color_" .. (i-1)] = { path = "", hex_color = color.flat, ramp = color.ramp }
   end
 
   c7_textures.animations.cursor = {

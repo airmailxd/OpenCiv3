@@ -114,6 +114,8 @@ public static class PlayerTextureUtil {
 	}
 
 	private static readonly StringName TintColorParameter = "tintColor";
+	private static readonly StringName RampParameter = "ramp";
+	private static readonly StringName UseRampParameter = "useRamp";
 
 	// Returns the material that tints units with a civ color, shared by all units with that color.
 	public static ShaderMaterial GetShaderMaterialForUnit(int civIndex) {
@@ -124,6 +126,10 @@ public static class PlayerTextureUtil {
 		material.Shader = GD.Load<Shader>("res://UnitTint.gdshader");
 		Color civColor = TextureLoader.LoadColor(civIndex);
 		material.SetShaderParameter(TintColorParameter, new Vector3(civColor.R, civColor.G, civColor.B));
+		// Civ3 shades units' civ-colored parts with the civ palette's ramp, not one color.
+		Vector3[] ramp = TextureLoader.LoadColorRamp(civIndex).Select(c => new Vector3(c.R, c.G, c.B)).ToArray();
+		material.SetShaderParameter(RampParameter, ramp);
+		material.SetShaderParameter(UseRampParameter, true);
 		materialCache[civIndex] = material;
 		return material;
 	}

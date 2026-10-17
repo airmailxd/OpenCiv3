@@ -2,6 +2,7 @@ using System;
 using Godot;
 using ConvertCiv3Media;
 using System.Collections.Generic;
+using System.Linq;
 using System.IO;
 using System.Reflection;
 using MoonSharp.Interpreter;
@@ -58,6 +59,9 @@ public static class TextureLoader {
 
 		// For civ-colors, a modern replacement for the 1x1 px pcx images.
 		public string HexColor = null;
+		// For civ-colors, the 16 shades, light to dark, that units' civ-colored
+		// parts are drawn with (Civ3's ntp palette entries 0-15).
+		public string[] HexRamp = null;
 
 		// Animation-specific settings
 		public float FrameDuration = 0.5f;
@@ -326,6 +330,38 @@ public static class TextureLoader {
 		return color;
 	}
 
+	/// The 16 shades of a "civ index", light to dark, that the civ-colored
+	/// parts of units are drawn with: Civ3's ntp palette entries 0-15 (its
+	/// pcx's palette, or the config's "ramp" in standalone mode). Without
+	/// either, the flat color shaded like Civ3's grey ntp00 ramp.
+	public static Color[] LoadColorRamp(int civIndex) {
+		if (rampCache.TryGetValue(civIndex, out Color[] cached))
+			return cached;
+
+		ConfigEntry config = ParseConfigEntry(GetEntryByPath($"civ_colors.color_{civIndex}"));
+		Color[] ramp = new Color[RampLength];
+		if (config.HexRamp != null && config.HexRamp.Length >= RampLength) {
+			for (int i = 0; i < RampLength; i++)
+				ramp[i] = new Color(code: config.HexRamp[i]);
+		} else if (config.HexColor == null && config.Path.EndsWith(".pcx", StringComparison.OrdinalIgnoreCase)) {
+			Pcx pcx = LoadPCX(config.Path);
+			for (int i = 0; i < RampLength; i++)
+				ramp[i] = Color.Color8(pcx.Palette[i, 0], pcx.Palette[i, 1], pcx.Palette[i, 2]);
+		} else {
+			Color flat = LoadColor(civIndex);
+			for (int i = 0; i < RampLength; i++)
+				ramp[i] = flat * (GreyRamp[i] / GreyRamp[7]);
+		}
+		rampCache[civIndex] = ramp;
+		return ramp;
+	}
+
+	public const int RampLength = 16;
+	// The grey shades of Civ3's ntp00 ramp (0-1), which the unit tint layers are drawn in.
+	public static readonly float[] GreyRamp = [0.984f, 0.973f, 0.961f, 0.949f, 0.937f, 0.925f, 0.914f, 0.902f,
+		0.843f, 0.784f, 0.725f, 0.667f, 0.608f, 0.549f, 0.490f, 0.490f];
+	private static readonly Dictionary<int, Color[]> rampCache = new();
+
 	/// Gets the color for a "civ index" at full saturation, which stands out
 	/// more, for example on the mini map.
 	public static Color LoadIntensifiedColor(int civIndex) {
@@ -417,6 +453,7 @@ public static class TextureLoader {
 				ShadowsSpecified = shadows != null,
 				AlphaRowOffset = Convert.ToInt32(table["alpha_row_offset"] ?? 0),
 				HexColor = table["hex_color"]?.ToString(),
+				HexRamp = table["ramp"] is Table ramp ? ramp.Values.Select(v => v.ToPrintString().Trim('"')).ToArray() : null,
 
 				FrameDuration = (float)Convert.ToDouble(table["frame_duration"] ?? 0.5),
 				AnimationRows = Convert.ToInt32(table["animation_rows"] ?? 0),
@@ -642,6 +679,7 @@ public static class TextureLoader {
 		objectMappingCache.Clear();
 		animationCache.Clear();
 		colorCache = [];
+		rampCache.Clear();
 		intensifiedColorCache = [];
 		pureValueMappingCache.Clear();
 		entryByPathCache.Clear();
