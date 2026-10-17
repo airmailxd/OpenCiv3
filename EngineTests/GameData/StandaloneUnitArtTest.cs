@@ -119,10 +119,11 @@ public class StandaloneUnitArtTest {
 				}
 				UnitArtMetadata.Flic flic = metadata.GetFlic(flicName);
 				int cellWidth = flic.Width * 2, cellHeight = flic.Height * 2;
-				int[] columns = still ? [1] : loop || whole ? [flic.Frames] : [(flic.Frames + 1) / 2, flic.Frames];
-				// The remastered units (ArtGen/units3d) are stills: one pose, one column,
-				// shown for every action (UnitArtMetadata.SheetColumn).
-				columns = [1, .. columns];
+				// A still (one column, the remastered units' one pose) stands for every
+				// frame; an animated sheet may have fewer columns than the flic has
+				// frames (the remastered animations render at most 8), which
+				// UnitArtMetadata.SheetColumn spreads over the frames.
+				int[] columns = still ? [1] : Enumerable.Range(1, Math.Max(1, flic.Frames)).ToArray();
 				foreach (string suffix in new[] { "", "_tint" }) {
 					string sheet = FindIgnoringCase(folder, flicName + suffix + ".png");
 					if (sheet == null) {
