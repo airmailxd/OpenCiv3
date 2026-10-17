@@ -431,7 +431,7 @@ REMASTER = {
         # shoulders to the ankles with a gold hem and a brown belt, a small
         # round brown wooden shield (per the original), a flail at the knee
         'macro': {'muscle': 1.0, 'weight': 0.9, 'height': 0.78, 'proportions': 0.68},
-        'colors': {'iron': '#c8ccd4', 'skin': '#94704f', 'helmet': '#6a6c70', 'mail': '#5a5a5e', 'belt': '#3a2818',
+        'colors': {'iron': '#7e828a', 'skin': '#94704f', 'helmet': '#6a6c70', 'mail': '#5a5a5e', 'belt': '#3a2818',
                    'bracers': '#5a5a5e', 'greaves': '#6e7074', 'steel': '#8a8c90',
                    'wood': '#4a3222', 'shield_face': '#7a5434', 'shield_rim': '#3a3a3e', 'bronze': '#6e7074',
                    'boots': '#8a8c90'},   # steel sabatons, not white

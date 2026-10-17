@@ -620,7 +620,7 @@ def _dots(rx, period=0.11, r=0.028, scatter=False):
     def keys(f):
         c = f.calc_center_median()
         if scatter:
-            return ('blanket2', False) if _n.noise(c * 13.0 + Vector((5.0, 2.0, 9.0))) > 0.45 else None
+            return ('blanket2', False) if _n.noise(c * 26.0 + Vector((5.0, 2.0, 9.0))) > 0.22 else None
         u, v = c.y / period, c.z / period
         if int(math.floor(v)) % 2:
             u += 0.5
@@ -799,6 +799,8 @@ def asset_tack(root, body, colors, h=None):
         else:
             y0, y1 = yh + 0.05 * (yf - yh), yf - h.get('dots_front', 0.15) * (yf - yh)
             cap, rings = drape(vs, y0, y1, h.get('dots_hem', knee), gap=0.04, folds=0.018)
+            if h.get('dot_scatter'):   # fine faces, so the scatter makes spots, not streaks
+                props.bmesh.ops.subdivide_edges(cap, edges=cap.edges[:], cuts=3, use_grid_fill=True)
             p.add(cap, 'tint', smooth=True, tint=True, keys=_dots(0.0, scatter=h.get('dot_scatter', False)))
         if rings:
             hem_line(rings, trim)
@@ -864,6 +866,11 @@ def asset_tack(root, body, colors, h=None):
         else:
             plate = props.ellipsoid(0.075, 0.03, 0.26, seg=14)
             p.add(plate, ck, Matrix.Translation(mid + front * 0.1) @ rot, smooth=True, tint=ck == 'tint')
+    if h.get('neck_cover_chest'):
+        front, frings = drape(vs, ys + 0.15, yf + 0.25, 0.75, gap=0.05, folds=0.012, zmin=0.6)
+        props.bmesh.ops.subdivide_edges(front, edges=front.edges[:], cuts=3, use_grid_fill=True)
+        p.add(front, 'tint', smooth=True, tint=True, keys=_dots(0.0, scatter=True))
+        hem_line(frings, trim)
     if h.get('neck_cover') == 'cloth':
         # a civ-colored cloth over the chest and the base of the neck (Egyptian chariot horses)
         front, frings = drape(vs, ys + 0.22, yf + 0.12, 0.95, gap=0.03, folds=0.012)
@@ -873,7 +880,8 @@ def asset_tack(root, body, colors, h=None):
         # a crinet: a sleeve over the neck, fitted to its measured cross-sections
         nb = arm.pose.bones['Bone.001']
         n0, n1 = arm.matrix_world @ nb.head, arm.matrix_world @ nb.tail
-        rings = [r for r in (_head_ring(vs, n0, n1, t, grow=0.02) for t in (0.12, 0.3, 0.48, 0.66, 0.84)) if r]
+        grow_ = 0.045 if h.get('neck_cover') == 'cloth_sleeve' else 0.02
+        rings = [r for r in (_head_ring(vs, n0, n1, t, grow=grow_) for t in (0.0, 0.12, 0.3, 0.48, 0.66, 0.84, 0.97)) if r]
         if h.get('neck_cover') == 'lames':
             # overlapping steel plates over the top of the neck, a dark seam and rivets on each
             for i, t_ in enumerate([0.08 + 0.085 * k for k in range(10)]):
@@ -891,6 +899,8 @@ def asset_tack(root, body, colors, h=None):
             rings = []
         if len(rings) >= 2:
             sleeve = props.loft(rings, False, False)
+            if h.get('neck_cover') == 'cloth_sleeve':
+                props.bmesh.ops.subdivide_edges(sleeve, edges=sleeve.edges[:], cuts=3, use_grid_fill=True)
             cloth_cover = h.get('neck_cover') in ('cloth', 'cloth_sleeve')
             p.add(sleeve, 'tint' if cloth_cover else 'barding_mail', smooth=True, tint=cloth_cover,
                   keys=_dots(0.0, scatter=True) if cloth_cover else _scales())
@@ -1014,8 +1024,8 @@ HORSE_COAT_OVERRIDES = {
 TACK_OVERRIDES = {
     # Civ3's Sipahi: a civ caparison scattered with white spots over the neck to the ears, chest and flanks nearly to
     # the hocks, a civ cloth over the head with a white plume, a gold saddle on a red cloth, tassels
-    'Sipahi': {'neck_cover': 'cloth_sleeve', 'dot_scatter': True, 'dots_front': -0.05, 'dots_hem': 0.5, 'chanfron': 'tint',
-               'saddle': '#c4a462', 'breast_strap': 'trim', 'tassels': 'trim'},
+    'Sipahi': {'neck_cover': 'cloth_sleeve', 'dot_scatter': True, 'dots_front': -0.05, 'dots_hem': 0.7, 'chanfron': 'tint',
+               'saddle': '#c4a462', 'breast_strap': 'trim', 'tassels': 'trim', 'neck_cover_chest': True},
     # Civ3's Conquistador: a padded cream trapper with a gold fringe, gold leather breast strap and crupper
     'Conquistador': {'blanket_color': '#d8c8a0', 'trim': '#c4a462', 'breast_strap': 'trim', 'crupper': 'trim', 'tassels': 'trim',
                      'cloth_back': 0.6, 'cloth_drop': 0.34},
