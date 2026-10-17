@@ -623,11 +623,19 @@ def stone_axe(p, length=0.52, scale=1.0):
         p.add(tube(strap, 0.006, seg=6), 'rope', smooth=True)
 
 
-def spear(p, length=2.3, grip=0.95, butt=True, scale=1.0, shaft=None, head=1.0, shaft_tint=False, flat=0.3):
+def spear(p, length=2.3, grip=0.95, butt=True, scale=1.0, shaft=None, head=1.0, shaft_tint=False, flat=0.3,
+          wrap=False):
     """A long ash spear held `grip` m from its butt: a leaf-shaped iron head on
     a socket, a leather grip binding and an optional butt spike. shaft_tint
-    paints the shaft in the civ color."""
+    paints the shaft in the civ color; wrap: a fur wrap below the head with
+    feathers hanging from it (King Iroquois)."""
     z0, z1 = -grip, length - grip
+    if wrap:
+        zs = z1 - 0.32 * scale
+        p.add(ellipsoid(0.045 * scale, 0.045 * scale, 0.12 * scale, seg=12), 'fur', T(0, 0, zs), smooth=True)
+        for k, (dx, dy) in enumerate(((0.05, 0.0), (-0.04, 0.03), (0.0, -0.05))):
+            feather_card(p, (dx * scale, dy * scale, zs - 0.06 * scale), (dx * 2.2 * scale, dy * 2.2 * scale, zs - 0.3 * scale),
+                         (dx, dy + 0.01, 0.0), 0.04 * scale, 'tint' if k == 1 else 'feather', tint=k == 1, curl=0.05)
     # the shaft is kept at least SHAFT_R thick so it stays ~1 px wide at 1x
     r = shaft or SHAFT_R
     p.add(tube([(0, 0, z0 + 0.06), (0, 0, z1 - 0.2)], [r + 0.002, r], seg=10), 'tint' if shaft_tint else 'wood',
@@ -1655,6 +1663,29 @@ def frogging(p, scale=1.0, rows=5):
         p.add(ellipsoid(0.011 * s, 0.011 * s, 0.011 * s, seg=10), 'braid_gold', T(0, 0.01 * s, z), smooth=True)
 
 
+def broad_collar(p, scale=1.0, held=True):
+    """A broad jeweled gold collar over the shoulders (chest_gear: origin mid-
+    chest, +Y out, +Z up), and (held) a small white casket at the clasped hands."""
+    s = scale
+    ring = []
+    for i in range(25):
+        a = math.pi * (-0.9 + 1.8 * i / 24)
+        ring.append((0.14 * s * math.sin(a), 0.06 * s * math.cos(a), 0.17 * s - 0.03 * s * math.cos(a)))   # lying on the chest
+    p.add(tube(ring, 0.03 * s, seg=8, scale_xy=(1.0, 0.35)), 'gold', smooth=True)
+    for i in range(0, 25, 3):
+        x, y, z = ring[i]
+        p.add(ellipsoid(0.014 * s, 0.01 * s, 0.014 * s, seg=8), 'gold_gem' if i % 2 else 'jewel', T(x, y + 0.012 * s, z - 0.01 * s), smooth=True)
+    if held:
+        p.add(box(0.07 * s, 0.05 * s, 0.05 * s), 'pearl', T(0, 0.1 * s, -0.17 * s), bevel=0.008 * s)
+        p.add(box(0.074 * s, 0.054 * s, 0.012 * s), 'gold', T(0, 0.1 * s, -0.15 * s), bevel=0.003 * s)
+
+
+DEFAULTS.setdefault('pearl', ('#f0ece0', 0.25, 0.0, 'polished'))
+DEFAULTS.setdefault('fur', ('#3a2e26', 0.95, 0.0, 'rope'))
+DEFAULTS.setdefault('gold_gem', ('#3a6ac8', 0.15, 0.0, 'polished'))
+DEFAULTS.setdefault('jewel', ('#b0202a', 0.15, 0.0, 'polished'))
+
+
 def chute_pack(p, size=1.0):
     """A paratrooper's parachute container for the back (as backpack: the
     straps' top at the origin, the load toward -Y): a big squared grey pack,
@@ -2212,6 +2243,7 @@ BUILDERS = {
     'wolfhound': wolfhound,
     'war_dog': war_dog,
     'gazyri': gazyri,
+    'broad_collar': broad_collar,
     'frogging': frogging,
     'microphone': microphone,
     'pipe': pipe,

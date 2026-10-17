@@ -797,9 +797,10 @@ def war_bonnet(p, c, tinted, _):
     p.add(props.lathe([(0.0, 0.115), (0.04, 0.115)], seg=24), 'tint', smooth=True, tint=True)
     n = 19
     for i in range(n):
-        a = math.radians(-160 + 320 * i / (n - 1))
+        a = math.radians(55 + 250 * i / (n - 1))   # from +Y (the front): round the sides and back, the face open
+        up = 0.08 * max(0.0, -math.cos(a))          # tallest at the back: a halo over the head from the front
         base = (0.115 * math.sin(a), 0.115 * math.cos(a), 0.03)
-        tip = (0.26 * math.sin(a), 0.2 * math.cos(a) - 0.07, 0.3)
+        tip = (0.3 * math.sin(a), 0.24 * math.cos(a) - 0.05, 0.22 + up)
         mid = tuple(b + 0.8 * (t - b) for b, t in zip(base, tip))
         p.add(props.tube([base, mid], [0.018, 0.03], seg=5, scale_xy=(1.0, 0.3)), 'feather', smooth=True)
         p.add(props.tube([mid, tip], [0.03, 0.012], seg=5, scale_xy=(1.0, 0.3)), 'tint', smooth=True, tint=True)
@@ -809,6 +810,35 @@ def war_bonnet(p, c, tinted, _):
             pts = [(sx * 0.03, -0.12 - 0.01 * j, z), (sx * 0.1, -0.16 - 0.01 * j, z - 0.03)]
             p.add(props.tube(pts, [0.016, 0.022], seg=5, scale_xy=(1.0, 0.3)), 'feather' if j % 3 else 'tint',
                   smooth=True, tint=j % 3 == 0)
+
+
+props.DEFAULTS.setdefault('pearl', ('#f0ece0', 0.25, 0.0, 'polished'))
+
+
+@hat('byz_crown')
+def byz_crown(p, c, tinted, _, height=0.16):
+    """King Byzantines (Theodora): a tall crown, its band civ-colored between gold
+    rims, gold ribs over it, gems, a gold cross on top and pearl pendilia hanging
+    at the temples."""
+    h = height
+    p.add(props.lathe([(0.0, 0.118), (h * 0.95, 0.128)], seg=28), 'tint', smooth=True, tint=True)
+    for z in (0.0, h * 0.95):
+        p.add(props.lathe([(z - 0.012, 0.124 + z * 0.06), (z + 0.016, 0.126 + z * 0.06)], seg=28), 'gold', smooth=True)
+    for k in range(8):   # gold ribs with a gem on each
+        a = 2 * math.pi * k / 8
+        x, y = math.sin(a), math.cos(a)
+        p.add(props.box(0.022, 0.01, h * 0.9), 'gold', T(x * 0.127, y * 0.127, h * 0.47) @ R('Z', -math.degrees(a)))
+        p.add(props.ellipsoid(0.016, 0.01, 0.02, seg=10), 'jewel' if k % 2 else 'gold_gem',
+              T(x * 0.134, y * 0.134, h * 0.5) @ R('Z', -math.degrees(a)), smooth=True)
+    p.add(props.ellipsoid(0.12, 0.12, 0.04, seg=24), 'gold', T(0, 0, h * 0.95), smooth=True)   # the domed top
+    p.add(props.box(0.014, 0.014, 0.08), 'gold', T(0, 0, h * 0.95 + 0.07))
+    p.add(props.box(0.05, 0.014, 0.014), 'gold', T(0, 0, h * 0.95 + 0.08))
+    for sx in (-1, 1):   # pearl pendilia at the temples
+        for j in range(4):
+            p.add(props.ellipsoid(0.013, 0.013, 0.013, seg=8), 'pearl', T(sx * 0.13, 0.03, -0.02 - 0.035 * j), smooth=True)
+
+
+props.DEFAULTS.setdefault('gold_gem', ('#3a6ac8', 0.15, 0.0, 'polished'))
 
 
 @hat('beret_feather')

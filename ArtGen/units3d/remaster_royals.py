@@ -290,13 +290,13 @@ REMASTER = {
         'colors': {'skin': '#d0aa8c', 'hair': '#2a1a10', 'helmet': '#b08a2e', 'top': '#e8e2cc',
                    'bottom': '#e8e2cc', 'belt': '#b08a2e', 'sandal': '#b08a2e', 'gold': '#b08a2e'},
         # MISSING: crown_panels (the original's tall crown is red/tinted with gold bands)
-        'gender': 0.0, 'helmet': 'crown', 'crown': 'tall', 'crown_height': 0.08, 'crown_gems': '#3a6ac8',
+        'gender': 0.0, 'helmet': None, 'headgear': 'byz_crown',   # the tall civ crown with gold ribs, gems and pendilia
         'hair': 'long', 'hair_asset': 'long01', 'beard': False,
         'top': 'sleeved', 'wide_sleeves': True, 'neck': 'high',
         'bottom': 'gown', 'robe_drop': 0.55,
         'patterns': {'bottom': ('panel', '#b08a2e', 0.04)},   # the gold front stripe, full length (the cape covers the back)
         'hem_bands': [('bottom', 'gold', 0.07), ('cape', 'gold', 0.08)],
-        'bands': [('neck', 'gold', 0.06)],      # a wider gold collar; MISSING: broad_collar (gold jeweled)
+        'chest_gear': ('broad_collar', {'scale': 1.05}), 'chest_out': 0.0,   # the jeweled gold collar and the small white casket
         'cape': True, 'cape_length': 1.38,
         'cuirass': False, 'wraps': None, 'sandals': True, 'bracers': False, 'gear': [],
         'weapon': None, 'offhand': None,        # MISSING: small_object (white, held at the chest)
@@ -572,8 +572,8 @@ REMASTER = {
         'cuirass': False, 'wraps': None, 'sandals': True, 'bracers': False,
         # MISSING: tinted_tip (the stick's top; no key on 'staff')
         'weapon': 'staff', 'props': {'staff': ('staff', {'length': 1.55, 'grip': 0.95})},
-        'pose_extra': [('spine_02', (0, -0.3, 1)), ('neck_01', (0, -0.12, 1)), ('head', (0, 0.25, 1))],   # the walking stoop (-y forward)
-        'stoop': True,   # frail by design: keeps the stoop (units.UPRIGHT straightens everyone else)
+        'pose_extra': [('spine_02', (0, -0.12, 1)), ('neck_01', (0, -0.06, 1)), ('head', (0, 0.12, 1))],   # a slight stoop (the original walks nearly upright)
+        # (no 'stoop': units.UPRIGHT straightens him, as the original walks nearly upright)
         'weapon_tip': 'tint',   # the tinted band at the stick's top
         'stance_name': 'stand_staff',           # MISSING: walking_stoop
         'tint': ['strap'],
@@ -589,7 +589,7 @@ REMASTER = {
         'colors': {'skin': '#9a7458', 'hair': '#141010', 'plume': '#e8e4da', 'wraps': '#5e4632',
                    'wraps_band': '#3e2e20', 'belt': '#5a3a22', 'sandal': '#5a3a22', 'wood': '#4a3222',
                    'steel': '#8a8c90', 'shield_face': '#d8ccb0', 'shield_rim': '#8a6a48', 'feather': '#e8e4da'},
-        'helmet': None, 'headgear': 'war_bonnet', 'headgear_scale': 0.6,   # white feathers, tinted tips and headband, the trailer (smaller again: 2-5 px clip at the cell top, dirs 5-7)
+        'helmet': None, 'headgear': 'war_bonnet', 'headgear_scale': 0.85,   # the halo round the back, the face open (fanned out, not tall)   # white feathers, tinted tips and headband, the trailer (smaller again: 2-5 px clip at the cell top, dirs 5-7)
         'hair': 'long', 'hair_asset': 'long01', 'beard': False,
         'top': None, 'bottom': 'loincloth', 'loin_length': (0.5, 0.45), 'torn': False,
         'wraps': 'wraps', 'sandals': False,     # MISSING: leggings (brown cloth), moccasins
@@ -598,7 +598,7 @@ REMASTER = {
         'cape': False, 'cuirass': False, 'bracers': False,
         # MISSING: feathered_spear (fur/feather wrap below the head)
         # upright from the low right fist; check the butt meets the ground
-        'weapon': 'spear', 'props': {'spear': ('spear', {'length': 1.9, 'grip': 0.8})}, 'hang_dir': (-0.05, 0.0, 1.0),
+        'weapon': 'spear', 'props': {'spear': ('spear', {'length': 1.9, 'grip': 0.8, 'wrap': True})}, 'hang_dir': (-0.05, 0.0, 1.0),   # the feathered spear
         'offhand': 'shield_round', 'offhand_mesh': ('shield_round', {'r': 0.25, 'boss': False, 'tint': 'none'}),
         'shield_at': 'back',                # BUG: it sits on the front of the thigh, not at the hip side
         'stance_name': 'fist_hip_l',            # left fist on the hip
