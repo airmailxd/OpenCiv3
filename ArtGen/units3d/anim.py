@@ -443,10 +443,20 @@ def setup(entry, own_gear=False):
         entry = dict(entry, weapon=None, offhand=None, props={})
     root = units.build_footman(entry)
     arm = next(o for o in bpy.data.objects if o.type == 'ARMATURE')
-    # the body: the skinned mesh with the most vertices (not a garment or strap, whose
-    # lowest point would plant the feet below the ground)
-    mesh = max((o for o in bpy.data.objects if o.type == 'MESH' and o.parent == arm
-                and any(m.type == 'ARMATURE' for m in o.modifiers)), key=lambda o: len(o.data.vertices))
+    # the body: of the skinned meshes, the one reaching lowest in the built pose (the feet), then
+    # the biggest. Not a garment or strap: its lowest point would plant the feet below the ground
+    # (the most vertices alone picked the Swiss Mercenary's puffed doublet)
+    skinned = [o for o in bpy.data.objects if o.type == 'MESH' and o.parent == arm
+               and any(m.type == 'ARMATURE' for m in o.modifiers)]
+    dg = bpy.context.evaluated_depsgraph_get()
+
+    def lowest(o):
+        ev = o.evaluated_get(dg)
+        me = ev.to_mesh()
+        z = min(((ev.matrix_world @ v.co).z for v in me.vertices), default=1e9)
+        ev.to_mesh_clear()
+        return z
+    mesh = min(skinned, key=lambda o: (round(lowest(o), 2), -len(o.data.vertices)))
     ctx = Context(root, arm, mesh, units._colors(entry))
     if own_gear:
         # every bone as units.equip left it (its stance, and any reach to a second grip), armature space
