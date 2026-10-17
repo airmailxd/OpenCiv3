@@ -509,7 +509,7 @@ REMASTER = {
         'macro': {'muscle': 0.95, 'weight': 0.75, 'height': 0.72, 'proportions': 0.7}, 'age': 0.55,
         'race': {'caucasian': 0.0, 'african': 0.0, 'asian': 1.0},
         'colors': {'skin': '#c8986c', 'hair': '#0e0c0c', 'bottom': '#2e2c40', 'top': '#ece8e0', 'belt': '#1a1824',
-                   'sandal': '#2a2018', 'lacquer': '#5a1c16', 'iron': '#8a7a58', 'cloth_wrap': '#dcd2bc',
+                   'sandal': '#2a2018', 'lacquer': '#8e2a1c', 'iron': '#c8a250', 'cloth_wrap': '#ece4d0',
                    'wraps': '#e8e4da', 'wraps_band': '#e8e4da', 'shoes': '#e8e4da'},
         'helmet': None, 'hair': 'topknot', 'hair_asset': None, 'topknot': 'topknot', 'beard': False,
         # the civ-color coat with wide untinted grey-lavender sleeves over it
@@ -524,7 +524,8 @@ REMASTER = {
         # (the owner, 2026-10-16: "has no sword"): the right hand on the hilt, the left
         # on the scabbard, a thicker katana with a light grip and a red-lacquered scabbard
         'weapon': None, 'offhand': None,
-        'hip': ('katana_sheathed', {'length': 0.78, 'thick': 1.5}),
+        'hip': ('katana_sheathed', {'length': 0.84, 'thick': 2.1}),
+        'hip_dir': (0.22, 0.66, -0.72),   # out from the body's silhouette, so it reads at 1x
         'hand_on_hilt': True,
         'stance_name': 'stand',
         'tint': [],                             # the kimono: white cloth flecked all over in the civ color (patterns)

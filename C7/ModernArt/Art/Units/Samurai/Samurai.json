@@ -13,7 +13,7 @@
     "SamuraiAttackA": {"size": [142, 91], "directions": 8, "frames": 15, "frameMs": 83, "offset": [47, 62], "canvas": [240, 240]},
     "SamuraiAttackB": {"size": [139, 104], "directions": 8, "frames": 15, "frameMs": 83, "offset": [48, 48], "canvas": [240, 240]},
     "SamuraiDeath": {"size": [141, 90], "directions": 8, "frames": 15, "frameMs": 66, "offset": [50, 66], "canvas": [240, 240]},
-    "SamuraiDefault": {"size": [42, 58], "directions": 8, "frames": 15, "frameMs": 125, "offset": [103, 77], "canvas": [240, 240]},
+    "SamuraiDefault": {"size": [44, 58], "directions": 8, "frames": 15, "frameMs": 125, "offset": [101, 77], "canvas": [240, 240]},
     "SamuraiFidget": {"size": [47, 58], "directions": 8, "frames": 15, "frameMs": 100, "offset": [98, 77], "canvas": [240, 240]},
     "SamuraiFortify": {"size": [94, 84], "directions": 8, "frames": 10, "frameMs": 66, "offset": [70, 56], "canvas": [240, 240]},
     "SamuraiRun": {"size": [45, 58], "directions": 8, "frames": 10, "frameMs": 66, "offset": [100, 77], "canvas": [240, 240]},
