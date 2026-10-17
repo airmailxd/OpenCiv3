@@ -1,20 +1,20 @@
 {
   "actions": {
-    "DEFAULT": "Hussar_default",
-    "RUN": "Hussar_run",
     "ATTACK1": "Hussar_attackA",
     "DEATH": "Hussar_death",
-    "FORTIFY": "Hussar_fortify",
+    "DEFAULT": "Hussar_default",
     "FIDGET": "Hussar_fidget",
+    "FORTIFY": "Hussar_fortify",
+    "RUN": "Hussar_run",
     "VICTORY": "Hussar_victory"
   },
   "flics": {
-    "Hussar_attackA": {"size": [84, 82], "directions": 8, "frames": 15, "frameMs": 66, "offset": [68, 52], "canvas": [240, 240]},
+    "Hussar_attackA": {"size": [94, 95], "directions": 8, "frames": 15, "frameMs": 66, "offset": [68, 52], "canvas": [240, 240]},
     "Hussar_death": {"size": [116, 92], "directions": 8, "frames": 15, "frameMs": 66, "offset": [61, 57], "canvas": [240, 240]},
-    "Hussar_default": {"size": [76, 70], "directions": 8, "frames": 15, "frameMs": 125, "offset": [76, 64], "canvas": [240, 240]},
-    "Hussar_fidget": {"size": [76, 70], "directions": 8, "frames": 15, "frameMs": 125, "offset": [76, 64], "canvas": [240, 240]},
-    "Hussar_fortify": {"size": [76, 73], "directions": 8, "frames": 10, "frameMs": 83, "offset": [76, 61], "canvas": [240, 240]},
-    "Hussar_run": {"size": [84, 73], "directions": 8, "frames": 10, "frameMs": 66, "offset": [74, 62], "canvas": [240, 240]},
-    "Hussar_victory": {"size": [85, 87], "directions": 8, "frames": 15, "frameMs": 66, "offset": [69, 48], "canvas": [240, 240]}
+    "Hussar_default": {"size": [86, 86], "directions": 8, "frames": 15, "frameMs": 125, "offset": [76, 61], "canvas": [240, 240]},
+    "Hussar_fidget": {"size": [86, 86], "directions": 8, "frames": 15, "frameMs": 125, "offset": [76, 61], "canvas": [240, 240]},
+    "Hussar_fortify": {"size": [86, 86], "directions": 8, "frames": 10, "frameMs": 83, "offset": [76, 61], "canvas": [240, 240]},
+    "Hussar_run": {"size": [88, 86], "directions": 8, "frames": 10, "frameMs": 66, "offset": [74, 61], "canvas": [240, 240]},
+    "Hussar_victory": {"size": [93, 99], "directions": 8, "frames": 15, "frameMs": 66, "offset": [69, 48], "canvas": [240, 240]}
   }
 }

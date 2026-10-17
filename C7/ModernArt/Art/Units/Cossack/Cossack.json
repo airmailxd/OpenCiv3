@@ -1,20 +1,20 @@
 {
   "actions": {
-    "DEFAULT": "CossackDefault",
-    "RUN": "CossackRun",
     "ATTACK1": "CossackAttackA",
     "DEATH": "CossackDeath",
-    "FORTIFY": "CossackFortify",
+    "DEFAULT": "CossackDefault",
     "FIDGET": "CossackFidget",
+    "FORTIFY": "CossackFortify",
+    "RUN": "CossackRun",
     "VICTORY": "CossackVictory"
   },
   "flics": {
-    "CossackAttackA": {"size": [65, 74], "directions": 8, "frames": 15, "frameMs": 83, "offset": [84, 59], "canvas": [240, 240]},
-    "CossackDeath": {"size": [113, 87], "directions": 8, "frames": 15, "frameMs": 83, "offset": [64, 62], "canvas": [240, 240]},
-    "CossackDefault": {"size": [66, 68], "directions": 8, "frames": 15, "frameMs": 125, "offset": [84, 67], "canvas": [240, 240]},
-    "CossackFidget": {"size": [66, 69], "directions": 8, "frames": 15, "frameMs": 83, "offset": [84, 66], "canvas": [240, 240]},
-    "CossackFortify": {"size": [66, 76], "directions": 8, "frames": 10, "frameMs": 66, "offset": [84, 58], "canvas": [240, 240]},
-    "CossackRun": {"size": [73, 70], "directions": 8, "frames": 7, "frameMs": 66, "offset": [82, 67], "canvas": [240, 240]},
-    "CossackVictory": {"size": [69, 87], "directions": 8, "frames": 15, "frameMs": 83, "offset": [83, 49], "canvas": [240, 240]}
+    "CossackAttackA": {"size": [81, 87], "directions": 8, "frames": 15, "frameMs": 83, "offset": [84, 59], "canvas": [240, 240]},
+    "CossackDeath": {"size": [113, 88], "directions": 8, "frames": 15, "frameMs": 83, "offset": [64, 61], "canvas": [240, 240]},
+    "CossackDefault": {"size": [81, 85], "directions": 8, "frames": 15, "frameMs": 125, "offset": [84, 61], "canvas": [240, 240]},
+    "CossackFidget": {"size": [81, 85], "directions": 8, "frames": 15, "frameMs": 83, "offset": [84, 61], "canvas": [240, 240]},
+    "CossackFortify": {"size": [81, 88], "directions": 8, "frames": 10, "frameMs": 66, "offset": [84, 58], "canvas": [240, 240]},
+    "CossackRun": {"size": [83, 85], "directions": 8, "frames": 7, "frameMs": 66, "offset": [82, 61], "canvas": [240, 240]},
+    "CossackVictory": {"size": [82, 97], "directions": 8, "frames": 15, "frameMs": 83, "offset": [83, 49], "canvas": [240, 240]}
   }
 }
