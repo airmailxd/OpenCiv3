@@ -359,7 +359,13 @@ def _coat_material(h):
             mask = blob if mask is None else math_('MAXIMUM', mask, blob)
         L.new(mask, aov.inputs['Value'])
         light = (0.82 ** 2.2,) * 3 + (1.0,)   # tinted parts render light gray, as bscene.material's
-        L.new(mix(dark.outputs['Color'], light, mask), p.inputs['Base Color'])
+        under = dark.outputs['Color']
+        for py, pz, pr, pcol in cs.get('pale', []):   # a pale patch of coat under the paint (the Mounted Warrior's haunch)
+            dy = math_('SUBTRACT', sepo.outputs['Y'], py)
+            dz = math_('SUBTRACT', sepo.outputs['Z'], pz)
+            d = math_('SQRT', math_('ADD', math_('MULTIPLY', dy, dy), math_('MULTIPLY', dz, dz)), 0.0)
+            under = mix(under, mix(_lin(pcol), gray.outputs['Color'], 1.0, 'MULTIPLY'), maprange(d, pr - 0.04, pr, 1.0, 0.0))
+        L.new(mix(under, light, mask), p.inputs['Base Color'])
     else:
         L.new(dark.outputs['Color'], p.inputs['Base Color'])
     return m
@@ -393,11 +399,38 @@ def _hair_material(h):
     for ch in ('Red', 'Green', 'Blue'):
         L.new(k.outputs['Result'], comb.inputs[ch])
     L.new(comb.outputs['Color'], tone.inputs['B'])
-    L.new(tone.outputs['Result'], p.inputs['Base Color'])
     L.new(tex.outputs['Alpha'], p.inputs['Alpha'])
     aov = N.new('ShaderNodeOutputAOV')
     aov.aov_name = 'tint'
     aov.inputs['Value'].default_value = 0.0
+    tip = h.get('tail_tip')
+    if tip:
+        # the tail's lower part bound in a civ wrap (Civ3's Hussar): below z = tip, behind the rump
+        stc = N.new('ShaderNodeTexCoord')
+        stc.name = 'spot_tc'   # horse_asset points it at the unit's root
+        sep = N.new('ShaderNodeSeparateXYZ')
+        L.new(stc.outputs['Object'], sep.inputs['Vector'])
+        lo = N.new('ShaderNodeMath')
+        lo.operation = 'LESS_THAN'
+        lo.inputs[1].default_value = tip
+        L.new(sep.outputs['Z'], lo.inputs[0])
+        back = N.new('ShaderNodeMath')
+        back.operation = 'LESS_THAN'
+        back.inputs[1].default_value = -0.8
+        L.new(sep.outputs['Y'], back.inputs[0])
+        both = N.new('ShaderNodeMath')
+        both.operation = 'MULTIPLY'
+        L.new(lo.outputs['Value'], both.inputs[0])
+        L.new(back.outputs['Value'], both.inputs[1])
+        mx = N.new('ShaderNodeMix')
+        mx.data_type = 'RGBA'
+        L.new(both.outputs['Value'], mx.inputs['Factor'])
+        L.new(tone.outputs['Result'], mx.inputs['A'])
+        mx.inputs['B'].default_value = (0.82 ** 2.2,) * 3 + (1.0,)
+        L.new(mx.outputs['Result'], p.inputs['Base Color'])
+        L.new(both.outputs['Value'], aov.inputs['Value'])
+    else:
+        L.new(tone.outputs['Result'], p.inputs['Base Color'])
     return m
 
 
@@ -463,6 +496,8 @@ def horse_asset(root, colors, neck_raise=-38.0):
     if 'spot_tc' in coat.node_tree.nodes:
         coat.node_tree.nodes['spot_tc'].object = root
     hair = _hair_material(colors)
+    if 'spot_tc' in hair.node_tree.nodes:
+        hair.node_tree.nodes['spot_tc'].object = root
     eye = bpy.data.materials.new('horse_eye')
     eye.use_nodes = True
     eye.node_tree.nodes['Principled BSDF'].inputs['Base Color'].default_value = (0.01, 0.008, 0.006, 1)
@@ -1095,7 +1130,7 @@ RIDER_WEAPON_UP = {
 }
 WEAPON_UP_BY_UNIT = {'Conquistador': (0.05, 0.12, 1.0),   # the lance held upright (the original)
                      'Cavalry': (-1.0, 0.25, 0.08),       # the carbine level across the saddle
-                     'Cossack': (-1.0, 0.25, 0.08)}
+                     'Cossack': (-1.0, 0.1, -0.3)}   # low across the saddle, the muzzle down
 RIDER_DEFAULTS = {
     'neck': 'high',
     'pose_extra': [('spine_01', (0, 0.12, 1)), ('spine_02', (0, 0.16, 1)), ('spine_03', (0, 0.14, 1)),
@@ -1116,7 +1151,7 @@ def mount(unit, h):
             c[k] = h[k]
     over = HORSE_COAT_OVERRIDES.get(unit, {})
     c.update({k: v for k, v in over.items() if k in c})
-    h = dict(h, **{k: v for k, v in over.items() if k in ('dapple', 'coat2', 'blanket_tint', 'coat_spots')})
+    h = dict(h, **{k: v for k, v in over.items() if k in ('dapple', 'coat2', 'blanket_tint', 'coat_spots', 'tail_tip')})
     h.update(TACK_OVERRIDES.get(unit, {}))
     root = vkit.root(unit)
     body = horse_asset(root, dict(h, **c))
@@ -1132,8 +1167,9 @@ HORSE_COAT_OVERRIDES = {
     'Horseman': {'coat': '#8a5430', 'mane': '#140e0a', 'points': '#1e1610'},
     # a dun (not a pinto), with civ war paint on the shoulder and the hindquarter
     'Mounted Warrior': {'coat': '#b08a58', 'coat2': None, 'mane': '#2e241a', 'points': '#5a4632',
-                        'coat_spots': {'blobs': [(-0.64, 1.2, 0.13), (-0.48, 0.98, 0.055), (-0.82, 1.0, 0.05),
-                                                  (0.6, 1.15, 0.12), (0.76, 0.95, 0.05)]}},
+                        'coat_spots': {'pale': [(-0.66, 1.08, 0.3, '#e2d8c2')],   # the cream haunch
+                                       'blobs': [(-0.66, 1.1, 0.16), (-0.42, 0.95, 0.06), (-0.88, 0.92, 0.06),
+                                                 (0.62, 1.1, 0.14), (0.8, 0.92, 0.06)]}},
     'Ancient Cavalry': {'coat': '#a88a5e', 'mane': '#2a2018', 'points': '#2e2418'},
     'Rider': {'coat': '#c8c8c4', 'dapple': '#9a9a98', 'mane': '#e0ded8', 'points': '#8a8a88',
               'coat_spots': {'scale': 6.0, 'size': 0.34, 'boxes': [(-1.15, -0.2, 0.55, 1.35)]}},   # civ specks on the haunch
@@ -1142,7 +1178,7 @@ HORSE_COAT_OVERRIDES = {
     'Sipahi': {'coat': '#6a4428', 'mane': '#2a1c12', 'points': '#2a1c12'},
     'Conquistador': {'coat': '#a0a0a2', 'dapple': '#5c5c60', 'mane': '#2a2826', 'points': '#3a3836', 'blanket_tint': False},
     'Cossack': {'coat': '#4a4a4e', 'dapple': '#7a7a80', 'mane': '#141416', 'points': '#1a1a1c'},   # a dapple grey
-    'Hussar': {'coat': '#a8865a', 'mane': '#1e1610', 'points': '#2a2018'},   # a dun with dark points, as the original
+    'Hussar': {'coat': '#a8865a', 'mane': '#1e1610', 'points': '#2a2018', 'tail_tip': 0.75},   # civ-bound tail tip   # a dun with dark points, as the original
     'Cavalry': {'coat': '#b8843c', 'mane': '#2e241a', 'points': '#3a2c1e', 'blanket_tint': True},
     'Ansar Warrior': {'coat': '#2e2e32', 'mane': '#121214', 'points': '#1c1c1e'},
 }
@@ -1165,7 +1201,7 @@ TACK_OVERRIDES = {
                'blanket': 'barding', 'barding_steel': '#c8ccd2'},
     'Horseman': {'nose_wrap': True, 'breast_strap': 'leather_dark'},
     # a civ-and-white patchwork blanket, civ tassels at the bridle and breast strap
-    'Mounted Warrior': {'blanket': 'saddle_cloth', 'blanket_tint': True, 'cloth_keys': 'patchwork', 'cloth_drop': 0.24,
+    'Mounted Warrior': {'blanket': 'saddle_cloth', 'blanket_tint': True, 'trim': '#c8a878', 'cloth_drop': 0.24,
                         'cloth_back': 0.5, 'breast_strap': 'tint', 'tassels': 'tint', 'throat_tassels': 'tint'},
     # long bold civ reins, a dark pelt saddle pad
     'Ancient Cavalry': {'reins_bold': True, 'rein_drop': 0.3, 'blanket': 'pelt', 'pelt_color': '#3a2e26', 'cloth_drop': 0.26,

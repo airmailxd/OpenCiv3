@@ -117,11 +117,11 @@ def papakha(p, c, tinted, _, low=False):
     """A Cossack's tall fur hat; low=True: Civ3's Cossack's low tan fur drum
     with a civ cloth top crossed by a gold braid."""
     if low:
-        p.add(props.lathe([(0.0, 0.116), (0.015, 0.126), (0.1, 0.128), (0.115, 0.12)], seg=28), 'fur', smooth=True)
+        p.add(props.lathe([(0.0, 0.116), (0.012, 0.128), (0.062, 0.13), (0.075, 0.122)], seg=28), 'fur', smooth=True)
         key, t = _k(tinted, 'hat')
-        p.add(props.ellipsoid(0.118, 0.118, 0.045, seg=24), key, T(0, 0, 0.11), smooth=True, tint=t)   # the civ crown
+        p.add(props.ellipsoid(0.12, 0.12, 0.085, seg=24), key, T(0, 0, 0.065), smooth=True, tint=t)   # the civ crown, over the head
         for a in (0, 90):   # the braided cross over the top
-            p.add(props.tube([(-0.1, 0, 0.125), (0, 0, 0.152), (0.1, 0, 0.125)], 0.008, seg=6), 'gold',
+            p.add(props.tube([(-0.1, 0, 0.11), (0, 0, 0.152), (0.1, 0, 0.11)], 0.008, seg=6), 'gold',
                   T(0, 0, 0) @ R('Z', a), smooth=True)
         return
     key, t = _k(tinted, 'fur')

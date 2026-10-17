@@ -278,8 +278,8 @@ def _pattern(tree, coord, base, pattern, tinted=False):
         front = m('LESS_THAN', sep3.outputs['Y'], 0.0)
         if kind == 'frogging':
             rows = nums[0] if nums else 6.0
-            zone = m('MULTIPLY', m('LESS_THAN', ax, 0.12 * sc), m('MULTIPLY', m('GREATER_THAN', z, 1.16 * sc), m('LESS_THAN', z, 1.44 * sc)))
-            band = m('GREATER_THAN', m('FRACT', m('MULTIPLY', m('SUBTRACT', z, 1.16 * sc), rows / (0.28 * sc)), 0.0), 0.62)
+            zone = m('MULTIPLY', m('LESS_THAN', ax, 0.14 * sc), m('MULTIPLY', m('GREATER_THAN', z, 1.14 * sc), m('LESS_THAN', z, 1.46 * sc)))
+            band = m('GREATER_THAN', m('FRACT', m('MULTIPLY', m('SUBTRACT', z, 1.14 * sc), rows / (0.32 * sc)), 0.0), 0.5)
         else:
             zone = m('MULTIPLY', m('MULTIPLY', m('GREATER_THAN', ax, 0.04 * sc), m('LESS_THAN', ax, 0.13 * sc)),
                      m('MULTIPLY', m('GREATER_THAN', z, 1.26 * sc), m('LESS_THAN', z, 1.4 * sc)))

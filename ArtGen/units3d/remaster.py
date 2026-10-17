@@ -93,11 +93,12 @@ REMASTER = {
     # Civ3's Cossack: a tan coat; only the papakha and belt are civ-colored
     # Civ3's Cossack: a low tan papakha with a civ top, gazyri across the chest, crossed civ straps, a shashka
     'Cossack': {'tint': ['hat', 'belt'], 'headgear_scale': [1.0, 1.0, 1.0], 'headgear_params': {'low': True},
-                'colors': {'fur': '#b4946a'}, 'patterns': {'top': ('gazyri', '#e8e0c8')}, 'hair': 'bald',   # no hair poking through the low hat
-                'gear': [('chest_strap', {'tint': True, 'width': 0.045, 'cross': True, 'offset': 0.03})],
+                'colors': {'fur': '#b4946a'}, 'patterns': {'top': ('gazyri', '#3a2a1e')}, 'hair': 'bald',   # no hair poking through the low hat
+                'gear': [('chest_strap', {'tint': True, 'width': 0.09, 'cross': True, 'offset': 0.03})],
                 'hip': ('sheathed_sword', {'length': 0.8})},
     # Civ3's Hussar: gold frogging and buttons, a corded shako with a tall plume, a sabre scabbard
-    'Hussar': {'headgear_params': {'cords': True}, 'patterns': {'top': ('frogging', '#e0b040', 6.0)},
+    'Hussar': {'headgear_params': {'cords': True}, 'patterns': {'top': ('frogging', '#e8b838', 5.0)},
+               'headgear_scale': [1.0, 1.0, 1.7], 'colors': {'plume': '#d8b048'},   # a tall civ shako, a small gold plume
                'hip': ('sheathed_sword', {'length': 0.85})},
     # Civ3's Keshik: a spiked bronze helm with a fur brim, maroon lamellar with civ rows and gold edges,
     # a bronze round shield on the back (the bow stays in hand)
