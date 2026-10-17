@@ -122,7 +122,31 @@ def seed_spray(p, count=26, spread=0.35, scale=1.0, seed=7):
         p.add(ellipsoid(0.012, 0.012, 0.009, seg=6), 'soil', T(x, y, z))
 
 
-for _name, _fn in (('mattock', mattock), ('stake', stake), ('seed_basket', seed_basket), ('seed_spray', seed_spray),
+def muzzle_flash(p, scale=1.0):
+    """A muzzle flash: a bright star of flame along +Z from the muzzle at the origin
+    (glowing, see anim._glow)."""
+    s = scale
+    p.add(ellipsoid(0.06 * s, 0.06 * s, 0.16 * s, seg=10), 'flash', T(0, 0, 0.12 * s), smooth=True)
+    for a in range(0, 360, 60):
+        x, y = math.cos(math.radians(a)) * 0.07 * s, math.sin(math.radians(a)) * 0.07 * s
+        p.add(ellipsoid(0.03 * s, 0.03 * s, 0.07 * s, seg=8), 'flash', T(x, y, 0.07 * s) @ R('X', 30 * math.sin(math.radians(a))), smooth=True)
+
+
+def smoke_puff(p, size=0.22, scale=1.0, seed=3):
+    """A puff of grey powder smoke about the origin: a few overlapping balls."""
+    import random
+    rnd = random.Random(seed)
+    s = size * scale
+    for _ in range(7):
+        r = s * rnd.uniform(0.35, 0.6)
+        p.add(ellipsoid(r, r, r * 0.85, seg=10), 'smoke',
+              T(rnd.uniform(-s, s) * 0.6, rnd.uniform(-s, s) * 0.6, rnd.uniform(-s, s) * 0.4), smooth=True)
+
+
+props.DEFAULTS.setdefault('flash', ('#fff2b0', 0.5, 0.0, None))
+props.DEFAULTS.setdefault('smoke', ('#c8c6c0', 0.95, 0.0, None))
+
+for _name, _fn in (('muzzle_flash', muzzle_flash), ('smoke_puff', smoke_puff), ('mattock', mattock), ('stake', stake), ('seed_basket', seed_basket), ('seed_spray', seed_spray),
                    ('pickaxe', pickaxe), ('felling_axe', felling_axe), ('machete', machete), ('hoe', hoe),
                    ('mallet', mallet), ('seedling', seedling)):
     props.BUILDERS.setdefault(_name, _fn)

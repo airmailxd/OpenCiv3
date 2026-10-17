@@ -342,12 +342,28 @@ def _bow_attack():
     ]}
 
 
-ATTACKS = {'melee': _melee_attack, 'spear': _spear_attack, 'bow': _bow_attack}
+def _gun_attack():
+    """A shot: the gun brought level to the shoulder, the left hand on the fore-end, fired
+    (a flash at the muzzle, f3), the recoil with a puff of smoke drifting forward, back."""
+    # the right elbow up and out, the fist at the cheek (the stock's wrist), the butt in the shoulder
+    aim = K(WIDE, bend(0.1, head=0.0), R_((-0.85, -0.3, -0.25), (0.55, -0.8, 0.12)),
+            tool=((0, -1, 0.03), (0, 0, 1)), grip2=-0.36)
+    kick = K(WIDE, bend(-0.06, head=0.15), R_((-0.85, -0.2, -0.2), (0.55, -0.75, 0.3)),
+             tool=((0, -0.96, 0.24), (0, 0, 1)), grip2=-0.36)
+    return {'frames': CAP, 'loop': False, 'tool': 'own',
+            'muzzle': {3: [('muzzle_flash', 0.0)], 4: [('smoke_puff', 0.15)], 5: [('smoke_puff', 0.35)],
+                       6: [('smoke_puff', 0.6)]},
+            'keys': [(0, {}), (2, aim), (3, aim), (4, kick), (5, aim), (6, aim), (7, {})]}
+
+
+ATTACKS = {'melee': _melee_attack, 'spear': _spear_attack, 'bow': _bow_attack, 'gun': _gun_attack}
 
 
 def weapon_class(entry):
     """The template class of a foot unit: from the stance units.equip gives it."""
     stance = units.stance_of(entry)
+    if entry.get('weapon') in units.GUNS:
+        return 'gun'
     if stance == 'bow_low':
         return 'bow'
     if stance in ('upright', 'stand_staff') and entry.get('weapon') in ('spear', 'pike', 'cav_spear', 'partisan', 'glaive'):
@@ -358,11 +374,12 @@ def weapon_class(entry):
 
 
 def template_actions(entry, calibration):
-    """{flic name: action} for the unit's ATTACK1, DEATH and RUN flics, or {} if its class has no templates."""
+    """{flic name: action} for the unit's ATTACK1, DEATH and RUN flics; a unit of no
+    weapon class (a settler, a scout) only falls and runs."""
     cls = weapon_class(entry)
-    if cls is None:
-        return {}
-    made = {'ATTACK1': ATTACKS[cls], 'DEATH': _death, 'RUN': _run}
+    made = {'DEATH': _death, 'RUN': _run}
+    if cls is not None:
+        made['ATTACK1'] = ATTACKS[cls]
     out = {}
     for flic_file, f in calibration['flics'].items():
         for act in f['actions']:
@@ -486,6 +503,19 @@ def _prop(ctx, slot, spec):
     return obj
 
 
+def _glow(obj):
+    """Makes a prop's materials glow (a muzzle flash reads as light, not paint)."""
+    for slot in obj.material_slots:
+        m = slot.material
+        if m is None or m.get('glow'):
+            continue
+        bsdf = next((n for n in m.node_tree.nodes if n.type == 'BSDF_PRINCIPLED'), None)
+        if bsdf is not None:
+            bsdf.inputs['Emission Color'].default_value = (1.0, 0.85, 0.45, 1.0)
+            bsdf.inputs['Emission Strength'].default_value = 12.0
+        m['glow'] = True
+
+
 def _unit_point(root, p):
     return root.matrix_world @ Vector(p)
 
@@ -528,6 +558,17 @@ def apply(ctx, action, frame):
         if pose.get('grip2') is not None:
             H.reach(arm, 'l', at - up * pose['grip2'], elbow_out=0.6)
             H.fists(arm, sides='l')
+    if frame in action.get('muzzle', {}) and tool is not None:
+        # at the muzzle (the far end of the gun along its +Z), this far further out along the barrel
+        H._update()
+        zmax = max(c[2] for c in tool.bound_box)
+        muzzle = tool.matrix_world @ Vector((0, 0, zmax))
+        along = (tool.matrix_world.to_3x3() @ Vector((0, 0, 1))).normalized()
+        for i, (name, out) in enumerate(action['muzzle'][frame]):
+            fx = _prop(ctx, f'm{i}', (name, {}))
+            if name == 'muzzle_flash':
+                _glow(fx)
+            H.hold(fx, arm, 'hand_r', muzzle + along * out, up=tuple(along), forward=(0, 0, 1))
     if pose.get('reach_l') is not None:
         H.reach(arm, 'l', _unit_point(root, pose['reach_l']), elbow_out=0.5)
         H.fists(arm, sides='l')
