@@ -221,13 +221,14 @@ namespace C7Engine.AI {
 		}
 
 		// With foodIsWasted, food beyond what the city still needs counts
-		// for nothing.
+		// for nothing; falling short of what it needs is still penalized,
+		// or a city at its size cap worked mines and starved (the target
+		// used to be set to the capped food, which made the penalty 0).
 		// The yields the city's governor emphasizes, if any, count for more.
 		private static double CalculateTileYieldScore(int food, int production, int commerce, int targetFoodAmount, bool foodIsWasted = false,
 				CityGovernor governor = null) {
 			if (foodIsWasted) {
 				food = Math.Min(food, Math.Max(0, targetFoodAmount));
-				targetFoodAmount = food;
 			}
 			int score = WeightedYield(food, production, commerce, governor);
 			int penalty = (targetFoodAmount - food);

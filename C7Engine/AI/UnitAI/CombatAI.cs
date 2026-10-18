@@ -382,6 +382,12 @@ namespace C7Engine.AI.UnitAI {
 		// chance of winning each round of combat, weighed by the hit points
 		// each side can lose. Bonuses that depend on where the attack comes
 		// from (like river crossings) are left out.
+		//
+		// This is not the true chance of a race of rounds to lose all hit
+		// points (it calls a fight with round odds of 0.3 a 30% chance when
+		// it is nearer 16%, and 0.7 a 70% chance when it is nearer 84%), but
+		// the thresholds below were tuned against it: in AI trials the exact
+		// chance, with the same thresholds, did worse.
 		internal static double EstimateChanceToWin(MapUnit attacker, MapUnit defender) {
 			double attack = attacker.StrengthVersus(defender, CombatRole.Attack, null);
 			double defense = defender.StrengthVersus(attacker, CombatRole.Defense, null);

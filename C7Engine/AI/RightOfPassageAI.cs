@@ -325,7 +325,7 @@ namespace C7Engine.AI {
 			TradeOffer weGive = null, weWant = null;
 			foreach (Player p in gameData.players
 				.Where(p => p != player && !p.isBarbarians && !p.defeated && RightOfPassage.CanSign(gameData, player, p)
-					&& !Refuses(gameData, player, p) && !RecentlyAsked(gameData, player, p)
+					&& !Refuses(gameData, player, p) && !RecentlyAsked(gameData, player, p) && !WarCampaign.IsPlannedTarget(player, p)
 					&& p.WillAcceptCommunicationFrom(player, gameData.turn))
 				.OrderBy(p => NearestCityDistance(player, p))) {
 				(weGive, weWant) = MakeOffer(gameData, player, p, payWithTechs: false);

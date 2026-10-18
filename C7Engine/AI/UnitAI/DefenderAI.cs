@@ -99,6 +99,15 @@ namespace C7Engine.AI.UnitAI {
 		}
 
 		C7GameData.UnitAI.MoveResult C7GameData.UnitAI.PlayTurnImpl(Player player, MapUnit unit) {
+			// A city we were going to defend that was taken or destroyed on
+			// the way: the plan is void (or the defender would attack the
+			// city, or fortify on its ruins). Plans to defend where the unit
+			// stands, and to join an army, aren't for a city.
+			Tile dest = data.destination;
+			if (dest != unit.location && dest?.cityAtTile?.owner != player
+					&& !(dest?.unitsOnTile.Any(u => u.owner == player && u.IsArmy()) ?? false)) {
+				return C7GameData.UnitAI.Result.Error;
+			}
 			if (data.destination == unit.location) {
 				if (!unit.isFortified) {
 					unit.Fortify();
@@ -169,8 +178,10 @@ namespace C7Engine.AI.UnitAI {
 			for (int i = 0; i < n; ++i) {
 				City c = snap.cities[i];
 				int numDefenders = 0;
+				// Units marching with a war campaign will leave, so they
+				// don't count as the city's defenders.
 				foreach (MapUnit u in c.location.unitsOnTile) {
-					if (u.CanDefendOnLand()) {
+					if (u.CanDefendOnLand() && u.currentAI is not WarCampaign.MemberAI) {
 						++numDefenders;
 					}
 				}

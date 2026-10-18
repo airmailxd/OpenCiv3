@@ -115,6 +115,15 @@ public class PlayerRelationship {
 	// AI, last proposed peace to p2, or -1 if never (see PeaceAI).
 	public int lastPeaceProposalTurn = -1;
 
+	// p1.playerRelationships[p2].warStartTurn is the turn the current war
+	// between them began, or -1 (at peace, or a war from a save made before
+	// this was recorded).
+	public int warStartTurn = -1;
+
+	// p1.playerRelationships[p2].lastDealOfferTurn is the turn p1, an AI,
+	// last offered p2 a deal of its own accord, or -1.
+	public int lastDealOfferTurn = -1;
+
 	// p1.playerRelationships[p2].hasEmbassy is true if p1 has an embassy in
 	// p2's capital, which diplomatic missions against p2 need.
 	public bool hasEmbassy = false;
@@ -235,9 +244,12 @@ public class PlayerRelationship {
 		// update whether the defender was sneak attacked
 		defenderRelationshipToAggressor.wasSneakAttacked = sneakAttack;
 
-		// record who started this war
+		// record who started this war, and when
 		defenderRelationshipToAggressor.otherStartedCurrentWar = true;
 		aggressorRelationshipToDefender.otherStartedCurrentWar = false;
+		int warTurn = currentTurn ?? EngineStorage.gameData?.turn ?? 0;
+		defenderRelationshipToAggressor.warStartTurn = warTurn;
+		aggressorRelationshipToDefender.warStartTurn = warTurn;
 
 		// Set for how many turns the defender will refuse contact from the aggressor
 		defenderRelationshipToAggressor.refuseContactUntilTurn = refuseContactUntilTurn;
@@ -343,6 +355,8 @@ public class PlayerRelationship {
 		// the war is over, so nobody started a current one
 		left.playerRelationships[right.id].otherStartedCurrentWar = null;
 		right.playerRelationships[left.id].otherStartedCurrentWar = null;
+		left.playerRelationships[right.id].warStartTurn = -1;
+		right.playerRelationships[left.id].warStartTurn = -1;
 
 		log.Information("{Left} signed a peace treaty with {Right}", left, right);
 	}

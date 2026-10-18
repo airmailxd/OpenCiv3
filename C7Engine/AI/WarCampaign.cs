@@ -68,6 +68,10 @@ namespace C7Engine.AI {
 			public int shortTurns;
 			// The city the stack is falling back to.
 			public Tile retreatTo;
+			// Whether giving the campaign up should hold off the next one
+			// (see CooldownTurns): not when it ended because it won, or to
+			// meet a more pressing danger.
+			public bool cooldown = true;
 		}
 
 		// HEURISTIC: how many failed attempts on a target (assaults that
@@ -189,6 +193,12 @@ namespace C7Engine.AI {
 			return staging != null;
 		}
 
+		// Whether we have a campaign planned or under way against them, from
+		// the first turn of gathering: no trading with them meanwhile.
+		public static bool IsPlannedTarget(Player player, Player enemy) {
+			return campaigns.TryGetValue(player, out Campaign c) && c.enemy == enemy;
+		}
+
 		public static bool HasCampaignAgainst(Player player, Player enemy) {
 			return campaigns.TryGetValue(player, out Campaign c) && c.enemy == enemy && c.phase != Phase.Gather;
 		}
@@ -208,7 +218,7 @@ namespace C7Engine.AI {
 
 			triedToAttack.Clear();
 			if (!await PlayCampaign(player, gameData, campaign)) {
-				EndCampaign(player, campaign, cooldown: true);
+				EndCampaign(player, campaign, campaign.cooldown);
 			}
 		}
 
@@ -246,10 +256,22 @@ namespace C7Engine.AI {
 			c.units.RemoveAll(u => !PlayerAI.IsStillOurs(u, player) || u.currentAI is not MemberAI);
 
 			// A stack falling back gets home before the campaign is given up.
-			if (c.enemy.defeated || (c.failures >= MaxFailures && c.phase != Phase.Retreat)) {
+			if (c.enemy.defeated) {
+				c.cooldown = false;
+				return false;
+			}
+			if (c.failures >= MaxFailures && c.phase != Phase.Retreat) {
 				return false;
 			}
 			bool atWar = AtWarWith(player, c.enemy);
+
+			// A civ planning a war that is attacked by someone else meets
+			// that war instead of starting a second one.
+			if (!atWar && PlayerRelationship.IsInAnyWar(player, gameData.players)) {
+				log.Information("{Player} is attacked, so drops its plan to attack {Enemy}", player, c.enemy);
+				c.cooldown = false;
+				return false;
+			}
 			// Peace was made since the march began.
 			if (!atWar && c.phase != Phase.Gather) {
 				return false;
@@ -267,6 +289,9 @@ namespace C7Engine.AI {
 				}
 				City next = PickTarget(player, c.enemy);
 				if (next == null) {
+					// Nothing more to take from them within reach: done, not
+					// failed.
+					c.cooldown = false;
 					return false;
 				}
 				c.target = next;
@@ -339,6 +364,18 @@ namespace C7Engine.AI {
 			keeper.currentAI = new DefenderAI(DefenderAI.MakeAiDataForDefendInPlace(keeper, player));
 			keeper.Fortify();
 			log.Information("{Player} took {City}; {Unit} garrisons it", player, city.name, keeper);
+
+			// A city enemies could strike next turn keeps a second defender
+			// if one is there to spare.
+			if (AIThreat.Assess(player).EnemyCanReach(city.location)) {
+				MapUnit second = c.units.Where(u => u.location == city.location && u.CanDefendOnLand() && !IsFightingArmy(u))
+					.OrderByDescending(u => u.unitType.defense).FirstOrDefault();
+				if (second != null && c.units.Count(IsFighter) > 1) {
+					c.units.Remove(second);
+					second.currentAI = new DefenderAI(DefenderAI.MakeAiDataForDefendInPlace(second, player));
+					second.Fortify();
+				}
+			}
 		}
 
 		// Starts a campaign against the enemy we are at war with, or, with
@@ -363,7 +400,9 @@ namespace C7Engine.AI {
 				}
 			}
 
-			if (enemy == null && !PlayerRelationship.IsInAnyWar(player, gameData.players)
+			// A war with a civ we can't reach (one on other landmasses) doesn't
+			// stop us from planning one we can fight.
+			if (enemy == null && !InReachableWar(player, gameData.players)
 					&& player.cities.Count >= 3) {
 				float us = player.CalculateMilitaryStrength();
 				foreach (Player p in gameData.players) {
@@ -418,6 +457,15 @@ namespace C7Engine.AI {
 		private static bool HasWideOpenLand(Player player) {
 			City home = player.cities.Find(c => c.IsCapital()) ?? player.cities[0];
 			return ChooseProducible.NumberOfReachableOpenCitySpots(home) >= OpenSitesPerCityWhileExpanding * player.cities.Count;
+		}
+
+		// Whether we're at war with a civ (not the barbarians) that has a
+		// city on a landmass where we have one, so that our land units could
+		// fight it.
+		private static bool InReachableWar(Player player, List<Player> players) {
+			HashSet<int> ours = player.cities.Select(c => c.location.continent).ToHashSet();
+			return players.Any(p => p != player && !p.isBarbarians && !p.defeated && AtWarWith(player, p)
+				&& p.cities.Any(c => ours.Contains(c.location.continent)));
 		}
 
 		private static City PickTarget(Player player, Player enemy) {
@@ -793,8 +841,24 @@ namespace C7Engine.AI {
 				StartRetreat(player, c);
 				return;
 			}
+			if (Turn - c.phaseStartTurn > MaxMarchTurns) {
+				++c.failures;
+				SetPhase(c, Phase.Gather);
+				return;
+			}
 			List<MapUnit> stack = c.units.Where(u => u.location == c.stackTile).OrderBy(u => u.MaxMovementPoints()).ToList();
 			if (stack.Count == 0) {
+				// The stack was destroyed (or pushed off its tile): the
+				// fighter left nearest the target becomes the new stack, so
+				// the others gather on it rather than walk to a tile that may
+				// now hold the enemy.
+				MapUnit nearest = c.units.Where(u => IsFighter(u) && PlayerAI.IsStillOurs(u, player))
+					.OrderBy(u => u.location.DistanceTo(c.target.location)).FirstOrDefault();
+				if (nearest == null) {
+					StartRetreat(player, c);
+				} else {
+					c.stackTile = nearest.location;
+				}
 				return;
 			}
 			MapUnit lead = stack[0];
@@ -826,6 +890,11 @@ namespace C7Engine.AI {
 				if (next.unitsOnTile.Any(u => !u.owner.IsAtPeaceWith(player))) {
 					// Someone is in the way: attack if the odds are good.
 					if (!await ClearTheWay(player, stack, next) || HasArmedEnemy(player, next)) {
+						break;
+					}
+					// The stack keeps together: if the attack used up a
+					// unit's moves, nobody goes on without it this turn.
+					if (stack.Any(u => PlayerAI.IsStillOurs(u, player) && u.location == c.stackTile && !u.movementPoints.canMove)) {
 						break;
 					}
 					continue;

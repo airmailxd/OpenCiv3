@@ -52,8 +52,11 @@ namespace C7Engine.AI {
 		public const int VeryWearyLevel = 4;
 
 		// HEURISTIC: what a winning AI wants for peace, in gold equivalent,
-		// for each of the other side's cities.
-		public const int PeaceTributePerCity = 30;
+		// for each of the other side's cities. No more than a losing AI
+		// offers for each of its own (ConcessionPerCityWhenLosing), or the
+		// two could never agree: at 30 against 25, a war between a winning
+		// and a losing AI went on for ever.
+		public const int PeaceTributePerCity = 20;
 
 		// HEURISTIC: what a losing AI will give for peace, in gold
 		// equivalent, for each of its own cities.
@@ -66,7 +69,90 @@ namespace C7Engine.AI {
 		public const int DemandChancePercent = 20;
 		public const int ProposalCooldownTurns = 10;
 
+		// HEURISTIC: after this many turns of a war that neither side is
+		// losing, both make peace on equal terms (white peace): neither is
+		// getting anywhere.
+		public const int StalemateTurns = 30;
+
+		// Whether either side has a city on a landmass where the other has
+		// one, so their land units can fight. A war across the sea can't be
+		// fought by our AI, which has no seaborne invasions, so it ends in
+		// white peace.
+		public static bool CanFightEachOther(Player us, Player them) {
+			// Without cities on both sides there's nothing to judge by:
+			// count it as a war that can be fought.
+			if (us.cities.Count == 0 || them.cities.Count == 0) {
+				return true;
+			}
+			HashSet<int> ours = us.cities.Select(c => c.location.continent).ToHashSet();
+			return them.cities.Any(c => ours.Contains(c.location.continent));
+		}
+
+		// How many turns the war with them has gone on. A war from an older
+		// save, whose start wasn't recorded, counts from now.
+		public static int WarTurns(GameData gameData, Player us, Player them) {
+			if (!TryGetRelationship(us, them, out PlayerRelationship view)) {
+				return 0;
+			}
+			if (view.warStartTurn < 0) {
+				view.warStartTurn = gameData.turn;
+			}
+			return gameData.turn - view.warStartTurn;
+		}
+
+		// Their military strength together with that of the civs bound to
+		// join a war on them (their mutual protection partners, see
+		// Pacts.HonourPacts).
+		public static float StrengthWithPartners(GameData gameData, Player them) {
+			float total = them.CalculateMilitaryStrength();
+			foreach (Player p in gameData.players) {
+				if (p != them && !p.defeated && TryGetRelationship(them, p, out PlayerRelationship view)
+						&& view.multiTurnDeals.Any(d => d.dealSubType == DealSubType.MutualProtectionPact)) {
+					total += p.CalculateMilitaryStrength();
+				}
+			}
+			return total;
+		}
+
+		// Whether a war on them is one we'd expect to win, and so worth
+		// threatening or starting (over tribute, trespassing, or to join an
+		// ally): we can reach them, aren't already at war with anyone else
+		// (but them), and are WinningStrengthRatio times as strong as they
+		// and their partners together. Threats with less behind them led to
+		// wars the AI couldn't fight or end.
+		public static bool WouldWinWarWith(GameData gameData, Player us, Player them, float extraStrength = 0) {
+			if (!CanFightEachOther(us, them)) {
+				return false;
+			}
+			if (gameData.players.Any(p => p != us && p != them && !p.isBarbarians && !p.defeated && AtWar(us, p))) {
+				return false;
+			}
+			return us.CalculateMilitaryStrength() + extraStrength >= WinningStrengthRatio * StrengthWithPartners(gameData, them);
+		}
+
+		// Whether we're in a military alliance against them, which making
+		// peace with them would break (and ruin our name with the ally, see
+		// Pacts.BreakAlliancesAgainst).
+		public static bool AlliedAgainst(Player us, Player them) {
+			foreach (PlayerRelationship view in us.playerRelationships.Values) {
+				if (view.multiTurnDeals.Any(d => d.dealSubType == DealSubType.MilitaryAlliance && d.againstPlayer == them.id)) {
+					return true;
+				}
+			}
+			return false;
+		}
+
+		// Whether we'd make peace with nothing changing hands: a war we can't
+		// fight, or one that has dragged on with neither side losing.
+		public static bool WantsWhitePeace(GameData gameData, Player us, Player them, WarOutlook outlook) {
+			return outlook == WarOutlook.Even && (!CanFightEachOther(us, them) || WarTurns(gameData, us, them) >= StalemateTurns);
+		}
+
 		public static WarOutlook Assess(Player us, Player them) {
+			// Neither side can reach the other: nobody is winning.
+			if (!CanFightEachOther(us, them)) {
+				return WarOutlook.Even;
+			}
 			float ours = us.CalculateMilitaryStrength();
 			float theirs = Math.Max(1f, them.CalculateMilitaryStrength());
 			float ratio = ours / theirs;
@@ -133,6 +219,10 @@ namespace C7Engine.AI {
 			if (ourOffer.cities.Count > MaxCitiesToCede(outlook)) {
 				return false;
 			}
+			// Not while allied against them, unless losing badly.
+			if (outlook > WarOutlook.LosingBadly && AlliedAgainst(us, them)) {
+				return false;
+			}
 			// On trial: an AI whose army is on the march against them, and
 			// that isn't losing, fights on unless offered a city.
 			if (AiExperiments.Has(us, "war-no-peace") && outlook >= WarOutlook.Even && theirOffer.cities.Count == 0
@@ -178,6 +268,13 @@ namespace C7Engine.AI {
 						weWant.cities.Add(city);
 						break;
 					}
+				case WarOutlook.Even:
+					// White peace, for a war that can't be fought or is
+					// going nowhere.
+					if (!WantsWhitePeace(gameData, us, them, outlook)) {
+						return null;
+					}
+					break;
 				default:
 					return null;
 			}
@@ -198,6 +295,10 @@ namespace C7Engine.AI {
 					continue;
 				}
 				if (ourView.lastPeaceProposalTurn >= 0 && gameData.turn - ourView.lastPeaceProposalTurn < ProposalCooldownTurns) {
+					continue;
+				}
+				// Not while allied against them, unless losing badly.
+				if (AlliedAgainst(us, them) && Assess(us, them) > WarOutlook.LosingBadly) {
 					continue;
 				}
 				// Both sides must be willing to talk.

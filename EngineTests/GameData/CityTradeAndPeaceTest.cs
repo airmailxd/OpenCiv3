@@ -245,4 +245,61 @@ public class CityTradeAndPeaceTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(PeaceAI.WarOutlook.Even, PeaceAI.Assess(ai, human));
 		Assert.Null(PeaceAI.BuildPeaceOffer(gameData, ai, human));
 	}
+
+	// An even war that has gone on long enough ends in peace on equal
+	// terms (see PeaceAI.StalemateTurns).
+	[Fact]
+	public void AStalemateEndsInWhitePeace() {
+		(C7GameData.GameData gameData, Player ai, Player human) = AIAndHuman();
+		human.DeclareWarOn(ai, gameData.turn);
+		RemoveAllUnits(gameData, ai);
+		RemoveAllUnits(gameData, human);
+		gameData.turn += PeaceAI.StalemateTurns;
+
+		(TradeOffer weGive, TradeOffer weWant)? offer = PeaceAI.BuildPeaceOffer(gameData, ai, human);
+		Assert.NotNull(offer);
+		Assert.Empty(offer.Value.weGive.techs);
+		Assert.Empty(offer.Value.weGive.cities);
+		Assert.Empty(offer.Value.weWant.cities);
+		Assert.True(PeaceAI.WouldAcceptPeace(ai, human, offer.Value.weWant, offer.Value.weGive, 0, 0));
+	}
+
+	// A war across the sea, which neither side's land units can fight, is
+	// even whatever the armies, and ends in white peace.
+	[Fact]
+	public void AWarNeitherSideCanReachIsEven() {
+		(C7GameData.GameData gameData, Player ai, Player human) = AIAndHuman();
+		human.DeclareWarOn(ai, gameData.turn);
+		SpawnArmy(gameData, ai, 10);
+		foreach (City c in human.cities) {
+			c.location.continent = -99;
+		}
+
+		Assert.False(PeaceAI.CanFightEachOther(ai, human));
+		Assert.Equal(PeaceAI.WarOutlook.Even, PeaceAI.Assess(ai, human));
+		Assert.NotNull(PeaceAI.BuildPeaceOffer(gameData, ai, human));
+	}
+
+	// What a losing AI offers is enough for one that's winning, or the two
+	// would fight for ever.
+	[Fact]
+	public void ALosersOfferMeetsTheWinnersPrice() {
+		Assert.True(PeaceAI.PeaceTributePerCity <= PeaceAI.ConcessionPerCityWhenLosing);
+	}
+
+	// Not while allied against them: peace would break the alliance.
+	[Fact]
+	public void NoPeaceWhileAlliedAgainstThem() {
+		(C7GameData.GameData gameData, Player ai, Player human) = AIAndHuman();
+		human.DeclareWarOn(ai, gameData.turn);
+		RemoveAllUnits(gameData, ai);
+		RemoveAllUnits(gameData, human);
+		Player ally = gameData.players.First(p => p != ai && p != human && !p.isBarbarians);
+		ai.EnsureRelationshipExists(ally);
+		ally.EnsureRelationshipExists(human);
+		Pacts.SignMilitaryAlliance(gameData, ai, ally, human);
+
+		Assert.True(PeaceAI.AlliedAgainst(ai, human));
+		Assert.False(PeaceAI.WouldAcceptPeace(ai, human, new TradeOffer { partOfPeaceTreaty = true }, new TradeOffer { partOfPeaceTreaty = true }, 0, 0));
+	}
 }

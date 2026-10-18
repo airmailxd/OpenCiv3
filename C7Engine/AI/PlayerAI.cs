@@ -72,7 +72,6 @@ namespace C7Engine {
 			await RightOfPassageAI.PlayTurn(player, gameData);
 
 			await EngineStorage.YieldIfFrameBudgetSpent();
-			UpgradeUnits(player);
 			// Stop paying for obsolete units over the free support (see ObsoleteUnits).
 			await ObsoleteUnits.DisbandOverSupport(player);
 			// On trial: march on enemy cities in force (see WarCampaign).
@@ -83,7 +82,13 @@ namespace C7Engine {
 			// Airlift defenders to threatened cities (see AirliftAI).
 			AirliftAI.PlayTurn(player);
 			await DoUnitActions(player);
+			// A city under threat builds a defender, and gold goes first to
+			// hurrying what is needed; upgrades come after, with what's
+			// left (upgrading first spent the gold a threatened city's
+			// defender needed).
+			DevelopmentAI.DefendThreatenedCities(player);
 			DevelopmentAI.HurryProduction(player);
+			UpgradeUnits(player);
 
 			// Before ending the turn, adjust our sliders. We do this after unit
 			// moves so that any worker moves that finished during the unit moves
@@ -356,12 +361,12 @@ namespace C7Engine {
 				// Don't waste time recalculating behaviors for fortified units.
 				// This means we'll have to unfortify all our units after
 				// interesting events like war declarations, but this seems like
-				// a good tradeoff for faster turns. A unit fortified out in the
-				// land of a civ we're at war with is the exception: it would
-				// sit there until our priorities next change, so it thinks
-				// again each turn.
+				// a good tradeoff for faster turns. A unit fortified outside our
+				// land (with no city it can get to, or left behind after a
+				// war) is the exception: it would sit there until our
+				// priorities next change, so it thinks again each turn.
 				if (unit.isFortified) {
-					if (!IsStrandedInEnemyLand(unit, player)) {
+					if (!IsStrandedOutsideHome(unit, player)) {
 						continue;
 					}
 					unit.Wake();
@@ -431,11 +436,10 @@ namespace C7Engine {
 			}
 		}
 
-		// Whether the unit stands in the land of a civ we're at war with,
-		// outside a city.
-		private static bool IsStrandedInEnemyLand(MapUnit unit, Player player) {
-			return unit.IsLandUnit() && !unit.IsLoaded() && unit.location.cityAtTile == null
-				&& AIThreat.IsHostileTerritory(player, unit.location);
+		// Whether the unit stands outside our land and our cities.
+		private static bool IsStrandedOutsideHome(MapUnit unit, Player player) {
+			return unit.IsLandUnit() && !unit.IsLoaded() && unit.location.cityAtTile?.owner != player
+				&& unit.location.OwningPlayer() != player;
 		}
 
 		// Whether the unit is still alive and the player's: a unit that dies
@@ -1142,6 +1146,21 @@ namespace C7Engine {
 					continue;
 				}
 
+				// Nor do we trade with a civ we're about to attack: what we
+				// sold would arm it, and the war would break the deal and our
+				// name with everyone.
+				if (WarCampaign.IsPlannedTarget(us, them)) {
+					continue;
+				}
+
+				// A human is offered one deal by us every
+				// HumanOfferCooldownTurns turns at most, rather than the same
+				// offer again every few turns.
+				if (them.isHuman && us.playerRelationships[them.id].lastDealOfferTurn >= 0
+						&& gD.turn - us.playerRelationships[them.id].lastDealOfferTurn < HumanOfferCooldownTurns) {
+					continue;
+				}
+
 				// At war, now and then, a military alliance against the enemy;
 				// otherwise a tech trade if there is one to make, otherwise a
 				// resource deal, otherwise a pact or embargo (see
@@ -1155,9 +1174,13 @@ namespace C7Engine {
 					continue;
 				}
 
+				us.playerRelationships[them.id].lastDealOfferTurn = gD.turn;
 				await Propose(gD, us, them, weGive, weWant);
 			}
 		}
+
+		// HEURISTIC: how often an AI may offer a human a deal of its own.
+		private const int HumanOfferCooldownTurns = 10;
 
 		// Offers them a deal in which we give weGive for weWant: a human is
 		// shown it to accept or change, another AI takes it if it would.

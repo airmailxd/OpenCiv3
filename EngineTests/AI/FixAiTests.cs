@@ -277,8 +277,11 @@ public sealed class FixAiGameTests : IClassFixture<SaveGameFixture>, IDisposable
 		C7GameData.UnitAI.Result result = await ((C7GameData.UnitAI)escortAi).PlayTurn(player, escort);
 		Assert.Equal(C7GameData.UnitAI.Result.InProgress, result);
 		Assert.Same(escortAi, escort.currentAI);
+		// The settler looks for another site in the same plan, which keeps
+		// its escort (and the sites it has ruled out).
 		SettlerAI newSettlerAi = Assert.IsType<SettlerAI>(settler.currentAI);
-		Assert.NotSame(settlerAi, newSettlerAi);
+		Assert.NotEqual(site, newSettlerAi.data.destination);
+		Assert.Contains(site, newSettlerAi.data.unreachableDestinations);
 		Assert.Same(escort, newSettlerAi.data.escort);
 		Assert.Same(settler, escortAi.data.unitToEscort);
 	}

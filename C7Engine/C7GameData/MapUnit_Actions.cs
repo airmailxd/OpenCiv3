@@ -419,15 +419,26 @@ public partial class MapUnit {
 				} else if (currentAI is ExplorerAI) {
 					Explore();
 				}
+			} else if (result == UnitAI.Result.Error) {
+				// The plan failed (its job became unsafe, or it can't get
+				// there): a worker looks for another job, to start next turn,
+				// and with none (or for any other unit) control returns to
+				// the player rather than the unit failing silently each turn.
+				WorkerAIData? next = currentAI is WorkerAI ? WorkerAI.MakeAiData(this, owner) : null;
+				if (next != null) {
+					currentAI = new WorkerAI(next);
+				} else {
+					isAutomated = false;
+					currentAI = null;
+				}
 			}
 		} catch (Exception e) {
 			// Nothing awaits this, so make the failure visible.
 			EngineStorage.ReportUnhandledException(e, $"{nameof(PlayAutomatedTurn)} of {this}");
 		}
 
-		// Do nothing after an error so control returns to the player, and
-		// nothing after an progress result, so that next turn continues the
-		// AI action.
+		// Do nothing more after a progress result, so that next turn
+		// continues the AI action.
 	}
 
 	public async Task PerformBusyAction() {

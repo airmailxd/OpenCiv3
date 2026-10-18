@@ -802,6 +802,16 @@ namespace C7GameData {
 			}
 			int theirGoldValue = theirOffer.GoldEquivalentFor(gameData, this, counterpart: other);
 			int ourGoldValue = ourOffer.GoldEquivalentFor(gameData, this, given: true, counterpart: other);
+			// Against a human only: between AIs these cost civs techs (and
+			// two or three cities over 200 turns) in AI trials, while what
+			// they guard against is a human's exploits.
+			if (!isHuman && other.isHuman) {
+				if (C7Engine.AI.TradeGuards.Refuses(gameData, this, other, ourOffer)) {
+					return false;
+				}
+				ourGoldValue += C7Engine.AI.TradeGuards.MonopolyPremium(gameData, this, ourOffer);
+				theirGoldValue -= C7Engine.AI.TradeGuards.RiskDiscount(gameData, other, theirOffer);
+			}
 
 			if (theirOffer.partOfPeaceTreaty || ourOffer.partOfPeaceTreaty) {
 				return C7Engine.AI.PeaceAI.WouldAcceptPeace(this, other, theirOffer, ourOffer, theirGoldValue, ourGoldValue);

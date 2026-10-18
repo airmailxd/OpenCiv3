@@ -47,6 +47,11 @@ namespace C7Engine.AI {
 					if (!Dislikes(gameData, us, enemy)) {
 						return false;
 					}
+					// Joining a war is only worth a price if, with the civ
+					// asking, we'd win it (and can reach the enemy).
+					if (!PeaceAI.WouldWinWarWith(gameData, us, enemy, them.CalculateMilitaryStrength())) {
+						return false;
+					}
 					price += JoinWarGold + JoinWarGoldPerCity * enemy.cities.Count;
 				}
 			}

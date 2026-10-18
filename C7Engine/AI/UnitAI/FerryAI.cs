@@ -74,7 +74,7 @@ namespace C7Engine {
 			MapUnit settler = data.settler;
 			SettlerAIData voyage = (settler != null && PlayerAI.IsStillOurs(settler, player) && settler.currentAI is SettlerAI settlerAi)
 				? settlerAi.data : null;
-			if (voyage == null || voyage.port == null || voyage.ferry != ship) {
+			if (voyage == null || voyage.port == null || voyage.landing == null || voyage.ferry != ship) {
 				// The voyage is off. Anyone aboard gets off in a city of ours.
 				data.settler = null;
 				return ReleasePassengers(ship, player);

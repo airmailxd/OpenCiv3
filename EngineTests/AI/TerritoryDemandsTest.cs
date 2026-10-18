@@ -127,6 +127,10 @@ public class TerritoryDemandsTest : MapBase, IDisposable {
 
 		MakeUnit(them, row[1]);
 		MakeUnit(them, row[2]);
+		// Only a war we'd win (see PeaceAI.WouldWinWarWith).
+		for (int i = 0; i < 20; ++i) {
+			MakeUnit(us, row[0]);
+		}
 		await TerritoryDemands.MakeDemands(us, gameData);
 
 		Assert.True(AtWar(us, them));
