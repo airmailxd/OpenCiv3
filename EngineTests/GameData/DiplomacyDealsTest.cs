@@ -364,12 +364,12 @@ public class GoldPerTurnAndResourceDealsTest {
 	public void TheAIWeighsResourcesByNeed() {
 		TradeOffer luxury = new() { resources = { wines.Key } };
 		// We have no wines, so they'd please us; they have spare.
-		Assert.True(luxury.GoldEquivalentFor(gameData, us) > luxury.GoldEquivalentFor(gameData, them, given: true));
+		Assert.True(luxury.GoldEquivalentFor(gameData, us) > luxury.GoldEquivalentFor(gameData, them, given: true, counterpart: us));
 		Assert.Equal(0, luxury.GoldEquivalentFor(gameData, them));
 		Assert.Equal(20 * 5, new TradeOffer { goldPerTurn = 5 }.GoldEquivalentFor(gameData, them));
 
 		// The AI sells a luxury it has to spare for enough gold.
-		TradeOffer price = new() { gold = luxury.GoldEquivalentFor(gameData, them, given: true) };
+		TradeOffer price = new() { gold = luxury.GoldEquivalentFor(gameData, them, given: true, counterpart: us) };
 		us.gold = price.gold.Value;
 		Assert.True(them.WouldAcceptDealFrom(gameData, us, price, luxury));
 		Assert.False(them.WouldAcceptDealFrom(gameData, us, new TradeOffer { gold = price.gold - 1 }, luxury));

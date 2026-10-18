@@ -41,6 +41,7 @@ namespace C7Engine {
 			// a transport that can reach them.
 			HashSet<int> overseas = null;
 			List<Tile> candidates = new();
+			bool atWar = PlayerRelationship.IsInAnyWar(player, EngineStorage.gameData?.players ?? new());
 			foreach (Tile t in player.tileKnowledge.knownTiles) {
 				// Cheapest checks first.
 				if (t.continent != start.continent) {
@@ -68,10 +69,26 @@ namespace C7Engine {
 				if (IsOwnedByRival(t, player)) {
 					continue;
 				}
+
+				// While at war, not on the enemy's doorstep, where the city
+				// (and the settler on its way) would be easy to take. (An AI
+				// heuristic.)
+				if (atWar && NextToHostileTerritory(t, player)) {
+					continue;
+				}
 				candidates.Add(t);
 			}
 
 			return AssignTileScores(start, player, candidates);
+		}
+
+		private static bool NextToHostileTerritory(Tile t, Player player) {
+			foreach (Tile n in t.neighbors.Values) {
+				if (n != Tile.NONE && AIThreat.IsHostileTerritory(player, n)) {
+					return true;
+				}
+			}
+			return false;
 		}
 
 		private static Dictionary<Tile, float> AssignTileScores(Tile startTile, Player player, List<Tile> candidates) {

@@ -43,6 +43,24 @@ namespace C7Engine.AI.UnitAI {
 			PathingAlgorithm algorithm = PathingAlgorithmChooser.GetAlgorithm(unit);
 			ai.pathToDestination = algorithm.PathFrom(unit.location, ai.destination, unit);
 
+			// The city was picked by distance as the crow flies. If the unit
+			// can't get there (across water, or with the way blocked), it
+			// goes to the nearest city it can reach instead, or it would try
+			// for the same city every turn and stay where it is, which may
+			// be deep in enemy land.
+			if (ai.destination != unit.location && (ai.pathToDestination == null || ai.pathToDestination.PathLength() <= 0)) {
+				List<Tile> cities = player.cities.Select(c => c.location).Where(t => t != ai.destination)
+					.OrderBy(t => t.DistanceTo(unit.location)).ToList();
+				TilePath path = null;
+				int index = cities.Count == 0 ? -1 : algorithm.FindFirstReachable(unit.location, cities, unit, out path);
+				if (index < 0) {
+					return minDefenders == int.MaxValue ? MakeAiDataForDefendInPlace(unit, player) : null;
+				}
+				ai.destination = cities[index];
+				ai.pathToDestination = path;
+				cityToDefend = ai.destination.cityAtTile;
+			}
+
 			log.Debug("Unit {Unit} tasked with defending {City}", unit, cityToDefend.name);
 			return ai;
 		}

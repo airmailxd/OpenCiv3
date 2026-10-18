@@ -199,4 +199,40 @@ public class WarTradeNetworkTest {
 		gameData.InvalidateCachedTradeNetwork();
 		Assert.True(CapitalHasIron(capital));
 	}
+
+	// A city counts as having a road, as it does for movement, so a road
+	// built up to it joins it to the network even though its own tile has
+	// no road (a city's tile only gets one if a road was there or next to
+	// it when the city was founded).
+	[Fact]
+	public void ARoadUpToACitysTileJoinsIt() {
+		MakeMap(grassland);
+		City capital = MakeCity(us, map.tileAt(1, 1), true);
+		City colony = MakeCity(us, map.tileAt(15, 1), false);
+		for (int x = 3; x <= 13; x += 2) {
+			map.tileAt(x, 1).overlays.Add(road);
+		}
+		IronBy(colony, map.tileAt(17, 1));
+		gameData.InvalidateCachedTradeNetwork();
+		Assert.False(capital.location.IsRoaded());
+		Assert.False(colony.location.IsRoaded());
+
+		Assert.True(gameData.GetTradeNetwork().ConnectedToCapital(us, colony));
+		Assert.True(CapitalHasIron(capital));
+	}
+
+	// Likewise a road up to another civ's capital connects the capitals,
+	// which foreign trade needs.
+	[Fact]
+	public void ARoadUpToAForeignCapitalConnectsTheCapitals() {
+		MakeMap(grassland);
+		MakeCity(us, map.tileAt(1, 1), true);
+		MakeCity(them, map.tileAt(15, 1), true);
+		for (int x = 3; x <= 13; x += 2) {
+			map.tileAt(x, 1).overlays.Add(road);
+		}
+		gameData.InvalidateCachedTradeNetwork();
+
+		Assert.True(gameData.GetTradeNetwork().CapitalsConnected(us, them));
+	}
 }

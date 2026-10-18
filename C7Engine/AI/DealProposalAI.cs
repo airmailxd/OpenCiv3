@@ -52,7 +52,7 @@ namespace C7Engine.AI {
 			if (wanted == null) {
 				return null;
 			}
-			int ask = TradeOffer.ResourceWorth(gD, them, wanted, given: true);
+			int ask = TradeOffer.ResourceWorth(gD, them, wanted, given: true, counterpart: us);
 			if (ask > worth) {
 				return null;
 			}
@@ -79,7 +79,7 @@ namespace C7Engine.AI {
 					continue;
 				}
 				int value = TradeOffer.ResourceWorth(gD, them, r, given: false);
-				int ask = TradeOffer.ResourceWorth(gD, us, r, given: true);
+				int ask = TradeOffer.ResourceWorth(gD, us, r, given: true, counterpart: them);
 				if (value < ask) {
 					continue;
 				}

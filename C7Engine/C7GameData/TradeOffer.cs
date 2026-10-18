@@ -125,7 +125,7 @@ namespace C7GameData {
 			foreach (string key in resources ?? new()) {
 				Resource r = gameData.Resources.Find(x => x.Key == key);
 				if (r != null) {
-					result += ResourceWorth(gameData, p, r, given) * turns;
+					result += ResourceWorth(gameData, p, r, given, counterpart) * turns;
 				}
 			}
 			if (counterpart != null) {
@@ -221,33 +221,47 @@ namespace C7GameData {
 
 		// HEURISTIC (no Civ3 source gives the AI's prices): what a resource
 		// is worth to p each turn of a deal, in gold.
-		// - Given to p: a luxury it lacks makes its unhappy content, which
-		//   is worth LuxuryGold plus a little more for each of its cities; a
-		//   strategic resource it lacks is worth StrategicNeededGold (plus
-		//   the same per city) if p knows how to build a unit that needs it,
-		//   and StrategicSpareGold if not. One it already has is worth
-		//   nothing, as more of the same luxury makes nobody happier.
+		// - Given to p: a luxury it lacks moves a face toward happy in every
+		//   one of its cities (City's mood code), as a gold of luxury
+		//   spending does in one city, so it's worth LuxuryGold plus
+		//   LuxuryGoldPerCity for each city. A strategic resource it lacks
+		//   is worth StrategicNeededGold (plus a little for each of its
+		//   cities) if p knows how to build a unit that needs it, and
+		//   StrategicSpareGold if not. One it already has is worth nothing,
+		//   as more of the same luxury makes nobody happier.
 		// - Given by p: only spare copies can be given (ProblemGiving), so p
 		//   loses nothing it uses, but it asks SurplusGold a turn for one,
-		//   and more for a strategic resource, which arms the other civ.
+		//   and more for a strategic resource, which arms the other civ. For
+		//   a luxury it asks LuxuryAskPercent of what it's worth to the
+		//   receiver (when it knows who that is): the receiver's every city
+		//   is happier for it, and the AI shouldn't sell that for a gold.
 		public const int LuxuryGold = 2;
+		public const int LuxuryGoldPerCity = 1;
+		public const int LuxuryAskPercent = 75;
 		public const int StrategicNeededGold = 3;
 		public const int StrategicSpareGold = 1;
 		public const int CitiesPerExtraGold = 2;
 		public const int SurplusGold = 1;
 		public const int StrategicSurplusGold = 2;
 
-		public static int ResourceWorth(GameData gameData, Player p, Resource r, bool given) {
+		public static int ResourceWorth(GameData gameData, Player p, Resource r, bool given, Player counterpart = null) {
 			if (given) {
-				return r.Category == ResourceCategory.STRATEGIC ? StrategicSurplusGold : SurplusGold;
+				if (r.Category == ResourceCategory.STRATEGIC) {
+					return StrategicSurplusGold;
+				}
+				if (r.Category == ResourceCategory.LUXURY && counterpart != null) {
+					int toThem = ResourceWorth(gameData, counterpart, r, given: false);
+					return Math.Max(SurplusGold, toThem * LuxuryAskPercent / 100);
+				}
+				return SurplusGold;
 			}
 			if (TradeReport.CapitalResources(gameData, p).ContainsKey(r)) {
 				return 0;
 			}
-			int perCity = p.cities.Count / CitiesPerExtraGold;
 			if (r.Category == ResourceCategory.LUXURY) {
-				return LuxuryGold + perCity;
+				return LuxuryGold + LuxuryGoldPerCity * p.cities.Count;
 			}
+			int perCity = p.cities.Count / CitiesPerExtraGold;
 			bool needed = gameData.unitPrototypes.Any(u => u.requiredResources.Contains(r) && p.HasRequiredTechnology(u));
 			return needed ? StrategicNeededGold + perCity : StrategicSpareGold;
 		}

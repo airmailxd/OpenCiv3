@@ -356,9 +356,16 @@ namespace C7Engine {
 				// Don't waste time recalculating behaviors for fortified units.
 				// This means we'll have to unfortify all our units after
 				// interesting events like war declarations, but this seems like
-				// a good tradeoff for faster turns.
+				// a good tradeoff for faster turns. A unit fortified out in the
+				// land of a civ we're at war with is the exception: it would
+				// sit there until our priorities next change, so it thinks
+				// again each turn.
 				if (unit.isFortified) {
-					continue;
+					if (!IsStrandedInEnemyLand(unit, player)) {
+						continue;
+					}
+					unit.Wake();
+					unit.currentAI = null;
 				}
 
 				// A hurt attacker stops attacking (or exploring) to heal (see
@@ -422,6 +429,13 @@ namespace C7Engine {
 					player.tileKnowledge.RecomputeActiveTiles();
 				}
 			}
+		}
+
+		// Whether the unit stands in the land of a civ we're at war with,
+		// outside a city.
+		private static bool IsStrandedInEnemyLand(MapUnit unit, Player player) {
+			return unit.IsLandUnit() && !unit.IsLoaded() && unit.location.cityAtTile == null
+				&& AIThreat.IsHostileTerritory(player, unit.location);
 		}
 
 		// Whether the unit is still alive and the player's: a unit that dies
@@ -811,6 +825,10 @@ namespace C7Engine {
 				return unitAI;
 			} else if (IsArtillery(unit)) {
 				//For now tell artillery to sit tight.  It's getting really annoying watching them pointlessly bombard barb camps forever
+				// Out in the field, it sits tight in one of our cities.
+				if (unit.location.cityAtTile?.owner != player) {
+					return new DefenderAI(DefenderAI.MakeAiDataForDefendAtRiskCity(unit, player, minDefenders: int.MaxValue));
+				}
 				return new DefenderAI(DefenderAI.MakeAiDataForDefendInPlace(unit, player));
 			}
 

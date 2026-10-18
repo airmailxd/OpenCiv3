@@ -80,7 +80,7 @@ public class DealProposalAITest : System.IDisposable {
 
 		Assert.NotNull(deal);
 		Assert.Equal([wines.Key], deal.Value.weWant.resources);
-		int price = TradeOffer.ResourceWorth(gameData, them, wines, given: true);
+		int price = TradeOffer.ResourceWorth(gameData, them, wines, given: true, counterpart: us);
 		Assert.True(deal.Value.weGive.goldPerTurn == price || deal.Value.weGive.gold == price * 20);
 		// And the seller would take it.
 		Assert.True(them.WouldAcceptDealFrom(gameData, us, deal.Value.weGive, deal.Value.weWant));
@@ -92,9 +92,22 @@ public class DealProposalAITest : System.IDisposable {
 
 		Assert.NotNull(deal);
 		Assert.Equal([wines.Key], deal.Value.weGive.resources);
-		Assert.True(deal.Value.weWant.goldPerTurn >= TradeOffer.ResourceWorth(gameData, them, wines, given: true));
+		Assert.True(deal.Value.weWant.goldPerTurn >= TradeOffer.ResourceWorth(gameData, them, wines, given: true, counterpart: us));
 		Assert.True(deal.Value.weWant.goldPerTurn <= TradeOffer.ResourceWorth(gameData, us, wines, given: false));
 		Assert.True(us.WouldAcceptDealFrom(gameData, them, deal.Value.weGive, deal.Value.weWant));
+	}
+
+	// A luxury makes every one of the buyer's cities happier, so the AI
+	// doesn't sell its spare for a gold a turn.
+	[Fact]
+	public void TheAIDoesntSellALuxuryForAGoldATurn() {
+		TradeOffer cheap = new() { goldPerTurn = 1 };
+		TradeOffer luxury = new() { resources = { wines.Key } };
+		Assert.False(them.WouldAcceptDealFrom(gameData, us, cheap, luxury));
+
+		int ask = TradeOffer.ResourceWorth(gameData, them, wines, given: true, counterpart: us);
+		Assert.True(ask > TradeOffer.SurplusGold);
+		Assert.True(ask <= TradeOffer.ResourceWorth(gameData, us, wines, given: false));
 	}
 
 	[Fact]
@@ -212,9 +225,12 @@ public class DealProposalAITest : System.IDisposable {
 		Assert.Null(Eventually(() => DealProposalAI.EmbargoDeal(gameData, us, them)));
 	}
 
-	// They send us wines for a gold a turn, from turn 0.
+	// What they ask a turn for their spare wines, while we have none.
+	private int WinesPrice => TradeOffer.ResourceWorth(gameData, them, wines, given: true, counterpart: us);
+
+	// They send us wines for their asking price, from turn 0.
 	private void BuyWines() {
-		Assert.True(them.ExecuteDeal(gameData, us, new TradeOffer { goldPerTurn = 1 }, new TradeOffer { resources = { wines.Key } }));
+		Assert.True(them.ExecuteDeal(gameData, us, new TradeOffer { goldPerTurn = WinesPrice }, new TradeOffer { resources = { wines.Key } }));
 	}
 
 	private bool HasWinesDeal(Player a, Player b) =>
@@ -222,6 +238,7 @@ public class DealProposalAITest : System.IDisposable {
 
 	[Fact]
 	public async Task AnExpiredDealIsRenewedBetweenAIsThatStillWantIt() {
+		int price = WinesPrice;
 		BuyWines();
 		gameData.turn = 20;
 		PlayerRelationship.CheckForObsoleteDeals(us, gameData.players, gameData.turn);
@@ -232,7 +249,7 @@ public class DealProposalAITest : System.IDisposable {
 		Assert.True(HasWinesDeal(us, them));
 		MultiTurnDeal renewed = us.playerRelationships[them.id].multiTurnDeals.Single(d => d.dealSubType == DealSubType.LuxuryPerTurn);
 		Assert.Equal(20, renewed.TurnsRemaining(gameData.turn));
-		Assert.Contains(us.playerRelationships[them.id].multiTurnDeals, d => d.dealSubType == DealSubType.GoldPerTurn && d.goldPerTurn == 1);
+		Assert.Contains(us.playerRelationships[them.id].multiTurnDeals, d => d.dealSubType == DealSubType.GoldPerTurn && d.goldPerTurn == price);
 		// Only once.
 		Assert.Empty(DealRenewal.TakeFor(gameData, them));
 	}
@@ -240,6 +257,7 @@ public class DealProposalAITest : System.IDisposable {
 	[Fact]
 	public void AHumanIsToldAndOfferedTheOldTerms() {
 		us.isHuman = true;
+		int price = WinesPrice;
 		BuyWines();
 		gameData.turn = 20;
 		PlayerRelationship.CheckForObsoleteDeals(us, gameData.players, gameData.turn);
@@ -250,7 +268,7 @@ public class DealProposalAITest : System.IDisposable {
 		var renewal = Assert.Single(DealRenewal.TakeFor(gameData, them));
 		Assert.Equal(us, renewal.other);
 		Assert.Equal([wines.Key], renewal.aiGives.resources);
-		Assert.Equal(1, renewal.otherGives.goldPerTurn);
+		Assert.Equal(price, renewal.otherGives.goldPerTurn);
 		Assert.True(them.WouldAcceptDealFrom(gameData, us, renewal.otherGives, renewal.aiGives));
 	}
 

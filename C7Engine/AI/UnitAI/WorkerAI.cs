@@ -124,6 +124,23 @@ namespace C7Engine {
 				}
 			});
 
+			// Tiles where enemies could catch the worker are skipped, as are
+			// those in the land of civs we're at war with (see AIThreat).
+			AIFogOfWar.Refresh(player);
+			AIThreat threat = AIThreat.Assess(player);
+			if (threat.AnyEnemies || PlayerRelationship.IsInAnyWar(player, EngineStorage.gameData.players)) {
+				foreach (Tile t in highPriorityTiles) {
+					if (threat.IsUnsafeForCivilian(t)) {
+						reservedTiles.Add(t);
+					}
+				}
+				foreach (Tile t in lowPriorityTiles) {
+					if (threat.IsUnsafeForCivilian(t)) {
+						reservedTiles.Add(t);
+					}
+				}
+			}
+
 			// Looking for a tile the worker can reach may take a search over
 			// every tile it can reach, which is kept for the next question
 			// rather than done again for each distance and list.
@@ -133,6 +150,7 @@ namespace C7Engine {
 			// (see WorkerHoldingsAI).
 			PathingAlgorithm algorithm = null;
 			List<Tile> colonySites = WorkerHoldingsAI.ColonySites(unit, player, colonyTrip);
+			colonySites.RemoveAll(threat.IsUnsafeForCivilian);
 			if (colonySites.Count > 0) {
 				algorithm = PathingAlgorithmChooser.GetAlgorithm(unit);
 				int index = algorithm.FindFirstReachable(unit.location, colonySites, unit, reachable, out TilePath path);
@@ -143,6 +161,7 @@ namespace C7Engine {
 				}
 			}
 			List<Tile> outpostSites = WorkerHoldingsAI.OutpostSites(unit, player, outpostTrip);
+			outpostSites.RemoveAll(threat.IsUnsafeForCivilian);
 			if (outpostSites.Count > 0) {
 				algorithm ??= PathingAlgorithmChooser.GetAlgorithm(unit);
 				int index = algorithm.FindFirstReachable(unit.location, outpostSites, unit, reachable, out TilePath path);
@@ -209,7 +228,18 @@ namespace C7Engine {
 		public void UpdateOnDeath() { }
 
 		UnitAI.MoveResult UnitAI.PlayTurnImpl(Player player, MapUnit unit) {
+			// A worker enemies could catch stops work and makes for one of
+			// our cities; one whose job is where enemies could catch it
+			// finds another (see AIThreat).
+			AIThreat threat = AIThreat.Assess(player);
+			if (threat.IsUnsafeForCivilian(unit.location) && MakeForSafety(player, unit) is UnitAI.MoveResult flee) {
+				return flee;
+			}
 			if (data == null) {
+				return UnitAI.Result.Error;
+			}
+			if (unit.location != data.destination && threat.IsUnsafeForCivilian(data.destination)) {
+				log.Debug("{Unit} gives up its job at {Destination}, where enemies could catch it", unit, data.destination);
 				return UnitAI.Result.Error;
 			}
 
@@ -243,6 +273,30 @@ namespace C7Engine {
 			}
 
 			return this.TryToMoveAlongPath(unit, ref data.pathToDestination);
+		}
+
+		// The path to the city the worker is running to, while it is.
+		private TilePath refugePath;
+
+		// Moves the worker towards the nearest of our cities it can reach.
+		// Returns null if there is none.
+		private UnitAI.MoveResult? MakeForSafety(Player player, MapUnit unit) {
+			if (refugePath == null || refugePath.destination?.cityAtTile?.owner != player) {
+				List<Tile> cities = player.cities.Select(c => c.location).OrderBy(t => t.DistanceTo(unit.location)).ToList();
+				if (cities.Count == 0
+						|| PathingAlgorithmChooser.GetAlgorithm(unit).FindFirstReachable(unit.location, cities, unit, out TilePath path) < 0) {
+					refugePath = null;
+					return null;
+				}
+				refugePath = path;
+				log.Information("{Unit} runs from the enemy to {City}", unit, path.destination.cityAtTile);
+			}
+			UnitAI.MoveResult result = this.TryToMoveAlongPath(unit, ref refugePath);
+			if (result.Result == UnitAI.Result.Error) {
+				refugePath = null;
+				return null;
+			}
+			return result;
 		}
 
 		private static Terraform? GetTileImprovement(Tile t, MapUnit unit) {

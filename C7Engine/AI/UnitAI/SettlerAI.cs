@@ -127,7 +127,14 @@ namespace C7Engine {
 					if (data.port != null) {
 						return GoToPort(unit, player);
 					} else {
-						KeepToOurLandIfAlone(unit, data.destination);
+						AIThreat threat = AIThreat.Assess(player);
+						if (!PlanSafeRoute(unit, player, data.destination, threat)) {
+							log.Information($"Settler {unit.id} would have to cross enemy land to reach {data.destination}, retargeting");
+							return FindNewDestination(unit, player);
+						}
+						if (StayClearOfEnemies(unit, player, threat) is C7GameData.UnitAI.MoveResult held) {
+							return held;
+						}
 						C7GameData.UnitAI.MoveResult moveResult = this.TryToMoveAlongPath(unit, ref data.pathToDestination);
 						if (moveResult.Result == C7GameData.UnitAI.Result.Error) {
 							return FindNewDestination(unit, player);
@@ -147,21 +154,118 @@ namespace C7Engine {
 		// within our borders to save a step outside them.
 		private const float OUTSIDE_TERRITORY_STEP_COST = 2;
 
+		// HEURISTIC: what a step onto the land of a civ we're at war with
+		// costs a settler on top of its moves: it goes a long way around
+		// rather than through, escorted or not.
+		private const float HOSTILE_TERRITORY_STEP_COST = 30;
+
+		// HEURISTIC: likewise for a step onto a tile an enemy we can see
+		// could reach next turn.
+		private const float ENEMY_REACH_STEP_COST = 4;
+
 		// A settler without an escort goes the way with the fewest moves
 		// outside our territory, where it could be captured, rather than
 		// the shortest (owner's decision, 2026-10-12: "make unescorted
-		// settlers prioritize minimal moves past owned territory"). The
-		// path is found again each turn it moves alone, as the borders and
-		// its escort may change.
-		private void KeepToOurLandIfAlone(MapUnit unit, Tile destination) {
-			if (data.escort != null) {
-				return;
+		// settlers prioritize minimal moves past owned territory"). In
+		// wartime, or with enemies about, any settler keeps out of the land
+		// of civs we're at war with and away from enemy units where it can.
+		// The path is found again each step, as the borders, the enemies
+		// and its escort may change.
+		//
+		// Returns false if, at war, even the safest way there crosses enemy
+		// land: no escort makes that safe, so the settler should go
+		// elsewhere.
+		private bool PlanSafeRoute(MapUnit unit, Player player, Tile destination, AIThreat threat) {
+			bool alone = data.escort == null;
+			bool atWar = PlayerRelationship.IsInAnyWar(player, EngineStorage.gameData.players);
+			if (!alone && !atWar && !threat.AnyEnemies) {
+				return true;
 			}
-			AStarAlgorithm algorithm = new(unit) { OutsideTerritoryCost = OUTSIDE_TERRITORY_STEP_COST };
+			AStarAlgorithm algorithm = new(unit) { OutsideTerritoryCost = alone ? OUTSIDE_TERRITORY_STEP_COST : 0 };
+			if (atWar || threat.AnyEnemies) {
+				algorithm.StepPenalty = t => (AIThreat.IsHostileTerritory(player, t) ? HOSTILE_TERRITORY_STEP_COST : 0)
+					+ (threat.EnemyCanReach(t) ? ENEMY_REACH_STEP_COST : 0);
+			}
 			TilePath path = algorithm.PathFrom(unit.location, destination, unit);
-			if (path != null && path.PathLength() > 0) {
-				data.pathToDestination = path;
+			if (path == null || path.PathLength() <= 0) {
+				return true;
 			}
+			data.pathToDestination = path;
+			return !atWar || !path.path.Any(t => AIThreat.IsHostileTerritory(player, t));
+		}
+
+		// HEURISTIC: how many defenders must be with a settler for it to walk
+		// where enemies could reach it. One can be beaten and the settler
+		// taken.
+		private const int DEFENDERS_TO_RISK_ENEMIES = 2;
+
+		// HEURISTIC: how many turns a settler waits for enemies in its way
+		// to leave before it looks for a site elsewhere.
+		private const int MAX_TURNS_HELD_BY_ENEMIES = 5;
+
+		// The turn the settler started waiting for enemies to leave, or -1.
+		private int heldSinceTurn = -1;
+
+		// The path to the city the settler is running to, while it is.
+		private TilePath refugePath;
+
+		// Keeps the settler out of reach of enemies we can see, unless it has
+		// defenders enough with it: rather than take its next step where an
+		// enemy could catch it, it waits where it is if that's safe, and
+		// otherwise goes back to the nearest of our cities. Returns null if
+		// it may go on.
+		private C7GameData.UnitAI.MoveResult? StayClearOfEnemies(MapUnit unit, Player player, AIThreat threat) {
+			Tile next = data.pathToDestination?.PeekNext() ?? Tile.NONE;
+			if (!threat.AnyEnemies || next == Tile.NONE || DefendersWith(unit, player) >= DEFENDERS_TO_RISK_ENEMIES
+					|| !threat.EnemyCanReach(next)) {
+				heldSinceTurn = -1;
+				refugePath = null;
+				return null;
+			}
+
+			bool safeHere = unit.location.cityAtTile?.owner == player || !threat.EnemyCanReach(unit.location);
+			if (!safeHere && MakeForSafety(unit, player) is C7GameData.UnitAI.MoveResult flee) {
+				return flee;
+			}
+
+			int turn = EngineStorage.gameData.turn;
+			if (heldSinceTurn < 0) {
+				heldSinceTurn = turn;
+			} else if (turn - heldSinceTurn >= MAX_TURNS_HELD_BY_ENEMIES) {
+				heldSinceTurn = -1;
+				log.Information($"Settler {unit.id} waited too long for enemies to clear the way to {data.destination}");
+				return FindNewDestination(unit, player);
+			}
+			log.Information($"Settler {unit.id} waits for enemies near {next} to leave");
+			unit.movementPoints.onConsumeAll();
+			return C7GameData.UnitAI.Result.InProgress;
+		}
+
+		// The units of ours on the settler's tile that can defend it.
+		private static int DefendersWith(MapUnit unit, Player player) {
+			return unit.location.unitsOnTile.Count(u => u.owner == player && u.CanDefendOnLand()
+				&& !u.unitType.isSettler && !u.unitType.isWorker);
+		}
+
+		// Moves the settler towards the nearest of our cities it can reach.
+		// Returns null if there is none.
+		private C7GameData.UnitAI.MoveResult? MakeForSafety(MapUnit unit, Player player) {
+			if (refugePath == null || refugePath.destination?.cityAtTile?.owner != player) {
+				List<Tile> cities = player.cities.Select(c => c.location).OrderBy(t => t.DistanceTo(unit.location)).ToList();
+				if (cities.Count == 0
+						|| PathingAlgorithmChooser.GetAlgorithm(unit).FindFirstReachable(unit.location, cities, unit, out TilePath path) < 0) {
+					refugePath = null;
+					return null;
+				}
+				refugePath = path;
+				log.Information($"Settler {unit.id} goes back to {path.destination.cityAtTile} out of the enemy's way");
+			}
+			C7GameData.UnitAI.MoveResult result = this.TryToMoveAlongPath(unit, ref refugePath);
+			if (result.Result == C7GameData.UnitAI.Result.Error) {
+				refugePath = null;
+				return null;
+			}
+			return result;
 		}
 
 		// How far, in tiles, a settler looks for a spare unit to escort it.
@@ -212,7 +316,11 @@ namespace C7Engine {
 			Tile port = data.port.location;
 			if (unit.location != port) {
 				data.waitingSinceTurn = -1;
-				KeepToOurLandIfAlone(unit, port);
+				AIThreat threat = AIThreat.Assess(player);
+				PlanSafeRoute(unit, player, port, threat);
+				if (StayClearOfEnemies(unit, player, threat) is C7GameData.UnitAI.MoveResult held) {
+					return held;
+				}
 				C7GameData.UnitAI.MoveResult moveResult = this.TryToMoveAlongPath(unit, ref data.pathToDestination);
 				if (moveResult.Result == C7GameData.UnitAI.Result.Error) {
 					return GiveUpSailing(unit, player);

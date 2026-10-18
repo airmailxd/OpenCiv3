@@ -679,6 +679,10 @@ namespace C7Engine.AI {
 				}
 			}
 			c.units.RemoveAll(u => !PlayerAI.IsStillOurs(u, player));
+			if (atWar) {
+				await Sortie(player, c, staging.location);
+				c.units.RemoveAll(u => !PlayerAI.IsStillOurs(u, player));
+			}
 
 			List<MapUnit> ready = c.units.Where(u => u.location == staging.location && Health(u) >= ReadyHealth).ToList();
 			int readyAttackers = ready.Count(IsAttacker);
@@ -696,7 +700,11 @@ namespace C7Engine.AI {
 						u.Fortify();
 					}
 				}
-				return waited < MaxGatherTurns || atWar;
+				// At war, a campaign that can't gather even most of what it
+				// needs in that time gives up for a while, so its attackers
+				// fight on their own (see CombatAI) rather than wait in the
+				// city all war.
+				return waited < MaxGatherTurns;
 			}
 
 			if (!atWar) {
@@ -719,6 +727,21 @@ namespace C7Engine.AI {
 				await Siege(player, c);
 			}
 			return true;
+		}
+
+		// While gathering, the attackers in the staging city strike enemies
+		// that come next to it when the odds are very good, rather than sit
+		// there while the enemy pillages or gathers to attack the city.
+		private static async Task Sortie(Player player, Campaign c, Tile from) {
+			List<MapUnit> here = c.units.Where(u => u.location == from).ToList();
+			if (here.Count == 0) {
+				return;
+			}
+			foreach (Tile t in from.neighbors.Values) {
+				while (t != Tile.NONE && t.unitsOnTile.Any(u => AIThreat.IsHostile(player, u.owner) && u.IsSeenBy(player))
+						&& await AttackIfGoodOdds(player, here, t, SureOdds)) {
+				}
+			}
 		}
 
 		private static bool HasArmedEnemy(Player player, Tile tile) {

@@ -32,6 +32,11 @@ namespace C7Engine.Pathing {
 		// paths found are still the cheapest by these costs.
 		public float OutsideTerritoryCost;
 
+		// If set, added to the cost of each step onto a tile, such as to
+		// keep a settler away from enemies (see SettlerAI). Like
+		// OutsideTerritoryCost, it must not be negative.
+		public Func<Tile, float> StepPenalty;
+
 		// Creates an A* search specialized for moving the given unit.
 		public AStarAlgorithm(MapUnit unit) {
 			this.unit = unit;
@@ -331,6 +336,9 @@ namespace C7Engine.Pathing {
 					float edgeCost = UnitWalker.EdgeCost(owner, currentTile, pair.Key, neighbor, movementPoints, allTerrainAsRoads);
 					if (OutsideTerritoryCost > 0 && neighbor.OwningPlayer() != owner) {
 						edgeCost += OutsideTerritoryCost;
+					}
+					if (StepPenalty != null) {
+						edgeCost += StepPenalty(neighbor);
 					}
 					Relax(ctx, current, id, neighbor, destination, currentCost + edgeCost, maxCost, heuristicScale, landmarks);
 				}

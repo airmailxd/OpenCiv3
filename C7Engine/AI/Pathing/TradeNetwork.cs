@@ -245,7 +245,7 @@ namespace C7Engine.Pathing {
 					}
 
 					foreach (Tile n in x.neighbors.Values) {
-						if (n.IsRoaded() && !InEnemyTerritory(n, enemySet) && seen.TryAdd(n, segment)) {
+						if (CarriesTrade(n) && !InEnemyTerritory(n, enemySet) && seen.TryAdd(n, segment)) {
 							toCheck.Enqueue(n);
 						}
 					}
@@ -253,6 +253,16 @@ namespace C7Engine.Pathing {
 			}
 			JoinByHarborsAndAirports(player, network, enemySet);
 			return network;
+		}
+
+		// Whether a road route runs through the tile: a road or railroad, or
+		// a city, which always counts as having a road (as it does for
+		// movement, see UnitPrototype). A city's tile only gets a road
+		// overlay if one was there or next to it when it was founded, so a
+		// road built up to it later would otherwise stop one tile short and
+		// leave the city off the network.
+		private static bool CarriesTrade(Tile t) {
+			return t.IsRoaded() || t.HasCity();
 		}
 
 		private static bool InEnemyTerritory(Tile t, HashSet<Player> enemies) {

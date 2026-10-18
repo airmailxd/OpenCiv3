@@ -38,7 +38,7 @@ public sealed class PerfTradeNetworkTests : MapBase {
 						segments[x.cityAtTile] = segment;
 					}
 					foreach (Tile n in x.neighbors.Values) {
-						if (n.IsRoaded() && seen.Add(n)) {
+						if ((n.IsRoaded() || n.HasCity()) && seen.Add(n)) {
 							toCheck.Enqueue(n);
 						}
 					}
