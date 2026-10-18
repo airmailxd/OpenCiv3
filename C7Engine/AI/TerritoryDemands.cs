@@ -60,7 +60,7 @@ namespace C7Engine.AI {
 				bool repeatOffense = ourView.recentWithdrawals > 0;
 				ourView.lastWithdrawalDemandTurn = gameData.turn;
 
-				if (them.isHuman && ourView.recentWithdrawals >= WITHDRAWALS_BEFORE_WAR) {
+				if (them.isHuman && ourView.recentWithdrawals >= WITHDRAWALS_BEFORE_WAR && PeaceAI.WouldWinWarWith(gameData, us, them)) {
 					log.Information("{Us} has had enough of {Them} trespassing and declares war", us, them);
 					// They kept their word each time, so this war isn't the
 					// direct result of a refusal: their people rally as usual.
@@ -160,7 +160,7 @@ namespace C7Engine.AI {
 				return null;
 			}
 
-			if (ai.CompareMilitaryStrengthTo(human) == Player.MilitaryStrength.StrongTo) {
+			if (ai.CompareMilitaryStrengthTo(human) == Player.MilitaryStrength.StrongTo && PeaceAI.WouldWinWarWith(gameData, ai, human)) {
 				log.Information("{Ai} refused to leave {Human}'s territory", ai, human);
 				// Having been warned, it goes to war openly, even though its
 				// units are inside the human's borders.

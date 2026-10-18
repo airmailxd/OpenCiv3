@@ -96,7 +96,9 @@ namespace C7Engine.AI {
 			if (DemandedOfRecently(them, gameData)) {
 				return false;
 			}
-			return us.CompareMilitaryStrengthTo(them) == Player.MilitaryStrength.StrongTo;
+			// Only a demand we'd go to war over: a refusal means war (see
+			// DemandFrom), which must be one we can win.
+			return us.CompareMilitaryStrengthTo(them) == Player.MilitaryStrength.StrongTo && PeaceAI.WouldWinWarWith(gameData, us, them);
 		}
 
 		// Whether it's too early for a demand: early in the game, or soon
@@ -163,7 +165,9 @@ namespace C7Engine.AI {
 				ourView.lastTributePaidTurn = gameData.turn;
 				return;
 			}
-			if (BacksDown(us, them, gameData)) {
+			// Things may have changed since the demand (pacts signed, a war
+			// begun elsewhere): no war we wouldn't win.
+			if (BacksDown(us, them, gameData) || !PeaceAI.WouldWinWarWith(gameData, us, them)) {
 				log.Information("{Them} called {Us}'s bluff and refused to pay tribute", them, us);
 				++ourView.tributeBluffsCalled;
 				return;
