@@ -41,9 +41,30 @@ namespace C7Engine {
 			private List<Tile> lowPriorityTiles;
 
 			private readonly Dictionary<(Tile, UnitPrototype), Terraform> bestTerraforms = new();
+			private HashSet<Tile> highPrioritySet;
+			private List<Tile> connectionRoads;
+			private HashSet<Tile> connectionRoadSet;
 
 			public PlanningCache(Player player) {
 				this.player = player;
+			}
+
+			public HashSet<Tile> HighPrioritySet() {
+				Validate();
+				return highPrioritySet ??= new HashSet<Tile>(PriorityTiles().high);
+			}
+
+			// The road-less tiles on the roads that would join our cities
+			// and resources to the capital (see ComputeConnectionRoads).
+			// Roads built during the turn don't change it, which at worst
+			// sends a second worker to a tile a road was just finished on.
+			public (List<Tile> tiles, HashSet<Tile> set) ConnectionRoads(MapUnit unit) {
+				Validate();
+				if (connectionRoads == null) {
+					connectionRoads = ComputeConnectionRoads(player, unit);
+					connectionRoadSet = new HashSet<Tile>(connectionRoads);
+				}
+				return (connectionRoads, connectionRoadSet);
 			}
 
 			// Throws away everything if the player gained or lost a city, a
@@ -55,6 +76,9 @@ namespace C7Engine {
 					government = player.government;
 					highPriorityTiles = null;
 					lowPriorityTiles = null;
+					highPrioritySet = null;
+					connectionRoads = null;
+					connectionRoadSet = null;
 					bestTerraforms.Clear();
 				}
 			}
@@ -170,6 +194,39 @@ namespace C7Engine {
 				}
 			}
 
+			// Joining our cities and resources to the capital by road comes
+			// before improving tiles, for up to a third of our workers (and
+			// at least one), so the rest keep improving.
+			(List<Tile> connectionTiles, HashSet<Tile> connectionSet) = cache != null ? cache.ConnectionRoads(unit)
+				: (ComputeConnectionRoads(player, unit), null);
+			if (connectionTiles.Count > 0) {
+				connectionSet ??= new HashSet<Tile>(connectionTiles);
+				int roadWorkers = 0;
+				int workers = 0;
+				registry.ForEachActive(player, other => {
+					if (other.data.worker == unit) {
+						return;
+					}
+					++workers;
+					if (other.data.destination != null && connectionSet.Contains(other.data.destination)
+							&& other.data.workerMove != null && other.data.workerMove.ProvidesRoad()) {
+						++roadWorkers;
+					}
+				});
+				if (roadWorkers < Math.Max(1, (workers + 1) / 3)) {
+					List<Tile> open = connectionTiles.Where(t => !reservedTiles.Contains(t) && RoadTerraform(unit, t) != null)
+						.OrderBy(t => t.DistanceTo(unit.location)).ToList();
+					if (open.Count > 0) {
+						algorithm ??= PathingAlgorithmChooser.GetAlgorithm(unit);
+						int index = algorithm.FindFirstReachable(unit.location, open, unit, reachable, out TilePath path);
+						if (index >= 0) {
+							log.Debug("{Unit} builds a road at {Tile} to join the empire up", unit, open[index]);
+							return MakePlan(unit, open[index], RoadTerraform(unit, open[index]), path);
+						}
+					}
+				}
+			}
+
 			WorkerAIData? result = GetPlanToImproveNearestUnimproved(unit, player, highPriorityTiles, reservedTiles, reachable);
 			if (result != null) {
 				return result;
@@ -232,11 +289,11 @@ namespace C7Engine {
 			// our cities; one whose job is where enemies could catch it
 			// finds another (see AIThreat).
 			AIThreat threat = AIThreat.Assess(player);
-			if (threat.IsUnsafeForCivilian(unit.location) && MakeForSafety(player, unit) is UnitAI.MoveResult flee) {
+			if (threat.IsUnsafeForCivilian(unit.location) && MakeForCity(player, unit, "runs from the enemy to") is UnitAI.MoveResult flee) {
 				return flee;
 			}
 			if (data == null) {
-				return UnitAI.Result.Error;
+				return Idle(player, unit);
 			}
 			if (unit.location != data.destination && threat.IsUnsafeForCivilian(data.destination)) {
 				log.Debug("{Unit} gives up its job at {Destination}, where enemies could catch it", unit, data.destination);
@@ -261,26 +318,130 @@ namespace C7Engine {
 				return this.TryToMoveAlongPath(unit, ref data.pathToDestination);
 			}
 
-			// Otherwise we're moving towards our actual goal. To avoid wasting
-			// worker moves, see if there's anything we can do on this tile
-			// before moving to the next.
-			//
-			// This also functions as a way to build a road network, since we
-			// will eventually road between all worked tiles of all cities.
-			Terraform? improvement = GetTileImprovement(unit.location, unit);
-			if (improvement != null) {
+			// Otherwise we're moving towards our actual goal. On the way the
+			// worker stops only for a job that's worth it there and then: a
+			// road on one of the roads that join the empire up, or the best
+			// job on a tile a city works, if no other worker is headed for
+			// it. Any job anywhere, as before, made workers spend many turns
+			// on tiles nobody works while their real job waited (and was
+			// kept from other workers).
+			if (StopOnTheWay(player, unit) is Terraform improvement) {
 				return PerformWorkerMove(unit, improvement);
 			}
 
 			return this.TryToMoveAlongPath(unit, ref data.pathToDestination);
 		}
 
-		// The path to the city the worker is running to, while it is.
+		private Terraform? StopOnTheWay(Player player, MapUnit unit) {
+			Tile here = unit.location;
+			planningCaches.TryGetValue(player, out PlanningCache cache);
+			HashSet<Tile> connection = cache?.ConnectionRoads(unit).set;
+			if (connection != null && connection.Contains(here) && !here.HasRoad()) {
+				return RoadTerraform(unit, here);
+			}
+			bool worked = cache != null ? cache.HighPrioritySet().Contains(here)
+				: here.owningCity?.owner == player && here.owningCity.residents.Any(r => r.tileWorked == here);
+			if (!worked) {
+				return null;
+			}
+			bool takenByOther = false;
+			registry.ForEachActive(player, other => {
+				takenByOther |= other != this && other.data?.destination == here;
+			});
+			return takenByOther ? null : GetTileImprovement(here, unit);
+		}
+
+		// HEURISTIC: what a step onto another civ's land adds to the cost of
+		// a connecting road, so that it keeps to our land (and unclaimed
+		// land) where it can, as a road through a neighbour can be cut.
+		private const float ForeignRoadStepCost = 2;
+
+		// The road-less tiles on the cheapest roads that would join each of
+		// our cities, and each known luxury and strategic resource in our
+		// borders, to the capital's network: from the city to the capital,
+		// and from the resource to the nearest of our cities that is joined
+		// to it. Cities on other landmasses are left to harbors. Existing
+		// roads cost little to walk, so the paths make use of them. (An AI
+		// heuristic: Civ3 sources only say that cities and resources must
+		// be joined by road for trade, see TradeNetwork.)
+		private static List<Tile> ComputeConnectionRoads(Player player, MapUnit unit) {
+			List<Tile> result = new();
+			GameData gameData = EngineStorage.gameData;
+			City capital = player.cities.Find(c => c.IsCapital()) ?? player.cities.FirstOrDefault();
+			if (gameData == null || capital == null || !unit.IsLandUnit()) {
+				return result;
+			}
+			TradeNetwork network = gameData.GetTradeNetwork();
+			HashSet<Tile> seen = new();
+			AStarAlgorithm algorithm = new(unit) {
+				StepPenalty = t => t.OwningPlayer() is Player owner && owner != player ? ForeignRoadStepCost : 0,
+			};
+			void AddRoadless(TilePath path) {
+				if (path == null) {
+					return;
+				}
+				foreach (Tile t in path.path) {
+					if (t.IsLand() && !t.HasRoad() && !t.HasCity() && (t.OwningPlayer() == null || t.OwningPlayer() == player)
+							&& !AIThreat.IsHostileTerritory(player, t) && seen.Add(t)) {
+						result.Add(t);
+					}
+				}
+			}
+
+			int continent = capital.location.continent;
+			List<Tile> joined = player.cities.Where(c => c.location.continent == continent && network.ConnectedToCapital(player, c))
+				.Select(c => c.location).ToList();
+			foreach (City c in player.cities) {
+				if (c == capital || c.location.continent != continent || network.ConnectedToCapital(player, c)) {
+					continue;
+				}
+				AddRoadless(algorithm.PathFrom(c.location, capital.location, unit));
+			}
+			foreach (City c in player.cities) {
+				if (c.location.continent != continent) {
+					continue;
+				}
+				foreach (Tile t in c.GetTilesWithinBorders()) {
+					if (t.owningCity != c || t.Resource == null || !player.KnowsAboutResource(t.Resource)
+							|| (t.Resource.Category != ResourceCategory.LUXURY && t.Resource.Category != ResourceCategory.STRATEGIC)
+							|| network.JoinedToCapital(player, t)) {
+						continue;
+					}
+					Tile nearest = joined.OrderBy(j => j.DistanceTo(t)).FirstOrDefault();
+					if (nearest != null) {
+						AddRoadless(algorithm.PathFrom(t, nearest, unit));
+					}
+				}
+			}
+			return result;
+		}
+
+		// The turn a worker with nothing to do started waiting, or -1.
+		private int idleSinceTurn = -1;
+
+		// A worker with nothing to do goes to the nearest of our cities and
+		// waits out the turn there, out of harm's way; next turn it looks
+		// for work again (its plan fails, so it gets a new one), once a
+		// turn rather than every time it's asked.
+		private UnitAI.MoveResult Idle(Player player, MapUnit unit) {
+			int turn = EngineStorage.gameData?.turn ?? 0;
+			if (idleSinceTurn >= 0 && idleSinceTurn != turn) {
+				return UnitAI.Result.Error;
+			}
+			idleSinceTurn = turn;
+			if (unit.location.cityAtTile?.owner != player && MakeForCity(player, unit, "has nothing to do, so goes to") is UnitAI.MoveResult go) {
+				return go;
+			}
+			unit.movementPoints.onConsumeAll();
+			return UnitAI.Result.InProgress;
+		}
+
+		// The path to the city the worker is going to, while it is.
 		private TilePath refugePath;
 
 		// Moves the worker towards the nearest of our cities it can reach.
 		// Returns null if there is none.
-		private UnitAI.MoveResult? MakeForSafety(Player player, MapUnit unit) {
+		private UnitAI.MoveResult? MakeForCity(Player player, MapUnit unit, string why) {
 			if (refugePath == null || refugePath.destination?.cityAtTile?.owner != player) {
 				List<Tile> cities = player.cities.Select(c => c.location).OrderBy(t => t.DistanceTo(unit.location)).ToList();
 				if (cities.Count == 0
@@ -289,7 +450,7 @@ namespace C7Engine {
 					return null;
 				}
 				refugePath = path;
-				log.Information("{Unit} runs from the enemy to {City}", unit, path.destination.cityAtTile);
+				log.Information("{Unit} {Why} {City}", unit, why, path.destination.cityAtTile);
 			}
 			UnitAI.MoveResult result = this.TryToMoveAlongPath(unit, ref refugePath);
 			if (result.Result == UnitAI.Result.Error) {

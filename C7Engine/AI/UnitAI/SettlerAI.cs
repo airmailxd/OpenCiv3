@@ -95,9 +95,13 @@ namespace C7Engine {
 			}
 			switch (data.goal) {
 				case SettlerAIData.SettlerGoal.BUILD_CITY:
-					if (IsInvalidCityLocation(data.destination)) {
+					// The site may have been spoiled on the way (a city
+					// founded near it, borders grown over it). Finding
+					// another keeps our escort and the sites already ruled
+					// out, which a new plan would lose.
+					if (!SettlerLocationAI.IsStillValidSite(data.destination, player)) {
 						log.Information("Seeking new destination for settler " + unit.id + " headed to " + data.destination);
-						return C7GameData.UnitAI.Result.Error;
+						return FindNewDestination(unit, player);
 					}
 
 					if (unit.location == data.destination) {
@@ -105,7 +109,7 @@ namespace C7Engine {
 						// founding cities inside another civ's borders.
 						if (!CanFoundCityHere(unit, player)) {
 							log.Information("Settler " + unit.id + " can't build a city at " + data.destination + ", seeking a new destination");
-							return C7GameData.UnitAI.Result.Error;
+							return FindNewDestination(unit, player);
 						}
 						log.Information("Building city with " + unit);
 						//TODO: This should use a message, and the message handler should cause the disbanding to happen.
@@ -119,7 +123,17 @@ namespace C7Engine {
 					// 2026-10-12: "if no escort is available, send the
 					// settler alone"), while one going by sea still waits
 					// in port for a defender to land with it.
-					if (data.escort == null && !TryToTakeEscort(unit, player) && data.port != null) {
+					// It walks to the port in any case, and waits there (where
+					// the port builds a defender for it, see ChooseProducible)
+					// no longer than for a transport.
+					if (data.escort == null && !TryToTakeEscort(unit, player) && data.port != null && unit.location == data.port.location) {
+						int now = EngineStorage.gameData.turn;
+						if (data.waitingSinceTurn < 0) {
+							data.waitingSinceTurn = now;
+						} else if (now - data.waitingSinceTurn > SeaRoutes.MaxTurnsWaitingForTransport) {
+							log.Information($"Settler {unit.id} waited too long for an escort at {data.port}");
+							return GiveUpSailing(unit, player);
+						}
 						log.Information($"Settler {unit.id} is waiting for an escort to sail with");
 						unit.movementPoints.onConsumeAll();
 						return C7GameData.UnitAI.Result.InProgress;
@@ -176,7 +190,9 @@ namespace C7Engine {
 		// land: no escort makes that safe, so the settler should go
 		// elsewhere.
 		private bool PlanSafeRoute(MapUnit unit, Player player, Tile destination, AIThreat threat) {
-			bool alone = data.escort == null;
+			// An escort not with us yet (one taken from a few tiles away
+			// trails behind) doesn't protect us.
+			bool alone = data.escort == null || data.escort.location != unit.location;
 			bool atWar = PlayerRelationship.IsInAnyWar(player, EngineStorage.gameData.players);
 			if (!alone && !atWar && !threat.AnyEnemies) {
 				return true;
@@ -449,18 +465,6 @@ namespace C7Engine {
 			unit.RemoveFromPlay();
 		}
 
-		private static bool IsInvalidCityLocation(Tile tile) {
-			if (tile.cityAtTile != null) {
-				return true;
-			}
-			foreach (Tile neighbor in tile.neighbors.Values) {
-				if (neighbor.cityAtTile != null) {
-					return true;
-				}
-			}
-			return false;
-		}
-
 		public string SummarizePlan() {
 			return "SettlerAI: " + data.ToString();
 		}
@@ -469,7 +473,18 @@ namespace C7Engine {
 		// fall back to JOIN_CITY if nothing is left.
 		// TODO: prefer path-checking at selection time over exclude-and-repick.
 		public C7GameData.UnitAI.MoveResult FindNewDestination(MapUnit unit, Player player) {
+			// The tiles around a site we can't use are usually no better
+			// (the same pocket behind another civ's land, the same rival
+			// city nearby), so they're ruled out with it rather than tried
+			// one turn at a time.
 			data.unreachableDestinations.Add(data.destination);
+			if (data.destination != null && data.destination != Tile.NONE) {
+				foreach (Tile t in data.destination.neighbors.Values) {
+					if (t != Tile.NONE) {
+						data.unreachableDestinations.Add(t);
+					}
+				}
+			}
 			log.Information($"Settler {unit.id} cannot reach {data.destination}, retargeting");
 
 			Tile newDestination = SettlerLocationAI.FindSettlerLocation(unit.location, player, data.unreachableDestinations);

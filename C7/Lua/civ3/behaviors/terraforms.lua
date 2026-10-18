@@ -64,7 +64,11 @@ local food_points = 5
 local resource_points = 20
 local clear_forest_points = 2
 local clear_wetlands_points = 3
-local railroad_transport_points = 10
+-- Below a mine or irrigation (6 and 5 on most tiles, after the road a
+-- railroad replaces is subtracted), so workers improve what tiles yield
+-- before laying railroad over them. At 10 it outscored both on every tile,
+-- and workers railroaded unirrigated grassland first.
+local railroad_transport_points = 4
 -- A damaged tile yields nothing, so cleaning it comes before anything else.
 local clear_damage_points = 50
 

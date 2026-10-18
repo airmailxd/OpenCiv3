@@ -17,8 +17,37 @@ namespace C7Engine {
 				return Tile.NONE;   //nowhere to settle
 			}
 
-			Tile result = scores.MaxBy(t => t.Value).Key;
+			// The settler's own walk counts too: a site a little better but
+			// far across the empire (perhaps one a nearer city's settler
+			// would take) isn't worth the turns. The scores above measure
+			// distance from our nearest city, for every site, which is what
+			// counting open sites wants; this only picks among them.
+			Tile result = scores.MaxBy(t => t.Value * TravelFactor(start.DistanceTo(t.Key))).Key;
 			return result;
+		}
+
+		// HEURISTIC: a site's worth to a settler falls by this share for
+		// each tile it must walk beyond the first few. (A settler loses a
+		// turn of the city's growth for about each tile.)
+		private const float TravelDiscountPerTile = 0.04f;
+		private const int FreeTravelTiles = 3;
+
+		private static float TravelFactor(int distance) {
+			int beyond = Math.Max(0, distance - FreeTravelTiles);
+			return Math.Max(0.1f, 1f - TravelDiscountPerTile * beyond);
+		}
+
+		// Whether a settler may still found its city at the tile, by the
+		// rules sites are chosen by: no city within 2 tiles, not in another
+		// civ's land, and while at war not next to an enemy's land. A
+		// settler checks this each turn, so it learns on the way that a
+		// rival has settled near its site or its borders have grown over it.
+		public static bool IsStillValidSite(Tile t, Player player) {
+			if (t == null || t == Tile.NONE || IsInvalidCityLocation(t) || !t.IsAllowCities() || IsOwnedByRival(t, player)) {
+				return false;
+			}
+			bool atWar = PlayerRelationship.IsInAnyWar(player, EngineStorage.gameData?.players ?? new());
+			return !atWar || !NextToHostileTerritory(t, player);
 		}
 
 		// Scores the known tiles on the start tile's continent, and on the

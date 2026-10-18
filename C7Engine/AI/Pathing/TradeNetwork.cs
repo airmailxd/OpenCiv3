@@ -487,6 +487,15 @@ namespace C7Engine.Pathing {
 			return GetNetwork(p).tileToSegment.ContainsKey(t);
 		}
 
+		// Whether the tile is on the same network segment as the player's
+		// capital (or first city).
+		public bool JoinedToCapital(Player p, Tile t) {
+			PlayerNetwork network = GetNetwork(p);
+			City capital = GetCapital(p, network);
+			return capital != null && network.tileToSegment.TryGetValue(t, out TradeNetworkSegment segment)
+				&& network.cityToSegment.TryGetValue(capital, out TradeNetworkSegment capitalSegment) && segment == capitalSegment;
+		}
+
 		public bool HasTradeAccess(Tile t, Player p, Resource r) {
 			if (!p.KnowsAboutResource(r)) {
 				return false;
