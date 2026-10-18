@@ -79,6 +79,47 @@ namespace C7Engine.AI {
 			}
 		}
 
+		// HEURISTIC: how many turns ahead an AI looks for its treasury
+		// running out.
+		private const int SolventTurns = 3;
+
+		// An AI whose treasury will run out within SolventTurns turns, even
+		// with its sliders set (see PlayerAI.AdjustSliders), disbands one
+		// unit a turn that costs support: the one it can best spare
+		// (obsolete first, then the weakest, outside cities first), never a
+		// city's last defender or a unit with a job that matters now. At
+		// war it keeps a soldier for each city. Otherwise the engine, out of
+		// gold, disbands a unit at random, which may be a settler or a
+		// city's only defender, and then sells buildings.
+		public static async Task DisbandToStaySolvent(Player player) {
+			if (player.isHuman || player.isBarbarians || player.cities.Count == 0) {
+				return;
+			}
+			int gpt = player.CalculateGoldPerTurn();
+			if (gpt >= 0 || player.gold + SolventTurns * gpt >= 0) {
+				return;
+			}
+			(int totalUnits, int allowedUnits, int supportCost) = player.TotalUnitsAllowedUnitsAndSupportCost();
+			if (supportCost <= 0 || totalUnits <= allowedUnits) {
+				return;
+			}
+			(int soldiers, int _) = DevelopmentAI.MilitaryNeed(player);
+			if (PlayerRelationship.IsInAnyWar(player, EngineStorage.gameData.players) && soldiers <= player.cities.Count) {
+				return;
+			}
+			HashSet<UnitPrototype> buildable = BuildableUnits(player);
+			MapUnit spare = player.units
+				.Where(u => DevelopmentAI.IsMilitaryLandUnit(u.unitType) && MayGo(u) && !IsLastDefender(u))
+				.OrderBy(u => UnitPrototype.UpgradeGraph.For(u.unitType).Candidates(u.unitType, player.civilization).Any(buildable.Contains) ? 0 : 1)
+				.ThenBy(u => u.unitType.attack + u.unitType.defense)
+				.ThenBy(u => u.location.cityAtTile?.owner == player ? 1 : 0)
+				.FirstOrDefault();
+			if (spare != null) {
+				log.Information("{Player} disbands {Unit} to keep its treasury from running out ({Gold} gold, {Gpt} a turn)", player, spare, player.gold, gpt);
+				await spare.Disband();
+			}
+		}
+
 		// Whether the unit is free of anything that needs it now.
 		private static bool MayGo(MapUnit unit) {
 			if (unit.hitPointsRemaining <= 0 || unit.IsLoaded() || unit.IsInArmy() || unit.PassengerCount() > 0 || unit.IsLeader()) {

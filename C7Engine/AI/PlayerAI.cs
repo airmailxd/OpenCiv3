@@ -72,7 +72,6 @@ namespace C7Engine {
 			await RightOfPassageAI.PlayTurn(player, gameData);
 
 			await EngineStorage.YieldIfFrameBudgetSpent();
-			UpgradeUnits(player);
 			// Stop paying for obsolete units over the free support (see ObsoleteUnits).
 			await ObsoleteUnits.DisbandOverSupport(player);
 			// On trial: march on enemy cities in force (see WarCampaign).
@@ -83,12 +82,20 @@ namespace C7Engine {
 			// Airlift defenders to threatened cities (see AirliftAI).
 			AirliftAI.PlayTurn(player);
 			await DoUnitActions(player);
+			// A city under threat builds a defender, and gold goes first to
+			// hurrying what is needed; upgrades come after, with what's
+			// left (upgrading first spent the gold a threatened city's
+			// defender needed).
+			DevelopmentAI.DefendThreatenedCities(player);
 			DevelopmentAI.HurryProduction(player);
+			UpgradeUnits(player);
 
 			// Before ending the turn, adjust our sliders. We do this after unit
 			// moves so that any worker moves that finished during the unit moves
 			// will be usable (like if a luxury got hooked up).
 			AdjustSliders(player);
+			// Out of gold soon even so: let go of a unit it can spare.
+			await ObsoleteUnits.DisbandToStaySolvent(player);
 
 			log.Information("-> End " + player.civilization.cityNames[0] + $" turn {stopwatch.ElapsedMilliseconds} milliseconds");
 		}

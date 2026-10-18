@@ -60,7 +60,7 @@ namespace C7Engine.AI {
 
 		private const int BorderDistance = 6;
 
-		private static bool NearRivalCity(Player player, City city) {
+		internal static bool NearRivalCity(Player player, City city) {
 			foreach (Player other in EngineStorage.gameData.players) {
 				if (other == player || other.isBarbarians || other.defeated) {
 					continue;
@@ -311,6 +311,63 @@ namespace C7Engine.AI {
 		// HEURISTIC: how near an enemy unit must be for its city to be in
 		// danger.
 		private const int ThreatDistance = 2;
+
+		// A threatened city with fewer real defenders (defense at least
+		// attack) than the enemy units near it, or fewer than two, switches
+		// to the best defender it can build, unless it's building one, so
+		// that hurrying (see HurryProduction's Defense reason) can buy it
+		// this turn. Without this a city kept building whatever it had
+		// started, say a 20-turn cathedral, with the enemy at its walls.
+		// Shields carry over from a building to a unit only partly in Civ3,
+		// but a lost city loses them all.
+		public static void DefendThreatenedCities(Player player) {
+			GameData gameData = EngineStorage.gameData;
+			if (gameData == null || player.isHuman || player.isBarbarians) {
+				return;
+			}
+			foreach (City city in player.cities) {
+				int enemies = EnemyAttackersNear(player, city);
+				if (enemies == 0) {
+					continue;
+				}
+				int defenders = city.location.unitsOnTile.Count(u => u.owner == player && u.CanDefendOnLand()
+					&& u.unitType.defense >= u.unitType.attack);
+				if (defenders >= Math.Max(2, enemies)) {
+					continue;
+				}
+				if (city.itemBeingProduced is UnitPrototype current && IsDefender(current)) {
+					continue;
+				}
+				UnitPrototype best = city.ListProductionOptions(gameData).OfType<UnitPrototype>().Where(IsDefender)
+					.OrderByDescending(p => p.defense).ThenBy(p => p.shieldCost).FirstOrDefault();
+				if (best != null) {
+					log.Information("{Player} switches {City} to {Unit}, with {Enemies} enemies near and {Defenders} defenders", player, city, best, enemies, defenders);
+					city.ChooseProduction(best);
+				}
+			}
+		}
+
+		private static bool IsDefender(UnitPrototype p) {
+			return p.IsLandUnit() && !p.isArmy && p.defense > 0 && p.defense >= p.attack && !p.isWorker
+				&& !p.actions.Contains(UnitAction.BuildCity);
+		}
+
+		// The enemy land units that can attack, which we can see, near the
+		// city.
+		private static int EnemyAttackersNear(Player player, City city) {
+			int count = 0;
+			foreach (Tile t in city.location.GetTilesWithinRankDistance(ThreatDistance)) {
+				if (!AIFogOfWar.SeesUnitsOn(player, t)) {
+					continue;
+				}
+				foreach (MapUnit u in t.unitsOnTile) {
+					if (u.owner != player && u.IsLandUnit() && u.unitType.attack > 0 && !u.owner.IsAtPeaceWith(player)) {
+						++count;
+					}
+				}
+			}
+			return count;
+		}
 
 		// Whether an enemy land unit that can attack stands, as far as we
 		// can see, near the city.

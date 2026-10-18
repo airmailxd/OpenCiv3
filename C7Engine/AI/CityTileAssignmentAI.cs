@@ -164,7 +164,11 @@ namespace C7Engine.AI {
 		// documented; this is the simplest behaviour that keeps the city out
 		// of disorder without idling more citizens than it needs to.
 		public static bool GovernMoods(GameData gameData, City city) {
-			if (!city.governor.manageMoods || city.residents.Count == 0) {
+			// Computer players' cities are always governed so: their moods
+			// can change after their own turn (war weariness, a lost luxury,
+			// other civs' moves) and before the disorder check, which left
+			// them rioting.
+			if (!(city.governor.manageMoods || !city.owner.isHuman) || city.residents.Count == 0) {
 				return false;
 			}
 			List<CitizenType> specialists = city.owner.GetKnownSpecialists(gameData);
@@ -221,13 +225,14 @@ namespace C7Engine.AI {
 		}
 
 		// With foodIsWasted, food beyond what the city still needs counts
-		// for nothing.
+		// for nothing; falling short of what it needs is still penalized,
+		// or a city at its size cap worked mines and starved (the target
+		// used to be set to the capped food, which made the penalty 0).
 		// The yields the city's governor emphasizes, if any, count for more.
 		private static double CalculateTileYieldScore(int food, int production, int commerce, int targetFoodAmount, bool foodIsWasted = false,
 				CityGovernor governor = null) {
 			if (foodIsWasted) {
 				food = Math.Min(food, Math.Max(0, targetFoodAmount));
-				targetFoodAmount = food;
 			}
 			int score = WeightedYield(food, production, commerce, governor);
 			int penalty = (targetFoodAmount - food);

@@ -156,6 +156,14 @@ namespace C7Engine {
 			return best;
 		}
 
+		private static bool NeedsRoomToGrow(City city, int cap, ProducibleStats stats) {
+			int size = city.residents.Count;
+			if (size >= cap) {
+				return !city.CanGrowPopulationByOne(EngineStorage.gameData);
+			}
+			return size == cap - 1 && stats.FoodGrowthPerTurn > 0;
+		}
+
 		private static float ScoreProducible(ProducibleStats stats, City city, Player player, IProducible option) {
 			if (option is UnitPrototype unit) {
 				return ScoreUnit(stats, city, player, unit);
@@ -378,22 +386,26 @@ namespace C7Engine {
 				score += Math.Max(city.residents.Count - luxuryCount, 0) * (luxuryCount / 2);
 			}
 
-			// Only build an aqueduct if we need one.
-			if (building.allowsCitySize2 &&
-				city.residents.Count == player.rules.MaximumLevel1CitySize && stats.FoodGrowthPerTurn > 0) {
+			// Only build an aqueduct if we need one: the city is held at the
+			// size cap (it can't grow by one), or is one short of it and
+			// growing. A capped city's citizens work for shields and trade,
+			// not the food it can't use (see CityTileAssignmentAI), so its
+			// surplus is about zero and can't be what tells it apart.
+			if (building.allowsCitySize2 && NeedsRoomToGrow(city, player.rules.MaximumLevel1CitySize, stats)) {
 				score += 50;
 			}
 
 			// Ditto with hospitals.
-			if (building.allowsCitySize3 &&
-				city.residents.Count == player.rules.MaximumLevel2CitySize && stats.FoodGrowthPerTurn > 0) {
+			if (building.allowsCitySize3 && NeedsRoomToGrow(city, player.rules.MaximumLevel2CitySize, stats)) {
 				score += 70;
 			}
 
 			// A town that is at war might consider building walls, otherwise it
-			// probably shouldn't.
+			// probably shouldn't: at peace only one near a rival's city,
+			// where an attack would come (interior walls are upkeep for
+			// nothing).
 			if (building.providesWalls) {
-				score += atWar ? 20 : 8;
+				score += atWar ? 20 : DevelopmentAI.NearRivalCity(player, city) ? 8 : -10;
 			}
 
 			// If a city has a decent number of corrupt shields, prioritize
@@ -406,9 +418,14 @@ namespace C7Engine {
 					return int.MinValue;
 				}
 
+				// Lost trade counts as well as lost shields: a distant trade
+				// city can lose half its commerce and few shields.
 				CorruptableValue prod = stats.CurrentProductionYield;
-				if (prod.useful > 0 && ((float)prod.corrupt) / prod.useful > .15) {
-					score += prod.corrupt * 8;
+				CommerceBreakdown commerce = stats.Commerce;
+				int lost = prod.corrupt + commerce.corrupted;
+				int kept = prod.useful + commerce.taxes + commerce.beakers + commerce.happiness + commerce.wealth;
+				if (kept > 0 && ((float)lost) / kept > .15) {
+					score += prod.corrupt * 8 + commerce.corrupted * 4;
 				}
 			}
 
