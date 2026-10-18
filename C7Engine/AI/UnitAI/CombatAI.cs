@@ -122,6 +122,23 @@ namespace C7Engine.AI.UnitAI {
 				}
 			}
 
+			// Before a step onto enemies, look at the odds again: the
+			// defenders may have changed, or not have been visible when
+			// the plan was made.
+			Tile next = data.path?.PeekNext() ?? Tile.NONE;
+			if (next != Tile.NONE && next.unitsOnTile.Any(u => !u.owner.IsAtPeaceWith(unit.owner))) {
+				MapUnit defender = next.FindTopDefender(unit);
+				if (MapUnit.IsMapUnitValid(defender)) {
+					double odds = EstimateChanceToWin(unit, defender);
+					bool many = next.cityAtTile != null || next.unitsOnTile.Count(u => u.CanDefendOnLand() && !u.owner.IsAtPeaceWith(unit.owner)) > 1;
+					if (odds < MIN_CHANCE_TO_ATTACK
+							|| (many && !player.isBarbarians && odds < SURE_CHANCE && !EnoughForceNearby(unit, player, next, next.cityAtTile != null))) {
+						log.Debug("{Unit} calls off its attack on {Tile} at odds of {Odds}", unit, next, odds);
+						return C7GameData.UnitAI.Result.Done;
+					}
+				}
+			}
+
 			// Move along the path, initiating combat if we reach our target.
 			return this.TryToMoveAlongPath(unit, ref data.path);
 		}
@@ -150,7 +167,10 @@ namespace C7Engine.AI.UnitAI {
 			}
 
 			foreach (Player p in players) {
-				if (p.id != null && player.playerRelationships.TryGetValue(p.id, out PlayerRelationship relationship) && relationship.AtWar()) {
+				// Barbarians have no relationship with us, but are always
+				// enemies (only those near our land are targets, see
+				// GetCandidateTiles).
+				if (p.isBarbarians || (p.id != null && player.playerRelationships.TryGetValue(p.id, out PlayerRelationship relationship) && relationship.AtWar())) {
 					enemies.Add(p);
 				}
 			}
@@ -200,8 +220,13 @@ namespace C7Engine.AI.UnitAI {
 					}
 				}
 				// With the AI fog of war, only the units we can see now.
+				// Barbarian units only in or near our land: chasing them
+				// across the map would draw units away from home.
 				foreach (MapUnit u in enemy.units) {
 					Tile t = u.location;
+					if (enemy.isBarbarians && t != null && t != Tile.NONE && !NearOurLand(player, t)) {
+						continue;
+					}
 					if (t != null && t != Tile.NONE && player.tileKnowledge.isTileKnown(t)
 						&& AIFogOfWar.SeesUnitsOn(player, t) && u.IsSeenBy(player) && seen.Add(t)) {
 						result.Add(t);
@@ -209,6 +234,36 @@ namespace C7Engine.AI.UnitAI {
 				}
 			}
 			return result;
+		}
+
+		// HEURISTIC: how near one of our cities a barbarian unit outside our
+		// borders must be for our units to go after it.
+		private const int BARBARIAN_HUNT_RANGE = 3;
+
+		// Whether a barbarian unit we can see stands in or near our land
+		// (see BARBARIAN_HUNT_RANGE).
+		public static bool BarbariansNearOurLand(Player player) {
+			List<Player> players = EngineStorage.gameData?.players;
+			if (players == null || player.isBarbarians) {
+				return false;
+			}
+			foreach (Player p in players) {
+				if (!p.isBarbarians) {
+					continue;
+				}
+				foreach (MapUnit u in p.units) {
+					Tile t = u.location;
+					if (t != null && t != Tile.NONE && u.IsLandUnit() && NearOurLand(player, t)
+							&& AIFogOfWar.SeesUnitsOn(player, t) && u.IsSeenBy(player)) {
+						return true;
+					}
+				}
+			}
+			return false;
+		}
+
+		private static bool NearOurLand(Player player, Tile t) {
+			return t.OwningPlayer() == player || player.cities.Any(c => c.location.DistanceTo(t) <= BARBARIAN_HUNT_RANGE);
 		}
 
 		private static CombatAIData? GetBestTileToAttack(MapUnit unit, Player player, HashSet<Player> enemies) {
@@ -365,7 +420,10 @@ namespace C7Engine.AI.UnitAI {
 			double hits = WarCampaign.ExpectedHits(unit, t.FindTopDefender(unit));
 			foreach (Tile near in t.GetTilesWithinRankDistance(NEARBY_FORCE_RANGE)) {
 				foreach (MapUnit u in near.unitsOnTile) {
+					// Only units free to join in: not garrisons dug in, units
+					// healing, or campaign members.
 					if (u == unit || u.owner != player || u.IsLoaded() || !u.IsLandUnit() || u.currentAI is WarCampaign.MemberAI
+							|| u.isFortified || u.currentAI is RestAI
 							|| !(WarCampaign.IsAttacker(u) || (u.IsArmy() && u.PassengerCount() > 0))) {
 						continue;
 					}
@@ -378,10 +436,15 @@ namespace C7Engine.AI.UnitAI {
 			return hits >= FORCE_MARGIN * WarCampaign.DefenderHitPoints(player, t);
 		}
 
-		// A rough estimate of the attacker's chance to beat the defender: the
-		// chance of winning each round of combat, weighed by the hit points
-		// each side can lose. Bonuses that depend on where the attack comes
-		// from (like river crossings) are left out.
+		// The attacker's chance to beat the defender. Civ3 combat is a
+		// series of rounds, each won by the attacker with probability
+		// attack / (attack + defense), the loser of a round losing a hit
+		// point, until one side has none left; so this is the chance the
+		// attacker takes all the defender's hit points before losing all
+		// its own. (A simple ratio of round odds and hit points, used before,
+		// called a fight with round odds of 0.3 a 30% chance when it is
+		// nearer 16%.) Bonuses that depend on where the attack comes from
+		// (like river crossings) are left out, as are retreats.
 		internal static double EstimateChanceToWin(MapUnit attacker, MapUnit defender) {
 			double attack = attacker.StrengthVersus(defender, CombatRole.Attack, null);
 			double defense = defender.StrengthVersus(attacker, CombatRole.Defense, null);
@@ -394,9 +457,26 @@ namespace C7Engine.AI.UnitAI {
 			double roundOdds = attack / (attack + defense);
 			// An army fights with all its members' hit points; for other
 			// units this is just their own.
-			double ours = roundOdds * Math.Max(1, attacker.CompositeHitPoints());
-			double theirs = (1 - roundOdds) * Math.Max(1, defender.hitPointsRemaining);
-			return ours / (ours + theirs);
+			return ChanceToWinRounds(roundOdds, Math.Max(1, attacker.CompositeHitPoints()), Math.Max(1, defender.hitPointsRemaining));
+		}
+
+		// The chance that a side winning each round with probability p, with
+		// `ours` hit points, takes all `theirs` before losing all its own.
+		internal static double ChanceToWinRounds(double p, int ours, int theirs) {
+			// win[d] is the chance to win from the current row's attacker
+			// hit points with d defender hit points left; win[0] = 1.
+			double[] win = new double[theirs + 1];
+			// With 0 attacker hit points every fight is lost, except one
+			// already won.
+			win[0] = 1;
+			for (int a = 1; a <= ours; ++a) {
+				// From (a, d): win the round to (a, d - 1), or lose it to
+				// (a - 1, d), which is the previous row's value.
+				for (int d = 1; d <= theirs; ++d) {
+					win[d] = p * win[d - 1] + (1 - p) * win[d];
+				}
+			}
+			return win[theirs];
 		}
 	}
 }

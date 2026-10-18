@@ -99,6 +99,15 @@ namespace C7Engine.AI.UnitAI {
 		}
 
 		C7GameData.UnitAI.MoveResult C7GameData.UnitAI.PlayTurnImpl(Player player, MapUnit unit) {
+			// A city we were going to defend that was taken or destroyed on
+			// the way: the plan is void (or the defender would attack the
+			// city, or fortify on its ruins). Plans to defend where the unit
+			// stands, and to join an army, aren't for a city.
+			Tile dest = data.destination;
+			if (dest != unit.location && dest?.cityAtTile?.owner != player
+					&& !(dest?.unitsOnTile.Any(u => u.owner == player && u.IsArmy()) ?? false)) {
+				return C7GameData.UnitAI.Result.Error;
+			}
 			if (data.destination == unit.location) {
 				if (!unit.isFortified) {
 					unit.Fortify();
@@ -133,6 +142,7 @@ namespace C7Engine.AI.UnitAI {
 			public int[] defenders;
 			public int[] enRoute;
 			public int[] distance;
+			public int[] wanted;
 		}
 
 		// The last snapshot taken for each player. Weak, so that it doesn't
@@ -163,18 +173,31 @@ namespace C7Engine.AI.UnitAI {
 				defenders = new int[n],
 				enRoute = new int[n],
 				distance = new int[n],
+				wanted = new int[n],
 			};
+			AIThreat threat = AIThreat.Assess(player);
 
 			Dictionary<Tile, int> cityIndex = new(n, ReferenceEqualityComparer.Instance);
 			for (int i = 0; i < n; ++i) {
 				City c = snap.cities[i];
 				int numDefenders = 0;
+				// Units marching with a war campaign will leave, so they
+				// don't count as the city's defenders.
+				int realDefenders = 0;
 				foreach (MapUnit u in c.location.unitsOnTile) {
-					if (u.CanDefendOnLand()) {
+					if (u.CanDefendOnLand() && u.currentAI is not WarCampaign.MemberAI) {
 						++numDefenders;
+						if (u.unitType.defense >= u.unitType.attack) {
+							++realDefenders;
+						}
 					}
 				}
 				snap.defenders[i] = numDefenders;
+				// How many more real defenders (defense at least attack) the
+				// city wants: one, plus one for the capital and one if an
+				// enemy we can see could strike it next turn.
+				int wanted = 1 + (c.IsCapital() ? 1 : 0) + (threat.EnemyCanReach(c.location) ? 1 : 0);
+				snap.wanted[i] = Math.Max(0, wanted - realDefenders);
 				snap.distance[i] = c.location.DistanceTo(unit.location);
 				cityIndex.TryAdd(c.location, i);
 			}
@@ -208,6 +231,11 @@ namespace C7Engine.AI.UnitAI {
 		 * city needs more defenders, or if the units present are defenders.
 		 * Returns null if there is none, as when the player has no cities.
 		 */
+		// HEURISTIC: how much a city short of a real defender gains in the
+		// choice of city to defend, per defender short. Worth about this many
+		// tiles of extra distance.
+		private const float WANTED_DEFENDER_WEIGHT = 8f;
+
 		private static City FindAtRiskCityToDefend(MapUnit unit, Player player, int minDefenders) {
 			if (player.cities.Count == 0) {
 				return null;
@@ -226,6 +254,10 @@ namespace C7Engine.AI.UnitAI {
 					// larger score for less defended cities.
 					score += 10f;
 				}
+
+				// Cities short of real defenders come first, the more so the
+				// shorter, less what's already on the way.
+				score += WANTED_DEFENDER_WEIGHT * Math.Max(0, snap.wanted[i] - snap.enRoute[i]);
 
 				// Penalize cities for being far away.
 				score -= snap.distance[i];

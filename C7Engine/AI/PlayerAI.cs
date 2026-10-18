@@ -356,16 +356,28 @@ namespace C7Engine {
 				// Don't waste time recalculating behaviors for fortified units.
 				// This means we'll have to unfortify all our units after
 				// interesting events like war declarations, but this seems like
-				// a good tradeoff for faster turns. A unit fortified out in the
-				// land of a civ we're at war with is the exception: it would
-				// sit there until our priorities next change, so it thinks
-				// again each turn.
+				// a good tradeoff for faster turns. The exceptions, each
+				// checked cheaply:
+				// - a unit fortified outside our land (with no city to go
+				//   to, or left behind after a war) thinks again each turn;
+				// - an attacker in a city strikes an enemy next to it when
+				//   the odds are good and another defender stays behind;
+				// - an attacker standing in as a city's garrison thinks again
+				//   every GarrisonRecheckTurns turns once a real defender is
+				//   there, rather than sit there all game.
 				if (unit.isFortified) {
-					if (!IsStrandedInEnemyLand(unit, player)) {
+					if (IsStrandedOutsideHome(unit, player)) {
+						unit.Wake();
+						unit.currentAI = null;
+					} else if (SortieTarget(unit, player) is CombatAIData sortie) {
+						unit.Wake();
+						unit.currentAI = new CombatAI(sortie);
+					} else if (IsSpareAttackerInGarrison(unit, player)) {
+						unit.Wake();
+						unit.currentAI = null;
+					} else {
 						continue;
 					}
-					unit.Wake();
-					unit.currentAI = null;
 				}
 
 				// A hurt attacker stops attacking (or exploring) to heal (see
@@ -431,11 +443,48 @@ namespace C7Engine {
 			}
 		}
 
-		// Whether the unit stands in the land of a civ we're at war with,
-		// outside a city.
-		private static bool IsStrandedInEnemyLand(MapUnit unit, Player player) {
-			return unit.IsLandUnit() && !unit.IsLoaded() && unit.location.cityAtTile == null
-				&& AIThreat.IsHostileTerritory(player, unit.location);
+		// Whether the unit stands outside our land and our cities.
+		private static bool IsStrandedOutsideHome(MapUnit unit, Player player) {
+			return unit.IsLandUnit() && !unit.IsLoaded() && unit.location.cityAtTile?.owner != player
+				&& unit.location.OwningPlayer() != player;
+		}
+
+		// Our units on the tile, other than this one, that can defend it.
+		private static int OtherDefenders(MapUnit unit, Player player) {
+			return unit.location.unitsOnTile.Count(u => u != unit && u.owner == player && u.CanDefendOnLand()
+				&& u.currentAI is not WarCampaign.MemberAI);
+		}
+
+		// For a fortified attacker in one of our cities with another
+		// defender there: an attack on an enemy (or barbarian) next to the
+		// city that CombatAI would make, if there is one.
+		private static CombatAIData SortieTarget(MapUnit unit, Player player) {
+			if (player.isHuman || player.isBarbarians || unit.location.cityAtTile?.owner != player || !unit.CanAttack()
+					|| unit.unitType.attack < unit.unitType.defense || RestAI.ShouldRest(unit, player) || OtherDefenders(unit, player) < 1) {
+				return null;
+			}
+			bool enemyNextToUs = unit.location.neighbors.Values.Any(t => t.unitsOnTile.Any(u => AIThreat.IsHostile(player, u.owner)
+				&& u.IsLandUnit() && u.IsSeenBy(player)));
+			if (!enemyNextToUs) {
+				return null;
+			}
+			CombatAIData data = CombatAI.MakeAiData(unit, player);
+			return data != null && data.destination.neighbors.Values.Contains(unit.location) ? data : null;
+		}
+
+		// HEURISTIC: how often an attacker garrisoning a city alongside a
+		// real defender thinks again about what to do.
+		private const int GarrisonRecheckTurns = 5;
+
+		// Whether the unit is an attacker fortified in one of our cities
+		// where a real defender (defense at least its attack) also stands,
+		// due to think again this turn.
+		private static bool IsSpareAttackerInGarrison(MapUnit unit, Player player) {
+			int turn = EngineStorage.gameData?.turn ?? 0;
+			return turn % GarrisonRecheckTurns == 0 && unit.location.cityAtTile?.owner == player
+				&& unit.unitType.attack > unit.unitType.defense
+				&& unit.location.unitsOnTile.Any(u => u != unit && u.owner == player && u.CanDefendOnLand()
+					&& u.unitType.defense >= u.unitType.attack && u.currentAI is not WarCampaign.MemberAI);
 		}
 
 		// Whether the unit is still alive and the player's: a unit that dies
@@ -863,6 +912,13 @@ namespace C7Engine {
 				return new DefenderAI(DefenderAI.MakeAiDataForDefendAtRiskCity(unit, player, minDefenders: int.MaxValue));
 			}
 
+			// Barbarians in or near our land are fought, at good enough odds
+			// (see CombatAI), before units go escorting or exploring.
+			if (unit.IsLandUnit() && unit.CanAttack() && unit.unitType.attack >= unit.unitType.defense && CombatAI.BarbariansNearOurLand(player)
+					&& CombatAI.MakeAiData(unit, player) is CombatAIData barbarianFight) {
+				return new CombatAI(barbarianFight);
+			}
+
 			// If there's an unescorted settler, escort it.
 			EscortAIData? maybeEscortData = EscortAI.MaybeMakeAiData(unit, player);
 			if (maybeEscortData != null) {
@@ -986,6 +1042,11 @@ namespace C7Engine {
 				return false;
 			}
 			if (IsInAnyWar(player, EngineStorage.gameData.players)) {
+				return false;
+			}
+			// It may fight barbarians near home instead.
+			if (unit.IsLandUnit() && unit.CanAttack() && unit.unitType.attack >= unit.unitType.defense && CombatAI.BarbariansNearOurLand(player)
+					&& CombatAI.MakeAiData(unit, player) != null) {
 				return false;
 			}
 			// EscortAI.MaybeMakeAiData would have this unit escort an

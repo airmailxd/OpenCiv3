@@ -186,7 +186,8 @@ public sealed class FixAiGameTests : IClassFixture<SaveGameFixture>, IDisposable
 		attacker.hasAttackedThisTurn = true;
 
 		TilePath path = new(beyond, new Queue<Tile>(new[] { enemyTile, beyond }));
-		C7GameData.UnitAI ai = new ExplorerAI(null);
+		// Only a plan meant to fight attacks along its path.
+		C7GameData.UnitAI ai = new C7Engine.AI.UnitAI.CombatAI(new C7GameData.AIData.CombatAIData());
 		C7GameData.UnitAI.MoveResult result = ai.TryToMoveAlongPath(attacker, ref path);
 
 		Assert.Equal(C7GameData.UnitAI.Result.InProgress, result.Result);

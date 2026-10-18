@@ -74,7 +74,7 @@ namespace C7Engine {
 		// Our land units in the city that can defend it.
 		private static List<MapUnit> Defenders(City city) {
 			return city.location.unitsOnTile
-				.Where(u => u.owner == city.owner && u.IsLandUnit() && u.unitType.defense > 0 && !u.IsLoaded() && !u.unitType.isLeader)
+				.Where(u => u.owner == city.owner && u.IsLandUnit() && u.unitType.defense > 0 && !u.IsLoaded() && !u.unitType.isLeader && u.currentAI is not WarCampaign.MemberAI)
 				.ToList();
 		}
 

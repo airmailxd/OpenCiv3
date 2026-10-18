@@ -83,10 +83,17 @@ namespace C7Engine {
 			// already did, wait until next turn instead of retrying the refused
 			// move (and keep the step for then). Only look for a defender when
 			// there is someone on the tile we aren't at peace with.
+			//
+			// Only plans meant to fight (CombatAI, ArmyAI, and a warship
+			// onto the ship it set out to attack) attack: a unit
+			// going home to heal, to defend a city, with a settler, or to
+			// explore doesn't take on an enemy that stepped onto its path at
+			// whatever odds; its plan fails, and it gets a new one.
 			if (HasUnitsNotAtPeaceWith(nextTile, unit.owner)) {
 				MapUnit defender = nextTile.FindTopDefender(unit);
 				if (defender != MapUnit.NONE && !unit.owner.IsAtPeaceWith(defender.owner)) {
-					if (!unit.CanAttack()) {
+					if (!unit.CanAttack() || !(unitAi is C7Engine.AI.UnitAI.CombatAI || unitAi is C7Engine.AI.UnitAI.ArmyAI
+							|| (unitAi is C7Engine.AI.UnitAI.NavalAI && nextTile == path.destination))) {
 						return UnitAI.Result.Error;
 					}
 					if (!unit.CanAttackAgainThisTurn()) {
