@@ -37,6 +37,12 @@ namespace EngineTests.GameData;
 //                         out, which removes much of the noise (about half the
 //                         standard error) for twice the time
 //   C7_TRIAL_FLIPS        1 to list every culture flip, with its chance
+//   C7_TRIAL_ALL          1 to turn the switches on for every civ: there is
+//                         then no half to compare with, so the summary's two
+//                         columns are the same average over all civs, to
+//                         compare with a run without the switches (the same
+//                         seeds, C7_TRIAL_EXPERIMENTS="") for whether the
+//                         world as a whole still plays sensibly
 // For example:
 //   C7_TRIAL_OUT=trial.txt C7_TRIAL_EXPERIMENTS=cheap-maintenance dotnet test EngineTests --filter "FullyQualifiedName~AiTrialTest"
 public class AiTrialTest : IClassFixture<SaveGameFixture> {
@@ -209,8 +215,12 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 		WorldCharacteristics.Landform landform = Enum.TryParse(Environment.GetEnvironmentVariable("C7_TRIAL_LANDFORM"), out WorldCharacteristics.Landform l)
 			? l : WorldCharacteristics.Landform.Continents;
 		bool paired = Setting("C7_TRIAL_PAIRED", 0) != 0;
+		bool all = Setting("C7_TRIAL_ALL", 0) != 0;
+		if (all) {
+			paired = false;
+		}
 
-		List<string> lines = [$"experiments={string.Join(",", experiments)} games={games} size={size} civs={civs} turns={turns} difficulty={difficulty} landform={landform}{(paired ? " paired" : "")}"];
+		List<string> lines = [$"experiments={string.Join(",", experiments)} games={games} size={size} civs={civs} turns={turns} difficulty={difficulty} landform={landform}{(paired ? " paired" : "")}{(all ? " all" : "")}"];
 		// Per game, the average of each measure over the trial civs minus
 		// the average over the others.
 		List<double[]> differences = new();
@@ -226,7 +236,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 		for (int game = 0; game < games; ++game) {
 			int seed = firstSeed + game;
 			(List<Measures> trial, List<Measures> others, double averageTechs, WonderTracker wonders, HashSet<Player> trialCivs) =
-				await PlayGame(NewSave(size, civs, seed, difficulty, landform), experiments, turns, trialHalf: game % 2);
+				await PlayGame(NewSave(size, civs, seed, difficulty, landform), experiments, turns, trialHalf: all ? -1 : game % 2);
 			foreach ((Player p, List<(string name, int turns)> list) in wonders.completed) {
 				bool isTrial = trialCivs.Contains(p);
 				foreach ((string name, int t) in list) {
@@ -298,9 +308,10 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 		gameData.observerMode = true;
 		List<Player> civs = gameData.players.Where(p => !p.isBarbarians).ToList();
 		HashSet<Player> trialCivs = new();
+		// A trial half of -1 is every civ (C7_TRIAL_ALL).
 		for (int i = 0; i < civs.Count; ++i) {
 			civs[i].isHuman = false;
-			if (i % 2 == trialHalf) {
+			if (trialHalf < 0 || i % 2 == trialHalf) {
 				trialCivs.Add(civs[i]);
 				foreach (string experiment in experiments) {
 					AiExperiments.Enable(civs[i], experiment);
@@ -537,7 +548,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 		}
 
 		List<Measures> trial = civs.Where(trialCivs.Contains).Select(Measure).ToList();
-		List<Measures> others = civs.Where(p => !trialCivs.Contains(p)).Select(Measure).ToList();
+		List<Measures> others = trialHalf < 0 ? trial : civs.Where(p => !trialCivs.Contains(p)).Select(Measure).ToList();
 		return (trial, others, civs.Average(p => p.knownTechs.Count), wonders, trialCivs);
 	}
 }

@@ -364,7 +364,12 @@ namespace C7Engine.AI {
 			// sliders (PlayerAI.AdjustSliders, which tolerates a deficit of a
 			// tenth of the treasury) needn't take beakers for taxes.
 			int deficit = Math.Max(0, -player.CalculateGoldPerTurn());
-			int reserve = Math.Max(BaseReserve(player), ReserveDeficitTurns * deficit);
+			// On trial ("stock-gold-reserve"): Civ3's reserve (see
+			// StockGoldReserve) in place of the base one. Civ3's AI rushes
+			// only improvements; this AI rushes only units, so the reserve
+			// is applied to those.
+			int baseReserve = AiExperiments.Has(player, "stock-gold-reserve") ? StockGoldReserve(player) : BaseReserve(player);
+			int reserve = Math.Max(baseReserve, ReserveDeficitTurns * deficit);
 			// At war, or gathering for one, gold kept back is worth less than
 			// soldiers in the field.
 			int warReserve = atWar ? reserve / 2 : reserve;
@@ -424,6 +429,19 @@ namespace C7Engine.AI {
 
 		private static int BaseReserve(Player player) {
 			return ReserveBase + ReservePerCity * player.cities.Count;
+		}
+
+		// Civ3's own gold reserve for the AI: 16 gold per city plus the
+		// treasury that earns full interest, for a civ with an interest
+		// building. Flintlock, reading the 1.22 code
+		// (https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16787843),
+		// on rush-buying: "Its reserve target is
+		// 1000/number_of_interest_generating_wonders + 16 *
+		// number_of_cities", and "it won't rush an improvement if doing so
+		// would leave its treasury below that level"; the upgrade pass uses
+		// the same reserve (post-16937054; see PlayerAI.UpgradeUnits).
+		public static int StockGoldReserve(Player player) {
+			return 16 * player.cities.Count + player.GoldForFullInterest();
 		}
 
 		// The gold per turn the sliders should at least bring in (see

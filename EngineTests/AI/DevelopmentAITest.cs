@@ -32,6 +32,16 @@ public sealed class DevelopmentAITest : IClassFixture<SaveGameFixture>, IDisposa
 
 	private Building BuildingNamed(string name) => gameData.Buildings.First(b => b.name == name);
 
+	// "The reserve amount is 16 gold per city plus enough to earn the AI
+	// full interest income" (Flintlock, C3X thread post-16937054), the
+	// latter "1000/number_of_interest_generating_wonders" (post-16787843).
+	[Fact]
+	public void TheStockGoldReserveIsSixteenACityPlusFullInterest() {
+		Assert.Equal(16 * player.cities.Count, DevelopmentAI.StockGoldReserve(player));
+		city.AddBuilding(BuildingNamed("Wall Street"));
+		Assert.Equal(16 * player.cities.Count + 1000, DevelopmentAI.StockGoldReserve(player));
+	}
+
 	[Fact]
 	public void UnitsAreWorthWhatTheyAreToTheCiv() {
 		Civilization own = player.civilization;
