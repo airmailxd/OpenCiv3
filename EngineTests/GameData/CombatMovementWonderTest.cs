@@ -622,6 +622,26 @@ public class CombatMovementWonderTest : IClassFixture<SaveGameFixture> {
 		Assert.DoesNotContain(us.units, u => u.IsArmy());
 	}
 
+	// The stock leader AI disbands a leader "on a continent with no cities
+	// of its civ" (C3X, patch_Unit_ai_move_leader).
+	[Fact]
+	public void AiLeaderOnALandmassWithoutOurCitiesIsStranded() {
+		City city = BuildCity(us);
+		Tile land = city.location.neighbors.Values.First(t => t != Tile.NONE && t.IsLand());
+		MapUnit leader = Spawn(us, "Leader", land);
+		Assert.False(PlayerAI.IsStrandedLeader(leader, us));
+
+		int continent = land.continent;
+		land.continent = city.location.continent + 1000;
+		try {
+			Assert.True(PlayerAI.IsStrandedLeader(leader, us));
+			// Other units aren't.
+			Assert.False(PlayerAI.IsStrandedLeader(Spawn(us, "Warrior", land), us));
+		} finally {
+			land.continent = continent;
+		}
+	}
+
 	[Fact]
 	public void AiLeaderWaitsInACityHurriedThisTurn() {
 		City city = BuildCity(us);

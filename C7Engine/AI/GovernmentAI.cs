@@ -182,7 +182,7 @@ namespace C7Engine.AI {
 					free += government.freeUnitsPerMetropolis;
 				}
 			}
-			int paid = player.units.Count(u => !u.IsCaptive());
+			int paid = player.units.Count(u => !u.IsCaptive() && u.unitType.requiresSupport);
 			return Math.Max(0, paid - free) * government.unitCost;
 		}
 	}

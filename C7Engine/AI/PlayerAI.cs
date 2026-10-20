@@ -334,6 +334,16 @@ namespace C7Engine {
 					continue;
 				}
 
+				// A great leader on a landmass with none of our cities is
+				// disbanded, as the stock leader AI does: "Disband the unit if
+				// it's on a continent with no cities of its civ. This is what
+				// the original logic does" (C3X, patch_Unit_ai_move_leader,
+				// https://github.com/maxpetul/C3X/blob/master/injected_code.c).
+				if (IsStrandedLeader(unit, player)) {
+					await unit.Disband();
+					continue;
+				}
+
 				// A great leader that has reached one of our cities is used
 				// up there. Until then it heads for a city like a defender.
 				if (UseLeaderInCity(unit, player)) {
@@ -509,6 +519,24 @@ namespace C7Engine {
 				}
 			}
 			return result;
+		}
+
+		// Whether the unit is a great leader standing on land (not aboard a
+		// ship) where none of our cities is on the same landmass. UNVERIFIED:
+		// whether the stock AI also checks a leader at sea; here it's left
+		// alone there.
+		internal static bool IsStrandedLeader(MapUnit unit, Player player) {
+			if (!(unit.IsLeader() || unit.IsScientificLeader()) || unit.IsLoaded()
+					|| !Tile.IsTileValid(unit.location) || !unit.location.IsLand()) {
+				return false;
+			}
+			int continent = unit.location.continent;
+			foreach (City city in player.cities) {
+				if (city.location.continent == continent) {
+					return false;
+				}
+			}
+			return true;
 		}
 
 		// A leader in one of our cities finishes the city's improvement or
