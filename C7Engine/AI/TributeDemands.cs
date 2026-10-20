@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -21,20 +22,28 @@ namespace C7Engine.AI {
 	// (https://civfanatics.com/civ3/strategy/game-mechanics/ai-attitude-study/;
 	// see Attitudes).
 	//
+	// When it asks follows the stock sequence of demand gates, as C3X
+	// re-creates it: "This is the same sequence of demand gates used by
+	// Leader::impl_begin_turn for demands against human players"
+	// (try_ai_demand_from_other_ai in C3X's injected_code.c,
+	// https://github.com/maxpetul/C3X/blob/master/injected_code.c; compendium
+	// 06, section 6.9). See WouldDemandFrom and RollsToDemand. Stock AIs
+	// demand only from humans: "As far as I know AIs won't demand things
+	// from each other" (Flintlock, CFC 703785), and C3X's option "Allows AI
+	// players to demand tribute from each other" is a mod's addition.
+	//
 	// It goes alongside Civ3's own war plotting (see StockWarPlotting).
 	public static class TributeDemands {
 		private static readonly ILogger log = Log.ForContext(typeof(TributeDemands));
 
-		// HEURISTIC: the fewest turns between demands from one AI to one
-		// human. Civ3's interval "varies with the leader, ranging from about
-		// 20 turns to around 100 turns" (same thread). Raised from 20 at the
-		// owner's request (2026-10-12): the AIs were far too demanding.
+		// The fewest turns between demands from one AI to one human. Civ3's
+		// interval "varies with the leader, ranging from about 20 turns to
+		// around 100 turns" (same thread). Raised from 20 at the owner's
+		// request (2026-10-12): the AIs were far too demanding. The stock
+		// game's own cooldown is shorter: after a demand the AI sets its
+		// diplomacy cooldown for that civ to "0x20" (32) turns (C3X's
+		// injected_code.c, above); the owner's 40 is kept.
 		public const int MIN_TURNS_BETWEEN_DEMANDS = 40;
-
-		// HEURISTIC: once that long has passed, the chance each turn that
-		// the AI makes a demand, so that demands come about 40 to 80 turns
-		// apart rather than like clockwork.
-		public const int DEMAND_CHANCE_PERCENT = 5;
 
 		// HEURISTIC (owner's request, 2026-10-12): the fewest turns between
 		// demands made of one human by any AI, so that several strong
@@ -65,11 +74,9 @@ namespace C7Engine.AI {
 				if (!WouldDemandFrom(us, them, gameData) || !EngineStorage.IsPlayerReachable(them.id)) {
 					continue;
 				}
-				if (GameData.rng.Next(100) >= DEMAND_CHANCE_PERCENT) {
-					continue;
-				}
+				// The stock game first finds something to ask for, then rolls.
 				TradeOffer tribute = ChooseTribute(us, them, gameData);
-				if (tribute == null) {
+				if (tribute == null || !RollsToDemand(us, them, gameData)) {
 					continue;
 				}
 				await DemandFrom(us, them, tribute, gameData);
@@ -95,9 +102,54 @@ namespace C7Engine.AI {
 			if (DemandedOfRecently(them, gameData)) {
 				return false;
 			}
-			// Only a demand we'd go to war over: a refusal means war (see
-			// DemandFrom), which must be one we can win.
-			return us.CompareMilitaryStrengthTo(them) == Player.MilitaryStrength.StrongTo && PeaceAI.WouldWinWarWith(gameData, us, them);
+			return PowerPlaceAllows(gameData, us, them);
+		}
+
+		// A civ's place in the power ranking, 1 for the strongest: "32 -
+		// this->power_rank", where "power_rank" is 31 for the strongest (see
+		// StockWarPlotting.PowerRank).
+		public static int PowerPlace(GameData gameData, Player player) {
+			return 32 - StockWarPlotting.PowerRank(gameData, player);
+		}
+
+		// The stock power gate: "if (32 - this->power_rank > 2 * (32 -
+		// recipient->power_rank))" the AI does not demand, so it asks only of
+		// a civ whose place is at least half its own. This replaces the
+		// HEURISTIC that the AI be stronger by the military advisor's
+		// measure and sure to win the war a refusal would bring (which
+		// DemandFrom still checks before it declares war).
+		public static bool PowerPlaceAllows(GameData gameData, Player us, Player them) {
+			return PowerPlace(gameData, us) <= 2 * PowerPlace(gameData, them);
+		}
+
+		private static bool OneIn(int n) => n <= 1 || GameData.rng.Next(n) == 0;
+
+		// The stock per-turn rolls once there is something to demand, each
+		// of which must pass (C3X's injected_code.c, above). They replace a
+		// HEURISTIC 5% chance a turn.
+		// - "rand_int (32 - this->power_rank) != 0" stops it: one in our
+		//   power place, so the strongest civ always passes.
+		// - Attitude: a roll of minus the attitude score (at least 1) must
+		//   come up 0. A higher score is worse (see Attitudes), so at
+		//   Cautious or worse it always passes, and the friendlier the AI
+		//   the rarer the demand.
+		// - "rand_int (2 - aggression) != 0" stops it, with the effective
+		//   aggression level -2..2 (StockWarPlotting.EffectiveAggressionLevel):
+		//   always at +1 or +2, one in 2 at 0, one in 3 at -1 and one in 4
+		//   at -2.
+		// The stock game also makes no demand when the AI has taken more war
+		// damage from the target than it dealt ("war_damage_memory"). The
+		// engine doesn't track war damage (see Attitudes), so that gate is
+		// left out.
+		public static bool RollsToDemand(Player us, Player them, GameData gameData) {
+			if (!OneIn(PowerPlace(gameData, us))) {
+				return false;
+			}
+			int attitude = Attitudes.Points(gameData, us, them) ?? 0;
+			if (!OneIn(Math.Max(1, -attitude))) {
+				return false;
+			}
+			return OneIn(2 - StockWarPlotting.EffectiveAggressionLevel(gameData, us));
 		}
 
 		// Whether it's too early for a demand: early in the game, or soon
@@ -165,8 +217,12 @@ namespace C7Engine.AI {
 				return;
 			}
 			// Things may have changed since the demand (pacts signed, a war
-			// begun elsewhere): no war we wouldn't win.
-			if (BacksDown(us, them, gameData) || !PeaceAI.WouldWinWarWith(gameData, us, them)) {
+			// begun elsewhere): no war we wouldn't win. Nor any war while we
+			// have a mutual protection pact with them: the stock game rolls
+			// to declare after a refused demand only without one
+			// ("Relation_Treaties ... & 4", C3X's injected_code.c, above).
+			if (BacksDown(us, them, gameData) || !PeaceAI.WouldWinWarWith(gameData, us, them)
+				|| Pacts.HasDeal(us, them, DealSubType.MutualProtectionPact)) {
 				log.Information("{Them} called {Us}'s bluff and refused to pay tribute", them, us);
 				++ourView.tributeBluffsCalled;
 				return;
