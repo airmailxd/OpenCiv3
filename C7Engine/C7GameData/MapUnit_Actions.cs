@@ -734,7 +734,7 @@ public partial class MapUnit {
 	// A single round of combat against a unit moving through our zone of
 	// control. It can wound the unit but never kills it.
 	public async Task ZoneOfControlAttack(MapUnit target) {
-		if (target.hitPointsRemaining <= 1) {
+		if (target.CompositeHitPoints() <= 1) {
 			return;
 		}
 
@@ -746,7 +746,9 @@ public partial class MapUnit {
 		facingDirection = originalDirection;
 
 		if (GameData.rng.NextDouble() < attackStrength / (attackStrength + defenseStrength)) {
-			target.hitPointsRemaining -= 1;
+			// An army's hit comes off its pooled hit points (see
+			// MapUnit.Combatant).
+			target.AbsorbBombardHit(lethal: false);
 			log.Information("{Unit} hit {Target} moving through its zone of control", this, target);
 		}
 	}
@@ -879,6 +881,14 @@ public partial class MapUnit {
 			UpdateOdds();
 		}
 
+		// An army shares its pooled hit points out among its members as the
+		// battle starts (see MapUnit.Combatant).
+		attacker.BeginArmyBattle(CombatRole.Attack);
+		defender.BeginArmyBattle(CombatRole.Defense);
+		attackingMember = attacker.Combatant(CombatRole.Attack);
+		defendingMember = defender.Combatant(CombatRole.Defense);
+		UpdateOdds();
+
 		// A losing fast unit gets its retreat roll as it drops from 2 hit
 		// points to 1, and none against an opponent down to 1: "Retreat
 		// possible if attacking unit drops from 2 HP to 1 HP, and is
@@ -984,6 +994,9 @@ public partial class MapUnit {
 			await dead.animateAsync(MapUnit.AnimatedAction.DEATH, AnimationEnding.Pause);
 			dead.RemoveFromPlay();
 		}
+
+		attacker.EndArmyBattle();
+		defender.EndArmyBattle();
 
 		if (result.DefenderWon())
 			defender.facingDirection = defenderOriginalDirection;

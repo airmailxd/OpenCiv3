@@ -616,85 +616,155 @@ namespace C7GameData {
 			return total / divisor;
 		}
 
+		// An army's hit points are pooled, and which member fights is chosen
+		// from the pool by "HP-band rotation". The stock routine is
+		// Unit_select_army_member_for_combat (army, hp_remaining, attacking),
+		// which takes the army's remaining hit points, and the C3X mod keeps
+		// it to preserve "the army's HP-band rotation" and "the base
+		// selector's HP allocation and tie-breaking"
+		// (https://github.com/maxpetul/C3X/blob/master/injected_code.c). A
+		// test of it (Theseus, https://codehappy.net/apolyton/threads/59461-1.htm,
+		// #10): an army of an elite Modern Armor and an elite Mech Infantry
+		// at 5 hit points "attacked again with 5 hp... the MA fought for 3,
+		// handed off to the MI, which lost the remaining 2, and the Army
+		// crumbled", so the hit points "are divided between all units at the
+		// start of each battle event". Catt confirmed it in the same thread,
+		// bombardment included ("HPs are shared among the constituent
+		// units").
+		//
+		// So at the start of a battle the pool is divided evenly among the
+		// members, the strongest for the job taking the larger shares, and
+		// the strongest fights until its share is used up, then the next.
+		// Members don't die one by one: the army and all of them die
+		// together when the pool runs out. The pool is kept in the members'
+		// own hit points, which are levelled after each battle (see
+		// EndArmyBattle). UNVERIFIED: the exact order and tie-breaking of the
+		// stock selector; here the type's strength for the job, then the
+		// order the members joined in.
+		//
+		// Set during a battle: the role the army fights in and its pooled hit
+		// points when the battle started.
+		private CombatRole? armyBattleRole;
+		private int armyBattleStartHitPoints;
+
 		// The unit that actually fights when this one is in combat. For most
-		// units that's the unit itself. An army commits one member at a time,
-		// using as few members as the fight needs: members with more than one
-		// hit point go first, strongest first, and a member keeps fighting
-		// until it's down to its last hit point before a fresh one is rotated
-		// in. Only when every member is down to one does the army fight on
-		// with them, and members start to die. An empty army has nobody to
-		// fight for it, so it returns itself.
+		// units that's the unit itself; for an army, the member whose band of
+		// the pooled hit points the battle has reached (see above), or
+		// outside a battle the one that would fight first. An empty army has
+		// nobody to fight for it, so it returns itself.
 		public MapUnit Combatant(CombatRole role) {
-			if (!IsArmy())
+			if (!IsArmy() || !Tile.IsTileValid(location))
 				return this;
+			List<MapUnit> members = ArmyMembersByStrength(role);
+			if (members.Count == 0)
+				return this;
+			int pool = CompositeHitPoints();
+			int start = armyBattleRole == role ? armyBattleStartHitPoints : pool;
+			return ArmyBandMember(members, start, start - pool);
+		}
 
-			MapUnit best = null;
-			if (!Tile.IsTileValid(location))
-				return this;
-			foreach (MapUnit member in location.unitsOnTile) {
-				if (!IsPassenger(member) || member.hitPointsRemaining <= 0)
-					continue;
-				if (best == null || IsBetterCombatant(member, best, role))
-					best = member;
+		// The army's members, strongest for the role first; between equals,
+		// in the order they joined.
+		private List<MapUnit> ArmyMembersByStrength(CombatRole role) {
+			return Passengers().OrderByDescending(m => m.unitType.BaseStrength(role)).ToList();
+		}
+
+		// Of the members in order, the one whose band of the `start` pooled
+		// hit points contains the `lost`th hit point lost in the battle: the
+		// first takes the first share, and so on. The pool is shared out
+		// evenly, the earlier members taking any remainder.
+		private static MapUnit ArmyBandMember(List<MapUnit> members, int start, int lost) {
+			int share = start / members.Count, extra = start % members.Count, bandEnd = 0;
+			for (int i = 0; i < members.Count; ++i) {
+				bandEnd += share + (i < extra ? 1 : 0);
+				if (lost < bandEnd)
+					return members[i];
 			}
-			return best ?? this;
+			return members[^1];
 		}
 
-		private static bool IsBetterCombatant(MapUnit a, MapUnit b, CombatRole role) {
-			bool aHealthy = a.hitPointsRemaining > 1, bHealthy = b.hitPointsRemaining > 1;
-			if (aHealthy != bHealthy)
-				return aHealthy;
-			double aStrength = a.unitType.BaseStrength(role), bStrength = b.unitType.BaseStrength(role);
-			if (aStrength != bStrength)
-				return aStrength > bStrength;
-			// Between equals, stick with the one that's already been fighting,
-			// so fresh members stay out of the fight as long as possible.
-			int aDamage = a.maxHitPoints - a.hitPointsRemaining, bDamage = b.maxHitPoints - b.hitPointsRemaining;
-			if (aDamage != bDamage)
-				return aDamage > bDamage;
-			return a.hitPointsRemaining > b.hitPointsRemaining;
+		// Marks the start and end of a battle this unit fights in (see
+		// Combatant). Nothing for a unit that isn't an army.
+		internal void BeginArmyBattle(CombatRole role) {
+			if (!IsArmy())
+				return;
+			armyBattleRole = role;
+			armyBattleStartHitPoints = CompositeHitPoints();
 		}
 
-		// Takes one hit point of damage from a fight. In an army the hit goes
-		// to the member doing the fighting, and a member that dies is removed.
-		// Returns true if this unit has nothing left to fight with.
+		internal void EndArmyBattle() {
+			if (!IsArmy())
+				return;
+			armyBattleRole = null;
+			LevelArmyHitPoints();
+		}
+
+		// Spreads the army's pooled hit points as evenly as the members'
+		// own maximums allow, so that no member is left at none while the
+		// pool could give it some, and they heal as the army does: "Armies
+		// heal at the rate of one HP per unit in the army"
+		// (https://civfanatics.com/civ3/strategy/introductory/the-basics-of-armies/).
+		private void LevelArmyHitPoints() {
+			List<MapUnit> members = Passengers();
+			int remaining = CompositeHitPoints();
+			if (members.Count == 0 || remaining <= 0)
+				return;
+			members.Sort((a, b) => a.maxHitPoints.CompareTo(b.maxHitPoints));
+			for (int i = 0; i < members.Count; ++i) {
+				int give = Math.Min(members[i].maxHitPoints, remaining / (members.Count - i));
+				members[i].hitPointsRemaining = give;
+				remaining -= give;
+			}
+		}
+
+		// Takes one hit point of damage from a fight. In an army the hit comes
+		// off the pool, from the member doing the fighting while it holds
+		// some, and the army with all its members is beaten when the pool is
+		// empty (see Combatant). Returns true if this unit has nothing left to
+		// fight with.
 		internal bool AbsorbCombatHit(MapUnit combatant) {
 			if (combatant == this || !IsArmy()) {
 				hitPointsRemaining -= 1;
 				return hitPointsRemaining <= 0;
 			}
 
-			combatant.hitPointsRemaining -= 1;
-			if (combatant.hitPointsRemaining <= 0) {
-				log.Information("{Combatant} died fighting for {Unit}", combatant, this);
-				EngineStorage.gameData.RemoveUnit(combatant);
-			}
+			MapUnit payer = combatant.hitPointsRemaining > 0 ? combatant : MemberWithMostHitPoints();
+			if (payer != null)
+				payer.hitPointsRemaining -= 1;
 			return LoseArmyIfEmpty();
 		}
 
-		// Takes one hit point of bombardment damage. An army spreads it over
-		// its members, hitting whichever has the most hit points; unless the
-		// bombardment is lethal, it can't kill a member.
-		internal bool AbsorbBombardHit(bool lethal) {
-			// The first of the members with the most hit points.
-			MapUnit victim = null;
-			if (IsArmy() && Tile.IsTileValid(location)) {
+		// The first of the army's members with the most hit points, or null.
+		private MapUnit MemberWithMostHitPoints() {
+			MapUnit best = null;
+			if (Tile.IsTileValid(location)) {
 				foreach (MapUnit m in location.unitsOnTile) {
-					if (IsPassenger(m) && (victim == null || m.hitPointsRemaining > victim.hitPointsRemaining))
-						victim = m;
+					if (IsPassenger(m) && (best == null || m.hitPointsRemaining > best.hitPointsRemaining))
+						best = m;
 				}
 			}
+			return best;
+		}
+
+		// Takes one hit point of bombardment damage. An army's comes off its
+		// pool, from whichever member holds the most; unless the bombardment
+		// is lethal, it can't take the pool's last hit point.
+		internal bool AbsorbBombardHit(bool lethal) {
+			MapUnit victim = IsArmy() ? MemberWithMostHitPoints() : null;
 			if (victim == null) {
 				hitPointsRemaining -= 1;
 				return hitPointsRemaining <= 0;
 			}
-			if (victim.hitPointsRemaining <= 1 && !lethal)
+			if (CompositeHitPoints() <= 1 && !lethal)
 				return false;
 			return AbsorbCombatHit(victim);
 		}
 
-		// An army whose last member has died is beaten. Its own hit points are
-		// zeroed so that it reads as dead, like any other unit.
+		// An army whose pool of hit points is empty is beaten. Its own hit
+		// points are zeroed so that it reads as dead, like any other unit;
+		// its members die with it: "If the unit has the army ability, the
+		// game will always despawn the passengers" (C3X,
+		// patch_Unit_has_army_ability_for_passenger_despawn).
 		private bool LoseArmyIfEmpty() {
 			if (Tile.IsTileValid(location)) {
 				foreach (MapUnit m in location.unitsOnTile) {

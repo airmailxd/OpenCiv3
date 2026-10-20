@@ -786,34 +786,42 @@ public class ArmyTest : IClassFixture<SaveGameFixture> {
 
 	// ---- Combat ----
 
+	// The army's hit points are pooled and shared out among the members at
+	// the start of each battle, the strongest for the job fighting its
+	// share first (Theseus, https://codehappy.net/apolyton/threads/59461-1.htm,
+	// #10: with 5 hit points left "the MA fought for 3, handed off to the
+	// MI, which lost the remaining 2"; the stock selector's "HP-band
+	// rotation", C3X).
 	[Fact]
-	public void ArmyFightsWithOneMemberAtATime() {
+	public void ArmyFightsByBandsOfItsPooledHitPoints() {
 		Tile tile = FindEmptyLand();
 		MapUnit army = SpawnArmy(us, tile, "Warrior", "Swordsman", "Musketman");
 		List<MapUnit> m = army.Passengers();
 		MapUnit warrior = m[0], swordsman = m[1], musketman = m[2];
 
-		// The strongest healthy member fights: the swordsman attacks, the
+		// The strongest member fights first: the swordsman attacks, the
 		// musketman defends.
 		Assert.Equal(swordsman, army.Combatant(CombatRole.Attack));
 		Assert.Equal(musketman, army.Combatant(CombatRole.Defense));
 
-		// Once it's down to its last hit point the next one steps in.
+		// Its own hit points don't matter, only the pool's.
 		swordsman.hitPointsRemaining = 1;
-		Assert.Equal(musketman, army.Combatant(CombatRole.Attack));
-
-		// When everyone is down to one, the strongest fights on.
-		warrior.hitPointsRemaining = 1;
-		musketman.hitPointsRemaining = 1;
 		Assert.Equal(swordsman, army.Combatant(CombatRole.Attack));
 
-		// Between equals, a member that's already been hurt keeps fighting
-		// before a fresh one is brought in.
-		MapUnit pair = SpawnArmy(us, tile.neighbors.Values.First(n => n != Tile.NONE && IsEmptyLand(n)), "Warrior", "Warrior");
-		MapUnit hurt = pair.Passengers()[1];
-		hurt.hitPointsRemaining -= 1;
-		Assert.Equal(hurt, pair.Combatant(CombatRole.Attack));
-		Assert.Equal(hurt, pair.Combatant(CombatRole.Defense));
+		// Five hit points among two members: the swordsman fights for 3,
+		// then the warrior for the last 2.
+		MapUnit pair = SpawnArmy(us, tile.neighbors.Values.First(n => n != Tile.NONE && IsEmptyLand(n)), "Warrior", "Swordsman");
+		MapUnit pairWarrior = pair.Passengers()[0], pairSwordsman = pair.Passengers()[1];
+		pairWarrior.hitPointsRemaining = 3;
+		pairSwordsman.hitPointsRemaining = 2;
+		pair.BeginArmyBattle(CombatRole.Attack);
+		List<MapUnit> fighters = new();
+		for (int i = 0; i < 5; ++i) {
+			MapUnit fighter = pair.Combatant(CombatRole.Attack);
+			fighters.Add(fighter);
+			Assert.Equal(i == 4, pair.AbsorbCombatHit(fighter));
+		}
+		Assert.Equal([pairSwordsman, pairSwordsman, pairSwordsman, pairWarrior, pairWarrior], fighters);
 	}
 
 	[Fact]
@@ -834,15 +842,19 @@ public class ArmyTest : IClassFixture<SaveGameFixture> {
 
 		Assert.DoesNotContain(defender, gameData.mapUnits);
 		Assert.Equal(to, army.location);
-		Assert.Equal(fullHitPoints - 1, members[0].hitPointsRemaining);
-		Assert.Equal(fullHitPoints, members[1].hitPointsRemaining);
-		Assert.Equal(fullHitPoints, members[2].hitPointsRemaining);
+		// The pool lost one, and the members share what's left evenly.
+		Assert.Equal(3 * fullHitPoints - 1, army.CompositeHitPoints());
+		Assert.All(members, m => Assert.True(m.hitPointsRemaining >= fullHitPoints - 1));
 		Assert.All(members, m => Assert.Equal(to, m.location));
 		Assert.True(us.hasVictoriousArmy);
 	}
 
+	// Members don't die one by one: the army and all of them die together
+	// when the pool runs out ("If the unit has the army ability, the game
+	// will always despawn the passengers", C3X
+	// patch_Unit_has_army_ability_for_passenger_despawn).
 	[Fact]
-	public async Task ArmyRotatesMembersByHitPointsAndDiesWithTheLast() {
+	public async Task ArmyMembersShareTheHitPointsAndDieWithTheArmy() {
 		us.DeclareWarOn(them, gameData.turn);
 		(Tile from, TileDirection dir, Tile to) = FindAdjacentLand();
 		MapUnit army = SpawnArmy(us, from, "Warrior", "Warrior");
@@ -850,17 +862,17 @@ public class ArmyTest : IClassFixture<SaveGameFixture> {
 		int fullHitPoints = members[0].maxHitPoints;
 		MapUnit defender = Spawn(them, "Spearman", to);
 
-		// Lose fullHitPoints - 1 rounds: only the first member is worn down.
-		int roundsToWearDownOne = fullHitPoints - 1;
-		var random = new ScriptedRandom(Enumerable.Repeat(0.99, roundsToWearDownOne).Concat([0.0, 0.99]).ToArray(), 0.0);
-		// Then win against a defender with one hit point left.
+		// Lose fullHitPoints rounds, then win against a defender with one
+		// hit point left: a member's worth is lost, but spread over both.
+		var random = new ScriptedRandom(Enumerable.Repeat(0.99, fullHitPoints).Concat([0.0, 0.99]).ToArray(), 0.0);
 		defender.hitPointsRemaining = 1;
 		await WithRandom(random, async () => Assert.True(await army.Move(dir)));
-		Assert.Equal(1, members[0].hitPointsRemaining);
-		Assert.Equal(fullHitPoints, members[1].hitPointsRemaining);
+		Assert.Equal(fullHitPoints, army.CompositeHitPoints());
+		Assert.All(members, m => Assert.Contains(m, gameData.mapUnits));
+		Assert.All(members, m => Assert.True(m.hitPointsRemaining >= fullHitPoints / 2));
 
-		// Now lose every round of a new fight: the second member is worn down
-		// to one, then both die, and the army with them.
+		// Now lose every round of a new fight: both die, and the army with
+		// them.
 		army.OnBeginTurn();
 		MapUnit nextDefender = Spawn(them, "Spearman", from);
 		await WithRandom(new ScriptedRandom([], 0.99), async () => Assert.False(await army.Move(dir.Reversed())));
