@@ -338,6 +338,11 @@ namespace C7GameData {
 		// settlers before founding a city is still destroyed.
 		public bool neverHadCityOrSettler = false;
 
+		// Whether this AI has had the difficulty's extra start units (see
+		// MaybeSpawnBonusUnits). Saved; older saves work it out on loading
+		// (see SaveGame.ConvertCities).
+		public bool receivedStartUnits = false;
+
 		// How many of the civ's King units have died, and how many of its
 		// cities enemies have taken, for Regicide and Elimination (see
 		// InstantElimination).
@@ -2530,28 +2535,33 @@ namespace C7GameData {
 		}
 
 		public void MaybeSpawnBonusUnits(GameData gD) {
-			// Bonus units only spawn on the first turn, if we have a city and
-			// are a non-barbarian AI player.
-			if (gD.turn != 1 || cities.Count != 1 || isHuman || isBarbarians) {
+			// A non-barbarian AI gets the difficulty's extra units "at start"
+			// (compendium 08 section 1.1), once, at the start of the first
+			// turn it has a city: an AI whose settler walked a few turns
+			// before founding its capital used to miss them, as they came
+			// only on turn 1.
+			if (receivedStartUnits || isHuman || isBarbarians || cities.Count == 0) {
 				return;
 			}
+			receivedStartUnits = true;
+			City city = cities.Find(c => c.capital) ?? cities[0];
 
 			for (int i = 0; i < gD.gameDifficulty.ExtraStartUnit1; ++i) {
-				cities[0].AddUnit(gD.unitPrototypes.Find(x => x.name == gD.rules.StartUnitType1), gD);
+				city.AddUnit(gD.unitPrototypes.Find(x => x.name == gD.rules.StartUnitType1), gD);
 			}
 			for (int i = 0; i < gD.gameDifficulty.ExtraStartUnit2; ++i) {
-				cities[0].AddUnit(gD.unitPrototypes.Find(x => x.name == gD.rules.StartUnitType2), gD);
+				city.AddUnit(gD.unitPrototypes.Find(x => x.name == gD.rules.StartUnitType2), gD);
 			}
 			// The best defender and attacker the city can build, if it can
 			// build any units at all.
-			List<UnitPrototype> buildableUnits = cities[0].ListProductionOptions(gD).OfType<UnitPrototype>().ToList();
+			List<UnitPrototype> buildableUnits = city.ListProductionOptions(gD).OfType<UnitPrototype>().ToList();
 			UnitPrototype bestDefender = buildableUnits.MaxBy(u => u.defense);
 			UnitPrototype bestAttacker = buildableUnits.MaxBy(u => u.attack);
 			for (int i = 0; i < gD.gameDifficulty.NumberOfAIDefensiveStartingUnits && bestDefender != null; ++i) {
-				cities[0].AddUnit(bestDefender, gD);
+				city.AddUnit(bestDefender, gD);
 			}
 			for (int i = 0; i < gD.gameDifficulty.NumberOfAIOffensiveStartingUnits && bestAttacker != null; ++i) {
-				cities[0].AddUnit(bestAttacker, gD);
+				city.AddUnit(bestAttacker, gD);
 			}
 		}
 

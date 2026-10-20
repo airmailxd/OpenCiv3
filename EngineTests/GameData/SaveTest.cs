@@ -93,6 +93,16 @@ public class SaveTests : IClassFixture<SaveGameFixture> {
 			}
 		}
 
+		// Nor does a save from before players' receivedStartUnits was saved
+		// have it, which loading works out (see SaveGame.ConvertCities).
+		if (neverGameDataJson["players"] is JArray neverPlayers && wasGameDataJson["players"] is JArray wasPlayers) {
+			for (int i = 0; i < neverPlayers.Count && i < wasPlayers.Count; ++i) {
+				if (neverPlayers[i]["receivedStartUnits"] == null && wasPlayers[i] is JObject wasPlayer) {
+					wasPlayer.Remove("receivedStartUnits");
+				}
+			}
+		}
+
 		// saved files should be the same as the original
 		Assert.True(JToken.DeepEquals(wasGameDataJson, neverGameDataJson),
 			$"The save changed when converted to GameData and back; see {output.Path} (set C7_KEEP_TEST_OUTPUT to keep it)");
