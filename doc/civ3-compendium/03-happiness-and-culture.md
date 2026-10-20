@@ -9,6 +9,8 @@ Where sources are cited:
 - **labels.txt / script.txt** are `Conquests/Text/labels.txt` and `script.txt` (the game's own UI strings, local).
 - **1.29f readme** is `README.txt` in the install root. It holds the base game's patch history from 1.16f to 1.29f (local).
 - **Manual (Complete)** is https://cdn.akamai.steamstatic.com/steam/apps/3910/manuals/manual.pdf. Its text partly predates Conquests.
+- **C3C BIQ** is the stock rules file `Conquests/conquests.biq` (Steam install, Conquests 1.22), read with this repo's `QueryCiv3` BIQ reader. Values are given as `SECTION.Field = value`. These are the shipped defaults, so they settle "what number does C3C use" questions, but not how the engine applies a number. Base-game and PTW BIQs were not read.
+- **C3C editor help (What's New)** is the "What's New in this version of Civ3XEdit" page of the decompiled editor help.
 
 ## 3.1 Content citizens and "overcrowding"
 
@@ -21,6 +23,7 @@ Where sources are cited:
   - Civilopedia (C3C), `#GCON_Overpopulation`: "In each city, a number of citizens are born content. Thereafter, the rest are born unhappy." The same table follows ("Chieftain 4 … Sid 1").
   - Spoonwood, https://forums.civfanatics.com/threads/overcrowding-happiness-mechanics.355989: "c(Cheiftain)=4 c(Warlord)=3 c(Regent)=2 c(Monarch)=2 c(Emperor)=1 c(Demi-God)=1 c(Deity)=1 c(Sid)=1."
   - C3C editor help, "Number of Citizens Born Content": "Determines how many citizens in a new city are born content for the selected difficulty level."
+  - C3C BIQ: `DIFF.NumberOfCitizensBornContent` = 4, 3, 2, 2, 1, 1, 1, 1 (Chieftain to Sid), the same as the table.
 - **The unhappiness reason for over-the-base citizens is "It's just way too crowded."** It depends only on that city's size and the difficulty level.
   - labels.txt `#CITIZEN_UNHAPPY_REASONS`: "\"It's just way too crowded.\""
   - Skanky Burns, https://apolyton.net/forum/miscellaneous/archives/civ3-strategy-archive/50384-its-just-way-too-crowded: it "is related soley to the population of that city". On city count: "I dont think its related to number of cities at all."
@@ -35,9 +38,19 @@ Where sources are cited:
 
 - **Content faces vs happy faces.** A content face turns one unhappy citizen content. A happy face turns one content citizen happy. Buildings, wonders and military police give content faces. Luxuries, entertainers and the luxury slider give happy faces.
   - Civilopedia (C3C), `#GCON_Happy_Faces`: "Each [content face] makes one unhappy citizen content." / "Each [happy face] makes one content citizen happy." The table there lists: "City improvements content faces / Wonders content faces / Military police content faces / Luxuries happy faces / Entertainers happy faces / Entertainment happy faces".
-- **Excess faces carry over at reduced efficiency.** Surplus happy faces work on unhappy citizens at reduced efficiency. The exact rate isn't given (UNVERIFIED).
+- **Excess happy faces carry over to unhappy citizens one step at a time.** A happy face first makes a content citizen happy. Only when no content citizen is left does it make an unhappy citizen content, and a second face then makes that citizen happy. So it takes two happy faces to turn one unhappy citizen happy. This is the "reduced efficiency" the Civilopedia mentions. The rule comes from Firaxis' wording plus community worked examples; nobody quotes code for it.
   - Civilopedia (C3C), `#GCON_Happy_Faces`: "the remaining 3 happy faces will carry over to unhappy citizens at reduced efficiency."
   - Manual, luxuries: "Each type makes one content citizen happy or (if there are no content citizens) one unhappy citizen content."
+  - justanick, https://forums.civfanatics.com/threads/mechanics-of-happy-content-faces.701169/ #2 (Dec 2025, C3C): "it takes 2 happy faces to turn an unhappy citizen into a happy one. So that is a two step process." #9: "Happy faces do only turn unhappy citizens content if no content citizen exists."
+  - Spiffor, https://codehappy.net/apolyton/threads/83368-1.htm #2 (Apr 2003): "Content faces are used to turn unhappy citizens into content citizens." bongo, same thread, #15: "first content citizens are made happy, then unhappy are made content."
+- **Order of application (community worked example).** For a Republic at war, justanick works a size-12 Chieftain city in this order:
+  1. 4 born content and 8 born unhappy.
+  2. Building and wonder content faces (Temple 1 + Mausoleum 3) turn 4 unhappy citizens content.
+  3. War weariness (50%, i.e. 6) turns 6 content citizens unhappy.
+  4. Happy faces from luxuries make the 2 remaining content citizens happy, then work on the unhappy at 2 faces each.
+
+  The thread's starter confirmed the in-game result ("exactly as that WW thread I linked to predicts"). Where martial law and entertainers fall in this order is not covered (UNVERIFIED).
+  - justanick, 701169 #2: "You start at 4 content and 8 unhappy citizens." / "4 content faces and 6 unhappy faces turn it into 2 content and 10 unhappy citizens."
 - **Citizens per face.** This is the BIQ field `RULE.CitizensAffectedByEachHappyFace`, default 1.
   - C3C editor help: "Determines how many citizens' moods are improved by each \"happy face\"… Default is 1."
 
@@ -54,6 +67,7 @@ Where sources are cited:
 
 - Civilopedia (C3C), `#BLDG_Temple`: "produces one content face, making one unhappy citizen content". `#BLDG_Colosseum`: "produces two content faces". `#BLDG_Cathedral`: "produces three content faces … You must have a Temple". `#BLDG_Police_Station`: "combats war weariness and decreases corruption".
 - Culture values: https://civfanatics.com/civ3/civilopedia/improvements/ ("Temple 2 … Makes 1 unhappy citizen content"), and the CFC Info Center, https://civfanatics.com/civ3/infocenter/: "Cathedral(3), Colosseum(2), Library(3), Palace(1), Research Lab (2), Temple (2), University (4)". The Complete manual's culture chart (p.147) gives the same 3/2/3/1/2/2/4 sequence.
+- C3C BIQ confirms the table: Temple `ContentFaces` = 1, Colosseum 2, Cathedral 3, with culture 2/2/3. Of the improvements, only the Police Station has the "Reduces War Weariness" flag, and only the Courthouse has the "Resistant to Propaganda" flag. The C3C editor help says that flag makes citizens "less likely to defect". No default building has an unhappy-faces value.
 
 ### Wonders affecting happiness
 
@@ -70,7 +84,17 @@ Where sources are cited:
 | Universal Suffrage | "Reduces war weariness in all cities." |
 
 - The Civilopedia (C3C) `#GCON_Moods` list of happiness wonders is: Oracle, Mausoleum, Sistine Chapel, Hanging Gardens, Shakespeare's Theater, JS Bach's Cathedral, Cure for Cancer.
-- See Disputed for content-versus-happy wording differences between the manual, the Civilopedia and CFC.
+- **In C3C all of these give content faces, not happy faces.** The C3C BIQ holds them in the content-face fields:
+  - Hanging Gardens: `ContentFaces` = 3, `ContentFacesAllCities` = 1.
+  - Mausoleum: `ContentFaces` = 3.
+  - Shakespeare's Theater: `ContentFaces` = 8.
+  - JS Bach's: `ContentFaces` = 2 and `ContentFacesAllCities` = 2, with the "continental mood effects" flag.
+  - Cure for Cancer: `ContentFaces` = 1, `ContentFacesAllCities` = 1.
+  - The Oracle's "doubles happiness of" target is the Temple, and the Sistine Chapel's is the Cathedral.
+  - The Temple of Artemis gives a free Temple in every city on its continent (`GainInEveryCityOnContinent`).
+  - Universal Suffrage has the great-wonder flag "Reduced War Weariness". It has no face values.
+
+  The manual and CFC "happy" wordings are older or loose (see Disputed).
 
 ## 3.3 Luxury resources and the luxury rate
 
@@ -87,12 +111,23 @@ Where sources are cited:
 
   - Civilopedia (C3C), `#BLDG_Marketplace`: "3 luxuries = 4 happy faces … 8 luxuries = 20 happy faces".
   - C3C editor help, "Increases Luxury Trade": "1st and 2nd luxury = 1 happy face 3rd and 4th luxury = 2 happy faces 5th and 6th luxury = 3 happy faces 7th and 8th luxury = 4 happy faces".
-- **The luxury slider ("Entertainment")** turns commerce into happy faces. The C3C editor has a separate building flag, "+50% Luxury Output": "luxury revenue produced in the city … is increased by 50%". Two things are UNVERIFIED: which default buildings carry that flag (the Marketplace is assumed), and how many luxury points make one face.
+- **The luxury slider ("Entertainment")** turns commerce into happy faces, one face per luxury point.
+  - Civilopedia (C3C), `#GCON_Commerce`: tax revenue goes partly to "The entertainment of the population to produce [happy faces]".
+  - nbarclay, https://codehappy.net/apolyton/threads/61665-1.htm #1 (Sep 2002, base game): "For each gold spent, one citizen goes from unhappy to content or from content to happy."
+  - justanick, https://forums.civfanatics.com/threads/mechanics-of-happy-content-faces.701169/ #2 (Dec 2025, C3C), on a 10% luxury rate turning 60 commerce into 6 happy faces: "Apart from possible rounding issues that is correct."
+  - It is consistent with the entertainer: C3C BIQ `CTZN Entertainer.Luxuries` = 1 (§3.9), and the Civilopedia's "An entertainer produces one happy face". `RULE.CitizensAffectedByEachHappyFace` = 1.
+  - How the luxury share is rounded per city is UNVERIFIED.
+- **No default building boosts slider luxury in C3C.** The editor's building flag "+50% Luxury Output" ("luxury revenue produced in the city … is increased by 50%") is set on no building in the C3C BIQ. The Marketplace carries only "Increases Luxury Trade", which affects luxury *resources* (the table above). The C3C Civilopedia's Marketplace entry likewise mentions only tax and luxury resources. Players report the same:
+  - Rhothaerill, https://codehappy.net/apolyton/threads/61665-1.htm #19 (Jul 2003, PTW era), on the Marketplace and luxury resources: "Neither one affects the happiness generated from the luxury slider."
+  - vulture, https://codehappy.net/apolyton/threads/83368-1.htm #16 (Apr 2003): Marketplaces boost luxury resources but not the luxury slider (paraphrased by the fetch).
+  - Whether the base game's Marketplace had the flag is UNVERIFIED (its BIQ was not read).
 - **Base-game luxury types:** Dyes, Furs, Gems, Incense, Ivory, Silk, Spice, Wine. Civilopedia (C3C), `#GCON_ResourcesL`, lists their tile yields, e.g. "Gems +0 +0 +4".
 
 ## 3.4 Martial law (military police)
 
-- **Each military unit in the city makes one unhappy citizen content, up to a limit set by the government.** Only units with attack > 0 count. The BIQ fields are `GOVT.MilitaryPoliceLimit` and the per-government "Number of Citizens Quelled by Military".
+- **Each military unit in the city makes one unhappy citizen content, up to a limit set by the government.** Only units with attack > 0 count. The unit cap is `GOVT.MilitaryPoliceLimit`. How many citizens each unit quells is a *difficulty-level* field, `DIFF` "Number of Citizens Quelled by Military", which is 1 at every level.
+  - C3C editor help (What's New): "Added option to Difficulty Level Page for number of citizens quelled by a military unit. It defaults to 1 for all levels." Its page "Number of Citizens Quelled by Military" says: "Determines how many rioting-citizens are quelled with the presence of military units."
+  - C3C BIQ: `DIFF.MilitaryLaw` = 1 for all eight levels. WillJ (§3.13) applies the same field to quelling resisters.
   - Manual: "A small number of military units, each with an attack factor of at least one, can be stationed in a city as military police. Each military unit makes one unhappy citizen in a city content."
   - C3C editor help: "Determines how many military units (units with attack rating greater than zero) can be garrisoned in a city to reduce unhappiness."
 
@@ -101,6 +136,8 @@ Where sources are cited:
   | Military police limit | 0 | 2 | 3 | 3 | 4 | 4 | 0 | 0 |
 
   - Civilopedia (C3C) government entries, e.g. `#GOVT_Communism`: "Military Police Limit 4". The same figures appear at https://civfanatics.com/civ3/civilopedia/governments/.
+  - C3C BIQ `GOVT.MilitaryPoliceLimit`: Anarchy 0, Despotism 2, Monarchy 3, Communism 4, Republic 0, Democracy 0, Fascism 4, Feudalism 3. These match the table.
+  - Two CFC threads listed as martial-law sources turn out to be Civ2 threads: https://forums.civfanatics.com/threads/help-martial-law.86270 and https://forums.civfanatics.com/threads/martial-law-not-working.33328. Their "3 units" and "Communism 2 per unit" figures are Civ2 rules.
   - The manual's older text names only "Despotism, Monarchy, or Communism", because Feudalism and Fascism are PTW/C3C additions.
 
 ## 3.5 War weariness
@@ -113,7 +150,8 @@ Where sources are cited:
 
   - The BIQ field is `GOVT.WarWeariness`, with editor labels "Citizens do not get unhappy / Citizens get unhappy / Citizens get very unhappy" (labels.txt).
   - Civilopedia (C3C), `#GCON_War_Weariness`: "citizens living under a Republic, Feudalism, or Democracy become [war weary]". Government entries, e.g. `#GOVT_Democracy`: "War Weariness High".
-  - The base-game manual names only Republic and Democracy: "If you're ruling under a representative form of government (Republic or Democracy), war weariness makes your citizens unhappy."
+  - The base-game manual names only Republic and Democracy: "If you're ruling under a representative form of government (Republic or Democracy), war weariness makes your citizens unhappy." Feudalism didn't exist yet, so this is a version difference, not a conflict.
+  - C3C BIQ `GOVT.WarWeariness`: Republic 1, Feudalism 1, Democracy 2, all others 0. So Feudalism has exactly the same setting as Republic ("Citizens get unhappy"). The engine reads only this per-government value, so Feudalism should use Republic's effect table. That last step is an inference; nobody has tested Feudalism.
 - **What raises and lowers it** (Firaxis' description). Attacking raises it. Being declared on, or fighting at home, is more tolerable.
   - Civilopedia (C3C): "When [you] initiate the conflict your people will tolerate it for a while … When someone else declares the war, especially a traditional enemy, your people are more forgiving. Carrying on a defensive war, that is keeping your troops at home, is more tolerable than offensive campaigns."
   - Manual: "The most important factors in causing war weariness are stationing your units in a rival's territory, enemies having troops in your territory, declaring war, and engaging in battle. Having a rival declare war on you actually decreases war weariness".
@@ -134,6 +172,20 @@ Where sources are cited:
     - Democracy: "Level 1: 50% unhappy people", "Level 2: 100% unhappy people", "Level 3: Revolt".
     - Rounded down and summed over enemies, then reduced: "subtract 25% for police station and 1 for US (Universal Sufferage)".
   - **Decay example:** from 121 wwp at peace, "It will take 19 turns to get down to level 0, and 43 turn until the war is totally forgotten."
+- **Follow-up findings in the forum thread** of that article, https://forums.civfanatics.com/threads/how-does-war-weariness-work.61628/ (5 pages, 2003–2015, PTW and C3C):
+  - **Points build up under any government.** Oystein, #67 (Feb 2005): "The calculation of wwp is independant of government." Lord Emsworth, #92 (Dec 2012): you can build up WW points under a WW-immune government such as Monarchy without suffering from them. Soren Johnson (Firaxis), as relayed by Jaybe at https://codehappy.net/apolyton/threads/62518-1.htm #5 (Sep 2002): "Soren said recently that WW accumulates even if you are in a government with no WW." / "The government just suppresses the opportunity for the WW to be expressed."
+  - **Points carry into a later war.** TimBentley, #66 (Feb 2005), on WW returning in a new war after peace and a government change: "Yes, you will (assuming you still have enough WW left after the peace)." Oystein, #55 (Apr 2004): "But 20 turns of peace does NOT mean that ww is gone."
+  - **Only war expresses it.** justanick, https://forums.civfanatics.com/threads/mechanics-of-happy-content-faces.701169/ #6 (Dec 2025): "During peace WW is suspended. Only in war you can have war weariness."
+  - **Rounding and caps.** Oystein, #47 (Mar 2004): "The number from ww is rounded down." Oystein, #24 (Oct 2003): "The total number of unhappy citizen from ww can not exceed number of citizen." / "The ww and wh are calculated independent." / "If you have 125% or more ww, the police station would not have any effect since you are above the limit anyway." That implies the per-enemy percentages add up past 100% before the Police Station's 25% comes off.
+  - **Threshold.** Oystein, #51 (Apr 2004): "you need 31 wwp to get ww. 30 wwp gives no effect."
+  - **Combat.** Oystein, #40 (Feb 2004): "If you attack and kill an AI, none gets wwp. If the AI wins, both get wwp." Also: "It does not mather where the battle are. I claimed so earlier, but that turned out to be wrong."
+  - **Culture flips don't cause it.** Lord Emsworth, #80 (Mar 2009): "No WW from flipped cities. I checked for it just a few days ago with an old game." In #83 he adds that a recapture plus a flip did cause it.
+  - **Universal Suffrage.** MadScot, quoted at #76 (Jan 2006): "Universal Suffrage makes 1 unhappy citizens content in all cities". This agrees with the article's "1 for US". In the C3C BIQ, US carries the great-wonder flag "Reduced War Weariness", and the Police Station the improvement flag "Reduces War Weariness". The editor help defines the improvement flag only as "the effects of war weariness in the city … are decreased", with no amount.
+  - **AI bugs.** The thread reports AI war weariness being applied inconsistently, depending on playing order (Oystein, #1 and #42). alexman (Firaxis) first said Conquests fixed this (#25), then retracted it: "My bad. Sorry." (#27, Nov 2003).
+- **War happiness** (WW points below zero, e.g. after an AI declares war on you): one happy citizen per 4 citizens, per enemy.
+  - Qitai, 61628 #35 (Feb 2004): "WH gives one happiness for every 4 pop." / "When it reaches zero, you lose the WH." / "once it reaches 30, you start to get WW for representative governments."
+  - I. Larkin, https://forums.civfanatics.com/threads/war-happines-works.246590/ #1 (Oct 2007, C3C): it "is rounded down first and than added from each happy war". He also found that declarations the AI makes because of a military alliance or mutual protection pact give no war happiness.
+- **Multiplayer.** alexman (Firaxis), https://codehappy.net/apolyton/threads/92121-1.htm #3 (Jul 2003): "I tested this once (I think it was under 1.21) and there was indeed war weariness in PBEM." / "However, the unhappiness levels rose much more slowly than in SP."
 - **Democracy falls into Anarchy when war weariness reaches 100%.**
   - https://civfanatics.com/civ3/civilopedia/governments/: "It also happens when WW reaches 100% when under Democracy."
   - script.txt: "Our people are overthrowing our $GOVERNMENT0. Our Civilization is descending into Anarchy!"
@@ -150,6 +202,7 @@ Where sources are cited:
   - Civilopedia (C3C), `#GCON_Nationality`: "Having a city with foreign nationals is not a problem unless you are at war with the nation that originally produced them. When at war, foreign nationals become unhappy more quickly than others and are more likely to be affected by hostile propaganda from their mother country."
   - labels.txt: "\"Stop the aggression against our mother country!\"".
   - Qitai, https://forums.civfanatics.com/threads/why-are-the-citizens-of-my-newly-conquered-cities-so-unhappy.79817/: they "will remain unhappy until you peace with the civ concern".
+  - dunk, https://codehappy.net/apolyton/threads/57182-1.htm #7 (Jul 2002, base game): "Foreign citizens can always become war-weary regardless of government type." The count is still unsourced.
 - **Draft.**
   - Requires Nationalism and a city of size 7 or more.
   - The draft limit per city per turn is Republic/Democracy 1, and Despotism, Monarchy, Feudalism, Communism and Fascism 2. Anarchy can't draft.
@@ -157,9 +210,12 @@ Where sources are cited:
   - Civilopedia (C3C), `#GCON_Draft`: "You may only draft citizens from a city with a population of 7 or higher." / "drafting citizens will cause unhappiness in the city."
   - C3C editor help: "Determines how long your citizens' moods will be affected by each citizen drafted. Default is 20 turns."
   - 1.29f readme, Changes v1.21f: "Draft anger and hurrying unhappiness reduced to 20 turns."
-  - Which nationality a drafted citizen or unit takes is UNVERIFIED.
+  - C3C BIQ `GOVT.DraftLimit`: Anarchy 0, Despotism 2, Monarchy 2, Communism 2, Republic 1, Democracy 1, Fascism 2, Feudalism 2. `RULE.TurnPenaltyForEachDraftedCitizen` = 20. Forum claims of 3 per turn for Communism or Fascism are wrong for C3C. Examples: eldar and Ginger_Ale, https://forums.civfanatics.com/threads/question-about-drafting-in-civ3.107429/ #3/#5 (Dec 2004), and Toasty's "4 per turn under Communism, 3 per turn under Monarchy", https://forums.civfanatics.com/threads/how-do-i-draft-military.13697/ #4 (Jan 2002, early base game).
+  - **The drafted unit is a conscript defender** chosen by tech level. Civilopedia (C3C), `#GCON_Draft`: "The draft produces the following [conscript] units, depending upon your level of scientific development: Spearman, Pikeman, Musketman, Rifleman, Infantry, Mech. Infantry".
+  - Nationality: Toasty, 13697 #4 (Jan 2002, base game): "You can only draft the number of citizens that are of YOUR nationality in the city." ThePlagueRat's contrary report of drafting foreign citizens was questioned in the same thread, with no answer: https://codehappy.net/apolyton/threads/53252-1.htm #3/#4 (Jun 2002). Both are unconfirmed, so this stays UNVERIFIED.
 - **Hurrying by forced labour.** This applies under Despotism, Communism, Feudalism and Fascism. Each sacrificed citizen causes unhappiness ("cruel oppression") for 20 turns (`RULE.TurnPenaltyForEachHurrySacrifice`). Hurrying is impossible while the city has resisters.
   - C3C editor help: "Default is 20 turns."
+  - C3C BIQ: `RULE.TurnPenaltyForEachHurrySacrifice` = 20. `GOVT.Hurrying` is 1 for Despotism, Communism, Fascism and Feudalism, 2 for Monarchy, Republic and Democracy, and 0 for Anarchy. That fits forced labour = 1 and paid = 2; the enum mapping is inferred from the grouping.
   - 1.29f readme, Changes v1.17f: "Unhappiness from population rushing production increased to 40 turns." This was later cut to 20 in v1.21f (above).
   - script.txt `#HURRY_RESISTANCE`: "We cannot hurry production while our city is in resistance."
 
@@ -178,7 +234,15 @@ Where sources are cited:
   - Civilopedia (C3C), `#GCON_Disorder`: "Production ceases, No revenue comes in from commerce, and No excess food is stored." It continues: "Prolonged periods of civil disorder can lead to: Destruction of existing city improvements … Defection of the city … An overthrow of your government and descent of your empire into anarchy."
   - C3C editor help, "Chance of Rioting": "Determines the percentage chance of rioting occurring in any city experiencing disorder. Default is 20%."
   - Manual: "When order is restored, the city returns to normal operation the next turn." / "The risk of meltdown always exists when a city that has a Nuclear Plant goes into civil disorder."
-  - How long "prolonged" disorder must last before the government falls is UNVERIFIED.
+  - C3C BIQ: `RULE.ChanceOfRioting` = 20.
+- **A riot destroys one improvement.** The game's only riot message names a single improvement per event. The engine follows the owner's ruling: one random non-wonder improvement. No source was found on how the improvement is picked, or whether wonders are exempt.
+  - script.txt `#CIVIL_DISORDER_INTENSIFIES`: "Civil Disorder intensifies in $CITYNAME0! The mob has destroyed $IMPROVEMENT1!"
+  - Civilopedia (C3C), `#GCON_Disorder`: "Destruction of existing city improvements or even sabotage to ongoing projects by angry mobs." No source describes the "sabotage to ongoing projects" part (UNVERIFIED).
+- **Government overthrow.** How long "prolonged" disorder must last before the government falls is still UNVERIFIED. The collapses players report are Democracy falling to war weariness, with or without disorder:
+  - camens, https://forums.civfanatics.com/threads/cant-stop-my-descent-into-anarchy.28256 #1 (Jul 2002, base game): "So even with no civil disorder I still fall into Anarchy."
+  - LordKestrel, https://forums.civfanatics.com/threads/how-does-war-weariness-work.61628/ #58 (Jun 2004), on Democracy's war-weariness revolt: "Your civ descends into Anarchy, just like if you had clicked the Revolt button in the city advisor screen."
+  - Egbert, https://apolyton.net/forum/miscellaneous/archives/civ3-general-archive/116300-various-questions-civ-improvements #3 (Oct 2003), hedged: "I vaguely recollect reading somewhere that anarchy may last longer if you leave cities in civil disorder".
+  - The rule "if any of your cities is in disorder for more than 1 turn, your government will collapse into anarchy" turned up only as a web-search snippet; the thread wasn't identified or read. It comes from a list that also names the Senate and units outside cities causing unhappiness. Those are Civ2 Democracy rules, so it isn't evidence for Civ3.
 
 ## 3.8 We Love the King Day (celebration)
 
@@ -190,17 +254,19 @@ Where sources are cited:
   - size at least `RULE.MinimumPopulationForWeLoveTheKing`, default 6.
   - Civilopedia (C3C), `#GCON_We_Love_The_King_Day`: "The city cannot be starving, The city cannot have any resisters, The city cannot have any unhappy citizens, There must be more happy citizens than content citizens, and The city must be large enough (typically size 6)."
   - Manual: "There must be at least as many happy citizens as content citizens" (example: "a city with five happy citizens, four content citizens, and no unhappy citizens celebrates").
-  - C3C editor help: "Default is 6 citizens."
+  - C3C editor help: "Default is 6 citizens." C3C BIQ: `RULE.MinimumPopulationForWeLoveTheKing` = 6.
+  - Dan Magaha (Firaxis), https://codehappy.net/apolyton/threads/44579-1.htm #3 (Mar 2002, base game), gives the same five conditions, including "There must be more happy citizens than content ones." and "The city must be large enough. This number is exposed in the editor, and defaults to a size 6 city."
 - **Effects:**
   - The culture-flip chance is halved.
   - Waste (shield loss) is reduced. Commerce corruption isn't, per alexman.
   - Enemy propaganda is less effective.
   - The effects start on the first full turn of celebrating.
   - Civilopedia (C3C): "The chance of the city converting to another civ is halved, Waste in the city is reduced, and The effectiveness of enemy spy propaganda missions against the city is reduced."
+  - Dan Magaha (Firaxis), 44579 #3: "The chance of a city converting to another civ are halved." / "The corruption and waste in a city is reduced, effectively increasing the city's shield output." / "The effectiveness of propaganda missions against the city are reduced." / "I don't think I missed anything...?" His effect is stated in shields, which fits alexman's waste-only finding.
   - alexman et al., https://civfanatics.com/civ3/strategy/game-mechanics/everything-about-corruption-c3c-edition/: "For waste calculations only, when the city is in a WLTKD celebration, divide da by 2." / "… add OCN/4 to Nopt."
   - Manual: "You will see the effects of celebration begin on the first full turn that a city celebrates".
   - 1.29f readme, Changes v1.21f: "Increased waste fighting ability of We Love The King Day."
-- **Civ3 has no rapture growth and no per-government celebration bonus.** These sources contain none: the Civilopedia benefit list above is complete, and the C3C editor's government flags are unconditional. They are "Standard tile penalty – Under the selected government, no tile may generate more than 2 food and shields" and "Standard trade bonus – … each tile generates an additional +1 to commerce", with no "when celebrating" option. Rapture growth is a Civ1/Civ2 mechanic. The manual's sentence "the city enjoys certain benefits, depending on your civilization's type of government" conflicts with this (see Disputed).
+- **Civ3 has no rapture growth and no per-government celebration bonus.** These sources contain none: the Civilopedia benefit list above is complete, and the C3C editor's government flags are unconditional. They are "Standard tile penalty – Under the selected government, no tile may generate more than 2 food and shields" and "Standard trade bonus – … each tile generates an additional +1 to commerce", with no "when celebrating" option. Rapture growth is a Civ1/Civ2 mechanic. Firaxis' own list of benefits (Magaha, above) has no government-specific item. Players at the time agreed: Thoth, https://codehappy.net/apolyton/threads/35096-1.htm #4 (Nov 2001), said WLTKD is "nowhere near as powerful as it was in Civ I/ II". The manual's sentence "the city enjoys certain benefits, depending on your civilization's type of government" reads as a Civ2 holdover (see Disputed).
 
 ## 3.9 Specialists
 
@@ -219,20 +285,44 @@ Where sources are cited:
   - "Each hardhat adds two shields to the net shield output of the city when building city improvements".
   - "Corruption and waste do not reduce the specialist's output."
 - Specialists are ignored in the disorder test (§3.7) and count toward score: manual, "your content and happy citizens (including Specialists)".
-- The BIQ CTZN section holds per-type `Luxuries`, `Research`, `Taxes`, `Corruption` and `Construction`. The C3C editor's "Luxury Bonus (Citizen Properties)" is "The bonus to a city's luxuries produced by one population point of the selected citizen type." The default entertainer value in luxury points is UNVERIFIED.
+- The BIQ CTZN section holds per-type `Luxuries`, `Research`, `Taxes`, `Corruption` and `Construction`. The C3C editor's "Luxury Bonus (Citizen Properties)" is "The bonus to a city's luxuries produced by one population point of the selected citizen type." C3C BIQ CTZN values:
+  - Entertainer `Luxuries` = 1.
+  - Tax Collector `Taxes` = 2.
+  - Scientist `Research` = 3.
+  - Policeman `Corruption` = 1.
+  - Civil Engineer `Construction` = 2.
+
+  So one entertainer is one luxury point, i.e. one happy face (§3.3). The Policeman and Civil Engineer need prerequisite techs, as in the table above.
+- Early base-game players reported that specialists get no building multipliers. Sarxis, https://codehappy.net/apolyton/threads/31220-1.htm #1 (Oct 2001): "It looks like the multipliers that local city improvements gave to the scientists and taxman no longer apply." (Separately, the CFC article above says corruption doesn't reduce specialist output.) Whether Marketplace-type multipliers apply in C3C is UNVERIFIED.
 
 ## 3.10 Culture: points, doubling, totals, borders
 
 - **Culture per turn.** Each building and wonder makes its BIQ `culture` value per turn. Per-city totals accumulate, and the civ's culture is the sum over its cities.
   - Civilopedia (C3C), `#GCON_Culture`: "All Wonders of the World and many city improvements generate culture points every turn." / "The sum of the cultural values of all of your cities is your [civilization's cultural value.]"
   - Building values are in §3.2.
-  - Great wonder values from the Complete manual (p.147): Adam Smith 3, Colossus 3, Copernicus 4, Cure for Cancer 5, Great Library 5, Great Lighthouse 2, Great Wall 2, Hanging Gardens 4, Hoover Dam 3, Internet 4, JS Bach 5, Knights Templar 2, Leonardo 2, Longevity 3, Magellan 3, Manhattan 2, Michelangelo 4, Mausoleum 2, Newton 5, Oracle 4, Pyramids 4, SETI 3, Shakespeare 5, Statue of Zeus 4, Sun Tzu 2, Temple of Artemis 4, Theory of Evolution 3, UN 4, Universal Suffrage 4.
-  - Small wonder values in that chart are garbled in the PDF text (UNVERIFIED).
+  - **C3C great wonder culture (C3C BIQ `BLDG.Culture`):**
+
+    | Wonder | Culture | Wonder | Culture | Wonder | Culture |
+    |---|---|---|---|---|---|
+    | Pyramids | 4 | Sistine Chapel | 6 | Theory of Evolution | 3 |
+    | Hanging Gardens | 4 | Magellan's | 3 | United Nations | 4 |
+    | Colossus | 3 | Copernicus' | 4 | Manhattan Project | 2 |
+    | Great Lighthouse | 2 | Shakespeare's | 8 | Cure for Cancer | 3 |
+    | Great Library | 6 | Leonardo's | 2 | Longevity | 3 |
+    | Oracle | 4 | JS Bach's | 6 | SETI | 3 |
+    | Great Wall | 2 | Newton's | 6 | Internet | 4 |
+    | Sun Tzu's | 2 | Smith's | 3 | Temple of Artemis | 4 |
+    | Statue of Zeus | 4 | Universal Suffrage | 4 | Hoover Dam | 2 |
+    | Mausoleum | 2 | Knights Templar | 2 | | |
+
+  - **C3C small wonder culture (C3C BIQ):** Heroic Epic 4, Iron Works 2, Forbidden Palace 2, Wall Street 2, Apollo Program 2, Military Academy 1, Pentagon 1, Strategic Missile Defense 1, Intelligence Agency 1, Battlefield Medicine 1, Secret Police HQ 0. Palace 1.
+  - The Complete manual's chart (p.147) has different values for several wonders: Cure for Cancer 5, Great Library 5, Hoover Dam 3, JS Bach 5, Michelangelo 4, Newton 5, Shakespeare 5. CFC's Civilopedia has others again (see Disputed). Treat these as other versions' values; the BIQ is what C3C 1.22 ships.
 - **Doubling after 1000 years.** A building's or wonder's culture doubles once it has stood 1000 game years. A rebuilt building starts over.
   - Civilopedia (C3C): "The amount of culture each Wonder or improvement contributes doubles after 1000 years."
   - 1.29f readme, Changes v1.17f: "Added mention of Wonder and improvement culture contributions doubling after 1000 years to Culture Civilopedia entry."
   - Turner, https://forums.civfanatics.com/threads/about-culture-points.116213, on rebuilt buildings: "those do not get back the 1000 yr doubling if it already had it."
   - This is game years, not turns. MTheil3508, https://forums.civfanatics.com/threads/culture.33034: "early in the game, the years go by faster".
+  - Tested by The Mad Monk, https://codehappy.net/apolyton/threads/76110-1.htm #13 (Feb 2003). He compared the same building in two cities, one just under and one just over 1000 years old: "It's definately 1,000 years." / "you will find that the one improment is now producing twice the culture of the newer one."
   - Corollary: with a 2050 AD end, anything built after 1050 AD never doubles.
 - **Mobilization halves culture.** Culture from improvements is halved while the civ is on a war footing.
   - Manual: "During wartime footing, cultural improvements produce half the number normally produced per turn."
@@ -240,6 +330,8 @@ Where sources are cited:
 - **Fascism (C3C) is xenophobic.** A city makes no culture while fewer than half its citizens are of the owner's nationality.
   - C3C editor help, Government flags: "Xenophobic – Under the selected government, no culture is gained in cities where less than half of the population of the city is from the same race as the controlling civilization."
   - Civilopedia (C3C), `#GOVT_Fascism`: newly conquered cities "do not generate culture until a popular majority has been assimilated."
+  - C3C BIQ: `GOVT.Xenophobic` = 1 for Fascism only.
+  - Borders follow: tjs282, https://forums.civfanatics.com/threads/problem-culture-border-of-city-doesnt-expand.537508/ #2 (Nov 2014, C3C, Fascism): "you don't get any cultural expansion from a captured city until your Civ's citizens outnumber the 'foreigners'."
 - **Per-civ memory in each city; capture.**
   - A city stores how much culture each civ made in it.
   - On capture, every building with culture > 0 is destroyed, plus 25% of other buildings and all small wonders. Great wonders survive, but give the captor no culture.
@@ -248,7 +340,7 @@ Where sources are cited:
   - ainwood, https://forums.civfanatics.com/threads/about-culture-points.116213: "The city stores the culture generated by the buildings of each civilization that has owned the city at any time."
   - Turner, same thread: "captured wonders do not give culture to the capturing civ."
   - 1.29f readme, Changes v1.16f: "Capturing a population 1 city that has no culture will automatically raze it."
-- **Border levels by city culture.** With the default `RULE.BorderFactor` of 10, the levels are at 0, 10, 100, 1000, 10000 and 100000 city culture, i.e. `BorderFactor^n`. Each level grows the border radius by one. A new city starts at level 0 with radius 1 (its 9 tiles). The exact tile shape of each radius is UNVERIFIED.
+- **Border levels by city culture.** With the default `RULE.BorderFactor` of 10, the levels are at 0, 10, 100, 1000, 10000 and 100000 city culture, i.e. `BorderFactor^n`. Each level grows the border radius by one. A new city starts at level 0 with radius 1 (its 9 tiles). For the shape of each radius, see "Distance for border ranks" below (community, not fully tested). C3C BIQ: `RULE.BorderFactor` = 10.
   - C3C editor help, "Border Factor": "There are 6 levels of border expansion and under the default Border Factor of 10, they occur at 0, 10, 100, 1000, 10000, 100000."
   - CFC Info Center, https://civfanatics.com/civ3/infocenter/: "When culture reaches a certain point, the radius of your borders grows by one." / "The first increase comes at 10 Culture points" / "The amount you need to grow your borders increase by a factor of 10 each time".
   - Renata, https://forums.civfanatics.com/threads/culture-expansion.52924: "a city's original nine tiles".
@@ -256,20 +348,38 @@ Where sources are cited:
   - 1.29f readme, Changes v1.16f: "Editor: On General Settings, added Border Factor which controls border expansion."
 - **Civ-wide culture levels** are a separate scale (`RULE` "Lvl. Multiplier", default 1000). They are used for the cultural level labels, not borders.
   - C3C editor help, "Level Multiplier": "Under the default level multiplier of 1000, the values for these cultural levels are 1000, 2000, 4000, 8000, 16000, and 32000."
-  - What these levels do in play beyond labels is UNVERIFIED.
+  - What these levels do in play beyond labels is UNVERIFIED. script.txt uses them only as adjectives (`$CULTURAL_LEVEL`, e.g. "We have destroyed the $CULTURAL_LEVEL3 $CIVNOUN0").
 - **Borders never shrink for culture reasons, except to a stronger neighbour.** On contested tiles, the closer city keeps its own first ring.
   - CFC Info Center: "Your borders never shrink due to culture." / "the only real way for your borders to shrink is if the borders of a nearby city with higher culture expand".
   - Civilopedia (C3C), `#GCON_Culture`: civ culture "comes into play … when you and a rival both have a legitimate claim on a terrain square."
   - Sirp and Shillen, https://forums.civfanatics.com/threads/culture-expansion.52924: you can't take a tile closer to another civ's city unless that city exerts no cultural control over it. Shillen: "Their city will only control their first ring, while you control their second ring." Renata retracted her "equidistant only" claim: "Yep, you're both right."
-  - The exact tie-break rule (city culture vs civ culture vs distance) is UNVERIFIED.
+- **Border assignment: TemporalAnomaly's "Eight Laws"** (community, C3C), https://forums.civfanatics.com/threads/the-eight-laws-of-border-dynamics.106882/ #1 (Dec 2004):
+  - Each city "places claims" on tiles. A city at its nth culture threshold "gains the ability to place claims of rank n+1 on all tiles at a distance n+1", where "threshold values are of the form 10^n c.p." (Law I).
+  - "Ocean tiles may only hold claims of rank 2." (Law II)
+  - "Each tile is assigned to the civ that controls the city that has the lowest rank claim on it." (Law III) So a tile goes to the city it is *nearest* in rank, which is why a city keeps its own first ring.
+  - Ties at the same rank go to "the competing city with the largest culture" (Law IV). If culture is equal, the tile goes to the older city (Law V). If the founding year is also equal, the tile checks N, NW, W, SW and S in that order (Law VI).
+  - Gaps get filled. An unclaimed tile with one civ's tiles both NW and SE of it (Law VII), or both NE and SW (Law VIII), goes to that civ. Law VII is checked first.
+- **Distance for border ranks** (punkbass2000, same thread, page 2 #29, Dec 2004): "adjacent tiles are counted as 1, and tiles that only connect at a single point are counted as 1.5" / "these numbers are rounded down."
+  - That is ⌊max(dx,dy) + ½·min(dx,dy)⌋, the metric the flip calculators also use (§3.15).
+  - Under it, radius 1 is the 8 neighbours and radius 2 is the 21-tile fat cross ((2,2) gives 3, so it is out).
+  - punkbass2000 adds: "I haven't fully tested this, so let me know if its wrong."
+- **Disputes in that thread:**
+  - Crimso (#2) says the city that expands over a tile first can keep it.
+  - Theoden (#5) says a tile taken through Law VII/VIII can still be claimed by another civ's real culture expansion.
+  - TemporalAnomaly (#4): "there is a city age affect", which became Law V.
+
+  Whether civ-wide culture (as opposed to city culture) plays any part in contested tiles is UNVERIFIED. The Civilopedia's "legitimate claim" sentence is the only hint.
 - **What borders do** (Civilopedia (C3C), `#GCON_Territory`):
   - "Rival civilizations cannot benefit from the roads or rails within your territory without a right of passage agreement."
   - "You can always 'see' squares in friendly territory."
   - Resources inside borders need no colony.
   - "You can eject rival military units from your territory".
   - The city radius is only the tiles within 2 that are inside the city's borders (`#GCON_Radius`): "within the city's cultural borders, and within two squares of the city."
-- **Tourist attractions.** A great wonder older than 1000 years earns gold for its city.
-  - Civilopedia (C3C), `#GCON_Tourist_Attraction`: "1000 (years) - 1500 +2 (gold) … 2251 - 2500 +12".
+- **Tourist attractions.** A great wonder older than 1000 years earns gold for its city, but only wonders with the "Tourist Attraction" flag do.
+  - Civilopedia (C3C), `#GCON_Tourist_Attraction`: "1000 (years) - 1500 +2 (gold) … 2251 - 2500 +12". Wonder entries say so one by one, e.g. `#BLDG_Mausoleum`: "This Great Wonder can become a tourist attraction."
+  - C3C BIQ flags it on: Pyramids, Hanging Gardens, Colossus, Great Lighthouse, Great Library, Oracle, Great Wall, Sistine Chapel, Copernicus, Shakespeare, Leonardo, JS Bach, Newton, Hoover Dam, United Nations, Temple of Artemis, Statue of Zeus, Mausoleum.
+  - It is not set on: Sun Tzu, Magellan, Smith's, Universal Suffrage, Theory of Evolution, Manhattan Project, Cure for Cancer, Longevity, SETI, Internet, Knights Templar.
+  - The bit's decoding comes from the repo's BIQ reader. It agrees exactly with the Civilopedia (C3C): the 18 flagged wonders are exactly the 18 entries that say "can become a tourist attraction".
 
 ## 3.11 Culture victory (as relevant)
 
@@ -294,6 +404,7 @@ Where sources are cited:
   - Magaha: "Chance of resistance means that if you take one of their cities, the chance of resisters in the city is 90%," / "and each turn there is an 80% chance that each resister will continue to resist." / "the more culture advantage you have over another civ, the easier it is to take over cities".
   - C3C editor help, "Culture Ratio": "if the Germans had 3000 culture points and the Americans had only 1000, the Americans would be said to be \"in awe of\" the Germans."
   - The BIQ CULT section has `ChanceOfSuccessfulPropaganda`, `CultureRatioPercentage`, `CultureRatioNumerator/Denominator`, `InitialResistanceChance` and `ContinuedResistanceChance`.
+  - C3C BIQ: the six CULT records match Magaha's table exactly. For example, "in awe of" is propaganda 30, ratio 300% (3/1), initial 40, continued 30; "disdainful of" is 3, 33% (1/3), 90, 80.
 - **Diplomacy.** Culture affects AI attitude, and the diplomacy screen shows the opinion. The size of the effect is UNVERIFIED.
   - Civilopedia (C3C), `#GCON_Culture`: civ culture "comes into play when you … conduct diplomacy with a rival".
   - script.txt: "Our people are [$CULTURAL_OPINION0] the $CIVADJ1 cultural achievements."
@@ -302,6 +413,8 @@ Where sources are cited:
   - Manual: "Cities of a Democracy are immune to propaganda. Enemy capitals and cities with Courthouses are less likely to revolt. Also, it is easier to push a city already in civil disorder into open revolt".
   - Bluemofia, https://forums.civfanatics.com/threads/da-rules-explained.210035/post-5161431: "propaganda will either cause the citizens to join your civilization, or simply cause unhappiness."
   - labels.txt has the unhappiness reason "All the propaganda surrounding your regime is confusing."
+  - script.txt has both outcomes as messages to the target civ: `#ESPIONAGE_MISSED_PROPAGANDA_LOST_CITY` "We have lost $CITY0 because of a propaganda campaign!" and `#ESPIONAGE_MISSED_PROPAGANDA` "A propaganda campaign in $CITY0 has upset its citizens." The spy's side reads "The citizens of $CITY0 have overthrown their government and joined our cause!" on success, and "…are not sufficiently sympathetic to our cause" on failure. So a propaganda campaign can end in defection or in unhappiness only.
+  - C3C editor help, "Resistant to Propaganda (Improvement Flag)": "citizens in the city in which the selected improvement is built are less likely to defect." In the C3C BIQ only the Courthouse has it.
 
 ## 3.13 Resistance in captured cities
 
@@ -322,14 +435,39 @@ Where sources are cited:
   - Civilopedia (C3C): "Resisters can be quelled by ending the war or garrisoning strong military units in the city -- the more the better."
   - Manual: "They stay that way until you make peace with their mother country or 'win them over'". Also: "A more impressive culture, a government that allows more personal freedom, and a greater supply of luxuries all help."
   - script.txt: "Our troops have quelled $NUM0 $<#0:resister:resisters>!"
-  - How much each unit counts in the garrison is UNVERIFIED.
+- **Garrison rule (WillJ, from Mike B. of Firaxis).** Each unit can quell at most one resister per turn, whatever its strength. That is, units × the difficulty's "citizens quelled by military", which is 1 by default (§3.4). The garrison caps how many of the resisters that fail their "continued resistance" roll actually stop resisting.
+  - https://civfanatics.com/civ3/strategy/game-mechanics/the-inner-workings-of-resistance-revealed/ and its forum thread https://forums.civfanatics.com/threads/the-inner-workings-of-resistance-revealed.56487/ (WillJ, Jun 2003, PTW). The article thanks "forum member Mike B. FIRAXIS", and "Much of the credit for the information in this article goes to him."
+  - "the maximum number of resistors that can be quelled on one turn is the number of units stationed in that city." / "Note that unit strength does not matter."
+  - Excluded: "Air units, water units, artillery units, settlers, workers, and other non-ground and/or non-combat units".
+  - Nothing else matters: happiness, "distance to capital, culture of the city captured, etc., doesn't matter either."
+  - Example from the article: with 6 resisters at a 50% continuation chance, about 3 are expected to give up, but with only 2 ground combat units only 2 can be quelled.
+  - Resisters "are the first in line to die from starvation and disease".
+  - Test: KrikkitTwo, 56487 page 2 #24 (Jun 2005), with a modified ruleset: "So the quelling process is ONLY based on the number of quellers (military units)". A city "will never get rid of resisters without units". WillJ, #23: for resistance alone "there's no point in having more units than the number of resistors".
+  - How armies count is UNVERIFIED. vondrack and DeepO, https://codehappy.net/apolyton/threads/58829-1.htm #2/#6 (Aug 2002), guess "1-4 units, depending on how many of them is actually in the army" (DeepO: maybe +1 for the army itself). Neither tested it.
+- **Government modifier on resistance (±5 points).** Governments rank Democracy, Communism, Republic, Monarchy, Despotism, Anarchy. If the capturer's government ranks higher than the loser's, the resistance chances (initial and continued) drop 5 points; if lower, they rise 5. There are two exceptions where they rise anyway: a Republic capturing from a Monarchy, and a Democracy capturing from a Communist civ.
+  - WillJ (article): "If your gov is higher up on the above list than theirs, it goes down by 5%." / "republic civ captures city of civ under monarchy: +5%" / "democratic civ captures city of communist civ: +5%".
+  - C3C BIQ, the per-government-pair `ResistanceModifier` (row = capturer, column = loser), confirms this and adds the C3C governments:
+    - Democracy vs Anarchy, Despotism, Monarchy and Republic: −5. Democracy vs Communism: +5.
+    - Republic vs Anarchy and Despotism: −5. Republic vs Monarchy, Communism and Democracy: +5.
+    - Communism vs Democracy: +5. Communism vs Anarchy, Despotism, Monarchy and Republic: −5.
+    - Monarchy vs Anarchy and Despotism: −5. Monarchy vs Communism, Republic and Democracy: +5.
+    - Despotism vs Anarchy: −5. Despotism vs Monarchy, Communism, Republic and Democracy: +5.
+    - Anarchy vs the five other base-game governments: +5.
+    - Fascism: −5 vs Anarchy, Despotism, Republic and Democracy; −10 vs Communism; 0 vs Monarchy.
+    - Feudalism: −5 vs Anarchy and Despotism; +5 vs Monarchy, Communism and Fascism; 0 vs Republic and Democracy.
+    - Every government vs Fascism or Feudalism is 0, except Feudalism vs Fascism (+5).
+  - The editor help calls the field "the modifier to a single population point's chance of continuing to resist each turn". WillJ's charts apply it to the initial chance as well.
 
 ## 3.14 Assimilation and nationality
 
 - **Nationality.** Every citizen has a nationality. Citizens born in a city take the owner's nationality; captured citizens keep theirs. Captured workers or settlers that join a city become foreign nationals.
   - Civilopedia (C3C), `#GCON_Nationality`: "Each civilization produces citizens of its own [nationality], a characteristic that persists until assimilated" / "Captured workers and settlers retain their original nationality as well, and, if ordered to join a city, become foreign nationals within that city."
   - CFC Info Center: "the citizens in the conquered city will retain their nationality".
-- **Assimilation.** Each turn, each foreign national has a per-government percentage chance (`GOVT.AssimilationChance`) of taking the city's nationality. Firaxis put the defaults at 1–4%; the per-government values are UNVERIFIED. A culture flip does not change citizens' nationality.
+- **Assimilation (what the sources say; the engine follows the owner's ruling that foreign citizens never assimilate, though they can be starved out).** Each turn, each foreign national has a per-government percentage chance (`GOVT.AssimilationChance`) of taking the city's nationality. A culture flip does not change citizens' nationality.
+  - C3C BIQ `GOVT.AssimilationChance`: Anarchy 1, Despotism 1, Monarchy 2, Communism 4, Republic 2, Democracy 4, Fascism 2, Feudalism 3.
+  - WarpStorm, https://apolyton.net/forum/miscellaneous/archives/civ3-general-archive/81314-nationality-assimilation #3 (Nov 2002), gives the same pre-C3C figures: "Communism and Democracy have the best chance of assimilation with a 4% chance a turn (per citizen I think)." / "Republic and Monarchy are slower with a 2% chance." / "The rest are very slow with only a 1% chance."
+  - **A precondition, per Firaxis' text:** the city must have been yours longer than it was theirs. Civilopedia (C3C), `#GCON_Assimilation`: "When a foreign national has been a part of a minority population longer than not, he or she assimilates and becomes a member of the majority nationality." Mad Bomber, 81314 #5: "assimilation begins at the point in which a city has belonged to your civ more than the civ that possessed" it, so "if you capture Paris (founded turn #1) at turn # 271 then you will never be able to assimilate the population." Traelin, #6: "It only works this way if the Civ that originally contained the city is still in the game." player1, https://codehappy.net/apolyton/threads/57182-1.htm #3 (Jul 2002), heard instead "(by Firaxis)" that "assimilation only starts after you have more of your own pop in that city then foreigners".
+  - **Editor tests found no effect, which supports the owner's ruling.** Hondo, https://apolyton.net/forum/miscellaneous/archives/civ3-general-archive/44876-holding-onto-conquered-cities #1 (Nov 2001, base game 1.0x): "No matter what percentage I set this to it doesn't seem to make any difference." whosurdaddy, 57182 #1 (Jul 2002): "I set the assimlation rates to 90% for each government type", and after "20 or 30 turns" foreign citizens "are still retaining their old nationality"; "this editor option does not completely control the assimilation percentages". Both tests are consistent with the time precondition above, so neither shows that assimilation never happens.
   - C3C editor help: "Determines the percentage chance, per turn, that a foreign national in city with the selected government type will assimilate into the current nationality of that city."
   - alexman (Firaxis), https://codehappy.net/apolyton/threads/51715-4.htm #118: "the rate is between a 1 and 4 percent chance per citizen per turn, depending on your government."
   - CFC Info Center: "How fast this happens depends both on their national culture and the culture of the city they currently reside in," "as well as the government type of their current city."
@@ -350,7 +488,9 @@ Where sources are cited:
   - They are made less likely by: "The presence of ground combat units in the city", "We Love The ____ Day", "The proximity of your capital".
 - **Formula.** Per interturn, for each rival civ:
 
-  `P = [(F + T) * Cc * H * (Cte / Cty) - G] / D`
+  `P = [(F + T) * Cc * H * (Cte / Cty) - G] / D` (the community calculators' form)
+
+  `P = [(F + T) * Cc * H - G * (Cty / Cte)] / D` (the owner's ruling, used by the engine). Here the ratio scales the garrison, as in Soren's worked example "16 - (4 X 2) = 8". Both forms give zero chance at the same garrison.
 
   Sources:
   - Dan Magaha (Firaxis), https://forums.civfanatics.com/threads/culture-flipping-exposed.14337/. He describes the terms but not the arithmetic.
@@ -371,56 +511,94 @@ Where sources are cited:
   - Units: https://forums.civfanatics.com/threads/armies-captured-in-culture-flips.90904/ ("All units that are in the city are lost"); Strat Compilation: "if the city revolts you loose the troops in it!"
   - Flips happen at peace too. justanick, 661194: "Once at peace you cannot undo a flip by retaking the city".
   - The BIQ game option: Bluemofia, "Allow Cultural Conversions: Allow cities to convert to a rival civ culturally."
+  - Halcyon, https://forums.civfanatics.com/threads/cultural-conversion-question.87425/ #2 (May 2004, C3C): "All the city defenders die." / "The 'capturing' civ gets one free defender in the city." Grille, #3, on the owner's units outside the city but inside its radius: "No, you keep them."
+- **The receiving civ can refuse a flip.** A human receiver is asked, and an AI receiver can also refuse. Either way the city stays with its owner. How the AI decides is UNVERIFIED.
+  - script.txt `#WE_CONVERT_CITY` offers "Great! Install a new governor." / "We don't want $CITY1. Rebuff the rebels."
+  - `#THEY_REFUSED_TO_CONVERT_CITY`: "the people of $CITY1 have risen up in revolt and pledged allegiance to the $CIVNOUN3! However, the $CIVADJ2 government refuses to acknowledge their claim! Thus, we have regained control of $CITY1!"
+  - A separate message, `#WE_CONVERT_CITY_WITH_WONDER`, announces a flipped city that "contains $WONDER3", so wonders go with the city.
+- **Free defender quality.** Players kill flip-backs by cutting the city off: an isolated city flips back with a weak defender.
+  - anarres, https://forums.civfanatics.com/threads/invading-when-youre-low-on-culture.61562/ #6 (Aug 2003, PTW): "as long as that city has no trade route to the AI capital" / "they will only get a Rifleman at best as a defender when it flips back". ainwood, #1: "By pillaging and blocking the roads, the city was cut-off from the empire" / "the strongest unit would only ever be a rifleman, or even a spearman in the early industrial age".
+  - This suggests the defender is the best one the new owner could build *in that city*, given its resource connections. That is an inference.
+- **Magaha's ranking of the factors**, https://codehappy.net/apolyton/threads/39825-1.htm #1 (Jan 2002, the Apolyton copy of "Culture-Flipping Exposed"). He gives them in order of importance:
+  1. distance to the capitals ("if you're closer to your capital than the other city is to its capital, you've got a better chance of getting a flip");
+  2. the civs' culture ratio;
+  3. the city's historical culture;
+  4. disorder;
+  5. WLTKD;
+  6. garrison ("This factor is relatively low on the totem pole", "this shows you why cities can flip even with huge militias garrisoned in them").
+
+  Relayed in 39825-2 #32: "I would assume this is measured in tiles."
+- **Community observations (untested):**
+  - **Only to a civ with a stake in the city.** A city flips only to a civ whose nationals live in it or whose territory overlaps its radius. DeepO, https://codehappy.net/apolyton/threads/62844-1.htm #11 (Sep 2002): "If there were a bunch of Americans inside, and a city does not overlap with the Aztecs, it will never flip to the Aztecs." This follows from the formula, since F + T = 0.
+  - **No flips to dead civs.** Explorer579, 39825-5 #130 (Oct 2002): "I have never seen a civilization regaining a city through 'cultureflip' after it has been destroyed." vmxa1 (39825-2 #35) says the same.
+  - **Capitals.** DeepO, 62844 #16: capitals can't flip "(or at least I have never heared of a capital flipping)". This is still UNVERIFIED.
+  - **Courthouses don't help.** Purest Warrior, 39825-3 #86 (Feb 2002): "Building a courthouse does not lower the chances of culture-flipping."
+  - **Patch 1.17f garrisons.** Jameschipmunk, 39825-4 #91 (Apr 2002), on 1.17f: "if you have enough troops in the city it will NOT flip." This matches the readme. Soren's die range is relayed by Fitz, https://codehappy.net/apolyton/threads/49417-1.htm #5 (May 2002): "Soren said the distance to the capitols has a range of dividing by 500 to 8000."
 
 ### Where our implementation (`C7Engine/C7GameData/CultureFlip.cs`) stands against the sources
 
 | Point | Sources | CultureFlip.cs | Note |
 |---|---|---|---|
 | Formula shape and terms | as above | Same formula; F counts only that civ's nationals, resisters twice; T counts tiles within `MaxRankOfWorkableTiles` (21 by default, excluding the city tile) | Matches. |
-| Where Cte/Cty applies | Flip Calc multiplies influence. Soren's example "16 - (4 X 2) = 8" instead scales the garrison. | Multiplies influence | Same zero point, but different slope when the ratio is far from 1. Already flagged in code. |
+| Where Cte/Cty applies | Flip Calc and the Babylon II calculator (Chieftess, https://forums.civfanatics.com/threads/babylon-ii-civ3-culture-flip-calc.53181/ #1, "P=[(F+T)*Cc*H*(Cte/Cty) - G]/D") multiply influence. Soren's example "16 - (4 X 2) = 8" instead scales the garrison. | Scales the garrison by Cty/Cte (owner's ruling) | Same zero point, but different slope when the ratio is far from 1. Flagged in code. |
 | Integer truncation of Cte/Cty | Fitz speculated truncation (51715-3 #78); unconfirmed | Real-valued | UNVERIFIED. |
 | Distance metric | Magaha: "I would assume … pathfinding". Calculators use max+½min straight-line distance. | Straight-line max+½min | Disputed; flagged in code. |
 | Propaganda as a flip factor | The Civilopedia lists "The application of propaganda by the other civilization" as making defection more likely | Not modelled (propaganda handled as its own mission) | Possibly only the propaganda mission itself, not a modifier. UNVERIFIED. |
-| Capitals | No source exempts them; d is capped at 4 | Allowed, D = 8000 | UNVERIFIED either way. |
+| Capitals | No source exempts them; d is capped at 4. DeepO (62844 #16) had "never heared of a capital flipping". | Allowed, D = 8000 | UNVERIFIED either way. |
+| Refusal | script.txt: the receiver may "Rebuff the rebels"; the AI may refuse too | Not checked in this pass | See "The receiving civ can refuse a flip". |
+| Dead civs | Players never saw a flip to a destroyed civ (39825-2 #35, 39825-5 #130) | Not checked in this pass | Dead civs should be skipped. |
 | Courthouse | Civilopedia: courthouse resists *propaganda* only | No effect on flips | Consistent with sources. |
 | Order of rolls among several rivals | No source | Likeliest first | UNVERIFIED. |
-| Free defender type | "The 'capturing' civ gets one free defender in the city" (https://forums.civfanatics.com/threads/cultural-conversion-question.87425/, as quoted in CultureFlip.cs; not re-fetched) | Best-defence buildable land unit | Type UNVERIFIED. |
+| Free defender type | "The 'capturing' civ gets one free defender in the city" (Halcyon, https://forums.civfanatics.com/threads/cultural-conversion-question.87425/ #2, re-fetched). A city cut off from the AI capital gets "only … a Rifleman at best" (anarres, 61562 #6). | Best-defence buildable land unit | Consistent if "buildable" means buildable in that city with its own resource connections. Exact type UNVERIFIED. |
 | WLTKD and disorder | ×0.5 and ×2 | Same | Matches. Civilopedia adds that "prolonged" disorder leads to defection; no extra factor is known. |
 | Fascism, Retain Culture, assimilation | Change F and the culture totals over time | Inputs only | Make sure F, the city memory and Cte/Cty follow assimilation, Fascist xenophobia and capture rules (§3.10, §3.14). |
 
 ## Disputed
 
-- **When happy citizens are enough for WLTKD.** Civilopedia (C3C): "There must be more happy citizens than content citizens." The manual says "at least as many happy citizens as content citizens", with the example of 5 happy and 4 content celebrating; that example satisfies both readings. CFC FAQ: "at least half the citizens must be happy".
-- **Fifth border threshold: 20,000 vs 100,000.** Civilopedia (C3C): "(10, 100, 1,000, 10,000, 20,000, etc.)". C3C editor help: "0, 10, 100, 1000, 10000, 100000". CFC Info Center: "increase by a factor of 10 each time". The editor's `BorderFactor^n` description supports 100,000. The 20,000 may be confused with the one-city culture victory.
-- **Content base at Deity in early patches.** Skanky Burns (Dec 2001, base game ~1.16f): "On Deity it is 2 people". The C3C Civilopedia and Spoonwood give Deity 1. This may be a per-version BIQ difference, or a mistake.
-- **Which governments suffer war weariness.** Manual (base game text): only "Republic or Democracy". C3C Civilopedia: "Republic, Feudalism, or Democracy". The CFC war weariness article gives effect tables for Republic and Democracy only, with no Feudalism numbers.
-- **Communism draft rate.** CFC Info Center: "Communism can draft 3 citizens per turn." Firaxis fixed this to 2: 1.29f readme v1.17f, "Fixed Communism Civilopedia entry to reflect the correct draft rate of 2", and the C3C Civilopedia lists 2.
-- **WLTKD: corruption and waste, or waste only.** The manual says WLTKD "lowers the levels of corruption and waste". The C3C Civilopedia says only "Waste in the city is reduced". alexman's article applies it to waste only. Tassadar, https://forums.civfanatics.com/threads/we-love-the-king-days.34249/: "it cut down shield waste like a courthouse but it doesnt cut down commerce corruption."
-- **Celebration benefits by government.** The manual says "the city enjoys certain benefits, depending on your civilization's type of government", but neither it nor the Civilopedia lists any government-specific benefit. The C3C editor has no celebration-conditional government flag.
-- **Content or happy faces from wonders.**
-  - Hanging Gardens: the manual says "Makes 3 content citizens happy in the city where it's built and 1 in all others"; the C3C Civilopedia says "makes three unhappy citizens content … and one unhappy citizen content in all other friendly cities".
-  - Mausoleum: the manual says "3 happy faces"; the Civilopedia says "makes three unhappy citizens content".
-  - Cure for Cancer: the C3C wonders guide (https://civfanatics.com/civ3/strategy/empire-management/a-guide-to-great-wonders-and-how-to-use-them/) says "1 happy citizen in every city"; the Civilopedia says "one unhappy citizen content".
-- **Wonder culture values.** CFC's Civilopedia page (https://civfanatics.com/civ3/civilopedia/wonders/, probably the base game) gives Great Library 6, Sistine Chapel 6, Shakespeare 6, Newton 6, Cure for Cancer 4. The Complete manual chart gives 5, 4, 5, 5, 5. This is likely a version difference.
-- **How war weariness ends.** The Civilopedia says "the war weariness remains until the war stops". The CFC article measures a decay of 1/20 per peace turn, so war weariness lingers after peace ("43 turn until the war is totally forgotten").
-- **Distance for flips.** Pathfinding distance (Magaha, hedged) vs straight-line max+½min distance (the calculators).
-- **Where Cte/Cty applies in the flip formula** (see the table above).
+- **When happy citizens are enough for WLTKD.**
+  - Civilopedia (C3C): "There must be more happy citizens than content citizens." Dan Magaha (Firaxis), https://codehappy.net/apolyton/threads/44579-1.htm #3: "There must be more happy citizens than content ones."
+  - The manual says "at least as many happy citizens as content citizens", with the example of 5 happy and 4 content celebrating; that example satisfies both readings.
+  - Players in the same Apolyton thread report that ties celebrate. star mouse, #9: "I'm pretty sure I have seen WLT?D when the number of happy citizens was the same." Unregistered, #14: "I'm sure. # happy >= #content will trigger wltkd." Neither cites a test.
+  - CFC FAQ: "at least half the citizens must be happy".
+- **Fifth border threshold: 20,000 vs 100,000.** Civilopedia (C3C): "(10, 100, 1,000, 10,000, 20,000, etc.)". C3C editor help: "0, 10, 100, 1000, 10000, 100000". CFC Info Center: "increase by a factor of 10 each time". TemporalAnomaly's Law I: "threshold values are of the form 10^n c.p." The editor's `BorderFactor^n` description supports 100,000, and the C3C BIQ has `RULE.BorderFactor` = 10. The 20,000 may be confused with the one-city culture victory.
+- **Content base at Deity in early patches.** Skanky Burns (Dec 2001, base game ~1.16f): "On Deity it is 2 people". The C3C Civilopedia, the C3C BIQ and Spoonwood give Deity 1. This may be a per-version BIQ difference, or a mistake.
+- **WLTKD: corruption and waste, or waste only.**
+  - The manual says WLTKD "lowers the levels of corruption and waste". Magaha (Firaxis) wrote "The corruption and waste in a city is reduced, effectively increasing the city's shield output".
+  - The C3C Civilopedia says only "Waste in the city is reduced", and alexman's article applies it to waste only.
+  - Tassadar, https://forums.civfanatics.com/threads/we-love-the-king-days.34249/: "it cut down shield waste like a courthouse but it doesnt cut down commerce corruption."
+  - Thoth, https://codehappy.net/apolyton/threads/35096-1.htm #4 (Nov 2001): it "reduces corruption (more than a courthouse does)".
+  - The measured C3C rule is waste only; Firaxis' wording is looser.
+- **Wonder culture values.** Three sources disagree:
+  - The C3C BIQ (§3.10): Great Library 6, Sistine 6, Shakespeare 8, Newton 6, Cure for Cancer 3, JS Bach 6, Hoover 2.
+  - CFC's Civilopedia page (https://civfanatics.com/civ3/civilopedia/wonders/, probably the base game): Great Library 6, Sistine Chapel 6, Shakespeare 6, Newton 6, Cure for Cancer 4.
+  - The Complete manual chart: 5, 4, 5, 5, 5, plus JS Bach 5 and Hoover 3.
+
+  This is likely a version difference. The BIQ values are the C3C 1.22 defaults.
+- **Distance for flips.** Pathfinding distance (Magaha, hedged: "I would assume this is measured in tiles") vs straight-line max+½min distance (the calculators, and the border metric in §3.10).
+- **Where Cte/Cty applies in the flip formula** (see the table above). The engine follows the owner's ruling.
+- **Assimilation.** The BIQ ships 1–4% chances (§3.14), and the Civilopedia describes assimilation. Two editor tests saw none, and the engine follows the owner's ruling that it never happens.
+
+### Resolved in the 2026-10-20 deep pass (kept for the record)
+
+- **Which governments suffer war weariness.** This is a version difference. Feudalism exists only in C3C, and the C3C BIQ gives it `WarWeariness` = 1, the same as Republic (§3.5).
+- **Communism draft rate.** C3C BIQ `GOVT.DraftLimit` for Communism = 2, as the 1.17f readme fix says.
+- **Celebration benefits by government.** Firaxis' list of WLTKD benefits (Magaha, 44579 #3) has nothing government-specific, and the C3C editor has no such flag. The manual's sentence is treated as a Civ2 holdover.
+- **Content or happy faces from wonders.** The C3C BIQ stores the Hanging Gardens, Mausoleum, Shakespeare, JS Bach and Cure for Cancer effects as content faces (§3.2). The Civilopedia wording is right for C3C, and the "happy" wordings are older or loose.
+- **How war weariness ends.** Both sources are right. Unhappiness is expressed only while at war (justanick: "During peace WW is suspended"). The points decay about 1/20 per peace turn and carry into a later war (TimBentley, 61628 #66; Oystein, #55).
 
 ## UNVERIFIED / open questions
 
-- The number of luxury points (slider) per happy face, and whether the default Marketplace carries the "+50% Luxury Output" flag.
-- The entertainer's output in luxury points (the CTZN `Luxuries` default). The Civilopedia says only "one happy face".
-- The order in which the game applies faces (base, luxuries and entertainers, buildings, military police, wonders, war weariness). Forum posts give an order, but none could be sourced verbatim.
-- The "reduced efficiency" of carried-over happy faces.
+- How the luxury-slider share is rounded per city, and whether the base-game Marketplace had the "+50% Luxury Output" flag. C3C: no building has it, and 1 luxury point is 1 face (§3.3).
+- Where martial law and entertainers fall in the order of face application. The rest of the order has only a community worked example (§3.2).
 - How many citizens become unhappy from "mother country" aggression. Forum guesses range from "one more unhappy" to "about 50%" of the foreign nationals.
-- The per-government `AssimilationChance` and resistance modifier defaults. Firaxis gives only "between a 1 and 4 percent".
-- How much each garrison unit counts toward quelling resistance.
-- War weariness under Feudalism ("Low"): is its level table the same as Republic's? And exactly how Police Stations and Universal Suffrage reduce it ("25%" and "1" per the CFC article).
-- How long disorder must last before improvements are destroyed (beyond the 20% riot chance) or the government falls.
-- The exact border shape at each radius level, and the tie-break rule for contested tiles between two cities.
+- How armies count toward quelling resistance and toward the flip garrison G. alexman says every unit in an army counts for G, but nobody has tested armies for resistance.
+- Exactly how the Police Station (−25%?) and Universal Suffrage (−1 per city?) reduce war weariness in C3C. The BIQ has only on/off flags, and the numbers are community measurements.
+- How long disorder must last before the government falls, and whether that happens at all outside Democracy's war-weariness revolt. Also how the improvement destroyed by a riot is chosen, and whether "sabotage to ongoing projects" exists.
+- Border edge cases: whether civ culture matters for contested tiles, and Crimso's "first to expand keeps it" objection to Law IV.
 - What the civ-wide culture levels (Lvl. Multiplier: 1000, 2000 … 32000) do besides the labels.
 - How much AI attitude depends on cultural opinion.
 - The "less than half the leader's culture" condition for culture victory.
-- The flip-related items in the table above: the order of rival rolls, capitals, the free defender's type, propaganda as a flip modifier, and integer truncation of the culture ratio.
-- Which nationality a drafted unit or citizen has, and whether foreign nationals are drafted or sacrificed first.
+- Flip items: the order of rival rolls, whether capitals can flip, the free defender's exact type, propaganda as a flip modifier, integer truncation of the culture ratio, and how the AI decides to refuse a flip.
+- Which nationality a drafted unit or citizen has, and whether foreign nationals are drafted or sacrificed first. Toasty (base game) says only your own nationals can be drafted; this is unconfirmed.
 - Whether specialists count as content for the WLTKD "happy vs content" test.
+- Whether WW points from different enemies are summed before the level is applied, or applied per enemy and then summed. The article and Larkin (for war happiness) say per enemy, rounded down, then added. MadScot (61628 #2, Aug 2003) said instead that "the total active WWP for all civs is compared to the threshold values".
