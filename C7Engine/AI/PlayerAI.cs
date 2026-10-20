@@ -1153,6 +1153,10 @@ namespace C7Engine {
 					continue;
 				}
 
+				if (!RollsToNegotiate(them)) {
+					continue;
+				}
+
 				// A human is offered one deal by us every
 				// HumanOfferCooldownTurns turns at most, rather than the same
 				// offer again every few turns.
@@ -1177,6 +1181,18 @@ namespace C7Engine {
 				us.playerRelationships[them.id].lastDealOfferTurn = gD.turn;
 				await Propose(gD, us, them, weGive, weWant);
 			}
+		}
+
+		// Whether we talk trade with them this turn: with a human always, and
+		// with another AI only on a one in four chance, as in Civ3: "The
+		// intercepted call is the base game's 1-in-4 gate before
+		// ai_negotiate_with_other_ai" (C3X's injected_code.c,
+		// https://github.com/maxpetul/C3X; compendium 08, section 1.2).
+		// Paired AI trials (8 games of 200 turns, score per civ against the
+		// same civs without it): +25 +- 110 on Continents, -13 +- 169 on
+		// Pangaea, so no measurable change, and it is Civ3's rule.
+		public static bool RollsToNegotiate(Player them) {
+			return them.isHuman || GameData.rng.Next(4) == 0;
 		}
 
 		// HEURISTIC: how often an AI may offer a human a deal of its own.

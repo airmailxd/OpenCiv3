@@ -21,8 +21,7 @@ namespace C7Engine.AI {
 	// (https://civfanatics.com/civ3/strategy/game-mechanics/ai-attitude-study/;
 	// see Attitudes).
 	//
-	// While the AI is still expanding, this takes the place of starting a
-	// war on a weaker neighbour (see WarCampaign.MaybeStartCampaign).
+	// It goes alongside Civ3's own war plotting (see StockWarPlotting).
 	public static class TributeDemands {
 		private static readonly ILogger log = Log.ForContext(typeof(TributeDemands));
 
