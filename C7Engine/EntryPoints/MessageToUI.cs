@@ -654,6 +654,20 @@ namespace C7Engine {
 		}
 	}
 
+	// Asks a human whether to take a city whose people have risen up and
+	// pledged allegiance to them (CultureFlip.Defect), naming the great
+	// wonders in it; they answer with MsgAnswerCultureFlip.
+	public class MsgShowCultureFlipOffer : MessageToUI {
+		public City city;
+		public List<string> wonders;
+
+		public MsgShowCultureFlipOffer(Player recipient, City city, List<string> wonders) {
+			this.recipient = recipient;
+			this.city = city;
+			this.wonders = wonders ?? new();
+		}
+	}
+
 	// Asks the human who owns the United Nations whether to hold an election
 	// for Secretary General between the candidates; they answer with
 	// MsgHoldUnitedNationsElection.

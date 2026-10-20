@@ -312,4 +312,102 @@ public class CultureFlipTest : IClassFixture<SaveGameFixture>, IDisposable {
 		city.ownerChangedTurn = -1;
 		Assert.Null(new SaveCity(city).ownerChangedTurn);
 	}
+
+	// The city's people rise up for the other civ: certain to flip.
+	private City CityCertainToFlip() {
+		(_, _, City city) = Setup();
+		AddResidents(city, them.civilization, 2000);
+		Assert.Equal(1, CultureFlip.BestChance(gameData, city).probability);
+		return city;
+	}
+
+	// "We don't want $CITY1. Rebuff the rebels." (script.txt,
+	// WE_CONVERT_CITY): the civ the city rose up for can refuse it, and
+	// the owner is told "the $CIVADJ2 government refuses to acknowledge
+	// their claim! Thus, we have regained control of $CITY1!"
+	// (THEY_REFUSED_TO_CONVERT_CITY).
+	[Fact]
+	public void AHumanIsAskedAndMayRebuffTheRebels() {
+		City city = CityCertainToFlip();
+		them.isHuman = true;
+		CultureFlip.ProcessEndOfRound(gameData);
+		Assert.Equal(us, city.owner);
+		Assert.True(CultureFlip.OfferStands(gameData, city, them));
+		Assert.False(CultureFlip.OfferStands(gameData, city, us));
+
+		EngineStorage.messagesToUI.Clear();
+		CultureFlip.AskHuman(gameData, them);
+		MsgShowCultureFlipOffer offer = Assert.Single(EngineStorage.messagesToUI.OfType<MsgShowCultureFlipOffer>());
+		Assert.Same(city, offer.city);
+		Assert.Equal(them, offer.recipient);
+
+		EngineStorage.newsForComputerPlayers = true;
+		try {
+			Assert.True(CultureFlip.AnswerOffer(gameData, them, city, accept: false));
+		} finally {
+			EngineStorage.newsForComputerPlayers = false;
+		}
+		Assert.Equal(us, city.owner);
+		Assert.False(CultureFlip.OfferStands(gameData, city, them));
+		Assert.Contains(EngineStorage.messagesToUI.OfType<MsgShowMilitaryAdvisorPopup>(),
+			m => m.recipient == us && m.message.Contains("refuses to acknowledge their claim"));
+		// Only one answer.
+		Assert.False(CultureFlip.AnswerOffer(gameData, them, city, accept: true));
+		Assert.Equal(us, city.owner);
+	}
+
+	// "Great! Install a new governor.", and the wonders go with the city:
+	// "the city contains $WONDER3!" (WE_CONVERT_CITY_WITH_WONDER).
+	[Fact]
+	public void AHumanWhoAcceptsTakesTheCityAndItsWonders() {
+		City city = CityCertainToFlip();
+		Building wonder = gameData.Buildings.First(b => b.IsGreatWonder());
+		city.AddBuilding(wonder);
+		them.isHuman = true;
+		CultureFlip.ProcessEndOfRound(gameData);
+
+		EngineStorage.messagesToUI.Clear();
+		CultureFlip.AskHuman(gameData, them);
+		MsgShowCultureFlipOffer offer = Assert.Single(EngineStorage.messagesToUI.OfType<MsgShowCultureFlipOffer>());
+		Assert.Contains(wonder.name, offer.wonders);
+
+		Assert.True(CultureFlip.AnswerOffer(gameData, them, city, accept: true));
+		Assert.Equal(them, city.owner);
+		Assert.Contains(city.constructed_buildings, cb => cb.building == wonder);
+	}
+
+	// An unanswered offer lapses when the turn ends, and is saved until
+	// then.
+	[Fact]
+	public void AnOfferLastsTheTurnAndIsSaved() {
+		City city = CityCertainToFlip();
+		them.isHuman = true;
+		CultureFlip.ProcessEndOfRound(gameData);
+		SaveCity saved = new(city);
+		Assert.Equal(them.id, saved.cultureFlipOfferedTo);
+		Assert.Equal(gameData.turn, saved.cultureFlipOfferTurn);
+
+		++gameData.turn;
+		Assert.False(CultureFlip.OfferStands(gameData, city, them));
+		Assert.False(CultureFlip.AnswerOffer(gameData, them, city, accept: true));
+		Assert.Equal(us, city.owner);
+	}
+
+	// An AI may refuse too (THEY_REFUSED_TO_CONVERT_CITY); by our heuristic
+	// it refuses a city of its military ally.
+	[Fact]
+	public void AnAiRefusesItsAllysCity() {
+		City city = CityCertainToFlip();
+		Player third = gameData.players.First(p => !p.isBarbarians && p != us && p != them);
+		them.EnsureRelationshipExists(us);
+		them.playerRelationships[us.id].multiTurnDeals.Add(new MultiTurnDeal(DealType.Alliance, DealSubType.MilitaryAlliance,
+			DealDetails.Exchange, 0, null, 20, 10, third.id));
+		Assert.False(CultureFlip.AiAcceptsFlip(city, them));
+		CultureFlip.ProcessEndOfRound(gameData);
+		Assert.Equal(us, city.owner);
+
+		them.playerRelationships[us.id].multiTurnDeals.RemoveAll(d => d.dealSubType == DealSubType.MilitaryAlliance);
+		CultureFlip.ProcessEndOfRound(gameData);
+		Assert.Equal(them, city.owner);
+	}
 }

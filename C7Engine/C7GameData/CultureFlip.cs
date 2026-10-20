@@ -144,11 +144,12 @@ namespace C7Engine {
 				foreach (Chance chance in Chances(gameData, city, facts).OrderByDescending(c => c.probability)) {
 					if (GameData.rng.NextDouble() < chance.probability) {
 						Player from = city.owner;
-						Flip(gameData, city, chance.to);
-						AiExperiments.onCultureFlip?.Invoke(city, from, chance);
-						// The flip changes both civs' culture and may move
-						// their capitals.
-						facts = new();
+						if (Defect(gameData, city, chance.to)) {
+							AiExperiments.onCultureFlip?.Invoke(city, from, chance);
+							// The flip changes both civs' culture and may
+							// move their capitals.
+							facts = new();
+						}
 						break;
 					}
 				}
@@ -320,6 +321,93 @@ namespace C7Engine {
 			return Math.Max(a, b) + 0.5 * Math.Min(a, b);
 		}
 
+		// The city's people have risen up and pledged allegiance to the
+		// other civ, which may take the city or refuse it: Civ3 asks "the
+		// loyal citizens of $CITY1 have overthrown their oppressors and
+		// have pledged allegiance to us! They yearn to be with us.", with
+		// the answers "Great! Install a new governor." and "We don't want
+		// $CITY1. Rebuff the rebels." (script.txt, WE_CONVERT_CITY), and an
+		// AI may refuse too, telling the owner "the $CIVADJ2 government
+		// refuses to acknowledge their claim! Thus, we have regained
+		// control of $CITY1!" (THEY_REFUSED_TO_CONVERT_CITY).
+		//
+		// A human is asked when their turn starts (AskHuman), and the city
+		// stays with its owner until they answer (AnswerOffer). The offer
+		// lapses at the end of the turn. Humans play before the AIs (see
+		// TurnHandling.PlayersInTurnOrder), so an AI owner can't change the
+		// city before the human answers; in a game of several humans one
+		// who owns the city and plays first can. An AI decides at once
+		// (AiAcceptsFlip). Returns whether the city flipped now.
+		public static bool Defect(GameData gameData, City city, Player to) {
+			if (to.isHuman) {
+				city.cultureFlipOfferedTo = to;
+				city.cultureFlipOfferTurn = gameData.turn;
+				log.Information("{City} would flip from {From} to {To}, who is asked", city, city.owner, to);
+				return false;
+			}
+			if (!AiAcceptsFlip(city, to)) {
+				Refuse(city, to);
+				return false;
+			}
+			Flip(gameData, city, to);
+			return true;
+		}
+
+		// HEURISTIC (no source says how a Civ3 AI decides): an AI takes
+		// every city that flips to it, except from a civ it is in a
+		// military alliance with, whose war it would rather not hurt.
+		public static bool AiAcceptsFlip(City city, Player to) {
+			return !Pacts.HasDeal(to, city.owner, DealSubType.MilitaryAlliance);
+		}
+
+		// Whether the human is being asked to take the city this turn.
+		public static bool OfferStands(GameData gameData, City city, Player player) {
+			return city != null && player != null && city.cultureFlipOfferedTo == player
+				&& city.cultureFlipOfferTurn == gameData.turn && !player.defeated
+				&& city.owner != null && city.owner != player && !city.owner.defeated
+				&& city.ownerChangedTurn != gameData.turn && gameData.cities.Contains(city);
+		}
+
+		// Asks the human, as their turn starts (or again, should they rejoin
+		// a LAN game during it), about each city that has risen up for them;
+		// they answer with MsgAnswerCultureFlip.
+		public static void AskHuman(GameData gameData, Player player) {
+			foreach (City city in gameData.cities) {
+				if (OfferStands(gameData, city, player)) {
+					List<string> wonders = city.constructed_buildings
+						.Where(cb => cb.building.IsGreatWonder()).Select(cb => cb.building.name).ToList();
+					new MsgShowCultureFlipOffer(player, city, wonders).send();
+				}
+			}
+		}
+
+		// The human's answer to the offer: the city flips, or stays with its
+		// owner, who is told. Returns false if no offer stood.
+		public static bool AnswerOffer(GameData gameData, Player player, City city, bool accept) {
+			if (!OfferStands(gameData, city, player)) {
+				return false;
+			}
+			city.cultureFlipOfferedTo = null;
+			city.cultureFlipOfferTurn = -1;
+			if (accept) {
+				Flip(gameData, city, player);
+			} else {
+				Refuse(city, player);
+			}
+			return true;
+		}
+
+		// The civ the city rose up for won't have it, so the owner keeps it.
+		private static void Refuse(City city, Player to) {
+			log.Information("{To} refused {City}, which stays with {Owner}", to, city, city.owner);
+			if (city.owner.IsToldNews) {
+				new MsgShowMilitaryAdvisorPopup(city.owner,
+					$"The people of {city.name} have risen up in revolt and pledged allegiance to the {to.civilization.noun}!\n"
+					+ $"However, the {to.civilization.adjective} government refuses to acknowledge their claim!\n"
+					+ $"Thus, we have regained control of {city.name}!", happy: true).send();
+			}
+		}
+
 		// Hands the city to the civ whose culture won it over. Propaganda
 		// (Espionage) makes a city defect the same way, and tells the two
 		// sides itself, so notify is false for it.
@@ -327,6 +415,8 @@ namespace C7Engine {
 			Player from = city.owner;
 			Tile tile = city.location;
 			log.Information("{City} has flipped from {From} to {To}", city, from, to);
+			city.cultureFlipOfferedTo = null;
+			city.cultureFlipOfferTurn = -1;
 
 			// "All units that are in the city are lost."
 			foreach (MapUnit unit in tile.unitsOnTile.ToList()) {

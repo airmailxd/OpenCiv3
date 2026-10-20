@@ -787,6 +787,7 @@ public class LanHost : IDisposable {
 			return;
 		}
 		UnitedNations.AskHumanToVote(gameData, player);
+		CultureFlip.AskHuman(gameData, player);
 	}
 
 	private static void SendStart(Spectator spectator, Task<EncodedSnapshot> snapshot) {

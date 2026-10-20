@@ -1261,6 +1261,27 @@ namespace C7Engine {
 		}
 	}
 
+	// A human answers whether to take a city that rose up for them
+	// (MsgShowCultureFlipOffer).
+	public class MsgAnswerCultureFlip : MessageToEngine {
+		public City city;
+		public bool accept;
+
+		public MsgAnswerCultureFlip(City city, bool accept) {
+			this.city = city;
+			this.accept = accept;
+		}
+
+		// Only the human the city rose up for, while the offer stands.
+		protected override bool IsAllowed() {
+			return base.IsAllowed() && CultureFlip.OfferStands(EngineStorage.gameData, city, Sender);
+		}
+
+		protected override void ProcessAllowed() {
+			CultureFlip.AnswerOffer(EngineStorage.gameData, Sender, city, accept);
+		}
+	}
+
 	// The sender sends a diplomatic or espionage mission against another
 	// civ, or one of its cities.
 	public class MsgPerformEspionage : MessageToEngine {

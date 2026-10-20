@@ -267,6 +267,7 @@ namespace C7Engine {
 			}
 			new MsgStartTurn(player).send();
 			UnitedNations.AskHumanToVote(gameData, player);
+			CultureFlip.AskHuman(gameData, player);
 		}
 
 		// The humans who may play now, in turn order. With simultaneous turns

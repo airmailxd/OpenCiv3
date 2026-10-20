@@ -87,6 +87,11 @@ namespace C7GameData.Save {
 		// The turn the city last changed hands; absent if it never has, or
 		// in saves made before this was saved.
 		public int? ownerChangedTurn;
+		// A culture flip offered to a human who hasn't answered yet
+		// (City.cultureFlipOfferedTo and cultureFlipOfferTurn); absent if
+		// none.
+		public ID cultureFlipOfferedTo;
+		public int? cultureFlipOfferTurn;
 		// Production was hurried this turn and can't be changed until it ends.
 		public bool hurriedThisTurn;
 		// The city was given a cleared forest's shields since it last
@@ -131,6 +136,10 @@ namespace C7GameData.Save {
 			resisters = city.resisters;
 			resistanceFrom = city.resistanceFrom?.id;
 			ownerChangedTurn = city.ownerChangedTurn >= 0 ? city.ownerChangedTurn : null;
+			if (city.cultureFlipOfferedTo != null && city.cultureFlipOfferTurn >= 0) {
+				cultureFlipOfferedTo = city.cultureFlipOfferedTo.id;
+				cultureFlipOfferTurn = city.cultureFlipOfferTurn;
+			}
 			hurriedThisTurn = city.hurriedThisTurn;
 			receivedForestShields = city.receivedForestShields;
 			governorManagesMoods = city.governor.manageMoods;
@@ -260,6 +269,8 @@ namespace C7GameData.Save {
 				resisters = resisters,
 				resistanceFrom = Lookups.Find(lookups.playersById, resistanceFrom),
 				ownerChangedTurn = ownerChangedTurn ?? -1,
+				cultureFlipOfferedTo = Lookups.Find(lookups.playersById, cultureFlipOfferedTo),
+				cultureFlipOfferTurn = cultureFlipOfferTurn ?? -1,
 				hurriedThisTurn = hurriedThisTurn,
 				receivedForestShields = receivedForestShields,
 				governor = new CityGovernor {

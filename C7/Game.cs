@@ -1523,6 +1523,28 @@ public partial class Game : Node {
 					InterestingEvent();
 					break;
 				}
+			case MsgShowCultureFlipOffer mSCFO: {
+					// Civ3's wording (script.txt, WE_CONVERT_CITY and
+					// WE_CONVERT_CITY_WITH_WONDER).
+					City city = mSCFO.city;
+					bool wonder = mSCFO.wonders.Count > 0;
+					string message = wonder
+						? $"The citizens of {city.name} have overthrown their oppressors and pledged allegiance to us!\n"
+							+ $"And I am honored to report that the city contains {string.Join(", ", mSCFO.wonders)}!"
+						: $"The loyal citizens of {city.name} have overthrown their oppressors and have pledged allegiance to us!\n"
+							+ "They yearn to be with us.";
+					popupOverlay.ShowPopup(
+						new ChoicePopup(city.name, Embassies.Wrap(message),
+							[
+								new ChoicePopup.Choice(wonder ? "Wow! Install a new governor." : "Great! Install a new governor.",
+									() => new MsgAnswerCultureFlip(city, true).send()),
+								new ChoicePopup.Choice(wonder ? $"Don't want {city.name}. Rebuff the rebels." : $"We don't want {city.name}. Rebuff the rebels.",
+									() => new MsgAnswerCultureFlip(city, false).send()),
+							], cancellable: false),
+						PopupOverlay.PopupCategory.Advisor);
+					InterestingEvent();
+					break;
+				}
 			case MsgUnitedNationsElectionResult mUNER: {
 					string outcome = mUNER.winner == null
 					? "No candidate won a majority."

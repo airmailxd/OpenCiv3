@@ -146,6 +146,12 @@ namespace C7GameData {
 		// (see CultureFlip).
 		public int ownerChangedTurn = -1;
 
+		// A culture flip of this city that the human it would go to has yet
+		// to accept or refuse, and the turn it was offered, -1 if none; the
+		// offer lapses when that turn ends (see CultureFlip.Defect).
+		public Player cultureFlipOfferedTo;
+		public int cultureFlipOfferTurn = -1;
+
 		// Whether production was hurried this turn, with gold, citizens or a
 		// great leader. As in Civ3, the city then can't change what it's
 		// building until the turn ends, so the hurried shields can't be
