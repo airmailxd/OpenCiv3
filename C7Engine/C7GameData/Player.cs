@@ -419,15 +419,47 @@ namespace C7GameData {
 				return;
 			}
 
+			// Choosing the tech already being researched (again, or as the
+			// first step towards a further goal) is no switch, and keeps the
+			// beakers.
+			if (id != null && id == currentlyResearchedTech) {
+				lastDiscoveredTech = null;
+				return;
+			}
+
+			// Switching research throws away the beakers stored, but a switch
+			// undone within the same turn costs nothing: "by changing their
+			// focus, you lose all of their work on the advance you order them
+			// to abandon" (Civ3 manual, p.123), and "Switch to another tech in
+			// the middle of a turn; you can then switch back." (kring,
+			// https://forums.civfanatics.com/threads/science-slider-when-1-turn-from-tech-change-it-or-not.24350/page-2).
+			// So the abandoned tech's progress is kept until the turn ends.
+			// It isn't saved: a game reloaded mid-turn has lost it.
+			int turn = EngineStorage.gameData?.turn ?? 0;
+			if (id == null) {
+				abandonedResearch = null;
+			} else if (currentlyResearchedTech != null && beakers > 0) {
+				abandonedResearch = (currentlyResearchedTech, beakers, turnsResearched, turn);
+			}
+
 			currentlyResearchedTech = id;
 			if (id != null) {
 				lastDiscoveredTech = null;
 			}
 
-			// Clear out previous progress.
+			// Clear out previous progress, unless switching back the same turn.
 			beakers = 0;
 			turnsResearched = 0;
+			if (id != null && abandonedResearch is (ID abandoned, int stored, int turns, int onTurn) && abandoned == id && onTurn == turn) {
+				beakers = stored;
+				turnsResearched = turns;
+				abandonedResearch = null;
+			}
 		}
+
+		// The research abandoned by a switch this turn, which switching back
+		// before the turn ends restores (see SetCurrentlyResearchedTech).
+		private (ID tech, int beakers, int turnsResearched, int turn)? abandonedResearch;
 
 		public void AddTechItemToResearchQueue(Tech tech) {
 			ResearchQueue.Enqueue(tech);

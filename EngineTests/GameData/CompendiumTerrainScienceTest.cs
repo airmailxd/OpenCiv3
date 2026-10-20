@@ -65,4 +65,48 @@ public class CompendiumTerrainScienceTest : IClassFixture<SaveGameFixture> {
 		us.knownTechs.Add(tech.id);
 		Assert.Equal(3f, slave.workerSpeed());
 	}
+
+	// ---- Research ----
+
+	// Switching research loses the stored beakers, unless switched back the
+	// same turn.
+	[Fact]
+	public void SwitchingResearchLosesTheBeakersUnlessUndoneThatTurn() {
+		Tech[] techs = us.GetAvailableTechsToResearch(gameData.techs).Take(2).ToArray();
+		Tech a = techs[0], b = techs[1];
+		us.SetCurrentlyResearchedTech(a.id);
+		us.beakers = 30;
+		us.turnsResearched = 3;
+
+		us.SetCurrentlyResearchedTech(b.id);
+		Assert.Equal(0, us.beakers);
+		us.SetCurrentlyResearchedTech(a.id);
+		Assert.Equal(30, us.beakers);
+		Assert.Equal(3, us.turnsResearched);
+
+		// A turn later the abandoned beakers are gone.
+		us.SetCurrentlyResearchedTech(b.id);
+		gameData.turn += 1;
+		us.SetCurrentlyResearchedTech(a.id);
+		Assert.Equal(0, us.beakers);
+	}
+
+	// Picking the tech already being researched, or a goal it leads to, is
+	// no switch.
+	[Fact]
+	public void ChoosingTheCurrentResearchAgainKeepsTheBeakers() {
+		// A goal one step past a researchable tech.
+		Tech goal = gameData.techs.First(t => !us.knownTechs.Contains(t.id)
+			&& t.Prerequisites.Count(p => !us.knownTechs.Contains(p.id)) == 1
+			&& us.GetAvailableTechsToResearch(gameData.techs).Contains(t.Prerequisites.Single(p => !us.knownTechs.Contains(p.id))));
+		Tech current = goal.Prerequisites.Single(p => !us.knownTechs.Contains(p.id));
+		us.SetCurrentlyResearchedTech(current.id);
+		us.beakers = 30;
+		us.SetCurrentlyResearchedTech(current.id);
+		Assert.Equal(30, us.beakers);
+
+		us.CalculateFreshTechQueueAndAssignNewCurrent(goal);
+		Assert.Equal(current.id, us.currentlyResearchedTech);
+		Assert.Equal(30, us.beakers);
+	}
 }
