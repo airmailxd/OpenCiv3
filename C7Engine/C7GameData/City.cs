@@ -1410,6 +1410,22 @@ namespace C7GameData {
 			if (!Tile.TryAddPollution(tile)) {
 				return null;
 			}
+			// The citizen working the tile is taken off it and made a
+			// specialist. C3X's option "keeps citizens working the tiles
+			// they've been assigned to when pollution spawns there instead of
+			// converting them to specialists" (do_not_unassign_workers_from_polluted_tiles,
+			// https://github.com/maxpetul/C3X/blob/master/default.c3x_config.ini),
+			// so the shipped game converts them. UNVERIFIED: which
+			// specialist; here the first the owner knows (the entertainer).
+			CityResident worker = tile.personWorkingTile;
+			if (worker != null) {
+				List<CitizenType> specialists = worker.city.owner.GetKnownSpecialists(gameData);
+				if (specialists.Count > 0) {
+					tile.personWorkingTile = null;
+					worker.tileWorked = Tile.NONE;
+					worker.citizenType = specialists[0];
+				}
+			}
 			return tile;
 		}
 

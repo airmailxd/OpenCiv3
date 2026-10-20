@@ -73,6 +73,28 @@ public class PollutionTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(1, city.PollutionIcons(gameData.rules));
 	}
 
+	// The citizen working a tile that becomes polluted is made a specialist
+	// (C3X's notes on the shipped game).
+	[Fact]
+	public void PollutionTurnsTheTilesWorkerIntoASpecialist() {
+		GrowTo(12 + 5);
+		C7GameData.GameData.rng = new Random(99);
+		for (int turn = 0; turn < 5000; ++turn) {
+			System.Collections.Generic.Dictionary<Tile, CityResident> worked = city.residents
+				.Where(r => r.tileWorked != Tile.NONE && r.tileWorked != city.location)
+				.ToDictionary(r => r.tileWorked);
+			Tile polluted = city.MaybePollute(gameData);
+			if (polluted == null || !worked.TryGetValue(polluted, out CityResident worker)) {
+				continue;
+			}
+			Assert.Null(polluted.personWorkingTile);
+			Assert.Equal(Tile.NONE, worker.tileWorked);
+			Assert.False(worker.citizenType.IsDefaultCitizen);
+			return;
+		}
+		Assert.Fail("Pollution never struck a worked tile");
+	}
+
 	[Fact]
 	public void ACleanCityNeverPollutesNorDrawsARandomNumber() {
 		C7GameData.GameData.rng = new Random(7);
