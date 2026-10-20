@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using C7Engine;
+using C7GameData.Save;
 using static C7GameData.City;
 using static C7GameData.TerrainImprovement;
 using static C7GameData.Tile.TileOverlays;
@@ -452,42 +453,59 @@ namespace C7GameData {
 			MaybeAwardForestClearingShields(null);
 		}
 
-		// Awards the forest's shields when the forest on this tile, within
-		// some city's borders, is cleared. If clearer is given, the territory
-		// must be theirs: clearing a forest in someone else's territory
-		// doesn't feed their city. Per the project owner, chopped shields
-		// never go to a wonder: they go to the city whose territory holds the
-		// tile unless it is building a wonder, and otherwise to the nearest
-		// other city of the same owner with the tile in its workable radius
-		// that isn't, or else they are lost. A city given them can't switch
-		// to a wonder until it completes something (see
-		// City.WhyCannotChangeProduction).
+		// The tiles searched for the city that gets a cleared forest's
+		// shields, in order: the forest's own tile, then the 20 tiles of the
+		// city radius around it in Civ3's city-tile spiral (NE, E, SE, S, SW,
+		// W, NW, N, then the outer ring clockwise from N of NE; see
+		// ImportCiv3.GetTileFromSpiral).
+		internal const int ForestSpiralTiles = 21;
+
+		// Awards the forest's shields when the forest on this tile is
+		// cleared, following the community's reading of Civ3: "Civ3 geht im
+		// Uhrzeigersinn die Felder rund um den Wald durch. Die Stadt, die auf
+		// dem Feld mit der kleinsten Nummer steht, erhält den Waldertrag."
+		// ("Civ3 goes clockwise through the tiles around the forest. The city
+		// on the lowest-numbered tile gets the forest yield.") "Der Wald muß
+		// dazu nicht im Kulturgebiet der Stadt liegen." ("The forest does not
+		// have to be inside the city's borders.") "Städte außerhalb dieses
+		// Bereichs erhalten keine Gutschrift." ("Cities outside this area get
+		// nothing.") Cities building a wonder, small wonder, Palace,
+		// spaceship part or Wealth are skipped (see
+		// City.CanReceiveForestShields). (CivWiki, Wald roden (Civ3),
+		// https://www.civ-wiki.de/wiki/Wald_roden_(Civ3); compendium 07.)
+		// TimBentley says the order is the one the governor uses "in looking
+		// for the next tile to work and forest chops going to cities"
+		// (https://forums.civfanatics.com/threads/barbarian-information.267101/),
+		// so the city-tile spiral of the save format is used. This replaces
+		// the owner's earlier territory-first, then nearest, rule (owner's
+		// decision, 2026-10-20).
+		// UNVERIFIED: CivWiki's numbering is in a picture we couldn't read,
+		// so which tile is first and that the area is the 21-tile city
+		// radius are taken from TimBentley's "governor's order".
+		// The shields go to the clearer's cities only; with no clearer
+		// given, to the cities of whoever's territory the forest is in.
+		// A city given them can't switch to a wonder until it completes
+		// something (see City.WhyCannotChangeProduction).
 		public void MaybeAwardForestClearingShields(Player clearer) {
 			if (hasHadForestCleared) {
 				return;
 			}
 			hasHadForestCleared = true;
 
-			// Shields can only be awarded if the forest is within some city's
-			// borders.
-			City territoryCity = cityAtTile ?? owningCity;
-			if (territoryCity == null || territoryCity.location == null || territoryCity.location == NONE) {
-				return;
-			}
-			Player beneficiary = territoryCity.owner;
-			if (clearer != null && beneficiary != clearer) {
+			Player beneficiary = clearer ?? (cityAtTile ?? owningCity)?.owner;
+			if (beneficiary == null || map == null) {
 				return;
 			}
 
-			// The forest has to be within the city's big fat cross.
-			int maxRank = EngineStorage.gameData.rules.MaxRankOfWorkableTiles;
-			City c = beneficiary.cities
-				.Where(city => city.location != null && city.location != NONE
-					&& (city.location == this || city.location.RankDistanceTo(this) <= maxRank)
-					&& city.CanReceiveForestShields())
-				.OrderBy(city => city == territoryCity ? 0 : 1)
-				.ThenBy(city => city.location.RankDistanceTo(this))
-				.FirstOrDefault();
+			City c = null;
+			TileLocation here = new(this);
+			for (int i = 0; i < ForestSpiralTiles && c == null; ++i) {
+				TileLocation at = i == 0 ? here : ImportCiv3.GetTileFromSpiral(here, i);
+				City city = map.tileAt(at.X, at.Y).cityAtTile;
+				if (city != null && city.owner == beneficiary && city.CanReceiveForestShields()) {
+					c = city;
+				}
+			}
 			if (c == null) {
 				return;
 			}

@@ -68,16 +68,23 @@ public static class GoodyHuts {
 	// gives the probabilities of one level lower (for Chieftain, there is no
 	// difference). Exception: City and Map are increased by 5 for Warlord and
 	// Chieftain." The values are the base table one level lower with the
-	// barbarians taken out and the rest scaled back up to 100%, and are used
-	// as given.
+	// barbarians taken out and the rest scaled back up to 100%.
+	// Chieftain and Warlord follow CivWiki's table (Bonushütte (Civ3),
+	// https://www.civ-wiki.de/, rev. 50187; compendium 07), whose Map is 15
+	// there, as the owner's note says ("Map are increased by 5"), where the
+	// owner's transcription had 10. CivWiki's columns then add up to 105
+	// (City 10, Tech 35, Gold 15, Settler 15, Map 15, Unit 10, Nothing 5),
+	// so each is scaled by 100/105 and rounded to a tenth: 9.5, 33.3, 14.3,
+	// 14.3, 14.3, 9.5, 4.8 (owner's decision, 2026-10-20). The other
+	// columns are as given.
 	internal static readonly IReadOnlyDictionary<Outcome, double[]> ExpansionistOdds = new Dictionary<Outcome, double[]> {
-		[Outcome.City] = [10.0, 10.0, 13.3, 7.7, 8.3, 14.3, 0.0, 0.0],
-		[Outcome.Tech] = [35.0, 35.0, 33.3, 30.8, 25.0, 28.6, 20.0, 0.0],
-		[Outcome.Gold] = [15.0, 15.0, 13.3, 15.4, 16.7, 14.3, 20.0, 33.3],
-		[Outcome.Settler] = [15.0, 15.0, 13.3, 15.4, 16.7, 14.3, 20.0, 0.0],
-		[Outcome.Map] = [10.0, 10.0, 13.3, 15.4, 16.7, 14.3, 20.0, 33.3],
-		[Outcome.Unit] = [10.0, 10.0, 13.3, 15.4, 16.7, 14.3, 20.0, 33.3],
-		[Outcome.Nothing] = [5.0, 5.0, 0, 0, 0, 0, 0, 0],
+		[Outcome.City] = [9.5, 9.5, 13.3, 7.7, 8.3, 14.3, 0.0, 0.0],
+		[Outcome.Tech] = [33.3, 33.3, 33.3, 30.8, 25.0, 28.6, 20.0, 0.0],
+		[Outcome.Gold] = [14.3, 14.3, 13.3, 15.4, 16.7, 14.3, 20.0, 33.3],
+		[Outcome.Settler] = [14.3, 14.3, 13.3, 15.4, 16.7, 14.3, 20.0, 0.0],
+		[Outcome.Map] = [14.3, 14.3, 13.3, 15.4, 16.7, 14.3, 20.0, 33.3],
+		[Outcome.Unit] = [9.5, 9.5, 13.3, 15.4, 16.7, 14.3, 20.0, 33.3],
+		[Outcome.Nothing] = [4.8, 4.8, 0, 0, 0, 0, 0, 0],
 		[Outcome.Barbarians] = [0, 0, 0, 0, 0, 0, 0, 0],
 	};
 

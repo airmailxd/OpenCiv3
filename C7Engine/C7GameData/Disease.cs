@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using C7GameData;
+using C7GameData.Save;
 using Serilog;
 
 namespace C7Engine {
@@ -12,17 +13,22 @@ namespace C7Engine {
 	//   Civilopedia, GCON_Disease). Which terrains cause it, and which a tech
 	//   cures, are the BIQ's terrain flags (flood plain, jungle and marsh
 	//   cause it; only flood plain is curable).
-	// - Which tech cures it: the shipped Conquests executable. "In the base
-	//   game, the tech flag "Disables Diseases From Flood Plains" (applied to
-	//   Sanitation) does nothing and instead flood plains disease stops once
-	//   players discover Writing. This happens because that flag is encoded
-	//   as number 8 and, instead of checking if players have a tech with that
+	// - Which tech cures it: the tech with the BIQ flag "Disables Diseases
+	//   From Flood Plains", Sanitation in the standard rules, as intended:
+	//   "Disease from Floodplains is eliminated, and the effect of Plague is
+	//   reduced." (Conquests Civilopedia, TECH_Sanitation); "Floodplains
+	//   continue to be risky until you discover sanitation." (GCON_Disease).
+	//   The shipped executable has a bug here: "In the base game, the tech
+	//   flag "Disables Diseases From Flood Plains" (applied to Sanitation)
+	//   does nothing and instead flood plains disease stops once players
+	//   discover Writing. This happens because that flag is encoded as
+	//   number 8 and, instead of checking if players have a tech with that
 	//   flag, the code mistakenly checks if players have tech #8, which is
 	//   Writing under the standard rules."
 	//   (https://github.com/maxpetul/C3X/blob/master/default.c3x_config.ini,
 	//   "DISEASE CURING TECH FLAG BUG"; compendium 07 section 7). The
-	//   stock behaviour is followed, not the Civilopedia's Sanitation: the
-	//   eighth tech of the rules (counting from zero) cures flood plains.
+	//   project owner chose the intended behaviour over the bug (owner's
+	//   decision, 2026-10-20).
 	// - A city is at risk from the mere presence of unhealthy terrain in its
 	//   radius, worked or not: "abstaining from working floodplain tiles
 	//   does NOT stop the disease" (morchuflex,
@@ -73,12 +79,11 @@ namespace C7Engine {
 		// many.
 		private const int UnitChanceScale = 50000;
 
-		// The tech the shipped game checks for curing flood plains: tech
-		// number 8 (see above).
-		internal const int CuringTechIndex = 8;
-
+		// The tech that cures flood plains: the first with the "Disables
+		// Diseases From Flood Plains" flag (see above), or null if the rules
+		// have none.
 		public static Tech CuringTech(GameData gameData) {
-			return gameData?.techs != null && gameData.techs.Count > CuringTechIndex ? gameData.techs[CuringTechIndex] : null;
+			return gameData?.techs?.Find(t => t.HasFlag(SaveTech.Flag.DisablesDiseases));
 		}
 
 		// Whether the terrain can give the player's cities and units disease.
@@ -89,8 +94,7 @@ namespace C7Engine {
 			if (!terrain.diseaseCanBeCured || owner == null) {
 				return true;
 			}
-			Tech cure = CuringTech(EngineStorage.gameData);
-			return cure == null || !owner.knownTechs.Contains(cure.id);
+			return !owner.HasTechEnabling(SaveTech.Flag.DisablesDiseases);
 		}
 
 		private static bool IsUnhealthy(Tile tile, Player owner) {

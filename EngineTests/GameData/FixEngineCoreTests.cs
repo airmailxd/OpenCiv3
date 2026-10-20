@@ -701,8 +701,11 @@ public class FixEngineCoreGameTests : IClassFixture<SaveGameFixture>, IDisposabl
 		public override int Next() => 0;
 	}
 
+	// The shields go to the clearer's cities only, the forest need not be
+	// in the city's borders (CivWiki, Wald roden (Civ3); owner's decision,
+	// 2026-10-20).
 	[Fact]
-	public void ForestShieldsGoOnlyToTheOwningCity() {
+	public void ForestShieldsGoOnlyToTheClearersCities() {
 		// Our city and theirs, with a forest between them that we own.
 		City ours = FoundCity(us, SettlerTile(us));
 		Tile forest = ours.location.neighbors[TileDirection.EAST];
@@ -722,22 +725,67 @@ public class FixEngineCoreGameTests : IClassFixture<SaveGameFixture>, IDisposabl
 		Assert.True(ours.shieldsStored > 0 || gameData.rules.ForestValueInShields == 0);
 		Assert.Equal(0, theirs.shieldsStored);
 
-		// A city building a wonder gets nothing, and nobody else does either.
+		// A city building a wonder gets nothing, and no other civ's city
+		// does either.
 		ours.SetStoredShields(0);
 		Building wonder = gameData.Buildings.First(b => b.IsGreatWonder());
 		ours.SetItemBeingProduced(wonder);
 		ours.SetStoredShields(0);
 		forest.hasHadForestCleared = false;
-		forest.MaybeAwardForestClearingShields();
+		forest.MaybeAwardForestClearingShields(us);
 		Assert.Equal(0, ours.shieldsStored);
 		Assert.Equal(0, theirs.shieldsStored);
 
-		// Clearing someone else's forest doesn't feed their city.
+		// They clear the forest in our territory: their city gets them,
+		// though the forest isn't inside its borders.
 		ours.SetItemBeingProduced(warrior);
 		forest.hasHadForestCleared = false;
 		forest.MaybeAwardForestClearingShields(them);
 		Assert.Equal(0, ours.shieldsStored);
-		Assert.Equal(0, theirs.shieldsStored);
+		Assert.True(theirs.shieldsStored > 0 || gameData.rules.ForestValueInShields == 0);
+	}
+
+	// The city on the lowest-numbered tile of Civ3's clockwise city-tile
+	// spiral around the forest gets the shields, not the city whose
+	// territory holds it nor the nearest (CivWiki, Wald roden (Civ3);
+	// owner's decision, 2026-10-20). NE is first, W sixth; two tiles out
+	// (N of NE) comes after all eight neighbours.
+	[Fact]
+	public void ForestShieldsGoToTheLowestNumberedTileAroundTheForest() {
+		City west = FoundCity(us, SettlerTile(us));
+		Tile forest = west.location.neighbors[TileDirection.EAST];
+		Tile northeastSite = forest.neighbors[TileDirection.NORTHEAST];
+		northeastSite.baseTerrainType = west.location.baseTerrainType;
+		City northeast = FoundCity(us, northeastSite);
+		forest.owningCity = west;
+
+		Building temple = gameData.Buildings.First(b => b.name == "Temple");
+		foreach (City c in new[] { west, northeast }) {
+			c.SetItemBeingProduced(temple);
+			c.SetStoredShields(0);
+		}
+		forest.hasHadForestCleared = false;
+		forest.MaybeAwardForestClearingShields(us);
+		Assert.Equal(0, west.shieldsStored);
+		Assert.True(northeast.shieldsStored > 0 || gameData.rules.ForestValueInShields == 0);
+
+		// With the NE city building the Palace, the W one is next.
+		northeast.SetItemBeingProduced(gameData.Buildings.First(b => b.isCenterOfEmpire));
+		northeast.SetStoredShields(0);
+		forest.hasHadForestCleared = false;
+		forest.MaybeAwardForestClearingShields(us);
+		Assert.True(west.shieldsStored > 0 || gameData.rules.ForestValueInShields == 0);
+		Assert.Equal(0, northeast.shieldsStored);
+
+		// Spiral numbers 1, 6 and 9 are NE, W, and N of NE.
+		TileLocation at = new(forest);
+		Tile Spiral(int i) {
+			TileLocation l = ImportCiv3.GetTileFromSpiral(at, i);
+			return gameData.map.tileAt(l.X, l.Y);
+		}
+		Assert.Same(northeastSite, Spiral(1));
+		Assert.Same(west.location, Spiral(6));
+		Assert.Same(northeastSite.neighbors[TileDirection.NORTH], Spiral(9));
 	}
 
 	// Per the project owner, chopped shields never go to a wonder: they go
