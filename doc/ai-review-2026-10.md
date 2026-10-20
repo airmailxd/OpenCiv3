@@ -78,3 +78,12 @@ Paired trials as above, at Monarch: 8 games of 200 turns on each map. These foll
 | The three without the trade gate | | -67 ± 95 / +34 ± 69 | within noise |
 
 The combined runs move both ways by about one standard error, so they show no interaction beyond noise. All four switches became the default and are gone.
+
+## Tribute gates and AI-AI tech prices (20 October)
+
+These follow the compendium's second reading round (06, sections 6.8 and 6.9).
+
+| Change | Where | Trial (score, Continents / Pangaea) | Result |
+|---|---|---|---|
+| Tribute demands use the stock gates that C3X re-creates (`injected_code.c`, `try_ai_demand_from_other_ai`). The AI asks only of a civ whose power place is at least half its own. It then makes a one-in-(own place) roll, an attitude roll (always passed at Cautious or worse), and an aggression roll. These replace a 5% chance a turn and the "stronger by the military advisor" check. No war follows a refused demand while the two have a mutual protection pact. The stock war-damage gate is left out because the engine does not track war damage. The owner's 40-turn cooldown stays in place of the stock 32 turns. | `TributeDemands.WouldDemandFrom`, `RollsToDemand`, `DemandFrom` | not run (AIs demand only from humans) | Kept |
+| `ai-tech-buyer-price`: between AIs, a tech is priced at the buyer's research cost. Only civs the buyer knows count, and the buyer's own progress comes off. An AI with nothing more to give may buy for 100/rate of the value, never less than half (Soren Johnson, Apolyton 42905 and 48219). | `AiTechPricing`, `TradeOffer.GoldEquivalentFor`, `PlayerAI.TechDeal` | +82 ± 76 / -76 ± 88 (techs +1.8* / +3.3*, mid-game techs +1.4* / +1.3*, rights of passage +1.3* / +2.4*) | Kept (Civ3's rule, not clearly weaker); the switch is gone |

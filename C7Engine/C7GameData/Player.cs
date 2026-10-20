@@ -916,7 +916,8 @@ namespace C7GameData {
 			if (TradeOffer.IncludesRightOfPassage(theirOffer, ourOffer)) {
 				return C7Engine.AI.RightOfPassageAI.WouldAccept(gameData, this, other, theirGoldValue, ourGoldValue);
 			}
-			return pacts || theirGoldValue >= ourGoldValue;
+			return pacts || theirGoldValue >= ourGoldValue
+				|| C7Engine.AI.AiTechPricing.TakesShortfall(gameData, this, other, theirOffer, ourOffer, theirGoldValue, ourGoldValue);
 		}
 
 		// Carries out a deal in which we give ourOffer and the other player

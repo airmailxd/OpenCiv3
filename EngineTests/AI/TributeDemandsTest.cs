@@ -117,12 +117,66 @@ public class TributeDemandsTest : MapBase, IDisposable {
 		Assert.Equal(50, other.playerRelationships[us.id].firstContactTurn);
 	}
 
+	// "if (32 - this->power_rank > 2 * (32 - recipient->power_rank))" the
+	// AI makes no demand (C3X's injected_code.c): third in power may ask
+	// of the second, but not of the first.
 	[Fact]
-	public void NoTributeIsDemandedOfAnEqual() {
+	public void TributeIsDemandedOnlyOfACivAtLeastHalfOurPowerPlace() {
+		Player strongest = MakeCiv("player-3");
+		gameData.players.Add(strongest);
+		AddWarriors(strongest, 6);
+		AddWarriors(them, 4);
 		AddWarriors(us, 2);
-		AddWarriors(them, 2);
+		Assert.Equal(3, TributeDemands.PowerPlace(gameData, us));
 
+		Assert.True(TributeDemands.PowerPlaceAllows(gameData, us, them));
+		Assert.True(TributeDemands.WouldDemandFrom(us, them, gameData));
+
+		// Now they are first.
+		AddWarriors(them, 4);
+		Assert.Equal(1, TributeDemands.PowerPlace(gameData, them));
 		Assert.False(TributeDemands.WouldDemandFrom(us, them, gameData));
+	}
+
+	private int DemandRollsPassed(int tries) {
+		int passed = 0;
+		for (int i = 0; i < tries; ++i) {
+			if (TributeDemands.RollsToDemand(us, them, gameData)) {
+				++passed;
+			}
+		}
+		return passed;
+	}
+
+	// The strongest civ, Cautious or worse, at aggression +1 or +2 always
+	// passes the stock rolls; Polite (here -10 from a gift) passes one in
+	// ten; at aggression 0, one in two.
+	[Fact]
+	public void TheDemandRollsFollowPowerAttitudeAndAggression() {
+		AddWarriors(us, 4);
+		us.civilization.aggressionLevel = 2;
+		Assert.Equal(0, Attitudes.Points(gameData, us, them));
+		Assert.Equal(1000, DemandRollsPassed(1000));
+
+		Attitudes.RecordGift(us.playerRelationships[them.id], 100, gameData.turn);
+		Assert.Equal(-10, Attitudes.Points(gameData, us, them));
+		Assert.InRange(DemandRollsPassed(4000), 300, 500);
+
+		us.playerRelationships[them.id].giftGold = 0;
+		us.civilization.aggressionLevel = 0;
+		Assert.InRange(DemandRollsPassed(4000), 1800, 2200);
+	}
+
+	// A one-in-(power place) roll: second in power passes about half the
+	// time.
+	[Fact]
+	public void ALesserPowerDemandsLessOften() {
+		AddWarriors(them, 4);
+		AddWarriors(us, 2);
+		us.civilization.aggressionLevel = 2;
+		Assert.Equal(2, TributeDemands.PowerPlace(gameData, us));
+
+		Assert.InRange(DemandRollsPassed(4000), 1800, 2200);
 	}
 
 	[Fact]
@@ -277,6 +331,22 @@ public class TributeDemandsTest : MapBase, IDisposable {
 			new MsgRespondToTributeDemand(false), new MsgDiplomacyCompleted());
 
 		Assert.True(AtWar(us, them));
+	}
+
+	// No war over a refused demand while the two have a mutual protection
+	// pact (C3X's injected_code.c: "Relation_Treaties ... & 4").
+	[Fact]
+	public async Task NoWarOverARefusalWithAMutualProtectionPact() {
+		PlayOn("Regent");
+		AddWarriors(us, 4);
+		them.gold = 100;
+		Pacts.SignMutualProtectionPact(gameData, us, them);
+
+		await Demand(new TradeOffer() { gold = 50 },
+			new MsgRespondToTributeDemand(false), new MsgDiplomacyCompleted());
+
+		Assert.True(AtPeace(us, them));
+		Assert.Equal(1, us.playerRelationships[them.id].tributeBluffsCalled);
 	}
 
 	[Fact]
