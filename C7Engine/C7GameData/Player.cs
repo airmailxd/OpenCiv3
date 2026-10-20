@@ -2342,18 +2342,34 @@ namespace C7GameData {
 				citiesWithCorruptionWonders.Add(cities[0]);
 			}
 
-			// Order the cities by distance to the capital, using OrderBy to get
-			// a stable sort (https://stackoverflow.com/a/148123). We want a
-			// stable sort, because if two cities are the same distance from the
-			// capital, the tiebreaker is city age (which we don't track yet) and
-			// then order in the database, which a stable sort gives us.
-			//
-			// TODO: track city age.
+			// Order the cities by distance to the capital. Cities at the same
+			// distance go in the order they were founded: "founding date is a
+			// tie-breaker for cities at the same distance" (alexman,
+			// https://forums.civfanatics.com/threads/everything-about-corruption-c3c-edition.76619/,
+			// #79), then in database order ("in order of founding" and then
+			// database order, the C3C corruption article). The game's city
+			// list is that order: a new city is added at its end and a
+			// captured one keeps its place, and a Civ3 save's cities import
+			// in its database order. The player's own list is not, since a
+			// captured city joins its end until the game is reloaded.
 			City capital = cities.Find(x => x.IsCapital());
 			if (capital == null) {
 				capital = cities[0];
 			}
-			List<City> citiesInRankOrdering = cities.OrderBy(x => x.location.RankDistanceTo(capital.location)).ToList();
+			Dictionary<City, int> foundingOrder = new(cities.Count);
+			foreach (City c in cities) {
+				foundingOrder[c] = int.MaxValue;
+			}
+			List<City> allCities = gameData.cities;
+			for (int i = 0; i < allCities.Count; ++i) {
+				if (allCities[i].owner == this) {
+					foundingOrder[allCities[i]] = i;
+				}
+			}
+			List<City> citiesInRankOrdering = cities
+				.OrderBy(x => x.location.RankDistanceTo(capital.location))
+				.ThenBy(x => foundingOrder[x])
+				.ToList();
 
 			// This is the same for every city (it depends on the whole empire,
 			// not on anything the loop below changes), so work it out once.

@@ -83,4 +83,32 @@ public class CityEconomyRulesTest : IClassFixture<SaveGameFixture> {
 		// 3 shields at 2 a gold is 1 gold, not 1.5 rounded up.
 		Assert.Equal(1, city.CurrentCommerceYield().wealth);
 	}
+
+	// Cities as far from the capital as each other rank in founding order
+	// (alexman, CFC 76619 #79: "founding date is a tie-breaker for cities at
+	// the same distance"), whatever order the player's own list is in.
+	[Fact]
+	public void CorruptionRankTiesGoToTheOlderCity() {
+		Tile capitalSite = gameData.map.tiles.First(t => IsEmptyLand(t) && t.IsAllowCities()
+			&& t.GetTilesWithinRankDistance(6).Count(n => n != Tile.NONE && IsEmptyLand(n) && n.RankDistanceTo(t) == 5) >= 2);
+		Tile[] ring = capitalSite.GetTilesWithinRankDistance(6)
+			.Where(n => n != Tile.NONE && IsEmptyLand(n) && n.IsAllowCities() && n.RankDistanceTo(capitalSite) == 5)
+			.ToArray();
+		Tile first = ring[0];
+		Tile second = ring.First(n => n.RankDistanceTo(first) >= 2);
+
+		City capital = CityInteractions.BuildCity(capitalSite, us, "Capital");
+		Assert.True(capital.IsCapital());
+		City older = CityInteractions.BuildCity(first, us, "Older");
+		City newer = CityInteractions.BuildCity(second, us, "Newer");
+
+		// As after a capture, the newer city comes first in the player's list.
+		us.cities.Remove(older);
+		us.cities.Add(older);
+		Assert.True(us.cities.IndexOf(newer) < us.cities.IndexOf(older));
+
+		us.DoCorruptionCalculations(gameData);
+		Assert.Equal(older.rankIndex + 1, newer.rankIndex);
+		Assert.True(capital.rankIndex < older.rankIndex);
+	}
 }
