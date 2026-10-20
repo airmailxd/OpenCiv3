@@ -1249,13 +1249,14 @@ namespace C7GameData {
 		// calculations so it can be reused for anarchy calculations.
 		public int GetAdjustedOptimalCityNumber(GameData gameData) {
 			int mapOptimalCityNumber = gameData.map.optimalNumberOfCities;
-			// The difficulty level's percentage only applies to humans; the AI
-			// always gets the full optimal city number. Fitted against 24k
-			// cities from Civ3 saves: using the difficulty level for the AI
-			// too made its corruption far too high on the hard levels. This
-			// is deliberate, and the project owner confirmed it stays
-			// human-only.
-			int percentOptimalCities = isHuman ? gameData.gameDifficulty.PercentageOfOptimalCities : 100;
+			// The difficulty level's percentage applies to humans; the AI uses
+			// Regent's, as it plays by Regent's rules (see
+			// GameData.AiRulesDifficulty). Against 24k cities from Civ3 saves,
+			// the game's own level made AI corruption far too high on the hard
+			// levels, and Regent's (90%) fits better than the full number:
+			// exact corruption matches 77.9% against 74.5%, waste 85.4%
+			// against 84.2%. The project owner chose Regent's (2026-10-20).
+			int percentOptimalCities = isHuman ? gameData.gameDifficulty.PercentageOfOptimalCities : gameData.AiRulesDifficulty().PercentageOfOptimalCities;
 
 			// "The OCN (Optimal City Number) is increased 25% for Commercial
 			// civilizations" (https://civfanatics.com/civ3/faq/).

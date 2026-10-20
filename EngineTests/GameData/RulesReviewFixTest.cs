@@ -97,21 +97,31 @@ public class RulesReviewFixTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(gameData.rules.ShieldValueInGold * s, city.GetHurryProductionDetails().goldCost);
 	}
 
-	// "the center city square of all cities produces extra shields in cities
-	// and metros" (Civilopedia, GCON_Strengths).
+	// Industrious civs' city tiles get their extra shield only from size 13
+	// (community tests for PTW/C3C; 98.7% of the shields of 24k cities in
+	// Civ3 saves).
 	[Fact]
-	public void IndustriousCitiesGetAShieldFromSizeSeven() {
+	public void IndustriousCitiesGetAShieldFromSizeThirteen() {
 		City city = BuildCity(us);
-		while (city.residents.Count < gameData.rules.MaximumLevel1CitySize + 1) {
-			AddResident(city, us.civilization);
-		}
+		// No Despotism penalty to take the extra shield off again.
+		us.government = gameData.governments.First(g => g.name == "Monarchy");
 		HashSet<Civilization.Trait> traits = us.civilization.traits;
 		bool had = traits.Contains(Civilization.Trait.Industrious);
-		try {
+		int Difference() {
 			traits.Remove(Civilization.Trait.Industrious);
 			int plain = city.location.ProductionYield(city).yield;
 			traits.Add(Civilization.Trait.Industrious);
-			Assert.Equal(plain + 1, city.location.ProductionYield(city).yield);
+			return city.location.ProductionYield(city).yield - plain;
+		}
+		try {
+			while (city.residents.Count < gameData.rules.MaximumLevel1CitySize + 1) {
+				AddResident(city, us.civilization);
+			}
+			Assert.Equal(0, Difference());
+			while (city.residents.Count < gameData.rules.MaximumLevel2CitySize + 1) {
+				AddResident(city, us.civilization);
+			}
+			Assert.Equal(1, Difference());
 		} finally {
 			if (!had) {
 				traits.Remove(Civilization.Trait.Industrious);

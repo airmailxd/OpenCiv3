@@ -214,12 +214,25 @@ namespace C7Engine.AI {
 			// "Bonus Tech: 0; Reveal Map: 0; Sacrifices: 0".
 		];
 
-		// The tech's worth to the civ. UNVERIFIED, so left out: alexman's
-		// "No trade: 149/turns" (no BIQ tech flag found for it) and "Other
-		// tech: 1" (not explained in the thread).
+		// The tech's worth to the civ. alexman's later posts in the thread
+		// (page 4) explain two more items: "No trade" is the Cannot Be Traded
+		// tech flag (149/turns), and "Other tech: 1" is a point for each tech
+		// that has this one as a direct prerequisite.
+		private const double CannotBeTradedPerTurn = 149;
+		private const double LeadsToTech = 1;
+
 		public static double TechValue(GameData gameData, Player player, Tech tech, int beakersPerTurn) {
 			double perTurn = EmptyTechPerTurn;
 			double flat = 0;
+
+			if (tech.CannotBeTraded) {
+				perTurn += CannotBeTradedPerTurn;
+			}
+			foreach (Tech other in gameData.techs) {
+				if (other.Prerequisites.Contains(tech)) {
+					flat += LeadsToTech;
+				}
+			}
 
 			foreach (Government government in gameData.governments) {
 				if (!government.transitionType && government.prerequisiteTech == tech.id) {

@@ -48,6 +48,23 @@ public sealed class DevelopmentAITest : IClassFixture<SaveGameFixture>, IDisposa
 		}
 	}
 
+	// alexman: "Other tech: 1" is a point for each tech that has this one as
+	// a direct prerequisite.
+	[Fact]
+	public void EachTechItLeadsToAddsAPoint() {
+		Tech bronze = TechNamed("Bronze Working");
+		double before = DevelopmentAI.TechValue(gameData, player, bronze, player.BeakersPerTurn());
+		Tech extra = new() { id = ID.FromString("tech-9999"), Name = "Extra", Cost = 10, EraCivilopediaName = bronze.EraCivilopediaName };
+		extra.Prerequisites.Add(bronze);
+		gameData.techs.Add(extra);
+		try {
+			double after = DevelopmentAI.TechValue(gameData, player, bronze, player.BeakersPerTurn());
+			Assert.Equal(bronze.RequiredForEraAdvancement ? 1 : 1 / 1.5, after - before, 6);
+		} finally {
+			gameData.techs.Remove(extra);
+		}
+	}
+
 	[Fact]
 	public void Civ3ResearchPicksAnAvailableTech() {
 		List<Tech> available = player.GetAvailableTechsToResearch(gameData.techs).ToList();
