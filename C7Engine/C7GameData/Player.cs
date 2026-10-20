@@ -1614,8 +1614,9 @@ namespace C7GameData {
 		// every tech known by at least two other civs it has contact with.
 		//
 		// Assumptions, as the exact Civ3 rule isn't documented in detail:
-		//  - "contact" means we have a relationship with the civ (we have met
-		//    them), regardless of whether we are at war with them;
+		//  - "contact" means we and the civ have a relationship with each
+		//    other (we have met), regardless of whether we are at war with
+		//    them (see below);
 		//  - barbarians and defeated civs don't count;
 		//  - techs are checked once a turn "in the order in which they are
 		//    listed in the editor", and "You can only gain those techs that
@@ -1649,10 +1650,16 @@ namespace C7GameData {
 				return learned;
 			}
 
+			// Contact must run both ways: the C3X mod, sharing the library
+			// among hotseat humans, notes "we must mark that "this" has
+			// contacted the AIs and vice-versa otherwise the techs won't be
+			// granted" (patch_Leader_update_great_library_unlocks,
+			// https://github.com/maxpetul/C3X/blob/master/injected_code.c).
 			List<Player> contacts = gameData.players.Where(p => p != this
 				&& !p.isBarbarians
 				&& !p.defeated
-				&& playerRelationships.ContainsKey(p.id)).ToList();
+				&& playerRelationships.ContainsKey(p.id)
+				&& p.playerRelationships.ContainsKey(id)).ToList();
 			if (contacts.Count < 2) {
 				return learned;
 			}

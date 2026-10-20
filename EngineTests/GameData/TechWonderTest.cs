@@ -105,6 +105,23 @@ public class TechWonderTest {
 		Assert.Equal(new List<Tech> { alphabet }, us.DoGreatLibraryUpdates(gameData));
 	}
 
+	// Contact must run both ways ("we must mark that "this" has contacted
+	// the AIs and vice-versa otherwise the techs won't be granted", C3X
+	// patch_Leader_update_great_library_unlocks).
+	[Fact]
+	public void GreatLibraryNeedsContactBothWays() {
+		BuildWonder(SaveBuilding.Flag.GainAnyTechKnownByTwoCivs);
+		Meet(us, rome);
+		us.playerRelationships[greece.id] = new PlayerRelationship();
+		Know(rome, alphabet);
+		Know(greece, alphabet);
+
+		Assert.Empty(us.DoGreatLibraryUpdates(gameData));
+
+		greece.playerRelationships[us.id] = new PlayerRelationship();
+		Assert.Equal(new List<Tech> { alphabet }, us.DoGreatLibraryUpdates(gameData));
+	}
+
 	[Fact]
 	public void GreatLibraryIgnoresBarbariansAndDefeatedCivs() {
 		BuildWonder(SaveBuilding.Flag.GainAnyTechKnownByTwoCivs);
