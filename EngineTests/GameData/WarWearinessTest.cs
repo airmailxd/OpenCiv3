@@ -40,8 +40,61 @@ public class WarWearinessTest {
 		SaveBuilding police = new() { name = "Police Station" };
 		police.flags.Add(SaveBuilding.Flag.ReducesWarWeariness);
 		city.AddBuilding(new Building(police, new C7GameData.GameData()));
-		// Half of 8 citizens at level 1 in a democracy, less a quarter.
-		Assert.Equal(3, city.owner.WarWearinessUnhappiness(city));
+		// Half of 8 citizens at level 1 in a democracy, less a quarter of
+		// the citizens.
+		Assert.Equal(2, city.owner.WarWearinessUnhappiness(city));
+	}
+
+	// "If you have 125% or more ww, the police station would not have any
+	// effect since you are above the limit anyway" (Oystein,
+	// https://forums.civfanatics.com/threads/how-does-war-weariness-work.61628/ #24).
+	[Fact]
+	public void PoliceStationsDoNothingFromAHundredAndTwentyFivePercent() {
+		(City city, Player enemy, _) = AtWar(warWearinessLevel: 1);
+		Player us = city.owner;
+		Player other = new() { id = ID.FromString("player-3"), civilization = new Civilization() };
+		us.playerRelationships[other.id] = new PlayerRelationship();
+		// Level 4 (100%) against one, level 1 (25%) against the other.
+		us.AddWarWeariness(enemy, 121);
+		us.AddWarWeariness(other, 40);
+		SaveBuilding police = new() { name = "Police Station" };
+		police.flags.Add(SaveBuilding.Flag.ReducesWarWeariness);
+		city.AddBuilding(new Building(police, new C7GameData.GameData()));
+		Assert.Equal(8, us.WarWearinessUnhappiness(city));
+	}
+
+	// "During peace WW is suspended. Only in war you can have war weariness"
+	// (justanick,
+	// https://forums.civfanatics.com/threads/mechanics-of-happy-content-faces.701169/ #6),
+	// but the points carry into the next war.
+	[Fact]
+	public void WarWearinessIsSuspendedAtPeace() {
+		(City city, Player enemy, _) = AtWar(warWearinessLevel: 1);
+		Player us = city.owner;
+		us.AddWarWeariness(enemy, 70);
+		Assert.Equal(4, us.WarWearinessUnhappiness(city));
+
+		us.playerRelationships[enemy.id].multiTurnDeals.Add(MultiTurnDeal.DEFAULT_PEACE);
+		Assert.Equal(0, us.WarWearinessUnhappiness(city));
+		Assert.Equal(70, us.WarWearinessPointsAgainst(enemy));
+
+		us.playerRelationships[enemy.id].multiTurnDeals.Clear();
+		Assert.Equal(4, us.WarWearinessUnhappiness(city));
+	}
+
+	// Points build up under a government without war weariness, and hurt
+	// once it has some: "The calculation of wwp is independant of
+	// government" (Oystein, 61628 #67).
+	[Fact]
+	public void PointsBuildUpWithoutWarWeariness() {
+		(City city, Player enemy, C7GameData.GameData gameData) = AtWar(warWearinessLevel: 0);
+		Player us = city.owner;
+		Player.AddWarWearinessForLostCity(us, enemy, size: 5);
+		Player.AddWarWearinessForLostCity(us, enemy, size: 5);
+		Assert.Equal(34, us.WarWearinessPointsAgainst(enemy));
+		Assert.Equal(0, us.WarWearinessUnhappiness(city));
+		us.government = new Government() { warWeariness = 1 };
+		Assert.Equal(2, us.WarWearinessUnhappiness(city));
 	}
 
 	[Theory]

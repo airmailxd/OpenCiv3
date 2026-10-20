@@ -2037,9 +2037,10 @@ namespace C7GameData {
 		private const int WarHappinessPercent = 25;
 
 		// "subtract 25% for police station and 1 for US (Universal
-		// Sufferage)": police stations take a quarter off the unhappy
-		// citizens, and Universal Suffrage (the BIQ's "reduces war weariness
-		// in all cities") one more.
+		// Sufferage)": police stations take a quarter of the citizens off
+		// the unhappy ones (see WarWearinessUnhappiness), and Universal
+		// Suffrage (the BIQ's "reduces war weariness in all cities") one
+		// more.
 		private const int PoliceStationReductionPercent = 25;
 		private const int EverywhereReduction = 1;
 
@@ -2196,19 +2197,33 @@ namespace C7GameData {
 			};
 		}
 
-		// Every source of war weariness points: those against each civ, and
-		// those from older saves.
+		// Every source of war weariness points that is felt now: those
+		// against each civ we are at war with, and those from older saves.
+		// The points against a civ we are at peace with fade (see
+		// UpdateWarWeariness) but do nothing until the next war with it:
+		// "During peace WW is suspended. Only in war you can have war
+		// weariness" (justanick,
+		// https://forums.civfanatics.com/threads/mechanics-of-happy-content-faces.701169/ #6),
+		// and they carry into that war: "Yes, you will (assuming you still
+		// have enough WW left after the peace)" (TimBentley,
+		// https://forums.civfanatics.com/threads/how-does-war-weariness-work.61628/ #66).
+		// War happiness, also from being at war, is suspended the same way.
+		// The points from older saves aren't kept against any civ, so they
+		// count until they fade.
 		private IEnumerable<int> WarWearinessPointSources() {
 			yield return warWeariness;
 			foreach (PlayerRelationship pr in playerRelationships.Values) {
-				yield return pr.warWearinessPoints;
+				if (pr.AtWar()) {
+					yield return pr.warWearinessPoints;
+				}
 			}
 		}
 
 		// The number of citizens in the city made unhappy by war weariness:
-		// for each enemy, the share its level and our government give,
-		// rounded down, added together; then police stations and Universal
-		// Suffrage reduce it, and it can't be more than the city's citizens.
+		// for each enemy we are at war with, the share its level and our
+		// government give, rounded down, added together; then police
+		// stations and Universal Suffrage reduce it, and it can't be more
+		// than the city's citizens.
 		public int WarWearinessUnhappiness(City city) {
 			int citizens = city.residents.Count;
 			int unhappy = 0;
@@ -2219,9 +2234,15 @@ namespace C7GameData {
 				return 0;
 			}
 
+			// The police station takes off a quarter of the city's
+			// citizens, not a quarter of the unhappy ones: "If you have 125%
+			// or more ww, the police station would not have any effect since
+			// you are above the limit anyway" (Oystein,
+			// https://forums.civfanatics.com/threads/how-does-war-weariness-work.61628/ #24).
+			// UNVERIFIED: how the quarter is rounded; we round it down.
 			foreach (CityBuilding cb in city.EffectiveBuildings()) {
 				if (cb.building.reducesWarWeariness) {
-					unhappy -= unhappy * PoliceStationReductionPercent / 100;
+					unhappy -= citizens * PoliceStationReductionPercent / 100;
 					break;
 				}
 			}
