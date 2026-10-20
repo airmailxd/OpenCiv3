@@ -61,6 +61,19 @@ namespace C7Engine {
 			public List<string> citiesDestroyed = new();
 		}
 
+		// "Disasters such as plague and volcanic eruption do not occur in
+		// multiplayer games." (Conquests readme). A game with more than one
+		// human player, hotseat or over the network, is a multiplayer game.
+		public static bool IsMultiplayer(GameData gameData) {
+			int humans = 0;
+			foreach (Player player in gameData.players) {
+				if (player.isHuman && !player.isBarbarians && ++humans > 1) {
+					return true;
+				}
+			}
+			return false;
+		}
+
 		// Rolls for every volcano; called once per round, after every player
 		// has played. Volcanoes are gone through in map order, so the rolls
 		// are the same each time a game is replayed.
@@ -68,7 +81,7 @@ namespace C7Engine {
 			List<EruptionResult> results = new();
 			List<Tile> tiles = gameData.map?.tiles;
 			int period = gameData.rules?.VolcanoEruptionPeriod ?? 0;
-			if (tiles == null || period <= 0) {
+			if (tiles == null || period <= 0 || IsMultiplayer(gameData)) {
 				return results;
 			}
 			(int timeUnits, int unitsPerYear) = TimeThisTurn(gameData);

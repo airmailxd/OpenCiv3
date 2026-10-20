@@ -67,8 +67,11 @@ buildings.unit_production_effects = {
 -- C# in C7Engine/Lua/NativeBehaviors.cs to match). A function put in its place
 -- by an addon always runs as Lua.
 buildings.tile_modifiers = {
+  -- The Harbor: "Coastal, sea, and ocean squares produce one extra food."
+  -- (Conquests Civilopedia, BLDG_Harbor), so an Ocean tile's none becomes
+  -- one. A polluted tile makes nothing, so it gets none either.
   increases_food_in_water = NATIVE_DEFAULT("buildings.tile_modifiers.increases_food_in_water", function(yield)
-    if yield.type == YieldType.Food and yield.tile:IsWater() and yield.baseYield > 0 then
+    if yield.type == YieldType.Food and yield.tile:IsWater() and not yield.tile:HasPollution() and not yield.tile:HasFallout() then
       yield.bonus = yield.bonus + 1
     end
   end),

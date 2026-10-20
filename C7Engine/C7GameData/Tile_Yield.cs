@@ -126,8 +126,11 @@ public partial class Tile {
 			yield += 1;
 		}
 
+		// "Like pollution, the presence of craters reduces a square's
+		// production, commerce, and food output by one." (Conquests
+		// Civilopedia, GCON_Craters). The same for shields and commerce below.
 		if (this.HasCraters())
-			yield--;
+			yield = Math.Max(0, yield - 1);
 
 		return yield;
 	}
@@ -194,6 +197,9 @@ public partial class Tile {
 		}
 
 		yield += BaseYieldBonus(YieldType.Production);
+
+		if (this.HasCraters())
+			yield = Math.Max(0, yield - 1);
 
 		return yield;
 	}
@@ -266,6 +272,9 @@ public partial class Tile {
 		}
 
 		yield += BaseYieldBonus(YieldType.Commerce);
+
+		if (this.HasCraters())
+			yield = Math.Max(0, yield - 1);
 
 		return yield;
 	}

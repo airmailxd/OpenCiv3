@@ -139,12 +139,17 @@ public partial class Tile {
 		return holding != null && IsOwnedHolding(holding) ? holding : null;
 	}
 
+	// Each of these holdings also needs terrain whose BIQ flags allow it
+	// (TERR AllowOutposts, AllowAirfields, AllowRadarTowers, AllowColonies;
+	// see TerrainType.allowOutposts): in Civ3's rules a Marsh takes only an
+	// outpost, and a Volcano none.
+	//
 	// Whether the player's worker could build an outpost here: a land tile
 	// that is neutral or the player's own, without a city, and without a
 	// fortress, colony or other holding (mines, irrigation and roads are
 	// fine).
 	public bool CanTakeOutpost(Player player) {
-		if (!IsLand() || HasCity()) {
+		if (!IsLand() || HasCity() || !overlayTerrainType.allowOutposts) {
 			return false;
 		}
 		Player owner = OwningPlayer();
@@ -159,7 +164,7 @@ public partial class Tile {
 	// built on it but a road or railroad ("tiles that are empty or have a
 	// road and/or railroad").
 	public bool CanTakeAirfield(Player player) {
-		if (!IsLand() || HasCity()) {
+		if (!IsLand() || HasCity() || !overlayTerrainType.allowAirfields) {
 			return false;
 		}
 		Player owner = OwningPlayer();
@@ -179,7 +184,7 @@ public partial class Tile {
 	// fortress, colony or other holding (mines, irrigation and roads are
 	// fine).
 	public bool CanTakeRadarTower(Player player) {
-		if (!IsLand() || HasCity() || player == null || OwningPlayer() != player) {
+		if (!IsLand() || HasCity() || !overlayTerrainType.allowRadarTowers || player == null || OwningPlayer() != player) {
 			return false;
 		}
 		return overlays.ImprovementAtLayer(Layer.Holdings) == null && overlays.ImprovementAtLayer(Layer.Colonies) == null;
@@ -217,7 +222,7 @@ public partial class Tile {
 	// it is only offered outside them, and one civ's holding isn't put on
 	// another's.
 	public bool CanTakeColony(Player player) {
-		if (!IsLand() || HasCity() || Resource == null || Resource == Resource.NONE) {
+		if (!IsLand() || HasCity() || !overlayTerrainType.allowColonies || Resource == null || Resource == Resource.NONE) {
 			return false;
 		}
 		if (Resource.Category != ResourceCategory.STRATEGIC && Resource.Category != ResourceCategory.LUXURY) {

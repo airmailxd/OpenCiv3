@@ -75,7 +75,7 @@ internal static class NativeBehaviors {
 
 	// buildings.lua: tile_modifiers.increases_food_in_water
 	private static void IncreasesFoodInWater(Tile.Yield yield) {
-		if (yield.type == Tile.YieldType.Food && yield.tile.IsWater() && yield.baseYield > 0) {
+		if (yield.type == Tile.YieldType.Food && yield.tile.IsWater() && !yield.tile.HasPollution() && !yield.tile.HasFallout()) {
 			yield.bonus += 1;
 		}
 	}

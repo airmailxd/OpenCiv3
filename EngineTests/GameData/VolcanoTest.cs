@@ -49,6 +49,23 @@ public class VolcanoTest : IClassFixture<SaveGameFixture>, IDisposable {
 		return result;
 	}
 
+	// "Disasters such as plague and volcanic eruption do not occur in
+	// multiplayer games." (Conquests readme)
+	[Fact]
+	public void AOneHumanGameHasEruptions() {
+		gameData.rules.VolcanoEruptionPeriod = 1;
+		Assert.False(Volcano.IsMultiplayer(gameData));
+		Assert.NotEmpty(Volcano.ProcessEndOfRound(gameData));
+	}
+
+	[Fact]
+	public void NoEruptionsWithTwoHumans() {
+		gameData.rules.VolcanoEruptionPeriod = 1;
+		gameData.players.First(p => !p.isHuman && !p.isBarbarians).isHuman = true;
+		Assert.True(Volcano.IsMultiplayer(gameData));
+		Assert.Empty(Volcano.ProcessEndOfRound(gameData));
+	}
+
 	[Fact]
 	public void TheRulesetHasConquestsEruptionPeriod() {
 		Assert.Equal(5000, gameData.rules.VolcanoEruptionPeriod);

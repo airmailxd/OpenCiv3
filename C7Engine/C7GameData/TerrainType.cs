@@ -29,6 +29,17 @@ namespace C7GameData {
 		// Wheeled units can't enter the terrain except along a road (see
 		// UnitPrototype.CanMoveBetween).
 		public bool impassableByWheeled { get; set; }
+		// Which of a worker's holdings and forts may go up on the terrain,
+		// from the BIQ's TERR flags (AllowForts, AllowAirfields,
+		// AllowRadarTowers, AllowOutposts, AllowColonies). In conquests.biq
+		// every land terrain allows them all except Marsh (outposts only) and
+		// Volcano (none); Marsh and Volcano allow no colonies either. Saves
+		// made before these were saved allow them all.
+		public bool allowForts { get; set; } = true;
+		public bool allowAirfields { get; set; } = true;
+		public bool allowRadarTowers { get; set; } = true;
+		public bool allowOutposts { get; set; } = true;
+		public bool allowColonies { get; set; } = true;
 		public StrengthBonus defenseBonus;
 		public HashSet<string> allowedResources = new();
 		public int height = -1;
@@ -135,6 +146,11 @@ namespace C7GameData {
 				allowCities = civ3Terrain.AllowCities != 0,
 				impassable = civ3Terrain.Impassable != 0,
 				impassableByWheeled = civ3Terrain.ImpassableByWheeled != 0,
+				allowForts = civ3Terrain.AllowForts != 0,
+				allowAirfields = civ3Terrain.AllowAirfields != 0,
+				allowRadarTowers = civ3Terrain.AllowRadarTowers != 0,
+				allowOutposts = civ3Terrain.AllowOutposts != 0,
+				allowColonies = civ3Terrain.AllowColonies != 0,
 				defenseBonus = new StrengthBonus {
 					description = civ3Terrain.Name,
 					amount = civ3Terrain.DefenseBonus / 100.0
