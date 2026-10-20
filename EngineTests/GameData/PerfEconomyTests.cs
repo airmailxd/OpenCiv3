@@ -437,7 +437,12 @@ public class PerfEconomyTests {
 		player.gold = -goldPerTurn - 1;
 
 		C7GameData.GameData.rng = new Random(1234);
-		MapUnit expected = nonCaptives[new Random(1234).Next(nonCaptives.Count)];
+		// The first roll is whether units or buildings give way first (see
+		// Player.DoPerTurnFinanceUpdates); with no buildings, a unit goes
+		// either way.
+		Random replay = new(1234);
+		replay.Next(2);
+		MapUnit expected = nonCaptives[replay.Next(nonCaptives.Count)];
 
 		player.DoPerTurnFinanceUpdates(gameData);
 
