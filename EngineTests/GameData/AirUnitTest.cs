@@ -226,6 +226,51 @@ public class AirUnitTest : IClassFixture<SaveGameFixture>, System.IDisposable {
 		Assert.Contains(bomber, ours.location.unitsOnTile);
 		Assert.False(bomber.movementPoints.canMove);
 		Assert.Equal(defender.maxHitPoints, defender.hitPointsRemaining);
+		// The bomber won the fight, so the fighter went down: "If no,
+		// Fighter will crash'n'burn" (tjs282,
+		// https://forums.civfanatics.com/threads/air-battle-questions-only.565813/, #9).
+		Assert.DoesNotContain(fighter, them.units);
+		Assert.True(fighter.hitPointsRemaining <= 0);
+	}
+
+	// Rolls 0 for every Next, and the samples in turn, over and over, for
+	// NextDouble.
+	private class CyclingRandom(params double[] samples) : System.Random {
+		private int i;
+		protected override double Sample() => samples[i++ % samples.Length];
+		public override int Next(int maxValue) => 0;
+		public override int Next(int minValue, int maxValue) => minValue;
+	}
+
+	// An interception is a normal battle to the death, one hit point a
+	// round, so the winner may come out of it damaged: "If yes, Bomber will
+	// crash'n'burn (Fighter may be damaged)" (tjs282, #9).
+	[Fact]
+	public async Task AnInterceptionIsFoughtToTheDeath() {
+		GoToWar();
+		City ours = FoundCity(us);
+		City theirs = FoundCity(them, EmptyLandAt(ours.location, 4));
+		MapUnit fighter = Spawn(them, "Fighter", theirs.location);
+		fighter.FlyAirSuperiority();
+		Tile target = EmptyLandAt(theirs.location, 1);
+		Spawn(them, "Warrior", target);
+		MapUnit bomber = Spawn(us, "Bomber", ours.location);
+		Assert.Equal(3, fighter.hitPointsRemaining);
+		Assert.Equal(3, bomber.hitPointsRemaining);
+
+		// The fighter (A4 against D2: 2 in 3) wins the rounds rolled 0 and
+		// loses those rolled 0.9: bomber, fighter, bomber, fighter, bomber.
+		System.Random original = C7GameData.GameData.rng;
+		C7GameData.GameData.rng = new CyclingRandom(0.0, 0.9);
+		try {
+			Assert.False(await bomber.AirBomb(target));
+		} finally {
+			C7GameData.GameData.rng = original;
+		}
+
+		Assert.DoesNotContain(bomber, us.units);
+		Assert.Contains(fighter, them.units);
+		Assert.Equal(1, fighter.hitPointsRemaining);
 	}
 
 	[Fact]

@@ -437,9 +437,8 @@ namespace C7GameData {
 		// combat in Civ3" (alexman), with "the fighter's attack stat" against
 		// the bomber's defence (AnthonyBoscia,
 		// https://forums.civfanatics.com/threads/questions-on-air-units.680192/).
-		// UNVERIFIED: the bomber can't shoot the fighter down here, though
-		// "attacker downs interceptor" is said to be possible (BillChin,
-		// https://forums.civfanatics.com/threads/air-superiority.15449/).
+		// An intercepted mission fails, and the two planes then fight it out
+		// (see FightInterceptor).
 		internal bool TryToIntercept(Tile target, out bool shotDown) {
 			shotDown = false;
 			GameData gameData = EngineStorage.gameData;
@@ -457,7 +456,7 @@ namespace C7GameData {
 						continue;
 					}
 					fighter.hasInterceptedThisTurn = true;
-					shotDown = TryToBeShotDown(fighter.unitType.attack, fighter, target);
+					shotDown = FightInterceptor(fighter, target);
 					return true;
 				}
 			}
@@ -492,9 +491,14 @@ namespace C7GameData {
 			// and stealth makes no difference to them: "the chance to
 			// intercept an air unit with stealth and without stealth is the
 			// same" (https://civfanatics.com/civ3/faq/). A plane they miss
-			// goes on to bomb. UNVERIFIED (no Civ3 source found): with more
-			// than four, the four strongest shoot, and they need not be
-			// fortified.
+			// goes on to bomb. With more than four, the four strongest shoot,
+			// each only if the one before missed, and hit points, stealth and
+			// terrain don't matter: "If more than 4 AA in a square, only the
+			// best four will defend..." / "Hit Points and Experience do not
+			// affect interception by AA." / "Terrain has no effect."
+			// (BomberEscort, C3C, https://forums.civfanatics.com/threads/aa-formula-discussed.76227/, #5),
+			// "AAUnits must be sorted in decending order" (#7). UNVERIFIED:
+			// they need not be fortified.
 			foreach (MapUnit aa in AntiAircraftUnits(target)) {
 				if (TryToBeShotDown(aa.unitType.airDefense / (double)AirDefenseScale, aa, target, onlyIfHit: true)) {
 					shotDown = true;
@@ -550,6 +554,48 @@ namespace C7GameData {
 			return isOnAirSuperiority && !hasInterceptedThisTurn && hitPointsRemaining > 0
 				&& unitType.actions.Contains(UnitAction.Intercept) && IsAtAirBase()
 				&& Tile.IsTileValid(location) && location.DistanceTo(target) <= InterceptionRadius();
+		}
+
+		// A fighter that has intercepted this aircraft fights it to the
+		// death, as in a normal battle: "Interception =/= Shootdown." / "(1)
+		// Is a Fighter scrambled to intercept the Bomber? (result based on
+		// 'Intercept rate')" / "If yes, Bombing mission fails, goto (2)" /
+		// "(2) Does the Fighter defeat the Bomber? (result based on relative
+		// A/D values and HP)" / "If yes, Bomber will crash'n'burn (Fighter
+		// may be damaged)" / "If no, Fighter will crash'n'burn (Bomber may be
+		// damaged)" (tjs282, C3C,
+		// https://forums.civfanatics.com/threads/air-battle-questions-only.565813/, #9).
+		// Each round costs its loser one hit point, with the fighter's
+		// attack against this aircraft's defense. UNVERIFIED: which plane
+		// uses its attack and which its defense; the interceptor attacks
+		// here. Returns whether this aircraft was shot down.
+		private bool FightInterceptor(MapUnit fighter, Tile target) {
+			double attack = fighter.unitType.attack;
+			double defence = unitType.defense;
+			double fighterOdds = attack + defence > 0 ? attack / (attack + defence) : 0.5;
+			while (fighter.hitPointsRemaining > 0 && hitPointsRemaining > 0) {
+				if (GameData.rng.NextDouble() < fighterOdds) {
+					hitPointsRemaining -= 1;
+				} else {
+					fighter.hitPointsRemaining -= 1;
+				}
+			}
+			bool shotDown = hitPointsRemaining <= 0;
+			string what = $"{fighter.owner.civilization.adjective} {fighter.unitType.name}";
+			if (owner.isHuman) {
+				new MsgShowTemporaryPopup(shotDown ? $"Our {unitType.name} was shot down by {what}!" : $"Our {unitType.name} was intercepted, and shot down the {what}!", target, owner).send();
+			}
+			if (fighter.owner.isHuman) {
+				new MsgShowTemporaryPopup(shotDown ? $"We shot down an enemy {unitType.name}!" : $"Our {fighter.unitType.name} was shot down by an enemy {unitType.name}!", target, fighter.owner).send();
+			}
+			if (shotDown) {
+				fighter.RollToPromote(this);
+				RemoveFromPlay();
+			} else {
+				RollToPromote(fighter);
+				fighter.RemoveFromPlay();
+			}
+			return shotDown;
 		}
 
 		// The interceptor (a fighter, a SAM battery when null, or an
