@@ -1525,6 +1525,7 @@ namespace C7GameData {
 				if (c.UpdateCultureAndCheckForExpansion()) {
 					gameData.UpdateTileOwners();
 					BarbarianInteractions.DisperseCampsWithinBorders(gameData);
+					GoodyHuts.OpenWithinBorders(gameData, c);
 
 					// Update the trade network if borders expanded, as a new
 					// resource may be part of the network.

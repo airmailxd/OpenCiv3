@@ -52,6 +52,30 @@ public class GoodyHutTest : IClassFixture<SaveGameFixture> {
 		protected override double Sample() => sample;
 	}
 
+	// A city site far (as corruption counts) from the hut and every city.
+	private Tile FarCitySite(Tile hut) {
+		return gameData.map.tiles.First(t => IsEmptyLand(t) && t.IsAllowCities() && t.OwningPlayer() == null
+			&& GoodyHuts.CityDistance(t, hut) >= 6
+			&& gameData.cities.All(c => GoodyHuts.CityDistance(c.location, t) >= 3));
+	}
+
+	// A hut site at least five tiles from any city.
+	private (Tile from, TileDirection dir, Tile hut) FindRemoteHutSite() {
+		return FindHutSite(t => t.IsAllowCities() && gameData.cities.All(c => GoodyHuts.CityDistance(c.location, t) >= 5));
+	}
+
+	// Leaves the player with one city, far from the hut, and behind the
+	// average, as a city from a hut needs.
+	private void LeaveBehindWithOneCity(Player player, Tile hut) {
+		player.cities.Clear();
+		CityInteractions.BuildCity(FarCitySite(hut), player, "Home");
+		Player other = gameData.players.First(p => p != player && !p.isBarbarians);
+		List<Player> civs = gameData.players.Where(p => !p.isBarbarians && !p.defeated).ToList();
+		while (civs.Average(p => p.cities.Count) <= 1) {
+			CityInteractions.BuildCity(FarCitySite(hut), other, $"Elsewhere {other.cities.Count}");
+		}
+	}
+
 	// Enters the hut with the dice loaded so that it holds the wanted
 	// outcome: the roll lands in the middle of that outcome's share, the
 	// shares coming in the outcomes' order.
@@ -151,13 +175,104 @@ public class GoodyHutTest : IClassFixture<SaveGameFixture> {
 	}
 
 	[Fact]
-	public void HutGoldIs25EarlyAndGrowsWithTheEras() {
+	public void HutGoldIs25AndFromTheMiddleAgesAlso50() {
 		ai.eraCivilopediaName = "ERAS_Ancient_Times";
-		Assert.Equal(25, GoodyHuts.GoldFor(ai));
-		ai.eraCivilopediaName = "ERAS_Middle_Ages";
-		Assert.Equal(50, GoodyHuts.GoldFor(ai));
-		ai.eraCivilopediaName = "ERAS_Industrial_Age";
-		Assert.Equal(75, GoodyHuts.GoldFor(ai));
+		for (int i = 0; i < 20; ++i) {
+			Assert.Equal(25, GoodyHuts.GoldFor(ai));
+		}
+		foreach (string era in new[] { "ERAS_Middle_Ages", "ERAS_Industrial_Age" }) {
+			ai.eraCivilopediaName = era;
+			HashSet<int> amounts = new();
+			for (int i = 0; i < 100; ++i) {
+				amounts.Add(GoodyHuts.GoldFor(ai));
+			}
+			Assert.Equal(new HashSet<int> { 25, 50 }, amounts);
+		}
+	}
+
+	// Only Ancient techs, not the current research unless it's the last,
+	// and cheaper ones likelier.
+	[Fact]
+	public void HutTechsAreAncientCheapLikelierAndNotTheCurrentResearch() {
+		ai.eraCivilopediaName = "ERAS_Ancient_Times";
+		List<Tech> techs = GoodyHuts.TechsToLearn(gameData, ai);
+		Assert.All(techs, t => Assert.Equal(0, EraUtils.GetEraIndex(t.EraCivilopediaName)));
+		Assert.True(techs.Count > 1);
+		ai.SetCurrentlyResearchedTech(techs[0].id);
+		Assert.DoesNotContain(techs[0], GoodyHuts.TechsToLearn(gameData, ai));
+
+		Tech cheap = new() { Name = "Cheap", Cost = 1 };
+		Tech dear = new() { Name = "Dear", Cost = 9 };
+		int cheapPicks = 0;
+		C7GameData.GameData.rng = new System.Random(5);
+		for (int i = 0; i < 1000; ++i) {
+			if (GoodyHuts.PickTech([cheap, dear]) == cheap) {
+				++cheapPicks;
+			}
+		}
+		// Nine to one.
+		Assert.InRange(cheapPicks, 850, 950);
+	}
+
+	// A hut becomes a city only four tiles (as corruption counts) from any
+	// city, and only for a civ that has one.
+	[Fact]
+	public void HutCitiesNeedACityOfTheirOwnAndRoom() {
+		(Tile from, _, Tile hut) = FindRemoteHutSite();
+		MapUnit warrior = gameData.SpawnUnit(ai, Prototype("Warrior"), from);
+		LeaveBehindWithOneCity(ai, hut);
+		Assert.True(GoodyHuts.Weigh(gameData, warrior, hut, GoodyHuts.MiddleLevel)[GoodyHuts.Outcome.City] > 0);
+
+		// A city 3.5 away (three diagonal steps and one more) is too near.
+		Tile near = gameData.map.tiles.FirstOrDefault(t => IsEmptyLand(t) && t.IsAllowCities()
+			&& GoodyHuts.CityDistance(t, hut) < GoodyHuts.MinCityDistance && GoodyHuts.CityDistance(t, hut) >= 2);
+		Assert.NotNull(near);
+		Player other = gameData.players.First(p => p != ai && !p.isBarbarians);
+		City blocker = CityInteractions.BuildCity(near, other, "Too Near");
+		Assert.Equal(0, GoodyHuts.Weigh(gameData, warrior, hut, GoodyHuts.MiddleLevel)[GoodyHuts.Outcome.City]);
+		CityInteractions.DestroyCity(blocker);
+
+		// No city of its own: none from a hut.
+		ai.cities.Clear();
+		Assert.Equal(0, GoodyHuts.Weigh(gameData, warrior, hut, GoodyHuts.MiddleLevel)[GoodyHuts.Outcome.City]);
+	}
+
+	[Fact]
+	public void CorruptionDistanceCountsDiagonalStepsAsOneAndAHalf() {
+		Tile a = gameData.map.tileAt(10, 10);
+		// One diagonal step changes both coordinates by one.
+		Assert.Equal(1, GoodyHuts.CityDistance(a, gameData.map.tileAt(11, 11)));
+		// Two tiles east is one step along each axis.
+		Assert.Equal(1.5, GoodyHuts.CityDistance(a, gameData.map.tileAt(12, 10)));
+		Assert.Equal(4, GoodyHuts.CityDistance(a, gameData.map.tileAt(14, 14)));
+	}
+
+	// Border growth opens huts; with every Ancient tech known, such a hut
+	// holds no unit, settler or city.
+	[Fact]
+	public void BorderGrowthOpensHuts() {
+		(Tile from, _, Tile hut) = FindRemoteHutSite();
+		hut.hasGoodyHut = true;
+		// A city two tiles off, whose first borders don't reach the hut.
+		Tile site = gameData.map.tiles.First(t => t.RankDistanceTo(hut) == 2 && IsEmptyLand(t) && t.IsAllowCities() && t.OwningPlayer() == null);
+		City city = CityInteractions.BuildCity(site, ai, "Grower");
+		Assert.True(hut.hasGoodyHut);
+
+		// Its culture grows the borders over the hut.
+		city.perPlayerCulture[ai] = 10;
+		gameData.UpdateTileOwners();
+		Assert.Same(city, hut.owningCity);
+		GoodyHuts.OpenWithinBorders(gameData, city);
+		Assert.False(hut.hasGoodyHut);
+
+		foreach (Tech t in gameData.techs.Where(t => EraUtils.GetEraIndex(t.EraCivilopediaName) == 0)) {
+			ai.knownTechs.Add(t.id);
+		}
+		Dictionary<GoodyHuts.Outcome, double> late = GoodyHuts.Weigh(gameData, ai, null, hut, GoodyHuts.MiddleLevel, byBorders: true);
+		Assert.Equal(0, late[GoodyHuts.Outcome.Unit]);
+		Assert.Equal(0, late[GoodyHuts.Outcome.Settler]);
+		Assert.Equal(0, late[GoodyHuts.Outcome.City]);
+		Assert.Equal(0, late[GoodyHuts.Outcome.Barbarians]);
 	}
 
 	[Fact]
@@ -191,11 +306,11 @@ public class GoodyHutTest : IClassFixture<SaveGameFixture> {
 	// "You cant get a settler or city when building a city" (CFC 93244).
 	[Fact]
 	public void AHutOpenedByANewCityHoldsNoSettlerOrCity() {
-		(Tile from, TileDirection _, Tile hut) = FindHutSite();
+		(Tile from, TileDirection _, Tile hut) = FindRemoteHutSite();
 		MapUnit warrior = gameData.SpawnUnit(human, Prototype("Warrior"), from);
 		// The human is behind on cities, so a hut a unit enters can hold a
 		// city.
-		CityInteractions.BuildCity(gameData.map.tiles.First(t => IsEmptyLand(t) && t.IsAllowCities() && t.DistanceTo(hut) > 3), ai, "Elsewhere");
+		LeaveBehindWithOneCity(human, hut);
 		const int level = 0;
 		Dictionary<GoodyHuts.Outcome, double> entered = GoodyHuts.Weigh(gameData, human, warrior, hut, level);
 		Assert.True(entered[GoodyHuts.Outcome.City] > 0);
@@ -328,23 +443,14 @@ public class GoodyHutTest : IClassFixture<SaveGameFixture> {
 
 	[Fact]
 	public void OnlyCivsBehindOnCitiesFindCities() {
-		(Tile from, _, Tile hut) = FindHutSite();
+		(Tile from, _, Tile hut) = FindRemoteHutSite();
 		MapUnit warrior = gameData.SpawnUnit(ai, Prototype("Warrior"), from);
-		List<City> aiCities = ai.cities.ToList();
 
-		// With no cities while another civ has one, the AI is behind.
-		ai.cities.Clear();
-		if (!gameData.players.Any(p => p.cities.Count > 0)) {
-			Player other = gameData.players.First(p => p != ai && !p.isBarbarians);
-			CityInteractions.BuildCity(gameData.map.tiles.First(t => IsEmptyLand(t) && t.IsAllowCities() && t.DistanceTo(hut) > 3), other, "Elsewhere");
-		}
+		// With one city while others have more on average, the AI is behind.
+		LeaveBehindWithOneCity(ai, hut);
 		Assert.True(GoodyHuts.Weigh(gameData, warrior, hut, GoodyHuts.MiddleLevel)[GoodyHuts.Outcome.City] > 0);
 
 		// With every other civ's cities gone, it's ahead of the average.
-		ai.cities.AddRange(aiCities);
-		if (ai.cities.Count == 0) {
-			ai.cities.Add(CityInteractions.BuildCity(gameData.map.tiles.First(t => IsEmptyLand(t) && t.IsAllowCities() && t.DistanceTo(hut) > 3), ai, "Aheadville"));
-		}
 		foreach (Player p in gameData.players.Where(p => p != ai)) {
 			p.cities.Clear();
 		}
@@ -397,15 +503,11 @@ public class GoodyHutTest : IClassFixture<SaveGameFixture> {
 	[InlineData(false)]
 	public void AHutsCityIsShownToAHuman(bool isHuman) {
 		Player player = isHuman ? human : ai;
-		(Tile from, _, Tile hut) = FindHutSite(t => t.IsAllowCities());
+		(Tile from, _, Tile hut) = FindRemoteHutSite();
 		hut.hasGoodyHut = true;
 		MapUnit warrior = gameData.SpawnUnit(player, Prototype("Warrior"), from);
-		// Behind on cities, while some other civ has one.
-		player.cities.Clear();
-		if (!gameData.players.Any(p => p.cities.Count > 0)) {
-			Player other = gameData.players.First(p => p != player && !p.isBarbarians);
-			CityInteractions.BuildCity(gameData.map.tiles.First(t => IsEmptyLand(t) && t.IsAllowCities() && t.DistanceTo(hut) > 3), other, "Elsewhere");
-		}
+		// Behind on cities, while some other civ has more.
+		LeaveBehindWithOneCity(player, hut);
 		EngineStorage.messagesToUI.Clear();
 
 		Assert.Equal(GoodyHuts.Outcome.City, EnterFinding(warrior, hut, GoodyHuts.Outcome.City));

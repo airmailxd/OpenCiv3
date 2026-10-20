@@ -25,9 +25,14 @@ namespace C7Engine;
 // military unit, away from any city, and not for units that treat all
 // terrain as roads (explorers). Maps and nothing are always possible.
 // An outcome that can't happen gets no odds, and the rest share its odds in
-// proportion to their own: the article names the conditions but not what
-// the game does when one isn't met, and dropping the outcome and weighing
-// the rest keeps the table's proportions between them.
+// proportion to their own. That is Civ3's redraw: "If the result is
+// something that you cant get (ex: barbs for expansionists), there will be a
+// redraw." (Oystein,
+// https://forums.civfanatics.com/threads/probabilities-of-goody-huts-c3c.93244/),
+// "mit unveränderten Wahrscheinlichkeiten ... (gedächtnislos)" ("with
+// unchanged probabilities, memoryless"; CivWiki, Bonushütte (Civ3),
+// https://www.civ-wiki.de/), and a memoryless redraw gives each possible
+// outcome its odds divided by the possible outcomes' total.
 public static class GoodyHuts {
 	private static readonly ILogger log = Log.ForContext(typeof(GoodyHuts));
 
@@ -83,11 +88,14 @@ public static class GoodyHuts {
 	// The unit a hut's warriors join as, if the rules have it.
 	internal const string HutUnitName = "Warrior";
 
-	// The gold a hut holds in the Ancient era, and how much more in each
-	// later era. Civ3's amounts aren't documented; this follows Civ2's
-	// smallest treasure, 25 gold, which grew later in the game.
+	// The gold a hut holds: 25, and from the Middle Ages on 25 or 50.
+	// "Befindet sich der Spieler bereits im Mittelalter, kommen auch Funde im
+	// Wert von 50 Goldstücken vor." ("If the player is already in the Middle
+	// Ages, finds worth 50 gold also occur."; CivWiki, Bonushütte (Civ3),
+	// https://www.civ-wiki.de/, compendium 07 section 12.1). UNVERIFIED: how
+	// often 50 comes up; here half the time.
 	internal const int AncientGold = 25;
-	internal const int GoldPerLaterEra = 25;
+	internal const int LaterGold = 50;
 
 	// The column of the odds tables for the player: the difficulty level's
 	// place among the game's levels, from 0 (Chieftain) to 7 (Sid). A ruleset
@@ -148,14 +156,32 @@ public static class GoodyHuts {
 		}
 	}
 
+	// Opens the huts the city's borders have grown over, for its owner.
+	// Huts "can also be opened by border growth": for an Expansionist civ a
+	// hut opened at the fourth culture ring can give a city (CivWiki,
+	// Bonushütte (Civ3), https://www.civ-wiki.de/; d73070d0,
+	// http://www.civforum.de/showthread.php?t=66671). As with a city
+	// founded next to one, no barbarians come out (no unit opened it).
+	public static void OpenWithinBorders(GameData gameData, City city) {
+		if (city.owner == null || city.owner.isBarbarians) {
+			return;
+		}
+		foreach (Tile tile in city.GetTilesWithinBorders()) {
+			if (tile != Tile.NONE && tile.hasGoodyHut && tile.owningCity == city) {
+				log.Information("{Player}'s city {City} grew its borders over a goody hut at {Tile}", city.owner, city, tile);
+				Open(gameData, city.owner, null, tile, byBorders: true);
+			}
+		}
+	}
+
 	// Opens the hut for the player, whose unit entered it, or with no unit
-	// for a city founded next to it.
-	private static Outcome Open(GameData gameData, Player player, MapUnit unit, Tile tile) {
+	// for a city founded next to it or whose borders grew over it.
+	private static Outcome Open(GameData gameData, Player player, MapUnit unit, Tile tile, bool byBorders = false) {
 		tile.hasGoodyHut = false;
 		TileChangeJournal.Record(tile);
 
 		int level = Level(gameData, player);
-		Dictionary<Outcome, double> weights = Weigh(gameData, player, unit, tile, level);
+		Dictionary<Outcome, double> weights = Weigh(gameData, player, unit, tile, level, byBorders);
 		Outcome outcome = Pick(weights);
 		log.Information("{Player} found {Outcome} in the goody hut at {Tile}", player, outcome, tile);
 
@@ -187,8 +213,8 @@ public static class GoodyHuts {
 	}
 
 	// As above, for the player; unit is null for a hut opened by a city
-	// founded next to it.
-	internal static Dictionary<Outcome, double> Weigh(GameData gameData, Player player, MapUnit unit, Tile tile, int level) {
+	// founded next to it, or by border growth if byBorders.
+	internal static Dictionary<Outcome, double> Weigh(GameData gameData, Player player, MapUnit unit, Tile tile, int level, bool byBorders = false) {
 		level = Math.Clamp(level, 0, LevelCount - 1);
 		bool expansionist = player.civilization?.traits.Contains(Civilization.Trait.Expansionist) == true;
 		IReadOnlyDictionary<Outcome, double[]> odds = expansionist ? ExpansionistOdds : BaseOdds;
@@ -202,13 +228,22 @@ public static class GoodyHuts {
 		// "You cant get a settler or city when building a city, even if you
 		// use your last settler to build the city."
 		// (https://forums.civfanatics.com/threads/probabilities-of-goody-huts-c3c.93244/)
+		// Border growth may give both.
 		bool openedByUnit = unit != null;
+		bool settlerOrCityPossible = openedByUnit || byBorders;
+		// Once every Ancient tech is known, a hut opened by border growth or
+		// a city founding holds no unit, settler or city; one opened by a
+		// unit still may (CivWiki, Bonushütte (Civ3); d73070d0, civforum.de
+		// thread 66671, post #8: "Es ist offensichtlich möglich, weiterhin
+		// auch Städte, Krieger und Siedler zu finden, wenn man Hütten mit
+		// Einheiten aufdeckt").
+		bool peopleFromCityHuts = openedByUnit || !KnowsEveryAncientTech(gameData, player);
 		Dictionary<Outcome, bool> possible = new() {
 			[Outcome.Gold] = tile.Resource == null || tile.Resource == Resource.NONE,
-			[Outcome.Unit] = HutUnitFor(gameData) != null,
+			[Outcome.Unit] = peopleFromCityHuts && HutUnitFor(gameData) != null,
 			[Outcome.Tech] = player.EraIndex() == 0 && TechsToLearn(gameData, player).Count > 0,
-			[Outcome.Settler] = openedByUnit && behindOnCities && SettlerFor(gameData, player) != null && !HasSettler(player),
-			[Outcome.City] = openedByUnit && behindOnCities && CanFoundCity(player, tile),
+			[Outcome.Settler] = settlerOrCityPossible && peopleFromCityHuts && behindOnCities && SettlerFor(gameData, player) != null && !HasSettler(player),
+			[Outcome.City] = settlerOrCityPossible && peopleFromCityHuts && behindOnCities && CanFoundCity(gameData, player, tile),
 			[Outcome.Barbarians] = unit != null && CanReleaseBarbarians(gameData, unit, tile),
 			[Outcome.Map] = true,
 			[Outcome.Nothing] = true,
@@ -223,6 +258,10 @@ public static class GoodyHuts {
 			weights[Outcome.Nothing] = 1;
 		}
 		return weights;
+	}
+
+	private static bool KnowsEveryAncientTech(GameData gameData, Player player) {
+		return gameData.techs.Where(t => EraUtils.GetEraIndex(t.EraCivilopediaName) == 0).All(t => player.knownTechs.Contains(t.id));
 	}
 
 	private static double Average(List<Player> civs, Func<Player, int> measure) {
@@ -260,8 +299,7 @@ public static class GoodyHuts {
 		string tribe = BarbarianInteractions.TribeName(gameData, tile);
 		switch (outcome) {
 			case Outcome.Tech: {
-					List<Tech> techs = TechsToLearn(gameData, player);
-					Tech tech = techs[GameData.rng.Next(techs.Count)];
+					Tech tech = PickTech(TechsToLearn(gameData, player));
 					player.AcquireTech(gameData, tech);
 					return $"The {tribe} tribe has taught us {tech.Name}.";
 				}
@@ -320,11 +358,44 @@ public static class GoodyHuts {
 	}
 
 	internal static int GoldFor(Player player) {
-		return AncientGold + GoldPerLaterEra * Math.Max(0, player.EraIndex());
+		if (player.EraIndex() <= 0) {
+			return AncientGold;
+		}
+		return GameData.rng.Next(2) == 0 ? AncientGold : LaterGold;
 	}
 
-	private static List<Tech> TechsToLearn(GameData gameData, Player player) {
-		return player.GetAvailableTechsToResearch(gameData.techs).ToList();
+	// The techs a hut can teach: Ancient-era techs the player can research,
+	// but not the one being researched unless it's the last of them. "Man
+	// kann nur Technologien der Antike erhalten, wenn diese noch nicht
+	// erforscht wurden" ("you can only receive Ancient-era techs not yet
+	// researched"; CivWiki, Bonushütte (Civ3)), and huts "won't give the
+	// tech being researched unless it is the only Ancient Era tech left"
+	// (Aeson, https://codehappy.net/apolyton/threads/43888-1.htm).
+	internal static List<Tech> TechsToLearn(GameData gameData, Player player) {
+		List<Tech> techs = player.GetAvailableTechsToResearch(gameData.techs)
+			.Where(t => EraUtils.GetEraIndex(t.EraCivilopediaName) == 0)
+			.ToList();
+		if (techs.Count > 1) {
+			techs.RemoveAll(t => t.id == player.currentlyResearchedTech);
+		}
+		return techs;
+	}
+
+	// Picks the tech a hut teaches: cheaper techs are likelier, "wobei
+	// billigere Technologien eine höhere Fundwahrscheinlichkeit besitzen als
+	// teurere" ("cheaper techs are likelier than dearer ones"; CivWiki,
+	// Bonushütte (Civ3)). UNVERIFIED: by how much; here in inverse
+	// proportion to the tech's cost.
+	internal static Tech PickTech(List<Tech> techs) {
+		double[] weights = techs.Select(t => 1.0 / Math.Max(1, t.Cost)).ToArray();
+		double roll = GameData.rng.NextDouble() * weights.Sum();
+		for (int i = 0; i < techs.Count; ++i) {
+			if (roll < weights[i]) {
+				return techs[i];
+			}
+			roll -= weights[i];
+		}
+		return techs[techs.Count - 1];
 	}
 
 	// The Warrior, or failing that the cheapest fighting land unit that
@@ -352,9 +423,22 @@ public static class GoodyHuts {
 	}
 
 	// Whether the villagers can found a city where the hut stood: somewhere
-	// a settler could, outside any other civ's borders.
-	private static bool CanFoundCity(Player player, Tile tile) {
-		if (tile.HasCity() || !tile.IsAllowCities()) {
+	// a settler could, outside any other civ's borders, for a civ that has a
+	// city already, and at least four tiles from any city: "Hütten müssen
+	// einen Abstand von mindestens 4 zur nächstgelegenen Stadt besitzen,
+	// damit sie zu einer Stadt werden können." ("a hut must be at least
+	// distance 4 from the nearest city to become a city"), distance counted
+	// as for corruption, and "Es ist erst dann möglich, eine Stadt zu finden,
+	// wenn man bereits eine besitzt." ("you can only find a city once you own
+	// one"; CivWiki, Bonushütte (Civ3); d73070d0,
+	// http://www.civforum.de/showthread.php?t=66671). UNVERIFIED: whether
+	// other civs' cities count; here they do.
+	internal const double MinCityDistance = 4;
+	private static bool CanFoundCity(GameData gameData, Player player, Tile tile) {
+		if (tile.HasCity() || !tile.IsAllowCities() || player.cities.Count == 0) {
+			return false;
+		}
+		if (gameData.cities.Any(c => c.location != null && c.location != Tile.NONE && CityDistance(c.location, tile) < MinCityDistance)) {
 			return false;
 		}
 		if (tile.owningCity != null && tile.owningCity.owner != player) {
@@ -368,6 +452,19 @@ public static class GoodyHuts {
 			return !SettlerLocationAI.IsInvalidCityLocation(tile);
 		}
 		return tile.neighbors.Values.All(n => n == Tile.NONE || !n.HasCity());
+	}
+
+	// The distance as corruption counts it, a diagonal step one and a half:
+	// max(x,y) + min(x,y)/2 along the map's two axes.
+	internal static double CityDistance(Tile a, Tile b) {
+		GameMap map = a.map;
+		int dx = Math.Abs(map.CalculateXDelta(a.XCoordinate, b.XCoordinate));
+		int dy = Math.Abs(map.CalculateYDelta(a.YCoordinate, b.YCoordinate));
+		// Each step along one of the map's diagonal axes changes both
+		// coordinates by one.
+		double u = (dx + dy) / 2.0;
+		double v = Math.Abs(dx - dy) / 2.0;
+		return Math.Max(u, v) + 0.5 * Math.Min(u, v);
 	}
 
 	// Barbarians only come out of huts when they're in the game at all, away
