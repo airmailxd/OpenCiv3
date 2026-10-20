@@ -167,9 +167,23 @@ Sources for the table:
     to. Default is Regent."
   - This is the field Bamspeedy (37490) meant by the "default AI intelligence" setting, and it gives TheNiceOne's
     Regent answer (37490) unless a mod changes it. Pyrkaige's Monarch (68642) is the outlier.
-  - Content citizens, military law and the barbarian bonus are per-difficulty DIFF fields like the OCN
-    percentage. That the AI reads them at its per-player level too is TheNiceOne's claim (37490) and is
-    consistent with the code structure, but only the OCN use is shown in code.
+  - **The same holds in Conquests (Firaxis).** In an Apolyton thread on the C3C 1.0 difficulty table
+    (https://codehappy.net/apolyton/threads/101437-1.htm, 13 Nov 2003), Pyrkaige again said the AI uses Monarch
+    values; alexman ("Firaxis Games Software Engineer") answered that the AI plays at Regent: "Yes, it does, unless
+    you change the "AI Default Difficulty Level" in the General Settings tab." Harovan, same thread, on the start
+    units: "1 is typically a settler and 2 a worker, and not vice versa."
+  - **Content citizens: the AI's are Regent's (Firaxis).** Soren Johnson, answering "What does artificial
+    intelligence default difficulty level mean?" (Apolyton, https://codehappy.net/apolyton/threads/52411-1.htm,
+    8 Jun 2002, vanilla): "It determines the "difficulty level" for the AI civs." He gives the content citizens
+    as the example ("on regent, cities start with 2 content citizens") and concludes: "Thus, for the standard
+    bic file, the AI always plays at Regent, regardless of whether the human plays at Chieftain through Deity."
+    So AI cities have 2 content citizens at every game difficulty in the standard rules. TheNiceOne (37490,
+    25 Nov 2002) says the same from play: "on emperor/deity you have only your first citizen born content,
+    while the AI still has two".
+  - Military law and the barbarian bonus are per-difficulty DIFF fields too. Soren's "the AI always plays at
+    Regent" covers them in general terms, but he names only the content citizens. TheNiceOne (37490): "the AI
+    has still a 200% bonus against barbarians even though the human player loses its entire bonus on deity."
+    Military law is 1 at every level in the stock DIFF table, so it cannot differ.
 - **The AI gets extra optimal cities on Monarch and above (code).** C3X-NOTES `ocn_formula.txt`
   (https://github.com/maxpetul/C3X/blob/master/Notes/ocn_formula.txt) gives the stock OCN as
   `ocn = max (1, floor(s_diff * (b + n_fp + n_com + n_gov + n_ai) / 100))`, with "n_ai is special contrib for AI
@@ -580,11 +594,19 @@ then chooses a target second."
   you have an MPP".
 - **Other ways into war (code).**
   - A refused demand or a nuke on a third party (aggression-based chance, 2.1). C3X-SRC names the stock
-    `Leader_ai_roll_to_declare_after_provocation`.
+    `Leader_ai_roll_to_declare_after_provocation`. The gates that decide when the AI makes a demand at all
+    (power place, attitude and aggression rolls, war-damage balance, a 32-turn cooldown per target) are in
+    `06-diplomacy-and-espionage.md` 6.9, from C3X-SRC's re-creation of the stock sequence. The war roll after a
+    refusal is skipped when the two have a mutual protection pact.
   - The submarine bug. C3X-INI: "The AI runs into invisible units (such as submarines) belonging to other players
     because it blindly follows paths produced for it by the game's pathfinder ... After colliding with an invisible
     unit, the AI initiates combat, declaring war if necessary." README-V 1.16f: "The AI no longer reacts to
     submarines that it cannot see."
+- **When the AI accepts peace (Firaxis).** Soren Johnson (https://codehappy.net/apolyton/threads/41866-1.htm,
+  post #27, 11 Feb 2002, vanilla): "The AI's willingness to discuss peace terms depends on a) how long the war has
+  lasted and b) how much it is winning or losing the war." The time factor is "there to prevent people from
+  war-jacking the AI by continually declaring war and then agreeing to lop-sided peace agreements." Full entry in
+  `06-diplomacy-and-espionage.md` 6.5.
 - **Chokepoints (Firaxis).** Mike Breitkreutz (Firaxis programmer), https://codehappy.net/apolyton/threads/89862-1.htm
   (20 Jun 2003): "The AI has always been programmed to seize chokepoints..."; on PTW 1.21f: "I don't believe any
   changes were made to the AI for 1.21f."
@@ -604,12 +626,24 @@ power, attitude and open land):
   much when there is lots of land still to be settled".
 - civverguy: "they move a couple units in your borders and declare war on you the next turn."
 - I. Larkin: "if AI have reach the point that they can't support their military anymore they declare war no matter what..."
+- Risa (Apolyton, https://codehappy.net/apolyton/threads/102345-1.htm, C3C, 23 Nov 2003): "Once an AI runs out of
+  space to expand, it's almost guaranteed to be involved in wars within 20 turns." This fits the code roll that
+  halves the plotting chance while open city spots remain on the capital's continent (3.4.1).
+- Aeson (Apolyton, https://codehappy.net/apolyton/threads/39845-2.htm, 22 Jan 2002, vanilla): "The AI is actually
+  more willing to declare war if you have something they want and won't trade it to them." This fits the demand
+  path (a refused demand can lead to war), not the plotting code.
+- Several PTW 1.21 players (Apolyton, https://codehappy.net/apolyton/threads/89030-1.htm, Jun 2003) say the AI
+  declares war when it can no longer pay a per-turn deal. alva: "If the AI goes bankrupt, he will declare war on
+  you, yes."; Blaupanzer: "the AI will declare war on a civilizatioin if it is no longer capable of fulfilling a
+  per turn deal with it." dexters calls the idea that the AI ignores its per-turn deals "another myth". No test or
+  code reading; the plotting rolls above have no deal term besides the resource-trade score cut.
 - **Units in their territory.** The AI first asks you to leave. If you are still there the next turn, it
   can force you out or go to war. This is a forum summary from the search for "units in our territory"
   and has not been checked against a primary quote (the turn count is UNVERIFIED). The two-step order (ask, then "leave or
   declare war") matches the AI Attitude Study in `06-diplomacy-and-espionage.md` 6.7 (asked to leave +1; told to
   leave or declare war +4). Players can make the same request: README-PTW fixed a "bug where you could not ask an
-  AI civ to remove its units from your territory."
+  AI civ to remove its units from your territory." notyoueither (Apolyton 102345, C3C, Nov 2003): "1 out of 3
+  or 4 times the AI will respond to demands to leave my territory with a DoW." (one player's count)
 
 ### 3.5 War: how it fights
 
@@ -646,13 +680,20 @@ power, attitude and open land):
 ### 3.6 Workers, sliders, government, trade
 
 - **Too few workers.** Ision (92917): "the AIs never-ever build anywhere near enough workers." See 3.2 for the
-  code reading (zero value once it has "enough") and the 80-90%-of-cities observation.
+  code reading (zero value once it has "enough") and the 80-90%-of-cities observation. vmxa (CFC "No Settlers, No
+  Workers?", https://forums.civfanatics.com/threads/no-settlers-no-workers.704355/, C3C, Aug 2026, an explanation
+  from play, not a test): "It is not uncommon for AI to be starved of workers on Sid" because "They can build units
+  so cheaply that they hit their support cap and start disbanding workers."
 - **Worker habits (Firaxis, PTW).** alexman ("Firaxis Games Software Engineer"),
   https://codehappy.net/apolyton/threads/84396-1.htm (26 Apr 2003), on PTW 1.21f against 1.29f: "The AI no longer
   sells workers for just 30 gold, crippling themselves and helping the human" (now about 120 gold), and "The AI no
   longer irrigates grassland tiles in Despotism, unless there is a good reason to do so". README-V 1.17f: "Fixed
   AI worker loop bug." dexters, https://codehappy.net/apolyton/threads/88537-1.htm (Jun 2003), saw the AI disband
-  workers "rathern than sell off its improvements when it has 0 gold in the treasury".
+  workers "rathern than sell off its improvements when it has 0 gold in the treasury". joncnunn
+  (https://codehappy.net/apolyton/threads/76212-1.htm, PTW, 5 Feb 2003) saw the same change in play: "Under the
+  latest PTW patch, the AI stops building irrigation on grassland under despotism." Automated workers put pollution
+  first: Harovan (https://codehappy.net/apolyton/threads/59554-1.htm, Aug 2002): "Cleaning pollution is high on
+  their priority list".
 - **Out of money (code).** C3X-INI on the stock rule: when a player can't pay upkeep the game sells buildings
   (except maintenance-free or gold-producing ones), then disbands units (except free ones), then switches cities to
   Wealth; "For AI players, the game alternates the order of (1) and (2) each turn." Under its optional rule
@@ -799,6 +840,12 @@ condition information."
   100") over the turns played, times difficulty. Technoron, same thread: cultural borders, not city radius,
   decide the land count. PEDIA-C3C `#GCON_Victory`: the histograph "looks at the total "Score" generated by all
   civilizations turn by turn over the course of the game."
+- **Land and coast tiles; the average is rounded down (Hall of Fame staff).** Dianthus, explaining a 0-point
+  score, https://forums.civfanatics.com/threads/lulthymes-0-point-histograph.114890 (22 Mar 2005, C3C era): "The
+  score for each turn is based on the number of land/coast tiles in your territory" and "the number of
+  happy/content citizens and the number of specialists"; "No points are gained for destroying a civilization."
+  The player "finished in 2050AD" (no finish bonus) and "His average was above 0, but less than 0.5, so the score
+  got rounded down to 0." LulThyme (same thread): "I am not sure how rounding is done for score."
 - **Difficulty multiplier.** In C3C it is 1 to 8. SirPleb (68813): Conquests multipliers are "Chieftain:
   1, Warlord: 2, Regent: 3, Monarch: 4, Emperor: 5, Demigod: 6, Deity: 7, Sid: 8". Before Conquests they
   were "Chieftain: 1, ... Deity: 6".
@@ -816,6 +863,31 @@ condition information."
   wins benefit most because BC years count as negative. The term "Jesus score" was not found in any
   source (see UNVERIFIED).
 
+### 5.3 Demographics screen (community, PTW debug tests)
+
+The demographics screen does not feed the score. Its rows were worked out by Bamspeedy, "How the Demographics
+works", https://forums.civfanatics.com/threads/how-the-demographics-works.37033/ (19 Nov 2002, PTW, debug mode).
+Quotes:
+
+- Approval rating: "The percentage of your people that are happy." Bamspeedy later agreed (post #17, Dec 2002)
+  that specialists are not counted as content.
+- Population: "Add up all the population you get from the city view from all your cities."
+- GNP: "Total gold in all your cities before corruption takes a bite out of it."
+- Mfg. Goods: "Total unwasted shields in all your cities."
+- Land Area: "# of tiles in your territory * 100."
+- Literacy: "% of your citizens who live in a city with a library, university, AND research lab." Edit (post #10):
+  "When you get the literature tech, your literacy goes from a minimum of 0% to 3%, and 3% is added to your literacy
+  rate." Great Wonders with the scientific flag can also count for a city, though not Copernicus's (his edit,
+  summarised).
+- Disease: "% of the tiles in your territory that is floodplains or jungle."
+- Life expectancy: "% of your citizens who live in a city with a granary, aqueduct, AND hospital", between 20
+  and 99 (summarised).
+- Family size: "The average amount of excess food that each city is producing/2."
+- Military service: "10 years * # of military units / # of citizens."
+- Pollution: the number of currently polluted tiles (post #10, summarised).
+
+Not rechecked for C3C, which added Marsh as a disease terrain.
+
 ---
 
 ## Disputed
@@ -827,8 +899,10 @@ Items marked RESOLVED were settled in the deep pass of 2026-10-20 and are kept s
    for the OCN percentage the code uses that per-player level (C3X-NOTES `ocn_formula.txt`). For the AI it is the
    default level, Regent in the stock rules (alexman 56739: "If you haven't changed that, it's Regent"; BIQ-C3C
    `DefaultDifficultyLevel=2`). That matches TheNiceOne (37490) and Bamspeedy's "default AI intelligence" (37490).
-   Pyrkaige's Monarch (68642) is not supported. Still open: code confirmation for content citizens, military law
-   and the barbarian bonus (only the OCN use is shown in code). Note the separate AI-only OCN term for Monarch and
+   Pyrkaige's Monarch (68642) is not supported; alexman answered it for C3C 1.0 (Apolyton 101437, 13 Nov 2003,
+   1.2). Content citizens are settled by Soren Johnson (Apolyton 52411,
+   1.2: "for the standard bic file, the AI always plays at Regent"). Military law is 1 at every level. Still
+   open: a code or test confirmation for the barbarian bonus (TheNiceOne's 200% at Deity is a claim). Note the separate AI-only OCN term for Monarch and
    above (1.2), which is tied to the game's difficulty, not the AI's own level.
 2. **Deity values. RESOLVED.** BIQ-C3C DIFF: Deity cost factor 6, OCN 60%, AI-AI trade 170; Demigod 7, 70%, 160.
    The 0.7 figure belongs to C3C Demigod. Vanilla/PTW Deity was 70% and 160 (Pyrkaige 37490, 68642; TimBentley 104294).
@@ -880,6 +954,15 @@ Items marked RESOLVED were settled in the deep pass of 2026-10-20 and are kept s
     GAME stores 66 and 66, and the MANUAL says "two-thirds". Treat 66% as the C3C rule. The PTW figure is not
     checked against the PTW rule file.
 
+15. **AI extra start units: at game start or at the first city?** (37490 page 2,
+    https://forums.civfanatics.com/threads/ai-difficulty-level-bonuses.37490/page-2.) Spoonwood (21-22 Sep 2025,
+    debug-mode tests on a scenario save at Demigod and Sid): "difficulty level isn't the only factor for the AIs to
+    receive extra units"; extra units appeared only after an AI founded a city, and a 4000 BC retire screen showed
+    equal power bars, "suggesting that AIs don't start in 4000 BC with extra units." justanick (22 Sep 2025): "When
+    you start a regular game, a Sid AI will start immediately with all extra units it is supposed to have"; he
+    guesses the scenario lacked starting positions. Pyrkaige (page 1, 2002): "At Monarch and above, the AI civs get
+    extra offensive and defensive units when they start the game." Unsettled for random maps.
+
 ## UNVERIFIED / open questions
 
 - **"Jesus score."** No source uses this term. The likely meaning is the year-based finish bonus, where
@@ -888,7 +971,9 @@ Items marked RESOLVED were settled in the deep pass of 2026-10-20 and are kept s
 - **Culture victory in C3C.** The twice-the-rival condition is in PEDIA-V and PEDIA-PTW and in C3C player
   reports, but not in PEDIA-C3C. Whether eliminated civs count as "the next best civ" is unanswered (Jivilov,
   356991).
-- **Domination tiles.** Which water tiles count. Coast and sea count for territory. Aeson and SirPleb disagree
+- **Domination tiles.** Which water tiles count. Coast and sea count for territory (but Dianthus, 5.1, says the
+  score counts "land/coast tiles"). Spoonwood (https://forums.civfanatics.com/threads/histograpgh-attempt-close-but-no-cigar.657407,
+  Apr 2020): "sea squares do NOT count towards your domination limit." Aeson and SirPleb disagree
   about the domination share (43643), and Maximizing-your-score says sea is excluded from the limit.
 - **Seafaring sinking.** The tested 50%/75% survival figures are in `01-combat-and-units.md`. There is no Firaxis number.
 - **Commercial building discount.** BIQ-C3C flags Marketplace, Bank, Stock Exchange, Harbor, Airport and
@@ -902,7 +987,8 @@ Items marked RESOLVED were settled in the deep pass of 2026-10-20 and are kept s
   a weighted pick, the exact cooldown after peace (Flintlock believes 8 turns), and how the unit AI uses aggression.
 - **AI sliders.** The code sets them each turn (`ai_adjust_sliders`, capped by the government rate cap). How it
   chooses the split is not published. Observed research rates were 30-70% (vanilla).
-- **Difficulty fields for the AI.** Code confirmation that content citizens, military law and the barbarian bonus
-  come from the AI's per-player (default, Regent) level.
+- **Difficulty fields for the AI.** Content citizens are Regent's (Soren, 1.2) and military law is the same at
+  every level. The barbarian bonus still lacks a code reading or test.
+- **When the AI's extra starting units appear.** See Disputed 15.
 - **Golden-age trigger.** It depends on traits and wonder flags (EDHELP quoted in section 2). Leave it to the
   golden-age section.

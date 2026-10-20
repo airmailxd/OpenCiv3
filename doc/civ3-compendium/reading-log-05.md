@@ -101,3 +101,38 @@ No fetch failed. No HTTP 429 was hit; WebFetch worked for every CFC URL. Plain c
 - Apolyton WW threads 36705, 38373, 92121; `War happines works!` 246590; Apolyton `Assimilation`-related 58829, 32096, 97150; `Immigration` 332756.
 - Mobilization Apolyton original (codehappy 51788). Patch v1.21f ReadMe thread 20502: the local README already holds the text.
 - The rest of the CFC FAQ page (offset 100000).
+
+## Second reading round (2026-10-20)
+
+Local and code-level:
+
+- `<civ3>/Conquests/conquests.biq` GOVT-vs-GOVT block (QueryCiv3, scratch reader `r2tech`): matrix values match 5.11; each GOVT record holds one entry per government, so the record is the edited government; `CanBribe` is uninitialised fill. Added to open question 5.
+- EDHELP `Bribery_Modifier_Vs_Government_Properties_.htm`: the modifier is "against a unit of the selected government type", so the selected column is the target. Added to open question 5.
+- https://github.com/maxpetul/C3X/blob/master/injected_code.c (secondary-palace placement, "identical to what the base game uses to find a new location for the palace"): confirms DaveMcW's palace-jump scoring, 17×17 square and tie rule for C3C. Added to 5.14.
+
+Apolyton (codehappy.net mirror and apolyton.net):
+
+- https://codehappy.net/apolyton/threads/63506-1.htm : Catt relaying Soren's 1-5 + 0-3 anarchy formula; planetfall's reload anecdote. Added to 5.7 and Disputed 1.
+- https://apolyton.net/forum/civilization-series/civilization-iii/138928-how-long-does-anarchy-take and its /page2 : Religious anarchy 2 turns in C3C, 1 before (punkbass2000, Modo44); Tarquinius's S+R+1 recollection. Added to 5.7 and Disputed 2.
+- https://codehappy.net/apolyton/threads/58829-1.htm : Army counts by its contents for resistance (vondrack). Added to open question 4.
+- https://apolyton.net/forum/miscellaneous/archives/civ3-general-archive/116300-various-questions-civ-improvements : Jaybe on Army resistance counting (added to open question 4); anarchy opinions.
+- https://apolyton.net/forum/miscellaneous/archives/civ3-general-archive/82952-no-culture-for-you-revolution-calling-and-other-questions : nothing new (anarchy length fixed at the start, Stuie; vague).
+- https://codehappy.net/apolyton/threads/43034-1.htm : nothing new (1.18 Fascism wish list).
+- https://codehappy.net/apolyton/threads/31350-1.htm : nothing new.
+- https://codehappy.net/apolyton/threads/36705-1.htm : nothing new.
+- https://codehappy.net/apolyton/threads/38373-1.htm : nothing new.
+- https://codehappy.net/apolyton/threads/92121-1.htm : nothing new (alexman: PBEM war weariness rises more slowly; multiplayer).
+- https://codehappy.net/apolyton/threads/32096-1.htm : nothing new.
+- https://codehappy.net/apolyton/threads/97150-1.htm : nothing new.
+- https://codehappy.net/apolyton/threads/51788-1.htm : nothing new (Mobilization; section 2).
+- https://codehappy.net/apolyton/threads/63161-2.htm : nothing new.
+- https://codehappy.net/apolyton/threads/50455-2.htm : nothing new.
+- https://codehappy.net/apolyton/threads/41330-2.htm : nothing new.
+- https://codehappy.net/apolyton/threads/32903-1.htm : nothing new (Nov 2001 wish list).
+
+CivFanatics:
+
+- https://forums.civfanatics.com/threads/massive-despot-rush-strategy.10093/ : Ferd's 20 shields per citizen and empty-box doubling (vanilla). Added to 5.5.
+- https://civfanatics.com/civ3/faq/ (offset 100000, the rest of the page): nothing new for section 5 (score, radar, global warming only).
+
+Still unread for section 5: the government comparison threads (54897, 205540, 332136, 47265, 15175, 67393, 654364, 703950), the later pages listed above (131546 p2, 81587 p2-3, 22759 p2-5, 89933 p2, 41330 p3, 72862 p2, 114078 p2-3, 430084 p2-3), CFC `War happines works!` 246590 and `Immigration` 332756. All look like opinion threads.

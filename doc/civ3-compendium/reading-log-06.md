@@ -124,3 +124,53 @@ Spies: Useless or Indispensible? (81355), How do I plant a spy (64558),
 UN threads (51960, 93177, 75554, 39204),
 v1.17 AI vs AI tech trading (42905), What technologies don't the AIs research
 (61744).
+
+## Second reading round (2026-10-20)
+
+Code-level:
+
+- https://github.com/maxpetul/C3X/blob/master/injected_code.c (`try_ai_demand_from_other_ai`, `patch_Leader_get_attitude_toward`): the stock demand gates in order (power place, attitude and aggression rolls, war-damage balance, 32-turn cooldown, MPP block on the war roll); the attitude score's sign (higher is worse). Added to 6.9 and 6.7.
+- https://github.com/maxpetul/C3X/blob/master/Civ3Conquests.h (`struct Reputation`): the attitude memory counters. Added to 6.7.
+- https://github.com/maxpetul/C3X/blob/master/changelog.txt : the extraterritorial-colony sign fix (supports the sign reading); nothing else for section 6.
+- https://github.com/maxpetul/C3X/blob/master/README.md : nothing new for section 6 (bug list only; "Possible division by zero in AI logic to evaluate proposed alliances").
+
+Apolyton (codehappy.net mirror):
+
+- https://codehappy.net/apolyton/threads/42905-1.htm : **Soren Johnson** on AI-AI tech trades (full value, half value at worst, only known civs count, buyer's progress, per-turn deals only from income). Added to 6.8 and 6.6.
+- https://codehappy.net/apolyton/threads/42905-2.htm, -3.htm, -4.htm : AIs at war don't trade with each other (Zachriel, ShuShu); wonder-tech value observation (Ironikinit); Aeson's AI-AI price ratio (not used).
+- https://codehappy.net/apolyton/threads/49585-1.htm, -2.htm, -3.htm : observed strategic-resource prices (Hurricane, player1); unsourced "cities only for peace" claim (Random Passerby). Added to open item 7 and Disputed.
+- https://codehappy.net/apolyton/threads/59508-1.htm : JohnM2433, AI GPT capped at income. Added to 6.6.
+- https://codehappy.net/apolyton/threads/59508-2.htm : nothing new.
+- https://codehappy.net/apolyton/threads/81355-1.htm : Jaybe, no spy lockout in 1.16, 3-4 turns in PTW. Added to Disputed.
+- https://codehappy.net/apolyton/threads/81355-2.htm : nothing new.
+- https://codehappy.net/apolyton/threads/80040-1.htm : nothing new (opinions).
+- https://codehappy.net/apolyton/threads/80040-2.htm : nothing new (restates the PTW readme's "2-4 turns"; Odin's planting-at-war anecdote).
+- https://codehappy.net/apolyton/threads/33095-1.htm : nothing new.
+- https://codehappy.net/apolyton/threads/33963-1.htm, -2.htm, -3.htm : nothing new (road-cutting resource exploit, gold overflow bug; vanilla 2001).
+- https://codehappy.net/apolyton/threads/99668-1.htm : nothing new (war cuts a coastal trade route; unsourced AI-AI rep claim).
+- https://codehappy.net/apolyton/threads/33455-1.htm, -2.htm : nothing new.
+- https://codehappy.net/apolyton/threads/59601-1.htm, -2.htm : nothing new.
+- https://codehappy.net/apolyton/threads/64882-1.htm, -2.htm : nothing new (privateer ownership anecdotes; the study already has the privateer effects).
+- https://codehappy.net/apolyton/threads/37376-1.htm : nothing new.
+- https://codehappy.net/apolyton/threads/31344-1.htm : nothing new (embassy basics).
+- https://codehappy.net/apolyton/threads/64558-1.htm : nothing new.
+- https://codehappy.net/apolyton/threads/75554-1.htm, -2.htm : nothing new (no UN interval or candidate rule).
+- https://codehappy.net/apolyton/threads/39204-1.htm : nothing new.
+- https://codehappy.net/apolyton/threads/61744-1.htm (page 1 of 2) : nothing new (anecdotes).
+- https://codehappy.net/apolyton/threads/41866-2.htm : nothing new.
+- https://codehappy.net/apolyton/threads/53506-2.htm : nothing new.
+
+Local and CivFanatics:
+
+- `<civ3>/Conquests/conquests.biq` TECH flags (QueryCiv3, scratch reader `r2tech`): trade over sea = Astronomy, over ocean = Navigation and Magnetism, map trading = Navigation, communication trading = Printing Press, MPP and embargo = Nationalism, MA and diplomats = Writing, ROP = Map Making. Added to 6.4.
+- `<civ3>/Conquests/Text/Civilopedia.txt` `GCON_Trade` (water routes need Map Making / Navigation / Magnetism), `TERR_Sea`, `TERR_Ocean`, `TERR_Coast`: the sea-route tech discrepancy. Added to 6.4.
+- https://codehappy.net/apolyton/threads/79615-1.htm : alexman (Firaxis) on privateers costing attitude, not reputation. Added to 6.7.
+- https://forums.civfanatics.com/threads/how-to-form-a-strategic-alliance.154837/ : ending an alliance by destroying the enemy (SimpleMonkey, TimBentley). Added to 6.3.
+- https://forums.civfanatics.com/threads/pangea-maps-and-trading.689998/ : one partner needs Astronomy; barbarian galleys cut coastal routes; Great Lighthouse. Added to 6.4.
+- https://forums.civfanatics.com/threads/befriending-ai-the-fastest-way.189245 : not Civ3 (Civ4).
+- https://forums.civfanatics.com/threads/how-do-you-get-to-ai-to-go-to-war.77022/ : fetch failed (CFC error page).
+- https://forums.civfanatics.com/threads/shut-down-trade-for-an-entire-civilization-during-wartime.160680/ : nothing new (pillage and blockade advice).
+- https://forums.civfanatics.com/threads/using-settlers-to-steal-resources.698017/ : nothing new for section 6 (border-flip anecdotes, section 3).
+- https://forums.civfanatics.com/threads/modern-age-big-picture-tech-trading-lower-difficulty-levels.692320/ : nothing new (broke AIs can't buy techs at low levels).
+
+Still unread for section 6: Sneaky tactics during Peace (7619), 77022 (retry), Machiavellian Doctrine page 2, AI refusing GPT page 2, 61744 page 2, and the re-reads listed under "Left unread" above. The UN threads (75554, 39204) and the Apolyton list there are now read.

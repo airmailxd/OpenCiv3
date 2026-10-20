@@ -102,3 +102,48 @@ Deep pass of 2026-10-20. One line per URL or local source read: what it contribu
 - https://forums.civfanatics.com/threads/ai-difficulty-level-bonuses.37490/ : fetch failed (HTTP 429, three tries); already cited from earlier passes.
 - https://forums.civfanatics.com/threads/tmits-guide-to-un-victories.304815 : fetch failed (HTTP 429).
 - Web searches (2): "civ3 AI city placement distance" (only Civ4/Civ5 results plus 408506) and "C3X city location desirability" (no code description found).
+
+## Second reading round (2026-10-20)
+
+Code-level:
+
+- https://github.com/maxpetul/C3X/blob/master/injected_code.c (`try_ai_demand_from_other_ai`): the stock demand gates; the refusal war roll is blocked by an MPP. Cross-referenced in 3.4.1 (full text in section 6.9).
+- https://github.com/maxpetul/C3X/blob/master/README.md , changelog.txt , Notes/"Antal's Hex Patches.txt" : nothing new for section 8.
+
+CivFanatics:
+
+- https://forums.civfanatics.com/threads/ai-difficulty-level-bonuses.37490/ (page 1, now read in full): verbatim TheNiceOne on AI content citizens and the barbarian bonus. Added to 1.2.
+- https://forums.civfanatics.com/threads/ai-difficulty-level-bonuses.37490/page-2 : Spoonwood vs justanick (2025) on when AI extra start units appear; MAS "the AI "thinks" the same at all difficulty levels". Added as Disputed 15.
+- https://forums.civfanatics.com/threads/useful-patches-for-civ-3-conquests-v1-22.526285/ (page 1) and /page-2 : nothing new for section 8 (Civinator: the stock AI misassigns citizens after a government change, an observation).
+- https://forums.civfanatics.com/threads/how-the-demographics-works.37033/ : Bamspeedy's demographics rows (PTW debug tests). Added as 5.3.
+- https://forums.civfanatics.com/threads/lulthymes-0-point-histograph.114890 : Dianthus, land/coast tiles, no points for destroying a civ, average rounded down. Added to 5.1 and the domination open question.
+- https://forums.civfanatics.com/threads/histograpgh-attempt-close-but-no-cigar.657407 : Spoonwood, sea tiles don't count toward the domination limit. Added to the open question.
+- https://forums.civfanatics.com/threads/no-settlers-no-workers.704355/ : vmxa, Sid AIs disband workers at the support cap. Added to 3.6.
+- https://forums.civfanatics.com/threads/the-lazy-rulers-guide-to-a-histographic-victory-in-10-steps.299691/ : nothing new (conquest strategy).
+- https://forums.civfanatics.com/threads/very-short-summary-for-deity-level.162116/ : nothing new.
+- https://forums.civfanatics.com/threads/civilization-3-trait-rate.61001/ : nothing new (trait opinions, PTW).
+- https://forums.civfanatics.com/threads/tmits-guide-to-un-victories.304815 : not Civ3 (Civ4; per reading-log-06), not refetched.
+
+Apolyton (codehappy.net mirror and apolyton.net):
+
+- https://codehappy.net/apolyton/threads/52411-1.htm : **Soren Johnson**, the AI default difficulty sets the AI's level; "on regent, cities start with 2 content citizens"; "the AI always plays at Regent". Settles content citizens (1.2, Disputed 1).
+- https://codehappy.net/apolyton/threads/101437-1.htm : alexman (Firaxis), C3C 1.0: the AI plays at Regent "unless you change the "AI Default Difficulty Level""; Harovan on start unit 1/2. Added to 1.2 and Disputed 1.
+- https://codehappy.net/apolyton/threads/41866-1.htm : Soren on when the AI accepts peace. Added to 3.4.1 (cross-reference to 6.5).
+- https://codehappy.net/apolyton/threads/102345-1.htm : Risa (wars within 20 turns once land runs out), notyoueither (DoW 1 in 3-4 when told to leave). Both added to 3.4.2; Catt on the game-wide aggression setting is already covered (FLINTLOCK-WAR post #8).
+- https://codehappy.net/apolyton/threads/39845-2.htm : Aeson, the AI declares war when you won't trade what it wants. Added to 3.4.2.
+- https://codehappy.net/apolyton/threads/39845-3.htm : nothing new (second-hand Soren: the AI sees the whole map).
+- https://codehappy.net/apolyton/threads/89030-1.htm : PTW 1.21 players, the AI declares war when it can't pay a per-turn deal. Added to 3.4.2.
+- https://codehappy.net/apolyton/threads/61489-1.htm and -2.htm : nothing new (Catt's figures misstate the cost factor).
+- https://codehappy.net/apolyton/threads/93287-1.htm and -2.htm : nothing new.
+- https://codehappy.net/apolyton/threads/61900-1.htm : nothing new (poll).
+- https://codehappy.net/apolyton/threads/50345-2.htm and -3.htm : nothing new (BillChin: "The current AI always expands to available space").
+- https://codehappy.net/apolyton/threads/66928-2.htm : nothing new.
+- https://codehappy.net/apolyton/threads/34826-2.htm : nothing new.
+- https://codehappy.net/apolyton/threads/102278-2.htm : nothing new.
+- https://codehappy.net/apolyton/threads/93177-2.htm : nothing new (no UN interval on page 2).
+- https://apolyton.net/forum/civilization-series/civilization-iii/136613-difficulty-levels : nothing new (editor table).
+- https://apolyton.net/forum/civilization-series/civilization-iii/133999-the-differences-in-difficulty-levels : nothing new.
+- http://apolyton.net/showthread.php/143061-AI-bonuses-and-penalties-per-difficulty-level : not Civ3 (Civ4).
+- Web searches (3, codehappy.net/apolyton.net only, by a helper agent): AI difficulty bonuses, AI war declaration, anarchy and city count.
+
+Still unread for section 8: `Play Deity like Chieftain` 91523, `Finally winning on Deity` 100078, `Sid Strategies` 347484, `HOLY JIHAD!` 116220, the civ-review threads (opinion), `gotm2 and qsc` 150462, `A guide to tiny high scores` 78888, `top rank` 77599, `Useful Patches` pages 3-12.

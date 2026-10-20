@@ -108,3 +108,62 @@ Deep pass of 2026-10-20. One line per URL or local source read: what it contribu
 - CFC: `small farms` 693526; `Irrigation through Hills with Cities?` (Apolyton 121265); `Workers: What Do I Do with Them?` 276289; `Other uses for workers` 13744; `Forest chop diagram` (civfanatics.net image); `Getting the AI to use worker units...` 515992; `No Settlers, No Workers?` 704355; `Keeping Resources in Check` 391951; `Resources` 158705; `The Most Important Part of Any Endgame: Oil` 99693; `Needing more Strategic Resources` 361762; `No coal anywhere??` 340842; `How to add resources to C3C` 105217; `Never getting any strategic resources` 9405; `Strategic resources not there, why?` (Apolyton 55680); `Maya Flood Plain Start` 74466; `Are camps useful in C3C?` 361305; `Barbarian spawning` 689280; `Limit the number of barbarians?` 674182; `Barbarian spawn gamebreaking` 602454; `Custom Map - "Raging Barbarians"` 460704; `How to use barbarians as settlers?` 166058; `what is the best map settings` 297735; the seed threads 703383 / 703324 / 264492; `Settle the Land` 396622; `Worker moves` forum thread 93408; `Things civilopedia can't explain` 470744 (429); `Useful Patches for C3C v1.22` 526285 (429); `Today I Learned` pages 2-9.
 - Apolyton/codehappy: `We need more terrains` 60600; `Obtaining Scarce Resources` 35769; `Impact of scarce strategic resources` 40421; `Final Verdict on Strategic Resources` 33565; `Partial and pointless formulae: resource cost` 71404; `Production, Consumption and Exchange of Resources` 52277; `Resources - The old way rules` 37568; `Horse resource is bogus` 34565; `Colony Exploit` 100571; `A Study in AI Tilework` 76212; `How to automate workers correctly?` 59554; `Worker Worries` 79678; `Absorbing initial worker` 120973; `Triple Threat` 52270; `Stronger Barbarians.` 95755; `Contact with Barbarians? (1.17f)` 43315; `Barbarians! WTF!!??` 60492; `Global Warming. It would be nice if...` 60246; `Does the Iron Works Cause Pollution?` 76575; `Do Recycling Centers work?` 35557; the start-location threads 101612 / 42110 / 46606 / 62455.
 - civforum.de 66671 page 3.
+
+## Second reading round (2026-10-20)
+
+Local and code-level:
+
+- https://github.com/maxpetul/C3X/blob/master/Notes/generate_resources.txt : the stock map generator's resource placement (eligibility rules, amounts, luxury clumps on one continent, bonus loop). Added to §6.2.
+- https://github.com/maxpetul/C3X/blob/master/injected_code.c : water bodies of at most 21 tiles treated as lakes ("Mimic vanilla behavior"). Added to Disputed 13.
+- https://github.com/maxpetul/C3X/blob/master/changelog.txt and README.md : nothing new (the Writing disease bug again: the fix "causes a lot more disease under the standard rules").
+- https://github.com/maxpetul/C3X/blob/master/Notes/phantom_resource_bug.txt , sub_bug_notes.txt , expanding_work_radius.txt , "Antal's Hex Patches.txt" : nothing new for section 7 (Antal's v1 notes repeat the 2-tile settle limit).
+- Manual text extract (scratchpad `manual/r.txt`, "Age" and "Temperature"): the world-setup options. Added to §10.
+
+CivFanatics:
+
+- https://forums.civfanatics.com/threads/things-civilopedia-cant-explain.470744/ : nothing new for section 7 (upgrade costs, flak and SAM odds, section 1).
+- https://forums.civfanatics.com/threads/useful-patches-for-civ-3-conquests-v1-22.526285/ (page 1) and /page-2 : nothing new for section 7 (city worker cap of 20, pollution above size 12, Steph's 2008 wish list).
+- https://forums.civfanatics.com/threads/worker-moves.93408/ and /page-2 : what cancelling loses (GD_france, KayEss "mainly conjecture"); Thot on slaves and roads. Added to §5.2a.
+- https://forums.civfanatics.com/threads/maya-flood-plain-start.74466/ : Qitai, disease strikes again the next turn, re-rolled on the third. Added to §7.
+- https://forums.civfanatics.com/threads/small-farms.693526/ : BlackBetsy's passing "irrigate/ railroad ... 4 food". Added to Disputed 1.
+- https://forums.civfanatics.com/threads/what-is-the-best-map-settings-normal-wet-arid-warm-temperate-cool.297735/ : player views on age and wetness. Added to §10.
+- https://forums.civfanatics.com/threads/no-coal-anywhere.340842/ : timerover51, about one of each strategic resource per civ. Added to §6.2 with the generator arithmetic.
+- https://forums.civfanatics.com/threads/keeping-resources-in-check-no-phantom-resources.391951/ : nothing new (the 32-resource limit; standard C3C unaffected).
+- https://forums.civfanatics.com/threads/how-to-add-resources-to-c3c-a-guide.105217/ : nothing new (editor steps).
+- https://forums.civfanatics.com/threads/are-camps-useful-in-c3c.361305/ : nothing new ("camps" are specialised cities).
+- https://forums.civfanatics.com/threads/workers-what-do-i-do-with-them.276289/ : nothing new (worker counts, opinion).
+- https://forums.civfanatics.com/threads/barbarian-spawning.689280/ : not Civ3 (Civ5 Vox Populi).
+- https://forums.civfanatics.com/threads/limit-the-number-of-barbarians.674182 : not Civ3 (Civ4).
+- https://forums.civfanatics.com/threads/barbarian-spawn-gamebreaking.602454 : not Civ3 (Civ6).
+- https://forums.civfanatics.com/threads/how-to-use-barbarians-as-settlers.166058 : not Civ3 (Civ4).
+
+Apolyton (codehappy.net mirror and apolyton.net):
+
+- https://codehappy.net/apolyton/threads/95755-1.htm : no barbarian upgrade by era in vanilla/PTW (Kramsib, CerberusIV). Added to §11.2 and the open question.
+- https://codehappy.net/apolyton/threads/60492-1.htm : second-hand Industrial-era uprising trigger (Konquest02); camp gold and spawn opinions. Added to §11.2.
+- https://codehappy.net/apolyton/threads/37568-1.htm and -2.htm : Allemand's test that unroaded resources do not deplete; Skanky Burns's oil never reappearing. Added to §6.2.
+- https://codehappy.net/apolyton/threads/60246-1.htm, -2.htm, -3.htm : what global warming does to terrain; the editor switch. Added to the open question.
+- https://codehappy.net/apolyton/threads/76575-1.htm : Mad Bomber's Civ2-derived 1-in-9 warming ratio (recorded, not used); Iron Works pollution comparison (section 2).
+- https://apolyton.net/forum/miscellaneous/archives/civ3-strategy-archive/121265-irrigation-through-hills-with-cities and /page2 : irrigation through a city on a hill in C3C; Jaybe on C3C lakes. Added to the open questions and Disputed 13.
+- https://apolyton.net/forum/miscellaneous/archives/civ3-general-archive/55680-strategic-resources-not-there-why and /page2 : nothing new beyond the editor help (placement by original terrain; 1.17 visibility observation).
+- https://codehappy.net/apolyton/threads/40421-1.htm and -2.htm : nothing new (scarcity anecdotes; editor fields).
+- https://codehappy.net/apolyton/threads/35769-1.htm : nothing new (1.17f placement claims, unverified).
+- https://codehappy.net/apolyton/threads/71404-1.htm : nothing new for section 7 (Nor Me's untested AI resource-price formula, section 6).
+- https://codehappy.net/apolyton/threads/100571-1.htm : nothing new (colony anecdotes).
+- https://codehappy.net/apolyton/threads/76212-1.htm : PTW AI stops irrigating grassland in Despotism (joncnunn); used in section 8.
+- https://codehappy.net/apolyton/threads/59554-1.htm : automated workers put pollution first (Harovan); used in section 8.
+- https://codehappy.net/apolyton/threads/43315-1.htm : nothing new (1.17f contact crash, hut armies).
+- https://codehappy.net/apolyton/threads/35557-1.htm : nothing new for section 7 (Recycling Center scope, section 2).
+- https://codehappy.net/apolyton/threads/60600-1.htm : nothing new.
+- https://codehappy.net/apolyton/threads/33565-1.htm : nothing new.
+- https://codehappy.net/apolyton/threads/52277-1.htm : nothing new.
+- https://codehappy.net/apolyton/threads/34565-1.htm : nothing new.
+- https://codehappy.net/apolyton/threads/79678-1.htm : nothing new.
+- https://apolyton.net/forum/miscellaneous/archives/civ3-strategy-archive/120973-absorbing-initial-worker : nothing new.
+- https://codehappy.net/apolyton/threads/52270-1.htm : nothing new (no barbarian rules).
+- https://codehappy.net/apolyton/threads/101612-1.htm : nothing new (culture-linked starts, opinion).
+- https://codehappy.net/apolyton/threads/46606-1.htm : nothing new (1.17f start observations).
+- https://codehappy.net/apolyton/threads/62455-1.htm : nothing new.
+- http://www.civforum.de/showthread.php?t=66671&page=3 : nothing new (city finds only for Expansionist civs, already in §12).
+
+Still unread for section 7: `Other uses for workers` 13744, `Custom Map - Raging Barbarians` 460704 (scenario maps), `Settle the Land` 396622, the seed threads 703383 / 703324 / 264492, `Resources` 158705, `Oil` 99693, `Needing more Strategic Resources` 361762, `Never getting any strategic resources` 9405, `Forest chop diagram` (image), `Today I Learned` pages 2-9, `Useful Patches` pages 3-12.

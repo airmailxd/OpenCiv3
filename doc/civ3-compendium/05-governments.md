@@ -295,6 +295,7 @@ BIQ enum decoding:
     - DBear (https://forums.civfanatics.com/threads/how-is-pop-rush-done-now.128518/, C3C 1.22): "you cannot pop rush more than half your population at the same time".
     - Dominae (https://codehappy.net/apolyton/threads/73546-1.htm, 10 Jan 2003, PTW era): "in any given turn, you can only sacrifice up to half your population to poprush".
     - Bluefrog (same thread): "If you have no shields in the build box, the cost of rushing is doubled. This is true for pop- and cash-rushing."
+    - Ferd (https://forums.civfanatics.com/threads/massive-despot-rush-strategy.10093/, 23 Nov 2001, vanilla before 1.17f): "each citizen is good for rushing 20 shields" and "rushing cost is doubled if the shield box is empty."
     - Section 2 (city economy) §4 has the full hurry sourcing.
   - No hurrying in disorder or resistance. SCRIPT `#HURRY_CIVIL_DISORDER`: "We cannot hurry production while our city is in civil disorder." SCRIPT `#HURRY_RESISTANCE`: "We cannot hurry production while our city is in resistance."
   - Whip unhappiness follows the population. Catt (https://codehappy.net/apolyton/threads/63161-1.htm, 1 Oct 2002, vanilla) reports this as from Firaxis programmers, second-hand: "unhappiness moves to nearest city if a city is abandoned". From his own play-testing: it "travels with a settler created in disbanding a city used to pop-rush too often". Zero, in the same thread, reported a test where "it seemed to stick to only cities". UNVERIFIED.
@@ -339,6 +340,7 @@ CFC-CORR (C3C), quoted:
     - 22 Feb 2002, 21:41: "oh, you wanted to know if there is a random factor. well, there is. it's between 1 and 5 turns. plus 0 - 3 extra turns depending on number of cities".
     - Same thread, 22 Feb 2002, 13:01: "anarchy length is increased by number of cities".
     - 21 Feb 2002: "If you play a religious civ, anarchy always takes 1 turn."
+    - Catt (Apolyton, https://codehappy.net/apolyton/threads/63506-1.htm, 2 Oct 2002, vanilla) gives the same figures and says Soren confirmed them "way back in February": "the length is always between 1 - 5 turns on a random basis, with an additional 0-3 turns depending on number of cities". Theseus, same thread, writes "1-3 from # of cities" instead. planetfall, same thread, saw a reload turn an 8-turn anarchy into 5, which suggests the random part is rolled when you revolt (one report).
     - So vanilla non-Religious anarchy is 1-8 turns. Padma's 2003 relay (https://forums.civfanatics.com/threads/going-to-monarchy.51241/) repeats this ("always between 1 - 5 turns on a random basis" plus "an additional 0-3 turns depending on number of cities").
   - **C3C adds one turn.**
     - SirPleb, C3C changes list (https://forums.civfanatics.com/threads/civ3-conquests-additions-changes-list.104294/, 12 Nov 2004): "When revolting to change the government the period of anarchy is one turn longer in C3C."
@@ -361,6 +363,7 @@ CFC-CORR (C3C), quoted:
     - Qitai (thread 62465, 27 Aug 2003): if you accept the popup offered on learning the tech, "the revolt is considered being done LAST turn."
     - justanick (thread 683384): "Religious tribes always incur 2 turns of anarchy". Revolting right after a tech, "the old turn does still count towards the total turns of the anarchy."
     - BUGLIST, under "NOT BUGS": "Religious civs now have up to 2 turns of anarchy."
+    - Apolyton, "How long does anarchy take?" (https://apolyton.net/forum/civilization-series/civilization-iii/138928-how-long-does-anarchy-take, Sep 2004): punkbass2000, for Religious civs, "Two turns in C3C, one turn previously." Modo44 (page 2, 27 Sep 2004): "Well, in C3C the minimal Anarchy period is 2 turns, religious civ or not." and "there is no more ultra fast switching for religious civs in C3C." Tarquinius in the same thread recalls a different vanilla formula, "S+R+1=Turns of Anarchy" with S and R each 1-3 ("IIRC"); Soren's first-hand formula outranks it.
     - Lanzelot (thread 683384) reports, as hearsay, that the change was made to stop an interturn revolt exploit.
   - **Re-revolting.** CKS (https://forums.civfanatics.com/threads/anarchy-question.452205, 24 Jan 2012): "In vanilla/PTW, re-revolting changes the length of the anarchy - possibly shorter, possibly longer." Also: "In Conquests you get the same length of anarchy, though it looks a turn shorter". Forum only.
   - Golden Age during anarchy: a single anecdote says it halved the anarchy. garyg (https://forums.civfanatics.com/threads/you-say-you-want-a-revolution.116180, 6 Apr 2005): "once accidently triggered my GA on my first turn of Anarchy and it cut the time in half." UNVERIFIED.
@@ -531,7 +534,13 @@ C3C `ResistanceModifier` (row/col as above):
     - 1 / 2 / 3 per neighbouring town / city / metropolis "within 8 tiles walking distance from the target city (a 17×17 square)", not counting the old capital;
     - 1 per military unit.
     - "If there is a tie for the most points, the palace jumps to the first city in the database, which is _usually_ the oldest city."
-  - Not confirmed: whether the same scoring applies when the capital is *captured*, and whether it holds in C3C. justanick (https://forums.civfanatics.com/threads/looking-for-the-formula-on-how-the-palace-gets-relocated.703374/, May 2026) quotes the same formula and says it was found "after weeks of testing". Charon117's test saves in that thread showed a result that did not fit, and the thread does not settle it.
+  - **The same scoring in the C3C 1.22 code.** C3X-SRC (`injected_code.c`, https://github.com/maxpetul/C3X/blob/master/injected_code.c, read 2026-10-20) rates candidate cities for a lost secondary palace with a comment that "The criteria we use to rate it are identical to what the base game uses to find a new location for the palace." Its rating, per candidate city other than the lost one and the capital:
+    - `rating += Population.Size`, plus `2 * City_count_citizens_of_race (candidate, leader->RaceID)`. That is 3 per national citizen and 1 per foreign one, as DaveMcW found.
+    - plus the units in the city (`count_units_at` with a unit filter the header leaves unnamed, `UF_4`);
+    - plus, for each other own city on the 289 tiles of the 17×17 square round it (`FOR_TILES_AROUND (tai, 0x121, ...)`), 3 if its size is above the city maximum (a metropolis), 2 if above the town maximum (a city), else 1;
+    - the best rating wins, and a tie keeps the first city in the list (`if (rating > best_rating)`).
+    - This confirms DaveMcW's formula for C3C, including the 17×17 square and the tie rule. It is code that re-creates the stock rule, not the stock function itself. The "walking distance" in the article is the square, not a path.
+  - Not confirmed: whether the same scoring applies when the capital is *captured* rather than razed or abandoned. The C3X function runs whenever the palace is lost, but it is the mod's copy. justanick (https://forums.civfanatics.com/threads/looking-for-the-formula-on-how-the-palace-gets-relocated.703374/, May 2026) quotes the same formula and says it was found "after weeks of testing". Charon117's test saves in that thread showed a result that did not fit, and the thread does not settle it.
 - Losing the capital does not by itself cause anarchy or a government change. No source reports it, and the C3C texts have no such rule.
 
 ---
@@ -539,11 +548,12 @@ C3C `ResistanceModifier` (row/col as above):
 ## Disputed
 
 1. **Anarchy length (C3C, non-Religious).** It is mostly settled as 1 + rand(1..5) + (0..3 by city count) = 2-9 (see 5.7). Two points are still disputed:
-   - The random part: Soren (vanilla) says "between 1 and 5". The CFC-FAQ says "random number between 1-4". justanick saw five values at one empire size, which supports 1-5.
+   - The random part: Soren (vanilla) says "between 1 and 5", and Catt's 2002 relay of Soren (Apolyton 63506) repeats "1 - 5". The CFC-FAQ says "random number between 1-4". justanick saw five values at one empire size, which supports 1-5.
    - The minimum: the CFC-FAQ formula gives 3. justanick first wrote "between 3 und 9", then "very small empires incur 2 to 6 turns".
    - Lanzelot also suggests a difficulty term for the human; no other source supports it.
 2. **Religious anarchy in vanilla.**
    - Soren Johnson (codehappy 42739, 21 Feb 2002): "If you play a religious civ, anarchy always takes 1 turn." The CFC-FAQ agrees.
+   - For C3C, punkbass2000 and Modo44 (Apolyton 138928, Sep 2004) agree with the CFC-FAQ: 2 turns in C3C, 1 before.
    - The GameFAQs guide's "no period of anarchy between governments" is wrong for 1.17f+. It may describe the observed effect of revolting from the new-tech popup (see 5.7, Turner/Qitai).
 3. **AI anarchy cap at Deity and Sid.** BIQ `MaxGovernmentTransitionTime`: Deity 2, Sid 1. justanick's observations (thread 683384): Deity 1, Sid 0. Monarch 4, Emperor 3 and Demigod 2 agree. The engine may use the value as an exclusive bound, or justanick may have miscounted. Not resolved.
 4. **Gold-rush rate.** 4 gold per shield, doubled from an empty box, is well sourced (section 2 §4). The older recollection of "about 2 gold per shield for improvements and higher for units and wonders" (https://forums.civfanatics.com/threads/anyone-know-the-formulae-for-rush-building.18881) is in the **Civ2** General Discussions forum. It is Civ2 data and should be ignored for Civ3. The "ms×2 + ms²/20" unit formula on CFC's "Section D" FAQ page (https://civfanatics.com/?p=128) is from the **Civ1** FAQ.
@@ -559,14 +569,14 @@ Resolved in this pass and moved to the main text: Despotism tile penalty wording
 1. The C3C anarchy city-count thresholds: how many cities give +1, +2 or +3 turns. Is it pure city count (Soren: "number of cities") or does map size enter (CFC-GOV, vmxa)? Needs a controlled test.
 2. Gold hurry cost by item type: unit vs improvement vs wonder multipliers, and any non-linear term. Still open; see section 2 open question 4. The Civ2 and Civ1 formulas once cited for it are discarded (Disputed 4).
 3. Pop-rush: the half-the-city cap and empty-box doubling rest on consistent forum statements (5.5), not on a Firaxis source. Still open: whether foreign citizens are whipped first. CFC-GOV implies yes; Ision guesses "natural born citizens will always die first".
-4. Whether units inside an Army pay support individually, and whether Leaders really cost upkeep in play (BIQ `RequireSupport=1`).
-5. Direction of the GOVT-vs-GOVT matrices: is the row the initiator's government or the target's? CFC-ESP gives no explanation. The pattern suggests rows are the spy's government (the Democracy row has the largest bonuses), but this is an inference.
+4. Whether units inside an Army pay support individually, and whether Leaders really cost upkeep in play (BIQ `RequireSupport=1`). Related but separate: for suppressing resistance an Army counts by its contents. vondrack (Apolyton, https://codehappy.net/apolyton/threads/58829-1.htm, 13 Aug 2002): "it will be counted for 1-4 units, depending on how many of them is actually in the army." Jaybe (Apolyton 116300, 25 Oct 2003): "An Army of 4 (3 combat units plus the Army unit) seems to count as 4 for resistance suppression."
+5. Direction of the GOVT-vs-GOVT matrices: is the row the initiator's government or the target's? CFC-ESP gives no explanation. The pattern suggests rows are the spy's government (the Democracy row has the largest bonuses), but this is an inference. EDHELP `Bribery_Modifier_Vs_Government_Properties_.htm` (titled "Propaganda Modifier Vs"), read this pass: "Determines the bribery modifier, if any (higher means a better chance of bribing) against a unit of the selected government type." So the government picked in the selector is the target and the government being edited is the one doing the bribing or propaganda. In the file each GOVT record carries its own block of one entry per government (QueryCiv3 `Biq.cs`: "Each GOVT record has a GOVT_GOVT relationship with every government"), so the record is the edited government. Read together, a row is the acting (bribing or propagandising) government and a column the target, which fits the pattern above. Still an inference from the editor text, not a test. (The `CanBribe` field reads 0xCDCDCDCD, uninitialised fill, in every C3C cell.)
 6. "Feudalism pikemen support" and "Tribalism veteran chance": not stock C3C (no data in PEDIA, BIQ or EDHELP). Probably from mods.
 7. Whether favourite-government AIs really "immediately" revolt when the tech arrives, as EDHELP says, and how the AI chooses when it has no favourite. Forum posts (wilbill) claim the setting only affects attitude; untested.
 8. Whether a Golden Age or WLTKD removes the Despotism tile penalty. No source found. PEDIA `GCON_We_Love_The_King_Day` lists only lower flip chance, less waste and weaker enemy propaganda. Dan Magaha (relayed, codehappy 25003) says WLTKD is "city-specific and can happen repeatedly", separate from the Golden Age.
 9. Whether a Golden Age during anarchy shortens it (garyg anecdote, 5.7).
 10. Whether the C3C 1.00 bugs listed in BUGLIST were fixed by 1.22: anarchy research through rioting scientists, and AI war weariness depending on turn order. The SPHQ bug was fixed in 1.20 (README).
-11. Free Palace Jump scoring when the capital is captured rather than razed or abandoned, and in C3C.
+11. Free Palace Jump scoring when the capital is captured rather than razed or abandoned. The C3C scoring itself is now confirmed from code (5.14).
 
 Resolved in this pass:
 - Which units count against support (5.3).

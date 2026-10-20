@@ -215,6 +215,13 @@ How to read this section:
   earlier behaviour that "caused you to get sucked back into a war you just
   ended is now no more". Arrian, in the same thread, thinks the old problem was
   an MPP, not an alliance. Player report, not from a readme.
+- **Destroying the common enemy ends an alliance without a reputation hit
+  (players).** CFC "How to form a strategic alliance",
+  https://forums.civfanatics.com/threads/how-to-form-a-strategic-alliance.154837/
+  (Jan 2006): SimpleMonkey, you "can end an alliance by killing off your mutual
+  enemy" without a rep hit. TimBentley first said the opposite, then: "I haven't
+  seen a way to get a rep hit in this manner." JMK disagreed ("it will be
+  considered as breaking agreement"). Not tested.
 - **An MPP triggers on an attack on the partner.** `script.txt`
   `MUTUALPROTECTIONOURWAR`: "$CIVNAME0 has attacked our "brothers" in
   $CIVNAME1. Our $LINK<mutual protection pact=GCON_Agreements> requires us to
@@ -260,6 +267,29 @@ How to read this section:
   enemy territory or a blockaded harbor does not count. Quote: "two cities are
   not connected if the only road/rail that connects them passes through enemy
   territory, or if a harbor is blockaded".
+- **Water routes need techs for every tile type on the route.** Conquests
+  Civilopedia `GCON_Trade`: "In order to use a water trade route, your
+  civilization must be able to safely traverse every square of the route and
+  this depends upon having $LINK<Map Making=TECH_Map_Making>,
+  $LINK<Navigation=TECH_Navigation>, and/or $LINK<Magnetism=TECH_Magnetism>."
+  The terrain entries name Astronomy for Sea instead: `TERR_Sea`, "[Sea] squares
+  are significant barriers to $LINK<trade=GCON_Trade> and
+  $LINK<travel=PRTO_Galley> until the discovery of
+  $LINK<astronomy=TECH_Astronomy>." and `TERR_Ocean`, the same "until the
+  discovery of $LINK<Navigation=TECH_Navigation> or
+  $LINK<Magnetism=TECH_Magnetism>." Players (CFC "Pangea Maps and Trading",
+  https://forums.civfanatics.com/threads/pangea-maps-and-trading.689998/, C3C,
+  Jun 2024, untested): tjs282, "Only one partner needs Astro to make
+  Resource-trade deals"; "Barb-Galleys can cut Coastal trade-routes if they
+  happen to stop on an inconvenient tile."; Spoonwood and justanick say the
+  Great Lighthouse also opens sea routes. The rule file sides with the
+  terrain entries: `conquests.biq` TECH flags (QueryCiv3 dump, this pass)
+  give "Enables Trade Over Sea" to Astronomy only and "Enables Trade Over
+  Ocean" to Navigation and Magnetism. No tech carries a Coast flag, so coast
+  routes need none. The Map Making in `GCON_Trade` matches no flag (Map Making
+  carries only Right of Passage). The same dump gives Communication (contact)
+  trading to Printing Press, Map trading to Navigation, MPP and Embargo to
+  Nationalism, Military Alliance and Diplomats to Writing.
 - **An embargo blocks resource and luxury trade.** Source: Conquests
   `script.txt` `DIPLOADVICETRADE_THEIREMBARGO`. Quote: "We cannot trade
   resources or luxuries with the $CIVNOUN0 -- they have a trade embargo
@@ -595,6 +625,12 @@ In this study a negative number is good.
     turns.
   - **Privateers** (page 4, Mar 2 2003): "+1 when you attack their ship (but
     your privateer dies), and +3 if you do sink their ship." Temporary.
+    alexman (Firaxis), replying to the Apolyton repost of the study ("AI
+    attitude revealed", https://codehappy.net/apolyton/threads/79615-1.htm,
+    6 Mar 2003): the privateer penalty is meant to show that other nations
+    suspect you paid for the attacks, and "You get a rep hit when you break
+    deals. The use of privateers does not cause war, so it doesn't break
+    deals." (So privateers cost attitude, not reputation.)
   - **Disbanding or abandoning a foreign city** (page 6, PTW 1.21, Jun 2003):
     building a worker or settler to disband a city with 50%+ foreigners "is the
     same as if you razed it." Also: "Donations of cities are treated as a
@@ -633,6 +669,24 @@ In this study a negative number is good.
   adds that the game-wide "most" or "least" aggressive setting "overrides all
   the per-civ aggression settings". He also gives the shunned-government term
   as 5 points ("it adds 5 points"), where the study measured +4 (see Disputed).
+- **What the attitude code remembers (code-level).** C3X-SRC
+  (`Civ3Conquests.h`, https://github.com/maxpetul/C3X/blob/master/Civ3Conquests.h,
+  read 2026-10-20) maps the per-civ-pair memory that the stock attitude
+  function reads: `struct Reputation` has the counters `cancelled_deal`,
+  `caught_spy`, `tribute`, `observed_military_aggression`,
+  `diplomatic_threats`, `gift`, `refused_tribute_demands`, `icbm`,
+  `icbm_other` and `war_damage_memory` ("Combat damage taken by 'us' (the
+  Leader object) from this player ... Decays over time."). The C3X demand code
+  comments that the tribute, gift and refused-demand counters "feed into the
+  base game's attitude calculation". This matches the study's list of
+  effects (tribute, gifts, espionage, nukes, war damage, broken deals). The
+  weights are not in the header.
+- **Sign of the engine's attitude score (code-level).** In the executable a
+  higher attitude score is worse, the same as the study's convention. C3X
+  adds a relation penalty for its (modded) foreign-territory colonies with
+  `score += penalty` on top of the stock `Leader_get_attitude_toward`
+  (`injected_code.c`), and its changelog records fixing a version where the
+  penalty was "improving instead of harming relations".
 - **BIQ personality fields (`conquests.biq` RACE, local dump).** Each civ has
   `AggressionLevel` (stored -2..2, shown as 1..5 in the editor),
   `FavoriteGovernment`, `ShunnedGovernment` and `CultureGroup`. It also has
@@ -692,6 +746,28 @@ In this study a negative number is good.
   (Apolyton, "AI 'Tech Whoring'", https://codehappy.net/apolyton/threads/48219-1.htm,
   post #10, Apr 23 2002): "There is an AI function which estimates how much
   each tech is worth to each player."
+- **AI-AI tech deals: full value, half value at worst, only known civs
+  count (Firaxis).** Soren Johnson (Apolyton, "v1.17 AI vs AI tech trading",
+  https://codehappy.net/apolyton/threads/42905-1.htm, vanilla 1.17f, Feb
+  2002). Post #2 (20 Feb 2002): the AIs "always try to meet the _full_ value of
+  the tech" and "When necessary, a AI might be willing to sell a tech for down
+  to half-value, but only if the other AI has nothing else to give for it".
+  Also: "the AI's contact each other more often and ... they are now doing
+  per-turn gold offers for techs." Post #16 (21 Feb 2002): "The whole
+  techs-are-cheaper-if-known-by-other-civs rule only applies to _known_ civs.
+  So even if every civ but one know Republic, it is still full value to that
+  last civ if it is still alone." Post #11: a tech the buyer is "close to
+  discovering" is "not worth very much via trade", and "if you are playing at a
+  level above Regent, techs are worth less to the AI than the human because
+  they get research bonuses". Post #21: a buyer one turn from the tech "was
+  only willing to give away very little." So the value inputs he names are the
+  buyer's own research progress, the number of civs known to the buyer that
+  have the tech, and the difficulty. No formula is given.
+- **AIs at war do not trade with each other (players).** Same thread, page 4:
+  Zachriel (24 Feb 2002): "if the AIs are fighting they don't transfer techs at
+  all." ShuShu (25 Feb 2002): "AIs don't trade with each other when they are at
+  war." This fits the code: the AI-AI negotiation gate is only reached for
+  pairs not at war (C3X-SRC, 6.9).
 - **What the AI values in a tech (players, unverified).** TimBentley (CFC
   "how do AIs value techs in market?",
   https://forums.civfanatics.com/threads/how-do-ais-value-techs-in-market.126379/,
@@ -748,7 +824,11 @@ In this study a negative number is good.
   that puts it into deficit, whatever its treasury (summarised). CFC FAQ: "On
   lower levels, at least early in the game, the AI usually has no extra gold per
   turn." Vanilla `README.txt` (Fixes v1.21f): "Fixed bug in diplo bargaining AI
-  for per-turn gold deals."
+  for per-turn gold deals." Soren Johnson (Firaxis, Apolyton 42905, posts #4
+  and #10, 20 Feb 2002, 1.17f): "They aren't allowed to sign per-turn deals
+  they can't pay." and "the AI will only trade gold per-turn directly from
+  their income to other civs". JohnM2433 (Apolyton 59508, Aug 2002): "the AI
+  won't pay gold/turn that exceeds its income in gold per turn."
 - **AI-AI trade rate only covers a shortfall (Firaxis).** Soren Johnson
   (Apolyton 48219, post #4, Apr 23 2002): "When the AI's trade with each other,
   they always ask for full value for their techs, maps, comms, etc." and "the AI
@@ -833,8 +913,50 @@ In this study a negative number is good.
   party". C3X-INI agrees that stock AIs do not demand from each other: its
   option "Allows AI players to demand tribute from each other. The AI uses the
   same demand selection, acceptance, diplomatic penalty, and possible war logic
-  that the base game uses for demands involving a human player." No numbers
-  for the demand chance were published.
+  that the base game uses for demands involving a human player."
+- **The demand gates, in order (code-level).** C3X-SRC `injected_code.c`
+  (https://github.com/maxpetul/C3X/blob/master/injected_code.c, read
+  2026-10-20), function `try_ai_demand_from_other_ai`, whose comment says:
+  "This is the same sequence of demand gates used by Leader::impl_begin_turn
+  for demands against human players. demand_items also assembles the offer
+  list in exactly the same way." The mod's function calls the stock
+  functions (`Leader_demand_items`, `Leader_consider_trade`,
+  `Leader_would_yield_to_demand`, `Leader_ai_roll_to_declare_after_provocation`)
+  and re-creates only the gates between them. Each check must pass, or no
+  demand is made that turn:
+  1. Contact with the target, not at war with it, the AI's per-target
+     diplomacy cooldown at 0 (offline games), and the stock "would meet with"
+     check (`ai_can_demand_from`).
+  2. The stock `Leader_demand_items` finds something to ask for. The item kinds
+     in its enum are map, contact, strategic resource, luxury resource, gold
+     and technology.
+  3. Power: `if (32 - this->power_rank > 2 * (32 - recipient->power_rank))`
+     the AI does not demand. `power_rank` is 31 for the strongest civ, so
+     `32 - power_rank` is the civ's place in the power ranking (1 = first). The
+     AI demands only from a civ whose place is at least half its own.
+  4. `rand_int (32 - this->power_rank) != 0` stops it: a one-in-(own place)
+     roll, so the strongest civ always passes and the fourth passes 1 time in 4.
+  5. If the AI has taken more war damage from the target than the target has
+     taken from it (`war_damage_memory`), it does not demand.
+  6. Attitude roll: the roll size is minus the attitude score, at least 1, and
+     the roll must come up 0. Since a higher score is worse (6.7), an AI at
+     Cautious or worse always passes, and the friendlier it is the rarer the
+     demand.
+  7. Aggression roll: `rand_int (2 - aggression) != 0` stops it, with the
+     effective aggression level -2..2 (6.7). Read as code, that is always at
+     +1 or +2, 1 in 2 at 0, 1 in 3 at -1 and 1 in 4 at -2.
+  - After a demand the AI sets `ai_diplomacy_cooldown` for that target to
+    `0x20` (32), and the target's `tribute` counter rises. If the target gives
+    in, the demander's `gift` counter rises. If not, `refused_tribute_demands`
+    rises and the AI may declare war (`Leader_ai_roll_to_declare_after_provocation`),
+    but not while the two have a mutual protection pact
+    (`Relation_Treaties ... & 4`).
+  - Whether the target gives in is the stock `Leader_would_yield_to_demand`,
+    fed by the target's valuation of the demanded items
+    (`Leader_consider_trade`). Its internals are not shown.
+  - This is a 2026 mod's reconstruction of stock gates, not Firaxis text. A
+    human target's own "give in" choice is the player's; the gates above decide
+    when the AI asks.
 - **Demanding tribute angers the AI (manual).** Manual p.~167. Quote: "This is
   one of the more effective ways of making the other leader dislike you. In
   fact, demanding tribute is a good way to incite a declaration of war." Also:
@@ -1210,7 +1332,12 @@ reading.
   that a failed sabotage sets no flag. A 1/3 chance per turn gives an expected
   3 turns, which is close to the readme's "2-4", so the two may describe the
   same flag with the readme over-generalising "any spy mission". Not tested
-  against the readme.
+  against the readme. Jaybe (Apolyton "Spies: Useless or Indispensible?",
+  https://codehappy.net/apolyton/threads/81355-1.htm, 23 Mar 2003) dates the
+  lockout to PTW: "Back in 1.16 I am pretty sure you could try every turn." and
+  "On the current Windoze version (PTW??) if you fail then it won't do any good
+  to try again for 3-4 turns." Neither post separates a plant-only flag from an
+  all-missions lockout.
 - **Sabotage Production: all or half the shields.** Manual p.~168: "They'll
   destroy half of the shields already accumulated for the current project."
   Conquests Civilopedia `GCON_Espionage`: "destroy all the
@@ -1258,6 +1385,10 @@ reading.
   trade item, Bamspeedy (CFC 44999 page 6, PTW 1.21) treats "Donations of
   cities" as gifts, and the Strategy Compilation (vanilla) says "AI trades big
   for cities". The FAQ may mean that the AI only gives up cities to end a war.
+  Random Passerby (Apolyton "Trading Absurdity",
+  https://codehappy.net/apolyton/threads/49585-1.htm, May 2002, unsourced):
+  "the Firaxis team made it so that the AI will only even consider giving
+  cities in exchange for peace treaties."
 - **UN: second candidate when only one civ qualifies.** Conquests Civilopedia:
   "the second candidate is the civilization with the largest population." The
   CFC FAQ (summarised by the fetch tool) says the highest-scoring civ. EMan (CFC
@@ -1283,11 +1414,18 @@ war (6.11, informal test).
 
 1. **Exact tech-trade valuation function in Civ3.** Known: one function for
    AI-AI and AI-human trades, value falls as more civs have the tech (Soren),
-   and the AI-human markup table (TheNiceOne). Unknown: the exact scaling by
-   known civs and by civs with the tech, and the wonder term.
-2. **The demand chance and the AI's decision to give in to your demands.**
-   Code-level work confirms aggression sets the demand chance but gives no
-   numbers. Players tie giving in to military superiority near their cities.
+   and the AI-human markup table (TheNiceOne). Soren (Apolyton 42905, 6.8)
+   adds that only civs known to the buyer count, that the buyer's own progress
+   lowers the value, and that AIs sell to each other at half value at worst.
+   Unknown: the exact scaling by known civs and by civs with the tech, and the
+   wonder term (Ironikinit, 42905 page 2, Feb 2002, observed only: "The AI does
+   put greater value on techs that yield a wonder, like music theory and
+   astronomy.").
+2. **The AI's decision to give in to your demands.** The AI's own demand
+   gates are now known from code (6.9: power place, attitude and aggression
+   rolls, war-damage balance, 32-turn cooldown). Whether it gives in is the
+   stock `Leader_would_yield_to_demand`, whose terms are not published. Players
+   tie giving in to military superiority near their cities.
 3. **When the AI agrees to or refuses ROP, MPP, MA and embargo**
    (`AINORIGHTOFPASSAGE`: "Our bond is not sufficient to allow trust of this
    magnitude.") Known: ROP is priced by territory size (Bamspeedy), the MA
@@ -1301,7 +1439,11 @@ war (6.11, informal test).
    18 gold per 1 gpt (6.8).
 7. **Pricing of cities and strategic resources.** Maps, ROP, luxuries,
    contacts and early workers have player-tested rules (6.8). Cities and
-   strategic resources do not.
+   strategic resources do not. Observed prices only: Hurricane (Apolyton
+   49585 page 2, 1.21, May 2002): "Here is an example that the AI indeed will
+   pay nice amounts of cash for other resources than Iron" (a screenshot of
+   5200 gold for Oil); player1 (page 1): "Iron lacking AI pays a lot of money
+   for it."
 8. **AI "won't trade techs with someone at war with its friend"** or "won't
    trade while you're in a war you started". No Civ3 source was found. Such
    rules are attested for Civ4 only (for example CFC 217576, a Civ4 thread).
