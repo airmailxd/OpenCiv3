@@ -304,6 +304,28 @@ public class RulesReviewFixTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(resisting, city.WorkingResidents().Count());
 	}
 
+	// The free palace jump goes to the city with the most points: 3 per
+	// national citizen, 1 per foreign one, and our cities around it
+	// (DaveMcW's "Free Palace Jump" article).
+	[Fact]
+	public void TheFreePalaceGoesToTheCityWithTheMostPoints() {
+		City small = BuildCity(us);
+		City big = BuildCity(us);
+		for (int i = 0; i < 4; ++i) {
+			AddResident(big, us.civilization);
+		}
+		City foreign = BuildCity(us);
+		for (int i = 0; i < 6; ++i) {
+			AddResident(foreign, them.civilization);
+		}
+		us.cities.RemoveAll(c => c != small && c != big && c != foreign);
+		foreach (City c in us.cities) {
+			c.capital = false;
+		}
+		City chosen = us.RelocatePalace(gameData, small.location);
+		Assert.Equal(big, chosen);
+	}
+
 	// "Determines the percentage chance of rioting occurring in any city
 	// experiencing disorder" (C3C editor help, Chance of Rioting).
 	[Fact]

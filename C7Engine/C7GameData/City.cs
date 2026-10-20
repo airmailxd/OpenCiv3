@@ -626,10 +626,10 @@ namespace C7GameData {
 			Rules rules = EngineStorage.gameData.rules;
 
 			if (isInCivilDisorder) {
-				return new HurryProductionDetails() { errorMessage = "The city is in disorder and cannot hurry production." };
+				return new HurryProductionDetails() { errorMessage = "We cannot hurry production while our city is in civil disorder." };
 			}
 			if (IsInResistance) {
-				return new HurryProductionDetails() { errorMessage = "The city is resisting our rule and cannot hurry production." };
+				return new HurryProductionDetails() { errorMessage = "We cannot hurry production while our city is in resistance." };
 			}
 
 			// Nothing to hurry: no production, a full box, or something like

@@ -1896,17 +1896,41 @@ namespace C7GameData {
 		}
 
 		// After losing the capital, rebuilds the palace for free in the city
-		// closest to where the old capital was, preferring larger cities.
+		// that scores most by the "Free Palace Jump" article (DaveMcW,
+		// https://civfanatics.com/civ3/strategy/game-mechanics/free-palace-jump/):
+		// 3 points per national citizen and 1 per foreign one, 1 / 2 / 3 per
+		// town / city / metropolis of ours "within 8 tiles walking distance
+		// from the target city (a 17x17 square)", and 1 per military unit
+		// there; "If there is a tie for the most points, the palace jumps to
+		// the first city in the database, which is _usually_ the oldest
+		// city". UNVERIFIED: tested on vanilla/PTW, and for a razed or
+		// abandoned capital; used here for a captured one too, and for C3C.
 		// Returns the new capital, or null if there was nothing to do.
 		public City RelocatePalace(GameData gameData, Tile oldCapitalLocation) {
 			if (cities.Count == 0 || cities.Any(c => c.IsCapital())) {
 				return null;
 			}
 
-			City newCapital = cities
-				.OrderBy(c => c.location.DistanceTo(oldCapitalLocation))
-				.ThenByDescending(c => c.residents.Count)
-				.First();
+			int SizePoints(City c) {
+				int size = c.residents.Count;
+				return size <= rules.MaximumLevel1CitySize ? 1 : size <= rules.MaximumLevel2CitySize ? 2 : 3;
+			}
+			int Score(City c) {
+				int score = c.residents.Sum(r => r.nationality == null || r.nationality == civilization ? 3 : 1);
+				score += cities.Where(o => o != c && o.location.DistanceTo(c.location) <= 8).Sum(SizePoints);
+				score += c.location.unitsOnTile.Count(u => u.owner == this && (u.unitType.attack > 0 || u.unitType.defense > 0)
+					&& !u.unitType.isWorker && !u.unitType.isSettler);
+				return score;
+			}
+			City newCapital = cities[0];
+			int best = Score(newCapital);
+			foreach (City c in cities.Skip(1)) {
+				int score = Score(c);
+				if (score > best) {
+					best = score;
+					newCapital = c;
+				}
+			}
 			newCapital.capital = true;
 
 			Building palace = gameData.Buildings.Find(b => b.isCenterOfEmpire);
