@@ -1,0 +1,384 @@
+# C3X thread notes, part 1 (pages 1-48)
+
+Source: CivFanatics thread 666881, "C3X: EXE mod including bug fixes, stack bombard and much more".
+Post links have the form `https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-NNNNNNNN`.
+
+- **Pages read:** 1-48, all of them.
+- **Pages that failed:** none. Pages 17-20 returned HTTP 429 at first and loaded on a later attempt.
+- **What is collected:** only statements about what the stock game does (Conquests 1.22, PTW or vanilla). Statements about the mod's own features are left out.
+- **Section tags:** [1] combat & units, [2] city economy, [3] happiness & culture, [4] science & wonders, [5] governments, [6] diplomacy & espionage, [7] map, terrain & workers, [8] AI, difficulty & victory.
+
+**Caveat:** WebFetch pulled the quotes through a summarizing model. Re-check any quote against the post before it goes into the compendium. Some posts describe play under C3X or other mods; where a claim is untested or hedged, it is marked "(hedged)".
+
+## [1] Combat & units
+
+- **Retreat roll (verified)**
+  - Post: [p43 #857](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16308752), Flintlock
+  - Quote: "The way retreat rolls work specifically in the original game is that the unit trying to retreat rolls a number between 0 and its opponent's retreat bonus + 50"
+  - Rule: the unit retreats if the roll is "less than its own retreat bonus".
+- **1-HP units cannot retreat (tested)**
+  - Post: [p44 #863](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16308991), Flintlock
+  - Test: "attacking 40 infantry with 40 1-HP horsemen"
+  - Result: "None of them retreated, 39 died, 1 won."
+  - Explanations from others:
+    - [p44 #862](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16308955), Virote_Considon: "A unit can only retreat when being knocked down to its last hp"
+    - [p44 #868](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16309352), Alekseyev_: "Units retreat upon reaching 1HP"
+- **Retreat needs movement 2+ against movement 1**
+  - [p8 #160](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16077019), Sutsuj: "Right now a fast unit can only retreat if attacking a movement 1 unit."
+  - [p28 #543](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16207917), Shmelkin: "In original game fast unit can retreat only against slow unit which is hardcoded to have 1 movement"
+  - [p43 #845](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16306973), WildWeazel: "Default, 2+ can retreat from 1"
+- **Defensive bombard does at most 1 HP**
+  - [p11 #206](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16088083), Civinator: "each unit can fire one shot during the attack against the attacking unit." He adds that it "can take out maximal one hitpoint of the attacking or bypassing unit."
+  - [p42 #836](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16306568), Ozymandias: "Artillery Units with a bombard range of 0 will use their Bombardment Strength for defense"
+  - [p42 #838](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16306579), Ozymandias: "Once per turn, with 1 HP max inflicted."
+  - [p41 #809](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16305295), Belofon: "DB can't deal more than 1 damage nor kill any unit"
+- **Defensive bombard is buffed in multiplayer (bug)**
+  - Post: [p26 #510](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16194164), Sutsuj
+  - Quote: "In multiplayer, defensive bombardment units get extreme buffs." He adds: "The more players in the game, the stronger they are."
+- **Bombard picks the target first, then rolls damage**
+  - Post: [p44 #878](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16311320), Flintlock
+  - Quote: "The bombard code is inflexible in that it rolls first to determine a target then rolls for damage."
+  - Quoted in [p45 #884](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16311772): "IIRC when bombarding a city there's a simple even chance of hitting the garrison, buildings, or population." (hedged)
+- **Bombard targeting differs between versions**
+  - Post: [p32 #637](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16262382), Predator145
+  - Vanilla and PTW:
+    - "In vanilla and PTW, artillery units target cities the same way air bombard does."
+    - "You have a 1/3 chance to either hit the units, the improvements or the population."
+  - Conquests:
+    - "In C3C artillery is "smart" and only targets units until all of them have been redlined."
+    - "Air bombard in C3C can lethally affect air units and will smartly target them first."
+    - "Cruise Missile units in C3C will always target sea units first."
+  - [p36 #702](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16274486), Predator145: "Artillery would just target units first again once you reach size 7 in standard settings." (hedged)
+  - [p35 #698](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16273781), Predator145:
+    - "C3C bombard code means that only air units can go after pop and improvements before defenders have been redlined."
+    - "'Bombing' with a land unit is the same as bombard."
+  - [p35 #699](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16273890), Civinator: "Air bombardment at first destroys planes and citizens of a city". He also says the collateral damage flag "was introduced for land units with the C3C conquest "Fall of Rome"".
+  - [p32 #638](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16262385), tjs282, on pre-C3C: "bombardment of towns would destroy improvements (Walls first, if present), population and units about equally often."
+- **Wonder walls, and bombardment destroying wonders**
+  - [p46 #916](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16319627), sirati97: "bombarding a city with a wall given by a wonder will instead destroy random other buildings including" (Great Wall bug)
+  - [p46 #918](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16320772), Flintlock: "it's possible to destroy wonders through bombardment under some circumstances"
+- **Bombard and lethality in PTW vs Conquests (Sulla, quoted)**
+  - Post: [p46 #912](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16319042), Ozymandias quoting Sulla
+  - Pre-C3C bombard units: "they could NEVER kill other units; the only unit which could was the pricey, one-time use cruise missile."
+  - Conquests change: "it was proposed to double the range of all planes (OK with me) and give all planes lethal land and sea bombardment"
+- **Bomber changes in Conquests**
+  - Post: [p29 #578](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16214089), Alekseyev_
+  - Quote: "Bombers were only massively buffed in conquests". They were "given lethal bombard as well as more range (6 to 10)".
+- **Cruise-missile units bombard lethally**
+  - Post: [p41 #809](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16305295), Belofon
+  - Quote: "units with 'Cruise Missile' setting always have lethal bombardment for both land and sea" (hedged; the poster says IIRC)
+- **Aircraft and land vs naval artillery**
+  - Post: [p1 #10](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16021251), Flintlock
+  - Quotes: "land artillery can't damage aircraft"; "naval artillery can not only damage but kill aircraft on land"
+- **Land units attacking mobile air units**
+  - Post: [p4 #64](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16049378), Civinator
+  - Quote: "they are always killed, when a landunit is attacking a mobile airunit"
+- **Interception odds (one data point)**
+  - Post: [p29 #575](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16213687), justanick
+  - Quote: "A stack containing 4 battleships shoots down a bomber with 31.699%"
+- **Rebase range and operational range**
+  - Post: [p34 #675](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16271758), Predator145
+  - Quotes:
+    - "With no operational range, you can't rebase. Because rebase range is operational range x 6."
+    - "If OR is higher than bombard range the game bugs out on a loop when fired using the "bombing" mission."
+- **Nukes on submarines**
+  - Post: [p34 #677](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16271801), Civinator
+  - Quote: "you can draw that nuke into the sub, despite the immobile flag and no setting of an aircraft range of the nuke."
+- **King-flag units**
+  - Post: [p34 #679](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16271853), Predator145
+  - Quote: "King ability units can not be built but be upgraded into"
+- **Zero-strength units**
+  - Post: [p25 #488](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16187674), Flintlock
+  - Quote: "In the base game the zero strength units are:"
+  - List: workers, settlers, scouts/explorers, nukes/ICBMs, princesses, leaders, armies.
+- **Capture, enslavement and sacrifice**
+  - [p25 #482](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16186366), tjs282: "only foreign units (whether captured or enslaved) may be sacrificed"
+  - [p25 #491](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16187901), Civinator: "enslaved workers (with only 50 % worker strength)"
+  - [p8 #152](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16075287), tjs282: "if bombardment-units are given D=1 in the Editor, they will be destroyed instead of captured."
+  - [p8 #153](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16075293), Civinator: "and the same happens, if the civ is not able to build that otherwise captured unit."
+  - [p35 #694](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16273569), tjs282: "victorious Privateers can enslave new Privateers"
+  - [p4 #64](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16049378), Civinator: "Barbarians cannot enslave". The same point is in [p39 #772](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16291890).
+  - Nationality of AI-captured units (the two posters disagree):
+    - [p41 #808](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16305156), Spoonwood: "captured artillery type units for an AI don't have a nationality"
+    - [p41 #816](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16305660), justanick: "units captured by AI retain their nationality."
+- **Hidden nationality (HN) and city capture**
+  - Post: [p25 #496](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16192126), Civinator
+  - Quotes: "the human player can capture cities with HN land units, but only after declaring war to the owner of the city"; "The AI HN unit can capture the city without declaring war"
+  - Also in [p2 #39](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16043572).
+  - [p35 #694](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16273569), tjs282: "HN units can attack an opponent's units without that opponent declaring war in response."
+- **Stealth attack**
+  - Post: [p3 #41](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16043842), Flintlock
+  - Stock code checks "> 1" defenders. Flintlock patched it to ">= 1", so the popup appears "even when there's only one option."
+  - Related: [p1 #17](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16025234), Civinator: "At present stealth attack is only working, if at least two units"
+- **Elite units and Great Leaders**
+  - Post: [p43 #854](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16307796), Spoonwood
+  - Quotes: "One can only get a military great leader in the classic game by an elite defeating a unit with defense value."; "Leader fishing on AI artillery is impossible."
+  - [p24 #480](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16186064), justanick: an elite "could therefore generate a MGL via lethal bombardment." (hedged)
+- **Leader rush bug**
+  - Post: [p11 #211](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16089946), Flintlock
+  - Quotes: the leader AI "calls a function to check if rushing is possible but ignores the result."; "it doesn't determine the time remaining on the city's current build."
+  - [p12 #223](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16094373): the stock bug "allowed either of them to rush any kind of city project."
+- **Armies**
+  - [p10 #200](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16085980), Virote_Considon: "they won't load in units with a movement speed less than the army's current movement value"; "the Increases Army Values flag for wonders does not work as advertised (or at all)"
+  - [p5 #98](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16057458), ynot56: a unit "is still unupgradable if it is in an army."
+  - [p18 #354](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16148102), justanick: "In regular C3C one often needs to disband armies once better units for filling them become available."
+- **Railroad and road movement**
+  - [p3 #44](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16044203), Tsubasanut: stock rail is unlimited. Quote: "33 FF (XOR edi edi), which zero the cost of RR movement."
+  - [p6 #110](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16060504), Flintlock: "In the base game, assuming road movement rate is left at 3, one full move is 3 movement points (MP)"
+  - [p4 #70](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16049859), Flintlock: "Movement in the base game doesn't scale with map size"
+- **Stack movement**
+  - Post: [p22 #425](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16163674), ynot56
+  - Quote: "when I move a group of units with differing MP left, it goes to the maximum distance of the unit with the lowest MP"
+- **Paratroopers**
+  - Post: [p28 #541](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16207643), quoting Flintlock
+  - Quote: the stock code "removed all their remaining movement after the airdrop."
+- **Teleport (stock hidden feature)**
+  - [p8 #146](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16072222), Civinator: "Units can teleport to their telepad from everywhere from the complete map."; "if an enemy unit can teleport into a city with a telepad, this city is conquered immediately"
+  - [p8 #148](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16072252): "There is another hidden function in C3C, called charm attack"
+- **Harbors and airports**
+  - Post: [p8 #143](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16071845), Civinator
+  - Quote: "They allow to produce veteran units and heal ships or planes in one turn"
+- **Submarines**
+  - Post: [p28 #545](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16208062), Alekseyev_
+  - Quote: "subs don't have bombard in vanilla."
+- **Transport rules**
+  - [p18 #355](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16148119), tjs282: "units with the Unload flag cannot be loaded onto another Unloadable unit"
+  - [p8 #152](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16075287), tjs282: "Requires escort" "tells the AI to stack 3 "Naval power" units per "Naval transport" unit"
+- **Immobile rebase-capable unit crash**
+  - Post: [p46 #917](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16319739), Alekseyev_
+  - Quote: "Using stack-move/stack-rebase on a land unit that is immobile but posesses the "rebase" ability will crash the game." He adds: "This is a vanilla feature".
+- **Allied airfields**
+  - Post: [p20 #398](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16153656), Moff Jerjerrod
+  - Landing aircraft on an ally's empty airfield triggers war: "As soon as you do that war is declared."
+
+## [2] City economy
+
+- **Turn order**
+  - Post: [p15 #300](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16122366), Flintlock
+  - Quote: "the game calculates gold and research first then does per-city things including pollution"
+  - Also in [p1 #12](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16021899).
+  - [p1 #11](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16021595), tjs282: "Pollution definitely happens before production is calculated"
+- **Pollution**
+  - [p9 #179](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16083731), Flintlock: "It is hardcoded that pollution can't spawn on water"
+  - [p9 #178](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16083684), Nanuk: "Setting terrain to impassible does not prevent pollution from appearing on it."
+  - [p31 #606](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16236563), tjs282: "Mass-Transit, caps pop-pollution at 1 icon"; "Recycling Center, caps building-pollution at 1 icon"
+  - [p31 #608](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16236609), Arcangelus, from the decompiled code: "negative pollution is meaningless"; "SETS population pollution at 1 (as long as city is a metropolis, 0 otherwise)."
+  - [p31 #615](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16236956), Flintlock: negative pollution works "only to cancel out pollution generated by buildings not population."
+- **Mobilization bonus**
+  - [p29 #580](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16215014), Flintlock: "A unit being built receives the mobilization bonus if its attack strength is greater than zero". He adds: "the developers deliberately excluded troop transports from the mobilization bonus."
+  - [p29 #563](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16212961), Alekseyev_: "you gain an extra shield on every tile that already produces a shield"
+- **Communal corruption, and the "Off" setting**
+  - [p28 #554](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16212372), Quintillus: "The 'Off' setting for government corruption is the one that doesn't work"
+  - [p28 #557](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16212483), justanick, on Communal: "In Conquests it works very well. Just like the known formula suggest."
+- **Resource access**
+  - Phantom-resource bug, [p32 #624](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16247044), Flintlock: "each city has a 32-bit integer, treated as a set of 32 bits"; "the bits are shared"
+  - [p23 #454](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16172297), Flintlock: "cities that aren't connected to the main trade network have their available resources recorded in their own 32-bit field"; "resources #1 and #33 share bit #1"
+  - [p38 #743](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16284562), Flintlock: "the game doesn't recompute resource access when a building is lost unless the building was enabling air or sea trade"
+  - [p38 #748](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16284834), Flintlock: "resources on tiles are all processed before the buildings"
+  - [p11 #214](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16090229), Vuldacon: "The Resources do have to have a road for use in a City and still be part of the Tradenet."
+- **Trade network and the 512-city table**
+  - [p1 #16](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16025200), Flintlock: "Founding more than 512 cities causes the program to write beyond the bounds of the table"
+  - [p48 #944](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16324591), Flintlock: "the stride of the table is hardcoded (to 512, naturally)."
+  - [p30 #592](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16220142), Flintlock, on a trade route through a road intersection: "the trade route still passes through the intersection." He adds: "So that's how trade routes work in the original game."
+- **Free buildings have no maintenance**
+  - Post: [p44 #874](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16310808), Alekseyev_
+  - Quote: maintenance costs "are waived for free buildings."
+- **Recomputation gaps**
+  - [p3 #45](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16044363), Flintlock: "the game does not recompute city happiness when you sign a deal to import a luxury"
+  - [p46 #914](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16319341), Flintlock: "certain improvement effects wouldn't be applied because they need to be manually recalculated." This happens "between turns, when the luxury slider is moved".
+- **Factories**
+  - Post: [p46 #916](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16319627), sirati97
+  - Quote: "in the game second tier factories cannot be build in parallel"
+- **Sliders**
+  - Post: [p44 #872](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16310693), Jorsalfare
+  - Quote: "The rate cap affects both science and tax."
+  - [p44 #870](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16310671), Alekseyev_: the slider reset happens "only in mods, not vanilla civ3." (context: a low rate cap)
+- **Unit support**
+  - Post: [p19 #363](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16149115), LordBaal
+  - Quote: "every unit that requires support cost 1 of gold."
+
+## [3] Happiness & culture
+
+- **Culture flip**
+  - Post: [p46 #909](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16318921), justanick
+  - Quote: "Starving actually helps against flip risk and flip risk can be reduced to zero, but it takes uneconomically many units unless your culture is clearly superior."
+  - Formula from the linked thread: P=[(F+T)*Cc*H*(Cte/Cty) - G]/D (variable definitions not fetched)
+  - Brenshar disagrees in [p46 #908](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16318834): "military units can never reduce the value of culture flipping to zero"
+- **War weariness**
+  - [p26 #520](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16197906), Arcangelus, bug: "In human-AI wars the AI gets the WW of the human." Also: "Currently the human gets the correct amount, but not the AI." In AI-AI wars, both sides use the WW of the higher-ordered player.
+  - [p27 #521](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16198003), tjs282, doubting: "IIRC, this bug only occurs in multiplayer, though?"
+- **War weariness anarchy**
+  - Post: [p27 #523](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16199613), Flintlock
+  - Quote: "a player gets kicked into anarchy if their WW is over 90." Also: "it checks against total WW divided by the number of contacts the player has."
+  - Cross-reference [5].
+
+## [4] Science & wonders
+
+- **Science age bug**
+  - Post: [p5 #91](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16055720), Flintlock
+  - Quote: "Science age beakers not actually awarded"
+  - [p1 #20](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16029015): "one part of the code implements a switch then another part doesn't flick the switch how it's supposed to"
+- **Leftover beakers**
+  - Post: [p22 #425](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16163674), ynot56
+  - Quote: "When achieving a technology, there is often unused science points." (observation)
+- **Free improvements count only Great Wonders**
+  - Post: [p6 #105](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16058309), Flintlock
+  - Quote: "In the base game it's written to consider only great wonders, which matters in two places"
+- **AI tech choice**
+  - Post: [p39 #775](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16294147), haluu
+  - Quote: "offensive/defensive units that don't require resources greatly increase desire to research a tech"
+  - [p19 #378](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16149862), Civinator: "Concerning units, the flavors can only help for researching techs"
+
+## [5] Governments
+
+- **AI government valuation**
+  - Post: [p30 #583](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16217016), Flintlock
+  - Quotes:
+    - "the AI evaluates governments in points, where 1 point = 1 GPT maintenance."
+    - "Not having the tile penalty is worth 8 points for each city the AI controls,"
+    - "minimal is worth 12 points per city, nuisance is worth 8 per, problematic & communal are worth 4 per, and rampant 2 per."
+    - "Shunned/favorite government is worth 12.5%"
+- **War weariness anarchy**
+  - Post: [p27 #523](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16199613), Flintlock
+  - Anarchy triggers when WW is "over 90", checked as "total WW divided by the number of contacts".
+  - [p27 #522](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16198175), Arcangelus: "When a Civ on a government with high WW reaches level 3, it falls into anarchy."
+- **Despotism penalty and the AI**
+  - Post: [p25 #494](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16191224), Flintlock
+  - Quote: "The bug is that the logic to handle the despotism penalty uses the scaled yields instead of the raw yields." Cross-reference [7].
+
+## [6] Diplomacy & espionage
+
+- **MPPs and deals**
+  - [p9 #167](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16082235), tjs282: "the AI is currently extremely eager to sign MPPs."
+  - [p9 #169](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16082305), tjs282: "the AI doesn't always stick to its 20-turn deals"
+- **Same-culture civs**
+  - Post: [p21 #405](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16154963), tjs282
+  - Quote: "same-Culture Civs are also coded to be more friendly to one another initially" (hedged, AFAIK)
+- **City trades**
+  - Post: [p47 #938](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16322889), Kokuryutei
+  - Quote: "AI never agrees to transactions with the transfer/exchange of cities."
+  - tjs282 in [p47 #939](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16322917): towns can still be ceded in peace talks.
+- **Unit trading**
+  - Post: [p39 #771](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16291863), Flintlock
+  - Quote: "very limited unit trading of only workers in the capital"
+- **AI trade offers**
+  - Post: [p36 #709](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16275461), Flintlock
+  - Quote: "The function that calculates the AI's offer is long and I wasn't able to see where it tilts the trade in its favor."
+- **Submarine bug declares war**
+  - [p5 #91](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16055720), Flintlock: "AI pathfinding collides with invisible units (called the "submarine bug")"
+  - [p19 #379](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16149950), tjs282: "Locked Allies may also declare war on each other accidentally, due to the Sub Bug"
+  - [p44 #876](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16310981), Alekseyev_: "I think the submarine bug still exists on land."
+- **Trespassing**
+  - Post: [p15 #313](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16132380), Erlend Philip Wood
+  - Quote: "you _are always_ asked to leave or declare war on the second turn."
+- **AI war declarations**
+  - Post: [p15 #318](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16132702), Flintlock
+  - AI war declarations usually come from it "running its units into its target's cities".
+- **Espionage**
+  - Post: [p37 #728](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16278288), tjs282
+  - Quote: "you need to run the "Steal Plans" mission to obtain unit-locations." (hedged)
+- **Peace-treaty town demand freeze**
+  - Post: [p26 #508](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16193711), tjs282
+  - The freeze also happens on the unmodded exe: "using the unmodded Firaxis .exe, and again, the game locked up."
+
+## [7] Map, terrain & workers
+
+- **Freshwater threshold (disputed)**
+  - [p30 #590](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16219245), Sutsuj: "a body of water is considered "freshwater" if it consists of 20 or fewer water squares."
+  - [p30 #591](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16219432), Ozymandias: "I think the actual number is, "23.""
+- **Forest chopping**
+  - Post: [p18 #341](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16140824), tjs282
+  - Early vanilla patches allowed infinite chop shields, "which is why the "one chop rule" was patched into later releases."
+- **Worker job times**
+  - Post: [p36 #705](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16275138), Spoonwood
+  - Quotes: "a mine takes 4 turns to complete"; foresting as non-industrious "takes 9 turns" (hedged)
+- **AI worker logic**
+  - Post: [p25 #494](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16191224), Flintlock
+  - Quotes:
+    - "for irrigating and mining it orders its workers around "manually""
+    - "it will never tell a worker to replace a mine with irrigation or vice-versa"
+    - "it fails to properly account for the despotism penalty"
+  - [p18 #360](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16148639), Predator145, on irrigating under despotism: "It stopped irrigating green in despotism. This was reverted in Conquest."
+  - [p12 #225](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16094435), Predator145: "the AI doesn't know how to clear marshes, build airfields and irrigate those mined plains after electricity."
+- **Resource distribution**
+  - Post: [p45 #884](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16311772), WildWeazel
+  - Unconfirmed claims:
+    - On appearance ratio values: "1 is known to yield 1 per map, but 0 seems to yield more- maybe 1 per 2 civs."
+    - On replacement: "each time one disappears a new one is created so that the total stays constant."
+  - [p45 #884](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16311772), Belofon (quoted): defences for citizens and buildings "both default to 16"
+- **Medicine and disease**
+  - Post: [p20 #393](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16152653), BTB
+  - BTB asks to "Allow medicine to disable disease from jungle as well as flood plains", which implies stock Medicine covers flood plains only.
+- **Barbarians**
+  - Post: [p4 #74](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16050292), tjs282
+  - Diagonal bug: barbarians "only appear to scan for halted prey along their NW–SE axis"
+  - [p13 #253](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16110765), vmxa: "The barb diagonal bug was caused by a patch we asked for long ago."
+- **Start placement**
+  - Post: [p23 #454](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16172297), Flintlock
+  - Quote: "starts are linked by continent not distance."
+- **Volcano bug**
+  - Post: [p30 #596](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16224617), Lord_Hill
+  - Quote: "if your first and only city is destroyed by a volcano, you automatically win by conquest!" (cross-reference [8])
+
+## [8] AI, difficulty & victory
+
+- **AI production choice**
+  - [p17 #336](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16139833), Flintlock: "The evaluation gives each available improvement a point value based on its abilities, culture, etc."
+  - [p21 #409](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16158745), Flintlock: "The AI chooses to build whatever has the highest point value."
+  - [p19 #367](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16149215), Flintlock: "it considers improvements and units separately but it considers all kinds of improvements, wonders or not, together."
+  - [p20 #386](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16150396), Flintlock: "the AI likes happiness regardless of whether or not it needs any more"; "One culture is worth a lot more than one point"
+  - [p21 #406](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16157851), Flintlock: "the AI assigns a value of 0 to catapults when it doesn't want any more"
+  - [p39 #764](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16288091), Predator145: "During war time, military units get much higher build preference than peace time."
+- **Build often / flavors**
+  - [p17 #325](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16137944), Ozymandias: "Build Often / Never" "has about 0% effect on units" (based on tests)
+  - [p19 #378](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16149862), Civinator: "A direct influence on building units with flavors in C3C is not possible."
+  - [p12 #228](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16095472), Flintlock: "the AI is almost identical for all civs."
+- **AI settling**
+  - Post: [p23 #442](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16169633), Flintlock
+  - Quotes:
+    - "the AI is programmed to find locations less desirable the farther they are from its already existing cities"
+    - "the AI's city placement is dominated by terrain (it loves grassland)"
+    - "the AI almost completely ignores coastal resources and has no qualms about founding directly on a resource"
+  - [p19 #375](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16149858), Flintlock: "it doesn't consider how placing a city somewhere will affect the placement of others around it."
+- **Unit AI structure**
+  - [p22 #429](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16163990), Flintlock: "Internally the unit AI does little to no analysis or planning, it just performs basic reactions to its surroundings."
+  - [p8 #150](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16075105), Flintlock: "in the base game there isn't any coordination between units."
+  - [p34 #668](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16270971), Flintlock: "the game already includes a half decent unit AI except it's never activated in the base game"
+- **AI artillery**
+  - [p8 #150](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16075105), Flintlock: "arty units in a city will never leave that city unless there are too many of them in it"
+  - [p42 #835](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16306542), Predator145: "in C3C the artillery doesn't even fire"
+  - [p41 #805](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16305028), Spoonwood: "They get used to defend cities."
+- **Cruise missile AI**
+  - Post: [p11 #211](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16089946), Flintlock
+  - Quote: "The cruise missile AI looks for a target within bombard range and attacks if it finds one or otherwise fortifies in place."
+- **AI armies**
+  - Post: [p13 #258](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16111169), Flintlock
+  - Quotes: "There are two bugs that prevent the AI from using armies in the base game."; "its leader unit logic prefers to rush city production"
+  - [p40 #795](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16304748), Flintlock: the add-to-army filter "failed to consider that armies have an extra move."; "The reason the AI doesn't attack high health armies is that each unit is processed individually"
+- **C3C naval escorts**
+  - Post: [p12 #229](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16095473), Predator145
+  - Quote: "C3C ruined AI naval strength by forcibly tying down their sea power units to escorting transports."
+  - [p12 #233](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16102748), Flintlock: the escort check "ignores the fact that escorters are damaged if they can't heal in place."
+- **AI upgrades**
+  - [p22 #439](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16168856), Flintlock: "AFAIK the AI will always upgrade a unit if it can."
+  - [p2 #37](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16043105), Flintlock: "the AI can upgrade and move units on the same turn"
+- **AI air units**
+  - Post: [p30 #586](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16217348), Flintlock
+  - Quote: "the AI doesn't build many air units unless it's triggered to do so by getting bombed itself." (his stated belief)
+- **AI cash rushing**
+  - Post: [p39 #763](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16286783), Spoonwood
+  - Quote: "The AI also does not appear to cash rush anything." (observation)
+- **Difficulty bonus (Demigod)**
+  - Post: [p43 #841](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16306886), justanick
+  - Quote: "At demigod AI gets additional 3 free unit support per settlement and 12 additional free unit support outright."
+- **Civ elimination and the houseboat bug**
+  - [p10 #182](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16083900), Civinator: "That bug doesn´t appear with a last (or the first) settler on land."
+  - [p10 #201](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16085984), ynot56: "settlers on land are eliminated when the last city of a civilization is taken."
+  - [p10 #183](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16084386), Flintlock: the crash happens when the capital is null, "whenever the civ's stored capital ID doesn't correspond to an actual city."
+- **Regicide**
+  - Post: [p26 #503](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16192887), Lord Malbeth
+  - Quote: "when you kill a civ's last king, all their cities are instantly destroyed."
+- **Engine limits**
+  - [p4 #64](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16049378), Civinator: "Only 512 cities on the map"
+  - [p1 #7](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16017345), Flintlock, on the civ limit: "31 civs + barbs"
+  - [p4 #64](https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16049378), Civinator: "AI Barbarians can not build settlers and found cities."

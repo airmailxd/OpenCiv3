@@ -115,4 +115,12 @@ C3X source read from a local clone of https://github.com/maxpetul/C3X (commit d4
 - https://forums.civfanatics.com/threads/infinite-golden-age-and-science-age.526292/ : contribution: the Science Age status and end turn (+20), the multiplier code and the order-of-operations bug (4.8).
 - Civ3Conquests.h (wonder and small-wonder flag enums): nothing new (the names match the BIQ flags).
 - https://forums.civfanatics.com/threads/useful-patches-for-civ-3-conquests-v1-22.526285/page-3 to page-12 (re-read with all sections in view): nothing new for section 4.
-- https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/ (192 pages): read by helper agents in this round; their results were not merged before hand-back (see the round report).
+- https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/ (192 pages): read by helper agents in this round; merged in the "C3X forum thread (666881)" round below.
+
+## C3X forum thread (666881)
+
+https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/ (192 pages, read in full for stock-game statements by four helper agents, notes in `c3x-thread-notes-1.md` to `-4.md`; pages 65-66, missing from the notes, fetched in this round). Quotes were re-checked against the posts with a summarising fetch tool, one page at a time; quotes that could not be re-checked (CivFanatics rate limits) are marked "(paraphrase from a summarised fetch)" in the section.
+
+- Pages used for this section: 6, 52, 107, 109, 123, 139, 142, 158.
+- Posts cited: post-16058309 (p6 #105), post-16346025 (p52 #1029), post-16624227 (p107 #2127), post-16638420 (p109 #2167), post-16719849 (p123 #2448), post-16829069 (p139 #2774), post-16839866 (p142 #2840), post-16884982 (p158 #3147), post-16345754.
+- Pages 65-66: nothing new for section 4.

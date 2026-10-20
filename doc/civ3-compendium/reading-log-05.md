@@ -144,4 +144,12 @@ C3X source read from a local clone of https://github.com/maxpetul/C3X (commit d4
 - injected_code.c (`patch_Leader_count_maintenance_free_units`, `patch_Leader_sum_unit_maintenance`, `charge_maintenance_with_aggressive_penalties`): contribution: foreign-nationality units and types without RequireSupport are free; the AI per-city bonus counts every city; no cities means no upkeep; building and unit upkeep are paid in random order (5.3).
 - injected_code.c (`patch_get_anarchy_length`): nothing new (it wraps the stock `get_anarchy_length`; the 2-turn floor belongs to the mod's multiplier).
 - https://forums.civfanatics.com/threads/useful-patches-for-civ-3-conquests-v1-22.526285/page-3 to page-12 (re-read with all sections in view): nothing new for section 5.
-- https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/ (192 pages): read by helper agents in this round; their results were not merged before hand-back (see the round report).
+- https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/ (192 pages): read by helper agents in this round; merged in the "C3X forum thread (666881)" round below.
+
+## C3X forum thread (666881)
+
+https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/ (192 pages, read in full for stock-game statements by four helper agents, notes in `c3x-thread-notes-1.md` to `-4.md`; pages 65-66, missing from the notes, fetched in this round). Quotes were re-checked against the posts with a summarising fetch tool, one page at a time; quotes that could not be re-checked (CivFanatics rate limits) are marked "(paraphrase from a summarised fetch)" in the section.
+
+- Pages used for this section: 27, 30, 63, 64, 122, 123, 147, 167.
+- Posts cited: post-16199613 (p27 #523), post-16217016 (p30 #583), post-16396708 (p63 #1259), post-16398188 (p64 #1264), post-16715493 (p122 #2429), post-16719849 (p123 #2448), post-16848272 (p147 #2928), post-16906674 (p167 #3321).
+- Pages 65-66: Ozymandias #1284 and Predator145 #1286 on traits being mostly building flags and the AI building Military-flagged buildings only when mobilized (not used: play reports about the AI's build choice, not government rules; noted here for the lead).

@@ -143,4 +143,12 @@ C3X source read from a local clone of https://github.com/maxpetul/C3X (commit d4
 - https://github.com/maxpetul/C3X/blob/master/Civ3Conquests.h (`struct Leader`, `struct City_Body`, `struct Culture`): contribution: war weariness is stored per opponent; each city has a flip-immunity timer and a per-civ culture memory; the unhappiness-cause breakdown (open questions).
 - injected_code.c (`patch_City_update_culture`, `patch_City_recompute_culture_income`, the happiness wrappers): nothing new beyond the culture memory field.
 - https://forums.civfanatics.com/threads/useful-patches-for-civ-3-conquests-v1-22.526285/page-3 to page-12 (re-read with all sections in view): nothing new for section 3.
-- https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/ (192 pages): read by helper agents in this round; their results were not merged before hand-back (see the round report).
+- https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/ (192 pages): read by helper agents in this round; merged in the "C3X forum thread (666881)" round below.
+
+## C3X forum thread (666881)
+
+https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/ (192 pages, read in full for stock-game statements by four helper agents, notes in `c3x-thread-notes-1.md` to `-4.md`; pages 65-66, missing from the notes, fetched in this round). Quotes were re-checked against the posts with a summarising fetch tool, one page at a time; quotes that could not be re-checked (CivFanatics rate limits) are marked "(paraphrase from a summarised fetch)" in the section.
+
+- Pages used for this section: 3, 26, 27, 46, 50, 51, 86, 103, 112, 121, 143, 150, 160, 166, 173, 180.
+- Posts cited: post-16044363 (p3 #45), post-16197906 (p26 #520), post-16199613 (p27 #523), post-16318921 (p46 #909), post-16335628 (p50 #996), post-16336306 (p51 #1003), post-16541856 (p86 #1711), post-16608179 (p103 #2060), post-16652030 (p112 #2240), post-16704243 (p121 #2408), post-16840588 (p143 #2849), post-16857204 (p150 #2981), post-16892444 (p160 #3198), post-16902815 (p166 #3314), post-16926492 (p173 #3449), post-16941923 (p180 #3583), post-16198003, post-16198175, post-16335527, post-16607694, post-16843397.
+- Pages 65-66: nothing new for section 3.

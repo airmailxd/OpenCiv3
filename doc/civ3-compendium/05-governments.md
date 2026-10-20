@@ -22,6 +22,7 @@ the difference is called out. C3C is the target ruleset.
 | **CFC-CORR** | https://civfanatics.com/civ3/strategy/game-mechanics/everything-about-corruption-c3c-edition/ |
 | **CFC-ESP** | https://civfanatics.com/civ3/strategy/game-mechanics/a-study-of-espionage-missions/ |
 | **CFC-FAQ** | https://forums.civfanatics.com/threads/frequently-asked-questions-civ3-play-the-world-conquests.170282/ |
+| **C3X-THREAD** | https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/ (the C3X mod's forum thread, 2021-2026), cited as "post-NNNNNNNN" (thread URL plus `post-NNNNNNNN`) or "page-N #post-number". Flintlock, the C3X author, reads the 1.22 executable; his statements about the base game are code readings. Only statements about the unmodded game are used. Quotes were re-checked against the posts; the few that could not be are marked "(paraphrase from a summarised fetch)". |
 
 Note: the repo copy `C7/Civilopedia/Text/Civilopedia.txt` is OpenCiv3's own text ("It is not Civ3's
 Civilopedia"), so it is **not** used as a source here.
@@ -206,6 +207,7 @@ BIQ enum decoding:
 
 - PEDIA `GOVT_Fascism`: "Your cities lose population points upon a change to fascist government, Newly conquered cities also lose population, and do not generate culture until a popular majority has been assimilated."
 - EDHELP *Flags*, Forced Resettlement: "When switching to the selected government, each town in the nation loses 1 population, each city loses 2 population, and each metropolis loses 3 population."
+- Flintlock (C3X-THREAD post-16848272, page-147 #2928) puts it more simply: "I've always found it silly how you lose a pop point in every city when switching to fascism". That is looser than EDHELP's 1/2/3 by size level; it is a passing remark, not a description of the code. EDHELP is the Firaxis text and the more specific; keep 1/2/3 unless a test says otherwise.
 - EDHELP *Flags*, Xenophobic: "no culture is gained in cities where less than half of the population of the city is from the same race as the controlling civilization."
 - CFC-GOV: "Higher chance of espionage mission success". Explained by `SpiesAre=2` (Veteran), the same as Communism.
 - **"Fascism can't be bribed / is immune to propaganda" is not a stock rule.**
@@ -281,6 +283,8 @@ BIQ enum decoding:
     in random order: the building sum "is called in two places as part of the randomization of whether improv or unit
     maintenance gets paid first". Whether units inside an Army count separately depends on what `Unit_Count` holds,
     which the code doesn't show.
+  - **Flintlock gives the stock formula in words** (C3X-THREAD post-16398188, page-64 #1264): "The formula for unit maintenance is max(0,(N-F-K)*C), where N is the total number of units that player has, F is the no. of free units from gov't and difficulty, K is the no. of king-flagged and captured units, and C is the maintenance cost per unit from gov't type." This matches the C3X re-creation above. tjs282 (post-16396708, page-63 #1259): (paraphrase from a summarised fetch) "(excess) unit-maintenance costs are tied to the current government-type, not the unit-type".
+  - Civ3 has no shield upkeep. Flintlock (post-16906674, page-167 #3321), giving his view of the design history (not a code reading) on why Civ2's shield upkeep was dropped: "One of the reasons they dropped that for Civ 3 was that the AI could never handle it well."
   - Not checked: whether units inside an Army are charged separately from the Army unit.
 - PTW/vanilla PEDIA (`civ3PTW/Text/Civilopedia.txt`, `Text/Civilopedia.txt`, `GCON_Unit_Support`) lists "Communism 2 4 8" and "Republic 0 0 0", which matches BIQ-PTW. MAS (thread 191722, 8 Nov 2006): "Republic in vanilla/Civ3: 0/0/0 | 1 gpt" and "Republic in Conquest/C3C: 1/3/4 | 2 gpt".
 
@@ -343,7 +347,7 @@ CFC-CORR (C3C), quoted:
   - Learning a new government's tech triggers an offer. SCRIPT `#NEW_GOVERNMENT_AVAILABLE`: "our people yearn for a change in government to ... Shall we encourage a revolution?"
 - Involuntary anarchy:
   - PEDIA `GCON_Disorder`: prolonged disorder can lead to "An overthrow of your government and descent of your empire into anarchy."
-  - Democracy war weariness can do the same (CFC-WW level 3 "Revolt").
+  - Democracy war weariness can do the same (CFC-WW level 3 "Revolt"). Code reading: Flintlock (C3X-THREAD post-16199613, page-27 #523): "a player gets kicked into anarchy if their WW is over 90", where "it checks against total WW divided by the number of contacts the player has." See section 3 §3.5.
 - Transition government. BIQ: Anarchy has `TransitionType=1`. EDHELP *Flags*: "When changing governments (i.e., having a revolution), civilizations temporarily transition to the selected government."
 - Anarchy length:
   - PEDIA `GOVT_Anarchy`: "Anarchy seldom lasts longer than a few turns."
@@ -409,6 +413,7 @@ CFC-CORR (C3C), quoted:
 | Byzantines | Republic | Feudalism | Inca | Communism | Republic |
 | Maya | Feudalism | Democracy | Barbarians | none | none |
 
+- **Code reading: the AI scores governments in gold, and the favourite is a weight.** Flintlock (C3X-THREAD post-16217016, page-30 #583): "the AI evaluates governments in points, where 1 point = 1 GPT maintenance." Terms he lists: "Not having the tile penalty is worth 8 points for each city the AI controls," and corruption tiers count per city, the milder the more (the notes give minimal 12, nuisance 8, problematic and communal 4, rampant 2; (paraphrase from a summarised fetch) "minimal is worth 12 points per city, nuisance is worth 8 per, problematic & communal are worth 4 per, and rampant 2 per.") "Shunned/favorite government is worth 12.5%". There is "a separate function that calculates a point value for any given gov't for the AI" (post-16715493, page-122 #2429), and "the contributions from corruption and tile penalty are multiplied by the AI's city count" (post-16719849, page-123 #2448). So in the code the favourite and shunned settings tilt the score by 12.5% (up or down, presumably), rather than forcing EDHELP's "immediately switch". This is the code reading against the Firaxis help text; it fits chiefpaco's and Propaganda's observation that AIs often pick other governments (section 8, Disputed 8). Whether the 12.5% is added to or multiplied into the score is not stated.
 - "Favourite Despotism" (Egypt, Aztecs, Zulu, Mongols, Celts) means the AI never voluntarily leaves the start government, if read literally. UNVERIFIED in play.
 - Tavis (Firaxis), thread 67419 page 2, 2 Nov 2003, at C3C release: "only the Hittites have Fascism as their Preferred Gov't and France & Portugal as their Shunned". The 1.22 BIQ also has England shunning Fascism. Either the data changed after release, or Tavis left England out. The BIQ value stands for 1.22.
 - Forum claims that the favourite and shunned settings drive AI *attitude* rather than (or as well as) AI government choice. Neither is tested, and both conflict with EDHELP:
@@ -584,7 +589,7 @@ Resolved in this pass and moved to the main text: Despotism tile penalty wording
 4. Whether units inside an Army pay support individually, and whether Leaders really cost upkeep in play (BIQ `RequireSupport=1`). Related but separate: for suppressing resistance an Army counts by its contents. vondrack (Apolyton, https://codehappy.net/apolyton/threads/58829-1.htm, 13 Aug 2002): "it will be counted for 1-4 units, depending on how many of them is actually in the army." Jaybe (Apolyton 116300, 25 Oct 2003): "An Army of 4 (3 combat units plus the Army unit) seems to count as 4 for resistance suppression."
 5. Direction of the GOVT-vs-GOVT matrices: is the row the initiator's government or the target's? CFC-ESP gives no explanation. The pattern suggests rows are the spy's government (the Democracy row has the largest bonuses), but this is an inference. EDHELP `Bribery_Modifier_Vs_Government_Properties_.htm` (titled "Propaganda Modifier Vs"), read this pass: "Determines the bribery modifier, if any (higher means a better chance of bribing) against a unit of the selected government type." So the government picked in the selector is the target and the government being edited is the one doing the bribing or propaganda. In the file each GOVT record carries its own block of one entry per government (QueryCiv3 `Biq.cs`: "Each GOVT record has a GOVT_GOVT relationship with every government"), so the record is the edited government. Read together, a row is the acting (bribing or propagandising) government and a column the target, which fits the pattern above. Still an inference from the editor text, not a test. (The `CanBribe` field reads 0xCDCDCDCD, uninitialised fill, in every C3C cell.)
 6. "Feudalism pikemen support" and "Tribalism veteran chance": not stock C3C (no data in PEDIA, BIQ or EDHELP). Probably from mods.
-7. Whether favourite-government AIs really "immediately" revolt when the tech arrives, as EDHELP says, and how the AI chooses when it has no favourite. Forum posts (wilbill) claim the setting only affects attitude; untested.
+7. Whether favourite-government AIs really "immediately" revolt when the tech arrives, as EDHELP says, and how the AI chooses when it has no favourite. *C3X-THREAD (code reading):* the choice is a per-government score in gold per turn, with the favourite or shunned government weighted by 12.5% (5.8). That argues against an absolute switch rule. What triggers the AI to start a revolution at all is still unpublished. Forum posts (wilbill) claim the setting only affects attitude; untested.
 8. Whether a Golden Age or WLTKD removes the Despotism tile penalty. No source found. PEDIA `GCON_We_Love_The_King_Day` lists only lower flip chance, less waste and weaker enemy propaganda. Dan Magaha (relayed, codehappy 25003) says WLTKD is "city-specific and can happen repeatedly", separate from the Golden Age.
 9. Whether a Golden Age during anarchy shortens it (garyg anecdote, 5.7).
 10. Whether the C3C 1.00 bugs listed in BUGLIST were fixed by 1.22: anarchy research through rioting scientists, and AI war weariness depending on turn order. The SPHQ bug was fixed in 1.20 (README).

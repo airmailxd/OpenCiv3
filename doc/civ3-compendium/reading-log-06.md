@@ -183,4 +183,12 @@ C3X source read from a local clone of https://github.com/maxpetul/C3X (commit d4
 - https://github.com/maxpetul/C3X/blob/master/Civ3Conquests.h (`AdvanceTypeFlags`, the diplomacy arrays in `struct Leader`): contribution: ROP is enabled by a tech flag (on Map Making in the BIQ), recorded next to the owner ruling (Disputed).
 - injected_code.c (`patch_Leader_make_peace`, `patch_Leader_cannot_plot_war_against`, the AI evaluation wrappers): nothing new.
 - https://forums.civfanatics.com/threads/useful-patches-for-civ-3-conquests-v1-22.526285/page-3 to page-12 (re-read with all sections in view): nothing new for section 6 (submarine-bug reports only).
-- https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/ (192 pages): read by helper agents in this round; their results were not merged before hand-back (see the round report).
+- https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/ (192 pages): read by helper agents in this round; merged in the "C3X forum thread (666881)" round below.
+
+## C3X forum thread (666881)
+
+https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/ (192 pages, read in full for stock-game statements by four helper agents, notes in `c3x-thread-notes-1.md` to `-4.md`; pages 65-66, missing from the notes, fetched in this round). Quotes were re-checked against the posts with a summarising fetch tool, one page at a time; quotes that could not be re-checked (CivFanatics rate limits) are marked "(paraphrase from a summarised fetch)" in the section.
+
+- Pages used for this section: 5, 16, 21, 36, 39, 44, 47, 69, 91, 101, 123, 131, 133, 136, 140, 141, 147, 156, 158, 160, 177, 188, 190, 191.
+- Posts cited: post-16055720 (p5 #91), post-16132380 (p16 #313), post-16132702 (p16 #318), post-16154963 (p21 #405), post-16275461 (p36 #709), post-16291863 (p39 #771), post-16310981 (p44 #876), post-16322889 (p47 #938), post-16428036 (p69 #1369), post-16571523 (p91 #1812), post-16605848 (p101 #2017), post-16719849 (p123 #2448), post-16760037 (p131 #2614), post-16781598 (p133 #2646), post-16823338 (p136 #2722), post-16832498 (p140 #2794), post-16833692 (p141 #2810), post-16848926 (p147 #2930), post-16876177 (p156 #3105), post-16878439 (p156 #3119), post-16883917 (p158 #3141), post-16892444 (p160 #3198), post-16938325 (p177 #3539), post-16980354 (p188 #3741), post-16987435 (p190 #3796), post-16990905 (p191 #3807), post-16322917.
+- Pages 65-66: nothing new for section 6.

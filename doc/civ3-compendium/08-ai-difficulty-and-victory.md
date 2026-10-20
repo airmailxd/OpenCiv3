@@ -31,6 +31,12 @@ Local first-hand sources (deep pass of 2026-10-20), cited by these tags:
   the C3X author; he says he converted "the original logic" to pseudocode (post #8: "In the original logic it's
   more clear. There's a switch statement over the AI aggression setting"). This is code reading of stock C3C, not testing.
 
+**C3X-THREAD** is https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/ (the C3X mod's forum thread, 2021-2026). Posts are cited as "post-NNNNNNNN" (thread
+URL plus `post-NNNNNNNN`) or "page-N #post-number". Flintlock's statements about "the base game" are code readings of
+the 1.22 executable; other posters report play, sometimes in modded games. Only statements about the unmodded game are
+used. Quotes were re-checked against the posts; the few that could not be are marked "(paraphrase from a
+summarised fetch)".
+
 ### Owner rulings for the engine (recorded, not argued)
 
 The project owner has ruled on these points. The sources that bear on each are listed so the ruling can be
@@ -221,6 +227,13 @@ Sources for the table:
   - The war-target code reads the target's unit counts directly. FLINTLOCK-WAR: "Calculate LandUnitsPerCity as
     (number of units the target has with the offensive or defensive AI strategy // target's city count)". This
     needs no visibility of those units.
+- **Code reading: fog of war does not apply to the AI, invisibility does.** Flintlock (C3X-THREAD post-16941749,
+  page-179 #3580): "In general, the fog of war doesn't apply to the AI and unit invisibility does." Earlier
+  (post-16582080, page-94 #1874): "There's no single point in the code where it's determined whether or not
+  AIs can see through the fog of war". On recon (post-16393188, page-63 #1247): "As far as I know the AI
+  never does recon missions." / "Where a human player would do a recon mission the AI cheats instead."
+  This confirms Harovan's "knows the entire map" from the code, with one limit: hidden units (submarines and the like)
+  stay hidden from the AI.
 - **No combat, border or wonder cheats (tested).**
   - TheNiceOne (27273): combat "outcomes are as they should be" over many battles; "there's no AI wonder production cheats".
   - TheNiceOne (33788): on border rules, "the AI follows exactly the same rule as the human player."
@@ -231,6 +244,11 @@ Sources for the table:
 - **Mid-turn AI trading (vanilla 1.16f).** In 1.16f AIs could trade with each other during the human's turn
   (solo, https://codehappy.net/apolyton/threads/39845-1.htm, Jan 2002, with a save). README-V 1.17f removed it:
   "The AI no longer trades during the players turn."
+- **Difficulty works mainly through the cost factors** (community). tjs282 (C3X-THREAD post-16843587, page-144 #2879):
+  (paraphrase from a summarised fetch) "the improvements in AI performance at higher levels are mainly down to the lower cost-factors" and the
+  preferential AI-AI trade rates. justanick (post-16306886, page-43 #841): "At demigod AI gets additional 3
+  free unit support per settlement and 12 additional free unit support outright." That matches the BIQ table
+  (`05-governments.md` 5.3).
 - **Difficulty raises the AI's war aggression (code).** The effective aggression level used by the war and
   diplomacy code adds a difficulty term. FLINTLOCK-WAR: `level = civ.AggressionLevel + GameDifficulty // 2 -
   DifficultyLevelCount // 6`, clamped to -2..2 (`GameDifficulty = 0 for Chieftain`). With C3C's 8 levels the term
@@ -397,6 +415,25 @@ build-never list is empty in the standard setup.
 - **Production.** The city picks whatever item scores highest. Soren (255541): "the city simply builds the item with the highest value."
 - **Personality.** Leaders are modelled on history. Soren (255541): "an aggressive ruler preferring
   despotism and offensive ground units".
+- **How the production score works (code readings, C3X-THREAD, Flintlock).**
+  - "The AI chooses to build whatever has the highest point value." (post-16158745, page-21 #409). "it
+    considers improvements and units separately but it considers all kinds of improvements, wonders or not, together."
+    (post-16149215, page-19 #367).
+  - Randomness: randomness "works by adding a random number of points to the AI's valuations of its options." / "IIRC, the random number is chosen
+    between -5 and +5." (post-16360495, page-56 #1101).
+  - A unit type it has enough of scores zero: "the AI assigns a value of 0 to catapults when it doesn't want
+    any more" (post-16157851, page-21 #406); the same holds for workers (3.2). His view that "the AI likes
+    happiness regardless of whether or not it needs any more" (post-16150396, page-20 #386) is, by his own account, a
+    guess.
+  - An undefended city skips the main loop: "It runs a special bit of logic to pick a defender to build and
+    skips over the main loop", and (paraphrase from a summarised fetch) "the function with the main loop is 3000 lines alone" (post-16760037,
+    page-131 #2614). There are "(annoyingly) multiple production chooser methods even for the regular civ
+    AI" (post-16859226, page-150 #2996).
+  - It ignores resources that buildings would generate: "The AI doesn't account for generated resources at
+    all when deciding what to build." (post-16902815, page-166 #3314).
+  - Civs differ little: "the AI is almost identical for all civs." (post-16095472, page-12 #228).
+  - Wartime (community): Predator145 (post-16288091, page-39 #764): "During war time, military units get much
+    higher build preference than peace time."
 - **Naval and air.** Soren (255541): "the AI is capable of launching naval invasions using a variety of
   land, sea, and air units". C3C added to this. LouLong (61791): "AI improvemement : picking bombardment
   targets; escorting key naval transports like carriers and transports."
@@ -439,6 +476,13 @@ build-never list is empty in the standard setup.
   (Dec 2013), found the limit is the editor's, not the game's: "this is not hardcoded in the game, it's only in the
   editor." With the Terraform flag set by hex edit, the AI used the unit anyway; Kirejara confirmed it with another
   editor. So what the game reads is the strategy flag.
+- **Unit AI strategies in the code (C3X-THREAD, Flintlock).** "each unit type can only have one AI strategy."
+  The AI keeps a count of units per strategy, and "the only time that count is ever decremented is when
+  a unit is destroyed." (post-16531281, page-83 #1641). A unit with several strategies in the
+  editor is stored as several copies in the BIQ (post-16375682, page-59 #1162). Which units need an escort is fixed in
+  the executable: "it's hard-coded in the executable which unit types require escort." / (paraphrase from a summarised fetch) "I
+  haven't seen the requires escort flag used anywhere in the unit AI." (post-16553267, page-89 #1765). Civinator
+  (post-16843785, page-145 #2892): "AI units without any strategy are "dead" in the game."
 - **Which buildings each category covers** (Predator145, 3 Oct 2024, thread 692300; community. Where it differs
   from Soren above, for Wealth, Soren's vanilla answer is the Firaxis one).
   - Growth: "Granary, Aqueduct, Hospital".
@@ -508,6 +552,17 @@ build-never list is empty in the standard setup.
   setting of 1 there corresponds to the standard game rules." Antal1987's patch notes (thread 526285, v1) also
   describe a stock limit that blocks a new city when the settler is "less than 2 tiles from an existing city".
   For the engine's AI, see the owner ruling at the top.
+- **What the site score favours (code readings, C3X-THREAD, Flintlock).** (post-16169633, page-23 #442):
+  "the AI is programmed to find locations less desirable the farther they are from its already existing cities",
+  "the AI's city placement is dominated by terrain (it loves grassland)", and "the AI almost
+  completely ignores coastal resources and has no qualms about founding directly on a resource". (post-16149858,
+  page-19 #375): "it doesn't consider how placing a city somewhere will affect the placement of others around
+  it." (post-16831749, page-140 #2788): "There are no knobs inside the AI that control how quickly it expands
+  other than its preference for producing settlers", and its city location evaluator steered it away from overlapping
+  work areas. (post-16575327, page-93 #1841): "Under the standard game rules the AI would be better off
+  packing more cities in closer together". He could not find where the AI is kept from founding inside its own borders
+  (post-16843718, page-145 #2886: "it's not obvious in the AI's logic where this restriction is"). The
+  owner's spacing ruling (top of section) is unaffected.
 - **Site choice is a desirability score per tile (code).** The stock function is `Match_ai_eval_city_location`
   (C3X-SRC `civ_prog_objects.csv`, signature `int (... int x, int y, int civ_id, bool param_4, int *
   out_breakdown)`). C3X-INI's debug overlay "Shades/highlights each tile to show how desirable the AI considers it
@@ -676,6 +731,44 @@ power, attitude and open land):
 - **Multiple stacks (PTW observation).** Jaybe, https://codehappy.net/apolyton/threads/84396-1.htm (27 Apr 2003):
   "Multiple stacks, occasionally diverging to separate targets"; "They still try to enter at the most
   advantageous entry point". alexman (Firaxis) in the same thread lists "fewer SOD's" among the PTW changes.
+- **The unit AI in the code (C3X-THREAD, Flintlock, C3C 1.22).**
+  - Little planning, no coordination: "Internally the unit AI does little to no analysis or planning, it just
+    performs basic reactions to its surroundings." (post-16163990, page-22 #429). "there is no unit stack AI
+    in Civ 3" / "It's every unit for itself"; "one unit may have multiple escorters but an
+    escorting unit may only have one escortee" (post-16444427, page-73 #1455). "the unit AI for the
+    attackers never considers artillery and vice-versa" (post-16898219, page-164 #3269). A better unit AI exists in the
+    executable but is unused: "the game already includes a half decent unit AI except it's never activated
+    in the base game" (post-16270971, page-34 #668).
+  - Artillery: "arty units in a city will never leave that city unless there are too many of them in it"
+    (post-16075105, page-8 #150); "AI artillery will only path toward an enemy city" (post-16729166, page-124
+    #2476); "The reason AI artillery leaves its stack is because its escorting unit was destroyed" (#1455);
+    captured artillery "must return to a city so it can be assigned an escorter" (#3269). He thinks the stock
+    swarm without artillery "may actually be superior" (post-16937054, page-177 #3521).
+  - Armies: "There are two bugs that prevent the AI from using armies in the base game." (post-16111169,
+    page-13 #258); the add-to-army filter "failed to consider that armies have an extra move" and
+    "The reason the AI doesn't attack high health armies is that each unit is processed individually"
+    (post-16304748, page-40 #795).
+  - Naval escorts and invasions: "Normally the AI will assign between 1 and 3 escorts for each of its naval
+    transports" (post-16441638, page-71 #1419), and "The AI almost always ends up assigning three escorts to
+    each transport." (post-16857204, page-150 #2981), the only place it weighs unit shield costs. The escort check
+    ignores that escorts are damaged if they can't heal in place (post-16102748, page-12 #233). Loading:
+    "units load up for a naval invasion if they happen to find themselves in a city with a naval transport and
+    have nothing better to do." / (paraphrase from a summarised fetch) "There's no way for them to seek out a transport, which is why the AI often
+    sends out transports that are only partially filled." (post-16341094, page-51 #1018). "The AI can't
+    transport caravans between continents. It can't even transport workers between continents, as far as I know." (#2981).
+    It never uses land transports (page-165 #3287) or loads explorers (page-169 #3365).
+  - Air: "the AI's fighters and bombers do not coordinate at all" / "the AI does not remember where
+    or when it's been bombed." (post-16523964, page-82 #1623). "the AI doesn't build many air units unless it's
+    triggered to do so by getting bombed itself." (post-16217348, page-30 #586, his belief). The AI has no rebase validity
+    check (post-16783087, page-133 #2653). Cruise missiles: "The cruise missile AI looks for a target within
+    bombard range and attacks if it finds one or otherwise fortifies in place." (post-16089946, page-11 #211). Nukes: it
+    "considers the value of resources on a tile when deciding whether to nuke it" (post-16965737, page-185 #3694).
+    Predator145 (post-16393228, page-63 #1248, play report): the AI will not use its nukes unless it has been hit by one.
+  - Tactics it lacks: ZOC ("I don't think the AI understands ZoC at all", post-16537815, page-84 #1671) and
+    stealth attack (post-16853988, page-148 #2959; section 1 §1.1).
+  - Disorder: "The AI won't let its cities disorder" (post-16929609, page-174 #3467). Earlier, more hedged
+    (post-16844914, page-146 #2910): "For the AI, I don't think I've ever seen it leave a city in disorder for
+    multiple turns", with an exception for extreme war weariness.
 - **Patrol.** README-PTW (1.26f): "the AI will no longer use its units to randomly patrol if they have nothing else to do"
   when the INI option `NoAIPatrol` is 1; "The default is 0 (meaning the AI will patrol)."
 
@@ -706,10 +799,43 @@ power, attitude and open land):
   (C3X-SRC comment: "the randomization of whether improv or unit maintenance gets paid first"), and the stock AI
   slider routine already cuts spending ("ai_adjust_sliders will already cut AI spending but maybe not all the way to
   zero"). See `02-city-economy.md` §7.
+- **AI workers in the code (C3X-THREAD, Flintlock).** "for irrigating and mining it orders its workers around
+  "manually"", "it will never tell a worker to replace a mine with irrigation or vice-versa", and the stock
+  bug "The bug is that the logic to handle the despotism penalty uses the scaled yields instead of the raw yields."
+  (post-16191224, page-25 #494). The irrigate-or-mine choice is one yes/no function (post-16563260, page-90 #1793:
+  "It returns only true or false, if true the tile will be irrigated and otherwise it will be mined."). Radar
+  towers: workers "consider every tile on their continent that could have a radar tower" and build on the
+  highest-valued one (post-16589155, page-96 #1907). Predator145 (post-16094435, page-12 #225, play report): the AI does
+  not clear marshes, build airfields or irrigate mined plains after Electricity.
 - **Sliders are set by code each turn (code).** C3X-SRC: the stock "preproduction player update method" makes a
   "human-ness test and call to Leader::ai_adjust_sliders" for AI players, and "The rate cap limits AI players'
   spending on the gold slider (in Leader::ai_adjust_sliders)", where the cap is the government's rate cap. The
   code reading does not say how the split is chosen.
+- **Code reading: the stock AI does move the luxury slider, too little.** Flintlock (C3X-THREAD post-16797044,
+  page-135 #2687): the AI's slider use "it's not aggressive enough on the luxury slider". That corrects Ision's "will NOT use" below, and is consistent with alexman's "best the AI can do without
+  using the luxury slider" if the AI used it little in his test. The owner ruling (the AI keeps the slider) stands.
+- **Tiles: every city for itself (code reading).** Flintlock (post-16813639, page-136 #2702): "The AI never,
+  as far as I know, considers how to distribute tiles among multiple cities." / "It's every city for itself,
+  choosing the strongest among all the ones it can work." For every player (post-16848272, page-147 #2928): the game
+  "never considers which city would be the best to work a given tile."
+- **Upgrades: a gold reserve gates them (code reading).** Flintlock first wrote (post-16168856, page-22 #439, "AFAIK")
+  that the AI always upgrades when it can; he corrected this later (post-16937054, page-177 #3521): the upgrade pass is
+  "behind a weird little check", "The reserve amount is 16 gold per city plus enough to earn the AI
+  full interest income" "if it has any wonders that grant that", and "the AI will not upgrade anything when it's below the minimum gold reserve even
+  if the upgrade is free." He adds (post-16583488, page-95 #1884): "the AI isn't smart enough to move its
+  obsolete units to the cities where it has barracks". The later reading supersedes the first.
+- **Rush-buying: improvements only, above a reserve (code reading).** Flintlock (post-16787843, page-134 #2662):
+  "Its reserve target is 1000/number_of_interest_generating_wonders + 16 * number_of_cities", and "it won't
+  rush an improvement if doing so would leave its treasury below that level." The check is whether
+  rushing "would reduce the AI's treasury enough to reduce its income from interest" (post-16783087, #2653).
+  Spoonwood (post-16286783, page-39 #763, observation): "The AI also does not appear to cash rush anything."
+- **Selling buildings: one routine, for replacing power plants (code reading).** Flintlock (post-16787843, page-134
+  #2662): "There's only one routine where the AI considers selling city improvements"; per the thread notes it
+  weighs replacing a plant on production bonus, pollution and upkeep only (summary wording). The production chooser
+  makes the same assumption (post-16823297, page-136 #2720): "the AI's logic for choosing production assumes
+  that buildings with the replaces-others flag are powerplants."
+  Predator145 (post-16345873, page-52 #1031): (paraphrase from a summarised fetch) "The AI will not sell obsolete improvements and will only lose
+  them if they can't pay maintenance."
 - **Luxury slider.** Ision: the AI "will NOT use the luxury slider to compensate for any happiness
   issues". Instead it uses entertainers. alexman's PTW debug test, https://codehappy.net/apolyton/threads/66928-1.htm
   (7-8 Nov 2002; six one-city islands): AI cities were "Always irrigating like crazy to compensate for the lack of
@@ -747,6 +873,9 @@ power, attitude and open land):
     know how perfuming governments affects the AI's willingness to overthrow its current govt. The perfume for sure
     applies when the AI is selecting a new govt type after anarchy." So the stock AI picks its new government by
     score after anarchy; how the favourite enters that score is not published. See also `05-governments.md` 5.8.
+  - **Code reading of the score (C3X-THREAD, Flintlock):** points in gold per turn, with the tile penalty worth 8 per city,
+    corruption levels 12/8/4/4/2 per city, and "Shunned/favorite government is worth 12.5%" (post-16217016,
+    page-30 #583; full quotes in `05-governments.md` 5.8).
   - Tavis (Firaxis), quoted in `05-governments.md`: free Feudalism maintenance in testing meant "the AI wouldn't
     switch from it!!", which shows the switch decision weighs the government's economy.
 - **Scientific AIs broker techs.** Ision: they gain techs and gold by trading techs on, and often end up
@@ -804,6 +933,25 @@ condition information."
   after an early wipeout "the computer will respawn that AI, with ADDITIONAL techs, and a new settler". GePap,
   https://codehappy.net/apolyton/threads/36170-1.htm (Nov 2001): "Killing them means destroying all cities and all
   settlers." The stock routine is `Leader_create_city_for_ai_respawn` (C3X-SRC). How "early" is defined is not sourced.
+  Civinator (C3X-THREAD post-16707594, page-121 #2417) lists (paraphrase from a summarised fetch) "the normal C3C respawn logic": the civ gets
+  "1 town, 3 defensive units, 1 offensive unit, 1 settler, 1 worker, 100 additional gold" plus its difficulty
+  start units; there is "Only one respawn of each civ in a game" (post-16708435, page-122 #2422); and the
+  option must be on when the game starts (post-16699411, page-120 #2396). He adds conditions on the site (its old
+  continent, a tile without culture, no foreign unit or border within about 5 tiles; summary wording, not checked).
+  Flintlock (post-16929609, page-174 #3467): "The reason AI players don't get respawned is that there's no
+  space for them."
+- **Elimination edge cases (stock bugs).** A civ whose last city is lost survives while it has a settler at sea (the
+  "houseboat" bug): Civinator (post-16083900, page-10 #182) says it does not happen with a settler on land, and ynot56
+  (post-16085984, page-11 #201): "settlers on land are eliminated when the last city of a civilization is
+  taken." Flintlock (post-16084386, page-10 #183) found the related crash: it happens "whenever the civ's
+  stored capital ID doesn't correspond to an actual city." Lord_Hill (post-16224617, page-30 #596): "if your
+  first and only city is destroyed by a volcano, you automatically win by conquest!" These are bugs; the intended rule is
+  elimination when a civ has no cities and no settlers (land or sea), and no win from losing your own last city.
+- **Engine limits (code readings, C3X-THREAD, Flintlock).** "The 31 civ + barbs limit is baked very deeply into
+  the game, it's even baked into the BIQ format" (post-16888798, page-159 #3163). "The unmodded game's limit of
+  8192 units is arbitrary." (post-16606824, page-102 #2039). The turn limit is capped at 1000 (page-106 #2110). Cities: 512
+  (`02-city-economy.md` §11). In hotseat play "all human players move before any AIs" (post-16384097, page-62
+  #1222).
 - **Retiring.** README-V 1.16f: "Retiring from a Conquest only game no longer is recorded as a victory."
 
 ---
@@ -936,6 +1084,9 @@ Items marked RESOLVED were settled in the deep pass of 2026-10-20 and are kept s
      The government choice itself is a score (`Leader_ai_eval_government`) whose terms are not published.
    - chiefpaco and Propaganda (21298), wilbill (`05-governments.md`): it only affects attitude, and AIs "always
      choose Democracy" even when it is shunned. Not resolved: whether the "immediate switch" happens in play.
+   - *C3X-THREAD (code reading):* Flintlock (post-16217016, page-30 #583): "Shunned/favorite government is
+     worth 12.5%" of the government score. So in the code the setting is a weight in the score, not EDHELP's
+     immediate switch. That is the stronger source and explains the players' "always choose Democracy".
 9. **Build-often/never: how many flags are effective.**
    - Ozymandias (tested): more than 3-4 and the AI ignores them all.
    - Predator145, citing alexman second-hand: 6.
@@ -969,7 +1120,12 @@ Items marked RESOLVED were settled in the deep pass of 2026-10-20 and are kept s
     equal power bars, "suggesting that AIs don't start in 4000 BC with extra units." justanick (22 Sep 2025): "When
     you start a regular game, a Sid AI will start immediately with all extra units it is supposed to have"; he
     guesses the scenario lacked starting positions. Pyrkaige (page 1, 2002): "At Monarch and above, the AI civs get
-    extra offensive and defensive units when they start the game." Unsettled for random maps.
+    extra offensive and defensive units when they start the game." *Largely resolved by code reading:* Flintlock
+    (C3X-THREAD post-16708336, page-122 #2421): "AI players receive their set of free units from difficulty
+    level whenever they found their "first" city", that is, "if the owner is an AI and their city count now equals 1,
+    spawn in the free units." So the units come with the first city, as Spoonwood saw;
+    on a random map the AI usually founds it on turn 1, which is what justanick and Pyrkaige saw. It also means an AI
+    that loses all cities and re-founds one gets the units again (Flintlock's explanation of tjs282's report, #2418).
 
 ## UNVERIFIED / open questions
 
@@ -993,7 +1149,7 @@ Items marked RESOLVED were settled in the deep pass of 2026-10-20 and are kept s
   (`Match_ai_eval_city_location`) and worker tiles. How it computes how many workers it "needs".
 - **War.** The delay from plotting to declaring (guesses of about 4 turns), whether the target is the top score or
   a weighted pick, the exact cooldown after peace (Flintlock believes 8 turns), and how the unit AI uses aggression.
-- **AI sliders.** The code sets them each turn (`ai_adjust_sliders`, capped by the government rate cap). How it
+- **AI sliders.** Flintlock's reading (3.6): the stock AI uses the luxury slider too timidly. The code sets them each turn (`ai_adjust_sliders`, capped by the government rate cap). How it
   chooses the split is not published. Observed research rates were 30-70% (vanilla).
 - **Difficulty fields for the AI.** Content citizens are Regent's (Soren, 1.2) and military law is the same at
   every level. The barbarian bonus still lacks a code reading or test.

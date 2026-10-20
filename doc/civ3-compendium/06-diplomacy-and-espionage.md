@@ -22,6 +22,12 @@ How to read this section:
   is out of scope. Only its descriptions of what the unmodded C3C 1.22
   executable does are used.
 - "Code-level" marks findings from people reading the C3C 1.22 executable.
+- "C3X-THREAD" means the C3X mod's forum thread,
+  https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/
+  (2021-2026). Posts are cited as "post-NNNNNNNN" (thread URL plus
+  `post-NNNNNNNN`) or "page-N #post-number". Flintlock, the C3X author,
+  reads the 1.22 executable; other posters report play, sometimes modded.
+  Only statements about the unmodded game are used. Quotes were re-checked against the posts; the few that could not be are marked "(paraphrase from a summarised fetch)".
 - Community findings are labelled with the tester, version and date where the
   source gives them. CivFanatics studies use a sign convention where a
   negative attitude number is good for you.
@@ -249,7 +255,13 @@ How to read this section:
   ZERO IN AI ALLIANCE EVAL": "When considering whether to agree to a military
   alliance, the AI computes the distance from its capital to the nearest city
   belonging to the target of the alliance and divides by that distance." The
-  rest of the formula is not given.
+  rest of the formula is not given. Flintlock (C3X-THREAD post-16832498,
+  page-140 #2794): "The crash is caused by a division by zero in
+  the AI's logic to consider whether to sign a military alliance." He adds
+  (post-16833692, page-141 #2810) that the alliance's value to the other
+  side likewise "depends on the distance from your capital to the
+  nearest city belonging to the target of the alliance". So a nearer target
+  is worth more. The crash (target with a city at distance 0) is a bug.
 - **Locked alliances are scenario-only, so out of scope.** Members have a
   permanent MPP. Source: Conquests Civilopedia `GCON_Locked_Alliances`.
   Quote: "A pre-designed scenario (only) might begin with some (or all)
@@ -333,6 +345,22 @@ How to read this section:
   Quote: "it commits a leader to pay the specified amount every turn for the
   next 20 turns. Only the outbreak of war between the trading parties
   interrupts the required payments."
+- **Cities: the AI never trades them in ordinary diplomacy; it can cede them
+  for peace (code reading plus players).** Flintlock (C3X-THREAD
+  post-16760037, page-131 #2614): "the reason the devs restricted
+  that to begin with is the AI wasn't able to properly value cities".
+  Kokuryutei (post-16322889, page-47 #938): "AI never agrees to
+  transactions with the transfer/exchange of cities." tjs282 (#939,
+  post-16322917): "And a badly damaged AI will often also concede additional
+  towns during peace negotiations."; (post-16781598,
+  page-133 #2646): "You can't "buy" towns (i.e. offer something in
+  exchange), you can only demand them outright." forestar (post-16990905,
+  page-191 #3807): city trading is "normally impossible during
+  regular diplomacy, but it becomes allowed during dealing with peace
+  treaties." Units: Flintlock (post-16291863, page-39 #771): "very
+  limited unit trading of only workers in the capital", as the manual says.
+  The trade lists stop at 512 cities and 8192 units, a bug C3X fixes
+  (post-16883917, page-158 #3141).
 - **Cities can be traded, but the AI rarely does so.** Manual p.~165. Quote:
   "under normal circumstances a leader would rather go to war than trade one
   away. The option to trade cities exists, however". The CivFanatics FAQ
@@ -574,6 +602,11 @@ In this study a negative number is good.
   gives +3 and AL1 gives 0 (study, summarised). Conquests Civilopedia
   `GCON_Culture` agrees on culture groups. Quote: "nations of the same global
   culture tend to start near each other and are more tolerant in diplomacy."
+  C3X-THREAD players say the same: tjs282 (post-16154963, page-21 #405,
+  "AFAIK"): (paraphrase from a summarised fetch) "same-Culture Civs are also coded to be more friendly to
+  one another initially"; Virote_Considon (post-16428036, page-69 #1369):
+  "Civs have slightly less initial hostility to other civs in their
+  same culture".
 - **Government.** Same government: -1 (study, summarised). Quotes: "-5
   Favorite government (only applies if both you and the AI are in this
   government)" and "+4 Shunned government (only applies if you are in this
@@ -713,6 +746,16 @@ In this study a negative number is good.
   raiders, and no diplomacy text targets them. UNVERIFIED as an explicit rule.
 
 ## 6.8 AI trade valuation
+
+- **Where the AI's markup is applied is not found in the code.** Flintlock
+  (C3X-THREAD post-16275461, page-36 #709): "The function that
+  calculates the AI's offer is long and I wasn't able to see where it tilts
+  the trade in its favor." (post-16892444, page-160 #3198):
+  "I wasn't able to find the point where the AI decides how much
+  to try to cheat the player." So TheNiceOne's table below has no code
+  confirmation. Tech values from the AI's one tech-valuation function are
+  "roughly equivalent to the amount of gold the AI would ask"
+  (post-16719849, page-123 #2448; section 4 §4.7).
 
 - **The AI-human trade markup is hard-coded.** It depends on difficulty, the
   AI's aggression level and attitude. The editor's AI-AI trade rate does not
@@ -1026,6 +1069,13 @@ In this study a negative number is good.
   presence as war unless you leave: "Your recent movement of troops into our
   territory constitutes a declaration of war against $CIVNAME1. Send them home
   immediately or know that YOU will be held responsible for the conflict!"
+- **Timing and visibility (community, C3X-THREAD).** Erlend Philip Wood
+  (post-16132380, page-16 #313): "you _are always_ asked to leave or
+  declare war on the second turn." He adds (post-16823338, page-136 #2722)
+  that "the AI will only ask them to leave if it can see them".
+  SayHayKid (post-16605848, page-101 #2017): (paraphrase from a summarised fetch) "In standard game you
+  can enter, but the other Civ will ask you to remove your forces." These are
+  play reports, not tests.
 - **When the "leave or declare war" option appears is unknown.** Apolyton
   55198 (Jul 2002, 1.21f) has guesses only. Hurricane: "The exact number of
   units required is still unresolved, AFAIK." Fitz: "Contacting a
@@ -1230,6 +1280,27 @@ In this study a negative number is good.
   $LINK<Writing=TECH_Writing>"). The screen arrived with PTW (Apolyton "UGO
   Preview Part 2 - ESPIONAGE Screen", https://codehappy.net/apolyton/threads/63254-1.htm).
   So: vanilla button at Espionage; PTW and C3C screen at Writing.
+- **How a mission is rolled (code reading).** Flintlock (C3X-THREAD
+  post-16571523, page-91 #1812): "The game computes some sort of
+  base chance ahead of time when a spy mission is configured", and "the
+  game doesn't account for city improvements or government until the very
+  end." (said of the propaganda mission). For stealing a tech the base chance is (paraphrase from a summarised fetch) "the chance not to
+  fail completely": losing that roll means the theft fails and the spy is
+  caught, and "even if you pass that roll there's another roll to
+  determine if you fail to steal the tech but the spy gets away." That is
+  the study's two stages (escape chance, then 80% success), in the other
+  order of description.
+- **Every mission is aimed at a city (code reading).** Flintlock
+  (post-16878439, page-156 #3119): "Even the code for the espionage
+  screen itself is all written assuming that every mission requires a target
+  city." No poison-water mission exists in C3C (post-16848926, page-147
+  #2930): "Sadly, I don't see any evidence of this mission in the
+  Conquests EXE." vmxa (post-16876177, page-156 #3105), on the capital as the
+  target: "No palace, no spy."
+- **Steal Plans also shows invisible units** (play report). MARK V
+  (C3X-THREAD post-16938325, page-177 #3539): (paraphrase from a summarised fetch) "invisible units
+  become visible as a result of an espionage mission to steal plans", and a
+  failed mission "almost always" brings a declaration of war.
 - **The AI uses espionage too.** jabroni154 (Apolyton "Espionage and the AI in
   1.21", https://codehappy.net/apolyton/threads/49422-1.htm, May 2002) saw an
   AI propaganda attempt and spy plants. TimBentley (CFC 97042 page 4, Apr
@@ -1311,6 +1382,17 @@ reading.
 - **War is declared when the attack starts.** Flintlock (page 2, Jul 14 2026):
   "War is declared only when the attack actually happens." And: "the AI will
   not attack you with its HN units while it's gracious toward you."
+- **How the AI's declarations happen in play.** Flintlock (C3X-THREAD
+  post-16132702, page-16 #318): AI war declarations usually come from it
+  "running its units into its target's cities". Alekseyev_
+  (post-16987435, page-190 #3796): (paraphrase from a summarised fetch) "Basically, only surprise
+  attacks as war declarations." Both fit "War is declared only when the
+  attack actually happens" above.
+- **Barbarians: no diplomacy, always enemies (code reading).** Flintlock
+  (C3X-THREAD post-16980354, page-188 #3741): "the unit AI considers
+  units owned by the barbs to be enemies unconditionally" and
+  "Diplomacy with the barbarians is not possible even if they own
+  cities."
 - **Shared continent means a city on it.** Flintlock (page 2): "Two players are
   considered to share a continent if they both have at least one city on it."
 
@@ -1400,7 +1482,11 @@ reading.
 - **Units removed from territory: where to?** The Strategy Compilation says
   "nearest non-offending spot"; vondrack (Apolyton 55198, 1.21f) says toward
   "their original destination" (6.10).
-- **Can cities be traded outside a peace deal?** The CFC FAQ lists "Cities (as
+- ~~**Can cities be traded outside a peace deal?**~~ *Resolved (6.4,
+  C3X-THREAD):* the AI refuses city transfers outside peace talks; Flintlock
+  says the developers restricted it because the AI could not value cities.
+  The FAQ's "peace deal only" is right for deals with the AI. Kept for the
+  record: The CFC FAQ lists "Cities (as
   part of a peace deal only)". The manual (p.~165) lists cities as an ordinary
   trade item, Bamspeedy (CFC 44999 page 6, PTW 1.21) treats "Donations of
   cities" as gifts, and the Strategy Compilation (vanilla) says "AI trades big
@@ -1422,7 +1508,12 @@ reading.
   AI no longer reacts to submarines that it cannot see." C3X-INI (C3C 1.22,
   "SUBMARINE BUG"): "After colliding with an invisible unit, the AI initiates
   combat, declaring war if necessary." So in 1.22 an AI that bumps into your
-  hidden unit can still start a war.
+  hidden unit can still start a war. Flintlock (C3X-THREAD post-16055720,
+  page-5 #91) lists it among the stock bugs he fixed: "AI
+  pathfinding collides with invisible units (called the "submarine bug")".
+  Alekseyev_ (post-16310981, page-44 #876): "I think the submarine
+  bug still exists on land." It is a bug; the intended rule (vanilla 1.16f)
+  is that bumping into an unseen unit starts no war.
 
 ## UNVERIFIED / open questions
 
@@ -1468,7 +1559,8 @@ war (6.11, informal test).
    trade while you're in a war you started". No Civ3 source was found. Such
    rules are attested for Civ4 only (for example CFC 217576, a Civ4 thread).
 9. **When the "remove your forces or declare war" option appears**, and the
-   exact rule for where removed units go.
+   exact rule for where removed units go. (C3X-THREAD play reports, 6.10: the
+   demand comes on the second turn, and only for units the AI can see.)
 10. **Whether the MPP fires on the declaration or the first attack.**
 11. **Embassy-granting wonder** (Marco Polo's Embassy): its presence and
     effect per version were not checked here. It belongs to the wonders
