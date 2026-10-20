@@ -1520,9 +1520,17 @@ namespace C7GameData {
 
 		public void HandleCityUpdates(GameData gameData) {
 			foreach (City c in cities) {
+				// Barbarian cities (only a scenario can give barbarians one)
+				// build nothing and gain no culture: in Debug mode "The
+				// Barbarian city was not able to build anything (no buildings
+				// and no units)" and its "culture ... always stayed at zero"
+				// (Civinator,
+				// https://forums.civfanatics.com/threads/barbarian-cities-in-civ-3.646253/).
+				bool active = !isBarbarians;
+
 				// Ensure borders expand before we assign the new citizen, so that
 				// the new citizen can go on one of our new tiles.
-				if (c.UpdateCultureAndCheckForExpansion()) {
+				if (active && c.UpdateCultureAndCheckForExpansion()) {
 					gameData.UpdateTileOwners();
 					BarbarianInteractions.DisperseCampsWithinBorders(gameData);
 					GoodyHuts.OpenWithinBorders(gameData, c);
@@ -1534,7 +1542,9 @@ namespace C7GameData {
 
 				c.UpdateResistance(gameData);
 				c.HandleCityGrowth(gameData);
-				c.HandleCityProduction(gameData);
+				if (active) {
+					c.HandleCityProduction(gameData);
+				}
 				Tile polluted = c.MaybePollute(gameData);
 				if (polluted != null && IsToldNews) {
 					// Civ3's Script.txt, POLLUTION.

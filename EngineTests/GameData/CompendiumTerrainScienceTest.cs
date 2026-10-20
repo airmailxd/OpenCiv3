@@ -83,6 +83,26 @@ public class CompendiumTerrainScienceTest : IClassFixture<SaveGameFixture> {
 		Assert.False(city.CanReceiveForestShields());
 	}
 
+	// A barbarian city builds nothing and gains no culture.
+	[Fact]
+	public void BarbarianCitiesBuildNothingAndGainNoCulture() {
+		Player barbarians = gameData.players.First(p => p.isBarbarians);
+		Tile tile = gameData.map.tiles.First(t => IsEmptyLand(t) && t.IsAllowCities()
+			&& t.neighbors.Values.All(n => n == Tile.NONE || !n.HasCity()));
+		City city = CityInteractions.BuildCity(tile, barbarians, "Barbaria");
+		city.AddBuilding(gameData.Buildings.Single(b => b.name == "Temple"));
+		UnitPrototype warrior = Prototype("Warrior");
+		city.SetItemBeingProduced(warrior);
+		city.SetStoredShields(barbarians.ShieldCost(warrior));
+		int units = barbarians.units.Count;
+		int culture = city.GetCulture();
+
+		barbarians.HandleCityUpdates(gameData);
+
+		Assert.Equal(units, barbarians.units.Count);
+		Assert.Equal(culture, city.GetCulture());
+	}
+
 	// ---- Research ----
 
 	// Switching research loses the stored beakers, unless switched back the
