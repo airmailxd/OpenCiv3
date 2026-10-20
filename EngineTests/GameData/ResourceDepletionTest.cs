@@ -87,6 +87,21 @@ public class ResourceDepletionTest {
 		Assert.Contains("This source of Oil has been exhausted!", TradeNews());
 	}
 
+	// "The code simply checks if a depleted resource is strategic before
+	// respawning it" (Flintlock, C3X thread post-16784827).
+	[Fact]
+	public void ALuxuryThatRunsOutDoesNotComeBack() {
+		Resource wine = new() { Key = "Wine", Name = "Wine", Category = ResourceCategory.LUXURY, DisappearanceRatio = 100 };
+		gameData.Resources.Add(wine);
+		desert.allowedResources.Add("Wine");
+		oilTile.Resource = wine;
+		oilTile.ResourceKey = wine.Key;
+
+		Assert.Null(ResourceDepletion.RunOut(gameData, oilTile));
+		Assert.Equal(Resource.NONE, oilTile.Resource);
+		Assert.DoesNotContain(map.tiles, t => t.Resource == wine);
+	}
+
 	[Fact]
 	public void TheNewSourceIsAnnouncedInsideTheFindersBorders() {
 		Connect();

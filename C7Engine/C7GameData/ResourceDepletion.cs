@@ -106,6 +106,16 @@ namespace C7Engine {
 				new MsgShowTradeAdvisorPopup(owner, $"This source of {resource.Name} has been exhausted!", happy: false).send();
 			}
 
+			// Only strategic resources come back: "The code simply checks if
+			// a depleted resource is strategic before respawning it"
+			// (Flintlock, reading the 1.22 code,
+			// https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16784827).
+			// In stock Conquests only strategic resources can run out, so a
+			// lost luxury or bonus resource arises only in mods.
+			if (resource.Category != ResourceCategory.STRATEGIC) {
+				return null;
+			}
+
 			List<Tile> candidates = new();
 			foreach (Tile t in gameData.map.tiles) {
 				if (t != tile && MayAppearOn(resource, t)) {
