@@ -2290,6 +2290,15 @@ namespace C7GameData {
 		// all of its strengths: "If a civilization builds a Great Wonder (or
 		// Wonders) that corresponds to [both] its unique strengths, its Golden
 		// Age can be triggered" (the Conquests Civilopedia, GCON_Golden_Age).
+		// Each wonder may supply a different strength, and captured wonders
+		// count as well, but the check is only made when the civ completes a
+		// great wonder itself (City.HandleCityProduction calls this then):
+		// "the game checks the qualifications for a golden age everytime you
+		// build a wonder (any wonder)" (Bamspeedy,
+		// https://forums.civfanatics.com/threads/compiled-list-of-bugs-and-non-bugs-not-a-dicussion-thread.70063/),
+		// "Capture or build a needed wonder, capture another needed wonder,
+		// self-build any wonder = Golden Age" (Puppeteer,
+		// https://forums.civfanatics.com/threads/golden-age-triggers-by-great-wonders.411703/).
 		public void MaybeStartGoldenAgeFromWonders(GameData gameData) {
 			if (hadGoldenAge || civilization.traits.Count == 0) {
 				return;
@@ -2297,7 +2306,7 @@ namespace C7GameData {
 			HashSet<Civilization.Trait> wonderTraits = new();
 			foreach (City c in cities) {
 				foreach (CityBuilding cb in c.constructed_buildings) {
-					if (cb.building.IsGreatWonder() && cb.builtByPlayer == this) {
+					if (cb.building.IsGreatWonder()) {
 						wonderTraits.UnionWith(cb.building.traits);
 					}
 				}

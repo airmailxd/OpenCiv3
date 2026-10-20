@@ -36,6 +36,21 @@ public class GoldenAgeTest {
 		Assert.Equal(20, player.goldenAgeTurnsRemaining);
 	}
 
+	// A captured wonder counts toward the civ's strengths: "Capture or build
+	// a needed wonder, capture another needed wonder, self-build any wonder
+	// = Golden Age" (CFC 411703).
+	[Fact]
+	public void CapturedWondersCountTowardAGoldenAge() {
+		Player builder = new() { civilization = new Civilization() { name = "Babylon" }, government = new Government() };
+		BuildWonder(Civilization.Trait.Religious);
+		BuildWonder(Civilization.Trait.Industrious);
+		foreach (City c in player.cities) {
+			c.constructed_buildings.ForEach(cb => cb.builtByPlayer = builder);
+		}
+		player.MaybeStartGoldenAgeFromWonders(gameData);
+		Assert.True(player.InGoldenAge);
+	}
+
 	[Fact]
 	public void ACivOnlyGetsOneGoldenAge() {
 		player.StartGoldenAge(gameData, "test");
