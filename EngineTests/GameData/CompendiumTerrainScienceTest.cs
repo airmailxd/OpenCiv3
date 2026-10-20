@@ -66,6 +66,34 @@ public class CompendiumTerrainScienceTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(3f, slave.workerSpeed());
 	}
 
+	// Workers plant forests on plains, grassland and tundra (Engineering).
+	[Fact]
+	public void WorkersPlantForestsOnPlainsGrasslandAndTundra() {
+		Terraform plant = gameData.Terraforms.Single(t => t.Name == "Plant Forest");
+		us.knownTechs.Add(plant.RequiredTech);
+		Tile tile = gameData.map.tiles.First(t => IsEmptyLand(t) && t.owningCity == null
+			&& t.neighbors.Values.All(n => n == Tile.NONE || !n.HasCity()));
+		MapUnit worker = gameData.SpawnUnit(us, Prototype("Worker"), tile);
+		TerrainType Terrain(string key) => gameData.terrainTypes.Single(t => t.Key == key);
+
+		foreach (string key in new[] { "plains", "grassland", "tundra" }) {
+			tile.baseTerrainType = tile.overlayTerrainType = Terrain(key);
+			Assert.True(worker.CanPerformTerraformAction(plant), key);
+		}
+		foreach (string key in new[] { "hills", "desert", "forest" }) {
+			tile.overlayTerrainType = Terrain(key);
+			Assert.False(worker.CanPerformTerraformAction(plant), key);
+		}
+
+		tile.baseTerrainType = tile.overlayTerrainType = Terrain("grassland");
+		TerrainImprovement irrigation = gameData.terrainImprovements.Single(i => i.key == Tile.TileOverlays.IRRIGATION);
+		tile.overlays.Add(irrigation);
+		plant.OnComplete(us, tile);
+		Assert.Equal("forest", tile.overlayTerrainType.Key);
+		Assert.Equal("grassland", tile.baseTerrainType.Key);
+		Assert.False(tile.overlays.HasImprovement(irrigation));
+	}
+
 	// Chopped shields pass over cities building a wonder, the Palace or a
 	// spaceship part.
 	[Fact]

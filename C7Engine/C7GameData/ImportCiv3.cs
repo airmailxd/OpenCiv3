@@ -1890,6 +1890,7 @@ namespace C7GameData {
 			if (prto.Irrigate) yield return TerraformKey.Irrigate;
 			if (prto.ClearJungle) yield return TerraformKey.ClearWetlands;
 			if (prto.ClearForest) yield return TerraformKey.ClearForest;
+			if (prto.PlantForest) yield return TerraformKey.PlantForest;
 			if (prto.ClearPollution) yield return TerraformKey.ClearDamage;
 			if (prto.BuildBarricade) yield return TerraformKey.BuildBarricade;
 			if (prto.BuildFortress) yield return TerraformKey.BuildFortress;

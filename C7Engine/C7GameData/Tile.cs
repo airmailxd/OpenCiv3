@@ -689,6 +689,29 @@ namespace C7GameData {
 			overlayTerrainType = baseTerrainType;
 		}
 
+		// Plants a forest on the tile: "Tile becomes Forest." on Plains,
+		// Grassland and Tundra, the terrains the BIQ allows it on (TERR
+		// "Plant Forest" worker job; the Civ3 manual's orders table, p.113,
+		// "Reforest ... Grassland, Plains, Tundra"; README.txt 1.16f,
+		// "Forests planted on tundra always display as pine"). A forest
+		// can't be irrigated or mined (BIQ TERR Forest IrrigationBonus=0,
+		// MiningBonus=0), so any irrigation or mine goes. The base terrain
+		// stays underneath for clearing it again, and a tile chopped once
+		// gives no shields a second time (see MaybeAwardForestClearingShields).
+		public void PlantForest() {
+			TerrainType forest = EngineStorage.gameData?.terrainTypes
+				.Find(t => t.allowedFoliageAction == TerrainType.Civ3FoliageAction.ClearForest);
+			if (forest == null) {
+				return;
+			}
+			foreach (TerrainImprovement improvement in overlays.GetImprovements().ToList()) {
+				if (improvement.key is TileOverlays.MINE or TileOverlays.IRRIGATION) {
+					overlays.Remove(improvement);
+				}
+			}
+			overlayTerrainType = forest;
+		}
+
 		public bool HasImprovements => overlays.HasBeenImproved();
 	}
 }

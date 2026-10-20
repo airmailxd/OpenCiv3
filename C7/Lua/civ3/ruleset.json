@@ -1131,6 +1131,7 @@
         "Terraform-2",
         "Terraform-8",
         "Terraform-7",
+        "Terraform-6",
         "Terraform-9",
         "Terraform-13",
         "Terraform-3",
@@ -15659,6 +15660,12 @@
       "civilopediaEntry": "TFRM_Plant_Forest",
       "turnsToComplete": 18,
       "requiredTech": "tech-24",
+      "validators": [
+        "terraforms.validators.plant_forest"
+      ],
+      "effects": [
+        "terraforms.effects.plant_forest"
+      ],
       "aiScore": "terraforms.ai_score.default",
       "animation": "plant",
       "uiAction": "unit_plant_forest",

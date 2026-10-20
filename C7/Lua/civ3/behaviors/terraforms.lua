@@ -19,6 +19,10 @@ terraforms.validators = {
   clear_forest = function(context)
     return context.tile.overlayTerrainType.allowedFoliageAction == Civ3FoliageAction.ClearForest
   end,
+  -- Plains, grassland and tundra (the BIQ's terrains for the job).
+  plant_forest = function(context)
+    return context.tile.overlayTerrainType.allowedFoliageAction == Civ3FoliageAction.PlantForest
+  end,
   -- Pollution, nuclear fallout and craters are all cleaned up as damage.
   clear_damage = function(context)
     return context.tile:HasDamage()
@@ -52,6 +56,9 @@ terraforms.effects = {
   end,
   clear_damage = function(context)
     context.tile:ClearDamage()
+  end,
+  plant_forest = function(context)
+    context.tile:PlantForest()
   end,
 }
 
