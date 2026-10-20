@@ -1261,15 +1261,17 @@ namespace C7Engine {
 			int weWantTechsForThem = 0;
 			int weWantTechsForUs = 0;
 
+			// With a human, techs are priced at the human's research cost
+			// alone, as in TradeOffer.GoldEquivalentFor.
 			TradeOffer weGive = new();
 			Func<int> CalculateWeGiveValue = () => {
 				int gold = weGive.gold ?? 0;
-				return Math.Max(gold + weGiveTechsForThem, gold + weGiveTechsForUs);
+				return them.isHuman ? gold + weGiveTechsForThem : Math.Max(gold + weGiveTechsForThem, gold + weGiveTechsForUs);
 			};
 			TradeOffer weWant = new();
 			Func<int> CalculateWeWantValue = () => {
 				int gold = weWant.gold ?? 0;
-				return Math.Min(gold + weWantTechsForThem, gold + weWantTechsForUs);
+				return them.isHuman ? gold + weWantTechsForThem : Math.Min(gold + weWantTechsForThem, gold + weWantTechsForUs);
 			};
 
 			// Figure out the value of what we have available to trade.
@@ -1317,6 +1319,17 @@ namespace C7Engine {
 			int remainingDelta = Math.Max(0, CalculateWeGiveValue() - theirOfferValue);
 			weGive.gold -= Math.Min(remainingDelta, weGive.gold.Value);
 
+			// A human pays our markup (see TradeMarkup): we ask what we give
+			// is worth x (1 + markup), and count what they give at / (1 +
+			// markup), so we ask for more of their gold, if they have it.
+			int markup = TradeMarkup.Percent(gD, us, them);
+			if (markup > 0) {
+				int shortfall = TradeMarkup.Asking(TradeMarkup.Asking(CalculateWeGiveValue(), markup), markup) - CalculateWeWantValue();
+				if (shortfall > 0) {
+					weWant.gold = Math.Max(weWant.gold ?? 0, Math.Min((weWant.gold ?? 0) + shortfall, them.gold));
+				}
+			}
+
 			// And ensure we minimize the total gold traded, to keep the
 			// logs cleaner.
 			int redundantGold = Math.Min(weGive.gold.Value, weWant.gold.Value);
@@ -1332,8 +1345,11 @@ namespace C7Engine {
 			// Finally if the deal is too mismatched or only contains a swap
 			// of gold, abandon it. Otherwise we can execute the deal.
 
-			float tradeFactor = them.isHuman ? 1.0f : gD.gameDifficulty.AIToAITradeRate / 100.0f;
-			if (CalculateWeGiveValue() > tradeFactor * CalculateWeWantValue()) {
+			if (them.isHuman) {
+				if (TradeMarkup.Asking(CalculateWeGiveValue(), markup) > TradeMarkup.Paying(CalculateWeWantValue(), markup)) {
+					return null;
+				}
+			} else if (CalculateWeGiveValue() > gD.gameDifficulty.AIToAITradeRate / 100.0f * CalculateWeWantValue()) {
 				return null;
 			}
 			if (weGive.techs.Count == 0 && weWant.techs.Count == 0) {
