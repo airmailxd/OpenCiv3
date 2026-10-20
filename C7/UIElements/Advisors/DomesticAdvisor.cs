@@ -458,6 +458,13 @@ public partial class DomesticAdvisor : Control {
 				return;
 			}
 
+			if (!player.CanStartRevolution(gameData)) {
+				popupOverlay.ShowPopup(
+					new InformationalPopup(Player.RevolutionNotAvailable),
+					PopupOverlay.PopupCategory.Advisor);
+				return;
+			}
+
 			popupOverlay.ShowPopup(
 				new ConfirmationPopup(
 					"You say you want a revolution?",

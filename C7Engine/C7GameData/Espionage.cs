@@ -495,7 +495,17 @@ namespace C7Engine {
 					return $"We need {embassyTech.Name} to establish embassies.";
 				}
 			} else {
-				if (!pr.hasEmbassy) return "We need an embassy with them first.";
+				// War closes the embassy, so the embassy's missions
+				// (Investigate City, Steal Technology, Plant Spy) stop, but
+				// "Even if you go to war and your embassy is closed, your spy
+				// will continue to function as long as it is not caught"
+				// (Civ3.com FAQ, quoted at
+				// https://apolyton.net/forum/miscellaneous/archives/civ3-general-archive/41397-espionage-you-can-t-steal-techs-from-civs-you-are-at-war-with).
+				// So the spy's own missions need the embassy only to plant
+				// it.
+				if (!pr.hasEmbassy && !(NeedsSpy(mission) && pr.hasSpy)) {
+					return pr.AtWar() ? "Our embassy was closed by the war." : "We need an embassy with them first.";
+				}
 				if (IsEspionageMission(mission) && !HasIntelligenceAgency(actor)) {
 					return "We need an Intelligence Agency for espionage.";
 				}

@@ -87,6 +87,20 @@ public class MapAndContactTradingTest : IDisposable {
 		Assert.All(explored, t => Assert.True(them.tileKnowledge.isTileKnown(t)));
 	}
 
+	// "-1 if you have done any recent trades (maps or techs)" (AI Attitude
+	// Study).
+	[Fact]
+	public void AMapTradeIsARecentTrade() {
+		us.knownTechs.Add(navigation.id);
+		them.knownTechs.Add(navigation.id);
+		gameData.turn = 12;
+
+		Assert.True(them.ExecuteDeal(gameData, us, new TradeOffer { territoryMap = true }, new TradeOffer { gold = 10 }));
+
+		Assert.Equal(12, us.playerRelationships[them.id].lastTechTradeTurn);
+		Assert.Equal(12, them.playerRelationships[us.id].lastTechTradeTurn);
+	}
+
 	[Fact]
 	public void TheTerritoryMapShowsOnlyOurTerritory() {
 		us.knownTechs.Add(navigation.id);

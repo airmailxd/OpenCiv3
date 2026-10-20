@@ -210,14 +210,19 @@ namespace C7GameData {
 			// territory): +4", "Failed espionage (permanent): +1", "Use nukes:
 			// +32 victim (other civs: +16)", and "+6 If you have any units
 			// in their territory when you break the ROP treaty, ... other
-			// civs ... will add +2". UNVERIFIED: the engine doesn't record
-			// the temporary +4 of a failed mission, or who a nuclear attack
-			// hit, so each counts as given.
+			// civs ... will add +2". A sneak attack counts as breaking a
+			// right of passage with units inside, with or without one (see
+			// PlayerRelationship.DeclareWar). The victim of a nuclear attack
+			// adds 32, 16 more than the others (nuclearAttacksSuffered, see
+			// PlayerRelationship.RecordNuclearAttack). UNVERIFIED: the
+			// engine doesn't record the temporary +4 of a failed mission, so
+			// it counts as the permanent +1.
 			int bad = 4 * pr.warDeclarationCount
 				+ 4 * (pr.warDeclarationWithRoPActiveCount - pr.rightOfPassageBetrayals)
 				+ 6 * pr.rightOfPassageBetrayals
 				+ pr.espionageIncidents
-				+ 16 * pr.nuclearAtrocityCount;
+				+ 16 * pr.nuclearAtrocityCount
+				+ 16 * pr.nuclearAttacksSuffered;
 
 			// Reputation: what the other civ did to other civs. The study's
 			// "Break peace treaty: +4 (other civs: +1)" and "Break ROP (no

@@ -440,6 +440,8 @@ namespace C7Engine {
 			Player player = Sender;
 			// Already in anarchy; don't restart the clock.
 			if (player.government.transitionType) return;
+			// Nothing to change to (see Player.CanStartRevolution).
+			if (!player.CanStartRevolution(gD)) return;
 			Government transitionGovt = gD.governments.Find(x => x.transitionType);
 			player.government = transitionGovt;
 			player.ApplyGovernmentRateCap();

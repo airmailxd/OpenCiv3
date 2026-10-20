@@ -106,21 +106,28 @@ public class UnitedNationsTest : System.IDisposable {
 		Assert.Equal([rome, greece, egypt], UnitedNations.Candidates(gameData));
 	}
 
-	// "If there are no civilizations with 25% land or population, then the
-	// civilization with the highest score becomes the second candidate."
+	// Conquests Civilopedia (DESC_GCON_Victory): "If only one civilization
+	// is eligible, then the second candidate is the civilization with the
+	// largest population." Ties go to the higher score.
 	[Fact]
-	public void WithoutAQuarterOfTheWorldTheHighestScoringCivStands() {
-		Player rome = MakePlayer("Romans", 4);
+	public void WithoutAQuarterOfTheWorldTheMostPopulousCivStands() {
+		Player rome = MakePlayer("Romans", 5);
 		MakePlayer("Egyptians", 2);
 		Player greece = MakePlayer("Greeks", 2);
-		MakePlayer("Persians", 2);
+		Player persia = MakePlayer("Persians", 2);
 		MakePlayer("Aztecs", 2);
 		BuildUnitedNations(rome);
 		gameData.history[greece.id.ToString()][0] = new HistTurnRecord { Score = 100 };
-		// The owner is a candidate already, however high its score.
+		// The owner is a candidate already, however many its citizens.
 		gameData.history[rome.id.ToString()][0] = new HistTurnRecord { Score = 500 };
 
+		// Equal populations: the higher score stands.
 		Assert.Equal([rome, greece], UnitedNations.Candidates(gameData));
+
+		// Persia, with 3 of 14 citizens (under a quarter), outnumbers Greece,
+		// whatever Greece's score.
+		persia.cities[0].residents.Add(new CityResident { city = persia.cities[0] });
+		Assert.Equal([rome, persia], UnitedNations.Candidates(gameData));
 	}
 
 	private static void Deal(Player a, Player b, DealSubType type) {

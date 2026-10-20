@@ -45,8 +45,10 @@ public class PlayerRelationship {
 	// p1.playerRelationships[p2].nuclearAtrocityCount is the number of
 	// nuclear attacks p2 has made (on anyone) since p1 knew them. Civ3
 	// treats using nuclear weapons as an atrocity every civ resents.
-	// TODO: contribute towards attitude
+	// nuclearAttacksSuffered is how many of them hit p1 (see
+	// RecordNuclearAttack and Attitudes.Points).
 	public int nuclearAtrocityCount = 0;
+	public int nuclearAttacksSuffered = 0;
 
 	// true if a war declaration happened with units inside the player's
 	// borders.
@@ -85,7 +87,8 @@ public class PlayerRelationship {
 	public int tributeBluffsCalled = 0;
 	public int workersCaptured = 0;
 
-	// The last turn p1 and p2 traded techs, or -1 if never.
+	// The last turn p1 and p2 traded techs or maps, or -1 if never (the
+	// name is older than maps counting).
 	public int lastTechTradeTurn = -1;
 
 	// The gold worth of p2's gifts to p1 (gold or techs given for nothing),
@@ -125,7 +128,8 @@ public class PlayerRelationship {
 	public int lastDealOfferTurn = -1;
 
 	// p1.playerRelationships[p2].hasEmbassy is true if p1 has an embassy in
-	// p2's capital, which diplomatic missions against p2 need.
+	// p2's capital, which diplomatic missions against p2 need. War closes it
+	// (see DeclareWar).
 	public bool hasEmbassy = false;
 
 	// What p1's embassy reported of p2's capital when it was established,
@@ -233,6 +237,17 @@ public class PlayerRelationship {
 			if (sneakAttack) {
 				defenderRelationshipToAggressor.rightOfPassageBetrayals++;
 			}
+		} else if (sneakAttack) {
+			// A sneak attack breaks a right of passage even without one:
+			// "Reputation hits come not because of war, but because of
+			// declaring war with troops in enemy territory" (Catt), and
+			// "having a Scout/worker/any other unit in enemy territory when
+			// declaring war is enough to be a ROP-breaker" (Lt. 'Killer' M.,
+			// https://forums.civfanatics.com/threads/reputation-for-sneak-attacks.28206).
+			// So it counts as a right of passage broken with units inside,
+			// the study's +6 (see Attitudes.Points).
+			defenderRelationshipToAggressor.warDeclarationWithRoPActiveCount++;
+			defenderRelationshipToAggressor.rightOfPassageBetrayals++;
 		}
 
 		// Breaking a deal the aggressor keeps paying for, or a pact, ruins
@@ -267,6 +282,16 @@ public class PlayerRelationship {
 		aggressorRelationshipToDefender.multiTurnDeals = new List<MultiTurnDeal>();
 		defenderRelationshipToAggressor.multiTurnDeals = new List<MultiTurnDeal>();
 
+		// War closes both civs' embassies: "your embassy in their capitol is
+		// automatically closed", while "Even if you go to war and your
+		// embassy is closed, your spy will continue to function as long as
+		// it is not caught" (Civ3.com FAQ, quoted at
+		// https://apolyton.net/forum/miscellaneous/archives/civ3-general-archive/41397-espionage-you-can-t-steal-techs-from-civs-you-are-at-war-with).
+		// So the planted spies stay; an embassy has to be established again
+		// after peace.
+		CloseEmbassy(aggressorRelationshipToDefender);
+		CloseEmbassy(defenderRelationshipToAggressor);
+
 		log.Information("{Aggressor} declared war on {Defender}{SneakAttack}!" +
 						" Defender is refusing contact for at least up to turn {RefuseContactUntilTurn}" +
 						" ({Turns} turns)!",
@@ -276,6 +301,33 @@ public class PlayerRelationship {
 		if (honourPacts) {
 			Pacts.HonourPacts(EngineStorage.gameData, aggressor, defender, refuseContactUntilTurn, turn);
 		}
+	}
+
+	// Records a nuclear attack by the attacker that hit the victims, in
+	// the view of every civ that knows the attacker: "Nukes: Victim of the
+	// nuke adds +32!" and "Other civs will add on +16" (AI Attitude Study,
+	// https://civfanatics.com/civ3/strategy/game-mechanics/ai-attitude-study/).
+	public static void RecordNuclearAttack(GameData gameData, Player attacker, IEnumerable<Player> victims) {
+		if (attacker == null || attacker.isBarbarians) {
+			return;
+		}
+		HashSet<Player> hit = new(victims ?? []);
+		foreach (Player other in gameData.players) {
+			if (other == attacker || other.isBarbarians || other.defeated) {
+				continue;
+			}
+			if (other.playerRelationships.TryGetValue(attacker.id, out PlayerRelationship relationship)) {
+				++relationship.nuclearAtrocityCount;
+				if (hit.Contains(other)) {
+					++relationship.nuclearAttacksSuffered;
+				}
+			}
+		}
+	}
+
+	private static void CloseEmbassy(PlayerRelationship relationship) {
+		relationship.hasEmbassy = false;
+		relationship.embassyReport = null;
 	}
 
 	// Civ3's trading reputation. A civ that breaks a deal with an AI is

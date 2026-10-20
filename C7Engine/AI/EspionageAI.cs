@@ -4,8 +4,11 @@ using C7GameData;
 
 namespace C7Engine.AI {
 	// A simple espionage policy for the AI: establish embassies with every
-	// civ it has met, plant spies once it has the Intelligence Agency, and
-	// now and then steal technology from civs it is at war with. It always
+	// civ it has met (again after a war, which closes them; see
+	// PlayerRelationship.DeclareWar), plant spies once it has the
+	// Intelligence Agency, and now and then steal technology through its
+	// embassies. Steal Technology needs "only an embassy", which war closes,
+	// so it is a mission against civs at peace (compendium 6.11). It always
 	// keeps a reserve of gold. The other spy missions (sabotage,
 	// propaganda, stealing plans or maps, exposing spies) are left to human
 	// players for now.
@@ -31,7 +34,7 @@ namespace C7Engine.AI {
 				if (!pr.hasSpy) {
 					TryMission(gameData, player, EspionageMission.PlantSpy, other, null, GoldReserve);
 				}
-				if (pr.AtWar() && GameData.rng.Next(100) < TheftChancePercent) {
+				if (GameData.rng.Next(100) < TheftChancePercent) {
 					TryMission(gameData, player, EspionageMission.StealTechnology, other, null, TheftReserve);
 				}
 			}
