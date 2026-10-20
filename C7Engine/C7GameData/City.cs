@@ -231,6 +231,13 @@ namespace C7GameData {
 			if (receivedForestShields && IsWonder(producible)) {
 				return "Shields from a forest or a disbanded unit can't go to a wonder";
 			}
+			// A build with shields in the box that will be done next turn
+			// can't become a wonder: "If it gets to one turn left you can
+			// switch to other units/improvements, but NOT wonders"
+			// (Travathian, https://apolyton.net/forum/miscellaneous/archives/civ3-strategy-archive/42626-distilled-civ3-tips-and-notes).
+			if (IsWonder(producible) && itemBeingProduced != null && shieldsStored > 0 && TurnsUntilProductionFinished() <= 1) {
+				return "A build finishing next turn can't be switched to a wonder";
+			}
 			return null;
 		}
 

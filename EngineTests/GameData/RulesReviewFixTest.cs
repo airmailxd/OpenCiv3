@@ -304,6 +304,22 @@ public class RulesReviewFixTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(resisting, city.WorkingResidents().Count());
 	}
 
+	// "If it gets to one turn left you can switch to other
+	// units/improvements, but NOT wonders" (Travathian, Apolyton).
+	[Fact]
+	public void ABuildFinishingNextTurnCantBecomeAWonder() {
+		City city = BuildCity(us);
+		Building temple = BuildingNamed("Temple");
+		city.SetItemBeingProduced(temple);
+		city.SetStoredShields(us.ShieldCost(temple) - 1);
+		Assert.Equal(1, city.TurnsUntilProductionFinished());
+		Assert.NotNull(city.WhyCannotChangeProduction(BuildingNamed("The Pyramids")));
+		Assert.Null(city.WhyCannotChangeProduction(BuildingNamed("Barracks")));
+
+		city.SetStoredShields(0);
+		Assert.Null(city.WhyCannotChangeProduction(BuildingNamed("The Pyramids")));
+	}
+
 	// With disband shields in the box "that particular city won't be able
 	// to switch to a wonder" (https://forums.civfanatics.com/threads/disbanding-question.18365/).
 	[Fact]
