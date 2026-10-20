@@ -2918,7 +2918,7 @@ namespace C7GameData {
 		//          <  17  >                <  12  >
 		//              <  16  >        <  13  >
 		//                  <  15  ><  14  >
-		private static TileLocation GetTileFromSpiral(TileLocation start, int spiral) {
+		internal static TileLocation GetTileFromSpiral(TileLocation start, int spiral) {
 			return spiral switch {
 				// Inner circle.
 				1 => Tile.NeighborCoordinate(start, TileDirection.NORTHEAST),
