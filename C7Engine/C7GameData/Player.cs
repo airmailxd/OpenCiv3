@@ -378,6 +378,11 @@ namespace C7GameData {
 
 		public bool InGoldenAge => goldenAgeTurnsRemaining > 0;
 
+		// The turns left of an Age of Science (see StartScienceAge).
+		public int scienceAgeTurnsRemaining = 0;
+
+		public bool InScienceAge => scienceAgeTurnsRemaining > 0;
+
 		public int EraIndex() {
 			return GetEraIndex(eraCivilopediaName);
 		}
@@ -1433,6 +1438,7 @@ namespace C7GameData {
 				cityFlows[i] = ComputeCityFlows(cities[i]);
 				beakersThisTurn += cityFlows[i].commerce.beakers;
 			}
+			beakersThisTurn = WithScienceAgeBonus(beakersThisTurn);
 			beakers += beakersThisTurn;
 			researchFundedThisTurn = beakersThisTurn > 0;
 			int unitSupportCost = TotalUnitsAllowedUnitsAndSupportCost().Item3;
@@ -2373,6 +2379,56 @@ namespace C7GameData {
 			if (goldenAgeTurnsRemaining > 0) {
 				--goldenAgeTurnsRemaining;
 			}
+			if (scienceAgeTurnsRemaining > 0) {
+				--scienceAgeTurnsRemaining;
+				if (scienceAgeTurnsRemaining == 0 && IsToldNews) {
+					// Civ3's SUMMARY_END_SCIENCE_AGE (script.txt).
+					new MsgShowScienceAdvisorPopup(this,
+						"Our Civilization's Age of Scientific Discovery has ended. So say our analysts...",
+						MsgShowScienceAdvisorPopup.Mood.Sad).send();
+				}
+			}
+		}
+
+		// An Age of Science is "a 20-turn period in which the scientific
+		// research of each city in that civilization's empire is 25% more
+		// productive. An Age of Science can only be triggered by a scientific
+		// leader" (Conquests Civilopedia, GCON_Age_of_Science). The shipped
+		// 1.22 game never adds the bonus to research: Antal1987 found NOPs in
+		// the executable where "_Total_Bulbs = (_Total_Bulbs * 1.25);"
+		// belongs (https://forums.civfanatics.com/threads/patch-framework-for-c3c-v1-22.526966/),
+		// and the C3X mod's notes say the bonus points "are not actually
+		// counted towards research progress. They appear only on the
+		// interface" (https://github.com/maxpetul/C3X/blob/master/default.c3x_config.ini).
+		// We give the intended bonus rather than the bug: a quarter more
+		// beakers into research each turn (see DoPerTurnFinanceUpdates).
+		// UNVERIFIED (no source found): whether a second leader can start
+		// another age during one; here it can't.
+		public const int ScienceAgeTurns = 20;
+		public const int ScienceAgeResearchBonusPercent = 25;
+
+		public bool CanStartScienceAge() {
+			return !isBarbarians && !InScienceAge;
+		}
+
+		public void StartScienceAge() {
+			if (!CanStartScienceAge()) {
+				return;
+			}
+			scienceAgeTurnsRemaining = ScienceAgeTurns;
+			log.Information("{Player} starts an Age of Science", this);
+			if (IsToldNews) {
+				// Civ3's SUMMARY_SCIENCE_AGE (script.txt).
+				new MsgShowScienceAdvisorPopup(this,
+					"Our Great Civilization has entered an Age of Scientific Discovery!",
+					MsgShowScienceAdvisorPopup.Mood.Happy).send();
+			}
+		}
+
+		// This turn's research with the Age of Science bonus, if any. The
+		// rounding is UNVERIFIED; here fractions are dropped.
+		internal int WithScienceAgeBonus(int beakers) {
+			return InScienceAge ? beakers + beakers * ScienceAgeResearchBonusPercent / 100 : beakers;
 		}
 
 		// A golden age starts once the great wonders this civ has built cover

@@ -97,6 +97,7 @@ public static class C7Action {
 	public const string UnitPillage = "unit_pillage";
 	public const string UnitBuildArmy = "unit_build_army";
 	public const string UnitHurryBuilding = "unit_hurry_building";
+	public const string UnitScienceAge = "unit_science_age";
 	// Air missions and the airdrop (see MapUnit_Air.cs).
 	public const string UnitBombing = "unit_bombing";
 	public const string UnitPrecisionBombing = "unit_precision_bombing";
@@ -116,6 +117,7 @@ public static class C7Action {
 		[UnitPillage] = UnitAction.Pillage,
 		[UnitBuildArmy] = UnitAction.BuildArmy,
 		[UnitHurryBuilding] = UnitAction.HurryBuilding,
+		[UnitScienceAge] = UnitAction.ScienceAge,
 		[UnitBuildColony] = UnitAction.BuildColony,
 		[UnitSentry] = UnitAction.Sentry,
 		[UnitSentryEnemyOnly] = UnitAction.SentryEnemyOnly,
@@ -166,6 +168,8 @@ public static class C7Action {
 		[UnitPillage] = "Pillage",
 		[UnitBuildArmy] = "Build Army",
 		[UnitHurryBuilding] = "Hurry Improvement",
+		// labels.txt's "Increase Scientific Output" (#UNIT_ACTIONS).
+		[UnitScienceAge] = "Increase Scientific Output",
 		// Civ3's names for the air missions (GCON_Air_Missions).
 		[UnitBombing] = "Bombing Mission",
 		[UnitPrecisionBombing] = "Precision Strike",

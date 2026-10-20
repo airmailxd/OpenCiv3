@@ -359,6 +359,8 @@ namespace C7Engine {
 			// A great leader forms an army, or hurries its city's production.
 			FormArmy,
 			HurryProduction,
+			// A scientific leader starts an Age of Science.
+			StartScienceAge,
 			// A worker founds a colony where it stands.
 			BuildColony,
 		}
@@ -395,6 +397,9 @@ namespace C7Engine {
 					break;
 				case Command.HurryProduction:
 					unit.HurryProductionAsLeader();
+					break;
+				case Command.StartScienceAge:
+					unit.StartScienceAge();
 					break;
 				case Command.BuildColony:
 					unit.BuildColony();

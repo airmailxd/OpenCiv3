@@ -284,6 +284,31 @@ public class CombatTest : IClassFixture<SaveGameFixture> {
 		Assert.DoesNotContain(catapult, to.unitsOnTile);
 	}
 
+	// Only the best single building defense bonus counts, and walls only in
+	// a town (C3X's patch_City_get_building_defense_bonus,
+	// https://github.com/maxpetul/C3X/blob/master/injected_code.c, which
+	// keeps the largest bonus and skips buildings with a bombard defense
+	// above "MaximumSize_Town").
+	[Fact]
+	public void WallsAndCivilDefenseDontAddUpAndWallsStopAtCitySize() {
+		(Tile from, _, Tile to) = FindAdjacentLand();
+		City city = CityInteractions.BuildCity(to, them, them.GetNextCityName());
+		city.AddBuilding(gameData.Buildings.Single(b => b.name == "Walls"));
+		city.AddBuilding(gameData.Buildings.Single(b => b.name == "Civil Defense"));
+		MapUnit warrior = Spawn(us, "Warrior", from);
+		static double BuildingBonuses(City c, MapUnit attacker) =>
+			c.GetDefenseBonuses(attacker).Where(b => b.description is "Walls" or "Civil Defense").Sum(b => b.amount);
+
+		Assert.Equal(0.5, BuildingBonuses(city, warrior), 6);
+
+		city.RemoveBuilding(city.constructed_buildings.Single(cb => cb.building.name == "Civil Defense"));
+		Assert.Equal(0.5, BuildingBonuses(city, warrior), 6);
+		while (city.residents.Count <= gameData.rules.MaximumLevel1CitySize) {
+			city.residents.Add(new CityResident() { city = city });
+		}
+		Assert.Equal(0.0, BuildingBonuses(city, warrior), 6);
+	}
+
 	// City Walls give "+50% to defensive bonus against land attacks", a
 	// Coastal Fortress "+50% against naval attacks"
 	// (https://civfanatics.com/civ3/civilopedia/improvements/).
@@ -333,6 +358,32 @@ public class CombatTest : IClassFixture<SaveGameFixture> {
 		escort.defensiveBombardsRemaining = 1;
 		await WithZeroRandom(async () => await ours.Fight(theirs));
 		Assert.Equal(1, escort.defensiveBombardsRemaining);
+	}
+
+	// In the base game aircraft don't fire defensive bombard, nor do ships
+	// in port at land attackers: the C3X mod offers "aerial: Air units may
+	// perform defensive bombard" and "docked-vs-land: Docked ships (i.e. in
+	// a city) can perform defensive bombard against land units attacking
+	// their city" as changes
+	// (https://github.com/maxpetul/C3X/blob/master/default.c3x_config.ini).
+	[Fact]
+	public async Task AircraftAndShipsInPortDontFireDefensiveBombardAtLandUnits() {
+		GoToWar();
+		(Tile from, _, Tile to) = FindAdjacentLand();
+		MapUnit warrior = Spawn(us, "Warrior", from);
+		MapUnit spearman = Spawn(them, "Spearman", to);
+		MapUnit bomber = Spawn(them, "Bomber", to);
+		MapUnit frigate = Spawn(them, "Frigate", to);
+		bomber.defensiveBombardsRemaining = 1;
+		frigate.defensiveBombardsRemaining = 1;
+		int hitPoints = warrior.hitPointsRemaining;
+
+		await WithZeroRandom(async () => await warrior.Fight(spearman));
+
+		Assert.Equal(1, bomber.defensiveBombardsRemaining);
+		Assert.Equal(1, frigate.defensiveBombardsRemaining);
+		// Not hit (winning may promote it, adding one).
+		Assert.True(warrior.hitPointsRemaining >= hitPoints);
 	}
 
 	// "Cities with resisters do not give defensive bonuses" (Conquests
@@ -489,30 +540,54 @@ public class CombatTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(blockerHitPoints, blocker.hitPointsRemaining);
 		Assert.Contains(blocker, gameData.mapUnits);
 	}
-	// A fast defender withdraws by the attacker's rule (BomberEscort,
-	// https://forums.civfanatics.com/threads/comprehensive-retreat-study.64755/,
-	// #51), and only "(4) When the fast-mover is fortified in a city (or
-	// colony?)" (#19) does it never withdraw. One that isn't fortified may
-	// withdraw out of a city.
+	// No defender withdraws out of a city, fortified or not: under the base
+	// game rules "units cannot retreat when they start combat with 1 HP or
+	// are defending a city" (C3X's notes on the 1.22 executable,
+	// https://github.com/maxpetul/C3X/blob/master/default.c3x_config.ini).
+	// Out in the open the same horseman withdraws (BomberEscort,
+	// https://forums.civfanatics.com/threads/comprehensive-retreat-study.64755/, #51).
 	[Theory]
-	[InlineData(false)]
-	[InlineData(true)]
-	public async Task OnlyAFortifiedDefenderInACityNeverRetreats(bool fortified) {
+	[InlineData(false, false)]
+	[InlineData(true, false)]
+	[InlineData(false, true)]
+	public async Task NoDefenderRetreatsOutOfACity(bool inCity, bool fortified) {
 		GoToWar();
 		(Tile from, TileDirection dir, Tile to, Tile behind) = FindLandInALine();
-		City city = CityInteractions.BuildCity(to, them, them.GetNextCityName());
+		if (inCity) {
+			CityInteractions.BuildCity(to, them, them.GetNextCityName());
+		}
 		MapUnit warrior = Spawn(us, "Warrior", from);
 		MapUnit horseman = Spawn(them, "Horseman", to);
 		horseman.isFortified = fortified;
 
 		await WithZeroRandom(async () => Assert.True(await warrior.Move(dir)));
 
-		if (fortified) {
+		if (inCity) {
 			Assert.DoesNotContain(horseman, gameData.mapUnits);
 		} else {
 			Assert.Equal(behind, horseman.location);
 			Assert.Contains(horseman, gameData.mapUnits);
 			Assert.Equal(1, horseman.hitPointsRemaining);
 		}
+	}
+
+	// "Cavalry retreats only if random(Hoplite.Retreat_Bonus + 50) <
+	// Cavalry.Retreat_Bonus" (Antal1987, the 1.22 executable's
+	// process_Combat,
+	// https://forums.civfanatics.com/threads/useful-patches-for-civ-3-conquests-v1-22.526285/page-4,
+	// #62), with the BIQ's retreat bonuses 34, 50, 58 and 66.
+	[Theory]
+	[InlineData(1, 1, 50.0 / 100)]
+	[InlineData(3, 0, 66.0 / 84)]
+	[InlineData(0, 3, 34.0 / 116)]
+	[InlineData(2, 1, 58.0 / 100)]
+	public void TheRetreatChanceIsTheBonusOverTheOpponentsPlusFifty(int attackerLevel, int defenderLevel, double chance) {
+		(Tile from, _, Tile to) = FindAdjacentLand();
+		MapUnit horseman = Spawn(us, "Horseman", from);
+		MapUnit spearman = Spawn(them, "Spearman", to);
+		horseman.experienceLevel = gameData.experienceLevels[attackerLevel];
+		spearman.experienceLevel = gameData.experienceLevels[defenderLevel];
+
+		Assert.Equal(chance, horseman.RetreatChance(spearman, true), 6);
 	}
 }

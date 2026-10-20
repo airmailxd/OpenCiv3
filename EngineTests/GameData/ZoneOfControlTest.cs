@@ -123,4 +123,38 @@ public class ZoneOfControlTest : MapBase {
 		town.residents.Add(new CityResident() { city = town });
 		Assert.Empty(mover.FindZoneOfControlAttackers(from, to));
 	}
+
+	// In the base game a land unit inside a transport still exerts its zone
+	// of control, and air units have none: the C3X mod offers
+	// "not-from-inside: Land units may not exert zone of control while
+	// inside a transport" and "aerial: Air units can exert zone of control"
+	// as changes
+	// (https://github.com/maxpetul/C3X/blob/master/default.c3x_config.ini).
+	[Fact]
+	public void ALandUnitAboardATransportExertsZoneOfControl() {
+		MapUnit transport = new(ID.None("transport")) {
+			owner = them,
+			unitType = new UnitPrototype() { attack = 0, defense = 1, capacity = 2 },
+			location = watchTower,
+		};
+		transport.unitType.categories.Add("Sea");
+		watchTower.unitsOnTile.Add(transport);
+		MapUnit cavalry = MakeUnit(them, watchTower, zoc: true);
+		cavalry.loadedOnUnitId = transport.id;
+		MapUnit mover = MakeUnit(us, from, zoc: false);
+
+		Assert.Equal([cavalry], mover.FindZoneOfControlAttackers(from, to));
+	}
+
+	[Fact]
+	public void AirUnitsHaveNoZoneOfControl() {
+		MapUnit fighter = MakeUnit(them, watchTower, zoc: true);
+		fighter.unitType.categories.Clear();
+		fighter.unitType.categories.Add("Air");
+		MapUnit plane = MakeUnit(us, from, zoc: false);
+		plane.unitType.categories.Clear();
+		plane.unitType.categories.Add("Air");
+
+		Assert.Empty(plane.FindZoneOfControlAttackers(from, to));
+	}
 }

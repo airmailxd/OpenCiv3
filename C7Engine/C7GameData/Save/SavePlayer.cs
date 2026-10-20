@@ -76,6 +76,7 @@ namespace C7GameData.Save {
 		public int warWeariness;
 		public bool hadGoldenAge;
 		public int goldenAgeTurnsRemaining;
+		public int scienceAgeTurnsRemaining;
 		public int citiesFounded;
 		// Saves from before this was saved have it false, and loading works
 		// it out again (see SaveGame.ConvertCities).
@@ -157,6 +158,7 @@ namespace C7GameData.Save {
 				warWeariness = warWeariness,
 				hadGoldenAge = hadGoldenAge,
 				goldenAgeTurnsRemaining = goldenAgeTurnsRemaining,
+				scienceAgeTurnsRemaining = scienceAgeTurnsRemaining,
 				citiesFounded = citiesFounded,
 				freeTechsRemaining = freeTechsRemaining,
 				bonusFreeTechsRemaining = bonusFreeTechsRemaining,
@@ -289,6 +291,7 @@ namespace C7GameData.Save {
 			warWeariness = player.warWeariness;
 			hadGoldenAge = player.hadGoldenAge;
 			goldenAgeTurnsRemaining = player.goldenAgeTurnsRemaining;
+			scienceAgeTurnsRemaining = player.scienceAgeTurnsRemaining;
 			citiesFounded = player.citiesFounded;
 			freeTechsRemaining = player.freeTechsRemaining;
 			bonusFreeTechsRemaining = player.bonusFreeTechsRemaining;

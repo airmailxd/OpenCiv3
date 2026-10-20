@@ -29,8 +29,11 @@ namespace C7GameData;
 // (improvement, wonder, unit)" (https://civfanatics.com/civ3/faq/). So it
 // can hurry anything a city builds, any improvement, wonder or unit, not
 // only wonders (owner's decision, 2026-10-12). It can't form an army. Its
-// other use, starting an Age of Science, isn't implemented: in Conquests "it
-// is bugged, and it doesn't work" (https://civfanatics.com/civ3/faq/).
+// other use is starting an Age of Science: "Simply move the scientific leader
+// to your capital and press the "Increase Scientific Output" button" / "When
+// the leader does either of these actions he disappears" (GCON_Leaders).
+// The shipped game's age gives no research (see Player.StartScienceAge); we
+// give the intended bonus.
 public partial class MapUnit {
 	internal const double ScientificLeaderChance = 0.03;
 	internal const double ScientificTraitLeaderChance = 0.05;
@@ -41,6 +44,25 @@ public partial class MapUnit {
 
 	public bool IsScientificLeader() {
 		return isScientificLeader && IsLeader();
+	}
+
+	// A scientific leader in its owner's capital, with moves left, can
+	// start an Age of Science (see above).
+	public bool CanStartScienceAge() {
+		return IsScientificLeader() && movementPoints.canMove && Tile.IsTileValid(location)
+			&& location.HasCity() && location.cityAtTile.owner == owner && location.cityAtTile.IsCapital()
+			&& owner.CanStartScienceAge();
+	}
+
+	// Starts the age; the leader is used up. Returns whether it started.
+	public bool StartScienceAge() {
+		if (!CanStartScienceAge()) {
+			return false;
+		}
+		Player player = owner;
+		EngineStorage.gameData.RemoveUnit(this);
+		player.StartScienceAge();
+		return true;
 	}
 
 	public static double ScientificLeaderChanceFor(Player player) {
