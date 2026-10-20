@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using C7GameData;
+using C7GameData.Save;
 using static C7GameData.PlayerRelationship;
 
 namespace C7Engine.AI {
@@ -17,8 +18,10 @@ namespace C7Engine.AI {
 	// - Which civ it plots against, by Civ3's target score (Excluded,
 	//   TargetScore), in place of the weakest neighbour 1.3 times weaker
 	//   than us.
-	// The campaign's own rules (a city it can reach and take, and the
-	// strength to declare) still apply.
+	// The campaign's own rule (a city it can reach and take) still
+	// applies, but not, since 21 October, a check of our strength against
+	// the target's before declaring, which the stock code doesn't have (see
+	// WarCampaign.MaybeStartCampaign).
 	//
 	// Paired AI trials (8 games of 200 turns, score per civ against the
 	// same civs without it): the rolls alone +32 +- 44 on Continents and
@@ -57,19 +60,39 @@ namespace C7Engine.AI {
 			return Math.Clamp(level, -2, 2);
 		}
 
-		// UNVERIFIED: the units "with the offensive or defensive AI
-		// strategy" are taken to be the land units that can attack and are
-		// stronger in attack, and those that can defend and are at least as
-		// strong in defence.
-		private static bool IsOffensive(MapUnit u) {
-			return u.IsLandUnit() && !u.IsArmy() && !u.IsLeader() && !u.unitType.isSettler && !u.unitType.isWorker
-				&& u.unitType.attack > u.unitType.defense && u.CanAttack();
+		// The units "with the offensive or defensive AI strategy" are those
+		// whose BIQ unit carries that strategy (PRTO "AI Strategy", imported
+		// as the AIOffense and AIDefense flags): the Warrior and the Chariot
+		// are offensive units there, though no stronger in attack than in
+		// defence. Civ3 gives each unit it builds one of its type's
+		// strategies; the engine keeps none per unit, so a type with both
+		// (the Rifleman, the Legionary) counts as defensive when at least as
+		// strong in defence, and as offensive otherwise (UNVERIFIED). Before,
+		// the engine guessed by attack against defence, so Warriors counted
+		// as defensive: AI civs seemed to have 2.1 defensive and 0.8
+		// offensive units per city in AI trials (8 games of 200 turns on
+		// Continents), against 1.5 and 1.5 by the BIQ.
+		public static bool IsOffensive(UnitPrototype type) {
+			if (!type.IsLandUnit() || !type.flags.Contains(SaveUnitPrototype.Flag.AIOffense)) {
+				return false;
+			}
+			return !type.flags.Contains(SaveUnitPrototype.Flag.AIDefense) || type.attack > type.defense;
 		}
 
-		private static bool IsDefensive(MapUnit u) {
-			return u.IsLandUnit() && !u.IsArmy() && !u.IsLeader() && !u.unitType.isSettler && !u.unitType.isWorker
-				&& u.unitType.defense > 0 && u.unitType.defense >= u.unitType.attack && u.CanDefendOnLand();
+		public static bool IsDefensive(UnitPrototype type) {
+			if (!type.IsLandUnit() || !type.flags.Contains(SaveUnitPrototype.Flag.AIDefense)) {
+				return false;
+			}
+			return !type.flags.Contains(SaveUnitPrototype.Flag.AIOffense) || type.defense >= type.attack;
 		}
+
+		public static bool IsOffensive(MapUnit u) => !u.IsArmy() && IsOffensive(u.unitType);
+
+		public static bool IsDefensive(MapUnit u) => !u.IsArmy() && IsDefensive(u.unitType);
+
+		// The treasury, in gold per city, below which the plotting roll
+		// counts it too low.
+		private const int LowTreasuryPerCity = 16;
 
 		private static bool OneIn(int n) => n <= 1 || GameData.rng.Next(n) == 0;
 
@@ -132,7 +155,7 @@ namespace C7Engine.AI {
 			// "If treasury is too low, roll one in 2 (too low here means < 16
 			// per city" (the extra for Wall Street type small wonders is
 			// left out: UNVERIFIED how much it is).
-			if (player.gold < 16 * cities && !OneIn(2)) {
+			if (player.gold < LowTreasuryPerCity * cities && !OneIn(2)) {
 				return false;
 			}
 			return true;

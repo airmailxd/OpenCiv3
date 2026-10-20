@@ -37,6 +37,10 @@ namespace EngineTests.GameData;
 //                         out, which removes much of the noise (about half the
 //                         standard error) for twice the time
 //   C7_TRIAL_FLIPS        1 to list every culture flip, with its chance
+//   C7_TRIAL_ALL          1 to turn the switches on for every civ, to see
+//                         a world where they all play that way (the halves'
+//                         difference then means nothing; the averages of the
+//                         two columns are what every civ did)
 // For example:
 //   C7_TRIAL_OUT=trial.txt C7_TRIAL_EXPERIMENTS=cheap-maintenance dotnet test EngineTests --filter "FullyQualifiedName~AiTrialTest"
 public class AiTrialTest : IClassFixture<SaveGameFixture> {
@@ -302,6 +306,8 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			civs[i].isHuman = false;
 			if (i % 2 == trialHalf) {
 				trialCivs.Add(civs[i]);
+			}
+			if (i % 2 == trialHalf || Setting("C7_TRIAL_ALL", 0) != 0) {
 				foreach (string experiment in experiments) {
 					AiExperiments.Enable(civs[i], experiment);
 				}

@@ -87,3 +87,30 @@ These follow the compendium's second reading round (06, sections 6.8 and 6.9).
 |---|---|---|---|
 | Tribute demands use the stock gates that C3X re-creates (`injected_code.c`, `try_ai_demand_from_other_ai`). The AI asks only of a civ whose power place is at least half its own. It then makes a one-in-(own place) roll, an attitude roll (always passed at Cautious or worse), and an aggression roll. These replace a 5% chance a turn and the "stronger by the military advisor" check. No war follows a refused demand while the two have a mutual protection pact. The stock war-damage gate is left out because the engine does not track war damage. The owner's 40-turn cooldown stays in place of the stock 32 turns. | `TributeDemands.WouldDemandFrom`, `RollsToDemand`, `DemandFrom` | not run (AIs demand only from humans) | Kept |
 | `ai-tech-buyer-price`: between AIs, a tech is priced at the buyer's research cost. Only civs the buyer knows count, and the buyer's own progress comes off. An AI with nothing more to give may buy for 100/rate of the value, never less than half (Soren Johnson, Apolyton 42905 and 48219). | `AiTechPricing`, `TradeOffer.GoldEquivalentFor`, `PlayerAI.TechDeal` | +82 ± 76 / -76 ± 88 (techs +1.8* / +3.3*, mid-game techs +1.4* / +1.3*, rights of passage +1.3* / +2.4*) | Kept (Civ3's rule, not clearly weaker); the switch is gone |
+
+## Why AIs stopped declaring war after the stock war plotting (21 October)
+
+With every civ playing by the stock plotting rules (8 games of 200 turns at Monarch, no switches), AIs declared about 0.2 wars each. Counting each gate in `StockWarPlotting.RollsToPlot` over those games (about 9,500 turns with 3 or more cities and no war within reach):
+
+- The power-rank roll (1 in 32 - PowerRank, 1 in 4.5 on average) failed 66% of turns, and the aggression roll (1 in 12 at aggression 0) failed 92% of the rest. These are Civ3's own rules and directions (PowerRank 31 is the strongest, as in C3X's `power_rank` field).
+- About one turn in seven of what was left passed the rest. The open-land roll applied 52% of the time and war weariness 23%. The garrison rolls (two defensive units per city) applied 77 to 93% of the time, and the treasury roll (under 16 gold per city) 92%. AI civs kept about 1.5 defensive and 1.5 offensive units per city and 5 gold per city.
+- So about 35 plots came out of 64 civs and 200 turns, roughly what justanick's worked example in CFC 703785 gives (1/48 a turn for the strongest civ, 1/96 for the second). About half of them found a target: 2 in 3 civs at peace drop out at random, and some had no city within reach.
+- At the declaration, WarCampaign's own check (1.3 times the target's strength) then turned down 10 of 18 campaigns on Continents and 22 of 29 on Pangaea. The stock code has no such check, and its target score favours the stronger civs.
+
+| Change | Where | Trial (score, Continents / Pangaea) | Result |
+|---|---|---|---|
+| The garrison rolls and the target's land units per city count units by their BIQ AI strategy (AIOffense, AIDefense) in place of attack against defence. The Warrior and Chariot are offensive units in conquests.biq. A type with both strategies counts as defensive when at least as strong in defence. | `StockWarPlotting.IsOffensive`, `IsDefensive` | not run (a rules fix); all civs: wars 0.2 / 0.2 | Kept |
+| `stock-declare`: a plotted war is declared once the attackers are gathered, without the 1.3 strength check (Flintlock: "War is declared only when the attack actually happens"). | `WarCampaign.Gather` | +11 ± 7 / -2 ± 38 (wars +0.1 / +0.2) | Kept; the switch is gone |
+| `stock-treasury`: hurrying keeps 16 gold a city. | `DevelopmentAI.HurryProduction` | +38 ± 26 / +22 ± 29 | Dropped: treasuries rose only from 5.0 to 5.4 gold a city. The low treasury comes from the sliders, not from hurrying |
+| `stock-garrison`: production favours defensive units up to 2 per city and offensive units up to 1 per city, by BIQ strategy (justanick, CFC 703785 #13; Ision, CFC 92917). | `ChooseProducible.StockGarrisonBonus` | -67 ± 54 / +64 ± 72 (units +9 / +15*) | Switch kept for the owner to decide; not the default |
+
+AI trials with every civ AI and the same switches for all (8 games of 200 turns), per civ:
+
+| Run | Wars declared | Captured | Attacks | Score |
+|---|---|---|---|---|
+| Before the stock plotting (1d69de73, Continents, as reported) | 1.0 | 2.1 | 27 | |
+| Development before this change, 02912a11 (Continents / Pangaea) | 0.2 / 0.2 | 0.4 / 0.5 | 9.2 / 15.3 | 1624 / 1570 |
+| Now: BIQ strategies and no strength check | 0.2 / 0.4 | 0.7 / 1.2 | 11.9 / 16.8 | 1611 / 1552 |
+| Now, plus `stock-garrison` | 0.7 / 0.6 | 1.5 / 1.2 | 21.4 / 21.2 | 1533 / 1505 |
+
+The faithful rules give rare wars in the engine for two reasons. First, the AI does not keep Civ3's garrison of two defensive units and one offensive unit per city, which justanick says makes the stock AI "eager to start wars". Second, it runs a treasury of about 5 gold a city against the 16 the roll asks for. Other things not from the stock code also hold wars back: no plotting below 3 cities (about 20% of turns), the 20-turn cooldown after a campaign, and targets limited to cities on our landmass within 14 tiles. Overseas targets count in Civ3, at half score.
