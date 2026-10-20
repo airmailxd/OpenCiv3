@@ -132,6 +132,34 @@ public sealed class AStarPathFindingLandUnitTest : MapBase {
 		Assert.Empty(tilePath.path);
 	}
 
+	// On impassable terrain a land unit needs a road on both the origin and
+	// the target tile (Antal1987's reading of the 1.22
+	// class_Unit::Can_Pass_Tile,
+	// https://forums.civfanatics.com/threads/c3c-new-movement-possibilities.529671/).
+	[Fact]
+	private void TestLandUnitCrossesImpassableTerrainAlongARoad() {
+		InitilizeStartTile(MakeHillTile(), new TileLocation(50, 50));
+		var impassableDesert = AddNeighborsAndUpdateMap(startTile, MakeImpassableDesertTile(), TileDirection.NORTH);
+		var beyondDesert = AddNeighborsAndUpdateMap(impassableDesert, MakeDesertTile(), TileDirection.NORTH);
+		impassableDesert.overlays.Add(road);
+
+		MapUnit unit = MakeLandUnit();
+		AStarAlgorithm aStarAlgorithm = PathingAlgorithmChooser.GetAlgorithm(unit) as AStarAlgorithm;
+
+		// The road on the impassable tile alone isn't enough.
+		Assert.True(unit.CanEnter(impassableDesert));
+		Assert.False(unit.unitType.CanMoveBetween(startTile, impassableDesert));
+		Assert.Empty(aStarAlgorithm.PathFrom(startTile, beyondDesert, unit).path);
+
+		// With a road on the tile it comes from too, it can pass.
+		startTile.overlays.Add(road);
+		Assert.True(unit.unitType.CanMoveBetween(startTile, impassableDesert));
+		Assert.True(unit.unitType.CanMoveBetween(impassableDesert, beyondDesert));
+		TilePath tilePath = aStarAlgorithm.PathFrom(startTile, beyondDesert, unit);
+		Assert.True(tilePath.path.Contains(impassableDesert));
+		Assert.True(tilePath.path.Contains(beyondDesert));
+	}
+
 	[Fact]
 	private void TestBarbarianCampTileIsEnterableEvenWhenImpassable() {
 		InitilizeStartTile(MakeHillTile(), new TileLocation(50, 50));
@@ -157,6 +185,27 @@ public sealed class AStarPathFindingLandUnitTest : MapBase {
 }
 
 public sealed class AStarPathFindingWaterUnitTest : MapBase {
+
+	// A ship can't pass between two land tiles that touch only at a corner:
+	// for a corner move "it checks neighbour tiles (clockwise and counter
+	// clockwise) to be water", and refuses it only if both are land
+	// (Antal1987's reading of the 1.22 class_Unit::Can_Pass_Tile,
+	// https://forums.civfanatics.com/threads/c3c-new-movement-possibilities.529671/).
+	// The single step is refused too, not just the paths.
+	[Fact]
+	private void TestShipCannotSlipBetweenLandTilesTouchingAtACorner() {
+		InitilizeStartTile(MakeCoastTile(), new TileLocation(50, 50));
+		Tile west = AddNeighborsAndUpdateMap(startTile, MakeCoastTile(), TileDirection.WEST);
+		Tile northwest = AddNeighborsAndUpdateMap(startTile, MakePlainsTile(), TileDirection.NORTHWEST);
+		AddNeighborsAndUpdateMap(startTile, MakePlainsTile(), TileDirection.SOUTHWEST);
+		MapUnit ship = MakeWaterUnit();
+
+		Assert.False(ship.unitType.CanMoveBetween(startTile, west));
+
+		// With water on either side, it can.
+		northwest.baseTerrainType = west.baseTerrainType;
+		Assert.True(ship.unitType.CanMoveBetween(startTile, west));
+	}
 
 	[Fact]
 	private void TestWaterUnitCanEnterWaterTile() {

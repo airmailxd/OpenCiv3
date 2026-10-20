@@ -193,13 +193,41 @@ namespace C7GameData {
 		// (stavrosfa, https://github.com/C7-Game/OpenCiv3/pull/1029). A city
 		// counts as a road. UNVERIFIED: whether a river crossing without
 		// bridges breaks the road here; it doesn't.
+		//
+		// Terrain impassable to everyone (only some mods have it) works the
+		// same way for any land unit, and ships can't slip between two land
+		// tiles that touch only at a corner. Antal1987's reading of the 1.22
+		// class_Unit::Can_Pass_Tile
+		// (https://forums.civfanatics.com/threads/c3c-new-movement-possibilities.529671/,
+		// #1): for a land unit, impassable terrain (or terrain impassable to
+		// wheeled units, for those) needs a road on both the origin and the
+		// target tile; for a naval move between water tiles in one of the
+		// corner directions, "If the direction is even, it checks neighbour
+		// tiles (clockwise and counter clockwise) to be water", and the move
+		// is refused only when both are land. A move into one of the unit's
+		// own cities always passes; that one ends on land, so the corner
+		// check, which is between water tiles, doesn't touch it.
 		public bool CanMoveBetween(Tile from, Tile to) {
-			return CanEnterTerrainOf(to) && (!isWheeled || !to.overlayTerrainType.impassableByWheeled || IsRoaded(from));
+			if (IsSeaUnit() && from.IsWater() && to.IsWater() && GameMap.IsLandStrip(from, to)) {
+				return false;
+			}
+			return CanEnterTerrainOf(to) && (!NeedsRoadToEnter(to) || IsRoaded(from));
 		}
 
 		// The part of CanMoveBetween that depends only on the tile entered.
 		public bool CanEnterTerrainOf(Tile to) {
-			return !isWheeled || !to.overlayTerrainType.impassableByWheeled || IsRoaded(to);
+			return !NeedsRoadToEnter(to) || IsRoaded(to);
+		}
+
+		// Whether this land unit may only move onto the tile along a road
+		// (see CanMoveBetween). A barbarian camp's tile stays open, so that
+		// its garrison can move out and back in.
+		private bool NeedsRoadToEnter(Tile to) {
+			if (!IsLandUnit()) {
+				return false;
+			}
+			TerrainType terrain = to.overlayTerrainType;
+			return (terrain.impassable && !to.hasBarbarianCamp) || (isWheeled && terrain.impassableByWheeled);
 		}
 
 		private static bool IsRoaded(Tile tile) {

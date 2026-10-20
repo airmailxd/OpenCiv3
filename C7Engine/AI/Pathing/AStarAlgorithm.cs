@@ -217,7 +217,8 @@ namespace C7Engine.Pathing {
 			if (!CanWalkOnto(c, owner, owner.PathsByExploredMap, unit.IsLandUnit(), unit.IsWaterUnit())) {
 				return false;
 			}
-			bool checkStep = unit.unitType.isWheeled && !(owner.PathsByExploredMap && !owner.HasExploredTile(c));
+			bool checkStep = (unit.unitType.isWheeled || unit.IsLandUnit())
+				&& !(owner.PathsByExploredMap && !owner.HasExploredTile(c));
 
 			bool applyLandStrip = pathUnit.IsWaterUnit() && (pathUnit.owner.HasExploredTile(c) || !pathUnit.owner.PathsByExploredMap);
 			bool adjacentToExpanded = false;
@@ -272,8 +273,10 @@ namespace C7Engine.Pathing {
 			UnitPrototype type = unit.unitType;
 			// Wheeled units can only take some steps along roads (see
 			// UnitPrototype.CanMoveBetween), which depends on the tile they
-			// come from, so it's checked per step rather than per tile.
-			bool isWheeled = type.isWheeled;
+			// come from, so it's checked per step rather than per tile. The
+			// same goes for any land unit's steps onto terrain impassable to
+			// everyone, which some mods have.
+			bool checkSteps = type.isWheeled || isLandUnit;
 			bool allTerrainAsRoads = type.allTerrainAsRoads;
 
 			// The heuristic is DistanceTo times the cheapest possible step,
@@ -324,7 +327,7 @@ namespace C7Engine.Pathing {
 					if (applyLandStrip && GameMap.IsLandStrip(currentTile, neighbor)) {
 						continue;
 					}
-					if (isWheeled && !(byExploredMap && !owner.HasExploredTile(neighbor)) && !type.CanMoveBetween(currentTile, neighbor)) {
+					if (checkSteps && !(byExploredMap && !owner.HasExploredTile(neighbor)) && !type.CanMoveBetween(currentTile, neighbor)) {
 						continue;
 					}
 

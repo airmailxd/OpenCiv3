@@ -1053,12 +1053,6 @@ namespace C7GameData {
 			if (unitType.isImmobile)
 				return Intent.Disabled;
 
-			// Impassable terrain (e.g. some mods' deserts) cannot be entered
-			// by any unit, but a barbarian camp tile stays enterable (like a
-			// city) so the camp's garrison can move out and back in.
-			if (tile.IsImpassable() && !tile.hasBarbarianCamp)
-				return Intent.Disabled;
-
 			var unitOwner = this.owner;
 
 			// TODO: Perhaps this is not sufficient, but it is for now,
@@ -1072,7 +1066,8 @@ namespace C7GameData {
 			var hasOwnCity = HasOwnCity(tile, unitOwner);
 
 			// Wheeled units stay off mountains, jungle and the like without a
-			// road. Whether the tile they come from has one too is checked by
+			// road, and land units off impassable terrain (in some mods)
+			// without one. Whether the tile they come from has one too is checked by
 			// the move itself (see UnitPrototype.CanMoveBetween), since this
 			// is also asked about tiles further away.
 			if (!unitType.CanEnterTerrainOf(tile))
