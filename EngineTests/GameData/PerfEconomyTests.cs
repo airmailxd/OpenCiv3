@@ -407,7 +407,7 @@ public class PerfEconomyTests {
 	}
 
 	[Fact]
-	public void DisbandingPicksTheSameRandomUnitAsBefore() {
+	public void DisbandingPicksTheFirstOfTheCheapestUnits() {
 		Player player = MakePlayer();
 		player.government = new Government() { unitCost = 2 };
 		City city = MakeCity(player);
@@ -437,12 +437,10 @@ public class PerfEconomyTests {
 		player.gold = -goldPerTurn - 1;
 
 		C7GameData.GameData.rng = new Random(1234);
-		// The first roll is whether units or buildings give way first (see
-		// Player.DoPerTurnFinanceUpdates); with no buildings, a unit goes
-		// either way.
-		Random replay = new(1234);
-		replay.Next(2);
-		MapUnit expected = nonCaptives[replay.Next(nonCaptives.Count)];
+		// All the warriors are worth the same, so the first one that needs
+		// support goes: "Ties are broken by internal list order" (Flintlock,
+		// C3X thread post-16356899, as noted in the compendium).
+		MapUnit expected = nonCaptives[0];
 
 		player.DoPerTurnFinanceUpdates(gameData);
 
