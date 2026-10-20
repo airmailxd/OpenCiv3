@@ -62,6 +62,15 @@ public sealed class AiEconomyTest : IClassFixture<SaveGameFixture>, IDisposable 
 		Assert.Equal("Despotism", player.government.name);
 	}
 
+	// script.txt, #REVOLUTIONNOTAVAILABLE: "We cannot have a revolution
+	// until we discover different forms of government."
+	[Fact]
+	public void ARevolutionNeedsAnotherGovernmentToChangeTo() {
+		Assert.False(player.CanStartRevolution(gameData));
+		LearnTechFor("Monarchy");
+		Assert.True(player.CanStartRevolution(gameData));
+	}
+
 	// Having switched to the best government, the AI stays with it.
 	[Fact]
 	public void AiDoesNotRevoltBackAndForth() {

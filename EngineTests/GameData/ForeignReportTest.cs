@@ -50,11 +50,29 @@ public class ForeignReportTest {
 
 	[Fact]
 	public void TiesAreBetweenKnownCivsThatHaveMet() {
+		us.playerRelationships[them.id].hasEmbassy = true;
 		List<ForeignTie> ties = ForeignReport.Ties(gameData, us);
 
 		// Not the Greeks' tie to the Aztecs, whom we haven't met.
 		Assert.Equal(3, ties.Count);
 		Assert.All(ties, t => Assert.Equal([ForeignTieKind.Peace], t.Kinds()));
+	}
+
+	// With an embassy "you can see what civilizations they are at
+	// war/peace with on the F4 Foreign Advisor screen" (CivFanatics FAQ);
+	// without one, only our own ties.
+	[Fact]
+	public void RivalsTiesNeedAnEmbassy() {
+		DeclareWar(them, third, false, 0, honourPacts: false);
+
+		List<ForeignTie> ties = ForeignReport.Ties(gameData, us);
+		Assert.Equal(2, ties.Count);
+		Assert.All(ties, t => Assert.True(t.first == us || t.second == us));
+		Assert.DoesNotContain("They are at war with the Zulus", ForeignReport.Treaties(gameData, us, them));
+
+		us.playerRelationships[third.id].hasEmbassy = true;
+		Assert.Equal(3, ForeignReport.Ties(gameData, us).Count);
+		Assert.Contains("They are at war with the Zulus", ForeignReport.Treaties(gameData, us, them));
 	}
 
 	[Fact]
@@ -87,6 +105,7 @@ public class ForeignReportTest {
 		RegisterMultiTurnDeal(them, us, new MultiTurnDeal(DealType.Embargo, DealSubType.TradeEmbargo,
 			DealDetails.Exchange, 0, null, 20, 10, third.id));
 		them.government = new Government() { name = "Monarchy" };
+		us.playerRelationships[them.id].hasEmbassy = true;
 
 		Assert.Equal([
 			"Government: Monarchy",

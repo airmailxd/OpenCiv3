@@ -228,6 +228,28 @@ public class RightOfPassageTest : MapBase {
 		Assert.True(RightOfPassageAI.Refuses(gameData, enemy, us));
 	}
 
+	// "having a Scout/worker/any other unit in enemy territory when
+	// declaring war is enough to be a ROP-breaker", with or without a right
+	// of passage (CivFanatics, "Reputation for sneak attacks").
+	[Fact]
+	public void ASneakAttackWithoutARightOfPassageIsABetrayalToo() {
+		Assert.False(HaveActiveRightOfPassage(us, third));
+		MapUnit inside = MakeUnit(us, map.tileAt(10, 12));
+		third.tileKnowledge.knownTiles.Add(inside.location);
+		int before = Attitudes.Points(gameData, third, us).Value;
+
+		us.DeclareWarOn(third, gameData.turn);
+
+		PlayerRelationship theirView = third.playerRelationships[us.id];
+		Assert.True(theirView.wasSneakAttacked);
+		Assert.Equal(1, theirView.rightOfPassageBetrayals);
+		Assert.True(RightOfPassage.HasBetrayed(us, gameData.players));
+		Assert.True(RightOfPassageAI.Refuses(gameData, enemy, us));
+		// The study's +4 for declaring war and +6 for breaking a right of
+		// passage with units inside.
+		Assert.Equal(before + 4 + 6, Attitudes.Points(gameData, third, us).Value);
+	}
+
 	[Fact]
 	public void DeclaringWarWithNoUnitsInsideIsNoBetrayal() {
 		RightOfPassage.Sign(gameData, us, third);

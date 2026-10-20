@@ -71,15 +71,29 @@ namespace C7GameData {
 				embargoAgainst: Against(DealSubType.TradeEmbargo));
 		}
 
+		// Whether the viewer knows what the two civs have between them. Its
+		// own ties it always knows; those between two rivals need contact
+		// with both ("Relationship lines are no longer displayed on the
+		// Foreign Advisor unless the player has contact with both
+		// civilizations", vanilla README.txt, 1.17f) and an embassy: with an
+		// embassy "you can see what civilizations they are at war/peace with
+		// on the F4 Foreign Advisor screen"
+		// (https://civfanatics.com/civ3/faq/). UNVERIFIED: that an embassy
+		// with either of the two is enough.
+		public static bool KnowsTie(Player viewer, Player first, Player second) {
+			return first == viewer || second == viewer || HasEmbassyWith(viewer, first) || HasEmbassyWith(viewer, second);
+		}
+
 		// The ties between every two of the civs the viewer knows that have
-		// met each other. UNVERIFIED: that Civ3 shows the ties between two
-		// rivals the viewer has met whether or not it has an embassy with
-		// either.
+		// met each other, and that the viewer knows of (see KnowsTie).
 		public static List<ForeignTie> Ties(GameData gameData, Player viewer) {
 			List<Player> civs = Civs(gameData, viewer);
 			List<ForeignTie> ties = [];
 			for (int i = 0; i < civs.Count; i++) {
 				for (int j = i + 1; j < civs.Count; j++) {
+					if (!KnowsTie(viewer, civs[i], civs[j])) {
+						continue;
+					}
 					ForeignTie tie = Tie(gameData, civs[i], civs[j]);
 					if (tie != null) {
 						ties.Add(tie);
@@ -127,7 +141,7 @@ namespace C7GameData {
 			}
 			string subject = civ == viewer ? "We" : "They";
 			foreach (Player other in Civs(gameData, viewer)) {
-				if (other == civ) {
+				if (other == civ || !KnowsTie(viewer, civ, other)) {
 					continue;
 				}
 				ForeignTie tie = Tie(gameData, civ, other);

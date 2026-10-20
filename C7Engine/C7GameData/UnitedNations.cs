@@ -56,6 +56,11 @@ namespace C7Engine {
 	//   If not, the election is inconclusive. The choice for the founder of
 	//   the UN to have elections comes around every 11 turns"
 	//
+	// For the second candidate the Conquests Civilopedia (DESC_GCON_Victory)
+	// is followed over the FAQ's "highest score": "If only one civilization
+	// is eligible, then the second candidate is the civilization with the
+	// largest population."
+	//
 	// Every ElectionInterval (11) turns the founder (the UN's current owner)
 	// chooses whether to hold an election. "it's 11 turns whether the vote is
 	// inconclusive or the option declined" (MadScot,
@@ -73,9 +78,10 @@ namespace C7Engine {
 	//   inside a civ's borders, and "population" its share of the world's
 	//   citizens. Should more than two other civs reach 25%, the two with the
 	//   largest share (of land or population, whichever is larger) stand.
-	// - Score is the civ's accumulated score; ties go to the more populous
-	//   civ, then to the civ listed first. The UN owner never counts as the
-	//   highest-scoring civ, as it is a candidate already.
+	// - Population is the civ's citizens; ties go to the higher score (the
+	//   civ's accumulated score, the FAQ's measure), then to the civ listed
+	//   first. The UN owner never counts as the most populous civ, as it is
+	//   a candidate already.
 	// - A majority means more than half of the votes of every living civ,
 	//   abstentions included.
 	// - A civ may only vote for a candidate it has met; one that has met none
@@ -160,7 +166,7 @@ namespace C7Engine {
 
 		// The candidates: the UN owner first, then up to two civs with 25% of
 		// the world's land or population, or if there are none, the
-		// highest-scoring other civ. Null if there is no UN or no rival.
+		// most populous other civ. Null if there is no UN or no rival.
 		public static List<Player> Candidates(GameData gameData) {
 			Player owner = Owner(gameData);
 			if (owner == null) {
@@ -189,7 +195,7 @@ namespace C7Engine {
 				.Take(MaxCandidates - 1)
 				.Select(ps => ps.player));
 			if (result.Count == 1) {
-				result.Add(rivals.OrderByDescending(p => Score(gameData, p)).ThenByDescending(Population).First());
+				result.Add(rivals.OrderByDescending(Population).ThenByDescending(p => Score(gameData, p)).First());
 			}
 			return result;
 		}

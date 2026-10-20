@@ -874,7 +874,13 @@ namespace C7GameData {
 			RegisterDealsOverTime(gameData, other, this, theirOffer);
 
 			// The attitudes, valuing the gifts before the techs are known.
-			if (ourOffer.techs.Count > 0 || theirOffer.techs.Count > 0) {
+			// "-1 if you have done any recent trades (maps or techs)" (AI
+			// Attitude Study,
+			// https://civfanatics.com/civ3/strategy/game-mechanics/ai-attitude-study/),
+			// so a map counts as a tech does. UNVERIFIED (the study names
+			// only maps and techs): that trading contacts doesn't.
+			if (ourOffer.techs.Count > 0 || theirOffer.techs.Count > 0
+				|| ourOffer.worldMap || ourOffer.territoryMap || theirOffer.worldMap || theirOffer.territoryMap) {
 				playerRelationships[other.id].lastTechTradeTurn = gameData.turn;
 				other.playerRelationships[id].lastTechTradeTurn = gameData.turn;
 			}
@@ -1152,6 +1158,16 @@ namespace C7GameData {
 				}
 			}
 			return result;
+		}
+
+		// Whether the player may start a revolution: only with another
+		// government to change to. script.txt, #REVOLUTIONNOTAVAILABLE: "We
+		// cannot have a revolution until we discover different forms of
+		// government."
+		public const string RevolutionNotAvailable = "We cannot have a revolution until we discover different forms of government.";
+
+		public bool CanStartRevolution(GameData gameData) {
+			return GetAvailableGovernments(gameData).Any(g => g != government);
 		}
 
 		// Whether the player knows any tech matching the predicate, e.g. one

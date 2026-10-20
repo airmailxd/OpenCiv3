@@ -499,6 +499,64 @@ public class EspionageTest : IClassFixture<SaveGameFixture>, System.IDisposable 
 		Assert.True(actor.gold >= 100);
 	}
 
+	// "your embassy in their capitol is automatically closed", but "Even if
+	// you go to war and your embassy is closed, your spy will continue to
+	// function" (Civ3.com FAQ).
+	[Fact]
+	public void WarClosesEmbassiesButPlantedSpiesKeepWorking() {
+		City city = SetUpSpy();
+		target.playerRelationships[actor.id].hasEmbassy = true;
+		actor.playerRelationships[target.id].embassyReport = Espionage.Investigate(city, gameData.turn);
+		city.SetStoredShields(20);
+
+		actor.DeclareWarOn(target, gameData.turn);
+
+		Assert.False(Espionage.HasEmbassy(actor, target));
+		Assert.False(Espionage.HasEmbassy(target, actor));
+		Assert.Null(actor.playerRelationships[target.id].embassyReport);
+		Assert.True(Espionage.HasSpy(actor, target));
+		Assert.NotNull(Espionage.Unavailable(gameData, actor, EspionageMission.InvestigateCity, target, city));
+		Assert.NotNull(Espionage.Unavailable(gameData, actor, EspionageMission.StealTechnology, target, null));
+		Assert.NotNull(Espionage.Unavailable(gameData, actor, EspionageMission.EstablishEmbassy, target, null));
+		Assert.Null(Espionage.Unavailable(gameData, actor, EspionageMission.SabotageProduction, target, city));
+	}
+
+	// After peace the embassy must be established again, which the AI does.
+	[Fact]
+	public void AIReestablishesItsEmbassyAfterPeace() {
+		SetUpEmbassy();
+		actor.isHuman = false;
+		actor.DeclareWarOn(target, gameData.turn);
+		C7Engine.AI.EspionageAI.PlayTurn(actor, gameData);
+		Assert.False(Espionage.HasEmbassy(actor, target));
+
+		PlayerRelationship.SignPeaceAfterWar(actor, target, gameData);
+		C7Engine.AI.EspionageAI.PlayTurn(actor, gameData);
+		Assert.True(Espionage.HasEmbassy(actor, target));
+	}
+
+	// Steal Technology needs only an embassy, which war closes, so the AI
+	// steals from civs at peace with it.
+	[Fact]
+	public void AIStealsTechnologyThroughItsEmbassyAtPeace() {
+		SetUpEmbassy();
+		actor.isHuman = false;
+		Tech stealable = gameData.techs.First(t => t.Prerequisites.All(p => actor.knownTechs.Contains(p.id)) && !actor.knownTechs.Contains(t.id));
+		foreach (Tech t in gameData.techs) {
+			if (t != stealable && !actor.knownTechs.Contains(t.id)) {
+				target.knownTechs.Remove(t.id);
+			}
+		}
+		target.knownTechs.Add(stealable.id);
+
+		for (int i = 0; i < 300 && !actor.knownTechs.Contains(stealable.id); i++) {
+			actor.gold = 100000;
+			C7Engine.AI.EspionageAI.PlayTurn(actor, gameData);
+		}
+		Assert.True(PlayerRelationship.AtPeace(actor, target));
+		Assert.Contains(stealable.id, actor.knownTechs);
+	}
+
 	[Fact]
 	public void EmbassiesAndSpiesAreSaved() {
 		SetUpEmbassy();

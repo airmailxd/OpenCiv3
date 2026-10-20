@@ -141,6 +141,19 @@ public class AttitudesTest {
 		Assert.Equal(3, Points());
 	}
 
+	// "Nukes: Victim of the nuke adds +32!" and "Other civs will add on
+	// +16".
+	[Fact]
+	public void TheVictimOfANukeMindsTwiceAsMuchAsOthers() {
+		Player third = MakePlayer("player-3", "Zulus");
+		third.EnsureRelationshipExists(human);
+
+		PlayerRelationship.RecordNuclearAttack(gameData, human, [ai]);
+
+		Assert.Equal(32, Points());
+		Assert.Equal(16, Attitudes.Points(gameData, third, human).Value);
+	}
+
 	[Fact]
 	public void CapturingAWorkerIsRemembered() {
 		Tile tile = new(ID.None("tile"));
