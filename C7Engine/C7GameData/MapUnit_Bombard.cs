@@ -26,9 +26,14 @@ namespace C7GameData {
 		// lethal sea bombardment kills ships: "Lethal bombardment can
 		// bombard units that are red-lined and therefore kill them"
 		// (https://forums.civfanatics.com/threads/what-is-lethal-bombardment.129927/).
-		// UNVERIFIED (no Civ3 source found): air units on the ground count
-		// as land units here.
+		// Aircraft at their base are killed by any bombardment: "Air units
+		// can be destroyed by bombardment." / "There is no such attribute
+		// as "lethal air bombardment"." (justanick, C3C 1.22,
+		// https://forums.civfanatics.com/threads/bombardment-of-settlements-in-c3c-1-22.647207/, #1).
 		public bool IsBombardmentLethalAgainst(MapUnit target) {
+			if (target.IsAirUnit()) {
+				return true;
+			}
 			return target.IsWaterUnit() ? unitType.isSeaBombardmentLethal : unitType.isLandBombardmentLethal;
 		}
 
@@ -176,7 +181,20 @@ namespace C7GameData {
 			}
 		}
 
+		// The walls a land bombardment has to break first, or null. Only a
+		// town's walls shield it: "If the walls win, then all improvements,
+		// citizens, and units in the city are safe." / "This happens only if
+		// the city is size 6 or smaller." (alexman,
+		// https://codehappy.net/apolyton/threads/84569-1.htm, #1); in C3C 1.22,
+		// "If there is are no city walls or the settlement has already reached
+		// city level, then land units are hit." (justanick,
+		// https://forums.civfanatics.com/threads/bombardment-of-settlements-in-c3c-1-22.647207/, #1).
+		// In a bigger city the walls are an ordinary building (see
+		// BombardCity).
 		private static CityBuilding FindDestructibleWalls(City city) {
+			if (city.residents.Count > EngineStorage.gameData.rules.MaximumLevel1CitySize) {
+				return null;
+			}
 			foreach (CityBuilding cb in city.constructed_buildings) {
 				if (cb.building.providesWalls && IsBombardableBuilding(city, cb)) {
 					return cb;
@@ -186,12 +204,62 @@ namespace C7GameData {
 		}
 
 		// Whether bombardment can destroy the building: anything built in the
-		// city except wonders, great and small, and the palace. Per the
+		// city except small wonders and the palace, and great wonders once
+		// the owner is industrial (below). Per the
 		// project owner, a building a wonder provides can't be bombarded
 		// either: those granted by the wonder aren't stored in the city, and
 		// one also built there is left alone, so the wonder's effect stays.
+		//
+		// A great wonder can be bombarded away too, until its owner reaches
+		// the Industrial Age: "If the bombardement occurs against a settlement
+		// of a civilization that has reached the industrial age," / "then any
+		// world wonder in this settlement is immune against any bombardment."
+		// / "Before the target civilization has reached the industrial age
+		// this is not the case" (justanick, C3C 1.22,
+		// https://forums.civfanatics.com/threads/bombardment-of-settlements-in-c3c-1-22.647207/, #1).
+		// Small wonders and the palace stay out of reach.
 		private static bool IsBombardableBuilding(City city, CityBuilding cb) {
-			return IsBombardableBuilding(cb) && !city.IsProvidedByWonders(cb.building);
+			if (city.IsProvidedByWonders(cb.building)) {
+				return false;
+			}
+			if (cb.building.IsGreatWonder()) {
+				return city.owner == null || city.owner.EraIndex() < EraUtils.GetEraIndex(EraUtils.INDUSTRIAL_AGE_CVLPD);
+			}
+			return IsBombardableBuilding(cb);
+		}
+
+		// Whether the building is a Civil Defense: one that adds to its
+		// units' defense at any size, without being walls. When bombardment
+		// hits an ordinary building, it hits the Civil Defense instead: "If a
+		// regular building(meaning neither a coastal fortress nor city walls)
+		// is hit and a civil defence is in the settlement," / "then it is the
+		// civil defence that is hit." (justanick, C3C 1.22,
+		// https://forums.civfanatics.com/threads/bombardment-of-settlements-in-c3c-1-22.647207/, #1).
+		private static bool IsCivilDefense(Building b) {
+			return b.combatDefenseBonus != null && !b.providesWalls && !b.onlyUsefulInTowns
+				&& b.bombardDefense == 0 && !b.isSmallWonder && !b.IsGreatWonder() && !b.isCenterOfEmpire;
+		}
+
+		// Whether the building is walls or a coastal fortress, the two that
+		// bombardment hits for themselves rather than through a Civil
+		// Defense (see IsCivilDefense).
+		private static bool IsWallsOrCoastalFortress(Building b) {
+			return b.providesWalls || b.bombardDefense > 0 || b.navalPower > 0 || b.navalDefenseBonus != null;
+		}
+
+		// The building a bombardment hit on the chosen building destroys: the
+		// city's Civil Defense, if it has one that can be hit and the chosen
+		// one is an ordinary building, else the chosen one.
+		private static CityBuilding BuildingHitBy(CityBuilding chosen, List<CityBuilding> hittable) {
+			if (IsWallsOrCoastalFortress(chosen.building)) {
+				return chosen;
+			}
+			foreach (CityBuilding cb in hittable) {
+				if (IsCivilDefense(cb.building)) {
+					return cb;
+				}
+			}
+			return chosen;
 		}
 
 		// Whether the building can be destroyed at all, by bombardment or a
@@ -351,8 +419,8 @@ namespace C7GameData {
 					continue;
 				hitCount += 1;
 				if (targetBuildings) {
-					var building = eligibleBuildingsForBombardment
-						.OrderBy(x => GameData.rng.Next()).First();
+					var building = BuildingHitBy(eligibleBuildingsForBombardment
+						.OrderBy(x => GameData.rng.Next()).First(), eligibleBuildingsForBombardment);
 					city.RemoveBuilding(building);
 					destroyMsgs.Add($"The {building.building.name} of {city.name} has been destroyed!");
 				} else {

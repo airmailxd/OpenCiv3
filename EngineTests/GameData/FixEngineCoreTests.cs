@@ -359,6 +359,9 @@ public class FixEngineCoreGameTests : IClassFixture<SaveGameFixture>, IDisposabl
 		city.AddBuilding(walls);
 		city.AddBuilding(GreatWall());
 		Assert.True(city.IsProvidedByWonders(walls));
+		// Industrial, so the wonder itself can't be bombarded away either
+		// (see BombardmentDestroysGreatWondersBeforeTheIndustrialAge).
+		them.eraCivilopediaName = EraUtils.INDUSTRIAL_AGE_CVLPD;
 
 		// Size 1 with nothing else to hit: nothing is destroyed.
 		for (int i = 0; i < 20; i++) {
@@ -475,9 +478,13 @@ public class FixEngineCoreGameTests : IClassFixture<SaveGameFixture>, IDisposabl
 		}
 	}
 
+	// Once the owner is industrial its great wonders are immune (see
+	// BombardmentDestroysGreatWondersBeforeTheIndustrialAge); small wonders
+	// and the palace always are.
 	[Fact]
 	public async Task BombardmentDoesNotDestroyWonders() {
 		(City city, MapUnit catapult) = SetUpBombard(size: 1);
+		them.eraCivilopediaName = EraUtils.INDUSTRIAL_AGE_CVLPD;
 		Building greatWonder = gameData.Buildings.First(b => b.IsGreatWonder() && !(b.greatWonderProperties.buildingGainedInEveryCity?.providesWalls ?? false));
 		Building smallWonder = gameData.Buildings.First(b => b.isSmallWonder && !b.isCenterOfEmpire);
 		city.AddBuilding(greatWonder);
@@ -492,6 +499,79 @@ public class FixEngineCoreGameTests : IClassFixture<SaveGameFixture>, IDisposabl
 		Assert.Equal(buildings, city.constructed_buildings.Count);
 		Assert.Contains(city.constructed_buildings, cb => cb.building == greatWonder);
 		Assert.Contains(city.constructed_buildings, cb => cb.building == smallWonder);
+	}
+
+	// "If the bombardement occurs against a settlement of a civilization that
+	// has reached the industrial age," / "then any world wonder in this
+	// settlement is immune against any bombardment." / "Before the target
+	// civilization has reached the industrial age this is not the case"
+	// (justanick, C3C 1.22,
+	// https://forums.civfanatics.com/threads/bombardment-of-settlements-in-c3c-1-22.647207/, #1).
+	[Fact]
+	public async Task BombardmentDestroysGreatWondersBeforeTheIndustrialAge() {
+		(City city, MapUnit catapult) = SetUpBombard(size: 1);
+		them.eraCivilopediaName = EraUtils.MIDDLE_AGES_CVLPD;
+		Building greatWonder = gameData.Buildings.First(b => b.IsGreatWonder() && b.greatWonderProperties.buildingGainedInEveryCity == null
+			&& b.greatWonderProperties.buildingGainedInEveryCityOnContinent == null);
+		city.AddBuilding(greatWonder);
+
+		// Size 1, so the wonder is the only thing left to hit.
+		await BombardOnce(catapult, city.location);
+
+		Assert.DoesNotContain(city.constructed_buildings, cb => cb.building == greatWonder);
+	}
+
+	// "If a regular building(meaning neither a coastal fortress nor city
+	// walls) is hit and a civil defence is in the settlement," / "then it is
+	// the civil defence that is hit." (justanick, #1).
+	[Fact]
+	public async Task CivilDefenseTakesTheHitsMeantForOtherBuildings() {
+		(City city, MapUnit catapult) = SetUpBombard(size: 1);
+		Building civilDefense = gameData.Buildings.Single(b => b.name == "Civil Defense");
+		Building library = gameData.Buildings.Single(b => b.name == "Library");
+		city.AddBuilding(library);
+		city.AddBuilding(civilDefense);
+
+		await BombardOnce(catapult, city.location);
+
+		Assert.DoesNotContain(city.constructed_buildings, cb => cb.building == civilDefense);
+		Assert.Contains(city.constructed_buildings, cb => cb.building == library);
+
+		await BombardOnce(catapult, city.location);
+		Assert.DoesNotContain(city.constructed_buildings, cb => cb.building == library);
+	}
+
+	// Walls shield only a town: "This happens only if the city is size 6 or
+	// smaller." (alexman, https://codehappy.net/apolyton/threads/84569-1.htm,
+	// #1). In a city the land bombardment goes on to its units.
+	[Fact]
+	public async Task WallsDoNotShieldACity() {
+		(City city, MapUnit catapult) = SetUpBombard(size: 7);
+		Building walls = Walls();
+		city.AddBuilding(walls);
+		MapUnit defender = Spawn(them, "Spearman", city.location);
+		int hitPoints = defender.hitPointsRemaining;
+
+		await WithRateOfFire(catapult, 1, () => BombardOnce(catapult, city.location));
+
+		Assert.Contains(city.constructed_buildings, cb => cb.building == walls);
+		Assert.Equal(hitPoints - 1, defender.hitPointsRemaining);
+	}
+
+	// "Air units can be destroyed by bombardment." / "There is no such
+	// attribute as "lethal air bombardment"." (justanick, #1). A catapult
+	// isn't lethal, yet it finishes off a fighter at its last hit point.
+	[Fact]
+	public async Task AnyBombardmentKillsAircraftInACity() {
+		(City city, MapUnit catapult) = SetUpBombard(size: 1);
+		Assert.False(catapult.unitType.isLandBombardmentLethal);
+		MapUnit fighter = Spawn(them, "Fighter", city.location);
+		fighter.hitPointsRemaining = 1;
+
+		await WithRateOfFire(catapult, 1, () => BombardOnce(catapult, city.location));
+
+		Assert.DoesNotContain(fighter, city.location.unitsOnTile);
+		Assert.DoesNotContain(fighter, them.units);
 	}
 
 	// ---- Rate of fire against cities, walls and improvements ----
