@@ -300,6 +300,11 @@ namespace C7GameData {
 		// completing a wonder (like Theory of Evolution).
 		public int freeTechsRemaining = 0;
 
+		// How many of the free techs are bonus techs for being first to a
+		// tech (Philosophy's), which roll for a scientific leader when
+		// learned (see SetCurrentlyResearchedTech).
+		public int bonusFreeTechsRemaining = 0;
+
 		// The tech a human player last discovered, while they haven't yet
 		// chosen what to research next, for the science advisor to announce.
 		// It isn't saved.
@@ -413,9 +418,24 @@ namespace C7GameData {
 				beakers = 0;
 				turnsResearched = 0;
 
-				Tech tech = Tech.FindById(EngineStorage.gameData.techs, id);
+				GameData gameData = EngineStorage.gameData;
+				Tech tech = Tech.FindById(gameData.techs, id);
 				log.Information("Awarding {Tech} to player {Player}", tech.Name, this);
-				CompleteResearchAndBeginNew(EngineStorage.gameData, tech);
+				// Philosophy's free tech counts as a first discovery for a
+				// scientific leader: "You can also get one for researching
+				// philosophy and getting that free tech" (AutomatedTeller,
+				// https://forums.civfanatics.com/threads/how-do-you-get-a-scientific-leader.211436),
+				// and two leaders on one turn are reported from it
+				// (https://forums.civfanatics.com/threads/2-x-sci-leaders.292238).
+				bool rollsForLeader = bonusFreeTechsRemaining > 0;
+				if (rollsForLeader) {
+					--bonusFreeTechsRemaining;
+				}
+				bool first = rollsForLeader && IsFirstToLearn(gameData, tech);
+				CompleteResearchAndBeginNew(gameData, tech);
+				if (first) {
+					MapUnit.RollForScientificLeader(gameData, this, tech);
+				}
 				return;
 			}
 
@@ -1746,6 +1766,7 @@ namespace C7GameData {
 				}
 				if (awardBonus) {
 					++freeTechsRemaining;
+					++bonusFreeTechsRemaining;
 				}
 			}
 
@@ -1784,7 +1805,15 @@ namespace C7GameData {
 		// is always one of the first set of new age techs", picked at random
 		// (https://forums.civfanatics.com/threads/scientific-civ-and-the-free-tech.75647/),
 		// so we pick at random among the new era's techs that can be
-		// researched now.
+		// researched now. Firaxis gave the rule: "It is supposed to select,
+		// at random, one tech from the new era that is available to the
+		// player" "(i.e., it has no prerequisites)." and "all 4 techs should
+		// have an equal chance of being selected." (Mike Breitkreutz, quoted
+		// in https://codehappy.net/apolyton/threads/65178-1.htm; fixed in
+		// PTW: "Improved random free tech selection for the Scientific civ
+		// trait.", civ3PTW/readme.txt). So the pick is uniform among the new
+		// era's unknown techs with no prerequisites, and only if there are
+		// none among the others that can be researched.
 		//
 		// UNVERIFIED: the same thread says a human may instead pick the tech
 		// from the science advisor's "Big Picture" as they enter the era; we
@@ -1793,9 +1822,14 @@ namespace C7GameData {
 			if (civilization?.traits.Contains(Civilization.Trait.Scientific) != true) {
 				return;
 			}
-			List<Tech> candidates = GetAvailableTechsToResearch(gameData.techs)
-				.Where(t => t.EraCivilopediaName == eraCivilopediaName)
+			List<Tech> candidates = gameData.techs
+				.Where(t => t.EraCivilopediaName == eraCivilopediaName && t.Prerequisites.Count == 0 && !knownTechs.Contains(t.id))
 				.ToList();
+			if (candidates.Count == 0) {
+				candidates = GetAvailableTechsToResearch(gameData.techs)
+					.Where(t => t.EraCivilopediaName == eraCivilopediaName)
+					.ToList();
+			}
 			if (candidates.Count == 0) {
 				return;
 			}

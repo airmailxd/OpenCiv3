@@ -102,6 +102,9 @@ namespace C7GameData.Save {
 		// Free techs (from Philosophy or Theory of Evolution) not yet used,
 		// kept until the player chooses something to research.
 		public int freeTechsRemaining = 0;
+		// How many of them are Philosophy's bonus techs (see
+		// Player.bonusFreeTechsRemaining); 0 in older saves.
+		public int bonusFreeTechsRemaining = 0;
 
 		// If the government is anarchy (or a govt with the transition bool set
 		// to true), the turn number at which switching governments is allowed.
@@ -156,6 +159,7 @@ namespace C7GameData.Save {
 				goldenAgeTurnsRemaining = goldenAgeTurnsRemaining,
 				citiesFounded = citiesFounded,
 				freeTechsRemaining = freeTechsRemaining,
+				bonusFreeTechsRemaining = bonusFreeTechsRemaining,
 				neverHadCityOrSettler = neverHadCityOrSettler,
 				receivedStartUnits = receivedStartUnits ?? false,
 				kingsLost = kingsLost,
@@ -287,6 +291,7 @@ namespace C7GameData.Save {
 			goldenAgeTurnsRemaining = player.goldenAgeTurnsRemaining;
 			citiesFounded = player.citiesFounded;
 			freeTechsRemaining = player.freeTechsRemaining;
+			bonusFreeTechsRemaining = player.bonusFreeTechsRemaining;
 			neverHadCityOrSettler = player.neverHadCityOrSettler;
 			receivedStartUnits = player.receivedStartUnits;
 			kingsLost = player.kingsLost;

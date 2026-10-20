@@ -14,8 +14,12 @@ namespace C7GameData;
 // (owner's decision, 2026-10-11).
 //
 // Only research counts, as the Civilopedia says: not techs traded, stolen,
-// found in huts, or given by the Great Library, Philosophy or Theory of
-// Evolution, nor a Scientific civ's free tech on entering an era.
+// found in huts, or given by the Great Library or Theory of Evolution, nor a
+// Scientific civ's free tech on entering an era. Philosophy's free tech is
+// the exception, counting as a discovery: "You can also get one for
+// researching philosophy and getting that free tech" (AutomatedTeller,
+// https://forums.civfanatics.com/threads/how-do-you-get-a-scientific-leader.211436;
+// see Player.SetCurrentlyResearchedTech).
 //
 // As in Conquests, a scientific leader is the same unit type as a military
 // one (the RULE section's battle-created unit, "Leader"), drawn with the

@@ -128,6 +128,38 @@ public class ScientificLeaderTest : IClassFixture<SaveGameFixture> {
 		Assert.Null(ScientificLeader());
 	}
 
+	// Philosophy's free tech counts as a first discovery (AutomatedTeller,
+	// CFC thread 211436); other free techs, as Theory of Evolution's, don't.
+	[Theory]
+	[InlineData(true)]
+	[InlineData(false)]
+	public void OnlyPhilosophysFreeTechCanBringOne(bool philosophy) {
+		Tech tech = us.GetAvailableTechsToResearch(gameData.techs)
+			.First(t => !gameData.players.Any(p => p.knownTechs.Contains(t.id)));
+		us.freeTechsRemaining = 1;
+		us.bonusFreeTechsRemaining = philosophy ? 1 : 0;
+		WithRandom(0.0, () => { us.SetCurrentlyResearchedTech(tech.id); return 0; });
+		Assert.Contains(tech.id, us.knownTechs);
+		Assert.Equal(philosophy, ScientificLeader() != null);
+		Assert.Equal(0, us.bonusFreeTechsRemaining);
+	}
+
+	[Fact]
+	public void BeingFirstToABonusTechGrantsABonusFreeTech() {
+		Tech bonus = gameData.techs.Single(t => t.BonusTechToFirstCivThatResearches);
+		foreach (Player p in gameData.players) {
+			p.knownTechs.Remove(bonus.id);
+		}
+		// A human, so that the free tech waits for their choice.
+		us.isHuman = true;
+		us.SetCurrentlyResearchedTech(null);
+		us.ResearchQueue.Clear();
+		us.AcquireTech(gameData, bonus);
+		Assert.Equal(1, us.freeTechsRemaining);
+		Assert.Equal(1, us.bonusFreeTechsRemaining);
+		Assert.Equal(1, SaveGame.FromGameData(gameData).ToGameData(fixture.behaviors).players.Single(p => p.id == us.id).bonusFreeTechsRemaining);
+	}
+
 	[Fact]
 	public void TheRuleCanTurnThemOff() {
 		gameData.rules.ScientificLeaders = false;

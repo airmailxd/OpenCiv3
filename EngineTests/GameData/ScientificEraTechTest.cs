@@ -69,6 +69,21 @@ public class ScientificEraTechTest {
 		Assert.Equal(2, us.knownTechs.Count);
 	}
 
+	// Firaxis's rule: "one tech from the new era that is available to the
+	// player" "(i.e., it has no prerequisites)", with equal chances.
+	[Fact]
+	public void TheFreeTechIsOneWithNoPrerequisitesWhenThereAreSome() {
+		Tech engineering = NewTech(7, "Engineering", EraUtils.MIDDLE_AGES_CVLPD, required: true);
+		Tech theology = NewTech(8, "No Prereqs", EraUtils.MIDDLE_AGES_CVLPD, required: true);
+		Player us = NewPlayer(Civilization.Trait.Scientific);
+
+		us.AcquireTech(gameData, bronze);
+
+		Assert.True(us.knownTechs.Contains(engineering.id) ^ us.knownTechs.Contains(theology.id));
+		Assert.DoesNotContain(feudalism.id, us.knownTechs);
+		Assert.DoesNotContain(monotheism.id, us.knownTechs);
+	}
+
 	[Fact]
 	public void OtherCivsGetNoFreeTech() {
 		Player us = NewPlayer(Civilization.Trait.Militaristic, Civilization.Trait.Religious);
