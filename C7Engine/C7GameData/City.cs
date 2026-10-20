@@ -1633,6 +1633,16 @@ namespace C7GameData {
 
 		public record struct BarbarianSack(BarbarianSackOutcome outcome, int amount);
 
+		// The gold barbarians steal from the player when they choose gold:
+		// the treasury divided by the number of its cities, rounded down
+		// (see SackedByBarbarians).
+		public static int BarbarianRaidGold(Player player) {
+			if (player == null || player.gold <= 0) {
+				return 0;
+			}
+			return player.gold / Math.Max(1, player.cities.Count);
+		}
+
 		// The chance of each thing barbarians entering a city may do, weighed
 		// slightly towards stealing gold, per the project owner. Only what
 		// they can do in the city is rolled for.
@@ -1647,13 +1657,23 @@ namespace C7GameData {
 		// https://forums.civfanatics.com/threads/barbarian-cities-in-civ-3.646253/).
 		//
 		// Per the project owner, each entry does one of three things, at
-		// random among those possible: take an eighth of the owner's
-		// treasury (if that is any gold), kill a citizen (if the city has
-		// two or more; one, as in the quote above) or destroy the shields
-		// stored towards its production (if there are any). With none
-		// possible, nothing happens.
+		// random among those possible: take gold (if that is any), kill a
+		// citizen (if the city has two or more; one, as in the quote above)
+		// or destroy the shields stored towards its production (if there are
+		// any). With none possible, nothing happens.
+		//
+		// The gold is the owner's treasury divided by its number of cities:
+		// "Dabei wird 1/Städteanzahl-tel des Schatzkammerbestandes geraubt"
+		// ("1/number-of-cities of the treasury is stolen"; CivWiki,
+		// Barbaren (Civ3), https://www.civ-wiki.de/), and TimBentley's
+		// "gold of any amount (which may be gold/NumCities ...)"
+		// (https://forums.civfanatics.com/threads/barbarian-information.267101/;
+		// compendium 07). This replaces the owner's earlier eighth of the
+		// treasury (owner's decision, 2026-10-20). The sources give orders of
+		// priority that disagree with each other, not chances, so the
+		// owner's 40/30/30 split stays.
 		public BarbarianSack SackedByBarbarians() {
-			int gold = owner.gold / 8;
+			int gold = BarbarianRaidGold(owner);
 			List<(BarbarianSackOutcome outcome, int weight)> possible = new();
 			if (gold > 0) {
 				possible.Add((BarbarianSackOutcome.Gold, BarbarianGoldWeight));

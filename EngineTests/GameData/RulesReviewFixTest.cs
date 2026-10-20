@@ -791,15 +791,24 @@ public class RulesReviewFixTest : IClassFixture<SaveGameFixture> {
 	}
 
 	// Per the project owner: gold 40, citizens 30, production 30, out of
-	// what's possible.
+	// what's possible. The gold is the treasury divided by the number of
+	// the owner's cities (CivWiki; owner's decision, 2026-10-20).
 	[Fact]
-	public void BarbariansStealAnEighthOfTheTreasury() {
+	public void BarbariansStealTheTreasuryDividedByTheNumberOfCities() {
 		City city = CityToSack(size: 4);
+		while (us.cities.Count < 4) {
+			BuildCity(us);
+		}
+		Assert.Equal(4, us.cities.Count);
+		us.gold = 7;
+		Assert.Equal(1, City.BarbarianRaidGold(us));
+		us.gold = 3;
+		Assert.Equal(0, City.BarbarianRaidGold(us));
 		city.SetStoredShields(10);
-		us.gold = 500;
+		us.gold = 502;
 		gameData.random = new FixedRandom(39);
-		Assert.Equal(new City.BarbarianSack(City.BarbarianSackOutcome.Gold, 62), city.SackedByBarbarians());
-		Assert.Equal(438, us.gold);
+		Assert.Equal(new City.BarbarianSack(City.BarbarianSackOutcome.Gold, 125), city.SackedByBarbarians());
+		Assert.Equal(377, us.gold);
 		Assert.Equal(4, city.residents.Count);
 		Assert.Equal(10, city.shieldsStored);
 	}
@@ -828,15 +837,15 @@ public class RulesReviewFixTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(0, city.shieldsStored);
 	}
 
-	// What isn't possible isn't rolled for: no gold (an eighth of 7 is
-	// nothing), a size 1 city, and no shields stored.
+	// What isn't possible isn't rolled for: no gold in the treasury, a
+	// size 1 city, and no shields stored.
 	[Fact]
 	public void BarbariansOnlyDoWhatTheyCan() {
 		City city = CityToSack(size: 1);
-		us.gold = 7;
+		us.gold = 0;
 		city.SetStoredShields(0);
 		Assert.Equal(City.BarbarianSackOutcome.Nothing, city.SackedByBarbarians().outcome);
-		Assert.Equal(7, us.gold);
+		Assert.Equal(0, us.gold);
 		Assert.Single(city.residents);
 
 		// Only production is possible, whatever the roll.
