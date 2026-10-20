@@ -157,14 +157,46 @@ namespace C7Engine.AI.UnitAI {
 			return enemies;
 		}
 
-		// Barbarians don't have unified knowledge across their "empire", only
-		// local knowledge, so they only consider tiles this close to the unit.
-		private const int BARBARIAN_TARGET_RANGE = 4;
+		// Barbarians look for targets as the shipped Conquests executable
+		// does, which is a bug: "Barbarians can only search for targets on
+		// adjacent tiles or on tiles that are up to 12 steps directly SE or
+		// NW of their position. The intended behavior was for them to search
+		// for targets on all surrounding tiles up to 6 steps away."
+		// (https://github.com/maxpetul/C3X/blob/master/default.c3x_config.ini,
+		// "BARBARIAN DIAGONAL BUG"); "The error is that it's adding the dx
+		// distance to both the unit's x & y coordinates, instead of adding dx
+		// to x and dy to y." (Flintlock, reading ai_move_barbarian,
+		// https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/page-70#post-16434678).
+		// Players saw the same: barbarians look "for anything on the NW/SE
+		// axis" "within 12 tiles" (TimBentley,
+		// https://forums.civfanatics.com/threads/barbarian-information.267101/),
+		// alike on every activity level (BlueSox14,
+		// https://forums.civfanatics.com/threads/hunting-down-the-barbarian-nw-se-axis-bug.674365).
+		// In map coordinates a step SE is (+1, +1) and NW (-1, -1).
+		internal const int BARBARIAN_DIAGONAL_RANGE = 12;
 
 		// Returns the known tiles that may hold an enemy unit or city, in a
 		// stable order. Only the tiles enemies are on are worth scoring, so
 		// rather than scanning every known tile we look at where the enemies
-		// are (or, for barbarians, at the few tiles in range).
+		// are (or, for barbarians, at the few tiles they search).
+		// The tiles a barbarian at the tile searches: its neighbors, then the
+		// NW/SE diagonal out to BARBARIAN_DIAGONAL_RANGE.
+		internal static IEnumerable<Tile> BarbarianSearchTiles(Tile here) {
+			foreach (Tile t in here.neighbors.Values) {
+				if (t != Tile.NONE) {
+					yield return t;
+				}
+			}
+			for (int k = 1; k <= BARBARIAN_DIAGONAL_RANGE; ++k) {
+				foreach (int sign in new[] { 1, -1 }) {
+					Tile t = here.map.tileAt(here.XCoordinate + sign * k, here.YCoordinate + sign * k);
+					if (t != Tile.NONE) {
+						yield return t;
+					}
+				}
+			}
+		}
+
 		private static List<Tile> GetCandidateTiles(MapUnit unit, Player player, HashSet<Player> enemies) {
 			List<Tile> result = new();
 			HashSet<Tile> seen = new(ReferenceEqualityComparer.Instance);
@@ -174,19 +206,9 @@ namespace C7Engine.AI.UnitAI {
 				if (here == null || here == Tile.NONE || here.map == null) {
 					return result;
 				}
-				// DistanceTo is (|dx| + |dy|) / 2 in tile coordinates, so the
-				// tiles in range form a diamond.
-				int reach = 2 * BARBARIAN_TARGET_RANGE;
-				for (int dy = -reach; dy <= reach; ++dy) {
-					int width = reach - Math.Abs(dy);
-					for (int dx = -width; dx <= width; ++dx) {
-						Tile t = here.map.tileAt(here.XCoordinate + dx, here.YCoordinate + dy);
-						if (t == Tile.NONE || t.DistanceTo(here) > BARBARIAN_TARGET_RANGE || !player.tileKnowledge.isTileKnown(t)) {
-							continue;
-						}
-						if (seen.Add(t)) {
-							result.Add(t);
-						}
+				foreach (Tile t in BarbarianSearchTiles(here)) {
+					if (player.tileKnowledge.isTileKnown(t) && seen.Add(t)) {
+						result.Add(t);
 					}
 				}
 				return result;

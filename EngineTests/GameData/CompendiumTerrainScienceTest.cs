@@ -150,6 +150,23 @@ public class CompendiumTerrainScienceTest : IClassFixture<SaveGameFixture> {
 		Assert.True(moved.hasBarbarianCamp);
 	}
 
+	// Barbarians search their neighbors and the NW/SE diagonal up to 12
+	// tiles, as the shipped executable does.
+	[Fact]
+	public void BarbariansSearchTheirNeighborsAndTheNorthwestSoutheastDiagonal() {
+		Tile here = gameData.map.tileAt(30, 30);
+		System.Collections.Generic.HashSet<Tile> searched = C7Engine.AI.UnitAI.CombatAI.BarbarianSearchTiles(here).ToHashSet();
+		// The first diagonal steps are neighbors too.
+		Assert.Equal(8 + 2 * 11, searched.Count);
+		Assert.All(here.neighbors.Values, n => Assert.Contains(n, searched));
+		Assert.Contains(gameData.map.tileAt(42, 42), searched);
+		Assert.Contains(gameData.map.tileAt(18, 18), searched);
+		// Two tiles east, or along the other diagonal, isn't searched.
+		Assert.DoesNotContain(gameData.map.tileAt(34, 30), searched);
+		Assert.DoesNotContain(gameData.map.tileAt(32, 28), searched);
+		Assert.DoesNotContain(gameData.map.tileAt(43, 43), searched);
+	}
+
 	// ---- Research ----
 
 	// Switching research loses the stored beakers, unless switched back the
