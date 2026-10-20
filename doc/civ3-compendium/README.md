@@ -24,3 +24,5 @@ on exact wording.
 | [6. Diplomacy and espionage](06-diplomacy-and-espionage.md) | Attitude, reputation, deals and their length, agreements, trade valuation, espionage missions, the UN |
 | [7. Map, terrain and workers](07-map-terrain-and-workers.md) | Terrain table, rivers, irrigation, worker job turns, resources, barbarians, goody huts, city radius |
 | [8. AI, difficulty and victory](08-ai-difficulty-and-victory.md) | Difficulty table, civ traits, observed AI behaviour, victory conditions, score |
+
+What the engine still lacks, or does differently, is tracked in [audit-2026-10.md](audit-2026-10.md).
