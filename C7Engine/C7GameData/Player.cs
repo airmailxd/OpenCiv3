@@ -1489,6 +1489,7 @@ namespace C7GameData {
 				}
 				Disease.MaybeStrike(c);
 			}
+			Disease.StrikeFortifiedUnits(this);
 		}
 
 		public void DoPerTurnScienceUpdates(GameData gameData) {

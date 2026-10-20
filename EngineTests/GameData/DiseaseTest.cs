@@ -28,8 +28,14 @@ public class DiseaseTest : IClassFixture<SaveGameFixture>, IDisposable {
 		jungle = Terrain("jungle");
 		grassland = Terrain("grassland");
 		city.location.overlayTerrainType = grassland;
-		Tech sanitation = SanitationTech();
-		player.knownTechs.Remove(sanitation.id);
+		player.knownTechs.Remove(SanitationTech().id);
+		player.knownTechs.Remove(Disease.CuringTech(gameData).id);
+		// Only what each test puts there: no other unhealthy terrain nearby.
+		foreach (Tile t in city.location.GetTilesWithinRankDistance(2)) {
+			if (t != Tile.NONE && t.overlayTerrainType.causesDisease) {
+				t.overlayTerrainType = grassland;
+			}
+		}
 	}
 
 	public void Dispose() {
@@ -99,33 +105,42 @@ public class DiseaseTest : IClassFixture<SaveGameFixture>, IDisposable {
 		Assert.Equal(70, reloaded.diseaseStrength);
 	}
 
+	// One percent a turn (strength 50 / 5, in thousandths) for any
+	// unhealthy terrain in the radius, the strongest counting.
 	[Fact]
-	public void UnhealthyTilesTheCityWorksAddUpTheirStrength() {
+	public void UnhealthyTerrainInTheRadiusGivesTheCityAChance() {
 		GrowTo(3);
 		Assert.Equal(0, Disease.Chance(city));
 		city.location.overlayTerrainType = floodPlain;
-		Assert.Equal(50, Disease.Chance(city));
+		Assert.Equal(10, Disease.Chance(city));
+		// More unhealthy tiles don't add up.
 		Working().tileWorked.overlayTerrainType = jungle;
-		Assert.Equal(100, Disease.Chance(city));
+		Assert.Equal(10, Disease.Chance(city));
 	}
 
+	// The shipped game cures flood plains with tech number 8 (Writing), not
+	// with Sanitation's flag.
 	[Fact]
-	public void SanitationCuresFloodPlainsButNotJungle() {
+	public void WritingCuresFloodPlainsButNotJungle() {
+		Tech cure = Disease.CuringTech(gameData);
+		Assert.Equal("Writing", cure.Name);
 		GrowTo(3);
 		city.location.overlayTerrainType = floodPlain;
-		Working().tileWorked.overlayTerrainType = jungle;
 		player.knownTechs.Add(SanitationTech().id);
-		Assert.Equal(50, Disease.Chance(city));
+		Assert.True(Disease.IsUnhealthy(floodPlain, player));
+		player.knownTechs.Add(cure.id);
 		Assert.False(Disease.IsUnhealthy(floodPlain, player));
+		Assert.Equal(0, Disease.Chance(city));
 		Assert.True(Disease.IsUnhealthy(jungle, player));
 	}
 
+	// Not working the unhealthy tile doesn't protect the city.
 	[Fact]
-	public void UnworkedUnhealthyTilesDontCount() {
+	public void UnworkedUnhealthyTilesCount() {
 		GrowTo(2);
 		Tile unworked = city.location.neighbors.Values.First(t => t != Tile.NONE && !t.IsWater() && t.personWorkingTile == null);
 		unworked.overlayTerrainType = jungle;
-		Assert.Equal(0, Disease.Chance(city));
+		Assert.Equal(10, Disease.Chance(city));
 	}
 
 	[Fact]
@@ -141,6 +156,33 @@ public class DiseaseTest : IClassFixture<SaveGameFixture>, IDisposable {
 		Assert.DoesNotContain(sick, city.residents);
 		Assert.Null(jungleTile.personWorkingTile);
 		Assert.Contains(EngineStorage.messagesToUI.OfType<MsgShowDomesticAdvisorPopup>(), m => m.message == $"Disease strikes {city.name}.");
+	}
+
+	// A strike takes a citizen this turn and another the next.
+	[Fact]
+	public void AStrikeCostsTwoCitizensOverTwoTurns() {
+		GrowTo(5);
+		city.location.overlayTerrainType = floodPlain;
+		C7GameData.GameData.rng = new FixedRandom(0);
+		Assert.True(Disease.MaybeStrike(city));
+		Assert.Equal(4, city.residents.Count);
+		Assert.True(city.diseaseStrikesNextTurn);
+
+		// The second strike comes whatever the roll.
+		C7GameData.GameData.rng = new FixedRandom(999);
+		Assert.True(Disease.MaybeStrike(city));
+		Assert.Equal(3, city.residents.Count);
+		Assert.False(city.diseaseStrikesNextTurn);
+		Assert.False(Disease.MaybeStrike(city));
+		Assert.Equal(3, city.residents.Count);
+	}
+
+	[Fact]
+	public void TheSecondStrikeSurvivesASave() {
+		city.diseaseStrikesNextTurn = true;
+		SaveGame save = SaveGame.FromGameData(gameData);
+		SaveGame loaded = SaveGame.FromJSON(save.ToCompactJSON());
+		Assert.True(loaded.Cities.Single(c => c.name == city.name).diseaseStrikesNextTurn);
 	}
 
 	[Fact]
@@ -165,20 +207,67 @@ public class DiseaseTest : IClassFixture<SaveGameFixture>, IDisposable {
 	}
 
 	[Fact]
-	public void DiseaseStrikesAboutFivePercentOfTurnsPerUnhealthyTile() {
+	public void DiseaseStrikesAboutOnePercentOfTurns() {
 		GrowTo(3);
 		city.location.overlayTerrainType = floodPlain;
-		Working().tileWorked.overlayTerrainType = jungle;
 		C7GameData.GameData.rng = new GameRandom(1234);
-		int strikes = 0;
-		for (int turn = 0; turn < 2000; ++turn) {
+		int outbreaks = 0;
+		for (int turn = 0; turn < 10000; ++turn) {
+			bool second = city.diseaseStrikesNextTurn;
 			if (Disease.MaybeStrike(city)) {
-				++strikes;
+				if (!second) {
+					++outbreaks;
+				}
 				GrowTo(3);
-				Working().tileWorked.overlayTerrainType = jungle;
 			}
 		}
-		// 10% of 2000 turns is 200.
-		Assert.InRange(strikes, 150, 250);
+		// 1% of 10000 turns is 100.
+		Assert.InRange(outbreaks, 60, 140);
+	}
+
+	private Tile JungleNextToTheCity() {
+		Tile tile = city.location.neighbors.Values.First(t => t != Tile.NONE && t.IsLand() && !t.HasCity());
+		tile.overlayTerrainType = jungle;
+		return tile;
+	}
+
+	// Only fortified units die of disease, and not workers.
+	[Fact]
+	public void OnlyFortifiedUnitsOnUnhealthyTerrainCanDie() {
+		Tile tile = JungleNextToTheCity();
+		MapUnit unit = gameData.SpawnUnit(player, gameData.unitPrototypes.Single(p => p.name == "Warrior"), tile);
+		Assert.False(Disease.CanStrikeUnit(unit));
+		unit.isFortified = true;
+		Assert.True(Disease.CanStrikeUnit(unit));
+
+		MapUnit worker = gameData.SpawnUnit(player, gameData.unitPrototypes.Single(p => p.name == "Worker"), tile);
+		worker.isFortified = true;
+		Assert.False(Disease.CanStrikeUnit(worker));
+
+		tile.overlayTerrainType = grassland;
+		Assert.False(Disease.CanStrikeUnit(unit));
+		tile.overlayTerrainType = jungle;
+
+		// A roll under the strength (50 in 50,000) kills it.
+		C7GameData.GameData.rng = new FixedRandom(49);
+		Assert.Contains(unit, Disease.StrikeFortifiedUnits(player));
+		Assert.DoesNotContain(unit, player.units);
+		Assert.Contains(worker, player.units);
+		Assert.Contains(EngineStorage.messagesToUI.OfType<MsgShowMilitaryAdvisorPopup>(), m => m.message == "Our Warrior has died of disease from the jungle!");
+	}
+
+	[Fact]
+	public void ARollAtTheStrengthSparesTheUnit() {
+		MapUnit unit = gameData.SpawnUnit(player, gameData.unitPrototypes.Single(p => p.name == "Warrior"), JungleNextToTheCity());
+		unit.isFortified = true;
+		C7GameData.GameData.rng = new FixedRandom(50);
+		Assert.Empty(Disease.StrikeFortifiedUnits(player));
+		Assert.Contains(unit, player.units);
+	}
+
+	// Rolls the given number for every Next(max).
+	private class FixedRandom(int roll) : Random {
+		public override int Next(int maxValue) => Math.Min(roll, maxValue - 1);
+		protected override double Sample() => 0.0;
 	}
 }

@@ -98,6 +98,9 @@ namespace C7GameData.Save {
 		// completed something, so it can't switch to a wonder. Older saves
 		// lack it, and those cities may.
 		public bool receivedForestShields;
+		// Disease struck the city and takes another citizen next turn
+		// (City.diseaseStrikesNextTurn); false in older saves.
+		public bool diseaseStrikesNextTurn;
 		// The city's governor (see CityGovernor); all off in older saves.
 		public bool governorManagesMoods;
 		public bool governorEmphasizesFood;
@@ -142,6 +145,7 @@ namespace C7GameData.Save {
 			}
 			hurriedThisTurn = city.hurriedThisTurn;
 			receivedForestShields = city.receivedForestShields;
+			diseaseStrikesNextTurn = city.diseaseStrikesNextTurn;
 			governorManagesMoods = city.governor.manageMoods;
 			governorEmphasizesFood = city.governor.emphasizeFood;
 			governorEmphasizesProduction = city.governor.emphasizeProduction;
@@ -273,6 +277,7 @@ namespace C7GameData.Save {
 				cultureFlipOfferTurn = cultureFlipOfferTurn ?? -1,
 				hurriedThisTurn = hurriedThisTurn,
 				receivedForestShields = receivedForestShields,
+				diseaseStrikesNextTurn = diseaseStrikesNextTurn,
 				governor = new CityGovernor {
 					manageMoods = governorManagesMoods,
 					emphasizeFood = governorEmphasizesFood,

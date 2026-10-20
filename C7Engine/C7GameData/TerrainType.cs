@@ -44,9 +44,10 @@ namespace C7GameData {
 		public HashSet<string> allowedResources = new();
 		public int height = -1;
 
-		// Disease (see Disease): whether cities working the terrain can be
-		// struck by it, whether a tech with the DisablesDiseases flag
-		// (Sanitation) ends it, and how strong it is. From the BIQ's terrain
+		// Disease (see Disease): whether cities near the terrain and units
+		// fortified on it can be struck by it, whether a tech ends it (tech
+		// number 8, Writing, as in the shipped game; see Disease), and how
+		// strong it is. From the BIQ's terrain
 		// flags and "disease strength". Saves made before these were saved
 		// have no disease.
 		public bool causesDisease { get; set; }
