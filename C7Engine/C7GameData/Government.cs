@@ -100,6 +100,17 @@ namespace C7GameData {
 		public int workerRate;
 
 		public bool allUnitsFree;
+
+		// The BIQ's government flags (C3C editor help, Flags): Xenophobic,
+		// "no culture is gained in cities where less than half of the
+		// population of the city is from the same race as the controlling
+		// civilization" (see City.GetCulturePerTurn); and Forced
+		// Resettlement, "When switching to the selected government, each
+		// town in the nation loses 1 population, each city loses 2
+		// population, and each metropolis loses 3 population" (see
+		// Player.AdoptGovernment). Fascism has both in conquests.biq.
+		public bool xenophobic;
+		public bool forcedResettlement;
 		public int freeUnitsPerTown;
 		public int freeUnitsPerCity;
 		public int freeUnitsPerMetropolis;

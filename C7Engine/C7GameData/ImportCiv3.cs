@@ -2719,6 +2719,8 @@ namespace C7GameData {
 				g.militaryPoliceLimit = govt.MilitaryPoliceLimit;
 				g.workerRate = govt.WorkerRate;
 				g.allUnitsFree = govt.FreeUnits == -1;
+				g.xenophobic = govt.Xenophobic != 0;
+				g.forcedResettlement = govt.ForceResettle != 0;
 				g.freeUnitsPerTown = govt.FreeUnitsPerTown;
 				g.freeUnitsPerCity = govt.FreeUnitsPerCity;
 				g.freeUnitsPerMetropolis = govt.FreeUnitsPerMetropolis;

@@ -194,6 +194,25 @@ namespace C7GameData {
 		// still have room, preferring tax, then science, then luxury. If the
 		// cap is too low for the three sliders to add up to 10, the leftover
 		// stays in tax.
+		// Takes up a new government once anarchy is over. Under Forced
+		// Resettlement (Fascism) "each town in the nation loses 1 population,
+		// each city loses 2 population, and each metropolis loses 3
+		// population" (C3C editor help, Flags). UNVERIFIED: a city is never
+		// left with no citizens; one too small keeps a single citizen.
+		public void AdoptGovernment(Government newGovernment) {
+			government = newGovernment;
+			ApplyGovernmentRateCap();
+			if (newGovernment?.forcedResettlement != true) {
+				return;
+			}
+			Rules r = rules ?? EngineStorage.gameData.rules;
+			foreach (City c in cities) {
+				int size = c.residents.Count;
+				int loss = size <= r.MaximumLevel1CitySize ? 1 : size <= r.MaximumLevel2CitySize ? 2 : 3;
+				c.RemoveCitizens(Math.Min(loss, size - 1));
+			}
+		}
+
 		public void ApplyGovernmentRateCap() {
 			int excess = 0;
 			int Trim(int rate) {

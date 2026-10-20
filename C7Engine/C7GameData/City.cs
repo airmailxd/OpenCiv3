@@ -1980,6 +1980,15 @@ namespace C7GameData {
 
 		[MoonSharpHidden]
 		public int GetCulturePerTurn() {
+			// Under a xenophobic government (Fascism), "no culture is gained
+			// in cities where less than half of the population of the city is
+			// from the same race as the controlling civilization" (C3C editor
+			// help, Flags); the Civilopedia: conquered cities "do not
+			// generate culture until a popular majority has been
+			// assimilated".
+			if (owner?.government?.xenophobic == true && 2 * residents.Count(r => r.nationality == null || r.nationality == owner.civilization) < residents.Count) {
+				return 0;
+			}
 			int result = GetCulturePerTurnRaw();
 			// culture lua infow
 			if (this.itemBeingProduced is Inflow inflow && inflow.TryGetInflowYieldFunc(InflowYield.culture, out var cultureYieldFunc)) {

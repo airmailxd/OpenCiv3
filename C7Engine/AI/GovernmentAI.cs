@@ -32,8 +32,7 @@ namespace C7Engine.AI {
 					Government best = BestGovernment(player, gameData);
 					if (best != null) {
 						log.Information("{Player} leaves anarchy for {Government}", player, best.name);
-						player.government = best;
-						player.ApplyGovernmentRateCap();
+						player.AdoptGovernment(best);
 					}
 				}
 				return;

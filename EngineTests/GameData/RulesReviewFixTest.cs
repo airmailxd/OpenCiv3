@@ -304,6 +304,46 @@ public class RulesReviewFixTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(resisting, city.WorkingResidents().Count());
 	}
 
+	// Fascism's Forced Resettlement: "each town in the nation loses 1
+	// population, each city loses 2 population, and each metropolis loses 3
+	// population" (C3C editor help, Flags).
+	[Fact]
+	public void FascismResettlesCitizens() {
+		Government fascism = gameData.governments.First(g => g.name == "Fascism");
+		Assert.True(fascism.forcedResettlement && fascism.xenophobic);
+		City town = BuildCity(us);
+		AddResident(town, us.civilization);
+		AddResident(town, us.civilization);
+		City city = BuildCity(us);
+		while (city.residents.Count < gameData.rules.MaximumLevel1CitySize + 2) {
+			AddResident(city, us.civilization);
+		}
+		int townSize = town.residents.Count, citySize = city.residents.Count;
+		us.AdoptGovernment(fascism);
+		Assert.Equal(townSize - 1, town.residents.Count);
+		Assert.Equal(citySize - 2, city.residents.Count);
+	}
+
+	// Fascism is Xenophobic: "no culture is gained in cities where less than
+	// half of the population of the city is from the same race as the
+	// controlling civilization" (C3C editor help, Flags).
+	[Fact]
+	public void FascistCitiesOfForeignersMakeNoCulture() {
+		City city = BuildCity(us);
+		city.AddBuilding(BuildingNamed("Temple"));
+		us.government = gameData.governments.First(g => g.name == "Fascism");
+		Assert.True(city.GetCulturePerTurn() > 0);
+		foreach (CityResident r in city.residents) {
+			r.nationality = them.civilization;
+		}
+		AddResident(city, them.civilization);
+		AddResident(city, us.civilization);
+		Assert.Equal(0, city.GetCulturePerTurn());
+		// Half our own is enough.
+		AddResident(city, us.civilization);
+		Assert.True(city.GetCulturePerTurn() > 0);
+	}
+
 	// Per the project owner, foreign citizens never become ours, but a
 	// starving city loses them first.
 	[Fact]

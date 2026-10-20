@@ -469,8 +469,7 @@ namespace C7Engine {
 			if (!player.government.transitionType || gD.turn < player.inAnarchyUntilTurn) {
 				return;
 			}
-			player.government = government;
-			player.ApplyGovernmentRateCap();
+			player.AdoptGovernment(government);
 		}
 	}
 
