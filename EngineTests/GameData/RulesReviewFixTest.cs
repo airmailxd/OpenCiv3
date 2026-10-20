@@ -304,6 +304,20 @@ public class RulesReviewFixTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(resisting, city.WorkingResidents().Count());
 	}
 
+	// Per the project owner, foreign citizens never become ours, but a
+	// starving city loses them first.
+	[Fact]
+	public void StarvationTakesForeignersFirst() {
+		City city = BuildCity(us);
+		AddResident(city, them.civilization);
+		AddResident(city, us.civilization);
+		int foreigners = city.residents.Count(r => r.nationality == them.civilization);
+		int ours = city.residents.Count(r => r.nationality == us.civilization);
+		city.RemoveStarvingCitizen();
+		Assert.Equal(foreigners - 1, city.residents.Count(r => r.nationality == them.civilization));
+		Assert.Equal(ours, city.residents.Count(r => r.nationality == us.civilization));
+	}
+
 	// "If it gets to one turn left you can switch to other
 	// units/improvements, but NOT wonders" (Travathian, Apolyton).
 	[Fact]

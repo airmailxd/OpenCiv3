@@ -968,7 +968,7 @@ namespace C7GameData {
 			// Handle the city starving. A size 1 city can't shrink any further.
 			if (foodStored < 0) {
 				if (residents.Count > 1) {
-					RemoveLastCitizen();
+					RemoveStarvingCitizen();
 				}
 				foodStored = 0;
 				return;
@@ -1826,6 +1826,15 @@ namespace C7GameData {
 			resistanceFrom = null;
 		}
 
+
+		// A starving city loses a foreign citizen first, the last of them
+		// (resisters, who are last, go first). Foreign citizens never become
+		// the owner's own, but they can be starved out (owner's decision,
+		// 2026-10-20).
+		internal void RemoveStarvingCitizen() {
+			int index = residents.FindLastIndex(r => r.nationality != null && r.nationality != owner.civilization);
+			RemoveCitizenAt(index >= 0 ? index : residents.Count - 1);
+		}
 
 		private void RemoveLastCitizen() {
 			RemoveCitizenAt(residents.Count - 1);
