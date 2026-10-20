@@ -101,9 +101,6 @@ namespace C7Engine.AI {
 		private const double MinMarchOdds = 0.2;
 		// HEURISTIC: how long the march may take.
 		private const int MaxMarchTurns = 15;
-		// HEURISTIC: how much stronger than the enemy (by the military
-		// advisor's measure) we must be to start a war.
-		private const float DeclareStrengthRatio = 1.3f;
 		// HEURISTIC: how far from our nearest city a city may be to be worth
 		// marching on.
 		private const int MaxTargetDistance = 14;
@@ -406,8 +403,17 @@ namespace C7Engine.AI {
 					&& player.cities.Count >= 3) {
 				// Civ3's own rules (see StockWarPlotting): the rolls to plot
 				// a war at all, and the score of whom to plot it against.
-				// The war is still declared only once the attackers are
-				// gathered and we are DeclareStrengthRatio times as strong.
+				// The war is declared once the attackers are gathered, with
+				// no check of our strength against theirs: the stock code
+				// has none (Flintlock, who read it, CFC thread 703785, page
+				// 2: "War is declared only when the attack actually
+				// happens"), and its target score favours the stronger civs
+				// (compendium 08, section 3.4.1). The 1.3 times the
+				// target's strength we used to need turned down 10 of 18
+				// plotted wars on Continents and 22 of 29 on Pangaea in AI
+				// trials (8 games of 200 turns, every civ AI). Paired trials
+				// without it: score +11 +- 7 on Continents and -2 +- 38 on
+				// Pangaea, wars declared +0.1 and +0.2 per civ.
 				if (!StockWarPlotting.RollsToPlot(gameData, player)) {
 					return null;
 				}
@@ -731,11 +737,6 @@ namespace C7Engine.AI {
 			}
 
 			if (!atWar) {
-				// Still worth it?
-				float us = player.CalculateMilitaryStrength();
-				if (us < DeclareStrengthRatio * c.enemy.CalculateMilitaryStrength()) {
-					return false;
-				}
 				player.DeclareWarOn(c.enemy, gameData.turn);
 				log.Information("{Player} declared war on {Enemy} to take {City}", player, c.enemy, c.target.name);
 				MsgWarDeclaration.Announce(player, c.enemy);

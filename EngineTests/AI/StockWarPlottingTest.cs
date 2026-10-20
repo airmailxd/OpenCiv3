@@ -133,6 +133,55 @@ public sealed class StockWarPlottingTest : IClassFixture<SaveGameFixture>, IDisp
 		Assert.True(StockWarPlotting.TargetScore(gameData, us, them) < bare);
 	}
 
+	// The rolls count "units with the offensive or defensive AI strategy",
+	// the BIQ's strategy for the unit: the Warrior is an offensive unit
+	// there though no stronger in attack than in defence, the Spearman a
+	// defensive one, and a type with both strategies (the Rifleman) counts
+	// as defensive when at least as strong in defence.
+	[Fact]
+	public void UnitsCountByTheirBiqAiStrategy() {
+		City city = BuildCity(us);
+		MapUnit Spawn(string name) => gameData.SpawnUnit(us, gameData.unitPrototypes.First(p => p.name == name), city.location);
+		MapUnit warrior = Spawn("Warrior");
+		Assert.True(StockWarPlotting.IsOffensive(warrior));
+		Assert.False(StockWarPlotting.IsDefensive(warrior));
+		MapUnit spearman = Spawn("Spearman");
+		Assert.False(StockWarPlotting.IsOffensive(spearman));
+		Assert.True(StockWarPlotting.IsDefensive(spearman));
+		MapUnit rifleman = Spawn("Rifleman");
+		Assert.False(StockWarPlotting.IsOffensive(rifleman));
+		Assert.True(StockWarPlotting.IsDefensive(rifleman));
+		MapUnit worker = Spawn("Worker");
+		Assert.False(StockWarPlotting.IsOffensive(worker) || StockWarPlotting.IsDefensive(worker));
+	}
+
+	// On trial (stock-garrison): the AI favours the units its garrison is
+	// short of, against the two defensive and one offensive unit per city
+	// the plotting rolls look for.
+	[Fact]
+	public void TheStockGarrisonFavoursWhatItIsShortOf() {
+		foreach (MapUnit u in us.units.ToList()) {
+			gameData.RemoveUnit(u);
+		}
+		City city = BuildCity(us);
+		UnitPrototype Type(string name) => gameData.unitPrototypes.First(p => p.name == name);
+		UnitPrototype spearman = Type("Spearman"), warrior = Type("Warrior"), worker = Type("Worker");
+		Assert.True(ChooseProducible.StockGarrisonBonus(us, spearman) > 0);
+		Assert.True(ChooseProducible.StockGarrisonBonus(us, warrior) > 0);
+		Assert.Equal(0, ChooseProducible.StockGarrisonBonus(us, worker));
+
+		int cities = us.cities.Count;
+		for (int i = 0; i < 2 * cities; ++i) {
+			gameData.SpawnUnit(us, spearman, city.location);
+		}
+		Assert.Equal(0, ChooseProducible.StockGarrisonBonus(us, spearman));
+		Assert.True(ChooseProducible.StockGarrisonBonus(us, warrior) > 0);
+		for (int i = 0; i < cities; ++i) {
+			gameData.SpawnUnit(us, warrior, city.location);
+		}
+		Assert.Equal(0, ChooseProducible.StockGarrisonBonus(us, warrior));
+	}
+
 	// AIs talk trade with each other only on "the base game's 1-in-4 gate
 	// before ai_negotiate_with_other_ai" (C3X); a human is always talked to.
 	[Fact]
