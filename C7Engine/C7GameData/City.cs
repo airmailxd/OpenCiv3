@@ -2524,28 +2524,47 @@ namespace C7GameData {
 		//  - https://codehappy.net/apolyton/threads/83368-1.htm
 		//
 		public Mood RecalculateCitizenMoods(GameData gameData) {
-			CityResident.Mood happy = CityResident.Mood.Happy;
 			CityResident.Mood content = CityResident.Mood.Content;
 			CityResident.Mood unhappy = CityResident.Mood.Unhappy;
 			InitializeMoodsForDifficulty(owner.isHuman ? gameData.gameDifficulty : gameData.AiRulesDifficulty());
 
-			// We want to track the move deltas from content to happy and unhappy
-			// to content. We can also move from unhappy straight to content,
-			// but it costs 2 "points" from the contentToHappy counter, and is
-			// only applied if there are no content faces.
-			int contentToHappyMoves = 0;
-			int unhappyToContentMoves = 0;
+			// The faces are applied in turn, as in justanick's worked example
+			// of a Republic at war
+			// (https://forums.civfanatics.com/threads/mechanics-of-happy-content-faces.701169/
+			// #2, which the thread's starter confirmed in game): "You start at
+			// 4 content and 8 unhappy citizens" (the born moods), the
+			// buildings' and wonders' content faces make unhappy citizens
+			// content, then "4 content faces and 6 unhappy faces turn it into
+			// 2 content and 10 unhappy citizens" (war weariness makes content
+			// citizens unhappy), and only then do the happy faces of luxuries
+			// work, on content citizens first. So war weariness and the other
+			// unhappy faces don't cancel happy faces one for one: an unhappy
+			// face makes a content citizen unhappy, and it takes two happy
+			// faces to make that citizen happy again (see
+			// ConsumeContentToHappyMoves).
+			//
+			// UNVERIFIED: where martial law and entertainers fall in this
+			// order. Martial law is counted with the content faces and
+			// entertainers with the happy faces, as the Civilopedia
+			// (GCON_Happy_Faces) lists them: "Military police content faces",
+			// "Entertainers happy faces". The other unhappy faces below (the
+			// whip, propaganda, the draft, "mother country" protests) are
+			// applied with war weariness, like it an unhappiness reason of
+			// the city's citizens (labels.txt, CITIZEN_UNHAPPY_REASONS).
+			int contentFaces = 0;
+			int unhappyFaces = 0;
+			int happyFaces = 0;
 
 			// Each citizen lost to pop rushing has a 20 turn penalty, so
 			// multiple citizens lost causes multiple unhappy faces.
 			if (turnsOfUnhappinessDueToPopRushing > 0) {
-				contentToHappyMoves -= (turnsOfUnhappinessDueToPopRushing - 1) / gameData.rules.TurnPenaltyForEachHurrySacrifice + 1;
+				unhappyFaces += (turnsOfUnhappinessDueToPopRushing - 1) / gameData.rules.TurnPenaltyForEachHurrySacrifice + 1;
 			}
 
 			// "If the city does not flip, the persuaded citizen will be
 			// confused. Each will give 1 unhappy face."
 			// (https://civfanatics.com/civ3/strategy/game-mechanics/a-study-of-espionage-missions/)
-			contentToHappyMoves -= Math.Min(propagandaConfusedCitizens, residents.Count);
+			unhappyFaces += Math.Min(propagandaConfusedCitizens, residents.Count);
 
 			// Drafting works the same way: "it makes 1 citizen per unit
 			// drafted unhappy for 20 turns" (the BIQ's turn penalty per
@@ -2553,23 +2572,23 @@ namespace C7GameData {
 			// https://forums.civfanatics.com/threads/question-about-drafting-in-civ3.107429/.
 			if (turnsOfUnhappinessDueToDrafting > 0) {
 				int penalty = Math.Max(1, gameData.rules.TurnPenaltyForEachDraftedCitizen);
-				contentToHappyMoves -= (turnsOfUnhappinessDueToDrafting - 1) / penalty + 1;
+				unhappyFaces += (turnsOfUnhappinessDueToDrafting - 1) / penalty + 1;
 			}
 
 			// War weariness makes citizens unhappy, like pop rushing, and war
 			// happiness makes them happy.
-			contentToHappyMoves -= owner.WarWearinessUnhappiness(this);
-			contentToHappyMoves += owner.WarHappiness(this);
+			unhappyFaces += owner.WarWearinessUnhappiness(this);
+			happyFaces += owner.WarHappiness(this);
 
 			// Citizens of a civ we're at war with protest "Stop the aggression
 			// against our mother country!", like the whip and war weariness.
-			contentToHappyMoves -= MotherlandUnhappiness(gameData);
+			unhappyFaces += MotherlandUnhappiness(gameData);
 
 			List<CityBuilding> buildings = EffectiveBuildings();
 
 			// Building and wonder happiness/unhappiness, which only affects the
 			// unhappy to content transition, nothing with happy faces.
-			unhappyToContentMoves += BuildingContentFaces(buildings);
+			contentFaces += BuildingContentFaces(buildings);
 
 			// Depending on the government type, our land units that can
 			// attack serve as military police: "military units (units with
@@ -2587,7 +2606,7 @@ namespace C7GameData {
 			// (https://forums.civfanatics.com/threads/military-police.250479/).
 			// The difficulty's military law is for quelling resistance
 			// instead (see City.UpdateResistance).
-			unhappyToContentMoves += Math.Min(owner.government.militaryPoliceLimit, landDefenders);
+			contentFaces += Math.Min(owner.government.militaryPoliceLimit, landDefenders);
 
 			// Luxury spending moves content faces to happy faces, one face for
 			// every luxury (see the civfanatics thread above: "one luxury
@@ -2597,7 +2616,7 @@ namespace C7GameData {
 			// we are currently in civil disorder our commerce is all corrupt,
 			// but we still need to be able to calculate whether a certain
 			// luxury slider value would get us out of civil disorder.
-			contentToHappyMoves += CurrentCommerceYield(respectCivilDisorder: false).happiness;
+			happyFaces += CurrentCommerceYield(respectCivilDisorder: false).happiness;
 
 			// As do luxury resources, which can be boosted by marketplaces.
 			int effectiveLux = GetLuxuries(gameData).Keys.Count;
@@ -2611,63 +2630,18 @@ namespace C7GameData {
 			if (increasesLuxuryTrade) {
 				effectiveLux = (int)(Math.Floor(effectiveLux / 2f) * Math.Ceiling(effectiveLux / 2f) + Math.Ceiling(effectiveLux / 2f));
 			}
-			contentToHappyMoves += effectiveLux;
+			happyFaces += effectiveLux;
 
-			if (contentToHappyMoves >= 0) {
-				if (unhappyToContentMoves >= 0) {
-					// First apply all the unhappy->content moves. If there are
-					// left over content faces that's ok, they can't be used to
-					// get a citizen to happy.
-					ApplyMoodChange(unhappyToContentMoves, unhappy, content);
-
-					// Then do the same for content->happy moves, which can also
-					// make unhappy->happy moves.
-					ConsumeContentToHappyMoves(contentToHappyMoves);
-				} else {
-					int happyPoints = contentToHappyMoves;
-					int sadPoints = -unhappyToContentMoves; // Deal with positive numbers
-
-					// Each "sadness point" wipes away a content->happy move,
-					// so netralize things out.
-					contentToHappyMoves = Math.Max(0, happyPoints - sadPoints);
-					sadPoints = Math.Max(0, sadPoints - happyPoints);
-
-					// Use up all our content to happy moves.
-					ConsumeContentToHappyMoves(contentToHappyMoves);
-
-					// Now apply any remaining "sadness points", moving happy
-					// faces back to content.
-					ApplyMoodChange(sadPoints, happy, content);
-				}
+			// Content faces (negative: a building's unhappy faces) first,
+			// then the unhappy faces, which can only turn content citizens
+			// unhappy, then the happy faces.
+			if (contentFaces >= 0) {
+				ApplyMoodChange(contentFaces, unhappy, content);
 			} else {
-				if (unhappyToContentMoves >= 0) {
-					int sadPoints = -contentToHappyMoves; // Deal with positive numbers
-					int contentPoints = unhappyToContentMoves;
-
-					// Each H->C move point wipes away a content move, so
-					// netralize things out.
-					unhappyToContentMoves = Math.Max(0, contentPoints - sadPoints);
-					sadPoints = Math.Max(0, sadPoints - contentPoints);
-
-					// Content faces get moved to unhappy by the penalty. We
-					// start with some content based on the difficulty level so
-					// this is meaningful. We don't need to worry about H->U
-					// moves because there is no way to have happy faces on this
-					// code path.
-					ApplyMoodChange(sadPoints, content, unhappy);
-
-					// Then our positive U->C moves get applied.
-					ApplyMoodChange(unhappyToContentMoves, unhappy, content);
-				} else {
-					int sadPoints = -contentToHappyMoves; // Deal with positive numbers
-
-					// We have buildings that make happy faces go to content
-					// faces, but there is no way to have happy faces on this
-					// code path, so we just need to move content faces to
-					// unhappy faces with the main penalty.
-					ApplyMoodChange(sadPoints, content, unhappy);
-				}
+				ApplyMoodChange(-contentFaces, content, unhappy);
 			}
+			ApplyMoodChange(unhappyFaces, content, unhappy);
+			ConsumeContentToHappyMoves(happyFaces);
 
 			// A city riots when happy - unhappy < 0; content citizens count as
 			// 0. Specialists and resisters take no part (see
