@@ -96,4 +96,31 @@ public class ZoneOfControlTest : MapBase {
 
 		Assert.Equal([guard], mover.FindZoneOfControlAttackers(from, to));
 	}
+	// "All units in a settlement (size 1 to 6) with a city wall automatically
+	// have a control zone." (Ozymandias, quoting civ-wiki.de,
+	// https://forums.civfanatics.com/threads/zones-of-control.682034/);
+	// "Notably this effect is lost when the town becomes a city(size 7+)."
+	// (justanick, https://forums.civfanatics.com/threads/coastal-forts-and-bombardment.690690/, #5).
+	[Fact]
+	public void UnitsInAWalledTownExertZoneOfControlUntilItIsACity() {
+		C7GameData.GameData gameData = C7Engine.EngineStorage.gameData;
+		gameData.rules = new Rules() { MaximumLevel1CitySize = 6 };
+		City town = new(watchTower, them, "Walled Town", ID.None("city"));
+		watchTower.cityAtTile = town;
+		SaveBuilding walls = new() { name = "Walls" };
+		walls.flags.Add(SaveBuilding.Flag.ProvidesWalls);
+		walls.flags.Add(SaveBuilding.Flag.CanOnlyBeBuiltInTowns);
+		for (int i = 0; i < 6; i++) {
+			town.residents.Add(new CityResident() { city = town });
+		}
+		MapUnit guard = MakeUnit(them, watchTower, zoc: false);
+		MapUnit mover = MakeUnit(us, from, zoc: false);
+		Assert.Empty(mover.FindZoneOfControlAttackers(from, to));
+
+		town.AddBuilding(new Building(walls, gameData));
+		Assert.Equal([guard], mover.FindZoneOfControlAttackers(from, to));
+
+		town.residents.Add(new CityResident() { city = town });
+		Assert.Empty(mover.FindZoneOfControlAttackers(from, to));
+	}
 }

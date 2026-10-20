@@ -681,13 +681,21 @@ public partial class MapUnit {
 	// the zone of control and blitz ability" (Civ3 readme, 1.17f). An army
 	// has no attack of its own and fights with its members, so whether it
 	// can attack is CanAttack's, not its type's.
+	//
+	// Units in a town with walls have one as well, until the town grows into
+	// a city: "All units in a settlement (size 1 to 6) with a city wall
+	// automatically have a control zone." (Ozymandias, quoting civ-wiki.de,
+	// https://forums.civfanatics.com/threads/zones-of-control.682034/); "This
+	// is also true for towns with walls. Notably this effect is lost when the
+	// town becomes a city(size 7+)." (justanick,
+	// https://forums.civfanatics.com/threads/coastal-forts-and-bombardment.690690/, #5).
 	public List<MapUnit> FindZoneOfControlAttackers(Tile from, Tile to) {
 		List<MapUnit> result = new();
 		foreach (Tile t in from.neighbors.Values) {
 			if (t == to || !to.neighbors.ContainsValue(t)) {
 				continue;
 			}
-			bool fortified = t.HasFortress();
+			bool fortified = t.HasFortress() || IsWalledTown(t);
 			foreach (MapUnit u in t.unitsOnTile) {
 				if ((u.unitType.hasZoneOfControl || fortified) && !u.IsLoaded() && u.CanAttack()
 					&& u.IsLandUnit() == IsLandUnit() && u.IsWaterUnit() == IsWaterUnit()
@@ -697,6 +705,16 @@ public partial class MapUnit {
 			}
 		}
 		return result;
+	}
+
+	// Whether the tile holds a town (size 6 or less in the standard rules)
+	// with walls, built or granted by a wonder like the Great Wall.
+	private static bool IsWalledTown(Tile t) {
+		if (!t.HasCity()) {
+			return false;
+		}
+		City city = t.cityAtTile;
+		return city.residents.Count <= EngineStorage.gameData.rules.MaximumLevel1CitySize && city.HasWalls();
 	}
 
 	// A single round of combat against a unit moving through our zone of
@@ -820,7 +838,17 @@ public partial class MapUnit {
 		// least 1/3 movement point left after the attack" (boogaboo,
 		// https://forums.civfanatics.com/threads/how-do-retreats-work.100878),
 		// the attack costing one (see Move).
-		bool defenderEligibleToRetreat = !defender.location.HasCity();
+		//
+		// A defender can withdraw too, by the same rule: "They seem to use the
+		// same formula for slow-attacker v. fast-defender" (BomberEscort,
+		// https://forums.civfanatics.com/threads/comprehensive-retreat-study.64755/,
+		// #51). His list of cases with no retreat at all includes "(3) When
+		// there is no available tile for retreat" (see below) and "(4) When
+		// the fast-mover is fortified in a city (or colony?)" (#19), so only
+		// a fortified defender in a city stays to fight to the death; one
+		// that isn't fortified may withdraw out of it. UNVERIFIED: colonies
+		// (his question mark) are left out.
+		bool defenderEligibleToRetreat = !(defender.location.HasCity() && defender.isFortified);
 		bool attackerEligibleToRetreat = attacker.movementPoints.remaining - 1 >= 1f / 3 - 0.0001f;
 
 		// Do combat rounds

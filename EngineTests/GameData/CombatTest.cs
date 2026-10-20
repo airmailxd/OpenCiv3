@@ -489,4 +489,30 @@ public class CombatTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(blockerHitPoints, blocker.hitPointsRemaining);
 		Assert.Contains(blocker, gameData.mapUnits);
 	}
+	// A fast defender withdraws by the attacker's rule (BomberEscort,
+	// https://forums.civfanatics.com/threads/comprehensive-retreat-study.64755/,
+	// #51), and only "(4) When the fast-mover is fortified in a city (or
+	// colony?)" (#19) does it never withdraw. One that isn't fortified may
+	// withdraw out of a city.
+	[Theory]
+	[InlineData(false)]
+	[InlineData(true)]
+	public async Task OnlyAFortifiedDefenderInACityNeverRetreats(bool fortified) {
+		GoToWar();
+		(Tile from, TileDirection dir, Tile to, Tile behind) = FindLandInALine();
+		City city = CityInteractions.BuildCity(to, them, them.GetNextCityName());
+		MapUnit warrior = Spawn(us, "Warrior", from);
+		MapUnit horseman = Spawn(them, "Horseman", to);
+		horseman.isFortified = fortified;
+
+		await WithZeroRandom(async () => Assert.True(await warrior.Move(dir)));
+
+		if (fortified) {
+			Assert.DoesNotContain(horseman, gameData.mapUnits);
+		} else {
+			Assert.Equal(behind, horseman.location);
+			Assert.Contains(horseman, gameData.mapUnits);
+			Assert.Equal(1, horseman.hitPointsRemaining);
+		}
+	}
 }
