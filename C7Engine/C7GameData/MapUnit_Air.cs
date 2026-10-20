@@ -455,7 +455,19 @@ namespace C7GameData {
 					if (GameData.rng.Next(100) >= chance) {
 						continue;
 					}
+					// One interception takes the fighter off its mission. The
+					// C3X mod notes it "can't knock them out of the
+					// interception state as soon as they intercept something
+					// like in the base game" (patch_Unit_set_state_after_interception,
+					// https://github.com/maxpetul/C3X/blob/master/injected_code.c).
+					// The mission is flown from the moment it is set: the
+					// mod's "INTERCEPT LOST TURN BUG" note says the lost
+					// interturn "does not affect the AI and is part of the
+					// interface logic, not the game logic"
+					// (https://github.com/maxpetul/C3X/blob/master/default.c3x_config.ini),
+					// so it isn't reproduced.
 					fighter.hasInterceptedThisTurn = true;
+					fighter.isOnAirSuperiority = false;
 					shotDown = FightInterceptor(fighter, target);
 					return true;
 				}

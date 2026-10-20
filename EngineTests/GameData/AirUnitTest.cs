@@ -197,6 +197,9 @@ public class AirUnitTest : IClassFixture<SaveGameFixture>, System.IDisposable {
 		Assert.DoesNotContain(bomber, ours.location.unitsOnTile);
 		Assert.Equal(defender.maxHitPoints, defender.hitPointsRemaining);
 		Assert.True(fighter.hasInterceptedThisTurn);
+		// One interception takes it off the mission, as in the base game
+		// (C3X, patch_Unit_set_state_after_interception).
+		Assert.False(fighter.isOnAirSuperiority);
 
 		// Its interception for the turn is spent.
 		MapUnit second = Spawn(us, "Bomber", ours.location);
