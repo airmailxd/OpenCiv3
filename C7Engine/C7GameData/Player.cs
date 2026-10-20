@@ -2336,6 +2336,7 @@ namespace C7GameData {
 					// its nuclear plant melt down (see Meltdown).
 					if (wasInDisorder && c.isInCivilDisorder) {
 						C7Engine.Meltdown.MaybeMeltDown(gameData, c);
+						c.MaybeRiot(gameData);
 					}
 				}
 			}

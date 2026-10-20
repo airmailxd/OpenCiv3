@@ -2092,6 +2092,33 @@ namespace C7GameData {
 			return gold;
 		}
 
+		// A city kept in disorder may riot: "Determines the percentage chance
+		// of rioting occurring in any city experiencing disorder. Default is
+		// 20%" (C3C editor help, Chance of Rioting), and prolonged disorder
+		// leads to "Destruction of existing city improvements" (Civilopedia,
+		// GCON_Disorder). Civ3 tells of it: "Civil Disorder intensifies in
+		// $CITYNAME0! The mob has destroyed $IMPROVEMENT1!" (script.txt).
+		// UNVERIFIED: a riot destroys one improvement picked at random, never
+		// a wonder or the palace.
+		public void MaybeRiot(GameData gameData) {
+			int chance = owner?.rules?.ChanceOfRioting ?? gameData.rules?.ChanceOfRioting ?? 0;
+			if (chance <= 0 || GameData.rng.Next(100) >= chance) {
+				return;
+			}
+			List<CityBuilding> breakable = constructed_buildings
+				.Where(cb => !cb.building.IsGreatWonder() && !cb.building.isSmallWonder && !cb.building.isCenterOfEmpire)
+				.ToList();
+			if (breakable.Count == 0) {
+				return;
+			}
+			CityBuilding destroyed = breakable[GameData.rng.Next(breakable.Count)];
+			RemoveBuilding(destroyed);
+			log.Information("Rioters in {City} destroyed its {Building}", this, destroyed.building.name);
+			if (owner.IsToldNews) {
+				new MsgShowTemporaryPopup($"Civil Disorder intensifies in {name}! The mob has destroyed {destroyed.building.name}!", location, owner).send();
+			}
+		}
+
 		public void RemoveBuilding(CityBuilding building) {
 			constructed_buildings.Remove(building);
 			owner?.OnBuildingsChanged();

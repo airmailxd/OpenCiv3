@@ -304,6 +304,29 @@ public class RulesReviewFixTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(resisting, city.WorkingResidents().Count());
 	}
 
+	// "Determines the percentage chance of rioting occurring in any city
+	// experiencing disorder" (C3C editor help, Chance of Rioting).
+	[Fact]
+	public void RiotsDestroyAnImprovementButNotWonders() {
+		City city = BuildCity(us);
+		city.AddBuilding(BuildingNamed("Temple"));
+		city.AddBuilding(BuildingNamed("The Pyramids"));
+		int saved = gameData.rules.ChanceOfRioting;
+		try {
+			gameData.rules.ChanceOfRioting = 0;
+			city.MaybeRiot(gameData);
+			Assert.Contains(city.constructed_buildings, cb => cb.building.name == "Temple");
+			gameData.rules.ChanceOfRioting = 100;
+			for (int i = 0; i < 20; ++i) {
+				city.MaybeRiot(gameData);
+			}
+			Assert.DoesNotContain(city.constructed_buildings, cb => cb.building.name == "Temple");
+			Assert.Contains(city.constructed_buildings, cb => cb.building.name == "The Pyramids");
+		} finally {
+			gameData.rules.ChanceOfRioting = saved;
+		}
+	}
+
 	// Fascism's Forced Resettlement: "each town in the nation loses 1
 	// population, each city loses 2 population, and each metropolis loses 3
 	// population" (C3C editor help, Flags).
