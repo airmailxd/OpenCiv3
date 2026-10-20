@@ -56,6 +56,43 @@ public class CityCaptureTest : IClassFixture<SaveGameFixture>, System.IDisposabl
 		Assert.Equal(city, city.location.cityAtTile);
 	}
 
+	// Flintlock, reading the 1.22 code (C3X thread post-16726482): "If it's
+	// the last city your opponent has, you get their entire treasury";
+	// otherwise the treasury over their city count, times "0.5 for cities
+	// of level 1 (towns), 0.75 for level 2, and 1.0 for level 3".
+	[Fact]
+	public void CaptureGoldDependsOnTheCitySizeLevelAndTheLastCityGivesAll() {
+		FoundCity(attacker, 1);
+		City city = FoundCity(defender, 3);
+		defender.gold = 400;
+		attacker.gold = 0;
+		List<City> others = new();
+		for (int i = 0; i < 3; ++i) {
+			others.Add(new City(Tile.NONE, defender, $"Other {i}", ID.None("city")));
+		}
+		defender.cities.AddRange(others);
+		try {
+			Assert.Equal(50, CityInteractions.CaptureGold(city, defender));
+			while (city.residents.Count < 7) {
+				city.AddCitizen(new CityResident() { city = city, citizenType = city.residents[0].citizenType });
+			}
+			Assert.Equal(75, CityInteractions.CaptureGold(city, defender));
+			while (city.residents.Count < 13) {
+				city.AddCitizen(new CityResident() { city = city, citizenType = city.residents[0].citizenType });
+			}
+			Assert.Equal(100, CityInteractions.CaptureGold(city, defender));
+		} finally {
+			foreach (City other in others) {
+				defender.cities.Remove(other);
+			}
+		}
+
+		CityInteractions.CaptureCity(city, attacker);
+
+		Assert.Equal(400, attacker.gold);
+		Assert.Equal(0, defender.gold);
+	}
+
 	[Fact]
 	public void CapturingASizeOneCityDestroysIt() {
 		FoundCity(attacker, 1);

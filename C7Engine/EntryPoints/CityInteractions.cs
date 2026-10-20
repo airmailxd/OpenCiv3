@@ -230,10 +230,31 @@ namespace C7Engine {
 			return city.residents.Count > 1 || city.GetCulture() > 0;
 		}
 
+		// The gold the captor takes from the old owner's treasury with this
+		// city, before it shrinks. Flintlock, reading the 1.22 code
+		// (https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16726482):
+		// "If it's the last city your opponent has, you get their entire
+		// treasury"; otherwise the treasury divided by their city count times
+		// a factor, "0.5 for cities of level 1 (towns), 0.75 for level 2, and
+		// 1.0 for level 3 (metropolises)".
+		public static int CaptureGold(City city, Player oldOwner) {
+			if (oldOwner.gold <= 0) {
+				return 0;
+			}
+			int cityCount = oldOwner.cities.Count;
+			if (cityCount <= 1) {
+				return oldOwner.gold;
+			}
+			Rules rules = oldOwner.rules;
+			int quarters = city.residents.Count <= rules.MaximumLevel1CitySize ? 2
+				: city.residents.Count <= rules.MaximumLevel2CitySize ? 3 : 4;
+			return oldOwner.gold * quarters / (4 * cityCount);
+		}
+
 		// Hands a city over to the player who took it, unless it doesn't
 		// survive capture, in which case it is destroyed. The city loses a
 		// citizen (never its last), its production and some of its
-		// buildings, and the captor plunders the city's share of the old
+		// buildings, and the captor plunders part of the old
 		// owner's treasury. Its borders fall back to the captor's own culture
 		// there. A human captor is then asked whether to keep or raze it.
 		public static void CaptureCity(City city, Player captor) {
@@ -255,8 +276,7 @@ namespace C7Engine {
 
 			tile.DisbandNonDefendingUnits(oldOwner);
 
-			int totalPopulation = oldOwner.cities.Sum(c => c.residents.Count);
-			int plunder = totalPopulation > 0 ? oldOwner.gold * city.residents.Count / totalPopulation : 0;
+			int plunder = CaptureGold(city, oldOwner);
 			oldOwner.gold -= plunder;
 			captor.gold += plunder;
 
