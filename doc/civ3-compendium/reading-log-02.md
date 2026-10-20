@@ -142,3 +142,17 @@ Other:
 - Pollution/warming: codehappy 60246 pages 2-3, 76575, 35557.
 - Golden ages: CFC 263019, 623812, 296138, 29424; codehappy 31322, 43284, 62110, 80959.
 - General: the patch readme threads (CFC 11091, 16272, 20502, 27296, 46040, 60369) and the codehappy patch threads (36944, 37330, 42183, 42330, 47713, 47992, 56058, 56271, 58701, 94259); CFC 52591; Apolyton 127875; the full Firaxis chat logs (apolyton.net/misc/chat pages, not reachable); Quick Answers threads; HoF rules and banned-exploit threads; the C3X forum thread (CFC 666881, 100+ pages) and the rest of the C3X source, which may hold more stock-code readings (Antal1987's 526285 and 526966 are now fully read; they had nothing on city tiles or hurry costs).
+
+## Third reading round (code readings)
+
+C3X source read from a local clone of https://github.com/maxpetul/C3X (commit d4e71c4, 12 Oct 2026). Only its statements about what the unmodded 1.22 game does are used; mod features are out of scope.
+
+- https://github.com/maxpetul/C3X/blob/master/changelog.txt and injected_code.c (`charge_maintenance_with_aggressive_penalties`, `patch_Leader_pay_unit_maintenance`, `adjust_sliders_preproduction`, `patch_Unit_has_king_ability_for_find_unsupported`): contribution: CORRECTION. The sell/disband/Wealth order is the mod option `aggressively_penalize_bankruptcy` (default off), not stock; stock pays building and unit upkeep in random order (§7; open question 7 reopened).
+- https://github.com/maxpetul/C3X/blob/master/Trade%20Net%20X/TradeNetX.cpp and `TRADE NET X INFO.txt`: contribution: the stock trade-network rules (road fill, war territory, explored water routes, Sea by tech or the Safe Sea Travel wonder, Ocean by tech) (§6).
+- injected_code.c (`patch_rand_int_to_place_pollution`, `patch_City_update_spawn_pollution`): contribution: the pollution tile search starts at rand(20) (§8).
+- injected_code.c (`patch_Unit_can_hurry_production`) and default.c3x_config.ini (scenario leaders): contribution: the MGL bar depends on the leader kind and covers spaceship parts (Disputed 6).
+- https://forums.civfanatics.com/threads/how-to-reduce-pollution-at-all-in-civ3-conquests.526144/ : contribution: Antal1987's disassembly of `class_City::Calculate_Pollution` (§8; Disputed 15 resolved; open question 8 narrowed).
+- https://forums.civfanatics.com/threads/infinite-golden-age-and-science-age.526292/ : contribution: Golden Age End is a single end-turn field (§9).
+- https://forums.civfanatics.com/threads/useful-patches-for-civ-3-conquests-v1-22.526285/page-3 to page-12 (re-read with all sections in view): nothing new for section 2 (#137 Antal1987: each tile has a City_Area_ID owner, and a city cannot work another city's tile).
+- https://forums.civfanatics.com/threads/minimum-city-distance.661984/ : nothing new (Civinator: the minimum distance is hard-coded).
+- https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/ (192 pages): read by helper agents in this round; their results were not merged before hand-back (see the round report).

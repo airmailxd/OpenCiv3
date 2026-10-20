@@ -269,6 +269,18 @@ BIQ enum decoding:
     - Lanzelot, same page: "Unit support has to be paid for every unit except for foreign units."
     - Captured workers keep their nationality (PEDIA `GCON_Nationality`: "Captured workers and settlers retain their original nationality").
   - PEDIA's "each military unit" (`GCON_Unit_Support`) is therefore loose wording.
+  - **Code (third round, C3X re-creation of the stock count, Flintlock, C3C 1.22).** C3X's
+    `patch_Leader_count_maintenance_free_units` (https://github.com/maxpetul/C3X/blob/master/injected_code.c) counts a unit
+    as free `if ((unit->Body.RaceID != this->RaceID) || (type->requires_support == 0))`: a unit of another nationality, or a
+    type without `RequireSupport`. That is the foreign-units rule above. (The mod adds one case of its own, camp-spawned
+    barbarian units.) Its upkeep total, used in place of the stock `Leader_sum_unit_maintenance` only when a mod option
+    is on, is `(Unit_Count - government free units - AI free units - free units) × cost per unit`, floored at 0. The AI
+    free units are `Bonus_For_Each_City × Cities_Count + Additional_Free_Support` from the game's difficulty level, so the
+    per-settlement bonus counts every city whatever its size. A player with no cities pays nothing: "Players with no
+    cities don't pay unit maintenance, per the original game rules". The stock routine pays building and unit upkeep
+    in random order: the building sum "is called in two places as part of the randomization of whether improv or unit
+    maintenance gets paid first". Whether units inside an Army count separately depends on what `Unit_Count` holds,
+    which the code doesn't show.
   - Not checked: whether units inside an Army are charged separately from the Army unit.
 - PTW/vanilla PEDIA (`civ3PTW/Text/Civilopedia.txt`, `Text/Civilopedia.txt`, `GCON_Unit_Support`) lists "Communism 2 4 8" and "Republic 0 0 0", which matches BIQ-PTW. MAS (thread 191722, 8 Nov 2006): "Republic in vanilla/Civ3: 0/0/0 | 1 gpt" and "Republic in Conquest/C3C: 1/3/4 | 2 gpt".
 

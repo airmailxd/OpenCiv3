@@ -136,3 +136,12 @@ CivFanatics:
 - https://civfanatics.com/civ3/faq/ (offset 100000, the rest of the page): nothing new for section 5 (score, radar, global warming only).
 
 Still unread for section 5: the government comparison threads (54897, 205540, 332136, 47265, 15175, 67393, 654364, 703950), the later pages listed above (131546 p2, 81587 p2-3, 22759 p2-5, 89933 p2, 41330 p3, 72862 p2, 114078 p2-3, 430084 p2-3), CFC `War happines works!` 246590 and `Immigration` 332756. All look like opinion threads.
+
+## Third reading round (code readings)
+
+C3X source read from a local clone of https://github.com/maxpetul/C3X (commit d4e71c4, 12 Oct 2026). Only its statements about what the unmodded 1.22 game does are used; mod features are out of scope.
+
+- injected_code.c (`patch_Leader_count_maintenance_free_units`, `patch_Leader_sum_unit_maintenance`, `charge_maintenance_with_aggressive_penalties`): contribution: foreign-nationality units and types without RequireSupport are free; the AI per-city bonus counts every city; no cities means no upkeep; building and unit upkeep are paid in random order (5.3).
+- injected_code.c (`patch_get_anarchy_length`): nothing new (it wraps the stock `get_anarchy_length`; the 2-turn floor belongs to the mod's multiplier).
+- https://forums.civfanatics.com/threads/useful-patches-for-civ-3-conquests-v1-22.526285/page-3 to page-12 (re-read with all sections in view): nothing new for section 5.
+- https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/ (192 pages): read by helper agents in this round; their results were not merged before hand-back (see the round report).

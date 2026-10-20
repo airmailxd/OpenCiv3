@@ -189,3 +189,19 @@ Lower value or likely duplicates, roughly in priority order:
 - Strategy articles: CFC 105618, 83760, 93880, 13003, 55188, 65503, 66338, 66841 and the remaining War Academy military pages.
 - Reference tables (CFC Civilopedia unit pages, the unit reference, Nethog's PDFs, the data zips): unit stats are already taken from the BIQ, so these are low value for rules.
 - Code-level leftovers: the rest of the C3X source (`injected_code.c` is 45,000 lines; only the combat-odds, bombard, building-defense, pollution and retreat-eligibility parts were read) and the C3X forum thread (CFC 666881, 100+ pages), which may hold more of Flintlock's stock-code readings.
+
+## Third reading round (code readings)
+
+C3X source read from a local clone of https://github.com/maxpetul/C3X (commit d4e71c4, 12 Oct 2026). Only its statements about what the unmodded 1.22 game does are used; mod features are out of scope.
+
+- https://github.com/maxpetul/C3X/blob/master/injected_code.c (`patch_Fighter_find_defensive_bombarder`, `can_do_defensive_bombard`): contribution: one defensive-bombard shot per attack, from the strongest eligible unit of the attacker's class; none at attackers with defence below 1 or at 1 HP (1.7).
+- same file (`patch_Unit_set_state_after_interception`, `patch_Unit_get_moves_after_interception`): contribution: stock takes a fighter off interception after one interception (1.11).
+- https://github.com/maxpetul/C3X/blob/master/default.c3x_config.ini (INTERCEPT LOST TURN BUG): contribution: the one-interturn delay is a human-only interface bug (1.11).
+- injected_code.c (`patch_Unit_select_army_member_for_combat`, `select_counter_best_attacking_army_member`, `patch_Unit_has_army_ability_for_passenger_despawn`): contribution: the army's fighter is chosen from the pooled HP ("HP-band rotation"); the contents die with the army (1.4).
+- injected_code.c (`patch_rand_int_to_enslave`, `patch_Unit_score_kill_by_defender`): contribution: the enslave roll is below 33 out of 100; bombard kills can enslave (1.13).
+- injected_code.c (`counter_attack_crosses_river`): contribution: the river bonus counts only for the river edge toward the attacker (1.6).
+- https://github.com/maxpetul/C3X/blob/master/Civ3Conquests.h (`UnitStatusFlags`, `struct Fighter`, `enum direction`): contribution: the named status bits (0x2 is unnamed, so the open question stays); the direction numbering used in 1.10.
+- injected_code.c (combat odds, building defense, tile bombard, retreat, nuke spare roll, defender preference, healing, king priority): nothing new beyond the second round.
+- https://forums.civfanatics.com/threads/useful-patches-for-civ-3-conquests-v1-22.526285/page-3 to page-12 (re-read with all sections in view): nothing new for section 1 beyond #62 (already used); #67 (CyberChrist) restates that experience enters the retreat roll; #213 (Oni Ryuu): cities as canals (1.10).
+- https://forums.civfanatics.com/threads/c3c-new-movement-possibilities.529671/ : contribution: Antal1987's reading of `class_Unit::Can_Pass_Tile`, the naval corner-pass rule and the road rule for impassable terrain (1.10).
+- https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/ (192 pages): read by helper agents in this round; their results were not merged before hand-back (see the round report).

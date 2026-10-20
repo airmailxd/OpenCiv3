@@ -465,7 +465,9 @@ build-never list is empty in the standard setup.
 - **Leader and army bugs (code).** C3X-INI on the stock leader AI: "a bug that allowed the AI to rush any kind of
   city production, including units and (with an MGL) wonders". On armies: "a major bug that prevented the AI from
   filling its armies" and "some logic that encouraged the AI to mix unit types in armies". This explains the
-  "rare as a white rhino" armies (3.5).
+  "rare as a white rhino" armies (3.5). Third round (C3X-SRC `patch_Unit_ai_move_leader`): the stock leader AI first
+  disbands a leader that is on a continent with no city of its civ ("Disband the unit if it's on a continent with no
+  cities of its civ. This is what the original logic does.").
 - **Workers: it stops building them once it has "enough" (code reading, Flintlock).** C3X thread page 95,
   https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/page-95#post-16587093:
   the AI "assigns a point value of zero to the worker build option when it feels it has enough of them", and its
@@ -694,10 +696,16 @@ power, attitude and open land):
   latest PTW patch, the AI stops building irrigation on grassland under despotism." Automated workers put pollution
   first: Harovan (https://codehappy.net/apolyton/threads/59554-1.htm, Aug 2002): "Cleaning pollution is high on
   their priority list".
-- **Out of money (code).** C3X-INI on the stock rule: when a player can't pay upkeep the game sells buildings
-  (except maintenance-free or gold-producing ones), then disbands units (except free ones), then switches cities to
-  Wealth; "For AI players, the game alternates the order of (1) and (2) each turn." Under its optional rule
-  only, "on every third turn, the game will cut their research spending".
+- **Out of money (code). Corrected in the third round.** The C3X-INI passage quoted here before (sell buildings,
+  then disband units, then switch to Wealth; "For AI players, the game alternates the order of (1) and (2) each
+  turn"; the research cut every third turn) describes the mod option `aggressively_penalize_bankruptcy` (default
+  `false`), not stock. C3X `changelog.txt`: "Option to aggressively penalize bankrupt players" (Release 14) and
+  "aggressively_penalize_bankruptcy now alternates between selling buildings or disbanding units first for bankrupt
+  AI players and every third turn cuts their research spending". With the option off, C3X-SRC calls the stock
+  `Leader_pay_unit_maintenance`. What the code does show for stock: building and unit upkeep are paid in random order
+  (C3X-SRC comment: "the randomization of whether improv or unit maintenance gets paid first"), and the stock AI
+  slider routine already cuts spending ("ai_adjust_sliders will already cut AI spending but maybe not all the way to
+  zero"). See `02-city-economy.md` §7.
 - **Sliders are set by code each turn (code).** C3X-SRC: the stock "preproduction player update method" makes a
   "human-ness test and call to Leader::ai_adjust_sliders" for AI players, and "The rate cap limits AI players'
   spending on the gold slider (in Leader::ai_adjust_sliders)", where the cap is the government's rate cap. The

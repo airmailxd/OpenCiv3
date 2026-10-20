@@ -135,3 +135,12 @@ Web:
 
 - All the items listed after the first pass have now been read or settled (see the second round above). The base-game and PTW BIQs were read raw rather than through the repo's reader.
 - Remaining low-value inventory entries in sources.md for this section (CFC ?p=396, probably Civ2; 216509, probably Civ4) were not checked.
+
+## Third reading round (code readings)
+
+C3X source read from a local clone of https://github.com/maxpetul/C3X (commit d4e71c4, 12 Oct 2026). Only its statements about what the unmodded 1.22 game does are used; mod features are out of scope.
+
+- https://github.com/maxpetul/C3X/blob/master/Civ3Conquests.h (`struct Leader`, `struct City_Body`, `struct Culture`): contribution: war weariness is stored per opponent; each city has a flip-immunity timer and a per-civ culture memory; the unhappiness-cause breakdown (open questions).
+- injected_code.c (`patch_City_update_culture`, `patch_City_recompute_culture_income`, the happiness wrappers): nothing new beyond the culture memory field.
+- https://forums.civfanatics.com/threads/useful-patches-for-civ-3-conquests-v1-22.526285/page-3 to page-12 (re-read with all sections in view): nothing new for section 3.
+- https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/ (192 pages): read by helper agents in this round; their results were not merged before hand-back (see the round report).

@@ -336,6 +336,12 @@ retreat bonus, see `QueryCiv3/BiqSections/Expr.cs`), so it is not a source eithe
   begin then descending down and ending with the weakest unit." A tested account (Theseus,
   https://codehappy.net/apolyton/threads/59461-1.htm, Aug 2002): the remaining HP "are divided between all units at the
   start of each battle event", and the strongest unit for the job fights with its share before handing off.
+  Code (third round): the stock routine is `Unit_select_army_member_for_combat (army, hp_remaining, attacking)`, and it
+  takes the army's remaining HP as input. C3X's comments on it (https://github.com/maxpetul/C3X/blob/master/injected_code.c):
+  "the base function preserves the army's HP-band rotation" and "Keep the base selector's HP allocation and
+  tie-breaking". That is Theseus's model: the fighter is chosen by bands of the pooled HP, not by one unit fighting to
+  1 HP. When an army dies, its contents always die too ("If the unit has the army ability, the game will always despawn
+  the passengers", `patch_Unit_has_army_ability_for_passenger_despawn`).
 - **Units in an army can be promoted, but only the one doing the fighting** (community). Tomoyo (thread 99688, #6);
   Bagatur (#5): "units in armies can get promotion with blitz."
 - **Army healing.** CFC-ARMY: "Armies heal at the rate of one HP per unit in the army." and "armies are also able to
@@ -447,6 +453,8 @@ retreat bonus, see `QueryCiv3/BiqSections/Expr.cs`), so it is not a source eithe
   Vanilla and PTW have no Marsh or Volcano rows (PEDIA-V and PEDIA-PTW tables stop at the 14 terrain rows plus River).
 - **River: +25% for a defender attacked across a river.** PEDIA `GCON_Terrain_Combat`: "* This bonus applies to the
   defender if attacked from the other side of a river." BIQ/EDHELP *River*: "Default is 25."
+  Code (third round, C3X-SRC `counter_attack_crosses_river`): "Match the base game: only the defender tile's river edge
+  toward the attacker counts for the river defense bonus". A river elsewhere on the defender's tile gives nothing.
 - **Structural bonuses (C3C).** PEDIA `GCON_Terrain_Combat`:
 
   | Source | Bonus |
@@ -702,6 +710,19 @@ retreat bonus, see `QueryCiv3/BiqSections/Expr.cs`), so it is not a source eithe
   city) can perform defensive bombard against land units attacking their city". So in stock 1.22 the shot can't kill
   even with a lethal unit, aircraft don't fire it, undetected invisible attackers are still shot at, blitz gives no
   extra shots, and ships in a city don't fire at land attackers.
+  **One shot per attack, from the strongest eligible bombarder (code, third round).** The stock routine is
+  `Fighter_find_defensive_bombarder (attacker, defender)`. It returns a single unit, and C3X wraps it
+  (https://github.com/maxpetul/C3X/blob/master/injected_code.c, `patch_Fighter_find_defensive_bombarder`). When any of
+  its DB options are on, the mod re-creates the choice, and with them off it calls the stock function. The re-creation
+  gives no shot when the attacker's defence strength is below 1 or the attacker has 1 HP left. Otherwise it takes the
+  unit on the defending tile with the highest bombard strength, among units with bombard > 0 that are not cruise
+  missiles, have not fired DB this turn (unit status bit `USF_USED_DEFENSIVE_BOMBARD = 0x40`, "the unit has performed
+  def. bombard already this turn", Civ3Conquests.h), are not the defender or the defender's army, and are of the
+  attacker's class (land against land, sea against sea). So each attack draws at most one free shot, and a stack with
+  three catapults answers three separate attacks, not one attack three times. This refines README-V's "one free shot",
+  and the opening line of this bullet should be read that way. Skipping attackers with no defence fits the shot
+  rolling bombard against the attacker's *defence*, as a normal bombard does, but that is an inference: the damage
+  roll itself (`Fighter_damage_by_defensive_bombard`) is not re-implemented.
 - **Cruise missiles die after bombarding.** CFC-RULES: "a unit which, when bombarding, will die after it is done bombarding."
   PEDIA `GCON_Combat`: missiles "never return to its base and the attacks can destroy enemy units."
 - **Artillery have no attack or defense and must be escorted.** PEDIA `PRTO_Artillery`: "Artillery has no attack or
@@ -794,6 +815,18 @@ retreat bonus, see `QueryCiv3/BiqSections/Expr.cs`), so it is not a source eithe
 ---
 
 ## 1.10 Naval units
+
+- **Ships can't slip between two land tiles on a straight-line move (code, third round).** Antal1987's reading of the
+  1.22 `class_Unit::Can_Pass_Tile` (https://forums.civfanatics.com/threads/c3c-new-movement-possibilities.529671/ #1,
+  2014, as reported by the fetch tool). A move into a city of the unit's own civ, or by an air unit, always passes.
+  For a naval move from water to water in directions 2, 4, 6 or 8 (E, S, W, N in C3X's `enum direction`: the moves
+  that pass the corner between two tiles), the code checks the two flanking tiles: "If the direction is even, it
+  checks neighbour tiles (clockwise and counter clockwise) to be water". The move is allowed if either flank is water,
+  and refused only if both are land. So two land tiles that touch only at a corner close the water passage between
+  them. A ship can still enter a coastal city of its own civ (the bypass above), which is how a city acts as a canal (Oni Ryuu, CFC 526285 page 11 #213: "The canals are just the ability to place
+  cities next to one another"). The land branch, in the same post: a land unit can't enter water unless it boards a
+  transport, and on impassable terrain (or wheeled-impassable terrain for wheeled units) it needs a road on both the
+  origin and the target tile.
 
 - **Curragh and Galley must end turns in coast; they risk sinking in sea or ocean.** PEDIA `PRTO_Galley`: "A galley
   must end each turn in a $LINK<coastal=TERR_Coast> square -- they are in danger of sinking if they end their turn in a
@@ -940,6 +973,14 @@ retreat bonus, see `QueryCiv3/BiqSections/Expr.cs`), so it is not a source eithe
   (#12): "Interceptors never launched in the round they are ordered to perform CAP". tjs282
   (https://forums.civfanatics.com/threads/air-unit-interception-range.678374/, #2) calls the delay a bug: the mission
   "does not activate on the interturn directly after being selected".
+  - **Code (third round): the delay is a human-only interface bug, and one interception ends the mission.** C3X-INI,
+    "INTERCEPT LOST TURN BUG": "When a human player sets a fighter to intercept mode, the game discards all of its
+    remaining movement points, hence it cannot intercept during the next interturn. This bug does not affect the AI and
+    is part of the interface logic, not the game logic." The intended rule (which the engine should follow) is that a
+    fighter set to air superiority can intercept in the next interturn. Once per turn is stock: C3X-SRC
+    (`patch_Unit_set_state_after_interception`) says the mod "can't knock them out of the interception state as soon as
+    they intercept something like in the base game". So the stock game takes the fighter off its mission after one
+    interception and gives it its full moves again (`Unit_get_moves_after_interception` returns the max move points).
 - **Several fighters on air superiority raise the interception chance in PTW and C3C, not in vanilla.** Catt (Apolyton
   thread 120873, #8): stacking fighters "did not increase the chances of interception" in vanilla, which changed in PTW
   and Conquests. Jaybe (https://apolyton.net/forum/miscellaneous/archives/civ3-general-archive/72889-how-do-intercept-and-air-supremacy-really-work,
@@ -1023,6 +1064,11 @@ retreat bonus, see `QueryCiv3/BiqSections/Expr.cs`), so it is not a source eithe
   player." Stock enslavers: Privateer, English Man-O-War (makes another Man-O-War: `PRTO_Man-O-War`), Mayan Javelin
   Thrower (makes a Worker: `PRTO_Javelin_Thrower`). BIQ `slaveUnitType: Worker`. Only the attacker enslaves
   (https://forums.civfanatics.com/threads/anyone-know-exactly-how-enslavement-works.107253, Willem: "It's the unit that is doing the attacking.").
+  Code (third round): the roll is out of 100 and succeeds below 33, so it is 33%, not exactly 1/3. C3X-SRC
+  `patch_rand_int_to_enslave`: "lim is 100, enslaving happens if the return value is < 33". A kill by bombardment
+  can also enslave in stock: C3X-INI's mod option "Stops units from enslaving a target they've destroyed by bombarding
+  as opposed to direct combat", and the code credits a defensive-bombard kill to the bombarder through the same
+  `Unit_score_kill`.
 - **Pillage destroys a tile improvement.** EDHELP *Pillage*: "If checked, the selected unit may pillage terrain
   improvements." Pillaged barricades fall back to fortresses (PEDIA `GCON_Barricades`) and pillaged airfields are
   destroyed (PEDIA `GCON_Airfields`). Pillaging counts as the unit's move, except for C3C armies (TimBentley,
@@ -1160,13 +1206,17 @@ bombard defense 16 (README-V 1.17f, BIQ, alexman's tests) are now in the main te
   is shown only for tile bombardment (integer truncation after added bonuses); unit-vs-unit rounding is inferred.
 - Stack defender: the exact weighting of defense and current HP, and the tie-break (lowest attack? cheapest?).
 - Promotion chances: now read from the 1.22 code (§1.2). Still open: what the `Status & 2` bit that forces a
-  promotion is, and so whether "two wins in a turn always promote" has any basis.
+  promotion is, and so whether "two wins in a turn always promote" has any basis. (Third round: C3X's header names unit
+  status bits 0x1 `USF_SKIPPED_FULL_TURN_WITH_DAMAGE`, 0x4 `USF_USED_ATTACK` "the unit has attacked at least once
+  this turn", 0x8 `USF_PERFORMED_AIR_RECON`, 0x40 `USF_USED_DEFENSIVE_BOMBARD`, 0x80/0x100 sentry, and leaves 0x2
+  unnamed, so the code readings do not identify it.)
 - Leaders: whether naval or air elites could make leaders before C3C; how "more than one leader in one game turn"
   happens (presumably only after the first one is used).
 - Retreat: whether a 3-MP unit can retreat from a 2-MP unit (two recollections say no); whether a retreating attacker
   keeps its remaining moves; whether armies retreat; the cap above 66. The roll itself is now from code (§1.5).
 - Defensive bombard: whether it rolls against the attacker's attack (tjs282, "IIRC") or defense. (That it never kills,
-  even with a lethal unit, is now in §1.7 from C3X-INI.)
+  even with a lethal unit, is now in §1.7 from C3X-INI. Third round: one shot per attack from the strongest eligible
+  unit, and no shot at an attacker with defence below 1, which points to defence; §1.7.)
 - Size of the "Bombardment in Ports" vulnerability. The C3C target order is fixed per C3X-INI ("always goes after units
   first"); whether walls come before units (justanick) is not stated there.
 - Which units can fortify; whether units in cities get the fortify bonus automatically; whether fortifying speeds

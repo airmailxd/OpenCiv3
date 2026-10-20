@@ -147,3 +147,13 @@ Apolyton (codehappy.net mirror and apolyton.net):
 - Web searches (3, codehappy.net/apolyton.net only, by a helper agent): AI difficulty bonuses, AI war declaration, anarchy and city count.
 
 Still unread for section 8: `Play Deity like Chieftain` 91523, `Finally winning on Deity` 100078, `Sid Strategies` 347484, `HOLY JIHAD!` 116220, the civ-review threads (opinion), `gotm2 and qsc` 150462, `A guide to tiny high scores` 78888, `top rank` 77599, `Useful Patches` pages 3-12.
+
+## Third reading round (code readings)
+
+C3X source read from a local clone of https://github.com/maxpetul/C3X (commit d4e71c4, 12 Oct 2026). Only its statements about what the unmodded 1.22 game does are used; mod features are out of scope.
+
+- changelog.txt and injected_code.c (`aggressively_penalize_bankruptcy`): contribution: CORRECTION to 3.6 "Out of money"; the order there is a mod option, not stock.
+- injected_code.c (`patch_Unit_ai_move_leader`): contribution: the stock leader AI disbands a leader on a continent without any of its cities (3.2).
+- injected_code.c (`patch_Leader_ai_eval_war_target`, `patch_Match_ai_eval_city_location`, the evaluation wrappers): nothing new (wrappers only).
+- https://forums.civfanatics.com/threads/useful-patches-for-civ-3-conquests-v1-22.526285/page-3 to page-12 (re-read with all sections in view): nothing new for section 8 (AI artillery and land-transport observations, already covered).
+- https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/ (192 pages): read by helper agents in this round; their results were not merged before hand-back (see the round report).

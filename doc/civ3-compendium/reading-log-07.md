@@ -167,3 +167,13 @@ Apolyton (codehappy.net mirror and apolyton.net):
 - http://www.civforum.de/showthread.php?t=66671&page=3 : nothing new (city finds only for Expansionist civs, already in §12).
 
 Still unread for section 7: `Other uses for workers` 13744, `Custom Map - Raging Barbarians` 460704 (scenario maps), `Settle the Land` 396622, the seed threads 703383 / 703324 / 264492, `Resources` 158705, `Oil` 99693, `Needing more Strategic Resources` 361762, `Never getting any strategic resources` 9405, `Forest chop diagram` (image), `Today I Learned` pages 2-9, `Useful Patches` pages 3-12.
+
+## Third reading round (code readings)
+
+C3X source read from a local clone of https://github.com/maxpetul/C3X (commit d4e71c4, 12 Oct 2026). Only its statements about what the unmodded 1.22 game does are used; mod features are out of scope.
+
+- https://github.com/maxpetul/C3X/blob/master/Trade%20Net%20X/TradeNetX.cpp : contribution: rivers do not carry trade (open question resolved).
+- injected_code.c (camp and hut location checks, eruption damage, the barbarian production count): nothing new (wrappers only).
+- https://forums.civfanatics.com/threads/useful-patches-for-civ-3-conquests-v1-22.526285/page-3 to page-12 (re-read with all sections in view): nothing new for section 7 (#134: two land and one naval barbarian unit type, already noted).
+- https://forums.civfanatics.com/threads/minimum-city-distance.661984/ : nothing new.
+- https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/ (192 pages): read by helper agents in this round; their results were not merged before hand-back (see the round report).

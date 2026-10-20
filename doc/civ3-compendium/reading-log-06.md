@@ -174,3 +174,13 @@ Local and CivFanatics:
 - https://forums.civfanatics.com/threads/modern-age-big-picture-tech-trading-lower-difficulty-levels.692320/ : nothing new (broke AIs can't buy techs at low levels).
 
 Still unread for section 6: Sneaky tactics during Peace (7619), 77022 (retry), Machiavellian Doctrine page 2, AI refusing GPT page 2, 61744 page 2, and the re-reads listed under "Left unread" above. The UN threads (75554, 39204) and the Apolyton list there are now read.
+
+## Third reading round (code readings)
+
+C3X source read from a local clone of https://github.com/maxpetul/C3X (commit d4e71c4, 12 Oct 2026). Only its statements about what the unmodded 1.22 game does are used; mod features are out of scope.
+
+- https://github.com/maxpetul/C3X/blob/master/Trade%20Net%20X/TradeNetX.cpp : contribution: the Great Lighthouse opens sea trade routes; routes are blocked by war territory and enemy units (6.4).
+- https://github.com/maxpetul/C3X/blob/master/Civ3Conquests.h (`AdvanceTypeFlags`, the diplomacy arrays in `struct Leader`): contribution: ROP is enabled by a tech flag (on Map Making in the BIQ), recorded next to the owner ruling (Disputed).
+- injected_code.c (`patch_Leader_make_peace`, `patch_Leader_cannot_plot_war_against`, the AI evaluation wrappers): nothing new.
+- https://forums.civfanatics.com/threads/useful-patches-for-civ-3-conquests-v1-22.526285/page-3 to page-12 (re-read with all sections in view): nothing new for section 6 (submarine-bug reports only).
+- https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/ (192 pages): read by helper agents in this round; their results were not merged before hand-back (see the round report).

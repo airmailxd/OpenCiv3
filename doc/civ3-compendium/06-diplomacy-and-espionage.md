@@ -286,7 +286,17 @@ How to read this section:
   terrain entries: `conquests.biq` TECH flags (QueryCiv3 dump, this pass)
   give "Enables Trade Over Sea" to Astronomy only and "Enables Trade Over
   Ocean" to Navigation and Magnetism. No tech carries a Coast flag, so coast
-  routes need none. The Map Making in `GCON_Trade` matches no flag (Map Making
+  routes need none. **Code (third round):** Flintlock's Trade Net X
+  (https://github.com/maxpetul/C3X/blob/master/Trade%20Net%20X/TradeNetX.cpp),
+  a speed re-implementation of the stock 1.22 trade network, sets a civ's sea
+  trade bit if it `Leader_has_tech_with_flag (...,
+  ATF_Enables_Trade_Over_Sea_Tiles)` **or** owns a wonder with
+  `ITW_Safe_Sea_Travel` (the Great Lighthouse's flag), and its ocean bit from
+  `ATF_Enables_Trade_Over_Ocean_Tiles` only. Coast tiles always pass, land
+  tiles only if they hold a city, and every tile on the route must have been
+  explored by that civ. A water tile in the territory of a civ at war with
+  you, or holding one of its combat units, breaks the route. So Spoonwood and
+  justanick are right that the Great Lighthouse opens sea routes. The Map Making in `GCON_Trade` matches no flag (Map Making
   carries only Right of Passage). The same dump gives Communication (contact)
   trading to Printing Press, Map trading to Navigation, MPP and Embargo to
   Nationalism, Military Alliance and Diplomats to Writing.
@@ -1316,7 +1326,17 @@ reading.
   Navigation in C3C. **Owner ruling (engine): ROP needs Writing plus an
   embassy.** Its sources are listed in 6.3 (C3C `GCON_Embassies`, vanilla
   `TECH_Writing`, the manual's "if you have an embassy", Aeson on Apolyton
-  46862).
+  46862). *Code finding next to the ruling (third round, for the lead):* the
+  1.22 executable has no Writing rule for this. The tech is a rule-file flag,
+  `ATF_Enables_Right_Of_Passage_Treaties = 0x200` in the tech-flag enum of
+  C3X's header for the 1.22 exe
+  (https://github.com/maxpetul/C3X/blob/master/Civ3Conquests.h), alongside
+  `ATF_Enables_Military_Alliances`, `ATF_Enables_Mutual_Protection_Pacts`,
+  `ATF_Enables_Trade_Embargos`, `ATF_Enables_Map_Trading` and
+  `ATF_Enables_Communication_Trading`. In `conquests.biq` that flag is on Map
+  Making (6.3). So stock C3C ties ROP to Map Making, as the BIQ and C3C
+  Civilopedia say. The header gives the flag names only; it does not show
+  the embassy check.
 - **Does attitude change trade prices?** TheNiceOne (1.29) found that
   attitudes below Polite give no extra markup ("no AI will demand more if
   falling below catious"). Zwingli (1.29) measured +0.32% per attitude point

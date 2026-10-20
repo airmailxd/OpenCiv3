@@ -105,3 +105,14 @@ Web:
 - https://forums.civfanatics.com/threads/wich-are-the-best-wonders.9224/ ; https://forums.civfanatics.com/threads/the-4-rules-of-wonder-addiction.71238/ ; https://forums.civfanatics.com/threads/late-super-wonder-city.75104/ ; https://forums.civfanatics.com/threads/best-small-wonder.91398/ ; https://forums.civfanatics.com/threads/noob-question-of-wonders.215788
 - Apolyton Heroic Epic thread (121330); codehappy 58814, 33007, 33343, 69775, 86087
 - https://forums.civfanatics.com/threads/informative-tech-tree.9805/ ; Nethog PDFs; CFC interactive tech tree (Vanilla data)
+
+## Third reading round (code readings)
+
+C3X source read from a local clone of https://github.com/maxpetul/C3X (commit d4e71c4, 12 Oct 2026). Only its statements about what the unmodded 1.22 game does are used; mod features are out of scope.
+
+- injected_code.c (`patch_Leader_update_great_library_unlocks`): contribution: the Great Library needs contact both ways (4.8).
+- injected_code.c (`patch_Unit_can_hurry_production`), Civ3Conquests.h (`LeaderKind`), default.c3x_config.ini: contribution: MGLs are barred from spaceship parts as well as Great Wonders (Disputed 5).
+- https://forums.civfanatics.com/threads/infinite-golden-age-and-science-age.526292/ : contribution: the Science Age status and end turn (+20), the multiplier code and the order-of-operations bug (4.8).
+- Civ3Conquests.h (wonder and small-wonder flag enums): nothing new (the names match the BIQ flags).
+- https://forums.civfanatics.com/threads/useful-patches-for-civ-3-conquests-v1-22.526285/page-3 to page-12 (re-read with all sections in view): nothing new for section 4.
+- https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/ (192 pages): read by helper agents in this round; their results were not merged before hand-back (see the round report).
