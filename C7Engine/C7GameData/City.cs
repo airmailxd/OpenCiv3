@@ -300,8 +300,16 @@ namespace C7GameData {
 		// Whether a cleared forest's shields may go to this city: not while
 		// it builds a wonder, per the project owner, or something that can't
 		// hold shields.
+		// Cities building a wonder, the Palace, a spaceship part or Wealth
+		// are passed over: CivWiki (Wald roden (Civ3), https://www.civ-wiki.de/)
+		// lists wonders, small wonders, the Palace, spaceship parts and Wealth;
+		// forests "CANNOT be harvested to speed up PALACES, SMALL WONDERS or
+		// WONDERS" (piratebrun, Apolyton thread 85881, compendium 07 section
+		// 4.1). Wealth costs no shields.
 		public bool CanReceiveForestShields() {
-			return itemBeingProduced != null && !IsWonder(itemBeingProduced) && owner.ShieldCost(itemBeingProduced) > 0;
+			return itemBeingProduced != null && !IsWonder(itemBeingProduced)
+				&& !(itemBeingProduced is Building b && (b.isCenterOfEmpire || b.IsSpaceshipPart))
+				&& owner.ShieldCost(itemBeingProduced) > 0;
 		}
 
 		// Adds a cleared forest's shields to the production box, up to the

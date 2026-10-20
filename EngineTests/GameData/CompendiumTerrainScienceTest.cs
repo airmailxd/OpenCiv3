@@ -66,6 +66,23 @@ public class CompendiumTerrainScienceTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(3f, slave.workerSpeed());
 	}
 
+	// Chopped shields pass over cities building a wonder, the Palace or a
+	// spaceship part.
+	[Fact]
+	public void ForestShieldsSkipThePalaceAndSpaceshipParts() {
+		Tile tile = gameData.map.tiles.First(t => IsEmptyLand(t) && t.IsAllowCities()
+			&& t.neighbors.Values.All(n => n == Tile.NONE || !n.HasCity()));
+		City city = CityInteractions.BuildCity(tile, us, "Chopper");
+		city.SetItemBeingProduced(gameData.Buildings.Single(b => b.name == "Temple"));
+		Assert.True(city.CanReceiveForestShields());
+		city.SetItemBeingProduced(gameData.Buildings.First(b => b.isCenterOfEmpire));
+		Assert.False(city.CanReceiveForestShields());
+		city.SetItemBeingProduced(gameData.Buildings.First(b => b.IsSpaceshipPart));
+		Assert.False(city.CanReceiveForestShields());
+		city.SetItemBeingProduced(gameData.Buildings.Single(b => b.name == "Heroic Epic"));
+		Assert.False(city.CanReceiveForestShields());
+	}
+
 	// ---- Research ----
 
 	// Switching research loses the stored beakers, unless switched back the
