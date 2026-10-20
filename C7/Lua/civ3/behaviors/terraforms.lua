@@ -19,7 +19,7 @@ terraforms.validators = {
   clear_forest = function(context)
     return context.tile.overlayTerrainType.allowedFoliageAction == Civ3FoliageAction.ClearForest
   end,
-  -- Pollution and nuclear fallout are both cleaned up as damage.
+  -- Pollution, nuclear fallout and craters are all cleaned up as damage.
   clear_damage = function(context)
     return context.tile:HasDamage()
   end,

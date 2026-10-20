@@ -204,11 +204,67 @@ public class BarbarianInteractions {
 		};
 	}
 
+	// Limits on camps and barbarians, from community testing (TimBentley,
+	// https://forums.civfanatics.com/threads/barbarian-information.267101/):
+	//   "No barb camps will appear until everyone has settled and there are
+	//   at least (2*NumPlayers) cities." "The maximum number of camps is the
+	//   number of players". The maximum number of barbarians is "2, 3, or 4"
+	//   "(for roaming, restless, and raging) * NumPlayers."
+	// NumPlayers is taken as the civs still in the game, barbarians aside.
+	// UNVERIFIED: the post gives no unit limit for Sedentary barbarians, so
+	// they have none here.
+	public static int NumPlayers(GameData gameData) {
+		int count = 0;
+		foreach (Player player in gameData.players) {
+			if (!player.isBarbarians && !player.defeated && player.isIncludedInGame) {
+				++count;
+			}
+		}
+		return count;
+	}
+
+	// The most camps there may be: one per player.
+	public static int MaxCamps(GameData gameData) {
+		return NumPlayers(gameData);
+	}
+
+	// Whether new camps may appear yet: once every civ has a city, and there
+	// are at least two cities per player.
+	public static bool CampsMayAppear(GameData gameData) {
+		int cities = 0;
+		foreach (Player player in gameData.players) {
+			if (player.isBarbarians || player.defeated || !player.isIncludedInGame) {
+				continue;
+			}
+			if (player.cities.Count == 0) {
+				return false;
+			}
+			cities += player.cities.Count;
+		}
+		return cities >= 2 * NumPlayers(gameData);
+	}
+
+	// The most barbarian units camps may spawn up to, or -1 for no limit.
+	public static int MaxBarbarianUnits(GameData gameData) {
+		int perPlayer = gameData.barbarianInfo.barbarianActivity switch {
+			BarbarianActivity.Roaming => 2,
+			BarbarianActivity.Restless => 3,
+			BarbarianActivity.Raging => 4,
+			_ => -1,
+		};
+		return perPlayer < 0 ? -1 : perPlayer * NumPlayers(gameData);
+	}
+
 	// Rolls for a new barbarian camp and places it if the roll succeeds and
-	// there is a suitable tile. Returns the new camp's tile, or null.
+	// there is a suitable tile, while there are fewer camps than the limit
+	// and enough cities (see MaxCamps and CampsMayAppear). Returns the new
+	// camp's tile, or null.
 	public static Tile MaybeAddCamp(GameData gameData) {
 		double chance = NewCampChance(gameData.barbarianInfo.barbarianActivity);
 		if (chance <= 0 || GameData.rng.NextDouble() >= chance) {
+			return null;
+		}
+		if (gameData.map.barbarianCamps.Count >= MaxCamps(gameData) || !CampsMayAppear(gameData)) {
 			return null;
 		}
 		List<Tile> sites = PossibleNewCampSites(gameData);
@@ -280,7 +336,14 @@ public class BarbarianInteractions {
 		}
 		int barbariansSpawned = 0;
 		bool advancedAllowed = AdvancedBarbariansAvailable(gameData);
+		// No more come out of the camps once the barbarians have as many
+		// units as the limit (see MaxBarbarianUnits).
+		int maxUnits = MaxBarbarianUnits(gameData);
+		int units = barbPlayer?.units.Count ?? 0;
 		foreach (Tile camp in gameData.map.barbarianCamps.ToList()) {
+			if (maxUnits >= 0 && units >= maxUnits) {
+				break;
+			}
 			if (camp.unitsOnTile.Count >= MaxUnitsPerCamp) {
 				continue;
 			}
@@ -293,6 +356,7 @@ public class BarbarianInteractions {
 			if (tile != null) {
 				gameData.SpawnUnit(barbPlayer, unitType, tile);
 				++barbariansSpawned;
+				++units;
 			}
 		}
 

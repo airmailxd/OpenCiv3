@@ -22,7 +22,8 @@ namespace C7Engine;
 // gold only where there's no resource, techs only in the Ancient era,
 // settlers only for civs with fewer cities than average and no settler of
 // their own, and barbarians only for non-expansionist civs with a city and a
-// military unit, away from any city. Maps and nothing are always possible.
+// military unit, away from any city, and not for units that treat all
+// terrain as roads (explorers). Maps and nothing are always possible.
 // An outcome that can't happen gets no odds, and the rest share its odds in
 // proportion to their own: the article names the conditions but not what
 // the game does when one isn't met, and dropping the outcome and weighing
@@ -197,12 +198,17 @@ public static class GoodyHuts {
 		// do too: UNVERIFIED, as the article gives no condition for a city
 		// beyond somewhere to found it.
 		bool behindOnCities = player.cities.Count < Average(civs, p => p.cities.Count);
+		// A hut opened by founding a city next to it (no unit) holds neither:
+		// "You cant get a settler or city when building a city, even if you
+		// use your last settler to build the city."
+		// (https://forums.civfanatics.com/threads/probabilities-of-goody-huts-c3c.93244/)
+		bool openedByUnit = unit != null;
 		Dictionary<Outcome, bool> possible = new() {
 			[Outcome.Gold] = tile.Resource == null || tile.Resource == Resource.NONE,
 			[Outcome.Unit] = HutUnitFor(gameData) != null,
 			[Outcome.Tech] = player.EraIndex() == 0 && TechsToLearn(gameData, player).Count > 0,
-			[Outcome.Settler] = behindOnCities && SettlerFor(gameData, player) != null && !HasSettler(player),
-			[Outcome.City] = behindOnCities && CanFoundCity(player, tile),
+			[Outcome.Settler] = openedByUnit && behindOnCities && SettlerFor(gameData, player) != null && !HasSettler(player),
+			[Outcome.City] = openedByUnit && behindOnCities && CanFoundCity(player, tile),
 			[Outcome.Barbarians] = unit != null && CanReleaseBarbarians(gameData, unit, tile),
 			[Outcome.Map] = true,
 			[Outcome.Nothing] = true,
@@ -348,16 +354,18 @@ public static class GoodyHuts {
 		return tile.neighbors.Values.All(n => n == Tile.NONE || !n.HasCity());
 	}
 
-	// Barbarians only come out of huts when they're in the game at all, for
-	// units that can fight (so not scouts), away from the player's own lands
-	// and from any city, and for civs that aren't expansionist and have a
-	// city and a military unit.
+	// Barbarians only come out of huts when they're in the game at all, away
+	// from the player's own lands and from any city, for civs that aren't
+	// expansionist and have a city and a military unit, and for units
+	// without the All Terrain As Roads ability (so not explorers): "The unit
+	// popping the hut must not have the "All Terrain As Roads" ability."
+	// (https://forums.civfanatics.com/threads/probabilities-of-goody-huts-c3c.93244/)
 	private static bool CanReleaseBarbarians(GameData gameData, MapUnit unit, Tile tile) {
 		if (gameData.barbarianInfo.barbarianActivity == BarbarianActivity.None || gameData.barbarianInfo.basicBarbarian == null) {
 			return false;
 		}
 		Player player = unit.owner;
-		if (unit.unitType.attack <= 0 || tile.owningCity?.owner == player) {
+		if (unit.unitType.allTerrainAsRoads || tile.owningCity?.owner == player) {
 			return false;
 		}
 		if (player.civilization?.traits.Contains(Civilization.Trait.Expansionist) == true

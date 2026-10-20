@@ -65,6 +65,16 @@ public class BarbarianCampTest : IClassFixture<SaveGameFixture> {
 		C7GameData.GameData gameData = fixture.saveGame.ToGameData(fixture.behaviors);
 		gameData.barbarianInfo.barbarianActivity = BarbarianActivity.Raging;
 		GiveEveryCivCities(gameData, 2);
+		// Few enough camps that filling them stays under the barbarians'
+		// unit limit.
+		while (gameData.map.barbarianCamps.Count * BarbarianInteractions.MaxUnitsPerCamp > BarbarianInteractions.MaxBarbarianUnits(gameData)) {
+			Tile camp = gameData.map.barbarianCamps[^1];
+			foreach (MapUnit unit in camp.unitsOnTile.ToList()) {
+				gameData.RemoveUnit(unit);
+			}
+			camp.hasBarbarianCamp = false;
+			gameData.map.barbarianCamps.Remove(camp);
+		}
 
 		for (int turn = 0; turn < 500; ++turn) {
 			BarbarianInteractions.SpawnBarbarians(gameData);
@@ -97,6 +107,35 @@ public class BarbarianCampTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(1f / civs.Count, BarbarianInteractions.SettledCivShare(gameData), 4);
 		GiveEveryCivCities(gameData, 2);
 		Assert.Equal(1f, BarbarianInteractions.SettledCivShare(gameData));
+	}
+
+	// The barbarians field at most 2, 3 or 4 units per player on Roaming,
+	// Restless and Raging (CFC 267101).
+	[Theory]
+	[InlineData(BarbarianActivity.Roaming, 2)]
+	[InlineData(BarbarianActivity.Restless, 3)]
+	[InlineData(BarbarianActivity.Raging, 4)]
+	public void CampsStopSpawningAtTheBarbarianUnitLimit(BarbarianActivity activity, int perPlayer) {
+		C7GameData.GameData gameData = fixture.saveGame.ToGameData(fixture.behaviors);
+		gameData.barbarianInfo.barbarianActivity = activity;
+		GiveEveryCivCities(gameData, 2);
+		int limit = perPlayer * BarbarianInteractions.NumPlayers(gameData);
+		Assert.Equal(limit, BarbarianInteractions.MaxBarbarianUnits(gameData));
+		Player barbarians = gameData.players.Single(p => p.isBarbarians);
+
+		// Plenty of camps, so the camps' own room isn't what stops them.
+		List<Tile> sites = BarbarianInteractions.PossibleNewCampSites(gameData);
+		for (int i = 0; i < sites.Count && gameData.map.barbarianCamps.Count * BarbarianInteractions.MaxUnitsPerCamp <= limit + 3; ++i) {
+			if (sites[i].neighbors.Values.All(n => !n.hasBarbarianCamp)) {
+				BarbarianInteractions.AddCamp(gameData, sites[i]);
+			}
+		}
+		Assert.True(gameData.map.barbarianCamps.Count * BarbarianInteractions.MaxUnitsPerCamp > limit);
+
+		for (int turn = 0; turn < 2000; ++turn) {
+			BarbarianInteractions.SpawnBarbarians(gameData);
+		}
+		Assert.Equal(limit, barbarians.units.Count);
 	}
 
 	// Gives each civ placeholder cities, up to the count, which is all the

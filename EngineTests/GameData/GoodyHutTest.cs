@@ -168,12 +168,41 @@ public class GoodyHutTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(0, GoodyHuts.Weigh(gameData, warrior, hut, GoodyHuts.MiddleLevel)[GoodyHuts.Outcome.Tech]);
 	}
 
+	// "The unit popping the hut must not have the "All Terrain As Roads"
+	// ability." (CFC 93244) Other units can, fighters or not.
 	[Fact]
-	public void UnitsThatCantFightDontFindBarbarians() {
+	public void UnitsThatTreatAllTerrainAsRoadsDontFindBarbarians() {
 		(Tile from, _, Tile hut) = FindHutSite();
-		UnitPrototype scoutType = gameData.unitPrototypes.First(p => p.IsLandUnit() && p.attack == 0 && !p.isSettler && !p.isWorker);
-		MapUnit scout = gameData.SpawnUnit(ai, scoutType, from);
-		Assert.Equal(0, GoodyHuts.Weigh(gameData, scout, hut, 7)[GoodyHuts.Outcome.Barbarians]);
+		ai.civilization.traits.Remove(Civilization.Trait.Expansionist);
+		if (ai.cities.Count == 0) {
+			CityInteractions.BuildCity(gameData.map.tiles.First(t => IsEmptyLand(t) && t.IsAllowCities() && t.DistanceTo(hut) > 3), ai, "Homeville");
+		}
+		gameData.SpawnUnit(ai, Prototype("Warrior"), from);
+
+		MapUnit explorer = gameData.SpawnUnit(ai, Prototype("Explorer"), from);
+		Assert.True(explorer.unitType.allTerrainAsRoads);
+		Assert.Equal(0, GoodyHuts.Weigh(gameData, explorer, hut, 7)[GoodyHuts.Outcome.Barbarians]);
+
+		UnitPrototype nonFighterType = gameData.unitPrototypes.First(p => p.IsLandUnit() && p.attack == 0 && !p.allTerrainAsRoads && p.isWorker);
+		MapUnit worker = gameData.SpawnUnit(ai, nonFighterType, from);
+		Assert.True(GoodyHuts.Weigh(gameData, worker, hut, 7)[GoodyHuts.Outcome.Barbarians] > 0);
+	}
+
+	// "You cant get a settler or city when building a city" (CFC 93244).
+	[Fact]
+	public void AHutOpenedByANewCityHoldsNoSettlerOrCity() {
+		(Tile from, TileDirection _, Tile hut) = FindHutSite();
+		MapUnit warrior = gameData.SpawnUnit(human, Prototype("Warrior"), from);
+		// The human is behind on cities, so a hut a unit enters can hold a
+		// city.
+		CityInteractions.BuildCity(gameData.map.tiles.First(t => IsEmptyLand(t) && t.IsAllowCities() && t.DistanceTo(hut) > 3), ai, "Elsewhere");
+		const int level = 0;
+		Dictionary<GoodyHuts.Outcome, double> entered = GoodyHuts.Weigh(gameData, human, warrior, hut, level);
+		Assert.True(entered[GoodyHuts.Outcome.City] > 0);
+
+		Dictionary<GoodyHuts.Outcome, double> founded = GoodyHuts.Weigh(gameData, human, null, hut, level);
+		Assert.Equal(0, founded[GoodyHuts.Outcome.Settler]);
+		Assert.Equal(0, founded[GoodyHuts.Outcome.City]);
 	}
 
 	[Fact]

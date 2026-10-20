@@ -12,7 +12,8 @@ public partial class Tile {
 		var shouldConnectToToNetwork = !hasRailroad && AnyNeighbor(tile, static t => t.HasRoad());
 		if (shouldConnectToToNetwork || hasRoad) {
 			var roadTerraform = ToTerraform(ROAD);
-			if (roadTerraform != null && tile.cityAtTile.owner.HasTech(roadTerraform.RequiredTech)) {
+			if (roadTerraform != null && tile.cityAtTile.owner.HasTech(roadTerraform.RequiredTech)
+				&& TileOverlays.TerrainAllows(tile.overlayTerrainType, roadTerraform.Improvement)) {
 				tile.overlays.Add(roadTerraform.Improvement);
 			}
 		}
@@ -21,7 +22,8 @@ public partial class Tile {
 		var shouldConnectToToNetwork = !hasRailroad && AnyNeighbor(tile, static t => t.HasRailroad());
 		if (shouldConnectToToNetwork || hasRailroad) {
 			var railroadTerraform = ToTerraform(RAILROAD);
-			if (railroadTerraform != null && tile.cityAtTile.owner.HasTech(railroadTerraform.RequiredTech)) {
+			if (railroadTerraform != null && tile.cityAtTile.owner.HasTech(railroadTerraform.RequiredTech)
+				&& TileOverlays.TerrainAllows(tile.overlayTerrainType, railroadTerraform.Improvement)) {
 				tile.overlays.Add(railroadTerraform.Improvement);
 			}
 		}
@@ -63,14 +65,22 @@ public partial class Tile {
 		return true;
 	}
 
-	// Whether workers have pollution or fallout to clean up here.
+	// Whether workers have pollution, fallout or craters to clean up here:
+	// "A worker can repair a damaged square (cleaning up pollution and
+	// volcanic fallout, and filling in bomb craters), thus restoring the
+	// square to its former production capacity." (Conquests Civilopedia,
+	// TFRM_Clear_Damage)
 	public bool HasDamage() {
-		return HasPollution() || HasFallout();
+		return HasPollution() || HasFallout() || HasCraters();
 	}
 
-	// Cleans up the tile's pollution and fallout, as a worker's Clear Damage
-	// job does. Civ3 cleans fallout the same way as pollution.
+	// Cleans up the tile's pollution, fallout and craters, as a worker's
+	// Clear Damage job does. Civ3 cleans fallout the same way as pollution.
 	public void ClearDamage() {
+		TerrainImprovement craters = overlays.ImprovementAtLayer(Layer.Craters);
+		if (craters != null) {
+			overlays.Remove(craters);
+		}
 		TerrainImprovement pollution = overlays.ImprovementAtLayer(Layer.Pollution);
 		if (pollution != null) {
 			overlays.Remove(pollution);
@@ -230,7 +240,43 @@ public partial class Tile {
 			return GetImprovements().Where(i => !IsManMade(i));
 		}
 
+		// Whether the terrain lets the improvement be built on it at all.
+		// Forts (and barricades, which go on a fort), airfields, radar
+		// towers, outposts and colonies follow the terrain's BIQ flags (see
+		// TerrainType.allowForts). Roads and railroads need terrain with a
+		// road bonus: "Restricted roads/railroads from being built on terrain
+		// that has no road bonus." (Civ3 1.29 readme), so none go on a
+		// Volcano. A road's bonus is the commerce it adds to the terrain
+		// (BIQ TERR RoadBonus, imported as the road's bonus yield).
+		public static bool TerrainAllows(TerrainType terrain, TerrainImprovement improvement) {
+			if (terrain == null || improvement == null) {
+				return true;
+			}
+			switch (improvement.key) {
+				case ROAD:
+				case RAILROAD:
+					return improvement.GetYieldBonus(terrain, YieldType.Commerce) > 0;
+				case FORTRESS:
+				case BARRICADE:
+					return terrain.allowForts;
+				case AIRFIELD:
+					return terrain.allowAirfields;
+				case RADAR_TOWER:
+					return terrain.allowRadarTowers;
+				case OUTPOST:
+					return terrain.allowOutposts;
+				case COLONY:
+					return terrain.allowColonies;
+				default:
+					return true;
+			}
+		}
+
 		public bool CanAdd(Tile targetTile, TerrainImprovement improvement) {
+			if (!TerrainAllows(targetTile.overlayTerrainType, improvement)) {
+				return false;
+			}
+
 			var hasCity = targetTile.HasCity();
 
 			// we can't ever add anything on a city tile, except roading
