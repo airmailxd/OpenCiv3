@@ -360,6 +360,23 @@ public class GoodyHutTest : IClassFixture<SaveGameFixture> {
 		}
 	}
 
+	// Expansionists at Chieftain and Warlord use CivWiki's Map of 15, with
+	// the column scaled from 105 down to 100 (owner's decision, 2026-10-20).
+	[Fact]
+	public void ExpansionistChieftainAndWarlordUseCivWikisMapScaledToAHundred() {
+		(GoodyHuts.Outcome o, double civWiki)[] column = [
+			(GoodyHuts.Outcome.City, 10), (GoodyHuts.Outcome.Tech, 35), (GoodyHuts.Outcome.Gold, 15),
+			(GoodyHuts.Outcome.Settler, 15), (GoodyHuts.Outcome.Map, 15), (GoodyHuts.Outcome.Unit, 10),
+			(GoodyHuts.Outcome.Nothing, 5), (GoodyHuts.Outcome.Barbarians, 0),
+		];
+		for (int level = 0; level <= 1; level++) {
+			foreach ((GoodyHuts.Outcome o, double civWiki) in column) {
+				Assert.Equal(civWiki * 100 / 105, GoodyHuts.ExpansionistOdds[o][level], 1);
+			}
+			Assert.Equal(GoodyHuts.ExpansionistOdds[GoodyHuts.Outcome.Gold][level], GoodyHuts.ExpansionistOdds[GoodyHuts.Outcome.Map][level]);
+		}
+	}
+
 	// The odds of what's possible are the table's, on the player's level.
 	[Theory]
 	[InlineData(0)]
