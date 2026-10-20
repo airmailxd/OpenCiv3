@@ -1993,6 +1993,7 @@ namespace C7GameData {
 				if (prto.AIOffense) prototype.flags.Add(SaveUnitPrototype.Flag.AIOffense);
 				if (prto.AIDefense) prototype.flags.Add(SaveUnitPrototype.Flag.AIDefense);
 				if (prto.AINavalTransport) prototype.flags.Add(SaveUnitPrototype.Flag.AINavalTransport);
+				if (prto.RequireSupport == 0) prototype.flags.Add(SaveUnitPrototype.Flag.NoSupportRequired);
 				int[] targets = stealthTargets != null && prtoIndex < stealthTargets.Length ? stealthTargets[prtoIndex] : null;
 				if (targets != null && targets.Length > 0) {
 					prototype.stealthTargets = targets.Where(t => t >= 0 && t < Prto.Length).Select(t => Prto[t].Name).Distinct().ToList();

@@ -151,6 +151,20 @@ public class Civ3RuleImportTest {
 		Assert.DoesNotContain(SaveUnitPrototype.Flag.Wheeled, Unit("Warrior").flags);
 	}
 
+	// The BIQ's "Requires Support": unchecked only for the King units in
+	// conquests.biq (compendium 05, BIQ-PRTO).
+	[SkippableFact]
+	public void RequireSupportIsImported() {
+		Skip.If(Civ3TestData.ShouldSkipCiv3DependentTests(), "No Civ3 install found.");
+
+		SaveGame game = ImportScenario("Scenarios", "No Civ Traits.biq");
+
+		Assert.All(game.UnitPrototypes.Where(p => p.flags.Contains(SaveUnitPrototype.Flag.King)),
+			p => Assert.Contains(SaveUnitPrototype.Flag.NoSupportRequired, p.flags));
+		Assert.DoesNotContain(SaveUnitPrototype.Flag.NoSupportRequired, game.UnitPrototypes.Single(p => p.name == "Warrior").flags);
+		Assert.DoesNotContain(SaveUnitPrototype.Flag.NoSupportRequired, game.UnitPrototypes.Single(p => p.name == "Leader").flags);
+	}
+
 	// The Javelin Thrower enslaves its foes as Workers, the Privateer as
 	// Privateers
 	// (https://forums.civfanatics.com/threads/anyone-know-exactly-how-enslavement-works.107253/).

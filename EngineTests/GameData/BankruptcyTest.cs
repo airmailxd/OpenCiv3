@@ -70,6 +70,69 @@ public class BankruptcyTest {
 		Assert.Equal(0, player.gold);
 	}
 
+	private MapUnit AddUnit(bool requiresSupport = true, Civilization nationality = null) {
+		MapUnit unit = new(ID.FromString($"unit-{player.units.Count + 1}")) {
+			owner = player,
+			unitType = new UnitPrototype { requiresSupport = requiresSupport },
+			location = Tile.NONE,
+			hitPointsRemaining = 1,
+			nationality = nationality,
+		};
+		player.units.Add(unit);
+		return unit;
+	}
+
+	// Returns the given numbers from Next(int) in order, then 0.
+	private class ScriptedRandom(params int[] values) : System.Random {
+		private readonly System.Collections.Generic.Queue<int> queue = new(values);
+		public override int Next(int maxValue) => queue.Count > 0 ? queue.Dequeue() : 0;
+	}
+
+	// Units of another nationality and types without "Requires Support" are
+	// free, and a player with no cities pays no upkeep (C3X's re-creation of
+	// the stock count, patch_Leader_count_maintenance_free_units, and
+	// "Players with no cities don't pay unit maintenance, per the original
+	// game rules").
+	[Fact]
+	public void ForeignUnitsAndTypesWithoutSupportAreFreeAndNoCitiesPaysNothing() {
+		player.government = new Government { unitCost = 1 };
+		AddUnit();
+		AddUnit(nationality: new Civilization("Rome"));
+		AddUnit(requiresSupport: false);
+		Assert.Equal(1, player.TotalUnitsAllowedUnitsAndSupportCostRaw().Item3);
+
+		player.cities.Clear();
+		Assert.Equal(0, player.TotalUnitsAllowedUnitsAndSupportCostRaw().Item3);
+	}
+
+	// The stock game pays building and unit upkeep in a random order, so
+	// either a unit or an improvement may be what's given up ("the
+	// randomization of whether improv or unit maintenance gets paid first",
+	// C3X).
+	[Theory]
+	[InlineData(0, true)]
+	[InlineData(1, false)]
+	public void GoingBrokeGivesUpAUnitOrAnImprovementAtRandom(int roll, bool unitGoes) {
+		player.government = new Government { unitCost = 1 };
+		CityBuilding bank = AddBuilding("Bank", 2);
+		MapUnit unit = AddUnit();
+		// A free settler, so the civ isn't destroyed when the unit goes (its
+		// city has no citizens here).
+		AddUnit(nationality: new Civilization("Rome")).unitType.actions.Add(UnitAction.BuildCity);
+		// Upkeep of 3 against a treasury of 2: losing either is enough.
+		player.gold = 2;
+		System.Random original = C7GameData.GameData.rng;
+		try {
+			C7GameData.GameData.rng = new ScriptedRandom(roll);
+			player.DoPerTurnFinanceUpdates(gameData);
+		} finally {
+			C7GameData.GameData.rng = original;
+		}
+
+		Assert.Equal(!unitGoes, player.units.Contains(unit));
+		Assert.Equal(unitGoes, city.constructed_buildings.Contains(bank));
+	}
+
 	// Anarchy: "No maintenance costs or unit upkeep needed"
 	// (https://civfanatics.com/civ3/civilopedia/governments/), so a broke
 	// civ in anarchy keeps its buildings.

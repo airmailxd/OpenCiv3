@@ -80,6 +80,9 @@ namespace C7GameData.Save {
 			AIOffense,
 			AIDefense,
 			AINavalTransport,
+			// The unit costs no upkeep (the BIQ's PRTO "Requires Support"
+			// left unchecked; in conquests.biq only the King units).
+			NoSupportRequired,
 		}
 
 		public string name { get; set; }

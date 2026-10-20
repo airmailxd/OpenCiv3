@@ -350,6 +350,18 @@ namespace C7GameData {
 		public bool isStealth => flags.Contains(SaveUnitPrototype.Flag.Stealth);
 		// See MapUnit.Bombard.
 		public bool isCruiseMissile => flags.Contains(SaveUnitPrototype.Flag.CruiseMissile);
+		// Whether the unit costs upkeep (the BIQ's "Requires Support"; see
+		// Player.TotalUnitsAllowedUnitsAndSupportCostRaw).
+		public bool requiresSupport {
+			get => !flags.Contains(SaveUnitPrototype.Flag.NoSupportRequired);
+			set {
+				if (value) {
+					flags.Remove(SaveUnitPrototype.Flag.NoSupportRequired);
+				} else {
+					flags.Add(SaveUnitPrototype.Flag.NoSupportRequired);
+				}
+			}
+		}
 
 		// "[Submarines] can operate invisibly to enemy units ... However,
 		// other submarines and AEGIS Cruisers and Destroyers can see them

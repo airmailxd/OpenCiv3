@@ -1444,38 +1444,23 @@ namespace C7GameData {
 			int unitSupportCost = TotalUnitsAllowedUnitsAndSupportCost().Item3;
 
 			// As in Civ 3, a deficit is fine while the treasury can pay for it.
-			// When it can't, units over the support limit are disbanded and
-			// then city improvements are lost, but the sliders are left alone.
+			// When it can't, units over the support limit are disbanded or
+			// city improvements are lost, but the sliders are left alone.
+			//
+			// Which goes first is random: the stock game pays building and
+			// unit upkeep in a random order, so whichever is paid second
+			// takes the shortfall. The C3X mod notes that the building upkeep
+			// sum "is called in two places as part of the randomization of
+			// whether improv or unit maintenance gets paid first"
+			// (https://github.com/maxpetul/C3X/blob/master/injected_code.c).
+			// It's rolled only when the treasury falls short, so other turns
+			// leave the random numbers alone.
 			List<string> disbandedUnits = new();
 			List<string> lostImprovements = new();
+			bool? unitsGoFirst = null;
 			while (gold + GoldPerTurnFrom(cityFlows, unitSupportCost) < 0) {
-				// Disband one unit at a time and check the budget again, so we
-				// never disband more than needed. Captives are free, so
-				// disbanding one wouldn't lower the support cost.
-				int disbandableCount = 0;
-				foreach (MapUnit u in units) {
-					if (!u.IsCaptive()) {
-						++disbandableCount;
-					}
-				}
-				if (unitSupportCost > 0 && disbandableCount > 0) {
-					MapUnit unitToRemove = NonCaptiveUnitAt(GameData.rng.Next(disbandableCount));
-					log.Information("{Player} is out of gold, disbanding {Unit} at {Location}", this, unitToRemove, unitToRemove.location);
-					disbandedUnits.Add(unitToRemove.name);
-					gameData.RemoveUnit(unitToRemove);
-					unitSupportCost = TotalUnitsAllowedUnitsAndSupportCost().Item3;
-					continue;
-				}
-
-				// Then give up the improvement that costs the most to maintain.
-				(City city, CityBuilding building) = MostExpensiveImprovementToMaintain();
-				if (city != null) {
-					log.Information("{Player} is out of gold, losing the {Building} in {City}", this, building.building.name, city);
-					lostImprovements.Add($"{building.building.name} in {city.name}");
-					city.RemoveBuilding(building);
-					new MsgCityChanged(city).send();
-					cityFlows[cities.IndexOf(city)] = ComputeCityFlows(city);
-					unitSupportCost = TotalUnitsAllowedUnitsAndSupportCost().Item3;
+				unitsGoFirst ??= GameData.rng.Next(2) == 0;
+				if (unitsGoFirst.Value ? TryDisbandUnsupportedUnit() || TryLoseImprovement() : TryLoseImprovement() || TryDisbandUnsupportedUnit()) {
 					continue;
 				}
 
@@ -1484,6 +1469,43 @@ namespace C7GameData {
 				log.Warning("{Player} was unable to get the budget under control despite disbanding units and losing improvements (gold={Gold}, gpt={GoldPerTurn})",
 					this, gold, GoldPerTurnFrom(cityFlows, unitSupportCost));
 				break;
+			}
+
+			// Disbands one unit at a time, so the budget is checked again and
+			// no more are disbanded than needed. Captives and units of types
+			// that need no support are free, so disbanding one wouldn't lower
+			// the support cost.
+			bool TryDisbandUnsupportedUnit() {
+				int disbandableCount = 0;
+				foreach (MapUnit u in units) {
+					if (NeedsSupport(u)) {
+						++disbandableCount;
+					}
+				}
+				if (unitSupportCost <= 0 || disbandableCount == 0) {
+					return false;
+				}
+				MapUnit unitToRemove = SupportedUnitAt(GameData.rng.Next(disbandableCount));
+				log.Information("{Player} is out of gold, disbanding {Unit} at {Location}", this, unitToRemove, unitToRemove.location);
+				disbandedUnits.Add(unitToRemove.name);
+				gameData.RemoveUnit(unitToRemove);
+				unitSupportCost = TotalUnitsAllowedUnitsAndSupportCost().Item3;
+				return true;
+			}
+
+			// Gives up the improvement that costs the most to maintain.
+			bool TryLoseImprovement() {
+				(City city, CityBuilding building) = MostExpensiveImprovementToMaintain();
+				if (city == null) {
+					return false;
+				}
+				log.Information("{Player} is out of gold, losing the {Building} in {City}", this, building.building.name, city);
+				lostImprovements.Add($"{building.building.name} in {city.name}");
+				city.RemoveBuilding(building);
+				new MsgCityChanged(city).send();
+				cityFlows[cities.IndexOf(city)] = ComputeCityFlows(city);
+				unitSupportCost = TotalUnitsAllowedUnitsAndSupportCost().Item3;
+				return true;
 			}
 
 			if (IsToldNews && lostImprovements.Count > 0) {
@@ -1499,11 +1521,15 @@ namespace C7GameData {
 			gold = Math.Max(0, gold + lastGoldPerTurn);
 		}
 
-		// The index'th unit that isn't a captive, in the order of the units
+		// Whether the unit counts against the support limit: not a captive,
+		// and of a type that requires support.
+		private static bool NeedsSupport(MapUnit u) => !u.IsCaptive() && u.unitType.requiresSupport;
+
+		// The index'th unit that needs support, in the order of the units
 		// list.
-		private MapUnit NonCaptiveUnitAt(int index) {
+		private MapUnit SupportedUnitAt(int index) {
 			foreach (MapUnit u in units) {
-				if (u.IsCaptive()) {
+				if (!NeedsSupport(u)) {
 					continue;
 				}
 				if (index == 0) {
@@ -1935,9 +1961,14 @@ namespace C7GameData {
 			if (government.allUnitsFree) {
 				freeUnits = units.Count;
 			} else {
-				// Captives are always free.
+				// Units of another nationality (captives) are always free, as
+				// are types without the BIQ's "Requires Support": the C3X
+				// mod's re-creation of the stock count makes a unit free "if
+				// ((unit->Body.RaceID != this->RaceID) || (type->requires_support == 0))"
+				// (patch_Leader_count_maintenance_free_units,
+				// https://github.com/maxpetul/C3X/blob/master/injected_code.c).
 				foreach (MapUnit u in units) {
-					if (u.IsCaptive()) {
+					if (u.IsCaptive() || !u.unitType.requiresSupport) {
 						++freeUnits;
 					}
 				}
@@ -1945,7 +1976,10 @@ namespace C7GameData {
 
 			int totalUnits = units.Count;
 			int allowedUnits = freeUnits;
-			int unitSupportCost = Math.Max(0, (totalUnits - allowedUnits) * government.unitCost);
+			// "Players with no cities don't pay unit maintenance, per the
+			// original game rules" (same mod and file,
+			// charge_maintenance_with_aggressive_penalties).
+			int unitSupportCost = cities.Count == 0 ? 0 : Math.Max(0, (totalUnits - allowedUnits) * government.unitCost);
 			return (totalUnits, allowedUnits, unitSupportCost);
 		}
 
