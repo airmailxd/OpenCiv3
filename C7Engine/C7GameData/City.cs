@@ -2094,6 +2094,12 @@ namespace C7GameData {
 			}
 		}
 
+		// Whether a river runs along any tile of the city's radius, its own
+		// included, whoever owns the tile.
+		public bool HasRiverInRadius() {
+			return location.GetTilesWithinRankDistance(owner.rules.MaxRankOfWorkableTiles).Exists(t => t.BordersRiver());
+		}
+
 		// The list of tiles that could be worked by this city.
 		// This isn't necessarily a subset of our borders, because we're allowed
 		// to work tiles owned by our civ in our big fat cross, even if our

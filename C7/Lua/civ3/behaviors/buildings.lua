@@ -11,8 +11,11 @@ buildings.production_rules = {
     return city.location:NeighborsOcean()
   end,
 
+  -- "To build the Hoover Dam a city must have a river within its radius";
+  -- "A city must have a river within its radius to build a Hydro Plant"
+  -- (Civilopedia, BLDG_Hoover_Dam and BLDG_Hydro_Plant).
   must_be_near_river = function(city)
-    return city.location:BordersRiver()
+    return city:HasRiverInRadius()
   end,
 
   -- "A city must have fresh water within its radius to build a Nuclear

@@ -11470,6 +11470,9 @@
       "airPower": 0,
       "navalPower": 0,
       "unitFrequency": 0,
+      "flags": [
+        "goodsMustBeInCityRadius"
+      ],
       "requiredResources": [
         "Iron",
         "Coal"

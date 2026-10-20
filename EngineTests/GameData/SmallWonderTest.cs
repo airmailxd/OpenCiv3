@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using C7Engine;
 using C7GameData;
+using C7GameData.Save;
 using EngineTests.Utils;
 using Xunit;
 
@@ -202,6 +203,13 @@ public class SmallWonderTest : IClassFixture<SaveGameFixture>, System.IDisposabl
 		Learn(wonder);
 		us.hasVictoriousArmy = true;
 		City city = BuildCity(us);
+		if (wonder.goodsMustBeInCityRadius) {
+			List<Tile> tiles = city.GetWorkableTiles();
+			int i = 0;
+			foreach (Resource r in wonder.requiredResources) {
+				tiles[i++].Resource = r;
+			}
+		}
 
 		Assert.True(wonder.CanProduce(city, wonder.requiredResources.ToHashSet()));
 		if (wonder.requiredResources.Count > 0) {
@@ -216,19 +224,24 @@ public class SmallWonderTest : IClassFixture<SaveGameFixture>, System.IDisposabl
 		Resource coal = ResourceNamed("Coal");
 		Assert.Equal(new HashSet<Resource> { iron, coal }, ironWorks.requiredResources);
 		City city = BuildCity(us);
+		List<Tile> tiles = city.GetWorkableTiles();
+		tiles[0].Resource = iron;
+		tiles[1].Resource = coal;
 
 		Assert.False(ironWorks.CanProduce(city, [iron]));
 		Assert.True(ironWorks.CanProduce(city, [iron, coal]));
 	}
 
+	// "The city that builds it must have Iron and Coal in its city radius"
+	// (Civilopedia, BLDG_Great_Ironworks); conquests.biq sets the
+	// improvement flag for it.
 	[Fact]
 	public void SomeBuildingsNeedTheirResourcesInTheCityRadius() {
 		Building ironWorks = BuildingNamed("Iron Works");
-		Assert.False(ironWorks.goodsMustBeInCityRadius);
+		Assert.True(ironWorks.goodsMustBeInCityRadius);
 		Resource iron = ResourceNamed("Iron");
 		Resource coal = ResourceNamed("Coal");
 		City city = BuildCity(us);
-		ironWorks.goodsMustBeInCityRadius = true;
 
 		Assert.False(ironWorks.CanProduce(city, [iron, coal]));
 
@@ -236,6 +249,22 @@ public class SmallWonderTest : IClassFixture<SaveGameFixture>, System.IDisposabl
 		tiles[0].Resource = iron;
 		tiles[1].Resource = coal;
 		Assert.True(ironWorks.CanProduce(city, [iron, coal]));
+	}
+
+	// "A city must have a river within its radius to build a Hydro Plant"
+	// (Civilopedia, BLDG_Hydro_Plant); the city's own tile needn't touch it.
+	[Fact]
+	public void ARiverAnywhereInTheRadiusIsEnough() {
+		Tile site = gameData.map.tiles.First(t => IsEmptyLand(t) && t.IsAllowCities() && !t.BordersRiver()
+			&& t.neighbors.Values.All(n => n == Tile.NONE || !n.HasCity())
+			&& t.GetTilesWithinRankDistance(2).Exists(n => n.BordersRiver()));
+		City city = CityInteractions.BuildCity(site, us, "Riverside");
+		Assert.True(city.HasRiverInRadius());
+		Building hydro = BuildingNamed("Hydro Plant");
+		Learn(hydro);
+		Building factory = BuildingNamed("Factory");
+		city.AddBuilding(factory);
+		Assert.True(hydro.CanProduce(city, []));
 	}
 
 	[Fact]

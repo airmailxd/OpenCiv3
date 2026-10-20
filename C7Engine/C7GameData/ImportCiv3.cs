@@ -2330,7 +2330,11 @@ namespace C7GameData {
 				(bldg.BuildSpaceshipParts, SaveBuilding.Flag.BuildSpaceshipParts),
 				(bldg.AllowsWaterTrade, SaveBuilding.Flag.AllowsWaterTrade),
 				(bldg.AllowsAirTrade, SaveBuilding.Flag.AllowsAirTrade),
-				(bldg.GoodsMustBeInCityRadius, SaveBuilding.Flag.GoodsMustBeInCityRadius),
+				// The BIQ has the flag twice, among the improvement flags and
+				// among the small wonder ones; conquests.biq sets the
+				// improvement one on Iron Works ("The city that builds it must
+				// have Iron and Coal in its city radius", Civilopedia).
+				(bldg.GoodsMustBeInCityRadius || bldg.GoodsMustBeInCityRadiusImprovement, SaveBuilding.Flag.GoodsMustBeInCityRadius),
 			}
 			.Where(t => t.Item1)
 			.Select(t => t.Item2);

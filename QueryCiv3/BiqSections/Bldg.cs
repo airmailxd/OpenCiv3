@@ -70,6 +70,7 @@ namespace QueryCiv3.Biq {
 		public bool ActsAsGeneralTelepad { get => Util.GetFlag(Flags[3], 4); }
 		public bool DoublesSacrifice { get => Util.GetFlag(Flags[3], 5); }
 		public bool CanBuildUnits { get => Util.GetFlag(Flags[3], 6); }
+		public bool GoodsMustBeInCityRadiusImprovement { get => Util.GetFlag(Flags[3], 7); }
 		public bool CoastalInstallation { get => Util.GetFlag(Flags[4], 0); }
 		public bool Militaristic { get => Util.GetFlag(Flags[4], 1); }
 		public bool Wonder { get => Util.GetFlag(Flags[4], 2); }
