@@ -13,7 +13,9 @@ namespace C7GameData {
 	// them. The missile is used up. Unless the target's owner has a Strategic
 	// Missile Defense that shoots it down, it detonates over the target and
 	// the 8 tiles around it:
-	//  - every unit in the blast area is destroyed, whoever owns it;
+	//  - each unit in the blast area, whoever owns it, is destroyed or
+	//    loses two hit points, except nuclear weapons (see
+	//    StrikeUnitWithNuke);
 	//  - every city in it loses half its population and some of its buildings;
 	//  - fallout is left on some of the land tiles;
 	//  - the civs hit go to war with the attacker, and every civ that knows
@@ -27,6 +29,20 @@ namespace C7GameData {
 		// give each building that bombardment could destroy (not wonders or
 		// the palace) an even chance.
 		public const double NuclearBuildingDestructionChance = 0.5;
+
+		// The chance a nuclear blast destroys a unit outright (see
+		// StrikeUnitWithNuke). justanick's "a chance of 2:1" can be read as
+		// 2 in 3 or 1 in 2; 1 in 2 is what the older reports give: "Has a 50%
+		// chance to destroy each unit caught in its blast area" (Valant2,
+		// https://forums.civfanatics.com/threads/combat-system-explained.7679/),
+		// "Every Unit at Ground Zero and all adjacent Tiles of a Nuke has a
+		// Chance of 50% of dying" (Proteus_MST,
+		// https://apolyton.net/forum/miscellaneous/archives/civ3-general-archive/73776-effects-of-nuclear-weapons).
+		// UNVERIFIED which reading is right.
+		public const double NuclearUnitKillChance = 0.5;
+
+		// The hit points a unit that survives a nuclear blast loses.
+		public const int NuclearDamage = 2;
 
 		// Assumption: each land tile in the blast area without a city has an
 		// even chance of getting fallout.
@@ -251,16 +267,21 @@ namespace C7GameData {
 			}
 
 			foreach (Tile t in NuclearBlastArea(tile)) {
-				foreach (MapUnit unit in t.unitsOnTile.ToArray()) {
+				MapUnit[] units = t.unitsOnTile.ToArray();
+				foreach (MapUnit unit in units) {
 					if (unit.owner != attacker && unit.owner != null) {
 						result.victims.Add(unit.owner);
 					}
 					// Units removed with their transport or army are already
-					// gone, but count as destroyed all the same.
-					if (unit.hitPointsRemaining > 0) {
-						unit.RemoveFromPlay();
+					// gone, and the members of an army share its fate.
+					if (unit.hitPointsRemaining > 0 && !unit.IsInArmy()) {
+						StrikeUnitWithNuke(unit);
 					}
-					++result.unitsDestroyed;
+				}
+				foreach (MapUnit unit in units) {
+					if (unit.hitPointsRemaining <= 0) {
+						++result.unitsDestroyed;
+					}
 				}
 
 				Player territoryOwner = t.OwningPlayer();
@@ -293,6 +314,34 @@ namespace C7GameData {
 			result.victims.Remove(attacker);
 			ApplyNuclearDiplomacy(attacker, result.victims, gameData);
 			return result;
+		}
+
+		// What a nuclear blast does to a unit in its area, as justanick found
+		// testing C3C 1.22: "All nuclear weapons are immune against nuclear
+		// attack." / "All other units are destroyed at a chance of 2:1." /
+		// "All units that survive that loose 2 hitpoints." / "All units with
+		// 2 HP, 1 HP or no HP are killed instantly."
+		// (https://forums.civfanatics.com/threads/bombardment-of-settlements-in-c3c-1-22.647207/, #1).
+		// An army takes the two hit points as two bombardment hits (see
+		// AbsorbBombardHit), and dies at 2 or fewer in all.
+		private static void StrikeUnitWithNuke(MapUnit unit) {
+			if (unit.IsNuclearWeapon()) {
+				return;
+			}
+			if (unit.CompositeHitPoints() <= NuclearDamage || GameData.rng.NextDouble() < NuclearUnitKillChance) {
+				unit.RemoveFromPlay();
+				return;
+			}
+			if (unit.IsArmy()) {
+				for (int i = 0; i < NuclearDamage; i++) {
+					if (unit.AbsorbBombardHit(lethal: true)) {
+						unit.RemoveFromPlay();
+						return;
+					}
+				}
+			} else {
+				unit.hitPointsRemaining -= NuclearDamage;
+			}
 		}
 
 		// A nuclear attack is an act of war against every civ hit, and an

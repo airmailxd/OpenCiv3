@@ -176,6 +176,36 @@ public class NuclearWeaponsTest : IClassFixture<SaveGameFixture>, System.IDispos
 		Assert.DoesNotContain(us, result.victims);
 	}
 
+	// justanick's C3C 1.22 tests: "All nuclear weapons are immune against
+	// nuclear attack." / "All other units are destroyed at a chance of
+	// 2:1." / "All units that survive that loose 2 hitpoints." / "All units
+	// with 2 HP, 1 HP or no HP are killed instantly."
+	// (https://forums.civfanatics.com/threads/bombardment-of-settlements-in-c3c-1-22.647207/, #1).
+	[Fact]
+	public void SurvivorsOfABlastLoseTwoHitPoints() {
+		City target = FoundCity(them, 8);
+		Tile site = LandTileAtDistance(target.location, 4);
+		MapUnit nuke = ReadyNuke("Tactical Nuke", site, target.location);
+		MapUnit strong = Spawn(them, "Warrior", target.location);
+		strong.hitPointsRemaining = 3;
+		MapUnit weak = Spawn(them, "Warrior", target.location);
+		weak.hitPointsRemaining = 2;
+		MapUnit theirNuke = Spawn(them, "Tactical Nuke", target.location);
+		int nukeHitPoints = theirNuke.hitPointsRemaining;
+
+		// 0.99 for every roll: over the even chance of being destroyed.
+		MapUnit.NuclearStrikeResult result = WithRandom(0.99, () => nuke.LaunchNuke(target.location));
+
+		Assert.False(result.intercepted);
+		Assert.Equal(1, strong.hitPointsRemaining);
+		Assert.Contains(strong, them.units);
+		Assert.True(weak.hitPointsRemaining <= 0);
+		Assert.DoesNotContain(weak, them.units);
+		Assert.Equal(nukeHitPoints, theirNuke.hitPointsRemaining);
+		Assert.Contains(theirNuke, them.units);
+		Assert.Equal(1, result.unitsDestroyed);
+	}
+
 	[Fact]
 	public void FalloutStopsATileProducingAnything() {
 		Tile tile = gameData.map.tiles.First(t => t.IsLand() && !t.HasCity() && !t.HasPollution()
@@ -332,8 +362,10 @@ public class NuclearWeaponsTest : IClassFixture<SaveGameFixture>, System.IDispos
 		Assert.True(cargo.IsLoadedIn(transport));
 		us.DeclareWarOn(them, gameData.turn);
 
-		MapUnit.NuclearStrikeResult result = WithRandom(0.99, () => icbm.LaunchNuke(sea));
+		// 0 sinks the transport (see SurvivorsOfABlastLoseTwoHitPoints).
+		MapUnit.NuclearStrikeResult result = WithRandom(0.0, () => icbm.LaunchNuke(sea));
 
+		Assert.True(transport.hitPointsRemaining <= 0);
 		Assert.True(cargo.hitPointsRemaining <= 0);
 		Assert.Equal(2, result.unitsDestroyed);
 		Assert.Contains(them, result.victims);
