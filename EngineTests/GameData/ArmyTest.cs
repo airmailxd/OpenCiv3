@@ -826,9 +826,10 @@ public class ArmyTest : IClassFixture<SaveGameFixture> {
 		defender.hitPointsRemaining = 2;
 		int fullHitPoints = members[0].maxHitPoints;
 
-		// Lose the first round, then win the rest (the last roll fails the
-		// promotion, so hit points don't change).
-		var random = new ScriptedRandom([0.99, 0.0, 0.0, 0.0], 0.99);
+		// Lose the first round, then win the rest (the next roll fails the
+		// promotion, so hit points don't change). Slow units make no retreat
+		// roll.
+		var random = new ScriptedRandom([0.99, 0.0, 0.0], 0.99);
 		await WithRandom(random, async () => Assert.True(await army.Move(dir)));
 
 		Assert.DoesNotContain(defender, gameData.mapUnits);

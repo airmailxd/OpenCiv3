@@ -828,12 +828,40 @@ namespace C7GameData {
 
 		// The chance of a losing unit withdrawing. Only fast units withdraw,
 		// "unless fighting another fast unit" (Conquests Civilopedia,
-		// PRTO_Horseman).
+		// PRTO_Horseman). The roll compares the two units' experience level
+		// retreat bonuses (the BIQ's, 34/50/58/66 for conscript to elite):
+		// "Cavalry retreats only if random(Hoplite.Retreat_Bonus + 50) <
+		// Cavalry.Retreat_Bonus" (Antal1987, reading process_Combat in the
+		// 1.22 executable,
+		// https://forums.civfanatics.com/threads/useful-patches-for-civ-3-conquests-v1-22.526285/page-4,
+		// #62). So a regular has an even chance against a regular, and a
+		// conscript opponent makes it likelier than a veteran one.
 		public double RetreatChance(MapUnit opponent, bool isAttacking) {
-			if ((RetreatMovement() <= 1) || (opponent.RetreatMovement() > 1))
+			if (!IsFastAgainst(opponent))
 				return 0.0;
+			(int own, int theirs) = RetreatBonuses(opponent, isAttacking);
+			return Math.Min(1.0, (double)own / (theirs + 50));
+		}
+
+		// Rolls the retreat as the game does: a random number below the
+		// opponent's bonus plus 50 must come out under this unit's bonus.
+		public bool RollToRetreat(MapUnit opponent, bool isAttacking) {
+			if (!IsFastAgainst(opponent))
+				return false;
+			(int own, int theirs) = RetreatBonuses(opponent, isAttacking);
+			return GameData.rng.Next(theirs + 50) < own;
+		}
+
+		private bool IsFastAgainst(MapUnit opponent) {
+			return RetreatMovement() > 1 && opponent.RetreatMovement() <= 1;
+		}
+
+		// The retreat bonuses of the members doing the fighting, this unit's
+		// and the opponent's (an army fights with one member at a time).
+		private (int own, int theirs) RetreatBonuses(MapUnit opponent, bool isAttacking) {
 			MapUnit combatant = Combatant(isAttacking ? CombatRole.Attack : CombatRole.Defense);
-			return combatant.experienceLevel.retreatChance;
+			MapUnit opposing = opponent.Combatant(isAttacking ? CombatRole.Defense : CombatRole.Attack);
+			return (combatant.experienceLevel?.RetreatBonus() ?? 0, opposing.experienceLevel?.RetreatBonus() ?? 0);
 		}
 
 		// The movement that decides whether the unit is fast enough to

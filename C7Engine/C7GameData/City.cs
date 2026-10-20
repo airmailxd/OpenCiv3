@@ -1155,21 +1155,37 @@ namespace C7GameData {
 			// bombard in Civ3; the land one does, as before.
 			// MapUnit.NONE, the map's opponent when no unit is selected, has
 			// no unit type.
+			//
+			// Only the best single building counts: they don't add up, so a
+			// town with Walls and Civil Defense gets +50%, not +100%. Walls,
+			// meaning a building with a bombard defense, count only while the
+			// settlement is a town. C3X's rewrite of the stock
+			// City_get_building_defense_bonus, which its author describes as
+			// only making the stock loop faster, keeps the largest bonus
+			// ("if (building_defense > tr) tr = building_defense;") and
+			// skips a building with "improv->Combat_Bombard" above 0 unless
+			// the city is no bigger than "MaximumSize_Town"
+			// (https://github.com/maxpetul/C3X/blob/master/injected_code.c,
+			// patch_City_get_building_defense_bonus). UNVERIFIED (not
+			// modelled): its doubling for a wonder with the "Doubles City
+			// Defenses" flag, which no Conquests wonder has.
 			bool navalAttack = attacker?.unitType?.IsSeaUnit() ?? false;
+			StrengthBonus? best = null;
 			foreach (CityBuilding cb in EffectiveBuildings()) {
 				StrengthBonus? bonus = navalAttack ? cb.building.navalDefenseBonus : cb.building.combatDefenseBonus;
 				if (bonus is not StrengthBonus defenseBonus) {
 					continue;
 				}
-
-				// If this building doesn't have the "only useful in towns" flag
-				// we can always provide the bonus regardless of the city size.
-				//
-				// But if the building is only useful in towns we need to check
-				// the city size before providing the bonus.
-				if (!cb.building.onlyUsefulInTowns || isTown) {
-					yield return defenseBonus;
+				bool walls = cb.building.onlyUsefulInTowns || cb.building.bombardDefense > 0;
+				if (walls && !isTown) {
+					continue;
 				}
+				if (best is not StrengthBonus b || defenseBonus.amount > b.amount) {
+					best = defenseBonus;
+				}
+			}
+			if (best is StrengthBonus bestBonus) {
+				yield return bestBonus;
 			}
 		}
 
@@ -1326,11 +1342,20 @@ namespace C7GameData {
 		}
 
 		// The pollution the city's buildings add to it, from the BIQ's
-		// per-building pollution value (e.g. the Iron Works' 4).
+		// per-building pollution value (e.g. the Iron Works' 4). A building
+		// one of the owner's wonders provides adds none: the C3X mod offers,
+		// as a change to the base game, an option that "Causes improvements
+		// granted for free by great or small wonders to contribute pollution
+		// as though they had been built in the city"
+		// (https://github.com/maxpetul/C3X/blob/master/default.c3x_config.ini).
+		// As with upkeep (see MaintenanceCostsRaw), one also built in the
+		// city counts as the wonder's.
 		public int BuildingPollution() {
 			int result = 0;
 			foreach (CityBuilding cb in EffectiveBuildings()) {
-				result += cb.building.pollution;
+				if (!IsProvidedByWonders(cb.building)) {
+					result += cb.building.pollution;
+				}
 			}
 			return result;
 		}
@@ -1361,7 +1386,9 @@ namespace C7GameData {
 			bool removesPopulation = false;
 			bool reducesBuildings = false;
 			foreach (CityBuilding cb in EffectiveBuildings()) {
-				buildingPollution += cb.building.pollution;
+				if (!IsProvidedByWonders(cb.building)) {
+					buildingPollution += cb.building.pollution;
+				}
 				removesPopulation |= cb.building.removesPopulationPollution;
 				reducesBuildings |= cb.building.reducesBuildingPollution;
 			}
@@ -1588,6 +1615,16 @@ namespace C7GameData {
 				// the Commercial Dock.
 				if (cache.providedByWonders.Contains(b)
 					|| (commercialUpkeepPaid && b.traits.Contains(Civilization.Trait.Commercial))) {
+					continue;
+				}
+				// Nor for an obsolete improvement: "Players are not supposed to
+				// pay maintenance for obsolete city improvements however they
+				// often do because the game does not recompute maintenance
+				// after a player unlocks a technology that obsoletes a city
+				// improvement" (the C3X mod's notes on the 1.22 executable,
+				// https://github.com/maxpetul/C3X/blob/master/default.c3x_config.ini).
+				// The intended rule, not the bug.
+				if (b.renderedObsoleteBy != null && owner != null && owner.knownTechs.Contains(b.renderedObsoleteBy.id)) {
 					continue;
 				}
 				result += b.maintenanceCost;

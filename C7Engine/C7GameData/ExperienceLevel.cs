@@ -1,4 +1,5 @@
 namespace C7GameData {
+	using System;
 	using QueryCiv3.Biq;
 
 	public class ExperienceLevel {
@@ -14,6 +15,14 @@ namespace C7GameData {
 			this.baseHitPoints = baseHitPoints;
 			this.retreatChance = retreatChance;
 			this.promotionChance = promotionChance;
+		}
+
+		// The BIQ's retreat bonus for the level (50 for a regular), which the
+		// game's retreat roll uses as a whole number (see
+		// MapUnit.RetreatChance). Kept as a share in retreatChance, as saves
+		// store it.
+		public int RetreatBonus() {
+			return (int)Math.Round(retreatChance * 100);
 		}
 
 		public static ExperienceLevel ImportFromCiv3(string key, EXPR expr, int levelIndex) {

@@ -111,4 +111,44 @@ public class CityEconomyRulesTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(older.rankIndex + 1, newer.rankIndex);
 		Assert.True(capital.rankIndex < older.rankIndex);
 	}
+
+	// "Players are not supposed to pay maintenance for obsolete city
+	// improvements" (C3X's notes on the 1.22 executable,
+	// https://github.com/maxpetul/C3X/blob/master/default.c3x_config.ini);
+	// the stock game's failure to recompute it is a bug we don't copy.
+	[Fact]
+	public void ObsoleteImprovementsCostNoUpkeep() {
+		// Without the AI's free upkeep house rule (see AiHouseRules).
+		us.isHuman = true;
+		City city = TownOnGrassland(Terrain("grassland"));
+		Building temple = gameData.Buildings.First(b => b.name == "Temple");
+		Tech obsoleting = gameData.techs.First(t => !us.knownTechs.Contains(t.id));
+		temple.renderedObsoleteBy = obsoleting;
+		city.AddBuilding(temple);
+		int upkeep = city.MaintenanceCostsRaw();
+		Assert.True(temple.maintenanceCost > 0);
+
+		us.knownTechs.Add(obsoleting.id);
+
+		Assert.Equal(upkeep - temple.maintenanceCost, city.MaintenanceCostsRaw());
+	}
+
+	// A building a wonder grants doesn't pollute: C3X offers, as a change
+	// to the base game, making "improvements granted for free by great or
+	// small wonders" pollute "as though they had been built in the city"
+	// (https://github.com/maxpetul/C3X/blob/master/default.c3x_config.ini).
+	[Fact]
+	public void BuildingsGrantedByWondersDontPollute() {
+		City city = TownOnGrassland(Terrain("grassland"));
+		Building factory = gameData.Buildings.First(b => b.name == "Factory");
+		Assert.True(factory.pollution > 0);
+		Building wonder = gameData.Buildings.First(b => b.IsGreatWonder()
+			&& b.greatWonderProperties.buildingGainedInEveryCityOnContinent == null);
+		wonder.greatWonderProperties.buildingGainedInEveryCity = factory;
+		city.AddBuilding(wonder);
+		Assert.True(city.HasEffectiveBuilding(factory));
+
+		Assert.Equal(0, city.BuildingPollution());
+		Assert.Equal(0, city.PollutionIcons(gameData.rules));
+	}
 }

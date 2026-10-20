@@ -691,6 +691,18 @@ public partial class MapUnit {
 	// is also true for towns with walls. Notably this effect is lost when the
 	// town becomes a city(size 7+)." (justanick,
 	// https://forums.civfanatics.com/threads/coastal-forts-and-bombardment.690690/, #5).
+	//
+	// Air units have none, and a land unit aboard a transport still has its
+	// own. The C3X mod's notes on the 1.22 executable list, as changes to
+	// the base game, "aerial: Air units can exert zone of control" and
+	// "not-from-inside: Land units may not exert zone of control while
+	// inside a transport", with "amphibious: Land units may exert zone of
+	// control over sea units and vice-versa" and "lethal: Units may be
+	// destroyed by zone of control" (neither happens here; see
+	// ZoneOfControlAttack)
+	// (https://github.com/maxpetul/C3X/blob/master/default.c3x_config.ini).
+	// An army's members fight through the army, so they have none of their
+	// own.
 	public List<MapUnit> FindZoneOfControlAttackers(Tile from, Tile to) {
 		List<MapUnit> result = new();
 		foreach (Tile t in from.neighbors.Values) {
@@ -699,7 +711,7 @@ public partial class MapUnit {
 			}
 			bool fortified = t.HasFortress() || IsWalledTown(t);
 			foreach (MapUnit u in t.unitsOnTile) {
-				if ((u.unitType.hasZoneOfControl || fortified) && !u.IsLoaded() && u.CanAttack()
+				if ((u.unitType.hasZoneOfControl || fortified) && !u.IsInArmy() && !u.IsAirUnit() && u.CanAttack()
 					&& u.IsLandUnit() == IsLandUnit() && u.IsWaterUnit() == IsWaterUnit()
 					&& u.owner != owner && !owner.IsAtPeaceWith(u.owner)) {
 					result.Add(u);
@@ -793,10 +805,21 @@ public partial class MapUnit {
 		// capable unit in it is attacked, that bombard unit will take one
 		// free shot at the attacking unit" (Civ3 readme, "Artillery Free
 		// Shot").
+		//
+		// Aircraft don't fire it, and ships in port don't fire at land
+		// attackers. The C3X mod lists, as changes to the base game, "aerial:
+		// Air units may perform defensive bombard" and "docked-vs-land: Docked
+		// ships (i.e. in a city) can perform defensive bombard against land
+		// units attacking their city", alongside "lethal" (the shot never
+		// kills; see below) and "blitz: Units with blitz may perform
+		// defensive bombard multiple times per turn" (one a turn here, see
+		// defensiveBombardsRemaining)
+		// (https://github.com/maxpetul/C3X/blob/master/default.c3x_config.ini).
 		MapUnit defensiveBombarder = MapUnit.NONE;
 		double defensiveBombarderStrength = 0.0;
 		IEnumerable<MapUnit> bombardCandidates = defender.location.IsLand() ? defender.location.unitsOnTile : Enumerable.Empty<MapUnit>();
-		foreach (MapUnit candidate in bombardCandidates.Where(u => u != defender && !u.IsInArmy() && !u.owner.IsAtPeaceWith(attacker.owner) && u.defensiveBombardsRemaining > 0)) {
+		foreach (MapUnit candidate in bombardCandidates.Where(u => u != defender && !u.IsInArmy() && !u.owner.IsAtPeaceWith(attacker.owner) && u.defensiveBombardsRemaining > 0
+				&& !u.IsAirUnit() && !(u.IsWaterUnit() && attacker.IsLandUnit()))) {
 			double strength = candidate.StrengthVersus(attacker, CombatRole.DefensiveBombard, defenderDefenseDirection);
 			if (strength > defensiveBombarderStrength) {
 				defensiveBombarder = candidate;
@@ -844,13 +867,17 @@ public partial class MapUnit {
 		// A defender can withdraw too, by the same rule: "They seem to use the
 		// same formula for slow-attacker v. fast-defender" (BomberEscort,
 		// https://forums.civfanatics.com/threads/comprehensive-retreat-study.64755/,
-		// #51). His list of cases with no retreat at all includes "(3) When
-		// there is no available tile for retreat" (see below) and "(4) When
-		// the fast-mover is fortified in a city (or colony?)" (#19), so only
-		// a fortified defender in a city stays to fight to the death; one
-		// that isn't fortified may withdraw out of it. UNVERIFIED: colonies
-		// (his question mark) are left out.
-		bool defenderEligibleToRetreat = !(defender.location.HasCity() && defender.isFortified);
+		// #51), given "(3) When there is no available tile for retreat" (#19;
+		// see below). But never out of a city, fortified or not, nor off a
+		// water tile. The C3X mod's notes on the 1.22 executable say that
+		// under the base game rules "units cannot retreat when they start
+		// combat with 1 HP or are defending a city", and "no unit may retreat
+		// defensively if it's located on a water tile"
+		// (https://github.com/maxpetul/C3X/blob/master/default.c3x_config.ini).
+		// That is stricter than BomberEscort's "(4) When the fast-mover is
+		// fortified in a city" (#19), which an earlier version here followed;
+		// the code reading wins. The 1 HP rule is the 2-to-1 drop below.
+		bool defenderEligibleToRetreat = !defender.location.HasCity() && !defender.location.IsWater();
 		bool attackerEligibleToRetreat = attacker.movementPoints.remaining - 1 >= 1f / 3 - 0.0001f;
 
 		// Do combat rounds
@@ -865,7 +892,7 @@ public partial class MapUnit {
 				}
 				defendingMember = defender.Combatant(CombatRole.Defense);
 				UpdateOdds();
-				if (defenderMayRetreat && GameData.rng.NextDouble() < defender.RetreatChance(attacker, false)) {
+				if (defenderMayRetreat && defender.RollToRetreat(attacker, false)) {
 					// TODO: Defender retreat behavior requires some more work. There's an issue for it here:
 					// https://github.com/C7-Game/Prototype/issues/274
 					//
@@ -892,7 +919,7 @@ public partial class MapUnit {
 				}
 				attackingMember = attacker.Combatant(CombatRole.Attack);
 				UpdateOdds();
-				if (attackerMayRetreat && GameData.rng.NextDouble() < attacker.RetreatChance(defender, true)) {
+				if (attackerMayRetreat && attacker.RollToRetreat(defender, true)) {
 					result = CombatResult.AttackerRetreated;
 					break;
 				}
