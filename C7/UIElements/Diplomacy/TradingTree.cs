@@ -16,6 +16,9 @@ public partial class TradingTree : Tree {
 	TreeItem resourceHeader;
 	// The resource (by key) each luxury or resource item stands for.
 	Dictionary<TreeItem, string> resourceItems = new();
+	// Whether the two civs' capitals are connected, so resources can be
+	// traded (TradeNetwork.CapitalsConnected).
+	readonly bool resourcesConnected;
 	// The tech each technology item stands for.
 	Dictionary<TreeItem, Tech> techItems = new();
 	TreeItem diplomacyHeader;
@@ -63,7 +66,8 @@ public partial class TradingTree : Tree {
 						TradeOffer currentOffer, bool requiresPeaceTreaty,
 						bool canSignRightOfPassage = false,
 						int maxGoldPerTurn = 0, List<Resource> tradeableResources = null, PactChoices pacts = null,
-						MapChoices maps = null) {
+						MapChoices maps = null, bool resourcesConnected = true) {
+		this.resourcesConnected = resourcesConnected;
 		this.tradeableTechs = tradeableTechs;
 		this.currentOffer = currentOffer;
 		this.playerGold = playerGold;
@@ -151,6 +155,14 @@ public partial class TradingTree : Tree {
 				TreeItem child = this.CreateItem(header);
 				child.SetText(0, r.Name);
 				resourceItems[child] = r.Key;
+				// Without a trade route between the capitals they're shown
+				// but can't be picked: "Grayed-out resources indicate missing
+				// trade connections or routes" (https://civfanatics.com/civ3/faq/).
+				if (!resourcesConnected) {
+					child.SetSelectable(0, false);
+					child.SetCustomColor(0, new Color(0.5f, 0.5f, 0.5f));
+					child.SetTooltipText(0, "No trade route links our capitals: a road, harbors in both cities with a route their ships can sail, or airports.");
+				}
 			}
 		}
 
@@ -258,7 +270,7 @@ public partial class TradingTree : Tree {
 				currentOffer.contacts.Add(contact);
 			}
 
-			if (resourceItems.TryGetValue(ti, out string resourceKey) && !currentOffer.resources.Contains(resourceKey)) {
+			if (resourcesConnected && resourceItems.TryGetValue(ti, out string resourceKey) && !currentOffer.resources.Contains(resourceKey)) {
 				currentOffer.resources.Add(resourceKey);
 			}
 

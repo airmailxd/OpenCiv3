@@ -93,6 +93,9 @@ public partial class DealScreen : TextureRect {
 			List<City> citiesHumanCanTrade = TradeOffer.TradableCities(humanPlayer);
 			List<Resource> resourcesOpponentCanTrade = TradeOffer.TradableResources(gD, opponentPlayer, humanPlayer);
 			List<Resource> resourcesHumanCanTrade = TradeOffer.TradableResources(gD, humanPlayer, opponentPlayer);
+			// Resources go only between civs whose capitals are connected
+			// (see TradeOffer.ProblemWithDeal); otherwise they show grayed out.
+			bool capitalsConnected = gD.GetTradeNetwork().CapitalsConnected(humanPlayer, opponentPlayer);
 			// Resources already on the table (as in an offer from an AI)
 			// show even if no longer spare.
 			AddOffered(gD, resourcesOpponentCanTrade, opponentOffer);
@@ -128,7 +131,7 @@ public partial class DealScreen : TextureRect {
 			// Left hand side UI components.
 			opponentTree = new TradingTree(fontTheme, opponentPlayer.gold, techsOpponentCanTrade, citiesOpponentCanTrade,
 				opponentOffer, playersAtWar, canSignRightOfPassage,
-				TradeOffer.MaxGoldPerTurn(opponentPlayer), resourcesOpponentCanTrade, pacts, opponentMaps);
+				TradeOffer.MaxGoldPerTurn(opponentPlayer), resourcesOpponentCanTrade, pacts, opponentMaps, capitalsConnected);
 			AddChild(opponentTree);
 			opponentTree.Position = new Vector2(45, 220);
 
@@ -145,7 +148,7 @@ public partial class DealScreen : TextureRect {
 
 			// Right hand side UI components.
 			humanTree = new TradingTree(fontTheme, humanPlayer.gold, techsHumanCanTrade, citiesHumanCanTrade, humanOffer, playersAtWar,
-				canSignRightOfPassage, TradeOffer.MaxGoldPerTurn(humanPlayer), resourcesHumanCanTrade, pacts, humanMaps);
+				canSignRightOfPassage, TradeOffer.MaxGoldPerTurn(humanPlayer), resourcesHumanCanTrade, pacts, humanMaps, capitalsConnected);
 			AddChild(humanTree);
 			humanTree.Position = new Vector2(789, 220);
 
