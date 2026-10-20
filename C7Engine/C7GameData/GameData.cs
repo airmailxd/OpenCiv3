@@ -828,6 +828,9 @@ namespace C7GameData {
 			newUnit.experienceLevel = player.isBarbarians ? barbExpLevel : defaultExpLevel;
 			newUnit.experienceLevelKey = player.isBarbarians ? barbExpLevel.key : defaultExpLevel.key;
 			newUnit.hitPointsRemaining = newUnit.maxHitPoints;
+			// An army built in a city, or formed there by a leader, takes
+			// members only there (see MapUnit_ArmyOrigin.cs).
+			newUnit.RecordArmyOrigin();
 
 			tile.unitsOnTile.Add(newUnit);
 			TileChangeJournal.Record(tile);

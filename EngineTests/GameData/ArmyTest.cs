@@ -215,8 +215,9 @@ public class ArmyTest : IClassFixture<SaveGameFixture> {
 	}
 
 	// "Once that army leaves the city of it's construction, you cannot add
-	// or remove units from the army" (Civ3 readme). Armies don't remember
-	// that city, so any of the owner's cities will do.
+	// or remove units from the army" (Civ3 readme). Not outside a city, nor
+	// in another civ's one (see also the tests of the army's origin city
+	// below).
 	[Fact]
 	public void UnitsJoinAnArmyOnlyInACity() {
 		Tile field = FindEmptyLand();
@@ -241,6 +242,129 @@ public class ArmyTest : IClassFixture<SaveGameFixture> {
 		Assert.False(visitor.IsLoaded());
 		Assert.Empty(army.Passengers());
 		Assert.Empty(foreignArmy.Passengers());
+	}
+
+	// ---- The army's origin city (see MapUnit_ArmyOrigin.cs) ----
+
+	// The tile next to the city that an army can step onto.
+	private (TileDirection dir, Tile to) EmptyNeighbor(Tile city) {
+		foreach ((TileDirection dir, Tile to) in city.neighbors) {
+			if (to != Tile.NONE && IsEmptyLand(to)) {
+				return (dir, to);
+			}
+		}
+		throw new System.Exception("No empty land next to the city");
+	}
+
+	[Fact]
+	public void UnitsJoinAnArmyInTheCityThatMadeIt() {
+		City home = BuildCity(us);
+		MapUnit army = Spawn(us, "Army", home.location);
+		Assert.Equal(home.id, army.armyOriginCityId);
+		Assert.False(army.hasLeftArmyOrigin);
+
+		MapUnit warrior = Spawn(us, "Warrior", home.location);
+		Assert.Contains(UnitAction.Load, warrior.GetAvailableActions());
+		warrior.LoadOntoTransportHere();
+		Assert.True(warrior.IsLoadedIn(army));
+	}
+
+	[Fact]
+	public void ALeadersArmyRemembersTheCityItWasFormedIn() {
+		City home = BuildCity(us);
+		for (int i = 0; i < 3; ++i) {
+			BuildCity(us);
+		}
+		MapUnit leader = Spawn(us, "Leader", home.location);
+		Assert.True(leader.CanFormArmy());
+		MapUnit army = leader.FormArmy();
+		Assert.Equal(home.id, army.armyOriginCityId);
+	}
+
+	[Fact]
+	public void UnitsDoNotJoinAnArmyInAnotherOfTheOwnersCities() {
+		City home = BuildCity(us);
+		City other = BuildCity(us);
+		MapUnit army = Spawn(us, "Army", home.location);
+		Assert.Equal(home.id, army.armyOriginCityId);
+
+		// The army is put in the other city as if it had gone there.
+		home.location.unitsOnTile.Remove(army);
+		other.location.unitsOnTile.Add(army);
+		army.location = other.location;
+		Assert.True(army.hasLeftArmyOrigin);
+
+		MapUnit warrior = Spawn(us, "Warrior", other.location);
+		Assert.False(army.CanTakeMembersHere());
+		Assert.DoesNotContain(UnitAction.Load, warrior.GetAvailableActions());
+		warrior.LoadOntoTransportHere();
+		Assert.False(warrior.IsLoaded());
+		Assert.Empty(army.Passengers());
+	}
+
+	[Fact]
+	public async Task UnitsDoNotJoinAnArmyThatLeftItsCityAndCameBack() {
+		City home = BuildCity(us);
+		MapUnit army = Spawn(us, "Army", home.location);
+		MapUnit first = Spawn(us, "Warrior", home.location);
+		first.LoadOntoTransportHere();
+		Assert.True(first.IsLoadedIn(army));
+
+		(TileDirection dir, Tile outside) = EmptyNeighbor(home.location);
+		army.movementPoints.reset(army.MaxMovementPoints());
+		Assert.True(await army.Move(dir));
+		Assert.Equal(outside, army.location);
+		Assert.True(army.hasLeftArmyOrigin);
+
+		army.movementPoints.reset(army.MaxMovementPoints());
+		TileDirection back = outside.neighbors.First(n => n.Value == home.location).Key;
+		Assert.True(await army.Move(back));
+		Assert.Equal(home.location, army.location);
+
+		MapUnit second = Spawn(us, "Warrior", home.location);
+		Assert.False(army.CanTakeMembersHere());
+		second.LoadOntoTransportHere();
+		Assert.False(second.IsLoaded());
+		Assert.Single(army.Passengers());
+	}
+
+	[Fact]
+	public void TheArmysOriginCitySurvivesSaveAndLoad() {
+		City home = BuildCity(us);
+		MapUnit stays = Spawn(us, "Army", home.location);
+		MapUnit left = Spawn(us, "Army", home.location);
+		left.hasLeftArmyOrigin = true;
+
+		SaveGame save = SaveGame.FromJSON(SaveGame.FromGameData(gameData).ToCompactJSON());
+		C7GameData.GameData loaded = save.ToGameData(fixture.behaviors);
+
+		MapUnit loadedStays = loaded.mapUnits.Single(u => u.id == stays.id);
+		MapUnit loadedLeft = loaded.mapUnits.Single(u => u.id == left.id);
+		Assert.Equal(home.id, loadedStays.armyOriginCityId);
+		Assert.False(loadedStays.hasLeftArmyOrigin);
+		Assert.True(loadedStays.CanTakeMembersHere());
+		Assert.Equal(home.id, loadedLeft.armyOriginCityId);
+		Assert.True(loadedLeft.hasLeftArmyOrigin);
+		Assert.False(loadedLeft.CanTakeMembersHere());
+	}
+
+	// Saves made before armies remembered their origin city keep the old
+	// rule: any of the owner's cities.
+	[Fact]
+	public void AnArmyFromAnOlderSaveJoinsInAnyOwnCity() {
+		City home = BuildCity(us);
+		City other = BuildCity(us);
+		MapUnit army = Spawn(us, "Army", home.location);
+		SaveGame save = SaveGame.FromGameData(gameData);
+		SaveUnit saved = save.Units.Single(u => u.id == army.id);
+		saved.armyOriginCityId = null;
+		saved.hasLeftArmyOrigin = false;
+		saved.currentLocation = new TileLocation(other.location);
+		C7GameData.GameData loaded = save.ToGameData(fixture.behaviors);
+
+		MapUnit loadedArmy = loaded.mapUnits.Single(u => u.id == army.id);
+		Assert.Null(loadedArmy.armyOriginCityId);
+		Assert.True(loadedArmy.CanTakeMembersHere());
 	}
 
 	[Fact]
