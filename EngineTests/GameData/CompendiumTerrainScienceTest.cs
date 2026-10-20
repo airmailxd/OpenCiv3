@@ -150,21 +150,27 @@ public class CompendiumTerrainScienceTest : IClassFixture<SaveGameFixture> {
 		Assert.True(moved.hasBarbarianCamp);
 	}
 
-	// Barbarians search their neighbors and the NW/SE diagonal up to 12
-	// tiles, as the shipped executable does.
+	// Barbarians search every tile within 6 steps all round, the intended
+	// rule rather than the shipped NW/SE diagonal bug (owner's decision,
+	// 2026-10-20).
 	[Fact]
-	public void BarbariansSearchTheirNeighborsAndTheNorthwestSoutheastDiagonal() {
+	public void BarbariansSearchEveryTileWithinSixSteps() {
 		Tile here = gameData.map.tileAt(30, 30);
 		System.Collections.Generic.HashSet<Tile> searched = C7Engine.AI.UnitAI.CombatAI.BarbarianSearchTiles(here).ToHashSet();
-		// The first diagonal steps are neighbors too.
-		Assert.Equal(8 + 2 * 11, searched.Count);
+		// A 13 by 13 square of steps, less the barbarian's own tile.
+		Assert.Equal(13 * 13 - 1, searched.Count);
+		Assert.DoesNotContain(here, searched);
 		Assert.All(here.neighbors.Values, n => Assert.Contains(n, searched));
-		Assert.Contains(gameData.map.tileAt(42, 42), searched);
-		Assert.Contains(gameData.map.tileAt(18, 18), searched);
-		// Two tiles east, or along the other diagonal, isn't searched.
-		Assert.DoesNotContain(gameData.map.tileAt(34, 30), searched);
-		Assert.DoesNotContain(gameData.map.tileAt(32, 28), searched);
-		Assert.DoesNotContain(gameData.map.tileAt(43, 43), searched);
+		// Six steps E, N, NE and SW are searched.
+		Assert.Contains(gameData.map.tileAt(42, 30), searched);
+		Assert.Contains(gameData.map.tileAt(30, 18), searched);
+		Assert.Contains(gameData.map.tileAt(36, 24), searched);
+		Assert.Contains(gameData.map.tileAt(24, 36), searched);
+		// Seven steps isn't, nor the far NW/SE diagonal of the stock bug.
+		Assert.DoesNotContain(gameData.map.tileAt(44, 30), searched);
+		Assert.DoesNotContain(gameData.map.tileAt(37, 37), searched);
+		Assert.DoesNotContain(gameData.map.tileAt(42, 42), searched);
+		Assert.DoesNotContain(gameData.map.tileAt(18, 18), searched);
 	}
 
 	// ---- Research ----

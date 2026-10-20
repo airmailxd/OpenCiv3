@@ -45,8 +45,8 @@ namespace C7GameData {
 		public int height = -1;
 
 		// Disease (see Disease): whether cities near the terrain and units
-		// fortified on it can be struck by it, whether a tech ends it (tech
-		// number 8, Writing, as in the shipped game; see Disease), and how
+		// fortified on it can be struck by it, whether a tech ends it (the
+		// tech with the "Disables Diseases" flag, Sanitation; see Disease), and how
 		// strong it is. From the BIQ's terrain
 		// flags and "disease strength". Saves made before these were saved
 		// have no disease.

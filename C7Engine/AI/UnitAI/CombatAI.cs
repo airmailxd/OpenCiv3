@@ -157,40 +157,46 @@ namespace C7Engine.AI.UnitAI {
 			return enemies;
 		}
 
-		// Barbarians look for targets as the shipped Conquests executable
-		// does, which is a bug: "Barbarians can only search for targets on
-		// adjacent tiles or on tiles that are up to 12 steps directly SE or
-		// NW of their position. The intended behavior was for them to search
-		// for targets on all surrounding tiles up to 6 steps away."
-		// (https://github.com/maxpetul/C3X/blob/master/default.c3x_config.ini,
+		// Barbarians search for targets on every tile around them up to 6
+		// steps away. That is the intended rule, not what the shipped
+		// Conquests 1.22 executable does: "Barbarians can only search for
+		// targets on adjacent tiles or on tiles that are up to 12 steps
+		// directly SE or NW of their position. The intended behavior was for
+		// them to search for targets on all surrounding tiles up to 6 steps
+		// away." (https://github.com/maxpetul/C3X/blob/master/default.c3x_config.ini,
 		// "BARBARIAN DIAGONAL BUG"); "The error is that it's adding the dx
 		// distance to both the unit's x & y coordinates, instead of adding dx
 		// to x and dy to y." (Flintlock, reading ai_move_barbarian,
 		// https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/page-70#post-16434678).
-		// Players saw the same: barbarians look "for anything on the NW/SE
-		// axis" "within 12 tiles" (TimBentley,
-		// https://forums.civfanatics.com/threads/barbarian-information.267101/),
-		// alike on every activity level (BlueSox14,
+		// Players saw the bug in C3C: barbarians look "for anything on the
+		// NW/SE axis" "within 12 tiles" (TimBentley,
+		// https://forums.civfanatics.com/threads/barbarian-information.267101/).
+		// Before it, in vanilla 1.29f, "barbarian ai would appear to 'see'
+		// units up to and including six tiles away" in all directions
+		// (BlueSox14,
 		// https://forums.civfanatics.com/threads/hunting-down-the-barbarian-nw-se-axis-bug.674365).
-		// In map coordinates a step SE is (+1, +1) and NW (-1, -1).
-		internal const int BARBARIAN_DIAGONAL_RANGE = 12;
+		// The project owner chose the intended behaviour over the bug (owner's
+		// decision, 2026-10-20).
+		internal const int BARBARIAN_TARGET_RANGE = 6;
 
 		// Returns the known tiles that may hold an enemy unit or city, in a
 		// stable order. Only the tiles enemies are on are worth scoring, so
 		// rather than scanning every known tile we look at where the enemies
 		// are (or, for barbarians, at the few tiles they search).
-		// The tiles a barbarian at the tile searches: its neighbors, then the
-		// NW/SE diagonal out to BARBARIAN_DIAGONAL_RANGE.
+		// The tiles a barbarian at the tile searches: every tile within
+		// BARBARIAN_TARGET_RANGE steps, nearest rows first. DistanceTo is
+		// (|dx| + |dy|) / 2 in tile coordinates, the number of steps, so the
+		// tiles in range form a diamond on the coordinate grid.
 		internal static IEnumerable<Tile> BarbarianSearchTiles(Tile here) {
-			foreach (Tile t in here.neighbors.Values) {
-				if (t != Tile.NONE) {
-					yield return t;
-				}
-			}
-			for (int k = 1; k <= BARBARIAN_DIAGONAL_RANGE; ++k) {
-				foreach (int sign in new[] { 1, -1 }) {
-					Tile t = here.map.tileAt(here.XCoordinate + sign * k, here.YCoordinate + sign * k);
-					if (t != Tile.NONE) {
+			int reach = 2 * BARBARIAN_TARGET_RANGE;
+			for (int dy = -reach; dy <= reach; ++dy) {
+				int width = reach - Math.Abs(dy);
+				for (int dx = -width; dx <= width; ++dx) {
+					if (dx == 0 && dy == 0) {
+						continue;
+					}
+					Tile t = here.map.tileAt(here.XCoordinate + dx, here.YCoordinate + dy);
+					if (t != Tile.NONE && t.DistanceTo(here) <= BARBARIAN_TARGET_RANGE) {
 						yield return t;
 					}
 				}

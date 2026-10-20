@@ -29,7 +29,6 @@ public class DiseaseTest : IClassFixture<SaveGameFixture>, IDisposable {
 		grassland = Terrain("grassland");
 		city.location.overlayTerrainType = grassland;
 		player.knownTechs.Remove(SanitationTech().id);
-		player.knownTechs.Remove(Disease.CuringTech(gameData).id);
 		// Only what each test puts there: no other unhealthy terrain nearby.
 		foreach (Tile t in city.location.GetTilesWithinRankDistance(2)) {
 			if (t != Tile.NONE && t.overlayTerrainType.causesDisease) {
@@ -118,16 +117,19 @@ public class DiseaseTest : IClassFixture<SaveGameFixture>, IDisposable {
 		Assert.Equal(10, Disease.Chance(city));
 	}
 
-	// The shipped game cures flood plains with tech number 8 (Writing), not
-	// with Sanitation's flag.
+	// Sanitation's flag cures flood plains, as intended, not tech number 8
+	// (Writing) as in the shipped game (owner's decision, 2026-10-20).
 	[Fact]
-	public void WritingCuresFloodPlainsButNotJungle() {
+	public void SanitationCuresFloodPlainsButNotJungle() {
 		Tech cure = Disease.CuringTech(gameData);
-		Assert.Equal("Writing", cure.Name);
+		Assert.Equal("Sanitation", cure.Name);
 		GrowTo(3);
 		city.location.overlayTerrainType = floodPlain;
-		player.knownTechs.Add(SanitationTech().id);
+		Tech writing = gameData.techs[8];
+		Assert.Equal("Writing", writing.Name);
+		player.knownTechs.Add(writing.id);
 		Assert.True(Disease.IsUnhealthy(floodPlain, player));
+		Assert.Equal(10, Disease.Chance(city));
 		player.knownTechs.Add(cure.id);
 		Assert.False(Disease.IsUnhealthy(floodPlain, player));
 		Assert.Equal(0, Disease.Chance(city));
