@@ -751,7 +751,14 @@ namespace C7GameData {
 		//   Infantry", same thread), ties going to the attack, then the cost;
 		// - like hurrying, a city in disorder or resisting can't draft;
 		// - the citizen drafted is the last one, as for the whip.
-		public const int MinimumPopulationToDraft = 7;
+		//
+		// The size test is the city's size level, not the number 7:
+		// "cities must be at least of level 2 size in order to draft." /
+		// "it's actually checking that the city is at least size level 2."
+		// (Flintlock, reading the 1.22 code,
+		// https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16833692).
+		// With the default BIQ (towns up to 6) that is the Civilopedia's 7.
+		public static int MinimumPopulationToDraft(Rules rules) => rules.MaximumLevel1CitySize + 1;
 
 		// The unit a draft here would give, or null if none could be.
 		public UnitPrototype DraftableUnit(GameData gameData) {
@@ -783,8 +790,8 @@ namespace C7GameData {
 			if (IsInResistance) {
 				return "The city is resisting our rule and cannot draft citizens.";
 			}
-			if (residents.Count < MinimumPopulationToDraft) {
-				return $"Only cities of size {MinimumPopulationToDraft} or more can draft citizens.";
+			if (residents.Count < MinimumPopulationToDraft(owner.rules)) {
+				return $"Only cities of size {MinimumPopulationToDraft(owner.rules)} or more can draft citizens.";
 			}
 			if (unitsDraftedThisTurn >= owner.government.draftLimit) {
 				return "The city has drafted all the citizens it can this turn.";

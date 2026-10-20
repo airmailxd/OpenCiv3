@@ -76,6 +76,22 @@ public class DraftTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(6, city.residents.Count);
 	}
 
+	// The test is the size level: "cities must be at least of level 2 size
+	// in order to draft." (Flintlock, C3X thread post-16833134), so a BIQ
+	// with bigger towns raises the minimum.
+	[Fact]
+	public void TheDraftNeedsACityOfSizeLevelTwo() {
+		int townMax = player.rules.MaximumLevel1CitySize;
+		try {
+			player.rules.MaximumLevel1CitySize = 7;
+			Assert.NotNull(city.WhyCannotDraft(gameData));
+			GrowTo(8);
+			Assert.Null(city.WhyCannotDraft(gameData));
+		} finally {
+			player.rules.MaximumLevel1CitySize = townMax;
+		}
+	}
+
 	[Fact]
 	public void NationalismIsNeeded() {
 		player.knownTechs.Remove(gameData.techs.First(t => t.HasFlag(SaveTech.Flag.EnablesConscription)).id);
