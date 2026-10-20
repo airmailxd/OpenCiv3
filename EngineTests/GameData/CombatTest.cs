@@ -336,9 +336,13 @@ public class CombatTest : IClassFixture<SaveGameFixture> {
 
 	// "When a land tile with a bombard capable unit in it is attacked, that
 	// bombard unit will take one free shot at the attacking unit" (Civ3
-	// readme, "Artillery Free Shot"). Only a land tile.
+	// readme, "Artillery Free Shot"). The bombarder must be of the
+	// attacker's class ("attacker_class == candidate_type->Unit_Class",
+	// C3X's re-creation of the stock Fighter_find_defensive_bombarder,
+	// https://github.com/maxpetul/C3X/blob/master/injected_code.c), so a
+	// ship fires it at an attacking ship on a sea tile too.
 	[Fact]
-	public async Task DefensiveBombardOnlyDefendsLandTiles() {
+	public async Task DefensiveBombardDefendsLandTilesAndShipsAgainstShips() {
 		GoToWar();
 		(Tile from, _, Tile to) = FindAdjacentLand();
 		MapUnit warrior = Spawn(us, "Warrior", from);
@@ -357,7 +361,62 @@ public class CombatTest : IClassFixture<SaveGameFixture> {
 		MapUnit escort = Spawn(them, "Frigate", seaTo);
 		escort.defensiveBombardsRemaining = 1;
 		await WithZeroRandom(async () => await ours.Fight(theirs));
-		Assert.Equal(1, escort.defensiveBombardsRemaining);
+		Assert.Equal(0, escort.defensiveBombardsRemaining);
+	}
+
+	// Each attack draws at most one shot, from the bombarder with the
+	// highest bombard strength; another attack can draw the next one. None
+	// is fired at an attacker that "cannot defend" (defence below 1) or that
+	// has one hit point left (C3X's re-creation of the stock
+	// Fighter_find_defensive_bombarder,
+	// https://github.com/maxpetul/C3X/blob/master/injected_code.c).
+	[Fact]
+	public async Task EachAttackDrawsOneDefensiveBombardFromTheStrongest() {
+		GoToWar();
+		(Tile from, _, Tile to) = FindAdjacentLand();
+		MapUnit spearman = Spawn(them, "Spearman", to);
+		MapUnit catapult = Spawn(them, "Catapult", to);
+		MapUnit cannon = Spawn(them, "Cannon", to);
+		Assert.True(Prototype("Cannon").bombard > Prototype("Catapult").bombard);
+		catapult.defensiveBombardsRemaining = 1;
+		cannon.defensiveBombardsRemaining = 1;
+
+		// The attackers lose every round, so the spearman survives for the
+		// next attack.
+		System.Random original = C7GameData.GameData.rng;
+		C7GameData.GameData.rng = new AlmostOneRandom();
+		try {
+			MapUnit first = Spawn(us, "Warrior", from);
+			await first.Fight(spearman);
+			Assert.Equal(1, catapult.defensiveBombardsRemaining);
+			Assert.Equal(0, cannon.defensiveBombardsRemaining);
+
+			// No shot at an attacker with one hit point left.
+			MapUnit weak = Spawn(us, "Warrior", from);
+			weak.hitPointsRemaining = 1;
+			await weak.Fight(spearman);
+			Assert.Equal(1, catapult.defensiveBombardsRemaining);
+
+			// Nor at one that can't defend.
+			int defence = Prototype("Warrior").defense;
+			Prototype("Warrior").defense = 0;
+			MapUnit defenceless = Spawn(us, "Warrior", from);
+			await defenceless.Fight(spearman);
+			Assert.Equal(1, catapult.defensiveBombardsRemaining);
+			Prototype("Warrior").defense = defence;
+
+			MapUnit second = Spawn(us, "Warrior", from);
+			await second.Fight(spearman);
+			Assert.Equal(0, catapult.defensiveBombardsRemaining);
+		} finally {
+			C7GameData.GameData.rng = original;
+		}
+	}
+
+	// Makes every random roll come out just under 1, so attackers lose
+	// every round and every roll against a chance fails.
+	private class AlmostOneRandom : System.Random {
+		protected override double Sample() => 0.999999;
 	}
 
 	// In the base game aircraft don't fire defensive bombard, nor do ships
@@ -451,20 +510,45 @@ public class CombatTest : IClassFixture<SaveGameFixture> {
 		Assert.Same(them.civilization, slave.nationality);
 	}
 
+	// A kill by bombardment can enslave: C3X offers, as a change to the base
+	// game, an option that "Stops units from enslaving a target they've
+	// destroyed by bombarding as opposed to direct combat"
+	// (https://github.com/maxpetul/C3X/blob/master/default.c3x_config.ini).
+	[Fact]
+	public async Task ABombardmentKillCanEnslave() {
+		GoToWar();
+		(Tile from, _, Tile to) = FindAdjacentLand();
+		Prototype("Artillery").isLandBombardmentLethal = true;
+		Prototype("Artillery").enslavesTo = "Worker";
+		MapUnit artillery = Spawn(us, "Artillery", from);
+		MapUnit warrior = Spawn(them, "Warrior", to);
+		warrior.hitPointsRemaining = 1;
+		Assert.True(artillery.CanBombardTile(to));
+
+		await WithZeroRandom(async () => await artillery.Bombard(to));
+
+		Assert.DoesNotContain(warrior, gameData.mapUnits);
+		MapUnit slave = Assert.Single(us.units, u => u.unitType.name == "Worker" && u.IsCaptive());
+		Assert.Same(them.civilization, slave.nationality);
+	}
+
 	private class FixedRandom(double value) : System.Random {
 		protected override double Sample() => value;
 	}
 
+	// The roll is out of 100 and succeeds below 33 ("lim is 100, enslaving
+	// happens if the return value is < 33", C3X patch_rand_int_to_enslave).
 	[Fact]
-	public void EnslavementFailsTwoTimesInThree() {
+	public void EnslavementSucceedsBelow33OutOf100() {
 		(Tile from, _, Tile to) = FindAdjacentLand();
 		MapUnit javelin = Spawn(us, "Javelin Thrower", from);
 		MapUnit warrior = Spawn(them, "Warrior", to);
 		System.Random original = C7GameData.GameData.rng;
 		try {
-			C7GameData.GameData.rng = new FixedRandom(0.34);
+			// 33 out of 100: no slave, though it's under a third.
+			C7GameData.GameData.rng = new FixedRandom(0.332);
 			Assert.Null(javelin.RollToEnslave(warrior));
-			C7GameData.GameData.rng = new FixedRandom(0.33);
+			C7GameData.GameData.rng = new FixedRandom(0.325);
 			Assert.NotNull(javelin.RollToEnslave(warrior));
 		} finally {
 			C7GameData.GameData.rng = original;

@@ -348,6 +348,9 @@ namespace C7GameData {
 
 			if (targetDestroyed) {
 				RollToPromote(target);
+				// A kill by bombardment can enslave, as one in combat does
+				// (see RollToEnslave).
+				RollToEnslave(target);
 				await target.animateAsync(AnimatedAction.DEATH, AnimationEnding.Pause);
 				target.RemoveFromPlay();
 				// Target destroyed, skip remaining fire -- TODO: Re-target?

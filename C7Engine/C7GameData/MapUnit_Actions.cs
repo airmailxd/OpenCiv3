@@ -751,6 +751,12 @@ public partial class MapUnit {
 		}
 	}
 
+	// Whether the two units are of the same class (land, sea or air), as a
+	// defensive bombarder must be with the attacker (see Fight).
+	private static bool IsSameUnitClass(MapUnit a, MapUnit b) {
+		return a.IsLandUnit() == b.IsLandUnit() && a.IsWaterUnit() == b.IsWaterUnit() && a.IsAirUnit() == b.IsAirUnit();
+	}
+
 	public async Task<CombatResult> Fight(MapUnit defender) {
 		var attacker = this;
 
@@ -801,12 +807,25 @@ public partial class MapUnit {
 				attackerOdds = 0.5;
 		}
 
-		// Defensive bombard, only on land: "When a land tile with a bombard
-		// capable unit in it is attacked, that bombard unit will take one
-		// free shot at the attacking unit" (Civ3 readme, "Artillery Free
-		// Shot").
+		// Defensive bombard: "When a land tile with a bombard capable unit in
+		// it is attacked, that bombard unit will take one free shot at the
+		// attacking unit" (Civ3 readme, "Artillery Free Shot").
 		//
-		// Aircraft don't fire it, and ships in port don't fire at land
+		// Each attack draws at most one shot, from the strongest eligible
+		// bombarder on the defender's tile. The stock routine,
+		// Fighter_find_defensive_bombarder, returns a single unit. The C3X
+		// mod's re-creation of it (patch_Fighter_find_defensive_bombarder,
+		// https://github.com/maxpetul/C3X/blob/master/injected_code.c) gives
+		// no shot "if attacker cannot defend" (defence below 1) or when the
+		// attacker has one hit point left. Otherwise it takes the unit with
+		// the highest bombard strength among those with bombard that aren't
+		// cruise missiles, haven't fired one this turn
+		// (can_do_defensive_bombard), aren't the defender or in the
+		// defender's army, and are of the attacker's class
+		// ("attacker_class == candidate_type->Unit_Class"): land against
+		// land, and ships against ships, on a sea tile too.
+		//
+		// So aircraft don't fire it, and ships in port don't fire at land
 		// attackers. The C3X mod lists, as changes to the base game, "aerial:
 		// Air units may perform defensive bombard" and "docked-vs-land: Docked
 		// ships (i.e. in a city) can perform defensive bombard against land
@@ -817,23 +836,31 @@ public partial class MapUnit {
 		// (https://github.com/maxpetul/C3X/blob/master/default.c3x_config.ini).
 		MapUnit defensiveBombarder = MapUnit.NONE;
 		double defensiveBombarderStrength = 0.0;
-		IEnumerable<MapUnit> bombardCandidates = defender.location.IsLand() ? defender.location.unitsOnTile : Enumerable.Empty<MapUnit>();
-		foreach (MapUnit candidate in bombardCandidates.Where(u => u != defender && !u.IsInArmy() && !u.owner.IsAtPeaceWith(attacker.owner) && u.defensiveBombardsRemaining > 0
-				&& !u.IsAirUnit() && !(u.IsWaterUnit() && attacker.IsLandUnit()))) {
-			double strength = candidate.StrengthVersus(attacker, CombatRole.DefensiveBombard, defenderDefenseDirection);
-			if (strength > defensiveBombarderStrength) {
+		if (attacker.CombatBaseStrength(CombatRole.Defense) >= 1) {
+			int highestBombard = 0;
+			foreach (MapUnit candidate in defender.location.unitsOnTile) {
+				if (candidate == defender || (defender.IsArmy() && defender.IsPassenger(candidate))
+						|| candidate.owner.IsAtPeaceWith(attacker.owner) || candidate.defensiveBombardsRemaining <= 0
+						|| candidate.unitType.isCruiseMissile || !IsSameUnitClass(candidate, attacker)
+						|| candidate.unitType.bombard <= highestBombard) {
+					continue;
+				}
 				defensiveBombarder = candidate;
-				defensiveBombarderStrength = strength;
+				highestBombard = candidate.unitType.bombard;
+			}
+			if (defensiveBombarder != MapUnit.NONE) {
+				defensiveBombarderStrength = defensiveBombarder.StrengthVersus(attacker, CombatRole.DefensiveBombard, defenderDefenseDirection);
 			}
 		}
 		// In the original game, defensive bombard does not trigger against attackers with 1 HP. See:
 		// https://github.com/C7-Game/Prototype/pull/250#discussion_r893051111
-		// Against an army it hits the member with the most hit points, so it
-		// never kills one either.
+		// An army's hit points are pooled (see Combatant), so the shot comes
+		// off the pool, here from the member holding the most of it, and
+		// never takes the army's last hit point.
 		MapUnit bombardedUnit = attacker.IsArmy()
 			? attacker.Passengers().OrderByDescending(m => m.hitPointsRemaining).FirstOrDefault() ?? attacker
 			: attacker;
-		if (defensiveBombarder != MapUnit.NONE && bombardedUnit.hitPointsRemaining > 1) {
+		if (defensiveBombarder != MapUnit.NONE && defensiveBombarderStrength > 0 && attacker.CompositeHitPoints() > 1) {
 			var dBOriginalDirection = defensiveBombarder.facingDirection;
 			TileDirection defensiveBombardDirection = defenderDefenseDirection;
 			defensiveBombarder.facingDirection = defensiveBombarder.GetAttackAnimationDirection(defensiveBombardDirection);

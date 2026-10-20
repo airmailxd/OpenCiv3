@@ -783,10 +783,14 @@ namespace C7GameData {
 			}
 		}
 
-		// The chance a unit that enslaves makes a slave of a foe it beats
-		// attacking: "a 33% chance", which "is hardcoded"
+		// The chance, out of 100, a unit that enslaves makes a slave of a foe
+		// it beats attacking: "a 33% chance", which "is hardcoded"
 		// (https://forums.civfanatics.com/threads/anyone-know-exactly-how-enslavement-works.107253/).
-		public const double EnslaveChance = 1.0 / 3;
+		// The roll is "lim is 100, enslaving happens if the return value is
+		// < 33" (C3X, patch_rand_int_to_enslave,
+		// https://github.com/maxpetul/C3X/blob/master/injected_code.c), so
+		// 33%, not a third.
+		public const int EnslaveChancePercent = 33;
 
 		// Rolls, after this unit beat the opponent attacking, for the unit
 		// its type enslaves to (the Javelin Thrower's Worker, the Privateer's
@@ -796,16 +800,21 @@ namespace C7GameData {
 		// units are not able to enslave other units"
 		// (https://forums.civfanatics.com/threads/allowing-barbarians-to-enslave-units.677365/),
 		// but barbarian units can be enslaved (players note enslaving them
-		// early is valuable, first thread). UNVERIFIED: where the slave
-		// appears; here it's on the winner's tile, and none is made if it
-		// couldn't stand there (a land unit at sea).
+		// early is valuable, first thread). A kill by bombardment can enslave
+		// too: C3X offers, as a change to the base game, an option that
+		// "Stops units from enslaving a target they've destroyed by
+		// bombarding as opposed to direct combat"
+		// (https://github.com/maxpetul/C3X/blob/master/default.c3x_config.ini;
+		// see BombardUnits). UNVERIFIED: where the slave appears; here it's
+		// on the winner's tile, and none is made if it couldn't stand there
+		// (a land unit at sea).
 		public MapUnit RollToEnslave(MapUnit opponent) {
 			if (unitType.enslavesTo == null || owner.isBarbarians) {
 				return null;
 			}
 			GameData gameData = EngineStorage.gameData;
 			UnitPrototype slaveType = gameData.unitPrototypes.FirstOrDefault(p => p.name == unitType.enslavesTo);
-			if (slaveType == null || GameData.rng.NextDouble() >= EnslaveChance) {
+			if (slaveType == null || GameData.rng.Next(100) >= EnslaveChancePercent) {
 				return null;
 			}
 			if ((slaveType.IsLandUnit() && !location.IsLand()) || (slaveType.IsSeaUnit() && !location.IsWater() && !location.HasCity())) {
