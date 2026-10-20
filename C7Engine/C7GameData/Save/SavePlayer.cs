@@ -80,6 +80,10 @@ namespace C7GameData.Save {
 		// Saves from before this was saved have it false, and loading works
 		// it out again (see SaveGame.ConvertCities).
 		public bool neverHadCityOrSettler;
+		// Whether the AI has had the difficulty's extra start units. Null in
+		// saves from before this was saved, and loading works it out (see
+		// SaveGame.ConvertCities).
+		public bool? receivedStartUnits;
 
 		// For Regicide and Elimination: the King units the civ has lost,
 		// and the cities enemies have taken from it.
@@ -153,6 +157,7 @@ namespace C7GameData.Save {
 				citiesFounded = citiesFounded,
 				freeTechsRemaining = freeTechsRemaining,
 				neverHadCityOrSettler = neverHadCityOrSettler,
+				receivedStartUnits = receivedStartUnits ?? false,
 				kingsLost = kingsLost,
 				citiesLost = citiesLost,
 				victoryPoints = victoryPoints,
@@ -283,6 +288,7 @@ namespace C7GameData.Save {
 			citiesFounded = player.citiesFounded;
 			freeTechsRemaining = player.freeTechsRemaining;
 			neverHadCityOrSettler = player.neverHadCityOrSettler;
+			receivedStartUnits = player.receivedStartUnits;
 			kingsLost = player.kingsLost;
 			citiesLost = player.citiesLost;
 			victoryPoints = player.victoryPoints;

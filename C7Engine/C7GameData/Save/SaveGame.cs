@@ -544,6 +544,16 @@ namespace C7GameData.Save {
 					player.neverHadCityOrSettler = true;
 				}
 			});
+			// Saves from before receivedStartUnits was saved: the start units
+			// came at the start of turn 1, to an AI with a city then, so one
+			// with cities from turn 1 on is taken to have had them (it may
+			// have founded its first city later and missed them, but handing
+			// them out mid-game would be worse).
+			for (int i = 0; i < Players.Count && i < data.players.Count; ++i) {
+				if (Players[i].receivedStartUnits == null && data.turn >= 1 && data.players[i].cities.Count > 0) {
+					data.players[i].receivedStartUnits = true;
+				}
+			}
 
 			// Add references to map tiles. The units were placed on their tiles
 			// as they were created.

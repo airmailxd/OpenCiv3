@@ -51,3 +51,14 @@ These figures compare the final code against Development, across the same 8 seed
 - The choice between mine and irrigation ignores what the city needs (`terraforms.lua`).
 - The `StrategicAI` priority layer has no effect beyond the mass wake.
 - Refused offers to humans aren't remembered by kind; there is only the 10-turn limit.
+
+## Sliders, war governments and start units (20 October)
+
+Paired trials as above: 8 games of 200 turns on each map, the switch's civs against the same civs without it.
+
+| Change | Where | Trial (score, Continents / Pangaea) | Result |
+|---|---|---|---|
+| `despotism-no-surplus`: in Despotism the AI takes back the last science step it gave up when the treasury can pay the small deficit, so it runs at about nothing a turn (the owner's decision). Before, it had a surplus on about 3% of its Despotism turns, nearly all from that overshoot. | `PlayerAI.SpendDespotismSurplus` | +167 ± 57* / +3 ± 79 (Continents: more cities*, citizens*, techs*, beakers*) | Kept |
+| `war-government`: at war, the AI may change government when its war weariness level against an enemy is 2 or more under a government with war weariness, or when a war has lasted 30 turns. War weariness then counts for more in the choice, which favours Monarchy, Communism and Fascism. This follows chiefpaco (CFC 21298). | `GovernmentAI.WarPressure` | -29 ± 25 / +6 ± 47 (about 1 more turn of anarchy per civ) | Kept (the owner asked for it, and it is not clearly weaker) |
+| `no-ai-luxury`: no luxury slider; only entertainers. This follows Ision (CFC 92917). | `PlayerAI.AdjustSliders` | -39 ± 62 / -36 ± 87 (disorder +3.2 / +1.7 city-turns, fewer citizens) | Dropped; the switch stays |
+| The difficulty's AI start units come on the first turn the AI has a city, not only on turn 1. The flag is saved. | `Player.MaybeSpawnBonusUnits` | not run (a rules fix) | Kept |
