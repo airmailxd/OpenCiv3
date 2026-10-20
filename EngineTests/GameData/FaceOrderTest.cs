@@ -25,9 +25,13 @@ public class FaceOrderTest {
 
 		// A government with low war weariness, as a Republic's.
 		us = new() {
-			civilization = new Civilization("Rome"), id = ID.FromString("player-1"), isHuman = true,
+			civilization = new Civilization("Rome"),
+			id = ID.FromString("player-1"),
+			isHuman = true,
 			government = new Government() { warWeariness = 1 },
-			scienceRate = 0, taxRate = 0, luxuryRate = 10,
+			scienceRate = 0,
+			taxRate = 0,
+			luxuryRate = 10,
 		};
 		enemy = new() { civilization = new Civilization("Greece"), id = ID.FromString("player-2"), government = new Government() };
 		gameData.players.Add(us);
