@@ -713,11 +713,11 @@ public class RulesReviewFixTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(18, us.GetAdjustedOptimalCityNumber(gameData));
 	}
 
-	// "n_ai = 0 if human player else | 0 if game difficulty set <= 2 |
-	// floor(b/8) if set to 3 | floor(b/4) if set to 4 | floor(b/2) if set
-	// >= 5" (same notes).
+	// The executable's notes add more optimal cities for the AI on the
+	// harder levels ("n_ai"), but Civ3 saves fit far better without them:
+	// the AI gets Regent's percentage at every level, nothing more.
 	[Fact]
-	public void TheAIGetsExtraOptimalCitiesOnTheHarderLevels() {
+	public void TheAIGetsRegentsOptimalCitiesOnEveryLevel() {
 		gameData.map.optimalNumberOfCities = 20;
 		us.government = new Government { name = "Test", corruptionType = Government.CorruptionType.Rampant };
 		us.civilization.traits.Remove(Civilization.Trait.Commercial);
@@ -725,15 +725,27 @@ public class RulesReviewFixTest : IClassFixture<SaveGameFixture> {
 		human.government = us.government;
 		human.civilization.traits.Remove(Civilization.Trait.Commercial);
 		gameData.gameDifficulty = gameData.difficulties[4];
-		// A human at Emperor: 80% of 20, with no bonus.
+		// A human at Emperor: 80% of 20.
 		Assert.Equal(16, human.GetAdjustedOptimalCityNumber(gameData));
-		// Emperor: Regent's 90% of 20 + 5.
-		Assert.Equal(22, us.GetAdjustedOptimalCityNumber(gameData));
-		gameData.gameDifficulty = gameData.difficulties[3];
-		Assert.Equal(19, us.GetAdjustedOptimalCityNumber(gameData));
-		gameData.gameDifficulty = gameData.difficulties[6];
-		Assert.Equal(27, us.GetAdjustedOptimalCityNumber(gameData));
+		foreach (int level in new[] { 2, 3, 4, 6 }) {
+			gameData.gameDifficulty = gameData.difficulties[level];
+			Assert.Equal(18, us.GetAdjustedOptimalCityNumber(gameData));
+		}
+	}
+
+	// The executable's government term: floor(b/8) for minimal or nuisance
+	// corruption, floor(b/16) for problematic (C3X's notes on the stock OCN
+	// formula; owner's decision, 2026-10-20).
+	[Fact]
+	public void TheGovernmentAddsAnEighthOrASixteenth() {
+		gameData.map.optimalNumberOfCities = 20;
+		us.civilization.traits.Remove(Civilization.Trait.Commercial);
 		gameData.gameDifficulty = gameData.difficulties[2];
+		us.government = new Government { name = "Test", corruptionType = Government.CorruptionType.Nuisance };
+		// Regent's 90% of (20 + 2).
+		Assert.Equal(19, us.GetAdjustedOptimalCityNumber(gameData));
+		us.government = new Government { name = "Test", corruptionType = Government.CorruptionType.Problematic };
+		// 90% of (20 + 1).
 		Assert.Equal(18, us.GetAdjustedOptimalCityNumber(gameData));
 	}
 

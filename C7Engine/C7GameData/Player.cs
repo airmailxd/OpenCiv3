@@ -1317,11 +1317,17 @@ namespace C7GameData {
 			// "ocn = max (1, floor(s_diff * (b + n_fp + n_com + n_gov + n_ai)
 			// / 100))" (C3X's notes on the stock formula,
 			// https://github.com/maxpetul/C3X/blob/master/Notes/ocn_formula.txt).
-			// The other terms keep alexman's factors (compendium 02); the
-			// notes' government term differs from them (floor(b/8) rather
-			// than a tenth, and floor(b/16) for problematic corruption).
+			// The government and Forbidden Palace terms follow the same
+			// notes: "n_gov = floor(b/8) if L's govt has minimal or nuisance
+			// corruption | floor(b/16) if problematic | 2*b if communal",
+			// "n_fp = floor((3*f*b) / d)", d 8, or 1 under communal
+			// corruption; each term floored. The project owner chose the
+			// executable's government term over alexman's 0.1 and 0
+			// (2026-10-20); against 24k cities from Civ3 saves, exact
+			// corruption matches 78.1% against 77.9%. The notes' AI-only
+			// term ("n_ai", more cities on the harder levels) is left out:
+			// with it, exact corruption matches fell to 69.3%.
 			int commercialCities = civilization.traits.Contains(Civilization.Trait.Commercial) ? mapOptimalCityNumber / 4 : 0;
-			int aiCities = AiOptimalCityBonus(gameData, mapOptimalCityNumber);
 
 			// The Secret Police HQ carries the BIQ's Forbidden Palace flag, so
 			// it counts here like a Forbidden Palace, under Communism (see
@@ -1341,48 +1347,17 @@ namespace C7GameData {
 			float communalCorruptionFactor =
 				government.corruptionType == Government.CorruptionType.Communal ? 3.0f : 3.0f/8.0f;
 
-			double optimal = mapOptimalCityNumber * (1 + (double)OptimalCityGovernmentFactor() + communalCorruptionFactor * numCorruptionReducingSmallWondersInEmpire)
-				+ commercialCities + aiCities;
+			int b = mapOptimalCityNumber;
+			int forbiddenPalaceCities = (int)Math.Floor(communalCorruptionFactor * numCorruptionReducingSmallWondersInEmpire * b + 1e-6);
+			int governmentCities = government.corruptionType switch {
+				Government.CorruptionType.Minimal or Government.CorruptionType.Nuisance => b / 8,
+				Government.CorruptionType.Problematic => b / 16,
+				Government.CorruptionType.Communal => 2 * b,
+				_ => 0,
+			};
+			double optimal = b + forbiddenPalaceCities + commercialCities + governmentCities;
 			// Rounded down, the epsilon keeping 90% of 30 at 27.
 			return (int)Math.Floor(percentOptimalCities * optimal / 100 + 1e-6);
-		}
-
-		// The executable's extra optimal cities for an AI on the harder
-		// game difficulties: "n_ai is special contrib for AI players: n_ai =
-		// 0 if human player else | 0 if game difficulty set <= 2 |
-		// floor(b/8) if set to 3 | floor(b/4) if set to 4 | floor(b/2) if
-		// set >= 5" (C3X's notes on the stock formula,
-		// https://github.com/maxpetul/C3X/blob/master/Notes/ocn_formula.txt;
-		// compendium 08, section 1.2). It goes by the game's difficulty
-		// (index 3 is Monarch), not the AI's own Regent percentage, which
-		// still scales it. Paired AI trials at Monarch (8 games of 200
-		// turns, score per civ against the same civs without it): +128 +- 89
-		// on Continents and +34 +- 58 on Pangaea.
-		public int AiOptimalCityBonus(GameData gameData, int mapOptimalCityNumber) {
-			if (isHuman || isBarbarians) {
-				return 0;
-			}
-			int level = gameData.difficulties.FindIndex(d => d.Name == gameData.gameDifficulty?.Name);
-			return level switch {
-				< 3 => 0,
-				3 => mapOptimalCityNumber / 8,
-				4 => mapOptimalCityNumber / 4,
-				_ => mapOptimalCityNumber / 2,
-			};
-		}
-
-		// How much the government adds to the optimal city number.
-		private float OptimalCityGovernmentFactor() {
-			return government.corruptionType switch {
-				Government.CorruptionType.Minimal => .1f,
-				Government.CorruptionType.Nuisance => .1f,
-				Government.CorruptionType.Problematic => 0,
-				Government.CorruptionType.Rampant => 0,
-				Government.CorruptionType.Catastrophic => 0, // anarchy, special cased
-				Government.CorruptionType.Communal => 2,
-				Government.CorruptionType.Off => 0,
-				_ => throw new ArgumentOutOfRangeException(nameof(government.corruptionType), government.corruptionType, null)
-			};
 		}
 
 		// Notes:

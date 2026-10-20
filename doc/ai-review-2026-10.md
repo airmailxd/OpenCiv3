@@ -73,7 +73,7 @@ Paired trials as above, at Monarch: 8 games of 200 turns on each map. These foll
 | `war-target-score`: the AI picks its target by Civ3's score (power rank, distance, attitude, land units per city, pacts, trades, common enemies). Mutual protection partners are never targets, and others drop out at random. This replaces "the weakest neighbour, if we are 1.3 times as strong". The 1.3 check at the declaration stays. | `StockWarPlotting.Excluded`, `TargetScore` | +124 ± 67 / +87 ± 109 | Kept |
 | Both together | | +42 ± 48 / +128 ± 56* (cities lost -1.6* on Pangaea) | Kept |
 | `ai-trade-gate`: an AI talks trade with another AI only on a one in four roll each turn (C3X: "the base game's 1-in-4 gate before ai_negotiate_with_other_ai"). | `PlayerAI.RollsToNegotiate` | +25 ± 110 / -13 ± 169 | Kept (Civ3's rule; no measurable change) |
-| `ai-ocn-bonus`: on Monarch and harder game difficulties, the AI's base optimal city number gets b/8, b/4 or b/2 more cities (C3X `ocn_formula.txt`, `n_ai`). | `Player.AiOptimalCityBonus` | +128 ± 89 / +34 ± 58 | Kept |
+| `ai-ocn-bonus`: on Monarch and harder game difficulties, the AI's base optimal city number gets b/8, b/4 or b/2 more cities (C3X `ocn_formula.txt`, `n_ai`). | `Player.AiOptimalCityBonus` | +128 ± 89 / +34 ± 58 | Removed: against 24k cities from Civ3 saves, exact corruption matches fell from 77.9% to 69.3% with it |
 | All four together | | +93 ± 51 / -93 ± 151 (military -134*, wars -1.2*) | within noise |
 | The three without the trade gate | | -67 ± 95 / +34 ± 69 | within noise |
 
