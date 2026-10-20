@@ -412,6 +412,15 @@ namespace C7GameData {
 				if (city.IsCapital() || HasForbiddenPalace(city, context)) {
 					return false;
 				}
+				// "The number of cities a player must have to enable
+				// construction of any wonder with this flag is equal to the
+				// Optimal Number of Cities divided by 2" (C3C editor help,
+				// Reduces Corruption); "at least ten cities (on a standard size
+				// map)" (Civilopedia, BLDG_Forbidden_Palace).
+				int optimal = EngineStorage.gameData?.map?.optimalNumberOfCities ?? 0;
+				if (city.owner.cities.Count < optimal / 2) {
+					return false;
+				}
 			}
 
 			if (requiredGovernment != null && city.owner.government?.id != requiredGovernment.id) {

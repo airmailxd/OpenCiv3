@@ -22,6 +22,9 @@ public class SmallWonderTest : IClassFixture<SaveGameFixture>, System.IDisposabl
 		Player[] civs = gameData.players.Where(p => !p.isBarbarians && !p.isHuman).Take(2).ToArray();
 		us = civs[0];
 		them = civs[1];
+		// The Forbidden Palace needs half the optimal number of cities (see
+		// ForbiddenPalaceNeedsHalfTheOptimalCities); these tests build few.
+		gameData.map.optimalNumberOfCities = 2;
 	}
 
 	// Captures send messages to the UI; don't leave them for other tests.
@@ -139,6 +142,24 @@ public class SmallWonderTest : IClassFixture<SaveGameFixture>, System.IDisposabl
 		// Both can be had at once, but not in the same city.
 		AssertCanProduce(true, hq, other);
 		AssertCanProduce(false, hq, fpCity);
+	}
+
+	// "The number of cities a player must have to enable construction of
+	// any wonder with this flag is equal to the Optimal Number of Cities
+	// divided by 2" (C3C editor help, Reduces Corruption).
+	[Fact]
+	public void ForbiddenPalaceNeedsHalfTheOptimalCities() {
+		Building fp = BuildingNamed("Forbidden Palace");
+		Learn(fp);
+		gameData.map.optimalNumberOfCities = 8;
+		BuildCity(us);
+		City other = BuildCity(us);
+		while (us.cities.Count < 3) {
+			BuildCity(us);
+		}
+		AssertCanProduce(false, fp, other);
+		BuildCity(us);
+		AssertCanProduce(true, fp, other);
 	}
 
 	[Fact]
