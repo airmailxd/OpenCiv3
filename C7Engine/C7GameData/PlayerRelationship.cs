@@ -132,6 +132,12 @@ public class PlayerRelationship {
 	// (see DeclareWar).
 	public bool hasEmbassy = false;
 
+	// p1.playerRelationships[p2].embassyClosedByWar is true while p1's
+	// embassy in p2's capital is closed by a war between them; peace opens
+	// it again (see SignPeaceAfterWar). False in saves made before it was
+	// recorded, whose closed embassies stay closed.
+	public bool embassyClosedByWar = false;
+
 	// What p1's embassy reported of p2's capital when it was established,
 	// or null if p1 has no embassy or it came from a scenario.
 	public Espionage.CityReport embassyReport = null;
@@ -287,8 +293,8 @@ public class PlayerRelationship {
 		// embassy is closed, your spy will continue to function as long as
 		// it is not caught" (Civ3.com FAQ, quoted at
 		// https://apolyton.net/forum/miscellaneous/archives/civ3-general-archive/41397-espionage-you-can-t-steal-techs-from-civs-you-are-at-war-with).
-		// So the planted spies stay; an embassy has to be established again
-		// after peace.
+		// So the planted spies stay. Peace opens the embassy again (see
+		// SignPeaceAfterWar).
 		CloseEmbassy(aggressorRelationshipToDefender);
 		CloseEmbassy(defenderRelationshipToAggressor);
 
@@ -326,8 +332,16 @@ public class PlayerRelationship {
 	}
 
 	private static void CloseEmbassy(PlayerRelationship relationship) {
+		relationship.embassyClosedByWar |= relationship.hasEmbassy;
 		relationship.hasEmbassy = false;
 		relationship.embassyReport = null;
+	}
+
+	private static void ReopenEmbassy(PlayerRelationship relationship) {
+		if (relationship.embassyClosedByWar) {
+			relationship.hasEmbassy = true;
+			relationship.embassyClosedByWar = false;
+		}
 	}
 
 	// Civ3's trading reputation. A civ that breaks a deal with an AI is
@@ -403,6 +417,16 @@ public class PlayerRelationship {
 
 		left.playerRelationships[right.id].refuseContactUntilTurn = -1;
 		right.playerRelationships[left.id].refuseContactUntilTurn = -1;
+
+		// An embassy the war closed opens again: "It is only necessary to
+		// establish an embassy once with any particular civilization. Even
+		// if you manage to get it closed down (through war with that
+		// civilization), it reopens when peace is declared" (Civ3 manual,
+		// p.~157, https://cdn.akamai.steamstatic.com/steam/apps/3910/manuals/manual.pdf).
+		// UNVERIFIED: what it reported of the capital when established is
+		// not reported again.
+		ReopenEmbassy(left.playerRelationships[right.id]);
+		ReopenEmbassy(right.playerRelationships[left.id]);
 
 		// the war is over, so nobody started a current one
 		left.playerRelationships[right.id].otherStartedCurrentWar = null;
