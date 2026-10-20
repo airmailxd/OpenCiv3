@@ -83,11 +83,15 @@ public class ArmyTest : IClassFixture<SaveGameFixture> {
 		return CityInteractions.BuildCity(tile, owner, $"City {owner.cities.Count}");
 	}
 
+	// An army with the members, anywhere. Units only join an army in a
+	// city (see UnitsJoinAnArmyOnlyInACity), so outside one they're put in
+	// directly, as if the army had been filled in a city and moved here.
 	private MapUnit SpawnArmy(Player owner, Tile tile, params string[] members) {
 		MapUnit army = Spawn(owner, "Army", tile);
 		foreach (string member in members) {
 			MapUnit unit = Spawn(owner, member, tile);
-			unit.LoadOntoTransportHere();
+			army.Board(unit);
+			unit.isFortified = true;
 			Assert.True(unit.IsLoadedIn(army));
 		}
 		return army;
@@ -177,7 +181,7 @@ public class ArmyTest : IClassFixture<SaveGameFixture> {
 	public void OnlyLandCombatUnitsJoinArmies(string prototype, bool canJoin) {
 		Assert.Equal(canJoin, Prototype(prototype).CanJoinArmy());
 
-		Tile tile = FindEmptyLand();
+		Tile tile = BuildCity(us).location;
 		MapUnit army = Spawn(us, "Army", tile);
 		MapUnit unit = Spawn(us, prototype, tile);
 		Assert.Equal(canJoin, unit.GetAvailableActions().Contains(UnitAction.Load));
@@ -189,7 +193,8 @@ public class ArmyTest : IClassFixture<SaveGameFixture> {
 
 	[Fact]
 	public void ArmyHoldsThreeUnitsAndFourWithThePentagon() {
-		Tile tile = FindEmptyLand();
+		City city = BuildCity(us);
+		Tile tile = city.location;
 		MapUnit army = Spawn(us, "Army", tile);
 		List<MapUnit> warriors = Enumerable.Range(0, 4).Select(_ => Spawn(us, "Warrior", tile)).ToList();
 		foreach (MapUnit w in warriors) {
@@ -201,13 +206,41 @@ public class ArmyTest : IClassFixture<SaveGameFixture> {
 		Assert.False(warriors[3].IsLoaded());
 		Assert.DoesNotContain(UnitAction.Load, warriors[3].GetAvailableActions());
 
-		City city = BuildCity(us);
 		city.AddBuilding(BuildingNamed("The Pentagon"));
 
 		Assert.Equal(4, army.Capacity());
 		warriors[3].LoadOntoTransportHere();
 		Assert.True(warriors[3].IsLoadedIn(army));
 		Assert.Equal(4, army.Passengers().Count);
+	}
+
+	// "Once that army leaves the city of it's construction, you cannot add
+	// or remove units from the army" (Civ3 readme). Armies don't remember
+	// that city, so any of the owner's cities will do.
+	[Fact]
+	public void UnitsJoinAnArmyOnlyInACity() {
+		Tile field = FindEmptyLand();
+		MapUnit army = Spawn(us, "Army", field);
+		MapUnit outside = Spawn(us, "Warrior", field);
+		Assert.DoesNotContain(UnitAction.Load, outside.GetAvailableActions());
+		outside.LoadOntoTransportHere();
+		Assert.False(outside.IsLoaded());
+
+		Tile home = BuildCity(us).location;
+		MapUnit cityArmy = Spawn(us, "Army", home);
+		MapUnit inside = Spawn(us, "Warrior", home);
+		Assert.Contains(UnitAction.Load, inside.GetAvailableActions());
+		inside.LoadOntoTransportHere();
+		Assert.True(inside.IsLoadedIn(cityArmy));
+
+		// Not in another civ's city either.
+		Tile theirs = BuildCity(them).location;
+		MapUnit foreignArmy = Spawn(us, "Army", theirs);
+		MapUnit visitor = Spawn(us, "Warrior", theirs);
+		visitor.LoadOntoTransportHere();
+		Assert.False(visitor.IsLoaded());
+		Assert.Empty(army.Passengers());
+		Assert.Empty(foreignArmy.Passengers());
 	}
 
 	[Fact]
@@ -307,7 +340,7 @@ public class ArmyTest : IClassFixture<SaveGameFixture> {
 
 	[Fact]
 	public void ArmyMovesAtThePaceOfItsSlowestMember() {
-		Tile tile = FindEmptyLand();
+		Tile tile = BuildCity(us).location;
 		MapUnit army = Spawn(us, "Army", tile);
 
 		// An empty army has only its own movement, not that of a full one.
@@ -336,7 +369,7 @@ public class ArmyTest : IClassFixture<SaveGameFixture> {
 
 	[Fact]
 	public void AnArmyCantOutrunAMemberThatHasAlreadyMoved() {
-		Tile tile = FindEmptyLand();
+		Tile tile = BuildCity(us).location;
 		MapUnit army = SpawnArmy(us, tile, "Cavalry");
 		MapUnit tired = Spawn(us, "Cavalry", tile);
 		tired.movementPoints.onUnitMove(2);
@@ -347,7 +380,7 @@ public class ArmyTest : IClassFixture<SaveGameFixture> {
 
 	[Fact]
 	public void AnArmyKeepsWhatItSpentWhenAMemberJoins() {
-		Tile tile = FindEmptyLand();
+		Tile tile = BuildCity(us).location;
 		MapUnit army = SpawnArmy(us, tile, "Cavalry");
 		army.movementPoints.onUnitMove(1);
 		Spawn(us, "Cavalry", tile).LoadOntoTransportHere();
@@ -786,5 +819,94 @@ public class ArmyTest : IClassFixture<SaveGameFixture> {
 
 		BuildCity(us).AddBuilding(gameData.Buildings.First(b => b.allowsEnemyTerritoryHealing));
 		Assert.Equal(2, member.HealRateAt(enemyLand));
+	}
+
+	// ---- Retreat ----
+
+	// "The only unit abilities that an army can inherit is mobility, and
+	// only when all units in that army have that ability" (Civ3 readme):
+	// the army's extra movement point doesn't make it fast.
+	[Fact]
+	public void AnArmyIsFastOnlyIfAllItsMembersAre() {
+		(Tile from, _, Tile to) = FindAdjacentLand();
+		MapUnit spearman = Spawn(them, "Spearman", to);
+
+		MapUnit slow = SpawnArmy(us, from, "Warrior", "Warrior");
+		Assert.Equal(2, slow.MaxMovementPoints());
+		Assert.Equal(0, slow.RetreatChance(spearman, true));
+		// Nor does it make a slow army too fast to retreat from.
+		MapUnit horseman = Spawn(them, "Horseman", to);
+		Assert.True(horseman.RetreatChance(slow, false) > 0);
+		gameData.RemoveUnit(slow);
+
+		MapUnit mixed = SpawnArmy(us, from, "Horseman", "Warrior");
+		Assert.Equal(0, mixed.RetreatChance(spearman, true));
+		gameData.RemoveUnit(mixed);
+
+		MapUnit fast = SpawnArmy(us, from, "Horseman", "Horseman");
+		Assert.True(fast.RetreatChance(spearman, true) > 0);
+	}
+
+	// A fast attacker that loses rounds, its hit points and the rolls for
+	// the fight, starting fresh with its moves.
+	private (MapUnit horseman, MapUnit spearman) RetreatFight() {
+		us.DeclareWarOn(them, gameData.turn);
+		(Tile from, _, Tile to) = FindAdjacentLand();
+		MapUnit horseman = Spawn(us, "Horseman", from);
+		horseman.movementPoints.reset(horseman.MaxMovementPoints());
+		MapUnit spearman = Spawn(them, "Spearman", to);
+		Assert.Equal(3, horseman.hitPointsRemaining);
+		Assert.True(horseman.RetreatChance(spearman, true) > 0);
+		return (horseman, spearman);
+	}
+
+	// "Retreat possible if attacking unit drops from 2 HP to 1 HP" (Offa,
+	// https://forums.civfanatics.com/threads/retreating-units.104978/).
+	[Fact]
+	public async Task AnAttackerRetreatsAsItDropsToItsLastHitPoint() {
+		(MapUnit horseman, MapUnit spearman) = RetreatFight();
+		CombatResult result = CombatResult.Impossible;
+		// Two lost rounds, then a successful retreat roll.
+		await WithRandom(new ScriptedRandom([0.99, 0.99, 0.0], 0.99), async () => result = await horseman.Fight(spearman));
+
+		Assert.Equal(CombatResult.AttackerRetreated, result);
+		Assert.Equal(1, horseman.hitPointsRemaining);
+	}
+
+	// An attacker that starts with one hit point has no 2 to 1 drop, so no
+	// roll.
+	[Fact]
+	public async Task AnAttackerOnItsLastHitPointDoesNotRetreat() {
+		(MapUnit horseman, MapUnit spearman) = RetreatFight();
+		horseman.hitPointsRemaining = 1;
+		CombatResult result = CombatResult.Impossible;
+		await WithRandom(new ScriptedRandom([0.99], 0.0), async () => result = await horseman.Fight(spearman));
+
+		Assert.Equal(CombatResult.AttackerKilled, result);
+	}
+
+	// "Zero chance if defender has 1 HP" (Offa, same thread).
+	[Fact]
+	public async Task NoRetreatFromAnOpponentOnItsLastHitPoint() {
+		(MapUnit horseman, MapUnit spearman) = RetreatFight();
+		spearman.hitPointsRemaining = 1;
+		CombatResult result = CombatResult.Impossible;
+		// The third roll would have been the retreat; it wins a round instead.
+		await WithRandom(new ScriptedRandom([0.99, 0.99, 0.0], 0.99), async () => result = await horseman.Fight(spearman));
+
+		Assert.Equal(CombatResult.DefenderKilled, result);
+	}
+
+	// The roll applies only if the attacker "would have at least 1/3
+	// movement point left after the attack" (boogaboo,
+	// https://forums.civfanatics.com/threads/how-do-retreats-work.100878).
+	[Fact]
+	public async Task AnAttackerWithoutMovesToSpareDoesNotRetreat() {
+		(MapUnit horseman, MapUnit spearman) = RetreatFight();
+		horseman.movementPoints.onUnitMove(1);
+		CombatResult result = CombatResult.Impossible;
+		await WithRandom(new ScriptedRandom([0.99, 0.99, 0.0], 0.99), async () => result = await horseman.Fight(spearman));
+
+		Assert.Equal(CombatResult.AttackerKilled, result);
 	}
 }

@@ -47,6 +47,10 @@ public class ArmyAITest : IClassFixture<SaveGameFixture> {
 	[Fact]
 	public void LeaderAtWarFormsAnArmyFromTheAttackersAtHand() {
 		City city = BuildCity(us);
+		// Enough cities to support the army (see MapUnit.CanFormArmy).
+		while (!us.CanSupportAnotherArmy()) {
+			BuildCity(us);
+		}
 		them.DeclareWarOn(us, gameData.turn);
 		MapUnit spearman = Spawn(us, "Spearman", city.location);
 		MapUnit sword1 = Spawn(us, "Swordsman", city.location);

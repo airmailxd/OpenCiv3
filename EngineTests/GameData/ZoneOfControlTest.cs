@@ -57,4 +57,43 @@ public class ZoneOfControlTest : MapBase {
 
 		Assert.Empty(mover.FindZoneOfControlAttackers(from, to));
 	}
+
+	// "Armies now have the zone of control and blitz ability" (Civ3
+	// readme, 1.17f). An army has no attack of its own; its members fight.
+	[Fact]
+	public void ArmiesWithMembersExertZoneOfControl() {
+		MapUnit army = new(ID.None("army")) {
+			owner = them,
+			unitType = new UnitPrototype() { attack = 0, defense = 0, capacity = 3, isArmy = true, hasZoneOfControl = true },
+			location = watchTower,
+		};
+		army.unitType.categories.Add("Land");
+		watchTower.unitsOnTile.Add(army);
+		MapUnit mover = MakeUnit(us, from, zoc: false);
+
+		// An empty army can't fight, so it can't take the shot either.
+		Assert.Empty(mover.FindZoneOfControlAttackers(from, to));
+
+		MapUnit member = MakeUnit(them, watchTower, zoc: false);
+		member.hitPointsRemaining = 3;
+		member.loadedOnUnitId = army.id;
+
+		Assert.Equal([army], mover.FindZoneOfControlAttackers(from, to));
+	}
+
+	// Units in a fortress "have a zone of control and fire at passing enemy
+	// units" (Conquests Civilopedia, GCON_Fortresses), and a barricade is a
+	// fortress too (GCON_Barricades).
+	[Theory]
+	[InlineData(Tile.TileOverlays.FORTRESS)]
+	[InlineData(Tile.TileOverlays.BARRICADE)]
+	public void UnitsInAFortressExertZoneOfControl(string holding) {
+		MapUnit guard = MakeUnit(them, watchTower, zoc: false);
+		MapUnit mover = MakeUnit(us, from, zoc: false);
+		Assert.Empty(mover.FindZoneOfControlAttackers(from, to));
+
+		watchTower.overlays.Add(new TerrainImprovement(holding, TerrainImprovement.Layer.Holdings));
+
+		Assert.Equal([guard], mover.FindZoneOfControlAttackers(from, to));
+	}
 }

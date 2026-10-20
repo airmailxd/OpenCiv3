@@ -1081,6 +1081,13 @@ namespace C7GameData {
 		// The bonuses units in the city get defending against the attacker
 		// (null if unknown, treated as a land unit).
 		public IEnumerable<StrengthBonus> GetDefenseBonuses(MapUnit attacker = null) {
+			// None while it resists: "Cities with resisters do not give
+			// defensive bonuses" (Conquests Civilopedia, GCON_Terrain_Combat).
+			// The tile's terrain bonus still counts (see MapUnit).
+			if (IsInResistance) {
+				yield break;
+			}
+
 			GameData gD = EngineStorage.gameData;
 
 			// Cities give defense bonuses based on their size.

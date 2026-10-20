@@ -10,12 +10,16 @@ namespace C7GameData;
 public partial class MapUnit {
 	// The chance of an elite victory producing a leader: 1 in 16, or 1 in 12
 	// with the Heroic Epic. These are the figures usually given for Conquests;
-	// the game doesn't document them.
+	// the game doesn't document them. Half that for a victory on defense:
+	// "The chances of getting a leader from a successful defense are 1/2 the
+	// chances while attacking"
+	// (https://civfanatics.com/civ3/strategy/military/creating-and-using-leaders/).
 	internal const double LeaderChance = 1.0 / 16.0;
 	internal const double IncreasedLeaderChance = 1.0 / 12.0;
 
-	public static double LeaderChanceFor(Player player) {
-		return player.HasIncreasedLeaderChance() ? IncreasedLeaderChance : LeaderChance;
+	public static double LeaderChanceFor(Player player, bool defending = false) {
+		double chance = player.HasIncreasedLeaderChance() ? IncreasedLeaderChance : LeaderChance;
+		return defending ? chance / 2 : chance;
 	}
 
 	public bool IsLeader() {
@@ -51,12 +55,12 @@ public partial class MapUnit {
 
 	// Rolls for a leader after this unit won a fight. wasElite is whether
 	// the unit was elite going into the fight: a unit promoted to elite by
-	// this victory doesn't also get the chance. Returns the new leader, or
-	// null.
-	internal MapUnit RollForLeader(MapUnit opponent, bool wasElite) {
+	// this victory doesn't also get the chance. defending is whether it won
+	// on defense. Returns the new leader, or null.
+	internal MapUnit RollForLeader(MapUnit opponent, bool wasElite, bool defending = false) {
 		if (!CouldProduceLeaderBeating(opponent, wasElite))
 			return null;
-		if (GameData.rng.NextDouble() >= LeaderChanceFor(owner))
+		if (GameData.rng.NextDouble() >= LeaderChanceFor(owner, defending))
 			return null;
 		return ProduceLeader();
 	}
@@ -75,11 +79,15 @@ public partial class MapUnit {
 	}
 
 	// A military leader in one of its owner's cities can form an army there
-	// (a scientific one can't; see MapUnit_ScientificLeader.cs). Unlike
-	// armies built by the Military Academy, these don't need cities to
-	// support them (an assumption, from how Conquests plays).
+	// (a scientific one can't; see MapUnit_ScientificLeader.cs). Like armies
+	// built by the Military Academy, it needs the cities to support one more
+	// army: "you must have at least four cities for every army you create"
+	// (Conquests Civilopedia, GCON_Armies), the four being the rules' "Cities
+	// Needed to Support an Army" (see Player.CanSupportAnotherArmy).
 	public bool CanFormArmy() {
 		if (!IsLeader() || isScientificLeader || !movementPoints.canMove || !InOwnCity())
+			return false;
+		if (!owner.CanSupportAnotherArmy())
 			return false;
 		return ArmyPrototype() != null;
 	}
