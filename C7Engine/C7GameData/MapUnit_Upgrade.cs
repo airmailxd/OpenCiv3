@@ -10,9 +10,11 @@ public partial class MapUnit {
 	// in their owner's cities: land units need barracks, ships a harbor and
 	// aircraft an airport ("A city with an [Airport] can be used to upgrade
 	// air units", Conquests Civilopedia, BLDG_Airport). The new type must be
-	// one the city could build.
+	// one the city could build. Units inside an army can't be upgraded:
+	// "Units in armies cannot be upgraded."
+	// (https://civfanatics.com/civ3/strategy/introductory/the-basics-of-armies/).
 	public UnitPrototype GetAvailableUpgrade() {
-		if (!unitType.actions.Contains(UnitAction.Upgrade)) {
+		if (!unitType.actions.Contains(UnitAction.Upgrade) || IsInArmy()) {
 			return null;
 		}
 
@@ -77,15 +79,18 @@ public partial class MapUnit {
 		return upgrade != null && owner.gold >= UpgradeCost(upgrade);
 	}
 
-	// Upgrades the unit, keeping its experience. Returns whether it upgraded.
+	// Upgrades the unit, keeping its experience except that an elite drops
+	// to veteran (see ChangeTypeForUpgrade). Returns whether it upgraded.
 	public bool Upgrade() {
 		return UpgradeTo(GetAvailableUpgrade());
 	}
 
 	// Like Upgrade, for callers that already looked up GetAvailableUpgrade
 	// (or an equivalent) and pass its result.
+	// UpgradeTo itself refuses a unit in an army too, since some callers
+	// (the AI's) work the upgrade out their own way.
 	internal bool UpgradeTo(UnitPrototype upgrade) {
-		if (upgrade == null) {
+		if (upgrade == null || IsInArmy()) {
 			return false;
 		}
 		int cost = UpgradeCost(upgrade);
@@ -99,14 +104,38 @@ public partial class MapUnit {
 		return true;
 	}
 
-	// Turns this unit into the given type, keeping its experience, without
-	// charging anything.
+	// Turns this unit into the given type, without charging anything.
+	//
+	// Experience is kept, except that an elite becomes a veteran: "elites are
+	// dowgraded to vets but all others hold their status" (Tone,
+	// https://forums.civfanatics.com/threads/upgrade-or-disband.231677, #13);
+	// "if you later upgrade the unit it goes back to being veteran and can
+	// again be promoted to Elite" (CerberusIV,
+	// https://codehappy.net/apolyton/threads/90368-1.htm).
+	//
+	// The unit may make a great leader again: "Each time a unit is upgraded,
+	// however, it can once again produce a great leader" (a rule alexman
+	// relays as confirmed by Mike B. of Firaxis,
+	// https://codehappy.net/apolyton/threads/50260-1.htm).
+	//
+	// And it comes out fully healed: "there remains only one, rarely used,
+	// way to heal even redlined troops in one turn to mention - to upgrade
+	// them" (Pyrrhos, https://forums.civfanatics.com/threads/fortification.266551/, #9).
 	private void ChangeTypeForUpgrade(UnitPrototype upgrade) {
 		if (name == unitType.name) {
 			name = upgrade.name;
 		}
 		unitType = upgrade;
+		if (IsElite()) {
+			List<ExperienceLevel> levels = EngineStorage.gameData.experienceLevels;
+			int index = levels.IndexOf(experienceLevel);
+			if (index > 0) {
+				experienceLevel = levels[index - 1];
+				experienceLevelKey = experienceLevel.key;
+			}
+		}
+		hasProducedLeader = false;
 		TileChangeJournal.Record(location);
-		hitPointsRemaining = Math.Min(hitPointsRemaining, maxHitPoints);
+		hitPointsRemaining = maxHitPoints;
 	}
 }

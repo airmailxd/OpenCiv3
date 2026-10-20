@@ -111,4 +111,65 @@ public class UnitUpgradeTest {
 		Assert.Equal(fighter, plane.GetAvailableUpgrade());
 		Assert.Equal(30, plane.UpgradeCost(fighter));
 	}
+	// The four Conquests levels, so that elite is the top one.
+	private void AddExperienceLevels() {
+		gameData.experienceLevels.Add(new ExperienceLevel("Conscript", "Conscript", 2, 0.34, 0.5));
+		gameData.experienceLevels.Add(new ExperienceLevel("Regular", "Regular", 3, 0.5, 0.25));
+		gameData.experienceLevels.Add(new ExperienceLevel("Veteran", "Veteran", 4, 0.58, 0.125));
+		gameData.experienceLevels.Add(new ExperienceLevel("Elite", "Elite", 5, 0.66, 0));
+	}
+
+	// "elites are dowgraded to vets but all others hold their status"
+	// (https://forums.civfanatics.com/threads/upgrade-or-disband.231677, #13),
+	// and the upgraded unit is fully healed and may make a leader again.
+	[Fact]
+	public void AnUpgradedEliteBecomesAFullyHealedVeteranThatMayMakeALeaderAgain() {
+		AddExperienceLevels();
+		AddBarracks();
+		MapUnit unit = MakeSpearman();
+		unit.experienceLevel = gameData.experienceLevels[3];
+		unit.experienceLevelKey = "Elite";
+		unit.hitPointsRemaining = 1;
+		unit.hasProducedLeader = true;
+
+		Assert.True(unit.Upgrade());
+
+		Assert.Equal(pikeman, unit.unitType);
+		Assert.Equal("Veteran", unit.experienceLevel.key);
+		Assert.Equal("Veteran", unit.experienceLevelKey);
+		Assert.Equal(4, unit.hitPointsRemaining);
+		Assert.False(unit.hasProducedLeader);
+	}
+
+	[Fact]
+	public void AnUpgradedVeteranStaysVeteranAndIsFullyHealed() {
+		AddExperienceLevels();
+		AddBarracks();
+		MapUnit unit = MakeSpearman();
+		unit.experienceLevel = gameData.experienceLevels[2];
+		unit.hitPointsRemaining = 2;
+
+		Assert.True(unit.Upgrade());
+
+		Assert.Equal("Veteran", unit.experienceLevel.key);
+		Assert.Equal(4, unit.hitPointsRemaining);
+	}
+
+	// "Units in armies cannot be upgraded."
+	// (https://civfanatics.com/civ3/strategy/introductory/the-basics-of-armies/).
+	[Fact]
+	public void UnitsInAnArmyCantBeUpgraded() {
+		AddBarracks();
+		UnitPrototype armyType = new() { name = "Army", isArmy = true };
+		MapUnit army = armyType.GetInstance(ID.None("army"), armyType, player, location: city.location);
+		MapUnit unit = MakeSpearman();
+		city.location.unitsOnTile.Add(army);
+		city.location.unitsOnTile.Add(unit);
+		unit.loadedOnUnitId = army.id;
+
+		Assert.Null(unit.GetAvailableUpgrade());
+		Assert.False(unit.Upgrade());
+		Assert.Equal(spearman, unit.unitType);
+		Assert.Equal(100, player.gold);
+	}
 }

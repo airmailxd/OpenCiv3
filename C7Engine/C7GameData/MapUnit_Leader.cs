@@ -9,11 +9,15 @@ namespace C7GameData;
 // improvement.
 public partial class MapUnit {
 	// The chance of an elite victory producing a leader: 1 in 16, or 1 in 12
-	// with the Heroic Epic. These are the figures usually given for Conquests;
-	// the game doesn't document them. Half that for a victory on defense:
-	// "The chances of getting a leader from a successful defense are 1/2 the
-	// chances while attacking"
+	// with the Heroic Epic, half that for a victory on defense. Read from the
+	// C3C 1.22 executable: "Ratio = 4 * (Small_Wonder_Count <= 0) + 12" /
+	// "If the combat is defence, Ratio doubles" (Antal1987,
+	// https://forums.civfanatics.com/threads/c3c-mechanics-birth-of-military-leader.526511, #1),
+	// as players found: "The chances of getting a leader from a successful
+	// defense are 1/2 the chances while attacking"
 	// (https://civfanatics.com/civ3/strategy/military/creating-and-using-leaders/).
+	// The same routine skips the roll for a unit that "is naval or air", so
+	// only land units make leaders here.
 	internal const double LeaderChance = 1.0 / 16.0;
 	internal const double IncreasedLeaderChance = 1.0 / 12.0;
 
