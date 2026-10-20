@@ -867,7 +867,10 @@ namespace C7GameData {
 			// AI always researches as if on Regent (CF 10), while on Emperor (CF 8)
 			// a human's techs cost 10/8 as much. See
 			// https://forums.civfanatics.com/threads/ai-difficulty-level-bonuses.37490/.
-			int difficultyFactor = player.isHuman ? gameDifficulty.AiCostFactor : gameDifficulty.HumanCostFactor;
+			// "For the purposes of the research cost formula, CF has a maximum
+			// value of 10" (https://forums.civfanatics.com/threads/research-cost-formula-v1-29f.29485/),
+			// so below Regent a human's techs cost no less than on Regent.
+			int difficultyFactor = player.isHuman ? Math.Min(gameDifficulty.AiCostFactor, 10) : gameDifficulty.HumanCostFactor;
 			float knowledgeFactor = 1.0f - knownCivsThatKnowTheTech / (civsLeft * 1.75f);
 			float researchCost = map.techRate * 10 * tech.Cost  * knowledgeFactor/ (difficultyFactor * 10);
 			// A house rule may make the AI's research cheaper (see AiHouseRules).

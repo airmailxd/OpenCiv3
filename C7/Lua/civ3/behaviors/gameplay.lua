@@ -29,7 +29,10 @@ local function disband_reward(context)
     -- GetType() isn't reachable from Lua, so tell the kinds apart by their
     -- members: only Buildings have IsGreatWonder, only Inflows localYield.
     -- Reading a member a type lacks raises an error, hence pcall.
-    local ok, is_wonder = pcall(function() return item_produced.IsGreatWonder() end)
+    -- Disbanding "does not work for wonders": "all of the shields are added
+    -- to the current build (except wonders)"
+    -- (https://forums.civfanatics.com/threads/disbanding-units-obtaining-extra-shields.118679/).
+    local ok, is_wonder = pcall(function() return item_produced.IsGreatWonder() or item_produced.isSmallWonder end)
     if ok and is_wonder == true then
       return
     end
@@ -42,7 +45,7 @@ local function disband_reward(context)
     local reward = math.floor(unit_shield_cost * rules().ShieldRateForDisbanding)
     game_data().SendMessageToUiFromLua("Our " .. unit.name .. " has been converted to " .. reward .. " shields.",
       unit.location)
-    city.SetStoredShields(reward, true)
+    city.AddDisbandShields(reward)
   end
 end
 

@@ -465,7 +465,10 @@ namespace C7Engine {
 			for (int i = 0; i < PopulationOf(unit); ++i) {
 				CityResident resident = new() {
 					citizenType = defaultCitizen,
-					nationality = unit.owner.civilization,
+					// Captured settlers keep their nationality and "if ordered to
+					// join a city, become foreign nationals" (Civilopedia,
+					// GCON_Nationality).
+					nationality = unit.nationality ?? unit.owner.civilization,
 					city = city
 				};
 				city.AddCitizen(resident);

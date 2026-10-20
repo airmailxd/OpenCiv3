@@ -34,6 +34,20 @@ public sealed class AiDifficultyBonusTest : IClassFixture<SaveGameFixture>, IDis
 		Assert.Equal(baseFoodBox * 8 / 10, city.FoodNeededToGrow());
 	}
 
+	// "For the purposes of the research cost formula, CF has a maximum
+	// value of 10" (https://forums.civfanatics.com/threads/research-cost-formula-v1-29f.29485/).
+	[Fact]
+	public void HumanTechsCostNoLessBelowRegent() {
+		player.isHuman = true;
+		Tech tech = gameData.techs.First(t => !player.knownTechs.Contains(t.id));
+		gameData.gameDifficulty = new Difficulty { Name = "Regent", AiCostFactor = 10, HumanCostFactor = 10 };
+		int regent = gameData.TechCostFor(tech, player);
+		gameData.gameDifficulty = new Difficulty { Name = "Chieftain", AiCostFactor = 20, HumanCostFactor = 10 };
+		Assert.Equal(regent, gameData.TechCostFor(tech, player));
+		gameData.gameDifficulty = new Difficulty { Name = "Emperor", AiCostFactor = 8, HumanCostFactor = 10 };
+		Assert.True(gameData.TechCostFor(tech, player) > regent);
+	}
+
 	[Fact]
 	public void HumanFoodBoxIsNotScaled() {
 		player.isHuman = true;

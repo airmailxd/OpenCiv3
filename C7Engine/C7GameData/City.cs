@@ -229,7 +229,7 @@ namespace C7GameData {
 				return "Production was hurried this turn";
 			}
 			if (receivedForestShields && IsWonder(producible)) {
-				return "Forest shields can't go to a wonder";
+				return "Shields from a forest or a disbanded unit can't go to a wonder";
 			}
 			return null;
 		}
@@ -292,6 +292,16 @@ namespace C7GameData {
 		// completed something (see WhyCannotChangeProduction).
 		public void AddForestShields(int shields) {
 			shieldsStored = Math.Min(shieldsStored + shields, owner.ShieldCost(itemBeingProduced));
+			receivedForestShields = true;
+		}
+
+		// Adds a disbanded unit's shields to the production box. As with a
+		// forest's, the city then can't switch to a wonder: with forest or
+		// disband shields in the box "that particular city won't be able to
+		// switch to a wonder" (Bamspeedy,
+		// https://forums.civfanatics.com/threads/disbanding-question.18365/).
+		public void AddDisbandShields(int shields) {
+			SetStoredShields(shields, true);
 			receivedForestShields = true;
 		}
 
@@ -933,6 +943,11 @@ namespace C7GameData {
 		public void HandleCityGrowth(GameData gameData) {
 			int foodNeededToGrow = FoodNeededToGrow();
 			int foodGrowth = FoodGrowthPerTurn();
+			// In disorder "No excess food is stored" (Civilopedia,
+			// GCON_Disorder); a shortage still starves the city.
+			if (isInCivilDisorder) {
+				foodGrowth = Math.Min(foodGrowth, 0);
+			}
 			bool hasGranary = HasGranary();
 
 			foodStored += foodGrowth;
@@ -1677,6 +1692,9 @@ namespace C7GameData {
 
 		private int ResistersInCity() => Math.Clamp(resisters, 0, residents.Count);
 
+		// The working residents who aren't specialists, whose moods count.
+		private IEnumerable<CityResident> Laborers() => WorkingResidents().Where(r => r.citizenType.IsDefaultCitizen);
+
 		// The chance, in per cent, that a citizen starts (or, continuing,
 		// keeps) resisting, from the article above. By how the old owner
 		// regards our culture: "disdainful of" 90% ("they have three or more
@@ -1741,12 +1759,16 @@ namespace C7GameData {
 		// count land units that can attack and defend. Source as above.
 		//
 		// Per the project owner, resistance goes on after the old owner is
-		// destroyed. It ends if the old owner has the city back.
+		// destroyed. It ends if the old owner has the city back, or at peace
+		// with it: resisters "stay that way until you make peace with their
+		// mother country or 'win them over'" (Civ3 manual); "Resisters can be
+		// quelled by ending the war" (Civilopedia, GCON_Resistance).
 		public void UpdateResistance(GameData gameData) {
 			if (resisters <= 0) {
 				return;
 			}
-			if (resistanceFrom == null || resistanceFrom == owner) {
+			if (resistanceFrom == null || resistanceFrom == owner
+					|| (!resistanceFrom.defeated && !PlayerRelationship.AtWar(owner, resistanceFrom))) {
 				EndResistance();
 				return;
 			}
@@ -2232,18 +2254,20 @@ namespace C7GameData {
 		// influcences are added. A fixed number of citizens are born content,
 		// based on the difficulty level (Regent's for the AI, see
 		// GameData.AiRulesDifficulty), and after that all citizens are born
-		// unhappy. Specialists and resisters are excluded from this.
+		// unhappy. Specialists and resisters are excluded from this:
+		// "Resistors, content people, and Specialists are ignored in the
+		// calculation" of disorder (Civ3 manual); resisters are left
+		// unhappy.
 		private void InitializeMoodsForDifficulty(Difficulty gameDifficulty) {
-			int numLaborers = residents.Count(x => x.citizenType.IsDefaultCitizen);
+			foreach (CityResident r in residents.Skip(residents.Count - ResistersInCity())) {
+				r.mood = CityResident.Mood.Unhappy;
+			}
+			List<CityResident> laborers = Laborers().ToList();
 			// A house rule may make more of the AI's citizens content (see
 			// AiHouseRules).
-			int content = Math.Min(gameDifficulty.NumberOfCitizensBornContent + AiHouseRules.ExtraContentCitizens(owner), numLaborers);
+			int content = Math.Min(gameDifficulty.NumberOfCitizensBornContent + AiHouseRules.ExtraContentCitizens(owner), laborers.Count);
 
-			foreach (CityResident r in residents) {
-				if (!r.citizenType.IsDefaultCitizen) {
-					continue;
-				}
-
+			foreach (CityResident r in laborers) {
 				if (content > 0) {
 					--content;
 					r.mood = CityResident.Mood.Content;
@@ -2258,10 +2282,7 @@ namespace C7GameData {
 		private int ApplyMoodChange(int count, CityResident.Mood from, CityResident.Mood to) {
 			int result = 0;
 
-			foreach (CityResident r in residents) {
-				if (!r.citizenType.IsDefaultCitizen) {
-					continue;
-				}
+			foreach (CityResident r in Laborers()) {
 
 				if (count <= 0) {
 					break;
@@ -2304,12 +2325,13 @@ namespace C7GameData {
 
 		// A city that is big enough, isn't starving, has no unhappy citizens
 		// and more happy than content ones celebrates "We Love the King Day".
-		// Specialists don't count.
+		// Specialists don't count, and "The city cannot have any resisters"
+		// (Civilopedia, GCON_We_Love_The_King_Day).
 		public bool QualifiesForCelebration(Rules rules) {
-			if (residents.Count < rules.MinimumPopulationForWeLoveTheKing || FoodGrowthPerTurn() < 0) {
+			if (residents.Count < rules.MinimumPopulationForWeLoveTheKing || FoodGrowthPerTurn() < 0 || IsInResistance) {
 				return false;
 			}
-			List<CityResident> laborers = residents.Where(r => r.citizenType.IsDefaultCitizen).ToList();
+			List<CityResident> laborers = Laborers().ToList();
 			int happy = laborers.Count(r => r.mood == CityResident.Mood.Happy);
 			int content = laborers.Count(r => r.mood == CityResident.Mood.Content);
 			bool anyUnhappy = laborers.Any(r => r.mood == CityResident.Mood.Unhappy);
@@ -2470,11 +2492,13 @@ namespace C7GameData {
 			// unhappy to content transition, nothing with happy faces.
 			unhappyToContentMoves += BuildingContentFaces(buildings);
 
-			// Depending on the government type, land defensive units can serve
-			// as military police.
+			// Depending on the government type, our land units that can
+			// attack serve as military police: "military units (units with
+			// attack rating greater than zero)" (C3C editor help, Military
+			// Police Limit).
 			int landDefenders = 0;
 			foreach (MapUnit unit in location.unitsOnTile) {
-				if (unit.CanDefendOnLand()) {
+				if (unit.owner == owner && unit.IsLandUnit() && unit.unitType.attack > 0) {
 					++landDefenders;
 				}
 			}
@@ -2567,14 +2591,11 @@ namespace C7GameData {
 			}
 
 			// A city riots when happy - unhappy < 0; content citizens count as
-			// 0. Specialists take no part: only laborers' moods are reset
-			// above, so a specialist's mood is stale and must be ignored.
+			// 0. Specialists and resisters take no part (see
+			// InitializeMoodsForDifficulty).
 			int happyCount = 0;
 			int unhappyCount = 0;
-			foreach (CityResident cr in residents) {
-				if (!cr.citizenType.IsDefaultCitizen) {
-					continue;
-				}
+			foreach (CityResident cr in Laborers()) {
 				if (cr.mood == CityResident.Mood.Happy) { ++happyCount; }
 				if (cr.mood == CityResident.Mood.Unhappy) { ++unhappyCount; }
 			}

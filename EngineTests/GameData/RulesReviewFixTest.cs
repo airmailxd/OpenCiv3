@@ -256,6 +256,9 @@ public class RulesReviewFixTest : IClassFixture<SaveGameFixture> {
 				citizenType = gameData.citizenTypes.Find(x => x.IsDefaultCitizen),
 			});
 		}
+		// Taken in a war, which goes on: peace ends resistance.
+		us.EnsureRelationshipExists(them);
+		PlayerRelationship.DeclareWar(us, them, false, gameData.turn + 10);
 		CityInteractions.CaptureCity(city, us);
 		// Who resists is random; make it everyone.
 		city.resisters = city.residents.Count;
@@ -276,6 +279,82 @@ public class RulesReviewFixTest : IClassFixture<SaveGameFixture> {
 		city.resisters = 0;
 		Assert.Equal(2 * resisting, city.FoodConsumedPerTurn());
 		Assert.Equal(resisting, city.WorkingResidents().Count());
+	}
+
+	// With disband shields in the box "that particular city won't be able
+	// to switch to a wonder" (https://forums.civfanatics.com/threads/disbanding-question.18365/).
+	[Fact]
+	public async System.Threading.Tasks.Task DisbandShieldsKeepTheCityOffWonders() {
+		City city = BuildCity(us);
+		city.SetItemBeingProduced(BuildingNamed("Temple"));
+		city.SetStoredShields(0);
+		MapUnit warrior = gameData.SpawnUnit(us, gameData.unitPrototypes.First(u => u.name == "Warrior"), city.location);
+		await gameData.DisbandUnit(warrior);
+		Assert.True(city.shieldsStored > 0);
+		Assert.NotNull(city.WhyCannotChangeProduction(BuildingNamed("The Pyramids")));
+	}
+
+	// "PC = (C * 600) / OCN", between 300 and 1000 shields
+	// (https://civfanatics.com/civ3/strategy/game-mechanics/cost-of-the-palace-for-c3c/).
+	[Fact]
+	public void ThePalaceCostsMoreForABiggerEmpire() {
+		us.isHuman = true;
+		Building palace = gameData.Buildings.First(b => b.isCenterOfEmpire);
+		gameData.map.optimalNumberOfCities = 20;
+		City sample = BuildCity(us);
+		us.cities.RemoveAll(c => c != sample);
+		Assert.Equal(300, us.ShieldCost(palace));
+		while (us.cities.Count < 17) {
+			us.cities.Add(sample);
+		}
+		Assert.Equal(500, us.ShieldCost(palace));
+		while (us.cities.Count < 40) {
+			us.cities.Add(sample);
+		}
+		Assert.Equal(1000, us.ShieldCost(palace));
+	}
+
+	// "The bonuses from a Golden Age, however, are still subject to the
+	// Despotism tile penalty" (https://civfanatics.com/civ3/faq/).
+	[Fact]
+	public void TheDespotismPenaltyAppliesInAGoldenAge() {
+		us.government = gameData.governments.First(g => g.name == "Despotism");
+		us.goldenAgeTurnsRemaining = 10;
+		Tile tile = gameData.map.tiles.First(t => t.IsLand());
+		Assert.Equal(2, Tile.Yield.CalculateForPlayer(tile, 2, Tile.YieldType.Production, us).yield);
+		Assert.Equal(2, Tile.Yield.CalculateForPlayer(tile, 1, Tile.YieldType.Production, us).yield);
+	}
+
+	// On capture "all possible buildings with a culture value > 0 are
+	// still destroyed" (C3C editor help, Retain Culture on Capture).
+	[Fact]
+	public void CapturedCitiesLoseTheirCultureBuildings() {
+		BuildCity(them);
+		City city = BuildCity(them);
+		city.AddBuilding(gameData.Buildings.First(b => b.name == "Temple"));
+		city.AddCitizen(new CityResident() { city = city, nationality = them.civilization, citizenType = gameData.citizenTypes.Find(x => x.IsDefaultCitizen) });
+		CityInteractions.CaptureCity(city, us);
+		Assert.DoesNotContain(city.constructed_buildings, cb => cb.building.name == "Temple");
+	}
+
+	// "Resisters can be quelled by ending the war" (Civilopedia,
+	// GCON_Resistance).
+	[Fact]
+	public void PeaceEndsResistance() {
+		City city = CapturedCity();
+		PlayerRelationship.SignPeaceAfterWar(us, them, gameData);
+		city.UpdateResistance(gameData);
+		Assert.False(city.IsInResistance);
+	}
+
+	// "Resistors, content people, and Specialists are ignored in the
+	// calculation" of civil disorder (Civ3 manual).
+	[Fact]
+	public void ResistersDontRiot() {
+		City city = CapturedCity();
+		Assert.Equal(City.Mood.Happy, city.RecalculateCitizenMoods(gameData));
+		Assert.All(city.residents.Skip(city.residents.Count - city.resisters), r => Assert.Equal(CityResident.Mood.Unhappy, r.mood));
+		Assert.False(city.QualifiesForCelebration(gameData.rules));
 	}
 
 	[Fact]

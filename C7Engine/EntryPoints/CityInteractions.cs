@@ -216,15 +216,18 @@ namespace C7Engine {
 			city.RecalculateCitizenMoods(gameData);
 		}
 
-		// The chance that each ordinary building in a captured city is
-		// destroyed in the fighting.
-		private const double BuildingLossChanceOnCapture = 0.5;
+		// The chance that each building without culture in a captured city
+		// is destroyed in the fighting: on capture "all possible buildings
+		// with a culture value > 0 are still destroyed, as well as 25% of
+		// other buildings and any small wonder (as normal)" (C3C editor help,
+		// Retain Culture on Capture).
+		private const double BuildingLossChanceOnCapture = 0.25;
 
-		// Whether a city is worth keeping when taken: it has more than one
-		// citizen, or its old owner's culture has pushed its borders out. Any
-		// other city is destroyed when captured.
+		// Whether a city is worth keeping when taken: "Capturing a
+		// population 1 city that has no culture will automatically raze it"
+		// (Civ3 1.29f readme). Any other city survives.
 		public static bool SurvivesCapture(City city) {
-			return city.residents.Count > 1 || city.GetBorderExpansionLevel() > 1;
+			return city.residents.Count > 1 || city.GetCulture() > 0;
 		}
 
 		// Hands a city over to the player who took it, unless it doesn't
@@ -267,12 +270,13 @@ namespace C7Engine {
 				r.nationality ??= oldOwner.civilization;
 			}
 
-			// The palace and small wonders don't survive a change of owner,
-			// great wonders always do, and other buildings may be destroyed.
+			// The palace, small wonders and buildings with culture don't
+			// survive a change of owner, great wonders always do, and other
+			// buildings may be destroyed (see BuildingLossChanceOnCapture).
 			foreach (CityBuilding cb in city.constructed_buildings.ToList()) {
 				Building b = cb.building;
 				bool lost = b.isCenterOfEmpire || b.isSmallWonder
-					|| (!b.IsGreatWonder() && GameData.rng.NextDouble() < BuildingLossChanceOnCapture);
+					|| (!b.IsGreatWonder() && (b.culturePerTurn > 0 || GameData.rng.NextDouble() < BuildingLossChanceOnCapture));
 				if (lost) {
 					city.RemoveBuilding(cb);
 				}

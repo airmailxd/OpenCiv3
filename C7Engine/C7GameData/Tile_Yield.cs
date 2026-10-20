@@ -50,13 +50,15 @@ public partial class Tile {
 		}
 
 		private Yield ApplyPlayerModifiers(Player player) {
-			player.government.tileModifier?.Invoke(this);
-
 			// A golden age adds a shield and a commerce to tiles already
-			// producing them.
+			// producing them, before the government's modifiers: "The bonuses
+			// from a Golden Age, however, are still subject to the Despotism
+			// tile penalty" (https://civfanatics.com/civ3/faq/).
 			if (player.InGoldenAge && type != YieldType.Food && baseYield > 0) {
 				bonus += 1;
 			}
+
+			player.government.tileModifier?.Invoke(this);
 			return this;
 		}
 

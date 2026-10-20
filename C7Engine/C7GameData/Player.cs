@@ -2567,7 +2567,23 @@ namespace C7GameData {
 			// A house rule may make it cheaper still (see AiHouseRules).
 			costFactor *= AiHouseRules.CostFactor(this);
 
+			if (producible is Building { isCenterOfEmpire: true }) {
+				return (int)(PalaceShieldCost() * costFactor);
+			}
 			return producible.ShieldCost(civilization.traits, costFactor);
+		}
+
+		// Since 1.16f "The cost of building a Palace is now based on the
+		// number of cities in your civilization" (Civ3 readme): "PC = (C *
+		// 600) / OCN", rounded down to a hundred, and "The palace can never
+		// cost less than 300 shields and never more than 1000 shields"
+		// (https://civfanatics.com/civ3/strategy/game-mechanics/cost-of-the-palace-for-c3c/).
+		// UNVERIFIED: whether OCN there is the map's or the civ's after the
+		// difficulty's share; the map's is used.
+		private int PalaceShieldCost() {
+			int optimal = Math.Max(1, EngineStorage.gameData.map.optimalNumberOfCities);
+			int cost = cities.Count * 600 / optimal / 100 * 100;
+			return Math.Clamp(cost, 300, 1000);
 		}
 
 		// The key of this player in GameData.history, which is id.ToString().
