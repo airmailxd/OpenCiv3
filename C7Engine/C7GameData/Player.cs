@@ -2320,31 +2320,41 @@ namespace C7GameData {
 			RevoltFromWarWeariness(gameData);
 		}
 
-		// The level at which a government with high war weariness falls: the
-		// article above gives Democracy "Level 1: 50% unhappy people, Level
-		// 2: 100% unhappy people, Level 3: Revolt", and the Civilopedia's
-		// government summary says Anarchy "occurs when WW reaches 100% when
-		// under Democracy" (https://civfanatics.com/civ3/civilopedia/governments/).
+		// A government with high war weariness falls into anarchy when its
+		// war weariness, summed over every civ and divided by the number of
+		// civs it has met, is over 90. Flintlock, reading the 1.22 code
+		// (https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16199613):
+		// "a player gets kicked into anarchy if their WW is over 90", and "it
+		// checks against total WW divided by the number of contacts the
+		// player has." 91 points is where the community's level 3 begins:
+		// Democracy "Level 1: 50% unhappy people, Level 2: 100% unhappy
+		// people, Level 3: Revolt"
+		// (https://www.civfanatics.com/civ3/strategy/game-mechanics/how-does-war-weariness-work/).
 		// Democracy is the only government with high war weariness in the
-		// standard rules, so that is the BIQ value we go by.
-		private const int WarWearinessRevoltLevel = 3;
+		// standard rules.
+		private const int WarWearinessRevoltThreshold = 90;
 
-		// A government with high war weariness that reaches the revolt level
-		// against any civ is overthrown, as a revolution started by the
-		// player would be: "Our people are overthrowing our $GOVERNMENT0. Our
-		// Civilization is descending into Anarchy!" (Civ3's Script.txt,
-		// REVOLUTION).
+		// A government with high war weariness that passes the threshold is
+		// overthrown, as a revolution started by the player would be: "Our
+		// people are overthrowing our $GOVERNMENT0. Our Civilization is
+		// descending into Anarchy!" (Civ3's Script.txt, REVOLUTION).
 		internal bool RevoltFromWarWeariness(GameData gameData) {
 			if (isBarbarians || government == null || government.transitionType || government.warWeariness < 2) {
 				return false;
 			}
-			bool revolt = false;
-			foreach (int points in WarWearinessPointSources()) {
-				if (WarWearinessLevel(points) >= WarWearinessRevoltLevel) {
-					revolt = true;
-					break;
+			// Points kept from saves made before they were kept per civ count
+			// too.
+			int total = warWeariness;
+			int contacts = 0;
+			foreach (Player other in gameData.players) {
+				if (other == this || other.isBarbarians || other.defeated || other.id == null
+					|| !playerRelationships.TryGetValue(other.id, out PlayerRelationship pr)) {
+					continue;
 				}
+				total += pr.warWearinessPoints;
+				++contacts;
 			}
+			bool revolt = total / Math.Max(1, contacts) > WarWearinessRevoltThreshold;
 			Government anarchy = gameData.governments.Find(g => g.transitionType);
 			if (!revolt || anarchy == null) {
 				return false;
