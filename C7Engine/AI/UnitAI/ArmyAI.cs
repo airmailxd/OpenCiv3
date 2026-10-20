@@ -104,7 +104,9 @@ namespace C7Engine.AI.UnitAI {
 			int members = army.PassengerCount();
 			City city = army.location.cityAtTile;
 			bool inOurCity = city != null && city.owner == player;
-			if (inOurCity && members < army.Capacity()) {
+			// Only the city that made the army can fill it, and only until it
+			// leaves (see MapUnit_ArmyOrigin.cs).
+			if (army.CanTakeMembersHere() && members < army.Capacity()) {
 				Recruit(army, player);
 				members = army.PassengerCount();
 			}
@@ -323,7 +325,7 @@ namespace C7Engine.AI.UnitAI {
 		}
 
 		private static bool RecruitsOnTheWay(MapUnit army, Player player) {
-			return army.location.cityAtTile?.owner == player && CountRecruitsOnTheWay(army, player) > 0;
+			return army.CanTakeMembersHere() && CountRecruitsOnTheWay(army, player) > 0;
 		}
 
 		public string SummarizePlan() {

@@ -47,6 +47,13 @@ namespace C7GameData.Save {
 		public bool isOnAirSuperiority;
 		public bool hasInterceptedThisTurn;
 
+		// The city that made the army, and whether the army has left it since
+		// (see MapUnit_ArmyOrigin.cs). Saves made before armies remembered
+		// it have none, and those armies take members in any of their
+		// owner's cities.
+		public ID armyOriginCityId;
+		public bool hasLeftArmyOrigin;
+
 		public SaveUnit() { }
 
 		// A copy sharing everything with this one, for a LAN host to change
@@ -82,6 +89,8 @@ namespace C7GameData.Save {
 			defensiveBombardsRemaining = unit.defensiveBombardsRemaining;
 			isOnAirSuperiority = unit.isOnAirSuperiority;
 			hasInterceptedThisTurn = unit.hasInterceptedThisTurn;
+			armyOriginCityId = unit.armyOriginCityId;
+			hasLeftArmyOrigin = unit.hasLeftArmyOrigin;
 			facingDirection = unit.facingDirection;
 			experience = unit.experienceLevelKey;
 			movePointsRemaining = unit.movementPoints.remaining;
@@ -171,6 +180,10 @@ namespace C7GameData.Save {
 				WorkerProgressTowardsJob = WorkerProgressTowardsJob,
 				WorkerJob = workerJob,
 			};
+			// Set after the unit is on its tile, so that putting it there
+			// doesn't count as leaving its origin city.
+			unit.armyOriginCityId = armyOriginCityId;
+			unit.hasLeftArmyOrigin = hasLeftArmyOrigin;
 			// A unit that isn't on the map can't be put on a tile; in
 			// particular it mustn't be added to the shared Tile.NONE. The game
 			// leaves such units out (see SaveGame.ConvertUnits).

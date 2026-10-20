@@ -26,6 +26,7 @@ namespace C7GameData {
 			set {
 				previousLocation = location;
 				currentLocation = value;
+				NoteLeavingArmyOrigin();
 			}
 		}
 		public TilePath path { get; set; }
@@ -1163,11 +1164,9 @@ namespace C7GameData {
 			if (mapUnit == this)
 				return false;
 
-			// Units join an army only in a city: "Once that army leaves the
-			// city of it's construction, you cannot add or remove units from
-			// the army" (Civ3 readme). Armies don't remember the city they
-			// were made in, so any of the owner's cities will do.
-			if (IsArmy() && !InOwnCity())
+			// Units join an army only in the city that made it, until it
+			// first leaves (see CanTakeMembersHere).
+			if (IsArmy() && !CanTakeMembersHere())
 				return false;
 
 			var hasRoom = !IsFull();
