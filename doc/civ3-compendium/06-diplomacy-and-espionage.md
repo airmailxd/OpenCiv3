@@ -11,6 +11,17 @@ How to read this section:
   `Conquests/Text/diplomacy.txt`, `Conquests/Text/labels.txt`, the readmes,
   and `Conquests/conquests.biq` (read with this repo's QueryCiv3 parser).
 - Vanilla-only text comes from `Text/Civilopedia.txt` in the same install.
+- "Manual" means the Steam manual PDF
+  (https://cdn.akamai.steamstatic.com/steam/apps/3910/manuals/manual.pdf), read
+  as a text extract. It is the Civ3 Complete edition, but its diplomacy chapter
+  is mostly base-game text. Page numbers are the printed folios, approximate.
+- "EDHELP" means the Conquests editor help (`Civ3ConquestsEdit.chm`,
+  decompiled), cited by topic name.
+- "C3X-INI" means the C3X mod's `default.c3x_config.ini`
+  (https://github.com/maxpetul/C3X/blob/master/default.c3x_config.ini). The mod
+  is out of scope. Only its descriptions of what the unmodded C3C 1.22
+  executable does are used.
+- "Code-level" marks findings from people reading the C3C 1.22 executable.
 - Community findings are labelled with the tester, version and date where the
   source gives them. CivFanatics studies use a sign convention where a
   negative attitude number is good for you.
@@ -46,9 +57,28 @@ How to read this section:
   tips" (https://forums.civfanatics.com/threads/basic-trading-tips.71236/).
   Quote (as surfaced by search): "trading World Maps will show you the world
   known by the other civ but will not give you contact with civs you have".
-- **What triggers first contact is UNVERIFIED.** It could be units adjacent,
-  units seeing each other, or borders touching. No primary source was found
-  (see open questions).
+- **First contact comes from units meeting.** Source: the Civ3 manual (Steam
+  `manual.pdf`, Civ3 Complete edition, text extract, printed p.~161, "Negotiations").
+  Quote: "You make first contact whenever one of your units crosses paths with
+  one of theirs." Also p.~63 ("Making contact"): "You still generally make
+  first contact with your opponents by running across their units". The exact
+  geometry (adjacent tile or line of sight) is not stated. GordonJ (CFC,
+  https://forums.civfanatics.com/threads/first-post-why-cant-i-see-all-the-civs.120770,
+  C3C, Jun 2005) says he had to get "within a space of their units to actually
+  start negotiating" (one player's account).
+- **Contact is permanent.** Same manual page. Quote: "After communications are
+  set up, they're never lost."
+- **All civs start at peace.** Manual p.~154. Quote: "You are naturally at
+  peace with all your rivals at the start of the game". Also p.~158: peace is
+  "the natural state when you first meet a rival".
+- **Units in your territory invite contact.** Manual p.~162 lists, among ways
+  to open talks: "Move one of your units into the other nation's territory and
+  wait for them to contact you (not recommended unless your intention is to
+  annoy your rival)."
+- **At war, the leader may refuse to meet.** Manual p.~162. Quote: "If you are
+  at war with the leader you attempt to contact, he or she might refuse to
+  meet with you". `script.txt` `NODIPLOMACY`: "The $CIVNOUN0 refused to
+  acknowledge our envoy!"
 
 ## 6.2 Embassies
 
@@ -77,6 +107,24 @@ How to read this section:
   Apolyton
   (https://apolyton.net/forum/miscellaneous/archives/civ3-general-archive/41397-espionage-you-can-t-steal-techs-from-civs-you-are-at-war-with).
   Quote: "your embassy in their capitol is automatically closed".
+- **An embassy closed by war reopens at peace.** Manual p.~157. Quote: "It is
+  only necessary to establish an embassy once with any particular
+  civilization. Even if you manage to get it closed down (through war with
+  that civilization), it reopens when peace is declared." The same page says
+  the embassy menu lists "the civilizations you have contacted, are not at war
+  with, and do not already have an embassy with." So you cannot open a new
+  embassy with a civ you are at war with. Vanilla `README.txt` (Fixes v1.16f):
+  "Incorrect popup concerning placing new embassies with civilizations you're
+  at war with no longer displays."
+- **The first investigation of the capital is free.** Manual p.~157. Quote:
+  "When you first establish the embassy, you can investigate the enemy's
+  capital without risk or penalty."
+- **What an embassy reveals.** Manual p.~155. Quotes: "With an embassy, you can
+  learn about your opponent's diplomatic connections with others" and "The
+  Military Advisor gets a complete list of their forces from an embassy." A
+  planted spy also gives unit locations (p.~168): "the Spy gives him their
+  locations as well."
+- **An embassy improves attitude by 2.** See 6.7 (former Disputed item).
 - **Wonder pop-ups need an embassy or a spy.** Source: vanilla `README.txt`.
   Quote: ""beginning wonder" pop-ups now only appear if you have an embassy or
   spy with the corresponding civ." Also: "Spaceship parts pop-ups now only
@@ -112,11 +160,89 @@ How to read this section:
   `TECH_Writing`: "Can now negotiate military alliance and right of passage".
   `TECH_Map_Making`: "Can now trade $LINK<world maps=GCON_Maps> in
   diplomacy."
-- **An MPP can be offered to you before you have Nationalism.** Source:
-  CivFanatics search summary of "control over rop/mpp" and Apolyton "quick
-  quest what else is needed for mpp". Quote (search snippet): "an AI with
-  Nationalism can offer you an MPP even if you lack the tech". Weak source;
-  treat as UNVERIFIED.
+- **An MPP needs Nationalism on only one side.** Manual p.~160. Quote: "If a
+  peace treaty and embassy are in place between two civilizations and either
+  has discovered Nationalism, they can negotiate a mutual protection pact."
+  cort (Apolyton,
+  https://codehappy.net/apolyton/threads/33796-1.htm, Nov 2001) says the same:
+  an MPP needs "only one civ to know Nationalism". (Former UNVERIFIED item.)
+- **Every agreement needs an embassy.** Manual pp.~159-160:
+  - Military Alliance: "Once you have an embassy with a friendly nation, you
+    can sign a military alliance against a common enemy."
+  - Right of Passage: "You can sign a right of passage if you have an embassy
+    with a friendly nation."
+  - Trade Embargo: "If you have discovered Nationalism and have an embassy, you
+    can arrange a trade embargo with an ally."
+  - MPP: as quoted above (peace treaty plus embassy).
+
+  Manual p.~63: "An embassy also opens the possibility of diplomatic agreements
+  beyond a simple peace treaty." Also Konquest02 (Apolyton,
+  https://codehappy.net/apolyton/threads/86477-1.htm, Oct 2003) lists the
+  options that need an embassy: "Right of Passage, Mutual Protection Pact and
+  alliances against other civs." No source names a road or sea link as a
+  condition for agreements; that link is a condition for resource trade only
+  (6.4).
+- **Owner ruling (engine): Right of Passage needs Writing plus an embassy.**
+  Sources: Conquests Civilopedia `GCON_Embassies`, "When a civilization learns
+  $LINK<Writing=TECH_Writing>, ... The first step is to build [embassies] in
+  rival capital cities. That done, you can sign Right of Passage
+  $LINK<agreements=GCON_Agreements> and Military Alliances". Vanilla
+  Civilopedia `TECH_Writing`: "Can now negotiate military alliance and right of
+  passage". Aeson (Apolyton, "1.17f bug: right of passage",
+  https://codehappy.net/apolyton/threads/46862-1.htm, Apr 2002): "Writing (and
+  establishing an embassy) is what makes ROP agreements possible." The C3C BIQ
+  flag puts ROP on Map Making instead (see Disputed).
+- **Agreement terms are 20 turns.** Manual pp.~159-160, for each of MA, ROP,
+  embargo and MPP. For example: "A right of passage agreement lasts for 20
+  turns. At the end of that period, either party can cancel the agreement
+  without consequences." and "The pact lasts for 20 turns." To leave without
+  a reputation mark, wait for expiry: "To cancel a pact without consequences,
+  you must wait for it to expire."
+- **Leaving an MA or MPP does not end the war.** Manual p.~159. Quote:
+  "Leaving the military alliance won't cancel the state of war with the third
+  party, of course."
+- **Peace with the common enemy destroys an alliance.** Manual p.~159. Quote:
+  "if either party to the alliance makes peace with the third party, it
+  effectively destroys the alliance." Breaking an alliance "is remembered as a
+  major transgression by all of the other civilizations". Making peace with a
+  civ that is still invading an MPP partner also costs reputation (p.~160):
+  "If you make peace with a civilization while it is still invading your ally,
+  your reputation suffers for quite some time."
+- **PTW 1.27: peace ends your alliances against that enemy.** Falconius
+  (Apolyton, "1.27 Fixes Military Alliances!",
+  https://codehappy.net/apolyton/threads/97851-1.htm, Sep 2003): "when you
+  make peace, your alliances against your former foe simply end." He says the
+  earlier behaviour that "caused you to get sucked back into a war you just
+  ended is now no more". Arrian, in the same thread, thinks the old problem was
+  an MPP, not an alliance. Player report, not from a readme.
+- **An MPP triggers on an attack on the partner.** `script.txt`
+  `MUTUALPROTECTIONOURWAR`: "$CIVNAME0 has attacked our "brothers" in
+  $CIVNAME1. Our $LINK<mutual protection pact=GCON_Agreements> requires us to
+  declare war against $CIVNAME0." Whether the declaration alone or the first
+  attack is the trigger is unclear. Loopy (CFC, Civ3 vanilla, Nov 2001,
+  https://forums.civfanatics.com/threads/mutual-proctection-do-you-sign-on-or-not.8546/):
+  "I don't think declaring war triggers the MPP, but the first attack" (he
+  hedges). WonderPup, same thread: MPP partners "will declare war with your
+  enemy on the *next* turn."
+- **Peace is made separately with each enemy.** Manual p.~161. Quote: "You
+  must make peace separately with each opponent (even those allied with a
+  civilization with whom you have already negotiated peace)."
+- **An embargo is not a war.** Manual p.~160. Quote: "A trade embargo is not a
+  declaration of war, though it's sometimes enough of an affront to inspire
+  one."
+- **The AI won't embargo a civ it trades resources with (tested).** Spoonwood
+  (CFC, "Use The Trade Tab as a Guide to Military Alliances",
+  https://forums.civfanatics.com/threads/use-the-trade-tab-as-a-guide-to-military-alliances.692937/,
+  C3C, Nov 2024, save tests): "Trade Embargoes don't seem to work when you and
+  an AI have peace with a nation if trading a resource or luxury at least."
+  Greece refused even for 1000 gpt: "They would never accept this deal." Persia
+  accepted the embargo after first signing a military alliance against the
+  same civ.
+- **AI alliance evaluation uses distance (code-level).** C3X-INI, "DIVISION BY
+  ZERO IN AI ALLIANCE EVAL": "When considering whether to agree to a military
+  alliance, the AI computes the distance from its capital to the nearest city
+  belonging to the target of the alliance and divides by that distance." The
+  rest of the formula is not given.
 - **Locked alliances are scenario-only, so out of scope.** Members have a
   permanent MPP. Source: Conquests Civilopedia `GCON_Locked_Alliances`.
   Quote: "A pre-designed scenario (only) might begin with some (or all)
@@ -143,6 +269,46 @@ How to read this section:
   `script.txt` `TRADEEMBARGO` / `TRADEEMBARGOENDS`. Quotes: "$CIVNAME0 and
   $CIVNAME1 have signed a trade embargo against us." and "The trade embargo
   against us between $CIVNAME0 and $CIVNAME1 has ended."
+- **Resource and luxury deals last 20 turns or until war.** Manual p.~164.
+  Quote: "Like all trade agreements, a luxuries deal lasts for 20 turns or until
+  interrupted by war between the parties to the trade." The traded good
+  reaches every city connected to the receiver's capital.
+- **What can be traded.** Manual pp.~163-165 lists peace treaty, diplomatic
+  agreements, embargoes, communications, maps (World Map and Territory Map),
+  luxuries, strategic resources, gold (lump sum or per turn), technology,
+  cities and Workers. Items the other side has but cannot offer "are grayed
+  out", and items the other side does not need do not appear.
+- **Only Workers in the capital can be traded, and they keep their
+  nationality.** Manual p.~165. Quote: "Any Worker currently in your capital
+  city can be offered for trade. The same goes for workers in your rival's
+  capital. A traded Worker retains its nationality, just like a captured one."
+  Confirmed by players (Apolyton, "How do you trade workers?",
+  https://codehappy.net/apolyton/threads/59851-1.htm, Aug 2002). alexman
+  (Firaxis), same thread, on foreign workers showing your nationality on the
+  trade screen: "It's a bug."
+- **Technology needs a tradeable prerequisite.** Manual p.~165. Quote: "Any
+  civilization advance that one nation has discovered or acquired but the other
+  hasn't and can research is a potential item of trade."
+- **Per-turn gold runs for 20 turns; only war stops it.** Manual p.~165.
+  Quote: "it commits a leader to pay the specified amount every turn for the
+  next 20 turns. Only the outbreak of war between the trading parties
+  interrupts the required payments."
+- **Cities can be traded, but the AI rarely does so.** Manual p.~165. Quote:
+  "under normal circumstances a leader would rather go to war than trade one
+  away. The option to trade cities exists, however". The CivFanatics FAQ
+  (https://civfanatics.com/civ3/faq/) lists "Cities (as part of a peace deal
+  only)" (see Disputed).
+- **At war, only a peace treaty can be put on the table first.** Manual
+  p.~163. Quote: "This option is only available if you are at war with the
+  rival you're dealing with. In fact, it's the only diplomatic agreement that
+  appears during a war". ixnay (Apolyton,
+  https://apolyton.net/forum/miscellaneous/archives/civ3-general-archive/57646-how-do-i-get-more-than-peace-treaty-for-ending-war,
+  Mar 2002): "once you put that on the table you have access to all the other
+  options". Zachriel, same thread: "Sometimes, they will give you all their
+  cities for peace."
+- **Strategic and luxury goods show grey without a route.** Spoonwood (CFC
+  692937, C3C, 2024): "All strategic resources or luxuries that an AI has will
+  appear in greyed out text" when there is no trade route to your capital.
 - **The AI rarely trades its only copy of a luxury.** Source: CivFanatics,
   "Civs and their luxuries", simwiz2 (Civ3 General Discussions)
   (https://forums.civfanatics.com/threads/civs-and-their-luxuries.15068/).
@@ -179,16 +345,50 @@ How to read this section:
 - **Mobilization lasts until peace.** Source: Conquests Civilopedia
   (Mobilization). Quote: "May not return to Normalcy until a Peace Treaty is
   signed."
-- **Ceasefire length is UNVERIFIED for Civ3.** The often-quoted "16 turns"
-  comes from the *Civ2* Official Strategy Guide, quoted in a Civilization II
-  forum thread
-  (https://forums.civfanatics.com/threads/how-long-does-a-cease-fire-last.55033).
-  Quote: "a cease-fire lasts only 16 turns." That is not a Civ3 source.
-  `diplomacy.txt` and `labels.txt` have no ceasefire strings (only
-  `AIPEACETREATY`, `AIGIVEPEACETREATY`, `USERPEACETREATY`). The labels list
-  "Embargo / Against / War / Peace / Mutual Protection / Right of Passage".
-  That suggests Civ3 relations are War or Peace only, with no ceasefire state
-  (UNVERIFIED).
+- **There is no ceasefire in Civ3: relations are peace or war.** Manual
+  p.~158 ("The Diplomatic States"). Quote: "the relationship between two
+  nations can be expressed as one of two different states: peace or war."
+  None of the vanilla, PTW or C3C `diplomacy.txt`, `labels.txt` or `script.txt`
+  files has a ceasefire string; the only "cease" lines are flavour text in
+  peace replies (C3C `diplomacy.txt` line ~1554: "We will agree to cease
+  fighting if only to delay the inevitable."). The "16 turns" figure is from
+  the *Civ2* strategy guide
+  (https://forums.civfanatics.com/threads/how-long-does-a-cease-fire-last.55033,
+  "a cease-fire lasts only 16 turns"), and the CFC thread "How do you get
+  ceasefires?" (173866) is in the Civ4 forum. (Former open question 2.)
+- **A peace treaty forbids military units in the partner's territory.**
+  Manual p.~158. Quote: "You and your rival agree not to attack each other or
+  even enter the other's territory with military units." And: "Units that
+  violate this agreement may be asked to leave--and their failure to do so
+  immediately can be considered a treaty violation." A peace treaty also makes
+  trade possible: "A peace treaty, when combined with an embassy, also opens up
+  negotiations to several other agreements and, just as importantly, makes
+  trade with the other civilization possible."
+- **Peace cannot be renegotiated while its 20 turns run.** Vol (CFC, "Trading
+  Reputation" thread, page 2,
+  https://forums.civfanatics.com/threads/trading-reputation.113376/page-2,
+  Sep 2005): "you cannot renegotiate peace (it is grayed out) when the deal
+  still has turns left on it." `script.txt` `CONFIRMRENEGOTIATEPEACE`: "Are you
+  sure we should renegotiate peace?"
+- **1.29f closed a zero-turn-war loophole.** Vanilla `README.txt`, Fixes
+  v1.29f: "Fixed diplowin loophole involving renegotiating peace which allowed
+  0 turn wars."
+- **When the AI will talk peace (Firaxis).** Soren Johnson (Apolyton, "When
+  does the AI ask for peace (Soren?)",
+  https://codehappy.net/apolyton/threads/41866-1.htm, post #27, Feb 11 2002,
+  vanilla): "The AI's willingness to discuss peace terms depends on" "how long
+  the war has lasted" and "how much it is winning or losing the war." Also:
+  "the length of time factor is there to prevent people from war-jacking the
+  AI". The minimum length is not given.
+- **The AI accepts peace under threat only if it is losing.** `diplomacy.txt`
+  `AIPEACETREATYTHREAT` (reply to "Our troops approach your cities"): "Fool! Do
+  you think we are frightened of your puny soldiers? Well, as fate would have
+  it, we are. We agree." `AINOPEACETREATY`: "Not likely! $CIVNAME5 is winning!"
+  Players (Apolyton, "Does 'Our troops approach your cities' ever work?",
+  https://codehappy.net/apolyton/threads/71589-1.htm, Dec 2002) report it
+  works only with a real threat. Catt: "it would work for me only in those
+  instances in which I had a large force right outside a city or two."
+  Anecdotal.
 
 ## 6.6 Gold-per-turn deals and reputation
 
@@ -252,6 +452,72 @@ How to read this section:
 - **Failed espionage hurts reputation.** Source: Conquests Civilopedia
   `GCON_Espionage`. Quote: "Remember though, failed missions can seriously
   damage your reputation."
+- **The manual's definition of reputation.** Manual p.~156. Quotes: "Your
+  reputation is based not on how peaceful or how warlike you are toward your
+  neighbors, but on how often you keep your word." Razing and ROP abuse also
+  count: "Savagely razing the city of an enemy or using a right of passage
+  agreement to set up Cannons to bombard your opponent's cities are acts likely
+  to be deplored throughout the known world." And: "Espionage, whether
+  successful or not, can also damage your standing."
+- **ROP backstabs ruin trust with everyone.** Manual p.~159. Quote: "Using a
+  right of passage to infiltrate your troops for a surprise attack is
+  remembered as a cold-hearted breach of trust by all of the other
+  civilizations."
+- **Which deals are "rep-risky" (tested, C3C).** Only deals where you give
+  per-turn gold or resources. AlanH (CFC 113376 page 3,
+  https://forums.civfanatics.com/threads/trading-reputation.113376/page-3, Nov
+  2009): "You only get a rep hit if you are paying per-turn gold or resources
+  to the AI and that deal is ended prematurely." Optional, same page: "if
+  you're not giving anything from your side, you can safely declare on that AI
+  without any fear for your reputation." tmn (2017), same page, disagrees for
+  agreements: "Peace treaty, Right of Passage and Trade Embargo are all
+  rep-risky." See Disputed for peace treaties.
+- **How a resource deal's composition matters (tested, PTW).** Bamspeedy (CFC
+  "AI attitude", page 6, https://forums.civfanatics.com/threads/ai-attitude.44999/page-6,
+  Jul 29 2003): when you give a resource and its route breaks, getting back a
+  resource or GPT costs only "+1" attitude and trading stays possible; getting
+  back only techs, a map or a lump sum costs "+4" and blocks later per-turn
+  deals. Quote: "It doesn't matter who's fault it is." Page 7 (Jul 30 2003):
+  "You can accept lump sum, techs, or maps IF they are also paying you gpt (or
+  giving you a resource) in that deal."
+- **A broken reputation still allows bad lump-sum-for-GPT deals.** Vol (CFC
+  113376 page 2, 2005): "Prior to broken reputation, I could get 16 gold for 1
+  gpt." Afterwards "I could get 3 gold for 1 gpt". Arrian (Apolyton,
+  "Reputation: What's the point?",
+  https://codehappy.net/apolyton/threads/53506-1.htm, Jun 2002): "A bad rep will
+  prevent the AI from selling you stuff in exchange for gold per turn" and you
+  "will be unable to get RoP agreements."
+- **Reputation can be recovered with civs cut off from the victim.** Vol (CFC
+  113376 page 2, Jul 31 2005): "Your reputation is _restored_ with
+  civilizations that can no longer contact the civilization you offended." And
+  (Aug 1 2005): "if that civ is ever eliminated, everyone will go back to
+  treating you with broken reputation." Destroying the victim before it meets
+  anyone else does work. vmxa (page 3, Dec 2010): "if civ A is eliminated,
+  before civ A mets otherss, no one will know of you rep issue." Bamspeedy
+  (CFC 44999 page 2, PTW): "If you kill the Aztecs before he meets anyone else,
+  you get no attitude or reputation hits." These are player tests in C3C
+  (Vol's save was checked in 1.22 by nullspace).
+- **Slow recovery by keeping your word (manual).** Manual p.~156. Quote: "Over
+  long periods of time, if you mend your ways by keeping your word to other
+  rulers, the black marks on your reputation can be partially erased and your
+  honor somewhat redeemed." Alliance breaks are "only very slowly erased by
+  time" (p.~159). This conflicts with the "never again" community findings
+  (see Disputed).
+- **Declaring war from outside their territory is safe.** Whomp (CFC 113376
+  page 2, Mar 2005): "since you were out of AI territory when you declared you
+  would not get the rep hit." The CFC FAQ counts ships: "declared war on them
+  when you had units in their territory (this includes ships)".
+- **Cancel a deal before declaring war.** Tone (CFC staff, "Cancel right of
+  passage?", https://forums.civfanatics.com/threads/cancel-right-of-passage.228499/,
+  C3C, Jun 2007): "you cannot cancel any deal in the first 20 turns via this
+  screen." After 20 turns, cancel through the Active button first; cancelling
+  by declaring war means your reputation "will be trashed".
+- **Firaxis view: per-turn deals, not sneak attacks, set reputation.**
+  alexman (later a Firaxis engineer; Apolyton, "He had a nasty reputation as
+  a cruel dude...", https://codehappy.net/apolyton/threads/64554-1.htm, Oct
+  2002, his own play experience): "as long as you don't break any per-turn
+  deals, your reputation doesn't take a hit." and "I think sneak attacking must
+  hurt their attitude towards you, not your reputation." Opinion.
 
 ## 6.7 AI attitude: levels and modifiers
 
@@ -272,6 +538,12 @@ In this study a negative number is good.
   Favorite government (only applies if both you and the AI are in this
   government)" and "+4 Shunned government (only applies if you are in this
   government and the AI is not)".
+- **Embassy: -2 (good).** Study, quotes: "-2 If you have an embassy with the
+  AI" and, in its worked example, "You have an embassy with that civ (-2)". The
+  forum version gives the same line (Bamspeedy,
+  https://forums.civfanatics.com/threads/ai-attitude.44999/, page 1; requoted
+  by WillJ on page 2 and by Jarek Noschese on page 8). No "+2 embassy" line
+  was found on a re-read of the study page. (Former Disputed item.)
 - **Agreements.** Quotes: "-5 If you have a Right of Passage with the AI."
   and "-10 If you have a Mutual Protection Pact with the AI." A common enemy
   in war gives -3, an alliance -2, and both together -5 (study, summarised).
@@ -304,6 +576,63 @@ In this study a negative number is good.
   study says ROP is the exception.
 - **Things with no measured effect** (study, summarised): owning resources
   the AI lacks, sharing a landmass, and culture pressure on border cities.
+- **Follow-up findings from the forum thread** (Bamspeedy and SirPleb, CFC
+  "AI attitude", https://forums.civfanatics.com/threads/ai-attitude.44999/,
+  8 pages, Feb 2003-2005; PTW 1.0x-1.21 unless noted). SirPleb (page 4, Feb
+  28 2003) thinks "most (maybe even all) of Bamspeedy's discoveries apply
+  exactly the same way in 1.29."
+  - **War declarations** (page 5, Mar 2 2003): the target adds +4 for each war
+    you declare. Neutral civs add +1 for the first and +2 for the second;
+    "there is a cap of +2 that nuetral civs will add on."
+  - **Alliance against a civ** (SirPleb, page 5, Mar 2003): "+10 attitude
+    penalty from the target Civ when you enter an alliance against it", removed
+    when the alliance ends.
+  - **Starving citizens** (SirPleb, page 5): "+1 for each citizen starved",
+    at war or not.
+  - **War damage recovery is slow and non-linear** (SirPleb, page 5): 16 kills
+    gave +17 and were gone after 18 turns of peace. Heavier damage (21 kills,
+    2 cities, 6 starved) took about 95 turns. +45 had not recovered after 100+
+    turns.
+  - **Privateers** (page 4, Mar 2 2003): "+1 when you attack their ship (but
+    your privateer dies), and +3 if you do sink their ship." Temporary.
+  - **Disbanding or abandoning a foreign city** (page 6, PTW 1.21, Jun 2003):
+    building a worker or settler to disband a city with 50%+ foreigners "is the
+    same as if you razed it." Also: "Donations of cities are treated as a
+    gift".
+  - **Culture flips** (page 5): refusing gives -1, and "This is cumulitive."
+  - **No penalty for refusing AI offers** (page 5, Mar 8 2003): "No attitude
+    adjustments for not accepting an offer they make." The recent-trade bonus
+    lapses: "the 'recent trade' bonus would disappear if you haven't traded
+    with a civ lately."
+  - **Gifts** (pages 3, 4, 6, 7). The cap is -10 when the AI has the power lead
+    and -5 when you have it (page 3). Several gifts on one turn add up. Over
+    100 gold extends the -10 before decay starts (page 6, Apr 2003): "A 100
+    gold donation gets them to the max of -10, but then this decreases at
+    -1/turn (or 10 gold/turn)." A 5 gpt deal counted only -9 (page 4). Page 4
+    (Mar 2003) says "-1 is permanent if you make a donation of 100 gold or
+    higher", but page 7 (Oct 2003) calls the War Academy's "permanent" wording
+    outdated. Treat the permanent -1 as unsettled.
+  - **Espionage** (page 2): of the +4 for a failed mission, "+3 seems to be
+    temporary, +1 is permanent." He recovered the temporary part after "about
+    20 turns".
+  - **Nukes** (page 3): the victim's +32 and others' +16 were "permanent (for
+    at least the 30-50+ turns that I pushed 'end turn')". Civs that never met
+    the victim also add +16.
+  - **Asking units to leave** lowers attitude each time. Spoonwood (CFC
+    "Trespass Doctrine", https://forums.civfanatics.com/threads/trespass-doctrine.690905/,
+    C3C, Jul 2024): "Everytime you tell an AI to get out your territory, that
+    decreases their attitude towards you."
+- **Attitude starts from the aggression level (code-level).** Flintlock (CFC,
+  "All About AI Aggression Levels and War Plotting",
+  https://forums.civfanatics.com/threads/all-about-ai-aggression-levels-and-war-plotting.703785/,
+  C3C 1.22, Jun 2026, reading the executable): "the game begins with the AI's
+  aggression level calculated as above then adds the other factors on top".
+  The effective level is: "level = civ.AggressionLevel + GameDifficulty // 2 -
+  DifficultyLevelCount // 6" and "return max(-2, min(level, 2))", with
+  "GameDifficulty = 0 for Chieftain, 1 for Warlord, and so forth". His post #8
+  adds that the game-wide "most" or "least" aggressive setting "overrides all
+  the per-civ aggression settings". He also gives the shunned-government term
+  as 5 points ("it adds 5 points"), where the study measured +4 (see Disputed).
 - **BIQ personality fields (`conquests.biq` RACE, local dump).** Each civ has
   `AggressionLevel` (stored -2..2, shown as 1..5 in the editor),
   `FavoriteGovernment`, `ShunnedGovernment` and `CultureGroup`. It also has
@@ -354,6 +683,87 @@ In this study a negative number is good.
   (`CvTeamAI::AI_techTradeVal`;
   https://forums.civfanatics.com/threads/ai-valuation-of-techs.658224), so it
   is not used here.
+- **One tech-value function for AI-AI and AI-human trades (Firaxis).** Soren
+  Johnson (Apolyton, "Yet another AI CHEAT - Technology",
+  https://codehappy.net/apolyton/threads/40548-1.htm, post #25, Jan 23 2002,
+  vanilla): "as more civs acquire each tech, its value goes down, which makes
+  the AI more willing to trade it" and "the same function is used to determine
+  the value of a tech for both AI-to-AI trades and human-to-AI trades". Soren
+  (Apolyton, "AI 'Tech Whoring'", https://codehappy.net/apolyton/threads/48219-1.htm,
+  post #10, Apr 23 2002): "There is an AI function which estimates how much
+  each tech is worth to each player."
+- **What the AI values in a tech (players, unverified).** TimBentley (CFC
+  "how do AIs value techs in market?",
+  https://forums.civfanatics.com/threads/how-do-ais-value-techs-in-market.126379/,
+  C3C, Aug 2005): "The things that make the AI value techs more include enables
+  government, drafting, or mobilization." He adds "a formula to determine the
+  trade value has not been computed." Bamspeedy (CFC
+  https://forums.civfanatics.com/threads/trading-mainly-for-beginners-but-others-may-find-it-useful.24553/,
+  1.29f, Aug 2002): "I believe the AI values the price for techs partially on
+  how much it would cost you to research it." ixnay (Apolyton 48219, 1.21,
+  Apr 2002): "the AI doesn't seem to value dead-end techs that give a wonder
+  which has already been built". SJ Frank (CFC "Trade is difficulty with AI
+  civs", https://forums.civfanatics.com/threads/trade-is-difficulty-with-ai-civs.115977/,
+  C3C, Apr 2005): "a monopoly tech costs twice as much to buy." Opinion.
+- **Competing sellers lower the price.** justanick (CFC "What's a good rule of
+  thumb to trade techs with AI?",
+  https://forums.civfanatics.com/threads/whats-a-good-rule-of-thumb-to-trade-techs-with-ai.700894/,
+  C3C, Dec 2025): "If only one civilization has researched a tech, then the
+  trading value is still high." and "The trading value drops a lot if several
+  potential sellers need to compete on the price." He also gives the
+  research-cost discount per known civ that has the tech, e.g. "In case of 8
+  civs it is 14/14, 13/14, 12/14, 11/14, 10/14, 9/14, 8/14 and 7/14 of the full
+  price" (a research-cost rule, section 4).
+- **How the AI prices maps, ROP, luxuries and contacts (1.29f, tested in
+  play).** Bamspeedy (CFC 24553, Jun-Aug 2002):
+  - "ROP is based entirely on territory size."
+  - "The value of your map is based entirely on how many more tiles you have
+    uncovered than the person your trading it to." And: "If you sell your map
+    to any AI civ, once you end that turn, your map is worthless" (the AIs
+    pass it on).
+  - "Luxuries are valued on how many happy faces they add to your civ."
+    justanick (CFC "How does the AI price resources and luxuries?",
+    https://forums.civfanatics.com/threads/how-does-the-ai-price-resources-and-luxuries.695776/,
+    C3C, Feb 2025) agrees: "It is not city count, it is happy faces gained."
+    No tested rule was found for strategic resources.
+  - Contacts: "As you continue to get contact with more civs the price of
+    contact with other civs diminish just like techs do."
+  - Workers: "They usually cost 25 to 27 gold each" (Arrian, Apolyton 59851,
+    vanilla, Aug 2002, early game).
+- **Per-turn gold is worth about 18 gold per 1 gpt.** Civ3 Strategy
+  Compilation (CFC, May 2002, vanilla,
+  https://www.civfanatics.com/wp-content/uploads/2024/07/Civ3_Strat_Compilation.pdf):
+  "Per-Turn Gold amounts are valued by the AI at about 18/20 of their total
+  gold value (both ways across the table)." The same 18:1 rate shows up in C3C
+  loans (below). The compilation adds that the AI needs you to hold "enough
+  gold currently available to make at least 1 payment".
+- **Owner ruling (engine): the AI never pays gold per turn beyond its
+  surplus.** Sources: Bamspeedy (CFC "AI refusing gold per turn?",
+  https://forums.civfanatics.com/threads/ai-refusing-gold-per-turn.26118/,
+  vanilla, Jun 29 2002) says a patch made the AI keep cash for its own
+  research and pay GPT only from excess: "They usually don't have excess cash
+  until they switch out of despositism." Arrian, same thread: when the advisor
+  says the AI "will never accept" a tech-for-GPT offer, it "literally cannot
+  afford it." joncnunn (Apolyton 71589, Dec 2002): the AI cannot sign a GPT deal
+  that puts it into deficit, whatever its treasury (summarised). CFC FAQ: "On
+  lower levels, at least early in the game, the AI usually has no extra gold per
+  turn." Vanilla `README.txt` (Fixes v1.21f): "Fixed bug in diplo bargaining AI
+  for per-turn gold deals."
+- **AI-AI trade rate only covers a shortfall (Firaxis).** Soren Johnson
+  (Apolyton 48219, post #4, Apr 23 2002): "When the AI's trade with each other,
+  they always ask for full value for their techs, maps, comms, etc." and "the AI
+  trading rate determines how much the AI will bend if the other AI does not
+  have enough money". WarpStorm, relaying Soren (Apolyton "Can someone explain
+  AI to AI Trade Rate?", https://codehappy.net/apolyton/threads/68856-1.htm,
+  Nov 2002): "AI to AI trade rate only applies to AI players, not to the human
+  players." EDHELP ("AI to AI trade rate (AI Bonuses)") words it as a plain
+  multiplier: "which is multiplied by the total value (in gold) of the
+  initiating civ's offerings ... with a rate of 120, an AI civ offering 100 gold
+  to another AI civ for something would actually be worth 120 gold". The two
+  agree on the multiplier and differ on when it applies; follow Soren.
+- **The AI-human markup by aggression (code-level).** Flintlock (CFC 703785,
+  C3C 1.22) lists "Adjusting the value of trade offers" among the uses of the
+  effective aggression level. This fits TheNiceOne's table by aggression level.
 - **Things that do not change the price** (TheNiceOne, summarised): relative
   culture, relative military, culture group, and favourite or shunned
   government.
@@ -385,7 +795,20 @@ In this study a negative number is good.
   turns".
 - **The AI offers loans.** Source: `diplomacy.txt` `AILOANOFFER`. Quote: "We
   are always happy to lend you money, $PLAYER0 - at surprisingly high
-  interest rates, that is." Loan terms are UNVERIFIED.
+  interest rates, that is." You can ask (`USERASKFORLOAN`: "Grant us a loan of
+  gold?"), and the AI can refuse (`AINOLOANOFFER`: "Unfortunately, we cannot
+  afford to grant you a loan at this time."). The terms of an AI-to-human loan
+  are UNVERIFIED.
+- **Lending to the AI: about 18 gold per 1 gpt (tested, C3C).** dominatr (CFC
+  "Loaning Money", https://forums.civfanatics.com/threads/loaning-money.449848,
+  Dec 2011): "The AI doesn't seem to accept less than 18 gold for every 1 gpt."
+  Example: "loan 350 gold" for "20 gpt, or 400 gold". Spoonwood, same thread:
+  "At minimum aggression, unless I've soiled my reputation, it's always come as
+  1 gpt for 18 gold." dexters (CFC "Managing the World: The Machiavellian
+  Doctrine", https://forums.civfanatics.com/threads/managing-the-world-the-machiavellian-doctrine.116771/,
+  C3C, Apr 2005, tested in play): "The interest rate is affected by attitude
+  of the of the AI Civ towards you" and "Relative military strength has no
+  effect on the interest rate".
 
 ## 6.9 Tribute and demands
 
@@ -402,7 +825,30 @@ In this study a negative number is good.
   time."
 - **Attitude effects of tribute:** see 6.7 (+2 for demanding, +1 for calling
   a bluff, -1 for paying).
-- **When the AI gives in is UNVERIFIED.** The only formulas found
+- **The AI demands only from humans, and aggression sets how often
+  (code-level).** Flintlock (CFC 703785, C3C 1.22, Jun 2026) lists among the
+  uses of the effective aggression level: "Chance to demand things from a human
+  player (As far as I know AIs won't demand things from each other.)" and
+  "Chance to declare war on someone who's refused a demand or nuked a third
+  party". C3X-INI agrees that stock AIs do not demand from each other: its
+  option "Allows AI players to demand tribute from each other. The AI uses the
+  same demand selection, acceptance, diplomatic penalty, and possible war logic
+  that the base game uses for demands involving a human player." No numbers
+  for the demand chance were published.
+- **Demanding tribute angers the AI (manual).** Manual p.~167. Quote: "This is
+  one of the more effective ways of making the other leader dislike you. In
+  fact, demanding tribute is a good way to incite a declaration of war." Also:
+  "If you're in an unassailable position of power, you might want to dispense
+  with politeness and just demand what you want."
+- **Players' reports of when the AI gives in.** Apolyton, "does 'take this deal
+  or suffer' ever work?" (https://codehappy.net/apolyton/threads/68602-1.htm,
+  Nov 2002, vanilla): lateralis, "if their millitary is way bigger than yours
+  (your advisor says "compared to them, our millitary is weak") don't even
+  think about it"; Alex says the AI accepted when "My military advisor said that
+  my army was bigger than theirs." way2hot2becool (CFC "Reputations",
+  https://forums.civfanatics.com/threads/reputations.160891/, C3C, 2006): strong
+  units near their capital mean "they will eventually give in". Anecdotal.
+- **Exact rule for when the AI gives in is still UNVERIFIED.** The only formulas found
   ("boldness x 10%", "fear", "dominance") are from Civ1, Civ2 or Civ4 threads
   (https://forums.civfanatics.com/threads/some-notes-about-diplomacy.678722/
   is Civ1; https://forums.civfanatics.com/threads/foreign-relations.76336 is
@@ -419,10 +865,39 @@ In this study a negative number is good.
   promise counts as backstabbing. Source: Evie, "Reputation for sneak
   attacks" (Civ3, 2002). Quote (summarised from the page): a "We'll move our
   troops out asap" reply without a withdrawal creates a temporary ROP.
-- **Diplomacy can remove units from territory.** PTW 1.27-era readme, quote:
-  "Hidden Nationality units are no longer forcibly removed from enemy
-  territory via diplomacy." This implies other units are forcibly removed
-  (`civ3PTW/readme.txt`). The exact teleport rule is UNVERIFIED.
+- **Diplomacy removes units from territory at once.** Conquests Civilopedia
+  `GCON_Territory`: "You can eject rival military units from your territory
+  during diplomatic negotiations." `civ3PTW/readme.txt` (Changes v1.21f):
+  "Hidden Nationality units are no longer forcibly removed from enemy territory
+  via diplomacy." The same readme (Fixes v1.21f): "Fixed bug where you could
+  not ask an AI civ to remove its units from your territory." Manual p.~77:
+  "You can contact the owner of the stray unit and demand that it be
+  immediately withdrawn. Right-click on the offending unit to do so."
+- **Removed units are teleported out.** Civ3 Strategy Compilation (CFC, May
+  2002, vanilla): "Units removed from enemy territory for border violations
+  are teleported to nearest non-offending spot." vondrack (Apolyton "Remove
+  your forces or declare war NOW",
+  https://codehappy.net/apolyton/threads/55198-1.htm, Jul 2002, 1.21f) instead
+  says they go toward "their original destination", and Coracle, same thread,
+  saw a unit that "magically teleports itself to the OTHER side of my civ".
+  Ataxerxes (CFC "Right of Passage agreements",
+  https://forums.civfanatics.com/threads/right-of-passage-agreements.427477,
+  C3C, Jun 2011): "Your units are ejected, sometimes to odd places."
+  creamcheese, same thread: "they never boot you if you only move workers."
+  The destination rule is disputed; the teleport itself is agreed. (Former open
+  question 8.)
+- **The AI's own replies when you tell it to leave.** `diplomacy.txt`
+  `AIWILLRETREAT` / `AIWILLRETURNHOME` (it complies), for example: "We will
+  withdraw immediately. My apologies." When it is the AI that warns you and
+  you comply, `AIDONTTEST`: "Very well. Withdraw them and we will ignore this
+  violation. But do not let it happen again!" `AIBORDERWAR` treats the
+  presence as war unless you leave: "Your recent movement of troops into our
+  territory constitutes a declaration of war against $CIVNAME1. Send them home
+  immediately or know that YOU will be held responsible for the conflict!"
+- **When the "leave or declare war" option appears is unknown.** Apolyton
+  55198 (Jul 2002, 1.21f) has guesses only. Hurricane: "The exact number of
+  units required is still unresolved, AFAIK." Fitz: "Contacting a
+  settler/worker never brings up the war version of this demand."
 
 ## 6.11 Espionage
 
@@ -485,9 +960,30 @@ In this study a negative number is good.
   - Sabotage: "10 dist*level + base * shield".
   - Expose: "80 dist*level + base".
 
-  The study says "Carefully" halves the cost and "Safely" doubles it. The
-  readme says the cost was exposed in the editor. Quote: "Editor: Added
-  mission cost to Diplomats and Spies page."
+  "Carefully" costs 1.5 times "Immediately" and "Safely" costs 2 times. The
+  War Academy page says "multiply by 50% for carefully and double for safely",
+  which reads as halving, but the forum original
+  (https://forums.civfanatics.com/threads/a-study-of-espionage-mission.97042/,
+  Oystein, Aug 2004, quoted on page 3) says "3/2 for carefully and 2 for"
+  safely. Spoonwood (page 4, Apr 2017, tested): "safe steal attempts cost
+  exactly twice of an immediate steal attempt," and careful ones 1.5 times.
+  (This corrects the earlier "Carefully halves" reading.) The readme says the
+  cost was exposed in the editor. Quote: "Editor: Added mission cost to
+  Diplomats and Spies page."
+- **The editor help gives the formulas without the distance term.** EDHELP
+  "Base Cost (Diplomat / Spy Mission Properties)": "Establish Embassy BaseCost
+  + TargetCitySize", "Investigate City BaseCost * TargetCitySize", "Steal Tech
+  (BaseCost * Target Player's Number of Techs * Tech Rate) / 100", "Steal World
+  Map BaseCost * ( ( Map Width + Map Height ) / 2 )", "Plant Spy BaseCost",
+  "Steal Plans BaseCost * Target Player's Number of Units", "Sabotage
+  Production BaseCost * Target City's Number of Shields", "Expose Mole
+  BaseCost". Propaganda has a gold term the study lacks: "BaseCost * Target
+  City Size + ( BaseCost * Target City Size * Culture Ratio) + ( ( BaseCost *
+  Target City Size) / 2 * Gold Ratio )". Then: "the cost is then further
+  modified, taking into consideration (where applicable) the distance of the
+  target, the target city's population level, the ratio of citizens between
+  the initiating civ and the target civ, and the safety level modifier". The
+  study's "dist*level" term matches the distance and city-level parts.
 - **Success chances** (same study):
   - Chance of escaping (Immediate/Carefully/Safely): Embassy 40/55/65,
     Regular spy 60/75/85, Veteran spy 70/85/95.
@@ -502,6 +998,17 @@ In this study a negative number is good.
   Technology"
   (https://forums.civfanatics.com/threads/steal-technology.232487/post-5709659).
   Jazzmail, quote: "You have to multiply the values in the table by 0.8."
+- **Plant Spy modifiers by agent level** (Oystein, CFC 97042 page 3, Mar
+  2005): "Conscript -30, Regular/Embassy 0, Veteran 10, Elite 25" (summarised
+  list). An elite embassy had 75% to plant and 65% for the other spy missions.
+  He adds that only regular and veteran spies occur in an unmodded game, and
+  that an exposed agent is still caught with "(90%)" chance.
+- **Discovery is separate from success (manual).** Manual p.~169
+  ("International Incidents"). Quotes: "Note that the chance of your treachery
+  being discovered is distinct and separate from your odds of success. You can
+  succeed and still spark an incident." and "the targeted civilization is
+  likely to treat your treachery as an act of war. (A target with which you
+  are good friends, though, might sometimes choose to disregard your act.)"
 - **Spy experience comes from government.** `conquests.biq` GOVT "SpiesAre":
   Communism and Fascism give veteran (2), the others regular (1).
   "DiplomatsAre" is regular for all. CivFanatics FAQ, quote: "the chances to
@@ -514,6 +1021,16 @@ In this study a negative number is good.
     1/3 chance each turn, and other failures do not set it (see Disputed).
   - MAS (Steal Technology thread), quote: "its more difficult to succeed a
     second time, as your opponent is weary."
+  - The flag is per civ and invisible, and the 1/3 chance is the same every
+    turn. Oystein (CFC 97042 page 2, Sep 2004): "The probability that the flag
+    will disappear is 1/3, no matter how many turns has past." Oystein (page 3,
+    Nov 2005): a failed sabotage does not set the flag. Asked whether the AI is
+    flagged too: "there is no difference between human and AI" (page 1).
+  - An earlier vanilla report says a failed mission makes the rest of that
+    turn's attempts fail. player1 (Apolyton "Cost of spying",
+    https://codehappy.net/apolyton/threads/60084-1.htm, Aug 2002); Jaybe
+    disagreed, and Catt had succeeded after a failure only against another
+    target. Anecdotal.
 - **A caught spy can lead to war.** Source: CivFanatics FAQ. Quote: "If it is
   not successful, the AI will become mad at you and might declare war." The
   attitude cost is in 6.7.
@@ -549,8 +1066,44 @@ In this study a negative number is good.
 - **Steal Technology is blocked against civs you are at war with.** Source:
   rysingsun in the "Steal Technology" thread, and the Apolyton thread title
   "espionage: you can't steal techs from civs you are at war with". Combined
-  with the war closing the embassy, this follows from 6.2. Whether a planted
-  spy can steal tech during a war is UNVERIFIED.
+  with the war closing the embassy, this follows from 6.2. Jaybe (Apolyton
+  "Espionage--worthless?", https://codehappy.net/apolyton/threads/107183-1.htm,
+  Jan 2004): an Ambassador "canNOT" investigate a city while at war.
+- **A planted spy can steal tech during a war (informal test).** Spoonwood
+  (CFC 97042 page 4,
+  https://forums.civfanatics.com/threads/a-study-of-espionage-mission.97042/page-4,
+  Apr 2017): "if you have a spy planted, then you can attempt to steal tech
+  during a war." Without a planted spy he could not. The manual (p.~168)
+  agrees in spirit: "Once your Spy is in place, the flow of information is not
+  interrupted during a war". (Former open question 9.)
+- **Steal Plans lasts the rest of the turn.** Manual p.~168: "For the
+  remainder of the turn, you know the positions of all of that rival's
+  troops." C3X-INI (`steal_plans_duration`, default 1): "Sets the number of
+  turns for which a successful "Steal Plans" espionage mission reveals the
+  target civ's units."
+- **Sabotage: half or all of the shields?** The manual (p.~168) says "They'll
+  destroy half of the shields already accumulated for the current project."
+  The C3C Civilopedia says "destroy all the $LINK<shields=GCON_Shields> in the
+  production box" (see Disputed).
+- **Propaganda is easier against a city in disorder (manual).** Manual
+  p.~168: "it is easier to push a city already in civil disorder into open
+  revolt than it is to undermine a contented city." Not in the study's
+  formula. Oystein (CFC 97042 page 2, Sep 2004): "If the flip chance of a size
+  1 city if 30%, then the flip chance of a size 20 city is about 0.004%".
+- **When the espionage screen opens.** The vanilla `README.txt` (manual
+  errata, 1.0): "The Espionage button becomes enabled after researching the
+  Espionage advance." The later manual (p.~169) and the C3C Civilopedia
+  `GCON_Espionage` both say the screen is available after Writing ("This
+  screen is available for use once a player has discovered
+  $LINK<Writing=TECH_Writing>"). The screen arrived with PTW (Apolyton "UGO
+  Preview Part 2 - ESPIONAGE Screen", https://codehappy.net/apolyton/threads/63254-1.htm).
+  So: vanilla button at Espionage; PTW and C3C screen at Writing.
+- **The AI uses espionage too.** jabroni154 (Apolyton "Espionage and the AI in
+  1.21", https://codehappy.net/apolyton/threads/49422-1.htm, May 2002) saw an
+  AI propaganda attempt and spy plants. TimBentley (CFC 97042 page 4, Apr
+  2006): "They use propaganda and sabotage production, for sure." Manual
+  p.~157: "Be aware that enemies can use all the same techniques against your
+  civilization as you use against theirs."
 
 ## 6.12 United Nations (brief)
 
@@ -568,8 +1121,66 @@ In this study a negative number is good.
   `script.txt` `DIPLOVICTORYVOTEOPTION`: "Would you like to hold elections for
   UN Secretary-General?" and "Election was inconclusive; no majority was
   found."
+- **One vote per civ; a majority of all civs in the game.** CFC FAQ: "Each
+  civilization gets 1 vote, and can vote for one of the candidates." Manual
+  p.~175: "you must be elected Secretary-General by a vote of the majority of
+  all the civilizations in the world". TimBentley (CFC "the road to Diplomatic
+  Victory", https://forums.civfanatics.com/threads/the-road-to-diplomatic-victory.40013/page-2,
+  Sep 2005), asked whether the majority is of all civs or of voters: "All civs
+  in the game." Candidates vote for themselves (eae, CFC 19457, Dec 2003: "my
+  rival voted for himself").
+- **Only the UN owner can call the vote.** tao (CFC "Diplomatic victory
+  question", https://forums.civfanatics.com/threads/diplomatic-victory-question.112336,
+  C3C/PTW, Feb 2005): "Only the owner of the UN can call the vote." Turner,
+  same thread: "Actually, it's every 11 turns." Hyronymus: "the non-owners never
+  receive a message if the AI owner decided not to run an election."
 - **An AI must be Polite or better to vote for you.** Source: AI Attitude
-  Study (summarised).
+  Study (summarised). SirPleb (CFC 44999 page 5, Mar 31 2003, quoted again on
+  page 8): "To get someone's vote at the UN it is necessary to have them
+  "polite"." Barely polite (-1) is enough; at 0 (cautious) or worse the AI
+  abstains or votes for another candidate. Bamspeedy (page 6): "donating over
+  100 gold the turn before the UN vote would be a waste" (the gift cap is -10).
+- **TMIT's Guide to UN Victories is Civ4.** The often-cited CFC thread 304815
+  (60% of world population, "friendly" voters) is a Civ4 guide, so it is not
+  used here.
+
+## 6.13 How attitude and treaties feed AI war plotting (code-level, brief)
+
+The full AI war logic belongs to section 8. This is the part that depends on
+diplomacy. Source for every bullet: Flintlock (CFC, "All About AI Aggression
+Levels and War Plotting",
+https://forums.civfanatics.com/threads/all-about-ai-aggression-levels-and-war-plotting.703785/,
+C3C 1.22, Jun-Jul 2026), a pseudocode reconstruction from the executable. His
+post #8 corrects the exclusion roll, and the text below uses the corrected
+reading.
+
+- **Each turn the AI may start plotting a war.** Quote: "Each AI player has a
+  chance at the start of each turn to begin plotting war." The rolls include
+  "Roll one in (12 + -2 * EffectiveAggressionLevel)", "If already at war, roll
+  one in 16", "If in anarchy, roll one in 8", and "If in a government that
+  experiences war weariness, roll one in 2".
+- **MPP partners are never targets.** Quote: "Other players with whom the AI
+  has a mutual protection pact are excluded". He also believes recent peace
+  protects: "I believe this blocks war plotting within 8 turns of signing
+  peace." Fergei (page 1, Jul 2026): "The AI will declare war on you, even if
+  you have an MPP, if the MPP is agreed AFTER" the plotting began.
+- **Peace, common enemies and alliances make exclusion likelier.** The roll is
+  "rolling **not** one in X", with "X = 1 to start", "X += 2 if the AI has a
+  peace treaty with the target", "X += 2 for each common enemy the AI and the
+  target have" and "X += 2 for each military alliance the AI and the target
+  have". "The AI will skip this check if the target is a human player who is
+  ranked first in power."
+- **Attitude weights the target score.** Quote: "DiploEffect = 8 if furious
+  toward the target, 4 if annoyed, 2 if cautious, 1 if polite, and 0 if
+  gracious." Other diplomatic terms: "If the AI has a resource trade with the
+  target, X = 3 * X // 4", "For each common enemy that the AI and the target
+  share, X = 2 * X // 3", "If the target has a peace treaty or mutual protection
+  pact with any player, X = X // 2." and "X = X // (AllianceCount + 1)".
+- **War is declared when the attack starts.** Flintlock (page 2, Jul 14 2026):
+  "War is declared only when the attack actually happens." And: "the AI will
+  not attack you with its HN units while it's gracious toward you."
+- **Shared continent means a city on it.** Flintlock (page 2): "Two players are
+  considered to share a continent if they both have at least one city on it."
 
 ---
 
@@ -580,53 +1191,123 @@ In this study a negative number is good.
   Civilopedia say Map Making. The C3C `GCON_Embassies` text still says Writing
   ("That done, you can sign Right of Passage agreements and Military
   Alliances"), a leftover from vanilla. **Map trading:** Map Making in vanilla,
-  Navigation in C3C. For a C3C ruleset, follow the BIQ tech flags.
+  Navigation in C3C. **Owner ruling (engine): ROP needs Writing plus an
+  embassy.** Its sources are listed in 6.3 (C3C `GCON_Embassies`, vanilla
+  `TECH_Writing`, the manual's "if you have an embassy", Aeson on Apolyton
+  46862).
 - **Does attitude change trade prices?** TheNiceOne (1.29) found that
   attitudes below Polite give no extra markup ("no AI will demand more if
   falling below catious"). Zwingli (1.29) measured +0.32% per attitude point
   below Cautious, and Furious cost about 38% more than Gracious when combined
-  with demands.
+  with demands. Catt (Apolyton 53506, Jun 2002, "a very limited test"): "AI
+  attitude towards me had absolutely no affect on trade prices." Bamspeedy (CFC
+  44999 page 2): "I did not test how attitudes affect what civs would pay (or
+  charge you) for things." The engine follows TheNiceOne's table (owner
+  ruling).
 - **Spy failure lockout.** The PTW readme says any spy mission fails
-  automatically for 2-4 turns after a failure. The espionage study says only
-  a failed Plant Spy sets a flag, cleared with a 1/3 chance per turn.
-- **Embassy attitude sign.** The AI Attitude Study lists "-2 If you have an
-  embassy with the AI" (good) in one place, but its permanent-effects list
-  reads it as +2.
+  automatically for 2-4 turns after a failure. The espionage study (C3C) says
+  only a failed Plant Spy sets a flag, cleared with a 1/3 chance per turn, and
+  that a failed sabotage sets no flag. A 1/3 chance per turn gives an expected
+  3 turns, which is close to the readme's "2-4", so the two may describe the
+  same flag with the readme over-generalising "any spy mission". Not tested
+  against the readme.
+- **Sabotage Production: all or half the shields.** Manual p.~168: "They'll
+  destroy half of the shields already accumulated for the current project."
+  Conquests Civilopedia `GCON_Espionage`: "destroy all the
+  $LINK<shields=GCON_Shields> in the production box of a rival city". The
+  manual's "Losing Improvements" note (p.~143) says sabotage "might scrap the
+  item that the city is currently producing or destroy half the shields". One
+  vanilla report (DISX, Apolyton "Sabotage Production doesn't work?",
+  https://codehappy.net/apolyton/threads/33523-1.htm, Nov 2001): "SABOTAGE
+  SUCCESSFUL it tells me, Japanese has to start the production over." No
+  controlled test found. For C3C, follow the Civilopedia.
+- **Carefully: x0.5 or x1.5 cost.** The War Academy page reads "multiply by 50%
+  for carefully", but the forum original says "3/2", and Spoonwood measured
+  x1.5 (6.11). Resolved in favour of x1.5; kept here because the War Academy
+  page is the commonly cited copy.
+- **Shunned government: +4 or +5 attitude.** The study measured "+4 Shunned
+  government". Flintlock's code reading (CFC 703785, 2026) gives "if the other
+  player is in the AI's shunned government, it adds 5 points." The study's
+  numbers are measured at PTW 1.01; the code reading is C3C 1.22.
 - **AI reputation.** Players disagree on whether AIs suffer reputation for
   their own treaty breaks. Myartar, quote: "There seems to be NO penelty to
-  the AI on reputaion". Others are unsure.
-- **Embassy and alliance gate.** The CivFanatics FAQ and the Civilopedia say
-  Military Alliance needs Writing. A forum post (search result) adds that a
-  road or sea link to the AI capitals is needed for ROP and MA. That link
-  requirement is likely confused with resource trade (UNVERIFIED).
+  the AI on reputaion". ahman (CFC 113376 page 3, Dec 2010): "Maybe they don't
+  even care about reputation between them?" (unanswered). The manual (p.~156)
+  only says "If you habitually break treaties, other leaders will have no
+  qualms about doing the same to you."
+- **Does breaking a peace treaty hurt reputation?** microbe ("Trading
+  Reputation", C3C) says "there is no such a thing" as peace-treaty
+  reputation, and that breaking a fresh treaty leaves reputation "intact" unless
+  it breaks a GPT deal. Smart (CFC 113376 page 2, Dec 2005): "You cant breake
+  peace treaty without a rep hit." nullspace (same page, C3C 1.22 test of Vol's
+  save): declaring war "breaks a 20-turn peace treaty, and breaks no other
+  deals", yet India's reputation was ruined afterwards. tmn (page 3, 2017):
+  "Peace treaty, Right of Passage and Trade Embargo are all rep-risky." The
+  attitude study separately gives "+4 for breaking a peace treaty with that
+  civ" as an attitude (not reputation) effect.
+- **Does reputation ever recover?** The CFC FAQ and microbe say never for GPT
+  deals ("will never again for the game accept per-turn payments"). The manual
+  (p.~156) says black marks "can be partially erased" over "long periods of
+  time". Vol's tests (6.6) show a workaround through contact, not time. No
+  timed test was found.
+- **Units removed from territory: where to?** The Strategy Compilation says
+  "nearest non-offending spot"; vondrack (Apolyton 55198, 1.21f) says toward
+  "their original destination" (6.10).
+- **Can cities be traded outside a peace deal?** The CFC FAQ lists "Cities (as
+  part of a peace deal only)". The manual (p.~165) lists cities as an ordinary
+  trade item, Bamspeedy (CFC 44999 page 6, PTW 1.21) treats "Donations of
+  cities" as gifts, and the Strategy Compilation (vanilla) says "AI trades big
+  for cities". The FAQ may mean that the AI only gives up cities to end a war.
+- **UN: second candidate when only one civ qualifies.** Conquests Civilopedia:
+  "the second candidate is the civilization with the largest population." The
+  CFC FAQ (summarised by the fetch tool) says the highest-scoring civ. EMan (CFC
+  40013 page 2, PTW, Nov 2005): "If neither 1 or 2 applies, Civ with highest %
+  of World's Population." Follow the Civilopedia.
+- **AI-AI trade rate scope.** Soren (via WarpStorm, Apolyton 68856): "the AI to
+  AI trade rate is deficit spending only." EDHELP describes a plain multiplier
+  on the initiating civ's offer. See 6.8.
+- **Submarine collisions.** Vanilla `README.txt` (Fixes v1.16f): "You no
+  longer declare war by accidentally passing over a hidden submarine." and "The
+  AI no longer reacts to submarines that it cannot see." C3X-INI (C3C 1.22,
+  "SUBMARINE BUG"): "After colliding with an invisible unit, the AI initiates
+  combat, declaring war if necessary." So in 1.22 an AI that bumps into your
+  hidden unit can still start a war.
 
 ## UNVERIFIED / open questions
 
-1. **First contact trigger.** Adjacency, sight, or borders? Does meeting one
-   civ ever give contact with its partners automatically?
-2. **Ceasefire.** Does Civ3 have one, and how long does it last? The "16
-   turns" figure is Civ2. The Civ3 text files have no ceasefire strings.
-3. **Exact tech-trade valuation function in Civ3**: how the number of known
-   civs and civs owning the tech scale the price, and the wonder value term.
-4. **When the AI gives in to tribute demands**, and when it starts making
-   its own demands (power ratio, aggression, attitude).
-5. **When the AI agrees to or refuses ROP, MPP, MA and embargo**
+Resolved this pass (now in the main text): first contact trigger (6.1,
+manual), ceasefire (6.5, none in Civ3), MPP before Nationalism (6.3),
+embassy attitude sign (6.7), embassy/alliance gate (6.3), units teleported
+when told to leave (6.10, destination disputed), planted spy stealing during
+war (6.11, informal test).
+
+1. **Exact tech-trade valuation function in Civ3.** Known: one function for
+   AI-AI and AI-human trades, value falls as more civs have the tech (Soren),
+   and the AI-human markup table (TheNiceOne). Unknown: the exact scaling by
+   known civs and by civs with the tech, and the wonder term.
+2. **The demand chance and the AI's decision to give in to your demands.**
+   Code-level work confirms aggression sets the demand chance but gives no
+   numbers. Players tie giving in to military superiority near their cities.
+3. **When the AI agrees to or refuses ROP, MPP, MA and embargo**
    (`AINORIGHTOFPASSAGE`: "Our bond is not sufficient to allow trust of this
-   magnitude.") The attitude thresholds are unknown.
-6. **How long attitude penalties last**, beyond the study's decay rates
-   (gifts at about 10 gold/turn, war damage at 1/turn). The temporary
-   espionage +4 recovers over about 10-20 turns per the study, untested.
-7. **Whether reputation ever recovers** without the "renegotiate peace / ally
-   against the victim" workarounds.
-8. **Withdrawal on agreeing to leave territory**: are units teleported out
-   at once?
-9. **Whether a planted spy can steal tech during a war.**
-10. **Loan terms** offered by the AI (`AILOANOFFER`).
-11. **AI pricing of cities, workers and maps in trades.** There are no
-    sources beyond "the AI values its towns highly" anecdotes.
-12. **AI "won't trade techs with someone at war with its friend"** or "won't
-    trade while you're in a war you started". No Civ3 source was found. Such
-    rules are attested for Civ4 only.
-13. **Embassy-granting wonder** (Marco Polo's Embassy): its presence and
+   magnitude.") Known: ROP is priced by territory size (Bamspeedy), the MA
+   evaluation divides by the distance to the target (C3X-INI), and the AI
+   refuses to embargo a civ it trades resources with (Spoonwood). The attitude
+   thresholds are unknown.
+4. **Exact decay of temporary attitude effects** other than gifts (10
+   gold/turn) and war damage (non-linear, SirPleb's samples in 6.7).
+5. **Timed reputation recovery** (see Disputed).
+6. **Terms of an AI-to-human loan** (`AILOANOFFER`). Lending to the AI is about
+   18 gold per 1 gpt (6.8).
+7. **Pricing of cities and strategic resources.** Maps, ROP, luxuries,
+   contacts and early workers have player-tested rules (6.8). Cities and
+   strategic resources do not.
+8. **AI "won't trade techs with someone at war with its friend"** or "won't
+   trade while you're in a war you started". No Civ3 source was found. Such
+   rules are attested for Civ4 only (for example CFC 217576, a Civ4 thread).
+9. **When the "remove your forces or declare war" option appears**, and the
+   exact rule for where removed units go.
+10. **Whether the MPP fires on the declaration or the first attack.**
+11. **Embassy-granting wonder** (Marco Polo's Embassy): its presence and
     effect per version were not checked here. It belongs to the wonders
     section.

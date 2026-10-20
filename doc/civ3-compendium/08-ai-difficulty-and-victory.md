@@ -11,6 +11,47 @@ poster's name. "Tested" means the poster says they tested it. "BIQ (repo)" means
 that "the highest is renamed from Sid to Creator". Those values are used here only to back up web
 sources, never as the only source. Treat them as secondary because the import code could have bugs.
 
+Local first-hand sources (deep pass of 2026-10-20), cited by these tags:
+
+- **BIQ-C3C**: `<civ3>/Conquests/conquests.biq`, read with the repo's QueryCiv3 through a throwaway reader
+  (`<civ3>` = `D:\Steam\steamapps\common\Sid Meier's Civilization III Complete`). This is a direct read of the
+  game file, so it outranks "BIQ (repo)".
+- **PEDIA-C3C / PEDIA-PTW / PEDIA-V**: `<civ3>/Conquests/Text/Civilopedia.txt`, `<civ3>/civ3PTW/Text/Civilopedia.txt`,
+  `<civ3>/Text/Civilopedia.txt`.
+- **SCRIPT**: `<civ3>/Conquests/Text/script.txt`. **README-V**: `<civ3>/README.txt` (vanilla patch notes to 1.29f).
+  **README-PTW**: `<civ3>/civ3PTW/readme.txt`. **README-C3C**: `<civ3>/Conquests/readme.txt`.
+- **MANUAL**: the Civilization III Complete manual (text extract of the Steam PDF,
+  https://cdn.akamai.steamstatic.com/steam/apps/3910/manuals/manual.pdf).
+- **EDHELP**: the Conquests editor help (`<civ3>/Conquests/Civ3ConquestsEdit.chm`, decompiled pages).
+- **C3X-INI / C3X-SRC / C3X-NOTES**: the C3X mod's `default.c3x_config.ini`, `injected_code.c`, `Civ3Conquests.h`
+  and `Notes/*.txt` (https://github.com/maxpetul/C3X, read 2026-10-20). The mod is out of scope. Only its
+  descriptions of what the unmodded C3C 1.22 executable does are used; they come from reading the executable.
+- **FLINTLOCK-WAR**: Flintlock, "All About AI Aggression Levels and War Plotting", 27 Jun 2026,
+  https://forums.civfanatics.com/threads/all-about-ai-aggression-levels-and-war-plotting.703785/ . Flintlock is
+  the C3X author; he says he converted "the original logic" to pseudocode (post #8: "In the original logic it's
+  more clear. There's a switch statement over the AI aggression setting"). This is code reading of stock C3C, not testing.
+
+### Owner rulings for the engine (recorded, not argued)
+
+The project owner has ruled on these points. The sources that bear on each are listed so the ruling can be
+traced.
+
+- **AI cities keep a free tile between them (no overlapping first rings).** The stock minimum separation for
+  every player is one empty tile. C3X-INI: "if it's set to 1, cities cannot be founded adjacent to one another,
+  there must be at least one open tile separating them. A setting of 1 there corresponds to the standard game
+  rules." Keeping first rings apart as well is the owner's rule for the AI. SJ Frank (3.3 below): "The AI will
+  never settle a city that has first-ring conflict."
+- **The AI keeps the luxury slider** (a trial showed it stronger). The stock sources describe an AI without it:
+  alexman's PTW debug test (3.6), "I think this is the best the AI can do without using the luxury slider", and
+  Ision, the AI "will NOT use the luxury slider".
+- **The AI may change government in long wars.** chiefpaco (21298): after a long war it "switches to Comm or
+  Monarchy" (3.6).
+- **The AI uses Regent's optimal-city percentage.** alexman (Apolyton, 31 Jul 2002), https://codehappy.net/apolyton/threads/56739-1.htm:
+  "The AI gets the "AI default difficulty level" percentage of OCN. If you haven't changed that, it's Regent."
+  BIQ-C3C RULE `DefaultDifficultyLevel=2` (Regent). See 1.2 for the extra AI-only OCN term in the code.
+- **The AI researches by alexman's tech values.** Stock C3C does not use tech flavors (3.6), so the AI's tech
+  choice comes from its built-in valuation (C3X-SRC hooks a stock `Leader_ai_eval_technology`).
+
 ---
 
 ## 1. Difficulty levels (BIQ DIFF section)
@@ -32,6 +73,7 @@ sources, never as the only source. Treat them as secondary because the import co
 | % of optimal cities (human OCN) | 100 | 95 | 90 | 85 | 80 | 70 | 60 | 50 |
 | AI-to-AI trade rate | 110 | 120 | 130 | 140 | 150 | 160 | 170 | 200 |
 | Citizens quelled by military law | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 |
+| Corruption modifier (%) | 100 | 100 | 100 | 100 | 100 | 100 | 100 | 100 |
 | Score multiplier | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
 
 Sources for the table:
@@ -61,6 +103,22 @@ Sources for the table:
   `numberOfAIDefensiveStartingUnits`, `numberOfAIOffensiveStartingUnits`, `extraStartUnit1/2`,
   `additionalFreeUnitSupport`, `unitSupportBonusForEachSettlement`, `attackBonusAgainstBarbarians`,
   `aiCostFactor`, `percentageOfOptimalCities`, `aiToAITradeRate`, `militaryLaw`.
+- **BIQ-C3C (direct read).** DIFF gives content 4/3/2/2/1/1/1/1, cost factor 20/12/10/9/8/7/6/4, OCN %
+  100/95/90/85/80/70/60/50, AI-AI trade 110/120/130/140/150/160/170/200 and corruption % 100 at every level.
+  This confirms the table, including the C3C Deity values.
+- **Corruption modifier.** EDHELP "Corruption Modifier (Difficulty Level)": "Determines the percentage of normal
+  corruption experienced on the selected difficulty level. The default is 100% on all levels". It "has no effect on
+  players whose government experiences catastrophic corruption, cities in civil disorder, or capital cities".
+  README-V (1.21f): "Editor: Added a corruption slider to difficulty level page. It defaults to 100% for all
+  difficulty levels."
+- **Extra start units 1 and 2 are Settler and Worker.** BIQ-C3C RULE `StartUnitType1=0`, `StartUnitType2=1`,
+  and PRTO 0 is Settler and PRTO 1 is Worker. So Sid's "2" and "4" are 2 settlers and 4 workers, as Pyrkaige
+  (68642) said. EDHELP has it the wrong way round: "type 2 start units ... corresponds to the default start unit 2
+  on the general settings page (normally a settler)".
+- **Optimal city number by world size (C3C).** BIQ-C3C WSIZ: Tiny 14, Small 17, Standard 20, Large 28, Huge 36
+  (tech rate 160/200/240/320/400; distance between civs 11/11/12/18/24; civs 4/6/8/12/16; maps 60x60 to 160x160).
+  This settles the former UNVERIFIED item. The vanilla values were 12/14/16/24/32 (Pyrkaige 37490;
+  `02-city-economy.md` reads the same from the vanilla and PTW rule files).
 
 ### 1.2 What the fields mean
 
@@ -70,6 +128,10 @@ Sources for the table:
     the cost factor applies to wonders, improvements and units, but not to combat or movement rates.
   - https://civfanatics.com/civ3/faq/ lists the bonuses above Regent as "extra starting units, faster
     production and research, and lower corruption".
+  - **It also scales AI growth (Firaxis editor text).** EDHELP "Cost Factor (AI Bonuses)": "Determines the cost
+    factor that is applied to AI growth, shields, and research. The player's cost factor is always 10."
+    C3X-SRC names two stock functions that take an `ignore_difficulty` flag, `Leader_get_unit_cost` and
+    `Leader_get_food_cost_factor`, which fits a difficulty factor on both shield and food costs.
 - **Research penalty after patch 1.29f.** For research, the patched game makes the human's techs cost
   more instead of making the AI's cost less. Tested by theNiceOne, 19 Jan 2003, patch 1.29:
   https://apolyton.net/forum/miscellaneous/archives/civ3-general-archive/86979-ai-human-trade-revisited
@@ -78,17 +140,52 @@ Sources for the table:
   above, also reports that later patches made the human, not the AI, the one adjusted by difficulty.
 - **AI-to-AI trade rate.** It sets how much AIs pay each other in tech trades (and maybe other trades).
   theNiceOne, same Apolyton thread: "the AI-AI trade bonus that can be found in the editor does _not_
-  affect AI-human trade in any way." Nobody found the exact formula. Nor Me: "I cannot get reasonable
-  results out of an AI-AI trade test."
+  affect AI-human trade in any way." Nor Me: "I cannot get reasonable results out of an AI-AI trade test."
+  - **Definition (Firaxis editor text).** EDHELP "AI to AI trade rate (AI Bonuses)": the value "is multiplied by
+    the total value (in gold) of the initiating civ's offerings, which is used by the "other" AI civ to determine
+    whether a deal is acceptable or not. For example, with a rate of 120, an AI civ offering 100 gold to another AI
+    civ for something would actually be worth 120 gold to the other AI civ. This rate directly affects the
+    frequency and aggressiveness with which AI civs trade amongst themselves." The underlying item valuation is not
+    documented.
+  - **How often AIs negotiate with each other (code).** C3X-SRC, comment on its hook: "The intercepted call is
+    the base game's 1-in-4 gate before ai_negotiate_with_other_ai." So each eligible AI pair gets a 1-in-4 roll
+    to negotiate.
+  - **AIs do not demand tribute from each other.** C3X-INI offers AI-to-AI demands as a new feature, using "the
+    same demand selection, acceptance, diplomatic penalty, and possible war logic that the base game uses for
+    demands involving a human player". FLINTLOCK-WAR: "As far as I know AIs won't demand things from each other."
 - **% of optimal cities.** This is a percentage applied to the **human's** optimal city number, the
   number of cities before corruption from city count rises. Arathorn (104294): "human has 50% of the normal OCN" at Sid.
-- **Citizens born content, quelling and barbarian bonus apply to the human.** The AI uses a fixed
-  default level for these, and which level that is is disputed (see Disputed).
-  - TheNiceOne (37490 thread) says the AI plays by Regent rules for the content, quelling, barbarian and
-    corruption factors. Bamspeedy says the "default AI intelligence" setting controls this.
-  - Pyrkaige (68642) says AI civs "play at the Monarch level (or did in PTW, and most likely still do)"
-    for four variables.
-  - BIQ RULE has a `DefaultDifficultyLevel` field (`QueryCiv3/BiqSections/Rule.cs`).
+- **Each player has its own difficulty level; for the AI it is the default level (Regent).**
+  - The executable stores a difficulty per player. C3X-SRC `Civ3Conquests.h`, `struct Leader`: `int
+    player_difficulty;`. C3X-NOTES `ocn_formula.txt` says the OCN percentage "is scaling for player's set
+    difficulty ... The level used here is per-player NOT the overall game difficulty."
+  - alexman (Apolyton 56739, 31 Jul 2002, vanilla): "The AI gets the "AI default difficulty level" percentage
+    of OCN. If you haven't changed that, it's Regent." player1, same thread: "AI always use Regent vlalue, so he'll
+    have 90% of original optimal."
+  - BIQ-C3C RULE `DefaultDifficultyLevel=2`, which is Regent (0 = Chieftain). EDHELP "Default Difficulty
+    Level" describes the same field from the menu side: "Determines which difficulty level ... the game defaults
+    to. Default is Regent."
+  - This is the field Bamspeedy (37490) meant by the "default AI intelligence" setting, and it gives TheNiceOne's
+    Regent answer (37490) unless a mod changes it. Pyrkaige's Monarch (68642) is the outlier.
+  - Content citizens, military law and the barbarian bonus are per-difficulty DIFF fields like the OCN
+    percentage. That the AI reads them at its per-player level too is TheNiceOne's claim (37490) and is
+    consistent with the code structure, but only the OCN use is shown in code.
+- **The AI gets extra optimal cities on Monarch and above (code).** C3X-NOTES `ocn_formula.txt`
+  (https://github.com/maxpetul/C3X/blob/master/Notes/ocn_formula.txt) gives the stock OCN as
+  `ocn = max (1, floor(s_diff * (b + n_fp + n_com + n_gov + n_ai) / 100))`, with "n_ai is special contrib for AI
+  players: n_ai = 0 if human player else | 0 if game difficulty set <= 2 | floor(b/8) if set to 3 | floor(b/4) if
+  set to 4 | floor(b/2) if set >= 5". So with the game difficulty at Monarch, Emperor, or Demigod and above, an AI's
+  base OCN rises by 1/8, 1/4 or 1/2 of the map's base number before its own (Regent) percentage is applied. On a
+  Standard map (b = 20) at Regent's 90%: Monarch 19 cities, Emperor 22, Demigod/Deity/Sid 27, against 18 at
+  Regent and below (worked from the formula, not tested).
+  The same note gives the other terms: Commercial "floor(b/4)"; Forbidden Palace-type wonders "floor((3*f*b) / d)",
+  d = 8, or 1 under communal corruption; government "floor(b/8) if L's govt has minimal or nuisance corruption |
+  floor(b/16) if problematic | 2*b if communal". This is the "lower corruption" the CFC FAQ lists as an AI bonus.
+  Corruption itself belongs to `02-city-economy.md`.
+- **Starting bonus units are the best available attacker and defender.** EDHELP "Number of Defensive Land Units
+  (Additional AI Starting Units)": "the AI will determine which available unit (e.g. units that can currently be
+  built) is its best defender." The offensive entry says the same with "best attacker". This settles the former
+  UNVERIFIED item.
 - **Max AI government transition time** caps the AI's anarchy. CFC FAQ: "on Emperor, the cost factor is
   .8, and the AI gets a reduced anarchy time!"
 
@@ -101,6 +198,15 @@ Sources for the table:
     map" and that the AI "went for future resources spots".
   - Bamspeedy, same thread: "If the AI has seen the map, it does in fact know if a future resource will be there or not."
   - TheNiceOne, https://forums.civfanatics.com/threads/the-ai-dont-cheat.33788/post-530614: "They know where your units are and a few other things."
+  - Harovan (Apolyton staff), https://codehappy.net/apolyton/threads/84970-1.htm (4 May 2003): "The only known
+    and confirmed true cheat is, that the AI knows the entire map, including all resources and the location of all
+    units." dexters, same thread, from debug-mode games: the AI knows where resources are but cannot see them
+    without the tech (he saw AI cities next to unlinked oil). Jaybe: it knows where they are, "though not WHAT they are."
+  - Soren Johnson, chat transcript quoted by zapperio, https://codehappy.net/apolyton/threads/34826-1.htm
+    (20 Nov 2001): "the AI does not interface with the map like the player does." and "It will always be somewhat grey".
+  - The war-target code reads the target's unit counts directly. FLINTLOCK-WAR: "Calculate LandUnitsPerCity as
+    (number of units the target has with the offensive or defensive AI strategy // target's city count)". This
+    needs no visibility of those units.
 - **No combat, border or wonder cheats (tested).**
   - TheNiceOne (27273): combat "outcomes are as they should be" over many battles; "there's no AI wonder production cheats".
   - TheNiceOne (33788): on border rules, "the AI follows exactly the same rule as the human player."
@@ -108,6 +214,15 @@ Sources for the table:
   will never end a turn where it could sink."
 - **Tech trading.** On higher levels the AI charges the human more. theNiceOne (86979) gives the example
   "1000 / 0.6 * 1.15 = 1917 gold" on Deity.
+- **Mid-turn AI trading (vanilla 1.16f).** In 1.16f AIs could trade with each other during the human's turn
+  (solo, https://codehappy.net/apolyton/threads/39845-1.htm, Jan 2002, with a save). README-V 1.17f removed it:
+  "The AI no longer trades during the players turn."
+- **Difficulty raises the AI's war aggression (code).** The effective aggression level used by the war and
+  diplomacy code adds a difficulty term. FLINTLOCK-WAR: `level = civ.AggressionLevel + GameDifficulty // 2 -
+  DifficultyLevelCount // 6`, clamped to -2..2 (`GameDifficulty = 0 for Chieftain`). With C3C's 8 levels the term
+  is -1 at Chieftain and Warlord, 0 at Regent and Monarch, +1 at Emperor and Demigod, and +2 at Deity and Sid
+  (worked from the formula). justanick (same thread, #13): "The direct effect of aggression setting and difficulty
+  setting is small." See 3.4.
 
 ---
 
@@ -122,15 +237,28 @@ RULE value `buildingDiscountForCivTraits` is 0.5 (repo ruleset.json `rules`).
 | Trait | Effect in C3C | Free tech | Source / quote |
 |---|---|---|---|
 | Militaristic | Promotions are twice as likely. Barracks, Walls, Harbor and Coastal Fortress cost half. | Warrior Code (or The Wheel) | CFC FAQ: "Unit promotions to higher levels are twice as likely as non-MIL civilizations."; "Militaristic buildings like Barracks, Walls, Harbors, etc. are all half cost." Sullla https://sullla.com/Civ3/strat3b.html: "double the chance to promote every time one of their units wins a battle" |
-| Commercial | OCN +25%, which means less corruption. Extra commerce on the city tile at size 7+ and again at 13+. | Alphabet | CFC FAQ: "The OCN (Optimal City Number) is increased 25% for Commercial civilizations." The FAQ also says city centres get an extra commerce on becoming a City and again at Metropolis. Sullla (pre-C3C): "an extra gold piece for each city (size 7-12) and 2 extra gold for each metropolis (size 13+)". |
-| Expansionist | Starts with a Scout and is the only trait that can build Scouts. Never gets barbarians from goody huts, and gets better hut results. | Pottery | CFC FAQ: "Expansionist civilizations do not get barbarians from goody huts". Sullla: "they cannot get barbarians from goody huts." |
-| Industrious | Workers are +50% faster in C3C (+100% in vanilla/PTW). Extra shield on the city tile at larger sizes. | Masonry | CFC FAQ: Industrious workers build "100% faster in Vanilla and Play the World, and 50% faster in Conquests." Artifex: https://forums.civfanatics.com/threads/updated-trait-rankings-for-c3c-emperor.75226/ "+50% instead of +100%", no bonus for slaves. |
+| Commercial | OCN +25% (exactly floor(base/4) added to the base OCN; +10% before 1.29f), which means less corruption. Extra commerce on the city tile at size 7+ and again at 13+ (amount: see `02-city-economy.md`). | Alphabet | C3X-NOTES `ocn_formula.txt`: "n_com = floor(b/4) if L has the trait else 0". alexman, https://codehappy.net/apolyton/threads/76255-1.htm (6 Feb 2003): "Firaxis has told us that the Commercial trait increases the OCN by 25% (it was 10% prior to 1.29f)". PEDIA-C3C `#GCON_Strengths`: "The center city squares of all cities and metros produce extra commerce, and less corruption is experienced." CFC FAQ: "The OCN (Optimal City Number) is increased 25% for Commercial civilizations." The FAQ also says city centres get an extra commerce on becoming a City and again at Metropolis. Sullla (pre-C3C): "an extra gold piece for each city (size 7-12) and 2 extra gold for each metropolis (size 13+)". |
+| Expansionist | Starts with a Scout and is the only trait that can build Scouts (BIQ-C3C RULE `Scout` = PRTO 2 "Scout"). Never gets barbarians from goody huts, and gets better hut results. | Pottery | PEDIA-C3C `#GCON_Strengths`: "The civilization starts the game with a scout and can build more later, and passive minor barbarians are friendlier." README-PTW (1.21f): "Expansionist civs can no longer build Scouts when civ-specific abilities are disabled." CFC FAQ: "Expansionist civilizations do not get barbarians from goody huts". Sullla: "they cannot get barbarians from goody huts." |
+| Industrious | Workers are +50% faster in C3C (+100% in vanilla/PTW), tested (`07-map-terrain-and-workers.md` 5.2, KayEss). Extra shield on the city tile at larger sizes. | Masonry | PEDIA-C3C `#GCON_Strengths`: "Workers complete tasks faster and the center city square of all cities produces extra shields in cities and metros." CFC FAQ: Industrious workers build "100% faster in Vanilla and Play the World, and 50% faster in Conquests." Artifex: https://forums.civfanatics.com/threads/updated-trait-rankings-for-c3c-emperor.75226/ "+50% instead of +100%", no bonus for slaves. |
 | Religious | Temples and Cathedrals cost half. Anarchy lasts 2 turns in C3C (1 turn in vanilla/PTW). | Ceremonial Burial | CFC FAQ: "Religious buildings (Temples, Cathedrals) are all half price." The FAQ gives anarchy as 1 turn in Vanilla and PTW and 2 turns in Conquests. Artifex (75226): "2 turns instead of 1 turn". |
 | Scientific | Library, University and Research Lab cost half. Free tech on entering each new era. Scientific Great Leaders appear in C3C. | Bronze Working | CFC FAQ: "Scientific buildings (Libraries, Universities, Research Labs) are half price." The FAQ adds a free technology on entering a new age. Sullla: "free tech at the start of each era". |
-| Agricultural (C3C only) | +1 food on the city tile under every government except Despotism (under Despotism, see Disputed). Irrigated desert gives 2 food instead of 1. Aqueduct, Recycling Plant and Solar Plant are cheaper. | Pottery (Masonry if also Expansionist) | Arathorn (104294): "Provides one bonus food in the city square in all governments except despotism." TimBentley, same thread: "When in despotism, agricultural only adds 1 food to cities if they are on a river." LouLong https://forums.civfanatics.com/threads/conquests-features-comprehensive-survey.61791: "Cheaper aqueducts, recycling plants and solar plants." |
-| Seafaring (C3C only) | +1 commerce on the city tile of cities on salt-water coast. Ships +1 movement and a lower chance of sinking. Coastal start much more likely. Cheaper Harbor (see UNVERIFIED). | Alphabet (Pottery if also Commercial) | Arathorn (104294): "Cities on the coast of salt water gain one extra commerce in the city square." LouLong (61791): "Ships have movement increased by 1"; "Decreased chance of sinking"; "Coastal start much more likely." |
+| Agricultural (C3C only) | +1 food on the city tile. Under Despotism the -1 penalty on tiles making more than 2 cancels it, unless the city has fresh water (river or lake), so the bonus survives Despotism only with fresh water. Irrigated desert gives 2 food instead of 1. Aqueduct, Recycling Center and Solar Plant are cheaper (BIQ-C3C BLDG Agricultural flag on exactly these three). | Pottery (Masonry if also Expansionist) | PEDIA-C3C `#GCON_Strengths`: "Agricultural city improvements (aqueduct, for instance) are easier to build, and the center city square and irrigated deserts produce one more food." C3X-INI: "Under the standard game rules, the Despotism tile penalty does not apply to food yield from city tiles of Agricultural civs with fresh water." Arathorn (104294): "Provides one bonus food in the city square in all governments except despotism." TimBentley, same thread: "When in despotism, agricultural only adds 1 food to cities if they are on a river." LouLong https://forums.civfanatics.com/threads/conquests-features-comprehensive-survey.61791: "Cheaper aqueducts, recycling plants and solar plants." |
+| Seafaring (C3C only) | +1 commerce on the city tile of every coastal city (not only the capital). Ships +1 movement and a lower chance of sinking. Coastal start much more likely. Cheaper Harbor, Commercial Dock, Offshore Platform and Coastal Fortress (BIQ-C3C BLDG Seafaring flag on these four). | Alphabet (Pottery if also Commercial) | PEDIA-C3C `#GCON_Strengths`: "Each city built along the coast receives a commerce bonus in the center city square, and Seafaring city improvements (such as the Harbor or Commercial Dock) are easier to build.  Ships move faster and are less likely to sink in the sea or ocean." Arathorn (104294): "Cities on the coast of salt water gain one extra commerce in the city square." Dominae, AU501 info thread https://codehappy.net/apolyton/threads/106962-1.htm (21 Jan 2004): cities founded next to a coast tile get "+1 Commerce per turn bonus in the base city tile"; "All naval vessels have a +1 Movement bonus". LouLong (61791): "Ships have movement increased by 1"; "Decreased chance of sinking"; "Coastal start much more likely." README-C3C (v1.20): "Greatly improved the ability of Seafaring civs to start near the coast. It should happen most of the time now." Sinking odds: see `01-combat-and-units.md` (50% vs 75% survival). |
 
 More trait rules:
+
+- **Which ordinary buildings carry each trait flag (BIQ-C3C BLDG, excluding wonders).** These flags are what
+  "half cost for trait buildings" (RULE `buildingDiscountForCivTraits` 0.5) reads.
+  - Militaristic: Barracks, Walls, Coastal Fortress, Harbor, Airport, SAM Missile Battery, Civil Defense.
+  - Religious: Temple, Cathedral. Scientific: Library, University, Research Lab.
+  - Agricultural: Aqueduct, Recycling Center, Solar Plant.
+  - Seafaring: Harbor, Commercial Dock, Offshore Platform, Coastal Fortress.
+  - Commercial: Marketplace, Bank, Stock Exchange, Harbor, Airport, Commercial Dock. No source says Commercial
+    civs get these cheaper, and PEDIA-C3C's Commercial entry lists no building discount (see UNVERIFIED).
+  - Expansionist and Industrious: no ordinary building.
+  - On wonders and small wonders the same flags mean the golden-age trigger instead. EDHELP "Other
+    Characteristics (Improvement Properties)": "Any building civilization with "Agricultural" bonus may trigger a
+    peaceful golden age" (and the same for each trait).
 
 - **Military Great Leaders.** In C3C they can no longer rush Great Wonders, which affects Militaristic
   civs. stachnie (75226): "MGL's can't rush Great Wonders now".
@@ -182,6 +310,63 @@ Germany, Zulu and Mongols at 5 and France and India at 1, which matches +2 and -
 The C3C setup screen also has an AI aggression setting that applies to all AIs. LouLong (61791):
 "Random World Size & Adjustable AI aggression levels."
 
+- **What the setting does (code).** It has five positions, 0 (least) to 4 (most). FLINTLOCK-WAR:
+  "if AIAggression == 0: level = -2 / elif AIAggression == 1: level -= 1 / elif AIAggression == 2: pass # do
+  nothing / elif AIAggression == 3: level += 1 / elif AIAggression == 4: level = 2", applied after the
+  difficulty term (1.3) and clamped to -2..2. Flintlock (#8): "setting the overall AI aggression level to most or
+  least overrides all the per-civ aggression settings." MANUAL p.33: "Normal means that the AI acts based on the
+  tribe's default aggressiveness setting."
+- **What the effective aggression level feeds (code, FLINTLOCK-WAR).** AI attitude ("When computing an AI's
+  attitude toward other players, the game begins with the AI's aggression level calculated as above"), the "Chance
+  to demand things from a human player", the "Chance to declare war on someone who's refused a demand or nuked a
+  third party", trade-offer valuation ("Not sure if this applies to all offers"), the unit AI ("I haven't looked
+  into the details"), and the war-plotting roll (3.4). He adds that the list "is not necessarily exhaustive".
+- **Multiplayer.** Fergei (FLINTLOCK-WAR thread, #9): "you can't toggle aggression levels for the game in
+  multiplayer". README-PTW (1.14f) fixed a "bug that caused MP difficulty level to always be Regent".
+
+**Build-often flags of each civ (BIQ-C3C RACE, C3C defaults).** No civ has any Build-Never flag set, and every
+civ has Manage Citizens and Manage Production on and none of Emphasize Food/Shields/Trade, No Wonders or No Small
+Wonders. Barbarians have no flags.
+
+| Civ | Build often |
+|---|---|
+| Rome | Offensive, Defensive, Growth, Production |
+| Egypt | Growth, Production, Culture |
+| Greece | Naval, Science, Trade, Culture |
+| Babylon | Defensive, Growth, Science |
+| Germany | Offensive, Science, Culture |
+| Russia | Air, Growth, Science |
+| China | Growth, Production, Science |
+| America | Air, Growth, Production, Culture |
+| Japan | Offensive, Naval, Happiness |
+| France | Happiness, Trade, Culture |
+| India | Growth, Wealth, Trade, Culture |
+| Persia | Offensive, Wealth, Trade |
+| Aztecs | Offensive, Growth, Explore |
+| Zululand | Offensive |
+| Iroquois | Growth, Production, Trade |
+| England | Naval, Wealth, Trade, Culture |
+| Mongols | Offensive, Production |
+| Spain | Naval, Trade, Explore, Culture |
+| Scandinavia | Offensive, Naval |
+| Ottomans | Artillery, Happiness |
+| Celts | Offensive, Production, Culture |
+| Arabia | Growth, Culture |
+| Carthage | Naval, Growth |
+| Korea | Artillery, Wealth, Trade |
+| Sumeria | Science, Culture |
+| Hittites | Offensive, Trade |
+| Netherlands | Defensive, Naval, Production |
+| Portugal | Naval, Wealth, Trade, Explore |
+| Byzantines | Defensive, Naval, Happiness, Trade, Culture |
+| Inca | Offensive, Workers, Wealth, Culture |
+| Maya | Defensive, Workers, Production, Culture |
+
+No civ has Settlers often. Byzantines are the only civ with five flags, above Ozymandias's tested 3-4 limit (3.2).
+alexman (vanilla, https://codehappy.net/apolyton/threads/56961-1.htm, 25 Jul 2002) made the same check on the
+vanilla .bic: "none of them except the Iroquois have the Explore Units in their build-often list", and the
+build-never list is empty in the standard setup.
+
 ---
 
 ## 3. How the AI behaves
@@ -217,7 +402,31 @@ The C3C setup screen also has an AI aggression setting that applies to all AIs. 
   Predator145 (Jan 2025) gives a different, second-hand limit: "Alexmann who worked with Firaxis has
   confirmed many years ago that 6 is the max effective number". Source:
   https://forums.civfanatics.com/threads/ai-build-often-building-categories.692300/
-- **Which buildings each category covers** (Predator145, 3 Oct 2024, same thread).
+- **Categories overlap, and the AI favours shield buildings (Firaxis).** Soren Johnson in
+  https://codehappy.net/apolyton/threads/56961-1.htm (25 Jul 2002, vanilla): "Trade = harbors/marketplaces/airports"
+  and "Wealth = marketplaces/banks/workers, not just 'Wealth'"; the AI "preprocesses every unit/building to put
+  them into multiple categories" (a cultural bank counts as both culture and wealth); "the AI does place a higher
+  priority on shield-increasing building"; "I would recommend rarely using the Never flags". Asked whether
+  courthouses and markets fall under production and happiness, he answered "actually, the answer is yes in both
+  cases...". The differences between civs were "meant to give the AI's personality".
+- **How unit strategies drive behaviour (Firaxis).** Soren in https://codehappy.net/apolyton/threads/39744-1.htm
+  (13 Jan 2002): "The AI plans are basically there to allow modders (as well as myself) the ability to give units a
+  "personality"."; "units with the "Land Offensive" plan use a separate function to determine their actions";
+  "a rifleman might decide to attack if the odds are in his favor"; "a city's governor will look at how many
+  "offensive" and "defensive" units are in the city/continent"; "defensive units look to help defend offensive
+  units out in the field".
+- **Strategy prerequisites (Firaxis editor text).** EDHELP "AI Strategy Rules" lists what a unit needs before it
+  may carry each strategy, for example Offense: "Offensive Power > 0"; Artillery: "Bombard Strength > 0" and "Must
+  have BOMBARD action"; Settle: "Must have BUILD CITY action"; Terraform (workers): every worker job action plus
+  "Must have AUTOMATE action" and "Must have JOIN CITY action". Antal1987's thread
+  https://forums.civfanatics.com/threads/useful-patches-for-civ-3-conquests-v1-22.526285 lists as a known stock
+  bug "worker units need all worker actions checked if it is to be used properly by the AI". AvalancheMaster,
+  https://forums.civfanatics.com/threads/getting-the-ai-to-use-worker-units-without-all-worker-jobs-enabled.515992/
+  (Dec 2013), found the limit is the editor's, not the game's: "this is not hardcoded in the game, it's only in the
+  editor." With the Terraform flag set by hex edit, the AI used the unit anyway; Kirejara confirmed it with another
+  editor. So what the game reads is the strategy flag.
+- **Which buildings each category covers** (Predator145, 3 Oct 2024, thread 692300; community. Where it differs
+  from Soren above, for Wealth, Soren's vanilla answer is the Firaxis one).
   - Growth: "Granary, Aqueduct, Hospital".
   - Production: Factory and power plants.
   - Science: buildings that multiply beakers.
@@ -233,6 +442,24 @@ The C3C setup screen also has an AI aggression setting that applies to all AIs. 
   - Builds are partly random, and difficulty and aggression did not change the mix.
 - **Unit abilities the AI favours** (tom2050, relayed in 686973): it "absolutely loves and adores" extra
   hit points. Blitz "would only increase the AI building them ... by around 4%."
+- **Production is a point score per option (code).** C3X-INI: "When choosing what to build, the AI computes a
+  point value for each of its options ... point values are often in the hundreds for the most desirable options."
+  The stock function is `City_ai_choose_production` (C3X-SRC `civ_prog_objects.csv`).
+- **Artillery stays home.** C3X-INI describes its own fix as letting "artillery unit AI to grab escorts from city
+  defenders, causing the AI to use its artillery offensively instead of leaving it in its cities." So stock
+  artillery waits in cities for an escort it does not get.
+- **Leader and army bugs (code).** C3X-INI on the stock leader AI: "a bug that allowed the AI to rush any kind of
+  city production, including units and (with an MGL) wonders". On armies: "a major bug that prevented the AI from
+  filling its armies" and "some logic that encouraged the AI to mix unit types in armies". This explains the
+  "rare as a white rhino" armies (3.5).
+- **Workers: it stops building them once it has "enough" (code reading, Flintlock).** C3X thread page 95,
+  https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/page-95#post-16587093:
+  the AI "assigns a point value of zero to the worker build option when it feels it has enough of them", and its
+  need is computed from a city count (his option "adjusts the city count that the AI uses to evaluate how many
+  workers it needs"). He believes it keeps none in reserve "except for pollution cleanup". Erlend Philip Wood,
+  same page (post 16587268), observed: "The AI would always build a number of Workers equivalent to 80-90% of its
+  number of cities at the peak of its development", and "Setting the 'Build often' flag for Workers makes
+  absolutely no difference."
 - **The human can steer governors.** Soren (255541): you can "tell its governors to never build artillery and air units."
 
 ### 3.3 Settling: spacing, gaps and expansion
@@ -256,13 +483,117 @@ The C3C setup screen also has an AI aggression setting that applies to all AIs. 
   - "A sprawling Expansionist AI by the mid-Middle Ages is common".
   - The AI "will NEVER attempt a suicide run to find another land mass."
   - SirPleb (68813): "The AIs do not explore effectively, particularly large bodies of water."
-- **Settler escorts.** No Civ3-specific source was found (see UNVERIFIED). The thread on blocking AI
-  settlers that the search found is about Civ5.
+  - With a revealed map the AI throws its scouts away. Fergei, https://forums.civfanatics.com/threads/suicidal-ai-scouts.660070/
+    (C3C, 30 Jun 2020): "my Expansionist AI Civs all kill / disband their scouts on the first turn"; Kirejara's
+    explanation, which Fergei accepted: "With the map visible for the KI they see no need for scouting". The
+    thread does not say which setting revealed the map; it is a single report.
+- **Minimum distance (all players).** The rule is one empty tile between cities. C3X-INI: "if it's set to 1,
+  cities cannot be founded adjacent to one another, there must be at least one open tile separating them. A
+  setting of 1 there corresponds to the standard game rules." Antal1987's patch notes (thread 526285, v1) also
+  describe a stock limit that blocks a new city when the settler is "less than 2 tiles from an existing city".
+  For the engine's AI, see the owner ruling at the top.
+- **Site choice is a desirability score per tile (code).** The stock function is `Match_ai_eval_city_location`
+  (C3X-SRC `civ_prog_objects.csv`, signature `int (... int x, int y, int civ_id, bool param_4, int *
+  out_breakdown)`). C3X-INI's debug overlay "Shades/highlights each tile to show how desirable the AI considers it
+  as a city location". The scoring terms themselves are not published.
+- **Settlers are a very strong AI build preference.** C3X-INI: "The AI has a very strong tendency to build
+  settlers so you'll need to set these options quite high to slow it down significantly. For example, a perfume
+  of -200% over a 30 turn duration left the AI with about half as many cities after 50 turns in my test."
+- **It fills every spot, good or bad (vanilla observations).** DrFell, https://codehappy.net/apolyton/threads/42759-1.htm
+  (19 Feb 2002, 1.17): "Watch them cover every free space on the board with a city, including completely
+  unproductive tundra." solo, same thread: it founds cities "wherever spots are left until the map is full."
+  Coracle, https://codehappy.net/apolyton/threads/50345-1.htm (May 2002): "It wastes a lot of its resources sending
+  out settlers to every crappy piece of land anywhere." solo (39845, Jan 2002): AI settlers went for an open
+  horse or iron tile and ignored empty tiles without resources. =DrJambo= (48213, Apr 2002) on 1.21f: AI
+  expansion was "Definitely toned down".
+- **City limit.** README-V 1.17f: "Fixed bug which allowed the AI to keep trying to build cities if the city
+  limit had been reached." The stock limit is 512 (C3X-INI: "For base game behavior, set to 512.").
+- **Settler escorts.** Settlers do travel with escort relationships: C3X-INI, describing a stock freeze, says the
+  disembark logic does "not consider escort relationships (e.g. for settlers)". How many escorts the AI gives a
+  settler, and when, is not sourced (see UNVERIFIED). The thread on blocking AI settlers that an earlier search
+  found is about Civ5.
 
 ### 3.4 War: when it declares
 
-No Firaxis formula was found. These are community observations from
-https://forums.civfanatics.com/threads/when-does-ai-declare-war.244088:
+#### 3.4.1 War plotting (code reading of stock C3C, FLINTLOCK-WAR)
+
+The AI first decides to plot a war, then picks a target. justanick (#13): "It chooses to plot a war first and
+then chooses a target second."
+
+- **The per-turn chance to start plotting.** "Each AI player has a chance at the start of each turn to begin
+  plotting war." Every roll below must pass:
+  - "Roll one in (32 - PowerRank)" "where PowerRank = 31 if it's the strongest civ in the game, 30 if it's
+    second, and so forth." "The power values used here are the same shown on the F8 histograph screen."
+    (C3X-SRC `struct Leader`: `int power_rank; // 31 = strongest, 30 = second strongest`.)
+  - "If the game is set to the lowest difficulty, roll one in 32"
+  - "Roll one in (12 + -2 * EffectiveAggressionLevel)" (effective level: 1.3 and 2.1; range 8 to 16)
+  - "If already at war, roll one in 16"
+  - "If in anarchy, roll one in 8"
+  - "Have a capital city"
+  - "If have fewer than 2 * OCN cities and there are any open city spots on the capital's continent, roll one in 2"
+  - "If in a government that experiences war weariness, roll one in 2"
+  - "If do not have at least one defensive unit per city and one offensive unit per two cities, roll one in 2"
+  - "If do not have at least two defensive units per city and one offensive unit per two cities, roll one in 2"
+  - "If do not have at least two defensive units per city and one offensive unit per city, roll one in 2"
+  - "If treasury is too low, roll one in 2 (too low here means < 16 per city" "plus more if the AI has any Wall
+    Street type small wonders to ensure it's receiving the maximum interest possible)"
+  - justanick's worked example (#6): strongest civ, aggression 0, a war-weariness government, a mid-sized
+    military and a low treasury gives "in the end it is 1/48 for the most powerful tribe", and "the second most
+    powerful tribe has a chance of only 1/96 per turn." He adds (#13): "Once AI has 2 defenders and 1 attacker per
+    city it is eager to start wars, but not before that."
+- **Who can be a target.** "Other players with whom the AI has a mutual protection pact are excluded". "Each
+  player has a cooldown timer that may exclude them. I believe this blocks war plotting within 8 turns of signing
+  peace." (the 8 is his belief). "Lastly the AI randomly excludes some players": it rolls "**not** one in X", with
+  "X = 1 to start", "X += 2 if the AI has a peace treaty with the target", "X += 2 for each common enemy", "X += 2
+  for each military alliance the AI and the target have". (Flintlock #8 corrected the direction: "This check is
+  reversed from all the others.") "The AI will skip this check if the target is a human player who is ranked first
+  in power."
+- **Target score** ("Higher values mean more attractive targets"; whether the AI takes the top score or a weighted
+  pick is not stated):
+  - "To start, X = 2 * (PlayerCount - 32 + PowerRank)." So stronger targets score higher. Flintlock: "So AIs are
+    more inclined to attack stronger opponents. Not sure if this is a bug."
+  - "If the AI has a capital, X = X + 64 // NearestCityDistance" (distance from the AI's capital to the target's
+    nearest city). justanick: "Notably this does not scale with map size."
+  - "X = X + DiploEffect where DiploEffect = 8 if furious toward the target, 4 if annoyed, 2 if cautious, 1 if
+    polite, and 0 if gracious."
+  - Land units per city of the target (units with the offensive or defensive strategy // cities): "X = X + 4 if
+    LandUnitsPerCity is 0, + 2 if it's 1, + 1 if it's 2, and + 0 if it's 3 or more."
+  - "If target is in anarchy, X = X + 1"
+  - "If the target is a human player ranked top in power and twice as powerful as the second-ranked player, X = 2 * X"
+  - "If the AI has a resource trade with the target, X = 3 * X // 4"; "For each common enemy that the AI and the
+    target share, X = 2 * X // 3"; "If the AI and the target do not share a continent, X = X // 2"; "If the target
+    has a peace treaty or mutual protection pact with any player, X = X // 2."; "If the AI has a peace treaty or
+    mutual protection pact with the target, X = X // 2."; "X = X // (AllianceCount + 1)".
+  - Past war damage: "If DamageBalance > 0, X = X // (1 + DamageBalance // max(1, AI's city count))", where the
+    balance is damage the target dealt to the AI minus damage the AI dealt to the target.
+  - Flintlock's summary: "the AI tends to declare war on targets that are stronger and closer, that it's angry with".
+- **Human-player bias is in the stock code.** C3X-INI offers to remove "the AI's special preference for targeting
+  human players when plotting wars. Rules for targeting runaway players still apply". The bias is the two human
+  checks above (no random exclusion for a top-ranked human; doubled score for a runaway human).
+- **Unit quality does not deter.** The rolls and the score count units per city, not their strength. justanick
+  (#20): "Having units stronger than warriors offers no deterrence whatsover against AI plotting a war against you."
+  Kokuryutei (#19) disagrees without a source.
+- **From plotting to declaration.** Not in the code reading. Lanzelot (#16), tested "a few years ago" at Emperor
+  or Deity: "nothing can revert that decision, once taken" (MPPs, alliances, trades, gifts and embargoes all
+  failed). Southern_Man (#14) and Fergei (#15) guess about 4 turns from plotting to the declaration; Ruin (#17)
+  speculates that a plot "times out" if the AI cannot attack. Fergei: "The AI will declare war on you, even if
+  you have an MPP".
+- **Other ways into war (code).**
+  - A refused demand or a nuke on a third party (aggression-based chance, 2.1). C3X-SRC names the stock
+    `Leader_ai_roll_to_declare_after_provocation`.
+  - The submarine bug. C3X-INI: "The AI runs into invisible units (such as submarines) belonging to other players
+    because it blindly follows paths produced for it by the game's pathfinder ... After colliding with an invisible
+    unit, the AI initiates combat, declaring war if necessary." README-V 1.16f: "The AI no longer reacts to
+    submarines that it cannot see."
+- **Chokepoints (Firaxis).** Mike Breitkreutz (Firaxis programmer), https://codehappy.net/apolyton/threads/89862-1.htm
+  (20 Jun 2003): "The AI has always been programmed to seize chokepoints..."; on PTW 1.21f: "I don't believe any
+  changes were made to the AI for 1.21f."
+
+#### 3.4.2 Community observations
+
+These are community observations from
+https://forums.civfanatics.com/threads/when-does-ai-declare-war.244088 (several agree with the code above:
+power, attitude and open land):
 
 - MAS: "The most important factor is probably military strength."
 - Nergal: "General attitude, ie annoyed or furious are way more likely to attack than Cautious." Also "The
@@ -275,7 +606,10 @@ https://forums.civfanatics.com/threads/when-does-ai-declare-war.244088:
 - I. Larkin: "if AI have reach the point that they can't support their military anymore they declare war no matter what..."
 - **Units in their territory.** The AI first asks you to leave. If you are still there the next turn, it
   can force you out or go to war. This is a forum summary from the search for "units in our territory"
-  and has not been checked against a primary quote (see UNVERIFIED).
+  and has not been checked against a primary quote (the turn count is UNVERIFIED). The two-step order (ask, then "leave or
+  declare war") matches the AI Attitude Study in `06-diplomacy-and-espionage.md` 6.7 (asked to leave +1; told to
+  leave or declare war +4). Players can make the same request: README-PTW fixed a "bug where you could not ask an
+  AI civ to remove its units from your territory."
 
 ### 3.5 War: how it fights
 
@@ -290,12 +624,60 @@ https://forums.civfanatics.com/threads/when-does-ai-declare-war.244088:
   heavy garrisons in every city and escorts its offensive stacks with many defensive units. It retreats
   ships to port after minor damage, and its amphibious invasions use too few units.
 - **AI-vs-AI wars.** Ision: they are "wars of attrition" that drain the winner too.
+- **Naval transport escorts (code).** C3X-INI: "In the base game, the AI will assign 1, 2, or 3 escort units to its
+  naval transports and carriers depending in their shield cost and the number of units they're carrying."
+- **Transports wait for each other; damaged units in your land keep fighting (1.29f observations).**
+  https://codehappy.net/apolyton/threads/59444-1.htm (Aug 2002): Catt saw an AI transport and escort that "waited 3
+  tiles off-shore" until a second transport joined, and "knocking a single HP off of a transport vessel doesn't
+  result in the transport heading home for repairs". DeepO: "when an AI troop is in your territory, it will not
+  retreat when damaged", and "there are very few improvements to the naval AI" in 1.29f. Jon Shafer (Firaxis),
+  relaying Soren on 1.29f: "all he told me was that he changed the AI offensive/defensive 'bug'."
+- **Naval play improves when isolated (PTW 1.27f observation).** dexters, https://codehappy.net/apolyton/threads/96269-1.htm
+  (5 Sep 2003): an island AI "promtly sent a fleet of galleys" and landed units over four landings; "it was not
+  uncommon to see civs stuck in islands totally neglect their navies" in his earlier debug games.
+- **The "disembark all" freeze (code).** C3X-INI: "When using "disembark all" (which the AI always does) on a boat
+  containing units that can't be disembarked, the game" can freeze. So AI landings always unload everything.
+- **Multiple stacks (PTW observation).** Jaybe, https://codehappy.net/apolyton/threads/84396-1.htm (27 Apr 2003):
+  "Multiple stacks, occasionally diverging to separate targets"; "They still try to enter at the most
+  advantageous entry point". alexman (Firaxis) in the same thread lists "fewer SOD's" among the PTW changes.
+- **Patrol.** README-PTW (1.26f): "the AI will no longer use its units to randomly patrol if they have nothing else to do"
+  when the INI option `NoAIPatrol` is 1; "The default is 0 (meaning the AI will patrol)."
 
 ### 3.6 Workers, sliders, government, trade
 
-- **Too few workers.** Ision (92917): "the AIs never-ever build anywhere near enough workers."
+- **Too few workers.** Ision (92917): "the AIs never-ever build anywhere near enough workers." See 3.2 for the
+  code reading (zero value once it has "enough") and the 80-90%-of-cities observation.
+- **Worker habits (Firaxis, PTW).** alexman ("Firaxis Games Software Engineer"),
+  https://codehappy.net/apolyton/threads/84396-1.htm (26 Apr 2003), on PTW 1.21f against 1.29f: "The AI no longer
+  sells workers for just 30 gold, crippling themselves and helping the human" (now about 120 gold), and "The AI no
+  longer irrigates grassland tiles in Despotism, unless there is a good reason to do so". README-V 1.17f: "Fixed
+  AI worker loop bug." dexters, https://codehappy.net/apolyton/threads/88537-1.htm (Jun 2003), saw the AI disband
+  workers "rathern than sell off its improvements when it has 0 gold in the treasury".
+- **Out of money (code).** C3X-INI on the stock rule: when a player can't pay upkeep the game sells buildings
+  (except maintenance-free or gold-producing ones), then disbands units (except free ones), then switches cities to
+  Wealth; "For AI players, the game alternates the order of (1) and (2) each turn." Under its optional rule
+  only, "on every third turn, the game will cut their research spending".
+- **Sliders are set by code each turn (code).** C3X-SRC: the stock "preproduction player update method" makes a
+  "human-ness test and call to Leader::ai_adjust_sliders" for AI players, and "The rate cap limits AI players'
+  spending on the gold slider (in Leader::ai_adjust_sliders)", where the cap is the government's rate cap. The
+  code reading does not say how the split is chosen.
 - **Luxury slider.** Ision: the AI "will NOT use the luxury slider to compensate for any happiness
-  issues". Instead it uses entertainers.
+  issues". Instead it uses entertainers. alexman's PTW debug test, https://codehappy.net/apolyton/threads/66928-1.htm
+  (7-8 Nov 2002; six one-city islands): AI cities were "Always irrigating like crazy to compensate for the lack of
+  food from assigning entertainers"; city governor settings "made no difference"; "I think this is the best the AI
+  can do without using the luxury slider." Owner ruling: the engine's AI keeps the slider (top of section).
+- **Research rate (vanilla observations).** https://codehappy.net/apolyton/threads/42759-1.htm (Feb 2002): Pius
+  Popprasch saw AI research "remains stable at 40% no matter what you do"; solo saw rates "range from 70% down to
+  30%". Harovan: the AI does not pay gold per turn when its own balance is not positive.
+- **Tech choice: no flavors in the stock game (Firaxis).** alexman (Firaxis),
+  https://codehappy.net/apolyton/threads/102278-1.htm (22 Nov 2003): of C3C's tech flavors, "None of them are
+  currently used" in the epic game; flavors "can't make the AI want to research something more than if it didn't
+  have any flavors"; with every item at 50% the AI researched in the same order as with none. donZappo: "the
+  flavors are not incorporated at all into the epic game." EDHELP "Flavor Page": flavors are "a way to modify how
+  non-human (or AI) civilizations choose which paths to develop along the technology tree". The stock tech
+  valuation is `Leader_ai_eval_technology` (C3X-SRC); C3X-INI: each point of tech value is "worth roughly one gold
+  in trade, and also affects what the AI chooses to research". README-V 1.17f: "Fixed AI bug giving value to
+  worthless techs."
 - **Changes government often.** Ision: "Changing governments is a favorite AI past time, doing so FAR too
   often through the course of a game."
 - **Government switching rules (chiefpaco, 27 Apr 2002).** https://forums.civfanatics.com/threads/about-governments.21298
@@ -305,9 +687,26 @@ https://forums.civfanatics.com/threads/when-does-ai-declare-war.244088:
   - chiefpaco: "I think it is entirely based on War & war weariness."
   - It is unclear whether the favourite government is a goal or only affects attitude. Propaganda said
     that even with Democracy shunned, "all of them always choose Democracy." (see Disputed)
+- **Favourite and shunned government (Firaxis editor text and code).**
+  - EDHELP "Favorite Government": "the civilization will immediately switch to this government type as soon as
+    it becomes available." EDHELP "Shunned Government": the civ "will avoid this government type at all costs, and
+    if it is forced to operate under this government type, it will immediately switch to another government type
+    as soon as another government type becomes available."
+  - They also feed attitude. FLINTLOCK-WAR: "if the other player is in the AI's shunned government, it adds 5
+    points" (higher is worse). `06-diplomacy-and-espionage.md` 6.7 has the attitude study's -5/+4.
+  - The choice is a score per government. C3X-SRC hooks a stock `Leader_ai_eval_government`; C3X-INI: "I don't
+    know how perfuming governments affects the AI's willingness to overthrow its current govt. The perfume for sure
+    applies when the AI is selecting a new govt type after anarchy." So the stock AI picks its new government by
+    score after anarchy; how the favourite enters that score is not published. See also `05-governments.md` 5.8.
+  - Tavis (Firaxis), quoted in `05-governments.md`: free Feudalism maintenance in testing meant "the AI wouldn't
+    switch from it!!", which shows the switch decision weighs the government's economy.
 - **Scientific AIs broker techs.** Ision: they gain techs and gold by trading techs on, and often end up
   with the most gold. Commercial AIs "rarely translates its inherent gold advantage out properly."
 - **Early tech trading.** eric2075 (68813): "the AI won't trade techs very easily in the early game either."
+- **Lopsided deals (Firaxis).** Soren Johnson, quoted in https://codehappy.net/apolyton/threads/56854-1.htm
+  (Jul 2002): under a "renegotiate every 20 turns" rule, "if you had a lopsided deal with the AI, IT would decide to
+  renegotiate the deal." In practice badams52 (same thread, 1.21) found that after the AI connected a resource it had
+  bought, "he wont ask to renegotiate the deal with me".
 
 ### 3.7 "The AI never / rarely does X" (community)
 
@@ -318,6 +717,11 @@ https://forums.civfanatics.com/threads/when-does-ai-declare-war.244088:
 | Sending ships across ocean to explore | Ision (92917): "will NEVER attempt a suicide run to find another land mass" |
 | Ending a galley's turn where it could sink | Soren via TheNiceOne (27273): "an AI galley will never end a turn where it could sink." |
 | Building Barracks, Walls or Harbors in time (no Military category) | Predator145 (692300) |
+| Using artillery in the field | C3X-INI (3.2): stock artillery is left "in its cities" |
+| Filling armies | C3X-INI (3.2): "a major bug that prevented the AI from filling its armies" |
+| Weighing unit quality in war plans | FLINTLOCK-WAR (3.4.1): only units per city count |
+| Building Explorers | alexman (56961, vanilla): "I have never seen the AI build one." |
+| Using leaders properly | C3X-INI (3.2): the leader AI can rush "any kind of city production" |
 | Upgrading most units | a modder in https://forums.civfanatics.com/threads/ai-auto-producing-units-but-wont-upgrade.692035/ (search summary): it upgrades "occasionally, but has a habit of leaving most as the near useless initial unit" |
 | Coming back from behind | Ision (92917): the AI is "almost always incapable of 'coming back from behind.'" |
 
@@ -328,16 +732,30 @@ https://forums.civfanatics.com/threads/when-does-ai-declare-war.244088:
 | Victory | Condition | Source / quote |
 |---|---|---|
 | Conquest | Defeat all other civs | CFC FAQ https://civfanatics.com/civ3/faq/: "defeat all other civilizations" |
-| Domination | 66% of the land **and** 66% of the population. Ocean tiles don't count. Sea tiles count for score but not for domination. | FAQ: "66% of the land AND population". BIQ GAME `DominationTerrain` / `DominationPopulation` (`Game.cs`). https://civfanatics.com/civ3/strategy/game-mechanics/maximizing-your-score/: "Ocean does not matter here, it is not included in your territory nor in the domination limit." and "Sea is important though – it counts toward increasing your territory but does not count towards the domination limit." |
-| Space race | Build all 10 spaceship parts after the Apollo Program. In the C3C BIQ, Apollo Program is a Small Wonder (`isSmallWonder: true`, 500 shields, `buildSpaceshipParts`, BIQ (repo)). | FAQ: "build all 10 required spaceship parts" |
-| Diplomatic (UN) | The UN builder can call an election every 11 turns. A civ is a candidate if it has 25% of the land **or** population. One vote per civ, and winning needs a majority. | FAQ: "a majority of the votes in the election"; "25% of the land OR population"; "every 11 turns" |
-| Cultural (C3C) | One city with 20,000 culture, **or** a whole-civ total that depends on map size: 60k Tiny, 80k Small, 100k Standard, 130k Large, 160k Huge. The whole-civ total must also be at least twice any other civ's (see UNVERIFIED). | FAQ: "have either 20,000 culture in one city, or 100,000 culture across your empire"; in Conquests "60,000 for a Tiny map, 80,000 for Small, 100,000 for Standard, 130,000 for Large, and 160,000 for Huge." SirPleb (104294): "The required amount of culture for the "100K" cultural victory condition is variable in C3C, depending on the map size." BIQ GAME `OneCityCultureWin` / `AllCitiesCultureWin` (`Game.cs`). |
-| Histographic (time) | Highest score at the end of the game (2050 AD on default timescale) | FAQ: "have the highest score at the end of the game" |
-| Wonder victory (C3C, editor) | Build all wonders. It is off by default. | Thunderfall (104294): "Add Wonder Victory (all wonders built)"; repo `allowWonderVictory: false` |
+| Domination | 66% of the land **and** 66% of the population. Ocean tiles don't count. Sea tiles count for score but not for domination. | BIQ-C3C GAME `DominationTerrain=66`, `DominationPopulation=66`. PEDIA-V: "Have 66% of the world's land surface within your borders as well as 66% of the world's population within your cities." MANUAL p.31: "conquering and controlling two-thirds of the world's territory". PEDIA-PTW and PEDIA-C3C say "70%" instead; the C3C rule file says 66, so the PTW/C3C text is out of date (or never matched). FAQ: "66% of the land AND population". BIQ GAME `DominationTerrain` / `DominationPopulation` (`Game.cs`). https://civfanatics.com/civ3/strategy/game-mechanics/maximizing-your-score/: "Ocean does not matter here, it is not included in your territory nor in the domination limit." and "Sea is important though – it counts toward increasing your territory but does not count towards the domination limit." |
+| Space race | Build all 10 spaceship parts after the Apollo Program. The game is won at **launch**, which follows the tenth part; there is no flight time. Capturing (or razing) the builder's capital before launch destroys its ship, and it may then build a new one. Each civ builds one ship at a time. In the C3C BIQ, Apollo Program is a Small Wonder (`isSmallWonder: true`, 500 shields, `buildSpaceshipParts`, BIQ (repo)); RULE `NumberOfSpaceshipParts=10` (BIQ-C3C). | MANUAL p.174: "The competition ends when either you or one of your opponents launches a spaceship to Alpha Centauri with colonists. The civilization that wins the race to launch wins the game." and "You can construct a second spaceship only if your current one is destroyed--that is, if your capital city is captured while your ship is under construction (the conquerors destroy it on the launch pad)." PEDIA-C3C `#GCON_Victory`: "the player must be the first to launch a completed spaceship". README-V 1.17f: "Fixed bug which did not destroy an enemy spaceship if the enemy capital was razed." SCRIPT `#DESTROYEDSPACESHIP`: "We have destroyed the $CIVADJ0 spaceship!" DickK (https://codehappy.net/apolyton/threads/35851-1.htm, Nov 2001): "once you finish the last part you trigger the end game sequence whether you want it or not". FAQ: "build all 10 required spaceship parts" |
+| Diplomatic (UN) | The UN builder is offered an election and may decline it (every 11 turns per the FAQ). Candidates: the UN builder, and any civ with 25% of the land **or** population; if only one is eligible, the most populous other civ joins. One vote per civ, and winning needs a majority of all votes; otherwise "Election was inconclusive". Details in `06-diplomacy-and-espionage.md` 6.12. | PEDIA-C3C: "There are always two, and sometimes three, candidates", "have built the UN", "control at least 25% of the world's territory", "control at least 25% of the world's population", "If only one civilization is eligible, then the second candidate is the civilization with the largest population." SCRIPT `#DIPLOVICTORYVOTEOPTION`: "Would you like to hold elections for UN Secretary-General?"; `#NODIPLOVICTORY`: "Election was inconclusive; no majority was found." FAQ: "a majority of the votes in the election"; "25% of the land OR population"; "every 11 turns" |
+| Cultural (C3C) | One city with 20,000 culture, **or** a whole-civ total that depends on map size: 60k Tiny, 80k Small, 100k Standard, 130k Large, 160k Huge. The whole-civ total must also be at least twice any rival's; the one-city win has no such condition in the rule text. | PEDIA-V and PEDIA-PTW `#GCON_Victory`: "A city with a Cultural value of 20,000 or if your civilization is worth 100,000 and at least twice as much as any rival, you win." PEDIA-C3C drops the "twice" clause ("A single city with 20,000 culture points will satisfy this victory condition. For your overall culture to do so, a variable number of total culture points is needed, based on map size"), but C3C players still report it: Twonky, https://forums.civfanatics.com/threads/guide-to-cultural-victory.124277/ (Jul 2005): "Remember you need twice the culure of the next best civ in order to win."; keldr, https://forums.civfanatics.com/threads/100-k-culture-requirements.356991/ (2010): the values "depend on You having at least twice as much culture as #2". BIQ-C3C GAME `OneCityCultureWin=20000`, `AllCitiesCultureWin=100000` (the Standard figure). FAQ: "have either 20,000 culture in one city, or 100,000 culture across your empire"; in Conquests "60,000 for a Tiny map, 80,000 for Small, 100,000 for Standard, 130,000 for Large, and 160,000 for Huge." SirPleb (104294): "The required amount of culture for the "100K" cultural victory condition is variable in C3C, depending on the map size." BIQ GAME `OneCityCultureWin` / `AllCitiesCultureWin` (`Game.cs`). |
+| Histographic (time) | Highest score at the end of the game (2050 AD on default timescale) | PEDIA-C3C: "[Civilization III] runs until the year 2050."; "The civilization that generated the highest score -- on average -- wins. Being powerful in Ancient Times is just as valuable as being powerful in the Modern Era." SCRIPT `#TIMELIMIT`: "WINNER BY SCORE: $CIVNAME1". FAQ: "have the highest score at the end of the game" |
+| Wonder victory (C3C, editor) | Build all wonders. It is off by default. It ends the game like a time limit: the game ends when the last Great Wonder is built and the winner is decided as at the time limit. | Thunderfall (104294): "Add Wonder Victory (all wonders built)"; repo `allowWonderVictory: false`; BIQ-C3C GAME `WonderVictory` off. README-C3C: "The "Wonder Victory" is actually a Time Limit type of victory condition; i.e., when the Wonder Victory is in effect, the game ends immediately upon completion of the last Great Wonder." |
 
 C3C's F8 screen shows the domination limit and how far the leader is with its spaceship. Arathorn
 (104294): "F8 now shows domination limit, spaceship parts completed by the leader, and a lot of other win
 condition information."
+
+- **Spaceship parts: one city per part.** README-V 1.16f: "Palaces and spaceship parts can only be built in one
+  city at a time." Freiherr, https://codehappy.net/apolyton/threads/37264-1.htm (Dec 2001), on the wording: "two or
+  more cities will no longer be allowed to build the same space ship part". PEDIA-C3C: "The components may be
+  built in any order." Seeing rival parts needs a spy: README-V 1.17f: "Spaceship parts pop-ups now only appear if
+  you have a spy with the corresponding civ."
+- **Mass Regicide, Elimination, Regicide, Victory Points and Capture the Princess** are out of scope (header).
+- **Respawn AI Players.** MANUAL p.31: "When this option is checked, computer-controlled civilizations that are
+  eliminated early in the game are "reborn" as new civilizations." README-V 1.29f renamed "Restart Players" to
+  "Respawn AI Players". War Academy, https://civfanatics.com/civ3/strategy/misc/strategy-for-emperor-and-deity-levels/:
+  after an early wipeout "the computer will respawn that AI, with ADDITIONAL techs, and a new settler". GePap,
+  https://codehappy.net/apolyton/threads/36170-1.htm (Nov 2001): "Killing them means destroying all cities and all
+  settlers." The stock routine is `Leader_create_city_for_ai_respawn` (C3X-SRC). How "early" is defined is not sourced.
+- **Retiring.** README-V 1.16f: "Retiring from a Conquest only game no longer is recorded as a victory."
 
 ---
 
@@ -359,8 +777,28 @@ condition information."
 - **Things that don't count.**
   - Maximizing-your-score: "Wonders, cultural value, military size, science learned, etc. – none of these affect the score."
   - Bamspeedy (37091): "score doesn't take into account improvements, wonders, great leaders, diplomacy, etc."
-  - Future techs are the one small exception (see UNVERIFIED for their value). Maximizing-your-score:
+  - Future techs are the one small exception. Maximizing-your-score:
     "it counts for so little in score that it is not worth devoting any energy to it."
+- **Each future tech counts like one content citizen in every later turn (tested).** Bamspeedy,
+  https://forums.civfanatics.com/threads/scoring-of-future-tech.31261 (2 Sep 2002, after 1.29f), with a save
+  edited to start with every tech and Future Tech 1 learned in 2950 BC on Deity: "1 FUTURE TECH IS WORTH 1 CONTENT
+  CITIZEN OR SPECIALIST!!". The histograph showed "(1/21)*6 = .3" and then "(2/22)*6 = .5", which is the same
+  per-turn term averaged over the turns played. Cartouche Bee's formula, same thread, with his "*4" dropped:
+  "InternalScore = [(Happy Citizens * 2) + Content Citizens + Specialists + ScoringTiles + (FutureTechs)] *
+  difficulty". Aeson, https://codehappy.net/apolyton/threads/70419-1.htm (Dec 2002), only "17.7 points from 26
+  future techs on Deity" (fetch summary), which fits a per-turn term earned late. MANUAL p.123: "Each Future
+  Technology you discover adds to your final score". README-V 1.17f: "Fixed bug which miscalculated average scores
+  (esp. for future techs)." This settles the former UNVERIFIED item.
+- **Aeson's summary (vanilla), same 70419 thread:** "Everything is multiplied by the difficulty factor. 1-6,
+  Chieftain-Deity."; "Population consists of 1 point for every specialist or content citizen in your civ, and 2
+  points for every happy citizen."; "Territory is 1 point for every tile within your cultural borders."; "Adding up
+  every turn score and then dividing by the number of turns played yeilds the base score."; the bonus is "(2050 -
+  Date) * Difficulty" "for any victory condition".
+- **Territory is cultural borders, not city radius.** chiefpaco, https://codehappy.net/apolyton/threads/43643-1.htm
+  (28 Feb 2002, one Regent test): territory score is the average land area from F11 ("square miles ... divided by
+  100") over the turns played, times difficulty. Technoron, same thread: cultural borders, not city radius,
+  decide the land count. PEDIA-C3C `#GCON_Victory`: the histograph "looks at the total "Score" generated by all
+  civilizations turn by turn over the course of the game."
 - **Difficulty multiplier.** In C3C it is 1 to 8. SirPleb (68813): Conquests multipliers are "Chieftain:
   1, Warlord: 2, Regent: 3, Monarch: 4, Emperor: 5, Demigod: 6, Deity: 7, Sid: 8". Before Conquests they
   were "Chieftain: 1, ... Deity: 6".
@@ -382,84 +820,89 @@ condition information."
 
 ## Disputed
 
-1. **Which difficulty the AI uses for content citizens, quelling, barbarian bonus and corruption/OCN.**
-   - TheNiceOne (37490) says Regent.
-   - Pyrkaige (68642) says Monarch ("or did in PTW, and most likely still do").
-   - Bamspeedy (37490) says the BIQ "default AI intelligence" setting (RULE `DefaultDifficultyLevel`) controls it.
-2. **Deity values.**
-   - Vanilla/PTW Deity: OCN 70%, AI-AI trade 160 (Pyrkaige 37490).
-   - C3C Deity: OCN 60%, AI-AI trade 170 (Pyrkaige 68642; TimBentley 104294).
-   - Some posts called Deity's cost factor 0.7 (37490 thread summary). Others conclude Deity is 0.6 in
-     every version and 0.7 is C3C Demigod.
-3. **How the cost factor applies to research.** Pre-patch, the AI's research is cheaper. In 1.29 and
-   later, the human's research cost is divided by the cost factor (theNiceOne 86979; Bamspeedy 37490).
-   Production is still scaled on the AI side.
-4. **Commercial.**
-   - Sullla (pre-C3C): corruption -12.5%, raised to 25% in 1.29f, plus +1/+2 gold at City/Metropolis.
-   - CFC FAQ: OCN +25%, plus +1 commerce at City and again at Metropolis.
-   - These may describe the same mechanism in different words (OCN vs corruption %). Not resolved.
-5. **Industrious in C3C.**
-   - CFC FAQ and Artifex: workers +50%.
-   - stachnie (75226) thinks workers are no faster than non-Industrious civs' workers.
-6. **Agricultural under Despotism.**
-   - Arathorn: no bonus under Despotism.
-   - TimBentley: under Despotism the bonus applies only to cities on a river.
-7. **Seafaring city-tile commerce.**
-   - Arathorn and CFC FAQ: all salt-water coastal cities.
-   - StrategyWiki (via search summary only): the capital. StrategyWiki returned 403, so this is unchecked.
+Items marked RESOLVED were settled in the deep pass of 2026-10-20 and are kept so the history can be traced.
+
+1. **Which difficulty the AI uses for content citizens, quelling, barbarian bonus and corruption/OCN.
+   LARGELY RESOLVED (1.2).** Each player has its own difficulty level (`Leader.player_difficulty`, C3X-SRC), and
+   for the OCN percentage the code uses that per-player level (C3X-NOTES `ocn_formula.txt`). For the AI it is the
+   default level, Regent in the stock rules (alexman 56739: "If you haven't changed that, it's Regent"; BIQ-C3C
+   `DefaultDifficultyLevel=2`). That matches TheNiceOne (37490) and Bamspeedy's "default AI intelligence" (37490).
+   Pyrkaige's Monarch (68642) is not supported. Still open: code confirmation for content citizens, military law
+   and the barbarian bonus (only the OCN use is shown in code). Note the separate AI-only OCN term for Monarch and
+   above (1.2), which is tied to the game's difficulty, not the AI's own level.
+2. **Deity values. RESOLVED.** BIQ-C3C DIFF: Deity cost factor 6, OCN 60%, AI-AI trade 170; Demigod 7, 70%, 160.
+   The 0.7 figure belongs to C3C Demigod. Vanilla/PTW Deity was 70% and 160 (Pyrkaige 37490, 68642; TimBentley 104294).
+3. **How the cost factor applies to research. RESOLVED in `04-science-and-wonders.md` 4.1.** Since 1.29f the AI
+   pays a constant (Regent) tech cost and the human's cost is scaled (alexman, Firaxis: "constant for all levels for
+   the AI"). EDHELP still describes the factor as "applied to AI growth, shields, and research".
+4. **Commercial. OCN PART RESOLVED.** The code adds floor(base/4) to the base OCN (C3X-NOTES), and Firaxis via
+   alexman (76255): "increases the OCN by 25% (it was 10% prior to 1.29f)". Sullla's "12.5%" was a pre-1.29f
+   corruption reading. The city-tile commerce amount is still open; see `02-city-economy.md` Disputed 11. Nor Me
+   (76255, PTW 1.14f) gave "+2 commerce per city and +3 per metropolis" (fetch summary), against the FAQ's +1/+2.
+5. **Industrious in C3C. RESOLVED** by KayEss's test (`07-map-terrain-and-workers.md` 5.2): +50% in C3C, +100% in
+   vanilla and PTW. Slaves round down to no gain before Replaceable Parts, which explains stachnie's view.
+6. **Agricultural under Despotism. RESOLVED.** C3X-INI (code): "the Despotism tile penalty does not apply to food
+   yield from city tiles of Agricultural civs with fresh water." TimBentley's "on a river" is the river case of
+   fresh water. Arathorn's "except despotism" is the case without fresh water.
+7. **Seafaring city-tile commerce. RESOLVED: every coastal city.** PEDIA-C3C: "Each city built along the coast
+   receives a commerce bonus in the center city square"; Dominae (AU501, 106962); Arathorn (104294). The
+   StrategyWiki "capital" claim (never fetched) has no support.
 8. **Favourite government.**
-   - Soren (255541) implies it is a real preference ("aggressive ruler preferring despotism").
-   - chiefpaco and Propaganda (21298): it may only affect attitude, and AIs "always choose Democracy" even when it is shunned.
+   - EDHELP: the civ "will immediately switch to this government type as soon as it becomes available", and avoids
+     its shunned one "at all costs".
+   - Code: the shunned government adds 5 attitude points (FLINTLOCK-WAR), so the setting affects attitude too.
+     The government choice itself is a score (`Leader_ai_eval_government`) whose terms are not published.
+   - chiefpaco and Propaganda (21298), wilbill (`05-governments.md`): it only affects attitude, and AIs "always
+     choose Democracy" even when it is shunned. Not resolved: whether the "immediate switch" happens in play.
 9. **Build-often/never: how many flags are effective.**
    - Ozymandias (tested): more than 3-4 and the AI ignores them all.
    - Predator145, citing alexman second-hand: 6.
    - C0rTeZ48 recalls more than 2 Build Often having no effect.
+   - The stock rules give every civ 1 to 5 flags (2.1 table), so the default civs sit under any of these limits
+     except possibly the Byzantines (5).
 10. **AI amphibious ability.**
-    - Soren (255541) and the C3C notes say it can mount naval invasions and escorts transports.
-    - Ision (92917) and several posters say its landings are too small to hold what they take.
-11. **UN election interval.**
-    - CFC FAQ: every 11 turns.
-    - A forum post in the search results: "usually every 20 turns or so". That post was not fetched.
+    - Soren (255541) and the C3C notes say it can mount naval invasions and escorts transports. C3X-INI (code):
+      transports get 1 to 3 escorts by cost and cargo.
+    - Ision (92917) and several posters say its landings are too small to hold what they take. dexters (88537,
+      PTW): "landing parties sail back and forth between targets and never are able to land".
+11. **UN election interval.** CFC FAQ: every 11 turns. Jaybe, https://codehappy.net/apolyton/threads/93177-1.htm
+    (29 Jul 2003), correcting a "20 turns IIRC" post: "11 turns, actually." Other recollections in
+    https://codehappy.net/apolyton/threads/51960-1.htm (Jun 2002) say 4, 10, 20 or 40, all hedged. Lean: 11.
 12. **AI city spacing.**
     - Dominae (57896): the AI follows about 4-tile spacing at all levels.
-    - Brain (113953): the AI "often leaves big gaps".
-    - These are consistent if the AI aims for wide spacing and fills gaps later, but nobody measured it.
+    - Brain (113953): the AI "often leaves big gaps". Vanilla posters (42759, 50345) say it fills every spot.
+    - Code gives only the hard minimum (one empty tile) and a per-tile desirability score (3.3). Nobody measured
+      the typical spacing.
+13. **The build categories.** Soren (56961, vanilla): "Wealth = marketplaces/banks/workers, not just 'Wealth'".
+    Predator145 (692300, C3C): Wealth is "the shield-to-gold project". Soren's answer is the developer's. C3C may
+    differ.
+14. **Domination percentage in the Civilopedia.** PEDIA-V says 66%. PEDIA-PTW and PEDIA-C3C say 70%. BIQ-C3C
+    GAME stores 66 and 66, and the MANUAL says "two-thirds". Treat 66% as the C3C rule. The PTW figure is not
+    checked against the PTW rule file.
 
 ## UNVERIFIED / open questions
 
 - **"Jesus score."** No source uses this term. The likely meaning is the year-based finish bonus, where
   BC years count as negative, so a BC win gets more than 2050 points × difficulty. Confirm what the
   requester meant.
-- **Future tech score value.** Only "tiny" is sourced. A forum estimate of about one content citizen per
-  future tech was seen in a search summary. https://forums.civfanatics.com/threads/scoring-of-future-tech.31261
-  returned HTTP 429.
-- **C3C optimal city number per world size.**
-  - Vanilla: Tiny 12, Small 14, Standard 16, Large 24, Huge 32 (Pyrkaige 37490).
-  - The repo's `worldSizes` has 14/17/20/28/36, but the regenerate readme says `worldSizes` is "not
-    imported from the BIQ". Read BIQ WSIZ from conquests.biq to settle this.
-- **Exact culture victory rule.**
-  - Unsourced here: whether the whole-civ total must be at least twice the second civ's (Giant Bomb
-    search summary only).
-  - The one-city 20,000 threshold in C3C (FAQ says 20,000). Read `Game.OneCityCultureWin` and
-    `AllCitiesCultureWin` from conquests.biq.
-- **When the space race is won.** At launch or on arrival? Does capturing the capital destroy the ship?
-  No Civ3-specific source.
-- **Domination thresholds.** The 66%/66% values are C3C editor defaults. In Civ3 1.29f, are they hard-coded
-  at 66%? Only the FAQ is the source.
-- **UN details.** Is the UN builder always a candidate? Is the next most populous civ added when there is
-  only one candidate? Seen only in the search summary of the CFC FAQ, not in a fetched quote.
-- **Seafaring.** The cheaper Harbor (Giant Bomb search summary only) and the exact sinking reduction have no number.
-- **Industrious city-tile shield bonus.** The size thresholds are paraphrased from the FAQ and not quoted verbatim.
-- **Expansionist.** The exact goody-hut table shift is unsourced.
-- **Scout availability.** Can only Expansionist civs build Scouts? Seen in a search summary only.
-- **Settlers and workers.** Does the AI always escort settlers in Civ3? No Civ3 source. How does the AI
-  pick tiles for workers? No source.
-- **War triggers.**
-  - The exact war-declaration formula (power ratio, attitude, aggression weight, effect of the C3C aggression setting).
-  - The "units in our territory" sequence. The search summary says the AI asks once, then can force you
-    out or declare war. No verbatim primary quote was fetched.
-- **AI sliders.** Is the AI's science/tax split fixed, or chosen? Only the luxury claim (Ision) is sourced.
-- **AI free starting units.** Which unit types are "defensive" and "offensive" (the best ones available at
-  game start)? Not sourced.
-- **Golden-age trigger.** It depends on traits, but no verbatim source was fetched in this pass. Leave it
-  to the golden-age section.
+- **Culture victory in C3C.** The twice-the-rival condition is in PEDIA-V and PEDIA-PTW and in C3C player
+  reports, but not in PEDIA-C3C. Whether eliminated civs count as "the next best civ" is unanswered (Jivilov,
+  356991).
+- **Domination tiles.** Which water tiles count. Coast and sea count for territory. Aeson and SirPleb disagree
+  about the domination share (43643), and Maximizing-your-score says sea is excluded from the limit.
+- **Seafaring sinking.** The tested 50%/75% survival figures are in `01-combat-and-units.md`. There is no Firaxis number.
+- **Commercial building discount.** BIQ-C3C flags Marketplace, Bank, Stock Exchange, Harbor, Airport and
+  Commercial Dock as Commercial, but neither PEDIA-C3C nor the FAQ lists a Commercial building discount. Test it.
+- **Industrious city-tile shield bonus.** The size thresholds are in `02-city-economy.md`, not re-sourced here.
+- **Expansionist.** The exact goody-hut table shift is in `07-map-terrain-and-workers.md` (community tables).
+  PEDIA-C3C's "passive minor barbarians are friendlier" is not quantified.
+- **Settlers and workers.** How many escorts the AI gives settlers, and when. How the AI scores city sites
+  (`Match_ai_eval_city_location`) and worker tiles. How it computes how many workers it "needs".
+- **War.** The delay from plotting to declaring (guesses of about 4 turns), whether the target is the top score or
+  a weighted pick, the exact cooldown after peace (Flintlock believes 8 turns), and how the unit AI uses aggression.
+- **AI sliders.** The code sets them each turn (`ai_adjust_sliders`, capped by the government rate cap). How it
+  chooses the split is not published. Observed research rates were 30-70% (vanilla).
+- **Difficulty fields for the AI.** Code confirmation that content citizens, military law and the barbarian bonus
+  come from the AI's per-player (default, Regent) level.
+- **Golden-age trigger.** It depends on traits and wonder flags (EDHELP quoted in section 2). Leave it to the
+  golden-age section.
