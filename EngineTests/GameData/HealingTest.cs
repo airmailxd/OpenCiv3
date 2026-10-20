@@ -47,6 +47,29 @@ public class HealingTest {
 		Assert.Equal(1, MakeLandUnit().HealRateAt(TileOwnedBy(null)));
 	}
 
+	// A unit heals in "friendly or neutral territory" (Conquests
+	// Civilopedia, GCON_Combat), ships included.
+	[Fact]
+	public void ShipsHealOutsideCitiesToo() {
+		MapUnit ship = MakeLandUnit();
+		ship.unitType = new UnitPrototype();
+		ship.unitType.categories.Add("Sea");
+		Assert.True(ship.unitType.IsSeaUnit());
+
+		Assert.Equal(1, ship.HealRateAt(TileOwnedBy(us)));
+		Assert.Equal(1, ship.HealRateAt(TileOwnedBy(null)));
+		Assert.Equal(0, ship.HealRateAt(TileOwnedBy(them)));
+	}
+
+	// "The unit's total number of HP will never drop below 1" (Civ3 editor
+	// help, HP Bonus).
+	[Fact]
+	public void HitPointsNeverDropBelowOne() {
+		MapUnit unit = MakeLandUnit();
+		unit.unitType.hpBonus = -20;
+		Assert.Equal(1, unit.maxHitPoints);
+	}
+
 	[Fact]
 	public void BarracksHealLandUnitsCompletely() {
 		Tile tile = new(ID.None("tile"));

@@ -309,6 +309,47 @@ public class CombatTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(0.5, city.GetDefenseBonuses(galley).Single(b => b.description == "Coastal Fortress").amount);
 	}
 
+	// "When a land tile with a bombard capable unit in it is attacked, that
+	// bombard unit will take one free shot at the attacking unit" (Civ3
+	// readme, "Artillery Free Shot"). Only a land tile.
+	[Fact]
+	public async Task DefensiveBombardOnlyDefendsLandTiles() {
+		GoToWar();
+		(Tile from, _, Tile to) = FindAdjacentLand();
+		MapUnit warrior = Spawn(us, "Warrior", from);
+		MapUnit spearman = Spawn(them, "Spearman", to);
+		MapUnit catapult = Spawn(them, "Catapult", to);
+		catapult.defensiveBombardsRemaining = 1;
+		await WithZeroRandom(async () => await warrior.Fight(spearman));
+		Assert.Equal(0, catapult.defensiveBombardsRemaining);
+
+		(Tile seaFrom, Tile seaTo) = gameData.map.tiles
+			.Where(t => t.IsWater() && t.unitsOnTile.Count == 0)
+			.SelectMany(t => t.neighbors.Values.Where(n => n != Tile.NONE && n.IsWater() && n.unitsOnTile.Count == 0).Select(n => (t, n)))
+			.First();
+		MapUnit ours = Spawn(us, "Frigate", seaFrom);
+		MapUnit theirs = Spawn(them, "Frigate", seaTo);
+		MapUnit escort = Spawn(them, "Frigate", seaTo);
+		escort.defensiveBombardsRemaining = 1;
+		await WithZeroRandom(async () => await ours.Fight(theirs));
+		Assert.Equal(1, escort.defensiveBombardsRemaining);
+	}
+
+	// "Cities with resisters do not give defensive bonuses" (Conquests
+	// Civilopedia, GCON_Terrain_Combat).
+	[Fact]
+	public void ACityInResistanceGivesNoDefenseBonuses() {
+		(Tile from, _, _) = FindAdjacentLand();
+		(Tile land, _) = FindCoast();
+		City city = CityInteractions.BuildCity(land, them, them.GetNextCityName());
+		city.AddBuilding(gameData.Buildings.Single(b => b.name == "Walls"));
+		MapUnit warrior = Spawn(us, "Warrior", from);
+		Assert.NotEmpty(city.GetDefenseBonuses(warrior));
+
+		city.resisters = 1;
+		Assert.Empty(city.GetDefenseBonuses(warrior));
+	}
+
 	// The map asks which unit of a stack would defend against the selected
 	// unit, and with none selected that's MapUnit.NONE, which has no unit
 	// type. Asking whether it was a ship threw, so the map's units stopped

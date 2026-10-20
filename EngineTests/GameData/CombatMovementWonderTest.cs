@@ -402,6 +402,15 @@ public class CombatMovementWonderTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(1.0 / 12.0, MapUnit.LeaderChanceFor(us));
 	}
 
+	// "The chances of getting a leader from a successful defense are 1/2 the
+	// chances while attacking" (CivFanatics, Creating and Using Leaders).
+	[Fact]
+	public void LeadersAreHalfAsLikelyFromADefense() {
+		Assert.Equal(1.0 / 32.0, MapUnit.LeaderChanceFor(us, defending: true));
+		Give(us, BuildingNamed("Heroic Epic"));
+		Assert.Equal(1.0 / 24.0, MapUnit.LeaderChanceFor(us, defending: true));
+	}
+
 	[Fact]
 	public async Task EliteVictoryCanProduceALeader() {
 		us.DeclareWarOn(them, gameData.turn);
@@ -463,6 +472,9 @@ public class CombatMovementWonderTest : IClassFixture<SaveGameFixture> {
 	[Fact]
 	public void LeaderFormsAnArmyInACity() {
 		City city = BuildCity(us);
+		while (!us.CanSupportAnotherArmy()) {
+			BuildCity(us);
+		}
 		MapUnit leader = Spawn(us, "Leader", city.location);
 		MapUnit outside = Spawn(us, "Leader", FindAdjacentLand().from);
 
@@ -477,6 +489,31 @@ public class CombatMovementWonderTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(city.location, army.location);
 		Assert.DoesNotContain(leader, gameData.mapUnits);
 		Assert.DoesNotContain(leader, us.units);
+	}
+
+	// "You must have at least four cities for every army you create"
+	// (Conquests Civilopedia, GCON_Armies), armies a leader forms included.
+	[Fact]
+	public void LeaderCantFormAnArmyTheEmpireCantSupport() {
+		City city = BuildCity(us);
+		while (us.RemainingCities() < 4) {
+			BuildCity(us);
+		}
+		while (us.CanSupportAnotherArmy()) {
+			Spawn(us, "Army", city.location);
+		}
+		MapUnit leader = Spawn(us, "Leader", city.location);
+
+		Assert.False(leader.CanFormArmy());
+		Assert.DoesNotContain(UnitAction.BuildArmy, leader.GetAvailableActions());
+		Assert.Null(leader.FormArmy());
+		Assert.Contains(leader, gameData.mapUnits);
+
+		// Four more cities support one more army.
+		for (int i = 0; i < gameData.rules.CitiesNeededToSupportAnArmy; i++) {
+			BuildCity(us);
+		}
+		Assert.True(leader.CanFormArmy());
 	}
 
 	[Fact]

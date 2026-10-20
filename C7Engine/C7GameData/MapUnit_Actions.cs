@@ -670,15 +670,22 @@ public partial class MapUnit {
 
 	// Enemy units with a zone of control that are next to both tiles of a
 	// move get a free attack on the moving unit. Land units only watch land
-	// units, and ships only watch ships.
+	// units, and ships only watch ships. Any unit in a fortress or barricade
+	// has one: units in a fortress "have a zone of control and fire at
+	// passing enemy units" (Conquests Civilopedia, GCON_Fortresses; a
+	// barricade likewise, GCON_Barricades). So do armies: "Armies now have
+	// the zone of control and blitz ability" (Civ3 readme, 1.17f). An army
+	// has no attack of its own and fights with its members, so whether it
+	// can attack is CanAttack's, not its type's.
 	public List<MapUnit> FindZoneOfControlAttackers(Tile from, Tile to) {
 		List<MapUnit> result = new();
 		foreach (Tile t in from.neighbors.Values) {
 			if (t == to || !to.neighbors.ContainsValue(t)) {
 				continue;
 			}
+			bool fortified = t.HasFortress();
 			foreach (MapUnit u in t.unitsOnTile) {
-				if (u.unitType.hasZoneOfControl && u.unitType.attack > 0 && !u.IsLoaded()
+				if ((u.unitType.hasZoneOfControl || fortified) && !u.IsLoaded() && u.CanAttack()
 					&& u.IsLandUnit() == IsLandUnit() && u.IsWaterUnit() == IsWaterUnit()
 					&& u.owner != owner && !owner.IsAtPeaceWith(u.owner)) {
 					result.Add(u);
@@ -758,10 +765,14 @@ public partial class MapUnit {
 				attackerOdds = 0.5;
 		}
 
-		// Defensive bombard
+		// Defensive bombard, only on land: "When a land tile with a bombard
+		// capable unit in it is attacked, that bombard unit will take one
+		// free shot at the attacking unit" (Civ3 readme, "Artillery Free
+		// Shot").
 		MapUnit defensiveBombarder = MapUnit.NONE;
 		double defensiveBombarderStrength = 0.0;
-		foreach (MapUnit candidate in defender.location.unitsOnTile.Where(u => u != defender && !u.IsInArmy() && !u.owner.IsAtPeaceWith(attacker.owner) && u.defensiveBombardsRemaining > 0)) {
+		IEnumerable<MapUnit> bombardCandidates = defender.location.IsLand() ? defender.location.unitsOnTile : Enumerable.Empty<MapUnit>();
+		foreach (MapUnit candidate in bombardCandidates.Where(u => u != defender && !u.IsInArmy() && !u.owner.IsAtPeaceWith(attacker.owner) && u.defensiveBombardsRemaining > 0)) {
 			double strength = candidate.StrengthVersus(attacker, CombatRole.DefensiveBombard, defenderDefenseDirection);
 			if (strength > defensiveBombarderStrength) {
 				defensiveBombarder = candidate;
@@ -794,16 +805,33 @@ public partial class MapUnit {
 			UpdateOdds();
 		}
 
-		bool defenderEligibleToRetreat = defender.CompositeHitPoints() > 1 && ! defender.location.HasCity();
+		// A losing fast unit gets its retreat roll as it drops from 2 hit
+		// points to 1, and none against an opponent down to 1: "Retreat
+		// possible if attacking unit drops from 2 HP to 1 HP, and is
+		// implemented before the attacker attacks with 1HP left." / "Zero
+		// chance if defender has 1 HP" (Offa,
+		// https://forums.civfanatics.com/threads/retreating-units.104978/).
+		// The retreating unit keeps its last hit point. An attacker also
+		// needs moves to spare: the roll applies only if it "would have at
+		// least 1/3 movement point left after the attack" (boogaboo,
+		// https://forums.civfanatics.com/threads/how-do-retreats-work.100878),
+		// the attack costing one (see Move).
+		bool defenderEligibleToRetreat = !defender.location.HasCity();
+		bool attackerEligibleToRetreat = attacker.movementPoints.remaining - 1 >= 1f / 3 - 0.0001f;
 
 		// Do combat rounds
 		while (true) {
 			defender.animate(MapUnit.AnimatedAction.ATTACK1);
 			await attacker.animateAsync(MapUnit.AnimatedAction.ATTACK1);
 			if (GameData.rng.NextDouble() < attackerOdds) {
-				if (defenderEligibleToRetreat &&
-					defender.CompositeHitPoints() == 1 &&
-					GameData.rng.NextDouble() < defender.RetreatChance(attacker, false)) {
+				bool defenderMayRetreat = defenderEligibleToRetreat && defender.CompositeHitPoints() == 2 && attacker.CompositeHitPoints() > 1;
+				if (defender.AbsorbCombatHit(defendingMember)) {
+					result = CombatResult.DefenderKilled;
+					break;
+				}
+				defendingMember = defender.Combatant(CombatRole.Defense);
+				UpdateOdds();
+				if (defenderMayRetreat && GameData.rng.NextDouble() < defender.RetreatChance(attacker, false)) {
 					// TODO: Defender retreat behavior requires some more work. There's an issue for it here:
 					// https://github.com/C7-Game/Prototype/issues/274
 					//
@@ -822,24 +850,18 @@ public partial class MapUnit {
 						break;
 					}
 				}
-				if (defender.AbsorbCombatHit(defendingMember)) {
-					result = CombatResult.DefenderKilled;
-					break;
-				}
-				defendingMember = defender.Combatant(CombatRole.Defense);
-				UpdateOdds();
 			} else {
-				if (attacker.CompositeHitPoints() == 1 &&
-					GameData.rng.NextDouble() < attacker.RetreatChance(defender, true)) {
-					result = CombatResult.AttackerRetreated;
-					break;
-				}
+				bool attackerMayRetreat = attackerEligibleToRetreat && attacker.CompositeHitPoints() == 2 && defender.CompositeHitPoints() > 1;
 				if (attacker.AbsorbCombatHit(attackingMember)) {
 					result = CombatResult.AttackerKilled;
 					break;
 				}
 				attackingMember = attacker.Combatant(CombatRole.Attack);
 				UpdateOdds();
+				if (attackerMayRetreat && GameData.rng.NextDouble() < attacker.RetreatChance(defender, true)) {
+					result = CombatResult.AttackerRetreated;
+					break;
+				}
 			}
 		}
 
@@ -854,7 +876,7 @@ public partial class MapUnit {
 			// one this victory promotes to elite.
 			bool wasElite = survivingMember.IsElite();
 			survivingMember.RollToPromote(dead, alive);
-			survivingMember.RollForLeader(dead, wasElite);
+			survivingMember.RollForLeader(dead, wasElite, defending: alive == defender);
 			if (alive == attacker) {
 				survivingMember.RollToEnslave(defendingMember);
 			}
@@ -988,10 +1010,11 @@ public partial class MapUnit {
 	}
 
 	/// <summary>
-	/// Boards unit into this transport
+	/// Boards unit into this transport, without checking that it may (see
+	/// CanLoad). Internal so tests can put together an army anywhere.
 	/// </summary>
 	/// <param name="mapUnit">The unit to load on a transport</param>
-	private void Board(MapUnit mapUnit) {
+	internal void Board(MapUnit mapUnit) {
 		if (!IsArmy()) {
 			mapUnit.loadedOnUnitId = this.id;
 			// TODO: consume moves?

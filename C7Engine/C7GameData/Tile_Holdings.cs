@@ -72,6 +72,13 @@ public partial class Tile {
 	// has none either, and does nothing for anyone.
 	public Player holdingOwner;
 
+	// Whether the tile has a fortress, or a barricade, which is built on one
+	// and "become[s] a fortress if their square is pillaged" (Conquests
+	// Civilopedia, GCON_Barricades).
+	public bool HasFortress() {
+		return overlays.HasImprovementWithKey(FORTRESS, Layer.Holdings) || overlays.HasImprovementWithKey(BARRICADE, Layer.Holdings);
+	}
+
 	public bool HasOutpost() {
 		return overlays.HasImprovementWithKey(OUTPOST, Layer.Holdings);
 	}

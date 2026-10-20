@@ -12,8 +12,8 @@ namespace C7Engine.AI.UnitAI {
 	// HEURISTIC: how the AI fights with its warships. Each time a warship
 	// can move it does the first of these that applies:
 	//
-	//   - hurt, it sails back to one of our ports to heal (ships only heal
-	//     in port);
+	//   - hurt, it sails back to one of our ports to heal (faster than at
+	//     sea, and fully with a Harbor);
 	//   - it attacks an enemy ship it can reach this turn with good odds;
 	//   - it bombards an enemy city or unit in range, the city a war
 	//     campaign (see WarCampaign) is after first;

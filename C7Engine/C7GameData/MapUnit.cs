@@ -38,7 +38,10 @@ namespace C7GameData {
 		public int hitPointsRemaining { get; set; }
 		public int maxHitPoints {
 			get {
-				return this.experienceLevel.baseHitPoints + this.unitType.hpBonus;
+				// The unit's HP bonus can be negative, but "the unit's total
+				// number of HP will never drop below 1" (Civ3 editor help,
+				// HP Bonus).
+				return Math.Max(1, this.experienceLevel.baseHitPoints + this.unitType.hpBonus);
 			}
 		}
 		public bool isFortified { get; set; }
@@ -819,11 +822,37 @@ namespace C7GameData {
 			}
 		}
 
+		// The chance of a losing unit withdrawing. Only fast units withdraw,
+		// "unless fighting another fast unit" (Conquests Civilopedia,
+		// PRTO_Horseman).
 		public double RetreatChance(MapUnit opponent, bool isAttacking) {
-			if ((MaxMovementPoints() <= 1) || (opponent.MaxMovementPoints() > 1))
+			if ((RetreatMovement() <= 1) || (opponent.RetreatMovement() > 1))
 				return 0.0;
 			MapUnit combatant = Combatant(isAttacking ? CombatRole.Attack : CombatRole.Defense);
 			return combatant.experienceLevel.retreatChance;
+		}
+
+		// The movement that decides whether the unit is fast enough to
+		// withdraw. An army is fast only if all its members are, and its
+		// extra movement point doesn't count: "The only unit abilities that
+		// an army can inherit is mobility, and only when all units in that
+		// army have that ability" (Civ3 readme). So it's the slowest
+		// member's.
+		private int RetreatMovement() {
+			if (IsArmy() && Tile.IsTileValid(location)) {
+				bool any = false;
+				int min = 0;
+				foreach (MapUnit m in location.unitsOnTile) {
+					if (!IsPassenger(m))
+						continue;
+					if (!any || m.unitType.movement < min)
+						min = m.unitType.movement;
+					any = true;
+				}
+				if (any)
+					return min;
+			}
+			return MaxMovementPoints();
 		}
 
 		internal TileDirection GetAttackAnimationDirection(TileDirection attackDirection) {
@@ -846,11 +875,12 @@ namespace C7GameData {
 				}
 				return gD.healRateInCity;
 			}
-			if (unitType.IsSeaUnit())
-				return 0;
 
 			// Units heal faster in their own territory and not at all in the
-			// territory of a civ they're at war with.
+			// territory of a civ they're at war with. Ships too: a unit heals
+			// if it "must be in friendly or neutral territory" and "must not
+			// move for a complete turn" (Conquests Civilopedia, GCON_Combat),
+			// with no exception for ships.
 			Player territoryOwner = location.OwningPlayer();
 			if (territoryOwner == owner)
 				return gD.healRateInFriendlyField;
@@ -1131,6 +1161,13 @@ namespace C7GameData {
 				return false;
 
 			if (mapUnit == this)
+				return false;
+
+			// Units join an army only in a city: "Once that army leaves the
+			// city of it's construction, you cannot add or remove units from
+			// the army" (Civ3 readme). Armies don't remember the city they
+			// were made in, so any of the owner's cities will do.
+			if (IsArmy() && !InOwnCity())
 				return false;
 
 			var hasRoom = !IsFull();
