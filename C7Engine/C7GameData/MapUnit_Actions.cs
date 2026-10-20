@@ -64,6 +64,8 @@ public partial class MapUnit {
 				string tribe = BarbarianInteractions.TribeName(EngineStorage.gameData, tile);
 				new MsgShowMilitaryAdvisorPopup(owner, $"We dispersed a {tribe} encampment and took {BarbarianInteractions.CampDispersalGold} gold!", happy: true).send();
 			}
+			// The survivors move to a new site.
+			BarbarianInteractions.RelocateCamp(EngineStorage.gameData);
 		}
 
 		// See what's in the goody hut, if there is one. Only a unit that

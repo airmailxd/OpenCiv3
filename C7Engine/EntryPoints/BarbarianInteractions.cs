@@ -304,6 +304,32 @@ public class BarbarianInteractions {
 		return site;
 	}
 
+	// A camp a unit has destroyed moves elsewhere: "By destroying a tribal
+	// village you can stop the raids from that village. But the survivors
+	// will move to a new site in explored or unexplored territory and begin
+	// raiding from there." (Conquests Civilopedia, GCON_Barbarians). The new
+	// camp goes on a random site where one may appear (see
+	// PossibleNewCampSites), within the limit on camps. Camps dispersed by
+	// borders or a new city don't move. Returns the new camp's tile, or null.
+	// UNVERIFIED: whether the move waits for the conditions for new camps
+	// (CampsMayAppear); here it doesn't, as the tribe already had a camp.
+	public static Tile RelocateCamp(GameData gameData) {
+		BarbarianActivity activity = gameData.barbarianInfo.barbarianActivity;
+		if (activity is BarbarianActivity.None or BarbarianActivity.Sedentary) {
+			return null;
+		}
+		if (gameData.map.barbarianCamps.Count >= MaxCamps(gameData)) {
+			return null;
+		}
+		List<Tile> sites = PossibleNewCampSites(gameData);
+		if (sites.Count == 0) {
+			return null;
+		}
+		Tile site = sites[GameData.rng.Next(sites.Count)];
+		AddCamp(gameData, site);
+		return site;
+	}
+
 	// Places a camp on the tile, guarded like the camps placed with the map
 	// by a basic barbarian unit.
 	public static void AddCamp(GameData gameData, Tile tile) {

@@ -103,6 +103,25 @@ public class CompendiumTerrainScienceTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(culture, city.GetCulture());
 	}
 
+	// A camp a unit destroys moves to a new site.
+	[Fact]
+	public void ADestroyedCampMovesToANewSite() {
+		gameData.barbarianInfo.barbarianActivity = BarbarianActivity.Roaming;
+		gameData.map.barbarianCamps.ToList().ForEach(t => BarbarianInteractions.DisperseCamp(gameData, t, us));
+		Tile camp = BarbarianInteractions.PossibleNewCampSites(gameData).First();
+		camp.hasBarbarianCamp = true;
+		gameData.map.barbarianCamps.Add(camp);
+		Assert.NotEmpty(BarbarianInteractions.PossibleNewCampSites(gameData));
+
+		MapUnit warrior = gameData.SpawnUnit(us, Prototype("Warrior"), camp);
+		warrior.OnEnterTile(camp, true);
+
+		Assert.False(camp.hasBarbarianCamp);
+		Tile moved = Assert.Single(gameData.map.barbarianCamps);
+		Assert.NotSame(camp, moved);
+		Assert.True(moved.hasBarbarianCamp);
+	}
+
 	// ---- Research ----
 
 	// Switching research loses the stored beakers, unless switched back the
