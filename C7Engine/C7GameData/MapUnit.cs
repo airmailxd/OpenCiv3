@@ -531,9 +531,10 @@ namespace C7GameData {
 		// The AI plays by Regent's rules whatever the difficulty, so "the AI
 		// has still a 200% bonus against barbarians even though the human
 		// player loses its entire bonus on deity"
-		// (https://forums.civfanatics.com/threads/ai-difficulty-level-bonuses.37490/).
-		// Per the project owner, the AI gets it attacking and defending, like
-		// the human's bonus.
+		// (https://forums.civfanatics.com/threads/ai-difficulty-level-bonuses.37490/):
+		// it takes Regent's field (GameData.DifficultyFor), or 200 without
+		// one. Per the project owner, the AI gets it attacking and defending,
+		// like the human's bonus.
 		private const int AIBonusAgainstBarbariansPercent = 200;
 
 		private StrengthBonus? DifficultyBonusAgainst(MapUnit opponent, CombatRole role) {
@@ -541,9 +542,10 @@ namespace C7GameData {
 				return null;
 			if (owner == null || owner.isBarbarians || opponent?.owner == null || !opponent.owner.isBarbarians)
 				return null;
+			GameData gameData = EngineStorage.gameData;
 			int percent = owner.isHuman
-				? EngineStorage.gameData?.gameDifficulty?.AttackBonusAgainstBarbarians ?? 0
-				: AIBonusAgainstBarbariansPercent;
+				? gameData?.gameDifficulty?.AttackBonusAgainstBarbarians ?? 0
+				: gameData?.difficulties.Count > 0 ? gameData.DifficultyFor(owner).AttackBonusAgainstBarbarians : AIBonusAgainstBarbariansPercent;
 			if (percent <= 0)
 				return null;
 			return new StrengthBonus("Difficulty level against barbarians", percent / 100.0);

@@ -112,6 +112,21 @@ namespace C7GameData {
 		public Difficulty AiRulesDifficulty() {
 			return difficulties.FirstOrDefault(d => d.AiCostFactor == d.HumanCostFactor) ?? gameDifficulty;
 		}
+
+		// The difficulty whose per-player fields (content citizens, military
+		// law, the bonus against barbarians, the percentage of optimal
+		// cities) the player plays by: the game's for a human, the AI's
+		// default (Regent's) for the AI. The executable keeps "int
+		// player_difficulty" per player (C3X's Civ3Conquests.h, struct
+		// Leader, https://github.com/maxpetul/C3X), and "The AI gets the "AI
+		// default difficulty level" percentage of OCN. If you haven't
+		// changed that, it's Regent" (alexman,
+		// https://codehappy.net/apolyton/threads/56739-1.htm). UNVERIFIED in
+		// code for the fields other than the OCN percentage (compendium 08,
+		// section 1.2).
+		public Difficulty DifficultyFor(Player player) {
+			return player == null || player.isHuman ? gameDifficulty : AiRulesDifficulty();
+		}
 		public string defaultExperienceLevelKey;
 		public ExperienceLevel defaultExperienceLevel;
 		public Rules rules;

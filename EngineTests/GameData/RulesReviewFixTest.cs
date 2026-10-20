@@ -700,6 +700,53 @@ public class RulesReviewFixTest : IClassFixture<SaveGameFixture> {
 
 	// ---- Difficulty ----
 
+	// "n_com = floor(b/4) if L has the trait else 0", added to the map's
+	// number before the difficulty's percentage (C3X's notes on the stock
+	// OCN formula): Regent's 90% of 17 + 4 is 18, not 90% of 17 * 1.25.
+	[Fact]
+	public void TheCommercialTraitAddsAQuarterOfTheMapsCitiesRoundedDown() {
+		gameData.map.optimalNumberOfCities = 17;
+		us.government = new Government { name = "Test", corruptionType = Government.CorruptionType.Rampant };
+		us.civilization.traits.Remove(Civilization.Trait.Commercial);
+		Assert.Equal(15, us.GetAdjustedOptimalCityNumber(gameData));
+		us.civilization.traits.Add(Civilization.Trait.Commercial);
+		Assert.Equal(18, us.GetAdjustedOptimalCityNumber(gameData));
+	}
+
+	// "n_ai = 0 if human player else | 0 if game difficulty set <= 2 |
+	// floor(b/8) if set to 3 | floor(b/4) if set to 4 | floor(b/2) if set
+	// >= 5" (same notes).
+	[Fact]
+	public void TheAIGetsExtraOptimalCitiesOnTheHarderLevels() {
+		gameData.map.optimalNumberOfCities = 20;
+		us.government = new Government { name = "Test", corruptionType = Government.CorruptionType.Rampant };
+		us.civilization.traits.Remove(Civilization.Trait.Commercial);
+		Player human = gameData.players.First(p => p.isHuman);
+		human.government = us.government;
+		human.civilization.traits.Remove(Civilization.Trait.Commercial);
+		gameData.gameDifficulty = gameData.difficulties[4];
+		// A human at Emperor: 80% of 20, with no bonus.
+		Assert.Equal(16, human.GetAdjustedOptimalCityNumber(gameData));
+		// Emperor: Regent's 90% of 20 + 5.
+		Assert.Equal(22, us.GetAdjustedOptimalCityNumber(gameData));
+		gameData.gameDifficulty = gameData.difficulties[3];
+		Assert.Equal(19, us.GetAdjustedOptimalCityNumber(gameData));
+		gameData.gameDifficulty = gameData.difficulties[6];
+		Assert.Equal(27, us.GetAdjustedOptimalCityNumber(gameData));
+		gameData.gameDifficulty = gameData.difficulties[2];
+		Assert.Equal(18, us.GetAdjustedOptimalCityNumber(gameData));
+	}
+
+	// The AI plays by its default level's per-player fields, Regent's,
+	// whatever the game's; a human by the game's.
+	[Fact]
+	public void TheAIPlaysByRegentsDifficultyFields() {
+		Player human = gameData.players.First(p => p.isHuman);
+		gameData.gameDifficulty = gameData.difficulties[6];
+		Assert.Same(gameData.difficulties[6], gameData.DifficultyFor(human));
+		Assert.Equal("Regent", gameData.DifficultyFor(us).Name);
+	}
+
 	[Fact]
 	public void HumansGetTheDifficultyBonusAgainstBarbarians() {
 		Player human = gameData.players.First(p => p.isHuman);

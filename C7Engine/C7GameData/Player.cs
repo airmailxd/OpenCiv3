@@ -1311,8 +1311,17 @@ namespace C7GameData {
 			int percentOptimalCities = isHuman ? gameData.gameDifficulty.PercentageOfOptimalCities : gameData.AiRulesDifficulty().PercentageOfOptimalCities;
 
 			// "The OCN (Optimal City Number) is increased 25% for Commercial
-			// civilizations" (https://civfanatics.com/civ3/faq/).
-			float commercialCivFactor = civilization.traits.Contains(Civilization.Trait.Commercial) ? .25f : 0;
+			// civilizations" (https://civfanatics.com/civ3/faq/), which the
+			// executable adds to the map's number before the percentage, in
+			// whole cities: "n_com = floor(b/4) if L has the trait else 0" in
+			// "ocn = max (1, floor(s_diff * (b + n_fp + n_com + n_gov + n_ai)
+			// / 100))" (C3X's notes on the stock formula,
+			// https://github.com/maxpetul/C3X/blob/master/Notes/ocn_formula.txt).
+			// The other terms keep alexman's factors (compendium 02); the
+			// notes' government term differs from them (floor(b/8) rather
+			// than a tenth, and floor(b/16) for problematic corruption).
+			int commercialCities = civilization.traits.Contains(Civilization.Trait.Commercial) ? mapOptimalCityNumber / 4 : 0;
+			int aiCities = AiOptimalCityBonus(gameData, mapOptimalCityNumber);
 
 			// The Secret Police HQ carries the BIQ's Forbidden Palace flag, so
 			// it counts here like a Forbidden Palace, under Communism (see
@@ -1332,9 +1341,34 @@ namespace C7GameData {
 			float communalCorruptionFactor =
 				government.corruptionType == Government.CorruptionType.Communal ? 3.0f : 3.0f/8.0f;
 
-			float result = mapOptimalCityNumber * percentOptimalCities / 100.0f
-				  * (1 + commercialCivFactor + OptimalCityGovernmentFactor() + communalCorruptionFactor * numCorruptionReducingSmallWondersInEmpire);
-			return (int)result;
+			double optimal = mapOptimalCityNumber * (1 + (double)OptimalCityGovernmentFactor() + communalCorruptionFactor * numCorruptionReducingSmallWondersInEmpire)
+				+ commercialCities + aiCities;
+			// Rounded down, the epsilon keeping 90% of 30 at 27.
+			return (int)Math.Floor(percentOptimalCities * optimal / 100 + 1e-6);
+		}
+
+		// The executable's extra optimal cities for an AI on the harder
+		// game difficulties: "n_ai is special contrib for AI players: n_ai =
+		// 0 if human player else | 0 if game difficulty set <= 2 |
+		// floor(b/8) if set to 3 | floor(b/4) if set to 4 | floor(b/2) if
+		// set >= 5" (C3X's notes on the stock formula,
+		// https://github.com/maxpetul/C3X/blob/master/Notes/ocn_formula.txt;
+		// compendium 08, section 1.2). It goes by the game's difficulty
+		// (index 3 is Monarch), not the AI's own Regent percentage, which
+		// still scales it. Paired AI trials at Monarch (8 games of 200
+		// turns, score per civ against the same civs without it): +128 +- 89
+		// on Continents and +34 +- 58 on Pangaea.
+		public int AiOptimalCityBonus(GameData gameData, int mapOptimalCityNumber) {
+			if (isHuman || isBarbarians) {
+				return 0;
+			}
+			int level = gameData.difficulties.FindIndex(d => d.Name == gameData.gameDifficulty?.Name);
+			return level switch {
+				< 3 => 0,
+				3 => mapOptimalCityNumber / 8,
+				4 => mapOptimalCityNumber / 4,
+				_ => mapOptimalCityNumber / 2,
+			};
 		}
 
 		// How much the government adds to the optimal city number.

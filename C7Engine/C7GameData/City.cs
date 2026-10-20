@@ -1837,7 +1837,8 @@ namespace C7GameData {
 			resisters = ResistersInCity();
 
 			int garrison = location.unitsOnTile.Count(u => u.owner == owner && u.CanAttack() && u.CanDefendOnLand());
-			int quellable = garrison * Math.Max(1, gameData.gameDifficulty?.MilitaryLaw ?? 1);
+			// The owner's difficulty: Regent's for the AI (GameData.DifficultyFor).
+			int quellable = garrison * Math.Max(1, gameData.DifficultyFor(owner)?.MilitaryLaw ?? 1);
 			int chance = ResistancePercent(resistanceFrom, continuing: true);
 			int givingUp = 0;
 			for (int i = 0; i < resisters; ++i) {
