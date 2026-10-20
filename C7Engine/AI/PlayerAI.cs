@@ -1342,7 +1342,9 @@ namespace C7Engine {
 			return (weGive, weWant);
 		}
 
-		private static void AdjustSliders(Player player) {
+		internal const string NoAiLuxury = "no-ai-luxury";
+
+		internal static void AdjustSliders(Player player) {
 			const int MAX_SLIDER_VALUE = 10;
 			const int MAX_AI_LUXURY_SLIDER = 5;
 
@@ -1355,7 +1357,17 @@ namespace C7Engine {
 			// are unhappy (sometimes making all cities happy with the luxury
 			// slider is too expensive and it's easier to just use entertainers
 			// there).
-			while (MostCitiesUnhappy(player) && player.luxuryRate < Math.Min(MAX_AI_LUXURY_SLIDER, player.maxLuxuryRate)) {
+			//
+			// Trial switch "no-ai-luxury": Civ3's AI "will NOT use the luxury
+			// slider to compensate for any happiness issues" and uses
+			// entertainers instead (Ision, https://forums.civfanatics.com/threads/92917/,
+			// compendium 08 section 3.6), which FixRemainingUnhappyCities does.
+			// In paired trials (AiTrialTest, 8 games of 200 turns) it scored
+			// -39 +- 62 on Continents and -36 +- 87 on Pangaea, with more
+			// cities in disorder (+3.2 and +1.7 city-turns per civ) and fewer
+			// citizens: weaker on both maps, so the AI keeps its luxury
+			// slider.
+			while (!AiExperiments.Has(player, NoAiLuxury) && MostCitiesUnhappy(player) && player.luxuryRate < Math.Min(MAX_AI_LUXURY_SLIDER, player.maxLuxuryRate)) {
 				++player.luxuryRate;
 			}
 
@@ -1380,9 +1392,42 @@ namespace C7Engine {
 					player.taxRate++;
 				} while (player.scienceRate > 0 && player.taxRate < player.maxRate
 					&& !IsTolerable(player, fixedGoldPerTurn + CityTaxesAndWealth(player), wantedGoldPerTurn));
+				if (player.government.hasTilePenalty) {
+					SpendDespotismSurplus(player, fixedGoldPerTurn, wantedGoldPerTurn);
+				}
 			}
 
 			log.Information($"{player} slider values: Science: {player.scienceRate}, Luxury: {player.luxuryRate}, Tax: {player.taxRate}");
+		}
+
+		// Under Despotism (any government with the tile penalty) the AI
+		// should almost never run a gold surplus: what isn't needed goes to
+		// research (the project owner's decision, 2026-10-20). Taking
+		// science down a step at a time to stop a deficit can overshoot into
+		// a surplus when the treasury is too small for the tenth-of-the-
+		// treasury deficit AdjustSliders otherwise allows. So when the step
+		// before, with more science, loses less gold than this one gains,
+		// and the treasury can pay that loss this turn, the AI takes it back:
+		// over the turns it runs a little either side of nothing, and the
+		// treasury never goes below zero. The gold the AI wants at war
+		// (wantedGoldPerTurn) is still kept. Before this, AIs in Despotism
+		// had a surplus on about 3% of their turns (4 games of 200 turns on
+		// Continents), nearly all of them such overshoots. In paired trials
+		// (AiTrialTest, 8 games of 200 turns, as the switch
+		// "despotism-no-surplus") it scored +167 +- 57 on Continents, with
+		// more cities, citizens and techs, and +3 +- 79 on Pangaea.
+		private static void SpendDespotismSurplus(Player player, int fixedGoldPerTurn, int wantedGoldPerTurn) {
+			int surplus = fixedGoldPerTurn + CityTaxesAndWealth(player);
+			if (surplus <= 0 || surplus <= wantedGoldPerTurn || player.taxRate == 0 || player.scienceRate >= player.maxScienceRate) {
+				return;
+			}
+			player.scienceRate++;
+			player.taxRate--;
+			int deficit = -(fixedGoldPerTurn + CityTaxesAndWealth(player));
+			if (deficit >= surplus || player.gold < deficit || -deficit < wantedGoldPerTurn) {
+				player.scienceRate--;
+				player.taxRate++;
+			}
 		}
 
 		// Returns true if more than 10% of the player's cities are unhappy with
