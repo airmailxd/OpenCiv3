@@ -37,8 +37,17 @@ namespace C7GameData {
 	// peace treaty before the MA expires means your reputation will be
 	// trashed" (same thread; see BreakAlliancesAgainst).
 	//
+	// A mutual protection pact needs Nationalism on one side only: "If a
+	// peace treaty and embassy are in place between two civilizations and
+	// either has discovered Nationalism, they can negotiate a mutual
+	// protection pact" (Civ3 manual, p.~160,
+	// https://cdn.akamai.steamstatic.com/steam/apps/3910/manuals/manual.pdf),
+	// and it needs "only one civ to know Nationalism" (cort,
+	// https://codehappy.net/apolyton/threads/33796-1.htm).
+	//
 	// UNVERIFIED (no Civ3 source found), each the simplest rule that fits:
-	// - Both civs signing must know the tech, not just the proposer.
+	// - For a military alliance or trade embargo both civs signing must
+	//   know the tech, not just the proposer.
 	// - A military alliance needs at least one of the two at war with the
 	//   enemy already. Civ3 offers one against any known civ, but the AI
 	//   answers "We don't think a deal can be worked out" unless war has
@@ -78,7 +87,8 @@ namespace C7GameData {
 		}
 
 		// Why a and b can't make an agreement now, or null if they can.
-		private static string ProblemAgreeing(GameData gameData, Player a, Player b, Save.SaveTech.Flag tech) {
+		// With eitherKnows, one of the two knowing the tech will do.
+		private static string ProblemAgreeing(GameData gameData, Player a, Player b, Save.SaveTech.Flag tech, bool eitherKnows = false) {
 			if (a == null || b == null || a == b) {
 				return "a civ can't make an agreement with itself";
 			}
@@ -91,7 +101,11 @@ namespace C7GameData {
 			if (!HasEmbassyEitherWay(a, b)) {
 				return "an agreement needs an embassy";
 			}
-			if (!KnowsTech(gameData, a, tech) || !KnowsTech(gameData, b, tech)) {
+			if (eitherKnows) {
+				if (!KnowsTech(gameData, a, tech) && !KnowsTech(gameData, b, tech)) {
+					return $"the agreement needs a tech neither civ knows ({tech})";
+				}
+			} else if (!KnowsTech(gameData, a, tech) || !KnowsTech(gameData, b, tech)) {
 				return $"the agreement needs a tech the civs don't both know ({tech})";
 			}
 			return null;
@@ -110,7 +124,7 @@ namespace C7GameData {
 		}
 
 		public static string ProblemSigningMutualProtectionPact(GameData gameData, Player a, Player b) {
-			string problem = ProblemAgreeing(gameData, a, b, Save.SaveTech.Flag.EnablesMutualProtection);
+			string problem = ProblemAgreeing(gameData, a, b, Save.SaveTech.Flag.EnablesMutualProtection, eitherKnows: true);
 			if (problem != null) {
 				return problem;
 			}

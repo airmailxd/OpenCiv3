@@ -27,9 +27,9 @@ namespace C7Engine.AI {
 	// stronger on Pangaea (about 4 more cities each in 200 turns).
 	//
 	// It runs campaigns in the wars the AI is in, and also starts them in
-	// peacetime against a weaker neighbour, declaring war only once the
-	// attackers are gathered (WarPriority no longer declares wars itself),
-	// though not while it still has wide-open land to settle.
+	// peacetime when Civ3's own war plotting picks a target (see
+	// StockWarPlotting), declaring war only once the attackers are gathered
+	// (WarPriority no longer declares wars itself).
 	// In AI trials (AiTrialTest), civs playing this way took about 3 more
 	// cities each in 200 turns.
 	public static class WarCampaign {
@@ -378,8 +378,8 @@ namespace C7Engine.AI {
 			}
 		}
 
-		// Starts a campaign against the enemy we are at war with, or, with
-		// war-declare, against a weaker neighbour.
+		// Starts a campaign against the enemy we are at war with, or, at
+		// peace, against the civ Civ3's war plotting picks.
 		private static Campaign MaybeStartCampaign(Player player, GameData gameData) {
 			if (nextCampaignTurn.TryGetValue(player, out StrongBox<int> next) && Turn < next.Value) {
 				return null;
@@ -404,32 +404,24 @@ namespace C7Engine.AI {
 			// stop us from planning one we can fight.
 			if (enemy == null && !InReachableWar(player, gameData.players)
 					&& player.cities.Count >= 3) {
-				float us = player.CalculateMilitaryStrength();
+				// Civ3's own rules (see StockWarPlotting): the rolls to plot
+				// a war at all, and the score of whom to plot it against.
+				// The war is still declared only once the attackers are
+				// gathered and we are DeclareStrengthRatio times as strong.
+				if (!StockWarPlotting.RollsToPlot(gameData, player)) {
+					return null;
+				}
 				foreach (Player p in gameData.players) {
-					if (!CanDeclareWarOn(player, p)) {
+					if (!CanDeclareWarOn(player, p) || StockWarPlotting.Excluded(gameData, player, p)) {
 						continue;
 					}
-					float them = p.CalculateMilitaryStrength();
-					if (us < DeclareStrengthRatio * them) {
-						continue;
-					}
-					City t = PickTarget(player, p, out float score);
-					// The weaker they are the better.
-					score *= us / Math.Max(1f, them);
+					City t = PickTarget(player, p);
+					float score = StockWarPlotting.TargetScore(gameData, player, p);
 					if (t != null && score > best) {
 						best = score;
 						enemy = p;
 						target = t;
 					}
-				}
-
-				// While there's wide-open land to settle, we settle it rather
-				// than start a war, and demand tribute of the weak instead
-				// (see TributeDemands). Checked last, as finding the open land
-				// scores every known tile.
-				if (enemy != null && HasWideOpenLand(player)) {
-					log.Debug("{Player} is still expanding, so doesn't attack {Enemy}", player, enemy);
-					return null;
 				}
 			}
 
@@ -440,23 +432,6 @@ namespace C7Engine.AI {
 			Campaign c = new() { enemy = enemy, target = target };
 			SetPhase(c, Phase.Gather);
 			return c;
-		}
-
-		// HEURISTIC: a civ with at least this many open city sites it can
-		// reach for each city it has is still settling wide-open land. In AI
-		// games on standard pangaeas, civs have 35 to 60 such sites until
-		// about turn 70, and fewer than their cities only after about turn
-		// 105. In AI trials (8 paired standard pangaeas, 150 turns), holding
-		// off until then cut the wars civs started from 1.1 each to 0.3,
-		// with no measurable change in their score or cities.
-		private const int OpenSitesPerCityWhileExpanding = 1;
-
-		// Whether the player still has wide-open land to settle: enough open
-		// city sites to double its cities. Judged from its capital, or its
-		// first city without one.
-		private static bool HasWideOpenLand(Player player) {
-			City home = player.cities.Find(c => c.IsCapital()) ?? player.cities[0];
-			return ChooseProducible.NumberOfReachableOpenCitySpots(home) >= OpenSitesPerCityWhileExpanding * player.cities.Count;
 		}
 
 		// Whether we're at war with a civ (not the barbarians) that has a

@@ -257,6 +257,7 @@ namespace C7Engine {
 		//   Plant Spy             dist*level + base
 		//   Steal Plans           dist*level + base * units
 		//   Initiate Propaganda   dist*level + base * pop * (1 + opp_cult/your_cult)
+		//                         (plus the editor help's gold term, below)
 		//   Sabotage Production   dist*level + base * shield
 		//   Expose Enemy Spy      dist*level + base
 		// pop and level are of the target city, or the capital; techs is how
@@ -293,9 +294,22 @@ namespace C7Engine {
 					cost += (long)b * target.units.Count;
 					break;
 				case EspionageMission.Propaganda: {
+						// The editor help adds a gold term the study lacks:
+						// "BaseCost * Target City Size + ( BaseCost * Target
+						// City Size * Culture Ratio) + ( ( BaseCost * Target
+						// City Size) / 2 * Gold Ratio )" (Conquests editor
+						// help, "Base Cost (Diplomat / Spy Mission
+						// Properties)"; compendium 06, section 6.11).
+						// UNVERIFIED: that the gold ratio is the target's
+						// treasury over ours, as the culture ratio is theirs
+						// over ours ("opp_cult/your_cult"), with an empty
+						// treasury counted as 1 gold.
 						int theirs = TotalCulture(target);
 						int ours = Math.Max(1, TotalCulture(actor));
 						cost += (long)b * pop * (ours + theirs) / ours;
+						long theirGold = Math.Max(0, target.gold);
+						long ourGold = Math.Max(1, actor.gold);
+						cost += (long)b * pop / 2 * theirGold / ourGold;
 						break;
 					}
 				case EspionageMission.SabotageProduction:

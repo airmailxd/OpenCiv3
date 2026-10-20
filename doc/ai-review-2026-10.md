@@ -62,3 +62,19 @@ Paired trials as above: 8 games of 200 turns on each map, the switch's civs agai
 | `war-government`: at war, the AI may change government when its war weariness level against an enemy is 2 or more under a government with war weariness, or when a war has lasted 30 turns. War weariness then counts for more in the choice, which favours Monarchy, Communism and Fascism. This follows chiefpaco (CFC 21298). | `GovernmentAI.WarPressure` | -29 ± 25 / +6 ± 47 (about 1 more turn of anarchy per civ) | Kept (the owner asked for it, and it is not clearly weaker) |
 | `no-ai-luxury`: no luxury slider; only entertainers. This follows Ision (CFC 92917). | `PlayerAI.AdjustSliders` | -39 ± 62 / -36 ± 87 (disorder +3.2 / +1.7 city-turns, fewer citizens) | Dropped; the switch stays |
 | The difficulty's AI start units come on the first turn the AI has a city, not only on turn 1. The flag is saved. | `Player.MaybeSpawnBonusUnits` | not run (a rules fix) | Kept |
+
+## Stock war plotting, AI trade gate and the AI's extra optimal cities (20 October)
+
+Paired trials as above, at Monarch: 8 games of 200 turns on each map. These follow code-level readings of the C3C 1.22 executable (compendium 08, sections 1.2 and 3.4.1).
+
+| Change | Where | Trial (score, Continents / Pangaea) | Result |
+|---|---|---|---|
+| `war-plot-roll`: before it plots a war at peace, the AI must pass every one of Civ3's per-turn rolls (power rank, aggression, at war, anarchy, open land, war weariness, garrison, treasury). These replace waiting until no wide-open land is left (Flintlock, CFC 703785). | `StockWarPlotting.RollsToPlot` | +32 ± 44 / +76 ± 34* (wars declared -0.7 / -1.0*, cities lost -1.2* on Pangaea) | Kept |
+| `war-target-score`: the AI picks its target by Civ3's score (power rank, distance, attitude, land units per city, pacts, trades, common enemies). Mutual protection partners are never targets, and others drop out at random. This replaces "the weakest neighbour, if we are 1.3 times as strong". The 1.3 check at the declaration stays. | `StockWarPlotting.Excluded`, `TargetScore` | +124 ± 67 / +87 ± 109 | Kept |
+| Both together | | +42 ± 48 / +128 ± 56* (cities lost -1.6* on Pangaea) | Kept |
+| `ai-trade-gate`: an AI talks trade with another AI only on a one in four roll each turn (C3X: "the base game's 1-in-4 gate before ai_negotiate_with_other_ai"). | `PlayerAI.RollsToNegotiate` | +25 ± 110 / -13 ± 169 | Kept (Civ3's rule; no measurable change) |
+| `ai-ocn-bonus`: on Monarch and harder game difficulties, the AI's base optimal city number gets b/8, b/4 or b/2 more cities (C3X `ocn_formula.txt`, `n_ai`). | `Player.AiOptimalCityBonus` | +128 ± 89 / +34 ± 58 | Kept |
+| All four together | | +93 ± 51 / -93 ± 151 (military -134*, wars -1.2*) | within noise |
+| The three without the trade gate | | -67 ± 95 / +34 ± 69 | within noise |
+
+The combined runs move both ways by about one standard error, so they show no interaction beyond noise. All four switches became the default and are gone.

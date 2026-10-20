@@ -118,8 +118,11 @@ public class DiplomacyDealsTest : IDisposable {
 		Assert.False(AtWar(third, victim));
 	}
 
+	// "If a peace treaty and embassy are in place between two
+	// civilizations and either has discovered Nationalism, they can
+	// negotiate a mutual protection pact" (Civ3 manual, p.~160).
 	[Fact]
-	public void PactsNeedAnEmbassyAndTheirTech() {
+	public void PactsNeedAnEmbassyAndTheirTechOnEitherSide() {
 		Assert.NotNull(TradeOffer.ProblemWithDeal(gameData, us, third, Pact(), Pact()));
 		GiveEmbassies();
 		Assert.Null(TradeOffer.ProblemWithDeal(gameData, us, third, Pact(), Pact()));
@@ -127,10 +130,32 @@ public class DiplomacyDealsTest : IDisposable {
 		Tech nationalism = new() { id = ID.FromString("tech-1"), Name = "Nationalism" };
 		nationalism.Flags.Add(C7GameData.Save.SaveTech.Flag.EnablesMutualProtection);
 		gameData.techs.Add(nationalism);
-		us.knownTechs.Add(nationalism.id);
 		Assert.NotNull(TradeOffer.ProblemWithDeal(gameData, us, third, Pact(), Pact()));
 		third.knownTechs.Add(nationalism.id);
 		Assert.Null(TradeOffer.ProblemWithDeal(gameData, us, third, Pact(), Pact()));
+		Assert.Null(TradeOffer.ProblemWithDeal(gameData, third, us, Pact(), Pact()));
+	}
+
+	// An embassy closed by war "reopens when peace is declared" (Civ3
+	// manual, p.~157).
+	[Fact]
+	public void PeaceReopensTheEmbassiesTheWarClosed() {
+		us.playerRelationships[victim.id].hasEmbassy = true;
+
+		DeclareWar(us, victim, false, gameData.turn + 10);
+		Assert.False(us.playerRelationships[victim.id].hasEmbassy);
+		Assert.False(victim.playerRelationships[us.id].hasEmbassy);
+
+		SignPeaceAfterWar(us, victim, gameData);
+		Assert.True(us.playerRelationships[victim.id].hasEmbassy);
+		// The victim never had one, so has none now.
+		Assert.False(victim.playerRelationships[us.id].hasEmbassy);
+
+		// Only once: a second war and peace don't open one never rebuilt.
+		us.playerRelationships[victim.id].hasEmbassy = false;
+		DeclareWar(us, victim, false, gameData.turn + 10);
+		SignPeaceAfterWar(us, victim, gameData);
+		Assert.False(us.playerRelationships[victim.id].hasEmbassy);
 	}
 
 	[Fact]
