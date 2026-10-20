@@ -140,6 +140,26 @@ public class TechWonderTest {
 		Assert.Empty(us.DoGreatLibraryUpdates(gameData));
 	}
 
+	// Per the project owner, the Great Library can take its owner past its
+	// era, as far as the other civs have gone; techs are checked once, in
+	// the editor's order, so a tech granted earlier opens the next.
+	[Fact]
+	public void GreatLibraryCrossesErasInOnePass() {
+		BuildWonder(SaveBuilding.Flag.GainAnyTechKnownByTwoCivs);
+		Meet(us, rome);
+		Meet(us, greece);
+		Tech later = NewTech(5, "Later", 60, writing);
+		later.EraCivilopediaName = "ERAS_Middle_Ages";
+		Know(rome, alphabet, writing, later);
+		Know(greece, alphabet, writing, later);
+
+		us.DoGreatLibraryUpdates(gameData);
+
+		Assert.Contains(alphabet.id, us.knownTechs);
+		Assert.Contains(writing.id, us.knownTechs);
+		Assert.Contains(later.id, us.knownTechs);
+	}
+
 	[Fact]
 	public void GreatLibraryTechBeingResearchedMovesResearchOn() {
 		BuildWonder(SaveBuilding.Flag.GainAnyTechKnownByTwoCivs);

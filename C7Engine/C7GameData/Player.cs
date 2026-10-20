@@ -1498,10 +1498,18 @@ namespace C7GameData {
 		//  - "contact" means we have a relationship with the civ (we have met
 		//    them), regardless of whether we are at war with them;
 		//  - barbarians and defeated civs don't count;
-		//  - only techs we could research ourselves right now (prerequisites
-		//    known, not beyond our era) are given, as with tech trading. Each
-		//    tech learned can open up the next, so we repeat until nothing new
-		//    qualifies.
+		//  - techs are checked once a turn "in the order in which they are
+		//    listed in the editor", and "You can only gain those techs that
+		//    you have the prerequisite for" (justanick,
+		//    https://forums.civfanatics.com/threads/quick-answers-newbie-questions.318752/page-275):
+		//    a tech granted earlier in the pass counts as a prerequisite for
+		//    one later in it. Techs of no era never come from it ("Fixed a
+		//    bug with non-era techs that allowed players to potentially
+		//    receive them for free from the Great Library", PTW readme).
+		//  - the era doesn't hold them back: per the project owner
+		//    (2026-10-20), a captured Great Library can take its new owner
+		//    past Education, as far as the other civs have progressed, before
+		//    it goes obsolete (which is checked after the turn's grants).
 		// Returns the techs learned.
 		public List<Tech> DoGreatLibraryUpdates(GameData gameData) {
 			List<Tech> learned = new();
@@ -1530,11 +1538,11 @@ namespace C7GameData {
 				return learned;
 			}
 
-			while (true) {
-				Tech gained = GetAvailableTechsToResearch(gameData.techs)
-					.FirstOrDefault(t => contacts.Count(p => p.knownTechs.Contains(t.id)) >= 2);
-				if (gained == null) {
-					break;
+			foreach (Tech gained in gameData.techs.ToList()) {
+				if (knownTechs.Contains(gained.id) || GetEraIndex(gained.EraCivilopediaName) < 0
+						|| !gained.Prerequisites.All(t => knownTechs.Contains(t.id))
+						|| contacts.Count(p => p.knownTechs.Contains(gained.id)) < 2) {
+					continue;
 				}
 				log.Information("{Player} learns {Tech} from the Great Library", this, gained.Name);
 				CompleteResearchingTech(gameData, gained);
