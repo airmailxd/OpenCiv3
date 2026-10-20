@@ -222,11 +222,15 @@ namespace C7GameData {
 			if (Double.IsNaN(attackerOdds))
 				return;
 
-			if (tile.cityAtTile.constructed_buildings.Contains(walls)) {
-				await RunAnimatedBombard(tile, attackerOdds, () => {
+			// Each shot of the unit's rate of fire is rolled on its own (see
+			// RateOfFire). Once the walls are down there is nothing left for
+			// a shot at them to hit, so the bombardment ends there.
+			await BeginBombard();
+			for (int shot = 0; shot < RateOfFire() && tile.cityAtTile.constructed_buildings.Contains(walls); ++shot) {
+				if (await FireShot(tile, attackerOdds)) {
 					hitCount += 1;
 					tile.cityAtTile.RemoveBuilding(walls);
-				});
+				}
 			}
 
 			TriggerPopUp(hitCount, tile, $"The Walls of {tile.cityAtTile.name} have been destroyed.");
@@ -299,60 +303,67 @@ namespace C7GameData {
 		// buildings, or its citizens if it has none to hit.
 		private async Task BombardCity(Tile tile, bool precision = false) {
 			City city = tile.cityAtTile;
-
-			// Only buildings actually built in the city can be destroyed, and
-			// not wonders, the palace or what a wonder provides (see
-			// IsBombardableBuilding). Walls are among them when a ship or
-			// plane bombards.
-			// TODO: probably not canon to exclude palace
-			List<CityBuilding> eligibleBuildingsForBombardment = city.constructed_buildings.Where(cb => IsBombardableBuilding(city, cb)).ToList();
-
-			// Per the project owner, bombardment never kills a city's last
-			// citizen. What can't be hit isn't rolled for, so a size 1 city
-			// only loses buildings, and a city with neither buildings to lose
-			// nor citizens to spare takes the shot for nothing.
-			bool canHitBuildings = eligibleBuildingsForBombardment.Count > 0;
-			bool canHitCitizens = city.residents.Count > 1;
-			if (!canHitBuildings && !canHitCitizens) {
-				await RunAnimatedBombard(tile, 0, () => { });
-				TriggerPopUp(0, tile, string.Empty);
-				return;
-			}
-			bool targetBuildings = canHitBuildings && canHitCitizens && !precision
-				?GameData.rng.NextDouble() < BuildingOrPopulationOdds
-				: canHitBuildings;
-
 			Rules rules = EngineStorage.gameData.rules;
-			var defence = targetBuildings ? rules.BuildingDefensiveBonus : rules.CitizenDefensiveBonus;
-			var destroyMsg = string.Empty;
-			Action remover = targetBuildings
-				? () =>
-				{
+			double bombardStrength = StrengthVersus(null, CombatRole.Bombard, facingDirection);
+			var hitCount = 0;
+			List<string> destroyMsgs = new();
+
+			// Each shot of the unit's rate of fire (see RateOfFire) picks its
+			// own target, as a single shot would: the 50/50 roll between
+			// buildings and citizens is made again, among what is still left
+			// to hit. A precision strike stays a single shot, as before rate
+			// of fire applied here: UNVERIFIED (no Civ3 source found) whether
+			// it fires the aircraft's rate of fire, and if so whether later
+			// shots go on to the citizens once the buildings are gone.
+			int shots = precision ? 1 : RateOfFire();
+			await BeginBombard();
+			for (int shot = 0; shot < shots; ++shot) {
+				// Only buildings actually built in the city can be destroyed,
+				// and not wonders, the palace or what a wonder provides (see
+				// IsBombardableBuilding). Walls are among them when a ship or
+				// plane bombards.
+				// TODO: probably not canon to exclude palace
+				List<CityBuilding> eligibleBuildingsForBombardment = city.constructed_buildings.Where(cb => IsBombardableBuilding(city, cb)).ToList();
+
+				// Per the project owner, bombardment never kills a city's
+				// last citizen. What can't be hit isn't rolled for, so a size
+				// 1 city only loses buildings, and a city with neither
+				// buildings to lose nor citizens to spare takes the shot for
+				// nothing. Later shots with nothing left to hit aren't fired.
+				bool canHitBuildings = eligibleBuildingsForBombardment.Count > 0;
+				bool canHitCitizens = city.residents.Count > 1;
+				if (!canHitBuildings && !canHitCitizens) {
+					if (shot == 0) {
+						await FireShot(tile, 0);
+					}
+					break;
+				}
+				bool targetBuildings = canHitBuildings && canHitCitizens && !precision
+					? GameData.rng.NextDouble() < BuildingOrPopulationOdds
+					: canHitBuildings;
+
+				double defenderStrength = targetBuildings ? rules.BuildingDefensiveBonus : rules.CitizenDefensiveBonus;
+				double attackerOdds = bombardStrength / (bombardStrength + defenderStrength);
+				if (Double.IsNaN(attackerOdds))
+					break;
+
+				if (!await FireShot(tile, attackerOdds))
+					continue;
+				hitCount += 1;
+				if (targetBuildings) {
 					var building = eligibleBuildingsForBombardment
 						.OrderBy(x => GameData.rng.Next()).First();
 					city.RemoveBuilding(building);
-					destroyMsg = $"The {building.building.name} of {city.name} has been destroyed!";
-				}
-			: () =>
-				{
+					destroyMsgs.Add($"The {building.building.name} of {city.name} has been destroyed!");
+				} else {
 					city.RemoveRandomCitizen();
-					destroyMsg = $"Some of {city.name}'s citizens have been killed!";
-				};
+					string msg = $"Some of {city.name}'s citizens have been killed!";
+					if (!destroyMsgs.Contains(msg))
+						destroyMsgs.Add(msg);
+				}
+			}
 
-			var hitCount = 0;
-
-			double bombardStrength  = StrengthVersus(null, CombatRole.Bombard, facingDirection);
-			double defenderStrength = defence;
-			double attackerOdds = bombardStrength / (bombardStrength + defenderStrength);
-			if (Double.IsNaN(attackerOdds))
-				return;
-
-			await RunAnimatedBombard(tile, attackerOdds, () => {
-				hitCount += 1;
-				remover();
-			});
-
-			TriggerPopUp(hitCount, tile, destroyMsg);
+			TriggerPopUp(hitCount, tile, string.Join(" ", destroyMsgs));
 		}
 
 		// The strength a tile improvement defends with against bombardment,
@@ -365,18 +376,27 @@ namespace C7GameData {
 			const int tileImprovementDefence = TileImprovementBombardDefence;
 
 			var hitCount = 0;
+			List<string> destroyed = new();
 
-			var improvement = tile.overlays.GetManMadeImprovements()
-				.OrderBy(x => GameData.rng.Next()).FirstOrDefault();
-
-			// Anecdotal, just by observing the game; I think rate of fire doesn't apply to improvements
 			double bombardStrength  = StrengthVersus(null, CombatRole.Bombard, facingDirection);
 			double defenderStrength = tileImprovementDefence;
 			double attackerOdds = bombardStrength / (bombardStrength + defenderStrength);
 			if (Double.IsNaN(attackerOdds))
 				return;
 
-			await RunAnimatedBombard(tile, attackerOdds, () => {
+			// Each shot of the unit's rate of fire (see RateOfFire) picks one
+			// of the improvements still on the tile, as a single shot would.
+			// A road left by a destroyed railroad can be hit by the next
+			// shot. Once nothing is left, the remaining shots aren't fired.
+			await BeginBombard();
+			for (int shot = 0; shot < RateOfFire(); ++shot) {
+				var improvement = tile.overlays.GetManMadeImprovements()
+					.OrderBy(x => GameData.rng.Next()).FirstOrDefault();
+				if (improvement == null && shot > 0)
+					break;
+
+				if (!await FireShot(tile, attackerOdds))
+					continue;
 				hitCount += 1;
 				// Remove top improvement
 				tile.overlays.Remove(improvement);
@@ -384,21 +404,38 @@ namespace C7GameData {
 				tile.overlays.Add(improvement?.upgradesFrom);
 				if (improvement != null) {
 					tile.OwningPlayer()?.AddWarWeariness(owner, Player.WarWearinessForPillagedOrBombedImprovement);
+					destroyed.Add(improvement.key);
 				}
-				// TODO: Re-target?
-			});
+			}
 
-			TriggerPopUp(hitCount, tile, $"Artillery bombardment successful! Destroyed {improvement?.key}.");
+			TriggerPopUp(hitCount, tile, $"Artillery bombardment successful! Destroyed {string.Join(", ", destroyed)}.");
 		}
 
-		private async Task RunAnimatedBombard(Tile tile, double attackerOdds, Action callback) {
+		// How many shots the unit fires in one bombardment. The BIQ's rate of
+		// fire is "how many times a bombarding unit will attack per turn"
+		// (Civ3 editor help, Rate of Fire), and each shot is rolled on its
+		// own: "You fire twice. Each shot is tallied up individually"
+		// (warpstorm, https://forums.civfanatics.com/threads/bombard-question.19648).
+		// At least one, so a unit without a rate of fire still bombards once.
+		private int RateOfFire() {
+			return Math.Max(1, unitType.rateOfFire);
+		}
+
+		// The start of a bombardment: the unit's attack animation, and the
+		// move it costs, once however many shots it fires.
+		private async Task BeginBombard() {
 			await animateAsync(AnimatedAction.ATTACK1);
 			movementPoints.onUnitMove(1);
+		}
+
+		// One shot, a hit with the given odds. Returns whether it hit.
+		private async Task<bool> FireShot(Tile tile, double attackerOdds) {
 			if (GameData.rng.NextDouble() < attackerOdds) {
 				await tile.AnimateAsync(hitList[GameData.rng.Next(0, hitList.Length)]);
-				callback();
-			} else
-				await tile.AnimateAsync(tile.IsWater() ? AnimatedEffect.WaterMiss : AnimatedEffect.Miss);
+				return true;
+			}
+			await tile.AnimateAsync(tile.IsWater() ? AnimatedEffect.WaterMiss : AnimatedEffect.Miss);
+			return false;
 		}
 
 		private void TriggerPopUp(int hitCount, Tile tile, string successMessage) {

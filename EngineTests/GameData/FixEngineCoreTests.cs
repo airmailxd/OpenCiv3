@@ -414,13 +414,15 @@ public class FixEngineCoreGameTests : IClassFixture<SaveGameFixture>, IDisposabl
 		Assert.Equal(1, defender.hitPointsRemaining);
 		Assert.Equal(3, city.residents.Count);
 
-		// Nothing left to hit but the city: a citizen goes (there is no
-		// building it can hit).
+		// Nothing left to hit but the city: with one shot, a citizen goes
+		// (there is no building it can hit).
+		catapult.unitType.rateOfFire = 1;
 		await BombardOnce(catapult, city.location);
 		Assert.Equal(1, defender.hitPointsRemaining);
 		Assert.Equal(2, city.residents.Count);
 
-		// Population never drops below 1.
+		// Population never drops below 1, however many shots are fired.
+		catapult.unitType.rateOfFire = 10;
 		for (int i = 0; i < 10; i++) {
 			await BombardOnce(catapult, city.location);
 		}
@@ -443,6 +445,7 @@ public class FixEngineCoreGameTests : IClassFixture<SaveGameFixture>, IDisposabl
 		Assert.Equal(3, city.residents.Count);
 
 		// With the defender gone, the city is hit.
+		catapult.unitType.rateOfFire = 1;
 		await BombardOnce(catapult, city.location);
 		Assert.Equal(2, city.residents.Count);
 	}
@@ -489,6 +492,133 @@ public class FixEngineCoreGameTests : IClassFixture<SaveGameFixture>, IDisposabl
 		Assert.Equal(buildings, city.constructed_buildings.Count);
 		Assert.Contains(city.constructed_buildings, cb => cb.building == greatWonder);
 		Assert.Contains(city.constructed_buildings, cb => cb.building == smallWonder);
+	}
+
+	// ---- Rate of fire against cities, walls and improvements ----
+
+	// "Rate of fire defines how many times a bombarding unit will attack per
+	// turn" (Civ3 editor help), and "Each shot is tallied up individually"
+	// (https://forums.civfanatics.com/threads/bombard-question.19648). The
+	// prototype is shared, so its rate of fire is put back afterwards.
+	private async Task WithRateOfFire(MapUnit unit, int rateOfFire, Func<Task> action) {
+		int original = unit.unitType.rateOfFire;
+		unit.unitType.rateOfFire = rateOfFire;
+		try {
+			await action();
+		} finally {
+			unit.unitType.rateOfFire = original;
+		}
+	}
+
+	private static int BombardableBuildings(City city) {
+		return city.constructed_buildings.Count(cb => !cb.building.isCenterOfEmpire && !cb.building.isSmallWonder && !cb.building.IsGreatWonder()
+			&& !city.IsProvidedByWonders(cb.building));
+	}
+
+	[Fact]
+	public async Task EachShotAtACityHitsABuildingOrACitizen() {
+		(City city, MapUnit catapult) = SetUpBombard(size: 6);
+		foreach (Building b in gameData.Buildings.Where(b => !b.providesWalls && !b.isCenterOfEmpire && !b.isSmallWonder && !b.IsGreatWonder()).Take(3)) {
+			city.AddBuilding(b);
+		}
+		int before = city.residents.Count + BombardableBuildings(city);
+
+		await WithRateOfFire(catapult, 3, () => BombardOnce(catapult, city.location));
+
+		// The bombarder never misses, so each of the three shots destroys
+		// something.
+		Assert.Equal(before - 3, city.residents.Count + BombardableBuildings(city));
+		Assert.Equal(catapult.unitType.movement - 1, catapult.movementPoints.remaining);
+	}
+
+	[Fact]
+	public async Task ShotsAtACityNeverKillItsLastCitizen() {
+		(City city, MapUnit catapult) = SetUpBombard(size: 2);
+		Assert.Equal(0, BombardableBuildings(city));
+
+		await WithRateOfFire(catapult, 3, () => BombardOnce(catapult, city.location));
+
+		Assert.Single(city.residents);
+	}
+
+	// Each shot at walls is rolled on its own; once they are down, the
+	// rest of the bombardment doesn't go on to the city.
+	[Fact]
+	public async Task ShotsAtWallsStopOnceTheyAreDown() {
+		(City city, MapUnit catapult) = SetUpBombard(size: 4);
+		Building walls = Walls();
+		city.AddBuilding(walls);
+
+		// The first two shots miss, the third hits.
+		Random original = C7GameData.GameData.rng;
+		C7GameData.GameData.rng = new ScriptedRandom([0.9999999, 0.9999999], 0.0);
+		try {
+			await WithRateOfFire(catapult, 3, () => BombardOnce(catapult, city.location));
+		} finally {
+			C7GameData.GameData.rng = original;
+		}
+
+		Assert.DoesNotContain(city.constructed_buildings, cb => cb.building == walls);
+		Assert.Equal(4, city.residents.Count);
+	}
+
+	[Fact]
+	public async Task WallsTakeOnlyOneShotWithoutRateOfFire() {
+		(City city, MapUnit catapult) = SetUpBombard(size: 4);
+		Building walls = Walls();
+		city.AddBuilding(walls);
+
+		Random original = C7GameData.GameData.rng;
+		C7GameData.GameData.rng = new ScriptedRandom([0.9999999, 0.9999999], 0.0);
+		try {
+			await WithRateOfFire(catapult, 1, () => BombardOnce(catapult, city.location));
+		} finally {
+			C7GameData.GameData.rng = original;
+		}
+
+		Assert.Contains(city.constructed_buildings, cb => cb.building == walls);
+	}
+
+	[Fact]
+	public async Task EachShotAtATileHitsAnImprovement() {
+		(City city, MapUnit catapult) = SetUpBombard(size: 1);
+		Tile field = catapult.location.neighbors.Values.First(t => t != Tile.NONE && t.IsLand() && !t.HasCity() && t.unitsOnTile.Count == 0);
+		TerrainImprovement railroad = gameData.terrainImprovements.Single(i => i.key == Tile.TileOverlays.RAILROAD);
+		TerrainImprovement mine = gameData.terrainImprovements.Single(i => i.key == Tile.TileOverlays.MINE);
+		Assert.NotNull(railroad.upgradesFrom);
+		field.overlays.Add(railroad);
+		field.overlays.Add(mine);
+
+		// Three shots: the railroad, the road under it, and the mine. Each
+		// shot picks among what's left, so all three go whatever the order.
+		await WithRateOfFire(catapult, 3, () => BombardOnce(catapult, field));
+
+		Assert.Empty(field.overlays.GetManMadeImprovements());
+	}
+
+	[Fact]
+	public async Task OneShotAtATileHitsOneImprovement() {
+		(City city, MapUnit catapult) = SetUpBombard(size: 1);
+		Tile field = catapult.location.neighbors.Values.First(t => t != Tile.NONE && t.IsLand() && !t.HasCity() && t.unitsOnTile.Count == 0);
+		TerrainImprovement railroad = gameData.terrainImprovements.Single(i => i.key == Tile.TileOverlays.RAILROAD);
+		TerrainImprovement mine = gameData.terrainImprovements.Single(i => i.key == Tile.TileOverlays.MINE);
+		field.overlays.Add(railroad);
+		field.overlays.Add(mine);
+
+		await WithRateOfFire(catapult, 1, () => BombardOnce(catapult, field));
+
+		List<TerrainImprovement> left = field.overlays.GetManMadeImprovements().ToList();
+		Assert.True(left.SequenceEqual([railroad.upgradesFrom, mine]) || left.SequenceEqual([mine, railroad.upgradesFrom])
+			|| (left.Count == 1 && left[0] == railroad));
+	}
+
+	// Returns the given rolls in order, then `rest` forever.
+	private class ScriptedRandom(double[] rolls, double rest) : Random {
+		private readonly Queue<double> queue = new(rolls);
+		protected override double Sample() => queue.Count > 0 ? queue.Dequeue() : rest;
+		public override double NextDouble() => Sample();
+		public override int Next(int minValue, int maxValue) => minValue;
+		public override int Next() => 0;
 	}
 
 	[Fact]
