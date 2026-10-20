@@ -109,9 +109,29 @@ Deep pass of 2026-10-20. One line per URL or local source read: what it contribu
 - https://web.archive.org/web/2020/https://forums.civfanatics.com/threads/help-martial-law.86270/ : fetch failed (WebFetch can't reach web.archive.org).
 - Two web searches (government collapse from disorder; "Stop the aggression…" counts) found no Civ3 source beyond those above. The "disorder for more than 1 turn" snippet reads as Civ2 rules, and its thread wasn't identified.
 
+## Second reading round (2026-10-20)
+
+Local:
+- `civ3mod.bic` (1.29f) and `civ3PTW/civ3X.bix` (1.27f), decompressed with QueryCiv3's `Util.ReadFile` and read raw at the C3C BLDG/GOVT/DIFF offsets: wonder and building culture identical to C3C (Disputed, wonder culture); no "+50% Luxury Output" flag on any building in any version (§3.3); draft limits and assimilation chances identical (§3.6); Deity content citizens 1 in 1.29f (Disputed, content base at Deity).
+
+Web:
+- https://forums.civfanatics.com/threads/problem-with-democracy.266398/ : not Civ3 (Civ2 General Discussions).
+- https://forums.civfanatics.com/threads/stopping-culture-flip.69295/page-2 : anarres #24 restates the calculator form with 2000*D and "Government type is not relevent at all" (§3.15). Otherwise nothing new.
+- https://codehappy.net/apolyton/threads/51825-2.htm : nothing new (flip anecdotes).
+- https://codehappy.net/apolyton/threads/52796-2.htm : nothing new.
+- https://codehappy.net/apolyton/threads/52796-3.htm : nothing new (DeepO's untested "10 times the culture, one defender will silence 10 citizens").
+- https://codehappy.net/apolyton/threads/36705-2.htm : nothing new (one reload anecdote on war weariness).
+- https://codehappy.net/apolyton/threads/50455-2.htm : nothing new.
+- https://codehappy.net/apolyton/threads/55847-2.htm : contribution: Soren Johnson #33, the war weariness factor is kept all game and shows only at war under Republic/Democracy (§3.5).
+- https://codehappy.net/apolyton/threads/37559-1.htm : contribution: unhappiness from several pop-rushes adds up (untested models) (§3.6).
+- https://forums.civfanatics.com/threads/we-love-the-king-day-defeats-corruption.13177/ : contribution: T-hawk, WLTKD acts on shields only, like an extra courthouse (Disputed, WLTKD corruption vs waste).
+- https://forums.civfanatics.com/threads/53228/ (HTML Culture Flip Calc): attachment located.
+- https://forums.civfanatics.com/attachments/flipcalc1-0-html.34465/ : contribution: DaveMcW's calculator code (real-valued culture ratio, distance factor 4/2/1/.5/.25, per-turn compounding) (§3.15 table).
+- http://www.danwilliamson.net/FlipCalc.html : fetch failed (empty page).
+- https://github.com/maxpetul/C3X/blob/master/default.c3x_config.ini (stock-behaviour descriptions only): contribution: tourism and building-culture doubling counted in years (1000 and 1500) (§3.10).
+- https://forums.civfanatics.com/threads/indispensible-culture-reference-guide.37681/ (the culturereference2.zip attachment): not fetched; its building culture values are superseded by the raw BIQ-V/BIQ-PTW read.
+
 ## Still unread (section 3 entries)
 
-- CFC: https://forums.civfanatics.com/threads/stopping-culture-flip.69295/ page 2; https://forums.civfanatics.com/threads/problem-with-democracy.266398 (429).
-- Apolyton: 51825-2, 52796-2 and -3, 36705-2, 50455-2, 55847-2 (all follow-up pages of anecdotal threads).
-- Attachments: the culturereference2.zip in 37681, and the flipcalc1.0.html attachment in 53228.
-- Base-game (`civ3mod.bic`) and PTW BIQs, which the repo's reader doesn't support. These would settle the version differences (the base-game Marketplace luxury flag, base-game wonder culture, base-game draft limits).
+- All the items listed after the first pass have now been read or settled (see the second round above). The base-game and PTW BIQs were read raw rather than through the repo's reader.
+- Remaining low-value inventory entries in sources.md for this section (CFC ?p=396, probably Civ2; 216509, probably Civ4) were not checked.

@@ -77,15 +77,31 @@ Deep pass, 2026-10-20. One line per source: contribution / nothing new / fetch f
 - https://forums.civfanatics.com/threads/strange-triggering-of-golden-age-with-wonders.86585/ — nothing for section 4 (Vanilla: GA is checked when you build a GW and counts captured wonders; obsolete wonders not addressed; Golden Age section).
 - https://sullla.com/Civ3/conquestsed.html — contribution: "2-5%" SGL chance (beta tester).
 
+## Second reading round (2026-10-20)
+
+Local:
+- `civ3mod.bic` (1.29f) and `civ3PTW/civ3X.bix` (1.27f), BLDG read raw at the C3C offsets: vanilla/PTW wonder costs and culture match C3C except the Great Wall (200) and Shakespeare's Theatre (400) (4.9).
+
+Web:
+- https://github.com/maxpetul/C3X/blob/master/default.c3x_config.ini (stock-behaviour descriptions only): contribution: tourism thresholds in years (resolves the years/turns question); the Science Age bug mechanism; MGLs can't hurry wonders in stock, and the AI leader routine's rush bug (4.8, 4.9, Disputed 5).
+- https://forums.civfanatics.com/threads/useful-patches-for-civ-3-conquests-v1-22.526285/page-2 to page-12 : nothing new for this section (logged in full in reading-log-01).
+- https://forums.civfanatics.com/threads/patch-framework-for-c3c-v1-22.526966/page-2 : nothing new (single-page thread).
+- https://codehappy.net/apolyton/threads/74795-2.htm : nothing new (Great Wall anecdotes).
+- https://codehappy.net/apolyton/threads/94996-2.htm : nothing new (Great Library opinions).
+- WebSearch "civ3 conquests changing research lose beakers switch tech keep beakers": led to the three below.
+- https://apolyton.net/forum/miscellaneous/archives/civ3-strategy-archive/117372-50-turn-techs : nothing new (pre-release reactions to the 50-turn cap; nothing on what happens at the cap).
+- https://apolyton.net/forum/miscellaneous/archives/civ3-general-archive/63400-sciences-surplus-or-science-waste : contribution: kring's switch-and-back test (vanilla, 2002) (Disputed 9).
+- https://forums.civfanatics.com/threads/gain-beakers-from-conquest.390786 : not Civ3 (Civ5).
+- https://forums.civfanatics.com/threads/great-scientists.270481/ : contribution: Chamnix's ~100-hut test with no SGL (disputed in the thread), SGLs can be hoarded, the 3%/5% recollection (4.8).
+- https://forums.civfanatics.com/threads/scientific-trait-question.448033 : contribution: CommandoBob, a random tier-1 pick in C3C vs a fixed one in vanilla (4.8).
+
 ## Left unread (section 4 inventory and related)
 - https://forums.civfanatics.com/threads/how-do-i-speed-up-my-science.277970/ ; https://forums.civfanatics.com/threads/how-to-advance-fast.413221/
 - codehappy 24466, 42643 (Vanilla research anecdotes)
 - https://forums.civfanatics.com/threads/tech-trade-valuation-help.217576 ; https://forums.civfanatics.com/threads/trade-is-difficulty-with-ai-civs.115977
 - codehappy 70620, 67912, 48219, 40548, 49524, 40489 (trade valuation, diplomacy section)
-- https://forums.civfanatics.com/threads/great-scientists.270481/ ; https://forums.civfanatics.com/threads/scientific-trait-question.448033 ; https://forums.civfanatics.com/threads/great-leader-strategies.132684/ ; https://forums.civfanatics.com/threads/early-sgl-please-help.690240/
-- codehappy 74795-2, 94996-2 (GL threads, page 2)
+- https://forums.civfanatics.com/threads/great-leader-strategies.132684/ ; https://forums.civfanatics.com/threads/early-sgl-please-help.690240/
 - https://forums.civfanatics.com/threads/a-guide-to-great-wonders-and-how-to-use-them.97063/page-3 and page-4
 - https://forums.civfanatics.com/threads/wich-are-the-best-wonders.9224/ ; https://forums.civfanatics.com/threads/the-4-rules-of-wonder-addiction.71238/ ; https://forums.civfanatics.com/threads/late-super-wonder-city.75104/ ; https://forums.civfanatics.com/threads/best-small-wonder.91398/ ; https://forums.civfanatics.com/threads/noob-question-of-wonders.215788
 - Apolyton Heroic Epic thread (121330); codehappy 58814, 33007, 33343, 69775, 86087
-- Antal1987 526285 pages 2-12; 526966 later pages
 - https://forums.civfanatics.com/threads/informative-tech-tree.9805/ ; Nethog PDFs; CFC interactive tech tree (Vanilla data)

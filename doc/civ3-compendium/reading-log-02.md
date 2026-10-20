@@ -99,12 +99,46 @@ Each line gives a URL or local path that was read, and what it added to `02-city
 - https://sullla.com/Civ3/conquestsed.html : nothing new (opinion).
 - WebSearch (one query, "civ3 conquests city center tile automatically irrigated..."): led to CFC 665936 and codehappy 104560.
 
+## Second reading round (2026-10-20)
+
+Code-level sources:
+- https://github.com/maxpetul/C3X/blob/master/default.c3x_config.ini (stock-behaviour descriptions only): contribution: the bankruptcy order (sell non-gold buildings, disband non-free units, then Wealth; AI alternation and research cut), the obsolete-building maintenance bug, no selling Aqueducts, Hospitals or Small Wonders, capital corruption fixed at zero plus a 10-courthouse bonus, city-tile food = one citizen's food and the Agricultural fresh-water exception, citizens moved off polluted tiles, wonder-granted buildings don't pollute, pollution on impassable tiles, the AI leader rush bug (§1, §5, §7, §8, Disputed 6, open question 7).
+- https://github.com/maxpetul/C3X/blob/master/Notes/ocn_formula.txt : contribution: the stock OCN function; n_gov is 1/8 for Minimal/Nuisance and 1/16 for Problematic, which differs from alexman's Gr (§5).
+- https://github.com/maxpetul/C3X/blob/master/Notes/Antal%27s%20Hex%20Patches.txt : contribution: Antal1987's v1 fix of "non-zero pollution (when city size > 12) even if the city has mass transit and recycling center" (§8).
+- https://github.com/maxpetul/C3X/blob/master/injected_code.c : contribution: the mod's population and building pollution functions (size minus the BIQ city cap; 1 with Mass Transit or Recycling Center) (§8, open question 8, Disputed 15).
+
+Corruption threads:
+- https://forums.civfanatics.com/threads/firaxis-corruption-breakdown.73485/page-5 : nothing new (production-switching proposals, Civ2/SMAC comparisons).
+- https://forums.civfanatics.com/threads/firaxis-corruption-breakdown.73485/page-7 : contribution: Tavis #124 posts the rank-corruption source (communal rank = cities/2, ties by founding date then ID, the two rank branches with "+ 1) / 2") (§5, Disputed 13).
+- https://forums.civfanatics.com/threads/firaxis-corruption-breakdown.73485/page-10 : nothing new (akots' spreadsheet estimates, socralynnek's pseudo-code).
+- https://forums.civfanatics.com/threads/firaxis-corruption-breakdown.73485/page-12 : contribution: The Last Conformist's test, a Worker abandons a size-1 city only at 0 food surplus (§11).
+- https://forums.civfanatics.com/threads/firaxis-corruption-breakdown.73485/page-13 : nothing new (redesign proposals).
+- https://forums.civfanatics.com/threads/do-you-think-you-understand-corruption-pre-c3c.19922/page-3 : contribution: the 1.21f Nopt form with "+ Nciv"; the capital and FP don't count; marketplaces and factories don't change the percentage (§5).
+- https://forums.civfanatics.com/threads/do-you-think-you-understand-corruption-pre-c3c.19922/page-4 : contribution: FP min-of-two-lists rank (alexman #68); DaviddesJ's distance test (#78) (§5).
+- https://forums.civfanatics.com/threads/do-you-think-you-understand-corruption-pre-c3c.19922/page-5 : contribution: DaviddesJ #85, nearest-integer rounding with examples (Disputed 13); the new-capital distance differs from the corruption distance (#84, hedged).
+- https://forums.civfanatics.com/threads/do-you-think-you-understand-corruption-pre-c3c.19922/page-6 : nothing new (Qitai's floor-distance RCP finding, already in §5).
+- https://forums.civfanatics.com/threads/do-you-think-you-understand-corruption-pre-c3c.19922/page-7 : contribution: at least 1 shield and 1 commerce always (alexman #136); the tile penalty and Golden Age bonuses are corrupted (#134); Doc Tsiolkovski's courthouse test (#139) (§5).
+- https://forums.civfanatics.com/threads/do-you-think-you-understand-corruption-pre-c3c.19922/page-8 : nothing new.
+- https://forums.civfanatics.com/threads/understand-your-cities-corruption-better-and-tackle-it.88390/ : contribution: alexman #2 on the unknown internal rounding (Disputed 13); Tarzus's sheet restates the C3C model.
+- https://forums.civfanatics.com/threads/usefulness-of-police-station-and-courthouses.448286/ : nothing new (strategy, no numbers).
+- https://forums.civfanatics.com/threads/we-love-the-king-day-defeats-corruption.13177/ : T-hawk: WLTKD acts on shields only, like an extra courthouse (agrees with §5); WackenOpenAir's hedged cap recollection not used.
+
+Other:
+- WebSearch "civ3 conquests city grows to size 7 food box granary emptied or kept test": led to the two below.
+- https://forums.civfanatics.com/threads/is-this-granary-bug.113027/ : contribution: Tomoyo vs Zakharov (C3C) on the size-7/13 granary (Disputed 7).
+- https://apolyton.net/forum/miscellaneous/archives/civ3-strategy-archive/84457-why-granaries-don-t-work/page2 : nothing new.
+- WebSearch "civ3 pollution chance per turn each pollution icon percent tested": led to the two below.
+- https://forums.civfanatics.com/threads/pollution-bug.251335/post-6160555 : not Civ3 (Civ1 General Discussions), confirming the earlier flag.
+- WebSearch "C3X Flintlock civfanatics \"base game\" pollution chance city code spawn_pollution": no C3X result; led to the thread below.
+- https://forums.civfanatics.com/threads/pollution-bug-nailed.535608 : not Civ3 (Civ1 General Discussions; its shields/power-type pollution formula is Civ1's).
+- https://forums.civfanatics.com/threads/help-with-civ-3-regular-version.119983 : contribution: the "1% per symbol" claim (untested) and "not tied in any way to shield production" (§8, Disputed 15).
+
 ## Not yet read (section 2 entries and relevant general ones)
 
-- Corruption: CFC 88390 (Tarzus), 91379 (RCP player aid), 13177 (WLTKD defeats corruption), 8516, 148420, 448286; FP threads 548537, 46657, 309768, 7604; CFC 107789 (palace cost forum); Apolyton 9476781, 121599; codehappy 35907, 41039, 45440, 56739 pages 2-3, 100156, 37677, 31654, 36740, 34669, 59349, 40742, 31545, 60645, 89629, 87167, 70202. Pages 5, 7, 10, 12 and 13 of CFC 73485, and pages 3-7 of CFC 19922.
-- Hurry/production: CFC 99341, 76152, 112249, 141733, 83199; codehappy 37559, 42288, 49624, 36836.
+- Corruption: CFC 91379 (RCP player aid), 8516, 148420; FP threads 548537, 46657, 309768, 7604; CFC 107789 (palace cost forum); Apolyton 9476781, 121599; codehappy 35907, 41039, 45440, 56739 pages 2-3, 100156, 37677, 31654, 36740, 34669, 59349, 40742, 31545, 60645, 89629, 87167, 70202. (All remaining pages of CFC 73485 and 19922 are now read.)
+- Hurry/production: CFC 99341, 76152, 112249, 141733, 83199; codehappy 42288, 49624, 36836. (Codehappy 37559 was read for section 3: several pop-rushes add up.)
 - Food/growth/tiles: CFC 86630 (Case for Food forum), 68433, 250673, 221152, 362279, 281089, 92731, 54172, 100256, 17235, 116891, 57026, 267177, 278338, 16158, 136055, 299337, 152415, 30062, 7785; Apolyton 140963; codehappy 35010, 58357, 62765, 59185, 68134; Bamspeedy's Babylon tutorial.
 - Commerce/maintenance: CFC 57429, 108789, 19713, 265862, 46626, 467878, 11573, 515542, 700654, 522375, 70438; page 2 of CFC 242296; codehappy 36832, 35196, 54812, 42734, 57142, 55133, 36339.
-- Pollution/warming: CFC 119983; codehappy 60246 pages 2-3, 76575, 35557.
+- Pollution/warming: codehappy 60246 pages 2-3, 76575, 35557.
 - Golden ages: CFC 263019, 623812, 296138, 29424; codehappy 31322, 43284, 62110, 80959.
-- General: the patch readme threads (CFC 11091, 16272, 20502, 27296, 46040, 60369) and the codehappy patch threads (36944, 37330, 42183, 42330, 47713, 47992, 56058, 56271, 58701, 94259); CFC 52591; Apolyton 127875; the full Firaxis chat logs (apolyton.net/misc/chat pages, not reachable); Quick Answers threads; HoF rules and banned-exploit threads; the Antal1987 exe-research threads (526966, 526285), which could settle the city-tile, pollution and hurry formulas from code.
+- General: the patch readme threads (CFC 11091, 16272, 20502, 27296, 46040, 60369) and the codehappy patch threads (36944, 37330, 42183, 42330, 47713, 47992, 56058, 56271, 58701, 94259); CFC 52591; Apolyton 127875; the full Firaxis chat logs (apolyton.net/misc/chat pages, not reachable); Quick Answers threads; HoF rules and banned-exploit threads; the C3X forum thread (CFC 666881, 100+ pages) and the rest of the C3X source, which may hold more stock-code readings (Antal1987's 526285 and 526966 are now fully read; they had nothing on city tiles or hurry costs).

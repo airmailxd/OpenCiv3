@@ -32,6 +32,7 @@ so short web quotes should be spot-checked against the page before anything lean
 | **CFC-BOMB122** | https://forums.civfanatics.com/threads/bombardment-of-settlements-in-c3c-1-22.647207/ (justanick, 2019, reporting his 2013 tests on C3C 1.22; 2 pages) |
 | **CFC-LCODE** | https://forums.civfanatics.com/threads/c3c-mechanics-birth-of-military-leader.526511 (Antal1987, May 2014, reading the C3C 1.22 executable: function `Process_Combat_Victory`) |
 | **APO-1GL** | https://codehappy.net/apolyton/threads/50260-1.htm ("One leader per elite unit!", May 2002; alexman relays a rule "Mike B. (Firaxis) confirmed") |
+| **C3X-INI** | https://github.com/maxpetul/C3X/blob/master/default.c3x_config.ini (the config file of Flintlock's C3X executable mod for C3C 1.22). Used only for its descriptions of stock 1.22 behaviour ("Under the standard game rules", "In the base game"), which come from reading the executable. The mod's own options are out of scope. |
 | **CFC-FAQ** | https://civfanatics.com/civ3/faq/ and its forum copy https://forums.civfanatics.com/threads/frequently-asked-questions-civ3-play-the-world-conquests.170282/ (Ginger_Ale, 2006, covers vanilla, PTW and C3C) |
 
 Note: the repo file `C7/Civilopedia/Text/Civilopedia.txt` is OpenCiv3's own text ("It is not Civ3's
@@ -65,6 +66,20 @@ retreat bonus, see `QueryCiv3/BiqSections/Expr.cs`), so it is not a source eithe
     its attack strength." / "The defender's strength and modifiers are the same in both cases."
   - Xerxes314's vanilla combat calculator (https://civfanatics.com/wp-content/uploads/2024/01/civ3combatcalc.html, readable
     JavaScript) uses the same model: no firepower, per-round odds from the two strengths, HP 2/3/4/5 and 3x that for armies.
+- **The game stores round odds as an integer out of 1024 (C3C 1.22 code, via C3X).** C3X wraps the stock
+  `Fighter_get_combat_odds` (address listed in https://github.com/maxpetul/C3X/blob/master/civ_prog_objects.csv) and
+  converts its return value for its odds display as `1.0 - ((double)odds / 1024.0)`, the attacker's per-round win chance
+  (https://github.com/maxpetul/C3X/blob/master/injected_code.c, `attacker_round_win_chance_from_fighter_odds`). So the
+  stock function returns the defender's share of a round on a 0-1024 scale, and the mod forces a certain loss by
+  returning 1025. The mod's display then sums the same negative binomial as above
+  (`calc_attacker_combat_win_chance_from_round_chance`), one HP per round from the two units' current HP. For tile
+  improvements under bombardment, the mod's re-implementation says it keeps "the game's integer rounding and 1..1023
+  threshold": `defense = base_defense * (100 + terrain_bonus + building_bonus) / 100` (integer division), then
+  `threshold = clamp(1, 1023, 1024 * defense / (defense + Bombard_Strength))`, one `rand_int(1024)` roll per point of
+  rate of fire, any roll at or above the threshold succeeding (`get_tile_bombard_defense_threshold`,
+  `patch_Fighter_roll_for_bombard`). Read together: strengths are integer-truncated after percentage bonuses that are
+  added together, and no single roll is ever certain (1/1024 at the extremes). Only the tile-bombard path is shown
+  in full; that unit-vs-unit odds use the same truncation and clamp is an inference.
 - **C3C beta "less streaky" combat change: announced, but not in the shipped patch notes.** Tavis's patch notice
   (https://forums.civfanatics.com/threads/civ-iii-conquests-patch-notice.71474/, #1, 9 Dec 2003, beta 1.10): "Modified
   combat calculations to make combat appear less "streaky."" and (#13) "The Change was having the random number generator
@@ -92,6 +107,10 @@ retreat bonus, see `QueryCiv3/BiqSections/Expr.cs`), so it is not a source eithe
   - Ships (Soren Johnson, Firaxis, second-hand via Jaybe in thread 83449): "if there are two ships of same defensive
     strength (e.g., two transports), the one withOUT cargo will defend."
   - The exact weighting of defense against HP is UNVERIFIED (no test or code reading found).
+  - C3X-INI (code reading) names two keys before the tie-breaks, "the same effective defense strength and the same
+    king priority", and says shield cost is not one of the stock tie-breaks (its option to "prefer the unit with the
+    lower shield cost before applying the base game's remaining tie-breakers" is a mod change). King units "always
+    [are] the last to defend in a stack".
 - **Units without attack can't attack; units without defense are captured, not fought** (see 1.13).
 - **Stealth attack lets the attacker pick its target in a stack** (C3C). PEDIA `GCON_Stealth_Attack`: "Stealth
   attack allows a unit to specify which enemy unit -- in a stack -- it will attack." Submarines have it
@@ -172,9 +191,19 @@ retreat bonus, see `QueryCiv3/BiqSections/Expr.cs`), so it is not a source eithe
     barbarian opponent): non-militaristic 1 in 2 / 1 in 4 / 1 in 8, halved against barbarians (1 in 4 / 1 in 8 / 1 in
     16); militaristic 1 in 1 / 1 in 2 / 1 in 4, and 1 in 2 / 1 in 4 / 1 in 8 against barbarians. So a militaristic
     conscript that wins against a civ always becomes a regular. No source for the table is given.
-  - Counter-claim from code reading (CFC-LCODE, Antal1987, #8, C3C 1.22): "Promotion of unit's combat experience doesn't
-    depends on Civ having Militaristic flag as well." He was reading the leader routine, so this may only mean the
-    militaristic check is elsewhere. See Disputed.
+  - **The C3C 1.22 code confirms the table** (CFC-LCODE, Antal1987, #8, `class_Unit::Process_Combat_Victory`, re-read
+    in the second pass). The ratio is set by the winner's level: "_Comb_Exp_Promote_Ratio = 2;" for experience 0, 4 for
+    1 and 8 for 2. Against barbarians (the loser's civ ID is 0): "if ( !Target_Unit->Body.CivID )
+    _Comb_Exp_Promote_Ratio *= 2;". Then a race check, "if ( BIC_Data.Races[Civilizations[_this->Body.CivID].RaceID]
+    .vtable->CheckBonus(" ... "0) )", halves it: "_Comb_Exp_Promote_Ratio /= 2;". The roll is "if ( _this->Body.Status
+    & 2 || !class_Random::Get_Random(&Random_1, _Comb_Exp_Promote_Ratio) )", so the chance is 1/ratio.
+    Antal1987 concluded "Promotion of unit's combat experience doesn't depends on Civ having Militaristic flag", but
+    he did not identify the bonus being checked. In the C3X mod's header for the same executable
+    (https://github.com/maxpetul/C3X/blob/master/Civ3Conquests.h) the race method is `byte (__fastcall * CheckBonus)
+    (Race *, __, enum RaceBonuses);` and `RB_Militaristic = 0x0`. So `CheckBonus(race, 0)` is the Militaristic test,
+    and the code gives exactly the CFC-FAQ table: conscript 1/2, regular 1/4, veteran 1/8; doubled for Militaristic
+    (1/1, 1/2, 1/4); halved against barbarians. What the `Status & 2` bit is (a forced promotion) is not explained; it
+    might be what lies behind watorrey's claim below, but that is a guess.
   - watorrey (https://codehappy.net/apolyton/threads/57625-1.htm, 2002, opinion): "any unit winning 2 battles in one
     turn is automatically promoted". No test; UNVERIFIED.
 - **Barbarians do not promote** (C3C 1.22 test). Same thread 115547 (Theoden, #14, C3C 1.22): "all dying without any of the mech infs gaining any experience." This is about barbarian units gaining levels, not about your units promoting while fighting barbarians (see Disputed).
@@ -247,11 +276,14 @@ retreat bonus, see `QueryCiv3/BiqSections/Expr.cs`), so it is not a source eithe
 - **Capacity 3 units, 4 with the Pentagon. The Pentagon needs 3 armies in the field.**
   PEDIA `BLDG_Pentagon`: "[The Pentagon] increases the unit capacity of all the civilization's armies from three to
   four. ^{Requires:} The civilization must have at least three $LINK<armies=GCON_Armies> in the field." (BIQ Army `capacity 3`.)
-- **Built by a leader in any city, or built (400 shields in C3C) in the city with the Military Academy.**
+- **Built by a leader in any city, or built (400 shields in every version) in the city with the Military Academy.**
   PEDIA `GCON_Armies`: "Armies can be built in cities that have the $LINK<Military Academy=BLDG_Military_Academy>
   or a $LINK<Leader=GCON_Leaders> in them." BIQ: Army `shieldCost 400`.
   The CivFanatics FAQ v3.0 (https://civfanatics.com/civ3/strategy/misc/civilization-iii-faqstrategy-guide-v3-0/)
-  says "you can use 200 shields to construct an army". That is probably the vanilla cost (see Disputed).
+  says "you can use 200 shields to construct an army". The vanilla and PTW rule files don't support that: a raw read of
+  the decompressed `civ3mod.bic` (1.29f) and `civ3PTW/civ3X.bix` (PTW 1.27f), at the C3C PRTO field offsets, gives Army
+  cost 40 in both, and those files store unit costs in tens (Settler 3, Warrior 1, Spearman 2, Tank 10, against C3C's
+  30, 10, 20, 100). So the Army is 400 shields in all three versions (see Disputed 4).
 - **At most one army per 4 cities.** PEDIA `GCON_Armies`: "you must have at least four cities for every army you
   create." EDHELP *Cities Needed to Support an Army*: "Default is 4 cities." CFC-ARMY: dropping below the ratio keeps
   existing armies but blocks new ones.
@@ -277,6 +309,11 @@ retreat bonus, see `QueryCiv3/BiqSections/Expr.cs`), so it is not a source eithe
   - README-PTW 1.04f: "Added the Pillage ability to Armies."
   - PEDIA `GCON_Armies`: "An army can "see" up to two squares away, due to its intrinsic scouts."
   - CFC-ARMY: "When no units have yet loaded into the army, the army will only have a movement of one."
+    C3X-INI calls this a stock bug: "Empty armies have one less than a full move's worth of movement points regardless
+    of how many moves their unit type has set in the editor. Under the standard game rules, this means they can only
+    move two tiles along roads." (Two road tiles cost 2/3 of a move, so "one less than a full move" leaves under one MP.)
+  - AI-only army bugs (C3X-INI): "the AI's ability to form armies with leader units is not gated by those units having
+    the "build army" special ability", and a "major bug that prevented the AI from filling its armies".
   - Pillage (C3C): CFC-FAQ: "Armies in Conquests can also pillage without using up any movement points." TimBentley
     (thread 113864, #13): "Pillaging counts as a move for units other than armies."
 - **Army combat strength (C3C).** The fighting unit gets a share of the others' strength:
@@ -325,13 +362,25 @@ retreat bonus, see `QueryCiv3/BiqSections/Expr.cs`), so it is not a source eithe
   unused movement points. Jaybe (https://codehappy.net/apolyton/threads/47749-1.htm, #2, Apr 2002, before 1.21f): "If
   both units have more than 1MP, there is NO retreat." He adds "The movement point and hit point rules are official
   (either documentation or Firaxian)" but cites neither. On that reading "fast" is base movement above 1, and two units
-  with 2+ MP never retreat from each other. Whether a 3-MP unit can retreat from a 2-MP unit is UNVERIFIED.
+  with 2+ MP never retreat from each other. Steph (C3C modder, from memory,
+  https://forums.civfanatics.com/threads/useful-patches-for-civ-3-conquests-v1-22.526285/page-3 #57) says the same: "If
+  both units have more than 1 MP, then retreat never happens, even if one unit is faster", and (#60) "A unit with 10 MP
+  has the same chance to withdraw than a unit with 2 MP, if they have the same experience." Whether a 3-MP unit can
+  retreat from a 2-MP unit is still untested (two independent "no" recollections). C3X-INI (code reading) points the
+  same way. Among its alternatives to "standard: No change from base game rules" it lists "all-units: All non-immobile
+  units may retreat, even if they have only one move or are up against a faster opponent" and "if-faster: Units may
+  retreat when they are faster than their opponent, for example a cavalry may retreat from a knight". Offering
+  cavalry-from-knight as a change implies the stock rule does not allow it. It does not spell out the stock rule.
 - **Cases with no retreat at all** (CFC-RSTUDY, BomberEscort, #19, PTW): "Retreat is not possible (no matter the
   experience of the unit); these instances are:" / "(1) When the fast-mover has only 1 HP left (at the beginning of the
   attack)" / "(2) When both units are fast-movers" / "(3) When there is no available tile for retreat" / "(4) When the
   fast-mover is fortified in a city (or colony?)" / "(5) When the Defender has 1hp remaining." Item 4 matches an older
   vanilla report (Kriton, https://codehappy.net/apolyton/threads/35589-1.htm: "if your cavalry/fast unit is fortified,
   it will not disengage.").
+  C3X-INI (C3C 1.22 code reading) confirms items 1 and 4 in a stricter form and adds water: "units cannot retreat when
+  they start combat with 1 HP or are defending a city", and "Under the base game rules, no unit may retreat defensively
+  if it's located on a water tile." So any defender in a city is excluded, fortified or not, and ships never retreat
+  when attacked.
 - **Bombardment never triggers retreat.** BomberEscort (CFC-RSTUDY, #33): "Retreating does not apply to bombardment,
   since bombardment is a free attack for the bombarding unit..." (A unit damaged by defensive bombard can still retreat
   later in the fight, #35.)
@@ -342,7 +391,17 @@ retreat bonus, see `QueryCiv3/BiqSections/Expr.cs`), so it is not a source eithe
   - CFC-RET 100878 (boogaboo): the roll applies only if the opponent has 2HP or more, the retreating unit has 1HP, and
     it would have at least 1/3 movement point left after the attack.
   - A retreating unit survives with 1 HP and does not move (IbnSina, 100878: "Retreat does not require any special ground - no movement actually takes place.").
-- **Retreat formula (best guess, not confirmed):** P(retreat) = attacker retreat bonus / (defender retreat bonus + 50).
+- **Retreat formula (confirmed from the C3C 1.22 code):** P(retreat) = attacker retreat bonus / (defender retreat
+  bonus + 50). Antal1987 read the check in the 1.22 executable (`class_Combat_Controller::process_Combat`,
+  https://forums.civfanatics.com/threads/useful-patches-for-civ-3-conquests-v1-22.526285/page-4, #62): "Cavalry
+  retreats only if random(Hoplite.Retreat_Bonus + 50) < Cavalry.Retreat_Bonus." His code line compares
+  `Get_Random(BIC_Data.CombatExperience[...Defence_Unit...Combat_Experience].Retreat_Bonus + 50)` with the attack unit's
+  `Retreat_Bonus`, so both units' experience levels enter (CyberChrist, #67: "the code already makes use of both
+  defender and attacker Exp. Lvls"). If `Get_Random(n)` returns 0..n-1 (assumed, not stated), regular vs regular is
+  50/100 and an attacker bonus of (defender bonus + 50) or more always retreats. The thread does not show what checks
+  run before this roll (movement, HP), so the measured cap near 66 below is not explained by it. He also found the RNG state is stored
+  in the save, so reloading repeats the result (#62: "the game stores in save-file current value of a randomizer"),
+  and that the check "toggles only after 1-st round complete". The community form came first:
   CFC-RET 104978 (Offa): "prob of retreat = (attacker retreat bonus) / (defender retreat bonus + 50)", described as
   "thought to be". BomberEscort (quoted in 100878): "(100*Attacker Retreat Bonus)/(50+Defense Retreat Bonus)" and
   "When the Attackers retreat value is 50 percentage points greater than the Defender, the Attacker always retreats."
@@ -432,6 +491,17 @@ retreat bonus, see `QueryCiv3/BiqSections/Expr.cs`), so it is not a source eithe
 - **Civil Defense: +50% at any size.** PEDIA `BLDG_Civil_Defense`: "[Civil Defense] can be built in any size settlement
   and provides a 50% defensive bonus to units defending in the town. Civil Defense can only be built in a city that has
   a barracks." README-C3C: "Civil Defense requires Electronics".
+- **Building defense bonuses don't add up: only the best one counts** (code re-implementation). C3X's
+  `optimize_improvement_loops` option, described as rewriting stock loops "to improve efficiency", replaces the stock
+  `City_get_building_defense_bonus` with a loop that keeps the largest `multiplier * improv->Combat_Defence` over the
+  city's active defensive buildings, `if (building_defense > tr) tr = building_defense;`
+  (https://github.com/maxpetul/C3X/blob/master/injected_code.c, `patch_City_get_building_defense_bonus`). Buildings
+  with a bombard defense ("walls") count only while the city is at town size
+  (`Population.Size <= MaximumSize_Town`), and their bonus is doubled (`multiplier = 2`) when the owner has a wonder
+  with the "Doubles City Defenses" flag. So in C3C a town with both Walls and Civil Defense gets +50%, not +100%, and
+  at size 7+ only Civil Defense counts. A raw read of the rule files shows which wonder has that flag: the vanilla and
+  PTW Great Wall has both "Doubles City Defenses" and "Double Combat vs Barbarians"; the C3C Great Wall has only the
+  barbarian flag (and gives free walls instead). That matches the two Civilopedias below.
 - **Great Wall.** C3C: a free Wall in every city on its continent, and double combat values against barbarians.
   PEDIA `BLDG_Great_Wall`: "Doubles unit combat values versus $LINK<Barbarians=GCON_Barbarians>. ^Places a
   $LINK<Wall=BLDG_Walls> in each city of the continent on which it is built."
@@ -533,7 +603,15 @@ retreat bonus, see `QueryCiv3/BiqSections/Expr.cs`), so it is not a source eithe
     unit at 1 HP no longer counts against non-lethal bombard (PaperBeetle,
     https://forums.civfanatics.com/threads/what-makes-bombardment-fail.307328/, #5, C3C: "units are always targetted
     while they still have hp left to lose."). Lanzelot (page 2) suggests the order may be a strong bias rather than a
-    fixed rule ("city walls are hit with 95% probability"); UNVERIFIED.
+    fixed rule ("city walls are hit with 95% probability"). C3X-INI describes the stock C3C rule as fixed: "PTW-like
+    means there is a 1-in-3 chance they will target each population, buildings, and units. This is unlike Conquests
+    artillery targeting, which always goes after units first." (It agrees with justanick that units come before
+    citizens and buildings; it says nothing about walls.)
+  - Aircraft in an airfield can't be damaged by bombardment, and they shield the tile. C3X-INI: "The game rules do not
+    permit aircraft in an airfield to be damaged by bombardment", and "if you bombard a tile with a road, airfield, and
+    fighter on it, you will do no damage because the attack will target the fighter which is invulnerable".
+  - Tile improvements have a fixed bombard defense. C3X-INI: "In the base game, tile defense is hardcoded at 16." The
+    Citizen and Building values in the editor are "base strength values", not bonuses.
 - **Civil Defense absorbs building hits (C3C).** CFC-BOMB122 (#1): "If a regular building(meaning neither a coastal
   fortress nor city walls) is hit and a civil defence is in the settlement," / "then it is the civil defence that is hit."
 - **Building and citizen defense against bombard: 16** (since 1.17f; BIQ 16). README-V 1.17f: "Building and citizen
@@ -616,7 +694,14 @@ retreat bonus, see `QueryCiv3/BiqSections/Expr.cs`), so it is not a source eithe
   attacker loses 1 HP before it engages its actual target." So each bombard unit fires once per enemy turn, not once
   per attack; README-V's "one free shot" fits that. Which strength of the attacker is used (attack or defense) is
   UNVERIFIED (tjs282 says "IIRC").
-  Whether the free shot can kill (with a lethal unit) is UNVERIFIED.
+  **The free shot never kills, and only land and sea bombard units fire it** (code reading). C3X-INI lists, as mod
+  options that change the stock rule: "lethal: Attackers may be destroyed by defensive bombard if the bombarding unit
+  has the appropriate lethal land/sea bombard ability", "aerial: Air units may perform defensive bombard",
+  "not-invisible: Attacking units are immune to defensive bombard if they are invisible and not detected", "blitz:
+  Units with blitz may perform defensive bombard multiple times per turn" and "docked-vs-land: Docked ships (i.e. in a
+  city) can perform defensive bombard against land units attacking their city". So in stock 1.22 the shot can't kill
+  even with a lethal unit, aircraft don't fire it, undetected invisible attackers are still shot at, blitz gives no
+  extra shots, and ships in a city don't fire at land attackers.
 - **Cruise missiles die after bombarding.** CFC-RULES: "a unit which, when bombarding, will die after it is done bombarding."
   PEDIA `GCON_Combat`: missiles "never return to its base and the attacks can destroy enemy units."
 - **Artillery have no attack or defense and must be escorted.** PEDIA `PRTO_Artillery`: "Artillery has no attack or
@@ -651,6 +736,11 @@ retreat bonus, see `QueryCiv3/BiqSections/Expr.cs`), so it is not a source eithe
   quoting civ-wiki.de): "All units in a settlement (size 1 to 6) with a city wall automatically have a control zone."
   justanick (thread 690690, #5, 2024), after tjs282 notes that fortresses give ZOC: "This is also true for towns with
   walls. Notably this effect is lost when the town becomes a city(size 7+)." Not confirmed by a Firaxis text.
+- **Stock limits on who exerts ZOC** (C3X-INI, mod options that change the stock rule): "amphibious: Land units may
+  exert zone of control over sea units and vice-versa", "lethal: Units may be destroyed by zone of control", "aerial:
+  Air units can exert zone of control", "not-from-inside: Land units may not exert zone of control while inside a
+  transport". So in stock 1.22 land and sea ZOC don't cross, ZOC never kills, air units have none, and land units
+  exert ZOC even from inside a transport.
 - **One unit can take several ZOC shots per enemy turn** (unlike defensive bombard). tjs282 (thread 690690, #4): "But
   unlike DB, the same unit can make multiple ZoC-shots per interturn."
 - **Coastal Fortress ZOC uses the same trigger.** tjs282 (thread 690690, #2): "The CF Zone of Control can/will only
@@ -771,6 +861,9 @@ retreat bonus, see `QueryCiv3/BiqSections/Expr.cs`), so it is not a source eithe
     city improvements only, unless there are none in which case population is affected." README-V ("Changes"): needs
     the Smart Weapons advance; "Useful only against cities, this mission targets improvements."
   - Recon. PEDIA: "The plane flies to the target and reveals the map." It can't be intercepted (CFC-RULES: "(Recon and Rebase can not be intercepted)").
+    C3X-INI: "Under the standard rules, performing a recon mission or intercepting an attacker causes a unit to lose all
+    of its remaining moves", and the recon area is "the stock 5x5 area". Vision from a recon mission is removed at the
+    start of the unit's next turn ("Recon missions expire at the start of a unit's turn").
   - Re-Base. PEDIA: "a distance equal to up to Six times the plane's operational range."
 - **Interception chance: 50% per interceptor, 5% against stealth.** EDHELP *Chance to Intercept Enemy Air Missions*:
   "Default is 50%." *... Stealth Missions*: "Default is 5%."
@@ -801,6 +894,10 @@ retreat bonus, see `QueryCiv3/BiqSections/Expr.cs`), so it is not a source eithe
   - AA fire is a single yes/no roll: korn469 (https://apolyton.net/forum/miscellaneous/archives/civ3-strategy-archive/120873-has-anyone-figured-out-the-aa-formula-yet,
     #12): "fighters vs. other air units does result in a hitpoint loss, whereas with AA units (either land or sea) it
     results in a simple yes or no situation".
+  - An independent editor test fits the one-tenth rule and shows the interception setting doesn't apply to AA units.
+    Vingrjoe (https://forums.civfanatics.com/threads/anti-air-defense-combat.100020, #1, PTW/C3C era): "one Aegis
+    cruiser with an air defense of 100, and had 20 bombers with defense of only one"; "On 0, 25, and 100 percent
+    chance air interception the results were 90% of the aircraft killed" (one tenth of 100 against 1 gives 10/11 = 91%).
 - **SAM Battery: fires with the interception chance, then rolls A/(A+D) at full strength.** alexman (CFC-AA #13): "For
   each bomber, there is a chance equal to the interception chance for the SAM to fire" / "If the SAM fires, it has a
   A/(A+D) probability to shoot down the plane." justanick (thread 565813, #4): "However here the full attack values
@@ -822,6 +919,10 @@ retreat bonus, see `QueryCiv3/BiqSections/Expr.cs`), so it is not a source eithe
 - **Paratroopers airdrop** from a city with an Airport (or an airfield, PTW 1.04f). PEDIA `PRTO_Paratrooper`: "When a
   paratrooper is active in a city with an $LINK<airport=BLDG_Airport> it may perform an airdrop." README-PTW 1.04f:
   "Added ability to airdrop from airfields." Drop range is the operational range (BIQ: Paratrooper 6, Modern Paratrooper 8).
+  C3X-INI: "Under the standard game rules, units lose all their remaining moves after airdropping." Re-basing range is
+  six times the operational range (C3X-INI: "For standard game rules, set to 6", matching PEDIA's "Six times").
+- **A bomber that dodges SAM damage still loses one move** (C3X-INI: "there is no indication that anything happened
+  in that case except for the bomber losing one movement point").
 - **Air unit stats (BIQ, C3C):** Fighter A4 D2 B3 range 6; Jet Fighter A8 D4 B3 range 9; F-15 A8 D4 B6 range 9;
   Stealth Fighter A8 D6 B6 range 12; Bomber D2 B12 RoF3 range 10; Stealth Bomber D5 B18 RoF3 range 16.
 - **An intercepted mission always fails; the two planes then fight a normal battle to the death.** tjs282 (thread
@@ -986,27 +1087,37 @@ retreat bonus, see `QueryCiv3/BiqSections/Expr.cs`), so it is not a source eithe
    "I believe the factors combine together as I've done above, rather than adding together to give a 70% increase".
    The manual (p. 110, via royfurr in thread 7886) says terrain is figured "BEFORE THE CITY SIZE AND WALLS TAKE
    EFFECT", which some read as compounding. Additive has the Firaxis help text behind it, and Xerxes314's calculator
-   and WarpStorm ("You add the bonuses first") also add. No test separating the two was found.
+   and WarpStorm ("You add the bonuses first") also add. No test separating the two was found. The C3X mod's code
+   (https://github.com/maxpetul/C3X/blob/master/injected_code.c) leans additive in two places, neither a disassembly
+   of the unit-combat function: its tile-bombard re-implementation, which says it keeps the game's rounding, uses
+   `base_defense * (100 + terrain_bonus + building_bonus) / 100`; and its defender-ranking helper
+   (`counter_defender_selection_defensive_bonus_percent`) sums terrain, the town/city/metropolis bonus, the building
+   bonus, fortress (barricade twice), fortified and river into one percentage before applying it.
 2. **Fortify inside walls or a fortress.** EDHELP says cumulative. https://forums.civfanatics.com/threads/defense-bonuses-question.21715
    (search excerpt): "the wall bonus supercedes the fortification bonus" and "in a fortress, there is no point in
    Fortifying." A related claim is that units in cities count as fortified automatically. Neither claim was confirmed.
    (Thread 287626, "Fortress vs. Fortifications", was read and has nothing on this.)
-3. **Promotion against barbarians.** Theoden (thread 115547) and CFC-FAQ's table: promotion odds are halved against
-   barbarians. Catt (thread 80836): against barbarians "the promotion odds do not apply" (read as: no promotion).
-   Halving has two community sources.
-4. **Army cost.** BIQ (C3C): 400 shields. CivFanatics FAQ v3.0: "200 shields". Probably a version difference (vanilla
-   vs C3C); vanilla BIQ was not checked.
+3. ~~**Promotion against barbarians.**~~ *Resolved: halved.* The 1.22 code doubles the promotion ratio when the
+   loser's civ ID is 0, "if ( !Target_Unit->Body.CivID ) _Comb_Exp_Promote_Ratio *= 2;" (CFC-LCODE #8, §1.2), which
+   matches Theoden (thread 115547) and CFC-FAQ's table. Catt's "the promotion odds do not apply" (thread 80836) is not
+   supported.
+4. ~~**Army cost.**~~ *Resolved: 400 in every version.* The vanilla and PTW rule files store Army cost 40 in tens of
+   shields, the same 400 as C3C (raw read, §1.4). CivFanatics FAQ v3.0's "200 shields" matches
+   no default rule file.
 5. **Do armies retreat?** https://forums.civfanatics.com/threads/are-armies-fast-units.84239/ (Longasc): "No, Armies
    NEVER retreat even if they have increased movement." Chieftess: "Armies DO retreat, atleast in C3C." README-V says an
    army inherits "mobility" only when all its units have it. DeepO (Apolyton 59461, vanilla): an army of Modern Armor
    "will not retreat from any other fastmover", which says nothing about slow opponents.
-6. **Retreat formula.** Oystein's `100 * att / (def + 50)` (CFC-RSTUDY) fits most of 11,274 trials but not all, and
-   edited bonuses above 66 seem capped at 66. The game's code is not known.
+6. ~~**Retreat formula.**~~ *Resolved:* Antal1987's reading of the 1.22 code (526285 page 4, #62) has
+   `random(defender bonus + 50) < attacker bonus`, which is Oystein's `100 * att / (def + 50)` (§1.5). Still open: the
+   measured cap near 66 for edited bonuses.
 7. **Barbarian bonus for the AI.** EDHELP: the bonus applies to "any player (human or AI)" at the game's difficulty.
    TheNiceOne (thread 37490): the AI always uses the Regent value (200%).
 8. **Leonardo's Workshop.** Civ3's Civilopedia says it halves upgrade costs (all versions). A CFC post (Randy, thread
    94826) says "Militaristic Halves the upgrade cost of units", and some posters describe free upgrades (Civ2-style).
-   Trust the Civilopedia; the militaristic claim is unconfirmed.
+   Trust the Civilopedia; the militaristic claim is unconfirmed. Against it: maurcus tested it in
+   https://forums.civfanatics.com/threads/things-civilopedia-cant-explain.470744/ (#4): "it doesnt appear militaristic
+   does anything with upgrade costs". The opening post's halving came after capturing Leonardo's Workshop.
 9. **ZOC hit chance.** Harovan (APO-ZOC): the shot always fires and works like a normal attack. Willem: "more like 30%".
    Flintlock's reverse-engineered `1 - 16D/(16D + A)` (thread 682034) is the most specific.
 10. **Seafaring and sinking.** CFC-SINK found survival depends only on the trait (50% vs 75%). Older posts tie it to
@@ -1017,7 +1128,8 @@ retreat bonus, see `QueryCiv3/BiqSections/Expr.cs`), so it is not a source eithe
     `A + TA/N` drops from 6 to 4. tom2050's tests
     (https://forums.civfanatics.com/threads/increased-army-value-flag.424279/, #14, 180 battles per setup): "Didn't see
     any difference", possibly because the wonder was placed in debug mode. Unresolved; the help text is Firaxis's, the
-    formula is the community's.
+    formula is the community's. A raw read of the C3C BIQ shows the Military Academy carries the "Increased Army Value"
+    flag (and the vanilla/PTW Military Academy does not), so the flag the help text describes is the one in play.
 12. **Great Wall against barbarians: all combat, or only defense in its own city.** PEDIA `BLDG_Great_Wall`: "Doubles
     unit combat values versus $LINK<Barbarians=GCON_Barbarians>." EDHELP's flag text: "Doubles defense value vs
     Barbarians of city that the wonder resides in". Xerxes314's vanilla calculator applies +100% to attack and defense
@@ -1025,9 +1137,9 @@ retreat bonus, see `QueryCiv3/BiqSections/Expr.cs`), so it is not a source eithe
 13. **Vanilla/PTW army blitz.** README-V 1.17f: "Armies now have the zone of control and blitz ability." Puppeteer
     (thread 489054, #2): "Vanilla and PTW armies don't blitz; you're just seeing each unit in the army take a turn as the
     collective health goes down." The readme is Firaxis's; the post is a 2013 recollection.
-14. **Militaristic and promotion.** PEDIA `GCON_Strengths` and the community tables say militaristic civs promote faster.
-    Antal1987's reading of the C3C 1.22 code (CFC-LCODE #8) found no militaristic check in the combat-victory routine.
-    He may have missed a check elsewhere; the Civilopedia is preferred.
+14. ~~**Militaristic and promotion.**~~ *Resolved: Militaristic doubles the chance.* The routine Antal1987 posted
+    (CFC-LCODE #8) halves the promotion ratio when `CheckBonus(race, 0)` is true, and index 0 is `RB_Militaristic` in
+    the C3X header for the same executable (§1.2). His "no militaristic check" missed what that call tests.
 15. **Can bombardment destroy Great Wonders?** justanick (CFC-BOMB122, C3C 1.22): yes, until the owner reaches the
     Industrial Age; zerksees (thread 278312, C3C 1.22) destroyed Sun Tzu's with a trebuchet. Dominus Romae (thread
     128868, #9, "At least in PTW 1.27f and C3C 1.22"): no. TimBentley (#12): the Great Wall itself can be bombed away in
@@ -1044,18 +1156,19 @@ bombard defense 16 (README-V 1.17f, BIQ, alexman's tests) are now in the main te
 ## UNVERIFIED / open questions
 
 - The per-round formula A/(A+D) and 1 HP per round are community-derived (alexman's 2003 bombardment description
-  assumes the same model). Rounding of modified strengths is unknown.
+  assumes the same model). The code stores round odds on a 1024 scale (§1.1, via C3X). Rounding of modified strengths
+  is shown only for tile bombardment (integer truncation after added bonuses); unit-vs-unit rounding is inferred.
 - Stack defender: the exact weighting of defense and current HP, and the tie-break (lowest attack? cheapest?).
-- Promotion chances: no BIQ field; the 1/2, 1/4, 1/8 table and its militaristic and barbarian variants are community
-  figures, and "two wins in a turn always promote" is a single opinion.
+- Promotion chances: now read from the 1.22 code (§1.2). Still open: what the `Status & 2` bit that forces a
+  promotion is, and so whether "two wins in a turn always promote" has any basis.
 - Leaders: whether naval or air elites could make leaders before C3C; how "more than one leader in one game turn"
   happens (presumably only after the first one is used).
-- Retreat: whether a 3-MP unit can retreat from a 2-MP unit; whether a retreating attacker keeps its remaining moves;
-  whether armies retreat; the true formula and the cap above 66.
-- Defensive bombard: whether it can kill with a lethal unit; whether it rolls against the attacker's attack (tjs282,
-  "IIRC") or defense.
-- Size of the "Bombardment in Ports" vulnerability. Whether the C3C bombard target order is fixed or only strongly
-  weighted.
+- Retreat: whether a 3-MP unit can retreat from a 2-MP unit (two recollections say no); whether a retreating attacker
+  keeps its remaining moves; whether armies retreat; the cap above 66. The roll itself is now from code (§1.5).
+- Defensive bombard: whether it rolls against the attacker's attack (tjs282, "IIRC") or defense. (That it never kills,
+  even with a lethal unit, is now in §1.7 from C3X-INI.)
+- Size of the "Bombardment in Ports" vulnerability. The C3C target order is fixed per C3X-INI ("always goes after units
+  first"); whether walls come before units (justanick) is not stated there.
 - Which units can fortify; whether units in cities get the fortify bonus automatically; whether fortifying speeds
   healing in a city without a Barracks.
 - Movement: entering a tile with fewer moves left than its cost; the cost of crossing an unbridged river (one MP per
@@ -1063,7 +1176,8 @@ bombard defense 16 (README-V 1.17f, BIQ, alexman's tests) are now in the main te
 - Naval: galleys in ocean after Navigation (CFC-FAQ says safe, the Galley entry does not say); what happens to cargo
   when a transport dies; whether ships can attack a coastal tile holding only non-combat units; whether units that land
   from ships lose their remaining moves.
-- Air: which unit attacks and which defends in an interception battle; whether a SAM Battery adds to mobile AA on its
+- Air: which unit attacks and which defends in an interception battle (Zeekater, thread 100020 #4: "the defense of the
+  bomber is weighed against the attack of the fighter, just like in regular combat", untested); whether a SAM Battery adds to mobile AA on its
   tile; whether a stealth fighter can intercept (MoonWolf, thread 86619: "stealth fighters haven't the ability to
   shoot down incoming bombers/fighters").
 - Nukes: whether "2:1" means a 2/3 or 1/2 kill chance; the fallout pattern; launch restrictions.

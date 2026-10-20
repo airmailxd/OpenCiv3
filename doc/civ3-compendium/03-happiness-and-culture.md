@@ -9,7 +9,8 @@ Where sources are cited:
 - **labels.txt / script.txt** are `Conquests/Text/labels.txt` and `script.txt` (the game's own UI strings, local).
 - **1.29f readme** is `README.txt` in the install root. It holds the base game's patch history from 1.16f to 1.29f (local).
 - **Manual (Complete)** is https://cdn.akamai.steamstatic.com/steam/apps/3910/manuals/manual.pdf. Its text partly predates Conquests.
-- **C3C BIQ** is the stock rules file `Conquests/conquests.biq` (Steam install, Conquests 1.22), read with this repo's `QueryCiv3` BIQ reader. Values are given as `SECTION.Field = value`. These are the shipped defaults, so they settle "what number does C3C use" questions, but not how the engine applies a number. Base-game and PTW BIQs were not read.
+- **C3C BIQ** is the stock rules file `Conquests/conquests.biq` (Steam install, Conquests 1.22), read with this repo's `QueryCiv3` BIQ reader. Values are given as `SECTION.Field = value`. These are the shipped defaults, so they settle "what number does C3C use" questions, but not how the engine applies a number.
+- **BIQ-V / BIQ-PTW** are the base-game `civ3mod.bic` (1.29f) and PTW `civ3PTW/civ3X.bix` (1.27f), decompressed with QueryCiv3's `Util.ReadFile` and read raw at the C3C field offsets (BLDG, GOVT, DIFF), as in section 2. The BLDG records are 252 bytes against C3C's 268, and the shared fields (costs, culture, content faces, flag bits such as the Library's +50% research and the Marketplace's +50% tax) read the same as C3C, which supports the offsets. Treat these as a careful raw read.
 - **C3C editor help (What's New)** is the "What's New in this version of Civ3XEdit" page of the decompiled editor help.
 
 ## 3.1 Content citizens and "overcrowding"
@@ -120,7 +121,7 @@ Where sources are cited:
 - **No default building boosts slider luxury in C3C.** The editor's building flag "+50% Luxury Output" ("luxury revenue produced in the city … is increased by 50%") is set on no building in the C3C BIQ. The Marketplace carries only "Increases Luxury Trade", which affects luxury *resources* (the table above). The C3C Civilopedia's Marketplace entry likewise mentions only tax and luxury resources. Players report the same:
   - Rhothaerill, https://codehappy.net/apolyton/threads/61665-1.htm #19 (Jul 2003, PTW era), on the Marketplace and luxury resources: "Neither one affects the happiness generated from the luxury slider."
   - vulture, https://codehappy.net/apolyton/threads/83368-1.htm #16 (Apr 2003): Marketplaces boost luxury resources but not the luxury slider (paraphrased by the fetch).
-  - Whether the base game's Marketplace had the flag is UNVERIFIED (its BIQ was not read).
+  - The base game and PTW are the same. In BIQ-V and BIQ-PTW the Marketplace has "+50% Commerce" and "Increases Luxury Trade" but not "+50% Luxury Output", and no building has that flag.
 - **Base-game luxury types:** Dyes, Furs, Gems, Incense, Ivory, Silk, Spice, Wine. Civilopedia (C3C), `#GCON_ResourcesL`, lists their tile yields, e.g. "Gems +0 +0 +4".
 
 ## 3.4 Martial law (military police)
@@ -175,7 +176,7 @@ Where sources are cited:
 - **Follow-up findings in the forum thread** of that article, https://forums.civfanatics.com/threads/how-does-war-weariness-work.61628/ (5 pages, 2003–2015, PTW and C3C):
   - **Points build up under any government.** Oystein, #67 (Feb 2005): "The calculation of wwp is independant of government." Lord Emsworth, #92 (Dec 2012): you can build up WW points under a WW-immune government such as Monarchy without suffering from them. Soren Johnson (Firaxis), as relayed by Jaybe at https://codehappy.net/apolyton/threads/62518-1.htm #5 (Sep 2002): "Soren said recently that WW accumulates even if you are in a government with no WW." / "The government just suppresses the opportunity for the WW to be expressed."
   - **Points carry into a later war.** TimBentley, #66 (Feb 2005), on WW returning in a new war after peace and a government change: "Yes, you will (assuming you still have enough WW left after the peace)." Oystein, #55 (Apr 2004): "But 20 turns of peace does NOT mean that ww is gone."
-  - **Only war expresses it.** justanick, https://forums.civfanatics.com/threads/mechanics-of-happy-content-faces.701169/ #6 (Dec 2025): "During peace WW is suspended. Only in war you can have war weariness."
+  - **Only war expresses it.** justanick, https://forums.civfanatics.com/threads/mechanics-of-happy-content-faces.701169/ #6 (Dec 2025): "During peace WW is suspended. Only in war you can have war weariness." Soren Johnson (Firaxis), https://codehappy.net/apolyton/threads/55847-2.htm #33 (Sep 2002, vanilla/PTW): "there is a war weariness factor that is maintained the same way throughout your entire game" and "The only time this factor affects your citizens is if you are at war while in a demo/rep." Read literally, the points also build and persist under a government without war weariness, and show up after a switch to Republic or Democracy during a war.
   - **Rounding and caps.** Oystein, #47 (Mar 2004): "The number from ww is rounded down." Oystein, #24 (Oct 2003): "The total number of unhappy citizen from ww can not exceed number of citizen." / "The ww and wh are calculated independent." / "If you have 125% or more ww, the police station would not have any effect since you are above the limit anyway." That implies the per-enemy percentages add up past 100% before the Police Station's 25% comes off.
   - **Threshold.** Oystein, #51 (Apr 2004): "you need 31 wwp to get ww. 30 wwp gives no effect."
   - **Combat.** Oystein, #40 (Feb 2004): "If you attack and kill an AI, none gets wwp. If the AI wins, both get wwp." Also: "It does not mather where the battle are. I claimed so earlier, but that turned out to be wrong."
@@ -210,7 +211,7 @@ Where sources are cited:
   - Civilopedia (C3C), `#GCON_Draft`: "You may only draft citizens from a city with a population of 7 or higher." / "drafting citizens will cause unhappiness in the city."
   - C3C editor help: "Determines how long your citizens' moods will be affected by each citizen drafted. Default is 20 turns."
   - 1.29f readme, Changes v1.21f: "Draft anger and hurrying unhappiness reduced to 20 turns."
-  - C3C BIQ `GOVT.DraftLimit`: Anarchy 0, Despotism 2, Monarchy 2, Communism 2, Republic 1, Democracy 1, Fascism 2, Feudalism 2. `RULE.TurnPenaltyForEachDraftedCitizen` = 20. Forum claims of 3 per turn for Communism or Fascism are wrong for C3C. Examples: eldar and Ginger_Ale, https://forums.civfanatics.com/threads/question-about-drafting-in-civ3.107429/ #3/#5 (Dec 2004), and Toasty's "4 per turn under Communism, 3 per turn under Monarchy", https://forums.civfanatics.com/threads/how-do-i-draft-military.13697/ #4 (Jan 2002, early base game).
+  - C3C BIQ `GOVT.DraftLimit`: Anarchy 0, Despotism 2, Monarchy 2, Communism 2, Republic 1, Democracy 1, Fascism 2, Feudalism 2. `RULE.TurnPenaltyForEachDraftedCitizen` = 20. BIQ-V (1.29f) and BIQ-PTW (1.27f) have the same limits for their six governments (Anarchy 0, Despotism 2, Monarchy 2, Communism 2, Republic 1, Democracy 1), and the same assimilation chances (1, 1, 2, 4, 2, 4). Forum claims of 3 per turn for Communism or Fascism are wrong for the final patches. Examples: eldar and Ginger_Ale, https://forums.civfanatics.com/threads/question-about-drafting-in-civ3.107429/ #3/#5 (Dec 2004), and Toasty's "4 per turn under Communism, 3 per turn under Monarchy", https://forums.civfanatics.com/threads/how-do-i-draft-military.13697/ #4 (Jan 2002, early base game).
   - **The drafted unit is a conscript defender** chosen by tech level. Civilopedia (C3C), `#GCON_Draft`: "The draft produces the following [conscript] units, depending upon your level of scientific development: Spearman, Pikeman, Musketman, Rifleman, Infantry, Mech. Infantry".
   - Nationality: Toasty, 13697 #4 (Jan 2002, base game): "You can only draft the number of citizens that are of YOUR nationality in the city." ThePlagueRat's contrary report of drafting foreign citizens was questioned in the same thread, with no answer: https://codehappy.net/apolyton/threads/53252-1.htm #3/#4 (Jun 2002). Both are unconfirmed, so this stays UNVERIFIED.
 - **Hurrying by forced labour.** This applies under Despotism, Communism, Feudalism and Fascism. Each sacrificed citizen causes unhappiness ("cruel oppression") for 20 turns (`RULE.TurnPenaltyForEachHurrySacrifice`). Hurrying is impossible while the city has resisters.
@@ -218,6 +219,7 @@ Where sources are cited:
   - C3C BIQ: `RULE.TurnPenaltyForEachHurrySacrifice` = 20. `GOVT.Hurrying` is 1 for Despotism, Communism, Fascism and Feudalism, 2 for Monarchy, Republic and Democracy, and 0 for Anarchy. That fits forced labour = 1 and paid = 2; the enum mapping is inferred from the grouping.
   - 1.29f readme, Changes v1.17f: "Unhappiness from population rushing production increased to 40 turns." This was later cut to 20 in v1.21f (above).
   - script.txt `#HURRY_RESISTANCE`: "We cannot hurry production while our city is in resistance."
+  - **Several rushes add up rather than overlap** (base game, Dec 2001, untested models). absimiliard, https://codehappy.net/apolyton/threads/37559-1.htm #2: "Those turns add up, so if you rush 3 pop you get your 60 turns." David Weldon (#6): "What is absolutely certain is that the penalties don't just overlap", with frequent rushers oppressed "over 250 turns"; his "citizen-turns" model (#4) is a guess ("I haven't done tests to prove it"). How the pool turns into unhappy faces each turn is UNVERIFIED.
 
 ## 3.7 Civil disorder
 
@@ -323,6 +325,7 @@ Where sources are cited:
   - Turner, https://forums.civfanatics.com/threads/about-culture-points.116213, on rebuilt buildings: "those do not get back the 1000 yr doubling if it already had it."
   - This is game years, not turns. MTheil3508, https://forums.civfanatics.com/threads/culture.33034: "early in the game, the years go by faster".
   - Tested by The Mad Monk, https://codehappy.net/apolyton/threads/76110-1.htm #13 (Feb 2003). He compared the same building in two cities, one just under and one just over 1000 years old: "It's definately 1,000 years." / "you will find that the one improment is now producing twice the culture of the newer one."
+  - The 1000 is counted in years. The C3X config (https://github.com/maxpetul/C3X/blob/master/default.c3x_config.ini): "Buildings double their culture production this many years after they were built. For standard game rules, set to 1000."
   - Corollary: with a 2050 AD end, anything built after 1050 AD never doubles.
 - **Mobilization halves culture.** Culture from improvements is halved while the civ is on a war footing.
   - Manual: "During wartime footing, cultural improvements produce half the number normally produced per turn."
@@ -380,6 +383,7 @@ Where sources are cited:
   - C3C BIQ flags it on: Pyramids, Hanging Gardens, Colossus, Great Lighthouse, Great Library, Oracle, Great Wall, Sistine Chapel, Copernicus, Shakespeare, Leonardo, JS Bach, Newton, Hoover Dam, United Nations, Temple of Artemis, Statue of Zeus, Mausoleum.
   - It is not set on: Sun Tzu, Magellan, Smith's, Universal Suffrage, Theory of Evolution, Manhattan Project, Cure for Cancer, Longevity, SETI, Internet, Knights Templar.
   - The bit's decoding comes from the repo's BIQ reader. It agrees exactly with the Civilopedia (C3C): the 18 flagged wonders are exactly the 18 entries that say "can become a tourist attraction".
+  - The age is counted in game years, not turns. The C3X mod's config, describing the 1.22 code (https://github.com/maxpetul/C3X/blob/master/default.c3x_config.ini): "the standard 1000 years" for 2 GPT and "the standard 1500" for 4 GPT.
 
 ## 3.11 Culture victory (as relevant)
 
@@ -496,6 +500,7 @@ Where sources are cited:
   - Dan Magaha (Firaxis), https://forums.civfanatics.com/threads/culture-flipping-exposed.14337/. He describes the terms but not the arithmetic.
   - Soren Johnson's worked examples, https://codehappy.net/apolyton/threads/51715-1.htm #30 and 51715-2 #36/#48.
   - Flip Calc, https://forums.civfanatics.com/threads/flip-calc-calculates-the-probability-of-culture-flips.53157/: "P=[(F+T)*Cc*H*(Cte/Cty) - G]/D".
+  - anarres, https://forums.civfanatics.com/threads/stopping-culture-flip.69295/page-2 #24 (PTW era), the same form: "P=((F+T)\*Cc\*H\*(Cte/Cty) - G)/(2000 \* D)", with "D = relative distance to capitals" and "Government type is not relevent at all".
   - F: foreign nationals (of that civ), resisters twice. Magaha: "The number of foreign nationals in the city in question (resisters are counted twice)".
   - T: city-radius tiles inside that civ's borders, of 21. Magaha: "The number of the 21-tile city-radius squares … that fall inside your cultural borders." Soren: "they count just as much as citizens."
   - Cc = 2 if that civ has more historical culture in the city than the owner, else 1. Magaha: each city "remembers the total amount of culture generated by any civ who has ever occupied it".
@@ -541,7 +546,7 @@ Where sources are cited:
 |---|---|---|---|
 | Formula shape and terms | as above | Same formula; F counts only that civ's nationals, resisters twice; T counts tiles within `MaxRankOfWorkableTiles` (21 by default, excluding the city tile) | Matches. |
 | Where Cte/Cty applies | Flip Calc and the Babylon II calculator (Chieftess, https://forums.civfanatics.com/threads/babylon-ii-civ3-culture-flip-calc.53181/ #1, "P=[(F+T)*Cc*H*(Cte/Cty) - G]/D") multiply influence. Soren's example "16 - (4 X 2) = 8" instead scales the garrison. | Scales the garrison by Cty/Cte (owner's ruling) | Same zero point, but different slope when the ratio is far from 1. Flagged in code. |
-| Integer truncation of Cte/Cty | Fitz speculated truncation (51715-3 #78); unconfirmed | Real-valued | UNVERIFIED. |
+| Integer truncation of Cte/Cty | Fitz speculated truncation (51715-3 #78); unconfirmed. DaveMcW's HTML Flip Calc 1.0 (https://forums.civfanatics.com/attachments/flipcalc1-0-html.34465/, from thread 53228) keeps it real-valued: `var P = ( (F + T) * Cc * H * CR - G ) / D`, with `CR` the enemy's culture over yours and no `Math.floor`. Its distance factor is a radio choice of 4, 2, 1, .5 or .25 (`D = 2000 * GetRadio(...)`), and it compounds over turns with `1 - Math.pow(1-P, turns)`. | Real-valued | UNVERIFIED (both calculators are community models). |
 | Distance metric | Magaha: "I would assume … pathfinding". Calculators use max+½min straight-line distance. | Straight-line max+½min | Disputed; flagged in code. |
 | Propaganda as a flip factor | The Civilopedia lists "The application of propaganda by the other civilization" as making defection more likely | Not modelled (propaganda handled as its own mission) | Possibly only the propaganda mission itself, not a modifier. UNVERIFIED. |
 | Capitals | No source exempts them; d is capped at 4. DeepO (62844 #16) had "never heared of a capital flipping". | Allowed, D = 8000 | UNVERIFIED either way. |
@@ -561,19 +566,20 @@ Where sources are cited:
   - Players in the same Apolyton thread report that ties celebrate. star mouse, #9: "I'm pretty sure I have seen WLT?D when the number of happy citizens was the same." Unregistered, #14: "I'm sure. # happy >= #content will trigger wltkd." Neither cites a test.
   - CFC FAQ: "at least half the citizens must be happy".
 - **Fifth border threshold: 20,000 vs 100,000.** Civilopedia (C3C): "(10, 100, 1,000, 10,000, 20,000, etc.)". C3C editor help: "0, 10, 100, 1000, 10000, 100000". CFC Info Center: "increase by a factor of 10 each time". TemporalAnomaly's Law I: "threshold values are of the form 10^n c.p." The editor's `BorderFactor^n` description supports 100,000, and the C3C BIQ has `RULE.BorderFactor` = 10. The 20,000 may be confused with the one-city culture victory.
-- **Content base at Deity in early patches.** Skanky Burns (Dec 2001, base game ~1.16f): "On Deity it is 2 people". The C3C Civilopedia, the C3C BIQ and Spoonwood give Deity 1. This may be a per-version BIQ difference, or a mistake.
+- **Content base at Deity in early patches.** Skanky Burns (Dec 2001, base game ~1.16f): "On Deity it is 2 people". The C3C Civilopedia, the C3C BIQ and Spoonwood give Deity 1. BIQ-V (1.29f) and BIQ-PTW (1.27f) also give Deity 1 (and Chieftain 4, Warlord 3, Regent 2, Monarch 2, Emperor 1, as in C3C). So if Skanky Burns was right, it was an early-patch value that 1.29f no longer has.
 - **WLTKD: corruption and waste, or waste only.**
   - The manual says WLTKD "lowers the levels of corruption and waste". Magaha (Firaxis) wrote "The corruption and waste in a city is reduced, effectively increasing the city's shield output".
   - The C3C Civilopedia says only "Waste in the city is reduced", and alexman's article applies it to waste only.
   - Tassadar, https://forums.civfanatics.com/threads/we-love-the-king-days.34249/: "it cut down shield waste like a courthouse but it doesnt cut down commerce corruption."
   - Thoth, https://codehappy.net/apolyton/threads/35096-1.htm #4 (Nov 2001): it "reduces corruption (more than a courthouse does)".
+  - T-hawk, https://forums.civfanatics.com/threads/we-love-the-king-day-defeats-corruption.13177/ #9 (vanilla era): "(WLTKD applies to shield production only, not commerce income.)", working "exactly as if the city had an additional courthouse". This matches alexman's waste-only model (an extra courthouse step for waste, section 2 §5).
   - The measured C3C rule is waste only; Firaxis' wording is looser.
 - **Wonder culture values.** Three sources disagree:
   - The C3C BIQ (§3.10): Great Library 6, Sistine 6, Shakespeare 8, Newton 6, Cure for Cancer 3, JS Bach 6, Hoover 2.
   - CFC's Civilopedia page (https://civfanatics.com/civ3/civilopedia/wonders/, probably the base game): Great Library 6, Sistine Chapel 6, Shakespeare 6, Newton 6, Cure for Cancer 4.
   - The Complete manual chart: 5, 4, 5, 5, 5, plus JS Bach 5 and Hoover 3.
 
-  This is likely a version difference. The BIQ values are the C3C 1.22 defaults.
+  It is not a difference between the final patches. BIQ-V (1.29f) and BIQ-PTW (1.27f) have the same culture values as C3C for every wonder (Great Library 6, Sistine 6, Shakespeare 8, Newton 6, Cure for Cancer 3, JS Bach 6, Hoover 2; the shared buildings match too). The CFC page and the manual chart must reflect an earlier patch or an error. The BIQ values are the defaults in all three final versions.
 - **Distance for flips.** Pathfinding distance (Magaha, hedged: "I would assume this is measured in tiles") vs straight-line max+½min distance (the calculators, and the border metric in §3.10).
 - **Where Cte/Cty applies in the flip formula** (see the table above). The engine follows the owner's ruling.
 - **Assimilation.** The BIQ ships 1–4% chances (§3.14), and the Civilopedia describes assimilation. Two editor tests saw none, and the engine follows the owner's ruling that it never happens.
@@ -588,7 +594,7 @@ Where sources are cited:
 
 ## UNVERIFIED / open questions
 
-- How the luxury-slider share is rounded per city, and whether the base-game Marketplace had the "+50% Luxury Output" flag. C3C: no building has it, and 1 luxury point is 1 face (§3.3).
+- How the luxury-slider share is rounded per city. (The "+50% Luxury Output" flag is on no building in any version: BIQ-V, BIQ-PTW and the C3C BIQ, §3.3.)
 - Where martial law and entertainers fall in the order of face application. The rest of the order has only a community worked example (§3.2).
 - How many citizens become unhappy from "mother country" aggression. Forum guesses range from "one more unhappy" to "about 50%" of the foreign nationals.
 - How armies count toward quelling resistance and toward the flip garrison G. alexman says every unit in an army counts for G, but nobody has tested armies for resistance.

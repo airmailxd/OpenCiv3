@@ -137,20 +137,55 @@ new", or "fetch failed". Web pages were read through a summarizing fetch tool th
 - "civ3 unit with 1/3 movement point left enter mountain hills always or chance": no usable source.
 - "civ3 promotion chance Soren Johnson ...": no primary Firaxis source; led to the 71474 patch-notice thread.
 
+## Second reading round (2026-10-20)
+
+Local:
+- `civ3mod.bic` (1.29f) and `civ3PTW/civ3X.bix` (1.27f), decompressed and read raw at the C3C PRTO/BLDG offsets: Army cost 40 in tens of shields, so 400 in every version (Disputed 4 resolved); vanilla/PTW Great Wall flags "Doubles City Defenses" + "Double Combat vs Barbarians", C3C only the latter; C3C Military Academy has "Increased Army Value", vanilla/PTW's does not (§1.4, §1.6, Disputed 11).
+
+Antal1987 executable research and the C3X mod (code-level sources):
+- https://forums.civfanatics.com/threads/useful-patches-for-civ-3-conquests-v1-22.526285/page-2 : nothing new (citizen objects; the patch's worker limit).
+- https://forums.civfanatics.com/threads/useful-patches-for-civ-3-conquests-v1-22.526285/page-3 : Steph's from-memory retreat remarks (#57, #60: "If both units have more than 1 MP, then retreat never happens"; a 10-MP unit has the same chance as a 2-MP one) (§1.5).
+- https://forums.civfanatics.com/threads/useful-patches-for-civ-3-conquests-v1-22.526285/page-4 : contribution: Antal1987 #62, the retreat roll in `process_Combat` (`Get_Random(defender bonus + 50) < attacker bonus`); the RNG state is in the save (§1.5, Disputed 6 resolved).
+- https://forums.civfanatics.com/threads/useful-patches-for-civ-3-conquests-v1-22.526285/page-5 : nothing new for this section (AI artillery habits; C3C branched before the PTW submarine fix, Lanzelot #94).
+- https://forums.civfanatics.com/threads/useful-patches-for-civ-3-conquests-v1-22.526285/page-6 : nothing new.
+- https://forums.civfanatics.com/threads/useful-patches-for-civ-3-conquests-v1-22.526285/page-7 : nothing new (barbarians use two land unit types and one naval, Antal1987 #134).
+- https://forums.civfanatics.com/threads/useful-patches-for-civ-3-conquests-v1-22.526285/page-8 : nothing new.
+- https://forums.civfanatics.com/threads/useful-patches-for-civ-3-conquests-v1-22.526285/page-9 : nothing new.
+- https://forums.civfanatics.com/threads/useful-patches-for-civ-3-conquests-v1-22.526285/page-10 : nothing new.
+- https://forums.civfanatics.com/threads/useful-patches-for-civ-3-conquests-v1-22.526285/page-11 : nothing new.
+- https://forums.civfanatics.com/threads/useful-patches-for-civ-3-conquests-v1-22.526285/page-12 : nothing new.
+- https://forums.civfanatics.com/threads/patch-framework-for-c3c-v1-22.526966/page-2 : nothing new (a single-page thread; page 2 returns page 1).
+- https://forums.civfanatics.com/threads/c3c-mechanics-birth-of-military-leader.526511/ (re-read for the promotion code; one page, 15 posts): contribution: promotion ratios 2/4/8, the barbarian doubling and the `CheckBonus(race, 0)` halving (§1.2; Disputed 3 and 14 resolved).
+- https://github.com/maxpetul/C3X/blob/master/Civ3Conquests.h : contribution: `CheckBonus (Race *, __, enum RaceBonuses)` with `RB_Militaristic = 0x0`, which identifies the promotion check as Militaristic (§1.2).
+- https://github.com/maxpetul/C3X/blob/master/default.c3x_config.ini (stock-behaviour descriptions only): contribution: defensive bombard never kills, no aerial or blitz repeats, docked ships don't fire; ZOC limits (no amphibious, no lethal, no air, works from transports); C3C bombard targets units first; aircraft in airfields immune and shielding; tile bombard defense hard-coded 16; no retreat at 1 HP, when defending a city, or defending on water; retreat-rule alternatives that imply no cavalry-from-knight retreat; king units defend last and the defense/king-priority tie-break keys; empty-army movement bug; AI army bugs; recon, interception and airdrop end the unit's moves; rebase 6x; a SAM dodge costs one move (§1.1, §1.4, §1.5, §1.7, §1.8, §1.11).
+- https://github.com/maxpetul/C3X/blob/master/injected_code.c : contribution: stock round odds on a 1024 scale (`Fighter_get_combat_odds`); the tile-bombard threshold with the game's integer rounding and 1..1023 clamp; building defense = the best single building, walls only at town size, doubled by a "Doubles City Defenses" wonder (`patch_City_get_building_defense_bonus`); additive bonus sums in two helpers (§1.1, §1.6, Disputed 1).
+- https://github.com/maxpetul/C3X/blob/master/civ_prog_objects.csv : the stock function addresses behind the wrappers above (`Fighter_get_combat_odds`).
+- https://github.com/maxpetul/C3X/blob/master/changelog.txt : nothing new beyond the config file.
+- https://github.com/maxpetul/C3X/tree/master/Notes (Antal's Hex Patches.txt, to_investigate.txt, galley_attacking_cities_bug.txt, interesting_object_notes.txt): nothing new for this section (submarine-bug internals).
+
+Forums:
+- https://forums.civfanatics.com/threads/things-civilopedia-cant-explain.470744/ : contribution: maurcus's test, Militaristic does not change upgrade costs (Disputed 8); its AA notes were already in §1.11. One page (page-2 returns the same ten posts).
+- https://codehappy.net/apolyton/threads/56619-1.htm (Alamo scenario test): nothing new (scenario anecdotes, no numbers).
+- https://forums.civfanatics.com/threads/defensive-units.446570/ : nothing new (anecdotes, no tests).
+- https://apolyton.net/forum/miscellaneous/archives/civ3-strategy-archive/121127-use-of-fortresses : nothing new.
+- https://forums.civfanatics.com/threads/a-sacrificial-retreat.43573/ : nothing new (tactics, not withdrawal mechanics).
+- https://forums.civfanatics.com/threads/can-artilery-kill.313972 : nothing new (agrees with §1.7: artillery not lethal, bombers lethal, target priorities).
+- https://forums.civfanatics.com/threads/anti-air-defense-combat.100020 : contribution: Vingrjoe's AA-100 vs D-1 test (90% kills at any interception setting), Zeekater on fighter attack vs bomber defense (§1.11, open questions).
+
 ## Still unread from the section 1 inventory (sources.md)
 
 Lower value or likely duplicates, roughly in priority order:
 - Leader threads (Apolyton): 36623 (3 pp), 69245, 64063, 65190, 50870, 34195; CFC 61506 (forum version of CFC-LEAD), 29874, 14095, 20538, 188393, 7716; page 2 of 90368.
 - Army threads (Apolyton): 36131, 66195, 59531, 92551, 42770, 60617, 42957, 57511; CFC 76405, 435718, 38929, 444972, 115498; page 2 of 49454.
-- Retreat: CFC 43573 ("A sacrificial retreat").
-- Bombard: CFC 313972, 10438, 49517, 188525, 122424, 25078, 490195, 548715, 57071; Apolyton 61497 and the codehappy list (36804, 48678, 58783, 75586, 81641, 29393, 71619, 66946, 73164, 66909, 97132).
+- Bombard: CFC 10438, 49517, 188525, 122424, 25078, 490195, 548715, 57071; Apolyton 61497 and the codehappy list (36804, 48678, 58783, 75586, 81641, 29393, 71619, 66946, 73164, 66909, 97132).
 - ZOC: Apolyton 43413.
-- Defense: CFC 446570, 333365 (probably Civ4), 48236, 85791, 9313; Apolyton 121127, 56619 (Alamo test); pages 2-3 of 77038 and page 2 of 78348.
+- Defense: CFC 333365 (probably Civ4), 48236, 85791, 9313; pages 2-3 of 77038 and page 2 of 78348.
 - Combat odds: CFC 9433, 63544, 22393, 117740, 701641, the postid=1526027 link; Apolyton 31935, 32394, 30659, 68321, 78065, 80543, 39416, 35627, 60407, 38327, 36852, 36066, 35390, 74337, 34667.
 - Experience: CFC 42545, 122927, 37578; Apolyton 64957.
 - Upgrades and capture: CFC 282454, 315613, 49467, 125627, 53422, 223675, 74357; Apolyton 31306, 32143, 40150, 48106, 85961, 29611 and the hidden-nationality threads.
-- Naval and air: CFC 109955 (forum version of CFC-SINK), 160818, 273792, 124382, 100020, 49732, 90785; Apolyton 49418, 41661, 47046, 43260, 29684, 97602, 55566, 49075, 33920.
+- Naval and air: CFC 109955 (forum version of CFC-SINK), 160818, 273792, 124382, 49732, 90785; Apolyton 49418, 41661, 47046, 43260, 29684, 97602, 55566, 49075, 33920.
 - Nukes: CFC 431799, 497288, 76147, 39555, 49478, 693168 (probably C3X, out of scope); Apolyton 53363, 96857, 43862, 102086, 63927.
 - Movement: CFC 635829, 9547, 18252, 231474, 448790, 60936 (forum version); Apolyton 35467, 49719.
 - Strategy articles: CFC 105618, 83760, 93880, 13003, 55188, 65503, 66338, 66841 and the remaining War Academy military pages.
 - Reference tables (CFC Civilopedia unit pages, the unit reference, Nethog's PDFs, the data zips): unit stats are already taken from the BIQ, so these are low value for rules.
+- Code-level leftovers: the rest of the C3X source (`injected_code.c` is 45,000 lines; only the combat-odds, bombard, building-defense, pollution and retreat-eligibility parts were read) and the C3X forum thread (CFC 666881, 100+ pages), which may hold more of Flintlock's stock-code readings.
