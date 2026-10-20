@@ -1278,16 +1278,20 @@ namespace C7Engine {
 			int weWantTechsForUs = 0;
 
 			// With a human, techs are priced at the human's research cost
-			// alone, as in TradeOffer.GoldEquivalentFor.
+			// alone, as in TradeOffer.GoldEquivalentFor. On trial between
+			// AIs (AiTechPricing), each tech at its buyer's cost.
+			bool buyerPrice = AiTechPricing.PricesAtBuyerCost(us, them);
 			TradeOffer weGive = new();
 			Func<int> CalculateWeGiveValue = () => {
 				int gold = weGive.gold ?? 0;
-				return them.isHuman ? gold + weGiveTechsForThem : Math.Max(gold + weGiveTechsForThem, gold + weGiveTechsForUs);
+				return them.isHuman || buyerPrice ? gold + weGiveTechsForThem : Math.Max(gold + weGiveTechsForThem, gold + weGiveTechsForUs);
 			};
 			TradeOffer weWant = new();
 			Func<int> CalculateWeWantValue = () => {
 				int gold = weWant.gold ?? 0;
-				return them.isHuman ? gold + weWantTechsForThem : Math.Min(gold + weWantTechsForThem, gold + weWantTechsForUs);
+				return them.isHuman ? gold + weWantTechsForThem
+					: buyerPrice ? gold + weWantTechsForUs
+					: Math.Min(gold + weWantTechsForThem, gold + weWantTechsForUs);
 			};
 
 			// Figure out the value of what we have available to trade.
@@ -1309,6 +1313,21 @@ namespace C7Engine {
 					weWantTechsForThem += costForThem[t];
 					weWantTechsForUs += costForUs[t];
 					ourMaxPossibleOffer -= cost;
+				}
+			}
+
+			// On trial (AiTechPricing): if we can't pay the full value of any
+			// of their techs, we offer all we have for the best one worth no
+			// more than that at the least share they would take.
+			if (buyerPrice && weWant.techs.Count == 0) {
+				int share = AiTechPricing.LeastSharePercent(gD);
+				Tech best = techsTheyCanTrade.FirstOrDefault(t => (long)costForUs[t] * share <= (long)ourMaxPossibleOffer * 100);
+				if (best != null) {
+					weWant.techs.Add(best);
+					if (weGive.gold == 0) {
+						weGive.gold = null;
+					}
+					return (weGive, weWant);
 				}
 			}
 
