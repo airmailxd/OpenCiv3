@@ -310,14 +310,7 @@ namespace C7GameData {
 					attacker.DeclareWarOn(victim, gameData.turn);
 				}
 			}
-			foreach (Player other in gameData.players) {
-				if (other == attacker || other.isBarbarians || other.defeated) {
-					continue;
-				}
-				if (other.playerRelationships.TryGetValue(attacker.id, out PlayerRelationship relationship)) {
-					++relationship.nuclearAtrocityCount;
-				}
-			}
+			PlayerRelationship.RecordNuclearAttack(gameData, attacker, victims);
 		}
 	}
 }
