@@ -169,11 +169,24 @@ public partial class Tile {
 			yield++;
 		}
 
+		// Bonus resources provide a boost in yield regardless of whether
+		// there is a city.
+		if (Resource != Resource.NONE && player.KnowsAboutResource(Resource)) {
+			yield += this.Resource.ShieldsBonus;
+		}
+
 		if (HasCity()) {
 			// City centers add a size bonus to the terrain's shields: towns
 			// only make sure there is at least 1, cities get +1 and
 			// metropolises +2. A city on a flood plain makes 1 shield, not 2.
 			// See https://www.civ-wiki.de/wiki/Stadtfeldertrag_(Civ3).
+			// A town's minimum of 1 is checked after the resource's shields
+			// are added, so a town on a shield resource gets no extra one:
+			// DaveMcW lists "Shields from unimproved terrain", then
+			// "+Shields from bonus resources", and only last "+1 if
+			// shields==0 so far", adding "you only get the 0-shield-terrain
+			// bonus if the city is size 6 or less"
+			// (https://codehappy.net/apolyton/threads/78438-1.htm).
 			Rules rules = EngineStorage.gameData.rules;
 			int citySize = cityAtTile.residents.Count;
 			if (citySize <= rules.MaximumLevel1CitySize) {
@@ -190,12 +203,6 @@ public partial class Tile {
 					yield += 1;
 				}
 			}
-		}
-
-		// Bonus resources provide a boost in yield regardless of whether
-		// there is a city.
-		if (Resource != Resource.NONE && player.KnowsAboutResource(Resource)) {
-			yield += this.Resource.ShieldsBonus;
 		}
 
 		yield += BaseYieldBonus(YieldType.Production);
