@@ -389,6 +389,31 @@ public class RulesReviewFixTest : IClassFixture<SaveGameFixture> {
 		Assert.True(city.GetCulturePerTurn() > 0);
 	}
 
+	// So its borders don't grow either: "you don't get any cultural
+	// expansion from a captured city until your Civ's citizens outnumber
+	// the 'foreigners'" (tjs282,
+	// https://forums.civfanatics.com/threads/problem-culture-border-of-city-doesnt-expand.537508/ #2).
+	[Fact]
+	public void FascistCitiesOfForeignersDontExpandTheirBorders() {
+		City city = BuildCity(us);
+		city.AddBuilding(BuildingNamed("Temple"));
+		us.government = gameData.governments.First(g => g.name == "Fascism");
+		foreach (CityResident r in city.residents) {
+			r.nationality = them.civilization;
+		}
+		// One culture short of the next border level.
+		city.perPlayerCulture[us] = 9;
+		int level = city.GetBorderExpansionLevel();
+		Assert.False(city.UpdateCultureAndCheckForExpansion());
+		Assert.Equal(9, city.GetCulture());
+		Assert.Equal(level, city.GetBorderExpansionLevel());
+
+		// With our own people the majority, it grows.
+		AddResident(city, us.civilization);
+		AddResident(city, us.civilization);
+		Assert.True(city.UpdateCultureAndCheckForExpansion());
+	}
+
 	// Per the project owner, foreign citizens never become ours, but a
 	// starving city loses them first.
 	[Fact]
