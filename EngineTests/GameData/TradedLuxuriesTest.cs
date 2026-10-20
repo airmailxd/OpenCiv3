@@ -89,6 +89,28 @@ public class TradedLuxuriesTest {
 		Assert.Equal(2, Count(CityResident.Mood.Unhappy));
 	}
 
+	// "cities are limited to eleven luxuries anyway" (Flintlock, reading the
+	// 1.22 code, C3X thread post-16541856).
+	[Fact]
+	public void AtMostElevenLuxuriesCount() {
+		gameData.gameDifficulty.NumberOfCitizensBornContent = 14;
+		CitizenType laborer = city.residents[0].citizenType;
+		while (city.residents.Count < 14) {
+			city.residents.Add(new CityResident() { citizenType = laborer, tileWorked = Tile.NONE });
+		}
+		for (int i = 0; i < 12; ++i) {
+			Resource lux = new() { Key = $"Lux{i}", Name = $"Lux{i}", Category = ResourceCategory.LUXURY };
+			gameData.Resources.Add(lux);
+			Trade(lux, DealDetails.Inbound);
+		}
+		Assert.Equal(12, city.GetLuxuries(gameData).Count);
+
+		city.RecalculateCitizenMoods(gameData);
+
+		Assert.Equal(11, Count(CityResident.Mood.Happy));
+		Assert.Equal(3, Count(CityResident.Mood.Content));
+	}
+
 	[Fact]
 	public void ImportedLuxuriesOnlyReachCitiesConnectedToTheCapital() {
 		// The first city counts as the capital when there's no palace, so a

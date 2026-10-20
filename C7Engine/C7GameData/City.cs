@@ -2729,7 +2729,7 @@ namespace C7GameData {
 			happyFaces += CurrentCommerceYield(respectCivilDisorder: false).happiness;
 
 			// As do luxury resources, which can be boosted by marketplaces.
-			int effectiveLux = GetLuxuries(gameData).Keys.Count;
+			int effectiveLux = CountedLuxuries(GetLuxuries(gameData).Keys.Count);
 			bool increasesLuxuryTrade = false;
 			foreach (CityBuilding cb in buildings) {
 				if (cb.building.increasesLuxuryTrade) {
@@ -2819,6 +2819,15 @@ namespace C7GameData {
 		public Dictionary<Resource, int> GetStrategicResources(GameData gameData) {
 			return ListResourceAccess(gameData, ResourceCategory.STRATEGIC);
 		}
+
+		// At most eleven luxuries make anyone happy. Flintlock, reading the
+		// 1.22 code (https://forums.civfanatics.com/threads/c3x-exe-mod-including-bug-fixes-stack-bombard-and-much-more.666881/post-16652030):
+		// "the game still has a soft limit of 11 luxury resources", and
+		// (post-16541856) "cities are limited to eleven luxuries anyway".
+		// Stock Conquests has eight luxury types, so only mods reach it.
+		public const int MaxLuxuriesCounted = 11;
+
+		public static int CountedLuxuries(int luxuries) => Math.Min(luxuries, MaxLuxuriesCounted);
 
 		public Dictionary<Resource, int> GetLuxuries(GameData gameData) {
 			return ListResourceAccess(gameData, ResourceCategory.LUXURY);
