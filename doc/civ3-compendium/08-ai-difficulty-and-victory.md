@@ -1,4 +1,4 @@
-# 08 - AI behaviour, difficulty levels, civ traits, scoring and victory
+# 8. AI behaviour, difficulty levels, civ traits, scoring and victory
 
 Scope: Civ3 1.29f, PTW 1.27f and C3C 1.22, standard (non-scenario) games. The special Conquests
 game modes (Regicide, Mass Regicide, Elimination, Capture the Flag/Princess, Victory Points) are out of

@@ -1,4 +1,4 @@
-# 02 - City economy
+# 2. City economy
 
 How a Civ3 city turns tiles into food, shields and commerce, and what eats them. Scope is the base game, PTW and Conquests at their final patches (1.29f / PTW 1.27f / C3C 1.22). Scenarios, mods and the special Conquests game modes are out of scope.
 

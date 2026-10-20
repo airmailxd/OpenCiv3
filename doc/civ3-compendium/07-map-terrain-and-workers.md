@@ -1,4 +1,4 @@
-# 07 — Map, terrain, resources, workers, barbarians and huts
+# 7. Map, terrain, resources, workers, barbarians and huts
 
 Scope: Civ3 1.29f, PTW 1.27f, Conquests (C3C) 1.22, standard rules (`conquests.biq`).
 Scenarios, mods (C3X etc.) and the special C3C game modes are excluded.
