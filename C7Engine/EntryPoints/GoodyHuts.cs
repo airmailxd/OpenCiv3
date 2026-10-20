@@ -345,6 +345,13 @@ public static class GoodyHuts {
 		if (tile.owningCity != null && tile.owningCity.owner != player) {
 			return false;
 		}
+		// The AI's cities keep a free tile between them and any other, so
+		// that their first rings of tiles never overlap, as for the cities
+		// its settlers found (SettlerLocationAI; owner's decision,
+		// 2026-10-20: "It is allowed for humans to").
+		if (!player.isHuman) {
+			return !SettlerLocationAI.IsInvalidCityLocation(tile);
+		}
 		return tile.neighbors.Values.All(n => n == Tile.NONE || !n.HasCity());
 	}
 

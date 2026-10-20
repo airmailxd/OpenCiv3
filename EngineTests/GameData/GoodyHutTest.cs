@@ -282,6 +282,21 @@ public class GoodyHutTest : IClassFixture<SaveGameFixture> {
 		Assert.True(ai.tileKnowledge.isTileKnown(far));
 	}
 
+	// The AI's cities keep a free tile from any other (owner's decision,
+	// 2026-10-20), those from huts too.
+	[Fact]
+	public void AnAIFindsNoCityTwoTilesFromAnother() {
+		(Tile from, _, Tile hut) = FindHutSite();
+		MapUnit warrior = gameData.SpawnUnit(ai, Prototype("Warrior"), from);
+		ai.cities.Clear();
+		Player other = gameData.players.First(p => p != ai && !p.isBarbarians);
+		Tile near = gameData.map.tiles.First(t => IsEmptyLand(t) && t.IsAllowCities() && t.DistanceTo(hut) == 2 && t != from);
+		CityInteractions.BuildCity(near, other, "Nearby");
+		Assert.Null(hut.OwningPlayer());
+
+		Assert.Equal(0, GoodyHuts.Weigh(gameData, warrior, hut, GoodyHuts.MiddleLevel)[GoodyHuts.Outcome.City]);
+	}
+
 	[Fact]
 	public void OnlyCivsBehindOnCitiesFindCities() {
 		(Tile from, _, Tile hut) = FindHutSite();

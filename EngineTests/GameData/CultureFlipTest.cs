@@ -84,7 +84,26 @@ public class CultureFlipTest : IClassFixture<SaveGameFixture>, IDisposable {
 		Assert.Equal(0, chance.garrison);
 		double ratio = (double)CultureReport.TotalCulture(them) / CultureReport.TotalCulture(us);
 		Assert.Equal(ratio, chance.cultureRatio, 6);
-		double expected = (chance.foreigners + chance.tiles) * 2 * 2 * ratio / (CultureFlip.DistanceFactor * chance.distanceRatio);
+		double expected = (chance.foreigners + chance.tiles) * 2 * 2 / (CultureFlip.DistanceFactor * chance.distanceRatio);
+		Assert.Equal(Math.Clamp(expected, 0, 1), chance.probability, 6);
+	}
+
+	// Soren Johnson's example: 16 influence, "Snoopy has 4 units and has
+	// twice as much total culture as the Greeks. That would be 16 - (4 X 2)
+	// = 8": the culture ratio scales the garrison.
+	[Fact]
+	public void TheCultureRatioScalesTheGarrison() {
+		(City ourCapital, City theirCapital, City city) = Setup();
+		ourCapital.perPlayerCulture[us] = 400;
+		theirCapital.perPlayerCulture[them] = 200;
+		UnitPrototype spearman = gameData.unitPrototypes.First(u => u.name == "Spearman");
+		for (int i = 0; i < 2; ++i) {
+			gameData.SpawnUnit(us, spearman, city.location);
+		}
+		CultureFlip.Chance chance = CultureFlip.ChanceOfFlippingTo(gameData, city, them);
+		Assert.Equal(2, chance.garrison);
+		double influence = (chance.foreigners + chance.tiles) * chance.memoryFactor * chance.moodFactor;
+		double expected = (influence - 2 * 2) / (CultureFlip.DistanceFactor * chance.distanceRatio);
 		Assert.Equal(Math.Clamp(expected, 0, 1), chance.probability, 6);
 	}
 

@@ -11,7 +11,7 @@ namespace C7Engine {
 	//
 	// Each interturn, every city may flip with the chance
 	//
-	//   P = [(F + T) * Cc * H * (Cte / Cty) - G] / D
+	//   P = [(F + T) * Cc * H - G * (Cty / Cte)] / D
 	//
 	// from the Flip Calc thread
 	// (https://forums.civfanatics.com/threads/flip-calc-calculates-the-probability-of-culture-flips.53157/,
@@ -40,7 +40,12 @@ namespace C7Engine {
 	//  - H: 2 in civil disorder ("Civil Disorder in a city doubles the chance
 	//    of that city flipping"), 1/2 celebrating ("We Love the King...Day in
 	//    a city halves the chance"), else 1.
-	//  - Cte / Cty: the other civ's total culture over the owner's.
+	//  - Cty / Cte: the owner's total culture over the other civ's, which
+	//    scales the garrison, as in Soren Johnson's (Firaxis) worked
+	//    example: with 16 influence, "Let's say Snoopy has 4 units and has
+	//    twice as much total culture as the Greeks. That would be 16 - (4 X
+	//    2) = 8. So if we "roll" an 8 or less, the city flip"
+	//    (https://codehappy.net/apolyton/threads/51715-1.htm #30).
 	//  - G: "the number of land-based combat units (e.g., any unit with at
 	//    least 1 point of offensive and defensive capability) in the city in
 	//    question are subtracted": the owner's land units with attack >= 1
@@ -79,14 +84,15 @@ namespace C7Engine {
 	//  - UNVERIFIED: the order of the rolls when several civs could take
 	//    the city. The likeliest civ rolls first, and the first roll that
 	//    succeeds takes the city.
-	//  - UNVERIFIED: where Cte / Cty goes. Soren confirmed that "the culture
-	//    ratio _always_ has an afffect on the chance of a flip, regardless of
-	//    the presence of troops" ("it is the latter...", 51715-2 #48), as
-	//    here, but his own worked example scales the garrison instead: with
-	//    16 influence, "Snoopy has 4 units and has twice as much total
-	//    culture as the Greeks. That would be 16 - (4 X 2) = 8" (51715-1
-	//    #30). Both reach no chance at the same garrison; they differ in how
-	//    far a civ with far more culture raises the chance.
+	//  - Disputed: where the culture ratio goes. Soren later answered "it is
+	//    the latter..." to the question whether "the culture ratio _always_
+	//    has an afffect on the chance of a flip, regardless of the presence
+	//    of troops" (51715-2 #48), which would put Cte / Cty on the
+	//    influence instead. Both reach no chance at the same garrison; on the
+	//    influence, a civ with far more culture multiplies the chance (a
+	//    civ with 140 times its neighbour's culture flipped its cities at 5-7%
+	//    a turn, far from its capital, in AI trials). The project owner chose
+	//    the worked example (2026-10-20).
 	//  - UNVERIFIED: a civ with no capital is taken to be as far as can be
 	//    from the city (d capped). Capitals aren't immune: no Civ3 source
 	//    says they are, but a capital's own distance of 0 caps d at 4, so
@@ -257,12 +263,13 @@ namespace C7Engine {
 			chance.moodFactor = city.isInCivilDisorder ? 2 : city.celebrating ? 0.5 : 1;
 			chance.otherCulture = facts.TotalCulture(other);
 			chance.ownerCulture = facts.TotalCulture(owner);
-			chance.cultureRatio = (double)chance.otherCulture / Math.Max(1, chance.ownerCulture);
+			chance.cultureRatio = (double)Math.Max(1, chance.otherCulture) / Math.Max(1, chance.ownerCulture);
 			chance.garrison = Garrison(city);
 			chance.distanceRatio = DistanceRatio(city, owner, other);
 
-			double influence = (chance.foreigners + chance.tiles) * chance.memoryFactor * chance.moodFactor * chance.cultureRatio;
-			chance.probability = Math.Clamp((influence - chance.garrison) / (DistanceFactor * chance.distanceRatio), 0, 1);
+			double influence = (chance.foreigners + chance.tiles) * chance.memoryFactor * chance.moodFactor;
+			double resistance = chance.garrison / chance.cultureRatio;
+			chance.probability = Math.Clamp((influence - resistance) / (DistanceFactor * chance.distanceRatio), 0, 1);
 			return chance;
 		}
 

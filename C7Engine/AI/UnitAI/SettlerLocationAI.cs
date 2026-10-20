@@ -637,7 +637,7 @@ namespace C7Engine {
 		// MapUnit.canBuildCity enforces it). Keeping a free tile between the
 		// AI's cities as well is the project owner's AI preference, and every
 		// legal tile outside that gap is a candidate site.
-		private static bool IsInvalidCityLocation(Tile tile) {
+		internal static bool IsInvalidCityLocation(Tile tile) {
 			if (tile == Tile.NONE || tile.HasCity())
 				return true;
 			foreach (Tile neighbor in tile.neighbors.Values) {
