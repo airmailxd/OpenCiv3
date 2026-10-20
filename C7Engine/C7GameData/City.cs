@@ -1404,11 +1404,20 @@ namespace C7GameData {
 		// Called once a turn: with a chance of 1% per pollution icon,
 		// pollution strikes one of the city's tiles, which is returned.
 		//
-		// UNVERIFIED (simplest consistent behaviour): which tile. A random
-		// land tile in the city's work radius, other than the city's own
+		// Which tile: the search starts at a random one of the 20 tiles
+		// around the city and takes the first suitable one from there. The
+		// C3X mod intercepts "the call where the game gets a random index at
+		// which to start searching for a suitable tile to become polluted.
+		// Normally, it passes 20 as the limit here"
+		// (patch_rand_int_to_place_pollution,
+		// https://github.com/maxpetul/C3X/blob/master/injected_code.c). The
+		// tiles are taken in Civ3's city-tile spiral (see
+		// ImportCiv3.GetTileFromSpiral), the order of the save's worked
+		// tiles. UNVERIFIED: that the search walks that order, and what
+		// counts as suitable; here a land tile other than the city's own
 		// ("a tile outside your city",
-		// https://apolyton.net/forum/miscellaneous/archives/civ3-strategy-archive-aa/54340-pollution),
-		// that isn't already polluted; none, no pollution.
+		// https://apolyton.net/forum/miscellaneous/archives/civ3-strategy-archive-aa/54340-pollution)
+		// that isn't already polluted. None, no pollution.
 		//
 		// Global warming isn't modelled. The Conquests Civilopedia
 		// (GCON_Pollution) says only that "If world pollution reaches
@@ -1417,6 +1426,8 @@ namespace C7GameData {
 		// grasslands to become plains, and plains to become desert. World
 		// pollution is the sum of all city pollution, nuclear explosions, and
 		// meltdowns"; no source found gives the level or the chance.
+		private const int PollutionSearchTiles = 20;
+
 		public Tile MaybePollute(GameData gameData) {
 			int icons = PollutionIcons(gameData.rules);
 			// No draw without icons, so cities that can't pollute leave the
@@ -1424,17 +1435,17 @@ namespace C7GameData {
 			if (icons <= 0 || GameData.rng.Next(100) >= icons) {
 				return null;
 			}
-			List<Tile> candidates = new();
-			foreach (Tile t in GetTilesOfRank(gameData.rules.MaxRankOfWorkableTiles)) {
+			Tile tile = null;
+			int start = GameData.rng.Next(PollutionSearchTiles);
+			Save.TileLocation here = new(location);
+			for (int k = 0; k < PollutionSearchTiles && tile == null; ++k) {
+				Save.TileLocation at = ImportCiv3.GetTileFromSpiral(here, 1 + (start + k) % PollutionSearchTiles);
+				Tile t = gameData.map.tileAt(at.X, at.Y);
 				if (t != location && t != Tile.NONE && !t.IsWater() && !t.HasPollution()) {
-					candidates.Add(t);
+					tile = t;
 				}
 			}
-			if (candidates.Count == 0) {
-				return null;
-			}
-			Tile tile = candidates[GameData.rng.Next(candidates.Count)];
-			if (!Tile.TryAddPollution(tile)) {
+			if (tile == null || !Tile.TryAddPollution(tile)) {
 				return null;
 			}
 			// The citizen working the tile is taken off it and made a

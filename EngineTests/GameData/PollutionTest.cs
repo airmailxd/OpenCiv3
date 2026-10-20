@@ -3,6 +3,7 @@ using System.Linq;
 using C7Engine;
 using C7Engine.AI;
 using C7GameData;
+using C7GameData.Save;
 using EngineTests.Utils;
 using Xunit;
 
@@ -93,6 +94,42 @@ public class PollutionTest : IClassFixture<SaveGameFixture> {
 			return;
 		}
 		Assert.Fail("Pollution never struck a worked tile");
+	}
+
+	// Returns the given numbers from Next(int) in order.
+	private class ScriptedRandom(params int[] values) : Random {
+		private readonly System.Collections.Generic.Queue<int> queue = new(values);
+		public override int Next(int maxValue) => queue.Dequeue();
+	}
+
+	// The search for the tile starts at a random one of the 20 around the
+	// city ("Normally, it passes 20 as the limit here", C3X
+	// patch_rand_int_to_place_pollution) and takes the first suitable one
+	// from there, in the city-tile spiral.
+	[Fact]
+	public void PollutionSearchesOnFromARandomOneOfTheTwentyTiles() {
+		GrowTo(12 + 1);
+		TileLocation here = new(city.location);
+		Tile Spiral(int i) {
+			TileLocation at = ImportCiv3.GetTileFromSpiral(here, i);
+			return gameData.map.tileAt(at.X, at.Y);
+		}
+		// Spiral tiles 6 and 7 (W and NW) are land; 6 is already polluted.
+		foreach (int i in new[] { 6, 7 }) {
+			Spiral(i).baseTerrainType = city.location.baseTerrainType;
+			Spiral(i).ClearDamage();
+		}
+		Assert.True(Tile.TryAddPollution(Spiral(6)));
+
+		Random original = C7GameData.GameData.rng;
+		try {
+			// Pollution strikes (0 of 100), and the search starts at index 5
+			// of 20, spiral tile 6.
+			C7GameData.GameData.rng = new ScriptedRandom(0, 5);
+			Assert.Same(Spiral(7), city.MaybePollute(gameData));
+		} finally {
+			C7GameData.GameData.rng = original;
+		}
 	}
 
 	[Fact]
