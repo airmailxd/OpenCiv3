@@ -73,18 +73,25 @@ namespace C7Engine.Pathing {
 	//   (https://forums.civfanatics.com/resources/how-do-trade-routes-roads-railroads-harbours-work-vanilla.25620/).
 	//   That guide also has neutral territory cutting routes; the
 	//   Civilopedia says enemy territory, which is what is followed here.
-	// - A blockade: "An enemy naval unit can break a trade route between a
-	//   city and the capital if its zone of control (one hex in a circle
-	//   around the unit) blocks the continuous (invisible) trade route line
-	//   between two harbours" (the same guide). Water routes don't cross the
-	//   tile of an enemy ship or the tiles around it, so a ship next to a
-	//   harbor city on a straight coast shuts its port. Barbarian ships
-	//   count: "check for barb ships. They can and will interrupt your
-	//   trade" (https://forums.civfanatics.com/threads/trade-route-keeps-being-broken.415882/).
+	// - A blockade: water routes don't cross the tile of an enemy ship.
+	//   Only its own tile: the C3X mod's Trade Net X, a re-implementation
+	//   of the stock "Trade Net" module meant to give its results faster,
+	//   lets a water route through a tile unless "there's no combat unit on
+	//   the tile OR there is but we're not at war"
+	//   (can_trade_via_water_at,
+	//   https://github.com/maxpetul/C3X/blob/master/Trade%20Net%20X/TradeNetX.cpp).
+	//   That replaces a vanilla guide's "its zone of control (one hex in a
+	//   circle around the unit) blocks the continuous (invisible) trade
+	//   route line between two harbours" (the guide above), which an
+	//   earlier version here followed. Barbarian ships count: "check for
+	//   barb ships. They can and will interrupt your trade"
+	//   (https://forums.civfanatics.com/threads/trade-route-keeps-being-broken.415882/).
 	//   UNVERIFIED (simplest consistent behaviour): which ships blockade.
 	//   Here any enemy ship that can attack (attack above 0) and isn't
-	//   carried, whether or not it has the BIQ's zone of control flag, which
-	//   no conquests.biq ship has.
+	//   carried.
+	// Water routes go only over tiles the player has explored, and over
+	// land only through a city's tile ("the tile is not land OR it is but
+	// has a city", same function), as through a canal.
 	// A network is recomputed when the civs the player is at war with
 	// change. Ships move without telling the network, so blockades are seen
 	// at the once-a-turn recomputation of networks with harbors.
@@ -273,18 +280,14 @@ namespace C7Engine.Pathing {
 			return owner != null && enemies.Contains(owner);
 		}
 
-		// The water tiles enemy ships blockade: each ship's tile and the
-		// tiles around it (see the class comment).
+		// The water tiles enemy ships blockade: each ship's tile (see the
+		// class comment).
 		private static HashSet<Tile> BlockadedTiles(HashSet<Player> enemies) {
 			HashSet<Tile> result = new();
 			foreach (Player enemy in enemies) {
 				foreach (MapUnit u in enemy.units) {
-					if (!Blockades(u)) {
-						continue;
-					}
-					result.Add(u.location);
-					foreach (Tile n in u.location.neighbors.Values) {
-						result.Add(n);
+					if (Blockades(u)) {
+						result.Add(u.location);
 					}
 				}
 			}
@@ -303,11 +306,15 @@ namespace C7Engine.Pathing {
 		private static bool HasAirTrade(City c) => c.EffectiveBuildings().Exists(cb => cb.building.allowsAirTrade);
 
 		// Whether the player's harbors can trade over the tile: coast always,
-		// sea and ocean once allowed (see the class comment).
+		// sea and ocean once allowed, and a city's tile on land (see the
+		// class comment).
 		private static bool CanTradeOver(Tile t, bool overSea, bool overOcean) {
 			TerrainType terrain = t.baseTerrainType;
-			if (terrain == null || !terrain.IsWater) {
+			if (terrain == null) {
 				return false;
+			}
+			if (!terrain.IsWater) {
+				return t.HasCity();
 			}
 			if (terrain.IsOcean) {
 				return overOcean;

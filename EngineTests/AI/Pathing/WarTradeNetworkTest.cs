@@ -156,20 +156,46 @@ public class WarTradeNetworkTest {
 		return ship;
 	}
 
+	// An enemy ship blockades only its own tile: a water route goes through
+	// a tile unless "there's no combat unit on the tile OR there is but
+	// we're not at war" (C3X Trade Net X, can_trade_via_water_at). The
+	// colony's harbor opens onto two water tiles, so it takes two ships.
 	[Fact]
-	public void AnEnemyWarshipOffTheHarborBlockadesIt() {
+	public void EnemyWarshipsOnEveryTileOffTheHarborBlockadeIt() {
 		(City capital, City colony) = HarborsAcrossTheCoast();
 		DeclareWar();
 		Assert.True(CapitalHasIron(capital));
 
-		// Next to the colony, its zone of control covers all the colony's
-		// coast.
 		Ship(them, map.tileAt(12, 0), attack: 2);
+		gameData.InvalidateCachedTradeNetwork();
+		Assert.True(CapitalHasIron(capital));
+
+		Ship(them, map.tileAt(13, 1), attack: 2);
 		// Ships move without telling the network: the blockade is seen the
 		// next turn.
 		gameData.turn++;
 		Assert.False(CapitalHasIron(capital));
 		Assert.False(gameData.GetTradeNetwork().ConnectedToCapital(us, colony));
+	}
+
+	// A water route can pass over land through a city's tile ("the tile is
+	// not land OR it is but has a city", same function).
+	[Fact]
+	public void AWaterRoutePassesThroughACityOnLand() {
+		(City capital, City colony) = HarborsAcrossTheCoast();
+		// A wall of land down the middle of the water, with a city in it.
+		foreach (Tile t in map.tiles) {
+			if (t.XCoordinate == 7 || t.XCoordinate == 8) {
+				t.baseTerrainType = grassland;
+			}
+		}
+		gameData.InvalidateCachedTradeNetwork();
+		Assert.False(CapitalHasIron(capital));
+
+		MakeCity(them, map.tileAt(7, 1), false);
+		MakeCity(them, map.tileAt(8, 2), false);
+		gameData.InvalidateCachedTradeNetwork();
+		Assert.True(CapitalHasIron(capital));
 	}
 
 	[Fact]
