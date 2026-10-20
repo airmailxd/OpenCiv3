@@ -1278,8 +1278,8 @@ namespace C7Engine {
 			int weWantTechsForUs = 0;
 
 			// With a human, techs are priced at the human's research cost
-			// alone, as in TradeOffer.GoldEquivalentFor. On trial between
-			// AIs (AiTechPricing), each tech at its buyer's cost.
+			// alone, as in TradeOffer.GoldEquivalentFor. Between AIs, each
+			// tech at its buyer's cost (see AiTechPricing).
 			bool buyerPrice = AiTechPricing.PricesAtBuyerCost(us, them);
 			TradeOffer weGive = new();
 			Func<int> CalculateWeGiveValue = () => {
@@ -1316,7 +1316,7 @@ namespace C7Engine {
 				}
 			}
 
-			// On trial (AiTechPricing): if we can't pay the full value of any
+			// Between AIs (AiTechPricing): if we can't pay the full value of any
 			// of their techs, we offer all we have for the best one worth no
 			// more than that at the least share they would take.
 			if (buyerPrice && weWant.techs.Count == 0) {

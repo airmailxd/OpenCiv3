@@ -125,7 +125,7 @@ namespace C7GameData {
 			// https://forums.civfanatics.com/threads/ai-human-trade-revisited.42110/;
 			// GameData.TechCostFor already divides a human's cost so). The
 			// AI's markup goes on top (see C7Engine.AI.TradeMarkup).
-			// On trial between AIs (C7Engine.AI.AiTechPricing): a tech p gives
+			// Between AIs (see C7Engine.AI.AiTechPricing), a tech p gives
 			// another AI is priced at the buyer's cost.
 			Player techPricer = !p.isHuman && counterpart != null
 				&& (counterpart.isHuman || (given && C7Engine.AI.AiTechPricing.PricesAtBuyerCost(p, counterpart))) ? counterpart : p;

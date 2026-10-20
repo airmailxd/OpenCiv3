@@ -30,8 +30,6 @@ public class AiTechPricingTest : IDisposable {
 		seller.EnsureRelationshipExists(stranger);
 		seller.knownTechs.UnionWith([alphabet.id, wheel.id]);
 		stranger.knownTechs.UnionWith([alphabet.id, wheel.id]);
-		AiExperiments.Enable(seller, AiTechPricing.BuyerPrice);
-		AiExperiments.Enable(buyer, AiTechPricing.BuyerPrice);
 	}
 
 	public void Dispose() {
@@ -71,16 +69,13 @@ public class AiTechPricingTest : IDisposable {
 		Assert.Equal(5, SellingPrice(alphabet));
 	}
 
+	// To a human, the AI still asks the human's cost, with its markup on
+	// top (see TradeMarkup).
 	[Fact]
-	public void WithoutTheSwitchTheSellerAsksItsOwnCost() {
-		Player plain = MakeCiv("player-4");
-		gameData.players.Add(plain);
-		plain.EnsureRelationshipExists(buyer);
-		plain.EnsureRelationshipExists(stranger);
-		plain.knownTechs.Add(alphabet.id);
-
-		int price = new TradeOffer() { techs = { alphabet } }.GoldEquivalentFor(gameData, plain, given: true, counterpart: buyer);
-		Assert.Equal(gameData.TechCostFor(alphabet, plain), price);
+	public void AHumanBuyerIsAskedTheHumansCost() {
+		buyer.isHuman = true;
+		Assert.Equal(gameData.TechCostFor(alphabet, buyer), SellingPrice(alphabet));
+		Assert.False(AiTechPricing.PricesAtBuyerCost(seller, buyer));
 	}
 
 	// "down to half-value, but only if the other AI has nothing else to

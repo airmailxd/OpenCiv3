@@ -23,14 +23,17 @@ namespace C7Engine.AI {
 	//   the other AI does not have enough money" (Soren, Apolyton 48219,
 	//   post #4). UNVERIFIED: that the bend is to 100 / rate of the value,
 	//   which reaches half at the highest rate, Sid's 200.
-	// Behind the trial switch BuyerPrice (see AiExperiments) while on trial.
+	//
+	// Paired AI trials (as the switch "ai-tech-buyer-price", 8 games of 200
+	// turns, score per civ against the same civs without it): +82 +- 76 on
+	// Continents and -76 +- 88 on Pangaea, with 1.8 and 3.3 more techs at
+	// the end (both over two standard errors). Not clearly weaker, and it
+	// is Civ3's rule, so adopted.
 	public static class AiTechPricing {
-		public const string BuyerPrice = "ai-tech-buyer-price";
-
-		// Whether p, an AI, prices the techs it trades with counterpart, an
-		// AI, at the buyer's cost.
+		// Whether p, an AI, prices the techs it trades with counterpart at
+		// the buyer's cost: when counterpart is an AI too.
 		public static bool PricesAtBuyerCost(Player p, Player counterpart) {
-			return p != null && counterpart != null && !p.isHuman && !counterpart.isHuman && AiExperiments.Has(p, BuyerPrice);
+			return p != null && counterpart != null && !p.isHuman && !counterpart.isHuman;
 		}
 
 		// The least share, in percent, of a tech's value an AI takes from an
