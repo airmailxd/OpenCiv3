@@ -27,37 +27,32 @@ public class BarbarianCampTest : IClassFixture<SaveGameFixture> {
 		}
 	}
 
+	// "The game starts spawning advanced instead of regular barbs when there
+	// are at least four cities per player on the map." (Flintlock, reading
+	// the 1.22 code, C3X thread post-16644538)
 	[Fact]
-	public void AdvancedBarbariansWaitUntilTwoCivsKnowHorsebackRiding() {
+	public void AdvancedBarbariansWaitForFourCitiesPerCiv() {
 		C7GameData.GameData gameData = fixture.saveGame.ToGameData(fixture.behaviors);
-		Tech horsebackRiding = gameData.techs.Single(t => t.Name == "Horseback Riding");
-		List<Player> civs = gameData.players.Where(p => !p.isBarbarians).ToList();
-		foreach (Player civ in civs) {
-			civ.knownTechs.Remove(horsebackRiding.id);
-		}
+		List<Player> civs = gameData.players.Where(p => !p.isBarbarians && !p.defeated && p.isIncludedInGame).ToList();
+		GiveEveryCivCities(gameData, 3);
 		Assert.False(BarbarianInteractions.AdvancedBarbariansAvailable(gameData));
 
-		civs[0].knownTechs.Add(horsebackRiding.id);
-		Assert.False(BarbarianInteractions.AdvancedBarbariansAvailable(gameData));
-
-		civs[1].knownTechs.Add(horsebackRiding.id);
+		// The count is over the whole map, so one civ's extra cities make up
+		// for another's.
+		GiveCities(gameData, civs[0], 3 + civs.Count);
 		Assert.True(BarbarianInteractions.AdvancedBarbariansAvailable(gameData));
 	}
 
 	[Fact]
-	public void OnlyBasicBarbariansSpawnBeforeHorsebackRiding() {
+	public void AdvancedBarbariansReplaceBasicOnes() {
 		C7GameData.GameData gameData = fixture.saveGame.ToGameData(fixture.behaviors);
 		Tile inland = gameData.map.tiles.First(t => t.IsLand() && !t.NeighborsWater());
-		for (int i = 0; i < 200; ++i) {
+		for (int i = 0; i < 50; ++i) {
 			Assert.Equal(gameData.barbarianInfo.basicBarbarian,
 				BarbarianInteractions.SelectBarbarianUnitType(gameData.barbarianInfo, inland, advancedAllowed: false));
+			Assert.Equal(gameData.barbarianInfo.advancedBarbarian,
+				BarbarianInteractions.SelectBarbarianUnitType(gameData.barbarianInfo, inland, advancedAllowed: true));
 		}
-		bool sawAdvanced = false;
-		for (int i = 0; i < 200 && !sawAdvanced; ++i) {
-			sawAdvanced = BarbarianInteractions.SelectBarbarianUnitType(gameData.barbarianInfo, inland, advancedAllowed: true)
-				== gameData.barbarianInfo.advancedBarbarian;
-		}
-		Assert.True(sawAdvanced);
 	}
 
 	[Fact]
