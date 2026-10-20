@@ -594,12 +594,17 @@ namespace C7GameData {
 			return ShieldCostForHurrying() * owner.rules.ShieldValueInGold;
 		}
 
-		// The citizens it costs to hurry the given number of shields: the
-		// BIQ's shields per citizen, rounded to the nearest whole citizen
-		// (halves up) per the project owner, but never none.
+		// The citizens it costs to hurry the given number of shields: each
+		// citizen sacrificed produces the BIQ's shields per citizen
+		// ("Determines how many shields are produced by "sacrificing" a point
+		// of population when hurrying", C3C editor help, Citizen Value in
+		// Shields), so enough are taken to finish the item: rounded up, and
+		// never none. The project owner chose to follow Civ3's own text here
+		// (2026-10-20), as DBear's "per 20 shields or fraction thereof" also
+		// reads.
 		internal static int PopRushCost(int shields, int citizenValueInShields) {
-			int citizens = (int)Math.Round((double)shields / Math.Max(1, citizenValueInShields), MidpointRounding.AwayFromZero);
-			return Math.Max(1, citizens);
+			int value = Math.Max(1, citizenValueInShields);
+			return Math.Max(1, (shields + value - 1) / value);
 		}
 
 		// Returns the feasibility of hurrying production

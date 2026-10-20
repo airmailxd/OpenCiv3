@@ -178,12 +178,14 @@ public partial class Tile {
 			int citySize = cityAtTile.residents.Count;
 			if (citySize <= rules.MaximumLevel1CitySize) {
 				yield = Math.Max(yield, 1);
-			} else if (citySize <= rules.MaximumLevel2CitySize) {
-				yield += 1;
 			} else {
-				yield += 2;
+				yield += citySize <= rules.MaximumLevel2CitySize ? 1 : 2;
 
-				// Industrious civs get +1 production in metropolises
+				// Industrious civs get +1 production in cities and
+				// metropolises: "the center city square of all cities produces
+				// extra shields in cities and metros" (Civilopedia,
+				// GCON_Strengths). civ-wiki.de gives it only to metropolises;
+				// the project owner chose the Civilopedia (2026-10-20).
 				if (cityAtTile.owner.civilization.traits.Contains(Civilization.Trait.Industrious)) {
 					yield += 1;
 				}

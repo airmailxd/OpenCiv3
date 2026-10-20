@@ -97,14 +97,37 @@ public class RulesReviewFixTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(gameData.rules.ShieldValueInGold * s, city.GetHurryProductionDetails().goldCost);
 	}
 
-	// Per the project owner, the citizens a pop rush costs are rounded to
-	// the nearest whole number, not up.
+	// "the center city square of all cities produces extra shields in cities
+	// and metros" (Civilopedia, GCON_Strengths).
 	[Fact]
-	public void PopRushingRoundsToTheNearestCitizen() {
-		Assert.Equal(1, City.PopRushCost(29, 20));
-		Assert.Equal(2, City.PopRushCost(30, 20));
-		Assert.Equal(2, City.PopRushCost(49, 20));
-		Assert.Equal(3, City.PopRushCost(50, 20));
+	public void IndustriousCitiesGetAShieldFromSizeSeven() {
+		City city = BuildCity(us);
+		while (city.residents.Count < gameData.rules.MaximumLevel1CitySize + 1) {
+			AddResident(city, us.civilization);
+		}
+		HashSet<Civilization.Trait> traits = us.civilization.traits;
+		bool had = traits.Contains(Civilization.Trait.Industrious);
+		try {
+			traits.Remove(Civilization.Trait.Industrious);
+			int plain = city.location.ProductionYield(city).yield;
+			traits.Add(Civilization.Trait.Industrious);
+			Assert.Equal(plain + 1, city.location.ProductionYield(city).yield);
+		} finally {
+			if (!had) {
+				traits.Remove(Civilization.Trait.Industrious);
+			}
+		}
+	}
+
+	// Each citizen sacrificed produces the BIQ's shields per citizen, so a
+	// pop rush takes enough citizens to finish the item: rounded up (the
+	// owner chose Civ3's own text, 2026-10-20).
+	[Fact]
+	public void PopRushingRoundsUpToFinishTheItem() {
+		Assert.Equal(1, City.PopRushCost(20, 20));
+		Assert.Equal(2, City.PopRushCost(21, 20));
+		Assert.Equal(2, City.PopRushCost(40, 20));
+		Assert.Equal(3, City.PopRushCost(41, 20));
 		// Never free.
 		Assert.Equal(1, City.PopRushCost(5, 20));
 
@@ -116,11 +139,11 @@ public class RulesReviewFixTest : IClassFixture<SaveGameFixture> {
 		Building temple = BuildingNamed("Temple");
 		city.SetItemBeingProduced(temple);
 		int perCitizen = gameData.rules.CitizenValueInShields;
-		// Just over one and a half citizens' worth of shields still needed.
-		city.SetStoredShields(us.ShieldCost(temple) - (perCitizen + perCitizen / 2 + 1));
+		// Just over one citizen's worth of shields still needed.
+		city.SetStoredShields(us.ShieldCost(temple) - (perCitizen + 1));
 		Assert.Equal(2, city.GetHurryProductionDetails().popCost);
-		// Just under.
-		city.SetStoredShields(us.ShieldCost(temple) - (perCitizen + perCitizen / 2 - 1));
+		// Exactly one.
+		city.SetStoredShields(us.ShieldCost(temple) - perCitizen);
 		Assert.Equal(1, city.GetHurryProductionDetails().popCost);
 	}
 
