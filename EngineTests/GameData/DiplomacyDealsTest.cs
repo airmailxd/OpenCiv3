@@ -374,4 +374,125 @@ public class GoldPerTurnAndResourceDealsTest {
 		Assert.True(them.WouldAcceptDealFrom(gameData, us, price, luxury));
 		Assert.False(them.WouldAcceptDealFrom(gameData, us, new TradeOffer { gold = price.gold - 1 }, luxury));
 	}
+
+	// Gives the civ an income of exactly gpt gold a turn, paid by (or to)
+	// a third civ.
+	private void GiveIncome(Player civ, int gpt) {
+		Player third = new() { civilization = new Civilization("Egypt"), id = ID.FromString("player-3"), government = new Government(), rules = gameData.rules };
+		gameData.players.Add(third);
+		third.EnsureRelationshipExists(civ);
+		int extra = gpt - civ.CalculateGoldPerTurn();
+		if (extra != 0) {
+			PlayerRelationship.RegisterMultiTurnDeal(extra > 0 ? third : civ, extra > 0 ? civ : third, new MultiTurnDeal(DealType.Gold,
+				DealSubType.GoldPerTurn, DealDetails.Outbound, goldPerTurn: Math.Abs(extra), turnStartDeal: gameData.turn));
+		}
+		Assert.Equal(gpt, civ.CalculateGoldPerTurn());
+	}
+
+	private void GiveAIIncome(int gpt) => GiveIncome(them, gpt);
+
+	[Fact]
+	public void AnAINeverPaysGoldPerTurnIntoDeficit() {
+		GiveAIIncome(3);
+		// A tenth of its treasury would let it pay more, but it won't.
+		them.gold = 1000;
+		us.gold = 1000;
+		Assert.False(them.WouldAcceptDealFrom(gameData, us, new TradeOffer { gold = 1000 }, new TradeOffer { goldPerTurn = 5 }));
+		Assert.True(them.WouldAcceptDealFrom(gameData, us, new TradeOffer { gold = 1000 }, new TradeOffer { goldPerTurn = 3 }));
+		Assert.False(TradeOffer.AffordsGoldPerTurn(them, 4));
+		Assert.True(TradeOffer.AffordsGoldPerTurn(them, 3));
+	}
+
+	[Theory]
+	[InlineData(1, false)]
+	[InlineData(2, true)]
+	public void AnAIDoesNotProposeToPayGoldPerTurnIntoDeficit(int income, bool perTurn) {
+		// We, as an AI, would buy their spare wines, which they ask 2 gold
+		// a turn for. With an income of 1 we pay the lump sum instead.
+		us.isHuman = false;
+		us.gold = 1000;
+		GiveIncome(us, income);
+		var deal = C7Engine.AI.DealProposalAI.ResourceDeal(gameData, us, them);
+		Assert.NotNull(deal);
+		TradeOffer weGive = deal.Value.weGive;
+		Assert.Equal(perTurn ? 2 : 0, weGive.goldPerTurn);
+		Assert.Equal(perTurn ? null : 40, weGive.gold);
+	}
+
+	private void SetDifficulty(int index) {
+		gameData.difficulties.Clear();
+		foreach (string name in new[] { "Chieftain", "Warlord", "Regent", "Monarch", "Emperor", "Deity", "Demigod", "Sid" }) {
+			gameData.difficulties.Add(new Difficulty() { Name = name, AiCostFactor = 10 });
+		}
+		gameData.gameDifficulty = gameData.difficulties[index];
+	}
+
+	[Theory]
+	// Chieftain, Warlord, Regent, Monarch, Emperor and Deity from
+	// TheNiceOne's table (cautious column); Demigod and Sid extrapolated.
+	[InlineData(0, -2, 0)]
+	[InlineData(0, 2, 0)]
+	[InlineData(1, -2, 0)]
+	[InlineData(1, 0, 1)]
+	[InlineData(1, 2, 3)]
+	[InlineData(2, -2, 0)]
+	[InlineData(2, -1, 2)]
+	[InlineData(2, 2, 8)]
+	[InlineData(3, -1, 3)]
+	[InlineData(3, 2, 12)]
+	[InlineData(4, -2, 4)]
+	[InlineData(4, 1, 16)]
+	[InlineData(4, 2, 16)]
+	[InlineData(5, -2, 5)]
+	[InlineData(5, 0, 15)]
+	[InlineData(5, 2, 20)]
+	[InlineData(6, 2, 24)]
+	[InlineData(7, 2, 28)]
+	public void TheAIsMarkupOnHumansRisesWithDifficultyAndAggression(int difficulty, int aggression, int percent) {
+		SetDifficulty(difficulty);
+		them.civilization.aggressionLevel = aggression;
+		Assert.Equal(percent, C7Engine.AI.TradeMarkup.Percent(gameData, them, us));
+	}
+
+	[Fact]
+	public void ThereIsNoMarkupBetweenAIs() {
+		SetDifficulty(5);
+		them.civilization.aggressionLevel = 2;
+		us.isHuman = false;
+		Assert.Equal(0, C7Engine.AI.TradeMarkup.Percent(gameData, them, us));
+	}
+
+	[Fact]
+	public void AHumanBuysAtBaseTimesOnePlusMarkupAndSellsAtBaseOverIt() {
+		// Deity, aggression 3: 15%.
+		SetDifficulty(5);
+		them.civilization.aggressionLevel = 0;
+		GiveAIIncome(10);
+		us.gold = 1000;
+		them.gold = 1000;
+		// 5 gold a turn for 20 turns is 100 gold, which costs a human 115,
+		// counted at 1/1.15 of what the human pays: about 132.
+		TradeOffer gpt = new() { goldPerTurn = 5 };
+		Assert.False(them.WouldAcceptDealFrom(gameData, us, new TradeOffer { gold = 130 }, gpt));
+		Assert.True(them.WouldAcceptDealFrom(gameData, us, new TradeOffer { gold = 133 }, gpt));
+		Assert.Equal(115, C7Engine.AI.TradeMarkup.Asking(100, 15));
+		Assert.Equal(87, C7Engine.AI.TradeMarkup.Paying(100, 15));
+
+		// On Chieftain there's no markup.
+		SetDifficulty(0);
+		Assert.True(them.WouldAcceptDealFrom(gameData, us, new TradeOffer { gold = 100 }, gpt));
+	}
+
+	[Fact]
+	public void TheAIPricesTechsTradedWithAHumanAtTheHumansResearchCost() {
+		SetDifficulty(5);
+		gameData.gameDifficulty.AiCostFactor = 6;
+		gameData.map.techRate = 240;
+		Tech tech = new() { id = ID.FromString("tech-1"), Name = "Bronze Working", Cost = 10 };
+		TradeOffer offer = new() { techs = { tech } };
+		Assert.Equal(gameData.TechCostFor(tech, us), offer.GoldEquivalentFor(gameData, them, counterpart: us));
+		Assert.True(gameData.TechCostFor(tech, us) > gameData.TechCostFor(tech, them));
+		// Between AIs, the AI's own cost.
+		Assert.Equal(gameData.TechCostFor(tech, them), offer.GoldEquivalentFor(gameData, them));
+	}
 }

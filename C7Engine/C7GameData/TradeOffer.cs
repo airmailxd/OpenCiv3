@@ -117,8 +117,17 @@ namespace C7GameData {
 			if (gold.HasValue) {
 				result += gold.Value;
 			}
+			// An AI prices techs traded with a human at the human's research
+			// cost: the trade price "is dependant on the human player's
+			// research cost", which "on monarch and higher" is the Regent
+			// cost "divided by the AI's cost factor" (TheNiceOne, "AI-human
+			// trade revisited", Civ3 1.29,
+			// https://forums.civfanatics.com/threads/ai-human-trade-revisited.42110/;
+			// GameData.TechCostFor already divides a human's cost so). The
+			// AI's markup goes on top (see C7Engine.AI.TradeMarkup).
+			Player techPricer = !p.isHuman && counterpart != null && counterpart.isHuman ? counterpart : p;
 			foreach (Tech t in techs) {
-				result += gameData.TechCostFor(t, p);
+				result += gameData.TechCostFor(t, techPricer);
 			}
 			int turns = DealDuration(gameData);
 			result += Math.Max(0, goldPerTurn) * turns;
@@ -273,6 +282,15 @@ namespace C7GameData {
 		// already takes out what it pays in other deals.
 		public static int MaxGoldPerTurn(Player player) {
 			return Math.Max(0, player.CalculateGoldPerTurn() + Math.Max(0, player.gold) / 10);
+		}
+
+		// Whether an AI can pay goldPerTurn more each turn without its
+		// income going negative. Per the owner's decision, 2026-10-20, an AI
+		// never agrees to or proposes a deal that would put it in deficit,
+		// whatever MaxGoldPerTurn allows. Income already takes out what it
+		// pays in other deals.
+		public static bool AffordsGoldPerTurn(Player ai, int goldPerTurn) {
+			return goldPerTurn <= 0 || ai.CalculateGoldPerTurn() - goldPerTurn >= 0;
 		}
 
 		// The resources the giver can send the receiver: those it has more

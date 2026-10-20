@@ -15,6 +15,34 @@ public class BarbarianInteractions {
 	// TODO: make this configurable
 	public const int CampDispersalGold = 25;
 
+	// The name of the barbarian tribe at the tile, for Civ3's news of huts
+	// and camps ("We got $NUM0 gold from the $BARBARIAN0 tribe's village.",
+	// Conquests' Text/script.txt, #GOODY_MONEY). Civ3's tribe names are the
+	// barbarians' list in the BIQ, where other civs have city names: "in the
+	// "Civilizations" tab of the editor, you can select "Barbarians" from
+	// the dropdown"
+	// (https://forums.civfanatics.com/threads/names-of-barb-tribed.30374/),
+	// 76 of them in Conquests ("Chanca" to "Kushite", then "Barbarian"),
+	// and "the names of tribes are chosen at random from the list"
+	// (https://civilization.fandom.com/wiki/Barbarian_tribes_(Civ3)).
+	// UNVERIFIED: how Civ3 picks one for a hut or camp. Here it is picked by
+	// the tile, so that the same hut or camp always has the same tribe and
+	// the game's random numbers are left alone. "Barbarian" if the rules
+	// have no list.
+	public static string TribeName(GameData gameData, Tile tile) {
+		List<string> names = gameData?.civilizations.FirstOrDefault(c => c.isBarbarian)?.cityNames;
+		if (names == null || names.Count == 0) {
+			names = gameData?.players.FirstOrDefault(p => p.isBarbarians)?.civilization?.cityNames;
+		}
+		if (names == null || names.Count == 0) {
+			return "Barbarian";
+		}
+		long x = tile?.XCoordinate ?? 0;
+		long y = tile?.YCoordinate ?? 0;
+		long hash = Math.Abs(x * 7919 + y * 104729);
+		return names[(int)(hash % names.Count)];
+	}
+
 	// Removes the barbarian camp on the tile, if any, and pays the player who
 	// dispersed it. Returns whether there was a camp to disperse.
 	public static bool DisperseCamp(GameData gameData, Tile tile, Player player) {

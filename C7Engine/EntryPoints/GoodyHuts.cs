@@ -249,13 +249,21 @@ public static class GoodyHuts {
 	// sends nothing to the UI, so the news can go first (see Enter). If
 	// what was picked can't happen after all (barbarians with nowhere to
 	// stand), the hut holds gold instead, and the outcome says so.
+	//
+	// The news is Civ3's, from Conquests' Text/script.txt (#GOODY_TECH,
+	// #GOODY_MERCENARIES, #GOODY_SETTLERS, #GOODY_CITY, #GOODY_MAPS,
+	// #GOODY_NOTHING, #GOODY_BARBARIANS, #GOODY_MONEY), with $BARBARIAN0
+	// the village's tribe (see BarbarianInteractions.TribeName). #GOODY_TECH
+	// puts the tech on a line of its own ("The $BARBARIAN0 tribe has taught
+	// us ^^$LINK0."); here it ends the one line.
 	private static string Apply(GameData gameData, Player player, Tile tile, ref Outcome outcome, double hardness) {
+		string tribe = BarbarianInteractions.TribeName(gameData, tile);
 		switch (outcome) {
 			case Outcome.Tech: {
 					List<Tech> techs = TechsToLearn(gameData, player);
 					Tech tech = techs[GameData.rng.Next(techs.Count)];
 					player.AcquireTech(gameData, tech);
-					return $"The villagers have taught us the secrets of {tech.Name}!";
+					return $"The {tribe} tribe has taught us {tech.Name}.";
 				}
 			case Outcome.Unit: {
 					UnitPrototype type = HutUnitFor(gameData);
@@ -266,26 +274,27 @@ public static class GoodyHuts {
 						recruit.experienceLevelKey = recruit.experienceLevel.key;
 						recruit.hitPointsRemaining = recruit.maxHitPoints;
 					}
-					return $"Warriors from the village have joined our cause!";
+					return $"This friendly {tribe} village gave us a skilled {type.name}.";
 				}
 			case Outcome.Settler: {
 					UnitPrototype type = SettlerFor(gameData, player);
 					gameData.SpawnUnit(player, type, tile);
-					return "Nomads from the village have joined us, eager to found a new city!";
+					return $"A friendly {tribe} {type.name} wants to join our {player.government?.name ?? "civilization"}.";
 				}
 			case Outcome.City: {
-					City city = CityInteractions.BuildCity(tile, player, player.GetNextCityName());
-					return $"The villagers have joined our civilization, founding the city of {city.name}!";
+					CityInteractions.BuildCity(tile, player, player.GetNextCityName());
+					return $"An advanced {tribe} village has joined us!";
 				}
 			case Outcome.Map: {
 					RevealMap(player, tile);
-					return "The villagers have given us a map of the surrounding lands!";
+					return $"The friendly {tribe} tribe gave us maps of their region.";
 				}
 			case Outcome.Nothing:
-				return "The village is deserted. We found nothing of value.";
+				return $"This {tribe} village is deserted.";
 			case Outcome.Barbarians: {
-					if (ReleaseBarbarians(gameData, tile, hardness) > 0) {
-						return "The village was full of barbarians, and they're out for blood!";
+					UnitPrototype first = ReleaseBarbarians(gameData, tile, hardness);
+					if (first != null) {
+						return $"We have disturbed an angry {tribe} {first.name}.";
 					}
 					outcome = Outcome.Gold;
 					goto default;
@@ -294,7 +303,7 @@ public static class GoodyHuts {
 			default: {
 					int gold = GoldFor(player);
 					player.gold += gold;
-					return $"The villagers have given us {gold} gold in tribute!";
+					return $"We got {gold} gold from the {tribe} tribe's village.";
 				}
 		}
 	}
@@ -392,13 +401,14 @@ public static class GoodyHuts {
 	}
 
 	// Spawns barbarians around the hut: more of them on harder levels, and an
-	// advanced one on the hardest. Returns how many.
-	private static int ReleaseBarbarians(GameData gameData, Tile tile, double hardness) {
+	// advanced one on the hardest. Returns the first one's type, for the
+	// news, or null if none came out.
+	private static UnitPrototype ReleaseBarbarians(GameData gameData, Tile tile, double hardness) {
 		Player barbarians = gameData.players.First(p => p.isBarbarians);
 		BarbarianInfo info = gameData.barbarianInfo;
 		int count = 1 + (hardness >= 0.5 ? 1 : 0) + (hardness >= 0.85 ? 1 : 0);
 		List<Tile> tiles = BarbarianTiles(tile);
-		int spawned = 0;
+		UnitPrototype first = null;
 		// Advanced barbarians wait for Horseback Riding (see
 		// BarbarianInteractions.AdvancedBarbariansAvailable).
 		bool advancedAllowed = BarbarianInteractions.AdvancedBarbariansAvailable(gameData);
@@ -407,8 +417,8 @@ public static class GoodyHuts {
 			tiles.Remove(at);
 			UnitPrototype type = hardness >= 0.85 && i == 0 && advancedAllowed && info.advancedBarbarian != null ? info.advancedBarbarian : info.basicBarbarian;
 			gameData.SpawnUnit(barbarians, type, at);
-			++spawned;
+			first ??= type;
 		}
-		return spawned;
+		return first;
 	}
 }

@@ -16,8 +16,8 @@ namespace C7Engine.AI {
 	// priced as the AI prices deals offered to it (TradeOffer.ResourceWorth,
 	// PactAI):
 	// - It buys the resource worth most to it, paying the seller's asking
-	//   price per turn (or, if its income can't cover that, the whole
-	//   deal's worth in gold at once), as long as that is no more than the
+	//   price per turn (or, if paying it would put its income in deficit,
+	//   the whole deal's worth in gold at once), as long as that is no more than the
 	//   resource is worth to it.
 	// - It sells the spare the buyer values most, for gold per turn halfway
 	//   between its asking price and the resource's worth to the buyer, and
@@ -58,7 +58,7 @@ namespace C7Engine.AI {
 			}
 			TradeOffer weGive = new();
 			int lumpSum = ask * TradeOffer.DealDuration(gD);
-			if (ask <= TradeOffer.MaxGoldPerTurn(us)) {
+			if (TradeOffer.AffordsGoldPerTurn(us, ask)) {
 				weGive.goldPerTurn = ask;
 			} else if (lumpSum <= us.gold) {
 				weGive.gold = lumpSum;
@@ -83,8 +83,10 @@ namespace C7Engine.AI {
 				if (value < ask) {
 					continue;
 				}
+				// An AI buyer won't pay into deficit (owner's decision,
+				// 2026-10-20; see TradeOffer.AffordsGoldPerTurn).
 				if (maxPerTurn < 0) {
-					maxPerTurn = TradeOffer.MaxGoldPerTurn(them);
+					maxPerTurn = them.isHuman ? TradeOffer.MaxGoldPerTurn(them) : Math.Max(0, them.CalculateGoldPerTurn());
 				}
 				int price = Math.Min((value + ask + 1) / 2, maxPerTurn);
 				if (price >= ask && price > bestPrice) {
@@ -221,6 +223,11 @@ namespace C7Engine.AI {
 
 		private static (TradeOffer weGive, TradeOffer weWant)? Checked(GameData gD, Player us, Player them, TradeOffer weGive, TradeOffer weWant) {
 			if (TradeOffer.ProblemWithDeal(gD, us, them, weGive, weWant) != null) {
+				return null;
+			}
+			// Owner's decision, 2026-10-20: never into deficit for gold per
+			// turn (see TradeOffer.AffordsGoldPerTurn).
+			if (!TradeOffer.AffordsGoldPerTurn(us, weGive.goldPerTurn)) {
 				return null;
 			}
 			return (weGive, weWant);

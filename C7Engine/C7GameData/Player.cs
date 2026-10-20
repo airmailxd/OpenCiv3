@@ -782,10 +782,13 @@ namespace C7GameData {
 		// Peace is weighed up by PeaceAI.
 		public bool WouldAcceptDealFrom(GameData gameData, Player other, TradeOffer theirOffer, TradeOffer ourOffer) {
 			// TODO: culture groups.
-			// UNVERIFIED: Civ3's AI prices deals by its attitude ("DiploEffect",
-			// per https://forums.civfanatics.com/threads/aggression-level-ai-attitude-and-trading.699178/,
-			// which shows prices changing with attitude but gives no
-			// formula), so attitude isn't counted here.
+			// Attitude counts only through the markup on deals with a human
+			// (see TradeMarkup), as TheNiceOne measured it. UNVERIFIED:
+			// Zwingli's "AI Attitude and Trade" (Civ3 1.29,
+			// https://forums.civfanatics.com/threads/ai-attitude-and-trade.59079/)
+			// measured a little more asked below cautious too ("about 0.32%
+			// more"), and https://forums.civfanatics.com/threads/aggression-level-ai-attitude-and-trading.699178/
+			// shows prices changing with attitude but gives no formula.
 			if (TradeOffer.ProblemWithDeal(gameData, other, this, theirOffer, ourOffer) != null) {
 				return false;
 			}
@@ -800,6 +803,11 @@ namespace C7GameData {
 			if (!WillAcceptCommunicationFrom(other, gameData.turn)) {
 				return false;
 			}
+			// Per the owner's decision, 2026-10-20: an AI never pays gold
+			// per turn that would put its income in deficit.
+			if (!isHuman && !TradeOffer.AffordsGoldPerTurn(this, ourOffer.goldPerTurn)) {
+				return false;
+			}
 			int theirGoldValue = theirOffer.GoldEquivalentFor(gameData, this, counterpart: other);
 			int ourGoldValue = ourOffer.GoldEquivalentFor(gameData, this, given: true, counterpart: other);
 			// Against a human only: between AIs these cost civs techs (and
@@ -809,6 +817,12 @@ namespace C7GameData {
 				if (C7Engine.AI.TradeGuards.Refuses(gameData, this, other, ourOffer)) {
 					return false;
 				}
+				// Civ3's hard-coded markup on deals with a human (see
+				// TradeMarkup): what we give costs base x (1 + markup), and
+				// what we're given is worth base / (1 + markup).
+				int markup = C7Engine.AI.TradeMarkup.Percent(gameData, this, other);
+				ourGoldValue = C7Engine.AI.TradeMarkup.Asking(ourGoldValue, markup);
+				theirGoldValue = C7Engine.AI.TradeMarkup.Paying(theirGoldValue, markup);
 				ourGoldValue += C7Engine.AI.TradeGuards.MonopolyPremium(gameData, this, ourOffer);
 				theirGoldValue -= C7Engine.AI.TradeGuards.RiskDiscount(gameData, other, theirOffer);
 			}
