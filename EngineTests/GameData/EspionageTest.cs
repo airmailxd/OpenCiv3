@@ -310,6 +310,24 @@ public class EspionageTest : IClassFixture<SaveGameFixture>, System.IDisposable 
 		Assert.Equal(distance + 10 * 25, Espionage.Cost(gameData, actor, EspionageMission.SabotageProduction, target, capital));
 	}
 
+	// The editor help's propaganda cost has a gold term: "BaseCost *
+	// Target City Size + ( BaseCost * Target City Size * Culture Ratio) +
+	// ( ( BaseCost * Target City Size) / 2 * Gold Ratio )".
+	[Fact]
+	public void PropagandaCostsMoreAgainstARicherTarget() {
+		City capital = SetUpEmbassy();
+		int distance = actor.cities.Min(c => c.location.DistanceTo(capital.location));
+		int pop = capital.residents.Count;
+		target.gold = 0;
+		actor.gold = 100;
+		int poor = Espionage.Cost(gameData, actor, EspionageMission.Propaganda, target, capital);
+		Assert.Equal(distance + 100 * pop, poor);
+
+		// Three times our gold adds half the size term three times over.
+		target.gold = 300;
+		Assert.Equal(poor + 100 * pop / 2 * 3, Espionage.Cost(gameData, actor, EspionageMission.Propaganda, target, capital));
+	}
+
 	[Fact]
 	public void StealingTheWorldMapRevealsTheirTiles() {
 		SetUpSpy();
