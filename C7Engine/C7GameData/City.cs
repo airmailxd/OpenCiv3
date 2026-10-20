@@ -1719,9 +1719,9 @@ namespace C7GameData {
 		// higher up the list Democracy, Communism, Republic, Monarchy,
 		// Despotism, Anarchy than theirs, 5% more if lower, except that a
 		// Republic taking a Monarchy's city, or a Democracy a Communist one,
-		// is 5% more. Governments not on the list (Feudalism, Fascism) change
-		// nothing. Where the steps fall between the article's ratios is our
-		// reading of it.
+		// is 5% more (see ResistanceGovernmentModifiers, which also has
+		// Feudalism and Fascism). Where the steps fall between the article's
+		// ratios is our reading of it.
 		internal int ResistancePercent(Player formerOwner, bool continuing) {
 			int ours = CultureReport.TotalCulture(owner);
 			int theirs = CultureReport.TotalCulture(formerOwner);
@@ -1745,20 +1745,29 @@ namespace C7GameData {
 			return percent + ResistanceGovernmentModifier(owner.government, formerOwner.government);
 		}
 
+		// conquests.biq's GOVT "Resistance Modifier", by our government (row)
+		// against the former owner's (column), in the order Anarchy,
+		// Despotism, Monarchy, Communism, Republic, Democracy, Fascism,
+		// Feudalism: "the modifier to a single population point's chance of
+		// continuing to resist each turn" (C3C editor help). Its core matches
+		// the article's ranking above; it adds Feudalism and Fascism.
 		private static readonly string[] ResistanceGovernmentOrder =
-			["Democracy", "Communism", "Republic", "Monarchy", "Despotism", "Anarchy"];
+			["Anarchy", "Despotism", "Monarchy", "Communism", "Republic", "Democracy", "Fascism", "Feudalism"];
+		private static readonly int[,] ResistanceGovernmentModifiers = {
+			{ 0, 5, 5, 5, 5, 5, 0, 0 },
+			{ -5, 0, 5, 5, 5, 5, 0, 0 },
+			{ -5, -5, 0, 5, 5, 5, 0, 0 },
+			{ -5, -5, -5, 0, -5, 5, 0, 0 },
+			{ -5, -5, 5, 5, 0, 5, 0, 0 },
+			{ -5, -5, -5, 5, -5, 0, 0, 0 },
+			{ -5, -5, 0, -10, -5, -5, 0, 0 },
+			{ -5, -5, 5, 5, 0, 0, 5, 0 },
+		};
 
 		private static int ResistanceGovernmentModifier(Government ours, Government theirs) {
-			int ourRank = Array.IndexOf(ResistanceGovernmentOrder, ours?.name);
-			int theirRank = Array.IndexOf(ResistanceGovernmentOrder, theirs?.name);
-			if (ourRank < 0 || theirRank < 0 || ourRank == theirRank) {
-				return 0;
-			}
-			if ((ours.name == "Republic" && theirs.name == "Monarchy")
-				|| (ours.name == "Democracy" && theirs.name == "Communism")) {
-				return 5;
-			}
-			return ourRank < theirRank ? -5 : 5;
+			int row = Array.IndexOf(ResistanceGovernmentOrder, ours?.name);
+			int column = Array.IndexOf(ResistanceGovernmentOrder, theirs?.name);
+			return row < 0 || column < 0 ? 0 : ResistanceGovernmentModifiers[row, column];
 		}
 
 		// Each turn every resister rolls again to keep resisting, but "the

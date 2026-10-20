@@ -393,6 +393,25 @@ public class RulesReviewFixTest : IClassFixture<SaveGameFixture> {
 		Assert.Equal(resisters, city.resisters);
 	}
 
+	// conquests.biq's Resistance Modifier covers Feudalism and Fascism too:
+	// a Fascist captor of a Communist city faces 10% less resistance.
+	[Fact]
+	public void FascismCutsResistanceFromCommunists() {
+		City city = CapturedCity();
+		Government original = us.government;
+		Government theirs = them.government;
+		try {
+			us.government = them.government;
+			int same = city.ResistancePercent(them, continuing: true);
+			us.government = gameData.governments.First(g => g.name == "Fascism");
+			them.government = gameData.governments.First(g => g.name == "Communism");
+			Assert.Equal(same - 10, city.ResistancePercent(them, continuing: true));
+		} finally {
+			us.government = original;
+			them.government = theirs;
+		}
+	}
+
 	[Fact]
 	public void ResistanceFollowsTheCultureComparison() {
 		City city = CapturedCity();
