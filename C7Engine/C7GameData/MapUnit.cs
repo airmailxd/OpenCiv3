@@ -419,7 +419,8 @@ namespace C7GameData {
 		// speed: "all slaves, regardless of their nationality, have a
 		// production value of 50%"
 		// (https://forums.civfanatics.com/threads/worker-actions.82982/,
-		// a chart for Vanilla and PTW; no Conquests source found).
+		// a chart for Vanilla and PTW), and in Conquests "Captured workers
+		// work at 50% the speed of regular workers." (Conquests/readme.txt).
 		private const int DefaultWorkerRate = 2;
 		private const float SlaveWorkerFactor = 0.5f;
 
@@ -1324,7 +1325,15 @@ namespace C7GameData {
 			if (owner.civilization.traits.Contains(Civilization.Trait.Industrious)) {
 				progressPerTurn *= 1.5f;
 			}
-			return progressPerTurn;
+			// Each worker makes a whole number of points a turn, rounded
+			// down but never below one: "Every worker produces every turn an
+			// integer number." and "The number is always rounded down, but
+			// the total minimum of 1 is never violated." (justanick,
+			// https://forums.civfanatics.com/threads/how-many-workers-do-i-need-to-do-this.452798/,
+			// Conquests). So an Industrious civ's slave makes 1 (1.5 rounded
+			// down) before Replaceable Parts, like anyone's slave, and an
+			// Anarchy slave still makes 1.
+			return Math.Max(1, (int)Math.Floor(progressPerTurn));
 		}
 
 		public void resetWorkerJob() {

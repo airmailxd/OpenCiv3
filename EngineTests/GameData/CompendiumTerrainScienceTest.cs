@@ -1,0 +1,68 @@
+using System.Linq;
+using C7Engine;
+using C7GameData;
+using C7GameData.Save;
+using EngineTests.Utils;
+using Xunit;
+
+namespace EngineTests.GameData;
+
+// Rules from the compendium's sections on map, terrain and workers (07) and
+// on science and wonders (04), checked against the engine.
+public class CompendiumTerrainScienceTest : IClassFixture<SaveGameFixture> {
+	private readonly C7GameData.GameData gameData;
+	private readonly Player us;
+	private readonly Player them;
+
+	public CompendiumTerrainScienceTest(SaveGameFixture fixture) {
+		gameData = fixture.saveGame.ToGameData(fixture.behaviors);
+		EngineStorage.InitializeGameDataForTests(gameData);
+		EngineStorage.animationsEnabled = false;
+
+		Player[] civs = gameData.players.Where(p => !p.isBarbarians && !p.isHuman).Take(2).ToArray();
+		us = civs[0];
+		them = civs[1];
+	}
+
+	private UnitPrototype Prototype(string name) {
+		return gameData.unitPrototypes.Single(p => p.name == name);
+	}
+
+	private static bool IsEmptyLand(Tile t) {
+		return t.IsLand() && t.unitsOnTile.Count == 0 && !t.HasCity() && !t.hasBarbarianCamp && !t.IsImpassable();
+	}
+
+	// ---- Workers ----
+
+	// Each worker's points a turn are rounded down, never below one.
+	[Fact]
+	public void WorkerPointsAreWholeNumbersRoundedDown() {
+		Tile tile = gameData.map.tiles.First(IsEmptyLand);
+		MapUnit slave = gameData.SpawnUnit(us, Prototype("Worker"), tile);
+		slave.nationality = them.civilization;
+		Assert.True(slave.IsCaptive());
+		us.civilization.traits.Add(Civilization.Trait.Industrious);
+		us.government.workerRate = 2;
+
+		// 2 x 1.5 x 0.5 = 1.5, rounded down.
+		Assert.Equal(1f, slave.workerSpeed());
+
+		// Democracy: 3 x 1.5 = 4.5 for a native worker.
+		MapUnit worker = gameData.SpawnUnit(us, Prototype("Worker"), tile);
+		us.government.workerRate = 3;
+		Assert.Equal(4f, worker.workerSpeed());
+
+		// Anarchy: a slave's 0.5 (without the trait) is raised to one.
+		us.civilization.traits.Remove(Civilization.Trait.Industrious);
+		us.government.workerRate = 1;
+		Assert.Equal(1f, slave.workerSpeed());
+
+		// After Replaceable Parts an Industrious civ's slave makes 3.
+		us.civilization.traits.Add(Civilization.Trait.Industrious);
+		us.government.workerRate = 2;
+		Tech tech = gameData.techs.First(t => !us.knownTechs.Contains(t.id));
+		tech.DoublesWorkerRate = true;
+		us.knownTechs.Add(tech.id);
+		Assert.Equal(3f, slave.workerSpeed());
+	}
+}
