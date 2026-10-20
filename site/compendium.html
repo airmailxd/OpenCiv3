@@ -7967,59 +7967,65 @@ to the golden-age section.</li>
 	<section id="engine">
 	<h2>Appendix: where the game still differs</h2>
 <p>Each compendium section was compared with the engine code. The sourced discrepancies were fixed, with a
-test each and the source quoted in a code comment (commits <code>812b79d6</code> to <code>8dd1c95c</code>). This file lists
-what is still open.</p>
-<h3 id="engine-waiting-on-the-project-owner">Waiting on the project owner</h3>
+test each and the source quoted in a code comment. This file lists what the owner ruled on afterwards
+and what is still open.</p>
+<h3 id="engine-owners-rulings-2026-10-20-now-in-the-code">Owner's rulings (2026-10-20), now in the code</h3>
 <ol>
-<li><strong>Industrious city-tile shield.</strong> The Civilopedia (<code>GCON_Strengths</code>) says &quot;the center city square of all
-cities produces extra shields in cities and metros&quot;. civ-wiki.de (Stadtfeldertrag), which the code
-cites, gives the extra shield only at size 13 and up. The code keeps metropolises only.</li>
-<li><strong>Resource depletion.</strong> The C3C editor help says the chance &quot;is not influenced by use; a resource can
-disappear even if a civilization has never used the resource&quot;. The code lets only resources in use run
-out, following CFC tests (<code>ResourceDepletion.cs</code>).</li>
-<li><strong>Pop-rush rounding.</strong> The code rounds to the nearest citizen (owner's decision). DBear's CFC post says
-one citizen &quot;per 20 shields or fraction thereof&quot;, which rounds up.</li>
-<li><strong>AI luxury slider.</strong> Ision (CFC 92917) says the Civ3 AI &quot;will NOT use the luxury slider&quot;. The AI here
-raises it to 50% when most cities are unhappy. This is an AI heuristic, so changing it needs an AI trial.</li>
-<li><strong>AI government changes at war.</strong> Players report the Civ3 AI moving to Monarchy or Communism during
-long wars (chiefpaco, hedged). <code>GovernmentAI</code> never switches while at war, except out of Despotism.</li>
-<li><strong>Techs across eras.</strong> Quintillus says trades and the Great Library cross eras. The code offers only
-techs of the current era or earlier.</li>
+<li><strong>Industrious city tile:</strong> follows the Civilopedia, so the extra shield applies in cities and
+metropolises.</li>
+<li><strong>Resource depletion:</strong> left as it is, so only resources in use run out.</li>
+<li><strong>Pop rush:</strong> follows Civ3's text. Each sacrificed citizen produces 20 shields, and enough are taken
+to finish the item (the count rounds up).</li>
+<li><strong>AI luxury slider:</strong> tried in paired AI trials. AIs that never used it scored lower, with more
+disorder, so the AI keeps the slider. The <code>no-ai-luxury</code> switch remains in <code>AiExperiments</code>.</li>
+<li><strong>AI government changes at war:</strong> the AI may revolt mid-war when war weariness or a long war presses
+it, favouring governments without war weariness. This is the default now; trials were within noise.</li>
+<li><strong>Great Library:</strong> one pass in editor order, with no era limit. A captured Library can take its new
+owner past Education, as far as the other civs have gone.</li>
+<li><strong>Foreign citizens:</strong> they never assimilate, but a starving city loses them first.</li>
+<li><strong>AI gold per turn:</strong> an AI never pays gold per turn beyond its surplus. Under Despotism it puts its
+surplus into research.</li>
 </ol>
-<h3 id="engine-skipped-sources-too-thin">Skipped: sources too thin</h3>
+<h3 id="engine-also-done">Also done</h3>
 <ul>
-<li>The AI-human trade markup table (TheNiceOne) is only summarized in the compendium, with no Demigod or
-Sid rows, and the tech price function is UNVERIFIED.</li>
-<li>Rate of fire against buildings, citizens and improvements: no source says how shots pick targets.</li>
-<li>Hut and camp messages in Civ3's wording: the engine has no barbarian tribe names yet.</li>
+<li><strong>Small fixes:</strong>
+<ul>
+<li>AI start units are granted on the first turn the AI has a city.</li>
+<li>The 8×8 resistance table now comes from the BIQ.</li>
+<li>Hoover Dam and the Hydro Plant need a river anywhere in the city radius.</li>
+<li>Iron Works needs Iron and Coal in its radius. The BIQ improvement flag for this was not being read.</li>
+<li>A build finishing next turn can't be switched to a wonder.</li>
+<li>Units join an army only in the city that made it.</li>
 </ul>
-<h3 id="engine-small-fixes-not-yet-done">Small fixes not yet done</h3>
+</li>
+<li><strong>Previously skipped items:</strong>
 <ul>
-<li>An AI that doesn't found its capital on turn 1 never gets its difficulty start units
-(<code>Player.MaybeSpawnBonusUnits</code>). The fix needs a saved &quot;units given&quot; flag.</li>
-<li>The resistance government modifier covers 6 governments from a CFC article. The BIQ has a full 8×8
-<code>ResistanceModifier</code> table that also covers Feudalism and Fascism.</li>
-<li>Hoover Dam needs a river at the city tile; the Civilopedia says within the city radius. Iron Works
-accepts Iron and Coal from anywhere, not just the city radius. Check the BIQ flag bit first
-(<code>QueryCiv3/BiqSections/Bldg.cs</code>).</li>
-<li>The Great Library grants a whole prerequisite chain in one turn. justanick says it makes one pass in
-editor order.</li>
-<li>A city with one turn left on its build can still switch to a wonder (Travathian says it can't).</li>
-<li>Units can join an army in any of the owner's cities; README-V says only the city where it was built.
-Restricting that needs a saved origin city.</li>
+<li>TheNiceOne's AI–human trade markup by difficulty, aggression and attitude. Demigod and Sid are
+extrapolated (UNVERIFIED).</li>
+<li>Rate of fire against cities, walls and improvements. Precision strikes still fire one shot
+(UNVERIFIED).</li>
+<li>Hut and camp messages use Civ3's script.txt wording, with tribe names from the barbarian list.</li>
 </ul>
-<h3 id="engine-not-implemented-sourced-civ3-features">Not implemented (sourced Civ3 features)</h3>
+</li>
+<li><strong>Missing features:</strong>
 <ul>
-<li><strong>Citizens and governments:</strong> assimilation of foreign citizens (BIQ <code>AssimilationChance</code>, 1–4% a turn by
-government); Fascism's Forced Resettlement and Xenophobic flags; riots destroying improvements in
-disorder (<code>ChanceOfRioting</code>); prolonged disorder overthrowing the government; mobilization; global
-warming.</li>
-<li><strong>Map and combat:</strong> bombardment making craters; plague; barricades blocking movement; colonies overrun
-by barbarians.</li>
-<li><strong>Espionage and diplomacy:</strong> the &quot;carefully&quot; and &quot;safely&quot; espionage levels; AI sabotage and propaganda
-missions; AI loans.</li>
-<li><strong>Attitude:</strong> many smaller terms (broken alliances, razing, a common enemy, culture-flip offers,
-territory warnings).</li>
+<li>Fascism's Forced Resettlement and Xenophobic rules.</li>
+<li>Riots: a city kept in disorder may lose an improvement.</li>
+</ul>
+</li>
+<li><strong>Sea trade:</strong> the deal screen greys out resources when no trade route links the two capitals.</li>
+</ul>
+<h3 id="engine-still-open">Still open</h3>
+<ul>
+<li><strong>Fascism conquest losses.</strong> The Civilopedia says a Fascist civ's &quot;Newly conquered cities also lose
+population&quot;, but gives no amount.</li>
+<li><strong>Riot target.</strong> Which improvement a riot destroys is unsourced. One is picked at random, never a wonder
+or the palace.</li>
+<li><strong>Long disorder.</strong> Long disorder overthrowing the government is not implemented.</li>
+<li><strong>Map and combat:</strong> global warming, mobilization, bombardment making craters, plague, barricades
+blocking movement, and colonies overrun by barbarians.</li>
+<li><strong>Espionage and diplomacy:</strong> the &quot;carefully&quot; and &quot;safely&quot; spy missions, AI sabotage and propaganda, AI
+loans, and the smaller attitude terms.</li>
 </ul>
 
 	<p class="top"><a href="#top">Back to the top</a></p>
