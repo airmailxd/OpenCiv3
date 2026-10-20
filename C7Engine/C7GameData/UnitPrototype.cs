@@ -29,6 +29,8 @@ namespace C7GameData {
 		BuildArmy,
 		// A great leader finishes a city's improvement.
 		HurryBuilding,
+		// A scientific leader starts an Age of Science.
+		ScienceAge,
 		// Air missions (the BIQ's PRTO air missions; see MapUnit_Air.cs).
 		Bombing,
 		Recon,

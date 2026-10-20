@@ -1439,6 +1439,9 @@ namespace C7GameData {
 			if (CanOfferHurryProduction()) {
 				result.Add(UnitAction.HurryBuilding);
 			}
+			if (CanStartScienceAge()) {
+				result.Add(UnitAction.ScienceAge);
+			}
 			AddAvailableAirMissions(result);
 
 			// Eventually we will have advanced actions too, whose availability will rely on their base actions' availability.

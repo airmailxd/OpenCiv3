@@ -3,7 +3,7 @@
 The standalone asset pack's Art/interface/NormButtons.png has blank buttons
 where Civ3's has Build Outpost, Build Colony, Build Airfield, Build Radar
 Tower, Airlift, Sentry, Sentry (enemy only), Load, Unload, Build Army, Hurry
-Building, Upgrade and Build Barricade. Each of these is drawn as a
+Building, Increase Scientific Output, Upgrade and Build Barricade. Each of these is drawn as a
 file of its own, Art/interface/<order>.png in C7/ModernArt: the normal, hover
 and pressed buttons side by side, each 64x64 (twice Civ3's 32x32 button, as
 all the remade art is). C7/Lua/standalone/textures.lua points the orders'
@@ -203,6 +203,18 @@ def hurry_building_glyph(draw):
     draw.polygon([(32 * u, 10 * u), (40 * u, 4 * u), (50 * u, 15 * u), (42 * u, 21 * u)], fill=GLYPH)
 
 
+def science_age_glyph(draw):
+    """A laboratory flask with bubbles rising from it, for Increase
+    Scientific Output."""
+    u = S / 64
+    # the neck, then the body widening to a flat base
+    draw.rectangle([27 * u, 14 * u, 37 * u, 28 * u], fill=GLYPH)
+    draw.rectangle([24 * u, 12 * u, 40 * u, 16 * u], fill=GLYPH)
+    draw.polygon([(27 * u, 27 * u), (37 * u, 27 * u), (52 * u, 52 * u), (12 * u, 52 * u)], fill=GLYPH)
+    for x, y, r in ((30, 8, 2), (38, 4, 2.5), (24, 3, 1.5)):
+        draw.ellipse([(x - r) * u, (y - r) * u, (x + r) * u, (y + r) * u], fill=GLYPH)
+
+
 def upgrade_glyph(draw):
     """A bolt of lightning, as on Civ3's Upgrade button."""
     u = S / 64
@@ -258,6 +270,7 @@ if __name__ == '__main__':
     build('unit_unload', unload_glyph)
     build('unit_build_army', build_army_glyph)
     build('unit_hurry_building', hurry_building_glyph)
+    build('unit_science_age', science_age_glyph)
     build('unit_upgrade', upgrade_glyph)
     build('unit_build_barricade', barricade_glyph)
     air_missions.main()

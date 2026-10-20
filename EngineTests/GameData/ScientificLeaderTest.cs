@@ -334,4 +334,47 @@ public class ScientificLeaderTest : IClassFixture<SaveGameFixture> {
 		Assert.False(PlayerAI.UseLeaderInCity(leader, us));
 		Assert.Contains(leader, gameData.mapUnits);
 	}
+
+	// "Simply move the scientific leader to your capital and press the
+	// "Increase Scientific Output" button" / "When the leader does either of
+	// these actions he disappears" (Conquests Civilopedia, GCON_Leaders); an
+	// Age of Science is "a 20-turn period" (GCON_Age_of_Science).
+	[Fact]
+	public void InTheCapitalItStartsAnAgeOfScience() {
+		Assert.True(capital.IsCapital());
+		City other = BuildCity(us);
+		MapUnit elsewhere = SpawnScientificLeader(other.location);
+		Assert.DoesNotContain(UnitAction.ScienceAge, elsewhere.GetAvailableActions());
+		Assert.False(elsewhere.StartScienceAge());
+
+		MapUnit leader = SpawnScientificLeader(capital.location);
+		Assert.Contains(UnitAction.ScienceAge, leader.GetAvailableActions());
+		Assert.True(leader.StartScienceAge());
+
+		Assert.DoesNotContain(leader, gameData.mapUnits);
+		Assert.Equal(Player.ScienceAgeTurns, us.scienceAgeTurnsRemaining);
+		// One at a time.
+		Assert.DoesNotContain(UnitAction.ScienceAge, SpawnScientificLeader(capital.location).GetAvailableActions());
+
+		C7GameData.GameData loaded = SaveGame.FromGameData(gameData).ToGameData(fixture.behaviors);
+		Assert.Equal(Player.ScienceAgeTurns, loaded.players.Single(p => p.id == us.id).scienceAgeTurnsRemaining);
+
+		for (int i = 0; i < Player.ScienceAgeTurns; i++) {
+			Assert.True(us.InScienceAge);
+			us.AdvanceGoldenAge();
+		}
+		Assert.False(us.InScienceAge);
+	}
+
+	// The age's research is "25% more productive" (GCON_Age_of_Science),
+	// the intended "_Total_Bulbs = (_Total_Bulbs * 1.25);" that the shipped
+	// 1.22 executable leaves out (Antal1987,
+	// https://forums.civfanatics.com/threads/patch-framework-for-c3c-v1-22.526966/).
+	[Fact]
+	public void AnAgeOfScienceAddsAQuarterToResearch() {
+		Assert.Equal(100, us.WithScienceAgeBonus(100));
+		us.scienceAgeTurnsRemaining = 5;
+		Assert.Equal(125, us.WithScienceAgeBonus(100));
+		Assert.Equal(12, us.WithScienceAgeBonus(10));
+	}
 }

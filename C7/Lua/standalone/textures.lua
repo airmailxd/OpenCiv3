@@ -133,6 +133,7 @@ local c7_texture_list = {
   "Art/interface/unit_unload.png",
   "Art/interface/unit_build_army.png",
   "Art/interface/unit_hurry_building.png",
+  "Art/interface/unit_science_age.png",
   "Art/interface/unit_upgrade.png",
   "Art/interface/unit_build_barricade.png",
   "Art/Cities/CityBuildingIcons.png"
@@ -325,7 +326,7 @@ return function(civ3_textures)
   -- The asset pack's NormButtons.png has blank buttons where Civ3's has
   -- Build Outpost, Build Colony, Build Airfield, Build Radar Tower,
   -- Airlift, Sentry, Sentry (enemy only), Load, Unload, Build Army, Hurry
-  -- Building, Upgrade and Build Barricade, so those have buttons of their own
+  -- Building, Increase Scientific Output, Upgrade and Build Barricade, so those have buttons of their own
   -- (C7/ModernArt/Art/interface/<order>.png, made by
   -- ArtGen/ui_buttons/build.py): the normal, hover and pressed buttons side
   -- by side.
@@ -348,6 +349,7 @@ return function(civ3_textures)
   c7_textures.ui.unit_control.unit_unload = own_button("unit_unload")
   c7_textures.ui.unit_control.unit_build_army = own_button("unit_build_army")
   c7_textures.ui.unit_control.unit_hurry_building = own_button("unit_hurry_building")
+  c7_textures.ui.unit_control.unit_science_age = own_button("unit_science_age")
   c7_textures.ui.unit_control.unit_upgrade = own_button("unit_upgrade")
   c7_textures.ui.unit_control.unit_build_barricade = own_button("unit_build_barricade")
 

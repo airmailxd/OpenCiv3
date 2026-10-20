@@ -2965,6 +2965,10 @@ public partial class Game : Node {
 			new MsgUnitCommand(CurrentlySelectedUnit.id, MsgUnitCommand.Command.FormArmy).send();
 		}
 
+		if (currentAction == C7Action.UnitScienceAge && CurrentlySelectedUnit.CanStartScienceAge()) {
+			new MsgUnitCommand(CurrentlySelectedUnit.id, MsgUnitCommand.Command.StartScienceAge).send();
+		}
+
 		if (currentAction == C7Action.UnitHurryBuilding && CurrentlySelectedUnit.CanOfferHurryProduction()) {
 			string blocker = CurrentlySelectedUnit.HurryProductionBlocker();
 			if (blocker == null) {
