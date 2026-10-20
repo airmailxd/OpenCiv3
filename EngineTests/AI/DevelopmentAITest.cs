@@ -32,38 +32,26 @@ public sealed class DevelopmentAITest : IClassFixture<SaveGameFixture>, IDisposa
 
 	private Building BuildingNamed(string name) => gameData.Buildings.First(b => b.name == name);
 
-	private static HashSet<Tech> UnknownPathTo(Player p, Tech goal) {
-		HashSet<Tech> result = new();
-		void Collect(Tech t) {
-			if (p.knownTechs.Contains(t.id) || !result.Add(t)) {
-				return;
+	[Fact]
+	public void UnitsAreWorthWhatTheyAreToTheCiv() {
+		Civilization own = player.civilization;
+		try {
+			double ValueFor(string civ, string tech) {
+				player.civilization = gameData.civilizations.First(c => c.name == civ);
+				return DevelopmentAI.TechValue(gameData, player, TechNamed(tech), player.BeakersPerTurn());
 			}
-			foreach (Tech pre in t.Prerequisites) {
-				Collect(pre);
-			}
+			Assert.Equal(70, ValueFor("Rome", "Iron Working") - ValueFor("Egypt", "Iron Working"), 6);
+			// The Impi is both an attacker and a defender.
+			Assert.Equal(134, ValueFor("Zululand", "Bronze Working") - ValueFor("Egypt", "Bronze Working"), 6);
+		} finally {
+			player.civilization = own;
 		}
-		Collect(goal);
-		return result;
 	}
 
 	[Fact]
-	public void ResearchHeadsForMonarchy() {
-		player.SetCurrentlyResearchedTech(null);
-		HashSet<Tech> path = UnknownPathTo(player, TechNamed("Monarchy"));
-		Assert.NotEmpty(path);
-
-		PlayerAI.MaybePickTechToResearch(player, gameData.techs);
-
-		Tech chosen = Tech.FindById(gameData.techs, player.currentlyResearchedTech);
-		Assert.Contains(chosen, path);
-	}
-
-	[Fact]
-	public void ResearchFallsBackOnceTheGoalIsKnown() {
-		foreach (Tech t in UnknownPathTo(player, TechNamed("Monarchy"))) {
-			player.knownTechs.Add(t.id);
-		}
-		Assert.Null(DevelopmentAI.ChooseResearch(player, gameData.techs, player.GetAvailableTechsToResearch(gameData.techs)));
+	public void Civ3ResearchPicksAnAvailableTech() {
+		List<Tech> available = player.GetAvailableTechsToResearch(gameData.techs).ToList();
+		Assert.Contains(DevelopmentAI.ChooseResearchAsCiv3(player, available), available);
 	}
 
 	private void StartTemple(int shields) {

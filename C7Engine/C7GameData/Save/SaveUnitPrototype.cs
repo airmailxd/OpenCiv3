@@ -73,6 +73,13 @@ namespace C7GameData.Save {
 			// Regicide (the BIQ's PRTO "King" flag; see
 			// InstantElimination).
 			King,
+			// The BIQ's AI strategies for the unit (PRTO "AI Strategy"),
+			// those the AI's research choice looks at (see
+			// DevelopmentAI.ChooseResearch). Civ3 repeats a unit in the BIQ
+			// for each extra strategy; the import joins them.
+			AIOffense,
+			AIDefense,
+			AINavalTransport,
 		}
 
 		public string name { get; set; }

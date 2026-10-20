@@ -1271,7 +1271,8 @@
       "unproducible": false,
       "flags": [
         "amphibious",
-        "footSoldier"
+        "footSoldier",
+        "aiOffense"
       ],
       "categories": [
         "Land"
@@ -1357,7 +1358,8 @@
       "unproducible": false,
       "flags": [
         "zoneOfControl",
-        "footSoldier"
+        "footSoldier",
+        "aiOffense"
       ],
       "categories": [
         "Land"
@@ -1449,7 +1451,8 @@
       ],
       "unproducible": false,
       "flags": [
-        "footSoldier"
+        "footSoldier",
+        "aiOffense"
       ],
       "categories": [
         "Land"
@@ -1534,7 +1537,8 @@
       ],
       "unproducible": false,
       "flags": [
-        "footSoldier"
+        "footSoldier",
+        "aiOffense"
       ],
       "categories": [
         "Land"
@@ -1618,7 +1622,8 @@
       "unproducible": false,
       "flags": [
         "footSoldier",
-        "draftable"
+        "draftable",
+        "aiDefense"
       ],
       "categories": [
         "Land"
@@ -1701,7 +1706,8 @@
       ],
       "unproducible": false,
       "flags": [
-        "footSoldier"
+        "footSoldier",
+        "aiOffense"
       ],
       "categories": [
         "Land"
@@ -1789,7 +1795,8 @@
       ],
       "unproducible": false,
       "flags": [
-        "wheeled"
+        "wheeled",
+        "aiOffense"
       ],
       "categories": [
         "Land"
@@ -1883,6 +1890,9 @@
         "War Elephant"
       ],
       "unproducible": false,
+      "flags": [
+        "aiOffense"
+      ],
       "categories": [
         "Land"
       ],
@@ -1969,7 +1979,8 @@
       "unproducible": false,
       "flags": [
         "footSoldier",
-        "draftable"
+        "draftable",
+        "aiDefense"
       ],
       "categories": [
         "Land"
@@ -2057,7 +2068,8 @@
       ],
       "unproducible": false,
       "flags": [
-        "footSoldier"
+        "footSoldier",
+        "aiOffense"
       ],
       "categories": [
         "Land"
@@ -2144,7 +2156,8 @@
       "unproducible": false,
       "flags": [
         "footSoldier",
-        "draftable"
+        "draftable",
+        "aiDefense"
       ],
       "categories": [
         "Land"
@@ -2229,6 +2242,9 @@
         "Sipahi"
       ],
       "unproducible": false,
+      "flags": [
+        "aiOffense"
+      ],
       "categories": [
         "Land"
       ],
@@ -2318,7 +2334,9 @@
       "unproducible": false,
       "flags": [
         "footSoldier",
-        "draftable"
+        "draftable",
+        "aiOffense",
+        "aiDefense"
       ],
       "categories": [
         "Land"
@@ -2399,7 +2417,8 @@
       ],
       "unproducible": false,
       "flags": [
-        "zoneOfControl"
+        "zoneOfControl",
+        "aiOffense"
       ],
       "categories": [
         "Land"
@@ -2490,7 +2509,9 @@
       "unproducible": false,
       "flags": [
         "footSoldier",
-        "draftable"
+        "draftable",
+        "aiOffense",
+        "aiDefense"
       ],
       "categories": [
         "Land"
@@ -2579,7 +2600,8 @@
       "unproducible": false,
       "flags": [
         "blitz",
-        "zoneOfControl"
+        "zoneOfControl",
+        "aiOffense"
       ],
       "categories": [
         "Land"
@@ -2667,7 +2689,9 @@
       "unproducible": false,
       "flags": [
         "zoneOfControl",
-        "draftable"
+        "draftable",
+        "aiOffense",
+        "aiDefense"
       ],
       "categories": [
         "Land"
@@ -2754,7 +2778,8 @@
       "unproducible": false,
       "flags": [
         "blitz",
-        "zoneOfControl"
+        "zoneOfControl",
+        "aiOffense"
       ],
       "categories": [
         "Land"
@@ -3444,7 +3469,8 @@
       "flags": [
         "rotateBeforeAttack",
         "sinksInSea",
-        "sinksInOcean"
+        "sinksInOcean",
+        "aiNavalTransport"
       ],
       "categories": [
         "Sea"
@@ -3528,7 +3554,8 @@
       "unproducible": false,
       "flags": [
         "rotateBeforeAttack",
-        "sinksInOcean"
+        "sinksInOcean",
+        "aiNavalTransport"
       ],
       "categories": [
         "Sea"
@@ -3695,7 +3722,8 @@
       ],
       "unproducible": false,
       "flags": [
-        "rotateBeforeAttack"
+        "rotateBeforeAttack",
+        "aiNavalTransport"
       ],
       "categories": [
         "Sea"
@@ -3860,6 +3888,9 @@
         "Maya"
       ],
       "unproducible": false,
+      "flags": [
+        "aiNavalTransport"
+      ],
       "categories": [
         "Sea"
       ],
@@ -5362,7 +5393,8 @@
       "unproducible": false,
       "flags": [
         "startsGoldenAge",
-        "footSoldier"
+        "footSoldier",
+        "aiOffense"
       ],
       "categories": [
         "Land"
@@ -5419,7 +5451,8 @@
       "unproducible": false,
       "flags": [
         "startsGoldenAge",
-        "footSoldier"
+        "footSoldier",
+        "aiOffense"
       ],
       "categories": [
         "Land"
@@ -5476,7 +5509,8 @@
       "unproducible": false,
       "flags": [
         "startsGoldenAge",
-        "footSoldier"
+        "footSoldier",
+        "aiDefense"
       ],
       "categories": [
         "Land"
@@ -5533,7 +5567,9 @@
       "unproducible": false,
       "flags": [
         "startsGoldenAge",
-        "footSoldier"
+        "footSoldier",
+        "aiOffense",
+        "aiDefense"
       ],
       "categories": [
         "Land"
@@ -5590,7 +5626,9 @@
       "unproducible": false,
       "flags": [
         "startsGoldenAge",
-        "footSoldier"
+        "footSoldier",
+        "aiOffense",
+        "aiDefense"
       ],
       "categories": [
         "Land"
@@ -5650,7 +5688,8 @@
       "unproducible": false,
       "flags": [
         "startsGoldenAge",
-        "footSoldier"
+        "footSoldier",
+        "aiOffense"
       ],
       "categories": [
         "Land"
@@ -5710,7 +5749,8 @@
       "unproducible": false,
       "flags": [
         "startsGoldenAge",
-        "wheeled"
+        "wheeled",
+        "aiOffense"
       ],
       "categories": [
         "Land"
@@ -5769,7 +5809,8 @@
       ],
       "unproducible": false,
       "flags": [
-        "startsGoldenAge"
+        "startsGoldenAge",
+        "aiOffense"
       ],
       "categories": [
         "Land"
@@ -5829,7 +5870,8 @@
       ],
       "unproducible": false,
       "flags": [
-        "startsGoldenAge"
+        "startsGoldenAge",
+        "aiOffense"
       ],
       "categories": [
         "Land"
@@ -5889,7 +5931,9 @@
       "unproducible": false,
       "flags": [
         "startsGoldenAge",
-        "footSoldier"
+        "footSoldier",
+        "aiOffense",
+        "aiDefense"
       ],
       "categories": [
         "Land"
@@ -5949,7 +5993,9 @@
       "unproducible": false,
       "flags": [
         "startsGoldenAge",
-        "footSoldier"
+        "footSoldier",
+        "aiOffense",
+        "aiDefense"
       ],
       "categories": [
         "Land"
@@ -6008,7 +6054,8 @@
       ],
       "unproducible": false,
       "flags": [
-        "startsGoldenAge"
+        "startsGoldenAge",
+        "aiOffense"
       ],
       "categories": [
         "Land"
@@ -6063,7 +6110,8 @@
       "flags": [
         "blitz",
         "zoneOfControl",
-        "startsGoldenAge"
+        "startsGoldenAge",
+        "aiOffense"
       ],
       "categories": [
         "Land"
@@ -6124,7 +6172,8 @@
       "flags": [
         "blitz",
         "zoneOfControl",
-        "startsGoldenAge"
+        "startsGoldenAge",
+        "aiOffense"
       ],
       "categories": [
         "Land"
@@ -6480,7 +6529,8 @@
       "unproducible": false,
       "flags": [
         "zoneOfControl",
-        "startsGoldenAge"
+        "startsGoldenAge",
+        "aiOffense"
       ],
       "categories": [
         "Land"
@@ -6538,7 +6588,8 @@
       "flags": [
         "zoneOfControl",
         "startsGoldenAge",
-        "allTerrainAsRoads"
+        "allTerrainAsRoads",
+        "aiOffense"
       ],
       "categories": [
         "Land"
@@ -6599,7 +6650,8 @@
       "flags": [
         "amphibious",
         "startsGoldenAge",
-        "footSoldier"
+        "footSoldier",
+        "aiOffense"
       ],
       "categories": [
         "Land"
@@ -6653,7 +6705,8 @@
       "unproducible": false,
       "flags": [
         "zoneOfControl",
-        "startsGoldenAge"
+        "startsGoldenAge",
+        "aiOffense"
       ],
       "categories": [
         "Land"
@@ -6714,7 +6767,8 @@
       "unproducible": false,
       "flags": [
         "startsGoldenAge",
-        "footSoldier"
+        "footSoldier",
+        "aiOffense"
       ],
       "categories": [
         "Land"
@@ -6773,7 +6827,8 @@
       ],
       "unproducible": false,
       "flags": [
-        "startsGoldenAge"
+        "startsGoldenAge",
+        "aiOffense"
       ],
       "categories": [
         "Land"
@@ -6835,7 +6890,9 @@
       "flags": [
         "startsGoldenAge",
         "footSoldier",
-        "draftable"
+        "draftable",
+        "aiOffense",
+        "aiDefense"
       ],
       "categories": [
         "Land"
@@ -6982,7 +7039,8 @@
       "unproducible": false,
       "flags": [
         "footSoldier",
-        "draftable"
+        "draftable",
+        "aiOffense"
       ],
       "categories": [
         "Land"
@@ -7072,7 +7130,9 @@
       "unproducible": false,
       "flags": [
         "footSoldier",
-        "draftable"
+        "draftable",
+        "aiOffense",
+        "aiDefense"
       ],
       "categories": [
         "Land"
@@ -8250,7 +8310,8 @@
       "unproducible": false,
       "flags": [
         "startsGoldenAge",
-        "footSoldier"
+        "footSoldier",
+        "aiDefense"
       ],
       "categories": [
         "Land"
@@ -8307,7 +8368,8 @@
       "unproducible": false,
       "flags": [
         "startsGoldenAge",
-        "wheeled"
+        "wheeled",
+        "aiOffense"
       ],
       "categories": [
         "Land"
@@ -8502,7 +8564,8 @@
       "unproducible": false,
       "flags": [
         "rotateBeforeAttack",
-        "startsGoldenAge"
+        "startsGoldenAge",
+        "aiNavalTransport"
       ],
       "categories": [
         "Sea"
@@ -8558,7 +8621,8 @@
       "flags": [
         "startsGoldenAge",
         "footSoldier",
-        "draftable"
+        "draftable",
+        "aiDefense"
       ],
       "categories": [
         "Land"
@@ -8882,7 +8946,8 @@
       "unproducible": false,
       "flags": [
         "startsGoldenAge",
-        "footSoldier"
+        "footSoldier",
+        "aiOffense"
       ],
       "categories": [
         "Land"
@@ -8940,7 +9005,9 @@
       "enslavesTo": "Worker",
       "flags": [
         "startsGoldenAge",
-        "footSoldier"
+        "footSoldier",
+        "aiOffense",
+        "aiDefense"
       ],
       "categories": [
         "Land"
@@ -8999,7 +9066,8 @@
         "lethalSeaBombardment",
         "startsGoldenAge",
         "sinksInSea",
-        "sinksInOcean"
+        "sinksInOcean",
+        "aiNavalTransport"
       ],
       "categories": [
         "Sea"
@@ -9134,7 +9202,8 @@
       "workerStrength": 1,
       "unproducible": true,
       "flags": [
-        "footSoldier"
+        "footSoldier",
+        "aiOffense"
       ],
       "categories": [
         "Land"
@@ -9184,6 +9253,9 @@
       "airDefense": 0,
       "workerStrength": 1,
       "unproducible": true,
+      "flags": [
+        "aiOffense"
+      ],
       "categories": [
         "Land"
       ],
@@ -9354,7 +9426,8 @@
       "unproducible": false,
       "flags": [
         "zoneOfControl",
-        "footSoldier"
+        "footSoldier",
+        "aiOffense"
       ],
       "categories": [
         "Land"
@@ -9443,7 +9516,9 @@
       "unproducible": false,
       "flags": [
         "footSoldier",
-        "draftable"
+        "draftable",
+        "aiOffense",
+        "aiDefense"
       ],
       "categories": [
         "Land"
@@ -9527,6 +9602,9 @@
         "Mobile SAM"
       ],
       "unproducible": false,
+      "flags": [
+        "aiDefense"
+      ],
       "categories": [
         "Land"
       ],
@@ -9606,6 +9684,9 @@
         "Maya"
       ],
       "unproducible": false,
+      "flags": [
+        "aiDefense"
+      ],
       "categories": [
         "Land"
       ],

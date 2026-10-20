@@ -88,6 +88,17 @@ public class CultureFlipTest : IClassFixture<SaveGameFixture>, IDisposable {
 		Assert.Equal(Math.Clamp(expected, 0, 1), chance.probability, 6);
 	}
 
+	// Soren Johnson: each civ that might take the city has its own roll,
+	// with its own nationals.
+	[Fact]
+	public void OnlyTheOtherCivsOwnNationalsCount() {
+		(_, _, City city) = Setup();
+		Civilization third = gameData.players.First(p => !p.isBarbarians && p != us && p != them).civilization;
+		int theirs = CultureFlip.ChanceOfFlippingTo(gameData, city, them).foreigners;
+		AddResidents(city, third, 3);
+		Assert.Equal(theirs, CultureFlip.ChanceOfFlippingTo(gameData, city, them).foreigners);
+	}
+
 	[Fact]
 	public void ResistersCountTwiceAndCelebrationsHalveTheChance() {
 		(_, _, City city) = Setup();

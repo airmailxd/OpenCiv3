@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using C7Engine.AI;
 using C7GameData;
 using Serilog;
 
@@ -19,7 +20,15 @@ namespace C7Engine {
 	// built on Firaxis' (Dan Magaha's) description of the rule in
 	// https://forums.civfanatics.com/threads/culture-flipping-exposed.14337/:
 	//  - F: "the number of foreign nationals in the city in question
-	//    (resisters are counted twice)".
+	//    (resisters are counted twice)", counting only the other civ's own:
+	//    Soren Johnson (Firaxis) worked his example per nationality ("if
+	//    there were four Greek squares in your radius and four Greek
+	//    citizens"), and each civ that might take the city has its own roll:
+	//    "the troops will count for each flip probability roll. In other
+	//    words, if the city has a Greek and French citizen (you being Roman),
+	//    one spearman could negate both the Greek and the French citizen"
+	//    (https://codehappy.net/apolyton/threads/51715-1.htm #30,
+	//    https://codehappy.net/apolyton/threads/51715-2.htm #36).
 	//  - T: "the number of the 21-tile city-radius squares of the city in
 	//    question that fall inside your [the other civ's] cultural borders".
 	//  - Cc: 2 if the other civ has more culture in the city than its owner,
@@ -67,11 +76,17 @@ namespace C7Engine {
 	//    made while each civ owned it: a turn's culture is added to its owner
 	//    at the time, the totals are kept when the city changes hands, and
 	//    they are saved (SaveCity.perPlayerCulture).
-	//  - UNVERIFIED: which civ a city flips to when several could take it.
-	//    Each civ's chance is worked out and the city may flip only to the
-	//    one with the best chance, with a single roll.
-	//  - UNVERIFIED: F counts every citizen not of the owner's nationality,
-	//    whichever civ they come from, as the calculators do.
+	//  - UNVERIFIED: the order of the rolls when several civs could take
+	//    the city. The likeliest civ rolls first, and the first roll that
+	//    succeeds takes the city.
+	//  - UNVERIFIED: where Cte / Cty goes. Soren confirmed that "the culture
+	//    ratio _always_ has an afffect on the chance of a flip, regardless of
+	//    the presence of troops" ("it is the latter...", 51715-2 #48), as
+	//    here, but his own worked example scales the garrison instead: with
+	//    16 influence, "Snoopy has 4 units and has twice as much total
+	//    culture as the Greeks. That would be 16 - (4 X 2) = 8" (51715-1
+	//    #30). Both reach no chance at the same garrison; they differ in how
+	//    far a civ with far more culture raises the chance.
 	//  - UNVERIFIED: a civ with no capital is taken to be as far as can be
 	//    from the city (d capped). Capitals aren't immune: no Civ3 source
 	//    says they are, but a capital's own distance of 0 caps d at 4, so
@@ -102,6 +117,9 @@ namespace C7Engine {
 			public int memoryFactor;
 			public double moodFactor;
 			public double cultureRatio;
+			// Cte and Cty, the civs' total culture.
+			public int otherCulture;
+			public int ownerCulture;
 			public int garrison;
 			public double distanceRatio;
 			public double probability;
@@ -115,15 +133,18 @@ namespace C7Engine {
 			}
 			RoundFacts facts = new();
 			foreach (City city in gameData.cities.ToList()) {
-				Chance chance = BestChance(gameData, city, facts);
-				if (chance == null || chance.probability <= 0) {
-					continue;
-				}
-				if (GameData.rng.NextDouble() < chance.probability) {
-					Flip(gameData, city, chance.to);
-					// The flip changes both civs' culture and may move
-					// their capitals.
-					facts = new();
+				// Each civ that might take the city rolls, the likeliest
+				// first.
+				foreach (Chance chance in Chances(gameData, city, facts).OrderByDescending(c => c.probability)) {
+					if (GameData.rng.NextDouble() < chance.probability) {
+						Player from = city.owner;
+						Flip(gameData, city, chance.to);
+						AiExperiments.onCultureFlip?.Invoke(city, from, chance);
+						// The flip changes both civs' culture and may move
+						// their capitals.
+						facts = new();
+						break;
+					}
 				}
 			}
 		}
@@ -151,18 +172,20 @@ namespace C7Engine {
 		// The civ the city is likeliest to flip to this interturn, with the
 		// chance, or null if it can't flip.
 		public static Chance BestChance(GameData gameData, City city) {
-			return BestChance(gameData, city, new RoundFacts());
+			return Chances(gameData, city, new RoundFacts()).MaxBy(c => c.probability);
 		}
 
-		private static Chance BestChance(GameData gameData, City city, RoundFacts facts) {
+		// The chance of each civ that might take the city this interturn,
+		// those above 0 only.
+		private static List<Chance> Chances(GameData gameData, City city, RoundFacts facts) {
+			List<Chance> result = new();
 			Player owner = city.owner;
 			if (owner == null || owner.isBarbarians || owner.defeated || city.ownerChangedTurn == gameData.turn) {
-				return null;
+				return result;
 			}
 
-			// The foreigners and the tiles each civ owns around the city,
-			// counted once for every civ.
-			int foreigners = Foreigners(city);
+			// The tiles each civ owns around the city, counted once for
+			// every civ.
 			Dictionary<Player, int> tilesOwned = facts.tilesOwned;
 			tilesOwned.Clear();
 			List<Tile> around = facts.tilesScratch;
@@ -176,24 +199,23 @@ namespace C7Engine {
 				}
 			}
 
-			Chance best = null;
 			foreach (Player other in gameData.players) {
 				if (other == owner || other.isBarbarians || other.defeated || other.cities.Count == 0) {
 					continue;
 				}
 				tilesOwned.TryGetValue(other, out int tiles);
-				// With no foreigners and none of the other civ's tiles
-				// around, its influence is nothing, so the chance is never
-				// above 0 and the civ can't be the best.
+				int foreigners = Foreigners(city, other);
+				// With none of the other civ's people or tiles, its
+				// influence is nothing, so the chance is never above 0.
 				if (foreigners + tiles == 0) {
 					continue;
 				}
 				Chance chance = ChanceOfFlippingTo(gameData, city, other, foreigners, tiles, facts);
-				if (chance.probability > 0 && (best == null || chance.probability > best.probability)) {
-					best = chance;
+				if (chance.probability > 0) {
+					result.Add(chance);
 				}
 			}
-			return best;
+			return result;
 		}
 
 		// The chance, from 0 to 1, that the city flips to the other civ this
@@ -205,7 +227,7 @@ namespace C7Engine {
 					++tiles;
 				}
 			}
-			return ChanceOfFlippingTo(gameData, city, other, Foreigners(city), tiles, new RoundFacts());
+			return ChanceOfFlippingTo(gameData, city, other, Foreigners(city, other), tiles, new RoundFacts());
 		}
 
 		// The radius of the city's tiles that count towards T.
@@ -213,13 +235,13 @@ namespace C7Engine {
 			return Math.Max(1, gameData.rules?.MaxRankOfWorkableTiles ?? 2);
 		}
 
-		// F: the citizens not of the owner's nationality, resisters twice.
-		private static int Foreigners(City city) {
+		// F: the citizens of the other civ's nationality, resisters twice.
+		private static int Foreigners(City city, Player other) {
 			int foreigners = 0;
 			int resistersFrom = city.residents.Count - Math.Clamp(city.resisters, 0, city.residents.Count);
 			for (int i = 0; i < city.residents.Count; ++i) {
 				Civilization nationality = city.residents[i].nationality;
-				if (nationality != null && nationality != city.owner.civilization) {
+				if (nationality != null && nationality == other.civilization && nationality != city.owner.civilization) {
 					// Resisters, the last ones in residents, count twice.
 					foreigners += i >= resistersFrom ? 2 : 1;
 				}
@@ -233,7 +255,9 @@ namespace C7Engine {
 
 			chance.memoryFactor = city.GetCultureFor(other) > city.GetCultureFor(owner) ? 2 : 1;
 			chance.moodFactor = city.isInCivilDisorder ? 2 : city.celebrating ? 0.5 : 1;
-			chance.cultureRatio = (double)facts.TotalCulture(other) / Math.Max(1, facts.TotalCulture(owner));
+			chance.otherCulture = facts.TotalCulture(other);
+			chance.ownerCulture = facts.TotalCulture(owner);
+			chance.cultureRatio = (double)chance.otherCulture / Math.Max(1, chance.ownerCulture);
 			chance.garrison = Garrison(city);
 			chance.distanceRatio = DistanceRatio(city, owner, other);
 

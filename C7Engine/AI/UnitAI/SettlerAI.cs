@@ -93,6 +93,17 @@ namespace C7Engine {
 				unit.movementPoints.onConsumeAll();
 				return C7GameData.UnitAI.Result.InProgress;
 			}
+			// An escort slowed by rough ground that has fallen further behind
+			// than we look for one is let go, and we go on alone (as a
+			// settler with no escort to hand does) rather than drawing it on
+			// across the map. (An AI heuristic.)
+			if (data.escort != null && data.escort.location.DistanceTo(unit.location) > ESCORT_SEARCH_DISTANCE) {
+				log.Information($"Settler {unit.id} leaves behind its escort {data.escort.id}");
+				if (data.escort.currentAI is EscortAI escortAi) {
+					escortAi.data.unitToEscort = null;
+				}
+				data.escort = null;
+			}
 			switch (data.goal) {
 				case SettlerAIData.SettlerGoal.BUILD_CITY:
 					// The site may have been spoiled on the way (a city

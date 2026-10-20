@@ -152,7 +152,9 @@ public class TechWonderTest {
 		us.DoGreatLibraryUpdates(gameData);
 
 		Assert.Contains(alphabet.id, us.knownTechs);
-		Assert.Equal(writing.id, us.currentlyResearchedTech);
+		// Research moves on to another tech (the AI's weighted pick).
+		Assert.NotNull(us.currentlyResearchedTech);
+		Assert.DoesNotContain(us.currentlyResearchedTech, us.knownTechs);
 	}
 
 	[Fact]
@@ -162,12 +164,16 @@ public class TechWonderTest {
 
 		List<Tech> learned = us.GrantFreeTechs(gameData, 2, "Theory of Evolution", us.cities[0]);
 
-		// Alphabet was being researched; Writing is the next (cheapest) pick.
+		// Alphabet was being researched; the second is the AI's next pick
+		// (a weighted roll, see DevelopmentAI.ChooseResearch), and research
+		// goes on with another.
 		Assert.Equal(2, learned.Count);
+		Assert.Equal(alphabet, learned[0]);
 		Assert.Contains(alphabet.id, us.knownTechs);
-		Assert.Contains(writing.id, us.knownTechs);
+		Assert.Contains(learned[1].id, us.knownTechs);
 		Assert.Equal(0, us.freeTechsRemaining);
-		Assert.Equal(pottery.id, us.currentlyResearchedTech);
+		Assert.NotNull(us.currentlyResearchedTech);
+		Assert.DoesNotContain(us.currentlyResearchedTech, us.knownTechs);
 	}
 
 	[Fact]

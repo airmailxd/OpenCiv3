@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using C7GameData;
+using C7GameData.Save;
 using Serilog;
 
 namespace C7Engine.AI {
@@ -123,40 +124,193 @@ namespace C7Engine.AI {
 		////////////////////////////////////////////////////////////////////
 		// Research
 
-		// Research heads for Monarchy, then picks the cheapest tech as
-		// before. Cheapest first left Monarchy, among the dearest ancient
-		// techs, until nearly all the others were known: the AI spent some
-		// 175 of its first 200 turns under Despotism's tile penalty. In AI
-		// trials (AiTrialTest), civs doing this had about 20% more score
-		// after 200 turns, along with the war campaigns and food first.
-		private static readonly string[] MonarchyGoals = ["Monarchy"];
-
-		// The tech to research next, or null to research as before.
+		// The tech to research next, as Civ3's AI picks it (below), or null
+		// with none to research. In AI trials (AiTrialTest, 8 paired games of
+		// 200 turns), against heading for Monarchy first and then taking the
+		// cheapest tech, civs scored +104 +- 112 on Continents and -108 +-
+		// 150 on Pangaea, knew 2-3 more techs halfway through, and spent
+		// some 30-45 more turns in Despotism.
 		public static Tech ChooseResearch(Player player, List<Tech> techs, IEnumerable<Tech> available) {
-			List<Tech> availableList = available.ToList();
-			foreach (string goalName in MonarchyGoals) {
-				Tech goal = techs.Find(t => t.Name == goalName);
-				if (goal == null || player.knownTechs.Contains(goal.id)) {
-					continue;
-				}
-				// The cheapest tech we can research now on the way to the goal.
-				HashSet<Tech> path = new();
-				CollectUnknownPrerequisites(player, goal, path);
-				Tech next = availableList.Where(path.Contains).OrderBy(t => t.Cost).FirstOrDefault();
-				if (next != null) {
-					return next;
-				}
-			}
-			return null;
+			return ChooseResearchAsCiv3(player, available.ToList());
 		}
 
-		private static void CollectUnknownPrerequisites(Player player, Tech tech, HashSet<Tech> result) {
-			if (player.knownTechs.Contains(tech.id) || !result.Add(tech)) {
-				return;
+		// Civ3's AI "places a value on each technology it can research
+		// next. The values depend on the various things allowed by each
+		// technology, as well as on the turns needed by that AI civ", and
+		// the values "weight the AI random choice": "techs with higher value
+		// were chosen more often" (alexman, who found the values by
+		// stripping the techs of their benefits and adding them back one by
+		// one: https://forums.civfanatics.com/threads/what-will-the-ai-research-next.45559/).
+		// UNVERIFIED: how the values weight the roll; here a tech's chance is
+		// in proportion to its value.
+		public static Tech ChooseResearchAsCiv3(Player player, List<Tech> available) {
+			if (available.Count == 0) {
+				return null;
 			}
-			foreach (Tech t in tech.Prerequisites) {
-				CollectUnknownPrerequisites(player, t, result);
+			GameData gameData = EngineStorage.gameData;
+			int beakers = player.BeakersPerTurn();
+			List<(Tech tech, double value)> values = available.Select(t => (t, TechValue(gameData, player, t, beakers))).ToList();
+			double total = values.Sum(v => v.value);
+			if (total <= 0) {
+				return null;
 			}
+			double roll = GameData.rng.NextDouble() * total;
+			foreach ((Tech tech, double value) in values) {
+				roll -= value;
+				if (roll < 0) {
+					return tech;
+				}
+			}
+			return values[^1].tech;
+		}
+
+		// alexman's values (thread above). "These values are cumulative":
+		// a tech is worth the sum of what it allows. Those per turn are
+		// divided by the turns the civ needs for the tech; the rest are
+		// flat. "For example, Iron Working allows swordsmen and iron, so it
+		// has a value of 22 more than if it were just an empty tech", and
+		// "for the Romans who build Legionaries (attacker and defender), Iron
+		// Working is worth an additional 70 points": units are worth what
+		// they are to the civ, by the units it can build and their AI
+		// strategies in the BIQ.
+		private const double EmptyTechPerTurn = 256;
+		private const double SpaceshipPartPerTurn = 261;
+		private const double GovernmentPerTurn = 259;
+		private const double ConscriptionPerTurn = 259;
+		private const double MobilizationPerTurn = 259;
+		private const double Defender = 198;
+		private const double DefenderNeedingResource = 70;
+		private const double Attacker = 134;
+		private const double AttackerNeedingResource = 6;
+		private const double NavalTransport = 34;
+		private const double OtherUnit = 2;
+		private const double ResourceValue = 16;
+		private const double GreatWonder = 6;
+		private const double SmallWonder = 2;
+		private const double Improvement = 2;
+		private const double Specialist = 2;
+		private const double WorkerJob = 1;
+		// "Optional: divide by 1.5": techs not required to enter the next
+		// era.
+		private const double OptionalDivisor = 1.5;
+
+		private static readonly (SaveTech.Flag flag, double value)[] FlagValues = [
+			(SaveTech.Flag.DoublesWorkerRate, 8),
+			(SaveTech.Flag.EnablesDiplomats, 8),
+			(SaveTech.Flag.EnablesMutualProtection, 8),
+			(SaveTech.Flag.EnablesRightOfPassage, 8),
+			(SaveTech.Flag.EnablesMilitaryAlliances, 8),
+			(SaveTech.Flag.EnablesTradeEmbargoes, 8),
+			(SaveTech.Flag.EnablesTradeOverOcean, 8),
+			(SaveTech.Flag.EnablesIrrigationEverywhere, 4),
+			(SaveTech.Flag.DisablesDiseases, 4),
+			(SaveTech.Flag.EnablesTradeOverSea, 4),
+			(SaveTech.Flag.EnablesBridges, 2),
+			(SaveTech.Flag.DoublesWealthProduction, 2),
+			(SaveTech.Flag.EnablesMapTrading, 2),
+			(SaveTech.Flag.EnablesCommunicationTrading, 2),
+			(SaveTech.Flag.EnablesRecycling, 1),
+			(SaveTech.Flag.EnablesPrecisionBombing, 1),
+			// "Bonus Tech: 0; Reveal Map: 0; Sacrifices: 0".
+		];
+
+		// The tech's worth to the civ. UNVERIFIED, so left out: alexman's
+		// "No trade: 149/turns" (no BIQ tech flag found for it) and "Other
+		// tech: 1" (not explained in the thread).
+		public static double TechValue(GameData gameData, Player player, Tech tech, int beakersPerTurn) {
+			double perTurn = EmptyTechPerTurn;
+			double flat = 0;
+
+			foreach (Government government in gameData.governments) {
+				if (!government.transitionType && government.prerequisiteTech == tech.id) {
+					perTurn += GovernmentPerTurn;
+				}
+			}
+			if (tech.HasFlag(SaveTech.Flag.EnablesConscription)) {
+				perTurn += ConscriptionPerTurn;
+			}
+			if (tech.HasFlag(SaveTech.Flag.EnablesMobilization)) {
+				perTurn += MobilizationPerTurn;
+			}
+			foreach ((SaveTech.Flag flag, double worth) in FlagValues) {
+				if (tech.HasFlag(flag)) {
+					flat += worth;
+				}
+			}
+
+			foreach (UnitPrototype unit in gameData.unitPrototypes) {
+				if (unit.requiredTech != tech || unit.unproducible || !unit.IsProducibleBy(player.civilization)) {
+					continue;
+				}
+				bool needsResource = unit.requiredResources.Count > 0;
+				bool offense = unit.flags.Contains(SaveUnitPrototype.Flag.AIOffense);
+				bool defense = unit.flags.Contains(SaveUnitPrototype.Flag.AIDefense);
+				bool transport = unit.flags.Contains(SaveUnitPrototype.Flag.AINavalTransport);
+				if (defense) {
+					flat += needsResource ? DefenderNeedingResource : Defender;
+				}
+				if (offense) {
+					flat += needsResource ? AttackerNeedingResource : Attacker;
+				}
+				if (transport) {
+					flat += NavalTransport;
+				}
+				if (!offense && !defense && !transport) {
+					flat += OtherUnit;
+				}
+			}
+
+			bool spaceship = false;
+			foreach (Building building in gameData.Buildings) {
+				if (building.requiredTech != tech) {
+					continue;
+				}
+				if (building.IsSpaceshipPart) {
+					spaceship = true;
+				} else if (building.IsGreatWonder()) {
+					flat += GreatWonder;
+				} else if (building.isSmallWonder) {
+					flat += SmallWonder;
+				} else {
+					flat += Improvement;
+				}
+			}
+			if (spaceship) {
+				perTurn += SpaceshipPartPerTurn;
+			}
+
+			foreach (Resource resource in gameData.Resources) {
+				if (resource.Category != ResourceCategory.NONE && resource.Prerequisite == tech.id) {
+					flat += ResourceValue;
+				}
+			}
+			foreach (CitizenType citizen in gameData.citizenTypes) {
+				if (!citizen.IsDefaultCitizen && citizen.PrerequisiteTech == tech.id) {
+					flat += Specialist;
+				}
+			}
+			foreach (Terraform terraform in gameData.Terraforms) {
+				if (terraform.RequiredTech == tech.id) {
+					flat += WorkerJob;
+				}
+			}
+
+			double value = perTurn / TurnsNeeded(gameData, player, tech, beakersPerTurn) + flat;
+			return tech.RequiredForEraAdvancement ? value : value / OptionalDivisor;
+		}
+
+		// "The AI needs 24 times the base cost of each technology in
+		// beakers" on a standard map, "so an AI producing 4 beakers per turn
+		// would need 72/4=18 turns" for Bronze Working (alexman): the tech's
+		// cost to the civ over its beakers, within the rules' research
+		// times.
+		private static int TurnsNeeded(GameData gameData, Player player, Tech tech, int beakersPerTurn) {
+			int cost = Math.Max(1, gameData.TechCostFor(tech, player));
+			int turns = beakersPerTurn <= 0 ? int.MaxValue : (int)Math.Ceiling((double)cost / beakersPerTurn);
+			Rules rules = gameData.rules;
+			int max = rules != null && rules.MaximumResearchTime > 0 ? rules.MaximumResearchTime : turns;
+			int min = Math.Max(1, rules?.MinimumResearchTime ?? 1);
+			return Math.Clamp(turns, min, Math.Max(min, max));
 		}
 
 		////////////////////////////////////////////////////////////////////

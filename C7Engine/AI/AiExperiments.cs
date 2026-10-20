@@ -26,5 +26,8 @@ namespace C7Engine.AI {
 		internal static Action<Player, Player> onWarDeclared;
 		// And the AI's hurried production: the city and the gold it paid.
 		internal static Action<City, int> onHurry;
+		// And culture flips: the city (already the new owner's), the civ
+		// it left, and the chance it flipped with.
+		internal static Action<City, Player, CultureFlip.Chance> onCultureFlip;
 	}
 }

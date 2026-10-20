@@ -1989,6 +1989,9 @@ namespace C7GameData {
 				if (prto.StealthAttack) prototype.flags.Add(SaveUnitPrototype.Flag.StealthAttack);
 				if (prto.CruiseMissile) prototype.flags.Add(SaveUnitPrototype.Flag.CruiseMissile);
 				if (prto.King) prototype.flags.Add(SaveUnitPrototype.Flag.King);
+				if (prto.AIOffense) prototype.flags.Add(SaveUnitPrototype.Flag.AIOffense);
+				if (prto.AIDefense) prototype.flags.Add(SaveUnitPrototype.Flag.AIDefense);
+				if (prto.AINavalTransport) prototype.flags.Add(SaveUnitPrototype.Flag.AINavalTransport);
 				int[] targets = stealthTargets != null && prtoIndex < stealthTargets.Length ? stealthTargets[prtoIndex] : null;
 				if (targets != null && targets.Length > 0) {
 					prototype.stealthTargets = targets.Where(t => t >= 0 && t < Prto.Length).Select(t => Prto[t].Name).Distinct().ToList();
@@ -2027,7 +2030,15 @@ namespace C7GameData {
 				SaveUnitPrototype existing = save.UnitPrototypes.Find(p => p.name == prototype.name);
 				if (existing == null) {
 					save.UnitPrototypes.Add(prototype);
-				} else if (existing.attack != prototype.attack || existing.defense != prototype.defense
+					continue;
+				}
+				// A repeat for another AI strategy adds its strategies.
+				foreach (SaveUnitPrototype.Flag strategy in new[] { SaveUnitPrototype.Flag.AIOffense, SaveUnitPrototype.Flag.AIDefense, SaveUnitPrototype.Flag.AINavalTransport }) {
+					if (prototype.flags.Contains(strategy)) {
+						existing.flags.Add(strategy);
+					}
+				}
+				if (existing.attack != prototype.attack || existing.defense != prototype.defense
 						|| existing.movement != prototype.movement || existing.shieldCost != prototype.shieldCost
 						|| existing.hpBonus != prototype.hpBonus || existing.requiredTech != prototype.requiredTech
 						|| !existing.producibleBy.SetEquals(prototype.producibleBy)) {

@@ -36,11 +36,14 @@ namespace EngineTests.GameData;
 //                         deterministic, so the halves' unequal starts cancel
 //                         out, which removes much of the noise (about half the
 //                         standard error) for twice the time
+//   C7_TRIAL_FLIPS        1 to list every culture flip, with its chance
 // For example:
 //   C7_TRIAL_OUT=trial.txt C7_TRIAL_EXPERIMENTS=cheap-maintenance dotnet test EngineTests --filter "FullyQualifiedName~AiTrialTest"
 public class AiTrialTest : IClassFixture<SaveGameFixture> {
 	private readonly SaveGameFixture fixture;
 	private readonly ITestOutputHelper output;
+	// With C7_TRIAL_FLIPS, the culture flips of the game being played.
+	private readonly List<string> flipLines = new();
 
 	public AiTrialTest(SaveGameFixture fixture, ITestOutputHelper output) {
 		this.fixture = fixture;
@@ -94,6 +97,10 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			// Warships (see NavalAI) at the end, and ships the civ sank in
 			// battle.
 			"warships", "shipKills",
+			// Cities the civ gained and lost by culture flips (also
+			// counted in captured and lost), and its cities at the end
+			// with another city within 2 tiles.
+			"flipsIn", "flipsOut", "closeCities",
 		];
 		public readonly double[] values = new double[Names.Length];
 	}
@@ -250,6 +257,8 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 					otherSums[m] += t - others.Average(x => x.values[m]);
 				}
 			}
+			lines.AddRange(flipLines);
+			flipLines.Clear();
 			differences.Add(difference);
 			allTechs[game] = averageTechs;
 			string line = $"game {game} seed {seed}: " + string.Join(" ", Measures.Names.Select((n, m) => $"{n}={difference[m]:+0.0;-0.0}"));
@@ -374,6 +383,17 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 				}
 			}
 		};
+		Dictionary<Player, int> flipsIn = civs.ToDictionary(p => p, _ => 0);
+		Dictionary<Player, int> flipsOut = civs.ToDictionary(p => p, _ => 0);
+		bool listFlips = Setting("C7_TRIAL_FLIPS", 0) != 0;
+		AiExperiments.onCultureFlip = (city, from, c) => {
+			Add(flipsIn, city.owner);
+			Add(flipsOut, from);
+			if (listFlips) {
+				flipLines.Add($"flip turn {gameData.turn}: {city.name} size {city.residents.Count} {from.civilization.name} -> {city.owner.civilization.name}"
+					+ $" F={c.foreigners} T={c.tiles} Cc={c.memoryFactor} H={c.moodFactor} culture={c.otherCulture}/{c.ownerCulture}={c.cultureRatio:0.00} owner cities={from.cities.Count} G={c.garrison} d={c.distanceRatio:0.00} p={c.probability:0.0000}");
+			}
+		};
 		Dictionary<Player, HashSet<ID>> leaders = civs.ToDictionary(p => p, _ => new HashSet<ID>());
 		Dictionary<Player, HashSet<ID>> armies = civs.ToDictionary(p => p, _ => new HashSet<ID>());
 		Dictionary<Player, int> armyCaptures = civs.ToDictionary(p => p, _ => 0);
@@ -437,6 +457,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			AiExperiments.onWarDeclared = null;
 			AiExperiments.onCombat = null;
 			AiExperiments.onHurry = null;
+			AiExperiments.onCultureFlip = null;
 			RightOfPassageAI.onSigned = null;
 		}
 
@@ -509,6 +530,9 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			m.values[i++] = rops[p];
 			m.values[i++] = p.units.Count(C7Engine.AI.UnitAI.NavalAI.IsWarship);
 			m.values[i++] = shipKills[p];
+			m.values[i++] = flipsIn[p];
+			m.values[i++] = flipsOut[p];
+			m.values[i++] = p.cities.Count(c => gameData.cities.Any(o => o != c && o.location.DistanceTo(c.location) <= 2));
 			return m;
 		}
 
