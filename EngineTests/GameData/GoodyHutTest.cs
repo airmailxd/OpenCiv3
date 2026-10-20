@@ -454,6 +454,50 @@ public class GoodyHutTest : IClassFixture<SaveGameFixture> {
 		Assert.Single(EngineStorage.messagesToUI.OfType<MsgShowMilitaryAdvisorPopup>(), m => m.recipient == human);
 	}
 
+	// The news is Civ3's (Conquests' Text/script.txt), naming the village's
+	// tribe from the barbarians' list.
+	[Fact]
+	public void HutNewsIsInCiv3sWords() {
+		(Tile from, _, Tile hut) = FindHutSite(t => t.Resource == null || t.Resource == Resource.NONE);
+		string tribe = BarbarianInteractions.TribeName(gameData, hut);
+		Assert.Contains(tribe, barbarians.civilization.cityNames);
+		Assert.Equal(tribe, BarbarianInteractions.TribeName(gameData, hut));
+
+		hut.hasGoodyHut = true;
+		MapUnit warrior = gameData.SpawnUnit(human, Prototype("Warrior"), from);
+		EngineStorage.messagesToUI.Clear();
+		int gold = GoodyHuts.GoldFor(human);
+		Assert.Equal(GoodyHuts.Outcome.Gold, EnterFinding(warrior, hut, GoodyHuts.Outcome.Gold));
+		Assert.Equal($"We got {gold} gold from the {tribe} tribe's village.",
+			EngineStorage.messagesToUI.OfType<MsgShowMilitaryAdvisorPopup>().Single().message);
+
+		hut.hasGoodyHut = true;
+		EngineStorage.messagesToUI.Clear();
+		Assert.Equal(GoodyHuts.Outcome.Map, EnterFinding(warrior, hut, GoodyHuts.Outcome.Map));
+		Assert.Equal($"The friendly {tribe} tribe gave us maps of their region.",
+			EngineStorage.messagesToUI.OfType<MsgShowMilitaryAdvisorPopup>().Single().message);
+
+		hut.hasGoodyHut = true;
+		EngineStorage.messagesToUI.Clear();
+		Assert.Equal(GoodyHuts.Outcome.Unit, EnterFinding(warrior, hut, GoodyHuts.Outcome.Unit));
+		Assert.Equal($"This friendly {tribe} village gave us a skilled Warrior.",
+			EngineStorage.messagesToUI.OfType<MsgShowMilitaryAdvisorPopup>().Single().message);
+	}
+
+	[Fact]
+	public void DispersingACampIsNewsInCiv3sWords() {
+		(Tile from, TileDirection dir, Tile camp) = FindHutSite();
+		camp.hasBarbarianCamp = true;
+		gameData.map.barbarianCamps.Add(camp);
+		MapUnit warrior = gameData.SpawnUnit(human, Prototype("Warrior"), from);
+		EngineStorage.messagesToUI.Clear();
+
+		warrior.OnEnterTile(camp, movedThere: true);
+
+		Assert.Equal($"We dispersed a {BarbarianInteractions.TribeName(gameData, camp)} encampment and took 25 gold!",
+			EngineStorage.messagesToUI.OfType<MsgShowMilitaryAdvisorPopup>().Single().message);
+	}
+
 	// ---- Wonder news ----
 
 	[Fact]

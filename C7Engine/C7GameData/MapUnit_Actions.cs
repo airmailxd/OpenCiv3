@@ -58,7 +58,11 @@ public partial class MapUnit {
 		if (BarbarianInteractions.DisperseCamp(EngineStorage.gameData, tile, owner)) {
 			animate(MapUnit.AnimatedAction.VICTORY);
 			if (owner.IsToldNews) {
-				new MsgShowMilitaryAdvisorPopup(owner, $"We cleared a barbarian encampment and earned {BarbarianInteractions.CampDispersalGold} gold!", happy: true).send();
+				// Civ3's news (Conquests' Text/script.txt,
+				// #CAPTURE_BARBARIAN): "We dispersed a $BARBARIAN0
+				// encampment and took 25 gold!"
+				string tribe = BarbarianInteractions.TribeName(EngineStorage.gameData, tile);
+				new MsgShowMilitaryAdvisorPopup(owner, $"We dispersed a {tribe} encampment and took {BarbarianInteractions.CampDispersalGold} gold!", happy: true).send();
 			}
 		}
 
