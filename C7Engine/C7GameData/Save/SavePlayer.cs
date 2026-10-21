@@ -76,6 +76,9 @@ namespace C7GameData.Save {
 		public int warWeariness;
 		public bool hadGoldenAge;
 		public int goldenAgeTurnsRemaining;
+		// See Player.mobilized. False in older saves.
+		public bool mobilized;
+		public bool mayEndMobilization;
 		public int scienceAgeTurnsRemaining;
 		public int citiesFounded;
 		// Saves from before this was saved have it false, and loading works
@@ -158,6 +161,8 @@ namespace C7GameData.Save {
 				warWeariness = warWeariness,
 				hadGoldenAge = hadGoldenAge,
 				goldenAgeTurnsRemaining = goldenAgeTurnsRemaining,
+				mobilized = mobilized,
+				mayEndMobilization = mayEndMobilization,
 				scienceAgeTurnsRemaining = scienceAgeTurnsRemaining,
 				citiesFounded = citiesFounded,
 				freeTechsRemaining = freeTechsRemaining,
@@ -291,6 +296,8 @@ namespace C7GameData.Save {
 			warWeariness = player.warWeariness;
 			hadGoldenAge = player.hadGoldenAge;
 			goldenAgeTurnsRemaining = player.goldenAgeTurnsRemaining;
+			mobilized = player.mobilized;
+			mayEndMobilization = player.mayEndMobilization;
 			scienceAgeTurnsRemaining = player.scienceAgeTurnsRemaining;
 			citiesFounded = player.citiesFounded;
 			freeTechsRemaining = player.freeTechsRemaining;

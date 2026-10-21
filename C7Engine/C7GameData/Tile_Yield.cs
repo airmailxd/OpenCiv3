@@ -33,7 +33,7 @@ public partial class Tile {
 			// despotism in Civ3, not 2.
 			return new Yield(tile, yield, type)
 				.ApplyTerrainImprovementModifiers(tile)
-				.ApplyPlayerModifiers(city.owner)
+				.ApplyPlayerModifiers(city.owner, Mobilization.CityGetsShieldBonus(city))
 				.ApplyCityModifiers(cityBuildings);
 		}
 
@@ -49,12 +49,16 @@ public partial class Tile {
 			this.type = type;
 		}
 
-		private Yield ApplyPlayerModifiers(Player player) {
+		private Yield ApplyPlayerModifiers(Player player, bool mobilizationBonus = false) {
 			// A golden age adds a shield and a commerce to tiles already
 			// producing them, before the government's modifiers: "The bonuses
 			// from a Golden Age, however, are still subject to the Despotism
-			// tile penalty" (https://civfanatics.com/civ3/faq/).
+			// tile penalty" (https://civfanatics.com/civ3/faq/). Mobilization
+			// adds the same shield in a city building a military unit, and
+			// the two don't add up (see Mobilization).
 			if (player.InGoldenAge && type != YieldType.Food && baseYield > 0) {
+				bonus += 1;
+			} else if (mobilizationBonus && type == YieldType.Production && baseYield > 0) {
 				bonus += 1;
 			}
 

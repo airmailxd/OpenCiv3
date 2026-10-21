@@ -148,6 +148,8 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			// counted in captured and lost), and its cities at the end
 			// with another city within 2 tiles.
 			"flipsIn", "flipsOut", "closeCities",
+			// Turns the civ spent mobilized for war (see Mobilization).
+			"mobilized",
 		];
 		public readonly double[] values = new double[Names.Length];
 	}
@@ -207,7 +209,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 
 	// Per civ, how its development went over a game (see Measures).
 	private sealed class Development {
-		public int city5Turn, city10Turn, midTechs, midCities, midCitizens, anarchy, despotism, disorder;
+		public int city5Turn, city10Turn, midTechs, midCities, midCitizens, anarchy, despotism, disorder, mobilized;
 	}
 
 	private static SaveGame NewSave(int size, int civs, int seed, int difficulty, WorldCharacteristics.Landform landform) {
@@ -391,6 +393,9 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 					++d.despotism;
 				}
 				d.disorder += p.cities.Count(c => c.isInCivilDisorder);
+				if (p.mobilized) {
+					++d.mobilized;
+				}
 			}
 		}
 		Dictionary<Player, int> firstCapture = civs.ToDictionary(p => p, _ => turns);
@@ -628,6 +633,7 @@ public class AiTrialTest : IClassFixture<SaveGameFixture> {
 			m.values[i++] = flipsIn[p];
 			m.values[i++] = flipsOut[p];
 			m.values[i++] = p.cities.Count(c => gameData.cities.Any(o => o != c && o.location.DistanceTo(c.location) <= 2));
+			m.values[i++] = d.mobilized;
 			return m;
 		}
 

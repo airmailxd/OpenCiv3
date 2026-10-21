@@ -671,6 +671,14 @@ namespace C7GameData {
 		}
 
 		private void CivDestructionCallback(Player player) {
+			// The destruction of an enemy frees a mobilized civ to return to
+			// Normalcy (see Mobilization).
+			foreach (Player other in players) {
+				if (other != player && !other.isBarbarians && !player.isBarbarians && PlayerRelationship.AtWar(other, player)) {
+					Mobilization.OnWarEnded(other);
+				}
+			}
+
 			// Mark player as defeated, so when we start removing units,
 			// we don't have to check each time if the civ is destroyed
 			player.defeated = true;

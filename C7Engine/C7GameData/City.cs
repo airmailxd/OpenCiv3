@@ -146,6 +146,13 @@ namespace C7GameData {
 		// (see CultureFlip).
 		public int ownerChangedTurn = -1;
 
+		// The civ this city was last taken from by force, so that razing it
+		// can give slave workers of that nationality (see
+		// CityInteractions.RazeCity). Not saved: the captor decides whether
+		// to raze in the same turn; after a load razing falls back to the
+		// citizens' own nationality.
+		internal Civilization capturedFrom;
+
 		// A culture flip of this city that the human it would go to has yet
 		// to accept or refuse, and the turn it was offered, -1 if none; the
 		// offer lapses when that turn ends (see CultureFlip.Defect).
@@ -240,6 +247,9 @@ namespace C7GameData {
 			}
 			if (receivedForestShields && IsWonder(producible)) {
 				return "Shields from a forest or a disbanded unit can't go to a wonder";
+			}
+			if (!Mobilization.AllowsStarting(owner, producible)) {
+				return "While mobilized we may build only military units and improvements";
 			}
 			// A build with shields in the box that will be done next turn
 			// can't become a wonder: "If it gets to one turn left you can
@@ -366,6 +376,11 @@ namespace C7GameData {
 			internal List<CityBuilding> buildings;
 			internal int grantedStart;
 
+			// The same less any great wonder obsolete for the owner: the
+			// buildings whose effects apply (see EffectiveBuildings). The
+			// same list as buildings when none is obsolete.
+			internal List<CityBuilding> active;
+
 			// Every building the owner's wonders provide to this city, whether
 			// or not the city has also built it.
 			internal HashSet<Building> providedByWonders;
@@ -444,15 +459,35 @@ namespace C7GameData {
 			}
 
 			cache.buildings = result;
+			cache.active = result;
+			foreach (CityBuilding cb in constructed_buildings) {
+				if (cb.building.isGreatWonderObsolete(owner)) {
+					cache.active = result.Where(x => !x.building.isGreatWonderObsolete(owner)).ToList();
+					break;
+				}
+			}
 			cache.providedByWonders = providedByWonders;
 			effectiveBuildingsCache = cache;
 			return cache;
 		}
 
-		// The same buildings as GetBuildings, without allocating. The list is
-		// shared and must not be modified, nor its granted entries (which
-		// GetBuildings hands out fresh copies of).
+		// The buildings whose effects apply in this city: the same buildings
+		// as GetBuildings, without allocating, less any great wonder that is
+		// obsolete for the owner. An obsolete great wonder loses its effects,
+		// which the shipped game's code forgets to check, but keeps making
+		// culture (owner's decision, 2026-10-21): "The cultural benefits of a
+		// Wonder continue to accrue unless the Wonder is destroyed" (the
+		// manual, p.130; compendium 04). The list is shared and must not be
+		// modified, nor its granted entries (which GetBuildings hands out
+		// fresh copies of).
 		internal List<CityBuilding> EffectiveBuildings() {
+			return GetEffectiveBuildingsCache().active;
+		}
+
+		// Every building in the city, an obsolete great wonder included,
+		// for what the city has rather than what takes effect (what it may
+		// build, say).
+		internal List<CityBuilding> AllEffectiveBuildings() {
 			return GetEffectiveBuildingsCache().buildings;
 		}
 
@@ -480,7 +515,7 @@ namespace C7GameData {
 		// Whether this city has the building, including one granted by a
 		// wonder.
 		internal bool HasEffectiveBuilding(Building building) {
-			foreach (CityBuilding cb in EffectiveBuildings()) {
+			foreach (CityBuilding cb in AllEffectiveBuildings()) {
 				if (cb.building == building) {
 					return true;
 				}
@@ -513,6 +548,11 @@ namespace C7GameData {
 				if (building.isCenterOfEmpire && !owner.isHuman) {
 					continue;
 				}
+				// A mobilized civ may start only military improvements, but
+				// may finish what is under way (see Mobilization).
+				if (building != itemBeingProduced && !Mobilization.AllowsStarting(owner, building)) {
+					continue;
+				}
 				context ??= new Building.ProductionContext(this);
 				if (building.CanProduce(this, accessibleResources, context)) {
 					yield return building;
@@ -520,6 +560,9 @@ namespace C7GameData {
 			}
 
 			foreach (Inflow inflow in gameData.Inflows) {
+				if (inflow != itemBeingProduced && !Mobilization.AllowsStarting(owner, inflow)) {
+					continue;
+				}
 				if (inflow.CanProduce(this, accessibleResources)) {
 					yield return inflow;
 				}
@@ -892,7 +935,7 @@ namespace C7GameData {
 
 						foreach (City c in p.cities) {
 							if (c.itemBeingProduced?.name == building.name) {
-								c.SetItemBeingProduced(c.TakeNextQueuedProduction(gameData) ?? c.GetMostExpensiveItemToProduce());
+								c.SwitchFromLostWonder(gameData);
 							}
 						}
 					}
@@ -962,6 +1005,21 @@ namespace C7GameData {
 
 		public void ClearProductionQueue() {
 			productionQueue.Clear();
+		}
+
+		// Moves a city off a great wonder a rival has just completed, to the
+		// next item in its queue or else the most expensive one it can build.
+		// The stored shields carry over, but any beyond the new item's cost
+		// are lost at once, at the moment of the switch, rather than on the
+		// next production pass: otherwise they would sit in the box, and a
+		// switch back to something dearer before the turn ended would keep
+		// them all (owner's decision, 2026-10-21).
+		internal void SwitchFromLostWonder(GameData gameData) {
+			IProducible next = TakeNextQueuedProduction(gameData) ?? GetMostExpensiveItemToProduce();
+			SetItemBeingProduced(next);
+			if (next != null) {
+				shieldsStored = Math.Min(shieldsStored, owner.ShieldCost(next));
+			}
 		}
 
 		private IProducible GetMostExpensiveItemToProduce() {
@@ -1046,6 +1104,13 @@ namespace C7GameData {
 				}
 			}
 			return false;
+		}
+
+		// Whether the city is growing: it has a food surplus and room to
+		// grow past its present size (see CanGrowPopulationByOne).
+		public bool CanGrow() {
+			GameData gameData = EngineStorage.gameData;
+			return gameData != null && FoodGrowthPerTurn() > 0 && CanGrowPopulationByOne(gameData);
 		}
 
 		internal bool CanGrowPopulationByOne(GameData gD) {
@@ -1386,7 +1451,9 @@ namespace C7GameData {
 		// so the 12 is the BIQ's largest size-2 city. The Conquests
 		// Civilopedia: "The Mass Transit System reduces pollution caused by
 		// population", "The Recycling Center decreases pollution caused by
-		// city improvements" (the BIQ's two pollution flags).
+		// city improvements" (the BIQ's two pollution flags). Population
+		// pollution starts over the threshold, at size 13, not at size 12 as
+		// in the shipped game (owner's decision, 2026-10-21).
 		public int PollutionIcons(Rules rules) {
 			int population = Math.Max(0, residents.Count - rules.MaximumLevel2CitySize);
 			int buildingPollution = 0;
@@ -2063,14 +2130,16 @@ namespace C7GameData {
 		// The table is the Civilopedia's (GCON_Tourist_Attraction).
 		//
 		// Assumptions: the gold goes straight to the treasury, untouched by
-		// corruption or the tax rate; a wonder still attracts tourists once
-		// obsolete and after its city changes hands; and the bands start at
-		// 1000 years inclusive.
+		// corruption or the tax rate; a wonder still attracts tourists after
+		// its city changes hands; and the bands start at 1000 years
+		// inclusive. An obsolete wonder attracts none, as it loses its
+		// effects (owner's decision, 2026-10-21; see EffectiveBuildings).
+		// Its culture is a separate matter and goes on.
 		public int TourismGold() {
 			int currentGameYear = CurrentGameYear();
 			int result = 0;
 			foreach (CityBuilding cb in constructed_buildings) {
-				if (cb.building.touristAttraction && cb.building.IsGreatWonder()) {
+				if (cb.building.touristAttraction && cb.building.IsGreatWonder() && cb.building.TakesEffectFor(owner)) {
 					result += TourismGoldForAge(currentGameYear - cb.year);
 				}
 			}
@@ -2099,7 +2168,7 @@ namespace C7GameData {
 			if (owner?.government?.xenophobic == true && 2 * residents.Count(r => r.nationality == null || r.nationality == owner.civilization) < residents.Count) {
 				return 0;
 			}
-			int result = GetCulturePerTurnRaw();
+			int result = Mobilization.AdjustCulture(owner, GetCulturePerTurnRaw());
 			// culture lua infow
 			if (this.itemBeingProduced is Inflow inflow && inflow.TryGetInflowYieldFunc(InflowYield.culture, out var cultureYieldFunc)) {
 				int extraCulture = cultureYieldFunc.Invoke(new ScriptContext(this.owner, this));

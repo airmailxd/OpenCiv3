@@ -1016,7 +1016,7 @@ namespace C7GameData {
 			for (int i = 0; i < cities.Count; i++) {
 				List<CityBuilding> buildings = cities[i].constructed_buildings;
 				for (int j = 0; j < buildings.Count; j++) {
-					if (buildings[j].building.allowsEnemyTerritoryHealing)
+					if (buildings[j].building.allowsEnemyTerritoryHealing && buildings[j].building.TakesEffectFor(owner))
 						return true;
 				}
 			}

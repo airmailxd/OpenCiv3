@@ -50,8 +50,11 @@ public class PollutionTest : IClassFixture<SaveGameFixture> {
 	public void EachCitizenAboveTwelvePollutes() {
 		int threshold = gameData.rules.MaximumLevel2CitySize;
 		Assert.Equal(12, threshold);
+		// Over the threshold, not at it (owner's decision, 2026-10-21).
 		GrowTo(threshold);
 		Assert.Equal(0, city.PollutionIcons(gameData.rules));
+		GrowTo(threshold + 1);
+		Assert.Equal(1, city.PollutionIcons(gameData.rules));
 		GrowTo(threshold + 3);
 		Assert.Equal(3, city.PollutionIcons(gameData.rules));
 	}

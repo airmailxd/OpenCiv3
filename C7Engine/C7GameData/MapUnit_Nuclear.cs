@@ -178,7 +178,7 @@ namespace C7GameData {
 			}
 			foreach (City city in player.cities) {
 				foreach (CityBuilding cb in city.constructed_buildings) {
-					if (cb.building.decreasesMissileSuccess) {
+					if (cb.building.decreasesMissileSuccess && cb.building.TakesEffectFor(player)) {
 						return true;
 					}
 				}

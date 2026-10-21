@@ -302,6 +302,7 @@ namespace C7Engine {
 				}
 			}
 
+			city.capturedFrom = oldOwner.civilization;
 			bool wasCapital = city.capital;
 			city.capital = false;
 			oldOwner.cities.Remove(city);
@@ -390,6 +391,7 @@ namespace C7Engine {
 				}
 			}
 
+			city.capturedFrom = null;
 			bool wasCapital = city.capital;
 			city.capital = false;
 			oldOwner.cities.Remove(city);
@@ -466,6 +468,59 @@ namespace C7Engine {
 			if (newCapital != null && player.IsToldNews) {
 				new MsgShowMilitaryAdvisorPopup(player, $"With our capital lost, the palace has been rebuilt in {newCapital.name}.", happy: false).send();
 			}
+		}
+
+		// Whether the player may raze the city rather than just abandon it:
+		// one they took by force this turn, which they are asked whether to
+		// keep (see CaptureCity), and may abandon.
+		public static bool MayRaze(Player player, City city, GameData gameData) {
+			return city != null && city.owner == player && city.capturedFrom != null
+				&& city.ownerChangedTurn == gameData.turn && MayAbandon(player, city, gameData);
+		}
+
+		// Razes a city just taken by force. Razing gives slave workers: one
+		// for each citizen over the first, so a size N city gives N - 1
+		// workers, of the nationality of the civ it was taken from, on the
+		// city's tile, where the unit that took it stands (owner's decision,
+		// 2026-10-21). Players report slaves from razing in C3C without a
+		// rate: "A size 5 will get you two workers IIRC" (zerksees,
+		// https://forums.civfanatics.com/threads/occupy-vs-raze.313823;
+		// compendium 02, section 11). Returns the workers.
+		public static List<MapUnit> RazeCity(City city) {
+			GameData gameData = EngineStorage.gameData;
+			Player razer = city.owner;
+			Tile tile = city.location;
+			int slaves = Math.Max(0, city.residents.Count - 1);
+			Civilization nationality = city.capturedFrom
+				?? city.residents.Select(r => r.nationality).Where(n => n != null)
+					.GroupBy(n => n).OrderByDescending(g => g.Count()).Select(g => g.Key).FirstOrDefault()
+				?? razer.civilization;
+			log.Information("{Razer} razes {City}, taking {Slaves} slave workers", razer, city, slaves);
+			DestroyCity(city);
+
+			List<MapUnit> workers = new();
+			UnitPrototype workerType = SlaveWorkerType(gameData);
+			if (workerType == null) {
+				return workers;
+			}
+			for (int i = 0; i < slaves; i++) {
+				MapUnit slave = gameData.SpawnUnit(razer, workerType, tile);
+				slave.nationality = nationality;
+				workers.Add(slave);
+			}
+			if (slaves > 0) {
+				razer.tileKnowledge.RecomputeActiveTiles();
+			}
+			return workers;
+		}
+
+		// The unit a slave becomes: the rules' slave unit (the BIQ's
+		// "Slave" unit, the Worker in the stock rules), or else a Worker.
+		private static UnitPrototype SlaveWorkerType(GameData gameData) {
+			string name = gameData.rules?.SlaveUnitType;
+			return gameData.unitPrototypes.FirstOrDefault(p => name != null && p.name == name)
+				?? gameData.unitPrototypes.FirstOrDefault(p => p.name == "Worker")
+				?? gameData.unitPrototypes.FirstOrDefault(p => p.isWorker);
 		}
 
 		public static void DestroyCity(City city) {

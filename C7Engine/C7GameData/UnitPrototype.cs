@@ -704,7 +704,26 @@ namespace C7GameData {
 		public bool CanProduce(City city, HashSet<Resource> accessibleResources) {
 			return this.IsAvailableTo(city)
 				   && this.MeetsProductionRequirements(city, accessibleResources)
-				   && !this.IsUnitObsolete(city, accessibleResources);
+				   && !this.IsUnitObsolete(city, accessibleResources)
+				   && !this.IsTooCostlyInPopulationFor(city);
+		}
+
+		// Whether the city is too small to pay this unit's population cost
+		// and can't grow to: a city no bigger than the cost with no food
+		// surplus, or at its size cap (no aqueduct or hospital to grow past
+		// it). A size-2 city that can't grow isn't offered the Settler, so
+		// neither the player nor the AI can pick it there (owner's decision,
+		// 2026-10-21). Civ3 offered such a city the choice to abandon itself
+		// for the Settler (Pentium and TimBentley,
+		// https://forums.civfanatics.com/threads/raise-abandon.113940;
+		// compendium 02, section 11); the owner's rule leaves it out of the
+		// list instead. A city that can grow keeps it, and the unit waits
+		// for the city to grow (see City.ComputeTurnProduction).
+		private bool IsTooCostlyInPopulationFor(City city) {
+			if (this.populationCost <= 0 || city.residents.Count > this.populationCost) {
+				return false;
+			}
+			return !city.CanGrow();
 		}
 
 		/// Whether the city's Civ could build this unit, if it had the necessary resources.

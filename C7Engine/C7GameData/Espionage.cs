@@ -169,7 +169,7 @@ namespace C7Engine {
 		public static bool HasIntelligenceAgency(Player player) {
 			foreach (City c in player.cities) {
 				foreach (CityBuilding cb in c.constructed_buildings) {
-					if (cb.building.allowsSpyMissions) {
+					if (cb.building.allowsSpyMissions && cb.building.TakesEffectFor(player)) {
 						return true;
 					}
 				}
@@ -430,7 +430,7 @@ namespace C7Engine {
 			chance += GovernmentModifier(actor, target);
 			chance += CultureFactor(gameData, actor, target);
 			chance -= 5 * city.location.unitsOnTile.Count(u => u.owner == target);
-			if (city.constructed_buildings.Any(cb => cb.building.reducesCorruption && !cb.building.isCenterOfEmpire)) {
+			if (city.constructed_buildings.Any(cb => cb.building.reducesCorruption && !cb.building.isCenterOfEmpire && cb.building.TakesEffectFor(city.owner))) {
 				chance -= 20;
 			}
 			if (city.IsCapital()) {
