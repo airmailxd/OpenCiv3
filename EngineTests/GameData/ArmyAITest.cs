@@ -182,4 +182,67 @@ public class ArmyAITest : IClassFixture<SaveGameFixture> {
 		Assert.False(building.IsGreatWonder());
 		Assert.Equal(us.ShieldCost(building), city.shieldsStored);
 	}
+
+	// On trial ("leader-choice"): at war, a leader with good attackers at
+	// hand forms an army.
+	[Fact]
+	public void ChoosingLeaderFormsAnArmyAtWarWithGoodAttackers() {
+		AiExperiments.Enable(us, PlayerAI.LeaderChoice);
+		City city = BuildCity(us);
+		while (!us.CanSupportAnotherArmy()) {
+			BuildCity(us);
+		}
+		them.DeclareWarOn(us, gameData.turn);
+		Spawn(us, "Spearman", city.location);
+		Spawn(us, "Swordsman", city.location);
+		Spawn(us, "Swordsman", city.location);
+		MapUnit leader = Spawn(us, "Leader", city.location);
+
+		Assert.True(PlayerAI.UseLeaderInCity(leader, us));
+		Assert.Single(us.units, u => u.IsArmy());
+	}
+
+	// On trial: at peace with no war planned, the leader rushes a building
+	// rather than form an army, though attackers are at hand.
+	[Fact]
+	public void ChoosingLeaderAtPeaceRushesABuildingInstead() {
+		AiExperiments.Enable(us, PlayerAI.LeaderChoice);
+		City city = BuildCity(us);
+		while (!us.CanSupportAnotherArmy()) {
+			BuildCity(us);
+		}
+		Spawn(us, "Spearman", city.location);
+		for (int i = 0; i < 3; i++) {
+			Spawn(us, "Swordsman", city.location);
+		}
+		MapUnit leader = Spawn(us, "Leader", city.location);
+		Building dearest = city.ListProductionOptions(gameData).OfType<Building>()
+			.Where(b => !b.IsGreatWonder()).OrderByDescending(b => us.ShieldCost(b)).First();
+		city.SetItemBeingProduced(dearest);
+
+		Assert.Equal((city, dearest), PlayerAI.BestBuildForMilitaryLeader(us, leader));
+		Assert.True(PlayerAI.UseLeaderInCity(leader, us));
+		Assert.Equal(us.ShieldCost(dearest), city.shieldsStored);
+		Assert.DoesNotContain(us.units, u => u.IsArmy());
+	}
+
+	// On trial: a build that's nearly done is never chosen; the city will
+	// finish it soon anyway.
+	[Fact]
+	public void ChoosingLeaderNeverRushesABuildThatIsNearlyDone() {
+		AiExperiments.Enable(us, PlayerAI.LeaderChoice);
+		City city = BuildCity(us);
+		Building current = city.ListProductionOptions(gameData).OfType<Building>()
+			.Where(b => !b.IsGreatWonder()).OrderByDescending(b => us.ShieldCost(b)).First();
+		city.SetItemBeingProduced(current);
+		city.SetStoredShields(us.ShieldCost(current) - 1);
+
+		(City target, Building item) = PlayerAI.BestBuildForMilitaryLeader(us);
+		Assert.False(target == city && item == current);
+		// With every build nearly done, nothing qualifies.
+		foreach (City c in us.cities) {
+			c.SetStoredShields(10_000);
+		}
+		Assert.Null(PlayerAI.BestBuildForMilitaryLeader(us).Item1);
+	}
 }
