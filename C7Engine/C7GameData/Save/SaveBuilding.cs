@@ -96,6 +96,12 @@ namespace C7GameData.Save {
 			// "Doubles Sacrifice"; Mesoamerica's Sacrificial Altar). See
 			// MapUnit.SacrificeValue.
 			DoublesSacrifice,
+			// The BIQ's "Resistant to Bribery" improvement flag and "Double
+			// City Defenses" wonder flag. Only the city governor's
+			// production options look at them so far (see
+			// GovernorProduction).
+			ResistantToBribery,
+			DoubleCityDefenses,
 		}
 
 		public class GreatWonderProperties {

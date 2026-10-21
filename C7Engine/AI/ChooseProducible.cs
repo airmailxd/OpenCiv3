@@ -129,6 +129,14 @@ namespace C7Engine {
 
 		public static IProducible Choose(City city, Player player) {
 			List<IProducible> options = city.ListProductionOptions(EngineStorage.gameData).ToList();
+			// The city governor's production options (see
+			// GovernorProduction). If they rule out everything the city can
+			// build, it is chosen from everything rather than nothing.
+			CityGovernor governor = city.governor;
+			List<IProducible> allowed = options.Where(o => !GovernorProduction.Excludes(governor, o)).ToList();
+			if (allowed.Count > 0) {
+				options = allowed;
+			}
 			ProducibleStats stats = CalculateStats(city, player, options);
 
 			IProducible best = null;
@@ -141,7 +149,8 @@ namespace C7Engine {
 			foreach (IProducible option in options) {
 				// Get the item score, with a +/- 10% random adjustment to make
 				// things seem appropriately random.
-				float score = ScoreProducible(stats, city, player, option) * (GameData.rng.Next(90, 110) / 100.0f);
+				float score = GovernorProduction.AdjustScore(governor, player, option, ScoreProducible(stats, city, player, option))
+					* (GameData.rng.Next(90, 110) / 100.0f);
 				if (score > bestScore) {
 					bestScore = score;
 					best = option;

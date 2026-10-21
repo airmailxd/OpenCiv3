@@ -74,12 +74,28 @@ namespace C7GameData.Save {
 			// InstantElimination).
 			King,
 			// The BIQ's AI strategies for the unit (PRTO "AI Strategy"),
-			// those the AI's research choice looks at (see
-			// DevelopmentAI.ChooseResearch). Civ3 repeats a unit in the BIQ
-			// for each extra strategy; the import joins them.
+			// which the AI's research choice (see
+			// DevelopmentAI.ChooseResearch) and the city governor's
+			// production options (see GovernorProduction) look at. Civ3
+			// repeats a unit in the BIQ for each extra strategy; the import
+			// joins them.
 			AIOffense,
 			AIDefense,
 			AINavalTransport,
+			AIArtillery,
+			AIExplore,
+			AIArmy,
+			AICruiseMissile,
+			AIAirBombard,
+			AIAirDefense,
+			AINavalPower,
+			AIAirTransport,
+			AINavalCarrier,
+			AITerraform,
+			AISettle,
+			AITacticalNuke,
+			AIICBM,
+			AINavalMissileTransport,
 			// The unit costs no upkeep (the BIQ's PRTO "Requires Support"
 			// left unchecked; in conquests.biq only the King units).
 			NoSupportRequired,

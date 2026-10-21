@@ -528,6 +528,10 @@ namespace C7GameData {
 		// The civilization strengths this building is associated with.
 		public IReadOnlySet<Civilization.Trait> traits => dataSource.traits;
 
+		// Whether the building has this flag from its rules, for flags with
+		// no field of their own.
+		public bool HasFlag(SaveBuilding.Flag flag) => dataSource.flags.Contains(flag);
+
 		// Civ3 halves the cost of the improvements tied to a civ's traits.
 		// The FAQ lists them all, and none is a wonder: "Religious buildings
 		// (Temples, Cathedrals) are all half price", "Scientific buildings

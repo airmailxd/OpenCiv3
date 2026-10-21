@@ -64,6 +64,16 @@ namespace C7GameData {
 
 		private static ILogger log = Log.ForContext<ImportCiv3>();
 
+		// The PRTO AI strategies the import keeps (see SaveUnitPrototype.Flag).
+		private static readonly SaveUnitPrototype.Flag[] AIStrategyFlags = [
+			SaveUnitPrototype.Flag.AIOffense, SaveUnitPrototype.Flag.AIDefense, SaveUnitPrototype.Flag.AINavalTransport,
+			SaveUnitPrototype.Flag.AIArtillery, SaveUnitPrototype.Flag.AIExplore, SaveUnitPrototype.Flag.AIArmy,
+			SaveUnitPrototype.Flag.AICruiseMissile, SaveUnitPrototype.Flag.AIAirBombard, SaveUnitPrototype.Flag.AIAirDefense,
+			SaveUnitPrototype.Flag.AINavalPower, SaveUnitPrototype.Flag.AIAirTransport, SaveUnitPrototype.Flag.AINavalCarrier,
+			SaveUnitPrototype.Flag.AITerraform, SaveUnitPrototype.Flag.AISettle, SaveUnitPrototype.Flag.AITacticalNuke,
+			SaveUnitPrototype.Flag.AIICBM, SaveUnitPrototype.Flag.AINavalMissileTransport,
+		];
+
 		// The BIQ the civilizations (RACE) come from.
 		private BiqData RaceBiq => biq.Race is null ? defaultBiq : biq;
 
@@ -2000,6 +2010,20 @@ namespace C7GameData {
 				if (prto.AIOffense) prototype.flags.Add(SaveUnitPrototype.Flag.AIOffense);
 				if (prto.AIDefense) prototype.flags.Add(SaveUnitPrototype.Flag.AIDefense);
 				if (prto.AINavalTransport) prototype.flags.Add(SaveUnitPrototype.Flag.AINavalTransport);
+				if (prto.AIArtillery) prototype.flags.Add(SaveUnitPrototype.Flag.AIArtillery);
+				if (prto.AIExplore) prototype.flags.Add(SaveUnitPrototype.Flag.AIExplore);
+				if (prto.AIArmy) prototype.flags.Add(SaveUnitPrototype.Flag.AIArmy);
+				if (prto.AICruiseMissile) prototype.flags.Add(SaveUnitPrototype.Flag.AICruiseMissile);
+				if (prto.AIAirBombard) prototype.flags.Add(SaveUnitPrototype.Flag.AIAirBombard);
+				if (prto.AIAirDefense) prototype.flags.Add(SaveUnitPrototype.Flag.AIAirDefense);
+				if (prto.AINavalPower) prototype.flags.Add(SaveUnitPrototype.Flag.AINavalPower);
+				if (prto.AIAirTransport) prototype.flags.Add(SaveUnitPrototype.Flag.AIAirTransport);
+				if (prto.AINavalCarrier) prototype.flags.Add(SaveUnitPrototype.Flag.AINavalCarrier);
+				if (prto.AITerraform) prototype.flags.Add(SaveUnitPrototype.Flag.AITerraform);
+				if (prto.AISettle) prototype.flags.Add(SaveUnitPrototype.Flag.AISettle);
+				if (prto.AITacticalNuke) prototype.flags.Add(SaveUnitPrototype.Flag.AITacticalNuke);
+				if (prto.AIICBM) prototype.flags.Add(SaveUnitPrototype.Flag.AIICBM);
+				if (prto.AINavalMissileTransport) prototype.flags.Add(SaveUnitPrototype.Flag.AINavalMissileTransport);
 				if (prto.RequireSupport == 0) prototype.flags.Add(SaveUnitPrototype.Flag.NoSupportRequired);
 				int[] targets = stealthTargets != null && prtoIndex < stealthTargets.Length ? stealthTargets[prtoIndex] : null;
 				if (targets != null && targets.Length > 0) {
@@ -2042,7 +2066,7 @@ namespace C7GameData {
 					continue;
 				}
 				// A repeat for another AI strategy adds its strategies.
-				foreach (SaveUnitPrototype.Flag strategy in new[] { SaveUnitPrototype.Flag.AIOffense, SaveUnitPrototype.Flag.AIDefense, SaveUnitPrototype.Flag.AINavalTransport }) {
+				foreach (SaveUnitPrototype.Flag strategy in AIStrategyFlags) {
 					if (prototype.flags.Contains(strategy)) {
 						existing.flags.Add(strategy);
 					}
@@ -2340,6 +2364,8 @@ namespace C7GameData {
 				(bldg.AllowsWaterTrade, SaveBuilding.Flag.AllowsWaterTrade),
 				(bldg.AllowsAirTrade, SaveBuilding.Flag.AllowsAirTrade),
 				(bldg.DoublesSacrifice, SaveBuilding.Flag.DoublesSacrifice),
+				(bldg.ResistantToBribery, SaveBuilding.Flag.ResistantToBribery),
+				(bldg.DoubleCityDefenses, SaveBuilding.Flag.DoubleCityDefenses),
 				// The BIQ has the flag twice, among the improvement flags and
 				// among the small wonder ones; conquests.biq sets the
 				// improvement one on Iron Works ("The city that builds it must

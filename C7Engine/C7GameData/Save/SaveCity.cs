@@ -106,6 +106,13 @@ namespace C7GameData.Save {
 		public bool governorEmphasizesFood;
 		public bool governorEmphasizesProduction;
 		public bool governorEmphasizesCommerce;
+		// Its production options; off, and every kind "Sometimes", in older
+		// saves.
+		public bool governorManagesProduction;
+		public bool governorNeverBuildsWonders;
+		public bool governorNeverBuildsSmallWonders;
+		public int governorProduceNever;
+		public int governorProduceOften;
 		public List<SaveCityResident> residents = new List<SaveCityResident>();
 		public List<SaveCityBuilding> buildings = [];
 		public List<SaveQueuedProducible> productionQueue = [];
@@ -150,6 +157,11 @@ namespace C7GameData.Save {
 			governorEmphasizesFood = city.governor.emphasizeFood;
 			governorEmphasizesProduction = city.governor.emphasizeProduction;
 			governorEmphasizesCommerce = city.governor.emphasizeCommerce;
+			governorManagesProduction = city.governor.manageProduction;
+			governorNeverBuildsWonders = city.governor.neverBuildWonders;
+			governorNeverBuildsSmallWonders = city.governor.neverBuildSmallWonders;
+			governorProduceNever = (int)city.governor.produceNever;
+			governorProduceOften = (int)city.governor.produceOften;
 			residents = city.residents.ConvertAll(resident => {
 				return new SaveCityResident {
 					nationality = resident.nationality?.name,
@@ -283,6 +295,11 @@ namespace C7GameData.Save {
 					emphasizeFood = governorEmphasizesFood,
 					emphasizeProduction = governorEmphasizesProduction,
 					emphasizeCommerce = governorEmphasizesCommerce,
+					manageProduction = governorManagesProduction,
+					neverBuildWonders = governorNeverBuildsWonders,
+					neverBuildSmallWonders = governorNeverBuildsSmallWonders,
+					produceNever = (ProductionKind)governorProduceNever,
+					produceOften = (ProductionKind)governorProduceOften,
 				},
 				capital = capital,
 				constructed_buildings = [],

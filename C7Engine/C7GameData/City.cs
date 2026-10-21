@@ -968,13 +968,17 @@ namespace C7GameData {
 
 		// What the city builds once it has finished an item: the next item in
 		// its production queue that can still be built, or, for a human player
-		// with nothing queued, the same unit again. Otherwise the AI picks.
+		// with nothing queued, the same unit again, unless the city's governor
+		// manages production (Civ3 FUN_00438ab0 at 0x438c49 repeats the unit
+		// only if governor flag 0x10 is off). Otherwise the AI picks, with
+		// the governor's production options (see GovernorProduction).
 		private IProducible ChooseNextProduction(GameData gameData, IProducible completed) {
 			IProducible queued = TakeNextQueuedProduction(gameData);
 			if (queued != null) {
 				return queued;
 			}
-			if (owner.isHuman && completed is UnitPrototype && ListProductionOptions(gameData).Contains(completed)) {
+			if (owner.isHuman && !governor.manageProduction && completed is UnitPrototype
+					&& ListProductionOptions(gameData).Contains(completed)) {
 				return completed;
 			}
 			return ChooseProducible.Choose(this, owner);
