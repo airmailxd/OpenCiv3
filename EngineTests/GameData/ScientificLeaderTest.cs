@@ -317,6 +317,34 @@ public class ScientificLeaderTest : IClassFixture<SaveGameFixture> {
 		Assert.DoesNotContain(leader, gameData.mapUnits);
 	}
 
+	// A leader in a safe city of ours where it
+	// would save at least half as much as at the empire's best target is
+	// used there, rather than wander after a best target that keeps
+	// changing.
+	[Fact]
+	public void TheAIUsesItWhereItIsWhenThatSavesEnough() {
+		City here = BuildCity(us);
+		foreach (City c in us.cities) {
+			c.receivedForestShields = true;
+			c.SetItemBeingProduced(BuildingNamed("Temple"));
+			c.SetStoredShields(us.ShieldCost(BuildingNamed("Temple")));
+		}
+		UnitPrototype costliest = gameData.unitPrototypes.Where(p => p.shieldCost > 0)
+			.OrderByDescending(p => us.ShieldCost(p)).First();
+		UnitPrototype cheaper = gameData.unitPrototypes.Where(p => us.ShieldCost(p) < us.ShieldCost(costliest)
+			&& 2 * us.ShieldCost(p) >= us.ShieldCost(costliest)).First();
+		capital.SetItemBeingProduced(costliest);
+		capital.SetStoredShields(0);
+		here.SetItemBeingProduced(cheaper);
+		here.SetStoredShields(0);
+		Assert.Equal(capital, PlayerAI.BestBuildForScientificLeader(us).Item1);
+
+		MapUnit leader = SpawnScientificLeader(here.location);
+		Assert.True(PlayerAI.UseLeaderInCity(leader, us));
+		Assert.Equal(us.ShieldCost(cheaper), here.shieldsStored);
+		Assert.Equal(0, capital.shieldsStored);
+	}
+
 	// With nothing to finish anywhere, it waits in the capital.
 	[Fact]
 	public void WithNothingToFinishTheAIKeepsItInTheCapital() {

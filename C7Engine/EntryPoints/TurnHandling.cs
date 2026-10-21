@@ -197,6 +197,7 @@ namespace C7Engine {
 				if (toMove.Count > 0) {
 					EngineStorage.activePlayerID = toMove[0].id;
 					foreach (Player human in toMove) {
+						BeginPlayersTurn(human, gameData);
 						StartHumanTurn(human, gameData);
 					}
 					return true;
@@ -213,6 +214,7 @@ namespace C7Engine {
 				}
 
 				await EngineStorage.YieldIfFrameBudgetSpent();
+				BeginPlayersTurn(player, gameData);
 				if (player.isBarbarians) {
 					await BarbarianAI.PlayTurn(player, gameData);
 				} else if (!player.isHuman) {
@@ -258,6 +260,15 @@ namespace C7Engine {
 		}
 
 		// Hands the turn to a human, or to the player being observed.
+		// What happens to the player's units as its own turn begins, rather
+		// than at the end of the round (InitTurnData): their air missions
+		// end (MapUnit.BeginOwnersTurn).
+		internal static void BeginPlayersTurn(Player player, GameData gameData) {
+			foreach (MapUnit unit in player.units) {
+				unit.BeginOwnersTurn(gameData.turn);
+			}
+		}
+
 		private static void StartHumanTurn(Player player, GameData gameData) {
 			if (player.isHuman) {
 				// TODO: Before we call this method to automatically end obsolete deals, we could make this more versatile.

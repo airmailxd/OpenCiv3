@@ -569,6 +569,9 @@ namespace C7Engine {
 			if (!unit.IsLeader() || !unit.CanOfferHurryProduction()) {
 				return false;
 			}
+			if (UseMilitaryLeaderByChoice(unit, player) is bool used) {
+				return used;
+			}
 			if (ArmyAI.ShouldFormArmy(unit, player)) {
 				return ArmyAI.FormArmy(unit, player) != null;
 			}
@@ -607,6 +610,115 @@ namespace C7Engine {
 				unit.Wake();
 			}
 			return false;
+		}
+
+		// The rules a military leader follows in C3C: "A Military Leader can
+		// be used to either create an army or to hurry production of an
+		// Improvement or Small Wonder in a city" (Civilopedia, GCON_Leaders;
+		// compendium 01, 1.3), never a great wonder (compendium 04, "Great
+		// Leader hurry"). It forms an army in any of our cities, without a
+		// Military Academy, which only lets a city build armies.
+		//
+		// HEURISTIC: a military leader forms an army when we are at war or
+		// planning one and good attackers are at hand
+		// (ArmyAI.ShouldFormArmyForWar). Otherwise it rushes the most
+		// valuable improvement or small wonder in any of our cities
+		// (BestBuildForMilitaryLeader), going there if need be. Returns
+		// whether the leader was used up, or null with nothing worth its
+		// while anywhere, to fall back on the older choice below.
+		//
+		// In AI trials (AiTrialTest, 8 games of 200 turns on each map) this
+		// and the scientific leader's change (see UseScientificLeader) were
+		// no weaker, so they were adopted: paired, +3 +- 4 on Continents and
+		// +58 +- 53 on Pangaea; all civs, 1562 against 1562 and 1523 against
+		// 1506 without. Military leaders hardly ever arose in those games,
+		// so what the trials saw is mostly the scientific leader's change.
+		private static bool? UseMilitaryLeaderByChoice(MapUnit unit, Player player) {
+			if (ArmyAI.ShouldFormArmyForWar(unit, player)) {
+				return ArmyAI.FormArmy(unit, player) != null;
+			}
+			(City target, Building item) = BestBuildForMilitaryLeader(player, unit);
+			if (target == null) {
+				return null;
+			}
+			if (unit.location == target.location) {
+				if (target.itemBeingProduced != item) {
+					target.ChangeProduction(item);
+				}
+				return unit.CanHurryProduction() && unit.HurryProductionAsLeader();
+			}
+			if (unit.currentAI is not DefenderAI { data.destination: Tile going } || going != target.location) {
+				UnitAI ai = MakeLeaderAI(unit, player);
+				if (ai is DefenderAI { data.destination: Tile destination } && destination != unit.location) {
+					unit.currentAI = ai;
+					unit.Wake();
+				}
+			}
+			return false;
+		}
+
+		// HEURISTIC: the city, and improvement
+		// or small wonder, a military leader would do most good rushing: of
+		// what each city is building and the buildings it wants
+		// (ChooseProducible.ScoreBuilding above 0 once the penalty for the
+		// turns it takes, which the leader saves, is put back), the one with the most
+		// shields left, counted half again for a defensive building (walls
+		// or a defence bonus) in a threatened city and a quarter again for
+		// one that adds production, and less 3 shields for each tile the
+		// leader must walk. A build that's nearly done, with less than half
+		// its cost or 3 turns of the city's shields to go, is never chosen:
+		// the city will finish it soon anyway. Nor is a non-defensive build
+		// in a threatened city, which may just be captured. (null, null) if
+		// nothing qualifies.
+		internal static (City, Building) BestBuildForMilitaryLeader(Player player, MapUnit leader = null) {
+			City bestCity = null;
+			Building best = null;
+			double bestValue = 0;
+			foreach (City city in player.cities) {
+				if (city.hurriedThisTurn) {
+					continue;
+				}
+				bool threatened = WonderPlanner.IsThreatened(city, player);
+				int perTurn = Math.Max(1, city.CurrentProductionYield().useful);
+				void Consider(Building b) {
+					if (b.IsGreatWonder()) {
+						return;
+					}
+					int cost = player.ShieldCost(b);
+					int remaining = cost - city.shieldsStored;
+					if (2 * remaining < cost || remaining <= 3 * perTurn) {
+						return;
+					}
+					bool defensive = b.providesWalls || b.combatDefenseBonus != null;
+					if (threatened && !defensive) {
+						return;
+					}
+					double value = remaining;
+					if (threatened && defensive) {
+						value *= 1.5;
+					} else if (b.productionBonusPercent > 0) {
+						value *= 1.25;
+					}
+					if (leader != null && Tile.IsTileValid(leader.location)) {
+						value -= 3 * leader.location.DistanceTo(city.location);
+					}
+					if (value > bestValue) {
+						(bestCity, best, bestValue) = (city, b, value);
+					}
+				}
+				if (city.itemBeingProduced is Building current) {
+					Consider(current);
+				}
+				List<IProducible> options = city.ListProductionOptions(EngineStorage.gameData).ToList();
+				ChooseProducible.ProducibleStats stats = ChooseProducible.CalculateStats(city, player, options);
+				foreach (IProducible p in options) {
+					if (p is Building b && b != city.itemBeingProduced && city.CanChangeProduction(b)
+							&& ChooseProducible.ScoreBuilding(stats, city, player, b) + city.TurnsToProduce(b) > 0) {
+						Consider(b);
+					}
+				}
+			}
+			return (bestCity, best);
 		}
 
 		// The most expensive improvement or small wonder the city can build
@@ -661,6 +773,18 @@ namespace C7Engine {
 			if (target == null || item == null) {
 				return false;
 			}
+			// The empire's best build changes
+			// from turn to turn as cities switch production, so a leader
+			// chasing it could wander for many turns (seen in AI trials: a
+			// scientific leader visited a dozen cities without being used).
+			// HEURISTIC: in a safe city of ours where it would save at least
+			// half as many shields as at the best target, it is used here.
+			if (unit.location.cityAtTile is City here && here.owner == player
+					&& here != target && !here.hurriedThisTurn && !WonderPlanner.IsThreatened(here, player)
+					&& BestBuildHereForScientificLeader(here) is (IProducible local, int saved)
+					&& 2 * saved >= player.ShieldCost(item) - target.shieldsStored) {
+				(target, item) = (here, local);
+			}
 			if (unit.location == target.location && unit.CanOfferHurryProduction()) {
 				if (target.itemBeingProduced != item) {
 					target.ChangeProduction(item);
@@ -707,6 +831,28 @@ namespace C7Engine {
 			}
 			City capital = player.cities.FirstOrDefault(c => c.capital);
 			return capital == null ? (null, null) : (capital, BestNonWonderForScientificLeader(capital).Item1);
+		}
+
+		// The build in the city a scientific leader would save the most
+		// shields on, wonder or not, and the shields, or null with nothing
+		// (see UseScientificLeader).
+		private static (IProducible, int)? BestBuildHereForScientificLeader(City city) {
+			(IProducible best, int bestRemaining) = BestNonWonderForScientificLeader(city);
+			void Consider(Building b) {
+				int remaining = city.owner.ShieldCost(b) - city.shieldsStored;
+				if (remaining > bestRemaining) {
+					(best, bestRemaining) = (b, remaining);
+				}
+			}
+			if (city.itemBeingProduced is Building current && City.IsWonder(current)) {
+				Consider(current);
+			}
+			foreach (IProducible p in city.ListProductionOptions(EngineStorage.gameData)) {
+				if (p is Building b && City.IsWonder(b) && city.CanChangeProduction(b)) {
+					Consider(b);
+				}
+			}
+			return best == null ? null : (best, bestRemaining);
 		}
 
 		// The non-wonder build in the city that would save the most shields,
@@ -784,6 +930,10 @@ namespace C7Engine {
 			if (unit.IsScientificLeader()) {
 				scientificTarget = BestBuildForScientificLeader(player).Item1
 					?? player.cities.FirstOrDefault(c => c.capital);
+			} else {
+				// The city the leader would rush a build in (see
+				// UseMilitaryLeaderByChoice), if any.
+				scientificTarget = BestBuildForMilitaryLeader(player, unit).Item1;
 			}
 			foreach (bool needUsable in new[] { true, false }) {
 				foreach (City city in player.cities.OrderBy(c => c.location.DistanceTo(unit.location))) {

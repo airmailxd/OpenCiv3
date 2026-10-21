@@ -195,6 +195,11 @@ namespace C7Engine.AI {
 			return campaigns.TryGetValue(player, out Campaign c) && c.enemy == enemy;
 		}
 
+		// Whether we have a campaign planned or under way against anyone.
+		public static bool HasCampaign(Player player) {
+			return campaigns.TryGetValue(player, out Campaign c) && c.enemy != null;
+		}
+
 		public static bool HasCampaignAgainst(Player player, Player enemy) {
 			return campaigns.TryGetValue(player, out Campaign c) && c.enemy == enemy && c.phase != Phase.Gather;
 		}

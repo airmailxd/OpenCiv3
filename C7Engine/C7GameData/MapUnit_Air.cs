@@ -27,6 +27,12 @@ namespace C7GameData {
 		// TryToIntercept). Reset at the start of each of its owner's turns.
 		public bool isOnAirSuperiority;
 
+		// The turn the fighter was set on air superiority. The stance is
+		// cleared when its owner's next turn begins (BeginOwnersTurn), not at
+		// the end of the round: a fighter set by a civ late in the turn order
+		// still intercepts during the next round, until that civ moves again.
+		public int airSuperiorityTurn;
+
 		// Whether this fighter has intercepted a bombing run since its
 		// owner's turn began: "Each fighter can make one interception per
 		// turn" (T-hawk, https://forums.civfanatics.com/threads/aerial-combat-mechanics.90783/).
@@ -170,6 +176,7 @@ namespace C7GameData {
 				return;
 			}
 			isOnAirSuperiority = true;
+			airSuperiorityTurn = EngineStorage.gameData?.turn ?? 0;
 			EndMission();
 		}
 
@@ -417,9 +424,16 @@ namespace C7GameData {
 			}
 		}
 
-		// Called at the start of the owner's turn.
-		private void ResetAirMissions() {
-			isOnAirSuperiority = false;
+		// Called when the owner's turn begins (TurnHandling.PlayPlayerTurns).
+		// A fighter set on air superiority flies it from the moment it is
+		// set until this point, through the whole interturn (owner's
+		// decision, 2026-10-21: no lost turn after setting it; see
+		// TryToIntercept). A stance set on this same turn is kept, so that
+		// loading a save made during the owner's turn doesn't end it.
+		public void BeginOwnersTurn(int turn) {
+			if (airSuperiorityTurn < turn) {
+				isOnAirSuperiority = false;
+			}
 			hasInterceptedThisTurn = false;
 		}
 

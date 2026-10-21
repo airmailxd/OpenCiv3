@@ -742,7 +742,9 @@ retreat bonus, see `QueryCiv3/BiqSections/Expr.cs`), so it is not a source eithe
   (post-16319627, page-46 #916): "bombarding a city with a wall given by a wonder will instead destroy
   random other buildings"; Pifou42 (post-16891617, page-160 #3187) calls it a known vanilla bug where "bombarding a city
   with virtual walls given by Great Wall" can destroy the next building. Both are play reports, and both call it a bug.
-  The intended handling of a hit on a free wall is not documented; the engine should not reproduce either form.
+  The intended handling of a hit on a free wall is not documented. Engine ruling (owner, 2026-10-21): Lanzelot's
+  form is kept on purpose; a town with wonder-given walls is immune to land bombardment, while ships, aircraft and
+  cruise missiles hit it in their own order.
 - **Great Wonders can be destroyed by bombardment until the owner reaches the Industrial Age** (C3C 1.22, community).
   CFC-BOMB122 (#1): "If the bombardement occurs against a settlement of a civilization that has reached the industrial
   age," / "then any world wonder in this settlement is immune against any bombardment." / "Before the target
@@ -1414,7 +1416,7 @@ retreat bonus, see `QueryCiv3/BiqSections/Expr.cs`), so it is not a source eithe
 14. ~~**Militaristic and promotion.**~~ *Resolved: Militaristic doubles the chance.* The routine Antal1987 posted
     (CFC-LCODE #8) halves the promotion ratio when `CheckBonus(race, 0)` is true, and index 0 is `RB_Militaristic` in
     the C3X header for the same executable (§1.2). His "no militaristic check" missed what that call tests.
-15. **Can bombardment destroy Great Wonders?** justanick (CFC-BOMB122, C3C 1.22): yes, until the owner reaches the
+15. **Can bombardment destroy Great Wonders?** *Engine ruling (owner, 2026-10-21): never, in any era.* justanick (CFC-BOMB122, C3C 1.22): yes, until the owner reaches the
     Industrial Age; zerksees (thread 278312, C3C 1.22) destroyed Sun Tzu's with a trebuchet. Dominus Romae (thread
     128868, #9, "At least in PTW 1.27f and C3C 1.22"): no. TimBentley (#12): the Great Wall itself can be bombed away in
     a town of size 6 or less, "a rather annoying bug". *C3X-THREAD (code reading):* Flintlock (post-16725029,

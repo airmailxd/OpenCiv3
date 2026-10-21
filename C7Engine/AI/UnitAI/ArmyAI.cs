@@ -63,6 +63,36 @@ namespace C7Engine.AI.UnitAI {
 			return recruits >= 3 && player.ArmyCount() == 0;
 		}
 
+		// Whether a leader should form an army
+		// rather than rush a build. HEURISTIC: only at war or with a war
+		// campaign planned, and with at least two good attackers within
+		// RecruitRange to fill it: offensive units (IsRecruit) with at least
+		// GoodAttackerShare of the attack of our best offensive unit. An army
+		// at peace with nothing to do is a leader wasted; rushing a
+		// building pays at once.
+		internal static bool ShouldFormArmyForWar(MapUnit leader, Player player) {
+			if (!IsEnabled(player) || !leader.CanFormArmy()) {
+				return false;
+			}
+			if (!IsInAnyWar(player, EngineStorage.gameData.players) && !WarCampaign.HasCampaign(player)) {
+				return false;
+			}
+			int best = 0;
+			foreach (MapUnit u in player.units) {
+				if (IsRecruit(u, player)) {
+					best = Math.Max(best, u.unitType.attack);
+				}
+			}
+			Tile tile = leader.location;
+			int good = player.units.Count(u => IsRecruit(u, player) && u.location.DistanceTo(tile) <= RecruitRange
+				&& u.unitType.attack >= GoodAttackerShare * best);
+			return good >= 2;
+		}
+
+		// HEURISTIC: an attacker counts as good for an army if its attack is
+		// at least this share of our best attacker's.
+		private const double GoodAttackerShare = 0.75;
+
 		// The score of building an army in the city, or null not to. Only at
 		// war, when the empire
 		// can support another, with offensive units nearby to fill it.

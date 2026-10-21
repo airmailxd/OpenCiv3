@@ -33,7 +33,8 @@ public partial class MapUnit {
 		defensiveBombardsRemaining = 1;
 		hasAttackedThisTurn = false;
 		hasPillagedThisTurn = false;
-		ResetAirMissions();
+		// Air missions end when the owner's own turn begins, not at the end
+		// of the round (see BeginOwnersTurn).
 
 		if (isSentried && location.neighbors.Values.Any(t => t.unitsOnTile.Any(ShouldWakeSentryFor))) {
 			Wake();

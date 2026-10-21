@@ -190,28 +190,43 @@ public class GoodyHutTest : IClassFixture<SaveGameFixture> {
 		}
 	}
 
-	// Only Ancient techs, not the current research unless it's the last,
-	// and cheaper ones likelier.
+	// Only Ancient techs, and not the current research unless it's the
+	// last.
 	[Fact]
-	public void HutTechsAreAncientCheapLikelierAndNotTheCurrentResearch() {
+	public void HutTechsAreAncientAndNotTheCurrentResearch() {
 		ai.eraCivilopediaName = "ERAS_Ancient_Times";
 		List<Tech> techs = GoodyHuts.TechsToLearn(gameData, ai);
 		Assert.All(techs, t => Assert.Equal(0, EraUtils.GetEraIndex(t.EraCivilopediaName)));
 		Assert.True(techs.Count > 1);
 		ai.SetCurrentlyResearchedTech(techs[0].id);
 		Assert.DoesNotContain(techs[0], GoodyHuts.TechsToLearn(gameData, ai));
+	}
 
-		Tech cheap = new() { Name = "Cheap", Cost = 1 };
-		Tech dear = new() { Name = "Dear", Cost = 9 };
-		int cheapPicks = 0;
+	// The hut's tech is a roll weighted by the AI's tech values
+	// (DevelopmentAI.TechValue), as research is (owner's decision,
+	// 2026-10-21).
+	[Fact]
+	public void HutTechsAreWeightedByTheAisTechValues() {
+		ai.eraCivilopediaName = "ERAS_Ancient_Times";
+		List<Tech> techs = GoodyHuts.TechsToLearn(gameData, ai);
+		int beakers = ai.BeakersPerTurn();
+		List<(Tech tech, double value)> valued = techs
+			.Select(t => (t, C7Engine.AI.DevelopmentAI.TechValue(gameData, ai, t, beakers)))
+			.OrderBy(v => v.Item2).ToList();
+		(Tech low, double lowValue) = valued[0];
+		(Tech high, double highValue) = valued[^1];
+		Assert.True(highValue > lowValue * 1.2, $"{high.Name} {highValue} vs {low.Name} {lowValue}");
+
 		C7GameData.GameData.rng = new System.Random(5);
-		for (int i = 0; i < 1000; ++i) {
-			if (GoodyHuts.PickTech([cheap, dear]) == cheap) {
-				++cheapPicks;
+		int highPicks = 0;
+		const int Rolls = 4000;
+		for (int i = 0; i < Rolls; ++i) {
+			if (GoodyHuts.PickTech(gameData, ai, [low, high]) == high) {
+				++highPicks;
 			}
 		}
-		// Nine to one.
-		Assert.InRange(cheapPicks, 850, 950);
+		double expected = Rolls * highValue / (highValue + lowValue);
+		Assert.InRange(highPicks, expected - 150, expected + 150);
 	}
 
 	// A hut becomes a city only four tiles (as corruption counts) from any

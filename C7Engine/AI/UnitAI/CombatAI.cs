@@ -176,8 +176,35 @@ namespace C7Engine.AI.UnitAI {
 		// (BlueSox14,
 		// https://forums.civfanatics.com/threads/hunting-down-the-barbarian-nw-se-axis-bug.674365).
 		// The project owner chose the intended behaviour over the bug (owner's
-		// decision, 2026-10-20).
+		// decision, 2026-10-20), and then asked for the bug's reach as well:
+		// barbarians "should always attack a unit on their top-left or
+		// bottom-right diagonal" (owner's decision, 2026-10-21). We read that
+		// as the union of the two searches: every tile within 6 steps all
+		// round, and the stock game's NW/SE diagonal out to 12 steps, with a
+		// target on the diagonal always considered and taken before any
+		// other. That keeps what players learned to expect of C3C barbarians
+		// (TimBentley, above: "then for anything on the NW/SE axis") without
+		// leaving them blind to a unit one tile off it.
 		internal const int BARBARIAN_TARGET_RANGE = 6;
+		internal const int BARBARIAN_DIAGONAL_RANGE = 12;
+
+		// The stock game's diagonal: the tiles up to 12 steps directly SE and
+		// NW, nearest first, SE before NW ("goes SE before NW", TimBentley,
+		// above). The executable adds the same offset to x and y, which in
+		// Civ3's tile coordinates is the SE (both up) and NW (both down)
+		// diagonal.
+		internal static IEnumerable<Tile> BarbarianDiagonalTiles(Tile here) {
+			for (int d = 1; d <= BARBARIAN_DIAGONAL_RANGE; ++d) {
+				Tile se = here.map.tileAt(here.XCoordinate + d, here.YCoordinate + d);
+				if (se != Tile.NONE) {
+					yield return se;
+				}
+				Tile nw = here.map.tileAt(here.XCoordinate - d, here.YCoordinate - d);
+				if (nw != Tile.NONE) {
+					yield return nw;
+				}
+			}
+		}
 
 		// Returns the known tiles that may hold an enemy unit or city, in a
 		// stable order. Only the tiles enemies are on are worth scoring, so
@@ -212,7 +239,7 @@ namespace C7Engine.AI.UnitAI {
 				if (here == null || here == Tile.NONE || here.map == null) {
 					return result;
 				}
-				foreach (Tile t in BarbarianSearchTiles(here)) {
+				foreach (Tile t in BarbarianDiagonalTiles(here).Concat(BarbarianSearchTiles(here))) {
 					if (player.tileKnowledge.isTileKnown(t) && seen.Add(t)) {
 						result.Add(t);
 					}
@@ -268,7 +295,22 @@ namespace C7Engine.AI.UnitAI {
 			// is a stable sort, so ties keep the enumeration order.
 			List<Tile> sortedTiles = scoredTiles.OrderByDescending(x => x.score).Select(x => x.tile).ToList();
 			PathingAlgorithm algorithm = PathingAlgorithmChooser.GetAlgorithm(unit);
-			int index = algorithm.FindFirstReachable(unit.location, sortedTiles, unit, out TilePath path);
+			TilePath path;
+			int index;
+			// A barbarian takes a reachable target on its NW/SE diagonal
+			// before any other (owner's decision, 2026-10-21; see
+			// BARBARIAN_TARGET_RANGE).
+			if (player.isBarbarians) {
+				HashSet<Tile> diagonal = new(BarbarianDiagonalTiles(unit.location), ReferenceEqualityComparer.Instance);
+				List<Tile> onDiagonal = sortedTiles.Where(diagonal.Contains).ToList();
+				if (onDiagonal.Count > 0) {
+					index = algorithm.FindFirstReachable(unit.location, onDiagonal, unit, out path);
+					if (index >= 0) {
+						return new CombatAIData { destination = onDiagonal[index], path = path };
+					}
+				}
+			}
+			index = algorithm.FindFirstReachable(unit.location, sortedTiles, unit, out path);
 			if (index < 0) {
 				return null;
 			}
