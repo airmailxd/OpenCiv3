@@ -164,6 +164,11 @@ namespace C7GameData {
 
 		public bool observerMode = false;
 
+		// Whether the scenario turned on Civ3's debug mode (its GAME "Debug
+		// Mode" flag), which unlocks the editing commands (see
+		// C7Engine.DebugMode). They never work in a LAN game.
+		public bool debugMode = false;
+
 		// On a LAN guest's machine that isn't sent all of the game, what the
 		// host worked out from what it didn't send; null otherwise.
 		public Save.HostFacts hostFacts;

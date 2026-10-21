@@ -69,6 +69,9 @@ namespace C7Engine {
 		public static Action<MessageToEngine> remoteEngine;
 		public static Action<MessageToUI> uiMessageRouter;
 
+		// Whether this machine is in a LAN game, as its host or a guest.
+		public static bool IsNetworked => remoteEngine != null || uiMessageRouter != null;
+
 		// Whether a LAN host has spectators, who may watch as a computer
 		// player and hear its news (see Player.IsToldNews). Only they are
 		// told it.

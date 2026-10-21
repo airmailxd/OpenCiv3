@@ -322,6 +322,11 @@ public partial class CityScreen : Control {
 			return;
 		}
 
+		if (@event is InputEventKey { Pressed: true, Echo: false } debugKey && HandleDebugKey(debugKey)) {
+			GetViewport().SetInputAsHandled();
+			return;
+		}
+
 		// If we left clicked on a tile, handle reassigning a citizen accordingly.
 		if (@event is InputEventMouseButton eventMouseButton) {
 			if (eventMouseButton.ButtonIndex == MouseButton.Left) {
@@ -346,6 +351,46 @@ public partial class CityScreen : Control {
 	}
 
 	private PopupOverlay Overlay => GetParent()?.GetNodeOrNull<PopupOverlay>("PopupOverlay");
+
+	// Debug mode's keys in the city screen (see C7Engine.DebugMode): A adds
+	// a citizen, S adds 100 shields and B opens EDITORBLDG (Civ3's city
+	// screen key handler, cases at 0x421020, 0x420f82 and 0x42110c). They
+	// work only in the player's own cities. Returns whether the key was one
+	// of them.
+	private bool HandleDebugKey(InputEventKey key) {
+		City city = tileAssignmentLayer.city;
+		PopupOverlay overlay = Overlay;
+		if (city == null || foreignView || overlay == null || overlay.ShowingPopup || key.CtrlPressed || key.AltPressed
+				|| LanSession.IsActive || !DebugMode.IsOn(EngineStorage.gameData)) {
+			return false;
+		}
+		switch (key.Keycode) {
+			case Key.A:
+				new MsgDebugAddCitizen(city).send();
+				return true;
+			case Key.S:
+				new MsgDebugAddShields(city).send();
+				return true;
+			case Key.B:
+				ShowEditorBuildingPopup(city, overlay);
+				return true;
+			default:
+				return false;
+		}
+	}
+
+	// Civ3's EDITORBLDG popup (script.txt): the improvements and wonders the
+	// city doesn't have.
+	private void ShowEditorBuildingPopup(City city, PopupOverlay overlay) {
+		List<Building> buildings = new();
+		EngineStorage.ReadGameData((GameData gameData) => buildings = DebugMode.BuildingsToAdd(gameData, city));
+		if (buildings.Count == 0) {
+			return;
+		}
+		productionMenu.Hide();
+		overlay.ShowPopup(new ListPopup("Select type of improvement/wonder to add", buildings.ConvertAll(b => b.name), 0,
+			index => new MsgDebugAddBuilding(city, buildings[index].name).send()), PopupOverlay.PopupCategory.Info);
+	}
 
 	private void ShowGovernor() {
 		City city = tileAssignmentLayer.city;

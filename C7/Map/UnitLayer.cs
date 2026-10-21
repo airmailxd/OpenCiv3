@@ -812,14 +812,19 @@ public partial class UnitLayer : LooseLayer {
 		return 1;
 	}
 
-	// The units on the tile the player sees: all of them in observer mode,
-	// otherwise all but invisible units it doesn't detect.
+	// The units on the tile the player sees: all of them in observer mode
+	// or debug mode (which sees everything, Civ3 FUN_004eba60), otherwise
+	// all but invisible units it doesn't detect.
 	public static List<MapUnit> ShownUnits(GameData gameData, Player player, Tile t) {
-		return gameData.observerMode ? t.unitsOnTile : t.UnitsSeenBy(player);
+		return SeesAllUnits(gameData) ? t.unitsOnTile : t.UnitsSeenBy(player);
+	}
+
+	private static bool SeesAllUnits(GameData gameData) {
+		return gameData.observerMode || C7Engine.DebugMode.IsOn(gameData);
 	}
 
 	private bool UnitsVisible(GameData gameData, Player player, Tile t) {
-		if (gameData.observerMode) {
+		if (SeesAllUnits(gameData)) {
 			return true;
 		}
 

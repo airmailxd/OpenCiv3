@@ -104,6 +104,7 @@ namespace C7GameData.Save {
 				VictoryConditions = data.victoryConditions,
 				GameOver = data.gameOver,
 				SimultaneousTurns = data.simultaneousTurns,
+				DebugMode = data.debugMode,
 				UnitedNations = data.unitedNations,
 				Winner = data.winner != null ? new SavePlayer(data.winner, data.map) : null,
 				VictoryBonus = data.victoryBonus,
@@ -166,6 +167,7 @@ namespace C7GameData.Save {
 			data.victoryBonus = VictoryBonus;
 			data.nuclearEvents = NuclearEvents;
 			data.simultaneousTurns = SimultaneousTurns;
+			data.debugMode = DebugMode;
 
 			BeginHistory(data);
 
@@ -689,6 +691,9 @@ namespace C7GameData.Save {
 		public int NuclearEvents { get; set; }
 		// Older saves, without it, have the humans take turns one by one.
 		public bool SimultaneousTurns { get; set; }
+		// See GameData.debugMode. Older saves, without it, aren't in debug
+		// mode.
+		public bool DebugMode { get; set; }
 		public UnitedNationsState UnitedNations = new();
 		// What a LAN host worked out for a guest that isn't sent all of the
 		// game; null otherwise.

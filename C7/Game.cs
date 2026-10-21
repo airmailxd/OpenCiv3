@@ -353,6 +353,7 @@ public partial class Game : Node {
 		if (watching) {
 			ToggleObserverMode();
 		}
+		StartDebugMode();
 
 		TurnHandling.OnBeginTurn();
 
@@ -2336,7 +2337,7 @@ public partial class Game : Node {
 
 	private bool TryStartUnitDrag(InputEventMouseButton eventMouseButton) {
 		draggingUnit = false;
-		if (bombardInfo != null || CurrentState != GameState.PlayerTurn || !IsMapUnitValid(CurrentlySelectedUnit)) {
+		if (bombardInfo != null || editorUnit != null || CurrentState != GameState.PlayerTurn || !IsMapUnitValid(CurrentlySelectedUnit)) {
 			return false;
 		}
 		MapUnit unit = CurrentlySelectedUnit;
@@ -2420,7 +2421,9 @@ public partial class Game : Node {
 	}
 
 	private void HandleSingleClick(Tile tile) {
-		if (gotoInfo != null) {
+		if (editorUnit != null) {
+			PlaceEditorUnit(tile);
+		} else if (gotoInfo != null) {
 			this.ResolveMovement(gotoInfo);
 			this.SetGotoMode(false);
 		} else if (bombardInfo != null) {
@@ -2499,6 +2502,10 @@ public partial class Game : Node {
 
 	private void HandleRightMouseButton(InputEventMouseButton eventMouseButton) {
 		this.SetGotoMode(false);
+		if (editorUnit != null) {
+			editorUnit = null;
+			return;
+		}
 
 		Tile tile = PositionToTile(eventMouseButton.Position);
 		if (Tile.IsTileValid(tile)) {
@@ -2608,6 +2615,10 @@ public partial class Game : Node {
 	}
 
 	private void HandleKeyboardInput(InputEventKey eventKeyDown) {
+		if (HandleDebugKey(eventKeyDown)) {
+			return;
+		}
+
 		if (eventKeyDown.Keycode == Godot.Key.O && eventKeyDown.ShiftPressed && eventKeyDown.IsCommandOrControlPressed() && eventKeyDown.AltPressed) {
 			if (!LanSession.IsActive) {
 				ToggleObserverMode();
@@ -2702,6 +2713,121 @@ public partial class Game : Node {
 			&& !eventKeyDown.Echo) {
 			mapView.bareMap = !mapView.bareMap;
 		}
+	}
+
+	// Whether Civ3's debug mode is on in this game (see C7Engine.DebugMode):
+	// never in a LAN game.
+	public bool DebugModeOn => !LanSession.IsActive && DebugMode.IsOn(EngineStorage.gameData);
+
+	// Debug mode is the scenario's to turn on (its GAME "Debug Mode" flag),
+	// or the --debug developer option's, which OpenCiv3 adds since its own
+	// rules have no editor to set the flag with. Civ3 then lets the player
+	// see everything (Civ3 FUN_004eba60 sets the see-all flag along with the
+	// debug one), which the revealed map and UnitLayer show.
+	private void StartDebugMode() {
+		if (LanSession.IsActive) {
+			return;
+		}
+		if (Array.IndexOf(OS.GetCmdlineUserArgs(), "--debug") >= 0) {
+			EngineStorage.ReadGameData((GameData gameData) => gameData.debugMode = true);
+		}
+		if (DebugModeOn) {
+			log.Information("Debug mode is on");
+			mapView.revealWholeMap = true;
+		}
+	}
+
+	// Debug mode's keys on the map: Shift+F1 opens EDITORUNIT, and "$" adds
+	// 100 gold (Civ3's map key handler, cases at 0x4e93e1 and 0x4ea5af).
+	// Returns whether the key was one of them.
+	private bool HandleDebugKey(InputEventKey key) {
+		if (!DebugModeOn || key.Echo || HasVisibleModal() || CurrentState != GameState.PlayerTurn) {
+			return false;
+		}
+		if (key.Keycode == Godot.Key.F1 && key.ShiftPressed && !key.IsCommandOrControlPressed() && !key.AltPressed) {
+			editorUnitOwner = controller;
+			ShowEditorUnitPopup();
+			return true;
+		}
+		if (key.Unicode == '$') {
+			new MsgDebugAddGold().send();
+			return true;
+		}
+		return false;
+	}
+
+	// The unit EDITORUNIT puts on each tile clicked, until Escape or a
+	// right click; null when not placing one.
+	private record EditorUnit(Player owner, string type, string experienceKey);
+	private EditorUnit editorUnit;
+
+	// What EDITORUNIT has chosen. The owner starts as the player each time
+	// it opens; the unit type and experience are remembered (Civ3
+	// FUN_004ebed0, DAT_00a4abb8 and DAT_0074621c).
+	private Player editorUnitOwner;
+	private string editorUnitType;
+	private string editorExperienceKey;
+
+	// Civ3's EDITORUNIT popup (script.txt): every unit type, with buttons to
+	// choose the owner and the experience level. Its "All" button flips a
+	// flag (DAT_00a4abb4) that nothing reads, so here it only shows the list
+	// again.
+	private void ShowEditorUnitPopup() {
+		List<string> types = new();
+		EngineStorage.ReadGameData((GameData gameData) => {
+			types = gameData.unitPrototypes.ConvertAll(p => p.name);
+			editorExperienceKey ??= DebugMode.DefaultExperience(gameData)?.key;
+		});
+		popupOverlay.ShowPopup(new ListPopup("Select type of unit to create", types, types.IndexOf(editorUnitType),
+			index => {
+				editorUnitType = types[index];
+				editorUnit = new EditorUnit(editorUnitOwner ?? controller, editorUnitType, editorExperienceKey);
+			},
+			[
+				new ListPopup.Button("All", ShowEditorUnitPopup),
+				new ListPopup.Button("Player", ShowEditorOwnerPopup),
+				new ListPopup.Button("Experience", ShowEditorExperiencePopup),
+			]), PopupOverlay.PopupCategory.Info);
+	}
+
+	// EDITORUNIT's Player button (Civ3 FUN_004ebbc0, "EDITORWHO"): the
+	// players still in the game. Civ3's script.txt has no EDITORWHO entry,
+	// so the caption is that of its EDITVEHWHO.
+	private void ShowEditorOwnerPopup() {
+		List<Player> owners = new();
+		EngineStorage.ReadGameData((GameData gameData) => owners = DebugMode.UnitOwners(gameData));
+		popupOverlay.ShowPopup(new ListPopup("Select Unit Owner", owners.ConvertAll(p => p.civilization.name),
+			owners.IndexOf(editorUnitOwner ?? controller),
+			index => {
+				editorUnitOwner = owners[index];
+				ShowEditorUnitPopup();
+			}), PopupOverlay.PopupCategory.Info);
+	}
+
+	// EDITORUNIT's Experience button: the same list, of the experience
+	// levels.
+	private void ShowEditorExperiencePopup() {
+		List<ExperienceLevel> levels = new();
+		EngineStorage.ReadGameData((GameData gameData) => levels = gameData.experienceLevels.ToList());
+		popupOverlay.ShowPopup(new ListPopup("Select type of unit to create", levels.ConvertAll(l => l.displayName),
+			levels.FindIndex(l => l.key == editorExperienceKey),
+			index => {
+				editorExperienceKey = levels[index].key;
+				ShowEditorUnitPopup();
+			}), PopupOverlay.PopupCategory.Info);
+	}
+
+	// A click while placing: Civ3 puts the unit there unless Shift or Ctrl
+	// is held (FUN_004ef820).
+	private void PlaceEditorUnit(Tile tile) {
+		if (!DebugModeOn || !Tile.IsTileValid(tile)) {
+			editorUnit = null;
+			return;
+		}
+		if (Input.IsKeyPressed(Godot.Key.Shift) || Input.IsKeyPressed(Godot.Key.Ctrl)) {
+			return;
+		}
+		new MsgDebugCreateUnit(editorUnit.owner, editorUnit.type, editorUnit.experienceKey, tile).send();
 	}
 
 	private void ToggleObserverMode() {
@@ -2904,6 +3030,11 @@ public partial class Game : Node {
 
 		if (currentAction == C7Action.Escape && bombardInfo != null) {
 			setBombard(null);
+			return;
+		}
+
+		if (currentAction == C7Action.Escape && editorUnit != null) {
+			editorUnit = null;
 			return;
 		}
 

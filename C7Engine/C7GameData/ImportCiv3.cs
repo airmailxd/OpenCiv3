@@ -112,6 +112,9 @@ namespace C7GameData {
 			save.HealRates["hostile_field"] = 0;
 			save.HealRates["city"] = 2;
 			save.ScenarioSearchPath = GameBiq?.Game?[0].ScenarioSearchFolders;
+			// The GAME section's "Debug Mode" flag, which Civ3 reads when the
+			// game starts (Civ3 FUN_004ff550, DAT_009e68f4).
+			save.DebugMode = (GameBiq?.Game?[0].DebugMode ?? 0) != 0;
 			ImportBarbarianInfo();
 			ImportCitizenTypes();
 			ImportGovernments();
